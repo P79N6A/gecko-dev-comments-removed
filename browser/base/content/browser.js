@@ -220,6 +220,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "SitePermissions",
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "TabState",
+  "resource:///modules/sessionstore/TabState.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm");
 
@@ -918,7 +921,22 @@ function _loadURIWithFlags(browser, uri, params) {
 
 function LoadInOtherProcess(browser, loadOptions, historyIndex = -1) {
   let tab = gBrowser.getTabForBrowser(browser);
-  SessionStore.navigateAndRestore(tab, loadOptions, historyIndex);
+  
+  TabState.flush(browser);
+  let tabState = JSON.parse(SessionStore.getTabState(tab));
+
+  if (historyIndex < 0) {
+    tabState.userTypedValue = null;
+    
+    SessionStore._restoreTabAndLoad(tab, JSON.stringify(tabState), loadOptions);
+  }
+  else {
+    
+    tabState.index = historyIndex + 1;
+    
+    
+    SessionStore.setTabState(tab, JSON.stringify(tabState));
+  }
 }
 
 
@@ -2675,6 +2693,12 @@ let gMenuButtonUpdateBadge = {
 };
 
 
+const TLS_ERROR_REPORT_TELEMETRY_AUTO_CHECKED   = 2;
+const TLS_ERROR_REPORT_TELEMETRY_AUTO_UNCHECKED = 3;
+const TLS_ERROR_REPORT_TELEMETRY_MANUAL_SEND    = 4;
+const TLS_ERROR_REPORT_TELEMETRY_AUTO_SEND      = 5;
+
+
 
 
 
@@ -2687,6 +2711,7 @@ let BrowserOnClick = {
     mm.addMessageListener("Browser:EnableOnlineMode", this);
     mm.addMessageListener("Browser:SendSSLErrorReport", this);
     mm.addMessageListener("Browser:SetSSLErrorReportAuto", this);
+    mm.addMessageListener("Browser:SSLErrorReportTelemetry", this);
   },
 
   uninit: function () {
@@ -2696,6 +2721,7 @@ let BrowserOnClick = {
     mm.removeMessageListener("Browser:EnableOnlineMode", this);
     mm.removeMessageListener("Browser:SendSSLErrorReport", this);
     mm.removeMessageListener("Browser:SetSSLErrorReportAuto", this);
+    mm.removeMessageListener("Browser:SSLErrorReportTelemetry", this);
   },
 
   handleEvent: function (event) {
@@ -2742,6 +2768,16 @@ let BrowserOnClick = {
       break;
       case "Browser:SetSSLErrorReportAuto":
         Services.prefs.setBoolPref("security.ssl.errorReporting.automatic", msg.json.automatic);
+        let bin = TLS_ERROR_REPORT_TELEMETRY_AUTO_UNCHECKED;
+        if (msg.json.automatic) {
+          bin = TLS_ERROR_REPORT_TELEMETRY_AUTO_CHECKED;
+        }
+        Services.telemetry.getHistogramById("TLS_ERROR_REPORT_UI").add(bin);
+      break;
+      case "Browser:SSLErrorReportTelemetry":
+        let reportStatus = msg.data.reportStatus;
+        Services.telemetry.getHistogramById("TLS_ERROR_REPORT_UI")
+          .add(reportStatus);
       break;
     }
   },
@@ -2762,6 +2798,12 @@ let BrowserOnClick = {
       Cu.reportError("User requested certificate error report sending, but certificate error reporting is disabled");
       return;
     }
+
+    let bin = TLS_ERROR_REPORT_TELEMETRY_MANUAL_SEND;
+    if (Services.prefs.getBoolPref("security.ssl.errorReporting.automatic")) {
+      bin = TLS_ERROR_REPORT_TELEMETRY_AUTO_SEND;
+    }
+    Services.telemetry.getHistogramById("TLS_ERROR_REPORT_UI").add(bin);
 
     let serhelper = Cc["@mozilla.org/network/serialization-helper;1"]
                            .getService(Ci.nsISerializationHelper);
@@ -6561,6 +6603,23 @@ var gIdentityHandler = {
   _mode : "unknownIdentity",
 
   
+  get _encryptionLabel () {
+    delete this._encryptionLabel;
+    this._encryptionLabel = {};
+    this._encryptionLabel[this.IDENTITY_MODE_DOMAIN_VERIFIED] =
+      gNavigatorBundle.getString("identity.encrypted2");
+    this._encryptionLabel[this.IDENTITY_MODE_IDENTIFIED] =
+      gNavigatorBundle.getString("identity.encrypted2");
+    this._encryptionLabel[this.IDENTITY_MODE_UNKNOWN] =
+      gNavigatorBundle.getString("identity.unencrypted");
+    this._encryptionLabel[this.IDENTITY_MODE_MIXED_DISPLAY_LOADED] =
+      gNavigatorBundle.getString("identity.broken_loaded");
+    this._encryptionLabel[this.IDENTITY_MODE_MIXED_ACTIVE_LOADED] =
+      gNavigatorBundle.getString("identity.mixed_active_loaded2");
+    this._encryptionLabel[this.IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED] =
+      gNavigatorBundle.getString("identity.broken_loaded");
+    return this._encryptionLabel;
+  },
   get _identityPopup () {
     delete this._identityPopup;
     return this._identityPopup = document.getElementById("identity-popup");
@@ -6573,6 +6632,11 @@ var gIdentityHandler = {
     delete this._identityPopupContentBox;
     return this._identityPopupContentBox =
       document.getElementById("identity-popup-content-box");
+  },
+  get _identityPopupChromeLabel () {
+    delete this._identityPopupChromeLabel;
+    return this._identityPopupChromeLabel =
+      document.getElementById("identity-popup-chromeLabel");
   },
   get _identityPopupContentHost () {
     delete this._identityPopupContentHost;
@@ -6593,6 +6657,11 @@ var gIdentityHandler = {
     delete this._identityPopupContentVerif;
     return this._identityPopupContentVerif =
       document.getElementById("identity-popup-content-verifier");
+  },
+  get _identityPopupEncLabel () {
+    delete this._identityPopupEncLabel;
+    return this._identityPopupEncLabel =
+      document.getElementById("identity-popup-encryption-label");
   },
   get _identityIconLabel () {
     delete this._identityIconLabel;
@@ -6912,31 +6981,24 @@ var gIdentityHandler = {
     this._identityPopupContentBox.className = newMode;
 
     
+    this._identityPopupEncLabel.textContent = this._encryptionLabel[newMode];
+
+    
     let supplemental = "";
     let verifier = "";
     let host = "";
     let owner = "";
 
-    if (newMode == this.IDENTITY_MODE_CHROMEUI) {
-      let brandBundle = document.getElementById("bundle_brand");
-      host = brandBundle.getString("brandFullName");
-    } else {
-      try {
-        host = this.getEffectiveHost();
-      } catch (e) {
-        
-        host = this._lastUri.specIgnoringRef;
-      }
-    }
-
     switch (newMode) {
     case this.IDENTITY_MODE_DOMAIN_VERIFIED:
+      host = this.getEffectiveHost();
       verifier = this._identityBox.tooltipText;
       break;
     case this.IDENTITY_MODE_IDENTIFIED: {
       
       let iData = this.getIdentityData();
-      host = owner = iData.subjectOrg;
+      host = this.getEffectiveHost();
+      owner = iData.subjectOrg;
       verifier = this._identityBox.tooltipText;
 
       
@@ -6949,21 +7011,17 @@ var gIdentityHandler = {
         supplemental += iData.state;
       else if (iData.country) 
         supplemental += iData.country;
-      break;
-    }
-    case this.IDENTITY_MODE_MIXED_DISPLAY_LOADED:
-    case this.IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED:
-      supplemental = gNavigatorBundle.getString("identity.broken_loaded");
-      break;
-    case this.IDENTITY_MODE_MIXED_ACTIVE_LOADED:
-      supplemental = gNavigatorBundle.getString("identity.mixed_active_loaded2");
-      break;
+      break; }
+    case this.IDENTITY_MODE_CHROMEUI: {
+      let brandBundle = document.getElementById("bundle_brand");
+      let brandShortName = brandBundle.getString("brandShortName");
+      this._identityPopupChromeLabel.textContent = gNavigatorBundle.getFormattedString("identity.chrome",
+                                                                                       [brandShortName]);
+      break; }
     }
 
     
-    
-    
-    this._identityPopupContentHost.value = host;
+    this._identityPopupContentHost.textContent = host;
     this._identityPopupContentOwner.textContent = owner;
     this._identityPopupContentSupp.textContent = supplemental;
     this._identityPopupContentVerif.textContent = verifier;
