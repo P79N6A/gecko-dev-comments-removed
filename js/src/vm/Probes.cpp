@@ -21,24 +21,6 @@ const char probes::anonymousName[] = "(anonymous)";
 
 bool probes::ProfilingActive = true;
 
-probes::JITReportGranularity
-probes::JITGranularityRequested(JSContext* cx)
-{
-    if (cx->runtime()->spsProfiler.enabled())
-        return JITREPORT_GRANULARITY_LINE;
-    return JITREPORT_GRANULARITY_NONE;
-}
-
-
-void
-probes::DiscardExecutableRegion(void* start, size_t size)
-{
-    
-
-
-
-}
-
 #ifdef INCLUDE_MOZILLA_DTRACE
 static const char*
 ScriptFilename(const JSScript* script)

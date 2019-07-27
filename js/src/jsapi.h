@@ -5232,13 +5232,6 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
 
 
 
-
-    bool initWithIterator(JS::HandleValue aIterator);
-
-    
-
-
-
     bool next(JS::MutableHandleValue val, bool* done);
 
     

@@ -160,37 +160,6 @@ CheckUninitializedLexical(JSContext* cx, HandleScript script, jsbytecode* pc, Ha
     return true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-MOZ_ALWAYS_INLINE JSObject*
-ValuePropertyBearer(JSContext* cx, InterpreterFrame* fp, HandleValue v, int spindex)
-{
-    if (v.isObject())
-        return &v.toObject();
-
-    Rooted<GlobalObject*> global(cx, &fp->global());
-
-    if (v.isString())
-        return GlobalObject::getOrCreateStringPrototype(cx, global);
-    if (v.isNumber())
-        return GlobalObject::getOrCreateNumberPrototype(cx, global);
-    if (v.isBoolean())
-        return GlobalObject::getOrCreateBooleanPrototype(cx, global);
-
-    MOZ_ASSERT(v.isNull() || v.isUndefined());
-    ReportIsNullOrUndefined(cx, spindex, v, nullptr);
-    return nullptr;
-}
-
 inline bool
 GetLengthProperty(const Value& lval, MutableHandleValue vp)
 {

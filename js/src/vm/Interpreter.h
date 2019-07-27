@@ -472,9 +472,6 @@ ReportUninitializedLexical(JSContext* cx, HandlePropertyName name);
 void
 ReportUninitializedLexical(JSContext* cx, HandleScript script, jsbytecode* pc);
 
-void
-ReportUninitializedLexical(JSContext* cx, HandleScript script, jsbytecode* pc, ScopeCoordinate sc);
-
 }  
 
 #endif 

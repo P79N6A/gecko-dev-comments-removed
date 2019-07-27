@@ -67,11 +67,6 @@ NewDenseFullyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject 
 
 
 extern ArrayObject*
-NewDenseCopiedArray(ExclusiveContext* cx, uint32_t length, HandleArrayObject src,
-                    uint32_t elementOffset, HandleObject proto = nullptr);
-
-
-extern ArrayObject*
 NewDenseCopiedArray(ExclusiveContext* cx, uint32_t length, const Value* values,
                     HandleObject proto = nullptr, NewObjectKind newKind = GenericObject);
 

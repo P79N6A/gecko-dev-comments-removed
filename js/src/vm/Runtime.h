@@ -1361,11 +1361,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     
 
 
-    JS_FRIEND_API(void) onTooMuchMalloc();
-
-    
-
-
 
 
 

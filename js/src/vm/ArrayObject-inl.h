@@ -91,25 +91,6 @@ ArrayObject::createArray(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHe
 }
 
  inline ArrayObject*
-ArrayObject::createArray(ExclusiveContext* cx, gc::InitialHeap heap,
-                         HandleShape shape, HandleObjectGroup group,
-                         HeapSlot* elements)
-{
-    
-    
-    
-    gc::AllocKind kind = gc::AllocKind::OBJECT0_BACKGROUND;
-
-    ArrayObject* obj = createArrayInternal(cx, kind, heap, shape, group);
-    if (!obj)
-        return nullptr;
-
-    obj->elements_ = elements;
-
-    return finishCreateArray(obj, shape);
-}
-
- inline ArrayObject*
 ArrayObject::createCopyOnWriteArray(ExclusiveContext* cx, gc::InitialHeap heap,
                                     HandleArrayObject sharedElementsOwner)
 {

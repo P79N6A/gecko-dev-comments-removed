@@ -60,12 +60,6 @@ extern const char anonymousName[];
 bool CallTrackingActive(JSContext*);
 
 
-
-
-
-bool WantNativeAddressInfo(JSContext*);
-
-
 bool EnterScript(JSContext*, JSScript*, JSFunction*, InterpreterFrame*);
 
 
@@ -87,28 +81,6 @@ bool CreateObject(ExclusiveContext* cx, JSObject* obj);
 
 
 bool FinalizeObject(JSObject* obj);
-
-
-
-enum JITReportGranularity {
-    JITREPORT_GRANULARITY_NONE = 0,
-    JITREPORT_GRANULARITY_FUNCTION = 1,
-    JITREPORT_GRANULARITY_LINE = 2,
-    JITREPORT_GRANULARITY_OP = 3
-};
-
-
-
-
-JITReportGranularity
-JITGranularityRequested(JSContext* cx);
-
-
-
-
-
-void
-DiscardExecutableRegion(void* start, size_t size);
 
 
 

@@ -48,14 +48,6 @@ class ArrayObject : public NativeObject
                 uint32_t length);
 
     
-    static inline ArrayObject*
-    createArray(ExclusiveContext* cx,
-                gc::InitialHeap heap,
-                HandleShape shape,
-                HandleObjectGroup group,
-                HeapSlot* elements);
-
-    
     
     static inline ArrayObject*
     createCopyOnWriteArray(ExclusiveContext* cx,

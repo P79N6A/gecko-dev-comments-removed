@@ -107,25 +107,6 @@ InterpreterFrame::initExecuteFrame(JSContext* cx, HandleScript script, AbstractF
 #endif
 }
 
-void
-InterpreterFrame::writeBarrierPost()
-{
-    
-    if (scopeChain_)
-        JSObject::writeBarrierPost(scopeChain_, &scopeChain_);
-    if (flags_ & HAS_ARGS_OBJ)
-        JSObject::writeBarrierPost(argsObj_, &argsObj_);
-    if (isFunctionFrame()) {
-        JSFunction::writeBarrierPost(exec.fun, &exec.fun);
-        if (isEvalFrame())
-            JSScript::writeBarrierPost(u.evalScript, &u.evalScript);
-    } else {
-        JSScript::writeBarrierPost(exec.script, &exec.script);
-    }
-    if (hasReturnValue())
-        HeapValue::writeBarrierPost(rval_, &rval_);
-}
-
 bool
 InterpreterFrame::copyRawFrameSlots(AutoValueVector* vec)
 {
@@ -1395,26 +1376,6 @@ NonBuiltinScriptFrameIter::settle()
 }
 
 
-
-JSObject*
-AbstractFramePtr::evalPrevScopeChain(JSContext* cx) const
-{
-    
-    AllFramesIter iter(cx);
-    while (iter.isIon() || iter.abstractFramePtr() != *this)
-        ++iter;
-    ++iter;
-    return iter.scopeChain(cx);
-}
-
-bool
-AbstractFramePtr::hasPushedSPSFrame() const
-{
-    if (isInterpreterFrame())
-        return asInterpreterFrame()->hasPushedSPSFrame();
-    MOZ_ASSERT(isBaselineFrame());
-    return false;
-}
 
 jit::JitActivation::JitActivation(JSContext* cx, CalleeToken entryPoint, bool active)
   : Activation(cx, Jit),

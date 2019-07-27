@@ -455,10 +455,6 @@ class CompartmentsIterT
 
 typedef CompartmentsIterT<ZonesIter> CompartmentsIter;
 
-
-Zone*
-ZoneOfValue(const JS::Value& value);
-
 } 
 
 #endif 
