@@ -56,9 +56,10 @@ struct SamplerRegistry {
 
 Sampler *SamplerRegistry::sampler = NULL;
 
-
+#ifdef DEBUG
 
 static const pthread_t kNoThread = (pthread_t) 0;
+#endif
 
 void OS::Startup() {
 }
