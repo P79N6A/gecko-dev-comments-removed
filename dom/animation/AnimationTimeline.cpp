@@ -42,6 +42,19 @@ AppendAnimationToSequence(nsRefPtrHashKey<dom::Animation>* aKey,
   MOZ_ASSERT(animation->GetTimeline() == params->mTimeline,
              "Animation should refer to this timeline");
 
+  
+  
+  
+  
+  
+  
+  Element* target;
+  nsCSSPseudoElements::Type pseudoType;
+  animation->GetEffect()->GetTarget(target, pseudoType);
+  if (pseudoType != nsCSSPseudoElements::ePseudo_NotPseudoElement) {
+    return PL_DHASH_NEXT;
+  }
+
   params->mSequence.AppendElement(animation);
 
   return PL_DHASH_NEXT;
