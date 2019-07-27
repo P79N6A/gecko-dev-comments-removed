@@ -360,6 +360,10 @@ Error(JSContext* cx, unsigned argc, Value* vp)
             return false;
     } else {
         lineNumber = iter.done() ? 0 : iter.computeLine(&columnNumber);
+        
+        
+        
+        ++columnNumber;
     }
 
     RootedObject stack(cx);
@@ -867,6 +871,10 @@ ErrorReport::populateUncaughtExceptionReportVA(JSContext* cx, va_list ap)
     if (!iter.done()) {
         ownedReport.filename = iter.scriptFilename();
         ownedReport.lineno = iter.computeLine(&ownedReport.column);
+        
+        
+        
+        ++ownedReport.column;
         ownedReport.isMuted = iter.mutedErrors();
     }
 

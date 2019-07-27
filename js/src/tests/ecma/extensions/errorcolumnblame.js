@@ -21,54 +21,58 @@ function test(f, col) {
 function foo(o) {
 	return o.p;
 }
-test(foo, 1);
+test(foo, 2);
 
 
-test(function(f) { return f.bar; }, 19);
+test(function(f) { return f.bar; }, 20);
 
 
-test(function(f) { return f(); }, 26);
+test(function(f) { return f(); }, 27);
 
 test(function(){
         
         
     eval("function baz() { for (var i = 0; i < 10; i += a.b); assertEq(i !== i, true); }");
     baz();
-}, 41);
+}, 42);
 
 
 
-test(function() { var tmp = null; tmp(); }, 34)
-test(function() { var tmp = null;  tmp.foo; }, 35)
+test(function() { var tmp = null; tmp(); }, 35)
+test(function() { var tmp = null;  tmp.foo; }, 36)
 
 
 test(function() {
 
+
     foo({}); throw new Error('a');
-}, 19);
+}, 20);
 
 
 test(function() {
     function f() { return true; }
     function g() { return false; }
 
+
     f(); g(); f(); if (f()) a += e;
-}, 28);
+}, 29);
 
 
-test(function() { e++; }, 18);
-test(function() {print += e; }, 17);
-test(function(){e += 1 }, 16);
-test(function() {  print[e]; }, 19);
-test(function() { e[1]; }, 18);
-test(function() { e(); }, 18);
-test(function() { 1(); }, 18);
-test(function() { Object.defineProperty() }, 18);
+
+test(function() { e++; }, 19);
+test(function() {print += e; }, 18);
+test(function(){e += 1 }, 17);
+test(function() {  print[e]; }, 20);
+test(function() { e[1]; }, 19);
+test(function() { e(); }, 19);
+test(function() { 1(); }, 19);
+test(function() { Object.defineProperty() }, 19);
 
 test(function() {
 
+
     function foo() { asdf; } foo()
-}, 21);
+}, 22);
 
 reportCompare(0, 0, "ok");
 
