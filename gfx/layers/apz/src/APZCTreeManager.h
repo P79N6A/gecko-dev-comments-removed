@@ -10,10 +10,10 @@
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfxPoint.h"                   
+#include "gfx3DMatrix.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/EventForwards.h"      
 #include "mozilla/Monitor.h"            
-#include "mozilla/gfx/Matrix.h"         
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"            
@@ -21,6 +21,7 @@
 #include "nsTArrayForwardDeclare.h"     
 #include "mozilla/gfx/Logging.h"        
 
+class gfx3DMatrix;
 class nsIntRegion;
 
 namespace mozilla {
@@ -326,8 +327,8 @@ public:
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint,
                                                          bool* aOutInOverscrolledApzc);
-  void GetInputTransforms(AsyncPanZoomController *aApzc, gfx::Matrix4x4& aTransformToApzcOut,
-                          gfx::Matrix4x4& aTransformToGeckoOut);
+  void GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& aTransformToApzcOut,
+                          gfx3DMatrix& aTransformToGeckoOut);
 private:
   
   AsyncPanZoomController* FindTargetAPZC(AsyncPanZoomController* aApzc, FrameMetrics::ViewID aScrollId);
@@ -357,7 +358,7 @@ private:
 
   AsyncPanZoomController* UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                                       Layer* aLayer, uint64_t aLayersId,
-                                                      gfx::Matrix4x4 aTransform,
+                                                      gfx3DMatrix aTransform,
                                                       AsyncPanZoomController* aParent,
                                                       AsyncPanZoomController* aNextSibling,
                                                       bool aIsFirstPaint,
@@ -400,7 +401,7 @@ private:
 
 
 
-  gfx::Matrix4x4 mCachedTransformToApzcForInputBlock;
+  gfx3DMatrix mCachedTransformToApzcForInputBlock;
   
 
 

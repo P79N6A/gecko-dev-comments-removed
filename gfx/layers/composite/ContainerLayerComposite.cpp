@@ -8,6 +8,7 @@
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfx2DGlue.h"                  
+#include "gfx3DMatrix.h"                
 #include "gfxPrefs.h"                   
 #include "gfxUtils.h"                   
 #include "mozilla/Assertions.h"         

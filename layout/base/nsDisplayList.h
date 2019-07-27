@@ -3157,7 +3157,6 @@ private:
  
 class nsDisplayTransform: public nsDisplayItem
 {
-  typedef mozilla::gfx::Matrix4x4 Matrix4x4;
 public:
   
 
@@ -3166,7 +3165,7 @@ public:
 
 
 
-  typedef Matrix4x4 (* ComputeTransformFunction)(nsIFrame* aFrame, float aAppUnitsPerPixel);
+  typedef gfx3DMatrix (* ComputeTransformFunction)(nsIFrame* aFrame, float aAppUnitsPerPixel);
 
   
 
@@ -3245,7 +3244,7 @@ public:
     INDEX_MAX = UINT32_MAX >> nsDisplayItem::TYPE_BITS
   };
 
-  const Matrix4x4& GetTransform();
+  const gfx3DMatrix& GetTransform();
 
   float GetHitDepthAtPoint(nsDisplayListBuilder* aBuilder, const nsPoint& aPoint);
 
@@ -3384,7 +3383,7 @@ private:
                                                          bool aOffsetByOrigin);
 
   nsDisplayWrapList mStoredList;
-  Matrix4x4 mTransform;
+  gfx3DMatrix mTransform;
   ComputeTransformFunction mTransformGetter;
   nsRect mChildrenVisibleRect;
   uint32_t mIndex;

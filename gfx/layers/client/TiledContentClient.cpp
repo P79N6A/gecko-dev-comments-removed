@@ -1082,31 +1082,30 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
 static LayerRect
 GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
-                                   const Matrix4x4& aTransformToCompBounds,
+                                   const gfx3DMatrix& aTransformToCompBounds,
                                    const ViewTransform& aAPZTransform)
 {
-  Matrix4x4 nonTransientAPZUntransform = Matrix4x4().Scale(
+  gfx3DMatrix nonTransientAPZTransform = gfx3DMatrix::ScalingMatrix(
     aScrollAncestor->GetFrameMetrics().mResolution.scale,
     aScrollAncestor->GetFrameMetrics().mResolution.scale,
     1.f);
-  nonTransientAPZUntransform.Invert();
 
-  Matrix4x4 layerTransform = aScrollAncestor->GetTransform();
-  Matrix4x4 layerUntransform = layerTransform;
-  layerUntransform.Invert();
+  gfx3DMatrix layerTransform = gfx::To3DMatrix(aScrollAncestor->GetTransform());
 
   
   
   
-  Matrix4x4 transform = aTransformToCompBounds * layerUntransform * nonTransientAPZUntransform;
+  gfx3DMatrix transform = aTransformToCompBounds;
+  transform = transform * layerTransform.Inverse();
+  transform = transform * nonTransientAPZTransform.Inverse();
 
   
   
-  transform = transform * Matrix4x4(aAPZTransform);
+  transform = transform * gfx3DMatrix(aAPZTransform);
 
   
   transform = transform * layerTransform;
-  return TransformTo<LayerPixel>(To3DMatrix(transform).Inverse(),
+  return TransformTo<LayerPixel>(transform.Inverse(),
             aScrollAncestor->GetFrameMetrics().mCompositionBounds);
 }
 

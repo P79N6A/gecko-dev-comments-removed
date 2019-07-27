@@ -11,6 +11,7 @@
 #include "ImageLayers.h"                
 #include "Layers.h"                     
 #include "ShadowLayerParent.h"          
+#include "gfx3DMatrix.h"                
 #include "gfxPoint3D.h"                 
 #include "CompositableTransactionParent.h"  
 #include "ShadowLayersManager.h"        
@@ -630,7 +631,7 @@ LayerTransactionParent::RecvGetAnimationTransform(PLayerParent* aParent,
   
   
 
-  Matrix4x4 transform = layer->AsLayerComposite()->GetShadowTransform();
+  gfx3DMatrix transform = gfx::To3DMatrix(layer->AsLayerComposite()->GetShadowTransform());
   if (ContainerLayer* c = layer->AsContainerLayer()) {
     
     transform.ScalePost(1.0f/c->GetInheritedXScale(),
@@ -657,12 +658,11 @@ LayerTransactionParent::RecvGetAnimationTransform(PLayerParent* aParent,
 
   
   
-  transform.Translate(-scaledOrigin.x, -scaledOrigin.y, -scaledOrigin.z);
+  transform.Translate(-scaledOrigin);
 
   
   
-  gfxPoint3D basis = -scaledOrigin - transformOrigin;
-  transform.ChangeBasis(basis.x, basis.y, basis.z);
+  transform.ChangeBasis(-scaledOrigin - transformOrigin);
 
   
   

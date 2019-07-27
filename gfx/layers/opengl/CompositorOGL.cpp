@@ -13,6 +13,7 @@
 #include "Layers.h"                     
 #include "LayerScope.h"                 
 #include "gfx2DGlue.h"                  
+#include "gfx3DMatrix.h"                
 #include "gfxCrashReporterUtils.h"      
 #include "GraphicsFilter.h"             
 #include "gfxPlatform.h"                

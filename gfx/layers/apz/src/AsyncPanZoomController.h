@@ -20,7 +20,7 @@
 #include "InputData.h"
 #include "Axis.h"
 #include "TaskThrottler.h"
-#include "mozilla/gfx/Matrix.h"
+#include "gfx3DMatrix.h"
 #include "nsRegion.h"
 
 #include "base/message_loop.h"
@@ -69,7 +69,6 @@ class AsyncPanZoomController {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncPanZoomController)
 
   typedef mozilla::MonitorAutoLock MonitorAutoLock;
-  typedef mozilla::gfx::Matrix4x4 Matrix4x4;
   typedef uint32_t TouchBehaviorFlags;
 
 public:
@@ -224,7 +223,7 @@ public:
 
 
 
-  Matrix4x4 GetNontransientAsyncTransform();
+  gfx3DMatrix GetNontransientAsyncTransform();
 
   
 
@@ -233,7 +232,7 @@ public:
 
 
 
-  Matrix4x4 GetTransformToLastDispatchedPaint();
+  gfx3DMatrix GetTransformToLastDispatchedPaint();
 
   
 
@@ -943,19 +942,19 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const nsIntRegion& aRegion, const Matrix4x4& aTransformToLayer,
-                           const Matrix4x4& aTransformForLayer) {
+  void SetLayerHitTestData(const nsIntRegion& aRegion, const gfx3DMatrix& aTransformToLayer,
+                           const gfx3DMatrix& aTransformForLayer) {
     mVisibleRegion = aRegion;
     mAncestorTransform = aTransformToLayer;
     mCSSTransform = aTransformForLayer;
     UpdateTransformScale();
   }
 
-  Matrix4x4 GetAncestorTransform() const {
+  gfx3DMatrix GetAncestorTransform() const {
     return mAncestorTransform;
   }
 
-  Matrix4x4 GetCSSTransform() const {
+  gfx3DMatrix GetCSSTransform() const {
     return mCSSTransform;
   }
 
@@ -975,9 +974,9 @@ private:
   nsIntRegion mVisibleRegion;
   
 
-  Matrix4x4 mAncestorTransform;
+  gfx3DMatrix mAncestorTransform;
   
-  Matrix4x4 mCSSTransform;
+  gfx3DMatrix mCSSTransform;
 
 
   

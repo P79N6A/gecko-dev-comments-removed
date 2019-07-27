@@ -8,12 +8,12 @@
 
 #include "Units.h"                      
 #include "mozilla/layers/LayerManagerComposite.h"  
+#include "gfx3DMatrix.h"                
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/TimeStamp.h"          
 #include "mozilla/dom/ScreenOrientation.h"  
 #include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/gfx/Matrix.h"         
 #include "mozilla/layers/LayersMessages.h"  
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"            
@@ -34,17 +34,17 @@ struct ViewTransform {
     , mScale(aScale)
   {}
 
-  operator gfx::Matrix4x4() const
+  operator gfx3DMatrix() const
   {
     return
-      gfx::Matrix4x4().Translate(mTranslation.x, mTranslation.y, 0) *
-      gfx::Matrix4x4().Scale(mScale.scale, mScale.scale, 1);
+      gfx3DMatrix::Translation(mTranslation.x, mTranslation.y, 0) *
+      gfx3DMatrix::ScalingMatrix(mScale.scale, mScale.scale, 1);
   }
 
   
   
-  friend gfx::Matrix4x4 operator*(const ViewTransform& a, const ViewTransform& b) {
-    return gfx::Matrix4x4(a) * gfx::Matrix4x4(b);
+  friend gfx3DMatrix operator*(const ViewTransform& a, const ViewTransform& b) {
+    return gfx3DMatrix(a) * gfx3DMatrix(b);
   }
 
   bool operator==(const ViewTransform& rhs) const {

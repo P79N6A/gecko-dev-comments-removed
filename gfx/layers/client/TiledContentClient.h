@@ -12,6 +12,7 @@
 #include "Layers.h"                     
 #include "TiledLayerBuffer.h"           
 #include "Units.h"                      
+#include "gfx3DMatrix.h"                
 #include "gfxTypes.h"
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -269,7 +270,7 @@ struct BasicTiledLayerPaintData {
 
 
 
-  gfx::Matrix4x4 mTransformToCompBounds;
+  gfx3DMatrix mTransformToCompBounds;
 
   
 
