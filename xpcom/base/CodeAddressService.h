@@ -9,10 +9,15 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Types.h"
 
 #include "nsStackWalk.h"
+
+#ifdef XP_WIN
+#define snprintf _snprintf
+#endif
 
 namespace mozilla {
 
@@ -28,11 +33,8 @@ namespace mozilla {
 
 
 
-
-
 template <class StringTable,
           class StringAlloc,
-          class Writer,
           class DescribeCodeAddressLock>
 class CodeAddressService
 {
@@ -130,7 +132,7 @@ public:
   {
   }
 
-  void WriteLocation(const Writer& aWriter, const void* aPc)
+  void GetLocation(const void* aPc, char* aBuf, size_t aBufLen)
   {
     MOZ_ASSERT(DescribeCodeAddressLock::IsLocked());
 
@@ -167,20 +169,20 @@ public:
     
     
     if (!entry.mFunction && !entry.mLibrary[0] && entry.mLOffset == 0) {
-      aWriter.Write("    ??? 0x%x\n", entryPc);
+      snprintf(aBuf, aBufLen, "??? 0x%" PRIxPTR, entryPc);
     } else {
       
       const char* entryFunction = entry.mFunction ? entry.mFunction : "???";
       if (entry.mFileName) {
         
-        aWriter.Write("    %s (%s:%lu) 0x%x\n",
-                      entryFunction, entry.mFileName, entry.mLineNo, entryPc);
+        snprintf(aBuf, aBufLen, "%s (%s:%u) 0x%" PRIxPTR,
+                 entryFunction, entry.mFileName, entry.mLineNo, entryPc);
       } else {
         
         
         
-        aWriter.Write("    %s[%s +0x%X] 0x%x\n",
-                      entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
+        snprintf(aBuf, aBufLen, "%s[%s +0x%" PRIXPTR "] 0x%" PRIxPTR,
+                 entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
       }
     }
   }
