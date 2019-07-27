@@ -99,6 +99,7 @@ MOZBUILD_VARIABLES = [
     'MAKE_FRAMEWORK',
     'MODULE',
     'NO_DIST_INSTALL',
+    'NO_INTERFACES_MANIFEST',
     'NO_JS_MANIFEST',
     'OS_LIBS',
     'PARALLEL_DIRS',
@@ -1068,6 +1069,22 @@ INSTALL_TARGETS += %(prefix)s
         mk.dump(rules, removal_guard=False)
 
         
+        dist_dir = mozpath.join(self.environment.topobjdir, 'dist')
+        for manifest, entries in manager.interface_manifests.items():
+            path = mozpath.join(self.environment.topobjdir, manifest)
+            with self._write_file(path) as fh:
+                for xpt in sorted(entries):
+                    fh.write('interfaces %s\n' % xpt)
+
+            if install_target.startswith('dist/'):
+                path = mozpath.relpath(path, dist_dir)
+                prefix, subpath = path.split('/', 1)
+                key = 'dist_%s' % prefix
+                self._install_manifests[key].add_optional_exists(subpath)
+
+        chrome_manifests = [mozpath.join('$(DEPTH)', m) for m in sorted(manager.chrome_manifests)]
+
+        
         
         
         
@@ -1081,6 +1098,7 @@ INSTALL_TARGETS += %(prefix)s
         obj.topobjdir = self.environment.topobjdir
         obj.config = self.environment
         self._create_makefile(obj, extra=dict(
+            chrome_manifests = ' '.join(chrome_manifests),
             xpidl_rules=rules.getvalue(),
             xpidl_modules=' '.join(xpt_modules),
             xpt_files=' '.join(sorted(xpt_files)),
