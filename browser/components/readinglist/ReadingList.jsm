@@ -716,6 +716,14 @@ ReadingListItem.prototype = {
 
 
 
+   get preview() {
+     return this._properties.preview;
+   },
+
+  
+
+
+
 
 
 
