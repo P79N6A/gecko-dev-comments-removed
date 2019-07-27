@@ -129,6 +129,28 @@ this.TelemetryFile = {
 
 
 
+
+
+  addPendingPing: function(aPingPath) {
+    
+    
+    
+    return loadPingFile(aPingPath).then(ping => {
+        
+        pendingPings.push(ping);
+        
+        Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS").add(1);
+        
+        return this.savePing(ping, false);
+      });
+  },
+
+  
+
+
+
+
+
   cleanupPingFile: function(ping) {
     return OS.File.remove(pingFilePath(ping));
   },
@@ -277,29 +299,37 @@ function getPingDirectory() {
   });
 }
 
+
+
+
+
+
+
+let loadPingFile = Task.async(function* (aFilePath) {
+  let array = yield OS.File.read(aFilePath);
+  let decoder = new TextDecoder();
+  let string = decoder.decode(array);
+
+  let ping = JSON.parse(string);
+  
+  if (typeof(ping.payload) == "string") {
+    ping.payload = JSON.parse(ping.payload);
+  }
+  return ping;
+});
+
 function addToPendingPings(file) {
   function onLoad(success) {
     let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
     success_histogram.add(success);
   }
 
-  return Task.spawn(function*() {
-    try {
-      let array = yield OS.File.read(file);
-      let decoder = new TextDecoder();
-      let string = decoder.decode(array);
-
-      let ping = JSON.parse(string);
-      
-      if (typeof(ping.payload) == "string") {
-        ping.payload = JSON.parse(ping.payload);
-      }
-
+  return loadPingFile(file).then(ping => {
       pendingPings.push(ping);
       onLoad(true);
-    } catch (e) {
+    },
+    () => {
       onLoad(false);
-      yield OS.File.remove(file);
-    }
-  });
+      return OS.File.remove(file);
+    });
 }

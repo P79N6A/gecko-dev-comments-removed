@@ -21,6 +21,8 @@ Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 
+const myScope = this;
+
 const IS_CONTENT_PROCESS = (function() {
   
   
@@ -34,6 +36,7 @@ const PING_TYPE_MAIN = "main";
 const PING_TYPE_SAVED_SESSION = "saved-session";
 const RETENTION_DAYS = 14;
 
+const REASON_ABORTED_SESSION = "aborted-session";
 const REASON_DAILY = "daily";
 const REASON_SAVED_SESSION = "saved-session";
 const REASON_IDLE_DAILY = "idle-daily";
@@ -67,6 +70,9 @@ const PREF_ASYNC_PLUGIN_INIT = "dom.ipc.plugins.asyncInit";
 const MESSAGE_TELEMETRY_PAYLOAD = "Telemetry:Payload";
 const MESSAGE_TELEMETRY_GET_CHILD_PAYLOAD = "Telemetry:GetChildPayload";
 
+const DATAREPORTING_DIRECTORY = "datareporting";
+const ABORTED_SESSION_FILE_NAME = "aborted-session-ping";
+
 const SESSION_STATE_FILE_NAME = "session-state.json";
 
 
@@ -79,10 +85,25 @@ const TELEMETRY_DELAY = 60000;
 
 const TELEMETRY_TEST_DELAY = 100;
 
+const SCHEDULER_TICK_INTERVAL_MS = 5 * 60 * 1000;
+
+const SCHEDULER_RETRY_ATTEMPTS = 3;
+
+
+const SCHEDULER_MIDNIGHT_TOLERANCE_MS = 15 * 60 * 1000;
+
+
+
+const SCHEDULER_COALESCE_THRESHOLD_MS = 2 * 60 * 1000;
+
 
 
 
 const IDLE_TIMEOUT_SECONDS = 5 * 60;
+
+
+
+const ABORTED_SESSION_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
 
 var gLastMemoryPoll = null;
 
@@ -147,8 +168,8 @@ let Policy = {
   now: () => new Date(),
   generateSessionUUID: () => generateUUID(),
   generateSubsessionUUID: () => generateUUID(),
-  setDailyTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
-  clearDailyTimeout: (id) => clearTimeout(id),
+  setSchedulerTickTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
+  clearSchedulerTickTimeout: id => clearTimeout(id),
 };
 
 
@@ -159,6 +180,38 @@ function truncateToDays(date) {
                   date.getMonth(),
                   date.getDate(),
                   0, 0, 0, 0);
+}
+
+
+
+
+
+
+
+
+
+function areTimesClose(t1, t2, tolerance) {
+  return Math.abs(t1 - t2) <= tolerance;
+}
+
+
+
+
+
+
+
+function getNearestMidnight(date) {
+  let lastMidnight = truncateToDays(date);
+  if (areTimesClose(date.getTime(), lastMidnight.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
+    return lastMidnight;
+  }
+
+  let nextMidnightDate = new Date(lastMidnight);
+  nextMidnightDate.setDate(nextMidnightDate.getDate() + 1);
+  if (areTimesClose(date.getTime(), nextMidnightDate.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
+    return nextMidnightDate;
+  }
+  return null;
 }
 
 
@@ -258,11 +311,13 @@ let processInfo = {
 
 
 
-let gStateSaveSerializer = {
-  _queuedOperations: [],
-  _queuedInProgress: false,
-  _log: Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX),
+function SaveSerializer() {
+  this._queuedOperations = [];
+  this._queuedInProgress = false;
+  this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
+}
 
+SaveSerializer.prototype = {
   
 
 
@@ -338,6 +393,265 @@ let gStateSaveSerializer = {
         this._popAndPerformQueuedOperation();
       });
   },
+};
+
+
+
+
+
+
+
+let TelemetryScheduler = {
+  _lastDailyPingTime: 0,
+  _lastSessionCheckpointTime: 0,
+
+  
+  _lastAdhocPingTime: 0,
+  _lastTickTime: 0,
+
+  _log: null,
+
+  
+  _dailyPingRetryAttempts: 0,
+
+  
+  _schedulerTimer: null,
+  _shuttingDown: true,
+
+  
+
+
+  init: function() {
+    this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, "TelemetryScheduler::");
+    this._log.trace("init");
+    this._shuttingDown = false;
+    
+    
+    let now = Policy.now();
+    this._lastDailyPingTime = now.getTime();
+    this._lastSessionCheckpointTime = now.getTime();
+    this._rescheduleTimeout();
+  },
+
+  
+
+
+  _rescheduleTimeout: function() {
+    this._log.trace("_rescheduleTimeout");
+    if (this._shuttingDown) {
+      this._log.warn("_rescheduleTimeout - already shutdown");
+      return;
+    }
+
+    if (this._schedulerTimer) {
+      Policy.clearSchedulerTickTimeout(this._schedulerTimer);
+    }
+
+    this._schedulerTimer =
+      Policy.setSchedulerTickTimeout(() => this._onSchedulerTick(), SCHEDULER_TICK_INTERVAL_MS);
+  },
+
+  
+
+
+
+
+  _isDailyPingDue: function(nowDate) {
+    let nearestMidnight = getNearestMidnight(nowDate);
+    if (nearestMidnight) {
+      let subsessionLength = Math.abs(nowDate.getTime() - this._lastDailyPingTime);
+      if (subsessionLength < MIN_SUBSESSION_LENGTH_MS) {
+        
+        return false;
+      } else if (areTimesClose(this._lastDailyPingTime, nearestMidnight.getTime(),
+                               SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
+        
+        return false;
+      }
+      return true;
+    }
+
+    let lastDailyPingDate = truncateToDays(new Date(this._lastDailyPingTime));
+    
+    let todayDate = truncateToDays(nowDate);
+    
+    
+    if ((lastDailyPingDate.getTime() != todayDate.getTime()) &&
+        !areTimesClose(this._lastDailyPingTime, todayDate.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
+      
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+  _saveAbortedPing: function(now, competingPayload=null) {
+    this._lastSessionCheckpointTime = now;
+    return Impl._saveAbortedSessionPing(competingPayload)
+                .catch(e => this._log.error("_saveAbortedPing - Failed", e));
+  },
+
+  
+
+
+
+
+  _onSchedulerTick: function() {
+    if (this._shuttingDown) {
+      this._log.warn("_onSchedulerTick - already shutdown.");
+      return;
+    }
+
+    let promise = Promise.resolve();
+    try {
+      promise = this._schedulerTickLogic();
+    } catch (e) {
+      this._log.error("_onSchedulerTick - There was an exception", e);
+    } finally {
+      this._rescheduleTimeout();
+    }
+
+    
+    return promise;
+  },
+
+  
+
+
+
+  _schedulerTickLogic: function() {
+    this._log.trace("_schedulerTickLogic");
+
+    let nowDate = Policy.now();
+    let now = nowDate.getTime();
+
+    if (now - this._lastTickTime > 1.1 * SCHEDULER_TICK_INTERVAL_MS) {
+      this._log.trace("_schedulerTickLogic - First scheduler tick after sleep or startup.");
+    }
+    this._lastTickTime = now;
+
+    
+    let isAbortedPingDue =
+      (now - this._lastSessionCheckpointTime) >= ABORTED_SESSION_UPDATE_INTERVAL_MS;
+    
+    let shouldSendDaily = this._isDailyPingDue(nowDate);
+    
+    
+    
+    
+    
+    let nextSessionCheckpoint =
+      this._lastSessionCheckpointTime + ABORTED_SESSION_UPDATE_INTERVAL_MS;
+    let combineActions = (shouldSendDaily && isAbortedPingDue) || (shouldSendDaily &&
+                          areTimesClose(now, nextSessionCheckpoint, SCHEDULER_COALESCE_THRESHOLD_MS));
+
+    if (combineActions) {
+      this._log.trace("_schedulerTickLogic - Combining pings.");
+      
+      return Impl._sendDailyPing(true).then(() => this._dailyPingSucceeded(now),
+                                            () => this._dailyPingFailed(now));
+    } else if (shouldSendDaily) {
+      this._log.trace("_schedulerTickLogic - Daily ping due.");
+      return Impl._sendDailyPing().then(() => this._dailyPingSucceeded(now),
+                                        () => this._dailyPingFailed(now));
+    } else if (isAbortedPingDue) {
+      this._log.trace("_schedulerTickLogic - Aborted session ping due.");
+      return this._saveAbortedPing(now);
+    }
+
+    
+    this._log.trace("_schedulerTickLogic - No ping due.");
+    
+    
+    
+    this._dailyPingRetryAttempts = 0;
+    return Promise.resolve();
+  },
+
+  
+
+
+
+
+
+  reschedulePings: function(reason, competingPayload = null) {
+    if (this._shuttingDown) {
+      this._log.error("reschedulePings - already shutdown");
+      return;
+    }
+
+    this._log.trace("reschedulePings - reason: " + reason);
+    let now = Policy.now();
+    this._lastAdhocPingTime = now.getTime();
+    if (reason == REASON_ENVIRONMENT_CHANGE) {
+      
+      
+      this._saveAbortedPing(now.getTime(), competingPayload);
+      
+      let nearestMidnight = getNearestMidnight(now);
+      if (nearestMidnight) {
+        this._lastDailyPingTime = now.getTime();
+      }
+    }
+
+    this._rescheduleTimeout();
+  },
+
+  
+
+
+
+  _dailyPingSucceeded: function(now) {
+    this._log.trace("_dailyPingSucceeded");
+    this._lastDailyPingTime = now;
+    this._dailyPingRetryAttempts = 0;
+  },
+
+  
+
+
+
+  _dailyPingFailed: function(now) {
+    this._log.error("_dailyPingFailed");
+    this._dailyPingRetryAttempts++;
+
+    
+    
+    if (this._dailyPingRetryAttempts >= SCHEDULER_RETRY_ATTEMPTS) {
+      this._log.error("_pingFailed - The daily ping failed too many times. Skipping it.");
+      this._dailyPingRetryAttempts = 0;
+      this._lastDailyPingTime = now;
+    }
+  },
+
+  
+
+
+  shutdown: function() {
+    if (this._shuttingDown) {
+      if (this._log) {
+        this._log.error("shutdown - Already shut down");
+      } else {
+        Cu.reportError("TelemetryScheduler.shutdown - Already shut down");
+      }
+      return;
+    }
+
+    this._log.trace("shutdown");
+    if (this._schedulerTimer) {
+      Policy.clearSchedulerTickTimeout(this._schedulerTimer);
+      this._schedulerTimer = null;
+    }
+
+    this._shuttingDown = true;
+  }
 };
 
 this.EXPORTED_SYMBOLS = ["TelemetrySession"];
@@ -491,11 +805,13 @@ let Impl = {
   
   _subsessionStartDate: null,
   
-  _dailyTimerId: null,
-  
   _delayedInitTask: null,
   
   _delayedInitTaskDeferred: null,
+  
+  _stateSaveSerializer: new SaveSerializer(),
+  
+  _abortedSessionSerializer: new SaveSerializer(),
 
   
 
@@ -1014,8 +1330,7 @@ let Impl = {
       this.startNewSubsession();
       
       let sessionData = this._getSessionDataObject();
-      gStateSaveSerializer.enqueueTask(() => this._saveSessionData(sessionData));
-      this._rescheduleDailyTimer();
+      this._stateSaveSerializer.enqueueTask(() => this._saveSessionData(sessionData));
     }
 
     return payload;
@@ -1168,9 +1483,20 @@ let Impl = {
         Telemetry.asyncFetchTelemetryData(function () {});
 
 #if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
-        this._rescheduleDailyTimer();
+        
+        yield this._checkAbortedSessionPing();
+
         TelemetryEnvironment.registerChangeListener(ENVIRONMENT_CHANGE_LISTENER,
                                                     () => this._onEnvironmentChange());
+        
+        
+        
+        if (!testing) {
+          yield this._saveAbortedSessionPing();
+        }
+
+        
+        TelemetryScheduler.init();
 #endif
 
         this._delayedInitTaskDeferred.resolve();
@@ -1321,7 +1647,7 @@ let Impl = {
       overwrite: true,
       filePath: file.path,
     };
-    return TelemetryPing.testSavePingToFile(getPingType(payload), payload, options);
+    return TelemetryPing.savePing(getPingType(payload), payload, options);
   },
 
   
@@ -1501,11 +1827,8 @@ let Impl = {
     let cleanup = () => {
 #if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
       TelemetryEnvironment.unregisterChangeListener(ENVIRONMENT_CHANGE_LISTENER);
+      TelemetryScheduler.shutdown();
 #endif
-      if (this._dailyTimerId) {
-        Policy.clearDailyTimeout(this._dailyTimerId);
-        this._dailyTimerId = null;
-      }
       this.uninstall();
 
       let reset = () => {
@@ -1515,7 +1838,11 @@ let Impl = {
 
       if (Telemetry.canSend || testing) {
         return this.savePendingPings()
-                .then(() => gStateSaveSerializer.flushTasks())
+                .then(() => this._stateSaveSerializer.flushTasks())
+#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
+                .then(() => this._abortedSessionSerializer
+                                .enqueueTask(() => this._removeAbortedSessionPing()))
+#endif
                 .then(reset);
       }
 
@@ -1545,35 +1872,14 @@ let Impl = {
     return this._delayedInitTask.finalize().then(cleanup);
    },
 
-  _rescheduleDailyTimer: function() {
-    if (this._dailyTimerId) {
-      this._log.trace("_rescheduleDailyTimer - clearing existing timeout");
-      Policy.clearDailyTimeout(this._dailyTimerId);
-    }
+  
 
-    let now = Policy.now();
-    let midnight = truncateToDays(now).getTime() + MS_IN_ONE_DAY;
-    let msUntilCollection = midnight - now.getTime();
-    if (msUntilCollection < MIN_SUBSESSION_LENGTH_MS) {
-      msUntilCollection += MS_IN_ONE_DAY;
-    }
 
-    this._log.trace("_rescheduleDailyTimer - now: " + now
-                    + ", scheduled: " + new Date(now.getTime() + msUntilCollection));
-    this._dailyTimerId = Policy.setDailyTimeout(() => this._onDailyTimer(), msUntilCollection);
-  },
 
-  _onDailyTimer: function() {
-    if (!this._initStarted) {
-      if (this._log) {
-        this._log.warn("_onDailyTimer - not initialized");
-      } else {
-        Cu.reportError("TelemetrySession._onDailyTimer - not initialized");
-      }
-      return;
-    }
 
-    this._log.trace("_onDailyTimer");
+
+  _sendDailyPing: function(saveAsAborted = false) {
+    this._log.trace("_sendDailyPing");
     let payload = this.getSessionPayload(REASON_DAILY, true);
 
     let options = {
@@ -1581,10 +1887,14 @@ let Impl = {
       addClientId: true,
       addEnvironment: true,
     };
-    let promise = TelemetryPing.send(getPingType(payload), payload, options);
 
-    this._rescheduleDailyTimer();
+    let promise = TelemetryPing.send(getPingType(payload), payload, options);
+#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
     
+    if (saveAsAborted) {
+      return promise.then(() => this._saveAbortedSessionPing(payload));
+    }
+#endif
     return promise;
   },
 
@@ -1594,7 +1904,7 @@ let Impl = {
 
 
   _loadSessionData: Task.async(function* () {
-    let dataFile = OS.Path.join(OS.Constants.Path.profileDir, "datareporting",
+    let dataFile = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
                                 SESSION_STATE_FILE_NAME);
 
     
@@ -1632,7 +1942,7 @@ let Impl = {
 
 
   _saveSessionData: Task.async(function* (sessionData) {
-    let dataDir = OS.Path.join(OS.Constants.Path.profileDir, "datareporting");
+    let dataDir = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY);
     yield OS.File.makeDir(dataDir);
 
     let filePath = OS.Path.join(dataDir, SESSION_STATE_FILE_NAME);
@@ -1647,12 +1957,15 @@ let Impl = {
     this._log.trace("_onEnvironmentChange");
     let payload = this.getSessionPayload(REASON_ENVIRONMENT_CHANGE, true);
 
+    let clonedPayload = Cu.cloneInto(payload, myScope);
+    TelemetryScheduler.reschedulePings(REASON_ENVIRONMENT_CHANGE, clonedPayload);
+
     let options = {
       retentionDays: RETENTION_DAYS,
       addClientId: true,
       addEnvironment: true,
     };
-    let promise = TelemetryPing.send(getPingType(payload), payload, options);
+    TelemetryPing.send(getPingType(payload), payload, options);
   },
 
   _isClassicReason: function(reason) {
@@ -1673,7 +1986,73 @@ let Impl = {
       initialized: this._initialized,
       initStarted: this._initStarted,
       haveDelayedInitTask: !!this._delayedInitTask,
-      dailyTimerScheduled: !!this._dailyTimerId,
     };
+  },
+
+  
+
+
+
+
+  _removeAbortedSessionPing: function() {
+    const FILE_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
+                                   ABORTED_SESSION_FILE_NAME);
+    try {
+      return OS.File.remove(FILE_PATH);
+    } catch (ex if ex.becauseNoSuchFile) { }
+    return Promise.resolve();
+  },
+
+  
+
+
+
+  _checkAbortedSessionPing: Task.async(function* () {
+    
+    
+    
+    const ABORTED_SESSIONS_DIR =
+      OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY);
+    yield OS.File.makeDir(ABORTED_SESSIONS_DIR, { ignoreExisting: true });
+
+    const FILE_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
+                                   ABORTED_SESSION_FILE_NAME);
+    let abortedExists = yield OS.File.exists(FILE_PATH);
+    if (abortedExists) {
+      this._log.trace("_checkAbortedSessionPing - aborted session found: " + FILE_PATH);
+      yield this._abortedSessionSerializer.enqueueTask(
+        () => TelemetryPing.addPendingPing(FILE_PATH, true));
+    }
+  }),
+
+  
+
+
+
+
+
+  _saveAbortedSessionPing: function(aProvidedPayload = null) {
+    const FILE_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
+                                   ABORTED_SESSION_FILE_NAME);
+    this._log.trace("_saveAbortedSessionPing - ping path: " + FILE_PATH);
+
+    let payload = null;
+    if (aProvidedPayload) {
+      payload = aProvidedPayload;
+      
+      payload.info.reason = REASON_ABORTED_SESSION;
+    } else {
+      payload = this.getSessionPayload(REASON_ABORTED_SESSION, false);
+    }
+
+    let options = {
+      retentionDays: RETENTION_DAYS,
+      addClientId: true,
+      addEnvironment: true,
+      overwrite: true,
+      filePath: FILE_PATH,
+    };
+    return this._abortedSessionSerializer.enqueueTask(() =>
+      TelemetryPing.savePing(getPingType(payload), payload, options));
   },
 };

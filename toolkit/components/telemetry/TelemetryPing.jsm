@@ -14,6 +14,7 @@ Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/debug.js", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
@@ -154,6 +155,19 @@ this.TelemetryPing = Object.freeze({
 
 
 
+  addPendingPing: function(aPingPath, aRemoveOriginal) {
+    return Impl.addPendingPing(aPingPath, aRemoveOriginal);
+  },
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -208,6 +222,9 @@ this.TelemetryPing = Object.freeze({
 
 
 
+
+
+
   savePing: function(aType, aPayload, aOptions = {}) {
     let options = aOptions;
     options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
@@ -216,36 +233,6 @@ this.TelemetryPing = Object.freeze({
     options.overwrite = aOptions.overwrite || false;
 
     return Impl.savePing(aType, aPayload, options);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  testSavePingToFile: function(aType, aPayload, aOptions = {}) {
-    let options = aOptions;
-    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
-    options.addClientId = aOptions.addClientId || false;
-    options.addEnvironment = aOptions.addEnvironment || false;
-    options.overwrite = aOptions.overwrite || false;
-
-    return Impl.testSavePingToFile(aType, aPayload, options);
   },
 
   
@@ -386,6 +373,23 @@ let Impl = {
 
 
 
+  addPendingPing: function(aPingPath, aRemoveOriginal) {
+    return TelemetryFile.addPendingPing(aPingPath).then(() => {
+        if (aRemoveOriginal) {
+          return OS.File.remove(aPingPath);
+        }
+      }, error => this._log.error("addPendingPing - Unable to add the pending ping", error));
+  },
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -461,47 +465,23 @@ let Impl = {
 
 
 
+
+
+
   savePing: function savePing(aType, aPayload, aOptions) {
     this._log.trace("savePing - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
 
     return this.assemblePing(aType, aPayload, aOptions)
-        .then(pingData => TelemetryFile.savePing(pingData, aOptions.overwrite),
-              error => this._log.error("savePing - Rejection", error));
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  testSavePingToFile: function testSavePingToFile(aType, aPayload, aOptions) {
-    this._log.trace("testSavePingToFile - Type " + aType + ", Server " + this._server +
-                    ", aOptions " + JSON.stringify(aOptions));
-    return this.assemblePing(aType, aPayload, aOptions)
-        .then(pingData => {
-            if (aOptions.filePath) {
-              return TelemetryFile.savePingToFile(pingData, aOptions.filePath, aOptions.overwrite)
-                                  .then(() => { return pingData.id; });
-            } else {
-              return TelemetryFile.savePing(pingData, aOptions.overwrite)
-                                  .then(() => { return pingData.id; });
-            }
-        }, error => this._log.error("testSavePing - Rejection", error));
+      .then(pingData => {
+        if ("filePath" in aOptions) {
+          return TelemetryFile.savePingToFile(pingData, aOptions.filePath, aOptions.overwrite)
+                              .then(() => { return pingData.id; });
+        } else {
+          return TelemetryFile.savePing(pingData, aOptions.overwrite)
+                              .then(() => { return pingData.id; });
+        }
+      }, error => this._log.error("savePing - Rejection", error));
   },
 
   finishPingRequest: function finishPingRequest(success, startTime, ping, isPersisted) {
