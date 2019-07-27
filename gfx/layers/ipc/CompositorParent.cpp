@@ -661,7 +661,14 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
     sIndirectLayerTrees[mRootLayerTreeID].mParent = this;
   }
 
-  if (gfxPrefs::AsyncPanZoomEnabled()) {
+  if (gfxPrefs::AsyncPanZoomEnabled() &&
+#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA) || defined(MOZ_WIDGET_GTK)
+      
+      
+      
+      aWidget->IsMultiProcessWindow() &&
+#endif
+      (aWidget->WindowType() == eWindowType_toplevel || aWidget->WindowType() == eWindowType_child)) {
     mApzcTreeManager = new APZCTreeManager();
   }
 

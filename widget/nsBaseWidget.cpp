@@ -960,8 +960,6 @@ bool nsBaseWidget::IsMultiProcessWindow()
 
 void nsBaseWidget::ConfigureAPZCTreeManager()
 {
-  uint64_t rootLayerTreeId = mCompositorParent->RootLayerTreeId();
-  mAPZC = CompositorParent::GetAPZCTreeManager(rootLayerTreeId);
   MOZ_ASSERT(mAPZC);
 
   ConfigureAPZControllerThread();
@@ -973,6 +971,7 @@ void nsBaseWidget::ConfigureAPZCTreeManager()
 
   nsRefPtr<GeckoContentController> controller = CreateRootContentController();
   if (controller) {
+    uint64_t rootLayerTreeId = mCompositorParent->RootLayerTreeId();
     CompositorParent::SetControllerForLayerTree(rootLayerTreeId, controller);
   }
 }
@@ -1148,14 +1147,9 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   
   mCompositorParent->SetOtherProcessId(base::GetCurrentProcId());
 
-  if (gfxPrefs::AsyncPanZoomEnabled() &&
-#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA) || defined(MOZ_WIDGET_GTK)
-      
-      
-      
-      IsMultiProcessWindow() &&
-#endif
-      (WindowType() == eWindowType_toplevel || WindowType() == eWindowType_child)) {
+  uint64_t rootLayerTreeId = mCompositorParent->RootLayerTreeId();
+  mAPZC = CompositorParent::GetAPZCTreeManager(rootLayerTreeId);
+  if (mAPZC) {
     ConfigureAPZCTreeManager();
   }
 
