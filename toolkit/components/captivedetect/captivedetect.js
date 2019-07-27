@@ -228,7 +228,7 @@ function CaptivePortalDetector() {
   this._requestQueue = []; 
   this._interfaceNames = {}; 
 
-  debug('CaptiveProtalDetector initiated, waitng for network connection established');
+  debug('CaptiveProtalDetector initiated, waiting for network connection established');
 }
 
 CaptivePortalDetector.prototype = {
@@ -247,7 +247,7 @@ CaptivePortalDetector.prototype = {
 
     
     if (this._interfaceNames[aInterfaceName]) {
-      throw Components.Exception('Do not allow multiple request on one interface: ' + aInterface);
+      throw Components.Exception('Do not allow multiple request on one interface: ' + aInterfaceName);
     }
 
     let request = {interfaceName: aInterfaceName};
