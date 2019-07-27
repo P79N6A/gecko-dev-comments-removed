@@ -16,7 +16,7 @@
 #include "nsNetCID.h"
 #include "VideoUtils.h"
 #include "MediaResource.h"
-#include "MediaResourceServer.h"
+#include "AndroidMediaResourceServer.h"
 
 #if defined(_MSC_VER)
 #define strtoll _strtoi64
@@ -113,7 +113,7 @@ private:
 
   
   
-  nsRefPtr<MediaResourceServer> mServer;
+  nsRefPtr<AndroidMediaResourceServer> mServer;
 
   
   
@@ -123,7 +123,7 @@ private:
 
 public:
   ServeResourceEvent(nsIInputStream* aInput, nsIOutputStream* aOutput,
-                     MediaResourceServer* aServer)
+                     AndroidMediaResourceServer* aServer)
     : mInput(aInput), mOutput(aOutput), mServer(aServer) {}
 
   
@@ -344,12 +344,12 @@ class ResourceSocketListener : public nsIServerSocketListener
 public:
   
   
-  nsRefPtr<MediaResourceServer> mServer;
+  nsRefPtr<AndroidMediaResourceServer> mServer;
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISERVERSOCKETLISTENER
 
-  ResourceSocketListener(MediaResourceServer* aServer) :
+  ResourceSocketListener(AndroidMediaResourceServer* aServer) :
     mServer(aServer)
   {
   }
@@ -388,13 +388,13 @@ ResourceSocketListener::OnStopListening(nsIServerSocket* aServ, nsresult aStatus
   return NS_OK;
 }
 
-MediaResourceServer::MediaResourceServer() :
-  mMutex("MediaResourceServer")
+AndroidMediaResourceServer::AndroidMediaResourceServer() :
+  mMutex("AndroidMediaResourceServer")
 {
 }
 
 NS_IMETHODIMP
-MediaResourceServer::Run()
+AndroidMediaResourceServer::Run()
 {
   MutexAutoLock lock(mMutex);
 
@@ -415,16 +415,16 @@ MediaResourceServer::Run()
 }
 
 
-already_AddRefed<MediaResourceServer>
-MediaResourceServer::Start()
+already_AddRefed<AndroidMediaResourceServer>
+AndroidMediaResourceServer::Start()
 {
-  nsRefPtr<MediaResourceServer> server = new MediaResourceServer();
+  nsRefPtr<AndroidMediaResourceServer> server = new AndroidMediaResourceServer();
   NS_DispatchToMainThread(server, NS_DISPATCH_SYNC);
   return server.forget();
 }
 
 void
-MediaResourceServer::Stop()
+AndroidMediaResourceServer::Stop()
 {
   MutexAutoLock lock(mMutex);
   mSocket->Close();
@@ -432,7 +432,7 @@ MediaResourceServer::Stop()
 }
 
 nsresult
-MediaResourceServer::AppendRandomPath(nsCString& aUrl)
+AndroidMediaResourceServer::AppendRandomPath(nsCString& aUrl)
 {
   
   
@@ -474,7 +474,7 @@ MediaResourceServer::AppendRandomPath(nsCString& aUrl)
 }
 
 nsresult
-MediaResourceServer::AddResource(mozilla::MediaResource* aResource, nsCString& aUrl)
+AndroidMediaResourceServer::AddResource(mozilla::MediaResource* aResource, nsCString& aUrl)
 {
   nsCString url = GetURLPrefix();
   nsresult rv = AppendRandomPath(url);
@@ -494,14 +494,14 @@ MediaResourceServer::AddResource(mozilla::MediaResource* aResource, nsCString& a
 }
 
 void
-MediaResourceServer::RemoveResource(nsCString const& aUrl)
+AndroidMediaResourceServer::RemoveResource(nsCString const& aUrl)
 {
   MutexAutoLock lock(mMutex);
   mResources.erase(aUrl);
 }
 
 nsCString
-MediaResourceServer::GetURLPrefix()
+AndroidMediaResourceServer::GetURLPrefix()
 {
   MutexAutoLock lock(mMutex);
 
@@ -517,7 +517,7 @@ MediaResourceServer::GetURLPrefix()
 }
 
 already_AddRefed<MediaResource>
-MediaResourceServer::GetResource(nsCString const& aUrl)
+AndroidMediaResourceServer::GetResource(nsCString const& aUrl)
 {
   MutexAutoLock lock(mMutex);
   ResourceMap::const_iterator it = mResources.find(aUrl);

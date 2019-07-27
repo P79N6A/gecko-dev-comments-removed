@@ -3,26 +3,26 @@
 
 
 
-#if !defined(MediaPluginDecoder_h_)
-#define MediaPluginDecoder_h_
+#if !defined(AndroidMediaDecoder_h_)
+#define AndroidMediaDecoder_h_
 
 #include "MediaDecoder.h"
-#include "MediaPluginDecoder.h"
+#include "AndroidMediaDecoder.h"
 
 namespace mozilla {
 
-class MediaPluginDecoder : public MediaDecoder
+class AndroidMediaDecoder : public MediaDecoder
 {
   nsCString mType;
 public:
-  MediaPluginDecoder(const nsACString& aType);
+  AndroidMediaDecoder(const nsACString& aType);
 
   const nsresult GetContentType(nsACString& aType) const {
     aType = mType;
     return NS_OK;
   }
 
-  virtual MediaDecoder* Clone() { return new MediaPluginDecoder(mType); }
+  virtual MediaDecoder* Clone() { return new AndroidMediaDecoder(mType); }
   virtual MediaDecoderStateMachine* CreateStateMachine();
 };
 

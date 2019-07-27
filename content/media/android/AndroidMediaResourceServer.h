@@ -3,8 +3,8 @@
 
 
 
-#if !defined(MediaResourceServer_h_)
-#define MediaResourceServer_h_
+#if !defined(AndroidMediaResourceServer_h_)
+#define AndroidMediaResourceServer_h_
 
 #include <map>
 #include "nsIServerSocket.h"
@@ -37,7 +37,7 @@ class MediaResource;
 
 
 
-class MediaResourceServer : public nsRunnable
+class AndroidMediaResourceServer : public nsRunnable
 {
 private:
   
@@ -57,7 +57,7 @@ private:
   
   
   
-  MediaResourceServer();
+  AndroidMediaResourceServer();
   NS_IMETHOD Run();
 
   
@@ -69,7 +69,7 @@ private:
 public:
   
   
-  static already_AddRefed<MediaResourceServer> Start();
+  static already_AddRefed<AndroidMediaResourceServer> Start();
 
   
   void Stop();

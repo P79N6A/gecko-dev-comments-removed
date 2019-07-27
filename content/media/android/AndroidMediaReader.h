@@ -3,8 +3,8 @@
 
 
 
-#if !defined(MediaPluginReader_h_)
-#define MediaPluginReader_h_
+#if !defined(AndroidMediaReader_h_)
+#define AndroidMediaReader_h_
 
 #include "mozilla/Attributes.h"
 #include "MediaResource.h"
@@ -29,7 +29,7 @@ namespace dom {
 class TimeRanges;
 }
  
-class MediaPluginReader : public MediaDecoderReader
+class AndroidMediaReader : public MediaDecoderReader
 {
   nsCString mType;
   MPAPI::Decoder *mPlugin;
@@ -41,8 +41,8 @@ class MediaPluginReader : public MediaDecoderReader
   int64_t mAudioSeekTimeUs;
   nsAutoPtr<VideoData> mLastVideoFrame;
 public:
-  MediaPluginReader(AbstractMediaDecoder* aDecoder,
-                    const nsACString& aContentType);
+  AndroidMediaReader(AbstractMediaDecoder* aDecoder,
+                     const nsACString& aContentType);
 
   virtual nsresult Init(MediaDecoderReader* aCloneDonor);
   virtual nsresult ResetDecode();

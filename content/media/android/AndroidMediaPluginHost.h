@@ -3,26 +3,26 @@
 
 
 
-#if !defined(MediaPluginHost_h_)
-#define MediaPluginHost_h_
+#if !defined(AndroidMediaPluginHost_h_)
+#define AndroidMediaPluginHost_h_
 
 #include "nsTArray.h"
 #include "MediaResource.h"
 #include "MPAPI.h"
-#include "MediaResourceServer.h"
+#include "AndroidMediaResourceServer.h"
 
 namespace mozilla {
 
-class MediaPluginReader;
+class AndroidMediaReader;
 
-class MediaPluginHost {
-  nsRefPtr<MediaResourceServer> mResourceServer;
+class AndroidMediaPluginHost {
+  nsRefPtr<AndroidMediaResourceServer> mResourceServer;
   nsTArray<MPAPI::Manifest *> mPlugins;
 
   MPAPI::Manifest *FindPlugin(const nsACString& aMimeType);
 public:
-  MediaPluginHost();
-  ~MediaPluginHost();
+  AndroidMediaPluginHost();
+  ~AndroidMediaPluginHost();
 
   static void Shutdown();
 
@@ -31,7 +31,7 @@ public:
   void DestroyDecoder(MPAPI::Decoder *aDecoder);
 };
 
-MediaPluginHost *GetMediaPluginHost();
+AndroidMediaPluginHost *GetAndroidMediaPluginHost();
 
 } 
 
