@@ -40,8 +40,10 @@ WebGLContext::Clear(GLbitfield mask)
     }
 
     
-
-    gl->fClear(mask);
+    {
+        ScopedMaskWorkaround autoMask(*this);
+        gl->fClear(mask);
+    }
 
     Invalidate();
     mShouldPresent = true;
