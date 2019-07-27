@@ -911,20 +911,20 @@ let SessionStoreInternal = {
     
     
     if (!this._promiseReadyForInitialization) {
-      let deferred = Promise.defer();
-
       
-      Services.obs.addObserver(function obs(subject, topic) {
-        if (aWindow == subject) {
-          Services.obs.removeObserver(obs, topic);
-          deferred.resolve();
-        }
-      }, "browser-delayed-startup-finished", false);
+      let promise = new Promise(resolve => {
+        Services.obs.addObserver(function obs(subject, topic) {
+          if (aWindow == subject) {
+            Services.obs.removeObserver(obs, topic);
+            resolve();
+          }
+        }, "browser-delayed-startup-finished", false);
+      });
 
       
       
       this._promiseReadyForInitialization =
-        Promise.all([deferred.promise, gSessionStartup.onceInitialized]);
+        Promise.all([promise, gSessionStartup.onceInitialized]);
     }
 
     
