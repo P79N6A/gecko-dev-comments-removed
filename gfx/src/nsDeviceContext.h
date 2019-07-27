@@ -9,6 +9,7 @@
 #include <stdint.h>                     
 #include <sys/types.h>                  
 #include "gfxTypes.h"                   
+#include "gfxFont.h"                    
 #include "mozilla/Assertions.h"         
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -118,6 +119,7 @@ public:
 
 
     nsresult GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
+                           gfxFont::Orientation aOrientation,
                            gfxUserFontSet* aUserFontSet,
                            gfxTextPerfMetrics* aTextPerf,
                            nsFontMetrics*& aMetrics);

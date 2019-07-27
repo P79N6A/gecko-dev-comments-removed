@@ -57,6 +57,7 @@ public:
 
 
     nsresult Init(const nsFont& aFont, nsIAtom* aLanguage,
+                  gfxFont::Orientation aOrientation,
                   nsDeviceContext *aContext,
                   gfxUserFontSet *aUserFontSet,
                   gfxTextPerfMetrics *aTextPerf);
@@ -174,6 +175,11 @@ public:
 
     nsIAtom* Language() { return mLanguage; }
 
+    
+
+
+    gfxFont::Orientation Orientation() { return mOrientation; }
+
     int32_t GetMaxStringLength();
 
     
@@ -223,6 +229,7 @@ private:
     nsDeviceContext *mDeviceContext;
     int32_t mP2A;
     bool mTextRunRTL;
+    gfxFont::Orientation mOrientation;
 };
 
 #endif 

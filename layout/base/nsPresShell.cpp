@@ -10060,6 +10060,7 @@ void ReflowCountMgr::PaintCount(const char*     aName,
         
         aPresContext->GetPresShell()->GetRootFrame()->
           StyleFont()->mLanguage,
+        gfxFont::eHorizontal,
         aPresContext->GetUserFontSet(),
         aPresContext->GetTextPerfMetrics(),
         *getter_AddRefs(fm));
