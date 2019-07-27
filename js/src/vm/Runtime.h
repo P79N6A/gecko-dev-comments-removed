@@ -520,12 +520,19 @@ class PerThreadData : public PerThreadDataFriendFields
     JSContext           *jitJSContext;
 
     
+  private:
+    mozilla::Atomic<uintptr_t, mozilla::Relaxed> jitStackLimit_;
+    void resetJitStackLimit();
+    friend struct ::JSRuntime;
+  public:
+    void initJitStackLimit();
+    void initJitStackLimitPar(uintptr_t limit);
 
+    uintptr_t jitStackLimit() const { return jitStackLimit_; }
 
-
-    uintptr_t            jitStackLimit;
-
-    inline void setJitStackLimit(uintptr_t limit);
+    
+    void *addressOfJitStackLimit() { return &jitStackLimit_; }
+    static size_t offsetOfJitStackLimit() { return offsetof(PerThreadData, jitStackLimit_); }
 
     
     irregexp::RegExpStack regexpStack;
@@ -678,8 +685,6 @@ class PerThreadData : public PerThreadDataFriendFields
 
 class AutoLockForExclusiveAccess;
 
-void RecomputeStackLimit(JSRuntime *rt, StackKind kind);
-
 } 
 
 struct JSRuntime : public JS::shadow::Runtime,
@@ -703,18 +708,56 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     JSRuntime *parentRuntime;
 
+  private:
+    mozilla::Atomic<uint32_t, mozilla::Relaxed> interrupt_;
+    mozilla::Atomic<uint32_t, mozilla::Relaxed> interruptPar_;
+  public:
+
+    enum InterruptMode {
+        RequestInterruptMainThread,
+        RequestInterruptAnyThread,
+        RequestInterruptAnyThreadDontStopIon,
+        RequestInterruptAnyThreadForkJoin
+    };
+
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    void requestInterrupt(InterruptMode mode);
+    bool handleInterrupt(JSContext *cx);
 
-
-
-    mozilla::Atomic<bool, mozilla::Relaxed> interrupt;
+    MOZ_ALWAYS_INLINE bool hasPendingInterrupt() const {
+        return interrupt_;
+    }
+    MOZ_ALWAYS_INLINE bool hasPendingInterruptPar() const {
+        return interruptPar_;
+    }
 
     
-
-
-
-
-    mozilla::Atomic<bool, mozilla::Relaxed> interruptPar;
+    void *addressOfInterruptUint32() {
+        static_assert(sizeof(interrupt_) == sizeof(uint32_t), "Assumed by JIT callers");
+        return &interrupt_;
+    }
+    void *addressOfInterruptParUint32() {
+        static_assert(sizeof(interruptPar_) == sizeof(uint32_t), "Assumed by JIT callers");
+        return &interruptPar_;
+    }
 
     
     bool handlingSignal;
@@ -900,7 +943,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     void setDefaultVersion(JSVersion v) { defaultVersion_ = v; }
 
     
-    uintptr_t           nativeStackBase;
+    const uintptr_t     nativeStackBase;
 
     
     size_t              nativeStackQuota[js::StackKindCount];
@@ -1267,10 +1310,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool                jitSupportsSimd;
 
     
-    
-    void resetJitStackLimit();
-
-    
     js::jit::PcScriptCache *ionPcScriptCache;
 
     js::ThreadPool threadPool;
@@ -1329,17 +1368,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     JS_FRIEND_API(void *) onOutOfMemoryCanGC(void *p, size_t bytes);
-
-    
-    
-    enum InterruptMode {
-        RequestInterruptMainThread,
-        RequestInterruptAnyThread,
-        RequestInterruptAnyThreadDontStopIon,
-        RequestInterruptAnyThreadForkJoin
-    };
-
-    void requestInterrupt(InterruptMode mode);
 
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes *runtime);
 
@@ -1563,13 +1591,6 @@ class MOZ_STACK_CLASS AutoKeepAtoms
         }
     }
 };
-
-inline void
-PerThreadData::setJitStackLimit(uintptr_t limit)
-{
-    MOZ_ASSERT(runtime_->currentThreadOwnsInterruptLock());
-    jitStackLimit = limit;
-}
 
 inline JSRuntime *
 PerThreadData::runtimeFromMainThread()

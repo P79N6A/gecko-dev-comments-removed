@@ -117,24 +117,13 @@ CheckOverRecursed(JSContext *cx)
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
 #if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, 0, return false);
 #else
     JS_CHECK_RECURSION(cx, return false);
 #endif
-
-    if (cx->runtime()->interrupt)
-        return InterruptCheck(cx);
-
-    return true;
+    gc::MaybeVerifyBarriers(cx);
+    return cx->runtime()->handleInterrupt(cx);
 }
 
 
@@ -178,10 +167,8 @@ CheckOverRecursedWithExtra(JSContext *cx, BaselineFrame *frame,
     JS_CHECK_RECURSION_WITH_SP(cx, checkSp, return false);
 #endif
 
-    if (cx->runtime()->interrupt)
-        return InterruptCheck(cx);
-
-    return true;
+    gc::MaybeVerifyBarriers(cx);
+    return cx->runtime()->handleInterrupt(cx);
 }
 
 bool
