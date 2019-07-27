@@ -127,7 +127,6 @@ private:
 
   bool mUseSrcAttr; 
   bool mSuppressStyleCheck;
-  bool mFireEventOnDecode;
 }; 
 
 class nsDisplayXULImage : public nsDisplayImageContainer {

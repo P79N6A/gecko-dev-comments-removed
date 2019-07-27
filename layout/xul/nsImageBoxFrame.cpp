@@ -152,8 +152,7 @@ nsImageBoxFrame::nsImageBoxFrame(nsStyleContext* aContext):
   mLoadFlags(nsIRequest::LOAD_NORMAL),
   mRequestRegistered(false),
   mUseSrcAttr(false),
-  mSuppressStyleCheck(false),
-  mFireEventOnDecode(false)
+  mSuppressStyleCheck(false)
 {
   MarkIntrinsicISizesDirty();
 }
@@ -772,52 +771,23 @@ nsImageBoxFrame::OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage)
 nsresult
 nsImageBoxFrame::OnDecodeComplete(imgIRequest* aRequest)
 {
-  if (mFireEventOnDecode) {
-    mFireEventOnDecode = false;
-
-    uint32_t reqStatus;
-    aRequest->GetImageStatus(&reqStatus);
-    if (!(reqStatus & imgIRequest::STATUS_ERROR)) {
-      FireImageDOMEvent(mContent, NS_LOAD);
-    } else {
-      
-      mIntrinsicSize.SizeTo(0, 0);
-      PresContext()->PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
-      FireImageDOMEvent(mContent, NS_LOAD_ERROR);
-    }
-  }
-
   nsBoxLayoutState state(PresContext());
   this->Redraw(state);
-
   return NS_OK;
 }
 
 nsresult
 nsImageBoxFrame::OnLoadComplete(imgIRequest* aRequest, nsresult aStatus)
 {
-  uint32_t reqStatus;
-  aRequest->GetImageStatus(&reqStatus);
-
-  
-  
-  
-  if (NS_SUCCEEDED(aStatus) && !(reqStatus & imgIRequest::STATUS_ERROR) &&
-      (reqStatus & imgIRequest::STATUS_DECODE_STARTED) &&
-      !(reqStatus & imgIRequest::STATUS_DECODE_COMPLETE)) {
-    mFireEventOnDecode = true;
+  if (NS_SUCCEEDED(aStatus)) {
+    
+    FireImageDOMEvent(mContent, NS_LOAD);
   } else {
-    if (NS_SUCCEEDED(aStatus)) {
-      
-      FireImageDOMEvent(mContent, NS_LOAD);
-    } else {
-      
-      mIntrinsicSize.SizeTo(0, 0);
-      PresContext()->PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
-      FireImageDOMEvent(mContent, NS_LOAD_ERROR);
-    }
+    
+    mIntrinsicSize.SizeTo(0, 0);
+    PresContext()->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+    FireImageDOMEvent(mContent, NS_LOAD_ERROR);
   }
 
   return NS_OK;
