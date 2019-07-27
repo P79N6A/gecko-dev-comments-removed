@@ -19,6 +19,8 @@ namespace mozilla {
 
 class GonkDecoderManager {
 public:
+  GonkDecoderManager();
+
   virtual ~GonkDecoderManager() {}
 
   
@@ -26,18 +28,49 @@ public:
   virtual android::sp<android::MediaCodecProxy> Init(MediaDataDecoderCallback* aCallback) = 0;
 
   
+  virtual nsresult Input(mp4_demuxer::MP4Sample* aSample);
+
   
   
   
   
-  virtual nsresult Input(mp4_demuxer::MP4Sample* aSample) = 0;
+  
+  
   virtual nsresult Output(int64_t aStreamOffset,
                           nsRefPtr<MediaData>& aOutput) = 0;
-  virtual nsresult Flush() = 0;
 
-  virtual void AllocateMediaResources() {};
+  
+  
+  
+  virtual nsresult Flush();
 
-  virtual void ReleaseMediaResources() {};
+  virtual void AllocateMediaResources() {}
+
+  virtual void ReleaseMediaResources() {}
+
+  bool HasQueuedSample() {
+    ReentrantMonitorAutoEnter mon(mMonitor);
+    return mQueueSample.Length();
+  }
+
+protected:
+  
+  
+  virtual void PerformFormatSpecificProcess(mp4_demuxer::MP4Sample* aSample) {}
+
+  
+  virtual android::status_t SendSampleToOMX(mp4_demuxer::MP4Sample* aSample) = 0;
+
+  
+  ReentrantMonitor mMonitor;
+
+  
+  
+  
+  nsTArray<nsAutoPtr<mp4_demuxer::MP4Sample>> mQueueSample;
+
+  
+  bool mInputEOS;
 };
 
 

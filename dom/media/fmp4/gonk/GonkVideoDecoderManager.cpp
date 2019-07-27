@@ -49,11 +49,11 @@ enum {
 };
 
 GonkVideoDecoderManager::GonkVideoDecoderManager(
-                           mozilla::layers::ImageContainer* aImageContainer,
-		           const mp4_demuxer::VideoDecoderConfig& aConfig)
-  : mImageContainer(aImageContainer)
+  mozilla::layers::ImageContainer* aImageContainer,
+  const mp4_demuxer::VideoDecoderConfig& aConfig)
+  : GonkDecoderManager()
+  , mImageContainer(aImageContainer)
   , mReaderCallback(nullptr)
-  , mMonitor("GonkVideoDecoderManager")
   , mColorConverterBufferSize(0)
   , mNativeWindow(nullptr)
   , mPendingVideoBuffersLock("GonkVideoDecoderManager::mPendingVideoBuffersLock")
@@ -124,7 +124,7 @@ GonkVideoDecoderManager::Init(MediaDataDecoderCallback* aCallback)
 void
 GonkVideoDecoderManager::QueueFrameTimeIn(int64_t aPTS, int64_t aDuration)
 {
-  MonitorAutoLock mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mMonitor);
   FrameTimeInfo timeInfo = {aPTS, aDuration};
   mFrameTimeInfo.AppendElement(timeInfo);
 }
@@ -132,7 +132,7 @@ GonkVideoDecoderManager::QueueFrameTimeIn(int64_t aPTS, int64_t aDuration)
 nsresult
 GonkVideoDecoderManager::QueueFrameTimeOut(int64_t aPTS, int64_t& aDuration)
 {
-  MonitorAutoLock mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mMonitor);
 
   
   
@@ -435,41 +435,41 @@ void GonkVideoDecoderManager::ReleaseVideoBuffer() {
   }
 }
 
-nsresult
-GonkVideoDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
+status_t
+GonkVideoDecoderManager::SendSampleToOMX(mp4_demuxer::MP4Sample* aSample)
 {
-  if (mDecoder == nullptr) {
-    GVDM_LOG("Decoder is not inited");
-    return NS_ERROR_UNEXPECTED;
+  
+  
+  if (aSample->data && aSample->duration && aSample->composition_timestamp) {
+    QueueFrameTimeIn(aSample->composition_timestamp, aSample->duration);
   }
-  status_t rv;
+
+  return mDecoder->Input(reinterpret_cast<const uint8_t*>(aSample->data),
+                         aSample->size,
+                         aSample->composition_timestamp,
+                         0);
+}
+
+void
+GonkVideoDecoderManager::PerformFormatSpecificProcess(mp4_demuxer::MP4Sample* aSample)
+{
   if (aSample != nullptr) {
     
     mp4_demuxer::AnnexB::ConvertSampleToAnnexB(aSample);
-    
-
-    QueueFrameTimeIn(aSample->composition_timestamp, aSample->duration);
-
-    const uint8_t* data = reinterpret_cast<const uint8_t*>(aSample->data);
-    uint32_t length = aSample->size;
-    rv = mDecoder->Input(data, length, aSample->composition_timestamp, 0);
   }
-  else {
-    
-    rv = mDecoder->Input(nullptr, 0, 0ll, 0);
-  }
-  return (rv == OK) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 nsresult
 GonkVideoDecoderManager::Flush()
 {
+  GonkDecoderManager::Flush();
+
   status_t err = mDecoder->flush();
   if (err != OK) {
     return NS_ERROR_FAILURE;
   }
 
-  MonitorAutoLock mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mMonitor);
   mFrameTimeInfo.Clear();
   return NS_OK;
 }
