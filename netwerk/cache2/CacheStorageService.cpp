@@ -865,6 +865,8 @@ CacheStorageService::RegisterEntry(CacheEntry* aEntry)
   if (mShutdown || !aEntry->CanRegister())
     return;
 
+  TelemetryRecordEntryCreation(aEntry);
+
   LOG(("CacheStorageService::RegisterEntry [entry=%p]", aEntry));
 
   MemoryPool& pool = Pool(aEntry->IsUsingDisk());
@@ -881,6 +883,8 @@ CacheStorageService::UnregisterEntry(CacheEntry* aEntry)
 
   if (!aEntry->IsRegistered())
     return;
+
+  TelemetryRecordEntryRemoval(aEntry);
 
   LOG(("CacheStorageService::UnregisterEntry [entry=%p]", aEntry));
 
@@ -1740,6 +1744,113 @@ CacheStorageService::GetCacheEntryInfo(CacheEntry* aEntry,
 
   aCallback->OnEntryInfo(uriSpec, enhanceId, dataSize,
                          fetchCount, lastModified, expirationTime);
+}
+
+
+
+namespace { 
+
+bool TelemetryEntryKey(CacheEntry const* entry, nsAutoCString& key)
+{
+  nsAutoCString entryKey;
+  nsresult rv = entry->HashingKey(entryKey);
+  if (NS_FAILED(rv))
+    return false;
+
+  if (entry->GetStorageID().IsEmpty()) {
+    
+    key = entryKey;
+  } else {
+    key.Assign(entry->GetStorageID());
+    key.Append(':');
+    key.Append(entryKey);
+  }
+
+  return true;
+}
+
+PLDHashOperator PrunePurgeTimeStamps(
+  const nsACString& aKey, TimeStamp& aTimeStamp, void* aClosure)
+{
+  TimeStamp* now = static_cast<TimeStamp*>(aClosure);
+  static TimeDuration const fifteenMinutes = TimeDuration::FromSeconds(900);
+
+  if (*now - aTimeStamp > fifteenMinutes) {
+    
+    
+    return PL_DHASH_REMOVE;
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+} 
+
+void
+CacheStorageService::TelemetryPrune(TimeStamp &now)
+{
+  static TimeDuration const oneMinute = TimeDuration::FromSeconds(60);
+  static TimeStamp dontPruneUntil = now + oneMinute;
+  if (now < dontPruneUntil)
+    return;
+
+  mPurgeTimeStamps.Enumerate(PrunePurgeTimeStamps, &now);
+  dontPruneUntil = now + oneMinute;
+}
+
+void
+CacheStorageService::TelemetryRecordEntryCreation(CacheEntry const* entry)
+{
+  MOZ_ASSERT(CacheStorageService::IsOnManagementThread());
+
+  nsAutoCString key;
+  if (!TelemetryEntryKey(entry, key))
+    return;
+
+  TimeStamp now = TimeStamp::NowLoRes();
+  TelemetryPrune(now);
+
+  
+  
+  
+  
+  TimeStamp timeStamp;
+  if (!mPurgeTimeStamps.Get(key, &timeStamp))
+    return;
+
+  mPurgeTimeStamps.Remove(key);
+
+  Telemetry::AccumulateTimeDelta(Telemetry::HTTP_CACHE_ENTRY_RELOAD_TIME,
+                                 timeStamp, TimeStamp::NowLoRes());
+}
+
+void
+CacheStorageService::TelemetryRecordEntryRemoval(CacheEntry const* entry)
+{
+  MOZ_ASSERT(CacheStorageService::IsOnManagementThread());
+
+  
+  
+  
+  if (entry->IsDoomed())
+    return;
+
+  nsAutoCString key;
+  if (!TelemetryEntryKey(entry, key))
+    return;
+
+  
+  
+  
+  
+
+  TimeStamp now = TimeStamp::NowLoRes();
+  TelemetryPrune(now);
+  mPurgeTimeStamps.Put(key, now);
+
+  Telemetry::Accumulate(Telemetry::HTTP_CACHE_ENTRY_REUSE_COUNT, entry->UseCount());
+  Telemetry::AccumulateTimeDelta(Telemetry::HTTP_CACHE_ENTRY_ALIVE_TIME,
+                                 entry->LoadStart(), TimeStamp::NowLoRes());
 }
 
 

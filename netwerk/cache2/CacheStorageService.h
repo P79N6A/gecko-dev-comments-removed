@@ -10,11 +10,13 @@
 
 #include "nsITimer.h"
 #include "nsClassHashtable.h"
+#include "nsDataHashtable.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/TimeStamp.h"
 #include "nsTArray.h"
 
 class nsIURI;
@@ -143,6 +145,12 @@ private:
   void RecordMemoryOnlyEntry(CacheEntry* aEntry,
                              bool aOnlyInMemory,
                              bool aOverwrite);
+
+private:
+  
+  void TelemetryPrune(TimeStamp &now);
+  void TelemetryRecordEntryCreation(CacheEntry const* entry);
+  void TelemetryRecordEntryRemoval(CacheEntry const* entry);
 
 private:
   
@@ -323,6 +331,12 @@ private:
     nsRefPtr<CacheStorageService> mService;
     uint32_t mWhat;
   };
+
+  
+  
+  
+  
+  nsDataHashtable<nsCStringHashKey, mozilla::TimeStamp> mPurgeTimeStamps;
 };
 
 template<class T>
