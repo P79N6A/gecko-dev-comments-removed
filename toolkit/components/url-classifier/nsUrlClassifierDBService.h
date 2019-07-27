@@ -101,6 +101,10 @@ private:
 
   
   
+  bool mCheckTracking;
+
+  
+  
   
   
   bool mInUpdate;

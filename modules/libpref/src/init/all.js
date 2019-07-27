@@ -820,6 +820,8 @@ pref("privacy.donottrackheader.enabled",    false);
 
 pref("privacy.donottrackheader.value",      1);
 
+pref("privacy.trackingprotection.enabled",  false);
+
 pref("dom.event.contextmenu.enabled",       true);
 pref("dom.event.clipboardevents.enabled",   true);
 #if defined(XP_WIN) && !defined(RELEASE_BUILD)
@@ -4187,11 +4189,17 @@ pref("dom.voicemail.defaultServiceId", 0);
 pref("dom.inter-app-communication-api.enabled", false);
 
 
-pref("urlclassifier.malware_table", "goog-malware-shavar,test-malware-simple");
-pref("urlclassifier.phish_table", "goog-phish-shavar,test-phish-simple");
+pref("urlclassifier.malwareTable", "goog-malware-shavar,test-malware-simple");
+pref("urlclassifier.phishTable", "goog-phish-shavar,test-phish-simple");
 pref("urlclassifier.downloadBlockTable", "");
 pref("urlclassifier.downloadAllowTable", "");
-pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simple,goog-downloadwhite-digest256");
+pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simple,goog-downloadwhite-digest256,mozpub-track-digest256");
+
+
+
+pref("urlclassifier.trackingTable", "mozpub-track-digest256");
+pref("browser.trackingprotection.updateURL", "https://tracking.services.mozilla.com/update?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
+pref("browser.trackingprotection.gethashURL", "https://tracking.services.mozilla.com/gethash?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
 
 
 pref("snav.enabled", false);
