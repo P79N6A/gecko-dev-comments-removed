@@ -545,6 +545,16 @@ public:
   
   void ClearSdpParseErrorMessages();
 
+  void StartTrickle();
+
+  
+  
+  void OnNewMline(uint16_t level) {
+    if (level > mNumMlines) {
+      mNumMlines = level;
+    }
+  }
+
   void OnAddIceCandidateError() {
     ++mAddCandidateErrorCount;
   }
@@ -620,6 +630,10 @@ private:
   nsresult IceGatheringStateChange_m(
       mozilla::dom::PCImplIceGatheringState aState);
 
+  void CandidateReady_s(const std::string& candidate, uint16_t level);
+  nsresult CandidateReady_m(const std::string& candidate, uint16_t level);
+  void SendEndOfCandidates();
+
   NS_IMETHOD FingerprintSplitHelper(
       std::string& fingerprint, size_t& spaceIdx) const;
 
@@ -674,6 +688,9 @@ private:
   std::string mRemoteSDP;
 
   
+  std::vector<std::pair<std::string, uint16_t>> mCandidateBuffer;
+
+  
   std::string mFingerprint;
   std::string mRemoteFingerprint;
 
@@ -723,6 +740,8 @@ private:
   int mNumVideoStreams;
 
   bool mHaveDataStream;
+
+  uint16_t mNumMlines;
 
   
   std::vector<std::string> mSDPParseErrorMessages;

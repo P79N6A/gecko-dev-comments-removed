@@ -1108,13 +1108,6 @@ PeerConnectionObserver.prototype = {
 
   onSetLocalDescriptionSuccess: function() {
     this._dompc.callCB(this._dompc._onSetLocalDescriptionSuccess);
-
-    if (this._dompc._iceGatheringState == "complete") {
-        
-        
-        this.foundIceCandidate(null);
-    }
-
     this._dompc._executeNext();
   },
 
@@ -1149,13 +1142,17 @@ PeerConnectionObserver.prototype = {
   },
 
   onIceCandidate: function(level, mid, candidate) {
-    this.foundIceCandidate(new this._dompc._win.mozRTCIceCandidate(
-        {
-            candidate: candidate,
-            sdpMid: mid,
-            sdpMLineIndex: level - 1
-        }
-    ));
+    if (candidate == "") {
+      this.foundIceCandidate(null);
+    } else {
+      this.foundIceCandidate(new this._dompc._win.mozRTCIceCandidate(
+          {
+              candidate: candidate,
+              sdpMid: mid,
+              sdpMLineIndex: level - 1
+          }
+      ));
+    }
   },
 
 
@@ -1226,20 +1223,6 @@ PeerConnectionObserver.prototype = {
   
   handleIceGatheringStateChange: function(gatheringState) {
     this._dompc.changeIceGatheringState(gatheringState);
-
-    if (gatheringState === "complete") {
-      if (!this._dompc._trickleIce) {
-        
-        
-        this._dompc._executeNext();
-      }
-      else if (this._dompc.localDescription) {
-        
-        
-        
-        this.foundIceCandidate(null);
-      }
-    }
   },
 
   onStateChange: function(state) {

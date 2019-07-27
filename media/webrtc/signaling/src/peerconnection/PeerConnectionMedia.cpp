@@ -279,7 +279,11 @@ nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_serv
   
   
   for (std::size_t i=0; i<mIceStreams.size(); i++) {
+    mIceStreams[i]->SetLevel(i + 1);
     mIceStreams[i]->SignalReady.connect(this, &PeerConnectionMedia::IceStreamReady);
+    mIceStreams[i]->SignalCandidate.connect(
+        this,
+        &PeerConnectionMedia::OnCandidateFound);
   }
 
   
@@ -607,6 +611,18 @@ PeerConnectionMedia::IceStreamReady(NrIceMediaStream *aStream)
 
   CSFLogDebug(logTag, "%s: %s", __FUNCTION__, aStream->name().c_str());
 }
+
+void
+PeerConnectionMedia::OnCandidateFound(NrIceMediaStream *aStream,
+                                      const std::string &candidate)
+{
+  MOZ_ASSERT(aStream);
+
+  CSFLogDebug(logTag, "%s: %s", __FUNCTION__, aStream->name().c_str());
+
+  SignalCandidate(candidate, aStream->GetLevel());
+}
+
 
 
 void

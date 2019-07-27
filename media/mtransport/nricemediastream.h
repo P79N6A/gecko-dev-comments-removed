@@ -114,12 +114,6 @@ struct NrIceCandidatePair {
   std::string codeword;
 };
 
-
-class NrIceOpaque {
- public:
-  virtual ~NrIceOpaque() {}
-};
-
 class NrIceMediaStream {
  public:
   static RefPtr<NrIceMediaStream> Create(NrIceCtx *ctx,
@@ -141,9 +135,6 @@ class NrIceMediaStream {
   
   
   nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* out_pairs) const;
-
-  
-  nsresult GetDefaultCandidate(int component, std::string *host, int *port);
 
   
   nsresult ParseAttributes(std::vector<std::string>& candidates);
@@ -180,13 +171,14 @@ class NrIceMediaStream {
   void Close();
 
   
-  void SetOpaque(NrIceOpaque *opaque) { opaque_ = opaque; }
-
   
-  NrIceOpaque* opaque() const { return opaque_; }
+  void SetLevel(uint16_t level) { level_ = level; }
+
+  uint16_t GetLevel() const { return level_; }
 
   sigslot::signal2<NrIceMediaStream *, const std::string& >
   SignalCandidate;  
+
   sigslot::signal1<NrIceMediaStream *> SignalReady;  
   sigslot::signal1<NrIceMediaStream *> SignalFailed;  
   sigslot::signal4<NrIceMediaStream *, int, const unsigned char *, int>
@@ -202,7 +194,7 @@ class NrIceMediaStream {
       name_(name),
       components_(components),
       stream_(nullptr),
-      opaque_(nullptr) {}
+      level_(0) {}
 
   ~NrIceMediaStream();
 
@@ -213,7 +205,7 @@ class NrIceMediaStream {
   const std::string name_;
   const int components_;
   nr_ice_media_stream *stream_;
-  ScopedDeletePtr<NrIceOpaque> opaque_;
+  uint16_t level_;
 };
 
 
