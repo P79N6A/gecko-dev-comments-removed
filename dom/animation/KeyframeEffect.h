@@ -3,8 +3,8 @@
 
 
 
-#ifndef mozilla_dom_Animation_h
-#define mozilla_dom_Animation_h
+#ifndef mozilla_dom_KeyframeEffect_h
+#define mozilla_dom_KeyframeEffect_h
 
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -184,14 +184,14 @@ struct ElementPropertyTransition;
 
 namespace dom {
 
-class Animation : public nsWrapperCache
+class KeyframeEffectReadonly : public nsWrapperCache
 {
 public:
-  Animation(nsIDocument* aDocument,
-            Element* aTarget,
-            nsCSSPseudoElements::Type aPseudoType,
-            const AnimationTiming &aTiming,
-            const nsSubstring& aName)
+  KeyframeEffectReadonly(nsIDocument* aDocument,
+                         Element* aTarget,
+                         nsCSSPseudoElements::Type aPseudoType,
+                         const AnimationTiming &aTiming,
+                         const nsSubstring& aName)
     : mDocument(aDocument)
     , mTarget(aTarget)
     , mTiming(aTiming)
@@ -202,15 +202,13 @@ public:
     MOZ_ASSERT(aTarget, "null animation target is not yet supported");
   }
 
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(Animation)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(Animation)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(KeyframeEffectReadonly)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(KeyframeEffectReadonly)
 
   nsIDocument* GetParentObject() const { return mDocument; }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  
-  
-  
   virtual ElementPropertyTransition* AsTransition() { return nullptr; }
   virtual const ElementPropertyTransition* AsTransition() const {
     return nullptr;
@@ -222,7 +220,7 @@ public:
     
     
     MOZ_ASSERT(mPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement,
-               "Requesting the target of an Animation that targets a"
+               "Requesting the target of a KeyframeEffect that targets a"
                " pseudo-element is not yet supported.");
     return mTarget;
   }
@@ -333,7 +331,7 @@ public:
                     nsCSSPropertySet& aSetProperties);
 
 protected:
-  virtual ~Animation() { }
+  virtual ~KeyframeEffectReadonly() { }
 
   
   

@@ -10,9 +10,9 @@
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h" 
-#include "mozilla/dom/Animation.h" 
 #include "mozilla/dom/AnimationPlayerBinding.h" 
 #include "mozilla/dom/DocumentTimeline.h" 
+#include "mozilla/dom/KeyframeEffect.h" 
 #include "mozilla/dom/Promise.h" 
 #include "nsCSSProperty.h" 
 
@@ -80,7 +80,7 @@ public:
   };
 
   
-  Animation* GetSource() const { return mSource; }
+  KeyframeEffectReadonly* GetSource() const { return mSource; }
   DocumentTimeline* Timeline() const { return mTimeline; }
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   void SetStartTime(const Nullable<TimeDuration>& aNewStartTime);
@@ -113,7 +113,7 @@ public:
   
   void PauseFromJS() { Pause(); }
 
-  void SetSource(Animation* aSource);
+  void SetSource(KeyframeEffectReadonly* aSource);
   void Tick();
 
   
@@ -303,7 +303,7 @@ protected:
   AnimationPlayerCollection* GetCollection() const;
 
   nsRefPtr<DocumentTimeline> mTimeline;
-  nsRefPtr<Animation> mSource;
+  nsRefPtr<KeyframeEffectReadonly> mSource;
   
   Nullable<TimeDuration> mStartTime; 
   Nullable<TimeDuration> mHoldTime;  

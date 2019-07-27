@@ -9,6 +9,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/StyleAnimationValue.h"
+#include "mozilla/dom/KeyframeEffect.h"
 
 #include "nsPresContext.h"
 #include "nsStyleSet.h"
@@ -23,8 +24,8 @@
 
 using namespace mozilla;
 using namespace mozilla::css;
-using mozilla::dom::Animation;
 using mozilla::dom::AnimationPlayer;
+using mozilla::dom::KeyframeEffectReadonly;
 using mozilla::CSSAnimationPlayer;
 
 mozilla::dom::Promise*
@@ -355,13 +356,13 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
         
         
         if (oldPlayer->GetSource() && newPlayer->GetSource()) {
-          Animation* oldAnim = oldPlayer->GetSource();
-          Animation* newAnim = newPlayer->GetSource();
+          KeyframeEffectReadonly* oldEffect = oldPlayer->GetSource();
+          KeyframeEffectReadonly* newEffect = newPlayer->GetSource();
           animationChanged =
-            oldAnim->Timing() != newAnim->Timing() ||
-            oldAnim->Properties() != newAnim->Properties();
-          oldAnim->Timing() = newAnim->Timing();
-          oldAnim->Properties() = newAnim->Properties();
+            oldEffect->Timing() != newEffect->Timing() ||
+            oldEffect->Properties() != newEffect->Properties();
+          oldEffect->Timing() = newEffect->Timing();
+          oldEffect->Properties() = newEffect->Properties();
         }
 
         
@@ -527,10 +528,11 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
     timing.mDirection = src.GetDirection();
     timing.mFillMode = src.GetFillMode();
 
-    nsRefPtr<Animation> destAnim =
-      new Animation(mPresContext->Document(), aTarget,
-                    aStyleContext->GetPseudoType(), timing, src.GetName());
-    dest->SetSource(destAnim);
+    nsRefPtr<KeyframeEffectReadonly> destEffect =
+      new KeyframeEffectReadonly(mPresContext->Document(), aTarget,
+                                 aStyleContext->GetPseudoType(), timing,
+                                 src.GetName());
+    dest->SetSource(destEffect);
 
     
     
@@ -626,7 +628,7 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
         lastKey = kf.mKey;
       }
 
-      AnimationProperty &propData = *destAnim->Properties().AppendElement();
+      AnimationProperty &propData = *destEffect->Properties().AppendElement();
       propData.mProperty = prop;
       propData.mWinsInCascade = true;
 
@@ -689,8 +691,8 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
       
       
       if (!interpolated) {
-        destAnim->Properties().RemoveElementAt(
-          destAnim->Properties().Length() - 1);
+        destEffect->Properties().RemoveElementAt(
+          destEffect->Properties().Length() - 1);
       }
     }
   }
@@ -753,14 +755,14 @@ nsAnimationManager::UpdateCascadeResults(
     for (size_t playerIdx = aElementAnimations->mPlayers.Length();
          playerIdx-- != 0; ) {
       const AnimationPlayer* player = aElementAnimations->mPlayers[playerIdx];
-      const Animation* anim = player->GetSource();
-      if (!anim) {
+      const KeyframeEffectReadonly* effect = player->GetSource();
+      if (!effect) {
         continue;
       }
 
-      for (size_t propIdx = 0, propEnd = anim->Properties().Length();
+      for (size_t propIdx = 0, propEnd = effect->Properties().Length();
            propIdx != propEnd; ++propIdx) {
-        const AnimationProperty& prop = anim->Properties()[propIdx];
+        const AnimationProperty& prop = effect->Properties()[propIdx];
         
         
         if (nsCSSProps::PropHasFlags(prop.mProperty,
@@ -802,17 +804,17 @@ nsAnimationManager::UpdateCascadeResults(
        playerIdx-- != 0; ) {
     CSSAnimationPlayer* player =
       aElementAnimations->mPlayers[playerIdx]->AsCSSAnimationPlayer();
-    Animation* anim = player->GetSource();
+    KeyframeEffectReadonly* effect = player->GetSource();
 
     player->mInEffectForCascadeResults = player->HasInEffectSource();
 
-    if (!anim) {
+    if (!effect) {
       continue;
     }
 
-    for (size_t propIdx = 0, propEnd = anim->Properties().Length();
+    for (size_t propIdx = 0, propEnd = effect->Properties().Length();
          propIdx != propEnd; ++propIdx) {
-      AnimationProperty& prop = anim->Properties()[propIdx];
+      AnimationProperty& prop = effect->Properties()[propIdx];
       
       
       if (nsCSSProps::PropHasFlags(prop.mProperty,
