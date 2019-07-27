@@ -394,6 +394,15 @@ DataReportingService.prototype = Object.freeze({
   
 
 
+
+
+  getSessionRecorder: function() {
+    return this.sessionRecorder;
+  },
+
+  
+
+
   _reset: Task.async(function* () {
     yield this._loadClientIdTask;
     yield this._saveClientIdTask;

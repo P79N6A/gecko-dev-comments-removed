@@ -45,6 +45,7 @@ let gNumberOfThreadsLaunched = 0;
 const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
+const PREF_FHR_SERVICE_ENABLED = "datareporting.healthreport.service.enabled";
 
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
 
@@ -219,6 +220,7 @@ function checkPayload(request, reason, successfulPings) {
   do_check_eq(payload.simpleMeasurements.savedPings, 1);
   do_check_true("maximalNumberOfConcurrentThreads" in payload.simpleMeasurements);
   do_check_true(payload.simpleMeasurements.maximalNumberOfConcurrentThreads >= gNumberOfThreadsLaunched);
+  do_check_true(payload.simpleMeasurements.activeTicks >= 0);
 
   do_check_eq(payload.simpleMeasurements.failedProfileLockCount,
               FAILED_PROFILE_LOCK_ATTEMPTS);
@@ -433,11 +435,19 @@ function run_test() {
   }
 
   
+  
+  
+  do_check_true(gDatareportingService.getSessionRecorder() === undefined);
+
+  
   do_get_profile();
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
 
   Services.prefs.setBoolPref(PREF_ENABLED, true);
   Services.prefs.setBoolPref(PREF_FHR_UPLOAD_ENABLED, true);
+
+  
+  Services.prefs.setBoolPref(PREF_FHR_SERVICE_ENABLED, false);
 
   
   
@@ -494,6 +504,19 @@ function actualTest() {
 
 add_task(function* asyncSetup() {
   yield TelemetryPing.setup();
+
+  
+  do_check_true(TelemetryPing.getPayload().simpleMeasurements.activeTicks == -1);
+
+  
+  
+  
+  
+  Services.prefs.setBoolPref(PREF_FHR_SERVICE_ENABLED, true);
+  if ("@mozilla.org/datareporting/service;1" in Cc) {
+    gDatareportingService.observe(null, "app-startup", null);
+    gDatareportingService.observe(null, "profile-after-change", null);
+  }
 
   if ("@mozilla.org/datareporting/service;1" in Cc) {
     gDataReportingClientID = yield gDatareportingService.getClientID();
