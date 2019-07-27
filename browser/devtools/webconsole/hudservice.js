@@ -440,7 +440,7 @@ WebConsole.prototype = {
     
     
     let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
-    if (browserWin) {
+    if (browserWin && browserWin.BrowserViewSourceOfDocument) {
       return browserWin.BrowserViewSourceOfDocument({
         URL: aSourceURL,
         lineNumber: aSourceLine
