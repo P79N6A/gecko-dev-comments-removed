@@ -46,7 +46,7 @@ protected:
 
 private:
   
-  virtual nsresult Observe(const char* aTopic, const nsACString& aScopePrefix);
+  virtual nsresult Observe(const char* aTopic, const nsACString& aScopePrefix) MOZ_OVERRIDE;
 
   
   
