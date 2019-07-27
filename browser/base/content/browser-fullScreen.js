@@ -70,18 +70,14 @@ var FullScreen = {
       document.addEventListener("keypress", this._keyToggleCallback, false);
       document.addEventListener("popupshown", this._setPopupOpen, false);
       document.addEventListener("popuphidden", this._setPopupOpen, false);
+      this._shouldAnimate = true;
       
       
       
-      this._shouldAnimate = !document.mozFullScreen;
-      this.mouseoverToggle(false);
+      this.hideNavToolbox(document.mozFullScreen);
     }
     else {
-      
-      this._cancelAnimation();
-      gNavToolbox.style.marginTop = "";
-      if (this._isChromeCollapsed)
-        this.mouseoverToggle(true);
+      this.showNavToolbox(false);
       
       this._isPopupOpen = false;
 
@@ -172,8 +168,7 @@ var FullScreen = {
 
     
     
-    this._cancelAnimation();
-    this.mouseoverToggle(false);
+    this.hideNavToolbox(true);
   },
 
   cleanup: function () {
@@ -203,23 +198,22 @@ var FullScreen = {
   
   _expandCallback: function()
   {
-    FullScreen.mouseoverToggle(true);
+    FullScreen.showNavToolbox();
   },
   onMouseEnter: function()
   {
-    FullScreen.mouseoverToggle(false);
+    FullScreen.hideNavToolbox();
   },
   _keyToggleCallback: function(aEvent)
   {
     
     
     if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE) {
-      FullScreen._shouldAnimate = false;
-      FullScreen.mouseoverToggle(false, true);
+      FullScreen.hideNavToolbox(true);
     }
     
     else if (aEvent.keyCode == aEvent.DOM_VK_F6)
-      FullScreen.mouseoverToggle(true);
+      FullScreen.showNavToolbox();
   },
 
   
@@ -273,47 +267,6 @@ var FullScreen = {
 
   
   _shouldAnimate: true,
-  _isAnimating: false,
-  _animationTimeout: 0,
-  _animationHandle: 0,
-  _animateUp: function() {
-    
-    if (!window.fullScreen || !this._safeToCollapse(false)) {
-      this._isAnimating = false;
-      this._shouldAnimate = true;
-      return;
-    }
-
-    this._animateStartTime = window.mozAnimationStartTime;
-    if (!this._animationHandle)
-      this._animationHandle = window.mozRequestAnimationFrame(this);
-  },
-
-  sample: function (timeStamp) {
-    const duration = 1500;
-    const timePassed = timeStamp - this._animateStartTime;
-    const pos = timePassed >= duration ? 1 :
-                1 - Math.pow(1 - timePassed / duration, 4);
-
-    if (pos >= 1) {
-      
-      this._cancelAnimation();
-      gNavToolbox.style.marginTop = "";
-      this.mouseoverToggle(false);
-      return;
-    }
-
-    gNavToolbox.style.marginTop = (gNavToolbox.boxObject.height * pos * -1) + "px";
-    this._animationHandle = window.mozRequestAnimationFrame(this);
-  },
-
-  _cancelAnimation: function() {
-    window.mozCancelAnimationFrame(this._animationHandle);
-    this._animationHandle = 0;
-    clearTimeout(this._animationTimeout);
-    this._isAnimating = false;
-    this._shouldAnimate = false;
-  },
 
   cancelWarning: function(event) {
     if (!this.warningBox)
@@ -470,38 +423,18 @@ var FullScreen = {
           3000);
   },
 
-  mouseoverToggle: function(aShow, forceHide)
-  {
-    
-    
-    
-    
-    if (aShow != this._isChromeCollapsed || (!aShow && this._isAnimating) ||
-        (!aShow && !this._safeToCollapse(forceHide)))
-      return;
+  showNavToolbox: function(trackMouse = true) {
+    this._fullScrToggler.hidden = true;
+    gNavToolbox.removeAttribute("fullscreenShouldAnimate");
+    gNavToolbox.style.marginTop = "";
 
-    
-    
-    
-    
-    if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 0)
-      this._shouldAnimate = false;
-
-    if (!aShow && this._shouldAnimate) {
-      this._isAnimating = true;
-      this._shouldAnimate = false;
-      this._animationTimeout = setTimeout(this._animateUp.bind(this), 800);
+    if (!this._isChromeCollapsed) {
       return;
     }
 
     
-    
-    gNavToolbox.style.marginTop =
-      aShow ? "" : -gNavToolbox.getBoundingClientRect().height + "px";
-
-    this._fullScrToggler.hidden = aShow || document.mozFullScreen;
-
-    if (aShow) {
+    this._isChromeCollapsed = false;
+    if (trackMouse) {
       let rect = gBrowser.mPanelContainer.getBoundingClientRect();
       this._mouseTargetRect = {
         top: rect.top + 50,
@@ -510,13 +443,49 @@ var FullScreen = {
         right: rect.right
       };
       MousePosTracker.addListener(this);
-    } else {
-      MousePosTracker.removeListener(this);
+    }
+  },
+
+  hideNavToolbox: function(forceHide = false) {
+    this._fullScrToggler.hidden = document.mozFullScreen;
+    if (this._isChromeCollapsed) {
+      if (forceHide) {
+        gNavToolbox.removeAttribute("fullscreenShouldAnimate");
+      }
+      return;
+    }
+    if (!this._safeToCollapse(forceHide)) {
+      this._fullScrToggler.hidden = true;
+      return;
     }
 
-    this._isChromeCollapsed = !aShow;
-    if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 2)
+    
+    
+    
+    
+    let animateUp = gPrefService.getIntPref("browser.fullscreen.animateUp");
+    if (animateUp == 0) {
+      this._shouldAnimate = false;
+    } else if (animateUp == 2) {
       this._shouldAnimate = true;
+    }
+    if (this._shouldAnimate && !forceHide) {
+      gNavToolbox.setAttribute("fullscreenShouldAnimate", true);
+      this._shouldAnimate = false;
+      
+      let listener = () => {
+        gNavToolbox.removeEventListener("transitionend", listener, true);
+        if (this._isChromeCollapsed)
+          this._fullScrToggler.hidden = false;
+      };
+      gNavToolbox.addEventListener("transitionend", listener, true);
+      this._fullScrToggler.hidden = true;
+    }
+
+    gNavToolbox.style.marginTop =
+      -gNavToolbox.getBoundingClientRect().height + "px";
+    this._isChromeCollapsed = true;
+    MousePosTracker.removeListener(this);
   },
 
   showXULChrome: function(aTag, aShow)

@@ -52,8 +52,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
                                    "nsIDNSService");
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Pocket",
-                                  "resource:///modules/Pocket.jsm");
+
 
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
@@ -1955,7 +1954,7 @@ function loadOneOrMoreURIs(aURIString)
 function focusAndSelectUrlBar() {
   if (gURLBar) {
     if (window.fullScreen)
-      FullScreen.mouseoverToggle(true);
+      FullScreen.showNavToolbox();
 
     gURLBar.select();
     if (document.activeElement == gURLBar.inputField)
@@ -3418,7 +3417,7 @@ const BrowserSearch = {
     }
     if (searchBar) {
       if (window.fullScreen)
-        FullScreen.mouseoverToggle(true);
+        FullScreen.showNavToolbox();
       searchBar.select();
     }
     openSearchPageIfFieldIsNotActive(searchBar);
@@ -4163,7 +4162,6 @@ var XULBrowserWindow = {
         BookmarkingUI.onLocationChange();
         SocialUI.updateState(location);
         UITour.onLocationChange(location);
-        Pocket.onLocationChange(browser, aLocationURI);
       }
 
       
