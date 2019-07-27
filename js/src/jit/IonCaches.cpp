@@ -2387,6 +2387,8 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
     
     RegisterSet regSet(RegisterSet::All());
     regSet.take(AnyRegister(object));
+    if (!value.constant())
+        regSet.takeUnchecked(value.reg());
 
     
     
@@ -2446,11 +2448,11 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         
         masm.adjustStack(IonOOLNativeExitFrameLayout::Size(1));
     } else if (IsCacheableSetPropCallPropertyOp(obj, holder, shape)) {
-        Register argJSContextReg = regSet.takeGeneral();
-        Register argVpReg        = regSet.takeGeneral();
-        Register argObjReg       = regSet.takeGeneral();
-        Register argIdReg        = regSet.takeGeneral();
-        Register argResultReg    = regSet.takeGeneral();
+        
+        
+        
+        
+        Register argResultReg = regSet.takeGeneral();
 
         SetterOp target = shape->setterOp();
         MOZ_ASSERT(target);
@@ -2466,10 +2468,20 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         attacher.pushStubCodePointer(masm);
 
         
-        if (value.constant())
+        if (value.constant()) {
             masm.Push(value.value());
-        else
+        } else {
             masm.Push(value.reg());
+            regSet.add(value.reg());
+        }
+
+        
+        
+        Register argJSContextReg = regSet.takeGeneral();
+        Register argVpReg        = regSet.takeGeneral();
+        
+        Register argObjReg       = object;
+        Register argIdReg        = regSet.takeGeneral();
         masm.movePtr(StackPointer, argVpReg);
 
         
