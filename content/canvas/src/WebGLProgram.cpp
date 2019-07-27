@@ -9,6 +9,8 @@
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "GLContext.h"
 
+#include "MurmurHash3.h"
+
 using namespace mozilla;
 
 
@@ -235,6 +237,25 @@ WebGLProgram::GetUniformInfoForMappedIdentifier(const nsACString& name) {
     
 
     return info;
+}
+
+ uint64_t
+WebGLProgram::IdentifierHashFunction(const char *ident, size_t size)
+{
+    uint64_t outhash[2];
+    
+    
+    MurmurHash3_x86_128(ident, size, 0, &outhash[0]);
+    return outhash[0];
+}
+
+ void
+WebGLProgram::HashMapIdentifier(const nsACString& name, nsCString *hashedName)
+{
+    uint64_t hash = IdentifierHashFunction(name.BeginReading(), name.Length());
+    hashedName->Truncate();
+    
+    hashedName->AppendPrintf("webgl_%llx", hash);
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WebGLProgram, mAttachedShaders)
