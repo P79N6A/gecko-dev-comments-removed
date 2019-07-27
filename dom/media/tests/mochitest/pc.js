@@ -740,7 +740,7 @@ function PeerConnectionWrapper(label, configuration, h264) {
 
   this.dataChannels = [ ];
 
-  this.onAddStreamFired = false;
+  this.addStreamCounter = {audio: 0, video: 0 };
 
   this._local_ice_candidates = [];
   this._remote_ice_candidates = [];
@@ -777,17 +777,15 @@ function PeerConnectionWrapper(label, configuration, h264) {
 
   this._pc.onaddstream = event => {
     info(this + ": 'onaddstream' event fired for " + JSON.stringify(event.stream));
-    
-    this.onAddStreamFired = true;
 
     var type = '';
     if (event.stream.getAudioTracks().length > 0) {
       type = 'audio';
-      self.onAddStreamAudioCounter += event.stream.getAudioTracks().length;
+      this.addStreamCounter.audio += this.countTracksInStreams('audio', [event.stream]);
     }
     if (event.stream.getVideoTracks().length > 0) {
       type += 'video';
-      self.onAddStreamVideoCounter += event.stream.getVideoTracks().length;
+      this.addStreamCounter.video += this.countTracksInStreams('video', [event.stream]);
     }
     this.attachMedia(event.stream, type, 'remote');
   };
@@ -1223,17 +1221,11 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  countAudioTracksInMediaConstraint : function(constraints) {
-    if ((!constraints) || (constraints.length === 0)) {
+  countTracksInConstraint : function(type, constraints) {
+    if (!Array.isArray(constraints)) {
       return 0;
     }
-    var numAudioTracks = 0;
-    for (var i = 0; i < constraints.length; i++) {
-      if (constraints[i].audio) {
-        numAudioTracks++;
-      }
-    }
-    return numAudioTracks;
+    return constraints.reduce((sum, c) => sum + (c[type] ? 1 : 0), 0);
   },
 
   
@@ -1262,25 +1254,6 @@ PeerConnectionWrapper.prototype = {
     } else {
       return 0;
     }
-  },
-
-  
-
-
-
-
-
-  countVideoTracksInMediaConstraint : function(constraints) {
-    if ((!constraints) || (constraints.length === 0)) {
-      return 0;
-    }
-    var numVideoTracks = 0;
-    for (var i = 0; i < constraints.length; i++) {
-      if (constraints[i].video) {
-        numVideoTracks++;
-      }
-    }
-    return numVideoTracks;
   },
 
   
@@ -1318,13 +1291,15 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  countAudioTracksInStreams : function(streams) {
-    if (!streams || (streams.length === 0)) {
+
+  countTracksInStreams: function(type, streams) {
+    if (!Array.isArray(streams)) {
       return 0;
     }
+    var f = (type === 'video') ? "getVideoTracks" : "getAudioTracks";
 
     return streams.reduce((count, st) => {
-      return count + st.getAudioTracks().length;
+      return count + st[f]().length;
     }, 0);
   },
 
@@ -1334,69 +1309,62 @@ PeerConnectionWrapper.prototype = {
 
 
 
+  checkMediaTracks : function(remoteConstraints) {
+    var waitForExpectedTracks = type => {
+      var outstandingCount = this.countTracksInConstraint(type, remoteConstraints);
+      outstandingCount -= this.addStreamCounter[type];
+      if (outstandingCount <= 0) {
+        return Promise.resolve();
+      }
 
-  countVideoTracksInStreams: function(streams) {
-    if (!streams || (streams.length === 0)) {
-      return 0;
-    }
+      return new Promise(resolve => {
+        this._pc.addEventListener('addstream', e => {
+          outstandingCount -= this.countTracksInStreams(type, [e.stream]);
+          if (outstandingCount <= 0) {
+            resolve();
+          }
+        });
+      });
+    };
 
-    return streams.reduce((count, st) => {
-      return count + st.getVideoTracks().length;
-    }, 0);
-  },
-
-  
-
-
-
-
-
-  checkMediaTracks : function(constraintsRemote) {
-    var _checkMediaTracks = () => {
-      var localConstraintAudioTracks =
-        this.countAudioTracksInMediaConstraint(this.constraints);
-      var localStreams = this._pc.getLocalStreams();
-      var localAudioTracks = this.countAudioTracksInStreams(localStreams, false);
-      is(localAudioTracks, localConstraintAudioTracks, this + ' has ' +
-        localAudioTracks + ' local audio tracks');
-
-      var localConstraintVideoTracks =
-        this.countVideoTracksInMediaConstraint(this.constraints);
-      var localVideoTracks = this.countVideoTracksInStreams(localStreams, false);
-      is(localVideoTracks, localConstraintVideoTracks, this + ' has ' +
-        localVideoTracks + ' local video tracks');
-
-      var remoteConstraintAudioTracks =
-        this.countAudioTracksInMediaConstraint(constraintsRemote);
-      var remoteStreams = this._pc.getRemoteStreams();
-      var remoteAudioTracks = this.countAudioTracksInStreams(remoteStreams, false);
-      is(remoteAudioTracks, remoteConstraintAudioTracks, this + ' has ' +
-        remoteAudioTracks + ' remote audio tracks');
-
-      var remoteConstraintVideoTracks =
-        this.countVideoTracksInMediaConstraint(constraintsRemote);
-      var remoteVideoTracks = this.countVideoTracksInStreams(remoteStreams, false);
-      is(remoteVideoTracks, remoteConstraintVideoTracks, this + ' has ' +
-        remoteVideoTracks + ' remote video tracks');
-    }
-
-    
-    
-    var expectedRemoteTracks =
-      this.countAudioTracksInMediaConstraint(constraintsRemote) +
-      this.countVideoTracksInMediaConstraint(constraintsRemote);
-
-    
-    if (this.onAddStreamFired || (expectedRemoteTracks == 0)) {
-      _checkMediaTracks();
-      return Promise.resolve();
-    }
+    var checkTrackCounts = (side, streams, constraints) => {
+      ['audio', 'video'].forEach(type => {
+        var actual = this.countTracksInStreams(type, streams);
+        var expected = this.countTracksInConstraint(type, constraints);
+        is(actual, expected, this + ' has ' + actual + ' ' +
+           side + ' ' + type + ' tracks');
+      });
+    };
 
     info(this + " checkMediaTracks() got called before onAddStream fired");
-    var checkPromise = new Promise(r => this._pc.addEventListener('addstream', r))
-      .then(_checkMediaTracks);
+    var checkPromise = Promise.all([
+      waitForExpectedTracks('audio'),
+      waitForExpectedTracks('video')
+    ]).then(() => {
+      checkTrackCounts('local', this._pc.getLocalStreams(), this.constraints);
+      checkTrackCounts('remote', this._pc.getRemoteStreams(), remoteConstraints);
+    });
     return timerGuard(checkPromise, 60000, "onaddstream never fired");
   },
+
+  checkMsids: function() {
+    var checkSdpForMsids = (desc, streams, side) => {
+      streams.forEach(stream => {
+        stream.getTracks().forEach(track => {
+          
+          
+          
+          ok(desc.sdp.match(new RegExp("a=msid:[^ ]+ " + track.id)),
+             side + " SDP contains track id " + track.id );
+        });
+      });
+    };
+
+    checkSdpForMsids(this.localDescription, this._pc.getLocalStreams(),
+                     "local");
+    checkSdpForMsids(this.remoteDescription, this._pc.getRemoteStreams(),
+                     "remote");
+   },
 
   verifySdp: function(desc, expectedType, offerConstraintsList, offerOptions, isLocal) {
     info("Examining this SessionDescription: " + JSON.stringify(desc));
@@ -1425,7 +1393,7 @@ PeerConnectionWrapper.prototype = {
     
 
     var audioTracks =
-      this.countAudioTracksInMediaConstraint(offerConstraintsList) ||
+        this.countTracksInConstraint('audio', offerConstraintsList) ||
       this.audioInOfferOptions(offerOptions);
 
     info("expected audio tracks: " + audioTracks);
@@ -1440,7 +1408,7 @@ PeerConnectionWrapper.prototype = {
     }
 
     var videoTracks =
-      this.countVideoTracksInMediaConstraint(offerConstraintsList) ||
+        this.countTracksInConstraint('video', offerConstraintsList) ||
       this.videoInOfferOptions(offerOptions);
 
     info("expected video tracks: " + videoTracks);
@@ -1671,11 +1639,11 @@ PeerConnectionWrapper.prototype = {
       
       
       var numAudioTracks =
-        this.countAudioTracksInMediaConstraint(offerConstraintsList) ||
+          this.countTracksInConstraint('audio', offerConstraintsList) ||
         this.audioInOfferOptions(offerOptions);
 
       var numVideoTracks =
-        this.countVideoTracksInMediaConstraint(offerConstraintsList) ||
+          this.countTracksInConstraint('video', offerConstraintsList) ||
         this.videoInOfferOptions(offerOptions);
 
       var numDataTracks = this.dataChannels.length;
@@ -1733,6 +1701,9 @@ PeerConnectionWrapper.prototype = {
   }
 };
 
+
+function addLoadEvent() {}
+
 var scriptsReady = Promise.all([
   "/tests/SimpleTest/SimpleTest.js",
   "head.js",
@@ -1740,13 +1711,12 @@ var scriptsReady = Promise.all([
   "turnConfig.js",
   "dataChannel.js",
   "network.js"
-].map(script => {
+].map(script  => {
   var el = document.createElement("script");
-  if (typeof scriptRelativePath === 'string' && script.charAt(0) !== "/") {
-    el.src = scriptRelativePath + script;
-  } else {
-    el.src = script;
+  if (typeof scriptRelativePath === 'string' && script.charAt(0) !== '/') {
+    script = scriptRelativePath + script;
   }
+  el.src = script;
   document.head.appendChild(el);
   return new Promise(r => { el.onload = r; el.onerror = r; });
 }));
@@ -1756,10 +1726,7 @@ function createHTML(options) {
 }
 
 function runNetworkTest(testFunction) {
-  return scriptsReady.then(() => {
-    if (window.SimpleTest) {
-      SimpleTest.waitForExplicitFinish();
-    }
-    return startNetworkAndTest();
-  }).then(() => runTestWhenReady(testFunction));
+  return scriptsReady
+    .then(() => startNetworkAndTest())
+    .then(() => runTestWhenReady(testFunction));
 }
