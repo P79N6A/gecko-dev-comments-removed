@@ -385,6 +385,12 @@ var SelectionHandler = {
       return this.START_ERROR_NONTEXT_INPUT;
     }
 
+    const focus = Services.focus.focusedWindow;
+    if (focus) {
+      
+      Services.focus.clearFocus(focus);
+    }
+
     this._initTargetInfo(aElement, this.TYPE_SELECTION);
 
     
