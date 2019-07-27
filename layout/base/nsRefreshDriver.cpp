@@ -966,8 +966,8 @@ nsRefreshDriver::GetRegularTimerInterval(bool *outIsDefault) const
   return 1000.0 / rate;
 }
 
-double
-nsRefreshDriver::GetThrottledTimerInterval() const
+ double
+nsRefreshDriver::GetThrottledTimerInterval()
 {
   int32_t rate = Preferences::GetInt("layout.throttled_frame_rate", -1);
   if (rate <= 0) {
@@ -1020,6 +1020,8 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
     mPendingTransaction(0),
     mCompletedTransaction(0),
     mFreezeCount(0),
+    mThrottledFrameRequestInterval(TimeDuration::FromMilliseconds(
+                                     GetThrottledTimerInterval())),
     mThrottled(false),
     mTestControllingRefreshes(false),
     mViewManagerFlushIsPending(false),
@@ -1031,6 +1033,7 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
   mMostRecentRefreshEpochTime = JS_Now();
   mMostRecentRefresh = TimeStamp::Now();
   mMostRecentTick = mMostRecentRefresh;
+  mNextThrottledFrameRequestTick = mMostRecentTick;
 }
 
 nsRefreshDriver::~nsRefreshDriver()
@@ -1254,13 +1257,15 @@ DisableHighPrecisionTimersCallback(nsITimer *aTimer, void *aClosure)
 void
 nsRefreshDriver::ConfigureHighPrecision()
 {
-  bool haveFrameRequestCallbacks = mFrameRequestCallbackDocs.Length() > 0;
+  bool haveUnthrottledFrameRequestCallbacks =
+    mFrameRequestCallbackDocs.Length() > 0;
 
   
   
-  if (!mThrottled && !mRequestedHighPrecision && haveFrameRequestCallbacks) {
+  if (!mThrottled && !mRequestedHighPrecision &&
+      haveUnthrottledFrameRequestCallbacks) {
     SetHighPrecisionTimersEnabled(true);
-  } else if (mRequestedHighPrecision && !haveFrameRequestCallbacks) {
+  } else if (mRequestedHighPrecision && !haveUnthrottledFrameRequestCallbacks) {
     SetHighPrecisionTimersEnabled(false);
   }
 }
@@ -1328,6 +1333,7 @@ nsRefreshDriver::ObserverCount() const
   sum += mStyleFlushObservers.Length();
   sum += mLayoutFlushObservers.Length();
   sum += mFrameRequestCallbackDocs.Length();
+  sum += mThrottledFrameRequestCallbackDocs.Length();
   sum += mViewManagerFlushIsPending;
   return sum;
 }
@@ -1453,6 +1459,105 @@ static void GetProfileTimelineSubDocShells(nsDocShell* aRootDocShell,
   };
 }
 
+static void
+TakeFrameRequestCallbacksFrom(nsIDocument* aDocument,
+                              nsTArray<DocumentFrameCallbacks>& aTarget)
+{
+  aTarget.AppendElement(aDocument);
+  aDocument->TakeFrameRequestCallbacks(aTarget.LastElement().mCallbacks);
+}
+
+void
+nsRefreshDriver::RunFrameRequestCallbacks(int64_t aNowEpoch, TimeStamp aNowTime)
+{
+  
+  nsTArray<DocumentFrameCallbacks>
+    frameRequestCallbacks(mFrameRequestCallbackDocs.Length() +
+                          mThrottledFrameRequestCallbackDocs.Length());
+
+  
+  {
+    nsTArray<nsIDocument*> docsToRemove;
+
+    
+    
+    
+    bool tickThrottledFrameRequests = mThrottled;
+
+    if (!tickThrottledFrameRequests &&
+        aNowTime >= mNextThrottledFrameRequestTick) {
+      mNextThrottledFrameRequestTick = aNowTime + mThrottledFrameRequestInterval;
+      tickThrottledFrameRequests = true;
+    }
+
+    for (nsIDocument* doc : mThrottledFrameRequestCallbackDocs) {
+      if (tickThrottledFrameRequests) {
+        
+        
+        
+        TakeFrameRequestCallbacksFrom(doc, frameRequestCallbacks);
+      } else if (!doc->ShouldThrottleFrameRequests()) {
+        
+        
+        
+        
+        TakeFrameRequestCallbacksFrom(doc, frameRequestCallbacks);
+        docsToRemove.AppendElement(doc);
+      }
+    }
+
+    
+    
+    if (tickThrottledFrameRequests) {
+      mThrottledFrameRequestCallbackDocs.Clear();
+    } else {
+      
+      
+      
+      for (nsIDocument* doc : docsToRemove) {
+        mThrottledFrameRequestCallbackDocs.RemoveElement(doc);
+      }
+    }
+  }
+
+  
+  for (nsIDocument* doc : mFrameRequestCallbackDocs) {
+    TakeFrameRequestCallbacksFrom(doc, frameRequestCallbacks);
+  }
+
+  
+  mFrameRequestCallbackDocs.Clear();
+
+  profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_START);
+  int64_t eventTime = aNowEpoch / PR_USEC_PER_MSEC;
+  for (uint32_t i = 0; i < frameRequestCallbacks.Length(); ++i) {
+    const DocumentFrameCallbacks& docCallbacks = frameRequestCallbacks[i];
+    
+    
+    nsPIDOMWindow* innerWindow = docCallbacks.mDocument->GetInnerWindow();
+    DOMHighResTimeStamp timeStamp = 0;
+    if (innerWindow && innerWindow->IsInnerWindow()) {
+      nsPerformance* perf = innerWindow->GetPerformance();
+      if (perf) {
+        timeStamp = perf->GetDOMTiming()->TimeStampToDOMHighRes(aNowTime);
+      }
+      
+    }
+    for (uint32_t j = 0; j < docCallbacks.mCallbacks.Length(); ++j) {
+      const nsIDocument::FrameRequestCallbackHolder& holder =
+        docCallbacks.mCallbacks[j];
+      nsAutoMicroTask mt;
+      if (holder.HasWebIDLCallback()) {
+        ErrorResult ignored;
+        holder.GetWebIDLCallback()->Call(timeStamp, ignored);
+      } else {
+        holder.GetXPCOMCallback()->Sample(eventTime);
+      }
+    }
+  }
+  profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_END);
+}
+
 void
 nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
 {
@@ -1543,46 +1648,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
     if (i == 0) {
       
 
-      
-      nsTArray<DocumentFrameCallbacks>
-        frameRequestCallbacks(mFrameRequestCallbackDocs.Length());
-      for (uint32_t i = 0; i < mFrameRequestCallbackDocs.Length(); ++i) {
-        frameRequestCallbacks.AppendElement(mFrameRequestCallbackDocs[i]);
-        mFrameRequestCallbackDocs[i]->
-          TakeFrameRequestCallbacks(frameRequestCallbacks.LastElement().mCallbacks);
-      }
-      
-      
-      mFrameRequestCallbackDocs.Clear();
-
-      profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_START);
-      int64_t eventTime = aNowEpoch / PR_USEC_PER_MSEC;
-      for (uint32_t i = 0; i < frameRequestCallbacks.Length(); ++i) {
-        const DocumentFrameCallbacks& docCallbacks = frameRequestCallbacks[i];
-        
-        
-        nsPIDOMWindow* innerWindow = docCallbacks.mDocument->GetInnerWindow();
-        DOMHighResTimeStamp timeStamp = 0;
-        if (innerWindow && innerWindow->IsInnerWindow()) {
-          nsPerformance* perf = innerWindow->GetPerformance();
-          if (perf) {
-            timeStamp = perf->GetDOMTiming()->TimeStampToDOMHighRes(aNowTime);
-          }
-          
-        }
-        for (uint32_t j = 0; j < docCallbacks.mCallbacks.Length(); ++j) {
-          const nsIDocument::FrameRequestCallbackHolder& holder =
-            docCallbacks.mCallbacks[j];
-          nsAutoMicroTask mt;
-          if (holder.HasWebIDLCallback()) {
-            ErrorResult ignored;
-            holder.GetWebIDLCallback()->Call(timeStamp, ignored);
-          } else {
-            holder.GetXPCOMCallback()->Sample(eventTime);
-          }
-        }
-      }
-      profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_END);
+      RunFrameRequestCallbacks(aNowEpoch, aNowTime);
 
       if (mPresContext && mPresContext->GetPresShell()) {
         bool tracingStyleFlush = false;
@@ -2025,9 +2091,15 @@ void
 nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
 {
   NS_ASSERTION(mFrameRequestCallbackDocs.IndexOf(aDocument) ==
-               mFrameRequestCallbackDocs.NoIndex,
+               mFrameRequestCallbackDocs.NoIndex &&
+               mThrottledFrameRequestCallbackDocs.IndexOf(aDocument) ==
+               mThrottledFrameRequestCallbackDocs.NoIndex,
                "Don't schedule the same document multiple times");
-  mFrameRequestCallbackDocs.AppendElement(aDocument);
+  if (aDocument->ShouldThrottleFrameRequests()) {
+    mThrottledFrameRequestCallbackDocs.AppendElement(aDocument);
+  } else {
+    mFrameRequestCallbackDocs.AppendElement(aDocument);
+  }
 
   
   ConfigureHighPrecision();
@@ -2038,6 +2110,7 @@ void
 nsRefreshDriver::RevokeFrameRequestCallbacks(nsIDocument* aDocument)
 {
   mFrameRequestCallbackDocs.RemoveElement(aDocument);
+  mThrottledFrameRequestCallbackDocs.RemoveElement(aDocument);
   ConfigureHighPrecision();
   
   

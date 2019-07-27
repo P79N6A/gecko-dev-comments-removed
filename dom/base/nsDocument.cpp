@@ -3922,6 +3922,42 @@ nsIDocument::TakeFrameRequestCallbacks(FrameRequestCallbackList& aCallbacks)
   mFrameRequestCallbacks.Clear();
 }
 
+bool
+nsIDocument::ShouldThrottleFrameRequests()
+{
+  if (!mIsShowing) {
+    
+    return true;
+  }
+
+  if (!mPresShell) {
+    return false;  
+  }
+
+  nsIFrame* frame = mPresShell->GetRootFrame();
+  if (!frame) {
+    return false;  
+  }
+
+  nsIFrame* displayRootFrame = nsLayoutUtils::GetDisplayRootFrame(frame);
+  if (!displayRootFrame) {
+    return false;  
+  }
+
+  if (!displayRootFrame->DidPaintPresShell(mPresShell)) {
+    
+    
+    
+    
+    
+    
+    return true;
+  }
+
+  
+  return false;
+}
+
 PLDHashOperator RequestDiscardEnumerator(imgIRequest* aKey,
                                          uint32_t aData,
                                          void* userArg)
