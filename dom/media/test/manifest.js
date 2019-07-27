@@ -113,6 +113,10 @@ var gMediaRecorderTests = [
 
 var gPlayTests = [
   
+  
+  { name:"vp9cake.webm", type:"video/webm", duration:7.966 },
+
+  
   { name:"r11025_u8_c1.wav", type:"audio/x-wav", duration:1.0 },
   
   { name:"r11025_u8_c1_trunc.wav", type:"audio/x-wav", duration:1.8 },
@@ -226,10 +230,6 @@ var gPlayTests = [
 
   
   { name:"bogus.duh", type:"bogus/duh", duration:Number.NaN },
-
-  
-  
-  { name:"vp9cake.webm", type:"video/webm", duration:7.966 }
 ];
 
 
