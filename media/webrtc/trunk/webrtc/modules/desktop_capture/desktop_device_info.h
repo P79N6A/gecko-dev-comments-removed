@@ -81,6 +81,8 @@ public:
   DesktopDeviceInfoImpl();
   ~DesktopDeviceInfoImpl();
 
+  virtual int32_t Init();
+  virtual int32_t Refresh();
   virtual int32_t getDisplayDeviceCount();
   virtual int32_t getDesktopDisplayDeviceInfo(int32_t nIndex,
                                               DesktopDisplayDevice & desktopDisplayDevice);
@@ -92,14 +94,24 @@ public:
                                      DesktopApplication & desktopApplication);
 
   static DesktopDeviceInfo * Create();
-
 protected:
   DesktopDisplayDeviceList desktop_display_list_;
   DesktopDisplayDeviceList desktop_window_list_;
   DesktopApplicationList desktop_application_list_;
 
-  int32_t initializeWindowList();
-  int32_t RefreshWindowList();
+  void CleanUp();
+  void CleanUpWindowList();
+  void CleanUpApplicationList();
+  void CleanUpScreenList();
+
+  void InitializeWindowList();
+  virtual void InitializeApplicationList() = 0;
+  virtual void InitializeScreenList() = 0;
+
+  void RefreshWindowList();
+  void RefreshApplicationList();
+  void RefreshScreenList();
+
 };
 };
 
