@@ -476,7 +476,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
       
       mPrefSize = newsize;
       if (isOpen) {
-        SetPopupPosition(nullptr, false, aSizedToPopup);
+        SetPopupPosition(aAnchor, false, aSizedToPopup);
       }
     }
   }
