@@ -2,8 +2,15 @@
 
 
 
-from collections import defaultdict
+from collections import (
+    defaultdict,
+    namedtuple,
+)
+
 from mozlog.structured.structuredlog import log_levels
+
+RunSummary = namedtuple("RunSummary",
+                        ("unexpected", "skipped", "log_level_counts", "action_counts"))
 
 class StatusHandler(object):
     """A handler used to determine an overall status for a test run according
@@ -15,18 +22,17 @@ class StatusHandler(object):
         
         self.skipped = 0
         
-        self.test_count = 0
+        self.action_counts = defaultdict(int)
         
-        self.level_counts = defaultdict(int)
+        self.log_level_counts = defaultdict(int)
 
 
     def __call__(self, data):
         action = data['action']
-        if action == 'log':
-            self.level_counts[data['level']] += 1
+        self.action_counts[action] += 1
 
-        if action == 'test_end':
-            self.test_count += 1
+        if action == 'log':
+            self.log_level_counts[data['level']] += 1
 
         if action in ('test_status', 'test_end'):
             if 'expected' in data:
@@ -35,25 +41,10 @@ class StatusHandler(object):
             if data['status'] == 'SKIP':
                 self.skipped += 1
 
-
-    def evaluate(self):
-        status = 'OK'
-
-        if self.unexpected:
-            status = 'FAIL'
-
-        if not self.test_count:
-            status = 'ERROR'
-
-        for level in self.level_counts:
-            if log_levels[level] <= log_levels['ERROR']:
-                status = 'ERROR'
-
-        summary = {
-            'status': status,
-            'unexpected': self.unexpected,
-            'skipped': self.skipped,
-            'test_count': self.test_count,
-            'level_counts': dict(self.level_counts),
-        }
-        return summary
+    def summarize(self):
+        return RunSummary(
+            self.unexpected,
+            self.skipped,
+            dict(self.log_level_counts),
+            dict(self.action_counts),
+        )
