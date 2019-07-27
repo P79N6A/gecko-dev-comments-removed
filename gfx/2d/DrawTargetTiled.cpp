@@ -3,11 +3,11 @@
 
 
 
-#include "DrawTargetTiled.h"
-#include "Logging.h"
-
 #define _USE_MATH_DEFINES
 #include <cmath>
+
+#include "DrawTargetTiled.h"
+#include "Logging.h"
 
 using namespace std;
 
