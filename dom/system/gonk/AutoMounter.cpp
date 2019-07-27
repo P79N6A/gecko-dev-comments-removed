@@ -573,7 +573,18 @@ SetUsbFunction(const char* aUsbFunc)
     }
   }
 
-  LOG("SetUsbFunction(%s) %s to '%s'", aUsbFunc, SYS_USB_CONFIG, newSysUsbConfig);
+  
+  
+  
+
+  if (strcmp(oldSysUsbConfig, newSysUsbConfig) == 0) {
+    DBG("SetUsbFunction('%s') %s is already set to '%s' - nothing to do",
+        aUsbFunc, SYS_USB_CONFIG, newSysUsbConfig);
+    return;
+  }
+
+  LOG("SetUsbFunction(%s) %s from '%s' to '%s'", aUsbFunc, SYS_USB_CONFIG,
+      oldSysUsbConfig, newSysUsbConfig);
   property_set(SYS_USB_CONFIG, newSysUsbConfig);
 }
 
