@@ -5279,11 +5279,10 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
   
   const nsCSSValue& scrollSnapPointsX = *aRuleData->ValueForScrollSnapPointsX();
   switch (scrollSnapPointsX.GetUnit()) {
-    case eCSSUnit_Null:
-      break;
     case eCSSUnit_Initial:
     case eCSSUnit_Unset:
     case eCSSUnit_None:
+    case eCSSUnit_Null:
       display->mScrollSnapPointsX.SetNoneValue();
       break;
     case eCSSUnit_Inherit:
@@ -5314,11 +5313,10 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
   
   const nsCSSValue& scrollSnapPointsY = *aRuleData->ValueForScrollSnapPointsY();
   switch (scrollSnapPointsY.GetUnit()) {
-    case eCSSUnit_Null:
-      break;
     case eCSSUnit_Initial:
     case eCSSUnit_Unset:
     case eCSSUnit_None:
+    case eCSSUnit_Null:
       display->mScrollSnapPointsY.SetNoneValue();
       break;
     case eCSSUnit_Inherit:
@@ -5349,10 +5347,9 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
   
   const nsCSSValue& snapDestination = *aRuleData->ValueForScrollSnapDestination();
   switch (snapDestination.GetUnit()) {
-    case eCSSUnit_Null:
-      break;
     case eCSSUnit_Initial:
     case eCSSUnit_Unset:
+    case eCSSUnit_Null:
       display->mScrollSnapDestination.SetInitialZeroValues();
       break;
     case eCSSUnit_Inherit:
@@ -5370,11 +5367,10 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
   const nsCSSValue& snapCoordinate = *aRuleData->ValueForScrollSnapCoordinate();
   switch (snapCoordinate.GetUnit()) {
-    case eCSSUnit_Null:
-      break;
     case eCSSUnit_Initial:
     case eCSSUnit_Unset:
     case eCSSUnit_None:
+    case eCSSUnit_Null:
       
       display->mScrollSnapCoordinate.Clear();
       break;
