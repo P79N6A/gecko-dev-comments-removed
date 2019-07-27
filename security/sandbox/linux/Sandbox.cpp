@@ -482,34 +482,3 @@ CanSandboxMediaPlugin()
 #endif 
 
 } 
-
-
-
-
-namespace sandbox {
-
-void
-Die::SandboxDie(const char* msg, const char* file, int line)
-{
-  SANDBOX_LOG_ERROR("%s:%d: %s\n", file, line, msg);
-  _exit(127);
-}
-
-} 
-
-
-
-#include "base/logging.h"
-namespace logging {
-
-LogMessage::LogMessage(const char *file, int line, int)
-  : file_(file), line_(line)
-{
-  MOZ_CRASH("Unexpected call to logging::LogMessage::LogMessage");
-}
-
-LogMessage::~LogMessage() {
-  MOZ_CRASH("Unexpected call to logging::LogMessage::~LogMessage");
-}
-
-} 
