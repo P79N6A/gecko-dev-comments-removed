@@ -259,29 +259,4 @@ BasePrincipal::CreateCodebasePrincipal(nsIURI* aURI, OriginAttributes& aAttrs)
   return codebase.forget();
 }
 
- bool
-BasePrincipal::IsCodebasePrincipal(nsIPrincipal* aPrincipal)
-{
-  MOZ_ASSERT(aPrincipal);
-
-  bool isNullPrincipal = true;
-  nsresult rv = aPrincipal->GetIsNullPrincipal(&isNullPrincipal);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return false;
-  }
-
-  if (isNullPrincipal || nsContentUtils::IsSystemPrincipal(aPrincipal)) {
-    return false;
-  }
-
-  
-  nsCOMPtr<nsIExpandedPrincipal> expandedPrincipal =
-    do_QueryInterface(aPrincipal);
-  if (expandedPrincipal) {
-    return false;
-  }
-
-  return true;
-}
-
 } 
