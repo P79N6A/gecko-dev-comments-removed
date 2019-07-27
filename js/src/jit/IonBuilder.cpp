@@ -9250,8 +9250,8 @@ IonBuilder::needsToMonitorMissingProperties(types::TemporaryTypeSet *types)
     
     
     
-    return (info().executionMode() == ParallelExecution &&
-            !types->hasType(types::Type::UndefinedType()));
+    return info().executionMode() == ParallelExecution &&
+           !types->hasType(types::Type::UndefinedType());
 }
 
 bool

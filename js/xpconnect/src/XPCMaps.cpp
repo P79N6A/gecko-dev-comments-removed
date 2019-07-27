@@ -375,10 +375,10 @@ NativeSetMap::Entry::Match(PLDHashTable *table,
         
         
 
-        return ((SetInTable->GetInterfaceCount() == 1 &&
-                 SetInTable->GetInterfaceAt(0) == Addition) ||
-                (SetInTable->GetInterfaceCount() == 2 &&
-                 SetInTable->GetInterfaceAt(1) == Addition));
+        return (SetInTable->GetInterfaceCount() == 1 &&
+                SetInTable->GetInterfaceAt(0) == Addition) ||
+               (SetInTable->GetInterfaceCount() == 2 &&
+                SetInTable->GetInterfaceAt(1) == Addition);
     }
 
     if (!Addition && Set == SetInTable)
