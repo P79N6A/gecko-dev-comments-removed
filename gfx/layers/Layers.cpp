@@ -851,6 +851,66 @@ Layer::TransformRectToRenderTarget(const LayerIntRect& aRect)
   return quad;
 }
 
+bool
+Layer::GetVisibleRegionRelativeToRootLayer(nsIntRegion& aResult,
+                                           nsIntPoint* aLayerOffset)
+{
+  MOZ_ASSERT(aLayerOffset, "invalid offset pointer");
+
+  IntPoint offset;
+  aResult = GetEffectiveVisibleRegion();
+  for (Layer* layer = this; layer; layer = layer->GetParent()) {
+    gfx::Matrix matrix;
+    if (!layer->GetLocalTransform().Is2D(&matrix) ||
+        !matrix.IsTranslation()) {
+      return false;
+    }
+
+    
+    IntPoint currentLayerOffset = RoundedToInt(matrix.GetTranslation());
+
+    
+    
+    aResult.MoveBy(currentLayerOffset.x, currentLayerOffset.y);
+
+    
+    
+    if (layer->GetEffectiveClipRect()) {
+      aResult.AndWith(*layer->GetEffectiveClipRect());
+    }
+
+    
+    
+    
+    
+    Layer* sibling;
+    for (sibling = layer->GetNextSibling(); sibling;
+         sibling = sibling->GetNextSibling()) {
+      gfx::Matrix siblingMatrix;
+      if (!sibling->GetLocalTransform().Is2D(&siblingMatrix) ||
+          !siblingMatrix.IsTranslation()) {
+        return false;
+      }
+
+      
+      
+      IntPoint siblingOffset = RoundedToInt(siblingMatrix.GetTranslation());
+      nsIntRegion siblingVisibleRegion(sibling->GetEffectiveVisibleRegion());
+      
+      siblingVisibleRegion.MoveBy(-siblingOffset.x, -siblingOffset.y);
+      
+      aResult.SubOut(siblingVisibleRegion);
+    }
+
+    
+    
+    offset += currentLayerOffset;
+  }
+
+  *aLayerOffset = nsIntPoint(offset.x, offset.y);
+  return true;
+}
+
 ContainerLayer::ContainerLayer(LayerManager* aManager, void* aImplData)
   : Layer(aManager, aImplData),
     mFirstChild(nullptr),

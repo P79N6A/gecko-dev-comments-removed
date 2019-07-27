@@ -1252,6 +1252,24 @@ public:
 
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool GetVisibleRegionRelativeToRootLayer(nsIntRegion& aResult,
+                                           nsIntPoint* aLayerOffset);
+
+  
   
   AnimationArray& GetAnimations() { return mAnimations; }
   InfallibleTArray<AnimData>& GetAnimationData() { return mAnimationData; }
