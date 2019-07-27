@@ -1500,6 +1500,14 @@ ContentParent::TransformPreallocatedIntoBrowser(ContentParent* aOpener)
 void
 ContentParent::ShutDownProcess(ShutDownMethod aMethod)
 {
+#ifdef MOZ_NUWA_PROCESS
+    if (aMethod == SEND_SHUTDOWN_MESSAGE && IsNuwaProcess()) {
+        
+        
+        aMethod = CLOSE_CHANNEL;
+    }
+#endif
+
     
     
     
