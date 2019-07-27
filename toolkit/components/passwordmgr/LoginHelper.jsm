@@ -23,6 +23,7 @@ this.EXPORTED_SYMBOLS = [
 
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
@@ -32,6 +33,33 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 this.LoginHelper = {
+  
+
+
+  debug: Services.prefs.getBoolPref("signon.debug"),
+
+  createLogger(aLogPrefix) {
+    let getMaxLogLevel = () => {
+      return this.debug ? "debug" : "error";
+    };
+
+    
+    let ConsoleAPI = Cu.import("resource://gre/modules/devtools/Console.jsm", {}).ConsoleAPI;
+    let consoleOptions = {
+      maxLogLevel: getMaxLogLevel(),
+      prefix: aLogPrefix,
+    };
+    let logger = new ConsoleAPI(consoleOptions);
+
+    
+    Services.prefs.addObserver("signon.", () => {
+      this.debug = Services.prefs.getBoolPref("signon.debug");
+      logger.maxLogLevel = getMaxLogLevel();
+    }, false);
+
+    return logger;
+  },
+
   
 
 
