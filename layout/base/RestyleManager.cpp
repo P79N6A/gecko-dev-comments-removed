@@ -1579,8 +1579,18 @@ RestyleManager::UpdateOnlyAnimationStyles()
 
   transitionManager->SetInAnimationOnlyStyleUpdate(true);
 
-  transitionManager->UpdateAllThrottledStyles();
-  animationManager->UpdateAllThrottledStyles();
+  RestyleTracker tracker(ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE |
+                         ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT);
+  tracker.Init(this);
+
+  
+  
+  
+  
+  transitionManager->AddStyleUpdatesTo(tracker);
+  animationManager->AddStyleUpdatesTo(tracker);
+
+  tracker.ProcessRestyles();
 
   transitionManager->SetInAnimationOnlyStyleUpdate(false);
 }
