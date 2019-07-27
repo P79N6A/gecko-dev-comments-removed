@@ -147,12 +147,6 @@ public:
     
 
 
-
-    void NewSubPath();
-
-    
-
-
     gfxPoint CurrentPoint();
 
     

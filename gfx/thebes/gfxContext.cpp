@@ -282,13 +282,6 @@ gfxContext::MoveTo(const gfxPoint& pt)
 }
 
 void
-gfxContext::NewSubPath()
-{
-    
-    
-}
-
-void
 gfxContext::LineTo(const gfxPoint& pt)
 {
   EnsurePathBuilder();
