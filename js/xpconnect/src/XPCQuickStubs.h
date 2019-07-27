@@ -12,7 +12,7 @@
 
 
 nsresult
-xpc_qsUnwrapArgImpl(JSContext *cx, JS::HandleObject src, const nsIID &iid, void **ppArg,
-                    nsISupports **ppArgRef);
+xpc_qsUnwrapArgImpl(JSContext *cx, JS::HandleObject src, const nsIID &iid,
+                    void **ppArg);
 
 #endif 

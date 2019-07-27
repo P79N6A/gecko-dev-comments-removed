@@ -23,31 +23,26 @@ nsresult
 xpc_qsUnwrapArgImpl(JSContext *cx,
                     HandleObject src,
                     const nsIID &iid,
-                    void **ppArg,
-                    nsISupports **ppArgRef)
+                    void **ppArg)
 {
     nsISupports *iface = xpc::UnwrapReflectorToISupports(src);
     if (iface) {
         if (NS_FAILED(iface->QueryInterface(iid, ppArg))) {
-            *ppArgRef = nullptr;
             return NS_ERROR_XPC_BAD_CONVERT_JS;
         }
 
-        *ppArgRef = static_cast<nsISupports*>(*ppArg);
         return NS_OK;
     }
 
     
     XPCCallContext ccx(JS_CALLER, cx);
     if (!ccx.IsValid()) {
-        *ppArgRef = nullptr;
         return NS_ERROR_XPC_BAD_CONVERT_JS;
     }
 
     nsRefPtr<nsXPCWrappedJS> wrappedJS;
     nsresult rv = nsXPCWrappedJS::GetNewOrUsed(src, iid, getter_AddRefs(wrappedJS));
     if (NS_FAILED(rv) || !wrappedJS) {
-        *ppArgRef = nullptr;
         return rv;
     }
 
@@ -55,11 +50,7 @@ xpc_qsUnwrapArgImpl(JSContext *cx,
     
     
     
-    rv = wrappedJS->QueryInterface(iid, ppArg);
-    if (NS_SUCCEEDED(rv)) {
-        *ppArgRef = static_cast<nsISupports*>(*ppArg);
-    }
-    return rv;
+    return wrappedJS->QueryInterface(iid, ppArg);
 }
 
 namespace xpc {

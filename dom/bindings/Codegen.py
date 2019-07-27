@@ -3677,7 +3677,7 @@ class CastableObjectUnwrapper():
                   // want to be in that compartment for the UnwrapArg call.
                   JS::Rooted<JSObject*> source(cx, ${source});
                   JSAutoCompartment ac(cx, ${source});
-                  rv = UnwrapArg<${type}>(cx, source, &objPtr, &objRef.ptr);
+                  rv = UnwrapArg<${type}>(cx, source, getter_AddRefs(objPtr));
                 }
                 """)
         else:
@@ -3685,19 +3685,16 @@ class CastableObjectUnwrapper():
             self.substitution["source"] = source
             xpconnectUnwrap = (
                 "JS::Rooted<JSObject*> source(cx, ${source});\n"
-                "nsresult rv = UnwrapArg<${type}>(cx, source, &objPtr, &objRef.ptr);\n")
+                "nsresult rv = UnwrapArg<${type}>(cx, source, getter_AddRefs(objPtr));\n")
 
         if descriptor.hasXPConnectImpls:
             self.substitution["codeOnFailure"] = string.Template(
-                "${type} *objPtr;\n"
-                "SelfRef objRef;\n" +
+                "nsRefPtr<${type}> objPtr;\n" +
                 xpconnectUnwrap +
                 "if (NS_FAILED(rv)) {\n"
                 "${indentedCodeOnFailure}"
                 "}\n"
-                "// We should be castable!\n"
-                "MOZ_ASSERT(!objRef.ptr);\n"
-                "// We should have an object, too!\n"
+                "// We should have an object\n"
                 "MOZ_ASSERT(objPtr);\n"
                 "${target} = objPtr;\n"
             ).substitute(self.substitution,
@@ -4766,21 +4763,14 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 holderType = "nsRefPtr<" + typeName + ">"
             templateBody += (
                 "JS::Rooted<JSObject*> source(cx, &${val}.toObject());\n" +
-                typePtr + " tmp;\n"
-                "if (NS_FAILED(UnwrapArg<" + typeName + ">(cx, source, &tmp, static_cast<" + typeName + "**>(getter_AddRefs(${holderName}))))) {\n")
+                "if (NS_FAILED(UnwrapArg<" + typeName + ">(cx, source, getter_AddRefs(${holderName})))) {\n")
             templateBody += CGIndenter(onFailureBadType(failureCode,
                                                         descriptor.interface.identifier.name)).define()
             templateBody += ("}\n"
-                             "MOZ_ASSERT(tmp);\n")
-
-            if not isDefinitelyObject and not forceOwningType:
-                templateBody += dedent("""
-                    // UnwrapArg never sets **ppArg without also setting *ppArgRef
-                    MOZ_ASSERT(${holderName});
-                    """)
+                             "MOZ_ASSERT(${holderName});\n")
 
             
-            templateBody += "${declName} = tmp;\n"
+            templateBody += "${declName} = ${holderName};\n"
 
         
         
