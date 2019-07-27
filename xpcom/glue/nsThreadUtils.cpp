@@ -161,11 +161,6 @@ NS_DispatchToCurrentThread(nsIRunnable* aEvent)
   return thread->Dispatch(aEvent, NS_DISPATCH_NORMAL);
 }
 
-
-
-
-
-
 NS_METHOD
 NS_DispatchToMainThread(already_AddRefed<nsIRunnable>&& aEvent, uint32_t aDispatchFlags)
 {
@@ -173,6 +168,7 @@ NS_DispatchToMainThread(already_AddRefed<nsIRunnable>&& aEvent, uint32_t aDispat
   nsCOMPtr<nsIThread> thread;
   nsresult rv = NS_GetMainThread(getter_AddRefs(thread));
   if (NS_WARN_IF(NS_FAILED(rv))) {
+    NS_ASSERTION(false, "Failed NS_DispatchToMainThread() in shutdown; leaking");
     
     
     nsIRunnable* temp = event.forget().take(); 
@@ -180,6 +176,11 @@ NS_DispatchToMainThread(already_AddRefed<nsIRunnable>&& aEvent, uint32_t aDispat
   }
   return thread->Dispatch(event.forget(), aDispatchFlags);
 }
+
+
+
+
+
 
 NS_METHOD
 NS_DispatchToMainThread(nsIRunnable* aEvent, uint32_t aDispatchFlags)
@@ -385,4 +386,3 @@ nsAutoLowPriorityIO::~nsAutoLowPriorityIO()
   }
 #endif
 }
-
