@@ -230,8 +230,14 @@ private:
   nsString mInitDataType;
 };
 
-bool MP4Reader::IsWaitingMediaResources()
-{
+bool MP4Reader::IsWaitingOnCodecResource() {
+#ifdef MOZ_GONK_MEDIACODEC
+  return mVideo.mDecoder && mVideo.mDecoder->IsWaitingMediaResources();
+#endif
+  return false;
+}
+
+bool MP4Reader::IsWaitingOnCDMResource() {
   nsRefPtr<CDMProxy> proxy;
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
@@ -251,6 +257,15 @@ bool MP4Reader::IsWaitingMediaResources()
     LOG("MP4Reader::IsWaitingMediaResources() capsKnown=%d", caps.AreCapsKnown());
     return !caps.AreCapsKnown();
   }
+}
+
+bool MP4Reader::IsWaitingMediaResources()
+{
+  
+  
+  
+  
+  return IsWaitingOnCDMResource() || IsWaitingOnCodecResource();
 }
 
 void
@@ -294,7 +309,12 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     
     
     mDemuxerInitialized = true;
+  } else if (mPlatform && !IsWaitingMediaResources()) {
+    *aInfo = mInfo;
+    *aTags = nullptr;
+    return NS_OK;
   }
+
   if (mDemuxer->Crypto().valid) {
     if (!sIsEMEEnabled) {
       
@@ -733,6 +753,38 @@ MP4Reader::GetBuffered(dom::TimeRanges* aBuffered, int64_t aStartTime)
   }
 
   return NS_OK;
+}
+
+bool MP4Reader::IsDormantNeeded()
+{
+#ifdef MOZ_GONK_MEDIACODEC
+  return mVideo.mDecoder && mVideo.mDecoder->IsDormantNeeded();
+#endif
+  return false;
+}
+
+void MP4Reader::ReleaseMediaResources()
+{
+#ifdef MOZ_GONK_MEDIACODEC
+  
+  
+  VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
+  if (container) {
+    container->ClearCurrentFrame();
+  }
+  if (mVideo.mDecoder) {
+    mVideo.mDecoder->ReleaseMediaResources();
+  }
+#endif
+}
+
+void MP4Reader::NotifyResourcesStatusChanged()
+{
+#ifdef MOZ_GONK_MEDIACODEC
+  if (mDecoder) {
+    mDecoder->NotifyWaitingForResourcesStatusChanged();
+  }
+#endif
 }
 
 } 
