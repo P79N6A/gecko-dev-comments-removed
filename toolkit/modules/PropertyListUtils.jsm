@@ -64,8 +64,6 @@ const Cu = Components.utils;
 Cu.importGlobalProperties(['File']);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Dict",
-                                  "resource://gre/modules/Dict.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ctypes",
                                   "resource://gre/modules/ctypes.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
@@ -177,7 +175,7 @@ this.PropertyListUtils = Object.freeze({
     
     let global = Cu.getGlobalForObject(aObject);
 
-    if (global.Dict && aObject instanceof global.Dict)
+    if (aObject instanceof global.Map)
       return this.TYPE_DICTIONARY;
     if (Array.isArray(aObject))
       return this.TYPE_ARRAY;
@@ -509,12 +507,11 @@ BinaryPropertyListReader.prototype = {
 
 
 
-
   _wrapDictionary: function(aObjectOffset, aNumberOfObjects) {
     
     
     
-    let dict = new Dict();
+    let dict = new Proxy(new Map(), LazyMapProxyHandler());
     if (aNumberOfObjects == 0)
       return dict;
 
@@ -526,6 +523,7 @@ BinaryPropertyListReader.prototype = {
     for (let i = 0; i < aNumberOfObjects; i++) {
       let key = this._readObject(keyObjsRefs[i]);
       let readBound = this._readObject.bind(this, valObjsRefs[i]);
+
       dict.setAsLazyGetter(key, readBound);
     }
     return dict;
@@ -723,7 +721,7 @@ XMLPropertyListReader.prototype = {
     
     if (aDOMElt.children.length % 2 != 0)
       throw new Error("Invalid dictionary");
-    let dict = new Dict();
+    let dict = new Proxy(new Map(), LazyMapProxyHandler());
     for (let i = 0; i < aDOMElt.children.length; i += 2) {
       let keyElem = aDOMElt.children[i];
       let valElem = aDOMElt.children[i + 1];
@@ -733,6 +731,7 @@ XMLPropertyListReader.prototype = {
 
       let keyName = this._readObject(keyElem);
       let readBound = this._readObject.bind(this, valElem);
+
       dict.setAsLazyGetter(keyName, readBound);
     }
     return dict;
@@ -763,3 +762,54 @@ XMLPropertyListReader.prototype = {
     return array;
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function LazyMapProxyHandler () {
+  return {
+    _lazyGetters: new Set(),
+    get: function(target, name) {
+      switch (name) {
+        case "setAsLazyGetter":
+          return (key, value) => {
+            this._lazyGetters.add(key);
+            target.set(key, value);
+          };
+        case "get":
+          return key => {
+            if (this._lazyGetters.has(key)) {
+              target.set(key, target.get(key)());
+              this._lazyGetters.delete(key);
+            }
+            return target.get(key);
+          };
+        case "delete":
+          return key => {
+            if (this._lazyGetters.has(key)) {
+              this._lazyGetters.delete(key);
+            }
+            return target.delete(key);
+          };
+        default:
+          return target[name];
+      }
+    }
+  }
+}
