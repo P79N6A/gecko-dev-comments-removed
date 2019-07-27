@@ -3720,6 +3720,19 @@ OTHelpers.getCookie = function(key) {
 
 
 
+OTHelpers.castToBoolean = function(value, defaultValue) {
+  if (value === undefined) return defaultValue;
+  return value === 'true' || value === true;
+};
+
+OTHelpers.roundFloat = function(value, places) {
+  return Number(value.toFixed(places));
+};
+
+
+
+
+
 
 
 OTHelpers.Collection = function(idField) {
@@ -3894,19 +3907,6 @@ OTHelpers.Collection = function(idField) {
   };
 };
 
-
-
-
-
-
-OTHelpers.castToBoolean = function(value, defaultValue) {
-  if (value === undefined) return defaultValue;
-  return value === 'true' || value === true;
-};
-
-OTHelpers.roundFloat = function(value, places) {
-  return Number(value.toFixed(places));
-};
 
 
 
@@ -7430,96 +7430,6 @@ var MediaConstraints = function(userConstraints) {
 
 
 
-var createFrame = function createFrame (bodyContent, callbackId, callback) {
-  var Proto = function Frame () {},
-      api = new Proto(),
-      domElement = scope.document.createElement('iframe');
-
-  domElement.id = 'OTPlugin_frame_' + $.uuid().replace(/\-+/g, '');
-  domElement.style.border = '0';
-
-  try {
-    domElement.style.backgroundColor = 'rgba(0,0,0,0)';
-  } catch (err) {
-    
-    domElement.style.backgroundColor = 'transparent';
-    domElement.setAttribute('allowTransparency', 'true');
-  }
-
-  domElement.scrolling = 'no';
-  domElement.setAttribute('scrolling', 'no');
-
-  
-  
-  var frameContent = '<!DOCTYPE html><html><head>' +
-                    '<meta http-equiv="x-ua-compatible" content="IE=Edge">' +
-                    '<meta http-equiv="Content-type" content="text/html; charset=utf-8">' +
-                    '<title></title></head><body>' +
-                    bodyContent +
-                    '<script>window.parent["' + callbackId + '"](' +
-                      'document.querySelector("object")' +
-                    ');</script></body></html>';
-
-  var wrappedCallback = function() {
-    OTPlugin.log('LOADED IFRAME');
-    var doc = domElement.contentDocument || domElement.contentWindow.document;
-
-    if ($.env.iframeNeedsLoad) {
-      doc.body.style.backgroundColor = 'transparent';
-      doc.body.style.border = 'none';
-
-      if ($.env.name !== 'IE') {
-        
-        
-        doc.open();
-        doc.write(frameContent);
-        doc.close();
-      }
-    }
-
-    if (callback) {
-      callback(
-        api,
-        domElement.contentWindow,
-        doc
-      );
-    }
-  };
-
-  scope.document.body.appendChild(domElement);
-
-  if($.env.iframeNeedsLoad) {
-    if ($.env.name === 'IE') {
-      
-      
-      
-      domElement.contentWindow.contents = frameContent;
-      
-      domElement.src = 'javascript:window["contents"]';
-      
-    }
-
-    $.on(domElement, 'load', wrappedCallback);
-  } else {
-    setTimeout(wrappedCallback, 0);
-  }
-
-  api.reparent = function reparent (target) {
-    
-    target.appendChild(domElement);
-  };
-
-  api.element = domElement;
-
-  return api;
-};
-
-
-
-
-
-
-
 
 
 var AutoUpdater;
@@ -7851,6 +7761,96 @@ var
 
 
 
+var createFrame = function createFrame (bodyContent, callbackId, callback) {
+  var Proto = function Frame () {},
+      api = new Proto(),
+      domElement = scope.document.createElement('iframe');
+
+  domElement.id = 'OTPlugin_frame_' + $.uuid().replace(/\-+/g, '');
+  domElement.style.border = '0';
+
+  try {
+    domElement.style.backgroundColor = 'rgba(0,0,0,0)';
+  } catch (err) {
+    
+    domElement.style.backgroundColor = 'transparent';
+    domElement.setAttribute('allowTransparency', 'true');
+  }
+
+  domElement.scrolling = 'no';
+  domElement.setAttribute('scrolling', 'no');
+
+  
+  
+  var frameContent = '<!DOCTYPE html><html><head>' +
+                    '<meta http-equiv="x-ua-compatible" content="IE=Edge">' +
+                    '<meta http-equiv="Content-type" content="text/html; charset=utf-8">' +
+                    '<title></title></head><body>' +
+                    bodyContent +
+                    '<script>window.parent["' + callbackId + '"](' +
+                      'document.querySelector("object")' +
+                    ');</script></body></html>';
+
+  var wrappedCallback = function() {
+    OTPlugin.log('LOADED IFRAME');
+    var doc = domElement.contentDocument || domElement.contentWindow.document;
+
+    if ($.env.iframeNeedsLoad) {
+      doc.body.style.backgroundColor = 'transparent';
+      doc.body.style.border = 'none';
+
+      if ($.env.name !== 'IE') {
+        
+        
+        doc.open();
+        doc.write(frameContent);
+        doc.close();
+      }
+    }
+
+    if (callback) {
+      callback(
+        api,
+        domElement.contentWindow,
+        doc
+      );
+    }
+  };
+
+  scope.document.body.appendChild(domElement);
+
+  if($.env.iframeNeedsLoad) {
+    if ($.env.name === 'IE') {
+      
+      
+      
+      domElement.contentWindow.contents = frameContent;
+      
+      domElement.src = 'javascript:window["contents"]';
+      
+    }
+
+    $.on(domElement, 'load', wrappedCallback);
+  } else {
+    setTimeout(wrappedCallback, 0);
+  }
+
+  api.reparent = function reparent (target) {
+    
+    target.appendChild(domElement);
+  };
+
+  api.element = domElement;
+
+  return api;
+};
+
+
+
+
+
+
+
 
 
 
@@ -8065,8 +8065,8 @@ if (!window.TB) window.TB = OT;
 
 
 OT.properties = {
-  version: 'v2.5.1',         
-  build: '23265fa',    
+  version: 'v2.5.2',         
+  build: 'f4508e1',    
 
   
   debug: 'false',
@@ -8250,122 +8250,6 @@ OT.$.userAgent = function() { return OT.$.env.userAgent; };
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.Rumor = {
-  MessageType: {
-    
-    
-    
-    SUBSCRIBE: 0,
-
-    
-    
-    UNSUBSCRIBE: 1,
-
-    
-    
-    MESSAGE: 2,
-
-    
-    
-    
-    CONNECT: 3,
-
-    
-    
-    DISCONNECT: 4,
-
-    
-    PING: 7,
-    PONG: 8,
-    STATUS: 9
-  }
-};
-
-
-
-
-
-
-
-
-!(function() {
-
-  OT.Rumor.PluginSocket = function(messagingURL, events) {
-
-    var webSocket,
-        state = 'initializing';
-
-    OTPlugin.initRumorSocket(messagingURL, OT.$.bind(function(err, rumorSocket) {
-      if(err) {
-        state = 'closed';
-        events.onClose({ code: 4999 });
-      } else if(state === 'initializing') {
-        webSocket = rumorSocket;
-
-        webSocket.onOpen(function() {
-          state = 'open';
-          events.onOpen();
-        });
-        webSocket.onClose(function(error) {
-          state = 'closed'; 
-          events.onClose({ code: error });
-        });
-        webSocket.onError(function(error) {
-          state = 'closed'; 
-          events.onError(error);
-          
-          events.onClose({ code: error });
-        });
-
-        webSocket.onMessage(function(type, addresses, headers, payload) {
-          var msg = new OT.Rumor.Message(type, addresses, headers, payload);
-          events.onMessage(msg);
-        });
-
-        webSocket.open();
-      } else {
-        this.close();
-      }
-    }, this));
-
-    this.close = function() {
-      if(state === 'initializing' || state === 'closed') {
-        state = 'closed';
-        return;
-      }
-
-      webSocket.close(1000, '');
-    };
-
-    this.send = function(msg) {
-      if(state === 'open') {
-        webSocket.send(msg);
-      }
-    };
-
-    this.isClosed = function() {
-      return state === 'closed';
-    };
-
-  };
-
-}(this));
 
 
 
@@ -9421,6 +9305,122 @@ OT.Rumor = {
   global['TextDecoder'] = global['TextDecoder'] || TextDecoder;
 
   
+
+}(this));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.Rumor = {
+  MessageType: {
+    
+    
+    
+    SUBSCRIBE: 0,
+
+    
+    
+    UNSUBSCRIBE: 1,
+
+    
+    
+    MESSAGE: 2,
+
+    
+    
+    
+    CONNECT: 3,
+
+    
+    
+    DISCONNECT: 4,
+
+    
+    PING: 7,
+    PONG: 8,
+    STATUS: 9
+  }
+};
+
+
+
+
+
+
+
+
+!(function() {
+
+  OT.Rumor.PluginSocket = function(messagingURL, events) {
+
+    var webSocket,
+        state = 'initializing';
+
+    OTPlugin.initRumorSocket(messagingURL, OT.$.bind(function(err, rumorSocket) {
+      if(err) {
+        state = 'closed';
+        events.onClose({ code: 4999 });
+      } else if(state === 'initializing') {
+        webSocket = rumorSocket;
+
+        webSocket.onOpen(function() {
+          state = 'open';
+          events.onOpen();
+        });
+        webSocket.onClose(function(error) {
+          state = 'closed'; 
+          events.onClose({ code: error });
+        });
+        webSocket.onError(function(error) {
+          state = 'closed'; 
+          events.onError(error);
+          
+          events.onClose({ code: error });
+        });
+
+        webSocket.onMessage(function(type, addresses, headers, payload) {
+          var msg = new OT.Rumor.Message(type, addresses, headers, payload);
+          events.onMessage(msg);
+        });
+
+        webSocket.open();
+      } else {
+        this.close();
+      }
+    }, this));
+
+    this.close = function() {
+      if(state === 'initializing' || state === 'closed') {
+        state = 'closed';
+        return;
+      }
+
+      webSocket.close(1000, '');
+    };
+
+    this.send = function(msg) {
+      if(state === 'open') {
+        webSocket.send(msg);
+      }
+    };
+
+    this.isClosed = function() {
+      return state === 'closed';
+    };
+
+  };
 
 }(this));
 
@@ -16568,6 +16568,140 @@ var loadCSS = function loadCSS(cssURL) {
 
 
 
+
+
+
+
+
+OT.$.registerCapability('getUserMedia', function() {
+  if (OT.$.env === 'Node') return false;
+  return !!(navigator.webkitGetUserMedia ||
+            navigator.mozGetUserMedia ||
+            OTPlugin.isInstalled());
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.$.registerCapability('PeerConnection', function() {
+  if (OT.$.env === 'Node') {
+    return false;
+  }
+  else if (typeof(window.webkitRTCPeerConnection) === 'function' &&
+                    !!window.webkitRTCPeerConnection.prototype.addStream) {
+    return true;
+  } else if (typeof(window.mozRTCPeerConnection) === 'function' && OT.$.env.version > 20.0) {
+    return true;
+  } else {
+    return OTPlugin.isInstalled();
+  }
+});
+
+
+
+
+
+
+
+OT.$.registerCapability('webrtc', function() {
+  if (OT.properties) {
+    var minimumVersions = OT.properties.minimumVersion || {},
+        minimumVersion = minimumVersions[OT.$.env.name.toLowerCase()];
+
+    if(minimumVersion && OT.$.env.versionGreaterThan(minimumVersion)) {
+      OT.debug('Support for', OT.$.env.name, 'is disabled because we require',
+        minimumVersion, 'but this is', OT.$.env.version);
+      return false;
+    }
+  }
+
+  if (OT.$.env === 'Node') {
+    
+    return true;
+  }
+
+  return OT.$.hasCapabilities('getUserMedia', 'PeerConnection');
+});
+
+
+
+
+
+
+
+
+
+
+
+OT.$.registerCapability('bundle', function() {
+  return OT.$.hasCapabilities('webrtc') &&
+            (OT.$.env.name === 'Chrome' ||
+              OT.$.env.name === 'Node' ||
+              OTPlugin.isInstalled());
+});
+
+
+
+
+
+
+
+
+
+
+OT.$.registerCapability('RTCPMux', function() {
+  return OT.$.hasCapabilities('webrtc') &&
+              (OT.$.env.name === 'Chrome' ||
+                OT.$.env.name === 'Node' ||
+                OTPlugin.isInstalled());
+});
+
+
+
+
+
+OT.$.registerCapability('getMediaDevices', function() {
+  return OT.$.isFunction(window.MediaStreamTrack) &&
+            OT.$.isFunction(window.MediaStreamTrack.getSources);
+});
+
+
+OT.$.registerCapability('audioOutputLevelStat', function() {
+  return OT.$.env.name === 'Chrome' || OT.$.env.name === 'IE';
+});
+
+OT.$.registerCapability('webAudioCapableRemoteStream', function() {
+  return OT.$.env.name === 'Firefox';
+});
+
+OT.$.registerCapability('webAudio', function() {
+  return 'AudioContext' in window;
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 OT.Config = (function() {
   var _loaded = false,
       _global = {},
@@ -16705,140 +16839,6 @@ OT.Config = (function() {
 
   return _this;
 })();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.$.registerCapability('getUserMedia', function() {
-  if (OT.$.env === 'Node') return false;
-  return !!(navigator.webkitGetUserMedia ||
-            navigator.mozGetUserMedia ||
-            OTPlugin.isInstalled());
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.$.registerCapability('PeerConnection', function() {
-  if (OT.$.env === 'Node') {
-    return false;
-  }
-  else if (typeof(window.webkitRTCPeerConnection) === 'function' &&
-                    !!window.webkitRTCPeerConnection.prototype.addStream) {
-    return true;
-  } else if (typeof(window.mozRTCPeerConnection) === 'function' && OT.$.env.version > 20.0) {
-    return true;
-  } else {
-    return OTPlugin.isInstalled();
-  }
-});
-
-
-
-
-
-
-
-OT.$.registerCapability('webrtc', function() {
-  if (OT.properties) {
-    var minimumVersions = OT.properties.minimumVersion || {},
-        minimumVersion = minimumVersions[OT.$.env.name.toLowerCase()];
-
-    if(minimumVersion && OT.$.env.versionGreaterThan(minimumVersion)) {
-      OT.debug('Support for', OT.$.env.name, 'is disabled because we require',
-        minimumVersion, 'but this is', OT.$.env.version);
-      return false;
-    }
-  }
-
-  if (OT.$.env === 'Node') {
-    
-    return true;
-  }
-
-  return OT.$.hasCapabilities('getUserMedia', 'PeerConnection');
-});
-
-
-
-
-
-
-
-
-
-
-
-OT.$.registerCapability('bundle', function() {
-  return OT.$.hasCapabilities('webrtc') &&
-            (OT.$.env.name === 'Chrome' ||
-              OT.$.env.name === 'Node' ||
-              OTPlugin.isInstalled());
-});
-
-
-
-
-
-
-
-
-
-
-OT.$.registerCapability('RTCPMux', function() {
-  return OT.$.hasCapabilities('webrtc') &&
-              (OT.$.env.name === 'Chrome' ||
-                OT.$.env.name === 'Node' ||
-                OTPlugin.isInstalled());
-});
-
-
-
-
-
-OT.$.registerCapability('getMediaDevices', function() {
-  return OT.$.isFunction(window.MediaStreamTrack) &&
-            OT.$.isFunction(window.MediaStreamTrack.getSources);
-});
-
-
-OT.$.registerCapability('audioOutputLevelStat', function() {
-  return OT.$.env.name === 'Chrome' || OT.$.env.name === 'IE';
-});
-
-OT.$.registerCapability('webAudioCapableRemoteStream', function() {
-  return OT.$.env.name === 'Firefox';
-});
-
-OT.$.registerCapability('webAudio', function() {
-  return 'AudioContext' in window;
-});
-
 
 
 
@@ -25970,9 +25970,9 @@ OT.Publisher = function(options) {
               var peerConnection = _peerConnections[connectionId];
               peerConnection.getSenders().forEach(function(sender) {
                 if (sender.track.kind === 'audio' && newStream.getAudioTracks().length) {
-                  replacePromises.push(sender.switchTracks(newStream.getAudioTracks()[0]));
+                  replacePromises.push(sender.replaceTrack(newStream.getAudioTracks()[0]));
                 } else if (sender.track.kind === 'video' && newStream.getVideoTracks().length) {
-                  replacePromises.push(sender.switchTracks(newStream.getVideoTracks()[0]));
+                  replacePromises.push(sender.replaceTrack(newStream.getVideoTracks()[0]));
                 }
               });
             });
@@ -26249,6 +26249,38 @@ OT.Publisher = function(options) {
 
 OT.Publisher.nextId = OT.$.uuid;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OT.onUnload(function() {
+  OT.publishers.destroy();
+  OT.subscribers.destroy();
+  OT.sessions.destroy('unloaded');
+});
+
+loadCSS(OT.properties.cssURL);
+
+
+
+
+
+
+
+if (typeof define === 'function' && define.amd) {
+  define( 'TB', [], function () { return TB; } );
+}
 
 
 
@@ -26948,38 +26980,6 @@ OT.components = {};
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OT.onUnload(function() {
-  OT.publishers.destroy();
-  OT.subscribers.destroy();
-  OT.sessions.destroy('unloaded');
-});
-
-loadCSS(OT.properties.cssURL);
-
-
-
-
-
-
-
-if (typeof define === 'function' && define.amd) {
-  define( 'TB', [], function () { return TB; } );
-}
 
 
 
