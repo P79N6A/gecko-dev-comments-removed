@@ -138,3 +138,23 @@ evalWithCache(test, {
   checkAfter: checkAfter   
                            
 });
+
+
+
+test = `
+  function f() { return true; };
+  var canBeLazy = isRelazifiableFunction(f) || isLazyFunction(f);
+  relazifyFunctions();
+  assertEq(isLazyFunction(f), canBeLazy);
+  f()`
+evalWithCache(test, { assertEqBytecode: true, assertEqResult: true });
+
+
+var g1 = newGlobal();
+var g2 = newGlobal();
+var res = "function f(){}";
+var code = cacheEntry(res + "; f();");
+evaluate(code, {global:g1, compileAndGo: true, saveBytecode: {value: true}});
+evaluate(code, {global:g2, loadBytecode: true});
+gc();
+assertEq(g2.f.toString(), res);
