@@ -146,6 +146,7 @@ let Reader = {
 
 
 
+
   getArticle: Task.async(function* (url, tabId) {
     
     let tab = BrowserApp.getTabForId(tabId);
@@ -167,7 +168,10 @@ let Reader = {
 
     
     
-    return yield this._downloadAndParseDocument(url);
+    return yield this._downloadAndParseDocument(url).catch(e => {
+      Cu.reportError("Error downloading and parsing article: " + e);
+      return null;
+    });
   }),
 
   
@@ -287,6 +291,10 @@ let Reader = {
         resolve(article);
       };
 
+      worker.onerror = function (evt) {
+        reject(evt.message);
+      };
+
       try {
         worker.postMessage({
           uri: {
@@ -354,7 +362,6 @@ let Reader = {
     this.log("Finished loading page: " + doc);
 
     try {
-      this.log("Parsing response with Readability");
       let uri = Services.io.newURI(url, null, null);
       let article = yield this._readerParse(uri, doc);
       this.log("Document parsed successfully");
