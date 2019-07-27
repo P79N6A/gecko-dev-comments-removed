@@ -36,11 +36,12 @@ nsresult
 InitializeConnection(mozIStorageConnection* aConn);
 
 nsresult
-CreateCacheId(mozIStorageConnection* aConn, CacheId* aCacheIdOut);
+CreateCache(mozIStorageConnection* aConn, CacheId* aCacheIdOut);
+
 
 nsresult
-DeleteCacheId(mozIStorageConnection* aConn, CacheId aCacheId,
-              nsTArray<nsID>& aDeletedBodyIdListOut);
+DeleteCache(mozIStorageConnection* aConn, CacheId aCacheId,
+            nsTArray<nsID>& aDeletedBodyIdListOut);
 
 
 nsresult
