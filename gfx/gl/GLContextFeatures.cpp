@@ -410,6 +410,39 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "texture_3D",
+        120, 
+        300, 
+        GLContext::Extension_None,
+        {
+            GLContext::EXT_texture3D,
+            GLContext::OES_texture_3D,
+            GLContext::Extensions_End
+        }
+    },
+    {
+        "texture_3D_compressed",
+        130, 
+        300, 
+        GLContext::Extension_None,
+        {
+            GLContext::ARB_texture_compression,
+            GLContext::OES_texture_3D,
+            GLContext::Extensions_End
+        }
+    },
+    {
+        "texture_3D_copy",
+        120, 
+        300, 
+        GLContext::Extension_None,
+        {
+            GLContext::EXT_copy_texture,
+            GLContext::OES_texture_3D,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "texture_float",
         300, 
         300, 
