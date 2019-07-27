@@ -4,20 +4,22 @@
 
 
 
+"use strict";
+
 const {Cc, Cu, Ci} = require("chrome");
-
-const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
-const ENSURE_SELECTION_VISIBLE_DELAY = 50; 
-
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/DOMHelpers.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+const {Promise: promise} = require("resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
+  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
+});
+
+const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
+const ENSURE_SELECTION_VISIBLE_DELAY = 50; 
 const ELLIPSIS = Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data;
 const MAX_LABEL_LENGTH = 40;
-
-let promise = require("resource://gre/modules/Promise.jsm").Promise;
-
 const LOW_PRIORITY_ELEMENTS = {
   "HEAD": true,
   "BASE": true,
@@ -30,17 +32,6 @@ const LOW_PRIORITY_ELEMENTS = {
   "TITLE": true,
 };
 
-function resolveNextTick(value) {
-  let deferred = promise.defer();
-  Services.tm.mainThread.dispatch(() => {
-    try {
-      deferred.resolve(value);
-    } catch(ex) {
-      console.error(ex);
-    }
-  }, Ci.nsIThread.DISPATCH_NORMAL);
-  return deferred.promise;
-}
 
 
 
@@ -55,11 +46,8 @@ function resolveNextTick(value) {
 
 
 
-
-
-function HTMLBreadcrumbs(aInspector)
-{
-  this.inspector = aInspector;
+function HTMLBreadcrumbs(inspector) {
+  this.inspector = inspector;
   this.selection = this.inspector.selection;
   this.chromeWin = this.inspector.panelWin;
   this.chromeDoc = this.inspector.panelDoc;
@@ -72,8 +60,7 @@ exports.HTMLBreadcrumbs = HTMLBreadcrumbs;
 HTMLBreadcrumbs.prototype = {
   get walker() this.inspector.walker,
 
-  _init: function BC__init()
-  {
+  _init: function() {
     this.container = this.chromeDoc.getElementById("inspector-breadcrumbs");
 
     
@@ -140,6 +127,7 @@ HTMLBreadcrumbs.prototype = {
   
 
 
+
   selectionGuardEnd: function(err) {
     if (err === "selection-changed") {
       console.warn("Asynchronous operation was aborted as selection changed.");
@@ -153,32 +141,29 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  prettyPrintNodeAsText: function BC_prettyPrintNodeText(aNode)
-  {
-    let text = aNode.tagName.toLowerCase();
-    if (aNode.isPseudoElement) {
-      text = aNode.isBeforePseudoElement ? "::before" : "::after";
+  prettyPrintNodeAsText: function(node) {
+    let text = node.tagName.toLowerCase();
+    if (node.isPseudoElement) {
+      text = node.isBeforePseudoElement ? "::before" : "::after";
     }
 
-    if (aNode.id) {
-      text += "#" + aNode.id;
+    if (node.id) {
+      text += "#" + node.id;
     }
 
-    if (aNode.className) {
-      let classList = aNode.className.split(/\s+/);
+    if (node.className) {
+      let classList = node.className.split(/\s+/);
       for (let i = 0; i < classList.length; i++) {
         text += "." + classList[i];
       }
     }
 
-    for (let pseudo of aNode.pseudoClassLocks) {
+    for (let pseudo of node.pseudoClassLocks) {
       text += pseudo;
     }
 
     return text;
   },
-
 
   
 
@@ -188,9 +173,7 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  prettyPrintNodeAsXUL: function BC_prettyPrintNodeXUL(aNode)
-  {
+  prettyPrintNodeAsXUL: function(node) {
     let fragment = this.chromeDoc.createDocumentFragment();
 
     let tagLabel = this.chromeDoc.createElement("label");
@@ -205,22 +188,22 @@ HTMLBreadcrumbs.prototype = {
     let pseudosLabel = this.chromeDoc.createElement("label");
     pseudosLabel.className = "breadcrumbs-widget-item-pseudo-classes plain";
 
-    let tagText = aNode.tagName.toLowerCase();
-    if (aNode.isPseudoElement) {
-      tagText = aNode.isBeforePseudoElement ? "::before" : "::after";
+    let tagText = node.tagName.toLowerCase();
+    if (node.isPseudoElement) {
+      tagText = node.isBeforePseudoElement ? "::before" : "::after";
     }
-    let idText = aNode.id ? ("#" + aNode.id) : "";
+    let idText = node.id ? ("#" + node.id) : "";
     let classesText = "";
 
-    if (aNode.className) {
-      let classList = aNode.className.split(/\s+/);
+    if (node.className) {
+      let classList = node.className.split(/\s+/);
       for (let i = 0; i < classList.length; i++) {
         classesText += "." + classList[i];
       }
     }
 
     
-    for (let pseudo of aNode.pseudoClassLocks) {
+    for (let pseudo of node.pseudoClassLocks) {
 
     }
 
@@ -244,7 +227,7 @@ HTMLBreadcrumbs.prototype = {
     tagLabel.textContent = tagText;
     idLabel.textContent = idText;
     classesLabel.textContent = classesText;
-    pseudosLabel.textContent = aNode.pseudoClassLocks.join("");
+    pseudosLabel.textContent = node.pseudoClassLocks.join("");
 
     fragment.appendChild(tagLabel);
     fragment.appendChild(idLabel);
@@ -259,13 +242,11 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  openSiblingMenu: function BC_openSiblingMenu(aButton, aNode)
-  {
+  openSiblingMenu: function(button, node) {
     
     
     
-    this.selection.setNodeFront(aNode, "breadcrumbs");
+    this.selection.setNodeFront(node, "breadcrumbs");
 
     let title = this.chromeDoc.createElement("menuitem");
     title.setAttribute("label", this.inspector.strings.GetStringFromName("breadcrumbs.siblings"));
@@ -275,13 +256,13 @@ HTMLBreadcrumbs.prototype = {
 
     let items = [title, separator];
 
-    this.walker.siblings(aNode, {
+    this.walker.siblings(node, {
       whatToShow: Ci.nsIDOMNodeFilter.SHOW_ELEMENT
     }).then(siblings => {
       let nodes = siblings.nodes;
       for (let i = 0; i < nodes.length; i++) {
         let item = this.chromeDoc.createElement("menuitem");
-        if (nodes[i] === aNode) {
+        if (nodes[i] === node) {
           item.setAttribute("disabled", "true");
           item.setAttribute("checked", "true");
         }
@@ -290,14 +271,14 @@ HTMLBreadcrumbs.prototype = {
         item.setAttribute("label", this.prettyPrintNodeAsText(nodes[i]));
 
         let selection = this.selection;
-        item.onmouseup = (function(aNode) {
+        item.onmouseup = (function(node) {
           return function() {
-            selection.setNodeFront(aNode, "breadcrumbs");
+            selection.setNodeFront(node, "breadcrumbs");
           }
         })(nodes[i]);
 
         items.push(item);
-        this.inspector.showNodeMenu(aButton, "before_start", items);
+        this.inspector.showNodeMenu(button, "before_start", items);
       }
     });
   },
@@ -306,101 +287,119 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-
-  handleEvent: function BC_handleEvent(event)
-  {
+  handleEvent: function(event) {
     if (event.type == "mousedown" && event.button == 0) {
-      
-
-      let timer;
-      let container = this.container;
-
-      function openMenu(event) {
-        cancelHold();
-        let target = event.originalTarget;
-        if (target.tagName == "button") {
-          target.onBreadcrumbsHold();
-        }
-      }
-
-      function handleClick(event) {
-        cancelHold();
-        let target = event.originalTarget;
-        if (target.tagName == "button") {
-          target.onBreadcrumbsClick();
-        }
-      }
-
-      let window = this.chromeWin;
-      function cancelHold(event) {
-        window.clearTimeout(timer);
-        container.removeEventListener("mouseout", cancelHold, false);
-        container.removeEventListener("mouseup", handleClick, false);
-      }
-
-      container.addEventListener("mouseout", cancelHold, false);
-      container.addEventListener("mouseup", handleClick, false);
-      timer = window.setTimeout(openMenu, 500, event);
-    }
-
-    if (event.type == "keypress" && this.selection.isElementNode()) {
-      let node = null;
-
-
-      this._keyPromise = this._keyPromise || promise.resolve(null);
-
-      this._keyPromise = (this._keyPromise || promise.resolve(null)).then(() => {
-        switch (event.keyCode) {
-          case this.chromeWin.KeyEvent.DOM_VK_LEFT:
-            if (this.currentIndex != 0) {
-              node = promise.resolve(this.nodeHierarchy[this.currentIndex - 1].node);
-            }
-            break;
-          case this.chromeWin.KeyEvent.DOM_VK_RIGHT:
-            if (this.currentIndex < this.nodeHierarchy.length - 1) {
-              node = promise.resolve(this.nodeHierarchy[this.currentIndex + 1].node);
-            }
-            break;
-          case this.chromeWin.KeyEvent.DOM_VK_UP:
-            node = this.walker.previousSibling(this.selection.nodeFront, {
-              whatToShow: Ci.nsIDOMNodeFilter.SHOW_ELEMENT
-            });
-            break;
-          case this.chromeWin.KeyEvent.DOM_VK_DOWN:
-            node = this.walker.nextSibling(this.selection.nodeFront, {
-              whatToShow: Ci.nsIDOMNodeFilter.SHOW_ELEMENT
-            });
-            break;
-        }
-
-        return node.then((node) => {
-          if (node) {
-            this.selection.setNodeFront(node, "breadcrumbs");
-          }
-        });
-      });
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    if (event.type == "mouseover") {
-      let target = event.originalTarget;
-      if (target.tagName == "button") {
-        target.onBreadcrumbsHover();
-      }
-    }
-
-    if (event.type == "mouseleave") {
-      this.inspector.toolbox.highlighterUtils.unhighlight();
+      this.handleMouseDown(event);
+    } else if (event.type == "keypress" && this.selection.isElementNode()) {
+      this.handleKeyPress(event);
+    } else if (event.type == "mouseover") {
+      this.handleMouseOver(event);
+    } else if (event.type == "mouseleave") {
+      this.handleMouseLeave(event);
     }
   },
 
   
 
 
-  destroy: function BC_destroy()
-  {
+
+  handleMouseDown: function(event) {
+    let timer;
+    let container = this.container;
+
+    function openMenu(event) {
+      cancelHold();
+      let target = event.originalTarget;
+      if (target.tagName == "button") {
+        target.onBreadcrumbsHold();
+      }
+    }
+
+    function handleClick(event) {
+      cancelHold();
+      let target = event.originalTarget;
+      if (target.tagName == "button") {
+        target.onBreadcrumbsClick();
+      }
+    }
+
+    let window = this.chromeWin;
+    function cancelHold(event) {
+      window.clearTimeout(timer);
+      container.removeEventListener("mouseout", cancelHold, false);
+      container.removeEventListener("mouseup", handleClick, false);
+    }
+
+    container.addEventListener("mouseout", cancelHold, false);
+    container.addEventListener("mouseup", handleClick, false);
+    timer = window.setTimeout(openMenu, 500, event);
+  },
+
+  
+
+
+
+  handleMouseOver: function(event) {
+    let target = event.originalTarget;
+    if (target.tagName == "button") {
+      target.onBreadcrumbsHover();
+    }
+  },
+
+  
+
+
+
+  handleMouseLeave: function(event) {
+    this.inspector.toolbox.highlighterUtils.unhighlight();
+  },
+
+  
+
+
+
+  handleKeyPress: function(event) {
+    let node = null;
+    this._keyPromise = this._keyPromise || promise.resolve(null);
+
+    this._keyPromise = (this._keyPromise || promise.resolve(null)).then(() => {
+      switch (event.keyCode) {
+        case this.chromeWin.KeyEvent.DOM_VK_LEFT:
+          if (this.currentIndex != 0) {
+            node = promise.resolve(this.nodeHierarchy[this.currentIndex - 1].node);
+          }
+          break;
+        case this.chromeWin.KeyEvent.DOM_VK_RIGHT:
+          if (this.currentIndex < this.nodeHierarchy.length - 1) {
+            node = promise.resolve(this.nodeHierarchy[this.currentIndex + 1].node);
+          }
+          break;
+        case this.chromeWin.KeyEvent.DOM_VK_UP:
+          node = this.walker.previousSibling(this.selection.nodeFront, {
+            whatToShow: Ci.nsIDOMNodeFilter.SHOW_ELEMENT
+          });
+          break;
+        case this.chromeWin.KeyEvent.DOM_VK_DOWN:
+          node = this.walker.nextSibling(this.selection.nodeFront, {
+            whatToShow: Ci.nsIDOMNodeFilter.SHOW_ELEMENT
+          });
+          break;
+      }
+
+      return node.then((node) => {
+        if (node) {
+          this.selection.setNodeFront(node, "breadcrumbs");
+        }
+      });
+    });
+    event.preventDefault();
+    event.stopPropagation();
+  },
+
+  
+
+
+  destroy: function() {
     this.selection.off("new-node-front", this.update);
     this.selection.off("pseudoclass", this.updateSelectors);
     this.selection.off("attribute-changed", this.updateSelectors);
@@ -408,18 +407,17 @@ HTMLBreadcrumbs.prototype = {
 
     this.container.removeEventListener("underflow", this.onscrollboxreflow, false);
     this.container.removeEventListener("overflow", this.onscrollboxreflow, false);
-    this.onscrollboxreflow = null;
-
-    this.empty();
     this.container.removeEventListener("mousedown", this, true);
     this.container.removeEventListener("keypress", this, true);
     this.container.removeEventListener("mouseover", this, true);
     this.container.removeEventListener("mouseleave", this, true);
-    this.container = null;
 
+    this.empty();
     this.separators.remove();
-    this.separators = null;
 
+    this.onscrollboxreflow = null;
+    this.container = null;
+    this.separators = null;
     this.nodeHierarchy = null;
 
     this.isDestroyed = true;
@@ -428,10 +426,9 @@ HTMLBreadcrumbs.prototype = {
   
 
 
-  empty: function BC_empty()
-  {
+  empty: function() {
     while (this.container.hasChildNodes()) {
-      this.container.removeChild(this.container.firstChild);
+      this.container.firstChild.remove();
     }
   },
 
@@ -439,19 +436,17 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  setCursor: function BC_setCursor(aIdx)
-  {
+  setCursor: function(index) {
     
     if (this.currentIndex > -1 && this.currentIndex < this.nodeHierarchy.length) {
       this.nodeHierarchy[this.currentIndex].button.removeAttribute("checked");
     }
-    if (aIdx > -1) {
-      this.nodeHierarchy[aIdx].button.setAttribute("checked", "true");
+    if (index > -1) {
+      this.nodeHierarchy[index].button.setAttribute("checked", "true");
       if (this.hadFocus)
-        this.nodeHierarchy[aIdx].button.focus();
+        this.nodeHierarchy[index].button.focus();
     }
-    this.currentIndex = aIdx;
+    this.currentIndex = index;
   },
 
   
@@ -459,12 +454,10 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  indexOf: function BC_indexOf(aNode)
-  {
+  indexOf: function(node) {
     let i = this.nodeHierarchy.length - 1;
     for (let i = this.nodeHierarchy.length - 1; i >= 0; i--) {
-      if (this.nodeHierarchy[i].node === aNode) {
+      if (this.nodeHierarchy[i].node === node) {
         return i;
       }
     }
@@ -476,10 +469,8 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  cutAfter: function BC_cutAfter(aIdx)
-  {
-    while (this.nodeHierarchy.length > (aIdx + 1)) {
+  cutAfter: function(index) {
+    while (this.nodeHierarchy.length > (index + 1)) {
       let toRemove = this.nodeHierarchy.pop();
       this.container.removeChild(toRemove.button);
     }
@@ -490,14 +481,12 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  buildButton: function BC_buildButton(aNode)
-  {
+  buildButton: function(node) {
     let button = this.chromeDoc.createElement("button");
-    button.appendChild(this.prettyPrintNodeAsXUL(aNode));
+    button.appendChild(this.prettyPrintNodeAsXUL(node));
     button.className = "breadcrumbs-widget-item";
 
-    button.setAttribute("tooltiptext", this.prettyPrintNodeAsText(aNode));
+    button.setAttribute("tooltiptext", this.prettyPrintNodeAsText(node));
 
     button.onkeypress = function onBreadcrumbsKeypress(e) {
       if (e.charCode == Ci.nsIDOMKeyEvent.DOM_VK_SPACE ||
@@ -506,22 +495,22 @@ HTMLBreadcrumbs.prototype = {
     }
 
     button.onBreadcrumbsClick = () => {
-      this.selection.setNodeFront(aNode, "breadcrumbs");
+      this.selection.setNodeFront(node, "breadcrumbs");
     };
 
     button.onBreadcrumbsHover = () => {
-      this.inspector.toolbox.highlighterUtils.highlightNodeFront(aNode);
+      this.inspector.toolbox.highlighterUtils.highlightNodeFront(node);
     };
 
     button.onclick = (function _onBreadcrumbsRightClick(event) {
       button.focus();
       if (event.button == 2) {
-        this.openSiblingMenu(button, aNode);
+        this.openSiblingMenu(button, node);
       }
     }).bind(this);
 
     button.onBreadcrumbsHold = (function _onBreadcrumbsHold() {
-      this.openSiblingMenu(button, aNode);
+      this.openSiblingMenu(button, node);
     }).bind(this);
     return button;
   },
@@ -530,27 +519,24 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  expand: function BC_expand(aNode)
-  {
-      let fragment = this.chromeDoc.createDocumentFragment();
-      let toAppend = aNode;
-      let lastButtonInserted = null;
-      let originalLength = this.nodeHierarchy.length;
-      let stopNode = null;
-      if (originalLength > 0) {
-        stopNode = this.nodeHierarchy[originalLength - 1].node;
+  expand: function(node) {
+    let fragment = this.chromeDoc.createDocumentFragment();
+    let lastButtonInserted = null;
+    let originalLength = this.nodeHierarchy.length;
+    let stopNode = null;
+    if (originalLength > 0) {
+      stopNode = this.nodeHierarchy[originalLength - 1].node;
+    }
+    while (node && node != stopNode) {
+      if (node.tagName) {
+        let button = this.buildButton(node);
+        fragment.insertBefore(button, lastButtonInserted);
+        lastButtonInserted = button;
+        this.nodeHierarchy.splice(originalLength, 0, {node, button});
       }
-      while (toAppend && toAppend != stopNode) {
-        if (toAppend.tagName) {
-          let button = this.buildButton(toAppend);
-          fragment.insertBefore(button, lastButtonInserted);
-          lastButtonInserted = button;
-          this.nodeHierarchy.splice(originalLength, 0, {node: toAppend, button: button});
-        }
-        toAppend = toAppend.parentNode();
-      }
-      this.container.appendChild(fragment, this.container.firstChild);
+      node = node.parentNode();
+    }
+    this.container.appendChild(fragment, this.container.firstChild);
   },
 
   
@@ -559,15 +545,13 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  getInterestingFirstNode: function BC_getInterestingFirstNode(aNode)
-  {
+  getInterestingFirstNode: function(node) {
     let deferred = promise.defer();
 
-    var fallback = null;
+    let fallback = null;
 
-    var moreChildren = () => {
-      this.walker.children(aNode, {
+    let moreChildren = () => {
+      this.walker.children(node, {
         start: fallback,
         maxNodes: 10,
         whatToShow: Ci.nsIDOMNodeFilter.SHOW_ELEMENT
@@ -588,7 +572,8 @@ HTMLBreadcrumbs.prototype = {
           moreChildren();
         }
       }).then(null, this.selectionGuardEnd);
-    }
+    };
+
     moreChildren();
     return deferred.promise;
   },
@@ -598,10 +583,7 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-
-  getCommonAncestor: function BC_getCommonAncestor(aNode)
-  {
-    let node = aNode;
+  getCommonAncestor: function(node) {
     while (node) {
       let idx = this.indexOf(node);
       if (idx > -1) {
@@ -617,8 +599,8 @@ HTMLBreadcrumbs.prototype = {
 
 
 
-  ensureFirstChild: function BC_ensureFirstChild()
-  {
+
+  ensureFirstChild: function() {
     
     if (this.currentIndex == this.nodeHierarchy.length - 1) {
       let node = this.nodeHierarchy[this.currentIndex].node;
@@ -637,8 +619,7 @@ HTMLBreadcrumbs.prototype = {
   
 
 
-  scroll: function BC_scroll()
-  {
+  scroll: function() {
     
 
     let scrollbox = this.container;
@@ -652,8 +633,10 @@ HTMLBreadcrumbs.prototype = {
     }, ENSURE_SELECTION_VISIBLE_DELAY);
   },
 
-  updateSelectors: function BC_updateSelectors()
-  {
+  
+
+
+  updateSelectors: function() {
     if (this.isDestroyed) {
       return;
     }
@@ -662,7 +645,7 @@ HTMLBreadcrumbs.prototype = {
       let crumb = this.nodeHierarchy[i];
       let button = crumb.button;
 
-      while(button.hasChildNodes()) {
+      while (button.hasChildNodes()) {
         button.removeChild(button.firstChild);
       }
       button.appendChild(this.prettyPrintNodeAsXUL(crumb.node));
@@ -673,8 +656,8 @@ HTMLBreadcrumbs.prototype = {
   
 
 
-  update: function BC_update(reason)
-  {
+
+  update: function(reason) {
     if (this.isDestroyed) {
       return;
     }
@@ -744,6 +727,17 @@ HTMLBreadcrumbs.prototype = {
   }
 };
 
-XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
-  return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
-});
+
+
+
+function resolveNextTick(value) {
+  let deferred = promise.defer();
+  Services.tm.mainThread.dispatch(() => {
+    try {
+      deferred.resolve(value);
+    } catch(e) {
+      deferred.reject(e);
+    }
+  }, Ci.nsIThread.DISPATCH_NORMAL);
+  return deferred.promise;
+}
