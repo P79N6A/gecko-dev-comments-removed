@@ -380,7 +380,7 @@ inline bool RestyleTracker::AddPendingRestyle(Element* aElement,
   
   
   
-  if ((aRestyleHint & (eRestyle_Self | eRestyle_Subtree)) ||
+  if ((aRestyleHint & ~eRestyle_LaterSiblings) ||
       (aMinChangeHint & nsChangeHint_ReconstructFrame)) {
     for (const Element* cur = aElement; !cur->HasFlag(RootBit()); ) {
       nsIContent* parent = cur->GetFlattenedTreeParent();
