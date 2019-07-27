@@ -198,14 +198,6 @@ public:
 
   
   
-  
-  
-  
-  
-  void SetDuration(media::TimeUnit aDuration);
-
-  
-  
   bool OnDecodeTaskQueue() const;
   bool OnTaskQueue() const;
 
@@ -606,7 +598,7 @@ protected:
   
   int64_t GetMediaTime() const {
     AssertCurrentThreadInMonitor();
-    return mStartTime + mCurrentPosition;
+    return mCurrentPosition;
   }
 
   
@@ -954,12 +946,6 @@ public:
   
   
   TimeStamp mBufferingStart;
-
-  
-  
-  
-  
-  int64_t mStartTime;
 
   
   
