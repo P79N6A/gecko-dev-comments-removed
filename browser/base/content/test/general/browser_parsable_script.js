@@ -78,7 +78,7 @@ add_task(function* checkAllTheJS() {
       return;
     }
     
-    requestLongerTimeout(20);
+    requestLongerTimeout(30);
   }
 
   let uris;
