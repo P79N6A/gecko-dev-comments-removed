@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include "prlog.h"
 #include "prdtoa.h"
 #include "AudioStream.h"
@@ -16,6 +17,9 @@
 #include "mozilla/Telemetry.h"
 #include "soundtouch/SoundTouch.h"
 #include "Latency.h"
+#ifdef XP_MACOSX
+#include <sys/sysctl.h>
+#endif
 
 namespace mozilla {
 
@@ -545,6 +549,52 @@ AudioStream::Init(int32_t aNumChannels, int32_t aRate,
 
 
 
+
+void AudioStream::PanOutputIfNeeded(bool aMicrophoneActive)
+{
+#ifdef XP_MACOSX
+  cubeb_output_device* out;
+  int rv;
+  char name[128];
+  size_t length = sizeof(name);
+
+  rv = sysctlbyname("hw.model", name, &length, NULL, 0);
+  if (rv) {
+    return;
+  }
+
+  if (!strncmp(name, "MacBookPro", 10)) {
+    if (cubeb_stream_get_current_output_device(mCubebStream, &out) == CUBEB_OK) {
+      
+      if (!strcmp(out->name, "ispk")) {
+        
+        if (aMicrophoneActive) {
+          if (cubeb_stream_set_panning(mCubebStream, 1.0) != CUBEB_OK) {
+            NS_WARNING("Could not pan audio output to the right.");
+          }
+        } else {
+          if (cubeb_stream_set_panning(mCubebStream, 0.0) != CUBEB_OK) {
+            NS_WARNING("Could not pan audio output to the center.");
+          }
+        }
+      } else {
+        if (cubeb_stream_set_panning(mCubebStream, 0.0) != CUBEB_OK) {
+          NS_WARNING("Could not pan audio output to the center.");
+        }
+      }
+      cubeb_stream_output_device_destroy(mCubebStream, out);
+    }
+  }
+#endif
+}
+
+void AudioStream::DeviceChangedCallback() {
+  MonitorAutoLock mon(mMonitor);
+  PanOutputIfNeeded(mMicrophoneActive);
+}
+
+
+
 nsresult
 AudioStream::OpenCubeb(cubeb_stream_params &aParams,
                        LatencyRequest aLatencyRequest)
@@ -599,12 +649,15 @@ AudioStream::OpenCubeb(cubeb_stream_params &aParams,
     }
   }
 
+  cubeb_stream_register_device_changed_callback(mCubebStream,
+                                                AudioStream::DeviceChangedCallback_s);
+
   if (!mStartTime.IsNull()) {
-		TimeDuration timeDelta = TimeStamp::Now() - mStartTime;
+    TimeDuration timeDelta = TimeStamp::Now() - mStartTime;
     LOG(("AudioStream creation time %sfirst: %u ms", mIsFirst ? "" : "not ",
-         (uint32_t) timeDelta.ToMilliseconds()));
-		Telemetry::Accumulate(mIsFirst ? Telemetry::AUDIOSTREAM_FIRST_OPEN_MS :
-                          Telemetry::AUDIOSTREAM_LATER_OPEN_MS, timeDelta.ToMilliseconds());
+          (uint32_t) timeDelta.ToMilliseconds()));
+    Telemetry::Accumulate(mIsFirst ? Telemetry::AUDIOSTREAM_FIRST_OPEN_MS :
+        Telemetry::AUDIOSTREAM_LATER_OPEN_MS, timeDelta.ToMilliseconds());
   }
 
   return NS_OK;
@@ -755,6 +808,16 @@ AudioStream::SetVolume(double aVolume)
   if (cubeb_stream_set_volume(mCubebStream, aVolume * GetVolumeScale()) != CUBEB_OK) {
     NS_WARNING("Could not change volume on cubeb stream.");
   }
+}
+
+void
+AudioStream::SetMicrophoneActive(bool aActive)
+{
+  MonitorAutoLock mon(mMonitor);
+
+  mMicrophoneActive = aActive;
+
+  PanOutputIfNeeded(mMicrophoneActive);
 }
 
 void

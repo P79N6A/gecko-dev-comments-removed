@@ -227,6 +227,11 @@ public:
   void SetVolume(double aVolume);
 
   
+  
+  void SetMicrophoneActive(bool aActive);
+  void PanOutputIfNeeded(bool aMicrophoneActive);
+
+  
   void Drain();
 
   
@@ -304,8 +309,14 @@ private:
     static_cast<AudioStream*>(aThis)->StateCallback(aState);
   }
 
+
+  static void DeviceChangedCallback_s(void * aThis) {
+    static_cast<AudioStream*>(aThis)->DeviceChangedCallback();
+  }
+
   long DataCallback(void* aBuffer, long aFrames);
   void StateCallback(cubeb_state aState);
+  void DeviceChangedCallback();
 
   nsresult EnsureTimeStretcherInitializedUnlocked();
 
@@ -394,6 +405,8 @@ private:
   StreamState mState;
   bool mNeedsStart; 
   bool mIsFirst;
+  
+  bool mMicrophoneActive;
 
   
   static StaticMutex sMutex;
