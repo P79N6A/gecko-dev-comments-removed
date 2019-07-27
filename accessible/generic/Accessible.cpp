@@ -1582,7 +1582,8 @@ Accessible::ApplyARIAState(uint64_t* aState) const
   }
 
   
-  if (IsButton())
+  
+  if (IsButton() || IsMenuButton())
     aria::MapToState(aria::eARIAPressed, element, aState);
 
   if (!mRoleMapEntry)
