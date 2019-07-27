@@ -4577,7 +4577,9 @@ mozilla::BrowserTabsRemoteAutostart()
   gBrowserTabsRemoteAutostartInitialized = true;
   bool optInPref = Preferences::GetBool("browser.tabs.remote.autostart", false);
   bool trialPref = Preferences::GetBool("browser.tabs.remote.autostart.1", false);
+  bool prefEnabled = optInPref || trialPref;
 #if !defined(NIGHTLY_BUILD)
+  
   
   
   bool testPref = Preferences::GetBool("layers.offmainthreadcomposition.testing.enabled", false);
@@ -4585,8 +4587,8 @@ mozilla::BrowserTabsRemoteAutostart()
     gBrowserTabsRemoteAutostart = true;
   }
 #else
-  bool prefEnabled = optInPref || trialPref;
-
+  
+  
   bool disabledForA11y = Preferences::GetBool("browser.tabs.remote.autostart.disabled-because-using-a11y", false);
   
   bool disabledForIME = trialPref && KeyboardMayHaveIME();
