@@ -20,6 +20,7 @@
 #include "jsobjinlines.h"
 
 #include "vm/Interpreter-inl.h"
+#include "vm/NativeObject-inl.h"
 
 using namespace js;
 using namespace js::gc;
@@ -524,6 +525,11 @@ WeakMap_construct(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     RootedObject obj(cx, NewBuiltinClassInstance(cx, &WeakMapObject::class_));
     if (!obj)
+        return false;
+
+    
+    
+    if (!WarnIfNotConstructing(cx, args, "WeakMap"))
         return false;
 
     
