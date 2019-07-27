@@ -250,7 +250,7 @@ TestStunServer* TestStunServer::Create() {
   }
 
   NR_SOCKET fd;
-  int tries = 10;
+  int tries = 100;
   while (tries--) {
     
     r = server->TryOpenListenSocket(&addrs[0], instance_port);
