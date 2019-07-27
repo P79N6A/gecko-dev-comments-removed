@@ -92,7 +92,7 @@ LBlock::init(TempAllocator &alloc)
 
     
     if (!phis_.init(alloc, numLPhis))
-        return nullptr;
+        return false;
 
     
     
