@@ -16,12 +16,6 @@ let object = require("sdk/util/object");
 exports.emit = events.emit;
 
 
-function promiseDone(err) {
-  console.error(err);
-  return promise.reject(err);
-}
-
-
 
 
 
@@ -1337,7 +1331,7 @@ let frontProto = function(proto) {
         }
 
         return ret;
-      }).then(null, promiseDone);
+      });
     }
 
     
