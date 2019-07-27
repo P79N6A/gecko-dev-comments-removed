@@ -441,6 +441,7 @@ png_write_end(png_structrp png_ptr, png_inforp info_ptr)
 
    
    png_write_IEND(png_ptr);
+
    
 
 
@@ -488,7 +489,7 @@ png_create_write_struct,(png_const_charp user_png_ver, png_voidp error_ptr,
 {
 #ifndef PNG_USER_MEM_SUPPORTED
    png_structrp png_ptr = png_create_png_struct(user_png_ver, error_ptr,
-      error_fn, warn_fn, NULL, NULL, NULL);
+       error_fn, warn_fn, NULL, NULL, NULL);
 #else
    return png_create_write_struct_2(user_png_ver, error_ptr, error_fn,
        warn_fn, NULL, NULL, NULL);
@@ -501,7 +502,7 @@ png_create_write_struct_2,(png_const_charp user_png_ver, png_voidp error_ptr,
     png_malloc_ptr malloc_fn, png_free_ptr free_fn),PNG_ALLOCATED)
 {
    png_structrp png_ptr = png_create_png_struct(user_png_ver, error_ptr,
-      error_fn, warn_fn, mem_ptr, malloc_fn, free_fn);
+       error_fn, warn_fn, mem_ptr, malloc_fn, free_fn);
 #endif
    if (png_ptr != NULL)
    {
@@ -534,10 +535,10 @@ png_create_write_struct_2,(png_const_charp user_png_ver, png_voidp error_ptr,
 
 
 #ifdef PNG_BENIGN_WRITE_ERRORS_SUPPORTED
-      png_ptr->flags |= PNG_FLAG_BENIGN_ERRORS_WARN;
       
 
 
+      png_ptr->flags |= PNG_FLAG_BENIGN_ERRORS_WARN;
 #endif
 
       
@@ -835,7 +836,7 @@ png_write_row(png_structrp png_ptr, png_const_bytep row)
    {
       png_do_write_interlace(&row_info, png_ptr->row_buf + 1, png_ptr->pass);
       
-      if (!(row_info.width))
+      if (row_info.width == 0)
       {
          png_write_finish_row(png_ptr);
          return;
@@ -2186,7 +2187,7 @@ png_image_write_main(png_voidp argument)
 
 
 
-   if (write_16bit)
+   if (write_16bit != 0)
    {
       
       png_set_gAMA_fixed(png_ptr, info_ptr, PNG_GAMMA_LINEAR);
@@ -2218,7 +2219,7 @@ png_image_write_main(png_voidp argument)
 
 
 
-   if (write_16bit)
+   if (write_16bit != 0)
    {
       PNG_CONST png_uint_16 le = 0x0001;
 
@@ -2259,7 +2260,7 @@ png_image_write_main(png_voidp argument)
       png_const_bytep row = png_voidcast(png_const_bytep, display->buffer);
       ptrdiff_t row_bytes = display->row_stride;
 
-      if (linear)
+      if (linear != 0)
          row_bytes *= (sizeof (png_uint_16));
 
       if (row_bytes < 0)
@@ -2292,7 +2293,7 @@ png_image_write_main(png_voidp argument)
       int result;
 
       display->local_row = row;
-      if (write_16bit)
+      if (write_16bit != 0)
          result = png_safe_execute(image, png_write_image_16bit, display);
       else
          result = png_safe_execute(image, png_write_image_8bit, display);
@@ -2301,7 +2302,7 @@ png_image_write_main(png_voidp argument)
       png_free(png_ptr, row);
 
       
-      if (!result)
+      if (result == 0)
          return 0;
    }
 

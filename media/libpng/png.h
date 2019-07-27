@@ -391,6 +391,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -404,9 +412,11 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.6.10"
+
+
+#define PNG_LIBPNG_VER_STRING "1.6.13"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.6.10 - March 6, 2014\n"
+     " libpng version 1.6.13 - August 21, 2014\n"
 
 #define PNG_LIBPNG_VER_SONUM   16
 #define PNG_LIBPNG_VER_DLLNUM  16
@@ -414,7 +424,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   6
-#define PNG_LIBPNG_VER_RELEASE 10
+#define PNG_LIBPNG_VER_RELEASE 13
 
 
 
@@ -445,11 +455,17 @@
 
 
 
-#define PNG_LIBPNG_VER 10610 /* 1.6.10 */
+#define PNG_LIBPNG_VER 10613 /* 1.6.13 */
 
 
 
 
+#ifndef PNGLCONF_H
+    
+
+
+#   include "pnglibconf.h"
+#endif
 
 #define PNG_APNG_SUPPORTED
 #define PNG_READ_APNG_SUPPORTED
@@ -457,7 +473,6 @@
 
 #ifndef PNG_VERSION_INFO_ONLY
    
-#  include "mozpngconf.h"
 #  include "pngconf.h"
 #endif
 
@@ -560,7 +575,7 @@ extern "C" {
 
 
 
-typedef char* png_libpng_version_1_6_10;
+typedef char* png_libpng_version_1_6_13;
 
 
 
@@ -1867,7 +1882,6 @@ PNG_EXPORT(219, png_size_t, png_process_data_pause, (png_structrp, int save));
 
 PNG_EXPORT(220, png_uint_32, png_process_data_skip, (png_structrp));
 
-#ifdef PNG_READ_INTERLACING_SUPPORTED
 
 
 
@@ -1875,7 +1889,6 @@ PNG_EXPORT(220, png_uint_32, png_process_data_skip, (png_structrp));
 
 PNG_EXPORT(93, void, png_progressive_combine_row, (png_const_structrp png_ptr,
     png_bytep old_row, png_const_bytep new_row));
-#endif 
 #endif 
 
 PNG_EXPORTA(94, png_voidp, png_malloc, (png_const_structrp png_ptr,
@@ -3243,7 +3256,8 @@ PNG_EXPORT(243, int, png_get_palette_max, (png_const_structp png_ptr,
 #  define PNG_ARM_NEON   0 /* HARDWARE: ARM Neon SIMD instructions supported */
 #endif
 #define PNG_MAXIMUM_INFLATE_WINDOW 2 /* SOFTWARE: force maximum window */
-#define PNG_OPTION_NEXT  4 /* Next option - numbers must be even */
+#define PNG_SKIP_sRGB_CHECK_PROFILE 4 /* SOFTWARE: Check ICC profile for sRGB */
+#define PNG_OPTION_NEXT  6 /* Next option - numbers must be even */
 
 
 #define PNG_OPTION_UNSET   0 /* Unset - defaults to off */

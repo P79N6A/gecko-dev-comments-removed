@@ -361,7 +361,7 @@
 
 
 
-#  if defined(__clang__)
+#  if defined(__clang__) && defined(__has_attribute)
      
 #    if !defined(PNG_USE_RESULT) && __has_attribute(__warn_unused_result__)
 #      define PNG_USE_RESULT __attribute__((__warn_unused_result__))

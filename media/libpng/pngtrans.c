@@ -327,9 +327,16 @@ png_do_swap(png_row_infop row_info, png_bytep row)
 
       for (i = 0; i < istop; i++, rp += 2)
       {
+#ifdef PNG_BUILTIN_BSWAP16_SUPPORTED
+         
+
+
+         *(png_uint_16*)rp = __builtin_bswap16(*(png_uint_16*)rp);
+#else
          png_byte t = *rp;
          *rp = *(rp + 1);
          *(rp + 1) = t;
+#endif
       }
    }
 }
@@ -503,7 +510,7 @@ png_do_strip_channel(png_row_infop row_info, png_bytep row, int at_start)
    {
       if (row_info->bit_depth == 8)
       {
-         if (at_start) 
+         if (at_start != 0) 
             ++sp;
          else          
             sp += 2, ++dp;
@@ -517,7 +524,7 @@ png_do_strip_channel(png_row_infop row_info, png_bytep row, int at_start)
 
       else if (row_info->bit_depth == 16)
       {
-         if (at_start) 
+         if (at_start != 0) 
             sp += 2;
          else          
             sp += 4, dp += 2;
@@ -543,7 +550,7 @@ png_do_strip_channel(png_row_infop row_info, png_bytep row, int at_start)
    {
       if (row_info->bit_depth == 8)
       {
-         if (at_start) 
+         if (at_start != 0) 
             ++sp;
          else          
             sp += 4, dp += 3;
@@ -557,7 +564,7 @@ png_do_strip_channel(png_row_infop row_info, png_bytep row, int at_start)
 
       else if (row_info->bit_depth == 16)
       {
-         if (at_start) 
+         if (at_start != 0) 
             sp += 2;
          else          
             sp += 8, dp += 6;

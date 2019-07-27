@@ -195,7 +195,7 @@ png_format_number(png_const_charp start, png_charp end, int format,
 
 
 
-         if (output)
+         if (output != 0)
             *--end = '.';
          else if (number == 0) 
             *--end = '0';
@@ -415,6 +415,9 @@ png_app_error(png_const_structrp png_ptr, png_const_charp error_message)
 }
 #endif 
 
+#define PNG_MAX_ERROR_TEXT 196 /* Currently limited by profile_error in png.c */
+#if defined(PNG_WARNINGS_SUPPORTED) || \
+   (defined(PNG_READ_SUPPORTED) && defined(PNG_ERROR_TEXT_SUPPORTED))
 
 
 
@@ -427,9 +430,6 @@ static PNG_CONST char png_digit[16] = {
    'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-#define PNG_MAX_ERROR_TEXT 196 /* Currently limited be profile_error in png.c */
-#if defined(PNG_WARNINGS_SUPPORTED) || \
-   (defined(PNG_READ_SUPPORTED) && defined(PNG_ERROR_TEXT_SUPPORTED))
 static void 
 png_format_buffer(png_const_structrp png_ptr, png_charp buffer, png_const_charp
     error_message)
@@ -759,6 +759,9 @@ png_longjmp,(png_const_structrp png_ptr, int val),PNG_NORETURN)
 #ifdef PNG_SETJMP_SUPPORTED
    if (png_ptr && png_ptr->longjmp_fn && png_ptr->jmp_buf_ptr)
       png_ptr->longjmp_fn(*png_ptr->jmp_buf_ptr, val);
+#else
+   PNG_UNUSED(png_ptr)
+   PNG_UNUSED(val)
 #endif
 
    
@@ -939,7 +942,7 @@ png_safe_execute(png_imagep image_in, int (*function)(png_voidp), png_voidp arg)
    saved_error_buf = image->opaque->error_buf;
    result = setjmp(safe_jmpbuf) == 0;
 
-   if (result)
+   if (result != 0)
    {
 
       image->opaque->error_buf = safe_jmpbuf;
@@ -949,7 +952,7 @@ png_safe_execute(png_imagep image_in, int (*function)(png_voidp), png_voidp arg)
    image->opaque->error_buf = saved_error_buf;
 
    
-   if (!result)
+   if (result == 0)
       png_image_free(image);
 
    return result;

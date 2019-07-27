@@ -49,7 +49,7 @@ png_process_data_pause(png_structrp png_ptr, int save)
       
 
 
-      if (save)
+      if (save != 0)
          png_push_save_buffer(png_ptr);
       else
       {
@@ -1176,8 +1176,8 @@ png_push_process_row(png_structrp png_ptr)
          png_do_read_interlace(&row_info, png_ptr->row_buf + 1, png_ptr->pass,
             png_ptr->transformations);
 
-    switch (png_ptr->pass)
-    {
+      switch (png_ptr->pass)
+      {
          case 0:
          {
             int i;
@@ -1344,7 +1344,6 @@ png_push_process_row(png_structrp png_ptr)
       }
    }
    else
-#endif
    {
       png_push_have_row(png_ptr, png_ptr->row_buf + 1);
       png_read_push_finish_row(png_ptr);
@@ -1354,7 +1353,6 @@ png_push_process_row(png_structrp png_ptr)
 void 
 png_read_push_finish_row(png_structrp png_ptr)
 {
-#ifdef PNG_READ_INTERLACING_SUPPORTED
    
 
    
@@ -1379,7 +1377,6 @@ png_read_push_finish_row(png_structrp png_ptr)
    if (png_ptr->row_number < png_ptr->num_rows)
       return;
 
-#ifdef PNG_READ_INTERLACING_SUPPORTED
    if (png_ptr->interlaced)
    {
       png_ptr->row_number = 0;
@@ -1414,7 +1411,6 @@ png_read_push_finish_row(png_structrp png_ptr)
 
       } while (png_ptr->iwidth == 0 || png_ptr->num_rows == 0);
    }
-#endif 
 }
 
 void 
@@ -1439,7 +1435,6 @@ png_push_have_row(png_structrp png_ptr, png_bytep row)
          (int)png_ptr->pass);
 }
 
-#ifdef PNG_READ_INTERLACING_SUPPORTED
 void PNGAPI
 png_progressive_combine_row(png_const_structrp png_ptr, png_bytep old_row,
     png_const_bytep new_row)
@@ -1454,7 +1449,6 @@ png_progressive_combine_row(png_const_structrp png_ptr, png_bytep old_row,
    if (new_row != NULL)
       png_combine_row(png_ptr, old_row, 1);
 }
-#endif 
 
 void PNGAPI
 png_set_progressive_read_fn(png_structrp png_ptr, png_voidp progressive_ptr,

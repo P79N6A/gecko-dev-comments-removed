@@ -265,7 +265,7 @@ png_crc_error(png_structrp png_ptr)
    
    png_read_data(png_ptr, crc_bytes, 4);
 
-   if (need_crc)
+   if (need_crc != 0)
    {
       crc = png_get_uint_32(crc_bytes);
       return ((int)(crc != png_ptr->crc));
@@ -311,7 +311,7 @@ png_read_buffer(png_structrp png_ptr, png_alloc_size_t new_size, int warn)
 
       else if (warn < 2) 
       {
-         if (warn)
+         if (warn != 0)
              png_chunk_warning(png_ptr, "insufficient memory to read chunk");
 
          else
@@ -637,7 +637,7 @@ png_decompress_chunk(png_structrp png_ptr,
                   {
                      if (new_size == *newlength)
                      {
-                        if (terminate)
+                        if (terminate != 0)
                            text[prefix_size + *newlength] = 0;
 
                         if (prefix_size > 0)
@@ -1563,7 +1563,7 @@ png_handle_iCCP(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
       errmsg = "too many profiles";
 
    
-   if (!finished)
+   if (finished == 0)
       png_crc_finish(png_ptr, length);
 
    png_ptr->colorspace.flags |= PNG_COLORSPACE_INVALID;
@@ -2677,7 +2677,7 @@ png_handle_iTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
          buffer[uncompressed_length+prefix_length] = 0;
 
-         if (compressed)
+         if (compressed != 0)
             text.compression = PNG_ITXT_COMPRESSION_NONE;
 
          else
@@ -3331,7 +3331,7 @@ png_combine_row(png_const_structrp png_ptr, png_bytep dp, int display)
 #        define S_MASKS(d,s) { S_MASK(0,d,s), S_MASK(1,d,s), S_MASK(2,d,s),\
             S_MASK(3,d,s), S_MASK(4,d,s), S_MASK(5,d,s) }
 
-#        define B_MASKS(d,s) { B_MASK(1,d,s), S_MASK(3,d,s), S_MASK(5,d,s) }
+#        define B_MASKS(d,s) { B_MASK(1,d,s), B_MASK(3,d,s), B_MASK(5,d,s) }
 
 #        define DEPTH_INDEX(d) ((d)==1?0:((d)==2?1:2))
 
@@ -3442,7 +3442,7 @@ png_combine_row(png_const_structrp png_ptr, png_bytep dp, int display)
          }
 
          
-         if (display)
+         if (display != 0)
          {
             
 
@@ -3642,7 +3642,7 @@ png_combine_row(png_const_structrp png_ptr, png_bytep dp, int display)
       
    }
    else
-#endif
+#endif 
 
    
 
@@ -4328,7 +4328,6 @@ png_read_finish_IDAT(png_structrp png_ptr)
 void 
 png_read_finish_row(png_structrp png_ptr)
 {
-#ifdef PNG_READ_INTERLACING_SUPPORTED
    
 
    
@@ -4342,14 +4341,12 @@ png_read_finish_row(png_structrp png_ptr)
 
    
    static PNG_CONST png_byte png_pass_yinc[7] = {8, 8, 8, 4, 4, 2, 2};
-#endif 
 
    png_debug(1, "in png_read_finish_row");
    png_ptr->row_number++;
    if (png_ptr->row_number < png_ptr->num_rows)
       return;
 
-#ifdef PNG_READ_INTERLACING_SUPPORTED
    if (png_ptr->interlaced)
    {
       png_ptr->row_number = 0;
@@ -4387,7 +4384,6 @@ png_read_finish_row(png_structrp png_ptr)
       if (png_ptr->pass < 7)
          return;
    }
-#endif 
 
    
    png_read_finish_IDAT(png_ptr);
@@ -4397,7 +4393,6 @@ png_read_finish_row(png_structrp png_ptr)
 void 
 png_read_start_row(png_structrp png_ptr)
 {
-#ifdef PNG_READ_INTERLACING_SUPPORTED
    
 
    
@@ -4411,7 +4406,6 @@ png_read_start_row(png_structrp png_ptr)
 
    
    static PNG_CONST png_byte png_pass_yinc[7] = {8, 8, 8, 4, 4, 2, 2};
-#endif
 
    int max_pixel_depth;
    png_size_t row_bytes;
@@ -4421,7 +4415,6 @@ png_read_start_row(png_structrp png_ptr)
 #ifdef PNG_READ_TRANSFORMS_SUPPORTED
    png_init_read_transformations(png_ptr);
 #endif
-#ifdef PNG_READ_INTERLACING_SUPPORTED
    if (png_ptr->interlaced)
    {
       if (!(png_ptr->transformations & PNG_INTERLACE))
@@ -4438,7 +4431,6 @@ png_read_start_row(png_structrp png_ptr)
    }
 
    else
-#endif 
    {
       png_ptr->num_rows = png_ptr->height;
       png_ptr->iwidth = png_ptr->width;
