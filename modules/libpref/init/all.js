@@ -171,7 +171,7 @@ pref("dom.undo_manager.enabled", false);
 
 
 
-pref("dom.url.encode_decode_hash", false);
+pref("dom.url.encode_decode_hash", true);
 
 
 
