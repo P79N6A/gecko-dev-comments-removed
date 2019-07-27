@@ -1169,11 +1169,17 @@ JSStructuredCloneWriter::transferOwnership()
             
             Rooted<ArrayBufferObject *> arrayBuffer(context(), &CheckedUnwrap(obj)->as<ArrayBufferObject>());
             size_t nbytes = arrayBuffer->byteLength();
-            bool hasStealableContents = arrayBuffer->hasStealableContents();
+
+            
+            
+            bool hasStealableContents = arrayBuffer->hasStealableContents() &&
+                                        (arrayBuffer->isMapped() || arrayBuffer->hasMallocedContents());
+
             ArrayBufferObject::BufferContents bufContents =
                 ArrayBufferObject::stealContents(context(), arrayBuffer, hasStealableContents);
             if (!bufContents)
                 return false; 
+
             content = bufContents.data();
             tag = SCTAG_TRANSFER_MAP_ARRAY_BUFFER;
             if (bufContents.kind() == ArrayBufferObject::MAPPED)

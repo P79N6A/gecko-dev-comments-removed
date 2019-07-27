@@ -207,15 +207,16 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
 
         
         
-        if (isAsmJS())
-            return false;
-
-        
-        
         
         
         
         return !isNeutered();
+    }
+
+    
+    
+    bool hasMallocedContents() const {
+        return (ownsData() && isPlain()) || isAsmJSMalloced();
     }
 
     static void addSizeOfExcludingThis(JSObject *obj, mozilla::MallocSizeOf mallocSizeOf,
