@@ -266,7 +266,7 @@ class MOZ_STACK_CLASS TokenStream
     const CharBuffer &getTokenbuf() const { return tokenbuf; }
     const char *getFilename() const { return filename; }
     unsigned getLineno() const { return lineno; }
-    unsigned getColumn() const { return userbuf.addressOfNextRawChar() - linebase - 1; }
+    unsigned getColumn() const { return userbuf.offset() - linebase - 1; }
     bool getMutedErrors() const { return mutedErrors; }
     JSVersion versionNumber() const { return VersionNumber(options().version); }
     JSVersion versionWithFlags() const { return options().version; }
@@ -517,8 +517,8 @@ class MOZ_STACK_CLASS TokenStream
         const char16_t *buf;
         Flags flags;
         unsigned lineno;
-        const char16_t *linebase;
-        const char16_t *prevLinebase;
+        size_t linebase;
+        size_t prevLinebase;
         Token currentToken;
         unsigned lookahead;
         Token lookaheadTokens[maxLookahead];
@@ -745,7 +745,7 @@ class MOZ_STACK_CLASS TokenStream
 
         
         
-        const char16_t *findEOLMax(const char16_t *p, size_t max);
+        size_t findEOLMax(size_t startOffset, size_t max);
 
       private:
         const char16_t *base_;          
@@ -810,8 +810,8 @@ class MOZ_STACK_CLASS TokenStream
     unsigned            lookahead;          
     unsigned            lineno;             
     Flags               flags;              
-    const char16_t      *linebase;          
-    const char16_t      *prevLinebase;      
+    size_t              linebase;           
+    size_t              prevLinebase;       
     TokenBuf            userbuf;            
     const char          *filename;          
     mozilla::UniquePtr<char16_t[], JS::FreePolicy> displayURL_; 

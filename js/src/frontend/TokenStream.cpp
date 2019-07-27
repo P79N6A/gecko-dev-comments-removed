@@ -283,7 +283,6 @@ TokenStream::SourceCoords::lineNumAndColumnIndex(uint32_t offset, uint32_t *line
 #pragma warning(disable:4351)
 #endif
 
-
 TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &options,
                          const char16_t *base, size_t length, StrictModeGetter *smg)
   : srcCoords(cx, options.lineno),
@@ -293,8 +292,8 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     lookahead(),
     lineno(options.lineno),
     flags(),
-    linebase(base - options.column),
-    prevLinebase(nullptr),
+    linebase(0),
+    prevLinebase(size_t(-1)),
     userbuf(cx, base, length, options.column),
     filename(options.filename()),
     displayURL_(nullptr),
@@ -304,11 +303,6 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     mutedErrors(options.mutedErrors()),
     strictModeGetter(smg)
 {
-    
-    
-    
-    
-
     
     
     
@@ -364,9 +358,9 @@ MOZ_ALWAYS_INLINE void
 TokenStream::updateLineInfoForEOL()
 {
     prevLinebase = linebase;
-    linebase = userbuf.addressOfNextRawChar();
+    linebase = userbuf.offset();
     lineno++;
-    srcCoords.add(lineno, userbuf.offset());
+    srcCoords.add(lineno, linebase);
 }
 
 MOZ_ALWAYS_INLINE void
@@ -451,9 +445,9 @@ TokenStream::ungetChar(int32_t c)
         if (!userbuf.atStart())
             userbuf.matchRawCharBackwards('\r');
 
-        MOZ_ASSERT(prevLinebase);    
+        MOZ_ASSERT(prevLinebase != size_t(-1));    
         linebase = prevLinebase;
-        prevLinebase = nullptr;
+        prevLinebase = size_t(-1);
         lineno--;
     } else {
         MOZ_ASSERT(userbuf.peekRawChar() == c);
@@ -494,10 +488,10 @@ TokenStream::peekChars(int n, char16_t *cp)
     return i == n;
 }
 
-const char16_t *
-TokenStream::TokenBuf::findEOLMax(const char16_t *p, size_t max)
+size_t
+TokenStream::TokenBuf::findEOLMax(size_t start, size_t max)
 {
-    MOZ_ASSERT(base_ <= p && p <= limit_);
+    const char16_t *p = rawCharPtrAt(start);
 
     size_t n = 0;
     while (true) {
@@ -505,11 +499,11 @@ TokenStream::TokenBuf::findEOLMax(const char16_t *p, size_t max)
             break;
         if (n >= max)
             break;
+        n++;
         if (TokenBuf::isRawEOLChar(*p++))
             break;
-        n++;
     }
-    return p;
+    return start + n;
 }
 
 void
@@ -675,8 +669,6 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     
     
     if (offset != NoOffset && err.report.lineno == lineno && !callerFilename) {
-        const char16_t *tokenStart = userbuf.rawCharPtrAt(offset);
-
         
         
         
@@ -685,19 +677,21 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
         static const size_t windowRadius = 60;
 
         
-        const char16_t *windowBase = (linebase + windowRadius < tokenStart)
-                                 ? tokenStart - windowRadius
-                                 : linebase;
-        uint32_t windowOffset = tokenStart - windowBase;
+        
+        size_t windowStart = (offset - linebase > windowRadius) ?
+                             offset - windowRadius :
+                             linebase;
 
         
-        const char16_t *windowLimit = userbuf.findEOLMax(tokenStart, windowRadius);
-        size_t windowLength = windowLimit - windowBase;
+        
+        size_t windowEnd = userbuf.findEOLMax(offset, windowRadius);
+        size_t windowLength = windowEnd - windowStart;
         MOZ_ASSERT(windowLength <= windowRadius * 2);
 
         
         StringBuffer windowBuf(cx);
-        if (!windowBuf.append(windowBase, windowLength) || !windowBuf.append((char16_t)0))
+        if (!windowBuf.append(userbuf.rawCharPtrAt(windowStart), windowLength) ||
+            !windowBuf.append((char16_t)0))
             return false;
 
         
@@ -711,8 +705,8 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
         if (!err.report.linebuf)
             return false;
 
-        err.report.tokenptr = err.report.linebuf + windowOffset;
-        err.report.uctokenptr = err.report.uclinebuf + windowOffset;
+        err.report.tokenptr = err.report.linebuf + (offset - windowStart);
+        err.report.uctokenptr = err.report.uclinebuf + (offset - windowStart);
     }
 
     if (cx->isJSContext())
