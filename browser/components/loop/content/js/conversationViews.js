@@ -14,6 +14,7 @@ loop.conversationViews = (function(mozL10n) {
   var sharedActions = loop.shared.actions;
   var sharedUtils = loop.shared.utils;
   var sharedViews = loop.shared.views;
+  var sharedMixins = loop.shared.mixins;
 
   
   
@@ -133,6 +134,8 @@ loop.conversationViews = (function(mozL10n) {
 
 
   var PendingConversationView = React.createClass({displayName: 'PendingConversationView',
+    mixins: [sharedMixins.AudioMixin],
+
     propTypes: {
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       callState: React.PropTypes.string,
@@ -144,6 +147,10 @@ loop.conversationViews = (function(mozL10n) {
       return {
         enableCancelButton: false
       };
+    },
+
+    componentDidMount: function() {
+      this.play("ringtone", {loop: true});
     },
 
     cancelCall: function() {
@@ -186,7 +193,7 @@ loop.conversationViews = (function(mozL10n) {
 
 
   var CallFailedView = React.createClass({displayName: 'CallFailedView',
-    mixins: [Backbone.Events],
+    mixins: [Backbone.Events, sharedMixins.AudioMixin],
 
     propTypes: {
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
@@ -205,6 +212,7 @@ loop.conversationViews = (function(mozL10n) {
     },
 
     componentDidMount: function() {
+      this.play("failure");
       this.listenTo(this.props.store, "change:emailLink",
                     this._onEmailLinkReceived);
       this.listenTo(this.props.store, "error:emailLink",

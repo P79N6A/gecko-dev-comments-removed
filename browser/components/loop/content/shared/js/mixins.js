@@ -141,6 +141,7 @@ loop.shared.mixins = (function() {
 
   var AudioMixin = {
     audio: null,
+    _audioRequest: null,
 
     _isLoopDesktop: function() {
       return typeof rootObject.navigator.mozLoop === "object";
@@ -151,25 +152,60 @@ loop.shared.mixins = (function() {
 
 
 
-    play: function(filename, options) {
-      if (this._isLoopDesktop()) {
-        
-        return;
-      }
-
+    play: function(name, options) {
       options = options || {};
       options.loop = options.loop || false;
 
       this._ensureAudioStopped();
-      this.audio = new Audio('shared/sounds/' + filename + ".ogg");
-      this.audio.loop = options.loop;
-      this.audio.play();
+      this._getAudioBlob(name, function(error, blob) {
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        var url = URL.createObjectURL(blob);
+        this.audio = new Audio(url);
+        this.audio.loop = options.loop;
+        this.audio.play();
+      }.bind(this));
+    },
+
+    _getAudioBlob: function(name, callback) {
+      if (this._isLoopDesktop()) {
+        rootObject.navigator.mozLoop.getAudioBlob(name, callback);
+        return;
+      }
+
+      var url = "shared/sounds/" + name + ".ogg";
+      this._audioRequest = new XMLHttpRequest();
+      this._audioRequest.open("GET", url, true);
+      this._audioRequest.responseType = "arraybuffer";
+      this._audioRequest.onload = function() {
+        var request = this._audioRequest;
+        var error;
+        if (request.status < 200 || request.status >= 300) {
+          error = new Error(request.status + " " + request.statusText);
+          callback(error);
+          return;
+        }
+
+        var type = request.getResponseHeader("Content-Type");
+        var blob = new Blob([request.response], {type: type});
+        callback(null, blob);
+      }.bind(this);
+
+      this._audioRequest.send(null);
     },
 
     
 
 
     _ensureAudioStopped: function() {
+      if (this._audioRequest) {
+        this._audioRequest.abort();
+        delete this._audioRequest;
+      }
+
       if (this.audio) {
         this.audio.pause();
         this.audio.removeAttribute("src");
