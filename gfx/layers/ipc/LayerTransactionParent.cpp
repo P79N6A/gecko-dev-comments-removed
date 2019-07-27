@@ -686,6 +686,12 @@ LayerTransactionParent::RecvGetAnimationTransform(PLayerParent* aParent,
   
   
   
+  mShadowLayersManager->ApplyAsyncProperties(this);
+
+  
+  
+  
+  
   
   
   if (!layer->AsLayerComposite()->GetShadowTransformSetByAnimation()) {
