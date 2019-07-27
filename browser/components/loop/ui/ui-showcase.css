@@ -1,11 +1,11 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 body {
-  /* Override the hidden in common.css. Very important otherwise you can't
-   * scroll the showcase.
-   */
+  
+
+
   overflow: visible;
 }
 
@@ -54,7 +54,7 @@ body {
 }
 
 .showcase > section .comp {
-  margin: 0 auto; /* width is usually set programmatically */
+  margin: 0 auto; 
 }
 
 .showcase > section .comp.dashed {
@@ -102,13 +102,13 @@ body {
 }
 
 .override-position * {
-  /* Specific for toolbar component atm
-   * disables position absolute so that the parent div can
-   * compute the dimensions and prevent collapse */
+  
+
+
   position: relative !important;
 }
 
-/* Just for the showcase to look sane */
+
 .showcase .fx-embedded .local-stream {
   position: absolute;
 }
@@ -119,11 +119,11 @@ body {
 
 .call-action-group .btn-group-chevron,
 .call-action-group .btn-group {
-  /* Prevent box overflow due to long string */
+  
   max-width: 120px;
 }
 
-/* SVG icons showcase */
+
 
 .svg-icons h3 {
   clear: left;
@@ -148,10 +148,6 @@ body {
 
 .svg-icon {
   display: inline-block;
-  width:  16px;
-  height: 16px;
   margin-left: .5rem;
-  background-repeat: no-repeat;
-  background-size: 16px 16px;
-  background-position: center;
+  border: 0;
 }

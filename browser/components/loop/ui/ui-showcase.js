@@ -1,44 +1,44 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global Frame:false uncaughtError:true */
+
+
+
+
 
 (function() {
   "use strict";
 
-  // Stop the default init functions running to avoid conflicts.
+  
   document.removeEventListener("DOMContentLoaded", loop.panel.init);
   document.removeEventListener("DOMContentLoaded", loop.conversation.init);
 
-  // 1. Desktop components
-  // 1.1 Panel
+  
+  
   var PanelView = loop.panel.PanelView;
   var SignInRequestView = loop.panel.SignInRequestView;
-  // 1.2. Conversation Window
+  
   var AcceptCallView = loop.conversationViews.AcceptCallView;
   var DesktopPendingConversationView = loop.conversationViews.PendingConversationView;
   var OngoingConversationView = loop.conversationViews.OngoingConversationView;
   var CallFailedView = loop.conversationViews.CallFailedView;
   var DesktopRoomConversationView = loop.roomViews.DesktopRoomConversationView;
 
-  // 2. Standalone webapp
+  
   var HomeView = loop.webapp.HomeView;
   var UnsupportedBrowserView  = loop.webapp.UnsupportedBrowserView;
   var UnsupportedDeviceView   = loop.webapp.UnsupportedDeviceView;
   var StandaloneRoomView      = loop.standaloneRoomViews.StandaloneRoomView;
 
-  // 3. Shared components
+  
   var ConversationToolbar = loop.shared.views.ConversationToolbar;
   var FeedbackView = loop.shared.views.FeedbackView;
   var Checkbox = loop.shared.views.Checkbox;
 
-  // Store constants
+  
   var ROOM_STATES = loop.store.ROOM_STATES;
   var FEEDBACK_STATES = loop.store.FEEDBACK_STATES;
   var CALL_TYPES = loop.shared.utils.CALL_TYPES;
 
-  // Local helpers
+  
   function returnTrue() {
     return true;
   }
@@ -49,8 +49,8 @@
 
   function noop(){}
 
-  // We save the visibility change listeners so that we can fake an event
-  // to the panel once we've loaded all the views.
+  
+  
   var visibilityListeners = [];
   var rootObject = window;
 
@@ -73,8 +73,8 @@
 
   var dispatcher = new loop.Dispatcher();
 
-  // Feedback API client configured to send data to the stage input server,
-  // which is available at https://input.allizom.org
+  
+  
   var stageFeedbackApiClient = new loop.FeedbackAPIClient(
     "https://input.allizom.org/api/v1/feedback", {
       product: "Loop"
@@ -89,13 +89,13 @@
     }
   }, Backbone.Events);
 
-  /**
-   * Every view that uses an activeRoomStore needs its own; if they shared
-   * an active store, they'd interfere with each other.
-   *
-   * @param options
-   * @returns {loop.store.ActiveRoomStore}
-   */
+  
+
+
+
+
+
+
   function makeActiveRoomStore(options) {
     var dispatcher = new loop.Dispatcher();
 
@@ -123,15 +123,15 @@
 
     store.forcedUpdate = function forcedUpdate(contentWindow) {
 
-      // Since this is called by setTimeout, we don't want to lose any
-      // exceptions if there's a problem and we need to debug, so...
+      
+      
       try {
-        // the dimensions here are taken from the poster images that we're
-        // using, since they give the <video> elements their initial intrinsic
-        // size.  This ensures that the right aspect ratios are calculated.
-        // These are forced to 640x480, because it makes it visually easy to
-        // validate that the showcase looks like the real app on a chine
-        // (eg MacBook Pro) where that is the default camera resolution.
+        
+        
+        
+        
+        
+        
         var newStoreState = {
           localVideoDimensions: {
             camera: {height: 480, orientation: 0, width: 640}
@@ -148,11 +148,11 @@
         };
 
         if (options.receivingScreenShare) {
-          // Note that the image we're using had to be scaled a bit, and
-          // it still ended up a bit narrower than the live thing that
-          // WebRTC sends; presumably a different scaling algorithm.
-          // For showcase purposes, this shouldn't matter much, as the sizes
-          // of things being shared will be fairly arbitrary.
+          
+          
+          
+          
+          
           newStoreState.remoteVideoDimensions.screen =
           {height: 456, orientation: 0, width: 641};
         }
@@ -250,7 +250,7 @@
   });
 
   textChatStore.setStoreState({
-    // XXX Disabled until we start sorting out some of the layouts.
+    
     textChatEnabled: false
   });
 
@@ -260,7 +260,7 @@
     textChatStore: textChatStore
   });
 
-  // Local mocks
+  
 
   var mockMozLoopRooms = _.extend({}, navigator.mozLoop);
 
@@ -300,13 +300,12 @@
 
   var SVGIcon = React.createClass({displayName: "SVGIcon",
     render: function() {
-      var sizeUnit = this.props.size.split("x")[0] + "px";
+      var sizeUnit = this.props.size.split("x");
       return (
-        React.createElement("span", {className: "svg-icon", style: {
-          "backgroundImage": "url(../content/shared/img/icons-" + this.props.size +
-                              ".svg#" + this.props.shapeId + ")",
-          "backgroundSize": sizeUnit + " " + sizeUnit
-        }})
+        React.createElement("img", {className: "svg-icon", 
+             src: "../content/shared/img/icons-" + this.props.size + ".svg#" + this.props.shapeId, 
+             width: sizeUnit[0], 
+             height: sizeUnit[1]})
       );
     }
   });
@@ -328,7 +327,7 @@
       ],
       "16x16": ["add", "add-hover", "add-active", "audio", "audio-hover", "audio-active",
         "block", "block-red", "block-hover", "block-active", "contacts", "contacts-hover",
-        "contacts-active", "copy", "checkmark", "delete", "google", "google-hover",
+        "contacts-active", "copy", "checkmark", "delete", "globe", "google", "google-hover",
         "google-active", "history", "history-hover", "history-active", "leave",
         "precall", "precall-hover", "precall-active", "screen-white", "screenmute-white",
         "settings", "settings-hover", "settings-active", "share-darkgrey", "tag",
@@ -418,10 +417,10 @@
 
   var ShowCase = React.createClass({displayName: "ShowCase",
     getInitialState: function() {
-      // We assume for now that rtl is the only query parameter.
-      //
-      // Note: this check is repeated in react-frame-component to save passing
-      // rtlMode down the props tree.
+      
+      
+      
+      
       var rtlMode = document.location.search === "?rtl=1";
 
       return {
@@ -967,17 +966,17 @@
       uncaughtError = err;
     }
 
-    // Wait until all the FramedExamples have been fully loaded.
+    
     setTimeout(function waitForQueuedFrames() {
       if (window.queuedFrames.length != 0) {
         setTimeout(waitForQueuedFrames, 500);
         return;
       }
-      // Put the title back, in case views changed it.
+      
       document.title = "Loop UI Components Showcase";
 
-      // This simulates the mocha layout for errors which means we can run
-      // this alongside our other unit tests but use the same harness.
+      
+      
       if (uncaughtError) {
         $("#results").append("<div class='failures'><em>1</em></div>");
         $("#results").append("<li class='test fail'>" +

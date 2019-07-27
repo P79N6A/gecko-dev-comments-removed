@@ -177,7 +177,8 @@ describe("loop.shared.mixins", function() {
 
         comp = TestUtils.renderIntoDocument(React.createElement(TestComp));
 
-        sinon.assert.calledOnce(onDocumentVisibleStub);
+        
+        sinon.assert.calledTwice(onDocumentVisibleStub);
       });
 
     it("should call onDocumentVisible when document visibility changes to hidden",
