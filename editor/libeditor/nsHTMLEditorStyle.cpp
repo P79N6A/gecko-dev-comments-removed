@@ -1374,7 +1374,7 @@ nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom* aProperty,
             
             
             
-            if (mHTMLCSSUtils->IsCSSInvertable(aProperty, aAttribute)) {
+            if (mHTMLCSSUtils->IsCSSInvertible(*aProperty, aAttribute)) {
               NS_NAMED_LITERAL_STRING(value, "-moz-editor-invert-value");
               SetInlinePropertyOnTextNode(*startNode->GetAsText(),
                                           range->StartOffset(),
@@ -1414,7 +1414,7 @@ nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom* aProperty,
               
               
               
-              mHTMLCSSUtils->IsCSSInvertable(aProperty, aAttribute)) {
+              mHTMLCSSUtils->IsCSSInvertible(*aProperty, aAttribute)) {
             NS_NAMED_LITERAL_STRING(value, "-moz-editor-invert-value");
             SetInlinePropertyOnNode(node->AsContent(), aProperty,
                                     aAttribute, &value);

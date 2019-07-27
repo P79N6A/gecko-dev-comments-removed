@@ -146,7 +146,7 @@ public:
 
 
 
-  bool        IsCSSInvertable(nsIAtom * aProperty, const nsAString * aAttribute);
+  bool        IsCSSInvertible(nsIAtom& aProperty, const nsAString* aAttribute);
 
   
 

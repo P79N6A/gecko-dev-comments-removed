@@ -578,9 +578,9 @@ nsHTMLCSSUtils::RemoveCSSInlineStyle(nsIDOMNode *aNode, nsIAtom *aProperty, cons
 
 
 bool
-nsHTMLCSSUtils::IsCSSInvertable(nsIAtom *aProperty, const nsAString *aAttribute)
+nsHTMLCSSUtils::IsCSSInvertible(nsIAtom& aProperty, const nsAString* aAttribute)
 {
-  return nsGkAtoms::b == aProperty;
+  return nsGkAtoms::b == &aProperty;
 }
 
 
