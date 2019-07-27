@@ -1699,6 +1699,13 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayAltFeedback(aBuilder, this));
+
+      
+      
+      
+      if (currentRequest) {
+        currentRequest->RequestDecode();
+      }
     } else {
       aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayImage(aBuilder, this, mImage));
