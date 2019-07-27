@@ -1737,6 +1737,7 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
             
             
             IMENotification notification(NOTIFY_IME_OF_TEXT_CHANGE);
+            notification.mTextChangeData.mStartOffset = 0;
             notification.mTextChangeData.mRemovedEndOffset =
                 notification.mTextChangeData.mAddedEndOffset = INT32_MAX / 2;
             NotifyIMEOfTextChange(notification);
