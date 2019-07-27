@@ -10,7 +10,7 @@
 #if defined(HAVE_RES_NINIT)
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>   
+#include <arpa/inet.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
 #define RES_RETRY_ON_FAILURE
@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include "nsHostResolver.h"
 #include "nsError.h"
+#include "GetAddrInfo.h"
 #include "nsISupportsBase.h"
 #include "nsISupportsUtils.h"
 #include "nsAutoPtr.h"
@@ -35,6 +36,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/VisualEventTracer.h"
+#include "mozilla/DebugOnly.h"
 
 using namespace mozilla;
 using namespace mozilla::net;
@@ -166,6 +168,11 @@ nsHostRecord::nsHostRecord(const nsHostKey *key)
     , onQueue(false)
     , usingAnyThread(false)
     , mDoomed(false)
+#if DO_MERGE_FOR_AF_UNSPEC
+    , mInnerAF(nsHostRecord::UNSPECAF_NULL)
+    , mCloneOf(nullptr)
+    , mNumPending(0)
+#endif
 {
     host = ((char *) this) + sizeof(nsHostRecord);
     memcpy((char *) host, key->host, strlen(key->host) + 1);
@@ -194,6 +201,26 @@ nsHostRecord::Create(const nsHostKey *key, nsHostRecord **result)
 
     return NS_OK;
 }
+
+#if DO_MERGE_FOR_AF_UNSPEC
+nsresult
+nsHostRecord::CloneForAFUnspec(nsHostRecord** aClonedRecord, uint16_t aInnerAF)
+{
+    nsHostRecord* cloned = nullptr;
+    nsresult rv = Create(static_cast<nsHostKey*>(this), &cloned);
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
+
+    cloned->mInnerAF = aInnerAF;
+    cloned->mCloneOf = this;
+    NS_ADDREF_THIS();
+
+    *aClonedRecord = cloned;
+
+    return NS_OK;
+}
+#endif
 
 nsHostRecord::~nsHostRecord()
 {
@@ -444,6 +471,10 @@ nsHostResolver::~nsHostResolver()
 nsresult
 nsHostResolver::Init()
 {
+    if (NS_FAILED(GetAddrInfoInit())) {
+        return NS_ERROR_FAILURE;
+    }
+
     PL_DHashTableInit(&mDB, &gHostDB_ops, nullptr, sizeof(nsHostDBEnt), 0);
 
     mShutdown = false;
@@ -534,6 +565,9 @@ nsHostResolver::Shutdown()
     while (mThreadCount && PR_IntervalNow() < stopTime)
         PR_Sleep(delay);
 #endif
+
+    mozilla::DebugOnly<nsresult> rv = GetAddrInfoShutdown();
+    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to shutdown GetAddrInfo");
 }
 
 void 
@@ -843,7 +877,42 @@ nsHostResolver::ConditionallyCreateThread(nsHostRecord *rec)
 }
 
 nsresult
-nsHostResolver::IssueLookup(nsHostRecord *rec)
+nsHostResolver::IssueLookup(nsHostRecord* rec)
+{
+#if DO_MERGE_FOR_AF_UNSPEC
+    
+    
+    if (rec->af == PR_AF_UNSPEC) {
+        
+        rec->mInnerAF = AF_INET;
+        nsresult rv = IssueLookupInternal(rec);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+            return rv;
+        }
+        rec->mNumPending++;
+
+        
+        nsHostRecord* rec_clone;
+        rv = rec->CloneForAFUnspec(&rec_clone, AF_INET6);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+            return rv;
+        }
+
+        rv = IssueLookupInternal(rec_clone);
+        NS_RELEASE(rec_clone);
+        if (NS_SUCCEEDED(rv)) {
+            rec->mNumPending++;
+        }
+
+        return rv;
+    }
+#endif
+
+    return IssueLookupInternal(rec);
+}
+
+nsresult
+nsHostResolver::IssueLookupInternal(nsHostRecord* rec)
 {
     MOZ_EVENT_TRACER_WAIT(rec, "net::dns::resolve");
 
@@ -853,9 +922,9 @@ nsHostResolver::IssueLookup(nsHostRecord *rec)
     
     
     
-    if (rec->next == rec)
+    if (rec->next == rec) {
         NS_ADDREF(rec);
-    else {
+    } else {
         PR_REMOVE_LINK(rec);
         mEvictionQSize--;
     }
@@ -978,7 +1047,7 @@ nsHostResolver::GetHostToLookup(nsHostRecord **result)
 }
 
 void
-nsHostResolver::OnLookupComplete(nsHostRecord *rec, nsresult status, AddrInfo *result)
+nsHostResolver::OnLookupComplete(nsHostRecord* rec, nsresult status, AddrInfo* result)
 {
     
     
@@ -987,62 +1056,155 @@ nsHostResolver::OnLookupComplete(nsHostRecord *rec, nsresult status, AddrInfo *r
     {
         MutexAutoLock lock(mLock);
 
+#if DO_MERGE_FOR_AF_UNSPEC
         
-        MoveCList(rec->callbacks, cbs);
+        
+        if (rec->af == PR_AF_UNSPEC) {
+            MOZ_ASSERT(rec->mInnerAF != nsHostRecord::UNSPECAF_NULL);
 
-        
-        
-        AddrInfo  *old_addr_info;
-        {
-            MutexAutoLock lock(rec->addr_info_lock);
-            old_addr_info = rec->addr_info;
-            rec->addr_info = result;
-            rec->addr_info_gencnt++;
-        }
-        delete old_addr_info;
+            LOG(("OnLookupComplete: %s for UNSPEC request %s host %s.",
+                PR_AF_INET == rec->mInnerAF ? "INET" : "INET6",
+                rec->mCloneOf ? "clone" : "original",
+                rec->host));
 
-        rec->expiration = TimeStamp::NowLoRes();
-        if (result) {
-            rec->expiration += mMaxCacheLifetime;
-            rec->negative = false;
-        }
-        else {
-            rec->expiration += TimeDuration::FromSeconds(60); 
-            rec->negative = true;
-        }
-        rec->resolving = false;
-        
-        if (rec->usingAnyThread) {
-            mActiveAnyThreadCount--;
-            rec->usingAnyThread = false;
-        }
+            nsHostRecord* originalRecord = rec->mCloneOf ? rec->mCloneOf : rec;
 
-        if (!mShutdown) {
-            
-            PR_APPEND_LINK(rec, &mEvictionQ);
-            NS_ADDREF(rec);
-            if (mEvictionQSize < mMaxCacheEntries)
-                mEvictionQSize++;
-            else {
+            {
+                MutexAutoLock lock(originalRecord->addr_info_lock);
+
                 
-                nsHostRecord *head =
-                    static_cast<nsHostRecord *>(PR_LIST_HEAD(&mEvictionQ));
-                PR_REMOVE_AND_INIT_LINK(head);
-                PL_DHashTableOperate(&mDB, (nsHostKey *) head, PL_DHASH_REMOVE);
+                if (originalRecord->addr_info) {
+                    LOG(("Merging AF_UNSPEC results into existing addr_info "
+                         "for %s.\n", rec->host));
 
-                if (!head->negative) {
-                    
-                    TimeDuration age = TimeStamp::NowLoRes() -
-                                         (head->expiration - mMaxCacheLifetime);
-                    Telemetry::Accumulate(Telemetry::DNS_CLEANUP_AGE,
-                                          static_cast<uint32_t>(age.ToSeconds() / 60));
+                    originalRecord->addr_info->MergeAndConsume(result,
+                                                               rec->mInnerAF);
+                    originalRecord->addr_info_gencnt++;
+                } else {
+                    LOG(("Original has no addr_info, using new AF_UNSPEC "
+                         "result for %s.\n", rec->host));
+
+                    originalRecord->addr_info = result;
+                    originalRecord->addr_info_gencnt++;
+                }
+            }
+
+            
+            if (rec != originalRecord) {
+                MOZ_ASSERT(rec->mCloneOf);
+                LOG(("Deleting cloned AF_UNSPEC record for %s.\n", rec->host));
+
+                if (rec->usingAnyThread) {
+                    mActiveAnyThreadCount--;
+                    rec->usingAnyThread = false;
                 }
 
                 
-                NS_RELEASE(head);
+                
+                
+                rec->mCloneOf = nullptr;
+
+                
+                
+                NS_RELEASE(rec);
+
+                
+                
+                rec = originalRecord;
+                originalRecord = nullptr;
+            }
+
+            MOZ_ASSERT(rec->mNumPending >= 0);
+            rec->mNumPending--;
+        } else {
+#else
+        {
+#endif
+            LOG(("Got result for %s.\n", rec->host));
+
+            
+            
+            AddrInfo *old_addr_info;
+            {
+                MutexAutoLock lock(rec->addr_info_lock);
+                old_addr_info = rec->addr_info;
+                rec->addr_info = result;
+                rec->addr_info_gencnt++;
+            }
+            delete old_addr_info;
+        }
+
+#if DO_MERGE_FOR_AF_UNSPEC
+        
+        
+        if (rec->mNumPending <= 0) {
+            MOZ_ASSERT(rec->mNumPending == 0);
+#else
+
+        {
+#endif
+            MoveCList(rec->callbacks, cbs);
+
+            rec->expiration = TimeStamp::NowLoRes();
+            if (result) {
+                rec->expiration += mMaxCacheLifetime;
+                rec->negative = false;
+            }
+            else {
+                
+                rec->expiration += TimeDuration::FromSeconds(60);
+                rec->negative = true;
+            }
+            rec->resolving = false;
+
+            if (rec->usingAnyThread) {
+                mActiveAnyThreadCount--;
+                rec->usingAnyThread = false;
+            }
+
+            if (!mShutdown) {
+                
+                PR_APPEND_LINK(rec, &mEvictionQ);
+                NS_ADDREF(rec);
+                if (mEvictionQSize < mMaxCacheEntries)
+                    mEvictionQSize++;
+                else {
+                    
+                    nsHostRecord *head =
+                        static_cast<nsHostRecord *>(PR_LIST_HEAD(&mEvictionQ));
+                    PR_REMOVE_AND_INIT_LINK(head);
+                    PL_DHashTableOperate(&mDB, (nsHostKey *) head, PL_DHASH_REMOVE);
+
+                    if (!head->negative) {
+                        
+                        TimeDuration age = TimeStamp::NowLoRes() -
+                                             (head->expiration - mMaxCacheLifetime);
+                        Telemetry::Accumulate(Telemetry::DNS_CLEANUP_AGE,
+                                              static_cast<uint32_t>(age.ToSeconds() / 60));
+                    }
+
+                    
+                    NS_RELEASE(head);
+                }
             }
         }
     }
+
+#if DO_MERGE_FOR_AF_UNSPEC
+    
+    
+    if (rec->mNumPending > 0) {
+        NS_RELEASE(rec);
+        return;
+    }
+
+    MOZ_ASSERT(rec->mNumPending == 0);
+
+    if (rec->af == PR_AF_UNSPEC && rec->addr_info) {
+        MutexAutoLock lock(rec->addr_info_lock);
+        status = rec->addr_info->mAddresses.isEmpty() ? status : NS_OK;
+    }
+#endif
 
     MOZ_EVENT_TRACER_DONE(rec, "net::dns::resolve");
 
@@ -1142,62 +1304,48 @@ nsHostResolver::ThreadFunc(void *arg)
 #endif
     nsHostResolver *resolver = (nsHostResolver *)arg;
     nsHostRecord *rec;
-    PRAddrInfo *prai = nullptr;
     while (resolver->GetHostToLookup(&rec)) {
-        LOG(("DNS lookup thread - Calling getaddrinfo for host [%s].\n",
+        LOG(("DNS lookup thread - Getting address info for host [%s].\n",
              rec->host));
-
-        int flags = PR_AI_ADDRCONFIG;
-        if (!(rec->flags & RES_CANON_NAME))
-            flags |= PR_AI_NOCANONNAME;
 
         TimeStamp startTime = TimeStamp::Now();
         MOZ_EVENT_TRACER_EXEC(rec, "net::dns::resolve");
 
+        uint16_t af;
+#if DO_MERGE_FOR_AF_UNSPEC
         
         
-        bool disableIPv4 = rec->af == PR_AF_INET6;
-        uint16_t af = disableIPv4 ? PR_AF_UNSPEC : rec->af;
-        prai = PR_GetAddrInfoByName(rec->host, af, flags);
+        af = rec->af == PR_AF_UNSPEC ? rec->mInnerAF : rec->af;
+#else
+        af = rec->af;
+#endif
+
+        AddrInfo* ai = nullptr;
+        nsresult rv = GetAddrInfo(rec->host, af, rec->flags, &ai);
 #if defined(RES_RETRY_ON_FAILURE)
-        if (!prai && rs.Reset())
-            prai = PR_GetAddrInfoByName(rec->host, af, flags);
+        if (NS_FAILED(rv) && rs.Reset()) {
+            rv = GetAddrInfo(rec->host, af, rec->flags, &ai);
+        }
 #endif
 
         TimeDuration elapsed = TimeStamp::Now() - startTime;
         uint32_t millis = static_cast<uint32_t>(elapsed.ToMilliseconds());
 
-        
-        nsresult status;
-        AddrInfo *ai = nullptr;
-        if (prai) {
-            const char *cname = nullptr;
-            if (rec->flags & RES_CANON_NAME)
-                cname = PR_GetCanonNameFromAddrInfo(prai);
-            ai = new AddrInfo(rec->host, prai, disableIPv4, cname);
-            PR_FreeAddrInfo(prai);
-            if (ai->mAddresses.isEmpty()) {
-                delete ai;
-                ai = nullptr;
-            }
-        }
-        if (ai) {
-            status = NS_OK;
-
+        if (NS_SUCCEEDED(rv)) {
+            MOZ_ASSERT(ai);
             Telemetry::Accumulate(!rec->addr_info_gencnt ?
                                     Telemetry::DNS_LOOKUP_TIME :
                                     Telemetry::DNS_RENEWAL_TIME,
                                   millis);
-        }
-        else {
-            status = NS_ERROR_UNKNOWN_HOST;
+        } else {
             Telemetry::Accumulate(Telemetry::DNS_FAILED_LOOKUP_TIME, millis);
         }
 
         
         LOG(("DNS lookup thread - lookup completed for host [%s]: %s.\n",
-             rec->host, ai ? "success" : "failure: unknown host"));
-        resolver->OnLookupComplete(rec, status, ai);
+             rec->host,
+             NS_SUCCEEDED(rv) ? "success" : "failure: unknown host"));
+        resolver->OnLookupComplete(rec, rv, ai);
     }
     NS_RELEASE(resolver);
     LOG(("DNS lookup thread - queue empty, thread finished.\n"));
