@@ -94,9 +94,12 @@ let DetailsView = {
     let invalidCurrentView = false;
 
     for (let [name, { view }] of Iterator(this.components)) {
-      let isSupported = this._isViewSupported(name, false);
+      
+      let isRetro = PerformanceController.getOption("retro-mode");
+      let isSupported = isRetro ? name === "js-calltree" : this._isViewSupported(name, false);
 
-      $(`toolbarbutton[data-view=${name}]`).hidden = !isSupported;
+      
+      $(`toolbarbutton[data-view=${name}]`).hidden = isRetro ? true : !isSupported;
 
       
       
