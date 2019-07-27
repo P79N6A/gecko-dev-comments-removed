@@ -12,6 +12,16 @@ Cu.import("resource://gre/modules/SharedPromptUtils.jsm");
 
 
 
+const PROMPT_DISPLAYED = 0;
+
+const PROMPT_ADD = 1;
+const PROMPT_NOTNOW = 2;
+const PROMPT_NEVER = 3;
+
+const PROMPT_UPDATE = 1;
+
+
+
 
 
 
@@ -732,6 +742,7 @@ LoginManagerPrompter.prototype = {
 
   promptToSavePassword : function (aLogin) {
     var notifyObj = this._getPopupNote() || this._getNotifyBox();
+    Services.telemetry.getHistogramById("PWMGR_PROMPT_REMEMBER_ACTION").add(PROMPT_DISPLAYED);
 
     if (notifyObj)
       this._showSaveLoginNotification(notifyObj, aLogin);
@@ -772,7 +783,6 @@ LoginManagerPrompter.prototype = {
     }
   },
 
-
   
 
 
@@ -784,7 +794,6 @@ LoginManagerPrompter.prototype = {
 
 
   _showSaveLoginNotification : function (aNotifyObj, aLogin) {
-
     
     
     
@@ -815,6 +824,7 @@ LoginManagerPrompter.prototype = {
     
     
     var pwmgr = this._pwmgr;
+    let promptHistogram = Services.telemetry.getHistogramById("PWMGR_PROMPT_REMEMBER_ACTION");
 
     
     if (aNotifyObj == this._getPopupNote()) {
@@ -823,6 +833,7 @@ LoginManagerPrompter.prototype = {
         label:     rememberButtonText,
         accessKey: rememberButtonAccessKey,
         callback: function(aNotifyObj, aButton) {
+          promptHistogram.add(PROMPT_ADD);
           pwmgr.addLogin(aLogin);
           browser.focus();
         }
@@ -834,6 +845,7 @@ LoginManagerPrompter.prototype = {
           label:     neverButtonText,
           accessKey: neverButtonAccessKey,
           callback: function(aNotifyObj, aButton) {
+            promptHistogram.add(PROMPT_NEVER);
             pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
             browser.focus();
           }
@@ -1023,6 +1035,7 @@ LoginManagerPrompter.prototype = {
     
     var self = this;
 
+    let promptHistogram = Services.telemetry.getHistogramById("PWMGR_PROMPT_UPDATE_ACTION");
     
     if (aNotifyObj == this._getPopupNote()) {
       
@@ -1032,11 +1045,13 @@ LoginManagerPrompter.prototype = {
         popup:     null,
         callback:  function(aNotifyObj, aButton) {
           self._updateLogin(aOldLogin, aNewPassword);
+          promptHistogram.add(PROMPT_UPDATE);
         }
       };
 
       var { browser } = this._getNotifyWindow();
 
+      Services.telemetry.getHistogramById("PWMGR_PROMPT_UPDATE_ACTION").add(PROMPT_DISPLAYED);
       aNotifyObj.show(browser, "password-change", notificationText,
                       "password-notification-icon", mainAction,
                       null, { timeout: Date.now() + 10000,
