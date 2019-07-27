@@ -240,8 +240,7 @@ protected:
     }
 
 #ifdef DEBUG
-  
-  virtual void AssertOnDispatchThread()
+  virtual void AssertOnDispatchThread() MOZ_OVERRIDE
   {
     detail::AssertOnThread(mResponseTarget);
   }
