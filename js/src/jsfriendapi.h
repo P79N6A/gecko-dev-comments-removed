@@ -12,6 +12,7 @@
 #include "mozilla/TypedEnum.h"
 #include "mozilla/UniquePtr.h"
 
+#include "jsapi.h" 
 #include "jsbytecode.h"
 #include "jspubtd.h"
 
@@ -826,6 +827,12 @@ GetFlatStringLength(JSFlatString *s)
     return reinterpret_cast<shadow::String*>(s)->length;
 }
 
+MOZ_ALWAYS_INLINE size_t
+GetLinearStringLength(JSLinearString *s)
+{
+    return reinterpret_cast<shadow::String*>(s)->length;
+}
+
 MOZ_ALWAYS_INLINE bool
 LinearStringHasLatin1Chars(JSLinearString *s)
 {
@@ -1255,8 +1262,135 @@ namespace js {
 
 
 
+
+
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS AutoStableStringChars
+{
+    
+    JS::RootedString s_;
+    union {
+        const jschar *twoByteChars_;
+        const JS::Latin1Char *latin1Chars_;
+    };
+    enum State { Uninitialized, Latin1, TwoByte };
+    State state_;
+    bool ownsChars_;
+
+  public:
+    AutoStableStringChars(JSContext *cx)
+      : s_(cx), state_(Uninitialized), ownsChars_(false)
+    {};
+    ~AutoStableStringChars();
+
+    bool init(JSContext *cx, JSString *s);
+
+    
+    bool initTwoByte(JSContext *cx, JSString *s);
+
+    bool isLatin1() const { return state_ == Latin1; }
+    bool isTwoByte() const { return state_ == TwoByte; }
+
+    const jschar *twoByteChars() const {
+        MOZ_ASSERT(state_ == TwoByte);
+        return twoByteChars_;
+    }
+
+    mozilla::Range<const JS::Latin1Char> latin1Range() const {
+        MOZ_ASSERT(state_ == Latin1);
+        return mozilla::Range<const JS::Latin1Char>(latin1Chars_,
+                                                    GetStringLength(s_));
+    }
+
+    mozilla::Range<const jschar> twoByteRange() const {
+        MOZ_ASSERT(state_ == TwoByte);
+        return mozilla::Range<const jschar>(twoByteChars_,
+                                            GetStringLength(s_));
+    }
+
+    
+    bool maybeGiveOwnershipToCaller() {
+        MOZ_ASSERT(state_ != Uninitialized);
+        if (!ownsChars_)
+            return false;
+        state_ = Uninitialized;
+        ownsChars_ = false;
+        return true;
+    }
+
+  private:
+    AutoStableStringChars(const AutoStableStringChars &other) MOZ_DELETE;
+    void operator=(const AutoStableStringChars &other) MOZ_DELETE;
+};
+
+
+
 extern JS_FRIEND_API(JSString *)
 ErrorReportToString(JSContext *cx, JSErrorReport *reportp);
+
+struct MOZ_STACK_CLASS JS_FRIEND_API(ErrorReport)
+{
+    ErrorReport(JSContext *cx);
+    ~ErrorReport();
+
+    bool init(JSContext *cx, JS::HandleValue exn);
+
+    JSErrorReport *report()
+    {
+        return reportp;
+    }
+
+    const char *message()
+    {
+        return message_;
+    }
+
+  private:
+    
+    
+    
+    void populateUncaughtExceptionReport(JSContext *cx, ...);
+    void populateUncaughtExceptionReportVA(JSContext *cx, va_list ap);
+
+    
+    JSErrorReport *reportp;
+
+    
+    const char *message_;
+
+    
+    JSErrorReport ownedReport;
+
+    
+    
+    char *ownedMessage;
+
+    
+    
+    JS::RootedString str;
+
+    
+    AutoStableStringChars strChars;
+
+    
+    JS::RootedObject exnObject;
+
+    
+    JSAutoByteString bytesStorage;
+
+    
+    JSAutoByteString filename;
+
+    
+    bool ownsMessageAndReport;
+};
 
 } 
 
