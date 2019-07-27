@@ -689,10 +689,13 @@ public:
 
   
   void MethodRenamedTo();
+  void OtherMethodRenamedTo();
   void MethodRenamedTo(int8_t);
   int8_t AttributeGetterRenamedTo();
   int8_t AttributeRenamedTo();
   void SetAttributeRenamedTo(int8_t);
+  int8_t OtherAttributeRenamedTo();
+  void SetOtherAttributeRenamedTo(int8_t);
 
   
   void PassDictionary(JSContext*, const Dict&);
