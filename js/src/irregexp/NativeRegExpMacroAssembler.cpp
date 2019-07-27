@@ -123,7 +123,7 @@ NativeRegExpMacroAssembler::GenerateCode(JSContext* cx, bool match_only)
 #ifdef JS_CODEGEN_ARM64
     
     MOZ_ASSERT(!masm.GetStackPointer64().Is(sp));
-    masm.moveStackPtrTo(masm.getStackPointer());
+    masm.Mov(masm.GetStackPointer64(), sp);
 #endif
 
     
