@@ -1060,6 +1060,18 @@ CycleCollectedJSRuntime::DeferredFinalize(DeferredFinalizeAppendFunction aAppend
 void
 CycleCollectedJSRuntime::DeferredFinalize(nsISupports* aSupports)
 {
+#if defined(XP_MACOSX) && defined(__LP64__)
+  
+  
+  
+  
+  __asm__ __volatile__("push %%rax;"
+                       "push %%rdx;"
+                       "movq %0, %%rax;"
+                       "movq (%%rax), %%rdx;"
+                       "pop %%rdx;"
+                       "pop %%rax;" : : "g" (aSupports));
+#endif
   mDeferredSupports.AppendElement(aSupports);
 }
 
