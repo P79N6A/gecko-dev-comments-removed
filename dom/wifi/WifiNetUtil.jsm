@@ -31,8 +31,10 @@ this.WifiNetUtil = function(controlMessage) {
   var util = {};
 
   util.runDhcp = function (ifname, callback) {
-    gNetworkService.dhcpRequest(ifname, function(success, dhcpInfo) {
-      util.runIpConfig(ifname, dhcpInfo, callback);
+    util.stopDhcp(ifname, function() {
+      gNetworkService.dhcpRequest(ifname, function(success, dhcpInfo) {
+        util.runIpConfig(ifname, dhcpInfo, callback);
+      });
     });
   };
 
@@ -44,7 +46,16 @@ this.WifiNetUtil = function(controlMessage) {
     let dhcpService = DHCP_PROP + "_" + ifname;
     let suffix = (ifname.substr(0, 3) === "p2p") ? "p2p" : ifname;
     let processName = DHCP + "_" + suffix;
-    stopProcess(dhcpService, processName, callback);
+
+    
+    
+    
+    
+    
+    
+    setProperty('dhcp.' + suffix + '.result', 'ko', function() {
+      stopProcess(dhcpService, processName, callback);
+    });
   };
 
   util.startDhcpServer = function (config, callback) {
