@@ -298,6 +298,12 @@ AppleVTDecoder::OutputFrame(CVPixelBufferRef aImage,
   
   CVPixelBufferUnlockBaseAddress(aImage, kCVPixelBufferLock_ReadOnly);
 
+  if (!data) {
+    NS_ERROR("Couldn't create VideoData for frame");
+    mCallback->Error();
+    return NS_ERROR_FAILURE;
+  }
+
   
   
   mReorderQueue.Push(data.forget());
