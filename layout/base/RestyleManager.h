@@ -453,6 +453,7 @@ private:
                       RestyleTracker& aRestyleTracker,
                       nsRestyleHint   aRestyleHint);
 
+  void StartRebuildAllStyleData(RestyleTracker& aRestyleTracker);
   void FinishRebuildAllStyleData();
 
   void StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
@@ -465,11 +466,17 @@ private:
   
   bool RecomputePosition(nsIFrame* aFrame);
 
+  bool ShouldStartRebuildAllFor(RestyleTracker& aRestyleTracker) {
+    
+    
+    return mDoRebuildAllStyleData &&
+           &aRestyleTracker == &mPendingRestyles;
+  }
+
   void ProcessRestyles(RestyleTracker& aRestyleTracker) {
     
     
-    if (aRestyleTracker.Count() ||
-        mInRebuildAllStyleData) {
+    if (aRestyleTracker.Count() || ShouldStartRebuildAllFor(aRestyleTracker)) {
       aRestyleTracker.DoProcessRestyles();
     }
   }

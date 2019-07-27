@@ -1479,13 +1479,14 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
                "Should not reconstruct the root of the frame tree.  "
                "Use ReconstructDocElementHierarchy instead.");
 
-  mDoRebuildAllStyleData = false;
   NS_UpdateHint(mRebuildAllExtraHint, aExtraHint);
   mRebuildAllRestyleHint |= aRestyleHint;
 
   nsIPresShell* presShell = mPresContext->GetPresShell();
-  if (!presShell || !presShell->GetRootFrame())
+  if (!presShell || !presShell->GetRootFrame()) {
+    mDoRebuildAllStyleData = false;
     return;
+  }
 
   
   nsRefPtr<nsViewManager> vm = presShell->GetViewManager();
@@ -1528,9 +1529,9 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
 }
 
 void
-RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
+RestyleManager::StartRebuildAllStyleData(RestyleTracker& aRestyleTracker)
 {
-  BeginProcessingRestyles(aRestyleTracker);
+  MOZ_ASSERT(mIsProcessingRestyles);
 
   mInRebuildAllStyleData = true;
 
@@ -1538,7 +1539,7 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
   
   nsresult rv = mPresContext->StyleSet()->BeginReconstruct();
   if (NS_FAILED(rv)) {
-    return;
+    MOZ_CRASH("unable to rebuild style data");
   }
 
   nsRestyleHint restyleHint = mRebuildAllRestyleHint;
@@ -1578,9 +1579,15 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
   
   
   
+  
   ComputeAndProcessStyleChange(mPresContext->PresShell()->GetRootFrame(),
                                changeHint, aRestyleTracker, restyleHint);
+}
 
+void
+RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
+{
+  BeginProcessingRestyles(aRestyleTracker);
   EndProcessingRestyles();
 }
 
@@ -1687,6 +1694,11 @@ RestyleManager::BeginProcessingRestyles(RestyleTracker& aRestyleTracker)
   mPresContext->FrameConstructor()->BeginUpdate();
 
   mInStyleRefresh = true;
+
+  if (ShouldStartRebuildAllFor(aRestyleTracker)) {
+    mDoRebuildAllStyleData = false;
+    StartRebuildAllStyleData(aRestyleTracker);
+  }
 }
 
 void
