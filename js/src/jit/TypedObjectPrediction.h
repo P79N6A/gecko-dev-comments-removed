@@ -35,17 +35,6 @@ namespace jit {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 class TypedObjectPrediction {
   public:
     enum PredictionKind {
@@ -63,12 +52,6 @@ class TypedObjectPrediction {
 
         
         
-        
-        Proto,
-
-        
-        
-        
         Descr
     };
 
@@ -78,7 +61,6 @@ class TypedObjectPrediction {
     };
 
     union Data {
-        const TypedProto *proto;
         const TypeDescr *descr;
         PrefixData prefix;
     };
@@ -95,11 +77,6 @@ class TypedObjectPrediction {
         kind_ = Inconsistent;
     }
 
-    const TypedProto &proto() const {
-        MOZ_ASSERT(predictionKind() == Proto);
-        return *data_.proto;
-    }
-
     const TypeDescr &descr() const {
         MOZ_ASSERT(predictionKind() == Descr);
         return *data_.descr;
@@ -108,11 +85,6 @@ class TypedObjectPrediction {
     const PrefixData &prefix() const {
         MOZ_ASSERT(predictionKind() == Prefix);
         return data_.prefix;
-    }
-
-    void setProto(const TypedProto &proto) {
-        kind_ = Proto;
-        data_.proto = &proto;
     }
 
     void setDescr(const TypeDescr &descr) {
@@ -150,10 +122,6 @@ class TypedObjectPrediction {
         kind_ = Empty;
     }
 
-    explicit TypedObjectPrediction(const TypedProto &proto) {
-        setProto(proto);
-    }
-
     explicit TypedObjectPrediction(const TypeDescr &descr) {
         setDescr(descr);
     }
@@ -162,7 +130,7 @@ class TypedObjectPrediction {
         setPrefix(descr, fields);
     }
 
-    void addProto(const TypedProto &proto);
+    void addDescr(const TypeDescr &descr);
 
     
     
