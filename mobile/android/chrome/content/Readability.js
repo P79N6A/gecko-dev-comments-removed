@@ -199,7 +199,7 @@ Readability.prototype = {
     
     
     
-    if (doc.body === null) {
+    if (!doc.body) {
       let body = doc.createElement("body");
 
       try {
