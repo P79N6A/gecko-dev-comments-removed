@@ -3,16 +3,15 @@
 
 
 
-#include "nsCrypto.h"
-#include "nsNSSComponent.h"
-#include "secmod.h"
 
-#include "nsReadableUtils.h"
-#include "nsCRT.h"
-#include "nsXPIDLString.h"
-#include "nsISaveAsCharset.h"
+#include "nsCrypto.h"
+
+#include "nsNSSComponent.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsServiceManagerUtils.h"
+#include "secmod.h"
+
+typedef ScopedPtr<SECMODModule, SECMOD_DestroyModule> ScopedSECMODModule;
 
 
 NS_INTERFACE_MAP_BEGIN(nsPkcs11)
@@ -29,38 +28,44 @@ nsPkcs11::nsPkcs11()
 
 nsPkcs11::~nsPkcs11()
 {
+  nsNSSShutDownPreventionLock locker;
+  if (isAlreadyShutDown()) {
+    return;
+  }
+  shutdown(calledFromObject);
 }
 
 
 NS_IMETHODIMP
 nsPkcs11::DeleteModule(const nsAString& aModuleName)
 {
-  NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
-
   nsNSSShutDownPreventionLock locker;
-  nsresult rv;
-  nsString errorMessage;
-
-  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
-  if (NS_FAILED(rv))
-    return rv;
+  if (isAlreadyShutDown()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   if (aModuleName.IsEmpty()) {
-    return NS_ERROR_ILLEGAL_VALUE;
+    return NS_ERROR_INVALID_ARG;
   }
+
+  NS_ConvertUTF16toUTF8 moduleName(aModuleName);
   
-  NS_ConvertUTF16toUTF8 modName(aModuleName);
+  
 #ifndef MOZ_NO_SMART_CARDS
-  SECMODModule* module = SECMOD_FindModule(modName.get());
-  if (!module) {
-    return NS_ERROR_FAILURE;
+  {
+    ScopedSECMODModule module(SECMOD_FindModule(moduleName.get()));
+    if (!module) {
+      return NS_ERROR_FAILURE;
+    }
+    nsCOMPtr<nsINSSComponent> nssComponent(
+      do_GetService(PSM_COMPONENT_CONTRACTID));
+    nssComponent->ShutdownSmartCardThread(module.get());
   }
-  nssComponent->ShutdownSmartCardThread(module);
-  SECMOD_DestroyModule(module);
 #endif
 
+  
   int32_t modType;
-  SECStatus srv = SECMOD_DeleteModule(modName.get(), &modType);
+  SECStatus srv = SECMOD_DeleteModule(moduleName.get(), &modType);
   if (srv != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
@@ -70,16 +75,19 @@ nsPkcs11::DeleteModule(const nsAString& aModuleName)
 
 
 NS_IMETHODIMP
-nsPkcs11::AddModule(const nsAString& aModuleName, 
-                    const nsAString& aLibraryFullPath, 
-                    int32_t aCryptoMechanismFlags, 
+nsPkcs11::AddModule(const nsAString& aModuleName,
+                    const nsAString& aLibraryFullPath,
+                    int32_t aCryptoMechanismFlags,
                     int32_t aCipherFlags)
 {
-  NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
-
   nsNSSShutDownPreventionLock locker;
-  nsresult rv;
-  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
+  if (isAlreadyShutDown()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  if (aModuleName.IsEmpty()) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   NS_ConvertUTF16toUTF8 moduleName(aModuleName);
   nsCString fullPath;
@@ -87,28 +95,21 @@ nsPkcs11::AddModule(const nsAString& aModuleName,
   NS_CopyUnicodeToNative(aLibraryFullPath, fullPath);
   uint32_t mechFlags = SECMOD_PubMechFlagstoInternal(aCryptoMechanismFlags);
   uint32_t cipherFlags = SECMOD_PubCipherFlagstoInternal(aCipherFlags);
-  SECStatus srv = SECMOD_AddNewModule(moduleName.get(), fullPath.get(), 
+  SECStatus srv = SECMOD_AddNewModule(moduleName.get(), fullPath.get(),
                                       mechFlags, cipherFlags);
-  if (srv == SECSuccess) {
-    SECMODModule *module = SECMOD_FindModule(moduleName.get());
-    if (module) {
-#ifndef MOZ_NO_SMART_CARDS
-      nssComponent->LaunchSmartCardThread(module);
-#endif
-      SECMOD_DestroyModule(module);
-    }
+  if (srv != SECSuccess) {
+    return NS_ERROR_FAILURE;
   }
 
-  
-  
-  switch (srv) {
-  case SECSuccess:
-    return NS_OK;
-  case SECFailure:
+#ifndef MOZ_NO_SMART_CARDS
+  ScopedSECMODModule module(SECMOD_FindModule(moduleName.get()));
+  if (!module) {
     return NS_ERROR_FAILURE;
-  case -2:
-    return NS_ERROR_ILLEGAL_VALUE;
   }
-  NS_ERROR("Bogus return value, this should never happen");
-  return NS_ERROR_FAILURE;
+  nsCOMPtr<nsINSSComponent> nssComponent(
+    do_GetService(PSM_COMPONENT_CONTRACTID));
+  nssComponent->LaunchSmartCardThread(module.get());
+#endif
+
+  return NS_OK;
 }
