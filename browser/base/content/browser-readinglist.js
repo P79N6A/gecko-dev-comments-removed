@@ -299,6 +299,13 @@ let ReadingListUI = {
     this.toolbarButton.removeAttribute("hidden");
   },
 
+  buttonClick(event) {
+    if (event.button != 0) {
+      return;
+    }
+    this.togglePageByBrowser(gBrowser.selectedBrowser);
+  },
+
   
 
 
