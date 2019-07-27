@@ -131,9 +131,6 @@ public:
                                      nsRefPtr<nsFrameLoader>& aSecondToSwap);
 
   
-  void DestroyChild();
-
-  
 
 
 
