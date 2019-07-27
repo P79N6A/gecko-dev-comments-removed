@@ -833,7 +833,8 @@ protected:
   
   
   nsTArray<mozilla::dom::OwningNonNull<nsIEditActionListener>> mActionListeners;
-  nsCOMArray<nsIEditorObserver> mEditorObservers;  
+  
+  nsTArray<mozilla::dom::OwningNonNull<nsIEditorObserver>> mEditorObservers;
   nsCOMArray<nsIDocumentStateListener> mDocStateListeners;
 
   nsSelectionState  mSavedSel;           
