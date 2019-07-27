@@ -78,7 +78,6 @@ typedef void* nsNativeWidget;
 
 
 
-
 #define NS_NATIVE_WINDOW      0
 #define NS_NATIVE_GRAPHIC     1
 #define NS_NATIVE_TMP_WINDOW  2
@@ -104,6 +103,10 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_TSF_CATEGORY_MGR     101
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #define NS_NATIVE_ICOREWINDOW          103 // winrt specific
+#endif
+#if defined(MOZ_WIDGET_GTK)
+
+#define NS_NATIVE_PLUGIN_OBJECT_PTR    104
 #endif
 
 #define NS_IWIDGET_IID \
@@ -1634,6 +1637,7 @@ class nsIWidget : public nsISupports {
     virtual void AddChild(nsIWidget* aChild) = 0;
     virtual void RemoveChild(nsIWidget* aChild) = 0;
     virtual void* GetNativeData(uint32_t aDataType) = 0;
+    virtual void SetNativeData(uint32_t aDataType, uintptr_t aVal) = 0;
     virtual void FreeNativeData(void * data, uint32_t aDataType) = 0;
 
     

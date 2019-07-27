@@ -231,6 +231,8 @@ public:
   virtual void RegisterPluginWindowForRemoteUpdates() MOZ_OVERRIDE;
   virtual void UnregisterPluginWindowForRemoteUpdates() MOZ_OVERRIDE;
 
+  virtual void SetNativeData(uint32_t aDataType, uintptr_t aVal) MOZ_OVERRIDE {};
+
   
   
   void NotifySysColorChanged();

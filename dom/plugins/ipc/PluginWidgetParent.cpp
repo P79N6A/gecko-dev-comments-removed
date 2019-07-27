@@ -44,9 +44,6 @@ static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 
 PluginWidgetParent::PluginWidgetParent() :
   mActorDestroyed(false)
-#if defined(MOZ_WIDGET_GTK)
-  , mWrapper(nullptr)
-#endif
 {
   PWLOG("PluginWidgetParent::PluginWidgetParent()\n");
   MOZ_COUNT_CTOR(PluginWidgetParent);
@@ -60,7 +57,10 @@ PluginWidgetParent::~PluginWidgetParent()
   
   
   if (mWidget) {
-#if defined(XP_WIN)
+#if defined(MOZ_WIDGET_GTK)
+    mWidget->SetNativeData(NS_NATIVE_PLUGIN_OBJECT_PTR, (uintptr_t)0);
+    mWrapper = nullptr;
+#elif defined(XP_WIN)
     ::RemovePropW((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW),
                   kPluginWidgetParentProperty);
 #endif
@@ -117,6 +117,9 @@ PluginWidgetParent::RecvCreate()
   if (!mWrapper) {
     return false;
   }
+  
+  
+  mWidget->SetNativeData(NS_NATIVE_PLUGIN_OBJECT_PTR, (uintptr_t)mWrapper.get());
 #endif
 
   
