@@ -303,40 +303,6 @@ void MediaDecoder::UpdateDecodedStream()
   }
 }
 
-void MediaDecoder::DestroyDecodedStream()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  GetReentrantMonitor().AssertCurrentThreadIn();
-
-  
-  if (!GetDecodedStream()) {
-    return;
-  }
-
-  
-  
-  auto& outputStreams = OutputStreams();
-  for (int32_t i = outputStreams.Length() - 1; i >= 0; --i) {
-    OutputStreamData& os = outputStreams[i];
-    
-    
-    MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
-    os.mPort->Destroy();
-    os.mPort = nullptr;
-    
-    
-    
-    if (os.mStream->IsDestroyed()) {
-      
-      outputStreams.RemoveElementAt(i);
-    } else {
-      os.mStream->ChangeExplicitBlockerCount(1);
-    }
-  }
-
-  mDecodedStream.DestroyData();
-}
-
 void MediaDecoder::UpdateStreamBlockingForStateMachinePlaying()
 {
   GetReentrantMonitor().AssertCurrentThreadIn();
@@ -369,8 +335,8 @@ void MediaDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs,
   if (!aGraph) {
     aGraph = GetDecodedStream()->mStream->Graph();
   }
-  DestroyDecodedStream();
 
+  mDecodedStream.DestroyData();
   mDecodedStream.RecreateData(aStartTimeUSecs, aGraph->CreateSourceStream(nullptr));
 
   
@@ -562,7 +528,7 @@ MediaDecoder::~MediaDecoder()
     
     
     ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    DestroyDecodedStream();
+    mDecodedStream.DestroyData();
   }
   MediaMemoryTracker::RemoveMediaDecoder(this);
   UnpinForSeek();

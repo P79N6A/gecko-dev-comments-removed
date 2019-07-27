@@ -401,11 +401,6 @@ public:
 
 
 
-  void DestroyDecodedStream();
-  
-
-
-
 
 
   void RecreateDecodedStream(int64_t aStartTimeUSecs,

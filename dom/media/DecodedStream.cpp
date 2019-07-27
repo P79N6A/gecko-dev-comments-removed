@@ -195,6 +195,33 @@ DecodedStream::DestroyData()
 {
   MOZ_ASSERT(NS_IsMainThread());
   GetReentrantMonitor().AssertCurrentThreadIn();
+
+  
+  if (!mData) {
+    return;
+  }
+
+  
+  
+  auto& outputStreams = OutputStreams();
+  for (int32_t i = outputStreams.Length() - 1; i >= 0; --i) {
+    OutputStreamData& os = outputStreams[i];
+    
+    
+    MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
+    os.mPort->Destroy();
+    os.mPort = nullptr;
+    
+    
+    
+    if (os.mStream->IsDestroyed()) {
+      
+      outputStreams.RemoveElementAt(i);
+    } else {
+      os.mStream->ChangeExplicitBlockerCount(1);
+    }
+  }
+
   mData = nullptr;
 }
 
@@ -223,6 +250,8 @@ DecodedStream::GetReentrantMonitor()
 void
 DecodedStream::Connect(OutputStreamData* aStream)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+  GetReentrantMonitor().AssertCurrentThreadIn();
   NS_ASSERTION(!aStream->mPort, "Already connected?");
 
   
