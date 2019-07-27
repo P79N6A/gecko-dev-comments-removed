@@ -22,8 +22,6 @@ namespace gfx {
 
 
 
-
-
 template<class src, class dst>
 struct ScaleFactor {
   float scale;
@@ -31,10 +29,6 @@ struct ScaleFactor {
   MOZ_CONSTEXPR ScaleFactor() : scale(1.0) {}
   MOZ_CONSTEXPR ScaleFactor(const ScaleFactor<src, dst>& aCopy) : scale(aCopy.scale) {}
   explicit MOZ_CONSTEXPR ScaleFactor(float aScale) : scale(aScale) {}
-
-  explicit ScaleFactor(float aX, float aY) : scale(aX) {
-    MOZ_ASSERT(fabs(aX - aY) < 1e-6);
-  }
 
   ScaleFactor<dst, src> Inverse() {
     return ScaleFactor<dst, src>(1 / scale);
