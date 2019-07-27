@@ -6071,7 +6071,7 @@ class MPhi;
 
 
 
-class LPhi MOZ_FINAL : public LInstruction
+class LPhi MOZ_FINAL : public LNode
 {
     LAllocation *const inputs_;
     LDefinition def_;
