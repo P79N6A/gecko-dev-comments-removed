@@ -27,6 +27,9 @@ let gHttpRoot = null;
 
 let gDataRoot = null;
 
+let gNow = new Date(2010, 1, 1, 12, 0, 0);
+fakeNow(gNow);
+
 const PLATFORM_VERSION = "1.9.2";
 const APP_VERSION = "1";
 const APP_ID = "xpcshell@tests.mozilla.org";
@@ -43,7 +46,6 @@ const PARTNER_ID = "NicePartner-ID-3785";
 const GFX_VENDOR_ID = "0xabcd";
 const GFX_DEVICE_ID = "0x1234";
 
-const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const PROFILE_RESET_DATE_MS = Date.now();
 
@@ -173,10 +175,6 @@ function spoofPartnerInfo() {
   for (let pref in prefsToSpoof) {
     Preferences.set(pref, prefsToSpoof[pref]);
   }
-}
-
-function truncateToDays(aMsec) {
-  return Math.floor(aMsec / MILLISECONDS_PER_DAY);
 }
 
 
@@ -613,6 +611,8 @@ add_task(function* test_prefWatchPolicies() {
   const PREF_TEST_4 = "toolkit.telemetry.test.pref_old";
 
   const expectedValue = "some-test-value";
+  gNow = futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
 
   let prefsToWatch = {};
   prefsToWatch[PREF_TEST_1] = TelemetryEnvironment.RECORD_PREF_VALUE;
@@ -662,6 +662,9 @@ add_task(function* test_prefWatch_prefReset() {
   
   Preferences.set(PREF_TEST, false);
 
+  gNow = futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
+
   
   TelemetryEnvironment._watchPreferences(prefsToWatch);
   let deferred = PromiseUtils.defer();
@@ -689,6 +692,8 @@ add_task(function* test_addonsWatch_InterestingChange() {
   let receivedNotifications = 0;
 
   let registerCheckpointPromise = (aExpected) => {
+    gNow = futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE);
+    fakeNow(gNow);
     return new Promise(resolve => TelemetryEnvironment.registerChangeListener(
       "testWatchAddons_Changes" + aExpected, (reason, data) => {
         Assert.equal(reason, "addons-changed");
@@ -738,6 +743,9 @@ add_task(function* test_pluginsWatch_Add() {
     return;
   }
 
+  gNow = futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
+
   Assert.equal(TelemetryEnvironment.currentEnvironment.addons.activePlugins.length, 1);
 
   let newPlugin = new PluginTag(PLUGIN2_NAME, PLUGIN2_DESC, PLUGIN2_VERSION, true);
@@ -768,6 +776,9 @@ add_task(function* test_pluginsWatch_Remove() {
     return;
   }
 
+  gNow = futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
+
   
   let plugin = gInstalledPlugins.find(plugin => (plugin.name == PLUGIN2_NAME));
   Assert.ok(plugin, "The test plugin must exist.");
@@ -795,6 +806,9 @@ add_task(function* test_addonsWatch_NotInterestingChange() {
   
   const DICTIONARY_ADDON_INSTALL_URL = gDataRoot + "dictionary.xpi";
   const INTERESTING_ADDON_INSTALL_URL = gDataRoot + "restartless.xpi";
+
+  gNow = futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
 
   let receivedNotification = false;
   let deferred = PromiseUtils.defer();
@@ -877,6 +891,45 @@ add_task(function* test_addonsAndPlugins() {
 
   let personaId = (gIsGonk) ? null : PERSONA_ID;
   Assert.equal(data.addons.persona, personaId, "The correct Persona Id must be reported.");
+});
+
+add_task(function* test_changeThrottling() {
+  const PREF_TEST = "toolkit.telemetry.test.pref1";
+  let prefsToWatch = {};
+  prefsToWatch[PREF_TEST] = TelemetryEnvironment.RECORD_PREF_STATE;
+  Preferences.reset(PREF_TEST);
+
+  gNow = futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
+
+  
+  TelemetryEnvironment._watchPreferences(prefsToWatch);
+  let deferred = PromiseUtils.defer();
+  let changeCount = 0;
+  TelemetryEnvironment.registerChangeListener("testWatchPrefs_throttling", () => {
+    ++changeCount;
+    deferred.resolve();
+  });
+
+  
+  Preferences.set(PREF_TEST, 1);
+  yield deferred.promise;
+  Assert.equal(changeCount, 1);
+
+  
+  deferred = PromiseUtils.defer();
+  gNow = futureDate(gNow, MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
+  Preferences.set(PREF_TEST, 2);
+  gNow = futureDate(gNow, 5 * MILLISECONDS_PER_MINUTE);
+  fakeNow(gNow);
+  Preferences.set(PREF_TEST, 3);
+  yield deferred.promise;
+
+  Assert.equal(changeCount, 2);
+
+  
+  TelemetryEnvironment.unregisterChangeListener("testWatchPrefs_throttling");
 });
 
 add_task(function*() {
