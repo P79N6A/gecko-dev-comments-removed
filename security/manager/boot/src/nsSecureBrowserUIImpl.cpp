@@ -862,8 +862,8 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
     
 
     ReentrantMonitorAutoEnter lock(mReentrantMonitor);
-    PL_DHashTableAdd(&mTransferringRequests, aRequest);
-    
+    PL_DHashTableAdd(&mTransferringRequests, aRequest, fallible);
+
     return NS_OK;
   }
 
