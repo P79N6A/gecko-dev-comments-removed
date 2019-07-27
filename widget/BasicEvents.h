@@ -1017,6 +1017,11 @@ public:
   static Modifier AccelModifier();
 
   
+
+
+  static Modifier GetModifier(const nsAString& aDOMKeyName);
+
+  
   bool IsAccel() const
   {
     return ((modifiers & AccelModifier()) != 0);
