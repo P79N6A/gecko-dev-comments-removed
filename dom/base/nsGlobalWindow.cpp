@@ -4489,13 +4489,19 @@ nsGlobalWindow::GetOpenerWindow(ErrorResult& aError)
     return nullptr;
   }
 
+  nsGlobalWindow* win = static_cast<nsGlobalWindow*>(opener.get());
+
   
   if (nsContentUtils::IsCallerChrome()) {
+    
+    if (GetPrincipal() == nsContentUtils::GetSystemPrincipal() &&
+        win->GetPrincipal() != nsContentUtils::GetSystemPrincipal()) {
+      return nullptr;
+    }
     return opener;
   }
 
   
-  nsGlobalWindow *win = static_cast<nsGlobalWindow *>(opener.get());
   if (win->IsChromeWindow()) {
     return nullptr;
   }
