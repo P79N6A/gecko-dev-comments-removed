@@ -14,11 +14,10 @@ let DevEdition = {
 
   styleSheetLocation: "chrome://browser/skin/devedition.css",
   styleSheet: null,
-  defaultThemeID: "{972ce4c6-7e08-4474-a285-3208198ce6fd}",
 
   init: function () {
     this._updateDevtoolsThemeAttribute();
-    this._updateStyleSheetFromPrefs();
+    this._updateStyleSheet();
 
     
     
@@ -26,27 +25,14 @@ let DevEdition = {
     Services.prefs.addObserver(this._lwThemePrefName, this, false);
     Services.prefs.addObserver(this._prefName, this, false);
     Services.prefs.addObserver(this._devtoolsThemePrefName, this, false);
-    Services.obs.addObserver(this, "lightweight-theme-styling-update", false);
   },
 
   observe: function (subject, topic, data) {
-    if (topic == "lightweight-theme-styling-update") {
-      let newTheme = JSON.parse(data);
-      if (!newTheme || newTheme.id === this.defaultThemeID) {
-        
-        this._updateStyleSheetFromPrefs();
-      } else {
-        
-        
-        this._toggleStyleSheet(false);
-      }
-    }
-
     if (topic == "nsPref:changed") {
       if (data == this._devtoolsThemePrefName) {
         this._updateDevtoolsThemeAttribute();
       } else {
-        this._updateStyleSheetFromPrefs();
+        this._updateStyleSheet();
       }
     }
   },
@@ -56,12 +42,11 @@ let DevEdition = {
     
     document.documentElement.setAttribute("devtoolstheme",
       Services.prefs.getCharPref(this._devtoolsThemePrefName));
-    if (this.styleSheet) {
-      ToolbarIconColor.inferFromText();
-    }
   },
 
-  _updateStyleSheetFromPrefs: function() {
+  _updateStyleSheet: function() {
+    
+    
     let lightweightThemeSelected = false;
     try {
       lightweightThemeSelected = Services.prefs.getBoolPref(this._lwThemePrefName);
@@ -75,24 +60,18 @@ let DevEdition = {
     let deveditionThemeEnabled = Services.prefs.getBoolPref(this._prefName) &&
       !lightweightThemeSelected && defaultThemeSelected;
 
-    this._toggleStyleSheet(deveditionThemeEnabled);
-  },
-
-  _toggleStyleSheet: function(deveditionThemeEnabled) {
     if (deveditionThemeEnabled && !this.styleSheet) {
       let styleSheetAttr = `href="${this.styleSheetLocation}" type="text/css"`;
       let styleSheet = this.styleSheet = document.createProcessingInstruction(
         'xml-stylesheet', styleSheetAttr);
       this.styleSheet.addEventListener("load", function onLoad() {
         styleSheet.removeEventListener("load", onLoad);
-        gBrowser.tabContainer._positionPinnedTabs();
         ToolbarIconColor.inferFromText();
       });
       document.insertBefore(this.styleSheet, document.documentElement);
     } else if (!deveditionThemeEnabled && this.styleSheet) {
       this.styleSheet.remove();
       this.styleSheet = null;
-      gBrowser.tabContainer._positionPinnedTabs();
       ToolbarIconColor.inferFromText();
     }
   },
@@ -101,7 +80,6 @@ let DevEdition = {
     Services.prefs.removeObserver(this._lwThemePrefName, this);
     Services.prefs.removeObserver(this._prefName, this);
     Services.prefs.removeObserver(this._devtoolsThemePrefName, this);
-    Services.obs.removeObserver(this, "lightweight-theme-styling-update", false);
     this.styleSheet = null;
   }
 };
