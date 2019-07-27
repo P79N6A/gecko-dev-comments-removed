@@ -58,6 +58,11 @@ BackCert::Init(const SECItem& certDER)
   } else if (nssCert->version.len == 1 &&
              nssCert->version.data[0] == static_cast<uint8_t>(der::Version::v2)) {
     version = der::Version::v2;
+  } else if (nssCert->version.len == 1 &&
+             nssCert->version.data[0] == static_cast<uint8_t>(der::Version::v2)) {
+    
+    
+    version = der::Version::v1;
   } else if (nssCert->version.len == 0) {
     version = der::Version::v1;
   } else {

@@ -655,6 +655,9 @@ OptionalVersion(Input& input,  Version& version)
   switch (integerValue) {
     case static_cast<uint8_t>(Version::v3): version = Version::v3; break;
     case static_cast<uint8_t>(Version::v2): version = Version::v2; break;
+    
+    
+    case static_cast<uint8_t>(Version::v1): version = Version::v1; break;
     default:
       return Fail(SEC_ERROR_BAD_DER);
   }
