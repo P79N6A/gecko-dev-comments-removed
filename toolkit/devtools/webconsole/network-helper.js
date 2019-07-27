@@ -694,8 +694,6 @@ let NetworkHelper = {
 
   formatSecurityProtocol: function NH_formatSecurityProtocol(version) {
     switch (version) {
-      case Ci.nsISSLStatus.SSL_VERSION_3:
-        return "SSLv3";
       case Ci.nsISSLStatus.TLS_VERSION_1:
         return "TLSv1";
       case Ci.nsISSLStatus.TLS_VERSION_1_1:
@@ -720,7 +718,6 @@ let NetworkHelper = {
 
 
 
-
   getReasonsForWeakness: function NH_getReasonsForWeakness(state) {
     const wpl = Ci.nsIWebProgressListener;
 
@@ -730,17 +727,13 @@ let NetworkHelper = {
     let reasons = [];
 
     if (state & wpl.STATE_IS_BROKEN) {
-      let isSSLV3 = state & wpl.STATE_USES_SSL_3;
       let isCipher = state & wpl.STATE_USES_WEAK_CRYPTO;
-      if (isSSLV3) {
-        reasons.push("sslv3");
-      }
 
       if (isCipher) {
         reasons.push("cipher");
       }
 
-      if (!isCipher && !isSSLV3) {
+      if (!isCipher) {
         DevToolsUtils.reportException("NetworkHelper.getReasonsForWeakness",
           "STATE_IS_BROKEN without a known reason. Full state was: " + state);
       }
