@@ -411,9 +411,9 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     
     
     nsWSRunObject wsObj(this, parentNode, offsetOfNewNode);
-    if (nsTextEditUtils::IsBreak(wsObj.mEndReasonNode) && 
-        !IsVisBreak(wsObj.mEndReasonNode) )
-    {
+    if (wsObj.mEndReasonNode &&
+        nsTextEditUtils::IsBreak(wsObj.mEndReasonNode) &&
+        !IsVisBreak(wsObj.mEndReasonNode)) {
       rv = DeleteNode(wsObj.mEndReasonNode);
       NS_ENSURE_SUCCESS(rv, rv);
     }
