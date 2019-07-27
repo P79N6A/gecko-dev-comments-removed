@@ -476,7 +476,7 @@ def environment(xrePath, env=None, crashreporter=True, debugger=False, dmdPath=N
   envVar = None
   dmdLibrary = None
   preloadEnvVar = None
-  if mozinfo.info['toolkit'] == "gonk":
+  if 'toolkit' in mozinfo.info and mozinfo.info['toolkit'] == "gonk":
     
     pass
   elif mozinfo.isUnix:
