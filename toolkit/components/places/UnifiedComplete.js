@@ -1383,7 +1383,7 @@ Search.prototype = {
       queryString = searchString.substring(queryIndex + 1);
     }
     
-    queryString = encodeURIComponent(queryString).replace("%20", "+", "g");
+    queryString = encodeURIComponent(queryString).replace(/%20/g, "+");
 
     
     let keyword = this._searchTokens[0];

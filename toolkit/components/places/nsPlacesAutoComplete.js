@@ -1097,7 +1097,7 @@ nsPlacesAutoComplete.prototype = {
       queryString = searchString.substring(queryIndex + 1);
     }
     
-    queryString = encodeURIComponent(queryString).replace("%20", "+", "g");
+    queryString = encodeURIComponent(queryString).replace(/%20/g, "+");
 
     
     let keyword = aTokens[0];

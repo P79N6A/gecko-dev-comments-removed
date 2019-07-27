@@ -40,7 +40,7 @@ function generateHash(aString) {
   stringStream.data = aString;
   cryptoHash.updateFromStream(stringStream, -1);
   
-  return cryptoHash.finish(true).replace("/", "-", "g");
+  return cryptoHash.finish(true).replace(/\//g, "-");
 }
 
 this.BookmarkJSONUtils = Object.freeze({
