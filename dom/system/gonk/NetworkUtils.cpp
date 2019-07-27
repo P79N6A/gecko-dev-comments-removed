@@ -250,7 +250,8 @@ const CommandFunc NetworkUtils::sNetworkInterfaceSetAlarmChain[] = {
 
 const CommandFunc NetworkUtils::sSetDnsChain[] = {
   NetworkUtils::setDefaultInterface,
-  NetworkUtils::setInterfaceDns
+  NetworkUtils::setInterfaceDns,
+  NetworkUtils::setDnsSuccess,
 };
 
 
@@ -1048,6 +1049,14 @@ void NetworkUtils::networkInterfaceAlarmSuccess(CommandChain* aChain,
 {
   
   
+  postMessage(aChain->getParams(), aResult);
+  finalizeSuccess(aChain, aResult);
+}
+
+void NetworkUtils::setDnsSuccess(CommandChain* aChain,
+                                 CommandCallback aCallback,
+                                 NetworkResultOptions& aResult)
+{
   postMessage(aChain->getParams(), aResult);
   finalizeSuccess(aChain, aResult);
 }
