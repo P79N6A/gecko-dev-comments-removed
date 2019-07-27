@@ -22,7 +22,6 @@
 
 #include "jsfriendapi.h"
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/ipc/UnixSocketConnector.h"
 #include "nsThreadUtils.h" 
 
 using namespace mozilla::ipc;
@@ -62,22 +61,14 @@ private:
   nsAutoPtr<UnixSocketRawData> mRawData;
 };
 
-class NfcConnector MOZ_FINAL : public mozilla::ipc::UnixSocketConnector
-{
-public:
-  NfcConnector()
-  { }
+} 
 
-  int Create() MOZ_OVERRIDE;
-  bool CreateAddr(bool aIsServer,
-                  socklen_t& aAddrSize,
-                  sockaddr_any& aAddr,
-                  const char* aAddress) MOZ_OVERRIDE;
-  bool SetUp(int aFd) MOZ_OVERRIDE;
-  bool SetUpListenSocket(int aFd) MOZ_OVERRIDE;
-  void GetSocketAddr(const sockaddr_any& aAddr,
-                     nsAString& aAddrStr) MOZ_OVERRIDE;
-};
+namespace mozilla {
+namespace ipc {
+
+
+
+
 
 int
 NfcConnector::Create()
@@ -162,10 +153,9 @@ NfcConnector::GetSocketAddr(const sockaddr_any& aAddr,
   MOZ_CRASH("This should never be called!");
 }
 
-} 
 
-namespace mozilla {
-namespace ipc {
+
+
 
 NfcConsumer::NfcConsumer(NfcSocketListener* aListener)
   : mListener(aListener)
