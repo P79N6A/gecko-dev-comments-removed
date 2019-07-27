@@ -327,7 +327,11 @@ public:
            const FlexboxAxisTracker& aAxisTracker);
 
   
-  FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize);
+  
+  
+  
+  
+  FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize, WritingMode aContainerWM);
 
   
   nsIFrame* Frame() const          { return mFrame; }
@@ -360,10 +364,9 @@ public:
       
       
       
-      WritingMode wm = mFrame->GetWritingMode();
       
-      if (!nsLayoutUtils::GetFirstLineBaseline(wm, mFrame, &mAscent)) {
-        mAscent = mFrame->GetLogicalBaseline(wm);
+      if (!nsLayoutUtils::GetFirstLineBaseline(mWM, mFrame, &mAscent)) {
+        mAscent = mFrame->GetLogicalBaseline(mWM);
       }
     }
     return mAscent;
@@ -415,6 +418,7 @@ public:
   
   bool IsStrut() const             { return mIsStrut; }
 
+  WritingMode GetWritingMode() const { return mWM; }
   uint8_t GetAlignSelf() const     { return mAlignSelf; }
 
   
@@ -693,6 +697,7 @@ protected:
   
   bool mNeedsMinSizeAutoResolution;
 
+  const WritingMode mWM; 
   uint8_t mAlignSelf; 
                       
                       
@@ -1554,6 +1559,7 @@ FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
     mIsStretched(false),
     mIsStrut(false),
     
+    mWM(aFlexItemReflowState.GetWritingMode()),
     mAlignSelf(aFlexItemReflowState.mStylePosition->mAlignSelf)
 {
   MOZ_ASSERT(mFrame, "expecting a non-null child frame");
@@ -1605,7 +1611,8 @@ FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
 
 
 
-FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize)
+FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize,
+                   WritingMode aContainerWM)
   : mFrame(aChildFrame),
     mFlexGrow(0.0f),
     mFlexShrink(0.0f),
@@ -1629,6 +1636,7 @@ FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize)
     mIsStretched(false),
     mIsStrut(true), 
     mNeedsMinSizeAutoResolution(false),
+    mWM(aContainerWM),
     mAlignSelf(NS_STYLE_ALIGN_ITEMS_FLEX_START)
 {
   MOZ_ASSERT(mFrame, "expecting a non-null child frame");
@@ -3152,7 +3160,8 @@ nsFlexContainerFrame::GenerateFlexLines(
         aStruts[nextStrutIdx].mItemIdx == itemIdxInContainer) {
 
       
-      item = new FlexItem(childFrame, aStruts[nextStrutIdx].mStrutCrossSize);
+      item = new FlexItem(childFrame, aStruts[nextStrutIdx].mStrutCrossSize,
+                          aReflowState.GetWritingMode());
       nextStrutIdx++;
     } else {
       item = GenerateFlexItemForChild(aPresContext, childFrame,
