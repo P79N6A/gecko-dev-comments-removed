@@ -600,8 +600,28 @@ OptionalExtensions(Reader& input, uint8_t tag,
 Result DigestAlgorithmIdentifier(Reader& input,
                                   DigestAlgorithm& algorithm);
 
-Result SignatureAlgorithmIdentifier(Reader& input,
-                                     SignatureAlgorithm& algorithm);
+enum PublicKeyAlgorithm
+{
+  RSA_PKCS1,
+  ECDSA,
+};
+
+Result SignatureAlgorithmIdentifierValue(
+         Reader& input,
+          PublicKeyAlgorithm& publicKeyAlgorithm,
+          DigestAlgorithm& digestAlgorithm);
+
+struct SignedDataWithSignature final
+{
+public:
+  Input data;
+  Input algorithm;
+  Input signature;
+
+  void operator=(const SignedDataWithSignature&) = delete;
+};
+
+
 
 
 

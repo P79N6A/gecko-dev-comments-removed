@@ -32,9 +32,16 @@
 namespace mozilla { namespace pkix {
 
 
-Result VerifySignedDataNSS(const SignedDataWithSignature& sd,
-                           Input subjectPublicKeyInfo,
-                           void* pkcs11PinArg);
+
+Result VerifyRSAPKCS1SignedDigestNSS(const SignedDigest& sd,
+                                     Input subjectPublicKeyInfo,
+                                     void* pkcs11PinArg);
+
+
+
+Result VerifyECDSASignedDigestNSS(const SignedDigest& sd,
+                                  Input subjectPublicKeyInfo,
+                                  void* pkcs11PinArg);
 
 
 
@@ -47,7 +54,9 @@ Result VerifySignedDataNSS(const SignedDataWithSignature& sd,
 
 
 
-Result DigestBufNSS(Input item,  uint8_t* digestBuf,
+Result DigestBufNSS(Input item,
+                    DigestAlgorithm digestAlg,
+                     uint8_t* digestBuf,
                     size_t digestBufLen);
 
 Result MapPRErrorCodeToResult(PRErrorCode errorCode);
@@ -83,6 +92,8 @@ inline SECItem UnsafeMapInputToSECItem(Input input)
     const_cast<uint8_t*>(input.UnsafeGetData()),
     input.GetLength()
   };
+  static_assert(sizeof(decltype(input.GetLength())) <= sizeof(result.len),
+                "input.GetLength() must fit in a SECItem");
   return result;
 }
 

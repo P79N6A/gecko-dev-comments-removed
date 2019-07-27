@@ -80,6 +80,11 @@ private:
   const unsigned int subCACount;
   const Result deferredSubjectError;
 
+  
+  uint8_t subjectSignatureDigestBuf[MAX_DIGEST_SIZE_IN_BYTES];
+  der::PublicKeyAlgorithm subjectSignaturePublicKeyAlg;
+  SignedDigest subjectSignature;
+
   Result RecordResult(Result currentResult,  bool& keepGoing);
   Result result;
   bool resultWasSet;
@@ -192,8 +197,22 @@ PathBuildingStep::Check(Input potentialIssuerDER,
     return RecordResult(rv, keepGoing);
   }
 
-  rv = WrappedVerifySignedData(trustDomain, subject.GetSignedData(),
-                               potentialIssuer.GetSubjectPublicKeyInfo());
+  
+  
+  
+  
+  if (subjectSignature.digest.GetLength() == 0) {
+    rv = DigestSignedData(trustDomain, subject.GetSignedData(),
+                          subjectSignatureDigestBuf,
+                          subjectSignaturePublicKeyAlg, subjectSignature);
+    if (rv != Success) {
+      return rv;
+    }
+  }
+
+  rv = VerifySignedDigest(trustDomain, subjectSignaturePublicKeyAlg,
+                          subjectSignature,
+                          potentialIssuer.GetSubjectPublicKeyInfo());
   if (rv != Success) {
     return RecordResult(rv, keepGoing);
   }

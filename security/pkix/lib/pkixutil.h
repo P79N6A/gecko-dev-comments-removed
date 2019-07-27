@@ -54,7 +54,9 @@ public:
 
   const Input GetDER() const { return der; }
   der::Version GetVersion() const { return version; }
-  const SignedDataWithSignature& GetSignedData() const { return signedData; }
+  const der::SignedDataWithSignature& GetSignedData() const {
+    return signedData;
+  }
   const Input GetIssuer() const { return issuer; }
   
   
@@ -107,8 +109,6 @@ public:
   BackCert const* const childCert;
 
 private:
-  der::Version version;
-
   
   
   
@@ -120,13 +120,16 @@ private:
     return item.GetLength() > 0 ? &item : nullptr;
   }
 
-  SignedDataWithSignature signedData;
+  der::SignedDataWithSignature signedData;
+
+  der::Version version;
+  Input serialNumber;
+  Input signature;
   Input issuer;
   
   
   
   Input validity;
-  Input serialNumber;
   Input subject;
   Input subjectPublicKeyInfo;
 
@@ -197,19 +200,23 @@ DaysBeforeYear(unsigned int year)
        + ((year - 1u) / 400u); 
 }
 
+static const size_t MAX_DIGEST_SIZE_IN_BYTES = 512 / 8; 
+
+Result DigestSignedData(TrustDomain& trustDomain,
+                        const der::SignedDataWithSignature& signedData,
+                         uint8_t(&digestBuf)[MAX_DIGEST_SIZE_IN_BYTES],
+                         der::PublicKeyAlgorithm& publicKeyAlg,
+                         SignedDigest& signedDigest);
+
+Result VerifySignedDigest(TrustDomain& trustDomain,
+                          der::PublicKeyAlgorithm publicKeyAlg,
+                          const SignedDigest& signedDigest,
+                          Input signerSubjectPublicKeyInfo);
 
 
-inline Result
-WrappedVerifySignedData(TrustDomain& trustDomain,
-                        const SignedDataWithSignature& signedData,
-                        Input subjectPublicKeyInfo)
-{
-  if (signedData.algorithm == SignatureAlgorithm::unsupported_algorithm) {
-    return Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
-  }
-
-  return trustDomain.VerifySignedData(signedData, subjectPublicKeyInfo);
-}
+Result VerifySignedData(TrustDomain& trustDomain,
+                        const der::SignedDataWithSignature& signedData,
+                        Input signerSubjectPublicKeyInfo);
 
 
 

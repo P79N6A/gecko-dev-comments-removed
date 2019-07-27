@@ -82,8 +82,7 @@ BackCert::Init()
   
   
   
-  SignatureAlgorithm signature;
-  rv = der::SignatureAlgorithmIdentifier(tbsCertificate, signature);
+  rv = der::ExpectTagAndGetValue(tbsCertificate, der::SEQUENCE, signature);
   if (rv != Success) {
     return rv;
   }

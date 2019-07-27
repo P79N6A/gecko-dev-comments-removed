@@ -51,44 +51,13 @@ enum class NamedCurve
   secp256r1 = 3,
 };
 
-enum class SignatureAlgorithm
+struct SignedDigest final
 {
-  
-  ecdsa_with_sha512 = 1,
-
-  
-  ecdsa_with_sha384 = 4,
-
-  
-  ecdsa_with_sha256 = 7,
-
-  
-  ecdsa_with_sha1 = 10,
-
-  
-  rsa_pkcs1_with_sha512 = 13,
-
-  
-  rsa_pkcs1_with_sha384 = 14,
-
-  
-  rsa_pkcs1_with_sha256 = 15,
-
-  
-  rsa_pkcs1_with_sha1 = 16,
-
-  
-  unsupported_algorithm = 19,
-};
-
-struct SignedDataWithSignature final
-{
-public:
-  Input data;
-  SignatureAlgorithm algorithm;
+  Input digest;
+  DigestAlgorithm digestAlgorithm;
   Input signature;
 
-  void operator=(const SignedDataWithSignature&) = delete;
+  void operator=(const SignedDigest&) = delete;
 };
 
 enum class EndEntityOrCA { MustBeEndEntity = 0, MustBeCA = 1 };
@@ -316,6 +285,17 @@ public:
   
   
   
+  
+  
+  virtual Result VerifyRSAPKCS1SignedDigest(
+                   const SignedDigest& signedDigest,
+                   Input subjectPublicKeyInfo) = 0;
+
+  
+  
+  
+  
+  
   virtual Result CheckECDSACurveIsAcceptable(EndEntityOrCA endEntityOrCA,
                                              NamedCurve curve) = 0;
 
@@ -326,11 +306,8 @@ public:
   
   
   
-  
-  
-  
-  virtual Result VerifySignedData(const SignedDataWithSignature& signedData,
-                                  Input subjectPublicKeyInfo) = 0;
+  virtual Result VerifyECDSASignedDigest(const SignedDigest& signedDigest,
+                                         Input subjectPublicKeyInfo) = 0;
 
   
   
@@ -342,8 +319,9 @@ public:
   
   
   
-  static const size_t DIGEST_LENGTH = 20; 
-  virtual Result DigestBuf(Input item,  uint8_t* digestBuf,
+  virtual Result DigestBuf(Input item,
+                           DigestAlgorithm digestAlg,
+                            uint8_t* digestBuf,
                            size_t digestBufLen) = 0;
 protected:
   TrustDomain() { }
