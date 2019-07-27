@@ -107,6 +107,12 @@ class MarionetteProtocol(Protocol):
         return True
 
     def after_connect(self):
+        
+        with self.marionette.using_context("chrome"):
+            self.marionette.execute_script("""
+              Components.utils.import("resource://gre/modules/Log.jsm");
+              Log.repository.getLogger("Marionette").level = Log.Level.Info;
+            """)
         self.load_runner("http")
 
     def load_runner(self, protocol):
