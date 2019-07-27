@@ -1326,6 +1326,17 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
   nsChangeHint hint =
     (mZIndex == aOther.mZIndex) ? NS_STYLE_HINT_NONE : nsChangeHint_RepaintFrame;
 
+  if (mOrder != aOther.mOrder) {
+    
+    
+    
+    
+    
+    
+    return NS_CombineHint(hint, NS_CombineHint(nsChangeHint_RepaintFrame,
+                                               nsChangeHint_AllReflowHints));
+  }
+
   if (mBoxSizing != aOther.mBoxSizing) {
     
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
@@ -1333,13 +1344,10 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
 
   
   
-  
-  
   if (mAlignSelf != aOther.mAlignSelf ||
       mFlexBasis != aOther.mFlexBasis ||
       mFlexGrow != aOther.mFlexGrow ||
-      mFlexShrink != aOther.mFlexShrink ||
-      mOrder != aOther.mOrder) {
+      mFlexShrink != aOther.mFlexShrink) {
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 

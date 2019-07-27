@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+<html class="reftest-wait">
+<head>
+<style>
+#container {
+  display: flex;
+}
+
+#container > * {
+  width: 100px;
+  height: 100px;
+}
+
+#a {
+  background-color: red;
+}
+
+#b {
+  background-color: lime;
+}
+
+.foreground {
+  order: 1;
+  margin-left: -100px;
+}
+</style>
+<script>
+  function tweak() {
+    var a = document.getElementById("a");
+    var b = document.getElementById("b");
+    a.classList.remove("foreground");
+    b.classList.add("foreground");
+    document.documentElement.removeAttribute("class");
+  }
+
+  window.addEventListener("MozReftestInvalidate", tweak, false);
+</script>
+</head>
+<body>
+  <div id="container">
+    <div id="a" class="foreground"></div>
+    <div id="b"></div>
+  </div>
+</body>
+</html>
