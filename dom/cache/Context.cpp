@@ -464,7 +464,7 @@ public:
     
     MOZ_ASSERT(mTarget);
     MOZ_ASSERT(mAction);
-    MOZ_ASSERT(mQuotaInfo.mDir);
+    
     MOZ_ASSERT(mInitiatingThread);
   }
 
