@@ -538,26 +538,13 @@ js::obj_getPrototypeOf(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     
-    if (args.length() == 0) {
-        js_ReportMissingArg(cx, args.calleev(), 0);
+    RootedObject obj(cx, ToObject(cx, args.get(0)));
+    if (!obj)
         return false;
-    }
-
-    if (args[0].isPrimitive()) {
-        RootedValue val(cx, args[0]);
-        char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, val, NullPtr());
-        if (!bytes)
-            return false;
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
-                             JSMSG_UNEXPECTED_TYPE, bytes, "not an object");
-        js_free(bytes);
-        return false;
-    }
 
     
-    RootedObject thisObj(cx, &args[0].toObject());
     RootedObject proto(cx);
-    if (!JSObject::getProto(cx, thisObj, &proto))
+    if (!JSObject::getProto(cx, obj, &proto))
         return false;
     args.rval().setObjectOrNull(proto);
     return true;

@@ -31,9 +31,6 @@ function TestSetPrototypeOf(object, proto) {
 
 for(var value of coercibleValues) {
     assertEq(Object.setPrototypeOf(value, {}), value);
-
-    assertThrowsInstanceOf(() => Object.getPrototypeOf(value),
-        TypeError, "Coercible values should not have a prototype");
 }
 
 
