@@ -49,6 +49,11 @@ function runTools(target) {
     for (let index = 0; index < toolIds.length; index++) {
       let toolId = toolIds[index];
 
+      
+      if (toolId === "storage") {
+        continue;
+      }
+
       info("About to open " + index + "/" + toolId);
       toolbox = yield gDevTools.showToolbox(target, toolId, "window");
       ok(toolbox, "toolbox exists for " + toolId);

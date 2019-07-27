@@ -43,6 +43,12 @@ function testShortcuts(aToolbox, aIndex) {
   toolbox = aToolbox;
   info("Toolbox fired a `ready` event");
 
+  
+  if (toolIDs[aIndex] === "storage") {
+    testShortcuts(toolbox, aIndex + 1);
+    return;
+  }
+
   toolbox.once("select", selectCB);
 
   let key = gDevTools._tools.get(toolIDs[aIndex]).key;
