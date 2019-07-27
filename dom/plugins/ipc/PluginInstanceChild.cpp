@@ -3198,7 +3198,7 @@ PluginInstanceChild::PaintRectToSurface(const nsIntRect& aRect,
         
         
         dt->PushClipRect(rect);
-        dt->FillRect(rect, ColorPattern(ToColor(aColor)),
+        dt->FillRect(rect, ColorPattern(ToColor(aColor)), 
                      DrawOptions(1.f, CompositionOp::OP_SOURCE));
         dt->PopClip();
         dt->Flush();

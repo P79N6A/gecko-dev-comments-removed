@@ -1278,12 +1278,10 @@ nsSVGUtils::MakeFillPatternFor(nsIFrame* aFrame,
   
   
   
-  nscolor color = GetFallbackOrPaintColor(aFrame->StyleContext(),
-                                          &nsStyleSVG::mFill);
-  aOutPattern->InitColorPattern(Color(NS_GET_R(color)/255.0,
-                                      NS_GET_G(color)/255.0,
-                                      NS_GET_B(color)/255.0,
-                                      NS_GET_A(color)/255.0 * opacity));
+  Color color(Color::FromABGR(GetFallbackOrPaintColor(aFrame->StyleContext(),
+                                                      &nsStyleSVG::mFill)));
+  color.a *= opacity;
+  aOutPattern->InitColorPattern(ToDeviceColor(color));
 }
 
  void
@@ -1341,12 +1339,10 @@ nsSVGUtils::MakeStrokePatternFor(nsIFrame* aFrame,
   
   
   
-  nscolor color = GetFallbackOrPaintColor(aFrame->StyleContext(),
-                                          &nsStyleSVG::mStroke);
-  aOutPattern->InitColorPattern(Color(NS_GET_R(color)/255.0,
-                                      NS_GET_G(color)/255.0,
-                                      NS_GET_B(color)/255.0,
-                                      NS_GET_A(color)/255.0 * opacity));
+  Color color(Color::FromABGR(GetFallbackOrPaintColor(aFrame->StyleContext(),
+                                                      &nsStyleSVG::mStroke)));
+  color.a *= opacity;
+  aOutPattern->InitColorPattern(ToDeviceColor(color));
 }
 
  float
