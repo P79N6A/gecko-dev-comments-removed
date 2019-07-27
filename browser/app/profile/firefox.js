@@ -1293,6 +1293,9 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 #endif
 
 
+pref("browser.devedition.theme.enabled", false);
+
+
 pref("devtools.errorconsole.enabled", false);
 
 
