@@ -148,15 +148,13 @@ protected:
 
     
     CheckedUint32 mInputIndex;
-    
-    
-    
+
     bool mInputEndOfStream;
     bool mOutputEndOfStream;
     int64_t mSeekTimeUs;
     bool mFlushed; 
     bool mDiscontinuity;
-    nsRefPtr<FlushableMediaTaskQueue> mTaskQueue;
+    nsRefPtr<MediaTaskQueue> mTaskQueue;
     Monitor mTrackMonitor;
 
   private:
