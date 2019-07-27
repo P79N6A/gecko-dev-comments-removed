@@ -320,6 +320,29 @@ function whenBrowserUnloaded(aBrowser, aContainer, aCallback = next) {
     executeSoon(aCallback);
   }, true);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+function loadPage(browser, uri) {
+  return new Promise((resolve, reject) => {
+    browser.addEventListener("load", function onLoad(event) {
+      browser.removeEventListener("load", onLoad, true);
+      resolve();
+    }, true);
+    browser.loadURI(uri);
+  });
+}
+
 function promiseBrowserUnloaded(aBrowser, aContainer) {
   return new Promise(resolve => {
     whenBrowserUnloaded(aBrowser, aContainer, resolve);
