@@ -73,6 +73,9 @@ function hasChanged(oldData, newData) {
 
 this.FxAccountsProfile = function (options = {}) {
   this._cachedProfile = null;
+  this._cachedAt = 0; 
+  this._currentFetchPromise = null;
+  this._isNotifying = false; 
   this.fxa = options.fxa || fxAccounts;
   this.client = options.profileClient || new FxAccountsProfileClient({
     fxa: this.fxa,
@@ -80,17 +83,34 @@ this.FxAccountsProfile = function (options = {}) {
   });
 
   
+  
+  Services.obs.addObserver(this, ON_PROFILE_CHANGE_NOTIFICATION, true);
+  
   if (options.channel) {
     this.channel = options.channel;
   }
 }
 
 this.FxAccountsProfile.prototype = {
+  
+  
+  PROFILE_FRESHNESS_THRESHOLD: 120000, 
+
+  observe(subject, topic, data) {
+    
+    
+    
+    if (topic == ON_PROFILE_CHANGE_NOTIFICATION && !this._isNotifying) {
+      log.debug("FxAccountsProfile observed profile change");
+      this._cachedAt = 0;
+    }
+  },
 
   tearDown: function () {
     this.fxa = null;
     this.client = null;
     this._cachedProfile = null;
+    Services.obs.removeObserver(this, ON_PROFILE_CHANGE_NOTIFICATION);
   },
 
   _getCachedProfile: function () {
@@ -100,7 +120,9 @@ this.FxAccountsProfile.prototype = {
   },
 
   _notifyProfileChange: function (uid) {
+    this._isNotifying = true;
     Services.obs.notifyObservers(null, ON_PROFILE_CHANGE_NOTIFICATION, uid);
+    this._isNotifying = false;
   },
 
   
@@ -111,6 +133,7 @@ this.FxAccountsProfile.prototype = {
       return Promise.resolve(null); 
     }
     this._cachedProfile = profileData;
+    this._cachedAt = Date.now();
     return this.fxa.getSignedInUser()
       .then(userData => {
         log.debug("notifying profile changed for user ${uid}", userData);
@@ -120,10 +143,20 @@ this.FxAccountsProfile.prototype = {
   },
 
   _fetchAndCacheProfile: function () {
-    return this.client.fetchProfile()
-      .then(profile => {
-        return this._cacheProfile(profile).then(() => profile);
+    if (!this._currentFetchPromise) {
+      this._currentFetchPromise = this.client.fetchProfile().then(profile => {
+        return this._cacheProfile(profile).then(() => {
+          return profile;
+        });
+      }).then(profile => {
+        this._currentFetchPromise = null;
+        return profile;
+      }, err => {
+        this._currentFetchPromise = null;
+        throw err;
       });
+    }
+    return this._currentFetchPromise
   },
 
   
@@ -133,11 +166,15 @@ this.FxAccountsProfile.prototype = {
     return this._getCachedProfile()
       .then(cachedProfile => {
         if (cachedProfile) {
-          
-          
-          this._fetchAndCacheProfile().catch(err => {
-            log.error("Background refresh of profile failed", err);
-          });
+          if (Date.now() > this._cachedAt + this.PROFILE_FRESHNESS_THRESHOLD) {
+            
+            
+            this._fetchAndCacheProfile().catch(err => {
+              log.error("Background refresh of profile failed", err);
+            });
+          } else {
+            log.trace("not checking freshness of profile as it remains recent");
+          }
           return cachedProfile;
         }
         return this._fetchAndCacheProfile();
@@ -146,4 +183,9 @@ this.FxAccountsProfile.prototype = {
         return profile;
       });
   },
+
+  QueryInterface: XPCOMUtils.generateQI([
+      Ci.nsIObserver,
+      Ci.nsISupportsWeakReference,
+  ]),
 };

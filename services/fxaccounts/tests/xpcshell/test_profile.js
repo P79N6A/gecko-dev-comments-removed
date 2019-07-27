@@ -164,6 +164,137 @@ add_test(function fetchAndCacheProfile_ok() {
     });
 });
 
+
+
+add_task(function fetchAndCacheProfileOnce() {
+  
+  
+  let resolveProfile;
+  let promiseProfile = new Promise(resolve => {
+    resolveProfile = resolve;
+  });
+  let numFetches = 0;
+  let client = mockClient(mockFxa());
+  client.fetchProfile = function () {
+    numFetches += 1;
+    return promiseProfile;
+  };
+  let profile = CreateFxAccountsProfile(null, client);
+
+  let request1 = profile._fetchAndCacheProfile();
+  let request2 = profile._fetchAndCacheProfile();
+
+  
+  
+  do_check_eq(numFetches, 1);
+
+  
+  resolveProfile({ avatar: "myimg"});
+
+  
+  let got1 = yield request1;
+  do_check_eq(got1.avatar, "myimg");
+  let got2 = yield request1;
+  do_check_eq(got2.avatar, "myimg");
+
+  
+  do_check_eq(numFetches, 1);
+});
+
+
+
+add_task(function fetchAndCacheProfileOnce() {
+  
+  
+  let rejectProfile;
+  let promiseProfile = new Promise((resolve,reject) => {
+    rejectProfile = reject;
+  });
+  let numFetches = 0;
+  let client = mockClient(mockFxa());
+  client.fetchProfile = function () {
+    numFetches += 1;
+    return promiseProfile;
+  };
+  let profile = CreateFxAccountsProfile(null, client);
+
+  let request1 = profile._fetchAndCacheProfile();
+  let request2 = profile._fetchAndCacheProfile();
+
+  
+  
+  do_check_eq(numFetches, 1);
+
+  
+  rejectProfile("oh noes");
+
+  
+  try {
+    yield request1;
+    throw new Error("should have rejected");
+  } catch (ex if ex == "oh noes") {}
+  try {
+    yield request2;
+    throw new Error("should have rejected");
+  } catch (ex if ex == "oh noes") {}
+
+  
+  client.fetchProfile = function () {
+    return Promise.resolve({ avatar: "myimg"});
+  };
+
+  let got = yield profile._fetchAndCacheProfile();
+  do_check_eq(got.avatar, "myimg");
+});
+
+
+
+add_task(function fetchAndCacheProfileAfterThreshold() {
+  let numFetches = 0;
+  let client = mockClient(mockFxa());
+  client.fetchProfile = function () {
+    numFetches += 1;
+    return Promise.resolve({ avatar: "myimg"});
+  };
+  let profile = CreateFxAccountsProfile(null, client);
+  profile.PROFILE_FRESHNESS_THRESHOLD = 1000;
+
+  yield profile.getProfile();
+  do_check_eq(numFetches, 1);
+
+  yield profile.getProfile();
+  do_check_eq(numFetches, 1);
+
+  yield new Promise(resolve => {
+    do_timeout(1000, resolve);
+  });
+
+  yield profile.getProfile();
+  do_check_eq(numFetches, 2);
+});
+
+
+
+
+add_task(function fetchAndCacheProfileBeforeThresholdOnNotification() {
+  let numFetches = 0;
+  let client = mockClient(mockFxa());
+  client.fetchProfile = function () {
+    numFetches += 1;
+    return Promise.resolve({ avatar: "myimg"});
+  };
+  let profile = CreateFxAccountsProfile(null, client);
+  profile.PROFILE_FRESHNESS_THRESHOLD = 1000;
+
+  yield profile.getProfile();
+  do_check_eq(numFetches, 1);
+
+  Services.obs.notifyObservers(null, ON_PROFILE_CHANGE_NOTIFICATION, null);
+
+  yield profile.getProfile();
+  do_check_eq(numFetches, 2);
+});
+
 add_test(function tearDown_ok() {
   let profile = CreateFxAccountsProfile();
 
