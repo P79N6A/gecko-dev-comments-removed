@@ -91,9 +91,8 @@ class autoJArray {
       arr = other.arr;
       length = other.length;
     }
-    void operator=(decltype(nullptr) n) {
+    void operator=(decltype(nullptr)) {
       
-      MOZ_ASSERT(n == nullptr);
       delete[] arr;
       arr = nullptr;
       length = 0;

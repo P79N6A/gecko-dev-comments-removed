@@ -11,7 +11,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/LinkedList.h"
-#include "mozilla/NullPtr.h"
 #include "mozilla/TypeTraits.h"
 
 #include "jspubtd.h"
@@ -513,14 +512,7 @@ class MOZ_STACK_CLASS MutableHandle : public js::MutableHandleBase<T>
 
   private:
     
-    
-    template<typename N>
-    MutableHandle(N,
-                  typename mozilla::EnableIf<mozilla::IsNullPointer<N>::value ||
-                                             mozilla::IsSame<N, int>::value ||
-                                             mozilla::IsSame<N, long>::value,
-                                             int>::Type dummy = 0)
-    = delete;
+    MutableHandle(decltype(nullptr)) = delete;
 
   public:
     void set(T v) {
