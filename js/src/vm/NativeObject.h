@@ -1294,6 +1294,13 @@ NativeDeleteProperty(JSContext *cx, HandleNativeObject obj, HandleId id, bool *s
 
 
 
+template <AllowGC allowGC>
+extern bool
+NativeLookupOwnProperty(ExclusiveContext *cx,
+                        typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
+                        typename MaybeRooted<jsid, allowGC>::HandleType id,
+                        typename MaybeRooted<Shape*, allowGC>::MutableHandleType propp);
+
 
 
 
