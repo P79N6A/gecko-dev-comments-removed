@@ -68,14 +68,6 @@ class PeerIdentity;
 
 
 
-class MediaPipeline;
-
-template<>
-struct HasDangerousPublicDestructor<MediaPipeline>
-{
-  static const bool value = true;
-};
-
 class MediaPipeline : public sigslot::has_slots<> {
  public:
   enum Direction { TRANSMIT, RECEIVE };
@@ -116,8 +108,6 @@ class MediaPipeline : public sigslot::has_slots<> {
       
       transport_ = new PipelineTransport(this);
   }
-
-  virtual ~MediaPipeline();
 
   
   void ShutdownTransport_s();
@@ -172,6 +162,7 @@ class MediaPipeline : public sigslot::has_slots<> {
   } RtpType;
 
  protected:
+  virtual ~MediaPipeline();
   virtual void DetachMediaStream() {}
 
   
