@@ -101,6 +101,13 @@ body {
 
 
 
+.finished {
+  pointer-events: none;
+  opacity: .5;
+}
+
+
+
 .animation-title {
   background-color: var(--theme-toolbar-background);
   border-bottom: 1px solid var(--theme-splitter-color);
