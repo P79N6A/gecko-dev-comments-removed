@@ -42,57 +42,7 @@ public class testNewTab extends BaseTest {
         mAsserter.is(tabCountInt, expectedTabCount, "Number of tabs increased");
 
         
-        
-    }
-
-    private void closeTabs() {
-        final int closeTabId = closeTab.getId();
-        String tabCountText = null;
-
-        
-        boolean clicked = tabs.click();
-        if (!clicked) {
-            mAsserter.ok(clicked != false, "checking that tabs clicked", "tabs element clicked");
-        }
-
-        
-        boolean success = waitForTest(new BooleanTest() {
-            @Override
-            public boolean test() {
-                View closeTabView = getActivity().findViewById(closeTabId);
-                if (closeTabView == null) {
-                    return false;
-                }
-                return true;
-            }
-        }, MAX_WAIT_MS);
-        if (!success) {
-            mAsserter.ok(success != false, "waiting for close tab view", "close tab view available");
-        }
-
-        
-        tabCountText = tabCount.getText();
-        tabCountInt = Integer.parseInt(tabCountText);
-        while (tabCountInt > 1) {
-            clicked = closeTab.click();
-            if (!clicked) {
-                mAsserter.ok(clicked != false, "checking that close_tab clicked", "close_tab element clicked");
-            }
-
-            success = waitForCondition(new Condition() {
-                @Override
-                public boolean isSatisfied() {
-                    String newTabCountText = tabCount.getText();
-                    int newTabCount = Integer.parseInt(newTabCountText);
-                    if (newTabCount < tabCountInt) {
-                        tabCountInt = newTabCount;
-                        return true;
-                    }
-                    return false;
-                }
-            }, MAX_WAIT_MS);
-            mAsserter.ok(success, "Checking tab closed", "number of tabs now "+tabCountInt);
-        }
+        closeAddedTabs();
     }
 
     private void getTabCount(final int expected) {

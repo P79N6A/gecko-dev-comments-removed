@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -80,6 +81,7 @@ abstract class BaseTest extends BaseRobocopTest {
     protected StringHelper mStringHelper;
     protected int mScreenMidWidth;
     protected int mScreenMidHeight;
+    private HashSet<Integer> mKnownTabIDs = new HashSet<Integer>();
 
     protected void blockForGeckoReady() {
         try {
@@ -554,9 +556,21 @@ abstract class BaseTest extends BaseRobocopTest {
             }
         }, MAX_WAIT_MS);
         mAsserter.ok(success, "waiting for add tab view", "add tab view available");
-        Actions.EventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
+        final Actions.RepeatedEventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
         mSolo.clickOnView(mSolo.getView(R.id.add_tab));
-        pageShowExpecter.blockForEvent();
+        
+        for(;;) {
+            try {
+                JSONObject data = new JSONObject(pageShowExpecter.blockForEventData());
+                int tabID = data.getInt("tabID");
+                if (!mKnownTabIDs.contains(tabID)) {
+                    mKnownTabIDs.add(tabID);
+                    break;
+                }
+            } catch(JSONException e) {
+                mAsserter.ok(false, "Exception in addTab", getStackTraceString(e));
+            }
+        }
         pageShowExpecter.unregisterListener();
     }
 
@@ -565,6 +579,12 @@ abstract class BaseTest extends BaseRobocopTest {
 
         
         inputAndLoadUrl(url);
+    }
+
+    public void closeAddedTabs() {
+        for(int tabID : mKnownTabIDs) {
+            closeTab(tabID);
+        }
     }
 
     
