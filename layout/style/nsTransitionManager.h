@@ -79,6 +79,10 @@ public:
   virtual dom::AnimationPlayState PlayStateFromJS() const MOZ_OVERRIDE;
   virtual void PlayFromJS() MOZ_OVERRIDE;
 
+  
+  
+  void PlayFromStyle() { DoPlay(); }
+
 protected:
   virtual ~CSSTransitionPlayer() { }
 

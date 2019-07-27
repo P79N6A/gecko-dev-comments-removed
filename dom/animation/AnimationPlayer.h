@@ -118,9 +118,6 @@ public:
                     nsCSSPropertySet& aSetProperties,
                     bool& aNeedsRefreshes);
 
-  
-  Nullable<TimeDuration> mStartTime; 
-
 protected:
   void DoPlay();
   void DoPause();
@@ -136,6 +133,8 @@ protected:
 
   nsRefPtr<AnimationTimeline> mTimeline;
   nsRefPtr<Animation> mSource;
+  
+  Nullable<TimeDuration> mStartTime; 
   Nullable<TimeDuration> mHoldTime;  
   bool mIsRunningOnCompositor;
   

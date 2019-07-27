@@ -414,7 +414,6 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
   ResolvedStyleCache resolvedStyles;
 
   const nsStyleDisplay *disp = aStyleContext->StyleDisplay();
-  Nullable<TimeDuration> now = aTimeline->GetCurrentTime();
 
   for (size_t animIdx = 0, animEnd = disp->mAnimationNameCount;
        animIdx != animEnd; ++animIdx) {
@@ -450,7 +449,11 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
                     aStyleContext->GetPseudoType(), timing, src.GetName());
     dest->SetSource(destAnim);
 
-    dest->mStartTime = now;
+    
+    
+    
+    dest->PlayFromStyle();
+
     if (src.GetPlayState() == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED) {
       dest->PauseFromStyle();
     }
