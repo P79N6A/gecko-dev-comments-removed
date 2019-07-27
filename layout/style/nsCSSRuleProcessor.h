@@ -16,6 +16,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
 #include "nsIStyleRuleProcessor.h"
+#include "nsIMediaList.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 #include "nsExpirationTracker.h"
@@ -36,6 +37,9 @@ class nsCSSCounterStyleRule;
 
 namespace mozilla {
 class CSSStyleSheet;
+namespace css {
+class DocumentRule;
+} 
 } 
 
 
@@ -163,6 +167,11 @@ public:
 
   mozilla::dom::Element* GetScopeElement() const { return mScopeElement; }
 
+  void TakeDocumentRulesAndCacheKey(
+      nsPresContext* aPresContext,
+      nsTArray<mozilla::css::DocumentRule*>& aDocumentRules,
+      nsDocumentRuleResultCacheKey& aDocumentRuleResultCacheKey);
+
   bool IsShared() const { return mIsShared; }
 
   nsExpirationState* GetExpirationState() { return &mExpirationState; }
@@ -226,13 +235,27 @@ private:
   
   nsRefPtr<mozilla::dom::Element> mScopeElement;
 
+  nsTArray<mozilla::css::DocumentRule*> mDocumentRules;
+  nsDocumentRuleResultCacheKey mDocumentCacheKey;
+
   nsExpirationState mExpirationState;
 
   
   uint8_t mSheetType;  
 
   const bool mIsShared;
+
+  
+  
+  
+  
+  bool mMustGatherDocumentRules;
+
   bool mInRuleProcessorCache;
+
+#ifdef DEBUG
+  bool mDocumentRulesAndCacheKeyValid;
+#endif
 
 #ifdef XP_WIN
   static uint8_t sWinThemeId;

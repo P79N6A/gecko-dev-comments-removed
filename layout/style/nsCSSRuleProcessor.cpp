@@ -1017,7 +1017,11 @@ nsCSSRuleProcessor::nsCSSRuleProcessor(const sheet_array_type& aSheets,
   , mScopeElement(aScopeElement)
   , mSheetType(aSheetType)
   , mIsShared(aIsShared)
+  , mMustGatherDocumentRules(aIsShared)
   , mInRuleProcessorCache(false)
+#ifdef DEBUG
+  , mDocumentRulesAndCacheKeyValid(false)
+#endif
 {
   NS_ASSERTION(!!mScopeElement == (aSheetType == nsStyleSet::eScopedDocSheet),
                "aScopeElement must be specified iff aSheetType is "
@@ -3005,6 +3009,16 @@ nsCSSRuleProcessor::ClearRuleCascades()
   
   MOZ_ASSERT(!RuleProcessorCache::HasRuleProcessor(this));
 
+#ifdef DEBUG
+  
+  
+  
+  
+  if (!mMustGatherDocumentRules) {
+    mDocumentRulesAndCacheKeyValid = false;
+  }
+#endif
+
   
   
   
@@ -3302,17 +3316,23 @@ struct CascadeEnumData {
                   nsTArray<nsCSSFontFeatureValuesRule*>& aFontFeatureValuesRules,
                   nsTArray<nsCSSPageRule*>& aPageRules,
                   nsTArray<nsCSSCounterStyleRule*>& aCounterStyleRules,
+                  nsTArray<css::DocumentRule*>& aDocumentRules,
                   nsMediaQueryResultCacheKey& aKey,
-                  uint8_t aSheetType)
+                  nsDocumentRuleResultCacheKey& aDocumentKey,
+                  uint8_t aSheetType,
+                  bool aMustGatherDocumentRules)
     : mPresContext(aPresContext),
       mFontFaceRules(aFontFaceRules),
       mKeyframesRules(aKeyframesRules),
       mFontFeatureValuesRules(aFontFeatureValuesRules),
       mPageRules(aPageRules),
       mCounterStyleRules(aCounterStyleRules),
+      mDocumentRules(aDocumentRules),
       mCacheKey(aKey),
+      mDocumentCacheKey(aDocumentKey),
       mRulesByWeight(&gRulesByWeightOps, sizeof(RuleByWeightEntry), 32),
-      mSheetType(aSheetType)
+      mSheetType(aSheetType),
+      mMustGatherDocumentRules(aMustGatherDocumentRules)
   {
     
     PL_INIT_ARENA_POOL(&mArena, "CascadeEnumDataArena",
@@ -3330,13 +3350,75 @@ struct CascadeEnumData {
   nsTArray<nsCSSFontFeatureValuesRule*>& mFontFeatureValuesRules;
   nsTArray<nsCSSPageRule*>& mPageRules;
   nsTArray<nsCSSCounterStyleRule*>& mCounterStyleRules;
+  nsTArray<css::DocumentRule*>& mDocumentRules;
   nsMediaQueryResultCacheKey& mCacheKey;
+  nsDocumentRuleResultCacheKey& mDocumentCacheKey;
   PLArenaPool mArena;
   
   
   PLDHashTable mRulesByWeight; 
   uint8_t mSheetType;
+  bool mMustGatherDocumentRules;
 };
+
+
+
+
+
+
+
+
+
+
+
+static bool
+GatherDocRuleEnumFunc(css::Rule* aRule, void* aData)
+{
+  CascadeEnumData* data = (CascadeEnumData*)aData;
+  int32_t type = aRule->GetType();
+
+  MOZ_ASSERT(data->mMustGatherDocumentRules,
+             "should only call GatherDocRuleEnumFunc if "
+             "mMustGatherDocumentRules is true");
+
+  if (css::Rule::MEDIA_RULE == type ||
+      css::Rule::SUPPORTS_RULE == type) {
+    css::GroupRule* groupRule = static_cast<css::GroupRule*>(aRule);
+    if (!groupRule->EnumerateRulesForwards(GatherDocRuleEnumFunc, aData)) {
+      return false;
+    }
+  }
+  else if (css::Rule::DOCUMENT_RULE == type) {
+    css::DocumentRule* docRule = static_cast<css::DocumentRule*>(aRule);
+    if (!data->mDocumentRules.AppendElement(docRule)) {
+      return false;
+    }
+    if (docRule->UseForPresentation(data->mPresContext)) {
+      if (!data->mDocumentCacheKey.AddMatchingRule(docRule)) {
+        return false;
+      }
+    }
+    if (!docRule->EnumerateRulesForwards(GatherDocRuleEnumFunc, aData)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3380,12 +3462,38 @@ CascadeRuleEnumFunc(css::Rule* aRule, void* aData)
     }
   }
   else if (css::Rule::MEDIA_RULE == type ||
-           css::Rule::DOCUMENT_RULE == type ||
            css::Rule::SUPPORTS_RULE == type) {
     css::GroupRule* groupRule = static_cast<css::GroupRule*>(aRule);
-    if (groupRule->UseForPresentation(data->mPresContext, data->mCacheKey))
-      if (!groupRule->EnumerateRulesForwards(CascadeRuleEnumFunc, aData))
+    const bool use =
+      groupRule->UseForPresentation(data->mPresContext, data->mCacheKey);
+    if (use || data->mMustGatherDocumentRules) {
+      if (!groupRule->EnumerateRulesForwards(use ? CascadeRuleEnumFunc :
+                                                   GatherDocRuleEnumFunc,
+                                             aData)) {
         return false;
+      }
+    }
+  }
+  else if (css::Rule::DOCUMENT_RULE == type) {
+    css::DocumentRule* docRule = static_cast<css::DocumentRule*>(aRule);
+    if (data->mMustGatherDocumentRules) {
+      if (!data->mDocumentRules.AppendElement(docRule)) {
+        return false;
+      }
+    }
+    const bool use = docRule->UseForPresentation(data->mPresContext);
+    if (use && data->mMustGatherDocumentRules) {
+      if (!data->mDocumentCacheKey.AddMatchingRule(docRule)) {
+        return false;
+      }
+    }
+    if (use || data->mMustGatherDocumentRules) {
+      if (!docRule->EnumerateRulesForwards(use ? CascadeRuleEnumFunc
+                                               : GatherDocRuleEnumFunc,
+                                           aData)) {
+        return false;
+      }
+    }
   }
   else if (css::Rule::FONT_FACE_RULE == type) {
     nsCSSFontFaceRule *fontFaceRule = static_cast<nsCSSFontFaceRule*>(aRule);
@@ -3508,8 +3616,12 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
                            newCascade->mFontFeatureValuesRules,
                            newCascade->mPageRules,
                            newCascade->mCounterStyleRules,
+                           mDocumentRules,
                            newCascade->mCacheKey,
-                           mSheetType);
+                           mDocumentCacheKey,
+                           mSheetType,
+                           mMustGatherDocumentRules);
+
       for (uint32_t i = 0; i < mSheets.Length(); ++i) {
         if (!CascadeSheet(mSheets.ElementAt(i), &data))
           return; 
@@ -3554,6 +3666,40 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
       }
 
       
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (mMustGatherDocumentRules) {
+        mDocumentRules.Sort();
+        mDocumentCacheKey.Finalize();
+        mMustGatherDocumentRules = false;
+#ifdef DEBUG
+        mDocumentRulesAndCacheKeyValid = true;
+#endif
+      }
+
+      
       newCascade->mNext = mRuleCascades;
       mRuleCascades = newCascade.forget();
     }
@@ -3588,6 +3734,26 @@ nsCSSRuleProcessor::SelectorListMatches(Element* aElement,
   }
 
   return false;
+}
+
+void
+nsCSSRuleProcessor::TakeDocumentRulesAndCacheKey(
+    nsPresContext* aPresContext,
+    nsTArray<css::DocumentRule*>& aDocumentRules,
+    nsDocumentRuleResultCacheKey& aCacheKey)
+{
+  MOZ_ASSERT(mIsShared);
+
+  GetRuleCascade(aPresContext);
+  MOZ_ASSERT(mDocumentRulesAndCacheKeyValid);
+
+  aDocumentRules.Clear();
+  aDocumentRules.SwapElements(mDocumentRules);
+  aCacheKey.Swap(mDocumentCacheKey);
+
+#ifdef DEBUG
+  mDocumentRulesAndCacheKeyValid = false;
+#endif
 }
 
 
