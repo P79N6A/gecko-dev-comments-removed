@@ -37,6 +37,8 @@ extern PRLogModuleInfo* GetMediaSourceLog();
 
 #define FUZZ_TIMESTAMP_OFFSET 100000
 
+#define EOS_FUZZ_US 125000
+
 namespace mozilla {
 
 TrackBuffer::TrackBuffer(MediaSourceDecoder* aParentDecoder, const nsACString& aType)
@@ -320,70 +322,95 @@ TrackBuffer::EvictData(double aPlaybackTime,
 
   
   
-  uint32_t i = 0;
-  bool pastCurrentDecoder = true;
-  for (; i < decoders.Length() && toEvict > 0; ++i) {
+  for (uint32_t i = 0; i < decoders.Length() && toEvict > 0; ++i) {
     nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
     decoders[i]->GetBuffered(buffered);
-    bool onCurrent = decoders[i] == mCurrentDecoder;
-    if (onCurrent) {
-      pastCurrentDecoder = false;
-    }
 
-    MSE_DEBUG("decoder=%u/%u threshold=%u "
-              "toEvict=%lld current=%s pastCurrent=%s",
-              i, decoders.Length(), aThreshold, toEvict,
-              onCurrent ? "true" : "false",
-              pastCurrentDecoder ? "true" : "false");
+    MSE_DEBUG("decoder=%u/%u threshold=%u toEvict=%lld",
+              i, decoders.Length(), aThreshold, toEvict);
 
-    if (pastCurrentDecoder &&
-        !mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
-      
-      
-      MSE_DEBUG("evicting all before start "
-                "bufferedStart=%f bufferedEnd=%f aPlaybackTime=%f size=%lld",
-                buffered->GetStartTime(), buffered->GetEndTime(),
-                aPlaybackTime, decoders[i]->GetResource()->GetSize());
-      toEvict -= decoders[i]->GetResource()->EvictAll();
-    } else {
-      
-      
-      
-      if (aPlaybackTime > MSE_EVICT_THRESHOLD_TIME) {
-        double time = aPlaybackTime - MSE_EVICT_THRESHOLD_TIME;
-        int64_t playbackOffset = decoders[i]->ConvertToByteOffset(time);
-        MSE_DEBUG("evicting some bufferedEnd=%f"
-                  "aPlaybackTime=%f time=%f, playbackOffset=%lld size=%lld",
-                  buffered->GetEndTime(), aPlaybackTime, time,
-                  playbackOffset, decoders[i]->GetResource()->GetSize());
-        if (playbackOffset > 0) {
-          toEvict -= decoders[i]->GetResource()->EvictData(playbackOffset,
-                                                           playbackOffset);
-        }
+    
+    
+    
+    if (aPlaybackTime > MSE_EVICT_THRESHOLD_TIME) {
+      double time = aPlaybackTime - MSE_EVICT_THRESHOLD_TIME;
+      int64_t playbackOffset = decoders[i]->ConvertToByteOffset(time);
+      MSE_DEBUG("evicting some bufferedEnd=%f"
+                "aPlaybackTime=%f time=%f, playbackOffset=%lld size=%lld",
+                buffered->GetEndTime(), aPlaybackTime, time,
+                playbackOffset, decoders[i]->GetResource()->GetSize());
+      if (playbackOffset > 0) {
+        toEvict -= decoders[i]->GetResource()->EvictData(playbackOffset,
+                                                         toEvict);
       }
     }
   }
 
   
-  for (i = 0; i < decoders.Length(); ++i) {
-    nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
-    decoders[i]->GetBuffered(buffered);
-    MSE_DEBUG("maybe remove empty decoders=%d "
-              "size=%lld start=%f end=%f",
-              i, decoders[i]->GetResource()->GetSize(),
-              buffered->GetStartTime(), buffered->GetEndTime());
-    if (decoders[i] == mCurrentDecoder
-        || mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
+  for (uint32_t i = 0; i < decoders.Length() && toEvict > 0; ++i) {
+    if (mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
+      break;
+    }
+    if (decoders[i] == mCurrentDecoder) {
       continue;
     }
+    nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
+    decoders[i]->GetBuffered(buffered);
 
-    if (decoders[i]->GetResource()->GetSize() == 0 ||
-        buffered->GetStartTime() < 0.0 ||
-        buffered->GetEndTime() < 0.0) {
-      MSE_DEBUG("remove empty decoders=%d", i);
-      RemoveDecoder(decoders[i]);
+    
+    MSE_DEBUG("evicting all "
+              "bufferedStart=%f bufferedEnd=%f aPlaybackTime=%f size=%lld",
+              buffered->GetStartTime(), buffered->GetEndTime(),
+              aPlaybackTime, decoders[i]->GetResource()->GetSize());
+    toEvict -= decoders[i]->GetResource()->EvictAll();
+  }
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  SourceBufferDecoder* playingDecoder = nullptr;
+  for (uint32_t i = 0; i < decoders.Length() && toEvict > 0; ++i) {
+    if (mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
+      playingDecoder = decoders[i];
+      break;
     }
   }
+  
+  nsRefPtr<SourceBufferDecoder> nextPlayingDecoder = nullptr;
+  if (playingDecoder) {
+    nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
+    playingDecoder->GetBuffered(buffered);
+    nextPlayingDecoder =
+      mParentDecoder->SelectDecoder(buffered->GetEndTime() * USECS_PER_S + 1,
+                                    EOS_FUZZ_US,
+                                    mInitializedDecoders);
+  }
+
+  
+  decoders.Sort(DecoderSorter());
+
+  for (int32_t i = int32_t(decoders.Length()) - 1; i >= 0 && toEvict > 0; --i) {
+    if (decoders[i] == playingDecoder || decoders[i] == nextPlayingDecoder ||
+        decoders[i] == mCurrentDecoder) {
+      continue;
+    }
+    nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
+    decoders[i]->GetBuffered(buffered);
+
+    MSE_DEBUG("evicting all "
+              "bufferedStart=%f bufferedEnd=%f aPlaybackTime=%f size=%lld",
+              buffered->GetStartTime(), buffered->GetEndTime(),
+              aPlaybackTime, decoders[i]->GetResource()->GetSize());
+    toEvict -= decoders[i]->GetResource()->EvictAll();
+  }
+
+  RemoveEmptyDecoders(decoders);
 
   bool evicted = toEvict < (totalSize - aThreshold);
   if (evicted) {
@@ -393,6 +420,33 @@ TrackBuffer::EvictData(double aPlaybackTime,
   }
 
   return evicted;
+}
+
+void
+TrackBuffer::RemoveEmptyDecoders(nsTArray<mozilla::SourceBufferDecoder*>& aDecoders)
+{
+  ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
+
+  
+  for (uint32_t i = 0; i < aDecoders.Length(); ++i) {
+    nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
+    aDecoders[i]->GetBuffered(buffered);
+    MSE_DEBUG("maybe remove empty decoders=%d "
+              "size=%lld start=%f end=%f",
+              i, aDecoders[i]->GetResource()->GetSize(),
+              buffered->GetStartTime(), buffered->GetEndTime());
+    if (aDecoders[i] == mCurrentDecoder ||
+        mParentDecoder->IsActiveReader(aDecoders[i]->GetReader())) {
+      continue;
+    }
+
+    if (aDecoders[i]->GetResource()->GetSize() == 0 ||
+        buffered->GetStartTime() < 0.0 ||
+        buffered->GetEndTime() < 0.0) {
+      MSE_DEBUG("remove empty decoders=%d", i);
+      RemoveDecoder(aDecoders[i]);
+    }
+  }
 }
 
 void

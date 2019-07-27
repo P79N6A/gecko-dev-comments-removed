@@ -206,8 +206,8 @@ private:
 
   
   
-  already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget,
-                                                      int64_t aTolerance,
+  already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget ,
+                                                      int64_t aTolerance ,
                                                       const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
   bool HaveData(int64_t aTarget, MediaData::Type aType);
 

@@ -84,6 +84,12 @@ public:
 
   
   
+  already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget ,
+                                                      int64_t aTolerance ,
+                                                      const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
+
+  
+  
   void GetMozDebugReaderData(nsAString& aString);
 
 private:

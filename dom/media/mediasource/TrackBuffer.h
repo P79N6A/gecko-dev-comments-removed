@@ -156,6 +156,9 @@ private:
   
   void RemoveDecoder(SourceBufferDecoder* aDecoder);
 
+  
+  void RemoveEmptyDecoders(nsTArray<SourceBufferDecoder*>& aDecoders);
+
   nsAutoPtr<ContainerParser> mParser;
 
   
