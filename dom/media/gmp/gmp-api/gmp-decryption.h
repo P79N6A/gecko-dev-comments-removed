@@ -76,6 +76,14 @@ enum GMPSessionMessageType {
   kGMPMessageInvalid = 4 
 };
 
+enum GMPMediaKeyStatus {
+  kGMPUsable = 0,
+  kGMPExpired = 1,
+  kGMPOutputNotAllowed = 2,
+  kGMPUnknown = 3,
+  kGMPMediaKeyStatusInvalid = 4 
+};
+
 
 typedef int64_t GMPTimestamp;
 
@@ -176,17 +184,11 @@ public:
   
   
   
-  virtual void KeyIdUsable(const char* aSessionId,
-                           uint32_t aSessionIdLength,
-                           const uint8_t* aKeyId,
-                           uint32_t aKeyIdLength) = 0;
-
-  
-  
-  virtual void KeyIdNotUsable(const char* aSessionId,
-                              uint32_t aSessionIdLength,
-                              const uint8_t* aKeyId,
-                              uint32_t aKeyIdLength) = 0;
+  virtual void KeyStatusChanged(const char* aSessionId,
+                                uint32_t aSessionIdLength,
+                                const uint8_t* aKeyId,
+                                uint32_t aKeyIdLength,
+                                GMPMediaKeyStatus aStatus) = 0;
 
   
   
@@ -220,7 +222,7 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 
 };
 
-#define GMP_API_DECRYPTOR "eme-decrypt-v4"
+#define GMP_API_DECRYPTOR "eme-decrypt-v5"
 
 
 

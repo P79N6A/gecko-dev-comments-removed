@@ -14,6 +14,7 @@
 #include "nsTArray.h"
 #include "mozilla/Attributes.h"
 #include "SamplesWaitingForKey.h"
+#include "gmp-decryption.h"
 
 namespace mozilla {
 
@@ -39,11 +40,7 @@ public:
 
     
     
-    bool SetKeyUsable(const CencKeyId& aKeyId, const nsString& aSessionId);
-
-    
-    
-    bool SetKeyUnusable(const CencKeyId& aKeyId, const nsString& aSessionId);
+    bool SetKeyStatus(const CencKeyId& aKeyId, const nsString& aSessionId, GMPMediaKeyStatus aStatus);
 
     void GetUsableKeysForSession(const nsAString& aSessionId,
                                  nsTArray<CencKeyId>& aOutKeyIds);
@@ -85,25 +82,29 @@ private:
 
   Monitor mMonitor;
 
-  struct UsableKey {
-    UsableKey(const CencKeyId& aId,
-              const nsString& aSessionId)
+  struct KeyStatus {
+    KeyStatus(const CencKeyId& aId,
+              const nsString& aSessionId,
+              GMPMediaKeyStatus aStatus)
       : mId(aId)
       , mSessionId(aSessionId)
+      , mStatus(aStatus)
     {}
-    UsableKey(const UsableKey& aOther)
+    KeyStatus(const KeyStatus& aOther)
       : mId(aOther.mId)
       , mSessionId(aOther.mSessionId)
+      , mStatus(aOther.mStatus)
     {}
-    bool operator==(const UsableKey& aOther) const {
+    bool operator==(const KeyStatus& aOther) const {
       return mId == aOther.mId &&
              mSessionId == aOther.mSessionId;
     };
 
     CencKeyId mId;
     nsString mSessionId;
+    GMPMediaKeyStatus mStatus;
   };
-  nsTArray<UsableKey> mUsableKeyIds;
+  nsTArray<KeyStatus> mKeyStatuses;
 
   nsTArray<WaitForKeys> mWaitForKeys;
 
