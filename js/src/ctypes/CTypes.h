@@ -281,6 +281,9 @@ struct FieldHashPolicy : DefaultHasher<JSFlatString*>
 
 typedef HashMap<JSFlatString*, FieldInfo, FieldHashPolicy, SystemAllocPolicy> FieldInfoHash;
 
+void
+TraceFieldInfoHash(JSTracer* trc, FieldInfoHash* fields);
+
 
 
 struct FunctionInfo
