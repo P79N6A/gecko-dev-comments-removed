@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "builtin/TestingFunctions.h"
 
@@ -43,8 +43,8 @@ using mozilla::ArrayLength;
 using mozilla::Move;
 using mozilla::UniquePtr;
 
-// If fuzzingSafe is set, remove functionality that could cause problems with
-// fuzzers. Set this via the environment variable MOZ_FUZZING_SAFE.
+
+
 static bool fuzzingSafe = false;
 
 static bool
@@ -204,12 +204,12 @@ GC(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    /*
-     * If the first argument is 'compartment', we collect any compartments
-     * previously scheduled for GC via schedulegc. If the first argument is an
-     * object, we collect the object's compartment (and any other compartments
-     * scheduled for GC). Otherwise, we collect all compartments.
-     */
+    
+
+
+
+
+
     bool compartment = false;
     if (args.length() >= 1) {
         Value arg = args[0];
@@ -281,7 +281,7 @@ static const struct ParamPair {
     {"maxEmptyChunkCount",  JSGC_MAX_EMPTY_CHUNK_COUNT}
 };
 
-// Keep this in sync with above params.
+
 #define GC_PARAMETER_ARGS_LIST "maxBytes, maxMallocBytes, gcBytes, gcNumber, sliceTimeBudget, markStackLimit, minEmptyChunkCount or maxEmptyChunkCount"
 
 static bool
@@ -309,7 +309,7 @@ GCParameter(JSContext *cx, unsigned argc, Value *vp)
     }
     JSGCParamKey param = paramMap[paramIndex].param;
 
-    // Request mode.
+    
     if (args.length() == 1) {
         uint32_t value = JS_GetGCParameter(cx->runtime(), param);
         args.rval().setNumber(value);
@@ -367,9 +367,9 @@ SetAllowRelazification(JSContext *cx, bool allow)
 static bool
 RelazifyFunctions(JSContext *cx, unsigned argc, Value *vp)
 {
-    // Relazifying functions on GC is usually only done for compartments that are
-    // not active. To aid fuzzing, this testing function allows us to relazify
-    // even if the compartment is active.
+    
+    
+    
 
     SetAllowRelazification(cx, true);
     bool res = GC(cx, argc, vp);
@@ -510,16 +510,16 @@ ScheduleGC(JSContext *cx, unsigned argc, Value *vp)
     }
 
     if (args.length() == 0) {
-        /* Fetch next zeal trigger only. */
+        
     } else if (args[0].isInt32()) {
-        /* Schedule a GC to happen after |arg| allocations. */
+        
         JS_ScheduleGC(cx, args[0].toInt32());
     } else if (args[0].isObject()) {
-        /* Ensure that |zone| is collected during the next GC. */
+        
         Zone *zone = UncheckedUnwrap(&args[0].toObject())->zone();
         PrepareZoneForGC(zone);
     } else if (args[0].isString()) {
-        /* This allows us to schedule atomsCompartment for GC. */
+        
         PrepareZoneForGC(args[0].toString()->zone());
     }
 
@@ -536,11 +536,11 @@ SelectForGC(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    /*
-     * The selectedForMarking set is intended to be manually marked at slice
-     * start to detect missing pre-barriers. It is invalid for nursery things
-     * to be in the set, so evict the nursery before adding items.
-     */
+    
+
+
+
+
     JSRuntime *rt = cx->runtime();
     rt->gc.evictNursery();
 
@@ -631,7 +631,7 @@ DeterministicGC(JSContext *cx, unsigned argc, jsval *vp)
     args.rval().setUndefined();
     return true;
 }
-#endif /* JS_GC_ZEAL */
+#endif 
 
 static bool
 StartGC(JSContext *cx, unsigned argc, Value *vp)
@@ -907,11 +907,11 @@ CountHeap(JSContext *cx, unsigned argc, jsval *vp)
     size_t counter = 0;
     while ((node = countTracer.traceList) != nullptr) {
         if (traceThing == nullptr) {
-            // We are looking for all nodes with a specific kind
+            
             if (traceKind == -1 || node->kind == traceKind)
                 counter++;
         } else {
-            // We are looking for some specific thing
+            
             if (node->thing == traceThing)
                 counter++;
         }
@@ -933,7 +933,7 @@ CountHeap(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-// Stolen from jsmath.cpp
+
 static const uint64_t RNG_MULTIPLIER = 0x5DEECE66DLL;
 static const uint64_t RNG_MASK = (1LL << 48) - 1;
 
@@ -1087,13 +1087,13 @@ finalize_counter_finalize(JSFreeOp *fop, JSObject *obj)
 
 static const JSClass FinalizeCounterClass = {
     "FinalizeCounter", JSCLASS_IS_ANONYMOUS,
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
-    nullptr, /* enumerate */
-    nullptr, /* resolve */
-    nullptr, /* convert */
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     finalize_counter_finalize
 };
 
@@ -1178,8 +1178,8 @@ static bool
 Terminate(JSContext *cx, unsigned arg, jsval *vp)
 {
 #ifdef JS_MORE_DETERMINISTIC
-    // Print a message to stderr in more-deterministic builds to help jsfunfuzz
-    // find uncatchable-exception bugs.
+    
+    
     fprintf(stderr, "terminate called\n");
 #endif
 
@@ -1196,7 +1196,7 @@ EnableSPSProfiling(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    // Disable before re-enabling; see the assertion in |SPSProfiler::setProfilingStack|.
+    
     if (cx->runtime()->spsProfiler.installed())
         cx->runtime()->spsProfiler.enable(false);
 
@@ -1216,17 +1216,17 @@ EnableSPSProfilingWithSlowAssertions(JSContext *cx, unsigned argc, jsval *vp)
     args.rval().setUndefined();
 
     if (cx->runtime()->spsProfiler.enabled()) {
-        // If profiling already enabled with slow assertions disabled,
-        // this is a no-op.
+        
+        
         if (cx->runtime()->spsProfiler.slowAssertionsEnabled())
             return true;
 
-        // Slow assertions are off.  Disable profiling before re-enabling
-        // with slow assertions on.
+        
+        
         cx->runtime()->spsProfiler.enable(false);
     }
 
-    // Disable before re-enabling; see the assertion in |SPSProfiler::setProfilingStack|.
+    
     if (cx->runtime()->spsProfiler.installed())
         cx->runtime()->spsProfiler.enable(false);
 
@@ -1254,10 +1254,13 @@ ReadSPSProfilingStack(JSContext *cx, unsigned argc, jsval *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().setUndefined();
 
-    if (!cx->runtime()->spsProfiler.enabled())
+    
+    if (!cx->runtime()->spsProfiler.enabled()) {
         args.rval().setBoolean(false);
+        return true;
+    }
 
-    // Array holding physical jit stack frames.
+    
     RootedObject stack(cx, NewDenseEmptyArray(cx));
     if (!stack)
         return false;
@@ -1274,7 +1277,7 @@ ReadSPSProfilingStack(JSContext *cx, unsigned argc, jsval *vp)
     for (JS::ProfilingFrameIterator i(cx->runtime(), state); !i.done(); ++i, ++physicalFrameNo) {
         MOZ_ASSERT(i.stackAddress() != nullptr);
 
-        // Array holding all inline frames in a single physical jit stack frame.
+        
         inlineStack = NewDenseEmptyArray(cx);
         if (!inlineStack)
             return false;
@@ -1283,7 +1286,7 @@ ReadSPSProfilingStack(JSContext *cx, unsigned argc, jsval *vp)
         uint32_t nframes = i.extractStack(frames, 0, 16);
         for (uint32_t inlineFrameNo = 0; inlineFrameNo < nframes; inlineFrameNo++) {
 
-            // Object holding frame info.
+            
             inlineFrameInfo = NewBuiltinClassInstance<PlainObject>(cx);
             if (!inlineFrameInfo)
                 return false;
@@ -1321,7 +1324,7 @@ ReadSPSProfilingStack(JSContext *cx, unsigned argc, jsval *vp)
                 return false;
         }
 
-        // Push inline array into main array.
+        
         idx = INT_TO_JSID(physicalFrameNo);
         if (!JS_DefinePropertyById(cx, stack, idx, inlineStack, 0))
             return false;
@@ -1450,7 +1453,7 @@ js::testingFunc_bailout(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    // NOP when not in IonMonkey
+    
     args.rval().setUndefined();
     return true;
 }
@@ -1460,7 +1463,7 @@ js::testingFunc_assertFloat32(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    // NOP when not in IonMonkey
+    
     args.rval().setUndefined();
     return true;
 }
@@ -1516,8 +1519,8 @@ SetJitCompilerOption(JSContext *cx, unsigned argc, jsval *vp)
     if (number < 0)
         number = -1;
 
-    // Throw if disabling the JITs and there's JIT code on the stack, to avoid
-    // assertion failures.
+    
+    
     if ((opt == JSJITCOMPILER_BASELINE_ENABLE || opt == JSJITCOMPILER_ION_ENABLE) &&
         number == 0)
     {
@@ -1620,7 +1623,7 @@ class CloneBufferObject : public NativeObject {
         setReservedSlot(LENGTH_SLOT, Int32Value(nbytes));
     }
 
-    // Discard an owned clone buffer.
+    
     void discard() {
         if (data())
             JS_ClearStructuredClone(data(), nbytes(), nullptr, nullptr);
@@ -1639,7 +1642,7 @@ class CloneBufferObject : public NativeObject {
         }
 
         if (fuzzingSafe) {
-            // A manually-created clonebuffer could easily trigger a crash
+            
             args.rval().setUndefined();
             return true;
         }
@@ -1707,13 +1710,13 @@ class CloneBufferObject : public NativeObject {
 
 const Class CloneBufferObject::class_ = {
     "CloneBuffer", JSCLASS_HAS_RESERVED_SLOTS(CloneBufferObject::NUM_SLOTS),
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
-    nullptr, /* enumerate */
-    nullptr, /* resolve */
-    nullptr, /* convert */
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     Finalize
 };
 
@@ -1756,7 +1759,7 @@ Deserialize(JSContext *cx, unsigned argc, jsval *vp)
 
     Rooted<CloneBufferObject*> obj(cx, &args[0].toObject().as<CloneBufferObject>());
 
-    // Clone buffer was already consumed?
+    
     if (!obj->data()) {
         JS_ReportError(cx, "deserialize given invalid clone buffer "
                        "(transferables already consumed?)");
@@ -1827,7 +1830,7 @@ HelperThreadCount(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 #ifdef JS_MORE_DETERMINISTIC
-    // Always return 0 to get consistent output with and without --no-threads.
+    
     args.rval().setInt32(0);
 #else
     if (CanUseExtraThreads())
@@ -1994,17 +1997,17 @@ namespace heaptools {
 
 typedef UniquePtr<char16_t[], JS::FreePolicy> EdgeName;
 
-// An edge to a node from its predecessor in a path through the graph.
+
 class BackEdge {
-    // The node from which this edge starts.
+    
     JS::ubi::Node predecessor_;
 
-    // The name of this edge.
+    
     EdgeName name_;
 
   public:
     BackEdge() : name_(nullptr) { }
-    // Construct an initialized back edge, taking ownership of |name|.
+    
     BackEdge(JS::ubi::Node predecessor, EdgeName name)
         : predecessor_(predecessor), name_(Move(name)) { }
     BackEdge(BackEdge &&rhs) : predecessor_(rhs.predecessor_), name_(Move(rhs.name_)) { }
@@ -2019,12 +2022,12 @@ class BackEdge {
     JS::ubi::Node predecessor() const { return predecessor_; }
 
   private:
-    // No copy constructor or copying assignment.
+    
     BackEdge(const BackEdge &) = delete;
     BackEdge &operator=(const BackEdge &) = delete;
 };
 
-// A path-finding handler class for use with JS::ubi::BreadthFirst.
+
 struct FindPathHandler {
     typedef BackEdge NodeData;
     typedef JS::ubi::BreadthFirst<FindPathHandler> Traversal;
@@ -2038,21 +2041,21 @@ struct FindPathHandler {
     operator()(Traversal &traversal, JS::ubi::Node origin, const JS::ubi::Edge &edge,
                BackEdge *backEdge, bool first)
     {
-        // We take care of each node the first time we visit it, so there's
-        // nothing to be done on subsequent visits.
+        
+        
         if (!first)
             return true;
 
-        // Record how we reached this node. This is the last edge on a
-        // shortest path to this node.
+        
+        
         EdgeName edgeName = DuplicateString(traversal.cx, edge.name);
         if (!edgeName)
             return false;
         *backEdge = mozilla::Move(BackEdge(origin, Move(edgeName)));
 
-        // Have we reached our final target node?
+        
         if (edge.referent == target) {
-            // Record the path that got us here, which must be a shortest path.
+            
             if (!recordPath(traversal))
                 return false;
             foundPath = true;
@@ -2062,10 +2065,10 @@ struct FindPathHandler {
         return true;
     }
 
-    // We've found a path to our target. Walk the backlinks to produce the
-    // (reversed) path, saving the path in |nodes| and |edges|. |nodes| is
-    // rooted, so it can hold the path's nodes as we leave the scope of
-    // the AutoCheckCannotGC.
+    
+    
+    
+    
     bool recordPath(Traversal &traversal) {
         JS::ubi::Node here = target;
 
@@ -2082,26 +2085,26 @@ struct FindPathHandler {
         return true;
     }
 
-    // The node we're starting from.
+    
     JS::ubi::Node start;
 
-    // The node we're looking for.
+    
     JS::ubi::Node target;
 
-    // True if we found a path to target, false if we didn't.
+    
     bool foundPath;
 
-    // The nodes and edges of the path --- should we find one. The path is
-    // stored in reverse order, because that's how it's easiest for us to
-    // construct it:
-    // - edges[i] is the name of the edge from nodes[i] to nodes[i-1].
-    // - edges[0] is the name of the edge from nodes[0] to the target.
-    // - The last node, nodes[n-1], is the start node.
+    
+    
+    
+    
+    
+    
     AutoValueVector &nodes;
     Vector<EdgeName> &edges;
 };
 
-} // namespace heaptools
+} 
 
 static bool
 FindPath(JSContext *cx, unsigned argc, jsval *vp)
@@ -2113,9 +2116,9 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
         return false;
     }
 
-    // We don't ToString non-objects given as 'start' or 'target', because this
-    // test is all about object identity, and ToString doesn't preserve that.
-    // Non-GCThing endpoints don't make much sense.
+    
+    
+    
     if (!args[0].isObject() && !args[0].isString() && !args[0].isSymbol()) {
         ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_UNEXPECTED_TYPE,
                               JSDVG_SEARCH_STACK, args[0], JS::NullPtr(),
@@ -2134,8 +2137,8 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
     Vector<heaptools::EdgeName> edges(cx);
 
     {
-        // We can't tolerate the GC moving things around while we're searching
-        // the heap. Check that nothing we do causes a GC.
+        
+        
         JS::AutoCheckCannotGC autoCannotGC;
 
         JS::ubi::Node start(args[0]), target(args[1]);
@@ -2149,35 +2152,35 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
             return false;
 
         if (!handler.foundPath) {
-            // We didn't find any paths from the start to the target.
+            
             args.rval().setUndefined();
             return true;
         }
     }
 
-    // |nodes| and |edges| contain the path from |start| to |target|, reversed.
-    // Construct a JavaScript array describing the path from the start to the
-    // target. Each element has the form:
-    //
-    //   {
-    //     node: <object or string or symbol>,
-    //     edge: <string describing outgoing edge from node>
-    //   }
-    //
-    // or, if the node is some internal thing that isn't a proper JavaScript
-    // value:
-    //
-    //   { node: undefined, edge: <string> }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     size_t length = nodes.length();
     RootedArrayObject result(cx, NewDenseFullyAllocatedArray(cx, length));
     if (!result)
         return false;
     result->ensureDenseInitializedLength(cx, 0, length);
 
-    // Walk |nodes| and |edges| in the stored order, and construct the result
-    // array in start-to-target order.
+    
+    
     for (size_t i = 0; i < length; i++) {
-        // Build an object describing the node and edge.
+        
         RootedObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx));
         if (!obj)
             return false;
@@ -2191,7 +2194,7 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
         RootedString edgeStr(cx, NewString<CanGC>(cx, edgeName.get(), js_strlen(edgeName.get())));
         if (!edgeStr)
             return false;
-        edgeName.release(); // edgeStr acquired ownership
+        edgeName.release(); 
 
         if (!JS_DefineProperty(cx, obj, "edge", edgeStr, JSPROP_ENUMERATE, nullptr, nullptr))
             return false;
@@ -2261,9 +2264,9 @@ EvalReturningScope(JSContext *cx, unsigned argc, jsval *vp)
     RootedObject scope(cx);
 
     {
-        // If we're switching globals here, ExecuteInGlobalAndReturnScope will
-        // take care of cloning the script into that compartment before
-        // executing it.
+        
+        
+        
         AutoCompartment ac(cx, global);
 
         if (!js::ExecuteInGlobalAndReturnScope(cx, global, script, &scope))
