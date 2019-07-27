@@ -74,20 +74,20 @@ public:
   
 
 
-  static void RemoteDocShutdown(DocAccessibleParent* aDoc)
+  void RemoteDocShutdown(DocAccessibleParent* aDoc)
   {
-    DebugOnly<bool> result = sRemoteDocuments.RemoveElement(aDoc);
+    DebugOnly<bool> result = mRemoteDocuments.RemoveElement(aDoc);
     MOZ_ASSERT(result, "Why didn't we find the document!");
   }
 
   
 
 
-  static void RemoteDocAdded(DocAccessibleParent* aDoc)
+  void RemoteDocAdded(DocAccessibleParent* aDoc)
   {
-    MOZ_ASSERT(!sRemoteDocuments.Contains(aDoc),
+    MOZ_ASSERT(!mRemoteDocuments.Contains(aDoc),
                "How did we already have the doc!");
-    sRemoteDocuments.AppendElement(aDoc);
+    mRemoteDocuments.AppendElement(aDoc);
   }
 
 #ifdef DEBUG
@@ -176,7 +176,7 @@ private:
   
 
 
-  static nsTArray<DocAccessibleParent*> sRemoteDocuments;
+  nsTArray<DocAccessibleParent*> mRemoteDocuments;
 };
 
 
