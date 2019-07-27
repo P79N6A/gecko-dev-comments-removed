@@ -433,9 +433,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
                "Bogus availSize.ISize; should be bigger");
 
   
-  nsMargin border = aReflowState.ComputedPhysicalBorderPadding() -
-                      aReflowState.ComputedPhysicalPadding();
-  LogicalMargin logBorder(wm, border);
+  LogicalMargin border = aReflowState.ComputedLogicalBorderPadding() -
+                         aReflowState.ComputedLogicalPadding();
 
   
   
@@ -450,7 +449,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     nsHTMLReflowMetrics legendDesiredSize(aReflowState);
 
     ReflowChild(legend, aPresContext, legendDesiredSize, *legendReflowState,
-                0, 0, NS_FRAME_NO_MOVE_FRAME, aStatus);
+                wm, LogicalPoint(wm), 0, NS_FRAME_NO_MOVE_FRAME, aStatus);
 #ifdef NOISY_REFLOW
     printf("  returned (%d, %d)\n",
            legendDesiredSize.Width(), legendDesiredSize.Height());
@@ -463,12 +462,12 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
                   legendDesiredSize.BSize(wm) + legendMargin.BStartEnd(wm));
     nscoord oldSpace = mLegendSpace;
     mLegendSpace = 0;
-    if (mLegendRect.BSize(wm) > logBorder.BStart(wm)) {
+    if (mLegendRect.BSize(wm) > border.BStart(wm)) {
       
-      mLegendSpace = mLegendRect.BSize(wm) - logBorder.BStart(wm);
+      mLegendSpace = mLegendRect.BSize(wm) - border.BStart(wm);
     } else {
       mLegendRect.BStart(wm) =
-        (logBorder.BStart(wm) - mLegendRect.BSize(wm)) / 2;
+        (border.BStart(wm) - mLegendRect.BSize(wm)) / 2;
     }
 
     
@@ -479,7 +478,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
 
     
     FinishReflowChild(legend, aPresContext, legendDesiredSize,
-                      legendReflowState.ptr(), 0, 0, NS_FRAME_NO_MOVE_FRAME);
+                      legendReflowState.ptr(), wm, LogicalPoint(wm), 0,
+                      NS_FRAME_NO_MOVE_FRAME);
   } else if (!legend) {
     mLegendRect.SetEmpty();
     mLegendSpace = 0;
@@ -489,6 +489,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     legendMargin = legend->GetLogicalUsedMargin(wm);
   }
 
+  nscoord containerWidth = (wm.IsVertical() ? mLegendSpace : 0) +
+                            border.LeftRight(wm);
   
   if (reflowInner) {
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, inner,
@@ -520,23 +522,21 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     
     NS_ASSERTION(kidReflowState.ComputedPhysicalMargin() == nsMargin(0,0,0,0),
                  "Margins on anonymous fieldset child not supported!");
-    nsPoint pt(border.left, border.top);
-    if (wm.IsVerticalLR()) {
-      pt.x += mLegendSpace;
-    } else if (!wm.IsVertical()) {
-      pt.y += mLegendSpace;
-    }
-    ReflowChild(inner, aPresContext, kidDesiredSize, kidReflowState,
-                pt.x, pt.y, 0, aStatus);
+    LogicalPoint pt(wm, border.IStart(wm), border.BStart(wm) + mLegendSpace);
 
+    ReflowChild(inner, aPresContext, kidDesiredSize, kidReflowState,
+                wm, pt, containerWidth, 0, aStatus);
+
+    
     FinishReflowChild(inner, aPresContext, kidDesiredSize,
-                      &kidReflowState, pt.x, pt.y, 0);
+                      &kidReflowState, wm, pt,
+                      containerWidth + kidDesiredSize.Width(), 0);
     NS_FRAME_TRACE_REFLOW_OUT("FieldSet::Reflow", aStatus);
   }
 
-  nscoord containerWidth =
-    (wm.IsVertical() ? mLegendSpace : 0) +
-    logBorder.LeftRight(wm) + (inner ? inner->GetSize().width : 0);
+  if (inner) {
+    containerWidth += inner->GetSize().width;
+  }
 
   LogicalRect contentRect(wm);
   if (inner) {
@@ -605,9 +605,9 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  LogicalSize finalSize(wm, contentRect.ISize(wm) + logBorder.IStartEnd(wm),
-                        mLegendSpace + logBorder.BStartEnd(wm) +
-                        (inner ? inner->GetLogicalSize(wm).BSize(wm) : 0));
+  LogicalSize finalSize(wm, contentRect.ISize(wm) + border.IStartEnd(wm),
+                        mLegendSpace + border.BStartEnd(wm) +
+                        (inner ? inner->BSize(wm) : 0));
   aDesiredSize.SetSize(wm, finalSize);
   aDesiredSize.SetOverflowAreasToDesiredBounds();
 
