@@ -12,7 +12,6 @@
 #include "SharedThreadPool.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Base64.h"
-#include "mozilla/Telemetry.h"
 #include "nsIRandomGenerator.h"
 #include "nsIServiceManager.h"
 #include "MediaTaskQueue.h"
@@ -232,17 +231,6 @@ ExtractH264CodecDetails(const nsAString& aCodec,
 
   aLevel = PromiseFlatString(Substring(aCodec, 9, 2)).ToInteger(&rv, 16);
   NS_ENSURE_SUCCESS(rv, false);
-
-
-  
-  
-  Telemetry::Accumulate(Telemetry::VIDEO_CANPLAYTYPE_H264_PROFILE,
-                        aProfile <= 244 ? aProfile : 0);
-
-  
-  
-  Telemetry::Accumulate(Telemetry::VIDEO_CANPLAYTYPE_H264_LEVEL,
-                        (aLevel >= 10 && aLevel <= 52) ? aLevel : 0);
 
   return true;
 }
