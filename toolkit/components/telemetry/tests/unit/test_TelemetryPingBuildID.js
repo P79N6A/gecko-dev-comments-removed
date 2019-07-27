@@ -15,10 +15,16 @@
 
 "use strict"
 
-const Cu = Components.utils;
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
+  () => Cc["@mozilla.org/datareporting/service;1"]
+          .getService(Ci.nsISupports)
+          .wrappedJSObject);
 
 
 Services.prefs.setBoolPref(TelemetryPing.Constants.PREF_ENABLED, true);
@@ -65,5 +71,11 @@ add_task(function* test_newBuild() {
 function run_test() {
   
   do_get_profile();
+
+  
+  
+  gDatareportingService.observe(null, "app-startup", null);
+  gDatareportingService.observe(null, "profile-after-change", null);
+
   run_next_test();
 }
