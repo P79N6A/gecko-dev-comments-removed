@@ -313,8 +313,8 @@ private:
   {
     mDecodingMonitor.AssertCurrentThreadIn();
     nsRefPtr<imgStatusTracker> statusTracker;
-    statusTracker = mDecodeRequest ? mDecodeRequest->mStatusTracker
-                                   : mStatusTracker;
+    statusTracker = mDecodeStatusTracker ? mDecodeStatusTracker
+                                         : mStatusTracker;
     MOZ_ASSERT(statusTracker);
     return statusTracker.forget();
   }
@@ -327,21 +327,11 @@ private:
 
   struct DecodeRequest
   {
-    explicit DecodeRequest(RasterImage* aImage)
-      : mImage(aImage)
-      , mRequestStatus(REQUEST_INACTIVE)
-    {
-      MOZ_ASSERT(aImage, "aImage cannot be null");
-      MOZ_ASSERT(aImage->mStatusTracker,
-                 "aImage should have an imgStatusTracker");
-      mStatusTracker = aImage->mStatusTracker->CloneForRecording();
-    }
+    explicit DecodeRequest()
+      : mRequestStatus(REQUEST_INACTIVE)
+    { }
 
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DecodeRequest)
-
-    
-    
-    nsRefPtr<imgStatusTracker> mStatusTracker;
 
     RasterImage* mImage;
 
@@ -479,17 +469,21 @@ private:
 
 
 
-    static void NotifyFinishedSomeDecoding(RasterImage* image, DecodeRequest* request);
+    static void NotifyFinishedSomeDecoding(RasterImage* aImage,
+                                           imgStatusTracker* aTracker);
 
     NS_IMETHOD Run();
 
   private: 
-    DecodeDoneWorker(RasterImage* image, DecodeRequest* request);
+    DecodeDoneWorker(RasterImage* aImage, imgStatusTracker* aTracker)
+      : mImage(aImage)
+      , mTracker(aTracker)
+    { }
 
   private: 
 
     nsRefPtr<RasterImage> mImage;
-    nsRefPtr<DecodeRequest> mRequest;
+    nsRefPtr<imgStatusTracker> mTracker;
   };
 
   class FrameNeededWorker : public nsRunnable
@@ -514,8 +508,8 @@ private:
     nsRefPtr<RasterImage> mImage;
   };
 
-  nsresult FinishedSomeDecoding(eShutdownIntent intent = eShutdownIntent_Done,
-                                DecodeRequest* request = nullptr);
+  nsresult FinishedSomeDecoding(eShutdownIntent aIntent = eShutdownIntent_Done,
+                                imgStatusTracker* aDecodeTracker = nullptr);
 
   void DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
                                     gfxContext* aContext,
@@ -640,6 +634,7 @@ private:
   
   nsRefPtr<Decoder>          mDecoder;
   nsRefPtr<DecodeRequest>    mDecodeRequest;
+  nsRefPtr<imgStatusTracker> mDecodeStatusTracker;
 
   bool                       mInDecoder;
   

@@ -1767,6 +1767,7 @@ RasterImage::OnNewSourceData()
   mHasSize = false;
   mWantFullDecode = true;
   mDecodeRequest = nullptr;
+  mDecodeStatusTracker = nullptr;
 
   if (mAnim) {
     mAnim->SetDoneDecoding(false);
@@ -1868,6 +1869,7 @@ RasterImage::Discard(bool force)
     mStatusTracker->OnDiscard();
 
   mDecodeRequest = nullptr;
+  mDecodeStatusTracker = nullptr;
 
   if (force)
     DiscardTracker::Remove(&mDiscardTrackerNode);
@@ -1988,11 +1990,14 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
 
   
   if (!mDecodeRequest) {
-    mDecodeRequest = new DecodeRequest(this);
+    mDecodeRequest = new DecodeRequest();
   }
-  MOZ_ASSERT(mDecodeRequest->mStatusTracker);
-  MOZ_ASSERT(mDecodeRequest->mStatusTracker->GetDecoderObserver());
-  mDecoder->SetObserver(mDecodeRequest->mStatusTracker->GetDecoderObserver());
+  if (!mDecodeStatusTracker) {
+    MOZ_ASSERT(mStatusTracker, "Should have an imgStatusTracker");
+    mDecodeStatusTracker = mStatusTracker->CloneForRecording();
+  }
+  MOZ_ASSERT(mDecodeStatusTracker->GetDecoderObserver());
+  mDecoder->SetObserver(mDecodeStatusTracker->GetDecoderObserver());
   mDecoder->SetSizeDecode(aDoSizeDecode);
   mDecoder->SetDecodeFlags(mFrameDecodeFlags);
   if (!aDoSizeDecode) {
@@ -2978,18 +2983,15 @@ RasterImage::RequestDecodeIfNeeded(nsresult aStatus,
 
 nsresult
 RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
-                                  DecodeRequest* aRequest )
+                                  imgStatusTracker* aDecodeTracker )
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   mDecodingMonitor.AssertCurrentThreadIn();
 
-  nsRefPtr<DecodeRequest> request;
-  if (aRequest) {
-    request = aRequest;
-  } else {
-    request = mDecodeRequest;
-  }
+  nsRefPtr<imgStatusTracker> statusTracker = aDecodeTracker
+                                           ? aDecodeTracker
+                                           : mDecodeStatusTracker.get();
 
   
   
@@ -3020,7 +3022,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
       wasSize = decoder->IsSizeDecode();
 
       
-      if (request && !wasSize) {
+      if (!wasSize) {
         Telemetry::Accumulate(Telemetry::IMAGE_DECODE_TIME,
                               int32_t(decoder->DecodeTime().ToMicroseconds()));
 
@@ -3043,9 +3045,9 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     }
   }
 
-  ImageStatusDiff diff =
-    request ? image->mStatusTracker->Difference(request->mStatusTracker)
-            : image->mStatusTracker->DecodeStateAsDifference();
+  ImageStatusDiff diff = statusTracker
+                       ? image->mStatusTracker->Difference(statusTracker)
+                       : image->mStatusTracker->DecodeStateAsDifference();
   image->mStatusTracker->ApplyDifference(diff);
 
   if (mNotifying) {
@@ -3273,13 +3275,15 @@ RasterImage::DecodePool::DecodeJob::Run()
 
   
   if (mRequest->mRequestStatus == DecodeRequest::REQUEST_STOPPED) {
-    DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage, mRequest);
+    DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage,
+                                                 mImage->mDecodeStatusTracker);
     return NS_OK;
   }
 
   
   if (!mImage->mDecoder || mImage->IsDecodeFinished()) {
-    DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage, mRequest);
+    DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage,
+                                                 mImage->mDecodeStatusTracker);
     return NS_OK;
   }
 
@@ -3327,7 +3331,8 @@ RasterImage::DecodePool::DecodeJob::Run()
     DecodePool::Singleton()->RequestDecode(mImage);
   } else {
     
-    DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage, mRequest);
+    DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage,
+                                                 mImage->mDecodeStatusTracker);
   }
 
   return NS_OK;
@@ -3498,17 +3503,13 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
   return NS_OK;
 }
 
-RasterImage::DecodeDoneWorker::DecodeDoneWorker(RasterImage* image, DecodeRequest* request)
- : mImage(image)
- , mRequest(request)
-{}
-
 void
-RasterImage::DecodeDoneWorker::NotifyFinishedSomeDecoding(RasterImage* image, DecodeRequest* request)
+RasterImage::DecodeDoneWorker::NotifyFinishedSomeDecoding(RasterImage* aImage,
+                                                          imgStatusTracker* aTracker)
 {
-  image->mDecodingMonitor.AssertCurrentThreadIn();
+  aImage->mDecodingMonitor.AssertCurrentThreadIn();
 
-  nsCOMPtr<nsIRunnable> worker = new DecodeDoneWorker(image, request);
+  nsCOMPtr<nsIRunnable> worker = new DecodeDoneWorker(aImage, aTracker);
   NS_DispatchToMainThread(worker);
 }
 
@@ -3518,7 +3519,7 @@ RasterImage::DecodeDoneWorker::Run()
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter lock(mImage->mDecodingMonitor);
 
-  mImage->FinishedSomeDecoding(eShutdownIntent_Done, mRequest);
+  mImage->FinishedSomeDecoding(eShutdownIntent_Done, mTracker);
 
   return NS_OK;
 }
