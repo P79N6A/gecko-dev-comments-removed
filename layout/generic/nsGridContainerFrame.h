@@ -44,6 +44,8 @@ public:
   };
 
 protected:
+  typedef mozilla::LogicalRect LogicalRect;
+  typedef mozilla::WritingMode WritingMode;
   typedef mozilla::css::GridNamedArea GridNamedArea;
   friend nsContainerFrame* NS_NewGridContainerFrame(nsIPresShell* aPresShell,
                                                     nsStyleContext* aContext);
@@ -80,6 +82,12 @@ protected:
 
 
     uint32_t HypotheticalEnd() const { return IsAuto() ? mEnd + 1 : mEnd; }
+    
+
+
+
+    void ToPositionAndLength(const nsTArray<TrackSize>& aTrackSizes,
+                             nscoord* aPos, nscoord* aLength) const;
 
     uint32_t mStart;  
     uint32_t mEnd;    
@@ -313,6 +321,26 @@ protected:
     return static_cast<GridArea*>(aChild->Properties().Get(GridAreaProperty()));
   }
 
+  
+
+
+
+
+  LogicalRect ContainingBlockFor(const WritingMode& aWM,
+                                 const GridArea& aArea,
+                                 const nsTArray<TrackSize>& aColSizes,
+                                 const nsTArray<TrackSize>& aRowSizes) const;
+
+  
+
+
+  void ReflowChildren(const LogicalRect&          aContentArea,
+                      const nsTArray<TrackSize>&  aColSizes,
+                      const nsTArray<TrackSize>&  aRowSizes,
+                      nsHTMLReflowMetrics&        aDesiredSize,
+                      const nsHTMLReflowState&    aReflowState,
+                      nsReflowStatus&             aStatus);
+
 #ifdef DEBUG
   void SanityCheckAnonymousGridItems() const;
 #endif 
@@ -338,4 +366,4 @@ private:
   uint32_t mGridRowEnd; 
 };
 
-#endif
+#endif 
