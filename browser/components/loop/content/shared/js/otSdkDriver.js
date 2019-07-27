@@ -136,6 +136,7 @@ loop.OTSdkDriver = (function() {
 
       this.session.on("connectionCreated", this._onConnectionCreated.bind(this));
       this.session.on("streamCreated", this._onRemoteStreamCreated.bind(this));
+      this.session.on("streamDestroyed", this._onRemoteStreamDestroyed.bind(this));
       this.session.on("connectionDestroyed",
         this._onConnectionDestroyed.bind(this));
       this.session.on("sessionDisconnected",
@@ -286,6 +287,30 @@ loop.OTSdkDriver = (function() {
 
 
 
+
+
+    _handleRemoteScreenShareCreated: function(stream) {
+      if (!this.getScreenShareElementFunc) {
+        return;
+      }
+
+      
+      this.dispatcher.dispatch(new sharedActions.ReceivingScreenShare({
+        receiving: true
+      }));
+
+      var remoteElement = this.getScreenShareElementFunc();
+
+      this.session.subscribe(stream,
+        remoteElement, this._getCopyPublisherConfig());
+    },
+
+    
+
+
+
+
+
     _onRemoteStreamCreated: function(event) {
       if (event.stream[STREAM_PROPERTIES.HAS_VIDEO]) {
         this.dispatcher.dispatch(new sharedActions.VideoDimensionsChanged({
@@ -295,13 +320,12 @@ loop.OTSdkDriver = (function() {
         }));
       }
 
-      var remoteElement;
       if (event.stream.videoType === "screen") {
-        
-        remoteElement = "null";
-      } else {
-        remoteElement = this.getRemoteElement();
+        this._handleRemoteScreenShareCreated(event.stream);
+        return;
       }
+
+      var remoteElement = this.getRemoteElement();
 
       this.session.subscribe(event.stream,
         remoteElement, this._getCopyPublisherConfig());
@@ -326,6 +350,25 @@ loop.OTSdkDriver = (function() {
           dimensions: event.stream[STREAM_PROPERTIES.VIDEO_DIMENSIONS]
         }));
       }
+    },
+
+
+    
+
+
+
+
+
+    _onRemoteStreamDestroyed: function(event) {
+      if (event.stream.videoType !== "screen") {
+        return;
+      }
+
+      
+      
+      this.dispatcher.dispatch(new sharedActions.ReceivingScreenShare({
+        receiving: false
+      }));
     },
 
     

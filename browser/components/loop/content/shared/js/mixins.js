@@ -276,6 +276,9 @@ loop.shared.mixins = (function() {
 
 
 
+
+
+
     getRemoteVideoDimensions: function() {
       var remoteVideoDimensions;
 
@@ -320,7 +323,7 @@ loop.shared.mixins = (function() {
 
       
       remoteVideoDimensions.offsetX = remoteVideoDimensions.width -
-        remoteVideoDimensions.streamWidth
+        remoteVideoDimensions.streamWidth;
       if (remoteVideoDimensions.offsetX > 0) {
         remoteVideoDimensions.offsetX /= 2;
       }
@@ -351,18 +354,22 @@ loop.shared.mixins = (function() {
         this._bufferedUpdateVideo = null;
         var localStreamParent = this._getElement(".local .OT_publisher");
         var remoteStreamParent = this._getElement(".remote .OT_subscriber");
+        var screenShareStreamParent = this._getElement('.screen .OT_subscriber');
         if (localStreamParent) {
           localStreamParent.style.width = "100%";
         }
         if (remoteStreamParent) {
           remoteStreamParent.style.height = "100%";
         }
+        if (screenShareStreamParent) {
+          screenShareStreamParent.style.height = "100%";
+        }
 
         
         
         
         Object.keys(this._videoDimensionsCache.local).forEach(function(videoType) {
-          var ratio = this._videoDimensionsCache.local[videoType].aspectRatio
+          var ratio = this._videoDimensionsCache.local[videoType].aspectRatio;
           if (videoType == "camera" && this.updateLocalCameraPosition) {
             this.updateLocalCameraPosition(ratio);
           }
