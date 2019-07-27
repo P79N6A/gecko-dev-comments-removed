@@ -21,6 +21,8 @@
 
 class GMPEncryptedBufferMetadata {
 public:
+  virtual ~GMPEncryptedBufferMetadata() {}
+
   
   virtual const uint8_t* KeyId() const = 0;
 
@@ -94,6 +96,8 @@ typedef int64_t GMPTimestamp;
 
 class GMPDecryptorCallback {
 public:
+  virtual ~GMPDecryptorCallback() {}
+
   
   
   
@@ -182,6 +186,7 @@ public:
 
 class GMPDecryptorHost {
 public:
+  virtual ~GMPDecryptorHost() {}
 
   
   
@@ -213,6 +218,7 @@ enum GMPSessionType {
 
 class GMPDecryptor {
 public:
+  virtual ~GMPDecryptor() {}
 
   
   
