@@ -10,6 +10,7 @@
 #include "nsString.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/gfx/Logging.h"
 
 namespace mozilla {
@@ -21,30 +22,32 @@ bool DriverInitCrashDetection::sEnvironmentHasBeenUpdated = false;
 DriverInitCrashDetection::DriverInitCrashDetection()
  : mIsChromeProcess(XRE_GetProcessType() == GeckoProcessType_Default)
 {
-  
-  
-  
-  if (mIsChromeProcess && !InitLockFilePath()) {
+  if (sDisableAcceleration) {
+    
+    return;
+  }
+
+  if (!mIsChromeProcess) {
+    
+    
+    sDisableAcceleration = (gfxPrefs::DriverInitStatus() == int32_t(DriverInitStatus::Recovered));
+    return;
+  }
+
+  if (!InitLockFilePath()) {
+    gfxCriticalError(CriticalLog::DefaultOptions(false)) << "Failed to create the graphics startup lockfile.";
     return;
   }
 
   if (RecoverFromDriverInitCrash()) {
-    if (!sDisableAcceleration) {
-      
-      
-      gfxCriticalError(CriticalLog::DefaultOptions(false)) << "Recovered from graphics driver startup crash; acceleration disabled.";
-      sDisableAcceleration = true;
-    }
+    
+    
+    gfxCriticalError(CriticalLog::DefaultOptions(false)) << "Recovered from graphics driver startup crash; acceleration disabled.";
+    sDisableAcceleration = true;
     return;
   }
 
-  
-  
-  MOZ_ASSERT(!sDisableAcceleration);
-
-  if (mIsChromeProcess &&
-      (UpdateEnvironment() || sEnvironmentHasBeenUpdated))
-  {
+  if (UpdateEnvironment() || sEnvironmentHasBeenUpdated) {
     
     
     
@@ -53,6 +56,8 @@ DriverInitCrashDetection::DriverInitCrashDetection()
     sEnvironmentHasBeenUpdated = true;
     return;
   }
+
+  RecordTelemetry(TelemetryState::Okay);
 }
 
 DriverInitCrashDetection::~DriverInitCrashDetection()
@@ -65,7 +70,6 @@ DriverInitCrashDetection::~DriverInitCrashDetection()
     
     
     gfxPrefs::SetDriverInitStatus(int32_t(DriverInitStatus::Okay));
-    gfxCriticalError(CriticalLog::DefaultOptions(false)) << "Successfully verified new graphics environment.";
   }
 }
 
@@ -96,6 +100,10 @@ DriverInitCrashDetection::AllowDriverInitAttempt()
 
   
   FlushPreferences();
+
+  
+  
+  RecordTelemetry(TelemetryState::EnvironmentChanged);
 }
 
 bool
@@ -113,11 +121,13 @@ DriverInitCrashDetection::RecoverFromDriverInitCrash()
     gfxPrefs::SetDriverInitStatus(int32_t(DriverInitStatus::Recovered));
     UpdateEnvironment();
     FlushPreferences();
+    RecordTelemetry(TelemetryState::RecoveredFromCrash);
     return true;
   }
   if (gfxPrefs::DriverInitStatus() == int32_t(DriverInitStatus::Recovered)) {
     
     
+    RecordTelemetry(TelemetryState::AccelerationDisabled);
     return true;
   }
   return false;
@@ -202,6 +212,26 @@ DriverInitCrashDetection::FlushPreferences()
   if (nsIPrefService* prefService = Preferences::GetService()) {
     prefService->SavePrefFile(nullptr);
   }
+}
+
+void
+DriverInitCrashDetection::RecordTelemetry(TelemetryState aState)
+{
+  
+  
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    return;
+  }
+
+  
+  
+  static bool sTelemetryStateRecorded = false;
+  if (sTelemetryStateRecorded) {
+    return;
+  }
+
+  Telemetry::Accumulate(Telemetry::GRAPHICS_DRIVER_STARTUP_TEST, int32_t(aState));
+  sTelemetryStateRecorded = true;
 }
 
 } 
