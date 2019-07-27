@@ -387,7 +387,7 @@ class PluginModuleChromeParent
 
 
 
-    void TerminateChildProcess(MessageLoop* aMsgLoop, nsAString* aBrowserDumpId);
+    void TerminateChildProcess(MessageLoop* aMsgLoop, const nsAString& aBrowserDumpId);
 
 #ifdef XP_WIN
     
