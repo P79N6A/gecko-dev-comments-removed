@@ -10,7 +10,6 @@
 #include "mozilla/dom/OwningNonNull.h"  
 #include "mozilla/dom/Text.h"
 #include "nsAutoPtr.h"                  
-#include "nsCOMArray.h"                 
 #include "nsCOMPtr.h"                   
 #include "nsCycleCollectionParticipant.h"
 #include "nsGkAtoms.h"
@@ -835,7 +834,8 @@ protected:
   nsTArray<mozilla::dom::OwningNonNull<nsIEditActionListener>> mActionListeners;
   
   nsTArray<mozilla::dom::OwningNonNull<nsIEditorObserver>> mEditorObservers;
-  nsCOMArray<nsIDocumentStateListener> mDocStateListeners;
+  
+  nsTArray<mozilla::dom::OwningNonNull<nsIDocumentStateListener>> mDocStateListeners;
 
   nsSelectionState  mSavedSel;           
   nsRangeUpdater    mRangeUpdater;       
