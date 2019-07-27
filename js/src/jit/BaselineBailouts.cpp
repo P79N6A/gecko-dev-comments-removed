@@ -675,8 +675,15 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 
-                if (iter.pcOffset() != 0 || iter.resumeAfter())
+                
+                
+                
+                
+                if (iter.pcOffset() != 0 || iter.resumeAfter() ||
+                    (excInfo && excInfo->propagatingIonExceptionForDebugMode()))
+                {
                     scopeChain = fun->environment();
+                }
             } else {
                 
                 
