@@ -73,8 +73,6 @@ typedef GMPErr (*GMPCreateRecordPtr)(const char* aRecordName,
                                      uint32_t aRecordNameSize,
                                      GMPRecord** aOutRecord,
                                      GMPRecordClient* aClient);
-
-
 typedef GMPErr (*GMPSetTimerOnMainThreadPtr)(GMPTask* aTask, int64_t aTimeoutMS);
 typedef GMPErr (*GMPGetCurrentTimePtr)(GMPTimestamp* aOutTime);
 
