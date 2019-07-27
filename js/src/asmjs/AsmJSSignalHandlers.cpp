@@ -485,10 +485,6 @@ HandleFault(PEXCEPTION_POINTERS exception)
         return false;
 
     
-    if (heapAccess->isLoad() != !record->ExceptionInformation[0])
-        return false;
-
-    
     
 
     
@@ -496,6 +492,10 @@ HandleFault(PEXCEPTION_POINTERS exception)
         RedirectToOutOfBoundsLabel(ppc, module);
         return true;
     }
+
+    
+    if (heapAccess->isLoad() != !record->ExceptionInformation[0])
+        return false;
 
     
     
