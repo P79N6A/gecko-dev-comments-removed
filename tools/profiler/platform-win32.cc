@@ -189,7 +189,13 @@ class SamplerThread : public Thread {
     if (SuspendThread(profiled_thread) == kSuspendFailed)
       return;
 
+    
+    
+#if V8_HOST_ARCH_X64
+    context.ContextFlags = CONTEXT_FULL;
+#else
     context.ContextFlags = CONTEXT_CONTROL;
+#endif
     if (GetThreadContext(profiled_thread, &context) != 0) {
 #if V8_HOST_ARCH_X64
       sample->pc = reinterpret_cast<Address>(context.Rip);
