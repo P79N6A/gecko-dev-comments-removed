@@ -295,77 +295,51 @@ public:
   }
 
   
+  
+  
+  
+  
+  
+  
+  nsTArray<nsCString> mOrderedScopes;
 
+  
+  
+  nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistrationInfo> mServiceWorkerRegistrationInfos;
 
+  nsTObserverArray<ServiceWorkerRegistration*> mServiceWorkerRegistrations;
 
+  nsRefPtrHashtable<nsISupportsHashKey, ServiceWorkerRegistrationInfo> mControlledDocuments;
 
-  struct ServiceWorkerDomainInfo
+  
+  nsClassHashtable<nsCStringHashKey, ServiceWorkerJobQueue> mJobQueues;
+
+  nsDataHashtable<nsCStringHashKey, bool> mSetOfScopesBeingUpdated;
+
+  already_AddRefed<ServiceWorkerRegistrationInfo>
+  GetRegistration(const nsCString& aScope) const
   {
-    
-    
-    
-    
-    
-    
-    
-    nsTArray<nsCString> mOrderedScopes;
+    nsRefPtr<ServiceWorkerRegistrationInfo> reg;
+    mServiceWorkerRegistrationInfos.Get(aScope, getter_AddRefs(reg));
+    return reg.forget();
+  }
 
-    
-    nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistrationInfo> mServiceWorkerRegistrationInfos;
+  ServiceWorkerRegistrationInfo*
+  CreateNewRegistration(const nsCString& aScope);
 
-    nsTObserverArray<ServiceWorkerRegistration*> mServiceWorkerRegistrations;
+  void
+  RemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration)
+  {
+    MOZ_ASSERT(mServiceWorkerRegistrationInfos.Contains(aRegistration->mScope));
+    ServiceWorkerManager::RemoveScope(mOrderedScopes, aRegistration->mScope);
+    mServiceWorkerRegistrationInfos.Remove(aRegistration->mScope);
+  }
 
-    nsRefPtrHashtable<nsISupportsHashKey, ServiceWorkerRegistrationInfo> mControlledDocuments;
-
-    nsClassHashtable<nsCStringHashKey, ServiceWorkerJobQueue> mJobQueues;
-
-    nsDataHashtable<nsCStringHashKey, bool> mSetOfScopesBeingUpdated;
-
-    ServiceWorkerDomainInfo()
-    { }
-
-    already_AddRefed<ServiceWorkerRegistrationInfo>
-    GetRegistration(const nsCString& aScope) const
-    {
-      nsRefPtr<ServiceWorkerRegistrationInfo> reg;
-      mServiceWorkerRegistrationInfos.Get(aScope, getter_AddRefs(reg));
-      return reg.forget();
-    }
-
-    ServiceWorkerRegistrationInfo*
-    CreateNewRegistration(const nsCString& aScope)
-    {
-      ServiceWorkerRegistrationInfo* registration =
-        new ServiceWorkerRegistrationInfo(aScope);
-      
-      
-      mServiceWorkerRegistrationInfos.Put(aScope, registration);
-      ServiceWorkerManager::AddScope(mOrderedScopes, aScope);
-      return registration;
-    }
-
-    void
-    RemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration)
-    {
-      MOZ_ASSERT(mServiceWorkerRegistrationInfos.Contains(aRegistration->mScope));
-      ServiceWorkerManager::RemoveScope(mOrderedScopes, aRegistration->mScope);
-      mServiceWorkerRegistrationInfos.Remove(aRegistration->mScope);
-    }
-
-    ServiceWorkerJobQueue*
-    GetOrCreateJobQueue(const nsCString& aScope)
-    {
-      return mJobQueues.LookupOrAdd(aScope);
-    }
-
-    NS_INLINE_DECL_REFCOUNTING(ServiceWorkerDomainInfo)
-
-  private:
-    ~ServiceWorkerDomainInfo()
-    { }
-  };
-
-  nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerDomainInfo> mDomainMap;
+  ServiceWorkerJobQueue*
+  GetOrCreateJobQueue(const nsCString& aScope)
+  {
+    return mJobQueues.LookupOrAdd(aScope);
+  }
 
   void
   FinishFetch(ServiceWorkerRegistrationInfo* aRegistration);
@@ -410,20 +384,6 @@ private:
   CreateServiceWorker(const nsACString& aScriptSpec,
                       const nsACString& aScope,
                       ServiceWorker** aServiceWorker);
-
-  static PLDHashOperator
-  CleanupServiceWorkerInformation(const nsACString& aDomain,
-                                  ServiceWorkerDomainInfo* aDomainInfo,
-                                  void *aUnused);
-
-  already_AddRefed<ServiceWorkerDomainInfo>
-  GetDomainInfo(nsIDocument* aDoc);
-
-  already_AddRefed<ServiceWorkerDomainInfo>
-  GetDomainInfo(nsIURI* aURI);
-
-  already_AddRefed<ServiceWorkerDomainInfo>
-  GetDomainInfo(const nsCString& aURL);
 
   NS_IMETHODIMP
   GetServiceWorkerForScope(nsIDOMWindow* aWindow,
