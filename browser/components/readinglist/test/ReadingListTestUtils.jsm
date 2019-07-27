@@ -7,6 +7,7 @@ this.EXPORTED_SYMBOLS = [
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource:///modules/readinglist/ReadingList.jsm");
@@ -40,6 +41,15 @@ SidebarUtils.prototype = {
   get list() {
     return this.RLSidebar.list;
   },
+
+  
+
+
+
+  showSidebar: Task.async(function* () {
+    yield this.window.ReadingListUI.showSidebar();
+    yield this.RLSidebar.listPromise;
+  }),
 
   
 
@@ -136,24 +146,18 @@ this.ReadingListTestUtils = {
       }
       return Promise.all(promises);
     }
-
-    return new Promise(resolve => {
-      let item = new ReadingList.Item(data);
-      ReadingList._items.push(item);
-      ReadingList._notifyListeners("onItemAdded", item);
-      resolve(item);
-    });
+    return ReadingList.addItem(data);
   },
 
   
 
 
-  cleanup() {
-    return new Promise(resolve => {
-      ReadingList._items = [];
-      ReadingList._listeners.clear();
-      Preferences.reset(PREF_RL_ENABLED);
-      resolve();
-    });
-  },
+  cleanup: Task.async(function *() {
+    Preferences.reset(PREF_RL_ENABLED);
+    let items = [];
+    yield ReadingList.forEachItem(i => items.push(i));
+    for (let item of items) {
+      yield ReadingList.deleteItem(item);
+    }
+  }),
 };

@@ -110,6 +110,7 @@ function ReadingListImpl(store) {
   this._store = store;
   this._itemsByURL = new Map();
   this._iterators = new Set();
+  this._listeners = new Set();
 }
 
 ReadingListImpl.prototype = {
@@ -187,9 +188,13 @@ ReadingListImpl.prototype = {
 
 
 
-  addItem: Task.async(function* (item) {
-    yield this._store.addItem(simpleObjectFromItem(item));
+  addItem: Task.async(function* (obj) {
+    obj = stripNonItemProperties(obj);
+    yield this._store.addItem(obj);
     this._invalidateIterators();
+    let item = this._itemFromObject(obj);
+    this._callListeners("onItemAdded", item);
+    return item;
   }),
 
   
@@ -210,6 +215,7 @@ ReadingListImpl.prototype = {
     this._ensureItemBelongsToList(item);
     yield this._store.updateItem(item._properties);
     this._invalidateIterators();
+    this._callListeners("onItemUpdated", item);
   }),
 
   
@@ -228,7 +234,31 @@ ReadingListImpl.prototype = {
     item.list = null;
     this._itemsByURL.delete(item.url);
     this._invalidateIterators();
+    this._callListeners("onItemDeleted", item);
   }),
+
+  
+
+
+
+
+
+
+
+
+
+  addListener(listener) {
+    this._listeners.add(listener);
+  },
+
+  
+
+
+
+
+  removeListener(listener) {
+    this._listeners.delete(listener);
+  },
 
   
 
@@ -254,6 +284,9 @@ ReadingListImpl.prototype = {
   
   
   _iterators: null,
+
+  
+  _listeners: null,
 
   
 
@@ -290,6 +323,25 @@ ReadingListImpl.prototype = {
     this._iterators.clear();
   },
 
+  
+
+
+
+
+
+  _callListeners(methodName, item) {
+    for (let listener of this._listeners) {
+      if (methodName in listener) {
+        try {
+          listener[methodName](item);
+        }
+        catch (err) {
+          Cu.reportError(err);
+        }
+      }
+    }
+  },
+
   _ensureItemBelongsToList(item) {
     if (item.list != this) {
       throw new Error("The item does not belong to this list");
@@ -313,6 +365,18 @@ function ReadingListItem(props={}) {
 ReadingListItem.prototype = {
 
   
+
+
+
+  get id() {
+    if (!this._id) {
+      this._id = hash(this.url);
+    }
+    return this._id;
+  },
+
+  
+
 
 
 
@@ -370,6 +434,18 @@ ReadingListItem.prototype = {
     if (this.list) {
       this.commit();
     }
+  },
+
+  
+
+
+
+  get domain() {
+    try {
+      return this.uri.host;
+    }
+    catch (err) {}
+    return this.url;
   },
 
   
@@ -733,7 +809,8 @@ ReadingListItemIterator.prototype = {
   },
 };
 
-function simpleObjectFromItem(item) {
+
+function stripNonItemProperties(item) {
   let obj = {};
   for (let name of ITEM_BASIC_PROPERTY_NAMES) {
     if (name in item) {
@@ -743,9 +820,25 @@ function simpleObjectFromItem(item) {
   return obj;
 }
 
+function hash(str) {
+  let hasher = Cc["@mozilla.org/security/hash;1"].
+               createInstance(Ci.nsICryptoHash);
+  hasher.init(Ci.nsICryptoHash.MD5);
+  let stream = Cc["@mozilla.org/io/string-input-stream;1"].
+               createInstance(Ci.nsIStringInputStream);
+  stream.data = str;
+  hasher.updateFromStream(stream, -1);
+  let binaryStr = hasher.finish(false);
+  let hexStr =
+    [("0" + binaryStr.charCodeAt(i).toString(16)).slice(-2) for (i in hash)].
+    join("");
+  return hexStr;
+}
+
 function clone(obj) {
   return Cu.cloneInto(obj, {}, { cloneFunctions: false });
 }
+
 
 Object.defineProperty(this, "ReadingList", {
   get() {

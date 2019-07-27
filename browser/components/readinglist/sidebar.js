@@ -7,6 +7,7 @@
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/readinglist/ReadingList.jsm");
 
@@ -20,6 +21,12 @@ let RLSidebar = {
 
 
   list: null,
+
+  
+
+
+
+  listPromise: null,
 
   
 
@@ -53,7 +60,7 @@ let RLSidebar = {
     this.list.addEventListener("mousemove", event => this.onListMouseMove(event));
     this.list.addEventListener("keydown", event => this.onListKeyDown(event), true);
 
-    this.ensureListItems();
+    this.listPromise = this.ensureListItems();
     ReadingList.addListener(this);
 
     let initEvent = new CustomEvent("Initialized", {bubbles: true});
@@ -123,7 +130,7 @@ let RLSidebar = {
 
   updateItem(item, itemNode) {
     itemNode.setAttribute("id", "item-" + item.id);
-    itemNode.setAttribute("title", `${item.title}\n${item.url.spec}`);
+    itemNode.setAttribute("title", `${item.title}\n${item.url}`);
 
     itemNode.querySelector(".item-title").textContent = item.title;
     itemNode.querySelector(".item-domain").textContent = item.domain;
@@ -132,18 +139,16 @@ let RLSidebar = {
   
 
 
-  ensureListItems() {
-    ReadingList.getItems().then(items => {
-      for (let item of items) {
-        
-        try {
-          this.onItemAdded(item);
-        } catch (e) {
-          log.warn("Error adding item", e);
-        }
+  ensureListItems: Task.async(function* () {
+    yield ReadingList.forEachItem(item => {
+      
+      try {
+        this.onItemAdded(item);
+      } catch (e) {
+        log.warn("Error adding item", e);
       }
     });
-  },
+  }),
 
   
 
@@ -317,7 +322,7 @@ let RLSidebar = {
     }
 
     let item = this.getItemFromNode(itemNode);
-    this.openURL(item.url.spec, event);
+    this.openURL(item.url, event);
   },
 
   

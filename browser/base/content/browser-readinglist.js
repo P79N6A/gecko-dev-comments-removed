@@ -89,7 +89,7 @@ let ReadingListUI = {
     }
   },
 
-  onReadingListPopupShowing(target) {
+  onReadingListPopupShowing: Task.async(function* (target) {
     if (target.id == "BMB_readingListPopup") {
       
       
@@ -105,55 +105,56 @@ let ReadingListUI = {
     if (insertPoint.classList.contains("subviewbutton"))
       classList += " subviewbutton";
 
-    ReadingList.getItems().then(items => {
-      for (let item of items) {
-        let menuitem = document.createElement("menuitem");
-        menuitem.setAttribute("label", item.title || item.url.spec);
-        menuitem.setAttribute("class", classList);
+    let hasItems = false;
+    yield ReadingList.forEachItem(item => {
+      hasItems = true;
 
-        let node = menuitem._placesNode = {
-          
-          
-          type: Ci.nsINavHistoryResultNode.RESULT_TYPE_URI,
+      let menuitem = document.createElement("menuitem");
+      menuitem.setAttribute("label", item.title || item.url);
+      menuitem.setAttribute("class", classList);
 
-          
-          
-          parent: {type: Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER},
+      let node = menuitem._placesNode = {
+        
+        
+        type: Ci.nsINavHistoryResultNode.RESULT_TYPE_URI,
 
-          
-          
-          
-          
-          itemId: -1,
+        
+        
+        parent: {type: Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER},
 
-          
-          uri: item.url.spec,
+        
+        
+        
+        
+        itemId: -1,
 
-          
-          title: item.title
-        };
+        
+        uri: item.url,
 
-        Favicons.getFaviconURLForPage(item.url, uri => {
-          if (uri) {
-            menuitem.setAttribute("image",
-                                  Favicons.getFaviconLinkForIcon(uri).spec);
-          }
-        });
+        
+        title: item.title
+      };
 
-        target.insertBefore(menuitem, insertPoint);
-      }
+      Favicons.getFaviconURLForPage(item.uri, uri => {
+        if (uri) {
+          menuitem.setAttribute("image",
+                                Favicons.getFaviconLinkForIcon(uri).spec);
+        }
+      });
 
-      if (!items.length) {
-        let menuitem = document.createElement("menuitem");
-        let bundle =
-          Services.strings.createBundle("chrome://browser/locale/places/places.properties");
-        menuitem.setAttribute("label", bundle.GetStringFromName("bookmarksMenuEmptyFolder"));
-        menuitem.setAttribute("class", "bookmark-item");
-        menuitem.setAttribute("disabled", true);
-        target.insertBefore(menuitem, insertPoint);
-      }
+      target.insertBefore(menuitem, insertPoint);
     });
-  },
+
+    if (!hasItems) {
+      let menuitem = document.createElement("menuitem");
+      let bundle =
+        Services.strings.createBundle("chrome://browser/locale/places/places.properties");
+      menuitem.setAttribute("label", bundle.GetStringFromName("bookmarksMenuEmptyFolder"));
+      menuitem.setAttribute("class", "bookmark-item");
+      menuitem.setAttribute("disabled", true);
+      target.insertBefore(menuitem, insertPoint);
+    }
+  }),
 
   
 
