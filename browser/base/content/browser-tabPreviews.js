@@ -47,6 +47,10 @@ var tabPreviews = {
   },
 
   capture: function tabPreviews_capture(aTab, aShouldCache) {
+    
+    if (gMultiProcessBrowser)
+      return new Image();
+
     let browser = aTab.linkedBrowser;
     let uri = browser.currentURI.spec;
 
