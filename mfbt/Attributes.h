@@ -513,6 +513,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #ifdef MOZ_CLANG_PLUGIN
 #  define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
 #  define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
@@ -527,6 +535,8 @@
 #  endif
 #  define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
 #  define MOZ_NO_ARITHMETIC_EXPR_IN_ARGUMENT __attribute__((annotate("moz_no_arith_expr_in_arg")))
+#  define MOZ_STRONG_REF __attribute__((annotate("moz_strong_ref")))
+#  define MOZ_WEAK_REF __attribute__((annotate("moz_weak_ref")))
 
 
 
@@ -546,6 +556,8 @@
 #  define MOZ_IMPLICIT
 #  define MOZ_NO_ARITHMETIC_EXPR_IN_ARGUMENT
 #  define MOZ_HEAP_ALLOCATOR
+#  define MOZ_STRONG_REF
+#  define MOZ_WEAK_REF
 #endif 
 
 
