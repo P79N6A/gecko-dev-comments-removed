@@ -274,6 +274,9 @@ public:
   
   void TakeOwnershipOfErrorReporting();
   bool OwnsErrorReporting() { return mOwnErrorReporting; }
+  
+  
+  void ReportException();
 
   bool HasException() const {
     MOZ_ASSERT(CxPusherIsStackTop());

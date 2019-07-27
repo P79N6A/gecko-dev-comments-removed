@@ -313,34 +313,7 @@ AutoJSAPI::~AutoJSAPI()
   if (mOwnErrorReporting) {
     MOZ_ASSERT(NS_IsMainThread(), "See corresponding assertion in TakeOwnershipOfErrorReporting()");
 
-    if (HasException()) {
-
-      
-      
-      
-      
-      
-      JS::Rooted<JSObject*> errorGlobal(cx(), JS::CurrentGlobalOrNull(cx()));
-      if (!errorGlobal)
-        errorGlobal = xpc::PrivilegedJunkScope();
-      JSAutoCompartment ac(cx(), errorGlobal);
-      nsCOMPtr<nsPIDOMWindow> win = xpc::WindowGlobalOrNull(errorGlobal);
-      JS::Rooted<JS::Value> exn(cx());
-      js::ErrorReport jsReport(cx());
-      if (StealException(&exn) && jsReport.init(cx(), exn)) {
-        nsRefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
-        xpcReport->Init(jsReport.report(), jsReport.message(),
-                        nsContentUtils::IsCallerChrome(),
-                        win ? win->WindowID() : 0);
-        if (win) {
-          DispatchScriptErrorEvent(win, JS_GetRuntime(cx()), xpcReport, exn);
-        } else {
-          xpcReport->LogToConsole();
-        }
-      } else {
-        NS_WARNING("OOMed while acquiring uncaught exception from JSAPI");
-      }
-    }
+    ReportException();
 
     
     
@@ -506,6 +479,41 @@ AutoJSAPI::TakeOwnershipOfErrorReporting()
   mOldAutoJSAPIOwnsErrorReporting = JS::ContextOptionsRef(cx()).autoJSAPIOwnsErrorReporting();
   JS::ContextOptionsRef(cx()).setAutoJSAPIOwnsErrorReporting(true);
   JS_SetErrorReporter(rt, WarningOnlyErrorReporter);
+}
+
+void
+AutoJSAPI::ReportException()
+{
+  MOZ_ASSERT(OwnsErrorReporting(), "This is not our exception to report!");
+  if (!HasException()) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  JS::Rooted<JSObject*> errorGlobal(cx(), JS::CurrentGlobalOrNull(cx()));
+  if (!errorGlobal)
+    errorGlobal = xpc::PrivilegedJunkScope();
+  JSAutoCompartment ac(cx(), errorGlobal);
+  nsCOMPtr<nsPIDOMWindow> win = xpc::WindowGlobalOrNull(errorGlobal);
+  JS::Rooted<JS::Value> exn(cx());
+  js::ErrorReport jsReport(cx());
+  if (StealException(&exn) && jsReport.init(cx(), exn)) {
+    nsRefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
+    xpcReport->Init(jsReport.report(), jsReport.message(),
+                    nsContentUtils::IsCallerChrome(),
+                    win ? win->WindowID() : 0);
+    if (win) {
+      DispatchScriptErrorEvent(win, JS_GetRuntime(cx()), xpcReport, exn);
+    } else {
+      xpcReport->LogToConsole();
+    }
+  } else {
+    NS_WARNING("OOMed while acquiring uncaught exception from JSAPI");
+  }
 }
 
 bool
