@@ -64,6 +64,7 @@ GeckoTouchDispatcher::GetInstance()
 GeckoTouchDispatcher::GeckoTouchDispatcher()
   : mTouchQueueLock("GeckoTouchDispatcher::mTouchQueueLock")
   , mHavePendingTouchMoves(false)
+  , mInflightNonMoveEvents(0)
   , mTouchEventsFiltered(false)
 {
   
@@ -112,6 +113,16 @@ GeckoTouchDispatcher::NotifyTouch(MultiTouchInput& aTouch, TimeStamp aEventTime)
 
   if (aTouch.mType == MultiTouchInput::MULTITOUCH_MOVE) {
     MutexAutoLock lock(mTouchQueueLock);
+    if (mInflightNonMoveEvents > 0) {
+      
+      
+      
+      
+      layers::APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
+        this, &GeckoTouchDispatcher::DispatchTouchEvent, aTouch));
+      return;
+    }
+
     mTouchMoveEvents.push_back(aTouch);
     mHavePendingTouchMoves = true;
     if (mResamplingEnabled) {
@@ -121,8 +132,32 @@ GeckoTouchDispatcher::NotifyTouch(MultiTouchInput& aTouch, TimeStamp aEventTime)
     layers::APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
       this, &GeckoTouchDispatcher::DispatchTouchMoveEvents, TimeStamp::Now()));
   } else {
+    if (mResamplingEnabled) {
+      MutexAutoLock lock(mTouchQueueLock);
+      mInflightNonMoveEvents++;
+    }
     layers::APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
-      this, &GeckoTouchDispatcher::DispatchTouchEvent, aTouch));
+      this, &GeckoTouchDispatcher::DispatchTouchNonMoveEvent, aTouch));
+  }
+}
+
+void
+GeckoTouchDispatcher::DispatchTouchNonMoveEvent(MultiTouchInput aInput)
+{
+  layers::APZThreadUtils::AssertOnControllerThread();
+
+  if (mResamplingEnabled) {
+    
+    
+    
+    NotifyVsync(TimeStamp::Now());
+  }
+  DispatchTouchEvent(aInput);
+
+  if (mResamplingEnabled) {
+    MutexAutoLock lock(mTouchQueueLock);
+    mInflightNonMoveEvents--;
+    MOZ_ASSERT(mInflightNonMoveEvents >= 0);
   }
 }
 
