@@ -486,6 +486,11 @@ TelephonyService.prototype = {
     return null;
   },
 
+  
+
+
+
+
   dial: function(aClientId, aNumber, aIsDialEmergency, aCallback) {
     if (DEBUG) debug("Dialing " + (aIsDialEmergency ? "emergency " : "") + aNumber);
 
@@ -506,15 +511,20 @@ TelephonyService.prototype = {
     let isEmergencyNumber = gDialNumberUtils.isEmergency(aNumber);
 
     
-    if (!(this._isRadioOn(aClientId) || isEmergencyNumber)) {
-      aCallback.notifyError(DIAL_ERROR_RADIO_NOT_AVAILABLE);
+    if (aIsDialEmergency && !isEmergencyNumber) {
+      if (!this._isRadioOn(aClientId)) {
+        if (DEBUG) debug("Error: Radio is off. Drop.");
+        aCallback.notifyError(DIAL_ERROR_RADIO_NOT_AVAILABLE);
+        return;
+      }
+
+      if (DEBUG) debug("Error: Dial a non-emergency by dialEmergency. Drop.");
+      aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
       return;
     }
 
-    
-    if (aIsDialEmergency && !isEmergencyNumber) {
-      if (DEBUG) debug("Error: Dail a non-emergency by dialEmergency. Drop.");
-      aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
+    if (isEmergencyNumber) {
+      this._dialCall(aClientId, aNumber, undefined, aCallback);
       return;
     }
 
@@ -524,19 +534,28 @@ TelephonyService.prototype = {
       return;
     }
 
-    if (this._hasCalls(aClientId)) {
-      this._dialInCallMMI(aClientId, aNumber, aCallback);
-      return;
-    }
-
     let mmi = gDialNumberUtils.parseMMI(aNumber);
-    if (!mmi) {
-      this._dialCall(aClientId, aNumber, undefined, aCallback);
-    } else if (this._isTemporaryCLIR(mmi)) {
-      this._dialCall(aClientId, mmi.dialNumber,
-                     this._procedureToCLIRMode(mmi.procedure), aCallback);
+    if (mmi) {
+      if (this._isTemporaryCLIR(mmi)) {
+        this._dialCall(aClientId, mmi.dialNumber,
+                       this._procedureToCLIRMode(mmi.procedure), aCallback);
+      } else {
+        this._dialMMI(aClientId, mmi, aCallback);
+      }
     } else {
-      this._dialMMI(aClientId, mmi, aCallback);
+      if (aNumber[aNumber.length - 1] === "#") {  
+        this._dialMMI(aClientId, {fullMMI: aNumber}, aCallback);
+      } else if (aNumber.length <= 2) {  
+        if (this._hasCalls(aClientId)) {
+          this._dialInCallMMI(aClientId, aNumber, aCallback);
+        } else if (aNumber.length === 2 && aNumber[0] === "1") {
+          this._dialCall(aClientId, aNumber, undefined, aCallback);
+        } else {
+          this._dialMMI(aClientId, {fullMMI: aNumber}, aCallback);
+        }
+      } else {
+        this._dialCall(aClientId, aNumber, undefined, aCallback);
+      }
     }
   },
 
@@ -594,9 +613,19 @@ TelephonyService.prototype = {
     }
 
     let isEmergency = gDialNumberUtils.isEmergency(aNumber);
-    if (!isEmergency && this._isEmergencyOnly()) {
-      if (DEBUG) debug("Error: Dail a normal call when emergencyCallsOnly. Drop");
-      aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
+
+    if (!isEmergency) {
+      if (!this._isRadioOn(aClientId)) {
+        if (DEBUG) debug("Error: Dial a normal call when radio off. Drop");
+        aCallback.notifyError(DIAL_ERROR_RADIO_NOT_AVAILABLE);
+        return;
+      }
+
+      if (this._isEmergencyOnly()) {
+        if (DEBUG) debug("Error: Dial a normal call when emergencyCallsOnly. Drop");
+        aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
+        return;
+      }
     }
 
     if (isEmergency) {
