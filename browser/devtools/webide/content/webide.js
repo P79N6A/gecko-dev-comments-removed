@@ -292,7 +292,7 @@ let UI = {
       this.unbusy();
     }, (e) => {
       let message;
-      if (e.error && e.message) {
+      if (e && e.error && e.message) {
         
         
         message = operationDescription + " (" + e.error + "): " + e.message;
@@ -303,7 +303,9 @@ let UI = {
       let operationCanceled = e && e.canceled;
       if (!operationCanceled) {
         UI.reportError("error_operationFail", message);
-        console.error(e);
+        if (e) {
+          console.error(e);
+        }
       }
       this.unbusy();
     });
@@ -439,8 +441,13 @@ let UI = {
   connectToRuntime: function(runtime) {
     let name = runtime.name;
     let promise = AppManager.connectToRuntime(runtime);
-    promise.then(() => this.initConnectionTelemetry());
-    return this.busyUntil(promise, "connecting to runtime " + name);
+    promise.then(() => this.initConnectionTelemetry())
+           .catch(() => {
+             
+             
+             
+           });
+    return this.busyUntil(promise, "Connecting to " + name);
   },
 
   updateRuntimeButton: function() {
