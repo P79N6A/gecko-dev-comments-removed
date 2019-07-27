@@ -26,7 +26,7 @@ namespace mozilla {
 class SubstitutingProtocolHandler
 {
 public:
-  SubstitutingProtocolHandler(const char* aScheme, uint32_t aFlags);
+  SubstitutingProtocolHandler(const char* aScheme, uint32_t aFlags, bool aEnforceFileOrJar = true);
 
   NS_INLINE_DECL_REFCOUNTING(SubstitutingProtocolHandler);
   NS_DECL_NON_VIRTUAL_NSIPROTOCOLHANDLER;
@@ -54,6 +54,18 @@ private:
   uint32_t mFlags;
   nsInterfaceHashtable<nsCStringHashKey,nsIURI> mSubstitutions;
   nsCOMPtr<nsIIOService> mIOService;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mEnforceFileOrJar;
 };
 
 
