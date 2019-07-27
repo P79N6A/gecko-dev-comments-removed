@@ -1459,7 +1459,7 @@ class nsIWidget : public nsISupports {
 
 
     struct Configuration {
-        nsIWidget* mChild;
+        nsCOMPtr<nsIWidget> mChild;
         uintptr_t mWindowID; 
         bool mVisible; 
         nsIntRect mBounds;
