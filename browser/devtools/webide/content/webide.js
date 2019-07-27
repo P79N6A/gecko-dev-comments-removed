@@ -71,13 +71,20 @@ let UI = {
 
     
     
-    let autoInstallADBHelper = Services.prefs.getBoolPref("devtools.webide.autoinstallADBHelper");
-    if (autoInstallADBHelper && !Devices.helperAddonInstalled) {
+    let autoinstallADBHelper = Services.prefs.getBoolPref("devtools.webide.autoinstallADBHelper");
+    let autoinstallFxdtAdapters = Services.prefs.getBoolPref("devtools.webide.autoinstallFxdtAdapters");
+    if (autoinstallADBHelper) {
       GetAvailableAddons().then(addons => {
         addons.adb.install();
       }, console.error);
     }
+    if (autoinstallFxdtAdapters) {
+      GetAvailableAddons().then(addons => {
+        addons.adapters.install();
+      }, console.error);
+    }
     Services.prefs.setBoolPref("devtools.webide.autoinstallADBHelper", false);
+    Services.prefs.setBoolPref("devtools.webide.autoinstallFxdtAdapters", false);
 
     this.lastConnectedRuntime = Services.prefs.getCharPref("devtools.webide.lastConnectedRuntime");
 
