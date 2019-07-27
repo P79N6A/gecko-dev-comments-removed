@@ -71,9 +71,8 @@ public:
   Time* validThrough;
   bool expired;
 
-private:
-  Context(const Context&); 
-  void operator=(const Context&); 
+  Context(const Context&) = delete;
+  void operator=(const Context&) = delete;
 };
 
 
