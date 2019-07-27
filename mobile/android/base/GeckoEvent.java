@@ -33,9 +33,6 @@ import org.mozilla.gecko.mozglue.RobocopTarget;
 
 
 
-
-
-
 @JNITarget
 public class GeckoEvent {
     private static final String LOGTAG = "GeckoEvent";

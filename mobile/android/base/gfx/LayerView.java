@@ -6,7 +6,6 @@
 package org.mozilla.gecko.gfx;
 
 import java.nio.IntBuffer;
-import java.util.ArrayList;
 
 import org.mozilla.gecko.AndroidGamepadManager;
 import org.mozilla.gecko.AppConstants.Versions;
@@ -43,8 +42,6 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.widget.FrameLayout;
-
-
 
 
 
