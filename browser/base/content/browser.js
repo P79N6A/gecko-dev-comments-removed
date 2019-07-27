@@ -7090,11 +7090,6 @@ var gIdentityHandler = {
 
     
     this._identityBox.setAttribute("open", "true");
-    var self = this;
-    this._identityPopup.addEventListener("popuphidden", function onPopupHidden(e) {
-      e.currentTarget.removeEventListener("popuphidden", onPopupHidden, false);
-      self._identityBox.removeAttribute("open");
-    }, false);
 
     
     this._identityPopup.openPopup(this._identityIcon, "bottomcenter topleft");
@@ -7109,6 +7104,7 @@ var gIdentityHandler = {
   onPopupHidden(event) {
     if (event.target == this._identityPopup) {
       window.removeEventListener("focus", this, true);
+      this._identityBox.removeAttribute("open");
     }
   },
 
