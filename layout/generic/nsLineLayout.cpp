@@ -417,7 +417,6 @@ nsLineLayout::NewPerSpanData()
   psd->mFirstFrame = nullptr;
   psd->mLastFrame = nullptr;
   psd->mContainsFloat = false;
-  psd->mZeroEffectiveSpanBox = false;
   psd->mHasNonemptyContent = false;
 
 #ifdef DEBUG
@@ -1814,7 +1813,6 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       }
     }
   }
-  psd->mZeroEffectiveSpanBox = zeroEffectiveSpanBox;
 
   
   nscoord baselineBCoord, minBCoord, maxBCoord;
@@ -2252,7 +2250,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
 
     
-    bool applyMinLH = !psd->mZeroEffectiveSpanBox || mHasBullet;
+    bool applyMinLH = !zeroEffectiveSpanBox || mHasBullet;
     bool isLastLine = !mGotLineBox ||
       (!mLineBox->IsLineWrapped() && !mLineEndsInBR);
     if (!applyMinLH && isLastLine) {
@@ -2309,7 +2307,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     minBCoord = maxBCoord = baselineBCoord;
   }
 
-  if ((psd != mRootSpan) && (psd->mZeroEffectiveSpanBox)) {
+  if (psd != mRootSpan && zeroEffectiveSpanBox) {
 #ifdef NOISY_BLOCKDIR_ALIGN
     printf("   [span]adjusting for zeroEffectiveSpanBox\n");
     printf("     Original: minBCoord=%d, maxBCoord=%d, bSize=%d, ascent=%d, logicalBSize=%d, topLeading=%d, bottomLeading=%d\n",
