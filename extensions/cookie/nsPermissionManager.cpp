@@ -1439,19 +1439,6 @@ nsPermissionManager::GetPermissionHashKey(const nsACString& aHost,
   }
 
   
-  
-  
-  
-  
-  
-  
-  
-
-  if (StringBeginsWith(aHost, NS_LITERAL_CSTRING("file://"))) {
-    return GetPermissionHashKey(NS_LITERAL_CSTRING("<file>"), aAppId, aIsInBrowserElement, aType, true);
-  }
-
-  
   if (!aExactHostMatch) {
     nsCString domain = GetNextSubDomainForHost(aHost);
     if (!domain.IsEmpty()) {
