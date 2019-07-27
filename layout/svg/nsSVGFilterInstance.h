@@ -180,18 +180,8 @@ private:
 
 
 
-
-  int32_t GetOrCreateSourceAlphaIndex(nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs);
-
-  
-
-
-
-
-
-
   nsresult GetSourceIndices(nsSVGFE* aPrimitiveElement,
-                            nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
+                            const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
                             const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
                             nsTArray<int32_t>& aSourceIndices);
 
@@ -249,18 +239,6 @@ private:
 
 
   int32_t mSourceGraphicIndex;
-
-  
-
-
-
-
-  int32_t mSourceAlphaIndex;
-
-  
-
-
-  int32_t mSourceAlphaAvailable;
 
   bool                    mInitialized;
 };
