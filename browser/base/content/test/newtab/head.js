@@ -496,32 +496,80 @@ function simulateExternalDrop(aDestIndex) {
 
 function startAndCompleteDragOperation(aSource, aDest, aCallback) {
   
-  synthesizeNativeMouseLDown(aSource);
-
   
-  let offset = 0;
-  let interval = setInterval(() => {
-    synthesizeNativeMouseDrag(aSource, offset += 5);
-  }, 10);
 
-  
-  
-  aSource.addEventListener("dragstart", function onDragStart() {
-    aSource.removeEventListener("dragstart", onDragStart);
-    clearInterval(interval);
-
+  if (isMac) {
     
-    synthesizeNativeMouseMove(aDest);
-  });
-
-  
-  aDest.addEventListener("dragenter", function onDragEnter() {
-    aDest.removeEventListener("dragenter", onDragEnter);
-
+    
+    
+    
+    
+    
+    
+    synthesizeNativeMouseLDown(aSource);
+    synthesizeNativeMouseDrag(aDest);
+    
+    
+    
+    synthesizeNativeMouseDrag(aDest, 10);
+    synthesizeNativeMouseDrag(aDest);
     
     synthesizeNativeMouseLUp(aDest);
     aCallback();
-  });
+  } else if (isWindows) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    synthesizeNativeMouseLDown(aSource);
+    synthesizeNativeMouseLUp(aDest);
+    aCallback();
+  } else if (isLinux) {
+    
+    synthesizeNativeMouseLDown(aSource);
+
+    
+    
+    
+    
+    
+    
+    let offset = 0;
+    let interval = setInterval(() => {
+      synthesizeNativeMouseDrag(aSource, offset += 5);
+    }, 10);
+
+    
+    
+    aSource.addEventListener("dragstart", function onDragStart() {
+      aSource.removeEventListener("dragstart", onDragStart);
+      clearInterval(interval);
+
+      
+      synthesizeNativeMouseMove(aDest);
+    });
+
+    
+    
+    
+    
+    
+    
+    aDest.addEventListener("dragenter", function onDragEnter() {
+      aDest.removeEventListener("dragenter", onDragEnter);
+
+      
+      synthesizeNativeMouseLUp(aDest, null);
+      aCallback();
+    });
+  } else {
+    throw "Unsupported platform";
+  }
 }
 
 
