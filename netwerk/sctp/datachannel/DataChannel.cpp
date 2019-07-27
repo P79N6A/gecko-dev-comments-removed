@@ -50,7 +50,6 @@
 #include "DataChannel.h"
 #include "DataChannelProtocol.h"
 
-#ifdef PR_LOGGING
 PRLogModuleInfo*
 GetDataChannelLog()
 {
@@ -68,7 +67,6 @@ GetSCTPLog()
     sLog = PR_NewLogModule("SCTP");
   return sLog;
 }
-#endif
 
 
 #ifdef DEBUG
@@ -174,7 +172,6 @@ receive_cb(struct socket* sock, union sctp_sockstore addr,
   return connection->ReceiveCallback(sock, data, datalen, rcv, flags);
 }
 
-#ifdef PR_LOGGING
 static void
 debug_printf(const char *format, ...)
 {
@@ -193,7 +190,6 @@ debug_printf(const char *format, ...)
     va_end(ap);
   }
 }
-#endif
 
 DataChannelConnection::DataChannelConnection(DataConnectionListener *listener) :
    mLock("netwerk::sctp::DataChannelConnection")
@@ -325,11 +321,7 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
 #ifdef MOZ_PEERCONNECTION
         usrsctp_init(0,
                      DataChannelConnection::SctpDtlsOutput,
-#ifdef PR_LOGGING
                      debug_printf
-#else
-                     nullptr
-#endif
                     );
 #else
         NS_ASSERTION(!aUsingDtls, "Trying to use SCTP/DTLS without mtransport");
@@ -338,20 +330,15 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
         LOG(("sctp_init(%u)", aPort));
         usrsctp_init(aPort,
                      nullptr,
-#ifdef PR_LOGGING
                      debug_printf
-#else
-                     nullptr
-#endif
                     );
       }
 
-#ifdef PR_LOGGING
       
       if (PR_LOG_TEST(GetSCTPLog(), PR_LOG_ALWAYS)) {
         usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
       }
-#endif
+
       usrsctp_sysctl_set_sctp_blackhole(2);
       
       usrsctp_sysctl_set_sctp_ecn_enable(0);
@@ -666,7 +653,6 @@ void
 DataChannelConnection::SctpDtlsInput(TransportFlow *flow,
                                      const unsigned char *data, size_t len)
 {
-#ifdef PR_LOGGING
   if (PR_LOG_TEST(GetSCTPLog(), PR_LOG_DEBUG)) {
     char *buf;
 
@@ -675,7 +661,6 @@ DataChannelConnection::SctpDtlsInput(TransportFlow *flow,
       usrsctp_freedumpbuffer(buf);
     }
   }
-#endif
   
   usrsctp_conninput(static_cast<void *>(this), data, len, 0);
 }
@@ -698,7 +683,6 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
   DataChannelConnection *peer = static_cast<DataChannelConnection *>(addr);
   int res;
 
-#ifdef PR_LOGGING
   if (PR_LOG_TEST(GetSCTPLog(), PR_LOG_DEBUG)) {
     char *buf;
 
@@ -707,7 +691,6 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
       usrsctp_freedumpbuffer(buf);
     }
   }
-#endif
   
   
   

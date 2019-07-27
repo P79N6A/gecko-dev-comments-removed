@@ -63,7 +63,6 @@ namespace net {
 
 
 
-#if defined(PR_LOGGING)
 static void
 LogHeaders(const char *lineStart)
 {
@@ -81,7 +80,6 @@ LogHeaders(const char *lineStart)
         lineStart = endOfLine + 2;
     }
 }
-#endif
 
 
 
@@ -320,13 +318,11 @@ nsHttpTransaction::Init(uint32_t caps,
     mReqHeaderBuf.Truncate();
     requestHead->Flatten(mReqHeaderBuf, pruneProxyHeaders);
 
-#if defined(PR_LOGGING)
     if (LOG3_ENABLED()) {
         LOG3(("http request [\n"));
         LogHeaders(mReqHeaderBuf.get());
         LOG3(("]\n"));
     }
-#endif
 
     
     
@@ -1474,7 +1470,6 @@ nsHttpTransaction::HandleContentStart()
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
     if (mResponseHead) {
-#if defined(PR_LOGGING)
         if (LOG3_ENABLED()) {
             LOG3(("http response [\n"));
             nsAutoCString headers;
@@ -1482,7 +1477,7 @@ nsHttpTransaction::HandleContentStart()
             LogHeaders(headers.get());
             LOG3(("]\n"));
         }
-#endif
+
         
         
         mHttpVersion = mResponseHead->Version();
@@ -1561,10 +1556,8 @@ nsHttpTransaction::HandleContentStart()
                 
                 mContentLength = -1;
             }
-#if defined(PR_LOGGING)
             else if (mContentLength == int64_t(-1))
                 LOG(("waiting for the server to close the connection.\n"));
-#endif
         }
         if (mRestartInProgressVerifier.IsSetup() &&
             !mRestartInProgressVerifier.Verify(mContentLength, mResponseHead)) {
