@@ -10,11 +10,19 @@
 #include "mozilla/dom/cache/ActorChild.h"
 #include "mozilla/dom/cache/PCacheChild.h"
 
+class nsIAsyncInputStream;
+class nsIGlobalObject;
+
 namespace mozilla {
 namespace dom {
+
+class Promise;
+
 namespace cache {
 
 class Cache;
+class CacheOpArgs;
+class CachePushStreamChild;
 
 class CacheChild final : public PCacheChild
                        , public ActorChild
@@ -29,6 +37,13 @@ public:
   
   
   void ClearListener();
+
+  void
+  ExecuteOp(nsIGlobalObject* aGlobal, Promise* aPromise,
+            const CacheOpArgs& aArgs);
+
+  CachePushStreamChild*
+  CreatePushStream(nsIAsyncInputStream* aStream);
 
   
 
@@ -54,9 +69,14 @@ private:
   DeallocPCachePushStreamChild(PCachePushStreamChild* aActor) override;
 
   
+  void
+  NoteDeletedActor();
+
+  
   
   
   Cache* MOZ_NON_OWNING_REF mListener;
+  uint32_t mNumChildActors;
 
   NS_DECL_OWNINGTHREAD
 };
