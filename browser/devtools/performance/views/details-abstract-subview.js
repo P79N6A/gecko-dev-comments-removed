@@ -160,8 +160,3 @@ let DetailsSubview = {
     }
   }
 };
-
-
-
-
-EventEmitter.decorate(DetailsSubview);
