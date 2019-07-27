@@ -166,9 +166,8 @@ public:
 class OCSPResponseContext
 {
 public:
-  OCSPResponseContext(PLArenaPool* arena, const CertID& certID, std::time_t time);
+  OCSPResponseContext(const CertID& certID, std::time_t time);
 
-  PLArenaPool* arena;
   const CertID& certID;
   
 
@@ -215,9 +214,7 @@ public:
   bool includeNextUpdate;
 };
 
-
-
-SECItem* CreateEncodedOCSPResponse(OCSPResponseContext& context);
+ByteString CreateEncodedOCSPResponse(OCSPResponseContext& context);
 
 } } } 
 
