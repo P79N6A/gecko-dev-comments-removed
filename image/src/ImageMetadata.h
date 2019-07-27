@@ -4,8 +4,8 @@
 
 
 
-#ifndef ImageMetadata_h___
-#define ImageMetadata_h___
+#ifndef mozilla_image_src_ImageMetadata_h
+#define mozilla_image_src_ImageMetadata_h
 
 #include <stdint.h>
 #include "mozilla/Maybe.h"
@@ -25,7 +25,7 @@ public:
     : mHotspotX(-1)
     , mHotspotY(-1)
     , mLoopCount(-1)
-  {}
+  { }
 
   
   void SetOnImage(RasterImage* image);
