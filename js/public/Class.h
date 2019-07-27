@@ -494,6 +494,12 @@ struct Class
     ObjectOps           ops;
 
     
+
+
+
+
+
+
     static const uint32_t NON_NATIVE = JSCLASS_INTERNAL_FLAG2;
 
     bool isNative() const {

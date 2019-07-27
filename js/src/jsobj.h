@@ -498,9 +498,6 @@ class JSObject : public js::gc::Cell
         return !lastProperty()->hasObjectFlag(js::BaseShape::NOT_EXTENSIBLE);
     }
 
-    
-    static const char *className(JSContext *cx, js::HandleObject obj);
-
   public:
     
 
@@ -538,28 +535,6 @@ class JSObject : public js::gc::Cell
     static bool nonNativeSetElement(JSContext *cx, js::HandleObject obj,
                                     js::HandleObject receiver, uint32_t index,
                                     js::MutableHandleValue vp, bool strict);
-
-    static inline bool getGenericAttributes(JSContext *cx, js::HandleObject obj,
-                                            js::HandleId id, unsigned *attrsp);
-
-    static inline bool setGenericAttributes(JSContext *cx, js::HandleObject obj,
-                                            js::HandleId id, unsigned *attrsp);
-
-    static inline bool watch(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                             JS::HandleObject callable);
-    static inline bool unwatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
-
-    static bool defaultValue(JSContext *cx, js::HandleObject obj, JSType hint,
-                             js::MutableHandleValue vp);
-
-    static JSObject *thisObject(JSContext *cx, js::HandleObject obj)
-    {
-        if (js::ObjectOp op = obj->getOps()->thisObject)
-            return op(cx, obj);
-        return obj;
-    }
-
-    static bool thisObject(JSContext *cx, const js::Value &v, js::Value *vp);
 
     static bool swap(JSContext *cx, JS::HandleObject a, JS::HandleObject b);
 
@@ -728,24 +703,6 @@ inline bool
 IsConstructor(const Value &v)
 {
     return v.isObject() && v.toObject().isConstructor();
-}
-
-inline JSObject *
-GetInnerObject(JSObject *obj)
-{
-    if (js::InnerObjectOp op = obj->getClass()->ext.innerObject) {
-        JS::AutoSuppressGCAnalysis nogc;
-        return op(obj);
-    }
-    return obj;
-}
-
-inline JSObject *
-GetOuterObject(JSContext *cx, js::HandleObject obj)
-{
-    if (js::ObjectOp op = obj->getClass()->ext.outerObject)
-        return op(cx, obj);
-    return obj;
 }
 
 } 
@@ -995,6 +952,128 @@ NonProxyLookupOwnProperty(JSContext *cx, LookupGenericOp lookup,
                           typename MaybeRooted<JSObject*, allowGC>::MutableHandleType objp,
                           typename MaybeRooted<Shape*, allowGC>::MutableHandleType propp);
 
+
+
+
+
+inline bool
+GetPropertyAttributes(JSContext *cx, HandleObject obj, HandleId id, unsigned *attrsp);
+
+
+
+
+
+inline bool
+SetPropertyAttributes(JSContext *cx, HandleObject obj, HandleId id, unsigned *attrsp);
+
+
+
+
+
+
+
+
+
+extern bool
+WatchProperty(JSContext *cx, HandleObject obj, HandleId id, HandleObject callable);
+
+
+extern bool
+UnwatchProperty(JSContext *cx, HandleObject obj, HandleId id);
+
+
+
+
+
+extern bool
+ToPrimitive(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp);
+
+MOZ_ALWAYS_INLINE bool
+ToPrimitive(JSContext *cx, MutableHandleValue vp);
+
+MOZ_ALWAYS_INLINE bool
+ToPrimitive(JSContext *cx, JSType preferredType, MutableHandleValue vp);
+
+
+
+
+
+extern const char *
+GetObjectClassName(JSContext *cx, HandleObject obj);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline JSObject *
+GetInnerObject(JSObject *obj)
+{
+    if (InnerObjectOp op = obj->getClass()->ext.innerObject) {
+        JS::AutoSuppressGCAnalysis nogc;
+        return op(obj);
+    }
+    return obj;
+}
+
+
+
+
+
+
+
+
+inline JSObject *
+GetOuterObject(JSContext *cx, HandleObject obj)
+{
+    if (ObjectOp op = obj->getClass()->ext.outerObject)
+        return op(cx, obj);
+    return obj;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+inline JSObject *
+GetThisObject(JSContext *cx, HandleObject obj)
+{
+    if (ObjectOp op = obj->getOps()->thisObject)
+        return op(cx, obj);
+    return obj;
+}
+
+
+
+
 typedef JSObject *(*ClassInitializerOp)(JSContext *cx, JS::HandleObject obj);
 
 
@@ -1040,10 +1119,6 @@ extern const char js_defineSetter_str[];
 extern const char js_lookupGetter_str[];
 extern const char js_lookupSetter_str[];
 #endif
-
-extern bool
-js_PopulateObject(JSContext *cx, js::HandleObject newborn, js::HandleObject props);
-
 
 namespace js {
 
@@ -1231,12 +1306,6 @@ Throw(JSContext *cx, jsid id, unsigned errorNumber);
 
 extern bool
 Throw(JSContext *cx, JSObject *obj, unsigned errorNumber);
-
-extern bool
-NativeWatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
-
-extern bool
-NativeUnwatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
 
 enum class IntegrityLevel {
     Sealed,
