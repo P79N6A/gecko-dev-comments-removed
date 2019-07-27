@@ -813,6 +813,17 @@ struct AddRvalueReference
 
 
 
+
+
+
+
+
+
+template<typename T>
+typename AddRvalueReference<T>::Type DeclVal();
+
+
+
 template<bool B, typename T = void>
 struct EnableIf;
 
