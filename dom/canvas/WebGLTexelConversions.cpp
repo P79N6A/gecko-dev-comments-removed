@@ -325,6 +325,15 @@ public:
 
 } 
 
+static bool
+IsNoNeedForPremultForFormats(WebGLTexelFormat srcFormat,
+                             WebGLTexelFormat dstFormat)
+{
+    return !HasAlpha(srcFormat) ||
+           !HasColor(srcFormat) ||
+           !HasColor(dstFormat);
+}
+
 void
 WebGLContext::ConvertImage(size_t width, size_t height, size_t srcStride, size_t dstStride,
                            const uint8_t* src, uint8_t *dst,
@@ -335,13 +344,11 @@ WebGLContext::ConvertImage(size_t width, size_t height, size_t srcStride, size_t
     if (width <= 0 || height <= 0)
         return;
 
-    const bool FormatsRequireNoPremultiplicationOp =
-        !HasAlpha(srcFormat) ||
-        !HasColor(srcFormat) ||
-        !HasColor(dstFormat);
+    const bool noNeedForPremultFromFormats = IsNoNeedForPremultForFormats(srcFormat,
+                                                                          dstFormat);
 
     if (srcFormat == dstFormat &&
-        (FormatsRequireNoPremultiplicationOp || srcPremultiplied == dstPremultiplied))
+        (noNeedForPremultFromFormats || srcPremultiplied == dstPremultiplied))
     {
         
         
@@ -381,7 +388,7 @@ WebGLContext::ConvertImage(size_t width, size_t height, size_t srcStride, size_t
     WebGLImageConverter converter(width, height, src, dstStart, srcStride, signedDstStride);
 
     const WebGLTexelPremultiplicationOp premultiplicationOp
-        = FormatsRequireNoPremultiplicationOp     ? WebGLTexelPremultiplicationOp::None
+        = noNeedForPremultFromFormats             ? WebGLTexelPremultiplicationOp::None
         : (!srcPremultiplied && dstPremultiplied) ? WebGLTexelPremultiplicationOp::Premultiply
         : (srcPremultiplied && !dstPremultiplied) ? WebGLTexelPremultiplicationOp::Unpremultiply
                                                   : WebGLTexelPremultiplicationOp::None;
