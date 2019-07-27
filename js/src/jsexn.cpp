@@ -869,9 +869,9 @@ ErrorReport::populateUncaughtExceptionReportVA(JSContext* cx, va_list ap)
         ownedReport.isMuted = iter.mutedErrors();
     }
 
-    if (!ExpandErrorArguments(cx, GetErrorMessage, nullptr,
-                              JSMSG_UNCAUGHT_EXCEPTION, &ownedMessage,
-                              &ownedReport, ArgumentsAreASCII, ap)) {
+    if (!ExpandErrorArgumentsVA(cx, GetErrorMessage, nullptr,
+                                JSMSG_UNCAUGHT_EXCEPTION, &ownedMessage,
+                                &ownedReport, ArgumentsAreASCII, ap)) {
         return false;
     }
 

@@ -138,7 +138,6 @@ extern JS_FRIEND_API(bool)
 JS_ScriptHasMutedErrors(JSScript* script);
 
 
-
 extern JS_FRIEND_API(JSObject*)
 JS_ObjectToInnerObject(JSContext* cx, JS::HandleObject obj);
 
@@ -2542,7 +2541,6 @@ Debug_SetActiveJSContext(JSRuntime* rt, JSContext* cx);
 inline void
 Debug_SetActiveJSContext(JSRuntime* rt, JSContext* cx) {}
 #endif
-
 
 enum CTypesActivityType {
     CTYPES_CALL_BEGIN,

@@ -561,7 +561,6 @@ enum ErrorArgumentsType {
 
 
 
-
 JSFunction*
 SelfHostedFunction(JSContext* cx, HandlePropertyName propName);
 
@@ -581,10 +580,10 @@ ReportErrorNumberUCArray(JSContext* cx, unsigned flags, JSErrorCallback callback
 #endif
 
 extern bool
-ExpandErrorArguments(ExclusiveContext* cx, JSErrorCallback callback,
-                     void* userRef, const unsigned errorNumber,
-                     char** message, JSErrorReport* reportp,
-                     ErrorArgumentsType argumentsType, va_list ap);
+ExpandErrorArgumentsVA(ExclusiveContext* cx, JSErrorCallback callback,
+                       void* userRef, const unsigned errorNumber,
+                       char** message, JSErrorReport* reportp,
+                       ErrorArgumentsType argumentsType, va_list ap);
 
 
 extern void

@@ -555,10 +555,10 @@ js::PrintError(JSContext* cx, FILE* file, const char* message, JSErrorReport* re
 
 
 bool
-js::ExpandErrorArguments(ExclusiveContext* cx, JSErrorCallback callback,
-                         void* userRef, const unsigned errorNumber,
-                         char** messagep, JSErrorReport* reportp,
-                         ErrorArgumentsType argumentsType, va_list ap)
+js::ExpandErrorArgumentsVA(ExclusiveContext* cx, JSErrorCallback callback,
+                           void* userRef, const unsigned errorNumber,
+                           char** messagep, JSErrorReport* reportp,
+                           ErrorArgumentsType argumentsType, va_list ap)
 {
     const JSErrorFormatString* efs;
     int i;
@@ -736,8 +736,8 @@ js::ReportErrorNumberVA(JSContext* cx, unsigned flags, JSErrorCallback callback,
     report.errorNumber = errorNumber;
     PopulateReportBlame(cx, &report);
 
-    if (!ExpandErrorArguments(cx, callback, userRef, errorNumber,
-                              &message, &report, argumentsType, ap)) {
+    if (!ExpandErrorArgumentsVA(cx, callback, userRef, errorNumber,
+                                &message, &report, argumentsType, ap)) {
         return false;
     }
 
@@ -761,6 +761,20 @@ js::ReportErrorNumberVA(JSContext* cx, unsigned flags, JSErrorCallback callback,
     return warning;
 }
 
+static bool
+ExpandErrorArguments(ExclusiveContext *cx, JSErrorCallback callback,
+                     void *userRef, const unsigned errorNumber,
+                     char **messagep, JSErrorReport *reportp,
+                     ErrorArgumentsType argumentsType, ...)
+{
+    va_list ap;
+    va_start(ap, argumentsType);
+    bool expanded = js::ExpandErrorArgumentsVA(cx, callback, userRef, errorNumber,
+                                               messagep, reportp, argumentsType, ap);
+    va_end(ap);
+    return expanded;
+}
+
 bool
 js::ReportErrorNumberUCArray(JSContext* cx, unsigned flags, JSErrorCallback callback,
                              void* userRef, const unsigned errorNumber,
@@ -777,9 +791,8 @@ js::ReportErrorNumberUCArray(JSContext* cx, unsigned flags, JSErrorCallback call
     report.messageArgs = args;
 
     char* message;
-    va_list dummy;
     if (!ExpandErrorArguments(cx, callback, userRef, errorNumber,
-                              &message, &report, ArgumentsAreUnicode, dummy)) {
+                              &message, &report, ArgumentsAreUnicode)) {
         return false;
     }
 
