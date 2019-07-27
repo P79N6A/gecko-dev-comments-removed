@@ -152,7 +152,14 @@ protected:
 
   virtual bool CreateExtractor();
 
+  
+  
+  void UpdateIsWaitingMediaResources();
+
   android::sp<android::MediaExtractor> mExtractor;
+  
+  
+  bool mIsWaitingResources;
 
 private:
   
