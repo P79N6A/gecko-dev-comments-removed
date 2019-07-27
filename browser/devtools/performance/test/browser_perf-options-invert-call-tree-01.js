@@ -1,8 +1,6 @@
 
 
 
-const INVERT_PREF = "devtools.performance.ui.invert-call-tree";
-
 
 
 

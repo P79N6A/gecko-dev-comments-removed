@@ -1,8 +1,6 @@
 
 
 
-const IDLE_PREF = "devtools.performance.ui.show-idle-blocks";
-
 
 
 
@@ -10,6 +8,8 @@ function spawnTest () {
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, DetailsView, MemoryFlameGraphView } = panel.panelWin;
 
+  
+  Services.prefs.setBoolPref(MEMORY_PREF, true);
   DetailsView.selectView("memory-flamegraph");
 
   Services.prefs.setBoolPref(IDLE_PREF, true);

@@ -58,7 +58,7 @@ const BRANCH_NAME = "devtools.performance.ui.";
 
 const EVENTS = {
   
-  PREF_CHANGED: "Preformance:PrefChanged",
+  PREF_CHANGED: "Performance:PrefChanged",
 
   
   
@@ -220,15 +220,15 @@ let PerformanceController = {
 
 
   startRecording: Task.async(function *() {
-    let recording = this._createRecording();
-
     let withMemory = this.getPref("enable-memory");
     let withTicks = this.getPref("enable-framerate");
-    let withAllocations = true;
+    let withAllocations = this.getPref("enable-memory");
+
+    let recording = this._createRecording({ withMemory, withTicks, withAllocations });
 
     this.emit(EVENTS.RECORDING_WILL_START, recording);
     yield recording.startRecording({ withTicks, withMemory, withAllocations });
-    this.emit(EVENTS.RECORDING_STARTED, recording, { withTicks, withMemory, withAllocations });
+    this.emit(EVENTS.RECORDING_STARTED, recording);
 
     this.setCurrentRecording(recording);
   }),
@@ -241,9 +241,8 @@ let PerformanceController = {
     let recording = this._getLatestRecording();
 
     this.emit(EVENTS.RECORDING_WILL_STOP, recording);
-    yield recording.stopRecording({
-      withAllocations: true
-    });
+
+    yield recording.stopRecording();
     this.emit(EVENTS.RECORDING_STOPPED, recording);
   }),
 
@@ -298,8 +297,15 @@ let PerformanceController = {
 
 
 
-  _createRecording: function () {
-    let recording = new RecordingModel({ front: gFront, performance });
+
+
+  _createRecording: function (options={}) {
+    let { withMemory, withTicks, withAllocations } = options;
+    let front = gFront;
+
+    let recording = new RecordingModel(
+      { front, performance, withMemory, withTicks, withAllocations });
+
     this._recordings.push(recording);
     return recording;
   },

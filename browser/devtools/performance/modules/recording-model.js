@@ -20,6 +20,12 @@ const RecordingModel = function (options={}) {
   this._front = options.front;
   this._performance = options.performance;
   this._label = options.label || "";
+
+  this._configuration = {
+    withTicks: options.withTicks || false,
+    withMemory: options.withMemory || false,
+    withAllocations: options.withAllocations || false
+  };
 };
 
 RecordingModel.prototype = {
@@ -29,6 +35,7 @@ RecordingModel.prototype = {
   _profilerStartTime: 0,
   _timelineStartTime: 0,
   _memoryStartTime: 0,
+  _configuration: {},
 
   
   _label: "",
@@ -100,11 +107,8 @@ RecordingModel.prototype = {
   
 
 
-
-
-
-  stopRecording: Task.async(function *(options) {
-    let info = yield this._front.stopRecording(options);
+  stopRecording: Task.async(function *() {
+    let info = yield this._front.stopRecording(this.getConfiguration());
     this._profile = info.profile;
     this._duration = info.profilerEndTime - this._profilerStartTime;
     this._recording = false;
@@ -141,6 +145,15 @@ RecordingModel.prototype = {
     } else {
       return this._duration;
     }
+  },
+
+  
+
+
+
+
+  getConfiguration: function () {
+    return this._configuration;
   },
 
   

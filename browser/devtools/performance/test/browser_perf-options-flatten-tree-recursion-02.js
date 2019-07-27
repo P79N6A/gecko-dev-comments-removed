@@ -1,12 +1,13 @@
 
 
 
-const FLATTEN_PREF = "devtools.performance.ui.flatten-tree-recursion";
-
 
 
 
 function spawnTest () {
+  
+  Services.prefs.setBoolPref(MEMORY_PREF, true);
+
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, DetailsView, MemoryFlameGraphView } = panel.panelWin;
 

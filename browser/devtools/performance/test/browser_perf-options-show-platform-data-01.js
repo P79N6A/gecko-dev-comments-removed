@@ -1,8 +1,6 @@
 
 
 
-const PLATFORM_DATA_PREF = "devtools.performance.ui.show-platform-data";
-
 
 
 

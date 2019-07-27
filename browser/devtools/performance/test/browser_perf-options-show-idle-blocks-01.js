@@ -1,8 +1,6 @@
 
 
 
-const IDLE_PREF = "devtools.performance.ui.show-idle-blocks";
-
 
 
 

@@ -1,8 +1,6 @@
 
 
 
-const FLATTEN_PREF = "devtools.performance.ui.flatten-tree-recursion";
-
 
 
 

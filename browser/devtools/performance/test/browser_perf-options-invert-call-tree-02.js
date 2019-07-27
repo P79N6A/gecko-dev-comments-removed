@@ -1,8 +1,6 @@
 
 
 
-const INVERT_PREF = "devtools.performance.ui.invert-call-tree";
-
 
 
 
@@ -11,6 +9,8 @@ function spawnTest () {
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, DetailsView, MemoryCallTreeView } = panel.panelWin;
 
+  
+  Services.prefs.setBoolPref(MEMORY_PREF, true);
   Services.prefs.setBoolPref(INVERT_PREF, true);
 
   DetailsView.selectView("memory-calltree");
