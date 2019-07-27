@@ -313,8 +313,12 @@ public:
 
 
 
+
+
+
   nsChangeHint CalcStyleDifference(nsStyleContext* aOther,
-                                   nsChangeHint aParentHintsNotHandledForDescendants);
+                                   nsChangeHint aParentHintsNotHandledForDescendants,
+                                   uint32_t* aEqualStructs);
 
   
 
