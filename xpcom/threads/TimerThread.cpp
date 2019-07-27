@@ -260,43 +260,43 @@ TimerThread::Run()
           RemoveTimerInternal(timer);
           timer = nullptr;
 
+#ifdef DEBUG_TIMERS
+          if (PR_LOG_TEST(GetTimerLog(), PR_LOG_DEBUG)) {
+            PR_LOG(GetTimerLog(), PR_LOG_DEBUG,
+                   ("Timer thread woke up %fms from when it was supposed to\n",
+                    fabs((now - timerRef->mTimeout).ToMilliseconds())));
+          }
+#endif
+
           {
             
             MonitorAutoUnlock unlock(mMonitor);
-
-#ifdef DEBUG_TIMERS
-            if (PR_LOG_TEST(GetTimerLog(), PR_LOG_DEBUG)) {
-              PR_LOG(GetTimerLog(), PR_LOG_DEBUG,
-                     ("Timer thread woke up %fms from when it was supposed to\n",
-                      fabs((now - timerRef->mTimeout).ToMilliseconds())));
-            }
-#endif
 
             
             
             
             timerRef = nsTimerImpl::PostTimerEvent(timerRef.forget());
+          }
 
-            if (timerRef) {
-              
-              
-              
-              nsrefcnt rc = timerRef.forget().take()->Release();
-              (void)rc;
+          if (timerRef) {
+            
+            
+            
+            nsrefcnt rc = timerRef.forget().take()->Release();
+            (void)rc;
 
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              MOZ_ASSERT(rc != 0, "destroyed timer off its target thread!");
-            }
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            MOZ_ASSERT(rc != 0, "destroyed timer off its target thread!");
           }
 
           if (mShutdown) {
