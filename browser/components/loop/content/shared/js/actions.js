@@ -225,7 +225,10 @@ loop.shared.actions = (function() {
 
 
     GetAllRoomsError: Action.define("getAllRoomsError", {
-      error: Error
+      
+      
+      
+      error: [Error, Object]
     }),
 
     

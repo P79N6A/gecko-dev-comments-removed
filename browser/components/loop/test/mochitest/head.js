@@ -77,11 +77,6 @@ function promiseGetMozLoopAPI() {
 
 
 function loadLoopPanel(aOverrideOptions = {}) {
-  Services.prefs.setBoolPref("loop.rooms.enabled", false);
-  registerCleanupFunction(function() {
-     Services.prefs.clearUserPref("loop.rooms.enabled");
-  });
-
   
   Services.prefs.setCharPref("services.push.serverURL", aOverrideOptions.pushURL || "ws://localhost/");
   Services.prefs.setCharPref("loop.server", aOverrideOptions.loopURL || "http://localhost/");
