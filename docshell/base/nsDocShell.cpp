@@ -2929,17 +2929,29 @@ nsDocShell::HistoryTransactionRemoved(int32_t aIndex)
   return NS_OK;
 }
 
+unsigned long nsDocShell::gProfileTimelineRecordingsCount = 0;
+
+mozilla::LinkedList<nsDocShell::ObservedDocShell>* nsDocShell::gObservedDocShells = nullptr;
+
 NS_IMETHODIMP
 nsDocShell::SetRecordProfileTimelineMarkers(bool aValue)
 {
   bool currentValue = nsIDocShell::GetRecordProfileTimelineMarkers();
   if (currentValue != aValue) {
     if (aValue) {
-      TimelineConsumers::AddConsumer(this);
+      ++gProfileTimelineRecordingsCount;
       UseEntryScriptProfiling();
+
+      MOZ_ASSERT(!mObserved);
+      mObserved.reset(new ObservedDocShell(this));
+      GetOrCreateObservedDocShells().insertFront(mObserved.get());
     } else {
-      TimelineConsumers::RemoveConsumer(this);
+      --gProfileTimelineRecordingsCount;
       UnuseEntryScriptProfiling();
+
+      mObserved.reset(nullptr);
+
+      ClearProfileTimelineMarkers();
     }
   }
 
@@ -2955,13 +2967,124 @@ nsDocShell::GetRecordProfileTimelineMarkers(bool* aValue)
 
 nsresult
 nsDocShell::PopProfileTimelineMarkers(
-  JSContext* aCx,
-  JS::MutableHandle<JS::Value> aStore)
+    JSContext* aCx,
+    JS::MutableHandle<JS::Value> aProfileTimelineMarkers)
 {
-  if (!mObserved->PopMarkers(aCx, aStore)) {
+  
+  
+  
+  
+  
+  
+  
+
+  nsTArray<mozilla::dom::ProfileTimelineMarker> profileTimelineMarkers;
+  SequenceRooter<mozilla::dom::ProfileTimelineMarker> rooter(
+    aCx, &profileTimelineMarkers);
+
+  
+  
+  
+  nsTArray<UniquePtr<TimelineMarker>> keptMarkers;
+
+  for (uint32_t i = 0; i < mProfileTimelineMarkers.Length(); ++i) {
+    UniquePtr<TimelineMarker>& startPayload = mProfileTimelineMarkers[i];
+    const char* startMarkerName = startPayload->GetName();
+
+    bool hasSeenPaintedLayer = false;
+    bool isPaint = strcmp(startMarkerName, "Paint") == 0;
+
+    
+    
+    dom::Sequence<dom::ProfileTimelineLayerRect> layerRectangles;
+
+    
+    
+    
+    if (startPayload->GetMetaData() == TRACING_TIMESTAMP) {
+      mozilla::dom::ProfileTimelineMarker* marker =
+        profileTimelineMarkers.AppendElement();
+
+      marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
+      marker->mStart = startPayload->GetTime();
+      marker->mEnd = startPayload->GetTime();
+      marker->mStack = startPayload->GetStack();
+      startPayload->AddDetails(aCx, *marker);
+      continue;
+    }
+
+    if (startPayload->GetMetaData() == TRACING_INTERVAL_START) {
+      bool hasSeenEnd = false;
+
+      
+      
+      
+      uint32_t markerDepth = 0;
+
+      
+      
+      
+      for (uint32_t j = i + 1; j < mProfileTimelineMarkers.Length(); ++j) {
+        UniquePtr<TimelineMarker>& endPayload = mProfileTimelineMarkers[j];
+        const char* endMarkerName = endPayload->GetName();
+
+        
+        if (isPaint && strcmp(endMarkerName, "Layer") == 0) {
+          hasSeenPaintedLayer = true;
+          endPayload->AddLayerRectangles(layerRectangles);
+        }
+
+        if (!startPayload->Equals(*endPayload)) {
+          continue;
+        }
+
+        
+        if (endPayload->GetMetaData() == TRACING_INTERVAL_START) {
+          ++markerDepth;
+        } else if (endPayload->GetMetaData() == TRACING_INTERVAL_END) {
+          if (markerDepth > 0) {
+            --markerDepth;
+          } else {
+            
+            if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
+              mozilla::dom::ProfileTimelineMarker* marker =
+                profileTimelineMarkers.AppendElement();
+
+              marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
+              marker->mStart = startPayload->GetTime();
+              marker->mEnd = endPayload->GetTime();
+              marker->mStack = startPayload->GetStack();
+              if (isPaint) {
+                marker->mRectangles.Construct(layerRectangles);
+              }
+              startPayload->AddDetails(aCx, *marker);
+              endPayload->AddDetails(aCx, *marker);
+            }
+
+            
+            hasSeenEnd = true;
+
+            break;
+          }
+        }
+      }
+
+      
+      if (!hasSeenEnd) {
+        keptMarkers.AppendElement(Move(mProfileTimelineMarkers[i]));
+        mProfileTimelineMarkers.RemoveElementAt(i);
+        --i;
+      }
+    }
+  }
+
+  mProfileTimelineMarkers.SwapElements(keptMarkers);
+
+  if (!ToJSValue(aCx, profileTimelineMarkers, aProfileTimelineMarkers)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_UNEXPECTED;
   }
+
   return NS_OK;
 }
 
@@ -2972,6 +3095,24 @@ nsDocShell::Now(DOMHighResTimeStamp* aWhen)
   *aWhen =
     (TimeStamp::Now() - TimeStamp::ProcessCreation(ignore)).ToMilliseconds();
   return NS_OK;
+}
+
+void
+nsDocShell::AddProfileTimelineMarker(const char* aName,
+                                     TracingMetadata aMetaData)
+{
+  if (IsObserved()) {
+    TimelineMarker* marker = new TimelineMarker(this, aName, aMetaData);
+    mProfileTimelineMarkers.AppendElement(marker);
+  }
+}
+
+void
+nsDocShell::AddProfileTimelineMarker(UniquePtr<TimelineMarker>&& aMarker)
+{
+  if (IsObserved()) {
+    mProfileTimelineMarkers.AppendElement(Move(aMarker));
+  }
 }
 
 NS_IMETHODIMP
@@ -3001,6 +3142,12 @@ nsDocShell::GetWindowDraggingAllowed(bool* aValue)
     *aValue = mWindowDraggingAllowed;
   }
   return NS_OK;
+}
+
+void
+nsDocShell::ClearProfileTimelineMarkers()
+{
+  mProfileTimelineMarkers.Clear();
 }
 
 nsIDOMStorageManager*
@@ -13840,7 +13987,7 @@ nsDocShell::NotifyJSRunToCompletionStart(const char* aReason,
       MakeUnique<JavascriptTimelineMarker>(this, "Javascript", aReason,
                                            aFunctionName, aFilename,
                                            aLineNumber);
-    TimelineConsumers::AddMarkerForDocShell(this, Move(marker));
+    AddProfileTimelineMarker(Move(marker));
   }
   mJSRunToCompletionDepth++;
 }
@@ -13853,7 +14000,7 @@ nsDocShell::NotifyJSRunToCompletionStop()
   
   mJSRunToCompletionDepth--;
   if (timelineOn && mJSRunToCompletionDepth == 0) {
-    TimelineConsumers::AddMarkerForDocShell(this, "Javascript", TRACING_INTERVAL_END);
+    AddProfileTimelineMarker("Javascript", TRACING_INTERVAL_END);
   }
 }
 
