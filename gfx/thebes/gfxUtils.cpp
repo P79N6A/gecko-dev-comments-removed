@@ -593,17 +593,6 @@ gfxUtils::DrawPixelSnapped(gfxContext*         aContext,
                                      imageRect.Width(), imageRect.Height(),
                                      region.Width(), region.Height());
 
-    if (aRegion.IsRestricted() &&
-        aContext->CurrentMatrix().HasNonIntegerTranslation() &&
-        drawable->DrawWithSamplingRect(aContext, aRegion.Rect(), aRegion.Restriction(),
-                                       doTile, aFilter, aOpacity)) {
-      return;
-    }
-
-    
-    
-    
-#ifndef MOZ_GFX_OPTIMIZE_MOBILE
     
     
     
@@ -611,19 +600,29 @@ gfxUtils::DrawPixelSnapped(gfxContext*         aContext,
     
     if (aContext->CurrentMatrix().HasNonIntegerTranslation()) {
         if (doTile || !aRegion.RestrictionContains(imageRect)) {
+            if (drawable->DrawWithSamplingRect(aContext, aRegion.Rect(), aRegion.Restriction(),
+                                               doTile, aFilter, aOpacity)) {
+              return;
+            }
+
+            
+            
+            
+#ifndef MOZ_GFX_OPTIMIZE_MOBILE
             nsRefPtr<gfxDrawable> restrictedDrawable =
               CreateSamplingRestrictedDrawable(aDrawable, aContext,
                                                aRegion, aFormat);
             if (restrictedDrawable) {
                 drawable.swap(restrictedDrawable);
             }
-        }
-        
-        
-        
-        doTile = false;
-    }
+
+            
+            
+            
+            doTile = false;
 #endif
+        }
+    }
 
     drawable->Draw(aContext, aRegion.Rect(), doTile, aFilter, aOpacity);
 }
