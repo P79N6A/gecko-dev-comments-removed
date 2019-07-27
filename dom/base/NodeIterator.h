@@ -69,7 +69,7 @@ public:
     }
     
 
-    JSObject* WrapObject(JSContext *cx);
+    bool WrapObject(JSContext *cx, JS::MutableHandle<JSObject*> aReflector);
 
 private:
     virtual ~NodeIterator();
