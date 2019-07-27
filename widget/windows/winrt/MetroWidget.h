@@ -204,7 +204,6 @@ public:
   TouchBehaviorFlags ContentGetAllowedTouchBehavior(const nsIntPoint& aPoint);
 
   
-  void ApzcGetAllowedTouchBehavior(mozilla::WidgetInputEvent* aTransformedEvent, nsTArray<TouchBehaviorFlags>& aOutBehaviors);
   void ApzcSetAllowedTouchBehavior(uint64_t aInputBlockId, nsTArray<TouchBehaviorFlags>& aBehaviors);
 
   

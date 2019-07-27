@@ -513,14 +513,10 @@ MetroInput::ShouldDeliverInputToRecognizer()
 void
 MetroInput::GetAllowedTouchBehavior(WidgetTouchEvent* aTransformedEvent, nsTArray<TouchBehaviorFlags>& aOutBehaviors)
 {
-  mWidget->ApzcGetAllowedTouchBehavior(aTransformedEvent, aOutBehaviors);
-
-  for (uint32_t i = 0; i < aOutBehaviors.Length(); i++) {
-    if (aOutBehaviors[i] & AllowedTouchBehavior::UNKNOWN) {
-      
-      
-      aOutBehaviors[i] = mWidget->ContentGetAllowedTouchBehavior(aTransformedEvent->touches[i]->mRefPoint);
-    }
+  for (uint32_t i = 0; i < aTransformedEvent->touches.Length(); i++) {
+    
+    
+    aOutBehaviors.AppendElement(mWidget->ContentGetAllowedTouchBehavior(aTransformedEvent->touches[i]->mRefPoint));
   }
 }
 

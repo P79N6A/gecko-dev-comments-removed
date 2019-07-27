@@ -75,7 +75,6 @@ class AsyncPanZoomController {
 
   typedef mozilla::MonitorAutoLock MonitorAutoLock;
   typedef mozilla::gfx::Matrix4x4 Matrix4x4;
-  typedef uint32_t TouchBehaviorFlags;
 
 public:
   enum GestureBehavior {
@@ -301,17 +300,6 @@ public:
 
 
   void ClearOverscroll();
-
-  
-
-
-
-
-
-
-
-
-  TouchBehaviorFlags GetAllowedTouchBehavior(ScreenIntPoint& aPoint);
 
   
 

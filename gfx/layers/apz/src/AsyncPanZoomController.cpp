@@ -2906,14 +2906,6 @@ AsyncPanZoomController::HasReadyTouchBlock()
   return GetInputQueue()->HasReadyTouchBlock();
 }
 
-AsyncPanZoomController::TouchBehaviorFlags
-AsyncPanZoomController::GetAllowedTouchBehavior(ScreenIntPoint& aPoint) {
-  
-  
-  
-  return AllowedTouchBehavior::UNKNOWN;
-}
-
 void AsyncPanZoomController::SetState(PanZoomState aNewState)
 {
   PanZoomState oldState;
