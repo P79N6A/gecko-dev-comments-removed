@@ -39,7 +39,7 @@ protected:
 
   virtual ~InterceptedChannelBase();
 public:
-  InterceptedChannelBase(nsINetworkInterceptController* aController);
+  explicit InterceptedChannelBase(nsINetworkInterceptController* aController);
 
   
   

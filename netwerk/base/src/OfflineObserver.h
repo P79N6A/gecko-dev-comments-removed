@@ -48,7 +48,7 @@ class OfflineObserver
 public:
   
 
-  OfflineObserver(DisconnectableParent * parent);
+  explicit OfflineObserver(DisconnectableParent * parent);
   
   
   
