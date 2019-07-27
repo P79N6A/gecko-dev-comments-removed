@@ -59,10 +59,7 @@ public:
 
 
   bool IsIgnored();
-  
-  inline bool HasPopup () 
-    { return (NativeState() & mozilla::a11y::states::HASPOPUP); }
-  
+
   
 
 

@@ -9,6 +9,9 @@
 
 
 @interface mozButtonAccessible : mozAccessible
+ {
+ }
+- (BOOL)hasPopup;
 - (void)click;
 - (BOOL)isTab;
 @end
@@ -16,10 +19,6 @@
 @interface mozCheckboxAccessible : mozButtonAccessible
 
 - (int)isChecked;
-@end
-
-
-@interface mozPopupButtonAccessible : mozButtonAccessible
 @end
 
 
