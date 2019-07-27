@@ -23,7 +23,11 @@ function test() {
     
     executeSoon(page_loaded);
   }, true);
-  expectUncaughtException();
+
+  
+  if (!gMultiProcessBrowser)
+    expectUncaughtException();
+
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 
