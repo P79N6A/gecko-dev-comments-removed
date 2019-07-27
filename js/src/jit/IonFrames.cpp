@@ -140,8 +140,13 @@ JitFrameIterator::checkInvalidation() const
 bool
 JitFrameIterator::checkInvalidation(IonScript **ionScriptOut) const
 {
-    uint8_t *returnAddr = returnAddressToFp();
     JSScript *script = this->script();
+    if (isBailoutJS()) {
+        *ionScriptOut = activation_->bailoutData()->ionScript();
+        return !script->hasIonScript() || script->ionScript() != *ionScriptOut;
+    }
+
+    uint8_t *returnAddr = returnAddressToFp();
     
     
     bool invalidated;
