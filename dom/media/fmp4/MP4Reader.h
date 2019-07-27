@@ -12,7 +12,7 @@
 #include "PlatformDecoderModule.h"
 #include "mp4_demuxer/mp4_demuxer.h"
 #include "demuxer/TrackDemuxer.h"
-#include "MediaTaskQueue.h"
+#include "TaskQueue.h"
 
 #include <deque>
 #include "mozilla/Monitor.h"
@@ -28,7 +28,7 @@ class MP4Reader final : public MediaDecoderReader
   typedef TrackInfo::TrackType TrackType;
 
 public:
-  explicit MP4Reader(AbstractMediaDecoder* aDecoder, MediaTaskQueue* aBorrowedTaskQueue = nullptr);
+  explicit MP4Reader(AbstractMediaDecoder* aDecoder, TaskQueue* aBorrowedTaskQueue = nullptr);
 
   virtual ~MP4Reader();
 
@@ -184,7 +184,7 @@ private:
     nsRefPtr<MediaDataDecoder> mDecoder;
     
     
-    nsRefPtr<FlushableMediaTaskQueue> mTaskQueue;
+    nsRefPtr<FlushableTaskQueue> mTaskQueue;
     
     nsAutoPtr<DecoderCallback> mCallback;
     

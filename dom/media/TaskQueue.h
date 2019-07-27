@@ -4,8 +4,8 @@
 
 
 
-#ifndef MediaTaskQueue_h_
-#define MediaTaskQueue_h_
+#ifndef TaskQueue_h_
+#define TaskQueue_h_
 
 #include <queue>
 #include "mozilla/RefPtr.h"
@@ -29,13 +29,13 @@ typedef MozPromise<bool, bool, false> ShutdownPromise;
 
 
 
-class MediaTaskQueue : public AbstractThread {
+class TaskQueue : public AbstractThread {
 public:
-  explicit MediaTaskQueue(already_AddRefed<SharedThreadPool> aPool, bool aSupportsTailDispatch = false);
+  explicit TaskQueue(already_AddRefed<SharedThreadPool> aPool, bool aSupportsTailDispatch = false);
 
   TaskDispatcher& TailDispatcher() override;
 
-  MediaTaskQueue* AsTaskQueue() override { return this; }
+  TaskQueue* AsTaskQueue() override { return this; }
 
   void Dispatch(already_AddRefed<nsIRunnable> aRunnable,
                 DispatchFailureHandling aFailureHandling = AssertDispatchSuccess,
@@ -73,7 +73,7 @@ public:
   bool IsCurrentThreadIn() override;
 
 protected:
-  virtual ~MediaTaskQueue();
+  virtual ~TaskQueue();
 
 
   
@@ -118,7 +118,7 @@ protected:
   class AutoTaskGuard : public AutoTaskDispatcher
   {
   public:
-    explicit AutoTaskGuard(MediaTaskQueue* aQueue)
+    explicit AutoTaskGuard(TaskQueue* aQueue)
       : AutoTaskDispatcher( true), mQueue(aQueue)
     {
       
@@ -145,7 +145,7 @@ protected:
     }
 
   private:
-  MediaTaskQueue* mQueue;
+  TaskQueue* mQueue;
   };
 
   TaskDispatcher* mTailDispatcher;
@@ -163,20 +163,20 @@ protected:
 
   class Runner : public nsRunnable {
   public:
-    explicit Runner(MediaTaskQueue* aQueue)
+    explicit Runner(TaskQueue* aQueue)
       : mQueue(aQueue)
     {
     }
     NS_METHOD Run() override;
   private:
-    RefPtr<MediaTaskQueue> mQueue;
+    RefPtr<TaskQueue> mQueue;
   };
 };
 
-class FlushableMediaTaskQueue : public MediaTaskQueue
+class FlushableTaskQueue : public TaskQueue
 {
 public:
-  explicit FlushableMediaTaskQueue(already_AddRefed<SharedThreadPool> aPool) : MediaTaskQueue(Move(aPool)) {}
+  explicit FlushableTaskQueue(already_AddRefed<SharedThreadPool> aPool) : TaskQueue(Move(aPool)) {}
   nsresult FlushAndDispatch(already_AddRefed<nsIRunnable> aRunnable);
   void Flush();
 
@@ -187,7 +187,7 @@ private:
   class MOZ_STACK_CLASS AutoSetFlushing
   {
   public:
-    explicit AutoSetFlushing(FlushableMediaTaskQueue* aTaskQueue) : mTaskQueue(aTaskQueue)
+    explicit AutoSetFlushing(FlushableTaskQueue* aTaskQueue) : mTaskQueue(aTaskQueue)
     {
       mTaskQueue->mQueueMonitor.AssertCurrentThreadOwns();
       mTaskQueue->mIsFlushing = true;
@@ -199,7 +199,7 @@ private:
     }
 
   private:
-    FlushableMediaTaskQueue* mTaskQueue;
+    FlushableTaskQueue* mTaskQueue;
   };
 
   void FlushLocked();

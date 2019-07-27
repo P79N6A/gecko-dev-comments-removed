@@ -41,7 +41,7 @@ class GonkNativeWindow;
 
 namespace mozilla {
 
-class FlushableMediaTaskQueue;
+class FlushableTaskQueue;
 class MP3FrameParser;
 
 namespace layers {
@@ -154,7 +154,7 @@ protected:
     int64_t mSeekTimeUs;
     bool mFlushed; 
     bool mDiscontinuity;
-    nsRefPtr<MediaTaskQueue> mTaskQueue;
+    nsRefPtr<TaskQueue> mTaskQueue;
     Monitor mTrackMonitor;
 
   private:
@@ -240,7 +240,7 @@ private:
     
     MozPromiseHolder<VideoDataPromise> mVideoPromise;
 
-    nsRefPtr<MediaTaskQueue> mReleaseBufferTaskQueue;
+    nsRefPtr<TaskQueue> mReleaseBufferTaskQueue;
   private:
     
     VideoTrack(const VideoTrack &rhs) = delete;

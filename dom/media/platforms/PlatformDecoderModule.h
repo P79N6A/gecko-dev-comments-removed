@@ -25,7 +25,7 @@ class ImageContainer;
 
 class MediaDataDecoder;
 class MediaDataDecoderCallback;
-class FlushableMediaTaskQueue;
+class FlushableTaskQueue;
 class CDMProxy;
 
 
@@ -82,7 +82,7 @@ public:
   
   virtual already_AddRefed<MediaDataDecoder>
   CreateDecoder(const TrackInfo& aConfig,
-                FlushableMediaTaskQueue* aTaskQueue,
+                FlushableTaskQueue* aTaskQueue,
                 MediaDataDecoderCallback* aCallback,
                 layers::LayersBackend aLayersBackend = layers::LayersBackend::LAYERS_NONE,
                 layers::ImageContainer* aImageContainer = nullptr);
@@ -130,7 +130,7 @@ protected:
   CreateVideoDecoder(const VideoInfo& aConfig,
                      layers::LayersBackend aLayersBackend,
                      layers::ImageContainer* aImageContainer,
-                     FlushableMediaTaskQueue* aVideoTaskQueue,
+                     FlushableTaskQueue* aVideoTaskQueue,
                      MediaDataDecoderCallback* aCallback) = 0;
 
   
@@ -145,7 +145,7 @@ protected:
   
   virtual already_AddRefed<MediaDataDecoder>
   CreateAudioDecoder(const AudioInfo& aConfig,
-                     FlushableMediaTaskQueue* aAudioTaskQueue,
+                     FlushableTaskQueue* aAudioTaskQueue,
                      MediaDataDecoderCallback* aCallback) = 0;
 
   

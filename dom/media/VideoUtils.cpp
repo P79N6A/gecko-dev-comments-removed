@@ -15,7 +15,7 @@
 #include "mozilla/Telemetry.h"
 #include "nsIRandomGenerator.h"
 #include "nsIServiceManager.h"
-#include "MediaTaskQueue.h"
+#include "TaskQueue.h"
 
 #include <stdint.h>
 
@@ -325,10 +325,10 @@ public:
   NS_IMETHOD Run() {
     MOZ_ASSERT(NS_IsMainThread());
     mTaskQueue =
-      new MediaTaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER));
+      new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER));
     return NS_OK;
   }
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
+  nsRefPtr<TaskQueue> mTaskQueue;
 };
 
 class CreateFlushableTaskQueueTask : public nsRunnable {
@@ -336,13 +336,13 @@ public:
   NS_IMETHOD Run() {
     MOZ_ASSERT(NS_IsMainThread());
     mTaskQueue =
-      new FlushableMediaTaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER));
+      new FlushableTaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER));
     return NS_OK;
   }
-  nsRefPtr<FlushableMediaTaskQueue> mTaskQueue;
+  nsRefPtr<FlushableTaskQueue> mTaskQueue;
 };
 
-already_AddRefed<MediaTaskQueue>
+already_AddRefed<TaskQueue>
 CreateMediaDecodeTaskQueue()
 {
   
@@ -352,7 +352,7 @@ CreateMediaDecodeTaskQueue()
   return t->mTaskQueue.forget();
 }
 
-already_AddRefed<FlushableMediaTaskQueue>
+already_AddRefed<FlushableTaskQueue>
 CreateFlushableMediaDecodeTaskQueue()
 {
   

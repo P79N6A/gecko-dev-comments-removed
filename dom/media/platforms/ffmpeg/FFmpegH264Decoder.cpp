@@ -4,7 +4,7 @@
 
 
 
-#include "MediaTaskQueue.h"
+#include "TaskQueue.h"
 #include "nsThreadUtils.h"
 #include "nsAutoPtr.h"
 #include "ImageContainer.h"
@@ -23,7 +23,7 @@ namespace mozilla
 {
 
 FFmpegH264Decoder<LIBAV_VER>::FFmpegH264Decoder(
-  FlushableMediaTaskQueue* aTaskQueue, MediaDataDecoderCallback* aCallback,
+  FlushableTaskQueue* aTaskQueue, MediaDataDecoderCallback* aCallback,
   const VideoInfo& aConfig,
   ImageContainer* aImageContainer)
   : FFmpegDataDecoder(aTaskQueue, GetCodecId(aConfig.mMimeType))

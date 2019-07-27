@@ -507,7 +507,7 @@ AsyncDecodeWebAudio(const char* aContentType, uint8_t* aBuffer,
     
     
     
-    MediaTaskQueue* taskQueue = task->Reader()->OwnerThread();
+    TaskQueue* taskQueue = task->Reader()->OwnerThread();
     taskQueue->Dispatch(task.forget());
   }
 }

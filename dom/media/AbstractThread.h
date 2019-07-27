@@ -17,7 +17,7 @@
 
 namespace mozilla {
 
-class MediaTaskQueue;
+class TaskQueue;
 class TaskDispatcher;
 
 
@@ -70,7 +70,7 @@ public:
   
   bool RequiresTailDispatch(AbstractThread* aThread) const;
 
-  virtual MediaTaskQueue* AsTaskQueue() { MOZ_CRASH("Not a task queue!"); }
+  virtual TaskQueue* AsTaskQueue() { MOZ_CRASH("Not a task queue!"); }
   virtual nsIThread* AsXPCOMThread() { MOZ_CRASH("Not an XPCOM thread!"); }
 
   

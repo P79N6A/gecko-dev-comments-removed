@@ -81,7 +81,7 @@ public:
 
   
   
-  explicit MediaDecoderReader(AbstractMediaDecoder* aDecoder, MediaTaskQueue* aBorrowedTaskQueue = nullptr);
+  explicit MediaDecoderReader(AbstractMediaDecoder* aDecoder, TaskQueue* aBorrowedTaskQueue = nullptr);
 
   
   
@@ -310,7 +310,7 @@ public:
     OwnerThread()->Dispatch(r.forget());
   }
 
-  MediaTaskQueue* OwnerThread() {
+  TaskQueue* OwnerThread() {
     return mTaskQueue;
   }
 
@@ -365,7 +365,7 @@ protected:
   AbstractMediaDecoder* mDecoder;
 
   
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
+  nsRefPtr<TaskQueue> mTaskQueue;
 
   
   WatchManager<MediaDecoderReader> mWatchManager;

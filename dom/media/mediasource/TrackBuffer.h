@@ -185,7 +185,7 @@ private:
   
   
   
-  RefPtr<MediaTaskQueue> mTaskQueue;
+  RefPtr<TaskQueue> mTaskQueue;
 
   
   

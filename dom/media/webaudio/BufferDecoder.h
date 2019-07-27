@@ -8,7 +8,7 @@
 #define BUFFER_DECODER_H_
 
 #include "AbstractMediaDecoder.h"
-#include "MediaTaskQueue.h"
+#include "TaskQueue.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ReentrantMonitor.h"
 
@@ -28,7 +28,7 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
   
-  void BeginDecoding(MediaTaskQueue* aTaskQueueIdentity);
+  void BeginDecoding(TaskQueue* aTaskQueueIdentity);
 
   virtual ReentrantMonitor& GetReentrantMonitor() final override;
 
@@ -78,7 +78,7 @@ private:
   
   
   ReentrantMonitor mReentrantMonitor;
-  nsRefPtr<MediaTaskQueue> mTaskQueueIdentity;
+  nsRefPtr<TaskQueue> mTaskQueueIdentity;
   nsRefPtr<MediaResource> mResource;
 };
 

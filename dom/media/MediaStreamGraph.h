@@ -16,7 +16,7 @@
 #include "VideoFrameContainer.h"
 #include "VideoSegment.h"
 #include "MainThreadUtils.h"
-#include "MediaTaskQueue.h"
+#include "TaskQueue.h"
 #include "nsAutoRef.h"
 #include "GraphDriver.h"
 #include <speex/speex_resampler.h>
@@ -832,7 +832,7 @@ public:
 
 
   void DispatchWhenNotEnoughBuffered(TrackID aID,
-      MediaTaskQueue* aSignalQueue, nsIRunnable* aSignalRunnable);
+      TaskQueue* aSignalQueue, nsIRunnable* aSignalRunnable);
   
 
 
@@ -896,13 +896,13 @@ public:
 
 protected:
   struct ThreadAndRunnable {
-    void Init(MediaTaskQueue* aTarget, nsIRunnable* aRunnable)
+    void Init(TaskQueue* aTarget, nsIRunnable* aRunnable)
     {
       mTarget = aTarget;
       mRunnable = aRunnable;
     }
 
-    nsRefPtr<MediaTaskQueue> mTarget;
+    nsRefPtr<TaskQueue> mTarget;
     nsCOMPtr<nsIRunnable> mRunnable;
   };
   enum TrackCommands {

@@ -4,7 +4,7 @@
 
 
 
-#include "MediaTaskQueue.h"
+#include "TaskQueue.h"
 #include "FFmpegRuntimeLinker.h"
 
 #include "FFmpegAudioDecoder.h"
@@ -16,7 +16,7 @@ namespace mozilla
 {
 
 FFmpegAudioDecoder<LIBAV_VER>::FFmpegAudioDecoder(
-  FlushableMediaTaskQueue* aTaskQueue, MediaDataDecoderCallback* aCallback,
+  FlushableTaskQueue* aTaskQueue, MediaDataDecoderCallback* aCallback,
   const AudioInfo& aConfig)
   : FFmpegDataDecoder(aTaskQueue, GetCodecId(aConfig.mMimeType))
   , mCallback(aCallback)

@@ -98,7 +98,7 @@
 namespace mozilla {
 
 class AudioSegment;
-class MediaTaskQueue;
+class TaskQueue;
 class AudioSink;
 
 extern PRLogModuleInfo* gMediaDecoderLog;
@@ -264,7 +264,7 @@ public:
   }
 
   
-  MediaTaskQueue* OwnerThread() const { return mTaskQueue; }
+  TaskQueue* OwnerThread() const { return mTaskQueue; }
 
   
   
@@ -709,7 +709,7 @@ private:
   nsRefPtr<MediaDecoder> mDecoder;
 
   
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
+  nsRefPtr<TaskQueue> mTaskQueue;
 
   
   WatchManager<MediaDecoderStateMachine> mWatchManager;
@@ -920,7 +920,7 @@ private:
   
   
   
-  MediaTaskQueue* DecodeTaskQueue() const { return mReader->OwnerThread(); }
+  TaskQueue* DecodeTaskQueue() const { return mReader->OwnerThread(); }
 
   
   

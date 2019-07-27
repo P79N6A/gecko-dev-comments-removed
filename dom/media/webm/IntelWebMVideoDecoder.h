@@ -17,7 +17,7 @@
 #include "MediaInfo.h"
 #include "MediaData.h"
 
-class MediaTaskQueue;
+class TaskQueue;
 
 namespace mozilla {
 
@@ -70,7 +70,7 @@ private:
 
   
   
-  nsRefPtr<FlushableMediaTaskQueue> mTaskQueue;
+  nsRefPtr<FlushableTaskQueue> mTaskQueue;
 
   
   

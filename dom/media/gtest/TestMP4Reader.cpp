@@ -53,7 +53,7 @@ private:
   virtual ~TestBinding()
   {
     {
-      nsRefPtr<MediaTaskQueue> queue = reader->OwnerThread();
+      nsRefPtr<TaskQueue> queue = reader->OwnerThread();
       nsCOMPtr<nsIRunnable> task = NS_NewRunnableMethod(reader, &MP4Reader::Shutdown);
       
       
