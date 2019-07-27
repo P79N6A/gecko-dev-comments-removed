@@ -1,4 +1,10 @@
 
+
+
+if (getJitCompilerOptions()["ion.forceinlineCaches"])
+    setJitCompilerOption("ion.forceinlineCaches", 0);
+
+
 (function(){
     
     (function(){

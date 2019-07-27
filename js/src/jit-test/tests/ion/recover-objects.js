@@ -4,6 +4,12 @@
 if (getJitCompilerOptions()["ion.warmup.trigger"] <= 90)
     setJitCompilerOption("ion.warmup.trigger", 90);
 
+
+
+
+if (getJitCompilerOptions()["ion.forceinlineCaches"])
+    setJitCompilerOption("ion.forceinlineCaches", 0);
+
 var uceFault = function (i) {
     if (i > 98)
         uceFault = function (i) { return true; };

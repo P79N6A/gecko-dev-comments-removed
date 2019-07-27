@@ -114,6 +114,9 @@ JitOptions::JitOptions()
     SET_DEFAULT(eagerCompilation, false);
 
     
+    SET_DEFAULT(forceInlineCaches, false);
+
+    
     
     
     const char* forcedDefaultIonWarmUpThresholdEnv = "JIT_OPTION_forcedDefaultIonWarmUpThreshold";
