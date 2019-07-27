@@ -146,6 +146,18 @@ void InkCollector::SetTarget(HWND aTargetWindow)
   }
 }
 
+void InkCollector::ClearTarget()
+{
+  if (mTargetWindow && mInkCollector) {
+    Enable(false);
+    if (S_OK == mInkCollector->put_hWnd(0)) {
+      mTargetWindow = 0;
+    } else {
+      NS_WARNING("InkCollector did not clear window property successfully");
+    }
+  }
+}
+
 
 
 
@@ -187,6 +199,10 @@ HRESULT __stdcall InkCollector::QueryInterface(REFIID aRiid, void **aObject)
   return result;
 }
 
+
+
+
+
 HRESULT InkCollector::Invoke(DISPID aDispIdMember, REFIID ,
                              LCID , WORD ,
                              DISPPARAMS* aDispParams, VARIANT* ,
@@ -196,6 +212,7 @@ HRESULT InkCollector::Invoke(DISPID aDispIdMember, REFIID ,
     case DISPID_ICECursorOutOfRange: {
       if (aDispParams && aDispParams->cArgs) {
         CursorOutOfRange(static_cast<IInkCursor*>(aDispParams->rgvarg[0].pdispVal));
+        ClearTarget();
       }
       break;
     }
@@ -218,6 +235,6 @@ void InkCollector::CursorOutOfRange(IInkCursor* aCursor) const
   }
   
   if (mTargetWindow) {
-    ::PostMessage(mTargetWindow, MOZ_WM_PEN_LEAVES_HOVER_OF_DIGITIZER, 0, 0);
+    ::SendMessage(mTargetWindow, MOZ_WM_PEN_LEAVES_HOVER_OF_DIGITIZER, 0, 0);
   }
 }
