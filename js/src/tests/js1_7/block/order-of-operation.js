@@ -85,17 +85,18 @@ function f6() {
 
 try
 {
-  var rv = f1(5);
-  if (!isNaN(rv))
-    throw "f1(5):\n" +
-      "  expected:  NaN\n" +
-      "  actual:    " + rv;
 
-  rv = f2(5);
-  if (!isNaN(rv))
-    throw "f2(5):\n" +
-      "  expected:  NaN\n" +
-      "  actual:    " + rv;
+
+
+
+
+
+
+
+
+
+
+
 
 
 

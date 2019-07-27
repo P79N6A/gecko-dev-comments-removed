@@ -242,6 +242,8 @@ typedef enum JSWhyMagic
     JS_ION_ERROR,                
     JS_ION_BAILOUT,              
     JS_OPTIMIZED_OUT,            
+    JS_UNINITIALIZED_LEXICAL,    
+
     JS_GENERIC_MAGIC             
 } JSWhyMagic;
 

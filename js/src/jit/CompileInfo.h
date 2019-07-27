@@ -187,7 +187,7 @@ class CompileInfo
         nimplicit_ = StartArgSlot(script)                   
                    + (fun ? 1 : 0);                         
         nargs_ = fun ? fun->nargs() : 0;
-        nfixedvars_ = script->nfixedvars();
+        nbodyfixed_ = script->nbodyfixed();
         nlocals_ = script->nfixed();
         nstack_ = script->nslots() - script->nfixed();
         nslots_ = nimplicit_ + nargs_ + nlocals_ + nstack_;
@@ -200,7 +200,7 @@ class CompileInfo
     {
         nimplicit_ = 0;
         nargs_ = 0;
-        nfixedvars_ = 0;
+        nbodyfixed_ = 0;
         nlocals_ = nlocals;
         nstack_ = 1;  
         nslots_ = nlocals_ + nstack_;
@@ -293,8 +293,8 @@ class CompileInfo
     }
     
     
-    unsigned nfixedvars() const {
-        return nfixedvars_;
+    unsigned nbodyfixed() const {
+        return nbodyfixed_;
     }
     
     
@@ -378,8 +378,8 @@ class CompileInfo
         uint32_t local = index - firstLocalSlot();
         if (local < nlocals()) {
             
-            if (local < nfixedvars())
-                return script()->varIsAliased(local);
+            if (local < nbodyfixed())
+                return script()->bodyLevelLocalIsAliased(local);
 
             
             for (; staticScope; staticScope = staticScope->enclosingNestedScope()) {
@@ -466,7 +466,7 @@ class CompileInfo
   private:
     unsigned nimplicit_;
     unsigned nargs_;
-    unsigned nfixedvars_;
+    unsigned nbodyfixed_;
     unsigned nlocals_;
     unsigned nstack_;
     unsigned nslots_;

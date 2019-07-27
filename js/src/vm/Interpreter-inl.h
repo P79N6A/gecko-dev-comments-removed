@@ -22,6 +22,7 @@
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 
+#include "vm/ScopeObject-inl.h"
 #include "vm/Stack-inl.h"
 #include "vm/String-inl.h"
 
@@ -103,6 +104,62 @@ GuardFunApplyArgumentsOptimization(JSContext *cx, AbstractFramePtr frame, Handle
         }
     }
 
+    return true;
+}
+
+
+
+
+
+
+
+
+static inline bool
+IsUninitializedLexical(const Value &val)
+{
+    
+    return val.isMagic() && val.whyMagic() == JS_UNINITIALIZED_LEXICAL;
+}
+
+static inline bool
+IsUninitializedLexicalSlot(HandleObject obj, HandleShape shape)
+{
+    if (obj->is<DynamicWithObject>())
+        return false;
+    
+    
+    
+    
+    if (!shape ||
+        IsImplicitDenseOrTypedArrayElement(shape) ||
+        !shape->hasSlot() ||
+        !shape->hasDefaultGetter() ||
+        !shape->hasDefaultSetter())
+    {
+        return false;
+    }
+    MOZ_ASSERT(obj->nativeContainsPure(shape));
+    return IsUninitializedLexical(obj->nativeGetSlot(shape->slot()));
+}
+
+static inline bool
+CheckUninitializedLexical(JSContext *cx, PropertyName *name_, HandleValue val)
+{
+    if (IsUninitializedLexical(val)) {
+        RootedPropertyName name(cx, name_);
+        ReportUninitializedLexical(cx, name);
+        return false;
+    }
+    return true;
+}
+
+static inline bool
+CheckUninitializedLexical(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue val)
+{
+    if (IsUninitializedLexical(val)) {
+        ReportUninitializedLexical(cx, script, pc);
+        return false;
+    }
     return true;
 }
 
@@ -223,6 +280,22 @@ SetIntrinsicOperation(JSContext *cx, JSScript *script, jsbytecode *pc, HandleVal
 {
     RootedPropertyName name(cx, script->getName(pc));
     return cx->global()->setIntrinsicValue(cx, name, val);
+}
+
+inline void
+SetAliasedVarOperation(JSContext *cx, JSScript *script, jsbytecode *pc,
+                       ScopeObject &obj, ScopeCoordinate sc, const Value &val,
+                       MaybeCheckLexical checkLexical)
+{
+    MOZ_ASSERT_IF(checkLexical, !IsUninitializedLexical(obj.aliasedVar(sc)));
+
+    
+    
+    PropertyName *name = obj.hasSingletonType()
+                         ? ScopeCoordinateName(cx->runtime()->scopeCoordinateNameCache, script, pc)
+                         : nullptr;
+
+    obj.setAliasedVar(cx, sc, name, val);
 }
 
 inline bool

@@ -1468,8 +1468,7 @@ LookupNameNoGC(JSContext *cx, PropertyName *name, JSObject *scopeChain,
 
 extern bool
 LookupNameWithGlobalDefault(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
-                            MutableHandleObject objp);
-
+                            MutableHandleObject objp, MutableHandleShape propp);
 
 
 
@@ -1479,7 +1478,7 @@ LookupNameWithGlobalDefault(JSContext *cx, HandlePropertyName name, HandleObject
 
 extern bool
 LookupNameUnqualified(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
-                      MutableHandleObject objp);
+                      MutableHandleObject objp, MutableHandleShape propp);
 
 }
 

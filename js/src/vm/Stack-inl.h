@@ -88,13 +88,24 @@ InterpreterFrame::initCallFrame(JSContext *cx, InterpreterFrame *prev, jsbytecod
     prevpc_ = prevpc;
     prevsp_ = prevsp;
 
-    initVarsToUndefined();
+    initLocals();
 }
 
 inline void
-InterpreterFrame::initVarsToUndefined()
+InterpreterFrame::initLocals()
 {
-    SetValueRangeToUndefined(slots(), script()->nfixed());
+    SetValueRangeToUndefined(slots(), script()->nfixedvars());
+
+    
+    
+    
+    
+    
+    
+    
+    Value *lexicalEnd = slots() + script()->fixedLexicalEnd();
+    for (Value *lexical = slots() + script()->fixedLexicalBegin(); lexical != lexicalEnd; ++lexical)
+        lexical->setMagic(JS_UNINITIALIZED_LEXICAL);
 }
 
 inline Value &

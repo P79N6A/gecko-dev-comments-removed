@@ -86,6 +86,9 @@ struct BytecodeEmitter
 
     Rooted<JSScript*> script;       
 
+    Rooted<LazyScript *> lazyScript; 
+
+
     struct EmitSection {
         BytecodeVector code;        
         SrcNotesVector notes;       
@@ -136,8 +139,6 @@ struct BytecodeEmitter
 
     bool            emittingRunOnceLambda:1; 
 
-    bool            lazyRunOnceLambda:1; 
-
 
     bool isRunOnceLambda();
 
@@ -173,8 +174,9 @@ struct BytecodeEmitter
 
 
     BytecodeEmitter(BytecodeEmitter *parent, Parser<FullParseHandler> *parser, SharedContext *sc,
-                    HandleScript script, bool insideEval, HandleScript evalCaller,
-                    bool hasGlobalScope, uint32_t lineNum, EmitterMode emitterMode = Normal);
+                    HandleScript script, Handle<LazyScript *> lazyScript,
+                    bool insideEval, HandleScript evalCaller, bool hasGlobalScope,
+                    uint32_t lineNum, EmitterMode emitterMode = Normal);
     bool init();
 
     bool isAliasedName(ParseNode *pn);

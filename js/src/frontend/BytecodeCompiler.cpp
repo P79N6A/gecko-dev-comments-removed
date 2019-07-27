@@ -291,7 +291,8 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
     BytecodeEmitter::EmitterMode emitterMode =
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
-    BytecodeEmitter bce( nullptr, &parser, &globalsc, script, options.forEval,
+    BytecodeEmitter bce( nullptr, &parser, &globalsc, script,
+                         js::NullPtr(), options.forEval,
                         evalCaller, !!globalScope, options.lineno, emitterMode);
     if (!bce.init())
         return nullptr;
@@ -436,9 +437,11 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     
     
     InternalHandle<Bindings*> bindings(script, &script->bindings);
-    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, nullptr,
-                                            pc->blockScopeDepth))
+    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, 0,
+                                            pc->blockScopeDepth, nullptr))
+    {
         return nullptr;
+    }
 
     if (!JSScript::fullyInitFromEmitter(cx, script, &bce))
         return nullptr;
@@ -509,14 +512,12 @@ frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const cha
     if (lazy->hasBeenCloned())
         script->setHasBeenCloned();
 
-    BytecodeEmitter bce( nullptr, &parser, pn->pn_funbox, script, options.forEval,
-                         NullPtr(),  true,
-                        options.lineno, BytecodeEmitter::LazyFunction);
+    BytecodeEmitter bce( nullptr, &parser, pn->pn_funbox, script, lazy,
+                        options.forEval,  js::NullPtr(),
+                         true, options.lineno,
+                        BytecodeEmitter::LazyFunction);
     if (!bce.init())
         return false;
-
-    if (lazy->treatAsRunOnce())
-        bce.lazyRunOnceLambda = true;
 
     return EmitFunctionScript(cx, &bce, pn->pn_body);
 }
@@ -632,7 +633,8 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 
 
         BytecodeEmitter funbce( nullptr, &parser, fn->pn_funbox, script,
-                                false,  js::NullPtr(),
+                                js::NullPtr(),  false,
+                                js::NullPtr(),
                                fun->environment() && fun->environment()->is<GlobalObject>(),
                                options.lineno);
         if (!funbce.init())

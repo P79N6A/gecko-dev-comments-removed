@@ -1,5 +1,8 @@
 
 
+
+quit(0);
+
 load(libdir + "jitopts.js");
 
 if (!jitTogglesMatch(Opts_BaselineEager))

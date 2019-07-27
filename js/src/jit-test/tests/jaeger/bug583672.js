@@ -9,7 +9,7 @@
     {
         new f
     }
-    let w = {}
+    var w = {}
 })()
 
 
@@ -25,6 +25,6 @@ x = Object();
     {
         new f
     }
-    let w = {}
+    var w = {}
 })()
 

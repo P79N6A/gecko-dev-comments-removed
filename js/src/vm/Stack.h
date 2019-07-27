@@ -66,6 +66,7 @@ class ScopeCoordinate;
 
 
 enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
+enum MaybeCheckLexical { CheckLexical = true, DontCheckLexical = false };
 
 
 
@@ -424,7 +425,11 @@ class InterpreterFrame
     bool initFunctionScopeObjects(JSContext *cx);
 
     
-    void initVarsToUndefined();
+
+
+
+
+    void initLocals();
 
     
 

@@ -139,6 +139,7 @@ class Binding
   public:
     
     
+    
     enum Kind { ARGUMENT, VARIABLE, CONSTANT };
 
     explicit Binding() : bits_(0) {}
@@ -183,7 +184,15 @@ class Bindings
     uintptr_t bindingArrayAndFlag_;
     uint16_t numArgs_;
     uint16_t numBlockScoped_;
+    uint16_t numBodyLevelLexicals_;
+    uint16_t aliasedBodyLevelLexicalBegin_;
     uint32_t numVars_;
+
+#if JS_BITS_PER_WORD == 32
+    
+    
+    uint32_t padding_;
+#endif
 
     
 
@@ -213,9 +222,11 @@ class Bindings
 
 
 
+
     static bool initWithTemporaryStorage(ExclusiveContext *cx, InternalBindingsHandle self,
-                                         unsigned numArgs, uint32_t numVars,
-                                         Binding *bindingArray, unsigned numBlockScoped);
+                                         uint32_t numArgs, uint32_t numVars,
+                                         uint32_t numBodyLevelLexicals, uint32_t numBlockScoped,
+                                         Binding *bindingArray);
 
     
     
@@ -240,13 +251,17 @@ class Bindings
     static bool clone(JSContext *cx, InternalBindingsHandle self, uint8_t *dstScriptData,
                       HandleScript srcScript);
 
-    unsigned numArgs() const { return numArgs_; }
+    uint32_t numArgs() const { return numArgs_; }
     uint32_t numVars() const { return numVars_; }
-    unsigned numBlockScoped() const { return numBlockScoped_; }
-    uint32_t numLocals() const { return numVars() + numBlockScoped(); }
+    uint32_t numBodyLevelLexicals() const { return numBodyLevelLexicals_; }
+    uint32_t numBlockScoped() const { return numBlockScoped_; }
+    uint32_t numBodyLevelLocals() const { return numVars_ + numBodyLevelLexicals_; }
+    uint32_t numLocals() const { return numVars() + numBodyLevelLexicals() + numBlockScoped(); }
+    uint32_t lexicalBegin() const { return numArgs() + numVars(); }
+    uint32_t aliasedBodyLevelLexicalBegin() const { return aliasedBodyLevelLexicalBegin_; }
 
     
-    uint32_t count() const { return numArgs() + numVars(); }
+    uint32_t count() const { return numArgs() + numVars() + numBodyLevelLexicals(); }
 
     
     Shape *callObjShape() const { return callObjShape_; }
@@ -1034,8 +1049,25 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
 
     
+    
     size_t nfixedvars() const {
         return function_ ? bindings.numVars() : 0;
+    }
+
+    
+    
+    
+    size_t nbodyfixed() const {
+        return function_ ? bindings.numBodyLevelLocals() : 0;
+    }
+
+    
+    size_t fixedLexicalBegin() const {
+        return nfixedvars();
+    }
+
+    size_t fixedLexicalEnd() const {
+        return nfixed();
     }
 
     size_t nslots() const {
@@ -1563,6 +1595,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
 
     bool varIsAliased(uint32_t varSlot);
+    bool bodyLevelLocalIsAliased(uint32_t localSlot);
     bool formalIsAliased(unsigned argSlot);
     bool formalLivesInArgumentsObject(unsigned argSlot);
 
@@ -1691,6 +1724,35 @@ class AliasedFormalIter
 
 class LazyScript : public gc::BarrieredCell<LazyScript>
 {
+  public:
+    class FreeVariable
+    {
+        
+        uintptr_t bits_;
+
+        static const uintptr_t HOISTED_USE_BIT = 0x1;
+        static const uintptr_t MASK = ~HOISTED_USE_BIT;
+
+      public:
+        explicit FreeVariable()
+          : bits_(0)
+        { }
+
+        explicit FreeVariable(JSAtom *name)
+          : bits_(uintptr_t(name))
+        {
+            
+            
+            
+            MOZ_ASSERT(!IsInsideNursery(name));
+        }
+
+        JSAtom *atom() const { return (JSAtom *)(bits_ & MASK); }
+        void setIsHoistedUse() { bits_ |= HOISTED_USE_BIT; }
+        bool isHoistedUse() const { return bool(bits_ & HOISTED_USE_BIT); }
+    };
+
+  private:
     
     
     HeapPtrScript script_;
@@ -1802,8 +1864,8 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
     uint32_t numFreeVariables() const {
         return p_.numFreeVariables;
     }
-    HeapPtrAtom *freeVariables() {
-        return (HeapPtrAtom *)table_;
+    FreeVariable *freeVariables() {
+        return (FreeVariable *)table_;
     }
 
     uint32_t numInnerFunctions() const {

@@ -728,12 +728,14 @@ Debugger::wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp)
         
         
         
+        
+        
         PropertyName *name;
-        if (vp.whyMagic() == JS_OPTIMIZED_ARGUMENTS) {
-            name = cx->names().missingArguments;
-        } else {
-            MOZ_ASSERT(vp.whyMagic() == JS_OPTIMIZED_OUT);
-            name = cx->names().optimizedOut;
+        switch (vp.whyMagic()) {
+          case JS_OPTIMIZED_ARGUMENTS:   name = cx->names().missingArguments; break;
+          case JS_OPTIMIZED_OUT:         name = cx->names().optimizedOut; break;
+          case JS_UNINITIALIZED_LEXICAL: name = cx->names().uninitialized; break;
+          default: MOZ_CRASH("Unsupported magic value escaped to Debugger");
         }
 
         RootedValue trueVal(cx, BooleanValue(true));

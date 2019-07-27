@@ -57,7 +57,7 @@ BaselineFrame::trace(JSTracer *trc, JitFrameIterator &frameIterator)
     
     JSScript *script = this->script();
     size_t nfixed = script->nfixed();
-    size_t nlivefixed = script->nfixedvars();
+    size_t nlivefixed = script->nbodyfixed();
 
     if (nfixed != nlivefixed) {
         jsbytecode *pc;
@@ -75,7 +75,7 @@ BaselineFrame::trace(JSTracer *trc, JitFrameIterator &frameIterator)
     }
 
     JS_ASSERT(nlivefixed <= nfixed);
-    JS_ASSERT(nlivefixed >= script->nfixedvars());
+    JS_ASSERT(nlivefixed >= script->nbodyfixed());
 
     
     
@@ -92,8 +92,12 @@ BaselineFrame::trace(JSTracer *trc, JitFrameIterator &frameIterator)
         MarkLocals(this, trc, nfixed, numValueSlots());
 
         
-        while (nfixed > nlivefixed)
-            unaliasedLocal(--nfixed, DONT_CHECK_ALIASING).setUndefined();
+        
+        while (nfixed > nlivefixed) {
+            --nfixed;
+            if (!unaliasedLocal(nfixed, DONT_CHECK_ALIASING).isMagic())
+                unaliasedLocal(nfixed, DONT_CHECK_ALIASING).setUndefined();
+        }
 
         
         MarkLocals(this, trc, 0, nlivefixed);

@@ -30,7 +30,19 @@ struct StmtInfoPC : public StmtInfoBase {
     uint32_t        blockid;        
     uint32_t        innerBlockScopeDepth; 
 
-    explicit StmtInfoPC(ExclusiveContext *cx) : StmtInfoBase(cx), innerBlockScopeDepth(0) {}
+    
+    
+    
+    
+    
+    
+    uint16_t        firstDominatingLexicalInCase;
+
+    explicit StmtInfoPC(ExclusiveContext *cx)
+      : StmtInfoBase(cx),
+        innerBlockScopeDepth(0),
+        firstDominatingLexicalInCase(0)
+    {}
 };
 
 typedef HashSet<JSAtom *, DefaultHasher<JSAtom *>, LifoAllocPolicy<Fallible>> FuncStmtSet;
@@ -126,10 +138,14 @@ struct ParseContext : public GenericParseContext
     uint32_t        blockScopeDepth; 
     Node            blockNode;      
 
+
   private:
-    AtomDecls<ParseHandler> decls_; 
-    DeclVector      args_;          
-    DeclVector      vars_;          
+    AtomDecls<ParseHandler> decls_;     
+    DeclVector      args_;              
+    DeclVector      vars_;              
+    DeclVector      bodyLevelLexicals_; 
+
+    bool checkLocalsOverflow(TokenStream &ts);
 
   public:
     const AtomDecls<ParseHandler> &decls() const {
@@ -259,6 +275,7 @@ struct ParseContext : public GenericParseContext
         decls_(prs->context, prs->alloc),
         args_(prs->context),
         vars_(prs->context),
+        bodyLevelLexicals_(prs->context),
         parserPC(&prs->pc),
         oldpc(prs->pc),
         lexdeps(prs->context),
@@ -557,7 +574,8 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     bool functionArgsAndBody(Node pn, HandleFunction fun,
                              FunctionType type, FunctionSyntaxKind kind,
                              GeneratorKind generatorKind,
-                             Directives inheritedDirectives, Directives *newDirectives);
+                             Directives inheritedDirectives, Directives *newDirectives,
+                             bool bodyLevelHoistedUse);
 
     Node unaryOpExpr(ParseNodeKind kind, JSOp op, uint32_t begin);
 
@@ -606,11 +624,12 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     bool matchInOrOf(bool *isForOfp);
 
     bool checkFunctionArguments();
-    bool makeDefIntoUse(Definition *dn, Node pn, JSAtom *atom);
+    bool makeDefIntoUse(Definition *dn, Node pn, JSAtom *atom, bool *pbodyLevelHoistedUse);
     bool checkFunctionDefinition(HandlePropertyName funName, Node *pn, FunctionSyntaxKind kind,
-                                 bool *pbodyProcessed);
+                                 bool *pbodyProcessed, bool *pbodyLevelHoistedUse);
     bool finishFunctionDefinition(Node pn, FunctionBox *funbox, Node prelude, Node body);
-    bool addFreeVariablesFromLazyFunction(JSFunction *fun, ParseContext<ParseHandler> *pc);
+    bool addFreeVariablesFromLazyFunction(JSFunction *fun, ParseContext<ParseHandler> *pc,
+                                          bool bodyLevelHoistedUse);
 
     bool isValidForStatementLHS(Node pn1, JSVersion version, bool forDecl, bool forEach,
                                 ParseNodeKind headKind);
@@ -661,7 +680,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     DefinitionNode getOrCreateLexicalDependency(ParseContext<ParseHandler> *pc, JSAtom *atom);
 
     bool leaveFunction(Node fn, ParseContext<ParseHandler> *outerpc,
-                       FunctionSyntaxKind kind = Expression);
+                       bool bodyLevelHoistedUse, FunctionSyntaxKind kind = Expression);
 
     TokenPos pos() const { return tokenStream.currentToken().pos; }
 
