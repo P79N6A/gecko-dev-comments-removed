@@ -9,6 +9,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -72,8 +73,12 @@ public class PostSearchFragment extends Fragment {
         setUrl(Constants.YAHOO_WEB_SEARCH_BASE_URL + Uri.encode(query));
     }
 
-    public void setUrl(String url) {
-        webview.loadUrl(url);
+    private void setUrl(String url) {
+        
+        
+        if (!TextUtils.equals(webview.getUrl(), url)) {
+            webview.loadUrl(url);
+        }
     }
 
     
