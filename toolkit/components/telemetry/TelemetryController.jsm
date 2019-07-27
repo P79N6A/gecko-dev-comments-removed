@@ -35,6 +35,11 @@ const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID";
 const PREF_FHR_ENABLED = "datareporting.healthreport.service.enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 const PREF_SESSIONS_BRANCH = "datareporting.sessions.";
+const PREF_UNIFIED = PREF_BRANCH + "unified";
+
+
+
+const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
 
 const PING_FORMAT_VERSION = 4;
 
@@ -816,13 +821,10 @@ let Impl = {
 
 
   enableTelemetryRecording: function enableTelemetryRecording() {
+    const enabled = Preferences.get(PREF_ENABLED, false);
+
     
-#if !defined(MOZ_WIDGET_ANDROID)
-    Telemetry.canRecordBase = Preferences.get(PREF_FHR_ENABLED, false);
-#else
-    
-    Telemetry.canRecordBase = true;
-#endif
+    Telemetry.canRecordBase = enabled || IS_UNIFIED_TELEMETRY;
 
 #ifdef MOZILLA_OFFICIAL
     if (!Telemetry.isOfficialTelemetry && !this._testMode) {
@@ -834,7 +836,6 @@ let Impl = {
     }
 #endif
 
-    let enabled = Preferences.get(PREF_ENABLED, false);
     this._server = Preferences.get(PREF_SERVER, undefined);
     if (!enabled || !Telemetry.canRecordBase) {
       
@@ -875,14 +876,11 @@ let Impl = {
     
     
     
-    if (!this._sessionRecorder && Preferences.get(PREF_FHR_ENABLED, true)) {
+    if (!this._sessionRecorder &&
+        (Preferences.get(PREF_FHR_ENABLED, true) || IS_UNIFIED_TELEMETRY)) {
       this._sessionRecorder = new SessionRecorder(PREF_SESSIONS_BRANCH);
       this._sessionRecorder.onStartup();
     }
-
-    
-    this._thirdPartyCookies = new ThirdPartyCookieProbe();
-    this._thirdPartyCookies.init();
 
     if (!this.enableTelemetryRecording()) {
       this._log.config("setupChromeProcess - Telemetry recording is disabled, skipping Chrome process setup.");
@@ -1033,9 +1031,11 @@ let Impl = {
 
 
 
+
   _canSend: function() {
     return (Telemetry.isOfficialTelemetry || this._testMode) &&
-           Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
+           Preferences.get(PREF_FHR_UPLOAD_ENABLED, false) &&
+           (IS_UNIFIED_TELEMETRY || Preferences.get(PREF_ENABLED));
   },
 
   
