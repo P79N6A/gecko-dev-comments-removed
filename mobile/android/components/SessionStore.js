@@ -916,14 +916,16 @@ SessionStore.prototype = {
 
     let closedTabs = this._windows[aWindow.__SSID].closedTabs;
 
-    let tabs = closedTabs.map(function (tab) {
-      
-      let lastEntry = tab.entries[tab.entries.length - 1];
-      return {
-        url: lastEntry.url,
-        title: lastEntry.title || ""
-      };
-    });
+    let tabs = closedTabs
+      .filter(tab => !tab.isPrivate)
+      .map(function (tab) {
+        
+        let lastEntry = tab.entries[tab.entries.length - 1];
+        return {
+          url: lastEntry.url,
+          title: lastEntry.title || ""
+        };
+      });
 
     sendMessageToJava({
       type: "ClosedTabs:Data",
