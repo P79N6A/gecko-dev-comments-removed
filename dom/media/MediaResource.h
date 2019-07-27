@@ -413,6 +413,12 @@ public:
     return false;
   }
 
+  
+  virtual bool IsLiveStream()
+  {
+    return GetLength() == -1;
+  }
+
   virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const {
     return 0;
   }
