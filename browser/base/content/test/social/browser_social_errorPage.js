@@ -62,17 +62,17 @@ var tests = {
   testSidebar: function(next) {
     let sbrowser = document.getElementById("social-sidebar-browser");
     onSidebarLoad(function() {
-      ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?")==0, "sidebar is on social error page");
+      ok(sbrowser.contentDocument.documentURI.indexOf("about:socialerror?mode=tryAgainOnly")==0, "sidebar is on social error page");
       gc();
       
       onSidebarLoad(function() {
         
-        ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?")==0, "sidebar is still on social error page");
+        ok(sbrowser.contentDocument.documentURI.indexOf("about:socialerror?mode=tryAgainOnly")==0, "sidebar is still on social error page");
         
         goOnline().then(function () {
           onSidebarLoad(function() {
             
-            is(sbrowser.contentDocument.location.href, manifest.sidebarURL, "sidebar is now on social sidebar page");
+            is(sbrowser.contentDocument.documentURI, manifest.sidebarURL, "sidebar is now on social sidebar page");
             next();
           });
           sbrowser.contentDocument.getElementById("btnTryAgain").click();
@@ -97,8 +97,8 @@ var tests = {
         },
         function() { 
           todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
-          let href = panel.firstChild.contentDocument.location.href;
-          ok(href.indexOf("about:socialerror?")==0, "flyout is on social error page");
+          let href = panel.firstChild.contentDocument.documentURI;
+          ok(href.indexOf("about:socialerror?mode=compactInfo")==0, "flyout is on social error page");
           
           
           gc();
@@ -109,8 +109,8 @@ var tests = {
             },
             function() { 
               todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
-              let href = panel.firstChild.contentDocument.location.href;
-              ok(href.indexOf("about:socialerror?")==0, "flyout is on social error page");
+              let href = panel.firstChild.contentDocument.documentURI;
+              ok(href.indexOf("about:socialerror?mode=compactInfo")==0, "flyout is on social error page");
               gc();
               SocialFlyout.unload();
               next();
@@ -134,7 +134,7 @@ var tests = {
         function() { 
           todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
           let chat = getChatBar().selectedChat;
-          waitForCondition(function() chat.content != null && chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
+          waitForCondition(function() chat.content != null && chat.contentDocument.documentURI.indexOf("about:socialerror?mode=tryAgainOnly")==0,
                            function() {
                             chat.close();
                             next();
@@ -157,7 +157,7 @@ var tests = {
       null,
       function() { 
         let chat = getChatBar().selectedChat;
-        is(chat.contentDocument.location.href, url, "correct url loaded");
+        is(chat.contentDocument.documentURI, url, "correct url loaded");
         
         chat.swapWindows().then(
           chat => {
@@ -169,7 +169,7 @@ var tests = {
                 ok(!!chat.content, "we have chat content 2");
                 chat.contentDocument.location.reload();
                 info("chat reload called");
-                waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
+                waitForCondition(function() chat.contentDocument.documentURI.indexOf("about:socialerror?mode=tryAgainOnly")==0,
                                  function() {
                                   chat.close();
                                   next();

@@ -63,7 +63,7 @@ var tests = {
           Services.obs.removeObserver(observer, 'ipc:content-shutdown');
           
           onSidebarLoad(function() {
-            ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?")==0, "is on social error page");
+            ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?mode=workerFailure")==0, "is on social error page");
             
             onSidebarLoad(function() {
               
