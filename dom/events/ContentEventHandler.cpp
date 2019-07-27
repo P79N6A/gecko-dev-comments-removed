@@ -212,10 +212,7 @@ static bool IsContentBR(nsIContent* aContent)
 
 static void ConvertToNativeNewlines(nsAFlatString& aString)
 {
-#if defined(XP_MACOSX)
-  
-  aString.ReplaceSubstring(NS_LITERAL_STRING("\n"), NS_LITERAL_STRING("\r"));
-#elif defined(XP_WIN)
+#if defined(XP_WIN)
   aString.ReplaceSubstring(NS_LITERAL_STRING("\n"), NS_LITERAL_STRING("\r\n"));
 #endif
 }
@@ -334,12 +331,7 @@ ContentEventHandler::GetTextLength(nsIContent* aContent,
 {
   if (aContent->IsNodeOfType(nsINode::eTEXT)) {
     uint32_t textLengthDifference =
-#if defined(XP_MACOSX)
-      
-      
-      
-      0;
-#elif defined(XP_WIN)
+#if defined(XP_WIN)
       
       
       
@@ -364,11 +356,7 @@ ContentEventHandler::GetTextLength(nsIContent* aContent,
 
 static uint32_t ConvertToXPOffset(nsIContent* aContent, uint32_t aNativeOffset)
 {
-#if defined(XP_MACOSX)
-  
-  
-  return aNativeOffset;
-#elif defined(XP_WIN)
+#if defined(XP_WIN)
   
   
   
