@@ -36,7 +36,7 @@ InternalRequest::GetRequestConstructorCopy(nsIGlobalObject* aGlobal, ErrorResult
   copy->mPreserveContentCodings = true;
   
 
-  copy->mContext = nsIContentPolicy::TYPE_FETCH;
+  copy->mContentPolicyType = nsIContentPolicy::TYPE_FETCH;
   copy->mMode = mMode;
   copy->mCredentialsMode = mCredentialsMode;
   copy->mCacheMode = mCacheMode;
