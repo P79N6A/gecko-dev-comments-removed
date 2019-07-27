@@ -1,3 +1,8 @@
+const ALLOW_ACTION = SpecialPowers.Ci.nsIPermissionManager.ALLOW_ACTION;
+const DENY_ACTION = SpecialPowers.Ci.nsIPermissionManager.DENY_ACTION;
+const UNKNOWN_ACTION = SpecialPowers.Ci.nsIPermissionManager.UNKNOWN_ACTION;
+const PROMPT_ACTION = SpecialPowers.Ci.nsIPermissionManager.PROMPT_ACTION;
+
 
 
 
@@ -29,112 +34,3 @@ function send(element, event, handler) {
     }
   };
 })(window.open);
-
-function _alter_helper(uri, fn) {
-  var hash_splat = uri.split("#"),
-      splat = hash_splat.shift().split("/");
-  fn(splat);
-  hash_splat.unshift(splat.join("/"));
-  return hash_splat.join("#");
-}
-
-function alter_host(uri, host) {
-  return _alter_helper(uri, function(splat) {
-    splat.splice(2, 1, host);
-  });
-}
-
-function alter_file(uri, file) {
-  return _alter_helper(uri, function(splat) {
-    splat[splat.length - 1] = file;
-  });
-}
-
-(function() {
-
-  var prefService = SpecialPowers.Cc["@mozilla.org/preferences-service;1"]
-                              .getService(SpecialPowers.Ci.nsIPrefService),
-      pm = SpecialPowers.Cc["@mozilla.org/permissionmanager;1"]
-                     .getService(SpecialPowers.Ci.nsIPermissionManager),
-      ioService = SpecialPowers.Cc["@mozilla.org/network/io-service;1"]
-                            .getService(SpecialPowers.Ci.nsIIOService);
-
-  ALLOW_ACTION = pm.ALLOW_ACTION;
-  DENY_ACTION = pm.DENY_ACTION;
-  UNKNOWN_ACTION = pm.UNKNOWN_ACTION;
-
-  
-
-
-
-
-  makePrefAccessor = function(pref) {
-    var splat = pref.split('.'),
-        basePref = splat.pop(),
-        branch, kind;
-
-    try {
-      branch = prefService.getBranch(splat.join('.') + '.');
-    } catch (x) {
-      alert("Calling prefService.getBranch failed: " + 
-        "did you forget to enable UniversalXPConnect?");
-      throw x;
-    }
-
-    switch (branch.getPrefType(basePref)) {
-    case branch.PREF_STRING:  kind = "CharPref"; break;
-    case branch.PREF_INT:     kind = "IntPref"; break;
-    case branch.PREF_BOOL:    kind = "BoolPref"; break;
-    case branch.PREF_INVALID: kind = "ComplexValue";
-    }
-
-    return function(value) {
-      var oldValue = branch['get' + kind](basePref);
-      if (arguments.length > 0)
-        branch['set' + kind](basePref, value);
-      return oldValue;
-    };
-  };
-
-  makePopupPrivAccessor = function(uri) {
-    uri = ioService.newURI(uri, null, null);
-    var principal = SpecialPowers.Cc["@mozilla.org/scriptsecuritymanager;1"]
-                      .getService(SpecialPowers.Ci.nsIScriptSecurityManager)
-                      .getNoAppCodebasePrincipal(uri);
-
-    return function(permission) {
-      var old = pm.testPermissionFromPrincipal(principal, "popup");
-      if (arguments.length) {
-        pm.removeFromPrincipal(principal, "popup");
-        pm.addFromPrincipal(principal, "popup", permission);
-      }
-      return old;
-    };
-  };
-
-})();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function hold(accessor, value, body) {
-  var old_value = accessor(value);
-  try { return body(value, old_value) }
-  finally {
-    old_value = accessor(old_value);
-    if (old_value !== value)
-      throw [accessor, value, old_value];
-  }
-}
