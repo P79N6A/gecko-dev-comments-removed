@@ -202,8 +202,8 @@ private:
     nsCOMPtr<nsIInputStream>        mRequestStream;
     uint64_t                        mRequestSize;
 
-    nsRefPtr<nsAHttpConnection>     mConnection;
-    nsRefPtr<nsHttpConnectionInfo>  mConnInfo;
+    nsAHttpConnection              *mConnection;      
+    nsHttpConnectionInfo           *mConnInfo;        
     nsHttpRequestHead              *mRequestHead;     
     nsHttpResponseHead             *mResponseHead;    
 
