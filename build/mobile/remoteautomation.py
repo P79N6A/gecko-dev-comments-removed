@@ -2,6 +2,7 @@
 
 
 
+import datetime
 import glob
 import time
 import re
@@ -137,8 +138,11 @@ class RemoteAutomation(Automation):
         if self._devicemanager.fileExists(traces):
             try:
                 t = self._devicemanager.pullFile(traces)
-                print "Contents of %s:" % traces
-                print t
+                if t:
+                    stripped = t.strip()
+                    if len(stripped) > 0:
+                        print "Contents of %s:" % traces
+                        print t
                 
                 self.deleteANRs()
             except DMError:
@@ -281,7 +285,6 @@ class RemoteAutomation(Automation):
             self.procName = cmd[0].split('/')[-1]
             if cmd[0] == 'am' and cmd[1] in RemoteAutomation._specialAmCommands:
                 self.procName = app
-                print "Robocop process name: "+self.procName
 
             
             
@@ -360,19 +363,22 @@ class RemoteAutomation(Automation):
         def wait(self, timeout = None, noOutputTimeout = None):
             timer = 0
             noOutputTimer = 0
-            interval = 20
-
+            interval = 10
             if timeout == None:
                 timeout = self.timeout
-
             status = 0
-            while (self.dm.getTopActivity() == self.procName):
+            top = self.procName
+            slowLog = False
+            while (top == self.procName):
                 
-                if timer % 60 == 0:
+                
+                if (not slowLog) or (timer % 60 == 0):
+                    startRead = datetime.datetime.now()
                     messages = self.read_stdout()
+                    if (datetime.datetime.now() - startRead) > datetime.timedelta(seconds=5):
+                        slowLog = True
                     if messages:
                         noOutputTimer = 0
-
                 time.sleep(interval)
                 timer += interval
                 noOutputTimer += interval
@@ -382,10 +388,9 @@ class RemoteAutomation(Automation):
                 if (noOutputTimeout and noOutputTimer > noOutputTimeout):
                     status = 2
                     break
-
+                top = self.dm.getTopActivity()
             
             self.read_stdout()
-
             return status
 
         def kill(self, stagedShutdown = False):
