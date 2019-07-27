@@ -408,19 +408,12 @@ danger::AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
   
   if (cx) {
     mAutoRequest.emplace(cx);
-
-    
-    JSObject *compartmentObject = mScx ? mScx->GetWindowProxy()
-                                       : js::DefaultObjectForContextOrNull(cx);
-    if (compartmentObject)
-      mAutoCompartment.emplace(cx, compartmentObject);
   }
 }
 
 danger::AutoCxPusher::~AutoCxPusher()
 {
   
-  mAutoCompartment.reset();
   mAutoRequest.reset();
 
   
