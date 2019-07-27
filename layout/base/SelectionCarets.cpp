@@ -458,21 +458,38 @@ SelectionCarets::UpdateSelectionCarets()
 
   
   bool isTilt = false;
-  if (startFrame) {
-    nsPeekOffsetStruct pos(eSelectCluster,
-                           eDirNext,
-                           startOffset,
-                           0,
-                           false,
-                           true,  
-                           false,
-                           false);
-    startFrame->PeekOffset(&pos);
-    nsCOMPtr<nsIContent> endContent = do_QueryInterface(range->GetEndParent());
-    if ((pos.mResultContent &&
-         nsLayoutUtils::CompareTreePosition(pos.mResultContent, endContent) > 0) ||
-        (pos.mResultContent == endContent &&
-         pos.mContentOffset >= range->EndOffset())) {
+  if (startFrame && endFrame) {
+    
+    
+    
+    
+    
+    
+    
+    
+    nsPeekOffsetStruct posNext(eSelectCluster,
+                               eDirNext,
+                               startOffset,
+                               0,
+                               false,
+                               true,  
+                               false,
+                               false);
+
+    nsPeekOffsetStruct posPrev(eSelectCluster,
+                               eDirPrevious,
+                               endOffset,
+                               0,
+                               false,
+                               true,  
+                               false,
+                               false);
+    startFrame->PeekOffset(&posNext);
+    endFrame->PeekOffset(&posPrev);
+
+    if (posNext.mResultContent && posPrev.mResultContent &&
+        nsContentUtils::ComparePoints(posNext.mResultContent, posNext.mContentOffset,
+                                      posPrev.mResultContent, posPrev.mContentOffset) > 0) {
       isTilt = true;
     }
   }
