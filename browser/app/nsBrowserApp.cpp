@@ -565,7 +565,11 @@ InitXPCOMGlue(const char *argv0, nsIFile **xreDirectory)
     return rv;
   }
 
+#ifndef MOZ_METRO
+  
+  
   NS_LogInit();
+#endif
 
   
   *lastSlash = '\0';

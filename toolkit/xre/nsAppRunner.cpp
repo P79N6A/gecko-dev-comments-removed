@@ -4258,6 +4258,10 @@ XRE_metroStartup(bool runXREMain)
 {
   nsresult rv;
 
+  
+  
+  ScopedLogging log;
+
   bool exit = false;
   if (xreMainPtr->XRE_mainStartup(&exit) != 0 || exit)
     return NS_ERROR_FAILURE;
@@ -4345,8 +4349,6 @@ XRE_mainMetro(int argc, char* argv[], const nsXREAppData* aAppData)
     return 1;
   
   gAppData = xreMainPtr->mAppData;
-
-  ScopedLogging log;
 
   
   bool exit = false;
