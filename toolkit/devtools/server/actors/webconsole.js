@@ -1060,9 +1060,15 @@ WebConsoleActor.prototype =
 
   evalWithDebugger: function WCA_evalWithDebugger(aString, aOptions = {})
   {
+    let trimmedString = aString.trim();
     
-    if (aString.trim() == "help" || aString.trim() == "?") {
+    if (trimmedString == "help" || trimmedString == "?") {
       aString = "help()";
+    }
+
+    
+    if (trimmedString == "console.mihai()" || trimmedString == "console.mihai();") {
+      aString = "\"http://incompleteness.me/blog/2015/02/09/console-dot-mihai/\"";
     }
 
     
