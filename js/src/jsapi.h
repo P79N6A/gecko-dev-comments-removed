@@ -3219,6 +3219,7 @@ JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg);
 
 
 
+
 extern JS_PUBLIC_API(JSObject *)
 JS_NewArrayBufferWithContents(JSContext *cx, size_t nbytes, void *contents);
 
@@ -3231,22 +3232,6 @@ JS_NewArrayBufferWithContents(JSContext *cx, size_t nbytes, void *contents);
 extern JS_PUBLIC_API(void *)
 JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj);
 
-
-
-
-
-
-
-extern JS_PUBLIC_API(void *)
-JS_AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes);
-
-
-
-
-
-
-extern JS_PUBLIC_API(void *)
-JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void *oldContents, uint32_t oldNbytes);
 
 
 
