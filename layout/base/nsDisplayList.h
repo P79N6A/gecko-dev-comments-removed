@@ -201,27 +201,23 @@ public:
 
 
 
-  const nsIFrame* FindReferenceFrameFor(const nsIFrame *aFrame,
-                                        nsPoint* aOffset = nullptr)
+  const nsIFrame* FindReferenceFrameFor(const nsIFrame *aFrame)
   {
-    if (aFrame == mCurrentFrame) {
-      if (aOffset) {
-        *aOffset = mCurrentOffsetToReferenceFrame;
-      }
-      return mCurrentReferenceFrame;
+    if (aFrame == mCachedOffsetFrame) {
+      return mCachedReferenceFrame;
     }
     for (const nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f))
     {
       if (f == mReferenceFrame || f->IsTransformed()) {
-        if (aOffset) {
-          *aOffset = aFrame->GetOffsetToCrossDoc(f);
-        }
+        mCachedOffsetFrame = aFrame;
+        mCachedReferenceFrame = f;
+        mCachedOffset = aFrame->GetOffsetToCrossDoc(f);
         return f;
       }
     }
-    if (aOffset) {
-      *aOffset = aFrame->GetOffsetToCrossDoc(mReferenceFrame);
-    }
+    mCachedOffsetFrame = aFrame;
+    mCachedReferenceFrame = mReferenceFrame;
+    mCachedOffset = aFrame->GetOffsetToCrossDoc(mReferenceFrame);
     return mReferenceFrame;
   }
   
@@ -240,10 +236,12 @@ public:
 
 
 
-  const nsPoint ToReferenceFrame(const nsIFrame* aFrame) {
-    nsPoint result;
-    FindReferenceFrameFor(aFrame, &result);
-    return result;
+
+  const nsPoint& ToReferenceFrame(const nsIFrame* aFrame) {
+    if (aFrame != mCachedOffsetFrame) {
+      FindReferenceFrameFor(aFrame);
+    }
+    return mCachedOffset;
   }
   
 
@@ -538,40 +536,38 @@ public:
     AutoBuildingDisplayList(nsDisplayListBuilder* aBuilder,
                             nsIFrame* aForChild, bool aIsRoot)
       : mBuilder(aBuilder),
-        mPrevFrame(aBuilder->mCurrentFrame),
-        mPrevReferenceFrame(aBuilder->mCurrentReferenceFrame),
+        mPrevCachedOffsetFrame(aBuilder->mCachedOffsetFrame),
+        mPrevCachedReferenceFrame(aBuilder->mCachedReferenceFrame),
         mPrevLayerEventRegions(aBuilder->mLayerEventRegions),
-        mPrevOffset(aBuilder->mCurrentOffsetToReferenceFrame),
+        mPrevCachedOffset(aBuilder->mCachedOffset),
         mPrevIsAtRootOfPseudoStackingContext(aBuilder->mIsAtRootOfPseudoStackingContext),
         mPrevAncestorHasTouchEventHandler(aBuilder->mAncestorHasTouchEventHandler)
     {
       if (aForChild->IsTransformed()) {
-        aBuilder->mCurrentOffsetToReferenceFrame = nsPoint();
-        aBuilder->mCurrentReferenceFrame = aForChild;
-      } else if (aBuilder->mCurrentFrame == aForChild->GetParent()) {
-        aBuilder->mCurrentOffsetToReferenceFrame += aForChild->GetPosition();
+        aBuilder->mCachedOffset = nsPoint();
+        aBuilder->mCachedReferenceFrame = aForChild;
+      } else if (mPrevCachedOffsetFrame == aForChild->GetParent()) {
+        aBuilder->mCachedOffset += aForChild->GetPosition();
       } else {
-        aBuilder->mCurrentReferenceFrame =
-          aBuilder->FindReferenceFrameFor(aForChild,
-              &aBuilder->mCurrentOffsetToReferenceFrame);
+        aBuilder->mCachedOffset = aBuilder->ToReferenceFrame(aForChild);
       }
-      aBuilder->mCurrentFrame = aForChild;
+      aBuilder->mCachedOffsetFrame = aForChild;
       aBuilder->mIsAtRootOfPseudoStackingContext = aIsRoot;
     }
     ~AutoBuildingDisplayList() {
-      mBuilder->mCurrentFrame = mPrevFrame;
-      mBuilder->mCurrentReferenceFrame = mPrevReferenceFrame;
+      mBuilder->mCachedOffsetFrame = mPrevCachedOffsetFrame;
+      mBuilder->mCachedReferenceFrame = mPrevCachedReferenceFrame;
       mBuilder->mLayerEventRegions = mPrevLayerEventRegions;
-      mBuilder->mCurrentOffsetToReferenceFrame = mPrevOffset;
+      mBuilder->mCachedOffset = mPrevCachedOffset;
       mBuilder->mIsAtRootOfPseudoStackingContext = mPrevIsAtRootOfPseudoStackingContext;
       mBuilder->mAncestorHasTouchEventHandler = mPrevAncestorHasTouchEventHandler;
     }
   private:
     nsDisplayListBuilder* mBuilder;
-    const nsIFrame*       mPrevFrame;
-    const nsIFrame*       mPrevReferenceFrame;
+    const nsIFrame*       mPrevCachedOffsetFrame;
+    const nsIFrame*       mPrevCachedReferenceFrame;
     nsDisplayLayerEventRegions* mPrevLayerEventRegions;
-    nsPoint               mPrevOffset;
+    nsPoint               mPrevCachedOffset;
     bool                  mPrevIsAtRootOfPseudoStackingContext;
     bool                  mPrevAncestorHasTouchEventHandler;
   };
@@ -758,11 +754,9 @@ private:
   const nsRegion*                mFinalTransparentRegion;
   
   
-  const nsIFrame*                mCurrentFrame;
-  
-  const nsIFrame*                mCurrentReferenceFrame;
-  
-  nsPoint                        mCurrentOffsetToReferenceFrame;
+  const nsIFrame*                mCachedOffsetFrame;
+  const nsIFrame*                mCachedReferenceFrame;
+  nsPoint                        mCachedOffset;
   nsRegion                       mExcludedGlassRegion;
   
   nsDisplayItem*                 mGlassDisplayItem;
