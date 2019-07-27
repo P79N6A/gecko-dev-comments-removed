@@ -769,7 +769,7 @@ BytecodeEmitter::enclosingStaticScope()
 
         
         
-        return sc->asGlobalSharedContext()->evalStaticScope();
+        return sc->asGlobalSharedContext()->topStaticScope();
     }
 
     return sc->asFunctionBox()->function();
