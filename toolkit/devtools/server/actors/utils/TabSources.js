@@ -450,6 +450,12 @@ TabSources.prototype = {
 
 
   _setSourceMapRoot: function (aSourceMap, aAbsSourceMapURL, aScriptURL) {
+    
+    
+    if (aSourceMap.hasContentsOfAllSources()) {
+      return;
+    }
+
     const base = this._dirname(
       aAbsSourceMapURL.indexOf("data:") === 0
         ? aScriptURL
