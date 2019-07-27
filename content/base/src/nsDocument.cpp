@@ -7501,15 +7501,27 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
 nsViewportInfo
 nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
 {
+  nsPresContext* context = mPresShell->GetPresContext();
+  float fullZoom = context ? context->GetFullZoom() : 1.0;
+  fullZoom = (fullZoom == 0.0) ? 1.0 : fullZoom;
+  CSSToScreenScale defaultScale = CSSToLayoutDeviceScale(fullZoom) *
+                                  LayoutDeviceToScreenScale(1.0);
+
   
   
   
 
   switch (mViewportType) {
   case DisplayWidthHeight:
-    return nsViewportInfo(aDisplaySize);
+    return nsViewportInfo(aDisplaySize,
+                          defaultScale,
+                           true,
+                           true);
   case DisplayWidthHeightNoZoom:
-    return nsViewportInfo(aDisplaySize,  false,  false);
+    return nsViewportInfo(aDisplaySize,
+                          defaultScale,
+                           false,
+                           false);
   case Unknown:
   {
     nsAutoString viewport;
@@ -7529,7 +7541,10 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
           {
             
             mViewportType = DisplayWidthHeight;
-            return nsViewportInfo(aDisplaySize, true, false);
+            return nsViewportInfo(aDisplaySize,
+                                  defaultScale,
+                                  true,
+                                  false);
           }
         }
       }
@@ -7538,7 +7553,10 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
       GetHeaderData(nsGkAtoms::handheldFriendly, handheldFriendly);
       if (handheldFriendly.EqualsLiteral("true")) {
         mViewportType = DisplayWidthHeight;
-        return nsViewportInfo(aDisplaySize, true, false);
+        return nsViewportInfo(aDisplaySize,
+                              defaultScale,
+                              true,
+                              false);
       }
 
       
@@ -7561,7 +7579,10 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
                                           "ImplicitMetaViewportTagFallback");
         }
         mViewportType = DisplayWidthHeightNoZoom;
-        return nsViewportInfo(aDisplaySize, false, false);
+        return nsViewportInfo(aDisplaySize,
+                              defaultScale,
+                              false,
+                              false);
       }
     }
 
@@ -7652,8 +7673,11 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
       if (mValidHeight && !aDisplaySize.IsEmpty()) {
         size.width = size.height * aDisplaySize.width / aDisplaySize.height;
       } else {
+        
+        
+        
         size.width = Preferences::GetInt("browser.viewport.desktopWidth",
-                                         kViewportDefaultScreenWidth);
+                                         kViewportDefaultScreenWidth) / fullZoom;
       }
     }
 
@@ -7664,10 +7688,13 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
         size.height = size.width;
       }
     }
+
+    
     
     nsIWidget *widget = nsContentUtils::WidgetForDocument(this);
-    CSSToLayoutDeviceScale pixelRatio = widget ? widget->GetDefaultScale()
-                                               : CSSToLayoutDeviceScale(1.0f);
+    CSSToLayoutDeviceScale pixelRatio = CSSToLayoutDeviceScale(
+          (widget ? widget->GetDefaultScale().scale : 1.0f) * fullZoom);
+
     CSSToScreenScale scaleFloat = mScaleFloat * pixelRatio;
     CSSToScreenScale scaleMinFloat = mScaleMinFloat * pixelRatio;
     CSSToScreenScale scaleMaxFloat = mScaleMaxFloat * pixelRatio;
