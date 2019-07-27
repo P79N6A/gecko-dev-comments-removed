@@ -125,25 +125,9 @@ static const GInterfaceInfo atk_if_infos[] = {
 
 
 
-
-struct MaiAtkObject
-{
-  AtkObject parent;
-  
-
-
-
-  uintptr_t accWrap;
-
-  
-
-
-  void Shutdown();
-};
-
-
-
 static const uintptr_t IS_PROXY = 1;
+
+static GQuark quark_mai_hyperlink = 0;
 
 void
 MaiAtkObject::Shutdown()
@@ -225,8 +209,6 @@ static const char * GetUniqueMaiAtkTypeName(uint16_t interfacesBits);
 
 static gpointer parent_class = nullptr;
 
-static GQuark quark_mai_hyperlink = 0;
-
 GType
 mai_atk_object_get_type(void)
 {
@@ -270,7 +252,7 @@ AccessibleWrap::ShutdownAtkObject()
   if (!mAtkObject)
     return;
 
-  MOZ_ASSERT(IS_MAI_OBJECT(mAtkObject));
+  NS_ASSERTION(IS_MAI_OBJECT(mAtkObject), "wrong type of atk object");
   if (IS_MAI_OBJECT(mAtkObject))
     MAI_ATK_OBJECT(mAtkObject)->Shutdown();
 

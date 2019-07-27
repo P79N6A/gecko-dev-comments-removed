@@ -51,4 +51,22 @@ IsAtkVersionAtLeast(int aMajor, int aMinor)
          (aMajor == atkMajorVersion && aMinor <= atkMinorVersion);
 }
 
+
+
+
+struct MaiAtkObject
+{
+  AtkObject parent;
+  
+
+
+
+  uintptr_t accWrap;
+
+  
+
+
+  void Shutdown();
+};
+
 #endif 
