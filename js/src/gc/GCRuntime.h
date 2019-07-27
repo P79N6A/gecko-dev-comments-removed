@@ -1015,6 +1015,16 @@ class GCRuntime
     bool cleanUpEverything;
 
     
+    
+    friend class js::GCMarker;
+    enum class GrayBufferState {
+        Unused,
+        Okay,
+        Failed
+    };
+    GrayBufferState grayBufferState;
+
+    
 
 
 
