@@ -36,3 +36,7 @@ assertEq("\u12001abcdefghijklm8".search(re), -1);
 
 var s = toLatin1("foobar\xff5baz");
 assertEq(s.search(/bar\u0178\d/i), 3);
+
+
+''.match(eval("/(:[aaaaa\cC]\u1200)(?:\S|(?=(\3)))+?/y"));
+assertEq(Function("return /(\uB0DA()})/.toString();")(), "/(\uB0DA()})/");

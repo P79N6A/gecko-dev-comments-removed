@@ -55,8 +55,17 @@ StringBuffer::inflateChars()
     MOZ_ASSERT(isLatin1());
 
     TwoByteCharBuffer twoByte(cx);
-    if (!twoByte.append(latin1Chars().begin(), latin1Chars().length()))
+
+    
+
+
+
+
+    size_t capacity = Max(reserved_, latin1Chars().length());
+    if (!twoByte.reserve(capacity))
         return false;
+
+    twoByte.infallibleAppend(latin1Chars().begin(), latin1Chars().length());
 
     cb.destroy();
     cb.construct<TwoByteCharBuffer>(Move(twoByte));
