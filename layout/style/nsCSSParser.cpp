@@ -1215,16 +1215,29 @@ protected:
   
   
   
-  bool mDidUnprefixWebkitBoxInEarlierDecl; 
+  
+  
+  
+  bool mSheetPrincipalRequired;
 
   
   
   
   
   
-  
-  
-  bool mSheetPrincipalRequired;
+  enum WebkitBoxUnprefixState : uint8_t {
+    eNotParsingDecls, 
+                      
+
+    
+    
+    
+    eHaveNotUnprefixed, 
+                        
+    eHaveUnprefixed 
+                    
+  };
+  WebkitBoxUnprefixState mWebkitBoxUnprefixState;
 
   
   InfallibleTArray<nsRefPtr<css::GroupRule> > mGroupStack;
@@ -1302,8 +1315,8 @@ CSSParserImpl::CSSParserImpl()
     mInSupportsCondition(false),
     mInFailingSupportsRule(false),
     mSuppressErrors(false),
-    mDidUnprefixWebkitBoxInEarlierDecl(false),
     mSheetPrincipalRequired(true),
+    mWebkitBoxUnprefixState(eNotParsingDecls),
     mNextFree(nullptr)
 {
 }
@@ -1532,9 +1545,10 @@ CSSParserImpl::ParseDeclarations(const nsAString&  aBuffer,
   css::ErrorReporter reporter(scanner, mSheet, mChildLoader, aSheetURI);
   InitScanner(scanner, reporter, aSheetURI, aBaseURI, aSheetPrincipal);
 
-  MOZ_ASSERT(!mDidUnprefixWebkitBoxInEarlierDecl,
-             "Someone forgot to clear the 'did unprefix webkit-box' flag");
-  AutoRestore<bool> autoRestore(mDidUnprefixWebkitBoxInEarlierDecl);
+  MOZ_ASSERT(mWebkitBoxUnprefixState == eNotParsingDecls,
+             "Someone forgot to clear mWebkitBoxUnprefixState!");
+  AutoRestore<WebkitBoxUnprefixState> autoRestore(mWebkitBoxUnprefixState);
+  mWebkitBoxUnprefixState = eHaveNotUnprefixed;
 
   mSection = eCSSSection_General;
 
@@ -6176,9 +6190,10 @@ CSSParserImpl::ParseDeclarationBlock(uint32_t aFlags, nsCSSContextType aContext)
 {
   bool checkForBraces = (aFlags & eParseDeclaration_InBraces) != 0;
 
-  MOZ_ASSERT(!mDidUnprefixWebkitBoxInEarlierDecl,
-             "Someone forgot to clear the 'did unprefix webkit-box' flag");
-  AutoRestore<bool> restorer(mDidUnprefixWebkitBoxInEarlierDecl);
+  MOZ_ASSERT(mWebkitBoxUnprefixState == eNotParsingDecls,
+             "Someone forgot to clear mWebkitBoxUnprefixState!");
+  AutoRestore<WebkitBoxUnprefixState> autoRestore(mWebkitBoxUnprefixState);
+  mWebkitBoxUnprefixState = eHaveNotUnprefixed;
 
   if (checkForBraces) {
     if (!ExpectSymbol('{', true)) {
@@ -6600,7 +6615,9 @@ CSSParserImpl::LookupKeywordPrefixAware(nsAString& aKeywordStr,
       
       
       
-      mDidUnprefixWebkitBoxInEarlierDecl = true;
+      if (mWebkitBoxUnprefixState == eHaveNotUnprefixed) {
+        mWebkitBoxUnprefixState = eHaveUnprefixed;
+      }
       return eCSSKeyword_flex;
     }
 
@@ -6611,7 +6628,8 @@ CSSParserImpl::LookupKeywordPrefixAware(nsAString& aKeywordStr,
     
     
     
-    if (mDidUnprefixWebkitBoxInEarlierDecl && keyword == eCSSKeyword__moz_box) {
+    if (mWebkitBoxUnprefixState == eHaveUnprefixed &&
+        keyword == eCSSKeyword__moz_box) {
       MOZ_ASSERT(ShouldUseUnprefixingService(),
                  "mDidUnprefixWebkitBoxInEarlierDecl should only be set if "
                  "we're using the unprefixing service on this site");
