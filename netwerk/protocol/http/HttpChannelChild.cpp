@@ -784,6 +784,8 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus,
     DoOnStopRequest(this, mListenerContext);
   }
 
+  ReleaseListeners();
+
   if (mLoadFlags & LOAD_DOCUMENT_URI) {
     
     mKeptAlive = true;
