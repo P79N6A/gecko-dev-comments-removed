@@ -34,6 +34,18 @@ class TimeStamp;
 
 
 
+class TimeDurationPlatformUtils
+{
+public:
+  static double ToSeconds(int64_t aTicks);
+  static double ToSecondsSigDigits(int64_t aTicks);
+  static int64_t TicksFromMilliseconds(double aMilliseconds);
+  static int64_t ResolutionInTicks();
+};
+
+
+
+
 
 
 
@@ -55,11 +67,17 @@ public:
   }
   
 
-  double ToSeconds() const;
+  double ToSeconds() const
+  {
+    return TimeDurationPlatformUtils::ToSeconds(mValue);
+  }
   
   
   
-  double ToSecondsSigDigits() const;
+  double ToSecondsSigDigits() const
+  {
+    return TimeDurationPlatformUtils::ToSecondsSigDigits(mValue);
+  }
   double ToMilliseconds() const { return ToSeconds() * 1000.0; }
   double ToMicroseconds() const { return ToMilliseconds() * 1000.0; }
 
@@ -72,7 +90,11 @@ public:
   {
     return FromMilliseconds(aSeconds * 1000.0);
   }
-  static TimeDuration FromMilliseconds(double aMilliseconds);
+  static TimeDuration FromMilliseconds(double aMilliseconds)
+  {
+    return FromTicks(
+      TimeDurationPlatformUtils::TicksFromMilliseconds(aMilliseconds));
+  }
   static inline TimeDuration FromMicroseconds(double aMicroseconds)
   {
     return FromMilliseconds(aMicroseconds / 1000.0);
@@ -175,7 +197,9 @@ public:
   
   
   
-  static TimeDuration Resolution();
+  static TimeDuration Resolution() {
+    return FromTicks(TimeDurationPlatformUtils::ResolutionInTicks());
+  }
 
   
   
