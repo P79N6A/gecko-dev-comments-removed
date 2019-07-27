@@ -707,7 +707,7 @@ PLDHashTable::Enumerate(PLDHashEnumerator aEtor, void* aArg)
   uint32_t i = 0;
   bool didRemove = false;
 
-  if (ChaosMode::isActive()) {
+  if (ChaosMode::isActive(ChaosMode::HashTableIteration)) {
     
     
     
@@ -855,7 +855,7 @@ PLDHashTable::Iterator::Iterator(const PLDHashTable* aTable)
   uint32_t tableSize = capacity * mTable->EntrySize();
   char* entryLimit = mEntryAddr + tableSize;
 
-  if (ChaosMode::isActive()) {
+  if (ChaosMode::isActive(ChaosMode::HashTableIteration)) {
     
     
     
