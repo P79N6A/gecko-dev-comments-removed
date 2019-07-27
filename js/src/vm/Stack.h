@@ -12,7 +12,7 @@
 #include "jsfun.h"
 #include "jsscript.h"
 
-#include "jit/AsmJSFrameIterator.h"
+#include "jit/AsmJSLink.h"
 #include "jit/JitFrameIterator.h"
 #ifdef CHECK_OSIPOINT_REGISTERS
 #include "jit/Registers.h" 
@@ -1511,7 +1511,9 @@ class AsmJSActivation : public Activation
     void *errorRejoinSP_;
     SPSProfiler *profiler_;
     void *resumePC_;
-    uint8_t *exitFP_;
+    uint8_t *exitSP_;
+
+    static const intptr_t InterruptedSP = -1;
 
   public:
     AsmJSActivation(JSContext *cx, AsmJSModule &module);
@@ -1527,18 +1529,16 @@ class AsmJSActivation : public Activation
 
     
     static unsigned offsetOfErrorRejoinSP() { return offsetof(AsmJSActivation, errorRejoinSP_); }
-    static unsigned offsetOfExitFP() { return offsetof(AsmJSActivation, exitFP_); }
+    static unsigned offsetOfExitSP() { return offsetof(AsmJSActivation, exitSP_); }
 
     
-    void setResumePC(void *pc) { resumePC_ = pc; }
+    void setInterrupted(void *pc) { resumePC_ = pc; exitSP_ = (uint8_t*)InterruptedSP; }
+    bool isInterruptedSP() const { return exitSP_ == (uint8_t*)InterruptedSP; }
 
     
     
     
-    
-    
-    
-    uint8_t *exitFP() const { return exitFP_; }
+    uint8_t *exitSP() const { JS_ASSERT(!isInterruptedSP()); return exitSP_; }
 };
 
 
