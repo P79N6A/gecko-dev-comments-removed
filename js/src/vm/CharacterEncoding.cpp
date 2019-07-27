@@ -11,7 +11,7 @@
 #include "jscntxt.h"
 #include "jsprf.h"
 
-using namespace JS;
+using namespace js;
 
 Latin1CharsZ
 JS::LossyTwoByteCharsToNewLatin1CharsZ(js::ThreadSafeContext *cx,
@@ -293,7 +293,7 @@ InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, char16_t *dst, siz
                     INVALID(ReportInvalidCharacter, i, m);
 
             
-            v = Utf8ToOneUcs4Char((uint8_t *)&src[i], n);
+            v = JS::Utf8ToOneUcs4Char((uint8_t *)&src[i], n);
             if (v < 0x10000) {
                 
                 if (action == Copy)

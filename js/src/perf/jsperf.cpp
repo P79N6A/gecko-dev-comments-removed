@@ -8,7 +8,8 @@
 #include "jscntxt.h" 
 #include "jsobj.h" 
 
-using namespace JS;
+using namespace js;
+using JS::PerfMeasurement;
 
 
 
