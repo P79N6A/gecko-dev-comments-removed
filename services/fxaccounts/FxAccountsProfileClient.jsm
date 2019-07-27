@@ -134,6 +134,18 @@ this.FxAccountsProfileClient.prototype = {
   fetchProfile: function () {
     log.debug("FxAccountsProfileClient: Requested profile");
     return this._createRequest("/profile", "GET");
+  },
+
+  
+
+
+
+
+
+
+  fetchProfileImage: function () {
+    log.debug("FxAccountsProfileClient: Requested avatar");
+    return this._createRequest("/avatar", "GET");
   }
 };
 
