@@ -60,12 +60,12 @@ NativeIterator::mark(JSTracer* trc)
     for (HeapPtrFlatString* str = begin(); str < end(); str++)
         TraceEdge(trc, str, "prop");
     if (obj)
-        MarkObject(trc, &obj, "obj");
+        TraceEdge(trc, &obj, "obj");
 
     
     
     if (iterObj_)
-        MarkObjectUnbarriered(trc, &iterObj_, "iterObj");
+        TraceManuallyBarrieredEdge(trc, &iterObj_, "iterObj");
 }
 
 struct IdHashPolicy {

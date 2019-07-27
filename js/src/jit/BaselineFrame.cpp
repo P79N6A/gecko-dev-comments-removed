@@ -42,7 +42,7 @@ BaselineFrame::trace(JSTracer* trc, JitFrameIterator& frameIterator)
 
     
     if (scopeChain_)
-        gc::MarkObjectRoot(trc, &scopeChain_, "baseline-scopechain");
+        TraceRoot(trc, &scopeChain_, "baseline-scopechain");
 
     
     if (hasReturnValue())
@@ -52,7 +52,7 @@ BaselineFrame::trace(JSTracer* trc, JitFrameIterator& frameIterator)
         TraceRoot(trc, &evalScript_, "baseline-evalscript");
 
     if (hasArgsObj())
-        gc::MarkObjectRoot(trc, &argsObj_, "baseline-args-obj");
+        TraceRoot(trc, &argsObj_, "baseline-args-obj");
 
     
     JSScript* script = this->script();

@@ -188,7 +188,7 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
 
 
 
-            return delegate && gc::IsObjectMarked(&delegate);
+            return delegate && gc::IsMarkedUnbarriered(&delegate);
         }
         return false;
     }

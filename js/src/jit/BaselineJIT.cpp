@@ -414,7 +414,7 @@ BaselineScript::trace(JSTracer* trc)
 {
     TraceEdge(trc, &method_, "baseline-method");
     if (templateScope_)
-        MarkObject(trc, &templateScope_, "baseline-template-scope");
+        TraceEdge(trc, &templateScope_, "baseline-template-scope");
 
     
     for (size_t i = 0; i < numICEntries(); i++) {

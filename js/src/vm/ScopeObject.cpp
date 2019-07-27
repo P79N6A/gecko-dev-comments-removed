@@ -1172,7 +1172,7 @@ void
 LiveScopeVal::sweep()
 {
     if (staticScope_)
-        MOZ_ALWAYS_FALSE(IsObjectAboutToBeFinalized(staticScope_.unsafeGet()));
+        MOZ_ALWAYS_FALSE(IsAboutToBeFinalized(&staticScope_));
 }
 
 
@@ -1871,7 +1871,7 @@ DebugScopes::sweep(JSRuntime* rt)
 
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
         DebugScopeObject** debugScope = e.front().value().unsafeGet();
-        if (IsObjectAboutToBeFinalized(debugScope)) {
+        if (IsAboutToBeFinalizedUnbarriered(debugScope)) {
             
 
 
@@ -1909,7 +1909,7 @@ DebugScopes::sweep(JSRuntime* rt)
 
 
 
-        if (IsObjectAboutToBeFinalized(&scope))
+        if (IsAboutToBeFinalizedUnbarriered(&scope))
             e.removeFront();
         else if (scope != e.front().key())
             e.rekeyFront(scope);
