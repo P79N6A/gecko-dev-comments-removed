@@ -686,7 +686,7 @@ function BuildConditionSandbox(aURL) {
     
     var navigator = gContainingWindow.navigator;
     var testPlugin = navigator.plugins["Test Plug-in"];
-    sandbox.haveTestPlugin = !!testPlugin;
+    sandbox.haveTestPlugin = !!testPlugin && !gBrowserIsRemote;
 
     
     var box = gContainingWindow.document.createElement("box");
