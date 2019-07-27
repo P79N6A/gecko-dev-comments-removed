@@ -103,10 +103,10 @@ ContentPermissionPrompt.prototype = {
       callback: function(aChecked) {
         
         if (aChecked) {
-          Services.perms.addFromPrincipal(request.principal, perm.type, Ci.nsIPermissionManager.ALLOW_ACTION);
+          Services.perms.addFromPrincipal(request.principal, access, Ci.nsIPermissionManager.ALLOW_ACTION);
         } else if (isApp || entityName == "desktopNotification") {
           
-          Services.perms.addFromPrincipal(request.principal, perm.type, Ci.nsIPermissionManager.ALLOW_ACTION, Ci.nsIPermissionManager.EXPIRE_SESSION);
+          Services.perms.addFromPrincipal(request.principal, access, Ci.nsIPermissionManager.ALLOW_ACTION, Ci.nsIPermissionManager.EXPIRE_SESSION);
         }
 
         request.allow();
@@ -117,7 +117,7 @@ ContentPermissionPrompt.prototype = {
       callback: function(aChecked) {
         
         if (aChecked)
-          Services.perms.addFromPrincipal(request.principal, perm.type, Ci.nsIPermissionManager.DENY_ACTION);
+          Services.perms.addFromPrincipal(request.principal, access, Ci.nsIPermissionManager.DENY_ACTION);
 
         request.cancel();
       }
