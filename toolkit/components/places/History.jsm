@@ -65,6 +65,8 @@ this.EXPORTED_SYMBOLS = [ "History" ];
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
+                                  "resource://gre/modules/AsyncShutdown.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
@@ -85,13 +87,39 @@ Cu.importGlobalProperties(["URL"]);
 
 
 
+
+
+
+const NOTIFICATION_CHUNK_SIZE = 300;
+
+
+
+
+XPCOMUtils.defineLazyGetter(this, "operationsBarrier", () =>
+  new AsyncShutdown.Barrier("Sqlite.jsm: wait until all connections are closed")
+);
+
+
+
+
 XPCOMUtils.defineLazyGetter(this, "DBConnPromised",
   () => new Promise((resolve) => {
     Sqlite.wrapStorageConnection({ connection: PlacesUtils.history.DBConnection } )
           .then(db => {
       try {
-        Sqlite.shutdown.addBlocker("Places History.jsm: Closing database wrapper",
-                                   () => db.close());
+        Sqlite.shutdown.addBlocker(
+          "Places History.jsm: Closing database wrapper",
+          Task.async(function*() {
+            yield operationsBarrier.wait();
+            gIsClosed = true;
+            yield db.close();
+          }),
+          () => ({
+            fetchState: () => ({
+              isClosed: gIsClosed,
+              operations: operationsBarrier.state,
+            })
+          }));
       } catch (ex) {
         
         
@@ -102,6 +130,16 @@ XPCOMUtils.defineLazyGetter(this, "DBConnPromised",
     });
   })
 );
+
+
+
+
+let gIsClosed = false;
+function ensureModuleIsOpen() {
+  if (gIsClosed) {
+    throw new Error("History.jsm has been shutdown");
+  }
+}
 
 this.History = Object.freeze({
   
@@ -209,6 +247,8 @@ this.History = Object.freeze({
 
 
   remove: function (pages, onResult = null) {
+    ensureModuleIsOpen();
+
     
     if (Array.isArray(pages)) {
       if (pages.length == 0) {
@@ -230,6 +270,8 @@ this.History = Object.freeze({
         urls.push(normalized.href);
       }
     }
+    let normalizedPages = {guids: guids, urls: urls};
+
     
     
 
@@ -237,8 +279,29 @@ this.History = Object.freeze({
       throw new TypeError("Invalid function: " + onResult);
     }
 
-    
-    return remove({guids: guids, urls: urls}, onResult);
+    return Task.spawn(function*() {
+      let promise = remove(normalizedPages, onResult);
+
+      operationsBarrier.client.addBlocker(
+        "History.remove",
+        promise,
+        {
+          
+          
+          
+          fetchState: () => ({
+            guids: guids.length,
+            urls: normalizedPages.urls.map(u => u.protocol),
+          })
+        });
+
+      try {
+        return (yield promise);
+      } finally {
+        
+        operationsBarrier.client.removeBlocker(promise);
+      }
+    });
   },
 
   
