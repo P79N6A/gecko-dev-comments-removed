@@ -21,7 +21,6 @@
 #include "nsIDOMEvent.h"
 #include "nsIDOMStyleSheet.h"
 #include "nsINode.h"
-#include "nsISpeculativeConnect.h"
 #include "nsIStyleSheet.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsIURL.h"
@@ -182,6 +181,8 @@ HTMLLinkElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   Link::ResetLinkState(false, Link::ElementHasHref());
 
+  
+  
   nsCOMPtr<nsIDocument> oldDoc = GetUncomposedDoc();
 
   
@@ -311,12 +312,11 @@ HTMLLinkElement::UpdatePreconnect()
     return;
   }
 
-  nsCOMPtr<nsISpeculativeConnect>
-    speculator(do_QueryInterface(nsContentUtils::GetIOService()));
-  if (speculator) {
+  nsIDocument *owner = OwnerDoc();
+  if (owner) {
     nsCOMPtr<nsIURI> uri = GetHrefURI();
     if (uri) {
-      speculator->SpeculativeConnect(uri, nullptr);
+      owner->MaybePreconnect(uri);
     }
   }
 }

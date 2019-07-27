@@ -1115,6 +1115,8 @@ public:
                                  ReferrerPolicy aReferrerPolicy) override;
   virtual void ForgetImagePreload(nsIURI* aURI) override;
 
+  virtual void MaybePreconnect(nsIURI* uri) override;
+
   virtual void PreloadStyle(nsIURI* uri, const nsAString& charset,
                             const nsAString& aCrossOriginAttr,
                             ReferrerPolicy aReferrerPolicy) override;
@@ -1784,6 +1786,11 @@ private:
   
   
   nsRefPtrHashtable<nsURIHashKey, imgIRequest> mPreloadingImages;
+
+  
+  
+  
+  nsDataHashtable< nsURIHashKey, bool> mPreloadedPreconnects;
 
   
   int32_t mPreloadPictureDepth;

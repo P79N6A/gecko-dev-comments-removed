@@ -2017,6 +2017,11 @@ public:
 
   virtual bool IsDocumentRightToLeft() { return false; }
 
+  
+
+
+  virtual void MaybePreconnect(nsIURI* uri) = 0;
+
   enum DocumentTheme {
     Doc_Theme_Uninitialized, 
     Doc_Theme_None,
