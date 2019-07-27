@@ -62,12 +62,6 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
 
             
             
-            
-            if (ins->isEffectful())
-                continue;
-
-            
-            
             bool hasLiveUses = false;
             bool hasUses = false;
             MBasicBlock *usesDominator = nullptr;
@@ -112,6 +106,12 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
             
             
             if (!sinkEnabled)
+                continue;
+
+            
+            
+            
+            if (ins->isEffectful())
                 continue;
 
             
