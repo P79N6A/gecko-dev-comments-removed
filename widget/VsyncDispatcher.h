@@ -21,7 +21,6 @@ class CompositorVsyncObserver;
 
 class VsyncObserver
 {
-  
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncObserver)
 
 public:
@@ -34,13 +33,11 @@ protected:
   virtual ~VsyncObserver() {}
 }; 
 
-
-class VsyncDispatcher
+class CompositorVsyncDispatcher MOZ_FINAL
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncDispatcher)
-
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorVsyncDispatcher)
 public:
-  VsyncDispatcher();
+  CompositorVsyncDispatcher();
 
   
   
@@ -55,10 +52,10 @@ public:
   void Shutdown();
 
 private:
-  virtual ~VsyncDispatcher();
+  virtual ~CompositorVsyncDispatcher();
   Mutex mCompositorObserverLock;
   nsRefPtr<VsyncObserver> mCompositorVsyncObserver;
-}; 
+};
 
 } 
 

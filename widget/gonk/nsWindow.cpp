@@ -220,7 +220,7 @@ nsWindow::NotifyVsync(TimeStamp aVsyncTimestamp)
       return;
     }
 
-    VsyncDispatcher* vsyncDispatcher = gFocusedWindow->GetVsyncDispatcher();
+    CompositorVsyncDispatcher* vsyncDispatcher = gFocusedWindow->GetCompositorVsyncDispatcher();
     
     
     if (vsyncDispatcher) {

@@ -205,7 +205,7 @@ CompositorVsyncObserver::CompositorVsyncObserver(CompositorParent* aCompositorPa
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aWidget != nullptr);
-  mVsyncDispatcher = aWidget->GetVsyncDispatcher();
+  mCompositorVsyncDispatcher = aWidget->GetCompositorVsyncDispatcher();
 #ifdef MOZ_WIDGET_GONK
   GeckoTouchDispatcher::SetCompositorVsyncObserver(this);
 #endif
@@ -218,7 +218,7 @@ CompositorVsyncObserver::~CompositorVsyncObserver()
   
   CancelCurrentCompositeTask();
   mCompositorParent = nullptr;
-  mVsyncDispatcher = nullptr;
+  mCompositorVsyncDispatcher = nullptr;
   mNeedsComposite = false;
 }
 
@@ -301,7 +301,7 @@ void
 CompositorVsyncObserver::ObserveVsync()
 {
   MOZ_ASSERT(CompositorParent::IsInCompositorThread());
-  mVsyncDispatcher->SetCompositorVsyncObserver(this);
+  mCompositorVsyncDispatcher->SetCompositorVsyncObserver(this);
   mIsObservingVsync = true;
 }
 
@@ -309,7 +309,7 @@ void
 CompositorVsyncObserver::UnobserveVsync()
 {
   MOZ_ASSERT(CompositorParent::IsInCompositorThread() || NS_IsMainThread());
-  mVsyncDispatcher->SetCompositorVsyncObserver(nullptr);
+  mCompositorVsyncDispatcher->SetCompositorVsyncObserver(nullptr);
   mIsObservingVsync = false;
 }
 

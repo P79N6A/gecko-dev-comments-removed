@@ -23,21 +23,21 @@ using namespace mozilla::layers;
 
 namespace mozilla {
 
-VsyncDispatcher::VsyncDispatcher()
+CompositorVsyncDispatcher::CompositorVsyncDispatcher()
   : mCompositorObserverLock("CompositorObserverLock")
 {
   MOZ_ASSERT(XRE_IsParentProcess());
-  gfxPlatform::GetPlatform()->GetHardwareVsync()->AddVsyncDispatcher(this);
+  gfxPlatform::GetPlatform()->GetHardwareVsync()->AddCompositorVsyncDispatcher(this);
 }
 
-VsyncDispatcher::~VsyncDispatcher()
+CompositorVsyncDispatcher::~CompositorVsyncDispatcher()
 {
   
   MOZ_ASSERT(NS_IsMainThread());
 }
 
 void
-VsyncDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
+CompositorVsyncDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
 {
   
 #ifdef MOZ_ENABLE_PROFILER_SPS
@@ -53,7 +53,7 @@ VsyncDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
 }
 
 void
-VsyncDispatcher::SetCompositorVsyncObserver(VsyncObserver* aVsyncObserver)
+CompositorVsyncDispatcher::SetCompositorVsyncObserver(VsyncObserver* aVsyncObserver)
 {
   MOZ_ASSERT(CompositorParent::IsInCompositorThread());
   MutexAutoLock lock(mCompositorObserverLock);
@@ -61,13 +61,13 @@ VsyncDispatcher::SetCompositorVsyncObserver(VsyncObserver* aVsyncObserver)
 }
 
 void
-VsyncDispatcher::Shutdown()
+CompositorVsyncDispatcher::Shutdown()
 {
   
   
   
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
-  gfxPlatform::GetPlatform()->GetHardwareVsync()->RemoveVsyncDispatcher(this);
+  gfxPlatform::GetPlatform()->GetHardwareVsync()->RemoveCompositorVsyncDispatcher(this);
 }
 } 
