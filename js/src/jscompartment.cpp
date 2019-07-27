@@ -672,7 +672,6 @@ JSCompartment::clearTables()
     
     
     MOZ_ASSERT(crossCompartmentWrappers.empty());
-    MOZ_ASSERT_IF(callsiteClones.initialized(), callsiteClones.empty());
     MOZ_ASSERT(!jitCompartment_);
     MOZ_ASSERT(!debugScopes);
     MOZ_ASSERT(!gcWeakMapList);

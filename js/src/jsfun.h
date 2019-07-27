@@ -324,16 +324,6 @@ class JSFunction : public js::NativeObject
         return u.i.s.script_;
     }
 
-    
-    
-    JSFunction* originalFunction() {
-        if (this->hasScript() && this->nonLazyScript()->isCallsiteClone()) {
-            return this->nonLazyScript()->donorFunction();
-        } else {
-            return this;
-        }
-    }
-
     js::HeapPtrScript &mutableScript() {
         MOZ_ASSERT(isInterpreted());
         return *(js::HeapPtrScript *)&u.i.s.script_;

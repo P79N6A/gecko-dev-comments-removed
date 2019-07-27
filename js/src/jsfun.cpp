@@ -262,16 +262,7 @@ CallerGetterImpl(JSContext *cx, CallArgs args)
         return true;
     }
 
-    
-    
-    
-    
-    
-    JSFunction *maybeClone = iter.callee(cx);
-    MOZ_ASSERT(!maybeClone->nonLazyScript()->isCallsiteClone(),
-               "non-builtin functions aren't call site-clonable");
-
-    RootedObject caller(cx, maybeClone);
+    RootedObject caller(cx, iter.callee(cx));
     if (!cx->compartment()->wrap(cx, &caller))
         return false;
 
@@ -335,16 +326,7 @@ CallerSetterImpl(JSContext *cx, CallArgs args)
     if (iter.done() || !iter.isFunctionFrame())
         return true;
 
-    
-    
-    
-    
-    
-    JSFunction *maybeClone = iter.callee(cx);
-    MOZ_ASSERT(!maybeClone->nonLazyScript()->isCallsiteClone(),
-               "non-builtin functions aren't call site-clonable");
-
-    RootedObject caller(cx, maybeClone);
+    RootedObject caller(cx, iter.callee(cx));
     if (!cx->compartment()->wrap(cx, &caller)) {
         cx->clearPendingException();
         return true;

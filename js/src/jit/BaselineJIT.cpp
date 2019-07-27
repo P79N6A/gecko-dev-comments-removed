@@ -273,22 +273,6 @@ CanEnterBaselineJIT(JSContext *cx, HandleScript script, InterpreterFrame *osrFra
     if (script->incWarmUpCounter() <= js_JitOptions.baselineWarmUpThreshold)
         return Method_Skipped;
 
-    if (script->isCallsiteClone()) {
-        
-        
-        RootedScript original(cx, script->donorFunction()->nonLazyScript());
-        MOZ_ASSERT(original != script);
-
-        if (!original->canBaselineCompile())
-            return Method_CantCompile;
-
-        if (!original->hasBaselineScript()) {
-            MethodStatus status = BaselineCompile(cx, original);
-            if (status != Method_Compiled)
-                return status;
-        }
-    }
-
     
     
     

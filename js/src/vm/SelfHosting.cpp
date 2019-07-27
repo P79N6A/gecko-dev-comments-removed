@@ -259,54 +259,6 @@ intrinsic_DecompileArg(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-static bool
-intrinsic_SetScriptHints(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    MOZ_ASSERT(args.length() >= 2);
-    MOZ_ASSERT(args[0].isObject() && args[0].toObject().is<JSFunction>());
-    MOZ_ASSERT(args[1].isObject());
-
-    RootedFunction fun(cx, &args[0].toObject().as<JSFunction>());
-    RootedScript funScript(cx, fun->getOrCreateScript(cx));
-    if (!funScript)
-        return false;
-    RootedObject flags(cx, &args[1].toObject());
-
-    RootedId id(cx);
-    RootedValue propv(cx);
-
-    id = AtomToId(Atomize(cx, "cloneAtCallsite", strlen("cloneAtCallsite")));
-    if (!GetProperty(cx, flags, flags, id, &propv))
-        return false;
-    if (ToBoolean(propv))
-        funScript->setShouldCloneAtCallsite();
-
-    id = AtomToId(Atomize(cx, "inline", strlen("inline")));
-    if (!GetProperty(cx, flags, flags, id, &propv))
-        return false;
-    if (ToBoolean(propv))
-        funScript->setShouldInline();
-
-    args.rval().setUndefined();
-    return true;
-}
-
-
-
-
-
 bool
 js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -890,7 +842,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("OwnPropertyKeys",         intrinsic_OwnPropertyKeys,         1,0),
     JS_FN("ThrowError",              intrinsic_ThrowError,              4,0),
     JS_FN("AssertionFailed",         intrinsic_AssertionFailed,         1,0),
-    JS_FN("SetScriptHints",          intrinsic_SetScriptHints,          2,0),
     JS_FN("MakeConstructible",       intrinsic_MakeConstructible,       2,0),
     JS_FN("_IsConstructing",         intrinsic_IsConstructing,          0,0),
     JS_FN("DecompileArg",            intrinsic_DecompileArg,            2,0),

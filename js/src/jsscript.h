@@ -832,10 +832,7 @@ class JSScript : public js::gc::TenuredCell
     js::HeapPtrObject sourceObject_;
 
     js::HeapPtrFunction function_;
-
-    
-    
-    js::HeapPtrObject   enclosingScopeOrOriginalFunction_;
+    js::HeapPtrObject   enclosingStaticScope_;
 
     
     js::jit::IonScript *ion;
@@ -961,15 +958,6 @@ class JSScript : public js::gc::TenuredCell
 
     
     bool usesArgumentsApplyAndThis_:1;
-
-    
-    
-
-
-
-    bool shouldCloneAtCallsite_:1;
-    bool isCallsiteClone_:1; 
-    bool shouldInline_:1;    
 
     
     bool failedBoundsCheck_:1; 
@@ -1205,19 +1193,6 @@ class JSScript : public js::gc::TenuredCell
     }
     void setUsesArgumentsApplyAndThis() { usesArgumentsApplyAndThis_ = true; }
 
-    bool shouldCloneAtCallsite() const {
-        return shouldCloneAtCallsite_;
-    }
-    bool shouldInline() const {
-        return shouldInline_;
-    }
-
-    void setShouldCloneAtCallsite() { shouldCloneAtCallsite_ = true; }
-    void setShouldInline() { shouldInline_ = true; }
-
-    bool isCallsiteClone() const {
-        return isCallsiteClone_;
-    }
     bool isGeneratorExp() const { return isGeneratorExp_; }
 
     bool failedBoundsCheck() const {
@@ -1426,12 +1401,6 @@ class JSScript : public js::gc::TenuredCell
 
     inline void ensureNonLazyCanonicalFunction(JSContext *cx);
 
-    
-
-
-    JSFunction *donorFunction() const;
-    void setIsCallsiteClone(JSObject *fun);
-
     JSFlatString *sourceData(JSContext *cx);
 
     static bool loadSource(JSContext *cx, js::ScriptSource *ss, bool *worked);
@@ -1464,9 +1433,7 @@ class JSScript : public js::gc::TenuredCell
 
     
     JSObject *enclosingStaticScope() const {
-        if (isCallsiteClone())
-            return nullptr;
-        return enclosingScopeOrOriginalFunction_;
+        return enclosingStaticScope_;
     }
 
   private:

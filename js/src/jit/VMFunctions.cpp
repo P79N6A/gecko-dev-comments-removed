@@ -57,27 +57,9 @@ VMFunction::addToFunctions()
 }
 
 bool
-InvokeFunction(JSContext *cx, HandleObject obj0, uint32_t argc, Value *argv, Value *rval)
+InvokeFunction(JSContext *cx, HandleObject obj, uint32_t argc, Value *argv, Value *rval)
 {
     AutoArrayRooter argvRoot(cx, argc + 1, argv);
-
-    RootedObject obj(cx, obj0);
-    if (obj->is<JSFunction>()) {
-        RootedFunction fun(cx, &obj->as<JSFunction>());
-        if (fun->isInterpreted()) {
-            if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
-                return false;
-
-            
-            if (fun->nonLazyScript()->shouldCloneAtCallsite()) {
-                jsbytecode *pc;
-                RootedScript script(cx, cx->currentScript(&pc));
-                fun = CloneFunctionAtCallsite(cx, fun, script, pc);
-                if (!fun)
-                    return false;
-            }
-        }
-    }
 
     
     Value thisv = argv[0];
