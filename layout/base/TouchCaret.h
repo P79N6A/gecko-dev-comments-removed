@@ -120,19 +120,19 @@ private:
 
 
 
-  nsRect GetTouchCaretRect();
+  nsPoint GetTouchCaretPosition();
 
   
 
 
 
-  nsRect ClampRectToScrollFrame(const nsRect& aRect);
+  nsPoint ClampPositionToScrollFrame(const nsPoint& aPosition);
 
   
 
 
 
-  void SetTouchFramePos(const nsRect& aRect);
+  void SetTouchFramePos(const nsPoint& aOrigin);
 
   void LaunchExpirationTimer();
   void CancelExpirationTimer();
