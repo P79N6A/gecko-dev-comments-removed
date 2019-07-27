@@ -35,7 +35,7 @@ using mozilla::UniquePtr;
 #    define DECLTYPE(EXPR) Identity<decltype(EXPR)>::type
 #  endif
 #elif MOZ_IS_GCC
-#  if MOZ_GCC_VERSION_AT_LEAST(4,5,0)
+#  if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
 #    define DECLTYPE(EXPR) decltype(EXPR)
 #  else
      template<typename T> struct Identity { typedef T type; };
