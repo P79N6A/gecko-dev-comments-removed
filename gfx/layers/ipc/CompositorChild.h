@@ -100,7 +100,7 @@ private:
   private:
     
     
-    mozilla::ipc::SharedMemoryBasic* mBuffer;
+    nsRefPtr<mozilla::ipc::SharedMemoryBasic> mBuffer;
     CrossProcessMutex* mMutex;
     
     uint32_t mAPZCId;
