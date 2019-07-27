@@ -30,10 +30,14 @@ const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
 const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID"
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 
+const PING_FORMAT_VERSION = 2;
+
 
 const TELEMETRY_DELAY = 60000;
 
 const TELEMETRY_TEST_DELAY = 100;
+
+const DEFAULT_RETENTION_DAYS = 14;
 
 XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
                                    "@mozilla.org/base/telemetry;1",
@@ -48,6 +52,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ThirdPartyCookieProbe",
                                   "resource://gre/modules/ThirdPartyCookieProbe.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryEnvironment",
                                   "resource://gre/modules/TelemetryEnvironment.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
+                                  "resource://gre/modules/UpdateChannel.jsm");
 
 
 
@@ -134,8 +140,102 @@ this.TelemetryPing = Object.freeze({
   
 
 
-  send: function(aReason, aPingPayload) {
-    return Impl.send(aReason, aPingPayload);
+
+
+
+
+
+
+
+
+
+
+
+  send: function(aType, aPayload, aOptions = {}) {
+    let options = aOptions;
+    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
+    options.addClientId = aOptions.addClientId || false;
+    options.addEnvironment = aOptions.addEnvironment || false;
+
+    return Impl.send(aType, aPayload, options);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  savePendingPings: function(aType, aPayload, aOptions = {}) {
+    let options = aOptions;
+    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
+    options.addClientId = aOptions.addClientId || false;
+    options.addEnvironment = aOptions.addEnvironment || false;
+
+    return Impl.savePendingPings(aType, aPayload, options);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  savePing: function(aType, aPayload, aOptions = {}) {
+    let options = aOptions;
+    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
+    options.addClientId = aOptions.addClientId || false;
+    options.addEnvironment = aOptions.addEnvironment || false;
+    options.overwrite = aOptions.overwrite || false;
+
+    return Impl.savePing(aType, aPayload, options);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  testSavePingToFile: function(aType, aPayload, aOptions = {}) {
+    let options = aOptions;
+    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
+    options.addClientId = aOptions.addClientId || false;
+    options.addEnvironment = aOptions.addEnvironment || false;
+    options.overwrite = aOptions.overwrite || false;
+
+    return Impl.testSavePingToFile(aType, aPayload, options);
   },
 
   
@@ -160,12 +260,86 @@ let Impl = {
   
   _delayedInitTask: null,
 
-  popPayloads: function popPayloads(reason, externalPayload) {
+  
+
+
+  _getApplicationSection: function() {
+    
+    
+    let arch = null;
+    try {
+      arch = Services.sysinfo.get("arch");
+    } catch (e) {
+      this._log.trace("assemblePing - Unable to get system architecture.", e);
+    }
+
+    let updateChannel = null;
+    try {
+      updateChannel = UpdateChannel.get();
+    } catch (e) {
+      this._log.trace("assemblePing - Unable to get update channel.", e);
+    }
+
+    return {
+      architecture: arch,
+      buildId: Services.appinfo.appBuildID,
+      name: Services.appinfo.name,
+      version: Services.appinfo.version,
+      vendor: Services.appinfo.vendor,
+      platformVersion: Services.appinfo.platformVersion,
+      xpcomAbi: Services.appinfo.XPCOMABI,
+      channel: updateChannel,
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  assemblePing: function assemblePing(aType, aPayload, aOptions = {}) {
+    this._log.trace("assemblePing - Type " + aType + ", Server " + this._server +
+                    ", aOptions " + JSON.stringify(aOptions));
+
+    
+    let pingData = {
+      type: aType,
+      id: generateUUID(),
+      creationDate: (new Date()).toISOString(),
+      version: PING_FORMAT_VERSION,
+      application: this._getApplicationSection(),
+      payload: aPayload,
+    };
+
+    if (aOptions.addClientId) {
+      pingData.clientId = this._clientID;
+    }
+
+    if (aOptions.addEnvironment) {
+      return TelemetryEnvironment.getEnvironmentData().then(environment => {
+        pingData.environment = environment;
+        return pingData;
+      },
+      error => {
+        this._log.error("assemblePing - Rejection", error);
+      });
+    }
+
+    return Promise.resolve(pingData);
+  },
+
+  popPayloads: function popPayloads() {
+    this._log.trace("popPayloads");
     function payloadIter() {
-      if (externalPayload && reason != "overdue-flush") {
-        yield externalPayload;
-      }
-      let iterator = TelemetryFile.popPendingPings(reason);
+      let iterator = TelemetryFile.popPendingPings();
       for (let data of iterator) {
         yield data;
       }
@@ -185,27 +359,133 @@ let Impl = {
   
 
 
-  send: function send(reason, aPayload) {
-    this._log.trace("send - Reason " + reason + ", Server " + this._server);
-    return this.sendPingsFromIterator(this._server, reason,
-                                      Iterator(this.popPayloads(reason, aPayload)));
+
+
+
+
+
+
+
+
+
+
+
+
+
+  send: function send(aType, aPayload, aOptions) {
+    this._log.trace("send - Type " + aType + ", Server " + this._server +
+                    ", aOptions " + JSON.stringify(aOptions));
+
+    return this.assemblePing(aType, aPayload, aOptions)
+        .then(pingData => {
+          
+          let p = [
+            
+            this.doPing(pingData, false)
+                .catch(() => TelemetryFile.savePing(pingData, true)),
+            this.sendPersistedPings(),
+          ];
+          return Promise.all(p);
+        },
+        error => this._log.error("send - Rejection", error));
   },
 
-  sendPingsFromIterator: function sendPingsFromIterator(server, reason, i) {
-    let p = [data for (data in i)].map((data) =>
-      this.doPing(server, data).then(null, () => TelemetryFile.savePing(data, true)));
+  
 
+
+  sendPersistedPings: function sendPersistedPings() {
+    this._log.trace("sendPersistedPings");
+    let pingsIterator = Iterator(this.popPayloads());
+    let p = [data for (data in pingsIterator)].map(data => this.doPing(data, true));
     return Promise.all(p);
   },
 
-  finishPingRequest: function finishPingRequest(success, startTime, ping) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  savePendingPings: function savePendingPings(aType, aPayload, aOptions) {
+    this._log.trace("savePendingPings - Type " + aType + ", Server " + this._server +
+                    ", aOptions " + JSON.stringify(aOptions));
+
+    return this.assemblePing(aType, aPayload, aOptions)
+        .then(pingData => TelemetryFile.savePendingPings(pingData),
+              error => this._log.error("savePendingPings - Rejection", error));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  savePing: function savePing(aType, aPayload, aOptions) {
+    this._log.trace("savePing - Type " + aType + ", Server " + this._server +
+                    ", aOptions " + JSON.stringify(aOptions));
+
+    return this.assemblePing(aType, aPayload, aOptions)
+        .then(pingData => TelemetryFile.savePing(pingData, aOptions.overwrite),
+              error => this._log.error("savePing - Rejection", error));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  testSavePingToFile: function testSavePingToFile(aType, aPayload, aOptions) {
+    this._log.trace("testSavePingToFile - Type " + aType + ", Server " + this._server +
+                    ", aOptions " + JSON.stringify(aOptions));
+
+    return this.assemblePing(aType, aPayload, aOptions)
+        .then(pingData => TelemetryFile.savePingToFile(pingData, aOptions.filePath,
+                                                       aOptions.overwrite),
+              error => this._log.error("testSavePingToFile - Rejection", error));
+  },
+
+  finishPingRequest: function finishPingRequest(success, startTime, ping, isPersisted) {
+    this._log.trace("finishPingRequest - Success " + success + ", Persisted " + isPersisted);
+
     let hping = Telemetry.getHistogramById("TELEMETRY_PING");
     let hsuccess = Telemetry.getHistogramById("TELEMETRY_SUCCESS");
 
     hsuccess.add(success);
     hping.add(new Date() - startTime);
 
-    if (success) {
+    if (success && isPersisted) {
       return TelemetryFile.cleanupPingFile(ping);
     } else {
       return Promise.resolve();
@@ -213,23 +493,20 @@ let Impl = {
   },
 
   submissionPath: function submissionPath(ping) {
-    let slug;
-    if (!ping) {
-      slug = this._uuid;
-    } else {
-      let info = ping.payload.info;
-      let pathComponents = [ping.slug, info.reason, info.appName,
-                            info.appVersion, info.appUpdateChannel,
-                            info.appBuildID];
-      slug = pathComponents.join("/");
-    }
+    let app = ping.application;
+    
+    
+    let pathComponents = [ping.id, ping.type, app.name, app.version,
+                          app.channel, app.buildId];
+    let slug = pathComponents.join("/");
+
     return "/submit/telemetry/" + slug;
   },
 
-  doPing: function doPing(server, ping) {
-    this._log.trace("doPing - Server " + server);
+  doPing: function doPing(ping, isPersisted) {
+    this._log.trace("doPing - Server " + this._server + ", Persisted " + isPersisted);
     let deferred = Promise.defer();
-    let url = server + this.submissionPath(ping);
+    let url = this._server + this.submissionPath(ping);
     let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
                   .createInstance(Ci.nsIXMLHttpRequest);
     request.mozBackgroundRequest = true;
@@ -240,14 +517,22 @@ let Impl = {
     let startTime = new Date();
 
     function handler(success) {
+      let handleCompletion = event => {
+        if (success) {
+          deferred.resolve();
+        } else {
+          deferred.reject(event);
+        }
+      };
+
       return function(event) {
-        this.finishPingRequest(success, startTime, ping).then(() => {
-          if (success) {
-            deferred.resolve();
-          } else {
-            deferred.reject(event);
-          }
-        });
+        this.finishPingRequest(success, startTime, ping, isPersisted)
+          .then(() => handleCompletion(event),
+                error => {
+                  this._log.error("doPing - Request Success " + success + ", Error " +
+                                  error);
+                  handleCompletion(event);
+                });
       };
     }
     request.addEventListener("error", handler(false).bind(this), false);
@@ -257,7 +542,7 @@ let Impl = {
     let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                     .createInstance(Ci.nsIScriptableUnicodeConverter);
     converter.charset = "UTF-8";
-    let utf8Payload = converter.ConvertFromUnicode(JSON.stringify(ping.payload));
+    let utf8Payload = converter.ConvertFromUnicode(JSON.stringify(ping));
     utf8Payload += converter.Finish();
     let payloadStream = Cc["@mozilla.org/io/string-input-stream;1"]
                         .createInstance(Ci.nsIStringInputStream);
@@ -381,7 +666,7 @@ let Impl = {
           
           
           
-          yield this.send("overdue-flush");
+          yield this.sendPersistedPings();
         }
 
         if ("@mozilla.org/datareporting/service;1" in Cc) {

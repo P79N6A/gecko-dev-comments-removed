@@ -244,13 +244,9 @@ this.TelemetryFile = {
 
 
 
-  popPendingPings: function*(reason) {
+  popPendingPings: function*() {
     while (pendingPings.length > 0) {
       let data = pendingPings.pop();
-      
-      if (reason == "test-ping") {
-        data.reason = reason;
-      }
       yield data;
     }
   },
@@ -263,7 +259,7 @@ this.TelemetryFile = {
 
 
 function pingFilePath(ping) {
-  return OS.Path.join(TelemetryFile.pingDirectoryPath, ping.slug);
+  return OS.Path.join(TelemetryFile.pingDirectoryPath, ping.id);
 }
 
 function getPingDirectory() {
