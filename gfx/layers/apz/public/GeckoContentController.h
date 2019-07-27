@@ -62,7 +62,8 @@ public:
 
   virtual void HandleLongTap(const CSSPoint& aPoint,
                              int32_t aModifiers,
-                             const ScrollableLayerGuid& aGuid) = 0;
+                             const ScrollableLayerGuid& aGuid,
+                             uint64_t aInputBlockId) = 0;
 
   
 

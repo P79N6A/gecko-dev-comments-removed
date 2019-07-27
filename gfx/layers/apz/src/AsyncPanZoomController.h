@@ -122,7 +122,7 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(const InputData& aEvent);
+  nsEventStatus ReceiveInputEvent(const InputData& aEvent, uint64_t* aOutInputBlockId);
 
   
 
@@ -776,12 +776,12 @@ public:
   
 
 
-  void ContentReceivedTouch(bool aPreventDefault);
+  void ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault);
 
   
 
 
-  void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
+  void SetAllowedTouchBehavior(uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aBehaviors);
 
   
 

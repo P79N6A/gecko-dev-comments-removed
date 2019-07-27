@@ -160,8 +160,11 @@ public:
 
 
 
+
+
   nsEventStatus ReceiveInputEvent(InputData& aEvent,
-                                  ScrollableLayerGuid* aOutTargetGuid);
+                                  ScrollableLayerGuid* aOutTargetGuid,
+                                  uint64_t* aOutInputBlockId);
 
   
 
@@ -177,11 +180,9 @@ public:
 
 
 
-
-
-
   nsEventStatus ReceiveInputEvent(WidgetInputEvent& aEvent,
-                                  ScrollableLayerGuid* aOutTargetGuid);
+                                  ScrollableLayerGuid* aOutTargetGuid,
+                                  uint64_t* aOutInputBlockId);
 
   
 
@@ -207,6 +208,7 @@ public:
 
 
   void ContentReceivedTouch(const ScrollableLayerGuid& aGuid,
+                            uint64_t aInputBlockId,
                             bool aPreventDefault);
 
   
@@ -271,7 +273,10 @@ public:
 
 
 
+
+
   void SetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid,
+                               uint64_t aInputBlockId,
                                const nsTArray<TouchBehaviorFlags>& aValues);
 
   
@@ -383,9 +388,11 @@ private:
   already_AddRefed<AsyncPanZoomController> GetTouchInputBlockAPZC(const MultiTouchInput& aEvent,
                                                                   bool* aOutInOverscrolledApzc);
   nsEventStatus ProcessTouchInput(MultiTouchInput& aInput,
-                                  ScrollableLayerGuid* aOutTargetGuid);
+                                  ScrollableLayerGuid* aOutTargetGuid,
+                                  uint64_t* aOutInputBlockId);
   nsEventStatus ProcessEvent(WidgetInputEvent& inputEvent,
-                             ScrollableLayerGuid* aOutTargetGuid);
+                             ScrollableLayerGuid* aOutTargetGuid,
+                             uint64_t* aOutInputBlockId);
   void UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
                                         const ZoomConstraints& aConstraints);
   void FlushRepaintsRecursively(AsyncPanZoomController* aApzc);

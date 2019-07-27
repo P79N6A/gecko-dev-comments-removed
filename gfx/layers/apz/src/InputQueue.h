@@ -41,7 +41,13 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, const InputData& aEvent);
+  nsEventStatus ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, const InputData& aEvent, uint64_t* aOutInputBlockId);
+  
+
+
+
+
+  void ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault);
   
 
 
@@ -49,8 +55,7 @@ public:
 
 
 
-
-  void ContentReceivedTouch(bool aPreventDefault);
+  void SetAllowedTouchBehavior(uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aBehaviors);
   
 
 
@@ -58,16 +63,7 @@ public:
 
 
 
-
-
-  void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
-  
-
-
-
-
-
-  void InjectNewTouchBlock(AsyncPanZoomController* aTarget);
+  uint64_t InjectNewTouchBlock(AsyncPanZoomController* aTarget);
   
 
 
@@ -81,64 +77,14 @@ public:
 private:
   ~InputQueue();
   TouchBlockState* StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget, bool aCopyAllowedTouchBehaviorFromCurrent);
-  void ScheduleContentResponseTimeout(const nsRefPtr<AsyncPanZoomController>& aTarget);
-  void ContentResponseTimeout();
+  void ScheduleContentResponseTimeout(const nsRefPtr<AsyncPanZoomController>& aTarget, uint64_t aInputBlockId);
+  void ContentResponseTimeout(const uint64_t& aInputBlockId);
   void ProcessPendingInputBlocks();
 
 private:
   
   
   nsTArray<UniquePtr<TouchBlockState>> mTouchBlockQueue;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  int32_t mTouchBlockBalance;
 };
 
 }

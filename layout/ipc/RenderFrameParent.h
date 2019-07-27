@@ -89,12 +89,17 @@ public:
 
 
 
+
+
+
   nsEventStatus NotifyInputEvent(WidgetInputEvent& aEvent,
-                                 ScrollableLayerGuid* aOutTargetGuid);
+                                 ScrollableLayerGuid* aOutTargetGuid,
+                                 uint64_t* aOutInputBlockId);
 
   void ZoomToRect(uint32_t aPresShellId, ViewID aViewId, const CSSRect& aRect);
 
   void ContentReceivedTouch(const ScrollableLayerGuid& aGuid,
+                            uint64_t aInputBlockId,
                             bool aPreventDefault);
 
   void UpdateZoomConstraints(uint32_t aPresShellId,
