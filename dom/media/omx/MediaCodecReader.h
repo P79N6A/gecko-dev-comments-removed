@@ -179,8 +179,8 @@ protected:
 
   
   
-  virtual void codecReserved(Track& aTrack);
-  virtual void codecCanceled(Track& aTrack);
+  virtual void VideoCodecReserved();
+  virtual void VideoCodecCanceled();
 
   virtual bool CreateExtractor();
 
@@ -194,25 +194,6 @@ protected:
   bool mIsWaitingResources;
 
 private:
-  
-  
-  class MessageHandler : public android::AHandler
-  {
-  public:
-    MessageHandler(MediaCodecReader* aReader);
-    ~MessageHandler();
-
-    virtual void onMessageReceived(const android::sp<android::AMessage>& aMessage);
-
-  private:
-    
-    MessageHandler() = delete;
-    MessageHandler(const MessageHandler& rhs) = delete;
-    const MessageHandler& operator=(const MessageHandler& rhs) = delete;
-
-    MediaCodecReader *mReader;
-  };
-  friend class MessageHandler;
 
   
   
@@ -432,7 +413,6 @@ private:
 
   void ReleaseAllTextureClients();
 
-  android::sp<MessageHandler> mHandler;
   android::sp<VideoResourceListener> mVideoListener;
 
   android::sp<android::ALooper> mLooper;
