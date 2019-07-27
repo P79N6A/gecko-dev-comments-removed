@@ -391,7 +391,16 @@ protected:
   
   
   
+  
   nsLineLayout* const mBaseLineLayout;
+
+  nsLineLayout* GetOutermostLineLayout() {
+    nsLineLayout* lineLayout = this;
+    while (lineLayout->mBaseLineLayout) {
+      lineLayout = lineLayout->mBaseLineLayout;
+    }
+    return lineLayout;
+  }
 
   nsIFrame* mLastOptionalBreakFrame;
   nsIFrame* mForceBreakFrame;
