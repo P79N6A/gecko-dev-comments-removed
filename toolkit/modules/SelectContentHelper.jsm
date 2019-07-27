@@ -92,8 +92,8 @@ function buildOptionListForChildren(node) {
     if (child.tagName == 'OPTION' || child.tagName == 'OPTGROUP') {
       let info = {
         tagName: child.tagName,
-        textContent: child.tagName == 'OPTGROUP' ? child.getAttribute("label")
-                                                 : child.textContent,
+        textContent: child.tagName == 'OPTGROUP' ? child.getAttribute("label").trim()
+                                                 : child.textContent.trim(),
         
         
         
