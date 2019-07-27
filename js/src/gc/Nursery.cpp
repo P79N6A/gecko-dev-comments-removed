@@ -419,7 +419,7 @@ GetObjectAllocKindForCopy(const Nursery &nursery, JSObject *obj)
 
         
         if (!nursery.isInside(aobj->getElementsHeader()))
-            return FINALIZE_OBJECT0_BACKGROUND;
+            return AllocKind::OBJECT0_BACKGROUND;
 
         size_t nelements = aobj->getDenseCapacity();
         return GetBackgroundAllocKind(GetGCArrayKind(nelements));
@@ -459,7 +459,7 @@ GetObjectAllocKindForCopy(const Nursery &nursery, JSObject *obj)
 
     
     if (obj->is<OutlineTypedObject>())
-        return FINALIZE_OBJECT0;
+        return AllocKind::OBJECT0;
 
     
     MOZ_ASSERT(obj->isNative());

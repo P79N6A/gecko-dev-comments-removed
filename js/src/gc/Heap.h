@@ -10,6 +10,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/EnumeratedArray.h"
 #include "mozilla/PodOperations.h"
 
 #include <stddef.h>
@@ -75,36 +76,51 @@ enum InitialHeap {
 };
 
 
-enum AllocKind {
-    FINALIZE_OBJECT0,
-    FINALIZE_OBJECT0_BACKGROUND,
-    FINALIZE_OBJECT2,
-    FINALIZE_OBJECT2_BACKGROUND,
-    FINALIZE_OBJECT4,
-    FINALIZE_OBJECT4_BACKGROUND,
-    FINALIZE_OBJECT8,
-    FINALIZE_OBJECT8_BACKGROUND,
-    FINALIZE_OBJECT12,
-    FINALIZE_OBJECT12_BACKGROUND,
-    FINALIZE_OBJECT16,
-    FINALIZE_OBJECT16_BACKGROUND,
-    FINALIZE_OBJECT_LAST = FINALIZE_OBJECT16_BACKGROUND,
-    FINALIZE_SCRIPT,
-    FINALIZE_LAZY_SCRIPT,
-    FINALIZE_SHAPE,
-    FINALIZE_ACCESSOR_SHAPE,
-    FINALIZE_BASE_SHAPE,
-    FINALIZE_OBJECT_GROUP,
-    FINALIZE_FAT_INLINE_STRING,
-    FINALIZE_STRING,
-    FINALIZE_EXTERNAL_STRING,
-    FINALIZE_SYMBOL,
-    FINALIZE_JITCODE,
-    FINALIZE_LAST = FINALIZE_JITCODE
+enum class AllocKind : uint8_t {
+    FIRST,
+    OBJECT0 = FIRST,
+    OBJECT0_BACKGROUND,
+    OBJECT2,
+    OBJECT2_BACKGROUND,
+    OBJECT4,
+    OBJECT4_BACKGROUND,
+    OBJECT8,
+    OBJECT8_BACKGROUND,
+    OBJECT12,
+    OBJECT12_BACKGROUND,
+    OBJECT16,
+    OBJECT16_BACKGROUND,
+    OBJECT_LIMIT,
+    OBJECT_LAST = OBJECT_LIMIT - 1,
+    SCRIPT,
+    LAZY_SCRIPT,
+    SHAPE,
+    ACCESSOR_SHAPE,
+    BASE_SHAPE,
+    OBJECT_GROUP,
+    FAT_INLINE_STRING,
+    STRING,
+    EXTERNAL_STRING,
+    SYMBOL,
+    JITCODE,
+    LIMIT,
+    LAST = LIMIT - 1
 };
 
-static const unsigned FINALIZE_LIMIT = FINALIZE_LAST + 1;
-static const unsigned FINALIZE_OBJECT_LIMIT = FINALIZE_OBJECT_LAST + 1;
+static_assert(uint8_t(AllocKind::OBJECT0) == 0, "Please check AllocKind iterations and comparisons"
+    " of the form |kind <= AllocKind::OBJECT_LAST| to ensure their range is still valid!");
+
+#define ALL_ALLOC_KINDS(i) AllocKind i = AllocKind::FIRST;\
+    i < AllocKind::LIMIT; i = AllocKind(uint8_t(i) + 1)
+
+#define OBJECT_ALLOC_KINDS(i) AllocKind i = AllocKind::OBJECT0;\
+    i < AllocKind::OBJECT_LIMIT; i = AllocKind(uint8_t(i) + 1)
+
+template<typename ValueType> using AllAllocKindArray =
+    mozilla::EnumeratedArray<AllocKind, AllocKind::LIMIT, ValueType>;
+
+template<typename ValueType> using ObjectAllocKindArray =
+    mozilla::EnumeratedArray<AllocKind, AllocKind::OBJECT_LIMIT, ValueType>;
 
 static inline JSGCTraceKind
 MapAllocToTraceKind(AllocKind kind)
@@ -135,16 +151,17 @@ MapAllocToTraceKind(AllocKind kind)
         JSTRACE_JITCODE,      
     };
 
-    static_assert(MOZ_ARRAY_LENGTH(map) == FINALIZE_LIMIT,
+    static_assert(MOZ_ARRAY_LENGTH(map) == size_t(AllocKind::LIMIT),
                   "AllocKind-to-TraceKind mapping must be in sync");
-    return map[kind];
+    return map[size_t(kind)];
 }
 
 
 
 
 
-static const size_t MAX_BACKGROUND_FINALIZE_KINDS = FINALIZE_LIMIT - FINALIZE_OBJECT_LIMIT / 2;
+static const size_t MAX_BACKGROUND_FINALIZE_KINDS =
+    size_t(AllocKind::LIMIT) - size_t(AllocKind::OBJECT_LIMIT) / 2;
 
 class TenuredCell;
 
@@ -571,8 +588,8 @@ struct ArenaHeader
     inline Chunk *chunk() const;
 
     bool allocated() const {
-        MOZ_ASSERT(allocKind <= size_t(FINALIZE_LIMIT));
-        return allocKind < size_t(FINALIZE_LIMIT);
+        MOZ_ASSERT(allocKind <= size_t(AllocKind::LIMIT));
+        return allocKind < size_t(AllocKind::LIMIT);
     }
 
     void init(JS::Zone *zoneArg, AllocKind kind) {
@@ -582,7 +599,8 @@ struct ArenaHeader
         MOZ_ASSERT(!hasDelayedMarking);
         zone = zoneArg;
 
-        static_assert(FINALIZE_LIMIT <= 255, "We must be able to fit the allockind into uint8_t.");
+        static_assert(size_t(AllocKind::LIMIT) <= 255,
+            "We must be able to fit the allockind into uint8_t.");
         allocKind = size_t(kind);
 
         
@@ -593,7 +611,7 @@ struct ArenaHeader
     }
 
     void setAsNotAllocated() {
-        allocKind = size_t(FINALIZE_LIMIT);
+        allocKind = size_t(AllocKind::LIMIT);
         markOverflow = 0;
         allocatedDuringIncremental = 0;
         hasDelayedMarking = 0;
@@ -673,11 +691,11 @@ struct Arena
     static void staticAsserts();
 
     static size_t thingSize(AllocKind kind) {
-        return ThingSizes[kind];
+        return ThingSizes[size_t(kind)];
     }
 
     static size_t firstThingOffset(AllocKind kind) {
-        return FirstThingOffsets[kind];
+        return FirstThingOffsets[size_t(kind)];
     }
 
     static size_t thingsPerArena(size_t thingSize) {

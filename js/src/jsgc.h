@@ -11,6 +11,7 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/EnumeratedArray.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TypeTraits.h"
 
@@ -63,22 +64,22 @@ enum State {
 
 
 template <typename T> struct MapTypeToFinalizeKind {};
-template <> struct MapTypeToFinalizeKind<JSScript>          { static const AllocKind kind = FINALIZE_SCRIPT; };
-template <> struct MapTypeToFinalizeKind<LazyScript>        { static const AllocKind kind = FINALIZE_LAZY_SCRIPT; };
-template <> struct MapTypeToFinalizeKind<Shape>             { static const AllocKind kind = FINALIZE_SHAPE; };
-template <> struct MapTypeToFinalizeKind<AccessorShape>     { static const AllocKind kind = FINALIZE_ACCESSOR_SHAPE; };
-template <> struct MapTypeToFinalizeKind<BaseShape>         { static const AllocKind kind = FINALIZE_BASE_SHAPE; };
-template <> struct MapTypeToFinalizeKind<ObjectGroup>       { static const AllocKind kind = FINALIZE_OBJECT_GROUP; };
-template <> struct MapTypeToFinalizeKind<JSFatInlineString> { static const AllocKind kind = FINALIZE_FAT_INLINE_STRING; };
-template <> struct MapTypeToFinalizeKind<JSString>          { static const AllocKind kind = FINALIZE_STRING; };
-template <> struct MapTypeToFinalizeKind<JSExternalString>  { static const AllocKind kind = FINALIZE_EXTERNAL_STRING; };
-template <> struct MapTypeToFinalizeKind<JS::Symbol>        { static const AllocKind kind = FINALIZE_SYMBOL; };
-template <> struct MapTypeToFinalizeKind<jit::JitCode>      { static const AllocKind kind = FINALIZE_JITCODE; };
+template <> struct MapTypeToFinalizeKind<JSScript>          { static const AllocKind kind = AllocKind::SCRIPT; };
+template <> struct MapTypeToFinalizeKind<LazyScript>        { static const AllocKind kind = AllocKind::LAZY_SCRIPT; };
+template <> struct MapTypeToFinalizeKind<Shape>             { static const AllocKind kind = AllocKind::SHAPE; };
+template <> struct MapTypeToFinalizeKind<AccessorShape>     { static const AllocKind kind = AllocKind::ACCESSOR_SHAPE; };
+template <> struct MapTypeToFinalizeKind<BaseShape>         { static const AllocKind kind = AllocKind::BASE_SHAPE; };
+template <> struct MapTypeToFinalizeKind<ObjectGroup>       { static const AllocKind kind = AllocKind::OBJECT_GROUP; };
+template <> struct MapTypeToFinalizeKind<JSFatInlineString> { static const AllocKind kind = AllocKind::FAT_INLINE_STRING; };
+template <> struct MapTypeToFinalizeKind<JSString>          { static const AllocKind kind = AllocKind::STRING; };
+template <> struct MapTypeToFinalizeKind<JSExternalString>  { static const AllocKind kind = AllocKind::EXTERNAL_STRING; };
+template <> struct MapTypeToFinalizeKind<JS::Symbol>        { static const AllocKind kind = AllocKind::SYMBOL; };
+template <> struct MapTypeToFinalizeKind<jit::JitCode>      { static const AllocKind kind = AllocKind::JITCODE; };
 
 static inline bool
 IsNurseryAllocable(AllocKind kind)
 {
-    MOZ_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
+    MOZ_ASSERT(kind < AllocKind::LIMIT);
     static const bool map[] = {
         false,     
         true,      
@@ -104,14 +105,14 @@ IsNurseryAllocable(AllocKind kind)
         false,     
         false,     
     };
-    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
-    return map[kind];
+    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == size_t(AllocKind::LIMIT));
+    return map[size_t(kind)];
 }
 
 static inline bool
 IsBackgroundFinalized(AllocKind kind)
 {
-    MOZ_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
+    MOZ_ASSERT(kind < AllocKind::LIMIT);
     static const bool map[] = {
         false,     
         true,      
@@ -137,14 +138,14 @@ IsBackgroundFinalized(AllocKind kind)
         true,      
         false,     
     };
-    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
-    return map[kind];
+    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == size_t(AllocKind::LIMIT));
+    return map[size_t(kind)];
 }
 
 static inline bool
-CanBeFinalizedInBackground(gc::AllocKind kind, const Class *clasp)
+CanBeFinalizedInBackground(AllocKind kind, const Class *clasp)
 {
-    MOZ_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
+    MOZ_ASSERT(kind <= AllocKind::OBJECT_LAST);
     
 
 
@@ -152,7 +153,7 @@ CanBeFinalizedInBackground(gc::AllocKind kind, const Class *clasp)
 
 
 
-    return (!gc::IsBackgroundFinalized(kind) &&
+    return (!IsBackgroundFinalized(kind) &&
             (!clasp->finalize || (clasp->flags & JSCLASS_BACKGROUND_FINALIZE)));
 }
 
@@ -169,7 +170,7 @@ static inline AllocKind
 GetGCObjectKind(size_t numSlots)
 {
     if (numSlots >= SLOTS_TO_THING_KIND_LIMIT)
-        return FINALIZE_OBJECT16;
+        return AllocKind::OBJECT16;
     return slotsToThingKind[numSlots];
 }
 
@@ -185,7 +186,7 @@ GetGCArrayKind(size_t numSlots)
 
     JS_STATIC_ASSERT(ObjectElements::VALUES_PER_HEADER == 2);
     if (numSlots > NativeObject::NELEMENTS_LIMIT || numSlots + 2 >= SLOTS_TO_THING_KIND_LIMIT)
-        return FINALIZE_OBJECT2;
+        return AllocKind::OBJECT2;
     return slotsToThingKind[numSlots + 2];
 }
 
@@ -204,7 +205,7 @@ GetGCObjectKindForBytes(size_t nbytes)
     MOZ_ASSERT(nbytes <= JSObject::MAX_BYTE_SIZE);
 
     if (nbytes <= sizeof(NativeObject))
-        return FINALIZE_OBJECT0;
+        return AllocKind::OBJECT0;
     nbytes -= sizeof(NativeObject);
 
     size_t dataSlots = AlignBytes(nbytes, sizeof(Value)) / sizeof(Value);
@@ -216,8 +217,8 @@ static inline AllocKind
 GetBackgroundAllocKind(AllocKind kind)
 {
     MOZ_ASSERT(!IsBackgroundFinalized(kind));
-    MOZ_ASSERT(kind <= FINALIZE_OBJECT_LAST);
-    return (AllocKind) (kind + 1);
+    MOZ_ASSERT(kind < AllocKind::OBJECT_LAST);
+    return AllocKind(size_t(kind) + 1);
 }
 
 
@@ -226,26 +227,26 @@ GetGCKindSlots(AllocKind thingKind)
 {
     
     switch (thingKind) {
-      case FINALIZE_OBJECT0:
-      case FINALIZE_OBJECT0_BACKGROUND:
+      case AllocKind::OBJECT0:
+      case AllocKind::OBJECT0_BACKGROUND:
         return 0;
-      case FINALIZE_OBJECT2:
-      case FINALIZE_OBJECT2_BACKGROUND:
+      case AllocKind::OBJECT2:
+      case AllocKind::OBJECT2_BACKGROUND:
         return 2;
-      case FINALIZE_OBJECT4:
-      case FINALIZE_OBJECT4_BACKGROUND:
+      case AllocKind::OBJECT4:
+      case AllocKind::OBJECT4_BACKGROUND:
         return 4;
-      case FINALIZE_OBJECT8:
-      case FINALIZE_OBJECT8_BACKGROUND:
+      case AllocKind::OBJECT8:
+      case AllocKind::OBJECT8_BACKGROUND:
         return 8;
-      case FINALIZE_OBJECT12:
-      case FINALIZE_OBJECT12_BACKGROUND:
+      case AllocKind::OBJECT12:
+      case AllocKind::OBJECT12_BACKGROUND:
         return 12;
-      case FINALIZE_OBJECT16:
-      case FINALIZE_OBJECT16_BACKGROUND:
+      case AllocKind::OBJECT16:
+      case AllocKind::OBJECT16_BACKGROUND:
         return 16;
       default:
-        MOZ_CRASH("Bad object finalize kind");
+        MOZ_CRASH("Bad object alloc kind");
     }
 }
 
@@ -580,9 +581,9 @@ class ArenaLists
 
 
 
-    FreeList       freeLists[FINALIZE_LIMIT];
+    AllAllocKindArray<FreeList> freeLists;
 
-    ArenaList      arenaLists[FINALIZE_LIMIT];
+    AllAllocKindArray<ArenaList> arenaLists;
 
     enum BackgroundFinalizeStateEnum { BFS_DONE, BFS_RUN };
 
@@ -590,14 +591,13 @@ class ArenaLists
         BackgroundFinalizeState;
 
     
-    BackgroundFinalizeState backgroundFinalizeState[FINALIZE_LIMIT];
-
-  public:
-    
-    ArenaHeader *arenaListsToSweep[FINALIZE_LIMIT];
+    AllAllocKindArray<BackgroundFinalizeState> backgroundFinalizeState;
 
     
-    unsigned incrementalSweptArenaKind;
+    AllAllocKindArray<ArenaHeader *> arenaListsToSweep;
+
+    
+    AllocKind incrementalSweptArenaKind;
     ArenaList incrementalSweptArenas;
 
     
@@ -611,18 +611,18 @@ class ArenaLists
     
     
     
-    ArenaList savedObjectArenas[FINALIZE_OBJECT_LIMIT];
+    ObjectAllocKindArray<ArenaList> savedObjectArenas;
     ArenaHeader *savedEmptyObjectArenas;
 
   public:
     explicit ArenaLists(JSRuntime *rt) : runtime_(rt) {
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
+        for (ALL_ALLOC_KINDS(i))
             freeLists[i].initAsEmpty();
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
+        for (ALL_ALLOC_KINDS(i))
             backgroundFinalizeState[i] = BFS_DONE;
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
+        for (ALL_ALLOC_KINDS(i))
             arenaListsToSweep[i] = nullptr;
-        incrementalSweptArenaKind = FINALIZE_LIMIT;
+        incrementalSweptArenaKind = AllocKind::LIMIT;
         gcShapeArenasToUpdate = nullptr;
         gcAccessorShapeArenasToUpdate = nullptr;
         gcScriptArenasToUpdate = nullptr;
@@ -634,7 +634,7 @@ class ArenaLists
 
     static uintptr_t getFreeListOffset(AllocKind thingKind) {
         uintptr_t offset = offsetof(ArenaLists, freeLists);
-        return offset + thingKind * sizeof(FreeList);
+        return offset + size_t(thingKind) * sizeof(FreeList);
     }
 
     const FreeList *getFreeList(AllocKind thingKind) const {
@@ -660,7 +660,7 @@ class ArenaLists
     }
 
     bool arenaListsAreEmpty() const {
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i) {
+        for (ALL_ALLOC_KINDS(i)) {
             
 
 
@@ -674,7 +674,7 @@ class ArenaLists
     }
 
     void unmarkAll() {
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i) {
+        for (ALL_ALLOC_KINDS(i)) {
             
             MOZ_ASSERT(backgroundFinalizeState[i] == BFS_DONE);
             for (ArenaHeader *aheader = arenaLists[i].head(); aheader; aheader = aheader->next)
@@ -695,8 +695,8 @@ class ArenaLists
 
 
     void purge() {
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
-            purge(AllocKind(i));
+        for (ALL_ALLOC_KINDS(i))
+            purge(i);
     }
 
     void purge(AllocKind i) {
@@ -716,8 +716,8 @@ class ArenaLists
 
 
     void copyFreeListsToArenas() {
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
-            copyFreeListToArena(AllocKind(i));
+        for (ALL_ALLOC_KINDS(i))
+            copyFreeListToArena(i);
     }
 
     void copyFreeListToArena(AllocKind thingKind) {
@@ -734,8 +734,8 @@ class ArenaLists
 
 
     void clearFreeListsInArenas() {
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
-            clearFreeListInArena(AllocKind(i));
+        for (ALL_ALLOC_KINDS(i))
+            clearFreeListInArena(i);
     }
 
     void clearFreeListInArena(AllocKind kind) {
@@ -795,8 +795,8 @@ class ArenaLists
 
     void checkEmptyFreeLists() {
 #ifdef DEBUG
-        for (size_t i = 0; i < mozilla::ArrayLength(freeLists); ++i)
-            MOZ_ASSERT(freeLists[i].isEmpty());
+        for (ALL_ALLOC_KINDS(i))
+            checkEmptyFreeList(i);
 #endif
     }
 

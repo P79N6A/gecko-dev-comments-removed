@@ -1094,10 +1094,10 @@ static inline gc::AllocKind
 NewObjectGCKind(const js::Class *clasp)
 {
     if (clasp == &ArrayObject::class_)
-        return gc::FINALIZE_OBJECT8;
+        return gc::AllocKind::OBJECT8;
     if (clasp == &JSFunction::class_)
-        return gc::FINALIZE_OBJECT2;
-    return gc::FINALIZE_OBJECT4;
+        return gc::AllocKind::OBJECT2;
+    return gc::AllocKind::OBJECT4;
 }
 
 static inline JSObject *
@@ -1407,7 +1407,7 @@ js::NewObjectWithGroupCommon(ExclusiveContext *cx, HandleObjectGroup group, Hand
 {
     MOZ_ASSERT(parent);
 
-    MOZ_ASSERT(allocKind <= gc::FINALIZE_OBJECT_LAST);
+    MOZ_ASSERT(allocKind <= gc::AllocKind::OBJECT_LAST);
     if (CanBeFinalizedInBackground(allocKind, group->clasp()))
         allocKind = GetBackgroundAllocKind(allocKind);
 
