@@ -142,6 +142,10 @@ public:
     return mStart == 0 && mEnd == 0;
   }
 
+  bool operator==(const MediaByteRange& aRange) const {
+    return mStart == aRange.mStart && mEnd == aRange.mEnd;
+  }
+
   
   void Clear() {
     mStart = 0;
