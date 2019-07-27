@@ -80,9 +80,46 @@ nsHyphenator::Hyphenate(const nsAString& aString,
     }
 
     if (inWord) {
-      const char16_t *begin = aString.BeginReading();
-      NS_ConvertUTF16toUTF8 utf8(begin + wordStart,
-                                 wordLimit - wordStart);
+      
+      
+      nsAutoCString utf8;
+      const char16_t *begin = aString.BeginReading() + wordStart;
+      const char16_t *end = aString.BeginReading() + wordLimit;
+      while (begin < end) {
+        uint32_t ch = *begin++;
+
+        if (NS_IS_HIGH_SURROGATE(ch)) {
+          if (begin < end && NS_IS_LOW_SURROGATE(*begin)) {
+            ch = SURROGATE_TO_UCS4(ch, *begin++);
+          } else {
+            ch = 0xfffd; 
+          }
+        } else if (NS_IS_LOW_SURROGATE(ch)) {
+          ch = 0xfffd; 
+        }
+
+        
+        
+        
+        ch = ToLowerCase(ch);
+
+        if (ch < 0x80) { 
+          utf8.Append(ch);
+        } else if (ch < 0x0800) { 
+          utf8.Append(0xC0 | (ch >> 6));
+          utf8.Append(0x80 | (0x003F & ch));
+        } else if (ch < 0x10000) { 
+          utf8.Append(0xE0 | (ch >> 12));
+          utf8.Append(0x80 | (0x003F & (ch >> 6)));
+          utf8.Append(0x80 | (0x003F & ch));
+        } else {
+          utf8.Append(0xF0 | (ch >> 18));
+          utf8.Append(0x80 | (0x003F & (ch >> 12)));
+          utf8.Append(0x80 | (0x003F & (ch >> 6)));
+          utf8.Append(0x80 | (0x003F & ch));
+        }
+      }
+
       nsAutoTArray<char,200> utf8hyphens;
       utf8hyphens.SetLength(utf8.Length() + 5);
       char **rep = nullptr;
