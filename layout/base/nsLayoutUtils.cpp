@@ -5333,15 +5333,13 @@ nsLayoutUtils::DrawSingleImage(nsRenderingContext*    aRenderingContext,
     image = aImage;
   }
 
-  nsRect dest = nsLayoutUtils::GetWholeImageDestination(imageSize, source,
-                                                        aDest);
   
   
   
   nsRect fill;
-  fill.IntersectRect(aDest, dest);
-  return DrawImageInternal(aRenderingContext, aPresContext, aImage,
-                           aGraphicsFilter, dest, fill, fill.TopLeft(),
+  fill.IntersectRect(aDest, aDest);
+  return DrawImageInternal(aRenderingContext, aPresContext, image,
+                           aGraphicsFilter, aDest, fill, fill.TopLeft(),
                            aDirty, aSVGContext, aImageFlags);
 }
 
