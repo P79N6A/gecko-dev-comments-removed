@@ -85,6 +85,10 @@ class TraceLoggerThread
 
     ContinuousSpace<EventEntry> events;
 
+    
+    
+    uint32_t iteration_;
+
   public:
     AutoTraceLog *top;
 
@@ -99,7 +103,48 @@ class TraceLoggerThread
     bool enable(JSContext *cx);
     bool disable();
 
+    
+    
+    
+    EventEntry *getEventsStartingAt(uint32_t *lastIteration, uint32_t *lastEntryId, size_t *num) {
+        EventEntry *start;
+        if (iteration_ == *lastIteration) {
+            MOZ_ASSERT(events.lastEntryId() >= *lastEntryId);
+            *num = events.lastEntryId() - *lastEntryId;
+            start = events.data() + *lastEntryId + 1;
+        } else {
+            *num = events.lastEntryId() + 1;
+            start = events.data();
+        }
+
+        *lastIteration = iteration_;
+        *lastEntryId = events.lastEntryId();
+        return start;
+    }
+
+    
+    
+    void extractScriptDetails(uint32_t textId, const char **filename, size_t *filename_len,
+                              const char **lineno, size_t *lineno_len, const char **colno,
+                              size_t *colno_len);
+
+    bool lostEvents(uint32_t lastIteration, uint32_t lastEntryId) {
+        
+        if (lastIteration == iteration_) {
+            MOZ_ASSERT(lastEntryId <= events.lastEntryId());
+            return false;
+        }
+
+        
+        
+        if (lastIteration + 1 == iteration_ && lastEntryId == events.capacity())
+            return false;
+
+        return true;
+    }
+
     const char *eventText(uint32_t id);
+    bool textIdIsScriptEvent(uint32_t id);
 
     
     
