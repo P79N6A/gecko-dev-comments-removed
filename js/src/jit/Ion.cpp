@@ -1773,8 +1773,8 @@ MarkOffThreadNurseryObjects::mark(JSTracer *trc)
     }
 }
 
-static inline bool
-OffThreadCompilationAvailable(JSContext *cx)
+bool
+jit::OffThreadCompilationAvailable(JSContext *cx)
 {
     
     
@@ -1967,7 +1967,7 @@ IonCompile(JSContext *cx, JSScript *script,
     }
 
     
-    if (OffThreadCompilationAvailable(cx)) {
+    if (options.offThreadCompilationAvailable()) {
         if (!recompile)
             builderScript->setIonScript(cx, ION_COMPILING_SCRIPT);
 

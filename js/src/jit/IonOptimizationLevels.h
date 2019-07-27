@@ -89,7 +89,10 @@ class OptimizationInfo
     IonRegisterAllocator registerAllocator_;
 
     
-    uint32_t inlineMaxTotalBytecodeLength_;
+    
+    
+    uint32_t inlineMaxBytecodePerCallSiteOffThread_;
+    uint32_t inlineMaxBytecodePerCallSiteMainThread_;
 
     
     
@@ -209,8 +212,10 @@ class OptimizationInfo
         return maxInlineDepth_;
     }
 
-    uint32_t inlineMaxTotalBytecodeLength() const {
-        return inlineMaxTotalBytecodeLength_;
+    uint32_t inlineMaxBytecodePerCallSite(bool offThread) const {
+        return (offThread || !js_JitOptions.limitScriptSize)
+               ? inlineMaxBytecodePerCallSiteOffThread_
+               : inlineMaxBytecodePerCallSiteMainThread_;
     }
 
     uint32_t inliningMaxCallerBytecodeLength() const {
