@@ -255,10 +255,12 @@ input[type=button] {
 
 #newtab-search-form {
   display: -moz-box;
+  -moz-box-flex: 1;
   -moz-box-orient: horizontal;
   -moz-box-align: center;
   height: 44px; 
-  margin-bottom: 10px; 
+  margin: 0 20px 10px; 
+  max-width: 600px; 
 }
 
 #newtab-search-logo {
