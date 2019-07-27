@@ -2,4 +2,5 @@
 
 
 
- module.exports = require('../package.json');
+module.exports = require('../package.json');
+

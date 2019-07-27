@@ -213,14 +213,25 @@ function getTabForId(id) {
 exports.getTabForId = getTabForId;
 
 function getTabTitle(tab) {
-  return getBrowserForTab(tab).contentDocument.title || tab.label || "";
+  return getBrowserForTab(tab).contentTitle || tab.label || "";
 }
 exports.getTabTitle = getTabTitle;
 
 function setTabTitle(tab, title) {
   title = String(title);
-  if (tab.browser)
+  if (tab.browser) {
+    
     tab.browser.contentDocument.title = title;
+  }
+  else {
+    let browser = getBrowserForTab(tab);
+    
+    
+    if (browser.isRemoteBrowser)
+      browser._contentTitle = title;
+    else
+      browser.contentDocument.title = title;
+  }
   tab.label = String(title);
 }
 exports.setTabTitle = setTabTitle;
@@ -250,17 +261,13 @@ function getTabForContentWindow(window) {
 exports.getTabForContentWindow = getTabForContentWindow;
 
 function getTabURL(tab) {
-  if (tab.browser) 
-    return String(tab.browser.currentURI.spec);
   return String(getBrowserForTab(tab).currentURI.spec);
 }
 exports.getTabURL = getTabURL;
 
 function setTabURL(tab, url) {
-  url = String(url);
-  if (tab.browser)
-    return tab.browser.loadURI(url);
-  return getBrowserForTab(tab).loadURI(url);
+  let browser = getBrowserForTab(tab);
+  browser.loadURI(String(url));
 }
 
 
@@ -318,11 +325,7 @@ function isPinned(tab) !!tab.pinned
 exports.isPinned = isPinned;
 
 function reload(tab) {
-  let gBrowser = getTabBrowserForTab(tab);
-  
-  if (gBrowser) gBrowser.unpinTab(tab);
-  
-  else if (tab.browser) tab.browser.reload();
+  getBrowserForTab(tab).reload();
 }
 exports.reload = reload
 
@@ -330,8 +333,7 @@ function getIndex(tab) {
   let gBrowser = getTabBrowserForTab(tab);
   
   if (gBrowser) {
-    let document = getBrowserForTab(tab).contentDocument;
-    return gBrowser.getBrowserIndexForDocument(document);
+    return tab._tPos;
   }
   
   else {

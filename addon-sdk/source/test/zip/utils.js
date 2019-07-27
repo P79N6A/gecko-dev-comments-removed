@@ -27,6 +27,7 @@ function createNsFile(path) {
   }
   return file;
 }
+exports.createNsFile = createNsFile;
 
 const converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
                   createInstance(Ci.nsIScriptableUnicodeConverter);

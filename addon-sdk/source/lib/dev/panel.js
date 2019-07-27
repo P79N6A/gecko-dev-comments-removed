@@ -126,7 +126,7 @@ const Panel = Class({
     return isUninitialized ? Promise.resolve(this) :
            when(this, "unload").then(getTarget);
   },
-  postMessage: function(data, ports) {
+  postMessage: function(data, ports=[]) {
     const manager = managerFor(this);
     manager.sendAsyncMessage("sdk/event/message", {
       type: "message",
@@ -230,8 +230,8 @@ createView.define(Panel, (panel, document) => {
     
     
     
-    
-    "type": "content",
+    "type": "chrome",
+    "forcemessagemanager": true,
     "transparent": true,
     "seamless": "seamless",
   });

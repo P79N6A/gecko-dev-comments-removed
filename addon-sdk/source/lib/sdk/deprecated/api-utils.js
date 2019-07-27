@@ -1,13 +1,11 @@
 
 
 
-
 "use strict";
+
 module.metadata = {
   "stability": "deprecated"
 };
-
-const memory = require("./memory");
 
 const { merge } = require("../util/object");
 const { union } = require("../util/array");

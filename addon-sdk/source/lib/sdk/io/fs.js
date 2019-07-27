@@ -884,6 +884,7 @@ exports.writeFile = writeFile;
 
 
 function writeFileSync(filename, data, encoding) {
+  
   throw Error("Not implemented");
 };
 exports.writeFileSync = writeFileSync;

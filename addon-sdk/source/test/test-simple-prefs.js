@@ -21,7 +21,7 @@ const { getAddonByID } = require('sdk/addon/manager');
 const { ZipWriter } = require('./zip/utils');
 const { getTabForId } = require('sdk/tabs/utils');
 const { preferencesBranch, id } = require('sdk/self');
-const { Tab } = require('sdk/tabs/tab');
+const { modelFor } = require('sdk/model/core');
 require('sdk/tabs');
 
 const prefsrv = Cc['@mozilla.org/preferences-service;1'].
@@ -308,7 +308,7 @@ exports.testUnloadOfDynamicPrefGeneration = function*(assert) {
 
   
   let { promise, resolve } = defer();
-  Tab({ tab: getTabForId(tabId) }).close(resolve);
+  modelFor(getTabForId(tabId)).close(resolve);
   yield promise;
 
   
@@ -318,7 +318,7 @@ exports.testUnloadOfDynamicPrefGeneration = function*(assert) {
   ({ promise, resolve }) = defer();
   results = document.querySelectorAll("*[data-jetpack-id=\"" + id + "\"]");
   assert.equal(0, results.length, "the prefs were not setup after unload");
-  Tab({ tab: getTabForId(tabId) }).close(resolve);
+  modelFor(getTabForId(tabId)).close(resolve);
   yield promise;
 
   

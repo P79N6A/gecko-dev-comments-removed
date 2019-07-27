@@ -46,7 +46,7 @@ let pathMapping = Object.keys(options.paths)
 let { getNewLoaderID } = require('../../framescript/FrameScriptManager.jsm');
 let PATH = options.paths[''];
 
-const childOptions = omit(options, ['modules', 'globals']);
+const childOptions = omit(options, ['modules', 'globals', 'resolve', 'load']);
 childOptions.modules = {};
 
 try {

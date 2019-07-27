@@ -18,7 +18,7 @@ const SKIPPING_TESTS = {
 exports.testTabIsRemote = function(assert, done) {
   const url = 'data:text/html,test-tab-is-remote';
   let tab = openTab(getMostRecentBrowserWindow(), url);
-  assert.ok(tab.getAttribute('remote'), "The new tab should be remote");
+  assert.ok(tab.linkedBrowser.isRemoteBrowser, "The new tab should be remote");
 
   
   let mm = getBrowserForTab(tab).messageManager;

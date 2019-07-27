@@ -2,6 +2,6 @@
 
 
 
- module.exports = {
+module.exports = {
   "filename": "test.json.js"
 };

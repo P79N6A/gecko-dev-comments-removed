@@ -253,3 +253,8 @@ function onTabClose(event) {
 isPrivate.implement(Tab, tab => {
   return isWindowPrivate(getTabContentWindow(tabNS(tab).tab));
 });
+
+
+modelFor.when(isTab, rawTab => {
+  return rawTabNS(rawTab).tab;
+});

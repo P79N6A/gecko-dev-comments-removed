@@ -14,9 +14,9 @@ exports.testSelf = function(assert) {
   
   
   
-  var url = self.data.url("test-content-symbiont.js");
+  var url = self.data.url("test.html");
   assert.equal(typeof(url), "string", "self.data.url('x') returns string");
-  assert.equal(/\/test-content-symbiont\.js$/.test(url), true);
+  assert.equal(/\/test\.html$/.test(url), true);
 
   
   url = self.data.url();

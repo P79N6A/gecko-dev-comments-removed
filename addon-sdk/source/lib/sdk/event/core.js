@@ -86,6 +86,14 @@ exports.once = once;
 
 
 function emit (target, type, ...args) {
+  emitOnObject(target, type, target, ...args);
+}
+exports.emit = emit;
+
+
+
+
+function emitOnObject(target, type, thisArg, ...args) {
   let all = observers(target, '*').length;
   let state = observers(target, type);
   let listeners = state.slice();
@@ -101,7 +109,7 @@ function emit (target, type, ...args) {
       let listener = listeners[index];
       
       if (~state.indexOf(listener))
-        listener.apply(target, args);
+        listener.apply(thisArg, args);
     }
     catch (error) {
       
@@ -114,7 +122,7 @@ function emit (target, type, ...args) {
    
   if (type !== '*') emit(target, '*', type, ...args);
 }
-exports.emit = emit;
+exports.emitOnObject = emitOnObject;
 
 
 

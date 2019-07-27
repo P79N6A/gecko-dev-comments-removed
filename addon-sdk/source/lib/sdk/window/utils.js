@@ -164,7 +164,7 @@ function serializeFeatures(options) {
     let value = options[name];
 
     
-    if ((name == 'private' || name == 'chrome'))
+    if ((name == 'private' || name == 'chrome' || name == 'all'))
       return result + ((value === true) ? ',' + name : '');
 
     return result + ',' + name + '=' +

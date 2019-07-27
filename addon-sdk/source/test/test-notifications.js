@@ -1,10 +1,11 @@
 
 
 
+ "use strict";
 
 const { Loader } = require('sdk/test/loader');
 
-exports.testOnClick = function (assert) {
+exports["test onClick"] = function(assert) {
   let [loader, mockAlertServ] = makeLoader(module);
   let notifs = loader.require("sdk/notifications");
   let data = "test data";
@@ -24,7 +25,7 @@ exports.testOnClick = function (assert) {
   loader.unload();
 };
 
-exports['test:numbers and URLs in options'] = function(assert) {
+exports['test numbers and URLs in options'] = function(assert) {
   let [loader] = makeLoader(module);
   let notifs = loader.require('sdk/notifications');
   let opts = {
@@ -42,7 +43,7 @@ exports['test:numbers and URLs in options'] = function(assert) {
   loader.unload();
 }
 
-exports['test:new tag, dir and lang options'] = function(assert) {
+exports['test new tag, dir and lang options'] = function(assert) {
   let [loader] = makeLoader(module);
   let notifs = loader.require('sdk/notifications');
   let opts = {
@@ -56,7 +57,7 @@ exports['test:new tag, dir and lang options'] = function(assert) {
     notifs.notify(opts);
     assert.fail('`dir` option must not accept TopToBottom direction.');
   } catch (e) {
-    assert.equal(e.message, 
+    assert.equal(e.message,
       '`dir` option must be one of: "auto", "ltr" or "rtl".');
   }
 

@@ -1,12 +1,10 @@
 
 
 
-
 "use strict";
 
 const { Class } = require("../../core/heritage");
 const { removeListener, on } = require("../../dom/events");
-
 
 
 

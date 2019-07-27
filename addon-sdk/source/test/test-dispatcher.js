@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { dispatcher } = require("sdk/util/dispatcher");
