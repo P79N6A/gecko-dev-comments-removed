@@ -98,6 +98,19 @@ function run_test() {
 
   
   
+  epsb.xo_function = new xorigsb.Function();
+  Cu.evalInSandbox("(" + function() {
+    try{
+      exportFunction(xo_function, this.subsb, { defineAs: "denied" });
+      do_check_true(false);
+    } catch (e) {
+      dump('Exception: ' + e);
+      do_check_true(e.toString().indexOf('Permission denied') > -1);
+    }
+  }.toSource() + ")()", epsb);
+
+  
+  
   Cu.evalInSandbox("(" + function() {
     var newContentObject = createObjectIn(subsb, { defineAs: "importedObject" });
     exportFunction(funToExport, newContentObject, { defineAs: "privMethod" });

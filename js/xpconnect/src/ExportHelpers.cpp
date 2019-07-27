@@ -322,8 +322,11 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
 
     
     
+    
+    
     targetScope = CheckedUnwrap(targetScope);
-    if (!targetScope) {
+    funObj = CheckedUnwrap(funObj);
+    if (!targetScope || !funObj) {
         JS_ReportError(cx, "Permission denied to export function into scope");
         return false;
     }
