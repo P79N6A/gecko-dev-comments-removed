@@ -943,7 +943,7 @@ protected:
 
 
 
-  virtual bool ShouldPropagateComputedHeightToScrolledContent() const { return true; }
+  virtual bool ShouldPropagateComputedBSizeToScrolledContent() const { return true; }
 
 private:
   friend class mozilla::ScrollFrameHelper;

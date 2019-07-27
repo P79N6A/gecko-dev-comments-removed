@@ -57,7 +57,7 @@ public:
 
 
 
-  virtual nscoord GetHeightOfARow() = 0;
+  virtual nscoord GetBSizeOfARow() = 0;
 
   
 

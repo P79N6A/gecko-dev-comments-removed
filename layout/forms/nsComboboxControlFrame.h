@@ -151,9 +151,10 @@ public:
 
 
 
-  void GetAvailableDropdownSpace(nscoord* aAbove,
-                                 nscoord* aBelow,
-                                 nsPoint* aTranslation);
+  void GetAvailableDropdownSpace(mozilla::WritingMode aWM,
+                                 nscoord* aBefore,
+                                 nscoord* aAfter,
+                                 mozilla::LogicalPoint* aTranslation);
   virtual int32_t GetIndexOfDisplayArea() override;
   
 
@@ -273,7 +274,7 @@ protected:
 
   
   
-  nscoord mDisplayWidth;
+  nscoord mDisplayISize;
   
   nsRevocableEventPtr<RedisplayTextEvent> mRedisplayTextEvent;
 
@@ -290,8 +291,8 @@ protected:
   
   
   
-  nscoord               mLastDropDownAboveScreenY;
-  nscoord               mLastDropDownBelowScreenY;
+  nscoord               mLastDropDownBeforeScreenBCoord;
+  nscoord               mLastDropDownAfterScreenBCoord;
   
   bool                  mDroppedDown;
   

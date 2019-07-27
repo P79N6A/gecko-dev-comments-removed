@@ -109,7 +109,7 @@ public:
   virtual void SetFocus(bool aOn = true, bool aRepaint = false) override;
 
   virtual mozilla::ScrollbarStyles GetScrollbarStyles() const override;
-  virtual bool ShouldPropagateComputedHeightToScrolledContent() const override;
+  virtual bool ShouldPropagateComputedBSizeToScrolledContent() const override;
 
     
 #ifdef ACCESSIBILITY
@@ -129,7 +129,7 @@ public:
   virtual void GetOptionText(uint32_t aIndex, nsAString& aStr) override;
 
   virtual void CaptureMouseEvents(bool aGrabMouseEvents) override;
-  virtual nscoord GetHeightOfARow() override;
+  virtual nscoord GetBSizeOfARow() override;
   virtual uint32_t GetNumberOfOptions() override;
   virtual void AboutToDropDown() override;
 
@@ -206,7 +206,8 @@ public:
 
 
 
-  nscoord CalcHeightOfARow();
+
+  nscoord CalcBSizeOfARow();
 
   
 
@@ -328,11 +329,12 @@ protected:
   bool     IsLeftButton(nsIDOMEvent* aMouseEvent);
 
   
-  nscoord  CalcFallbackRowHeight(float aFontSizeInflation);
+  nscoord  CalcFallbackRowBSize(float aFontSizeInflation);
 
   
   
-  nscoord CalcIntrinsicBSize(nscoord aHeightOfARow, int32_t aNumberOfOptions);
+  
+  nscoord CalcIntrinsicBSize(nscoord aBSizeOfARow, int32_t aNumberOfOptions);
 
   
   void     SetComboboxItem(int32_t aIndex);
@@ -378,8 +380,8 @@ public:
   }
 
 protected:
-  nscoord HeightOfARow() {
-    return GetOptionsContainer()->HeightOfARow();
+  nscoord BSizeOfARow() {
+    return GetOptionsContainer()->BSizeOfARow();
   }
 
   
@@ -428,7 +430,8 @@ protected:
   
   
   
-  nscoord mLastDropdownComputedHeight;
+  
+  nscoord mLastDropdownComputedBSize;
 
   
   

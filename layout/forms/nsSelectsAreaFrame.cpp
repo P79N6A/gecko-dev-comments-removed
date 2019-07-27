@@ -6,6 +6,9 @@
 #include "nsIContent.h"
 #include "nsListControlFrame.h"
 #include "nsDisplayList.h"
+#include "WritingModes.h"
+
+using namespace mozilla;
 
 nsContainerFrame*
 NS_NewSelectsAreaFrame(nsIPresShell* aShell, nsStyleContext* aContext, nsFrameState aFlags)
@@ -164,35 +167,38 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
   NS_ASSERTION(list,
                "Must have an nsListControlFrame!  Frame constructor is "
                "broken");
-  
+
   bool isInDropdownMode = list->IsInDropDownMode();
+
   
   
-  
-  nscoord oldHeight;
+  WritingMode wm = aReflowState.GetWritingMode();
+  nscoord oldBSize;
   if (isInDropdownMode) {
     
     
     if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-      oldHeight = GetSize().height;
+      oldBSize = BSize(wm);
     } else {
-      oldHeight = NS_UNCONSTRAINEDSIZE;
+      oldBSize = NS_UNCONSTRAINEDSIZE;
     }
   }
-  
+
   nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
 
   
   
+  
   if (list->MightNeedSecondPass()) {
-    nscoord newHeightOfARow = list->CalcHeightOfARow();
+    nscoord newBSizeOfARow = list->CalcBSizeOfARow();
     
     
     
-    if (newHeightOfARow != mHeightOfARow ||
-        (isInDropdownMode && (oldHeight != aDesiredSize.Height() ||
-                              oldHeight != GetSize().height))) {
-      mHeightOfARow = newHeightOfARow;
+    
+    if (newBSizeOfARow != mBSizeOfARow ||
+        (isInDropdownMode && (oldBSize != aDesiredSize.BSize(wm) ||
+                              oldBSize != BSize(wm)))) {
+      mBSizeOfARow = newBSizeOfARow;
       list->SetSuppressScrollbarUpdate(true);
     }
   }

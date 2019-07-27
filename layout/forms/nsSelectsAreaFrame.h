@@ -30,19 +30,20 @@ public:
                       const nsHTMLReflowState& aReflowState,
                       nsReflowStatus&          aStatus) override;
 
-  nscoord HeightOfARow() const { return mHeightOfARow; }
+  nscoord BSizeOfARow() const { return mBSizeOfARow; }
   
 protected:
   explicit nsSelectsAreaFrame(nsStyleContext* aContext) :
     nsBlockFrame(aContext),
-    mHeightOfARow(0)
+    mBSizeOfARow(0)
   {}
 
   
   
   
   
-  nscoord mHeightOfARow;
+  
+  nscoord mBSizeOfARow;
 };
 
 #endif 
