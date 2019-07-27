@@ -30,6 +30,16 @@ def main(argv):
     args = parser.parse_args(argv)
 
     script = args.python_script
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    sys.path.append(os.path.dirname(script))
     with open(script, 'r') as fh:
         module = imp.load_module('script', fh, script,
                                  ('.py', 'r', imp.PY_SOURCE))
