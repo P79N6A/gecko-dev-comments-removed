@@ -193,6 +193,10 @@ let NetMonitorView = {
 
 
   get currentFrontendMode() {
+    
+    if (!this._body.selectedPanel) {
+      return null;
+    }
     return this._body.selectedPanel.id;
   },
 
