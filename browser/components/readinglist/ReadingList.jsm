@@ -72,17 +72,6 @@ const ITEM_RECORD_PROPERTIES = `
 
 
 
-
-
-const ITEM_DISREGARDED_PROPERTIES = `
-  byline
-  dir
-  content
-  length
-`.trim().split(/\s+/);
-
-
-
 const SYNC_STATUS_SYNCED = 0;
 const SYNC_STATUS_NEW = 1;
 const SYNC_STATUS_CHANGED_STATUS = 2;
@@ -991,9 +980,6 @@ ReadingListItemIterator.prototype = {
 function normalizeRecord(nonNormalizedRecord) {
   let record = {};
   for (let prop in nonNormalizedRecord) {
-    if (ITEM_DISREGARDED_PROPERTIES.indexOf(prop) >= 0) {
-      continue;
-    }
     if (ITEM_RECORD_PROPERTIES.indexOf(prop) < 0) {
       throw new Error("Unrecognized item property: " + prop);
     }
