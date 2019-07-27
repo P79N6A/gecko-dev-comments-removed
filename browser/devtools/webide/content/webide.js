@@ -402,7 +402,9 @@ let UI = {
   autoConnectRuntime: function () {
     
     
-    if (AppManager.selectedRuntime || !this.lastConnectedRuntime) {
+    if (AppManager.selectedRuntime ||
+        !Services.prefs.getBoolPref("devtools.webide.autoConnectRuntime") ||
+        !this.lastConnectedRuntime) {
       return;
     }
     let [_, type, id] = this.lastConnectedRuntime.match(/^(\w+):(.+)$/);
