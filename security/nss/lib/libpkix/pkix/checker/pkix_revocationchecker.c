@@ -152,7 +152,13 @@ pkix_RevocationChecker_SortComparator(
     method1 = (pkix_RevocationMethod *)obj1;
     method2 = (pkix_RevocationMethod *)obj2;
     
-    *pResult = (method1->priority > method2->priority);
+    if (method1->priority < method2->priority) {
+      *pResult = -1;
+    } else if (method1->priority > method2->priority) {
+      *pResult = 1;
+    } else {
+      *pResult = 0;
+    }
     
     PKIX_RETURN(BUILD);
 }

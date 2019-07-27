@@ -50,6 +50,7 @@ pkix_ExternalRevocationCheckFn(PKIX_PL_Cert *cert, PKIX_PL_Cert *issuer,
 
 
 
+
 struct pkix_RevocationMethodStruct {
     PKIX_RevocationMethodType methodType;
     PKIX_UInt32 flags;

@@ -143,7 +143,7 @@ PKIX_RevocationChecker_CreateAndAddMethod(
     PKIX_ProcessingParams *params,
     PKIX_RevocationMethodType methodType,
     PKIX_UInt32 methodFlags,
-    PKIX_UInt32 mathodPriority,
+    PKIX_UInt32 methodPriority,
     PKIX_PL_VerifyCallback verificationFn,
     PKIX_Boolean isLeafMethod,
     void *plContext);

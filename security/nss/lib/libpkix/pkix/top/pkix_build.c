@@ -682,6 +682,8 @@ pkix_ForwardBuilderState_IsIOPending(
 
 
 
+
+
 static PKIX_Error *
 pkix_Build_SortCertComparator(
         PKIX_PL_Object *obj1,
@@ -691,7 +693,7 @@ pkix_Build_SortCertComparator(
 {
         PKIX_PL_Date *date1 = NULL;
         PKIX_PL_Date *date2 = NULL;
-        PKIX_Boolean result = PKIX_FALSE;
+        PKIX_Int32 result = 0;
 
         PKIX_ENTER(BUILD, "pkix_Build_SortCertComparator");
         PKIX_NULLCHECK_THREE(obj1, obj2, pResult);
@@ -727,7 +729,12 @@ pkix_Build_SortCertComparator(
                 plContext),
                 PKIX_OBJECTCOMPARATORFAILED);
 
-        *pResult = !result;
+        
+
+
+
+
+        *pResult = -result;
 
 cleanup:
 
