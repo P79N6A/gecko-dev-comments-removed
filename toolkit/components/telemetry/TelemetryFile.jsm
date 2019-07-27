@@ -32,7 +32,7 @@ const MAX_PING_FILE_AGE = 14 * 24 * 60 * 60 * 1000;
 const OVERDUE_PING_FILE_AGE = 7 * 24 * 60 * 60 * 1000; 
 
 
-const MAX_LRU_PINGS = 17;
+const MAX_LRU_PINGS = 50;
 
 
 
