@@ -1711,6 +1711,7 @@ nsPresContext::ThemeChangedInternal()
   
   
   
+  
   MediaFeatureValuesChanged(eRestyle_Subtree, NS_STYLE_HINT_REFLOW);
 }
 
