@@ -1054,6 +1054,12 @@ CycleCollectedJSRuntime::DeferredFinalize(DeferredFinalizeAppendFunction aAppend
 void
 CycleCollectedJSRuntime::DeferredFinalize(nsISupports* aSupports)
 {
+  
+  
+  
+  
+  NS_IF_ADDREF(aSupports);
+  NS_IF_RELEASE(aSupports);
   mDeferredSupports.AppendElement(aSupports);
 }
 
