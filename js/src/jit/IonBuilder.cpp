@@ -4595,10 +4595,16 @@ IonBuilder::specializeInlinedReturn(MDefinition *rdef, MBasicBlock *exit)
         if (rdef->resultTypeSet()->isSubset(types))
             return rdef;
     } else {
-        
-        
-        
         MIRType observedType = types->getKnownMIRType();
+
+        
+        
+        if (observedType == MIRType_Double && rdef->type() == MIRType_Float32)
+            return rdef;
+
+        
+        
+        
         if (observedType == rdef->type() &&
             observedType != MIRType_Value &&
             (observedType != MIRType_Object || types->unknownObject()))
