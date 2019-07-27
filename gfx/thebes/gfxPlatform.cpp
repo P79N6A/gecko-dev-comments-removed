@@ -1018,11 +1018,18 @@ TemporaryRef<DrawTarget>
 gfxPlatform::CreateDrawTargetForData(unsigned char* aData, const IntSize& aSize, int32_t aStride, SurfaceFormat aFormat)
 {
   NS_ASSERTION(mContentBackend != BackendType::NONE, "No backend.");
-  if (mContentBackend == BackendType::CAIRO) {
-    nsRefPtr<gfxImageSurface> image = new gfxImageSurface(aData, gfxIntSize(aSize.width, aSize.height), aStride, SurfaceFormatToImageFormat(aFormat));
-    return Factory::CreateDrawTargetForCairoSurface(image->CairoSurface(), aSize);
+
+  RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(mContentBackend,
+                                                           aData, aSize,
+                                                           aStride, aFormat);
+  if (!dt) {
+    
+    
+    dt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
+                                          aData, aSize,
+                                          aStride, aFormat);
   }
-  return Factory::CreateDrawTargetForData(mContentBackend, aData, aSize, aStride, aFormat);
+  return dt.forget();
 }
 
  BackendType
