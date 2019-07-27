@@ -5831,12 +5831,11 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
 
   
   bool doTile = !aDest.Contains(aFill);
-  nsRect appUnitDest = doTile ? TileNearRect(aDest, aFill.Intersect(aDirty))
-                              : aDest;
-  nsPoint anchor = aAnchor + (appUnitDest.TopLeft() - aDest.TopLeft());
+  nsRect dest = doTile ? TileNearRect(aDest, aFill.Intersect(aDirty)) : aDest;
+  nsPoint anchor = aAnchor + (dest.TopLeft() - aDest.TopLeft());
 
   gfxRect devPixelDest =
-    nsLayoutUtils::RectToGfxRect(appUnitDest, aAppUnitsPerDevPixel);
+    nsLayoutUtils::RectToGfxRect(dest, aAppUnitsPerDevPixel);
   gfxRect devPixelFill =
     nsLayoutUtils::RectToGfxRect(aFill, aAppUnitsPerDevPixel);
   gfxRect devPixelDirty =
@@ -5844,57 +5843,52 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
 
   gfxMatrix currentMatrix = aCtx->CurrentMatrix();
   gfxRect fill = devPixelFill;
-  gfxRect dest = devPixelDest;
   bool didSnap;
   
   
   
   if (!currentMatrix.HasNonAxisAlignedTransform() &&
       currentMatrix._11 > 0.0 && currentMatrix._22 > 0.0 &&
-      aCtx->UserToDevicePixelSnapped(fill, true) &&
-      aCtx->UserToDevicePixelSnapped(dest, true)) {
-    
-    
+      aCtx->UserToDevicePixelSnapped(fill, true)) {
     didSnap = true;
+    if (fill.IsEmpty()) {
+      return SnappedImageDrawingParameters();
+    }
   } else {
-    
-    
     didSnap = false;
     fill = devPixelFill;
-    dest = devPixelDest;
   }
 
   
-  
-  
-  gfxSize snappedDestSize = dest.Size();
-  if (!didSnap) {
-    gfxSize scaleFactors = currentMatrix.ScaleFactors(true);
-    snappedDestSize.Scale(scaleFactors.width, scaleFactors.height);
-    snappedDestSize.width = NS_round(snappedDestSize.width);
-    snappedDestSize.height = NS_round(snappedDestSize.height);
-  }
-
-  
-  
-  snappedDestSize.width = std::max(snappedDestSize.width, 1.0);
-  snappedDestSize.height = std::max(snappedDestSize.height, 1.0);
-
-  
-  if (fill.IsEmpty() || snappedDestSize.IsEmpty()) {
+  gfxSize destScale = didSnap ? gfxSize(currentMatrix._11, currentMatrix._22)
+                              : currentMatrix.ScaleFactors(true);
+  gfxSize appUnitScaledDest(dest.width * destScale.width,
+                            dest.height * destScale.height);
+  gfxSize scaledDest = appUnitScaledDest / aAppUnitsPerDevPixel;
+  if (scaledDest.IsEmpty()) {
     return SnappedImageDrawingParameters();
   }
 
+  
+  
+  
+  
+  gfxSize snappedScaledDest =
+    gfxSize(NSAppUnitsToIntPixels(appUnitScaledDest.width, aAppUnitsPerDevPixel),
+            NSAppUnitsToIntPixels(appUnitScaledDest.height, aAppUnitsPerDevPixel));
+  snappedScaledDest.width = std::max(snappedScaledDest.width, 1.0);
+  snappedScaledDest.height = std::max(snappedScaledDest.height, 1.0);
+
   nsIntSize intImageSize =
-    aImage->OptimalImageSizeForDest(snappedDestSize,
+    aImage->OptimalImageSizeForDest(snappedScaledDest,
                                     imgIContainer::FRAME_CURRENT,
                                     aGraphicsFilter, aImageFlags);
   gfxSize imageSize(intImageSize.width, intImageSize.height);
 
-  
   CSSIntSize svgViewportSize = currentMatrix.IsIdentity()
     ? CSSIntSize(intImageSize.width, intImageSize.height)
-    : CSSIntSize(devPixelDest.width, devPixelDest.height);
+    : CSSIntSize(NSAppUnitsToIntPixels(dest.width, aAppUnitsPerDevPixel), 
+                 NSAppUnitsToIntPixels(dest.height, aAppUnitsPerDevPixel)); 
 
   
   gfxPoint subimageTopLeft =
@@ -5910,9 +5904,8 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
   gfxMatrix transform;
   gfxMatrix invTransform;
 
-  bool anchorAtUpperLeft = anchor.x == appUnitDest.x &&
-                           anchor.y == appUnitDest.y;
-  bool exactlyOneImageCopy = aFill.IsEqualEdges(appUnitDest);
+  bool anchorAtUpperLeft = anchor.x == dest.x && anchor.y == dest.y;
+  bool exactlyOneImageCopy = aFill.IsEqualEdges(dest);
   if (anchorAtUpperLeft && exactlyOneImageCopy) {
     
     
@@ -5940,14 +5933,7 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
       anchorPoint = StableRound(anchorPoint);
     }
 
-    
-    
-    
-    gfxSize unsnappedDestSize
-      = didSnap ? devPixelDest.Size() * currentMatrix.ScaleFactors(true)
-                : devPixelDest.Size();
-
-    gfxRect anchoredDestRect(anchorPoint, unsnappedDestSize);
+    gfxRect anchoredDestRect(anchorPoint, scaledDest);
     gfxRect anchoredImageRect(imageSpaceAnchorPoint, imageSize);
 
     
