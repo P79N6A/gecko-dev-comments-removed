@@ -129,39 +129,10 @@ NS_DescribeCodeAddress(void* aPC, nsCodeAddressDetails* aDetails);
 
 
 
-
-
-
-
-
-
-
-
-XPCOM_API(void)
-NS_FormatCodeAddress(char* aBuffer, uint32_t aBufferSize, uint32_t aFrameNumber,
-                     const void* aPC, const char* aFunction,
-                     const char* aLibrary, ptrdiff_t aLOffset,
-                     const char* aFileName, uint32_t aLineNo);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-XPCOM_API(void)
-NS_FormatCodeAddressDetails(char* aBuffer, uint32_t aBufferSize,
-                            uint32_t aFrameNumber, void* aPC,
-                            const nsCodeAddressDetails* aDetails);
+XPCOM_API(nsresult)
+NS_FormatCodeAddressDetails(uint32_t aFrameNumber, void* aPC,
+                            const nsCodeAddressDetails* aDetails,
+                            char* aBuffer, uint32_t aBufferSize);
 
 #ifdef __cplusplus
 }
