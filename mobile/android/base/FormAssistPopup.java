@@ -9,6 +9,8 @@ import org.mozilla.gecko.gfx.FloatSize;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.widget.SwipeDismissListViewTouchListener;
+import org.mozilla.gecko.widget.SwipeDismissListViewTouchListener.OnDismissCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -160,6 +162,35 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
                     hide();
                 }
             });
+
+            
+            
+            
+            final SwipeDismissListViewTouchListener touchListener = new SwipeDismissListViewTouchListener(mAutoCompleteList, new OnDismissCallback() {
+                @Override
+                public void onDismiss(ListView listView, final int position) {
+                    
+                    
+                    AutoCompleteListAdapter adapter = (AutoCompleteListAdapter) listView.getAdapter();
+                    Pair<String, String> item = adapter.getItem(position);
+
+                    
+                    broadcastGeckoEvent("FormAssist:Remove", item.second);
+
+                    
+                    adapter.remove(item);
+                    adapter.notifyDataSetChanged();
+                    positionAndShowPopup();
+                }
+            });
+            mAutoCompleteList.setOnTouchListener(touchListener);
+
+            
+            
+            mAutoCompleteList.setOnScrollListener(touchListener.makeScrollListener());
+
+            
+            mAutoCompleteList.setRecyclerListener(touchListener.makeRecyclerListener());
 
             addView(mAutoCompleteList);
         }
@@ -384,8 +415,9 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null)
+            if (convertView == null) {
                 convertView = mInflater.inflate(mTextViewResourceId, null);
+            }
 
             Pair<String, String> item = getItem(position);
             TextView itemView = (TextView) convertView;
