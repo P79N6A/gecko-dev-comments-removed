@@ -116,6 +116,8 @@ public:
     SharedSurface* SharedSurf() const {
         return mSurf;
     }
+
+    void SetReadBuffer(GLenum mode) const;
 };
 
 
@@ -142,6 +144,8 @@ protected:
 
     bool mNeedsBlit;
 
+    GLenum mUserReadBufferMode;
+
     
     GLuint mUserDrawFB;
     GLuint mUserReadFB;
@@ -160,6 +164,7 @@ protected:
         , mCaps(caps)
         , mFactory(Move(factory))
         , mNeedsBlit(true)
+        , mUserReadBufferMode(LOCAL_GL_BACK)
         , mUserDrawFB(0)
         , mUserReadFB(0)
         , mInternalDrawFB(0)
@@ -222,6 +227,8 @@ public:
     void AssureBlitted();
     void AfterDrawCall();
     void BeforeReadCall();
+
+    void SetReadBuffer(GLenum userMode);
 
     
 
