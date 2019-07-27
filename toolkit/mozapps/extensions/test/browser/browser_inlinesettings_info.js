@@ -271,6 +271,10 @@ add_test(function() {
     try {
       ok(!settings[6].hasAttribute("first-row"), "Not the first row");
       var button = gManagerWindow.document.getAnonymousElementByAttribute(settings[6], "anonid", "button");
+
+      
+      button.scrollIntoView();
+
       input = gManagerWindow.document.getAnonymousElementByAttribute(settings[6], "anonid", "input");
       is(input.value, "", "Label value should be empty");
       is(input.tooltipText, "", "Label tooltip should be empty");
