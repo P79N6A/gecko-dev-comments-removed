@@ -99,6 +99,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     
   },
   { 
+    &nsGkAtoms::cell,
+    roles::CELL,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eTableCell,
+    kNoReqStates
+  },
+  { 
     &nsGkAtoms::checkbox,
     roles::CHECKBUTTON,
     kUseMapRole,
@@ -628,6 +638,17 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eSwitchAction,
     eNoLiveAttr,
     kGenericAccType,
+    kNoReqStates,
+    eARIASelectable
+  },
+  { 
+    &nsGkAtoms::table,
+    roles::TABLE,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eTable,
     kNoReqStates,
     eARIASelectable
   },
