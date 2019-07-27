@@ -459,7 +459,7 @@ public:
   
 
 
-  virtual void WaitForBufferOwnership() {}
+  virtual void WaitForBufferOwnership(bool aWaitReleaseFence = true) {}
 
   
 
