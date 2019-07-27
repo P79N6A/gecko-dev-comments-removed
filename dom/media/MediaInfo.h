@@ -355,7 +355,7 @@ public:
   
   
   
-  media::NullableTimeUnit mMetadataEndTime;
+  media::NullableTimeUnit mUnadjustedMetadataEndTime;
 
   EncryptionInfo mCrypto;
 };
