@@ -1512,6 +1512,12 @@ jit::RemoveUnmarkedBlocks(MIRGenerator *mir, MIRGraph &graph, uint32_t numMarked
                 continue;
             }
 
+            
+            
+            
+            if (block->isLoopHeader())
+                block->clearLoopHeader();
+
             for (size_t i = 0, e = block->numSuccessors(); i != e; ++i)
                 block->getSuccessor(i)->removePredecessor(block);
             graph.removeBlockIncludingPhis(block);
