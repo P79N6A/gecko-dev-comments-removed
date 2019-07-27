@@ -274,11 +274,22 @@ let gFxAccounts = {
     let note = null;
     switch (this._migrationInfo.state) {
       case this.fxaMigrator.STATE_USER_FXA: {
-        let msg = this.strings.GetStringFromName("needUserLong");
-        let upgradeLabel =
-          this.strings.GetStringFromName("upgradeToFxA.label");
-        let upgradeAccessKey =
-          this.strings.GetStringFromName("upgradeToFxA.accessKey");
+        
+        
+        
+        
+        let msg, upgradeLabel, upgradeAccessKey;
+        if (this._migrationInfo.email) {
+          msg = this.strings.formatStringFromName("signInAfterUpgradeOnOtherDevice.description",
+                                                  [this._migrationInfo.email],
+                                                  1);
+          upgradeLabel = this.strings.GetStringFromName("signInAfterUpgradeOnOtherDevice.label");
+          upgradeAccessKey = this.strings.GetStringFromName("signInAfterUpgradeOnOtherDevice.accessKey");
+        } else {
+          msg = this.strings.GetStringFromName("needUserLong");
+          upgradeLabel = this.strings.GetStringFromName("upgradeToFxA.label");
+          upgradeAccessKey = this.strings.GetStringFromName("upgradeToFxA.accessKey");
+        }
         note = new Weave.Notification(
           undefined, msg, undefined, Weave.Notifications.PRIORITY_WARNING, [
             new Weave.NotificationButton(upgradeLabel, upgradeAccessKey, () => {
