@@ -181,12 +181,24 @@ SetDisplayPortMargins(nsIDOMWindowUtils* aUtils,
 
 void
 APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
+                                    nsIPresShell* aPresShell,
                                     FrameMetrics& aMetrics)
 {
   
   MOZ_ASSERT(aUtils);
+  MOZ_ASSERT(aPresShell);
   MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
   if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
+    return;
+  }
+
+  float presShellResolution = nsLayoutUtils::GetResolution(aPresShell);
+
+  
+  
+  
+  
+  if (presShellResolution != aMetrics.GetPresShellResolution()) {
     return;
   }
 
@@ -207,8 +219,8 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
 
   
   
-  float presShellResolution = aMetrics.GetPresShellResolution()
-                            * aMetrics.GetAsyncZoom().scale;
+  presShellResolution = aMetrics.GetPresShellResolution()
+                      * aMetrics.GetAsyncZoom().scale;
   aUtils->SetResolutionAndScaleTo(presShellResolution);
 
   SetDisplayPortMargins(aUtils, content, aMetrics);
