@@ -9,6 +9,7 @@
 #include "mozilla/DebugOnly.h"
 
 #include "jsnativestack.h"
+#include "jsnum.h" 
 #include "prmjtime.h"
 
 #include "frontend/BytecodeCompiler.h"
@@ -982,6 +983,12 @@ HelperThread::ThreadMain(void *arg)
         NuwaMarkCurrentThread(nullptr, nullptr);
     }
 #endif
+
+    
+    
+    
+    
+    FIX_FPU();
 
     static_cast<HelperThread *>(arg)->threadLoop();
 }
