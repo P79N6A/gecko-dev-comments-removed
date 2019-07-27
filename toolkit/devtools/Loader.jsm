@@ -10,25 +10,12 @@
 
 let { Constructor: CC, classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-
-
-
-let sandbox = Cu.Sandbox(CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')());
-Cu.evalInSandbox(
-  "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
-  "addDebuggerToGlobal(this);",
-  sandbox
-);
-let Debugger = sandbox.Debugger;
-
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils", "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "console", "resource://gre/modules/devtools/Console.jsm");
-
-let xpcInspector = Cc["@mozilla.org/jsinspector;1"].getService(Ci.nsIJSInspector);
 
 let loader = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {}).Loader;
 let promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
@@ -40,23 +27,43 @@ this.EXPORTED_SYMBOLS = ["DevToolsLoader", "devtools", "BuiltinProvider",
 
 
 
-let Timer = Cu.import("resource://gre/modules/Timer.jsm", {});
-
 let loaderModules = {
-  "Debugger": Debugger,
   "Services": Object.create(Services),
-  "Timer": Object.create(Timer),
   "toolkit/loader": loader,
-  "xpcInspector": xpcInspector,
   "promise": promise,
   "PromiseDebugging": PromiseDebugging
 };
-try {
-  let { indexedDB } = Cu.Sandbox(this, {wantGlobalProperties:["indexedDB"]});
-  loaderModules.indexedDB = indexedDB;
-} catch(e) {
+XPCOMUtils.defineLazyGetter(loaderModules, "Debugger", () => {
   
-}
+  
+  
+  let sandbox = Cu.Sandbox(CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')());
+  Cu.evalInSandbox(
+    "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
+    "addDebuggerToGlobal(this);",
+    sandbox
+  );
+  return sandbox.Debugger;
+});
+XPCOMUtils.defineLazyGetter(loaderModules, "Timer", () => {
+  let {setTimeout, clearTimeout} = Cu.import("resource://gre/modules/Timer.jsm", {});
+  
+  return {
+    setTimeout,
+    clearTimeout
+  };
+});
+XPCOMUtils.defineLazyGetter(loaderModules, "xpcInspector", () => {
+  return Cc["@mozilla.org/jsinspector;1"].getService(Ci.nsIJSInspector);
+});
+XPCOMUtils.defineLazyGetter(loaderModules, "indexedDB", () => {
+  
+  try {
+    return Cu.Sandbox(this, {wantGlobalProperties:["indexedDB"]}).indexedDB;
+  } catch(e) {
+    return {};
+  }
+});
 
 let sharedGlobalBlacklist = ["sdk/indexed-db"];
 
@@ -356,7 +363,6 @@ DevToolsLoader.prototype = {
       isWorker: false,
       reportError: Cu.reportError,
       btoa: btoa,
-      console: console,
       _Iterator: Iterator,
       loader: {
         lazyGetter: this.lazyGetter,
@@ -365,6 +371,10 @@ DevToolsLoader.prototype = {
         lazyRequireGetter: this.lazyRequireGetter
       },
     };
+    
+    XPCOMUtils.defineLazyGetter(this._provider.globals, "console", () => {
+      return Cu.import("resource://gre/modules/devtools/Console.jsm", {}).console;
+    });
 
     this._provider.load();
     this.require = loader.Require(this._provider.loader, { id: "devtools" });
