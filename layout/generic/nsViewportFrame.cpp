@@ -190,7 +190,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   
   
   SetSize(nsSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight()));
- 
+
   
   
   
@@ -236,10 +236,6 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.SetSize(wm, maxSize);
   aDesiredSize.SetOverflowAreasToDesiredBounds();
 
-  if (mFrames.NotEmpty()) {
-    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mFrames.FirstChild());
-  }
-
   if (IsAbsoluteContainer()) {
     
     
@@ -262,6 +258,16 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
                                          rect,
                                          false, true, true, 
                                          &aDesiredSize.mOverflowAreas);
+
+    nsIScrollableFrame* rootScrollFrame =
+                    aPresContext->PresShell()->GetRootScrollFrameAsScrollable();
+    if (rootScrollFrame && !rootScrollFrame->IsIgnoringViewportClipping()) {
+      aDesiredSize.SetOverflowAreasToDesiredBounds();
+    }
+  }
+
+  if (mFrames.NotEmpty()) {
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mFrames.FirstChild());
   }
 
   
@@ -285,6 +291,18 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
   NS_FRAME_TRACE_REFLOW_OUT("ViewportFrame::Reflow", aStatus);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+}
+
+bool
+ViewportFrame::UpdateOverflow()
+{
+  nsIScrollableFrame* rootScrollFrame =
+    PresContext()->PresShell()->GetRootScrollFrameAsScrollable();
+  if (rootScrollFrame && !rootScrollFrame->IsIgnoringViewportClipping()) {
+    return false;
+  }
+
+  return nsFrame::UpdateOverflow();
 }
 
 nsIAtom*

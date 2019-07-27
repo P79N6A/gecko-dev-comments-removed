@@ -380,6 +380,11 @@ public:
                                    const ContainerLayerParameters& aParameters,
                                    nsRect* aOutClipRect,
                                    nsTArray<FrameMetrics>* aOutput) const = 0;
+
+  
+
+
+  virtual bool IsIgnoringViewportClipping() const = 0;
 };
 
 #endif

@@ -68,6 +68,8 @@ public:
 
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
+  virtual bool UpdateOverflow() MOZ_OVERRIDE;
+
   
 
 
