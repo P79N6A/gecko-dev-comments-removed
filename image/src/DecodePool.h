@@ -25,6 +25,30 @@ namespace image {
 class Decoder;
 class RasterImage;
 
+MOZ_BEGIN_ENUM_CLASS(DecodeStatus, uint8_t)
+  INACTIVE,
+  PENDING,
+  ACTIVE,
+  WORK_DONE,
+  STOPPED
+MOZ_END_ENUM_CLASS(DecodeStatus)
+
+MOZ_BEGIN_ENUM_CLASS(DecodeUntil, uint8_t)
+  TIME,
+  SIZE,
+  DONE_BYTES
+MOZ_END_ENUM_CLASS(DecodeUntil)
+
+MOZ_BEGIN_ENUM_CLASS(ShutdownReason, uint8_t)
+  DONE,
+  NOT_NEEDED,
+  FATAL_ERROR
+MOZ_END_ENUM_CLASS(ShutdownReason)
+
+
+
+
+
 
 
 
@@ -44,24 +68,36 @@ public:
   static DecodePool* Singleton();
 
   
-  void AsyncDecode(Decoder* aDecoder);
+
+
+  void RequestDecode(RasterImage* aImage);
+
+  
+
+
+
+  void DecodeABitOf(RasterImage* aImage);
 
   
 
 
 
 
-  void SyncDecodeIfSmall(Decoder* aDecoder);
+
+
+  static void StopDecoding(RasterImage* aImage);
 
   
 
 
 
 
-  void SyncDecodeIfPossible(Decoder* aDecoder);
+
+
+
+  nsresult DecodeUntilSizeAvailable(RasterImage* aImage);
 
   
-
 
 
 
@@ -75,19 +111,13 @@ public:
 
 
 
-
-  already_AddRefed<nsIRunnable> CreateDecodeWorker(Decoder* aDecoder);
+  nsresult DecodeSomeOfImage(RasterImage* aImage,
+                             DecodeUntil aDecodeUntil = DecodeUntil::TIME,
+                             uint32_t bytesToDecode = 0);
 
 private:
-  friend class DecodeWorker;
-  friend class NotifyDecodeCompleteWorker;
-
   DecodePool();
   virtual ~DecodePool();
-
-  void Decode(Decoder* aDecoder);
-  void NotifyDecodeComplete(Decoder* aDecoder);
-  void NotifyProgress(Decoder* aDecoder);
 
   static StaticRefPtr<DecodePool> sSingleton;
 

@@ -41,7 +41,6 @@
 #include "nsAutoPtr.h"
 #include "nsNetUtil.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/unused.h"
 #ifdef MOZ_PEERCONNECTION
 #include "mtransport/runnable_utils.h"
 #endif
@@ -2311,7 +2310,7 @@ public:
     mConnection(aConnection),
     mStream(aStream),
     mBlob(aBlob)
-  {}
+  { }
 
   NS_IMETHODIMP Run() {
     
@@ -2350,42 +2349,6 @@ DataChannelConnection::SendBlob(uint16_t stream, nsIInputStream *aBlob)
   return 0;
 }
 
-class DataChannelBlobSendRunnable : public nsRunnable
-{
-public:
-  DataChannelBlobSendRunnable(already_AddRefed<DataChannelConnection>& aConnection,
-                              uint16_t aStream)
-    : mConnection(aConnection)
-    , mStream(aStream) {}
-
-  ~DataChannelBlobSendRunnable()
-  {
-    if (!NS_IsMainThread() && mConnection) {
-      MOZ_ASSERT(false);
-      
-      unused << mConnection.forget().take();
-    }
-  }
-
-  NS_IMETHODIMP Run()
-  {
-    ASSERT_WEBRTC(NS_IsMainThread());
-
-    mConnection->SendBinaryMsg(mStream, mData);
-    mConnection = nullptr;
-    return NS_OK;
-  }
-
-  
-  nsCString mData;
-
-private:
-  
-  
-  nsRefPtr<DataChannelConnection> mConnection;
-  uint16_t mStream;
-};
-
 void
 DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
                                 uint16_t aStream, nsIInputStream* aBlob)
@@ -2402,27 +2365,23 @@ DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
 
   
   
+  nsCString temp;
   uint64_t len;
   nsCOMPtr<nsIThread> mainThread;
   NS_GetMainThread(getter_AddRefs(mainThread));
 
-  
-  
-  
-  
-  nsRefPtr<DataChannelBlobSendRunnable> runnable = new DataChannelBlobSendRunnable(aThis,
-                                                                                   aStream);
-  
   if (NS_FAILED(aBlob->Available(&len)) ||
-      NS_FAILED(NS_ReadInputStreamToString(aBlob, runnable->mData, len))) {
+      NS_FAILED(NS_ReadInputStreamToString(aBlob, temp, len))) {
     
     
-    
-    NS_ProxyRelease(mainThread, runnable);
+    NS_ProxyRelease(mainThread, aThis.take());
     return;
   }
   aBlob->Close();
-  NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+  RUN_ON_THREAD(mainThread, WrapRunnable(nsRefPtr<DataChannelConnection>(aThis),
+                               &DataChannelConnection::SendBinaryMsg,
+                               aStream, temp),
+                NS_DISPATCH_NORMAL);
 }
 
 void

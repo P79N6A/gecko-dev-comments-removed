@@ -8,8 +8,8 @@
 #define imgFrame_h
 
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Monitor.h"
 #include "mozilla/Move.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/TypedEnum.h"
 #include "mozilla/VolatileBuffer.h"
 #include "gfxDrawable.h"
@@ -193,37 +193,8 @@ public:
 
 
 
-
-
-
-  void Finish(Opacity aFrameOpacity = Opacity::SOME_TRANSPARENCY,
-              DisposalMethod aDisposalMethod = DisposalMethod::KEEP,
-              int32_t aRawTimeout = 0,
-              BlendMethod aBlendMethod = BlendMethod::OVER);
-
-  
-
-
-
-
-
-
-  void Abort();
-
-  
-
-
-  bool IsImageComplete() const;
-
-  
-
-
-
-
-
-
-
-  void WaitUntilComplete() const;
+  void Finish(Opacity aFrameOpacity, DisposalMethod aDisposalMethod,
+              int32_t aRawTimeout, BlendMethod aBlendMethod);
 
   IntSize GetImageSize() { return mImageSize; }
   nsIntRect GetRect() const;
@@ -246,6 +217,8 @@ public:
 
   AnimationData GetAnimationData() const;
   ScalingData GetScalingData() const;
+
+  bool ImageComplete() const;
 
   bool GetCompositingFailed() const;
   void SetCompositingFailed(bool val);
@@ -272,7 +245,7 @@ private:
 
   void AssertImageDataLocked() const;
 
-  bool IsImageCompleteInternal() const;
+  bool ImageCompleteInternal() const;
   nsresult ImageUpdatedInternal(const nsIntRect& aUpdateRect);
   void GetImageDataInternal(uint8_t **aData, uint32_t *length) const;
   uint32_t GetImageBytesPerRow() const;
@@ -313,7 +286,7 @@ private:
   
   
 
-  mutable Monitor mMonitor;
+  mutable Mutex mMutex;
 
   RefPtr<DataSourceSurface> mImageSurface;
   RefPtr<SourceSurface> mOptSurface;
@@ -334,7 +307,6 @@ private:
   SurfaceFormat  mFormat;
 
   bool mHasNoAlpha;
-  bool mAborted;
 
 
   

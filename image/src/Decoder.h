@@ -12,20 +12,21 @@
 #include "DecodePool.h"
 #include "ImageMetadata.h"
 #include "Orientation.h"
-#include "SourceBuffer.h"
 #include "mozilla/Telemetry.h"
 
 namespace mozilla {
 
 namespace image {
 
-class Decoder : public IResumable
+class Decoder
 {
 public:
 
-  explicit Decoder(RasterImage* aImage);
+  explicit Decoder(RasterImage& aImage);
 
   
+
+
 
 
   void Init();
@@ -36,20 +37,41 @@ public:
 
 
 
-
-  nsresult Decode();
-
-  
-
-
-
-  void Finish();
+  void InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
+                         uint32_t* aColormap, uint32_t aColormapSize,
+                         RawAccessFrameRef&& aFrameRef);
 
   
 
 
 
-  bool ShouldSyncDecode(size_t aByteLimit);
+
+
+
+
+
+
+
+
+
+
+
+  void Write(const char* aBuffer, uint32_t aCount);
+
+  
+
+
+
+
+  void Finish(ShutdownReason aReason);
+
+  
+
+
+
+
+
+  void FinishSharedDecoder();
 
   
 
@@ -77,18 +99,7 @@ public:
   }
 
   
-
-
-  bool HasProgress() const
-  {
-    return mProgress != NoProgress || !mInvalidRect.IsEmpty();
-  }
-
-  
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder)
-
-  
-  virtual void Resume() MOZ_OVERRIDE;
 
   
 
@@ -100,52 +111,8 @@ public:
   bool IsSizeDecode() { return mSizeDecode; }
   void SetSizeDecode(bool aSizeDecode)
   {
-    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
+    NS_ABORT_IF_FALSE(!mInitialized, "Can't set size decode after Init()!");
     mSizeDecode = aSizeDecode;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  void SetSendPartialInvalidations(bool aSend)
-  {
-    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
-    mSendPartialInvalidations = aSend;
-  }
-
-  
-
-
-
-
-
-
-
-
-  void SetIterator(SourceBufferIterator&& aIterator)
-  {
-    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
-    mIterator.emplace(Move(aIterator));
-  }
-
-  
-
-
-
-
-  void SetImageIsTransient(bool aIsTransient)
-  {
-    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
-    mImageIsTransient = aIsTransient;
   }
 
   size_t BytesDecoded() const { return mBytesDecoded; }
@@ -164,27 +131,14 @@ public:
   uint32_t GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
 
   
-  bool HasError() const { return HasDataError() || HasDecoderError(); }
-  bool HasDataError() const { return mDataError; }
-  bool HasDecoderError() const { return NS_FAILED(mFailCode); }
-  nsresult GetDecoderError() const { return mFailCode; }
+  bool HasError() { return HasDataError() || HasDecoderError(); }
+  bool HasDataError() { return mDataError; }
+  bool HasDecoderError() { return NS_FAILED(mFailCode); }
+  nsresult GetDecoderError() { return mFailCode; }
   void PostResizeError() { PostDataError(); }
-
-  bool GetDecodeDone() const
-  {
-    return mDecodeDone || (mSizeDecode && HasSize()) || HasError() || mDataDone;
+  bool GetDecodeDone() const {
+    return mDecodeDone;
   }
-
-  
-
-
-
-
-
-
-
-
-  bool WasAborted() const { return mDecodeAborted; }
 
   
   
@@ -202,9 +156,13 @@ public:
   void SetDecodeFlags(uint32_t aFlags) { mDecodeFlags = aFlags; }
   uint32_t GetDecodeFlags() { return mDecodeFlags; }
 
-  nsIntSize GetSize() const { return mImageMetadata.GetSize(); }
   bool HasSize() const { return mImageMetadata.HasSize(); }
   void SetSizeOnImage();
+
+  void SetSize(const nsIntSize& aSize, const Orientation& aOrientation)
+  {
+    PostSize(aSize.width, aSize.height, aOrientation);
+  }
 
   
   virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
@@ -212,9 +170,22 @@ public:
   ImageMetadata& GetImageMetadata() { return mImageMetadata; }
 
   
+  
+  
+  
+  
+  
+  
+  void NeedNewFrame(uint32_t frameNum, uint32_t x_offset, uint32_t y_offset,
+                    uint32_t width, uint32_t height,
+                    gfx::SurfaceFormat format,
+                    uint8_t palette_depth = 0);
+  virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
 
 
-  RasterImage* GetImage() const { MOZ_ASSERT(mImage); return mImage.get(); }
+  
+  
+  virtual nsresult AllocateFrame();
 
   already_AddRefed<imgFrame> GetCurrentFrame()
   {
@@ -229,8 +200,6 @@ public:
   }
 
 protected:
-  friend class nsICODecoder;
-
   virtual ~Decoder();
 
   
@@ -296,24 +265,9 @@ protected:
   void PostDecoderError(nsresult aFailCode);
 
   
-
-
-
-
-
-
-
-  nsresult AllocateFrame(uint32_t aFrameNum,
-                         const nsIntRect& aFrameRect,
-                         gfx::SurfaceFormat aFormat,
-                         uint8_t aPaletteDepth = 0);
-
-  RawAccessFrameRef AllocateFrameInternal(uint32_t aFrameNum,
-                                          const nsIntRect& aFrameRect,
-                                          uint32_t aDecodeFlags,
-                                          gfx::SurfaceFormat aFormat,
-                                          uint8_t aPaletteDepth,
-                                          imgFrame* aPreviousFrame);
+  
+  
+  bool NeedsToFlushData() const { return mNeedsToFlushData; }
 
   
 
@@ -323,14 +277,24 @@ protected:
 
 
 
-  void Write(const char* aBuffer, uint32_t aCount);
+  RawAccessFrameRef EnsureFrame(uint32_t aFrameNum,
+                                const nsIntRect& aFrameRect,
+                                uint32_t aDecodeFlags,
+                                gfx::SurfaceFormat aFormat,
+                                uint8_t aPaletteDepth,
+                                imgFrame* aPreviousFrame);
 
+  RawAccessFrameRef InternalAddFrame(uint32_t aFrameNum,
+                                     const nsIntRect& aFrameRect,
+                                     uint32_t aDecodeFlags,
+                                     gfx::SurfaceFormat aFormat,
+                                     uint8_t aPaletteDepth,
+                                     imgFrame* aPreviousFrame);
   
 
 
 
-  nsRefPtr<RasterImage> mImage;
-  Maybe<SourceBufferIterator> mIterator;
+  RasterImage &mImage;
   RawAccessFrameRef mCurrentFrame;
   ImageMetadata mImageMetadata;
   nsIntRect mInvalidRect; 
@@ -347,18 +311,35 @@ protected:
 
   uint32_t mDecodeFlags;
   size_t mBytesDecoded;
-  bool mSendPartialInvalidations;
-  bool mDataDone;
   bool mDecodeDone;
   bool mDataError;
-  bool mDecodeAborted;
-  bool mImageIsTransient;
 
 private:
   uint32_t mFrameCount; 
 
   nsresult mFailCode;
 
+  struct NewFrameData
+  {
+    NewFrameData() { }
+
+    NewFrameData(uint32_t aFrameNum, const nsIntRect& aFrameRect,
+                 gfx::SurfaceFormat aFormat, uint8_t aPaletteDepth)
+      : mFrameNum(aFrameNum)
+      , mFrameRect(aFrameRect)
+      , mFormat(aFormat)
+      , mPaletteDepth(aPaletteDepth)
+    { }
+
+    uint32_t mFrameNum;
+    nsIntRect mFrameRect;
+    gfx::SurfaceFormat mFormat;
+    uint8_t mPaletteDepth;
+  };
+
+  NewFrameData mNewFrameData;
+  bool mNeedsNewFrame;
+  bool mNeedsToFlushData;
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;

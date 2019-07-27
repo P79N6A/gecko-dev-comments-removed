@@ -58,7 +58,7 @@ nsICODecoder::GetNumColors()
 }
 
 
-nsICODecoder::nsICODecoder(RasterImage* aImage)
+nsICODecoder::nsICODecoder(RasterImage& aImage)
  : Decoder(aImage)
 {
   mPos = mImageOffset = mCurrIcon = mNumIcons = mBPP = mRowBytes = 0;
@@ -82,13 +82,10 @@ nsICODecoder::FinishInternal()
 
   
   if (mContainedDecoder) {
-    if (!mContainedDecoder->HasError()) {
-      mContainedDecoder->FinishInternal();
-    }
+    mContainedDecoder->FinishSharedDecoder();
     mDecodeDone = mContainedDecoder->GetDecodeDone();
     mProgress |= mContainedDecoder->TakeProgress();
     mInvalidRect.Union(mContainedDecoder->TakeInvalidRect());
-    mCurrentFrame = mContainedDecoder->GetCurrentFrameRef();
   }
 }
 
@@ -252,7 +249,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
   }
 
   uint16_t colorDepth = 0;
-  nsIntSize prefSize = mImage->GetRequestedResolution();
+  nsIntSize prefSize = mImage.GetRequestedResolution();
   if (prefSize.width == 0 && prefSize.height == 0) {
     prefSize.SizeTo(PREFICONSIZE, PREFICONSIZE);
   }
@@ -345,8 +342,9 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     if (mIsPNG) {
       mContainedDecoder = new nsPNGDecoder(mImage);
       mContainedDecoder->SetSizeDecode(IsSizeDecode());
-      mContainedDecoder->SetSendPartialInvalidations(mSendPartialInvalidations);
-      mContainedDecoder->Init();
+      mContainedDecoder->InitSharedDecoder(mImageData, mImageDataLength,
+                                           mColormap, mColormapSize,
+                                           Move(mRefForContainedDecoder));
       if (!WriteToContainedDecoder(mSignature, PNGSIGNATURESIZE)) {
         return;
       }
@@ -422,8 +420,9 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     mContainedDecoder = bmpDecoder;
     bmpDecoder->SetUseAlphaData(true);
     mContainedDecoder->SetSizeDecode(IsSizeDecode());
-    mContainedDecoder->SetSendPartialInvalidations(mSendPartialInvalidations);
-    mContainedDecoder->Init();
+    mContainedDecoder->InitSharedDecoder(mImageData, mImageDataLength,
+                                         mColormap, mColormapSize,
+                                         Move(mRefForContainedDecoder));
 
     
     
@@ -624,6 +623,36 @@ nsICODecoder::ProcessDirEntry(IconDirEntry& aTarget)
   memcpy(&aTarget.mImageOffset, mDirEntryArray + 12,
          sizeof(aTarget.mImageOffset));
   aTarget.mImageOffset = LittleEndian::readUint32(&aTarget.mImageOffset);
+}
+
+bool
+nsICODecoder::NeedsNewFrame() const
+{
+  if (mContainedDecoder) {
+    return mContainedDecoder->NeedsNewFrame();
+  }
+
+  return Decoder::NeedsNewFrame();
+}
+
+nsresult
+nsICODecoder::AllocateFrame()
+{
+  nsresult rv;
+
+  if (mContainedDecoder) {
+    rv = mContainedDecoder->AllocateFrame();
+    mCurrentFrame = mContainedDecoder->GetCurrentFrameRef();
+    mProgress |= mContainedDecoder->TakeProgress();
+    mInvalidRect.Union(mContainedDecoder->TakeInvalidRect());
+    return rv;
+  }
+
+  
+  
+  rv = Decoder::AllocateFrame();
+  mRefForContainedDecoder = GetCurrentFrameRef();
+  return rv;
 }
 
 } 

@@ -7,12 +7,10 @@
 #include "Decoder.h"
 
 #include "mozilla/gfx/2D.h"
-#include "DecodePool.h"
-#include "GeckoProfiler.h"
 #include "imgIContainer.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
-#include "nsProxyRelease.h"
+#include "GeckoProfiler.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 
@@ -22,7 +20,7 @@ using mozilla::gfx::SurfaceFormat;
 namespace mozilla {
 namespace image {
 
-Decoder::Decoder(RasterImage* aImage)
+Decoder::Decoder(RasterImage &aImage)
   : mImage(aImage)
   , mProgress(NoProgress)
   , mImageData(nullptr)
@@ -30,14 +28,12 @@ Decoder::Decoder(RasterImage* aImage)
   , mChunkCount(0)
   , mDecodeFlags(0)
   , mBytesDecoded(0)
-  , mSendPartialInvalidations(false)
-  , mDataDone(false)
   , mDecodeDone(false)
   , mDataError(false)
-  , mDecodeAborted(false)
-  , mImageIsTransient(false)
   , mFrameCount(0)
   , mFailCode(NS_OK)
+  , mNeedsNewFrame(false)
+  , mNeedsToFlushData(false)
   , mInitialized(false)
   , mSizeDecode(false)
   , mInFrame(false)
@@ -51,21 +47,6 @@ Decoder::~Decoder()
   MOZ_ASSERT(mInvalidRect.IsEmpty(),
              "Destroying Decoder without taking all its invalidations");
   mInitialized = false;
-
-  if (!NS_IsMainThread()) {
-    
-    
-    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-    NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
-    if (mainThread) {
-      
-      RasterImage* rawImg = nullptr;
-      mImage.swap(rawImg);
-      DebugOnly<nsresult> rv =
-        NS_ProxyRelease(mainThread, NS_ISUPPORTS_CAST(ImageResource*, rawImg));
-      MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to proxy release to main thread");
-    }
-  }
 }
 
 
@@ -76,7 +57,7 @@ void
 Decoder::Init()
 {
   
-  MOZ_ASSERT(!mInitialized, "Can't re-initialize a decoder!");
+  NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
 
   
   if (!IsSizeDecode()) {
@@ -89,67 +70,31 @@ Decoder::Init()
   mInitialized = true;
 }
 
-nsresult
-Decoder::Decode()
-{
-  MOZ_ASSERT(mInitialized, "Should be initialized here");
-  MOZ_ASSERT(mIterator, "Should have a SourceBufferIterator");
 
-  
-  
-  while (!GetDecodeDone() && !HasError()) {
-    auto newState = mIterator->AdvanceOrScheduleResume(this);
-
-    if (newState == SourceBufferIterator::WAITING) {
-      
-      
-      
-      
-      return NS_OK;
-    }
-
-    if (newState == SourceBufferIterator::COMPLETE) {
-      mDataDone = true;
-
-      nsresult finalStatus = mIterator->CompletionStatus();
-      if (NS_FAILED(finalStatus)) {
-        PostDataError();
-      }
-
-      return finalStatus;
-    }
-
-    MOZ_ASSERT(newState == SourceBufferIterator::READY);
-
-    Write(mIterator->Data(), mIterator->Length());
-  }
-
-  return HasError() ? NS_ERROR_FAILURE : NS_OK;
-}
 
 void
-Decoder::Resume()
+Decoder::InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
+                           uint32_t* aColormap, uint32_t aColormapSize,
+                           RawAccessFrameRef&& aFrameRef)
 {
-  DecodePool* decodePool = DecodePool::Singleton();
-  MOZ_ASSERT(decodePool);
+  
+  NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
 
-  nsCOMPtr<nsIEventTarget> target = decodePool->GetEventTarget();
-  if (MOZ_UNLIKELY(!target)) {
-    
-    return;
+  mImageData = aImageData;
+  mImageDataLength = aImageDataLength;
+  mColormap = aColormap;
+  mColormapSize = aColormapSize;
+  mCurrentFrame = Move(aFrameRef);
+
+  
+  if (!IsSizeDecode()) {
+    mFrameCount++;
+    PostFrameStart();
   }
 
-  nsCOMPtr<nsIRunnable> worker = decodePool->CreateDecodeWorker(this);
-  target->Dispatch(worker, nsIEventTarget::DISPATCH_NORMAL);
-}
-
-bool
-Decoder::ShouldSyncDecode(size_t aByteLimit)
-{
-  MOZ_ASSERT(aByteLimit > 0);
-  MOZ_ASSERT(mIterator, "Should have a SourceBufferIterator");
-
-  return mIterator->RemainingBytesIsNoMoreThan(aByteLimit);
+  
+  InitInternal();
+  mInitialized = true;
 }
 
 void
@@ -157,9 +102,6 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
 {
   PROFILER_LABEL("ImageDecoder", "Write",
     js::ProfileEntry::Category::GRAPHICS);
-
-  MOZ_ASSERT(aBuffer, "Should have a buffer");
-  MOZ_ASSERT(aCount > 0, "Should have a non-zero count");
 
   
   MOZ_ASSERT(!HasDecoderError(),
@@ -173,6 +115,12 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   mBytesDecoded += aCount;
 
   
+  if (aBuffer == nullptr && aCount == 0) {
+    MOZ_ASSERT(mNeedsToFlushData, "Flushing when we don't need to");
+    mNeedsToFlushData = false;
+  }
+
+  
   if (HasDataError())
     return;
 
@@ -181,15 +129,34 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
     return;
   }
 
+  MOZ_ASSERT(!NeedsNewFrame() || HasDataError(),
+             "Should not need a new frame before writing anything");
+  MOZ_ASSERT(!NeedsToFlushData() || HasDataError(),
+             "Should not need to flush data before writing anything");
+
   
   WriteInternal(aBuffer, aCount);
+
+  
+  while (NeedsNewFrame() && !HasDataError()) {
+    MOZ_ASSERT(!IsSizeDecode(), "Shouldn't need new frame for size decode");
+
+    nsresult rv = AllocateFrame();
+
+    if (NS_SUCCEEDED(rv)) {
+      
+      WriteInternal(nullptr, 0);
+    }
+
+    mNeedsToFlushData = false;
+  }
 
   
   mDecodeTime += (TimeStamp::Now() - start);
 }
 
 void
-Decoder::Finish()
+Decoder::Finish(ShutdownReason aReason)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -203,8 +170,7 @@ Decoder::Finish()
 
   
   
-  
-  if (!IsSizeDecode() && !mDecodeDone && !WasAborted()) {
+  if (!IsSizeDecode() && !mDecodeDone) {
 
     
     nsCOMPtr<nsIConsoleService> consoleService =
@@ -214,29 +180,34 @@ Decoder::Finish()
 
     if (consoleService && errorObject && !HasDecoderError()) {
       nsAutoString msg(NS_LITERAL_STRING("Image corrupt or truncated: ") +
-                       NS_ConvertUTF8toUTF16(mImage->GetURIString()));
+                       NS_ConvertUTF8toUTF16(mImage.GetURIString()));
 
       if (NS_SUCCEEDED(errorObject->InitWithWindowID(
                          msg,
-                         NS_ConvertUTF8toUTF16(mImage->GetURIString()),
+                         NS_ConvertUTF8toUTF16(mImage.GetURIString()),
                          EmptyString(), 0, 0, nsIScriptError::errorFlag,
-                         "Image", mImage->InnerWindowID()
+                         "Image", mImage.InnerWindowID()
                        ))) {
         consoleService->LogMessage(errorObject);
       }
     }
 
+    bool usable = !HasDecoderError();
+    if (aReason != ShutdownReason::NOT_NEEDED && !HasDecoderError()) {
+      
+      if (GetCompleteFrameCount() == 0) {
+        usable = false;
+      }
+    }
+
     
     
-    if (!HasDecoderError() && GetCompleteFrameCount() > 0) {
-      
-      
+    if (usable) {
       if (mInFrame) {
         PostFrameStop();
       }
       PostDecodeDone();
     } else {
-      
       if (!IsSizeDecode()) {
         mProgress |= FLAG_DECODE_COMPLETE | FLAG_ONLOAD_UNBLOCKED;
       }
@@ -246,65 +217,123 @@ Decoder::Finish()
 
   
   
-  mImageMetadata.SetOnImage(mImage);
+  mImageMetadata.SetOnImage(&mImage);
 
-  if (HasSize()) {
-    SetSizeOnImage();
-  }
-
-  if (mDecodeDone && !IsSizeDecode()) {
+  if (mDecodeDone) {
     MOZ_ASSERT(HasError() || mCurrentFrame, "Should have an error or a frame");
+    mImage.DecodingComplete(mCurrentFrame.get());
+  }
+}
 
-    
-    
-    
-    if (!mIsAnimated && !mImageIsTransient && mCurrentFrame) {
-      mCurrentFrame->SetOptimizable();
-    }
+void
+Decoder::FinishSharedDecoder()
+{
+  MOZ_ASSERT(NS_IsMainThread());
 
-    mImage->OnDecodingComplete();
+  if (!HasError()) {
+    FinishInternal();
   }
 }
 
 nsresult
-Decoder::AllocateFrame(uint32_t aFrameNum,
-                       const nsIntRect& aFrameRect,
-                       gfx::SurfaceFormat aFormat,
-                       uint8_t aPaletteDepth )
+Decoder::AllocateFrame()
 {
-  mCurrentFrame = AllocateFrameInternal(aFrameNum, aFrameRect, mDecodeFlags,
-                                        aFormat, aPaletteDepth,
-                                        mCurrentFrame.get());
+  MOZ_ASSERT(mNeedsNewFrame);
+
+  mCurrentFrame = EnsureFrame(mNewFrameData.mFrameNum,
+                              mNewFrameData.mFrameRect,
+                              mDecodeFlags,
+                              mNewFrameData.mFormat,
+                              mNewFrameData.mPaletteDepth,
+                              mCurrentFrame.get());
 
   if (mCurrentFrame) {
     
     mCurrentFrame->GetImageData(&mImageData, &mImageDataLength);
     mCurrentFrame->GetPaletteData(&mColormap, &mColormapSize);
 
-    if (aFrameNum + 1 == mFrameCount) {
+    if (mNewFrameData.mFrameNum + 1 == mFrameCount) {
       PostFrameStart();
     }
   } else {
     PostDataError();
   }
 
+  
+  
+  mNeedsNewFrame = false;
+
+  
+  
+  if (mBytesDecoded > 0) {
+    mNeedsToFlushData = true;
+  }
+
   return mCurrentFrame ? NS_OK : NS_ERROR_FAILURE;
 }
 
 RawAccessFrameRef
-Decoder::AllocateFrameInternal(uint32_t aFrameNum,
-                               const nsIntRect& aFrameRect,
-                               uint32_t aDecodeFlags,
-                               SurfaceFormat aFormat,
-                               uint8_t aPaletteDepth,
-                               imgFrame* aPreviousFrame)
+Decoder::EnsureFrame(uint32_t aFrameNum,
+                     const nsIntRect& aFrameRect,
+                     uint32_t aDecodeFlags,
+                     SurfaceFormat aFormat,
+                     uint8_t aPaletteDepth,
+                     imgFrame* aPreviousFrame)
 {
   if (mDataError || NS_FAILED(mFailCode)) {
     return RawAccessFrameRef();
   }
 
-  if (aFrameNum != mFrameCount) {
-    MOZ_ASSERT_UNREACHABLE("Allocating frames out of order");
+  MOZ_ASSERT(aFrameNum <= mFrameCount, "Invalid frame index!");
+  if (aFrameNum > mFrameCount) {
+    return RawAccessFrameRef();
+  }
+
+  
+  if (aFrameNum == mFrameCount) {
+    return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
+                            aPaletteDepth, aPreviousFrame);
+  }
+
+  
+  
+  
+  
+  
+  MOZ_ASSERT(aFrameNum == 0, "Replacing a frame other than the first?");
+  MOZ_ASSERT(mFrameCount == 1, "Should have only one frame");
+  MOZ_ASSERT(aPreviousFrame, "Need the previous frame to replace");
+  if (aFrameNum != 0 || !aPreviousFrame || mFrameCount != 1) {
+    return RawAccessFrameRef();
+  }
+
+  MOZ_ASSERT(!aPreviousFrame->GetRect().IsEqualEdges(aFrameRect) ||
+             aPreviousFrame->GetFormat() != aFormat ||
+             aPreviousFrame->GetPaletteDepth() != aPaletteDepth,
+             "Replacing first frame with the same kind of frame?");
+
+  
+  IntSize prevFrameSize = aPreviousFrame->GetImageSize();
+  SurfaceCache::RemoveSurface(ImageKey(&mImage),
+                              RasterSurfaceKey(prevFrameSize, aDecodeFlags, 0));
+  mFrameCount = 0;
+  mInFrame = false;
+
+  
+  return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
+                          aPaletteDepth, nullptr);
+}
+
+RawAccessFrameRef
+Decoder::InternalAddFrame(uint32_t aFrameNum,
+                          const nsIntRect& aFrameRect,
+                          uint32_t aDecodeFlags,
+                          SurfaceFormat aFormat,
+                          uint8_t aPaletteDepth,
+                          imgFrame* aPreviousFrame)
+{
+  MOZ_ASSERT(aFrameNum <= mFrameCount, "Invalid frame index!");
+  if (aFrameNum > mFrameCount) {
     return RawAccessFrameRef();
   }
 
@@ -332,24 +361,16 @@ Decoder::AllocateFrameInternal(uint32_t aFrameNum,
 
   RawAccessFrameRef ref = frame->RawAccessRef();
   if (!ref) {
-    frame->Abort();
     return RawAccessFrameRef();
   }
 
-  InsertOutcome outcome =
-    SurfaceCache::Insert(frame, ImageKey(mImage.get()),
+  bool succeeded =
+    SurfaceCache::Insert(frame, ImageKey(&mImage),
                          RasterSurfaceKey(imageSize.ToIntSize(),
                                           aDecodeFlags,
                                           aFrameNum),
                          Lifetime::Persistent);
-  if (outcome != InsertOutcome::SUCCESS) {
-    
-    
-    
-    
-    
-    mDecodeAborted = true;
-    ref->Abort();
+  if (!succeeded) {
     return RawAccessFrameRef();
   }
 
@@ -379,7 +400,7 @@ Decoder::AllocateFrameInternal(uint32_t aFrameNum,
   }
 
   mFrameCount++;
-  mImage->OnAddedFrame(mFrameCount, refreshArea);
+  mImage.OnAddedFrame(mFrameCount, refreshArea);
 
   return ref;
 }
@@ -390,12 +411,9 @@ Decoder::SetSizeOnImage()
   MOZ_ASSERT(mImageMetadata.HasSize(), "Should have size");
   MOZ_ASSERT(mImageMetadata.HasOrientation(), "Should have orientation");
 
-  nsresult rv = mImage->SetSize(mImageMetadata.GetWidth(),
-                                mImageMetadata.GetHeight(),
-                                mImageMetadata.GetOrientation());
-  if (NS_FAILED(rv)) {
-    PostResizeError();
-  }
+  mImage.SetSize(mImageMetadata.GetWidth(),
+                 mImageMetadata.GetHeight(),
+                 mImageMetadata.GetOrientation());
 }
 
 
@@ -465,12 +483,6 @@ Decoder::PostFrameStop(Opacity aFrameOpacity ,
   mCurrentFrame->Finish(aFrameOpacity, aDisposalMethod, aTimeout, aBlendMethod);
 
   mProgress |= FLAG_FRAME_COMPLETE | FLAG_ONLOAD_UNBLOCKED;
-
-  
-  
-  if (!mSendPartialInvalidations && !mIsAnimated) {
-    mInvalidRect.UnionRect(mInvalidRect, mCurrentFrame->GetRect());
-  }
 }
 
 void
@@ -481,11 +493,8 @@ Decoder::PostInvalidation(nsIntRect& aRect)
   NS_ABORT_IF_FALSE(mCurrentFrame, "Can't invalidate when not mid-frame!");
 
   
-  
-  if (mSendPartialInvalidations && !mIsAnimated) {
-    mInvalidRect.UnionRect(mInvalidRect, aRect);
-    mCurrentFrame->ImageUpdated(aRect);
-  }
+  mInvalidRect.UnionRect(mInvalidRect, aRect);
+  mCurrentFrame->ImageUpdated(aRect);
 }
 
 void
@@ -505,10 +514,6 @@ void
 Decoder::PostDataError()
 {
   mDataError = true;
-
-  if (mInFrame && mCurrentFrame) {
-    mCurrentFrame->Abort();
-  }
 }
 
 void
@@ -521,10 +526,24 @@ Decoder::PostDecoderError(nsresult aFailureCode)
   
   
   NS_WARNING("Image decoding error - This is probably a bug!");
+}
 
-  if (mInFrame && mCurrentFrame) {
-    mCurrentFrame->Abort();
-  }
+void
+Decoder::NeedNewFrame(uint32_t framenum, uint32_t x_offset, uint32_t y_offset,
+                      uint32_t width, uint32_t height,
+                      gfx::SurfaceFormat format,
+                      uint8_t palette_depth )
+{
+  
+  MOZ_ASSERT(!mNeedsNewFrame);
+
+  
+  MOZ_ASSERT(framenum == mFrameCount || framenum == (mFrameCount - 1));
+
+  mNewFrameData = NewFrameData(framenum,
+                               nsIntRect(x_offset, y_offset, width, height),
+                               format, palette_depth);
+  mNeedsNewFrame = true;
 }
 
 } 
