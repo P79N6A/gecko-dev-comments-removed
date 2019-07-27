@@ -111,6 +111,68 @@ this.EXPORTED_SYMBOLS = ["PlacesTransactions"];
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -124,21 +186,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "console",
                                   "resource://gre/modules/devtools/Console.jsm");
 
-
-
-function updateCommandsOnActiveWindow() {
-  
-  try {
-    let win = Services.focus.activeWindow;
-    if (win)
-      win.updateCommands("undo");
-  }
-  catch(ex) { console.error(ex, "Couldn't update undo commands"); }
-}
-
-
-
-
+Components.utils.importGlobalProperties(["URL"]);
 
 let TransactionsHistory = [];
 TransactionsHistory.__proto__ = {
@@ -169,7 +217,9 @@ TransactionsHistory.__proto__ = {
 
 
   proxifyTransaction: function (aRawTransaction) {
-    let proxy = Object.freeze({});
+    let proxy = Object.freeze({
+      transact() TransactionsManager.transact(this)
+    });
     this.proxifiedToRaw.set(proxy, aRawTransaction);
     return proxy;
   },
@@ -191,61 +241,7 @@ TransactionsHistory.__proto__ = {
 
 
 
-  getRawTransaction: function (aProxy) this.proxifiedToRaw.get(aProxy),
-
-  
-
-
-  undo: function* () {
-    let entry = this.topUndoEntry;
-    if (!entry)
-      return;
-
-    for (let transaction of entry) {
-      try {
-        yield TransactionsHistory.getRawTransaction(transaction).undo();
-      }
-      catch(ex) {
-        
-        
-        console.error(ex,
-                      "Couldn't undo a transaction, clearing all undo entries.");
-        this.clearUndoEntries();
-        return;
-      }
-    }
-    this._undoPosition++;
-    updateCommandsOnActiveWindow();
-  },
-
-  
-
-
-  redo: function* () {
-    let entry = this.topRedoEntry;
-    if (!entry)
-      return;
-
-    for (let i = entry.length - 1; i >= 0; i--) {
-      let transaction = TransactionsHistory.getRawTransaction(entry[i]);
-      try {
-        if (transaction.redo)
-          yield transaction.redo();
-        else
-          yield transaction.execute();
-      }
-      catch(ex) {
-        
-        
-        console.error(ex,
-                      "Couldn't redo a transaction, clearing all redo entries.");
-        this.clearRedoEntries();
-        return;
-      }
-    }
-    this._undoPosition--;
-    updateCommandsOnActiveWindow();
-  },
+  getRawTransaction(aProxy) this.proxifiedToRaw.get(aProxy),
 
   
 
@@ -259,7 +255,7 @@ TransactionsHistory.__proto__ = {
 
 
 
-  add: function (aProxifiedTransaction, aForceNewEntry = false) {
+  add(aProxifiedTransaction, aForceNewEntry = false) {
     if (!this.isProxifiedTransactionObject(aProxifiedTransaction))
       throw new Error("aProxifiedTransaction is not a proxified transaction");
 
@@ -270,13 +266,12 @@ TransactionsHistory.__proto__ = {
     else {
       this[this.undoPosition].unshift(aProxifiedTransaction);
     }
-    updateCommandsOnActiveWindow();
   },
 
   
 
 
-  clearUndoEntries: function () {
+  clearUndoEntries() {
     if (this.undoPosition < this.length)
       this.splice(this.undoPosition);
   },
@@ -284,7 +279,7 @@ TransactionsHistory.__proto__ = {
   
 
 
-  clearRedoEntries: function () {
+  clearRedoEntries() {
     if (this.undoPosition > 0) {
       this.splice(0, this.undoPosition);
       this._undoPosition = 0;
@@ -294,7 +289,7 @@ TransactionsHistory.__proto__ = {
   
 
 
-  clearAllEntries: function () {
+  clearAllEntries() {
     if (this.length > 0) {
       this.splice(0);
       this._undoPosition = 0;
@@ -303,141 +298,36 @@ TransactionsHistory.__proto__ = {
 };
 
 
-
-
-let currentTask = Promise.resolve();
-function Serialize(aTask) {
-  
-  return currentTask = currentTask.then( () => Task.spawn(aTask) )
-                                  .then(null, Components.utils.reportError);
-}
-
-
-
-
-let executedTransactions = new WeakMap(); 
-executedTransactions.add = k => executedTransactions.set(k, null);
-
 let PlacesTransactions = {
   
 
 
+  batch(aToBatch) {
+    let batchFunc;
+    if (Array.isArray(aToBatch)) {
+      if (aToBatch.length == 0)
+        throw new Error("aToBatch must not be an empty array");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  transact: function (aToTransact) {
-    if (Array.isArray(aToTransact)) {
-      if (aToTransact.some(
+      if (aToBatch.some(
            o => !TransactionsHistory.isProxifiedTransactionObject(o))) {
-        throw new Error("aToTransact contains non-transaction element");
+        throw new Error("aToBatch contains non-transaction element");
       }
-      
-      return this.transact(function* () {
-        for (let t of aToTransact) {
-          yield t;
+      return TransactionsManager.batch(function* () {
+        for (let txn of aToBatch) {
+          try {
+            yield txn.transact();
+          }
+          catch(ex) {
+            console.error(ex);
+          }
         }
       });
     }
-
-    let isGeneratorObj =
-      o => Object.prototype.toString.call(o) ==  "[object Generator]";
-
-    let generator = null;
-    if (typeof(aToTransact) == "function") {
-      generator = aToTransact();
-      if (!isGeneratorObj(generator))
-        throw new Error("aToTransact is not a generator function");
-    }
-    else if (!TransactionsHistory.isProxifiedTransactionObject(aToTransact)) {
-      throw new Error("aToTransact is not a valid transaction object");
-    }
-    else if (executedTransactions.has(aToTransact)) {
-      throw new Error("Transactions objects may not be recycled.");
+    if (typeof(aToBatch) == "function") {
+      return TransactionsManager.batch(aToBatch);
     }
 
-    return Serialize(function* () {
-      
-      
-      
-      
-      
-      
-      let forceNewEntry = true;
-      function* transactOneTransaction(aTransaction) {
-        let retval =
-          yield TransactionsHistory.getRawTransaction(aTransaction).execute();
-        executedTransactions.add(aTransaction);
-        TransactionsHistory.add(aTransaction, forceNewEntry);
-        forceNewEntry = false;
-        return retval;
-      }
-
-      function* transactBatch(aGenerator) {
-        let error = false;
-        let sendValue = undefined;
-        while (true) {
-          let next = error ?
-                     aGenerator.throw(sendValue) : aGenerator.next(sendValue);
-          sendValue = next.value;
-          if (isGeneratorObj(sendValue)) {
-            sendValue = yield transactBatch(sendValue);
-          }
-          else if (typeof(sendValue) == "object" && sendValue) {
-            if (TransactionsHistory.isProxifiedTransactionObject(sendValue)) {
-              if (executedTransactions.has(sendValue)) {
-                sendValue = new Error("Transactions may not be recycled.");
-                error = true;
-              }
-              else {
-                sendValue = yield transactOneTransaction(sendValue);
-              }
-            }
-            else if ("then" in sendValue) {
-              sendValue = yield sendValue;
-            }
-          }
-          if (next.done)
-            break;
-        }
-        return sendValue;
-      }
-
-      if (generator)
-        return yield transactBatch(generator);
-      else
-        return yield transactOneTransaction(aToTransact);
-    }.bind(this));
+    throw new Error("aToBatch must be either a function or a transactions array");
   },
 
   
@@ -449,7 +339,7 @@ let PlacesTransactions = {
 
 
 
-  undo: function () Serialize(() => TransactionsHistory.undo()),
+  undo() TransactionsManager.undo(),
 
   
 
@@ -460,7 +350,7 @@ let PlacesTransactions = {
 
 
 
-  redo: function () Serialize(() => TransactionsHistory.redo()),
+  redo() TransactionsManager.redo(),
 
   
 
@@ -476,19 +366,8 @@ let PlacesTransactions = {
 
 
 
-  clearTransactionsHistory:
-  function (aUndoEntries = true, aRedoEntries = true) {
-    return Serialize(function* () {
-      if (aUndoEntries && aRedoEntries)
-        TransactionsHistory.clearAllEntries();
-      else if (aUndoEntries)
-        TransactionsHistory.clearUndoEntries();
-      else if (aRedoEntries)
-        TransactionsHistory.clearRedoEntries();
-      else
-        throw new Error("either aUndoEntries or aRedoEntries should be true");
-    });
-  },
+  clearTransactionsHistory(aUndoEntries = true, aRedoEntries = true)
+    TransactionsManager.clearTransactionsHistory(aUndoEntries, aRedoEntries),
 
   
 
@@ -507,7 +386,7 @@ let PlacesTransactions = {
 
 
 
-  entry: function (aIndex) {
+  entry(aIndex) {
     if (!Number.isInteger(aIndex) || aIndex < 0 || aIndex >= this.length)
       throw new Error("Invalid index");
 
@@ -531,6 +410,216 @@ let PlacesTransactions = {
 
 
   get topRedoEntry() TransactionsHistory.topRedoEntry
+};
+
+
+
+
+
+
+
+
+
+
+function Enqueuer() {
+  this._promise = Promise.resolve();
+}
+Enqueuer.prototype = {
+  
+
+
+
+
+
+
+
+
+  enqueue(aFunc) {
+    let promise = this._promise.then(Task.async(aFunc));
+
+    
+    this._promise = promise.catch(console.error);
+    return promise;
+  },
+
+  
+
+
+
+
+
+
+
+  alsoWaitFor(aPromise) {
+    
+    
+    let promise = aPromise.catch(console.error);
+    this._promise = Promise.all([this._promise, promise]);
+  },
+
+  
+
+
+  get promise() this._promise
+};
+
+
+let TransactionsManager = {
+  
+  
+  _mainEnqueuer: new Enqueuer(),
+  _transactEnqueuer: new Enqueuer(),
+
+  
+  
+  _batching: false,
+
+  
+  
+  
+  _createdBatchEntry: false,
+
+  
+  
+  
+  _executedTransactions: new WeakSet(),
+
+  transact(aTxnProxy) {
+    let rawTxn = TransactionsHistory.getRawTransaction(aTxnProxy);
+    if (!rawTxn)
+      throw new Error("|transact| was called with an unexpected object");
+
+    if (this._executedTransactions.has(rawTxn))
+      throw new Error("Transactions objects may not be recycled.");
+
+    
+    
+    this._executedTransactions.add(rawTxn);
+
+    let promise = this._transactEnqueuer.enqueue(function* () {
+      
+      
+      let retval = yield rawTxn.execute();
+
+      let forceNewEntry = !this._batching || !this._createdBatchEntry;
+      TransactionsHistory.add(aTxnProxy, forceNewEntry);
+      if (this._batching)
+        this._createdBatchEntry = true;
+
+      this._updateCommandsOnActiveWindow();
+      return retval;
+    }.bind(this));
+    this._mainEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  batch(aTask) {
+    return this._mainEnqueuer.enqueue(function* () {
+      this._batching = true;
+      this._createdBatchEntry = false;
+      let rv;
+      try {
+        
+        rv = (yield Task.spawn(aTask));
+      }
+      finally {
+        this._batching = false;
+        this._createdBatchEntry = false;
+      }
+      return rv;
+    }.bind(this));
+  },
+
+  
+
+
+  undo() {
+    let promise = this._mainEnqueuer.enqueue(function* () {
+      let entry = TransactionsHistory.topUndoEntry;
+      if (!entry)
+        return;
+
+      for (let txnProxy of entry) {
+        try {
+          yield TransactionsHistory.getRawTransaction(txnProxy).undo();
+        }
+        catch(ex) {
+          
+          
+          console.error(ex,
+                        "Couldn't undo a transaction, clearing all undo entries.");
+          TransactionsHistory.clearUndoEntries();
+          return;
+        }
+      }
+      TransactionsHistory._undoPosition++;
+      this._updateCommandsOnActiveWindow();
+    }.bind(this));
+    this._transactEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  
+
+
+  redo() {
+    let promise = this._mainEnqueuer.enqueue(function* () {
+      let entry = TransactionsHistory.topRedoEntry;
+      if (!entry)
+        return;
+
+      for (let i = entry.length - 1; i >= 0; i--) {
+        let transaction = TransactionsHistory.getRawTransaction(entry[i]);
+        try {
+          if (transaction.redo)
+            yield transaction.redo();
+          else
+            yield transaction.execute();
+        }
+        catch(ex) {
+          
+          
+          console.error(ex,
+                        "Couldn't redo a transaction, clearing all redo entries.");
+          TransactionsHistory.clearRedoEntries();
+          return;
+        }
+      }
+      TransactionsHistory._undoPosition--;
+      this._updateCommandsOnActiveWindow();
+    }.bind(this));
+
+    this._transactEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  clearTransactionsHistory(aUndoEntries, aRedoEntries) {
+    let promise = this._mainEnqueuer.enqueue(function* () {
+      if (aUndoEntries && aRedoEntries)
+        TransactionsHistory.clearAllEntries();
+      else if (aUndoEntries)
+        TransactionsHistory.clearUndoEntries();
+      else if (aRedoEntries)
+        TransactionsHistory.clearRedoEntries();
+      else
+        throw new Error("either aUndoEntries or aRedoEntries should be true");
+    }.bind(this));
+
+    this._transactEnqueuer.alsoWaitFor(promise);
+    return promise;
+  },
+
+  
+  
+  _updateCommandsOnActiveWindow() {
+    
+    try {
+      let win = Services.focus.activeWindow;
+      if (win)
+        win.updateCommands("undo");
+    }
+    catch(ex) { console.error(ex, "Couldn't update undo commands"); }
+  }
 };
 
 
@@ -618,10 +707,13 @@ DefineTransaction.annotationObjectValidate = function (obj) {
   throw new Error("Invalid annotation object");
 };
 
-DefineTransaction.uriValidate = function(uriOrSpec) {
-  if (uriOrSpec instanceof Components.interfaces.nsIURI)
-    return uriOrSpec;
-  return NetUtil.newURI(uriOrSpec);
+DefineTransaction.urlValidate = function(url) {
+  
+  
+  if (url instanceof Components.interfaces.nsIURI)
+    return url;
+  let spec = url instanceof URL ? url.href : url;
+  return NetUtil.newURI(spec);
 };
 
 DefineTransaction.inputProps = new Map();
@@ -763,8 +855,8 @@ function (aInput, aRequiredProps = [], aOptionalProps = []) {
 
 
 
-DefineTransaction.defineInputProps(["uri", "feedURI", "siteURI"],
-                                   DefineTransaction.uriValidate, null);
+DefineTransaction.defineInputProps(["url", "feedUrl", "siteUrl"],
+                                   DefineTransaction.urlValidate, null);
 DefineTransaction.defineInputProps(["guid", "parentGuid", "newParentGuid"],
                                    DefineTransaction.guidValidate);
 DefineTransaction.defineInputProps(["title"],
@@ -777,7 +869,7 @@ DefineTransaction.defineInputProps(["index", "newIndex"],
                                    PlacesUtils.bookmarks.DEFAULT_INDEX);
 DefineTransaction.defineInputProps(["annotation"],
                                    DefineTransaction.annotationObjectValidate);
-DefineTransaction.defineArrayInputProp("uris", "uri");
+DefineTransaction.defineArrayInputProp("urls", "url");
 DefineTransaction.defineArrayInputProp("tags", "tag");
 DefineTransaction.defineArrayInputProp("annotations", "annotation");
 DefineTransaction.defineArrayInputProp("excludingAnnotations",
@@ -960,7 +1052,7 @@ let PT = PlacesTransactions;
 
 
 
-PT.NewBookmark = DefineTransaction(["parentGuid", "uri"],
+PT.NewBookmark = DefineTransaction(["parentGuid", "url"],
                                    ["index", "title", "keyword", "postData",
                                     "annotations", "tags"]);
 PT.NewBookmark.prototype = Object.seal({
@@ -1045,8 +1137,8 @@ PT.NewSeparator.prototype = Object.seal({
 
 
 
-PT.NewLivemark = DefineTransaction(["feedURI", "title", "parentGuid"],
-                                   ["siteURI", "index", "annotations"]);
+PT.NewLivemark = DefineTransaction(["feedUrl", "title", "parentGuid"],
+                                   ["siteUrl", "index", "annotations"]);
 PT.NewLivemark.prototype = Object.seal({
   execute: function* (aFeedURI, aTitle, aParentGuid, aSiteURI, aIndex, aAnnos) {
     let livemarkInfo = { title: aTitle
@@ -1134,8 +1226,8 @@ PT.EditTitle.prototype = Object.seal({
 
 
 
-PT.EditURI = DefineTransaction(["guid", "uri"]);
-PT.EditURI.prototype = Object.seal({
+PT.EditUrl = DefineTransaction(["guid", "url"]);
+PT.EditUrl.prototype = Object.seal({
   execute: function* (aGuid, aURI) {
     let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldURI = PlacesUtils.bookmarks.getBookmarkURI(itemId),
@@ -1317,7 +1409,7 @@ PT.Remove.prototype = {
 
 
 
-PT.Tag = DefineTransaction(["uris", "tags"]);
+PT.Tag = DefineTransaction(["urls", "tags"]);
 PT.Tag.prototype = {
   execute: function* (aURIs, aTags) {
     let onUndo = [], onRedo = [];
@@ -1335,7 +1427,7 @@ PT.Tag.prototype = {
       if (yield promiseIsBookmarked(currentURI)) {
         
         let createTxn = TransactionsHistory.getRawTransaction(
-          PT.NewBookmark({ uri: currentURI
+          PT.NewBookmark({ url: currentURI
                          , tags: aTags
                          , parentGuid: PlacesUtils.bookmarks.unfiledGuid }));
         yield createTxn.execute();
@@ -1375,7 +1467,7 @@ PT.Tag.prototype = {
 
 
 
-PT.Untag = DefineTransaction(["uris"], ["tags"]);
+PT.Untag = DefineTransaction(["urls"], ["tags"]);
 PT.Untag.prototype = {
   execute: function* (aURIs, aTags) {
     let onUndo = [], onRedo = [];
