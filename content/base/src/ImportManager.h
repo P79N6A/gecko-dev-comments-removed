@@ -49,6 +49,7 @@
 
 class nsIDocument;
 class nsIChannel;
+class nsIPrincipal;
 class nsINode;
 class AutoError;
 
@@ -114,6 +115,8 @@ private:
   
   void BlockScripts();
   void UnblockScripts();
+
+  nsIPrincipal* Principal();
 
   nsCOMPtr<nsIDocument> mDocument;
   nsCOMPtr<nsIURI> mURI;
