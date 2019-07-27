@@ -160,6 +160,10 @@ public class ToolbarEditText extends CustomEditText
         setCursorVisible(true);
     }
 
+    protected String getNonAutocompleteText() {
+        return getNonAutocompleteText(getText());
+    }
+
     
 
 
