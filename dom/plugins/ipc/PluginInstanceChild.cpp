@@ -1501,22 +1501,25 @@ PluginInstanceChild::PluginWindowProcInternal(HWND hWnd,
     }
 
     
-    if (message == WM_MOUSEACTIVATE)
+    if (message == WM_MOUSEACTIVATE) {
       self->CallPluginFocusChange(true);
+    }
 
     
     
     
     if ((InSendMessageEx(nullptr)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
         switch(message) {
+            case WM_CHILDACTIVATE:
             case WM_KILLFOCUS:
             ReplyMessage(0);
             break;
         }
     }
 
-    if (message == WM_KILLFOCUS)
+    if (message == WM_KILLFOCUS) {
       self->CallPluginFocusChange(false);
+    }
 
     if (message == WM_USER+1 &&
         (self->GetQuirks() & PluginModuleChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)) {
@@ -1547,11 +1550,13 @@ PluginInstanceChild::PluginWindowProcInternal(HWND hWnd,
       }
     }
 
-    if (message == WM_CLOSE)
+    if (message == WM_CLOSE) {
         self->DestroyPluginWindow();
+    }
 
-    if (message == WM_NCDESTROY)
+    if (message == WM_NCDESTROY) {
         RemoveProp(hWnd, kPluginInstanceChildProperty);
+    }
 
     return res;
 }
