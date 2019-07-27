@@ -1356,16 +1356,12 @@ Toolbox.prototype = {
     }
 
     
-    outstanding.push(this.destroyInspector());
-    
-    outstanding.push(() => {
+    outstanding.push(this.destroyInspector().then(() => {
+      
       this._pickerButton.removeEventListener("command", this._togglePicker, false);
       this._pickerButton = null;
-      let container = this.doc.getElementById("toolbox-buttons");
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
-      }
-    });
+    }));
+
     
     outstanding.push(this.destroyHost());
 
