@@ -28,7 +28,9 @@ add_task(function* test_healthreport_search_recording() {
   let oldCount = 0;
 
   
-  let defaultEngineID = "yahoo";
+  
+  
+  let defaultEngineID = "google";
 
   let field = defaultEngineID + ".urlbar";
 

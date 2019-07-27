@@ -405,7 +405,12 @@ pref("browser.search.order.2",                "chrome://browser-region/locale/re
 pref("browser.search.order.3",                "chrome://browser-region/locale/region.properties");
 
 
-pref("browser.search.geoSpecificDefaults", true);
+
+
+pref("browser.search.geoSpecificDefaults", false);
+pref("browser.search.geoSpecificDefaults.url", "https://search.services.mozilla.com/1/%APP%/%VERSION%/%CHANNEL%/%LOCALE%/%REGION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%");
+
+
 pref("browser.search.defaultenginename.US",      "data:text/plain,browser.search.defaultenginename.US=Yahoo");
 pref("browser.search.order.US.1",                "data:text/plain,browser.search.order.US.1=Yahoo");
 pref("browser.search.order.US.2",                "data:text/plain,browser.search.order.US.2=Google");

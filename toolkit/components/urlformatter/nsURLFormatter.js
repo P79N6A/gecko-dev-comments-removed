@@ -90,6 +90,15 @@ nsURLFormatterService.prototype = {
     LOCALE:           function() Cc["@mozilla.org/chrome/chrome-registry;1"].
                                  getService(Ci.nsIXULChromeRegistry).
                                  getSelectedLocale('global'),
+    REGION:           function() {
+      try {
+        
+        
+        return Services.prefs.getCharPref("browser.search.region") || "ZZ";
+      } catch(e) {
+        return "ZZ";
+      }
+    },
     VENDOR:           function() this.appInfo.vendor,
     NAME:             function() this.appInfo.name,
     ID:               function() this.appInfo.ID,

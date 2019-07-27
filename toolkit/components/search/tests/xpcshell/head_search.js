@@ -251,6 +251,22 @@ function isUSTimezone() {
   return UTCOffset >= 150 && UTCOffset <= 600;
 }
 
+const kDefaultenginenamePref = "browser.search.defaultenginename";
+const kTestEngineName = "Test search engine";
+const kLocalePref = "general.useragent.locale";
+
+function getDefaultEngineName(isUS) {
+  const nsIPLS = Ci.nsIPrefLocalizedString;
+  
+  let pref = kDefaultenginenamePref;
+  if (isUS === undefined)
+    isUS = Services.prefs.getCharPref(kLocalePref) == "en-US" && isUSTimezone();
+  if (isUS) {
+    pref += ".US";
+  }
+  return Services.prefs.getComplexValue(pref, nsIPLS).data;
+}
+
 
 
 
@@ -317,6 +333,8 @@ if (!isChild) {
   Services.prefs.setIntPref("browser.search.geoip.timeout", 2000);
   
   Services.prefs.setCharPref("browser.search.geoip.url", "");
+  
+  Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF).setCharPref("geoSpecificDefaults.url", "");
 }
 
 
@@ -487,6 +505,24 @@ function waitForSearchNotification(aExpectedData) {
       resolve(aSubject);
     }, SEARCH_SERVICE_TOPIC, false);
   });
+}
+
+function asyncInit() {
+  return new Promise(resolve => {
+    Services.search.init(function() {
+      do_check_true(Services.search.isInitialized);
+      resolve();
+    });
+  });
+}
+
+function asyncReInit() {
+  let promise = waitForSearchNotification("reinit-complete");
+
+  Services.search.QueryInterface(Ci.nsIObserver)
+          .observe(null, "nsPref:changed", kLocalePref);
+
+  return promise;
 }
 
 

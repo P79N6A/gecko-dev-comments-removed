@@ -54,7 +54,9 @@ function test() {
       let day = data.days.getDay(now);
 
       
-      let defaultProviderID = "yahoo";
+      
+      
+      let defaultProviderID = "google";
       let field = defaultProviderID + ".contextmenu";
       ok(day.has(field), "Have search recorded for context menu.");
 
@@ -66,4 +68,3 @@ function test() {
     });
   });
 }
-

@@ -212,6 +212,11 @@ const SEARCH_DEFAULT_UPDATE_INTERVAL = 7;
 
 
 
+
+const SEARCH_GEO_DEFAULT_UPDATE_INTERVAL = 2592000; 
+
+
+
 function isUsefulLine(aLine) {
   return !(/^\s*($|#)/i.test(aLine));
 }
@@ -408,20 +413,21 @@ loadListener.prototype = {
   onStatus: function (aRequest, aContext, aStatus, aStatusArg) {}
 }
 
-
-function geoSpecificDefaultsEnabled() {
-  
-  let distroID;
+function isPartnerBuild() {
   try {
-    distroID = Services.prefs.getCharPref("distribution.id");
+    let distroID = Services.prefs.getCharPref("distribution.id");
 
     
     if (distroID && !distroID.startsWith("mozilla")) {
-      return false;
+      return true;
     }
   } catch (e) {}
 
-  
+  return false;
+}
+
+
+function geoSpecificDefaultsEnabled() {
   let geoSpecificDefaults = false;
   try {
     geoSpecificDefaults = Services.prefs.getBoolPref("browser.search.geoSpecificDefaults");
@@ -500,7 +506,7 @@ function getIsUS() {
 
 
 function getGeoSpecificPrefName(basepref) {
-  if (!geoSpecificDefaultsEnabled())
+  if (!geoSpecificDefaultsEnabled() || isPartnerBuild())
     return basepref;
   if (getIsUS())
     return basepref + ".US";
@@ -532,14 +538,51 @@ function isUSTimezone() {
 
 let ensureKnownCountryCode = Task.async(function* () {
   
+  let countryCode;
   try {
-    Services.prefs.getCharPref("browser.search.countryCode");
-    return; 
+    countryCode = Services.prefs.getCharPref("browser.search.countryCode");
   } catch(e) {}
-  
-  
-  
-  yield fetchCountryCode();
+
+  if (!countryCode) {
+    
+    
+    
+    yield fetchCountryCode();
+  } else {
+    
+    if (!geoSpecificDefaultsEnabled())
+      return;
+
+    let expir = engineMetadataService.getGlobalAttr("searchDefaultExpir") || 0;
+    if (expir > Date.now()) {
+      
+      
+      let defaultEngine = engineMetadataService.getGlobalAttr("searchDefault");
+      if (!defaultEngine ||
+          engineMetadataService.getGlobalAttr("searchDefaultHash") == getVerificationHash(defaultEngine)) {
+        
+        return;
+      }
+    }
+
+    yield new Promise(resolve => {
+      let timeoutMS = Services.prefs.getIntPref("browser.search.geoip.timeout");
+      let timerId = setTimeout(() => {
+        timerId = null;
+        resolve();
+      }, timeoutMS);
+
+      let callback = () => {
+        clearTimeout(timerId);
+        resolve();
+      };
+      fetchRegionDefault().then(callback).catch(err => {
+        Components.utils.reportError(err);
+        callback();
+      });
+    });
+  }
+
   
   
   Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_CAUSED_SYNC_INIT").add(gInitialized);
@@ -628,9 +671,11 @@ function fetchCountryCode() {
     
     
     let timeoutMS = Services.prefs.getIntPref("browser.search.geoip.timeout");
+    let geoipTimeoutPossible = true;
     let timerId = setTimeout(() => {
       LOG("_fetchCountryCode: timeout fetching country information");
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT").add(1);
+      if (geoipTimeoutPossible)
+        Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT").add(1);
       timerId = null;
       resolve();
     }, timeoutMS);
@@ -646,14 +691,29 @@ function fetchCountryCode() {
       
       Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC, "geoip-lookup-xhr-complete");
 
-      
-      
-      if (timerId == null) {
-        return;
+      if (timerId) {
+        Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT").add(0);
+        geoipTimeoutPossible = false;
       }
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT").add(0);
-      clearTimeout(timerId);
-      resolve();
+
+      let callback = () => {
+        
+        
+        if (timerId == null) {
+          return;
+        }
+        clearTimeout(timerId);
+        resolve();
+      };
+
+      if (result && geoSpecificDefaultsEnabled()) {
+        fetchRegionDefault().then(callback).catch(err => {
+          Components.utils.reportError(err);
+          callback();
+        });
+      } else {
+        callback();
+      }
     };
 
     let request = new XMLHttpRequest();
@@ -682,6 +742,123 @@ function fetchCountryCode() {
     request.send("{}");
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+let fetchRegionDefault = () => new Promise(resolve => {
+  let urlTemplate = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF)
+                            .getCharPref("geoSpecificDefaults.url");
+  let endpoint = Services.urlFormatter.formatURL(urlTemplate);
+
+  
+  if (!endpoint) {
+    resolve();
+    return;
+  }
+
+  
+  const cohortPref = "browser.search.cohort";
+  let cohort;
+  try {
+    cohort = Services.prefs.getCharPref(cohortPref);
+  } catch(e) {}
+  if (cohort)
+    endpoint += "/" + cohort;
+
+  LOG("fetchRegionDefault starting with endpoint " + endpoint);
+
+  let startTime = Date.now();
+  let request = new XMLHttpRequest();
+  request.timeout = 100000; 
+  request.onload = function(event) {
+    let took = Date.now() - startTime;
+
+    let status = event.target.status;
+    if (status != 200) {
+      LOG("fetchRegionDefault failed with HTTP code " + status);
+      let retryAfter = request.getResponseHeader("retry-after");
+      if (retryAfter) {
+        engineMetadataService.setGlobalAttr("searchDefaultExpir",
+                                            Date.now() + retryAfter * 1000);
+      }
+      resolve();
+      return;
+    }
+
+    let response = event.target.response || {};
+    LOG("received " + response.toSource());
+
+    if (response.cohort) {
+      Services.prefs.setCharPref(cohortPref, response.cohort);
+    } else {
+      Services.prefs.clearUserPref(cohortPref);
+    }
+
+    if (response.settings && response.settings.searchDefault) {
+      let defaultEngine = response.settings.searchDefault;
+      engineMetadataService.setGlobalAttr("searchDefault", defaultEngine);
+      let hash = getVerificationHash(defaultEngine);
+      LOG("fetchRegionDefault saved searchDefault: " + defaultEngine +
+          " with verification hash: " + hash);
+      engineMetadataService.setGlobalAttr("searchDefaultHash", hash);
+    }
+
+    let interval = response.interval || SEARCH_GEO_DEFAULT_UPDATE_INTERVAL;
+    let milliseconds = interval * 1000; 
+    engineMetadataService.setGlobalAttr("searchDefaultExpir",
+                                        Date.now() + milliseconds);
+
+    LOG("fetchRegionDefault got success response in " + took + "ms");
+    resolve();
+  };
+  request.ontimeout = function(event) {
+    LOG("fetchRegionDefault: XHR finally timed-out");
+    resolve();
+  };
+  request.onerror = function(event) {
+    LOG("fetchRegionDefault: failed to retrieve territory default information");
+    resolve();
+  };
+  request.open("GET", endpoint, true);
+  request.setRequestHeader("Content-Type", "application/json");
+  request.responseType = "json";
+  request.send();
+});
+
+function getVerificationHash(aName) {
+  let disclaimer = "By modifying this file, I agree that I am doing so " +
+    "only within $appName itself, using official, user-driven search " +
+    "engine selection processes, and in a way which does not circumvent " +
+    "user consent. I acknowledge that any attempt to change this file " +
+    "from outside of $appName is a malicious act, and will be responded " +
+    "to accordingly."
+
+  let salt = OS.Path.basename(OS.Constants.Path.profileDir) + aName +
+             disclaimer.replace(/\$appName/g, Services.appinfo.name);
+
+  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+  converter.charset = "UTF-8";
+
+  
+  let data = converter.convertToByteArray(salt, {});
+  let hasher = Cc["@mozilla.org/security/hash;1"]
+                 .createInstance(Ci.nsICryptoHash);
+  hasher.init(hasher.SHA256);
+  hasher.update(data, data.length);
+
+  return hasher.finish(true);
+}
+
 
 
 
@@ -3371,22 +3548,31 @@ SearchService.prototype = {
   
   
   get _originalDefaultEngine() {
-    let defaultPrefB = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF);
-    let nsIPLS = Ci.nsIPrefLocalizedString;
-    let defaultEngine;
-
-    let defPref = getGeoSpecificPrefName("defaultenginename");
-    try {
-      defaultEngine = defaultPrefB.getComplexValue(defPref, nsIPLS).data;
-    } catch (ex) {
-      
-      
+    let defaultEngine = engineMetadataService.getGlobalAttr("searchDefault");
+    if (defaultEngine &&
+        engineMetadataService.getGlobalAttr("searchDefaultHash") != getVerificationHash(defaultEngine)) {
+      LOG("get _originalDefaultEngine, invalid searchDefaultHash for: " + defaultEngine);
+      defaultEngine = "";
     }
+
+    if (!defaultEngine) {
+      let defaultPrefB = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF);
+      let nsIPLS = Ci.nsIPrefLocalizedString;
+
+      let defPref = getGeoSpecificPrefName("defaultenginename");
+      try {
+        defaultEngine = defaultPrefB.getComplexValue(defPref, nsIPLS).data;
+      } catch (ex) {
+        
+        
+      }
+    }
+
     return this.getEngineByName(defaultEngine);
   },
 
   resetToOriginalDefaultEngine: function SRCH_SVC__resetToOriginalDefaultEngine() {
-    this.defaultEngine = this._originalDefaultEngine;
+    this.currentEngine = this._originalDefaultEngine;
   },
 
   _buildCache: function SRCH_SVC__buildCache() {
@@ -3714,6 +3900,7 @@ SearchService.prototype = {
   },
 
   _asyncReInit: function () {
+    LOG("_asyncReInit");
     
     gInitialized = false;
 
@@ -3729,8 +3916,14 @@ SearchService.prototype = {
 
     Task.spawn(function* () {
       try {
+        LOG("Restarting engineMetadataService");
         yield engineMetadataService.init();
-        yield this._asyncLoadEngines();
+        yield ensureKnownCountryCode();
+
+        
+        
+        if (!gInitialized)
+          yield this._asyncLoadEngines();
 
         
         
@@ -4295,31 +4488,6 @@ SearchService.prototype = {
                                       });
   },
 
-  _getVerificationHash: function SRCH_SVC__getVerificationHash(aName) {
-    let disclaimer = "By modifying this file, I agree that I am doing so " +
-      "only within $appName itself, using official, user-driven search " +
-      "engine selection processes, and in a way which does not circumvent " +
-      "user consent. I acknowledge that any attempt to change this file " +
-      "from outside of $appName is a malicious act, and will be responded " +
-      "to accordingly."
-
-    let salt = OS.Path.basename(OS.Constants.Path.profileDir) + aName +
-               disclaimer.replace(/\$appName/g, Services.appinfo.name);
-
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                      .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.charset = "UTF-8";
-
-    
-    let data = converter.convertToByteArray(salt, {});
-    let hasher = Cc["@mozilla.org/security/hash;1"]
-                   .createInstance(Ci.nsICryptoHash);
-    hasher.init(hasher.SHA256);
-    hasher.update(data, data.length);
-
-    return hasher.finish(true);
-  },
-
   
   init: function SRCH_SVC_init(observer) {
     LOG("SearchService.init");
@@ -4673,7 +4841,7 @@ SearchService.prototype = {
     this._ensureInitialized();
     if (!this._currentEngine) {
       let name = engineMetadataService.getGlobalAttr("current");
-      if (engineMetadataService.getGlobalAttr("hash") == this._getVerificationHash(name)) {
+      if (engineMetadataService.getGlobalAttr("hash") == getVerificationHash(name)) {
         this._currentEngine = this.getEngineByName(name);
       }
     }
@@ -4713,7 +4881,7 @@ SearchService.prototype = {
     }
 
     engineMetadataService.setGlobalAttr("current", newName);
-    engineMetadataService.setGlobalAttr("hash", this._getVerificationHash(newName));
+    engineMetadataService.setGlobalAttr("hash", getVerificationHash(newName));
 
     notifyAction(this._currentEngine, SEARCH_ENGINE_CURRENT);
   },

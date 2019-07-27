@@ -291,6 +291,8 @@ user_pref("browser.uitour.url", "http://%(server)s/uitour-dummy/tour");
 user_pref("browser.search.isUS", true);
 user_pref("browser.search.countryCode", "US");
 
+user_pref("browser.search.geoSpecificDefaults", false);
+
 
 user_pref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
 

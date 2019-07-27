@@ -3,72 +3,10 @@
 
 Components.utils.import("resource://gre/modules/osfile.jsm");
 
-const kDefaultenginenamePref = "browser.search.defaultenginename";
 const kSelectedEnginePref = "browser.search.selectedEngine";
-
-const kTestEngineName = "Test search engine";
-
-
-function getLocale() {
-  let LOCALE_PREF = "general.useragent.locale";
-  return Services.prefs.getCharPref(LOCALE_PREF);
-}
-
-function getIsUS() {
-  if (getLocale() != "en-US") {
-    return false;
-  }
-
-  
-  
-
-  
-  
-
-  
-  
-
-  
-  
-
-  let UTCOffset = (new Date()).getTimezoneOffset();
-  let isNA = UTCOffset >= 150 && UTCOffset <= 600;
-
-  return isNA;
-}
-
-function getDefaultEngineName() {
-  const nsIPLS = Ci.nsIPrefLocalizedString;
-  
-  let pref = kDefaultenginenamePref;
-  if (getIsUS()) {
-    pref += ".US";
-  }
-  return Services.prefs.getComplexValue(pref, nsIPLS).data;
-}
 
 
 let waitForNotification = waitForSearchNotification;
-
-function asyncInit() {
-  let deferred = Promise.defer();
-
-  Services.search.init(function() {
-    do_check_true(Services.search.isInitialized);
-    deferred.resolve();
-  });
-
-  return deferred.promise;
-}
-
-function asyncReInit() {
-  let promise = waitForNotification("reinit-complete");
-
-  Services.search.QueryInterface(Ci.nsIObserver)
-          .observe(null, "nsPref:changed", "general.useragent.locale");
-
-  return promise;
-}
 
 
 add_task(function* test_defaultEngine() {
@@ -138,7 +76,7 @@ add_task(function* test_ignoreInvalidHash() {
   json["[global]"].hash = "invalid";
 
   let data = new TextEncoder().encode(JSON.stringify(json));
-  let promise = OS.File.writeAtomic(path, data);
+  yield OS.File.writeAtomic(path, data);
 
   
   yield asyncReInit();

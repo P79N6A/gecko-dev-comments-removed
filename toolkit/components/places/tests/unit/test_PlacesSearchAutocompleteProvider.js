@@ -9,6 +9,7 @@ function run_test() {
   
   Services.prefs.setBoolPref("browser.search.isUS", true);
   Services.prefs.setCharPref("browser.search.countryCode", "US");
+  Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", false);
   run_next_test();
 }
 
