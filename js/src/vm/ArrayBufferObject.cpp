@@ -520,6 +520,12 @@ ArrayBufferObject::releaseMappedArray()
 }
 
 uint8_t *
+ArrayBufferObject::inlineDataPointer() const
+{
+    return static_cast<uint8_t *>(fixedData(JSCLASS_RESERVED_SLOTS(&class_)));
+}
+
+uint8_t *
 ArrayBufferObject::dataPointer() const
 {
     return static_cast<uint8_t *>(getSlot(DATA_SLOT).toPrivate());
@@ -620,7 +626,7 @@ ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, BufferContents content
     JS_ASSERT(!gc::IsInsideNursery(obj));
 
     if (!contents) {
-        void *data = obj->fixedData(reservedSlots);
+        void *data = obj->inlineDataPointer();
         memset(data, 0, nbytes);
         obj->initialize(nbytes, BufferContents::createUnowned(data), DoesntOwnData);
     } else {
@@ -772,9 +778,8 @@ ArrayBufferObject::objectMoved(JSObject *obj, const JSObject *old)
     const ArrayBufferObject &src = old->as<ArrayBufferObject>();
 
     
-    const size_t reservedSlots = JSCLASS_RESERVED_SLOTS(&ArrayBufferObject::class_);
-    if (src.dataPointer() == src.fixedData(reservedSlots))
-        dst.setSlot(DATA_SLOT, PrivateValue(dst.fixedData(reservedSlots)));
+    if (src.hasInlineData())
+        dst.setSlot(DATA_SLOT, PrivateValue(dst.inlineDataPointer()));
 }
 
 ArrayBufferViewObject *
@@ -953,6 +958,27 @@ InnerViewTable::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
 
 
 
+
+
+
+
+
+
+ void
+ArrayBufferViewObject::trace(JSTracer *trc, JSObject *obj)
+{
+    HeapSlot &bufSlot = obj->getReservedSlotRef(TypedArrayLayout::BUFFER_SLOT);
+    MarkSlot(trc, &bufSlot, "typedarray.buffer");
+
+    
+    
+    if (bufSlot.isObject()) {
+        ArrayBufferObject &buf = AsArrayBuffer(MaybeForwarded(&bufSlot.toObject()));
+        int32_t offset = obj->getReservedSlot(TypedArrayLayout::BYTEOFFSET_SLOT).toInt32();
+        MOZ_ASSERT(buf.dataPointer() != nullptr);
+        obj->initPrivate(buf.dataPointer() + offset);
+    }
+}
 
 template <>
 bool

@@ -1653,10 +1653,10 @@ ReportTypedObjTypeError(JSContext *cx,
  void
 TypedObject::obj_trace(JSTracer *trace, JSObject *object)
 {
+    ArrayBufferViewObject::trace(trace, object);
+
     JS_ASSERT(object->is<TypedObject>());
     TypedObject &typedObj = object->as<TypedObject>();
-
-    gc::MarkSlot(trace, &typedObj.getFixedSlotRef(JS_BUFVIEW_SLOT_OWNER), "typed object owner");
 
     
     
