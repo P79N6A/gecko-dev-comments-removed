@@ -70,6 +70,12 @@ public:
   virtual bool IsMarkable();
   virtual void GetMarkPoints(nsTArray<nsSVGMark> *aMarks);
 
+  
+
+
+
+
+
   virtual bool GetGeometryBounds(Rect* aBounds, Float aStrokeWidth,
                                  const Matrix& aTransform) {
     return false;
