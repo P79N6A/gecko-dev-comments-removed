@@ -171,7 +171,8 @@ private:
         }
     }
 
-    void OpenFile()
+    
+    void OpenFileImpl()
     {
         MOZ_ASSERT(!NS_IsMainThread());
         MOZ_ASSERT(!mFD);
@@ -185,10 +186,21 @@ private:
         NS_ENSURE_SUCCESS_VOID(rv);
 
         mFD = fd;
+    }
+
+    void OpenFile()
+    {
+        MOZ_ASSERT(!NS_IsMainThread());
+
+        OpenFileImpl();
 
         if (NS_FAILED(NS_DispatchToMainThread(this))) {
             NS_WARNING("Failed to dispatch to main thread!");
 
+            
+            
+            
+            mTabParent.forget();
             CloseFile();
         }
     }
