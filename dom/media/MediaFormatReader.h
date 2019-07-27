@@ -197,6 +197,7 @@ private:
       , mInputExhausted(false)
       , mError(false)
       , mNeedDraining(false)
+      , mDraining(false)
       , mDrainComplete(false)
       , mNumSamplesInput(0)
       , mNumSamplesOutput(0)
@@ -243,6 +244,7 @@ private:
     bool mInputExhausted;
     bool mError;
     bool mNeedDraining;
+    bool mDraining;
     bool mDrainComplete;
     
     
@@ -279,6 +281,7 @@ private:
       mOutputRequested = false;
       mInputExhausted = false;
       mNeedDraining = false;
+      mDraining = false;
       mDrainComplete = false;
       mTimeThreshold.reset();
       mOutput.Clear();
