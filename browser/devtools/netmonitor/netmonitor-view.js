@@ -579,6 +579,83 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
+
+
+
+
+
+
+
+
+
+
+  _getFormDataSections: Task.async(function*(aHeaders, aUploadHeaders, aPostData) {
+    let formDataSections = [];
+
+    let { headers: requestHeaders } = aHeaders;
+    let { headers: payloadHeaders } = aUploadHeaders;
+    let allHeaders = [...payloadHeaders, ...requestHeaders];
+
+    let contentTypeHeader = allHeaders.find(e => e.name.toLowerCase() == "content-type");
+    let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
+    let contentType = yield gNetwork.getString(contentTypeLongString);
+
+    if (contentType.includes("x-www-form-urlencoded")) {
+      let postDataLongString = aPostData.postData.text;
+      let postData = yield gNetwork.getString(postDataLongString);
+
+      for (let section of postData.split(/\r\n|\r|\n/)) {
+        
+        
+        if (payloadHeaders.every(header => !section.startsWith(header.name))) {
+          formDataSections.push(section);
+        }
+      }
+    }
+
+    return formDataSections;
+  }),
+
+  
+
+
+  copyPostData: Task.async(function*() {
+    let selected = this.selectedItem.attachment;
+    let view = this;
+
+    
+    let formDataSections = yield view._getFormDataSections(
+      selected.requestHeaders,
+      selected.requestHeadersFromUploadStream,
+      selected.requestPostData);
+
+    let params = [];
+    formDataSections.forEach(section => {
+      let paramsArray = parseQueryString(section);
+      if (paramsArray) {
+        params = [...params, ...paramsArray];
+      }
+    });
+
+    let string = params
+      .map(param => param.name + (param.value ? "=" + param.value : ""))
+      .join(Services.appinfo.OS === "WINNT" ? "\r\n" : "\n");
+
+    
+    if (!string) {
+      let postData = selected.requestPostData.postData.text;
+      string = yield gNetwork.getString(postData);
+      if (Services.appinfo.OS !== "WINNT") {
+        string = string.replace(/\r/g, "");
+      }
+    }
+
+    clipboardHelper.copyString(string, document);
+  }),
+
+  
+
+
   copyAsCurl: function() {
     let selected = this.selectedItem.attachment;
 
@@ -1843,6 +1920,9 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     let copyUrlParamsElement = $("#request-menu-context-copy-url-params");
     copyUrlParamsElement.hidden = !selectedItem || !nsIURL(selectedItem.attachment.url).query;
 
+    let copyPostDataElement = $("#request-menu-context-copy-post-data");
+    copyPostDataElement.hidden = !selectedItem || !selectedItem.attachment.requestPostData;
+
     let copyAsCurlElement = $("#request-menu-context-copy-as-curl");
     copyAsCurlElement.hidden = !selectedItem || !selectedItem.attachment.responseContent;
 
@@ -2457,12 +2537,12 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setRequestHeaders: Task.async(function*(aHeadersResponse, aHeadersFromUploadStream) {
-    if (aHeadersResponse && aHeadersResponse.headers.length) {
-      yield this._addHeaders(this._requestHeaders, aHeadersResponse);
+  _setRequestHeaders: Task.async(function*(aHeaders, aUploadHeaders) {
+    if (aHeaders && aHeaders.headers.length) {
+      yield this._addHeaders(this._requestHeaders, aHeaders);
     }
-    if (aHeadersFromUploadStream && aHeadersFromUploadStream.headers.length) {
-      yield this._addHeaders(this._requestHeadersFromUpload, aHeadersFromUploadStream);
+    if (aUploadHeaders && aUploadHeaders.headers.length) {
+      yield this._addHeaders(this._requestHeadersFromUpload, aUploadHeaders);
     }
   }),
 
@@ -2599,31 +2679,19 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setRequestPostParams: Task.async(function*(aHeadersResponse, aHeadersFromUploadStream, aPostDataResponse) {
-    if (!aHeadersResponse || !aHeadersFromUploadStream || !aPostDataResponse) {
+  _setRequestPostParams: Task.async(function*(aHeaders, aUploadHeaders, aPostData) {
+    if (!aHeaders || !aUploadHeaders || !aPostData) {
       return;
     }
 
-    let { headers: requestHeaders } = aHeadersResponse;
-    let { headers: payloadHeaders } = aHeadersFromUploadStream;
-    let allHeaders = [...payloadHeaders, ...requestHeaders];
-
-    let contentTypeHeader = allHeaders.find(e => e.name.toLowerCase() == "content-type");
-    let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
-    let postDataLongString = aPostDataResponse.postData.text;
-
-    let postData = yield gNetwork.getString(postDataLongString);
-    let contentType = yield gNetwork.getString(contentTypeLongString);
+    let formDataSections = yield RequestsMenuView.prototype._getFormDataSections(
+      aHeaders, aUploadHeaders, aPostData);
 
     
-    if (contentType.includes("x-www-form-urlencoded")) {
-      for (let section of postData.split(/\r\n|\r|\n/)) {
-        
-        
-        if (payloadHeaders.every(header => !section.startsWith(header.name))) {
-          this._addParams(this._paramsFormData, section);
-        }
-      }
+    if (formDataSections.length > 0) {
+      formDataSections.forEach(section => {
+        this._addParams(this._paramsFormData, section);
+      });
     }
     
     else {
@@ -2637,6 +2705,9 @@ NetworkDetailsView.prototype = {
 
       $("#request-post-data-textarea-box").hidden = false;
       let editor = yield NetMonitorView.editor("#request-post-data-textarea");
+      let postDataLongString = aPostData.postData.text;
+      let postData = yield gNetwork.getString(postDataLongString);
+
       
       
       try {
