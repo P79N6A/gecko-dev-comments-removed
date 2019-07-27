@@ -48,8 +48,6 @@ public:
                       nsIntRegion* aDestRegion = nullptr,
                       gfx::IntPoint* aSrcOffset = nullptr) MOZ_OVERRIDE
   {
-    
-    
     mSurface = aSurface;
     return true;
   }

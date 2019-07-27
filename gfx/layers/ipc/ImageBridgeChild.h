@@ -13,7 +13,7 @@
 #include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/layers/AsyncTransactionTracker.h" 
 #include "mozilla/layers/CompositableForwarder.h"
-#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/PImageBridgeChild.h"
 #include "nsDebug.h"                    
 #include "nsRegion.h"                   
@@ -248,16 +248,6 @@ public:
     NS_RUNTIMEABORT("should not be called");
   }
 
-  virtual void UpdateTextureIncremental(CompositableClient* aCompositable,
-                                        TextureIdentifier aTextureId,
-                                        SurfaceDescriptor& aDescriptor,
-                                        const nsIntRegion& aUpdatedRegion,
-                                        const nsIntRect& aBufferRect,
-                                        const nsIntPoint& aBufferRotation) MOZ_OVERRIDE
-  {
-    NS_RUNTIMEABORT("should not be called");
-  }
-
   
 
 
@@ -265,12 +255,6 @@ public:
                                  const nsIntRect& aRect) MOZ_OVERRIDE;
 
 
-  virtual void CreatedIncrementalBuffer(CompositableClient* aCompositable,
-                                        const TextureInfo& aTextureInfo,
-                                        const nsIntRect& aBufferRect) MOZ_OVERRIDE
-  {
-    NS_RUNTIMEABORT("should not be called");
-  }
   virtual void UpdateTextureRegion(CompositableClient* aCompositable,
                                    const ThebesBufferData& aThebesBufferData,
                                    const nsIntRegion& aUpdatedRegion) MOZ_OVERRIDE {

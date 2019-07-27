@@ -59,14 +59,6 @@ public:
 
 
 
-  virtual void CreatedIncrementalBuffer(CompositableClient* aCompositable,
-                                        const TextureInfo& aTextureInfo,
-                                        const nsIntRect& aBufferRect) = 0;
-
-  
-
-
-
   virtual void UseTiledLayerBuffer(CompositableClient* aCompositable,
                                    const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
 
@@ -82,23 +74,6 @@ public:
   virtual void UpdateTextureRegion(CompositableClient* aCompositable,
                                    const ThebesBufferData& aThebesBufferData,
                                    const nsIntRegion& aUpdatedRegion) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual void UpdateTextureIncremental(CompositableClient* aCompositable,
-                                        TextureIdentifier aTextureId,
-                                        SurfaceDescriptor& aDescriptor,
-                                        const nsIntRegion& aUpdatedRegion,
-                                        const nsIntRect& aBufferRect,
-                                        const nsIntPoint& aBufferRotation) = 0;
 
   
 

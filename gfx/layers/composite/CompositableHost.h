@@ -104,45 +104,6 @@ public:
   
 
 
-
-
-
-
-
-
-
-
-
-
-  virtual void UpdateIncremental(TextureIdentifier aTextureId,
-                                 SurfaceDescriptor& aSurface,
-                                 const nsIntRegion& aUpdated,
-                                 const nsIntRect& aBufferRect,
-                                 const nsIntPoint& aBufferRotation)
-  {
-    MOZ_ASSERT(false, "should be implemented or not used");
-  }
-
-  
-
-
-
-
-
-
-
-
-  virtual bool CreatedIncrementalTexture(ISurfaceAllocator* aAllocator,
-                                         const TextureInfo& aTextureInfo,
-                                         const nsIntRect& aBufferRect)
-  {
-    NS_ERROR("should be implemented or not used");
-    return false;
-  }
-
-  
-
-
   virtual TextureHost* GetAsTextureHost() { return nullptr; }
 
   virtual LayerRenderState GetRenderState() = 0;

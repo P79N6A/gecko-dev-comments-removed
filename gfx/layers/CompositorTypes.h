@@ -133,8 +133,6 @@ enum class EffectTypes : uint8_t {
 
 enum class CompositableType : uint8_t {
   UNKNOWN,
-  CONTENT_INC,     
-                   
   CONTENT_TILED,   
   IMAGE,           
   IMAGE_OVERLAY,   
@@ -143,19 +141,6 @@ enum class CompositableType : uint8_t {
   CONTENT_DOUBLE,  
   COUNT
 };
-
-
-
-
-
-enum class DeprecatedTextureHostFlags : uint8_t {
-  DEFAULT = 0,       
-  TILED = 1 << 0,    
-  COPY_PREVIOUS = 1 << 1, 
-                                      
-  ALL_BITS = (1 << 2) - 1
-};
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DeprecatedTextureHostFlags)
 
 #ifdef XP_WIN
 typedef void* SyncHandle;
@@ -200,45 +185,26 @@ struct TextureFactoryIdentifier
 
 
 
-enum class TextureIdentifier : uint8_t {
-  Front = 1,
-  Back = 2,
-  OnWhiteFront = 3,
-  OnWhiteBack = 4,
-  HighBound
-};
-
-
-
-
-
-
-
 
 struct TextureInfo
 {
   CompositableType mCompositableType;
-  
-  DeprecatedTextureHostFlags mDeprecatedTextureHostFlags;
   TextureFlags mTextureFlags;
 
   TextureInfo()
     : mCompositableType(CompositableType::UNKNOWN)
-    , mDeprecatedTextureHostFlags(DeprecatedTextureHostFlags::DEFAULT)
     , mTextureFlags(TextureFlags::NO_FLAGS)
   {}
 
   explicit TextureInfo(CompositableType aType,
                        TextureFlags aTextureFlags = TextureFlags::DEFAULT)
     : mCompositableType(aType)
-    , mDeprecatedTextureHostFlags(DeprecatedTextureHostFlags::DEFAULT)
     , mTextureFlags(aTextureFlags)
   {}
 
   bool operator==(const TextureInfo& aOther) const
   {
     return mCompositableType == aOther.mCompositableType &&
-           mDeprecatedTextureHostFlags == aOther.mDeprecatedTextureHostFlags &&
            mTextureFlags == aOther.mTextureFlags;
   }
 };
