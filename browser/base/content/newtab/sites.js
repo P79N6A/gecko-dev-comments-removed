@@ -131,6 +131,12 @@ Site.prototype = {
     this._querySelector(".newtab-title").textContent = title;
     this.node.setAttribute("type", this.link.type);
 
+    if (this.link.targetedSite) {
+      let targetedSite = `<strong> ${this.link.targetedSite} </strong>`;
+      this._querySelector(".newtab-suggested").innerHTML =
+        `<div class='newtab-suggested-bounds'> ${newTabString("suggested.button", [targetedSite])} </div>`;
+    }
+
     if (this.isPinned())
       this._updateAttributes(true);
     
@@ -177,6 +183,15 @@ Site.prototype = {
     }
   },
 
+  _ignoreHoverEvents: function(element) {
+    element.addEventListener("mouseover", () => {
+      this.cell.node.setAttribute("ignorehover", "true");
+    });
+    element.addEventListener("mouseout", () => {
+      this.cell.node.removeAttribute("ignorehover");
+    });
+  },
+
   
 
 
@@ -187,13 +202,11 @@ Site.prototype = {
     this._node.addEventListener("mouseover", this, false);
 
     
+    
     let sponsored = this._querySelector(".newtab-sponsored");
-    sponsored.addEventListener("mouseover", () => {
-      this.cell.node.setAttribute("ignorehover", "true");
-    });
-    sponsored.addEventListener("mouseout", () => {
-      this.cell.node.removeAttribute("ignorehover");
-    });
+    let suggested = this._querySelector(".newtab-suggested");
+    this._ignoreHoverEvents(sponsored);
+    this._ignoreHoverEvents(suggested);
   },
 
   
@@ -268,6 +281,12 @@ Site.prototype = {
     }
     
     else if (button == 0) {
+      if (target.parentElement.classList.contains("newtab-suggested") ||
+          target.classList.contains("newtab-suggested")) {
+        
+        
+        return;
+      }
       aEvent.preventDefault();
       if (target.classList.contains("newtab-control-block")) {
         this.block();

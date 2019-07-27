@@ -563,10 +563,18 @@ let DirectoryLinksProvider = {
     
     
     let possibleLinks = new Map();
+    let targetedSites = new Map();
     this._topSitesWithRelatedLinks.forEach(topSiteWithRelatedLink => {
       let relatedLinksMap = this._relatedLinks.get(topSiteWithRelatedLink);
       relatedLinksMap.forEach((relatedLink, url) => {
         possibleLinks.set(url, relatedLink);
+
+        
+        
+        if (!targetedSites.get(url)) {
+          targetedSites.set(url, []);
+        }
+        targetedSites.get(url).push(topSiteWithRelatedLink);
       })
     });
     let flattenedLinks = [...possibleLinks.values()];
@@ -578,9 +586,16 @@ let DirectoryLinksProvider = {
     
     this._callObservers("onLinkChanged", {
       url: chosenRelatedLink.url,
+      title: chosenRelatedLink.title,
       frecency: RELATED_FRECENCY,
       lastVisitDate: chosenRelatedLink.lastVisitDate,
       type: "related",
+
+      
+      
+      
+      targetedSite: targetedSites.get(chosenRelatedLink.url).length ?
+        targetedSites.get(chosenRelatedLink.url)[0] : null
     });
     return chosenRelatedLink;
    },
