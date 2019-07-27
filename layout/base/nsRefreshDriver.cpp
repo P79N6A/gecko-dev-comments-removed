@@ -729,6 +729,47 @@ protected:
   uint32_t mNextDriverIndex;
 };
 
+
+
+
+class VsyncChildCreateCallback MOZ_FINAL : public nsIIPCBackgroundChildCreateCallback
+{
+  NS_DECL_ISUPPORTS
+
+public:
+  VsyncChildCreateCallback()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+  }
+
+  static void CreateVsyncActor(PBackgroundChild* aPBackgroundChild)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(aPBackgroundChild);
+
+    layout::PVsyncChild* actor = aPBackgroundChild->SendPVsyncConstructor();
+    layout::VsyncChild* child = static_cast<layout::VsyncChild*>(actor);
+    nsRefreshDriver::PVsyncActorCreated(child);
+  }
+
+private:
+  virtual ~VsyncChildCreateCallback() {}
+
+  virtual void ActorCreated(PBackgroundChild* aPBackgroundChild) MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(aPBackgroundChild);
+    CreateVsyncActor(aPBackgroundChild);
+  }
+
+  virtual void ActorFailed() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_CRASH("Failed To Create VsyncChild Actor");
+  }
+}; 
+NS_IMPL_ISUPPORTS(VsyncChildCreateCallback, nsIIPCBackgroundChildCreateCallback)
+
 } 
 
 static RefreshDriverTimer* sRegularRateTimer;
@@ -739,6 +780,49 @@ static int32_t sHighPrecisionTimerRequests = 0;
 
 static nsITimer *sDisableHighPrecisionTimersTimer = nullptr;
 #endif
+
+static RefreshDriverTimer*
+CreateVsyncRefreshTimer()
+{
+  
+  
+  gfxPrefs::GetSingleton();
+
+  if (!gfxPrefs::VsyncAlignedRefreshDriver()) {
+    return nullptr;
+  }
+
+  if (XRE_IsParentProcess()) {
+    
+    gfxPlatform::GetPlatform();
+    
+    
+    return new VsyncRefreshDriverTimer();
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  PBackgroundChild* backgroundChild = BackgroundChild::GetForCurrentThread();
+  if (backgroundChild) {
+    
+    
+    VsyncChildCreateCallback::CreateVsyncActor(backgroundChild);
+    return sRegularRateTimer;
+  }
+  
+  nsRefPtr<nsIIPCBackgroundChildCreateCallback> callback = new VsyncChildCreateCallback();
+  if (NS_WARN_IF(!BackgroundChild::GetOrCreateForCurrentThread(callback))) {
+    MOZ_CRASH("PVsync actor create failed!");
+  }
+  return nullptr;
+}
+
 static uint32_t
 GetFirstFrameDelay(imgIRequest* req)
 {
@@ -851,8 +935,12 @@ nsRefreshDriver::ChooseTimer() const
   if (!sRegularRateTimer) {
     bool isDefault = true;
     double rate = GetRegularTimerInterval(&isDefault);
+
+    
+    sRegularRateTimer = CreateVsyncRefreshTimer();
+
 #ifdef XP_WIN
-    if (PreciseRefreshDriverTimerWindowsDwmVsync::IsSupported()) {
+    if (!sRegularRateTimer && PreciseRefreshDriverTimerWindowsDwmVsync::IsSupported()) {
       sRegularRateTimer = new PreciseRefreshDriverTimerWindowsDwmVsync(rate, isDefault);
     }
 #endif
