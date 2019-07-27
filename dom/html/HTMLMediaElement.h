@@ -576,9 +576,11 @@ public:
     return mAutoplayEnabled;
   }
 
-  already_AddRefed<DOMMediaStream> MozCaptureStream(ErrorResult& aRv);
+  already_AddRefed<DOMMediaStream> MozCaptureStream(ErrorResult& aRv,
+                                                    MediaStreamGraph* aGraph = nullptr);
 
-  already_AddRefed<DOMMediaStream> MozCaptureStreamUntilEnded(ErrorResult& aRv);
+  already_AddRefed<DOMMediaStream> MozCaptureStreamUntilEnded(ErrorResult& aRv,
+                                                              MediaStreamGraph* aGraph = nullptr);
 
   bool MozAudioCaptured() const
   {
@@ -724,7 +726,8 @@ protected:
 
 
 
-  already_AddRefed<DOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded);
+  already_AddRefed<DOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded,
+                                                         MediaStreamGraph* aGraph = nullptr);
 
   
 
