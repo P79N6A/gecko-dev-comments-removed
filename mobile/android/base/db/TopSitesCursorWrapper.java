@@ -79,7 +79,7 @@ public class TopSitesCursorWrapper implements Cursor {
     private int currentPosition = -1;
 
     
-    private int pinnedBefore = 0;
+    private int pinnedBefore;
 
     
     private int count;

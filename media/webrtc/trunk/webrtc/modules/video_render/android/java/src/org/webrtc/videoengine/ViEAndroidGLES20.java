@@ -32,15 +32,15 @@ public class ViEAndroidGLES20 extends GLSurfaceView
     private static String TAG = "WEBRTC-JR";
     private static final boolean DEBUG = false;
     
-    private boolean surfaceCreated = false;
-    private boolean openGLCreated = false;
+    private boolean surfaceCreated;
+    private boolean openGLCreated;
     
-    private boolean nativeFunctionsRegisted = false;
+    private boolean nativeFunctionsRegisted;
     private ReentrantLock nativeFunctionLock = new ReentrantLock();
     
-    private long nativeObject = 0;
-    private int viewWidth = 0;
-    private int viewHeight = 0;
+    private long nativeObject;
+    private int viewWidth;
+    private int viewHeight;
 
     @WebRTCJNITarget
     public static boolean UseOpenGL2(Object renderWindow) {

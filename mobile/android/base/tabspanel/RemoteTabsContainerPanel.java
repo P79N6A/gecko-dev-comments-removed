@@ -43,7 +43,7 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
     private RemoteTabsList list;
 
     
-    private boolean isListening = false;
+    private boolean isListening;
 
     public RemoteTabsContainerPanel(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -124,7 +124,7 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
     private class RemoteTabsSyncObserver implements FirefoxAccounts.SyncStatusListener {
         
         
-        protected volatile long lastSyncStarted = 0;
+        protected volatile long lastSyncStarted;
 
         @Override
         public Context getContext() {

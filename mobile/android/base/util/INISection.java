@@ -16,12 +16,12 @@ public class INISection {
     private static final String LOGTAG = "INIParser";
 
     
-    private String mName = null;
+    private String mName;
     public String getName() { return mName; }
     public void setName(String name) { mName = name; }
 
     
-    private  boolean mDebug = false;
+    private  boolean mDebug;
 
     
     protected Hashtable<String, Object> mProperties = null;

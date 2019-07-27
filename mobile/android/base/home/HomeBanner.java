@@ -46,14 +46,14 @@ public class HomeBanner extends LinearLayout
     private boolean mSnapBannerToTop;
 
     
-    private boolean mActive = false;
+    private boolean mActive;
 
     
-    private boolean mScrollingPages = false;
+    private boolean mScrollingPages;
 
     
     
-    private boolean mUserSwipedDown = false;
+    private boolean mUserSwipedDown;
 
     
     

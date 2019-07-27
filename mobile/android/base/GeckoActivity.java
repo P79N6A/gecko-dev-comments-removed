@@ -10,7 +10,7 @@ import android.support.v4.app.FragmentActivity;
 
 public class GeckoActivity extends FragmentActivity implements GeckoActivityStatus {
     
-    private boolean mGeckoActivityOpened = false;
+    private boolean mGeckoActivityOpened;
 
     
 

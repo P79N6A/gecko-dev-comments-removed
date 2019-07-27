@@ -13,7 +13,7 @@ final class GeckoBackgroundThread extends Thread {
     private static final String LOOPER_NAME = "GeckoBackgroundThread";
 
     
-    private static Handler sHandler = null;
+    private static Handler sHandler;
     private SynchronousQueue<Handler> mHandlerQueue = new SynchronousQueue<Handler>();
 
     

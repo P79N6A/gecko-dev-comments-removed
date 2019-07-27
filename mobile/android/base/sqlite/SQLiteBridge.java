@@ -29,13 +29,13 @@ public class SQLiteBridge {
     private String mDb;
 
     
-    protected volatile long mDbPointer = 0L;
+    protected volatile long mDbPointer;
 
     
     private long[] mQueryResults;
 
-    private boolean mTransactionSuccess = false;
-    private boolean mInTransaction = false;
+    private boolean mTransactionSuccess;
+    private boolean mInTransaction;
 
     private static final int RESULT_INSERT_ROW_ID = 0;
     private static final int RESULT_ROWS_CHANGED = 1;

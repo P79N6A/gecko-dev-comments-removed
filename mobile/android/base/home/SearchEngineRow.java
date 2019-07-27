@@ -58,7 +58,7 @@ class SearchEngineRow extends AnimatedHeightLayout {
     private OnEditSuggestionListener mEditSuggestionListener;
 
     
-    private int mSelectedView = 0;
+    private int mSelectedView;
 
     public SearchEngineRow(Context context) {
         this(context, null);

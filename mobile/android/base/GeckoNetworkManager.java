@@ -61,11 +61,11 @@ public class GeckoNetworkManager extends BroadcastReceiver {
     private final IntentFilter mNetworkFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
 
     
-    private boolean mShouldBeListening = false;
+    private boolean mShouldBeListening;
 
     
     
-    private boolean mShouldNotify = false;
+    private boolean mShouldNotify;
 
     
     

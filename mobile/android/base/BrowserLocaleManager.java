@@ -52,11 +52,11 @@ public class BrowserLocaleManager implements LocaleManager {
 
     
     
-    private volatile Locale currentLocale = null;
+    private volatile Locale currentLocale;
     private volatile Locale systemLocale = Locale.getDefault();
 
     private AtomicBoolean inited = new AtomicBoolean(false);
-    private boolean systemLocaleDidChange = false;
+    private boolean systemLocaleDidChange;
     private BroadcastReceiver receiver;
 
     private static AtomicReference<LocaleManager> instance = new AtomicReference<LocaleManager>();

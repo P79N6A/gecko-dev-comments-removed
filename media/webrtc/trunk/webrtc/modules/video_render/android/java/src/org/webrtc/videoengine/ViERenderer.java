@@ -25,7 +25,7 @@ public class ViERenderer {
     private final static String TAG = "WEBRTC-ViEREnderer";
 
     
-    private static SurfaceHolder g_localRenderer = null;
+    private static SurfaceHolder g_localRenderer;
 
     public static SurfaceView CreateRenderer(Context context) {
         return CreateRenderer(context, false);

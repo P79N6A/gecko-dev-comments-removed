@@ -309,7 +309,7 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
 
-    private boolean mReadShareHistoryCalled = false;
+    private boolean mReadShareHistoryCalled;
 
     
 
@@ -322,7 +322,7 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-    private boolean mReloadActivities = false;
+    private boolean mReloadActivities;
 
     
 

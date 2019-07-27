@@ -52,7 +52,7 @@ public class GeckoScreenOrientation {
     }
 
     
-    private static GeckoScreenOrientation sInstance = null;
+    private static GeckoScreenOrientation sInstance;
     
     private static final ScreenOrientation DEFAULT_SCREEN_ORIENTATION = ScreenOrientation.DEFAULT;
     
