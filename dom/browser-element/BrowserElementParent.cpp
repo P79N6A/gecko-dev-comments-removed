@@ -164,13 +164,6 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
     return BrowserElementParent::OPEN_WINDOW_IGNORED;
   }
 
-  
-  nsCOMPtr<nsIMozBrowserFrame> browserFrame =
-    do_QueryInterface(aOpenerFrameElement);
-  if (browserFrame && browserFrame->GetReallyIsWidget()) {
-    return BrowserElementParent::OPEN_WINDOW_CANCELLED;
-  }
-
   nsEventStatus status;
   bool dispatchSucceeded =
     DispatchCustomDOMEvent(aOpenerFrameElement,
@@ -356,14 +349,6 @@ BrowserElementParent::DispatchAsyncScrollEvent(TabParent* aTabParent,
                                                const CSSRect& aContentRect,
                                                const CSSSize& aContentSize)
 {
-  
-  nsCOMPtr<Element> frameElement = aTabParent->GetOwnerElement();
-  NS_ENSURE_TRUE(frameElement, false);
-  nsCOMPtr<nsIMozBrowserFrame> browserFrame = do_QueryInterface(frameElement);
-  if (browserFrame && browserFrame->GetReallyIsWidget()) {
-    return true;
-  }
-
   nsRefPtr<DispatchAsyncScrollEventRunnable> runnable =
     new DispatchAsyncScrollEventRunnable(aTabParent, aContentRect,
                                          aContentSize);

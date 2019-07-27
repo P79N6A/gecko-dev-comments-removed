@@ -337,12 +337,6 @@ private:
 
 
 
-  bool OwnerIsWidget();
-
-  
-
-
-
   bool OwnerIsAppFrame();
 
   
