@@ -46,6 +46,8 @@ Cu.import("resource://gre/modules/Services.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
+  "resource://gre/modules/PromiseUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "gDebug",
@@ -80,6 +82,102 @@ try {
 Services.prefs.addObserver(PREF_DELAY_CRASH_MS, function() {
   DELAY_CRASH_MS = Services.prefs.getIntPref(PREF_DELAY_CRASH_MS);
 }, false);
+
+
+
+
+
+
+
+function PromiseSet() {
+  
+
+
+
+
+
+
+
+  this._indirections = new Map();
+}
+PromiseSet.prototype = {
+  
+
+
+
+
+
+
+
+
+  wait: function() {
+    
+    let entry = this._indirections.entries().next();
+    if (entry.done) {
+      
+      return Promise.resolve();
+    }
+
+    let [, indirection] = entry.value;
+    let promise = indirection.promise;
+    promise = promise.then(() =>
+      
+      this.wait()
+    );
+    return promise;
+  },
+
+  
+
+
+
+
+
+  add: function(key) {
+    this._ensurePromise(key);
+    let indirection = PromiseUtils.defer();
+    key.then(
+      x => {
+        
+        
+        
+        this._indirections.delete(key);
+        indirection.resolve(x);
+      },
+      err => {
+        this._indirections.delete(key);
+        indirection.reject(err);
+      });
+    this._indirections.set(key, indirection);
+  },
+
+  
+
+
+
+
+
+  delete: function(key) {
+    this._ensurePromise(key);
+    let value = this._indirections.get(key);
+    if (!value) {
+      return false;
+    }
+    this._indirections.delete(key);
+    value.resolve();
+    return true;
+  },
+
+  _ensurePromise: function(key) {
+    if (!key || typeof key != "object") {
+      throw new Error("Expected an object");
+    }
+    if ((!"then" in key) || typeof key.then != "function") {
+      throw new Error("Expected a Promise");
+    }
+  },
+
+};
 
 
 
@@ -391,14 +489,6 @@ function Barrier(name) {
     throw new TypeError("Instances of Barrier need a (non-empty) name");
   }
 
-  
-
-
-
-
-
-
-  this._conditions = new Map();
 
   
 
@@ -406,8 +496,37 @@ function Barrier(name) {
 
 
 
+  this._waitForMe = new PromiseSet();
 
-  this._indirections = null;
+  
+
+
+
+
+
+
+
+
+
+
+  this._conditionToPromise = new Map();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  this._promiseToBlocker = new Map();
 
   
 
@@ -422,7 +541,7 @@ function Barrier(name) {
   
 
 
-  this._monitors = null;
+  this._isStarted = false;
 
   
 
@@ -465,7 +584,7 @@ function Barrier(name) {
 
 
 
-    addBlocker: function(name, condition, details) {
+    addBlocker: (name, condition, details) => {
       if (typeof name != "string") {
         throw new TypeError("Expected a human-readable name as first argument");
       }
@@ -479,11 +598,11 @@ function Barrier(name) {
       if (typeof details != "object") {
         throw new TypeError("Expected an object as third argument to `addBlocker`, got " + details);
       }
-      if (!this._conditions) {
-	throw new Error("Phase " + this._name +
-			" has already begun, it is too late to register" +
-			" completion condition '" + name + "'.");
+      if (!this._waitForMe) {
+        throw new Error(`Phase "${ this._name } is finished, it is too late to register completion condition "${ name }"`);
       }
+
+      
 
       let fetchState = details.fetchState || null;
       let filename = details.filename || "?";
@@ -517,17 +636,73 @@ function Barrier(name) {
         }
       }
 
-      let set = this._conditions.get(condition);
-      if (!set) {
-        set = [];
-        this._conditions.set(condition, set);
+      
+
+      
+      
+      
+      let trigger;
+
+      
+      let promise;
+      if (typeof condition == "function") {
+        promise = new Promise((resolve, reject) => {
+          trigger = () => {
+            try {
+              resolve(condition());
+            } catch (ex) {
+              reject(ex);
+            }
+          }
+        });
+      } else {
+        
+        
+        trigger = () => {};
+        promise = Promise.resolve(condition);
       }
-      set.push({name: name,
-                fetchState: fetchState,
-                filename: filename,
-                lineNumber: lineNumber,
-                stack: stack});
-    }.bind(this),
+
+      
+      promise = promise.then(null, error => {
+        let msg = `A blocker encountered an error while we were waiting.
+          Blocker:  ${ name }
+          Phase: ${ this._name }
+          State: ${ safeGetState(fetchState) }`;
+        warn(msg, error);
+
+        
+        
+        Promise.reject(error);
+      });
+
+      let blocker = {
+        trigger: trigger,
+        promise: promise,
+        name: name,
+        fetchState: fetchState,
+        stack: stack,
+        filename: filename,
+        lineNumber: lineNumber
+      };
+
+      this._waitForMe.add(promise);
+      this._promiseToBlocker.set(promise, blocker);
+      this._conditionToPromise.set(condition, promise);
+
+      
+      
+      
+      promise = promise.then(() =>
+        this._removeBlocker(condition)
+      );
+
+      if (this._isStarted) {
+        
+        
+        
+        Promise.resolve().then(trigger);
+      }
+    },
 
     
 
@@ -539,24 +714,9 @@ function Barrier(name) {
 
 
 
-    removeBlocker: function(condition) {
-      if (this._conditions) {
-        
-        return this._conditions.delete(condition);
-      }
-
-      if (this._indirections) {
-        
-        let deferred = this._indirections.get(condition);
-        if (deferred) {
-          
-          deferred.resolve();
-        }
-        return this._indirections.delete(condition);
-      }
-      
-      return false;
-    }.bind(this),
+    removeBlocker: (condition) => {
+      return this._removeBlocker(condition);
+    }
   };
 }
 Barrier.prototype = Object.freeze({
@@ -565,21 +725,21 @@ Barrier.prototype = Object.freeze({
 
 
   get state() {
-    if (this._conditions) {
+    if (!this._isStarted) {
       return "Not started";
     }
-    if (!this._monitors) {
+    if (!this._waitForMe) {
       return "Complete";
     }
     let frozen = [];
-    for (let {name, isComplete, fetchState, stack, filename, lineNumber} of this._monitors) {
-      if (!isComplete) {
-        frozen.push({name: name,
-                     state: safeGetState(fetchState),
-                     filename: filename,
-                     lineNumber: lineNumber,
-                     stack: stack});
-      }
+    for (let {name, fetchState, stack, filename, lineNumber} of this._promiseToBlocker.values()) {
+      frozen.push({
+        name: name,
+        state: safeGetState(fetchState),
+        filename: filename,
+        lineNumber: lineNumber,
+        stack: stack
+      });
     }
     return frozen;
   },
@@ -614,109 +774,43 @@ Barrier.prototype = Object.freeze({
     return this._promise = this._wait(options);
   },
   _wait: function(options) {
+
+    
+    if (this._isStarted) {
+      throw new TypeError("Internal error: already started " + this._name);
+    }
+    if (!this._waitForMe || !this._conditionToPromise || !this._promiseToBlocker) {
+      throw new TypeError("Internal error: already finished " + this._name);
+    }
+
     let topic = this._name;
-    let conditions = this._conditions;
-    this._conditions = null; 
-    if (conditions.size == 0) {
-      return Promise.resolve();
+
+    
+    for (let blocker of this._promiseToBlocker.values()) {
+      blocker.trigger(); 
     }
 
-    this._indirections = new Map();
-    
-    let allPromises = [];
+    this._isStarted = true;
 
     
-    
-    this._monitors = [];
-
-    for (let _condition of conditions.keys()) {
-      for (let current of conditions.get(_condition)) {
-        let condition = _condition; 
-        let {name, fetchState, stack, filename, lineNumber} = current;
-
-        
-        
-        let indirection = Promise.defer();
-        this._indirections.set(condition, indirection);
-
-        
-
-        try {
-          if (typeof condition == "function") {
-            
-            try {
-              condition = condition(topic);
-            } catch (ex) {
-              condition = Promise.reject(ex);
-            }
-          }
-
-          
-          
-          
-          
-          
-          condition = Promise.resolve(condition);
-
-          let monitor = {
-            isComplete: false,
-            name: name,
-            fetchState: fetchState,
-            stack: stack,
-            filename: filename,
-            lineNumber: lineNumber
-          };
-
-	  condition = condition.then(null, function onError(error) {
-            let msg = "A completion condition encountered an error" +
-              " while we were spinning the event loop." +
-	      " Condition: " + name +
-              " Phase: " + topic +
-              " State: " + safeGetState(fetchState);
-	    warn(msg, error);
-
-            
-            
-            Promise.reject(error);
-	  });
-          condition.then(() => indirection.resolve());
-
-          indirection.promise.then(() => monitor.isComplete = true);
-          this._monitors.push(monitor);
-          allPromises.push(indirection.promise);
-
-        } catch (error) {
-            let msg = "A completion condition encountered an error" +
-                  " while we were initializing the phase." +
-                  " Condition: " + name +
-                  " Phase: " + topic +
-                  " State: " + safeGetState(fetchState);
-            warn(msg, error);
-        }
-
-      }
-    }
-    conditions = null;
-
-    let promise = Promise.all(allPromises);
-    allPromises = null;
+    let promise = this._waitForMe.wait();
 
     promise = promise.then(null, function onError(error) {
       
       
       let msg = "An uncaught error appeared while completing the phase." +
-            " Phase: " + topic;
+        " Phase: " + topic;
       warn(msg, error);
     });
 
     promise = promise.then(() => {
-      this._monitors = null;
-      this._indirections = null;
-    }); 
-
+      
+      this._waitForMe = null;
+      this._promiseToBlocker = null;
+      this._conditionToPromise = null;
+    });
 
     
-
     let warnAfterMS = DELAY_WARNING_MS;
     if (options && "warnAfterMS" in options) {
       if (typeof options.warnAfterMS == "number"
@@ -732,12 +826,12 @@ Barrier.prototype = Object.freeze({
       
       
       let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      timer.initWithCallback(function() {
+      timer.initWithCallback(() => {
         let msg = "At least one completion condition is taking too long to complete." +
-	  " Conditions: " + JSON.stringify(this.state) +
-	  " Barrier: " + topic;
+        " Conditions: " + JSON.stringify(this.state) +
+        " Barrier: " + topic;
         warn(msg);
-      }.bind(this), warnAfterMS, Ci.nsITimer.TYPE_ONE_SHOT);
+      }, warnAfterMS, Ci.nsITimer.TYPE_ONE_SHOT);
 
       promise = promise.then(function onSuccess() {
         timer.cancel();
@@ -769,8 +863,8 @@ Barrier.prototype = Object.freeze({
       timeToCrash = looseTimer(crashAfterMS);
       timeToCrash.promise.then(
         function onTimeout() {
-	  
-	  let state = this.state;
+          
+          let state = this.state;
 
           
           
@@ -779,22 +873,21 @@ Barrier.prototype = Object.freeze({
           let msg = "AsyncShutdown timeout in " + topic +
             " Conditions: " + JSON.stringify(state) +
             " At least one completion condition failed to complete" +
-	    " within a reasonable amount of time. Causing a crash to" +
-	    " ensure that we do not leave the user with an unresponsive" +
-	    " process draining resources.";
-	  fatalerr(msg);
-	  if (gCrashReporter && gCrashReporter.enabled) {
+            " within a reasonable amount of time. Causing a crash to" +
+            " ensure that we do not leave the user with an unresponsive" +
+            " process draining resources.";
+          fatalerr(msg);
+          if (gCrashReporter && gCrashReporter.enabled) {
             let data = {
               phase: topic,
               conditions: state
-	    };
+            };
             gCrashReporter.annotateCrashReport("AsyncShutdownTimeout",
               JSON.stringify(data));
-	  } else {
+          } else {
             warn("No crash reporter available");
-	  }
+          }
 
-          
           
           
           
@@ -802,19 +895,17 @@ Barrier.prototype = Object.freeze({
           
           let filename = "?";
           let lineNumber = -1;
-          for (let monitor of this._monitors) {
-            if (monitor.isComplete) {
-              continue;
-            }
-            filename = monitor.filename;
-            lineNumber = monitor.lineNumber;
+          for (let blocker of this._promiseToBlocker) {
+            filename = blocker.filename;
+            lineNumber = blocker.lineNumber;
+            break;
           }
-	  gDebug.abort(filename, lineNumber);
+          gDebug.abort(filename, lineNumber);
         }.bind(this),
-	  function onSatisfied() {
-            
-            
-          });
+        function onSatisfied() {
+          
+          
+        });
 
       promise = promise.then(function() {
         timeToCrash.reject();
@@ -823,6 +914,23 @@ Barrier.prototype = Object.freeze({
 
     return promise;
   },
+
+  _removeBlocker: function(condition) {
+    if (!this._waitForMe || !this._promiseToBlocker || !this._conditionToPromise) {
+      
+      return false;
+    }
+
+    let promise = this._conditionToPromise.get(condition);
+    if (!promise) {
+      
+      return false;
+    }
+    this._conditionToPromise.delete(condition);
+    this._promiseToBlocker.delete(promise);
+    return this._waitForMe.delete(promise);
+  },
+
 });
 
 
