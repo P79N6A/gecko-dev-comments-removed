@@ -95,67 +95,84 @@ CSSAnimationPlayer::QueueEvents(EventArray& aEventsToDispatch)
 
   ComputedTiming computedTiming = mSource->GetComputedTiming();
 
+  if (computedTiming.mPhase == ComputedTiming::AnimationPhase_Null) {
+    return; 
+  }
+
+  
+  
+  
+  
+  
+  
+
+  bool wasActive = mPreviousPhaseOrIteration != PREVIOUS_PHASE_BEFORE &&
+                   mPreviousPhaseOrIteration != PREVIOUS_PHASE_AFTER;
+  bool isActive =
+         computedTiming.mPhase == ComputedTiming::AnimationPhase_Active;
+  bool isSameIteration =
+         computedTiming.mCurrentIteration == mPreviousPhaseOrIteration;
+  bool skippedActivePhase =
+    (mPreviousPhaseOrIteration == PREVIOUS_PHASE_BEFORE &&
+     computedTiming.mPhase == ComputedTiming::AnimationPhase_After) ||
+    (mPreviousPhaseOrIteration == PREVIOUS_PHASE_AFTER &&
+     computedTiming.mPhase == ComputedTiming::AnimationPhase_Before);
+
+  MOZ_ASSERT(!skippedActivePhase || (!isActive && !wasActive),
+             "skippedActivePhase only makes sense if we were & are inactive");
+
+  if (computedTiming.mPhase == ComputedTiming::AnimationPhase_Before) {
+    mPreviousPhaseOrIteration = PREVIOUS_PHASE_BEFORE;
+  } else if (computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) {
+    mPreviousPhaseOrIteration = computedTiming.mCurrentIteration;
+  } else if (computedTiming.mPhase == ComputedTiming::AnimationPhase_After) {
+    mPreviousPhaseOrIteration = PREVIOUS_PHASE_AFTER;
+  }
+
   dom::Element* target;
   nsCSSPseudoElements::Type targetPseudoType;
   mSource->GetTarget(target, targetPseudoType);
 
-  switch (computedTiming.mPhase) {
-    case ComputedTiming::AnimationPhase_Null:
-    case ComputedTiming::AnimationPhase_Before:
-      
-      break;
+  uint32_t message;
 
-    case ComputedTiming::AnimationPhase_Active:
-      
-      if (computedTiming.mCurrentIteration != mLastNotification) {
-        
-        
-        
-        
-        
-        
-        uint32_t message = mLastNotification == LAST_NOTIFICATION_NONE
-                           ? NS_ANIMATION_START
-                           : NS_ANIMATION_ITERATION;
-        mLastNotification = computedTiming.mCurrentIteration;
-        TimeDuration iterationStart =
-          mSource->Timing().mIterationDuration *
-          computedTiming.mCurrentIteration;
-        TimeDuration elapsedTime =
-          std::max(iterationStart, mSource->InitialAdvance());
-        AnimationEventInfo ei(target, Name(), message,
-                              StickyTimeDuration(elapsedTime),
-                              PseudoTypeAsString(targetPseudoType));
-        aEventsToDispatch.AppendElement(ei);
-      }
-      break;
-
-    case ComputedTiming::AnimationPhase_After:
-      
-      
-      if (mLastNotification == LAST_NOTIFICATION_NONE) {
-        
-        
-        
-        mLastNotification = 0;
-        StickyTimeDuration elapsedTime =
-          std::min(StickyTimeDuration(mSource->InitialAdvance()),
-                   computedTiming.mActiveDuration);
-        AnimationEventInfo ei(target, Name(), NS_ANIMATION_START,
-                              elapsedTime,
-                              PseudoTypeAsString(targetPseudoType));
-        aEventsToDispatch.AppendElement(ei);
-      }
-      
-      if (mLastNotification != LAST_NOTIFICATION_END) {
-        mLastNotification = LAST_NOTIFICATION_END;
-        AnimationEventInfo ei(target, Name(), NS_ANIMATION_END,
-                              computedTiming.mActiveDuration,
-                              PseudoTypeAsString(targetPseudoType));
-        aEventsToDispatch.AppendElement(ei);
-      }
-      break;
+  if (!wasActive && isActive) {
+    message = NS_ANIMATION_START;
+  } else if (wasActive && !isActive) {
+    message = NS_ANIMATION_END;
+  } else if (wasActive && isActive && !isSameIteration) {
+    message = NS_ANIMATION_ITERATION;
+  } else if (skippedActivePhase) {
+    
+    
+    StickyTimeDuration elapsedTime =
+      std::min(StickyTimeDuration(mSource->InitialAdvance()),
+               computedTiming.mActiveDuration);
+    AnimationEventInfo ei(target, Name(), NS_ANIMATION_START,
+                          elapsedTime,
+                          PseudoTypeAsString(targetPseudoType));
+    aEventsToDispatch.AppendElement(ei);
+    
+    message = NS_ANIMATION_END;
+  } else {
+    return; 
   }
+
+  StickyTimeDuration elapsedTime;
+
+  if (message == NS_ANIMATION_START ||
+      message == NS_ANIMATION_ITERATION) {
+    TimeDuration iterationStart = mSource->Timing().mIterationDuration *
+                                    computedTiming.mCurrentIteration;
+    elapsedTime = StickyTimeDuration(std::max(iterationStart,
+                                              mSource->InitialAdvance()));
+  } else {
+    MOZ_ASSERT(message == NS_ANIMATION_END);
+    elapsedTime = computedTiming.mActiveDuration;
+  }
+
+  AnimationEventInfo ei(target, Name(), message, elapsedTime,
+                        PseudoTypeAsString(targetPseudoType));
+  aEventsToDispatch.AppendElement(ei);
 }
 
 CommonAnimationManager*

@@ -59,7 +59,7 @@ public:
     : dom::AnimationPlayer(aTimeline)
     , mIsStylePaused(false)
     , mPauseShouldStick(false)
-    , mLastNotification(LAST_NOTIFICATION_NONE)
+    , mPreviousPhaseOrIteration(PREVIOUS_PHASE_BEFORE)
   {
   }
 
@@ -139,12 +139,12 @@ protected:
   bool mPauseShouldStick;
 
   enum {
-    LAST_NOTIFICATION_NONE = uint64_t(-1),
-    LAST_NOTIFICATION_END = uint64_t(-2)
+    PREVIOUS_PHASE_BEFORE = uint64_t(-1),
+    PREVIOUS_PHASE_AFTER = uint64_t(-2)
   };
   
   
-  uint64_t mLastNotification;
+  uint64_t mPreviousPhaseOrIteration;
 };
 
 } 
