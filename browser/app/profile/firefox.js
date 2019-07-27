@@ -860,11 +860,7 @@ pref("browser.preferences.instantApply", true);
 #endif
 
 
-#ifdef EARLY_BETA_OR_EARLIER
 pref("browser.preferences.inContent", true);
-#else
-pref("browser.preferences.inContent", false);
-#endif
 
 pref("browser.download.show_plugins_in_list", true);
 pref("browser.download.hide_plugins_without_extensions", true);
