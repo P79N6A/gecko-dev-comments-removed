@@ -11,7 +11,6 @@
 #include "LayerManagerComposite.h"      
 #include "Layers.h"                     
 #include "gfxPoint.h"                   
-#include "gfxPoint3D.h"                 
 #include "mozilla/StyleAnimationValue.h" 
 #include "mozilla/WidgetUtils.h"        
 #include "mozilla/dom/AnimationPlayer.h" 
@@ -379,10 +378,10 @@ SampleValue(float aPortion, Animation& aAnimation, StyleAnimationValue& aStart,
   
   double cssPerDev = double(nsDeviceContext::AppUnitsPerCSSPixel())
                      / double(data.appUnitsPerDevPixel());
-  gfxPoint3D transformOrigin = data.transformOrigin();
+  Point3D transformOrigin = data.transformOrigin();
   transformOrigin.x = transformOrigin.x * cssPerDev;
   transformOrigin.y = transformOrigin.y * cssPerDev;
-  gfxPoint3D perspectiveOrigin = data.perspectiveOrigin();
+  Point3D perspectiveOrigin = data.perspectiveOrigin();
   perspectiveOrigin.x = perspectiveOrigin.x * cssPerDev;
   perspectiveOrigin.y = perspectiveOrigin.y * cssPerDev;
   nsDisplayTransform::FrameTransformProperties props(interpolatedList,
@@ -393,10 +392,10 @@ SampleValue(float aPortion, Animation& aAnimation, StyleAnimationValue& aStart,
     nsDisplayTransform::GetResultingTransformMatrix(props, origin,
                                                     data.appUnitsPerDevPixel(),
                                                     &data.bounds());
-  gfxPoint3D scaledOrigin =
-    gfxPoint3D(NS_round(NSAppUnitsToFloatPixels(origin.x, data.appUnitsPerDevPixel())),
-               NS_round(NSAppUnitsToFloatPixels(origin.y, data.appUnitsPerDevPixel())),
-               0.0f);
+  Point3D scaledOrigin =
+    Point3D(NS_round(NSAppUnitsToFloatPixels(origin.x, data.appUnitsPerDevPixel())),
+            NS_round(NSAppUnitsToFloatPixels(origin.y, data.appUnitsPerDevPixel())),
+            0.0f);
 
   transform.Translate(scaledOrigin);
 
@@ -882,7 +881,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   ScreenRect contentScreenRect = mContentRect * userZoom;
-  gfxPoint3D overscrollTranslation;
+  Point3D overscrollTranslation;
   if (userScroll.x < contentScreenRect.x) {
     overscrollTranslation.x = contentScreenRect.x - userScroll.x;
   } else if (userScroll.x + metrics.mCompositionBounds.width > contentScreenRect.XMost()) {

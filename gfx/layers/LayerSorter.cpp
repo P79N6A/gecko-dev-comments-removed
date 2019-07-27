@@ -13,7 +13,6 @@
 #include "gfx3DMatrix.h"                
 #include "gfxLineSegment.h"             
 #include "gfxPoint.h"                   
-#include "gfxPoint3D.h"                 
 #include "gfxQuad.h"                    
 #include "gfxRect.h"                    
 #include "gfxTypes.h"                   
@@ -44,10 +43,10 @@ enum LayerSortOrder {
 
 static gfxFloat RecoverZDepth(const gfx3DMatrix& aTransform, const gfxPoint& aPoint)
 {
-    const gfxPoint3D l(0, 0, 1);
-    gfxPoint3D l0 = gfxPoint3D(aPoint.x, aPoint.y, 0);
-    gfxPoint3D p0 = aTransform.Transform3D(gfxPoint3D(0, 0, 0));
-    gfxPoint3D normal = aTransform.GetNormalVector();
+    const Point3D l(0, 0, 1);
+    Point3D l0 = Point3D(aPoint.x, aPoint.y, 0);
+    Point3D p0 = aTransform.Transform3D(Point3D(0, 0, 0));
+    Point3D normal = aTransform.GetNormalVector();
 
     gfxFloat n = normal.DotProduct(p0 - l0); 
     gfxFloat d = normal.DotProduct(l);

@@ -10,7 +10,6 @@
 #include "Layers.h"                     
 #include "gfxColor.h"                   
 #include "GraphicsFilter.h"             
-#include "gfxPoint3D.h"                 
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   
 #include "mozilla/gfx/BaseSize.h"       
