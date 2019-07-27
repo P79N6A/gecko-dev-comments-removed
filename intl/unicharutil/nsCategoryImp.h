@@ -16,7 +16,7 @@ public:
    
 
 
-   virtual nsUGenCategory Get(uint32_t aChar);
+   virtual nsUGenCategory Get(uint32_t aChar) MOZ_OVERRIDE;
 };
 
 #endif  
