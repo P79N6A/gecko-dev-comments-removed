@@ -9,9 +9,11 @@
 
 
 
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h" 
 #include "mozilla/fallible.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Move.h"
 #include "mozilla/Types.h"
 #include "nscore.h"
 
@@ -164,16 +166,6 @@ class PLDHashTable
 private:
   const PLDHashTableOps* mOps;        
   int16_t             mHashShift;     
-  
-
-
-
-
-
-
-protected:
-  mutable uint16_t    mRecursionLevel;
-private:
   uint32_t            mEntrySize;     
   uint32_t            mEntryCount;    
   uint32_t            mRemovedCount;  
@@ -202,6 +194,15 @@ private:
   } mStats;
 #endif
 
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  mutable mozilla::Atomic<uint32_t> mRecursionLevel;
+#endif
+
 public:
   
   
@@ -209,7 +210,6 @@ public:
   MOZ_CONSTEXPR PLDHashTable()
     : mOps(nullptr)
     , mHashShift(0)
-    , mRecursionLevel(0)
     , mEntrySize(0)
     , mEntryCount(0)
     , mRemovedCount(0)
@@ -218,7 +218,36 @@ public:
 #ifdef PL_DHASHMETER
     , mStats()
 #endif
+#ifdef DEBUG
+    , mRecursionLevel()
+#endif
   {}
+
+  PLDHashTable(PLDHashTable&& aOther) { *this = mozilla::Move(aOther); }
+
+  PLDHashTable& operator=(PLDHashTable&& aOther)
+  {
+    using mozilla::Move;
+
+    mOps = Move(aOther.mOps);
+    mHashShift = Move(aOther.mHashShift);
+    mEntrySize = Move(aOther.mEntrySize);
+    mEntryCount = Move(aOther.mEntryCount);
+    mRemovedCount = Move(aOther.mRemovedCount);
+    mGeneration = Move(aOther.mGeneration);
+    mEntryStore = Move(aOther.mEntryStore);
+
+#ifdef PL_DHASHMETER
+    mStats = Move(aOther.mStats);
+#endif
+
+#ifdef DEBUG
+    
+    mRecursionLevel = uint32_t(aOther.mRecursionLevel);
+#endif
+
+    return *this;
+  }
 
   bool IsInitialized() const { return !!mOps; }
 
@@ -318,6 +347,9 @@ private:
   PLDHashEntryHdr* PL_DHASH_FASTCALL FindFreeEntry(PLDHashNumber aKeyHash);
 
   bool ChangeTable(int aDeltaLog2);
+
+  PLDHashTable(const PLDHashTable& aOther) = delete;
+  PLDHashTable& operator=(const PLDHashTable& aOther) = delete;
 };
 
 
