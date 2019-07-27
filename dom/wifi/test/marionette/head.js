@@ -461,6 +461,57 @@ let gTestSuite = (function() {
 
 
 
+  function importCert(certBlob, password, nickname) {
+    let request = wifiManager.importCert(certBlob, password, nickname);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  function deleteCert(nickname) {
+    let request = wifiManager.deleteCert(nickname);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  function getImportedCerts() {
+    let request = wifiManager.getImportedCerts();
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1188,6 +1239,9 @@ let gTestSuite = (function() {
   suite.waitForTimeout = waitForTimeout;
   suite.waitForRilDataConnected = waitForRilDataConnected;
   suite.requestTetheringEnabled = requestTetheringEnabled;
+  suite.importCert = importCert;
+  suite.getImportedCerts = getImportedCerts;
+  suite.deleteCert = deleteCert;
 
   
 
@@ -1285,6 +1339,62 @@ let gTestSuite = (function() {
           return restoreToInitialState()
             .then(() => { throw aReason; }); 
         });
+    });
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  suite.doTestWithCertificate = function(certBlob, password, nickname, usage, aTestCaseChain) {
+    return suite.doTest(function() {
+      return ensureWifiEnabled(true)
+      
+      .then(() => importCert(certBlob, password, nickname))
+      .then(function(info) {
+        
+        is(info.nickname, nickname, "Imported nickname");
+        for (let i = 0; i < usage.length; i++) {
+          isnot(info.usage.indexOf(usage[i]), -1, "Usage " + usage[i]);
+        }
+      })
+      
+      .then(getImportedCerts)
+      
+      .then(function(list) {
+        for (let i = 0; i < usage.length; i++) {
+          isnot(list[usage[i]].indexOf(nickname), -1,
+                "Certificate \"" + nickname + "\" of usage " + usage[i] + " is imported");
+        }
+      })
+      
+      .then(aTestCaseChain)
+      
+      .then(() => deleteCert(nickname))
+      
+      .then(getImportedCerts)
+      .then(function(list) {
+        for (let i = 0; i < usage.length; i++) {
+          is(list[usage[i]].indexOf(nickname), -1, "Certificate is deleted");
+        }
+      })
     });
   };
 
