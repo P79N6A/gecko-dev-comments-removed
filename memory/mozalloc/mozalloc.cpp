@@ -17,7 +17,11 @@
 
 
 #define MOZ_MEMORY_IMPL
-#include "mozmemory.h"
+#include "mozmemory_wrap.h"
+
+#if defined(XP_MACOSX)
+#include <malloc/malloc.h> 
+#endif
 
 
 
