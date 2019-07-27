@@ -109,4 +109,12 @@ class SymbolRegistry : public SymbolHashSet
 
 } 
 
+namespace js {
+
+
+bool
+SymbolDescriptiveString(JSContext *cx, JS::Symbol *sym, JS::MutableHandleValue result);
+
+} 
+
 #endif 

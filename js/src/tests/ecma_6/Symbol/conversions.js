@@ -40,11 +40,17 @@ if (typeof Symbol === "function") {
         assertThrowsInstanceOf(() => sym | 0, TypeError);
 
         
-        assertThrowsInstanceOf(() => String(sym), TypeError);
         assertThrowsInstanceOf(() => "" + sym, TypeError);
         assertThrowsInstanceOf(() => sym + "", TypeError);
         assertThrowsInstanceOf(() => "" + [1, 2, Symbol()], TypeError);
         assertThrowsInstanceOf(() => ["simple", "thimble", Symbol()].join(), TypeError);
+
+        
+        assertEq(String(sym), sym.toString());
+        assertThrowsInstanceOf(() => String(Object(sym)), TypeError);
+
+        
+        assertThrowsInstanceOf(() => new String(sym), TypeError);
 
         
         var obj = Object(sym);

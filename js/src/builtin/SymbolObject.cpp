@@ -197,23 +197,7 @@ SymbolObject::toString_impl(JSContext *cx, CallArgs args)
                             : thisv.toObject().as<SymbolObject>().unbox());
 
     
-    StringBuffer sb(cx);
-    if (!sb.append("Symbol("))
-        return false;
-    RootedString str(cx, sym->description());
-    if (str) {
-        if (!sb.append(str))
-            return false;
-    }
-    if (!sb.append(')'))
-        return false;
-
-    
-    str = sb.finishString();
-    if (!str)
-        return false;
-    args.rval().setString(str);
-    return true;
+    return SymbolDescriptiveString(cx, sym, args.rval());
 }
 
 bool
