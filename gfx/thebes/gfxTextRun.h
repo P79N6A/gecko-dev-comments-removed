@@ -307,10 +307,15 @@ public:
                                  gfxFloat *aAdvanceWidthDelta,
                                  gfxContext *aRefContext);
 
+    enum SuppressBreak {
+      eNoSuppressBreak,
+      
+      eSuppressInitialBreak,
+      
+      eSuppressAllBreaks
+    };
+
     
-
-
-
 
 
 
@@ -368,7 +373,7 @@ public:
     uint32_t BreakAndMeasureText(uint32_t aStart, uint32_t aMaxLength,
                                  bool aLineBreakBefore, gfxFloat aWidth,
                                  PropertyProvider *aProvider,
-                                 bool aSuppressInitialBreak,
+                                 SuppressBreak aSuppressBreak,
                                  gfxFloat *aTrimWhitespace,
                                  Metrics *aMetrics,
                                  gfxFont::BoundingBoxType aBoundingBoxType,
