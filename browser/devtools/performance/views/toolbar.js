@@ -15,11 +15,17 @@ let ToolbarView = {
     this._onFilterPopupHiding = this._onFilterPopupHiding.bind(this);
     this._onHiddenMarkersChanged = this._onHiddenMarkersChanged.bind(this);
     this._onPrefChanged = this._onPrefChanged.bind(this);
+    this._popup = $("#performance-options-menupopup");
 
     this.optionsView = new OptionsView({
       branchName: BRANCH_NAME,
-      menupopup: $("#performance-options-menupopup")
+      menupopup: this._popup
     });
+
+    
+    
+    let experimentalEnabled = PerformanceController.getOption("experimental");
+    this._toggleExperimentalUI(experimentalEnabled);
 
     yield this.optionsView.initialize();
     this.optionsView.on("pref-changed", this._onPrefChanged);
@@ -36,6 +42,7 @@ let ToolbarView = {
   destroy: function () {
     $("#performance-filter-menupopup").removeEventListener("popupshowing", this._onFilterPopupShowing);
     $("#performance-filter-menupopup").removeEventListener("popuphiding",  this._onFilterPopupHiding);
+    this._popup = null
 
     this.optionsView.off("pref-changed", this._onPrefChanged);
     this.optionsView.destroy();
@@ -80,6 +87,29 @@ let ToolbarView = {
   
 
 
+
+
+
+
+
+
+
+
+
+
+  _toggleExperimentalUI: function (isEnabled) {
+    if (isEnabled) {
+      $(".theme-body").classList.add("experimental-enabled");
+      this._popup.classList.add("experimental-enabled");
+    } else {
+      $(".theme-body").classList.remove("experimental-enabled");
+      this._popup.classList.remove("experimental-enabled");
+    }
+  },
+
+  
+
+
   _onFilterPopupShowing: function() {
     $("#filter-button").setAttribute("open", "true");
   },
@@ -105,7 +135,12 @@ let ToolbarView = {
 
 
   _onPrefChanged: function (_, prefName) {
-    let value = Services.prefs.getBoolPref(BRANCH_NAME + prefName);
+    let value = PerformanceController.getOption(prefName);
+
+    if (prefName === "experimental") {
+      this._toggleExperimentalUI(value);
+    }
+
     this.emit(EVENTS.PREF_CHANGED, prefName, value);
   },
 
