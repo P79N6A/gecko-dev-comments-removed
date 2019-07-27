@@ -3,7 +3,10 @@
 
 
 
-#include "mozilla/layers/ChromeProcessController.h"
+#include "ChromeProcessController.h"
+
+#include "MainThreadUtils.h"    
+#include "base/message_loop.h"  
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "nsLayoutUtils.h"
@@ -14,7 +17,10 @@ using namespace mozilla::widget;
 
 ChromeProcessController::ChromeProcessController(nsIWidget* aWidget)
   : mWidget(aWidget)
+  , mUILoop(MessageLoop::current())
 {
+  
+  MOZ_ASSERT(NS_IsMainThread());
 }
 
 void
