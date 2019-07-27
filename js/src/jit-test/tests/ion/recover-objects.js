@@ -1,5 +1,8 @@
-setJitCompilerOption("baseline.warmup.trigger", 10);
-setJitCompilerOption("ion.warmup.trigger", 30);
+
+
+
+if (getJitCompilerOptions()["ion.warmup.trigger"] <= 90)
+    setJitCompilerOption("ion.warmup.trigger", 90);
 
 var uceFault = function (i) {
     if (i > 98)
@@ -24,6 +27,18 @@ function notSoEmpty1() {
     var res = inline_notSoEmpty1(a, b, c, d);
     if (uceFault_notSoEmpty1(i) || uceFault_notSoEmpty1(i))
         assertEq(i, res.v);
+    
+    
+    
+    
+    assertRecoveredOnBailout(a, true);
+    assertRecoveredOnBailout(b, true);
+    assertRecoveredOnBailout(c, true);
+    assertRecoveredOnBailout(d, true);
+    assertRecoveredOnBailout(unused, true);
+    
+    
+    assertRecoveredOnBailout(res, false);
 }
 
 
@@ -41,6 +56,14 @@ function notSoEmpty2(i) {
     var res = inline_notSoEmpty2(a, b, c, d);
     if (uceFault_notSoEmpty2(i) || uceFault_notSoEmpty2(i))
         assertEq(i, res.v);
+    assertRecoveredOnBailout(a, true);
+    assertRecoveredOnBailout(b, true);
+    assertRecoveredOnBailout(c, true);
+    assertRecoveredOnBailout(d, true);
+    assertRecoveredOnBailout(unused, true);
+    
+    
+    assertRecoveredOnBailout(res, false);
 }
 
 
@@ -56,6 +79,7 @@ function observeArg(i) {
     var obj = { test: i };
     var res = inline_observeArg(obj, i);
     assertEq(res.test, i);
+    assertRecoveredOnBailout(obj, true);
 }
 
 
@@ -72,18 +96,21 @@ function complexPhi(i) {
         case 9: obj.test = 9; break;
     }
     assertEq(obj.test, i);
+    assertRecoveredOnBailout(obj, true);
 }
 
 
 function withinIf(i) {
     var x = undefined;
-    if (i > 5) {
+    if (i % 2 == 0) {
         let obj = { foo: i };
         x = obj.foo;
+        assertRecoveredOnBailout(obj, true);
         obj = undefined;
     } else {
         let obj = { bar: i };
         x = obj.bar;
+        assertRecoveredOnBailout(obj, true);
         obj = undefined;
     }
     assertEq(x, i);
@@ -93,6 +120,8 @@ function withinIf(i) {
 function unknownLoad(i) {
     var obj = { foo: i };
     assertEq(obj.bar, undefined);
+    
+    assertRecoveredOnBailout(obj, false);
 }
 
 
@@ -110,6 +139,7 @@ function dynamicSlots(i) {
     
     resumeHere(); bailout();
     assertEq(obj.p0 + obj.p10 + obj.p20 + obj.p30 + obj.p40, 5 * i + 100);
+    assertRecoveredOnBailout(obj, true);
 }
 
 
@@ -124,6 +154,7 @@ function createThisWithTemplate(i)
     var p = new Point(i - 1, i + 1);
     bailout();
     assertEq(p.y - p.x, 2);
+    assertRecoveredOnBailout(p, true);
 }
 
 
