@@ -813,7 +813,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     const ParentLayerCoord thumbOriginDeltaPL = thumbOriginDelta * effectiveZoom;
     yTranslation -= thumbOriginDeltaPL;
 
-    if (metrics.IsRootScrollable()) {
+    if (metrics.IsRootContent()) {
       
       
       
@@ -846,7 +846,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     const ParentLayerCoord thumbOriginDeltaPL = thumbOriginDelta * effectiveZoom;
     xTranslation -= thumbOriginDeltaPL;
 
-    if (metrics.IsRootScrollable()) {
+    if (metrics.IsRootContent()) {
       xTranslation *= metrics.GetPresShellResolution();
     }
 
@@ -862,7 +862,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   
   
   
-  if (metrics.IsRootScrollable()) {
+  if (metrics.IsRootContent()) {
     compensation =
         Matrix4x4::Scaling(metrics.GetPresShellResolution(),
                            metrics.GetPresShellResolution(),

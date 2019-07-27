@@ -1287,7 +1287,7 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
   
   
   
-  MOZ_ASSERT(mFrameMetrics.IsRootScrollable());
+  MOZ_ASSERT(mFrameMetrics.IsRootContent());
   MOZ_ASSERT(mFrameMetrics.GetZoom().AreScalesSame());
 
   float prevSpan = aEvent.mPreviousSpan;
@@ -2996,7 +2996,7 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
   
   
   
-  MOZ_ASSERT(mFrameMetrics.IsRootScrollable());
+  MOZ_ASSERT(mFrameMetrics.IsRootContent());
   MOZ_ASSERT(mFrameMetrics.GetZoom().AreScalesSame());
 
   SetState(ANIMATING_ZOOM);
