@@ -17,7 +17,6 @@
 #include "nsReadableUtils.h"            
 #include "nsString.h"                   
 #include "nsUnicharUtils.h"             
-#include "nsXPCOM.h"                    
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -75,7 +74,7 @@ ChangeStyleTxn::ValueIncludes(const nsAString &aValueList,
     }
     start = ++end;
   }
-  NS_Free(value);
+  free(value);
   return result;
 }
 

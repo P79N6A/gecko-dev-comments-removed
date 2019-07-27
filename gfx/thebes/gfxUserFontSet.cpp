@@ -47,11 +47,11 @@ class ExpandingMemoryStream : public ots::OTSStream {
 public:
     ExpandingMemoryStream(size_t initial, size_t limit)
         : mLength(initial), mLimit(limit), mOff(0) {
-        mPtr = NS_Alloc(mLength);
+        mPtr = moz_xmalloc(mLength);
     }
 
     ~ExpandingMemoryStream() {
-        NS_Free(mPtr);
+        free(mPtr);
     }
 
     
@@ -76,7 +76,7 @@ public:
             if (newLength > mLimit) {
                 newLength = mLimit;
             }
-            mPtr = NS_Realloc(mPtr, newLength);
+            mPtr = moz_xrealloc(mPtr, newLength);
             mLength = newLength;
             return WriteRaw(data, length);
         }

@@ -62,9 +62,9 @@ static const XPCOMFunctions kFrozenFunctions = {
   &NS_CStringCloneData,
 
   
-  &NS_Alloc,
-  &NS_Realloc,
-  &NS_Free,
+  &moz_xmalloc,
+  &moz_xrealloc,
+  &free,
   &NS_StringContainerInit2,
   &NS_CStringContainerInit2,
   &NS_StringGetMutableData,

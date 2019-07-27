@@ -752,10 +752,10 @@ PluginModuleChild::AnswerNPP_GetSitesWithData(InfallibleTArray<nsCString>* aResu
     char** iterator = result;
     while (*iterator) {
         aResult->AppendElement(*iterator);
-        NS_Free(*iterator);
+        free(*iterator);
         ++iterator;
     }
-    NS_Free(result);
+    free(result);
 
     return true;
 }
@@ -1330,7 +1330,7 @@ _memfree(void* aPtr)
     PLUGIN_LOG_DEBUG_FUNCTION;
     
     AssertPluginThread();
-    NS_Free(aPtr);
+    free(aPtr);
 }
 
 uint32_t
@@ -1399,7 +1399,7 @@ _memalloc(uint32_t aSize)
     PLUGIN_LOG_DEBUG_FUNCTION;
     
     AssertPluginThread();
-    return NS_Alloc(aSize);
+    return moz_xmalloc(aSize);
 }
 
 

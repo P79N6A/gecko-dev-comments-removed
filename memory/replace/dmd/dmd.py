@@ -37,8 +37,6 @@ allocatorFns = [
     'memalign',
     'operator new(',
     'operator new[](',
-    'NS_Alloc',
-    'NS_Realloc',
     'g_slice_alloc',
     
     

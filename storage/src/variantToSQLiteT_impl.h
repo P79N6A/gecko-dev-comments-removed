@@ -107,7 +107,7 @@ variantToSQLiteT(T aObj,
       if (type != nsIDataType::VTYPE_UINT8) {
         
         
-        NS_Free(data);
+        free(data);
         return SQLITE_MISMATCH;
       }
 

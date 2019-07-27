@@ -758,7 +758,7 @@ private:
       
       
       
-      char* copy = static_cast<char*>(NS_Alloc(body.Length()));
+      char* copy = static_cast<char*>(moz_xmalloc(body.Length()));
       if (!copy) {
         NS_WARNING("Failed to copy File entry body.");
         return false;

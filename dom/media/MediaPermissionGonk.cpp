@@ -357,7 +357,7 @@ MediaDeviceSuccessCallback::OnSuccess(nsIVariant* aDevices)
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (elementType != nsIDataType::VTYPE_INTERFACE) {
-    NS_Free(rawArray);
+    free(rawArray);
     return NS_ERROR_FAILURE;
   }
 
@@ -370,7 +370,7 @@ MediaDeviceSuccessCallback::OnSuccess(nsIVariant* aDevices)
     devices.AppendElement(device);
     NS_IF_RELEASE(supportsArray[i]); 
   }
-  NS_Free(rawArray); 
+  free(rawArray); 
 
   
   nsRefPtr<MediaPermissionRequest> req = new MediaPermissionRequest(mRequest, devices);

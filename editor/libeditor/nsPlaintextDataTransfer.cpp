@@ -127,7 +127,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertTextFromTransferable(nsITransferable *aTr
       rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset, aDoDeleteSelection);
     }
   }
-  NS_Free(bestFlavor);
+  free(bestFlavor);
       
   
 

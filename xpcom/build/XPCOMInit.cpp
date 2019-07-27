@@ -917,7 +917,7 @@ ShutdownXPCOM(nsIServiceManager* aServMgr)
   
   NS_IF_RELEASE(nsDirectoryService::gService);
 
-  NS_Free(gGREBinPath);
+  free(gGREBinPath);
   gGREBinPath = nullptr;
 
   if (moduleLoaders) {

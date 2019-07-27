@@ -1333,7 +1333,7 @@ gfxPlatform::MakePlatformFont(const nsAString& aFontName,
     
     
     if (aFontData) {
-        NS_Free((void*)aFontData);
+        free((void*)aFontData);
     }
     return nullptr;
 }

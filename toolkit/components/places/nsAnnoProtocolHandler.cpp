@@ -130,7 +130,7 @@ public:
                  "Failed to write all of our data out to the stream!");
 
     
-    NS_Free(favicon);
+    free(favicon);
 
     
     

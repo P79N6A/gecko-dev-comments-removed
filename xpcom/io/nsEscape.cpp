@@ -104,9 +104,6 @@ nsEscapeCount(const char* aStr, nsEscapeMask aFlags, size_t* aOutLen)
   }
 
   
-  
-  
-  
   if (dstSize > UINT32_MAX) {
     return 0;
   }
@@ -233,7 +230,7 @@ nsEscapeHTML(const char* aString)
     return nullptr;
   }
 
-  rv = (char*)NS_Alloc((6 * len) + 1);
+  rv = (char*)moz_xmalloc((6 * len) + 1);
   char* ptr = rv;
 
   if (rv) {

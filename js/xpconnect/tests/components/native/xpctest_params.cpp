@@ -49,15 +49,15 @@ nsXPCTestParams::~nsXPCTestParams()
                                                                               \
     /* Copy b into rv. */                                                     \
     *rvLength = *bLength;                                                     \
-    *rv = static_cast<type*>(NS_Alloc(elemSize * (*bLength + padding)));      \
+    *rv = static_cast<type*>(moz_xmalloc(elemSize * (*bLength + padding)));   \
     if (!*rv)                                                                 \
         return NS_ERROR_OUT_OF_MEMORY;                                        \
     memcpy(*rv, *b, elemSize * (*bLength + padding));                         \
                                                                               \
     /* Copy a into b. */                                                      \
     *bLength = aLength;                                                       \
-    NS_Free(*b);                                                              \
-    *b = static_cast<type*>(NS_Alloc(elemSize * (aLength + padding)));        \
+    free(*b);                                                                 \
+    *b = static_cast<type*>(moz_xmalloc(elemSize * (aLength + padding)));     \
     if (!*b)                                                                  \
         return NS_ERROR_OUT_OF_MEMORY;                                        \
     memcpy(*b, a, elemSize * (aLength + padding));                            \
@@ -146,7 +146,7 @@ NS_IMETHODIMP nsXPCTestParams::TestString(const char * a, char * *b, char * *_re
 
     
     
-    NS_Free(const_cast<char*>(bprime.get()));
+    free(const_cast<char*>(bprime.get()));
 
     return NS_OK;
 }
@@ -167,7 +167,7 @@ NS_IMETHODIMP nsXPCTestParams::TestWstring(const char16_t * a, char16_t * *b, ch
 
     
     
-    NS_Free((void*)bprime.get());
+    free((void*)bprime.get());
 
     return NS_OK;
 }
@@ -297,7 +297,7 @@ NS_IMETHODIMP nsXPCTestParams::TestInterfaceIs(const nsIID* aIID, void* a,
 
     
     
-    *rvIID = static_cast<nsIID*>(NS_Alloc(sizeof(nsID)));
+    *rvIID = static_cast<nsIID*>(moz_xmalloc(sizeof(nsID)));
     if (!*rvIID)
         return NS_ERROR_OUT_OF_MEMORY;
     **rvIID = **bIID;
@@ -328,7 +328,7 @@ NS_IMETHODIMP nsXPCTestParams::TestInterfaceIsArray(uint32_t aLength, const nsII
 {
     
     
-    *rvIID = static_cast<nsIID*>(NS_Alloc(sizeof(nsID)));
+    *rvIID = static_cast<nsIID*>(moz_xmalloc(sizeof(nsID)));
     if (!*rvIID)
         return NS_ERROR_OUT_OF_MEMORY;
     **rvIID = **bIID;

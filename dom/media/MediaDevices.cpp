@@ -97,7 +97,7 @@ public:
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (elementType != nsIDataType::VTYPE_INTERFACE) {
-        NS_Free(rawArray);
+        free(rawArray);
         return NS_ERROR_FAILURE;
       }
 
@@ -107,7 +107,7 @@ public:
         devices.AppendElement(device);
         NS_IF_RELEASE(supportsArray[i]); 
       }
-      NS_Free(rawArray); 
+      free(rawArray); 
     }
     nsTArray<nsRefPtr<MediaDeviceInfo>> infos;
     for (auto& device : devices) {

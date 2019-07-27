@@ -768,7 +768,7 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
     struct FontDataDeleter {
         FontDataDeleter(const uint8_t* aFontData)
             : mFontData(aFontData) { }
-        ~FontDataDeleter() { NS_Free((void*)mFontData); }
+        ~FontDataDeleter() { free((void*)mFontData); }
         const uint8_t *mFontData;
     };
     FontDataDeleter autoDelete(aFontData);
