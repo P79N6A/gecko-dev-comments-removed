@@ -84,7 +84,7 @@ struct BreadthFirst {
     
     
     BreadthFirst(JSContext *cx, Handler &handler, const JS::AutoCheckCannotGC &noGC)
-      : cx(cx), visited(cx), handler(handler), pending(cx),
+      : wantNames(true), cx(cx), visited(cx), handler(handler), pending(cx),
         traversalBegun(false), stopRequested(false), abandonRequested(false)
     { }
 
@@ -94,6 +94,10 @@ struct BreadthFirst {
     
     
     bool addStart(Node node) { return pending.append(node); }
+
+    
+    
+    bool wantNames;
 
     
     
@@ -113,7 +117,7 @@ struct BreadthFirst {
             pending.popFront();
 
             
-            js::ScopedJSDeletePtr<EdgeRange> range(origin.edges(cx));
+            js::ScopedJSDeletePtr<EdgeRange> range(origin.edges(cx, wantNames));
             if (!range)
                 return false;
 

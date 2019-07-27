@@ -198,7 +198,10 @@ class Base {
     
     
     
-    virtual EdgeRange *edges(JSContext *cx) const = 0;
+    
+    
+    
+    virtual EdgeRange *edges(JSContext *cx, bool wantNames) const = 0;
 
     
     
@@ -333,9 +336,11 @@ class Node {
 
     const jschar *typeName()        const { return base()->typeName(); }
     size_t size()                   const { return base()->size(); }
-    EdgeRange *edges(JSContext *cx) const { return base()->edges(cx); }
     JS::Zone *zone()                const { return base()->zone(); }
     JSCompartment *compartment()    const { return base()->compartment(); }
+    EdgeRange *edges(JSContext *cx, bool wantNames = true) const {
+        return base()->edges(cx, wantNames);
+    }
 
     
     
@@ -365,6 +370,7 @@ class Edge {
     virtual ~Edge() { }
 
   public:
+    
     
     
     
@@ -428,7 +434,7 @@ template<typename Referent>
 class TracerConcrete : public Base {
     const jschar *typeName() const MOZ_OVERRIDE { return concreteTypeName; }
     size_t size() const MOZ_OVERRIDE { return 0; } 
-    EdgeRange *edges(JSContext *) const MOZ_OVERRIDE;
+    EdgeRange *edges(JSContext *, bool wantNames) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE { return get().zone(); }
     JSCompartment *compartment() const MOZ_OVERRIDE { return nullptr; }
 
@@ -472,7 +478,7 @@ template<>
 class Concrete<void> : public Base {
     const jschar *typeName() const MOZ_OVERRIDE;
     size_t size() const MOZ_OVERRIDE;
-    EdgeRange *edges(JSContext *cx) const MOZ_OVERRIDE;
+    EdgeRange *edges(JSContext *cx, bool wantNames) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE;
     JSCompartment *compartment() const MOZ_OVERRIDE;
 

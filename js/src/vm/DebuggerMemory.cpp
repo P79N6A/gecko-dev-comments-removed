@@ -643,6 +643,7 @@ DebuggerMemory::takeCensus(JSContext *cx, unsigned argc, Value *vp)
         dbg::DefaultCensusTraversal traversal(cx, handler, noGC);
         if (!traversal.init())
             return false;
+        traversal.wantNames = false;
 
         
         
