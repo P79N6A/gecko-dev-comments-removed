@@ -950,6 +950,14 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   ctxt = nullptr;
   drawTarget = nullptr;
 
+  nsIntRegion tileRegion =
+    nsIntRect(aTileOrigin.x, aTileOrigin.y,
+              GetScaledTileSize().width, GetScaledTileSize().height);
+  
+  tileRegion = tileRegion.Sub(tileRegion, GetValidRegion());
+  tileRegion = tileRegion.Sub(tileRegion, aDirtyRegion); 
+
+  backBuffer->SetWaste(tileRegion.Area() * mResolution * mResolution);
   backBuffer->Unlock();
 
   if (createdTextureClient) {
