@@ -111,7 +111,7 @@ public class TabQueueHelper {
         return prefs.getInt(PREF_TAB_QUEUE_COUNT, 0);
     }
 
-    public static void openQueuedUrls(final Context context, final GeckoProfile profile, final String filename) {
+    public static void openQueuedUrls(final Context context, final GeckoProfile profile, final String filename, boolean shouldPerformJavaScriptCallback) {
         ThreadUtils.assertNotOnUiThread();
 
         
@@ -129,6 +129,7 @@ public class TabQueueHelper {
             JSONObject data = new JSONObject();
             try {
                 data.put("urls", jsonArray);
+                data.put("shouldNotifyTabsOpenedToJava", shouldPerformJavaScriptCallback);
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tabs:OpenMultiple", data.toString()));
             } catch (JSONException e) {
                 
