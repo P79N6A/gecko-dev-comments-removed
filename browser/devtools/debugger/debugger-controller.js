@@ -1733,10 +1733,29 @@ EventListeners.prototype = {
 
 
 
+  _parsingListeners: false,
+
+  
+
+
+
+  _eventListenersUpdateNeeded: false,
+
+  
+
+
+
 
 
 
   _getListeners: function(aCallback) {
+    
+    
+    if (this._parsingListeners) {
+      this._eventListenersUpdateNeeded = true;
+      return;
+    }
+    this._parsingListeners = true;
     gThreadClient.eventListeners(Task.async(function*(aResponse) {
       if (aResponse.error) {
         throw "Error getting event listeners: " + aResponse.message;
@@ -1747,17 +1766,29 @@ EventListeners.prototype = {
       aResponse.listeners.sort((a, b) => a.type > b.type ? 1 : -1);
 
       
+      let fetchedDefinitions = new Map();
       for (let listener of aResponse.listeners) {
         let definitionSite;
-        if (listener.function.class == "Function") {
+        if (fetchedDefinitions.has(listener.function.actor)) {
+          definitionSite = fetchedDefinitions.get(listener.function.actor);
+        } else if (listener.function.class == "Function") {
           definitionSite = yield this._getDefinitionSite(listener.function);
+          fetchedDefinitions.set(listener.function.actor, definitionSite);
         }
         listener.function.url = definitionSite;
         DebuggerView.EventListeners.addListener(listener, { staged: true });
       }
+      fetchedDefinitions.clear();
 
       
       DebuggerView.EventListeners.commit();
+
+      
+      this._parsingListeners = false;
+      if (this._eventListenersUpdateNeeded) {
+        this._eventListenersUpdateNeeded = false;
+        this.scheduleEventListenersFetch();
+      }
 
       
       
