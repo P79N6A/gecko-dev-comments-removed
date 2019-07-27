@@ -45,7 +45,6 @@ add_test(function test_check_change_call_barring_password_result() {
     postMessage: function(message) {
       equal(barringPasswordOptions.pin, PIN);
       equal(barringPasswordOptions.newPin, NEW_PIN);
-      equal(message.errorMsg, GECKO_ERROR_SUCCESS);
     }
   });
 
