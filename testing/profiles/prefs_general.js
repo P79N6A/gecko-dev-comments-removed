@@ -221,4 +221,7 @@ user_pref("browser.translation.bing.authURL", "http://%(server)s/browser/browser
 user_pref("browser.translation.bing.translateArrayURL", "http://%(server)s/browser/browser/components/translation/test/bing.sjs");
 
 
+user_pref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
+
+
 user_pref("dom.mozApps.debug", true);
