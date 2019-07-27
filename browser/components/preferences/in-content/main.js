@@ -60,14 +60,8 @@ var gMainPane = {
 
     this.updateBrowserStartupLastSession();
 
-    
-    Components.classes["@mozilla.org/observer-service;1"]
-              .getService(Components.interfaces.nsIObserverService)
-              .notifyObservers(window, "main-pane-loaded", null);
-
 #ifdef XP_WIN
     
-
     try {
       let sysInfo = Cc["@mozilla.org/system-info;1"].
                     getService(Ci.nsIPropertyBag2);
@@ -75,7 +69,6 @@ var gMainPane = {
       let showTabsInTaskbar = document.getElementById("showTabsInTaskbar");
       showTabsInTaskbar.hidden = ver < 6.1;
     } catch (ex) {}
-
 #endif
 
     setEventListener("browser.privatebrowsing.autostart", "change",
@@ -94,6 +87,11 @@ var gMainPane = {
                      gMainPane.restoreDefaultHomePage);
     setEventListener("chooseFolder", "command",
                      gMainPane.chooseFolder);
+
+    
+    Components.classes["@mozilla.org/observer-service;1"]
+              .getService(Components.interfaces.nsIObserverService)
+              .notifyObservers(window, "main-pane-loaded", null);
   },
 
   
