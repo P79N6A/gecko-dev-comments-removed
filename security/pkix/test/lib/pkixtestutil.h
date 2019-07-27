@@ -113,8 +113,6 @@ ByteString CNToDERName(const char* cn);
 Result TamperOnce( ByteString& item, const ByteString& from,
                   const ByteString& to);
 
-Result InitInputFromSECItem(const SECItem* secItem,  Input& input);
-
 
 
 
