@@ -28,7 +28,7 @@ class SymbolObject : public NativeObject
 
 
 
-    static SymbolObject *create(JSContext *cx, JS::Symbol *symbol);
+    static SymbolObject *create(JSContext *cx, JS::HandleSymbol symbol);
 
     JS::Symbol *unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toSymbol();
