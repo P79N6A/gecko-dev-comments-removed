@@ -37,14 +37,10 @@ using mozilla::RotateLeft;
 bool
 ShapeTable::init(ThreadSafeContext *cx, Shape *lastProp)
 {
-    
-
-
-
-
-
-
-    uint32_t sizeLog2 = CeilingLog2Size(2 * entryCount);
+    uint32_t sizeLog2 = CeilingLog2Size(entryCount);
+    uint32_t size = JS_BIT(sizeLog2);
+    if (entryCount >= size - (size >> 2))
+        sizeLog2++;
     if (sizeLog2 < MIN_SIZE_LOG2)
         sizeLog2 = MIN_SIZE_LOG2;
 
