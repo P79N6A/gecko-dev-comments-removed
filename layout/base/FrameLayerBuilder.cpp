@@ -1667,7 +1667,7 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aAnimatedGeometryRoot
   data->mAppUnitsPerDevPixel = mAppUnitsPerDevPixel;
   layer->SetAllowResidualTranslation(mParameters.AllowResidualTranslation());
 
-  mLayerBuilder->SaveLastPaintOffset(layer);
+  mLayerBuilder->SavePreviousDataForLayer(layer, data->mMaskClipCount);
 
   
   
@@ -3012,6 +3012,8 @@ FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData)
     return;
   }
 
+  ThebesLayerItemsEntry* entry = mThebesLayerItems.GetEntry(thebesLayer);
+
   nsAutoPtr<nsDisplayItemGeometry> geometry(item->AllocateGeometry(mDisplayListBuilder));
 
   ThebesDisplayItemLayerUserData* layerData =
@@ -3067,8 +3069,9 @@ FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData)
 
     aData->mGeometry->MoveBy(shift);
     item->ComputeInvalidationRegion(mDisplayListBuilder, aData->mGeometry, &combined);
-    aData->mClip.AddOffsetAndComputeDifference(shift, aData->mGeometry->ComputeInvalidationRegion(),
-                                               clip, geometry->ComputeInvalidationRegion(),
+    aData->mClip.AddOffsetAndComputeDifference(entry->mCommonClipCount,
+                                               shift, aData->mGeometry->ComputeInvalidationRegion(),
+                                               clip, entry->mLastCommonClipCount, geometry->ComputeInvalidationRegion(),
                                                &combined);
 
     
@@ -3307,7 +3310,7 @@ FrameLayerBuilder::GetLastPaintOffset(ThebesLayer* aLayer)
 }
 
 void
-FrameLayerBuilder::SaveLastPaintOffset(ThebesLayer* aLayer)
+FrameLayerBuilder::SavePreviousDataForLayer(ThebesLayer* aLayer, uint32_t aClipCount)
 {
   ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
   if (entry) {
@@ -3316,6 +3319,7 @@ FrameLayerBuilder::SaveLastPaintOffset(ThebesLayer* aLayer)
     }
     entry->mLastPaintOffset = GetTranslationForThebesLayer(aLayer);
     entry->mHasExplicitLastPaintOffset = true;
+    entry->mLastCommonClipCount = aClipCount;
   }
 }
 
