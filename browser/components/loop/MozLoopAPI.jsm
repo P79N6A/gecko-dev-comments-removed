@@ -369,17 +369,27 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
+
+
     confirm: {
       enumerable: true,
       writable: true,
-      value: function(bodyMessage, okButtonMessage, cancelButtonMessage, callback) {
-        try {
-          let buttonFlags =
+      value: function(options, callback) {
+        let buttonFlags;
+        if (options.okButton && options.cancelButton) {
+          buttonFlags =
             (Ci.nsIPrompt.BUTTON_POS_0 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING) +
             (Ci.nsIPrompt.BUTTON_POS_1 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING);
+        } else if (!options.okButton && !options.cancelButton) {
+          buttonFlags = Services.prompt.STD_YES_NO_BUTTONS;
+        } else {
+          callback(cloneValueInto(new Error("confirm: missing button options"), targetWindow));
+        }
 
+        try {
           let chosenButton = Services.prompt.confirmEx(null, "",
-            bodyMessage, buttonFlags, okButtonMessage, cancelButtonMessage,
+            options.message, buttonFlags, options.okButton, options.cancelButton,
             null, null, {});
 
           callback(null, chosenButton == 0);
@@ -706,24 +716,6 @@ function injectLoopAPI(targetWindow) {
         };
 
         request.send();
-      }
-    },
-
-    
-
-
-
-
-
-
-    addConversationContext: {
-      enumerable: true,
-      writable: true,
-      value: function(windowId, sessionId, callid) {
-        MozLoopService.addConversationContext(windowId, {
-          sessionId: sessionId,
-          callId: callid
-        });
       }
     }
   };
