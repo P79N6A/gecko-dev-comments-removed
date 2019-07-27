@@ -73,6 +73,31 @@ this.ReaderMode = {
 
 
 
+
+  getOriginalUrl: function(url) {
+    if (!url.startsWith("about:reader?")) {
+      return null;
+    }
+
+    let searchParams = new URLSearchParams(url.substring("about:reader?".length));
+    if (!searchParams.has("url")) {
+      return null;
+    }
+    let encodedURL = searchParams.get("url");
+    try {
+      return decodeURIComponent(encodedURL);
+    } catch (e) {
+      Cu.reportError("Error decoding original URL: " + e);
+      return encodedURL;
+    }
+  },
+
+  
+
+
+
+
+
   isProbablyReaderable: function(doc) {
     
     if (doc.mozSyntheticDocument || !(doc instanceof doc.defaultView.HTMLDocument)) {

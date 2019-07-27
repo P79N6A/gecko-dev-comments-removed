@@ -5,8 +5,6 @@
 
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode", "resource://gre/modules/ReaderMode.jsm");
-
 let Reader = {
   
   STATUS_UNFETCHED: 0,

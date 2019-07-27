@@ -172,7 +172,7 @@ let ReaderParent = {
     let url = browser.currentURI.spec;
 
     if (url.startsWith("about:reader")) {
-      let originalURL = this._getOriginalUrl(url);
+      let originalURL = ReaderMode.getOriginalUrl(url);
       if (!originalURL) {
         Cu.reportError("Error finding original URL for about:reader URL: " + url);
       } else {
@@ -181,28 +181,6 @@ let ReaderParent = {
     } else {
       browser.messageManager.sendAsyncMessage("Reader:ParseDocument", { url: url });
     }
-  },
-
-  parseReaderUrl: function(url) {
-    if (!url.startsWith("about:reader?")) {
-      return null;
-    }
-    return this._getOriginalUrl(url);
-  },
-
-  
-
-
-
-
-
-
-  _getOriginalUrl: function(url) {
-    let searchParams = new URLSearchParams(url.substring("about:reader?".length));
-    if (!searchParams.has("url")) {
-      return null;
-    }
-    return decodeURIComponent(searchParams.get("url"));
   },
 
   
