@@ -2581,6 +2581,7 @@ class MArrayState : public MVariadicInstruction
     explicit MArrayState(MDefinition *arr)
     {
         
+        setResultType(MIRType_Object);
         setRecoveredOnBailout();
         numElements_ = arr->toNewArray()->count();
     }

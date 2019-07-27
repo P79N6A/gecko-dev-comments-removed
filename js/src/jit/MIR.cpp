@@ -3178,6 +3178,7 @@ MCreateThisWithTemplate::canRecoverOnBailout() const
 MObjectState::MObjectState(MDefinition *obj)
 {
     
+    setResultType(MIRType_Object);
     setRecoveredOnBailout();
     JSObject *templateObject = nullptr;
     if (obj->isNewObject())
