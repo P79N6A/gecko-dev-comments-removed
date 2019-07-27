@@ -91,6 +91,12 @@ CSS_PSEUDO_CLASS(nthLastOfType, ":nth-last-of-type", 0, "")
 CSS_PSEUDO_CLASS(mozIsHTML, ":-moz-is-html", 0, "")
 
 
+
+
+CSS_PSEUDO_CLASS(mozNativeAnonymous, ":-moz-native-anonymous",
+                 CSS_PSEUDO_CLASS_UA_SHEET_ONLY, "")
+
+
 CSS_PSEUDO_CLASS(mozSystemMetric, ":-moz-system-metric", 0, "")
 
 
