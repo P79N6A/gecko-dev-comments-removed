@@ -23,6 +23,7 @@
 #include "mozilla/TimeStamp.h"
 #include "GeckoProfiler.h"
 #include "mozilla/dom/ProfileTimelineMarkerBinding.h"
+#include "mozilla/LinkedList.h"
 #include "jsapi.h"
 
 
@@ -265,6 +266,43 @@ public:
   
   
   static unsigned long gProfileTimelineRecordingsCount;
+
+  class ObservedDocShell : public mozilla::LinkedListElement<ObservedDocShell>
+  {
+  public:
+    explicit ObservedDocShell(nsDocShell* aDocShell)
+      : mDocShell(aDocShell)
+    { }
+
+    nsDocShell* operator*() const { return mDocShell.get(); }
+
+  private:
+    nsRefPtr<nsDocShell> mDocShell;
+  };
+
+private:
+  static mozilla::LinkedList<ObservedDocShell>* gObservedDocShells;
+
+  static mozilla::LinkedList<ObservedDocShell>& GetOrCreateObservedDocShells()
+  {
+    if (!gObservedDocShells) {
+      gObservedDocShells = new mozilla::LinkedList<ObservedDocShell>();
+    }
+    return *gObservedDocShells;
+  }
+
+  
+  mozilla::UniquePtr<ObservedDocShell> mObserved;
+
+  
+  
+  bool IsObserved() const { return !!mObserved; }
+
+public:
+  static const mozilla::LinkedList<ObservedDocShell>& GetObservedDocShells()
+  {
+    return GetOrCreateObservedDocShells();
+  }
 
   
   static void CopyFavicon(nsIURI* aOldURI,
@@ -972,9 +1010,6 @@ private:
   
   
   uint32_t mJSRunToCompletionDepth;
-
-  
-  bool mProfileTimelineRecording;
 
   nsTArray<mozilla::UniquePtr<TimelineMarker>> mProfileTimelineMarkers;
 
