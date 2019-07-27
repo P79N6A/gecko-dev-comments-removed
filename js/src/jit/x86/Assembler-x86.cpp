@@ -19,15 +19,25 @@ ABIArgGenerator::ABIArgGenerator()
 ABIArg
 ABIArgGenerator::next(MIRType type)
 {
-    current_ = ABIArg(stackOffset_);
     switch (type) {
       case MIRType_Int32:
       case MIRType_Pointer:
+        current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(uint32_t);
         break;
       case MIRType_Float32: 
       case MIRType_Double:
+        current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(uint64_t);
+        break;
+      case MIRType_Int32x4:
+      case MIRType_Float32x4:
+        
+        
+        
+        stackOffset_ = AlignBytes(stackOffset_, SimdStackAlignment);
+        current_ = ABIArg(stackOffset_);
+        stackOffset_ += Simd128DataSize;
         break;
       default:
         MOZ_CRASH("Unexpected argument type");

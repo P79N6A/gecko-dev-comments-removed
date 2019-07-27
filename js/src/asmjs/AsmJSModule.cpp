@@ -304,7 +304,7 @@ AsmJSModule::finish(ExclusiveContext *cx, TokenStream &tokenStream, MacroAssembl
     
     
     
-    pod.codeBytes_ = AlignBytes(masm.bytesNeeded(), sizeof(double));
+    pod.codeBytes_ = AlignBytes(masm.bytesNeeded(), SimdStackAlignment);
 
     
     
@@ -522,7 +522,7 @@ TryEnablingIon(JSContext *cx, AsmJSModule &module, HandleFunction fun, uint32_t 
     
     if (!types::TypeScript::ThisTypes(script)->hasType(types::Type::UndefinedType()))
         return true;
-    for(uint32_t i = 0; i < fun->nargs(); i++) {
+    for (uint32_t i = 0; i < fun->nargs(); i++) {
         types::StackTypeSet *typeset = types::TypeScript::ArgTypes(script, i);
         types::Type type = types::Type::DoubleType();
         if (!argv[i].isDouble())
