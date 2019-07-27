@@ -66,6 +66,11 @@ protected:
 
   void StartControllingInput(nsIDOMHTMLInputElement *aInput);
   void StopControllingInput();
+  
+
+
+
+  void MaybeStartControllingInput(nsIDOMHTMLInputElement* aElement);
 
   nsresult PerformInputListAutoComplete(nsIAutoCompleteResult* aPreviousResult);
 
