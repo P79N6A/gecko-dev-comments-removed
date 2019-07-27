@@ -165,6 +165,10 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   { "windowsapihookdll32.dll", UNVERSIONED },
   { "windowsapihookdll64.dll", UNVERSIONED },
 
+  
+  { "rndlnpshimswf.dll", ALL_VERSIONS },
+  { "rndlmainbrowserrecordplugin.dll", ALL_VERSIONS },
+
   { nullptr, 0 }
 };
 
