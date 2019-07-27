@@ -187,7 +187,9 @@ private:
   bool mMainThreadObjectsForgotten;
   WorkerType mWorkerType;
   TimeStamp mCreationTimeStamp;
+  DOMHighResTimeStamp mCreationTimeHighRes;
   TimeStamp mNowBaseTimeStamp;
+  DOMHighResTimeStamp mNowBaseTimeHighRes;
 
 protected:
   
@@ -543,9 +545,19 @@ public:
     return mCreationTimeStamp;
   }
 
+  DOMHighResTimeStamp CreationTimeHighRes() const
+  {
+    return mCreationTimeHighRes;
+  }
+
   TimeStamp NowBaseTimeStamp() const
   {
     return mNowBaseTimeStamp;
+  }
+
+  DOMHighResTimeStamp NowBaseTimeHighRes() const
+  {
+    return mNowBaseTimeHighRes;
   }
 
   nsIPrincipal*

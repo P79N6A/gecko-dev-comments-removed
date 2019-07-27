@@ -145,6 +145,12 @@ var interfaceNamesInGlobalScope =
 
     "Performance",
 
+    "PerformanceEntry",
+
+    "PerformanceMark",
+
+    "PerformanceMeasure",
+
     "Promise",
 
     "Request",
