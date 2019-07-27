@@ -8,7 +8,6 @@
 
 #include <stdint.h>
 
-#include "nsDeque.h"
 #include "MediaDecoderReader.h"
 #include "nsAutoRef.h"
 #include "nestegg/nestegg.h"
@@ -32,30 +31,22 @@
 
 class NesteggPacketHolder {
 public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(NesteggPacketHolder)
   NesteggPacketHolder(nestegg_packet* aPacket, int64_t aOffset)
-    : mPacket(aPacket), mOffset(aOffset)
-  {
-    MOZ_COUNT_CTOR(NesteggPacketHolder);
-  }
-  ~NesteggPacketHolder() {
-    MOZ_COUNT_DTOR(NesteggPacketHolder);
-    nestegg_free_packet(mPacket);
-  }
+    : mPacket(aPacket), mOffset(aOffset) {}
+
   nestegg_packet* mPacket;
   
   
   int64_t mOffset;
 private:
+  ~NesteggPacketHolder() {
+    nestegg_free_packet(mPacket);
+  }
+
   
   NesteggPacketHolder(const NesteggPacketHolder &aOther);
   NesteggPacketHolder& operator= (NesteggPacketHolder const& aOther);
-};
-
-template <>
-class nsAutoRefTraits<NesteggPacketHolder> : public nsPointerRefTraits<NesteggPacketHolder>
-{
-public:
-  static void Release(NesteggPacketHolder* aHolder) { delete aHolder; }
 };
 
 namespace mozilla {
@@ -64,49 +55,34 @@ static const unsigned NS_PER_USEC = 1000;
 static const double NS_PER_S = 1e9;
 
 
-class PacketQueueDeallocator : public nsDequeFunctor {
-  virtual void* operator() (void* aObject) {
-    delete static_cast<NesteggPacketHolder*>(aObject);
-    return nullptr;
-  }
-};
-
-
-
-
-class WebMPacketQueue : private nsDeque {
+class WebMPacketQueue {
  public:
-   WebMPacketQueue()
-     : nsDeque(new PacketQueueDeallocator())
-   {}
-
-  ~WebMPacketQueue() {
-    Reset();
+  int32_t GetSize() {
+    return mQueue.size();
   }
 
-  inline int32_t GetSize() {
-    return nsDeque::GetSize();
+  void Push(already_AddRefed<NesteggPacketHolder> aItem) {
+    mQueue.push_back(Move(aItem));
   }
 
-  inline void Push(NesteggPacketHolder* aItem) {
-    NS_ASSERTION(aItem, "NULL pushed to WebMPacketQueue");
-    nsDeque::Push(aItem);
+  void PushFront(already_AddRefed<NesteggPacketHolder> aItem) {
+    mQueue.push_front(Move(aItem));
   }
 
-  inline void PushFront(NesteggPacketHolder* aItem) {
-    NS_ASSERTION(aItem, "NULL pushed to WebMPacketQueue");
-    nsDeque::PushFront(aItem);
-  }
-
-  inline NesteggPacketHolder* PopFront() {
-    return static_cast<NesteggPacketHolder*>(nsDeque::PopFront());
+  already_AddRefed<NesteggPacketHolder> PopFront() {
+    nsRefPtr<NesteggPacketHolder> result = mQueue.front().forget();
+    mQueue.pop_front();
+    return result.forget();
   }
 
   void Reset() {
-    while (GetSize() > 0) {
-      delete PopFront();
+    while (!mQueue.empty()) {
+      mQueue.pop_front();
     }
   }
+
+private:
+  std::deque<nsRefPtr<NesteggPacketHolder>> mQueue;
 };
 
 class WebMReader;
@@ -175,10 +151,10 @@ public:
   
   
   
-  nsReturnRef<NesteggPacketHolder> NextPacket(TrackType aTrackType);
+  already_AddRefed<NesteggPacketHolder> NextPacket(TrackType aTrackType);
 
   
-  virtual void PushVideoPacket(NesteggPacketHolder* aItem);
+  virtual void PushVideoPacket(already_AddRefed<NesteggPacketHolder> aItem);
 
   int GetVideoCodec();
   nsIntRect GetPicture();
