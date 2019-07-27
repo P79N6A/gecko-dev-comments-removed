@@ -46,6 +46,7 @@ public:
   NS_IMETHOD RedoTransaction();
 
 protected:
+  virtual ~ChangeAttributeTxn();
 
   
   nsIEditor*  mEditor;

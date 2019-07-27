@@ -57,6 +57,7 @@ public:
   NS_IMETHOD GetData(nsString& aResult);
 
 protected:
+  virtual ~InsertTextTxn();
 
   
   virtual bool IsSequentialInsert(InsertTextTxn *aOtherTxn);

@@ -39,7 +39,8 @@ public:
   NS_DECL_EDITTXN
 
 protected:
-  
+  virtual ~InsertElementTxn();
+
   
   nsCOMPtr<nsIDOMNode> mNode;
 

@@ -48,7 +48,8 @@ public:
   NS_IMETHOD GetNewNode(nsIDOMNode **aNewNode);
 
 protected:
-  
+  virtual ~CreateElementTxn();
+
   
   nsEditor* mEditor;
   

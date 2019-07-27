@@ -60,6 +60,7 @@ public:
   NS_IMETHOD RememberEndingSelection();
 
 protected:
+  virtual ~PlaceholderTxn();
 
   
   bool        mAbsorb;          
