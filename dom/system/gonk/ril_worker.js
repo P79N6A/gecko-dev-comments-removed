@@ -10963,8 +10963,10 @@ StkCommandParamsFactoryObject.prototype = {
       menu.defaultItem = ctlv.value.identifier - 1;
     }
 
-    
-    menu.presentationType = cmdDetails.commandQualifier & 0x03;
+    if (cmdDetails.typeOfCommand == STK_CMD_SELECT_ITEM) {
+      
+      menu.presentationType = cmdDetails.commandQualifier & 0x03;
+    }
 
     
     if (cmdDetails.commandQualifier & 0x80) {
