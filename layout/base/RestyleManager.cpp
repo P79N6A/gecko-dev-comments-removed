@@ -719,6 +719,9 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       
       
       
+      
+      
+      
       FrameConstructor()->RecreateFramesForContent(content, false);
     } else {
       NS_ASSERTION(frame, "This shouldn't happen");
