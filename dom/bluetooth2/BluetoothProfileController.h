@@ -27,19 +27,19 @@ BEGIN_BLUETOOTH_NAMESPACE
 
 
 
-#define GET_MAJOR_SERVICE_CLASS(cod) ((cod & 0xffe000) >> 13)
+#define GET_MAJOR_SERVICE_CLASS(cod) (((cod) & 0xffe000) >> 13)
 
 
-#define GET_MAJOR_DEVICE_CLASS(cod)  ((cod & 0x1f00) >> 8)
+#define GET_MAJOR_DEVICE_CLASS(cod)  (((cod) & 0x1f00) >> 8)
 
 
-#define GET_MINOR_DEVICE_CLASS(cod)  ((cod & 0xfc) >> 2)
+#define GET_MINOR_DEVICE_CLASS(cod)  (((cod) & 0xfc) >> 2)
 
 
-#define HAS_AUDIO(cod)               (cod & 0x200000)
+#define HAS_AUDIO(cod)               ((cod) & 0x200000)
 
 
-#define HAS_RENDERING(cod)           (cod & 0x40000)
+#define HAS_RENDERING(cod)           ((cod) & 0x40000)
 
 
 #define IS_PERIPHERAL(cod)           (GET_MAJOR_DEVICE_CLASS(cod) == 0x5)
