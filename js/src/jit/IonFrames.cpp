@@ -420,7 +420,6 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
     RootedScript script(cx, frame.script());
     jsbytecode *pc = frame.pc();
 
-    bool bailedOutForDebugMode = false;
     if (cx->compartment()->isDebuggee()) {
         
         
@@ -450,7 +449,8 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
             
             ExceptionBailoutInfo propagateInfo;
             uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed);
-            bailedOutForDebugMode = retval == BAILOUT_RETURN_OK;
+            if (retval == BAILOUT_RETURN_OK)
+                return;
         }
     }
 
@@ -481,7 +481,7 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
             break;
 
           case JSTRY_CATCH:
-            if (cx->isExceptionPending() && !bailedOutForDebugMode) {
+            if (cx->isExceptionPending()) {
                 
                 
                 

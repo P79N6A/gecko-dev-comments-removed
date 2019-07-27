@@ -445,6 +445,28 @@ GetNextNonLoopEntryPc(jsbytecode *pc)
     return pc;
 }
 
+static bool
+HasLiveIteratorAtStackDepth(JSScript *script, jsbytecode *pc, uint32_t stackDepth)
+{
+    if (!script->hasTrynotes())
+        return false;
+
+    JSTryNote *tn = script->trynotes()->vector;
+    JSTryNote *tnEnd = tn + script->trynotes()->length;
+    uint32_t pcOffset = uint32_t(pc - script->main());
+    for (; tn != tnEnd; ++tn) {
+        if (pcOffset < tn->start)
+            continue;
+        if (pcOffset >= tn->start + tn->length)
+            continue;
+
+        if (tn->kind == JSTRY_ITER && stackDepth == tn->stackDepth)
+            return true;
+    }
+
+    return false;
+}
+
 
 
 
@@ -849,8 +871,9 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             
+            
             MOZ_ASSERT(cx->compartment()->isDebuggee());
-            if (iter.moreFrames())
+            if (iter.moreFrames() || HasLiveIteratorAtStackDepth(script, pc, i + 1))
                 v = iter.read();
             else
                 v = MagicValue(JS_OPTIMIZED_OUT);
