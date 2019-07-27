@@ -2434,6 +2434,12 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsIAtom* aOri
   
   ScrollVisual(oldScrollFramePos);
 
+  if (mOuter->ChildrenHavePerspective()) {
+    
+    
+    mOuter->RecomputePerspectiveChildrenOverflow(mOuter->StyleContext(), nullptr);
+  }
+
   ScheduleSyntheticMouseMove();
   nsWeakFrame weakFrame(mOuter);
   UpdateScrollbarPosition();
