@@ -250,7 +250,11 @@ public class RecentTabsPanel extends HomeFragment
                 mClosedTabs = closedTabs;
 
                 
-                getLoaderManager().restartLoader(LOADER_ID_RECENT_TABS, null, mCursorLoaderCallbacks);
+                
+                if (getActivity() != null) {
+                    
+                    getLoaderManager().restartLoader(LOADER_ID_RECENT_TABS, null, mCursorLoaderCallbacks);
+                }
             }
         });
     }
