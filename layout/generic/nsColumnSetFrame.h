@@ -207,14 +207,14 @@ protected:
 
 
   void FindBestBalanceBSize(const nsHTMLReflowState& aReflowState,
-                             nsPresContext* aPresContext,
-                             ReflowConfig& aConfig,
-                             ColumnBalanceData& aColData,
-                             nsHTMLReflowMetrics& aDesiredSize,
-                             nsCollapsingMargin& aOutMargin,
-                             bool& aUnboundedLastColumn,
-                             bool& aRunWasFeasible,
-                             nsReflowStatus& aStatus);
+                            nsPresContext* aPresContext,
+                            ReflowConfig& aConfig,
+                            ColumnBalanceData& aColData,
+                            nsHTMLReflowMetrics& aDesiredSize,
+                            nsCollapsingMargin& aOutMargin,
+                            bool& aUnboundedLastColumn,
+                            bool& aRunWasFeasible,
+                            nsReflowStatus& aStatus);
   
 
 
