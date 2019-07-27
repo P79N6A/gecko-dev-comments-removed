@@ -334,6 +334,8 @@ private:
 
   nsAutoPtr<VideoCodecConfig> mExternalSendCodec;
   nsAutoPtr<VideoCodecConfig> mExternalRecvCodec;
+  nsAutoPtr<VideoEncoder> mExternalSendCodecHandle;
+  nsAutoPtr<VideoDecoder> mExternalRecvCodecHandle;
 
   
   nsAutoPtr<VideoCodecStatistics> mVideoCodecStat;

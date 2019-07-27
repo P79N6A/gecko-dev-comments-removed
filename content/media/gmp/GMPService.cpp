@@ -155,6 +155,7 @@ GeckoMediaPluginService::Observe(nsISupports* aSubject,
   return NS_OK;
 }
 
+
 NS_IMETHODIMP
 GeckoMediaPluginService::GetThread(nsIThread** aThread)
 {
@@ -261,8 +262,10 @@ GeckoMediaPluginService::UnloadPlugins()
   mShuttingDownOnGMPThread = true;
 
   MutexAutoLock lock(mMutex);
+  
+  
   for (uint32_t i = 0; i < mPlugins.Length(); i++) {
-    mPlugins[i]->Shutdown();
+    mPlugins[i]->CloseActive();
   }
   mPlugins.Clear();
 }
@@ -443,7 +446,7 @@ GeckoMediaPluginService::RemoveOnGMPThread(const nsAString& aDirectory)
     nsCOMPtr<nsIFile> pluginpath = mPlugins[i]->GetDirectory();
     bool equals;
     if (NS_SUCCEEDED(directory->Equals(pluginpath, &equals)) && equals) {
-      mPlugins[i]->Shutdown();
+      mPlugins[i]->CloseActive();
       mPlugins.RemoveElementAt(i);
       return;
     }

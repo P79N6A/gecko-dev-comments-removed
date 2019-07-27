@@ -92,9 +92,10 @@ GMPParent::CloseIfUnused()
 {
   MOZ_ASSERT(GMPThread() == NS_GetCurrentThread());
 
-  if (mState == GMPStateLoaded &&
-      mVideoDecoders.Length() == 0 &&
-      mVideoEncoders.Length() == 0) {
+  if ((mState == GMPStateLoaded ||
+       mState == GMPStateUnloading) &&
+      mVideoDecoders.IsEmpty() &&
+      mVideoEncoders.IsEmpty()) {
     Shutdown();
   }
 }
@@ -102,6 +103,10 @@ GMPParent::CloseIfUnused()
 void
 GMPParent::CloseActive()
 {
+  if (mState == GMPStateLoaded) {
+    mState = GMPStateUnloading;
+  }
+
   
   for (uint32_t i = mVideoDecoders.Length(); i > 0; i--) {
     mVideoDecoders[i - 1]->DecodingComplete();
@@ -111,6 +116,11 @@ GMPParent::CloseActive()
   for (uint32_t i = mVideoEncoders.Length(); i > 0; i--) {
     mVideoEncoders[i - 1]->EncodingComplete();
   }
+
+  
+  
+  
+  CloseIfUnused();
 }
 
 void
@@ -118,12 +128,12 @@ GMPParent::Shutdown()
 {
   MOZ_ASSERT(GMPThread() == NS_GetCurrentThread());
 
+  MOZ_ASSERT(mVideoDecoders.IsEmpty() && mVideoEncoders.IsEmpty());
   if (mState == GMPStateNotLoaded || mState == GMPStateClosing) {
-    MOZ_ASSERT(mVideoDecoders.IsEmpty() && mVideoEncoders.IsEmpty());
     return;
   }
 
-  CloseActive();
+  mState = GMPStateClosing;
   Close();
   DeleteProcess();
   MOZ_ASSERT(mState == GMPStateNotLoaded);
@@ -146,10 +156,13 @@ GMPParent::VideoDecoderDestroyed(GMPVideoDecoderParent* aDecoder)
   
   unused << NS_WARN_IF(!mVideoDecoders.RemoveElement(aDecoder));
 
-  
-  
-  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &GMPParent::CloseIfUnused);
-  NS_DispatchToCurrentThread(event);
+  if (mVideoDecoders.IsEmpty() &&
+      mVideoEncoders.IsEmpty()) {
+    
+    
+    nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &GMPParent::CloseIfUnused);
+    NS_DispatchToCurrentThread(event);
+  }
 }
 
 void
@@ -160,10 +173,13 @@ GMPParent::VideoEncoderDestroyed(GMPVideoEncoderParent* aEncoder)
   
   unused << NS_WARN_IF(!mVideoEncoders.RemoveElement(aEncoder));
 
-  
-  
-  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &GMPParent::CloseIfUnused);
-  NS_DispatchToCurrentThread(event);
+  if (mVideoDecoders.IsEmpty() &&
+      mVideoEncoders.IsEmpty()) {
+    
+    
+    nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &GMPParent::CloseIfUnused);
+    NS_DispatchToCurrentThread(event);
+  }
 }
 
 GMPState
@@ -182,6 +198,11 @@ GMPParent::GMPThread()
     if (!mps) {
       return nullptr;
     }
+    
+    
+    
+    
+    
     mps->GetThread(getter_AddRefs(mGMPThread));
     MOZ_ASSERT(mGMPThread);
   }
@@ -213,7 +234,8 @@ GMPParent::EnsureProcessLoaded()
   if (mState == GMPStateLoaded) {
     return true;
   }
-  if (mState == GMPStateClosing) {
+  if (mState == GMPStateClosing ||
+      mState == GMPStateUnloading) {
     return false;
   }
 
@@ -231,13 +253,14 @@ GMPParent::GetGMPVideoDecoder(GMPVideoDecoderParent** aGMPVD)
     return NS_ERROR_FAILURE;
   }
 
+  
   PGMPVideoDecoderParent* pvdp = SendPGMPVideoDecoderConstructor();
   if (!pvdp) {
     return NS_ERROR_FAILURE;
   }
-  nsRefPtr<GMPVideoDecoderParent> vdp = static_cast<GMPVideoDecoderParent*>(pvdp);
+  GMPVideoDecoderParent *vdp = static_cast<GMPVideoDecoderParent*>(pvdp);
+  *aGMPVD = vdp;
   mVideoDecoders.AppendElement(vdp);
-  vdp.forget(aGMPVD);
 
   return NS_OK;
 }
@@ -251,13 +274,14 @@ GMPParent::GetGMPVideoEncoder(GMPVideoEncoderParent** aGMPVE)
     return NS_ERROR_FAILURE;
   }
 
+  
   PGMPVideoEncoderParent* pvep = SendPGMPVideoEncoderConstructor();
   if (!pvep) {
     return NS_ERROR_FAILURE;
   }
-  nsRefPtr<GMPVideoEncoderParent> vep = static_cast<GMPVideoEncoderParent*>(pvep);
+  GMPVideoEncoderParent *vep = static_cast<GMPVideoEncoderParent*>(pvep);
+  *aGMPVE = vep;
   mVideoEncoders.AppendElement(vep);
-  vep.forget(aGMPVE);
 
   return NS_OK;
 }
@@ -300,7 +324,6 @@ GMPParent::GetCrashID(nsString& aResult)
 void
 GMPParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  mState = GMPStateClosing;
   if (AbnormalShutdown == aWhy) {
     nsString dumpID;
 #ifdef MOZ_CRASHREPORTER
@@ -308,7 +331,8 @@ GMPParent::ActorDestroy(ActorDestroyReason aWhy)
 #endif
     
   }
-
+  
+  mState = GMPStateClosing;
   CloseActive();
 
   
