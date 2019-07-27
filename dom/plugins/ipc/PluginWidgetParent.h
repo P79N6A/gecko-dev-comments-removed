@@ -48,6 +48,9 @@ public:
   
   void ParentDestroy();
 
+  
+  void SetParent(nsIWidget* aParent);
+
 private:
   void ShutdownCommon(bool aParentInitiated);
 
