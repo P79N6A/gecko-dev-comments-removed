@@ -261,8 +261,6 @@ RasterImage::Init(const char* aMimeType,
     return NS_ERROR_FAILURE;
   }
 
-  NS_ENSURE_ARG_POINTER(aMimeType);
-
   
   MOZ_ASSERT(!(aFlags & INIT_FLAG_TRANSIENT) ||
                (!(aFlags & INIT_FLAG_DISCARDABLE) &&
@@ -270,7 +268,6 @@ RasterImage::Init(const char* aMimeType,
              "Illegal init flags for transient image");
 
   
-  mSourceDataMimeType.Assign(aMimeType);
   mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
   mWantFullDecode = !!(aFlags & INIT_FLAG_DECODE_IMMEDIATELY);
   mTransient = !!(aFlags & INIT_FLAG_TRANSIENT);
@@ -283,19 +280,20 @@ RasterImage::Init(const char* aMimeType,
 #endif
 
   
+  
+  NS_ENSURE_ARG_POINTER(aMimeType);
+  mDecoderType = GetDecoderType(aMimeType);
+  if (mDecoderType == eDecoderType_unknown) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
   if (!mDiscardable) {
     mLockCount++;
     SurfaceCache::LockImage(ImageKey(this));
   }
 
-  if (mSyncLoad) {
-    
-    
-    eDecoderType type = GetDecoderType(mSourceDataMimeType.get());
-    if (type == eDecoderType_unknown) {
-      return NS_ERROR_FAILURE;
-    }
-  } else {
+  if (!mSyncLoad) {
     
     nsresult rv = Decode(Nothing(), DECODE_FLAGS_DEFAULT);
     if (NS_FAILED(rv)) {
@@ -1342,14 +1340,8 @@ RasterImage::CreateDecoder(const Maybe<IntSize>& aSize, uint32_t aFlags)
   }
 
   
-  eDecoderType type = GetDecoderType(mSourceDataMimeType.get());
-  if (type == eDecoderType_unknown) {
-    return nullptr;
-  }
-
-  
   nsRefPtr<Decoder> decoder;
-  switch (type) {
+  switch (mDecoderType) {
     case eDecoderType_png:
       decoder = new nsPNGDecoder(this);
       break;

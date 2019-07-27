@@ -376,7 +376,7 @@ private:
   uint32_t                   mLockCount;
 
   
-  nsCString                  mSourceDataMimeType;
+  eDecoderType               mDecoderType;
 
   
   
