@@ -9,11 +9,7 @@
 #ifndef COMMON_ANGLEUTILS_H_
 #define COMMON_ANGLEUTILS_H_
 
-#include "common/platform.h"
-
 #include <stddef.h>
-#include <string>
-#include <set>
 
 
 
@@ -65,16 +61,6 @@ void SafeDelete(T*& resource)
 }
 
 template <typename T>
-void SafeDeleteContainer(T& resource)
-{
-    for (typename T::iterator i = resource.begin(); i != resource.end(); i++)
-    {
-        SafeDelete(*i);
-    }
-    resource.clear();
-}
-
-template <typename T>
 void SafeDeleteArray(T*& resource)
 {
     delete[] resource;
@@ -101,18 +87,6 @@ template <typename T>
 inline void StructZero(T *obj)
 {
     memset(obj, 0, sizeof(T));
-}
-
-inline const char* MakeStaticString(const std::string &str)
-{
-    static std::set<std::string> strings;
-    std::set<std::string>::iterator it = strings.find(str);
-    if (it != strings.end())
-    {
-        return it->c_str();
-    }
-
-    return strings.insert(str).first->c_str();
 }
 
 #if defined(_MSC_VER)

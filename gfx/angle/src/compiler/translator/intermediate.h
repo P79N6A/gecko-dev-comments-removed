@@ -50,6 +50,19 @@ enum TOperator {
     EOpPreIncrement,
     EOpPreDecrement,
 
+    EOpConvIntToBool,
+    EOpConvUIntToBool,
+    EOpConvFloatToBool,
+    EOpConvBoolToFloat,
+    EOpConvIntToFloat,
+    EOpConvUIntToFloat,
+    EOpConvFloatToInt,
+    EOpConvBoolToInt,
+    EOpConvUIntToInt,
+    EOpConvIntToUInt,
+    EOpConvFloatToUInt,
+    EOpConvBoolToUInt,
+
     
     
     
