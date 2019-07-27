@@ -26,6 +26,7 @@
 #include "jit/IonLinker.h"
 #include "jit/IonOptimizationLevels.h"
 #include "jit/IonSpewer.h"
+#include "jit/JitcodeMap.h"
 #include "jit/Lowering.h"
 #include "jit/MIRGenerator.h"
 #include "jit/MoveEmitter.h"
@@ -6697,6 +6698,33 @@ CodeGenerator::generate()
     return !masm.oom();
 }
 
+struct AutoDiscardIonCode
+{
+    JSContext *cx;
+    types::RecompileInfo *recompileInfo;
+    IonScript *ionScript;
+    bool keep;
+
+    AutoDiscardIonCode(JSContext *cx, types::RecompileInfo *recompileInfo)
+      : cx(cx), recompileInfo(recompileInfo), ionScript(nullptr), keep(false) {}
+
+    ~AutoDiscardIonCode() {
+        if (keep)
+            return;
+
+        
+        
+        if (ionScript)
+            js_free(ionScript);
+
+        recompileInfo->compilerOutput(cx->zone()->types)->invalidate();
+    }
+
+    void keepIonCode() {
+        keep = true;
+    }
+};
+
 bool
 CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
 {
@@ -6741,6 +6769,8 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     if (executionMode == ParallelExecution)
         AddPossibleCallees(cx, graph.mir(), callTargets);
 
+    AutoDiscardIonCode discardIonCode(cx, &recompileInfo);
+
     IonScript *ionScript =
       IonScript::New(cx, recompileInfo,
                      graph.totalSlotCount(), scriptFrameSize,
@@ -6750,10 +6780,9 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
                      cacheList_.length(), runtimeData_.length(),
                      safepoints_.size(), callTargets.length(),
                      patchableBackedges_.length(), optimizationLevel);
-    if (!ionScript) {
-        recompileInfo.compilerOutput(cx->zone()->types)->invalidate();
+    if (!ionScript)
         return false;
-    }
+    discardIonCode.ionScript = ionScript;
 
     
     
@@ -6777,28 +6806,34 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     JitCode *code = (executionMode == SequentialExecution)
                     ? linker.newCodeForIonScript(cx)
                     : linker.newCode<CanGC>(cx, ION_CODE);
-    if (!code) {
-        
-        
-        js_free(ionScript);
-        recompileInfo.compilerOutput(cx->zone()->types)->invalidate();
+    if (!code)
         return false;
-    }
 
     
-    if (cx->runtime()->spsProfiler.enabled()) {
+    if (isNativeToBytecodeMapEnabled()) {
+        
         if (!generateCompactNativeToBytecodeMap(cx, code))
             return false;
+
+        uint8_t *mainTableAddr = ((uint8_t *) nativeToBytecodeMap_) + nativeToBytecodeTableOffset_;
+        JitcodeMainTable *mainTable = (JitcodeMainTable *) mainTableAddr;
+
+        
+        JitcodeGlobalEntry::MainEntry entry;
+        if (!mainTable->makeMainEntry(cx, code, nativeToBytecodeScriptListLength_,
+                                      nativeToBytecodeScriptList_, entry))
+        {
+            return false;
+        }
+
+        
+        JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
+        if (!globalTable->addEntry(entry)) {
+            
+            entry.destroy();
+            return false;
+        }
     }
-
-    ionScript->setMethod(code);
-    ionScript->setSkipArgCheckEntryOffset(getSkipArgCheckEntryOffset());
-
-    
-    if (sps_.enabled())
-        ionScript->setHasSPSInstrumentation();
-
-    SetIonScript(script, executionMode, ionScript);
 
     if (cx->runtime()->spsProfiler.enabled()) {
         const char *filename = script->filename();
@@ -6812,6 +6847,15 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         cx->runtime()->spsProfiler.markEvent(buf);
         js_free(buf);
     }
+
+    ionScript->setMethod(code);
+    ionScript->setSkipArgCheckEntryOffset(getSkipArgCheckEntryOffset());
+
+    
+    if (sps_.enabled())
+        ionScript->setHasSPSInstrumentation();
+
+    SetIonScript(script, executionMode, ionScript);
 
     
     
@@ -6912,6 +6956,9 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     if (IonScriptCounts *counts = extractScriptCounts())
         script->addIonCounts(counts);
+
+    
+    discardIonCode.keepIonCode();
 
     return true;
 }

@@ -166,7 +166,8 @@ JitRuntime::JitRuntime()
     functionWrappers_(nullptr),
     osrTempData_(nullptr),
     ionCodeProtected_(false),
-    ionReturnOverride_(MagicValue(JS_ARG_POISON))
+    ionReturnOverride_(MagicValue(JS_ARG_POISON)),
+    jitcodeGlobalTable_(nullptr)
 {
 }
 
@@ -178,6 +179,10 @@ JitRuntime::~JitRuntime()
     
     
     js_delete(ionAlloc_);
+
+    
+    JS_ASSERT_IF(jitcodeGlobalTable_, jitcodeGlobalTable_->empty());
+    js_delete(jitcodeGlobalTable_);
 }
 
 bool
@@ -289,6 +294,10 @@ JitRuntime::initialize(JSContext *cx)
         if (!generateVMWrapper(cx, *fun))
             return false;
     }
+
+    jitcodeGlobalTable_ = cx->new_<JitcodeGlobalTable>();
+    if (!jitcodeGlobalTable_)
+        return false;
 
     return true;
 }
@@ -1173,6 +1182,17 @@ IonScript::Trace(JSTracer *trc, IonScript *script)
 void
 IonScript::Destroy(FreeOp *fop, IonScript *script)
 {
+    
+    
+    JSRuntime *runtime = js::TlsPerThreadData.get()->runtimeFromMainThread();
+    JS_ASSERT(runtime);
+    JS_ASSERT(runtime->hasJitRuntime());
+    JitRuntime *jitrt = runtime->jitRuntime();
+    if (jitrt->hasJitcodeGlobalTable()) {
+        JitcodeGlobalTable *table = jitrt->getJitcodeGlobalTable();
+        table->removeEntry(script->method()->raw());
+    }
+
     script->destroyCaches();
     script->unlinkFromRuntime(fop);
     fop->free_(script);

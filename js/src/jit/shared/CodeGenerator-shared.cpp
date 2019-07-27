@@ -180,12 +180,12 @@ CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code, const BytecodeSite &s
 bool
 CodeGeneratorShared::addNativeToBytecodeEntry(const BytecodeSite &site)
 {
+    
+    if (!isNativeToBytecodeMapEnabled())
+        return true;
+
     JS_ASSERT(site.tree());
     JS_ASSERT(site.pc());
-
-    
-    if (!sps_.enabled())
-        return true;
 
     InlineScriptTree *tree = site.tree();
     jsbytecode *pc = site.pc();
@@ -653,6 +653,9 @@ CodeGeneratorShared::generateCompactNativeToBytecodeMap(JSContext *cx, JitCode *
     nativeToBytecodeNumRegions_ = numRegions;
 
     verifyCompactNativeToBytecodeMap(code);
+
+    IonSpew(IonSpew_Profiling, "Compact Native To Bytecode Map [%p-%p]",
+            data, data + nativeToBytecodeMapSize_);
 
     return true;
 }

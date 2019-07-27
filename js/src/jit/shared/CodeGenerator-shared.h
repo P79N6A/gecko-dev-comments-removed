@@ -119,6 +119,10 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     IonInstrumentation sps_;
 
+    bool isNativeToBytecodeMapEnabled() {
+        return gen->isNativeToBytecodeMapEnabled();
+    }
+
   protected:
     
     

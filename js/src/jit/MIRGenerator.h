@@ -83,6 +83,16 @@ class MIRGenerator
         return instrumentedProfiling_;
     }
 
+    bool isNativeToBytecodeMapEnabled() {
+        if (compilingAsmJS())
+            return false;
+#ifdef DEBUG
+        return true;
+#else
+        return instrumentedProfiling();
+#endif
+    }
+
     
     bool shouldCancel(const char *why) {
         maybePause();

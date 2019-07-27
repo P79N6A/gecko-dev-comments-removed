@@ -56,6 +56,7 @@ typedef void (*EnterJitCode)(void *code, unsigned argc, Value *argv, Interpreter
                              size_t numStackValues, Value *vp);
 
 class IonBuilder;
+class JitcodeGlobalTable;
 
 
 
@@ -232,6 +233,9 @@ class JitRuntime
     
     js::Value ionReturnOverride_;
 
+    
+    JitcodeGlobalTable *jitcodeGlobalTable_;
+
   private:
     JitCode *generateExceptionTailStub(JSContext *cx);
     JitCode *generateBailoutTailStub(JSContext *cx);
@@ -380,6 +384,23 @@ class JitRuntime
         JS_ASSERT(!hasIonReturnOverride());
         JS_ASSERT(!v.isMagic());
         ionReturnOverride_ = v;
+    }
+
+    bool hasJitcodeGlobalTable() const {
+        return jitcodeGlobalTable_ != nullptr;
+    }
+
+    JitcodeGlobalTable *getJitcodeGlobalTable() {
+        JS_ASSERT(hasJitcodeGlobalTable());
+        return jitcodeGlobalTable_;
+    }
+
+    bool isNativeToBytecodeMapEnabled(JSRuntime *rt) {
+#ifdef DEBUG
+        return true;
+#else 
+        return rt->spsProfiler.enabled();
+#endif 
     }
 };
 
