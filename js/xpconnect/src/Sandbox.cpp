@@ -1029,8 +1029,9 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
     if (!sandbox)
         return NS_ERROR_FAILURE;
 
-    CompartmentPrivate::Get(sandbox)->writeToGlobalPrototype =
-      options.writeToGlobalPrototype;
+    CompartmentPrivate* priv = CompartmentPrivate::Get(sandbox);
+    priv->allowWaivers = options.allowWaivers;
+    priv->writeToGlobalPrototype = options.writeToGlobalPrototype;
 
     
     
@@ -1041,7 +1042,7 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
     
     
     
-    CompartmentPrivate::Get(sandbox)->wantXrays =
+    priv->wantXrays =
       AccessCheck::isChrome(sandbox) ? false : options.wantXrays;
 
     {
@@ -1480,6 +1481,7 @@ SandboxOptions::Parse()
 {
     bool ok = ParseObject("sandboxPrototype", &proto) &&
               ParseBoolean("wantXrays", &wantXrays) &&
+              ParseBoolean("allowWaivers", &allowWaivers) &&
               ParseBoolean("wantComponents", &wantComponents) &&
               ParseBoolean("wantExportHelpers", &wantExportHelpers) &&
               ParseString("sandboxName", sandboxName) &&

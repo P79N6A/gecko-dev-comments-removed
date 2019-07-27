@@ -2995,7 +2995,7 @@ xpc_PrintJSStack(JSContext* cx, bool showArgs, bool showLocals,
 
 
 
-class nsScriptError : public nsIScriptError {
+class nsScriptError final : public nsIScriptError {
 public:
     nsScriptError();
 
@@ -3005,7 +3005,7 @@ public:
     NS_DECL_NSICONSOLEMESSAGE
     NS_DECL_NSISCRIPTERROR
 
-protected:
+private:
     virtual ~nsScriptError();
 
     void
@@ -3026,30 +3026,6 @@ protected:
     
     mozilla::Atomic<bool> mInitializedOnMainThread;
     bool mIsFromPrivateWindow;
-};
-
-class nsScriptErrorWithStack : public nsScriptError {
-public:
-    explicit nsScriptErrorWithStack(JS::HandleObject);
-
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsScriptErrorWithStack)
-
-    NS_IMETHOD Init(const nsAString& message,
-                    const nsAString& sourceName,
-                    const nsAString& sourceLine,
-                    uint32_t lineNumber,
-                    uint32_t columnNumber,
-                    uint32_t flags,
-                    const char* category) override;
-
-    NS_IMETHOD GetStack(JS::MutableHandleValue);
-
-private:
-    virtual ~nsScriptErrorWithStack();
-    
-    
-    JS::Heap<JSObject*>  mStack;
 };
 
 
@@ -3472,6 +3448,7 @@ public:
                             JSObject* options = nullptr)
         : OptionsBase(cx, options)
         , wantXrays(true)
+        , allowWaivers(true)
         , wantComponents(true)
         , wantExportHelpers(false)
         , proto(cx)
@@ -3487,6 +3464,7 @@ public:
     virtual bool Parse();
 
     bool wantXrays;
+    bool allowWaivers;
     bool wantComponents;
     bool wantExportHelpers;
     JS::RootedObject proto;
@@ -3683,6 +3661,7 @@ public:
 
     explicit CompartmentPrivate(JSCompartment* c)
         : wantXrays(false)
+        , allowWaivers(true)
         , writeToGlobalPrototype(false)
         , skipWriteToGlobalPrototype(false)
         , universalXPConnectEnabled(false)
@@ -3710,8 +3689,16 @@ public:
         return Get(compartment);
     }
 
-
+    
+    
+    
     bool wantXrays;
+
+    
+    
+    
+    
+    bool allowWaivers;
 
     
     

@@ -38,6 +38,13 @@ class WrapperFactory {
     static JSObject* WaiveXray(JSContext* cx, JSObject* obj);
 
     
+    
+    static bool AllowWaiver(JSCompartment* target, JSCompartment* origin);
+
+    
+    static bool AllowWaiver(JSObject* wrapper);
+
+    
     static JSObject* PrepareForWrapping(JSContext* cx,
                                         JS::HandleObject scope,
                                         JS::HandleObject obj,

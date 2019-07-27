@@ -106,6 +106,20 @@ WrapperFactory::WaiveXray(JSContext* cx, JSObject* objArg)
     return CreateXrayWaiver(cx, obj);
 }
 
+ bool
+WrapperFactory::AllowWaiver(JSCompartment* target, JSCompartment* origin)
+{
+    return CompartmentPrivate::Get(target)->allowWaivers &&
+           AccessCheck::subsumes(target, origin);
+}
+
+ bool
+WrapperFactory::AllowWaiver(JSObject* wrapper) {
+    MOZ_ASSERT(js::IsCrossCompartmentWrapper(wrapper));
+    return AllowWaiver(js::GetObjectCompartment(wrapper),
+                       js::GetObjectCompartment(js::UncheckedUnwrap(wrapper)));
+}
+
 inline bool
 ShouldWaiveXray(JSContext* cx, JSObject* originalObj)
 {
@@ -469,7 +483,9 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
 
         
         
-        bool waiveXrays = wantXrays && !securityWrapper && HasWaiveXrayFlag(obj);
+        bool waiveXrays = wantXrays && !securityWrapper &&
+                          CompartmentPrivate::Get(target)->allowWaivers &&
+                          HasWaiveXrayFlag(obj);
 
         
         
@@ -542,7 +558,7 @@ WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleObject argObj)
     
     JSCompartment* target = js::GetContextCompartment(cx);
     JSCompartment* origin = js::GetObjectCompartment(obj);
-    obj = AccessCheck::subsumes(target, origin) ? WaiveXray(cx, obj) : obj;
+    obj = AllowWaiver(target, origin) ? WaiveXray(cx, obj) : obj;
     if (!obj)
         return false;
 
