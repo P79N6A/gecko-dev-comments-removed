@@ -705,32 +705,8 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
     aMetrics.ISize(lineWM) += framePadding.IEnd(frameWM);
   }
 
-  nsRefPtr<nsFontMetrics> fm;
-  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm), inflation);
-  aReflowState.rendContext->SetFont(fm);
-
-  if (fm) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    aMetrics.SetBlockStartAscent(fm->MaxAscent());
-    aMetrics.BSize(lineWM) = fm->MaxHeight();
-  } else {
-    NS_WARNING("Cannot get font metrics - defaulting sizes to 0");
-    aMetrics.SetBlockStartAscent(aMetrics.BSize(lineWM) = 0);
-  }
-  aMetrics.SetBlockStartAscent(aMetrics.BlockStartAscent() +
-                               framePadding.BStart(frameWM));
-  aMetrics.BSize(lineWM) +=
-    aReflowState.ComputedLogicalBorderPadding().BStartEnd(frameWM);
+  nsLayoutUtils::SetBSizeFromFontMetrics(this, aMetrics, aReflowState,
+                                         framePadding, lineWM, frameWM);
 
   
   

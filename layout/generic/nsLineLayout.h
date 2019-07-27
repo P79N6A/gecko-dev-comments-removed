@@ -316,6 +316,20 @@ public:
 
   nscoord GetCurrentFrameInlineDistanceFromBlock();
 
+  
+
+
+
+  void AdvanceICoord(nscoord aAmount);
+  
+
+
+  mozilla::WritingMode GetWritingMode();
+  
+
+
+  nscoord GetCurrentICoord();
+
 protected:
   
   nsFloatManager* mFloatManager;

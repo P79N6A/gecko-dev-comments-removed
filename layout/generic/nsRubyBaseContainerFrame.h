@@ -10,6 +10,9 @@
 #define nsRubyBaseContainerFrame_h___
 
 #include "nsContainerFrame.h"
+#include "nsRubyTextContainerFrame.h"
+#include "nsRubyBaseFrame.h"
+#include "nsRubyTextFrame.h"
 
 
 
@@ -27,16 +30,30 @@ public:
 
   
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext* aPresContext,
+                      nsHTMLReflowMetrics& aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
 #endif
+
+  void AppendTextContainer(nsIFrame* aFrame);
+  void ClearTextContainers();
 
 protected:
   friend nsContainerFrame*
     NS_NewRubyBaseContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
   nsRubyBaseContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+  
+
+
+
+
+
+  nsTArray<nsRubyTextContainerFrame*> mTextContainers;
 };
 
 #endif 
