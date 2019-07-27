@@ -10,6 +10,7 @@
 #include <queue>
 #include "mozilla/RefPtr.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/ThreadLocal.h"
 #include "SharedThreadPool.h"
 #include "nsThreadUtils.h"
 #include "MediaPromise.h"
@@ -28,7 +29,14 @@ typedef MediaPromise<bool, bool, false> ShutdownPromise;
 
 
 class MediaTaskQueue : public AbstractThread {
+  static ThreadLocal<MediaTaskQueue*> sCurrentQueueTLS;
 public:
+  static void InitStatics();
+
+  
+  
+  static MediaTaskQueue* GetCurrentQueue() { return sCurrentQueueTLS.get(); }
+
   explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool);
 
   nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable);
@@ -102,6 +110,24 @@ protected:
   
   
   RefPtr<nsIThread> mRunningThread;
+
+  
+  class AutoTaskGuard
+  {
+  public:
+    explicit AutoTaskGuard(MediaTaskQueue* aQueue)
+    {
+      
+      
+      MOZ_ASSERT(sCurrentQueueTLS.get() == nullptr);
+      sCurrentQueueTLS.set(aQueue);
+    }
+
+    ~AutoTaskGuard()
+    {
+      sCurrentQueueTLS.set(nullptr);
+    }
+  };
 
   
   

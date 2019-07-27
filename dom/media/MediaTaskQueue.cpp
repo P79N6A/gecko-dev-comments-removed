@@ -10,6 +10,16 @@
 
 namespace mozilla {
 
+ThreadLocal<MediaTaskQueue*> MediaTaskQueue::sCurrentQueueTLS;
+
+ void
+MediaTaskQueue::InitStatics()
+{
+  if (!sCurrentQueueTLS.init()) {
+    MOZ_CRASH();
+  }
+}
+
 MediaTaskQueue::MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool)
   : mPool(aPool)
   , mQueueMonitor("MediaTaskQueue::Queue")
@@ -196,7 +206,9 @@ bool
 MediaTaskQueue::IsCurrentThreadIn()
 {
   MonitorAutoLock mon(mQueueMonitor);
-  return NS_GetCurrentThread() == mRunningThread;
+  bool in = NS_GetCurrentThread() == mRunningThread;
+  MOZ_ASSERT_IF(in, GetCurrentQueue() == this);
+  return in;
 }
 
 nsresult
@@ -223,7 +235,10 @@ MediaTaskQueue::Runner::Run()
   
   
   
-  event->Run();
+  {
+    AutoTaskGuard g(mQueue);
+    event->Run();
+  }
 
   
   
