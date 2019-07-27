@@ -80,8 +80,6 @@ class MessageChannel : HasResultCodes
     
     void Close();
 
-    bool Connected() const;
-
     
     
     void CloseWithError();
@@ -344,6 +342,8 @@ class MessageChannel : HasResultCodes
         AssertWorkerThread();
         return mDispatchingSyncMessagePriority;
     }
+
+    bool Connected() const;
 
   private:
     
