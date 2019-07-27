@@ -86,6 +86,14 @@ SettingsLock.prototype = {
 
   _closeHelper: function() {
     if (DEBUG) debug("closing lock " + this._id);
+    
+    
+    
+    
+    if (!this._settingsManager._window) {
+      if (DEBUG) debug("SettingsManager died, cannot send " + aMessageName + " message window principal.");
+      return;
+    }
     this._open = false;
     this._closeCalled = false;
     if (!this._requests || Object.keys(this._requests).length == 0) {
