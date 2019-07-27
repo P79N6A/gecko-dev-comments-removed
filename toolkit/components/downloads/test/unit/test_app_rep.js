@@ -64,8 +64,10 @@ function run_test() {
   
   
   Services.prefs.setBoolPref("browser.safebrowsing.malware.enabled", true);
+  Services.prefs.setBoolPref("browser.safebrowsing.downloads.enabled", true);
   do_register_cleanup(function() {
     Services.prefs.clearUserPref("browser.safebrowsing.malware.enabled");
+    Services.prefs.clearUserPref("browser.safebrowsing.downloads.enabled");
   });
 
   
