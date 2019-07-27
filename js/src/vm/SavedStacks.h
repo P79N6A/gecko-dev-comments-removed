@@ -233,6 +233,9 @@ class SavedStacks {
 
         void trace(JSTracer *trc);
 
+        
+        
+        
         JSPrincipals  *principals;
         JSAtom        *name;
         LocationValue location;
