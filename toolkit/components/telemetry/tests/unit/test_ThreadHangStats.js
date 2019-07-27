@@ -34,11 +34,19 @@ function run_test() {
   
   
   
+  
 
   do_execute_soon(() => {
     
     let startTime = Date.now();
     while ((Date.now() - startTime) < 1000) {
+    }
+  });
+
+  do_execute_soon(() => {
+    
+    let startTime = Date.now();
+    while ((Date.now() - startTime) < 10000) {
     }
   });
 
@@ -77,6 +85,14 @@ function run_test() {
       ok(Array.isArray(endHangs.hangs[0].stack));
       notEqual(endHangs.hangs[0].stack.length, 0);
       equal(typeof endHangs.hangs[0].stack[0], "string");
+
+      
+      
+      ok(endHangs.hangs.some((hang) => (
+        Array.isArray(hang.nativeStack) &&
+        hang.nativeStack.length !== 0 &&
+        typeof hang.nativeStack[0] === "string"
+      )));
 
       check_histogram(endHangs.hangs[0].histogram);
 
