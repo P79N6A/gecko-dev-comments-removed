@@ -92,6 +92,7 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
       
       
       block->SetDuringFastMotion();
+      block->SetConfirmedTargetApzc(aTarget);
       INPQ_LOG("block %p tagged as fast-motion\n", block);
     }
 
@@ -201,11 +202,6 @@ InputQueue::MaybeRequestContentResponse(const nsRefPtr<AsyncPanZoomController>& 
                                         CancelableBlockState* aBlock)
 {
   bool waitForMainThread = !aBlock->IsTargetConfirmed();
-  if (aBlock->AsTouchBlock() && aBlock->AsTouchBlock()->IsDuringFastMotion()) {
-    aBlock->SetConfirmedTargetApzc(aTarget);
-    waitForMainThread = false;
-  }
-
   if (waitForMainThread) {
     
     
