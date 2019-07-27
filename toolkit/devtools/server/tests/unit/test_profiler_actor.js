@@ -95,42 +95,70 @@ function test_event_notifications(aClient, aProfiler)
 
 function test_profile(aClient, aProfiler)
 {
-  
-  var funcLine = Components.stack.lineNumber - 3;
-  
-  var start = Date.now();
-  var stack;
-  while (Date.now() - start < 200) { stack = Components.stack; }
-  aClient.request({ to: aProfiler, type: "getProfile" }, function (aResponse) {
-    do_check_eq(typeof aResponse.profile, "object");
-    do_check_eq(typeof aResponse.profile.meta, "object");
-    do_check_eq(typeof aResponse.profile.meta.platform, "string");
-    do_check_eq(typeof aResponse.profile.threads, "object");
-    do_check_eq(typeof aResponse.profile.threads[0], "object");
-    do_check_eq(typeof aResponse.profile.threads[0].samples, "object");
-    do_check_neq(aResponse.profile.threads[0].samples.length, 0);
-
-    let location = stack.name + " (" + stack.filename + ":" + funcLine + ")";
+  function attempt(aDelayMS)
+  {
     
-    do_check_true(aResponse.profile.threads[0].samples.some(function(sample) {
-      return typeof sample.frames == "object" &&
-             sample.frames.length != 0 &&
-             sample.frames.some(function(f) {
-               return (f.line == stack.lineNumber) &&
-                      (f.location == location);
-             });
-    }));
+    var funcLine = Components.stack.lineNumber - 3;
+    
+    var start = Date.now();
+    var stack;
+    do_print("attempt: delay = " + aDelayMS);
+    while (Date.now() - start < aDelayMS) { stack = Components.stack; }
+    do_print("attempt: before getProfile");
 
-    aClient.request({ to: aProfiler, type: "stopProfiler" }, function (aResponse) {
-      do_check_eq(typeof aResponse.msg, "string");
-      aClient.request({ to: aProfiler, type: "isActive" }, function (aResponse) {
-        do_check_false(aResponse.isActive);
-        aClient.close(function() {
-          test_profiler_status();
+    aClient.request({ to: aProfiler, type: "getProfile" }, function (aResponse) {
+      
+      
+      do_check_eq(typeof aResponse.profile, "object");
+      do_check_eq(typeof aResponse.profile.meta, "object");
+      do_check_eq(typeof aResponse.profile.meta.platform, "string");
+      do_check_eq(typeof aResponse.profile.threads, "object");
+      do_check_eq(typeof aResponse.profile.threads[0], "object");
+      do_check_eq(typeof aResponse.profile.threads[0].samples, "object");
+
+      
+      
+      
+      if (aResponse.profile.threads[0].samples.length == 0) {
+        if (aDelayMS < 20000) {
+          
+          do_print("attempt: no samples, going around again");
+          return attempt(aDelayMS * 2);
+        } else {
+          
+          do_print("attempt: waited 20000ms, but no samples were collected.  Giving up.");
+          do_check_true(false);
+          return;
+        }
+      }
+
+      
+      
+      do_print("attempt: got a profile that contains samples");
+      let location = stack.name + " (" + stack.filename + ":" + funcLine + ")";
+      do_check_true(aResponse.profile.threads[0].samples.some(function(sample) {
+        return typeof sample.frames == "object" &&
+               sample.frames.length != 0 &&
+               sample.frames.some(function(f) {
+                 return (f.line == stack.lineNumber) &&
+                        (f.location == location);
+               });
+      }));
+
+      aClient.request({ to: aProfiler, type: "stopProfiler" }, function (aResponse) {
+        do_check_eq(typeof aResponse.msg, "string");
+        aClient.request({ to: aProfiler, type: "isActive" }, function (aResponse) {
+          do_check_false(aResponse.isActive);
+          aClient.close(function() {
+            test_profiler_status();
+          });
         });
       });
     });
-  });
+  }
+
+  
+  attempt(100);
 }
 
 function test_profiler_status()
