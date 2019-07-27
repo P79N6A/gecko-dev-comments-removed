@@ -46,7 +46,7 @@ bool AutoScriptEvaluate::StartEvaluating(HandleObject scope, JSErrorReporter err
     }
 
     JS_BeginRequest(mJSContext);
-    mAutoCompartment.construct(mJSContext, scope);
+    mAutoCompartment.emplace(mJSContext, scope);
 
     
     
@@ -54,7 +54,7 @@ bool AutoScriptEvaluate::StartEvaluating(HandleObject scope, JSErrorReporter err
     
     
     
-    mState.construct(mJSContext);
+    mState.emplace(mJSContext);
 
     return true;
 }
@@ -63,7 +63,7 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
 {
     if (!mJSContext || !mEvaluated)
         return;
-    mState.ref().restore();
+    mState->restore();
 
     JS_EndRequest(mJSContext);
 

@@ -271,9 +271,9 @@ js::GenerateAsmJSFunctionPrologue(MacroAssembler &masm, unsigned framePushed,
     
     
     
-    if (!labels->overflowThunk.empty()) {
+    if (labels->overflowThunk) {
         
-        Label *target = framePushed ? labels->overflowThunk.addr() : &labels->overflowExit;
+        Label *target = framePushed ? labels->overflowThunk.ptr() : &labels->overflowExit;
         masm.branchPtr(Assembler::AboveOrEqual,
                        AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
                        StackPointer,
@@ -330,11 +330,11 @@ js::GenerateAsmJSFunctionEpilogue(MacroAssembler &masm, unsigned framePushed,
     masm.bind(&labels->profilingEpilogue);
     GenerateProfilingEpilogue(masm, framePushed, AsmJSExit::None, &labels->profilingReturn);
 
-    if (!labels->overflowThunk.empty() && labels->overflowThunk.ref().used()) {
+    if (labels->overflowThunk && labels->overflowThunk->used()) {
         
         
         
-        masm.bind(labels->overflowThunk.addr());
+        masm.bind(labels->overflowThunk.ptr());
         masm.addPtr(Imm32(framePushed), StackPointer);
         masm.jump(&labels->overflowExit);
     }

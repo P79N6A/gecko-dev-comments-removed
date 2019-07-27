@@ -36,7 +36,7 @@ nsresult CentralizedAdminPrefManagerInit()
     nsresult rv;
 
     
-    if (!autoconfigSb.empty())
+    if (autoconfigSb)
         return NS_OK;
 
     
@@ -58,16 +58,16 @@ nsresult CentralizedAdminPrefManagerInit()
 
     
     NS_ENSURE_STATE(sandbox->GetJSObject());
-    autoconfigSb.construct(cx, js::UncheckedUnwrap(sandbox->GetJSObject()));
+    autoconfigSb.emplace(cx, js::UncheckedUnwrap(sandbox->GetJSObject()));
 
     return NS_OK;
 }
 
 nsresult CentralizedAdminPrefManagerFinish()
 {
-    if (!autoconfigSb.empty()) {
+    if (autoconfigSb) {
         AutoSafeJSContext cx;
-        autoconfigSb.destroy();
+        autoconfigSb.reset();
         JS_MaybeGC(cx);
     }
     return NS_OK;
@@ -108,12 +108,12 @@ nsresult EvaluateAdminConfigScript(const char *js_buffer, size_t length,
     }
 
     AutoSafeJSContext cx;
-    JSAutoCompartment ac(cx, autoconfigSb.ref());
+    JSAutoCompartment ac(cx, *autoconfigSb);
 
     nsAutoCString script(js_buffer, length);
     JS::RootedValue v(cx);
     rv = xpc->EvalInSandboxObject(NS_ConvertASCIItoUTF16(script), filename, cx,
-                                  autoconfigSb.ref(), &v);
+                                  *autoconfigSb, &v);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
