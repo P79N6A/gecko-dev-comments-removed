@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsXPathExpression_h__
-#define nsXPathExpression_h__
+#ifndef mozilla_dom_XPathExpression_h
+#define mozilla_dom_XPathExpression_h
 
 #include "nsIDOMXPathExpression.h"
 #include "nsIDOMNSXPathExpression.h"
@@ -17,19 +17,22 @@
 class Expr;
 class txXPathNode;
 
+namespace mozilla {
+namespace dom {
 
 
 
-class nsXPathExpression MOZ_FINAL : public nsIDOMXPathExpression,
-                                    public nsIDOMNSXPathExpression
+
+class XPathExpression MOZ_FINAL : public nsIDOMXPathExpression,
+                                  public nsIDOMNSXPathExpression
 {
 public:
-    nsXPathExpression(nsAutoPtr<Expr>&& aExpression, txResultRecycler* aRecycler,
-                      nsIDOMDocument *aDocument);
+    XPathExpression(nsAutoPtr<Expr>&& aExpression, txResultRecycler* aRecycler,
+                    nsIDOMDocument *aDocument);
 
     
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXPathExpression,
+    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(XPathExpression,
                                              nsIDOMXPathExpression)
 
     
@@ -75,4 +78,7 @@ private:
     };
 };
 
-#endif
+} 
+} 
+
+#endif 
