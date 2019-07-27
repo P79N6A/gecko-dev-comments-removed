@@ -441,6 +441,12 @@ SearchWithinAVA(Reader& rdn,
   return Success;
 }
 
+MOZILLA_PKIX_ENUM_CLASS NameConstraintsSubtrees : uint8_t
+{
+  permittedSubtrees = der::CONSTRUCTED | der::CONTEXT_SPECIFIC | 0,
+  excludedSubtrees  = der::CONSTRUCTED | der::CONTEXT_SPECIFIC | 1
+};
+
 Result
 MatchPresentedIDWithReferenceID(GeneralNameType nameType,
                                 Input presentedID,
@@ -803,6 +809,101 @@ MatchPresentedIPAddressWithConstraint(Input presentedID,
   } while (foundMatch && !presented.AtEnd());
 
   return Success;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Result
+MatchPresentedDirectoryNameWithConstraint(NameConstraintsSubtrees subtreesType,
+                                          Input presentedID,
+                                          Input directoryNameConstraint,
+                                           bool& matches)
+{
+  Reader constraintRDNs;
+  Result rv = der::ExpectTagAndGetValueAtEnd(directoryNameConstraint,
+                                             der::SEQUENCE, constraintRDNs);
+  if (rv != Success) {
+    return rv;
+  }
+  Reader presentedRDNs;
+  rv = der::ExpectTagAndGetValueAtEnd(presentedID, der::SEQUENCE,
+                                      presentedRDNs);
+  if (rv != Success) {
+    return rv;
+  }
+
+  switch (subtreesType) {
+    case NameConstraintsSubtrees::permittedSubtrees:
+      break; 
+    case NameConstraintsSubtrees::excludedSubtrees:
+      if (!constraintRDNs.AtEnd() || !presentedRDNs.AtEnd()) {
+        return Result::ERROR_CERT_NOT_IN_NAME_SPACE;
+      }
+      matches = true;
+      return Success;
+    default:
+      return NotReached("invalid subtrees", Result::FATAL_ERROR_INVALID_ARGS);
+  }
+
+  for (;;) {
+    
+    
+    if (constraintRDNs.AtEnd()) {
+      matches = true;
+      return Success;
+    }
+    if (presentedRDNs.AtEnd()) {
+      matches = false;
+      return Success;
+    }
+    Input constraintRDN;
+    rv = der::ExpectTagAndGetValue(constraintRDNs, der::SET, constraintRDN);
+    if (rv != Success) {
+      return rv;
+    }
+    Input presentedRDN;
+    rv = der::ExpectTagAndGetValue(presentedRDNs, der::SET, presentedRDN);
+    if (rv != Success) {
+      return rv;
+    }
+    if (!InputsAreEqual(constraintRDN, presentedRDN)) {
+      matches = false;
+      return Success;
+    }
+  }
 }
 
 
