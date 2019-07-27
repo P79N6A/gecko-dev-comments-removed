@@ -1801,7 +1801,11 @@ LIRGenerator::visitToDouble(MToDouble *convert)
         
         
         
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
         LFloat32ToDouble *lir = new(alloc()) LFloat32ToDouble(useRegister(opd));
+#else
+        LFloat32ToDouble *lir = new(alloc()) LFloat32ToDouble(useRegisterAtStart(opd));
+#endif
         return define(lir, convert);
       }
 
