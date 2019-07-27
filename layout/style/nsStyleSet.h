@@ -83,10 +83,11 @@ public:
 
 
 
-class nsStyleSet
+class nsStyleSet final
 {
  public:
   nsStyleSet();
+  ~nsStyleSet();
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -381,7 +382,15 @@ class nsStyleSet
     --mUnusedRuleNodeCount;
   }
 
-  mozilla::CSSStyleSheet::EnsureUniqueInnerResult EnsureUniqueInnerOnCSSSheets();
+  
+  
+  bool EnsureUniqueInnerOnCSSSheets();
+
+  
+  
+  void SetNeedsRestyleAfterEnsureUniqueInner() {
+    mNeedsRestyleAfterEnsureUniqueInner = true;
+  }
 
   nsIStyleRule* InitialStyleRule();
 
@@ -482,6 +491,7 @@ class nsStyleSet
   unsigned mAuthorStyleDisabled: 1;
   unsigned mInReconstruct : 1;
   unsigned mInitFontFeatureValuesLookup : 1;
+  unsigned mNeedsRestyleAfterEnsureUniqueInner : 1;
   unsigned mDirty : 10;  
 
   uint32_t mUnusedRuleNodeCount; 
