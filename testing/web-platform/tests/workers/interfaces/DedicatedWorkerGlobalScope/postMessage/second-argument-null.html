@@ -15,10 +15,11 @@
 (async_test()).step(function() {
   var worker = new Worker('#');
   worker.onmessage = this.step_func(function(e) {
-    assert_equals(e.data, 1);
+    assert_true(e.data);
     this.done();
   });
 });
 </script>
+
 
 

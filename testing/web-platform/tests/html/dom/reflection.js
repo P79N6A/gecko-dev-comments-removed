@@ -157,12 +157,6 @@ var maxUnsigned = 4294967295;
 
 
 
-
-
-
-
-
-
 ReflectionTests.typeMap = {
     
 
@@ -330,15 +324,11 @@ ReflectionTests.typeMap = {
                      " " + binaryString + " foo ",
                      
                      
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
+                     "\u00097", "\u000B7", "\u000C7", "\u00207", "\u00A07", "\uFEFF7",
+                     "\u000A7", "\u000D7", "\u20287", "\u20297", "\u16807", "\u180E7",
+                     "\u20007", "\u20017", "\u20027", "\u20037", "\u20047", "\u20057",
+                     "\u20067", "\u20077", "\u20087", "\u20097", "\u200A7", "\u202F7",
+                     "\u30007",
                      undefined, 1.5, true, false, {"test": 6}, NaN, +Infinity,
                      -Infinity, "\0",
                      {toString:function() {return 2;}, valueOf: null},
@@ -373,11 +363,11 @@ ReflectionTests.typeMap = {
         "domTests": [minInt - 1, minInt, -36, -1, -0, 0, 1, maxInt, maxInt + 1,
                      maxUnsigned, maxUnsigned + 1, "", "-1", "-0", "0", "1",
                      " " + binaryString + " foo ",
-                     
-                     
-                     
-                     
-                     
+                     "\u00097", "\u000B7", "\u000C7", "\u00207", "\u00A07", "\uFEFF7",
+                     "\u000A7", "\u000D7", "\u20287", "\u20297", "\u16807", "\u180E7",
+                     "\u20007", "\u20017", "\u20027", "\u20037", "\u20047", "\u20057",
+                     "\u20067", "\u20077", "\u20087", "\u20097", "\u200A7", "\u202F7",
+                     "\u30007",
                      undefined, 1.5, true, false, {"test": 6}, NaN, +Infinity,
                      -Infinity, "\0",
                      {toString:function() {return 2;}, valueOf: null},
@@ -409,11 +399,11 @@ ReflectionTests.typeMap = {
         "defaultVal": 0,
         "domTests": [minInt - 1, minInt, -36,  -1,   0, 1, 257, maxInt,
                      maxInt + 1, maxUnsigned, maxUnsigned + 1, "", "-1", "-0", "0", "1",
-                     
-                     
-                     
-                     
-                     
+                     "\u00097", "\u000B7", "\u000C7", "\u00207", "\u00A07", "\uFEFF7",
+                     "\u000A7", "\u000D7", "\u20287", "\u20297", "\u16807", "\u180E7",
+                     "\u20007", "\u20017", "\u20027", "\u20037", "\u20047", "\u20057",
+                     "\u20067", "\u20077", "\u20087", "\u20097", "\u200A7", "\u202F7",
+                     "\u30007",
                      " " + binaryString + " foo ", undefined, 1.5, true, false,
                      {"test": 6}, NaN, +Infinity, -Infinity, "\0",
                      {toString:function() {return 2;}, valueOf: null},
@@ -450,11 +440,11 @@ ReflectionTests.typeMap = {
         "defaultVal": 1,
         "domTests": [minInt - 1, minInt, -36,  -1,   0,    1, maxInt,
                      maxInt + 1, maxUnsigned, maxUnsigned + 1, "", "-1", "-0", "0", "1",
-                     
-                     
-                     
-                     
-                     
+                     "\u00097", "\u000B7", "\u000C7", "\u00207", "\u00A07", "\uFEFF7",
+                     "\u000A7", "\u000D7", "\u20287", "\u20297", "\u16807", "\u180E7",
+                     "\u20007", "\u20017", "\u20027", "\u20037", "\u20047", "\u20057",
+                     "\u20067", "\u20077", "\u20087", "\u20097", "\u200A7", "\u202F7",
+                     "\u30007",
                      " " + binaryString + " foo ", undefined, 1.5, true, false,
                      {"test": 6}, NaN, +Infinity, -Infinity, "\0",
                      {toString:function() {return 2;}, valueOf: null},
@@ -499,11 +489,11 @@ ReflectionTests.typeMap = {
         "defaultVal": 0.0,
         "domTests": [minInt - 1, minInt, -36, -1, 0, 1, maxInt,
             maxInt + 1, maxUnsigned, maxUnsigned + 1, "",
-            
-            
-            
-            
-            
+            "\u00097", "\u000B7", "\u000C7", "\u00207", "\u00A07", "\uFEFF7",
+            "\u000A7", "\u000D7", "\u20287", "\u20297", "\u16807", "\u180E7",
+            "\u20007", "\u20017", "\u20027", "\u20037", "\u20047", "\u20057",
+            "\u20067", "\u20077", "\u20087", "\u20097", "\u200A7", "\u202F7",
+            "\u30007",
             " " + binaryString + " foo ", undefined, 1.5, true, false,
             {"test": 6}, NaN, +Infinity, -Infinity, "\0",
             {toString:function() {return 2;}, valueOf: null},
@@ -511,11 +501,11 @@ ReflectionTests.typeMap = {
         "domExpected": [minInt - 1, minInt, -36, -1, 0, 1, maxInt,
                         maxInt + 1, maxUnsigned, maxUnsigned + 1, null,
                         
-                        
-                        
-                        
-                        
-                        
+                        7, null, 7, 7, null, null,
+                        7, 7, null, null, null, null,
+                        null, null, null, null, null, null,
+                        null, null, null, null, null, null,
+                        null,
                         
                         null, null, 1.5, null, null,
                         null, null, null, null, null,
@@ -695,31 +685,28 @@ ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
         idlIdlExpected = idlIdlExpected.filter(function(element, index, array) { return idlIdlExpected[index] < 1000; });
     }
 
-    for (var i = 0; i < domTests.length; i++) {
-        if (domExpected[i] === null) {
-            
-            
-            
-            
-            continue;
-        }
-        try {
-            domObj.setAttribute(domName, domTests[i]);
-            
-            
-            
-            if (domTests[i] !== null) {
+    if (!data.customGetter) {
+        for (var i = 0; i < domTests.length; i++) {
+            if (domExpected[i] === null) {
+                
+                
+                
+                
+                continue;
+            }
+            try {
+                domObj.setAttribute(domName, domTests[i]);
                 ReflectionHarness.test(domObj.getAttribute(domName), domTests[i] + "", "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by getAttribute()");
-            }
-            ReflectionHarness.test(idlObj[idlName], domExpected[i], "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by IDL get");
-            if (ReflectionHarness.catchUnexpectedExceptions) {
-                ReflectionHarness.success();
-            }
-        } catch (err) {
-            if (ReflectionHarness.catchUnexpectedExceptions) {
-                ReflectionHarness.failure("Exception thrown during tests with setAttribute() to " + ReflectionHarness.stringRep(domTests[i]));
-            } else {
-                throw err;
+                ReflectionHarness.test(idlObj[idlName], domExpected[i], "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by IDL get");
+                if (ReflectionHarness.catchUnexpectedExceptions) {
+                    ReflectionHarness.success();
+                }
+            } catch (err) {
+                if (ReflectionHarness.catchUnexpectedExceptions) {
+                    ReflectionHarness.failure("Exception thrown during tests with setAttribute() to " + ReflectionHarness.stringRep(domTests[i]));
+                } else {
+                    throw err;
+                }
             }
         }
     }

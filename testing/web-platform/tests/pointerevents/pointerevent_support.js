@@ -168,24 +168,3 @@ function rPointerCapture(e) {
     catch(e) {
     }
 }
-
-
-
-function checkDirection(testToStep, isVertical, currentMoveCount, moveCountToPass, delta, event) {
-    if(!isVertical) {
-        if(currentMoveCount > moveCountToPass / 2) { 
-                testToStep.step( function() {
-                currentPointerY = event.clientY;
-                assert_approx_equals(previousPointerY, currentPointerY, delta, "scroll move was along horisontal line: ");
-                previousPointerY = currentPointerY;
-            });
-        }
-    }
-    else {
-        testToStep.step( function() {
-            currentPointerX = event.clientX;
-            assert_approx_equals(previousPointerX, currentPointerX, delta, "scroll move was along vertical line: ");
-            previousPointerX = currentPointerX;
-        });
-    }
-}
