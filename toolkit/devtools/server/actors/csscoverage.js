@@ -109,7 +109,11 @@ let CSSUsageActor = protocol.ActorClass({
   
 
 
-  start: method(function() {
+
+
+
+
+  start: method(function(noreload) {
     if (this._running) {
       throw new Error(l10n.lookup("csscoverageRunningError"));
     }
@@ -144,10 +148,18 @@ let CSSUsageActor = protocol.ActorClass({
                                             .getInterface(Ci.nsIWebProgress);
     this._progress.addProgressListener(this._progressListener, this._notifyOn);
 
-    this._populateKnownRules(this._tabActor.window.document);
-    this._updateUsage(this._tabActor.window.document, false);
+    if (noreload) {
+      
+      
+      this._onTabLoad(this._tabActor.window.document);
+    }
+    else {
+      this._tabActor.window.location.reload();
+    }
 
     events.emit(this, "state-change", { isRunning: true });
+  }, {
+    request: { url: Arg(0, "boolean") }
   }),
 
   
@@ -783,11 +795,11 @@ const CSSUsageFront = protocol.FrontClass(CSSUsageActor, {
   
 
 
-  start: custom(function(newChromeWindow, newTarget) {
+  start: custom(function(newChromeWindow, newTarget, noreload=false) {
     target = newTarget;
     chromeWindow = newChromeWindow;
 
-    return this._start();
+    return this._start(noreload);
   }, {
     impl: "_start"
   }),
