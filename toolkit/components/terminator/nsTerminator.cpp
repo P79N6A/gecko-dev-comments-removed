@@ -104,7 +104,6 @@ Run(void* arg)
 
 } 
 
-
 static char const *const sObserverTopics[] = {
   "quit-application",
   "profile-change-teardown",
@@ -156,7 +155,7 @@ nsTerminator::Start() {
 
   
   
-  PRThread* thread = PR_CreateThread(
+  DebugOnly<PRThread*> thread = PR_CreateThread(
     PR_SYSTEM_THREAD, 
     Run,
     options.release(),
@@ -169,7 +168,6 @@ nsTerminator::Start() {
   MOZ_ASSERT(thread);
   mInitialized = true;
 }
-
 
 NS_IMETHODIMP
 nsTerminator::Observe(nsISupports *, const char *aTopic, const char16_t *)
