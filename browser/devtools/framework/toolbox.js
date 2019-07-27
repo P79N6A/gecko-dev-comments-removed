@@ -717,6 +717,10 @@ Toolbox.prototype = {
       this._buildPickerButton();
     }
 
+    
+    
+    this.setToolboxButtonsVisibility();
+
     const options = {
       environment: CommandUtils.createEnvironment(this, '_target')
     };
