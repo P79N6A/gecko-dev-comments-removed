@@ -27,11 +27,14 @@ extern "C" {
 
 
 
+
+
 typedef void (*PrefReader)(void       *closure,
                            const char *pref,
                            PrefValue   val,
                            PrefType    type,
-                           bool        defPref);
+                           bool        defPref,
+                           bool        stickyPref);
 
 
 typedef struct PrefParseState {
@@ -52,6 +55,7 @@ typedef struct PrefParseState {
     char       *vb;         
     PrefType    vtype;      
     bool        fdefault;   
+    bool        fstickydefault; 
 } PrefParseState;
 
 
