@@ -81,6 +81,27 @@ public class HomePager extends ViewPager {
         public void onUrlOpen(String url, EnumSet<Flags> flags);
     }
 
+    
+
+
+
+
+
+
+    public interface OnUrlOpenInBackgroundListener {
+        public enum Flags {
+            PRIVATE,
+        }
+
+        
+
+
+
+
+
+        public void onUrlOpenInBackground(String url, EnumSet<Flags> flags);
+    }
+
     public interface OnNewTabsListener {
         public void onNewTabs(List<String> urls);
     }
