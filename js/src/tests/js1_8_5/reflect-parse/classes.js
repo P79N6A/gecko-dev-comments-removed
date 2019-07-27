@@ -1,0 +1,289 @@
+
+
+function classesEnabled() {
+    try {
+        Reflect.parse("class foo { constructor() { } }");
+        return true;
+    } catch (e) {
+        assertEq(e instanceof SyntaxError, true);
+        return false;
+    }
+}
+
+function testClasses() {
+    function simpleMethod(id, kind, generator, args=[], isStatic=false) {
+        assertEq(generator && kind === "method", generator);
+        let idN = ident(id);
+        let methodMaker = generator ? genFunExpr : funExpr;
+        let methodName = kind !== "method" ? null : idN;
+        let methodFun = methodMaker(methodName, args.map(ident), blockStmt([]));
+
+        return classMethod(idN, methodFun, kind, isStatic);
+    }
+    function emptyCPNMethod(id, isStatic) {
+        return classMethod(computedName(lit(id)),
+                           funExpr(null, [], blockStmt([])),
+                           "method", isStatic);
+    }
+
+    function assertClassExpr(str, methods, heritage=null, name=null) {
+        let template = classExpr(name, heritage, methods);
+        assertExpr("(" + str + ")", template);
+    }
+    function assertClass(str, methods, heritage=null) {
+        let namelessStr = str.replace("NAME", "");
+        let namedStr = str.replace("NAME", "Foo");
+        assertClassExpr(namelessStr, methods, heritage);
+        assertClassExpr(namedStr, methods, heritage, ident("Foo"));
+
+        let template = classStmt(ident("Foo"), heritage, methods);
+        assertStmt(namedStr, template);
+    }
+    function assertNamedClassError(str, error) {
+        assertError(str, error);
+        assertError("(" + str + ")", error);
+    }
+    function assertClassError(str, error) {
+        assertNamedClassError(str, error);
+        assertError("(" + str.replace("NAME", "") + ")", error);
+    }
+
+    let simpleConstructor = simpleMethod("constructor", "method", false);
+
+    
+    
+    
+    assertError("class { constructor() { } }", SyntaxError);
+    assertClass("class NAME { constructor() { } }", [simpleConstructor]);
+
+    
+    assertNamedClassError("class x.y { constructor() {} }", SyntaxError);
+    assertNamedClassError("class []  { constructor() {} }", SyntaxError);
+    assertNamedClassError("class {x} { constructor() {} }", SyntaxError);
+    assertNamedClassError("class for { constructor() {} }", SyntaxError);
+
+    
+    assertClass("class NAME { constructor() { } method() { } }",
+                [simpleConstructor, simpleMethod("method", "method", false)]);
+
+    assertClass("class NAME { constructor() { } get method() { } }",
+                [simpleConstructor, simpleMethod("method", "get", false)]);
+
+    assertClass("class NAME { constructor() { } set method(x) { } }",
+                [simpleConstructor, simpleMethod("method", "set", false, ["x"])]);
+
+    
+    assertClass(`class NAME {
+                   constructor() { };
+                   static method() { };
+                   static *methodGen() { };
+                   static get getter() { };
+                   static set setter(x) { }
+                 }`,
+                [simpleConstructor,
+                 simpleMethod("method", "method", false, [], true),
+                 simpleMethod("methodGen", "method", true, [], true),
+                 simpleMethod("getter", "get", false, [], true),
+                 simpleMethod("setter", "set", false, ["x"], true)]);
+
+    
+    assertClass("class NAME { constructor() { } static() { } }",
+                [simpleConstructor, simpleMethod("static", "method", false)]);
+    assertClass("class NAME { static static() { }; constructor() { } }",
+                [simpleMethod("static", "method", false, [], true), simpleConstructor]);
+    assertClass("class NAME { static get static() { }; constructor() { } }",
+                [simpleMethod("static", "get", false, [], true), simpleConstructor]);
+    assertClass("class NAME { constructor() { }; static set static(x) { } }",
+                [simpleConstructor, simpleMethod("static", "set", false, ["x"], true)]);
+
+    
+    assertClassError("class NAME { constructor() { }; get static foo() { } }", SyntaxError);
+
+    
+    
+    assertClassError("class NAME { constructor() { } static prototype() { } }", SyntaxError);
+    assertClassError("class NAME { constructor() { } static *prototype() { } }", SyntaxError);
+    assertClassError("class NAME { static get prototype() { }; constructor() { } }", SyntaxError);
+    assertClassError("class NAME { static set prototype(x) { }; constructor() { } }", SyntaxError);
+
+    
+    assertClass("class NAME { constructor() { }; static [\"prototype\"]() { } }",
+                [simpleConstructor, emptyCPNMethod("prototype", true)]);
+
+    
+    
+    assertClassError("class NAME { }", TypeError);
+
+    
+    
+    assertClassError("class NAME { constructor() { } constructor(a) { } }", SyntaxError);
+    let methods = [["method() { }", simpleMethod("method", "method", false)],
+                   ["*method() { }", simpleMethod("method", "method", true)],
+                   ["get method() { }", simpleMethod("method", "get", false)],
+                   ["set method(x) { }", simpleMethod("method", "set", false, ["x"])],
+                   ["static method() { }", simpleMethod("method", "method", false, [], true)],
+                   ["static *method() { }", simpleMethod("method", "method", true, [], true)],
+                   ["static get method() { }", simpleMethod("method", "get", false, [], true)],
+                   ["static set method(x) { }", simpleMethod("method", "set", false, ["x"], true)]];
+    let i,j;
+    for (i=0; i < methods.length; i++) {
+        for (j=0; j < methods.length; j++) {
+            let str = "class NAME { constructor() { } " +
+                       methods[i][0] + " " + methods[j][0] +
+                       " }";
+            assertClass(str, [simpleConstructor, methods[i][1], methods[j][1]]);
+        }
+    }
+
+    
+    
+    assertClass("class NAME { constructor () { } [\"constructor\"] () { } }",
+                [simpleConstructor, emptyCPNMethod("constructor", false)]);
+
+    
+    assertClassError("class NAME { *constructor() { } }", SyntaxError);
+    assertClassError("class NAME { get constructor() { } }", SyntaxError);
+    assertClassError("class NAME { set constructor() { } }", SyntaxError);
+
+    
+    
+    assertClass("class NAME { constructor() { }; }", [simpleConstructor]);
+
+    
+    assertClass("class NAME { ;;; constructor() { } }", [simpleConstructor]);
+
+    
+    assertClass("class NAME { method() { } constructor() { } }",
+                [simpleMethod("method", "method", false), simpleConstructor]);
+
+    
+    
+    assertError(`function *foo() {
+                    class yield {
+                        constructor() { }
+                    }
+                 }`, SyntaxError);
+    assertError(`function *foo() {
+                    (class yield {
+                        constructor() { }
+                    })
+                 }`, SyntaxError);
+
+    
+    assertClassError("class NAME { constructor() { } *get foo() { } }", SyntaxError);
+    assertClassError("class NAME { constructor() { } *set foo() { } }", SyntaxError);
+
+    assertClass("class NAME { *method() { } constructor() { } }",
+                [simpleMethod("method", "method", true), simpleConstructor]);
+
+    
+    
+    assertClassError("class NAME { constructor() { var yield; } }", SyntaxError);
+
+    
+    
+    assertClassError("class NAME { constructor() { } [delete bar]() { }}", SyntaxError);
+
+    
+    
+    
+    assertError("{ let Foo; class Foo { constructor() { } } }", TypeError);
+    assertStmt("{ let Foo; (class Foo { constructor() { } }) }",
+               blockStmt([letDecl([{id: ident("Foo"), init: null}]),
+                          exprStmt(classExpr(ident("Foo"), null, [simpleConstructor]))]));
+    assertError("{ const Foo = 0; class Foo { constructor() { } } }", TypeError);
+    assertStmt("{ const Foo = 0; (class Foo { constructor() { } }) }",
+               blockStmt([constDecl([{id: ident("Foo"), init: lit(0)}]),
+                          exprStmt(classExpr(ident("Foo"), null, [simpleConstructor]))]));
+    assertError("{ class Foo { constructor() { } } class Foo { constructor() { } } }", TypeError);
+    assertStmt(`{
+                    (class Foo {
+                        constructor() { }
+                     },
+                     class Foo {
+                        constructor() { }
+                     });
+                }`,
+               blockStmt([exprStmt(seqExpr([classExpr(ident("Foo"), null, [simpleConstructor]),
+                                            classExpr(ident("Foo"), null, [simpleConstructor])]))]));
+    assertStmt(`{
+                    var x = class Foo { constructor() { } };
+                    class Foo { constructor() { } }
+                }`,
+               blockStmt([varDecl([{ id: ident("x"),
+                                     init: classExpr(ident("Foo"), null, [simpleConstructor])
+                                   }]),
+                          classStmt(ident("Foo"), null, [simpleConstructor])]));
+
+
+    
+    assertError("if (1) class Foo { constructor() { } }", SyntaxError);
+
+    
+    
+    
+    assertClassError("class NAME extends null, undefined { constructor() { } }", SyntaxError);
+
+    
+    assertClassError("class NAME extends (delete x) { constructor() { } }", SyntaxError);
+
+    
+    assertClassError("class NAME extends { constructor() { } }", SyntaxError);
+
+    
+    assertClass("class NAME { constructor() { }; extends() { } }",
+                [simpleConstructor, simpleMethod("extends", "method", false)]);
+
+    
+    assertClass("class NAME extends null { constructor() { } }",
+                [simpleConstructor], lit(null));
+
+    
+    assertClass("class NAME extends (undefined, undefined) { constructor() { } }",
+                [simpleConstructor], seqExpr([ident("undefined"), ident("undefined")]));
+
+    
+    let emptyFunction = funExpr(null, [], blockStmt([]));
+    assertClass("class NAME extends function(){ } { constructor() { } }",
+                [simpleConstructor], emptyFunction);
+
+    
+    assertClass("class NAME extends new function(){ }() { constructor() { } }",
+                [simpleConstructor], newExpr(emptyFunction, []));
+
+    
+    assertClass("class NAME extends function(){ }() { constructor() { } }",
+                [simpleConstructor], callExpr(emptyFunction, []));
+
+    
+    assertClass("class NAME extends {}.foo { constructor() { } }",
+                [simpleConstructor], dotExpr(objExpr([]), ident("foo")));
+
+    
+    assertClass("class NAME extends {}[foo] { constructor() { } }",
+                [simpleConstructor], memExpr(objExpr([]), ident("foo")));
+
+    
+    
+    assertClassError("class NAME {", SyntaxError);
+    assertClassError("class NAME {;", SyntaxError);
+    assertClassError("class NAME { constructor", SyntaxError);
+    assertClassError("class NAME { constructor(", SyntaxError);
+    assertClassError("class NAME { constructor()", SyntaxError);
+    assertClassError("class NAME { constructor()", SyntaxError);
+    assertClassError("class NAME { constructor() {", SyntaxError);
+    assertClassError("class NAME { constructor() { }", SyntaxError);
+    assertClassError("class NAME { static", SyntaxError);
+    assertClassError("class NAME { static y", SyntaxError);
+    assertClassError("class NAME { static *", SyntaxError);
+    assertClassError("class NAME { static *y", SyntaxError);
+    assertClassError("class NAME { static get", SyntaxError);
+    assertClassError("class NAME { static get y", SyntaxError);
+    assertClassError("class NAME extends", SyntaxError);
+
+}
+
+if (classesEnabled())
+    runtest(testClasses);
+else if (typeof reportCompare === 'function')
+    reportCompare(true, true);

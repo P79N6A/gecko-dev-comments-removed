@@ -2,6 +2,7 @@
 
 
 
+
 var opts = new Proxy({loc: false}, {});
 assertEq(Reflect.parse("0;", opts).loc === null, true);
 opts.loc = true;

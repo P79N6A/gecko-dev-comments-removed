@@ -1,6 +1,7 @@
 
 
 
+
 Reflect.parse("({ __proto__: null });");
 Reflect.parse("var { __proto__: x } = obj;");
 Reflect.parse("var [{ __proto__: y }] = obj;");
