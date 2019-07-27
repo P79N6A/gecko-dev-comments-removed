@@ -626,6 +626,26 @@ BrowserElementParent.prototype = {
           getService(Ci.nsIExternalHelperAppService);
         let channel = aRequest.QueryInterface(Ci.nsIChannel);
 
+        
+        
+        
+        
+        
+        _options.filename = _options.filename.replace(/^\.+/, "");
+
+        let ext = null;
+        let mimeSvc = extHelperAppSvc.QueryInterface(Ci.nsIMIMEService);
+        try {
+          ext = '.' + mimeSvc.getPrimaryExtension(channel.contentType, '');
+        } catch (e) { ext = null; }
+
+        
+        if (ext && !_options.filename.endsWith(ext)) {
+          _options.filename += ext;
+        }
+        
+        channel.contentDispositionFilename = _options.filename;
+
         this.extListener =
           extHelperAppSvc.doContent(
               channel.contentType,
