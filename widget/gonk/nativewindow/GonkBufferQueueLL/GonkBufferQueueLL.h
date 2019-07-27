@@ -14,11 +14,12 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERQUEUE_H
-#define ANDROID_GUI_BUFFERQUEUE_H
 
-#include <gui/BufferQueueDefs.h>
-#include <gui/IGraphicBufferConsumer.h>
+#ifndef NATIVEWINDOW_GONKBUFFERQUEUE_LL_H
+#define NATIVEWINDOW_GONKBUFFERQUEUE_LL_H
+
+#include "GonkBufferQueueDefs.h"
+#include "IGonkGraphicBufferConsumerLL.h"
 #include <gui/IGraphicBufferProducer.h>
 #include <gui/IConsumerListener.h>
 
@@ -28,17 +29,17 @@
 
 namespace android {
 
-class BufferQueue {
+class GonkBufferQueue {
 public:
     
     
-    enum { NUM_BUFFER_SLOTS = BufferQueueDefs::NUM_BUFFER_SLOTS };
+    enum { NUM_BUFFER_SLOTS = GonkBufferQueueDefs::NUM_BUFFER_SLOTS };
     
-    enum { INVALID_BUFFER_SLOT = IGraphicBufferConsumer::BufferItem::INVALID_BUFFER_SLOT };
+    enum { INVALID_BUFFER_SLOT = IGonkGraphicBufferConsumer::BufferItem::INVALID_BUFFER_SLOT };
     
     enum {
-        NO_BUFFER_AVAILABLE = IGraphicBufferConsumer::NO_BUFFER_AVAILABLE,
-        PRESENT_LATER = IGraphicBufferConsumer::PRESENT_LATER,
+        NO_BUFFER_AVAILABLE = IGonkGraphicBufferConsumer::NO_BUFFER_AVAILABLE,
+        PRESENT_LATER = IGonkGraphicBufferConsumer::PRESENT_LATER,
     };
 
     
@@ -47,7 +48,7 @@ public:
 
     
     typedef ::android::ConsumerListener ConsumerListener;
-    typedef IGraphicBufferConsumer::BufferItem BufferItem;
+    typedef IGonkGraphicBufferConsumer::BufferItem BufferItem;
 
     
     
@@ -75,11 +76,11 @@ public:
     
     
     static void createBufferQueue(sp<IGraphicBufferProducer>* outProducer,
-            sp<IGraphicBufferConsumer>* outConsumer,
+            sp<IGonkGraphicBufferConsumer>* outConsumer,
             const sp<IGraphicBufferAlloc>& allocator = NULL);
 
 private:
-    BufferQueue(); 
+    GonkBufferQueue(); 
 };
 
 

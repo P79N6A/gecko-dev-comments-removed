@@ -14,11 +14,12 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERQUEUECORE_H
-#define ANDROID_GUI_BUFFERQUEUECORE_H
 
-#include <gui/BufferQueueDefs.h>
-#include <gui/BufferSlot.h>
+#ifndef NATIVEWINDOW_GONKBUFFERQUEUECORE_LL_H
+#define NATIVEWINDOW_GONKBUFFERQUEUECORE_LL_H
+
+#include "GonkBufferQueueDefs.h"
+#include "GonkBufferSlot.h"
 
 #include <utils/Condition.h>
 #include <utils/Mutex.h>
@@ -29,31 +30,25 @@
 #include <utils/Trace.h>
 #include <utils/Vector.h>
 
-#define BQ_LOGV(x, ...) ALOGV("[%s] "x, mConsumerName.string(), ##__VA_ARGS__)
-#define BQ_LOGD(x, ...) ALOGD("[%s] "x, mConsumerName.string(), ##__VA_ARGS__)
-#define BQ_LOGI(x, ...) ALOGI("[%s] "x, mConsumerName.string(), ##__VA_ARGS__)
-#define BQ_LOGW(x, ...) ALOGW("[%s] "x, mConsumerName.string(), ##__VA_ARGS__)
-#define BQ_LOGE(x, ...) ALOGE("[%s] "x, mConsumerName.string(), ##__VA_ARGS__)
+#include "mozilla/layers/TextureClient.h"
 
-#define ATRACE_BUFFER_INDEX(index)                                   \
-    if (ATRACE_ENABLED()) {                                          \
-        char ___traceBuf[1024];                                      \
-        snprintf(___traceBuf, 1024, "%s: %d",                        \
-                mCore->mConsumerName.string(), (index));             \
-        android::ScopedTrace ___bufTracer(ATRACE_TAG, ___traceBuf);  \
-    }
+#define ATRACE_BUFFER_INDEX(index)
+
+using namespace mozilla;
+using namespace mozilla::gfx;
+using namespace mozilla::layers;
 
 namespace android {
 
-class BufferItem;
+class GonkBufferItem;
 class IConsumerListener;
 class IGraphicBufferAlloc;
 class IProducerListener;
 
-class BufferQueueCore : public virtual RefBase {
+class GonkBufferQueueCore : public virtual RefBase {
 
-    friend class BufferQueueProducer;
-    friend class BufferQueueConsumer;
+    friend class GonkBufferQueueProducer;
+    friend class GonkBufferQueueConsumer;
 
 public:
     
@@ -62,22 +57,25 @@ public:
 
     
     
-    enum { MAX_MAX_ACQUIRED_BUFFERS = BufferQueueDefs::NUM_BUFFER_SLOTS - 2 };
+    enum { MAX_MAX_ACQUIRED_BUFFERS = GonkBufferQueueDefs::NUM_BUFFER_SLOTS - 2 };
 
     
     enum { NO_CONNECTED_API = 0 };
 
-    typedef Vector<BufferItem> Fifo;
+    typedef Vector<GonkBufferItem> Fifo;
+    typedef mozilla::layers::TextureClient TextureClient;
 
     
     
     
-    BufferQueueCore(const sp<IGraphicBufferAlloc>& allocator = NULL);
-    virtual ~BufferQueueCore();
+    GonkBufferQueueCore(const sp<IGraphicBufferAlloc>& allocator = NULL);
+    virtual ~GonkBufferQueueCore();
 
 private:
     
     void dump(String8& result, const char* prefix) const;
+
+    int getSlotFromTextureClientLocked(TextureClient* client) const;
 
     
     
@@ -118,7 +116,7 @@ private:
 
     
     
-    bool stillTracking(const BufferItem* item) const;
+    bool stillTracking(const GonkBufferItem* item) const;
 
     
     void waitWhileAllocatingLocked() const;
@@ -172,7 +170,7 @@ private:
     
     
     
-    BufferQueueDefs::SlotsType mSlots;
+    GonkBufferQueueDefs::SlotsType mSlots;
 
     
     Fifo mQueue;

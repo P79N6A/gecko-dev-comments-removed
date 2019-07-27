@@ -14,24 +14,22 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERQUEUECONSUMER_H
-#define ANDROID_GUI_BUFFERQUEUECONSUMER_H
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
+#ifndef NATIVEWINDOW_GONKBUFFERQUEUECONSUMER_LL_H
+#define NATIVEWINDOW_GONKBUFFERQUEUECONSUMER_LL_H
 
-#include <gui/BufferQueueDefs.h>
-#include <gui/IGraphicBufferConsumer.h>
+#include "GonkBufferQueueDefs.h"
+#include "IGonkGraphicBufferConsumerLL.h"
 
 namespace android {
 
-class BufferQueueCore;
+class GonkBufferQueueCore;
 
-class BufferQueueConsumer : public BnGraphicBufferConsumer {
+class GonkBufferQueueConsumer : public BnGonkGraphicBufferConsumer {
 
 public:
-    BufferQueueConsumer(const sp<BufferQueueCore>& core);
-    virtual ~BufferQueueConsumer();
+    GonkBufferQueueConsumer(const sp<GonkBufferQueueCore>& core);
+    virtual ~GonkBufferQueueConsumer();
 
     
     
@@ -64,12 +62,8 @@ public:
     
     
     
-    
-    
-    
     virtual status_t releaseBuffer(int slot, uint64_t frameNumber,
-            const sp<Fence>& releaseFence, EGLDisplay display,
-            EGLSyncKHR fence);
+            const sp<Fence>& releaseFence);
 
     
     
@@ -146,15 +140,13 @@ public:
     virtual void dump(String8& result, const char* prefix) const;
 
     
+    virtual mozilla::TemporaryRef<GonkBufferSlot::TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+
+    virtual int getSlotFromTextureClientLocked(GonkBufferSlot::TextureClient* client) const;
+
     
     
-
-    virtual status_t releaseBuffer(int buf, uint64_t frameNumber,
-            EGLDisplay display, EGLSyncKHR fence,
-            const sp<Fence>& releaseFence) {
-        return releaseBuffer(buf, frameNumber, releaseFence, display, fence);
-    }
-
+    
     virtual status_t consumerConnect(const sp<IConsumerListener>& consumer,
             bool controlledByApp) {
         return connect(consumer, controlledByApp);
@@ -165,10 +157,10 @@ public:
     
 
 private:
-    sp<BufferQueueCore> mCore;
+    sp<GonkBufferQueueCore> mCore;
 
     
-    BufferQueueDefs::SlotsType& mSlots;
+    GonkBufferQueueDefs::SlotsType& mSlots;
 
     
     

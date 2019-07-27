@@ -14,10 +14,9 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERITEMCONSUMER_H
-#define ANDROID_GUI_BUFFERITEMCONSUMER_H
 
-#include <gui/ConsumerBase.h>
+#ifndef NATIVEWINDOW_GONKNATIVEWINDOW_LL_H
+#define NATIVEWINDOW_GONKNATIVEWINDOW_LL_H
 
 #include <ui/GraphicBuffer.h>
 
@@ -25,11 +24,17 @@
 #include <utils/Vector.h>
 #include <utils/threads.h>
 
-#define ANDROID_GRAPHICS_BUFFERITEMCONSUMER_JNI_ID "mBufferItemConsumer"
+#include "GonkConsumerBaseLL.h"
+#include "IGonkGraphicBufferConsumerLL.h"
 
 namespace android {
 
-class BufferQueue;
+
+
+class GonkNativeWindowNewFrameCallback {
+public:
+    virtual void OnNewFrame() = 0;
+};
 
 
 
@@ -37,16 +42,16 @@ class BufferQueue;
 
 
 
-class BufferItemConsumer: public ConsumerBase
+class GonkNativeWindow: public GonkConsumerBase
 {
+    typedef mozilla::layers::TextureClient TextureClient;
   public:
-    typedef ConsumerBase::FrameAvailableListener FrameAvailableListener;
-
-    typedef BufferQueue::BufferItem BufferItem;
+    typedef GonkConsumerBase::FrameAvailableListener FrameAvailableListener;
+    typedef GonkBufferQueue::BufferItem BufferItem;
 
     enum { DEFAULT_MAX_BUFFERS = -1 };
-    enum { INVALID_BUFFER_SLOT = BufferQueue::INVALID_BUFFER_SLOT };
-    enum { NO_BUFFER_AVAILABLE = BufferQueue::NO_BUFFER_AVAILABLE };
+    enum { INVALID_BUFFER_SLOT = GonkBufferQueue::INVALID_BUFFER_SLOT };
+    enum { NO_BUFFER_AVAILABLE = GonkBufferQueue::NO_BUFFER_AVAILABLE };
 
     
     
@@ -54,11 +59,13 @@ class BufferItemConsumer: public ConsumerBase
     
     
     
-    BufferItemConsumer(const sp<IGraphicBufferConsumer>& consumer,
+    GonkNativeWindow(const sp<IGonkGraphicBufferConsumer>& consumer,
+            int bufferCount = DEFAULT_MAX_BUFFERS);
+    GonkNativeWindow(const sp<IGonkGraphicBufferConsumer>& consumer,
             uint32_t consumerUsage, int bufferCount = DEFAULT_MAX_BUFFERS,
             bool controlledByApp = false);
 
-    virtual ~BufferItemConsumer();
+    virtual ~GonkNativeWindow();
 
     
     
@@ -96,6 +103,25 @@ class BufferItemConsumer: public ConsumerBase
     
     
     status_t setDefaultBufferFormat(uint32_t defaultFormat);
+
+    
+    mozilla::TemporaryRef<TextureClient> getCurrentBuffer();
+
+    
+    
+    void returnBuffer(TextureClient* client);
+
+    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+
+    void setNewFrameCallback(GonkNativeWindowNewFrameCallback* callback);
+
+    static void RecycleCallback(TextureClient* client, void* closure);
+
+protected:
+    virtual void onFrameAvailable();
+
+private:
+    GonkNativeWindowNewFrameCallback* mNewFrameCallback;
 };
 
 } 

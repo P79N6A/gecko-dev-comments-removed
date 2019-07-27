@@ -14,21 +14,22 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERQUEUECOREDEFS_H
-#define ANDROID_GUI_BUFFERQUEUECOREDEFS_H
 
-#include <gui/BufferSlot.h>
+#ifndef NATIVEWINDOW_BUFFERQUEUECOREDEFS_H
+#define NATIVEWINDOW_BUFFERQUEUECOREDEFS_H
+
+#include "GonkBufferSlot.h"
 
 namespace android {
-    class BufferQueueCore;
+    class GonkBufferQueueCore;
 
-    namespace BufferQueueDefs {
+    namespace GonkBufferQueueDefs {
         
         
         
         enum { NUM_BUFFER_SLOTS = 64 };
 
-        typedef BufferSlot SlotsType[NUM_BUFFER_SLOTS];
+        typedef GonkBufferSlot SlotsType[NUM_BUFFER_SLOTS];
     } 
 } 
 

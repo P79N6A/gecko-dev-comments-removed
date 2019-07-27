@@ -14,10 +14,9 @@
 
 
 
-#ifndef ANDROID_GUI_CONSUMERBASE_H
-#define ANDROID_GUI_CONSUMERBASE_H
 
-#include <gui/BufferQueue.h>
+#ifndef NATIVEWINDOW_GONKCONSUMERBASE_LL_H
+#define NATIVEWINDOW_GONKCONSUMERBASE_LL_H
 
 #include <ui/GraphicBuffer.h>
 
@@ -25,6 +24,8 @@
 #include <utils/Vector.h>
 #include <utils/threads.h>
 #include <gui/IConsumerListener.h>
+
+#include "GonkBufferQueueLL.h"
 
 namespace android {
 
@@ -34,7 +35,7 @@ class String8;
 
 
 
-class ConsumerBase : public virtual RefBase,
+class GonkConsumerBase : public virtual RefBase,
         protected ConsumerListener {
 public:
     struct FrameAvailableListener : public virtual RefBase {
@@ -49,7 +50,7 @@ public:
         virtual void onFrameAvailable() = 0;
     };
 
-    virtual ~ConsumerBase();
+    virtual ~GonkConsumerBase();
 
     
     
@@ -77,15 +78,15 @@ public:
     void setFrameAvailableListener(const wp<FrameAvailableListener>& listener);
 
 private:
-    ConsumerBase(const ConsumerBase&);
-    void operator=(const ConsumerBase&);
+    GonkConsumerBase(const GonkConsumerBase&);
+    void operator=(const GonkConsumerBase&);
 
 protected:
     
     
     
     
-    ConsumerBase(const sp<IGraphicBufferConsumer>& consumer, bool controlledByApp = false);
+    GonkConsumerBase(const sp<IGonkGraphicBufferConsumer>& consumer, bool controlledByApp = false);
 
     
     
@@ -153,7 +154,7 @@ protected:
     
     
     
-    virtual status_t acquireBufferLocked(IGraphicBufferConsumer::BufferItem *item,
+    virtual status_t acquireBufferLocked(IGonkGraphicBufferConsumer::BufferItem *item,
         nsecs_t presentWhen);
 
     
@@ -163,9 +164,7 @@ protected:
     
     
     
-    virtual status_t releaseBufferLocked(int slot,
-            const sp<GraphicBuffer> graphicBuffer,
-            EGLDisplay display, EGLSyncKHR eglFence);
+    virtual status_t releaseBufferLocked(int slot, const sp<GraphicBuffer> graphicBuffer);
 
     
     bool stillTracking(int slot, const sp<GraphicBuffer> graphicBuffer);
@@ -204,7 +203,7 @@ protected:
     
     
     
-    Slot mSlots[BufferQueue::NUM_BUFFER_SLOTS];
+    Slot mSlots[GonkBufferQueue::NUM_BUFFER_SLOTS];
 
     
     
@@ -224,7 +223,7 @@ protected:
 
     
     
-    sp<IGraphicBufferConsumer> mConsumer;
+    sp<IGonkGraphicBufferConsumer> mConsumer;
 
     
     

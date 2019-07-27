@@ -14,8 +14,8 @@
 
 
 
-#ifndef ANDROID_GUI_IGRAPHICBUFFERCONSUMER_H
-#define ANDROID_GUI_IGRAPHICBUFFERCONSUMER_H
+#ifndef NATIVEWINDOW_IGONKGRAPHICBUFFERCONSUMER_LL_H
+#define NATIVEWINDOW_IGONKGRAPHICBUFFERCONSUMER_LL_H
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -27,8 +27,15 @@
 #include <binder/IInterface.h>
 #include <ui/Rect.h>
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
+#include "mozilla/RefPtr.h"
+
+class ANativeWindowBuffer;
+
+namespace mozilla {
+namespace layers {
+class TextureClient;
+}
+}
 
 namespace android {
 
@@ -38,8 +45,7 @@ class GraphicBuffer;
 class IConsumerListener;
 class NativeHandle;
 
-class IGraphicBufferConsumer : public IInterface {
-
+class IGonkGraphicBufferConsumer : public IInterface {
 public:
 
     
@@ -197,9 +203,7 @@ public:
     
     
     
-    virtual status_t releaseBuffer(int buf, uint64_t frameNumber,
-            EGLDisplay display, EGLSyncKHR fence,
-            const sp<Fence>& releaseFence) = 0;
+    virtual status_t releaseBuffer(int buf, uint64_t frameNumber, const sp<Fence>& releaseFence) = 0;
 
     
     
@@ -306,13 +310,19 @@ public:
     
     virtual void dump(String8& result, const char* prefix) const = 0;
 
+    
+    virtual mozilla::TemporaryRef<mozilla::layers::TextureClient>
+        getTextureClientFromBuffer(ANativeWindowBuffer* buffer) = 0;
+
+    virtual int getSlotFromTextureClientLocked(mozilla::layers::TextureClient* client) const = 0;
+
 public:
-    DECLARE_META_INTERFACE(GraphicBufferConsumer);
+    DECLARE_META_INTERFACE(GonkGraphicBufferConsumer);
 };
 
 
 
-class BnGraphicBufferConsumer : public BnInterface<IGraphicBufferConsumer>
+class BnGonkGraphicBufferConsumer : public BnInterface<IGonkGraphicBufferConsumer>
 {
 public:
     virtual status_t    onTransact( uint32_t code,

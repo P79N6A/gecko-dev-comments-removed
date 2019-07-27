@@ -14,23 +14,24 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERQUEUEPRODUCER_H
-#define ANDROID_GUI_BUFFERQUEUEPRODUCER_H
 
-#include <gui/BufferQueueDefs.h>
+#ifndef NATIVEWINDOW_GONKBUFFERQUEUEPRODUCER_LL_H
+#define NATIVEWINDOW_GONKBUFFERQUEUEPRODUCER_LL_H
+
+#include "GonkBufferQueueDefs.h"
 #include <gui/IGraphicBufferProducer.h>
 
 namespace android {
 
-class BufferSlot;
+class GonkBufferSlot;
 
-class BufferQueueProducer : public BnGraphicBufferProducer,
+class GonkBufferQueueProducer : public BnGraphicBufferProducer,
                             private IBinder::DeathRecipient {
 public:
-    friend class BufferQueue; 
+    friend class GonkBufferQueue; 
 
-    BufferQueueProducer(const sp<BufferQueueCore>& core);
-    virtual ~BufferQueueProducer();
+    GonkBufferQueueProducer(const sp<GonkBufferQueueCore>& core);
+    virtual ~GonkBufferQueueProducer();
 
     
     
@@ -185,10 +186,10 @@ private:
     status_t waitForFreeSlotThenRelock(const char* caller, bool async,
             int* found, status_t* returnFlags) const;
 
-    sp<BufferQueueCore> mCore;
+    sp<GonkBufferQueueCore> mCore;
 
     
-    BufferQueueDefs::SlotsType& mSlots;
+    GonkBufferQueueDefs::SlotsType& mSlots;
 
     
     

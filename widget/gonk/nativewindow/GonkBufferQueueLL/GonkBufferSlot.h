@@ -14,29 +14,28 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERSLOT_H
-#define ANDROID_GUI_BUFFERSLOT_H
+
+#ifndef NATIVEWINDOW_GONKBUFFERSLOT_LL_H
+#define NATIVEWINDOW_GONKBUFFERSLOT_LL_H
 
 #include <ui/Fence.h>
 #include <ui/GraphicBuffer.h>
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-
 #include <utils/StrongPointer.h>
+
+#include "mozilla/layers/TextureClient.h"
 
 namespace android {
 
 class Fence;
 
-struct BufferSlot {
+struct GonkBufferSlot {
+    typedef mozilla::layers::TextureClient TextureClient;
 
-    BufferSlot()
-    : mEglDisplay(EGL_NO_DISPLAY),
-      mBufferState(BufferSlot::FREE),
+    GonkBufferSlot()
+    : mBufferState(GonkBufferSlot::FREE),
       mRequestBufferCalled(false),
       mFrameNumber(0),
-      mEglFence(EGL_NO_SYNC_KHR),
       mAcquireCalled(false),
       mNeedsCleanupOnRelease(false),
       mAttachedByConsumer(false) {
@@ -45,9 +44,6 @@ struct BufferSlot {
     
     
     sp<GraphicBuffer> mGraphicBuffer;
-
-    
-    EGLDisplay mEglDisplay;
 
     
     
@@ -110,13 +106,6 @@ struct BufferSlot {
     
     
     
-    EGLSyncKHR mEglFence;
-
-    
-    
-    
-    
-    
     
     
     
@@ -135,6 +124,9 @@ struct BufferSlot {
     
     
     bool mAttachedByConsumer;
+
+    
+    mozilla::RefPtr<TextureClient> mTextureClient;
 };
 
 } 

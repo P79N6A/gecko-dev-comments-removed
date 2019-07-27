@@ -14,16 +14,17 @@
 
 
 
-#include <gui/BufferSlot.h>
+
+#include "GonkBufferSlot.h"
 
 namespace android {
 
-const char* BufferSlot::bufferStateName(BufferState state) {
+const char* GonkBufferSlot::bufferStateName(BufferState state) {
     switch (state) {
-        case BufferSlot::DEQUEUED: return "DEQUEUED";
-        case BufferSlot::QUEUED: return "QUEUED";
-        case BufferSlot::FREE: return "FREE";
-        case BufferSlot::ACQUIRED: return "ACQUIRED";
+        case GonkBufferSlot::DEQUEUED: return "DEQUEUED";
+        case GonkBufferSlot::QUEUED: return "QUEUED";
+        case GonkBufferSlot::FREE: return "FREE";
+        case GonkBufferSlot::ACQUIRED: return "ACQUIRED";
         default: return "Unknown";
     }
 }

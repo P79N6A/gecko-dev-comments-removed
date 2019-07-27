@@ -14,11 +14,11 @@
 
 
 
-#ifndef ANDROID_GUI_SURFACE_H
-#define ANDROID_GUI_SURFACE_H
+
+#ifndef NATIVEWINDOW_GONKNATIVEWINDOWCLIENT_LL_H
+#define NATIVEWINDOW_GONKNATIVEWINDOWCLIENT_LL_H
 
 #include <gui/IGraphicBufferProducer.h>
-#include <gui/BufferQueue.h>
 
 #include <ui/ANativeObjectBase.h>
 #include <ui/Region.h>
@@ -26,6 +26,8 @@
 #include <utils/RefBase.h>
 #include <utils/threads.h>
 #include <utils/KeyedVector.h>
+
+#include "GonkBufferQueueLL.h"
 
 struct ANativeWindow_Buffer;
 
@@ -44,8 +46,8 @@ namespace android {
 
 
 
-class Surface
-    : public ANativeObjectBase<ANativeWindow, Surface, RefBase>
+class GonkNativeWindowClient
+    : public ANativeObjectBase<ANativeWindow, GonkNativeWindowClient, RefBase>
 {
 public:
 
@@ -64,7 +66,7 @@ public:
 
 
 
-    Surface(const sp<IGraphicBufferProducer>& bufferProducer, bool controlledByApp = false);
+    GonkNativeWindowClient(const sp<IGraphicBufferProducer>& bufferProducer, bool controlledByApp = false);
 
     
 
@@ -74,7 +76,7 @@ public:
 
     
 
-    static bool isValid(const sp<Surface>& surface) {
+    static bool isValid(const sp<GonkNativeWindowClient>& surface) {
         return surface != NULL && surface->getIGraphicBufferProducer() != NULL;
     }
 
@@ -102,12 +104,12 @@ public:
     void allocateBuffers();
 
 protected:
-    virtual ~Surface();
+    virtual ~GonkNativeWindowClient();
 
 private:
     
-    Surface& operator = (const Surface& rhs);
-    Surface(const Surface& rhs);
+    GonkNativeWindowClient& operator = (const GonkNativeWindowClient& rhs);
+    GonkNativeWindowClient(const GonkNativeWindowClient& rhs);
 
     
     static int hook_cancelBuffer(ANativeWindow* window,
@@ -175,7 +177,7 @@ public:
     virtual int unlockAndPost();
 
 protected:
-    enum { NUM_BUFFER_SLOTS = BufferQueue::NUM_BUFFER_SLOTS };
+    enum { NUM_BUFFER_SLOTS = GonkBufferQueue::NUM_BUFFER_SLOTS };
     enum { DEFAULT_FORMAT = PIXEL_FORMAT_RGBA_8888 };
 
 private:
