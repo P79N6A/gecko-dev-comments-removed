@@ -119,6 +119,9 @@ function* clickOnInspectMenuItem(node) {
   info("Triggering inspect action.");
   yield contextMenu.inspectNode();
 
+  
+  contextMenu.hiding();
+
   info("Waiting for inspector to update.");
   yield getActiveInspector().once("inspector-updated");
 }
