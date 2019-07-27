@@ -45,9 +45,6 @@ public:
   friend struct TimerAdditionComparator;
   friend class nsTimerEvent;
 
-  
-  static already_AddRefed<nsTimerImpl> PostTimerEvent(
-    already_AddRefed<nsTimerImpl> aTimerRef);
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITIMER
 
@@ -67,6 +64,10 @@ private:
   void GetTLSTraceInfo();
   mozilla::tasktracer::TracedTaskCommon GetTracedTask();
 #endif
+
+  
+  static already_AddRefed<nsTimerImpl> PostTimerEvent(
+    already_AddRefed<nsTimerImpl> aTimerRef);
 
   enum class CallbackType : uint8_t {
     Unknown = 0,
