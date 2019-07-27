@@ -513,6 +513,8 @@ describe("loop.panel", function() {
             callUrlExpiry: 6000
           });
 
+          
+          TestUtils.Simulate.click(view.getDOMNode().querySelector(".button-copy"));
           TestUtils.Simulate.click(view.getDOMNode().querySelector(".button-copy"));
 
           sinon.assert.calledOnce(navigator.mozLoop.telemetryAdd);
@@ -554,6 +556,8 @@ describe("loop.panel", function() {
             callUrlExpiry: 6000
           });
 
+          
+          TestUtils.Simulate.click(view.getDOMNode().querySelector(".button-email"));
           TestUtils.Simulate.click(view.getDOMNode().querySelector(".button-email"));
 
           sinon.assert.calledOnce(navigator.mozLoop.telemetryAdd);
@@ -596,7 +600,9 @@ describe("loop.panel", function() {
             callUrlExpiry: 6000
           });
 
+          
           var urlField = view.getDOMNode().querySelector("input[type='url']");
+          TestUtils.Simulate.copy(urlField);
           TestUtils.Simulate.copy(urlField);
 
           sinon.assert.calledOnce(navigator.mozLoop.telemetryAdd);
