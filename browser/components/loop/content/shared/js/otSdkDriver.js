@@ -37,7 +37,6 @@ loop.OTSdkDriver = (function() {
       }
 
       this.connections = {};
-      this._setTwoWayMediaStartTime(this.CONNECTION_START_TIME_UNINITIALIZED);
 
       this.dispatcher.register(this, [
         "setupStreamElements",
@@ -213,8 +212,16 @@ loop.OTSdkDriver = (function() {
 
 
 
+
+
+
+
+
     connectSession: function(sessionData) {
       this.session = this.sdk.initSession(sessionData.sessionId);
+
+      this._sendTwoWayMediaTelemetry = !!sessionData.sendTwoWayMediaTelemetry;
+      this._setTwoWayMediaStartTime(this.CONNECTION_START_TIME_UNINITIALIZED);
 
       this.session.on("connectionCreated", this._onConnectionCreated.bind(this));
       this.session.on("streamCreated", this._onRemoteStreamCreated.bind(this));
@@ -478,7 +485,7 @@ loop.OTSdkDriver = (function() {
 
 
     _setTwoWayMediaStartTime: function(start) {
-      if (!this._isDesktop) {
+      if (!this._sendTwoWayMediaTelemetry) {
         return;
       }
 
@@ -590,7 +597,7 @@ loop.OTSdkDriver = (function() {
         
         this._publishedLocalStream = true;
         if (this._checkAllStreamsConnected()) {
-          this._setTwoWayMediaStartTime(performance.now);
+          this._setTwoWayMediaStartTime(performance.now());
           this.dispatcher.dispatch(new sharedActions.MediaConnected());
         }
       }
@@ -682,9 +689,8 @@ loop.OTSdkDriver = (function() {
 
 
 
-
     _noteConnectionLengthIfNeeded: function(startTime, endTime) {
-      if (!this._isDesktop) {
+      if (!this._sendTwoWayMediaTelemetry) {
         return;
       }
 

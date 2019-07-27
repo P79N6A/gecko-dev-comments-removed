@@ -270,7 +270,8 @@ loop.store = loop.store || {};
       this.sdkDriver.connectSession({
         apiKey: state.apiKey,
         sessionId: state.sessionId,
-        sessionToken: state.sessionToken
+        sessionToken: state.sessionToken,
+        sendTwoWayMediaTelemetry: state.outgoing 
       });
       this.mozLoop.addConversationContext(
         state.windowId,
