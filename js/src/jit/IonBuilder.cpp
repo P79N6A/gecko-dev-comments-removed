@@ -4446,18 +4446,7 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     if (!returnBlock->initEntrySlots(alloc()))
         return false;
 
-    if (!setCurrentAndSpecializePhis(returnBlock))
-        return false;
-
-    
-    
-    if (!callInfo.isSetter()) {
-        types::TemporaryTypeSet *types = bytecodeTypes(pc);
-        if (!pushTypeBarrier(retvalDefn, types, BarrierKind::TypeSet))
-            return false;
-    }
-
-    return true;
+    return setCurrentAndSpecializePhis(returnBlock);
 }
 
 MDefinition *
