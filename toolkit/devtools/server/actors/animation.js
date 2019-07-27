@@ -492,7 +492,10 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
 
 
   getAnimationPlayersForNode: method(function(nodeActor) {
-    let animations = nodeActor.rawNode.getAnimations();
+    let animations = [
+      ...nodeActor.rawNode.getAnimations(),
+      ...this.getAllAnimations(nodeActor.rawNode)
+    ];
 
     
     
@@ -511,7 +514,10 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
     this.stopAnimationPlayerUpdates();
     let win = nodeActor.rawNode.ownerDocument.defaultView;
     this.observer = new win.MutationObserver(this.onAnimationMutation);
-    this.observer.observe(nodeActor.rawNode, {animations: true});
+    this.observer.observe(nodeActor.rawNode, {
+      animations: true,
+      subtree: true
+    });
 
     return this.actors;
   }, {
@@ -603,16 +609,24 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
 
 
 
-  getAllAnimationPlayers: function() {
+
+  getAllAnimations: function(rootNode, traverseFrames) {
     let animations = [];
 
     
     
     
-    for (let window of this.tabActor.windows) {
-      let root = window.document.body || window.document;
-      for (let element of root.getElementsByTagNameNS("*", "*")) {
-        animations = [...animations, ...element.getAnimations()];
+    for (let element of rootNode.getElementsByTagNameNS("*", "*")) {
+      if (traverseFrames && element.contentWindow) {
+        animations = [
+          ...animations,
+          ...this.getAllAnimations(element.contentWindow.document, traverseFrames)
+        ];
+      } else {
+        animations = [
+          ...animations,
+          ...element.getAnimations()
+        ];
       }
     }
 
@@ -636,7 +650,10 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
 
   pauseAll: method(function() {
     let readyPromises = [];
-    for (let player of this.getAllAnimationPlayers()) {
+    
+    
+    for (let player of
+         this.getAllAnimations(this.tabActor.window.document, true)) {
       player.pause();
       readyPromises.push(player.ready);
     }
@@ -653,7 +670,10 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
 
   playAll: method(function() {
     let readyPromises = [];
-    for (let player of this.getAllAnimationPlayers()) {
+    
+    
+    for (let player of
+         this.getAllAnimations(this.tabActor.window.document, true)) {
       player.play();
       readyPromises.push(player.ready);
     }
