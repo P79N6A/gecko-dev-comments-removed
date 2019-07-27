@@ -1334,6 +1334,11 @@ WebConsoleFrame.prototype = {
         break;
       }
 
+      case "timeStamp": {
+        
+        return null;
+      }
+
       default:
         Cu.reportError("Unknown Console API log level: " + level);
         return null;
