@@ -5319,6 +5319,12 @@ ThreadSources.prototype = {
         }
       } catch(ex) {
         
+
+        
+        
+        if (url.indexOf("javascript:") === 0) {
+          spec.contentType = "text/javascript";
+        } 
       }
     }
     else {
