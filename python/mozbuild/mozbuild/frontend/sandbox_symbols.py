@@ -57,7 +57,6 @@ class FinalTargetValue(SandboxDerivedValue, unicode):
 
 
 
-
 VARIABLES = {
     
     'ANDROID_GENERATED_RESFILES': (StrictOrderingOnAppendList, list,
@@ -89,14 +88,14 @@ VARIABLES = {
 
         This variable contains a list of source code files to compile.
         Accepts assembler, C, C++, Objective C/C++.
-        """, 'compile'),
+        """, None),
 
     'GENERATED_SOURCES': (StrictOrderingOnAppendList, list,
         """Generated source code files.
 
         This variable contains a list of generated source code files to
         compile. Accepts assembler, C, C++, Objective C/C++.
-        """, 'compile'),
+        """, None),
 
     'FILES_PER_UNIFIED_FILE': (int, int,
         """The number of source files to compile into each unified source file.
@@ -110,7 +109,7 @@ VARIABLES = {
         that can be concatenated all together and built as a single source
         file. This can help make the build faster and reduce the debug info
         size.
-        """, 'compile'),
+        """, None),
 
     'GENERATED_UNIFIED_SOURCES': (StrictOrderingOnAppendList, list,
         """Generated source code files that can be compiled together.
@@ -119,7 +118,7 @@ VARIABLES = {
         compile, that can be concatenated all together, with UNIFIED_SOURCES,
         and built as a single source file. This can help make the build faster
         and reduce the debug info size.
-        """, 'compile'),
+        """, None),
 
     'GENERATED_FILES': (StrictOrderingOnAppendList, list,
         """Generic generated files.
@@ -273,7 +272,7 @@ VARIABLES = {
 
         This variable contains a list of source code files to compile.
         with the host compiler.
-        """, 'compile'),
+        """, None),
 
     'IS_COMPONENT': (bool, bool,
         """Whether the library contains a binary XPCOM component manifest.
@@ -892,7 +891,7 @@ FUNCTIONS = {
         :py:class:`mozbuild.frontend.data.AndroidEclipseProjectData`.
         """),
 
-    'add_tier_dir': ('_add_tier_directory', (str, [str, list], bool, bool),
+    'add_tier_dir': ('_add_tier_directory', (str, [str, list], bool, bool, str),
         """Register a directory for tier traversal.
 
         This is the preferred way to populate the TIERS variable.
@@ -929,6 +928,11 @@ FUNCTIONS = {
         content, but traversed with export, libs, and tools subtiers::
 
            add_tier_dir('base', 'bar', external=True)
+
+        Note there is a temporary ``trigger`` parameter that tells the build
+        system that if it sees the given string in a Makefile, then the compile
+        rules in that directory depend on the directories listed in the
+        add_tier_dir call.
         """),
 
     'export': ('_export', (str,),
