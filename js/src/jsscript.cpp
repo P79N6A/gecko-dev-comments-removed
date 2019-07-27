@@ -613,11 +613,19 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript enc
         MOZ_ASSERT_IF(enclosingScript, enclosingScript->compartment() == script->compartment());
         MOZ_ASSERT(script->functionNonDelazifying() == fun);
 
-        if (!fun && script->treatAsRunOnce() && script->hasRunOnce()) {
-            JS_ReportError(cx,
-                           "Can't serialize a run-once non-function script "
-                           "that has already run");
-            return false;
+        if (!fun && script->treatAsRunOnce()) {
+            
+            
+            
+            
+            
+            const JS::CompartmentOptions& opts = JS::CompartmentOptionsRef(cx);
+            if (!opts.cloneSingletons() || !opts.getSingletonsAsTemplates()) {
+                JS_ReportError(cx,
+                               "Can't serialize a run-once non-function script "
+                               "when we're not doing singleton cloning");
+                return false;
+            }
         }
 
         nargs = script->bindings.numArgs();
