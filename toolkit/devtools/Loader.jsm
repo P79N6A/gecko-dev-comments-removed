@@ -71,7 +71,7 @@ try {
   
 }
 
-let sharedGlobalBlacklist = ["sdk/indexed-db", "devtools/toolkit/qrcode/decoder/index"];
+let sharedGlobalBlacklist = ["sdk/indexed-db"];
 
 
 function BuiltinProvider() {}
