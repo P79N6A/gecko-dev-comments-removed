@@ -204,19 +204,6 @@ public:
     return *this;
   }
 
-  CompositableTextureRef& operator=(const TemporaryRef<T>& aOther)
-  {
-    RefPtr<T> temp = aOther;
-    if (temp) {
-      temp->AddCompositableRef();
-    }
-    if (mRef) {
-      mRef->ReleaseCompositableRef();
-    }
-    mRef = temp;
-    return *this;
-  }
-
   CompositableTextureRef& operator=(T* aOther)
   {
     if (aOther) {
@@ -383,15 +370,6 @@ public:
 
 
 
-
-
-  virtual TextureSource* GetTextureSources() = 0;
-
-  
-
-
-
-
   virtual void PrepareTextureSource(CompositableTextureSourceRef& aTexture) {}
 
   
@@ -399,7 +377,7 @@ public:
 
 
 
-  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture);
+  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) = 0;
 
   
 
@@ -586,7 +564,7 @@ public:
 
   virtual void Unlock() override;
 
-  virtual TextureSource* GetTextureSources() override;
+  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
 
   virtual void DeallocateDeviceData() override;
 
@@ -723,10 +701,11 @@ public:
   virtual bool Lock() override;
   virtual void Unlock() override;
 
-  virtual TextureSource* GetTextureSources() override {
+  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override {
     MOZ_ASSERT(mIsLocked);
     MOZ_ASSERT(mTexSource);
-    return mTexSource;
+    aTexture = mTexSource;
+    return !!aTexture;
   }
 
   virtual gfx::SurfaceFormat GetFormat() const override;
