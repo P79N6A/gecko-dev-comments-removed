@@ -6773,20 +6773,11 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
     }
 
     ID3D11Device* device = gfxWindowsPlatform::GetPlatform()->GetD3D11Device();
-    if (device &&
-        device->GetFeatureLevel() >= D3D_FEATURE_LEVEL_10_0 &&
-        !DoesD3D11DeviceWork(device)) {
-      
-      
-      
-      
-      NS_ERROR("Can't use Direct3D 11 because of a driver bug");
-    } else {
-      if (!prefs.mPreferD3D9) {
-        aHints.AppendElement(LayersBackend::LAYERS_D3D11);
-      }
-      aHints.AppendElement(LayersBackend::LAYERS_D3D9);
+
+    if (!prefs.mPreferD3D9) {
+      aHints.AppendElement(LayersBackend::LAYERS_D3D11);
     }
+    aHints.AppendElement(LayersBackend::LAYERS_D3D9);
   }
   aHints.AppendElement(LayersBackend::LAYERS_BASIC);
 }
