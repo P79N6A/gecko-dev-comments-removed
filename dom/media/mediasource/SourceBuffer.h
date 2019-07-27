@@ -186,7 +186,7 @@ private:
   
   uint32_t mUpdateID;
 
-  MediaPromiseConsumerHolder<TrackBufferAppendPromise> mPendingAppend;
+  MediaPromiseRequestHolder<TrackBufferAppendPromise> mPendingAppend;
   const nsCString mType;
 };
 

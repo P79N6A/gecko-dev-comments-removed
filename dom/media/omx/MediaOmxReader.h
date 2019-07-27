@@ -45,7 +45,7 @@ class MediaOmxReader : public MediaOmxCommonReader
   
   bool mIsShutdown;
   MediaPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
-  MediaPromiseConsumerHolder<MediaResourcePromise> mMediaResourceRequest;
+  MediaPromiseRequestHolder<MediaResourcePromise> mMediaResourceRequest;
 protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
   android::sp<android::MediaExtractor> mExtractor;

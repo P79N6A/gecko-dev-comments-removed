@@ -221,7 +221,7 @@ private:
 
   MediaPromiseHolder<TrackBufferAppendPromise> mInitializationPromise;
   
-  MediaPromiseConsumerHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
+  MediaPromiseRequestHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
 };
 
 } 

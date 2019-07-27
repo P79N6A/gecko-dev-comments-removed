@@ -841,7 +841,7 @@ public:
   private:
     MediaDecoderStateMachine* mSelf;
     nsRefPtr<MediaTimer> mMediaTimer;
-    MediaPromiseConsumerHolder<mozilla::MediaTimerPromise> mRequest;
+    MediaPromiseRequestHolder<mozilla::MediaTimerPromise> mRequest;
     TimeStamp mTarget;
 
   } mDelayedScheduler;
@@ -1151,8 +1151,8 @@ protected:
   
   
 
-  MediaPromiseConsumerHolder<MediaDecoderReader::AudioDataPromise> mAudioDataRequest;
-  MediaPromiseConsumerHolder<MediaDecoderReader::WaitForDataPromise> mAudioWaitRequest;
+  MediaPromiseRequestHolder<MediaDecoderReader::AudioDataPromise> mAudioDataRequest;
+  MediaPromiseRequestHolder<MediaDecoderReader::WaitForDataPromise> mAudioWaitRequest;
   const char* AudioRequestStatus()
   {
     MOZ_ASSERT(OnTaskQueue());
@@ -1165,8 +1165,8 @@ protected:
     return "idle";
   }
 
-  MediaPromiseConsumerHolder<MediaDecoderReader::WaitForDataPromise> mVideoWaitRequest;
-  MediaPromiseConsumerHolder<MediaDecoderReader::VideoDataPromise> mVideoDataRequest;
+  MediaPromiseRequestHolder<MediaDecoderReader::WaitForDataPromise> mVideoWaitRequest;
+  MediaPromiseRequestHolder<MediaDecoderReader::VideoDataPromise> mVideoDataRequest;
   const char* VideoRequestStatus()
   {
     MOZ_ASSERT(OnTaskQueue());
@@ -1179,7 +1179,7 @@ protected:
     return "idle";
   }
 
-  MediaPromiseConsumerHolder<MediaDecoderReader::WaitForDataPromise>& WaitRequestRef(MediaData::Type aType)
+  MediaPromiseRequestHolder<MediaDecoderReader::WaitForDataPromise>& WaitRequestRef(MediaData::Type aType)
   {
     MOZ_ASSERT(OnTaskQueue());
     return aType == MediaData::AUDIO_DATA ? mAudioWaitRequest : mVideoWaitRequest;
@@ -1255,7 +1255,7 @@ protected:
   bool mDecodeToSeekTarget;
 
   
-  MediaPromiseConsumerHolder<MediaDecoderReader::SeekPromise> mSeekRequest;
+  MediaPromiseRequestHolder<MediaDecoderReader::SeekPromise> mSeekRequest;
 
   
   
@@ -1263,7 +1263,7 @@ protected:
   int64_t mCurrentTimeBeforeSeek;
 
   
-  MediaPromiseConsumerHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
+  MediaPromiseRequestHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
 
   
   

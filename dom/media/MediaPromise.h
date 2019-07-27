@@ -140,7 +140,7 @@ protected:
   explicit MediaPromise(const char* aCreationSite)
     : mCreationSite(aCreationSite)
     , mMutex("MediaPromise Mutex")
-    , mHaveConsumer(false)
+    , mHaveRequest(false)
   {
     PROMISE_LOG("%s creating MediaPromise (%p)", mCreationSite, this);
   }
@@ -171,7 +171,7 @@ public:
     return Move(p);
   }
 
-  class Consumer : public MediaPromiseRefcountable
+  class Request : public MediaPromiseRefcountable
   {
   public:
     virtual void Disconnect() = 0;
@@ -184,8 +184,8 @@ public:
     virtual MediaPromise* CompletionPromise() = 0;
 
   protected:
-    Consumer() : mComplete(false), mDisconnected(false) {}
-    virtual ~Consumer() {}
+    Request() : mComplete(false), mDisconnected(false) {}
+    virtual ~Request() {}
 
     bool mComplete;
     bool mDisconnected;
@@ -199,7 +199,7 @@ protected:
 
 
 
-  class ThenValueBase : public Consumer
+  class ThenValueBase : public Request
   {
   public:
     class ResolveOrRejectRunnable : public nsRunnable
@@ -233,7 +233,7 @@ protected:
     MediaPromise* CompletionPromise() override
     {
       MOZ_DIAGNOSTIC_ASSERT(mResponseTarget->IsCurrentThreadIn());
-      MOZ_DIAGNOSTIC_ASSERT(!Consumer::mComplete);
+      MOZ_DIAGNOSTIC_ASSERT(!Request::mComplete);
       if (!mCompletionPromise) {
         mCompletionPromise = new MediaPromise::Private("<completion promise>");
       }
@@ -261,8 +261,8 @@ protected:
     virtual void Disconnect() override
     {
       MOZ_ASSERT(ThenValueBase::mResponseTarget->IsCurrentThreadIn());
-      MOZ_DIAGNOSTIC_ASSERT(!Consumer::mComplete);
-      Consumer::mDisconnected = true;
+      MOZ_DIAGNOSTIC_ASSERT(!Request::mComplete);
+      Request::mDisconnected = true;
 
       
       
@@ -276,8 +276,8 @@ protected:
 
     void DoResolveOrReject(ResolveOrRejectValue& aValue)
     {
-      Consumer::mComplete = true;
-      if (Consumer::mDisconnected) {
+      Request::mComplete = true;
+      if (Request::mDisconnected) {
         PROMISE_LOG("ThenValue::DoResolveOrReject disconnected - bailing out [this=%p]", this);
         return;
       }
@@ -466,8 +466,8 @@ public:
   {
     MutexAutoLock lock(mMutex);
     MOZ_ASSERT(aResponseThread->IsDispatchReliable());
-    MOZ_DIAGNOSTIC_ASSERT(!IsExclusive || !mHaveConsumer);
-    mHaveConsumer = true;
+    MOZ_DIAGNOSTIC_ASSERT(!IsExclusive || !mHaveRequest);
+    mHaveRequest = true;
     PROMISE_LOG("%s invoking Then() [this=%p, aThenValue=%p, isPending=%d]",
                 aCallSite, this, aThenValue, (int) IsPending());
     if (!IsPending()) {
@@ -480,8 +480,8 @@ public:
 public:
 
   template<typename ThisType, typename ResolveMethodType, typename RejectMethodType>
-  nsRefPtr<Consumer> Then(AbstractThread* aResponseThread, const char* aCallSite, ThisType* aThisVal,
-                          ResolveMethodType aResolveMethod, RejectMethodType aRejectMethod)
+  nsRefPtr<Request> Then(AbstractThread* aResponseThread, const char* aCallSite, ThisType* aThisVal,
+                         ResolveMethodType aResolveMethod, RejectMethodType aRejectMethod)
   {
     nsRefPtr<ThenValueBase> thenValue = new MethodThenValue<ThisType, ResolveMethodType, RejectMethodType>(
                                               aResponseThread, aThisVal, aResolveMethod, aRejectMethod, aCallSite);
@@ -490,8 +490,8 @@ public:
   }
 
   template<typename ResolveFunction, typename RejectFunction>
-  nsRefPtr<Consumer> Then(AbstractThread* aResponseThread, const char* aCallSite,
-                          ResolveFunction&& aResolveFunction, RejectFunction&& aRejectFunction)
+  nsRefPtr<Request> Then(AbstractThread* aResponseThread, const char* aCallSite,
+                         ResolveFunction&& aResolveFunction, RejectFunction&& aRejectFunction)
   {
     nsRefPtr<ThenValueBase> thenValue = new FunctionThenValue<ResolveFunction, RejectFunction>(aResponseThread,
                                               Move(aResolveFunction), Move(aRejectFunction), aCallSite);
@@ -502,8 +502,8 @@ public:
   void ChainTo(already_AddRefed<Private> aChainedPromise, const char* aCallSite)
   {
     MutexAutoLock lock(mMutex);
-    MOZ_DIAGNOSTIC_ASSERT(!IsExclusive || !mHaveConsumer);
-    mHaveConsumer = true;
+    MOZ_DIAGNOSTIC_ASSERT(!IsExclusive || !mHaveRequest);
+    mHaveRequest = true;
     nsRefPtr<Private> chainedPromise = aChainedPromise;
     PROMISE_LOG("%s invoking Chain() [this=%p, chainedPromise=%p, isPending=%d]",
                 aCallSite, this, chainedPromise.get(), (int) IsPending());
@@ -553,7 +553,7 @@ protected:
   ResolveOrRejectValue mValue;
   nsTArray<nsRefPtr<ThenValueBase>> mThenValues;
   nsTArray<nsRefPtr<Private>> mChainedPromises;
-  bool mHaveConsumer;
+  bool mHaveRequest;
 };
 
 template<typename ResolveValueT, typename RejectValueT, bool IsExclusive>
@@ -697,30 +697,30 @@ private:
 
 
 template<typename PromiseType>
-class MediaPromiseConsumerHolder
+class MediaPromiseRequestHolder
 {
 public:
-  MediaPromiseConsumerHolder() {}
-  ~MediaPromiseConsumerHolder() { MOZ_ASSERT(!mConsumer); }
+  MediaPromiseRequestHolder() {}
+  ~MediaPromiseRequestHolder() { MOZ_ASSERT(!mRequest); }
 
-  void Begin(typename PromiseType::Consumer* aConsumer)
+  void Begin(typename PromiseType::Request* aRequest)
   {
     MOZ_DIAGNOSTIC_ASSERT(!Exists());
-    mConsumer = aConsumer;
+    mRequest = aRequest;
   }
 
   void Complete()
   {
     MOZ_DIAGNOSTIC_ASSERT(Exists());
-    mConsumer = nullptr;
+    mRequest = nullptr;
   }
 
   
   
   void Disconnect() {
     MOZ_ASSERT(Exists());
-    mConsumer->Disconnect();
-    mConsumer = nullptr;
+    mRequest->Disconnect();
+    mRequest = nullptr;
   }
 
   void DisconnectIfExists() {
@@ -729,10 +729,10 @@ public:
     }
   }
 
-  bool Exists() { return !!mConsumer; }
+  bool Exists() { return !!mRequest; }
 
 private:
-  nsRefPtr<typename PromiseType::Consumer> mConsumer;
+  nsRefPtr<typename PromiseType::Request> mRequest;
 };
 
 

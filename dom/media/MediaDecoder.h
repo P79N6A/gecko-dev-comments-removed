@@ -1019,7 +1019,7 @@ protected:
 
   virtual void CallSeek(const SeekTarget& aTarget);
 
-  MediaPromiseConsumerHolder<SeekPromise> mSeekRequest;
+  MediaPromiseRequestHolder<SeekPromise> mSeekRequest;
 
   
   

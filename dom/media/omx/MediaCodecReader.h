@@ -182,7 +182,7 @@ protected:
 
   MediaPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
   
-  MediaPromiseConsumerHolder<MediaResourcePromise> mMediaResourceRequest;
+  MediaPromiseRequestHolder<MediaResourcePromise> mMediaResourceRequest;
   MediaPromiseHolder<MediaResourcePromise> mMediaResourcePromise;
 
 private:
