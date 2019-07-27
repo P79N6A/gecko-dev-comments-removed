@@ -47,6 +47,9 @@ public class TopSitesGridView extends GridView {
     private int mMeasuredHeight;
 
     
+    private final TopSitesGridItemView dummyChildView;
+
+    
     private TopSitesGridContextMenuInfo mContextMenuInfo;
 
     
@@ -72,6 +75,15 @@ public class TopSitesGridView extends GridView {
         mHorizontalSpacing = a.getDimensionPixelOffset(R.styleable.TopSitesGridView_android_horizontalSpacing, 0x00);
         mVerticalSpacing = a.getDimensionPixelOffset(R.styleable.TopSitesGridView_android_verticalSpacing, 0x00);
         a.recycle();
+
+        dummyChildView = new TopSitesGridItemView(context);
+        
+        AbsListView.LayoutParams params = (AbsListView.LayoutParams) dummyChildView.getLayoutParams();
+        if (params == null) {
+            params = new AbsListView.LayoutParams(AbsListView.LayoutParams.WRAP_CONTENT,
+                    AbsListView.LayoutParams.WRAP_CONTENT);
+            dummyChildView.setLayoutParams(params);
+        }
     }
 
     @Override
@@ -111,26 +123,15 @@ public class TopSitesGridView extends GridView {
         final int columnWidth = getColumnWidth();
 
         
-        final TopSitesGridItemView child = new TopSitesGridItemView(getContext());
-
-        
-        AbsListView.LayoutParams params = (AbsListView.LayoutParams) child.getLayoutParams();
-        if (params == null) {
-            params = new AbsListView.LayoutParams(AbsListView.LayoutParams.WRAP_CONTENT,
-                                                  AbsListView.LayoutParams.WRAP_CONTENT);
-            child.setLayoutParams(params);
-        }
-
-        
         
         int childWidthSpec = MeasureSpec.makeMeasureSpec(columnWidth, MeasureSpec.EXACTLY);
         int childHeightSpec = MeasureSpec.makeMeasureSpec(0,  MeasureSpec.UNSPECIFIED);
-        child.measure(childWidthSpec, childHeightSpec);
-        final int childHeight = child.getMeasuredHeight();
+        dummyChildView.measure(childWidthSpec, childHeightSpec);
+        final int childHeight = dummyChildView.getMeasuredHeight();
 
         
         
-        final int thumbnailWidth = child.getMeasuredWidth() - child.getPaddingLeft() - child.getPaddingRight();
+        final int thumbnailWidth = dummyChildView.getMeasuredWidth() - dummyChildView.getPaddingLeft() - dummyChildView.getPaddingRight();
         ThumbnailHelper.getInstance().setThumbnailWidth(thumbnailWidth);
 
         
