@@ -144,8 +144,7 @@ protected:
 
     nsRefPtr<nsXULPrototypeDocument> mPrototype;  
 
-    
-    nsParserBase*         mParser;               
+    nsRefPtr<nsParserBase> mParser;
     nsCOMPtr<nsIScriptSecurityManager> mSecMan;
 };
 

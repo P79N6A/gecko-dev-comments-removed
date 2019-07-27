@@ -162,8 +162,7 @@ XULContentSinkImpl::XULContentSinkImpl()
       mTextLength(0),
       mTextSize(0),
       mConstrainSize(true),
-      mState(eInProlog),
-      mParser(nullptr)
+      mState(eInProlog)
 {
 
 #ifdef PR_LOGGING
@@ -175,8 +174,6 @@ XULContentSinkImpl::XULContentSinkImpl()
 
 XULContentSinkImpl::~XULContentSinkImpl()
 {
-    NS_IF_RELEASE(mParser); 
-
     
     NS_ASSERTION(mContextStack.Depth() == 0, "Context stack not empty?");
     mContextStack.Clear();
@@ -193,14 +190,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(XULContentSinkImpl)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mNodeInfoManager)
   tmp->mContextStack.Clear();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPrototype)
-  NS_IF_RELEASE(tmp->mParser);
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mParser)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(XULContentSinkImpl)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNodeInfoManager)
   tmp->mContextStack.Traverse(cb);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPrototype)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_RAWPTR(mParser)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParser)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XULContentSinkImpl)
@@ -241,7 +238,7 @@ XULContentSinkImpl::DidBuildModel(bool aTerminated)
 
     
     
-    NS_IF_RELEASE(mParser);
+    mParser = nullptr;
     return NS_OK;
 }
 
@@ -262,9 +259,7 @@ XULContentSinkImpl::WillResume(void)
 NS_IMETHODIMP
 XULContentSinkImpl::SetParser(nsParserBase* aParser)
 {
-    NS_IF_RELEASE(mParser);
     mParser = aParser;
-    NS_IF_ADDREF(mParser);
     return NS_OK;
 }
 
