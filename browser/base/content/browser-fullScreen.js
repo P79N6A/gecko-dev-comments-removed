@@ -101,6 +101,7 @@ var FullScreen = {
   },
 
   receiveMessage: function(aMessage) {
+    let browser = aMessage.target;
     switch (aMessage.name) {
       case "DOMFullscreen:Entered": {
         
@@ -108,11 +109,8 @@ var FullScreen = {
         
         
         
-        let browser = aMessage.target;
-        if (gMultiProcessBrowser && browser.getAttribute("remote") == "true") {
-          let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                                  .getInterface(Ci.nsIDOMWindowUtils);
-          windowUtils.remoteFrameFullscreenChanged(browser);
+        if (this._isRemoteBrowser(browser)) {
+          this._windowUtils.remoteFrameFullscreenChanged(browser);
         }
         this.enterDomFullscreen(browser);
         break;
@@ -122,6 +120,11 @@ var FullScreen = {
         break;
       }
       case "DOMFullscreen:Exited": {
+        
+        
+        if (this._isRemoteBrowser(browser)) {
+          this._windowUtils.remoteFrameFullscreenReverted();
+        }
         document.documentElement.removeAttribute("inDOMFullscreen");
         this.cleanupDomFullscreen();
         this.showNavToolbox();
@@ -200,7 +203,16 @@ var FullScreen = {
       window.removeEventListener("activate", this);
 
     window.messageManager
-          .broadcastAsyncMessage("DOMFullscreen:Cleanup");
+          .broadcastAsyncMessage("DOMFullscreen:CleanUp");
+  },
+
+  _isRemoteBrowser: function (aBrowser) {
+    return gMultiProcessBrowser && aBrowser.getAttribute("remote") == "true";
+  },
+
+  get _windowUtils() {
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIDOMWindowUtils);
   },
 
   getMouseTargetRect: function()
