@@ -17,17 +17,15 @@
 
 package org.mozilla.gecko.sqlite;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
 
 import android.database.AbstractCursor;
 import android.database.CursorIndexOutOfBoundsException;
 import android.util.Log;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-
-
 
 
 
@@ -41,12 +39,14 @@ import java.util.ArrayList;
 
 
 public class MatrixBlobCursor extends AbstractCursor {
+    private static final String LOGTAG = "GeckoMatrixCursor";
 
     private final String[] columnNames;
-    private Object[] data;
-    private int rowCount;
     private final int columnCount;
-    private static final String LOGTAG = "MatrixBlobCursor";
+
+    private int rowCount;
+
+     Object[] data;
 
     
 
@@ -143,17 +143,18 @@ public class MatrixBlobCursor extends AbstractCursor {
 
     @WrapElementForJNI
     public void addRow(Iterable<?> columnValues) {
-        int start = rowCount * columnCount;
-        int end = start + columnCount;
-        ensureCapacity(end);
+        final int start = rowCount * columnCount;
 
         if (columnValues instanceof ArrayList<?>) {
             addRow((ArrayList<?>) columnValues, start);
             return;
         }
 
+        final int end = start + columnCount;
         int current = start;
-        Object[] localData = data;
+
+        ensureCapacity(end);
+        final Object[] localData = data;
         for (Object columnValue : columnValues) {
             if (current == end) {
                 
@@ -176,39 +177,47 @@ public class MatrixBlobCursor extends AbstractCursor {
     
     @WrapElementForJNI
     private void addRow(ArrayList<?> columnValues, int start) {
-        int size = columnValues.size();
+        final int size = columnValues.size();
         if (size != columnCount) {
             throw new IllegalArgumentException("columnNames.length = "
                     + columnCount + ", columnValues.size() = " + size);
         }
 
-        rowCount++;
-        Object[] localData = data;
+        final int end = start + columnCount;
+        ensureCapacity(end);
+
+        
+        
+        final Object[] localData = data;
         for (int i = 0; i < size; i++) {
             localData[start + i] = columnValues.get(i);
         }
+
+        rowCount++;
     }
 
     
-    private void ensureCapacity(int size) {
-        if (size > data.length) {
-            Object[] oldData = this.data;
-            int newSize = data.length * 2;
-            if (newSize < size) {
-                newSize = size;
-            }
-            this.data = new Object[newSize];
-            System.arraycopy(oldData, 0, this.data, 0, oldData.length);
+
+
+
+    private void ensureCapacity(final int size) {
+        if (size <= data.length) {
+            return;
         }
+
+        final Object[] oldData = this.data;
+        this.data = new Object[Math.max(size, data.length * 2)];
+        System.arraycopy(oldData, 0, this.data, 0, oldData.length);
     }
 
     
+
+
 
 
 
 
     public class RowBuilder {
-
         private int index;
         private final int endIndex;
 
@@ -224,16 +233,18 @@ public class MatrixBlobCursor extends AbstractCursor {
 
 
 
-        public RowBuilder add(Object columnValue) {
+        public RowBuilder add(final Object columnValue) {
             if (index == endIndex) {
-                throw new CursorIndexOutOfBoundsException(
-                        "No more columns left.");
+                throw new CursorIndexOutOfBoundsException("No more columns left.");
             }
 
             data[index++] = columnValue;
             return this;
         }
     }
+
+    
+
 
     public void set(int column, Object value) {
         if (column < 0 || column >= columnCount) {
@@ -269,7 +280,7 @@ public class MatrixBlobCursor extends AbstractCursor {
 
     @Override
     public short getShort(int column) {
-        Object value = get(column);
+        final Object value = get(column);
         if (value == null) return 0;
         if (value instanceof Number) return ((Number) value).shortValue();
         return Short.parseShort(value.toString());
@@ -314,10 +325,11 @@ public class MatrixBlobCursor extends AbstractCursor {
         if (value instanceof byte[]) {
             return (byte[]) value;
         }
+
         if (value instanceof ByteBuffer) {
-            ByteBuffer data = (ByteBuffer)value;
-            byte[] byteArray = new byte[data.remaining()];
-            data.get(byteArray);
+            final ByteBuffer bytes = (ByteBuffer) value;
+            byte[] byteArray = new byte[bytes.remaining()];
+            bytes.get(byteArray);
             return byteArray;
         }
         throw new UnsupportedOperationException("BLOB Object not of known type");
@@ -332,7 +344,7 @@ public class MatrixBlobCursor extends AbstractCursor {
     protected void finalize() {
         if (AppConstants.DEBUG_BUILD) {
             if (!isClosed()) {
-                Log.e(LOGTAG, "Cursor finalized without being closed");
+                Log.e(LOGTAG, "Cursor finalized without being closed", new RuntimeException("stack"));
             }
         }
 
