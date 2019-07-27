@@ -118,8 +118,16 @@ public:
   
 
 
-  void DisallowSingleTap();
+
+
+  void SetDuringFastMotion();
   
+
+
+  bool IsDuringFastMotion() const;
+  
+
+
 
 
 
@@ -171,7 +179,7 @@ private:
   bool mPreventDefault;
   bool mContentResponded;
   bool mContentResponseTimerExpired;
-  bool mSingleTapDisallowed;
+  bool mDuringFastMotion;
   bool mSingleTapOccurred;
   nsTArray<MultiTouchInput> mEvents;
 };
