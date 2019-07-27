@@ -6,7 +6,7 @@
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
+const {Cc, Ci, Cu, Cr} = require("chrome");
 const {setTimeout, clearTimeout} = require('sdk/timers');
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
@@ -310,7 +310,11 @@ Connection.prototype = {
       this._client.addOneTimeListener("closed", this._onDisconnected);
       this._client.connect(this._onConnected);
     }, e => {
-      console.error(e);
+      
+      
+      if (!this.keepConnecting || e.result !== Cr.NS_ERROR_CONNECTION_REFUSED) {
+        console.error(e);
+      }
       
       
       
