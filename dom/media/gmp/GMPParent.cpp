@@ -365,11 +365,21 @@ void
 GMPParent::ChildTerminated()
 {
   nsRefPtr<GMPParent> self(this);
-  GMPThread()->Dispatch(NS_NewRunnableMethodWithArg<nsRefPtr<GMPParent>>(
-                          mService,
-                          &GeckoMediaPluginServiceParent::PluginTerminated,
-                          self),
-                        NS_DISPATCH_NORMAL);
+  nsIThread* gmpThread = GMPThread();
+
+  if (!gmpThread) {
+    
+    
+    
+    
+    LOGD("%s::%s: GMPThread() returned nullptr.", __CLASS__, __FUNCTION__);
+  } else {
+    gmpThread->Dispatch(NS_NewRunnableMethodWithArg<nsRefPtr<GMPParent>>(
+                         mService,
+                         &GeckoMediaPluginServiceParent::PluginTerminated,
+                         self),
+                         NS_DISPATCH_NORMAL);
+  }
 }
 
 void
