@@ -1147,7 +1147,7 @@ InterpretedFunctionFilenameAndLineNumber(JSFunction *fun, const char **filename,
 }
 
 static JSFunction *
-FunctionFromTrackedType(const IonTrackedTypeWithAddendum &tracked)
+InterpretedFunctionFromTrackedType(const IonTrackedTypeWithAddendum &tracked)
 {
     if (tracked.hasConstructor())
         return tracked.constructor;
@@ -1184,32 +1184,7 @@ class ForEachTypeInfoAdapter : public IonTrackedOptimizationsTypeInfo::ForEachOp
         char buf[512];
         const uint32_t bufsize = mozilla::ArrayLength(buf);
 
-        if (JSFunction *fun = FunctionFromTrackedType(tracked)) {
-            if (fun->isNative()) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                uintptr_t addr = JS_FUNC_TO_DATA_PTR(uintptr_t, fun->native());
-                JS_snprintf(buf, bufsize, "%llx", addr);
-                op_.readType("native", nullptr, buf, UINT32_MAX);
-                return;
-            }
-
+        if (JSFunction *fun = InterpretedFunctionFromTrackedType(tracked)) {
             PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
             const char *filename;
             unsigned lineno;
@@ -1229,12 +1204,7 @@ class ForEachTypeInfoAdapter : public IonTrackedOptimizationsTypeInfo::ForEachOp
             return;
         }
 
-        if (ty.isGroup()) {
-            op_.readType("prototype", buf, nullptr, UINT32_MAX);
-            return;
-        }
-
-        op_.readType("singleton", buf, nullptr, UINT32_MAX);
+        op_.readType("prototype", buf, nullptr, 0);
     }
 
     void operator()(JS::TrackedTypeSite site, MIRType mirType) MOZ_OVERRIDE {
