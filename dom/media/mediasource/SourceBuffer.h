@@ -113,8 +113,8 @@ public:
   double GetBufferedEnd();
 
   
-  
   void RangeRemoval(double aStart, double aEnd);
+  
   void DoRangeRemoval(double aStart, double aEnd);
 
 #if defined(DEBUG)
@@ -126,6 +126,7 @@ private:
 
   friend class AsyncEventRunner<SourceBuffer>;
   friend class AppendDataRunnable;
+  friend class RangeRemovalRunnable;
   void DispatchSimpleEvent(const char* aName);
   void QueueAsyncSimpleEvent(const char* aName);
 
