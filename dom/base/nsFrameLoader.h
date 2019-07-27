@@ -162,7 +162,7 @@ public:
 
 
 
-  RenderFrameParent* GetCurrentRemoteFrame() const;
+  RenderFrameParent* GetCurrentRenderFrame() const;
 
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
