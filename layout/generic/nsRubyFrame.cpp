@@ -292,7 +292,12 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
         mFrames.InsertFrame(nullptr, newLastChild, newTextContainer);
         newLastChild = newTextContainer;
       }
-      PushChildren(newBaseContainer, lastChild);
+    }
+    if (lastChild != mFrames.LastChild()) {
+      
+      
+      
+      PushChildren(lastChild->GetNextSibling(), lastChild);
       aReflowState.mLineLayout->SetDirtyNextLine();
     }
   } else {
