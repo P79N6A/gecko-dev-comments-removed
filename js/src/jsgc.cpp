@@ -6395,15 +6395,15 @@ void
 GCRuntime::onOutOfMallocMemory(const AutoLockGC &lock)
 {
     
-    freeEmptyChunks(rt, lock);
-
-    
     
 #if defined(JSGC_COMPACTING) && defined(DEBUG)
     unprotectRelocatedArenas(relocatedArenasToRelease);
     releaseRelocatedArenasWithoutUnlocking(relocatedArenasToRelease, lock);
     relocatedArenasToRelease = nullptr;
 #endif
+
+    
+    freeEmptyChunks(rt, lock);
 
     
     
