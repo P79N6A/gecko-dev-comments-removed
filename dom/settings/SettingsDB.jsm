@@ -80,7 +80,14 @@ SettingsDB.prototype = {
       }
     }
 
-    let chan = NetUtil.newChannel(settingsFile);
+    let chan = NetUtil.newChannel2(settingsFile,
+                                   null,
+                                   null,
+                                   null,      
+                                   Services.scriptSecurityManager.getSystemPrincipal(),
+                                   null,      
+                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsIContentPolicy.TYPE_OTHER);
     let stream = chan.open();
     
     let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
