@@ -349,9 +349,7 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
         
         let separatorNeeded = true;
         for (let i = 0; i < devices.length; ++i) {
-          
-          let deviceMediaSource = devices[i].mediaSource;
-          if (deviceMediaSource == "window" || deviceMediaSource == "application") {
+          if (devices[i].mediaSource == "window") {
             if (separatorNeeded) {
               menupopup.appendChild(chromeDoc.createElement("menuseparator"));
               separatorNeeded = false;
