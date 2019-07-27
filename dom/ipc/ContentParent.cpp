@@ -687,7 +687,7 @@ ContentParent::StartUp()
 #if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19
     
     
-    if (!CanSandboxContentProcess()) {
+    if (ContentProcessSandboxStatus() == kSandboxingWouldFail) {
         
         
         printf_stderr("Sandboxing support is required on this platform.  "

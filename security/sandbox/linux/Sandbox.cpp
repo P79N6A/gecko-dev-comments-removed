@@ -104,6 +104,14 @@ struct SandboxFlags {
 
 static const SandboxFlags gSandboxFlags;
 
+SandboxFeatureFlags
+GetSandboxFeatureFlags()
+{
+  return gSandboxFlags.isSupported
+    ? kSandboxFeatureSeccompBPF
+    : static_cast<SandboxFeatureFlags>(0);
+}
+
 
 
 
@@ -476,10 +484,11 @@ SetContentProcessSandbox()
   SetCurrentProcessSandbox(kSandboxContentProcess);
 }
 
-bool
-CanSandboxContentProcess()
+SandboxStatus
+ContentProcessSandboxStatus()
 {
-  return gSandboxFlags.isSupported || gSandboxFlags.isDisabledForContent;
+  return gSandboxFlags.isDisabledForContent ? kSandboxingDisabled :
+    gSandboxFlags.isSupported ? kSandboxingSupported : kSandboxingWouldFail;
 }
 #endif 
 
@@ -515,10 +524,11 @@ SetMediaPluginSandbox(const char *aFilePath)
   SetCurrentProcessSandbox(kSandboxMediaPlugin);
 }
 
-bool
-CanSandboxMediaPlugin()
+SandboxStatus
+MediaPluginSandboxStatus()
 {
-  return gSandboxFlags.isSupported || gSandboxFlags.isDisabledForGMP;
+  return gSandboxFlags.isDisabledForGMP ? kSandboxingDisabled :
+    gSandboxFlags.isSupported ? kSandboxingSupported : kSandboxingWouldFail;
 }
 #endif 
 

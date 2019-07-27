@@ -1130,10 +1130,10 @@ ContentChild::RecvSetProcessSandbox()
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19
     
     
-    MOZ_ASSERT(CanSandboxContentProcess());
+    MOZ_ASSERT(ContentProcessSandboxStatus() != kSandboxingWouldFail);
 #else
     
-    if (!CanSandboxContentProcess()) {
+    if (ContentProcessSandboxStatus() == kSandboxingWouldFail) {
         return true;
     }
 #endif

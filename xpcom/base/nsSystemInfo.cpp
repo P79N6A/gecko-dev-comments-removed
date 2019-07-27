@@ -44,6 +44,10 @@ NS_EXPORT int android_sdk_version;
 }
 #endif
 
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+#include "mozilla/Sandbox.h"
+#endif
+
 
 
 
@@ -351,6 +355,24 @@ nsSystemInfo::Init()
     SetPropertyAsAString(NS_LITERAL_STRING("version"), b2g_version);
   }
 #endif
+
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+  SandboxFeatureFlags sandboxFlags = GetSandboxFeatureFlags();
+  SetPropertyAsBool(NS_LITERAL_STRING("hasSeccompBPF"),
+                    sandboxFlags & kSandboxFeatureSeccompBPF);
+
+  SandboxStatus sandboxContent = ContentProcessSandboxStatus();
+  if (sandboxContent != kSandboxingDisabled) {
+    SetPropertyAsBool(NS_LITERAL_STRING("canSandboxContent"),
+                      sandboxContent != kSandboxingWouldFail);
+  }
+
+  SandboxStatus sandboxMedia = MediaPluginSandboxStatus();
+  if (sandboxMedia != kSandboxingDisabled) {
+    SetPropertyAsBool(NS_LITERAL_STRING("canSandboxMedia"),
+                      sandboxMedia != kSandboxingWouldFail);
+  }
+#endif 
 
   return NS_OK;
 }
