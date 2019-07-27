@@ -1230,8 +1230,7 @@ protected:
   nsRefPtr<nsAnimationManager> mAnimationManager;
   nsRefPtr<mozilla::RestyleManager> mRestyleManager;
   nsRefPtr<mozilla::CounterStyleManager> mCounterStyleManager;
-  nsIAtom*              mMedium;        
-                                        
+  nsIAtom* MOZ_UNSAFE_REF("always a static atom") mMedium; 
   nsCOMPtr<nsIAtom> mMediaEmulated;
 
   nsILinkHandler*       mLinkHandler;   
