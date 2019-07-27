@@ -66,11 +66,6 @@ public:
   virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) = 0;
 
   
-  
-  
-  virtual int64_t GetEndMediaTime() const = 0;
-
-  
   virtual int64_t GetMediaDuration() = 0;
 
   

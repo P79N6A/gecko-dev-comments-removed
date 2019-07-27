@@ -226,6 +226,10 @@ private:
 
   
   
+  uint64_t mLastVideoFrameTime;
+
+  
+  
   nsRefPtr<WebMBufferedState> mBufferedState;
 
   

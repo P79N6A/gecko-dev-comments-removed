@@ -581,8 +581,6 @@ public:
   
   void NotifyBytesConsumed(int64_t aBytes, int64_t aOffset) MOZ_FINAL MOZ_OVERRIDE;
 
-  int64_t GetEndMediaTime() const MOZ_FINAL MOZ_OVERRIDE;
-
   
   
   virtual bool IsSeeking() const;
