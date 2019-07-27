@@ -56,6 +56,8 @@ EncodingUtils::FindEncodingForLabelNoReplacement(const nsACString& aLabel,
 bool
 EncodingUtils::IsAsciiCompatible(const nsACString& aPreferredName)
 {
+  
+  
   return !(aPreferredName.LowerCaseEqualsLiteral("utf-16") ||
            aPreferredName.LowerCaseEqualsLiteral("utf-16be") ||
            aPreferredName.LowerCaseEqualsLiteral("utf-16le") ||

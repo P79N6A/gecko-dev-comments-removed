@@ -135,6 +135,9 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeAndConvert(
 
 static bool statefulCharset(const char *charset)
 {
+  
+  
+  
   if (!nsCRT::strncasecmp(charset, "ISO-2022-", sizeof("ISO-2022-")-1) ||
       !nsCRT::strcasecmp(charset, "UTF-7") ||
       !nsCRT::strcasecmp(charset, "HZ-GB-2312"))
