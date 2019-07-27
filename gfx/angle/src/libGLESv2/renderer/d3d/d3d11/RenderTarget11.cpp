@@ -275,6 +275,15 @@ RenderTarget11::RenderTarget11(Renderer *renderer, ID3D11DepthStencilView *dsv, 
     }
 }
 
+UINT64 EstimateSize(D3D11_TEXTURE2D_DESC &desc)
+{
+    
+    const d3d11::DXGIFormat &dxgiFormatInfo = d3d11::GetDXGIFormatInfo(desc.Format);
+    
+    UINT64 total = UINT64(rx::roundUp(desc.Width, UINT(8))) * rx::roundUp(desc.Height, UINT(64)) * desc.SampleDesc.Count * dxgiFormatInfo.pixelBytes;
+    return total;
+}
+
 RenderTarget11::RenderTarget11(Renderer *renderer, GLsizei width, GLsizei height, GLenum internalFormat, GLsizei samples)
 {
     mRenderer = Renderer11::makeRenderer11(renderer);
@@ -324,7 +333,17 @@ RenderTarget11::RenderTarget11(Renderer *renderer, GLsizei width, GLsizei height
 
         ID3D11Device *device = mRenderer->getDevice();
         ID3D11Texture2D *texture = NULL;
-        HRESULT result = device->CreateTexture2D(&desc, NULL, &texture);
+        HRESULT result;
+
+        
+        if (EstimateSize(desc) > mRenderer->getMaxResourceSize())
+        {
+            result = E_OUTOFMEMORY;
+        }
+        else
+        {
+            result = device->CreateTexture2D(&desc, NULL, &texture);
+        }
         mTexture = texture;
 
         if (result == E_OUTOFMEMORY)

@@ -1817,6 +1817,12 @@ DWORD Renderer11::getAdapterVendor() const
     return mAdapterDescription.VendorId;
 }
 
+SIZE_T Renderer11::getMaxResourceSize() const
+{
+    
+    return std::min(std::max(SIZE_T(128 * 1024 * 1024), mAdapterDescription.DedicatedVideoMemory), SIZE_T(2048) * 1024 * 1024);
+}
+
 std::string Renderer11::getRendererDescription() const
 {
     std::ostringstream rendererString;
