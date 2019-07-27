@@ -37,7 +37,6 @@ public class SyncConfiguration {
       this.editor = config.getEditor();
     }
 
-    @Override
     public void apply() {
       
       this.editor.commit();
@@ -86,7 +85,6 @@ public class SyncConfiguration {
 
     
     
-    @Override
     public Editor putStringSet(String key, Set<String> value) {
       throw new RuntimeException("putStringSet not available.");
     }
@@ -162,7 +160,6 @@ public class SyncConfiguration {
 
     
     
-    @Override
     public Set<String> getStringSet(String key, Set<String> defValue) {
       throw new RuntimeException("getStringSet not available.");
     }
