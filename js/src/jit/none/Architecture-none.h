@@ -7,7 +7,9 @@
 #ifndef jit_none_Architecture_none_h
 #define jit_none_Architecture_none_h
 
-#include "assembler/assembler/MacroAssembler.h"
+
+
+#include "jit/IonSpewer.h"
 
 namespace js {
 namespace jit {
