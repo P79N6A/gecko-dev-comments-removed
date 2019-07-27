@@ -360,7 +360,8 @@ def load(location, requested_paths, excluded_paths, xul_tester, reldir=''):
         fullpath = os.path.join(location, filename)
 
         
-        if requested_paths and not any(req in filename for req in requested_paths):
+        if requested_paths \
+           and not any(req in filename for req in requested_paths):
             continue
 
         

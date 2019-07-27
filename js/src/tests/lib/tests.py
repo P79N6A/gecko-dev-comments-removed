@@ -10,17 +10,19 @@ from threading import Thread
 from results import TestOutput
 
 
+
 TBPL_FLAGS = [
     [], 
     ['--ion-eager', '--ion-offthread-compile=off'], 
-    ['--ion-eager', '--ion-offthread-compile=off', '--ion-check-range-analysis', '--no-sse3', '--no-threads'],
+    ['--ion-eager', '--ion-offthread-compile=off',
+     '--ion-check-range-analysis', '--no-sse3', '--no-threads'],
     ['--baseline-eager'],
     ['--baseline-eager', '--no-fpu'],
     ['--no-baseline', '--no-ion'],
 ]
 
 def do_run_cmd(cmd):
-    l = [ None, None ]
+    l = [None, None]
     th_run_cmd(cmd, l)
     return l[1]
 
@@ -55,7 +57,7 @@ def run_cmd(cmd, timeout=60.0):
     if timeout is None:
         return do_run_cmd(cmd)
 
-    l = [ None, None ]
+    l = [None, None]
     timed_out = False
     th = Thread(target=th_run_cmd, args=(cmd, l))
     th.start()
@@ -78,19 +80,23 @@ def run_cmd(cmd, timeout=60.0):
 class Test(object):
     """A runnable test."""
     def __init__(self, path):
-        self.path = path         
+        self.path = path     
+        self.options = []    
 
     @staticmethod
     def prefix_command(path):
-        """Return the '-f shell.js' options needed to run a test with the given path."""
+        """Return the '-f shell.js' options needed to run a test with the given
+        path."""
         if path == '':
-            return [ '-f', 'shell.js' ]
+            return ['-f', 'shell.js']
         head, base = os.path.split(path)
-        return Test.prefix_command(head) + [ '-f', os.path.join(path, 'shell.js') ]
+        return Test.prefix_command(head) \
+            + ['-f', os.path.join(path, 'shell.js')]
 
     def get_command(self, js_cmd_prefix):
         dirname, filename = os.path.split(self.path)
-        cmd = js_cmd_prefix + self.options + Test.prefix_command(dirname) + [ '-f', self.path ]
+        cmd = js_cmd_prefix + self.options + Test.prefix_command(dirname) \
+              + ['-f', self.path]
         return cmd
 
     def run(self, js_cmd_prefix, timeout=30.0):
@@ -108,7 +114,6 @@ class TestCase(Test):
         self.expect = True   
         self.random = False  
         self.slow = False    
-        self.options = []    
 
         
         self.terms = None
