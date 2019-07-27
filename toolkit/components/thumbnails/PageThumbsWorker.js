@@ -13,43 +13,23 @@
 
 importScripts("resource://gre/modules/osfile.jsm");
 
+let PromiseWorker = require("resource://gre/modules/workers/PromiseWorker.js");
+
 let File = OS.File;
 let Type = OS.Shared.Type;
 
-
-
-
-
-
-
-
-
-
-self.onmessage = function onmessage(msg) {
-  let data = msg.data;
-  let id = data.id;
-  let result;
-  if (!(data.fun in Agent)) {
-    throw new Error("Cannot find method " + data.fun);
-  }
-  try {
-    result = Agent[data.fun].apply(Agent, data.args);
-  } catch (ex if ex instanceof StopIteration) {
-    
-    self.postMessage({StopIteration: true, id: id});
-    return;
-  } catch (ex if ex instanceof OS.File.Error) {
-    
-    
-    
-    self.postMessage({fail: OS.File.Error.toMsg(ex), id:id});
-    return;
-  }
-  
-  
-  
-  self.postMessage({ok: result, id:id});
+let worker = new PromiseWorker.AbstractWorker();
+worker.dispatch = function(method, args = []) {
+  return Agent[method](...args);
 };
+worker.postMessage = function(message, ...transfers) {
+  self.postMessage(message, ...transfers);
+};
+worker.close = function() {
+  self.close();
+};
+
+self.addEventListener("message", msg => worker.handleMessage(msg));
 
 
 let Agent = {

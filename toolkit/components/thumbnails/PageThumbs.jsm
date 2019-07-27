@@ -33,7 +33,7 @@ const THUMBNAIL_DIRECTORY = "thumbnails";
 const THUMBNAIL_BG_COLOR = "#fff";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
-Cu.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
+Cu.import("resource://gre/modules/PromiseWorker.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
 
@@ -792,27 +792,10 @@ let PageThumbsExpiration = {
 
 
 
+let PageThumbsWorker = new BasePromiseWorker("resource://gre/modules/PageThumbsWorker.js");
 
-let PageThumbsWorker = (function() {
-  let worker = new PromiseWorker("resource://gre/modules/PageThumbsWorker.js",
-    OS.Shared.LOG.bind("PageThumbs"));
-  return {
-    post: function post(...args) {
-      let promise = worker.post.apply(worker, args);
-      return promise.then(
-        null,
-        function onError(error) {
-          
-          if (error instanceof PromiseWorker.WorkerError) {
-            throw OS.File.Error.fromMsg(error.data);
-          } else {
-            throw error;
-          }
-        }
-      );
-    }
-  };
-})();
+
+PageThumbsWorker.ExceptionHandlers["OS.File.Error"] = OS.File.Error.fromMsg;
 
 let PageThumbsHistoryObserver = {
   onDeleteURI: function Thumbnails_onDeleteURI(aURI, aGUID) {
