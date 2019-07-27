@@ -1827,6 +1827,16 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
                     InitEvent(event, nullptr);
                     DispatchEvent(&event);
                 }
+
+            } else if (composition->String().Equals(ae->Characters())) {
+                
+
+
+
+                IMEChange dummyChange;
+                dummyChange.mStart = ae->Start();
+                dummyChange.mOldEnd = dummyChange.mNewEnd = ae->End();
+                AddIMETextChange(dummyChange);
             }
 
             {
@@ -2244,19 +2254,25 @@ nsWindow::NotifyIMEOfTextChange(const IMENotification& aIMENotification)
     
     mIMESelectionChanged = false;
     NotifyIME(NOTIFY_IME_OF_SELECTION_CHANGE);
-    PostFlushIMEChanges();
 
-    mIMETextChanges.AppendElement(IMEChange(aIMENotification));
+    AddIMETextChange(IMEChange(aIMENotification));
+    PostFlushIMEChanges();
+    return NS_OK;
+}
+
+void
+nsWindow::AddIMETextChange(const IMEChange& aChange) {
+
+    mIMETextChanges.AppendElement(aChange);
+
     
     
     
     
-    int32_t delta = aIMENotification.mTextChangeData.AdditionalLength();
+    const int32_t delta = aChange.mNewEnd - aChange.mOldEnd;
     for (int32_t i = mIMETextChanges.Length() - 2; i >= 0; i--) {
         IMEChange &previousChange = mIMETextChanges[i];
-        if (previousChange.mStart >
-                static_cast<int32_t>(
-                    aIMENotification.mTextChangeData.mOldEndOffset)) {
+        if (previousChange.mStart > aChange.mOldEnd) {
             previousChange.mStart += delta;
             previousChange.mOldEnd += delta;
             previousChange.mNewEnd += delta;
@@ -2304,7 +2320,6 @@ nsWindow::NotifyIMEOfTextChange(const IMENotification& aIMENotification)
         
         srcIndex = dstIndex;
     }
-    return NS_OK;
 }
 
 nsIMEUpdatePreference
