@@ -138,7 +138,6 @@ public:
     DECODER_STATE_DECODING_NONE,
     DECODER_STATE_DECODING_METADATA,
     DECODER_STATE_WAIT_FOR_RESOURCES,
-    DECODER_STATE_DECODING_FIRSTFRAME,
     DECODER_STATE_DORMANT,
     DECODER_STATE_DECODING,
     DECODER_STATE_SEEKING,
@@ -199,21 +198,7 @@ public:
   void Play();
 
   
-  
   void Seek(const SeekTarget& aTarget);
-
-  
-  
-  void EnqueueStartQueuedSeekTask();
-
-  
-  
-  void StartQueuedSeek();
-
-  
-  
-  
-  void StartSeek(const SeekTarget& aTarget);
 
   
   
@@ -412,7 +397,7 @@ protected:
   MediaQueue<AudioData>& AudioQueue() { return mAudioQueue; }
   MediaQueue<VideoData>& VideoQueue() { return mVideoQueue; }
 
-  nsresult FinishDecodeFirstFrame();
+  nsresult FinishDecodeMetadata();
 
   RefPtr<MediaDataDecodedListener<MediaDecoderStateMachine>> mMediaDecodedListener;
 
@@ -543,16 +528,6 @@ protected:
 
   
   
-  
-  void EnqueueLoadedMetadataEvent();
-
-  
-  
-  
-  nsresult EnqueueDecodeFirstFrameTask();
-
-  
-  
   nsresult EnqueueDecodeSeekTask();
 
   nsresult DispatchAudioDecodeTaskIfNeeded();
@@ -610,14 +585,7 @@ protected:
 
   
   
-  nsresult DecodeFirstFrame();
-
-  
-  void CallDecodeFirstFrame();
-
-  
-  
-  void MaybeFinishDecodeFirstFrame();
+  void MaybeFinishDecodeMetadata();
 
   
   
@@ -758,11 +726,6 @@ protected:
   
   
   SeekTarget mSeekTarget;
-
-  
-  
-  
-  SeekTarget mQueuedSeekTarget;
 
   
   

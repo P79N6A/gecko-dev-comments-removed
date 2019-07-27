@@ -146,12 +146,6 @@ BufferDecoder::MetadataLoaded(MediaInfo* aInfo, MetadataTags* aTags)
 }
 
 void
-BufferDecoder::FirstFrameLoaded(MediaInfo* aInfo)
-{
-  
-}
-
-void
 BufferDecoder::QueueMetadata(int64_t aTime, MediaInfo* aInfo, MetadataTags* aTags)
 {
   

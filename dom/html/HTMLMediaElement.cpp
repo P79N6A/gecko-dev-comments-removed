@@ -2903,11 +2903,11 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
   
   
   
-  
-  if (!aInfo->HasVideo()) {
-    ResetState();
-  } else {
-    UpdateMediaSize(aInfo->mVideo.mDisplay);
+  if (!aInfo->HasVideo() && mVideoFrameContainer) {
+    
+    
+    mVideoFrameContainer->ForgetElement();
+    mVideoFrameContainer = nullptr;
   }
 }
 
