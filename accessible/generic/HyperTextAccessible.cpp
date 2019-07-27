@@ -508,7 +508,7 @@ HyperTextAccessible::FindOffset(uint32_t aOffset, nsDirection aDirection,
   const bool kIsKeyboardSelect = true; 
   const bool kIsVisualBidi = false; 
   nsPeekOffsetStruct pos(aAmount, aDirection, innerContentOffset,
-                         0, kIsJumpLinesOk, kIsScrollViewAStop,
+                         nsPoint(0, 0), kIsJumpLinesOk, kIsScrollViewAStop,
                          kIsKeyboardSelect, kIsVisualBidi,
                          aWordMovementType);
   nsresult rv = frameAtOffset->PeekOffset(&pos);

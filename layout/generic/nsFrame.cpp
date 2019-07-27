@@ -3091,7 +3091,7 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
     nsPeekOffsetStruct pos(eSelectCharacter,
                            eDirNext,
                            aStartPos,
-                           0,
+                           nsPoint(0, 0),
                            aJumpLines,
                            true,  
                            false,
@@ -3107,7 +3107,7 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   nsPeekOffsetStruct startpos(aAmountBack,
                               eDirPrevious,
                               baseOffset,
-                              0,
+                              nsPoint(0, 0),
                               aJumpLines,
                               true,  
                               false,
@@ -3119,7 +3119,7 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   nsPeekOffsetStruct endpos(aAmountForward,
                             eDirNext,
                             aStartPos,
-                            0,
+                            nsPoint(0, 0),
                             aJumpLines,
                             true,  
                             false,
@@ -6084,8 +6084,10 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
       nsPoint offset;
       nsView * view; 
       aBlockFrame->GetOffsetFromView(offset,&view);
-      nscoord newDesiredX  = aPos->mDesiredX - offset.x;
-      result = it->FindFrameAt(searchingLine, newDesiredX, &resultFrame, &isBeforeFirstFrame, &isAfterLastFrame);
+      nsPoint newDesiredPos =
+        aPos->mDesiredPos - offset; 
+      result = it->FindFrameAt(searchingLine, newDesiredPos, &resultFrame,
+                               &isBeforeFirstFrame, &isAfterLastFrame);
       if(NS_FAILED(result))
         continue;
     }
@@ -6116,8 +6118,6 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
       nsIFrame *storeOldResultFrame = resultFrame;
       while ( !found ){
         nsPoint point;
-        point.x = aPos->mDesiredX;
-
         nsRect tempRect = resultFrame->GetRect();
         nsPoint offset;
         nsView * view; 
@@ -6125,7 +6125,13 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
         if (!view) {
           return NS_ERROR_FAILURE;
         }
-        point.y = tempRect.height + offset.y;
+        if (resultFrame->GetWritingMode().IsVertical()) {
+          point.y = aPos->mDesiredPos.y;
+          point.x = tempRect.width + offset.x;
+        } else {
+          point.y = tempRect.height + offset.y;
+          point.x = aPos->mDesiredPos.x;
+        }
 
         
         
@@ -6208,7 +6214,7 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
                                       );
       }
       while ( !found ){
-        nsPoint point(aPos->mDesiredX, 0);
+        nsPoint point = aPos->mDesiredPos;
         nsView* view;
         nsPoint offset;
         resultFrame->GetOffsetFromView(offset, &view);

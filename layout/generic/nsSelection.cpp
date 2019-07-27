@@ -48,7 +48,6 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #include "mozilla/Preferences.h"
 #include "nsDOMClassInfoID.h"
 
-
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
 #include "nsCaret.h"
@@ -108,7 +107,7 @@ static void printRange(nsRange *aDomRange);
 nsPeekOffsetStruct::nsPeekOffsetStruct(nsSelectionAmount aAmount,
                                        nsDirection aDirection,
                                        int32_t aStartOffset,
-                                       nscoord aDesiredX,
+                                       nsPoint aDesiredPos,
                                        bool aJumpLines,
                                        bool aScrollViewStop,
                                        bool aIsKeyboardSelect,
@@ -117,7 +116,7 @@ nsPeekOffsetStruct::nsPeekOffsetStruct(nsSelectionAmount aAmount,
   : mAmount(aAmount)
   , mDirection(aDirection)
   , mStartOffset(aStartOffset)
-  , mDesiredX(aDesiredX)
+  , mDesiredPos(aDesiredPos)
   , mWordMovementType(aWordMovementType)
   , mJumpLines(aJumpLines)
   , mScrollViewStop(aScrollViewStop)
@@ -437,56 +436,54 @@ NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(nsFrameSelection, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(nsFrameSelection, Release)
 
 
+
 nsresult
-nsFrameSelection::FetchDesiredX(nscoord &aDesiredX) 
+nsFrameSelection::FetchDesiredPos(nsPoint &aDesiredPos)
 {
-  if (!mShell)
-  {
-    NS_ERROR("fetch desired X failed");
+  if (!mShell) {
+    NS_ERROR("fetch desired position failed");
     return NS_ERROR_FAILURE;
   }
-  if (mDesiredXSet)
-  {
-    aDesiredX = mDesiredX;
+  if (mDesiredPosSet) {
+    aDesiredPos = mDesiredPos;
     return NS_OK;
   }
 
   nsRefPtr<nsCaret> caret = mShell->GetCaret();
-  if (!caret)
+  if (!caret) {
     return NS_ERROR_NULL_POINTER;
+  }
 
   int8_t index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
   caret->SetSelection(mDomSelections[index]);
 
   nsRect coord;
   nsIFrame* caretFrame = caret->GetGeometry(&coord);
-  if (!caretFrame)
+  if (!caretFrame) {
     return NS_ERROR_FAILURE;
+  }
   nsPoint viewOffset(0, 0);
   nsView* view = nullptr;
   caretFrame->GetOffsetFromView(viewOffset, &view);
-  if (view)
-    coord.x += viewOffset.x;
-
-  aDesiredX = coord.x;
+  if (view) {
+    coord += viewOffset;
+  }
+  aDesiredPos = coord.TopLeft();
   return NS_OK;
 }
 
-
-
 void
-nsFrameSelection::InvalidateDesiredX() 
+nsFrameSelection::InvalidateDesiredPos() 
+                                         
 {
-  mDesiredXSet = false;
+  mDesiredPosSet = false;
 }
 
-
-
 void
-nsFrameSelection::SetDesiredX(nscoord aX) 
+nsFrameSelection::SetDesiredPos(nsPoint aPos)
 {
-  mDesiredX = aX;
-  mDesiredXSet = true;
+  mDesiredPos = aPos;
+  mDesiredPosSet = true;
 }
 
 nsresult
@@ -718,7 +715,7 @@ nsFrameSelection::Init(nsIPresShell *aShell, nsIContent *aLimiter)
 {
   mShell = aShell;
   mDragState = false;
-  mDesiredXSet = false;
+  mDesiredPosSet = false;
   mLimiter = aLimiter;
   mCaretMovementStyle =
     Preferences::GetInt("bidi.edit.caret_movement_style", 2);
@@ -766,7 +763,7 @@ nsFrameSelection::MoveCaret(nsDirection       aDirection,
     return NS_ERROR_FAILURE;
 
   bool isCollapsed;
-  nscoord desiredX = 0; 
+  nsPoint desiredPos(0, 0); 
 
   int8_t index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
   nsRefPtr<Selection> sel = mDomSelections[index];
@@ -786,13 +783,15 @@ nsFrameSelection::MoveCaret(nsDirection       aDirection,
   }
 
   nsresult result = sel->GetIsCollapsed(&isCollapsed);
-  if (NS_FAILED(result))
+  if (NS_FAILED(result)) {
     return result;
+  }
   if (aAmount == eSelectLine) {
-    result = FetchDesiredX(desiredX);
-    if (NS_FAILED(result))
+    result = FetchDesiredPos(desiredPos);
+    if (NS_FAILED(result)) {
       return result;
-    SetDesiredX(desiredX);
+    }
+    SetDesiredPos(desiredPos);
   }
 
   int32_t caretStyle = Preferences::GetInt("layout.selection.caret_style", 0);
@@ -850,7 +849,7 @@ nsFrameSelection::MoveCaret(nsDirection       aDirection,
 
   
   
-  nsPeekOffsetStruct pos(aAmount, eDirPrevious, offsetused, desiredX,
+  nsPeekOffsetStruct pos(aAmount, eDirPrevious, offsetused, desiredPos,
                          true, mLimiter != nullptr, true, visualMovement);
 
   nsBidiDirection paraDir = nsBidiPresUtils::ParagraphDirection(frame);
@@ -861,7 +860,7 @@ nsFrameSelection::MoveCaret(nsDirection       aDirection,
     case eSelectCluster:
     case eSelectWord:
     case eSelectWordNoSpace:
-      InvalidateDesiredX();
+      InvalidateDesiredPos();
       pos.mAmount = aAmount;
       pos.mDirection = (visualMovement && paraDir == NSBIDI_RTL)
                        ? nsDirection(1 - aDirection) : aDirection;
@@ -872,7 +871,7 @@ nsFrameSelection::MoveCaret(nsDirection       aDirection,
       break;
     case eSelectBeginLine:
     case eSelectEndLine:
-      InvalidateDesiredX();
+      InvalidateDesiredPos();
       pos.mAmount = aAmount;
       pos.mDirection = (visualMovement && paraDir == NSBIDI_RTL)
                        ? nsDirection(1 - aDirection) : aDirection;
@@ -1369,7 +1368,7 @@ nsFrameSelection::HandleClick(nsIContent*        aNewFocus,
   if (!aNewFocus)
     return NS_ERROR_INVALID_ARG;
 
-  InvalidateDesiredX();
+  InvalidateDesiredPos();
 
   if (!aContinueSelection) {
     mMaintainRange = nullptr;
@@ -1441,15 +1440,16 @@ nsFrameSelection::HandleDrag(nsIFrame *aFrame, nsPoint aPoint)
     if (frame && amount == eSelectWord && direction == eDirPrevious) {
       
       
-      nsPeekOffsetStruct charPos(eSelectCharacter, eDirNext, offset, 0,
-                                 false, mLimiter != nullptr, false, false);
+      nsPeekOffsetStruct charPos(eSelectCharacter, eDirNext, offset,
+                                 nsPoint(0, 0), false, mLimiter != nullptr,
+                                 false, false);
       if (NS_SUCCEEDED(frame->PeekOffset(&charPos))) {
         frame = charPos.mResultFrame;
         offset = charPos.mContentOffset;
       }
     }
 
-    nsPeekOffsetStruct pos(amount, direction, offset, 0,
+    nsPeekOffsetStruct pos(amount, direction, offset, nsPoint(0, 0),
                            false, mLimiter != nullptr, false, false);
 
     if (frame && NS_SUCCEEDED(frame->PeekOffset(&pos)) && pos.mResultContent) {
@@ -1538,17 +1538,16 @@ nsFrameSelection::TakeFocus(nsIContent*        aNewFocus,
       mDomSelections[index]->AddRange(newRange);
       mBatching = batching;
       mChangesDuringBatching = changes;
-    }
-    else
-    {
-      bool oldDesiredXSet = mDesiredXSet; 
+    } else {
+      bool oldDesiredPosSet = mDesiredPosSet; 
       mDomSelections[index]->Collapse(aNewFocus, aContentOffset);
-      mDesiredXSet = oldDesiredXSet; 
+      mDesiredPosSet = oldDesiredPosSet; 
       mBatching = batching;
       mChangesDuringBatching = changes;
     }
-    if (aContentEndOffset != aContentOffset)
+    if (aContentEndOffset != aContentOffset) {
       mDomSelections[index]->Extend(aNewFocus, aContentEndOffset);
+    }
 
     
     
@@ -1859,8 +1858,9 @@ nsFrameSelection::CommonPageMove(bool aForward,
   
   
   nsISelection* domSel = GetSelection(nsISelectionController::SELECTION_NORMAL);
-  if (!domSel) 
+  if (!domSel) {
     return;
+  }
 
   nsRect caretPos;
   nsIFrame* caretFrame = nsCaret::GetGeometry(domSel, &caretPos);
@@ -4592,7 +4592,7 @@ Selection::Collapse(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
 
   nsCOMPtr<nsINode> kungfuDeathGrip = &aParentNode;
 
-  mFrameSelection->InvalidateDesiredX();
+  mFrameSelection->InvalidateDesiredPos();
   if (!IsValidSelectionPoint(mFrameSelection, &aParentNode)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
@@ -5889,7 +5889,7 @@ Selection::SelectionLanguageChange(bool aLangRTL)
   
   
   
-  mFrameSelection->InvalidateDesiredX();
+  mFrameSelection->InvalidateDesiredPos();
   
   return NS_OK;
 }

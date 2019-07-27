@@ -63,7 +63,7 @@ struct MOZ_STACK_CLASS nsPeekOffsetStruct
   nsPeekOffsetStruct(nsSelectionAmount aAmount,
                      nsDirection aDirection,
                      int32_t aStartOffset,
-                     nscoord aDesiredX,
+                     nsPoint aDesiredPos,
                      bool aJumpLines,
                      bool aScrollViewStop,
                      bool aIsKeyboardSelect,
@@ -98,7 +98,8 @@ struct MOZ_STACK_CLASS nsPeekOffsetStruct
   
   
   
-  nscoord mDesiredX;
+  
+  nsPoint mDesiredPos;
 
   
   
@@ -645,9 +646,9 @@ private:
                          nsSelectionAmount aAmount,
                          CaretMovementStyle aMovementStyle);
 
-  nsresult     FetchDesiredX(nscoord &aDesiredX); 
-  void         InvalidateDesiredX(); 
-  void         SetDesiredX(nscoord aX); 
+  nsresult     FetchDesiredPos(nsPoint &aDesiredPos); 
+  void         InvalidateDesiredPos(); 
+  void         SetDesiredPos(nsPoint aPos); 
 
   uint32_t     GetBatching() const {return mBatching; }
   bool         GetNotifyFrames() const { return mNotifyFrames; }
@@ -714,7 +715,7 @@ private:
   CaretAssociateHint mHint;   
   nsBidiLevel mCaretBidiLevel;
 
-  int32_t mDesiredX;
+  nsPoint mDesiredPos;
   uint32_t mDelayedMouseEventClickCount;
   bool mDelayedMouseEventIsShift;
   bool mDelayedMouseEventValid;
@@ -724,7 +725,7 @@ private:
   bool mDragSelectingCells;
   bool mDragState;   
   bool mMouseDoubleDownState; 
-  bool mDesiredXSet;
+  bool mDesiredPosSet;
 
   int8_t mCaretMovementStyle;
 };

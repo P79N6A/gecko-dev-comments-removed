@@ -6,7 +6,7 @@
 #define nsILineIterator_h___
 
 #include "nscore.h"
-#include "nsCoord.h"
+#include "nsPoint.h"
 #include "mozilla/Attributes.h"
 
 class nsIFrame;
@@ -86,11 +86,12 @@ public:
   
   
   
+  
   NS_IMETHOD FindFrameAt(int32_t aLineNumber,
-                         nscoord aX,
+                         nsPoint aPos,
                          nsIFrame** aFrameFound,
-                         bool* aXIsBeforeFirstFrame,
-                         bool* aXIsAfterLastFrame) = 0;
+                         bool* aPosIsBeforeFirstFrame,
+                         bool* aPosIsAfterLastFrame) = 0;
 
   
   
