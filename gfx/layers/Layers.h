@@ -44,7 +44,7 @@
 #include "nsTArrayForwardDeclare.h"     
 #include "nscore.h"                     
 #include "prlog.h"                      
-#include "gfx2DGlue.h"
+#include "nsIWidget.h"                  
 #include "gfxVR.h"
 
 class gfxContext;
@@ -307,7 +307,7 @@ public:
 
   virtual bool HasShadowManagerInternal() const { return false; }
   bool HasShadowManager() const { return HasShadowManagerInternal(); }
-
+  virtual void StorePluginWidgetConfigurations(const nsTArray<nsIWidget::Configuration>& aConfigurations) {}
   bool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; }
 
 

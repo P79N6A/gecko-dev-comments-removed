@@ -20,7 +20,8 @@
 #include "nsCOMPtr.h"                   
 #include "nsRegion.h"                   
 #include "nsTArrayForwardDeclare.h"     
- 
+#include "nsIWidget.h"
+
 struct nsIntPoint;
 struct nsIntRect;
 
@@ -313,6 +314,14 @@ public:
 
   void SetShadowManager(PLayerTransactionChild* aShadowManager);
 
+  
+
+
+
+
+  void StorePluginWidgetConfigurations(const nsTArray<nsIWidget::Configuration>&
+                                       aConfigurations);
+
   void StopReceiveAsyncParentMessge();
 
   void ClearCachedResources();
@@ -407,6 +416,7 @@ private:
   DiagnosticTypes mDiagnosticTypes;
   bool mIsFirstPaint;
   bool mWindowOverlayChanged;
+  InfallibleTArray<PluginWindowData> mPluginWindowData;
 };
 
 class CompositableClient;

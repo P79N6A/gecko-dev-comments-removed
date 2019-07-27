@@ -26,8 +26,7 @@
 #include "nsTArray.h"                   
 #include "nscore.h"                     
 #include "mozilla/layers/TransactionIdAllocator.h"
-
-class nsIWidget;
+#include "nsIWidget.h"                  
 
 namespace mozilla {
 namespace layers {
@@ -128,6 +127,15 @@ public:
   void ReturnTextureClientDeferred(TextureClient& aClient);
   void ReturnTextureClient(TextureClient& aClient);
   void ReportClientLost(TextureClient& aClient);
+
+  
+
+
+
+
+
+  void StorePluginWidgetConfigurations(const nsTArray<nsIWidget::Configuration>&
+                                       aConfigurations) MOZ_OVERRIDE;
 
   
   
