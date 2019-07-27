@@ -879,6 +879,7 @@ ServiceWorkerManager::Install(ServiceWorkerRegistration* aRegistration,
 {
   AssertIsOnMainThread();
   aRegistration->mInstallingWorker = aServiceWorkerInfo;
+  MOZ_ASSERT(aRegistration->mInstallingWorker);
 
   nsMainThreadPtrHandle<ServiceWorkerRegistration> handle =
     new nsMainThreadPtrHolder<ServiceWorkerRegistration>(aRegistration);
@@ -932,6 +933,15 @@ ServiceWorkerManager::FinishInstall(ServiceWorkerRegistration* aRegistration)
 
   if (aRegistration->mWaitingWorker) {
     
+  }
+
+  if (!aRegistration->mInstallingWorker) {
+    
+    
+    
+    
+    
+    return;
   }
 
   aRegistration->mWaitingWorker = aRegistration->mInstallingWorker.forget();
