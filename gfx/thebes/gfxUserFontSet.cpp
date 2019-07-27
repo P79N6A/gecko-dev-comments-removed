@@ -199,18 +199,26 @@ public:
         va_list va;
         va_start(va, format);
 
-        
-        
-        char buf[512];
-        (void)vsnprintf(buf, sizeof(buf), format, va);
+        nsCString msg;
+        msg.AppendPrintf(format, va);
 
         va_end(va);
 
-        mUserFontEntry->mFontSet->LogMessage(mUserFontEntry, buf);
+        if (level > 0) {
+            
+            
+            if (mWarningsIssued.Contains(msg)) {
+                return;
+            }
+            mWarningsIssued.PutEntry(msg);
+        }
+
+        mUserFontEntry->mFontSet->LogMessage(mUserFontEntry, msg.get());
     }
 
 private:
     gfxUserFontEntry* mUserFontEntry;
+    nsTHashtable<nsCStringHashKey> mWarningsIssued;
 };
 
 
