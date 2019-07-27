@@ -1514,14 +1514,17 @@ public abstract class GeckoApp
         
         
         if (isExternalURL) {
+            
+            
+            Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
             loadStartupTab(passedUri);
-        } else if (!mIsRestoringActivity) {
-            loadStartupTab(null);
-        }
+        } else {
+            if (!mIsRestoringActivity) {
+                loadStartupTab(null);
+            }
 
-        
-        
-        Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
+            Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
+        }
 
         
         

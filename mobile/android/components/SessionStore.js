@@ -142,11 +142,6 @@ SessionStore.prototype = {
                   selected: true
                 });
               }
-
-              
-              Messaging.sendRequest({
-                type: "Session:RestoreEnd"
-              });
             }.bind(this)
           };
           Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
