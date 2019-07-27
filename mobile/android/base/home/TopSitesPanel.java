@@ -526,11 +526,14 @@ public class TopSitesPanel extends HomeFragment {
             }
 
             
+            final String decodedUrl = StringUtils.decodeUserEnteredUrl(url);
+
             
-            final String imageUrl = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.IMAGEURL));
+            
+            final String imageUrl = BrowserDB.getSuggestedImageUrlForUrl(decodedUrl);
             if (!TextUtils.isEmpty(imageUrl)) {
-                final String bgColor = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.BGCOLOR));
-                view.displayThumbnail(imageUrl, Color.parseColor(bgColor));
+                final int bgColor = BrowserDB.getSuggestedBackgroundColorForUrl(decodedUrl);
+                view.displayThumbnail(imageUrl, bgColor);
                 return;
             }
 
@@ -621,11 +624,10 @@ public class TopSitesPanel extends HomeFragment {
             int i = 1;
             do {
                 final String url = c.getString(col);
-                final String imageUrl = c.getString(c.getColumnIndexOrThrow(TopSites.IMAGEURL));
 
                 
                 
-                if (TextUtils.isEmpty(url) || !TextUtils.isEmpty(imageUrl)) {
+                if (TextUtils.isEmpty(url) || BrowserDB.hasSuggestedImageUrl(url)) {
                     continue;
                 }
 
