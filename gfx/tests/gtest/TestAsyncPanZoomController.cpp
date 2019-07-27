@@ -1894,6 +1894,10 @@ protected:
                                         CSSRect aScrollableRect = CSSRect(-1, -1, -1, -1)) {
     FrameMetrics metrics;
     metrics.SetScrollId(aScrollId);
+    
+    if (aScrollId == FrameMetrics::START_SCROLL_ID) {
+      metrics.SetIsLayersIdRoot(true);
+    }
     IntRect layerBound = aLayer->GetVisibleRegion().GetBounds();
     metrics.SetCompositionBounds(ParentLayerRect(layerBound.x, layerBound.y,
                                                  layerBound.width, layerBound.height));
@@ -2867,6 +2871,7 @@ protected:
     
     
     
+    
     nsIntRegion layerVisibleRegions[] = {
       nsIntRegion(IntRect(0, 0, 100, 100)),
       nsIntRegion(IntRect(0, 0, 100, 100)),
@@ -2874,6 +2879,7 @@ protected:
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
 
+    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
@@ -3007,7 +3013,7 @@ TEST_F(APZEventRegionsTester, Bug1119497) {
   nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(50, 50), &result);
   
   
-  EXPECT_EQ(nullptr, hit.get());
+  EXPECT_EQ(ApzcOf(layers[0]), hit.get());
   EXPECT_EQ(HitTestResult::HitLayer, result);
 }
 
