@@ -741,8 +741,9 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   nsIFrame* frameForCompositionBoundsCalculation = aScrollFrame ? aScrollFrame : aForFrame;
   nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
                            frameForCompositionBoundsCalculation->GetSize());
-  metrics.mCompositionBounds = LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
-                                * layoutToParentLayerScale;
+  ParentLayerRect frameBounds = LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
+                                 * layoutToParentLayerScale;
+  metrics.mCompositionBounds = frameBounds;
 
   
   
@@ -757,47 +758,39 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
                                       && presContext->IsRootContentDocument();
   if (isRootContentDocRootScrollFrame) {
     if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
-      if (nsView* view = rootFrame->GetView()) {
-        nsRect viewBoundsAppUnits = view->GetBounds() + rootFrame->GetOffsetToCrossDoc(aReferenceFrame);
-        ParentLayerRect viewBounds = LayoutDeviceRect::FromAppUnits(viewBoundsAppUnits, auPerDevPixel)
-                                     * layoutToParentLayerScale;
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        nsIWidget* widget =
+      
+      
+      
+      
+      
+      
+      
+      
+      
 #ifdef MOZ_WIDGET_ANDROID
-            rootFrame->GetNearestWidget();
+      nsIWidget* widget = rootFrame->GetNearestWidget();
 #else
-            view->GetWidget();
+      nsView* view = rootFrame->GetView();
+      nsIWidget* widget = view ? view->GetWidget() : nullptr;
 #endif
-        if (widget) {
-          nsIntRect widgetBounds;
-          widget->GetBounds(widgetBounds);
-          metrics.mCompositionBounds = ParentLayerRect(ViewAs<ParentLayerPixel>(widgetBounds));
+      if (widget) {
+        nsIntRect widgetBounds;
+        widget->GetBounds(widgetBounds);
+        metrics.mCompositionBounds = ParentLayerRect(ViewAs<ParentLayerPixel>(widgetBounds));
 #ifdef MOZ_WIDGET_ANDROID
-          if (viewBounds.height < metrics.mCompositionBounds.height) {
-            metrics.mCompositionBounds.height = viewBounds.height;
-          }
+        if (frameBounds.height < metrics.mCompositionBounds.height) {
+          metrics.mCompositionBounds.height = frameBounds.height;
+        }
 #endif
-        } else {
-          LayoutDeviceIntRect contentBounds;
-          if (nsLayoutUtils::GetContentViewerBounds(presContext, contentBounds)) {
-            LayoutDeviceToParentLayerScale scale(1.0f);
-            if (presContext->GetParentPresContext()) {
-              gfxSize res = presContext->GetParentPresContext()->PresShell()->GetCumulativeResolution();
-              scale = LayoutDeviceToParentLayerScale(res.width, res.height);
-            }
-            metrics.mCompositionBounds = LayoutDeviceRect(contentBounds) * scale;
-          } else {
-            metrics.mCompositionBounds = viewBounds;
+      } else {
+        LayoutDeviceIntRect contentBounds;
+        if (nsLayoutUtils::GetContentViewerBounds(presContext, contentBounds)) {
+          LayoutDeviceToParentLayerScale scale(1.0f);
+          if (presContext->GetParentPresContext()) {
+            gfxSize res = presContext->GetParentPresContext()->PresShell()->GetCumulativeResolution();
+            scale = LayoutDeviceToParentLayerScale(res.width, res.height);
           }
+          metrics.mCompositionBounds = LayoutDeviceRect(contentBounds) * scale;
         }
       }
     }
