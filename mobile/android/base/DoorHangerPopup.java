@@ -7,6 +7,7 @@ package org.mozilla.gecko;
 
 import java.util.HashSet;
 
+import android.widget.PopupWindow;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -24,6 +25,7 @@ import org.mozilla.gecko.widget.DoorhangerConfig;
 public class DoorHangerPopup extends AnchoredPopup
                              implements GeckoEventListener,
                                         Tabs.OnTabsChangedListener,
+                                        PopupWindow.OnDismissListener,
                                         DoorHanger.OnButtonClickListener {
     private static final String LOGTAG = "GeckoDoorHangerPopup";
 
@@ -43,6 +45,8 @@ public class DoorHangerPopup extends AnchoredPopup
             "Doorhanger:Add",
             "Doorhanger:Remove");
         Tabs.registerOnTabsChangedListener(this);
+
+        setOnDismissListener(this);
     }
 
     void destroy() {
@@ -139,20 +143,13 @@ public class DoorHangerPopup extends AnchoredPopup
             case CLOSED:
                 
                 
-                HashSet<DoorHanger> doorHangersToRemove = new HashSet<DoorHanger>();
-                for (DoorHanger dh : mDoorHangers) {
-                    if (dh.getTabId() == tab.getId())
-                        doorHangersToRemove.add(dh);
-                }
-                for (DoorHanger dh : doorHangersToRemove) {
-                    removeDoorHanger(dh);
-                }
+                removeTabDoorHangers(tab.getId(), true);
                 break;
 
             case LOCATION_CHANGE:
                 
                 if (!isShowing() || !data.equals(tab.getURL()))
-                    removeTransientDoorHangers(tab.getId());
+                    removeTabDoorHangers(tab.getId(), false);
 
                 
                 if (Tabs.getInstance().isSelectedTab(tab))
@@ -241,13 +238,19 @@ public class DoorHangerPopup extends AnchoredPopup
 
 
 
-    void removeTransientDoorHangers(int tabId) {
+
+
+
+
+    void removeTabDoorHangers(int tabId, boolean forceRemove) {
         
         HashSet<DoorHanger> doorHangersToRemove = new HashSet<DoorHanger>();
         for (DoorHanger dh : mDoorHangers) {
             
-            if (dh.getTabId() == tabId && dh.shouldRemove(isShowing()))
-                doorHangersToRemove.add(dh);
+            if (dh.getTabId() == tabId
+                && (forceRemove || (!forceRemove && dh.shouldRemove(isShowing())))) {
+                    doorHangersToRemove.add(dh);
+            }
         }
 
         for (DoorHanger dh : doorHangersToRemove) {
@@ -325,6 +328,12 @@ public class DoorHangerPopup extends AnchoredPopup
         if (lastVisibleDoorHanger != null) {
             lastVisibleDoorHanger.hideDivider();
         }
+    }
+
+    @Override
+    public void onDismiss() {
+        final int tabId = Tabs.getInstance().getSelectedTab().getId();
+        removeTabDoorHangers(tabId, true);
     }
 
     @Override
