@@ -1206,11 +1206,11 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     WritingMode wm = aReflowState.GetWritingMode();
     bool havePosition = nsLayoutUtils::GetFirstLinePosition(wm, this,
                                                             &position);
-    nscoord lineTop = havePosition ?
+    nscoord lineBStart = havePosition ?
       position.mBStart :
       reflowState->ComputedLogicalBorderPadding().BStart(wm);
     nsIFrame* bullet = GetOutsideBullet();
-    ReflowBullet(bullet, state, metrics, lineTop);
+    ReflowBullet(bullet, state, metrics, lineBStart);
     NS_ASSERTION(!BulletIsEmpty() || metrics.BSize(wm) == 0,
                  "empty bullet took up space");
 
@@ -1225,6 +1225,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       bbox.BStart(wm) = position.mBaseline - metrics.BlockStartAscent();
       bullet->SetRect(wm, bbox, metrics.Width());
     }
+    
     
   }
 
@@ -1369,7 +1370,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     printf(": status=%x (%scomplete) metrics=%d,%d carriedMargin=%d",
            aStatus, NS_FRAME_IS_COMPLETE(aStatus) ? "" : "not ",
            aMetrics.ISize(parentWM), aMetrics.BSize(parentWM),
-           aMetrics.mCarriedOutBottomMargin.get());
+           aMetrics.mCarriedOutBEndMargin.get());
     if (HasOverflowAreas()) {
       printf(" overflow-vis={%d,%d,%d,%d}",
              aMetrics.VisualOverflow().x,
@@ -1470,9 +1471,9 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       nonCarriedOutBDirMargin = aState.mPrevBEndMargin.get();
       aState.mPrevBEndMargin.Zero();
     }
-    aMetrics.mCarriedOutBottomMargin = aState.mPrevBEndMargin;
+    aMetrics.mCarriedOutBEndMargin = aState.mPrevBEndMargin;
   } else {
-    aMetrics.mCarriedOutBottomMargin.Zero();
+    aMetrics.mCarriedOutBEndMargin.Zero();
   }
 
   nscoord blockEndEdgeOfChildren = aState.mBCoord + nonCarriedOutBDirMargin;
@@ -1528,7 +1529,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     }
 
     
-    aMetrics.mCarriedOutBottomMargin.Zero();
+    aMetrics.mCarriedOutBEndMargin.Zero();
   }
   else if (NS_FRAME_IS_COMPLETE(aState.mReflowStatus)) {
     nscoord contentBSize = blockEndEdgeOfChildren - borderPadding.BStart(wm);
@@ -1536,7 +1537,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     if (autoBSize != contentBSize) {
       
       
-      aMetrics.mCarriedOutBottomMargin.Zero();
+      aMetrics.mCarriedOutBEndMargin.Zero();
     }
     autoBSize += borderPadding.BStart(wm) + borderPadding.BEnd(wm);
     finalSize.BSize(wm) = autoBSize;

@@ -289,7 +289,7 @@ public:
 
   
   
-  nsCollapsingMargin mCarriedOutBottomMargin;
+  nsCollapsingMargin mCarriedOutBEndMargin;
 
   
   
