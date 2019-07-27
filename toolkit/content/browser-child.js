@@ -354,7 +354,13 @@ addEventListener("TextZoomChange", function (aEvent) {
 }, false);
 
 
-let AddonsChild = RemoteAddonsChild.init(this);
+
+let AddonsChild;
+if (Services.prefs.getBoolPref("browser.tabs.remote.autostart")) {
+  
+  
+  AddonsChild = RemoteAddonsChild.init(this);
+}
 
 addMessageListener("NetworkPrioritizer:AdjustPriority", (msg) => {
   let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);

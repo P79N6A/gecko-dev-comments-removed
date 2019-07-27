@@ -89,7 +89,6 @@ let NotificationTracker = {
     enumerate(this._paths[component1] || {}, [component1]);
   }
 };
-NotificationTracker.init();
 
 
 
@@ -148,7 +147,6 @@ let ContentPolicyChild = {
     return this.QueryInterface(iid);
   },
 };
-ContentPolicyChild.init();
 
 
 
@@ -176,7 +174,6 @@ let ObserverChild = {
     });
   }
 };
-ObserverChild.init();
 
 
 
@@ -251,7 +248,20 @@ SandboxChild.prototype = {
 };
 
 let RemoteAddonsChild = {
+  _ready: false,
+
+  makeReady: function() {
+    NotificationTracker.init();
+    ContentPolicyChild.init();
+    ObserverChild.init();
+  },
+
   init: function(global) {
+    if (!this._ready) {
+      this.makeReady();
+      this._ready = true;
+    }
+
     global.sendAsyncMessage("Addons:RegisterGlobal", {}, {global: global});
 
     let sandboxChild = new SandboxChild(global);
