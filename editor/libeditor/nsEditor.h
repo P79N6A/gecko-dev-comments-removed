@@ -895,6 +895,7 @@ protected:
   bool mDidPreDestroy;    
   bool mDidPostCreate;    
   bool mDispatchInputEvent;
+  bool mIsInEditAction;   
 
   friend bool NSCanUnload(nsISupports* serviceMgr);
   friend class nsAutoTxnsConserveSelection;

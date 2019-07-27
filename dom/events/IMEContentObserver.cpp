@@ -84,7 +84,6 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(IMEContentObserver)
 IMEContentObserver::IMEContentObserver()
   : mESM(nullptr)
   , mPreCharacterDataChangeLength(-1)
-  , mIsEditorInTransaction(false)
   , mIsSelectionChangeEventPending(false)
   , mSelectionChangeCausedOnlyByComposition(false)
   , mIsPositionChangeEventPending(false)
@@ -911,7 +910,6 @@ IMEContentObserver::AttributeChanged(nsIDocument* aDocument,
 NS_IMETHODIMP
 IMEContentObserver::EditAction()
 {
-  mIsEditorInTransaction = false;
   mEndOfAddedTextCache.Clear();
   mStartOfRemovingTextRangeCache.Clear();
   FlushMergeableNotifications();
@@ -921,7 +919,6 @@ IMEContentObserver::EditAction()
 NS_IMETHODIMP
 IMEContentObserver::BeforeEditAction()
 {
-  mIsEditorInTransaction = true;
   mEndOfAddedTextCache.Clear();
   mStartOfRemovingTextRangeCache.Clear();
   return NS_OK;
@@ -930,7 +927,6 @@ IMEContentObserver::BeforeEditAction()
 NS_IMETHODIMP
 IMEContentObserver::CancelEditAction()
 {
-  mIsEditorInTransaction = false;
   mEndOfAddedTextCache.Clear();
   mStartOfRemovingTextRangeCache.Clear();
   FlushMergeableNotifications();
@@ -990,8 +986,12 @@ IMEContentObserver::FlushMergeableNotifications()
 {
   
   
+  if (!mWidget) {
+    return;
+  }
+
   
-  if (mIsEditorInTransaction || !mWidget) {
+  if (mEditor && mEditor->GetIsInEditAction()) {
     return;
   }
 
