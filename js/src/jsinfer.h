@@ -634,13 +634,18 @@ class TypeSet
 
 
 
-    bool isSubset(TypeSet *other);
+    bool isSubset(const TypeSet *other) const;
 
     
 
 
 
     bool objectsAreSubset(TypeSet *other);
+
+    
+    bool equals(const TypeSet *other) const {
+        return this->isSubset(other) && other->isSubset(this);
+    }
 
     
     bool addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
