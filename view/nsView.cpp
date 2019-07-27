@@ -90,10 +90,6 @@ nsView::~nsView()
     mParent->RemoveChild(this);
   }
 
-  if (mPreviousWindow) {
-    mPreviousWindow->SetPreviouslyAttachedWidgetListener(nullptr);
-  }
-
   
   DestroyWidget();
 
@@ -726,18 +722,6 @@ nsresult nsView::DetachFromTopLevelWidget()
   NS_PRECONDITION(mWindow, "null mWindow for DetachFromTopLevelWidget!");
 
   mWindow->SetAttachedWidgetListener(nullptr);
-  nsIWidgetListener* listener = mWindow->GetPreviouslyAttachedWidgetListener();
-
-  if (listener && listener->GetView()) {
-    
-    listener->GetView()->SetPreviousWidget(nullptr);
-  }
-
-  
-  
-  mWindow->SetPreviouslyAttachedWidgetListener(this);
-
-  mPreviousWindow = mWindow;
   mWindow = nullptr;
 
   mWidgetIsTopLevel = false;
@@ -1111,10 +1095,4 @@ nsView::HandleEvent(WidgetGUIEvent* aEvent,
   }
 
   return result;
-}
-
-bool
-nsView::IsPrimaryFramePaintSuppressed()
-{
-  return mFrame ? mFrame->PresContext()->PresShell()->IsPaintingSuppressed() : false;
 }

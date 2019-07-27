@@ -284,14 +284,6 @@ public:
   
 
 
-
-
-
-  void SetPreviousWidget(nsIWidget* aWidget) { mPreviousWindow = aWidget; }
-
-  
-
-
   bool HasWidget() const { return mWindow != nullptr; }
   
   void SetForcedRepaint(bool aForceRepaint) { 
@@ -391,8 +383,6 @@ public:
   nsPoint GetOffsetTo(const nsView* aOther, const int32_t aAPD) const;
   nsIWidget* GetNearestWidget(nsPoint* aOffset, const int32_t aAPD) const;
 
-  bool IsPrimaryFramePaintSuppressed();
-
 private:
   explicit nsView(nsViewManager* aViewManager = nullptr,
                   nsViewVisibility aVisibility = nsViewVisibility_kShow);
@@ -460,7 +450,6 @@ private:
   nsViewManager    *mViewManager;
   nsView           *mParent;
   nsCOMPtr<nsIWidget> mWindow;
-  nsCOMPtr<nsIWidget> mPreviousWindow;
   nsView           *mNextSibling;
   nsView           *mFirstChild;
   nsIFrame         *mFrame;
