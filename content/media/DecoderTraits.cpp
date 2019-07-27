@@ -324,10 +324,18 @@ IsDirectShowSupportedType(const nsACString& aType)
 
 #ifdef MOZ_FMP4
 static bool
-IsMP4SupportedType(const nsACString& aType)
+IsMP4SupportedType(const nsACString& aType,
+                   const nsAString& aCodecs = EmptyString())
 {
+
+
+
+#ifdef MOZ_OMX_DECODER
+  return false;
+#else
   return Preferences::GetBool("media.fragmented-mp4.exposed", false) &&
-         MP4Decoder::CanHandleMediaType(aType);
+         MP4Decoder::CanHandleMediaType(aType, aCodecs);
+#endif
 }
 #endif
 
@@ -410,7 +418,7 @@ DecoderTraits::CanHandleMediaType(const char* aMIMEType,
   }
 #endif
 #ifdef MOZ_FMP4
-  if (MP4Decoder::CanHandleMediaType(nsDependentCString(aMIMEType),
+  if (IsMP4SupportedType(nsDependentCString(aMIMEType),
                                      aRequestedCodecs)) {
     return aHaveRequestedCodecs ? CANPLAY_YES : CANPLAY_MAYBE;
   }
