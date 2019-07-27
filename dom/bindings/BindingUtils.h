@@ -1634,8 +1634,8 @@ JSObject* GetJSObjectFromCallback(void* noncallback)
 }
 
 template<typename T>
-static inline JSObject*
-WrapCallThisObject(JSContext* cx, const T& p)
+static inline bool
+WrapCallThisValue(JSContext* cx, const T& p, JS::MutableHandle<JS::Value> rval)
 {
   
   
@@ -1646,16 +1646,17 @@ WrapCallThisObject(JSContext* cx, const T& p)
     
     obj = WrapNativeParent(cx, p);
     if (!obj) {
-      return nullptr;
+      return false;
     }
   }
 
   
   if (!JS_WrapObject(cx, &obj)) {
-    return nullptr;
+    return false;
   }
 
-  return obj;
+  rval.setObject(*obj);
+  return true;
 }
 
 
@@ -1663,17 +1664,38 @@ WrapCallThisObject(JSContext* cx, const T& p)
 
 
 template<>
-inline JSObject*
-WrapCallThisObject<JS::Rooted<JSObject*>>(JSContext* cx,
-                                          const JS::Rooted<JSObject*>& p)
+inline bool
+WrapCallThisValue<JS::Rooted<JSObject*>>(JSContext* cx,
+                                         const JS::Rooted<JSObject*>& p,
+                                         JS::MutableHandle<JS::Value> rval)
 {
   JS::Rooted<JSObject*> obj(cx, p);
 
   if (!JS_WrapObject(cx, &obj)) {
-    return nullptr;
+    return false;
   }
 
-  return obj;
+  rval.setObject(*obj);
+  return true;
+}
+
+
+
+
+template<>
+inline bool
+WrapCallThisValue<JS::Rooted<JS::Value>>(JSContext* cx,
+                                         const JS::Rooted<JS::Value>& v,
+                                         JS::MutableHandle<JS::Value> rval)
+{
+  JS::Rooted<JS::Value> val(cx, v);
+
+  if (!JS_WrapValue(cx, &val)) {
+    return false;
+  }
+
+  rval.set(val);
+  return true;
 }
 
 
