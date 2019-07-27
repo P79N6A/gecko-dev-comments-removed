@@ -840,6 +840,14 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   nsIFrame* frameForCompositionBoundsCalculation = aScrollFrame ? aScrollFrame : aForFrame;
   nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
                            frameForCompositionBoundsCalculation->GetSize());
+  if (scrollableFrame) {
+    
+    
+    
+    nsRect scrollPort = scrollableFrame->GetScrollPortRect();
+    compositionBounds = nsRect(compositionBounds.TopLeft() + scrollPort.TopLeft(),
+                               scrollPort.Size());
+  }
   ParentLayerRect frameBounds = LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
                               * metrics.GetCumulativeResolution()
                               * layerToParentLayerScale;
@@ -893,15 +901,17 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
           metrics.mCompositionBounds.SizeTo(contentSize * scale);
         }
       }
-    }
-  }
 
-  
-  if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
-    nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
-    
-    ParentLayerMargin boundMargins = CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f);
-    metrics.mCompositionBounds.Deflate(boundMargins);
+      
+      
+      
+      if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+        nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
+        
+        ParentLayerMargin boundMargins = CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f);
+        metrics.mCompositionBounds.Deflate(boundMargins);
+      }
+    }
   }
 
   metrics.SetRootCompositionSize(

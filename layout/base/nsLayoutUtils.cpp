@@ -7507,7 +7507,11 @@ nsLayoutUtils::GetContentViewerSize(nsPresContext* aPresContext,
  nsSize
 nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
 {
-  nsSize size(aFrame->GetSize());
+  
+  
+  
+  nsIScrollableFrame* scrollableFrame = aFrame->GetScrollTargetFrame();
+  nsSize size = scrollableFrame ? scrollableFrame->GetScrollPortRect().Size() : aFrame->GetSize();
 
   nsPresContext* presContext = aFrame->PresContext();
   nsIPresShell* presShell = presContext->PresShell();
@@ -7556,15 +7560,13 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
           size = LayoutDevicePixel::ToAppUnits(contentSize, auPerDevPixel);
         }
       }
-    }
-  }
 
-  
-  nsIScrollableFrame* scrollableFrame = aFrame->GetScrollTargetFrame();
-  if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
-    nsMargin margins = scrollableFrame->GetActualScrollbarSizes();
-    size.width -= margins.LeftRight();
-    size.height -= margins.TopBottom();
+      if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+        nsMargin margins = scrollableFrame->GetActualScrollbarSizes();
+        size.width -= margins.LeftRight();
+        size.height -= margins.TopBottom();
+      }
+    }
   }
 
   return size;
