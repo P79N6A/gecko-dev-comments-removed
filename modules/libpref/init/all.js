@@ -4296,3 +4296,10 @@ pref("camera.control.low_memory_thresholdMB", 404);
 
 
 pref("dom.udpsocket.enabled", false);
+
+
+
+
+
+pref("dns.ttl-experiment.variant", 0);
+pref("dns.ttl-experiment.enabled", true);
