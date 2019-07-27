@@ -1087,7 +1087,8 @@ MacroAssembler::nurseryAllocate(Register result, Register temp, gc::AllocKind al
     
     
     
-    if (nDynamicSlots >= Nursery::MaxNurserySlots) {
+    
+    if (nDynamicSlots >= Nursery::MaxNurseryBufferSize / sizeof(Value)) {
         jump(fail);
         return;
     }

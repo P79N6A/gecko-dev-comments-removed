@@ -3966,6 +3966,16 @@ JSObject::allocKindForTenure(const js::Nursery& nursery) const
     }
 
     
+    if (is<UnboxedArrayObject>()) {
+        const UnboxedArrayObject* nobj = &as<UnboxedArrayObject>();
+        size_t nbytes = UnboxedArrayObject::offsetOfInlineElements() +
+                        nobj->capacity() * nobj->elementSize();
+        if (nbytes <= JSObject::MAX_BYTE_SIZE)
+            return GetGCObjectKindForBytes(nbytes);
+        return AllocKind::OBJECT0;
+    }
+
+    
     
     if (is<InlineTypedObject>()) {
         

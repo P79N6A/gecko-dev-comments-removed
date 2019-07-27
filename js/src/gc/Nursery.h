@@ -59,10 +59,9 @@ class Nursery
         currentChunk_(0),
         numActiveChunks_(0),
         numNurseryChunks_(0),
-        finalizers_(nullptr),
         profileThreshold_(0),
         enableProfiling_(false),
-        freeHugeSlotsTask(nullptr)
+        freeMallocedBuffersTask(nullptr)
     {}
     ~Nursery();
 
@@ -95,21 +94,20 @@ class Nursery
     JSObject* allocateObject(JSContext* cx, size_t size, size_t numDynamic, const js::Class* clasp);
 
     
-    HeapSlot* allocateSlots(JSObject* obj, uint32_t nslots);
+    void* allocateBuffer(Zone* zone, uint32_t nbytes);
 
     
-    ObjectElements* allocateElements(JSObject* obj, uint32_t nelems);
+
+
+
+    void* allocateBuffer(JSObject* obj, uint32_t nbytes);
 
     
-    HeapSlot* reallocateSlots(JSObject* obj, HeapSlot* oldSlots,
-                              uint32_t oldCount, uint32_t newCount);
+    void* reallocateBuffer(JSObject* obj, void* oldBuffer,
+                           uint32_t oldBytes, uint32_t newBytes);
 
     
-    ObjectElements* reallocateElements(JSObject* obj, ObjectElements* oldHeader,
-                                       uint32_t oldCount, uint32_t newCount);
-
-    
-    void freeSlots(HeapSlot* slots);
+    void freeBuffer(void* buffer);
 
     typedef Vector<ObjectGroup*, 0, SystemAllocPolicy> ObjectGroupList;
 
@@ -135,6 +133,11 @@ class Nursery
             setForwardingPointer(oldData, newData, direct);
     }
 
+    
+    void removeMallocedBuffer(void* buffer) {
+        mallocedBuffers.remove(buffer);
+    }
+
     void waitBackgroundFreeEnd();
 
     size_t sizeOfHeapCommitted() const {
@@ -143,11 +146,11 @@ class Nursery
     size_t sizeOfHeapDecommitted() const {
         return (numNurseryChunks_ - numActiveChunks_) * gc::ChunkSize;
     }
-    size_t sizeOfHugeSlots(mozilla::MallocSizeOf mallocSizeOf) const {
+    size_t sizeOfMallocedBuffers(mozilla::MallocSizeOf mallocSizeOf) const {
         size_t total = 0;
-        for (HugeSlotsSet::Range r = hugeSlots.all(); !r.empty(); r.popFront())
+        for (MallocedBuffersSet::Range r = mallocedBuffers.all(); !r.empty(); r.popFront())
             total += mallocSizeOf(r.front());
-        total += hugeSlots.sizeOfExcludingThis(mallocSizeOf);
+        total += mallocedBuffers.sizeOfExcludingThis(mallocSizeOf);
         return total;
     }
 
@@ -199,16 +202,6 @@ class Nursery
     int numNurseryChunks_;
 
     
-    class ListItem {
-        ListItem* next_;
-        JSObject* object_;
-      public:
-        ListItem(ListItem* tail, JSObject* obj) : next_(tail), object_(obj) {}
-        ListItem* next() const { return next_; }
-        JSObject* get() { return object_; }
-    } *finalizers_;
-
-    
     int64_t profileThreshold_;
     bool enableProfiling_;
 
@@ -217,12 +210,12 @@ class Nursery
 
 
 
-    typedef HashSet<HeapSlot*, PointerHasher<HeapSlot*, 3>, SystemAllocPolicy> HugeSlotsSet;
-    HugeSlotsSet hugeSlots;
+    typedef HashSet<void*, PointerHasher<void*, 3>, SystemAllocPolicy> MallocedBuffersSet;
+    MallocedBuffersSet mallocedBuffers;
 
     
-    struct FreeHugeSlotsTask;
-    FreeHugeSlotsTask* freeHugeSlotsTask;
+    struct FreeMallocedBuffersTask;
+    FreeMallocedBuffersTask* freeMallocedBuffersTask;
 
     
 
@@ -235,7 +228,7 @@ class Nursery
     ForwardedBufferMap forwardedBuffers;
 
     
-    static const size_t MaxNurserySlots = 128;
+    static const size_t MaxNurseryBufferSize = 1024;
 
     
     static const size_t NurseryChunkUsableSize = gc::ChunkSize - sizeof(gc::ChunkTrailer);
@@ -293,16 +286,12 @@ class Nursery
     JSRuntime* runtime() const { return runtime_; }
 
     
-    HeapSlot* allocateHugeSlots(JS::Zone* zone, size_t nslots);
-
-    
     gc::TenuredCell* allocateFromTenured(JS::Zone* zone, gc::AllocKind thingKind);
 
     struct TenureCountCache;
 
     
     void* allocate(size_t size);
-    void verifyFinalizerList();
 
     
 
@@ -330,10 +319,7 @@ class Nursery
                                       uint32_t nelems);
 
     
-    void runFinalizers();
-
-    
-    void freeHugeSlots();
+    void freeMallocedBuffers();
 
     
 
