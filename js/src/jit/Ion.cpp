@@ -2173,12 +2173,12 @@ CheckScript(JSContext* cx, JSScript* script, bool osr)
         return false;
     }
 
-    if (script->hasNonSyntacticScope() && !script->functionNonDelazifying()) {
+    if (script->hasPollutedGlobalScope() && !script->functionNonDelazifying()) {
         
         
         
         
-        TrackAndSpewIonAbort(cx, script, "has non-syntactic global scope");
+        TrackAndSpewIonAbort(cx, script, "has polluted global scope");
         return false;
     }
 

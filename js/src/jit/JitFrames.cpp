@@ -2553,7 +2553,7 @@ InlineFrameIterator::computeScopeChain(Value scopeChainValue, MaybeReadFallback&
     
     
     MOZ_ASSERT(!script()->isForEval());
-    MOZ_ASSERT(!script()->hasNonSyntacticScope());
+    MOZ_ASSERT(!script()->hasPollutedGlobalScope());
     return &script()->global();
 }
 
