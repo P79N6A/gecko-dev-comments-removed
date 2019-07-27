@@ -1254,6 +1254,11 @@ public abstract class GeckoApp
             }, 1000 * 5 );
         }
 
+        
+        
+        
+        ThreadUtils.reduceGeckoPriority();
+
         Bundle stateBundle = getIntent().getBundleExtra(EXTRA_STATE_BUNDLE);
         if (stateBundle != null) {
             
@@ -1630,6 +1635,10 @@ public abstract class GeckoApp
         } else if (NotificationHelper.HELPER_BROADCAST_ACTION.equals(action)) {
             NotificationHelper.getInstance(getApplicationContext()).handleNotificationIntent(intent);
         }
+
+        
+        
+        ThreadUtils.resetGeckoPriority();
     }
 
     private String restoreSessionTabs(final boolean isExternalURL) throws SessionRestoreException {
