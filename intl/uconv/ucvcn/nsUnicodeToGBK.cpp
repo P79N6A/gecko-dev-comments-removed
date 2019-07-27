@@ -56,15 +56,15 @@ protected:
 
 
 
-static const uint16_t g_uf_gbk_2bytes[] = {
-#include "gbkuniq2b.uf"
+static const uint16_t g_uf_gbk[] = {
+#include "gbkuniq.uf"
 };
-class nsUnicodeToGBKUniq2Bytes : public nsTableEncoderSupport
+class nsUnicodeToGBKUniq : public nsTableEncoderSupport
 {
 public: 
-  nsUnicodeToGBKUniq2Bytes()
-    : nsTableEncoderSupport(u2BytesCharset, 
-                             (uMappingTable*) &g_uf_gbk_2bytes, 2) {}
+  nsUnicodeToGBKUniq()
+    : nsTableEncoderSupport(u1ByteCharset,
+                             (uMappingTable*) &g_uf_gbk, 1) {}
 protected: 
 };
 
@@ -116,7 +116,7 @@ nsUnicodeToGBK::nsUnicodeToGBK(uint32_t aMaxLength) :
 }
 void nsUnicodeToGBK::CreateExtensionEncoder()
 {
-  mExtensionEncoder = new nsUnicodeToGBKUniq2Bytes();
+  mExtensionEncoder = new nsUnicodeToGBKUniq();
 }
 void nsUnicodeToGBK::Create4BytesEncoder()
 {
