@@ -30,7 +30,7 @@ namespace net {
         
         
         SPDY_VERSION_31 = 4,
-        HTTP_VERSION_2 = 5,
+        HTTP_VERSION_2 = 5
 
         
         
@@ -41,14 +41,9 @@ namespace net {
         
         
         
-        HTTP_VERSION_2_DRAFT_15 = 30,
-        HTTP_VERSION_2_DRAFT_16 = 31
     };
 
 typedef uint8_t nsHttpVersion;
-
-#define HTTP_VERSION_2_DRAFT_LATEST HTTP_VERSION_2_DRAFT_16
-#define HTTP2_DRAFT_LATEST_TOKEN "h2-16"
 
 
 

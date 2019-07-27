@@ -8,6 +8,7 @@
 
 
 
+
 #include "ASpdySession.h"
 #include "mozilla/Attributes.h"
 #include "nsAHttpConnection.h"
@@ -221,7 +222,6 @@ public:
   nsISocketTransport *SocketTransport() { return mSocketTransport; }
   int64_t ServerSessionWindow() { return mServerSessionWindow; }
   void DecrementServerSessionWindow (uint32_t bytes) { mServerSessionWindow -= bytes; }
-  void GetNegotiatedToken(nsACString &s) { s.Assign(mNegotiatedToken); }
 
   void SendPing() override;
   bool MaybeReTunnel(nsAHttpTransaction *) override;
@@ -479,11 +479,7 @@ private:
   bool mWaitingForSettingsAck;
   bool mGoAwayOnPush;
 
-  
-  nsCString mNegotiatedToken;
-
   bool mUseH2Deps;
-  uint32_t mVersion; 
 
 private:
 

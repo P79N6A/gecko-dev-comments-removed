@@ -61,7 +61,6 @@ public:
   virtual ~Http2BaseCompressor() { };
 
 protected:
-  
   const static uint32_t kDefaultMaxBuffer = 4096;
 
   virtual void ClearHeaderTable();

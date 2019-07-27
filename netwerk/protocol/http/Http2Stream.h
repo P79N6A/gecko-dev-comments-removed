@@ -6,6 +6,9 @@
 #ifndef mozilla_net_Http2Stream_h
 #define mozilla_net_Http2Stream_h
 
+
+
+
 #include "mozilla/Attributes.h"
 #include "nsAHttpTransaction.h"
 #include "nsISupportsPriority.h"
