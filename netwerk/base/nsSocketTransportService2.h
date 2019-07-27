@@ -109,6 +109,8 @@ public:
 
     
     bool IsKeepaliveEnabled() { return mKeepaliveEnabledPref; }
+
+    bool IsTelemetryEnabled() { return mTelemetryEnabledPref; }
 protected:
 
     virtual ~nsSocketTransportService();
