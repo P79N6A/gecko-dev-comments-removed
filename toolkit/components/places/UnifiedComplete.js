@@ -730,9 +730,40 @@ Search.prototype = {
     let match = yield PlacesSearchAutocompleteProvider.findMatchByToken(
                                                            this._searchString);
     if (match) {
+      
+      
+      
+      
+      
+      
+      
+      try {
+        let prefixURI = NetUtil.newURI(this._strippedPrefix);
+        let finalURI = NetUtil.newURI(match.url);
+        if (prefixURI.scheme != finalURI.scheme)
+          return;
+      } catch (e) {}
+
+      
+      
+      if (this._strippedPrefix.endsWith("www.") &&
+          !stripHttpAndTrim(match.url).startsWith("www."))
+        return;
+
+      let value = this._strippedPrefix + match.token;
+
+      
+      
+      
+      if (!value.startsWith(this._originalSearchString)) {
+        Components.utils.reportError(`Trying to inline complete in-the-middle
+                                      ${this._originalSearchString} to ${value}`);
+        return;
+      }
+
       this._result.setDefaultIndex(0);
       this._addFrecencyMatch({
-        value: match.token,
+        value: value,
         comment: match.engineName,
         icon: match.iconUrl,
         style: "priority-search",
