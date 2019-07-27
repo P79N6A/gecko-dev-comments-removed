@@ -49,22 +49,10 @@ private:
                                  AVFrame* aFrame);
 
   static int AllocateBufferCb(AVCodecContext* aCodecContext, AVFrame* aFrame);
+  static void ReleaseBufferCb(AVCodecContext* aCodecContext, AVFrame* aFrame);
 
   MediaDataDecoderCallback* mCallback;
   nsRefPtr<ImageContainer> mImageContainer;
-
-  
-
-
-
-
-
-
-
-
-
-
-  nsRefPtr<Image> mCurrentImage;
 };
 
 } 
