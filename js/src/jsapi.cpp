@@ -4013,7 +4013,8 @@ js_generic_native_method_dispatcher(JSContext *cx, unsigned argc, Value *vp)
 }
 
 JS_PUBLIC_API(bool)
-JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs)
+JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs,
+                   PropertyDefinitionBehavior behavior)
 {
     MOZ_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
     AssertHeapIsIdle(cx);
@@ -4025,11 +4026,24 @@ JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs)
         if (!PropertySpecNameToId(cx, fs->name, &id))
             return false;
 
+        unsigned flags = fs->flags;
+        switch (behavior) {
+          case DefineAllProperties:
+            break;
+          case OnlyDefineLateProperties:
+            if (!(flags & JSPROP_DEFINE_LATE))
+                continue;
+            break;
+          default:
+            MOZ_ASSERT(behavior == DontDefineLateProperties);
+            if (flags & JSPROP_DEFINE_LATE)
+                continue;
+        }
+
         
 
 
 
-        unsigned flags = fs->flags;
         if (flags & JSFUN_GENERIC_NATIVE) {
             
             
