@@ -765,6 +765,9 @@ CreateLazyScriptsForCompartment(JSContext* cx)
     
     
     
+    
+    
+    
     for (gc::ZoneCellIter i(cx->zone(), AllocKind::FUNCTION); !i.done(); i.next()) {
         JSFunction* fun = &i.get<JSObject>()->as<JSFunction>();
 
@@ -779,9 +782,7 @@ CreateLazyScriptsForCompartment(JSContext* cx)
 
         if (fun->isInterpretedLazy()) {
             LazyScript* lazy = fun->lazyScriptOrNull();
-            if (lazy && lazy->sourceObject() && !lazy->maybeScript() &&
-                !lazy->hasUncompiledEnclosingScript())
-            {
+            if (lazy && lazy->sourceObject() && !lazy->hasUncompiledEnclosingScript()) {
                 if (!lazyFunctions.append(fun))
                     return false;
             }
