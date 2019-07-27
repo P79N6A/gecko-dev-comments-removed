@@ -123,6 +123,24 @@ ValidateGlobalVariable(JSContext *cx, const AsmJSModule &module, AsmJSModule::Gl
         if (!GetDataProperty(cx, importVal, field, &v))
             return false;
 
+        if (!v.isPrimitive()) {
+            
+            
+            
+            
+            
+            
+            
+            
+            jsid toString = NameToId(cx->names().toString);
+            if (!v.toObject().is<JSFunction>() ||
+                !HasObjectValueOf(&v.toObject(), cx) ||
+                !ClassMethodIsNative(cx, &v.toObject(), &JSFunction::class_, toString, fun_toString))
+            {
+                return LinkFail(cx, "Imported values must be primitives");
+            }
+        }
+
         switch (global.varInitCoercion()) {
           case AsmJS_ToInt32:
             if (!ToInt32(cx, v, (int32_t *)datum))
@@ -181,6 +199,7 @@ ValidateMathBuiltinFunction(JSContext *cx, AsmJSModule::Global &global, HandleVa
     RootedValue v(cx);
     if (!GetDataProperty(cx, globalVal, cx->names().Math, &v))
         return false;
+
     RootedPropertyName field(cx, global.mathName());
     if (!GetDataProperty(cx, v, field, &v))
         return false;
@@ -226,6 +245,7 @@ ValidateConstant(JSContext *cx, AsmJSModule::Global &global, HandleValue globalV
 
     if (!GetDataProperty(cx, v, field, &v))
         return false;
+
     if (!v.isNumber())
         return LinkFail(cx, "math / global constant value needs to be a number");
 
