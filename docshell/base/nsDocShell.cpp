@@ -4635,8 +4635,7 @@ nsDocShell::IsNavigationAllowed(bool aDisplayPrintErrorDialog,
                                 bool aCheckIfUnloadFired)
 {
   bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) &&
-                   (!aCheckIfUnloadFired || !mFiredUnloadEvent) &&
-                   !mBlockNavigation;
+                   (!aCheckIfUnloadFired || !mFiredUnloadEvent);
   if (!isAllowed) {
     return false;
   }
@@ -10000,151 +9999,146 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       GetCurScrollPos(ScrollOrientation_X, &cx);
       GetCurScrollPos(ScrollOrientation_Y, &cy);
 
-      {
-        AutoRestore<bool> scrollingToAnchor(mBlockNavigation);
-        mBlockNavigation = true;
+      
+      
+      
+      
+      
+      rv = ScrollToAnchor(curHash, newHash, aLoadType);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-        
-        
-        
-        
-        
-        rv = ScrollToAnchor(curHash, newHash, aLoadType);
-        NS_ENSURE_SUCCESS(rv, rv);
+      
+      
+      
+      
+      AutoRestore<uint32_t> loadTypeResetter(mLoadType);
 
-        
-        
-        
-        
-        AutoRestore<uint32_t> loadTypeResetter(mLoadType);
-
-        
-        
-        
-        if (JustStartedNetworkLoad() && (aLoadType & LOAD_CMD_NORMAL)) {
-          mLoadType = LOAD_NORMAL_REPLACE;
-        } else {
-          mLoadType = aLoadType;
-        }
-
-        mURIResultedInDocument = true;
-
-        nsCOMPtr<nsISHEntry> oldLSHE = mLSHE;
-
-        
-
-
-
-
-        SetHistoryEntry(&mLSHE, aSHEntry);
-
-        
-
-
-
-        nsCOMPtr<nsISupports> owner;
-        if (mOSHE) {
-          mOSHE->GetOwner(getter_AddRefs(owner));
-        }
-        
-        
-        
-        
-        
-        
-        
-        
-        OnNewURI(aURI, nullptr, owner, mLoadType, true, true, true);
-
-        nsCOMPtr<nsIInputStream> postData;
-        nsCOMPtr<nsISupports> cacheKey;
-
-        if (mOSHE) {
-          
-          mOSHE->SetScrollPosition(cx, cy);
-          
-          
-          
-          
-          
-          
-          if (aLoadType & LOAD_CMD_NORMAL) {
-            mOSHE->GetPostData(getter_AddRefs(postData));
-            mOSHE->GetCacheKey(getter_AddRefs(cacheKey));
-
-            
-            
-            
-            if (mLSHE) {
-              mLSHE->AdoptBFCacheEntry(mOSHE);
-            }
-          }
-        }
-
-        
-
-
-        if (mLSHE) {
-          SetHistoryEntry(&mOSHE, mLSHE);
-          
-          
-          
-          
-          if (postData) {
-            mOSHE->SetPostData(postData);
-          }
-
-          
-          
-          if (cacheKey) {
-            mOSHE->SetCacheKey(cacheKey);
-          }
-        }
-
-        
-
-
-        if (mOSHE && (aLoadType == LOAD_HISTORY ||
-                      aLoadType == LOAD_RELOAD_NORMAL)) {
-          nscoord bx, by;
-          mOSHE->GetScrollPosition(&bx, &by);
-          SetCurScrollPosEx(bx, by);
-        }
-
-        
-
-
-        SetHistoryEntry(&mLSHE, oldLSHE);
-        
-
-
-        if (mSessionHistory) {
-          int32_t index = -1;
-          mSessionHistory->GetIndex(&index);
-          nsCOMPtr<nsISHEntry> shEntry;
-          mSessionHistory->GetEntryAtIndex(index, false, getter_AddRefs(shEntry));
-          NS_ENSURE_TRUE(shEntry, NS_ERROR_FAILURE);
-          shEntry->SetTitle(mTitle);
-        }
-
-        
-
-        if (mUseGlobalHistory && !mInPrivateBrowsing) {
-          nsCOMPtr<IHistory> history = services::GetHistoryService();
-          if (history) {
-            history->SetURITitle(aURI, mTitle);
-          } else if (mGlobalHistory) {
-            mGlobalHistory->SetPageTitle(aURI, mTitle);
-          }
-        }
-
-        
-        nsCOMPtr<nsIDocument> doc = GetDocument();
-        NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-        doc->SetDocumentURI(aURI);
-
-        SetDocCurrentStateObj(mOSHE);
+      
+      
+      
+      if (JustStartedNetworkLoad() && (aLoadType & LOAD_CMD_NORMAL)) {
+        mLoadType = LOAD_NORMAL_REPLACE;
+      } else {
+        mLoadType = aLoadType;
       }
+
+      mURIResultedInDocument = true;
+
+      nsCOMPtr<nsISHEntry> oldLSHE = mLSHE;
+
+      
+
+
+
+
+      SetHistoryEntry(&mLSHE, aSHEntry);
+
+      
+
+
+
+      nsCOMPtr<nsISupports> owner;
+      if (mOSHE) {
+        mOSHE->GetOwner(getter_AddRefs(owner));
+      }
+      
+      
+      
+      
+      
+      
+      
+      
+      OnNewURI(aURI, nullptr, owner, mLoadType, true, true, true);
+
+      nsCOMPtr<nsIInputStream> postData;
+      nsCOMPtr<nsISupports> cacheKey;
+
+      if (mOSHE) {
+        
+        mOSHE->SetScrollPosition(cx, cy);
+        
+        
+        
+        
+        
+        
+        if (aLoadType & LOAD_CMD_NORMAL) {
+          mOSHE->GetPostData(getter_AddRefs(postData));
+          mOSHE->GetCacheKey(getter_AddRefs(cacheKey));
+
+          
+          
+          
+          if (mLSHE) {
+            mLSHE->AdoptBFCacheEntry(mOSHE);
+          }
+        }
+      }
+
+      
+
+
+      if (mLSHE) {
+        SetHistoryEntry(&mOSHE, mLSHE);
+        
+        
+        
+        
+        if (postData) {
+          mOSHE->SetPostData(postData);
+        }
+
+        
+        
+        if (cacheKey) {
+          mOSHE->SetCacheKey(cacheKey);
+        }
+      }
+
+      
+
+
+      if (mOSHE && (aLoadType == LOAD_HISTORY ||
+                    aLoadType == LOAD_RELOAD_NORMAL)) {
+        nscoord bx, by;
+        mOSHE->GetScrollPosition(&bx, &by);
+        SetCurScrollPosEx(bx, by);
+      }
+
+      
+
+
+      SetHistoryEntry(&mLSHE, oldLSHE);
+      
+
+
+      if (mSessionHistory) {
+        int32_t index = -1;
+        mSessionHistory->GetIndex(&index);
+        nsCOMPtr<nsISHEntry> shEntry;
+        mSessionHistory->GetEntryAtIndex(index, false, getter_AddRefs(shEntry));
+        NS_ENSURE_TRUE(shEntry, NS_ERROR_FAILURE);
+        shEntry->SetTitle(mTitle);
+      }
+
+      
+
+      if (mUseGlobalHistory && !mInPrivateBrowsing) {
+        nsCOMPtr<IHistory> history = services::GetHistoryService();
+        if (history) {
+          history->SetURITitle(aURI, mTitle);
+        } else if (mGlobalHistory) {
+          mGlobalHistory->SetPageTitle(aURI, mTitle);
+        }
+      }
+
+      
+      nsCOMPtr<nsIDocument> doc = GetDocument();
+      NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
+      doc->SetDocumentURI(aURI);
+
+      SetDocCurrentStateObj(mOSHE);
 
       
       
