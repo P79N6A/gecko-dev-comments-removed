@@ -120,11 +120,11 @@ ToolSidebar.prototype = {
     let tabs = this._tabbox.tabs;
 
     
-    let allTabsToolbar = this._panelDoc.createElementNS(XULNS, "toolbar");
-    this._tabbox.insertBefore(allTabsToolbar, tabs);
+    let allTabsContainer = this._panelDoc.createElementNS(XULNS, "box");
+    this._tabbox.insertBefore(allTabsContainer, tabs);
 
     
-    allTabsToolbar.appendChild(tabs);
+    allTabsContainer.appendChild(tabs);
     tabs.setAttribute("flex", "1");
 
     
@@ -134,7 +134,7 @@ ToolSidebar.prototype = {
     this._allTabsBtn.setAttribute("label", l10n("sidebar.showAllTabs.label"));
     this._allTabsBtn.setAttribute("tooltiptext", l10n("sidebar.showAllTabs.tooltip"));
     this._allTabsBtn.setAttribute("hidden", "true");
-    allTabsToolbar.appendChild(this._allTabsBtn);
+    allTabsContainer.appendChild(this._allTabsBtn);
 
     let menuPopup = this._panelDoc.createElementNS(XULNS, "menupopup");
     this._allTabsBtn.appendChild(menuPopup);
@@ -162,7 +162,7 @@ ToolSidebar.prototype = {
 
     
     this._tabbox.insertBefore(tabs, this._tabbox.tabpanels);
-    this._tabbox.querySelector("toolbar").remove();
+    this._tabbox.querySelector("box").remove();
 
     this._allTabsBtn = null;
   },
