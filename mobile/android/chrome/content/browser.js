@@ -369,10 +369,18 @@ var BrowserApp = {
 
         
         Services.tm.mainThread.dispatch(function() {
+          
           Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
+          Services.search.init();
 
+          
           CastingApps.init();
           DownloadNotifications.init();
+
+          if (AppConstants.MOZ_SAFE_BROWSING) {
+            
+            SafeBrowsing.init();
+          };
 
           
           setTimeout(() => {
@@ -380,13 +388,6 @@ var BrowserApp = {
             BrowserApp.gmpInstallManager.simpleCheckAndInstall().then(null, () => {});
           }, 1000 * 60);
         }, Ci.nsIThread.DISPATCH_NORMAL);
-
-        if (AppConstants.MOZ_SAFE_BROWSING) {
-          Services.tm.mainThread.dispatch(function() {
-            
-            SafeBrowsing.init();
-          }, Ci.nsIThread.DISPATCH_NORMAL);
-        }
 
         if (AppConstants.NIGHTLY_BUILD) {
           WebcompatReporter.init();
