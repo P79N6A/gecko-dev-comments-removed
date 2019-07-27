@@ -370,4 +370,59 @@ NS_INTERFACE_MAP_END_INHERITING(ExtendableEvent)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(InstallEvent, ExtendableEvent, mActiveWorker)
 
+#ifndef MOZ_SIMPLEPUSH
+
+PushMessageData::PushMessageData(const nsAString& aData)
+  : mData(aData)
+{
+}
+
+PushMessageData::~PushMessageData()
+{
+}
+
+NS_IMPL_ISUPPORTS0(PushMessageData);
+
+
+void
+PushMessageData::Json(JSContext* cx, JS::MutableHandle<JSObject*> aRetval)
+{
+  
+   NS_ABORT();
+}
+
+void
+PushMessageData::Text(nsAString& aData)
+{
+  aData = mData;
+}
+
+void
+PushMessageData::ArrayBuffer(JSContext* cx, JS::MutableHandle<JSObject*> aRetval)
+{
+  
+   NS_ABORT();
+}
+
+mozilla::dom::File*
+PushMessageData::Blob()
+{
+  
+  NS_ABORT();
+  return nullptr;
+}
+
+PushEvent::PushEvent(EventTarget* aOwner)
+  : ExtendableEvent(aOwner)
+{
+}
+
+NS_INTERFACE_MAP_BEGIN(PushEvent)
+NS_INTERFACE_MAP_END_INHERITING(ExtendableEvent)
+
+NS_IMPL_ADDREF_INHERITED(PushEvent, ExtendableEvent)
+NS_IMPL_RELEASE_INHERITED(PushEvent, ExtendableEvent)
+
+#endif 
+
 END_WORKERS_NAMESPACE
