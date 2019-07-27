@@ -33,7 +33,7 @@
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
 #include "nsContentUtils.h"
-#include "TimelineMarker.h"
+#include "timeline/TimelineMarker.h"
 
 
 #define REFRESH_REDIRECT_TIMER 15000
