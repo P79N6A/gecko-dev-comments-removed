@@ -66,6 +66,9 @@ const SUGGESTED_FRECENCY = Infinity;
 const DEFAULT_FREQUENCY_CAP = 5;
 
 
+const MIN_VISIBLE_HISTORY_TILES = 8;
+
+
 const PING_SCORE_DIVISOR = 10000;
 
 
@@ -564,7 +567,7 @@ let DirectoryLinksProvider = {
   onLinkChanged: function (aProvider, aLink) {
     
     setTimeout(() => {
-      if (this._handleLinkChanged(aLink)) {
+      if (this._handleLinkChanged(aLink) || this._shouldUpdateSuggestedTile()) {
         this._updateSuggestedTile();
       }
     }, 0);
@@ -590,6 +593,38 @@ let DirectoryLinksProvider = {
     if (remainingViews <= 0) {
       this._updateSuggestedTile();
     }
+  },
+
+  _getCurrentTopSiteCount: function() {
+    let visibleTopSiteCount = 0;
+    for (let link of NewTabUtils.links.getLinks().slice(0, MIN_VISIBLE_HISTORY_TILES)) {
+      if (link && (link.type == "history" || link.type == "enhanced")) {
+        visibleTopSiteCount++;
+      }
+    }
+    return visibleTopSiteCount;
+  },
+
+  _shouldUpdateSuggestedTile: function() {
+    let sortedLinks = NewTabUtils.getProviderLinks(this);
+
+    let mostFrecentLink = {};
+    if (sortedLinks && sortedLinks.length) {
+      mostFrecentLink = sortedLinks[0]
+    }
+
+    let currTopSiteCount = this._getCurrentTopSiteCount();
+    if ((!mostFrecentLink.targetedSite && currTopSiteCount >= MIN_VISIBLE_HISTORY_TILES) ||
+        (mostFrecentLink.targetedSite && currTopSiteCount < MIN_VISIBLE_HISTORY_TILES)) {
+      
+      
+      
+      
+      
+      return true;
+    }
+
+    return false;
   },
 
   
@@ -621,7 +656,8 @@ let DirectoryLinksProvider = {
       }
     }
 
-    if (this._topSitesWithSuggestedLinks.size == 0) {
+    if (this._topSitesWithSuggestedLinks.size == 0 || !this._shouldUpdateSuggestedTile()) {
+      
       
       return;
     }
