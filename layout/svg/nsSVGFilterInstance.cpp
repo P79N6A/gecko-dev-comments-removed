@@ -73,12 +73,12 @@ nsSVGFilterInstance::ComputeBounds()
   
   
   
-  
+
   
   nsSVGLength2 XYWH[4];
   NS_ABORT_IF_FALSE(sizeof(mFilterElement->mLengthAttributes) == sizeof(XYWH),
                     "XYWH size incorrect");
-  memcpy(XYWH, mFilterElement->mLengthAttributes, 
+  memcpy(XYWH, mFilterElement->mLengthAttributes,
     sizeof(mFilterElement->mLengthAttributes));
   XYWH[0] = *mFilterFrame->GetLengthValue(SVGFilterElement::ATTR_X);
   XYWH[1] = *mFilterFrame->GetLengthValue(SVGFilterElement::ATTR_Y);

@@ -140,7 +140,7 @@ protected:
   private:
     nsSVGIDRenderingObserver* mContainer;
   };
-  
+
   SourceReference mElement;
   
   nsIFrame *mFrame;
@@ -250,7 +250,7 @@ private:
 
   bool mValid;
 };
- 
+
 class nsSVGPaintingProperty : public nsSVGIDRenderingObserver {
 public:
   nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
