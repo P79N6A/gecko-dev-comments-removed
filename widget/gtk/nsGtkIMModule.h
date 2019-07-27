@@ -313,8 +313,12 @@ protected:
     bool CommitCompositionBy(const nsAString& aString);
 
     
+
+
+
+
+
     bool DispatchCompositionStart();
-    bool DispatchCompositionEnd();
 
     
     
@@ -322,6 +326,16 @@ protected:
     bool DispatchCompositionChangeEvent(const nsAString& aCompositionString,
                                         bool aIsCommit);
 
+    
+
+
+
+
+
+
+
+
+    bool DispatchCompositionEventsForCommit(const nsAString& aCommitString);
 };
 
 #endif 
