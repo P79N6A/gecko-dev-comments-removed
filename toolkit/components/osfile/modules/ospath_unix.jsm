@@ -163,14 +163,14 @@ exports.split = split;
 
 
 
-let toFileURIExtraEncodings = {';': '%3b', '?': '%3F', "'": '%27', '#': '%23'};
+let toFileURIExtraEncodings = {';': '%3b', '?': '%3F', '#': '%23'};
 let toFileURI = function toFileURI(path) {
   let uri = encodeURI(this.normalize(path));
 
   
   
   let prefix = "file://";
-  uri = prefix + uri.replace(/[;?'#]/g, match => toFileURIExtraEncodings[match]);
+  uri = prefix + uri.replace(/[;?#]/g, match => toFileURIExtraEncodings[match]);
 
   return uri;
 };
