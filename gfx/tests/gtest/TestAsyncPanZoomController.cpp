@@ -1355,6 +1355,17 @@ protected:
     metrics.SetScrollOffset(CSSPoint(0, 0));
     aLayer->SetFrameMetrics(metrics);
   }
+
+  void CreateSimpleMultiLayerTree() {
+    const char* layerTreeSyntax = "c(tt)";
+    
+    nsIntRegion layerVisibleRegion[] = {
+      nsIntRegion(nsIntRect(0,0,100,100)),
+      nsIntRegion(nsIntRect(0,0,100,50)),
+      nsIntRegion(nsIntRect(0,50,100,50)),
+    };
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
+  }
 };
 
 class APZHitTestingTester : public APZCTreeManagerTester {
@@ -1404,6 +1415,29 @@ protected:
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 200, 200));
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 80, 80));
     SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID + 2, CSSRect(0, 0, 80, 80));
+  }
+
+  void CreateComplexMultiLayerTree() {
+    const char* layerTreeSyntax = "c(tc(t)tc(c(t)t))";
+    
+    nsIntRegion layerVisibleRegion[] = {
+      nsIntRegion(nsIntRect(0,0,300,400)),      
+      nsIntRegion(nsIntRect(0,0,100,100)),      
+      nsIntRegion(nsIntRect(50,50,200,300)),    
+      nsIntRegion(nsIntRect(50,50,200,300)),    
+      nsIntRegion(nsIntRect(0,200,100,100)),    
+      nsIntRegion(nsIntRect(200,0,100,400)),    
+      nsIntRegion(nsIntRect(200,0,100,200)),    
+      nsIntRegion(nsIntRect(200,0,100,200)),    
+      nsIntRegion(nsIntRect(200,200,100,200)),  
+    };
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
+    SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID);
+    SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID);
+    SetScrollableFrameMetrics(layers[4], FrameMetrics::START_SCROLL_ID + 1);
+    SetScrollableFrameMetrics(layers[6], FrameMetrics::START_SCROLL_ID + 1);
+    SetScrollableFrameMetrics(layers[7], FrameMetrics::START_SCROLL_ID + 2);
+    SetScrollableFrameMetrics(layers[8], FrameMetrics::START_SCROLL_ID + 3);
   }
 };
 
@@ -1587,6 +1621,69 @@ TEST_F(APZHitTestingTester, HitTesting2) {
   
   
   EXPECT_EQ(Point(25, 75), transformToGecko * Point(25, 25));
+}
+
+TEST_F(APZCTreeManagerTester, ScrollableThebesLayers) {
+  CreateSimpleMultiLayerTree();
+  ScopedLayerTreeRegistration registration(0, root, mcc);
+
+  
+  SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID);
+  SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID);
+  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+
+  AsyncPanZoomController* nullAPZC = nullptr;
+  
+  EXPECT_EQ(nullAPZC, layers[0]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[1]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[2]->GetAsyncPanZoomController());
+  EXPECT_EQ(layers[1]->GetAsyncPanZoomController(), layers[2]->GetAsyncPanZoomController());
+
+  
+  SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
+  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  EXPECT_NE(layers[1]->GetAsyncPanZoomController(), layers[2]->GetAsyncPanZoomController());
+
+  
+  
+  SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 1);
+  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  EXPECT_EQ(layers[1]->GetAsyncPanZoomController(), layers[2]->GetAsyncPanZoomController());
+}
+
+TEST_F(APZHitTestingTester, ComplexMultiLayerTree) {
+  CreateComplexMultiLayerTree();
+  ScopedLayerTreeRegistration registration(0, root, mcc);
+  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+
+  AsyncPanZoomController* nullAPZC = nullptr;
+  
+  EXPECT_EQ(nullAPZC, layers[0]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[1]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[2]->GetAsyncPanZoomController());
+  EXPECT_EQ(nullAPZC, layers[3]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[4]->GetAsyncPanZoomController());
+  EXPECT_EQ(nullAPZC, layers[5]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[6]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[7]->GetAsyncPanZoomController());
+  EXPECT_NE(nullAPZC, layers[8]->GetAsyncPanZoomController());
+  
+  EXPECT_EQ(layers[1]->GetAsyncPanZoomController(), layers[2]->GetAsyncPanZoomController());
+  EXPECT_EQ(layers[4]->GetAsyncPanZoomController(), layers[6]->GetAsyncPanZoomController());
+  
+  EXPECT_NE(layers[1]->GetAsyncPanZoomController(), layers[4]->GetAsyncPanZoomController());
+  EXPECT_NE(layers[1]->GetAsyncPanZoomController(), layers[7]->GetAsyncPanZoomController());
+  EXPECT_NE(layers[1]->GetAsyncPanZoomController(), layers[8]->GetAsyncPanZoomController());
+  EXPECT_NE(layers[4]->GetAsyncPanZoomController(), layers[7]->GetAsyncPanZoomController());
+  EXPECT_NE(layers[4]->GetAsyncPanZoomController(), layers[8]->GetAsyncPanZoomController());
+  EXPECT_NE(layers[7]->GetAsyncPanZoomController(), layers[8]->GetAsyncPanZoomController());
+
+  nsRefPtr<AsyncPanZoomController> hit = GetTargetAPZC(ScreenPoint(25, 25));
+  EXPECT_EQ(layers[1]->GetAsyncPanZoomController(), hit.get());
+  hit = GetTargetAPZC(ScreenPoint(275, 375));
+  EXPECT_EQ(layers[8]->GetAsyncPanZoomController(), hit.get());
+  hit = GetTargetAPZC(ScreenPoint(250, 100));
+  EXPECT_EQ(layers[7]->GetAsyncPanZoomController(), hit.get());
 }
 
 class TaskRunMetrics {
