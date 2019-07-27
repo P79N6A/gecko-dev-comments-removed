@@ -52,15 +52,15 @@ XPCOMUtils.defineLazyServiceGetter(this, "appsService",
                                    "nsIAppsService");
 
 #ifdef MOZ_B2G_RIL
-XPCOMUtils.defineLazyServiceGetter(this, "gRil",
+XPCOMUtils.defineLazyServiceGetter(this, "Ril",
                                    "@mozilla.org/ril;1",
                                    "nsIRadioInterfaceLayer");
 
-XPCOMUtils.defineLazyServiceGetter(this, "iccProvider",
+XPCOMUtils.defineLazyServiceGetter(this, "IccProvider",
                                    "@mozilla.org/ril/content-helper;1",
                                    "nsIIccProvider");
 
-XPCOMUtils.defineLazyServiceGetter(this, "mobileConnectionService",
+XPCOMUtils.defineLazyServiceGetter(this, "MobileConnectionService",
                                    "@mozilla.org/mobileconnection/mobileconnectionservice;1",
                                    "nsIMobileConnectionService");
 #endif
@@ -104,30 +104,84 @@ this.MobileIdentityManager = {
     this.messageManagers = null;
   },
 
-
   
 
 
+#ifdef MOZ_B2G_RIL
+  
+  get ril() {
+    if (this._ril) {
+      return this._ril;
+    }
+    return Ril;
+  },
+
+  get iccProvider() {
+    if (this._iccProvider) {
+      return this._iccProvider;
+    }
+    return IccProvider;
+  },
+
+  get mobileConnectionService() {
+    if (this._mobileConnectionService) {
+      return this._mobileConnectionService;
+    }
+    return MobileConnectionService;
+  },
+#endif
 
   get iccInfo() {
     if (this._iccInfo) {
       return this._iccInfo;
     }
 #ifdef MOZ_B2G_RIL
+    let self = this;
+    let iccListener = {
+      notifyStkCommand: function() {},
+
+      notifyStkSessionEnd: function() {},
+
+      notifyCardStateChanged: function() {},
+
+      notifyIccInfoChanged: function() {
+        
+        
+
+        log.debug("ICC info changed observed. Clearing caches");
+
+        
+        
+        for (let i = 0; i < self._iccInfo.length; i++) {
+          self.iccProvider.unregisterIccMsg(self._iccInfo[i].clientId,
+                                            iccListener);
+        }
+
+        self._iccInfo = null;
+        self._iccIds = null;
+      }
+    };
+
+    
+    
+    
+    
     this._iccInfo = [];
-    for (let i = 0; i < gRil.numRadioInterfaces; i++) {
-      let rilContext = gRil.getRadioInterface(i).rilContext;
+
+    for (let i = 0; i < this.ril.numRadioInterfaces; i++) {
+      let rilContext = this.ril.getRadioInterface(i).rilContext;
       if (!rilContext) {
         log.warn("Tried to get the RIL context for an invalid service ID " + i);
         continue;
       }
+
       let info = rilContext.iccInfo;
       if (!info) {
         log.warn("No ICC info");
         continue;
       }
 
-      let connection = mobileConnectionService.getItemByServiceId(i);
+      let connection = this.mobileConnectionService.getItemByServiceId(i);
       let voice = connection && connection.voice;
       let data = connection && connection.data;
       let operator = null;
@@ -144,15 +198,21 @@ this.MobileIdentityManager = {
       }
 
       this._iccInfo.push({
+        
+        
+        clientId: i,
         iccId: info.iccid,
         mcc: info.mcc,
         mnc: info.mnc,
         
         msisdn: info.msisdn || info.mdn || null,
         operator: operator,
-        serviceId: i,
         roaming: voice && voice.roaming
       });
+
+      
+      
+      this.iccProvider.registerIccMsg(i, iccListener);
     }
 
     return this._iccInfo;
@@ -566,8 +626,11 @@ this.MobileIdentityManager = {
   
   
   prompt: function prompt(aPrincipal, aManifestURL, aPhoneInfo) {
-    log.debug("prompt " + aPrincipal + ", " + aManifestURL + ", " +
-              aPhoneInfo);
+    log.debug("prompt ${principal} ${manifest} ${phoneInfo}", {
+      principal: aPrincipal,
+      manifest: aManifestURL,
+      phoneInfo: aPhoneInfo
+    });
 
     let phoneInfoArray = [];
 
@@ -580,17 +643,20 @@ this.MobileIdentityManager = {
         
         
         
-        if (!this.iccInfo[i].msisdn && !this.iccInfo[i].credentials &&
-            !this.iccInfo[i].canDoSilentVerification) {
+        if ((!this.iccInfo[i].msisdn && !this.iccInfo[i].credentials &&
+            !this.iccInfo[i].canDoSilentVerification) ||
+            ((aPhoneInfo) &&
+             (this.iccInfo[i].msisdn == aPhoneInfo.msisdn ||
+              this.iccInfo[i].iccId == aPhoneInfo.iccId))) {
           continue;
         }
 
         let phoneInfo = new MobileIdentityUIGluePhoneInfo(
           this.iccInfo[i].msisdn,
           this.iccInfo[i].operator,
-          i,     
-          false, 
-          false  
+          i,                      
+          this.iccInfo[i].iccId,  
+          false                   
         );
         phoneInfoArray.push(phoneInfo);
       }
@@ -674,7 +740,7 @@ this.MobileIdentityManager = {
             aCreds.msisdn,
             null,           
             undefined,      
-            !!aCreds.iccId, 
+            aCreds.iccId,   
             true            
           );
         }
