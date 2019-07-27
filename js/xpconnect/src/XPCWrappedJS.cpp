@@ -70,8 +70,11 @@ nsXPCWrappedJS::CanSkip()
 
     
     
-    if (!IsRootWrapper())
+    if (!IsRootWrapper()) {
+        
+        NS_ENSURE_TRUE(mRoot, false);
         return mRoot->CanSkip();
+    }
 
     
     
