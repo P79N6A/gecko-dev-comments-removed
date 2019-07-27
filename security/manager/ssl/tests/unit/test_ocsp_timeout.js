@@ -21,7 +21,7 @@ let gSocketListener = {
     socketTransport.setTimeout(Ci.nsISocketTransport.TIMEOUT_READ_WRITE, 30);
   },
 
-  onStopListening: function(serverSocket, socketTransport) {}
+  onStopListening: function(serverSocket, status) {}
 };
 
 function run_test() {
@@ -56,18 +56,24 @@ function add_tests_in_mode(useHardFail) {
   
   add_test(function() {
     let endTime = new Date();
+    let timeDifference = endTime - startTime;
+    do_print(`useHardFail = ${useHardFail}`);
+    do_print(`startTime = ${startTime.getTime()} (${startTime})`);
+    do_print(`endTime = ${endTime.getTime()} (${endTime})`);
+    do_print(`timeDifference = ${timeDifference}ms`);
+
     
     
     if (useHardFail) {
-      do_check_true((endTime - startTime) > 10000);
+      do_check_true(timeDifference > 10000);
     } else {
-      do_check_true((endTime - startTime) > 2000);
+      do_check_true(timeDifference > 2000);
     }
     
     
     
     
-    do_check_true((endTime - startTime) < 60000);
+    do_check_true(timeDifference < 60000);
     clearOCSPCache();
     run_next_test();
   });
