@@ -317,11 +317,30 @@ ConvertOmxYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
   }
 
   if (format == HAL_PIXEL_FORMAT_YV12) {
-    gfx::ConvertYCbCrToRGB(aYcbcrData,
+    
+    
+    
+    
+    layers::PlanarYCbCrData ycbcrData = aYcbcrData;
+    if (!ycbcrData.mYChannel) {
+      ycbcrData.mYChannel     = buffer;
+      ycbcrData.mYSkip        = 0;
+      ycbcrData.mYStride      = aBuffer->getStride();
+      ycbcrData.mYSize        = aSurface->GetSize();
+      ycbcrData.mCbSkip       = 0;
+      ycbcrData.mCbCrSize     = aSurface->GetSize() / 2;
+      ycbcrData.mPicSize      = aSurface->GetSize();
+      ycbcrData.mCrChannel    = buffer + ycbcrData.mYStride * ycbcrData.mYSize.height;
+      ycbcrData.mCrSkip       = 0;
+      
+      ycbcrData.mCbCrStride   = ((ycbcrData.mYStride / 2) + 15) & ~0x0F;
+      ycbcrData.mCbChannel    = ycbcrData.mCrChannel + (ycbcrData.mCbCrStride * ycbcrData.mCbCrSize.height);
+    }
+    gfx::ConvertYCbCrToRGB(ycbcrData,
                            aSurface->GetFormat(),
                            aSurface->GetSize(),
-                           aSurface->GetData(),
-                           aSurface->Stride());
+                           aMappedSurface->mData,
+                           aMappedSurface->mStride);
     return OK;
   }
 
