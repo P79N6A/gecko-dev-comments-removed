@@ -3081,6 +3081,13 @@ pref("intl.imm.composition_font", "");
 
 
 
+
+pref("intl.imm.composition_font.japanist_2003", "MS PGothic");
+
+
+
+
+
 pref("intl.imm.vertical_writing.always_assume_not_supported", false);
 
 
