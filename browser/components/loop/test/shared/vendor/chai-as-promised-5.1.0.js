@@ -258,28 +258,22 @@
         });
 
         getterNames.forEach(function (getterName) {
-            var propertyDesc = propertyDescs[getterName];
-
             
             
-            var isChainableMethod = false;
-            try {
-                isChainableMethod = typeof propertyDesc.get.call({}) === "function";
-            } catch (e) { }
+            var isChainableMethod = Assertion.prototype.__methods.hasOwnProperty(getterName);
 
             if (isChainableMethod) {
-                Assertion.addChainableMethod(
+                Assertion.overwriteChainableMethod(
                     getterName,
-                    function () {
-                        var assertion = this;
-                        function originalMethod() {
-                            return propertyDesc.get.call(assertion).apply(assertion, arguments);
-                        }
-                        doAsserterAsyncAndAddThen(originalMethod, this, arguments);
+                    function (originalMethod) {
+                        return function() {
+                            doAsserterAsyncAndAddThen(originalMethod, this, arguments);
+                        };
                     },
-                    function () {
-                        var originalGetter = propertyDesc.get;
-                        doAsserterAsyncAndAddThen(originalGetter, this);
+                    function (originalGetter) {
+                        return function() {
+                            doAsserterAsyncAndAddThen(originalGetter, this);
+                        };
                     }
                 );
             } else {
