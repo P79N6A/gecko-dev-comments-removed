@@ -529,9 +529,14 @@ nsAutoCompleteController::HandleKeyNavigation(uint32_t aKey, bool *_retval)
           }
         }
       }
-      
-      ClearSearchTimer();
-      ClosePopup();
+
+      bool noRollup;
+      input->GetNoRollupOnCaretMove(&noRollup);
+      if (!noRollup) {
+        
+        ClearSearchTimer();
+        ClosePopup();
+      }
     }
     
     
