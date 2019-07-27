@@ -2,14 +2,16 @@
 
 
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-
 
 
 
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cc = Components.classes;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -80,7 +82,12 @@ nsWebHandlerApp.prototype = {
     if (aWindowContext) {
 
       
-      var channel = ioService.newChannelFromURI(uriToSend);
+      var channel = ioService.newChannelFromURI2(uriToSend,
+                                                 null,      
+                                                 Services.scriptSecurityManager.getSystemPrincipal(),
+                                                 null,      
+                                                 Ci.nsILoadInfo.SEC_NORMAL,
+                                                 Ci.nsIContentPolicy.TYPE_OTHER);
       channel.loadFlags = Ci.nsIChannel.LOAD_DOCUMENT_URI;
 
       
