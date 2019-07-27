@@ -50,66 +50,6 @@ typedef intptr_t GLintptr;
 
 #endif 
 
-namespace mozilla {
-namespace gl {
-
-enum {
-    BufferObject,
-    ShaderObject,
-    ProgramObject,
-    ProgramPipelineObject,
-    TextureObject,
-    SamplerObject,
-    RenderbufferObject,
-    FramebufferObject,
-    VertexArrayObject,
-    TransformFeedbackObject,
-    QueryObject,
-    SyncObject,
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<int Type>
-struct ObjectHandle
-{
-    ObjectHandle(): mName(0) {}
-
-    
-    explicit ObjectHandle(GLuint name): mName(name) {}
-
-    operator bool() const {
-        return mName != 0;
-    }
-
-    GLuint Name() const {
-        return mName;
-    }
-
-private:
-    GLuint mName;
-};
-
-typedef ObjectHandle<ProgramObject> GLProgram;
-
-}
-}
-
 #include <stdint.h>
 
 
