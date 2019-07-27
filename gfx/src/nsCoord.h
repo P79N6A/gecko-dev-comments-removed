@@ -213,8 +213,8 @@ NSCoordSaturatingSubtract(nscoord a, nscoord b,
       
       return std::min(nscoord_MAX, a - b);
     }
-  }
 #endif
+  }
 }
 
 inline float NSCoordToFloat(nscoord aCoord) {
@@ -423,4 +423,4 @@ inline float NSTwipsToUnits(float aTwips, float aUnitsPerPoint)
 #define NS_TWIPS_TO_MILLIMETERS(x)    NSTwipsToUnits((x), 1.0f / (POINTS_PER_INCH_FLOAT * 0.03937f))
 
 
-#endif
+#endif 
