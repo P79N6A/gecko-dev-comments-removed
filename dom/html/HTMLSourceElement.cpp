@@ -80,7 +80,7 @@ HTMLSourceElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 {
   
   
-  nsINode *parent = nsINode::GetParentNode();
+  Element *parent = nsINode::GetParentElement();
   if (aNameSpaceID == kNameSpaceID_None &&
       (aName == nsGkAtoms::srcset ||
        aName == nsGkAtoms::sizes ||
@@ -89,7 +89,7 @@ HTMLSourceElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       parent && parent->IsHTMLElement(nsGkAtoms::picture)) {
     nsString strVal = aValue ? aValue->GetStringValue() : EmptyString();
     
-    nsCOMPtr<nsINode> sibling = AsContent();
+    nsCOMPtr<nsIContent> sibling = AsContent();
     while ( (sibling = sibling->GetNextSibling()) ) {
       if (sibling->IsHTMLElement(nsGkAtoms::img)) {
         HTMLImageElement *img = static_cast<HTMLImageElement*>(sibling.get());
@@ -149,7 +149,7 @@ HTMLSourceElement::BindToTree(nsIDocument *aDocument,
     media->NotifyAddedSource();
   } else if (aParent && aParent->IsHTMLElement(nsGkAtoms::picture)) {
     
-    nsCOMPtr<nsINode> sibling = AsContent();
+    nsCOMPtr<nsIContent> sibling = AsContent();
     while ( (sibling = sibling->GetNextSibling()) ) {
       if (sibling->IsHTMLElement(nsGkAtoms::img)) {
         HTMLImageElement *img = static_cast<HTMLImageElement*>(sibling.get());

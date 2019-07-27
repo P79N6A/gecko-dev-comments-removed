@@ -44,7 +44,7 @@ void
 HTMLPictureElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
 {
   
-  nsCOMPtr<nsINode> child = GetChildAt(aIndex);
+  nsCOMPtr<nsIContent> child = GetChildAt(aIndex);
   nsCOMPtr<nsIContent> nextSibling;
   if (child && child->IsHTMLElement(nsGkAtoms::source)) {
     nextSibling = child->GetNextSibling();
