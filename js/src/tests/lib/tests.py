@@ -11,21 +11,35 @@ from results import TestOutput
 
 
 
-TBPL_FLAGS = [
-    [], 
-    ['--ion-eager', '--ion-offthread-compile=off'], 
-    ['--ion-eager', '--ion-offthread-compile=off',
-     '--ion-check-range-analysis', '--ion-extra-checks', '--no-sse3', '--no-threads'],
-    ['--baseline-eager'],
-    ['--baseline-eager', '--no-fpu'],
-    ['--no-baseline', '--no-ion'],
-]
+JITFLAGS = {
+    'all': [
+        [], 
+        ['--ion-eager', '--ion-offthread-compile=off'], 
+        ['--ion-eager', '--ion-offthread-compile=off',
+         '--ion-check-range-analysis', '--ion-extra-checks', '--no-sse3', '--no-threads'],
+        ['--baseline-eager'],
+        ['--baseline-eager', '--no-fpu'],
+        ['--no-baseline', '--no-ion'],
+    ],
+    
+    'ion': [
+        ['--baseline-eager'],
+        ['--ion-eager', '--ion-offthread-compile=off']
+    ],
+    
+    'debug': [
+        [], 
+        ['--ion-eager', '--ion-offthread-compile=off'], 
+        ['--baseline-eager'],
+    ],
+    'none': []
+}
 
-TBPL_DEBUG_FLAGS = [
-    [], 
-    ['--ion-eager', '--ion-offthread-compile=off'], 
-    ['--baseline-eager'],
-]
+def get_jitflags(variant):
+    if variant not in JITFLAGS:
+        print('Invalid jitflag: "{}"'.format(variant))
+        sys.exit(1)
+    return JITFLAGS[variant]
 
 def do_run_cmd(cmd):
     l = [None, None]
