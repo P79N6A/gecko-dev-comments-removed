@@ -4039,7 +4039,10 @@ Selection::selectFrames(nsPresContext* aPresContext, nsRange* aRange,
   
   
   nsCOMPtr<nsIContent> content = do_QueryInterface(aRange->GetStartParent());
-  NS_ENSURE_STATE(content);
+  if (!content) {
+    
+    return NS_ERROR_UNEXPECTED;
+  }
 
   
   if (content->IsNodeOfType(nsINode::eTEXT)) {
