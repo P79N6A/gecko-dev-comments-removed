@@ -108,7 +108,8 @@ public:
     }
 
     NS_ConvertUTF16toUTF8 eventType(aData);
-    if (!eventType.EqualsLiteral("created") && !eventType.EqualsLiteral("deleted")) {
+    if (!eventType.EqualsLiteral("modified") && !eventType.EqualsLiteral("deleted")) {
+      
       
       return NS_OK;
     }

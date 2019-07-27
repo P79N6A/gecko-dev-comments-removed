@@ -267,12 +267,13 @@ MozMtpDatabase::FileWatcherUpdate(RefCountedMtpServer* aMtpServer,
 
   MtpObjectHandle entryHandle = FindEntryByPath(filePath);
 
-  if (aEventType.EqualsLiteral("created")) {
+  if (aEventType.EqualsLiteral("modified")) {
+    
+    
     if (entryHandle != 0) {
-      
-      
-
-      return;
+      MTP_LOG("About to call sendObjectRemoved Handle 0x%08x file %s", entryHandle, filePath.get());
+      aMtpServer->sendObjectRemoved(entryHandle);
+      RemoveEntry(entryHandle);
     }
     entryHandle = CreateEntryForFile(filePath, aFile);
     if (entryHandle == 0) {
@@ -289,10 +290,8 @@ MozMtpDatabase::FileWatcherUpdate(RefCountedMtpServer* aMtpServer,
       
       return;
     }
-
     MTP_LOG("About to call sendObjectRemoved Handle 0x%08x file %s", entryHandle, filePath.get());
     aMtpServer->sendObjectRemoved(entryHandle);
-
     RemoveEntry(entryHandle);
     return;
   }
@@ -616,11 +615,7 @@ MozMtpDatabase::endSendObject(const char* aPath,
   if (aSucceeded) {
     RefPtr<DbEntry> entry = GetEntry(aHandle);
     if (entry) {
-      if (mBeginSendObjectCalled) {
-        FileWatcherNotify(entry, "created");
-      } else {
-        FileWatcherNotify(entry, "modified");
-      }
+      FileWatcherNotify(entry, "modified");
     }
   } else {
     RemoveEntry(aHandle);
