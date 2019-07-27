@@ -411,6 +411,9 @@ pref("browser.search.hiddenOneOffs", "");
 pref("browser.sessionhistory.max_entries", 50);
 
 
+pref("permissions.manager.defaultsUrl", "resource://app/defaults/permissions");
+
+
 
 pref("browser.link.open_newwindow", 3);
 

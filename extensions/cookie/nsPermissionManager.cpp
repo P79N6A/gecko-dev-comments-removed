@@ -365,8 +365,6 @@ static const char kHostpermFileName[] = "hostperm.1";
 
 static const char kDefaultsUrlPrefName[] = "permissions.manager.defaultsUrl";
 
-static const char kDefaultsUrl[] = "resource://app/chrome/browser/default_permissions";
-
 static const char kPermissionChangeNotification[] = PERM_CHANGE_NOTIFICATION;
 
 NS_IMPL_ISUPPORTS(nsPermissionManager, nsIPermissionManager, nsIObserver, nsISupportsWeakReference)
@@ -1892,13 +1890,9 @@ nsPermissionManager::Import()
 nsresult
 nsPermissionManager::ImportDefaults()
 {
-  
-  
-  nsCString defaultsURL;
-  if (mozilla::Preferences::HasUserValue(kDefaultsUrlPrefName)) {
-    defaultsURL = mozilla::Preferences::GetCString(kDefaultsUrlPrefName);
-  } else {
-    defaultsURL = NS_LITERAL_CSTRING(kDefaultsUrl);
+  nsCString defaultsURL = mozilla::Preferences::GetCString(kDefaultsUrlPrefName);
+  if (defaultsURL.IsEmpty()) { 
+    return NS_OK;
   }
 
   nsresult rv;
