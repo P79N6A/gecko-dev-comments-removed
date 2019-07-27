@@ -208,6 +208,17 @@ protected:
 
 
 
+  void ClearAcquisitionState()
+  {
+    mAcquired = false;
+  }
+
+  
+
+
+
+
+
   BlockingResourceBase* mChainPrev;
 
 private:
