@@ -1413,13 +1413,11 @@ TabActor.prototype = {
 
     
     let threadActor = this.threadActor;
-    if (isTopLevel) {
+    if (isTopLevel && threadActor.state != "detached") {
       this.sources.reset({ sourceMaps: true });
       threadActor.clearDebuggees();
-      if (threadActor.dbg) {
-        threadActor.dbg.enabled = true;
-        threadActor.maybePauseOnExceptions();
-      }
+      threadActor.dbg.enabled = true;
+      threadActor.maybePauseOnExceptions();
       
       
       threadActor.global = window;
