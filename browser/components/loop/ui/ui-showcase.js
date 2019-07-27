@@ -35,10 +35,10 @@
 
   
   
-  var stageFeedbackApiClient = new loop.FeedbackAPIClient({
-    baseUrl: "https://input.allizom.org/api/v1/feedback",
-    product: "Loop"
-  });
+  var stageFeedbackApiClient = new loop.FeedbackAPIClient(
+    "https://input.allizom.org/api/v1/feedback", {
+      product: "Loop"
+    });
 
   var Example = React.createClass({displayName: 'Example',
     render: function() {

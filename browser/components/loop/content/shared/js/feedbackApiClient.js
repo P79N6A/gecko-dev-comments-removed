@@ -5,7 +5,7 @@
 
 
 var loop = loop || {};
-loop.FeedbackAPIClient = (function($) {
+loop.FeedbackAPIClient = (function($, _) {
   "use strict";
 
   
@@ -19,16 +19,24 @@ loop.FeedbackAPIClient = (function($) {
 
 
 
-  function FeedbackAPIClient(settings) {
-    settings = settings || {};
-    if (!settings.hasOwnProperty("baseUrl")) {
-      throw new Error("Missing required baseUrl setting.");
+
+
+
+
+
+
+
+  function FeedbackAPIClient(baseUrl, defaults) {
+    this.baseUrl = baseUrl;
+    if (!this.baseUrl) {
+      throw new Error("Missing required 'baseUrl' argument.");
     }
-    this._baseUrl = settings.baseUrl;
-    if (!settings.hasOwnProperty("product")) {
-      throw new Error("Missing required product setting.");
+
+    this.defaults = defaults || {};
+    
+    if (!this.defaults.hasOwnProperty("product")) {
+      throw new Error("Missing required 'product' default.");
     }
-    this._product = settings.product;
   }
 
   FeedbackAPIClient.prototype = {
@@ -36,27 +44,43 @@ loop.FeedbackAPIClient = (function($) {
 
 
 
+    _supportedFields: ["happy",
+                       "category",
+                       "description",
+                       "product",
+                       "platform",
+                       "version",
+                       "channel",
+                       "user_agent"],
+
+    
 
 
-    _formatData: function(fields) {
-      var formatted = {};
 
+
+
+
+
+    _createPayload: function(fields) {
       if (typeof fields !== "object") {
         throw new Error("Invalid feedback data provided.");
       }
 
-      formatted.product = this._product;
-      formatted.happy = fields.happy;
-      formatted.category = fields.category;
+      Object.keys(fields).forEach(function(name) {
+        if (this._supportedFields.indexOf(name) === -1) {
+          throw new Error("Unsupported field " + name);
+        }
+      }, this);
+
+      
+      var payload = _.extend({}, this.defaults, fields);
 
       
       if (!fields.description) {
-        formatted.description = (fields.happy ? "Happy" : "Sad") + " User";
-      } else {
-        formatted.description = fields.description;
+        payload.description = (fields.happy ? "Happy" : "Sad") + " User";
       }
 
-      return formatted;
+      return payload;
     },
 
     
@@ -67,11 +91,11 @@ loop.FeedbackAPIClient = (function($) {
 
     send: function(fields, cb) {
       var req = $.ajax({
-        url:         this._baseUrl,
+        url:         this.baseUrl,
         method:      "POST",
         contentType: "application/json",
         dataType:    "json",
-        data: JSON.stringify(this._formatData(fields))
+        data: JSON.stringify(this._createPayload(fields))
       });
 
       req.done(function(result) {
@@ -89,4 +113,4 @@ loop.FeedbackAPIClient = (function($) {
   };
 
   return FeedbackAPIClient;
-})(jQuery);
+})(jQuery, _);
