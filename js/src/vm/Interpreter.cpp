@@ -614,6 +614,12 @@ struct AutoStopwatch final
 
 }
 
+
+
+
+#ifdef _MSC_VER
+# pragma optimize("g", off)
+#endif
 bool
 js::RunScript(JSContext* cx, RunState& state)
 {
@@ -654,6 +660,9 @@ js::RunScript(JSContext* cx, RunState& state)
 
     return Interpret(cx, state);
 }
+#ifdef _MSC_VER
+# pragma optimize("", on)
+#endif
 
 struct AutoGCIfRequested
 {
@@ -719,10 +728,8 @@ js::Invoke(JSContext* cx, CallArgs args, MaybeConstruct construct)
 
     
     if (construct) {
-        FrameIter iter(cx);
-        if (!iter.done() && iter.hasScript()) {
-            JSScript* script = iter.script();
-            jsbytecode* pc = iter.pc();
+        jsbytecode* pc;
+        if (JSScript* script = cx->currentScript(&pc)) {
             if (ObjectGroup::useSingletonForNewObject(cx, script, pc))
                 state.setCreateSingleton();
         }
