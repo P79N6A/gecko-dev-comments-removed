@@ -1021,30 +1021,6 @@ TypedObject::opaque() const
     return IsOpaqueTypedObjectClass(getClass());
 }
 
-
-
-
-class LazyArrayBufferTable
-{
-  private:
-    
-    
-    
-    
-    typedef WeakMap<PreBarrieredObject, RelocatablePtrObject> Map;
-    Map map;
-
-  public:
-    explicit LazyArrayBufferTable(JSContext *cx);
-    ~LazyArrayBufferTable();
-
-    ArrayBufferObject *maybeBuffer(InlineTransparentTypedObject *obj);
-    bool addBuffer(JSContext *cx, InlineTransparentTypedObject *obj, ArrayBufferObject *buffer);
-
-    void trace(JSTracer *trc);
-    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
-};
-
 JSObject *
 InitTypedObjectModuleObject(JSContext *cx, JS::HandleObject obj);
 
