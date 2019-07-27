@@ -157,14 +157,16 @@ private:
   
   
   
+  
+  
   enum SwitchSourceResult {
     SOURCE_ERROR = -1,
     SOURCE_EXISTING = 0,
     SOURCE_NEW = 1,
   };
 
-  SwitchSourceResult SwitchAudioSource(int64_t aTarget);
-  SwitchSourceResult SwitchVideoSource(int64_t aTarget);
+  SwitchSourceResult SwitchAudioSource(int64_t* aTarget);
+  SwitchSourceResult SwitchVideoSource(int64_t* aTarget);
 
   void DoAudioRequest();
   void DoVideoRequest();
