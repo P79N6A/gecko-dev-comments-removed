@@ -270,6 +270,13 @@ public:
     mState = aState;
     mRegistration->QueueStateChangeEvent(this, mState);
   }
+
+  
+  void
+  SetActivateStateUncheckedWithoutEvent(ServiceWorkerState aState)
+  {
+    mState = aState;
+  }
 };
 
 #define NS_SERVICEWORKERMANAGER_IMPL_IID                 \
