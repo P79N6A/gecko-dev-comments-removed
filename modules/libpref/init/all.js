@@ -4448,6 +4448,9 @@ pref("dom.mozSettings.SettingsService.verbose.enabled", false);
 pref("dom.mozSettings.allowForceReadOnly", false);
 
 
+pref("dom.requestSync.enabled", false);
+
+
 pref("browser.search.log", false);
 pref("browser.search.update", true);
 pref("browser.search.update.log", false);
