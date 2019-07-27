@@ -769,7 +769,10 @@ SpecialPowersAPI.prototype = {
           originalValue = Ci.nsICookiePermission.ACCESS_LIMIT_THIRD_PARTY;
         }
 
-        let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(context);
+        let [url, appId, isInBrowserElement, isSystem] = this._getInfoFromPermissionArg(context);
+        if (isSystem) {
+          continue;
+        }
 
         let perm;
         if (typeof permission.allow !== 'boolean') {
@@ -1672,6 +1675,7 @@ SpecialPowersAPI.prototype = {
     let url = "";
     let appId = Ci.nsIScriptSecurityManager.NO_APP_ID;
     let isInBrowserElement = false;
+    let isSystem = false;
 
     if (typeof(arg) == "string") {
       
@@ -1694,20 +1698,32 @@ SpecialPowersAPI.prototype = {
       isInBrowserElement = arg.isInBrowserElement || false;
     } else if (arg.nodePrincipal) {
       
-      url = arg.nodePrincipal.URI.spec;
-      appId = arg.nodePrincipal.appId;
-      isInBrowserElement = arg.nodePrincipal.isInBrowserElement;
+      isSystem = (arg.nodePrincipal instanceof Ci.nsIPrincipal) &&
+                 Cc["@mozilla.org/scriptsecuritymanager;1"].
+                 getService(Ci.nsIScriptSecurityManager).
+                 isSystemPrincipal(arg.nodePrincipal);
+      if (!isSystem) {
+        
+        
+        
+        url = arg.nodePrincipal.URI.spec;
+        appId = arg.nodePrincipal.appId;
+        isInBrowserElement = arg.nodePrincipal.isInBrowserElement;
+      }
     } else {
       url = arg.url;
       appId = arg.appId;
       isInBrowserElement = arg.isInBrowserElement;
     }
 
-    return [ url, appId, isInBrowserElement ];
+    return [ url, appId, isInBrowserElement, isSystem ];
   },
 
   addPermission: function(type, allow, arg) {
-    let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(arg);
+    let [url, appId, isInBrowserElement, isSystem] = this._getInfoFromPermissionArg(arg);
+    if (isSystem) {
+      return; 
+    }
 
     let permission;
     if (typeof allow !== 'boolean') {
@@ -1730,7 +1746,10 @@ SpecialPowersAPI.prototype = {
   },
 
   removePermission: function(type, arg) {
-    let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(arg);
+    let [url, appId, isInBrowserElement, isSystem] = this._getInfoFromPermissionArg(arg);
+    if (isSystem) {
+      return; 
+    }
 
     var msg = {
       'op': 'remove',
@@ -1744,7 +1763,10 @@ SpecialPowersAPI.prototype = {
   },
 
   hasPermission: function (type, arg) {
-   let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(arg);
+    let [url, appId, isInBrowserElement, isSystem] = this._getInfoFromPermissionArg(arg);
+    if (isSystem) {
+      return true; 
+    }
 
     var msg = {
       'op': 'has',
@@ -1757,7 +1779,10 @@ SpecialPowersAPI.prototype = {
     return this._sendSyncMessage('SPPermissionManager', msg)[0];
   },
   testPermission: function (type, value, arg) {
-   let [url, appId, isInBrowserElement] = this._getInfoFromPermissionArg(arg);
+    let [url, appId, isInBrowserElement, isSystem] = this._getInfoFromPermissionArg(arg);
+    if (isSystem) {
+      return true; 
+    }
 
     var msg = {
       'op': 'test',
