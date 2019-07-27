@@ -1457,8 +1457,8 @@ bool MediaDecoderStateMachine::IsDormantNeeded()
 
 void MediaDecoderStateMachine::SetDormant(bool aDormant)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  AssertCurrentThreadInMonitor();
+  MOZ_ASSERT(OnStateMachineThread(), "Should be on state machine thread.");
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
   if (mState == DECODER_STATE_SHUTDOWN) {
     return;
@@ -1592,6 +1592,11 @@ void MediaDecoderStateMachine::PlayInternal()
     DispatchDecodeTasksIfNeeded();
   }
 
+  if (mDecodingFrozenAtStateDecoding) {
+    mDecodingFrozenAtStateDecoding = false;
+    DispatchDecodeTasksIfNeeded();
+  }
+
   
   
   
@@ -1611,11 +1616,6 @@ void MediaDecoderStateMachine::PlayInternal()
   
   if (mState == DECODER_STATE_BUFFERING) {
     StartDecoding();
-  }
-
-  if (mDecodingFrozenAtStateDecoding) {
-    mDecodingFrozenAtStateDecoding = false;
-    DispatchDecodeTasksIfNeeded();
   }
 
   ScheduleStateMachine();
