@@ -338,6 +338,15 @@ public:
     return mLayer->GetClipRect();
   }
 
+  bool GetForceDispatchToContentRegion() const {
+    MOZ_ASSERT(IsValid());
+
+    if (mLayer->AsContainerLayer()) {
+      return mLayer->AsContainerLayer()->GetForceDispatchToContentRegion();
+    }
+    return false;
+  }
+
   
   
   
