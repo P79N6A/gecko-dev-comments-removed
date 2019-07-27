@@ -592,7 +592,7 @@ class InlineFrameIterator
                     parent_s.readCommonFrameSlots(nullptr, nullptr);
                     parent_s.readFunctionFrameArgs(argOp, nullptr, nullptr,
                                                    nformal, nactual, it.script(),
-                                                   unreadablePlaceholder);
+                                                   unreadablePlaceholder, silentFailure);
                 } else {
                     
                     
