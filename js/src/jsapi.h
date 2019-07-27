@@ -2244,9 +2244,6 @@ JS_SetPrototype(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetParent(JSObject *obj);
 
-extern JS_PUBLIC_API(bool)
-JS_SetParent(JSContext *cx, JS::HandleObject obj, JS::HandleObject parent);
-
 extern JS_PUBLIC_API(JSObject *)
 JS_GetConstructor(JSContext *cx, JS::Handle<JSObject*> proto);
 
