@@ -2520,38 +2520,131 @@ TruncateTest(TempAllocator &alloc, MTest *test)
 
 
 
-static MDefinition::TruncateKind
-ComputeRequestedTruncateKind(MDefinition *candidate)
+
+
+
+
+
+
+
+
+static bool
+CloneForDeadBranches(TempAllocator &alloc, MInstruction *candidate)
 {
     
     
+    if (candidate->isCompare())
+        return true;
+
+    MOZ_ASSERT(candidate->canClone());
+
+    MDefinitionVector operands(alloc);
+    size_t end = candidate->numOperands();
+    for (size_t i = 0; i < end; i++) {
+        if (!operands.append(candidate->getOperand(i)))
+            return false;
+    }
+
+    MInstruction *clone = candidate->clone(alloc, operands);
+    clone->setRange(nullptr);
+
     
-    bool needsConversion = !candidate->range() || !candidate->range()->isInt32();
+    
+    clone->setUseRemovedUnchecked();
+
+    candidate->block()->insertBefore(candidate, clone);
+
+    if (!candidate->isConstant()) {
+        MOZ_ASSERT(clone->canRecoverOnBailout());
+        clone->setRecoveredOnBailout();
+    }
+
+    
+    
+    for (MUseIterator i(candidate->usesBegin()); i != candidate->usesEnd(); ) {
+        MUse *use = *i++;
+        MNode *ins = use->consumer();
+        if (ins->isDefinition() && !ins->toDefinition()->isRecoveredOnBailout())
+            continue;
+
+        use->replaceProducer(clone);
+    }
+
+    return true;
+}
+
+
+
+static MDefinition::TruncateKind
+ComputeRequestedTruncateKind(MDefinition *candidate, bool *shouldClone)
+{
+    bool isCapturedResult = false;
+    bool isObservableResult = false;
+    bool hasUseRemoved = candidate->isUseRemoved();
 
     MDefinition::TruncateKind kind = MDefinition::Truncate;
     for (MUseIterator use(candidate->usesBegin()); use != candidate->usesEnd(); use++) {
-        if (!use->consumer()->isDefinition()) {
+        if (use->consumer()->isResumePoint()) {
             
             
             
             
-            if (candidate->isUseRemoved() && needsConversion)
-                kind = Min(kind, MDefinition::TruncateAfterBailouts);
+            isCapturedResult = true;
+            isObservableResult = isObservableResult ||
+                use->consumer()->toResumePoint()->isObservableOperand(*use);
             continue;
         }
 
         MDefinition *consumer = use->consumer()->toDefinition();
+        if (consumer->isRecoveredOnBailout()) {
+            isCapturedResult = true;
+            hasUseRemoved = hasUseRemoved || consumer->isUseRemoved();
+            continue;
+        }
+
         MDefinition::TruncateKind consumerKind = consumer->operandTruncateKind(consumer->indexOf(*use));
         kind = Min(kind, consumerKind);
         if (kind == MDefinition::NoTruncate)
             break;
     }
 
+    
+    
+    
+    bool needsConversion = !candidate->range() || !candidate->range()->isInt32();
+
+    
+    
+    
+    
+    if (isCapturedResult && needsConversion) {
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (hasUseRemoved && !isObservableResult && candidate->canRecoverOnBailout())
+            *shouldClone = true;
+
+        
+        
+        
+        
+        
+        else if (hasUseRemoved || isObservableResult)
+            kind = Min(kind, MDefinition::TruncateAfterBailouts);
+
+    }
+
     return kind;
 }
 
 static MDefinition::TruncateKind
-ComputeTruncateKind(MDefinition *candidate)
+ComputeTruncateKind(MDefinition *candidate, bool *shouldClone)
 {
     
     
@@ -2574,7 +2667,7 @@ ComputeTruncateKind(MDefinition *candidate)
         return MDefinition::NoTruncate;
 
     
-    return ComputeRequestedTruncateKind(candidate);
+    return ComputeRequestedTruncateKind(candidate, shouldClone);
 }
 
 static void
@@ -2662,6 +2755,9 @@ RangeAnalysis::truncate()
 
     for (PostorderIterator block(graph_.poBegin()); block != graph_.poEnd(); block++) {
         for (MInstructionReverseIterator iter(block->rbegin()); iter != block->rend(); iter++) {
+            if (iter->isRecoveredOnBailout())
+                continue;
+
             if (iter->type() == MIRType_None) {
                 if (iter->isTest())
                     TruncateTest(alloc(), iter->toTest());
@@ -2681,13 +2777,21 @@ RangeAnalysis::truncate()
               default:;
             }
 
-            MDefinition::TruncateKind kind = ComputeTruncateKind(*iter);
+            bool shouldClone = false;
+            MDefinition::TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
             if (kind == MDefinition::NoTruncate)
                 continue;
 
             
             if (!iter->needTruncation(kind))
                 continue;
+
+            
+            
+            
+            if (shouldClone && !CloneForDeadBranches(alloc(), *iter))
+                return false;
+
             iter->truncate();
 
             
