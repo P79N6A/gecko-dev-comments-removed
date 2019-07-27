@@ -488,6 +488,13 @@ nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(Layer* aLayer,
              "aBuilder and aItem, or with neither");
   MOZ_ASSERT(!aItem || aFrame == aItem->Frame(), "frame mismatch");
 
+  
+  
+  if (aLayer->Manager()->GetBackendType() !=
+        layers::LayersBackend::LAYERS_CLIENT) {
+    return;
+  }
+
   bool pending = !aBuilder;
 
   if (pending) {
