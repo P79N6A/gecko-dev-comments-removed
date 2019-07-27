@@ -13799,7 +13799,27 @@ class CGEventMethod(CGNativeMember):
                                cgClass.descriptor.interface).identifier.name == "Event":
                         continue
                     name = CGDictionary.makeMemberName(m.identifier.name)
-                    members += "e->%s = %s.%s;\n" % (name, self.args[1].name, name)
+                    if m.type.isSequence():
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        target = name;
+                        source = "%s.%s" % (self.args[1].name, name)
+                        sequenceCopy = "e->%s.AppendElements(%s);\n"
+                        if m.type.nullable():
+                            sequenceCopy = CGIfWrapper(
+                                CGGeneric(sequenceCopy),
+                                "!%s.IsNull()" % source).define()
+                            target += ".SetValue()"
+                            source += ".Value()"
+                        members += sequenceCopy % (target, source)
+                    else:
+                        members += "e->%s = %s.%s;\n" % (name, self.args[1].name, name)
                     if m.type.isAny() or m.type.isObject() or m.type.isSpiderMonkeyInterface():
                         holdJS = "mozilla::HoldJSObjects(e.get());\n"
             iface = iface.parent
