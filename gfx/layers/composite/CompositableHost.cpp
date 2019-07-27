@@ -223,8 +223,7 @@ CompositableHost::DumpTextureHost(std::stringstream& aStream, TextureHost* aText
                                                                  dSurf->GetSize(),
                                                                  dSurf->Stride(),
                                                                  dSurf->GetFormat());
-  
-  gfxUtils::DumpAsDataURI(dt, stderr);
+  aStream << gfxUtils::GetAsDataURI(dt).get();
 }
 #endif
 

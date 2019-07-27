@@ -800,8 +800,6 @@ pref("devtools.remote.wifi.scan", false);
 
 pref("devtools.remote.wifi.visible", false);
 
-pref("devtools.remote.tls-handshake-timeout", 10000);
-
 
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
@@ -3892,6 +3890,10 @@ pref("layers.acceleration.force-enabled", false);
 pref("layers.acceleration.draw-fps", false);
 
 pref("layers.dump", false);
+#ifdef MOZ_DUMP_PAINTING
+
+pref("layers.dump-texture", false);
+#endif
 pref("layers.draw-borders", false);
 pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
@@ -4390,6 +4392,7 @@ pref("beacon.enabled", true);
 #endif
 
 
+pref("camera.control.autofocus_moving_callback.enabled", true);
 pref("camera.control.face_detection.enabled", true);
 
 
