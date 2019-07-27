@@ -2,6 +2,8 @@
 
 
 
+from __future__ import absolute_import
+
 """
 interface to transform introspected system information to a format palatable to
 Mozilla
@@ -51,6 +53,7 @@ Module variables:
 
 """
 
-import mozinfo
-from mozinfo import *
+from . import mozinfo
+from .mozinfo import *
+
 __all__ = mozinfo.__all__
