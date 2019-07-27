@@ -85,6 +85,7 @@ const char* const XPCJSRuntime::mStrings[] = {
     "length",               
     "name",                 
     "undefined",            
+    "",                     
 };
 
 

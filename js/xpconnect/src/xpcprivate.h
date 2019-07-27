@@ -481,6 +481,7 @@ public:
         IDX_LENGTH                  ,
         IDX_NAME                    ,
         IDX_UNDEFINED               ,
+        IDX_EMPTYSTRING             ,
         IDX_TOTAL_COUNT 
     };
 
@@ -3286,11 +3287,13 @@ Btoa(JSContext *cx, unsigned argc, jsval *vp);
 
 bool
 NewFunctionForwarder(JSContext *cx, JS::HandleId id, JS::HandleObject callable,
-                     bool doclone, JS::MutableHandleValue vp);
+                     JS::MutableHandleValue vp);
+
+
 
 bool
-NewFunctionForwarder(JSContext *cx, JS::HandleObject callable,
-                     bool doclone, JS::MutableHandleValue vp);
+NewNonCloningFunctionForwarder(JSContext *cx, JS::HandleId id,
+                               JS::HandleObject callable, JS::MutableHandleValue vp);
 
 
 nsresult
