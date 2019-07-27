@@ -866,11 +866,6 @@ FetchBody<Request>::FetchBody();
 template
 FetchBody<Response>::FetchBody();
 
-template <class Derived>
-FetchBody<Derived>::~FetchBody()
-{
-}
-
 
 
 

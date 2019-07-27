@@ -159,7 +159,7 @@ private:
 
   
   
-  void OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>& aResponseHead, nsInputStreamPump* aPump);
+  void OverrideWithSynthesizedResponse(nsHttpResponseHead* aResponseHead, nsInputStreamPump* aPump);
 
   RequestHeaderTuples mClientSetRequestHeaders;
   nsCOMPtr<nsIChildChannel> mRedirectChannelChild;

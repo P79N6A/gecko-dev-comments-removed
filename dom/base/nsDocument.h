@@ -622,7 +622,7 @@ protected:
     DECL_SHIM(nsIApplicationCacheContainer, NSIAPPLICATIONCACHECONTAINER)
 #undef DECL_SHIM
   };
-
+  
   
 
 

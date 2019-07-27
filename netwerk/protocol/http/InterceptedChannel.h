@@ -31,31 +31,21 @@ protected:
   nsCOMPtr<nsINetworkInterceptController> mController;
 
   
-  nsCOMPtr<nsIOutputStream> mResponseBody;
-
-  
-  Maybe<nsAutoPtr<nsHttpResponseHead>> mSynthesizedResponseHead;
-
-  
-  bool mIsNavigation;
+  Maybe<nsHttpResponseHead> mSynthesizedResponseHead;
 
   void EnsureSynthesizedResponse();
-  void DoNotifyController();
+  void DoNotifyController(nsIOutputStream* aOut);
   nsresult DoSynthesizeHeader(const nsACString& aName, const nsACString& aValue);
 
   virtual ~InterceptedChannelBase();
 public:
-  InterceptedChannelBase(nsINetworkInterceptController* aController,
-                         bool aIsNavigation);
+  explicit InterceptedChannelBase(nsINetworkInterceptController* aController);
 
   
   
   virtual void NotifyController() = 0;
 
   NS_DECL_ISUPPORTS
-
-  NS_IMETHOD GetResponseBody(nsIOutputStream** aOutput) MOZ_OVERRIDE;
-  NS_IMETHOD GetIsNavigation(bool* aIsNavigation) MOZ_OVERRIDE;
 };
 
 class InterceptedChannelChrome : public InterceptedChannelBase
@@ -70,11 +60,7 @@ public:
                            nsINetworkInterceptController* aController,
                            nsICacheEntry* aEntry);
 
-  NS_IMETHOD ResetInterception() MOZ_OVERRIDE;
-  NS_IMETHOD FinishSynthesizedResponse() MOZ_OVERRIDE;
-  NS_IMETHOD GetChannel(nsIChannel** aChannel) MOZ_OVERRIDE;
-  NS_IMETHOD SynthesizeHeader(const nsACString& aName, const nsACString& aValue) MOZ_OVERRIDE;
-  NS_IMETHOD Cancel() MOZ_OVERRIDE;
+  NS_DECL_NSIINTERCEPTEDCHANNEL
 
   virtual void NotifyController() MOZ_OVERRIDE;
 };
@@ -85,6 +71,7 @@ class InterceptedChannelContent : public InterceptedChannelBase
   nsRefPtr<HttpChannelChild> mChannel;
 
   
+  nsCOMPtr<nsIOutputStream> mSynthesizedOutput;
   nsCOMPtr<nsIInputStream> mSynthesizedInput;
 
   
@@ -98,11 +85,7 @@ public:
                             nsINetworkInterceptController* aController,
                             nsIStreamListener* aListener);
 
-  NS_IMETHOD ResetInterception() MOZ_OVERRIDE;
-  NS_IMETHOD FinishSynthesizedResponse() MOZ_OVERRIDE;
-  NS_IMETHOD GetChannel(nsIChannel** aChannel) MOZ_OVERRIDE;
-  NS_IMETHOD SynthesizeHeader(const nsACString& aName, const nsACString& aValue) MOZ_OVERRIDE;
-  NS_IMETHOD Cancel() MOZ_OVERRIDE;
+  NS_DECL_NSIINTERCEPTEDCHANNEL
 
   virtual void NotifyController() MOZ_OVERRIDE;
 };
@@ -110,4 +93,4 @@ public:
 } 
 } 
 
-#endif 
+#endif
