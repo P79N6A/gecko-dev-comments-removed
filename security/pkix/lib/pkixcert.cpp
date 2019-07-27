@@ -146,7 +146,10 @@ BackCert::Init()
   }
 
   
-  if (version == der::Version::v3) {
+  
+  
+  
+  if (version == der::Version::v3 || version == der::Version::v4) {
     rv = der::OptionalExtensions(tbsCertificate, CSC | 3,
                                  bind(&BackCert::RememberExtension, this, _1,
                                       _2, _3));

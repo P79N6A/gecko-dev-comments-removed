@@ -464,7 +464,7 @@ CertificateSerialNumber(Reader& input,  Input& value)
 
 
 
-MOZILLA_PKIX_ENUM_CLASS Version { v1 = 0, v2 = 1, v3 = 2 };
+MOZILLA_PKIX_ENUM_CLASS Version { v1 = 0, v2 = 1, v3 = 2, v4 = 3 };
 
 
 
@@ -497,6 +497,7 @@ OptionalVersion(Reader& input,  Version& version)
     
     
     case static_cast<uint8_t>(Version::v1): version = Version::v1; break;
+    case static_cast<uint8_t>(Version::v4): version = Version::v4; break;
     default:
       return Result::ERROR_BAD_DER;
   }
