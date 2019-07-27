@@ -73,6 +73,8 @@ public:
   nsRect mBorderRect;
 };
 
+bool ShouldSyncDecodeImages(nsDisplayListBuilder* aBuilder);
+
 
 
 
@@ -86,13 +88,24 @@ template <typename T>
 class nsImageGeometryMixin
 {
 public:
-  explicit nsImageGeometryMixin(nsDisplayItem* aItem)
+  nsImageGeometryMixin(nsDisplayItem* aItem, nsDisplayListBuilder* aBuilder)
     : mLastDrawResult(mozilla::image::DrawResult::NOT_READY)
+    , mWaitingForPaint(false)
   {
+    
     auto lastGeometry =
       static_cast<T*>(mozilla::FrameLayerBuilder::GetMostRecentGeometry(aItem));
     if (lastGeometry) {
-      mLastDrawResult = lastGeometry->LastDrawResult();
+      mLastDrawResult = lastGeometry->mLastDrawResult;
+      mWaitingForPaint = lastGeometry->mWaitingForPaint;
+    }
+
+    
+    
+    
+    if (ShouldSyncDecodeImages(aBuilder) &&
+        ShouldInvalidateToSyncDecodeImages()) {
+      mWaitingForPaint = true;
     }
   }
 
@@ -103,13 +116,31 @@ public:
       static_cast<T*>(mozilla::FrameLayerBuilder::GetMostRecentGeometry(aItem));
     if (lastGeometry) {
       lastGeometry->mLastDrawResult = aResult;
+      lastGeometry->mWaitingForPaint = false;
     }
   }
 
-  mozilla::image::DrawResult LastDrawResult() const { return mLastDrawResult; }
+  bool ShouldInvalidateToSyncDecodeImages() const
+  {
+    if (mWaitingForPaint) {
+      
+      
+      
+      
+      
+      return false;
+    }
+
+    if (mLastDrawResult == mozilla::image::DrawResult::SUCCESS) {
+      return false;
+    }
+
+    return true;
+  }
 
 private:
   mozilla::image::DrawResult mLastDrawResult;
+  bool mWaitingForPaint;
 };
 
 
@@ -126,7 +157,7 @@ public:
   nsDisplayItemGenericImageGeometry(nsDisplayItem* aItem,
                                     nsDisplayListBuilder* aBuilder)
     : nsDisplayItemGenericGeometry(aItem, aBuilder)
-    , nsImageGeometryMixin(aItem)
+    , nsImageGeometryMixin(aItem, aBuilder)
   { }
 };
 
