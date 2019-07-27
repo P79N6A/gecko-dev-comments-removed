@@ -758,18 +758,18 @@ ArrayBufferObject::ensureNonInline(JSContext *cx, Handle<ArrayBufferObject*> buf
     return true;
 }
 
- void *
+ ArrayBufferObject::BufferContents
 ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer)
 {
     if (!buffer->canNeuter(cx)) {
         js_ReportOverRecursed(cx);
-        return nullptr;
+        return BufferContents::createUnowned(nullptr);
     }
 
     BufferContents oldContents(buffer->dataPointer(), buffer->bufferKind());
     BufferContents newContents = AllocateArrayBufferContents(cx, buffer->byteLength());
     if (!newContents)
-        return nullptr;
+        return BufferContents::createUnowned(nullptr);
 
     if (buffer->hasStealableContents()) {
         
@@ -777,14 +777,14 @@ ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffe
         
         buffer->setOwnsData(DoesntOwnData);
         ArrayBufferObject::neuter(cx, buffer, newContents);
-        return oldContents.data();
-    } else {
-        
-        
-        memcpy(newContents.data(), oldContents.data(), buffer->byteLength());
-        ArrayBufferObject::neuter(cx, buffer, oldContents);
-        return newContents.data();
+        return oldContents;
     }
+
+    
+    
+    memcpy(newContents.data(), oldContents.data(), buffer->byteLength());
+    ArrayBufferObject::neuter(cx, buffer, oldContents);
+    return newContents;
 }
 
  void
@@ -1170,7 +1170,7 @@ JS_StealArrayBufferContents(JSContext *cx, HandleObject objArg)
     }
 
     Rooted<ArrayBufferObject*> buffer(cx, &obj->as<ArrayBufferObject>());
-    return ArrayBufferObject::stealContents(cx, buffer);
+    return ArrayBufferObject::stealContents(cx, buffer).data();
 }
 
 JS_PUBLIC_API(JSObject *)
