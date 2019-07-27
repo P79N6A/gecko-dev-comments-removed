@@ -460,6 +460,21 @@ SECStatus PK11_SetPublicKeyNickname(SECKEYPublicKey *pubKey,
 							const char *nickname);
 
 
+
+
+
+
+
+
+
+
+
+
+
+SECStatus __PK11_SetCertificateNickname(CERTCertificate *cert,
+                                      const char *nickname);
+
+
 unsigned int PK11_GetKeyLength(PK11SymKey *key);
 
 

@@ -13,25 +13,32 @@
 #include <queue>
 #include <string>
 
+#include "prio.h"
+
 namespace nss_test {
 
-struct Packet;
+class DataBuffer;
+class Packet;
 class DummyPrSocket;  
 
 
-class Inspector {
+class PacketFilter {
  public:
-  virtual ~Inspector() {}
+  virtual ~PacketFilter() {}
 
-  virtual void Inspect(DummyPrSocket* adapter, const void* data,
-                       size_t len) = 0;
+  
+  
+  
+  
+  
+  virtual bool Filter(const DataBuffer& input, DataBuffer* output) = 0;
 };
 
 enum Mode { STREAM, DGRAM };
 
 class DummyPrSocket {
  public:
-  ~DummyPrSocket() { delete inspector_; }
+  ~DummyPrSocket();
 
   static PRFileDesc* CreateFD(const std::string& name,
                               Mode mode);  
@@ -39,16 +46,16 @@ class DummyPrSocket {
 
   void SetPeer(DummyPrSocket* peer) { peer_ = peer; }
 
-  void SetInspector(Inspector* inspector) { inspector_ = inspector; }
+  void SetPacketFilter(PacketFilter* filter) { filter_ = filter; }
 
-  void PacketReceived(const void* data, int32_t len);
+  void PacketReceived(const DataBuffer& data);
   int32_t Read(void* data, int32_t len);
   int32_t Recv(void* buf, int32_t buflen);
   int32_t Write(const void* buf, int32_t length);
-  int32_t WriteDirect(const void* buf, int32_t length);
+  int32_t WriteDirect(const DataBuffer& data);
 
   Mode mode() const { return mode_; }
-  bool readable() { return !input_.empty(); }
+  bool readable() const { return !input_.empty(); }
   bool writable() { return true; }
 
  private:
@@ -57,13 +64,13 @@ class DummyPrSocket {
         mode_(mode),
         peer_(nullptr),
         input_(),
-        inspector_(nullptr) {}
+        filter_(nullptr) {}
 
   const std::string name_;
   Mode mode_;
   DummyPrSocket* peer_;
   std::queue<Packet*> input_;
-  Inspector* inspector_;
+  PacketFilter* filter_;
 };
 
 

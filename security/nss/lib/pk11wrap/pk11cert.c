@@ -2682,3 +2682,25 @@ PK11_GetAllSlotsForCert(CERTCertificate *cert, void *arg)
     nssCryptokiObjectArray_Destroy(instances);
     return slotList;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+SECStatus
+__PK11_SetCertificateNickname(CERTCertificate *cert, const char *nickname)
+{
+    
+    if (!cert->slot || cert->pkcs11ID == CK_INVALID_HANDLE) {
+        return SEC_ERROR_INVALID_ARGS;
+    }
+    return PK11_SetObjectNickname(cert->slot, cert->pkcs11ID, nickname);
+}
