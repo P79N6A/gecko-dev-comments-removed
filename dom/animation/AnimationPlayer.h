@@ -68,22 +68,11 @@ public:
 
   
   
-  
-  
-  
-  Nullable<TimeDuration> GetCurrentTimeDuration() const {
-    Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTimeDuration();
-    Nullable<TimeDuration> holdDuration = mTimeline->ToTimelineTime(mHoldTime);
-    Nullable<TimeDuration> result; 
-    if (!timelineTime.IsNull() && !mStartTime.IsNull()) {
-      result.SetValue((IsPaused() ? holdDuration.Value() : timelineTime.Value()) - mStartTime.Value());
-    }
-    return result;
-  }
+  Nullable<TimeDuration> GetCurrentTimeDuration() const;
 
   
   Nullable<TimeDuration> mStartTime;
-  TimeStamp mHoldTime;
+  Nullable<TimeDuration> mHoldTime;
   uint8_t mPlayState;
   bool mIsRunningOnCompositor;
 

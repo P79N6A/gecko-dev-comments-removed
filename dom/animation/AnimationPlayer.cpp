@@ -30,27 +30,7 @@ AnimationPlayer::GetStartTime() const
 Nullable<double>
 AnimationPlayer::GetCurrentTime() const
 {
-  Nullable<double> result;
-  Nullable<TimeDuration> currentTime = GetCurrentTimeDuration();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (currentTime.IsNull()) {
-    result.SetValue(0.0);
-  } else {
-    result.SetValue(currentTime.Value().ToMilliseconds());
-  }
-
-  return result;
+  return AnimationUtils::TimeDurationToDouble(GetCurrentTimeDuration());
 }
 
 void
@@ -88,6 +68,21 @@ bool
 AnimationPlayer::IsCurrent() const
 {
   return GetSource() && GetSource()->IsCurrent();
+}
+
+Nullable<TimeDuration>
+AnimationPlayer::GetCurrentTimeDuration() const
+{
+  Nullable<TimeDuration> result;
+  if (!mHoldTime.IsNull()) {
+    result = mHoldTime;
+  } else {
+    Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTimeDuration();
+    if (!timelineTime.IsNull() && !mStartTime.IsNull()) {
+      result.SetValue(timelineTime.Value() - mStartTime.Value());
+    }
+  }
+  return result;
 }
 
 } 
