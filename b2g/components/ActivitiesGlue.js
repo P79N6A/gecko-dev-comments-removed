@@ -41,6 +41,10 @@ ActivitiesDialog.prototype = {
       choices: choices
     };
 
+    if (activity.type) {
+      detail.activityType = activity.type;
+    }
+
     
     
     SystemAppProxy.addEventListener("mozContentEvent", function act_getChoice(evt) {
@@ -64,11 +68,17 @@ ActivitiesDialog.prototype = {
       return;
     }
 
-    this.activities.push({
+    let activity = {
       name: aOptions.name,
       list: aActivities,
       callback: aCallback
-    });
+    };
+
+    if (aOptions.data && aOptions.data.type) {
+      activity.type = aOptions.data.type;
+    }
+
+    this.activities.push(activity);
     Services.tm.currentThread.dispatch(this, Ci.nsIEventTarget.DISPATCH_NORMAL);
   },
 
