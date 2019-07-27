@@ -177,10 +177,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     bool addPredecessorPopN(TempAllocator &alloc, MBasicBlock *pred, uint32_t popped);
 
     
-    
-    void addPredecessorSameInputsAs(MBasicBlock *pred, MBasicBlock *existingPred);
-
-    
     bool addPredecessorWithoutPhis(MBasicBlock *pred);
     void inheritSlots(MBasicBlock *parent);
     bool initEntrySlots(TempAllocator &alloc);
@@ -283,16 +279,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     MBasicBlock *getPredecessor(uint32_t i) const {
         return predecessors_[i];
-    }
-    size_t indexForPredecessor(MBasicBlock *block) const {
-        
-        JS_ASSERT(!block->successorWithPhis());
-
-        for (size_t i = 0; i < predecessors_.length(); i++) {
-            if (predecessors_[i] == block)
-                return i;
-        }
-        MOZ_CRASH();
     }
 #ifdef DEBUG
     bool hasLastIns() const {
