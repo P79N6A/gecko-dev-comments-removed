@@ -3124,10 +3124,11 @@ CodeGenerator::maybeCreateScriptCounts()
             
             
             
-            MResumePoint *resume = block->entryResumePoint();
-            while (resume->caller())
-                resume = resume->caller();
-            offset = script->pcToOffset(resume->pc());
+            if (MResumePoint *resume = block->entryResumePoint()) {
+                while (resume->caller())
+                    resume = resume->caller();
+                offset = script->pcToOffset(resume->pc());
+            }
         }
 
         if (!counts->block(i).init(block->id(), offset, block->numSuccessors())) {
