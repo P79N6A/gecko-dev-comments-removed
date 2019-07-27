@@ -196,7 +196,7 @@ DelayBuffer::EnsureBuffer()
     
     const int chunkCount = (mMaxDelayTicks + 2 * WEBAUDIO_BLOCK_SIZE - 1) >>
                                          WEBAUDIO_BLOCK_SIZE_BITS;
-    if (!mChunks.SetLength(chunkCount)) {
+    if (!mChunks.SetLength(chunkCount, fallible)) {
       return false;
     }
 

@@ -62,7 +62,7 @@ public:
       
       
       
-      if (mInputChannels.SetLength(mNumberOfChannels)) {
+      if (mInputChannels.SetLength(mNumberOfChannels, fallible)) {
         for (uint32_t i = 0; i < mNumberOfChannels; ++i) {
           mInputChannels[i] = new (fallible) float[mLength];
           if (!mInputChannels[i]) {

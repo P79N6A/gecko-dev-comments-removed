@@ -90,7 +90,7 @@ protected:
 
 
   bool SetLength(uint32_t aNumberOfItems) {
-    return mLengths.SetLength(aNumberOfItems);
+    return mLengths.SetLength(aNumberOfItems, fallible);
   }
 
 private:

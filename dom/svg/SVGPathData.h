@@ -202,7 +202,7 @@ protected:
 
 
   bool SetLength(uint32_t aLength) {
-    return mData.SetLength(aLength);
+    return mData.SetLength(aLength, fallible);
   }
 
   nsresult SetValueFromString(const nsAString& aValue);

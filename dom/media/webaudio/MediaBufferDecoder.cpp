@@ -352,7 +352,7 @@ MediaDecodeTask::FinishDecode()
   
   
   bool memoryAllocationSuccess = true;
-  if (!mDecodeJob.mChannelBuffers.SetLength(channelCount)) {
+  if (!mDecodeJob.mChannelBuffers.SetLength(channelCount, fallible)) {
     memoryAllocationSuccess = false;
   } else {
     for (uint32_t i = 0; i < channelCount; ++i) {

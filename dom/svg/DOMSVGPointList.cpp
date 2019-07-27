@@ -166,7 +166,7 @@ DOMSVGPointList::InternalListWillChangeTo(const SVGPointList& aNewValue)
     }
   }
 
-  if (!mItems.SetLength(newLength)) {
+  if (!mItems.SetLength(newLength, fallible)) {
     
     
     mItems.Clear();

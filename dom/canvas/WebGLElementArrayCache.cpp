@@ -376,7 +376,7 @@ WebGLElementArrayCacheTree<T>::Update(size_t firstByte, size_t lastByte)
     
     if (requiredNumLeaves != NumLeaves()) {
         
-        if (!mTreeData.SetLength(2 * requiredNumLeaves)) {
+        if (!mTreeData.SetLength(2 * requiredNumLeaves, fallible)) {
             mTreeData.SetLength(0);
             return false;
         }
@@ -470,7 +470,7 @@ bool
 WebGLElementArrayCache::BufferData(const void* ptr, size_t byteLength)
 {
     if (mBytes.Length() != byteLength) {
-        if (!mBytes.SetLength(byteLength)) {
+        if (!mBytes.SetLength(byteLength, fallible)) {
             mBytes.SetLength(0);
             return false;
         }

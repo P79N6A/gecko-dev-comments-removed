@@ -92,7 +92,7 @@ protected:
 
 
   bool SetLength(uint32_t aStringOfItems) {
-    return mStrings.SetLength(aStringOfItems);
+    return mStrings.SetLength(aStringOfItems, fallible);
   }
 
 private:

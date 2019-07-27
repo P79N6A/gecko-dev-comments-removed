@@ -132,7 +132,7 @@ DOMSVGTransformList::InternalListLengthWillChange(uint32_t aNewLength)
     }
   }
 
-  if (!mItems.SetLength(aNewLength)) {
+  if (!mItems.SetLength(aNewLength, fallible)) {
     
     
     mItems.Clear();

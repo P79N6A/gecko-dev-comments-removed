@@ -91,7 +91,7 @@ protected:
 
 
   bool SetLength(uint32_t aNumberOfItems) {
-    return mNumbers.SetLength(aNumberOfItems);
+    return mNumbers.SetLength(aNumberOfItems, fallible);
   }
 
 private:
