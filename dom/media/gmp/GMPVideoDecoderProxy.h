@@ -49,6 +49,8 @@ public:
   
   
   virtual void Close() = 0;
+
+  virtual const nsCString& GetDisplayName() const = 0;
 };
 
 #endif
