@@ -168,18 +168,6 @@ public:
 
 
 
-  void Draw(nsPresContext*       aPresContext,
-            nsRenderingContext&  aRenderingContext,
-            const nsRect&        aDirtyRect,
-            const nsRect&        aDest,
-            const nsRect&        aFill,
-            const nsPoint&       aAnchor,
-            const mozilla::CSSIntRect& aSrc);
-  
-
-
-
-
   void DrawBackground(nsPresContext*       aPresContext,
                       nsRenderingContext&  aRenderingContext,
                       const nsRect&        aDest,
@@ -218,6 +206,21 @@ public:
   bool IsReady() { return mIsReady; }
 
 private:
+  
+
+
+
+
+
+
+  void Draw(nsPresContext*       aPresContext,
+            nsRenderingContext&  aRenderingContext,
+            const nsRect&        aDirtyRect,
+            const nsRect&        aDest,
+            const nsRect&        aFill,
+            const nsPoint&       aAnchor,
+            const mozilla::CSSIntRect& aSrc);
+
   
 
 
