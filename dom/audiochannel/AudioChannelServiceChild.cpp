@@ -94,6 +94,22 @@ AudioChannelServiceChild::GetState(AudioChannelAgent* aAgent, bool aElementHidde
   data->mState = state;
   cc->SendAudioChannelChangedNotification();
 
+  #ifdef MOZ_WIDGET_GONK
+  
+
+
+
+
+
+  bool active = AnyAudioChannelIsActive();
+  if (aElementHidden == oldElementHidden &&
+      (!aElementHidden || (aElementHidden && !active))) {
+    for (uint32_t i = 0; i < mSpeakerManager.Length(); i++) {
+      mSpeakerManager[i]->SetAudioChannelActive(active);
+    }
+  }
+  #endif
+
   return state;
 }
 

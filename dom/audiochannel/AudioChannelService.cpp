@@ -374,10 +374,19 @@ AudioChannelService::GetState(AudioChannelAgent* aAgent, bool aElementHidden)
   data->mState = GetStateInternal(data->mChannel, CONTENT_PROCESS_ID_MAIN,
                                 aElementHidden, oldElementHidden);
   #ifdef MOZ_WIDGET_GONK
-    bool active = AnyAudioChannelIsActive();
+  
+
+
+
+
+
+  bool active = AnyAudioChannelIsActive();
+  if (aElementHidden == oldElementHidden &&
+      (!aElementHidden || (aElementHidden && !active))) {
     for (uint32_t i = 0; i < mSpeakerManager.Length(); i++) {
       mSpeakerManager[i]->SetAudioChannelActive(active);
     }
+  }
   #endif
 
   return data->mState;
