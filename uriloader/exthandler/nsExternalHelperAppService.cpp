@@ -696,7 +696,6 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
                                          aForceSave, aStreamListener);
   }
 
-  nsresult rv;
   nsAutoString fileName;
   nsAutoCString fileExtension;
   uint32_t reason = nsIHelperAppLauncherDialog::REASON_CANTHANDLE;
@@ -733,16 +732,19 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
         nsAutoCString query;
 
         
+        nsresult rv;
         bool isHTTP, isHTTPS;
         rv = uri->SchemeIs("http", &isHTTP);
-        if (NS_FAILED(rv))
+        if (NS_FAILED(rv)) {
           isHTTP = false;
+        }
         rv = uri->SchemeIs("https", &isHTTPS);
-        if (NS_FAILED(rv))
+        if (NS_FAILED(rv)) {
           isHTTPS = false;
-
-        if (isHTTP || isHTTPS)
+        }
+        if (isHTTP || isHTTPS) {
           url->GetQuery(query);
+        }
 
         
         
@@ -756,8 +758,9 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     LOG(("Found extension '%s' (filename is '%s', handling attachment: %i)",
          fileExtension.get(), NS_ConvertUTF16toUTF8(fileName).get(),
          isAttachment));
-    if (isAttachment)
+    if (isAttachment) {
       reason = nsIHelperAppLauncherDialog::REASON_SERVERREQUEST;
+    }
   }
 
   LOG(("HelperAppService::DoContent: mime '%s', extension '%s'\n",
@@ -789,21 +792,25 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
                                        getter_AddRefs(mimeInfo));
       mimeType.AssignLiteral(APPLICATION_OCTET_STREAM);
     }
-    if (channel)
+
+    if (channel) {
       channel->SetContentType(mimeType);
+    }
+
     
-    if (reason == nsIHelperAppLauncherDialog::REASON_CANTHANDLE)
+    if (reason == nsIHelperAppLauncherDialog::REASON_CANTHANDLE) {
       reason = nsIHelperAppLauncherDialog::REASON_TYPESNIFFED;
-  } 
-  else {
+    }
+  } else {
     mimeSvc->GetFromTypeAndExtension(aMimeContentType, fileExtension,
                                      getter_AddRefs(mimeInfo));
   } 
   LOG(("Type/Ext lookup found 0x%p\n", mimeInfo.get()));
 
   
-  if (!mimeInfo)
+  if (!mimeInfo) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   *aStreamListener = nullptr;
   
@@ -818,10 +825,11 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
                                                             fileName,
                                                             reason,
                                                             aForceSave);
-  if (!handler)
+  if (!handler) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
+
   NS_ADDREF(*aStreamListener = handler);
-  
   return NS_OK;
 }
 
