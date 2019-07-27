@@ -1488,12 +1488,6 @@ RasterImage::Decode(const Maybe<nsIntSize>& aSize, uint32_t aFlags)
     return NS_OK;
   }
 
-  
-  nsRefPtr<Decoder> decoder = CreateDecoder(aSize, aFlags);
-  if (!decoder) {
-    return NS_ERROR_FAILURE;
-  }
-
   if (mDownscaleDuringDecode && aSize) {
     
     
@@ -1503,6 +1497,12 @@ RasterImage::Decode(const Maybe<nsIntSize>& aSize, uint32_t aFlags)
     
     
     SurfaceCache::UnlockSurfaces(ImageKey(this));
+  }
+
+  
+  nsRefPtr<Decoder> decoder = CreateDecoder(aSize, aFlags);
+  if (!decoder) {
+    return NS_ERROR_FAILURE;
   }
 
   if (aSize) {
