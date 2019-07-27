@@ -149,7 +149,7 @@ function String_localeCompare(that) {
 }
 
 
-function String_static_fromCodePoint() {
+function String_static_fromCodePoint(codePoints) {
     
     
     var length = arguments.length;
