@@ -1019,21 +1019,45 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         } else {
             
             
+            
+            
+            
             PCMappingSlotInfo slotInfo;
-            uint8_t *nativeCodeForPC = baselineScript->nativeCodeForPC(script, pc, &slotInfo);
-            unsigned numUnsynced = slotInfo.numUnsynced();
+            uint8_t *nativeCodeForPC = baselineScript->maybeNativeCodeForPC(script, pc, &slotInfo);
+            unsigned numUnsynced;
+
+            if (excInfo && excInfo->propagatingIonExceptionForDebugMode()) {
+                
+                
+                
+                
+                
+                
+                
+                ICEntry &icEntry = baselineScript->anyKindICEntryFromPCOffset(iter.pcOffset());
+                nativeCodeForPC = baselineScript->returnAddressForIC(icEntry);
+
+                
+                
+                
+                numUnsynced = nativeCodeForPC ? slotInfo.numUnsynced() : 0;
+            } else {
+                MOZ_ASSERT(nativeCodeForPC);
+                numUnsynced = slotInfo.numUnsynced();
+            }
+
             MOZ_ASSERT(numUnsynced <= 2);
             PCMappingSlotInfo::SlotLocation loc1, loc2;
             if (numUnsynced > 0) {
                 loc1 = slotInfo.topSlotLocation();
                 JitSpew(JitSpew_BaselineBailouts, "      Popping top stack value into %d.",
-                            (int) loc1);
+                        (int) loc1);
                 builder.popValueInto(loc1);
             }
             if (numUnsynced > 1) {
                 loc2 = slotInfo.nextSlotLocation();
                 JitSpew(JitSpew_BaselineBailouts, "      Popping next stack value into %d.",
-                            (int) loc2);
+                        (int) loc2);
                 MOZ_ASSERT_IF(loc1 != PCMappingSlotInfo::SlotIgnore, loc1 != loc2);
                 builder.popValueInto(loc2);
             }
@@ -1043,7 +1067,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             frameSize -= sizeof(Value) * numUnsynced;
             blFrame->setFrameSize(frameSize);
             JitSpew(JitSpew_BaselineBailouts, "      Adjusted framesize -= %d: %d",
-                            int(sizeof(Value) * numUnsynced), int(frameSize));
+                    int(sizeof(Value) * numUnsynced), int(frameSize));
 
             
             
