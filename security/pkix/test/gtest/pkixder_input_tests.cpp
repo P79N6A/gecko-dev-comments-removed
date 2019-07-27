@@ -524,6 +524,77 @@ TEST_F(pkixder_input_tests, ReadTagAndGetValue_Input_InvalidWrongLength)
             ReadTagAndGetValue(input, tag, value));
 }
 
+TEST_F(pkixder_input_tests, ReadTagAndGetValue_Input_InvalidHighTagNumberForm1)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  static const uint8_t DER[] = {
+    0x1F, 
+    1,    
+    0     
+  };
+  Input buf(DER);
+  Reader input(buf);
+  uint8_t tag;
+  Input value;
+  ASSERT_EQ(Result::ERROR_BAD_DER,
+            ReadTagAndGetValue(input, tag, value));
+}
+
+TEST_F(pkixder_input_tests, ReadTagAndGetValue_Input_InvalidHighTagNumberForm2)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static const uint8_t DER[] = {
+    0x1F, 
+    31,   
+    0     
+  };
+  Input buf(DER);
+  Reader input(buf);
+  uint8_t tag;
+  Input value;
+  ASSERT_EQ(Result::ERROR_BAD_DER,
+            ReadTagAndGetValue(input, tag, value));
+}
+
+TEST_F(pkixder_input_tests, ReadTagAndGetValue_Input_InvalidHighTagNumberForm3)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static const uint8_t DER[] = {
+    0x1F,              
+    0x80 | 0x01, 0x00, 
+    0                  
+  };
+  Input buf(DER);
+  Reader input(buf);
+  uint8_t tag;
+  Input value;
+  ASSERT_EQ(Result::ERROR_BAD_DER,
+            ReadTagAndGetValue(input, tag, value));
+}
+
 TEST_F(pkixder_input_tests, ExpectTagAndGetValue_Reader_ValidEmpty)
 {
   Input buf(DER_SEQUENCE_EMPTY);
