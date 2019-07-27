@@ -71,9 +71,9 @@ class LAllocation : public TempObject
 
   public:
     enum Kind {
-        USE,            
         CONSTANT_VALUE, 
         CONSTANT_INDEX, 
+        USE,            
         GPR,            
         FPU,            
         STACK_SLOT,     
@@ -103,7 +103,9 @@ class LAllocation : public TempObject
 
   public:
     LAllocation() : bits_(0)
-    { }
+    {
+        JS_ASSERT(isBogus());
+    }
 
     static LAllocation *New(TempAllocator &alloc) {
         return new(alloc) LAllocation();
@@ -115,6 +117,7 @@ class LAllocation : public TempObject
 
     
     explicit LAllocation(const Value *vp) {
+        JS_ASSERT(vp);
         bits_ = uintptr_t(vp);
         JS_ASSERT((bits_ & (KIND_MASK << KIND_SHIFT)) == 0);
         bits_ |= CONSTANT_VALUE << KIND_SHIFT;
@@ -125,6 +128,9 @@ class LAllocation : public TempObject
         return (Kind)((bits_ >> KIND_SHIFT) & KIND_MASK);
     }
 
+    bool isBogus() const {
+        return bits_ == 0;
+    }
     bool isUse() const {
         return kind() == USE;
     }
@@ -328,11 +334,6 @@ class LConstantIndex : public LAllocation
     { }
 
   public:
-    
-    static LConstantIndex Bogus() {
-        return LConstantIndex(0);
-    }
-
     static LConstantIndex FromIndex(uint32_t index) {
         return LConstantIndex(index);
     }
@@ -400,15 +401,15 @@ class LDefinition
     
     enum Policy {
         
-        REGISTER,
-
-        
         
         
         
         
         
         FIXED,
+
+        
+        REGISTER,
 
         
         
@@ -462,10 +463,12 @@ class LDefinition
     }
 
     LDefinition() : bits_(0)
-    { }
+    {
+        JS_ASSERT(isBogusTemp());
+    }
 
     static LDefinition BogusTemp() {
-        return LDefinition(GENERAL, LConstantIndex::Bogus());
+        return LDefinition();
     }
 
     Policy policy() const {
@@ -517,7 +520,7 @@ class LDefinition
         return policy() == FIXED;
     }
     bool isBogusTemp() const {
-        return isFixed() && output()->isConstantIndex();
+        return isFixed() && output()->isBogus();
     }
     void setVirtualRegister(uint32_t index) {
         JS_ASSERT(index < VREG_MASK);
