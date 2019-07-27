@@ -95,10 +95,8 @@ class nsCaret : public nsISelectionListener
 
 
 
-
     nsIFrame* GetGeometry(nsISelection* aSelection,
-                          nsRect* aRect,
-                          nscoord* aBidiIndicatorSize = nullptr);
+                          nsRect* aRect);
     
 
 
