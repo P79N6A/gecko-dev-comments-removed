@@ -1480,7 +1480,7 @@ ThreadActor.prototype = {
 
 
     
-    scripts = this.dbg.findScripts({
+    let scripts = this.dbg.findScripts({
       url: aLocation.url,
       line: aLocation.line,
       innermost: true
@@ -2466,15 +2466,14 @@ PauseScopedActor.prototype = {
 
 
 function resolveURIToLocalPath(aURI) {
-  let resolved;
   switch (aURI.scheme) {
     case "jar":
     case "file":
       return aURI;
 
     case "chrome":
-      resolved = Cc["@mozilla.org/chrome/chrome-registry;1"].
-                 getService(Ci.nsIChromeRegistry).convertChromeURL(aURI);
+      let resolved = Cc["@mozilla.org/chrome/chrome-registry;1"].
+                     getService(Ci.nsIChromeRegistry).convertChromeURL(aURI);
       return resolveURIToLocalPath(resolved);
 
     case "resource":
@@ -4623,8 +4622,7 @@ EnvironmentActor.prototype = {
       let value = this.obj.getVariable(name);
       
       
-      
-      if (value && (value.optimizedOut || value.missingArguments || value.uninitialized)) {
+      if (value && (value.optimizedOut || value.missingArguments)) {
         continue;
       }
 
@@ -5077,14 +5075,17 @@ ThreadSources.prototype = {
 
       return this._sourceMapsByGeneratedSource[url]
         .then((aSourceMap) => {
-          let { source: aSourceURL, line: aLine, column: aColumn } = aSourceMap.originalPositionFor({
-            line: line,
-            column: column
-          });
+          let {
+            source: aSourceURL,
+            line: aLine,
+            column: aColumn,
+            name: aName
+          } = aSourceMap.originalPositionFor({ line, column });
           return {
             url: aSourceURL,
             line: aLine,
-            column: aColumn
+            column: aColumn,
+            name: aName
           };
         })
         .then(null, error => {
