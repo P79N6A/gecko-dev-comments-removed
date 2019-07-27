@@ -480,7 +480,7 @@ void nsSecureBrowserUIImpl::ResetStateTracking()
                     sizeof(RequestHashEntry));
 }
 
-nsresult
+void
 nsSecureBrowserUIImpl::EvaluateAndUpdateSecurityState(nsIRequest* aRequest,
                                                       nsISupports *info,
                                                       bool withNewLocation,
@@ -543,8 +543,7 @@ nsSecureBrowserUIImpl::EvaluateAndUpdateSecurityState(nsIRequest* aRequest,
     mRestoreSubrequests = false;
   }
 
-  return UpdateSecurityState(aRequest, withNewLocation,
-                             withNewSink || updateStatus);
+  UpdateSecurityState(aRequest, withNewLocation, withNewSink || updateStatus);
 }
 
 void
@@ -1189,9 +1188,11 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
       
       
 
-      if (sinkChanged || mOnLocationChangeSeen)
-        return EvaluateAndUpdateSecurityState(aRequest, securityInfo,
-                                              false, sinkChanged);
+      if (sinkChanged || mOnLocationChangeSeen) {
+        EvaluateAndUpdateSecurityState(aRequest, securityInfo, false,
+                                       sinkChanged);
+        return NS_OK;
+      }
     }
     mOnLocationChangeSeen = false;
 
@@ -1268,8 +1269,9 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
         temp_NewToplevelSecurityStateKnown = mNewToplevelSecurityStateKnown;
       }
 
-      if (temp_NewToplevelSecurityStateKnown)
-        return UpdateSecurityState(aRequest, false, false);
+      if (temp_NewToplevelSecurityStateKnown) {
+        UpdateSecurityState(aRequest, false, false);
+      }
     }
 
     return NS_OK;
@@ -1287,130 +1289,74 @@ void nsSecureBrowserUIImpl::ObtainEventSink(nsIChannel *channel,
     NS_QueryNotificationCallbacks(channel, sink);
 }
 
-nsresult nsSecureBrowserUIImpl::UpdateSecurityState(nsIRequest* aRequest, 
-                                                    bool withNewLocation, 
-                                                    bool withUpdateStatus)
+void
+nsSecureBrowserUIImpl::UpdateSecurityState(nsIRequest* aRequest,
+                                           bool withNewLocation,
+                                           bool withUpdateStatus)
 {
-  lockIconState warnSecurityState = lis_no_security;
-  nsresult rv = NS_OK;
-
-  
-  bool flagsChanged = UpdateMyFlags(warnSecurityState);
-
-  if (flagsChanged || withNewLocation || withUpdateStatus)
-    rv = TellTheWorld(warnSecurityState, aRequest);
-
-  return rv;
-}
-
-
-
-
-bool nsSecureBrowserUIImpl::UpdateMyFlags(lockIconState &warnSecurityState)
-{
-  ReentrantMonitorAutoEnter lock(mReentrantMonitor);
-  bool mustTellTheWorld = false;
-
-  lockIconState newSecurityState;
-
-  if (mNewToplevelSecurityState & STATE_IS_SECURE)
-  {
-    if (mSubRequestsBrokenSecurity
-        ||
-        mSubRequestsNoSecurity)
-    {
+  lockIconState newSecurityState = lis_no_security;
+  if (mNewToplevelSecurityState & STATE_IS_SECURE) {
+    
+    if (mSubRequestsBrokenSecurity || mSubRequestsNoSecurity) {
       newSecurityState = lis_mixed_security;
-    }
-    else
-    {
+    } else {
       newSecurityState = lis_high_security;
     }
   }
-  else
-  if (mNewToplevelSecurityState & STATE_IS_BROKEN)
-  {
-    
-  
+
+  if (mNewToplevelSecurityState & STATE_IS_BROKEN) {
     newSecurityState = lis_broken_security;
-  }
-  else
-  {
-    newSecurityState = lis_no_security;
   }
 
   PR_LOG(gSecureDocLog, PR_LOG_DEBUG,
          ("SecureUI:%p: UpdateSecurityState:  old-new  %d - %d\n", this,
-         mNotifiedSecurityState, newSecurityState
-          ));
+          mNotifiedSecurityState, newSecurityState));
 
-  if (mNotifiedSecurityState != newSecurityState)
-  {
-    mustTellTheWorld = true;
-
+  bool flagsChanged = false;
+  if (mNotifiedSecurityState != newSecurityState) {
     
-
-    
-
-
-
-
-
-
-
-
-
+    flagsChanged = true;
     mNotifiedSecurityState = newSecurityState;
 
-    if (lis_no_security == newSecurityState)
-    {
+    
+    if (newSecurityState == lis_no_security) {
       mSSLStatus = nullptr;
     }
   }
 
   if (mNotifiedToplevelIsEV != mNewToplevelIsEV) {
-    mustTellTheWorld = true;
+    flagsChanged = true;
     mNotifiedToplevelIsEV = mNewToplevelIsEV;
   }
 
-  return mustTellTheWorld;
+  if (flagsChanged || withNewLocation || withUpdateStatus) {
+    TellTheWorld(aRequest);
+  }
 }
 
-nsresult nsSecureBrowserUIImpl::TellTheWorld(lockIconState warnSecurityState, 
-                                             nsIRequest* aRequest)
+void
+nsSecureBrowserUIImpl::TellTheWorld(nsIRequest* aRequest)
 {
-  nsCOMPtr<nsISecurityEventSink> temp_ToplevelEventSink;
-  lockIconState temp_NotifiedSecurityState;
-  bool temp_NotifiedToplevelIsEV;
-
+  nsCOMPtr<nsISecurityEventSink> toplevelEventSink;
+  uint32_t state = STATE_IS_INSECURE;
   {
     ReentrantMonitorAutoEnter lock(mReentrantMonitor);
-    temp_ToplevelEventSink = mToplevelEventSink;
-    temp_NotifiedSecurityState = mNotifiedSecurityState;
-    temp_NotifiedToplevelIsEV = mNotifiedToplevelIsEV;
+    toplevelEventSink = mToplevelEventSink;
+    GetState(&state);
   }
 
-  if (temp_ToplevelEventSink)
-  {
-    uint32_t newState = STATE_IS_INSECURE;
-    MapInternalToExternalState(&newState, 
-                               temp_NotifiedSecurityState, 
-                               temp_NotifiedToplevelIsEV);
-
+  if (toplevelEventSink) {
     PR_LOG(gSecureDocLog, PR_LOG_DEBUG,
-           ("SecureUI:%p: UpdateSecurityState: calling OnSecurityChange\n", this
-            ));
+           ("SecureUI:%p: UpdateSecurityState: calling OnSecurityChange\n",
+            this));
 
-    temp_ToplevelEventSink->OnSecurityChange(aRequest, newState);
-  }
-  else
-  {
+    toplevelEventSink->OnSecurityChange(aRequest, state);
+  } else {
     PR_LOG(gSecureDocLog, PR_LOG_DEBUG,
-           ("SecureUI:%p: UpdateSecurityState: NO mToplevelEventSink!\n", this
-            ));
+           ("SecureUI:%p: UpdateSecurityState: NO mToplevelEventSink!\n",
+            this));
 
   }
-
-  return NS_OK; 
 }
 
 NS_IMETHODIMP
@@ -1479,7 +1425,8 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
   if (windowForProgress.get() == window.get()) {
     
     mOnLocationChangeSeen = true;
-    return EvaluateAndUpdateSecurityState(aRequest, securityInfo, true, false);
+    EvaluateAndUpdateSecurityState(aRequest, securityInfo, true, false);
+    return NS_OK;
   }
 
   
@@ -1502,8 +1449,9 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
     temp_NewToplevelSecurityStateKnown = mNewToplevelSecurityStateKnown;
   }
 
-  if (temp_NewToplevelSecurityStateKnown)
-    return UpdateSecurityState(aRequest, true, false);
+  if (temp_NewToplevelSecurityStateKnown) {
+    UpdateSecurityState(aRequest, true, false);
+  }
 
   return NS_OK;
 }
