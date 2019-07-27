@@ -4715,45 +4715,6 @@ Parser<FullParseHandler>::forStatement()
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     ParseNode *forLetImpliedBlock = nullptr;
     ParseNode *forLetDecl = nullptr;
 
@@ -4925,44 +4886,22 @@ Parser<FullParseHandler>::forStatement()
 
         if (blockObj) {
             
-            
+
+
+
+
             if (!checkForHeadConstInitializers(pn1)) {
                 report(ParseError, false, nullptr, JSMSG_BAD_CONST_DECL);
                 return null();
             }
 
-            
-            
-            
-            
-            
-            
-            
-            
-            
             forLetImpliedBlock = pushLetScope(blockObj, &letStmt);
             if (!forLetImpliedBlock)
                 return null();
             letStmt.isForLetBlock = true;
 
             forLetDecl = pn1;
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            if (pn1->isKind(PNK_CONST)) {
-                pn1 = nullptr;
-            } else {
-                pn1 = handler.newFreshenBlock(pn1->pn_pos);
-                if (!pn1)
-                    return null();
-            }
+            pn1 = nullptr;
         }
 
         

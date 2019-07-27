@@ -1649,6 +1649,8 @@
  \
     macro(JSOP_GETXPROP,      195,"getxprop",    NULL,    5,  1,  1, JOF_ATOM|JOF_PROP|JOF_TYPESET) \
     \
+    macro(JSOP_UNUSED196,     196,"unused196",   NULL,    1,  0,  0, JOF_BYTE) \
+    \
     
 
 
@@ -1659,21 +1661,9 @@
 
 
  \
-    macro(JSOP_TYPEOFEXPR,    196,"typeofexpr",  NULL,    1,  1,  1, JOF_BYTE|JOF_DETECTING) \
+    macro(JSOP_TYPEOFEXPR,    197,"typeofexpr",  NULL,    1,  1,  1, JOF_BYTE|JOF_DETECTING) \
     \
      \
-    
-
-
-
-
-
-
-
-
-
- \
-    macro(JSOP_FRESHENBLOCKSCOPE,197,"freshenblockscope", NULL, 1, 0, 0, JOF_BYTE) \
     
 
 
