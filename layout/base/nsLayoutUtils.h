@@ -122,6 +122,7 @@ class nsLayoutUtils
   typedef mozilla::gfx::Color Color;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Float Float;
+  typedef mozilla::gfx::Point Point;
   typedef mozilla::gfx::Rect Rect;
   typedef mozilla::gfx::Matrix4x4 Matrix4x4;
   typedef mozilla::gfx::StrokeOptions StrokeOptions;
@@ -2392,6 +2393,25 @@ nsLayoutUtils::PointIsCloserToRect(PointType aPoint, const RectType& aRect,
 }
 
 namespace mozilla {
+
+
+
+
+
+
+inline gfx::Point NSPointToPoint(const nsPoint& aPoint,
+                                 int32_t aAppUnitsPerPixel) {
+  return gfx::Point(gfx::Float(aPoint.x) / aAppUnitsPerPixel,
+                    gfx::Float(aPoint.y) / aAppUnitsPerPixel);
+}
+
+
+
+
+
+
+gfx::Rect NSRectToRect(const nsRect& aRect, int32_t aAppUnitsPerPixel);
+
   namespace layout {
 
     
