@@ -138,6 +138,7 @@ ClippedImage::ShouldClip()
       InnerImage()->GetProgressTracker();
     if (InnerImage()->HasError()) {
       
+      
       mShouldClip.emplace(false);
     } else if (NS_SUCCEEDED(InnerImage()->GetWidth(&width)) && width > 0 &&
                NS_SUCCEEDED(InnerImage()->GetHeight(&height)) && height > 0) {
@@ -146,7 +147,8 @@ ClippedImage::ShouldClip()
 
       
       
-      mShouldClip.emplace(!mClip.IsEqualInterior(nsIntRect(0, 0, width, height)));
+      mShouldClip.emplace(!mClip.IsEqualInterior(nsIntRect(0, 0, width,
+                                                           height)));
     } else if (progressTracker &&
                !(progressTracker->GetProgress() & FLAG_LOAD_COMPLETE)) {
       
@@ -279,7 +281,7 @@ ClippedImage::GetImageContainer(LayerManager* aManager, uint32_t aFlags)
     return InnerImage()->GetImageContainer(aManager, aFlags);
   }
 
-  return nullptr;
+  return (nullptr);
 }
 
 static bool
@@ -347,7 +349,8 @@ UnclipViewport(const SVGImageContext& aOldContext,
   
   CSSIntSize vSize(aOldContext.GetViewportSize());
   vSize.width = ceil(vSize.width * double(innerSize.width) / clipSize.width);
-  vSize.height = ceil(vSize.height * double(innerSize.height) / clipSize.height);
+  vSize.height =
+    ceil(vSize.height * double(innerSize.height) / clipSize.height);
 
   return SVGImageContext(vSize,
                          aOldContext.GetPreserveAspectRatio());
@@ -371,13 +374,14 @@ ClippedImage::DrawSingleTile(gfxContext* aContext,
       NS_SUCCEEDED(InnerImage()->GetHeight(&innerSize.height))) {
     double scaleX = aSize.width / clip.width;
     double scaleY = aSize.height / clip.height;
-    
+
     
     clip.Scale(scaleX, scaleY);
     size = innerSize;
     size.Scale(scaleX, scaleY);
   } else {
-    MOZ_ASSERT(false, "If ShouldClip() led us to draw then we should never get here");
+    MOZ_ASSERT(false,
+               "If ShouldClip() led us to draw then we should never get here");
   }
 
   
@@ -414,11 +418,13 @@ ClippedImage::GetOrientation()
 }
 
 nsIntSize
-ClippedImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
+ClippedImage::OptimalImageSizeForDest(const gfxSize& aDest,
+                                      uint32_t aWhichFrame,
                                       GraphicsFilter aFilter, uint32_t aFlags)
 {
   if (!ShouldClip()) {
-    return InnerImage()->OptimalImageSizeForDest(aDest, aWhichFrame, aFilter, aFlags);
+    return InnerImage()->OptimalImageSizeForDest(aDest, aWhichFrame, aFilter,
+                                                 aFlags);
   }
 
   int32_t imgWidth, imgHeight;
@@ -446,8 +452,10 @@ ClippedImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame
                          ceil(double(innerDesiredSize.height) / imgHeight));
     return mClip.Size() * finalScale;
   } else {
-    MOZ_ASSERT(false, "If ShouldClip() led us to draw then we should never get here");
-    return InnerImage()->OptimalImageSizeForDest(aDest, aWhichFrame, aFilter, aFlags);
+    MOZ_ASSERT(false,
+               "If ShouldClip() led us to draw then we should never get here");
+    return InnerImage()->OptimalImageSizeForDest(aDest, aWhichFrame, aFilter,
+                                                 aFlags);
   }
 }
 
