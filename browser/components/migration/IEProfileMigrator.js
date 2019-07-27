@@ -93,7 +93,9 @@ let CtypesHelpers = {
 
 
 
-  fileTimeToDate: function CH_fileTimeToDate(aTimeHi, aTimeLo) {
+
+
+  fileTimeToSecondsSinceEpoch(aTimeHi, aTimeLo) {
     let fileTime = this._structs.FILETIME();
     fileTime.dwLowDateTime = aTimeLo;
     fileTime.dwHighDateTime = aTimeHi;
@@ -103,13 +105,15 @@ let CtypesHelpers = {
     if (result == 0)
       throw new Error(ctypes.winLastError);
 
-    return new Date(systemTime.wYear,
-                    systemTime.wMonth - 1,
-                    systemTime.wDay,
-                    systemTime.wHour,
-                    systemTime.wMinute,
-                    systemTime.wSecond,
-                    systemTime.wMilliseconds);
+    
+    
+    return Math.floor(Date.UTC(systemTime.wYear,
+                               systemTime.wMonth - 1,
+                               systemTime.wDay,
+                               systemTime.wHour,
+                               systemTime.wMinute,
+                               systemTime.wSecond,
+                               systemTime.wMilliseconds) / 1000);
   }
 };
 
@@ -458,8 +462,8 @@ Cookies.prototype = {
           host = "." + host;
       }
 
-      let expireTime = CtypesHelpers.fileTimeToDate(Number(expireTimeHi),
-                                                    Number(expireTimeLo));
+      let expireTime = CtypesHelpers.fileTimeToSecondsSinceEpoch(Number(expireTimeHi),
+                                                                 Number(expireTimeLo));
       Services.cookies.add(host,
                            path,
                            name,
