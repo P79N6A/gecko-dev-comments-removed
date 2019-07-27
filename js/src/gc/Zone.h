@@ -12,10 +12,10 @@
 #include "mozilla/MemoryReporting.h"
 
 #include "jscntxt.h"
-#include "jsgc.h"
 #include "jsinfer.h"
 
 #include "gc/FindSCCs.h"
+#include "gc/GCRuntime.h"
 
 namespace js {
 
@@ -37,7 +37,7 @@ class Allocator
     
     
     
-    friend class gc::ArenaLists;
+    friend class js::gc::GCRuntime;
 
     JS::Zone *zone_;
 };

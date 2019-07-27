@@ -267,7 +267,7 @@ class Nursery
     HeapSlot *allocateHugeSlots(JS::Zone *zone, size_t nslots);
 
     
-    void *allocateFromTenured(JS::Zone *zone, gc::AllocKind thingKind);
+    gc::TenuredCell *allocateFromTenured(JS::Zone *zone, gc::AllocKind thingKind);
 
     struct TenureCountCache;
 

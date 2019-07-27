@@ -802,18 +802,9 @@ class ArenaLists
         return aheader == freeList.arenaHeader();
     }
 
-    MOZ_ALWAYS_INLINE void *allocateFromFreeList(AllocKind thingKind, size_t thingSize) {
+    MOZ_ALWAYS_INLINE TenuredCell *allocateFromFreeList(AllocKind thingKind, size_t thingSize) {
         return freeLists[thingKind].allocate(thingSize);
     }
-
-    template <AllowGC allowGC>
-    static void *refillFreeList(ThreadSafeContext *cx, AllocKind thingKind);
-    template <AllowGC allowGC>
-    static void *refillFreeListFromMainThread(JSContext *cx, AllocKind thingKind);
-    static void *refillFreeListOffMainThread(ExclusiveContext *cx, AllocKind thingKind);
-    static void *refillFreeListPJS(ForkJoinContext *cx, AllocKind thingKind);
-
-    static void *refillFreeListInGC(Zone *zone, AllocKind thingKind);
 
     
 
@@ -860,14 +851,18 @@ class ArenaLists
     inline void queueForForegroundSweep(FreeOp *fop, AllocKind thingKind);
     inline void queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind);
 
-    void *allocateFromArena(JS::Zone *zone, AllocKind thingKind);
-    inline void *allocateFromArenaInline(JS::Zone *zone, AllocKind thingKind,
-                                         AutoMaybeStartBackgroundAllocation &maybeStartBackgroundAllocation);
+    
+    
+    
+    TenuredCell *allocateFromArena(JS::Zone *zone, AllocKind thingKind);
+    TenuredCell *allocateFromArena(JS::Zone *zone, AllocKind thingKind,
+                                   AutoMaybeStartBackgroundAllocation &maybeStartBGAlloc);
 
     inline void normalizeBackgroundFinalizeState(AllocKind thingKind);
 
+    friend class GCRuntime;
     friend class js::Nursery;
-    friend class js::gc::ForkJoinNursery;
+    friend class ForkJoinNursery;
 };
 
 
