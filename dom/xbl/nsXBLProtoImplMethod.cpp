@@ -295,6 +295,7 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement, JSAddonId* aAd
   
   
   dom::AutoEntryScript aes(global);
+  aes.TakeOwnershipOfErrorReporting();
   JSContext* cx = aes.cx();
 
   JS::Rooted<JSObject*> globalObject(cx, global->GetGlobalJSObject());
@@ -324,20 +325,12 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement, JSAddonId* aAd
   bool scriptAllowed = nsContentUtils::GetSecurityManager()->
                          ScriptAllowed(js::GetGlobalForObjectCrossCompartment(method));
 
-  bool ok = true;
   if (scriptAllowed) {
     JS::Rooted<JS::Value> retval(cx);
     JS::Rooted<JS::Value> methodVal(cx, JS::ObjectValue(*method));
-    ok = ::JS::Call(cx, scopeChain[0], methodVal, JS::HandleValueArray::empty(), &retval);
-  }
-
-  if (!ok) {
     
     
-    
-    
-    nsJSUtils::ReportPendingException(cx);
-    return NS_ERROR_FAILURE;
+    ::JS::Call(cx, scopeChain[0], methodVal, JS::HandleValueArray::empty(), &retval);
   }
 
   return NS_OK;
