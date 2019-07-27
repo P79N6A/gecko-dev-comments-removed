@@ -3692,9 +3692,13 @@ nsCycleCollector::FinishAnyCurrentCollection()
   
   Collect(SliceCC, unlimitedBudget, nullptr);
 
+  
+  
+  
+  
   MOZ_ASSERT(mIncrementalPhase == IdlePhase ||
-             (mIncrementalPhase == ScanAndCollectWhitePhase && mActivelyCollecting),
-             "FinishAnyCurrentCollection should finish the collection, unless we've reentered the CC during unlinking");
+             (mActivelyCollecting && mIncrementalPhase != GraphBuildingPhase),
+             "Reentered CC during graph building");
 }
 
 
