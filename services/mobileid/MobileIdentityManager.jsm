@@ -176,8 +176,10 @@ this.MobileIdentityManager = {
       }
 
       let info = rilContext.iccInfo;
-      if (!info) {
-        log.warn("No ICC info");
+      if (!info || !info.iccid ||
+          !info.mcc || !info.mcc.length ||
+          !info.mnc || !info.mnc.length) {
+        log.warn("Absent or invalid ICC info");
         continue;
       }
 
