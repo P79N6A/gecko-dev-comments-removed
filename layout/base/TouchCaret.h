@@ -228,10 +228,12 @@ private:
 
   nscoord mCaretCenterToDownPointOffsetY;
 
-  static int32_t TouchCaretMaxDistance()
-  {
-    return sTouchCaretMaxDistance;
-  }
+  
+
+
+
+
+  static int32_t TouchCaretInflateSize() { return sTouchCaretInflateSize; }
 
   static int32_t TouchCaretExpirationTime()
   {
@@ -246,7 +248,7 @@ private:
   nsCOMPtr<nsITimer> mTouchCaretExpirationTimer;
 
   
-  static int32_t sTouchCaretMaxDistance;
+  static int32_t sTouchCaretInflateSize;
   static int32_t sTouchCaretExpirationTime;
 
   

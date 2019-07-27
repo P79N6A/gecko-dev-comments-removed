@@ -51,7 +51,7 @@ static const int32_t kBoundaryAppUnits = 61;
 
 NS_IMPL_ISUPPORTS(TouchCaret, nsISelectionListener)
 
- int32_t TouchCaret::sTouchCaretMaxDistance = 0;
+ int32_t TouchCaret::sTouchCaretInflateSize = 0;
  int32_t TouchCaret::sTouchCaretExpirationTime = 0;
 
 TouchCaret::TouchCaret(nsIPresShell* aPresShell)
@@ -65,8 +65,8 @@ TouchCaret::TouchCaret(nsIPresShell* aPresShell)
 
   static bool addedTouchCaretPref = false;
   if (!addedTouchCaretPref) {
-    Preferences::AddIntVarCache(&sTouchCaretMaxDistance,
-                                "touchcaret.distance.threshold");
+    Preferences::AddIntVarCache(&sTouchCaretInflateSize,
+                                "touchcaret.inflatesize.threshold");
     Preferences::AddIntVarCache(&sTouchCaretExpirationTime,
                                 "touchcaret.expiration.time");
     addedTouchCaretPref = true;
@@ -295,27 +295,8 @@ TouchCaret::MoveCaret(const nsPoint& movePoint)
 bool
 TouchCaret::IsOnTouchCaret(const nsPoint& aPoint)
 {
-  
-  if (!mVisible) {
-    return false;
-  }
-
-  nsRect tcRect = GetTouchFrameRect();
-
-  
-  int32_t distance;
-  if (tcRect.Contains(aPoint.x, aPoint.y)) {
-    distance = 0;
-  } else {
-    
-    
-    int32_t posX = (tcRect.x + (tcRect.width / 2));
-    int32_t posY = (tcRect.y + (tcRect.height / 2));
-    int32_t dx = Abs(aPoint.x - posX);
-    int32_t dy = Abs(aPoint.y - posY);
-    distance = dx + dy;
-  }
-  return (distance <= TouchCaretMaxDistance());
+  return mVisible && nsLayoutUtils::ContainsPoint(GetTouchFrameRect(), aPoint,
+                                                  TouchCaretInflateSize());
 }
 
 nsresult
