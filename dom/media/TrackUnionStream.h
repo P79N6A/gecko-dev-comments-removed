@@ -50,6 +50,8 @@ protected:
     nsAutoPtr<MediaSegment> mSegment;
   };
 
+  
+  
   uint32_t AddTrack(MediaInputPort* aPort, StreamBuffer::Track* aTrack,
                     GraphTime aFrom);
   void EndTrack(uint32_t aIndex);
@@ -58,6 +60,13 @@ protected:
                      bool* aOutputTrackFinished);
 
   nsTArray<TrackMapEntry> mTrackMap;
+
+  
+  
+  TrackID mNextAvailableTrackID;
+
+  
+  nsTArray<TrackID> mUsedTracks;
 };
 
 }
