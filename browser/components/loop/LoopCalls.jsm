@@ -179,8 +179,13 @@ CallProgressSocket.prototype = {
 
 
 let LoopCallsInternal = {
-  callsData: {inUse: false},
-  _mocks: {webSocket: undefined},
+  callsData: {
+    inUse: false,
+  },
+
+  mocks: {
+    webSocket: undefined,
+  },
 
   
 
@@ -308,7 +313,9 @@ let LoopCallsInternal = {
       callData.progressURL,
       callData.callId,
       callData.websocketToken);
-    callProgress._websocket = this._mocks.webSocket;
+    if (this.mocks.webSocket) {
+      callProgress._websocket = this.mocks.webSocket;
+    }
     
     
     callProgress.connect(() => {callProgress.sendBusy();});
