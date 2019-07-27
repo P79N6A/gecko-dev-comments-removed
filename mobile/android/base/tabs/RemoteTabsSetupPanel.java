@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko.tabspanel;
+package org.mozilla.gecko.tabs;
 
 import java.util.Locale;
 
@@ -10,7 +10,7 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.activities.FxAccountCreateAccountActivity;
-import org.mozilla.gecko.tabspanel.TabsPanel.PanelView;
+import org.mozilla.gecko.tabs.TabsPanel.PanelView;
 
 import android.content.Context;
 import android.content.Intent;

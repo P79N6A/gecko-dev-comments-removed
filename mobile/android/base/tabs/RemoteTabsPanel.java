@@ -2,13 +2,13 @@
 
 
 
-package org.mozilla.gecko.tabspanel;
+package org.mozilla.gecko.tabs;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.login.State;
 import org.mozilla.gecko.sync.setup.SyncAccounts;
-import org.mozilla.gecko.tabspanel.TabsPanel.PanelView;
+import org.mozilla.gecko.tabs.TabsPanel.PanelView;
 
 import android.content.Context;
 import android.util.AttributeSet;

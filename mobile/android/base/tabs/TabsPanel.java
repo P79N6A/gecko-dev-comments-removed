@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko.tabspanel;
+package org.mozilla.gecko.tabs;
 
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.GeckoApp;

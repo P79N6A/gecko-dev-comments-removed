@@ -2,13 +2,13 @@
 
 
 
-package org.mozilla.gecko.tabspanel;
+package org.mozilla.gecko.tabs;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.TabsAccessor;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
-import org.mozilla.gecko.tabspanel.TabsPanel.Panel;
+import org.mozilla.gecko.tabs.TabsPanel.Panel;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.GeckoSwipeRefreshLayout;
 

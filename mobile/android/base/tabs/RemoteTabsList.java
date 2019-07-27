@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko.tabspanel;
+package org.mozilla.gecko.tabs;
 
 import java.util.ArrayList;
 import java.util.HashMap;
