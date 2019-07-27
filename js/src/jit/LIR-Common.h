@@ -136,6 +136,28 @@ class LMoveGroup : public LInstructionHelper<0, 0, 0>
 };
 
 
+
+class LSimdBox : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(SimdBox)
+
+    explicit LSimdBox(const LAllocation &simd, const LDefinition &temp)
+    {
+        setOperand(0, simd);
+        setTemp(0, temp);
+    }
+
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+
+    MSimdBox *mir() const {
+        return mir_->toSimdBox();
+    }
+};
+
+
 class LSimdSplatX4 : public LInstructionHelper<1, 1, 0>
 {
   public:

@@ -295,6 +295,9 @@ IonBuilder::inlineNonFunctionCall(CallInfo &callInfo, JSObject *target)
     if (callInfo.constructing() && target->constructHook() == TypedObject::construct)
         return inlineConstructTypedObject(callInfo, &target->as<TypeDescr>());
 
+    if (!callInfo.constructing() && target->callHook() == SimdTypeDescr::call)
+        return inlineConstructSimdObject(callInfo, &target->as<SimdTypeDescr>());
+
     return InliningStatus_NotInlined;
 }
 
@@ -2509,6 +2512,57 @@ IonBuilder::inlineConstructTypedObject(CallInfo &callInfo, TypeDescr *descr)
     current->add(ins);
     current->push(ins);
 
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineConstructSimdObject(CallInfo &callInfo, SimdTypeDescr *descr)
+{
+    if (callInfo.argc() == 1)
+        return InliningStatus_NotInlined;
+
+    
+    MIRType simdType;
+    switch (descr->type()) {
+      case SimdTypeDescr::TYPE_INT32:
+        simdType = MIRType_Int32x4;
+        break;
+      case SimdTypeDescr::TYPE_FLOAT32:
+        simdType = MIRType_Float32x4;
+        break;
+      default:
+        MOZ_CRASH("Unknown SIMD kind when generating MSimdBox instruction.");
+        return InliningStatus_NotInlined;
+    }
+
+    
+    
+    if (SimdTypeToLength(simdType) != callInfo.argc())
+        return InliningStatus_NotInlined;
+
+    
+    
+    MOZ_ASSERT(size_t(descr->size(descr->type())) < InlineTypedObject::MaximumSize);
+    JSObject *templateObject = inspector->getTemplateObjectForClassHook(pc, descr->getClass());
+    if (!templateObject)
+        return InliningStatus_NotInlined;
+
+    
+    
+    InlineTypedObject *inlineTypedObject = &templateObject->as<InlineTypedObject>();
+    MOZ_ASSERT(&inlineTypedObject->typeDescr() == descr);
+
+    MSimdValueX4 *values = MSimdValueX4::New(alloc(), simdType,
+                                             callInfo.getArg(0), callInfo.getArg(1),
+                                             callInfo.getArg(2), callInfo.getArg(3));
+    current->add(values);
+
+    MSimdBox *obj = MSimdBox::New(alloc(), constraints(), values, inlineTypedObject,
+                                  inlineTypedObject->type()->initialHeap(constraints()));
+    current->add(obj);
+    current->push(obj);
+
+    callInfo.setImplicitlyUsedUnchecked();
     return InliningStatus_Inlined;
 }
 

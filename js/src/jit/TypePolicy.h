@@ -304,6 +304,19 @@ class ObjectPolicy MOZ_FINAL : public TypePolicy
 
 typedef ObjectPolicy<0> SingleObjectPolicy;
 
+
+
+template <unsigned Op>
+class SimdScalarPolicy MOZ_FINAL : public TypePolicy
+{
+  public:
+    EMPTY_DATA_;
+    static bool staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+    virtual bool adjustInputs(TempAllocator &alloc, MInstruction *def) MOZ_OVERRIDE {
+        return staticAdjustInputs(alloc, def);
+    }
+};
+
 template <unsigned Op>
 class BoxPolicy MOZ_FINAL : public TypePolicy
 {
