@@ -52,7 +52,6 @@ WebConsolePanel.prototype = {
   {
     let parentDoc = this._toolbox.doc;
     let iframe = parentDoc.getElementById("toolbox-panel-iframe-webconsole");
-    iframe.className = "web-console-frame";
 
     
     let deferredIframe = promise.defer();
