@@ -2224,19 +2224,16 @@ NS_IMETHODIMP PresShell::SetCaretEnabled(bool aInEnable)
 
   if (mCaretEnabled != oldEnabled)
   {
-
-
-
-
-
-
-    MOZ_ASSERT(mCaret || mTouchCaret);
+    MOZ_ASSERT(mCaret);
     if (mCaret) {
       mCaret->SetVisible(mCaretEnabled);
     }
-    if (mTouchCaret) {
-      mTouchCaret->SyncVisibilityWithCaret();
-    }
+  }
+
+  
+  
+  if (mTouchCaret) {
+    mTouchCaret->SyncVisibilityWithCaret();
   }
 
   return NS_OK;
