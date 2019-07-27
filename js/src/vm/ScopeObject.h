@@ -1034,11 +1034,11 @@ JSObject::is<js::StaticBlockObject>() const
 namespace js {
 
 inline bool
-IsValidTerminatingScope(JSObject* scope)
+IsSyntacticScope(JSObject* scope)
 {
-    return !scope->is<ScopeObject>() ||
-           (scope->is<DynamicWithObject>() &&
-            !scope->as<DynamicWithObject>().isSyntactic());
+    return scope->is<ScopeObject>() &&
+           (!scope->is<DynamicWithObject>() ||
+            scope->as<DynamicWithObject>().isSyntactic());
 }
 
 inline const Value &
@@ -1082,7 +1082,7 @@ ScopeIter::enclosingScope() const
     
     
     MOZ_ASSERT(done());
-    MOZ_ASSERT(IsValidTerminatingScope(scope_));
+    MOZ_ASSERT(!IsSyntacticScope(scope_));
     return *scope_;
 }
 

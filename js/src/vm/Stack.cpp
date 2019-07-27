@@ -171,7 +171,7 @@ AssertDynamicScopeMatchesStaticScope(JSContext *cx, JSScript *script, JSObject *
 
     
     
-    MOZ_ASSERT(IsValidTerminatingScope(scope));
+    MOZ_ASSERT(!IsSyntacticScope(scope));
 #endif
 }
 
@@ -238,7 +238,7 @@ InterpreterFrame::epilogue(JSContext *cx)
                 DebugScopes::onPopStrictEvalScope(this);
         } else if (isDirectEvalFrame()) {
             if (isDebuggerEvalFrame())
-                MOZ_ASSERT(IsValidTerminatingScope(scopeChain()));
+                MOZ_ASSERT(!IsSyntacticScope(scopeChain()));
         } else {
             
 
@@ -258,7 +258,7 @@ InterpreterFrame::epilogue(JSContext *cx)
     }
 
     if (isGlobalFrame()) {
-        MOZ_ASSERT(IsValidTerminatingScope(scopeChain()));
+        MOZ_ASSERT(!IsSyntacticScope(scopeChain()));
         return;
     }
 

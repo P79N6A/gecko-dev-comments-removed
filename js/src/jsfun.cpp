@@ -2099,7 +2099,7 @@ js::CloneFunctionObjectUseSameScript(JSCompartment *compartment, HandleFunction 
     
     
     
-    if (!IsValidTerminatingScope(newParent))
+    if (IsSyntacticScope(newParent))
         return true;
 
     
