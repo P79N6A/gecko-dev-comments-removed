@@ -150,9 +150,6 @@ namespace shadow {
 
 struct Runtime
 {
-    
-    bool needsIncrementalBarrier_;
-
   protected:
     
     friend class js::gc::AutoTraceSession;
@@ -162,13 +159,12 @@ struct Runtime
 
   public:
     Runtime()
-      : needsIncrementalBarrier_(false)
-      , heapState_(JS::HeapState::Idle)
+      : heapState_(JS::HeapState::Idle)
       , gcStoreBufferPtr_(nullptr)
     {}
 
     bool needsIncrementalBarrier() const {
-        return needsIncrementalBarrier_;
+        return heapState_ == JS::HeapState::Idle;
     }
 
     js::gc::StoreBuffer* gcStoreBufferPtr() { return gcStoreBufferPtr_; }

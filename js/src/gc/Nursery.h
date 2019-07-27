@@ -60,11 +60,7 @@ class TenuringTracer : public JSTracer
     gc::RelocationOverlay* head;
     gc::RelocationOverlay** tail;
 
-    
-    bool savedRuntimeNeedBarrier;
-
     TenuringTracer(JSRuntime* rt, Nursery* nursery);
-    ~TenuringTracer();
 
   public:
     const Nursery& nursery() const { return nursery_; }

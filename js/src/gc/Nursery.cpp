@@ -375,23 +375,8 @@ js::TenuringTracer::TenuringTracer(JSRuntime* rt, Nursery* nursery)
   , tenuredSize(0)
   , head(nullptr)
   , tail(&head)
-  , savedRuntimeNeedBarrier(rt->needsIncrementalBarrier())
 {
     rt->gc.incGcNumber();
-
-    
-    
-    
-    
-    
-    
-    
-    rt->setNeedsIncrementalBarrier(false);
-}
-
-js::TenuringTracer::~TenuringTracer()
-{
-    runtime()->setNeedsIncrementalBarrier(savedRuntimeNeedBarrier);
 }
 
 #define TIME_START(name) int64_t timestampStart_##name = enableProfiling_ ? PRMJ_Now() : 0
