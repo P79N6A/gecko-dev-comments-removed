@@ -527,31 +527,18 @@ private:
 void
 TrackBuffer::RemoveDecoder(SourceBufferDecoder* aDecoder)
 {
-  RefPtr<nsIRunnable> task;
-  nsRefPtr<MediaTaskQueue> taskQueue;
+  RefPtr<nsIRunnable> task = new DelayedDispatchToMainThread(aDecoder);
+
   {
     ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
-    if (mInitializedDecoders.RemoveElement(aDecoder)) {
-      taskQueue = aDecoder->GetReader()->GetTaskQueue();
-      task = new DelayedDispatchToMainThread(aDecoder);
-    } else {
-      task = new ReleaseDecoderTask(aDecoder);
-    }
+    mInitializedDecoders.RemoveElement(aDecoder);
     mDecoders.RemoveElement(aDecoder);
 
     if (mCurrentDecoder == aDecoder) {
       DiscardDecoder();
     }
   }
-  
-  if (taskQueue) {
-    
-    
-    
-    taskQueue->Dispatch(task);
-  } else {
-    NS_DispatchToMainThread(task);
-  }
+  aDecoder->GetReader()->GetTaskQueue()->Dispatch(task);
 }
 
 } 
