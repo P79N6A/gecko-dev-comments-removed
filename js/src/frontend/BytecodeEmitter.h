@@ -275,6 +275,18 @@ struct BytecodeEmitter
 
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    bool emitDupAt(unsigned slot);
+
+    
+    
     bool emitUint16Operand(JSOp op, uint32_t i);
 
     
@@ -293,6 +305,32 @@ struct BytecodeEmitter
     void backPatch(ptrdiff_t last, jsbytecode *target, jsbytecode op);
 
     ptrdiff_t emitGoto(StmtInfoBCE *toStmt, ptrdiff_t *lastp, SrcNoteType noteType = SRC_NULL);
+
+    bool emitIndex32(JSOp op, uint32_t index);
+    bool emitIndexOp(JSOp op, uint32_t index);
+
+    bool emitAtomOp(JSAtom *atom, JSOp op);
+    bool emitAtomOp(ParseNode *pn, JSOp op);
+
+    bool emitInternedObjectOp(uint32_t index, JSOp op);
+    bool emitObjectOp(ObjectBox *objbox, JSOp op);
+    bool emitObjectPairOp(ObjectBox *objbox1, ObjectBox *objbox2, JSOp op);
+    bool emitRegExp(uint32_t index);
+
+    
+    
+    
+    
+    
+    bool emitLocalOp(JSOp op, uint32_t slot);
+
+    bool emitScopeCoordOp(JSOp op, ScopeCoordinate sc);
+    bool emitAliasedVarOp(JSOp op, ParseNode *pn);
+    bool emitAliasedVarOp(JSOp op, ScopeCoordinate sc, MaybeCheckLexical checkLexical);
+    bool emitUnaliasedVarOp(JSOp op, uint32_t slot, MaybeCheckLexical checkLexical);
+
+    bool emitVarOp(ParseNode *pn, JSOp op);
+    bool emitVarIncDec(ParseNode *pn);
 };
 
 
