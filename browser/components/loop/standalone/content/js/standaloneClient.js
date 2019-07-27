@@ -46,7 +46,7 @@ loop.StandaloneClient = (function($) {
         }
       });
 
-      if (properties.length == 1) {
+      if (properties.length === 1) {
         return data[properties[0]];
       }
 
@@ -62,26 +62,17 @@ loop.StandaloneClient = (function($) {
 
 
     _failureHandler: function(cb, jqXHR, textStatus, errorThrown) {
-      var error = "Unknown error.",
-          jsonRes = jqXHR && jqXHR.responseJSON || {};
+      var jsonErr = jqXHR && jqXHR.responseJSON || {};
+      var message = "HTTP " + jqXHR.status + " " + errorThrown;
+
       
+      console.error("Server error", message, jsonErr);
+
       
-      
-      
-      
-      
-      
-      if (jsonRes.status === "errors" && Array.isArray(jsonRes.errors)) {
-        error = "Details: " + jsonRes.errors.map(function(err) {
-          return Object.keys(err).map(function(field) {
-            return field + ": " + err[field];
-          }).join(", ");
-        }).join("; ");
-      }
-      var message = "HTTP " + jqXHR.status + " " + errorThrown +
-          "; " + error;
-      console.error(message);
-      cb(new Error(message));
+      var err = new Error(message);
+      err.errno = jsonErr.errno;
+
+      cb(err);
     },
 
     

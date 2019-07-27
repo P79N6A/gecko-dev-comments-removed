@@ -1,11 +1,11 @@
+/** @jsx React.DOM */
 
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
+/* global loop:true, React */
+/* jshint newcap:false */
 
 var loop = loop || {};
 loop.webapp = (function($, _, OT, webL10n) {
@@ -19,37 +19,37 @@ loop.webapp = (function($, _, OT, webL10n) {
       baseServerUrl = loop.config.serverUrl,
       __ = webL10n.get;
 
-  
-
-
-
+  /**
+   * App router.
+   * @type {loop.webapp.WebappRouter}
+   */
   var router;
 
-  
-
-
+  /**
+   * Homepage view.
+   */
   var HomeView = sharedViews.BaseView.extend({
     template: _.template('<p data-l10n-id="welcome"></p>')
   });
 
-  
-
-
-  var CallUrlExpiredView = React.createClass({displayName: 'CallUrlExpiredView',
+  /**
+   * Expired call URL view.
+   */
+  var CallUrlExpiredView = React.createClass({
     render: function() {
-      
+      /* jshint ignore:start */
       return (
-        
-        React.DOM.div(null, __("call_url_unavailable_notification"))
+        // XXX proper UX/design should be implemented here (see bug 1000131)
+        <div>{__("call_url_unavailable_notification")}</div>
       );
-      
+      /* jshint ignore:end */
     }
   });
 
-  
-
-
-
+  /**
+   * Conversation launcher view. A ConversationModel is associated and attached
+   * as a `model` property.
+   */
   var ConversationFormView = sharedViews.BaseView.extend({
     template: _.template([
       '<form>',
@@ -63,15 +63,15 @@ loop.webapp = (function($, _, OT, webL10n) {
       "submit": "initiate"
     },
 
-    
-
-
-
-
-
-
-
-
+    /**
+     * Constructor.
+     *
+     * Required options:
+     * - {loop.shared.model.ConversationModel}    model    Conversation model.
+     * - {loop.shared.views.NotificationListView} notifier Notifier component.
+     *
+     * @param  {Object} options Options object.
+     */
     initialize: function(options) {
       options = options || {};
 
@@ -93,20 +93,20 @@ loop.webapp = (function($, _, OT, webL10n) {
       this.notifier.errorL10n("unable_retrieve_call_info");
     },
 
-    
-
-
-
-
+    /**
+     * Disables this form to prevent multiple submissions.
+     *
+     * @see  https://bugzilla.mozilla.org/show_bug.cgi?id=991126
+     */
     disableForm: function() {
       this.$("button").attr("disabled", "disabled");
     },
 
-    
-
-
-
-
+    /**
+     * Initiates the call.
+     *
+     * @param {SubmitEvent} event
+     */
     initiate: function(event) {
       event.preventDefault();
       this.model.initiate({
@@ -114,17 +114,17 @@ loop.webapp = (function($, _, OT, webL10n) {
           baseServerUrl: baseServerUrl
         }),
         outgoing: true,
-        
-        
+        // For now, we assume both audio and video as there is no
+        // other option to select.
         callType: "audio-video"
       });
       this.disableForm();
     }
   });
 
-  
-
-
+  /**
+   * Webapp Router.
+   */
   var WebappRouter = loop.shared.router.BaseConversationRouter.extend({
     routes: {
       "":                    "home",
@@ -136,7 +136,7 @@ loop.webapp = (function($, _, OT, webL10n) {
     },
 
     initialize: function() {
-      
+      // Load default view
       this.loadView(new HomeView());
 
       this.listenTo(this._conversation, "timeout", this._onTimeout);
@@ -148,9 +148,9 @@ loop.webapp = (function($, _, OT, webL10n) {
       this.navigate("/call/expired", {trigger: true});
     },
 
-    
-
-
+    /**
+     * @override {loop.shared.router.BaseConversationRouter.startCall}
+     */
     startCall: function() {
       if (!this._conversation.get("loopToken")) {
         this._notifier.errorL10n("missing_conversation_info");
@@ -162,9 +162,9 @@ loop.webapp = (function($, _, OT, webL10n) {
       }
     },
 
-    
-
-
+    /**
+     * @override {loop.shared.router.BaseConversationRouter.endCall}
+     */
     endCall: function() {
       var route = "home";
       if (this._conversation.get("loopToken")) {
@@ -177,9 +177,9 @@ loop.webapp = (function($, _, OT, webL10n) {
       this._notifier.errorL10n("call_timeout_notification_text");
     },
 
-    
-
-
+    /**
+     * Default entry point.
+     */
     home: function() {
       this.loadView(new HomeView());
     },
@@ -196,15 +196,15 @@ loop.webapp = (function($, _, OT, webL10n) {
       this.loadReactComponent(CallUrlExpiredView());
     },
 
-    
-
-
-
-
-
-
+    /**
+     * Loads conversation launcher view, setting the received conversation token
+     * to the current conversation model. If a session is currently established,
+     * terminates it first.
+     *
+     * @param  {String} loopToken Loop conversation token.
+     */
     initiate: function(loopToken) {
-      
+      // Check if a session is ongoing; if so, terminate it
       if (this._conversation.get("ongoing")) {
         this._conversation.endSession();
       }
@@ -215,13 +215,13 @@ loop.webapp = (function($, _, OT, webL10n) {
       }));
     },
 
-    
-
-
-
+    /**
+     * Loads conversation establishment view.
+     *
+     */
     loadConversation: function(loopToken) {
       if (!this._conversation.isSessionReady()) {
-        
+        // User has loaded this url directly, actually setup the call.
         return this.navigate("call/" + loopToken, {trigger: true});
       }
       this.loadReactComponent(sharedViews.ConversationView({
@@ -231,9 +231,9 @@ loop.webapp = (function($, _, OT, webL10n) {
     }
   });
 
-  
-
-
+  /**
+   * Local helpers.
+   */
   function WebappHelper() {
     this._iOSRegex = /^(iPad|iPhone|iPod)/;
   }
@@ -242,9 +242,9 @@ loop.webapp = (function($, _, OT, webL10n) {
     return this._iOSRegex.test(platform);
   };
 
-  
-
-
+  /**
+   * App initialization.
+   */
   function init() {
     var helper = new WebappHelper();
     router = new WebappRouter({

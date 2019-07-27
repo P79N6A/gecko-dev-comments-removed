@@ -117,8 +117,7 @@ loop.shared.models = (function() {
         this._clearPendingCallTimer();
 
         if (err) {
-          this.trigger("session:error", new Error(
-            "Retrieval of session information failed: HTTP " + err));
+          this._handleServerError(err);
           return;
         }
 
@@ -198,6 +197,31 @@ loop.shared.models = (function() {
       this.session.disconnect();
       this.set("ongoing", false)
           .once("session:ended", this.stopListening, this);
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+    _handleServerError: function(err) {
+      switch (err.errno) {
+        
+        
+        
+        case 105:
+          this.trigger("session:expired", err);
+          break;
+        default:
+          this.trigger("session:error", err);
+          break;
+      }
     },
 
     
