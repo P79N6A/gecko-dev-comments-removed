@@ -35,6 +35,7 @@
 #include "LayersLogging.h"
 #include "mozilla/unused.h"
 #include "mozilla/ReverseIterator.h"
+#include "mozilla/Move.h"
 
 #include <algorithm>
 
@@ -250,56 +251,6 @@ static inline MaskLayerImageCache* GetMaskLayerImageCache()
   return gMaskLayerImageCache;
 }
 
-
-
-
-struct PossiblyInfiniteRegion
-{
-  PossiblyInfiniteRegion() : mIsInfinite(false) {}
-  MOZ_IMPLICIT PossiblyInfiniteRegion(const nsIntRegion& aRegion)
-   : mRegion(aRegion)
-   , mIsInfinite(false)
-  {}
-  MOZ_IMPLICIT PossiblyInfiniteRegion(const nsIntRect& aRect)
-   : mRegion(aRect)
-   , mIsInfinite(false)
-  {}
-
-  
-  static PossiblyInfiniteRegion InfiniteRegion()
-  {
-    PossiblyInfiniteRegion r;
-    r.mIsInfinite = true;
-    return r;
-  }
-
-  bool IsInfinite() const { return mIsInfinite; }
-  bool Intersects(const nsIntRegion& aRegion) const
-  {
-    if (IsInfinite()) {
-      return true;
-    }
-    return !mRegion.Intersect(aRegion).IsEmpty();
-  }
-
-  void AccumulateAndSimplifyOutward(const PossiblyInfiniteRegion& aRegion)
-  {
-    if (!IsInfinite()) {
-      if (aRegion.IsInfinite()) {
-        mIsInfinite = true;
-        mRegion.SetEmpty();
-      } else {
-        mRegion.OrWith(aRegion.mRegion);
-        mRegion.SimplifyOutward(8);
-      }
-    }
-  }
-
-protected:
-  nsIntRegion mRegion;
-  bool mIsInfinite;
-};
-
 struct AssignedDisplayItem
 {
   AssignedDisplayItem(nsDisplayItem* aItem,
@@ -328,7 +279,6 @@ class PaintedLayerData {
 public:
   PaintedLayerData() :
     mAnimatedGeometryRoot(nullptr),
-    mIsScrollable(false),
     mFixedPosFrameForLayerData(nullptr),
     mReferenceFrame(nullptr),
     mLayer(nullptr),
@@ -397,21 +347,15 @@ public:
 
   already_AddRefed<ImageContainer> CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder);
 
+  bool VisibleAboveRegionIntersects(const nsIntRect& aRect) const
+  { return mVisibleAboveRegion.Intersects(aRect); }
   bool VisibleAboveRegionIntersects(const nsIntRegion& aRegion) const
-  {
-    return mVisibleAboveRegion.Intersects(aRegion);
-  }
+  { return !mVisibleAboveRegion.Intersect(aRegion).IsEmpty(); }
 
   bool VisibleRegionIntersects(const nsIntRect& aRect) const
-  {
-    return IsSubjectToScrollTransforms() || mVisibleRegion.Intersects(aRect);
-  }
-
-  bool IsSubjectToScrollTransforms() const
-  {
-    return mFixedPosFrameForLayerData || mSingleItemFixedToViewport ||
-           mIsScrollable;
-  }
+  { return mVisibleRegion.Intersects(aRect); }
+  bool VisibleRegionIntersects(const nsIntRegion& aRegion) const
+  { return !mVisibleRegion.Intersect(aRegion).IsEmpty(); }
 
   
 
@@ -467,12 +411,6 @@ public:
 
 
   nsPoint mAnimatedGeometryRootOffset;
-  
-
-
-
-
-  bool mIsScrollable;
   
 
 
@@ -565,9 +503,7 @@ public:
 
 
 
-
-
-  PossiblyInfiniteRegion mVisibleAboveRegion;
+  nsIntRegion mVisibleAboveRegion;
   
 
 
@@ -618,6 +554,313 @@ struct NewLayerEntry {
   bool mPropagateComponentAlphaFlattening;
 };
 
+class PaintedLayerDataTree;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class PaintedLayerDataNode {
+public:
+  PaintedLayerDataNode(PaintedLayerDataTree& aTree,
+                       PaintedLayerDataNode* aParent,
+                       const nsIFrame* aAnimatedGeometryRoot);
+  ~PaintedLayerDataNode();
+
+  const nsIFrame* AnimatedGeometryRoot() const { return mAnimatedGeometryRoot; }
+
+  
+
+
+
+  bool Intersects(const nsIntRect& aRect) const
+    { return !mHasClip || mClipRect.Intersects(aRect); }
+
+  
+
+
+
+  PaintedLayerDataNode* AddChildNodeFor(const nsIFrame* aAnimatedGeometryRoot);
+
+  
+
+
+
+
+  template<typename NewPaintedLayerCallbackType>
+  PaintedLayerData* FindPaintedLayerFor(const nsIntRect& aVisibleRect,
+                                        NewPaintedLayerCallbackType aNewPaintedLayerCallback);
+
+  
+
+
+
+
+
+
+
+  enum { ABOVE_TOP = -1 };
+  nscolor FindOpaqueBackgroundColor(const nsIntRegion& aRegion,
+                                    int32_t aUnderIndex = ABOVE_TOP) const;
+  
+
+
+
+
+  nscolor FindOpaqueBackgroundColorCoveringEverything() const;
+
+  
+
+
+
+  void AddToVisibleAboveRegion(const nsIntRect& aRect);
+  
+
+
+
+
+
+  void SetAllDrawingAbove();
+
+  
+
+
+
+
+  void Finish(bool aParentNeedsAccurateVisibleAboveRegion);
+
+  
+
+
+  void FinishChildrenIntersecting(const nsIntRect& aRect);
+
+  
+
+
+  void FinishAllChildren() { FinishAllChildren(true); }
+
+protected:
+  
+
+
+
+  void PopPaintedLayerData();
+  
+
+
+  void PopAllPaintedLayerData();
+  
+
+
+  void FinishAllChildren(bool aThisNodeNeedsAccurateVisibleAboveRegion);
+  
+
+
+
+  nscolor FindOpaqueBackgroundColorInParentNode() const;
+
+  PaintedLayerDataTree& mTree;
+  PaintedLayerDataNode* mParent;
+  const nsIFrame* mAnimatedGeometryRoot;
+
+  
+
+
+  nsTArray<PaintedLayerData> mPaintedLayerDataStack;
+
+  
+
+
+
+
+
+
+
+
+
+  nsTArray<UniquePtr<PaintedLayerDataNode>> mChildren;
+
+  
+
+
+
+
+
+
+  nsIntRegion mVisibleAboveBackgroundRegion;
+
+  
+
+
+
+  nsIntRect mClipRect;
+  bool mHasClip;
+
+  
+
+
+  bool mAllDrawingAboveBackground;
+};
+
+class ContainerState;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class PaintedLayerDataTree {
+public:
+  PaintedLayerDataTree(ContainerState& aContainerState,
+                       nscolor& aBackgroundColor)
+    : mContainerState(aContainerState)
+    , mContainerUniformBackgroundColor(aBackgroundColor)
+  {}
+
+  ~PaintedLayerDataTree()
+  {
+    MOZ_ASSERT(!mRoot);
+    MOZ_ASSERT(mNodes.Count() == 0);
+  }
+
+  
+
+
+
+
+
+
+
+
+  void AddingOwnLayer(const nsIFrame* aAnimatedGeometryRoot,
+                      const nsIntRect* aRect,
+                      nscolor* aOutUniformBackgroundColor);
+
+  
+
+
+
+
+  template<typename NewPaintedLayerCallbackType>
+  PaintedLayerData* FindPaintedLayerFor(const nsIFrame* aAnimatedGeometryRoot,
+                                        const nsIntRect& aVisibleRect,
+                                        bool aShouldFixToViewport,
+                                        NewPaintedLayerCallbackType aNewPaintedLayerCallback);
+
+  
+
+
+  void Finish();
+
+  
+
+
+
+
+
+  const nsIFrame* GetParentAnimatedGeometryRoot(const nsIFrame* aAnimatedGeometryRoot);
+
+  
+
+
+
+
+
+
+
+
+  bool IsClippedWithRespectToParentAnimatedGeometryRoot(const nsIFrame* aAnimatedGeometryRoot,
+                                                        nsIntRect* aOutClip);
+
+  
+
+
+
+  void NodeWasFinished(const nsIFrame* aAnimatedGeometryRoot);
+
+  nsDisplayListBuilder* Builder() const;
+  ContainerState& ContState() const { return mContainerState; }
+  nscolor UniformBackgroundColor() const { return mContainerUniformBackgroundColor; }
+
+protected:
+  
+
+
+
+
+  void FinishPotentiallyIntersectingNodes(const nsIFrame* aAnimatedGeometryRoot,
+                                          const nsIntRect* aRect);
+
+  
+
+
+
+  PaintedLayerDataNode* EnsureNodeFor(const nsIFrame* aAnimatedGeometryRoot);
+
+  
+
+
+
+
+
+  PaintedLayerDataNode*
+    FindNodeForAncestorAnimatedGeometryRoot(const nsIFrame* aAnimatedGeometryRoot,
+                                            const nsIFrame** aOutAncestorChild);
+
+  ContainerState& mContainerState;
+  UniquePtr<PaintedLayerDataNode> mRoot;
+
+  
+
+
+
+
+
+  nscolor mContainerUniformBackgroundColor;
+
+  
+
+
+
+  nsDataHashtable<nsPtrHashKey<const nsIFrame>, PaintedLayerDataNode*> mNodes;
+};
+
 
 
 
@@ -640,7 +883,7 @@ public:
     mContainerLayer(aContainerLayer),
     mContainerBounds(aContainerBounds),
     mParameters(aParameters),
-    mContainerUniformBackgroundColor(aBackgroundColor),
+    mPaintedLayerDataTree(*this, aBackgroundColor),
     mFlattenToSingleLayer(aFlattenToSingleLayer)
   {
     nsPresContext* presContext = aContainerFrame->PresContext();
@@ -648,9 +891,13 @@ public:
     mContainerReferenceFrame =
       const_cast<nsIFrame*>(aContainerItem ? aContainerItem->ReferenceFrameForChildren() :
                                              mBuilder->FindReferenceFrameFor(mContainerFrame));
-    mContainerAnimatedGeometryRoot = aContainerItem
-      ? nsLayoutUtils::GetAnimatedGeometryRootFor(aContainerItem, aBuilder, aManager)
-      : mContainerReferenceFrame;
+    bool isAtRoot = !aContainerItem || (aContainerItem->Frame() == mBuilder->RootReferenceFrame());
+    MOZ_ASSERT_IF(isAtRoot, mContainerReferenceFrame == mBuilder->RootReferenceFrame());
+    mContainerAnimatedGeometryRoot = isAtRoot
+      ? mContainerReferenceFrame
+      : nsLayoutUtils::GetAnimatedGeometryRootFor(aContainerItem, aBuilder, aManager);
+    MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(mBuilder->RootReferenceFrame(),
+                                                      mContainerAnimatedGeometryRoot));
     NS_ASSERTION(!aContainerItem || !aContainerItem->ShouldFixToViewport(aManager),
                  "Container items never return true for ShouldFixToViewport");
     mContainerFixedPosFrame =
@@ -733,6 +980,7 @@ public:
   }
 
   nsIFrame* GetContainerFrame() const { return mContainerFrame; }
+  nsDisplayListBuilder* Builder() const { return mBuilder; }
 
   
 
@@ -753,6 +1001,25 @@ public:
   {
     mHoistedItems.AppendElements(aItems);
   }
+
+  
+
+
+
+
+
+
+  nscolor FindOpaqueBackgroundColorInLayer(const PaintedLayerData* aData,
+                                           const nsIntRect& aRect,
+                                           bool* aOutIntersectsLayer) const;
+
+  
+
+
+
+
+  template<typename FindOpaqueBackgroundColorCallbackType>
+  void FinishPaintedLayerData(PaintedLayerData& aData, FindOpaqueBackgroundColorCallbackType aFindOpaqueBackgroundColor);
 
 protected:
   friend class PaintedLayerData;
@@ -819,17 +1086,6 @@ protected:
 
   void InvalidateForLayerChange(nsDisplayItem* aItem,
                                 PaintedLayer* aNewLayer);
-
-  
-
-
-
-
-
-
-
-  nscolor FindOpaqueBackgroundColorFor(const nsIntRegion& aTargetVisibleRegion,
-                                       int32_t aUnderPaintedLayerIndex);
   
 
 
@@ -890,15 +1146,6 @@ protected:
 
 
 
-  void PopPaintedLayerData();
-  
-
-
-
-
-
-  bool HasScrollableGeometryInContainer(const nsIFrame* aAnimatedGeometryRoot);
-  
 
 
 
@@ -907,27 +1154,11 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-  PaintedLayerData* FindPaintedLayerFor(nsDisplayItem* aItem,
-                                      const nsIntRect& aVisibleRect,
-                                      const nsIFrame* aAnimatedGeometryRoot,
-                                      const nsPoint& aTopLeft,
-                                      bool aShouldFixToViewport);
-  PaintedLayerData* GetTopPaintedLayerData()
-  {
-    return mPaintedLayerDataStack.IsEmpty() ? nullptr
-        : mPaintedLayerDataStack[mPaintedLayerDataStack.Length() - 1].get();
-  }
+  PaintedLayerData NewPaintedLayerData(nsDisplayItem* aItem,
+                                       const nsIntRect& aVisibleRect,
+                                       const nsIFrame* aAnimatedGeometryRoot,
+                                       const nsPoint& aTopLeft,
+                                       bool aShouldFixToViewport);
 
   
 
@@ -947,31 +1178,6 @@ protected:
   bool ChooseAnimatedGeometryRoot(const nsDisplayList& aList,
                                   const nsIFrame **aAnimatedGeometryRoot);
 
-  
-
-
-
-
-
-
-
-
-  void UpdateVisibleAboveRegionForNewItem(const nsIntRect& aVisibleRect,
-                                          bool aCanMoveFreely,
-                                          const nsIntRect* aClipRectIfAny);
-
-  
-
-
-
-
-
-
-
-
-  void UpdateVisibleAboveRegionOnPop(PaintedLayerData* aData,
-                                     PaintedLayerData* aNextPaintedLayerData);
-
   nsDisplayListBuilder*            mBuilder;
   LayerManager*                    mManager;
   FrameLayerBuilder*               mLayerBuilder;
@@ -988,7 +1194,7 @@ protected:
 
 
   nsIntRegion                      mInvalidPaintedContent;
-  nsAutoTArray<nsAutoPtr<PaintedLayerData>,1>  mPaintedLayerDataStack;
+  PaintedLayerDataTree             mPaintedLayerDataTree;
   
 
 
@@ -1003,19 +1209,7 @@ protected:
   nsTHashtable<nsRefPtrHashKey<PaintedLayer>> mPaintedLayersAvailableForRecycling;
   nsDataHashtable<nsPtrHashKey<Layer>, nsRefPtr<ImageLayer> >
     mRecycledMaskImageLayers;
-  
-
-
-
-  PossiblyInfiniteRegion           mVisibleAboveBackgroundRegion;
   nscoord                          mAppUnitsPerDevPixel;
-  
-
-
-
-
-
-  nscolor                          mContainerUniformBackgroundColor;
   bool                             mSnappingEnabled;
   bool                             mFlattenToSingleLayer;
   
@@ -2025,75 +2219,128 @@ ContainerState::SetOuterVisibleRegionForLayer(Layer* aLayer,
 }
 
 nscolor
-ContainerState::FindOpaqueBackgroundColorFor(const nsIntRegion& aTargetVisibleRegion,
-                                             int32_t aUnderPaintedLayerIndex)
+ContainerState::FindOpaqueBackgroundColorInLayer(const PaintedLayerData* aData,
+                                                 const nsIntRect& aRect,
+                                                 bool* aOutIntersectsLayer) const
 {
-  for (int32_t i = aUnderPaintedLayerIndex - 1; i >= 0; --i) {
-    PaintedLayerData* candidate = mPaintedLayerDataStack[i];
+  *aOutIntersectsLayer = true;
+
+  
+  nsIntRect deviceRect = aRect;
+  nsRect appUnitRect = deviceRect.ToAppUnits(mAppUnitsPerDevPixel);
+  appUnitRect.ScaleInverseRoundOut(mParameters.mXScale, mParameters.mYScale);
+
+  for (auto& assignedItem : Reversed(aData->mAssignedDisplayItems)) {
+    nsDisplayItem* item = assignedItem.mItem;
+    bool snap;
+    nsRect bounds = item->GetBounds(mBuilder, &snap);
+    if (snap && mSnappingEnabled) {
+      nsIntRect snappedBounds = ScaleToNearestPixels(bounds);
+      if (!snappedBounds.Intersects(deviceRect))
+        continue;
+
+      if (!snappedBounds.Contains(deviceRect))
+        return NS_RGBA(0,0,0,0);
+
+    } else {
+      
+      
+      if (!bounds.Intersects(appUnitRect))
+        continue;
+
+      if (!bounds.Contains(appUnitRect))
+        return NS_RGBA(0,0,0,0);
+    }
+
+    if (item->IsInvisibleInRect(appUnitRect)) {
+      continue;
+    }
+
+    if (assignedItem.mClip.IsRectAffectedByClip(deviceRect,
+                                                mParameters.mXScale,
+                                                mParameters.mYScale,
+                                                mAppUnitsPerDevPixel)) {
+      return NS_RGBA(0,0,0,0);
+    }
+
+    nscolor color;
+    if (item->IsUniform(mBuilder, &color) && NS_GET_A(color) == 255)
+      return color;
+
+    return NS_RGBA(0,0,0,0);
+  }
+
+  *aOutIntersectsLayer = false;
+  return NS_RGBA(0,0,0,0);
+}
+
+nscolor
+PaintedLayerDataNode::FindOpaqueBackgroundColor(const nsIntRegion& aTargetVisibleRegion,
+                                                int32_t aUnderIndex) const
+{
+  if (aUnderIndex == ABOVE_TOP) {
+    aUnderIndex = mPaintedLayerDataStack.Length();
+  }
+  for (int32_t i = aUnderIndex - 1; i >= 0; --i) {
+    const PaintedLayerData* candidate = &mPaintedLayerDataStack[i];
     if (candidate->VisibleAboveRegionIntersects(aTargetVisibleRegion)) {
       
       
       return NS_RGBA(0,0,0,0);
     }
 
-    nsIntRegion intersection;
-    intersection.And(candidate->mVisibleRegion, aTargetVisibleRegion);
-    if (intersection.IsEmpty()) {
+    if (!candidate->VisibleRegionIntersects(aTargetVisibleRegion)) {
       
       continue;
     }
 
-    
-    
-    nsIntRect deviceRect = aTargetVisibleRegion.GetBounds();
-    nsRect appUnitRect = deviceRect.ToAppUnits(mAppUnitsPerDevPixel);
-    appUnitRect.ScaleInverseRoundOut(mParameters.mXScale, mParameters.mYScale);
-
-    for (auto& assignedItem : Reversed(candidate->mAssignedDisplayItems)) {
-      nsDisplayItem* item = assignedItem.mItem;
-      bool snap;
-      nsRect bounds = item->GetBounds(mBuilder, &snap);
-      if (snap && mSnappingEnabled) {
-        nsIntRect snappedBounds = ScaleToNearestPixels(bounds);
-        if (!snappedBounds.Intersects(deviceRect))
-          continue;
-
-        if (!snappedBounds.Contains(deviceRect))
-          return NS_RGBA(0,0,0,0);
-
-      } else {
-        
-        
-        if (!bounds.Intersects(appUnitRect))
-          continue;
-
-        if (!bounds.Contains(appUnitRect))
-          return NS_RGBA(0,0,0,0);
-      }
-
-      if (item->IsInvisibleInRect(appUnitRect)) {
-        continue;
-      }
-
-      if (item->GetClip().IsRectAffectedByClip(deviceRect,
-                                               mParameters.mXScale,
-                                               mParameters.mYScale,
-                                               mAppUnitsPerDevPixel)) {
-        return NS_RGBA(0,0,0,0);
-      }
-
-      nscolor color;
-      if (item->IsUniform(mBuilder, &color) && NS_GET_A(color) == 255)
-        return color;
-
-      return NS_RGBA(0,0,0,0);
+    bool intersectsLayer = true;
+    nsIntRect rect = aTargetVisibleRegion.GetBounds();
+    nscolor color = mTree.ContState().FindOpaqueBackgroundColorInLayer(
+                                        candidate, rect, &intersectsLayer);
+    if (!intersectsLayer) {
+      continue;
     }
+    return color;
   }
-  if (mVisibleAboveBackgroundRegion.Intersects(aTargetVisibleRegion)) {
+  if (mAllDrawingAboveBackground ||
+      !mVisibleAboveBackgroundRegion.Intersect(aTargetVisibleRegion).IsEmpty()) {
     
     return NS_RGBA(0,0,0,0);
   }
-  return mContainerUniformBackgroundColor;
+  return FindOpaqueBackgroundColorInParentNode();
+}
+
+nscolor
+PaintedLayerDataNode::FindOpaqueBackgroundColorCoveringEverything() const
+{
+  if (!mPaintedLayerDataStack.IsEmpty() ||
+      !mVisibleAboveBackgroundRegion.IsEmpty()) {
+    return NS_RGBA(0,0,0,0);
+  }
+  return FindOpaqueBackgroundColorInParentNode();
+}
+
+nscolor
+PaintedLayerDataNode::FindOpaqueBackgroundColorInParentNode() const
+{
+  if (mParent) {
+    if (mHasClip) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      return mParent->FindOpaqueBackgroundColor(mClipRect);
+    }
+    return mParent->FindOpaqueBackgroundColorCoveringEverything();
+  }
+  
+  return mTree.UniformBackgroundColor();
 }
 
 void
@@ -2116,6 +2363,326 @@ PaintedLayerData::CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder)
   }
 
   return mImage->GetContainer(mLayer->Manager(), aBuilder);
+}
+
+PaintedLayerDataNode::PaintedLayerDataNode(PaintedLayerDataTree& aTree,
+                                           PaintedLayerDataNode* aParent,
+                                           const nsIFrame* aAnimatedGeometryRoot)
+  : mTree(aTree)
+  , mParent(aParent)
+  , mAnimatedGeometryRoot(aAnimatedGeometryRoot)
+  , mAllDrawingAboveBackground(false)
+{
+  MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(mTree.Builder()->RootReferenceFrame(), mAnimatedGeometryRoot));
+  mHasClip = mTree.IsClippedWithRespectToParentAnimatedGeometryRoot(mAnimatedGeometryRoot, &mClipRect);
+}
+
+PaintedLayerDataNode::~PaintedLayerDataNode()
+{
+  MOZ_ASSERT(mPaintedLayerDataStack.IsEmpty());
+  MOZ_ASSERT(mChildren.IsEmpty());
+}
+
+PaintedLayerDataNode*
+PaintedLayerDataNode::AddChildNodeFor(const nsIFrame* aAnimatedGeometryRoot)
+{
+  MOZ_ASSERT(mTree.GetParentAnimatedGeometryRoot(aAnimatedGeometryRoot) == mAnimatedGeometryRoot);
+  UniquePtr<PaintedLayerDataNode> child =
+    MakeUnique<PaintedLayerDataNode>(mTree, this, aAnimatedGeometryRoot);
+  mChildren.AppendElement(Move(child));
+  return mChildren.LastElement().get();
+}
+
+template<typename NewPaintedLayerCallbackType>
+PaintedLayerData*
+PaintedLayerDataNode::FindPaintedLayerFor(const nsIntRect& aVisibleRect,
+                                          NewPaintedLayerCallbackType aNewPaintedLayerCallback)
+{
+  if (!mPaintedLayerDataStack.IsEmpty()) {
+    if (mPaintedLayerDataStack[0].mSingleItemFixedToViewport) {
+      MOZ_ASSERT(mPaintedLayerDataStack.Length() == 1);
+      SetAllDrawingAbove();
+      MOZ_ASSERT(mPaintedLayerDataStack.IsEmpty());
+    } else {
+      PaintedLayerData* lowestUsableLayer = nullptr;
+      for (auto& data : Reversed(mPaintedLayerDataStack)) {
+        if (data.VisibleAboveRegionIntersects(aVisibleRect)) {
+          break;
+        }
+        MOZ_ASSERT(!data.mSingleItemFixedToViewport);
+        lowestUsableLayer = &data;
+        if (data.VisibleRegionIntersects(aVisibleRect)) {
+          break;
+        }
+      }
+      if (lowestUsableLayer) {
+        return lowestUsableLayer;
+      }
+    }
+  }
+  return mPaintedLayerDataStack.AppendElement(aNewPaintedLayerCallback());
+}
+
+void
+PaintedLayerDataNode::FinishChildrenIntersecting(const nsIntRect& aRect)
+{
+  for (int32_t i = mChildren.Length() - 1; i >= 0; i--) {
+    if (mChildren[i]->Intersects(aRect)) {
+      mChildren[i]->Finish(true);
+      mChildren.RemoveElementAt(i);
+    }
+  }
+}
+
+void
+PaintedLayerDataNode::FinishAllChildren(bool aThisNodeNeedsAccurateVisibleAboveRegion)
+{
+  for (int32_t i = mChildren.Length() - 1; i >= 0; i--) {
+    mChildren[i]->Finish(aThisNodeNeedsAccurateVisibleAboveRegion);
+  }
+  mChildren.Clear();
+}
+
+void
+PaintedLayerDataNode::Finish(bool aParentNeedsAccurateVisibleAboveRegion)
+{
+  
+  FinishAllChildren(false);
+
+  PopAllPaintedLayerData();
+
+  if (mParent && aParentNeedsAccurateVisibleAboveRegion) {
+    if (mHasClip) {
+      mParent->AddToVisibleAboveRegion(mClipRect);
+    } else {
+      mParent->SetAllDrawingAbove();
+    }
+  }
+  mTree.NodeWasFinished(mAnimatedGeometryRoot);
+}
+
+void
+PaintedLayerDataNode::AddToVisibleAboveRegion(const nsIntRect& aRect)
+{
+  nsIntRegion& visibleAboveRegion = mPaintedLayerDataStack.IsEmpty()
+    ? mVisibleAboveBackgroundRegion
+    : mPaintedLayerDataStack.LastElement().mVisibleAboveRegion;
+  visibleAboveRegion.Or(visibleAboveRegion, aRect);
+  visibleAboveRegion.SimplifyOutward(8);
+}
+
+void
+PaintedLayerDataNode::SetAllDrawingAbove()
+{
+  PopAllPaintedLayerData();
+  mAllDrawingAboveBackground = true;
+  mVisibleAboveBackgroundRegion.SetEmpty();
+}
+
+void
+PaintedLayerDataNode::PopPaintedLayerData()
+{
+  MOZ_ASSERT(!mPaintedLayerDataStack.IsEmpty());
+  size_t lastIndex = mPaintedLayerDataStack.Length() - 1;
+  PaintedLayerData& data = mPaintedLayerDataStack[lastIndex];
+  mTree.ContState().FinishPaintedLayerData(data, [this, &data, lastIndex]() {
+    return this->FindOpaqueBackgroundColor(data.mVisibleRegion, lastIndex);
+  });
+  mPaintedLayerDataStack.RemoveElementAt(lastIndex);
+}
+
+void
+PaintedLayerDataNode::PopAllPaintedLayerData()
+{
+  while (!mPaintedLayerDataStack.IsEmpty()) {
+    PopPaintedLayerData();
+  }
+}
+
+nsDisplayListBuilder*
+PaintedLayerDataTree::Builder() const
+{
+  return mContainerState.Builder();
+}
+
+const nsIFrame*
+PaintedLayerDataTree::GetParentAnimatedGeometryRoot(const nsIFrame* aAnimatedGeometryRoot)
+{
+  MOZ_ASSERT(aAnimatedGeometryRoot);
+  MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(Builder()->RootReferenceFrame(), aAnimatedGeometryRoot));
+
+  if (aAnimatedGeometryRoot == Builder()->RootReferenceFrame()) {
+    return nullptr;
+  }
+
+  nsIFrame* agr = Builder()->FindAnimatedGeometryRootFor(
+    const_cast<nsIFrame*>(aAnimatedGeometryRoot), Builder()->RootReferenceFrame());
+  MOZ_ASSERT_IF(agr, nsLayoutUtils::IsAncestorFrameCrossDoc(Builder()->RootReferenceFrame(), agr));
+  if (agr != aAnimatedGeometryRoot) {
+    return agr;
+  }
+  
+  
+  nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(aAnimatedGeometryRoot);
+  if (!parent) {
+    return nullptr;
+  }
+  return Builder()->FindAnimatedGeometryRootFor(parent, Builder()->RootReferenceFrame());
+}
+
+void
+PaintedLayerDataTree::Finish()
+{
+  if (mRoot) {
+    mRoot->Finish(false);
+  }
+  MOZ_ASSERT(mNodes.Count() == 0);
+  mRoot = nullptr;
+}
+
+void
+PaintedLayerDataTree::NodeWasFinished(const nsIFrame* aAnimatedGeometryRoot)
+{
+  mNodes.Remove(aAnimatedGeometryRoot);
+}
+
+void
+PaintedLayerDataTree::AddingOwnLayer(const nsIFrame* aAnimatedGeometryRoot,
+                                     const nsIntRect* aRect,
+                                     nscolor* aOutUniformBackgroundColor)
+{
+  FinishPotentiallyIntersectingNodes(aAnimatedGeometryRoot, aRect);
+  PaintedLayerDataNode* node = EnsureNodeFor(aAnimatedGeometryRoot);
+  if (aRect) {
+    if (aOutUniformBackgroundColor) {
+      *aOutUniformBackgroundColor = node->FindOpaqueBackgroundColor(*aRect);
+    }
+    node->AddToVisibleAboveRegion(*aRect);
+  } else {
+    if (aOutUniformBackgroundColor) {
+      *aOutUniformBackgroundColor = node->FindOpaqueBackgroundColorCoveringEverything();
+    }
+    node->SetAllDrawingAbove();
+  }
+}
+
+template<typename NewPaintedLayerCallbackType>
+PaintedLayerData*
+PaintedLayerDataTree::FindPaintedLayerFor(const nsIFrame* aAnimatedGeometryRoot,
+                                          const nsIntRect& aVisibleRect,
+                                          bool aShouldFixToViewport,
+                                          NewPaintedLayerCallbackType aNewPaintedLayerCallback)
+{
+  const nsIntRect* bounds = aShouldFixToViewport ? nullptr : &aVisibleRect;
+  FinishPotentiallyIntersectingNodes(aAnimatedGeometryRoot, bounds);
+  PaintedLayerDataNode* node = EnsureNodeFor(aAnimatedGeometryRoot);
+  if (aShouldFixToViewport) {
+    node->SetAllDrawingAbove();
+  }
+  return node->FindPaintedLayerFor(aVisibleRect, aNewPaintedLayerCallback);
+}
+
+void
+PaintedLayerDataTree::FinishPotentiallyIntersectingNodes(const nsIFrame* aAnimatedGeometryRoot,
+                                                         const nsIntRect* aRect)
+{
+  const nsIFrame* ancestorThatIsChildOfCommonAncestor = nullptr;
+  PaintedLayerDataNode* ancestorNode =
+    FindNodeForAncestorAnimatedGeometryRoot(aAnimatedGeometryRoot,
+                                            &ancestorThatIsChildOfCommonAncestor);
+  if (!ancestorNode) {
+    
+    
+    MOZ_ASSERT(!mRoot);
+    return;
+  }
+
+  if (ancestorNode->AnimatedGeometryRoot() == aAnimatedGeometryRoot) {
+    
+    
+    MOZ_ASSERT(!ancestorThatIsChildOfCommonAncestor);
+    if (aRect) {
+      ancestorNode->FinishChildrenIntersecting(*aRect);
+    } else {
+      ancestorNode->FinishAllChildren();
+    }
+    return;
+  }
+
+  
+  
+  
+  
+  MOZ_ASSERT(ancestorThatIsChildOfCommonAncestor);
+  MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(ancestorThatIsChildOfCommonAncestor, aAnimatedGeometryRoot));
+  MOZ_ASSERT(GetParentAnimatedGeometryRoot(ancestorThatIsChildOfCommonAncestor) == ancestorNode->AnimatedGeometryRoot());
+
+  
+  MOZ_ASSERT(!mNodes.Get(ancestorThatIsChildOfCommonAncestor));
+
+  
+  
+  nsIntRect clip;
+  if (IsClippedWithRespectToParentAnimatedGeometryRoot(ancestorThatIsChildOfCommonAncestor, &clip)) {
+    ancestorNode->FinishChildrenIntersecting(clip);
+  } else {
+    ancestorNode->FinishAllChildren();
+  }
+}
+
+PaintedLayerDataNode*
+PaintedLayerDataTree::EnsureNodeFor(const nsIFrame* aAnimatedGeometryRoot)
+{
+  MOZ_ASSERT(aAnimatedGeometryRoot);
+  PaintedLayerDataNode* node = mNodes.Get(aAnimatedGeometryRoot);
+  if (node) {
+    return node;
+  }
+
+  const nsIFrame* parentAnimatedGeometryRoot = GetParentAnimatedGeometryRoot(aAnimatedGeometryRoot);
+  if (!parentAnimatedGeometryRoot) {
+    MOZ_ASSERT(!mRoot);
+    MOZ_ASSERT(aAnimatedGeometryRoot == Builder()->RootReferenceFrame());
+    mRoot = MakeUnique<PaintedLayerDataNode>(*this, nullptr, aAnimatedGeometryRoot);
+    node = mRoot.get();
+  } else {
+    PaintedLayerDataNode* parentNode = EnsureNodeFor(parentAnimatedGeometryRoot);
+    MOZ_ASSERT(parentNode);
+    node = parentNode->AddChildNodeFor(aAnimatedGeometryRoot);
+  }
+  MOZ_ASSERT(node);
+  mNodes.Put(aAnimatedGeometryRoot, node);
+  return node;
+}
+
+bool
+PaintedLayerDataTree::IsClippedWithRespectToParentAnimatedGeometryRoot(const nsIFrame* aAnimatedGeometryRoot,
+                                                                       nsIntRect* aOutClip)
+{
+  nsIScrollableFrame* scrollableFrame = nsLayoutUtils::GetScrollableFrameFor(aAnimatedGeometryRoot);
+  if (!scrollableFrame) {
+    return false;
+  }
+  nsIFrame* scrollFrame = do_QueryFrame(scrollableFrame);
+  nsRect scrollPort = scrollableFrame->GetScrollPortRect() + Builder()->ToReferenceFrame(scrollFrame);
+  *aOutClip = mContainerState.ScaleToNearestPixels(scrollPort);
+  return true;
+}
+
+PaintedLayerDataNode*
+PaintedLayerDataTree::FindNodeForAncestorAnimatedGeometryRoot(const nsIFrame* aAnimatedGeometryRoot,
+                                                              const nsIFrame** aOutAncestorChild)
+{
+  if (!aAnimatedGeometryRoot) {
+    return nullptr;
+  }
+  PaintedLayerDataNode* node = mNodes.Get(aAnimatedGeometryRoot);
+  if (node) {
+    return node;
+  }
+  *aOutAncestorChild = aAnimatedGeometryRoot;
+  return FindNodeForAncestorAnimatedGeometryRoot(
+    GetParentAnimatedGeometryRoot(aAnimatedGeometryRoot), aOutAncestorChild);
 }
 
 const nsIFrame*
@@ -2222,13 +2789,11 @@ static int32_t FindIndexOfLayerIn(nsTArray<NewLayerEntry>& aArray,
 }
 #endif
 
-void
-ContainerState::PopPaintedLayerData()
-{
-  NS_ASSERTION(!mPaintedLayerDataStack.IsEmpty(), "Can't pop");
 
-  int32_t lastIndex = mPaintedLayerDataStack.Length() - 1;
-  PaintedLayerData* data = mPaintedLayerDataStack[lastIndex];
+template<typename FindOpaqueBackgroundColorCallbackType>
+void ContainerState::FinishPaintedLayerData(PaintedLayerData& aData, FindOpaqueBackgroundColorCallbackType aFindOpaqueBackgroundColor)
+{
+  PaintedLayerData* data = &aData;
 
   if (!data->mLayer) {
     
@@ -2358,7 +2923,7 @@ ContainerState::PopPaintedLayerData()
   if (layer == data->mLayer) {
     nscolor backgroundColor = NS_RGBA(0,0,0,0);
     if (!isOpaque) {
-      backgroundColor = FindOpaqueBackgroundColorFor(data->mVisibleRegion, lastIndex);
+      backgroundColor = aFindOpaqueBackgroundColor();
       if (NS_GET_A(backgroundColor) == 255) {
         isOpaque = true;
       }
@@ -2486,16 +3051,6 @@ ContainerState::PopPaintedLayerData()
 
     layer->SetEventRegions(regions);
   }
-
-  
-  
-  
-  
-  
-  UpdateVisibleAboveRegionOnPop(data,
-    lastIndex > 0 ? mPaintedLayerDataStack[lastIndex - 1].get() : nullptr);
-
-  mPaintedLayerDataStack.RemoveElementAt(lastIndex);
 }
 
 static bool
@@ -2658,111 +3213,32 @@ PaintedLayerData::Accumulate(ContainerState* aState,
   }
 }
 
-bool
-ContainerState::HasScrollableGeometryInContainer(const nsIFrame* aAnimatedGeometryRoot)
+PaintedLayerData
+ContainerState::NewPaintedLayerData(nsDisplayItem* aItem,
+                                    const nsIntRect& aVisibleRect,
+                                    const nsIFrame* aAnimatedGeometryRoot,
+                                    const nsPoint& aTopLeft,
+                                    bool aShouldFixToViewport)
 {
-  const nsIFrame* f = aAnimatedGeometryRoot;
-  while (f) {
-    nsIScrollableFrame* sf = nsLayoutUtils::GetScrollableFrameFor(f);
-    if (sf && sf->IsScrollingActive(mBuilder)) {
-      return true;
-    }
-    if (f == mContainerAnimatedGeometryRoot) {
-      break;
-    }
-    nsIFrame* fParent = nsLayoutUtils::GetCrossDocParentFrame(f);
-    if (!fParent) {
-      break;
-    }
-    f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(
-          this->mBuilder, fParent, mContainerAnimatedGeometryRoot);
-  }
-  return false;
-}
+  PaintedLayerData data;
+  data.mAnimatedGeometryRoot = aAnimatedGeometryRoot;
+  data.mAnimatedGeometryRootOffset = aTopLeft;
+  data.mFixedPosFrameForLayerData =
+    FindFixedPosFrameForLayerData(aAnimatedGeometryRoot, aShouldFixToViewport);
+  data.mReferenceFrame = aItem->ReferenceFrame();
+  data.mSingleItemFixedToViewport = aShouldFixToViewport;
 
-PaintedLayerData*
-ContainerState::FindPaintedLayerFor(nsDisplayItem* aItem,
-                                   const nsIntRect& aVisibleRect,
-                                   const nsIFrame* aAnimatedGeometryRoot,
-                                   const nsPoint& aTopLeft,
-                                   bool aShouldFixToViewport)
-{
-  int32_t i;
-  int32_t lowestUsableLayerWithScrolledRoot = -1;
-  int32_t topmostLayerWithScrolledRoot = -1;
-  for (i = mPaintedLayerDataStack.Length() - 1; i >= 0; --i) {
-    
-    if (aShouldFixToViewport) {
-      ++i;
-      break;
-    }
-    PaintedLayerData* data = mPaintedLayerDataStack[i];
-    
-    
-    
-    if (data->VisibleAboveRegionIntersects(aVisibleRect)) {
-      ++i;
-      break;
-    }
-    
-    
-    if (data->mAnimatedGeometryRoot == aAnimatedGeometryRoot &&
-        !data->mSingleItemFixedToViewport) {
-      lowestUsableLayerWithScrolledRoot = i;
-      if (topmostLayerWithScrolledRoot < 0) {
-        topmostLayerWithScrolledRoot = i;
-      }
-    }
-    
-    
-    
-    if (data->VisibleRegionIntersects(aVisibleRect))
-      break;
-  }
-  if (topmostLayerWithScrolledRoot < 0) {
-    --i;
-    for (; i >= 0; --i) {
-      PaintedLayerData* data = mPaintedLayerDataStack[i];
-      if (data->mAnimatedGeometryRoot == aAnimatedGeometryRoot) {
-        topmostLayerWithScrolledRoot = i;
-        break;
-      }
-    }
-  }
+  data.mNewChildLayersIndex = mNewChildLayers.Length();
+  NewLayerEntry* newLayerEntry = mNewChildLayers.AppendElement();
+  newLayerEntry->mAnimatedGeometryRoot = aAnimatedGeometryRoot;
+  newLayerEntry->mFixedPosFrameForLayerData = data.mFixedPosFrameForLayerData;
+  
+  
 
-  if (topmostLayerWithScrolledRoot >= 0) {
-    while (uint32_t(topmostLayerWithScrolledRoot + 1) < mPaintedLayerDataStack.Length()) {
-      PopPaintedLayerData();
-    }
-  }
+  
+  mNewChildLayers.AppendElement();
 
-  PaintedLayerData* paintedLayerData = nullptr;
-  if (lowestUsableLayerWithScrolledRoot < 0) {
-    paintedLayerData = new PaintedLayerData();
-    mPaintedLayerDataStack.AppendElement(paintedLayerData);
-    paintedLayerData->mAnimatedGeometryRoot = aAnimatedGeometryRoot;
-    paintedLayerData->mAnimatedGeometryRootOffset = aTopLeft;
-    paintedLayerData->mFixedPosFrameForLayerData =
-      FindFixedPosFrameForLayerData(aAnimatedGeometryRoot, aShouldFixToViewport);
-    paintedLayerData->mIsScrollable =
-      HasScrollableGeometryInContainer(aAnimatedGeometryRoot);
-    paintedLayerData->mReferenceFrame = aItem->ReferenceFrame();
-    paintedLayerData->mSingleItemFixedToViewport = aShouldFixToViewport;
-
-    paintedLayerData->mNewChildLayersIndex = mNewChildLayers.Length();
-    NewLayerEntry* newLayerEntry = mNewChildLayers.AppendElement();
-    newLayerEntry->mAnimatedGeometryRoot = aAnimatedGeometryRoot;
-    newLayerEntry->mFixedPosFrameForLayerData = paintedLayerData->mFixedPosFrameForLayerData;
-    
-    
-
-    
-    mNewChildLayers.AppendElement();
-  } else {
-    paintedLayerData = mPaintedLayerDataStack[lowestUsableLayerWithScrolledRoot];
-  }
-
-  return paintedLayerData;
+  return data;
 }
 
 #ifdef MOZ_DUMP_PAINTING
@@ -2940,51 +3416,6 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
     }
   }
   return opaquePixels;
-}
-
-void
-ContainerState::UpdateVisibleAboveRegionForNewItem(const nsIntRect& aVisibleRect,
-                                                   bool aCanMoveFreely,
-                                                   const nsIntRect* aClipRectIfAny)
-{
-  PaintedLayerData* data = GetTopPaintedLayerData();
-  PossiblyInfiniteRegion& visibleAboveRegion = data
-    ? data->mVisibleAboveRegion : mVisibleAboveBackgroundRegion;
-
-  if (aCanMoveFreely) {
-    
-    
-    
-    
-    
-    
-    
-    visibleAboveRegion.AccumulateAndSimplifyOutward(
-      aClipRectIfAny ? *aClipRectIfAny : PossiblyInfiniteRegion::InfiniteRegion());
-  } else {
-    visibleAboveRegion.AccumulateAndSimplifyOutward(aVisibleRect);
-  }
-}
-
-void
-ContainerState::UpdateVisibleAboveRegionOnPop(PaintedLayerData* aData,
-                                              PaintedLayerData* aNextPaintedLayerData)
-{
-  PossiblyInfiniteRegion& visibleAboveRegion = aNextPaintedLayerData ?
-    aNextPaintedLayerData->mVisibleAboveRegion : mVisibleAboveBackgroundRegion;
-
-  
-  
-  
-  
-  
-  
-  if (aData->IsSubjectToScrollTransforms() && !aData->mVisibleRegion.IsEmpty()) {
-    visibleAboveRegion.AccumulateAndSimplifyOutward(PossiblyInfiniteRegion::InfiniteRegion());
-  } else {
-    visibleAboveRegion.AccumulateAndSimplifyOutward(aData->mVisibleAboveRegion);
-    visibleAboveRegion.AccumulateAndSimplifyOutward(aData->mVisibleRegion);
-  }
 }
 
 
@@ -3184,9 +3615,42 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
         (item->Frame()->Preserves3D() || item->Frame()->Preserves3DChildren());
 
       
-      mParameters.mBackgroundColor = (prerenderedTransform || mayDrawOutOfOrder)
-        ? NS_RGBA(0,0,0,0)
-        : FindOpaqueBackgroundColorFor(itemVisibleRect, mPaintedLayerDataStack.Length());
+      
+      
+      
+      
+      
+      
+      
+      
+      nscolor uniformColor = NS_RGBA(0,0,0,0);
+      nscolor* uniformColorPtr = !mayDrawOutOfOrder ? &uniformColor : nullptr;
+      nsIntRect* clipPtr = itemClip.HasClip() ? &clipRect : nullptr;
+      if (animatedGeometryRoot == item->Frame() &&
+          animatedGeometryRoot != mBuilder->RootReferenceFrame()) {
+        
+        
+        const nsIFrame* clipAnimatedGeometryRoot =
+          mPaintedLayerDataTree.GetParentAnimatedGeometryRoot(animatedGeometryRoot);
+        mPaintedLayerDataTree.AddingOwnLayer(clipAnimatedGeometryRoot,
+                                             clipPtr, uniformColorPtr);
+      } else if (prerenderedTransform) {
+        mPaintedLayerDataTree.AddingOwnLayer(animatedGeometryRoot,
+                                             clipPtr, uniformColorPtr);
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        
+        mPaintedLayerDataTree.AddingOwnLayer(animatedGeometryRoot,
+                                             &itemVisibleRect, uniformColorPtr);
+      }
+
+      mParameters.mBackgroundColor = uniformColor;
 
       
       
@@ -3231,13 +3695,6 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       } else {
         ownLayer->SetClipRect(nullptr);
       }
-
-      
-      
-      
-      
-      UpdateVisibleAboveRegionForNewItem(itemVisibleRect, prerenderedTransform,
-                                         itemClip.HasClip() ? &clipRect : nullptr);
 
       
       
@@ -3305,8 +3762,11 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
                                          topLeft, nullptr);
     } else {
       PaintedLayerData* paintedLayerData =
-        FindPaintedLayerFor(item, itemVisibleRect, animatedGeometryRoot, topLeft,
-                           shouldFixToViewport);
+        mPaintedLayerDataTree.FindPaintedLayerFor(animatedGeometryRoot, itemVisibleRect,
+                                                  shouldFixToViewport, [&]() {
+          return NewPaintedLayerData(item, itemVisibleRect, animatedGeometryRoot,
+                                     topLeft, shouldFixToViewport);
+        });
 
       if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
         nsDisplayLayerEventRegions* eventRegions =
@@ -3915,9 +4375,7 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData,
                        const nsIntRect& aContainerPixelBounds,
                        nsDisplayList* aChildItems, bool& aHasComponentAlphaChildren)
 {
-  while (!mPaintedLayerDataStack.IsEmpty()) {
-    PopPaintedLayerData();
-  }
+  mPaintedLayerDataTree.Finish();
 
   NS_ASSERTION(mContainerBounds.IsEqualInterior(mAccumulatedChildBounds),
                "Bounds computation mismatch");
