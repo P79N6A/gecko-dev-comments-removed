@@ -104,7 +104,25 @@ public class StringHelper {
     public static final String ROBOCOP_TEXT_PAGE_URL = "/robocop/robocop_text_page.html";
     public static final String ROBOCOP_ADOBE_FLASH_URL = "/robocop/robocop_adobe_flash.html";
     public static final String ROBOCOP_INPUT_URL = "/robocop/robocop_input.html";
-    public static final String ROBOCOP_JS_HARNESS_URL = "/robocop/robocop_javascript.html";
+
+    private static final String ROBOCOP_JS_HARNESS_URL = "/robocop/robocop_javascript.html";
+
+    
+
+
+
+
+
+
+
+
+
+    public static String getHarnessUrlForJavascript(String javascriptUrl) {
+        
+        return ROBOCOP_JS_HARNESS_URL +
+                "?slug=" + System.currentTimeMillis() +
+                "&path=" + javascriptUrl;
+    }
 
     
     public static final String ROBOCOP_BIG_LINK_TITLE = "Big Link";
