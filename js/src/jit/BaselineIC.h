@@ -226,6 +226,10 @@ class ICEntry
         Kind_CallVM,
 
         
+        
+        Kind_NonOpCallVM,
+
+        
         Kind_DebugTrap,
 
         
@@ -298,6 +302,10 @@ class ICEntry
     void setForDebugEpilogue() {
         MOZ_ASSERT(kind() == Kind_CallVM);
         setKind(Kind_DebugEpilogue);
+    }
+    void setForNonOpCallVM() {
+        MOZ_ASSERT(kind() == Kind_CallVM);
+        setKind(Kind_NonOpCallVM);
     }
 
     bool hasStub() const {

@@ -370,7 +370,6 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
     
     
     
-    
 
     CommonFrameLayout *prev = nullptr;
     size_t entryIndex = *start;
@@ -473,7 +472,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
 
             bool popFrameReg;
             switch (kind) {
-              case ICEntry::Kind_CallVM:
+              case ICEntry::Kind_CallVM: {
                 
                 
                 
@@ -487,11 +486,13 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
-                if (!iter.baselineFrame()->isDebuggerHandlingException())
-                    pc += GetBytecodeLength(pc);
-                recompInfo->resumeAddr = bl->nativeCodeForPC(script, pc, &recompInfo->slotInfo);
-                popFrameReg = true;
+                (void) bl->maybeNativeCodeForPC(script, pc + GetBytecodeLength(pc),
+                                                &recompInfo->slotInfo);
+                ICEntry &callVMEntry = bl->callVMEntryFromPCOffset(pcOffset);
+                recompInfo->resumeAddr = bl->returnAddressForIC(callVMEntry);
+                popFrameReg = false;
                 break;
+              }
 
               case ICEntry::Kind_DebugTrap:
                 
@@ -907,11 +908,8 @@ HasForcedReturn(BaselineDebugModeOSRInfo *info, bool rv)
 
     
     
-    if (kind == ICEntry::Kind_DebugPrologue ||
-        (kind == ICEntry::Kind_CallVM && JSOp(*info->pc) == JSOP_DEBUGGER))
-    {
+    if (kind == ICEntry::Kind_DebugPrologue)
         return rv;
-    }
 
     
     
@@ -935,12 +933,18 @@ SyncBaselineDebugModeOSRInfo(BaselineFrame *frame, Value *vp, bool rv)
     }
 
     
-    unsigned numUnsynced = info->slotInfo.numUnsynced();
-    MOZ_ASSERT(numUnsynced <= 2);
-    if (numUnsynced > 0)
-        info->popValueInto(info->slotInfo.topSlotLocation(), vp);
-    if (numUnsynced > 1)
-        info->popValueInto(info->slotInfo.nextSlotLocation(), vp);
+    
+    
+    
+    
+    if (info->frameKind != ICEntry::Kind_CallVM) {
+        unsigned numUnsynced = info->slotInfo.numUnsynced();
+        MOZ_ASSERT(numUnsynced <= 2);
+        if (numUnsynced > 0)
+            info->popValueInto(info->slotInfo.topSlotLocation(), vp);
+        if (numUnsynced > 1)
+            info->popValueInto(info->slotInfo.nextSlotLocation(), vp);
+    }
 
     
     info->stackAdjust *= sizeof(Value);
@@ -985,6 +989,53 @@ JitRuntime::getBaselineDebugModeOSRHandlerAddress(JSContext *cx, bool popFrameRe
            : baselineDebugModeOSRHandlerNoFrameRegPopAddr_;
 }
 
+static void
+EmitBaselineDebugModeOSRHandlerTail(MacroAssembler &masm, Register temp, bool returnFromCallVM)
+{
+    
+    
+    
+    
+    
+    
+    if (returnFromCallVM) {
+        masm.push(ReturnReg);
+    } else {
+        masm.pushValue(Address(temp, offsetof(BaselineDebugModeOSRInfo, valueR0)));
+        masm.pushValue(Address(temp, offsetof(BaselineDebugModeOSRInfo, valueR1)));
+    }
+    masm.push(BaselineFrameReg);
+    masm.push(Address(temp, offsetof(BaselineDebugModeOSRInfo, resumeAddr)));
+
+    
+    masm.setupUnalignedABICall(1, temp);
+    masm.loadBaselineFramePtr(BaselineFrameReg, temp);
+    masm.passABIArg(temp);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, FinishBaselineDebugModeOSR));
+
+    
+    GeneralRegisterSet jumpRegs(GeneralRegisterSet::All());
+    if (returnFromCallVM) {
+        jumpRegs.take(ReturnReg);
+    } else {
+        jumpRegs.take(R0);
+        jumpRegs.take(R1);
+    }
+    jumpRegs.take(BaselineFrameReg);
+    Register target = jumpRegs.takeAny();
+
+    masm.pop(target);
+    masm.pop(BaselineFrameReg);
+    if (returnFromCallVM) {
+        masm.pop(ReturnReg);
+    } else {
+        masm.popValue(R1);
+        masm.popValue(R0);
+    }
+
+    masm.jump(target);
+}
+
 JitCode *
 JitRuntime::generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrameRegPopOffsetOut)
 {
@@ -1005,6 +1056,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrame
 
     
     masm.movePtr(StackPointer, syncedStackStart);
+    masm.push(ReturnReg);
     masm.push(BaselineFrameReg);
 
     
@@ -1018,35 +1070,25 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrame
     
     
     
+    
     masm.pop(BaselineFrameReg);
+    masm.pop(ReturnReg);
     masm.loadPtr(Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfScratchValue()), temp);
     masm.addPtr(Address(temp, offsetof(BaselineDebugModeOSRInfo, stackAdjust)), StackPointer);
 
     
-    masm.pushValue(Address(temp, offsetof(BaselineDebugModeOSRInfo, valueR0)));
-    masm.pushValue(Address(temp, offsetof(BaselineDebugModeOSRInfo, valueR1)));
-    masm.push(BaselineFrameReg);
-    masm.push(Address(temp, offsetof(BaselineDebugModeOSRInfo, resumeAddr)));
-
     
-    masm.setupUnalignedABICall(1, temp);
-    masm.loadBaselineFramePtr(BaselineFrameReg, temp);
-    masm.passABIArg(temp);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, FinishBaselineDebugModeOSR));
+    Label returnFromCallVM, end;
+    masm.branch32(MacroAssembler::Equal,
+                  Address(temp, offsetof(BaselineDebugModeOSRInfo, frameKind)),
+                  Imm32(ICEntry::Kind_CallVM),
+                  &returnFromCallVM);
 
-    
-    GeneralRegisterSet jumpRegs(GeneralRegisterSet::All());
-    jumpRegs.take(R0);
-    jumpRegs.take(R1);
-    jumpRegs.take(BaselineFrameReg);
-    Register target = jumpRegs.takeAny();
-
-    masm.pop(target);
-    masm.pop(BaselineFrameReg);
-    masm.popValue(R1);
-    masm.popValue(R0);
-
-    masm.jump(target);
+    EmitBaselineDebugModeOSRHandlerTail(masm, temp,  false);
+    masm.jump(&end);
+    masm.bind(&returnFromCallVM);
+    EmitBaselineDebugModeOSRHandlerTail(masm, temp,  true);
+    masm.bind(&end);
 
     Linker linker(masm);
     AutoFlushICache afc("BaselineDebugModeOSRHandler");
