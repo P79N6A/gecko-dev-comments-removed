@@ -1066,13 +1066,14 @@ nsViewManager::ProcessPendingUpdates()
     return;
   }
 
-  mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
-
   
   if (mPresShell) {
+    mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
+
     CallWillPaintOnObservers();
+
+    ProcessPendingUpdatesForView(mRootView, true);
   }
-  ProcessPendingUpdatesForView(mRootView, true);
 }
 
 void

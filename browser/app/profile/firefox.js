@@ -1766,3 +1766,10 @@ pref("browser.apps.URL", "https://marketplace.firefox.com/discovery/");
 
 pref("browser.polaris.enabled", false);
 pref("privacy.trackingprotection.ui.enabled", false);
+
+
+#ifdef UNIX_BUT_NOT_MAC
+pref("print.enable_e10s_testing", false);
+#else
+pref("print.enable_e10s_testing", true);
+#endif
