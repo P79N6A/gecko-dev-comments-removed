@@ -189,7 +189,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     friend class mozilla::LinkedListElement<Debugger>;
     friend bool (::JS_DefineDebuggerObject)(JSContext* cx, JS::HandleObject obj);
     friend bool (::JS::dbg::IsDebugger)(JS::Value val);
-    friend JSObject* SavedStacksMetadataCallback(JSContext* cx);
     friend void JS::dbg::onNewPromise(JSContext* cx, HandleObject promise);
     friend void JS::dbg::onPromiseSettled(JSContext* cx, HandleObject promise);
     friend bool JS::dbg::FireOnGarbageCollectionHook(JSContext* cx,
@@ -303,6 +302,39 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     bool appendAllocationSite(JSContext* cx, HandleObject obj, HandleSavedFrame frame,
                               int64_t when);
     void emptyAllocationsLog();
+
+    
+
+
+
+
+    static bool cannotTrackAllocations(const GlobalObject& global);
+
+    
+
+
+
+    static bool isObservedByDebuggerTrackingAllocations(const GlobalObject& global);
+
+    
+
+
+
+
+    static bool addAllocationsTracking(JSContext* cx, GlobalObject& debuggee);
+
+    
+
+
+
+
+    static void removeAllocationsTracking(GlobalObject& global);
+
+    
+
+
+    bool addAllocationsTrackingForAllDebuggees(JSContext* cx);
+    void removeAllocationsTrackingForAllDebuggees();
 
     
 

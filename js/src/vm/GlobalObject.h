@@ -690,7 +690,7 @@ class GlobalObject : public NativeObject
 
 
 
-    DebuggerVector* getDebuggers();
+    DebuggerVector* getDebuggers() const;
 
     
 
