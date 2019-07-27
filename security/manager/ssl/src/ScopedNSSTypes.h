@@ -23,6 +23,7 @@
 #include "pk11pub.h"
 #include "sechash.h"
 #include "secpkcs7.h"
+#include "secport.h"
 #include "prerror.h"
 
 namespace mozilla {
@@ -231,6 +232,22 @@ MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSEC_PKCS7ContentInfo,
                                           SEC_PKCS7ContentInfo,
                                           SEC_PKCS7DestroyContentInfo)
 
+namespace internal {
+
+inline void
+PORT_FreeArena_false(PLArenaPool* arena)
+{
+  
+  
+  return PORT_FreeArena(arena, false);
+}
+
+} 
+
+MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPLArenaPool,
+                                          PLArenaPool,
+                                          internal::PORT_FreeArena_false)
+
 
 
 inline void
@@ -267,7 +284,7 @@ public:
   }
 };
 
-namespace psm {
+namespace internal {
 
 inline void SECITEM_FreeItem_true(SECItem * s)
 {
@@ -277,8 +294,8 @@ inline void SECITEM_FreeItem_true(SECItem * s)
 } 
 
 MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECItem,
-                                          ::SECItem,
-                                          ::mozilla::psm::SECITEM_FreeItem_true)
+                                          SECItem,
+                                          internal::SECITEM_FreeItem_true)
 
 MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECKEYPrivateKey,
                                           SECKEYPrivateKey,

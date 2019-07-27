@@ -162,20 +162,20 @@ VerifyCMSDetachedSignatureIncludingCertificate(
 
   
   
-  mozilla::pkix::ScopedCERTCertList certs(CERT_NewCertList());
+  ScopedCERTCertList certs(CERT_NewCertList());
   if (!certs) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   if (signedData->rawCerts) {
     for (size_t i = 0; signedData->rawCerts[i]; ++i) {
-      mozilla::pkix::ScopedCERTCertificate
+      ScopedCERTCertificate
         cert(CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
                                      signedData->rawCerts[i], nullptr, false,
                                      true));
       
       if (cert) {
         if (CERT_AddCertToListTail(certs.get(), cert.get()) == SECSuccess) {
-          cert.release(); 
+          cert.forget(); 
         } else {
           return NS_ERROR_OUT_OF_MEMORY;
         }

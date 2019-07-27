@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsRecentBadCerts.h"
 
@@ -72,13 +72,12 @@ nsRecentBadCerts::GetRecentBadCert(const nsAString & aHostNameWithPort,
 
   if (foundDER.len) {
     CERTCertDBHandle *certdb = CERT_GetDefaultCertDB();
-    mozilla::pkix::ScopedCERTCertificate nssCert(
-      CERT_FindCertByDERCert(certdb, &foundDER));
+    ScopedCERTCertificate nssCert(CERT_FindCertByDERCert(certdb, &foundDER));
     if (!nssCert) 
       nssCert = CERT_NewTempCertificate(certdb, &foundDER,
-                                        nullptr, 
-                                        false, 
-                                        true); 
+                                        nullptr, // no nickname
+                                        false, // not perm
+                                        true); // copy der
 
     SECITEM_FreeItem(&foundDER, false);
 
@@ -136,7 +135,7 @@ nsRecentBadCerts::AddBadCert(const nsAString &hostWithPort,
 
     updatedEntry.Clear();
     updatedEntry.mHostWithPort = hostWithPort;
-    updatedEntry.mDERCert = tempItem; 
+    updatedEntry.mDERCert = tempItem; // consume
     updatedEntry.isDomainMismatch = isDomainMismatch;
     updatedEntry.isNotValidAtThisTime = isNotValidAtThisTime;
     updatedEntry.isUntrusted = isUntrusted;

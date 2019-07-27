@@ -50,14 +50,13 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
   {
     
     nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
-    mozilla::pkix::ScopedCERTCertList allcerts(
-      PK11_ListCerts(PK11CertListUnique, ctx));
+    ScopedCERTCertList allcerts(PK11_ListCerts(PK11CertListUnique, ctx));
   }
 
   
   
 
-  mozilla::pkix::ScopedCERTCertList certList(
+  ScopedCERTCertList certList(
     CERT_FindUserCertsByUsage(CERT_GetDefaultCertDB(), 
                               (SECCertUsage)certUsage,
                               !allowDuplicateNicknames,

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef _NS_NSSCERTIFICATE_H_
 #define _NS_NSSCERTIFICATE_H_
@@ -17,6 +17,7 @@
 #include "nsISerializable.h"
 #include "nsIClassInfo.h"
 #include "pkix/pkixtypes.h"
+#include "ScopedNSSTypes.h"
 #include "certt.h"
 
 class nsAutoString;
@@ -49,7 +50,7 @@ public:
   static nsNSSCertificate* ConstructFromDER(char* certDER, int derLen);
 
 private:
-  mozilla::pkix::ScopedCERTCertificate mCert;
+  mozilla::ScopedCERTCertificate mCert;
   bool             mPermDelete;
   uint32_t         mCertType;
   nsresult CreateASN1Struct(nsIASN1Object** aRetVal);
@@ -58,7 +59,7 @@ private:
   nsresult GetSortableDate(PRTime aTime, nsAString& _aSortableDate);
   virtual void virtualDestroyNSSReference();
   void destructorSafeDestroyNSSReference();
-  bool InitFromDER(char* certDER, int derLen);  
+  bool InitFromDER(char* certDER, int derLen);  // return false on failure
 
   nsresult GetCertificateHash(nsAString& aFingerprint, SECOidTag aHashAlg);
 
@@ -85,7 +86,7 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIX509CERTLIST
 
-  
+  // certList is adopted
   nsNSSCertList(mozilla::pkix::ScopedCERTCertList& certList,
                 const nsNSSShutDownPreventionLock& proofOfLock);
 
@@ -143,4 +144,4 @@ private:
     { 0xbb, 0x20, 0x89, 0x85, 0xa6, 0x32, 0xdf, 0x05 }                 \
   }
 
-#endif 
+#endif // _NS_NSSCERTIFICATE_H_
