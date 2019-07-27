@@ -374,7 +374,6 @@ CertVerifier::VerifyCert(CERTCertificate* cert, SECCertificateUsage usage,
       
       
       
-      
       mozilla::pkix::EndEntityOrCA endEntityOrCA;
       mozilla::pkix::KeyUsage keyUsage;
       KeyPurposeId eku;

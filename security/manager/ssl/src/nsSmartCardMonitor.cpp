@@ -3,22 +3,15 @@
 
 #include "nspr.h"
 
-#include "mozilla/dom/SmartCardEvent.h"
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
-#include "nsIDOMCryptoLegacy.h"
-#include "nsIDOMDocument.h"
-#include "nsIDOMWindow.h"
-#include "nsIDOMWindowCollection.h"
 #include "nsIObserverService.h"
-#include "nsISimpleEnumerator.h"
-#include "nsIWindowWatcher.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSmartCardMonitor.h"
+#include "nsThreadUtils.h"
 #include "pk11func.h"
 
 using namespace mozilla;
-using namespace mozilla::dom;
 
 
 
@@ -50,7 +43,6 @@ public:
 
 private:
   virtual ~nsTokenEventRunnable() {}
-  nsresult DispatchEventToWindow(nsIDOMWindow* domWin);
 
   nsString mType;
   nsString mTokenName;
@@ -71,121 +63,8 @@ nsTokenEventRunnable::Run()
   
   
   NS_ConvertUTF16toUTF8 eventTypeUTF8(mType);
-  nsresult rv = observerService->NotifyObservers(nullptr, eventTypeUTF8.get(),
-                                                 mTokenName.get());
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  
-  nsCOMPtr<nsIWindowWatcher> windowWatcher =
-    do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  nsCOMPtr<nsISimpleEnumerator> enumerator;
-  rv = windowWatcher->GetWindowEnumerator(getter_AddRefs(enumerator));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  for (;;) {
-    bool hasMoreWindows;
-    rv = enumerator->HasMoreElements(&hasMoreWindows);
-    if (NS_FAILED(rv) || !hasMoreWindows) {
-      return rv;
-    }
-    nsCOMPtr<nsISupports> supports;
-    enumerator->GetNext(getter_AddRefs(supports));
-    nsCOMPtr<nsIDOMWindow> domWin(do_QueryInterface(supports));
-    if (domWin) {
-      rv = DispatchEventToWindow(domWin);
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
-    }
-  }
-  return rv;
-}
-
-nsresult
-nsTokenEventRunnable::DispatchEventToWindow(nsIDOMWindow* domWin)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(domWin);
-
-  
-  nsCOMPtr<nsIDOMWindowCollection> frames;
-  nsresult rv = domWin->GetFrames(getter_AddRefs(frames));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  uint32_t length;
-  rv = frames->GetLength(&length);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  for (uint32_t i = 0; i < length; i++) {
-    nsCOMPtr<nsIDOMWindow> childWin;
-    rv = frames->Item(i, getter_AddRefs(childWin));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    if (domWin) {
-      rv = DispatchEventToWindow(childWin);
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
-    }
-  }
-
-  
-  
-  
-  nsCOMPtr<nsIDOMCrypto> crypto;
-  rv = domWin->GetCrypto(getter_AddRefs(crypto));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  if (!crypto) {
-    return NS_OK; 
-  }
-
-  bool boolrv;
-  rv = crypto->GetEnableSmartCardEvents(&boolrv);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  if (!boolrv) {
-    return NS_OK; 
-  }
-
-  
-
-  
-  nsCOMPtr<nsIDOMDocument> doc;
-  rv = domWin->GetDocument(getter_AddRefs(doc));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  if (!doc) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<EventTarget> d = do_QueryInterface(doc);
-
-  SmartCardEventInit init;
-  init.mBubbles = false;
-  init.mCancelable = true;
-  init.mTokenName = mTokenName;
-
-  nsRefPtr<SmartCardEvent> event(SmartCardEvent::Constructor(d, mType, init));
-  event->SetTrusted(true);
-
-  return d->DispatchEvent(event, &boolrv);
+  return observerService->NotifyObservers(nullptr, eventTypeUTF8.get(),
+                                          mTokenName.get());
 }
 
 
