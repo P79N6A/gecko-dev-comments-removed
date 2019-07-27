@@ -548,16 +548,14 @@ FetchDriver::ContinueHttpFetchAfterNetworkFetch()
 }
 
 already_AddRefed<InternalResponse>
-FetchDriver::BeginAndGetFilteredResponse(InternalResponse* aResponse, nsIURI* aFinalURI)
+FetchDriver::BeginAndGetFilteredResponse(InternalResponse* aResponse)
 {
   MOZ_ASSERT(aResponse);
-  nsAutoCString reqURL;
-  if (aFinalURI) {
-    aFinalURI->GetSpec(reqURL);
-  } else {
+  if (!aResponse->FinalURL()) {
+    nsAutoCString reqURL;
     mRequest->GetURL(reqURL);
+    aResponse->SetUrl(reqURL);
   }
-  aResponse->SetUrl(reqURL);
 
   
 
@@ -586,7 +584,7 @@ FetchDriver::BeginAndGetFilteredResponse(InternalResponse* aResponse, nsIURI* aF
 void
 FetchDriver::BeginResponse(InternalResponse* aResponse)
 {
-  nsRefPtr<InternalResponse> r = BeginAndGetFilteredResponse(aResponse, nullptr);
+  nsRefPtr<InternalResponse> r = BeginAndGetFilteredResponse(aResponse);
   
 }
 
@@ -718,17 +716,9 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
   response->InitChannelInfo(channel);
 
-  nsCOMPtr<nsIURI> channelURI;
-  rv = channel->GetURI(getter_AddRefs(channelURI));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    FailWithNetworkError();
-    
-    return rv;
-  }
-
   
   
-  mResponse = BeginAndGetFilteredResponse(response, channelURI);
+  mResponse = BeginAndGetFilteredResponse(response);
 
   nsCOMPtr<nsIEventTarget> sts = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {

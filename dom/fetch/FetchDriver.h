@@ -88,9 +88,8 @@ private:
   nsresult HttpFetch(bool aCORSFlag = false, bool aCORSPreflightFlag = false, bool aAuthenticationFlag = false);
   nsresult ContinueHttpFetchAfterNetworkFetch();
   
-  
   already_AddRefed<InternalResponse>
-  BeginAndGetFilteredResponse(InternalResponse* aResponse, nsIURI* aFinalURI);
+  BeginAndGetFilteredResponse(InternalResponse* aResponse);
   
   
   void BeginResponse(InternalResponse* aResponse);
