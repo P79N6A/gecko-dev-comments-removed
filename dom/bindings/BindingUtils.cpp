@@ -250,26 +250,6 @@ ErrorResult::ReportJSExceptionFromJSImplementation(JSContext* aCx)
   nsresult rv =
     UNWRAP_OBJECT(DOMException, &mJSException.toObject(), domException);
   if (NS_SUCCEEDED(rv)) {
-    
-    
-    
-    JS::Rooted<JS::Value> reflector(aCx);
-    if (!domException->Sanitize(aCx, &reflector)) {
-      
-      
-      
-      
-      js::RemoveRawValueRoot(aCx, &mJSException);
-
-      
-      
-      mResult = NS_ERROR_FAILURE;
-
-      
-      return;
-    }
-
-    mJSException = reflector;
     ReportJSException(aCx);
     return;
   }
@@ -308,17 +288,6 @@ ErrorResult::StealJSException(JSContext* cx,
   value.set(mJSException);
   js::RemoveRawValueRoot(cx, &mJSException);
   mResult = NS_OK;
-
-  if (value.isObject()) {
-    
-    dom::DOMException* domException;
-    nsresult rv =
-      UNWRAP_OBJECT(DOMException, &value.toObject(), domException);
-    if (NS_SUCCEEDED(rv) && !domException->Sanitize(cx, value)) {
-      JS_GetPendingException(cx, value);
-      JS_ClearPendingException(cx);
-    }
-  }
 }
 
 void

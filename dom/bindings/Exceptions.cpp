@@ -307,9 +307,6 @@ public:
   NS_IMETHOD GetName(nsAString& aFunction) MOZ_OVERRIDE;
   NS_IMETHOD GetCaller(nsIStackFrame** aCaller) MOZ_OVERRIDE;
   NS_IMETHOD GetFormattedStack(nsAString& aStack) MOZ_OVERRIDE;
-  virtual bool CallerSubsumes(JSContext* aCx) MOZ_OVERRIDE;
-  NS_IMETHOD GetSanitized(JSContext* aCx,
-                          nsIStackFrame** aSanitized) MOZ_OVERRIDE;
 
 protected:
   virtual bool IsJSFrame() const MOZ_OVERRIDE {
@@ -582,35 +579,6 @@ NS_IMETHODIMP StackFrame::GetSourceLine(nsACString& aSourceLine)
 }
 
 
-NS_IMETHODIMP StackFrame::GetSanitized(JSContext*, nsIStackFrame** aSanitized)
-{
-  NS_ADDREF(*aSanitized = this);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP JSStackFrame::GetSanitized(JSContext* aCx, nsIStackFrame** aSanitized)
-{
-  
-  
-  
-
-  JS::RootedObject savedFrame(aCx, mStack);
-  JS::ExposeObjectToActiveJS(mStack);
-
-  savedFrame = js::GetFirstSubsumedSavedFrame(aCx, savedFrame);
-  nsCOMPtr<nsIStackFrame> stackFrame;
-  if (savedFrame) {
-    stackFrame = new JSStackFrame(savedFrame);
-  } else {
-    stackFrame = new StackFrame();
-  }
-
-  stackFrame.forget(aSanitized);
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP JSStackFrame::GetCaller(nsIStackFrame** aCaller)
 {
   NS_ENSURE_TRUE(mStack, NS_ERROR_NOT_AVAILABLE);
@@ -729,37 +697,6 @@ NS_IMETHODIMP StackFrame::ToString(nsACString& _retval)
                        NS_ConvertUTF16toUTF8(funname).get(),
                        lineno);
   return NS_OK;
-}
-
- bool
-StackFrame::CallerSubsumes(JSContext* aCx)
-{
-  return true;
-}
-
- bool
-JSStackFrame::CallerSubsumes(JSContext* aCx)
-{
-  if (!NS_IsMainThread()) {
-    return true;
-  }
-
-  if (!mStack) {
-    
-    return true;
-  }
-
-  nsIPrincipal* callerPrincipal = nsContentUtils::SubjectPrincipal();
-
-  JS::Rooted<JSObject*> unwrappedStack(aCx, js::CheckedUnwrap(mStack));
-  if (!unwrappedStack) {
-    
-    return true;
-  }
-
-  nsIPrincipal* stackPrincipal =
-    nsJSPrincipals::get(js::GetSavedFramePrincipals(unwrappedStack));
-  return callerPrincipal->SubsumesConsideringDomain(stackPrincipal);
 }
 
  already_AddRefed<nsIStackFrame>
