@@ -283,7 +283,11 @@ public:
 
     
     
-    ws->BeginOpen();
+    
+    
+    NS_DispatchToMainThread(
+      NS_NewRunnableMethod(ws, &WebSocketChannel::BeginOpen),
+                           NS_DISPATCH_NORMAL);
   }
 
   
