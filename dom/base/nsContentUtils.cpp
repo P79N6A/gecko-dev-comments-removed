@@ -459,7 +459,12 @@ nsContentUtils::Init()
 
   sSecurityManager->GetSystemPrincipal(&sSystemPrincipal);
   MOZ_ASSERT(sSystemPrincipal);
-  NS_ADDREF(sNullSubjectPrincipal = new nsNullPrincipal());
+
+  
+  
+  nsRefPtr<nsNullPrincipal> nullPrincipal = new nsNullPrincipal();
+  nullPrincipal->Init();
+  nullPrincipal.forget(&sNullSubjectPrincipal);
 
   nsresult rv = CallGetService(NS_IOSERVICE_CONTRACTID, &sIOService);
   if (NS_FAILED(rv)) {

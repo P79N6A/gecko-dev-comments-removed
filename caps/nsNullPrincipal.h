@@ -30,6 +30,9 @@ class nsIURI;
 class nsNullPrincipal final : public nsJSPrincipals
 {
 public:
+  
+  
+  
   nsNullPrincipal();
 
   
@@ -42,14 +45,18 @@ public:
   NS_DECL_NSIPRINCIPAL
   NS_DECL_NSISERIALIZABLE
 
+  
   static already_AddRefed<nsNullPrincipal> CreateWithInheritedAttributes(nsIPrincipal *aInheritFrom);
+
+  
+  static already_AddRefed<nsNullPrincipal>
+    Create(uint32_t aAppId = nsIScriptSecurityManager::NO_APP_ID,
+           bool aInMozBrowser = false);
 
   nsresult Init(uint32_t aAppId = nsIScriptSecurityManager::NO_APP_ID,
                 bool aInMozBrowser = false);
 
   virtual void GetScriptLocation(nsACString &aStr) override;
-
-  static nsresult GenerateNullPrincipalURI(nsACString &aStr);
 
 #ifdef DEBUG
   virtual void dumpImpl() override;

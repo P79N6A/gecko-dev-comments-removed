@@ -18,6 +18,8 @@
 #include "mozilla/Attributes.h"
 #include "nsIIPCSerializableURI.h"
 #include "mozilla/MemoryReporting.h"
+#include "nsNullPrincipal.h"
+#include "nsID.h"
 
 
 #define NS_NULLPRINCIPALURI_IMPLEMENTATION_CID \
@@ -37,18 +39,23 @@ public:
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
 
-  explicit nsNullPrincipalURI(const nsCString &aSpec);
+  
+  
+  nsNullPrincipalURI();
 
   
-  nsNullPrincipalURI() { }
+  static already_AddRefed<nsNullPrincipalURI> Create();
 
 private:
+  nsNullPrincipalURI(const nsNullPrincipalURI& aOther);
+
   ~nsNullPrincipalURI() {}
 
-  void InitializeFromSpec(const nsCString &aSpec);
+  nsresult Init();
 
+  char mPathBytes[NSID_LENGTH];
   nsCString mScheme;
-  nsCString mPath;
+  nsFixedCString mPath;
 };
 
 #endif 
