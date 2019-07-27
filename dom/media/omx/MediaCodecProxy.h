@@ -12,6 +12,7 @@
 #include <stagefright/MediaBuffer.h>
 #include <utils/threads.h>
 #include "MediaResourceHandler.h"
+#include "mozilla/Monitor.h"
 
 namespace android {
 
@@ -55,7 +56,6 @@ public:
   static sp<MediaCodecProxy> CreateByType(sp<ALooper> aLooper,
                                           const char *aMime,
                                           bool aEncoder,
-                                          bool aAsync=false,
                                           wp<CodecResourceListener> aListener=nullptr);
 
   
@@ -129,14 +129,18 @@ public:
                  int64_t aTimestampUsecs, uint64_t flags);
   status_t Output(MediaBuffer** aBuffer, int64_t aTimeoutUs);
   bool Prepare();
-  bool IsWaitingResources();
-  bool IsDormantNeeded();
-  void RequestMediaResources();
   void ReleaseMediaResources();
   
   bool UpdateOutputBuffers();
 
   void ReleaseMediaBuffer(MediaBuffer* abuffer);
+
+  
+  
+  bool AskMediaCodecAndWait();
+
+  
+  void SetMediaCodecFree();
 
 protected:
   virtual ~MediaCodecProxy();
@@ -144,7 +148,7 @@ protected:
   
   virtual void resourceReserved();
   
-  virtual void resourceCanceled();
+  virtual void resourceCanceled() {}
 
 private:
   
@@ -156,13 +160,7 @@ private:
   MediaCodecProxy(sp<ALooper> aLooper,
                   const char *aMime,
                   bool aEncoder,
-                  bool aAsync,
                   wp<CodecResourceListener> aListener);
-
-  
-  bool requestResource();
-  
-  void cancelResource();
 
   
   bool allocateCodec();
@@ -188,6 +186,8 @@ private:
   Vector<sp<ABuffer> > mInputBuffers;
   Vector<sp<ABuffer> > mOutputBuffers;
 
+  mozilla::Monitor mMediaCodecLock;
+  bool mPendingRequestMediaResource;
 };
 
 } 

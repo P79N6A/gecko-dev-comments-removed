@@ -123,40 +123,6 @@ H264Converter::IsWaitingMediaResources()
 }
 
 bool
-H264Converter::IsDormantNeeded()
-{
-  if (mNeedAVCC) {
-    return true;
-  }
-  return mDecoder ?
-    mDecoder->IsDormantNeeded() : MediaDataDecoder::IsDormantNeeded();
-}
-
-void
-H264Converter::AllocateMediaResources()
-{
-  if (mNeedAVCC) {
-    
-    return;
-  }
-  if (mDecoder) {
-    mDecoder->AllocateMediaResources();
-  }
-}
-
-void
-H264Converter::ReleaseMediaResources()
-{
-  if (mNeedAVCC) {
-    Shutdown();
-    return;
-  }
-  if (mDecoder) {
-    mDecoder->ReleaseMediaResources();
-  }
-}
-
-bool
 H264Converter::IsHardwareAccelerated() const
 {
   if (mDecoder) {
@@ -219,7 +185,7 @@ H264Converter::CheckForSPSChange(MediaRawData* aSample)
   
   
   mDecoder->Flush();
-  ReleaseMediaResources();
+  Shutdown();
   return CreateDecoderAndInit(aSample);
 }
 
