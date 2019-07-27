@@ -284,15 +284,19 @@ void MediaDecoder::DestroyDecodedStream()
     
     if (os.mStream->IsDestroyed()) {
       
-      os.mPort->Destroy();
+      if (os.mPort) {
+        os.mPort->Destroy();
+      }
       mOutputStreams.RemoveElementAt(i);
       continue;
     }
     os.mStream->ChangeExplicitBlockerCount(1);
     
     
-    os.mPort->Destroy();
-    os.mPort = nullptr;
+    if (os.mPort) {
+      os.mPort->Destroy();
+      os.mPort = nullptr;
+    }
   }
 
   mDecodedStream = nullptr;
@@ -841,7 +845,9 @@ void MediaDecoder::PlaybackEnded()
       OutputStreamData& os = mOutputStreams[i];
       if (os.mStream->IsDestroyed()) {
         
-        os.mPort->Destroy();
+        if (os.mPort) {
+          os.mPort->Destroy();
+        }
         mOutputStreams.RemoveElementAt(i);
         continue;
       }
@@ -849,7 +855,9 @@ void MediaDecoder::PlaybackEnded()
         
         
         os.mStream->Finish();
-        os.mPort->Destroy();
+        if (os.mPort) {
+          os.mPort->Destroy();
+        }
         
         
         os.mStream->ChangeExplicitBlockerCount(1);
