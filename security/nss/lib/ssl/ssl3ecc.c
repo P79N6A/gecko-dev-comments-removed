@@ -7,6 +7,7 @@
 
 
 
+
 #include "nss.h"
 #include "cert.h"
 #include "ssl.h"
@@ -1184,8 +1185,7 @@ ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
 
     if (data->len < 2 || data->len > 255 || !data->data ||
         data->len != (unsigned int)data->data[0] + 1) {
-        
-        goto loser;
+        return ssl3_DecodeError(ss);
     }
     for (i = data->len; --i > 0; ) {
         if (data->data[i] == 0) {
@@ -1196,10 +1196,10 @@ ssl3_HandleSupportedPointFormatsXtn(sslSocket *ss, PRUint16 ex_type,
             return rv;
         }
     }
-loser:
+
     
     ssl3_DisableECCSuites(ss, ecSuites);
-    return SECFailure;
+    return SECSuccess;
 }
 
 
@@ -1231,26 +1231,34 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     PRUint32 mutualCurves = 0;
     PRUint16 svrCertCurveName;
 
-    if (!data->data || data->len < 4 || data->len > 65535)
-        goto loser;
+    if (!data->data || data->len < 4) {
+        (void)ssl3_DecodeError(ss);
+        return SECFailure;
+    }
+
     
     list_len = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
     if (list_len < 0 || data->len != list_len || (data->len % 2) != 0) {
-        
-        goto loser;
+        (void)ssl3_DecodeError(ss);
+        return SECFailure;
     }
     
     while (data->len) {
-        PRInt32  curve_name =
-                 ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
+        PRInt32 curve_name =
+                ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
+        if (curve_name < 0) {
+            return SECFailure; 
+        }
         if (curve_name > ec_noName && curve_name < ec_pastLastName) {
             peerCurves |= (1U << curve_name);
         }
     }
     
     mutualCurves = ss->ssl3.hs.negotiatedECCurves &= peerCurves;
-    if (!mutualCurves) { 
-        goto loser;
+    if (!mutualCurves) {
+        
+        ssl3_DisableECCSuites(ss, ecSuites);
+        return SECSuccess;
     }
 
     
@@ -1266,12 +1274,7 @@ ssl3_HandleSupportedCurvesXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 
     ssl3_DisableECCSuites(ss, ecdh_ecdsa_suites);
     ssl3_DisableECCSuites(ss, ecdhe_ecdsa_suites);
-    return SECFailure;
-
-loser:
-    
-    ssl3_DisableECCSuites(ss, ecSuites);
-    return SECFailure;
+    return SECSuccess;
 }
 
 #endif 
