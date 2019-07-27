@@ -89,6 +89,11 @@ public:
   
 
 
+  virtual void FullscreenChanged(bool aInFullscreen);
+
+  
+
+
   virtual void WindowActivated();
 
   
