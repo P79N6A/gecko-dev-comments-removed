@@ -141,7 +141,8 @@ status_t SampleIterator::seekTo(uint32_t sampleIndex) {
 
     
     mCurrentSampleDuration = mTTSDuration;
-
+    mCurrentSampleDecodeTime = mTTSSampleTime + mTTSDuration * (sampleIndex -
+        mTTSSampleIndex);
     mCurrentSampleIndex = sampleIndex;
 
     mInitialized = true;
