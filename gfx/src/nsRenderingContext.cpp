@@ -115,58 +115,6 @@ nsRenderingContext::SetColor(nscolor aColor)
 
 
 
-void
-nsRenderingContext::DrawLine(const nsPoint& aStartPt, const nsPoint& aEndPt)
-{
-    DrawLine(aStartPt.x, aStartPt.y, aEndPt.x, aEndPt.y);
-}
-
-void
-nsRenderingContext::DrawLine(nscoord aX0, nscoord aY0,
-                             nscoord aX1, nscoord aY1)
-{
-    gfxPoint p0 = gfxPoint(FROM_TWIPS(aX0), FROM_TWIPS(aY0));
-    gfxPoint p1 = gfxPoint(FROM_TWIPS(aX1), FROM_TWIPS(aY1));
-
-    
-    
-    gfxMatrix savedMatrix = mThebes->CurrentMatrix();
-    if (!savedMatrix.HasNonTranslation()) {
-        p0 = mThebes->UserToDevice(p0);
-        p1 = mThebes->UserToDevice(p1);
-
-        p0.Round();
-        p1.Round();
-
-        mThebes->SetMatrix(gfxMatrix());
-
-        mThebes->NewPath();
-
-        
-        if (p0.x == p1.x) {
-            mThebes->Line(p0 + gfxPoint(0.5, 0),
-                          p1 + gfxPoint(0.5, 0));
-        } else if (p0.y == p1.y) {
-            mThebes->Line(p0 + gfxPoint(0, 0.5),
-                          p1 + gfxPoint(0, 0.5));
-        } else {
-            mThebes->Line(p0, p1);
-        }
-
-        mThebes->Stroke();
-
-        mThebes->SetMatrix(savedMatrix);
-    } else {
-        mThebes->NewPath();
-        mThebes->Line(p0, p1);
-        mThebes->Stroke();
-    }
-}
-
-
-
-
-
 
 void
 nsRenderingContext::SetTextRunRTL(bool aIsRTL)
