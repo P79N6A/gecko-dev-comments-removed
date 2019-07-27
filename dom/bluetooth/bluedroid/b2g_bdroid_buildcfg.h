@@ -41,4 +41,9 @@
 
 #define SDP_AVRCP_1_5 FALSE
 
+
+#define BTA_GATT_INCLUDED  TRUE
+#define BLE_INCLUDED       TRUE
+#define SMP_INCLUDED       TRUE
+
 #endif 
