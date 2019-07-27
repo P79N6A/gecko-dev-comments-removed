@@ -643,18 +643,6 @@ ClonedBlockObject::create(JSContext *cx, Handle<StaticBlockObject *> block, Abst
 
     obj->setReservedSlot(SCOPE_CHAIN_SLOT, ObjectValue(*frame.scopeChain()));
 
-    
-
-
-
-    unsigned nvars = block->numVariables();
-    for (unsigned i = 0; i < nvars; ++i) {
-        if (block->isAliased(i)) {
-            Value &val = frame.unaliasedLocal(block->blockIndexToLocalIndex(i));
-            obj->as<ClonedBlockObject>().setVar(i, val);
-        }
-    }
-
     MOZ_ASSERT(obj->isDelegate());
 
     return &obj->as<ClonedBlockObject>();
