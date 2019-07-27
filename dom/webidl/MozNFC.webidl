@@ -46,11 +46,21 @@ interface MozNFCManager {
  NavigatorProperty="mozNfc",
  Func="Navigator::HasNFCSupport"]
 interface MozNFC : EventTarget {
-   [Throws]
-   MozNFCTag getNFCTag(DOMString sessionId);
-   [Throws]
-   MozNFCPeer getNFCPeer(DOMString sessionId);
+   /**
+    * Returns MozNFCTag object or null in case of invalid sessionToken
+    */
+   MozNFCTag? getNFCTag(DOMString sessionToken);
 
+   /**
+    * Returns MozNFCPeer object or null in case of invalid sessionToken
+    */
+   MozNFCPeer? getNFCPeer(DOMString sessionToken);
+
+   /**
+    * This event will be fired when another NFCPeer is detected, and user confirms
+    * to share data to the NFCPeer object by calling mozNFC.notifyUserAcceptedP2P.
+    * The event will be type of NFCPeerEvent.
+    */
    [CheckPermissions="nfc-write"]
    attribute EventHandler onpeerready;
    [CheckPermissions="nfc-write"]
