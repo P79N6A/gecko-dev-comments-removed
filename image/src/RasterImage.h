@@ -314,7 +314,8 @@ private:
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
                                                  MallocSizeOf aMallocSizeOf) const;
 
-  already_AddRefed<layers::Image> GetCurrentImage();
+  already_AddRefed<layers::Image>
+    GetCurrentImage(layers::ImageContainer* aContainer);
   void UpdateImageContainer();
 
   
@@ -361,10 +362,8 @@ private:
   int                        mRequestedSampleSize;
 
   
-  nsRefPtr<layers::ImageContainer> mImageContainer;
-
   
-  WeakPtr<layers::ImageContainer> mImageContainerCache;
+  WeakPtr<layers::ImageContainer> mImageContainer;
 
 #ifdef DEBUG
   uint32_t                       mFramesNotified;
