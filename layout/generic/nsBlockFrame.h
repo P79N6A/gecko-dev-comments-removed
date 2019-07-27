@@ -544,7 +544,13 @@ protected:
   
 
 
-  void DrainPushedFloats(nsBlockReflowState& aState);
+  void DrainSelfPushedFloats();
+
+  
+
+
+
+  void DrainPushedFloats();
 
   
 

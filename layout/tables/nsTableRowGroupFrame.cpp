@@ -1390,6 +1390,7 @@ nsTableRowGroupFrame::AppendFrames(ChildListID     aListID,
 {
   NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
 
+  DrainSelfOverflowList(); 
   ClearRowCursor();
 
   
@@ -1429,6 +1430,7 @@ nsTableRowGroupFrame::InsertFrames(ChildListID     aListID,
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                "inserting after sibling frame with different parent");
 
+  DrainSelfOverflowList(); 
   ClearRowCursor();
 
   

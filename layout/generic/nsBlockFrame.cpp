@@ -1130,7 +1130,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   state.mOverflowTracker = &tracker;
 
   
-  DrainPushedFloats(state);
+  DrainPushedFloats();
   nsOverflowAreas fcBounds;
   nsReflowStatus fcStatus = NS_FRAME_COMPLETE;
   ReflowPushedFloats(state, fcBounds, fcStatus);
@@ -4665,8 +4665,12 @@ nsBlockFrame::DrainSelfOverflowList()
 
 
 
+
+
+
+
 void
-nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
+nsBlockFrame::DrainSelfPushedFloats()
 {
   
   
@@ -4720,12 +4724,18 @@ nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
       RemovePushedFloats()->Delete(presContext->PresShell());
     }
   }
+}
+
+void
+nsBlockFrame::DrainPushedFloats()
+{
+  DrainSelfPushedFloats();
 
   
   
   nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
   if (prevBlock) {
-    AutoFrameListPtr list(presContext, prevBlock->RemovePushedFloats());
+    AutoFrameListPtr list(PresContext(), prevBlock->RemovePushedFloats());
     if (list && list->NotEmpty()) {
       mFloats.InsertFrames(this, nullptr, *list);
     }
@@ -4925,6 +4935,7 @@ nsBlockFrame::AppendFrames(ChildListID  aListID,
   }
   if (aListID != kPrincipalList) {
     if (kFloatList == aListID) {
+      DrainSelfPushedFloats(); 
       mFloats.AppendFrames(nullptr, aFrameList);
       return;
     }
@@ -4965,6 +4976,7 @@ nsBlockFrame::InsertFrames(ChildListID aListID,
 
   if (aListID != kPrincipalList) {
     if (kFloatList == aListID) {
+      DrainSelfPushedFloats(); 
       mFloats.InsertFrames(this, aPrevFrame, aFrameList);
       return;
     }

@@ -2256,6 +2256,7 @@ nsTableFrame::AppendFrames(ChildListID     aListID,
       InsertColGroups(startColIndex,
                       nsFrameList::Slice(mColGroups, f, f->GetNextSibling()));
     } else if (IsRowGroup(display->mDisplay)) {
+      DrainSelfOverflowList(); 
       
       mFrames.AppendFrame(nullptr, f);
 
@@ -2426,6 +2427,7 @@ nsTableFrame::HomogenousInsertFrames(ChildListID     aListID,
     InsertColGroups(startColIndex, newColgroups);
   } else if (IsRowGroup(display->mDisplay)) {
     NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
+    DrainSelfOverflowList(); 
     
     const nsFrameList::Slice& newRowGroups =
       mFrames.InsertFrames(nullptr, aPrevFrame, aFrameList);

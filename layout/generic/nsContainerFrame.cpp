@@ -86,16 +86,18 @@ nsContainerFrame::AppendFrames(ChildListID  aListID,
 {
   MOZ_ASSERT(aListID == kPrincipalList || aListID == kNoReflowPrincipalList,
              "unexpected child list");
-  if (aFrameList.NotEmpty()) {
-    mFrames.AppendFrames(this, aFrameList);
 
-    
-    if (aListID == kPrincipalList)
-    {
-      PresContext()->PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                         NS_FRAME_HAS_DIRTY_CHILDREN);
-    }
+  if (MOZ_UNLIKELY(aFrameList.IsEmpty())) {
+    return;
+  }
+
+  DrainSelfOverflowList(); 
+  mFrames.AppendFrames(this, aFrameList);
+
+  if (aListID != kNoReflowPrincipalList) {
+    PresContext()->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                       NS_FRAME_HAS_DIRTY_CHILDREN);
   }
 }
 
@@ -109,16 +111,17 @@ nsContainerFrame::InsertFrames(ChildListID aListID,
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                "inserting after sibling frame with different parent");
 
-  if (aFrameList.NotEmpty()) {
-    
-    mFrames.InsertFrames(this, aPrevFrame, aFrameList);
+  if (MOZ_UNLIKELY(aFrameList.IsEmpty())) {
+    return;
+  }
 
-    if (aListID == kPrincipalList)
-    {
-      PresContext()->PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                         NS_FRAME_HAS_DIRTY_CHILDREN);
-    }
+  DrainSelfOverflowList(); 
+  mFrames.InsertFrames(this, aPrevFrame, aFrameList);
+
+  if (aListID != kNoReflowPrincipalList) {
+    PresContext()->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                       NS_FRAME_HAS_DIRTY_CHILDREN);
   }
 }
 

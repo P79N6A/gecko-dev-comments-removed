@@ -185,6 +185,7 @@ nsTableRowFrame::AppendFrames(ChildListID     aListID,
 {
   NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
 
+  DrainSelfOverflowList(); 
   const nsFrameList::Slice& newCells = mFrames.AppendFrames(nullptr, aFrameList);
 
   
@@ -209,6 +210,7 @@ nsTableRowFrame::InsertFrames(ChildListID     aListID,
   NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                "inserting after sibling frame with different parent");
+  DrainSelfOverflowList(); 
   
   const nsFrameList::Slice& newCells = mFrames.InsertFrames(nullptr, aPrevFrame, aFrameList);
 
