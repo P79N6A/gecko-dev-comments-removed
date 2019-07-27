@@ -2,6 +2,8 @@
 
 
 
+Components.utils.import('resource://gre/modules/PlacesUtils.jsm');
+
 let FavIcons = {
   
   PREF_CHROME_SITE_ICONS: "browser.chrome.site_icons",
@@ -87,6 +89,8 @@ let FavIcons = {
       tabImage = this._favIconService.getFaviconLinkForIcon(tabImageURI).spec;
     }
 
+    tabImage = PlacesUtils.getImageURLForResolution(window, tabImage);
+
     callback(tabImage);
   },
 
@@ -99,7 +103,9 @@ let FavIcons = {
     let {currentURI} = tab.linkedBrowser;
     this._favIconService.getFaviconURLForPage(currentURI, function (uri) {
       if (uri) {
-        callback(this._favIconService.getFaviconLinkForIcon(uri).spec);
+        let icon = PlacesUtils.getImageURLForResolution(window,
+                     this._favIconService.getFaviconLinkForIcon(uri).spec);
+        callback(icon);
       } else {
         callback(this.defaultFavicon);
       }

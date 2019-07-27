@@ -1529,6 +1529,33 @@ this.PlacesUtils = {
 
 
 
+
+
+
+
+
+
+
+
+
+  getImageURLForResolution:
+  function PU_getImageURLForResolution(aWindow, aURL, aWidth = 16, aHeight = 16) {
+    let width  = Math.round(aWidth * aWindow.devicePixelRatio);
+    let height = Math.round(aHeight * aWindow.devicePixelRatio);
+    return aURL + (aURL.contains("#") ? "&" : "#") +
+           "-moz-resolution=" + width + "," + height;
+  },
+
+  
+
+
+
+
+
+
+
+
+
   promiseItemGUID: function (aItemId) GUIDHelper.getItemGUID(aItemId),
 
   
