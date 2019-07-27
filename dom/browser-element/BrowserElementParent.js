@@ -643,10 +643,11 @@ BrowserElementParent.prototype = {
     if (!this._isAlive()) {
       return null;
     }
-    let ioService =
-      Cc['@mozilla.org/network/io-service;1'].getService(Ci.nsIIOService);
-    let uri = ioService.newURI(_url, null, null);
+    
+    let uri = Services.io.newURI(_url, null, null);
     let url = uri.QueryInterface(Ci.nsIURL);
+
+    debug('original _options = ' + uneval(_options));
 
     
     _options = _options || {};
@@ -654,7 +655,7 @@ BrowserElementParent.prototype = {
       _options.filename = url.fileName;
     }
 
-    debug('_options = ' + uneval(_options));
+    debug('final _options = ' + uneval(_options));
 
     
     if (!_options.filename) {
@@ -732,7 +733,37 @@ BrowserElementParent.prototype = {
                                              Ci.nsIRequestObserver])
     };
 
-    let channel = ioService.newChannelFromURI(url);
+    
+    
+    let referrer = null;
+    let principal = null;
+    if (_options.referrer) {
+      
+      try {
+        referrer = Services.io.newURI(_options.referrer, null, null);
+      }
+      catch(e) {
+        debug('Malformed referrer -- ' + e);
+      }
+      
+      
+      
+      principal = 
+        Services.scriptSecurityManager.getAppCodebasePrincipal(
+          referrer, 
+          this._frameLoader.loadContext.appId, 
+          this._frameLoader.loadContext.isInBrowserElement);
+    }
+
+    debug('Using principal? ' + !!principal);
+
+    let channel = 
+      Services.io.newChannelFromURI2(url,
+                                     null,       
+                                     principal,  
+                                     principal,  
+                                     Ci.nsILoadInfo.SEC_NORMAL,
+                                     Ci.nsIContentPolicy.TYPE_OTHER);
 
     
     channel.notificationCallbacks = interfaceRequestor;
@@ -749,8 +780,8 @@ BrowserElementParent.prototype = {
     channel.loadFlags |= flags;
 
     if (channel instanceof Ci.nsIHttpChannel) {
-      debug('Setting HTTP referrer = ' + this._window.document.documentURIObject);
-      channel.referrer = this._window.document.documentURIObject;
+      debug('Setting HTTP referrer = ' + (referrer && referrer.spec)); 
+      channel.referrer = referrer;
       if (channel instanceof Ci.nsIHttpChannelInternal) {
         channel.forceAllowThirdPartyCookie = true;
       }
