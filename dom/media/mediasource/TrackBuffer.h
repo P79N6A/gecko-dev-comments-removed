@@ -138,7 +138,7 @@ private:
   
   void NotifyReaderDataRemoved(MediaDecoderReader* aReader);
 
-  typedef MediaPromise<bool, nsresult,  true> BufferedRangesUpdatedPromise;
+  typedef MozPromise<bool, nsresult,  true> BufferedRangesUpdatedPromise;
   nsRefPtr<BufferedRangesUpdatedPromise> UpdateBufferedRanges(Interval<int64_t> aByteRange, bool aNotifyParent);
 
   
@@ -226,15 +226,15 @@ private:
   MediaInfo mInfo;
 
   void ContinueShutdown();
-  MediaPromiseHolder<ShutdownPromise> mShutdownPromise;
+  MozPromiseHolder<ShutdownPromise> mShutdownPromise;
   bool mDecoderPerSegment;
   bool mShutdown;
 
-  MediaPromiseHolder<AppendPromise> mInitializationPromise;
+  MozPromiseHolder<AppendPromise> mInitializationPromise;
   
-  MediaPromiseRequestHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
+  MozPromiseRequestHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
 
-  MediaPromiseHolder<RangeRemovalPromise> mRangeRemovalPromise;
+  MozPromiseHolder<RangeRemovalPromise> mRangeRemovalPromise;
 
   Interval<int64_t> mLastAppendRange;
 

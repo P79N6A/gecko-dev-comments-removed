@@ -7,7 +7,7 @@
 #if !defined(MediaTimer_h_)
 #define MediaTimer_h_
 
-#include "MediaPromise.h"
+#include "MozPromise.h"
 
 #include <queue>
 
@@ -28,7 +28,7 @@ extern PRLogModuleInfo* gMediaTimerLog;
 
 
 
-typedef MediaPromise<bool, bool,  true> MediaTimerPromise;
+typedef MozPromise<bool, bool,  true> MediaTimerPromise;
 
 
 

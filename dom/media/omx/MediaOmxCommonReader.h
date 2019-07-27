@@ -24,7 +24,7 @@ class AbstractMediaDecoder;
 class MediaOmxCommonReader : public MediaDecoderReader
 {
 public:
-  typedef MediaPromise<bool , bool ,  true> MediaResourcePromise;
+  typedef MozPromise<bool , bool ,  true> MediaResourcePromise;
 
   MediaOmxCommonReader(AbstractMediaDecoder* aDecoder);
 

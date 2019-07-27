@@ -4,8 +4,8 @@
 
 
 
-#if !defined(MediaPromise_h_)
-#define MediaPromise_h_
+#if !defined(MozPromise_h_)
+#define MozPromise_h_
 
 #include "mozilla/Logging.h"
 
@@ -27,11 +27,11 @@
 
 namespace mozilla {
 
-extern PRLogModuleInfo* gMediaPromiseLog;
+extern PRLogModuleInfo* gMozPromiseLog;
 
 #define PROMISE_LOG(x, ...) \
-  MOZ_ASSERT(gMediaPromiseLog); \
-  MOZ_LOG(gMediaPromiseLog, mozilla::LogLevel::Debug, (x, ##__VA_ARGS__))
+  MOZ_ASSERT(gMozPromiseLog); \
+  MOZ_LOG(gMozPromiseLog, mozilla::LogLevel::Debug, (x, ##__VA_ARGS__))
 
 namespace detail {
 template<typename ThisType, typename Ret, typename ArgType>
@@ -107,17 +107,17 @@ struct ReturnTypeIs {
 
 
 
-class MediaPromiseRefcountable
+class MozPromiseRefcountable
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaPromiseRefcountable)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MozPromiseRefcountable)
 protected:
-  virtual ~MediaPromiseRefcountable() {}
+  virtual ~MozPromiseRefcountable() {}
 };
 
-template<typename T> class MediaPromiseHolder;
+template<typename T> class MozPromiseHolder;
 template<typename ResolveValueT, typename RejectValueT, bool IsExclusive>
-class MediaPromise : public MediaPromiseRefcountable
+class MozPromise : public MozPromiseRefcountable
 {
 public:
   typedef ResolveValueT ResolveValueType;
@@ -170,12 +170,12 @@ public:
 protected:
   
   
-  explicit MediaPromise(const char* aCreationSite)
+  explicit MozPromise(const char* aCreationSite)
     : mCreationSite(aCreationSite)
-    , mMutex("MediaPromise Mutex")
+    , mMutex("MozPromise Mutex")
     , mHaveRequest(false)
   {
-    PROMISE_LOG("%s creating MediaPromise (%p)", mCreationSite, this);
+    PROMISE_LOG("%s creating MozPromise (%p)", mCreationSite, this);
   }
 
 public:
@@ -189,26 +189,26 @@ public:
   class Private;
 
   template<typename ResolveValueType_>
-  static nsRefPtr<MediaPromise>
+  static nsRefPtr<MozPromise>
   CreateAndResolve(ResolveValueType_&& aResolveValue, const char* aResolveSite)
   {
-    nsRefPtr<typename MediaPromise::Private> p = new MediaPromise::Private(aResolveSite);
+    nsRefPtr<typename MozPromise::Private> p = new MozPromise::Private(aResolveSite);
     p->Resolve(Forward<ResolveValueType_>(aResolveValue), aResolveSite);
     return p.forget();
   }
 
   template<typename RejectValueType_>
-  static nsRefPtr<MediaPromise>
+  static nsRefPtr<MozPromise>
   CreateAndReject(RejectValueType_&& aRejectValue, const char* aRejectSite)
   {
-    nsRefPtr<typename MediaPromise::Private> p = new MediaPromise::Private(aRejectSite);
+    nsRefPtr<typename MozPromise::Private> p = new MozPromise::Private(aRejectSite);
     p->Reject(Forward<RejectValueType_>(aRejectValue), aRejectSite);
     return p.forget();
   }
 
-  typedef MediaPromise<nsTArray<ResolveValueType>, RejectValueType, IsExclusive> AllPromiseType;
+  typedef MozPromise<nsTArray<ResolveValueType>, RejectValueType, IsExclusive> AllPromiseType;
 private:
-  class AllPromiseHolder : public MediaPromiseRefcountable
+  class AllPromiseHolder : public MozPromiseRefcountable
   {
   public:
     explicit AllPromiseHolder(size_t aDependentPromises)
@@ -255,7 +255,7 @@ private:
   };
 public:
 
-  static nsRefPtr<AllPromiseType> All(AbstractThread* aProcessingThread, nsTArray<nsRefPtr<MediaPromise>>& aPromises)
+  static nsRefPtr<AllPromiseType> All(AbstractThread* aProcessingThread, nsTArray<nsRefPtr<MozPromise>>& aPromises)
   {
     nsRefPtr<AllPromiseHolder> holder = new AllPromiseHolder(aPromises.Length());
     for (size_t i = 0; i < aPromises.Length(); ++i) {
@@ -267,7 +267,7 @@ public:
     return holder->Promise();
   }
 
-  class Request : public MediaPromiseRefcountable
+  class Request : public MozPromiseRefcountable
   {
   public:
     virtual void Disconnect() = 0;
@@ -276,7 +276,7 @@ public:
     
     bool IsDisconnected() const { return mDisconnected; }
 
-    virtual MediaPromise* CompletionPromise() = 0;
+    virtual MozPromise* CompletionPromise() = 0;
 
   protected:
     Request() : mComplete(false), mDisconnected(false) {}
@@ -300,7 +300,7 @@ protected:
     class ResolveOrRejectRunnable : public nsRunnable
     {
     public:
-      ResolveOrRejectRunnable(ThenValueBase* aThenValue, MediaPromise* aPromise)
+      ResolveOrRejectRunnable(ThenValueBase* aThenValue, MozPromise* aPromise)
         : mThenValue(aThenValue)
         , mPromise(aPromise)
       {
@@ -323,23 +323,23 @@ protected:
 
     private:
       nsRefPtr<ThenValueBase> mThenValue;
-      nsRefPtr<MediaPromise> mPromise;
+      nsRefPtr<MozPromise> mPromise;
     };
 
     explicit ThenValueBase(AbstractThread* aResponseTarget, const char* aCallSite)
       : mResponseTarget(aResponseTarget), mCallSite(aCallSite) {}
 
-    MediaPromise* CompletionPromise() override
+    MozPromise* CompletionPromise() override
     {
       MOZ_DIAGNOSTIC_ASSERT(mResponseTarget->IsCurrentThreadIn());
       MOZ_DIAGNOSTIC_ASSERT(!Request::mComplete);
       if (!mCompletionPromise) {
-        mCompletionPromise = new MediaPromise::Private("<completion promise>");
+        mCompletionPromise = new MozPromise::Private("<completion promise>");
       }
       return mCompletionPromise;
     }
 
-    void Dispatch(MediaPromise *aPromise)
+    void Dispatch(MozPromise *aPromise)
     {
       aPromise->mMutex.AssertCurrentThreadOwns();
       MOZ_ASSERT(!aPromise->IsPending());
@@ -371,7 +371,7 @@ protected:
     }
 
   protected:
-    virtual already_AddRefed<MediaPromise> DoResolveOrRejectInternal(const ResolveOrRejectValue& aValue) = 0;
+    virtual already_AddRefed<MozPromise> DoResolveOrRejectInternal(const ResolveOrRejectValue& aValue) = 0;
 
     void DoResolveOrReject(const ResolveOrRejectValue& aValue)
     {
@@ -382,7 +382,7 @@ protected:
       }
 
       
-      nsRefPtr<MediaPromise> p = DoResolveOrRejectInternal(aValue);
+      nsRefPtr<MozPromise> p = DoResolveOrRejectInternal(aValue);
 
       
       
@@ -390,8 +390,8 @@ protected:
       
       
       
-      nsRefPtr<MediaPromise::Private> completionPromise =
-        dont_AddRef(static_cast<MediaPromise::Private*>(mCompletionPromise.forget().take()));
+      nsRefPtr<MozPromise::Private> completionPromise =
+        dont_AddRef(static_cast<MozPromise::Private*>(mCompletionPromise.forget().take()));
       if (completionPromise) {
         if (p) {
           p->ChainTo(completionPromise.forget(), "<chained completion promise>");
@@ -407,7 +407,7 @@ protected:
     
     
     
-    nsRefPtr<MediaPromise> mCompletionPromise;
+    nsRefPtr<MozPromise> mCompletionPromise;
 
     const char* mCallSite;
   };
@@ -418,9 +418,9 @@ protected:
 
 
   template<typename ThisType, typename MethodType, typename ValueType>
-  static typename EnableIf<ReturnTypeIs<MethodType, nsRefPtr<MediaPromise>>::value &&
+  static typename EnableIf<ReturnTypeIs<MethodType, nsRefPtr<MozPromise>>::value &&
                            TakesArgument<MethodType>::value,
-                           already_AddRefed<MediaPromise>>::Type
+                           already_AddRefed<MozPromise>>::Type
   InvokeCallbackMethod(ThisType* aThisVal, MethodType aMethod, ValueType&& aValue)
   {
     return ((*aThisVal).*aMethod)(Forward<ValueType>(aValue)).forget();
@@ -429,7 +429,7 @@ protected:
   template<typename ThisType, typename MethodType, typename ValueType>
   static typename EnableIf<ReturnTypeIs<MethodType, void>::value &&
                            TakesArgument<MethodType>::value,
-                           already_AddRefed<MediaPromise>>::Type
+                           already_AddRefed<MozPromise>>::Type
   InvokeCallbackMethod(ThisType* aThisVal, MethodType aMethod, ValueType&& aValue)
   {
     ((*aThisVal).*aMethod)(Forward<ValueType>(aValue));
@@ -437,9 +437,9 @@ protected:
   }
 
   template<typename ThisType, typename MethodType, typename ValueType>
-  static typename EnableIf<ReturnTypeIs<MethodType, nsRefPtr<MediaPromise>>::value &&
+  static typename EnableIf<ReturnTypeIs<MethodType, nsRefPtr<MozPromise>>::value &&
                            !TakesArgument<MethodType>::value,
-                           already_AddRefed<MediaPromise>>::Type
+                           already_AddRefed<MozPromise>>::Type
   InvokeCallbackMethod(ThisType* aThisVal, MethodType aMethod, ValueType&& aValue)
   {
     return ((*aThisVal).*aMethod)().forget();
@@ -448,7 +448,7 @@ protected:
   template<typename ThisType, typename MethodType, typename ValueType>
   static typename EnableIf<ReturnTypeIs<MethodType, void>::value &&
                            !TakesArgument<MethodType>::value,
-                           already_AddRefed<MediaPromise>>::Type
+                           already_AddRefed<MozPromise>>::Type
   InvokeCallbackMethod(ThisType* aThisVal, MethodType aMethod, ValueType&& aValue)
   {
     ((*aThisVal).*aMethod)();
@@ -478,9 +478,9 @@ protected:
   }
 
   protected:
-    virtual already_AddRefed<MediaPromise> DoResolveOrRejectInternal(const ResolveOrRejectValue& aValue) override
+    virtual already_AddRefed<MozPromise> DoResolveOrRejectInternal(const ResolveOrRejectValue& aValue) override
     {
-      nsRefPtr<MediaPromise> completion;
+      nsRefPtr<MozPromise> completion;
       if (aValue.IsResolve()) {
         completion = InvokeCallbackMethod(mThisVal.get(), mResolveMethod, aValue.ResolveValue());
       } else {
@@ -530,14 +530,14 @@ protected:
   }
 
   protected:
-    virtual already_AddRefed<MediaPromise> DoResolveOrRejectInternal(const ResolveOrRejectValue& aValue) override
+    virtual already_AddRefed<MozPromise> DoResolveOrRejectInternal(const ResolveOrRejectValue& aValue) override
     {
       
       
       
       
       
-      nsRefPtr<MediaPromise> completion;
+      nsRefPtr<MozPromise> completion;
       if (aValue.IsResolve()) {
         completion = InvokeCallbackMethod(mResolveFunction.ptr(), &ResolveFunction::operator(), aValue.ResolveValue());
       } else {
@@ -647,9 +647,9 @@ protected:
     }
   }
 
-  virtual ~MediaPromise()
+  virtual ~MozPromise()
   {
-    PROMISE_LOG("MediaPromise::~MediaPromise [this=%p]", this);
+    PROMISE_LOG("MozPromise::~MozPromise [this=%p]", this);
     MOZ_ASSERT(!IsPending());
     MOZ_ASSERT(mThenValues.IsEmpty());
     MOZ_ASSERT(mChainedPromises.IsEmpty());
@@ -664,18 +664,18 @@ protected:
 };
 
 template<typename ResolveValueT, typename RejectValueT, bool IsExclusive>
-class MediaPromise<ResolveValueT, RejectValueT, IsExclusive>::Private
-  : public MediaPromise<ResolveValueT, RejectValueT, IsExclusive>
+class MozPromise<ResolveValueT, RejectValueT, IsExclusive>::Private
+  : public MozPromise<ResolveValueT, RejectValueT, IsExclusive>
 {
 public:
-  explicit Private(const char* aCreationSite) : MediaPromise(aCreationSite) {}
+  explicit Private(const char* aCreationSite) : MozPromise(aCreationSite) {}
 
   template<typename ResolveValueT_>
   void Resolve(ResolveValueT_&& aResolveValue, const char* aResolveSite)
   {
     MutexAutoLock lock(mMutex);
     MOZ_ASSERT(IsPending());
-    PROMISE_LOG("%s resolving MediaPromise (%p created at %s)", aResolveSite, this, mCreationSite);
+    PROMISE_LOG("%s resolving MozPromise (%p created at %s)", aResolveSite, this, mCreationSite);
     mValue.SetResolve(Forward<ResolveValueT_>(aResolveValue));
     DispatchAll();
   }
@@ -685,7 +685,7 @@ public:
   {
     MutexAutoLock lock(mMutex);
     MOZ_ASSERT(IsPending());
-    PROMISE_LOG("%s rejecting MediaPromise (%p created at %s)", aRejectSite, this, mCreationSite);
+    PROMISE_LOG("%s rejecting MozPromise (%p created at %s)", aRejectSite, this, mCreationSite);
     mValue.SetReject(Forward<RejectValueT_>(aRejectValue));
     DispatchAll();
   }
@@ -695,28 +695,28 @@ public:
   {
     MutexAutoLock lock(mMutex);
     MOZ_ASSERT(IsPending());
-    PROMISE_LOG("%s resolveOrRejecting MediaPromise (%p created at %s)", aSite, this, mCreationSite);
+    PROMISE_LOG("%s resolveOrRejecting MozPromise (%p created at %s)", aSite, this, mCreationSite);
     mValue = Forward<ResolveOrRejectValue_>(aValue);
     DispatchAll();
   }
 };
 
 
-typedef MediaPromise<bool, nsresult,  false> GenericPromise;
+typedef MozPromise<bool, nsresult,  false> GenericPromise;
 
 
 
 
 
 template<typename PromiseType>
-class MediaPromiseHolder
+class MozPromiseHolder
 {
 public:
-  MediaPromiseHolder()
+  MozPromiseHolder()
     : mMonitor(nullptr) {}
 
   
-  MediaPromiseHolder& operator=(MediaPromiseHolder&& aOther)
+  MozPromiseHolder& operator=(MozPromiseHolder&& aOther)
   {
     MOZ_ASSERT(!mMonitor && !aOther.mMonitor);
     MOZ_DIAGNOSTIC_ASSERT(!mPromise);
@@ -725,7 +725,7 @@ public:
     return *this;
   }
 
-  ~MediaPromiseHolder() { MOZ_ASSERT(!mPromise); }
+  ~MozPromiseHolder() { MOZ_ASSERT(!mPromise); }
 
   already_AddRefed<PromiseType> Ensure(const char* aMethodName) {
     if (mMonitor) {
@@ -810,11 +810,11 @@ private:
 
 
 template<typename PromiseType>
-class MediaPromiseRequestHolder
+class MozPromiseRequestHolder
 {
 public:
-  MediaPromiseRequestHolder() {}
-  ~MediaPromiseRequestHolder() { MOZ_ASSERT(!mRequest); }
+  MozPromiseRequestHolder() {}
+  ~MozPromiseRequestHolder() { MOZ_ASSERT(!mRequest); }
 
   void Begin(typename PromiseType::Request* aRequest)
   {

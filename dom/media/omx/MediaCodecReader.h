@@ -178,10 +178,10 @@ protected:
 
   android::sp<android::MediaExtractor> mExtractor;
 
-  MediaPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
+  MozPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
   
-  MediaPromiseRequestHolder<MediaResourcePromise> mMediaResourceRequest;
-  MediaPromiseHolder<MediaResourcePromise> mMediaResourcePromise;
+  MozPromiseRequestHolder<MediaResourcePromise> mMediaResourceRequest;
+  MozPromiseHolder<MediaResourcePromise> mMediaResourcePromise;
 
 private:
 
@@ -216,7 +216,7 @@ private:
   {
     AudioTrack();
     
-    MediaPromiseHolder<AudioDataPromise> mAudioPromise;
+    MozPromiseHolder<AudioDataPromise> mAudioPromise;
 
   private:
     
@@ -238,7 +238,7 @@ private:
     nsIntRect mPictureRect;
     gfx::IntRect mRelativePictureRect;
     
-    MediaPromiseHolder<VideoDataPromise> mVideoPromise;
+    MozPromiseHolder<VideoDataPromise> mVideoPromise;
 
     nsRefPtr<MediaTaskQueue> mReleaseBufferTaskQueue;
   private:

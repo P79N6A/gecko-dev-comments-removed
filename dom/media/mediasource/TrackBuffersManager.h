@@ -34,7 +34,7 @@ using dom::SourceBufferAppendMode;
 
 class TrackBuffersManager : public SourceBufferContentManager {
 public:
-  typedef MediaPromise<bool, nsresult,  true> CodedFrameProcessingPromise;
+  typedef MozPromise<bool, nsresult,  true> CodedFrameProcessingPromise;
   typedef TrackInfo::TrackType TrackType;
   typedef MediaData::Type MediaType;
   typedef nsTArray<nsRefPtr<MediaRawData>> TrackBuffer;
@@ -166,7 +166,7 @@ private:
 
   void OnDemuxerInitDone(nsresult);
   void OnDemuxerInitFailed(DemuxerFailureReason aFailure);
-  MediaPromiseRequestHolder<MediaDataDemuxer::InitPromise> mDemuxerInitRequest;
+  MozPromiseRequestHolder<MediaDataDemuxer::InitPromise> mDemuxerInitRequest;
   bool mEncrypted;
 
   void OnDemuxFailed(TrackType aTrack, DemuxerFailureReason aFailure);
@@ -221,7 +221,7 @@ private:
     
     bool mNeedRandomAccessPoint;
     nsRefPtr<MediaTrackDemuxer> mDemuxer;
-    MediaPromiseRequestHolder<MediaTrackDemuxer::SamplesPromise> mDemuxRequest;
+    MozPromiseRequestHolder<MediaTrackDemuxer::SamplesPromise> mDemuxRequest;
     
     
     
@@ -272,10 +272,10 @@ private:
   void UpdateBufferedRanges();
   void RejectProcessing(nsresult aRejectValue, const char* aName);
   void ResolveProcessing(bool aResolveValue, const char* aName);
-  MediaPromiseRequestHolder<CodedFrameProcessingPromise> mProcessingRequest;
-  MediaPromiseHolder<CodedFrameProcessingPromise> mProcessingPromise;
+  MozPromiseRequestHolder<CodedFrameProcessingPromise> mProcessingRequest;
+  MozPromiseHolder<CodedFrameProcessingPromise> mProcessingPromise;
 
-  MediaPromiseHolder<AppendPromise> mAppendPromise;
+  MozPromiseHolder<AppendPromise> mAppendPromise;
   
   
   

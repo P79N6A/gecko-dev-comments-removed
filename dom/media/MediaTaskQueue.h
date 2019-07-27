@@ -13,7 +13,7 @@
 #include "mozilla/unused.h"
 #include "SharedThreadPool.h"
 #include "nsThreadUtils.h"
-#include "MediaPromise.h"
+#include "MozPromise.h"
 #include "TaskDispatcher.h"
 
 class nsIRunnable;
@@ -22,7 +22,7 @@ namespace mozilla {
 
 class SharedThreadPool;
 
-typedef MediaPromise<bool, bool, false> ShutdownPromise;
+typedef MozPromise<bool, bool, false> ShutdownPromise;
 
 
 
@@ -156,7 +156,7 @@ protected:
 
   
   bool mIsShutdown;
-  MediaPromiseHolder<ShutdownPromise> mShutdownPromise;
+  MozPromiseHolder<ShutdownPromise> mShutdownPromise;
 
   
   bool mIsFlushing;

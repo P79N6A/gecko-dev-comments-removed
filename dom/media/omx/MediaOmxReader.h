@@ -44,11 +44,11 @@ class MediaOmxReader : public MediaOmxCommonReader
   
   
   bool mIsShutdown;
-  MediaPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
-  MediaPromiseRequestHolder<MediaResourcePromise> mMediaResourceRequest;
+  MozPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
+  MozPromiseRequestHolder<MediaResourcePromise> mMediaResourceRequest;
 
-  MediaPromiseHolder<MediaDecoderReader::SeekPromise> mSeekPromise;
-  MediaPromiseRequestHolder<MediaDecoderReader::VideoDataPromise> mSeekRequest;
+  MozPromiseHolder<MediaDecoderReader::SeekPromise> mSeekPromise;
+  MozPromiseRequestHolder<MediaDecoderReader::VideoDataPromise> mSeekRequest;
 protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
   android::sp<android::MediaExtractor> mExtractor;

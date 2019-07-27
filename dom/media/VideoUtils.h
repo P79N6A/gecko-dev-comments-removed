@@ -13,7 +13,7 @@
 #include "nsIThread.h"
 #include "nsSize.h"
 #include "nsRect.h"
-#include "MediaPromise.h"
+#include "MozPromise.h"
 
 #if !(defined(XP_WIN) || defined(XP_MACOSX) || defined(LINUX)) || \
     defined(MOZ_ASAN)

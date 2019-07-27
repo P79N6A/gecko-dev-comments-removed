@@ -189,7 +189,7 @@
 #include "nsIObserver.h"
 #include "nsAutoPtr.h"
 #include "nsITimer.h"
-#include "MediaPromise.h"
+#include "MozPromise.h"
 #include "MediaResource.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/ReentrantMonitor.h"
@@ -274,7 +274,7 @@ public:
     MediaDecoderEventVisibility mEventVisibility;
   };
 
-  typedef MediaPromise<SeekResolveValue, bool ,  true> SeekPromise;
+  typedef MozPromise<SeekResolveValue, bool ,  true> SeekPromise;
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -986,7 +986,7 @@ protected:
   
   bool IsHeuristicDormantSupported() const;
 
-  MediaPromiseRequestHolder<SeekPromise> mSeekRequest;
+  MozPromiseRequestHolder<SeekPromise> mSeekRequest;
 
   
   

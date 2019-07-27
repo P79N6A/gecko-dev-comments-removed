@@ -121,7 +121,7 @@ class OmxDecoder : public OMXCodecProxy::CodecResourceListener {
   
   bool mAudioMetadataRead;
 
-  mozilla::MediaPromiseHolder<MediaResourcePromise> mMediaResourcePromise;
+  mozilla::MozPromiseHolder<MediaResourcePromise> mMediaResourcePromise;
 
   void ReleaseVideoBuffer();
   void ReleaseAudioBuffer();

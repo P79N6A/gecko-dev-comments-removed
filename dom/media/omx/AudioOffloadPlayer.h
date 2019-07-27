@@ -149,7 +149,7 @@ private:
   
   
   
-  MediaPromiseHolder<MediaDecoder::SeekPromise> mSeekPromise;
+  MozPromiseHolder<MediaDecoder::SeekPromise> mSeekPromise;
 
   
   

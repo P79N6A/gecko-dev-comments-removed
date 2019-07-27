@@ -9,7 +9,7 @@
 #include "AbstractMediaDecoder.h"
 #include "MediaInfo.h"
 #include "MediaData.h"
-#include "MediaPromise.h"
+#include "MozPromise.h"
 #include "MediaQueue.h"
 #include "MediaTimer.h"
 #include "AudioCompactor.h"
@@ -66,16 +66,16 @@ public:
     CANCELED
   };
 
-  typedef MediaPromise<nsRefPtr<MetadataHolder>, ReadMetadataFailureReason,  true> MetadataPromise;
-  typedef MediaPromise<nsRefPtr<AudioData>, NotDecodedReason,  true> AudioDataPromise;
-  typedef MediaPromise<nsRefPtr<VideoData>, NotDecodedReason,  true> VideoDataPromise;
-  typedef MediaPromise<int64_t, nsresult,  true> SeekPromise;
+  typedef MozPromise<nsRefPtr<MetadataHolder>, ReadMetadataFailureReason,  true> MetadataPromise;
+  typedef MozPromise<nsRefPtr<AudioData>, NotDecodedReason,  true> AudioDataPromise;
+  typedef MozPromise<nsRefPtr<VideoData>, NotDecodedReason,  true> VideoDataPromise;
+  typedef MozPromise<int64_t, nsresult,  true> SeekPromise;
 
   
   
   
   
-  typedef MediaPromise<MediaData::Type, WaitForDataRejectValue,  true> WaitForDataPromise;
+  typedef MozPromise<MediaData::Type, WaitForDataRejectValue,  true> WaitForDataPromise;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
@@ -386,7 +386,7 @@ protected:
   Mirror<media::NullableTimeUnit> mDuration;
 
   
-  MediaPromiseRequestHolder<MediaTimerPromise> mThrottledNotify;
+  MozPromiseRequestHolder<MediaTimerPromise> mThrottledNotify;
   const TimeDuration mThrottleDuration;
   TimeStamp mLastThrottledNotify;
   Maybe<media::Interval<int64_t>> mThrottledInterval;
@@ -420,8 +420,8 @@ protected:
 private:
   
   
-  MediaPromiseHolder<AudioDataPromise> mBaseAudioPromise;
-  MediaPromiseHolder<VideoDataPromise> mBaseVideoPromise;
+  MozPromiseHolder<AudioDataPromise> mBaseAudioPromise;
+  MozPromiseHolder<VideoDataPromise> mBaseVideoPromise;
 
   bool mTaskQueueIsBorrowed;
 
