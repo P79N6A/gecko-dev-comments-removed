@@ -330,6 +330,33 @@ AbstractTreeItem.prototype = {
 
 
 
+  traverse: function(cb) {
+    for (let child of this._childTreeItems) {
+      cb(child);
+      child.bfs();
+    }
+  },
+
+  
+
+
+
+
+
+  find: function(predicate) {
+    for (let child of this._childTreeItems) {
+      if (predicate(child) || child.find(predicate)) {
+        return child;
+      }
+    }
+    return null;
+  },
+
+  
+
+
+
+
 
 
   _toggleChildren: function(visible) {

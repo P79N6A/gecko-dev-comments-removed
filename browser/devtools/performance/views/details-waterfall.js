@@ -83,9 +83,11 @@ let WaterfallView = Heritage.extend(DetailsSubview, {
 
     if (event === "selected") {
       this.details.render({ toolbox: gToolbox, marker, frames });
+      this._selected = marker;
     }
     if (event === "unselected") {
       this.details.empty();
+      this._selected = null;
     }
   },
 
@@ -157,6 +159,15 @@ let WaterfallView = Heritage.extend(DetailsSubview, {
 
     this.headerContainer.innerHTML = "";
     header.attachTo(this.headerContainer);
+
+    
+    
+    if (this._selected) {
+      let item = root.find(i => i.marker == this._selected);
+      if (item) {
+        item.focus();
+      }
+    }
   },
 
   toString: () => "[object WaterfallView]"
