@@ -108,16 +108,66 @@ public:
   void      ClearPlaceholderFrameMap();
 
   
-  nsStyleContext* GetUndisplayedContent(nsIContent* aContent);
+  nsStyleContext* GetUndisplayedContent(nsIContent* aContent)
+  {
+    if (!mUndisplayedMap) {
+      return nullptr;
+    }
+    return GetStyleContextInMap(mUndisplayedMap, aContent);
+  }
   mozilla::UndisplayedNode*
     GetAllUndisplayedContentIn(nsIContent* aParentContent);
   void SetUndisplayedContent(nsIContent* aContent,
-                                         nsStyleContext* aStyleContext);
+                             nsStyleContext* aStyleContext);
   void ChangeUndisplayedContent(nsIContent* aContent,
-                                            nsStyleContext* aStyleContext);
+                                nsStyleContext* aStyleContext)
+  {
+    ChangeStyleContextInMap(mUndisplayedMap, aContent, aStyleContext);
+  }
+
   void ClearUndisplayedContentIn(nsIContent* aContent,
-                                             nsIContent* aParentContent);
+                                 nsIContent* aParentContent);
   void ClearAllUndisplayedContentIn(nsIContent* aParentContent);
+
+  
+  
+
+
+  nsStyleContext* GetDisplayContentsStyleFor(nsIContent* aContent)
+  {
+    if (!mDisplayContentsMap) {
+      return nullptr;
+    }
+    return GetStyleContextInMap(mDisplayContentsMap, aContent);
+  }
+
+  
+
+
+
+  mozilla::UndisplayedNode* GetAllDisplayContentsIn(nsIContent* aParentContent);
+  
+
+
+  void SetDisplayContents(nsIContent* aContent,
+                          nsStyleContext* aStyleContext);
+  
+
+
+  void ChangeDisplayContents(nsIContent* aContent,
+                             nsStyleContext* aStyleContext)
+  {
+    ChangeStyleContextInMap(mDisplayContentsMap, aContent, aStyleContext);
+  }
+
+  
+
+
+
+
+  void ClearDisplayContentsIn(nsIContent* aContent,
+                              nsIContent* aParentContent);
+  void ClearAllDisplayContentsIn(nsIContent* aParentContent);
 
   
   void AppendFrames(nsContainerFrame* aParentFrame,
@@ -161,6 +211,18 @@ public:
 
   void RestoreFrameStateFor(nsIFrame*              aFrame,
                                         nsILayoutHistoryState* aState);
+protected:
+  static nsStyleContext* GetStyleContextInMap(UndisplayedMap* aMap,
+                                              nsIContent* aContent);
+  static mozilla::UndisplayedNode*
+    GetAllUndisplayedNodesInMapFor(UndisplayedMap* aMap,
+                                   nsIContent* aParentContent);
+  static void SetStyleContextInMap(UndisplayedMap* aMap,
+                                   nsIContent* aContent,
+                                   nsStyleContext* aStyleContext);
+  static void ChangeStyleContextInMap(UndisplayedMap* aMap,
+                                      nsIContent* aContent,
+                                      nsStyleContext* aStyleContext);
 };
 
 #endif

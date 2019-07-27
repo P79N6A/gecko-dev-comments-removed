@@ -144,9 +144,12 @@ public:
       nsIFrame* childFrame = mBoundElement->GetPrimaryFrame();
       if (!childFrame) {
         
-        nsStyleContext* sc =
-          shell->FrameManager()->GetUndisplayedContent(mBoundElement);
-
+        nsFrameManager* fm = shell->FrameManager();
+        nsStyleContext* sc = fm->GetUndisplayedContent(mBoundElement);
+        if (!sc) {
+          
+          sc = fm->GetDisplayContentsStyleFor(mBoundElement);
+        }
         if (!sc) {
           shell->CreateFramesFor(destroyedFramesFor);
         }
