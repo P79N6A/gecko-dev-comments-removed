@@ -41,25 +41,28 @@ import org.mozilla.gecko.mozglue.WebRTCJNITarget;
 public class VideoCaptureAndroid implements PreviewCallback, Callback, AppStateListener {
   private final static String TAG = "WEBRTC-JC";
 
-  private Camera camera;  
+  
+   Camera camera;
   private Camera.CameraInfo info;
   private final int id;
   private final long native_capturer;  
   private SurfaceHolder localPreview;
   private SurfaceTexture dummySurfaceTexture;
+
   
   
   
   private final int numCaptureBuffers = 3;
+
   
-  private volatile int mCaptureRotation;
-  private int mCaptureWidth;
-  private int mCaptureHeight;
-  private int mCaptureMinFPS;
-  private int mCaptureMaxFPS;
+   volatile int mCaptureRotation;
+   int mCaptureWidth;
+   int mCaptureHeight;
+   int mCaptureMinFPS;
+   int mCaptureMaxFPS;
   
   
-  private boolean mResumeCapture;
+   boolean mResumeCapture;
 
   @WebRTCJNITarget
   public VideoCaptureAndroid(int id, long native_capturer) {

@@ -29,14 +29,17 @@ import org.mozilla.gecko.mozglue.WebRTCJNITarget;
 
 public class ViEAndroidGLES20 extends GLSurfaceView
         implements GLSurfaceView.Renderer {
-    private static String TAG = "WEBRTC-JR";
+     static final String TAG = "WEBRTC-JR";
     private static final boolean DEBUG = false;
+
     
     private boolean surfaceCreated;
     private boolean openGLCreated;
+
     
     private boolean nativeFunctionsRegisted;
     private ReentrantLock nativeFunctionLock = new ReentrantLock();
+
     
     private long nativeObject;
     private int viewWidth;
@@ -103,7 +106,7 @@ public class ViEAndroidGLES20 extends GLSurfaceView
         }
     }
 
-    private static void checkEglError(String prompt, EGL10 egl) {
+     static void checkEglError(String prompt, EGL10 egl) {
         int error;
         while ((error = egl.eglGetError()) != EGL10.EGL_SUCCESS) {
             Log.e(TAG, String.format("%s: EGL error: 0x%x", prompt, error));
