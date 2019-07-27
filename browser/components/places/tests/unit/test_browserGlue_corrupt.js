@@ -32,7 +32,7 @@ add_task(function* test_main() {
   yield createCorruptDB();
 
   
-  Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIBrowserGlue);
+  Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsISupports);
 
   
   
