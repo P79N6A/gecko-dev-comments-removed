@@ -429,25 +429,13 @@ private:
 
 
 
-  class MutationObserver : public nsStubMutationObserver {
+  class MutationObserver MOZ_FINAL : public nsStubMutationObserver {
   public:
-    MutationObserver()
-      : mFrame(nullptr)
+    MutationObserver(SVGTextFrame* aFrame)
+      : mFrame(aFrame)
     {
-    }
-
-    void StartObserving(SVGTextFrame* aFrame)
-    {
-      NS_ASSERTION(!mFrame, "should not be observing yet!");
-      mFrame = aFrame;
-      aFrame->GetContent()->AddMutationObserver(this);
-    }
-
-    virtual ~MutationObserver()
-    {
-      if (mFrame) {
-        mFrame->GetContent()->RemoveMutationObserver(this);
-      }
+      MOZ_ASSERT(mFrame, "MutationObserver needs a non-null frame");
+      mFrame->GetContent()->AddMutationObserver(this);
     }
 
     
@@ -461,7 +449,12 @@ private:
     NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
 
   private:
-    SVGTextFrame* mFrame;
+    ~MutationObserver()
+    {
+      mFrame->GetContent()->RemoveMutationObserver(this);
+    }
+
+    SVGTextFrame* const mFrame;
   };
 
   
@@ -637,7 +630,7 @@ private:
   
 
 
-  MutationObserver mMutationObserver;
+  nsRefPtr<MutationObserver> mMutationObserver;
 
   
 
@@ -696,13 +689,5 @@ private:
 
   float mLengthAdjustScaleFactor;
 };
-
-namespace mozilla {
-template<>
-struct HasDangerousPublicDestructor<SVGTextFrame::MutationObserver>
-{
-  static const bool value = true;
-};
-}
 
 #endif
