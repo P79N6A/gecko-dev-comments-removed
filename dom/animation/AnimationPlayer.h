@@ -84,6 +84,10 @@ public:
 
   void SetSource(Animation* aSource);
   void Tick();
+  
+  
+  
+  void ResolveStartTime();
 
   const nsString& Name() const {
     return mSource ? mSource->Name() : EmptyString();

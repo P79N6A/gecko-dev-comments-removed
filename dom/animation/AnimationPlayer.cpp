@@ -106,6 +106,24 @@ AnimationPlayer::Tick()
   }
 }
 
+void
+AnimationPlayer::ResolveStartTime()
+{
+  
+  
+  
+  MOZ_ASSERT(mStartTime.IsNull() && !mHoldTime.IsNull(),
+             "Resolving the start time but we don't appear to be waiting"
+             " to begin playback");
+
+  Nullable<TimeDuration> readyTime = mTimeline->GetCurrentTime();
+  
+  
+  MOZ_ASSERT(!readyTime.IsNull(), "Missing or inactive timeline");
+  mStartTime.SetValue(readyTime.Value() - mHoldTime.Value());
+  mHoldTime.SetNull();
+}
+
 bool
 AnimationPlayer::IsRunning() const
 {
@@ -176,16 +194,7 @@ AnimationPlayer::DoPlay()
     return;
   }
 
-  Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTime();
-  if (timelineTime.IsNull()) {
-    
-    
-    return;
-  }
-
-  
-  mStartTime.SetValue(timelineTime.Value() - mHoldTime.Value());
-  mHoldTime.SetNull();
+  ResolveStartTime();
 }
 
 void
