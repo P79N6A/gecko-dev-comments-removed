@@ -203,7 +203,9 @@ PreviewController.prototype = {
   
   
   
-  resetCanvasPreview: function () this.resizeCanvasPreview(0, 0),
+  resetCanvasPreview: function () {
+    this.resizeCanvasPreview(0, 0);
+  },
 
   resizeCanvasPreview: function (width, height) {
     this.canvasPreview.width = width;
