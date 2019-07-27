@@ -1628,58 +1628,6 @@ BluetoothDaemonProtocol::FetchUserData(const BluetoothDaemonPDUHeader& aHeader)
 
 
 
-class BluetoothDaemonListenSocket final : public ipc::ListenSocket
-{
-public:
-  BluetoothDaemonListenSocket(BluetoothDaemonInterface* aInterface);
-
-  
-  
-
-  void OnConnectSuccess() override;
-  void OnConnectError() override;
-  void OnDisconnect() override;
-
-private:
-  BluetoothDaemonInterface* mInterface;
-};
-
-BluetoothDaemonListenSocket::BluetoothDaemonListenSocket(
-  BluetoothDaemonInterface* aInterface)
-  : mInterface(aInterface)
-{ }
-
-void
-BluetoothDaemonListenSocket::OnConnectSuccess()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mInterface);
-
-  mInterface->OnConnectSuccess(BluetoothDaemonInterface::LISTEN_SOCKET);
-}
-
-void
-BluetoothDaemonListenSocket::OnConnectError()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mInterface);
-
-  mInterface->OnConnectError(BluetoothDaemonInterface::LISTEN_SOCKET);
-}
-
-void
-BluetoothDaemonListenSocket::OnDisconnect()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mInterface);
-
-  mInterface->OnDisconnect(BluetoothDaemonInterface::LISTEN_SOCKET);
-}
-
-
-
-
-
 class BluetoothDaemonChannel final : public BluetoothDaemonConnection
 {
 public:
@@ -2098,7 +2046,7 @@ BluetoothDaemonInterface::Init(
   }
 
   if (!mListenSocket) {
-    mListenSocket = new BluetoothDaemonListenSocket(this);
+    mListenSocket = new ListenSocket(this, LISTEN_SOCKET);
   }
 
   
@@ -2554,6 +2502,27 @@ BluetoothGattInterface*
 BluetoothDaemonInterface::GetBluetoothGattInterface()
 {
   return nullptr;
+}
+
+
+
+
+void
+BluetoothDaemonInterface::OnConnectSuccess(int aIndex)
+{
+  OnConnectSuccess(static_cast<enum Channel>(aIndex));
+}
+
+void
+BluetoothDaemonInterface::OnConnectError(int aIndex)
+{
+  OnConnectError(static_cast<enum Channel>(aIndex));
+}
+
+void
+BluetoothDaemonInterface::OnDisconnect(int aIndex)
+{
+  OnDisconnect(static_cast<enum Channel>(aIndex));
 }
 
 END_BLUETOOTH_NAMESPACE
