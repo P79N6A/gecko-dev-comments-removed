@@ -74,7 +74,6 @@ protected:
 private:
 
   
-  nsRefPtr<nsStyleContext> mBorderStyle;
   nsRefPtr<nsStyleContext> mInnerFocusStyle;
   nsRefPtr<nsStyleContext> mOuterFocusStyle;
 
