@@ -133,18 +133,13 @@ static bool test_pldhash_grow_to_max_capacity()
     nullptr
   };
 
-  
-  PLDHashTable* t = PL_NewDHashTable(&ops, sizeof(PLDHashEntryStub), 128);
-
-  
-  if (!t->IsInitialized()) {
-    return false;
-  }
+  PLDHashTable t;
+  PL_DHashTableInit(&t, &ops, sizeof(PLDHashEntryStub), 128);
 
   
   size_t numInserted = 0;
   while (true) {
-    if (!PL_DHashTableAdd(t, (const void*)numInserted)) {
+    if (!PL_DHashTableAdd(&t, (const void*)numInserted)) {
       break;
     }
     numInserted++;
@@ -156,7 +151,7 @@ static bool test_pldhash_grow_to_max_capacity()
     return false;
   }
 
-  PL_DHashTableDestroy(t);
+  PL_DHashTableFinish(&t);
 
   return true;
 }
