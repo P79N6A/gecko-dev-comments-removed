@@ -489,6 +489,10 @@ LinearScanAllocator::populateSafepoints()
     size_t nargs = graph.getBlock(0)->mir()->info().nargs();
     for (size_t i = 0; i < graph.numSafepoints(); i++) {
         LSafepoint *safepoint = graph.getSafepoint(i)->safepoint();
+
+        if (!safepoint->addValueSlot( false, THIS_FRAME_ARGSLOT * sizeof(Value)))
+            return false;
+
         for (size_t j = 0; j < nargs; j++) {
             if (!safepoint->addValueSlot( false, (j + 1) * sizeof(Value)))
                 return false;
