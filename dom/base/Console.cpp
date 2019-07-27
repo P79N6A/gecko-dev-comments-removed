@@ -526,7 +526,7 @@ private:
         id = NS_LITERAL_STRING("Worker");
       }
 
-      mCallData->SetIDs(id, frame.mFilename);
+      mCallData->SetIDs(frame.mFilename, id);
     }
 
     
