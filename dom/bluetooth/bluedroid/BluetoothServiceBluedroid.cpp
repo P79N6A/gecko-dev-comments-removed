@@ -2880,7 +2880,10 @@ BluetoothServiceBluedroid::BondStateChangedNotification(
     
     
     
-    MOZ_ASSERT(nameExists);
+    
+    
+    
+
     BT_APPEND_NAMED_VALUE(propertiesArray, "Name", deviceName);
   }
 
