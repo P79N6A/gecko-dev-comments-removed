@@ -2292,24 +2292,16 @@ this.DOMApplicationRegistry = {
     
     if (app.manifest) {
       if (checkManifest()) {
-        if (this.kTrustedHosted == this.appKind(app, app.manifest)) {
-          
-          
-          if (!TrustedHostedAppsUtils.isHostPinned(app.manifestURL)) {
-            sendError("TRUSTED_APPLICATION_HOST_CERTIFICATE_INVALID");
-            return;
-          }
-
-          
-          
-
-          if (!TrustedHostedAppsUtils.verifyCSPWhiteList(app.manifest.csp)) {
-            sendError("TRUSTED_APPLICATION_WHITELIST_VALIDATION_FAILED");
-            return;
-          }
+        debug("Installed manifest check OK");
+        if (this.kTrustedHosted !== this.appKind(app, app.manifest)) {
+          installApp();
+          return;
         }
-
-        installApp();
+        TrustedHostedAppsUtils.verifyManifest(aData)
+        	.then(installApp, sendError);
+      } else {
+        debug("Installed manifest check failed");
+        
       }
       return;
     }
@@ -2332,21 +2324,20 @@ this.DOMApplicationRegistry = {
 
         app.manifest = xhr.response;
         if (checkManifest()) {
+          debug("Downloaded manifest check OK");
           app.etag = xhr.getResponseHeader("Etag");
-          if (this.kTrustedHosted == this.appKind(app, app.manifest)) {
-            
-            
-
-            
-            
-
-            if (!TrustedHostedAppsUtils.verifyCSPWhiteList(app.manifest.csp)) {
-              sendError("TRUSTED_APPLICATION_WHITELIST_VALIDATION_FAILED");
-              return;
-            }
+          if (this.kTrustedHosted !== this.appKind(app, app.manifest)) {
+            installApp();
+            return;
           }
 
-          installApp();
+          debug("App kind: " + this.kTrustedHosted);
+          TrustedHostedAppsUtils.verifyManifest(aData)
+            .then(installApp, sendError);
+          return;
+        } else {
+          debug("Downloaded manifest check failed");
+          
         }
       } else {
         sendError("MANIFEST_URL_ERROR");
