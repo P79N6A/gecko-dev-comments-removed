@@ -1129,7 +1129,10 @@ InspectorPanel.prototype = {
     CommandUtils.createRequisition(this._target, {
       environment: CommandUtils.createEnvironment(this, '_target')
     }).then(requisition => {
-      requisition.updateExec("screenshot --selector " + this.selectionCssSelector);
+      
+      
+      
+      requisition.updateExec("screenshot --selector '" + this.selectionCssSelector + "'");
     });
   },
 
