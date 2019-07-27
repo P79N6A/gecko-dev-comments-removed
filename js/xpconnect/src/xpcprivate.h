@@ -811,9 +811,6 @@ private:
     XPCCallContext(const XPCCallContext& r); 
     XPCCallContext& operator= (const XPCCallContext& r); 
 
-    XPCWrappedNative* UnwrapThisIfAllowed(JS::HandleObject obj, JS::HandleObject fun,
-                                          unsigned argc);
-
 private:
     
     enum State {

@@ -56,24 +56,18 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 
     mTearOff = nullptr;
 
-    
-    
     JSObject *unwrapped = js::CheckedUnwrap(obj,  false);
     if (!unwrapped) {
-        mWrapper = UnwrapThisIfAllowed(obj, funobj, argc);
-        if (!mWrapper) {
-            JS_ReportError(mJSContext, "Permission denied to call method on |this|");
-            mState = INIT_FAILED;
-            return;
-        }
-    } else {
-        const js::Class *clasp = js::GetObjectClass(unwrapped);
-        if (IS_WN_CLASS(clasp)) {
-            mWrapper = XPCWrappedNative::Get(unwrapped);
-        } else if (IS_TEAROFF_CLASS(clasp)) {
-            mTearOff = (XPCWrappedNativeTearOff*)js::GetObjectPrivate(unwrapped);
-            mWrapper = XPCWrappedNative::Get(js::GetObjectParent(unwrapped));
-        }
+        JS_ReportError(mJSContext, "Permission denied to call method on |this|");
+        mState = INIT_FAILED;
+        return;
+    }
+    const js::Class *clasp = js::GetObjectClass(unwrapped);
+    if (IS_WN_CLASS(clasp)) {
+        mWrapper = XPCWrappedNative::Get(unwrapped);
+    } else if (IS_TEAROFF_CLASS(clasp)) {
+        mTearOff = (XPCWrappedNativeTearOff*)js::GetObjectPrivate(unwrapped);
+        mWrapper = XPCWrappedNative::Get(js::GetObjectParent(unwrapped));
     }
     if (mWrapper) {
         if (mTearOff)
@@ -311,65 +305,3 @@ XPCCallContext::GetLanguage(uint16_t *aResult)
   *aResult = GetCallerLanguage();
   return NS_OK;
 }
-
-XPCWrappedNative*
-XPCCallContext::UnwrapThisIfAllowed(HandleObject obj, HandleObject fun, unsigned argc)
-{
-    
-    MOZ_ASSERT(!js::CheckedUnwrap(obj));
-    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, mJSContext));
-
-    
-    if (!fun)
-        return nullptr;
-
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    MOZ_ASSERT(js::IsWrapper(obj));
-    RootedObject unwrapped(mJSContext, js::UncheckedUnwrap(obj,  false));
-#ifdef DEBUG
-    JS::Rooted<JSObject*> wrappedObj(mJSContext, js::Wrapper::wrappedObject(obj));
-    MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, wrappedObj));
-#endif
-
-    
-    if (!IS_WN_REFLECTOR(unwrapped))
-        return nullptr;
-    XPCWrappedNative *wn = XPCWrappedNative::Get(unwrapped);
-
-    
-    XPCNativeInterface *interface;
-    XPCNativeMember *member;
-    XPCNativeMember::GetCallInfo(fun, &interface, &member);
-
-    
-    
-    
-    if (!wn->HasInterfaceNoQI(*interface->GetIID()))
-        return nullptr;
-
-    
-    
-    
-    
-    bool set = argc && argc != NO_ARGS && member->IsWritableAttribute();
-    js::Wrapper::Action act = set ? js::Wrapper::SET : js::Wrapper::GET;
-    const js::Wrapper *handler = js::Wrapper::wrapperHandler(obj);
-    bool ignored;
-    JS::Rooted<jsid> id(mJSContext, member->GetName());
-    if (!handler->enter(mJSContext, obj, id, act, &ignored))
-        return nullptr;
-
-    
-    return wn;
-}
-
