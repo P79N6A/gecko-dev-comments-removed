@@ -193,7 +193,8 @@ const WorkerSandbox = Class({
     
     if (requiresAddonGlobal(worker)) {
       Object.defineProperty(getUnsafeWindow(window), 'addon', {
-          value: content.self
+          value: content.self,
+          configurable: true
         }
       );
     }
