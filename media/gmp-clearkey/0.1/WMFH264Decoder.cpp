@@ -38,6 +38,13 @@ WMFH264Decoder::Init()
   hr = CreateMFT(__uuidof(CMSH264DecoderMFT),
                  "msmpeg2vdec.dll",
                  mDecoder);
+  if (FAILED(hr)) {
+    
+    
+    hr = CreateMFT(CLSID_CMSH264DecMFT,
+                   "msmpeg2vdec.dll",
+                   mDecoder);
+  }
   ENSURE(SUCCEEDED(hr), hr);
 
   hr = SetDecoderInputType();
