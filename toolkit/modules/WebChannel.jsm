@@ -77,7 +77,7 @@ let WebChannelBroker = Object.create({
 
         for (var channel of this._channelMap.keys()) {
           if (channel.id === data.id &&
-            channel.origin.prePath === event.principal.origin) {
+            channel._originCheckCallback(event.principal)) {
             validChannelFound = true;
             channel.deliver(data, sender);
           }
@@ -137,13 +137,39 @@ let WebChannelBroker = Object.create({
 
 
 
-this.WebChannel = function(id, origin) {
-  if (!id || !origin) {
-    throw new Error("WebChannel id and origin are required.");
+
+
+
+
+this.WebChannel = function(id, originOrPermission) {
+  if (!id || !originOrPermission) {
+    throw new Error("WebChannel id and originOrPermission are required.");
   }
 
   this.id = id;
-  this.origin = origin;
+  
+  
+  if (typeof originOrPermission == "string") {
+    this._originCheckCallback = requestPrincipal => {
+      
+      
+      
+      let uri = Services.io.newURI(requestPrincipal.origin, null, null);
+      if (uri.scheme != "https") {
+        return false;
+      }
+      
+      let perm = Services.perms.testExactPermissionFromPrincipal(requestPrincipal,
+                                                                 originOrPermission);
+      return perm == Ci.nsIPermissionManager.ALLOW_ACTION;
+    }
+  } else {
+    
+    this._originCheckCallback = requestPrincipal => {
+      return originOrPermission.prePath === requestPrincipal.origin;
+    }
+  }
+  this._originOrPermission = originOrPermission;
 };
 
 this.WebChannel.prototype = {
@@ -156,7 +182,14 @@ this.WebChannel.prototype = {
   
 
 
-  origin: null,
+
+  _originOrPermission: null,
+
+  
+
+
+
+  _originCheckCallback: null,
 
   
 
