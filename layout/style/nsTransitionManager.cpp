@@ -74,29 +74,6 @@ ElementPropertyTransition::CurrentValuePortion() const
 
 
 
-void
-nsTransitionManager::ElementCollectionRemoved()
-{
-  
-  
-  if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
-    mPresContext->RefreshDriver()->RemoveRefreshObserver(this, Flush_Style);
-  }
-}
-
-void
-nsTransitionManager::AddElementCollection(
-  AnimationPlayerCollection* aCollection)
-{
-  if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
-    
-    nsRefreshDriver *rd = mPresContext->RefreshDriver();
-    rd->AddRefreshObserver(this, Flush_Style);
-  }
-
-  PR_INSERT_BEFORE(aCollection, &mElementCollections);
-}
-
 already_AddRefed<nsIStyleRule>
 nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                                          nsStyleContext *aOldStyleContext,

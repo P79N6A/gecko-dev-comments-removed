@@ -75,16 +75,19 @@ public:
                   nsCSSProperty aProperty,
                   nsStyleContext* aStyleContext,
                   mozilla::StyleAnimationValue& aComputedValue);
+
 protected:
   virtual ~CommonAnimationManager();
 
   
   friend struct mozilla::AnimationPlayerCollection;
 
-  virtual void
-  AddElementCollection(AnimationPlayerCollection* aCollection) = 0;
-  virtual void ElementCollectionRemoved() = 0;
+  void AddElementCollection(AnimationPlayerCollection* aCollection);
+  void ElementCollectionRemoved() { CheckNeedsRefresh(); }
   void RemoveAllElementCollections();
+
+  
+  void CheckNeedsRefresh();
 
   
   
@@ -95,6 +98,7 @@ protected:
 
   PRCList mElementCollections;
   nsPresContext *mPresContext; 
+  bool mIsObservingRefreshDriver;
 };
 
 
@@ -184,7 +188,6 @@ struct AnimationPlayerCollection : public PRCList
 
   void Tick();
 
-  
   
   
   
