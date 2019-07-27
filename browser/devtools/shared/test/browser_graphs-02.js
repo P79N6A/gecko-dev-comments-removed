@@ -22,13 +22,14 @@ function* performTest() {
   let graph = new LineGraphWidget(doc.body, "fps");
   yield graph.once("ready");
 
-  testGraph(graph);
+  testDataAndRegions(graph);
+  testHighlights(graph);
 
   graph.destroy();
   host.destroy();
 }
 
-function testGraph(graph) {
+function testDataAndRegions(graph) {
   let thrown1;
   try {
     graph.setRegions(TEST_REGIONS);
@@ -52,7 +53,7 @@ function testGraph(graph) {
   ok(graph.hasRegions(), "The graph should now have the regions set.");
 
   is(graph.dataScaleX,
-     graph.width / (4180 - 112), 
+     graph.width / 4180, 
     "The data scale on the X axis is correct.");
 
   is(graph.dataScaleY,
@@ -68,4 +69,18 @@ function testGraph(graph) {
     is(original.end * graph.dataScaleX, normalized.end,
       "The region's end value was properly normalized.");
   }
+}
+
+function testHighlights(graph) {
+  graph.setMask(TEST_REGIONS);
+  ok(graph.hasMask(),
+    "The graph should now have the highlights set.");
+
+  graph.setMask([]);
+  ok(graph.hasMask(),
+    "The graph shouldn't have anything highlighted.");
+
+  graph.setMask(null);
+  ok(!graph.hasMask(),
+    "The graph should have everything highlighted.");
 }

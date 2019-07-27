@@ -76,6 +76,11 @@ const BAR_GRAPH_SELECTION_STRIPES_COLOR = "rgba(255,255,255,0.1)";
 const BAR_GRAPH_REGION_BACKGROUND_COLOR = "transparent";
 const BAR_GRAPH_REGION_STRIPES_COLOR = "rgba(237,38,85,0.2)";
 
+const BAR_GRAPH_HIGHLIGHTS_MASK_BACKGROUND = "rgba(255,255,255,0.75)";
+const BAR_GRAPH_HIGHLIGHTS_MASK_STRIPES = "rgba(255,255,255,0.5)";
+
+const BAR_GRAPH_LEGEND_MOUSEOVER_DEBOUNCE = 50; 
+
 
 
 
@@ -232,11 +237,17 @@ AbstractCanvasGraph.prototype = {
     this._iframe.remove();
 
     this._data = null;
+    this._mask = null;
+    this._maskArgs = null;
     this._regions = null;
+
     this._cachedBackgroundImage = null;
     this._cachedGraphImage = null;
+    this._cachedMaskImage = null;
     this._renderTargets.clear();
     gCachedStripePattern.clear();
+
+    this.emit("destroyed");
   },
 
   
@@ -279,6 +290,15 @@ AbstractCanvasGraph.prototype = {
 
 
 
+
+  buildMaskImage: function() {
+    return null;
+  },
+
+  
+
+
+
   dataScaleX: 1,
   dataScaleY: 1,
 
@@ -314,6 +334,19 @@ AbstractCanvasGraph.prototype = {
 
 
 
+  setMask: function(mask, ...options) {
+    this._mask = mask;
+    this._maskArgs = [mask, ...options];
+    this._cachedMaskImage = this.buildMaskImage.apply(this, this._maskArgs);
+    this._shouldRedraw = true;
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -338,6 +371,14 @@ AbstractCanvasGraph.prototype = {
 
   hasData: function() {
     return !!this._data;
+  },
+
+  
+
+
+
+  hasMask: function() {
+    return !!this._mask;
   },
 
   
@@ -582,6 +623,9 @@ AbstractCanvasGraph.prototype = {
       this._cachedBackgroundImage = this.buildBackgroundImage();
       this._cachedGraphImage = this.buildGraphImage();
     }
+    if (this.hasMask()) {
+      this._cachedMaskImage = this.buildMaskImage.apply(this, this._maskArgs);
+    }
     if (this.hasRegions()) {
       this._bakeRegions(this._regions, this._cachedGraphImage);
     }
@@ -648,11 +692,21 @@ AbstractCanvasGraph.prototype = {
     let ctx = this._ctx;
     ctx.clearRect(0, 0, this._width, this._height);
 
-    if (this._cachedBackgroundImage) {
-      ctx.drawImage(this._cachedBackgroundImage, 0, 0, this._width, this._height);
-    }
     if (this._cachedGraphImage) {
       ctx.drawImage(this._cachedGraphImage, 0, 0, this._width, this._height);
+    }
+    if (this._cachedMaskImage) {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.drawImage(this._cachedMaskImage, 0, 0, this._width, this._height);
+    }
+    if (this._cachedBackgroundImage) {
+      ctx.globalCompositeOperation = "destination-over";
+      ctx.drawImage(this._cachedBackgroundImage, 0, 0, this._width, this._height);
+    }
+
+    
+    if (this._cachedMaskImage || this._cachedBackgroundImage) {
+      ctx.globalCompositeOperation = "source-over";
     }
 
     if (this.hasCursor()) {
@@ -1115,6 +1169,11 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
   
 
 
+  dataOffsetX: 0,
+
+  
+
+
 
   minDistanceBetweenPoints: LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS,
 
@@ -1140,7 +1199,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       sumValues += value;
     }
 
-    let dataScaleX = this.dataScaleX = width / (lastTick - firstTick);
+    let dataScaleX = this.dataScaleX = width / (lastTick - this.dataOffsetX);
     let dataScaleY = this.dataScaleY = height / maxValue * LINE_GRAPH_DAMPEN_VALUES;
 
     
@@ -1166,7 +1225,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     let prevY = 0;
 
     for (let { delta, value } of this._data) {
-      let currX = (delta - firstTick) * dataScaleX;
+      let currX = (delta - this.dataOffsetX) * dataScaleX;
       let currY = height - value * dataScaleY;
 
       if (delta == firstTick) {
@@ -1351,8 +1410,23 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 this.BarGraphWidget = function(parent, ...args) {
   AbstractCanvasGraph.apply(this, [parent, "bar-graph", ...args]);
 
+  
+  
+  this.outstandingEventListeners = [];
+
   this.once("ready", () => {
+    this._onLegendMouseOver = this._onLegendMouseOver.bind(this);
+    this._onLegendMouseOut = this._onLegendMouseOut.bind(this);
+    this._onLegendMouseDown = this._onLegendMouseDown.bind(this);
+    this._onLegendMouseUp = this._onLegendMouseUp.bind(this);
     this._createLegend();
+  });
+
+  this.once("destroyed", () => {
+    for (let [node, event, listener] of this.outstandingEventListeners) {
+      node.removeEventListener(event, listener);
+    }
+    this.outstandingEventListeners = null;
   });
 }
 
@@ -1369,6 +1443,11 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
   format: null,
+
+  
+
+
+  dataOffsetX: 0,
 
   
 
@@ -1414,17 +1493,15 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     let totalTypes = this.format.length;
     let totalTicks = this._data.length;
-    let firstTick = this._data[0].delta;
     let lastTick = this._data[totalTicks - 1].delta;
 
     let minBarsWidth = this.minBarsWidth * this._pixelRatio;
     let minBlocksHeight = this.minBlocksHeight * this._pixelRatio;
 
-    let dataScaleX = this.dataScaleX = width / (lastTick - firstTick);
+    let dataScaleX = this.dataScaleX = width / (lastTick - this.dataOffsetX);
     let dataScaleY = this.dataScaleY = height / this._calcMaxHeight({
       data: this._data,
       dataScaleX: dataScaleX,
-      dataOffsetX: firstTick,
       minBarsWidth: minBarsWidth
     }) * BAR_GRAPH_DAMPEN_VALUES;
 
@@ -1434,6 +1511,7 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     
     
 
+    this._blocksBoundingRects = [];
     let prevHeight = [];
     let scaledMarginEnd = BAR_GRAPH_BARS_MARGIN_END * this._pixelRatio;
     let unscaledMarginTop = BAR_GRAPH_BARS_MARGIN_TOP;
@@ -1442,17 +1520,17 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       ctx.fillStyle = this.format[type].color || "#000";
       ctx.beginPath();
 
-      let prevLeft = 0;
+      let prevRight = 0;
       let skippedCount = 0;
       let skippedHeight = 0;
 
       for (let tick = 0; tick < totalTicks; tick++) {
         let delta = this._data[tick].delta;
         let value = this._data[tick].values[type] || 0;
-        let blockLeft = (delta - firstTick) * dataScaleX;
+        let blockRight = (delta - this.dataOffsetX) * dataScaleX;
         let blockHeight = value * dataScaleY;
 
-        let blockWidth = blockLeft - prevLeft;
+        let blockWidth = blockRight - prevRight;
         if (blockWidth < minBarsWidth) {
           skippedCount++;
           skippedHeight += blockHeight;
@@ -1462,10 +1540,19 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
         let averageHeight = (blockHeight + skippedHeight) / (skippedCount + 1);
         if (averageHeight >= minBlocksHeight) {
           let bottom = height - ~~prevHeight[tick];
-          ctx.moveTo(prevLeft, bottom);
-          ctx.lineTo(prevLeft, bottom - averageHeight);
-          ctx.lineTo(blockLeft, bottom - averageHeight);
-          ctx.lineTo(blockLeft, bottom);
+          ctx.moveTo(prevRight, bottom);
+          ctx.lineTo(prevRight, bottom - averageHeight);
+          ctx.lineTo(blockRight, bottom - averageHeight);
+          ctx.lineTo(blockRight, bottom);
+
+          
+          this._blocksBoundingRects.push({
+            type: type,
+            start: prevRight,
+            end: blockRight,
+            top: bottom - averageHeight,
+            bottom: bottom
+          });
 
           if (prevHeight[tick] === undefined) {
             prevHeight[tick] = averageHeight + unscaledMarginTop;
@@ -1474,13 +1561,18 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
           }
         }
 
-        prevLeft += blockWidth + scaledMarginEnd;
+        prevRight += blockWidth + scaledMarginEnd;
         skippedHeight = 0;
         skippedCount = 0;
       }
 
       ctx.fill();
     }
+
+    
+    
+    
+    this._blocksBoundingRects.sort((a, b) => a.start > b.start ? 1 : -1);
 
     
 
@@ -1504,18 +1596,86 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
-  _calcMaxHeight: function({ data, dataScaleX, dataOffsetX, minBarsWidth }) {
+
+
+
+
+  buildMaskImage: function(highlights, inPixels = false, unpack = e => e.delta) {
+    
+    
+    if (!highlights) {
+      return null;
+    }
+
+    
+    
+
+    let { canvas, ctx } = this._getNamedCanvas("graph-highlights");
+    let width = this._width;
+    let height = this._height;
+
+    
+
+    let pattern = AbstractCanvasGraph.getStripePattern({
+      ownerDocument: this._document,
+      backgroundColor: BAR_GRAPH_HIGHLIGHTS_MASK_BACKGROUND,
+      stripesColor: BAR_GRAPH_HIGHLIGHTS_MASK_STRIPES
+    });
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, width, height);
+
+    
+
+    let totalTicks = this._data.length;
+    let firstTick = unpack(this._data[0]);
+    let lastTick = unpack(this._data[totalTicks - 1]);
+
+    for (let { start, end, top, bottom } of highlights) {
+      if (!inPixels) {
+        start = map(start, firstTick, lastTick, 0, width);
+        end = map(end, firstTick, lastTick, 0, width);
+      }
+      let firstSnap = findFirst(this._blocksBoundingRects, e => e.start >= start);
+      let lastSnap = findLast(this._blocksBoundingRects, e => e.start >= start && e.end <= end);
+
+      let x1 = firstSnap ? firstSnap.start : start;
+      let x2 = lastSnap ? lastSnap.end : firstSnap ? firstSnap.end : end;
+      let y1 = top || 0;
+      let y2 = bottom || height;
+      ctx.clearRect(x1, y1, x2 - x1, y2 - y1);
+    }
+
+    return canvas;
+  },
+
+  
+
+
+
+  _blocksBoundingRects: null,
+
+  
+
+
+
+
+
+
+
+
+
+  _calcMaxHeight: function({ data, dataScaleX, minBarsWidth }) {
     let maxHeight = 0;
-    let prevLeft = 0;
+    let prevRight = 0;
     let skippedCount = 0;
     let skippedHeight = 0;
     let scaledMarginEnd = BAR_GRAPH_BARS_MARGIN_END * this._pixelRatio;
 
     for (let { delta, values } of data) {
-      let barLeft = (delta - dataOffsetX) * dataScaleX;
+      let barRight = (delta - this.dataOffsetX) * dataScaleX;
       let barHeight = values.reduce((a, b) => a + b, 0);
 
-      let barWidth = barLeft - prevLeft;
+      let barWidth = barRight - prevRight;
       if (barWidth < minBarsWidth) {
         skippedCount++;
         skippedHeight += barHeight;
@@ -1525,7 +1685,7 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       let averageHeight = (barHeight + skippedHeight) / (skippedCount + 1);
       maxHeight = Math.max(averageHeight, maxHeight);
 
-      prevLeft += barWidth + scaledMarginEnd;
+      prevRight += barWidth + scaledMarginEnd;
       skippedHeight = 0;
       skippedCount = 0;
     }
@@ -1551,7 +1711,17 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     let colorNode = this._document.createElementNS(HTML_NS, "span");
     colorNode.setAttribute("view", "color");
+    colorNode.setAttribute("data-index", this._legendNode.childNodes.length);
     colorNode.style.backgroundColor = color;
+    colorNode.addEventListener("mouseover", this._onLegendMouseOver);
+    colorNode.addEventListener("mouseout", this._onLegendMouseOut);
+    colorNode.addEventListener("mousedown", this._onLegendMouseDown);
+    colorNode.addEventListener("mouseup", this._onLegendMouseUp);
+
+    this.outstandingEventListeners.push([colorNode, "mouseover", this._onLegendMouseOver]);
+    this.outstandingEventListeners.push([colorNode, "mouseout", this._onLegendMouseOut]);
+    this.outstandingEventListeners.push([colorNode, "mousedown", this._onLegendMouseDown]);
+    this.outstandingEventListeners.push([colorNode, "mouseup", this._onLegendMouseUp]);
 
     let labelNode = this._document.createElementNS(HTML_NS, "span");
     labelNode.setAttribute("view", "label");
@@ -1560,6 +1730,65 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     itemNode.appendChild(colorNode);
     itemNode.appendChild(labelNode);
     this._legendNode.appendChild(itemNode);
+  },
+
+  
+
+
+  _onLegendMouseOver: function(e) {
+    setNamedTimeout("bar-graph-debounce", BAR_GRAPH_LEGEND_MOUSEOVER_DEBOUNCE, () => {
+      let type = e.target.dataset.index;
+      let rects = this._blocksBoundingRects.filter(e => e.type == type);
+
+      this._originalHighlights = this._mask;
+      this._hasCustomHighlights = true;
+      this.setMask(rects, true);
+
+      this.emit("legend-hover", [type, rects]);
+    });
+  },
+
+  
+
+
+  _onLegendMouseOut: function() {
+    clearNamedTimeout("bar-graph-debounce");
+
+    if (this._hasCustomHighlights) {
+      this.setMask(this._originalHighlights);
+      this._hasCustomHighlights = false;
+      this._originalHighlights = null;
+    }
+
+    this.emit("legend-unhover");
+  },
+
+  
+
+
+  _onLegendMouseDown: function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    let type = e.target.dataset.index;
+    let rects = this._blocksBoundingRects.filter(e => e.type == type);
+    let leftmost = rects[0];
+    let rightmost = rects[rects.length - 1];
+    if (!leftmost || !rightmost) {
+      this.dropSelection();
+    } else {
+      this.setSelection({ start: leftmost.start, end: rightmost.end });
+    }
+
+    this.emit("legend-selection", [leftmost, rightmost]);
+  },
+
+  
+
+
+  _onLegendMouseUp: function(e) {
+    e.preventDefault();
+    e.stopPropagation();
   }
 });
 
@@ -1695,6 +1924,34 @@ this.CanvasGraphUtils = {
 
 
 
+
+
 function map(value, istart, istop, ostart, ostop) {
   return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+}
+
+
+
+
+
+
+
+function findFirst(array, predicate) {
+  for (let i = 0, len = array.length; i < len; i++) {
+    let element = array[i];
+    if (predicate(element)) return element;
+  }
+}
+
+
+
+
+
+
+
+function findLast(array, predicate) {
+  for (let i = array.length - 1; i >= 0; i--) {
+    let element = array[i];
+    if (predicate(element)) return element;
+  }
 }
