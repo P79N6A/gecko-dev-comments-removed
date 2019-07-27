@@ -301,6 +301,10 @@ var SelectionHandler = {
     
     this._closeSelection();
 
+    if (this._isNonTextInputElement(aElement)) {
+      return false;
+    }
+
     this._initTargetInfo(aElement, this.TYPE_SELECTION);
 
     
@@ -799,6 +803,10 @@ var SelectionHandler = {
   isElementEditableText: function (aElement) {
     return (((aElement instanceof HTMLInputElement && aElement.mozIsTextField(false)) ||
             (aElement instanceof HTMLTextAreaElement)) && !aElement.readOnly);
+  },
+
+  _isNonTextInputElement: function(aElement) {
+    return (aElement instanceof HTMLInputElement && !aElement.mozIsTextField(false));
   },
 
   
