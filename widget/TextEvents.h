@@ -326,14 +326,14 @@ public:
   
   
   
-  nsString data;
+  nsString mData;
 
   void AssignCompositionEventData(const WidgetCompositionEvent& aEvent,
                                   bool aCopyTargets)
   {
     AssignGUIEventData(aEvent, aCopyTargets);
 
-    data = aEvent.data;
+    mData = aEvent.mData;
   }
 };
 

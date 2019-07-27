@@ -32,7 +32,8 @@ CompositionEvent::CompositionEvent(EventTarget* aOwner,
     mEvent->mFlags.mCancelable = false;
   }
 
-  mData = mEvent->AsCompositionEvent()->data;
+  
+  mData = mEvent->AsCompositionEvent()->mData;
   
 }
 
