@@ -93,6 +93,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports*, REFNSIID, void**);
 #include "SpecialSystemDirectory.h"
 
 #if defined(XP_WIN)
+#include "mozilla/WindowsVersion.h"
 #include "nsWindowsRegKey.h"
 #endif
 
@@ -954,7 +955,7 @@ ShutdownXPCOM(nsIServiceManager* aServMgr)
   
   
   
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content && !IsVistaOrLater()) {
       NS_WARNING("Exiting child process early!");
       exit(0);
   }
