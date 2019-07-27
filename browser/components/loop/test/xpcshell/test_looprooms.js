@@ -263,6 +263,15 @@ add_task(function* test_createRoom() {
 });
 
 
+add_task(function* test_deleteRoom() {
+  let roomToken = "QzBbvGmIZWU";
+  let deletedRoom = yield LoopRooms.promise("delete", roomToken);
+  Assert.equal(deletedRoom.roomToken, roomToken);
+  let rooms = yield LoopRooms.promise("getAll");
+  Assert.ok(!rooms.some((room) => room.roomToken == roomToken));
+});
+
+
 add_task(function* test_openRoom() {
   let openedUrl;
   Chat.open = function(contentWindow, origin, title, url) {

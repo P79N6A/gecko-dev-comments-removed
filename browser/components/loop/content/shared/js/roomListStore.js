@@ -71,6 +71,8 @@ loop.store = loop.store || {};
     this._dispatcher.register(this, [
       "createRoom",
       "createRoomError",
+      "deleteRoom",
+      "deleteRoomError",
       "getAllRooms",
       "getAllRoomsError",
       "openRoom",
@@ -139,7 +141,7 @@ loop.store = loop.store || {};
       
       this._mozLoop.rooms.on("add", this._onRoomAdded.bind(this));
       this._mozLoop.rooms.on("update", this._onRoomUpdated.bind(this));
-      this._mozLoop.rooms.on("remove", this._onRoomRemoved.bind(this));
+      this._mozLoop.rooms.on("delete", this._onRoomRemoved.bind(this));
     },
 
     
@@ -193,7 +195,6 @@ loop.store = loop.store || {};
         })
       }));
     },
-
 
     
 
@@ -267,7 +268,7 @@ loop.store = loop.store || {};
       this._mozLoop.rooms.create(roomCreationData, function(err) {
         this.setStoreState({pendingCreation: false});
         if (err) {
-         this._dispatchAction(new sharedActions.CreateRoomError({error: err}));
+          this._dispatchAction(new sharedActions.CreateRoomError({error: err}));
         }
       }.bind(this));
     },
@@ -282,6 +283,28 @@ loop.store = loop.store || {};
         error: actionData.error,
         pendingCreation: false
       });
+    },
+
+    
+
+
+
+
+    deleteRoom: function(actionData) {
+      this._mozLoop.rooms.delete(actionData.roomToken, function(err) {
+        if (err) {
+         this._dispatchAction(new sharedActions.DeleteRoomError({error: err}));
+        }
+      }.bind(this));
+    },
+
+    
+
+
+
+
+    deleteRoomError: function(actionData) {
+      this.setStoreState({error: actionData.error});
     },
 
     

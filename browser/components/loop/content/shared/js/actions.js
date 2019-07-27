@@ -162,6 +162,22 @@ loop.shared.actions = (function() {
 
 
 
+    DeleteRoom: Action.define("deleteRoom", {
+      roomToken: String
+    }),
+
+    
+
+
+
+    DeleteRoomError: Action.define("deleteRoomError", {
+      error: Error
+    }),
+
+    
+
+
+
     GetAllRooms: Action.define("getAllRooms", {
     }),
 
