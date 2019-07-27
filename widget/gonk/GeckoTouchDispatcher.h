@@ -28,7 +28,7 @@ class nsIWidget;
 
 namespace mozilla {
 namespace layers {
-class CompositorVsyncObserver;
+class CompositorVsyncScheduler;
 }
 
 
@@ -52,7 +52,7 @@ public:
   void DispatchTouchNonMoveEvent(MultiTouchInput aInput);
   void DispatchTouchMoveEvents(TimeStamp aVsyncTime);
   void NotifyVsync(TimeStamp aVsyncTimestamp);
-  void SetCompositorVsyncObserver(layers::CompositorVsyncObserver* aObserver);
+  void SetCompositorVsyncScheduler(layers::CompositorVsyncScheduler* aObserver);
 
 protected:
   ~GeckoTouchDispatcher() {}
@@ -90,7 +90,7 @@ private:
   
   TimeDuration mOldTouchThreshold;
 
-  nsRefPtr<layers::CompositorVsyncObserver> mCompositorVsyncObserver;
+  nsRefPtr<layers::CompositorVsyncScheduler> mCompositorVsyncScheduler;
 };
 
 } 
