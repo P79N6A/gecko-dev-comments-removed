@@ -1479,26 +1479,30 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
   return nullptr;
 }
 
-AsyncPanZoomController*
-APZCTreeManager::FindRootApzcForLayersId(uint64_t aLayersId) const
-{
-  mTreeLock.AssertCurrentThreadOwns();
 
-  if (!mRootNode) {
+
+
+
+
+
+
+template <typename Node, typename Condition>
+static const Node* BreadthFirstSearch(const Node* aRoot, const Condition& aCondition)
+{
+  if (!aRoot) {
     return nullptr;
   }
-  std::deque<const HitTestingTreeNode*> queue;
-  queue.push_back(mRootNode);
+  std::deque<const Node*> queue;
+  queue.push_back(aRoot);
   while (!queue.empty()) {
-    const HitTestingTreeNode* node = queue.front();
+    const Node* node = queue.front();
     queue.pop_front();
 
-    AsyncPanZoomController* apzc = node->GetApzc();
-    if (apzc && apzc->GetLayersId() == aLayersId && apzc->IsRootForLayersId()) {
-      return apzc;
+    if (aCondition(node)) {
+      return node;
     }
 
-    for (HitTestingTreeNode* child = node->GetLastChild();
+    for (const Node* child = node->GetLastChild();
          child;
          child = child->GetPrevSibling()) {
       queue.push_back(child);
@@ -1506,6 +1510,25 @@ APZCTreeManager::FindRootApzcForLayersId(uint64_t aLayersId) const
   }
 
   return nullptr;
+}
+
+AsyncPanZoomController*
+APZCTreeManager::FindRootApzcForLayersId(uint64_t aLayersId) const
+{
+  mTreeLock.AssertCurrentThreadOwns();
+
+  struct RootForLayersIdMatcher {
+    uint64_t mLayersId;
+    bool operator()(const HitTestingTreeNode* aNode) const {
+      AsyncPanZoomController* apzc = aNode->GetApzc();
+      return apzc
+          && apzc->GetLayersId() == mLayersId
+          && apzc->IsRootForLayersId();
+    }
+  };
+  const HitTestingTreeNode* resultNode = BreadthFirstSearch(mRootNode.get(),
+      RootForLayersIdMatcher{aLayersId});
+  return resultNode ? resultNode->GetApzc() : nullptr;
 }
 
 
