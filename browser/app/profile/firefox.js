@@ -1430,32 +1430,7 @@ pref("devtools.debugger.ui.variables-only-enum-visible", false);
 pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
-pref("devtools.profiler.enabled", true);
-
-
-#ifdef NIGHTLY_BUILD
-pref("devtools.timeline.enabled", true);
-#else
-pref("devtools.timeline.enabled", false);
-#endif
-
-
-
-pref("devtools.timeline.hiddenMarkers", "[]");
-
-
-#ifdef MOZ_DEVTOOLS_PERFTOOLS
-  pref("devtools.performance_dev.enabled", true);
-#else
-  pref("devtools.performance_dev.enabled", false);
-#endif
-
-
-
-
-pref("devtools.profiler.ui.flatten-tree-recursion", true);
-pref("devtools.profiler.ui.show-platform-data", false);
-pref("devtools.profiler.ui.show-idle-blocks", true);
+pref("devtools.performance.enabled", true);
 
 
 pref("devtools.performance.memory.sample-probability", "0.05");
