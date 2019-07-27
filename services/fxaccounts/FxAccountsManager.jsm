@@ -196,20 +196,19 @@ this.FxAccountsManager = {
               }
             );
           }
-        }
-      );
-
-      
-      return this._localSignOut().then(
-        () => {
-          return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience,
-                                 aPrincipal);
-        },
-        (reason) => {
           
-          log.error("Signing out in response to server error threw: " +
-                    reason);
-          return this._error(reason);
+          return this._localSignOut().then(
+            () => {
+              return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience,
+                                     aPrincipal);
+            },
+            (reason) => {
+              
+              log.error("Signing out in response to server error threw: " +
+                        reason);
+              return this._error(reason);
+            }
+          );
         }
       );
     }
