@@ -10,6 +10,7 @@
 #include "nsCSSProps.h"
 #include "nsRuleNode.h"
 #include "nsROCSSPrimitiveValue.h"
+#include "nsStyleStruct.h"
 #include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIURI.h"
@@ -618,6 +619,57 @@ nsStyleUtil::IsFlexBasisMainSize(const nsStyleCoord& aFlexBasis,
 
   return aFlexBasis.GetIntValue() == NS_STYLE_FLEX_BASIS_MAIN_SIZE;
 }
+
+
+
+
+typedef nsStyleBackground::Position::PositionCoord PositionCoord;
+static bool
+ObjectPositionCoordMightCauseOverflow(const PositionCoord& aCoord)
+{
+  
+  
+  
+  if (aCoord.mLength != 0) {
+    return true;
+  }
+
+  
+  
+  
+  if (aCoord.mHasPercent &&
+      (aCoord.mPercent < 0.0f || aCoord.mPercent > 1.0f)) {
+    return true;
+  }
+  return false;
+}
+
+
+ bool
+nsStyleUtil::ObjectPropsMightCauseOverflow(const nsStylePosition* aStylePos)
+{
+  auto objectFit = aStylePos->mObjectFit;
+
+  
+  
+  if (objectFit == NS_STYLE_OBJECT_FIT_COVER ||
+      objectFit == NS_STYLE_OBJECT_FIT_NONE) {
+    return true;
+  }
+  
+  
+
+  
+  
+  const nsStyleBackground::Position& objectPosistion = aStylePos->mObjectPosition;
+  if (ObjectPositionCoordMightCauseOverflow(objectPosistion.mXPosition) ||
+      ObjectPositionCoordMightCauseOverflow(objectPosistion.mYPosition)) {
+    return true;
+  }
+
+  return false;
+}
+
 
  bool
 nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,

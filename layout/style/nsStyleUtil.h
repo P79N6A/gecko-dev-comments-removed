@@ -20,6 +20,7 @@ class nsIURI;
 struct gfxFontFeature;
 struct gfxAlternateValue;
 struct nsCSSValueList;
+struct nsStylePosition;
 
 
 class nsStyleUtil {
@@ -129,6 +130,23 @@ public:
 
   static bool IsFlexBasisMainSize(const nsStyleCoord& aFlexBasis,
                                   bool aIsMainAxisHorizontal);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool ObjectPropsMightCauseOverflow(const nsStylePosition* aStylePos);
 
   
 
