@@ -230,6 +230,7 @@ protected:
   RasterImage &mImage;
   nsRefPtr<imgFrame> mCurrentFrame;
   ImageMetadata mImageMetadata;
+  nsIntRect mInvalidRect; 
   Progress mProgress;
 
   uint8_t* mImageData;       
@@ -244,8 +245,6 @@ protected:
 
 private:
   uint32_t mFrameCount; 
-
-  nsIntRect mInvalidRect; 
 
   nsresult mFailCode;
 
