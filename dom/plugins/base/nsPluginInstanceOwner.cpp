@@ -1381,13 +1381,8 @@ nsPluginInstanceOwner::GetImageContainerForVideo(nsNPAPIPluginInstance::VideoInf
   nsRefPtr<Image> img = container->CreateImage(ImageFormat::SURFACE_TEXTURE);
 
   SurfaceTextureImage::Data data;
-
   data.mSurfTex = aVideoInfo->mSurfaceTexture;
-
-  
-  
-  data.mOriginPos = AndroidBridge::Bridge()->IsHoneycomb() ? gl::OriginPos::BottomLeft
-                                                           : mInstance->OriginPos();
+  data.mOriginPos = gl::OriginPos::BottomLeft;
   data.mSize = gfx::IntSize(aVideoInfo->mDimensions.width, aVideoInfo->mDimensions.height);
 
   SurfaceTextureImage* typedImg = static_cast<SurfaceTextureImage*>(img.get());
