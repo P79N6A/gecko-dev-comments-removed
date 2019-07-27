@@ -6670,13 +6670,27 @@ var IdentityHandler = {
 
   
   
+
+  
+  MIXED_MODE_UNKNOWN: "unknown",
+
+  
+  MIXED_MODE_CONTENT_BLOCKED: "mixed_content_blocked",
+
+  
+  MIXED_MODE_CONTENT_LOADED: "mixed_content_loaded",
+
+  
   
 
   
-  IDENTITY_MODE_MIXED_CONTENT_BLOCKED: "mixed_content_blocked",
+  TRACKING_MODE_UNKNOWN: "unknown",
 
   
-  IDENTITY_MODE_MIXED_CONTENT_LOADED: "mixed_content_loaded",
+  TRACKING_MODE_CONTENT_BLOCKED: "tracking_content_blocked",
+
+  
+  TRACKING_MODE_CONTENT_LOADED: "tracking_content_loaded",
 
   
   _lastStatus : null,
@@ -6719,21 +6733,43 @@ var IdentityHandler = {
 
 
   getIdentityMode: function getIdentityMode(aState) {
-    if (aState & Ci.nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT)
-      return this.IDENTITY_MODE_MIXED_CONTENT_BLOCKED;
+    if (aState & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL) {
+      return this.IDENTITY_MODE_IDENTIFIED;
+    }
+
+    if (aState & Ci.nsIWebProgressListener.STATE_IS_SECURE) {
+      return this.IDENTITY_MODE_DOMAIN_VERIFIED;
+    }
+
+    return this.IDENTITY_MODE_UNKNOWN;
+  },
+
+  getMixedMode: function getMixedMode(aState) {
+    if (aState & Ci.nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) {
+      return this.MIXED_MODE_CONTENT_BLOCKED;
+    }
 
     
     if ((aState & Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) &&
-         Services.prefs.getBoolPref("security.mixed_content.block_active_content"))
-      return this.IDENTITY_MODE_MIXED_CONTENT_LOADED;
+         Services.prefs.getBoolPref("security.mixed_content.block_active_content")) {
+      return this.MIXED_MODE_CONTENT_LOADED;
+    }
 
-    if (aState & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
-      return this.IDENTITY_MODE_IDENTIFIED;
+    return this.MIXED_MODE_UNKNOWN;
+  },
 
-    if (aState & Ci.nsIWebProgressListener.STATE_IS_SECURE)
-      return this.IDENTITY_MODE_DOMAIN_VERIFIED;
+  getTrackingMode: function getTrackingMode(aState) {
+    if (aState & Ci.nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT) {
+      return this.TRACKING_MODE_CONTENT_BLOCKED;
+    }
 
-    return this.IDENTITY_MODE_UNKNOWN;
+    
+    if ((aState & Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT) &&
+         Services.prefs.getBoolPref("privacy.trackingprotection.enabled")) {
+      return this.TRACKING_MODE_CONTENT_LOADED;
+    }
+
+    return this.TRACKING_MODE_UNKNOWN;
   },
 
   
@@ -6761,14 +6797,22 @@ var IdentityHandler = {
     }
     this._lastLocation = locationObj;
 
-    let mode = this.getIdentityMode(aState);
-    let result = { mode: mode };
+    let identityMode = this.getIdentityMode(aState);
+    let mixedMode = this.getMixedMode(aState);
+    let trackingMode = this.getTrackingMode(aState);
+    let result = {
+      mode: {
+        identity: identityMode,
+        mixed: mixedMode,
+        tracking: trackingMode
+      }
+    };
 
     
     
-    if (mode == this.IDENTITY_MODE_UNKNOWN ||
-        aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN)
+    if (identityMode == this.IDENTITY_MODE_UNKNOWN || aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN) {
       return result;
+    }
 
     
     result.encrypted = Strings.browser.GetStringFromName("identity.encrypted2");
