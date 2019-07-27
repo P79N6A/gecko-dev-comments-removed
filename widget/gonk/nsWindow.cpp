@@ -281,23 +281,6 @@ nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
     
     
     rv = DispatchEventForAPZ(&event, guid, inputBlockId);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (event.touches.Length() == 1) {
-        WidgetMouseEvent mouseEvent = aInput.ToWidgetMouseEvent(this);
-        if (mouseEvent.message != NS_EVENT_NULL) {
-            mouseEvent.mFlags.mNoCrossProcessBoundaryForwarding = (rv == nsEventStatus_eConsumeNoDefault);
-            DispatchEvent(&mouseEvent, rv);
-        }
-    }
 }
 
 
