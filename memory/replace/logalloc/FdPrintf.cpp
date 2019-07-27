@@ -13,7 +13,6 @@
 #endif
 #include <cstring>
 #include "mozilla/Assertions.h"
-#include "mozilla/NullPtr.h"
 
 
 template <typename T>

@@ -25,7 +25,6 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/BinarySearch.h"
-#include "mozilla/NullPtr.h"
 #include "nsDebug.h"
 
 template<class T, class L>
@@ -92,7 +91,7 @@ class autoJArray {
       arr = other.arr;
       length = other.length;
     }
-    void operator=(mozilla::NullptrT n) {
+    void operator=(decltype(nullptr) n) {
       
       MOZ_ASSERT(n == nullptr);
       delete[] arr;

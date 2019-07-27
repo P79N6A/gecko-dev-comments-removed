@@ -2,8 +2,6 @@
 
 
 
-#include "mozilla/NullPtr.h"
-
 #include <stdexcept>
 #include <list>
 #include <vector>

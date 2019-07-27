@@ -20,8 +20,6 @@
 
 
 
-#include "mozilla/NullPtr.h"
-
 #include "jstypes.h"
 
 #include "js/HeapAPI.h"

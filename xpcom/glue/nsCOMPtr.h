@@ -24,7 +24,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Move.h"
-#include "mozilla/NullPtr.h"
 #include "mozilla/TypeTraits.h"
 
 #include "nsDebug.h" 
