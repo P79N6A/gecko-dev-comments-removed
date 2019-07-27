@@ -233,7 +233,8 @@ public:
 
 
 
-  static void
+
+  static bool
   TryStartingTransition(nsPresContext* aPresContext, nsIContent* aContent,
                         nsStyleContext* aOldStyleContext,
                         nsRefPtr<nsStyleContext>* aNewStyleContext );
