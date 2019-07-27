@@ -2901,15 +2901,43 @@ void
 nsLineLayout::ExpandRubyBox(PerFrameData* aFrame, nscoord aReservedISize,
                             nscoord aContainerWidth)
 {
-  int32_t opportunities = aFrame->mJustificationInfo.mInnerOpportunities;
-  
-  
-  
-  int32_t gaps = opportunities * 2 + 2;
-  JustificationApplicationState state(gaps, aReservedISize);
-  ApplyFrameJustification(aFrame->mSpan, state);
-
   WritingMode lineWM = mRootSpan->mWritingMode;
+  auto rubyAlign = aFrame->mFrame->StyleText()->mRubyAlign;
+  switch (rubyAlign) {
+    case NS_STYLE_RUBY_ALIGN_START:
+      
+      break;
+    case NS_STYLE_RUBY_ALIGN_SPACE_BETWEEN:
+    case NS_STYLE_RUBY_ALIGN_SPACE_AROUND: {
+      int32_t opportunities = aFrame->mJustificationInfo.mInnerOpportunities;
+      int32_t gaps = opportunities * 2;
+      if (rubyAlign == NS_STYLE_RUBY_ALIGN_SPACE_AROUND) {
+        
+        
+        
+        
+        gaps += 2;
+      }
+      if (gaps > 0) {
+        JustificationApplicationState state(gaps, aReservedISize);
+        ApplyFrameJustification(aFrame->mSpan, state);
+        break;
+      }
+      
+      
+    }
+    case NS_STYLE_RUBY_ALIGN_CENTER:
+      
+      for (PerFrameData* child = aFrame->mSpan->mFirstFrame;
+           child; child = child->mNext) {
+        child->mBounds.IStart(lineWM) += aReservedISize / 2;
+        child->mFrame->SetRect(lineWM, child->mBounds, aContainerWidth);
+      }
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unknown ruby-align value");
+  }
+
   aFrame->mBounds.ISize(lineWM) += aReservedISize;
   aFrame->mFrame->SetRect(lineWM, aFrame->mBounds, aContainerWidth);
 }
@@ -2941,9 +2969,11 @@ nsLineLayout::ExpandRubyBoxWithAnnotations(PerFrameData* aFrame,
     if (!computeState.mFirstParticipant) {
       continue;
     }
-    
-    computeState.mFirstParticipant->mJustificationAssignment.mGapsAtStart = 1;
-    computeState.mLastParticipant->mJustificationAssignment.mGapsAtEnd = 1;
+    if (IsRubyAlignSpaceAround(aFrame->mFrame)) {
+      
+      computeState.mFirstParticipant->mJustificationAssignment.mGapsAtStart = 1;
+      computeState.mLastParticipant->mJustificationAssignment.mGapsAtEnd = 1;
+    }
     nsIFrame* parentFrame = annotation->mFrame->GetParent();
     nscoord containerWidth = parentFrame->GetRect().Width();
     MOZ_ASSERT(containerWidth == aContainerWidth ||
