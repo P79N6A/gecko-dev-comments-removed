@@ -56,8 +56,8 @@ using namespace mozilla::safebrowsing;
 
 
 PRLogModuleInfo *gUrlClassifierDbServiceLog = nullptr;
-#define LOG(args) MOZ_LOG(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug)
+#define LOG(args) MOZ_LOG(gUrlClassifierDbServiceLog, PR_LOG_DEBUG, args)
+#define LOG_ENABLED() PR_LOG_TEST(gUrlClassifierDbServiceLog, PR_LOG_DEBUG)
 
 
 #define CHECK_MALWARE_PREF      "browser.safebrowsing.malware.enabled"

@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "MediaSourceUtils.h"
 #include "SourceBufferDecoder.h"
@@ -11,12 +11,12 @@
 #include "MediaDecoderReader.h"
 
 extern PRLogModuleInfo* GetMediaSourceLog();
-/* Polyfill __func__ on MSVC to pass to the log. */
+
 #ifdef _MSC_VER
 #define __func__ __FUNCTION__
 #endif
 
-#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, ("SourceBufferDecoder(%p:%s)::%s: " arg, this, mResource->GetContentType().get(), __func__, ##__VA_ARGS__))
+#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), PR_LOG_DEBUG, ("SourceBufferDecoder(%p:%s)::%s: " arg, this, mResource->GetContentType().get(), __func__, ##__VA_ARGS__))
 
 namespace mozilla {
 
@@ -26,7 +26,7 @@ namespace layers {
 
 class ImageContainer;
 
-} // namespace layers
+} 
 
 NS_IMPL_ISUPPORTS0(SourceBufferDecoder)
 
@@ -53,7 +53,7 @@ SourceBufferDecoder::~SourceBufferDecoder()
 bool
 SourceBufferDecoder::IsShutdown() const
 {
-  // SourceBufferDecoder cannot be shut down.
+  
   MSE_DEBUG("UNIMPLEMENTED");
   return false;
 }
@@ -159,7 +159,7 @@ SourceBufferDecoder::OnStateMachineTaskQueue() const
 bool
 SourceBufferDecoder::OnDecodeTaskQueue() const
 {
-  // During initialization we run on our TrackBuffer's task queue.
+  
   if (mTaskQueue) {
     return mTaskQueue->IsCurrentThreadIn();
   }
@@ -226,10 +226,10 @@ SourceBufferDecoder::NotifyDataArrived(const char* aBuffer, uint32_t aLength, in
 {
   mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
 
-  // XXX: Params make no sense to parent decoder as it relates to a
-  // specific SourceBufferDecoder's data stream.  Pass bogus values here to
-  // force parent decoder's state machine to recompute end time for
-  // infinite length media.
+  
+  
+  
+  
   mParentDecoder->NotifyDataArrived(nullptr, 0, 0);
 }
 
@@ -241,7 +241,7 @@ SourceBufferDecoder::GetBuffered()
     return buffered;
   }
 
-  // Adjust buffered range according to timestamp offset.
+  
   buffered.Shift(media::TimeUnit::FromMicroseconds(mTimestampOffset));
 
   if (!WasTrimmed()) {
@@ -261,10 +261,10 @@ SourceBufferDecoder::ConvertToByteOffset(double aTime)
     return readerOffset;
   }
 
-  // Uses a conversion based on (aTime/duration) * length.  For the
-  // purposes of eviction this should be adequate since we have the
-  // byte threshold as well to ensure data actually gets evicted and
-  // we ensure we don't evict before the current playable point.
+  
+  
+  
+  
   if (mRealMediaDuration <= 0) {
     return -1;
   }
@@ -277,4 +277,4 @@ SourceBufferDecoder::ConvertToByteOffset(double aTime)
 }
 
 #undef MSE_DEBUG
-} // namespace mozilla
+} 

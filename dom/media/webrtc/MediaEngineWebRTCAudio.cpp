@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "MediaEngineWebRTC.h"
 #include <stdio.h>
@@ -9,7 +9,7 @@
 #include "MediaTrackConstraints.h"
 #include "mtransport/runnable_utils.h"
 
-// scoped_ptr.h uses FF
+
 #ifdef FF
 #undef FF
 #endif
@@ -23,7 +23,7 @@
 #define SAMPLE_FREQUENCY 16000
 #define SAMPLE_LENGTH ((SAMPLE_FREQUENCY*10)/1000)
 
-// These are restrictions from the webrtc.org code
+
 #define MAX_CHANNELS 2
 #define MAX_SAMPLING_FREQ 48000 // Hz - multiple of 100
 
@@ -37,15 +37,15 @@ namespace mozilla {
 #endif
 
 extern PRLogModuleInfo* GetMediaManagerLog();
-#define LOG(msg) MOZ_LOG(GetMediaManagerLog(), mozilla::LogLevel::Debug, msg)
-#define LOG_FRAMES(msg) MOZ_LOG(GetMediaManagerLog(), mozilla::LogLevel::Verbose, msg)
+#define LOG(msg) MOZ_LOG(GetMediaManagerLog(), PR_LOG_DEBUG, msg)
+#define LOG_FRAMES(msg) MOZ_LOG(GetMediaManagerLog(), 6, msg)
 
-/**
- * Webrtc audio source.
- */
+
+
+
 NS_IMPL_ISUPPORTS0(MediaEngineWebRTCAudioSource)
 
-// XXX temp until MSG supports registration
+
 StaticRefPtr<AudioOutputObserver> gFarendObserver;
 
 AudioOutputObserver::AudioOutputObserver()
@@ -55,7 +55,7 @@ AudioOutputObserver::AudioOutputObserver()
   , mSaved(nullptr)
   , mSamplesSaved(0)
 {
-  // Buffers of 10ms chunks
+  
   mPlayoutFifo = new webrtc::SingleRwFifo(MAX_AEC_FIFO_DEPTH/10);
 }
 
@@ -72,7 +72,7 @@ AudioOutputObserver::Clear()
   while (mPlayoutFifo->size() > 0) {
     free(mPlayoutFifo->Pop());
   }
-  // we'd like to touch mSaved here, but we can't if we might still be getting callbacks
+  
 }
 
 FarEndAudioChunk *
@@ -100,7 +100,7 @@ AudioOutputObserver::MixerCallback(AudioDataValue* aMixedBuffer,
   }
 }
 
-// static
+
 void
 AudioOutputObserver::InsertFarEnd(const AudioDataValue *aBuffer, uint32_t aFrames, bool aOverran,
                                   int aFreq, int aChannels, AudioSampleFormat aFormat)
@@ -121,7 +121,7 @@ AudioOutputObserver::InsertFarEnd(const AudioDataValue *aBuffer, uint32_t aFrame
     MOZ_ASSERT(aFreq <= MAX_SAMPLING_FREQ);
     MOZ_ASSERT(!(aFreq % 100), "Sampling rate for far end data should be multiple of 100.");
     mPlayoutFreq = aFreq;
-    mChunkSize = aFreq/100; // 10ms
+    mChunkSize = aFreq/100; 
   }
 
 #ifdef LOG_FAREND_INSERTION
@@ -129,13 +129,13 @@ AudioOutputObserver::InsertFarEnd(const AudioDataValue *aBuffer, uint32_t aFrame
 #endif
 
   if (mSaved) {
-    // flag overrun as soon as possible, and only once
+    
     mSaved->mOverrun = aOverran;
     aOverran = false;
   }
-  // Rechunk to 10ms.
-  // The AnalyzeReverseStream() and WebRtcAec_BufferFarend() functions insist on 10ms
-  // samples per call.  Annoying...
+  
+  
+  
   while (aFrames) {
     if (!mSaved) {
       mSaved = (FarEndAudioChunk *) moz_xmalloc(sizeof(FarEndAudioChunk) +
@@ -164,11 +164,11 @@ AudioOutputObserver::InsertFarEnd(const AudioDataValue *aBuffer, uint32_t aFrame
     if (mSamplesSaved >= mChunkSize) {
       int free_slots = mPlayoutFifo->capacity() - mPlayoutFifo->size();
       if (free_slots <= 0) {
-        // XXX We should flag an overrun for the reader.  We can't drop data from it due to
-        // thread safety issues.
+        
+        
         break;
       } else {
-        mPlayoutFifo->Push((int8_t *) mSaved); // takes ownership
+        mPlayoutFifo->Push((int8_t *) mSaved); 
         mSaved = nullptr;
         mSamplesSaved = 0;
       }
@@ -240,7 +240,7 @@ MediaEngineWebRTCAudioSource::Config(bool aEchoOn, uint32_t aEcho,
     if (update_echo &&
       0 != (error = mVoEProcessing->SetEcStatus(mEchoOn, (webrtc::EcModes) aEcho))) {
       LOG(("%s Error setting Echo Status: %d ",__FUNCTION__, error));
-      // Overhead of capturing all the time is very low (<0.1% of an audio only call)
+      
       if (mEchoOn) {
         if (0 != (error = mVoEProcessing->SetEcMetricsStatus(true))) {
           LOG(("%s Error setting Echo Metrics: %d ",__FUNCTION__, error));
@@ -275,7 +275,7 @@ MediaEngineWebRTCAudioSource::Allocate(const dom::MediaTrackConstraints &aConstr
       LOG(("Audio device is not initalized"));
       return NS_ERROR_FAILURE;
     }
-  } else if (MOZ_LOG_TEST(GetMediaManagerLog(), LogLevel::Debug)) {
+  } else if (PR_LOG_TEST(GetMediaManagerLog(), PR_LOG_DEBUG)) {
     MonitorAutoLock lock(mMonitor);
     if (mSources.IsEmpty()) {
       LOG(("Audio device %d reallocated", mCapIndex));
@@ -295,7 +295,7 @@ MediaEngineWebRTCAudioSource::Deallocate()
     empty = mSources.IsEmpty();
   }
   if (empty) {
-    // If empty, no callbacks to deliver data should be occuring
+    
     if (mState != kStopped && mState != kAllocated) {
       return NS_ERROR_FAILURE;
     }
@@ -323,7 +323,7 @@ MediaEngineWebRTCAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
   AudioSegment* segment = new AudioSegment();
   aStream->AddAudioTrack(aID, SAMPLE_FREQUENCY, 0, segment, SourceMediaStream::ADDTRACK_QUEUED);
 
-  // XXX Make this based on the pref.
+  
   aStream->RegisterForAudioMixing();
   LOG(("Start audio for stream %p", aStream));
 
@@ -334,15 +334,15 @@ MediaEngineWebRTCAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
   mState = kStarted;
   mTrackID = aID;
 
-  // Make sure logger starts before capture
+  
   AsyncLatencyLogger::Get(true);
 
-  // Register output observer
-  // XXX
+  
+  
   MOZ_ASSERT(gFarendObserver);
   gFarendObserver->Clear();
 
-  // Configure audio processing in webrtc code
+  
   Config(mEchoOn, webrtc::kEcUnchanged,
          mAgcOn, webrtc::kAgcUnchanged,
          mNoiseOn, webrtc::kNsUnchanged,
@@ -355,7 +355,7 @@ MediaEngineWebRTCAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
     return NS_ERROR_FAILURE;
   }
 
-  // Attach external media processor, so this::Process will be called.
+  
   mVoERender->RegisterExternalMediaProcessing(mChannel, webrtc::kRecordingPerChannel, *this);
 
   return NS_OK;
@@ -368,7 +368,7 @@ MediaEngineWebRTCAudioSource::Stop(SourceMediaStream *aSource, TrackID aID)
     MonitorAutoLock lock(mMonitor);
 
     if (!mSources.RemoveElement(aSource)) {
-      // Already stopped - this is allowed
+      
       return NS_OK;
     }
 
@@ -404,7 +404,7 @@ MediaEngineWebRTCAudioSource::NotifyPull(MediaStreamGraph* aGraph,
                                          TrackID aID,
                                          StreamTime aDesiredTime)
 {
-  // Ignore - we push audio data
+  
   LOG_FRAMES(("NotifyPull, desired = %ld", (int64_t) aDesiredTime));
 }
 
@@ -438,23 +438,23 @@ MediaEngineWebRTCAudioSource::Init()
     return;
   }
 
-  // Check for availability.
+  
   ScopedCustomReleasePtr<webrtc::VoEHardware> ptrVoEHw(webrtc::VoEHardware::GetInterface(mVoiceEngine));
   if (!ptrVoEHw || ptrVoEHw->SetRecordingDevice(mCapIndex)) {
     return;
   }
 
 #ifndef MOZ_B2G
-  // Because of the permission mechanism of B2G, we need to skip the status
-  // check here.
+  
+  
   bool avail = false;
   ptrVoEHw->GetRecordingDeviceStatus(avail);
   if (!avail) {
     return;
   }
-#endif // MOZ_B2G
+#endif 
 
-  // Set "codec" to PCM, 32kHz on 1 channel
+  
   ScopedCustomReleasePtr<webrtc::VoECodec> ptrVoECodec(webrtc::VoECodec::GetInterface(mVoiceEngine));
   if (!ptrVoECodec) {
     return;
@@ -466,7 +466,7 @@ MediaEngineWebRTCAudioSource::Init()
   codec.rate = SAMPLE_RATE;
   codec.plfreq = SAMPLE_FREQUENCY;
   codec.pacsize = SAMPLE_LENGTH;
-  codec.pltype = 0; // Default payload type
+  codec.pltype = 0; 
 
   if (!ptrVoECodec->SetSendCodec(mChannel, codec)) {
     mInitDone = true;
@@ -477,7 +477,7 @@ void
 MediaEngineWebRTCAudioSource::Shutdown()
 {
   if (!mInitDone) {
-    // duplicate these here in case we failed during Init()
+    
     if (mChannel != -1 && mVoENetwork) {
       mVoENetwork->DeRegisterExternalTransport(mChannel);
     }
@@ -500,7 +500,7 @@ MediaEngineWebRTCAudioSource::Shutdown()
         }
         source = mSources[0];
       }
-      Stop(source, kAudioTrack); // XXX change to support multiple tracks
+      Stop(source, kAudioTrack); 
     }
     MOZ_ASSERT(mState == kStopped);
   }
@@ -533,18 +533,18 @@ MediaEngineWebRTCAudioSource::Process(int channel,
   webrtc::ProcessingTypes type, sample* audio10ms,
   int length, int samplingFreq, bool isStereo)
 {
-  // On initial capture, throw away all far-end data except the most recent sample
-  // since it's already irrelevant and we want to keep avoid confusing the AEC far-end
-  // input code with "old" audio.
+  
+  
+  
   if (!mStarted) {
     mStarted  = true;
     while (gFarendObserver->Size() > 1) {
-      free(gFarendObserver->Pop()); // only call if size() > 0
+      free(gFarendObserver->Pop()); 
     }
   }
 
   while (gFarendObserver->Size() > 0) {
-    FarEndAudioChunk *buffer = gFarendObserver->Pop(); // only call if size() > 0
+    FarEndAudioChunk *buffer = gFarendObserver->Pop(); 
     if (buffer) {
       int length = buffer->mSamples;
       int res = mVoERender->ExternalPlayoutData(buffer->mData,
@@ -578,15 +578,15 @@ MediaEngineWebRTCAudioSource::Process(int channel,
     segment->GetStartTime(insertTime);
 
     if (mSources[i]) {
-      // Make sure we include the stream and the track.
-      // The 0:1 is a flag to note when we've done the final insert for a given input block.
+      
+      
       LogTime(AsyncLatencyLogger::AudioTrackInsertion, LATENCY_STREAM_ID(mSources[i].get(), mTrackID),
               (i+1 < len) ? 0 : 1, insertTime);
 
-      // This is safe from any thread, and is safe if the track is Finished
-      // or Destroyed.
-      // Note: due to evil magic, the nsAutoPtr<AudioSegment>'s ownership transfers to
-      // the Runnable (AutoPtr<> = AutoPtr<>)
+      
+      
+      
+      
       RUN_ON_THREAD(mThread, WrapRunnable(mSources[i], &SourceMediaStream::AppendToTrack,
                                           mTrackID, segment, (AudioSegment *) nullptr),
                     NS_DISPATCH_NORMAL);

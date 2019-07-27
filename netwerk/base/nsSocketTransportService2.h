@@ -29,15 +29,15 @@ struct PRPollDesc;
 
 
 extern PRLogModuleInfo *gSocketTransportLog;
-#define SOCKET_LOG(args)     MOZ_LOG(gSocketTransportLog, mozilla::LogLevel::Debug, args)
-#define SOCKET_LOG_ENABLED() MOZ_LOG_TEST(gSocketTransportLog, mozilla::LogLevel::Debug)
+#define SOCKET_LOG(args)     MOZ_LOG(gSocketTransportLog, PR_LOG_DEBUG, args)
+#define SOCKET_LOG_ENABLED() PR_LOG_TEST(gSocketTransportLog, PR_LOG_DEBUG)
 
 
 
 
 extern PRLogModuleInfo *gUDPSocketLog;
-#define UDPSOCKET_LOG(args)     MOZ_LOG(gUDPSocketLog, mozilla::LogLevel::Debug, args)
-#define UDPSOCKET_LOG_ENABLED() MOZ_LOG_TEST(gUDPSocketLog, mozilla::LogLevel::Debug)
+#define UDPSOCKET_LOG(args)     PR_LOG(gUDPSocketLog, PR_LOG_DEBUG, args)
+#define UDPSOCKET_LOG_ENABLED() PR_LOG_TEST(gUDPSocketLog, PR_LOG_DEBUG)
 
 
 

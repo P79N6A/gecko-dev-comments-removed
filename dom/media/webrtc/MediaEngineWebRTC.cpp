@@ -1,14 +1,12 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 
 #include "CSFLog.h"
 #include "prenv.h"
-
-#include "mozilla/Logging.h"
 
 static PRLogModuleInfo*
 GetUserMediaLog()
@@ -37,7 +35,7 @@ GetUserMediaLog()
 #endif
 
 #undef LOG
-#define LOG(args) MOZ_LOG(GetUserMediaLog(), mozilla::LogLevel::Debug, args)
+#define LOG(args) MOZ_LOG(GetUserMediaLog(), PR_LOG_DEBUG, args)
 
 namespace mozilla {
 
@@ -66,7 +64,7 @@ MediaEngineWebRTC::MediaEngineWebRTC(MediaEnginePrefs &aPrefs)
   AsyncLatencyLogger::Get()->AddRef();
 #endif
 #endif
-  // XXX
+  
   gFarendObserver = new AudioOutputObserver();
 
   NS_NewNamedThread("AudioGUM", getter_AddRefs(mThread));
@@ -77,23 +75,23 @@ void
 MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
                                          nsTArray<nsRefPtr<MediaEngineVideoSource> >* aVSources)
 {
-  // We spawn threads to handle gUM runnables, so we must protect the member vars
+  
   MutexAutoLock lock(mMutex);
 
 #if defined(MOZ_B2G_CAMERA) && defined(MOZ_WIDGET_GONK)
   if (aMediaSource != dom::MediaSourceEnum::Camera) {
-    // only supports camera sources
+    
     return;
   }
 
-  /**
-   * We still enumerate every time, in case a new device was plugged in since
-   * the last call. TODO: Verify that WebRTC actually does deal with hotplugging
-   * new devices (with or without new engine creation) and accordingly adjust.
-   * Enumeration is not neccessary if GIPS reports the same set of devices
-   * for a given instance of the engine. Likewise, if a device was plugged out,
-   * mVideoSources must be updated.
-   */
+  
+
+
+
+
+
+
+
   int num = 0;
   nsresult result;
   result = ICameraControl::GetNumberOfCameras(num);
@@ -111,11 +109,11 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
     nsRefPtr<MediaEngineVideoSource> vSource;
     NS_ConvertUTF8toUTF16 uuid(cameraName);
     if (mVideoSources.Get(uuid, getter_AddRefs(vSource))) {
-      // We've already seen this device, just append.
+      
       aVSources->AppendElement(vSource.get());
     } else {
       vSource = new MediaEngineGonkVideoSource(i);
-      mVideoSources.Put(uuid, vSource); // Hashtable takes ownership.
+      mVideoSources.Put(uuid, vSource); 
       aVSources->AppendElement(vSource);
     }
   }
@@ -129,7 +127,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
   bool *videoEngineInit = nullptr;
 
 #ifdef MOZ_WIDGET_ANDROID
-  // get the JVM
+  
   JavaVM *jvm = mozilla::AndroidBridge::Bridge()->GetVM();
 
   if (webrtc::VideoEngine::SetAndroidObjects(jvm) != 0) {
@@ -184,7 +182,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
       videoEngineInit = &mBrowserEngineInit;
       break;
     case dom::MediaSourceEnum::Camera:
-      // fall through
+      
     default:
       if (!mVideoEngine) {
         if (!(mVideoEngine = webrtc::VideoEngine::Create())) {
@@ -210,14 +208,14 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
     return;
   }
 
-  /**
-   * We still enumerate every time, in case a new device was plugged in since
-   * the last call. TODO: Verify that WebRTC actually does deal with hotplugging
-   * new devices (with or without new engine creation) and accordingly adjust.
-   * Enumeration is not neccessary if GIPS reports the same set of devices
-   * for a given instance of the engine. Likewise, if a device was plugged out,
-   * mVideoSources must be updated.
-   */
+  
+
+
+
+
+
+
+
   int num = ptrViECapture->NumberOfCaptureDevices();
   if (num <= 0) {
     return;
@@ -227,7 +225,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
     char deviceName[MediaEngineSource::kMaxDeviceNameLength];
     char uniqueId[MediaEngineSource::kMaxUniqueIdLength];
 
-    // paranoia
+    
     deviceName[0] = '\0';
     uniqueId[0] = '\0';
     int error = ptrViECapture->GetCaptureDevice(i, deviceName,
@@ -258,20 +256,20 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
 #endif
 
     if (uniqueId[0] == '\0') {
-      // In case a device doesn't set uniqueId!
+      
       strncpy(uniqueId, deviceName, sizeof(uniqueId));
-      uniqueId[sizeof(uniqueId)-1] = '\0'; // strncpy isn't safe
+      uniqueId[sizeof(uniqueId)-1] = '\0'; 
     }
 
     nsRefPtr<MediaEngineVideoSource> vSource;
     NS_ConvertUTF8toUTF16 uuid(uniqueId);
     if (mVideoSources.Get(uuid, getter_AddRefs(vSource))) {
-      // We've already seen this device, just refresh and append.
+      
       static_cast<MediaEngineWebRTCVideoSource*>(vSource.get())->Refresh(i);
       aVSources->AppendElement(vSource.get());
     } else {
       vSource = new MediaEngineWebRTCVideoSource(videoEngine, i, aMediaSource);
-      mVideoSources.Put(uuid, vSource); // Hashtable takes ownership.
+      mVideoSources.Put(uuid, vSource); 
       aVSources->AppendElement(vSource);
     }
   }
@@ -288,13 +286,13 @@ MediaEngineWebRTC::EnumerateAudioDevices(dom::MediaSourceEnum aMediaSource,
 {
   ScopedCustomReleasePtr<webrtc::VoEBase> ptrVoEBase;
   ScopedCustomReleasePtr<webrtc::VoEHardware> ptrVoEHw;
-  // We spawn threads to handle gUM runnables, so we must protect the member vars
+  
   MutexAutoLock lock(mMutex);
 
 #ifdef MOZ_WIDGET_ANDROID
   jobject context = mozilla::AndroidBridge::Bridge()->GetGlobalContextRef();
 
-  // get the JVM
+  
   JavaVM *jvm = mozilla::AndroidBridge::Bridge()->GetVM();
   JNIEnv *env = GetJNIForThread();
 
@@ -332,16 +330,16 @@ MediaEngineWebRTC::EnumerateAudioDevices(dom::MediaSourceEnum aMediaSource,
   ptrVoEHw->GetNumOfRecordingDevices(nDevices);
   int i;
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
-  i = 0; // Bug 1037025 - let the OS handle defaulting for now on android/b2g
+  i = 0; 
 #else
-  // -1 is "default communications device" depending on OS in webrtc.org code
+  
   i = -1;
 #endif
   for (; i < nDevices; i++) {
-    // We use constants here because GetRecordingDeviceName takes char[128].
+    
     char deviceName[128];
     char uniqueId[128];
-    // paranoia; jingle doesn't bother with this
+    
     deviceName[0] = '\0';
     uniqueId[0] = '\0';
 
@@ -353,28 +351,28 @@ MediaEngineWebRTC::EnumerateAudioDevices(dom::MediaSourceEnum aMediaSource,
     }
 
     if (uniqueId[0] == '\0') {
-      // Mac and Linux don't set uniqueId!
-      MOZ_ASSERT(sizeof(deviceName) == sizeof(uniqueId)); // total paranoia
-      strcpy(uniqueId,deviceName); // safe given assert and initialization/error-check
+      
+      MOZ_ASSERT(sizeof(deviceName) == sizeof(uniqueId)); 
+      strcpy(uniqueId,deviceName); 
     }
 
     nsRefPtr<MediaEngineWebRTCAudioSource> aSource;
     NS_ConvertUTF8toUTF16 uuid(uniqueId);
     if (mAudioSources.Get(uuid, getter_AddRefs(aSource))) {
-      // We've already seen this device, just append.
+      
       aASources->AppendElement(aSource.get());
     } else {
       aSource = new MediaEngineWebRTCAudioSource(
         mThread, mVoiceEngine, i, deviceName, uniqueId
       );
-      mAudioSources.Put(uuid, aSource); // Hashtable takes ownership.
+      mAudioSources.Put(uuid, aSource); 
       aASources->AppendElement(aSource);
     }
   }
 }
 
 static PLDHashOperator
-ClearVideoSource (const nsAString&, // unused
+ClearVideoSource (const nsAString&, 
                   MediaEngineVideoSource* aData,
                   void *userArg)
 {
@@ -385,7 +383,7 @@ ClearVideoSource (const nsAString&, // unused
 }
 
 static PLDHashOperator
-ClearAudioSource (const nsAString&, // unused
+ClearAudioSource (const nsAString&, 
                   MediaEngineWebRTCAudioSource* aData,
                   void *userArg)
 {
@@ -398,18 +396,18 @@ ClearAudioSource (const nsAString&, // unused
 void
 MediaEngineWebRTC::Shutdown()
 {
-  // This is likely paranoia
+  
   MutexAutoLock lock(mMutex);
 
   LOG(("%s", __FUNCTION__));
-  // Shutdown all the sources, since we may have dangling references to the
-  // sources in nsDOMUserMediaStreams waiting for GC/CC
+  
+  
   mVideoSources.EnumerateRead(ClearVideoSource, nullptr);
   mAudioSources.EnumerateRead(ClearAudioSource, nullptr);
   mVideoSources.Clear();
   mAudioSources.Clear();
 
-  // Clear callbacks before we go away since the engines may outlive us
+  
   if (mVideoEngine) {
     mVideoEngine->SetTraceCallback(nullptr);
     webrtc::VideoEngine::Delete(mVideoEngine);

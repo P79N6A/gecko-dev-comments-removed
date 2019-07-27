@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 50; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "LoadMonitor.h"
 #include "LoadManager.h"
@@ -53,12 +53,12 @@
 #pragma comment(lib, "pdh.lib")
 #endif
 
-// NSPR_LOG_MODULES=LoadManager:5
+
 #undef LOG
 #undef LOG_ENABLED
-#define LOG(args) MOZ_LOG(gLoadManagerLog, mozilla::LogLevel::Debug, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, mozilla::LogLevel::Debug)
-#define LOG_MANY_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, mozilla::LogLevel::Verbose)
+#define LOG(args) MOZ_LOG(gLoadManagerLog, PR_LOG_DEBUG, args)
+#define LOG_ENABLED() PR_LOG_TEST(gLoadManagerLog, 4)
+#define LOG_MANY_ENABLED() PR_LOG_TEST(gLoadManagerLog, 5)
 
 namespace mozilla {
 
@@ -82,9 +82,9 @@ LoadMonitor::~LoadMonitor()
 }
 
 NS_IMETHODIMP
-LoadMonitor::Observe(nsISupports* /* aSubject */,
+LoadMonitor::Observe(nsISupports* ,
                      const char*  aTopic,
-                     const char16_t* /* aData */)
+                     const char16_t* )
 {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
   MOZ_ASSERT(!strcmp("xpcom-shutdown-threads", aTopic), "Bad topic!");
@@ -127,7 +127,7 @@ public:
 
   NS_IMETHOD Run()
   {
-    // remove xpcom shutdown observer
+    
     nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();
 
@@ -151,9 +151,9 @@ void LoadMonitor::Shutdown()
       mCondVar.Notify();
     }
 
-    // Note: can't just call ->Shutdown() from here; that spins the event
-    // loop here, causing re-entrancy issues if we're invoked from cycle
-    // collection.  Argh.
+    
+    
+    
     mLoadInfoThread = nullptr;
 
     nsRefPtr<LoadMonitorRemoveObserver> remObsRunner = new LoadMonitorRemoveObserver(this);
@@ -176,7 +176,7 @@ public:
   ~WinProcMon();
   nsresult Init();
   nsresult QuerySystemLoad(float* load_percent);
-  static const uint64_t TicksPerSec = 10000000; //100nsec tick (10MHz)
+  static const uint64_t TicksPerSec = 10000000; 
 private:
   PDH_HQUERY mQuery;
   PDH_HCOUNTER mCounter;
@@ -196,10 +196,10 @@ WinProcMon::Init()
   PDH_HQUERY query;
   PDH_HCOUNTER counter;
 
-  // Get a query handle to the Performance Data Helper
+  
   PDH_STATUS status = PdhOpenQuery(
-                        NULL,      // No log file name: use real-time source
-                        0,         // zero out user data token: unsued
+                        NULL,      
+                        0,         
                         &query);
 
   if (status != ERROR_SUCCESS) {
@@ -207,8 +207,8 @@ WinProcMon::Init()
     return NS_ERROR_FAILURE;
   }
 
-  // Add a pre-defined high performance counter to the query.
-  // This one is for the total CPU usage.
+  
+  
   status = PdhAddCounter(query, TotalCounterPath, 0, &counter);
 
   if (status != ERROR_SUCCESS) {
@@ -217,7 +217,7 @@ WinProcMon::Init()
     return NS_ERROR_FAILURE;
   }
 
-  // Need to make an initial query call to set up data capture.
+  
   status = PdhCollectQueryData(query);
 
   if (status != ERROR_SUCCESS) {
@@ -239,7 +239,7 @@ nsresult WinProcMon::QuerySystemLoad(float* load_percent)
     return NS_ERROR_FAILURE;
   }
 
-  // Update all counters associated with this query object.
+  
   PDH_STATUS status = PdhCollectQueryData(mQuery);
 
   if (status != ERROR_SUCCESS) {
@@ -248,7 +248,7 @@ nsresult WinProcMon::QuerySystemLoad(float* load_percent)
   }
 
   PDH_FMT_COUNTERVALUE counter;
-  // maximum is 100% regardless of CPU core count.
+  
   status = PdhGetFormattedCounterValue(
                mCounter,
                PDH_FMT_DOUBLE,
@@ -256,24 +256,24 @@ nsresult WinProcMon::QuerySystemLoad(float* load_percent)
                &counter);
 
   if (ERROR_SUCCESS != status ||
-      // There are multiple success return values.
+      
       !IsSuccessSeverity(counter.CStatus)) {
     LOG(("PdhGetFormattedCounterValue error"));
     return NS_ERROR_FAILURE;
   }
 
-  // The result is a percent value, reduce to match expected scale.
+  
   *load_percent = (float)(counter.doubleValue / 100.0f);
   return NS_OK;
 }
 #endif
 
-// Use a non-generic class name, because otherwise we can get name collisions
-// with other classes in the codebase.  The normal way of dealing with that is
-// to put the class in an anonymous namespace, but this class is used as a
-// member of RTCLoadInfo, which can't be in the anonymous namespace, so it also
-// can't be in an anonymous namespace: gcc warns about that setup and this
-// directory is fail-on-warnings.
+
+
+
+
+
+
 class RTCLoadStats
 {
 public:
@@ -286,15 +286,15 @@ public:
 
   uint64_t mPrevTotalTimes;
   uint64_t mPrevCpuTimes;
-  float mPrevLoad;               // Previous load value.
+  float mPrevLoad;               
 };
 
-// Use a non-generic class name, because otherwise we can get name collisions
-// with other classes in the codebase.  The normal way of dealing with that is
-// to put the class in an anonymous namespace, but this class is used as a
-// member of LoadInfoCollectRunner, which can't be in the anonymous namespace,
-// so it also can't be in an anonymous namespace: gcc warns about that setup
-// and this directory is fail-on-warnings.
+
+
+
+
+
+
 class RTCLoadInfo final
 {
 private:
@@ -330,8 +330,8 @@ nsresult RTCLoadInfo::Init(int aLoadUpdateInterval)
 {
   mLoadUpdateInterval = aLoadUpdateInterval;
 #ifdef XP_WIN
-  mTicksPerInterval = (WinProcMon::TicksPerSec /*Hz*/
-                       * mLoadUpdateInterval /*msec*/) / 1000 ;
+  mTicksPerInterval = (WinProcMon::TicksPerSec 
+                       * mLoadUpdateInterval ) / 1000 ;
   mNumProcessors = PR_GetNumberOfProcessors();
   mProcHandle = GetCurrentProcess();
   return mSysMon.Init();
@@ -345,18 +345,18 @@ void RTCLoadInfo::UpdateCpuLoad(uint64_t ticks_per_interval,
                                 uint64_t current_total_times,
                                 uint64_t current_cpu_times,
                                 RTCLoadStats *loadStat) {
-  // Check if we get an inconsistent number of ticks.
+  
   if (((current_total_times - loadStat->mPrevTotalTimes)
        > (ticks_per_interval * 10))
       || current_total_times < loadStat->mPrevTotalTimes
       || current_cpu_times < loadStat->mPrevCpuTimes) {
-    // Bug at least on the Nexus 4 and Galaxy S4
-    // https://code.google.com/p/android/issues/detail?id=41630
-    // We do need to update our previous times, or we can get stuck
-    // when there is a blip upwards and then we get a bunch of consecutive
-    // lower times. Just skip the load calculation.
+    
+    
+    
+    
+    
     LOG(("Inconsistent time values are passed. ignored"));
-    // Try to recover next tick
+    
     loadStat->mPrevTotalTimes = current_total_times;
     loadStat->mPrevCpuTimes = current_cpu_times;
     return;
@@ -440,7 +440,7 @@ nsresult RTCLoadInfo::UpdateSystemLoad()
   uint64_t cp_time[CPUSTATES];
 #else
   long cp_time[CPUSTATES];
-#endif // __NetBSD__
+#endif 
   size_t sz = sizeof(cp_time);
 #ifdef KERN_CP_TIME
   int mib[] = {
@@ -451,7 +451,7 @@ nsresult RTCLoadInfo::UpdateSystemLoad()
   if (sysctl(mib, miblen, &cp_time, &sz, nullptr, 0)) {
 #else
   if (sysctlbyname("kern.cp_time", &cp_time, &sz, nullptr, 0)) {
-#endif // KERN_CP_TIME
+#endif
     LOG(("sysctl kern.cp_time failed"));
     return NS_ERROR_FAILURE;
   }
@@ -477,7 +477,7 @@ nsresult RTCLoadInfo::UpdateSystemLoad()
 
   return rv;
 #else
-  // Not implemented
+  
   return NS_OK;
 #endif
 }
@@ -528,8 +528,8 @@ nsresult RTCLoadInfo::UpdateProcessLoad() {
   return NS_OK;
 }
 
-// Note: This class can't be in the anonymous namespace, because then we can't
-// declare it as a friend of LoadMonitor.
+
+
 class LoadInfoCollectRunner : public nsRunnable
 {
 public:
@@ -548,13 +548,13 @@ public:
   {
     if (NS_IsMainThread()) {
       if (mThread) {
-        // Don't leak threads!
-        mThread->Shutdown(); // can't Shutdown from the thread itself, darn
-        // Don't null out mThread!
-        // See bug 999104.  We must hold a ref to the thread across Dispatch()
-        // since the internal mThread ref could be released while processing
-        // the Dispatch(), and Dispatch/PutEvent itself doesn't hold a ref; it
-        // assumes the caller does.
+        
+        mThread->Shutdown(); 
+        
+        
+        
+        
+        
       }
       return NS_OK;
     }
@@ -576,7 +576,7 @@ public:
 
       mLoadMonitor->mCondVar.Wait(PR_MillisecondsToInterval(mLoadUpdateInterval));
     }
-    // ok, we need to exit safely and can't shut ourselves down (DARN)
+    
     NS_DispatchToMainThread(this);
     return NS_OK;
   }

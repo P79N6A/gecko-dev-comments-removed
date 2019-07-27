@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 50; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "OpenSLESProvider.h"
 #include "mozilla/Logging.h"
@@ -11,12 +11,12 @@
 #include <SLES/OpenSLES_Android.h>
 #include <SLES/OpenSLES_AndroidConfiguration.h>
 
-// NSPR_LOG_MODULES=OpenSLESProvider:5
+
 #undef LOG
 #undef LOG_ENABLED
 PRLogModuleInfo *gOpenSLESProviderLog;
-#define LOG(args) MOZ_LOG(gOpenSLESProviderLog, mozilla::LogLevel::Debug, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(gOpenSLESProviderLog, mozilla::LogLevel::Debug)
+#define LOG(args) MOZ_LOG(gOpenSLESProviderLog, PR_LOG_DEBUG, args)
+#define LOG_ENABLED() PR_LOG_TEST(gOpenSLESProviderLog, PR_LOG_DEBUG)
 
 namespace mozilla {
 
@@ -40,16 +40,16 @@ OpenSLESProvider::~OpenSLESProvider()
   }
 }
 
-/* static */
+
 OpenSLESProvider& OpenSLESProvider::getInstance()
 {
-  // This doesn't need a Mutex in C++11 or GCC 4.3+, see N2660 and
-  // https://gcc.gnu.org/projects/cxx0x.html
+  
+  
   static OpenSLESProvider instance;
   return instance;
 }
 
-/* static */
+
 SLresult OpenSLESProvider::Get(SLObjectItf * aObjectm,
                                SLuint32 aOptionCount,
                                const SLEngineOption *aOptions)
@@ -64,7 +64,7 @@ SLresult OpenSLESProvider::GetEngine(SLObjectItf * aObjectm,
 {
   MutexAutoLock lock(mLock);
   LOG(("Getting OpenSLES engine"));
-  // Bug 1042051: Validate options are the same
+  
   if (mSLEngine != nullptr) {
     *aObjectm = mSLEngine;
     mSLEngineUsers++;
@@ -73,7 +73,7 @@ SLresult OpenSLESProvider::GetEngine(SLObjectItf * aObjectm,
   } else {
     int res = ConstructEngine(aObjectm, aOptionCount, aOptions);
     if (res == SL_RESULT_SUCCESS) {
-      // Bug 1042051: Store engine options
+      
       mSLEngine = *aObjectm;
       mSLEngineUsers++;
       LOG(("Returning new engine"));
@@ -111,7 +111,7 @@ SLresult OpenSLESProvider::ConstructEngine(SLObjectItf * aObjectm,
   return result;
 }
 
-/* static */
+
 void OpenSLESProvider::Destroy(SLObjectItf * aObjectm)
 {
   OpenSLESProvider& provider = OpenSLESProvider::getInstance();
@@ -130,8 +130,8 @@ void OpenSLESProvider::DestroyEngine(SLObjectItf * aObjectm)
   }
 
   (*(*aObjectm))->Destroy(*aObjectm);
-  // This assumes SLObjectItf is a pointer, but given the previous line,
-  // that's a given.
+  
+  
   *aObjectm = nullptr;
 
   (void)dlclose(mOpenSLESLib);
@@ -139,7 +139,7 @@ void OpenSLESProvider::DestroyEngine(SLObjectItf * aObjectm)
   mIsRealized = false;
 }
 
-/* static */
+
 SLresult OpenSLESProvider::Realize(SLObjectItf aObjectm)
 {
   OpenSLESProvider& provider = OpenSLESProvider::getInstance();
@@ -167,7 +167,7 @@ SLresult OpenSLESProvider::RealizeEngine(SLObjectItf aObjectm)
   }
 }
 
-} // namespace mozilla
+} 
 
 extern "C" {
 SLresult mozilla_get_sles_engine(SLObjectItf * aObjectm,

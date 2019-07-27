@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et ft=cpp : */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "MediaParent.h"
 
@@ -21,10 +21,10 @@
 
 #undef LOG
 PRLogModuleInfo *gMediaParentLog;
-#define LOG(args) MOZ_LOG(gMediaParentLog, mozilla::LogLevel::Debug, args)
+#define LOG(args) MOZ_LOG(gMediaParentLog, PR_LOG_DEBUG, args)
 
-// A file in the profile dir is used to persist mOriginKeys used to anonymize
-// deviceIds to be unique per origin, to avoid them being supercookies.
+
+
 
 #define ORIGINKEYS_FILE "enumerate_devices.txt"
 #define ORIGINKEYS_VERSION "1"
@@ -49,7 +49,7 @@ class ParentSingleton : public nsISupports
     : mKey(aKey)
     , mSecondsStamp(aSecondsStamp) {}
 
-    nsCString mKey; // Base64 encoded.
+    nsCString mKey; 
     int64_t mSecondsStamp;
   };
 
@@ -63,7 +63,7 @@ class ParentSingleton : public nsISupports
     {
       OriginKey* key;
       if (!mKeys.Get(aOrigin, &key)) {
-        nsCString salt; // Make a new one
+        nsCString salt; 
         nsresult rv = GenerateRandomName(salt, key->EncodedLength);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
@@ -92,7 +92,7 @@ class ParentSingleton : public nsISupports
 
     void Clear(int64_t aSinceWhen)
     {
-      // Avoid int64_t* <-> void* casting offset
+      
       OriginKey since(nsCString(), aSinceWhen  / PR_USEC_PER_SEC);
       mKeys.Enumerate(HashCleaner, &since);
     }
@@ -130,12 +130,12 @@ class ParentSingleton : public nsISupports
       return file.forget();
     }
 
-    // Format of file is key secondsstamp origin (first line is version #):
-    //
-    // 1
-    // rOMAAbFujNwKyIpj4RJ3Wt5Q 1424733961 http://fiddle.jshell.net
-    // rOMAAbFujNwKyIpj4RJ3Wt5Q 1424734841 http://mozilla.github.io
-    // etc.
+    
+    
+    
+    
+    
+    
 
     nsresult Read()
     {
@@ -167,7 +167,7 @@ class ParentSingleton : public nsISupports
         return rv;
       }
       if (!line.EqualsLiteral(ORIGINKEYS_VERSION)) {
-        // If version on disk is newer than we can understand then ignore it.
+        
         return NS_OK;
       }
 
@@ -176,8 +176,8 @@ class ParentSingleton : public nsISupports
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }
-        // Read key secondsstamp origin.
-        // Ignore any lines that don't fit format in the comment above exactly.
+        
+        
         int32_t f = line.FindChar(' ');
         if (f < 0) {
           continue;
@@ -194,7 +194,7 @@ class ParentSingleton : public nsISupports
         }
         const nsACString& origin = Substring(s, f+1);
 
-        // Validate key
+        
         if (key.Length() != OriginKey::EncodedLength) {
           continue;
         }
@@ -314,7 +314,7 @@ class ParentSingleton : public nsISupports
       MOZ_ASSERT(!NS_IsMainThread());
       bool first = !mProfileDir;
       mProfileDir = aProfileDir;
-      // Load from disk when we first get a profileDir, but not subsequently.
+      
       if (first) {
         Load();
       }
@@ -333,11 +333,11 @@ private:
 public:
   static ParentSingleton* Get()
   {
-    // Protect creation of singleton and access from multiple Background threads.
-    //
-    // Multiple Background threads happen because sanitize.js calls us from the
-    // chrome process and gets a thread separate from the one servicing ipc from
-    // the content process.
+    
+    
+    
+    
+    
 
     StaticMutexAutoLock lock(gMutex);
     if (!sParentSingleton) {
@@ -346,11 +346,11 @@ public:
     return sParentSingleton;
   }
 
-  // Only accessed on StreamTS thread
+  
   OriginKeysLoader mOriginKeys;
   OriginKeysTable mPrivateBrowsingOriginKeys;
 
-  // Only accessed on return thread
+  
   CoatCheck<Pledge<nsCString>> mOutstandingPledges;
 };
 
@@ -361,16 +361,16 @@ Parent::RecvGetOriginKey(const uint32_t& aRequestId,
                          const nsCString& aOrigin,
                          const bool& aPrivateBrowsing)
 {
-  // TODO: Replace all this when moving MediaParent to PContent soon (1037389)
+  
 
   nsRefPtr<ParentSingleton> singleton(mSingleton);
   nsCOMPtr<nsIThread> returnThread = NS_GetCurrentThread();
   nsRefPtr<Pledge<nsCString>> p = new Pledge<nsCString>();
   nsresult rv;
 
-  // First, over to main thread to get profile dir.
+  
 
-  // Pledges are non-threadsafe by design, so check them and pass an id instead.
+  
   uint32_t id = singleton->mOutstandingPledges.Append(*p);
 
   rv = NS_DispatchToMainThread(NewRunnableFrom([id, returnThread,
@@ -384,7 +384,7 @@ Parent::RecvGetOriginKey(const uint32_t& aRequestId,
       return rv;
     }
 
-    // Then from there over to stream-transport thread to do the actual file io.
+    
 
     nsCOMPtr<nsIEventTarget> sts = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
     MOZ_ASSERT(sts);
@@ -399,7 +399,7 @@ Parent::RecvGetOriginKey(const uint32_t& aRequestId,
         singleton->mOriginKeys.GetOriginKey(aOrigin, result);
       }
 
-      // Pass result back to original thread.
+      
       nsresult rv;
       rv = returnThread->Dispatch(NewRunnableFrom([id, singleton,
                                                    result]() -> nsresult {
@@ -439,7 +439,7 @@ Parent::RecvSanitizeOriginKeys(const uint64_t& aSinceWhen)
 {
   nsRefPtr<ParentSingleton> singleton(mSingleton);
 
-  // First, over to main to get profile dir.
+  
   nsresult rv;
 
   rv = NS_DispatchToMainThread(NewRunnableFrom([singleton,
@@ -451,7 +451,7 @@ Parent::RecvSanitizeOriginKeys(const uint64_t& aSinceWhen)
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
-    // Then from there over to stream-transport thread to do the file io.
+    
 
     nsCOMPtr<nsIEventTarget> sts = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
     MOZ_ASSERT(sts);
@@ -476,7 +476,7 @@ Parent::RecvSanitizeOriginKeys(const uint64_t& aSinceWhen)
 void
 Parent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  // No more IPC from here
+  
   mDestroyed = true;
   LOG((__FUNCTION__));
 }

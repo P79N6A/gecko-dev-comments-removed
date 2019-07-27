@@ -33,8 +33,8 @@ static PRLogModuleInfo* gLog = nullptr;
 
 #undef LOGD
 #undef LOGE
-#define LOGD(args) MOZ_LOG(gLog, mozilla::LogLevel::Debug, args)
-#define LOGE(args) MOZ_LOG(gLog, mozilla::LogLevel::Error, args)
+#define LOGD(args) MOZ_LOG(gLog, PR_LOG_DEBUG, args)
+#define LOGE(args) MOZ_LOG(gLog, PR_LOG_ERROR, args)
 
 
 #define NO_RETRY_PERIOD_SEC 5

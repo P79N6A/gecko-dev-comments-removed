@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et ft=cpp : */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "MediaChild.h"
 
@@ -15,7 +15,7 @@
 
 #undef LOG
 PRLogModuleInfo *gMediaChildLog;
-#define LOG(args) MOZ_LOG(gMediaChildLog, mozilla::LogLevel::Debug, args)
+#define LOG(args) MOZ_LOG(gMediaChildLog, PR_LOG_DEBUG, args)
 
 namespace mozilla {
 namespace media {
@@ -26,7 +26,7 @@ template<typename ValueType> void
 ChildPledge<ValueType>::ActorCreated(PBackgroundChild* aActor)
 {
   if (!sChild) {
-    // Create PMedia by sending a message to the parent
+    
     sChild = static_cast<Child*>(aActor->SendPMediaConstructor());
   }
   Run(sChild);

@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 #include "GonkMediaDataDecoder.h"
 #include "VideoUtils.h"
 #include "nsTArray.h"
@@ -14,7 +14,7 @@
 #define GMDD_LOG(...) __android_log_print(ANDROID_LOG_DEBUG, "GonkMediaDataDecoder", __VA_ARGS__)
 
 PRLogModuleInfo* GetDemuxerLog();
-#define LOG(...) MOZ_LOG(GetDemuxerLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOG(...) MOZ_LOG(GetDemuxerLog(), PR_LOG_DEBUG, (__VA_ARGS__))
 
 using namespace android;
 
@@ -61,7 +61,7 @@ GonkMediaDataDecoder::Shutdown()
   return NS_OK;
 }
 
-// Inserts data into the decoder's pipeline.
+
 nsresult
 GonkMediaDataDecoder::Input(MediaRawData* aSample)
 {
@@ -97,7 +97,7 @@ GonkMediaDataDecoder::ProcessOutput()
   nsresult rv = NS_ERROR_ABORT;
 
   while (!mDrainComplete) {
-    // There are samples in queue, try to send them into decoder when EOS.
+    
     if (mSignaledEOS && mManager->HasQueuedSample()) {
       GMDD_LOG("ProcessOutput: drain all input samples");
       rv = mManager->Input(nullptr);
@@ -107,7 +107,7 @@ GonkMediaDataDecoder::ProcessOutput()
       mCallback->Output(output);
       continue;
     } else if (rv == NS_ERROR_NOT_AVAILABLE && mSignaledEOS) {
-      // Try to get more frames before getting EOS frame
+      
       continue;
     }
     else {
@@ -122,7 +122,7 @@ GonkMediaDataDecoder::ProcessOutput()
   if (rv != NS_OK) {
     NS_WARNING("GonkMediaDataDecoder failed to output data");
     GMDD_LOG("Failed to output data");
-    // GonkDecoderManangers report NS_ERROR_ABORT when EOS is reached.
+    
     if (rv == NS_ERROR_ABORT) {
       if (output) {
         mCallback->Output(output);
@@ -141,10 +141,10 @@ GonkMediaDataDecoder::ProcessOutput()
 nsresult
 GonkMediaDataDecoder::Flush()
 {
-  // Flush the input task queue. This cancels all pending Decode() calls.
-  // Note this blocks until the task queue finishes its current job, if
-  // it's executing at all. Note the MP4Reader ignores all output while
-  // flushing.
+  
+  
+  
+  
   mTaskQueue->Flush();
   mDrainComplete = false;
   return mManager->Flush();
@@ -153,7 +153,7 @@ GonkMediaDataDecoder::Flush()
 void
 GonkMediaDataDecoder::ProcessDrain()
 {
-  // Notify decoder input EOS by sending a null data.
+  
   ProcessDecode(nullptr);
   mSignaledEOS = true;
   ProcessOutput();
@@ -168,4 +168,4 @@ GonkMediaDataDecoder::Drain()
   return NS_OK;
 }
 
-} // namespace mozilla
+} 

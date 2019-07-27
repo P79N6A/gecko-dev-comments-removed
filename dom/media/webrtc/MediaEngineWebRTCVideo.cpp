@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "MediaEngineWebRTC.h"
 #include "Layers.h"
@@ -19,12 +19,12 @@ using dom::ConstrainDoubleRange;
 using dom::MediaTrackConstraintSet;
 
 extern PRLogModuleInfo* GetMediaManagerLog();
-#define LOG(msg) MOZ_LOG(GetMediaManagerLog(), mozilla::LogLevel::Debug, msg)
-#define LOGFRAME(msg) MOZ_LOG(GetMediaManagerLog(), mozilla::LogLevel::Verbose, msg)
+#define LOG(msg) MOZ_LOG(GetMediaManagerLog(), PR_LOG_DEBUG, msg)
+#define LOGFRAME(msg) MOZ_LOG(GetMediaManagerLog(), 6, msg)
 
-/**
- * Webrtc video source.
- */
+
+
+
 
 NS_IMPL_ISUPPORTS0(MediaEngineWebRTCVideoSource)
 
@@ -38,13 +38,13 @@ MediaEngineWebRTCVideoSource::FrameSizeChange(
   return 0;
 }
 
-// ViEExternalRenderer Callback. Process every incoming frame here.
+
 int
 MediaEngineWebRTCVideoSource::DeliverFrame(
    unsigned char* buffer, int size, uint32_t time_stamp,
    int64_t ntp_time_ms, int64_t render_time, void *handle)
 {
-  // Check for proper state.
+  
   if (mState != kStarted) {
     LOG(("DeliverFrame: video not started"));
     return 0;
@@ -55,7 +55,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
     return 0;
   }
 
-  // Create a video frame and append it to the track.
+  
   nsRefPtr<layers::Image> image = mImageContainer->CreateImage(ImageFormat::PLANAR_YCBCR);
 
   layers::PlanarYCbCrImage* videoImage = static_cast<layers::PlanarYCbCrImage*>(image.get());
@@ -64,7 +64,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
   const uint8_t lumaBpp = 8;
   const uint8_t chromaBpp = 4;
 
-  // Take lots of care to round up!
+  
   layers::PlanarYCbCrData data;
   data.mYChannel = frame;
   data.mYSize = IntSize(mWidth, mHeight);
@@ -86,35 +86,35 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
             mWidth, mHeight, time_stamp, ntp_time_ms, render_time));
 #endif
 
-  // we don't touch anything in 'this' until here (except for snapshot,
-  // which has it's own lock)
+  
+  
   MonitorAutoLock lock(mMonitor);
 
-  // implicitly releases last image
+  
   mImage = image.forget();
 
-  // Push the frame into the MSG with a minimal duration.  This will likely
-  // mean we'll still get NotifyPull calls which will then return the same
-  // frame again with a longer duration.  However, this means we won't
-  // fail to get the frame in and drop frames.
+  
+  
+  
+  
 
-  // XXX The timestamp for the frame should be based on the Capture time,
-  // not the MSG time, and MSG should never, ever block on a (realtime)
-  // video frame (or even really for streaming - audio yes, video probably no).
-  // Note that MediaPipeline currently ignores the timestamps from MSG
+  
+  
+  
+  
   uint32_t len = mSources.Length();
   for (uint32_t i = 0; i < len; i++) {
     if (mSources[i]) {
-      AppendToTrack(mSources[i], mImage, mTrackID, 1); // shortest possible duration
+      AppendToTrack(mSources[i], mImage, mTrackID, 1); 
     }
   }
 
   return 0;
 }
 
-// Called if the graph thinks it's running out of buffered video; repeat
-// the last frame for whatever minimum period it think it needs.  Note that
-// this means that no *real* frame can be inserted during this period.
+
+
+
 void
 MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
                                          SourceMediaStream* aSource,
@@ -124,26 +124,26 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   VideoSegment segment;
 
   MonitorAutoLock lock(mMonitor);
-  // B2G does AddTrack, but holds kStarted until the hardware changes state.
-  // So mState could be kReleased here.  We really don't care about the state,
-  // though.
+  
+  
+  
 
   StreamTime delta = aDesiredTime - aSource->GetEndOfAppendedData(aID);
   LOGFRAME(("NotifyPull, desired = %ld, delta = %ld %s", (int64_t) aDesiredTime,
             (int64_t) delta, mImage.get() ? "" : "<null>"));
 
-  // Bug 846188 We may want to limit incoming frames to the requested frame rate
-  // mFps - if you want 30FPS, and the camera gives you 60FPS, this could
-  // cause issues.
-  // We may want to signal if the actual frame rate is below mMinFPS -
-  // cameras often don't return the requested frame rate especially in low
-  // light; we should consider surfacing this so that we can switch to a
-  // lower resolution (which may up the frame rate)
+  
+  
+  
+  
+  
+  
+  
 
-  // Don't append if we've already provided a frame that supposedly goes past the current aDesiredTime
-  // Doing so means a negative delta and thus messes up handling of the graph
+  
+  
   if (delta > 0) {
-    // nullptr images are allowed
+    
     AppendToTrack(aSource, mImage, aID, delta);
   }
 }
@@ -151,7 +151,7 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 size_t
 MediaEngineWebRTCVideoSource::NumCapabilities()
 {
-  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId); // TODO: optimize this?
+  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId); 
 
   int num = mViECapture->NumberOfCapabilities(uniqueId.get(), kMaxUniqueIdLength);
   if (num > 0) {
@@ -161,11 +161,11 @@ MediaEngineWebRTCVideoSource::NumCapabilities()
   switch (mMediaSource) {
     case dom::MediaSourceEnum::Camera:
 #ifdef XP_MACOSX
-      // Mac doesn't support capabilities.
-      //
-      // Hardcode generic desktop capabilities modeled on OSX camera.
-      // Note: Values are empirically picked to be OSX friendly, as on OSX,
-      // values other than these cause the source to not produce.
+      
+      
+      
+      
+      
 
       if (mHardcodedCapabilities.IsEmpty()) {
         for (int i = 0; i < 9; i++) {
@@ -186,10 +186,10 @@ MediaEngineWebRTCVideoSource::NumCapabilities()
       break;
 #endif
     default:
-      // The default for devices that don't return discrete capabilities: treat
-      // them as supporting all capabilities orthogonally. E.g. screensharing.
+      
+      
       webrtc::CaptureCapability c;
-      c.width = 0; // 0 = accept any value
+      c.width = 0; 
       c.height = 0;
       c.maxFPS = 0;
       mHardcodedCapabilities.AppendElement(c);
@@ -205,7 +205,7 @@ MediaEngineWebRTCVideoSource::GetCapability(size_t aIndex,
   if (!mHardcodedCapabilities.IsEmpty()) {
     MediaEngineCameraVideoSource::GetCapability(aIndex, aOut);
   }
-  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId); // TODO: optimize this?
+  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId); 
   mViECapture->GetCaptureCapability(uniqueId.get(), kMaxUniqueIdLength, aIndex, aOut);
 }
 
@@ -215,8 +215,8 @@ MediaEngineWebRTCVideoSource::Allocate(const dom::MediaTrackConstraints &aConstr
 {
   LOG((__FUNCTION__));
   if (mState == kReleased && mInitDone) {
-    // Note: if shared, we don't allow a later opener to affect the resolution.
-    // (This may change depending on spec changes for Constraints/settings)
+    
+    
 
     if (!ChooseCapability(aConstraints, aPrefs)) {
       return NS_ERROR_UNEXPECTED;
@@ -227,7 +227,7 @@ MediaEngineWebRTCVideoSource::Allocate(const dom::MediaTrackConstraints &aConstr
     }
     mState = kAllocated;
     LOG(("Video device %d allocated", mCaptureIndex));
-  } else if (MOZ_LOG_TEST(GetMediaManagerLog(), LogLevel::Debug)) {
+  } else if (PR_LOG_TEST(GetMediaManagerLog(), PR_LOG_DEBUG)) {
     MonitorAutoLock lock(mMonitor);
     if (mSources.IsEmpty()) {
       LOG(("Video device %d reallocated", mCaptureIndex));
@@ -249,23 +249,23 @@ MediaEngineWebRTCVideoSource::Deallocate()
     empty = mSources.IsEmpty();
   }
   if (empty) {
-    // If empty, no callbacks to deliver data should be occuring
+    
     if (mState != kStopped && mState != kAllocated) {
       return NS_ERROR_FAILURE;
     }
 #ifdef XP_MACOSX
-    // Bug 829907 - on mac, in shutdown, the mainthread stops processing
-    // 'native' events, and the QTKit code uses events to the main native CFRunLoop
-    // in order to provide thread safety.  In order to avoid this locking us up,
-    // release the ViE capture device synchronously on MainThread (so the native
-    // event isn't needed).
-    // XXX Note if MainThread Dispatch()es NS_DISPATCH_SYNC to us we can deadlock.
-    // XXX It might be nice to only do this if we're in shutdown...  Hard to be
-    // sure when that is though.
-    // Thread safety: a) we call this synchronously, and don't use ViECapture from
-    // another thread anywhere else, b) ViEInputManager::DestroyCaptureDevice() grabs
-    // an exclusive object lock and deletes it in a critical section, so all in all
-    // this should be safe threadwise.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     NS_DispatchToMainThread(WrapRunnable(mViECapture.get(),
                                          &webrtc::ViECapture::ReleaseCaptureDevice,
                                          mCaptureIndex),
@@ -330,7 +330,7 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
     MonitorAutoLock lock(mMonitor);
 
     if (!mSources.RemoveElement(aSource)) {
-      // Already stopped - this is allowed
+      
       return NS_OK;
     }
 
@@ -344,8 +344,8 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
     }
 
     mState = kStopped;
-    // Drop any cached image so we don't start with a stale image on next
-    // usage
+    
+    
     mImage = nullptr;
   }
   mViERender->StopRender(mCaptureIndex);
@@ -358,7 +358,7 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
 void
 MediaEngineWebRTCVideoSource::Init()
 {
-  // fix compile warning for these being unused. (remove once used)
+  
   (void) mFps;
   (void) mMinFps;
 
@@ -372,7 +372,7 @@ MediaEngineWebRTCVideoSource::Init()
     return;
   }
 
-  // Get interfaces for capture, render for now
+  
   mViECapture = webrtc::ViECapture::GetInterface(mVideoEngine);
   mViERender = webrtc::ViERender::GetInterface(mVideoEngine);
 
@@ -414,7 +414,7 @@ MediaEngineWebRTCVideoSource::Shutdown()
         }
         source = mSources[0];
       }
-      Stop(source, kVideoTrack); // XXX change to support multiple tracks
+      Stop(source, kVideoTrack); 
     }
     MOZ_ASSERT(mState == kStopped);
   }
@@ -431,9 +431,9 @@ MediaEngineWebRTCVideoSource::Shutdown()
 }
 
 void MediaEngineWebRTCVideoSource::Refresh(int aIndex) {
-  // NOTE: mCaptureIndex might have changed when allocated!
-  // Use aIndex to update information, but don't change mCaptureIndex!!
-  // Caller looked up this source by uniqueId, so it shouldn't change
+  
+  
+  
   char deviceName[kMaxDeviceNameLength];
   char uniqueId[kMaxUniqueIdLength];
 
@@ -451,4 +451,4 @@ void MediaEngineWebRTCVideoSource::Refresh(int aIndex) {
 #endif
 }
 
-} // namespace mozilla
+} 

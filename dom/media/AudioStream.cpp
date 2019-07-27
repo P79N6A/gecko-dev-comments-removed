@@ -31,7 +31,7 @@ namespace mozilla {
 
 PRLogModuleInfo* gAudioStreamLog = nullptr;
 
-#define LOG(x) MOZ_LOG(gAudioStreamLog, mozilla::LogLevel::Debug, x)
+#define LOG(x) MOZ_LOG(gAudioStreamLog, PR_LOG_DEBUG, x)
 
 
 
@@ -330,7 +330,7 @@ AudioStream::Init(int32_t aNumChannels, int32_t aRate,
     return NS_ERROR_FAILURE;
   }
 
-  MOZ_LOG(gAudioStreamLog, LogLevel::Debug,
+  MOZ_LOG(gAudioStreamLog, PR_LOG_DEBUG,
     ("%s  channels: %d, rate: %d for %p", __FUNCTION__, aNumChannels, aRate, this));
   mInRate = mOutRate = aRate;
   mChannels = aNumChannels;
@@ -547,12 +547,12 @@ AudioStream::CheckForStart()
     if (mLatencyRequest == LowLatency || mNeedsStart) {
       StartUnlocked(); 
       mNeedsStart = false;
-      MOZ_LOG(gAudioStreamLog, LogLevel::Warning,
+      MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING,
              ("Started waiting %s-latency stream",
               mLatencyRequest == LowLatency ? "low" : "high"));
     } else {
       
-      MOZ_LOG(gAudioStreamLog, LogLevel::Debug,
+      MOZ_LOG(gAudioStreamLog, PR_LOG_DEBUG,
              ("Not starting waiting %s-latency stream",
               mLatencyRequest == LowLatency ? "low" : "high"));
     }
@@ -612,7 +612,7 @@ AudioStream::Write(const AudioDataValue* aBuf, uint32_t aFrames, TimeStamp *aTim
   uint32_t bytesToCopy = FramesToBytes(aFrames);
 
   
-  if (MOZ_LOG_TEST(GetLatencyLog(), LogLevel::Debug)) {
+  if (PR_LOG_TEST(GetLatencyLog(), PR_LOG_DEBUG)) {
     
     int64_t timeMs;
     if (aTime && !aTime->IsNull()) {
@@ -645,7 +645,7 @@ AudioStream::Write(const AudioDataValue* aBuf, uint32_t aFrames, TimeStamp *aTim
           remains = mBuffer.Length() - bytesToCopy; 
         }
         
-        MOZ_LOG(gAudioStreamLog, LogLevel::Warning, ("Stream %p dropping %u bytes (%u frames)in Write()",
+        MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING, ("Stream %p dropping %u bytes (%u frames)in Write()",
             this, mBuffer.Length() - remains, BytesToFrames(mBuffer.Length() - remains)));
         mReadPoint += BytesToFrames(mBuffer.Length() - remains);
         mBuffer.ContractTo(remains);
@@ -653,14 +653,14 @@ AudioStream::Write(const AudioDataValue* aBuf, uint32_t aFrames, TimeStamp *aTim
         
         
         if (mState != STARTED && mState != RUNNING) {
-          MOZ_LOG(gAudioStreamLog, LogLevel::Warning, ("Starting stream %p in Write (%u waiting)",
+          MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING, ("Starting stream %p in Write (%u waiting)",
                                                  this, bytesToCopy));
           StartUnlocked();
           if (mState == ERRORED) {
             return NS_ERROR_FAILURE;
           }
         }
-        MOZ_LOG(gAudioStreamLog, LogLevel::Warning, ("Stream %p waiting in Write() (%u waiting)",
+        MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING, ("Stream %p waiting in Write() (%u waiting)",
                                                  this, bytesToCopy));
         mon.Wait();
       }
@@ -1073,16 +1073,16 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
       TimeStamp now = TimeStamp::Now();
       if (!mStartTime.IsNull()) {
         int64_t timeMs = (now - mStartTime).ToMilliseconds();
-        MOZ_LOG(gAudioStreamLog, LogLevel::Warning,
+        MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING,
                ("Stream took %lldms to start after first Write() @ %u", timeMs, mOutRate));
       } else {
-        MOZ_LOG(gAudioStreamLog, LogLevel::Warning,
+        MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING,
           ("Stream started before Write() @ %u", mOutRate));
       }
 
       if (old_len != available) {
         
-        MOZ_LOG(gAudioStreamLog, LogLevel::Warning,
+        MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING,
                ("AudioStream %p dropped %u + %u initial frames @ %u", this,
                  mReadPoint, BytesToFrames(old_len - available), mOutRate));
         mReadPoint += BytesToFrames(old_len - available);
@@ -1123,7 +1123,7 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
     uint8_t* rpos = static_cast<uint8_t*>(aBuffer) + FramesToBytes(aFrames - underrunFrames);
     memset(rpos, 0, FramesToBytes(underrunFrames));
     if (underrunFrames) {
-      MOZ_LOG(gAudioStreamLog, LogLevel::Warning,
+      MOZ_LOG(gAudioStreamLog, PR_LOG_WARNING,
              ("AudioStream %p lost %d frames", this, underrunFrames));
     }
     servicedFrames += underrunFrames;
@@ -1133,7 +1133,7 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
 
   WriteDumpFile(mDumpFile, this, aFrames, aBuffer);
   
-  if (MOZ_LOG_TEST(GetLatencyLog(), LogLevel::Debug) &&
+  if (PR_LOG_TEST(GetLatencyLog(), PR_LOG_DEBUG) &&
       mState != SHUTDOWN &&
       insertTime != INT64_MAX && servicedFrames > underrunFrames) {
     uint32_t latency = UINT32_MAX;

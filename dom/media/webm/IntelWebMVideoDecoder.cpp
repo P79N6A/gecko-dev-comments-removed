@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 #include "IntelWebMVideoDecoder.h"
 
 #include "gfx2DGlue.h"
@@ -21,7 +21,7 @@
 
 #undef LOG
 PRLogModuleInfo* GetDemuxerLog();
-#define LOG(...) MOZ_LOG(GetDemuxerLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOG(...) MOZ_LOG(GetDemuxerLog(), PR_LOG_DEBUG, (__VA_ARGS__))
 
 using namespace mp4_demuxer;
 
@@ -87,7 +87,7 @@ IntelWebMVideoDecoder::Shutdown()
   mReader = nullptr;
 }
 
-/* static */
+
 WebMVideoDecoder*
 IntelWebMVideoDecoder::Create(WebMReader* aReader)
 {
@@ -172,10 +172,10 @@ IntelWebMVideoDecoder::Demux(nsRefPtr<VP8Sample>& aSample, bool* aEOS)
 
   int64_t tstamp = holder->Timestamp();
 
-  // The end time of this frame is the start time of the next frame.  Fetch
-  // the timestamp of the next packet for this track.  If we've reached the
-  // end of the resource, use the file's duration as the end time of this
-  // video frame.
+  
+  
+  
+  
   int64_t next_tstamp = 0;
   nsRefPtr<NesteggPacketHolder> next_holder(mReader->NextPacket(WebMReader::VIDEO));
   if (next_holder) {
@@ -230,7 +230,7 @@ IntelWebMVideoDecoder::Decode()
   while (prevNumFramesOutput == mNumSamplesOutput) {
     mMonitor.AssertCurrentThreadOwns();
     if (mError) {
-      // Decode error!
+      
       mMonitor.Unlock();
       return false;
     }
@@ -242,8 +242,8 @@ IntelWebMVideoDecoder::Decode()
       mMonitor.Unlock();
       nsRefPtr<VP8Sample> compressed(PopSample());
       if (!compressed) {
-        // EOS, or error. Let the state machine know there are no more
-        // frames coming.
+        
+        
         LOG("Draining Video");
         mMonitor.Lock();
         MOZ_ASSERT(!mEOS);
@@ -294,11 +294,11 @@ IntelWebMVideoDecoder::SkipVideoDemuxToNextKeyFrame(int64_t aTimeThreshold, uint
 
   Flush();
 
-  // Loop until we reach the next keyframe after the threshold.
+  
   while (true) {
     nsRefPtr<VP8Sample> compressed(PopSample());
     if (!compressed) {
-      // EOS, or error. Let the state machine know.
+      
       return false;
     }
     aParsed++;
@@ -336,8 +336,8 @@ IntelWebMVideoDecoder::DecodeVideoFrame(bool& aKeyframeSkip,
   MOZ_ASSERT(mReader->OnTaskQueue());
   bool rv = Decode();
   {
-    // Report the number of "decoded" frames as the difference in the
-    // mNumSamplesOutput field since the last time we were called.
+    
+    
     MonitorAutoLock mon(mMonitor);
     uint64_t delta = mNumSamplesOutput - mLastReportedNumDecodedFrames;
     a.mDecoded = static_cast<uint32_t>(delta);
@@ -378,7 +378,7 @@ IntelWebMVideoDecoder::Output(MediaData* aSample)
       aSample->mTime, aSample->mDuration);
 #endif
 
-  // Don't accept output while we're flushing.
+  
   MonitorAutoLock mon(mMonitor);
   if (mIsFlushing) {
     mon.NotifyAll();
@@ -422,9 +422,9 @@ IntelWebMVideoDecoder::Flush()
   if (!mReader->GetDecoder()) {
     return NS_ERROR_FAILURE;
   }
-  // Purge the current decoder's state.
-  // Set a flag so that we ignore all output while we call
-  // MediaDataDecoder::Flush().
+  
+  
+  
   {
     MonitorAutoLock mon(mMonitor);
     mIsFlushing = true;
@@ -439,4 +439,4 @@ IntelWebMVideoDecoder::Flush()
   return NS_OK;
 }
 
-} // namespace mozilla
+} 

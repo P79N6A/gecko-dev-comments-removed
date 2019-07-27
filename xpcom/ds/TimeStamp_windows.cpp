@@ -38,7 +38,7 @@ GetTimeStampLog()
   }
   return sLog;
 }
-#define LOG(x)  MOZ_LOG(GetTimeStampLog(), mozilla::LogLevel::Debug, x)
+#define LOG(x)  MOZ_LOG(GetTimeStampLog(), PR_LOG_DEBUG, x)
 
 
 static volatile ULONGLONG sResolution;

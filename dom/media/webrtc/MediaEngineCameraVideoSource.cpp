@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "MediaEngineCameraVideoSource.h"
 
@@ -16,10 +16,10 @@ using dom::ConstrainDoubleRange;
 using dom::MediaTrackConstraintSet;
 
 extern PRLogModuleInfo* GetMediaManagerLog();
-#define LOG(msg) MOZ_LOG(GetMediaManagerLog(), mozilla::LogLevel::Debug, msg)
-#define LOGFRAME(msg) MOZ_LOG(GetMediaManagerLog(), mozilla::LogLevel::Verbose, msg)
+#define LOG(msg) MOZ_LOG(GetMediaManagerLog(), PR_LOG_DEBUG, msg)
+#define LOGFRAME(msg) MOZ_LOG(GetMediaManagerLog(), 6, msg)
 
-// guts for appending data to the MSG track
+
 bool MediaEngineCameraVideoSource::AppendToTrack(SourceMediaStream* aSource,
                                                  layers::Image* aImage,
                                                  TrackID aID,
@@ -32,15 +32,15 @@ bool MediaEngineCameraVideoSource::AppendToTrack(SourceMediaStream* aSource,
   IntSize size(image ? mWidth : 0, image ? mHeight : 0);
   segment.AppendFrame(image.forget(), delta, size);
 
-  // This is safe from any thread, and is safe if the track is Finished
-  // or Destroyed.
-  // This can fail if either a) we haven't added the track yet, or b)
-  // we've removed or finished the track.
+  
+  
+  
+  
   return aSource->AppendToTrack(aID, &(segment));
 }
 
-// Sub-classes (B2G or desktop) should overload one of both of these two methods
-// to provide capabilities
+
+
 size_t
 MediaEngineCameraVideoSource::NumCapabilities()
 {
@@ -55,13 +55,13 @@ MediaEngineCameraVideoSource::GetCapability(size_t aIndex,
   aOut = mHardcodedCapabilities[aIndex];
 }
 
-// The full algorithm for all cameras. Sources that don't list capabilities
-// need to fake it and hardcode some by populating mHardcodedCapabilities above.
 
-// Fitness distance returned as integer math * 1000. Infinity = UINT32_MAX
+
+
+
 
 template<class ValueType, class ConstrainRange>
-/* static */ uint32_t
+ uint32_t
 MediaEngineCameraVideoSource::FitnessDistance(ValueType n,
                                               const ConstrainRange& aRange)
 {
@@ -77,9 +77,9 @@ MediaEngineCameraVideoSource::FitnessDistance(ValueType n,
                             std::max(std::abs(n), std::abs(aRange.mIdeal.Value()))));
 }
 
-// Binding code doesn't templatize well...
 
-/*static*/ uint32_t
+
+ uint32_t
 MediaEngineCameraVideoSource::FitnessDistance(int32_t n,
     const OwningLongOrConstrainLongRange& aConstraint, bool aAdvanced)
 {
@@ -92,7 +92,7 @@ MediaEngineCameraVideoSource::FitnessDistance(int32_t n,
   }
 }
 
-/*static*/ uint32_t
+ uint32_t
 MediaEngineCameraVideoSource::FitnessDistance(double n,
     const OwningDoubleOrConstrainDoubleRange& aConstraint,
     bool aAdvanced)
@@ -106,13 +106,13 @@ MediaEngineCameraVideoSource::FitnessDistance(double n,
   }
 }
 
-/*static*/ uint32_t
+ uint32_t
 MediaEngineCameraVideoSource::GetFitnessDistance(const webrtc::CaptureCapability& aCandidate,
                                                  const MediaTrackConstraintSet &aConstraints,
                                                  bool aAdvanced)
 {
-  // Treat width|height|frameRate == 0 on capability as "can do any".
-  // This allows for orthogonal capabilities that are not in discrete steps.
+  
+  
 
   uint64_t distance =
     uint64_t(aCandidate.width? FitnessDistance(int32_t(aCandidate.width),
@@ -127,9 +127,9 @@ MediaEngineCameraVideoSource::GetFitnessDistance(const webrtc::CaptureCapability
   return uint32_t(std::min(distance, uint64_t(UINT32_MAX)));
 }
 
-// Find best capability by removing inferiors. May leave >1 of equal distance
 
-/* static */ void
+
+ void
 MediaEngineCameraVideoSource::TrimLessFitCandidates(CapabilitySet& set) {
   uint32_t best = UINT32_MAX;
   for (auto& candidate : set) {
@@ -147,13 +147,13 @@ MediaEngineCameraVideoSource::TrimLessFitCandidates(CapabilitySet& set) {
   MOZ_ASSERT(set.Length());
 }
 
-// GetBestFitnessDistance returns the best distance the capture device can offer
-// as a whole, given an accumulated number of ConstraintSets.
-// Ideal values are considered in the first ConstraintSet only.
-// Plain values are treated as Ideal in the first ConstraintSet.
-// Plain values are treated as Exact in subsequent ConstraintSets.
-// Infinity = UINT32_MAX e.g. device cannot satisfy accumulated ConstraintSets.
-// A finite result may be used to calculate this device's ranking as a choice.
+
+
+
+
+
+
+
 
 uint32_t
 MediaEngineCameraVideoSource::GetBestFitnessDistance(
@@ -218,7 +218,7 @@ MediaEngineCameraVideoSource::ChooseCapability(
     const dom::MediaTrackConstraints &aConstraints,
     const MediaEnginePrefs &aPrefs)
 {
-  if (MOZ_LOG_TEST(GetMediaManagerLog(), LogLevel::Debug)) {
+  if (PR_LOG_TEST(GetMediaManagerLog(), PR_LOG_DEBUG)) {
     LOG(("ChooseCapability: prefs: %dx%d @%d-%dfps",
          aPrefs.GetWidth(), aPrefs.GetHeight(),
          aPrefs.mFPS, aPrefs.mMinFPS));
@@ -238,7 +238,7 @@ MediaEngineCameraVideoSource::ChooseCapability(
     candidateSet.AppendElement(i);
   }
 
-  // First, filter capabilities by required constraints (min, max, exact).
+  
 
   for (size_t i = 0; i < candidateSet.Length();) {
     auto& candidate = candidateSet[i];
@@ -252,7 +252,7 @@ MediaEngineCameraVideoSource::ChooseCapability(
     }
   }
 
-  // Filter further with all advanced constraints (that don't overconstrain).
+  
 
   if (aConstraints.mAdvanced.WasPassed()) {
     for (const MediaTrackConstraintSet &cs : aConstraints.mAdvanced.Value()) {
@@ -278,12 +278,12 @@ MediaEngineCameraVideoSource::ChooseCapability(
     return false;
   }
 
-  // Remaining algorithm is up to the UA.
+  
 
   TrimLessFitCandidates(candidateSet);
 
-  // Any remaining multiples all have the same distance. A common case of this
-  // occurs when no ideal is specified. Lean toward defaults.
+  
+  
   {
     MediaTrackConstraintSet prefs;
     prefs.mWidth.SetAsLong() = aPrefs.GetWidth();
@@ -298,9 +298,9 @@ MediaEngineCameraVideoSource::ChooseCapability(
     TrimLessFitCandidates(candidateSet);
   }
 
-  // Any remaining multiples all have the same distance, but may vary on
-  // format. Some formats are more desirable for certain use like WebRTC.
-  // E.g. I420 over RGB24 can remove a needless format conversion.
+  
+  
+  
 
   bool found = false;
   for (auto& candidate : candidateSet) {
@@ -343,4 +343,4 @@ MediaEngineCameraVideoSource::SetDirectListeners(bool aHasDirectListeners)
   mHasDirectListeners = aHasDirectListeners;
 }
 
-} // namespace mozilla
+} 

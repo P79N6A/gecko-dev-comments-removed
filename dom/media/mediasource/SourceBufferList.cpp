@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "SourceBufferList.h"
 
@@ -19,8 +19,8 @@
 extern PRLogModuleInfo* GetMediaSourceLog();
 extern PRLogModuleInfo* GetMediaSourceAPILog();
 
-#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), mozilla::LogLevel::Debug, ("SourceBufferList(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
-#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, ("SourceBufferList(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
+#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), PR_LOG_DEBUG, ("SourceBufferList(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
+#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), PR_LOG_DEBUG, ("SourceBufferList(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
 struct JSContext;
 class JSObject;
@@ -212,6 +212,6 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 #undef MSE_API
 #undef MSE_DEBUG
-} // namespace dom
+} 
 
-} // namespace mozilla
+} 

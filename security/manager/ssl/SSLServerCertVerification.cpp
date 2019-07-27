@@ -448,7 +448,7 @@ DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
 SSLServerCertVerificationResult*
 CertErrorRunnable::CheckCertOverrides()
 {
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("[%p][%p] top of CheckCertOverrides\n",
+  MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p][%p] top of CheckCertOverrides\n",
                                     mFdForLogging, this));
   
   
@@ -464,7 +464,7 @@ CertErrorRunnable::CheckCertOverrides()
     NS_ISUPPORTS_CAST(nsITransportSecurityInfo*, mInfoObject));
   if (sslSocketControl &&
       sslSocketControl->GetBypassAuthentication()) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("[%p][%p] Bypass Auth in CheckCertOverrides\n",
             mFdForLogging, this));
     return new SSLServerCertVerificationResult(mInfoObject, 0);
@@ -487,7 +487,7 @@ CertErrorRunnable::CheckCertOverrides()
   bool hasPinningInformation = false;
   nsCOMPtr<nsISiteSecurityService> sss(do_GetService(NS_SSSERVICE_CONTRACTID));
   if (!sss) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("[%p][%p] couldn't get nsISiteSecurityService to check for HSTS/HPKP\n",
             mFdForLogging, this));
     return new SSLServerCertVerificationResult(mInfoObject,
@@ -498,7 +498,7 @@ CertErrorRunnable::CheckCertOverrides()
                                     mProviderFlags,
                                     &strictTransportSecurityEnabled);
   if (NS_FAILED(nsrv)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("[%p][%p] checking for HSTS failed\n", mFdForLogging, this));
     return new SSLServerCertVerificationResult(mInfoObject,
                                                mDefaultErrorCodeToReport);
@@ -508,14 +508,14 @@ CertErrorRunnable::CheckCertOverrides()
                            mProviderFlags,
                            &hasPinningInformation);
   if (NS_FAILED(nsrv)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("[%p][%p] checking for HPKP failed\n", mFdForLogging, this));
     return new SSLServerCertVerificationResult(mInfoObject,
                                                mDefaultErrorCodeToReport);
   }
 
   if (!strictTransportSecurityEnabled && !hasPinningInformation) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("[%p][%p] no HSTS or HPKP - overrides allowed\n",
             mFdForLogging, this));
     nsCOMPtr<nsICertOverrideService> overrideService =
@@ -559,18 +559,18 @@ CertErrorRunnable::CheckCertOverrides()
       }
 
       
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+      MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
              ("[%p][%p] All errors covered by override rules\n",
              mFdForLogging, this));
       return new SSLServerCertVerificationResult(mInfoObject, 0);
     }
   } else {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("[%p][%p] HSTS or HPKP - no overrides allowed\n",
             mFdForLogging, this));
   }
 
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+  MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
          ("[%p][%p] Certificate error was not overridden\n",
          mFdForLogging, this));
 
@@ -668,7 +668,7 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
   if (!collected_errors) {
     
     
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("[%p] !collected_errors: %d\n",
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] !collected_errors: %d\n",
            fdForLogging, static_cast<int>(defaultErrorCodeToReport)));
     PR_SetError(defaultErrorCodeToReport, 0);
     return nullptr;
@@ -818,7 +818,7 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   }
   
   if (NS_FAILED(rv)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("BlockServerCertChangeForSpdy failed GetNegotiatedNPN() call."
             " Assuming spdy.\n"));
   }
@@ -832,7 +832,7 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   }
 
   
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+  MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
          ("SPDY Refused to allow new cert during renegotiation\n"));
   PR_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED, 0);
   return SECFailure;
@@ -846,7 +846,7 @@ AccumulateSubjectCommonNameTelemetry(const char* commonName,
     
     Telemetry::Accumulate(Telemetry::BR_9_2_2_SUBJECT_COMMON_NAME, 1);
   } else if (!commonNameInSubjectAltNames) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("BR telemetry: common name '%s' not in subject alt. names "
             "(or the subject alt. names extension is not present)\n",
             commonName));
@@ -909,7 +909,7 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
   bool isBuiltIn = false;
   SECStatus rv = IsCertBuiltInRoot(rootCert, isBuiltIn);
   if (rv != SECSuccess || !isBuiltIn) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("BR telemetry: root certificate for '%s' is not a built-in root "
             "(or IsCertBuiltInRoot failed)\n", commonName.get()));
     return;
@@ -918,7 +918,7 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
   rv = CERT_FindCertExtension(cert, SEC_OID_X509_SUBJECT_ALT_NAME,
                               &altNameExtension);
   if (rv != SECSuccess) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("BR telemetry: no subject alt names extension for '%s'\n",
             commonName.get()));
     
@@ -936,7 +936,7 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
   
   PORT_Free(altNameExtension.data);
   if (!subjectAltNames) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+    MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("BR telemetry: could not decode subject alt names for '%s'\n",
             commonName.get()));
     
@@ -968,7 +968,7 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
       if (!net_IsValidHostName(altNameWithoutWildcard) ||
           net_IsValidIPv4Addr(altName.get(), altName.Length()) ||
           net_IsValidIPv6Addr(altName.get(), altName.Length())) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+        MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
                ("BR telemetry: DNSName '%s' not valid (for '%s')\n",
                 altName.get(), commonName.get()));
         malformedDNSNameOrIPAddressPresent = true;
@@ -985,7 +985,7 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
         memcpy(&addr.inet.ip, currentName->name.other.data,
                currentName->name.other.len);
         if (PR_NetAddrToString(&addr, buf, sizeof(buf) - 1) != PR_SUCCESS) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+        MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
                ("BR telemetry: IPAddress (v4) not valid (for '%s')\n",
                 commonName.get()));
           malformedDNSNameOrIPAddressPresent = true;
@@ -997,7 +997,7 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
         memcpy(&addr.ipv6.ip, currentName->name.other.data,
                currentName->name.other.len);
         if (PR_NetAddrToString(&addr, buf, sizeof(buf) - 1) != PR_SUCCESS) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+        MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
                ("BR telemetry: IPAddress (v6) not valid (for '%s')\n",
                 commonName.get()));
           malformedDNSNameOrIPAddressPresent = true;
@@ -1005,13 +1005,13 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
           altName.Assign(buf);
         }
       } else {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+        MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
                ("BR telemetry: IPAddress not valid (for '%s')\n",
                 commonName.get()));
         malformedDNSNameOrIPAddressPresent = true;
       }
     } else {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+      MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
              ("BR telemetry: non-DNSName, non-IPAddress present for '%s'\n",
               commonName.get()));
       nonDNSNameOrIPAddressPresent = true;
@@ -1251,7 +1251,7 @@ AuthCertificate(CertVerifier& certVerifier,
       }
 
       status->SetServerCert(nsc, evStatus);
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+      MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
              ("AuthCertificate setting NEW cert %p\n", nsc.get()));
     }
   }
@@ -1329,7 +1329,7 @@ SSLServerCertVerificationJob::Run()
 {
   
 
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+  MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
           ("[%p] SSLServerCertVerificationJob::Run\n", mInfoObject.get()));
 
   PRErrorCode error;
@@ -1381,7 +1381,7 @@ SSLServerCertVerificationJob::Run()
         
         
 
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+        MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
                 ("[%p][%p] Before dispatching CertErrorRunnable\n",
                 mFdForLogging, runnable.get()));
 
@@ -1429,7 +1429,7 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
 
   
 
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+  MOZ_LOG(gPIPNSSLog, PR_LOG_DEBUG,
          ("[%p] starting AuthCertificateHook\n", fd));
 
   

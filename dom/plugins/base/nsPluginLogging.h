@@ -27,10 +27,11 @@
 #define PLUGIN_LOG_NAME "Plugin"
 
 
-#define PLUGIN_LOG_ALWAYS mozilla::LogLevel::Error
-#define PLUGIN_LOG_BASIC  mozilla::LogLevel::Info
-#define PLUGIN_LOG_NORMAL mozilla::LogLevel::Debug
-#define PLUGIN_LOG_NOISY  mozilla::LogLevel::Verbose
+#define PLUGIN_LOG_ALWAYS 1
+#define PLUGIN_LOG_BASIC  3
+#define PLUGIN_LOG_NORMAL 5
+#define PLUGIN_LOG_NOISY  7
+#define PLUGIN_LOG_MAX    9
 
 
 

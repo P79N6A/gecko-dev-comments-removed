@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "SourceBuffer.h"
 
@@ -29,9 +29,9 @@ class JSObject;
 extern PRLogModuleInfo* GetMediaSourceLog();
 extern PRLogModuleInfo* GetMediaSourceAPILog();
 
-#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
-#define MSE_DEBUGV(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Verbose, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
-#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), mozilla::LogLevel::Debug, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
+#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), PR_LOG_DEBUG, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
+#define MSE_DEBUGV(arg, ...) MOZ_LOG(GetMediaSourceLog(), PR_LOG_DEBUG + 1, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
+#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), PR_LOG_DEBUG, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
 
 namespace mozilla {
 
@@ -77,7 +77,7 @@ public:
   NS_IMETHOD Run() override final {
 
     if (!mSourceBuffer->mUpdating) {
-      // abort was called in between.
+      
       return NS_OK;
     }
     mSourceBuffer->DoRangeRemoval(mStart, mEnd);
@@ -109,8 +109,8 @@ SourceBuffer::SetMode(SourceBufferAppendMode aMode, ErrorResult& aRv)
   if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended) {
     mMediaSource->SetReadyState(MediaSourceReadyState::Open);
   }
-  // TODO: Test append state.
-  // TODO: If aMode is "sequence", set sequence start time.
+  
+  
   mAppendMode = aMode;
 }
 
@@ -127,8 +127,8 @@ SourceBuffer::SetTimestampOffset(double aTimestampOffset, ErrorResult& aRv)
   if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended) {
     mMediaSource->SetReadyState(MediaSourceReadyState::Open);
   }
-  // TODO: Test append state.
-  // TODO: If aMode is "sequence", set sequence start time.
+  
+  
   mTimestampOffset = aTimestampOffset;
 }
 
@@ -140,9 +140,9 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
-  // We only manage a single trackbuffer in our source buffer.
-  // As such, there's no need to adjust the end of the trackbuffers as per
-  // Step 4: http://w3c.github.io/media-source/index.html#widl-SourceBuffer-buffered
+  
+  
+  
   media::TimeIntervals ranges = mTrackBuffer->Buffered();
   MSE_DEBUGV("ranges=%s", DumpTimeRanges(ranges).get());
   nsRefPtr<dom::TimeRanges> tr = new dom::TimeRanges();
@@ -218,7 +218,7 @@ SourceBuffer::Abort(ErrorResult& aRv)
   mTrackBuffer->ResetParserState();
   mAppendWindowStart = 0;
   mAppendWindowEnd = PositiveInfinity<double>();
-  // Discard the current decoder so no new data will be added to it.
+  
   MSE_DEBUG("Discarding decoder");
   mTrackBuffer->DiscardCurrentDecoder();
 }
@@ -228,8 +228,8 @@ SourceBuffer::AbortBufferAppend()
 {
   if (mUpdating) {
     mPendingAppend.DisconnectIfExists();
-    // TODO: Abort segment parser loop, and stream append loop algorithms.
-    // cancel any pending buffer append.
+    
+    
     mTrackBuffer->AbortAppendData();
     AbortUpdating();
   }
@@ -376,12 +376,12 @@ SourceBuffer::StopUpdating()
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mUpdating) {
-    // The buffer append algorithm has been interrupted by abort().
-    //
-    // If the sequence appendBuffer(), abort(), appendBuffer() occurs before
-    // the first StopUpdating() runnable runs, then a second StopUpdating()
-    // runnable will be scheduled, but still only one (the first) will queue
-    // events.
+    
+    
+    
+    
+    
+    
     return;
   }
   mUpdating = false;
@@ -403,7 +403,7 @@ void
 SourceBuffer::CheckEndTime()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  // Check if we need to update mMediaSource duration
+  
   double endTime = GetBufferedEnd();
   double duration = mMediaSource->Duration();
   if (endTime > duration) {
@@ -434,12 +434,12 @@ SourceBuffer::AppendData(MediaLargeByteBuffer* aData, double aTimestampOffset,
                          uint32_t aUpdateID)
 {
   if (!mUpdating || aUpdateID != mUpdateID) {
-    // The buffer append algorithm has been interrupted by abort().
-    //
-    // If the sequence appendBuffer(), abort(), appendBuffer() occurs before
-    // the first StopUpdating() runnable runs, then a second StopUpdating()
-    // runnable will be scheduled, but still only one (the first) will queue
-    // events.
+    
+    
+    
+    
+    
+    
     return;
   }
 
@@ -462,7 +462,7 @@ SourceBuffer::AppendDataCompletedWithSuccess(bool aGotMedia)
 {
   mPendingAppend.Complete();
   if (!mUpdating) {
-    // The buffer append algorithm has been interrupted by abort().
+    
     return;
   }
 
@@ -487,8 +487,8 @@ SourceBuffer::AppendDataErrored(nsresult aError)
   mPendingAppend.Complete();
   switch (aError) {
     case NS_ERROR_ABORT:
-      // Nothing further to do as the trackbuffer has been shutdown.
-      // or append was aborted and abort() has handled all the events.
+      
+      
       break;
     default:
       AppendError(true);
@@ -501,7 +501,7 @@ SourceBuffer::AppendError(bool aDecoderError)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mUpdating) {
-    // The buffer append algorithm has been interrupted by abort().
+    
     return;
   }
   mTrackBuffer->ResetParserState();
@@ -530,17 +530,17 @@ SourceBuffer::PrepareAppend(const uint8_t* aData, uint32_t aLength, ErrorResult&
     mMediaSource->SetReadyState(MediaSourceReadyState::Open);
   }
 
-  // Eviction uses a byte threshold. If the buffer is greater than the
-  // number of bytes then data is evicted. The time range for this
-  // eviction is reported back to the media source. It will then
-  // evict data before that range across all SourceBuffers it knows
-  // about.
-  // TODO: Make the eviction threshold smaller for audio-only streams.
-  // TODO: Drive evictions off memory pressure notifications.
-  // TODO: Consider a global eviction threshold  rather than per TrackBuffer.
+  
+  
+  
+  
+  
+  
+  
+  
   double newBufferStartTime = 0.0;
-  // Attempt to evict the amount of data we are about to add by lowering the
-  // threshold.
+  
+  
   uint32_t toEvict =
     (mEvictionThreshold > aLength) ? mEvictionThreshold - aLength : aLength;
   bool evicted =
@@ -550,14 +550,14 @@ SourceBuffer::PrepareAppend(const uint8_t* aData, uint32_t aLength, ErrorResult&
     MSE_DEBUG("AppendData Evict; current buffered start=%f",
               GetBufferedStart());
 
-    // We notify that we've evicted from the time range 0 through to
-    // the current start point.
+    
+    
     mMediaSource->NotifyEvicted(0.0, newBufferStartTime);
   }
 
-  // See if we have enough free space to append our new data.
-  // As we can only evict once we have playable data, we must give a chance
-  // to the DASH player to provide a complete media segment.
+  
+  
+  
   if (aLength > mEvictionThreshold ||
       ((mTrackBuffer->GetSize() > mEvictionThreshold - aLength) &&
        !mTrackBuffer->HasOnlyIncompleteMedia())) {
@@ -570,7 +570,7 @@ SourceBuffer::PrepareAppend(const uint8_t* aData, uint32_t aLength, ErrorResult&
     aRv.Throw(NS_ERROR_DOM_QUOTA_EXCEEDED_ERR);
     return nullptr;
   }
-  // TODO: Test buffer full flag.
+  
   return data.forget();
 }
 
@@ -619,7 +619,7 @@ SourceBuffer::Dump(const char* aPath)
 NS_IMPL_CYCLE_COLLECTION_CLASS(SourceBuffer)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(SourceBuffer)
-  // Tell the TrackBuffer to end its current SourceBufferResource.
+  
   TrackBuffer* track = tmp->mTrackBuffer;
   if (track) {
     track->Detach();
@@ -642,6 +642,6 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 #undef MSE_DEBUGV
 #undef MSE_API
 
-} // namespace dom
+} 
 
-} // namespace mozilla
+} 

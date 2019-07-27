@@ -34,7 +34,7 @@ using mozilla::layers::LayersBackend;
 namespace mozilla {
 
 extern PRLogModuleInfo* gMediaDecoderLog;
-#define DECODER_LOG(...) MOZ_LOG(gMediaDecoderLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define DECODER_LOG(...) MOZ_LOG(gMediaDecoderLog, PR_LOG_DEBUG, (__VA_ARGS__))
 
 
 

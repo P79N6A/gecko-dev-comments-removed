@@ -44,9 +44,9 @@ static PRLogModuleInfo *gStandardURLLog;
 
 
 #undef LOG
-#define LOG(args)     MOZ_LOG(gStandardURLLog, mozilla::LogLevel::Debug, args)
+#define LOG(args)     MOZ_LOG(gStandardURLLog, PR_LOG_DEBUG, args)
 #undef LOG_ENABLED
-#define LOG_ENABLED() MOZ_LOG_TEST(gStandardURLLog, mozilla::LogLevel::Debug)
+#define LOG_ENABLED() PR_LOG_TEST(gStandardURLLog, PR_LOG_DEBUG)
 
 
 

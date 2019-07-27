@@ -47,7 +47,7 @@ using namespace mozilla::net;
 
 PRLogModuleInfo* gFTPLog = nullptr;
 #undef LOG
-#define LOG(args) MOZ_LOG(gFTPLog, mozilla::LogLevel::Debug, args)
+#define LOG(args) MOZ_LOG(gFTPLog, PR_LOG_DEBUG, args)
 
 
 
