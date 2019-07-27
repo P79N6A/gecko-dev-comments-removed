@@ -431,6 +431,12 @@ public:
 
   static Mappable *GetMappableFromPath(const char *path);
 
+  void ExpectShutdown(bool val) { expect_shutdown = val; }
+  bool IsShutdownExpected() { return expect_shutdown; }
+
+private:
+  bool expect_shutdown;
+
 protected:
   
 
@@ -454,6 +460,7 @@ protected:
   const char *lastError;
 
 private:
+  ElfLoader() : expect_shutdown(true) {}
   ~ElfLoader();
 
   
