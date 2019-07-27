@@ -602,7 +602,7 @@ struct JSContext : public js::ExclusiveContext,
 
 
 
-    bool runningWithTrustedPrincipals() const;
+    inline bool runningWithTrustedPrincipals() const;
 
     JS_FRIEND_API(size_t) sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
