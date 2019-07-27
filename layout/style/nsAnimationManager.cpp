@@ -324,7 +324,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
             }
             oldPlayer->mHoldTime.SetNull();
           }
-          oldPlayer->mPlayState = newPlayer->mPlayState;
+          oldPlayer->mIsPaused = newPlayer->mIsPaused;
 
           
           
@@ -459,7 +459,8 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
     dest->SetSource(destAnim);
 
     dest->mStartTime = now;
-    dest->mPlayState = src.GetPlayState();
+    dest->mIsPaused =
+      src.GetPlayState() == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
     if (dest->IsPaused()) {
       dest->mHoldTime.SetValue(TimeDuration(0));
     }
