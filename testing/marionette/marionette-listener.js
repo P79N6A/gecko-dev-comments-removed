@@ -974,6 +974,22 @@ function singleTap(msg) {
 
 
 
+function checkEnabledStateAccessibility(accesible, enabled) {
+  if (!accesible) {
+    return;
+  }
+  if (enabled && accessibility.matchState(accesible, 'STATE_UNAVAILABLE')) {
+    accessibility.handleErrorMessage('Element is enabled but disabled via ' +
+      'the accessibility API');
+  }
+}
+
+
+
+
+
+
+
 function checkVisibleAccessibility(accesible, visible) {
   if (!accesible) {
     return;
@@ -1649,7 +1665,10 @@ function isElementEnabled(msg) {
   let command_id = msg.json.command_id;
   try {
     let el = elementManager.getKnownElement(msg.json.id, curFrame);
-    sendResponse({value: utils.isElementEnabled(el)}, command_id);
+    let enabled = utils.isElementEnabled(el);
+    checkEnabledStateAccessibility(accessibility.getAccessibleObject(el),
+      enabled);
+    sendResponse({value: enabled}, command_id);
   }
   catch (e) {
     sendError(e.message, e.code, e.stack, command_id);

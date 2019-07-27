@@ -153,6 +153,19 @@ Accessibility.prototype = {
 
 
 
+
+  matchState(accessible, stateName) {
+    let stateToMatch = Components.interfaces.nsIAccessibleStates[stateName];
+    let state = {};
+    accessible.getState(state, {});
+    return !!(state.value & stateToMatch);
+  },
+
+  
+
+
+
+
   isHidden(accessible) {
     while (accessible) {
       if (this.hasHiddenAttribute(accessible)) {
