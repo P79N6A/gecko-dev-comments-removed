@@ -356,6 +356,55 @@ add_task(function* test_overdue_pings_trigger_send() {
   yield resetTelemetry();
 });
 
+
+
+
+
+add_task(function* test_overdue_old_format() {
+  
+  const PING_OLD_FORMAT = {
+    slug: "1234567abcd",
+    reason: "test-ping",
+    payload: {
+      info: {
+        reason: "test-ping",
+        OS: "XPCShell",
+        appID: "SomeId",
+        appVersion: "1.0",
+        appName: "XPCShell",
+        appBuildID: "123456789",
+        appUpdateChannel: "Test",
+        platformBuildID: "987654321",
+      },
+    },
+  };
+
+  const filePath =
+    Path.join(Constants.Path.profileDir, PING_SAVE_FOLDER, PING_OLD_FORMAT.slug);
+
+  
+  yield TelemetryFile.savePing(PING_OLD_FORMAT, true);
+  yield File.setDates(filePath, null, Date.now() - OVERDUE_PING_FILE_AGE);
+
+  let receivedPings = 0;
+  
+  gHttpServer.registerPrefixHandler("/submit/telemetry/", request => {
+    
+    Assert.notEqual(request.queryString, "");
+
+    
+    let params = request.queryString.split("&");
+    Assert.ok(params.find(p => p == "v=1"));
+
+    receivedPings++;
+  });
+
+  yield startTelemetry();
+  Assert.equal(receivedPings, 1, "We must receive a ping in the old format.");
+
+  yield resetTelemetry();
+});
+
 add_task(function* teardown() {
   yield stopHttpServer();
 });
