@@ -309,9 +309,28 @@ MediaEngineWebRTCVideoSource::ChooseCapability(
         
       }
     }
+    
+    if (mCapability.width == cap.width && mCapability.height == cap.height) {
+      
+      if (cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
+        continue;
+      }
+      
+      if (cap.maxFPS < mCapability.maxFPS) {
+        mCapability = cap;
+      } else if (cap.maxFPS == mCapability.maxFPS) {
+        
+        if (cap.rawType == webrtc::RawVideoType::kVideoI420
+          || cap.rawType == webrtc::RawVideoType::kVideoYUY2
+          || cap.rawType == webrtc::RawVideoType::kVideoYV12) {
+          mCapability = cap;
+        }
+      }
+    }
   }
-  LOG(("chose cap %dx%d @%dfps",
-       mCapability.width, mCapability.height, mCapability.maxFPS));
+  LOG(("chose cap %dx%d @%dfps codec %d raw %d",
+       mCapability.width, mCapability.height, mCapability.maxFPS,
+       mCapability.codecType, mCapability.rawType));
 #endif
 }
 
