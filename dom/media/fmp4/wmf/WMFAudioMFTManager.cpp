@@ -221,9 +221,6 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
   hr = buffer->Lock(&data, &maxLength, &currentLength);
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  int32_t numSamples = currentLength / mAudioBytesPerSample;
-  int32_t numFrames = numSamples / mAudioChannels;
-
   
   
   
@@ -245,6 +242,13 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
   int32_t numFramesToStrip = 0;
   sample->GetUINT32(MFSampleExtension_Discontinuity, &discontinuity);
   if (mMustRecaptureAudioPosition || discontinuity) {
+    
+    
+    
+    
+    hr = UpdateOutputType();
+    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+
     mAudioFrameSum = 0;
     LONGLONG timestampHns = 0;
     hr = sample->GetSampleTime(&timestampHns);
@@ -258,15 +262,10 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
       mAudioFrameOffset = 0;
     }
     mMustRecaptureAudioPosition = false;
-
-    
-    
-    
-    
-    hr = UpdateOutputType();
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   }
   MOZ_ASSERT(numFramesToStrip >= 0);
+  int32_t numSamples = currentLength / mAudioBytesPerSample;
+  int32_t numFrames = numSamples / mAudioChannels;
   int32_t offset = std::min<int32_t>(numFramesToStrip, numFrames);
   numFrames -= offset;
   numSamples -= offset * mAudioChannels;
