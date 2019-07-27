@@ -167,13 +167,30 @@ let gPage = {
   
 
 
+  _handleUnloadEvent: function Page_handleUnloadEvent() {
+    gAllPages.unregister(this);
+    
+    
+    
+    let delta = Math.round((Date.now() - this._firstVisibleTime) / 500);
+    if (this._suggestedTilePresent) {
+      Services.telemetry.getHistogramById("NEWTAB_PAGE_LIFE_SPAN_SUGGESTED").add(delta);
+    }
+    else {
+      Services.telemetry.getHistogramById("NEWTAB_PAGE_LIFE_SPAN").add(delta);
+    }
+  },
+
+  
+
+
   handleEvent: function Page_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "load":
         this.onPageVisibleAndLoaded();
         break;
       case "unload":
-        gAllPages.unregister(this);
+        this._handleUnloadEvent();
         break;
       case "click":
         let {button, target} = aEvent;
@@ -225,6 +242,9 @@ let gPage = {
       }
     }
 
+    
+    this._firstVisibleTime = Date.now();
+
     if (document.readyState == "complete") {
       this.onPageVisibleAndLoaded();
     } else {
@@ -256,6 +276,10 @@ let gPage = {
       if (node.classList && node.classList.contains("newtab-cell")) {
         if (sites[++i]) {
           lastIndex = i;
+          if (sites[i].link.targetedSite) {
+            
+            this._suggestedTilePresent = true;
+          }
         }
       }
     }
