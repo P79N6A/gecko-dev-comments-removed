@@ -953,6 +953,44 @@ TEST_F(AsyncPanZoomControllerTester, OverScrollPanning) {
   apzc->Destroy();
 }
 
+TEST_F(AsyncPanZoomControllerTester, OverScrollAbort) {
+  TestScopedBoolPref overscrollEnabledPref("apz.overscroll.enabled", true);
+
+  TimeStamp testStartTime = TimeStamp::Now();
+  AsyncPanZoomController::SetFrameTime(testStartTime);
+
+  nsRefPtr<MockContentController> mcc = new NiceMock<MockContentController>();
+  nsRefPtr<TestAPZCTreeManager> tm = new TestAPZCTreeManager();
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc, tm);
+
+  apzc->SetFrameMetrics(TestFrameMetrics());
+  apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
+
+  
+  int time = 0;
+  int touchStart = 500;
+  int touchEnd = 10;
+  ApzcPan(apzc, tm, time, touchStart, touchEnd);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  ScreenPoint pointOut;
+  ViewTransform viewTransformOut;
+
+  
+  
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(10000), &viewTransformOut, pointOut);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  
+  apzc->CancelAnimation();
+  EXPECT_FALSE(apzc->IsOverscrolled());
+  apzc->AssertStateIsReset();
+
+  apzc->Destroy();
+}
+
 TEST_F(AsyncPanZoomControllerTester, ShortPress) {
   nsRefPtr<MockContentControllerDelayed> mcc = new NiceMock<MockContentControllerDelayed>();
   nsRefPtr<TestAPZCTreeManager> tm = new TestAPZCTreeManager();
