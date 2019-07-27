@@ -1,5 +1,8 @@
 package org.mozilla.gecko.tests;
 
+import android.widget.CheckBox;
+import android.view.View;
+import com.jayway.android.robotium.solo.Condition;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,8 +43,10 @@ public class testDoorHanger extends BaseTest {
         mAsserter.is(mSolo.searchText(GEO_MESSAGE), true, "Geolocation doorhanger has been displayed");
 
         
+        waitForCheckBox();
         mSolo.clickOnCheckBox(0);
         mSolo.clickOnButton(GEO_ALLOW);
+        waitForTextDismissed(GEO_MESSAGE);
         mAsserter.is(mSolo.searchText(GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when allowing share");
 
         
@@ -49,8 +54,10 @@ public class testDoorHanger extends BaseTest {
         waitForText(GEO_MESSAGE);
 
         
+        waitForCheckBox();
         mSolo.clickOnCheckBox(0);
         mSolo.clickOnButton(GEO_DENY);
+        waitForTextDismissed(GEO_MESSAGE);
         mAsserter.is(mSolo.searchText(GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when denying share");
 
         
@@ -104,8 +111,10 @@ public class testDoorHanger extends BaseTest {
         waitForText(OFFLINE_MESSAGE);
 
         
+        waitForCheckBox();
         mSolo.clickOnCheckBox(0);
         mSolo.clickOnButton(OFFLINE_DENY);
+        waitForTextDismissed(OFFLINE_MESSAGE);
         mAsserter.is(mSolo.searchText(OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when denying storage");
 
         
@@ -114,6 +123,7 @@ public class testDoorHanger extends BaseTest {
 
         
         mSolo.clickOnButton(OFFLINE_ALLOW);
+        waitForTextDismissed(OFFLINE_MESSAGE);
         mAsserter.is(mSolo.searchText(OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when allowing storage");
         inputAndLoadUrl(OFFLINE_STORAGE_URL);
         mAsserter.is(mSolo.searchText(OFFLINE_MESSAGE), false, "Offline storage doorhanger is no longer triggered");
@@ -136,6 +146,7 @@ public class testDoorHanger extends BaseTest {
 
         
         mSolo.clickOnButton(LOGIN_DENY);
+        waitForTextDismissed(LOGIN_MESSAGE);
         mAsserter.is(mSolo.searchText(LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when denying saving password");
 
         
@@ -144,10 +155,38 @@ public class testDoorHanger extends BaseTest {
 
         
         mSolo.clickOnButton(LOGIN_ALLOW);
+        waitForTextDismissed(LOGIN_MESSAGE);
         mAsserter.is(mSolo.searchText(LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when allowing saving password");
+    }
 
-        
-        inputAndLoadUrl(LOGIN_URL);
-        mAsserter.is(mSolo.searchText(LOGIN_MESSAGE), false, "Login doorhanger is not re-triggered");
+    
+    private void waitForCheckBox() {
+        waitForCondition(new Condition() {
+            @Override
+            public boolean isSatisfied() {
+                for (CheckBox view : mSolo.getCurrentViews(CheckBox.class)) {
+                    
+                    
+                    
+                    if (view.isClickable() &&
+                        view.getVisibility() == View.VISIBLE &&
+                        view.getWidth() > 0 &&
+                        view.getHeight() > 0) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }, MAX_WAIT_MS);
+    }
+
+    
+    private void waitForTextDismissed(final String text) {
+        waitForCondition(new Condition() {
+            @Override
+            public boolean isSatisfied() {
+                return !mSolo.searchText(text);
+            }
+        }, MAX_WAIT_MS);
     }
 }
