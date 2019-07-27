@@ -6,19 +6,27 @@
 var FullScreen = {
   _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
 
+  _MESSAGES: [
+    "DOMFullscreen:Entered",
+    "DOMFullscreen:NewOrigin",
+    "DOMFullscreen:Exited"
+  ],
+
   init: function() {
     
     window.addEventListener("fullscreen", this, true);
-    window.messageManager.addMessageListener("DOMFullscreen:Entered", this);
-    window.messageManager.addMessageListener("DOMFullscreen:Exited", this);
+    for (let type of this._MESSAGES) {
+      window.messageManager.addMessageListener(type, this);
+    }
 
     if (window.fullScreen)
       this.toggle();
   },
 
   uninit: function() {
-    window.messageManager.removeMessageListener("DOMFullscreen:Entered", this);
-    window.messageManager.removeMessageListener("DOMFullscreen:Exited", this);
+    for (let type of this._MESSAGES) {
+      window.messageManager.removeMessageListener(type, this);
+    }
     this.cleanup();
   },
 
@@ -100,14 +108,17 @@ var FullScreen = {
         
         
         
-        let data = aMessage.data;
         let browser = aMessage.target;
         if (gMultiProcessBrowser && browser.getAttribute("remote") == "true") {
           let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
                                   .getInterface(Ci.nsIDOMWindowUtils);
-          windowUtils.remoteFrameFullscreenChanged(browser, data.origin);
+          windowUtils.remoteFrameFullscreenChanged(browser);
         }
-        this.enterDomFullscreen(browser, data.origin);
+        this.enterDomFullscreen(browser);
+        break;
+      }
+      case "DOMFullscreen:NewOrigin": {
+        this.showWarning(aMessage.data.origin);
         break;
       }
       case "DOMFullscreen:Exited": {
@@ -125,7 +136,7 @@ var FullScreen = {
     }
   },
 
-  enterDomFullscreen : function(aBrowser, aOrigin) {
+  enterDomFullscreen : function(aBrowser) {
     if (!document.mozFullScreen)
       return;
 
@@ -150,8 +161,6 @@ var FullScreen = {
 
     if (gFindBarInitialized)
       gFindBar.close();
-
-    this.showWarning(aOrigin);
 
     
     gBrowser.tabContainer.addEventListener("TabOpen", this.exitDomFullScreen);

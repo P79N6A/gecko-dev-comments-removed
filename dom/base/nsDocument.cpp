@@ -11351,10 +11351,9 @@ nsDocument::RestorePreviousFullScreenState()
             (!nsContentUtils::IsSitePermAllow(doc->NodePrincipal(), "fullscreen") &&
              !static_cast<nsDocument*>(doc)->mIsApprovedForFullscreen)) {
           nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
-            new AsyncEventDispatcher(doc,
-                  NS_LITERAL_STRING("MozDOMFullscreen:Entered"),
-                  true,
-                  true);
+            new AsyncEventDispatcher(
+                doc, NS_LITERAL_STRING("MozDOMFullscreen:NewOrigin"),
+                 true,  true);
           asyncDispatcher->PostDOMEvent();
         }
       }
@@ -11825,14 +11824,27 @@ nsDocument::RequestFullScreen(Element* aElement,
   
   
   
+  if (!previousFullscreenDoc) {
+    nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+      new AsyncEventDispatcher(
+        this, NS_LITERAL_STRING("MozDOMFullscreen:Entered"),
+         true,  true);
+    asyncDispatcher->PostDOMEvent();
+  }
+
   
-  if (!mIsApprovedForFullscreen ||
+  
+  
+  
+  
+  
+  
+  if (aNotifyOnOriginChange &&
       !nsContentUtils::HaveEqualPrincipals(previousFullscreenDoc, this)) {
     nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
-      new AsyncEventDispatcher(this,
-                               NS_LITERAL_STRING("MozDOMFullscreen:Entered"),
-                               true,
-                               true);
+      new AsyncEventDispatcher(
+        this, NS_LITERAL_STRING("MozDOMFullscreen:NewOrigin"),
+         true,  true);
     asyncDispatcher->PostDOMEvent();
   }
 
