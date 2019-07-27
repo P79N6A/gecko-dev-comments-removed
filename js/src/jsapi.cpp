@@ -4482,29 +4482,6 @@ JS::OwningCompileOptions::setIntroducerFilename(JSContext *cx, const char *s)
     return true;
 }
 
-bool
-JS::OwningCompileOptions::wrap(JSContext *cx, JSCompartment *compartment)
-{
-    if (!compartment->wrap(cx, &elementRoot))
-        return false;
-    if (elementAttributeNameRoot) {
-        if (!compartment->wrap(cx, elementAttributeNameRoot.address()))
-            return false;
-    }
-
-    
-    
-    
-    
-    
-    if (introductionScriptRoot) {
-        if (introductionScriptRoot->compartment() != compartment)
-            introductionScriptRoot = nullptr;
-    }
-
-    return true;
-}
-
 JS::CompileOptions::CompileOptions(JSContext *cx, JSVersion version)
     : ReadOnlyCompileOptions(), elementRoot(cx), elementAttributeNameRoot(cx),
       introductionScriptRoot(cx)
@@ -4517,29 +4494,6 @@ JS::CompileOptions::CompileOptions(JSContext *cx, JSVersion version)
     extraWarningsOption = cx->options().extraWarnings();
     werrorOption = cx->options().werror();
     asmJSOption = cx->runtime()->options().asmJS();
-}
-
-bool
-JS::CompileOptions::wrap(JSContext *cx, JSCompartment *compartment)
-{
-    if (!compartment->wrap(cx, &elementRoot))
-        return false;
-    if (elementAttributeNameRoot) {
-        if (!compartment->wrap(cx, elementAttributeNameRoot.address()))
-            return false;
-    }
-
-    
-    
-    
-    
-    
-    if (introductionScriptRoot) {
-        if (introductionScriptRoot->compartment() != compartment)
-            introductionScriptRoot = nullptr;
-    }
-
-    return true;
 }
 
 bool

@@ -195,17 +195,7 @@ ParseTask::ParseTask(ExclusiveContext *cx, JSObject *exclusiveContextGlobal, JSC
 bool
 ParseTask::init(JSContext *cx, const ReadOnlyCompileOptions &options)
 {
-    if (!this->options.copy(cx, options))
-        return false;
-
-    
-    
-    optionsElement = this->options.element();
-    this->options.setElement(nullptr);
-    optionsIntroductionScript = this->options.introductionScript();
-    this->options.setIntroductionScript(nullptr);
-
-    return true;
+    return this->options.copy(cx, options);
 }
 
 void
@@ -215,16 +205,18 @@ ParseTask::activate(JSRuntime *rt)
     cx->enterCompartment(exclusiveContextGlobal->compartment());
 }
 
-void
-ParseTask::finish()
+bool
+ParseTask::finish(JSContext *cx)
 {
     if (script) {
         
         
-        ScriptSourceObject &sso = script->sourceObject()->as<ScriptSourceObject>();
-        sso.initElement(optionsElement);
-        sso.initIntroductionScript(optionsIntroductionScript);
+        RootedScriptSource sso(cx, &script->sourceObject()->as<ScriptSourceObject>());
+        if (!ScriptSourceObject::initFromOptions(cx, sso, options))
+            return false;
     }
+
+    return true;
 }
 
 ParseTask::~ParseTask()
@@ -802,7 +794,8 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
 
     
     gc::MergeCompartments(parseTask->cx->compartment(), cx->compartment());
-    parseTask->finish();
+    if (!parseTask->finish(cx))
+        return nullptr;
 
     RootedScript script(rt, parseTask->script);
     assertSameCompartment(cx, script);

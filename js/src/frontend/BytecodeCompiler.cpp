@@ -201,7 +201,23 @@ frontend::CreateScriptSourceObject(ExclusiveContext *cx, const ReadOnlyCompileOp
     if (!ss->initFromOptions(cx, options))
         return nullptr;
 
-    return ScriptSourceObject::create(cx, ss, options);
+    RootedScriptSource sso(cx, ScriptSourceObject::create(cx, ss));
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (cx->isJSContext()) {
+        if (!ScriptSourceObject::initFromOptions(cx->asJSContext(), sso, options))
+            return nullptr;
+    }
+
+    return sso;
 }
 
 JSScript *
