@@ -260,7 +260,7 @@ static gboolean FactoryFilter(GstPluginFeature *aFeature, gpointer)
 
   
   
-  if (!strstr(className, "Decoder") && !strstr(className, "Demux") {
+  if (!strstr(className, "Decoder") && !strstr(className, "Demux")) {
     return FALSE;
   }
 
