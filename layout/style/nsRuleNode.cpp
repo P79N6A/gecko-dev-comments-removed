@@ -5297,13 +5297,6 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
               parentDisplay->mMixBlendMode, NS_STYLE_BLEND_NORMAL,
               0, 0, 0, 0);
 
-    
-  SetDiscrete(*aRuleData->ValueForIsolation(), display->mIsolation,
-              canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
-              parentDisplay->mIsolation, NS_STYLE_ISOLATION_AUTO,
-              0, 0, 0, 0);
-
   
   
   
