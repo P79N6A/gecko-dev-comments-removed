@@ -100,13 +100,6 @@ MediaShutdownManager::Observe(nsISupports *aSubjet,
   return NS_OK;
 }
 
-static PLDHashOperator
-ShutdownMediaDecoder(nsRefPtrHashKey<MediaDecoder>* aEntry, void*)
-{
-  aEntry->GetKey()->Shutdown();
-  return PL_DHASH_REMOVE;
-}
-
 void
 MediaShutdownManager::Shutdown()
 {
@@ -122,7 +115,10 @@ MediaShutdownManager::Shutdown()
 
   
   
-  mDecoders.EnumerateEntries(ShutdownMediaDecoder, nullptr);
+  for (auto iter = mDecoders.Iter(); !iter.Done(); iter.Next()) {
+    iter.Get()->GetKey()->Shutdown();
+    iter.Remove();
+  }
 
   
   
