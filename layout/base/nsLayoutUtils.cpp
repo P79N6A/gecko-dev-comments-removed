@@ -2993,6 +2993,8 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   if (aFlags & PAINT_IGNORE_SUPPRESSION) {
     builder.IgnorePaintSuppression();
   }
+
+  
   
   if ((aFlags & PAINT_WIDGET_LAYERS) &&
       !willFlushRetainedLayers &&
@@ -3000,8 +3002,8 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
       rootPresContext->NeedToComputePluginGeometryUpdates()) {
     builder.SetWillComputePluginGeometry(true);
   }
-  nsRect canvasArea(nsPoint(0, 0), aFrame->GetSize());
 
+  nsRect canvasArea(nsPoint(0, 0), aFrame->GetSize());
   bool ignoreViewportScrolling =
     aFrame->GetParent() ? false : presShell->IgnoringViewportScrolling();
   if (ignoreViewportScrolling && rootScrollFrame) {
@@ -3263,26 +3265,23 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   }
 
   if (builder.WillComputePluginGeometry()) {
-    rootPresContext->ComputePluginGeometryUpdates(aFrame, &builder, &list);
-
     
     
     
     
-    if (layerManager && !layerManager->NeedsWidgetInvalidation()) {
-#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
-      if (XRE_GetProcessType() == GeckoProcessType_Content) {
-        
-        
-        
-        rootPresContext->CollectPluginGeometryUpdates(layerManager);
-      } else
-#endif
-      {
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      rootPresContext->ComputePluginGeometryUpdates(aFrame, &builder, &list);
+      
+      
+      
+      
+      if (layerManager && !layerManager->NeedsWidgetInvalidation()) {
         rootPresContext->ApplyPluginGeometryUpdates();
       }
     }
 
+    
     
     
     if (layerManager) {
