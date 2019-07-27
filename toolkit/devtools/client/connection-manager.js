@@ -68,6 +68,7 @@ Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
 
 
 
+
 let ConnectionManager = {
   _connections: new Set(),
   createConnection: function(host, port) {
@@ -187,16 +188,21 @@ Connection.prototype = {
     }
   },
 
-  connect: function() {
+  connect: function(transport) {
     if (this.status == Connection.Status.DESTROYED) {
       return;
     }
     if (!this._client) {
-      this.log("connecting to " + this.host + ":" + this.port);
+      this._transport = transport;
+      if (this._transport) {
+        this.log("connecting (custom transport)");
+      } else {
+        this.log("connecting to " + this.host + ":" + this.port);
+      }
       this._setStatus(Connection.Status.CONNECTING);
+
       let delay = Services.prefs.getIntPref("devtools.debugger.remote-timeout");
       this._timeoutID = setTimeout(this._onTimeout, delay);
-
       this._clientConnect();
     } else {
       let msg = "Can't connect. Client is not fully disconnected";
@@ -217,23 +223,24 @@ Connection.prototype = {
   },
 
   _clientConnect: function () {
-    let transport;
-    if (!this.host) {
-      transport = DebuggerServer.connectPipe();
-    } else {
-      try {
-        transport = debuggerSocketConnect(this.host, this.port);
-      } catch (e) {
-        
-        
-        
-        
-        
-        this._onDisconnected();
-        return;
+    if (!this._transport) {
+      if (!this.host) {
+        this._transport = DebuggerServer.connectPipe();
+      } else {
+        try {
+          this._transport = debuggerSocketConnect(this.host, this.port);
+        } catch (e) {
+          
+          
+          
+          
+          
+          this._onDisconnected();
+          return;
+        }
       }
     }
-    this._client = new DebuggerClient(transport);
+    this._client = new DebuggerClient(this._transport);
     this._client.addOneTimeListener("closed", this._onDisconnected);
     this._client.connect(this._onConnected);
   },
