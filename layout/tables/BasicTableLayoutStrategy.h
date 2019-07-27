@@ -33,15 +33,15 @@ public:
 private:
     
     
-    enum BtlsWidthType { BTLS_MIN_WIDTH,
-                         BTLS_PREF_WIDTH,
-                         BTLS_FINAL_WIDTH };
+    enum BtlsISizeType { BTLS_MIN_ISIZE,
+                         BTLS_PREF_ISIZE,
+                         BTLS_FINAL_ISIZE };
 
     
     void ComputeColumnIntrinsicISizes(nsRenderingContext* aRenderingContext);
 
     
-    void DistributePctWidthToColumns(float aSpanPrefPct,
+    void DistributePctISizeToColumns(float aSpanPrefPct,
                                      int32_t aFirstCol,
                                      int32_t aColCount);
 
@@ -60,11 +60,11 @@ private:
     
     
     
-    void DistributeWidthToColumns(nscoord aWidth,
+    void DistributeISizeToColumns(nscoord aISize,
                                   int32_t aFirstCol,
                                   int32_t aColCount,
-                                  BtlsWidthType aWidthType,
-                                  bool aSpanHasSpecifiedWidth);
+                                  BtlsISizeType aISizeType,
+                                  bool aSpanHasSpecifiedISize);
 
 
     
@@ -72,10 +72,10 @@ private:
     void ComputeIntrinsicISizes(nsRenderingContext* aRenderingContext);
 
     nsTableFrame *mTableFrame;
-    nscoord mMinWidth;
-    nscoord mPrefWidth;
-    nscoord mPrefWidthPctExpand;
-    nscoord mLastCalcWidth;
+    nscoord mMinISize;
+    nscoord mPrefISize;
+    nscoord mPrefISizePctExpand;
+    nscoord mLastCalcISize;
 };
 
 #endif
