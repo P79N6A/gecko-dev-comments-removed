@@ -64,6 +64,8 @@ class WorkerPrivate;
 class WorkerRunnable;
 class WorkerDebugger;
 
+
+
 enum WorkerType
 {
   WorkerTypeDedicated,
@@ -663,6 +665,12 @@ public:
     return mIsChromeWorker;
   }
 
+  WorkerType
+  Type() const
+  {
+    return mWorkerType;
+  }
+
   bool
   IsDedicatedWorker() const
   {
@@ -736,6 +744,9 @@ class WorkerDebugger : public nsIWorkerDebugger {
   
   WorkerPrivate* mWorkerPrivate;
   bool mIsEnabled;
+
+  
+  nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> mListeners;
 
 public:
   explicit WorkerDebugger(WorkerPrivate* aWorkerPrivate);
@@ -867,6 +878,14 @@ public:
   GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow, WorkerPrivate* aParent,
               const nsAString& aScriptURL, bool aIsChromeWorker,
               LoadInfo* aLoadInfo);
+
+  WorkerDebugger*
+  Debugger() const
+  {
+    AssertIsOnMainThread();
+    MOZ_ASSERT(mDebugger);
+    return mDebugger;
+  }
 
   void
   DoRunLoop(JSContext* aCx);
