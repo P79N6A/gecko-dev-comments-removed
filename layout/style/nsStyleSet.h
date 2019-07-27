@@ -193,9 +193,29 @@ class nsStyleSet
                           mozilla::dom::Element* aPseudoElement = nullptr);
 
   
+
+
+
+  enum {
+    eNoFlags =          0,
+    eIsLink =           1 << 0,
+    eIsVisitedLink =    1 << 1,
+    eDoAnimation =      1 << 2,
+
+    
+    
+    
+    
+    
+    eSkipParentDisplayBasedStyleFixup = 1 << 3
+  };
+
+  
+  
   
   already_AddRefed<nsStyleContext>
-  ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag, nsStyleContext* aParentContext);
+  ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag, nsStyleContext* aParentContext,
+                           uint32_t aFlags = eNoFlags);
 
 #ifdef MOZ_XUL
   
@@ -432,23 +452,6 @@ class nsStyleSet
                                       nsRuleNode* aOldRuleNode,
                                       nsCSSPseudoElements::Type aPseudoType,
                                       nsRestyleHint aReplacements);
-
-  
-
-
-  enum {
-    eNoFlags =          0,
-    eIsLink =           1 << 0,
-    eIsVisitedLink =    1 << 1,
-    eDoAnimation =      1 << 2,
-
-    
-    
-    
-    
-    
-    eSkipParentDisplayBasedStyleFixup = 1 << 3
-  };
 
   already_AddRefed<nsStyleContext>
   GetContext(nsStyleContext* aParentContext,
