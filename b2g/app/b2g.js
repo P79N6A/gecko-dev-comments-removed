@@ -689,6 +689,9 @@ pref("ui.scrollbarFadeBeginDelay", 450);
 pref("ui.scrollbarFadeDuration", 200);
 
 
+pref("layout.scrollbar.side", 1);
+
+
 
 
 
