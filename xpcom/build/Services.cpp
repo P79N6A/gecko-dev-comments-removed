@@ -59,7 +59,7 @@ using namespace mozilla::services;
 
 
 
-void 
+void
 mozilla::services::Shutdown()
 {
   gXPCOMShuttingDown = true;

@@ -43,8 +43,8 @@ static bool sIsEnabled = false;
 static bool sOnlyReportDirtyWrites = false;
 
 
-bool IsValidWrite(int fd, const void *wbuf, size_t count);
-bool IsIPCWrite(int fd, const struct stat &buf);
+bool IsValidWrite(int aFd, const void* aWbuf, size_t aCount);
+bool IsIPCWrite(int aFd, const struct stat& aBuf);
 
 
 
@@ -65,7 +65,7 @@ public:
   }
 
   MacIOAutoObservation(IOInterposeObserver::Operation aOp, int aFd,
-                       const void *aBuf, size_t aCount)
+                       const void* aBuf, size_t aCount)
     : IOInterposeObserver::Observation(aOp, sReference, sIsEnabled &&
                                        !IsDebugFile(aFd) &&
                                        IsValidWrite(aFd, aBuf, aCount))
@@ -97,7 +97,8 @@ private:
 const char* MacIOAutoObservation::sReference = "PoisonIOInterposer";
 
 
-const char16_t* MacIOAutoObservation::Filename()
+const char16_t*
+MacIOAutoObservation::Filename()
 {
   
   if (mHasQueriedFilename) {
@@ -119,18 +120,20 @@ const char16_t* MacIOAutoObservation::Filename()
 
 
 
-bool IsIPCWrite(int fd, const struct stat &buf) {
-  if ((buf.st_mode & S_IFMT) == S_IFIFO) {
+bool
+IsIPCWrite(int aFd, const struct stat& aBuf)
+{
+  if ((aBuf.st_mode & S_IFMT) == S_IFIFO) {
     return true;
   }
 
-  if ((buf.st_mode & S_IFMT) != S_IFSOCK) {
+  if ((aBuf.st_mode & S_IFMT) != S_IFSOCK) {
     return false;
   }
 
   sockaddr_storage address;
   socklen_t len = sizeof(address);
-  if (getsockname(fd, (sockaddr*) &address, &len) != 0) {
+  if (getsockname(aFd, (sockaddr*)&address, &len) != 0) {
     return true; 
   }
 
@@ -138,33 +141,34 @@ bool IsIPCWrite(int fd, const struct stat &buf) {
 }
 
 
-bool IsValidWrite(int fd, const void *wbuf, size_t count)
+bool
+IsValidWrite(int aFd, const void* aWbuf, size_t aCount)
 {
   
-  if (count == 0) {
+  if (aCount == 0) {
     return false;
   }
 
   {
     struct stat buf;
-    int rv = fstat(fd, &buf);
+    int rv = fstat(aFd, &buf);
     if (rv != 0) {
       return true;
     }
 
-    if (IsIPCWrite(fd, buf)) {
+    if (IsIPCWrite(aFd, buf)) {
       return false;
     }
   }
 
   
   
-  if (!wbuf) {
+  if (!aWbuf) {
     return true;
   }
 
   
-  if(!sOnlyReportDirtyWrites) {
+  if (!sOnlyReportDirtyWrites) {
     return true;
   }
 
@@ -172,23 +176,23 @@ bool IsValidWrite(int fd, const void *wbuf, size_t count)
   
   
   
-  ScopedFreePtr<void> wbuf2(malloc(count));
+  ScopedFreePtr<void> wbuf2(malloc(aCount));
   if (!wbuf2) {
     return true;
   }
-  off_t pos = lseek(fd, 0, SEEK_CUR);
+  off_t pos = lseek(aFd, 0, SEEK_CUR);
   if (pos == -1) {
     return true;
   }
-  ssize_t r = read(fd, wbuf2, count);
-  if (r < 0 || (size_t)r != count) {
+  ssize_t r = read(aFd, wbuf2, aCount);
+  if (r < 0 || (size_t)r != aCount) {
     return true;
   }
-  int cmp = memcmp(wbuf, wbuf2, count);
+  int cmp = memcmp(aWbuf, wbuf2, aCount);
   if (cmp != 0) {
     return true;
   }
-  off_t pos2 = lseek(fd, pos, SEEK_SET);
+  off_t pos2 = lseek(aFd, pos, SEEK_SET);
   if (pos2 != pos) {
     return true;
   }
@@ -200,33 +204,40 @@ bool IsValidWrite(int fd, const void *wbuf, size_t count)
 
 
 
-struct FuncData {
-  const char *Name;      
-  const void *Wrapper;   
-  void *Function;        
-  void *Buffer;          
+struct FuncData
+{
+  const char* Name;      
+  const void* Wrapper;   
+  void* Function;        
+  void* Buffer;          
                          
 };
 
 
-typedef ssize_t (*aio_write_t)(struct aiocb *aiocbp);
-ssize_t wrap_aio_write(struct aiocb *aiocbp);
-FuncData aio_write_data = { 0, (void*) wrap_aio_write, (void*) aio_write };
-ssize_t wrap_aio_write(struct aiocb *aiocbp) {
-  MacIOAutoObservation timer(IOInterposeObserver::OpWrite, aiocbp->aio_fildes);
+typedef ssize_t (*aio_write_t)(struct aiocb* aAioCbp);
+ssize_t wrap_aio_write(struct aiocb* aAioCbp);
+FuncData aio_write_data = { 0, (void*)wrap_aio_write, (void*)aio_write };
+ssize_t
+wrap_aio_write(struct aiocb* aAioCbp)
+{
+  MacIOAutoObservation timer(IOInterposeObserver::OpWrite,
+                             aAioCbp->aio_fildes);
 
-  aio_write_t old_write = (aio_write_t) aio_write_data.Buffer;
-  return old_write(aiocbp);
+  aio_write_t old_write = (aio_write_t)aio_write_data.Buffer;
+  return old_write(aAioCbp);
 }
 
 
 
-typedef ssize_t (*pwrite_t)(int fd, const void *buf, size_t nbyte, off_t offset);
-template<FuncData &foo>
-ssize_t wrap_pwrite_temp(int fd, const void *buf, size_t nbyte, off_t offset) {
-  MacIOAutoObservation timer(IOInterposeObserver::OpWrite, fd);
-  pwrite_t old_write = (pwrite_t) foo.Buffer;
-  return old_write(fd, buf, nbyte, offset);
+typedef ssize_t (*pwrite_t)(int aFd, const void* buf, size_t aNumBytes,
+                            off_t aOffset);
+template<FuncData& foo>
+ssize_t
+wrap_pwrite_temp(int aFd, const void* aBuf, size_t aNumBytes, off_t aOffset)
+{
+  MacIOAutoObservation timer(IOInterposeObserver::OpWrite, aFd);
+  pwrite_t old_write = (pwrite_t)foo.Buffer;
+  return old_write(aFd, aBuf, aNumBytes, aOffset);
 }
 
 
@@ -242,12 +253,15 @@ DEFINE_PWRITE_DATA(pwrite_UNIX2003, "pwrite$UNIX2003");
 DEFINE_PWRITE_DATA(pwrite_NOCANCEL, "pwrite$NOCANCEL");
 
 
-typedef ssize_t (*writev_t)(int fd, const struct iovec *iov, int iovcnt);
-template<FuncData &foo>
-ssize_t wrap_writev_temp(int fd, const struct iovec *iov, int iovcnt) {
-  MacIOAutoObservation timer(IOInterposeObserver::OpWrite, fd, nullptr, iovcnt);
-  writev_t old_write = (writev_t) foo.Buffer;
-  return old_write(fd, iov, iovcnt);
+typedef ssize_t (*writev_t)(int aFd, const struct iovec* aIov, int aIovCount);
+template<FuncData& foo>
+ssize_t
+wrap_writev_temp(int aFd, const struct iovec* aIov, int aIovCount)
+{
+  MacIOAutoObservation timer(IOInterposeObserver::OpWrite, aFd, nullptr,
+                             aIovCount);
+  writev_t old_write = (writev_t)foo.Buffer;
+  return old_write(aFd, aIov, aIovCount);
 }
 
 
@@ -262,12 +276,14 @@ DEFINE_WRITEV_DATA(writev_UNIX2003, "writev$UNIX2003");
 
 DEFINE_WRITEV_DATA(writev_NOCANCEL, "writev$NOCANCEL");
 
-typedef ssize_t (*write_t)(int fd, const void *buf, size_t count);
-template<FuncData &foo>
-ssize_t wrap_write_temp(int fd, const void *buf, size_t count) {
-  MacIOAutoObservation timer(IOInterposeObserver::OpWrite, fd, buf, count);
-  write_t old_write = (write_t) foo.Buffer;
-  return old_write(fd, buf, count);
+typedef ssize_t (*write_t)(int aFd, const void* aBuf, size_t aCount);
+template<FuncData& foo>
+ssize_t
+wrap_write_temp(int aFd, const void* aBuf, size_t aCount)
+{
+  MacIOAutoObservation timer(IOInterposeObserver::OpWrite, aFd, aBuf, aCount);
+  write_t old_write = (write_t)foo.Buffer;
+  return old_write(aFd, aBuf, aCount);
 }
 
 
@@ -282,22 +298,24 @@ DEFINE_WRITE_DATA(write_UNIX2003, "write$UNIX2003");
 
 DEFINE_WRITE_DATA(write_NOCANCEL, "write$NOCANCEL");
 
-FuncData *Functions[] = { &aio_write_data,
+FuncData* Functions[] = {
+  &aio_write_data,
 
-                          &pwrite_data,
-                          &pwrite_NOCANCEL_UNIX2003_data,
-                          &pwrite_UNIX2003_data,
-                          &pwrite_NOCANCEL_data,
+  &pwrite_data,
+  &pwrite_NOCANCEL_UNIX2003_data,
+  &pwrite_UNIX2003_data,
+  &pwrite_NOCANCEL_data,
 
-                          &write_data,
-                          &write_NOCANCEL_UNIX2003_data,
-                          &write_UNIX2003_data,
-                          &write_NOCANCEL_data,
+  &write_data,
+  &write_NOCANCEL_UNIX2003_data,
+  &write_UNIX2003_data,
+  &write_NOCANCEL_data,
 
-                          &writev_data,
-                          &writev_NOCANCEL_UNIX2003_data,
-                          &writev_UNIX2003_data,
-                          &writev_NOCANCEL_data};
+  &writev_data,
+  &writev_NOCANCEL_UNIX2003_data,
+  &writev_UNIX2003_data,
+  &writev_NOCANCEL_data
+};
 
 const int NumFunctions = ArrayLength(Functions);
 
@@ -307,7 +325,9 @@ const int NumFunctions = ArrayLength(Functions);
 
 namespace mozilla {
 
-void InitPoisonIOInterposer() {
+void
+InitPoisonIOInterposer()
+{
   
   sIsEnabled = true;
 
@@ -323,7 +343,7 @@ void InitPoisonIOInterposer() {
   MozillaRegisterDebugFD(2);
 
   for (int i = 0; i < NumFunctions; ++i) {
-    FuncData *d = Functions[i];
+    FuncData* d = Functions[i];
     if (!d->Function) {
       d->Function = dlsym(RTLD_DEFAULT, d->Name);
     }
@@ -331,16 +351,20 @@ void InitPoisonIOInterposer() {
       continue;
     }
     DebugOnly<mach_error_t> t = mach_override_ptr(d->Function, d->Wrapper,
-                                       &d->Buffer);
+                                                  &d->Buffer);
     MOZ_ASSERT(t == err_none);
   }
 }
 
-void OnlyReportDirtyWrites() {
+void
+OnlyReportDirtyWrites()
+{
   sOnlyReportDirtyWrites = true;
 }
 
-void ClearPoisonIOInterposer() {
+void
+ClearPoisonIOInterposer()
+{
   
   
   sIsEnabled = false;

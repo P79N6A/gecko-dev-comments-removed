@@ -176,7 +176,7 @@ XRE_API(int,
 
 
 XRE_API(nsresult,
-        XRE_GetFileFromPath, (const char *aPath, nsIFile* *aResult))
+        XRE_GetFileFromPath, (const char* aPath, nsIFile** aResult))
 
 
 
@@ -185,7 +185,7 @@ XRE_API(nsresult,
 
 
 XRE_API(nsresult,
-        XRE_GetBinaryPath, (const char *argv0, nsIFile* *aResult))
+        XRE_GetBinaryPath, (const char* aArgv0, nsIFile** aResult))
 
 
 
@@ -202,7 +202,7 @@ XRE_API(const mozilla::Module*,
 
 XRE_API(nsresult,
         XRE_LockProfileDirectory, (nsIFile* aDirectory,
-                                   nsISupports* *aLockObject))
+                                   nsISupports** aLockObject))
 
 
 
@@ -225,9 +225,9 @@ XRE_API(nsresult,
 
 
 XRE_API(nsresult,
-        XRE_InitEmbedding2, (nsIFile *aLibXULDirectory,
-                             nsIFile *aAppDirectory,
-                             nsIDirectoryServiceProvider *aAppDirProvider))
+        XRE_InitEmbedding2, (nsIFile* aLibXULDirectory,
+                             nsIFile* aAppDirectory,
+                             nsIDirectoryServiceProvider* aAppDirProvider))
 
 
 
@@ -329,7 +329,7 @@ XRE_API(void,
 
 XRE_API(nsresult,
         XRE_CreateAppData, (nsIFile* aINIFile,
-                            nsXREAppData **aAppData))
+                            nsXREAppData** aAppData))
 
 
 
@@ -340,15 +340,16 @@ XRE_API(nsresult,
 
 XRE_API(nsresult,
         XRE_ParseAppData, (nsIFile* aINIFile,
-                           nsXREAppData *aAppData))
+                           nsXREAppData* aAppData))
 
 
 
 
 XRE_API(void,
-        XRE_FreeAppData, (nsXREAppData *aAppData))
+        XRE_FreeAppData, (nsXREAppData* aAppData))
 
-enum GeckoProcessType {
+enum GeckoProcessType
+{
   GeckoProcessType_Default = 0,
 
   GeckoProcessType_Plugin,
@@ -444,8 +445,8 @@ XRE_API(void,
         XRE_StartupTimelineRecord, (int aEvent, PRTime aWhen))
 
 XRE_API(void,
-        XRE_InitOmnijar, (nsIFile* greOmni,
-                          nsIFile* appOmni))
+        XRE_InitOmnijar, (nsIFile* aGreOmni,
+                          nsIFile* aAppOmni))
 XRE_API(void,
         XRE_StopLateWriteChecks, (void))
 
@@ -453,7 +454,8 @@ XRE_API(void,
 
 
 
-enum WindowsEnvironmentType {
+enum WindowsEnvironmentType
+{
   WindowsEnvironmentType_Desktop = 0,
   WindowsEnvironmentType_Metro = 1
 };
@@ -468,7 +470,7 @@ XRE_API(WindowsEnvironmentType,
 
 #ifdef MOZ_B2G_LOADER
 XRE_API(int,
-        XRE_ProcLoaderServiceRun, (pid_t, int, int argc, const char *argv[]));
+        XRE_ProcLoaderServiceRun, (pid_t, int, int argc, const char* argv[]));
 XRE_API(void,
         XRE_ProcLoaderClientInit, (pid_t, int));
 XRE_API(void,

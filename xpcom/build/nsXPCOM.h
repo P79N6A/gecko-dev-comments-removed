@@ -70,9 +70,9 @@ struct Module;
 
 
 XPCOM_API(nsresult)
-NS_InitXPCOM2(nsIServiceManager* *result, 
-              nsIFile* binDirectory,
-              nsIDirectoryServiceProvider* appFileLocationProvider);
+NS_InitXPCOM2(nsIServiceManager** aResult,
+              nsIFile* aBinDirectory,
+              nsIDirectoryServiceProvider* aAppFileLocationProvider);
 
 
 
@@ -84,9 +84,7 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 
 
 
-
-XPCOM_API(nsresult)
-NS_ShutdownXPCOM(nsIServiceManager* servMgr);
+XPCOM_API(nsresult) NS_ShutdownXPCOM(nsIServiceManager* aServMgr);
 
 
 
@@ -97,9 +95,7 @@ NS_ShutdownXPCOM(nsIServiceManager* servMgr);
 
 
 
-
-XPCOM_API(nsresult)
-NS_GetServiceManager(nsIServiceManager* *result);
+XPCOM_API(nsresult) NS_GetServiceManager(nsIServiceManager** aResult);
 
 
 
@@ -109,9 +105,7 @@ NS_GetServiceManager(nsIServiceManager* *result);
 
 
 
-
-XPCOM_API(nsresult)
-NS_GetComponentManager(nsIComponentManager* *result);
+XPCOM_API(nsresult) NS_GetComponentManager(nsIComponentManager** aResult);
 
 
 
@@ -122,9 +116,7 @@ NS_GetComponentManager(nsIComponentManager* *result);
 
 
 
-
-XPCOM_API(nsresult)
-NS_GetComponentRegistrar(nsIComponentRegistrar* *result);
+XPCOM_API(nsresult) NS_GetComponentRegistrar(nsIComponentRegistrar** aResult);
 
 
 
@@ -134,9 +126,7 @@ NS_GetComponentRegistrar(nsIComponentRegistrar* *result);
 
 
 
-
-XPCOM_API(nsresult)
-NS_GetMemoryManager(nsIMemory* *result);
+XPCOM_API(nsresult) NS_GetMemoryManager(nsIMemory** aResult);
 
 
 
@@ -161,15 +151,13 @@ NS_GetMemoryManager(nsIMemory* *result);
 
 #ifdef __cplusplus
 
-XPCOM_API(nsresult)
-NS_NewLocalFile(const nsAString &path, 
-                bool followLinks, 
-                nsIFile* *result);
+XPCOM_API(nsresult) NS_NewLocalFile(const nsAString& aPath,
+                                    bool aFollowLinks,
+                                    nsIFile** aResult);
 
-XPCOM_API(nsresult)
-NS_NewNativeLocalFile(const nsACString &path, 
-                      bool followLinks, 
-                      nsIFile* *result);
+XPCOM_API(nsresult) NS_NewNativeLocalFile(const nsACString& aPath,
+                                          bool aFollowLinks,
+                                          nsIFile** aResult);
 
 #endif
 
@@ -181,8 +169,7 @@ NS_NewNativeLocalFile(const nsACString &path,
 
 
 
-XPCOM_API(void*)
-NS_Alloc(size_t size);
+XPCOM_API(void*) NS_Alloc(size_t aSize);
 
 
 
@@ -199,8 +186,7 @@ NS_Alloc(size_t size);
 
 
 
-XPCOM_API(void*)
-NS_Realloc(void* ptr, size_t size);
+XPCOM_API(void*) NS_Realloc(void* aPtr, size_t aSize);
 
 
 
@@ -210,18 +196,18 @@ NS_Realloc(void* ptr, size_t size);
 
 
 
-XPCOM_API(void)
-NS_Free(void* ptr);
+XPCOM_API(void) NS_Free(void* aPtr);
 
 
 
 
 
-enum {
-    NS_DEBUG_WARNING = 0,
-    NS_DEBUG_ASSERTION = 1,
-    NS_DEBUG_BREAK = 2,
-    NS_DEBUG_ABORT = 3
+enum
+{
+  NS_DEBUG_WARNING = 0,
+  NS_DEBUG_ASSERTION = 1,
+  NS_DEBUG_BREAK = 2,
+  NS_DEBUG_ABORT = 3
 };
 
 
@@ -239,10 +225,9 @@ enum {
 
 
 
-XPCOM_API(void)
-NS_DebugBreak(uint32_t aSeverity,
-              const char *aStr, const char *aExpr,
-              const char *aFile, int32_t aLine);
+XPCOM_API(void) NS_DebugBreak(uint32_t aSeverity,
+                              const char* aStr, const char* aExpr,
+                              const char* aFile, int32_t aLine);
 
 
 
@@ -260,11 +245,9 @@ NS_DebugBreak(uint32_t aSeverity,
 
 
 
-XPCOM_API(void)
-NS_LogInit();
+XPCOM_API(void) NS_LogInit();
 
-XPCOM_API(void)
-NS_LogTerm();
+XPCOM_API(void) NS_LogTerm();
 
 
 
@@ -276,28 +259,11 @@ NS_LogTerm();
 
 
 
-XPCOM_API(void)
-NS_LogCtor(void *aPtr, const char *aTypeName, uint32_t aInstanceSize);
+XPCOM_API(void) NS_LogCtor(void* aPtr, const char* aTypeName,
+                           uint32_t aInstanceSize);
 
-XPCOM_API(void)
-NS_LogDtor(void *aPtr, const char *aTypeName, uint32_t aInstanceSize);
-
-
-
-
-
-
-
-
-
-
-
-XPCOM_API(void)
-NS_LogAddRef(void *aPtr, nsrefcnt aNewRefCnt,
-             const char *aTypeName, uint32_t aInstanceSize);
-
-XPCOM_API(void)
-NS_LogRelease(void *aPtr, nsrefcnt aNewRefCnt, const char *aTypeName);
+XPCOM_API(void) NS_LogDtor(void* aPtr, const char* aTypeName,
+                           uint32_t aInstanceSize);
 
 
 
@@ -309,11 +275,25 @@ NS_LogRelease(void *aPtr, nsrefcnt aNewRefCnt, const char *aTypeName);
 
 
 
-XPCOM_API(void)
-NS_LogCOMPtrAddRef(void *aCOMPtr, nsISupports *aObject);
+XPCOM_API(void) NS_LogAddRef(void* aPtr, nsrefcnt aNewRefCnt,
+                             const char* aTypeName, uint32_t aInstanceSize);
 
-XPCOM_API(void)
-NS_LogCOMPtrRelease(void *aCOMPtr, nsISupports *aObject);
+XPCOM_API(void) NS_LogRelease(void* aPtr, nsrefcnt aNewRefCnt,
+                              const char* aTypeName);
+
+
+
+
+
+
+
+
+
+
+
+XPCOM_API(void) NS_LogCOMPtrAddRef(void* aCOMPtr, nsISupports* aObject);
+
+XPCOM_API(void) NS_LogCOMPtrRelease(void* aCOMPtr, nsISupports* aObject);
 
 
 
@@ -326,10 +306,10 @@ NS_LogCOMPtrRelease(void *aCOMPtr, nsISupports *aObject);
 class nsCycleCollectionParticipant;
 class nsCycleCollectingAutoRefCnt;
 
-XPCOM_API(void)
-NS_CycleCollectorSuspect3(void *n, nsCycleCollectionParticipant *p,
-                          nsCycleCollectingAutoRefCnt *aRefCnt,
-                          bool* aShouldDelete);
+XPCOM_API(void) NS_CycleCollectorSuspect3(void* aPtr,
+                                          nsCycleCollectionParticipant* aCp,
+                                          nsCycleCollectingAutoRefCnt* aRefCnt,
+                                          bool* aShouldDelete);
 
 #endif
 
@@ -408,7 +388,6 @@ NS_CycleCollectorSuspect3(void *n, nsCycleCollectionParticipant *p,
 
 #define NS_XPCOM_CATEGORY_CLEARED_OBSERVER_ID "xpcom-category-cleared"
 
-XPCOM_API(nsresult)
-NS_GetDebug(nsIDebug* *result);
+XPCOM_API(nsresult) NS_GetDebug(nsIDebug** aResult);
 
 #endif

@@ -50,9 +50,7 @@ public:
 protected:
   ~Probe() {};
 
-  Probe(const nsCID &aGUID,
-        const nsACString &aName,
-         ProbeManager *aManager);
+  Probe(const nsCID& aGUID, const nsACString& aName, ProbeManager* aManager);
   friend class ProbeManager;
 
 protected:
@@ -74,7 +72,7 @@ protected:
 
 
 
-  class ProbeManager *mManager;
+  class ProbeManager* mManager;
 };
 
 
@@ -104,8 +102,9 @@ public:
 
 
 
-  ProbeManager(const nsCID &applicationUID,
-               const nsACString &applicationName);
+
+  ProbeManager(const nsCID& aApplicationUID,
+               const nsACString& aApplicationName);
 
   
 
@@ -125,8 +124,8 @@ public:
 
 
 
-  already_AddRefed<Probe> GetProbe(const nsCID &eventUID,
-                                   const nsACString &eventName);
+  already_AddRefed<Probe> GetProbe(const nsCID& aEventUID,
+                                   const nsACString& aEventName);
 
   
 
@@ -149,8 +148,9 @@ public:
 protected:
   ~ProbeManager();
 
-  nsresult StartSession(nsTArray<nsRefPtr<Probe> > &probes);
-  nsresult Init(const nsCID &applicationUID, const nsACString &applicationName);
+  nsresult StartSession(nsTArray<nsRefPtr<Probe>>& aProbes);
+  nsresult Init(const nsCID& aApplicationUID,
+                const nsACString& aApplicationName);
 
 protected:
   
@@ -173,7 +173,7 @@ protected:
   
 
 
-  nsTArray<nsRefPtr<Probe> > mAllProbes;
+  nsTArray<nsRefPtr<Probe>> mAllProbes;
 
   
 
@@ -190,15 +190,14 @@ protected:
 
   bool mInitialized;
 
-  friend class Probe;
-  friend ULONG WINAPI ControlCallback(
-                                      WMIDPREQUESTCODE RequestCode,
-                                      PVOID Context,
-                                      ULONG *Reserved,
-                                      PVOID Buffer
-                                      );
+  friend class Probe;  
+  friend ULONG WINAPI ControlCallback(WMIDPREQUESTCODE aRequestCode,
+                                      PVOID aContext,
+                                      ULONG* aReserved,
+                                      PVOID aBuffer);  
 };
-}
-}
+
+}  
+}  
 
 #endif 

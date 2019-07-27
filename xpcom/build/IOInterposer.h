@@ -61,10 +61,7 @@ public:
 
 
 
-    Operation ObservedOperation() const
-    {
-      return mOperation;
-    }
+    Operation ObservedOperation() const { return mOperation; }
 
     
 
@@ -72,28 +69,19 @@ public:
     const char* ObservedOperationString() const;
 
     
-    TimeStamp Start() const
-    {
-      return mStart;
-    }
+    TimeStamp Start() const { return mStart; }
 
     
 
 
 
-    TimeStamp End() const
-    {
-      return mEnd;
-    }
+    TimeStamp End() const { return mEnd; }
 
     
 
 
 
-    TimeDuration Duration() const
-    {
-      return mEnd - mStart;
-    }
+    TimeDuration Duration() const { return mEnd - mStart; }
 
     
 
@@ -102,20 +90,12 @@ public:
 
 
 
-    const char* Reference() const
-    {
-      return mReference;
-    }
+    const char* Reference() const { return mReference; }
 
     
-    virtual const char16_t* Filename()
-    {
-      return nullptr;
-    }
+    virtual const char16_t* Filename() { return nullptr; }
 
-    virtual ~Observation()
-    {
-    }
+    virtual ~Observation() {}
 
   protected:
     void
@@ -140,9 +120,7 @@ public:
 
   virtual void Observe(Observation& aObservation) = 0;
 
-  virtual ~IOInterposeObserver()
-  {
-  }
+  virtual ~IOInterposeObserver() {}
 
 protected:
   
@@ -157,42 +135,7 @@ protected:
 
 
 
-namespace IOInterposer
-{
-  
-
-
-
-
-
-
-
-
-
-
-
-  bool Init();
-
-  
-
-
-
-
-
-
-
-
-
-
-  void Clear();
-
-  
-
-
-
-  void Disable();
-
-  
+namespace IOInterposer {
 
 
 
@@ -206,42 +149,76 @@ namespace IOInterposer
 
 
 
+bool Init();
 
 
 
 
 
 
-  void Report(IOInterposeObserver::Observation& aObservation);
-
-  
-
-
-
-
-  bool IsObservedOperation(IOInterposeObserver::Operation aOp);
-
-  
 
 
 
 
 
-  void Register(IOInterposeObserver::Operation aOp,
+
+void Clear();
+
+
+
+
+
+void Disable();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Report(IOInterposeObserver::Observation& aObservation);
+
+
+
+
+
+
+bool IsObservedOperation(IOInterposeObserver::Operation aOp);
+
+
+
+
+
+
+
+void Register(IOInterposeObserver::Operation aOp,
+              IOInterposeObserver* aObserver);
+
+
+
+
+
+
+
+
+
+void Unregister(IOInterposeObserver::Operation aOp,
                 IOInterposeObserver* aObserver);
 
-  
-
-
-
-
-
-
-
-  void Unregister(IOInterposeObserver::Operation aOp,
-                  IOInterposeObserver* aObserver);
-
-  
 
 
 
@@ -252,23 +229,22 @@ namespace IOInterposer
 
 
 
-  void
-  RegisterCurrentThread(bool aIsMainThread = false);
 
-  
+void RegisterCurrentThread(bool aIsMainThread = false);
 
 
 
 
-  void
-  UnregisterCurrentThread();
-
-  
 
 
+void UnregisterCurrentThread();
 
-  void
-  EnteringNextStage();
+
+
+
+
+void EnteringNextStage();
+
 } 
 
 class IOInterposerInit

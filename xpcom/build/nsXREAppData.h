@@ -37,44 +37,44 @@ struct nsXREAppData
 
 
 
-  const char *vendor;
+  const char* vendor;
 
   
 
 
 
 
-  const char *name;
+  const char* name;
 
   
 
 
 
 
-  const char *version;
+  const char* version;
 
   
 
 
-  const char *buildID;
-
-  
-
-
-
-
-
-
-
-
-
-  const char *ID;
+  const char* buildID;
 
   
 
 
 
-  const char *copyright;
+
+
+
+
+
+
+  const char* ID;
+
+  
+
+
+
+  const char* copyright;
 
   
 
@@ -90,13 +90,13 @@ struct nsXREAppData
   
 
 
-  const char *minVersion;
-  const char *maxVersion;
+  const char* minVersion;
+  const char* maxVersion;
 
   
 
 
-  const char *crashReporterURL;
+  const char* crashReporterURL;
 
   
 
@@ -113,12 +113,12 @@ struct nsXREAppData
 
 
 
-  const char *profile;
+  const char* profile;
 
   
 
 
-  const char *UAName;
+  const char* UAName;
 };
 
 

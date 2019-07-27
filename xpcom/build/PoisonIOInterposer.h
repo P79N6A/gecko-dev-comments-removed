@@ -13,16 +13,16 @@
 MOZ_BEGIN_EXTERN_C
 
 
-void MozillaRegisterDebugFD(int fd);
+void MozillaRegisterDebugFD(int aFd);
 
 
-void MozillaRegisterDebugFILE(FILE *f);
+void MozillaRegisterDebugFILE(FILE* aFile);
 
 
-void MozillaUnRegisterDebugFD(int fd);
+void MozillaUnRegisterDebugFD(int aFd);
 
 
-void MozillaUnRegisterDebugFILE(FILE *f);
+void MozillaUnRegisterDebugFILE(FILE* aFile);
 
 MOZ_END_EXTERN_C
 
@@ -67,11 +67,11 @@ void ClearPoisonIOInterposer();
 
 #ifdef __cplusplus
 namespace mozilla {
-inline bool IsDebugFile(intptr_t aFileID){ return true; }
-inline void InitPoisonIOInterposer(){}
-inline void ClearPoisonIOInterposer(){}
+inline bool IsDebugFile(intptr_t aFileID) { return true; }
+inline void InitPoisonIOInterposer() {}
+inline void ClearPoisonIOInterposer() {}
 #ifdef XP_MACOSX
-inline void OnlyReportDirtyWrites(){}
+inline void OnlyReportDirtyWrites() {}
 #endif 
 } 
 #endif 

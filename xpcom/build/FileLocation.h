@@ -36,34 +36,34 @@ public:
   
 
 
-  explicit FileLocation(nsIFile *file);
+  explicit FileLocation(nsIFile* aFile);
 
   
 
 
 
-  FileLocation(nsIFile *zip, const char *path);
+  FileLocation(nsIFile* aZip, const char* aPath);
 
-  FileLocation(nsZipArchive *zip, const char *path);
-
-  
-
-
-  FileLocation(const FileLocation &file, const char *path = nullptr);
+  FileLocation(nsZipArchive* aZip, const char* aPath);
 
   
 
 
-  void Init(nsIFile *file);
-
-  void Init(nsIFile *zip, const char *path);
-
-  void Init(nsZipArchive *zip, const char *path);
+  FileLocation(const FileLocation& aFile, const char* aPath = nullptr);
 
   
 
 
-  void GetURIString(nsACString &result) const;
+  void Init(nsIFile* aFile);
+
+  void Init(nsIFile* aZip, const char* aPath);
+
+  void Init(nsZipArchive* aZip, const char* aPath);
+
+  
+
+
+  void GetURIString(nsACString& aResult) const;
 
   
 
@@ -76,32 +76,23 @@ public:
   
 
 
-  bool IsZip() const
-  {
-    return !mPath.IsEmpty();
-  }
+  bool IsZip() const { return !mPath.IsEmpty(); }
 
   
 
 
-  void GetPath(nsACString &result) const
-  {
-    result = mPath;
-  }
+  void GetPath(nsACString& aResult) const { aResult = mPath; }
 
   
 
 
 
-  operator bool() const
-  {
-    return mBaseFile || mBaseZip;
-  }
+  operator bool() const { return mBaseFile || mBaseZip; }
 
   
 
 
-  bool Equals(const FileLocation &file) const;
+  bool Equals(const FileLocation& aFile) const;
 
   
 
@@ -112,15 +103,15 @@ public:
     
 
 
-    nsresult GetSize(uint32_t *result);
+    nsresult GetSize(uint32_t* aResult);
 
     
 
 
-    nsresult Copy(char *buf, uint32_t len);
+    nsresult Copy(char* aBuf, uint32_t aLen);
   protected:
     friend class FileLocation;
-    nsZipItem *mItem;
+    nsZipItem* mItem;
     nsRefPtr<nsZipArchive> mZip;
     mozilla::AutoFDClose mFd;
   };
@@ -129,7 +120,7 @@ public:
 
 
 
-  nsresult GetData(Data &data);
+  nsresult GetData(Data& aData);
 private:
   nsCOMPtr<nsIFile> mBaseFile;
   nsRefPtr<nsZipArchive> mBaseZip;
