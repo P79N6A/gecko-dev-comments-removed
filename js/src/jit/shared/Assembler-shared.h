@@ -18,15 +18,17 @@
 #include "jit/RegisterSets.h"
 #include "vm/HelperThreads.h"
 
-#if defined(JS_CODEGEN_ARM)
-#define JS_USE_LINK_REGISTER
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
+
+# define JS_USE_LINK_REGISTER
 #endif
 
-#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM)
+#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
 
 
-#    define JS_SMALL_BRANCH
+# define JS_SMALL_BRANCH
 #endif
+
 namespace js {
 namespace jit {
 
@@ -769,7 +771,7 @@ class AsmJSHeapAccess
         cmpDelta_ = cmp == NoLengthCheck ? 0 : insnOffset - cmp;
         MOZ_ASSERT(offsetWithinWholeSimdVector_ == offsetWithinWholeSimdVector);
     }
-#elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+#elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_MIPS)
     explicit AsmJSHeapAccess(uint32_t insnOffset)
     {
         mozilla::PodZero(this);  
