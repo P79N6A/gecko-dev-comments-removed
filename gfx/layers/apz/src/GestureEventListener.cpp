@@ -255,6 +255,10 @@ nsEventStatus GestureEventListener::HandleInputTouchMove()
                                    mLastTouchInput.modifiers);
 
       rv = mAsyncPanZoomController->HandleGestureEvent(pinchEvent);
+    } else {
+      
+      
+      rv = nsEventStatus_eConsumeNoDefault;
     }
 
     mPreviousSpan = currentSpan;
