@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 #include "MediaCodecProxy.h"
 #include <OMX_IVCommon.h>
 #include <gui/Surface.h>
@@ -47,7 +47,7 @@ GonkAudioDecoderManager::GonkAudioDecoderManager(const AudioInfo& aConfig)
   mCodecSpecificData = aConfig.mCodecSpecificConfig;
   mMimeType = aConfig.mMimeType;
 
-  // Pass through mp3 without applying an ADTS header.
+  
   if (!aConfig.mMimeType.EqualsLiteral("audio/mp4a-latm")) {
       mUseAdts = false;
   }
@@ -65,7 +65,7 @@ GonkAudioDecoderManager::Init(MediaDataDecoderCallback* aCallback)
   if (mLooper != nullptr) {
     return nullptr;
   }
-  // Create ALooper
+  
   mLooper = new ALooper;
   mLooper->setName("GonkAudioDecoderManager");
   mLooper->start();
@@ -80,7 +80,7 @@ GonkAudioDecoderManager::Init(MediaDataDecoderCallback* aCallback)
     return nullptr;
   }
   sp<AMessage> format = new AMessage;
-  // Fixed values
+  
   GADM_LOG("Configure audio mime type:%s, chan no:%d, sample-rate:%d", mMimeType.get(), mAudioChannels, mAudioRate);
   format->setString("mime", mMimeType.get());
   format->setInt32("channel-count", mAudioChannels);
@@ -124,7 +124,7 @@ GonkAudioDecoderManager::Input(MediaRawData* aSample)
       return NS_ERROR_FAILURE;
     }
   } else {
-    // It means EOS with empty sample.
+    
     sample = new MediaRawData();
   }
 
@@ -143,8 +143,8 @@ GonkAudioDecoderManager::Input(MediaRawData* aSample)
     if (rv == OK) {
       mQueueSample.RemoveElementAt(0);
     } else if (rv == -EAGAIN || rv == -ETIMEDOUT) {
-      // In most cases, EAGAIN or ETIMEOUT are safe because OMX can't fill
-      // buffer on time.
+      
+      
       return NS_OK;
     } else {
       return NS_ERROR_UNEXPECTED;
@@ -186,8 +186,8 @@ GonkAudioDecoderManager::CreateAudioData(int64_t aStreamOffset, AudioData **v) {
   }
 
   if (mAudioBuffer->range_length() == 0) {
-    // Some decoders may return spurious empty buffers that we just want to ignore
-    // quoted from Android's AwesomePlayer.cpp
+    
+    
     ReleaseAudioBuffer();
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -245,7 +245,7 @@ GonkAudioDecoderManager::Output(int64_t aStreamOffset,
       nsRefPtr<AudioData> data;
       nsresult rv = CreateAudioData(aStreamOffset, getter_AddRefs(data));
       if (rv == NS_ERROR_NOT_AVAILABLE) {
-        // Decoder outputs an empty video buffer, try again
+        
         return NS_ERROR_NOT_AVAILABLE;
       } else if (rv != NS_OK || data == nullptr) {
         return NS_ERROR_UNEXPECTED;
@@ -255,8 +255,27 @@ GonkAudioDecoderManager::Output(int64_t aStreamOffset,
     }
     case android::INFO_FORMAT_CHANGED:
     {
-      // If the format changed, update our cached info.
+      
       GADM_LOG("Decoder format changed");
+      sp<AMessage> audioCodecFormat;
+
+      if (mDecoder->getOutputFormat(&audioCodecFormat) != OK ||
+        audioCodecFormat == nullptr) {
+        return NS_ERROR_UNEXPECTED;
+      }
+
+      int32_t codec_channel_count = 0;
+      int32_t codec_sample_rate = 0;
+
+      if (!audioCodecFormat->findInt32("channel-count", &codec_channel_count) ||
+        !audioCodecFormat->findInt32("sample-rate", &codec_sample_rate)) {
+        return NS_ERROR_UNEXPECTED;
+      }
+
+      
+      mAudioChannels = codec_channel_count;
+      mAudioRate = codec_sample_rate;
+
       return Output(aStreamOffset, aOutData);
     }
     case android::INFO_OUTPUT_BUFFERS_CHANGED:
@@ -277,7 +296,7 @@ GonkAudioDecoderManager::Output(int64_t aStreamOffset,
       nsRefPtr<AudioData> data;
       nsresult rv = CreateAudioData(aStreamOffset, getter_AddRefs(data));
       if (rv == NS_ERROR_NOT_AVAILABLE) {
-        // For EOS, no need to do any thing.
+        
         return NS_ERROR_ABORT;
       } else if (rv != NS_OK || data == nullptr) {
         GADM_LOG("Failed to create audio data!");
@@ -307,4 +326,4 @@ void GonkAudioDecoderManager::ReleaseAudioBuffer() {
     mAudioBuffer = nullptr;
   }
 }
-} // namespace mozilla
+} 
