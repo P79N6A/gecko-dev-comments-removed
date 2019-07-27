@@ -346,6 +346,8 @@ def getDigestFromFile(args, inputFile):
     heapUsableSize = 0
     heapBlocks = 0
 
+    recordKeyPartCache = {}
+
     for block in blockList:
         
         
@@ -364,9 +366,19 @@ def getDigestFromFile(args, inputFile):
         
         
         
+        
+        
+        
+        
+        
         def makeRecordKeyPart(traceKey):
-            return str(map(lambda frameKey: frameTable[frameKey],
-                           traceTable[traceKey]))
+            if traceKey in recordKeyPartCache:
+                return recordKeyPartCache[traceKey]
+
+            recordKeyPart = str(map(lambda frameKey: frameTable[frameKey],
+                                    traceTable[traceKey]))
+            recordKeyPartCache[traceKey] = recordKeyPart
+            return recordKeyPart
 
         allocatedAtTraceKey = block['alloc']
         if mode in ['live', 'cumulative']:
