@@ -163,6 +163,15 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                       aNewStyleContext->HasPseudoElementData(),
                   "pseudo type mismatch");
 
+  if (mInAnimationOnlyStyleUpdate) {
+    
+    
+    
+    
+    
+    return nullptr;
+  }
+
   if (!mPresContext->IsDynamic()) {
     
     return nullptr;
