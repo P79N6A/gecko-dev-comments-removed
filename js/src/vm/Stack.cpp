@@ -397,7 +397,7 @@ InterpreterFrame::markValues(JSTracer* trc, Value* sp, jsbytecode* pc)
     if (hasArgs()) {
         
         unsigned argc = Max(numActualArgs(), numFormalArgs());
-        TraceRootRange(trc, argc + 2 + isConstructing(), argv_ - 2, "fp argv");
+        TraceRootRange(trc, argc + 2, argv_ - 2, "fp argv");
     } else {
         
         TraceRootRange(trc, 2, ((Value*)this) - 2, "stack callee and this");

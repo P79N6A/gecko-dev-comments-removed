@@ -2737,20 +2737,19 @@ BaselineCompiler::emitCall()
 {
     MOZ_ASSERT(IsCallPC(pc));
 
-    bool construct = JSOp(*pc) == JSOP_NEW;
     uint32_t argc = GET_ARGC(pc);
 
     frame.syncStack(0);
     masm.move32(Imm32(argc), R0.scratchReg());
 
     
-    ICCall_Fallback::Compiler stubCompiler(cx,  construct,
+    ICCall_Fallback::Compiler stubCompiler(cx,  JSOp(*pc) == JSOP_NEW,
                                             false);
     if (!emitOpIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
-    frame.popn(2 + argc + construct);
+    frame.popn(argc + 2);
     frame.push(R0);
     return true;
 }
@@ -2770,8 +2769,7 @@ BaselineCompiler::emitSpreadCall()
         return false;
 
     
-    bool construct = JSOp(*pc) == JSOP_SPREADNEW;
-    frame.popn(3 + construct);
+    frame.popn(3);
     frame.push(R0);
     return true;
 }

@@ -152,16 +152,6 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     masm.loadPtr(slot_vp, r10);
     masm.unboxInt32(Address(r10, 0), r10);
 
-    {
-        Label noNewTarget;
-        masm.branchTest32(Assembler::Zero, r9, Imm32(CalleeToken_FunctionConstructing),
-                          &noNewTarget);
-
-        masm.add32(Imm32(1), r1);
-
-        masm.bind(&noNewTarget);
-    }
-
     
     
     
@@ -475,29 +465,12 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
 
     masm.ma_sub(r6, r8, r2);
 
-    
-    masm.ma_alu(sp, lsl(r8, 3), r3, OpAdd); 
-    masm.ma_add(r3, Imm32(sizeof(RectifierFrameLayout)), r3);
-
-    {
-        Label notConstructing;
-
-        masm.branchTest32(Assembler::Zero, r1, Imm32(CalleeToken_FunctionConstructing),
-                          &notConstructing);
-
-        
-        masm.ma_dataTransferN(IsLoad, 64, true, r3, Imm32(8), r4, Offset);
-        masm.ma_dataTransferN(IsStore, 64, true, sp, Imm32(-8), r4, PreIndex);
-
-        
-        
-        masm.add32(Imm32(1), r6);
-
-        masm.bind(&notConstructing);
-    }
-
-    
     masm.moveValue(UndefinedValue(), r5, r4);
+
+    masm.ma_mov(sp, r3); 
+    masm.ma_mov(sp, r7); 
+
+    
     {
         Label undefLoopTop;
         masm.bind(&undefLoopTop);
@@ -506,6 +479,11 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
 
         masm.ma_b(&undefLoopTop, Assembler::NonZero);
     }
+
+    
+
+    masm.ma_alu(r3, lsl(r8, 3), r3, OpAdd); 
+    masm.ma_add(r3, Imm32(sizeof(RectifierFrameLayout)), r3);
 
     
     {

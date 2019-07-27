@@ -87,18 +87,6 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
 
     
     masm.mov(reg_argc, r13);
-
-    
-    {
-        Label noNewTarget;
-        masm.branchTest32(Assembler::Zero, token, Imm32(CalleeToken_FunctionConstructing),
-                          &noNewTarget);
-
-        masm.addq(Imm32(1), r13);
-
-        masm.bind(&noNewTarget);
-    }
-
     masm.shll(Imm32(3), r13);   
     static_assert(sizeof(Value) == 1 << 3, "Constant is baked in assembly code");
 
@@ -411,16 +399,6 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
 
     
     
-    masm.mov(rcx, r11);
-
-    static_assert(CalleeToken_FunctionConstructing == 1,
-      "Ensure that we can use the constructing bit to count the value");
-    masm.mov(rax, rdx);
-    masm.andq(Imm32(uint32_t(CalleeToken_FunctionConstructing)), rdx);
-
-    
-    
-    
     
     static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
       "No need to consider the JitFrameLayout for aligning the stack");
@@ -429,7 +407,6 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
 
     MOZ_ASSERT(IsPowerOfTwo(JitStackValueAlignment));
     masm.addl(Imm32(JitStackValueAlignment - 1  + 1 ), rcx);
-    masm.addl(rdx, rcx);
     masm.andl(Imm32(~(JitStackValueAlignment - 1)), rcx);
 
     
@@ -478,28 +455,6 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
         masm.subl(Imm32(1), r8);
         masm.j(Assembler::NonZero, &copyLoopTop);
     }
-
-    
-    {
-        Label notConstructing;
-
-        masm.branchTest32(Assembler::Zero, rax, Imm32(CalleeToken_FunctionConstructing),
-                          &notConstructing);
-
-        
-        ValueOperand newTarget(r10);
-
-        
-        BaseIndex newTargetSrc(r9, rdx, TimesEight, sizeof(RectifierFrameLayout) + sizeof(Value));
-        masm.loadValue(newTargetSrc, newTarget);
-
-        
-        BaseIndex newTargetDest(rsp, r11, TimesEight, sizeof(Value));
-        masm.storeValue(newTarget, newTargetDest);
-
-        masm.bind(&notConstructing);
-    }
-
 
     
     

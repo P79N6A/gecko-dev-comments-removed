@@ -2882,11 +2882,9 @@ IonBuilder::inlineBoundFunction(CallInfo& nativeCallInfo, JSFunction* target)
     
     
     
-    if (nativeCallInfo.constructing() && !scriptedTarget->isConstructor())
+    if (nativeCallInfo.constructing() && !scriptedTarget->isConstructor()) {
         return InliningStatus_NotInlined;
-
-    if (nativeCallInfo.constructing() && nativeCallInfo.getNewTarget() != nativeCallInfo.fun())
-        return InliningStatus_NotInlined;
+    }
 
     if (gc::IsInsideNursery(scriptedTarget))
         return InliningStatus_NotInlined;
@@ -2924,11 +2922,6 @@ IonBuilder::inlineBoundFunction(CallInfo& nativeCallInfo, JSFunction* target)
     }
     for (size_t i = 0; i < nativeCallInfo.argc(); i++)
         callInfo.argv().infallibleAppend(nativeCallInfo.getArg(i));
-
-    
-    
-    if (nativeCallInfo.constructing())
-        callInfo.setNewTarget(callInfo.fun());
 
     if (!makeCall(scriptedTarget, callInfo))
         return InliningStatus_Error;
