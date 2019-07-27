@@ -18,61 +18,68 @@ var supportedProps = [
   "languages",
 ];
 
-var isDesktop = !/Mobile|Tablet/.test(navigator.userAgent);
-var isB2G = !isDesktop && !navigator.userAgent.contains("Android");
-
-
-
-var interfaceMap = {};
-
-for (var prop of supportedProps) {
-  if (typeof(prop) === "string") {
-    interfaceMap[prop] = true;
-    continue;
+self.onmessage = function(event) {
+  if (!event || !event.data) {
+    return;
   }
 
-  if (prop.b2g === !isB2G) {
-    interfaceMap[prop.name] = false;
-    continue;
-  }
+  startTest(event.data.isB2G);
+};
 
-  interfaceMap[prop.name] = true;
-}
-
-for (var prop in navigator) {
+function startTest(isB2G) {
   
-  if (!interfaceMap[prop]) {
-    throw "Navigator has the '" + prop + "' property that isn't in the list!";
-  }
-}
-
-var obj;
-
-for (var prop in interfaceMap) {
   
-  if (!interfaceMap[prop]) {
-    continue;
+  var interfaceMap = {};
+
+  for (var prop of supportedProps) {
+    if (typeof(prop) === "string") {
+      interfaceMap[prop] = true;
+      continue;
+    }
+
+    if (prop.b2g === !isB2G) {
+      interfaceMap[prop.name] = false;
+      continue;
+    }
+
+    interfaceMap[prop.name] = true;
   }
 
-  if (typeof navigator[prop] == "undefined") {
-    throw "Navigator has no '" + prop + "' property!";
+  for (var prop in navigator) {
+    
+    if (!interfaceMap[prop]) {
+      throw "Navigator has the '" + prop + "' property that isn't in the list!";
+    }
   }
 
-  obj = { name:  prop };
+  var obj;
 
-  if (prop === "taintEnabled") {
-    obj.value = navigator[prop]();
-  } else if (prop === "getDataStores") {
-    obj.value = typeof navigator[prop];
-  } else {
-    obj.value = navigator[prop];
+  for (var prop in interfaceMap) {
+    
+    if (!interfaceMap[prop]) {
+      continue;
+    }
+
+    if (typeof navigator[prop] == "undefined") {
+      throw "Navigator has no '" + prop + "' property!";
+    }
+
+    obj = { name:  prop };
+
+    if (prop === "taintEnabled") {
+      obj.value = navigator[prop]();
+    } else if (prop === "getDataStores") {
+      obj.value = typeof navigator[prop];
+    } else {
+      obj.value = navigator[prop];
+    }
+
+    postMessage(JSON.stringify(obj));
   }
+
+  obj = {
+    name: "testFinished"
+  };
 
   postMessage(JSON.stringify(obj));
 }
-
-obj = {
-  name: "testFinished"
-};
-
-postMessage(JSON.stringify(obj));
