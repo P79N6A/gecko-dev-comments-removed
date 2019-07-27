@@ -10,12 +10,6 @@ loop.Client = (function($) {
   "use strict";
 
   
-  var expectedCallUrlProperties = ["callUrl", "expiresAt"];
-
-  
-  var expectedCallProperties = ["calls"];
-
-  
   var expectedPostCallProperties = [
     "apiKey", "callId", "progressURL",
     "sessionId", "sessionToken", "websocketToken"
@@ -92,56 +86,6 @@ loop.Client = (function($) {
 
 
 
-
-
-
-
-
-    requestCallUrl: function(nickname, cb) {
-      var sessionType;
-      if (this.mozLoop.userProfile) {
-        sessionType = this.mozLoop.LOOP_SESSION_TYPE.FXA;
-      } else {
-        sessionType = this.mozLoop.LOOP_SESSION_TYPE.GUEST;
-      }
-
-      this.mozLoop.hawkRequest(sessionType, "/call-url/", "POST",
-                               {callerId: nickname},
-        function (error, responseText) {
-          if (error) {
-            this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
-            this._failureHandler(cb, error);
-            return;
-          }
-
-          try {
-            var urlData = JSON.parse(responseText);
-
-            
-            
-            var returnData = this._validate(urlData, expectedCallUrlProperties);
-
-            this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", true);
-            cb(null, returnData);
-          } catch (err) {
-            this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
-            console.log("Error requesting call info", err);
-            cb(err);
-          }
-        }.bind(this));
-    },
-
-    
-
-
-
-
-
-
-
-
-
-
     deleteCallUrl: function(token, sessionType, cb) {
       function deleteRequestCallback(error, responseText) {
         if (error) {
@@ -202,20 +146,6 @@ loop.Client = (function($) {
           }
         }.bind(this)
       );
-    },
-
-    
-
-
-
-
-
-    _telemetryAdd: function(histogramId, value) {
-      try {
-        this.mozLoop.telemetryAdd(histogramId, value);
-      } catch (err) {
-        console.error("Error recording telemetry", err);
-      }
     },
   };
 

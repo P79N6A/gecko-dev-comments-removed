@@ -48,14 +48,10 @@ var fakeRooms = [
 
 
 navigator.mozLoop = {
-  roomsEnabled: false,
   ensureRegistered: function() {},
   getAudioBlob: function(){},
   getLoopPref: function(pref) {
     switch(pref) {
-      
-      case "rooms.enabled":
-        return this.roomsEnabled;
       
       case "gettingStarted.seen":
         return true;

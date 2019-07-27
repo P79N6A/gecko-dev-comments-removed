@@ -1250,22 +1250,6 @@ this.MozLoopService = {
 
 
 
-
-
-
-
-
-  noteCallUrlExpiry: function(expiryTimeSeconds) {
-    MozLoopServiceInternal.expiryTimeSeconds = expiryTimeSeconds;
-  },
-
-  
-
-
-
-
-
-
   getStrings: function(key) {
     var stringData = MozLoopServiceInternal.localizedStrings;
     if (!stringData.has(key)) {

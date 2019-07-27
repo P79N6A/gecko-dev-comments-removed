@@ -426,26 +426,6 @@ function injectLoopAPI(targetWindow) {
 
 
 
-
-
-    noteCallUrlExpiry: {
-      enumerable: true,
-      writable: true,
-      value: function(expiryTimeSeconds) {
-        MozLoopService.noteCallUrlExpiry(expiryTimeSeconds);
-      }
-    },
-
-    
-
-
-
-
-
-
-
-
-
     setLoopPref: {
       enumerable: true,
       writable: true,

@@ -39,9 +39,7 @@ loop.panel = (function(_, mozL10n) {
       
       
       return {
-        selectedTab: this.props.selectedTab ||
-          (navigator.mozLoop.getLoopPref("rooms.enabled") ?
-            "rooms" : "call")
+        selectedTab: this.props.selectedTab || "rooms"
       };
     },
 
@@ -361,157 +359,6 @@ loop.panel = (function(_, mozL10n) {
   
 
 
-  var CallUrlResult = React.createClass({displayName: "CallUrlResult",
-    mixins: [sharedMixins.DocumentVisibilityMixin],
-
-    propTypes: {
-      callUrl:        React.PropTypes.string,
-      callUrlExpiry:  React.PropTypes.number,
-      notifications:  React.PropTypes.object.isRequired,
-      client:         React.PropTypes.object.isRequired
-    },
-
-    getInitialState: function() {
-      return {
-        pending: false,
-        copied: false,
-        callUrl: this.props.callUrl || "",
-        callUrlExpiry: 0
-      };
-    },
-
-    
-
-
-
-    onDocumentVisible: function() {
-      this._fetchCallUrl();
-    },
-
-    componentDidMount: function() {
-      
-      
-      if (this.state.callUrl.length) {
-        return;
-      }
-
-      this._fetchCallUrl();
-    },
-
-    
-
-
-    _fetchCallUrl: function() {
-      this.setState({pending: true});
-      
-      
-      this.props.client.requestCallUrl("",
-                                       this._onCallUrlReceived);
-    },
-
-    _onCallUrlReceived: function(err, callUrlData) {
-      if (err) {
-        if (err.code != 401) {
-          
-          
-          this.props.notifications.errorL10n("unable_retrieve_url");
-        }
-        this.setState(this.getInitialState());
-      } else {
-        try {
-          var callUrl = new window.URL(callUrlData.callUrl);
-          
-          
-          var token = callUrlData.callToken ||
-                      callUrl.pathname.split('/').pop();
-
-          
-          this.linkExfiltrated = false;
-
-          this.setState({pending: false, copied: false,
-                         callUrl: callUrl.href,
-                         callUrlExpiry: callUrlData.expiresAt});
-        } catch(e) {
-          console.log(e);
-          this.props.notifications.errorL10n("unable_retrieve_url");
-          this.setState(this.getInitialState());
-        }
-      }
-    },
-
-    handleEmailButtonClick: function(event) {
-      this.handleLinkExfiltration(event);
-
-      sharedUtils.composeCallUrlEmail(this.state.callUrl);
-    },
-
-    handleCopyButtonClick: function(event) {
-      this.handleLinkExfiltration(event);
-      
-      
-      navigator.mozLoop.copyString(this.state.callUrl);
-      this.setState({copied: true});
-    },
-
-    linkExfiltrated: false,
-
-    handleLinkExfiltration: function(event) {
-      
-      if (!this.linkExfiltrated) {
-        this.linkExfiltrated = true;
-        try {
-          navigator.mozLoop.telemetryAdd("LOOP_CLIENT_CALL_URL_SHARED", true);
-        } catch (err) {
-          console.error("Error recording telemetry", err);
-        }
-      }
-
-      
-      if (this.state.callUrlExpiry) {
-        navigator.mozLoop.noteCallUrlExpiry(this.state.callUrlExpiry);
-      }
-    },
-
-    render: function() {
-      
-      
-      
-      
-      var cx = React.addons.classSet;
-      return (
-        React.createElement("div", {className: "generate-url"}, 
-          React.createElement("header", {id: "share-link-header"}, mozL10n.get("share_link_header_text")), 
-          React.createElement("div", {className: "generate-url-stack"}, 
-            React.createElement("input", {type: "url", value: this.state.callUrl, readOnly: "true", 
-                   onCopy: this.handleLinkExfiltration, 
-                   className: cx({"generate-url-input": true,
-                                  pending: this.state.pending,
-                                  
-                                  
-                                  callUrl: !this.state.pending})}), 
-            React.createElement("div", {className: cx({"generate-url-spinner": true,
-                                spinner: true,
-                                busy: this.state.pending})})
-          ), 
-          React.createElement(ButtonGroup, {additionalClass: "url-actions"}, 
-            React.createElement(Button, {additionalClass: "button-email", 
-                    disabled: !this.state.callUrl, 
-                    onClick: this.handleEmailButtonClick, 
-                    caption: mozL10n.get("share_button")}), 
-            React.createElement(Button, {additionalClass: "button-copy", 
-                    disabled: !this.state.callUrl, 
-                    onClick: this.handleCopyButtonClick, 
-                    caption: this.state.copied ? mozL10n.get("copied_url_button") :
-                                                 mozL10n.get("copy_url_button")})
-          )
-        )
-      );
-    }
-  });
-
-  
-
-
   var AuthLink = React.createClass({displayName: "AuthLink",
     mixins: [sharedMixins.WindowCloseMixin],
 
@@ -820,9 +667,7 @@ loop.panel = (function(_, mozL10n) {
   var PanelView = React.createClass({displayName: "PanelView",
     propTypes: {
       notifications: React.PropTypes.object.isRequired,
-      client: React.PropTypes.object.isRequired,
       
-      callUrl: React.PropTypes.string,
       userProfile: React.PropTypes.object,
       
       showTabButtons: React.PropTypes.bool,
@@ -869,17 +714,13 @@ loop.panel = (function(_, mozL10n) {
       }
     },
 
-    _roomsEnabled: function() {
-      return this.props.mozLoop.getLoopPref("rooms.enabled");
-    },
-
     _onStatusChanged: function() {
       var profile = this.props.mozLoop.userProfile;
       var currUid = this.state.userProfile ? this.state.userProfile.uid : null;
       var newUid = profile ? profile.uid : null;
       if (currUid != newUid) {
         
-        this.selectTab(this._roomsEnabled() ? "rooms" : "call");
+        this.selectTab("rooms");
         this.setState({userProfile: profile});
       }
       this.updateServiceErrors();
@@ -900,34 +741,6 @@ loop.panel = (function(_, mozL10n) {
           console.error("Invalid action", e.detail.action);
           break;
       }
-    },
-
-    
-
-
-
-    _renderRoomsOrCallTab: function() {
-      if (!this._roomsEnabled()) {
-        return (
-          React.createElement(Tab, {name: "call"}, 
-            React.createElement("div", {className: "content-area"}, 
-              React.createElement(CallUrlResult, {client: this.props.client, 
-                             notifications: this.props.notifications, 
-                             callUrl: this.props.callUrl}), 
-              React.createElement(ToSView, null)
-            )
-          )
-        );
-      }
-
-      return (
-        React.createElement(Tab, {name: "rooms"}, 
-          React.createElement(RoomList, {dispatcher: this.props.dispatcher, 
-                    store: this.props.roomStore, 
-                    userDisplayName: this._getUserDisplayName()}), 
-          React.createElement(ToSView, null)
-        )
-      );
     },
 
     startForm: function(name, contact) {
@@ -986,7 +799,12 @@ loop.panel = (function(_, mozL10n) {
                                 clearOnDocumentHidden: true}), 
           React.createElement(TabView, {ref: "tabView", selectedTab: this.props.selectedTab, 
             buttonsHidden: hideButtons}, 
-            this._renderRoomsOrCallTab(), 
+            React.createElement(Tab, {name: "rooms"}, 
+              React.createElement(RoomList, {dispatcher: this.props.dispatcher, 
+                        store: this.props.roomStore, 
+                        userDisplayName: this._getUserDisplayName()}), 
+              React.createElement(ToSView, null)
+            ), 
             React.createElement(Tab, {name: "contacts"}, 
               React.createElement(ContactsList, {selectTab: this.selectTab, 
                             startForm: this.startForm, 
@@ -1029,7 +847,6 @@ loop.panel = (function(_, mozL10n) {
     
     mozL10n.initialize(navigator.mozLoop);
 
-    var client = new loop.Client();
     var notifications = new sharedModels.NotificationCollection();
     var dispatcher = new loop.Dispatcher();
     var roomStore = new loop.store.RoomStore(dispatcher, {
@@ -1038,7 +855,6 @@ loop.panel = (function(_, mozL10n) {
     });
 
     React.render(React.createElement(PanelView, {
-      client: client, 
       notifications: notifications, 
       roomStore: roomStore, 
       mozLoop: navigator.mozLoop, 
@@ -1057,7 +873,6 @@ loop.panel = (function(_, mozL10n) {
     init: init,
     AuthLink: AuthLink,
     AvailabilityDropdown: AvailabilityDropdown,
-    CallUrlResult: CallUrlResult,
     GettingStartedView: GettingStartedView,
     PanelView: PanelView,
     RoomEntry: RoomEntry,
