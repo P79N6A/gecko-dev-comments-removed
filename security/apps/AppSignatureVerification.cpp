@@ -866,9 +866,9 @@ private:
 
   
   
-  virtual void ReleaseNSSResources() { }
+  virtual void ReleaseNSSResources() MOZ_OVERRIDE { }
 
-  virtual void CallCallback(nsresult rv)
+  virtual void CallCallback(nsresult rv) MOZ_OVERRIDE
   {
     (void) mCallback->OpenSignedAppFileFinished(rv, mZipReader, mSignerCert);
   }
@@ -904,9 +904,9 @@ private:
 
   
   
-  virtual void ReleaseNSSResources() { }
+  virtual void ReleaseNSSResources() MOZ_OVERRIDE { }
 
-  virtual void CallCallback(nsresult rv)
+  virtual void CallCallback(nsresult rv) MOZ_OVERRIDE
   {
     (void) mCallback->VerifySignedManifestFinished(rv, mSignerCert);
   }

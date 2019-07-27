@@ -60,7 +60,7 @@ private:
                                 const nsNSSShutDownPreventionLock &proofOfLock);
 
   
-  virtual void virtualDestroyNSSReference() { };
+  virtual void virtualDestroyNSSReference() MOZ_OVERRIDE { };
 };
 
 #define NS_X509CERTDB_CID { /* fb0bbc5c-452e-4783-b32c-80124693d871 */ \
