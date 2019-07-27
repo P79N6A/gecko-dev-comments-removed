@@ -318,6 +318,8 @@ Decoder::EnsureFrame(uint32_t aFrameNum,
                               RasterSurfaceKey(prevFrameSize, aDecodeFlags, 0));
   mFrameCount = 0;
   mInFrame = false;
+  mCurrentFrame->Abort();
+  mCurrentFrame = RawAccessFrameRef();
 
   
   return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
@@ -361,6 +363,7 @@ Decoder::InternalAddFrame(uint32_t aFrameNum,
 
   RawAccessFrameRef ref = frame->RawAccessRef();
   if (!ref) {
+    frame->Abort();
     return RawAccessFrameRef();
   }
 
@@ -371,6 +374,7 @@ Decoder::InternalAddFrame(uint32_t aFrameNum,
                                           aFrameNum),
                          Lifetime::Persistent);
   if (!succeeded) {
+    ref->Abort();
     return RawAccessFrameRef();
   }
 
@@ -514,6 +518,10 @@ void
 Decoder::PostDataError()
 {
   mDataError = true;
+
+  if (mInFrame && mCurrentFrame) {
+    mCurrentFrame->Abort();
+  }
 }
 
 void
@@ -526,6 +534,10 @@ Decoder::PostDecoderError(nsresult aFailureCode)
   
   
   NS_WARNING("Image decoding error - This is probably a bug!");
+
+  if (mInFrame && mCurrentFrame) {
+    mCurrentFrame->Abort();
+  }
 }
 
 void
