@@ -161,30 +161,29 @@ js::Nursery::allocateObject(JSContext *cx, size_t size, size_t numDynamic)
     MOZ_ASSERT(size >= sizeof(RelocationOverlay));
 
     
-    if (numDynamic && numDynamic <= MaxNurserySlots) {
-        size_t totalSize = size + sizeof(HeapSlot) * numDynamic;
-        JSObject *obj = static_cast<JSObject *>(allocate(totalSize));
-        if (obj) {
-            obj->setInitialSlotsMaybeNonNative(reinterpret_cast<HeapSlot *>(size_t(obj) + size));
-            TraceNurseryAlloc(obj, size);
-            return obj;
-        }
-        
-    }
+    JSObject *obj = static_cast<JSObject *>(allocate(size));
+    if (!obj)
+        return nullptr;
 
+    
     HeapSlot *slots = nullptr;
     if (numDynamic) {
-        slots = allocateHugeSlots(cx->zone(), numDynamic);
-        if (MOZ_UNLIKELY(!slots))
+        
+        if (numDynamic <= MaxNurserySlots)
+            slots = static_cast<HeapSlot *>(allocate(numDynamic * sizeof(HeapSlot)));
+
+        
+        if (!slots)
+            slots = allocateHugeSlots(cx->zone(), numDynamic);
+
+        
+
+        if (!slots)
             return nullptr;
     }
 
-    JSObject *obj = static_cast<JSObject *>(allocate(size));
-
-    if (obj)
-        obj->setInitialSlotsMaybeNonNative(slots);
-    else
-        freeSlots(slots);
+    
+    obj->setInitialSlotsMaybeNonNative(slots);
 
     TraceNurseryAlloc(obj, size);
     return obj;
