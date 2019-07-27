@@ -3,36 +3,41 @@
 
 
 
-function checkConstruct(thing, buggy) {
+function checkConstruct(thing) {
     try {
         new thing();
         assertEq(0, 1, "not reached " + thing);
     } catch (e) {
-        if (buggy)
-            assertEq(String(e.message).indexOf("is not a constructor") === -1, false);
-        else
-            assertEq(String(e.message).indexOf("thing is not a constructor") === -1, false);
+        assertEq(String(e.message).indexOf(" is not a constructor") === -1, false);
     }
 }
 
 var re = /aaa/
-checkConstruct(re, false);
+checkConstruct(re);
 
 var boundFunctionPrototype = Function.prototype.bind();
-checkConstruct(boundFunctionPrototype, true);
+checkConstruct(boundFunctionPrototype);
 
 var boundBuiltin = Math.sin.bind();
-checkConstruct(boundBuiltin, true);
+checkConstruct(boundBuiltin);
 
 
 
 
 
-var proxiedFunctionPrototype = Proxy.create({}, Function.prototype, undefined);
-checkConstruct(proxiedFunctionPrototype, false);
+var handler = {
+    getPropertyDescriptor(name) {
+        
+        assertEq(name, "toSource");
+        return { value: () => "foo" };
+    }
+};
 
-var proxiedBuiltin = Proxy.create({}, parseInt, undefined);
-checkConstruct(proxiedBuiltin, false);
+var proxiedFunctionPrototype = Proxy.create(handler, Function.prototype, undefined);
+checkConstruct(proxiedFunctionPrototype);
+
+var proxiedBuiltin = Proxy.create(handler, parseInt, undefined);
+checkConstruct(proxiedBuiltin);
 
 
 if (typeof reportCompare == 'function')
