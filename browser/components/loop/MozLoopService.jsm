@@ -677,7 +677,9 @@ let MozLoopServiceInternal = {
     
     
 
-    this._getCalls(LOOP_SESSION_TYPE.FXA, version).catch(() => {});
+    if (MozLoopService.userProfile) {
+      this._getCalls(LOOP_SESSION_TYPE.FXA, version).catch(() => {});
+    }
     this._getCalls(LOOP_SESSION_TYPE.GUEST, version).catch(
       error => {this._hawkRequestError(error);});
   },

@@ -53,6 +53,10 @@ function run_test()
   setupFakeLoopServer();
 
   
+  const serviceGlobal = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
+  serviceGlobal.gFxAOAuthProfile = {email: "test@example.com", uid: "abcd1234"};
+
+  
   
   
   
@@ -96,6 +100,9 @@ function run_test()
   do_register_cleanup(function() {
     
     Chat.open = openChatOrig;
+
+    
+    serviceGlobal.gFxAOAuthProfile = null;
 
     
     Services.prefs.clearUserPref("loop.seenToS");
