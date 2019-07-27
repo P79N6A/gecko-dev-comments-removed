@@ -3726,7 +3726,15 @@ js::DefFunOperation(JSContext *cx, HandleScript script, HandleObject scopeChain,
         return DefineProperty(cx, parent, name, rval, nullptr, nullptr, attrs);
 
     
-    MOZ_ASSERT(parent->isNative());
+
+
+
+
+
+
+
+
+    MOZ_ASSERT(parent->isNative() || parent->is<DebugScopeObject>());
     if (parent->is<GlobalObject>()) {
         if (shape->configurable())
             return DefineProperty(cx, parent, name, rval, nullptr, nullptr, attrs);
