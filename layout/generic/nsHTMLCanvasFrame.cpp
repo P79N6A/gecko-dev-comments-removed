@@ -12,6 +12,7 @@
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsDisplayList.h"
 #include "nsLayoutUtils.h"
+#include "nsStyleUtil.h"
 #include "Layers.h"
 #include "ActiveLayerTracker.h"
 
@@ -75,12 +76,28 @@ public:
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                    bool* aSnap) MOZ_OVERRIDE {
     *aSnap = false;
-    nsIFrame* f = Frame();
-    HTMLCanvasElement *canvas =
+    nsHTMLCanvasFrame* f = static_cast<nsHTMLCanvasFrame*>(Frame());
+    HTMLCanvasElement* canvas =
       HTMLCanvasElement::FromContent(f->GetContent());
     nsRegion result;
     if (canvas->GetIsOpaque()) {
-      result = GetBounds(aBuilder, aSnap);
+      
+      
+      
+      
+      
+      nsRect constraintRect = GetBounds(aBuilder, aSnap);
+
+      
+      nsIntSize canvasSize = f->GetCanvasSize();
+      IntrinsicSize intrinsicSize = IntrinsicSizeFromCanvasSize(canvasSize);
+      nsSize intrinsicRatio = IntrinsicRatioFromCanvasSize(canvasSize);
+
+      const nsRect destRect =
+        nsLayoutUtils::ComputeObjectDestRect(constraintRect,
+                                             intrinsicSize, intrinsicRatio,
+                                             f->StylePosition());
+      return nsRegion(destRect.Intersect(constraintRect));
     }
     return result;
   }
@@ -306,12 +323,12 @@ nsHTMLCanvasFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
 {
   nsRect area = GetContentRectRelativeToSelf() + aItem->ToReferenceFrame();
   HTMLCanvasElement* element = static_cast<HTMLCanvasElement*>(GetContent());
-  nsIntSize canvasSize = GetCanvasSize();
+  nsIntSize canvasSizeInPx = GetCanvasSize();
 
   nsPresContext* presContext = PresContext();
   element->HandlePrintCallback(presContext->Type());
 
-  if (canvasSize.width <= 0 || canvasSize.height <= 0 || area.IsEmpty())
+  if (canvasSizeInPx.width <= 0 || canvasSizeInPx.height <= 0 || area.IsEmpty())
     return nullptr;
 
   CanvasLayer* oldLayer = static_cast<CanvasLayer*>
@@ -320,16 +337,20 @@ nsHTMLCanvasFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   if (!layer)
     return nullptr;
 
-  gfxRect r = gfxRect(presContext->AppUnitsToGfxUnits(area.x),
-                      presContext->AppUnitsToGfxUnits(area.y),
-                      presContext->AppUnitsToGfxUnits(area.width),
-                      presContext->AppUnitsToGfxUnits(area.height));
+  IntrinsicSize intrinsicSize = IntrinsicSizeFromCanvasSize(canvasSizeInPx);
+  nsSize intrinsicRatio = IntrinsicRatioFromCanvasSize(canvasSizeInPx);
+
+  nsRect dest =
+    nsLayoutUtils::ComputeObjectDestRect(area, intrinsicSize, intrinsicRatio,
+                                         StylePosition());
+
+  gfxRect destGFXRect = presContext->AppUnitsToGfxUnits(dest);
 
   
-  gfxPoint p = r.TopLeft() + aContainerParameters.mOffset;
+  gfxPoint p = destGFXRect.TopLeft() + aContainerParameters.mOffset;
   Matrix transform = Matrix::Translation(p.x, p.y);
-  transform.PreScale(r.Width() / canvasSize.width,
-                     r.Height() / canvasSize.height);
+  transform.PreScale(destGFXRect.Width() / canvasSizeInPx.width,
+                     destGFXRect.Height() / canvasSizeInPx.height);
   layer->SetBaseTransform(gfx::Matrix4x4::From2D(transform));
   layer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
 
@@ -346,8 +367,12 @@ nsHTMLCanvasFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
+  uint32_t clipFlags =
+    nsStyleUtil::ObjectPropsMightCauseOverflow(StylePosition()) ?
+    0 : DisplayListClipState::ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT;
+
   DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox
-    clip(aBuilder, this, DisplayListClipState::ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT);
+    clip(aBuilder, this, clipFlags);
 
   aLists.Content()->AppendNewToTop(
     new (aBuilder) nsDisplayCanvas(aBuilder, this));
