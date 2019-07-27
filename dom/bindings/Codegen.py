@@ -4570,13 +4570,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
             if tag in numericSuffixes or tag is IDLType.Tags.bool:
                 defaultStr = getHandleDefault(defaultValue)
-                value = declLoc + (".Value()" if nullable else "")
+                
+                value = declLoc + (".SetValue()" if nullable else "")
                 name = getUnionMemberName(defaultValue.type)
                 default = CGGeneric("%s.RawSetAs%s() = %s;\n" %
                                     (value, name, defaultStr))
             elif isinstance(defaultValue, IDLEmptySequenceValue):
                 name = getUnionMemberName(defaultValue.type)
-                value = declLoc + (".Value()" if nullable else "")
+                
+                value = declLoc + (".SetValue()" if nullable else "")
                 
                 
                 default = CGGeneric("%s.RawSetAs%s();\n" %
@@ -8852,7 +8854,7 @@ class CGUnionStruct(CGThing):
         dtor = CGSwitch("mType", destructorCases).define()
 
         methods.append(ClassMethod("Uninit", "void", [],
-                                   visibility="private", body=dtor,
+                                   visibility="public", body=dtor,
                                    bodyInHeader=not self.ownsMembers,
                                    inline=not self.ownsMembers))
 
@@ -11743,6 +11745,23 @@ class CGDictionary(CGThing):
                       "  return false;\n"
                       "}\n")
         if member.defaultValue:
+            if (member.type.isUnion() and
+                (not member.type.nullable() or
+                 not isinstance(member.defaultValue, IDLNullValue))):
+                
+                
+                
+                memberName = self.makeMemberName(member.identifier.name)
+                if member.type.nullable():
+                    conversion += fill(
+                        """
+                        if (!${memberName}.IsNull()) {
+                          ${memberName}.Value().Uninit();
+                        }
+                        """,
+                        memberName=memberName)
+                else:
+                    conversion += "%s.Uninit();\n" % memberName
             conversion += "${convert}"
         elif not conversionInfo.dealWithOptional:
             
