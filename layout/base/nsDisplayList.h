@@ -274,6 +274,11 @@ public:
 
 
 
+  bool IsBuildingCaret() { return mBuildCaret; }
+  
+
+
+
   void IgnorePaintSuppression() { mIgnoreSuppression = true; }
   
 

@@ -417,6 +417,11 @@ nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsIFrame* kid;
   for (kid = GetFirstPrincipalChild(); kid; kid = kid->GetNextSibling()) {
     
+    if (!aBuilder->IsBuildingCaret() && kid->GetContent() == mTouchCaretElement) {
+      continue;
+    }
+
+    
     BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
   }
 
