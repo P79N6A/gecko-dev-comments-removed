@@ -14,6 +14,8 @@
 #include "WMFMediaDataDecoder.h"
 #include "nsIWindowsRegKey.h"
 #include "nsComponentManagerUtils.h"
+#include "nsIGfxInfo.h"
+#include "GfxDriverInfo.h"
 
 namespace mozilla {
 
@@ -75,7 +77,7 @@ WMFDecoderModule::CreateVideoDecoder(const mp4_demuxer::VideoDecoderConfig& aCon
     new WMFMediaDataDecoder(new WMFVideoMFTManager(aConfig,
                                                    aLayersBackend,
                                                    aImageContainer,
-                                                   sDXVAEnabled),
+                                                   sDXVAEnabled && ShouldUseDXVA(aConfig)),
                             aVideoTaskQueue,
                             aCallback);
   return decoder.forget();
@@ -91,6 +93,34 @@ WMFDecoderModule::CreateAudioDecoder(const mp4_demuxer::AudioDecoderConfig& aCon
                             aAudioTaskQueue,
                             aCallback);
   return decoder.forget();
+}
+
+bool
+WMFDecoderModule::ShouldUseDXVA(const mp4_demuxer::VideoDecoderConfig& aConfig) const
+{
+  static bool isAMD = false;
+  static bool initialized = false;
+  if (!initialized) {
+    nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
+    nsAutoString vendor;
+    gfxInfo->GetAdapterVendorID(vendor);
+    isAMD = vendor.Equals(widget::GfxDriverInfo::GetDeviceVendor(widget::VendorAMD), nsCaseInsensitiveStringComparator()) ||
+            vendor.Equals(widget::GfxDriverInfo::GetDeviceVendor(widget::VendorATI), nsCaseInsensitiveStringComparator());
+    initialized = true;
+  }
+  if (!isAMD) {
+    return true;
+  }
+  
+  return aConfig.display_height <= 1920 && aConfig.display_height <= 1200;
+}
+
+bool
+WMFDecoderModule::SupportsSharedDecoders(const mp4_demuxer::VideoDecoderConfig& aConfig) const
+{
+  
+  
+  return !sDXVAEnabled || ShouldUseDXVA(aConfig);
 }
 
 bool

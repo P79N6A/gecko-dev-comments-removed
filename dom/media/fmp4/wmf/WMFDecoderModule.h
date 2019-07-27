@@ -42,6 +42,8 @@ public:
     sDXVAEnabled = false;
   }
 
+  virtual bool SupportsSharedDecoders(const mp4_demuxer::VideoDecoderConfig& aConfig) const MOZ_OVERRIDE;
+
   
   
   
@@ -52,6 +54,8 @@ public:
   
   static void Init();
 private:
+  bool ShouldUseDXVA(const mp4_demuxer::VideoDecoderConfig& aConfig) const;
+
   static bool sIsWMFEnabled;
   static bool sDXVAEnabled;
 };
