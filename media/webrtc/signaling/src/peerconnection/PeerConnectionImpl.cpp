@@ -1714,6 +1714,10 @@ PeerConnectionImpl::PluginCrash(uint64_t aPluginID,
                                 aPluginName);
 
   
+  propBag->SetPropertyAsBool(NS_LITERAL_STRING("gmpPlugin"),
+                             true);
+
+  
   propBag->SetPropertyAsBool(NS_LITERAL_STRING("submittedCrashReport"),
                              false);
 
