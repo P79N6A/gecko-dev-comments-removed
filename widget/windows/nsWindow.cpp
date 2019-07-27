@@ -6316,54 +6316,6 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   return true; 
 }
 
-static BOOL WINAPI EnumFirstChild(HWND hwnd, LPARAM lParam)
-{
-  *((HWND*)lParam) = hwnd;
-  return FALSE;
-}
-
-static void InvalidatePluginAsWorkaround(nsWindow *aWindow, const nsIntRect &aRect)
-{
-  aWindow->Invalidate(aRect);
-
-  
-  
-  
-  
-  
-  
-  HWND current = (HWND)aWindow->GetNativeData(NS_NATIVE_WINDOW);
-
-  RECT windowRect;
-  RECT parentRect;
-
-  ::GetWindowRect(current, &parentRect);
-        
-  HWND next = current;
-
-  do {
-    current = next;
-
-    ::EnumChildWindows(current, &EnumFirstChild, (LPARAM)&next);
-
-    ::GetWindowRect(next, &windowRect);
-    
-    
-    windowRect.left -= parentRect.left;
-    windowRect.top -= parentRect.top;
-  } while (next != current && windowRect.top == 0 && windowRect.left == 0);
-
-  if (windowRect.top == 0 && windowRect.left == 0) {
-    RECT rect;
-    rect.left   = aRect.x;
-    rect.top    = aRect.y;
-    rect.right  = aRect.XMost();
-    rect.bottom = aRect.YMost();
-
-    ::InvalidateRect(next, &rect, FALSE);
-  }
-}
-
 nsresult
 nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 {
@@ -6406,7 +6358,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
                  -bounds.y);
         nsIntRect toInvalidate = r.GetBounds();
 
-        InvalidatePluginAsWorkaround(w, toInvalidate);
+        WinUtils::InvalidatePluginAsWorkaround(w, toInvalidate);
       }
     }
     rv = w->SetWindowClipRegion(configuration.mClipRegion, false);

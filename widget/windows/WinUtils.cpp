@@ -1026,6 +1026,54 @@ WinUtils::SHGetKnownFolderPath(REFKNOWNFOLDERID rfid,
   return sGetKnownFolderPath(rfid, dwFlags, hToken, ppszPath);
 }
 
+static BOOL
+WINAPI EnumFirstChild(HWND hwnd, LPARAM lParam)
+{
+  *((HWND*)lParam) = hwnd;
+  return FALSE;
+}
+
+
+void
+WinUtils::InvalidatePluginAsWorkaround(nsIWidget *aWidget, const nsIntRect &aRect)
+{
+  aWidget->Invalidate(aRect);
+
+  
+  
+  
+  
+  
+  
+  HWND current = (HWND)aWidget->GetNativeData(NS_NATIVE_WINDOW);
+
+  RECT windowRect;
+  RECT parentRect;
+
+  ::GetWindowRect(current, &parentRect);
+
+  HWND next = current;
+  do {
+    current = next;
+    ::EnumChildWindows(current, &EnumFirstChild, (LPARAM)&next);
+    ::GetWindowRect(next, &windowRect);
+    
+    
+    windowRect.left -= parentRect.left;
+    windowRect.top -= parentRect.top;
+  } while (next != current && windowRect.top == 0 && windowRect.left == 0);
+
+  if (windowRect.top == 0 && windowRect.left == 0) {
+    RECT rect;
+    rect.left   = aRect.x;
+    rect.top    = aRect.y;
+    rect.right  = aRect.XMost();
+    rect.bottom = aRect.YMost();
+
+    ::InvalidateRect(next, &rect, FALSE);
+  }
+}
+
 #ifdef MOZ_PLACES
 
 

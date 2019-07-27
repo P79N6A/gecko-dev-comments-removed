@@ -354,6 +354,12 @@ public:
   
 
 
+
+  static void InvalidatePluginAsWorkaround(nsIWidget *aWidget, const nsIntRect &aRect);
+
+  
+
+
   static bool IsIMEEnabled(const InputContext& aInputContext);
   static bool IsIMEEnabled(IMEState::Enabled aIMEState);
 
