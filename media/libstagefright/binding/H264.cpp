@@ -3,6 +3,7 @@
 
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/PodOperations.h"
 #include "mp4_demuxer/AnnexB.h"
 #include "mp4_demuxer/ByteReader.h"
 #include "mp4_demuxer/ByteWriter.h"
