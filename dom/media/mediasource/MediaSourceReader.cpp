@@ -39,12 +39,6 @@ extern PRLogModuleInfo* GetMediaSourceLog();
 
 #define EOS_FUZZ_US 125000
 
-
-
-
-
-#define DURATION_DIFFERENCE_FUZZ 300000
-
 using mozilla::dom::TimeRanges;
 
 namespace mozilla {
@@ -1127,10 +1121,10 @@ MediaSourceReader::ReadUpdatedMetadata(MediaInfo* aInfo)
 }
 
 void
-MediaSourceReader::Ended()
+MediaSourceReader::Ended(bool aEnded)
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-  mEnded = true;
+  mEnded = aEnded;
 }
 
 bool
@@ -1147,21 +1141,11 @@ MediaSourceReader::IsNearEnd(MediaData::Type aType, int64_t aTime)
   if (!mEnded) {
     return false;
   }
-  if (aTime >= (mMediaSourceDuration * USECS_PER_S - EOS_FUZZ_US)) {
-    return true;
-  }
-  
-  
-  
-  
   TrackBuffer* trackBuffer =
     aType == MediaData::AUDIO_DATA ? mAudioTrack : mVideoTrack;
   nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
   trackBuffer->Buffered(buffered);
-  if ((mMediaSourceDuration - buffered->GetEndTime()) * USECS_PER_S <= DURATION_DIFFERENCE_FUZZ) {
-    return aTime >= std::floor(buffered->GetEndTime() * USECS_PER_S);
-  }
-  return false;
+  return aTime >= (buffered->GetEndTime() * USECS_PER_S - EOS_FUZZ_US);
 }
 
 void

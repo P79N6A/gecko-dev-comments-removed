@@ -135,11 +135,11 @@ public:
   bool TrackBuffersContainTime(int64_t aTime);
 
   
-  void Ended();
-
+  
+  
+  void Ended(bool aEnded);
   
   bool IsEnded();
-  bool IsNearEnd(MediaData::Type aType, int64_t aTime );
 
   
   void SetMediaSourceDuration(double aDuration );
@@ -226,6 +226,8 @@ private:
 
   void AttemptSeek();
   bool IsSeeking() { return mPendingSeekTime != -1; }
+
+  bool IsNearEnd(MediaData::Type aType, int64_t aTime );
 
   nsRefPtr<SourceBufferDecoder> mAudioSourceDecoder;
   nsRefPtr<SourceBufferDecoder> mVideoSourceDecoder;

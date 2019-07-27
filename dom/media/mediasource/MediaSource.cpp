@@ -297,7 +297,6 @@ MediaSource::EndOfStream(const Optional<MediaSourceEndOfStreamError>& aError, Er
 
   SetReadyState(MediaSourceReadyState::Ended);
   mSourceBuffers->Ended();
-  mDecoder->Ended();
   if (!aError.WasPassed()) {
     mDecoder->SetMediaSourceDuration(mSourceBuffers->GetHighestBufferedEndTime(),
                                      MSRangeRemovalAction::SKIP);
@@ -305,7 +304,7 @@ MediaSource::EndOfStream(const Optional<MediaSourceEndOfStreamError>& aError, Er
       return;
     }
     
-    
+    mDecoder->Ended(true);
     return;
   }
   switch (aError.Value()) {
@@ -456,6 +455,10 @@ MediaSource::SetReadyState(MediaSourceReadyState aState)
       (oldState == MediaSourceReadyState::Closed ||
        oldState == MediaSourceReadyState::Ended)) {
     QueueAsyncSimpleEvent("sourceopen");
+    if (oldState == MediaSourceReadyState::Ended) {
+      
+      mDecoder->Ended(false);
+    }
     return;
   }
 
