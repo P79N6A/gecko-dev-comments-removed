@@ -1615,6 +1615,16 @@ CanvasRenderingContext2D::SetShadowColor(const nsAString& shadowColor)
 
 
 void
+CanvasRenderingContext2D::SetFilter(const nsAString& filter, ErrorResult& error)
+{
+  CurrentState().filterString = filter;
+}
+
+
+
+
+
+void
 CanvasRenderingContext2D::ClearRect(double x, double y, double w,
                                     double h)
 {
