@@ -162,11 +162,9 @@ function ModuleAPI() {
 
 
 var DebuggerServer = {
-  _listener: null,
+  _listeners: [],
   _initialized: false,
   _transportInitialized: false,
-  
-  _socketConnections: 0,
   
   globalActorFactories: {},
   
@@ -212,7 +210,7 @@ var DebuggerServer = {
       return true;
     }
     if (result == 2) {
-      DebuggerServer.closeListener(true);
+      DebuggerServer.closeAllListeners();
       Services.prefs.setBoolPref("devtools.debugger.remote-enabled", false);
     }
     return false;
@@ -282,7 +280,7 @@ var DebuggerServer = {
     }
     gRegisteredModules = {};
 
-    this.closeListener();
+    this.closeAllListeners();
     this.globalActorFactories = {};
     this.tabActorFactories = {};
     this._allowConnection = null;
@@ -436,51 +434,14 @@ var DebuggerServer = {
     return all(promises);
   },
 
+  get listeningSockets() {
+    return this._listeners.length;
+  },
+
   
-
-
-
-
-
-
-  openListener: function(portOrPath) {
-    if (!Services.prefs.getBoolPref("devtools.debugger.remote-enabled")) {
-      return false;
-    }
-    this._checkInit();
-
-    
-    if (this._listener) {
-      return true;
-    }
-
-    let flags = Ci.nsIServerSocket.KeepWhenOffline;
-    
-    if (Services.prefs.getBoolPref("devtools.debugger.force-local")) {
-      flags |= Ci.nsIServerSocket.LoopbackOnly;
-    }
-
-    try {
-      let backlog = 4;
-      let socket;
-      let port = Number(portOrPath);
-      if (port) {
-        socket = new ServerSocket(port, flags, backlog);
-      } else {
-        let file = nsFile(portOrPath);
-        if (file.exists())
-          file.remove(false);
-        socket = new UnixDomainServerSocket(file, parseInt("666", 8), backlog);
-      }
-      socket.asyncListen(this);
-      this._listener = socket;
-    } catch (e) {
-      dumpn("Could not start debugging listener on '" + portOrPath + "': " + e);
-      throw Cr.NS_ERROR_NOT_AVAILABLE;
-    }
-    this._socketConnections++;
-
-    return true;
+  
+  get _listener() {
+    return this.listeningSockets;
   },
 
   
@@ -490,17 +451,45 @@ var DebuggerServer = {
 
 
 
-  closeListener: function(force) {
-    if (!this._listener || this._socketConnections == 0) {
+
+
+
+
+
+
+  openListener: function(portOrPath) {
+    if (!Services.prefs.getBoolPref("devtools.debugger.remote-enabled")) {
+      return;
+    }
+    this._checkInit();
+
+    let listener = new SocketListener(this);
+    listener.open(portOrPath);
+    this._listeners.push(listener);
+    return listener;
+  },
+
+  
+
+
+
+  _removeListener: function(listener) {
+    this._listeners = this._listeners.filter(l => l !== listener);
+  },
+
+  
+
+
+
+
+
+  closeAllListeners: function() {
+    if (!this.listeningSockets) {
       return false;
     }
 
-    
-    
-    if (--this._socketConnections == 0 || force) {
-      this._listener.close();
-      this._listener = null;
-      this._socketConnections = 0;
+    for (let listener of this._listeners) {
+      listener.close();
     }
 
     return true;
@@ -663,25 +652,6 @@ var DebuggerServer = {
     mm.sendAsyncMessage("debug:connect", { prefix: prefix });
 
     return deferred.promise;
-  },
-
-  
-
-  onSocketAccepted:
-  DevToolsUtils.makeInfallible(function DS_onSocketAccepted(aSocket, aTransport) {
-    if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") && !this._allowConnection()) {
-      return;
-    }
-    dumpn("New debugging connection on " + aTransport.host + ":" + aTransport.port);
-
-    let input = aTransport.openInputStream(0, 0, 0);
-    let output = aTransport.openOutputStream(0, 0, 0);
-    let transport = new DebuggerTransport(input, output);
-    DebuggerServer._onConnection(transport);
-  }, "DebuggerServer.onSocketAccepted"),
-
-  onStopListening: function DS_onStopListening(aSocket, status) {
-    dumpn("onStopListening, status: " + status);
   },
 
   
@@ -858,6 +828,94 @@ includes.forEach(name => {
 if (this.exports) {
   exports.ActorPool = ActorPool;
 }
+
+
+
+
+
+
+function SocketListener(server) {
+  this._server = server;
+}
+
+SocketListener.prototype = {
+
+  
+
+
+
+
+
+
+  open: function(portOrPath) {
+    let flags = Ci.nsIServerSocket.KeepWhenOffline;
+    
+    if (Services.prefs.getBoolPref("devtools.debugger.force-local")) {
+      flags |= Ci.nsIServerSocket.LoopbackOnly;
+    }
+
+    try {
+      let backlog = 4;
+      let port = Number(portOrPath);
+      if (port) {
+        this._socket = new ServerSocket(port, flags, backlog);
+      } else {
+        let file = nsFile(portOrPath);
+        if (file.exists())
+          file.remove(false);
+        this._socket = new UnixDomainServerSocket(file, parseInt("666", 8),
+                                                  backlog);
+      }
+      this._socket.asyncListen(this);
+    } catch (e) {
+      dumpn("Could not start debugging listener on '" + portOrPath + "': " + e);
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
+    }
+  },
+
+  
+
+
+
+  close: function() {
+    this._socket.close();
+    this._server._removeListener(this);
+    this._server = null;
+  },
+
+  
+
+
+
+  get port() {
+    if (!this._socket) {
+      return null;
+    }
+    return this._socket.port;
+  },
+
+  
+
+  onSocketAccepted:
+  DevToolsUtils.makeInfallible(function(aSocket, aTransport) {
+    if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") &&
+        !this._server._allowConnection()) {
+      return;
+    }
+    dumpn("New debugging connection on " +
+          aTransport.host + ":" + aTransport.port);
+
+    let input = aTransport.openInputStream(0, 0, 0);
+    let output = aTransport.openOutputStream(0, 0, 0);
+    let transport = new DebuggerTransport(input, output);
+    this._server._onConnection(transport);
+  }, "SocketListener.onSocketAccepted"),
+
+  onStopListening: function(aSocket, status) {
+    dumpn("onStopListening, status: " + status);
+  }
+
+};
 
 
 
