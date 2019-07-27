@@ -113,13 +113,13 @@ RotatedBuffer::DrawBufferQuadrant(gfx::DrawTarget* aTarget,
     }
   }
 
-  if (aOperator == CompositionOp::OP_SOURCE) {
-    
-    
-    
-    aTarget->PushClipRect(gfx::Rect(fillRect.x, fillRect.y,
-                                    fillRect.width, fillRect.height));
-  }
+  
+  
+  
+  
+  
+  
+  aTarget->PushClipRect(gfx::ToRect(fillRect));
 
   if (aMask) {
     Matrix oldTransform = aTarget->GetTransform();
@@ -155,9 +155,7 @@ RotatedBuffer::DrawBufferQuadrant(gfx::DrawTarget* aTarget,
                          DrawOptions(aOpacity, aOperator));
   }
 
-  if (aOperator == CompositionOp::OP_SOURCE) {
-    aTarget->PopClip();
-  }
+  aTarget->PopClip();
 }
 
 void
