@@ -102,13 +102,11 @@ PermissionRequestBase::PermissionValueForIntPermission(uint32_t aIntPermission)
 {
   AssertSanity();
 
-  
-  
   switch (aIntPermission) {
     case kPermissionDefault:
-      return kPermissionAllowed;
-    case kPermissionAllowed:
       return kPermissionPrompt;
+    case kPermissionAllowed:
+      return kPermissionAllowed;
     case kPermissionDenied:
       return kPermissionDenied;
     default:
@@ -180,13 +178,11 @@ PermissionRequestBase::SetExplicitPermission(nsIPrincipal* aPrincipal,
     return;
   }
 
-  nsresult rv = aIntPermission == kPermissionAllowed ?
-    permMan->RemoveFromPrincipal(aPrincipal, kPermissionString) :
-    permMan->AddFromPrincipal(aPrincipal,
-                              kPermissionString,
-                              aIntPermission,
-                              nsIPermissionManager::EXPIRE_NEVER,
-                               0);
+  nsresult rv = permMan->AddFromPrincipal(aPrincipal,
+                                          kPermissionString,
+                                          aIntPermission,
+                                          nsIPermissionManager::EXPIRE_NEVER,
+                                           0);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

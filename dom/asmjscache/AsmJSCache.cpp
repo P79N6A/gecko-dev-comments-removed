@@ -735,24 +735,11 @@ MainProcessRunnable::InitOnMainThread()
   NS_ENSURE_STATE(qm);
 
   nsresult rv =
-    QuotaManager::GetInfoFromPrincipal(mPrincipal,
-                                       quota::PERSISTENCE_TYPE_INVALID,
-                                       &mGroup, &mOrigin, &mIsApp,
+    QuotaManager::GetInfoFromPrincipal(mPrincipal, &mGroup, &mOrigin, &mIsApp,
                                        &mHasUnlimStoragePerm);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-
   InitPersistenceType();
-
-  
-  
-  
-  
-  if (mPersistence == quota::PERSISTENCE_TYPE_PERSISTENT) {
-    mGroup = mOrigin;
-  }
 
   mEnforcingQuota =
     QuotaManager::IsQuotaEnforced(mPersistence, mOrigin, mIsApp,
@@ -1843,7 +1830,7 @@ public:
 
   virtual void
   OnOriginClearCompleted(PersistenceType aPersistenceType,
-                         const OriginOrPatternString& aOriginOrPattern)
+                         const nsACString& aOrigin)
                          MOZ_OVERRIDE
   { }
 

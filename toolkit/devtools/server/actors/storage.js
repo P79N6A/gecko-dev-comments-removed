@@ -1254,14 +1254,14 @@ StorageActors.createActor({
   getDBNamesForHost: async(function*(host) {
     let sanitizedHost = this.getSanitizedHost(host);
     let directory = OS.Path.join(OS.Constants.Path.profileDir, "storage",
-                                 "persistent", sanitizedHost, "idb");
+                                 "default", sanitizedHost, "idb");
 
     let exists = yield OS.File.exists(directory);
     if (!exists && host.startsWith("about:")) {
       
       sanitizedHost = this.getSanitizedHost("moz-safe-" + host);
       directory = OS.Path.join(OS.Constants.Path.profileDir, "storage",
-                               "persistent", sanitizedHost, "idb");
+                               "permanent", sanitizedHost, "idb");
       exists = yield OS.File.exists(directory);
     }
     if (!exists) {

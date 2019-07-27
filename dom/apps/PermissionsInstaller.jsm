@@ -65,6 +65,8 @@ this.PermissionsInstaller = {
             newPermNames = newPermNames.concat(expandedPermNames);
           }
 
+          newPermNames.push("indexedDB");
+
           
           if (newManifest.appcache_path) {
             newPermNames = newPermNames.concat(["offline-app", "pin-app"]);
@@ -115,6 +117,8 @@ this.PermissionsInstaller = {
                         "Cannot determine the app's status. Install cancelled.");
         break;
       }
+
+      this._setPermission("indexedDB", "allow", aApp);
 
       
       

@@ -119,6 +119,10 @@ function testInit() {
   Services.prefs.setBoolPref("testing.jetpackTestHarness.running", true);
 
   
+  
+  Services.prefs.setBoolPref("dom.indexedDB.experimental", true);
+
+  
   let config = readConfig();
   getTestList(config, function(links) {
     try {

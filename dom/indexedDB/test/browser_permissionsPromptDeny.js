@@ -12,7 +12,7 @@ function test()
   waitForExplicitFinish();
   
   PopupNotifications.transitionsEnabled = false;
-  setPermission(testPageURL, "indexedDB", "allow");
+  removePermission(testPageURL, "indexedDB");
   executeSoon(test1);
 }
 

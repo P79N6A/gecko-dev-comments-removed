@@ -22,8 +22,7 @@ var gData = [
 
 {
   permission: "storage",
-  expected: ["indexedDB-unlimited",
-             "default-persistent-storage"]
+  expected: ["indexedDB-unlimited"]
 },
 
 {

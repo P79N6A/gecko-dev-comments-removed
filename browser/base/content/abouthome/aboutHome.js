@@ -151,6 +151,7 @@ const SNIPPETS_UPDATE_INTERVAL_MS = 86400000;
 
 const DATABASE_NAME = "abouthome";
 const DATABASE_VERSION = 1;
+const DATABASE_STORAGE = "persistent";
 const SNIPPETS_OBJECTSTORE_NAME = "snippets";
 
 
@@ -224,7 +225,8 @@ function ensureSnippetsMapThen(aCallback)
     gSnippetsMapCallbacks.length = 0;
   }
 
-  let openRequest = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+  let openRequest = indexedDB.open(DATABASE_NAME, {version: DATABASE_VERSION,
+                                                   storage: DATABASE_STORAGE});
 
   openRequest.onerror = function (event) {
     

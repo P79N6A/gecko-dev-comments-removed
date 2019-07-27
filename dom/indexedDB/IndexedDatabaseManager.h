@@ -26,12 +26,6 @@ namespace dom {
 
 class TabContext;
 
-namespace quota {
-
-class OriginOrPatternString;
-
-} 
-
 namespace indexedDB {
 
 class FileManager;
@@ -39,7 +33,6 @@ class FileManagerInfo;
 
 class IndexedDatabaseManager MOZ_FINAL : public nsIObserver
 {
-  typedef mozilla::dom::quota::OriginOrPatternString OriginOrPatternString;
   typedef mozilla::dom::quota::PersistenceType PersistenceType;
 
 public:
@@ -96,7 +89,7 @@ public:
 
   void
   InvalidateFileManagers(PersistenceType aPersistenceType,
-                         const OriginOrPatternString& aOriginOrPattern);
+                         const nsACString& aOrigin);
 
   void
   InvalidateFileManager(PersistenceType aPersistenceType,
@@ -149,11 +142,6 @@ private:
 
   void
   Destroy();
-
-  static PLDHashOperator
-  InvalidateAndRemoveFileManagers(const nsACString& aKey,
-                                  nsAutoPtr<FileManagerInfo>& aValue,
-                                  void* aUserArg);
 
   
   
