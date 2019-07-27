@@ -3482,9 +3482,7 @@ MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, size_t numMarked)
     size_t headerId = header->id();
     size_t inLoopId = headerId;
     size_t notInLoopId = inLoopId + numMarked;
-    size_t numOSRDominated = 0;
     ReversePostorderIterator i = graph.rpoBegin(header);
-    MBasicBlock *osrBlock = graph.osrBlock();
     for (;;) {
         MBasicBlock *block = *i++;
         MOZ_ASSERT(block->id() >= header->id() && block->id() <= backedge->id(),
@@ -3497,15 +3495,6 @@ MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, size_t numMarked)
             
             if (block == backedge)
                 break;
-        } else if (osrBlock && osrBlock->dominates(block)) {
-            
-            
-            
-            
-            
-            
-            block->setId(inLoopId++);
-            ++numOSRDominated;
         } else {
             
             graph.moveBlockBefore(insertPt, block);
@@ -3513,11 +3502,8 @@ MakeLoopContiguous(MIRGraph &graph, MBasicBlock *header, size_t numMarked)
         }
     }
     MOZ_ASSERT(header->id() == headerId, "Loop header id changed");
-    MOZ_ASSERT(inLoopId == headerId + numMarked + numOSRDominated,
-               "Wrong number of blocks kept in loop");
-    MOZ_ASSERT(notInLoopId == (insertIter != graph.rpoEnd()
-                               ? insertPt->id()
-                               : graph.numBlocks()) - numOSRDominated,
+    MOZ_ASSERT(inLoopId == headerId + numMarked, "Wrong number of blocks kept in loop");
+    MOZ_ASSERT(notInLoopId == (insertIter != graph.rpoEnd() ? insertPt->id() : graph.numBlocks()),
                "Wrong number of blocks moved out of loop");
 }
 
@@ -3538,6 +3524,13 @@ jit::MakeLoopsContiguous(MIRGraph &graph)
         
         if (numMarked == 0)
             continue;
+
+        
+        
+        if (canOsr) {
+            UnmarkLoopBlocks(graph, header);
+            continue;
+        }
 
         
         
