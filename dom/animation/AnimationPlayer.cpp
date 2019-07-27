@@ -67,50 +67,17 @@ AnimationPlayer::PlayState() const
 }
 
 void
-AnimationPlayer::Play(UpdateFlags aUpdateFlags)
+AnimationPlayer::Play()
 {
-  
-  
-  
-  
-  if (!mIsPaused) {
-    return;
-  }
-  mIsPaused = false;
-
-  Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTime();
-  if (timelineTime.IsNull()) {
-    
-    
-    return;
-  }
-
-  
-  MOZ_ASSERT(!mHoldTime.IsNull(), "Hold time should not be null when paused");
-  mStartTime.SetValue(timelineTime.Value() - mHoldTime.Value());
-  mHoldTime.SetNull();
-
-  if (aUpdateFlags == eUpdateStyle) {
-    PostUpdate();
-  }
+  DoPlay();
+  PostUpdate();
 }
 
 void
-AnimationPlayer::Pause(UpdateFlags aUpdateFlags)
+AnimationPlayer::Pause()
 {
-  if (mIsPaused) {
-    return;
-  }
-  mIsPaused = true;
-  mIsRunningOnCompositor = false;
-
-  
-  mHoldTime = GetCurrentTime();
-  mStartTime.SetNull();
-
-  if (aUpdateFlags == eUpdateStyle) {
-    PostUpdate();
-  }
+  DoPause();
+  PostUpdate();
 }
 
 Nullable<double>
@@ -192,6 +159,45 @@ AnimationPlayer::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
   mSource->ComposeStyle(aStyleRule, aSetProperties);
 
   mIsPreviousStateFinished = (playState == AnimationPlayState::Finished);
+}
+
+void
+AnimationPlayer::DoPlay()
+{
+  
+  
+  
+  
+  if (!mIsPaused) {
+    return;
+  }
+  mIsPaused = false;
+
+  Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTime();
+  if (timelineTime.IsNull()) {
+    
+    
+    return;
+  }
+
+  
+  MOZ_ASSERT(!mHoldTime.IsNull(), "Hold time should not be null when paused");
+  mStartTime.SetValue(timelineTime.Value() - mHoldTime.Value());
+  mHoldTime.SetNull();
+}
+
+void
+AnimationPlayer::DoPause()
+{
+  if (mIsPaused) {
+    return;
+  }
+  mIsPaused = true;
+  mIsRunningOnCompositor = false;
+
+  
+  mHoldTime = GetCurrentTime();
+  mStartTime.SetNull();
 }
 
 void

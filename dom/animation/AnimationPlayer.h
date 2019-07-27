@@ -60,19 +60,14 @@ public:
   virtual CSSAnimationPlayer* AsCSSAnimationPlayer() { return nullptr; }
   virtual CSSTransitionPlayer* AsCSSTransitionPlayer() { return nullptr; }
 
-  enum UpdateFlags {
-    eNoUpdate,
-    eUpdateStyle
-  };
-
   
   Animation* GetSource() const { return mSource; }
   AnimationTimeline* Timeline() const { return mTimeline; }
   Nullable<double> GetStartTime() const;
   Nullable<TimeDuration> GetCurrentTime() const;
   AnimationPlayState PlayState() const;
-  virtual void Play(UpdateFlags aUpdateFlags);
-  virtual void Pause(UpdateFlags aUpdateFlags);
+  virtual void Play();
+  virtual void Pause();
   bool IsRunningOnCompositor() const { return mIsRunningOnCompositor; }
 
   
@@ -81,8 +76,11 @@ public:
   
   Nullable<double> GetCurrentTimeAsDouble() const;
   virtual AnimationPlayState PlayStateFromJS() const { return PlayState(); }
-  virtual void PlayFromJS() { Play(eUpdateStyle); }
-  void PauseFromJS() { Pause(eUpdateStyle); }
+  virtual void PlayFromJS() { Play(); }
+  
+  
+  
+  void PauseFromJS() { Pause(); }
 
   void SetSource(Animation* aSource);
   void Tick();
@@ -124,6 +122,9 @@ public:
   Nullable<TimeDuration> mStartTime; 
 
 protected:
+  void DoPlay();
+  void DoPause();
+
   void FlushStyle() const;
   void PostUpdate();
   StickyTimeDuration SourceContentEnd() const;
