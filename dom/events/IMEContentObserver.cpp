@@ -430,9 +430,11 @@ IMEContentObserver::OnMouseButtonEvent(nsPresContext* aPresContext,
     default:
       return false;
   }
-  if (NS_WARN_IF(!mWidget)) {
+  if (NS_WARN_IF(!mWidget) || NS_WARN_IF(mWidget->Destroyed())) {
     return false;
   }
+
+  nsRefPtr<IMEContentObserver> kungFuDeathGrip(this);
 
   WidgetQueryContentEvent charAtPt(true, NS_QUERY_CHARACTER_AT_POINT,
                                    aMouseEvent->widget);
@@ -441,6 +443,12 @@ IMEContentObserver::OnMouseButtonEvent(nsPresContext* aPresContext,
   handler.OnQueryCharacterAtPoint(&charAtPt);
   if (NS_WARN_IF(!charAtPt.mSucceeded) ||
       charAtPt.mReply.mOffset == WidgetQueryContentEvent::NOT_FOUND) {
+    return false;
+  }
+
+  
+  
+  if (!mWidget || NS_WARN_IF(mWidget->Destroyed())) {
     return false;
   }
 
