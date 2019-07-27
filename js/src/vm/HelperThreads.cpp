@@ -560,7 +560,8 @@ IonBuilderHasHigherPriority(jit::IonBuilder *first, jit::IonBuilder *second)
         return !first->script()->hasIonScript();
 
     
-    return first->script()->getUseCount() > second->script()->getUseCount();
+    return first->script()->getUseCount() / first->script()->length() >
+           second->script()->getUseCount() / second->script()->length();
 }
 
 bool
