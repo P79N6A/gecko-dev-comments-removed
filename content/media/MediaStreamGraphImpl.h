@@ -181,16 +181,15 @@ public:
 
 
 
-  bool OneIteration(nsTArray<MessageBlock>& aMessageQueue);
-  
-
-
-
   nsTArray<MessageBlock>& MessageQueue() {
     CurrentDriver()->GetThreadMonitor().AssertCurrentThreadOwns();
     return mMessageQueue;
   }
   void DoIteration(nsTArray<MessageBlock>& aMessageQueue);
+
+  bool OneIteration(GraphTime aFrom, GraphTime aTo,
+                    GraphTime aStateFrom, GraphTime aStateEnd,
+                    nsTArray<MessageBlock>& aMessageQueue);
 
   
 
@@ -221,8 +220,18 @@ public:
   
 
 
+  void UpdateCurrentTimeForStreams(GraphTime aPrevCurrentTime,
+                                   GraphTime aNextCurrentTime);
+  
 
-  void UpdateCurrentTime();
+
+
+  void UpdateGraph(nsTArray<MessageBlock>& aMessageQueue,
+                   GraphTime aEndBlockingDecisions);
+  
+
+
+  void Process(GraphTime aFrom, GraphTime aTo);
   
 
 
@@ -284,6 +293,13 @@ public:
 
 
 
+  GraphTime RoundUpToNextAudioBlock(GraphTime aTime);
+  
+
+
+
+
+
   void ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
                                          TrackRate aSampleRate,
                                          GraphTime aFrom,
@@ -296,6 +312,7 @@ public:
 
   bool WillUnderrun(MediaStream* aStream, GraphTime aTime,
                     GraphTime aEndBlockingDecisions, GraphTime* aEnd);
+
   
 
 

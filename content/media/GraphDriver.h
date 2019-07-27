@@ -52,9 +52,6 @@ public:
   virtual GraphTime GetCurrentTime() = 0;
   
 
-  virtual void DoIteration(nsTArray<MessageBlock>& aMessageQueue) = 0;
-  
-
   virtual void WaitForNextIteration() = 0;
   
   virtual void WakeUp() = 0;
@@ -111,6 +108,7 @@ public:
   }
 
   
+
 
 
 
@@ -212,7 +210,6 @@ public:
   virtual void GetIntervalForIteration(GraphTime& aFrom,
                                        GraphTime& aTo) MOZ_OVERRIDE;
   virtual GraphTime GetCurrentTime() MOZ_OVERRIDE;
-  virtual void DoIteration(nsTArray<MessageBlock>& aMessageQueue) MOZ_OVERRIDE;
   virtual void WaitForNextIteration() MOZ_OVERRIDE;
   virtual void WakeUp() MOZ_OVERRIDE;
 
@@ -241,7 +238,6 @@ public:
   virtual void GetIntervalForIteration(GraphTime& aFrom,
                                        GraphTime& aTo) MOZ_OVERRIDE;
   virtual GraphTime GetCurrentTime() MOZ_OVERRIDE;
-  virtual void DoIteration(nsTArray<MessageBlock>& aMessageQueue) MOZ_OVERRIDE;
   virtual void WaitForNextIteration() MOZ_OVERRIDE;
   virtual void WakeUp() MOZ_OVERRIDE;
 
