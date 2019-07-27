@@ -981,7 +981,7 @@ NotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
   MOZ_ASSERT(notification);
   if (!strcmp("alertclickcallback", aTopic)) {
     nsCOMPtr<nsPIDOMWindow> window = notification->GetOwner();
-    if (!window || !window->IsCurrentInnerWindow()) {
+    if (NS_WARN_IF(!window || !window->IsCurrentInnerWindow())) {
       
       return NS_ERROR_FAILURE;
     }
@@ -1017,7 +1017,7 @@ WorkerNotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
   
   Notification* notification = mNotificationRef->GetNotification();
   
-  if (!notification) {
+  if (NS_WARN_IF(!notification)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1025,8 +1025,13 @@ WorkerNotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
 
   nsRefPtr<WorkerRunnable> r;
   if (!strcmp("alertclickcallback", aTopic)) {
-    nsCOMPtr<nsPIDOMWindow> window = notification->mWorkerPrivate->GetWindow();
-    if (!window || !window->IsCurrentInnerWindow()) {
+    WorkerPrivate* top = notification->mWorkerPrivate;
+    while (top->GetParent()) {
+      top = top->GetParent();
+    }
+
+    nsPIDOMWindow* window = top->GetWindow();
+    if (NS_WARN_IF(!window || !window->IsCurrentInnerWindow())) {
       
       return NS_ERROR_FAILURE;
     }
