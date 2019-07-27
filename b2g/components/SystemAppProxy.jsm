@@ -117,23 +117,16 @@ let SystemAppProxy = {
     }
   },
 
-  getAppFrames: function systemApp_getAppFrames() {
+  getFrames: function systemApp_getFrames() {
     let systemAppFrame = this._frame;
     if (!systemAppFrame) {
       return [];
     }
-
     let list = [systemAppFrame];
-
-    
-    
-    
-    
-    let frames = systemAppFrame.contentDocument.querySelectorAll("iframe[mozapp]");
+    let frames = systemAppFrame.contentDocument.querySelectorAll('iframe');
     for (let i = 0; i < frames.length; i++) {
       list.push(frames[i]);
     }
-
     return list;
   }
 };
