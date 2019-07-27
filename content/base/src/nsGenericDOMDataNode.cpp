@@ -586,7 +586,9 @@ nsGenericDOMDataNode::UnbindFromTree(bool aDeep, bool aNullParent)
     SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
   }
 
-  if (document) {
+  if (document && !GetContainingShadow()) {
+    
+    
     
     
     if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {

@@ -1489,7 +1489,9 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   if (document) {
     
     
-    if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
+    
+    
+    if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR) && !GetShadowRoot()) {
       nsContentUtils::AddScriptRunner(
         new RemoveFromBindingManagerRunnable(document->BindingManager(), this,
                                              document));
