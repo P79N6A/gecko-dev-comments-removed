@@ -7,16 +7,10 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 const Services = require("Services");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils.js");
 
-let DEFAULT_PROFILER_OPTIONS = {
-  
-  
-  entries: Math.pow(10, 7),
-  
-  
-  interval: 1,
-  features: ["js"],
-  threadFilters: ["GeckoMain"]
-};
+let DEFAULT_PROFILER_ENTRIES = 10000000;
+let DEFAULT_PROFILER_INTERVAL = 1;
+let DEFAULT_PROFILER_FEATURES = ["js"];
+let DEFAULT_PROFILER_THREADFILTERS = ["GeckoMain"];
 
 
 
@@ -66,35 +60,19 @@ ProfilerActor.prototype = {
 
 
 
-  onGetStartOptions: function() {
-    return this._profilerStartOptions || {};
-  },
-
-  
-
-
-
 
 
 
 
 
   onStartProfiler: function(request = {}) {
-    let options = this._profilerStartOptions = {
-      entries: request.entries || DEFAULT_PROFILER_OPTIONS.entries,
-      interval: request.interval || DEFAULT_PROFILER_OPTIONS.interval,
-      features: request.features || DEFAULT_PROFILER_OPTIONS.features,
-      threadFilters: request.threadFilters || DEFAULT_PROFILER_OPTIONS.threadFilters,
-    };
-
     nsIProfilerModule.StartProfiler(
-      options.entries,
-      options.interval,
-      options.features,
-      options.features.length,
-      options.threadFilters,
-      options.threadFilters.length
-    );
+      (request.entries || DEFAULT_PROFILER_ENTRIES),
+      (request.interval || DEFAULT_PROFILER_INTERVAL),
+      (request.features || DEFAULT_PROFILER_FEATURES),
+      (request.features || DEFAULT_PROFILER_FEATURES).length,
+      (request.threadFilters || DEFAULT_PROFILER_THREADFILTERS),
+      (request.threadFilters || DEFAULT_PROFILER_THREADFILTERS).length);
 
     return { started: true };
   },
@@ -353,6 +331,5 @@ ProfilerActor.prototype.requestTypes = {
   "getSharedLibraryInformation": ProfilerActor.prototype.onGetSharedLibraryInformation,
   "getProfile": ProfilerActor.prototype.onGetProfile,
   "registerEventNotifications": ProfilerActor.prototype.onRegisterEventNotifications,
-  "unregisterEventNotifications": ProfilerActor.prototype.onUnregisterEventNotifications,
-  "getStartOptions": ProfilerActor.prototype.onGetStartOptions
+  "unregisterEventNotifications": ProfilerActor.prototype.onUnregisterEventNotifications
 };
