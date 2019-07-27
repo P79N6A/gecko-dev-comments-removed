@@ -48,7 +48,7 @@ public:
   
   B2G_ACL_EXPORT void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage,
                        TimeStamp aTargetTime);
-  void ClearCurrentFrame(bool aResetSize = false);
+  void ClearCurrentFrame();
   
   
   
