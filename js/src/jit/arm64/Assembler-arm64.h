@@ -74,8 +74,6 @@ static constexpr FloatRegister ScratchSimdReg = InvalidFloatReg;
 
 static constexpr Register RealStackPointer = { Registers::sp };
 
-static constexpr Register StackPointer = { Registers::sp };
-
 static constexpr Register PseudoStackPointer = { Registers::x28 };
 static constexpr ARMRegister PseudoStackPointer64 = { Registers::x28, 64 };
 static constexpr ARMRegister PseudoStackPointer32 = { Registers::x28, 32 };
