@@ -2414,28 +2414,33 @@ ElementEditor.prototype = {
 
 
   update: function() {
-    let attrs = this.node.attributes;
-    if (!attrs) {
-      return;
-    }
+    let attrs = this.node.attributes || [];
+    let attrsToRemove = new Set(this.attrList.querySelectorAll(".attreditor"));
 
     
-    
-    
-    let attrEditors = this.attrList.querySelectorAll(".attreditor");
-    for (let i = 0; i < attrEditors.length; i++) {
-      if (!attrEditors[i].inplaceEditor) {
-        attrEditors[i].style.display = "none";
-      }
-    }
-
     
     
     for (let attr of attrs) {
-      let attribute = this._createAttribute(attr);
-      if (!attribute.inplaceEditor) {
+      let el = this.attrs[attr.name];
+      let valueChanged = el && el.querySelector(".attr-value").innerHTML !== attr.value;
+      let isEditing = el && el.querySelector(".editable").inplaceEditor;
+      let needToCreateAttributeEditor = el && (!valueChanged || isEditing);
+
+      if (needToCreateAttributeEditor) {
+        
+        
+        attrsToRemove.delete(el);
+        el.style.removeProperty("display");
+      } else {
+        
+        
+        let attribute = this._createAttribute(attr);
         attribute.style.removeProperty("display");
       }
+    }
+
+    for (let el of attrsToRemove) {
+      el.remove();
     }
   },
 
