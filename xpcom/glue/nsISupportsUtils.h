@@ -31,11 +31,6 @@
   AddRef()
 
 
-extern "C++" {
-
-
-
-
 
 
 template<class T>
@@ -46,8 +41,6 @@ ns_if_addref(T aExpr)
     aExpr->AddRef();
   }
 }
-
-} 
 
 
 
