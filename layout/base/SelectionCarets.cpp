@@ -58,8 +58,6 @@ static const char* kSelectionCaretsLogModuleName = "SelectionCarets";
 
 static const int32_t kMoveStartTolerancePx = 5;
 
-static const int32_t kScrollEndTimerDelay = 300;
-
 NS_IMPL_ISUPPORTS(SelectionCarets,
                   nsIReflowObserver,
                   nsISelectionListener,
@@ -1286,10 +1284,11 @@ SelectionCarets::LaunchScrollEndDetector()
 
   MOZ_ASSERT(mScrollEndDetectorTimer);
 
-  SELECTIONCARETS_LOG("Will fire scroll end after %d ms", kScrollEndTimerDelay);
+  SELECTIONCARETS_LOG("Will fire scroll end after %d ms",
+    TouchCaret::sScrollEndTimerDelay);
   mScrollEndDetectorTimer->InitWithFuncCallback(FireScrollEnd,
                                                 this,
-                                                kScrollEndTimerDelay,
+                                                TouchCaret::sScrollEndTimerDelay,
                                                 nsITimer::TYPE_ONE_SHOT);
 }
 

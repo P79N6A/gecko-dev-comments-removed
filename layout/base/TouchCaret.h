@@ -27,7 +27,9 @@ namespace mozilla {
 
 
 
-class TouchCaret final : public nsISelectionListener
+class TouchCaret final : public nsISelectionListener,
+                         public nsIScrollObserver,
+                         public nsSupportsWeakReference
 {
 public:
   explicit TouchCaret(nsIPresShell* aPresShell);
@@ -35,10 +37,15 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISELECTIONLISTENER
 
-  void Terminate()
-  {
-    mPresShell = nullptr;
-  }
+  void Init();
+  void Terminate();
+
+  
+  virtual void ScrollPositionChanged() override;
+
+  
+  virtual void AsyncPanZoomStarted() override;
+  virtual void AsyncPanZoomStopped() override;
 
   
 
@@ -273,7 +280,21 @@ private:
     return sTouchCaretExpirationTime;
   }
 
+  void LaunchScrollEndDetector();
+  void CancelScrollEndDetector();
+  static void FireScrollEnd(nsITimer* aTimer, void* aSelectionCarets);
+
+  
+  
+  
+  
+  nsCOMPtr<nsITimer> mScrollEndDetectorTimer;
+
   nsWeakPtr mPresShell;
+  WeakPtr<nsDocShell> mDocShell;
+
+  
+  bool mInAsyncPanZoomGesture;
 
   
   bool mVisible;
@@ -291,6 +312,8 @@ private:
   
   friend class SelectionCarets;
   static const int32_t sAutoScrollTimerDelay = 30;
+  
+  static const int32_t sScrollEndTimerDelay = 300;
 
   
   static uint32_t sActionBarViewCount;

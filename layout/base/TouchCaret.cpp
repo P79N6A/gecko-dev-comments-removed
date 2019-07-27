@@ -56,7 +56,10 @@ static const char* kTouchCaretLogModuleName = "TouchCaret";
 
 static const int32_t kBoundaryAppUnits = 61;
 
-NS_IMPL_ISUPPORTS(TouchCaret, nsISelectionListener)
+NS_IMPL_ISUPPORTS(TouchCaret,
+                  nsISelectionListener,
+                  nsIScrollObserver,
+                  nsISupportsWeakReference)
 
  int32_t TouchCaret::sTouchCaretInflateSize = 0;
  int32_t TouchCaret::sTouchCaretExpirationTime = 0;
@@ -69,6 +72,7 @@ TouchCaret::TouchCaret(nsIPresShell* aPresShell)
   : mState(TOUCHCARET_NONE),
     mActiveTouchId(-1),
     mCaretCenterToDownPointOffsetY(0),
+    mInAsyncPanZoomGesture(false),
     mVisible(false),
     mIsValidTap(false),
     mActionBarViewID(0)
@@ -97,6 +101,43 @@ TouchCaret::TouchCaret(nsIPresShell* aPresShell)
   
   mPresShell = do_GetWeakReference(aPresShell);
   MOZ_ASSERT(mPresShell, "Hey, pres shell should support weak refs");
+}
+
+void
+TouchCaret::Init()
+{
+  nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
+  if (!presShell) {
+    return;
+  }
+
+  nsPresContext* presContext = presShell->GetPresContext();
+  MOZ_ASSERT(presContext, "PresContext should be given in PresShell::Init()");
+
+  nsIDocShell* docShell = presContext->GetDocShell();
+  if (!docShell) {
+    return;
+  }
+
+  docShell->AddWeakScrollObserver(this);
+  mDocShell = static_cast<nsDocShell*>(docShell);
+}
+
+void
+TouchCaret::Terminate()
+{
+  nsRefPtr<nsDocShell> docShell(mDocShell.get());
+  if (docShell) {
+    docShell->RemoveWeakScrollObserver(this);
+  }
+
+  if (mScrollEndDetectorTimer) {
+    mScrollEndDetectorTimer->Cancel();
+    mScrollEndDetectorTimer = nullptr;
+  }
+
+  mDocShell = WeakPtr<nsDocShell>();
+  mPresShell = nullptr;
 }
 
 TouchCaret::~TouchCaret()
@@ -425,6 +466,76 @@ TouchCaret::NotifySelectionChanged(nsIDOMDocument* aDoc, nsISelection* aSel,
   }
 
   return NS_OK;
+}
+
+
+
+
+
+void
+TouchCaret::AsyncPanZoomStarted()
+{
+  if (mVisible) {
+    if (sTouchcaretExtendedvisibility) {
+      mInAsyncPanZoomGesture = true;
+    }
+  }
+}
+
+void
+TouchCaret::AsyncPanZoomStopped()
+{
+  if (mInAsyncPanZoomGesture) {
+    mInAsyncPanZoomGesture = false;
+    UpdatePosition();
+  }
+}
+
+
+
+
+
+void
+TouchCaret::ScrollPositionChanged()
+{
+  if (mVisible) {
+    if (sTouchcaretExtendedvisibility) {
+      
+      LaunchScrollEndDetector();
+    }
+  }
+}
+
+void
+TouchCaret::LaunchScrollEndDetector()
+{
+  if (!mScrollEndDetectorTimer) {
+    mScrollEndDetectorTimer = do_CreateInstance("@mozilla.org/timer;1");
+  }
+  MOZ_ASSERT(mScrollEndDetectorTimer);
+
+  mScrollEndDetectorTimer->InitWithFuncCallback(FireScrollEnd,
+                                                this,
+                                                sScrollEndTimerDelay,
+                                                nsITimer::TYPE_ONE_SHOT);
+}
+
+void
+TouchCaret::CancelScrollEndDetector()
+{
+  if (mScrollEndDetectorTimer) {
+    mScrollEndDetectorTimer->Cancel();
+  }
+}
+
+
+void
+TouchCaret::FireScrollEnd(nsITimer* aTimer, void* aTouchCaret)
+{
+  nsRefPtr<TouchCaret> self = static_cast<TouchCaret*>(aTouchCaret);
+  NS_PRECONDITION(aTimer == self->mScrollEndDetectorTimer,
+                  "Unexpected timer");
+  self->UpdatePosition();
 }
 
 void
