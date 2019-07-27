@@ -501,6 +501,20 @@ class TransportTestPeer : public sigslot::has_slots<> {
     ASSERT_TRUE(NS_SUCCEEDED(res));
   }
 
+  void SetAlpn(std::string str, bool withDefault, std::string extra = "") {
+    std::set<std::string> alpn;
+    alpn.insert(str); 
+    if (!extra.empty()) {
+      alpn.insert(extra);
+    }
+    nsresult res = dtls_->SetAlpn(alpn, withDefault ? str : "");
+    ASSERT_EQ(NS_OK, res);
+  }
+
+  const std::string& GetAlpn() const {
+    return dtls_->GetNegotiatedAlpn();
+  }
+
   void SetDtlsPeer(TransportTestPeer *peer, int digests, unsigned int damage) {
     unsigned int mask = 1;
 
@@ -854,14 +868,23 @@ class TransportTest : public ::testing::Test {
     p2_->SetDtlsAllowAll();
   }
 
-  void ConnectSocket() {
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p1_, &TransportTestPeer::ConnectSocket, p2_),
-      NS_DISPATCH_SYNC);
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p2_, &TransportTestPeer::ConnectSocket, p1_),
-      NS_DISPATCH_SYNC);
+  void SetAlpn(std::string first, std::string second,
+               bool withDefaults = true) {
+    if (!first.empty()) {
+      p1_->SetAlpn(first, withDefaults, "bogus");
+    }
+    if (!second.empty()) {
+      p2_->SetAlpn(second, withDefaults);
+    }
+  }
 
+  void CheckAlpn(std::string first, std::string second) {
+    ASSERT_EQ(first, p1_->GetAlpn());
+    ASSERT_EQ(second, p2_->GetAlpn());
+  }
+
+  void ConnectSocket() {
+    ConnectSocketInternal();
     ASSERT_TRUE_WAIT(p1_->connected(), 10000);
     ASSERT_TRUE_WAIT(p2_->connected(), 10000);
 
@@ -870,14 +893,16 @@ class TransportTest : public ::testing::Test {
   }
 
   void ConnectSocketExpectFail() {
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p1_, &TransportTestPeer::ConnectSocket, p2_),
-      NS_DISPATCH_SYNC);
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p2_, &TransportTestPeer::ConnectSocket, p1_),
-      NS_DISPATCH_SYNC);
+    ConnectSocketInternal();
     ASSERT_TRUE_WAIT(p1_->failed(), 10000);
     ASSERT_TRUE_WAIT(p2_->failed(), 10000);
+  }
+
+  void ConnectSocketExpectState(TransportLayer::State s1,
+                                TransportLayer::State s2) {
+    ConnectSocketInternal();
+    ASSERT_EQ_WAIT(s1, p1_->state(), 10000);
+    ASSERT_EQ_WAIT(s2, p2_->state(), 10000);
   }
 
   void InitIce() {
@@ -908,6 +933,15 @@ class TransportTest : public ::testing::Test {
   }
 
  protected:
+  void ConnectSocketInternal() {
+    test_utils->sts_target()->Dispatch(
+      WrapRunnable(p1_, &TransportTestPeer::ConnectSocket, p2_),
+      NS_DISPATCH_SYNC);
+    test_utils->sts_target()->Dispatch(
+      WrapRunnable(p2_, &TransportTestPeer::ConnectSocket, p1_),
+      NS_DISPATCH_SYNC);
+  }
+
   PRFileDesc *fds_[2];
   TransportTestPeer *p1_;
   TransportTestPeer *p2_;
@@ -953,6 +987,56 @@ TEST_F(TransportTest, TestConnectDestroyFlowsMainThread) {
 TEST_F(TransportTest, TestConnectAllowAll) {
   SetDtlsAllowAll();
   ConnectSocket();
+}
+
+TEST_F(TransportTest, TestConnectAlpn) {
+  SetDtlsPeer();
+  SetAlpn("a", "a");
+  ConnectSocket();
+  CheckAlpn("a", "a");
+}
+
+TEST_F(TransportTest, TestConnectAlpnMismatch) {
+  SetDtlsPeer();
+  SetAlpn("something", "different");
+  ConnectSocketExpectFail();
+}
+
+TEST_F(TransportTest, TestConnectAlpnServerDefault) {
+  SetDtlsPeer();
+  SetAlpn("def", "");
+  
+  ConnectSocket();
+  CheckAlpn("def", "");
+}
+
+TEST_F(TransportTest, TestConnectAlpnClientDefault) {
+  SetDtlsPeer();
+  SetAlpn("", "clientdef");
+  
+  ConnectSocket();
+  CheckAlpn("", "clientdef");
+}
+
+TEST_F(TransportTest, TestConnectClientNoAlpn) {
+  SetDtlsPeer();
+  
+  
+  SetAlpn("server-nodefault", "", false);
+  
+  
+  
+  ConnectSocketExpectState(TransportLayer::TS_ERROR,
+                           TransportLayer::TS_CLOSED);
+}
+
+TEST_F(TransportTest, TestConnectServerNoAlpn) {
+  SetDtlsPeer();
+  SetAlpn("", "client-nodefault", false);
+  
+  
+  ConnectSocketExpectState(TransportLayer::TS_CLOSED,
+                           TransportLayer::TS_ERROR);
 }
 
 TEST_F(TransportTest, TestConnectNoDigest) {
