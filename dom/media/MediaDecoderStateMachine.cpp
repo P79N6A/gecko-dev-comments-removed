@@ -543,7 +543,6 @@ void MediaDecoderStateMachine::SendStreamData()
   
   if (finished && AudioQueue().GetSize() == 0) {
     mAudioCompleted = true;
-    UpdateNextFrameStatus();
   }
 }
 
@@ -940,9 +939,6 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
     case DECODER_STATE_BUFFERING:
     case DECODER_STATE_DECODING: {
       CheckIfDecodeComplete();
-      
-      
-      UpdateNextFrameStatus();
       mDecoder->GetReentrantMonitor().NotifyAll();
       
       if (mAudioCaptured) {
@@ -1324,6 +1320,8 @@ void MediaDecoderStateMachine::SetState(State aState)
               gMachineStateStr[mState], gMachineStateStr[aState]);
 
   mState = aState;
+
+  UpdateNextFrameStatus();
 
   
   mSentPlaybackEndedEvent = false;
@@ -1867,11 +1865,6 @@ MediaDecoderStateMachine::InitiateSeek()
   StopPlayback();
   UpdatePlaybackPositionInternal(mCurrentSeek.mTarget.mTime);
 
-
-  
-  
-  
-  UpdateNextFrameStatus();
   nsCOMPtr<nsIRunnable> startEvent =
       NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
         mDecoder,
@@ -2677,7 +2670,6 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 
       
       mDecoder->GetReentrantMonitor().NotifyAll();
-      UpdateNextFrameStatus();
       MaybeStartPlayback();
       NS_ASSERTION(IsStateMachineScheduled(), "Must have timer scheduled");
       return NS_OK;
@@ -3031,12 +3023,6 @@ void MediaDecoderStateMachine::AdvanceFrame()
     currentFrame = nullptr;
   }
 
-  
-  
-  
-  
-  UpdateNextFrameStatus();
-
   int64_t delay = remainingTime / mPlaybackRate;
   if (delay > 0) {
     ScheduleStateMachineIn(delay);
@@ -3256,7 +3242,6 @@ void MediaDecoderStateMachine::StartBuffering()
   mBufferingStart = TimeStamp::Now();
 
   SetState(DECODER_STATE_BUFFERING);
-  UpdateNextFrameStatus();
   DECODER_LOG("Changed state from DECODING to BUFFERING, decoded for %.3lfs",
               decodeDuration.ToSeconds());
 #ifdef PR_LOGGING
