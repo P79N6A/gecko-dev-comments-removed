@@ -716,6 +716,13 @@ public:
 
   void SetPullEnabled(bool aEnabled);
 
+  
+
+
+
+
+  void NotifyListenersEventImpl(MediaStreamListener::MediaStreamGraphEvent aEvent);
+  void NotifyListenersEvent(MediaStreamListener::MediaStreamGraphEvent aEvent);
   void AddDirectListener(MediaStreamDirectListener* aListener);
   void RemoveDirectListener(MediaStreamDirectListener* aListener);
 
