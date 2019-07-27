@@ -944,9 +944,7 @@ public:
 protected:
 
   
-  
-  
-  int64_t mDuration;
+  double mDuration;
 
   
   bool mMediaSeekable;
