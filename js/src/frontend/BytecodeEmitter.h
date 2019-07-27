@@ -269,9 +269,26 @@ struct BytecodeEmitter
     bool reportStrictWarning(ParseNode *pn, unsigned errorNumber, ...);
     bool reportStrictModeError(ParseNode *pn, unsigned errorNumber, ...);
 
+    bool setSrcNoteOffset(unsigned index, unsigned which, ptrdiff_t offset);
+
+    void setJumpOffsetAt(ptrdiff_t off);
+
+    
+    bool emitTree(ParseNode *pn);
+
     
     
     void checkTypeSet(JSOp op);
+
+    void updateDepth(ptrdiff_t target);
+    bool updateLineNumberNotes(uint32_t offset);
+    bool updateSourceCoordNotes(uint32_t offset);
+
+    bool bindNameToSlot(ParseNode *pn);
+
+    void popStatement();
+    void pushStatement(StmtInfoBCE *stmt, StmtType type, ptrdiff_t top);
+    void pushStatementInner(StmtInfoBCE *stmt, StmtType type, ptrdiff_t top);
 
     bool flushPops(int *npops);
 
@@ -469,12 +486,6 @@ struct BytecodeEmitter
 
     bool emitClass(ParseNode *pn);
 };
-
-
-
-
-bool
-EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn);
 
 
 

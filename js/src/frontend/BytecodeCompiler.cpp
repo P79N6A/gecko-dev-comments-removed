@@ -395,7 +395,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
         if (!bce.updateLocalsToFrameSlots())
             return nullptr;
 
-        if (!EmitTree(cx, &bce, pn))
+        if (!bce.emitTree(pn))
             return nullptr;
 
         parser.handler.freeTree(pn);
