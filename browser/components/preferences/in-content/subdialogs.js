@@ -180,41 +180,65 @@ let gSubDialog = {
                               parseFloat(getComputedStyle(groupBoxTitle).borderBottomWidth);
 
     let groupBoxBody = document.getAnonymousElementByAttribute(this._box, "class", "groupbox-body");
+    
     let boxVerticalPadding = 2 * parseFloat(getComputedStyle(groupBoxBody).paddingTop);
     let boxHorizontalPadding = 2 * parseFloat(getComputedStyle(groupBoxBody).paddingLeft);
+    let boxHorizontalBorder = 2 * parseFloat(getComputedStyle(this._box).borderLeftWidth);
+    let boxVerticalBorder = 2 * parseFloat(getComputedStyle(this._box).borderTopWidth);
+
+    
+    let boxRect = this._box.getBoundingClientRect();
+    let frameRect = this._frame.getBoundingClientRect();
+    let frameSizeDifference = (frameRect.top - boxRect.top) + (boxRect.bottom - frameRect.bottom);
+
+    
     let frameMinWidth = docEl.style.width || docEl.scrollWidth + "px";
     let frameWidth = docEl.getAttribute("width") ? docEl.getAttribute("width") + "px" :
                      frameMinWidth;
+    this._frame.style.width = frameWidth;
+    this._box.style.minWidth = "calc(" +
+                               (boxHorizontalBorder + boxHorizontalPadding) +
+                               "px + " + frameMinWidth + ")";
+
+    
+    
+    
     let frameMinHeight = docEl.style.height || docEl.scrollHeight + "px";
     let frameHeight = docEl.getAttribute("height") ? docEl.getAttribute("height") + "px" :
-                      frameMinHeight;
-    let boxVerticalBorder = 2 * parseFloat(getComputedStyle(this._box).borderTopWidth);
-    let boxHorizontalBorder = 2 * parseFloat(getComputedStyle(this._box).borderLeftWidth);
-
-    let frameRect = this._frame.getBoundingClientRect();
-    let boxRect = this._box.getBoundingClientRect();
-    let frameSizeDifference = (frameRect.top - boxRect.top) + (boxRect.bottom - frameRect.bottom);
+                                                     frameMinHeight;
 
     
     
     let maxHeight = window.innerHeight - frameSizeDifference - 30;
-    if (frameHeight > maxHeight) {
+    
+    let comparisonFrameHeight;
+    if (frameHeight.endsWith("em")) {
+      let fontSize = parseFloat(getComputedStyle(this._frame).fontSize);
+      comparisonFrameHeight = parseFloat(frameHeight, 10) * fontSize;
+    } else if (frameHeight.endsWith("px")) {
+      comparisonFrameHeight = parseFloat(frameHeight, 10);
+    } else {
+      Cu.reportError("This dialog (" + this._frame.contentWindow.location.href + ") " +
+                     "set a height in non-px-non-em units ('" + frameHeight + "'), " +
+                     "which is likely to lead to bad sizing in in-content preferences. " +
+                     "Please consider changing this.");
+      comparisonFrameHeight = parseFloat(frameHeight);
+    }
+
+    if (comparisonFrameHeight > maxHeight) {
       
-      frameHeight = maxHeight;
+      frameHeight = maxHeight + "px";
+      frameMinHeight = maxHeight + "px";
       let containers = this._frame.contentDocument.querySelectorAll('.largeDialogContainer');
       for (let container of containers) {
         container.classList.add("doScroll");
       }
     }
 
-    this._frame.style.width = frameWidth;
     this._frame.style.height = frameHeight;
     this._box.style.minHeight = "calc(" +
                                 (boxVerticalBorder + groupBoxTitleHeight + boxVerticalPadding) +
                                 "px + " + frameMinHeight + ")";
-    this._box.style.minWidth = "calc(" +
-                               (boxHorizontalBorder + boxHorizontalPadding) +
-                               "px + " + frameMinWidth + ")";
 
     this._overlay.style.visibility = "visible";
     this._overlay.style.opacity = ""; 
