@@ -1751,11 +1751,11 @@ var BrowserApp = {
               docShell.mixedContentChannel = null;
             }
           } else if (data.contentType === "tracking") {
+            
+            
+            
+            let normalizedUrl = Services.io.newURI("https://" + browser.currentURI.hostPort, null, null);
             if (data.allowContent) {
-              
-              
-              
-              let normalizedUrl = Services.io.newURI("https://" + browser.currentURI.hostPort, null, null);
               
               
               
@@ -1765,7 +1765,7 @@ var BrowserApp = {
               
               
               
-              Services.perms.remove(browser.currentURI, "trackingprotection");
+              Services.perms.remove(normalizedUrl, "trackingprotection");
               Telemetry.addData("TRACKING_PROTECTION_EVENTS", 2);
             }
           }
@@ -5314,9 +5314,6 @@ var BrowserEventHandler = {
         if (this._inCluster && this._clickInZoomedView != true) {
           this._clusterClicked(x, y);
         } else {
-          if (this._clickInZoomedView != true) {
-            this._closeZoomedView();
-          }
           
           
           
@@ -5345,12 +5342,6 @@ var BrowserEventHandler = {
         dump('BrowserEventHandler.handleUserEvent: unexpected topic "' + aTopic + '"');
         break;
     }
-  },
-
-  _closeZoomedView: function() {
-    Messaging.sendRequest({
-      type: "Gesture:CloseZoomedView"
-    });
   },
 
   _clusterClicked: function(aX, aY) {
