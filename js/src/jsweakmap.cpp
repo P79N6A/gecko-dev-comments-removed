@@ -345,8 +345,6 @@ TryPreserveReflector(JSContext* cx, HandleObject obj)
 static inline void
 WeakMapPostWriteBarrier(JSRuntime* rt, ObjectValueMap* weakMap, JSObject* key)
 {
-    
-    
     if (key && IsInsideNursery(key))
         rt->gc.storeBuffer.putGeneric(gc::HashKeyRef<ObjectValueMap, JSObject*>(weakMap, key));
 }
@@ -708,6 +706,8 @@ ObjectWeakMap::add(JSContext* cx, JSObject* obj, JSObject* target)
         ReportOutOfMemory(cx);
         return false;
     }
+    if (IsInsideNursery(obj))
+        cx->runtime()->gc.storeBuffer.putGeneric(StoreBufferRef(&map, obj));
 
     return true;
 }
