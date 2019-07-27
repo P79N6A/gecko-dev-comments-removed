@@ -72,17 +72,72 @@ public:
   nsresult GetSelectionAndRoot(nsISelection** aSelection,
                                nsIContent** aRoot) const;
 
+  struct TextChangeData
+  {
+    
+    
+    uint32_t mStartOffset;
+    
+    
+    
+    uint32_t mRemovedEndOffset;
+    
+    
+    uint32_t mAddedEndOffset;
+
+    bool mCausedOnlyByComposition;
+    bool mStored;
+
+    TextChangeData()
+      : mStartOffset(0)
+      , mRemovedEndOffset(0)
+      , mAddedEndOffset(0)
+      , mCausedOnlyByComposition(false)
+      , mStored(false)
+    {
+    }
+
+    TextChangeData(uint32_t aStartOffset,
+                   uint32_t aRemovedEndOffset,
+                   uint32_t aAddedEndOffset,
+                   bool aCausedByComposition)
+      : mStartOffset(aStartOffset)
+      , mRemovedEndOffset(aRemovedEndOffset)
+      , mAddedEndOffset(aAddedEndOffset)
+      , mCausedOnlyByComposition(aCausedByComposition)
+      , mStored(true)
+    {
+      MOZ_ASSERT(aRemovedEndOffset >= aStartOffset,
+                 "removed end offset must not be smaller than start offset");
+      MOZ_ASSERT(aAddedEndOffset >= aStartOffset,
+                 "added end offset must not be smaller than start offset");
+    }
+    
+    int64_t Difference() const 
+    {
+      return mAddedEndOffset - mRemovedEndOffset;
+    }
+  };
+
 private:
   ~IMEContentObserver() {}
 
   void NotifyContentAdded(nsINode* aContainer, int32_t aStart, int32_t aEnd);
   void ObserveEditableNode();
+  
+  bool StoreTextChangeData(const TextChangeData& aTextChangeData);
+
+#ifdef DEBUG
+  void TestMergingTextChangeData();
+#endif
 
   nsCOMPtr<nsIWidget> mWidget;
   nsCOMPtr<nsISelection> mSelection;
   nsCOMPtr<nsIContent> mRootContent;
   nsCOMPtr<nsINode> mEditableNode;
   nsCOMPtr<nsIDocShell> mDocShell;
+
+  TextChangeData mTextChangeData;
 
   EventStateManager* mESM;
 

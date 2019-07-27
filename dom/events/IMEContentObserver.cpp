@@ -53,6 +53,9 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(IMEContentObserver)
 IMEContentObserver::IMEContentObserver()
   : mESM(nullptr)
 {
+#ifdef DEBUG
+  TestMergingTextChangeData();
+#endif
 }
 
 void
@@ -348,25 +351,23 @@ class TextChangeEvent : public nsRunnable
 {
 public:
   TextChangeEvent(IMEContentObserver* aDispatcher,
-                  uint32_t aStart, uint32_t aOldEnd, uint32_t aNewEnd,
-                  bool aCausedByComposition)
+                  const IMEContentObserver::TextChangeData& aData)
     : mDispatcher(aDispatcher)
-    , mStart(aStart)
-    , mOldEnd(aOldEnd)
-    , mNewEnd(aNewEnd)
-    , mCausedByComposition(aCausedByComposition)
+    , mData(aData)
   {
     MOZ_ASSERT(mDispatcher);
+    MOZ_ASSERT(mData.mStored);
   }
 
   NS_IMETHOD Run()
   {
     if (mDispatcher->GetWidget()) {
       IMENotification notification(NOTIFY_IME_OF_TEXT_CHANGE);
-      notification.mTextChangeData.mStartOffset = mStart;
-      notification.mTextChangeData.mOldEndOffset = mOldEnd;
-      notification.mTextChangeData.mNewEndOffset = mNewEnd;
-      notification.mTextChangeData.mCausedByComposition = mCausedByComposition;
+      notification.mTextChangeData.mStartOffset = mData.mStartOffset;
+      notification.mTextChangeData.mOldEndOffset = mData.mRemovedEndOffset;
+      notification.mTextChangeData.mNewEndOffset = mData.mAddedEndOffset;
+      notification.mTextChangeData.mCausedByComposition =
+        mData.mCausedOnlyByComposition;
       mDispatcher->GetWidget()->NotifyIME(notification);
     }
     return NS_OK;
@@ -374,9 +375,195 @@ public:
 
 private:
   nsRefPtr<IMEContentObserver> mDispatcher;
-  uint32_t mStart, mOldEnd, mNewEnd;
-  bool mCausedByComposition;
+  IMEContentObserver::TextChangeData mData;
 };
+
+bool
+IMEContentObserver::StoreTextChangeData(const TextChangeData& aTextChangeData)
+{
+  MOZ_ASSERT(aTextChangeData.mStartOffset <= aTextChangeData.mRemovedEndOffset,
+             "end of removed text must be same or larger than start");
+  MOZ_ASSERT(aTextChangeData.mStartOffset <= aTextChangeData.mAddedEndOffset,
+             "end of added text must be same or larger than start");
+
+  if (!mTextChangeData.mStored) {
+    mTextChangeData = aTextChangeData;
+    MOZ_ASSERT(mTextChangeData.mStored, "Why mStored is false?");
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+
+  const TextChangeData& newData = aTextChangeData;
+  const TextChangeData oldData = mTextChangeData;
+
+  mTextChangeData.mCausedOnlyByComposition =
+    newData.mCausedOnlyByComposition && oldData.mCausedOnlyByComposition;
+
+  if (newData.mStartOffset >= oldData.mAddedEndOffset) {
+    
+    
+    
+    
+    
+    
+    mTextChangeData.mStartOffset = oldData.mStartOffset;
+    
+    
+    
+    
+    uint32_t newRemovedEndOffsetInOldText =
+      newData.mRemovedEndOffset - oldData.Difference();
+    mTextChangeData.mRemovedEndOffset =
+      std::max(newRemovedEndOffsetInOldText, oldData.mRemovedEndOffset);
+    
+    mTextChangeData.mAddedEndOffset = newData.mAddedEndOffset;
+    return false;
+  }
+
+  if (newData.mStartOffset >= oldData.mStartOffset) {
+    
+    
+    mTextChangeData.mStartOffset = oldData.mStartOffset;
+    if (newData.mRemovedEndOffset >= oldData.mAddedEndOffset) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      uint32_t newRemovedEndOffsetInOldText =
+        newData.mRemovedEndOffset - oldData.Difference();
+      mTextChangeData.mRemovedEndOffset =
+        std::max(newRemovedEndOffsetInOldText, oldData.mRemovedEndOffset);
+      
+      
+      
+      
+      mTextChangeData.mAddedEndOffset = newData.mAddedEndOffset;
+      return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    mTextChangeData.mRemovedEndOffset = oldData.mRemovedEndOffset;
+    
+    
+    uint32_t oldAddedEndOffsetInNewText =
+      oldData.mAddedEndOffset + newData.Difference();
+    mTextChangeData.mAddedEndOffset =
+      std::max(newData.mAddedEndOffset, oldAddedEndOffsetInNewText);
+    return false;
+  }
+
+  if (newData.mRemovedEndOffset >= oldData.mStartOffset) {
+    
+    
+    
+    MOZ_ASSERT(newData.mStartOffset < oldData.mStartOffset,
+      "new start offset should be less than old one here");
+    mTextChangeData.mStartOffset = newData.mStartOffset;
+    if (newData.mRemovedEndOffset >= oldData.mAddedEndOffset) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      uint32_t newRemovedEndOffsetInOldText =
+        newData.mRemovedEndOffset - oldData.Difference();
+      mTextChangeData.mRemovedEndOffset =
+        std::max(newRemovedEndOffsetInOldText, oldData.mRemovedEndOffset);
+      
+      
+      
+      
+      
+      mTextChangeData.mAddedEndOffset = newData.mAddedEndOffset;
+      return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    mTextChangeData.mRemovedEndOffset = oldData.mRemovedEndOffset;
+    
+    
+    
+    uint32_t oldAddedEndOffsetInNewText =
+      oldData.mAddedEndOffset + newData.Difference();
+    mTextChangeData.mAddedEndOffset =
+      std::max(newData.mAddedEndOffset, oldAddedEndOffsetInNewText);
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  MOZ_ASSERT(newData.mStartOffset < oldData.mStartOffset,
+    "new start offset should be less than old one here");
+  mTextChangeData.mStartOffset = newData.mStartOffset;
+  MOZ_ASSERT(newData.mRemovedEndOffset < oldData.mRemovedEndOffset,
+     "new removed end offset should be less than old one here");
+  mTextChangeData.mRemovedEndOffset = oldData.mRemovedEndOffset;
+  
+  uint32_t oldAddedEndOffsetInNewText =
+    oldData.mAddedEndOffset + newData.Difference();
+  mTextChangeData.mAddedEndOffset =
+    std::max(newData.mAddedEndOffset, oldAddedEndOffsetInNewText);
+
+  return false;
+}
 
 void
 IMEContentObserver::CharacterDataChanged(nsIDocument* aDocument,
@@ -387,7 +574,7 @@ IMEContentObserver::CharacterDataChanged(nsIDocument* aDocument,
                "character data changed for non-text node");
 
   bool causedByComposition = IsEditorHandlingEventForComposition();
-  if (causedByComposition &&
+  if (!mTextChangeData.mStored && causedByComposition &&
       !mUpdatePreference.WantChangesCausedByComposition()) {
     return;
   }
@@ -404,8 +591,10 @@ IMEContentObserver::CharacterDataChanged(nsIDocument* aDocument,
   uint32_t oldEnd = offset + aInfo->mChangeEnd - aInfo->mChangeStart;
   uint32_t newEnd = offset + aInfo->mReplaceLength;
 
-  nsContentUtils::AddScriptRunner(
-    new TextChangeEvent(this, offset, oldEnd, newEnd, causedByComposition));
+  TextChangeData data(offset, oldEnd, newEnd, causedByComposition);
+  if (StoreTextChangeData(data)) {
+    nsContentUtils::AddScriptRunner(new TextChangeEvent(this, mTextChangeData));
+  }
 }
 
 void
@@ -414,7 +603,7 @@ IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
                                        int32_t aEndIndex)
 {
   bool causedByComposition = IsEditorHandlingEventForComposition();
-  if (causedByComposition &&
+  if (!mTextChangeData.mStored && causedByComposition &&
       !mUpdatePreference.WantChangesCausedByComposition()) {
     return;
   }
@@ -438,9 +627,11 @@ IMEContentObserver::NotifyContentAdded(nsINode* aContainer,
     return;
   }
 
-  nsContentUtils::AddScriptRunner(
-    new TextChangeEvent(this, offset, offset, offset + addingLength,
-                        causedByComposition));
+  TextChangeData data(offset, offset, offset + addingLength,
+                      causedByComposition);
+  if (StoreTextChangeData(data)) {
+    nsContentUtils::AddScriptRunner(new TextChangeEvent(this, mTextChangeData));
+  }
 }
 
 void
@@ -471,7 +662,7 @@ IMEContentObserver::ContentRemoved(nsIDocument* aDocument,
                                    nsIContent* aPreviousSibling)
 {
   bool causedByComposition = IsEditorHandlingEventForComposition();
-  if (causedByComposition &&
+  if (!mTextChangeData.mStored && causedByComposition &&
       !mUpdatePreference.WantChangesCausedByComposition()) {
     return;
   }
@@ -501,9 +692,10 @@ IMEContentObserver::ContentRemoved(nsIDocument* aDocument,
     return;
   }
 
-  nsContentUtils::AddScriptRunner(
-    new TextChangeEvent(this, offset, offset + textLength, offset,
-                        causedByComposition));
+  TextChangeData data(offset, offset + textLength, offset, causedByComposition);
+  if (StoreTextChangeData(data)) {
+    nsContentUtils::AddScriptRunner(new TextChangeEvent(this, mTextChangeData));
+  }
 }
 
 static nsIContent*
@@ -536,7 +728,7 @@ IMEContentObserver::AttributeChanged(nsIDocument* aDocument,
                                      int32_t aModType)
 {
   bool causedByComposition = IsEditorHandlingEventForComposition();
-  if (causedByComposition &&
+  if (!mTextChangeData.mStored && causedByComposition &&
       !mUpdatePreference.WantChangesCausedByComposition()) {
     return;
   }
@@ -558,9 +750,462 @@ IMEContentObserver::AttributeChanged(nsIDocument* aDocument,
                                                   LINE_BREAK_TYPE_NATIVE);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  nsContentUtils::AddScriptRunner(
-    new TextChangeEvent(this, start, start + mPreAttrChangeLength,
-                        start + postAttrChangeLength, causedByComposition));
+  TextChangeData data(start, start + mPreAttrChangeLength,
+                      start + postAttrChangeLength, causedByComposition);
+  if (StoreTextChangeData(data)) {
+    nsContentUtils::AddScriptRunner(new TextChangeEvent(this, mTextChangeData));
+  }
 }
+
+#ifdef DEBUG
+
+
+
+void
+IMEContentObserver::TestMergingTextChangeData()
+{
+  static bool gTestTextChangeEvent = true;
+  if (!gTestTextChangeEvent) {
+    return;
+  }
+  gTestTextChangeEvent = false;
+
+  
+
+
+
+  
+  StoreTextChangeData(TextChangeData(10, 10, 20, false));
+  StoreTextChangeData(TextChangeData(20, 20, 35, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 1-1-1: mStartOffset should be the first offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 10, 
+    "Test 1-1-2: mRemovedEndOffset should be the first end of removed text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 35,
+    "Test 1-1-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(10, 20, 10, false));
+  StoreTextChangeData(TextChangeData(10, 30, 10, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 1-2-1: mStartOffset should be the first offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 40, 
+    "Test 1-2-2: mRemovedEndOffset should be the the last end of removed text "
+    "with already removed length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 10,
+    "Test 1-2-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(10, 20, 10, false));
+  StoreTextChangeData(TextChangeData(10, 15, 10, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 1-3-1: mStartOffset should be the first offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 25, 
+    "Test 1-3-2: mRemovedEndOffset should be the the last end of removed text "
+    "with already removed length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 10,
+    "Test 1-3-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(10, 10, 20, false));
+  StoreTextChangeData(TextChangeData(55, 55, 60, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 1-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 45, 
+    "Test 1-4-2: mRemovedEndOffset should be the the largest end of removed "
+    "text without already added length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 60,
+    "Test 1-4-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(10, 20, 10, false));
+  StoreTextChangeData(TextChangeData(55, 68, 55, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 1-5-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 78, 
+    "Test 1-5-2: mRemovedEndOffset should be the the largest end of removed "
+    "text with already removed length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 55,
+    "Test 1-5-3: mAddedEndOffset should be the largest end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(30, 35, 32, false));
+  StoreTextChangeData(TextChangeData(32, 32, 40, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 30,
+    "Test 1-6-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 35, 
+    "Test 1-6-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 40,
+    "Test 1-6-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(30, 35, 32, false));
+  StoreTextChangeData(TextChangeData(32, 32, 33, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 30,
+    "Test 1-7-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 35, 
+    "Test 1-7-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 33,
+    "Test 1-7-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(30, 35, 30, false));
+  StoreTextChangeData(TextChangeData(32, 34, 48, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 30,
+    "Test 1-8-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 39, 
+    "Test 1-8-2: mRemovedEndOffset should be the the first end of removed text "
+    "without already removed text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 48,
+    "Test 1-8-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(30, 35, 30, false));
+  StoreTextChangeData(TextChangeData(32, 38, 36, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 30,
+    "Test 1-9-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 43, 
+    "Test 1-9-2: mRemovedEndOffset should be the the first end of removed text "
+    "without already removed text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 36,
+    "Test 1-9-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+
+
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 50, 55, false));
+  StoreTextChangeData(TextChangeData(53, 60, 54, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 50,
+    "Test 2-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 55, 
+    "Test 2-1-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 54,
+    "Test 2-1-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 50, 55, false));
+  StoreTextChangeData(TextChangeData(54, 62, 68, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 50,
+    "Test 2-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 57, 
+    "Test 2-2-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 68,
+    "Test 2-2-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(36, 48, 45, false));
+  StoreTextChangeData(TextChangeData(43, 50, 49, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 36,
+    "Test 2-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 53, 
+    "Test 2-3-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already removed text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 49,
+    "Test 2-3-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(36, 52, 53, false));
+  StoreTextChangeData(TextChangeData(43, 68, 61, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 36,
+    "Test 2-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 67, 
+    "Test 2-4-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 61,
+    "Test 2-4-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+
+
+
+  
+  StoreTextChangeData(TextChangeData(10, 10, 20, false));
+  StoreTextChangeData(TextChangeData(15, 15, 30, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 3-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 10,
+    "Test 3-1-2: mRemovedEndOffset should be the the first end of removed text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 35, 
+    "Test 3-1-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(50, 50, 55, false));
+  StoreTextChangeData(TextChangeData(52, 53, 56, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 50,
+    "Test 3-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 50,
+    "Test 3-2-2: mRemovedEndOffset should be the the first end of removed text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 58, 
+    "Test 3-2-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(36, 48, 45, false));
+  StoreTextChangeData(TextChangeData(37, 38, 50, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 36,
+    "Test 3-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 48,
+    "Test 3-3-2: mRemovedEndOffset should be the the first end of removed text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 57, 
+    "Test 3-3-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(32, 48, 53, false));
+  StoreTextChangeData(TextChangeData(43, 50, 52, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 32,
+    "Test 3-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 48,
+    "Test 3-4-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 55, 
+    "Test 3-4-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(36, 48, 50, false));
+  StoreTextChangeData(TextChangeData(37, 49, 47, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 36,
+    "Test 3-5-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 48,
+    "Test 3-5-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 48, 
+    "Test 3-5-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(32, 48, 53, false));
+  StoreTextChangeData(TextChangeData(43, 50, 47, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 32,
+    "Test 3-6-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 48,
+    "Test 3-6-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 50, 
+    "Test 3-6-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+
+
+
+  
+  StoreTextChangeData(TextChangeData(50, 50, 55, false));
+  StoreTextChangeData(TextChangeData(44, 66, 68, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 44,
+    "Test 4-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 61, 
+    "Test 4-1-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 68,
+    "Test 4-1-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 62, 50, false));
+  StoreTextChangeData(TextChangeData(44, 66, 68, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 44,
+    "Test 4-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 78, 
+    "Test 4-2-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already removed text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 68,
+    "Test 4-2-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 62, 60, false));
+  StoreTextChangeData(TextChangeData(49, 128, 130, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 49,
+    "Test 4-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 130, 
+    "Test 4-3-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already removed text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 130,
+    "Test 4-3-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 61, 73, false));
+  StoreTextChangeData(TextChangeData(44, 100, 50, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 44,
+    "Test 4-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 88, 
+    "Test 4-4-2: mRemovedEndOffset should be the the last end of removed text "
+    "with already added text length");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 50,
+    "Test 4-4-3: mAddedEndOffset should be the last end of added text");
+  mTextChangeData.mStored = false;
+
+  
+
+
+
+  
+  StoreTextChangeData(TextChangeData(50, 50, 55, false));
+  StoreTextChangeData(TextChangeData(48, 52, 49, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 48,
+    "Test 5-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 50,
+    "Test 5-1-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 52, 
+    "Test 5-1-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 60, 58, false));
+  StoreTextChangeData(TextChangeData(43, 50, 48, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 43,
+    "Test 5-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 60,
+    "Test 5-2-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 56, 
+    "Test 5-2-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 60, 68, false));
+  StoreTextChangeData(TextChangeData(43, 55, 53, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 43,
+    "Test 5-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 60,
+    "Test 5-3-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 66, 
+    "Test 5-3-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 60, 58, false));
+  StoreTextChangeData(TextChangeData(43, 50, 128, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 43,
+    "Test 5-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 60,
+    "Test 5-4-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 136, 
+    "Test 5-4-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  
+  StoreTextChangeData(TextChangeData(50, 60, 68, false));
+  StoreTextChangeData(TextChangeData(43, 55, 65, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 43,
+    "Test 5-5-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 60,
+    "Test 5-5-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 78, 
+    "Test 5-5-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+
+
+
+  
+  StoreTextChangeData(TextChangeData(30, 30, 45, false));
+  StoreTextChangeData(TextChangeData(10, 10, 20, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 6-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 30,
+    "Test 6-1-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 55, 
+    "Test 6-1-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(30, 35, 30, false));
+  StoreTextChangeData(TextChangeData(10, 25, 10, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 10,
+    "Test 6-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 35,
+    "Test 6-2-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 15, 
+    "Test 6-2-3: mAddedEndOffset should be the first end of added text with "
+    "removed text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(50, 65, 70, false));
+  StoreTextChangeData(TextChangeData(13, 24, 15, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 13,
+    "Test 6-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 65,
+    "Test 6-3-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 61, 
+    "Test 6-3-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  mTextChangeData.mStored = false;
+
+  
+  StoreTextChangeData(TextChangeData(50, 65, 70, false));
+  StoreTextChangeData(TextChangeData(13, 24, 36, false));
+  MOZ_ASSERT(mTextChangeData.mStartOffset == 13,
+    "Test 6-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mTextChangeData.mRemovedEndOffset == 65,
+    "Test 6-4-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mTextChangeData.mAddedEndOffset == 82, 
+    "Test 6-4-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  mTextChangeData.mStored = false;
+}
+#endif 
 
 } 
