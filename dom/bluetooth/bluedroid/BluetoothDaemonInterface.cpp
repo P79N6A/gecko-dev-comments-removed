@@ -1369,59 +1369,58 @@ private:
 
     (this->*(HandleNtf[index]))(aHeader, aPDU);
   }
-
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const int BluetoothDaemonCoreModule::MAX_NUM_CLIENTS = 1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1628,65 +1627,6 @@ BluetoothDaemonProtocol::FetchUserData(const BluetoothDaemonPDUHeader& aHeader)
 
 
 
-class BluetoothDaemonChannel final : public BluetoothDaemonConnection
-{
-public:
-  BluetoothDaemonChannel(BluetoothDaemonInterface* aInterface,
-                         BluetoothDaemonInterface::Channel aChannel,
-                         BluetoothDaemonPDUConsumer* aConsumer);
-
-  
-  
-
-  void OnConnectSuccess() override;
-  void OnConnectError() override;
-  void OnDisconnect() override;
-
-private:
-  BluetoothDaemonInterface* mInterface;
-  BluetoothDaemonInterface::Channel mChannel;
-};
-
-BluetoothDaemonChannel::BluetoothDaemonChannel(
-  BluetoothDaemonInterface* aInterface,
-  BluetoothDaemonInterface::Channel aChannel,
-  BluetoothDaemonPDUConsumer* aConsumer)
-  : BluetoothDaemonConnection(aConsumer)
-  , mInterface(aInterface)
-  , mChannel(aChannel)
-{ }
-
-void
-BluetoothDaemonChannel::OnConnectSuccess()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mInterface);
-
-  mInterface->OnConnectSuccess(mChannel);
-}
-
-void
-BluetoothDaemonChannel::OnConnectError()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mInterface);
-
-  mInterface->OnConnectError(mChannel);
-}
-
-void
-BluetoothDaemonChannel::OnDisconnect()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mInterface);
-
-  mInterface->OnDisconnect(mChannel);
-}
-
-
-
-
-
 
 
 
@@ -1811,149 +1751,6 @@ private:
   bool mRegisteredSocketModule;
 };
 
-void
-BluetoothDaemonInterface::OnConnectSuccess(enum Channel aChannel)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!mResultHandlerQ.IsEmpty());
-
-  switch (aChannel) {
-    case LISTEN_SOCKET: {
-        
-        nsCString value("bluetoothd:-a ");
-        value.Append(mListenSocketName);
-        if (NS_WARN_IF(property_set("ctl.start", value.get()) < 0)) {
-          OnConnectError(CMD_CHANNEL);
-        }
-
-        
-
-
-
-
-
-
-
-        if (!IsDaemonRunning()) {
-          MessageLoop::current()->PostDelayedTask(FROM_HERE,
-              new StartDaemonTask(this, value), sRetryInterval);
-        }
-      }
-      break;
-    case CMD_CHANNEL:
-      
-      if (!mNtfChannel) {
-        mNtfChannel = new BluetoothDaemonChannel(this, NTF_CHANNEL, mProtocol);
-      } else if (
-        NS_WARN_IF(mNtfChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
-        
-        mNtfChannel->Close();
-      }
-      if (NS_FAILED(mListenSocket->Listen(mNtfChannel))) {
-        OnConnectError(NTF_CHANNEL);
-      }
-      break;
-    case NTF_CHANNEL: {
-        nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
-        mResultHandlerQ.RemoveElementAt(0);
-
-        
-        nsresult rv = mProtocol->RegisterModuleCmd(
-          0x01, 0x00, BluetoothDaemonCoreModule::MAX_NUM_CLIENTS,
-          new InitResultHandler(this, res));
-        if (NS_FAILED(rv) && res) {
-          DispatchError(res, STATUS_FAIL);
-        }
-      }
-      break;
-  }
-}
-
-void
-BluetoothDaemonInterface::OnConnectError(enum Channel aChannel)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!mResultHandlerQ.IsEmpty());
-
-  switch (aChannel) {
-    case NTF_CHANNEL:
-      
-      mCmdChannel->Close();
-    case CMD_CHANNEL:
-      
-      unused << NS_WARN_IF(property_set("ctl.stop", "bluetoothd"));
-      mListenSocket->Close();
-    case LISTEN_SOCKET:
-      if (!mResultHandlerQ.IsEmpty()) {
-        
-        nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
-        mResultHandlerQ.RemoveElementAt(0);
-
-        if (res) {
-          DispatchError(res, STATUS_FAIL);
-        }
-      }
-      break;
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void
-BluetoothDaemonInterface::OnDisconnect(enum Channel aChannel)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  switch (aChannel) {
-    case CMD_CHANNEL:
-      
-      
-      break;
-    case NTF_CHANNEL:
-      
-      mListenSocket->Close();
-      break;
-    case LISTEN_SOCKET:
-      if (!mResultHandlerQ.IsEmpty()) {
-        nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
-        mResultHandlerQ.RemoveElementAt(0);
-        
-        if (res) {
-          res->Cleanup();
-        }
-      }
-      break;
-  }
-
-  
-
-
-  if (sNotificationHandler && mResultHandlerQ.IsEmpty()) {
-    if (mListenSocket->GetConnectionStatus() == SOCKET_DISCONNECTED &&
-        mCmdChannel->GetConnectionStatus() == SOCKET_DISCONNECTED &&
-        mNtfChannel->GetConnectionStatus() == SOCKET_DISCONNECTED) {
-      
-      
-      sNotificationHandler->BackendErrorNotification(true);
-      sNotificationHandler = nullptr;
-    }
-  }
-}
-
 nsresult
 BluetoothDaemonInterface::CreateRandomAddressString(
   const nsACString& aPrefix, unsigned long aPostfixLength,
@@ -2052,7 +1849,7 @@ BluetoothDaemonInterface::Init(
   
 
   if (!mCmdChannel) {
-    mCmdChannel = new BluetoothDaemonChannel(this, CMD_CHANNEL, mProtocol);
+    mCmdChannel = new BluetoothDaemonConnection(mProtocol, this, CMD_CHANNEL);
   } else if (
     NS_WARN_IF(mCmdChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
     
@@ -2506,23 +2303,147 @@ BluetoothDaemonInterface::GetBluetoothGattInterface()
 
 
 
-
 void
 BluetoothDaemonInterface::OnConnectSuccess(int aIndex)
 {
-  OnConnectSuccess(static_cast<enum Channel>(aIndex));
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!mResultHandlerQ.IsEmpty());
+
+  switch (aIndex) {
+    case LISTEN_SOCKET: {
+        
+        nsCString value("bluetoothd:-a ");
+        value.Append(mListenSocketName);
+        if (NS_WARN_IF(property_set("ctl.start", value.get()) < 0)) {
+          OnConnectError(CMD_CHANNEL);
+        }
+
+        
+
+
+
+
+
+
+
+        if (!IsDaemonRunning()) {
+          MessageLoop::current()->PostDelayedTask(FROM_HERE,
+              new StartDaemonTask(this, value), sRetryInterval);
+        }
+      }
+      break;
+    case CMD_CHANNEL:
+      
+      if (!mNtfChannel) {
+        mNtfChannel = new BluetoothDaemonConnection(mProtocol, this, NTF_CHANNEL);
+      } else if (
+        NS_WARN_IF(mNtfChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
+        
+        mNtfChannel->Close();
+      }
+      if (NS_FAILED(mListenSocket->Listen(mNtfChannel))) {
+        OnConnectError(NTF_CHANNEL);
+      }
+      break;
+    case NTF_CHANNEL: {
+        nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
+        mResultHandlerQ.RemoveElementAt(0);
+
+        
+        nsresult rv = mProtocol->RegisterModuleCmd(
+          0x01, 0x00, BluetoothDaemonCoreModule::MAX_NUM_CLIENTS,
+          new InitResultHandler(this, res));
+        if (NS_FAILED(rv) && res) {
+          DispatchError(res, STATUS_FAIL);
+        }
+      }
+      break;
+  }
 }
 
 void
 BluetoothDaemonInterface::OnConnectError(int aIndex)
 {
-  OnConnectError(static_cast<enum Channel>(aIndex));
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!mResultHandlerQ.IsEmpty());
+
+  switch (aIndex) {
+    case NTF_CHANNEL:
+      
+      mCmdChannel->Close();
+    case CMD_CHANNEL:
+      
+      unused << NS_WARN_IF(property_set("ctl.stop", "bluetoothd"));
+      mListenSocket->Close();
+    case LISTEN_SOCKET:
+      if (!mResultHandlerQ.IsEmpty()) {
+        
+        nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
+        mResultHandlerQ.RemoveElementAt(0);
+
+        if (res) {
+          DispatchError(res, STATUS_FAIL);
+        }
+      }
+      break;
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void
 BluetoothDaemonInterface::OnDisconnect(int aIndex)
 {
-  OnDisconnect(static_cast<enum Channel>(aIndex));
+  MOZ_ASSERT(NS_IsMainThread());
+
+  switch (aIndex) {
+    case CMD_CHANNEL:
+      
+      
+      break;
+    case NTF_CHANNEL:
+      
+      mListenSocket->Close();
+      break;
+    case LISTEN_SOCKET:
+      if (!mResultHandlerQ.IsEmpty()) {
+        nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
+        mResultHandlerQ.RemoveElementAt(0);
+        
+        if (res) {
+          res->Cleanup();
+        }
+      }
+      break;
+  }
+
+  
+
+
+  if (sNotificationHandler && mResultHandlerQ.IsEmpty()) {
+    if (mListenSocket->GetConnectionStatus() == SOCKET_DISCONNECTED &&
+        mCmdChannel->GetConnectionStatus() == SOCKET_DISCONNECTED &&
+        mNtfChannel->GetConnectionStatus() == SOCKET_DISCONNECTED) {
+      
+      
+      sNotificationHandler->BackendErrorNotification(true);
+      sNotificationHandler = nullptr;
+    }
+  }
 }
 
 END_BLUETOOTH_NAMESPACE
