@@ -2183,6 +2183,8 @@ SnapshotIterator::initInstructionResults(MaybeReadFallback& fallback)
     JitFrameLayout* fp = fallback.frame->jsFrame();
     RInstructionResults* results = fallback.activation->maybeIonFrameRecovery(fp);
     if (!results) {
+        AutoCompartment ac(cx, fallback.frame->script()->compartment());
+
         
         
         
