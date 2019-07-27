@@ -4524,7 +4524,7 @@ CheckFuncPtrCall(FunctionCompiler &f, ParseNode *callNode, RetType retType, MDef
 
     uint32_t mask;
     if (!IsLiteralInt(f.m(), maskNode, &mask) || mask == UINT32_MAX || !IsPowerOfTwo(mask + 1))
-        return f.fail(maskNode, "function-pointer table index mask value must be a power of two");
+        return f.fail(maskNode, "function-pointer table index mask value must be a power of two minus 1");
 
     MDefinition *indexDef;
     Type indexType;
@@ -5966,8 +5966,6 @@ CheckIfConditional(FunctionCompiler &f, ParseNode *conditional, ParseNode *thenS
 
 
 
-
-
 static bool
 CheckIfCondition(FunctionCompiler &f, ParseNode *cond, ParseNode *thenStmt,
                  ParseNode *elseOrJoinStmt, MBasicBlock **thenBlock, MBasicBlock **elseOrJoinBlock)
@@ -5978,7 +5976,6 @@ CheckIfCondition(FunctionCompiler &f, ParseNode *cond, ParseNode *thenStmt,
         return CheckIfConditional(f, cond, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock);
 
     
-    JS_ASSERT(!cond->isKind(PNK_CONDITIONAL));
     if (!CheckLeafCondition(f, cond, thenStmt, elseOrJoinStmt, thenBlock, elseOrJoinBlock))
         return false;
 
@@ -6594,7 +6591,7 @@ GetUnusedTask(ParallelGroupState &group, uint32_t i, AsmJSParallelTask **outTask
 }
 
 static bool
-CheckFunctionsParallelImpl(ModuleCompiler &m, ParallelGroupState &group)
+CheckFunctionsParallel(ModuleCompiler &m, ParallelGroupState &group)
 {
 #ifdef DEBUG
     {
@@ -6692,7 +6689,7 @@ CancelOutstandingJobs(ModuleCompiler &m, ParallelGroupState &group)
 static const size_t LIFO_ALLOC_PARALLEL_CHUNK_SIZE = 1 << 12;
 
 static bool
-CheckFunctionsParallel(ModuleCompiler &m)
+CheckFunctions(ModuleCompiler &m)
 {
     
     
@@ -6719,7 +6716,7 @@ CheckFunctionsParallel(ModuleCompiler &m)
 
     
     ParallelGroupState group(tasks);
-    if (!CheckFunctionsParallelImpl(m, group)) {
+    if (!CheckFunctionsParallel(m, group)) {
         CancelOutstandingJobs(m, group);
 
         
@@ -7910,7 +7907,7 @@ CheckModule(ExclusiveContext *cx, AsmJSParser &parser, ParseNode *stmtList,
 
     m.startFunctionBodies();
 
-    if (!CheckFunctionsParallel(m))
+    if (!CheckFunctions(m))
         return false;
 
     m.finishFunctionBodies();
