@@ -344,7 +344,7 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
                                       startEdge, endEdge, &mBaseline);
 
   nsIFrame* parent = GetParent();
-  bool inNestedRuby = parent->StyleContext()->IsDirectlyInsideRuby();
+  bool inNestedRuby = parent->StyleContext()->IsInlineDescendantOfRuby();
   
   
   bool allowLineBreak = !inNestedRuby && StyleText()->WhiteSpaceCanWrap(this);

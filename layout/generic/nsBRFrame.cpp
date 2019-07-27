@@ -97,7 +97,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
   
   
   nsLineLayout* ll = aReflowState.mLineLayout;
-  if (ll && !StyleContext()->IsDirectlyInsideRuby()) {
+  if (ll && !StyleContext()->IsInlineDescendantOfRuby()) {
     
     
     if ( ll->LineIsEmpty() ||

@@ -133,8 +133,8 @@ public:
   
   
   
-  bool IsDirectlyInsideRuby() const
-    { return !!(mBits & NS_STYLE_IS_DIRECTLY_INSIDE_RUBY); }
+  bool IsInlineDescendantOfRuby() const
+    { return !!(mBits & NS_STYLE_IS_INLINE_DESCENDANT_OF_RUBY); }
 
   
   
