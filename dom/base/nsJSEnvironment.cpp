@@ -123,7 +123,7 @@ const size_t gStackSize = 8192;
 static const int64_t kICCIntersliceDelay = 32; 
 
 
-static const int64_t kICCSliceBudget = 10; 
+static const int64_t kICCSliceBudget = 5; 
 
 
 static const uint32_t kMaxICCDuration = 2000; 
