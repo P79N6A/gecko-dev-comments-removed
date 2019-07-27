@@ -515,6 +515,11 @@ HttpChannelChild::DoOnStatus(nsIRequest* aRequest, nsresult status)
 
   
   
+  if (status == NS_OK)
+    return;
+
+  
+  
   if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending &&
       !(mLoadFlags & LOAD_BACKGROUND))
   {
