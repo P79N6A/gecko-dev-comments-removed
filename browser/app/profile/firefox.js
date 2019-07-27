@@ -316,7 +316,7 @@ pref("browser.urlbar.autoFill", true);
 pref("browser.urlbar.autoFill.typed", true);
 
 
-pref("browser.urlbar.unifiedcomplete", false);
+pref("browser.urlbar.unifiedcomplete", true);
 
 
 
