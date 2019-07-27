@@ -45,6 +45,11 @@ public:
   virtual bool HasAudio() MOZ_OVERRIDE;
   virtual bool HasVideo() MOZ_OVERRIDE;
 
+  
+  
+  
+  
+  virtual void PreReadMetadata() MOZ_OVERRIDE;
   virtual nsresult ReadMetadata(MediaInfo* aInfo,
                                 MetadataTags** aTags) MOZ_OVERRIDE;
 
@@ -107,6 +112,7 @@ private:
   bool IsSupportedAudioMimeType(const char* aMimeType);
   bool IsSupportedVideoMimeType(const char* aMimeType);
   void NotifyResourcesStatusChanged();
+  void RequestCodecResource();
   bool IsWaitingOnCodecResource();
   virtual bool IsWaitingOnCDMResource() MOZ_OVERRIDE;
 

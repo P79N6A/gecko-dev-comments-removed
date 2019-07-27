@@ -42,6 +42,8 @@ public:
   
   void cancelResource();
 
+  bool IsWaitingResource();
+
 protected:
   
   virtual void statusChanged(int event);
@@ -57,10 +59,11 @@ private:
 
   
   Mutex mLock;
-  MediaResourceManagerClient::State mState;
   sp<IMediaResourceManagerClient> mClient;
   sp<IMediaResourceManagerService> mService;
   IMediaResourceManagerService::ResourceType mType;
+
+  bool mWaitingResource;
 };
 
 } 

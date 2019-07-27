@@ -131,6 +131,7 @@ public:
   bool Prepare();
   bool IsWaitingResources();
   bool IsDormantNeeded();
+  void RequestMediaResources();
   void ReleaseMediaResources();
   
   bool UpdateOutputBuffers();

@@ -2737,6 +2737,12 @@ MediaDecoderStateMachine::FlushDecoding()
   
   
   
+  mAudioRequestPending = false;
+  mVideoRequestPending = false;
+
+  
+  
+  
   ResetPlayback();
 }
 
