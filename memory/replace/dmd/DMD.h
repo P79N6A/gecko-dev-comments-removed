@@ -51,9 +51,7 @@ struct DMDFuncs
 
   virtual void StatusMsg(const char*, va_list);
 
-  virtual void SetSampleBelowSize(size_t);
-
-  virtual void ClearBlocks();
+  virtual void ResetEverything(const char*);
 
 #ifndef REPLACE_MALLOC_IMPL
   
@@ -226,6 +224,17 @@ ClearReports()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 template <typename JSONWriteFunc>
 inline void
 Analyze(UniquePtr<JSONWriteFunc> aWriteFunc)
@@ -268,22 +277,14 @@ IsRunning()
 }
 
 
-inline void
-SetSampleBelowSize(size_t aSize)
-{
-  DMDFuncs* funcs = DMDFuncs::Get();
-  if (funcs) {
-    funcs->SetSampleBelowSize(aSize);
-  }
-}
 
 
 inline void
-ClearBlocks()
+ResetEverything(const char* aOptions)
 {
   DMDFuncs* funcs = DMDFuncs::Get();
   if (funcs) {
-    funcs->ClearBlocks();
+    funcs->ResetEverything(aOptions);
   }
 }
 #endif

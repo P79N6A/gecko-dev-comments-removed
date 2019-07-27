@@ -89,49 +89,40 @@ void Foo(int aSeven)
 }
 
 void
-RunTests()
+TestEmpty(const char* aTestName, const char* aMode)
 {
+  char filename[128];
+  sprintf(filename, "full-%s-%s.json", aTestName, aMode);
+  auto f = MakeUnique<FpWriteFunc>(filename);
+
+  char options[128];
+  sprintf(options, "--mode=%s --sample-below=1", aMode);
+  ResetEverything(options);
+
   
-  auto f1 = MakeUnique<FpWriteFunc>("full-empty.json");
-  auto f2 = MakeUnique<FpWriteFunc>("full-unsampled1.json");
-  auto f3 = MakeUnique<FpWriteFunc>("full-unsampled2.json");
-  auto f4 = MakeUnique<FpWriteFunc>("full-sampled.json");
+  Analyze(Move(f));
+}
+
+void
+TestUnsampled(const char* aTestName, int aNum, const char* aMode, int aSeven)
+{
+  char filename[128];
+  sprintf(filename, "full-%s%d-%s.json", aTestName, aNum, aMode);
+  auto f = MakeUnique<FpWriteFunc>(filename);
 
   
   
-  
-  
-  
-  
-  int seven = 7;
-
-  
-  
-  int *x = (int*)malloc(100);
-  UseItOrLoseIt(x, seven);
-  MOZ_RELEASE_ASSERT(IsRunning());
-
-  
-  SetSampleBelowSize(1);
-
-  
-  
-  ClearBlocks();
-
-  
-
-  
-  Analyze(Move(f1));
-
-  
+  char options[128];
+  sprintf(options, "--mode=%s --sample-below=1 --show-dump-stats=yes", aMode);
+  ResetEverything(options);
 
   
   
   int i;
   char* a = nullptr;
-  for (i = 0; i < seven + 3; i++) {
+  for (i = 0; i < aSeven + 3; i++) {
       a = (char*) malloc(100);
-      UseItOrLoseIt(a, seven);
+      UseItOrLoseIt(a, aSeven);
   }
   free(a);
 
@@ -158,7 +149,7 @@ RunTests()
   
   char* c = (char*) calloc(10, 3);
   Report(c);
-  for (int i = 0; i < seven - 4; i++) {
+  for (int i = 0; i < aSeven - 4; i++) {
     Report(c);
   }
 
@@ -191,8 +182,8 @@ RunTests()
 
   
   
-  char* f = (char*) malloc(64);
-  free(f);
+  char* f1 = (char*) malloc(64);
+  free(f1);
 
   
   
@@ -200,7 +191,7 @@ RunTests()
 
   
   
-  Foo(seven);
+  Foo(aSeven);
 
   
   
@@ -212,7 +203,7 @@ RunTests()
   
   
   
-  Foo(seven);
+  Foo(aSeven);
 
   
   
@@ -246,8 +237,12 @@ RunTests()
 
 
 
-  
-  Analyze(Move(f2));
+  if (aNum == 1) {
+    
+    Analyze(Move(f));
+  }
+
+  ClearReports();
 
   
 
@@ -262,67 +257,102 @@ RunTests()
 
 
 
-  
-  Analyze(Move(f3));
+  if (aNum == 2) {
+    
+    Analyze(Move(f));
+  }
+}
 
-  
+void
+TestSampled(const char* aTestName, const char* aMode, int aSeven)
+{
+  char filename[128];
+  sprintf(filename, "full-%s-%s.json", aTestName, aMode);
+  auto f = MakeUnique<FpWriteFunc>(filename);
 
-  
-  SetSampleBelowSize(128);
-
-  
-  ClearBlocks();
+  char options[128];
+  sprintf(options, "--mode=%s --sample-below=128", aMode);
+  ResetEverything(options);
 
   char* s;
 
   
   
   s = (char*) malloc(128);
-  UseItOrLoseIt(s, seven);
+  UseItOrLoseIt(s, aSeven);
 
   
   s = (char*) malloc(160);
-  UseItOrLoseIt(s, seven);
+  UseItOrLoseIt(s, aSeven);
 
   
-  for (int i = 0; i < seven + 9; i++) {
+  for (int i = 0; i < aSeven + 9; i++) {
     s = (char*) malloc(8);
-    UseItOrLoseIt(s, seven);
+    UseItOrLoseIt(s, aSeven);
   }
 
   
-  for (int i = 0; i < seven + 8; i++) {
+  for (int i = 0; i < aSeven + 8; i++) {
     s = (char*) malloc(8);
-    UseItOrLoseIt(s, seven);
+    UseItOrLoseIt(s, aSeven);
   }
 
   
   s = (char*) malloc(256);
-  UseItOrLoseIt(s, seven);
+  UseItOrLoseIt(s, aSeven);
 
   
   s = (char*) malloc(96);
-  UseItOrLoseIt(s, seven);
+  UseItOrLoseIt(s, aSeven);
 
   
-  for (int i = 0; i < seven - 2; i++) {
+  for (int i = 0; i < aSeven - 2; i++) {
     s = (char*) malloc(8);
-    UseItOrLoseIt(s, seven);
+    UseItOrLoseIt(s, aSeven);
   }
 
   
   
   
-  for (int i = 1; i <= seven + 1; i++) {
+  for (int i = 1; i <= aSeven + 1; i++) {
     s = (char*) malloc(i * 16);
-    UseItOrLoseIt(s, seven);
+    UseItOrLoseIt(s, aSeven);
   }
 
   
   
 
+  Analyze(Move(f));
+}
+
+void
+RunTests()
+{
   
-  Analyze(Move(f4));
+  
+  
+  
+  
+  
+  int seven = 7;
+
+  
+  
+  int *x = (int*)malloc(100);
+  UseItOrLoseIt(x, seven);
+  MOZ_RELEASE_ASSERT(IsRunning());
+
+  
+
+  TestEmpty("empty", "live");
+  TestEmpty("empty", "dark-matter");
+
+  TestUnsampled("unsampled", 1, "live",        seven);
+  TestUnsampled("unsampled", 1, "dark-matter", seven);
+
+  TestUnsampled("unsampled", 2, "dark-matter", seven);
+
+  TestSampled("sampled", "live", seven);
 }
 
 int main()
