@@ -45,16 +45,16 @@ public:
     
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
-                                    bool* result);
-    virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode);
+                                    bool* result) MOZ_OVERRIDE;
+    virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode) MOZ_OVERRIDE;
 
     
-    NS_IMETHOD Read(nsIObjectInputStream* aStream);
-    NS_IMETHOD Write(nsIObjectOutputStream* aStream);
+    NS_IMETHOD Read(nsIObjectInputStream* aStream) MOZ_OVERRIDE;
+    NS_IMETHOD Write(nsIObjectOutputStream* aStream) MOZ_OVERRIDE;
 
     
     
-    NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc);  
+    NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc) MOZ_OVERRIDE;  
 
 protected:
     nsCOMPtr<nsIURI> mInnerURI;

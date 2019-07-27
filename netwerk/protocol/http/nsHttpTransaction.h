@@ -132,7 +132,7 @@ public:
     bool UsesPipelining() const { return mCaps & NS_HTTP_ALLOW_PIPELINING; }
 
     
-    nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return mLoadGroupCI.get(); }
+    nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() MOZ_OVERRIDE { return mLoadGroupCI.get(); }
     void SetLoadGroupConnectionInfo(nsILoadGroupConnectionInfo *aLoadGroupCI) { mLoadGroupCI = aLoadGroupCI; }
     void DispatchedAsBlocking();
     void RemoveDispatchedAsBlocking();
@@ -372,7 +372,7 @@ public:
     
     
     
-    void OnTokenBucketAdmitted(); 
+    void OnTokenBucketAdmitted() MOZ_OVERRIDE; 
 
     
     

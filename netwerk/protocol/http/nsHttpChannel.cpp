@@ -5912,11 +5912,11 @@ class nsHttpChannelCacheKey MOZ_FINAL : public nsISupportsPRUint32,
 
     
     
-    NS_IMETHOD GetData(nsACString & aData)
+    NS_IMETHOD GetData(nsACString & aData) MOZ_OVERRIDE
     {
         return mSupportsCString->GetData(aData);
     }
-    NS_IMETHOD SetData(const nsACString & aData)
+    NS_IMETHOD SetData(const nsACString & aData) MOZ_OVERRIDE
     {
         return mSupportsCString->SetData(aData);
     }

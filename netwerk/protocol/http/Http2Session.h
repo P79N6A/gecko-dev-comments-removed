@@ -44,18 +44,18 @@ public:
  Http2Session(nsISocketTransport *, uint32_t version);
 
   bool AddStream(nsAHttpTransaction *, int32_t,
-                 bool, nsIInterfaceRequestor *);
-  bool CanReuse() { return !mShouldGoAway && !mClosed; }
-  bool RoomForMoreStreams();
+                 bool, nsIInterfaceRequestor *) MOZ_OVERRIDE;
+  bool CanReuse() MOZ_OVERRIDE { return !mShouldGoAway && !mClosed; }
+  bool RoomForMoreStreams() MOZ_OVERRIDE;
 
   
   
   
   
-  uint32_t  ReadTimeoutTick(PRIntervalTime now);
+  uint32_t  ReadTimeoutTick(PRIntervalTime now) MOZ_OVERRIDE;
 
   
-  PRIntervalTime IdleTime();
+  PRIntervalTime IdleTime() MOZ_OVERRIDE;
 
   
   uint32_t RegisterStreamID(Http2Stream *, uint32_t aNewID = 0);
@@ -192,13 +192,13 @@ public:
                     const char *, uint32_t);
 
   
-  void TransactionHasDataToWrite(nsAHttpTransaction *);
+  void TransactionHasDataToWrite(nsAHttpTransaction *) MOZ_OVERRIDE;
 
   
   void TransactionHasDataToWrite(Http2Stream *);
 
   
-  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment);
+  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment) MOZ_OVERRIDE;
   nsresult BufferOutput(const char *, uint32_t, uint32_t *);
   void     FlushOutputQueue();
   uint32_t AmountOfOutputBuffered() { return mOutputQueueUsed - mOutputQueueSent; }
@@ -213,7 +213,7 @@ public:
 
   uint64_t Serial() { return mSerial; }
 
-  void PrintDiagnostics (nsCString &log);
+  void PrintDiagnostics (nsCString &log) MOZ_OVERRIDE;
 
   
   uint32_t SendingChunkSize() { return mSendingChunkSize; }

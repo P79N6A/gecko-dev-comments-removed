@@ -57,7 +57,7 @@ private:
     }
 
     
-    nsHttpPipeline *QueryPipeline();
+    nsHttpPipeline *QueryPipeline() MOZ_OVERRIDE;
 
     nsRefPtr<nsAHttpConnection>   mConnection;
     nsTArray<nsAHttpTransaction*> mRequestQ;  

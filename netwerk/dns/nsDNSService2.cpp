@@ -270,13 +270,13 @@ public:
         , mFlags(flags)
         , mAF(af) {}
 
-    void OnLookupComplete(nsHostResolver *, nsHostRecord *, nsresult);
+    void OnLookupComplete(nsHostResolver *, nsHostRecord *, nsresult) MOZ_OVERRIDE;
     
     
     
-    bool EqualsAsyncListener(nsIDNSListener *aListener);
+    bool EqualsAsyncListener(nsIDNSListener *aListener) MOZ_OVERRIDE;
 
-    size_t SizeOfIncludingThis(mozilla::MallocSizeOf) const;
+    size_t SizeOfIncludingThis(mozilla::MallocSizeOf) const MOZ_OVERRIDE;
 
     nsRefPtr<nsHostResolver> mResolver;
     nsCString                mHost; 

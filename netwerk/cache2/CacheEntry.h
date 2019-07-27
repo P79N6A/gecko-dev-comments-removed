@@ -123,8 +123,8 @@ private:
   virtual ~CacheEntry();
 
   
-  NS_IMETHOD OnFileReady(nsresult aResult, bool aIsNew);
-  NS_IMETHOD OnFileDoomed(nsresult aResult);
+  NS_IMETHOD OnFileReady(nsresult aResult, bool aIsNew) MOZ_OVERRIDE;
+  NS_IMETHOD OnFileDoomed(nsresult aResult) MOZ_OVERRIDE;
 
   
   nsRefPtr<CacheStorageService> mService;

@@ -54,7 +54,7 @@ public:
   
 
 
-  void virtualDestroyNSSReference();
+  void virtualDestroyNSSReference() MOZ_OVERRIDE;
 
   
 
@@ -400,7 +400,7 @@ public:
   DigestOutputStream(nsIOutputStream* outputStream, PK11Context* aContext);
 
   
-  void virtualDestroyNSSReference() { }
+  void virtualDestroyNSSReference() MOZ_OVERRIDE { }
 
 private:
   ~DigestOutputStream();
