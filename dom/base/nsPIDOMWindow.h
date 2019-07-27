@@ -778,7 +778,10 @@ protected:
 
   
   nsCOMPtr<mozilla::dom::Element> mFrameElement;
-  nsIDocShell           *mDocShell;  
+  
+  
+  
+  nsIDocShell* MOZ_NON_OWNING_REF mDocShell;  
 
   
   nsRefPtr<nsPerformance>       mPerformance;
