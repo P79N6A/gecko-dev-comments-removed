@@ -7,7 +7,6 @@
 #include "nsIRunnable.h"
 #include "nsIThread.h"
 #include "nsITimer.h"
-#include "nsICancelableRunnable.h"
 
 #include "base/basictypes.h"
 #include "base/logging.h"
@@ -41,7 +40,7 @@ static mozilla::DebugOnly<MessagePump::Delegate*> gFirstDelegate;
 namespace mozilla {
 namespace ipc {
 
-class DoWorkRunnable MOZ_FINAL : public nsICancelableRunnable,
+class DoWorkRunnable MOZ_FINAL : public nsIRunnable,
                                  public nsITimerCallback
 {
 public:
@@ -54,15 +53,12 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIRUNNABLE
   NS_DECL_NSITIMERCALLBACK
-  NS_DECL_NSICANCELABLERUNNABLE
 
 private:
   ~DoWorkRunnable()
   { }
 
   MessagePump* mPump;
-  
-  
 };
 
 } 
@@ -215,8 +211,7 @@ MessagePump::DoDelayedWork(base::MessagePump::Delegate* aDelegate)
   }
 }
 
-NS_IMPL_ISUPPORTS(DoWorkRunnable, nsIRunnable, nsITimerCallback,
-                                  nsICancelableRunnable)
+NS_IMPL_ISUPPORTS(DoWorkRunnable, nsIRunnable, nsITimerCallback)
 
 NS_IMETHODIMP
 DoWorkRunnable::Run()
@@ -244,20 +239,6 @@ DoWorkRunnable::Notify(nsITimer* aTimer)
 
   mPump->DoDelayedWork(loop);
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-DoWorkRunnable::Cancel()
-{
-  
-  
-  
-  
-  
-  
-  
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(Run()));
   return NS_OK;
 }
 
