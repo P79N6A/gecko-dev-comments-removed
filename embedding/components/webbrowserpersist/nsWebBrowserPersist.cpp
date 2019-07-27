@@ -1675,9 +1675,6 @@ nsresult nsWebBrowserPersist::SaveDocumentInternal(
     else
     {
         
-        SetDocumentBase(aDocument, mCurrentBaseURI);
-
-        
         nsXPIDLString realContentType;
         GetDocEncoderContentType(aDocument,
             !mContentType.IsEmpty() ? mContentType.get() : nullptr,
@@ -1689,7 +1686,6 @@ nsresult nsWebBrowserPersist::SaveDocumentInternal(
         
         rv = SaveDocumentWithFixup(
             aDocument,
-            nullptr,  
             aFile,
             mReplaceExisting,
             contentType,
@@ -1728,11 +1724,6 @@ nsresult nsWebBrowserPersist::SaveDocuments()
 
         
 
-        nsEncoderNodeFixup *nodeFixup;
-        nodeFixup = new nsEncoderNodeFixup;
-        if (nodeFixup)
-            nodeFixup->mWebBrowserPersist = this;
-
         
         nsXPIDLString realContentType;
         GetDocEncoderContentType(docData->mDocument,
@@ -1745,7 +1736,6 @@ nsresult nsWebBrowserPersist::SaveDocuments()
         
         rv = SaveDocumentWithFixup(
             docData->mDocument,
-            nodeFixup,
             docData->mFile,
             mReplaceExisting,
             contentType,
@@ -3674,11 +3664,14 @@ nsWebBrowserPersist::CreateChannelFromURI(nsIURI *aURI, nsIChannel **aChannel)
 
 nsresult
 nsWebBrowserPersist::SaveDocumentWithFixup(
-    nsIDOMDocument *aDocument, nsIDocumentEncoderNodeFixup *aNodeFixup,
+    nsIDOMDocument *aDocument,
     nsIURI *aFile, bool aReplaceExisting, const nsACString &aFormatType,
     const nsCString &aSaveCharset, uint32_t aFlags)
 {
     NS_ENSURE_ARG_POINTER(aFile);
+
+    nsRefPtr<nsEncoderNodeFixup> nodeFixup = new nsEncoderNodeFixup();
+    nodeFixup->mWebBrowserPersist = this;
 
     nsresult  rv = NS_OK;
     nsCOMPtr<nsIFile> localFile;
@@ -3718,7 +3711,7 @@ nsWebBrowserPersist::SaveDocumentWithFixup(
     mTargetBaseURI = aFile;
 
     
-    encoder->SetNodeFixup(aNodeFixup);
+    encoder->SetNodeFixup(nodeFixup);
 
     if (mWrapColumn && (aFlags & ENCODE_FLAGS_WRAP))
         encoder->SetWrapColumn(mWrapColumn);
@@ -3806,223 +3799,6 @@ nsWebBrowserPersist::MakeAndStoreLocalFilenameInURIMap(
     {
         *aData = data;
     }
-
-    return NS_OK;
-}
-
-
-
-static const char kSpecialXHTMLTags[][11] = {
-    "body",
-    "head",
-    "img",
-    "script",
-    "a",
-    "area",
-    "link",
-    "input",
-    "frame",
-    "iframe",
-    "object",
-    "applet",
-    "form",
-    "blockquote",
-    "q",
-    "del",
-    "ins"
-};
-
-static bool IsSpecialXHTMLTag(nsIDOMNode *aNode)
-{
-    nsAutoString tmp;
-    aNode->GetNamespaceURI(tmp);
-    if (!tmp.EqualsLiteral("http://www.w3.org/1999/xhtml"))
-        return false;
-
-    aNode->GetLocalName(tmp);
-    for (uint32_t i = 0; i < ArrayLength(kSpecialXHTMLTags); i++) {
-        if (tmp.EqualsASCII(kSpecialXHTMLTags[i]))
-        {
-            
-            
-            
-            
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static bool HasSpecialXHTMLTags(nsIDOMNode *aParent)
-{
-    if (IsSpecialXHTMLTag(aParent))
-        return true;
-
-    nsCOMPtr<nsIDOMNodeList> list;
-    aParent->GetChildNodes(getter_AddRefs(list));
-    if (list)
-    {
-        uint32_t count;
-        list->GetLength(&count);
-        uint32_t i;
-        for (i = 0; i < count; i++) {
-            nsCOMPtr<nsIDOMNode> node;
-            list->Item(i, getter_AddRefs(node));
-            if (!node)
-                break;
-            uint16_t nodeType;
-            node->GetNodeType(&nodeType);
-            if (nodeType == nsIDOMNode::ELEMENT_NODE) {
-                return HasSpecialXHTMLTags(node);
-            }
-        }
-    }
-
-    return false;
-}
-
-static bool NeedXHTMLBaseTag(nsIDOMDocument *aDocument)
-{
-    nsCOMPtr<nsIDOMElement> docElement;
-    aDocument->GetDocumentElement(getter_AddRefs(docElement));
-
-    nsCOMPtr<nsIDOMNode> node(do_QueryInterface(docElement));
-    if (node)
-    {
-        return HasSpecialXHTMLTags(node);
-    }
-
-    return false;
-}
-
-
-nsresult
-nsWebBrowserPersist::SetDocumentBase(
-    nsIDOMDocument *aDocument, nsIURI *aBaseURI)
-{
-    if (mPersistFlags & PERSIST_FLAGS_NO_BASE_TAG_MODIFICATIONS)
-    {
-        return NS_OK;
-    }
-
-    NS_ENSURE_ARG_POINTER(aBaseURI);
-
-    nsCOMPtr<nsIDOMXMLDocument> xmlDoc;
-    nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(aDocument);
-    if (!htmlDoc)
-    {
-        xmlDoc = do_QueryInterface(aDocument);
-        if (!xmlDoc)
-        {
-            return NS_ERROR_FAILURE;
-        }
-    }
-
-    NS_NAMED_LITERAL_STRING(kXHTMLNS, "http://www.w3.org/1999/xhtml");
-    NS_NAMED_LITERAL_STRING(kHead, "head");
-
-    
-    nsCOMPtr<nsIDOMElement> headElement;
-    nsCOMPtr<nsIDOMNodeList> headList;
-    if (xmlDoc)
-    {
-        
-        
-        if (!NeedXHTMLBaseTag(aDocument))
-            return NS_OK;
-
-        aDocument->GetElementsByTagNameNS(
-            kXHTMLNS,
-            kHead, getter_AddRefs(headList));
-    }
-    else
-    {
-        aDocument->GetElementsByTagName(
-            kHead, getter_AddRefs(headList));
-    }
-    if (headList)
-    {
-        nsCOMPtr<nsIDOMNode> headNode;
-        headList->Item(0, getter_AddRefs(headNode));
-        headElement = do_QueryInterface(headNode);
-    }
-    if (!headElement)
-    {
-        
-        nsCOMPtr<nsIDOMNode> firstChildNode;
-        nsCOMPtr<nsIDOMNode> newNode;
-        if (xmlDoc)
-        {
-            aDocument->CreateElementNS(
-                kXHTMLNS,
-                kHead, getter_AddRefs(headElement));
-        }
-        else
-        {
-            aDocument->CreateElement(
-                kHead, getter_AddRefs(headElement));
-        }
-        nsCOMPtr<nsIDOMElement> documentElement;
-        aDocument->GetDocumentElement(getter_AddRefs(documentElement));
-        if (documentElement)
-        {
-            documentElement->GetFirstChild(getter_AddRefs(firstChildNode));
-            documentElement->InsertBefore(headElement, firstChildNode, getter_AddRefs(newNode));
-        }
-    }
-    if (!headElement)
-    {
-        return NS_ERROR_FAILURE;
-    }
-
-    
-    NS_NAMED_LITERAL_STRING(kBase, "base");
-    nsCOMPtr<nsIDOMElement> baseElement;
-    nsCOMPtr<nsIDOMHTMLCollection> baseList;
-    if (xmlDoc)
-    {
-        headElement->GetElementsByTagNameNS(
-            kXHTMLNS,
-            kBase, getter_AddRefs(baseList));
-    }
-    else
-    {
-        headElement->GetElementsByTagName(
-            kBase, getter_AddRefs(baseList));
-    }
-    if (baseList)
-    {
-        nsCOMPtr<nsIDOMNode> baseNode;
-        baseList->Item(0, getter_AddRefs(baseNode));
-        baseElement = do_QueryInterface(baseNode);
-    }
-
-    
-    if (!baseElement)
-    {
-      nsCOMPtr<nsIDOMNode> newNode;
-      if (xmlDoc)
-      {
-          aDocument->CreateElementNS(
-              kXHTMLNS,
-              kBase, getter_AddRefs(baseElement));
-      }
-      else
-      {
-          aDocument->CreateElement(
-              kBase, getter_AddRefs(baseElement));
-      }
-      headElement->AppendChild(baseElement, getter_AddRefs(newNode));
-    }
-    if (!baseElement)
-    {
-        return NS_ERROR_FAILURE;
-    }
-    nsAutoCString uriSpec;
-    aBaseURI->GetSpec(uriSpec);
-    NS_ConvertUTF8toUTF16 href(uriSpec);
-    baseElement->SetAttribute(NS_LITERAL_STRING("href"), href);
 
     return NS_OK;
 }
