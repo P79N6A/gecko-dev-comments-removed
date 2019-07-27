@@ -3011,9 +3011,8 @@ void TouchInputMapper::configureSurface(nsecs_t when, bool* outResetNeeded) {
     }
 
     
-    bool deviceModeChanged;
-    if (mDeviceMode != oldDeviceMode) {
-        deviceModeChanged = true;
+    bool deviceModeChanged = mDeviceMode != oldDeviceMode;
+    if (deviceModeChanged) {
         mOrientedRanges.clear();
     }
 
