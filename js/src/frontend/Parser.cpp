@@ -4828,13 +4828,37 @@ Parser<ParseHandler>::yieldExpression()
 
         pc->lastYieldOffset = begin;
 
-        ParseNodeKind kind = tokenStream.matchToken(TOK_MUL) ? PNK_YIELD_STAR : PNK_YIELD;
-
-        
-        Node exprNode = assignExpr();
-        if (!exprNode)
+        Node exprNode;
+        ParseNodeKind kind = PNK_YIELD;
+        switch (tokenStream.peekTokenSameLine(TokenStream::Operand)) {
+          case TOK_ERROR:
             return null();
-
+          
+          
+          case TOK_EOL:
+          
+          
+          
+          
+          case TOK_EOF:
+          case TOK_SEMI:
+          case TOK_RC:
+          case TOK_RB:
+          case TOK_RP:
+          case TOK_COLON:
+          case TOK_COMMA:
+            
+            exprNode = null();
+            break;
+          case TOK_MUL:
+            kind = PNK_YIELD_STAR;
+            tokenStream.consumeKnownToken(TOK_MUL);
+            
+          default:
+            exprNode = assignExpr();
+            if (!exprNode)
+                return null();
+        }
         return handler.newUnary(kind, JSOP_NOP, begin, exprNode);
       }
 
@@ -4885,11 +4909,6 @@ Parser<ParseHandler>::yieldExpression()
           case TOK_COMMA:
             
             exprNode = null();
-            
-            
-            
-            if (!reportWithOffset(ParseWarning, false, pos().begin, JSMSG_YIELD_WITHOUT_OPERAND))
-                return null();
             break;
           default:
             exprNode = assignExpr();

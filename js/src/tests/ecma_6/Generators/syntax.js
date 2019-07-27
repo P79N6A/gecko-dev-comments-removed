@@ -26,6 +26,39 @@ function* g() { yield 3; yield 4; }
 function* g() { (yield 3) + (yield 4); }
 
 
+function* g() { yield; }
+function* g() { yield }
+function* g() {
+    yield
+}
+function* g() { (yield) }
+function* g() { [yield] }
+function* g() { {yield} }
+function* g() { yield, yield }
+function* g() { yield; yield }
+function* g() { (yield) ? yield : yield }
+function* g() {
+    (yield)
+    ? yield
+    : yield
+}
+
+
+
+function* g() {
+    yield *
+    foo
+}
+assertThrows("function* g() { yield\n* foo }", SyntaxError);
+assertIteratorNext(function*(){
+                       yield
+                       3
+                   }(), undefined)
+
+
+assertThrows("function* g() { yield ? yield : yield }", SyntaxError);
+
+
 function* g() { "use strict"; yield 3; yield 4; }
 
 
@@ -73,9 +106,6 @@ assertSyntaxError("function* g() { yield: 1 }")
 
 
 function* g() { function f(yield) { yield (yield + yield (0)); } }
-
-
-assertSyntaxError("function* g() { yield; }");
 
 
 assertSyntaxError("function* g() { yield = 10; }");
