@@ -1468,7 +1468,7 @@ SetAddonInterposition(const nsACString &addonIdStr, nsIAddonInterposition *inter
         
         
         AutoJSAPI jsapi;
-        jsapi.Init(xpc::GetJunkScopeGlobal());
+        jsapi.Init(xpc::GetNativeForGlobal(xpc::PrivilegedJunkScope()));
         addonId = NewAddonId(jsapi.cx(), addonIdStr);
         if (!addonId)
             return false;

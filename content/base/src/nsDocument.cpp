@@ -2142,7 +2142,7 @@ nsDocument::Init()
   
   
   
-  nsCOMPtr<nsIGlobalObject> global = xpc::GetJunkScopeGlobal();
+  nsCOMPtr<nsIGlobalObject> global = xpc::GetNativeForGlobal(xpc::PrivilegedJunkScope());
   NS_ENSURE_TRUE(global, NS_ERROR_FAILURE);
   mScopeObject = do_GetWeakReference(global);
   MOZ_ASSERT(mScopeObject);

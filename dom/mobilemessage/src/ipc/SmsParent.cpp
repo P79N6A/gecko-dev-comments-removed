@@ -495,7 +495,7 @@ SmsRequestParent::DoRequest(const SendMessageRequest& aRequest)
       
       
       AutoJSContext cx;
-      JSAutoCompartment ac(cx, xpc::GetJunkScope());
+      JSAutoCompartment ac(cx, xpc::PrivilegedJunkScope());
       JS::Rooted<JS::Value> params(cx);
       const SendMmsMessageRequest &req = aRequest.get_SendMmsMessageRequest();
       if (!GetParamsFromSendMmsMessageRequest(cx,

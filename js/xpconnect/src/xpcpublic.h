@@ -448,14 +448,7 @@ UnwrapReflectorToISupports(JSObject *reflector);
 
 
 JSObject *
-GetJunkScope();
-
-
-
-
-
-nsIGlobalObject *
-GetJunkScopeGlobal();
+PrivilegedJunkScope();
 
 
 
@@ -463,7 +456,7 @@ GetJunkScopeGlobal();
 
 
 JSObject *
-GetCompilationScope();
+CompilationScope();
 
 
 

@@ -1113,7 +1113,7 @@ Console::ProcessCallData(ConsoleCallData* aData)
   
   
   
-  JSAutoCompartment ac2(cx, xpc::GetJunkScope());
+  JSAutoCompartment ac2(cx, xpc::PrivilegedJunkScope());
 
   JS::Rooted<JS::Value> eventValue(cx);
   if (!ToJSValue(cx, event, &eventValue)) {
