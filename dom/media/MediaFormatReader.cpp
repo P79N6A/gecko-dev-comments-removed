@@ -1438,7 +1438,8 @@ void MediaFormatReader::ReleaseMediaResources()
 {
   
   
-  VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
+  VideoFrameContainer* container =
+    mDecoder ? mDecoder->GetVideoFrameContainer() : nullptr;
   if (container) {
     container->ClearCurrentFrame();
   }
