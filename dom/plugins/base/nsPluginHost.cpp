@@ -1544,7 +1544,7 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  virtual nsresult Callback(nsresult rv) {
+  NS_IMETHOD Callback(nsresult rv) {
     if (NS_FAILED(rv)) {
       callback->Callback(rv);
       return NS_OK;
@@ -1566,7 +1566,7 @@ public:
   }
 
   
-  virtual nsresult SitesWithData(InfallibleTArray<nsCString>& sites)
+  NS_IMETHOD SitesWithData(InfallibleTArray<nsCString>& sites)
   {
     
     nsresult rv = host->EnumerateSiteData(domain, sites, matches, false);
@@ -1650,7 +1650,7 @@ public:
   NS_DECL_ISUPPORTS
   GetSitesClosure(const nsACString& domain, nsPluginHost* host) : domain(domain), host(host) {
   }
-  virtual nsresult SitesWithData(InfallibleTArray<nsCString>& sites) {
+  NS_IMETHOD SitesWithData(InfallibleTArray<nsCString>& sites) {
     retVal = HandleGetSites(sites);
     keepWaiting = false;
     return NS_OK;
