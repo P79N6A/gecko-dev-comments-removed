@@ -214,6 +214,13 @@ this.GoogleImporter.prototype = {
     gAuthWindow.focus();
 
     let code;
+
+    function promiseTimeOut() {
+      return new Promise(resolve => {
+        setTimeout(resolve, kTitlebarPollTimeout);
+      });
+    }
+
     
     
     
@@ -235,7 +242,7 @@ this.GoogleImporter.prototype = {
           throw new Error("Unknown response from Google");
         }
       } else {
-        yield new Promise(resolve => setTimeout(resolve, kTitlebarPollTimeout));
+        yield promiseTimeOut();
       }
     }
 
@@ -572,11 +579,15 @@ this.GoogleImporter.prototype = {
     let profileId = "https://www.google.com/m8/feeds/contacts/" + encodeURIComponent(gProfileId);
     let processed = 0;
 
+    function promiseSkipABeat() {
+      return new Promise(resolve => Services.tm.currentThread.dispatch(resolve,
+                                      Ci.nsIThread.DISPATCH_NORMAL));
+    }
+
     for (let [guid, contact] of Iterator(contacts)) {
       if (++processed % kContactsChunkSize === 0) {
         
-        yield new Promise(resolve => Services.tm.currentThread.dispatch(resolve,
-                                       Ci.nsIThread.DISPATCH_NORMAL));
+        yield promiseSkipABeat;
       }
 
       if (contact.id.indexOf(profileId) >= 0 && !ids[contact.id]) {
