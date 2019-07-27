@@ -27,10 +27,7 @@ class MDefinitionIterator;
 typedef InlineListIterator<MInstruction> MInstructionIterator;
 typedef InlineListReverseIterator<MInstruction> MInstructionReverseIterator;
 typedef InlineListIterator<MPhi> MPhiIterator;
-
-#ifdef DEBUG
 typedef InlineForwardListIterator<MResumePoint> MResumePointIterator;
-#endif
 
 class LBlock;
 
@@ -187,9 +184,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     void addResumePoint(MResumePoint *resume) {
-#ifdef DEBUG
         resumePoints_.pushFront(resume);
-#endif
     }
 
     
@@ -346,7 +341,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     bool phisEmpty() const {
         return phis_.empty();
     }
-#ifdef DEBUG
     MResumePointIterator resumePointsBegin() const {
         return resumePoints_.begin();
     }
@@ -356,7 +350,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     bool resumePointsEmpty() const {
         return resumePoints_.empty();
     }
-#endif
     MInstructionIterator begin() {
         return instructions_.begin();
     }
@@ -569,6 +562,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     InlineList<MInstruction> instructions_;
     Vector<MBasicBlock *, 1, IonAllocPolicy> predecessors_;
     InlineList<MPhi> phis_;
+    InlineForwardList<MResumePoint> resumePoints_;
     FixedList<MDefinition *> slots_;
     uint32_t stackPosition_;
     uint32_t id_;
@@ -584,12 +578,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     
     MResumePoint *outerResumePoint_;
-
-#ifdef DEBUG
-    
-    
-    InlineForwardList<MResumePoint> resumePoints_;
-#endif
 
     MBasicBlock *successorWithPhis_;
     uint32_t positionInPhiSuccessor_;

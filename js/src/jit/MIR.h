@@ -10206,11 +10206,7 @@ class MNewDenseArrayPar : public MBinaryInstruction
 
 
 
-class MResumePoint MOZ_FINAL :
-  public MNode
-#ifdef DEBUG
-  , public InlineForwardListNode<MResumePoint>
-#endif
+class MResumePoint MOZ_FINAL : public MNode, public InlineForwardListNode<MResumePoint>
 {
   public:
     enum Mode {
