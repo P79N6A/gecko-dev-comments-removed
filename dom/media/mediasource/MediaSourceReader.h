@@ -84,6 +84,12 @@ public:
 
   void NotifyTimeRangesChanged();
 
+  virtual void DisableHardwareAcceleration() MOZ_OVERRIDE {
+    if (GetVideoReader()) {
+      GetVideoReader()->DisableHardwareAcceleration();
+    }
+  }
+
   
   
   

@@ -90,6 +90,7 @@
 #include "MediaDecoderOwner.h"
 #include "MediaMetadataManager.h"
 #include "MediaDecoderStateMachineScheduler.h"
+#include "mozilla/RollingMean.h"
 
 class nsITimer;
 
@@ -1134,6 +1135,10 @@ protected:
   mozilla::MediaMetadataManager mMetadataManager;
 
   MediaDecoderOwner::NextFrameStatus mLastFrameStatus;
+
+  mozilla::RollingMean<uint32_t, uint32_t> mCorruptFrames;
+
+  bool mDisabledHardwareAcceleration;
 
   
   

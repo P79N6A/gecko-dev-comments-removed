@@ -37,6 +37,11 @@ public:
   bool SupportsVideoMimeType(const char* aMimeType) MOZ_OVERRIDE;
   bool SupportsAudioMimeType(const char* aMimeType) MOZ_OVERRIDE;
 
+  virtual void DisableHardwareAcceleration() MOZ_OVERRIDE
+  {
+    sDXVAEnabled = false;
+  }
+
   
   
   
