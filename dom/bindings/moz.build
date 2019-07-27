@@ -6,10 +6,6 @@
 
 TEST_DIRS += ['test']
 
-EXPORTS.ipc += [
-    'ErrorIPCUtils.h',
-]
-
 EXPORTS.mozilla += [
     'ErrorResult.h',
 ]
@@ -48,6 +44,7 @@ LOCAL_INCLUDES += [
     '/dom/base',
     '/dom/battery',
     '/dom/bluetooth',
+    '/dom/bluetooth/bluetooth1',
     '/dom/camera',
     '/dom/canvas',
     '/dom/geolocation',
