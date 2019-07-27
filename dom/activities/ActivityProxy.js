@@ -61,6 +61,14 @@ ActivityProxy.prototype = {
       return;
     }
 
+    
+    if (aOptions.name === 'internal-system-engineering-mode' &&
+        principal.appStatus != Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+      Services.DOMRequest.fireErrorAsync(this.activity, "SecurityError");
+      Services.obs.notifyObservers(null, "Activity:Error", null);
+      return;
+    }
+
     cpmm.addMessageListener("Activity:FireSuccess", this);
     cpmm.addMessageListener("Activity:FireError", this);
 
