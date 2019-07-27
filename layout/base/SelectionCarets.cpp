@@ -584,28 +584,16 @@ SelectionCarets::SelectWord()
   nsPoint ptInFrame = mDownPoint;
   nsLayoutUtils::TransformPoint(rootFrame, ptFrame, ptInFrame);
 
-  nsIFrame* currFrame = ptFrame;
-  nsIContent* newFocusContent = nullptr;
-  while (currFrame) {
-    int32_t tabIndexUnused = 0;
-    if (currFrame->IsFocusable(&tabIndexUnused, true)) {
-      newFocusContent = currFrame->GetContent();
-      nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(newFocusContent));
-      if (domElement)
-        break;
-    }
-    currFrame = currFrame->GetParent();
-  }
-
-
   
   
   
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   nsIContent* editingHost = ptFrame->GetContent()->GetEditingHost();
-  if (newFocusContent && currFrame) {
-    nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(newFocusContent));
-    fm->SetFocus(domElement,0);
+  if (editingHost) {
+    nsCOMPtr<nsIDOMElement> elt = do_QueryInterface(editingHost->GetParent());
+    if (elt) {
+      fm->SetFocus(elt, 0);
+    }
 
     if (!nsContentUtils::HasNonEmptyTextContent(
           editingHost, nsContentUtils::eRecurseIntoChildren)) {
