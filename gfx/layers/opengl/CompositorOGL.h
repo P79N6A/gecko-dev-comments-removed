@@ -54,7 +54,7 @@ class GLManagerCompositor;
 class TextureSource;
 struct Effect;
 struct EffectChain;
-
+class GLBlitTextureImageHelper;
 
 
 
@@ -259,6 +259,8 @@ public:
     return gfx::SurfaceFormat::R8G8B8A8;
   }
 
+  GLBlitTextureImageHelper* BlitTextureImageHelper();
+
   
 
 
@@ -280,6 +282,7 @@ private:
   nsIWidget *mWidget;
   nsIntSize mWidgetSize;
   nsRefPtr<GLContext> mGLContext;
+  UniquePtr<GLBlitTextureImageHelper> mBlitTextureImageHelper;
   gfx::Matrix4x4 mProjMatrix;
 
   
