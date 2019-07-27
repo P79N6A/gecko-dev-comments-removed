@@ -142,7 +142,8 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
   }
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
   double highestEndTime = mTrackBuffer->Buffered(ranges);
-  if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended) {
+  if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended &&
+      highestEndTime > 0) {
     
     
     
