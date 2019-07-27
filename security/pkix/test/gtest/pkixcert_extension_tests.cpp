@@ -109,7 +109,7 @@ private:
   }
 };
 
-class pkix_cert_extensions: public NSSTest
+class pkixcert_extension: public NSSTest
 {
 public:
   static void SetUpTestCase()
@@ -121,12 +121,12 @@ protected:
   static TrustEverythingTrustDomain trustDomain;
 };
 
- TrustEverythingTrustDomain pkix_cert_extensions::trustDomain;
+ TrustEverythingTrustDomain pkixcert_extension::trustDomain;
 
 
 
 
-TEST_F(pkix_cert_extensions, UnknownCriticalExtension)
+TEST_F(pkixcert_extension, UnknownCriticalExtension)
 {
   static const uint8_t unknownCriticalExtensionBytes[] = {
     0x30, 0x19, 
@@ -161,7 +161,7 @@ TEST_F(pkix_cert_extensions, UnknownCriticalExtension)
 
 
 
-TEST_F(pkix_cert_extensions, UnknownNonCriticalExtension)
+TEST_F(pkixcert_extension, UnknownNonCriticalExtension)
 {
   static const uint8_t unknownNonCriticalExtensionBytes[] = {
     0x30, 0x16, 
@@ -195,7 +195,7 @@ TEST_F(pkix_cert_extensions, UnknownNonCriticalExtension)
 
 
 
-TEST_F(pkix_cert_extensions, WrongOIDCriticalExtension)
+TEST_F(pkixcert_extension, WrongOIDCriticalExtension)
 {
   static const uint8_t wrongOIDCriticalExtensionBytes[] = {
     0x30, 0x10, 
@@ -213,7 +213,7 @@ TEST_F(pkix_cert_extensions, WrongOIDCriticalExtension)
   const char* certCN = "CN=Cert With Critical Wrong OID Extension";
   ScopedSECKEYPrivateKey key;
   
-  const SECItem* cert(CreateCert(arena.get(), certCN, 
+  const SECItem* cert(CreateCert(arena.get(), certCN,
                                  &wrongOIDCriticalExtension, key));
   ASSERT_TRUE(cert);
   ScopedCERTCertList results;
@@ -229,7 +229,7 @@ TEST_F(pkix_cert_extensions, WrongOIDCriticalExtension)
 
 
 
-TEST_F(pkix_cert_extensions, CriticalAIAExtension)
+TEST_F(pkixcert_extension, CriticalAIAExtension)
 {
   
   
@@ -266,7 +266,7 @@ TEST_F(pkix_cert_extensions, CriticalAIAExtension)
 
 
 
-TEST_F(pkix_cert_extensions, UnknownCriticalCEExtension)
+TEST_F(pkixcert_extension, UnknownCriticalCEExtension)
 {
   static const uint8_t unknownCriticalCEExtensionBytes[] = {
     0x30, 0x0a, 
@@ -299,7 +299,7 @@ TEST_F(pkix_cert_extensions, UnknownCriticalCEExtension)
 
 
 
-TEST_F(pkix_cert_extensions, KnownCriticalCEExtension)
+TEST_F(pkixcert_extension, KnownCriticalCEExtension)
 {
   static const uint8_t criticalCEExtensionBytes[] = {
     0x30, 0x0d, 
@@ -331,7 +331,7 @@ TEST_F(pkix_cert_extensions, KnownCriticalCEExtension)
 }
 
 
-TEST_F(pkix_cert_extensions, DuplicateSubjectAltName)
+TEST_F(pkixcert_extension, DuplicateSubjectAltName)
 {
   static const uint8_t DER_BYTES[] = {
     0x30, 22, 

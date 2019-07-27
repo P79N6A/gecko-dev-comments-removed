@@ -31,7 +31,7 @@
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
 
-class pkix_ocsp_request_tests : public NSSTest
+class pkixocsp_CreateEncodedOCSPRequest : public NSSTest
 {
 protected:
   
@@ -90,7 +90,7 @@ protected:
 
 
 
-TEST_F(pkix_ocsp_request_tests, ChildCertLongSerialNumberTest)
+TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest)
 {
   const SECItem* issuerDER;
   ScopedSECItem issuerSPKI;
@@ -104,7 +104,7 @@ TEST_F(pkix_ocsp_request_tests, ChildCertLongSerialNumberTest)
 
 
 
-TEST_F(pkix_ocsp_request_tests, LongestSupportedSerialNumberTest)
+TEST_F(pkixocsp_CreateEncodedOCSPRequest, LongestSupportedSerialNumberTest)
 {
   const SECItem* issuerDER;
   ScopedSECItem issuerSPKI;
