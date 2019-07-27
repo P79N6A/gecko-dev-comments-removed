@@ -770,18 +770,19 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
   if (!cancel && !handled)
   {
     
-    nsCOMPtr<nsIDOMNode> selNode;
-    int32_t selOffset;
-    res = GetStartNodeAndOffset(selection, getter_AddRefs(selNode), &selOffset);
-    NS_ENSURE_SUCCESS(res, res);
+    NS_ENSURE_STATE(selection->GetRangeAt(0));
+    nsCOMPtr<nsINode> selNode = selection->GetRangeAt(0)->GetStartParent();
+    int32_t selOffset = selection->GetRangeAt(0)->StartOffset();
+    NS_ENSURE_STATE(selNode);
 
     
-    if (!IsTextNode(selNode) && !CanContainTag(selNode, nsGkAtoms::textTagName)) {
+    if (!IsTextNode(selNode) && !CanContainTag(GetAsDOMNode(selNode),
+                                               nsGkAtoms::textTagName)) {
       return NS_ERROR_FAILURE;
     }
 
     
-    nsCOMPtr<nsIDOMDocument> doc = GetDOMDocument();
+    nsCOMPtr<nsIDocument> doc = GetDocument();
     NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
 
     
@@ -803,8 +804,8 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
         int32_t endOffset;
         res = GetEndNodeAndOffset(selection, getter_AddRefs(endNode), &endOffset);
 
-        if (NS_SUCCEEDED(res) && endNode == selNode && endOffset == selOffset)
-        {
+        if (NS_SUCCEEDED(res) && endNode == GetAsDOMNode(selNode)
+            && endOffset == selOffset) {
           
           
           

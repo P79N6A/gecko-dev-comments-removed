@@ -700,22 +700,21 @@ nsTextEditRules::WillInsertText(EditAction aAction,
   }
 
   
-  nsCOMPtr<nsIDOMNode> selNode;
-  int32_t selOffset;
-  NS_ENSURE_STATE(mEditor);
-  res = mEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(selNode), &selOffset);
-  NS_ENSURE_SUCCESS(res, res);
+  NS_ENSURE_STATE(aSelection->GetRangeAt(0));
+  nsCOMPtr<nsINode> selNode = aSelection->GetRangeAt(0)->GetStartParent();
+  int32_t selOffset = aSelection->GetRangeAt(0)->StartOffset();
+  NS_ENSURE_STATE(selNode);
 
   
   NS_ENSURE_STATE(mEditor);
   if (!mEditor->IsTextNode(selNode) &&
-      !mEditor->CanContainTag(selNode, nsGkAtoms::textTagName)) {
+      !mEditor->CanContainTag(GetAsDOMNode(selNode), nsGkAtoms::textTagName)) {
     return NS_ERROR_FAILURE;
   }
 
   
   NS_ENSURE_STATE(mEditor);
-  nsCOMPtr<nsIDOMDocument> doc = mEditor->GetDOMDocument();
+  nsCOMPtr<nsIDocument> doc = mEditor->GetDocument();
   NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
     
   if (aAction == EditAction::insertIMEText) {
@@ -724,7 +723,7 @@ nsTextEditRules::WillInsertText(EditAction aAction,
     NS_ENSURE_SUCCESS(res, res);
   } else {
     
-    nsCOMPtr<nsIDOMNode> curNode = selNode;
+    nsCOMPtr<nsINode> curNode = selNode;
     int32_t curOffset = selOffset;
 
     

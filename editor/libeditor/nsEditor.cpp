@@ -2269,11 +2269,11 @@ NS_IMETHODIMP nsEditor::ScrollSelectionIntoView(bool aScrollToAnchor)
   return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
-                         nsCOMPtr<nsIDOMNode>* aInOutNode,
+                         nsCOMPtr<nsINode>* aInOutNode,
                          int32_t* aInOutOffset,
-                         nsIDOMDocument* aDoc)
+                         nsIDocument* aDoc)
 {
   
   
@@ -2285,8 +2285,7 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
     return NS_OK;
   }
 
-  nsCOMPtr<nsINode> node = do_QueryInterface(*aInOutNode);
-  NS_ENSURE_STATE(node);
+  nsCOMPtr<nsINode> node = *aInOutNode;
   uint32_t offset = static_cast<uint32_t>(*aInOutOffset);
 
   if (!node->IsNodeOfType(nsINode::eTEXT) && IsPlaintextEditor()) {
@@ -2324,11 +2323,9 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
   if (mComposition) {
     if (!node->IsNodeOfType(nsINode::eTEXT)) {
       
-      nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDoc);
-      NS_ENSURE_STATE(doc);
-      nsRefPtr<nsTextNode> newNode = doc->CreateTextNode(EmptyString());
+      nsRefPtr<nsTextNode> newNode = aDoc->CreateTextNode(EmptyString());
       
-      res = InsertNode(newNode->AsDOMNode(), node->AsDOMNode(), offset);
+      res = InsertNode(*newNode, *node, offset);
       NS_ENSURE_SUCCESS(res, res);
       node = newNode;
       offset = 0;
@@ -2347,18 +2344,16 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
     } else {
       
       
-      nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDoc);
-      NS_ENSURE_STATE(doc);
-      nsRefPtr<nsTextNode> newNode = doc->CreateTextNode(aStringToInsert);
+      nsRefPtr<nsTextNode> newNode = aDoc->CreateTextNode(aStringToInsert);
       
-      res = InsertNode(newNode->AsDOMNode(), node->AsDOMNode(), offset);
+      res = InsertNode(*newNode, *node, offset);
       NS_ENSURE_SUCCESS(res, res);
       node = newNode;
       offset = aStringToInsert.Length();
     }
   }
 
-  *aInOutNode = node->AsDOMNode();
+  *aInOutNode = node;
   *aInOutOffset = static_cast<int32_t>(offset);
   return NS_OK;
 }
