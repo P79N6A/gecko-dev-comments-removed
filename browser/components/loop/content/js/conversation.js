@@ -53,8 +53,7 @@ loop.conversation = (function(OT, mozL10n) {
 
     handleDecline: function(event) {
       event.preventDefault();
-      
-      window.close();
+      this.model.trigger("decline");
     }
   });
 
@@ -95,6 +94,7 @@ loop.conversation = (function(OT, mozL10n) {
     routes: {
       "incoming/:version": "incoming",
       "call/accept": "accept",
+      "call/decline": "decline",
       "call/ongoing": "conversation",
       "call/ended": "ended"
     },
@@ -120,9 +120,13 @@ loop.conversation = (function(OT, mozL10n) {
 
 
     incoming: function(loopVersion) {
+      window.navigator.mozLoop.startAlerting();
       this._conversation.set({loopVersion: loopVersion});
       this._conversation.once("accept", function() {
         this.navigate("call/accept", {trigger: true});
+      }.bind(this));
+      this._conversation.once("decline", function() {
+        this.navigate("call/decline", {trigger: true});
       }.bind(this));
       this.loadView(new IncomingCallView({model: this._conversation}));
     },
@@ -131,10 +135,20 @@ loop.conversation = (function(OT, mozL10n) {
 
 
     accept: function() {
+      window.navigator.mozLoop.stopAlerting();
       this._conversation.initiate({
         baseServerUrl: window.navigator.mozLoop.serverUrl,
         outgoing: false
       });
+    },
+
+    
+
+
+    decline: function() {
+      window.navigator.mozLoop.stopAlerting();
+      
+      window.close();
     },
 
     
