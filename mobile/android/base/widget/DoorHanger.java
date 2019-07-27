@@ -121,7 +121,6 @@ public abstract class DoorHanger extends LinearLayout {
             mPositiveButton.setText(positiveButtonConfig.label);
             mPositiveButton.setOnClickListener(makeOnButtonClickListener(positiveButtonConfig.callback));
             mPositiveButton.setVisibility(VISIBLE);
-            
         }
    }
 
