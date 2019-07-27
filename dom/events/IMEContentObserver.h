@@ -201,6 +201,10 @@ private:
   
   
   FlatTextCache mEndOfAddedTextCache;
+  
+  
+  
+  FlatTextCache mStartOfRemovingTextRangeCache;
 
   TextChangeData mTextChangeData;
 
