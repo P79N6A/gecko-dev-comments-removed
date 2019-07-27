@@ -8,6 +8,7 @@
 #include "mozilla/dom/MozIccBinding.h"
 #include "mozilla/DOMEventTargetHelper.h"
 
+class nsIIcc;
 class nsIIccInfo;
 class nsIIccProvider;
 
@@ -25,7 +26,8 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Icc, DOMEventTargetHelper)
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
 
-  Icc(nsPIDOMWindow* aWindow, long aClientId, nsIIccInfo* aIccInfo);
+  Icc(nsPIDOMWindow* aWindow, long aClientId,
+      nsIIcc* aHandler, nsIIccInfo* aIccInfo);
 
   void
   Shutdown();
@@ -111,6 +113,9 @@ public:
   IMPL_EVENT_HANDLER(stksessionend)
 
 private:
+  
+  
+  
   ~Icc();
 
   bool mLive;
@@ -119,6 +124,9 @@ private:
   
   
   nsCOMPtr<nsIIccProvider> mProvider;
+  
+  
+  nsCOMPtr<nsIIcc> mHandler;
   Nullable<OwningMozIccInfoOrMozGsmIccInfoOrMozCdmaIccInfo> mIccInfo;
 };
 
