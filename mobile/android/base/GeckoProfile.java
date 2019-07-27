@@ -200,6 +200,13 @@ public final class GeckoProfile {
             getGuestDir(context).mkdir();
             GeckoProfile profile = getGuestProfile(context);
             profile.lock();
+
+            
+
+
+
+            profile.enqueueInitialization();
+
             return profile;
         } catch (Exception ex) {
             Log.e(LOGTAG, "Error creating guest profile", ex);
