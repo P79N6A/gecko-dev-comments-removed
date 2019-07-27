@@ -341,12 +341,6 @@ NetworkManager.prototype = {
         this.setAndConfigureActive();
 #ifdef MOZ_B2G_RIL
         
-        
-        
-        
-        this.setExtraHostRoute(network);
-
-        
         if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
           for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
             this.mRil.getRadioInterface(i).updateRILNetworkInterface();
@@ -366,8 +360,7 @@ NetworkManager.prototype = {
         if (this.isNetworkTypeMobile(network.type)) {
           this.removeHostRoutes(network);
         }
-        
-        this.removeExtraHostRoute(network);
+
         
         if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
           this.removeSecondaryDefaultRoute(network);
@@ -509,88 +502,6 @@ NetworkManager.prototype = {
       }
     }
     return null;
-  },
-
-  setExtraHostRoute: function(network) {
-    if (network.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-      return Promise.resolve();
-    }
-    if (!(network instanceof Ci.nsIRilNetworkInterface)) {
-      let errorMsg = "Network for MMS must be an instance of " +
-                     "nsIRilNetworkInterface";
-      debug(errorMsg);
-      return Promise.reject(errorMsg);
-    }
-
-    network = network.QueryInterface(Ci.nsIRilNetworkInterface);
-
-    debug("Adding mmsproxy and/or mmsc route for " + network.name);
-
-    let hostToResolve = network.mmsProxy;
-    
-    
-    if (!hostToResolve || hostToResolve === "undefined") {
-      hostToResolve = network.mmsc;
-    }
-
-    let mmsHosts = this.resolveHostname([hostToResolve]);
-    if (mmsHosts.length == 0) {
-      let errorMsg = "No valid hostnames can be added. Stop adding host route.";
-      debug(errorMsg);
-      return Promise.reject(errorMsg);
-    }
-
-    let gateways = network.getGateways();
-    let promises = [];
-    for (let i = 0; i < mmsHosts.length; i++) {
-      let gateway = this.selectGateway(gateways, mmsHosts[i]);
-      if (gateway) {
-        promises.push(gNetworkService.addHostRoute(network.name, gateway,
-                                                   mmsHosts[i]));
-      }
-    }
-    return Promise.all(promises);
-  },
-
-  removeExtraHostRoute: function(network) {
-    if (network.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-      return Promise.resolve();
-    }
-    if (!(network instanceof Ci.nsIRilNetworkInterface)) {
-      let errorMsg = "Network for MMS must be an instance of " +
-                     "nsIRilNetworkInterface";
-      debug(errorMsg);
-      return Promise.reject(errorMsg);
-    }
-
-    network = network.QueryInterface(Ci.nsIRilNetworkInterface);
-
-    debug("Removing mmsproxy and/or mmsc route for " + network.name);
-
-    let hostToResolve = network.mmsProxy;
-    
-    
-    if (!hostToResolve || hostToResolve === "undefined") {
-      hostToResolve = network.mmsc;
-    }
-
-    let mmsHosts = this.resolveHostname([hostToResolve]);
-    if (mmsHosts.length == 0) {
-      let errorMsg = "No valid hostnames can be removed. Stop removing host route.";
-      debug(errorMsg);
-      return Promise.reject(errorMsg);
-    }
-
-    let gateways = network.getGateways();
-    let promises = [];
-    for (let i = 0; i < mmsHosts.length; i++) {
-      let gateway = this.selectGateway(gateways, mmsHosts[i]);
-      if (gateway) {
-        promises.push(gNetworkService.removeHostRoute(network.name, gateway,
-                                                      mmsHosts[i]));
-      }
-    }
-    return Promise.all(promises);
   },
 
   setSecondaryDefaultRoute: function(network) {
