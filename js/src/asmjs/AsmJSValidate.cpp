@@ -8512,6 +8512,8 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         
         
         
+        
+        
         size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
                                     PerThreadData::offsetOfActivation();
         size_t offsetOfJitTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, jitTop);
@@ -8519,6 +8521,8 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
                                       offsetof(PerThreadData, jitJSContext);
         size_t offsetOfJitActivation = offsetof(JSRuntime, mainThread) +
                                        offsetof(PerThreadData, jitActivation);
+        size_t offsetOfProfilingActivation = offsetof(JSRuntime, mainThread) +
+                                             PerThreadData::offsetOfProfilingActivation();
         masm.loadAsmJSActivation(reg0);
         masm.loadPtr(Address(reg0, AsmJSActivation::offsetOfContext()), reg3);
         masm.loadPtr(Address(reg3, JSContext::offsetOfRuntime()), reg0);
@@ -8542,6 +8546,12 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         masm.storePtr(reg2, Address(reg1, JitActivation::offsetOfPrevJitActivation()));
         
         masm.storePtr(reg1, Address(reg0, offsetOfJitActivation));
+
+        
+        masm.loadPtr(Address(reg0, offsetOfProfilingActivation), reg2);
+        masm.storePtr(reg2, Address(reg1, Activation::offsetOfPrevProfiling()));
+        
+        masm.storePtr(reg1, Address(reg0, offsetOfProfilingActivation));
     }
 
     
@@ -8566,6 +8576,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         
         
         
+        
         size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
                                     PerThreadData::offsetOfActivation();
         size_t offsetOfJitTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, jitTop);
@@ -8573,16 +8584,22 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
                                       offsetof(PerThreadData, jitJSContext);
         size_t offsetOfJitActivation = offsetof(JSRuntime, mainThread) +
                                        offsetof(PerThreadData, jitActivation);
+        size_t offsetOfProfilingActivation = offsetof(JSRuntime, mainThread) +
+                                             PerThreadData::offsetOfProfilingActivation();
 
         masm.movePtr(AsmJSImmPtr(AsmJSImm_Runtime), reg0);
         masm.loadPtr(Address(reg0, offsetOfActivation), reg1);
 
         
-        masm.store8(Imm32(0), Address(reg1, JitActivation::offsetOfActiveUint8()));
-
-        
         masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevJitTop()), reg2);
         masm.storePtr(reg2, Address(reg0, offsetOfJitTop));
+
+        
+        masm.loadPtr(Address(reg1, Activation::offsetOfPrevProfiling()), reg2);
+        masm.storePtr(reg2, Address(reg0, offsetOfProfilingActivation));
+
+        
+        masm.store8(Imm32(0), Address(reg1, JitActivation::offsetOfActiveUint8()));
 
         
         masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevJitJSContext()), reg2);

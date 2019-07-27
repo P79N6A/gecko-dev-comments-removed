@@ -393,7 +393,7 @@ void addPseudoEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
 {
   
   
-  if (entry.hasFlag(StackEntry::ASMJS))
+  if (entry.hasFlag(StackEntry::BEGIN_PSEUDO_JS))
     return;
 
   int lineno = -1;
@@ -455,10 +455,19 @@ struct NativeStack
   size_t count;
 };
 
-struct JSFrame
-{
-    void* stackAddress;
-    const char* label;
+mozilla::Atomic<bool> WALKING_JS_STACK(false);
+
+struct AutoWalkJSStack {
+  bool walkAllowed;
+
+  AutoWalkJSStack() : walkAllowed(false) {
+    walkAllowed = WALKING_JS_STACK.compareExchange(false, true);
+  }
+
+  ~AutoWalkJSStack() {
+    if (walkAllowed)
+        WALKING_JS_STACK = false;
+  }
 };
 
 static
@@ -472,20 +481,28 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
   
   
 
-  JSFrame jsFrames[1000];
   uint32_t jsCount = 0;
-  if (aSample && pseudoStack->mRuntime) {
-    JS::ProfilingFrameIterator::RegisterState registerState;
-    registerState.pc = aSample->pc;
-    registerState.sp = aSample->sp;
+  JS::ProfilingFrameIterator::Frame jsFrames[1000];
+  {
+    AutoWalkJSStack autoWalkJSStack;
+    const uint32_t maxFrames = mozilla::ArrayLength(jsFrames);
+
+    if (aSample && pseudoStack->mRuntime && autoWalkJSStack.walkAllowed) {
+      JS::ProfilingFrameIterator::RegisterState registerState;
+      registerState.pc = aSample->pc;
+      registerState.sp = aSample->sp;
 #ifdef ENABLE_ARM_LR_SAVING
-    registerState.lr = aSample->lr;
+      registerState.lr = aSample->lr;
 #endif
 
-    JS::ProfilingFrameIterator jsIter(pseudoStack->mRuntime, registerState);
-    for (; jsCount < mozilla::ArrayLength(jsFrames) && !jsIter.done(); ++jsCount, ++jsIter) {
-      jsFrames[jsCount].stackAddress = jsIter.stackAddress();
-      jsFrames[jsCount].label = jsIter.label();
+      JS::ProfilingFrameIterator jsIter(pseudoStack->mRuntime, registerState);
+      for (; jsCount < maxFrames && !jsIter.done(); ++jsIter) {
+        uint32_t extracted = jsIter.extractStack(jsFrames, jsCount, maxFrames);
+        MOZ_ASSERT(extracted <= (maxFrames - jsCount));
+        jsCount += extracted;
+        if (jsCount == maxFrames)
+          break;
+      }
     }
   }
 
@@ -501,87 +518,72 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
   int32_t jsIndex = jsCount - 1;
   int32_t nativeIndex = aNativeStack.count - 1;
 
+  uint8_t *lastPseudoCppStackAddr = nullptr;
+
   
   while (pseudoIndex != pseudoCount || jsIndex >= 0 || nativeIndex >= 0) {
     
-    
-    
+
+    uint8_t *pseudoStackAddr = nullptr;
+    uint8_t *jsStackAddr = nullptr;
+    uint8_t *nativeStackAddr = nullptr;
+
     if (pseudoIndex != pseudoCount) {
       volatile StackEntry &pseudoFrame = pseudoFrames[pseudoIndex];
+
+      if (pseudoFrame.isCpp())
+        lastPseudoCppStackAddr = (uint8_t *) pseudoFrame.stackAddress();
 
       
       
       
       
-      if (pseudoFrame.isJs()) {
-          addPseudoEntry(pseudoFrame, aProfile, pseudoStack, nullptr);
+      
+      
+      
+      if (pseudoFrame.isJs() && pseudoFrame.isOSR()) {
           pseudoIndex++;
           continue;
       }
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (pseudoFrame.hasFlag(StackEntry::ASMJS)) {
-        void *stopStackAddress = nullptr;
-        for (uint32_t i = pseudoIndex + 1; i != pseudoCount; i++) {
-          if (pseudoFrames[i].isCpp()) {
-            stopStackAddress = pseudoFrames[i].stackAddress();
-            break;
-          }
-        }
-
-        if (nativeIndex >= 0) {
-          stopStackAddress = std::max(stopStackAddress, aNativeStack.sp_array[nativeIndex]);
-        }
-
-        while (jsIndex >= 0 && jsFrames[jsIndex].stackAddress > stopStackAddress) {
-          addDynamicTag(aProfile, 'c', jsFrames[jsIndex].label);
-          jsIndex--;
-        }
-
-        pseudoIndex++;
-        continue;
-      }
-
-      
-      if ((jsIndex < 0 || pseudoFrame.stackAddress() > jsFrames[jsIndex].stackAddress) &&
-          (nativeIndex < 0 || pseudoFrame.stackAddress() > aNativeStack.sp_array[nativeIndex]))
-      {
-        
-        addPseudoEntry(pseudoFrame, aProfile, pseudoStack, nullptr);
-        pseudoIndex++;
-        continue;
-      }
+      MOZ_ASSERT(lastPseudoCppStackAddr);
+      pseudoStackAddr = lastPseudoCppStackAddr;
     }
 
-    if (jsIndex >= 0) {
-      
-      JSFrame &jsFrame = jsFrames[jsIndex];
-      if ((pseudoIndex == pseudoCount || jsFrame.stackAddress > pseudoFrames[pseudoIndex].stackAddress()) &&
-          (nativeIndex < 0 || jsFrame.stackAddress > aNativeStack.sp_array[nativeIndex]))
-      {
-        
-        addDynamicTag(aProfile, 'c', jsFrame.label);
-        jsIndex--;
-        continue;
-      }
+    if (jsIndex >= 0)
+      jsStackAddr = (uint8_t *) jsFrames[jsIndex].stackAddress;
+
+    if (nativeIndex >= 0)
+      nativeStackAddr = (uint8_t *) aNativeStack.sp_array[nativeIndex];
+
+    
+    MOZ_ASSERT_IF(pseudoStackAddr, pseudoStackAddr != jsStackAddr &&
+                                   pseudoStackAddr != nativeStackAddr);
+    MOZ_ASSERT_IF(jsStackAddr, jsStackAddr != pseudoStackAddr &&
+                               jsStackAddr != nativeStackAddr);
+    MOZ_ASSERT_IF(nativeStackAddr, nativeStackAddr != pseudoStackAddr &&
+                                   nativeStackAddr != jsStackAddr);
+
+    
+    if (pseudoStackAddr > jsStackAddr && pseudoStackAddr > nativeStackAddr) {
+      MOZ_ASSERT(pseudoIndex < pseudoCount);
+      volatile StackEntry &pseudoFrame = pseudoFrames[pseudoIndex];
+      addPseudoEntry(pseudoFrame, aProfile, pseudoStack, nullptr);
+      pseudoIndex++;
+      continue;
+    }
+
+    
+    if (jsStackAddr > nativeStackAddr) {
+      MOZ_ASSERT(jsIndex >= 0);
+      addDynamicTag(aProfile, 'c', jsFrames[jsIndex].label);
+      jsIndex--;
+      continue;
     }
 
     
     
+    MOZ_ASSERT(nativeStackAddr);
     MOZ_ASSERT(nativeIndex >= 0);
     aProfile.addTag(ProfileEntry('l', (void*)aNativeStack.pc_array[nativeIndex]));
     nativeIndex--;
@@ -737,6 +739,7 @@ void doSampleStackTrace(ThreadProfile &aProfile, TickSample *aSample, bool aAddL
 
 void TableTicker::Tick(TickSample* sample)
 {
+  
   if (HasUnwinderThread()) {
     UnwinderTick(sample);
   } else {
