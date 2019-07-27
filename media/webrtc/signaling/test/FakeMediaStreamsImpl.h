@@ -114,7 +114,6 @@ void Fake_AudioStreamSource::Periodic() {
        it != mListeners.end(); ++it) {
     (*it)->NotifyQueuedTrackChanges(nullptr, 
                                     0, 
-                                    GRAPH_RATE, 
                                     0, 
                                     0, 
                                     segment);

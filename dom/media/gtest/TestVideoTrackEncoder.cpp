@@ -272,7 +272,7 @@ TEST(VP8VideoTrackEncoder, FrameEncode)
   }
 
   
-  encoder.NotifyQueuedTrackChanges(nullptr, 0, 0, 0, 0, segment);
+  encoder.NotifyQueuedTrackChanges(nullptr, 0, 0, 0, segment);
 
   
   EncodedFrameContainer container;
@@ -290,7 +290,7 @@ TEST(VP8VideoTrackEncoder, EncodeComplete)
 
   
   VideoSegment segment;
-  encoder.NotifyQueuedTrackChanges(nullptr, 0, 0, 0, MediaStreamListener::TRACK_EVENT_ENDED, segment);
+  encoder.NotifyQueuedTrackChanges(nullptr, 0, 0, MediaStreamListener::TRACK_EVENT_ENDED, segment);
 
   
   
