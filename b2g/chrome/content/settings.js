@@ -672,6 +672,44 @@ SettingsListener.observe("accessibility.screenreader", false, function(value) {
 })();
 
 
+(function setupLowPrecisionSettings() {
+  
+  SettingsListener.observe('layers.low-precision', null, function(value) {
+    if (value !== null) {
+      
+      Services.prefs.setBoolPref('layers.low-precision-buffer', value);
+      Services.prefs.setBoolPref('layers.progressive-paint', value);
+    } else {
+      
+      try {
+        let prefValue = Services.prefs.getBoolPref('layers.low-precision-buffer');
+        let setting = { 'layers.low-precision': prefValue };
+        window.navigator.mozSettings.createLock().set(setting);
+      } catch (e) {
+        console.log('Unable to read pref layers.low-precision-buffer: ' + e);
+      }
+    }
+  });
+
+  
+  SettingsListener.observe('layers.low-opacity', null, function(value) {
+    if (value !== null) {
+      
+      Services.prefs.setCharPref('layers.low-precision-opacity', value ? '0.5' : '1.0');
+    } else {
+      
+      try {
+        let prefValue = Services.prefs.getCharPref('layers.low-precision-opacity');
+        let setting = { 'layers.low-opacity': (prefValue == '0.5') };
+        window.navigator.mozSettings.createLock().set(setting);
+      } catch (e) {
+        console.log('Unable to read pref layers.low-precision-opacity: ' + e);
+      }
+    }
+  });
+})();
+
+
 let settingsToObserve = {
   'app.update.channel': {
     resetToPref: true
