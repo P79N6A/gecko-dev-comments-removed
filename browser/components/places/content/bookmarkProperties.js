@@ -283,7 +283,8 @@ var BookmarkPropertiesPanel = {
         this._node = yield this._promiseNewItem();
         
         gEditItemOverlay.initPanel({ node: this._node
-                                   , hiddenRows: this._hiddenRows });
+                                   , hiddenRows: this._hiddenRows
+                                   , postData: this._postData });
 
         
         
@@ -525,11 +526,6 @@ var BookmarkPropertiesPanel = {
       childTransactions.push(setLoadTxn);
     }
 
-    if (this._postData) {
-      let postDataTxn = new PlacesEditBookmarkPostDataTransaction(-1, this._postData);
-      childTransactions.push(postDataTxn);
-    }
-
     
     if (this._charSet && !PrivateBrowsingUtils.isWindowPrivate(window))
       PlacesUtils.setCharsetForURI(this._uri, this._charSet);
@@ -540,7 +536,8 @@ var BookmarkPropertiesPanel = {
                                                         this._title,
                                                         this._keyword,
                                                         annotations,
-                                                        childTransactions);
+                                                        childTransactions,
+                                                        this._postData);
 
     return new PlacesAggregatedTransaction(this._getDialogTitle(),
                                            [createTxn]);

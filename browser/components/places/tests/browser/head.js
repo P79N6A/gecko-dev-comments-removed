@@ -162,18 +162,21 @@ function promiseIsURIVisited(aURI) {
 }
 
 function promiseBookmarksNotification(notification, conditionFn) {
-  info(`Waiting for ${notification}`);
+  info(`promiseBookmarksNotification: waiting for ${notification}`);
   return new Promise((resolve, reject) => {
     let proxifiedObserver = new Proxy({}, {
       get: (target, name) => {
         if (name == "QueryInterface")
           return XPCOMUtils.generateQI([ Ci.nsINavBookmarkObserver ]);
+        info(`promiseBookmarksNotification: got ${name} notification`);
         if (name == notification)
           return () => {
             if (conditionFn.apply(this, arguments)) {
               clearTimeout(timeout);
               PlacesUtils.bookmarks.removeObserver(proxifiedObserver, false);
               executeSoon(resolve);
+            } else {
+              info(`promiseBookmarksNotification: skip cause condition doesn't apply to ${JSON.stringify(arguments)}`);
             }
           }
         return () => {};
@@ -277,4 +280,132 @@ function isToolbarVisible(aToolbar) {
   let hidingValue = aToolbar.getAttribute(hidingAttribute).toLowerCase();
   
   return hidingValue !== "true" && hidingValue !== hidingAttribute;
+}
+
+
+
+
+
+
+
+
+
+let withBookmarksDialog = Task.async(function* (openFn, taskFn) {
+  let dialogPromise = new Promise(resolve => {
+    Services.ww.registerNotification(function winObserver(subject, topic, data) {
+      if (topic != "domwindowopened")
+        return;
+      let win = subject.QueryInterface(Ci.nsIDOMWindow);
+      win.addEventListener("load", function load() {
+        win.removeEventListener("load", load);
+        ok(win.location.href.startsWith("chrome://browser/content/places/bookmarkProperties"),
+           "The bookmark properties dialog is ready");
+        Services.ww.unregisterNotification(winObserver);
+        
+        waitForFocus(() => {
+          resolve(win);
+        }, win);
+      });
+    });
+  });
+
+  info("withBookmarksDialog: opening the dialog");
+  yield openFn();
+  info("withBookmarksDialog: waiting for the dialog");
+  let dialogWin = yield dialogPromise;
+
+  
+  ok(dialogWin.gEditItemOverlay.initialized, "EditItemOverlay is initialized");
+
+  info("withBookmarksDialog: executing the task");
+  try {
+    yield taskFn(dialogWin);
+  } finally {
+    info("withBookmarksDialog: canceling the dialog");
+    dialogWin.document.documentElement.cancelDialog();
+  }
+});
+
+
+
+
+
+
+
+
+let openContextMenuForContentSelector = Task.async(function* (browser, selector) {
+  info("wait for the context menu");
+  let contextPromise = BrowserTestUtils.waitForEvent(document.getElementById("contentAreaContextMenu"),
+                                                     "popupshown");
+  yield ContentTask.spawn(browser, { selector }, function* (args) {
+    let doc = content.document;
+    let elt = doc.querySelector(args.selector)
+    dump(`openContextMenuForContentSelector: found ${elt}\n`);
+
+    
+    const domWindowUtils =
+      content.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+             .getInterface(Components.interfaces.nsIDOMWindowUtils);
+    let rect = elt.getBoundingClientRect();
+    let left = rect.left + rect.width / 2;
+    let top = rect.top + rect.height / 2;
+    domWindowUtils.sendMouseEvent("contextmenu", left, top, 2,
+                                  1, 0, false, 0, 0, true);
+  });
+  yield contextPromise;
+
+  return gContextMenuContentData.popupNode;
+});
+
+
+
+
+
+
+
+
+
+
+
+let waitForCondition = Task.async(function* (conditionFn, errorMsg) {
+  for (let tries = 0; tries < 100; ++tries) {
+    if ((yield conditionFn()))
+      return;
+    yield new Promise(resolve => {
+      if (!waitForCondition._timers) {
+        waitForCondition._timers = new Set();
+        registerCleanupFunction(() => {
+          is(waitForCondition._timers.size, 0, "All the wait timers have been removed");
+          delete waitForCondition._timers;
+        });
+      }
+      let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      waitForCondition._timers.add(timer);
+      timer.init(() => {
+        waitForCondition._timers.delete(timer);
+        resolve();
+      }, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+    });
+  }
+  ok(false, errorMsg);
+});
+
+
+
+
+
+
+
+
+
+
+
+function fillBookmarkTextField(id, text, win) {
+  let elt = win.document.getElementById(id);
+  elt.focus();
+  elt.select();
+  for (let c of text.split("")) {
+    EventUtils.synthesizeKey(c, {}, win);
+  }
+  elt.blur();
 }
