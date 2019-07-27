@@ -10,7 +10,6 @@
 #include "nsAString.h"
 #include "nsAttrName.h"
 #include "nsAutoPtr.h"
-#include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "nsCaseTreatment.h"
 #include "nsComponentManagerUtils.h"
@@ -1392,56 +1391,50 @@ nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom* aProperty,
 
 NS_IMETHODIMP nsHTMLEditor::IncreaseFontSize()
 {
-  return RelativeFontChange(1);
+  return RelativeFontChange(FontSize::incr);
 }
 
 NS_IMETHODIMP nsHTMLEditor::DecreaseFontSize()
 {
-  return RelativeFontChange(-1);
+  return RelativeFontChange(FontSize::decr);
 }
 
 nsresult
-nsHTMLEditor::RelativeFontChange( int32_t aSizeChange)
+nsHTMLEditor::RelativeFontChange(FontSize aDir)
 {
-  
-  if ( !( (aSizeChange==1) || (aSizeChange==-1) ) )
-    return NS_ERROR_ILLEGAL_VALUE;
-  
   ForceCompositionEnd();
 
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
   
-  
   if (selection->Collapsed()) {
-    nsCOMPtr<nsIAtom> atom;
-    if (aSizeChange == 1) {
-      atom = nsGkAtoms::big;
-    } else {
-      atom = nsGkAtoms::small;
-    }
+    nsIAtom& atom = aDir == FontSize::incr ? *nsGkAtoms::big :
+                                             *nsGkAtoms::small;
 
     
-    int32_t offset;
-    nsCOMPtr<nsINode> selectedNode;
-    GetStartNodeAndOffset(selection, getter_AddRefs(selectedNode), &offset);
-    if (selectedNode && IsTextNode(selectedNode)) {
-      selectedNode = selectedNode->GetParentNode();
+    NS_ENSURE_TRUE(selection->RangeCount() &&
+                   selection->GetRangeAt(0)->GetStartParent(), NS_OK);
+    OwningNonNull<nsINode> selectedNode =
+      *selection->GetRangeAt(0)->GetStartParent();
+    if (IsTextNode(selectedNode)) {
+      NS_ENSURE_TRUE(selectedNode->GetParentNode(), NS_OK);
+      selectedNode = *selectedNode->GetParentNode();
     }
-    NS_ENSURE_TRUE(selectedNode, NS_OK);
-    if (!CanContainTag(*selectedNode, *atom)) {
+    if (!CanContainTag(selectedNode, atom)) {
       return NS_OK;
     }
 
     
-    mTypeInState->SetProp(atom, EmptyString(), EmptyString());
+    
+    mTypeInState->SetProp(&atom, EmptyString(), EmptyString());
     return NS_OK;
   }
-  
+
   
   nsAutoEditBatch batchIt(this);
-  nsAutoRules beginRulesSniffing(this, EditAction::setTextProperty, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::setTextProperty,
+                                 nsIEditor::eNext);
   nsAutoSelectionReset selectionResetter(selection, this);
   nsAutoTxnsConserveSelection dontSpazMySelection(this);
 
@@ -1453,89 +1446,71 @@ nsHTMLEditor::RelativeFontChange( int32_t aSizeChange)
     
     nsresult res = PromoteInlineRange(range);
     NS_ENSURE_SUCCESS(res, res);
+
     
-    
-    nsCOMPtr<nsIDOMNode> startNode, endNode;
-    res = range->GetStartContainer(getter_AddRefs(startNode));
-    NS_ENSURE_SUCCESS(res, res);
-    res = range->GetEndContainer(getter_AddRefs(endNode));
-    NS_ENSURE_SUCCESS(res, res);
-    if ((startNode == endNode) && IsTextNode(startNode))
-    {
-      int32_t startOffset, endOffset;
-      range->GetStartOffset(&startOffset);
-      range->GetEndOffset(&endOffset);
-      nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(startNode);
-      res = RelativeFontChangeOnTextNode(aSizeChange, nodeAsText, startOffset, endOffset);
+    nsCOMPtr<nsINode> startNode = range->GetStartParent();
+    nsCOMPtr<nsINode> endNode = range->GetEndParent();
+    if (startNode == endNode && IsTextNode(startNode)) {
+      res = RelativeFontChangeOnTextNode(aDir == FontSize::incr ? +1 : -1,
+          static_cast<nsIDOMCharacterData*>(startNode->AsDOMNode()),
+          range->StartOffset(), range->EndOffset());
       NS_ENSURE_SUCCESS(res, res);
-    }
-    else
-    {
-      
-      
-      
-      
-      
+    } else {
       
       
       
       
       
 
-      nsCOMPtr<nsIContentIterator> iter =
-        do_CreateInstance("@mozilla.org/content/subtree-content-iterator;1", &res);
-      NS_ENSURE_SUCCESS(res, res);
-      NS_ENSURE_TRUE(iter, NS_ERROR_FAILURE);
+      
+      
+      
+      
+
+      OwningNonNull<nsIContentIterator> iter = NS_NewContentSubtreeIterator();
 
       
       res = iter->Init(range);
       if (NS_SUCCEEDED(res)) {
-        nsCOMArray<nsIContent> arrayOfNodes;
-        while (!iter->IsDone()) {
+        nsTArray<OwningNonNull<nsIContent>> arrayOfNodes;
+        for (; !iter->IsDone(); iter->Next()) {
           NS_ENSURE_TRUE(iter->GetCurrentNode()->IsContent(), NS_ERROR_FAILURE);
-          nsCOMPtr<nsIContent> node = iter->GetCurrentNode()->AsContent();
+          OwningNonNull<nsIContent> node = *iter->GetCurrentNode()->AsContent();
 
           if (IsEditable(node)) {
-            arrayOfNodes.AppendObject(node);
+            arrayOfNodes.AppendElement(node);
           }
-
-          iter->Next();
         }
+
         
-        
-        int32_t listCount = arrayOfNodes.Count();
-        for (int32_t j = 0; j < listCount; ++j) {
-          nsIContent* node = arrayOfNodes[j];
-          res = RelativeFontChangeOnNode(aSizeChange, node);
+        for (auto& node : arrayOfNodes) {
+          res = RelativeFontChangeOnNode(aDir == FontSize::incr ? +1 : -1,
+                                         node);
           NS_ENSURE_SUCCESS(res, res);
         }
-        arrayOfNodes.Clear();
       }
       
       
       
-      if (IsTextNode(startNode) && IsEditable(startNode))
-      {
-        nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(startNode);
-        int32_t startOffset;
-        uint32_t textLen;
-        range->GetStartOffset(&startOffset);
-        nodeAsText->GetLength(&textLen);
-        res = RelativeFontChangeOnTextNode(aSizeChange, nodeAsText, startOffset, textLen);
+      if (IsTextNode(startNode) && IsEditable(startNode)) {
+        res = RelativeFontChangeOnTextNode(aDir == FontSize::incr ? +1 : -1,
+            static_cast<nsIDOMCharacterData*>(startNode->AsDOMNode()),
+            range->StartOffset(), startNode->Length());
         NS_ENSURE_SUCCESS(res, res);
       }
-      if (IsTextNode(endNode) && IsEditable(endNode))
-      {
+      if (IsTextNode(endNode) && IsEditable(endNode)) {
         nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(endNode);
         int32_t endOffset;
         range->GetEndOffset(&endOffset);
-        res = RelativeFontChangeOnTextNode(aSizeChange, nodeAsText, 0, endOffset);
+        res = RelativeFontChangeOnTextNode(aDir == FontSize::incr ? +1 : -1,
+            static_cast<nsIDOMCharacterData*>(startNode->AsDOMNode()),
+            0, range->EndOffset());
         NS_ENSURE_SUCCESS(res, res);
       }
     }
   }
-  
-  return NS_OK;  
+
+  return NS_OK;
 }
 
 nsresult
