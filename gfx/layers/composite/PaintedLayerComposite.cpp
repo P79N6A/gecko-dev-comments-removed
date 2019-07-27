@@ -19,7 +19,7 @@
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/mozalloc.h"           
 #include "nsAString.h"
-#include "nsAutoPtr.h"                  
+#include "nsRefPtr.h"                   
 #include "nsISupportsImpl.h"            
 #include "nsMathUtils.h"                
 #include "nsPoint.h"                    

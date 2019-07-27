@@ -13,7 +13,7 @@
 #include "TiledContentHost.h"           
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/TextureHost.h"  
-#include "nsAutoPtr.h"                  
+#include "nsRefPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "gfxPlatform.h"                

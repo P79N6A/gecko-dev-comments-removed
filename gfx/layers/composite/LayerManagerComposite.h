@@ -21,7 +21,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsAString.h"
-#include "nsAutoPtr.h"                  
+#include "nsRefPtr.h"                   
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            

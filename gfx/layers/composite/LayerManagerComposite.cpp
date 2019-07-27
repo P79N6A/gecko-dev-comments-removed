@@ -44,7 +44,7 @@
 #include "ipc/ShadowLayerUtils.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAppRunner.h"
-#include "nsAutoPtr.h"                  
+#include "nsRefPtr.h"                   
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            

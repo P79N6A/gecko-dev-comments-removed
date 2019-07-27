@@ -15,7 +15,7 @@
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/Matrix.h"         
 #include "mozilla/layers/LayersMessages.h"  
-#include "nsAutoPtr.h"                  
+#include "nsRefPtr.h"                   
 #include "nsISupportsImpl.h"            
 
 namespace mozilla {

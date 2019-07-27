@@ -25,7 +25,7 @@
 #include "mozilla/layers/AsyncCompositionManager.h" 
 #include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
+#include "nsRefPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsISupportsUtils.h"           
