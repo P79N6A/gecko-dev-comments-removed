@@ -49,7 +49,8 @@ private:
 
   bool NotifyOfPivotChange(Accessible* aOldAccessible,
                            int32_t aOldStart, int32_t aOldEnd,
-                           PivotMoveReason aReason);
+                           PivotMoveReason aReason,
+                           bool aIsFromUserInput);
 
   
 
@@ -95,7 +96,8 @@ private:
   
 
 
-  bool MovePivotInternal(Accessible* aPosition, PivotMoveReason aReason);
+  bool MovePivotInternal(Accessible* aPosition, PivotMoveReason aReason,
+                         bool aIsFromUserInput);
 
   
 
