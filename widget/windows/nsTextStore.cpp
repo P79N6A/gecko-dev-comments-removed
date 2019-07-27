@@ -657,6 +657,24 @@ GetModifiersName(Modifiers aModifiers)
   return names;
 }
 
+class GetWritingModeName : public nsAutoCString
+{
+public:
+  GetWritingModeName(const WritingMode& aWritingMode)
+  {
+    if (!aWritingMode.IsVertical()) {
+      AssignLiteral("Horizontal");
+      return;
+    }
+    if (aWritingMode.IsVerticalLR()) {
+      AssignLiteral("Vertical (LR)");
+      return;
+    }
+    AssignLiteral("Vertical (RL)");
+  }
+  virtual ~GetWritingModeName() {}
+};
+
 
 
 
@@ -4414,11 +4432,20 @@ nsTextStore::NotifyTSFOfTextChange(const TS_TEXTCHANGE& aTextChange)
 nsresult
 nsTextStore::OnSelectionChangeInternal(const IMENotification& aIMENotification)
 {
+  const IMENotification::SelectionChangeData& selectionChangeData =
+    aIMENotification.mSelectionChangeData;
   MOZ_LOG(sTextStoreLog, LogLevel::Debug,
-         ("TSF: 0x%p   nsTextStore::OnSelectionChangeInternal(), "
-          "mSink=0x%p, mSinkMask=%s, mIsRecordingActionsWithoutLock=%s, "
-          "mComposition.IsComposing()=%s",
-          this, mSink.get(), GetSinkMaskNameStr(mSinkMask).get(),
+         ("TSF: 0x%p   nsTextStore::OnSelectionChangeInternal("
+          "aIMENotification={ mSelectionChangeData={ mOffset=%lu, mLength=%lu, "
+          "mReversed=%s, mWritingMode=%s, mCausedByComposition=%s, "
+          "mCausedBySelectionEvent=%s } }), mSink=0x%p, mSinkMask=%s, "
+          "mIsRecordingActionsWithoutLock=%s, mComposition.IsComposing()=%s",
+          this, selectionChangeData.mOffset, selectionChangeData.mLength,
+          GetBoolName(selectionChangeData.mReversed),
+          GetWritingModeName(selectionChangeData.GetWritingMode()).get(),
+          GetBoolName(selectionChangeData.mCausedByComposition),
+          GetBoolName(selectionChangeData.mCausedBySelectionEvent),
+          mSink.get(), GetSinkMaskNameStr(mSinkMask).get(),
           GetBoolName(mIsRecordingActionsWithoutLock),
           GetBoolName(mComposition.IsComposing())));
 
@@ -4430,20 +4457,28 @@ nsTextStore::OnSelectionChangeInternal(const IMENotification& aIMENotification)
   }
 
   mSelection.SetSelection(
-    aIMENotification.mSelectionChangeData.mOffset,
-    aIMENotification.mSelectionChangeData.mLength,
-    aIMENotification.mSelectionChangeData.mReversed,
-    aIMENotification.mSelectionChangeData.GetWritingMode());
+    selectionChangeData.mOffset,
+    selectionChangeData.mLength,
+    selectionChangeData.mReversed,
+    selectionChangeData.GetWritingMode());
 
-  if (mIsRecordingActionsWithoutLock) {
-    MOZ_LOG(sTextStoreLog, LogLevel::Info,
-           ("TSF: 0x%p   nsTextStore::OnSelectionChangeInternal(), putting off "
-            "notifying TSF of selection change...", this));
+  if (!selectionChangeData.mCausedBySelectionEvent) {
+    
+    
     mPendingOnSelectionChange = true;
-    return NS_OK;
+    if (mIsRecordingActionsWithoutLock) {
+      MOZ_LOG(sTextStoreLog, LogLevel::Info,
+             ("TSF: 0x%p   nsTextStore::OnSelectionChangeInternal(), putting "
+              "off notifying TSF of selection change...", this));
+      return NS_OK;
+    }
+  } else {
+    
+    
+    
+    
+    mPendingOnSelectionChange = false;
   }
-
-  NotifyTSFOfSelectionChange();
 
   
   MaybeFlushPendingNotifications();
