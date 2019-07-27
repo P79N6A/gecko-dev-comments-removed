@@ -1101,9 +1101,16 @@ private:
 
 
 
-  inline void CreateNeededPseudos(nsFrameConstructorState& aState,
-                                  FrameConstructionItemList& aItems,
-                                  nsIFrame* aParentFrame);
+  inline void CreateNeededPseudoContainers(nsFrameConstructorState& aState,
+                                           FrameConstructionItemList& aItems,
+                                           nsIFrame* aParentFrame);
+
+  
+
+
+  inline void CreateNeededPseudoSiblings(nsFrameConstructorState& aState,
+                                         FrameConstructionItemList& aItems,
+                                         nsIFrame* aParentFrame);
 
   
 
