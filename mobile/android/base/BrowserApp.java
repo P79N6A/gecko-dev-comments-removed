@@ -2646,6 +2646,7 @@ public class BrowserApp extends GeckoApp
         
         
         mFormAssistPopup.hide();
+        mFindInPageBar.hide();
 
         
         refreshToolbarHeight();
@@ -2800,9 +2801,6 @@ public class BrowserApp extends GeckoApp
         
         
         getActivity().getWindow().setBackgroundDrawableResource(android.R.color.white);
-
-        
-        mFindInPageBar.hide();
     }
 
     private void hideBrowserSearch() {
