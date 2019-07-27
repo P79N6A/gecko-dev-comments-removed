@@ -705,7 +705,11 @@ LIRGeneratorX86Shared::visitSimdSplatX4(MSimdSplatX4 *ins)
         define(lir, ins);
         break;
       case MIRType_Float32x4:
-        defineReuseInput(lir, ins, 0);
+        
+        
+        
+        
+        define(lir, ins);
         break;
       default:
         MOZ_CRASH("Unknown SIMD kind");
