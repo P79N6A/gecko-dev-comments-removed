@@ -9,6 +9,7 @@
 
 #include "nsGtkIMModule.h"
 #include "nsWindow.h"
+#include "mozilla/AutoRestore.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
@@ -74,6 +75,7 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow)
     , mCompositionTargetOffset(UINT32_MAX)
     , mCompositionState(eCompositionState_NotComposing)
     , mIsIMFocused(false)
+    , mIsDeletingSurrounding(false)
 {
 #ifdef PR_LOGGING
     if (!gGtkIMLog) {
@@ -670,14 +672,21 @@ nsGtkIMModule::OnSelectionChange(nsWindow* aCaller)
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): OnSelectionChange(aCaller=0x%p), "
-         "mCompositionState=%s",
-         this, aCaller, GetCompositionStateName()));
+         "mCompositionState=%s, mIsDeletingSurrounding=%s",
+         this, aCaller, GetCompositionStateName(),
+         mIsDeletingSurrounding ? "true" : "false"));
 
     if (aCaller != mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    WARNING: the caller isn't focused window, "
              "mLastFocusedWindow=%p",
              mLastFocusedWindow));
+        return;
+    }
+
+    
+    
+    if (mIsDeletingSurrounding) {
         return;
     }
 
@@ -850,6 +859,8 @@ nsGtkIMModule::OnDeleteSurroundingNative(GtkIMContext  *aContext,
         return FALSE;
     }
 
+    AutoRestore<bool> saveDeletingSurrounding(mIsDeletingSurrounding);
+    mIsDeletingSurrounding = true;
     if (NS_SUCCEEDED(DeleteText(aContext, aOffset, (uint32_t)aNChars))) {
         return TRUE;
     }

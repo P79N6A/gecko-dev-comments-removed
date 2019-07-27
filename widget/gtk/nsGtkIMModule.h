@@ -183,6 +183,9 @@ protected:
     
     
     bool mKeyDownEventWasSent;
+    
+    
+    bool mIsDeletingSurrounding;
 
     
     
