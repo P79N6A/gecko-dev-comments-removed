@@ -84,22 +84,6 @@ public:
     
 
 
-    void InitializeUniformAndAttributeMaps();
-
-    
-
-
-    void ClearUniformAndAttributeMaps() {
-        if (mIdentifierMap)
-            mIdentifierMap->Clear();
-
-        if (mIdentifierReverseMap)
-            mIdentifierReverseMap->Clear();
-    }
-
-    
-
-
     void MapIdentifier(const nsACString& name, nsCString *mappedName);
 
     
