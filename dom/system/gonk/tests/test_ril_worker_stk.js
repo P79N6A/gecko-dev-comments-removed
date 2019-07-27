@@ -159,6 +159,77 @@ add_test(function test_stk_terminal_response() {
 
 
 
+
+
+
+add_test(function test_stk_terminal_response_get_input_empty_string() {
+  let worker = newUint8SupportOutgoingIndexWorker();
+  let context = worker.ContextPool._contexts[0];
+  let buf = context.Buf;
+  let pduHelper = context.GsmPDUHelper;
+
+  buf.sendParcel = function() {
+    
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_TERMINAL_RESPONSE);
+
+    
+    this.readInt32();
+
+    
+    
+    
+    
+    do_check_eq(this.readInt32(), 30);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_COMMAND_DETAILS |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 3);
+    do_check_eq(pduHelper.readHexOctet(), 0x01);
+    do_check_eq(pduHelper.readHexOctet(), STK_CMD_GET_INPUT);
+    do_check_eq(pduHelper.readHexOctet(), 0x00);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID);
+    do_check_eq(pduHelper.readHexOctet(), 2);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_RESULT |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_RESULT_OK);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_TEXT_STRING |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_TEXT_CODING_GSM_8BIT);
+
+    run_next_test();
+  };
+
+  let response = {
+    command: {
+      commandNumber: 0x01,
+      typeOfCommand: STK_CMD_GET_INPUT,
+      commandQualifier: 0x00,
+      options: {
+        minLength: 0,
+        maxLength: 1,
+        defaultText: "<SEND>"
+      }
+    },
+    input: "",
+    resultCode: STK_RESULT_OK
+  };
+  context.RIL.sendStkTerminalResponse(response);
+});
+
+
+
+
 add_test(function test_stk_terminal_response_get_inkey() {
   function do_test(isYesNo) {
     let worker = newUint8SupportOutgoingIndexWorker();
