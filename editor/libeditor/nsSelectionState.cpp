@@ -374,9 +374,9 @@ nsRangeUpdater::SelAdjSplitNode(nsIDOMNode* aOldRightNode, int32_t aOffset,
 
 
 nsresult
-nsRangeUpdater::SelAdjJoinNodes(nsINode* aLeftNode,
-                                nsINode* aRightNode,
-                                nsINode* aParent,
+nsRangeUpdater::SelAdjJoinNodes(nsINode& aLeftNode,
+                                nsINode& aRightNode,
+                                nsINode& aParent,
                                 int32_t aOffset,
                                 int32_t aOldLeftNodeLength)
 {
@@ -384,7 +384,6 @@ nsRangeUpdater::SelAdjJoinNodes(nsINode* aLeftNode,
     
     return NS_OK;
   }
-  NS_ENSURE_TRUE(aLeftNode && aRightNode && aParent, NS_ERROR_NULL_POINTER);
   uint32_t count = mArray.Length();
   if (!count) {
     return NS_OK;
@@ -394,55 +393,42 @@ nsRangeUpdater::SelAdjJoinNodes(nsINode* aLeftNode,
     nsRangeStore* item = mArray[i];
     NS_ENSURE_TRUE(item, NS_ERROR_NULL_POINTER);
 
-    if (item->startNode == aParent) {
+    if (item->startNode == &aParent) {
       
       if (item->startOffset > aOffset) {
         item->startOffset--;
       } else if (item->startOffset == aOffset) {
         
-        item->startNode = aRightNode;
+        item->startNode = &aRightNode;
         item->startOffset = aOldLeftNodeLength;
       }
-    } else if (item->startNode == aRightNode) {
+    } else if (item->startNode == &aRightNode) {
       
       item->startOffset += aOldLeftNodeLength;
-    } else if (item->startNode == aLeftNode) {
+    } else if (item->startNode == &aLeftNode) {
       
-      item->startNode = aRightNode;
+      item->startNode = &aRightNode;
     }
 
-    if (item->endNode == aParent) {
+    if (item->endNode == &aParent) {
       
       if (item->endOffset > aOffset) {
         item->endOffset--;
       } else if (item->endOffset == aOffset) {
         
-        item->endNode = aRightNode;
+        item->endNode = &aRightNode;
         item->endOffset = aOldLeftNodeLength;
       }
-    } else if (item->endNode == aRightNode) {
+    } else if (item->endNode == &aRightNode) {
       
        item->endOffset += aOldLeftNodeLength;
-    } else if (item->endNode == aLeftNode) {
+    } else if (item->endNode == &aLeftNode) {
       
-      item->endNode = aRightNode;
+      item->endNode = &aRightNode;
     }
   }
 
   return NS_OK;
-}
-
-nsresult
-nsRangeUpdater::SelAdjJoinNodes(nsIDOMNode* aLeftNode,
-                                nsIDOMNode* aRightNode,
-                                nsIDOMNode* aParent,
-                                int32_t aOffset,
-                                int32_t aOldLeftNodeLength)
-{
-  nsCOMPtr<nsINode> leftNode = do_QueryInterface(aLeftNode);
-  nsCOMPtr<nsINode> rightNode = do_QueryInterface(aRightNode);
-  nsCOMPtr<nsINode> parent = do_QueryInterface(aParent);
-  return SelAdjJoinNodes(leftNode, rightNode, parent, aOffset, aOldLeftNodeLength);
 }
 
 

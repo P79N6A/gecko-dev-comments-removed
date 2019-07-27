@@ -7544,7 +7544,7 @@ nsHTMLEditRules::JoinNodesSmart( nsIDOMNode *aNodeLeft,
   {
     
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->JoinNodes(nodeLeft, nodeRight);
+    res = mHTMLEditor->JoinNodes(*nodeLeft, *nodeRight);
     NS_ENSURE_SUCCESS(res, res);
     return res;
   }
@@ -7561,7 +7561,7 @@ nsHTMLEditRules::JoinNodesSmart( nsIDOMNode *aNodeLeft,
 
     
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->JoinNodes(nodeLeft, nodeRight);
+    res = mHTMLEditor->JoinNodes(*nodeLeft, *nodeRight);
     NS_ENSURE_SUCCESS(res, res);
 
     if (lastLeft && firstRight && mHTMLEditor &&
