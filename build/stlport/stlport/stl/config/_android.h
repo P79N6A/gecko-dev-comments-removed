@@ -52,7 +52,7 @@
 
 
 
-#define _STLP_NO_VENDOR_MATH_L 1
+#define _STLP_NO_VENDOR_MATH_L
 
 
 #include <stl/config/_gcc.h>
