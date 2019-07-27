@@ -945,6 +945,8 @@ nsPresContext::UpdateAfterPreferencesChanged()
     NS_UpdateHint(hint, NS_STYLE_HINT_REFLOW);
   }
 
+  
+  
   RebuildAllStyleData(hint, eRestyle_Subtree);
 }
 
