@@ -468,6 +468,15 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "uniform_buffer_object",
+        310, 
+        300, 
+        GLContext::ARB_uniform_buffer_object,
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
         "vertex_array_object",
         300, 
         300, 
