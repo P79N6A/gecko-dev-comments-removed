@@ -51,7 +51,7 @@ class ChromeObjectWrapper : public ChromeObjectWrapperBase
     
     
 
-    static ChromeObjectWrapper singleton;
+    static const ChromeObjectWrapper singleton;
 };
 
 } 
