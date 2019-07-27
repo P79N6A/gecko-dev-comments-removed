@@ -108,7 +108,7 @@ static const bool FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT = true;
 
 
 
-static const bool FALSE_START_REQUIRE_NPN_DEFAULT = true;
+static const bool FALSE_START_REQUIRE_NPN_DEFAULT = false;
 
 } 
 
