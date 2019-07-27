@@ -65,15 +65,17 @@ const static bool kUseSimpleContextDefault = MOZ_WIDGET_GTK == 2;
 nsGtkIMModule* nsGtkIMModule::sLastFocusedModule = nullptr;
 bool nsGtkIMModule::sUseSimpleContext;
 
-nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
-    mOwnerWindow(aOwnerWindow), mLastFocusedWindow(nullptr),
-    mContext(nullptr),
-    mSimpleContext(nullptr),
-    mDummyContext(nullptr),
-    mCompositionStart(UINT32_MAX), mProcessingKeyEvent(nullptr),
-    mCompositionTargetOffset(UINT32_MAX),
-    mCompositionState(eCompositionState_NotComposing),
-    mIsIMFocused(false), mIgnoreNativeCompositionEvent(false)
+nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow)
+    : mOwnerWindow(aOwnerWindow)
+    , mLastFocusedWindow(nullptr)
+    , mContext(nullptr)
+    , mSimpleContext(nullptr)
+    , mDummyContext(nullptr)
+    , mCompositionStart(UINT32_MAX)
+    , mProcessingKeyEvent(nullptr)
+    , mCompositionTargetOffset(UINT32_MAX)
+    , mCompositionState(eCompositionState_NotComposing)
+    , mIsIMFocused(false)
 {
 #ifdef PR_LOGGING
     if (!gGtkIMLog) {
@@ -385,20 +387,12 @@ nsGtkIMModule::OnFocusChangeInGecko(bool aFocus)
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): OnFocusChangeInGecko, aFocus=%s, "
-         "mCompositionState=%s, mIsIMFocused=%s, "
-         "mIgnoreNativeCompositionEvent=%s",
+         "mCompositionState=%s, mIsIMFocused=%s",
          this, aFocus ? "YES" : "NO", GetCompositionStateName(),
-         mIsIMFocused ? "YES" : "NO",
-         mIgnoreNativeCompositionEvent ? "YES" : "NO"));
+         mIsIMFocused ? "YES" : "NO"));
 
     
     mSelectedString.Truncate();
-
-    if (aFocus) {
-        
-        
-        mIgnoreNativeCompositionEvent = false;
-    }
 }
 
 void
@@ -415,7 +409,6 @@ nsGtkIMModule::ResetIME()
         return;
     }
 
-    mIgnoreNativeCompositionEvent = true;
     gtk_im_context_reset(im);
 }
 
@@ -443,8 +436,10 @@ nsGtkIMModule::CommitIMEComposition(nsWindow* aCaller)
     }
 
     
+    
+    
+    
     ResetIME();
-    CommitCompositionBy(mDispatchedCompositionString);
 
     return NS_OK;
 }
@@ -471,15 +466,11 @@ nsGtkIMModule::CancelIMEComposition(nsWindow* aCaller)
         return NS_OK;
     }
 
-    GtkIMContext *im = GetContext();
-    if (MOZ_UNLIKELY(!im)) {
-        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-            ("    FAILED, there are no context"));
-        return NS_OK;
-    }
-
+    
+    
+    
+    
     ResetIME();
-    CommitCompositionBy(EmptyString());
 
     return NS_OK;
 }
@@ -748,15 +739,7 @@ nsGtkIMModule::OnEndCompositionNative(GtkIMContext *aContext)
         return;
     }
 
-    bool shouldIgnoreThisEvent = ShouldIgnoreNativeCompositionEvent();
-
-    
-    
-    
-    
-    mIgnoreNativeCompositionEvent = false;
-
-    if (!IsComposing() || shouldIgnoreThisEvent) {
+    if (!IsComposing()) {
         
         return;
     }
@@ -785,10 +768,6 @@ nsGtkIMModule::OnChangeCompositionNative(GtkIMContext *aContext)
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    FAILED, given context doesn't match, GetContext()=%p",
              GetContext()));
-        return;
-    }
-
-    if (ShouldIgnoreNativeCompositionEvent()) {
         return;
     }
 
@@ -912,10 +891,6 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
         return;
     }
 
-    if (ShouldIgnoreNativeCompositionEvent()) {
-        return;
-    }
-
     
     
     
@@ -1033,12 +1008,6 @@ nsGtkIMModule::DispatchCompositionStart()
                 ("    NOTE, the focused widget was destroyed/changed by keydown event"));
             return false;
         }
-    }
-
-    if (mIgnoreNativeCompositionEvent) {
-        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-            ("    WARNING, mIgnoreNativeCompositionEvent is already TRUE, but we forcedly reset"));
-        mIgnoreNativeCompositionEvent = false;
     }
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -1634,19 +1603,4 @@ void
 nsGtkIMModule::InitEvent(WidgetGUIEvent& aEvent)
 {
     aEvent.time = PR_Now() / 1000;
-}
-
-bool
-nsGtkIMModule::ShouldIgnoreNativeCompositionEvent()
-{
-    PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): ShouldIgnoreNativeCompositionEvent, mLastFocusedWindow=%p, mIgnoreNativeCompositionEvent=%s",
-         this, mLastFocusedWindow,
-         mIgnoreNativeCompositionEvent ? "YES" : "NO"));
-
-    if (!mLastFocusedWindow) {
-        return true; 
-    }
-
-    return mIgnoreNativeCompositionEvent;
 }

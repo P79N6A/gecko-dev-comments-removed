@@ -191,11 +191,6 @@ protected:
     
     
     
-    bool mIgnoreNativeCompositionEvent;
-    
-    
-    
-    
     
     bool mKeyDownEventWasSent;
 
@@ -288,8 +283,6 @@ protected:
 
     
     void PrepareToDestroyContext(GtkIMContext *aContext);
-
-    bool ShouldIgnoreNativeCompositionEvent();
 
     
 
