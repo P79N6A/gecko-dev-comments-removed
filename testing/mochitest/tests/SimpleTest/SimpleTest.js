@@ -50,6 +50,10 @@ var isPrimaryTestWindow = !!parent.TestRunner || isSingleTestRun;
         }
         w = ancestor(w);
     }
+
+    if (parentRunner) {
+        SimpleTest.harnessParameters = parentRunner.getParameterInfo();
+    }
 })();
 
 
@@ -841,7 +845,9 @@ SimpleTest.finish = function() {
         if (parentRunner) {
             
             parentRunner.testFinished(SimpleTest._tests);
-        } else {
+        }
+
+        if (!parentRunner || parentRunner.showTestReport) {
             SpecialPowers.flushAllAppsLaunchable();
             SpecialPowers.flushPermissions(function () {
               SpecialPowers.flushPrefEnv(function() {
