@@ -1019,6 +1019,10 @@ let SessionStoreInternal = {
 
       
       
+      RevivableWindows.add(winData);
+
+      
+      
       
       winData.closedAt = Date.now();
 
@@ -1047,10 +1051,6 @@ let SessionStoreInternal = {
           this._closedWindows.unshift(winData);
           this._capClosedWindows();
         }
-
-        
-        
-        RevivableWindows.add(winData);
       }
 
       
