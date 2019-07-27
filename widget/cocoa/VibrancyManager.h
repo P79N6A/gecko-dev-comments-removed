@@ -80,6 +80,14 @@ public:
 
 
 
+
+  NSColor* VibrancyFillColorForType(VibrancyType aType);
+
+  
+
+
+
+
   static bool SystemSupportsVibrancy();
 
   
