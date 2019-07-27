@@ -342,6 +342,10 @@ protected:
   uint32_t                          mAllRedirectsSameOrigin     : 1;
 
   
+  
+  uint32_t                          mAllRedirectsPassTimingAllowCheck : 1;
+
+  
   uint32_t                          mSuspendCount;
 
   nsCOMPtr<nsIURI>                  mAPIRedirectToURI;

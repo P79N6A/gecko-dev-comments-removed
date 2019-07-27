@@ -139,8 +139,18 @@ public:
   }
 
   uint16_t GetRedirectCount() const;
-  bool IsSameOriginAsReferral() const;
-  void CheckRedirectCrossOrigin(nsIHttpChannel* aResourceChannel);
+  
+  
+  
+  bool CheckAllowedOrigin(nsIHttpChannel* aResourceChannel);
+  
+  
+  bool TimingAllowed() const;
+
+  
+  
+  
+  bool ShouldReportCrossOriginRedirect() const;
 
   
   DOMHighResTimeStamp FetchStartHighRes();
@@ -220,7 +230,12 @@ private:
   
   
   DOMHighResTimeStamp mZeroTime;
-  bool mReportCrossOriginResources;
+  bool mTimingAllowed;
+
+  
+  
+  
+  bool mReportCrossOriginRedirect;
 };
 
 

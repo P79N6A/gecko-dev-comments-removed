@@ -19,6 +19,7 @@
 #include "mozilla/dom/PerformanceNavigationBinding.h"
 #include "mozilla/TimeStamp.h"
 #include "nsThreadUtils.h"
+#include "nsILoadInfo.h"
 
 using namespace mozilla;
 
@@ -35,7 +36,8 @@ nsPerformanceTiming::nsPerformanceTiming(nsPerformance* aPerformance,
     mChannel(aChannel),
     mFetchStart(0.0),
     mZeroTime(aZeroTime),
-    mReportCrossOriginResources(true)
+    mTimingAllowed(true),
+    mReportCrossOriginRedirect(true)
 {
   MOZ_ASSERT(aPerformance, "Parent performance object should be provided");
   SetIsDOMBinding();
@@ -43,7 +45,10 @@ nsPerformanceTiming::nsPerformanceTiming(nsPerformance* aPerformance,
   
   
   if (aHttpChannel) {
-    CheckRedirectCrossOrigin(aHttpChannel);
+    mTimingAllowed = CheckAllowedOrigin(aHttpChannel);
+    bool redirectsPassCheck = false;
+    mChannel->GetAllRedirectsPassTimingAllowCheck(&redirectsPassCheck);
+    mReportCrossOriginRedirect = mTimingAllowed && redirectsPassCheck;
   }
 }
 
@@ -75,34 +80,31 @@ nsPerformanceTiming::FetchStart()
   return static_cast<int64_t>(FetchStartHighRes());
 }
 
-
-
-
-void
-nsPerformanceTiming::CheckRedirectCrossOrigin(nsIHttpChannel* aResourceChannel)
+bool
+nsPerformanceTiming::CheckAllowedOrigin(nsIHttpChannel* aResourceChannel)
 {
   if (!IsInitialized()) {
-    return;
+    return false;
   }
-  uint16_t redirectCount;
-  mChannel->GetRedirectCount(&redirectCount);
-  if (redirectCount == 0) {
-    return;
+
+  
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  aResourceChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  if (!loadInfo) {
+    return false;
   }
-  nsCOMPtr<nsIURI> resourceURI, referrerURI;
-  aResourceChannel->GetReferrer(getter_AddRefs(referrerURI));
-  aResourceChannel->GetURI(getter_AddRefs(resourceURI));
-  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-  nsresult rv = ssm->CheckSameOriginURI(resourceURI, referrerURI, false);
-  if (!NS_SUCCEEDED(rv)) {
-    mReportCrossOriginResources = false;
-  }
+  nsCOMPtr<nsIPrincipal> principal = loadInfo->LoadingPrincipal();
+
+  
+  
+  
+  return mChannel->TimingAllowCheck(principal);
 }
 
 bool
-nsPerformanceTiming::IsSameOriginAsReferral() const
+nsPerformanceTiming::TimingAllowed() const
 {
-  return mReportCrossOriginResources;
+  return mTimingAllowed;
 }
 
 uint16_t
@@ -119,6 +121,21 @@ nsPerformanceTiming::GetRedirectCount() const
   uint16_t redirectCount;
   mChannel->GetRedirectCount(&redirectCount);
   return redirectCount;
+}
+
+bool
+nsPerformanceTiming::ShouldReportCrossOriginRedirect() const
+{
+  if (!nsContentUtils::IsPerformanceTimingEnabled() || !IsInitialized()) {
+    return false;
+  }
+
+  
+  
+  
+  uint16_t redirectCount;
+  mChannel->GetRedirectCount(&redirectCount);
+  return (redirectCount != 0) && mReportCrossOriginRedirect;
 }
 
 
