@@ -155,14 +155,25 @@ js::SetPropertyIgnoringNamedGetter(JSContext* cx, HandleObject obj, HandleId id,
         }
 
         
-        
-        bool existingDescriptor;
-        if (!HasOwnProperty(cx, receiverObj, id, &existingDescriptor))
+        Rooted<PropertyDescriptor> existingDescriptor(cx);
+        if (!GetOwnPropertyDescriptor(cx, receiverObj, id, &existingDescriptor))
             return false;
 
         
+        if (existingDescriptor.object()) {
+            
+            if (existingDescriptor.isAccessorDescriptor())
+                return result.fail(JSMSG_OVERWRITING_ACCESSOR);
+
+            
+            if (!existingDescriptor.writable())
+                return result.fail(JSMSG_READ_ONLY);
+        }
+
+
+        
         unsigned attrs =
-            existingDescriptor
+            existingDescriptor.object()
             ? JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_READONLY | JSPROP_IGNORE_PERMANENT
             : JSPROP_ENUMERATE;
 

@@ -1976,26 +1976,43 @@ js::SetPropertyByDefining(JSContext* cx, HandleObject obj, HandleId id, HandleVa
         return result.fail(JSMSG_SET_NON_OBJECT_RECEIVER);
     RootedObject receiver(cx, &receiverValue.toObject());
 
-    
-    
-    
-    
     bool existing;
     if (receiver == obj) {
+        
+        
+        
         
         
 #ifdef DEBUG
         
         
         
-        if (!HasOwnProperty(cx, receiver, id, &existing))
+        Rooted<PropertyDescriptor> desc(cx);
+        if (!GetOwnPropertyDescriptor(cx, receiver, id, &desc))
             return false;
-        MOZ_ASSERT(existing == objHasOwn);
+        MOZ_ASSERT(!!desc.object() == objHasOwn);
+        MOZ_ASSERT_IF(desc.object(), desc.isDataDescriptor());
+        MOZ_ASSERT_IF(desc.object(), desc.writable());
 #endif
         existing = objHasOwn;
     } else {
-        if (!HasOwnProperty(cx, receiver, id, &existing))
+        
+        Rooted<PropertyDescriptor> desc(cx);
+        if (!GetOwnPropertyDescriptor(cx, receiver, id, &desc))
             return false;
+
+        existing = !!desc.object();
+
+        
+        if (existing) {
+            
+            if (desc.isAccessorDescriptor())
+                return result.fail(JSMSG_OVERWRITING_ACCESSOR);
+
+            
+            if (!desc.writable())
+                return result.fail(JSMSG_READ_ONLY);
+        }
     }
 
     
