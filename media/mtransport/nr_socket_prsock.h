@@ -59,12 +59,14 @@
 #include "nsIEventTarget.h"
 #include "nsIUDPSocketChild.h"
 #include "nsProxyRelease.h"
+#include "nsThreadUtils.h"
 
 #include "databuffer.h"
 #include "m_cpp_utils.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/ClearOnShutdown.h"
 
 
 typedef struct nr_socket_vtbl_ nr_socket_vtbl;
@@ -211,7 +213,7 @@ public:
   NS_IMETHODIMP CallListenerOpened();
   NS_IMETHODIMP CallListenerClosed();
 
-  explicit NrSocketIpc(const nsCOMPtr<nsIEventTarget> &main_thread);
+  NrSocketIpc();
 
   
   virtual int create(nr_transport_addr *addr) override;
@@ -227,14 +229,20 @@ public:
   virtual int read(void* buf, size_t maxlen, size_t *len) override;
 
 private:
-  virtual ~NrSocketIpc() {};
+  virtual ~NrSocketIpc();
 
   DISALLOW_COPY_ASSIGN(NrSocketIpc);
 
+  static nsIThread* GetIOThreadAndAddUse_s();
+
   
-  void create_m(const nsACString &host, const uint16_t port);
-  void sendto_m(const net::NetAddr &addr, nsAutoPtr<DataBuffer> buf);
-  void close_m();
+  void create_i(const nsACString &host, const uint16_t port);
+  void sendto_i(const net::NetAddr &addr, nsAutoPtr<DataBuffer> buf);
+  void close_i();
+#if defined(MOZILLA_INTERNAL_API) && !defined(MOZILLA_XPCOMRT_API)
+  static void release_child_i(nsIUDPSocketChild* aChild, nsCOMPtr<nsIEventTarget> ststhread);
+  static void release_use_s();
+#endif
   
   void recv_callback_s(RefPtr<nr_udp_message> msg);
 
@@ -242,9 +250,9 @@ private:
   NrSocketIpcState state_;
   std::queue<RefPtr<nr_udp_message> > received_msgs_;
 
-  nsMainThreadPtrHandle<nsIUDPSocketChild> socket_child_;
+  nsRefPtr<nsIUDPSocketChild> socket_child_; 
   nsCOMPtr<nsIEventTarget> sts_thread_;
-  const nsCOMPtr<nsIEventTarget> main_thread_;
+  const nsCOMPtr<nsIEventTarget> io_thread_;
   ReentrantMonitor monitor_;
 };
 
