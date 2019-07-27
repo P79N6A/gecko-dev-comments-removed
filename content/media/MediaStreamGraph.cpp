@@ -110,6 +110,7 @@ MediaStreamGraphImpl::RemoveStream(MediaStream* aStream)
     }
   }
 
+  
   SetStreamOrderDirty();
 
   mStreams.RemoveElement(aStream);
@@ -2761,7 +2762,10 @@ ProcessedMediaStream::DestroyImpl()
     mInputs[i]->Disconnect();
   }
   MediaStream::DestroyImpl();
-  GraphImpl()->SetStreamOrderDirty();
+  
+  
+  
+  
 }
 
 MediaStreamGraphImpl::MediaStreamGraphImpl(bool aRealtime, TrackRate aSampleRate)
