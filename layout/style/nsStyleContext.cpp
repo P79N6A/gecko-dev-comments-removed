@@ -301,6 +301,12 @@ nsStyleContext::MoveTo(nsStyleContext* aNewParent)
 
   
   
+  
+  DebugOnly<uint64_t> mask = NS_STYLE_IN_DISPLAY_NONE_SUBTREE;
+  MOZ_ASSERT((mParent->mBits & mask) == (aNewParent->mBits & mask));
+
+  
+  
   MOZ_ASSERT(!IsStyleIfVisited());
   MOZ_ASSERT(!aNewParent->IsStyleIfVisited());
 
@@ -686,6 +692,12 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
         mutable_display->mDisplay = displayVal;
       }
     }
+  }
+
+  
+  if ((mParent && mParent->IsInDisplayNoneSubtree()) ||
+      disp->mDisplay == NS_STYLE_DISPLAY_NONE) {
+    mBits |= NS_STYLE_IN_DISPLAY_NONE_SUBTREE;
   }
 
   

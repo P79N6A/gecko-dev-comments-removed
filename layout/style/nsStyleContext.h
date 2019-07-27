@@ -161,6 +161,10 @@ public:
     { return !!(mBits & NS_STYLE_SUPPRESS_LINEBREAK); }
 
   
+  bool IsInDisplayNoneSubtree() const
+    { return !!(mBits & NS_STYLE_IN_DISPLAY_NONE_SUBTREE); }
+
+  
   
   
   
