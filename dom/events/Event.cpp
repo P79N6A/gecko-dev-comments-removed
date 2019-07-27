@@ -509,6 +509,8 @@ Event::PreventDefaultInternal(bool aCalledByDefaultHandler)
   
   if (!aCalledByDefaultHandler) {
     mEvent->mFlags.mDefaultPreventedByContent = true;
+  } else {
+    mEvent->mFlags.mDefaultPreventedByChrome = true;
   }
 
   if (!IsTrusted()) {
@@ -569,6 +571,8 @@ Event::InitEvent(const nsAString& aEventTypeArg,
   mEvent->mFlags.mCancelable = aCancelableArg;
 
   mEvent->mFlags.mDefaultPrevented = false;
+  mEvent->mFlags.mDefaultPreventedByContent = false;
+  mEvent->mFlags.mDefaultPreventedByChrome = false;
 
   
   

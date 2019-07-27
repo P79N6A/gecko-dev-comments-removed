@@ -498,6 +498,10 @@ public:
   
   
   
+  bool    mDefaultPreventedByChrome : 1;
+  
+  
+  
   
   
   bool    mMultipleActionsPrevented : 1;
