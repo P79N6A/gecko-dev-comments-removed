@@ -103,7 +103,7 @@ abstract class BaseTest extends BaseRobocopTest {
         super.setUp();
 
         mDevice = new Device();
-        mDatabaseHelper = new DatabaseHelper(mActivity, mAsserter);
+        mDatabaseHelper = new DatabaseHelper(getActivity(), mAsserter);
 
         
         throwIfHttpGetFails();
@@ -732,7 +732,7 @@ abstract class BaseTest extends BaseRobocopTest {
     }
 
     public final void runOnUiThreadSync(Runnable runnable) {
-        RobocopUtils.runOnUiThreadSync(mActivity, runnable);
+        RobocopUtils.runOnUiThreadSync(getActivity(), runnable);
     }
 
     
