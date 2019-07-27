@@ -545,11 +545,6 @@ public:
 
 
   bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
-
-  
-  
-  already_AddRefed<nsIPrincipal> GetTopLevelPrincipal();
-
 #endif 
 
   bool MozAutoplayEnabled() const

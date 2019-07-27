@@ -78,7 +78,12 @@ GetGMPStorageDir(nsIFile** aTempDir, const nsCString& aNodeId)
     return rv;
   }
 
-  rv = tmpFile->AppendNative(aNodeId);
+  
+  
+  
+  nsAutoString nodeIdHash;
+  nodeIdHash.AppendInt(HashString(aNodeId));
+  rv = tmpFile->Append(nodeIdHash);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

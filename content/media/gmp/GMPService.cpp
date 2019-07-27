@@ -22,7 +22,6 @@
 #include "nsComponentManagerUtils.h"
 #include "mozilla/Preferences.h"
 #include "runnable_utils.h"
-#include "VideoUtils.h"
 #if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
 #include "mozilla/Sandbox.h"
 #endif
@@ -853,29 +852,6 @@ GeckoMediaPluginService::ReAddOnGMPThread(nsRefPtr<GMPParent>& aOld)
   
   
   NS_DispatchToCurrentThread(WrapRunnableNM(&Dummy, aOld));
-}
-
-NS_IMETHODIMP
-GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
-                                   const nsAString& aTopLevelOrigin,
-                                   bool aInPrivateBrowsing,
-                                   nsACString& aOutId)
-{
-  MOZ_ASSERT(NS_GetCurrentThread() == mGMPThread);
-  LOGD(("%s::%s: (%s, %s), %s", __CLASS__, __FUNCTION__,
-       NS_ConvertUTF16toUTF8(aOrigin).get(),
-       NS_ConvertUTF16toUTF8(aTopLevelOrigin).get(),
-       (aInPrivateBrowsing ? "PrivateBrowsing" : "NonPrivateBrowsing")));
-
-  nsAutoCString salt;
-  nsresult rv = GenerateRandomPathName(salt, 32);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  aOutId = salt;
-
-  
-
-  return NS_OK;
 }
 
 } 
