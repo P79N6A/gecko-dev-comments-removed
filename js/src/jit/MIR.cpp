@@ -3065,6 +3065,8 @@ MToInt32::foldsTo(TempAllocator &alloc)
             
             if (mozilla::NumberEqualsInt32(val.toNumber(), &ival))
                 return MConstant::New(alloc, Int32Value(ival));
+          default:
+            break;
         }
     }
 
