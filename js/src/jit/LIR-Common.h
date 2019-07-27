@@ -230,6 +230,42 @@ class LSimdSignMaskX4 : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LSimdSwizzleBase : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LSimdSwizzleBase(const LAllocation &base)
+    {
+        setOperand(0, base);
+    }
+
+    const LAllocation *getBase() {
+        return getOperand(0);
+    }
+
+    SimdLane laneX() const { return mir_->toSimdSwizzle()->laneX(); }
+    SimdLane laneY() const { return mir_->toSimdSwizzle()->laneY(); }
+    SimdLane laneZ() const { return mir_->toSimdSwizzle()->laneZ(); }
+    SimdLane laneW() const { return mir_->toSimdSwizzle()->laneW(); }
+};
+
+
+class LSimdSwizzleI : public LSimdSwizzleBase
+{
+  public:
+    LIR_HEADER(SimdSwizzleI);
+    LSimdSwizzleI(const LAllocation &base) : LSimdSwizzleBase(base)
+    {}
+};
+
+class LSimdSwizzleF : public LSimdSwizzleBase
+{
+  public:
+    LIR_HEADER(SimdSwizzleF);
+    LSimdSwizzleF(const LAllocation &base) : LSimdSwizzleBase(base)
+    {}
+};
+
+
 class LSimdBinaryComp: public LInstructionHelper<1, 2, 0>
 {
   protected:
