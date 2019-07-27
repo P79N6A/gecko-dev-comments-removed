@@ -36,7 +36,7 @@ public:
 
   
   
-  bool IsStackTop();
+  bool IsStackTop() const;
 
 private:
   mozilla::Maybe<JSAutoRequest> mAutoRequest;
