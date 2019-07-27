@@ -2861,10 +2861,14 @@ Engine.prototype = {
   },
 
   get searchForm() {
+    return this._getSearchFormWithPurpose();
+  },
+
+  _getSearchFormWithPurpose(aPurpose = "") {
     
     var searchFormURL = this._getURLOfType(URLTYPE_SEARCH_HTML, "searchform");
     if (searchFormURL) {
-      let submission = searchFormURL.getSubmission("", this);
+      let submission = searchFormURL.getSubmission("", this, aPurpose);
 
       
       
@@ -2947,7 +2951,7 @@ Engine.prototype = {
 
     if (!aData) {
       
-      return new Submission(makeURI(this.searchForm), null);
+      return new Submission(makeURI(this._getSearchFormWithPurpose(aPurpose)), null);
     }
 
     LOG("getSubmission: In data: \"" + aData + "\"; Purpose: \"" + aPurpose + "\"");
