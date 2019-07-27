@@ -110,14 +110,11 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, HandleObject obj, HandleId id,
             return SetProperty(cx, proto, receiver, id, vp, result);
 
         
-        
-        ownDesc.clear();
-        ownDesc.setAttributes(JSPROP_ENUMERATE);
+        ownDesc.setDataDescriptor(UndefinedHandleValue, JSPROP_ENUMERATE);
     }
 
     
     if (ownDesc.isDataDescriptor()) {
-        
         
         if (!ownDesc.writable())
             return result.fail(JSMSG_READ_ONLY);

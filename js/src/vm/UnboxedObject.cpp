@@ -680,16 +680,16 @@ UnboxedPlainObject::obj_lookupProperty(JSContext *cx, HandleObject obj,
 }
 
  bool
-UnboxedPlainObject::obj_defineProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue v,
-                                       GetterOp getter, SetterOp setter, unsigned attrs,
+UnboxedPlainObject::obj_defineProperty(JSContext *cx, HandleObject obj, HandleId id,
+                                       Handle<JSPropertyDescriptor> desc,
                                        ObjectOpResult &result)
 {
     const UnboxedLayout &layout = obj->as<UnboxedPlainObject>().layout();
 
     if (const UnboxedLayout::Property *property = layout.lookup(id)) {
-        if (!getter && !setter && attrs == JSPROP_ENUMERATE) {
+        if (!desc.getter() && !desc.setter() && desc.attributes() == JSPROP_ENUMERATE) {
             
-            if (obj->as<UnboxedPlainObject>().setValue(cx, *property, v))
+            if (obj->as<UnboxedPlainObject>().setValue(cx, *property, desc.value()))
                 return true;
         }
 
@@ -698,7 +698,8 @@ UnboxedPlainObject::obj_defineProperty(JSContext *cx, HandleObject obj, HandleId
         if (!convertToNative(cx, obj))
             return false;
 
-        return DefineProperty(cx, obj, id, v, getter, setter, attrs);
+        return DefineProperty(cx, obj, id, desc, result) &&
+               result.checkStrict(cx, obj, id);
     }
 
     
@@ -707,9 +708,9 @@ UnboxedPlainObject::obj_defineProperty(JSContext *cx, HandleObject obj, HandleId
         return false;
 
     
-    AddTypePropertyId(cx, obj, id, v);
+    AddTypePropertyId(cx, obj, id, desc.value());
 
-    return DefineProperty(cx, expando, id, v, getter, setter, attrs, result);
+    return DefineProperty(cx, expando, id, desc, result);
 }
 
  bool
