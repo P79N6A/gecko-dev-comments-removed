@@ -46,6 +46,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/layers/APZCTreeManager.h"
+#include "mozilla/layers/APZThreadUtils.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/MouseEvents.h"
@@ -233,17 +234,44 @@ nsWindow::DispatchInputEvent(WidgetGUIEvent& aEvent)
  void
 nsWindow::DispatchTouchInput(MultiTouchInput& aInput)
 {
+    APZThreadUtils::AssertOnControllerThread();
+
     if (!gFocusedWindow) {
         return;
     }
 
-    gFocusedWindow->UserActivity();
     gFocusedWindow->DispatchTouchInputViaAPZ(aInput);
 }
+
+class DispatchTouchInputOnMainThread : public nsRunnable
+{
+public:
+    DispatchTouchInputOnMainThread(const MultiTouchInput& aInput,
+                                   const ScrollableLayerGuid& aGuid,
+                                   const uint64_t& aInputBlockId)
+      : mInput(aInput)
+      , mGuid(aGuid)
+      , mInputBlockId(aInputBlockId)
+    {}
+
+    NS_IMETHOD Run() {
+        if (gFocusedWindow) {
+            gFocusedWindow->DispatchTouchEventForAPZ(mInput, mGuid, mInputBlockId);
+        }
+        return NS_OK;
+    }
+
+private:
+    MultiTouchInput mInput;
+    ScrollableLayerGuid mGuid;
+    uint64_t mInputBlockId;
+};
 
 void
 nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
 {
+    APZThreadUtils::AssertOnControllerThread();
+
     if (!mAPZC) {
         
         
@@ -260,6 +288,22 @@ nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
     }
 
     
+    
+    
+    
+    NS_DispatchToMainThread(new DispatchTouchInputOnMainThread(
+        aInput, guid, inputBlockId));
+}
+
+void
+nsWindow::DispatchTouchEventForAPZ(const MultiTouchInput& aInput,
+                                   const ScrollableLayerGuid& aGuid,
+                                   const uint64_t aInputBlockId)
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    UserActivity();
+
+    
     WidgetTouchEvent event = aInput.ToWidgetTouchEvent(this);
 
     
@@ -270,7 +314,7 @@ nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
     
     
     if (TabParent* capturer = TabParent::GetEventCapturer()) {
-        InputAPZContext context(guid, inputBlockId);
+        InputAPZContext context(aGuid, aInputBlockId);
         if (capturer->TryCapture(event)) {
             return;
         }
@@ -280,9 +324,26 @@ nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
     
     
     
-    rv = DispatchEventForAPZ(&event, guid, inputBlockId);
+    DispatchEventForAPZ(&event, aGuid, aInputBlockId);
 }
 
+class DispatchTouchInputOnControllerThread : public Task
+{
+public:
+    DispatchTouchInputOnControllerThread(const MultiTouchInput& aInput)
+      : Task()
+      , mInput(aInput)
+    {}
+
+    virtual void Run() MOZ_OVERRIDE {
+        if (gFocusedWindow) {
+            gFocusedWindow->DispatchTouchInputViaAPZ(mInput);
+        }
+    }
+
+private:
+    MultiTouchInput mInput;
+};
 
 nsresult
 nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
@@ -344,7 +405,14 @@ nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
             (float)aPointerPressure));
     }
 
-    DispatchTouchInputViaAPZ(inputToDispatch);
+    
+    
+    
+    
+    
+    
+    APZThreadUtils::RunOnControllerThread(new DispatchTouchInputOnControllerThread(inputToDispatch));
+
     return NS_OK;
 }
 
