@@ -94,7 +94,7 @@ static uvec16 kScaleAb2 =
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown2_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
                         uint8* dst_ptr, int dst_width) {
   __asm {
@@ -122,7 +122,7 @@ void ScaleRowDown2_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown2Linear_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
                               uint8* dst_ptr, int dst_width) {
   __asm {
@@ -160,7 +160,7 @@ void ScaleRowDown2Linear_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown2Box_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
                            uint8* dst_ptr, int dst_width) {
   __asm {
@@ -204,7 +204,7 @@ void ScaleRowDown2Box_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown2_Unaligned_SSE2(const uint8* src_ptr,
                                   ptrdiff_t src_stride,
                                   uint8* dst_ptr, int dst_width) {
@@ -233,7 +233,7 @@ void ScaleRowDown2_Unaligned_SSE2(const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown2Linear_Unaligned_SSE2(const uint8* src_ptr,
                                         ptrdiff_t src_stride,
                                         uint8* dst_ptr, int dst_width) {
@@ -272,7 +272,7 @@ void ScaleRowDown2Linear_Unaligned_SSE2(const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown2Box_Unaligned_SSE2(const uint8* src_ptr,
                                      ptrdiff_t src_stride,
                                      uint8* dst_ptr, int dst_width) {
@@ -317,7 +317,7 @@ void ScaleRowDown2Box_Unaligned_SSE2(const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown4_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
                         uint8* dst_ptr, int dst_width) {
   __asm {
@@ -350,7 +350,7 @@ void ScaleRowDown4_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown4Box_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
                            uint8* dst_ptr, int dst_width) {
   __asm {
@@ -415,7 +415,7 @@ void ScaleRowDown4Box_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown34_SSSE3(const uint8* src_ptr, ptrdiff_t src_stride,
                           uint8* dst_ptr, int dst_width) {
   __asm {
@@ -464,7 +464,7 @@ void ScaleRowDown34_SSSE3(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown34_1_Box_SSSE3(const uint8* src_ptr,
                                 ptrdiff_t src_stride,
                                 uint8* dst_ptr, int dst_width) {
@@ -523,7 +523,7 @@ void ScaleRowDown34_1_Box_SSSE3(const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown34_0_Box_SSSE3(const uint8* src_ptr,
                                 ptrdiff_t src_stride,
                                 uint8* dst_ptr, int dst_width) {
@@ -586,7 +586,7 @@ void ScaleRowDown34_0_Box_SSSE3(const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown38_SSSE3(const uint8* src_ptr, ptrdiff_t src_stride,
                           uint8* dst_ptr, int dst_width) {
   __asm {
@@ -618,7 +618,7 @@ void ScaleRowDown38_SSSE3(const uint8* src_ptr, ptrdiff_t src_stride,
 }
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown38_3_Box_SSSE3(const uint8* src_ptr,
                                 ptrdiff_t src_stride,
                                 uint8* dst_ptr, int dst_width) {
@@ -684,7 +684,7 @@ void ScaleRowDown38_3_Box_SSSE3(const uint8* src_ptr,
 }
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleRowDown38_2_Box_SSSE3(const uint8* src_ptr,
                                 ptrdiff_t src_stride,
                                 uint8* dst_ptr, int dst_width) {
@@ -730,7 +730,7 @@ void ScaleRowDown38_2_Box_SSSE3(const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleAddRows_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
                        uint16* dst_ptr, int src_width,
                        int src_height) {
@@ -800,7 +800,7 @@ void ScaleAddRows_SSE2(const uint8* src_ptr, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleFilterCols_SSSE3(uint8* dst_ptr, const uint8* src_ptr,
                            int dst_width, int x, int dx) {
   __asm {
@@ -881,7 +881,7 @@ void ScaleFilterCols_SSSE3(uint8* dst_ptr, const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleColsUp2_SSE2(uint8* dst_ptr, const uint8* src_ptr,
                        int dst_width, int x, int dx) {
   __asm {
@@ -908,7 +908,7 @@ void ScaleColsUp2_SSE2(uint8* dst_ptr, const uint8* src_ptr,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBRowDown2_SSE2(const uint8* src_argb,
                             ptrdiff_t src_stride,
                             uint8* dst_argb, int dst_width) {
@@ -935,7 +935,7 @@ void ScaleARGBRowDown2_SSE2(const uint8* src_argb,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBRowDown2Linear_SSE2(const uint8* src_argb,
                                   ptrdiff_t src_stride,
                                   uint8* dst_argb, int dst_width) {
@@ -965,7 +965,7 @@ void ScaleARGBRowDown2Linear_SSE2(const uint8* src_argb,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBRowDown2Box_SSE2(const uint8* src_argb,
                                ptrdiff_t src_stride,
                                uint8* dst_argb, int dst_width) {
@@ -1001,7 +1001,7 @@ void ScaleARGBRowDown2Box_SSE2(const uint8* src_argb,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBRowDownEven_SSE2(const uint8* src_argb, ptrdiff_t src_stride,
                                int src_stepx,
                                uint8* dst_argb, int dst_width) {
@@ -1039,7 +1039,7 @@ void ScaleARGBRowDownEven_SSE2(const uint8* src_argb, ptrdiff_t src_stride,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBRowDownEvenBox_SSE2(const uint8* src_argb,
                                   ptrdiff_t src_stride,
                                   int src_stepx,
@@ -1088,7 +1088,7 @@ void ScaleARGBRowDownEvenBox_SSE2(const uint8* src_argb,
 }
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBCols_SSE2(uint8* dst_argb, const uint8* src_argb,
                         int dst_width, int x, int dx) {
   __asm {
@@ -1182,7 +1182,7 @@ static uvec8 kShuffleFractions = {
   0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 4u, 4u, 4u, 4u, 4u, 4u, 4u, 4u,
 };
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBFilterCols_SSSE3(uint8* dst_argb, const uint8* src_argb,
                                int dst_width, int x, int dx) {
   __asm {
@@ -1257,7 +1257,7 @@ void ScaleARGBFilterCols_SSSE3(uint8* dst_argb, const uint8* src_argb,
 
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 void ScaleARGBColsUp2_SSE2(uint8* dst_argb, const uint8* src_argb,
                            int dst_width, int x, int dx) {
   __asm {
@@ -1283,7 +1283,7 @@ void ScaleARGBColsUp2_SSE2(uint8* dst_argb, const uint8* src_argb,
 }
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 int FixedDiv_X86(int num, int div) {
   __asm {
     mov        eax, [esp + 4]    
@@ -1296,7 +1296,7 @@ int FixedDiv_X86(int num, int div) {
 }
 
 
-__declspec(naked) __declspec(align(16))
+__declspec(naked)
 int FixedDiv1_X86(int num, int div) {
   __asm {
     mov        eax, [esp + 4]    
