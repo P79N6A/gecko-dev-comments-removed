@@ -271,7 +271,11 @@ AboutReader.prototype = {
           
           if (isInitialStateChange) {
             
-            this._win.setTimeout(() => this._setToolbarVisibility(true), 500);
+            this._win.setTimeout(() => {
+              this._toolbarElement.style.display = "block";
+              
+              this._win.setTimeout(() => this._setToolbarVisibility(true), 200);
+            }, 500);
           }
         }
       }
