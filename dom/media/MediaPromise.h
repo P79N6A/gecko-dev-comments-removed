@@ -79,6 +79,34 @@ struct ReturnTypeIs {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class MediaPromiseRefcountable
 {
 public:
@@ -180,7 +208,6 @@ public:
     
     bool IsDisconnected() const { return mDisconnected; }
 
-    
     virtual MediaPromise* CompletionPromise() = 0;
 
   protected:
