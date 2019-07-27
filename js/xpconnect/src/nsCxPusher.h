@@ -11,12 +11,6 @@
 #include "mozilla/Maybe.h"
 #include "nsCOMPtr.h"
 
-namespace mozilla {
-namespace dom {
-class EventTarget;
-}
-}
-
 class nsIScriptContext;
 
 namespace mozilla {
@@ -29,7 +23,6 @@ class MOZ_STACK_CLASS AutoCxPusher
 {
 public:
   explicit AutoCxPusher(JSContext *aCx, bool aAllowNull = false);
-  
   ~AutoCxPusher();
 
   nsIScriptContext* GetScriptContext() { return mScx; }
@@ -48,47 +41,6 @@ private:
   unsigned mCompartmentDepthOnEntry;
 #endif
 };
-
-} 
-
-
-
-
-
-
-
-
-
-
-
-
-
-class MOZ_STACK_CLASS nsCxPusher
-{
-public:
-  
-  bool Push(mozilla::dom::EventTarget *aCurrentTarget);
-  
-  
-  bool RePush(mozilla::dom::EventTarget *aCurrentTarget);
-  
-  
-  void Push(JSContext *cx);
-  
-  void PushNull();
-
-  
-  void Pop();
-
-  nsIScriptContext* GetCurrentScriptContext() {
-    return mPusher.empty() ? nullptr : mPusher.ref().GetScriptContext();
-  }
-
-private:
-  mozilla::Maybe<mozilla::AutoCxPusher> mPusher;
-};
-
-namespace mozilla {
 
 
 
