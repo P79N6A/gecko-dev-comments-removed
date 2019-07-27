@@ -6,6 +6,8 @@
 
 
 
+#include "mozilla/Range.h"
+
 #include "xpcprivate.h"
 #include "nsCxPusher.h"
 
@@ -96,10 +98,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(XPCVariant)
     JS::Value val = tmp->GetJSValPreserveColor();
 
-    
-    
-    if (val.isString())
-        tmp->mData.u.wstr.mWStringValue = nullptr;
     nsVariant::Cleanup(&tmp->mData);
 
     if (val.isMarkable()) {
@@ -288,25 +286,18 @@ bool XPCVariant::InitializeData(JSContext* cx)
         if (!str)
             return false;
 
-        
-        
-        
         MOZ_ASSERT(mData.mType == nsIDataType::VTYPE_EMPTY,
                    "Why do we already have data?");
 
-        
-        
-        size_t length;
-        const jschar *chars = JS_GetStringCharsZAndLength(cx, str, &length);
-        if (!chars)
+        size_t length = JS_GetStringLength(str);
+        if (!NS_SUCCEEDED(nsVariant::AllocateWStringWithSize(&mData, length)))
             return false;
 
-        mData.u.wstr.mWStringValue = const_cast<jschar *>(chars);
-        
-        
-        mData.u.wstr.mWStringLength = (uint32_t)length;
-        mData.mType = nsIDataType::VTYPE_WSTRING_SIZE_IS;
+        mozilla::Range<jschar> destChars(mData.u.wstr.mWStringValue, length);
+        if (!JS_CopyStringChars(cx, destChars, str))
+            return false;
 
+        MOZ_ASSERT(mData.u.wstr.mWStringValue[length] == '\0');
         return true;
     }
 

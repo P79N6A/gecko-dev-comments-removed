@@ -190,6 +190,11 @@ public:
                                          uint32_t aSize,
                                          const char16_t* aValue);
 
+  
+  
+  static nsresult AllocateWStringWithSize(nsDiscriminatedUnion* aData,
+                                          uint32_t aSize);
+
   static nsresult SetToVoid(nsDiscriminatedUnion* aData);
   static nsresult SetToEmpty(nsDiscriminatedUnion* aData);
   static nsresult SetToEmptyArray(nsDiscriminatedUnion* aData);
