@@ -991,10 +991,8 @@ pref("touchcaret.enabled", false);
 pref("selectioncaret.enabled", false);
 
 
-#ifdef MOZ_SERVICES_FXACCOUNTS
 pref("services.sync.fxaccounts.enabled", true);
 pref("identity.fxaccounts.enabled", true);
-#endif
 
 
 pref("services.mobileid.server.uri", "https://msisdn-dev.stage.mozaws.net");
