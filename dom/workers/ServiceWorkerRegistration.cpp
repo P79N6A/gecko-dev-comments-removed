@@ -715,21 +715,21 @@ ServiceWorkerRegistrationWorkerThread::WrapObject(JSContext* aCx, JS::Handle<JSO
 already_AddRefed<workers::ServiceWorker>
 ServiceWorkerRegistrationWorkerThread::GetInstalling()
 {
-  MOZ_CRASH("FIXME");
+  
   return nullptr;
 }
 
 already_AddRefed<workers::ServiceWorker>
 ServiceWorkerRegistrationWorkerThread::GetWaiting()
 {
-  MOZ_CRASH("FIXME");
+  
   return nullptr;
 }
 
 already_AddRefed<workers::ServiceWorker>
 ServiceWorkerRegistrationWorkerThread::GetActive()
 {
-  MOZ_CRASH("FIXME");
+  
   return nullptr;
 }
 
