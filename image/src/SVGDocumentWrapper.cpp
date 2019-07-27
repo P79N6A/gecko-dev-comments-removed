@@ -6,7 +6,6 @@
 #include "SVGDocumentWrapper.h"
 
 #include "mozilla/dom/Element.h"
-#include "mozilla/FloatingPoint.h"
 #include "nsICategoryManager.h"
 #include "nsIChannel.h"
 #include "nsIContentViewer.h"
@@ -77,14 +76,34 @@ SVGDocumentWrapper::GetWidthOrHeight(Dimension aDimension,
   NS_ABORT_IF_FALSE(rootElem, "root elem missing or of wrong type");
 
   
-  float length = (aDimension == eWidth) ? rootElem->GetIntrinsicWidth()
-                                        : rootElem->GetIntrinsicHeight();
+  nsRefPtr<SVGAnimatedLength> domAnimLength;
+  if (aDimension == eWidth) {
+    domAnimLength = rootElem->Width();
+  } else {
+    NS_ABORT_IF_FALSE(aDimension == eHeight, "invalid dimension");
+    domAnimLength = rootElem->Height();
+  }
+  NS_ENSURE_TRUE(domAnimLength, false);
 
-  if (!IsFinite(length)) {
-    return false; 
+  
+  nsRefPtr<DOMSVGLength> domLength = domAnimLength->AnimVal();
+  NS_ENSURE_TRUE(domLength, false);
+
+  
+  uint16_t unitType;
+  nsresult rv = domLength->GetUnitType(&unitType);
+  NS_ENSURE_SUCCESS(rv, false);
+  if (unitType == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+    return false;
   }
 
-  aResult = nsSVGUtils::ClampToInt(length);
+  
+  float floatLength;
+  rv = domLength->GetValue(&floatLength);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  aResult = nsSVGUtils::ClampToInt(floatLength);
+
   return true;
 }
 

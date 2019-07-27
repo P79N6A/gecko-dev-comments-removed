@@ -152,14 +152,6 @@ public:
 
 
 
-  float GetIntrinsicWidth() const;
-  float GetIntrinsicHeight() const;
-
-  
-
-
-
-
 
 
 
