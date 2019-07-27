@@ -1028,6 +1028,8 @@ pref("privacy.donottrackheader.enabled",    false);
 
 pref("privacy.trackingprotection.enabled",  false);
 
+pref("privacy.trackingprotection.pbmode.enabled",  false);
+
 pref("dom.event.contextmenu.enabled",       true);
 pref("dom.event.clipboardevents.enabled",   true);
 #if defined(XP_WIN) && !defined(RELEASE_BUILD)
