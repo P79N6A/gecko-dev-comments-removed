@@ -19,7 +19,7 @@ print(BUGNUMBER + ": " + summary);
 
 
 
-if (typeof Reflect !== "undefined")
+if (typeof Reflect !== "undefined" && Reflect.parse)
   Reflect.parse("for (var x = 3 in []) { }");
 
 

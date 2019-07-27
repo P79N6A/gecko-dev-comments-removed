@@ -1599,8 +1599,9 @@ CurrentGlobalOrNull(JSContext* cx);
 
 
 
-extern JS_PUBLIC_API(JSObject*)
-JS_InitReflect(JSContext* cx, JS::HandleObject global);
+
+extern JS_PUBLIC_API(bool)
+JS_InitReflectParse(JSContext* cx, JS::HandleObject global);
 
 
 

@@ -113,6 +113,8 @@ GlobalObject::resolveConstructor(JSContext* cx, Handle<GlobalObject*> global, JS
         init = nullptr;
 
     const Class* clasp = ProtoKeyToClass(key);
+    if (!init && !clasp)
+        return true;  
 
     
     
