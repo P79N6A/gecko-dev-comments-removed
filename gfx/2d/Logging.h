@@ -112,6 +112,34 @@ private:
   static PreferenceAccess* sAccess;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct BasicLogger
 {
   
@@ -192,7 +220,8 @@ public:
 
 MOZ_BEGIN_ENUM_CLASS(LogOptions, int)
   NoNewline = 0x01,
-  AutoPrefix = 0x02
+  AutoPrefix = 0x02,
+  AssertOnCall = 0x04
 MOZ_END_ENUM_CLASS(LogOptions)
 
 template<typename T>
@@ -207,12 +236,27 @@ template<int L, typename Logger = BasicLogger>
 class Log
 {
 public:
-  explicit Log(int aOptions = (int)LogOptions::AutoPrefix)
+  
+  
+  static int DefaultOptions(bool aWithAssert = true) {
+    return (int(LogOptions::AutoPrefix) |
+            (aWithAssert ? int(LogOptions::AssertOnCall) : 0));
+  }
+
+  
+  
+  
+  
+  explicit Log(int aOptions = Log::DefaultOptions(L == LOG_CRITICAL))
     : mOptions(aOptions)
     , mLogIt(BasicLogger::ShouldOutputMessage(L))
   {
     if (mLogIt && AutoPrefix()) {
-      mMessage << "[GFX" << L << "]: ";
+      if (mOptions & int(LogOptions::AssertOnCall)) {
+        mMessage << "[GFX" << L << "]: ";
+      } else {
+        mMessage << "[GFX" << L << "-]: ";
+      }
     }
   }
   ~Log() {
@@ -433,6 +477,9 @@ private:
   void WriteLog(const std::string &aString) {
     if (MOZ_UNLIKELY(LogIt())) {
       Logger::OutputMessage(aString, L, NoNewline());
+      if (mOptions & int(LogOptions::AssertOnCall)) {
+        MOZ_ASSERT(false, "An assert from the graphics logger");
+      }
     }
   }
 
