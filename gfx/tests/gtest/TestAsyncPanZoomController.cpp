@@ -944,6 +944,50 @@ protected:
 
     apzc->AssertStateIsReset();
   }
+
+  void DoFlingStopWithSlowListener(bool aPreventDefault) {
+    SetMayHaveTouchListeners();
+
+    int time = 0;
+    int touchStart = 50;
+    int touchEnd = 10;
+
+    
+    ApzcPan(apzc, time, touchStart, touchEnd);
+    apzc->ContentReceivedTouch(false);
+    while (mcc->RunThroughDelayedTasks());
+
+    
+    ScreenPoint point, finalPoint;
+    ViewTransform viewTransform;
+    apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(10), &viewTransform, point);
+    apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(20), &viewTransform, finalPoint);
+    EXPECT_GT(finalPoint.y, point.y);
+
+    
+    ApzcDown(apzc, 10, 10, time);
+
+    
+    apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(30), &viewTransform, point);
+    EXPECT_EQ(finalPoint.x, point.x);
+    EXPECT_EQ(finalPoint.y, point.y);
+
+    
+    
+    apzc->ContentReceivedTouch(aPreventDefault);
+    while (mcc->RunThroughDelayedTasks());
+
+    
+    apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(100), &viewTransform, point);
+    EXPECT_EQ(finalPoint.x, point.x);
+    EXPECT_EQ(finalPoint.y, point.y);
+
+    
+    ApzcUp(apzc, 10, 10, time);
+    while (mcc->RunThroughDelayedTasks());
+
+    apzc->AssertStateIsReset();
+  }
 };
 
 TEST_F(APZCFlingStopTester, FlingStop) {
@@ -952,6 +996,14 @@ TEST_F(APZCFlingStopTester, FlingStop) {
 
 TEST_F(APZCFlingStopTester, FlingStopTap) {
   DoFlingStopTest(true);
+}
+
+TEST_F(APZCFlingStopTester, FlingStopSlowListener) {
+  DoFlingStopWithSlowListener(false);
+}
+
+TEST_F(APZCFlingStopTester, FlingStopPreventDefault) {
+  DoFlingStopWithSlowListener(true);
 }
 
 TEST_F(APZCBasicTester, OverScrollPanning) {
