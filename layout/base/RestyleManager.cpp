@@ -2881,9 +2881,20 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
     
-    ContextToClear* toClear = mContextsToClear.AppendElement();
-    toClear->mStyleContext = Move(oldContext);
-    toClear->mStructs = swappedStructs;
+    
+    
+    
+    
+    
+    if (!mContextsToClear.IsEmpty() &&
+        mContextsToClear.LastElement().mStyleContext->GetParent() == oldContext &&
+        mContextsToClear.LastElement().mStructs == swappedStructs) {
+      mContextsToClear.LastElement().mStyleContext = Move(oldContext);
+    } else {
+      ContextToClear* toClear = mContextsToClear.AppendElement();
+      toClear->mStyleContext = Move(oldContext);
+      toClear->mStructs = swappedStructs;
+    }
   }
 
   mRestyleTracker.AddRestyleRootsIfAwaitingRestyle(descendants);
