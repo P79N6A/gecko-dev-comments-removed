@@ -2888,11 +2888,6 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
       
       
       
-      uint32_t markerDepth = 0;
-
-      
-      
-      
       for (uint32_t j = i + 1; j < mProfileTimelineMarkers.Length(); ++j) {
         ProfilerMarkerTracing* endPayload = static_cast<ProfilerMarkerTracing*>(
           mProfileTimelineMarkers[j]->mPayload);
@@ -2903,32 +2898,24 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
           hasSeenPaintedLayer = true;
         }
 
-        if (strcmp(startMarkerName, endMarkerName) != 0) {
-          continue;
-        }
+        bool isSameMarkerType = strcmp(startMarkerName, endMarkerName) == 0;
         bool isPaint = strcmp(startMarkerName, "Paint") == 0;
 
         
-        if (endPayload->GetMetaData() == TRACING_INTERVAL_START) {
-          ++markerDepth;
-        } else if (endPayload->GetMetaData() == TRACING_INTERVAL_END) {
-          if (markerDepth > 0) {
-            --markerDepth;
-          } else {
-            
-            if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
-              mozilla::dom::ProfileTimelineMarker marker;
-              marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
-              marker.mStart = mProfileTimelineMarkers[i]->mTime;
-              marker.mEnd = mProfileTimelineMarkers[j]->mTime;
-              profileTimelineMarkers.AppendElement(marker);
-            }
-
-            
-            hasSeenEnd = true;
-
-            break;
+        if (endPayload->GetMetaData() == TRACING_INTERVAL_END && isSameMarkerType) {
+          
+          if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
+            mozilla::dom::ProfileTimelineMarker marker;
+            marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
+            marker.mStart = mProfileTimelineMarkers[i]->mTime;
+            marker.mEnd = mProfileTimelineMarkers[j]->mTime;
+            profileTimelineMarkers.AppendElement(marker);
           }
+
+          
+          hasSeenEnd = true;
+
+          break;
         }
       }
 
@@ -10391,8 +10378,8 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal(do_QueryInterface(channel));
     if (httpChannelInternal) {
       if (aForceAllowCookies) {
-        httpChannelInternal->SetForceAllowThirdPartyCookie(true);
-      } 
+        httpChannelInternal->SetThirdPartyFlags(nsIHttpChannelInternal::THIRD_PARTY_FORCE_ALLOW);
+      }
       if (aFirstParty) {
         httpChannelInternal->SetDocumentURI(aURI);
       } else {

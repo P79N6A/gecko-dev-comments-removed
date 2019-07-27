@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "ThirdPartyUtil.h"
 #include "nsNetUtil.h"
 #include "nsIServiceManager.h"
@@ -166,11 +168,16 @@ ThirdPartyUtil::IsThirdPartyChannel(nsIChannel* aChannel,
 
   nsresult rv;
   bool doForce = false;
+  bool checkWindowChain = true;
+  bool parentIsThird = false;
   nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal =
     do_QueryInterface(aChannel);
   if (httpChannelInternal) {
-    rv = httpChannelInternal->GetForceAllowThirdPartyCookie(&doForce);
+    uint32_t flags;
+    rv = httpChannelInternal->GetThirdPartyFlags(&flags);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    doForce = (flags & nsIHttpChannelInternal::THIRD_PARTY_FORCE_ALLOW);
 
     
     
@@ -179,6 +186,28 @@ ThirdPartyUtil::IsThirdPartyChannel(nsIChannel* aChannel,
     if (doForce && !aURI) {
       *aResult = false;
       return NS_OK;
+    }
+
+    if (flags & nsIHttpChannelInternal::THIRD_PARTY_PARENT_IS_THIRD_PARTY) {
+      
+      MOZ_ASSERT(!(flags & nsIHttpChannelInternal::THIRD_PARTY_PARENT_IS_SAME_PARTY));
+
+      
+      
+      if (!doForce) {
+        *aResult = true;
+        return NS_OK;
+      }
+
+      checkWindowChain = false;
+      parentIsThird = true;
+    } else {
+      
+      
+      
+      
+      checkWindowChain = !(flags & nsIHttpChannelInternal::THIRD_PARTY_PARENT_IS_SAME_PARTY);
+      parentIsThird = false;
     }
   }
 
@@ -204,6 +233,12 @@ ThirdPartyUtil::IsThirdPartyChannel(nsIChannel* aChannel,
       *aResult = result;
       return NS_OK;
     }
+  }
+
+  
+  if (!checkWindowChain) {
+    *aResult = parentIsThird;
+    return NS_OK;
   }
 
   
