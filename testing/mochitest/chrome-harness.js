@@ -122,11 +122,11 @@ function zList(base, zReader, baseJarName, recurse) {
   var links = {};
   var count = 0;
   var fileArray = [];
-  
+
   while(dirs.hasMore()) {
     var entryName = dirs.getNext();
     if (entryName.substr(-1) == '/' && entryName.split('/').length == (base.split('/').length + 1) ||
-        (entryName.substr(-1) != '/' && entryName.split('/').length == (base.split('/').length))) { 
+        (entryName.substr(-1) != '/' && entryName.split('/').length == (base.split('/').length))) {
       fileArray.push(entryName);
     }
   }
@@ -178,7 +178,7 @@ function getFileListing(basePath, testPath, dir, srvScope)
 
   if (testPath != undefined) {
     var extraPath = testPath;
-    
+
     var fileNameRegexp = /(browser|test)_.+\.(xul|html|js)$/;
 
     

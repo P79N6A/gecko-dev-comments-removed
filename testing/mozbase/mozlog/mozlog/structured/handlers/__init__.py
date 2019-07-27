@@ -63,7 +63,7 @@ class StreamHandler(BaseHandler):
         with self._lock:
             
             try:
-                self.stream.write(formatted.encode("utf8"))
+                self.stream.write(formatted.encode("utf8", "replace"))
             except:
                 raise
             self.stream.flush()
