@@ -33,7 +33,6 @@ class nsICycleCollectorLogSink;
 class nsIDOMBlob;
 class nsIDumpGCAndCCLogsCallback;
 class nsIMemoryReporter;
-class nsITimer;
 class ParentIdleListener;
 
 namespace mozilla {
@@ -335,8 +334,6 @@ public:
 
     virtual bool RecvSetOfflinePermission(const IPC::Principal& principal) MOZ_OVERRIDE;
 
-    virtual bool RecvFinishShutdown() MOZ_OVERRIDE;
-
 protected:
     void OnChannelConnected(int32_t pid) MOZ_OVERRIDE;
     virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
@@ -439,16 +436,6 @@ private:
     
 
 
-    enum ShutDownMethod {
-        
-        SEND_SHUTDOWN_MESSAGE,
-        
-        CLOSE_CHANNEL,
-        
-        CLOSE_CHANNEL_WITH_ERROR,
-    };
-
-    
 
 
 
@@ -457,15 +444,11 @@ private:
 
 
 
-
-
-    void ShutDownProcess(ShutDownMethod aMethod);
+    void ShutDownProcess(bool aCloseWithError);
 
     
     
     void ShutDownMessageManager();
-
-    static void ForceKillTimerCallback(nsITimer* aTimer, void* aClosure);
 
     PCompositorParent*
     AllocPCompositorParent(mozilla::ipc::Transport* aTransport,
@@ -793,7 +776,7 @@ private:
     
     
     
-    nsCOMPtr<nsITimer> mForceKillTimer;
+    CancelableTask* mForceKillTask;
     
     
     
@@ -815,8 +798,6 @@ private:
     bool mCalledCloseWithError;
     bool mCalledKillHard;
     bool mCreatedPairedMinidumps;
-    bool mShutdownPending;
-    bool mIPCOpen;
 
     friend class CrashReporterParent;
 

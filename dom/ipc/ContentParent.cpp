@@ -116,7 +116,6 @@
 #include "nsISpellChecker.h"
 #include "nsIStyleSheet.h"
 #include "nsISupportsPrimitives.h"
-#include "nsITimer.h"
 #include "nsIURIFixup.h"
 #include "nsIWindowWatcher.h"
 #include "nsIXULRuntime.h"
@@ -1497,21 +1496,8 @@ ContentParent::TransformPreallocatedIntoBrowser(ContentParent* aOpener)
 }
 
 void
-ContentParent::ShutDownProcess(ShutDownMethod aMethod)
+ContentParent::ShutDownProcess(bool aCloseWithError)
 {
-    
-    
-    
-    if (aMethod == SEND_SHUTDOWN_MESSAGE) {
-        if (mIPCOpen && SendShutdown()) {
-            mShutdownPending = true;
-        }
-
-        
-        
-        return;
-    }
-
     using mozilla::dom::quota::QuotaManager;
 
     if (QuotaManager* quotaManager = QuotaManager::Get()) {
@@ -1522,7 +1508,7 @@ ContentParent::ShutDownProcess(ShutDownMethod aMethod)
     
     
 
-    if (aMethod == CLOSE_CHANNEL && !mCalledClose) {
+    if (!aCloseWithError && !mCalledClose) {
         
         
         mCalledClose = true;
@@ -1536,7 +1522,7 @@ ContentParent::ShutDownProcess(ShutDownMethod aMethod)
 #endif
     }
 
-    if (aMethod == CLOSE_CHANNEL_WITH_ERROR && !mCalledCloseWithError) {
+    if (aCloseWithError && !mCalledCloseWithError) {
         MessageChannel* channel = GetIPCChannel();
         if (channel) {
             mCalledCloseWithError = true;
@@ -1561,17 +1547,6 @@ ContentParent::ShutDownProcess(ShutDownMethod aMethod)
     
     
     ShutDownMessageManager();
-}
-
-bool
-ContentParent::RecvFinishShutdown()
-{
-    
-    
-    
-    MOZ_ASSERT(mShutdownPending);
-    ShutDownProcess(CLOSE_CHANNEL);
-    return true;
 }
 
 void
@@ -1769,25 +1744,12 @@ struct DelayedDeleteContentParentTask : public nsRunnable
 void
 ContentParent::ActorDestroy(ActorDestroyReason why)
 {
-    if (mForceKillTimer) {
-        mForceKillTimer->Cancel();
-        mForceKillTimer = nullptr;
+    if (mForceKillTask) {
+        mForceKillTask->Cancel();
+        mForceKillTask = nullptr;
     }
 
-    
-    
-    mIPCOpen = false;
-
-    if (why == NormalShutdown && !mCalledClose) {
-        
-        
-        
-        mCalledClose = true;
-    }
-
-    
-    ShutDownProcess(why == NormalShutdown ? CLOSE_CHANNEL
-                                          : CLOSE_CHANNEL_WITH_ERROR);
+    ShutDownMessageManager();
 
     nsRefPtr<ContentParent> kungFuDeathGrip(this);
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
@@ -1825,6 +1787,8 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     RecvRemoveGeolocationListener();
 
     mConsoleService = nullptr;
+
+    MarkAsDead();
 
     if (obs) {
         nsRefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
@@ -1877,6 +1841,11 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 
     mIdleListeners.Clear();
 
+    
+    
+    
+    ShutDownProcess( true);
+
     MessageLoop::current()->
         PostTask(FROM_HERE,
                  NewRunnableFunction(DelayedDeleteSubprocess, mSubprocess));
@@ -1900,7 +1869,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
         MessageLoop::current()->PostTask(
             FROM_HERE,
             NewRunnableMethod(cp, &ContentParent::ShutDownProcess,
-                              CLOSE_CHANNEL));
+                               false));
     }
     cpm->RemoveContentProcess(this->ChildID());
 }
@@ -1923,16 +1892,14 @@ ContentParent::NotifyTabDestroying(PBrowserParent* aTab)
     
     MarkAsDead();
 
-    MOZ_ASSERT(!mForceKillTimer);
+    MOZ_ASSERT(!mForceKillTask);
     int32_t timeoutSecs =
         Preferences::GetInt("dom.ipc.tabs.shutdownTimeoutSecs", 5);
     if (timeoutSecs > 0) {
-        mForceKillTimer = do_CreateInstance("@mozilla.org/timer;1");
-        MOZ_ASSERT(mForceKillTimer);
-        mForceKillTimer->InitWithFuncCallback(ContentParent::ForceKillTimerCallback,
-                                              this,
-                                              timeoutSecs * 1000,
-                                              nsITimer::TYPE_ONE_SHOT);
+        MessageLoop::current()->PostDelayedTask(
+            FROM_HERE,
+            mForceKillTask = NewRunnableMethod(this, &ContentParent::KillHard),
+            timeoutSecs * 1000);
     }
 }
 
@@ -1948,12 +1915,10 @@ ContentParent::NotifyTabDestroyed(PBrowserParent* aTab,
     
     
     if (ManagedPBrowserParent().Length() == 1) {
-        
-        
         MessageLoop::current()->PostTask(
             FROM_HERE,
             NewRunnableMethod(this, &ContentParent::ShutDownProcess,
-                              SEND_SHUTDOWN_MESSAGE));
+                               false));
     }
 }
 
@@ -1992,6 +1957,7 @@ ContentParent::InitializeMembers()
     mSubprocess = nullptr;
     mChildID = gContentChildID++;
     mGeolocationWatchID = -1;
+    mForceKillTask = nullptr;
     mNumDestroyingTabs = 0;
     mIsAlive = true;
     mSendPermissionUpdates = false;
@@ -2000,8 +1966,6 @@ ContentParent::InitializeMembers()
     mCalledCloseWithError = false;
     mCalledKillHard = false;
     mCreatedPairedMinidumps = false;
-    mShutdownPending = false;
-    mIPCOpen = true;
 }
 
 ContentParent::ContentParent(mozIApplication* aApp,
@@ -2169,8 +2133,8 @@ ContentParent::ContentParent(ContentParent* aTemplate,
 
 ContentParent::~ContentParent()
 {
-    if (mForceKillTimer) {
-        mForceKillTimer->Cancel();
+    if (mForceKillTask) {
+        mForceKillTask->Cancel();
     }
 
     if (OtherProcess())
@@ -2746,16 +2710,7 @@ ContentParent::Observe(nsISupports* aSubject,
                        const char16_t* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        if (!mShutdownPending && mIPCOpen) {
-            ShutDownProcess(SEND_SHUTDOWN_MESSAGE);
-        }
-
-        
-        
-        
-        while (mIPCOpen) {
-            NS_ProcessNextEvent(nullptr, true);
-        }
+        ShutDownProcess( false);
         NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
     }
 
@@ -3161,13 +3116,6 @@ ContentParent::DeallocPRemoteSpellcheckEngineParent(PRemoteSpellcheckEngineParen
     return true;
 }
 
- void
-ContentParent::ForceKillTimerCallback(nsITimer* aTimer, void* aClosure)
-{
-    auto self = static_cast<ContentParent*>(aClosure);
-    self->KillHard();
-}
-
 void
 ContentParent::KillHard()
 {
@@ -3178,7 +3126,7 @@ ContentParent::KillHard()
         return;
     }
     mCalledKillHard = true;
-    mForceKillTimer = nullptr;
+    mForceKillTask = nullptr;
 
 #if defined(MOZ_CRASHREPORTER) && !defined(MOZ_B2G)
     if (ManagedPCrashReporterParent().Length() > 0) {
