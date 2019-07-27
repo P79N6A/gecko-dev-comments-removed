@@ -1950,7 +1950,7 @@ DataViewObject::defineGetter(JSContext *cx, PropertyName *name, HandleNativeObje
         return false;
 
     return NativeDefineProperty(cx, proto, id, UndefinedHandleValue,
-                                JS_DATA_TO_FUNC_PTR(PropertyOp, getter), nullptr, attrs);
+                                JS_DATA_TO_FUNC_PTR(GetterOp, getter), nullptr, attrs);
 }
 
  bool

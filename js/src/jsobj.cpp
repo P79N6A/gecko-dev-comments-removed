@@ -477,6 +477,7 @@ Reject(JSContext *cx, HandleId id, unsigned errorNumber, bool throwError, bool *
 
 
 
+
 static bool
 DefinePropertyOnObject(JSContext *cx, HandleNativeObject obj, HandleId id, const PropDesc &desc,
                        bool throwError, bool *rval)
@@ -701,8 +702,8 @@ DefinePropertyOnObject(JSContext *cx, HandleNativeObject obj, HandleId id, const
 
     
     unsigned attrs;
-    PropertyOp getter;
-    StrictPropertyOp setter;
+    GetterOp getter;
+    SetterOp setter;
     if (desc.isGenericDescriptor()) {
         unsigned changed = 0;
         if (desc.hasConfigurable())
@@ -3268,7 +3269,7 @@ js::GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
 
 bool
 js::DefineProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
-                   JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+                   JSGetterOp getter, JSSetterOp setter, unsigned attrs)
 {
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);
@@ -3286,7 +3287,7 @@ js::DefineProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleVa
 bool
 js::DefineProperty(ExclusiveContext *cx, HandleObject obj,
                  PropertyName *name, HandleValue value,
-                 JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+                 JSGetterOp getter, JSSetterOp setter, unsigned attrs)
 {
     RootedId id(cx, NameToId(name));
     return DefineProperty(cx, obj, id, value, getter, setter, attrs);
@@ -3294,7 +3295,7 @@ js::DefineProperty(ExclusiveContext *cx, HandleObject obj,
 
 bool
 js::DefineElement(ExclusiveContext *cx, HandleObject obj, uint32_t index, HandleValue value,
-                  JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs)
+                  JSGetterOp getter, JSSetterOp setter, unsigned attrs)
 {
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);

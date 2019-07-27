@@ -52,8 +52,10 @@ class AutoIdVector;
 
 
 typedef bool
-(* JSPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                 JS::MutableHandleValue vp);
+(* JSGetterOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+               JS::MutableHandleValue vp);
+
+typedef JSGetterOp JSAddPropertyOp;
 
 
 
@@ -61,8 +63,8 @@ typedef bool
 
 
 typedef bool
-(* JSStrictPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                       bool strict, JS::MutableHandleValue vp);
+(* JSSetterOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+               bool strict, JS::MutableHandleValue vp);
 
 
 
@@ -166,7 +168,7 @@ typedef bool
                      JS::MutableHandleObject objp, JS::MutableHandle<Shape*> propp);
 typedef bool
 (* DefinePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
-                     JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
+                     JSGetterOp getter, JSSetterOp setter, unsigned attrs);
 typedef bool
 (* HasPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool *foundp);
 typedef bool
@@ -243,10 +245,10 @@ typedef void
     uint32_t            flags;                                                \
                                                                               \
     /* Function pointer members (may be null). */                             \
-    JSPropertyOp        addProperty;                                          \
+    JSAddPropertyOp     addProperty;                                          \
     JSDeletePropertyOp  delProperty;                                          \
-    JSPropertyOp        getProperty;                                          \
-    JSStrictPropertyOp  setProperty;                                          \
+    JSGetterOp          getProperty;                                          \
+    JSSetterOp          setProperty;                                          \
     JSEnumerateOp       enumerate;                                            \
     JSResolveOp         resolve;                                              \
     JSConvertOp         convert;                                              \

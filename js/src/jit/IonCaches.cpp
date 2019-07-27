@@ -1005,7 +1005,7 @@ EmitGetterCall(JSContext *cx, MacroAssembler &masm,
         Register argObjReg       = argUintNReg;
         Register argIdReg        = regSet.takeGeneral();
 
-        PropertyOp target = shape->getterOp();
+        GetterOp target = shape->getterOp();
         MOZ_ASSERT(target);
 
         
@@ -2101,7 +2101,6 @@ IsCacheableSetPropCallPropertyOp(HandleObject obj, HandleObject holder, HandleSh
     
     
     
-    
     if (!shape->writable())
         return false;
 
@@ -2380,7 +2379,7 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
 
         attacher.pushStubCodePointer(masm);
 
-        StrictPropertyOp target = shape->setterOp();
+        SetterOp target = shape->setterOp();
         MOZ_ASSERT(target);
         
         
