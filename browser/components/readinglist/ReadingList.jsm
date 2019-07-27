@@ -421,7 +421,7 @@ ReadingListImpl.prototype = {
 
 
   addItemFromBrowser: Task.async(function* (browser, url) {
-    let metadata = yield getMetadataFromBrowser(browser);
+    let metadata = yield this.getMetadataFromBrowser(browser);
     let record = {
       url: url,
       title: metadata.title,
@@ -435,6 +435,25 @@ ReadingListImpl.prototype = {
 
     return (yield this.addItem(record));
   }),
+
+  
+
+
+
+
+
+
+  getMetadataFromBrowser(browser) {
+    let mm = browser.messageManager;
+    return new Promise(resolve => {
+      function handleResult(msg) {
+        mm.removeMessageListener("PageMetadata:PageDataResult", handleResult);
+        resolve(msg.json);
+      }
+      mm.addMessageListener("PageMetadata:PageDataResult", handleResult);
+      mm.sendAsyncMessage("PageMetadata:GetPageData");
+    });
+  },
 
   
 
@@ -1041,25 +1060,6 @@ function hash(str) {
 
 function clone(obj) {
   return Cu.cloneInto(obj, {}, { cloneFunctions: false });
-}
-
-
-
-
-
-
-
-
-function getMetadataFromBrowser(browser) {
-  let mm = browser.messageManager;
-  return new Promise(resolve => {
-    function handleResult(msg) {
-      mm.removeMessageListener("PageMetadata:PageDataResult", handleResult);
-      resolve(msg.json);
-    }
-    mm.addMessageListener("PageMetadata:PageDataResult", handleResult);
-    mm.sendAsyncMessage("PageMetadata:GetPageData");
-  });
 }
 
 Object.defineProperty(this, "ReadingList", {
