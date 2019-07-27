@@ -147,6 +147,8 @@ var interfaceNamesInGlobalScope =
 
     "Response",
 
+    { name: "ServiceWorkerRegistration", pref: "dom.serviceWorkers.enabled" },
+
     "TextDecoder",
 
     "TextEncoder",

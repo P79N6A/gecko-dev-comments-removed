@@ -159,6 +159,8 @@ var interfaceNamesInGlobalScope =
 
     "ServiceWorkerGlobalScope",
 
+    "ServiceWorkerRegistration",
+
     "TextDecoder",
 
     "TextEncoder",

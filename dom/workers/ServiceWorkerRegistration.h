@@ -23,6 +23,9 @@ namespace workers {
 class ServiceWorker;
 }
 
+bool
+ServiceWorkerRegistrationVisible(JSContext* aCx, JSObject* aObj);
+
 
 
 
@@ -99,9 +102,7 @@ public:
                                            ServiceWorkerRegistrationBase)
 
   ServiceWorkerRegistrationMainThread(nsPIDOMWindow* aWindow,
-                                      const nsAString& aScope)
-    : ServiceWorkerRegistrationBase(aWindow, aScope)
-  {}
+                                      const nsAString& aScope);
 
   void
   Update();
@@ -128,8 +129,7 @@ public:
   InvalidateWorkerReference(WhichServiceWorker aWhichOnes) override;
 
 private:
-  ~ServiceWorkerRegistrationMainThread()
-  {}
+  ~ServiceWorkerRegistrationMainThread();
 
   already_AddRefed<workers::ServiceWorker>
   GetWorkerReference(WhichServiceWorker aWhichOne);
