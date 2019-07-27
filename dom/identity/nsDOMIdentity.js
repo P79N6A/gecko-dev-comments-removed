@@ -46,29 +46,10 @@ const ERRORS = {
     "The request() method may only be invoked when handling user input",
 };
 
-function nsDOMIdentity(aIdentityInternal) {
-  this._identityInternal = aIdentityInternal;
+function nsDOMIdentity() {
 }
+
 nsDOMIdentity.prototype = {
-  __exposedProps__: {
-    
-    watch: 'r',
-    request: 'r',
-    logout: 'r',
-    get: 'r',
-    getVerifiedEmail: 'r',
-
-    
-    beginProvisioning: 'r',
-    genKeyPair: 'r',
-    registerCertificate: 'r',
-    raiseProvisioningFailure: 'r',
-
-    
-    beginAuthentication: 'r',
-    completeAuthentication: 'r',
-    raiseAuthenticationFailure: 'r'
-  },
 
   
   get nativeEventsRequired() {
@@ -148,7 +129,7 @@ nsDOMIdentity.prototype = {
       
       return;
     }
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:RP:Watch",
       message,
       null,
@@ -224,7 +205,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._rpCalls++;
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:RP:Request",
       message,
       null,
@@ -249,7 +230,7 @@ nsDOMIdentity.prototype = {
       return;
     }
 
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:RP:Logout",
       message,
       null,
@@ -337,7 +318,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._beginProvisioningCallback = aCallback;
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:IDP:BeginProvisioning",
       this.DOMIdentityMessage(),
       null,
@@ -358,7 +339,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._genKeyPairCallback = aCallback;
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:IDP:GenKeyPair",
       this.DOMIdentityMessage(),
       null,
@@ -378,7 +359,7 @@ nsDOMIdentity.prototype = {
 
     let message = this.DOMIdentityMessage();
     message.cert = aCertificate;
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:IDP:RegisterCertificate",
       message,
       null,
@@ -398,7 +379,7 @@ nsDOMIdentity.prototype = {
 
     let message = this.DOMIdentityMessage();
     message.reason = aReason;
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:IDP:ProvisioningFailure",
       message,
       null,
@@ -423,7 +404,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._beginAuthenticationCallback = aCallback;
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:IDP:BeginAuthentication",
       this.DOMIdentityMessage(),
       null,
@@ -440,7 +421,7 @@ nsDOMIdentity.prototype = {
     }
     this._authenticationEnded = true;
 
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:IDP:CompleteAuthentication",
       this.DOMIdentityMessage(),
       null,
@@ -458,32 +439,12 @@ nsDOMIdentity.prototype = {
 
     let message = this.DOMIdentityMessage();
     message.reason = aReason;
-    this._identityInternal._mm.sendAsyncMessage(
+    this._mm.sendAsyncMessage(
       "Identity:IDP:AuthenticationFailure",
       message,
       null,
       this._window.document.nodePrincipal
     );
-  },
-
-  
-  _init: function nsDOMIdentity__init(aWindow) {
-
-    this._initializeState();
-
-    
-    this._window = aWindow;
-    this._origin = aWindow.document.nodePrincipal.origin;
-    this._appStatus = aWindow.document.nodePrincipal.appStatus;
-    this._appId = aWindow.document.nodePrincipal.appId;
-
-    
-    let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIDOMWindowUtils);
-
-    
-    
-    this._id = this._identityInternal._id;
   },
 
   
@@ -503,12 +464,18 @@ nsDOMIdentity.prototype = {
     this._beginAuthenticationCallback = null;
   },
 
-  _receiveMessage: function nsDOMIdentity_receiveMessage(aMessage) {
+  
+  receiveMessage: function nsDOMIdentity_receiveMessage(aMessage) {
     let msg = aMessage.json;
+
+    
+    if (msg.id != this._id) {
+      return;
+    }
 
     switch (aMessage.name) {
       case "Identity:ResetState":
-        if (!this._identityInternal._debug) {
+        if (!this._debug) {
           return;
         }
         this._initializeState();
@@ -584,10 +551,6 @@ nsDOMIdentity.prototype = {
         this._callBeginAuthenticationCallback(msg);
         break;
     }
-  },
-
-  _log: function nsDOMIdentity__log(msg) {
-    this._identityInternal._log(msg);
   },
 
   _callGenKeyPairCallback: function nsDOMIdentity__callGenKeyPairCallback(message) {
@@ -676,34 +639,9 @@ nsDOMIdentity.prototype = {
     return message;
   },
 
-  uninit: function DOMIdentity_uninit() {
-    this._log("nsDOMIdentity uninit() " + this._id);
-    this._identityInternal._mm.sendAsyncMessage(
-      "Identity:RP:Unwatch",
-      { id: this._id },
-      null,
-      this._window.document.nodePrincipal
-    );
-  }
-
-};
+ 
 
 
-
-
-function nsDOMIdentityInternal() {
-}
-nsDOMIdentityInternal.prototype = {
-
-  
-  receiveMessage: function nsDOMIdentityInternal_receiveMessage(aMessage) {
-    let msg = aMessage.json;
-    
-    if (msg.id != this._id) {
-      return;
-    }
-    this._identity._receiveMessage(aMessage);
-  },
 
   
   observe: function nsDOMIdentityInternal_observe(aSubject, aTopic, aData) {
@@ -712,11 +650,10 @@ nsDOMIdentityInternal.prototype = {
       return;
     }
 
-    this._identity.uninit();
+    this.uninit();
 
     Services.obs.removeObserver(this, "dom-window-destroyed");
-    this._identity._initializeState();
-    this._identity = null;
+    this._initializeState();
 
     
     
@@ -733,6 +670,7 @@ nsDOMIdentityInternal.prototype = {
   },
 
   
+  
   init: function nsDOMIdentityInternal_init(aWindow) {
     if (Services.prefs.getPrefType(PREF_ENABLED) != Ci.nsIPrefBranch.PREF_BOOL
         || !Services.prefs.getBoolPref(PREF_ENABLED)) {
@@ -743,6 +681,7 @@ nsDOMIdentityInternal.prototype = {
       Services.prefs.getPrefType(PREF_DEBUG) == Ci.nsIPrefBranch.PREF_BOOL
       && Services.prefs.getBoolPref(PREF_DEBUG);
 
+    
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowUtils);
 
@@ -756,8 +695,13 @@ nsDOMIdentityInternal.prototype = {
 
     
     
-    this._identity = new nsDOMIdentity(this);
-    this._identity._init(aWindow);
+    this._initializeState();
+
+    
+    this._window = aWindow;
+    this._origin = aWindow.document.nodePrincipal.origin;
+    this._appStatus = aWindow.document.nodePrincipal.appStatus;
+    this._appId = aWindow.document.nodePrincipal.appId;
 
     this._log("init was called from " + aWindow.document.location);
 
@@ -781,9 +725,15 @@ nsDOMIdentityInternal.prototype = {
 
     
     Services.obs.addObserver(this, "dom-window-destroyed", false);
-
-    return this._identity;
   },
+
+  uninit: function DOMIdentity_uninit() {
+    this._log("nsDOMIdentity uninit() " + this._id);
+    this._mm.sendAsyncMessage(
+      "Identity:RP:Unwatch",
+      { id: this._id }
+    );
+   },
 
   
   _log: function nsDOMIdentityInternal__log(msg) {
@@ -796,9 +746,11 @@ nsDOMIdentityInternal.prototype = {
   
   classID: Components.ID("{210853d9-2c97-4669-9761-b1ab9cbf57ef}"),
 
-  QueryInterface: XPCOMUtils.generateQI(
-    [Ci.nsIDOMGlobalPropertyInitializer, Ci.nsIMessageListener]
-  ),
+  QueryInterface: XPCOMUtils.generateQI([
+      Ci.nsIMessageListener,
+      Ci.nsIObserver,
+      Ci.nsIDOMGlobalPropertyInitializer
+  ]),
 
   classInfo: XPCOMUtils.generateCI({
     classID: Components.ID("{210853d9-2c97-4669-9761-b1ab9cbf57ef}"),
@@ -840,4 +792,4 @@ function assertCorrectCallbacks(aOptions) {
   }
 }
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDOMIdentityInternal]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDOMIdentity]);
