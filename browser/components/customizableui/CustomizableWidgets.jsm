@@ -1027,13 +1027,25 @@ if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
       
       
       let view = aContainer.ownerDocument.getElementById("PanelUI-panicView");
-      let variableHeightItems = view.querySelectorAll("radio, label");
+      let variableHeightItems = view.querySelectorAll("radio, label, description");
       let win = aContainer.ownerDocument.defaultView;
       for (let item of variableHeightItems) {
         if (aSetHeights) {
-          item.style.height = win.getComputedStyle(item, null).getPropertyValue("height");
+          let height = win.getComputedStyle(item, null).getPropertyValue("height");
+          item.style.height = height;
+          
+          
+          if (item.id == "PanelUI-panic-mainDesc" &&
+              view.getAttribute("current") == "true" &&
+              
+              parseInt(height) > 32) {
+            item.parentNode.style.minHeight = height;
+          }
         } else {
           item.style.removeProperty("height");
+          if (item.id == "PanelUI-panic-mainDesc") {
+            item.parentNode.style.removeProperty("min-height");
+          }
         }
       }
     },
@@ -1041,9 +1053,14 @@ if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
       let view = aEvent.target;
       let forgetButton = view.querySelector("#PanelUI-panic-view-button");
       forgetButton.addEventListener("command", this);
-      
-      
-      view.ownerDocument.addEventListener("popupshowing", this);
+      if (view.getAttribute("current") == "true") {
+        
+        this._updateHeights(view, true);
+      } else {
+        
+        
+        view.ownerDocument.addEventListener("popupshowing", this);
+      }
     },
     onViewHiding: function(aEvent) {
       let view = aEvent.target;
