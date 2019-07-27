@@ -465,7 +465,7 @@ GeckoDriver.prototype.registerPromise = function() {
   const li = "Marionette:register";
 
   return new Promise((resolve) => {
-    this.mm.addMessageListener(li, function cb(msg) {
+    let cb = (msg) => {
       let wid = msg.json.value;
       let be = msg.target;
       let rv = this.registerBrowser(wid, be);
@@ -481,17 +481,19 @@ GeckoDriver.prototype.registerPromise = function() {
 
       
       return rv;
-    }.bind(this));
+    };
+    this.mm.addMessageListener(li, cb);
   });
 };
 
 GeckoDriver.prototype.listeningPromise = function() {
   const li = "Marionette:listenersAttached";
   return new Promise((resolve) => {
-    this.mm.addMessageListener(li, function() {
-      this.mm.removeMessageListener(li, this);
+    let cb = () => {
+      this.mm.removeMessageListener(li, cb);
       resolve();
-    }.bind(this));
+    };
+    this.mm.addMessageListener(li, cb);
   });
 };
 
@@ -3184,8 +3186,7 @@ BrowserObj.prototype.register = function(uid, target) {
 BrowserObj.prototype.hasRemotenessChange = function() {
   
   
-  if (this.driver.appName != "Firefox" || this.tab === null ||
-      !this.browserForTab) {
+  if (this.driver.appName != "Firefox" || this.tab === null) {
     return false;
   }
 
