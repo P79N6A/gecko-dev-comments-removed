@@ -246,7 +246,12 @@ private:
 
 
   bool IsFocusableForTabIndex();
-  
+
+  nsContentPolicyType GetContentPolicyType() const override
+  {
+    return nsIContentPolicy::TYPE_INTERNAL_OBJECT;
+  }
+
   virtual void GetItemValueText(DOMString& text) override;
   virtual void SetItemValueText(const nsAString& text) override;
 

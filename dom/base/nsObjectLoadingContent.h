@@ -17,6 +17,7 @@
 #include "nsImageLoadingContent.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
+#include "nsIContentPolicy.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIRunnable.h"
 #include "nsIThreadInternal.h"
@@ -331,6 +332,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                         bool aCompileEventHandler);
     void UnbindFromTree(bool aDeep = true,
                         bool aNullParent = true);
+
+    
+
+
+    virtual nsContentPolicyType GetContentPolicyType() const = 0;
 
   private:
 

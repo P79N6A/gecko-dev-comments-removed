@@ -76,7 +76,6 @@ namespace dom {
 
 
 
-
 class Request;
 
 #define kFETCH_CLIENT_REFERRER_STR "about:client"

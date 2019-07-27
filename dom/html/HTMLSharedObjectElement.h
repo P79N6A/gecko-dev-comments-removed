@@ -207,6 +207,8 @@ private:
            nsGkAtoms::src;
   }
 
+  nsContentPolicyType GetContentPolicyType() const override;
+
   
   
   bool mIsDoneAddingChildren;
