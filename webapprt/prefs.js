@@ -56,6 +56,9 @@ pref("dom.mozPay.enabled", true);
 pref("dom.sysmsg.enabled", true);
 
 
+pref("dom.mozAlarms.enabled", true);
+
+
 pref("dom.max_script_run_time", 0);
 pref("dom.max_chrome_script_run_time", 0);
 

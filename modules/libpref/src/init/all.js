@@ -3973,6 +3973,9 @@ pref("dom.navigator-property.disable.mozContacts", true);
 pref("dom.global-constructor.disable.mozContact", true);
 
 
+pref("dom.mozAlarms.enabled", false);
+
+
 pref("services.push.enabled", false);
 
 
