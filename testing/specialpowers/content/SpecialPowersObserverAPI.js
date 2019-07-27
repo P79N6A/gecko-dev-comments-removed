@@ -184,7 +184,14 @@ SpecialPowersObserverAPI.prototype = {
     
     var scriptableStream = Cc["@mozilla.org/scriptableinputstream;1"]
                              .getService(Ci.nsIScriptableInputStream);
-    var channel = Services.io.newChannel(aUrl, null, null);
+    var channel = Services.io.newChannel2(aUrl,
+                                          null,
+                                          null,
+                                          null,      
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER);
     var input = channel.open();
     scriptableStream.init(input);
 
