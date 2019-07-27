@@ -220,7 +220,7 @@ void PeriodicWave::createBandLimitedTables(const float* realData, const float* i
         imagP[halfSize-1] = 0;
 
         
-        AlignedAudioFloatArray* table = new AlignedAudioFloatArray(m_periodicWaveSize);
+        AudioFloatArray* table = new AudioFloatArray(m_periodicWaveSize);
         m_bandLimitedTables.AppendElement(table);
 
         
