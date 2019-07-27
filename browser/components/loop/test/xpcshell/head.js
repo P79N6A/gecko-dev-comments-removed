@@ -24,6 +24,10 @@ const kUAID = "f47ac11b-58ca-4372-9567-0e02b2c3d479";
 
 var loopServer;
 
+
+Services.prefs.setBoolPref("loop.enabled", true);
+
+
 function setupFakeLoopServer() {
   loopServer = new HttpServer();
   loopServer.start(-1);

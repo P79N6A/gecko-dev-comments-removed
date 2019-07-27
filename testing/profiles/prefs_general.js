@@ -231,3 +231,6 @@ user_pref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
 
 
 user_pref("dom.mozApps.debug", true);
+
+
+user_pref("loop.enabled", true);
