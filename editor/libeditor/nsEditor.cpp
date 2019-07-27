@@ -2624,7 +2624,7 @@ nsEditor::SplitNodeImpl(nsIContent& aExistingRightNode,
 
   ErrorResult rv;
   parent->InsertBefore(aNewLeftNode, &aExistingRightNode, rv);
-  NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+  NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
 
   
   
@@ -2811,7 +2811,7 @@ nsEditor::JoinNodesImpl(nsINode* aNodeToKeep,
         
         ErrorResult err;
         aNodeToKeep->InsertBefore(*childNode, firstNode, err);
-        NS_ENSURE_SUCCESS(err.ErrorCode(), err.ErrorCode());
+        NS_ENSURE_TRUE(!err.Failed(), err.StealNSResult());
         firstNode = childNode.forget();
       }
     }

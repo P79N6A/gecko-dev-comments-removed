@@ -83,7 +83,7 @@ CreateElementTxn::DoTransaction()
   mRefNode = mParent->GetChildAt(mOffsetInParent);
 
   mParent->InsertBefore(*mNewNode, mRefNode, rv);
-  NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+  NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
 
   
   if (!mEditor->GetShouldTxnSetSelection()) {

@@ -339,13 +339,13 @@ nsHTMLEditor::SetInlinePropertyOnTextNode(Text& aText,
   if (uint32_t(aEndOffset) != aText.Length()) {
     
     text = SplitNode(aText, aEndOffset, rv)->GetAsText();
-    NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+    NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
   }
 
   if (aStartOffset) {
     
     SplitNode(*text, aStartOffset, rv);
-    NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+    NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
   }
 
   if (aAttribute) {

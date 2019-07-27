@@ -60,7 +60,7 @@ InsertNodeTxn::DoTransaction()
 
   ErrorResult rv;
   mParent->InsertBefore(*mNode, ref, rv);
-  NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+  NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
 
   
   if (mEditor.GetShouldTxnSetSelection()) {
