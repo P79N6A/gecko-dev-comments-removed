@@ -67,6 +67,13 @@ function run_test() {
   test_cert_for_usages(["ee-int-not-a-ca", "int-not-a-ca"], "");
 
   
+  
+  test_cert_for_usages(["int-cA-FALSE-asserts-keyCertSign"], ee_usage1);
+  test_cert_for_usages(["ee-int-cA-FALSE-asserts-keyCertSign",
+                        "int-cA-FALSE-asserts-keyCertSign"], "");
+
+
+  
   test_cert_for_usages(["int-limited-depth"], ca_usage1);
 
   

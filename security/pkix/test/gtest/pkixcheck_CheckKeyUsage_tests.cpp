@@ -196,6 +196,8 @@ TEST_F(pkixcheck_CheckKeyUsage, simpleCases)
 }
 
 
+
+
 TEST_F(pkixcheck_CheckKeyUsage, keyCertSign)
 {
   NAMED_SIMPLE_KU(good, 2, 0x04);
@@ -221,6 +223,16 @@ TEST_F(pkixcheck_CheckKeyUsage, keyCertSign)
   ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &twoByteNotGood,
                            KeyUsage::keyCertSign));
   ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeCA, &twoByteNotGood,
+                           KeyUsage::keyCertSign));
+
+  
+  
+  NAMED_SIMPLE_KU(digitalSignatureAndKeyCertSign, 2, 0x84);
+  ASSERT_EQ(Success, CheckKeyUsage(EndEntityOrCA::MustBeEndEntity,
+                                   &digitalSignatureAndKeyCertSign,
+                                   KeyUsage::digitalSignature));
+  ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity,
+                           &digitalSignatureAndKeyCertSign,
                            KeyUsage::keyCertSign));
 }
 

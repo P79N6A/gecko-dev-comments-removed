@@ -148,14 +148,17 @@ CheckKeyUsage(EndEntityOrCA endEntityOrCA, const Input* encodedKeyUsage,
     }
   }
 
-  if (endEntityOrCA != EndEntityOrCA::MustBeCA) {
-    
-    
-    
-    
-    if ((bits & KeyUsageToBitMask(KeyUsage::keyCertSign)) != 0) {
-      return Result::ERROR_INADEQUATE_KEY_USAGE;
-    }
+  
+  
+  
+  
+  
+  
+  
+  
+  if (requiredKeyUsageIfPresent == KeyUsage::keyCertSign &&
+      endEntityOrCA != EndEntityOrCA::MustBeCA) {
+    return Result::ERROR_INADEQUATE_KEY_USAGE;
   }
 
   
