@@ -346,7 +346,7 @@ ArenaLists::allocateFromArena(JS::Zone* zone, AllocKind thingKind,
                               AutoMaybeStartBackgroundAllocation& maybeStartBGAlloc)
 {
     JSRuntime* rt = zone->runtimeFromAnyThread();
-    Maybe<AutoLockGC> maybeLock;
+    mozilla::Maybe<AutoLockGC> maybeLock;
 
     
     if (backgroundFinalizeState[thingKind] != BFS_DONE)
