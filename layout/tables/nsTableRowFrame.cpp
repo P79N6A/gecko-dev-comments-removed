@@ -322,15 +322,13 @@ nsTableRowFrame::DidResize()
 {
   
   nsTableFrame* tableFrame = GetTableFrame();
-  nsTableIterator iter(*this);
-  nsIFrame* childFrame = iter.First();
 
   WritingMode wm = GetWritingMode();
   nsHTMLReflowMetrics desiredSize(wm);
   desiredSize.SetSize(wm, GetLogicalSize(wm));
   desiredSize.SetOverflowAreasToDesiredBounds();
 
-  while (childFrame) {
+  for (nsIFrame* childFrame : mFrames) {
     nsTableCellFrame *cellFrame = do_QueryFrame(childFrame);
     if (cellFrame) {
       nscoord cellBSize = BSize(wm) +
@@ -359,8 +357,6 @@ nsTableRowFrame::DidResize()
       
       
     }
-    
-    childFrame = iter.Next();
   }
   FinishAndStoreOverflow(&desiredSize);
   if (HasView()) {
@@ -402,19 +398,15 @@ nscoord nsTableRowFrame::GetRowBaseline(WritingMode aWM)
   
   
 
-  nsTableIterator iter(*this);
-  nsIFrame* childFrame = iter.First();
   nscoord ascent = 0;
   nscoord containerWidth = GetRect().width;
-   while (childFrame) {
+  for (nsIFrame* childFrame : mFrames) {
     if (IS_TABLE_CELL(childFrame->GetType())) {
       nsIFrame* firstKid = childFrame->GetFirstPrincipalChild();
       ascent = std::max(ascent,
                         LogicalRect(aWM, firstKid->GetNormalRect(),
                                     containerWidth).BEnd(aWM));
     }
-    
-    childFrame = iter.Next();
   }
   return ascent;
 }
@@ -784,7 +776,6 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
 
   int32_t cellColSpan = 1;  
 
-  nsTableIterator iter(*this);
   
   int32_t prevColIndex = -1;
   nscoord iCoord = 0; 
@@ -801,7 +792,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
     containerWidth += aReflowState.ComputedPhysicalBorderPadding().LeftRight();
   }
 
-  for (nsIFrame* kidFrame = iter.First(); kidFrame; kidFrame = iter.Next()) {
+  for (nsIFrame* kidFrame : mFrames) {
     nsTableCellFrame *cellFrame = do_QueryFrame(kidFrame);
     if (!cellFrame) {
       
@@ -1050,7 +1041,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
     
     
     
-    for (nsIFrame* kidFrame = iter.First(); kidFrame; kidFrame = iter.Next()) {
+    for (nsIFrame* kidFrame : mFrames) {
       nsTableCellFrame *cellFrame = do_QueryFrame(kidFrame);
       if (!cellFrame) {
         continue;
@@ -1241,7 +1232,6 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
     rowRect.BSize(wm) = 0;
   }
   else { 
-    nsTableIterator iter(*this);
     
     
     int32_t prevColIndex = -1;
@@ -1249,8 +1239,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
     nsTableFrame* fifTable =
       static_cast<nsTableFrame*>(tableFrame->FirstInFlow());
 
-    nsIFrame* kidFrame = iter.First();
-    while (kidFrame) {
+    for (nsIFrame* kidFrame : mFrames) {
       nsTableCellFrame *cellFrame = do_QueryFrame(kidFrame);
       if (cellFrame) {
         int32_t cellColIndex;
@@ -1346,7 +1335,6 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
                                              oldCellVisualOverflow, false);
         }
       }
-      kidFrame = iter.Next(); 
     }
   }
 
@@ -1456,10 +1444,9 @@ nsTableRowFrame::AccessibleType()
 
 void nsTableRowFrame::InitHasCellWithStyleBSize(nsTableFrame* aTableFrame)
 {
-  nsTableIterator iter(*this);
   WritingMode wm = GetWritingMode();
 
-  for (nsIFrame* kidFrame = iter.First(); kidFrame; kidFrame = iter.Next()) {
+  for (nsIFrame* kidFrame : mFrames) {
     nsTableCellFrame *cellFrame = do_QueryFrame(kidFrame);
     if (!cellFrame) {
       NS_NOTREACHED("Table row has a non-cell child.");
