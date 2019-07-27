@@ -12871,9 +12871,16 @@ nsDocShell::GetTopFrameElement(nsIDOMElement** aElement)
     win->GetScriptableTop(getter_AddRefs(top));
     NS_ENSURE_TRUE(top, NS_ERROR_FAILURE);
 
+    nsCOMPtr<nsPIDOMWindow> piTop = do_QueryInterface(top);
+    NS_ENSURE_TRUE(piTop, NS_ERROR_FAILURE);
+
     
     
-    return top->GetFrameElement(aElement);
+    
+    nsCOMPtr<nsIDOMElement> elt =
+        do_QueryInterface(piTop->GetFrameElementInternal());
+    elt.forget(aElement);
+    return NS_OK;
 }
 
 NS_IMETHODIMP
