@@ -4824,7 +4824,7 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
   
   for (uint32_t i = 0; i < numTransitions; ++i) {
-    nsTransition *transition = &display->mTransitions[i];
+    StyleTransition *transition = &display->mTransitions[i];
 
     if (i >= delay.num) {
       transition->SetDelay(display->mTransitions[i % delay.num].GetDelay());

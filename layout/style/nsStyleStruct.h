@@ -1809,9 +1809,11 @@ private:
   void AssignFromKeyword(int32_t aTimingFunctionType);
 };
 
-struct nsTransition {
-  nsTransition() {  }
-  explicit nsTransition(const nsTransition& aCopy);
+namespace mozilla {
+
+struct StyleTransition {
+  StyleTransition() {  }
+  explicit StyleTransition(const StyleTransition& aCopy);
 
   void SetInitialValues();
 
@@ -1833,7 +1835,7 @@ struct nsTransition {
       mProperty = aProperty;
     }
   void SetUnknownProperty(const nsAString& aUnknownProperty);
-  void CopyPropertyFrom(const nsTransition& aOther)
+  void CopyPropertyFrom(const StyleTransition& aOther)
     {
       mProperty = aOther.mProperty;
       mUnknownProperty = aOther.mUnknownProperty;
@@ -1849,8 +1851,6 @@ private:
   nsCOMPtr<nsIAtom> mUnknownProperty; 
                                       
 };
-
-namespace mozilla {
 
 struct StyleAnimation {
   StyleAnimation() {  }
@@ -1972,7 +1972,7 @@ struct nsStyleDisplay {
   nsStyleCoord mChildPerspective; 
   nsStyleCoord mPerspectiveOrigin[2]; 
 
-  nsAutoTArray<nsTransition, 1> mTransitions; 
+  nsAutoTArray<mozilla::StyleTransition, 1> mTransitions; 
   
   
   uint32_t mTransitionTimingFunctionCount,

@@ -229,7 +229,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   bool startedAny = false;
   nsCSSPropertySet whichStarted;
   for (uint32_t i = disp->mTransitionPropertyCount; i-- != 0; ) {
-    const nsTransition& t = disp->mTransitions[i];
+    const StyleTransition& t = disp->mTransitions[i];
     
     
     if (t.GetDelay() != 0.0f || t.GetDuration() != 0.0f) {
@@ -275,7 +275,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     nsCSSPropertySet allTransitionProperties;
     if (checkProperties) {
       for (uint32_t i = disp->mTransitionPropertyCount; i-- != 0; ) {
-        const nsTransition& t = disp->mTransitions[i];
+        const StyleTransition& t = disp->mTransitions[i];
         
         
         nsCSSProperty property = t.GetProperty();
@@ -376,14 +376,15 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
 }
 
 void
-nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
-                                                const nsTransition& aTransition,
-                                                dom::Element* aElement,
-                                                CommonElementAnimationData*& aElementTransitions,
-                                                nsStyleContext* aOldStyleContext,
-                                                nsStyleContext* aNewStyleContext,
-                                                bool* aStartedAny,
-                                                nsCSSPropertySet* aWhichStarted)
+nsTransitionManager::ConsiderStartingTransition(
+  nsCSSProperty aProperty,
+  const StyleTransition& aTransition,
+  dom::Element* aElement,
+  CommonElementAnimationData*& aElementTransitions,
+  nsStyleContext* aOldStyleContext,
+  nsStyleContext* aNewStyleContext,
+  bool* aStartedAny,
+  nsCSSPropertySet* aWhichStarted)
 {
   
   NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(aProperty),
