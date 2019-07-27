@@ -33,25 +33,25 @@ const CATEGORIES = [
 
 
 const CATEGORY_MAPPINGS = {
-  "8": CATEGORIES[0],    
-  "16": CATEGORIES[1],   
-  "32": CATEGORIES[2],   
-  "64": CATEGORIES[3],   
-  "128": CATEGORIES[3],  
-  "256": CATEGORIES[4],  
-  "512": CATEGORIES[5],  
-  "1024": CATEGORIES[6], 
-  "2048": CATEGORIES[7], 
+  "16": CATEGORIES[0],      
+  "32": CATEGORIES[1],      
+  "64": CATEGORIES[2],      
+  "128": CATEGORIES[3],     
+  "256": CATEGORIES[3],     
+  "512": CATEGORIES[4],     
+  "1024": CATEGORIES[5],    
+  "2048": CATEGORIES[6],    
+  "4096": CATEGORIES[7],    
 };
 
 
 
 
-const CATEGORY_OTHER = 8;
+const CATEGORY_OTHER = 16;
 
 
 
-const CATEGORY_JIT = 32;
+const CATEGORY_JIT = 64;
 
 
 exports.L10N = L10N;
