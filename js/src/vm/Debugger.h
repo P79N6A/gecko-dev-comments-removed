@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef vm_Debugger_h
 #define vm_Debugger_h
@@ -26,26 +26,26 @@ namespace js {
 class Breakpoint;
 class DebuggerMemory;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * A weakmap that supports the keys being in different compartments to the
+ * values, although all values must be in the same compartment.
+ *
+ * The Key and Value classes must support the compartment() method.
+ *
+ * The purpose of this is to allow the garbage collector to easily find edges
+ * from debugee object compartments to debugger compartments when calculating
+ * the compartment groups.  Note that these edges are the inverse of the edges
+ * stored in the cross compartment map.
+ *
+ * The current implementation results in all debuggee object compartments being
+ * swept in the same group as the debugger.  This is a conservative approach,
+ * and compartments may be unnecessarily grouped, however it results in a
+ * simpler and faster implementation.
+ *
+ * If InvisibleKeysOk is true, then the map can have keys in invisible-to-
+ * debugger compartments. If it is false, we assert that such entries are never
+ * created.
+ */
 template <class Key, class Value, bool InvisibleKeysOk=false>
 class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
 {
@@ -63,7 +63,7 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
         : Base(cx), zoneCounts(cx->runtime()) { }
 
   public:
-    
+    /* Expose those parts of HashMap public interface that are used by Debugger methods. */
 
     typedef typename Base::Entry Entry;
     typedef typename Base::Ptr Ptr;
@@ -72,7 +72,7 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
     typedef typename Base::Enum Enum;
     typedef typename Base::Lookup Lookup;
 
-    
+    /* Expose WeakMap public interface */
 
     using Base::lookupForAdd;
     using Base::all;
@@ -120,7 +120,7 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
     }
 
   private:
-    
+    /* Override sweep method to also update our edge cache. */
     void sweep() {
         for (Enum e(*static_cast<Base *>(this)); !e.empty(); e.popFront()) {
             Key k(e.front().key());
@@ -128,7 +128,7 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
                 e.removeFront();
                 decZoneCount(k->zone());
             } else {
-                
+                // markKeys() should have done any necessary relocation.
                 JS_ASSERT(k == e.front().key());
             }
         }
@@ -153,19 +153,18 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
     }
 };
 
-
-
-
-
-
-
+/*
+ * Env is the type of what ES5 calls "lexical environments" (runtime
+ * activations of lexical scopes). This is currently just JSObject, and is
+ * implemented by Call, Block, With, and DeclEnv objects, among others--but
+ * environments and objects are really two different concepts.
+ */
 typedef JSObject Env;
 
 class Debugger : private mozilla::LinkedListElement<Debugger>
 {
     friend class Breakpoint;
     friend class DebuggerMemory;
-    friend class SavedStacks;
     friend class mozilla::LinkedListElement<Debugger>;
     friend bool (::JS_DefineDebuggerObject)(JSContext *cx, JS::HandleObject obj);
     friend bool SavedStacksMetadataCallback(JSContext *cx, JSObject **pmetadata);
@@ -194,11 +193,11 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
         JSSLOT_DEBUG_COUNT
     };
   private:
-    HeapPtrObject object;               
-    GlobalObjectSet debuggees;          
-    js::HeapPtrObject uncaughtExceptionHook; 
+    HeapPtrObject object;               /* The Debugger object. Strong reference. */
+    GlobalObjectSet debuggees;          /* Debuggee globals. Cross-compartment weak references. */
+    js::HeapPtrObject uncaughtExceptionHook; /* Strong reference. */
     bool enabled;
-    JSCList breakpoints;                
+    JSCList breakpoints;                /* Circular list of all js::Breakpoints in this debugger */
 
     struct AllocationSite : public mozilla::LinkedListElement<AllocationSite>
     {
@@ -210,7 +209,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     typedef mozilla::LinkedList<AllocationSite> AllocationSiteList;
 
     bool trackingAllocationSites;
-    double allocationSamplingProbability;
     AllocationSiteList allocationsLog;
     size_t allocationsLogLength;
     size_t maxAllocationsLogLength;
@@ -218,46 +216,46 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     bool appendAllocationSite(JSContext *cx, HandleSavedFrame frame);
     void emptyAllocationsLog();
 
-    
-
-
-
-
-
+    /*
+     * If this Debugger is enabled, and has a onNewGlobalObject handler, then
+     * this link is inserted into the circular list headed by
+     * JSRuntime::onNewGlobalObjectWatchers. Otherwise, this is set to a
+     * singleton cycle.
+     */
     JSCList onNewGlobalObjectWatchersLink;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Map from stack frames that are currently on the stack to Debugger.Frame
+     * instances.
+     *
+     * The keys are always live stack frames. We drop them from this map as
+     * soon as they leave the stack (see slowPathOnLeaveFrame) and in
+     * removeDebuggee.
+     *
+     * We don't trace the keys of this map (the frames are on the stack and
+     * thus necessarily live), but we do trace the values. It's like a WeakMap
+     * that way, but since stack frames are not gc-things, the implementation
+     * has to be different.
+     */
     typedef HashMap<AbstractFramePtr,
                     RelocatablePtrObject,
                     DefaultHasher<AbstractFramePtr>,
                     RuntimeAllocPolicy> FrameMap;
     FrameMap frames;
 
-    
+    /* An ephemeral map from JSScript* to Debugger.Script instances. */
     typedef DebuggerWeakMap<PreBarrieredScript, RelocatablePtrObject> ScriptWeakMap;
     ScriptWeakMap scripts;
 
-    
+    /* The map from debuggee source script objects to their Debugger.Source instances. */
     typedef DebuggerWeakMap<PreBarrieredObject, RelocatablePtrObject, true> SourceWeakMap;
     SourceWeakMap sources;
 
-    
+    /* The map from debuggee objects to their Debugger.Object instances. */
     typedef DebuggerWeakMap<PreBarrieredObject, RelocatablePtrObject> ObjectWeakMap;
     ObjectWeakMap objects;
 
-    
+    /* The map from debuggee Envs to Debugger.Environment instances. */
     ObjectWeakMap environments;
 
     class FrameRange;
@@ -276,51 +274,51 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     void removeDebuggeeGlobalUnderGC(FreeOp *fop, GlobalObject *global,
                                      GlobalObjectSet::Enum *debugEnum);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Cope with an error or exception in a debugger hook.
+     *
+     * If callHook is true, then call the uncaughtExceptionHook, if any. If, in
+     * addition, vp is given, then parse the value returned by
+     * uncaughtExceptionHook as a resumption value.
+     *
+     * If there is no uncaughtExceptionHook, or if it fails, report and clear
+     * the pending exception on ac.context and return JSTRAP_ERROR.
+     *
+     * This always calls ac.leave(); ac is a parameter because this method must
+     * do some things in the debugger compartment and some things in the
+     * debuggee compartment.
+     */
     JSTrapStatus handleUncaughtException(mozilla::Maybe<AutoCompartment> &ac, bool callHook);
     JSTrapStatus handleUncaughtException(mozilla::Maybe<AutoCompartment> &ac, MutableHandleValue vp, bool callHook);
 
     JSTrapStatus handleUncaughtExceptionHelper(mozilla::Maybe<AutoCompartment> &ac,
                                                MutableHandleValue *vp, bool callHook);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Handle the result of a hook that is expected to return a resumption
+     * value <https://wiki.mozilla.org/Debugger#Resumption_Values>. This is called
+     * when we return from a debugging hook to debuggee code. The interpreter wants
+     * a (JSTrapStatus, Value) pair telling it how to proceed.
+     *
+     * Precondition: ac is entered. We are in the debugger compartment.
+     *
+     * Postcondition: This called ac.leave(). See handleUncaughtException.
+     *
+     * If ok is false, the hook failed. If an exception is pending in
+     * ac.context(), return handleUncaughtException(ac, vp, callhook).
+     * Otherwise just return JSTRAP_ERROR.
+     *
+     * If ok is true, there must be no exception pending in ac.context(). rv may be:
+     *     undefined - Return JSTRAP_CONTINUE to continue execution normally.
+     *     {return: value} or {throw: value} - Call unwrapDebuggeeValue to
+     *         unwrap value. Store the result in *vp and return JSTRAP_RETURN
+     *         or JSTRAP_THROW. The interpreter will force the current frame to
+     *         return or throw an exception.
+     *     null - Return JSTRAP_ERROR to terminate the debuggee with an
+     *         uncatchable error.
+     *     anything else - Make a new TypeError the pending exception and
+     *         return handleUncaughtException(ac, vp, callHook).
+     */
     JSTrapStatus parseResumptionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, const Value &rv,
                                       MutableHandleValue vp, bool callHook = true);
 
@@ -384,28 +382,28 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     JSTrapStatus fireEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp);
     JSTrapStatus fireNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global, MutableHandleValue vp);
 
-    
-
-
-
+    /*
+     * Allocate and initialize a Debugger.Script instance whose referent is
+     * |script|.
+     */
     JSObject *newDebuggerScript(JSContext *cx, HandleScript script);
 
-    
-
-
-
+    /*
+     * Allocate and initialize a Debugger.Source instance whose referent is
+     * |source|.
+     */
     JSObject *newDebuggerSource(JSContext *cx, js::HandleScriptSource source);
 
-    
-
-
-
+    /*
+     * Receive a "new script" event from the engine. A new script was compiled
+     * or deserialized.
+     */
     void fireNewScript(JSContext *cx, HandleScript script);
 
-    
-
-
-
+    /*
+     * Gets a Debugger.Frame object. If maybeIter is non-null, we eagerly copy
+     * its data if we need to make a new Debugger.Frame.
+     */
     bool getScriptFrameWithIter(JSContext *cx, AbstractFramePtr frame,
                                 const ScriptFrameIter *maybeIter, MutableHandleValue vp);
 
@@ -429,23 +427,23 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     bool hasMemory() const;
     DebuggerMemory &memory() const;
 
-    
+    /*********************************** Methods for interaction with the GC. */
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * A Debugger object is live if:
+     *   * the Debugger JSObject is live (Debugger::trace handles this case); OR
+     *   * it is in the middle of dispatching an event (the event dispatching
+     *     code roots it in this case); OR
+     *   * it is enabled, and it is debugging at least one live compartment,
+     *     and at least one of the following is true:
+     *       - it has a debugger hook installed
+     *       - it has a breakpoint set on a live script
+     *       - it has a watchpoint set on a live object.
+     *
+     * Debugger::markAllIteratively handles the last case. If it finds any
+     * Debugger objects that are definitely live but not yet marked, it marks
+     * them and returns true. If not, it returns false.
+     */
     static void markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer);
     static bool markAllIteratively(GCMarker *trc);
     static void markAll(JSTracer *trc);
@@ -468,7 +466,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static bool handleIonBailout(JSContext *cx, jit::RematerializedFrame *from, jit::BaselineFrame *to);
     static void propagateForcedReturn(JSContext *cx, AbstractFramePtr frame, HandleValue rval);
 
-    
+    /************************************* Functions for use by Debugger.cpp. */
 
     inline bool observesEnterFrame() const;
     inline bool observesNewScript() const;
@@ -478,134 +476,134 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     bool observesFrame(const ScriptFrameIter &iter) const;
     bool observesScript(JSScript *script) const;
 
-    
-
-
-
-
+    /*
+     * If env is nullptr, call vp->setNull() and return true. Otherwise, find
+     * or create a Debugger.Environment object for the given Env. On success,
+     * store the Environment object in *vp and return true.
+     */
     bool wrapEnvironment(JSContext *cx, Handle<Env*> env, MutableHandleValue vp);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Like cx->compartment()->wrap(cx, vp), but for the debugger compartment.
+     *
+     * Preconditions: *vp is a value from a debuggee compartment; cx is in the
+     * debugger's compartment.
+     *
+     * If *vp is an object, this produces a (new or existing) Debugger.Object
+     * wrapper for it. Otherwise this is the same as JSCompartment::wrap.
+     *
+     * If *vp is a magic JS_OPTIMIZED_OUT value, this produces a plain object
+     * of the form { optimizedOut: true }.
+     *
+     * If *vp is a magic JS_OPTIMIZED_ARGUMENTS value signifying missing
+     * arguments, this produces a plain object of the form { missingArguments:
+     * true }.
+     *
+     * If *vp is a magic JS_UNINITIALIZED_LEXICAL value signifying an
+     * unaccessible uninitialized binding, this produces a plain object of the
+     * form { uninitialized: true }.
+     */
     bool wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Unwrap a Debug.Object, without rewrapping it for any particular debuggee
+     * compartment.
+     *
+     * Preconditions: cx is in the debugger compartment. *vp is a value in that
+     * compartment. (*vp should be a "debuggee value", meaning it is the
+     * debugger's reflection of a value in the debuggee.)
+     *
+     * If *vp is a Debugger.Object, store the referent in *vp. Otherwise, if *vp
+     * is an object, throw a TypeError, because it is not a debuggee
+     * value. Otherwise *vp is a primitive, so leave it alone.
+     *
+     * When passing values from the debuggee to the debugger:
+     *     enter debugger compartment;
+     *     call wrapDebuggeeValue;  // compartment- and debugger-wrapping
+     *
+     * When passing values from the debugger to the debuggee:
+     *     call unwrapDebuggeeValue;  // debugger-unwrapping
+     *     enter debuggee compartment;
+     *     call cx->compartment()->wrap;  // compartment-rewrapping
+     *
+     * (Extreme nerd sidebar: Unwrapping happens in two steps because there are
+     * two different kinds of symmetry at work: regardless of which direction
+     * we're going, we want any exceptions to be created and thrown in the
+     * debugger compartment--mirror symmetry. But compartment wrapping always
+     * happens in the target compartment--rotational symmetry.)
+     */
     bool unwrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
     bool unwrapPropDescInto(JSContext *cx, HandleObject obj, Handle<PropDesc> wrapped,
                             MutableHandle<PropDesc> unwrapped);
 
-    
-
-
-
-
-
+    /*
+     * Store the Debugger.Frame object for frame in *vp.
+     *
+     * Use this if you have already access to a frame pointer without having
+     * to incur the cost of walking the stack.
+     */
     bool getScriptFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp) {
         return getScriptFrameWithIter(cx, frame, nullptr, vp);
     }
 
-    
-
-
-
-
-
-
-
+    /*
+     * Store the Debugger.Frame object for iter in *vp. Eagerly copies a
+     * ScriptFrameIter::Data.
+     *
+     * Use this if you had to make a ScriptFrameIter to get the required
+     * frame, in which case the cost of walking the stack has already been
+     * paid.
+     */
     bool getScriptFrame(JSContext *cx, const ScriptFrameIter &iter, MutableHandleValue vp) {
         return getScriptFrameWithIter(cx, iter.abstractFramePtr(), &iter, vp);
     }
 
-    
-
-
-
-
-
-
+    /*
+     * Set |*status| and |*value| to a (JSTrapStatus, Value) pair reflecting a
+     * standard SpiderMonkey call state: a boolean success value |ok|, a return
+     * value |rv|, and a context |cx| that may or may not have an exception set.
+     * If an exception was pending on |cx|, it is cleared (and |ok| is asserted
+     * to be false).
+     */
     static void resultToCompletion(JSContext *cx, bool ok, const Value &rv,
                                    JSTrapStatus *status, MutableHandleValue value);
 
-    
-
-
-
-
+    /*
+     * Set |*result| to a JavaScript completion value corresponding to |status|
+     * and |value|. |value| should be the return value or exception value, not
+     * wrapped as a debuggee value. |cx| must be in the debugger compartment.
+     */
     bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value,
                             MutableHandleValue result);
 
-    
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Precondition: we are in the debuggee compartment (ac is entered) and ok
+     * is true if the operation in the debuggee compartment succeeded, false on
+     * error or exception.
+     *
+     * Postcondition: we are in the debugger compartment, having called
+     * ac.leave() even if an error occurred.
+     *
+     * On success, a completion value is in vp and ac.context does not have a
+     * pending exception. (This ordinarily returns true even if the ok argument
+     * is false.)
+     */
     bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok,
                                 HandleValue val,
                                 MutableHandleValue vp);
 
-    
-
-
-
-
+    /*
+     * Return the Debugger.Script object for |script|, or create a new one if
+     * needed. The context |cx| must be in the debugger compartment; |script|
+     * must be a script in a debuggee compartment.
+     */
     JSObject *wrapScript(JSContext *cx, HandleScript script);
 
-    
-
-
-
-
+    /*
+     * Return the Debugger.Source object for |source|, or create a new one if
+     * needed. The context |cx| must be in the debugger compartment; |source|
+     * must be a script source object in a debuggee compartment.
+     */
     JSObject *wrapSource(JSContext *cx, js::HandleScriptSource source);
 
   private:
@@ -624,8 +622,8 @@ class BreakpointSite {
     jsbytecode * const pc;
 
   private:
-    JSCList breakpoints;  
-    size_t enabledCount;  
+    JSCList breakpoints;  /* cyclic list of all js::Breakpoints at this instruction */
+    size_t enabledCount;  /* number of breakpoints in the list that are enabled */
 
     void recompile(FreeOp *fop);
 
@@ -639,24 +637,24 @@ class BreakpointSite {
     void destroyIfEmpty(FreeOp *fop);
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Each Breakpoint is a member of two linked lists: its debugger's list and its
+ * site's list.
+ *
+ * GC rules:
+ *   - script is live, breakpoint exists, and debugger is enabled
+ *      ==> debugger is live
+ *   - script is live, breakpoint exists, and debugger is live
+ *      ==> retain the breakpoint and the handler object is live
+ *
+ * Debugger::markAllIteratively implements these two rules. It uses
+ * Debugger::hasAnyLiveHooks to check for rule 1.
+ *
+ * Nothing else causes a breakpoint to be retained, so if its script or
+ * debugger is collected, the breakpoint is destroyed during GC sweep phase,
+ * even if the debugger compartment isn't being GC'd. This is implemented in
+ * JSCompartment::sweepBreakpoints.
+ */
 class Breakpoint {
     friend struct ::JSCompartment;
     friend class Debugger;
@@ -665,7 +663,7 @@ class Breakpoint {
     Debugger * const debugger;
     BreakpointSite * const site;
   private:
-    
+    /* |handler| is marked unconditionally during minor GC. */
     js::PreBarrieredObject handler;
     JSCList debuggerLinks;
     JSCList siteLinks;
@@ -762,8 +760,8 @@ Debugger::onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileA
 {
     JS_ASSERT_IF(script->compileAndGo(), compileAndGoGlobal);
     JS_ASSERT_IF(script->compileAndGo(), compileAndGoGlobal == &script->uninlinedGlobal());
-    
-    
+    // We early return in slowPathOnNewScript for self-hosted scripts, so we can
+    // ignore those in our assertion here.
     JS_ASSERT_IF(!script->compartment()->options().invisibleToDebugger() &&
                  !script->selfHosted(),
                  script->compartment()->firedOnNewGlobalObject);
@@ -799,6 +797,6 @@ EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFrameP
 
 bool ReportObjectRequired(JSContext *cx);
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* vm_Debugger_h */

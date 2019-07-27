@@ -9,13 +9,10 @@
 
 #include "mozilla/Attributes.h"
 
-#include <math.h>
-
 #include "jsapi.h"
 #include "jscompartment.h"
 #include "jsfriendapi.h"
 #include "jshashutil.h"
-#include "jsmath.h"
 #include "jsnum.h"
 
 #include "gc/Marking.h"
@@ -706,31 +703,6 @@ SavedStacks::getLocation(JSContext *cx, const FrameIter &iter, MutableHandleLoca
     return true;
 }
 
-void
-SavedStacks::chooseSamplingProbability(JSContext *cx)
-{
-    GlobalObject::DebuggerVector *dbgs = cx->global()->getDebuggers();
-    if (!dbgs || dbgs->empty())
-        return;
-
-    Debugger *allocationTrackingDbg = nullptr;
-    mozilla::DebugOnly<Debugger **> begin = dbgs->begin();
-
-    for (Debugger **dbgp = dbgs->begin(); dbgp < dbgs->end(); dbgp++) {
-        
-        
-        JS_ASSERT(dbgs->begin() == begin);
-
-        if ((*dbgp)->trackingAllocationSites && (*dbgp)->enabled)
-            allocationTrackingDbg = *dbgp;
-    }
-
-    if (!allocationTrackingDbg)
-        return;
-
-    allocationSamplingProbability = allocationTrackingDbg->allocationSamplingProbability;
-}
-
 SavedStacks::FrameState::FrameState(const FrameIter &iter)
     : principals(iter.compartment()->principals),
       name(iter.isNonEvalFunctionFrame() ? iter.functionDisplayAtom() : nullptr),
@@ -764,43 +736,8 @@ SavedStacks::FrameState::trace(JSTracer *trc) {
 bool
 SavedStacksMetadataCallback(JSContext *cx, JSObject **pmetadata)
 {
-    SavedStacks &stacks = cx->compartment()->savedStacks();
-    if (stacks.allocationSkipCount > 0) {
-        stacks.allocationSkipCount--;
-        return true;
-    }
-
-    stacks.chooseSamplingProbability(cx);
-    if (stacks.allocationSamplingProbability == 0.0)
-        return true;
-
-    
-    
-    if (stacks.allocationSamplingProbability != 1.0) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        double notSamplingProb = 1.0 - stacks.allocationSamplingProbability;
-        stacks.allocationSkipCount = std::floor(std::log(random_nextDouble(&stacks.rngState)) /
-                                                std::log(notSamplingProb));
-    }
-
     RootedSavedFrame frame(cx);
-    if (!stacks.saveCurrentStack(cx, &frame))
+    if (!cx->compartment()->savedStacks().saveCurrentStack(cx, &frame))
         return false;
     *pmetadata = frame;
 
