@@ -165,16 +165,10 @@ private:
 
 
 
+
+
+
   bool IsForcedValidEntry(nsACString &aCacheEntryKey);
-
-  
-
-
-
-
-
-
-  bool IsForcedValidEntryInternal(nsACString &aCacheEntryKey);
 
 private:
   
@@ -293,6 +287,7 @@ private:
   static CacheStorageService* sSelf;
 
   mozilla::Mutex mLock;
+  mozilla::Mutex mForcedValidEntriesLock;
 
   bool mShutdown;
 

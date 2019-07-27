@@ -109,7 +109,8 @@ NS_IMPL_ISUPPORTS(CacheStorageService,
 CacheStorageService* CacheStorageService::sSelf = nullptr;
 
 CacheStorageService::CacheStorageService()
-: mLock("CacheStorageService")
+: mLock("CacheStorageService.mLock")
+, mForcedValidEntriesLock("CacheStorageService.mForcedValidEntriesLock")
 , mShutdown(false)
 , mDiskPool(MemoryPool::DISK)
 , mMemoryPool(MemoryPool::MEMORY)
@@ -969,7 +970,7 @@ CacheStorageService::RemoveEntry(CacheEntry* aEntry, bool aOnlyUnreferenced)
       return false;
     }
 
-    if (!aEntry->IsUsingDisk() && IsForcedValidEntryInternal(entryKey)) {
+    if (!aEntry->IsUsingDisk() && IsForcedValidEntry(entryKey)) {
       LOG(("  forced valid, not removing"));
       return false;
     }
@@ -1044,15 +1045,8 @@ CacheStorageService::RecordMemoryOnlyEntry(CacheEntry* aEntry,
 
 bool CacheStorageService::IsForcedValidEntry(nsACString &aCacheEntryKey)
 {
-  mozilla::MutexAutoLock lock(mLock);
+  mozilla::MutexAutoLock lock(mForcedValidEntriesLock);
 
-  return IsForcedValidEntryInternal(aCacheEntryKey);
-}
-
-
-
-bool CacheStorageService::IsForcedValidEntryInternal(nsACString &aCacheEntryKey)
-{
   TimeStamp validUntil;
 
   if (!mForcedValidEntries.Get(aCacheEntryKey, &validUntil)) {
@@ -1078,7 +1072,7 @@ bool CacheStorageService::IsForcedValidEntryInternal(nsACString &aCacheEntryKey)
 void CacheStorageService::ForceEntryValidFor(nsACString &aCacheEntryKey,
                                              uint32_t aSecondsToTheFuture)
 {
-  mozilla::MutexAutoLock lock(mLock);
+  mozilla::MutexAutoLock lock(mForcedValidEntriesLock);
 
   TimeStamp now = TimeStamp::NowLoRes();
   ForcedValidEntriesPrune(now);
