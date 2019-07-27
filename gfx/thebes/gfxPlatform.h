@@ -262,6 +262,14 @@ public:
       return BackendTypeBit(aType) & mContentBackendBitmask;
     }
 
+    
+    
+    
+    
+    
+    
+    virtual bool HaveChoiceOfHWAndSWCanvas();
+
     virtual bool UseAcceleratedSkiaCanvas();
     virtual void InitializeSkiaCacheLimits();
 

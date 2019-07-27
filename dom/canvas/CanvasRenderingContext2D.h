@@ -114,6 +114,7 @@ private:
 
 struct CanvasBidiProcessor;
 class CanvasRenderingContext2DUserData;
+class CanvasDrawObserver;
 
 
 
@@ -776,6 +777,12 @@ protected:
   uint32_t SkiaGLTex() const;
 
   
+  
+  
+  CanvasDrawObserver* mDrawObserver;
+  void RemoveDrawObserver();
+
+  
 
 
 
@@ -1089,6 +1096,7 @@ protected:
   }
 
   friend struct CanvasBidiProcessor;
+  friend class CanvasDrawObserver;
 };
 
 MOZ_FINISH_NESTED_ENUM_CLASS(CanvasRenderingContext2D::CanvasMultiGetterType)
