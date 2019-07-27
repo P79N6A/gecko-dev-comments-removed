@@ -75,21 +75,6 @@ if (outOfProcess) {
   let mm = container.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager;
   specialPowersObserver.init(mm);
 
-  mm.addMessageListener("SPPrefService", specialPowersObserver);
-  mm.addMessageListener("SPProcessCrashService", specialPowersObserver);
-  mm.addMessageListener("SPPingService", specialPowersObserver);
-  mm.addMessageListener("SpecialPowers.Quit", specialPowersObserver);
-  mm.addMessageListener("SpecialPowers.Focus", specialPowersObserver);
-  mm.addMessageListener("SPPermissionManager", specialPowersObserver);
-  mm.addMessageListener("SPObserverService", specialPowersObserver);
-  mm.addMessageListener("SPLoadChromeScript", specialPowersObserver);
-  mm.addMessageListener("SPChromeScriptMessage", specialPowersObserver);
-  mm.addMessageListener("SPQuotaManager", specialPowersObserver);
-
-  mm.loadFrameScript(CHILD_LOGGER_SCRIPT, true);
-  mm.loadFrameScript(CHILD_SCRIPT_API, true);
-  mm.loadFrameScript(CHILD_SCRIPT, true);
-
   
   function contentScript() {
     addEventListener("DOMWindowCreated", function listener(e) {
@@ -99,8 +84,6 @@ if (outOfProcess) {
     });
   }
   mm.loadFrameScript("data:,(" + encodeURI(contentScript.toSource()) + ")();", true);
-
-  specialPowersObserver._isFrameScriptLoaded = true;
 }
 
 
