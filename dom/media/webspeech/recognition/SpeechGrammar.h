@@ -49,8 +49,6 @@ private:
   ~SpeechGrammar();
 
   nsCOMPtr<nsISupports> mParent;
-
-  nsString mSrc;
 };
 
 } 
