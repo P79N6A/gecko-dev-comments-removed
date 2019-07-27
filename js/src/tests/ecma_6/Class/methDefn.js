@@ -166,6 +166,30 @@ a = {["b"](c){"use strict";return c;}};
 assertEq(a.b(1), 1);
 
 
+
+a = { static() { return 4; } };
+assertEq(a.static(), 4);
+
+a = { get static() { return 4; } };
+assertEq(a.static, 4);
+
+a = { set static(x) { assertEq(x, 4); } };
+a.static = 4;
+
+function testStrictMode() {
+    "use strict";
+    var obj = { static() { return 4; } };
+    assertEq(obj.static(), 4);
+
+    obj = { get static() { return 4; } };
+    assertEq(obj.static, 4);
+
+    obj = { set static(x) { assertEq(x, 4); } };
+    obj.static = 4;
+}
+testStrictMode();
+
+
 assertEq(({ method() {} }).method.name, "method");
 assertThrowsInstanceOf(function() {({ method() { method() } }).method() }, ReferenceError);
 
