@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 const SEARCH_ENGINES = {
   "Google": {
     
@@ -269,13 +271,13 @@ function ensureSnippetsMapThen(aCallback)
 
       
       gSnippetsMap = Object.freeze({
-        get: function (aKey) cache.get(aKey),
+        get: (aKey) => cache.get(aKey),
         set: function (aKey, aValue) {
           db.transaction(SNIPPETS_OBJECTSTORE_NAME, "readwrite")
             .objectStore(SNIPPETS_OBJECTSTORE_NAME).put(aValue, aKey);
           return cache.set(aKey, aValue);
         },
-        has: function (aKey) cache.has(aKey),
+        has: (aKey) => cache.has(aKey),
         delete: function (aKey) {
           db.transaction(SNIPPETS_OBJECTSTORE_NAME, "readwrite")
             .objectStore(SNIPPETS_OBJECTSTORE_NAME).delete(aKey);
@@ -286,7 +288,7 @@ function ensureSnippetsMapThen(aCallback)
             .objectStore(SNIPPETS_OBJECTSTORE_NAME).clear();
           return cache.clear();
         },
-        get size() cache.size
+        get size() { return cache.size; },
       });
 
       setTimeout(invokeCallbacks, 0);

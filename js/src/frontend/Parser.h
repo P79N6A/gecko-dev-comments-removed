@@ -350,6 +350,12 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     
     bool isUnexpectedEOF_:1;
 
+    
+    bool sawDeprecatedForEach:1;
+    bool sawDeprecatedDestructuringForIn:1;
+    bool sawDeprecatedLegacyGenerator:1;
+    bool sawDeprecatedExpressionClosure:1;
+
     typedef typename ParseHandler::Node Node;
     typedef typename ParseHandler::DefinitionNode DefinitionNode;
 
@@ -657,6 +663,8 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     TokenPos pos() const { return tokenStream.currentToken().pos; }
 
     bool asmJS(Node list);
+
+    void accumulateTelemetry();
 
     friend class LegacyCompExprTransplanter;
     friend struct BindData<ParseHandler>;
