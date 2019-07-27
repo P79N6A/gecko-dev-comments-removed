@@ -112,6 +112,8 @@ public:
     
     
     
+                  
+                  
     
     
     if (aData->Length() >= 4 &&
@@ -152,6 +154,7 @@ public:
       mParser = WebMBufferedParser(0);
       mOverlappedMapping.Clear();
       mInitData = new LargeDataBuffer();
+      mResource = new SourceBufferResource(NS_LITERAL_CSTRING("video/webm"));
     }
 
     
@@ -161,22 +164,27 @@ public:
     mOverlappedMapping.Clear();
     ReentrantMonitor dummy("dummy");
     mParser.Append(aData->Elements(), aData->Length(), mapping, dummy);
+    if (mResource) {
+      mResource->AppendData(aData);
+    }
 
     
     
     
-    if (initSegment) {
-      uint32_t length = aData->Length();
-      if (!mapping.IsEmpty()) {
-        length = mapping[0].mSyncOffset;
-        MOZ_ASSERT(length <= aData->Length());
-      }
-      MSE_DEBUG("WebMContainerParser(%p)::ParseStartAndEndTimestamps: Stashed init of %u bytes.",
-                this, length);
-      if (!mInitData->ReplaceElementsAt(0, mInitData->Length(),
-                                        aData->Elements(), length)) {
-        
-        return false;
+    if (initSegment || !HasCompleteInitData()) {
+      if (mParser.mInitEndOffset > 0) {
+        MOZ_ASSERT(mParser.mInitEndOffset <= mResource->GetLength());
+        if (!mInitData->SetLength(mParser.mInitEndOffset)) {
+          
+          return false;
+        }
+        char* buffer = reinterpret_cast<char*>(mInitData->Elements());
+        mResource->ReadFromCache(buffer, 0, mParser.mInitEndOffset);
+        MSE_DEBUG("WebMContainerParser(%p)::ParseStartAndEndTimestamps: Stashed init of %u bytes.",
+                  this, mParser.mInitEndOffset);
+        mResource = nullptr;
+      } else {
+        MSE_DEBUG("WebMContainerParser(%p)::ParseStartAndEndTimestamps: Incomplete init found.");
       }
       mHasInitData = true;
     }
@@ -332,7 +340,6 @@ public:
 private:
   nsRefPtr<MP4Stream> mStream;
   nsAutoPtr<mp4_demuxer::MoofParser> mParser;
-  nsRefPtr<SourceBufferResource> mResource;
   Monitor mMonitor;
 };
 #endif

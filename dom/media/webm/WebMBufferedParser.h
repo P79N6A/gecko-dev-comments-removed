@@ -50,9 +50,9 @@ struct WebMTimeDataOffset
 struct WebMBufferedParser
 {
   explicit WebMBufferedParser(int64_t aOffset)
-    : mStartOffset(aOffset), mCurrentOffset(aOffset), mState(READ_ELEMENT_ID),
-      mVIntRaw(false), mClusterSyncPos(0), mTimecodeScale(1000000),
-      mGotTimecodeScale(false)
+    : mStartOffset(aOffset), mCurrentOffset(aOffset), mInitEndOffset(-1),
+      mState(READ_ELEMENT_ID), mVIntRaw(false), mClusterSyncPos(0),
+      mTimecodeScale(1000000), mGotTimecodeScale(false)
   {
     if (mStartOffset != 0) {
       mState = FIND_CLUSTER_SYNC;
@@ -94,6 +94,10 @@ struct WebMBufferedParser
   
   
   int64_t mCurrentOffset;
+
+  
+  
+  int64_t mInitEndOffset;
 
 private:
   enum State {
@@ -139,6 +143,11 @@ private:
     
     
     READ_BLOCK_TIMECODE,
+
+    
+    
+    
+    CHECK_INIT_FOUND,
 
     
     SKIP_DATA,
