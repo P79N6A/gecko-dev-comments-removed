@@ -127,13 +127,17 @@ public:
 
 
 
-    const gfxMatrix& Scale(gfxFloat x, gfxFloat y);
+    gfxMatrix& Scale(gfxFloat x, gfxFloat y);
 
     
 
 
 
-    const gfxMatrix& Translate(const gfxPoint& pt);
+    gfxMatrix& Translate(const gfxPoint& pt);
+
+    gfxMatrix& Translate(gfxFloat x, gfxFloat y) {
+      return Translate(gfxPoint(x, y));
+    }
 
     
 
@@ -141,14 +145,14 @@ public:
 
 
 
-    const gfxMatrix& Rotate(gfxFloat radians);
+    gfxMatrix& Rotate(gfxFloat radians);
 
     
 
 
 
 
-    const gfxMatrix& PreMultiply(const gfxMatrix& m);
+    gfxMatrix& PreMultiply(const gfxMatrix& m);
 
     static gfxMatrix Translation(gfxFloat aX, gfxFloat aY)
     {
