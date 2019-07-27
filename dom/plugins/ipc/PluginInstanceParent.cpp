@@ -43,7 +43,8 @@
 #include <windowsx.h>
 #include "gfxWindowsPlatform.h"
 #include "mozilla/plugins/PluginSurfaceParent.h"
-
+#include "nsClassHashtable.h"
+#include "nsHashKeys.h"
 
 extern const wchar_t* kOOPPPluginFocusEventId;
 UINT gOOPPPluginFocusEvent =
@@ -73,6 +74,29 @@ StreamNotifyParent::RecvRedirectNotifyResponse(const bool& allow)
   return true;
 }
 
+#if defined(XP_WIN)
+namespace mozilla {
+namespace plugins {
+
+
+
+
+static nsClassHashtable<nsVoidPtrHashKey, PluginInstanceParent>* sPluginInstanceList;
+
+
+PluginInstanceParent*
+PluginInstanceParent::LookupPluginInstanceByID(uintptr_t aId)
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    if (sPluginInstanceList) {
+        return sPluginInstanceList->Get((void*)aId);
+    }
+    return nullptr;
+}
+}
+}
+#endif
+
 PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
                                            NPP npp,
                                            const nsCString& aMimeType,
@@ -95,6 +119,11 @@ PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
     , mShColorSpace(nullptr)
 #endif
 {
+#if defined(OS_WIN)
+    if (!sPluginInstanceList) {
+        sPluginInstanceList = new nsClassHashtable<nsVoidPtrHashKey, PluginInstanceParent>();
+    }
+#endif
 }
 
 PluginInstanceParent::~PluginInstanceParent()
@@ -1756,30 +1785,60 @@ PluginInstanceParent::PluginWindowHookProc(HWND hWnd,
 void
 PluginInstanceParent::SubclassPluginWindow(HWND aWnd)
 {
-    if (XRE_GetProcessType() == GeckoProcessType_Content) {
-      mPluginHWND = aWnd; 
-      mPluginWndProc = nullptr;
-      return;
+    if ((aWnd && mPluginHWND == aWnd) || (!aWnd && mPluginHWND)) {
+        return;
     }
-    NS_ASSERTION(!(mPluginHWND && aWnd != mPluginHWND),
-      "PluginInstanceParent::SubclassPluginWindow hwnd is not our window!");
 
-    if (!mPluginHWND) {
-        mPluginHWND = aWnd;
-        mPluginWndProc =
-            (WNDPROC)::SetWindowLongPtrA(mPluginHWND, GWLP_WNDPROC,
-                         reinterpret_cast<LONG_PTR>(PluginWindowHookProc));
-        DebugOnly<bool> bRes = ::SetPropW(mPluginHWND, kPluginInstanceParentProperty, this);
-        NS_ASSERTION(mPluginWndProc,
-          "PluginInstanceParent::SubclassPluginWindow failed to set subclass!");
-        NS_ASSERTION(bRes,
-          "PluginInstanceParent::SubclassPluginWindow failed to set prop!");
-   }
+#if defined(XP_WIN)
+    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+        if (!aWnd) {
+            NS_WARNING("PluginInstanceParent::SubclassPluginWindow unexpected null window");
+            return;
+        }
+        mPluginHWND = aWnd; 
+        mPluginWndProc = nullptr;
+        
+        
+        sPluginInstanceList->Put((void*)mPluginHWND, this);
+        return;
+    }
+#endif
+
+    NS_ASSERTION(!(mPluginHWND && aWnd != mPluginHWND),
+        "PluginInstanceParent::SubclassPluginWindow hwnd is not our window!");
+
+    mPluginHWND = aWnd;
+    mPluginWndProc =
+        (WNDPROC)::SetWindowLongPtrA(mPluginHWND, GWLP_WNDPROC,
+            reinterpret_cast<LONG_PTR>(PluginWindowHookProc));
+    DebugOnly<bool> bRes = ::SetPropW(mPluginHWND, kPluginInstanceParentProperty, this);
+    NS_ASSERTION(mPluginWndProc,
+        "PluginInstanceParent::SubclassPluginWindow failed to set subclass!");
+    NS_ASSERTION(bRes,
+        "PluginInstanceParent::SubclassPluginWindow failed to set prop!");
 }
 
 void
 PluginInstanceParent::UnsubclassPluginWindow()
 {
+#if defined(XP_WIN)
+    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+        if (mPluginHWND) {
+            
+            nsAutoPtr<PluginInstanceParent> tmp;
+            MOZ_ASSERT(sPluginInstanceList);
+            sPluginInstanceList->RemoveAndForget((void*)mPluginHWND, tmp);
+            tmp.forget();
+            if (!sPluginInstanceList->Count()) {
+                delete sPluginInstanceList;
+                sPluginInstanceList = nullptr;
+            }
+        }
+        mPluginHWND = nullptr;
+        return;
+    }
+#endif
+
     if (mPluginHWND && mPluginWndProc) {
         ::SetWindowLongPtrA(mPluginHWND, GWLP_WNDPROC,
                             reinterpret_cast<LONG_PTR>(mPluginWndProc));

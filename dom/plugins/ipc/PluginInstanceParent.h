@@ -51,6 +51,15 @@ class PluginInstanceParent : public PPluginInstanceParent
     friend class PluginStreamParent;
     friend class StreamNotifyParent;
 
+#if defined(XP_WIN)
+public:
+    
+
+
+    static PluginInstanceParent*
+    LookupPluginInstanceByID(uintptr_t aId);
+#endif 
+
 public:
     PluginInstanceParent(PluginModuleParent* parent,
                          NPP npp,
