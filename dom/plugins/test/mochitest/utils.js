@@ -35,11 +35,19 @@ function getTestPlugin(pluginName) {
 
 
 function setTestPluginEnabledState(newEnabledState, pluginName) {
+  var oldEnabledState = SpecialPowers.setTestPluginEnabledState(newEnabledState, pluginName);
+  if (!oldEnabledState) {
+    ok(false, "Cannot find plugin '" + plugin + "'");
+    return;
+  }
   var plugin = getTestPlugin(pluginName);
-  var oldEnabledState = plugin.enabledState;
-  plugin.enabledState = newEnabledState;
+  while (plugin.enabledState != newEnabledState) {
+    
+    
+    SpecialPowers.Services.tm.currentThread.processNextEvent(true);
+  }
   SimpleTest.registerCleanupFunction(function() {
-    getTestPlugin(pluginName).enabledState = oldEnabledState;
+    SpecialPowers.setTestPluginEnabledState(oldEnabledState, pluginName);
   });
 }
 
