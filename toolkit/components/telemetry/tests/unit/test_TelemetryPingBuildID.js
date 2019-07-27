@@ -74,8 +74,10 @@ function run_test() {
 
   
   
-  gDatareportingService.observe(null, "app-startup", null);
-  gDatareportingService.observe(null, "profile-after-change", null);
+  if ("@mozilla.org/datareporting/service;1" in Cc) {
+    gDatareportingService.observe(null, "app-startup", null);
+    gDatareportingService.observe(null, "profile-after-change", null);
+  }
 
   run_next_test();
 }
