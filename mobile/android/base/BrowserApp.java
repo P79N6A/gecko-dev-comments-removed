@@ -1027,7 +1027,9 @@ public class BrowserApp extends GeckoApp
                 }
 
                 
-                mDoorHangerPopup.disable();
+                if (mDoorHangerPopup != null) {
+                    mDoorHangerPopup.disable();
+                }
             }
         });
 
@@ -1050,7 +1052,9 @@ public class BrowserApp extends GeckoApp
                 hideHomePager();
 
                 
-                mDoorHangerPopup.enable();
+                if (mDoorHangerPopup != null) {
+                    mDoorHangerPopup.enable();
+                }
             }
         });
 
