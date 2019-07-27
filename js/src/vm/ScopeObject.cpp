@@ -1846,23 +1846,8 @@ DebugScopes::proxiedScopesPostWriteBarrier(JSRuntime *rt, ObjectWeakMap *map,
                                            const PreBarrieredObject &key)
 {
 #ifdef JSGC_GENERATIONAL
-    
-
-
-
-
-
-
-
-
-    ObjectWeakMap::Base *baseHashMap = static_cast<ObjectWeakMap::Base *>(map);
-
-    typedef HashMap<JSObject *, JSObject *> UnbarrieredMap;
-    UnbarrieredMap *unbarrieredMap = reinterpret_cast<UnbarrieredMap *>(baseHashMap);
-
-    typedef gc::HashKeyRef<UnbarrieredMap, JSObject *> Ref;
     if (key && IsInsideNursery(key))
-        rt->gc.storeBuffer.putGeneric(Ref(unbarrieredMap, key.get()));
+        rt->gc.storeBuffer.putGeneric(UnbarrieredRef(map, key.get()));
 #endif
 }
 

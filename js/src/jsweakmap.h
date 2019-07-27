@@ -12,6 +12,7 @@
 #include "jsobj.h"
 
 #include "gc/Marking.h"
+#include "gc/StoreBuffer.h"
 #include "js/HashTable.h"
 
 namespace js {
@@ -278,6 +279,28 @@ protected:
 #endif
     }
 };
+
+
+
+
+
+template <class Key, class Value>
+static inline gc::HashKeyRef<HashMap<Key, Value, DefaultHasher<Key>, RuntimeAllocPolicy>, Key>
+UnbarrieredRef(WeakMap<PreBarriered<Key>, RelocatablePtr<Value>> *map, Key key)
+{
+    
+
+
+
+
+
+
+    typedef typename WeakMap<PreBarriered<Key>, RelocatablePtr<Value>>::Base BaseMap;
+    auto baseMap = static_cast<BaseMap*>(map);
+    typedef HashMap<Key, Value, DefaultHasher<Key>, RuntimeAllocPolicy> UnbarrieredMap;
+    typedef gc::HashKeyRef<UnbarrieredMap, Key> UnbarrieredKeyRef;
+    return UnbarrieredKeyRef(reinterpret_cast<UnbarrieredMap*>(baseMap), key);
+}
 
 
 

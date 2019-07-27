@@ -353,22 +353,9 @@ WeakMapPostWriteBarrier(JSRuntime *rt, ObjectValueMap *weakMap, JSObject *key)
 {
 #ifdef JSGC_GENERATIONAL
     
-
-
-
-
-
-
-
-
-    ObjectValueMap::Base *baseHashMap = static_cast<ObjectValueMap::Base *>(weakMap);
-
-    typedef HashMap<JSObject *, Value> UnbarrieredMap;
-    UnbarrieredMap *unbarrieredMap = reinterpret_cast<UnbarrieredMap *>(baseHashMap);
-
-    typedef HashKeyRef<UnbarrieredMap, JSObject *> Ref;
+    
     if (key && IsInsideNursery(key))
-        rt->gc.storeBuffer.putGeneric(Ref((unbarrieredMap), key));
+        rt->gc.storeBuffer.putGeneric(UnbarrieredRef(weakMap, key));
 #endif
 }
 
