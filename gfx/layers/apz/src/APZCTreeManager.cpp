@@ -1371,6 +1371,10 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
         }
         if (result == prevSiblingApzc) {
           APZCTM_LOG("Continuing search past probable scrollinfo info layer\n");
+          
+          
+          
+          *aOutHitResult = HitNothing;
           continue;
         }
       }
