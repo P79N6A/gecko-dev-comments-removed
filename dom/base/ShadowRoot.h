@@ -183,6 +183,8 @@ protected:
   
   
   bool mIsComposedDocParticipant;
+
+  nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
 };
 
 class ShadowRootStyleSheetList : public StyleSheetList
