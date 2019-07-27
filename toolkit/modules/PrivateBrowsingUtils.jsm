@@ -34,7 +34,15 @@ this.PrivateBrowsingUtils = {
   },
 
   isBrowserPrivate: function(aBrowser) {
-    return this.isWindowPrivate(aBrowser.ownerDocument.defaultView);
+    let chromeWin = aBrowser.ownerDocument.defaultView;
+    if (chromeWin.gMultiProcessBrowser) {
+      
+      
+      
+      return this.isWindowPrivate(chromeWin);
+    } else {
+      return this.privacyContextFromWindow(aBrowser.contentWindow).usePrivateBrowsing;
+    }
   },
 
   privacyContextFromWindow: function pbu_privacyContextFromWindow(aWindow) {
