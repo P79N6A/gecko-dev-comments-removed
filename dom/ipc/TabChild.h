@@ -511,6 +511,8 @@ private:
 
     nsresult Init();
 
+    class DelayedFireSingleTapEvent;
+    class DelayedFireContextMenuEvent;
 
     
     
@@ -573,7 +575,7 @@ private:
     
     
     
-    CancelableTask* mTapHoldTimer;
+    nsCOMPtr<nsITimer> mTapHoldTimer;
     
     bool mAppPackageFileDescriptorRecved;
     
@@ -596,6 +598,7 @@ private:
     nsRefPtr<ActiveElementManager> mActiveElementManager;
     bool mHasValidInnerSize;
     uint64_t mUniqueId;
+    bool mDestroyed;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };
