@@ -239,7 +239,7 @@ class JS_PUBLIC_API(AutoGCRooter)
     
     template<typename T>
     static void traceAllInContext(T* cx, JSTracer* trc) {
-        for (AutoGCRooter* gcr = cx->autoGCRooters; gcr; gcr = gcr->down)
+        for (AutoGCRooter* gcr = cx->roots.autoGCRooters_; gcr; gcr = gcr->down)
             gcr->trace(trc);
     }
 
@@ -355,6 +355,32 @@ template <> struct RootKind<JSScript*> : SpecificRootKind<JSScript*, THING_ROOT_
 template <> struct RootKind<jsid> : SpecificRootKind<jsid, THING_ROOT_ID> {};
 template <> struct RootKind<JS::Value> : SpecificRootKind<JS::Value, THING_ROOT_VALUE> {};
 
+
+
+class RootLists
+{
+    
+    JS::Rooted<void*>* stackRoots_[THING_ROOT_LIMIT];
+    template <typename T> friend class JS::Rooted;
+
+    
+    JS::AutoGCRooter* autoGCRooters_;
+    friend class JS::AutoGCRooter;
+
+  public:
+    RootLists() : autoGCRooters_(nullptr) {
+        mozilla::PodArrayZero(stackRoots_);
+    }
+
+    template <class T>
+    inline JS::Rooted<T>* gcRooters() {
+        js::ThingRootKind kind = RootKind<T>::rootKind();
+        return reinterpret_cast<JS::Rooted<T>*>(stackRoots_[kind]);
+    }
+
+    void checkNoGCRooters();
+};
+
 struct ContextFriendFields
 {
   protected:
@@ -367,11 +393,12 @@ struct ContextFriendFields
     JS::Zone*           zone_;
 
   public:
+    
+    RootLists           roots;
+
     explicit ContextFriendFields(JSRuntime* rt)
-      : runtime_(rt), compartment_(nullptr), zone_(nullptr), autoGCRooters(nullptr)
-    {
-        mozilla::PodArrayZero(thingGCRooters);
-    }
+      : runtime_(rt), compartment_(nullptr), zone_(nullptr)
+    {}
 
     static const ContextFriendFields* get(const JSContext* cx) {
         return reinterpret_cast<const ContextFriendFields*>(cx);
@@ -380,25 +407,6 @@ struct ContextFriendFields
     static ContextFriendFields* get(JSContext* cx) {
         return reinterpret_cast<ContextFriendFields*>(cx);
     }
-
-  private:
-    
-
-
-
-    JS::Rooted<void*>* thingGCRooters[THING_ROOT_LIMIT];
-
-  public:
-    template <class T>
-    inline JS::Rooted<T>* gcRooters() {
-        js::ThingRootKind kind = RootKind<T>::rootKind();
-        return reinterpret_cast<JS::Rooted<T>*>(thingGCRooters[kind]);
-    }
-
-    void checkNoGCRooters();
-
-    
-    JS::AutoGCRooter*  autoGCRooters;
 
     friend JSRuntime* GetRuntime(const JSContext* cx);
     friend JSCompartment* GetContextCompartment(const JSContext* cx);
@@ -454,22 +462,10 @@ struct PerThreadDataFriendFields
     };
 
   public:
+    
+    RootLists roots;
 
     PerThreadDataFriendFields();
-
-  private:
-    
-
-
-
-    JS::Rooted<void*>* thingGCRooters[THING_ROOT_LIMIT];
-
-  public:
-    template <class T>
-    inline JS::Rooted<T>* gcRooters() {
-        js::ThingRootKind kind = RootKind<T>::rootKind();
-        return reinterpret_cast<JS::Rooted<T>*>(thingGCRooters[kind]);
-    }
 
     
     uintptr_t nativeStackLimit[js::StackKindCount];
