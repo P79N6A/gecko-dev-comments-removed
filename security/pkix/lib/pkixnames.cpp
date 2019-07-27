@@ -82,9 +82,18 @@ Result MatchPresentedIDWithReferenceID(GeneralNameType referenceIDType,
 uint8_t LocaleInsensitveToLower(uint8_t a);
 bool StartsWithIDNALabel(Input id);
 
+MOZILLA_PKIX_ENUM_CLASS ValidDNSIDMatchType
+{
+  ReferenceID = 0,
+  PresentedID = 1,
+};
+
+bool IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType);
+
 } 
 
-bool IsValidDNSName(Input hostname);
+bool IsValidReferenceDNSID(Input hostname);
+bool IsValidPresentedDNSID(Input hostname);
 bool ParseIPv4Address(Input hostname,  uint8_t (&out)[4]);
 bool ParseIPv6Address(Input hostname,  uint8_t (&out)[16]);
 bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
@@ -119,7 +128,7 @@ CheckCertHostname(Input endEntityCertDER, Input hostname)
   bool found;
   uint8_t ipv6[16];
   uint8_t ipv4[4];
-  if (IsValidDNSName(hostname)) {
+  if (IsValidReferenceDNSID(hostname)) {
     rv = SearchForName(subjectAltName, subject, GeneralNameType::dNSName,
                        hostname, FallBackToCommonName::Yes, found);
   } else if (ParseIPv6Address(hostname, ipv6)) {
@@ -854,16 +863,36 @@ ParseIPv6Address(Input hostname,  uint8_t (&out)[16])
 }
 
 bool
-IsValidDNSName(Input hostname)
+IsValidReferenceDNSID(Input hostname)
+{
+  return IsValidDNSID(hostname, ValidDNSIDMatchType::ReferenceID);
+}
+
+bool
+IsValidPresentedDNSID(Input hostname)
+{
+  return IsValidDNSID(hostname, ValidDNSIDMatchType::PresentedID);
+}
+
+namespace {
+
+bool
+IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType)
 {
   if (hostname.GetLength() > 253) {
     return false;
   }
 
   Reader input(hostname);
+
+  bool allowWildcard = matchType == ValidDNSIDMatchType::PresentedID;
+  bool isWildcard = false;
+  size_t dotCount = 0;
+
   size_t labelLength = 0;
   bool labelIsAllNumeric = false;
-  bool endsWithHyphen = false;
+  bool labelIsWildcard = false;
+  bool labelEndsWithHyphen = false;
 
   do {
     static const size_t MAX_LABEL_LENGTH = 63;
@@ -872,13 +901,21 @@ IsValidDNSName(Input hostname)
     if (input.Read(b) != Success) {
       return false;
     }
+    if (labelIsWildcard) {
+      
+      
+      
+      if (b != '.') {
+        return false;
+      }
+    }
     switch (b) {
       case '-':
         if (labelLength == 0) {
           return false; 
         }
         labelIsAllNumeric = false;
-        endsWithHyphen = true;
+        labelEndsWithHyphen = true;
         ++labelLength;
         if (labelLength > MAX_LABEL_LENGTH) {
           return false;
@@ -895,7 +932,7 @@ IsValidDNSName(Input hostname)
         if (labelLength == 0) {
           labelIsAllNumeric = true;
         }
-        endsWithHyphen = false;
+        labelEndsWithHyphen = false;
         ++labelLength;
         if (labelLength > MAX_LABEL_LENGTH) {
           return false;
@@ -919,7 +956,21 @@ IsValidDNSName(Input hostname)
       case 'l': case 'L': case 'y': case 'Y':
       case 'm': case 'M': case 'z': case 'Z':
         labelIsAllNumeric = false;
-        endsWithHyphen = false;
+        labelEndsWithHyphen = false;
+        ++labelLength;
+        if (labelLength > MAX_LABEL_LENGTH) {
+          return false;
+        }
+        break;
+
+      case '*':
+        if (!allowWildcard) {
+          return false;
+        }
+        labelIsWildcard = true;
+        isWildcard = true;
+        labelIsAllNumeric = false;
+        labelEndsWithHyphen = false;
         ++labelLength;
         if (labelLength > MAX_LABEL_LENGTH) {
           return false;
@@ -927,12 +978,15 @@ IsValidDNSName(Input hostname)
         break;
 
       case '.':
+        ++dotCount;
         if (labelLength == 0) {
           return false;
         }
-        if (endsWithHyphen) {
+        if (labelEndsWithHyphen) {
           return false; 
         }
+        allowWildcard = false; 
+        labelIsWildcard = false;
         labelLength = 0;
         break;
 
@@ -941,7 +995,7 @@ IsValidDNSName(Input hostname)
     }
   } while (!input.AtEnd());
 
-  if (endsWithHyphen) {
+  if (labelEndsWithHyphen) {
     return false; 
   }
 
@@ -949,7 +1003,33 @@ IsValidDNSName(Input hostname)
     return false; 
   }
 
+  if (isWildcard) {
+    
+    size_t labelCount = (labelLength == 0) ? dotCount : (dotCount + 1);
+
+    
+    
+    
+    
+    
+    if (labelCount < 3) {
+      return false;
+    }
+    
+    
+    
+    if (StartsWithIDNALabel(hostname)) {
+      return false;
+    }
+
+    
+    
+    
+  }
+
   return true;
 }
+
+} 
 
 } } 
