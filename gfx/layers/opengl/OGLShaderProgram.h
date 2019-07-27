@@ -46,6 +46,7 @@ enum ShaderFeatures {
 
 class KnownUniform {
 public:
+  
   enum KnownUniformName {
     NotAKnownUniform = -1,
 

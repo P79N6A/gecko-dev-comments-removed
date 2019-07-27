@@ -27,6 +27,7 @@ using namespace std;
 void
 AddUniforms(ProgramProfileOGL& aProfile)
 {
+    
     static const char *sKnownUniformNames[] = {
         "uLayerTransform",
         "uMaskTransform",
