@@ -26,7 +26,9 @@ function discovery_observer(subject, topic, data) {
 
 var testTarget = {
   target: "test:service",
-  factory: function(service) {   }
+  factory: function(service) {   },
+  types: ["video/mp4"],
+  extensions: ["mp4"]
 };
 
 add_test(function test_default() {
