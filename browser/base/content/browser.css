@@ -788,9 +788,6 @@ statuspanel[inactive][previoustype=overLink] {
 }
 
 
-%include highlighter.css
-
-
 
 html|*#gcli-tooltip-frame,
 html|*#gcli-output-frame,

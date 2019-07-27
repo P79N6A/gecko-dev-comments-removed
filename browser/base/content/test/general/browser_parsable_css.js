@@ -10,11 +10,20 @@
 
 
 const kWhitelist = [
-  {sourceName: /cleopatra.*(tree|ui)\.css/i}, 
-  {sourceName: /codemirror\.css/i}, 
-  {sourceName: /web\/viewer\.css/i, errorMessage: /Unknown pseudo-class.*(fullscreen|selection)/i }, 
-  {sourceName: /aboutaccounts\/(main|normalize)\.css/i}, 
-  {sourceName: /loop\/.*sdk-content\/.*\.css$/i }
+  
+  {sourceName: /cleopatra.*(tree|ui)\.css/i},
+  
+  {sourceName: /codemirror\.css/i},
+  
+  {sourceName: /web\/viewer\.css/i,
+   errorMessage: /Unknown pseudo-class.*(fullscreen|selection)/i},
+  
+  {sourceName: /aboutaccounts\/(main|normalize)\.css/i},
+  
+  {sourceName: /loop\/.*sdk-content\/.*\.css$/i},
+  
+  {sourceName: /highlighter\.css/i,
+   errorMessage: /Unknown pseudo-class.*moz-native-anonymous/i}
 ];
 
 let moduleLocation = gTestPath.replace(/\/[^\/]*$/i, "/parsingTestHelpers.jsm");
