@@ -197,6 +197,13 @@ AppTrustDomain::VerifySignedData(const SignedDataWithSignature& signedData,
 }
 
 SECStatus
+AppTrustDomain::DigestBuf(const SECItem& item,  uint8_t* digestBuf,
+                          size_t digestBufLen)
+{
+  return ::mozilla::pkix::DigestBuf(item, digestBuf, digestBufLen);
+}
+
+SECStatus
 AppTrustDomain::CheckRevocation(EndEntityOrCA, const CertID&, PRTime time,
                                  const SECItem*,
                                  const SECItem*)

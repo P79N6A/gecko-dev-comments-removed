@@ -103,7 +103,8 @@ SECStatus VerifySignedData(const SignedDataWithSignature& sd,
                            void* pkcs11PinArg);
 
 
-SECItem* CreateEncodedOCSPRequest(PLArenaPool* arena, const CertID& certID);
+SECItem* CreateEncodedOCSPRequest(TrustDomain& trustDomain, PLArenaPool* arena,
+                                  const CertID& certID);
 
 
 
@@ -123,6 +124,20 @@ SECStatus VerifyEncodedOCSPResponse(TrustDomain& trustDomain,
                            bool& expired,
                   PRTime* thisUpdate = nullptr,
                   PRTime* validThrough = nullptr);
+
+
+
+
+
+
+
+
+
+
+
+
+SECStatus DigestBuf(const SECItem& item,  uint8_t* digestBuf,
+                    size_t digestBufLen);
 
 } } 
 
