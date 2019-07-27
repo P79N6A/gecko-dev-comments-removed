@@ -197,13 +197,18 @@ function test()
   }
 
   function endTest() {
-    
-    gBrowser.removeTab(gBrowser.tabs[gBrowser.visibleTabs.length - 1]);
-    gBrowser.removeTab(gBrowser.tabs[gBrowser.visibleTabs.length - 1]);
+    registerCleanupFunction(function() {
+      
+      if (Services.prefs.prefHasUserValue(kPrefName_AutoScroll))
+        Services.prefs.clearUserPref(kPrefName_AutoScroll);
+      if (Services.prefs.prefHasUserValue("middlemouse.paste"))
+        Services.prefs.clearUserPref("middlemouse.paste");
 
-    
-    if (Services.prefs.prefHasUserValue(kPrefName_AutoScroll))
-      Services.prefs.clearUserPref(kPrefName_AutoScroll);
+      
+      while (gBrowser.visibleTabs.length > 1) {
+        gBrowser.removeTab(gBrowser.visibleTabs[gBrowser.visibleTabs.length - 1]);
+      }
+    });
 
     
     waitForFocus(finish);
