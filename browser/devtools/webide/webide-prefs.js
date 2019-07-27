@@ -4,7 +4,7 @@
 # file, You can obtain one at http:
 
 pref("devtools.webide.showProjectEditor", true);
-pref("devtools.webide.templatesURL", "http://code.cdn.mozilla.net/templates/list.json");
+pref("devtools.webide.templatesURL", "https://code.cdn.mozilla.net/templates/list.json");
 pref("devtools.webide.autoinstallADBHelper", true);
 pref("devtools.webide.lastprojectlocation", "");
 pref("devtools.webide.restoreLastProject", true);
