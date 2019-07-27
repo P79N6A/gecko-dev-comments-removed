@@ -997,6 +997,36 @@ MBasicBlock::discardPhiAt(MPhiIterator &at)
     return result;
 }
 
+void
+MBasicBlock::flagOperandsOfPrunedBranches(MInstruction *ins)
+{
+    
+    MResumePoint *rp = nullptr;
+    for (MInstructionReverseIterator iter = rbegin(ins); iter != rend(); iter++) {
+        rp = iter->resumePoint();
+        if (rp)
+            break;
+    }
+
+    
+    if (!rp)
+        rp = entryResumePoint();
+
+    
+    
+    
+    
+    
+    MOZ_ASSERT(rp);
+
+    
+    while (rp) {
+        for (size_t i = 0, end = rp->numOperands(); i < end; i++)
+            rp->getOperand(i)->setUseRemovedUnchecked();
+        rp = rp->caller();
+    }
+}
+
 bool
 MBasicBlock::addPredecessor(TempAllocator &alloc, MBasicBlock *pred)
 {

@@ -273,6 +273,12 @@ TypeBarrierPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
 
         MUnbox *unbox = MUnbox::New(alloc, ins->getOperand(0), outputType, MUnbox::TypeBarrier);
         ins->block()->insertBefore(ins, unbox);
+
+        
+        
+        
+        ins->block()->flagOperandsOfPrunedBranches(unbox);
+
         ins->replaceOperand(0, unbox);
         return true;
     }

@@ -302,6 +302,13 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     MPhiIterator discardPhiAt(MPhiIterator &at);
 
     
+    
+    
+    
+    
+    void flagOperandsOfPrunedBranches(MInstruction *ins);
+
+    
     void markAsDead() {
         MOZ_ASSERT(kind_ != DEAD);
         kind_ = DEAD;
