@@ -198,7 +198,6 @@ struct Animation {
   int32_t direction;
   nsCSSProperty property;
   AnimationData data;
-  float playbackRate;
 };
 
 // Change a layer's attributes
@@ -468,18 +467,10 @@ struct OpContentBufferSwap {
   nsIntRegion frontUpdatedRegion;
 };
 
-struct ReturnReleaseFence {
-  PCompositable compositable;
-  PTexture texture;
-  FenceHandle fence;
-};
-
 // Unit of a "changeset reply".  This is a weird abstraction, probably
 // only to be used for buffer swapping.
 union EditReply {
   OpContentBufferSwap;
-
-  ReturnReleaseFence;
 };
 
 union AsyncParentMessageData {
