@@ -917,6 +917,10 @@ public:
 
 
 
+
+
+
+
   
 
 
@@ -1967,6 +1971,20 @@ public:
     mChildrenChanged = aVal;
   }
 
+  void SetForceDispatchToContentRegion(bool aVal) {
+    if (mForceDispatchToContentRegion == aVal) {
+      return;
+    }
+
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ForceDispatchToContentRegion", this));
+    mForceDispatchToContentRegion = aVal;
+    Mutated();
+  }
+
+  bool GetForceDispatchToContentRegion() const {
+    return mForceDispatchToContentRegion;
+  }
+
   
 
 
@@ -2023,6 +2041,7 @@ protected:
   
   
   bool mChildrenChanged;
+  bool mForceDispatchToContentRegion;
   nsRefPtr<gfx::VRHMDInfo> mHMDInfo;
 };
 
