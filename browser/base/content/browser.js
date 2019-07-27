@@ -782,7 +782,15 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
     notification.persistence = 1;
   };
 
-  gDNSService.asyncResolve(hostName, 0, onLookupComplete, Services.tm.mainThread);
+  try {
+    gDNSService.asyncResolve(hostName, 0, onLookupComplete, Services.tm.mainThread);
+  } catch (ex) {
+    
+    if (ex.result != Cr.NS_ERROR_UNKNOWN_HOST) {
+      
+      Cu.reportError(ex);
+    }
+  }
 }
 
 
