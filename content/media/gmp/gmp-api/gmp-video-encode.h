@@ -37,21 +37,19 @@
 #include <vector>
 #include <stdint.h>
 
-#include "gmp-errors.h"
+#include "gmp-video-errors.h"
 #include "gmp-video-frame-i420.h"
 #include "gmp-video-frame-encoded.h"
 #include "gmp-video-codec.h"
 
 
-class GMPVideoEncoderCallback
+class GMPEncoderCallback
 {
 public:
-  virtual ~GMPVideoEncoderCallback() {}
+  virtual ~GMPEncoderCallback() {}
 
   virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
-                       GMPBufferType aBufferType,
-                       const uint8_t* aCodecSpecificInfo,
-                       uint32_t aCodecSpecificInfoLength) = 0;
+                       const GMPCodecSpecificInfo& aCodecSpecificInfo) = 0;
 };
 
 
@@ -69,16 +67,10 @@ public:
   
   
   
-  
-  
-  
-  
-  virtual GMPErr InitEncode(const GMPVideoCodec& aCodecSettings,
-                            const uint8_t* aCodecSpecific,
-                            uint32_t aCodecSpecificLength,
-                            GMPVideoEncoderCallback* aCallback,
-                            int32_t aNumberOfCores,
-                            uint32_t aMaxPayloadSize) = 0;
+  virtual GMPVideoErr InitEncode(const GMPVideoCodec& aCodecSettings,
+                                 GMPEncoderCallback* aCallback,
+                                 int32_t aNumberOfCores,
+                                 uint32_t aMaxPayloadSize) = 0;
 
   
   
@@ -87,15 +79,9 @@ public:
   
   
   
-  
-  
-  
-  
-  virtual GMPErr Encode(GMPVideoi420Frame* aInputFrame,
-                        const uint8_t* aCodecSpecificInfo,
-                        uint32_t aCodecSpecificInfoLength,
-                        const GMPVideoFrameType* aFrameTypes,
-                        uint32_t aFrameTypesLength) = 0;
+  virtual GMPVideoErr Encode(GMPVideoi420Frame* aInputFrame,
+                             const GMPCodecSpecificInfo& aCodecSpecificInfo,
+                             const std::vector<GMPVideoFrameType>& aFrameTypes) = 0;
 
   
   
@@ -103,19 +89,19 @@ public:
   
   
   
-  virtual GMPErr SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT) = 0;
+  virtual GMPVideoErr SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT) = 0;
 
   
   
   
   
-  virtual GMPErr SetRates(uint32_t aNewBitRate, uint32_t aFrameRate) = 0;
+  virtual GMPVideoErr SetRates(uint32_t aNewBitRate, uint32_t aFrameRate) = 0;
 
   
   
   
   
-  virtual GMPErr SetPeriodicKeyFrames(bool aEnable) = 0;
+  virtual GMPVideoErr SetPeriodicKeyFrames(bool aEnable) = 0;
 
   
   virtual void EncodingComplete() = 0;

@@ -34,7 +34,7 @@
 #ifndef GMP_VIDEO_PLANE_h_
 #define GMP_VIDEO_PLANE_h_
 
-#include "gmp-errors.h"
+#include "gmp-video-errors.h"
 #include <stdint.h>
 
 
@@ -52,18 +52,18 @@ public:
   
   
   
-  virtual GMPErr CreateEmptyPlane(int32_t aAllocatedSize,
-                                  int32_t aStride,
-                                  int32_t aPlaneSize) = 0;
+  virtual GMPVideoErr CreateEmptyPlane(int32_t aAllocatedSize,
+                                       int32_t aStride,
+                                       int32_t aPlaneSize) = 0;
 
   
   
-  virtual GMPErr Copy(const GMPPlane& aPlane) = 0;
+  virtual GMPVideoErr Copy(const GMPPlane& aPlane) = 0;
 
   
   
   
-  virtual GMPErr Copy(int32_t aSize, int32_t aStride, const uint8_t* aBuffer) = 0;
+  virtual GMPVideoErr Copy(int32_t aSize, int32_t aStride, const uint8_t* aBuffer) = 0;
 
   
   virtual void Swap(GMPPlane& aPlane) = 0;

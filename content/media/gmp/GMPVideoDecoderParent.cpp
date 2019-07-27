@@ -12,7 +12,6 @@
 #include "GMPMessageUtils.h"
 #include "nsAutoRef.h"
 #include "nsThreadUtils.h"
-#include "mozilla/gmp/GMPTypes.h"
 
 template <>
 class nsAutoRefTraits<GMPVideoEncodedFrame> : public nsPointerRefTraits<GMPVideoEncodedFrame>
@@ -43,44 +42,60 @@ GMPVideoDecoderParent::Host()
   return mVideoHost;
 }
 
-nsresult
+bool
+GMPVideoDecoderParent::MgrAllocShmem(size_t aSize,
+                                     ipc::Shmem::SharedMemory::SharedMemoryType aType,
+                                     ipc::Shmem* aMem)
+{
+  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
+
+  return AllocShmem(aSize, aType, aMem);
+}
+
+bool
+GMPVideoDecoderParent::MgrDeallocShmem(Shmem& aMem)
+{
+  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
+
+  return DeallocShmem(aMem);
+}
+
+GMPVideoErr
 GMPVideoDecoderParent::InitDecode(const GMPVideoCodec& aCodecSettings,
-                                  const nsTArray<uint8_t>& aCodecSpecific,
-                                  GMPVideoDecoderCallback* aCallback,
+                                  GMPDecoderCallback* aCallback,
                                   int32_t aCoreCount)
 {
   if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
   if (!aCallback) {
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
   mCallback = aCallback;
 
-  if (!SendInitDecode(aCodecSettings, aCodecSpecific, aCoreCount)) {
-    return NS_ERROR_FAILURE;
+  if (!SendInitDecode(aCodecSettings, aCoreCount)) {
+    return GMPVideoGenericErr;
   }
 
   
-  return NS_OK;
+  return GMPVideoNoErr;
 }
 
-nsresult
+GMPVideoErr
 GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame* aInputFrame,
                               bool aMissingFrames,
-                              GMPBufferType aBufferType,
-                              const nsTArray<uint8_t>& aCodecSpecificInfo,
+                              const GMPCodecSpecificInfo& aCodecSpecificInfo,
                               int64_t aRenderTimeMs)
 {
   nsAutoRef<GMPVideoEncodedFrame> autoDestroy(aInputFrame);
 
   if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
@@ -90,69 +105,60 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame* aInputFrame,
   GMPVideoEncodedFrameData frameData;
   inputFrameImpl->RelinquishFrameData(frameData);
 
-  
-  
-  
-  if (NumInUse(kGMPFrameData) > 3*GMPSharedMemManager::kGMPBufLimit ||
-      NumInUse(kGMPEncodedData) > GMPSharedMemManager::kGMPBufLimit) {
-    return NS_ERROR_FAILURE;
-  }
-
   if (!SendDecode(frameData,
                   aMissingFrames,
-                  aBufferType,
                   aCodecSpecificInfo,
                   aRenderTimeMs)) {
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
 
   
-  return NS_OK;
+  return GMPVideoNoErr;
 }
 
-nsresult
+GMPVideoErr
 GMPVideoDecoderParent::Reset()
 {
   if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
   if (!SendReset()) {
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
 
   
-  return NS_OK;
+  return GMPVideoNoErr;
 }
 
-nsresult
+GMPVideoErr
 GMPVideoDecoderParent::Drain()
 {
   if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
   if (!SendDrain()) {
-    return NS_ERROR_FAILURE;
+    return GMPVideoGenericErr;
   }
 
   
-  return NS_OK;
+  return GMPVideoNoErr;
 }
 
 
-nsresult
+void
 GMPVideoDecoderParent::DecodingComplete()
 {
   if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
-    return NS_ERROR_FAILURE;
+    return;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
@@ -164,8 +170,6 @@ GMPVideoDecoderParent::DecodingComplete()
   mVideoHost.DoneWithAPI();
 
   unused << SendDecodingComplete();
-
-  return NS_OK;
 }
 
 
@@ -180,12 +184,6 @@ GMPVideoDecoderParent::ActorDestroy(ActorDestroyReason aWhy)
   mCanSendMessages = false;
   mCallback = nullptr;
   mVideoHost.ActorDestroyed();
-}
-
-void
-GMPVideoDecoderParent::CheckThread()
-{
-  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 }
 
 bool
@@ -239,59 +237,6 @@ GMPVideoDecoderParent::RecvInputDataExhausted()
   
   mCallback->InputDataExhausted();
 
-  return true;
-}
-
-bool
-GMPVideoDecoderParent::RecvDrainComplete()
-{
-  if (!mCallback) {
-    return false;
-  }
-
-  
-  mCallback->DrainComplete();
-
-  return true;
-}
-
-bool
-GMPVideoDecoderParent::RecvResetComplete()
-{
-  if (!mCallback) {
-    return false;
-  }
-
-  
-  mCallback->ResetComplete();
-
-  return true;
-}
-
-bool
-GMPVideoDecoderParent::RecvParentShmemForPool(Shmem& aEncodedBuffer)
-{
-  if (aEncodedBuffer.IsWritable()) {
-    mVideoHost.SharedMemMgr()->MgrDeallocShmem(GMPSharedMemManager::kGMPEncodedData,
-                                               aEncodedBuffer);
-  }
-  return true;
-}
-
-bool
-GMPVideoDecoderParent::AnswerNeedShmem(const uint32_t& aFrameBufferSize,
-                                       Shmem* aMem)
-{
-  ipc::Shmem mem;
-
-  if (!mVideoHost.SharedMemMgr()->MgrAllocShmem(GMPSharedMemManager::kGMPFrameData,
-                                                aFrameBufferSize,
-                                                ipc::SharedMemory::TYPE_BASIC, &mem))
-  {
-    return false;
-  }
-  *aMem = mem;
-  mem = ipc::Shmem();
   return true;
 }
 
