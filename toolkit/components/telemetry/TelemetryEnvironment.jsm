@@ -17,10 +17,7 @@ Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/PromiseUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/TelemetryUtils.jsm", this);
 Cu.import("resource://gre/modules/ObjectUtils.jsm");
-
-const Utils = TelemetryUtils;
 
 XPCOMUtils.defineLazyModuleGetter(this, "ctypes",
                                   "resource://gre/modules/ctypes.jsm");
@@ -154,9 +151,21 @@ const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 const PREF_UPDATE_ENABLED = "app.update.enabled";
 const PREF_UPDATE_AUTODOWNLOAD = "app.update.auto";
 
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
 const EXPERIMENTS_CHANGED_TOPIC = "experiments-changed";
 const SEARCH_ENGINE_MODIFIED_TOPIC = "browser-search-engine-modified";
 const SEARCH_SERVICE_TOPIC = "browser-search-service";
+
+
+
+
+
+
+
+function truncateToDays(aMsec) {
+  return Math.floor(aMsec / MILLISECONDS_PER_DAY);
+}
 
 
 
@@ -493,8 +502,8 @@ EnvironmentAddonBuilder.prototype = {
         type: addon.type,
         foreignInstall: addon.foreignInstall,
         hasBinaryComponents: addon.hasBinaryComponents,
-        installDay: Utils.millisecondsToDays(installDate.getTime()),
-        updateDay: Utils.millisecondsToDays(updateDate.getTime()),
+        installDay: truncateToDays(installDate.getTime()),
+        updateDay: truncateToDays(updateDate.getTime()),
       };
     }
 
@@ -528,8 +537,8 @@ EnvironmentAddonBuilder.prototype = {
         scope: theme.scope,
         foreignInstall: theme.foreignInstall,
         hasBinaryComponents: theme.hasBinaryComponents,
-        installDay: Utils.millisecondsToDays(installDate.getTime()),
-        updateDay: Utils.millisecondsToDays(updateDate.getTime()),
+        installDay: truncateToDays(installDate.getTime()),
+        updateDay: truncateToDays(updateDate.getTime()),
       };
     }
 
@@ -562,7 +571,7 @@ EnvironmentAddonBuilder.prototype = {
         disabled: tag.disabled,
         clicktoplay: tag.clicktoplay,
         mimeTypes: tag.getMimeTypes({}),
-        updateDay: Utils.millisecondsToDays(updateDate.getTime()),
+        updateDay: truncateToDays(updateDate.getTime()),
       });
     }
 
@@ -927,7 +936,7 @@ EnvironmentCache.prototype = {
     return true;
 #else
     if (!("@mozilla.org/browser/shell-service;1" in Cc)) {
-      this._log.error("_isDefaultBrowser - Could not obtain shell service");
+      this._log.info("_isDefaultBrowser - Could not obtain browser shell service");
       return null;
     }
 
@@ -940,14 +949,12 @@ EnvironmentCache.prototype = {
       return null;
     }
 
-    if (shellService) {
-      try {
-        
-        return shellService.isDefaultBrowser(false, true) ? true : false;
-      } catch (ex) {
-        this._log.error("_isDefaultBrowser - Could not determine if default browser", ex);
-        return null;
-      }
+    try {
+      
+      return shellService.isDefaultBrowser(false, true) ? true : false;
+    } catch (ex) {
+      this._log.error("_isDefaultBrowser - Could not determine if default browser", ex);
+      return null;
     }
 
     return null;
@@ -960,7 +967,7 @@ EnvironmentCache.prototype = {
   _updateSettings: function () {
     let updateChannel = null;
     try {
-      updateChannel = UpdateChannel.get(false);
+      updateChannel = UpdateChannel.get();
     } catch (e) {}
 
     this._currentEnvironment.settings = {
@@ -978,8 +985,6 @@ EnvironmentCache.prototype = {
       },
       userPrefs: this._getPrefData(),
     };
-
-    this._updateSearchEngine();
   },
 
   
@@ -994,10 +999,9 @@ EnvironmentCache.prototype = {
     let resetDate = yield profileAccessor.reset;
 
     this._currentEnvironment.profile.creationDate =
-      Utils.millisecondsToDays(creationDate);
+      truncateToDays(creationDate);
     if (resetDate) {
-      this._currentEnvironment.profile.resetDate =
-        Utils.millisecondsToDays(resetDate);
+      this._currentEnvironment.profile.resetDate = truncateToDays(resetDate);
     }
   }),
 
