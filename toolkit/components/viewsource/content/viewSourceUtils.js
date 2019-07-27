@@ -19,25 +19,60 @@ var gViewSourceUtils = {
   mnsIWebPageDescriptor: Components.interfaces.nsIWebPageDescriptor,
 
   
-  viewSource: function(aURL, aPageDescriptor, aDocument, aLineNumber)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  viewSource: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
   {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                           .getService(Components.interfaces.nsIPrefBranch);
-    if (prefs.getBoolPref("view_source.editor.external"))
-      this.openInExternalEditor(aURL, aPageDescriptor, aDocument, aLineNumber);
-    else
-      this.openInInternalViewer(aURL, aPageDescriptor, aDocument, aLineNumber);
+    if (prefs.getBoolPref("view_source.editor.external")) {
+      this.openInExternalEditor(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber);
+    } else {
+      this._openInInternalViewer(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber);
+    }
   },
 
   
-  openInInternalViewer: function(aURL, aPageDescriptor, aDocument, aLineNumber)
+  _openInInternalViewer: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
   {
     
     var charset = null;
     var isForcedCharset = false;
     if (aDocument) {
+      if (Components.utils.isCrossProcessWrapper(aDocument)) {
+        throw new Error("View Source cannot accept a CPOW as a document.");
+      }
+
       charset = "charset=" + aDocument.characterSet;
-      try { 
+      try {
         isForcedCharset =
           aDocument.defaultView
                    .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
@@ -49,7 +84,7 @@ var gViewSourceUtils = {
     openDialog("chrome://global/content/viewSource.xul",
                "_blank",
                "all,dialog=no",
-               aURL, charset, aPageDescriptor, aLineNumber, isForcedCharset);
+               aArgsOrURL, charset, aPageDescriptor, aLineNumber, isForcedCharset);
   },
 
   buildEditorArgs: function(aPath, aLineNumber) {
