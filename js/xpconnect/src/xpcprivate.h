@@ -243,10 +243,10 @@ static inline bool IS_WN_REFLECTOR(JSObject* obj)
 
 
 
-class nsXPConnect : public nsIXPConnect,
-                    public nsIThreadObserver,
-                    public nsSupportsWeakReference,
-                    public nsIJSRuntimeService
+class nsXPConnect final : public nsIXPConnect,
+                          public nsIThreadObserver,
+                          public nsSupportsWeakReference,
+                          public nsIJSRuntimeService
 {
 public:
     
@@ -2010,7 +2010,7 @@ private:
 
 
 
-class XPCWrappedNative : public nsIXPConnectWrappedNative
+class XPCWrappedNative final : public nsIXPConnectWrappedNative
 {
 public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -2316,7 +2316,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPCWrappedJSClass,
 
 
 
-class nsXPCWrappedJSClass : public nsIXPCWrappedJSClass
+class nsXPCWrappedJSClass final : public nsIXPCWrappedJSClass
 {
     
     NS_DECL_ISUPPORTS

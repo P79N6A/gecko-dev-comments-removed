@@ -144,6 +144,9 @@ var ignoreFunctions = {
     "void* std::_Locale_impl::~_Locale_impl(int32)" : true,
 
     
+    "uint32 nsXPConnect::Release()" : true,
+
+    
     "NS_LogInit": true,
     "NS_LogTerm": true,
     "NS_LogAddRef": true,
