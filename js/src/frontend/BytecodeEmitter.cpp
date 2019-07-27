@@ -3398,27 +3398,47 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
         if (!EmitDestructuringLHS(cx, bce, subpattern, emitOption))
             return false;
 
-        if (emitOption == PushInitialValues) {
-            
+        
+        
+        
+        
+        if (emitOption == InitializeVars)                              
+            continue;
 
+        MOZ_ASSERT(emitOption == PushInitialValues);
 
-
-
-
-
-
-
-
-            JS_ASSERT((bce->stackDepth - bce->stackDepth) >= -1);
-            uint32_t pickDistance = (uint32_t)((bce->stackDepth + 1) - depthBefore);
-            if (pickDistance > 0) {
-                if (pickDistance > UINT8_MAX) {
-                    bce->reportError(subpattern, JSMSG_TOO_MANY_LOCALS);
-                    return false;
-                }
-                if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)pickDistance) < 0)
-                    return false;
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        JS_ASSERT((bce->stackDepth - bce->stackDepth) >= -1);
+        uint32_t pickDistance = (uint32_t)((bce->stackDepth + 1) - depthBefore);
+        if (pickDistance > 0) {
+            if (pickDistance > UINT8_MAX) {
+                bce->reportError(subpattern, JSMSG_TOO_MANY_LOCALS);
+                return false;
             }
+            if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)pickDistance) < 0)
+                return false;
         }
     }
 
