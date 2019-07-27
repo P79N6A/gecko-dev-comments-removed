@@ -47,6 +47,8 @@ public:
 
   UniquePtr<EncryptionInfo> GetCrypto() override;
 
+  bool ShouldComputeStartTime() const override { return false; }
+
   
   void AttachSourceBuffer(TrackBuffersManager* aSourceBuffer);
   void DetachSourceBuffer(TrackBuffersManager* aSourceBuffer);

@@ -99,6 +99,11 @@ public:
   
   virtual void NotifyDataRemoved() { }
 
+  
+  
+  
+  virtual bool ShouldComputeStartTime() const { return true; }
+
 protected:
   virtual ~MediaDataDemuxer()
   {
