@@ -18,6 +18,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/MediaKeysBinding.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozIGeckoMediaPluginService.h"
 
 namespace mozilla {
 
@@ -26,6 +27,7 @@ class CDMProxy;
 namespace dom {
 
 class MediaKeySession;
+class HTMLMediaElement;
 
 typedef nsRefPtrHashtable<nsStringHashKey, MediaKeySession> KeySessionHashMap;
 typedef nsRefPtrHashtable<nsUint32HashKey, dom::Promise> PromiseHashMap;
@@ -55,6 +57,8 @@ public:
 
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
+  nsresult Bind(HTMLMediaElement* aElement);
+
   
   void GetKeySystem(nsString& retval) const;
 
@@ -82,7 +86,7 @@ public:
   already_AddRefed<MediaKeySession> GetSession(const nsAString& aSessionId);
 
   
-  void OnCDMCreated(PromiseId aId);
+  void OnCDMCreated(PromiseId aId, const nsACString& aNodeId);
   
   
   void OnSessionPending(PromiseId aId, MediaKeySession* aSession);
@@ -107,11 +111,21 @@ public:
   
   void ResolvePromise(PromiseId aId);
 
-  const nsCString& GetNodeId();
+  const nsCString& GetNodeId() const;
 
   void Shutdown();
 
+  
+  bool IsBoundToMediaElement() const;
+
+  
+  
+  nsresult CheckPrincipals();
+
 private:
+
+  bool IsInPrivateBrowsing();
+  already_AddRefed<Promise> Init(ErrorResult& aRv);
 
   
   already_AddRefed<Promise> RetrievePromise(PromiseId aId);
@@ -120,6 +134,8 @@ private:
   
   nsRefPtr<CDMProxy> mProxy;
 
+  nsRefPtr<HTMLMediaElement> mElement;
+
   nsCOMPtr<nsPIDOMWindow> mParent;
   nsString mKeySystem;
   nsCString mNodeId;
@@ -127,6 +143,10 @@ private:
   PromiseHashMap mPromises;
   PendingKeySessionsHashMap mPendingSessions;
   PromiseId mCreatePromiseId;
+
+  nsRefPtr<nsIPrincipal> mPrincipal;
+  nsRefPtr<nsIPrincipal> mTopLevelPrincipal;
+
 };
 
 } 
