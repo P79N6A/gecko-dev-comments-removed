@@ -714,12 +714,6 @@ protected:
 
   
   
-  
-  
-  bool mTouchActionPropertyEnabled;
-
-  
-  
   PanZoomState mState;
 
 private:

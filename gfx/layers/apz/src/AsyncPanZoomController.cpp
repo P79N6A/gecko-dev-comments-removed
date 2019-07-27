@@ -714,7 +714,6 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
      mRefPtrMonitor("RefPtrMonitor"),
      mSharingFrameMetricsAcrossProcesses(false),
      mMonitor("AsyncPanZoomController"),
-     mTouchActionPropertyEnabled(gfxPrefs::TouchActionEnabled()),
      mState(NOTHING),
      mContentResponseTimeoutTask(nullptr),
      mX(MOZ_THIS_IN_INITIALIZER_LIST()),
@@ -1011,7 +1010,7 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
         return nsEventStatus_eIgnore;
       }
 
-      if (mTouchActionPropertyEnabled &&
+      if (gfxPrefs::TouchActionEnabled() &&
           (GetTouchBehavior(0) & AllowedTouchBehavior::VERTICAL_PAN) &&
           (GetTouchBehavior(0) & AllowedTouchBehavior::HORIZONTAL_PAN)) {
         
@@ -1579,7 +1578,7 @@ nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent
   double angle = atan2(dy, dx); 
   angle = fabs(angle); 
 
-  if (mTouchActionPropertyEnabled) {
+  if (gfxPrefs::TouchActionEnabled()) {
     HandlePanningWithTouchAction(angle, GetTouchBehavior(0));
   } else {
     if (GetAxisLockMode() == FREE) {
@@ -2488,7 +2487,7 @@ void AsyncPanZoomController::CheckContentResponse() {
     canProceedToTouchState &= mTouchBlockState.mPreventDefaultSet;
   }
 
-  if (mTouchActionPropertyEnabled) {
+  if (gfxPrefs::TouchActionEnabled()) {
     canProceedToTouchState &= mTouchBlockState.mAllowedTouchBehaviorSet;
   }
 
@@ -2527,7 +2526,7 @@ void AsyncPanZoomController::CheckContentResponse() {
 }
 
 bool AsyncPanZoomController::TouchActionAllowPinchZoom() {
-  if (!mTouchActionPropertyEnabled) {
+  if (!gfxPrefs::TouchActionEnabled()) {
     return true;
   }
   
@@ -2541,7 +2540,7 @@ bool AsyncPanZoomController::TouchActionAllowPinchZoom() {
 }
 
 bool AsyncPanZoomController::TouchActionAllowDoubleTapZoom() {
-  if (!mTouchActionPropertyEnabled) {
+  if (!gfxPrefs::TouchActionEnabled()) {
     return true;
   }
   for (size_t i = 0; i < mTouchBlockState.mAllowedTouchBehaviors.Length(); i++) {
