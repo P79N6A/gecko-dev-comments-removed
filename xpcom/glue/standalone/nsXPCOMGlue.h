@@ -24,7 +24,7 @@ extern "C" NS_HIDDEN_(void) XPCOMGlueEnablePreload();
 
 
 
-extern "C" NS_HIDDEN_(nsresult) XPCOMGlueStartup(const char* xpcomFile);
+extern "C" NS_HIDDEN_(nsresult) XPCOMGlueStartup(const char* aXPCOMFile);
 
 typedef void (*NSFuncPtr)();
 
@@ -43,7 +43,7 @@ struct nsDynamicFunctionLoad
 
 
 extern "C" NS_HIDDEN_(nsresult)
-XPCOMGlueLoadXULFunctions(const nsDynamicFunctionLoad* symbols);
+XPCOMGlueLoadXULFunctions(const nsDynamicFunctionLoad* aSymbols);
 
 #endif 
 #endif 

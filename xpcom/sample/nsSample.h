@@ -35,21 +35,19 @@
 class nsSampleImpl MOZ_FINAL : public nsISample
 {
 public:
-    nsSampleImpl();
+  nsSampleImpl();
 
-    
-
-
+  
 
 
 
 
-    
-    NS_DECL_ISUPPORTS
-
-    
 
 
+  
+  NS_DECL_ISUPPORTS
+
+  
 
 
 
@@ -57,11 +55,11 @@ public:
 
 
 
-    NS_DECL_NSISAMPLE
-
-    
 
 
+  NS_DECL_NSISAMPLE
+
+  
 
 
 
@@ -75,29 +73,31 @@ public:
 
 
 
-    
-    
-
-    
 
 
+  
+  
 
-
-    
-
-    
+  
 
 
 
 
+  
+
+  
 
 
-    
+
+
+
+
+  
 
 private:
-    ~nsSampleImpl();
+  ~nsSampleImpl();
 
-    char* mValue;
+  char* mValue;
 };
 
 #endif
