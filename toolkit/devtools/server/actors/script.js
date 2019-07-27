@@ -1542,7 +1542,7 @@ ThreadActor.prototype = {
     
     
     
-    if (this.global && !this.global.toString().contains("Sandbox")) {
+    if (this.global && !this.global.toString().includes("Sandbox")) {
       let els = Cc["@mozilla.org/eventlistenerservice;1"]
                 .getService(Ci.nsIEventListenerService);
       els.removeListenerForAllEvents(this.global, this._allEventsListener, true);
