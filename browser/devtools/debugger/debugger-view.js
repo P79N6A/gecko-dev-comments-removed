@@ -515,15 +515,17 @@ let DebuggerView = {
 
 
 
-  get instrumentsPaneHidden()
-    this._instrumentsPane.hasAttribute("pane-collapsed"),
+  get instrumentsPaneHidden() {
+    return this._instrumentsPane.hasAttribute("pane-collapsed");
+  },
 
   
 
 
 
-  get instrumentsPaneTab()
-    this._instrumentsPane.selectedTab.id,
+  get instrumentsPaneTab() {
+    return this._instrumentsPane.selectedTab.id;
+  },
 
   
 
@@ -754,9 +756,10 @@ ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  get hidden()
-    this._panel.state == "closed" ||
-    this._panel.state == "hiding",
+  get hidden() {
+    return this._panel.state == "closed" ||
+           this._panel.state == "hiding";
+  },
 
   
 
