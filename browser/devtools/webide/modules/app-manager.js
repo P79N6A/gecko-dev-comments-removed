@@ -510,6 +510,12 @@ let AppManager = exports.AppManager = {
                                             project.manifest);
       }
 
+      
+      
+      if (project.manifest.role && project.manifest.role === "addon") {
+        return;
+      }
+
       let {app} = response;
       if (!app.running) {
         let deferred = promise.defer();

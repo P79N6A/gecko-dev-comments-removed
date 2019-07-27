@@ -190,6 +190,10 @@ AppValidator.prototype._getOriginURL = function () {
 };
 
 AppValidator.prototype.validateLaunchPath = function (manifest) {
+  
+  if (manifest.role && manifest.role === "addon") {
+    return promise.resolve();
+  }
   let deferred = promise.defer();
   
   if (manifest.launch_path && manifest.launch_path[0] !== "/") {
