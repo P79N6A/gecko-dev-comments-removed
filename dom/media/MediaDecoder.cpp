@@ -499,8 +499,9 @@ void MediaDecoder::Shutdown()
 
   ChangeState(PLAY_STATE_SHUTDOWN);
 
-  
-  NS_ASSERTION(!mProgressTimer, "Progress timer should've been stopped.");
+  if (mProgressTimer) {
+    StopProgress();
+  }
   mOwner = nullptr;
 
   MediaShutdownManager::Instance().Unregister(this);

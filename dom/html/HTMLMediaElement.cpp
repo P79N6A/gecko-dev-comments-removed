@@ -606,11 +606,6 @@ void HTMLMediaElement::ShutdownDecoder()
 {
   RemoveMediaElementFromURITable();
   NS_ASSERTION(mDecoder, "Must have decoder to shut down");
-  
-  
-  if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING) {
-    mDecoder->StopProgress();
-  }
   mDecoder->Shutdown();
   mDecoder = nullptr;
 }
@@ -4039,7 +4034,7 @@ HTMLMediaElement::SetMediaKeys(mozilla::dom::MediaKeys* aMediaKeys,
     mMediaKeys->Shutdown();
     mMediaKeys = nullptr;
   }
-  
+
   mMediaKeys = aMediaKeys;
   if (mMediaKeys) {
     if (NS_FAILED(mMediaKeys->Bind(this))) {
