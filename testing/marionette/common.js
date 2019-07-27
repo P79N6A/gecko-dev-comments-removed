@@ -24,10 +24,6 @@
 
 
 
-
-
-
-
 this.createStackMessage = function createStackMessage(error, fnName, pythonFile,
   pythonLine, script) {
   let python_stack = fnName + " @" + pythonFile;
