@@ -233,9 +233,8 @@ this.MobileIdentityManager = {
     }
 
     return this._iccInfo;
-#else
-    return null;
 #endif
+    return null;
   },
 
   get iccIds() {
@@ -254,9 +253,8 @@ this.MobileIdentityManager = {
     }
 
     return this._iccIds;
-#else
-    return null;
 #endif
+    return null;
   },
 
   get credStore() {
@@ -786,7 +784,7 @@ this.MobileIdentityManager = {
         if (promptResult.serviceId) {
           let creds = this.iccInfo[promptResult.serviceId].credentials;
           if (creds) {
-            this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.origin,
+            this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.originNoSuffix,
                                creds.sessionToken, this.iccIds);
             return creds;
           }
@@ -799,13 +797,13 @@ this.MobileIdentityManager = {
         .then(
           (creds) => {
             if (creds) {
-              this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.origin,
+              this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.originNoSuffix,
                                  creds.sessionToken, this.iccIds);
               return creds;
             }
             
             
-            return this.verificationFlow(promptResult, aPrincipal.origin);
+            return this.verificationFlow(promptResult, aPrincipal.originNoSuffix);
           }
         );
       }
@@ -918,11 +916,11 @@ this.MobileIdentityManager = {
     
     
     
-    this.credStore.getByOrigin(aPrincipal.origin)
+    this.credStore.getByOrigin(aPrincipal.originNoSuffix)
     .then(
       (creds) => {
         log.debug("creds ${creds} - ${origin}", { creds: creds,
-                                                  origin: aPrincipal.origin });
+                                                  origin: aPrincipal.originNoSuffix });
         if (!creds || !creds.sessionToken) {
           log.debug("No credentials");
           return;
@@ -937,7 +935,7 @@ this.MobileIdentityManager = {
           .then(
             (newCreds) => {
               return this.checkNewCredentials(creds, newCreds,
-                                              principal.origin);
+                                              principal.originNoSuffix);
             }
           );
         }
@@ -981,7 +979,7 @@ this.MobileIdentityManager = {
         .then(
           (newCreds) => {
             return this.checkNewCredentials(creds, newCreds,
-                                            principal.origin);
+                                            principal.originNoSuffix);
           }
         );
       }
@@ -1011,7 +1009,7 @@ this.MobileIdentityManager = {
     .then(
       (creds) => {
         if (creds) {
-          return this.generateAssertion(creds, principal.origin);
+          return this.generateAssertion(creds, principal.originNoSuffix);
         }
         return Promise.reject(ERROR_INTERNAL_CANNOT_GENERATE_ASSERTION);
       }

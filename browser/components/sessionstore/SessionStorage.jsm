@@ -74,7 +74,7 @@ let SessionStorageInternal = {
 
       
       
-      let origin = principal.jarPrefix + principal.origin;
+      let origin = principal.jarPrefix + principal.originNoSuffix;
       if (visitedOrigins.has(origin)) {
         
         return;

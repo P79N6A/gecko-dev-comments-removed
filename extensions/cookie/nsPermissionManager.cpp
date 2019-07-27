@@ -156,7 +156,7 @@ GetHostForPrincipal(nsIPrincipal* aPrincipal, nsACString& aHost)
   }
 
   
-  rv = aPrincipal->GetOrigin(aHost);
+  rv = aPrincipal->GetOriginNoSuffix(aHost);
   if (NS_SUCCEEDED(rv) && !aHost.IsEmpty()) {
     return NS_OK;
   }
