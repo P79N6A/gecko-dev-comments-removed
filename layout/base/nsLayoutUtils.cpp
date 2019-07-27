@@ -7596,6 +7596,27 @@ nsLayoutUtils::GetContentViewerSize(nsPresContext* aPresContext,
   return true;
 }
 
+static bool
+DeflateScrollbarAreaFromCompositionBoundsFor(nsIFrame* aScrollFrame)
+{
+  if (!aScrollFrame || !aScrollFrame->GetScrollTargetFrame()) {
+    return false;
+  }
+  nsPresContext* presContext = aScrollFrame->PresContext();
+  nsIPresShell* presShell = presContext->GetPresShell();
+  if (!presShell) {
+    return false;
+  }
+  bool isRootScrollFrame = aScrollFrame == presShell->GetRootScrollFrame();
+  bool isRootContentDocRootScrollFrame = isRootScrollFrame
+                                      && presContext->IsRootContentDocument();
+  
+  
+  
+  return isRootContentDocRootScrollFrame &&
+         !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars);
+}
+
  nsSize
 nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame, bool aSubtractScrollbars)
 {
@@ -7652,13 +7673,14 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame, bool aSubtract
           size = LayoutDevicePixel::ToAppUnits(contentSize, auPerDevPixel);
         }
       }
-
-      if (aSubtractScrollbars && scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
-        nsMargin margins = scrollableFrame->GetActualScrollbarSizes();
-        size.width -= margins.LeftRight();
-        size.height -= margins.TopBottom();
-      }
     }
+  }
+
+  if (aSubtractScrollbars && DeflateScrollbarAreaFromCompositionBoundsFor(aFrame)) {
+    MOZ_ASSERT(scrollableFrame);
+    nsMargin margins = scrollableFrame->GetActualScrollbarSizes();
+    size.width -= margins.LeftRight();
+    size.height -= margins.TopBottom();
   }
 
   return size;
@@ -7734,11 +7756,9 @@ nsLayoutUtils::CalculateRootCompositionSize(nsIFrame* aFrame,
 
   
   nsIFrame* rootRootScrollFrame = rootPresShell ? rootPresShell->GetRootScrollFrame() : nullptr;
-  nsIScrollableFrame* rootScrollableFrame = nullptr;
-  if (rootRootScrollFrame) {
-    rootScrollableFrame = rootRootScrollFrame->GetScrollTargetFrame();
-  }
-  if (rootScrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+  if (DeflateScrollbarAreaFromCompositionBoundsFor(rootRootScrollFrame)) {
+    nsIScrollableFrame* rootScrollableFrame = rootRootScrollFrame->GetScrollTargetFrame();
+    MOZ_ASSERT(rootScrollableFrame);
     CSSMargin margins = CSSMargin::FromAppUnits(rootScrollableFrame->GetActualScrollbarSizes());
     
     rootCompositionSize.width -= margins.LeftRight();
@@ -8297,17 +8317,15 @@ nsLayoutUtils::ComputeFrameMetrics(nsIFrame* aForFrame,
           metrics.mCompositionBounds.SizeTo(contentSize * scale);
         }
       }
-
-      
-      
-      
-      if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
-        nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
-        
-        ParentLayerMargin boundMargins = CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f);
-        metrics.mCompositionBounds.Deflate(boundMargins);
-      }
     }
+  }
+
+  if (DeflateScrollbarAreaFromCompositionBoundsFor(aScrollFrame)) {
+    MOZ_ASSERT(scrollableFrame);
+    nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
+    
+    ParentLayerMargin boundMargins = CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f);
+    metrics.mCompositionBounds.Deflate(boundMargins);
   }
 
   metrics.SetRootCompositionSize(
