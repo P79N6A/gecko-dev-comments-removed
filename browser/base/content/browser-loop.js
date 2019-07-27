@@ -25,47 +25,52 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
 
 
+
     openCallPanel: function(event, tabId = null) {
-      let callback = iframe => {
-        
-        function showTab() {
-          if (!tabId) {
+      return new Promise((resolve) => {
+        let callback = iframe => {
+          
+          function showTab() {
+            if (!tabId) {
+              resolve();
+              return;
+            }
+
+            let win = iframe.contentWindow;
+            let ev = new win.CustomEvent("UIAction", Cu.cloneInto({
+              detail: {
+                action: "selectTab",
+                tab: tabId
+              }
+            }, win));
+            win.dispatchEvent(ev);
+            resolve();
+          }
+
+          
+          
+          if (("contentWindow" in iframe) && iframe.contentWindow.document.readyState == "complete") {
+            showTab();
             return;
           }
 
-          let win = iframe.contentWindow;
-          let ev = new win.CustomEvent("UIAction", Cu.cloneInto({
-            detail: {
-              action: "selectTab",
-              tab: tabId
-            }
-          }, win));
-          win.dispatchEvent(ev);
-        }
+          iframe.addEventListener("DOMContentLoaded", function documentDOMLoaded() {
+            iframe.removeEventListener("DOMContentLoaded", documentDOMLoaded, true);
+            injectLoopAPI(iframe.contentWindow);
+            iframe.contentWindow.addEventListener("loopPanelInitialized", function loopPanelInitialized() {
+              iframe.contentWindow.removeEventListener("loopPanelInitialized",
+                                                       loopPanelInitialized);
+              showTab();
+            });
+          }, true);
+        };
 
         
-        
-        if (("contentWindow" in iframe) && iframe.contentWindow.document.readyState == "complete") {
-          showTab();
-          return;
-        }
+        Services.obs.notifyObservers(null, "loop-status-changed", null);
 
-        iframe.addEventListener("DOMContentLoaded", function documentDOMLoaded() {
-          iframe.removeEventListener("DOMContentLoaded", documentDOMLoaded, true);
-          injectLoopAPI(iframe.contentWindow);
-          iframe.contentWindow.addEventListener("loopPanelInitialized", function loopPanelInitialized() {
-            iframe.contentWindow.removeEventListener("loopPanelInitialized",
-              loopPanelInitialized);
-            showTab();
-          });
-        }, true);
-      };
-
-      
-      Services.obs.notifyObservers(null, "loop-status-changed", null);
-
-      PanelFrame.showPopup(window, event ? event.target : this.toolbarButton.node,
-                           "loop", null, "about:looppanel", null, callback);
+        PanelFrame.showPopup(window, event ? event.target : this.toolbarButton.node,
+                             "loop", null, "about:looppanel", null, callback);
+      });
     },
 
     
