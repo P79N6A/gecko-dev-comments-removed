@@ -279,9 +279,9 @@ public:
 
 
 
-  bool MeasureCharClippedText(nscoord aLeftEdge, nscoord aRightEdge,
-                              nscoord* aSnappedLeftEdge,
-                              nscoord* aSnappedRightEdge);
+  bool MeasureCharClippedText(nscoord aVisIStartEdge, nscoord aVisIEndEdge,
+                              nscoord* aSnappedStartEdge,
+                              nscoord* aSnappedEndEdge);
   
 
 
@@ -289,10 +289,10 @@ public:
 
 
   bool MeasureCharClippedText(PropertyProvider& aProvider,
-                              nscoord aLeftEdge, nscoord aRightEdge,
+                              nscoord aVisIStartEdge, nscoord aVisIEndEdge,
                               uint32_t* aStartOffset, uint32_t* aMaxLength,
-                              nscoord* aSnappedLeftEdge,
-                              nscoord* aSnappedRightEdge);
+                              nscoord* aSnappedStartEdge,
+                              nscoord* aSnappedEndEdge);
 
   
 

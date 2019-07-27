@@ -3605,10 +3605,11 @@ private:
 
 
 
+
 class nsCharClipDisplayItem : public nsDisplayItem {
 public:
   nsCharClipDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-    : nsDisplayItem(aBuilder, aFrame), mLeftEdge(0), mRightEdge(0) {}
+    : nsDisplayItem(aBuilder, aFrame), mVisIStartEdge(0), mVisIEndEdge(0) {}
 
   explicit nsCharClipDisplayItem(nsIFrame* aFrame)
     : nsDisplayItem(aFrame) {}
@@ -3621,22 +3622,25 @@ public:
 
   struct ClipEdges {
     ClipEdges(const nsDisplayItem& aItem,
-              nscoord aLeftEdge, nscoord aRightEdge) {
+              nscoord aVisIStartEdge, nscoord aVisIEndEdge) {
       nsRect r = aItem.Frame()->GetScrollableOverflowRect() +
                  aItem.ToReferenceFrame();
-      mX = aLeftEdge > 0 ? r.x + aLeftEdge : nscoord_MIN;
-      mXMost = aRightEdge > 0 ? std::max(r.XMost() - aRightEdge, mX) : nscoord_MAX;
+      mVisIStart = aVisIStartEdge > 0 ? r.x + aVisIStartEdge : nscoord_MIN;
+      mVisIEnd = aVisIEndEdge > 0
+                 ? std::max(r.XMost() - aVisIEndEdge, mVisIStart) : nscoord_MAX;
     }
-    void Intersect(nscoord* aX, nscoord* aWidth) const {
-      nscoord xmost1 = *aX + *aWidth;
-      *aX = std::max(*aX, mX);
-      *aWidth = std::max(std::min(xmost1, mXMost) - *aX, 0);
+    void Intersect(nscoord* aVisIStart, nscoord* aVisISize) const {
+      nscoord end = *aVisIStart + *aVisISize;
+      *aVisIStart = std::max(*aVisIStart, mVisIStart);
+      *aVisISize = std::max(std::min(end, mVisIEnd) - *aVisIStart, 0);
     }
-    nscoord mX;
-    nscoord mXMost;
+    nscoord mVisIStart;
+    nscoord mVisIEnd;
   };
 
-  ClipEdges Edges() const { return ClipEdges(*this, mLeftEdge, mRightEdge); }
+  ClipEdges Edges() const {
+    return ClipEdges(*this, mVisIStartEdge, mVisIEndEdge);
+  }
 
   static nsCharClipDisplayItem* CheckCast(nsDisplayItem* aItem) {
     nsDisplayItem::Type t = aItem->GetType();
@@ -3646,8 +3650,11 @@ public:
       ? static_cast<nsCharClipDisplayItem*>(aItem) : nullptr;
   }
 
-  nscoord mLeftEdge;  
-  nscoord mRightEdge; 
+  
+  
+  
+  nscoord mVisIStartEdge;
+  nscoord mVisIEndEdge;
 };
 
 
