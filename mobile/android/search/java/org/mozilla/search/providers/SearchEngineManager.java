@@ -34,6 +34,8 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Locale;
 
 public class SearchEngineManager implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -41,6 +43,9 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
     
     private static final String PREF_GECKO_DEFAULT_ENGINE = "browser.search.defaultenginename";
+
+    
+    private static final String PREF_GECKO_DEFAULT_LOCALE = "distribution.searchplugins.defaultLocale";
 
     
     private static final String PREF_DEFAULT_ENGINE_KEY = "search.engines.defaultname";
@@ -64,6 +69,10 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
     
     
     private String fallbackLocale;
+
+    
+    
+    private String distributionLocale;
 
     public static interface SearchEngineCallback {
         public void execute(SearchEngine engine);
@@ -238,6 +247,15 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
         try {
             final JSONObject all = new JSONObject(FileUtils.getFileContents(prefFile));
+
+            
+            if (all.has("Preferences")) {
+                final JSONObject prefs = all.getJSONObject("Preferences");
+                if (prefs.has(PREF_GECKO_DEFAULT_LOCALE)) {
+                    Log.d(LOG_TAG, "Found default searchplugin locale in distribution Preferences.");
+                    distributionLocale = prefs.getString(PREF_GECKO_DEFAULT_LOCALE);
+                }
+            }
 
             
             final String languageTag = Locales.getLanguageTag(Locale.getDefault());
@@ -443,12 +461,43 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
             return null;
         }
 
-        final File[] files = (new File(pluginsDir, "common")).listFiles();
-        if (files == null) {
+        
+        
+        
+        
+        
+        ArrayList<File> files = new ArrayList<>();
+
+        
+        final File[] commonFiles = (new File(pluginsDir, "common")).listFiles();
+        if (commonFiles != null) {
+            Collections.addAll(files, commonFiles);
+        }
+
+        
+        final File localeDir = new File(pluginsDir, "locale");
+        if (localeDir != null) {
+            final String languageTag = Locales.getLanguageTag(Locale.getDefault());
+            final File[] localeFiles = (new File(localeDir, languageTag)).listFiles();
+            if (localeFiles != null) {
+                Collections.addAll(files, localeFiles);
+            } else {
+                
+                if (distributionLocale != null) {
+                    final File[] defaultLocaleFiles = (new File(localeDir, distributionLocale)).listFiles();
+                    if (defaultLocaleFiles != null) {
+                        Collections.addAll(files, defaultLocaleFiles);
+                    }
+                }
+            }
+        }
+
+        if (files.isEmpty()) {
             Log.e(LOG_TAG, "Could not find search plugin files in distribution directory");
             return null;
         }
-        return createEngineFromFileList(files, name);
+
+        return createEngineFromFileList(files.toArray(new File[files.size()]), name);
     }
 
     
