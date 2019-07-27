@@ -327,6 +327,12 @@ function restore() {
 
 
 function addNewTabPageTab() {
+  addNewTabPageTabPromise().then(TestRunner.next);
+}
+
+function addNewTabPageTabPromise() {
+  let deferred = Promise.defer();
+
   let tab = gWindow.gBrowser.selectedTab = gWindow.gBrowser.addTab("about:newtab");
   let browser = tab.linkedBrowser;
 
@@ -334,20 +340,17 @@ function addNewTabPageTab() {
     if (NewTabUtils.allPages.enabled) {
       
       NewTabUtils.links.populateCache(function () {
-        whenSearchInitDone();
+        deferred.resolve(whenSearchInitDone());
       });
     } else {
-      
-      
-      
-      executeSoon(TestRunner.next);
+      deferred.resolve();
     }
   }
 
   
   if (browser.contentDocument.readyState == "complete") {
     whenNewTabLoaded();
-    return;
+    return deferred.promise;
   }
 
   
@@ -355,6 +358,8 @@ function addNewTabPageTab() {
     browser.removeEventListener("load", onLoad, true);
     whenNewTabLoaded();
   }, true);
+
+  return deferred.promise;
 }
 
 
@@ -637,15 +642,16 @@ function whenPagesUpdated(aCallback, aOnlyIfHidden=false) {
 
 
 function whenSearchInitDone() {
+  let deferred = Promise.defer();
   if (getContentWindow().gSearch._initialStateReceived) {
-    executeSoon(TestRunner.next);
-    return;
+    return Promise.resolve();
   }
   let eventName = "ContentSearchService";
   getContentWindow().addEventListener(eventName, function onEvent(event) {
     if (event.detail.type == "State") {
       getContentWindow().removeEventListener(eventName, onEvent);
-      TestRunner.next();
+      deferred.resolve();
     }
   });
+  return deferred.promise;
 }
