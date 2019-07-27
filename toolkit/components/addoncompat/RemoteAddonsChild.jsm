@@ -178,7 +178,36 @@ let ObserverChild = {
 };
 ObserverChild.init();
 
+
+
+
+function EventTargetChild(childGlobal)
+{
+  this._childGlobal = childGlobal;
+  NotificationTracker.watch("event", (path, count) => this.track(path, count));
+}
+
+EventTargetChild.prototype = {
+  track: function(path, count) {
+    let eventType = path[1];
+    let useCapture = path[2];
+    if (count) {
+      this._childGlobal.addEventListener(eventType, this, useCapture, true);
+    } else {
+      this._childGlobal.removeEventListener(eventType, this, useCapture);
+    }
+  },
+
+  handleEvent: function(event) {
+    this._childGlobal.sendRpcMessage("Addons:Event:Run",
+                                     {type: event.type, isTrusted: event.isTrusted},
+                                     {event: event});
+  }
+};
+
 let RemoteAddonsChild = {
   init: function(global) {
+    
+    return [new EventTargetChild(global)];
   },
 };
