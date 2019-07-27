@@ -72,13 +72,15 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   
 
 
-  void AppendToString(const char16_t aChar,
+  NS_WARN_UNUSED_RESULT
+  bool AppendToString(const char16_t aChar,
                       nsAString& aOutputStr);
 
   
 
 
-  void AppendToString(const nsAString& aStr,
+  NS_WARN_UNUSED_RESULT
+  bool AppendToString(const nsAString& aStr,
                       nsAString& aOutputStr);
 
   
@@ -86,32 +88,37 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  void AppendToStringConvertLF(const nsAString& aStr,
+  NS_WARN_UNUSED_RESULT
+  bool AppendToStringConvertLF(const nsAString& aStr,
                                nsAString& aOutputStr);
 
   
 
 
 
-  void AppendToStringWrapped(const nsASingleFragmentString& aStr,
+  NS_WARN_UNUSED_RESULT
+  bool AppendToStringWrapped(const nsASingleFragmentString& aStr,
                              nsAString& aOutputStr);
 
   
 
 
 
-  void AppendToStringFormatedWrapped(const nsASingleFragmentString& aStr,
+  NS_WARN_UNUSED_RESULT
+  bool AppendToStringFormatedWrapped(const nsASingleFragmentString& aStr,
                                      nsAString& aOutputStr);
 
   
-  void AppendWrapped_WhitespaceSequence(
+  NS_WARN_UNUSED_RESULT
+  bool AppendWrapped_WhitespaceSequence(
           nsASingleFragmentString::const_char_iterator &aPos,
           const nsASingleFragmentString::const_char_iterator aEnd,
           const nsASingleFragmentString::const_char_iterator aSequenceStart,
           nsAString &aOutputStr);
 
   
-  void AppendFormatedWrapped_WhitespaceSequence(
+  NS_WARN_UNUSED_RESULT
+  bool AppendFormatedWrapped_WhitespaceSequence(
           nsASingleFragmentString::const_char_iterator &aPos,
           const nsASingleFragmentString::const_char_iterator aEnd,
           const nsASingleFragmentString::const_char_iterator aSequenceStart,
@@ -119,7 +126,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
           nsAString &aOutputStr);
 
   
-  void AppendWrapped_NonWhitespaceSequence(
+  NS_WARN_UNUSED_RESULT
+  bool AppendWrapped_NonWhitespaceSequence(
           nsASingleFragmentString::const_char_iterator &aPos,
           const nsASingleFragmentString::const_char_iterator aEnd,
           const nsASingleFragmentString::const_char_iterator aSequenceStart,
@@ -131,14 +139,16 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  void AppendNewLineToString(nsAString& aOutputStr);
+  NS_WARN_UNUSED_RESULT
+  bool AppendNewLineToString(nsAString& aOutputStr);
 
 
   
 
 
 
-  virtual void AppendAndTranslateEntities(const nsAString& aStr,
+  NS_WARN_UNUSED_RESULT
+  virtual bool AppendAndTranslateEntities(const nsAString& aStr,
                                           nsAString& aOutputStr);
 
   
@@ -187,7 +197,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
                                      nsIContent *aOriginalElement,
                                      const nsAString& aTagNamespaceURI);
 
-  virtual void SerializeAttributes(nsIContent* aContent,
+  NS_WARN_UNUSED_RESULT
+  virtual bool SerializeAttributes(nsIContent* aContent,
                                    nsIContent *aOriginalElement,
                                    nsAString& aTagPrefix,
                                    const nsAString& aTagNamespaceURI,
@@ -196,7 +207,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
                                    uint32_t aSkipAttr,
                                    bool aAddNSAttr);
 
-  void SerializeAttr(const nsAString& aPrefix,
+  NS_WARN_UNUSED_RESULT
+  bool SerializeAttr(const nsAString& aPrefix,
                      const nsAString& aName,
                      const nsAString& aValue,
                      nsAString& aStr,
@@ -217,13 +229,15 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
   virtual bool CheckElementStart(nsIContent * aContent,
                                    bool & aForceFormat,
-                                   nsAString& aStr);
+                                   nsAString& aStr,
+                                   nsresult& aResult);
 
   
 
 
 
-  virtual void AppendEndOfElementStart(nsIContent *aOriginalElement,
+  NS_WARN_UNUSED_RESULT
+  virtual bool AppendEndOfElementStart(nsIContent *aOriginalElement,
                                        nsIAtom * aName,
                                        int32_t aNamespaceID,
                                        nsAString& aStr);
@@ -233,9 +247,10 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  virtual void AfterElementStart(nsIContent * aContent,
-                                 nsIContent *aOriginalElement,
-                                 nsAString& aStr) { };
+  NS_WARN_UNUSED_RESULT
+  virtual bool AfterElementStart(nsIContent* aContent,
+                                 nsIContent* aOriginalElement,
+                                 nsAString& aStr) { return true; };
 
   
 
@@ -281,13 +296,17 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  void AppendIndentation(nsAString& aStr);
-  void IncrIndentation(nsIAtom* aName);
+  NS_WARN_UNUSED_RESULT
+  bool AppendIndentation(nsAString& aStr);
+
+  NS_WARN_UNUSED_RESULT
+  bool IncrIndentation(nsIAtom* aName);
   void DecrIndentation(nsIAtom* aName);
 
   
   
-  void MaybeAddNewlineForRootNode(nsAString& aStr);
+  NS_WARN_UNUSED_RESULT
+  bool MaybeAddNewlineForRootNode(nsAString& aStr);
   void MaybeFlagNewlineForRootNode(nsINode* aNode);
 
   
