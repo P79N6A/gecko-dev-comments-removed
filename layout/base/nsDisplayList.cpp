@@ -3126,9 +3126,22 @@ nsDisplayLayerEventRegions::AddFrame(nsDisplayListBuilder* aBuilder,
     return;
   }
   
+
   
   
-  nsRect borderBox(aBuilder->ToReferenceFrame(aFrame), aFrame->GetSize());
+  nsRect borderBox;
+  if (nsLayoutUtils::GetScrollableFrameFor(aFrame)) {
+    
+    
+    
+    
+    
+    borderBox = aFrame->GetScrollableOverflowRect();
+  } else {
+    borderBox = nsRect(nsPoint(0, 0), aFrame->GetSize());
+  }
+  borderBox += aBuilder->ToReferenceFrame(aFrame);
+
   const DisplayItemClip* clip = aBuilder->ClipState().GetCurrentCombinedClip(aBuilder);
   bool borderBoxHasRoundedCorners =
     nsLayoutUtils::HasNonZeroCorner(aFrame->StyleBorder()->mBorderRadius);
