@@ -1909,8 +1909,18 @@ CheckForApzAwareEventHandlers(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
     return;
   }
   EventListenerManager* elm = nsContentUtils::GetExistingListenerManagerForNode(content);
-  if (nsLayoutUtils::HasApzAwareListeners(elm)) {
-    aBuilder->SetAncestorHasApzAwareEventHandler(true);
+  if (!elm) {
+    return;
+  }
+  if (elm->HasListenersFor(nsGkAtoms::ontouchstart) ||
+      elm->HasListenersFor(nsGkAtoms::ontouchmove)) {
+    aBuilder->SetAncestorHasTouchEventHandler(true);
+  }
+  if (elm->HasListenersFor(nsGkAtoms::onwheel) ||
+      elm->HasListenersFor(nsGkAtoms::onDOMMouseScroll) ||
+      elm->HasListenersFor(nsHtml5Atoms::onmousewheel))
+  {
+    aBuilder->SetAncestorHasScrollEventHandler(true);
   }
 }
 
@@ -5180,6 +5190,7 @@ nsIFrame::SchedulePaint(PaintType aType)
 Layer*
 nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
                           const nsIntRect* aDamageRect,
+                          const nsRect* aFrameDamageRect,
                           uint32_t aFlags )
 {
   NS_ASSERTION(aDisplayItemKey > 0, "Need a key");
@@ -5193,11 +5204,11 @@ nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
     return layer;
   }
 
-  if (aDamageRect && aDamageRect->IsEmpty()) {
-    return layer;
-  }
-
   if (!layer) {
+    if (aFrameDamageRect && aFrameDamageRect->IsEmpty()) {
+      return nullptr;
+    }
+
     
     
     
@@ -5206,13 +5217,23 @@ nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
     
     
     
+    uint32_t displayItemKey = aDisplayItemKey;
     if (aDisplayItemKey == nsDisplayItem::TYPE_PLUGIN ||
         aDisplayItemKey == nsDisplayItem::TYPE_REMOTE) {
-      InvalidateFrame();
-    } else {
-      InvalidateFrame(aDisplayItemKey);
+      displayItemKey = 0;
     }
+
+    if (aFrameDamageRect) {
+      InvalidateFrameWithRect(*aFrameDamageRect, displayItemKey);
+    } else {
+      InvalidateFrame(displayItemKey);
+    }
+
     return nullptr;
+  }
+
+  if (aDamageRect && aDamageRect->IsEmpty()) {
+    return layer;
   }
 
   if (aDamageRect) {
