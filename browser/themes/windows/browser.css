@@ -311,15 +311,22 @@
 }
 
 #nav-bar {
-  border-top: 1px solid @toolbarShadowColor@ !important;
   background-clip: padding-box;
   background-image: linear-gradient(@toolbarHighlight@, transparent);
   box-shadow: 0 1px 0 @toolbarHighlight@ inset;
 }
 
-@media not all and (-moz-windows-compositor) {
-  #TabsToolbar[collapsed="true"] + #nav-bar {
-    border-top-style: none !important;
+@media (-moz-os-version: windows-xp),
+       (-moz-os-version: windows-vista),
+       (-moz-os-version: windows-win7),
+       (-moz-os-version: windows-win8) {
+  #nav-bar {
+    border-top: 1px solid @toolbarShadowColor@ !important;
+  }
+  @media not all and (-moz-windows-compositor) {
+    #TabsToolbar[collapsed="true"] + #nav-bar {
+      border-top-style: none !important;
+    }
   }
 }
 
@@ -2071,6 +2078,30 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 @media not all and (-moz-os-version: windows-xp) {
   @media not all and (-moz-os-version: windows-vista) {
     @media not all and (-moz-os-version: windows-win7) {
+      @media not all and (-moz-os-version: windows-win8) {
+        .tab-background-end[visuallyselected=true]::after,
+        .tab-background-start[visuallyselected=true]::after {
+          content: none;
+        }
+
+        .tab-background-middle[visuallyselected=true] {
+          
+
+          background-size: 0 0, auto 100%, auto 100%;
+        }
+
+        :root {
+          --tab-toolbar-navbar-overlap: 0;
+        }
+      }
+    }
+  }
+}
+
+
+@media not all and (-moz-os-version: windows-xp) {
+  @media not all and (-moz-os-version: windows-vista) {
+    @media not all and (-moz-os-version: windows-win7) {
       #TabsToolbar:not([brighttext]) {
         --tab-separator-image: linear-gradient(transparent 0%, transparent 15%, currentColor 15%, currentColor 90%, transparent 90%);
         --tab-separator-size: 1px 100%;
@@ -2587,12 +2618,21 @@ notification[value="loop-sharing-notification"] .messageImage {
   box-shadow: 0 0 2px white;
 }
 
+#full-screen-warning-container[obscure-browser] {
+  background-color: rgba(0,0,0,0.3);
+}
+
 .full-screen-description {
   font-size: 150%;
 }
 
 #full-screen-domain-text {
   font-size: 300%;
+}
+
+.full-screen-approval-button,
+#full-screen-remember-decision {
+  font-size: 120%;
 }
 
 %include ../shared/devtools/responsivedesign.inc.css
