@@ -1454,8 +1454,11 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
   
   
   
+  
+  
   mSkipAnimationRules = true;
   mPostAnimationRestyles = true;
+  aRestyleHint |= eRestyle_ChangeAnimationPhaseDescendants;
 
   DoRebuildAllStyleData(mPendingRestyles, aExtraHint, aRestyleHint);
 
