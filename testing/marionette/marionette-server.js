@@ -2357,6 +2357,59 @@ MarionetteServerConnection.prototype = {
 
 
 
+
+
+
+
+  getWindowSize: function MDA_getWindowSize(aRequest) {
+    this.command_id = this.getCommandId();
+    let curWindow = this.getCurrentWindow();
+    let curWidth = curWindow.outerWidth;
+    let curHeight = curWindow.outerHeight;
+    this.sendResponse({width: curWidth, height: curHeight}, this.command_id);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  setWindowSize: function MDA_setWindowSize(aRequest) {
+    this.command_id = this.getCommandId();
+
+    if (appName == "B2G") {
+      this.sendError("Not supported on B2G", 405, null, this.command_id);
+      return;
+    }
+
+    try {
+      var width = parseInt(aRequest.parameters.width);
+      var height = parseInt(aRequest.parameters.height);
+    }
+    catch(e) {
+      this.sendError(e.message, e.code, e.stack, this.command_id);
+      return;
+    }
+
+    let curWindow = this.getCurrentWindow();
+    if (width >= curWindow.screen.availWidth && height >= curWindow.screen.availHeight) {
+      this.sendError("Invalid requested size, cannot maximize", 405, null, this.command_id);
+      return;
+    }
+
+    curWindow.resizeTo(width, height);
+    this.sendOk(this.command_id);
+  },
+
+  
+
+
+
   generateFrameId: function MDA_generateFrameId(id) {
     let uid = id + (appName == "B2G" ? "-b2g" : "");
     return uid;
@@ -2558,7 +2611,9 @@ MarionetteServerConnection.prototype.requestTypes = {
   "deleteCookie": MarionetteServerConnection.prototype.deleteCookie,
   "getActiveElement": MarionetteServerConnection.prototype.getActiveElement,
   "getScreenOrientation": MarionetteServerConnection.prototype.getScreenOrientation,
-  "setScreenOrientation": MarionetteServerConnection.prototype.setScreenOrientation
+  "setScreenOrientation": MarionetteServerConnection.prototype.setScreenOrientation,
+  "getWindowSize": MarionetteServerConnection.prototype.getWindowSize,
+  "setWindowSize": MarionetteServerConnection.prototype.setWindowSize
 };
 
 
