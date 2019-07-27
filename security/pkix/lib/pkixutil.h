@@ -161,7 +161,7 @@ public:
 
   virtual const SECItem* GetDER(size_t i) const
   {
-    return i < numItems ? items[i] : nullptr;
+    return i < numItems ? &items[i] : nullptr;
   }
 
   Result Append(const SECItem& der)
@@ -169,7 +169,7 @@ public:
     if (numItems >= MAX_LENGTH) {
       return Result::FATAL_ERROR_INVALID_ARGS;
     }
-    items[numItems] = &der;
+    items[numItems] = der; 
     ++numItems;
     return Success;
   }
@@ -177,8 +177,11 @@ public:
   
   static const size_t MAX_LENGTH = 8;
 private:
-  const SECItem* items[MAX_LENGTH]; 
+  SECItem items[MAX_LENGTH]; 
   size_t numItems;
+
+  NonOwningDERArray(const NonOwningDERArray&) ;
+  void operator=(const NonOwningDERArray&) ;
 };
 
 } } 
