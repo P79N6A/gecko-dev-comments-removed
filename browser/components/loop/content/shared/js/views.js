@@ -94,10 +94,21 @@ loop.shared.views = (function(_, OT, l10n) {
   var ConversationView = BaseView.extend({
     className: "conversation",
 
+    
+
+
+
+    localStream: null,
+
     template: _.template([
-      '<nav class="controls">',
-      '  <button class="btn stop" data-l10n-id="stop"></button>',
-      '</nav>',
+      '<ul class="controls cf">',
+      '  <li><button class="btn btn-hangup" ',
+      '              data-l10n-id="hangup_button"></button></li>',
+      '  <li><button class="btn media-control btn-mute-video"',
+      '              data-l10n-id="mute_local_video_button"></button></li>',
+      '  <li><button class="btn media-control btn-mute-audio"',
+      '              data-l10n-id="mute_local_audio_button"></button></li>',
+      '</ul>',
       '<div class="media nested">',
       
       
@@ -110,14 +121,19 @@ loop.shared.views = (function(_, OT, l10n) {
 
     
     
-    videoStyles: {
+    publisherConfig: {
       width: "100%",
       height: "auto",
-      style: { "bugDisplayMode": "off" }
+      style: {
+        bugDisplayMode: "off",
+        buttonDisplayMode: "off"
+      }
     },
 
     events: {
-      'click .btn.stop': 'hangup'
+      'click .btn-hangup': 'hangup',
+      'click .btn-mute-audio': 'toggleMuteAudio',
+      'click .btn-mute-video': 'toggleMuteVideo'
     },
 
     
@@ -153,9 +169,9 @@ loop.shared.views = (function(_, OT, l10n) {
       event.streams.forEach(function(stream) {
         if (stream.connection.connectionId !==
             this.model.session.connection.connectionId) {
-          this.model.session.subscribe(stream, incoming, this.videoStyles);
+          this.model.session.subscribe(stream, incoming, this.publisherConfig);
         }
-      }.bind(this));
+      }, this);
     },
 
     
@@ -174,12 +190,60 @@ loop.shared.views = (function(_, OT, l10n) {
 
 
 
+    toggleMuteAudio: function(event) {
+      event.preventDefault();
+      if (!this.localStream) {
+        return;
+      }
+      var msgId;
+      var $button = this.$(".btn-mute-audio");
+      var enabled = !this.localStream.hasAudio;
+      this.publisher.publishAudio(enabled);
+      if (enabled) {
+        msgId = "mute_local_audio_button.title";
+        $button.removeClass("muted");
+      } else {
+        msgId = "unmute_local_audio_button.title";
+        $button.addClass("muted");
+      }
+      $button.attr("title", l10n.get(msgId));
+    },
+
+    
+
+
+
+
+    toggleMuteVideo: function(event) {
+      event.preventDefault();
+      if (!this.localStream) {
+        return;
+      }
+      var msgId;
+      var $button = this.$(".btn-mute-video");
+      var enabled = !this.localStream.hasVideo;
+      this.publisher.publishVideo(enabled);
+      if (enabled) {
+        $button.removeClass("muted");
+        msgId = "mute_local_video_button.title";
+      } else {
+        $button.addClass("muted");
+        msgId = "unmute_local_video_button.title";
+      }
+      $button.attr("title", l10n.get(msgId));
+    },
+
+    
+
+
+
+
 
 
     publish: function(event) {
       var outgoing = this.$(".outgoing").get(0);
 
-      this.publisher = this.sdk.initPublisher(outgoing, this.videoStyles);
+      this.publisher = this.sdk.initPublisher(outgoing, this.publisherConfig);
 
       
       function preventOpeningAccessDialog(event) {
@@ -187,6 +251,20 @@ loop.shared.views = (function(_, OT, l10n) {
       }
       this.publisher.on("accessDialogOpened", preventOpeningAccessDialog);
       this.publisher.on("accessDenied", preventOpeningAccessDialog);
+      this.publisher.on("streamCreated", function(event) {
+        this.localStream = event.stream;
+        if (this.localStream.hasAudio) {
+          this.$(".btn-mute-audio").addClass("streaming");
+        }
+        if (this.localStream.hasVideo) {
+          this.$(".btn-mute-video").addClass("streaming");
+        }
+      }.bind(this));
+      this.publisher.on("streamDestroyed", function() {
+        this.localStream = null;
+        this.$(".btn-mute-audio").removeClass("streaming muted");
+        this.$(".btn-mute-video").removeClass("streaming muted");
+      }.bind(this));
 
       this.model.session.publish(this.publisher);
     },
