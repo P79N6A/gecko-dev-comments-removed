@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsfriendapi.h"
 
@@ -38,7 +38,7 @@ using mozilla::Move;
 using mozilla::PodArrayZero;
 using mozilla::UniquePtr;
 
-
+// Required by PerThreadDataFriendFields::getMainThread()
 JS_STATIC_ASSERT(offsetof(JSRuntime, mainThread) ==
                  PerThreadDataFriendFields::RuntimeMainThreadOffset);
 
@@ -90,17 +90,17 @@ JS_FindCompilationScope(JSContext *cx, HandleObject objArg)
 {
     RootedObject obj(cx, objArg);
 
-    
-
-
-
+    /*
+     * We unwrap wrappers here. This is a little weird, but it's what's being
+     * asked of us.
+     */
     if (obj->is<WrapperObject>())
         obj = UncheckedUnwrap(obj);
 
-    
-
-
-
+    /*
+     * Innerize the target_obj so that we compile in the correct (inner)
+     * scope.
+     */
     return GetInnerObject(obj);
 }
 
@@ -115,18 +115,18 @@ JS_GetObjectFunction(JSObject *obj)
 JS_FRIEND_API(bool)
 JS_SplicePrototype(JSContext *cx, HandleObject obj, HandleObject proto)
 {
-    
-
-
-
-
+    /*
+     * Change the prototype of an object which hasn't been used anywhere
+     * and does not share its type with another object. Unlike JS_SetPrototype,
+     * does not nuke type information for the object.
+     */
     CHECK_REQUEST(cx);
 
     if (!obj->hasSingletonType()) {
-        
-
-
-
+        /*
+         * We can see non-singleton objects when trying to splice prototypes
+         * due to mutable __proto__ (ugh).
+         */
         return JS_SetPrototype(cx, obj, proto);
     }
 
@@ -138,12 +138,12 @@ JS_FRIEND_API(JSObject *)
 JS_NewObjectWithUniqueType(JSContext *cx, const JSClass *clasp, HandleObject proto,
                            HandleObject parent)
 {
-    
-
-
-
-
-
+    /*
+     * Create our object with a null proto and then splice in the correct proto
+     * after we setSingletonType, so that we don't pollute the default
+     * TypeObject attached to our proto with information about our object, since
+     * we're not going to be using that TypeObject anyway.
+     */
     RootedObject obj(cx, NewObjectWithGivenProto(cx, (const js::Class *)clasp, nullptr,
                                                  parent, SingletonObject));
     if (!obj)
@@ -228,33 +228,33 @@ JS_GetCompartmentPrincipals(JSCompartment *compartment)
 JS_FRIEND_API(void)
 JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals)
 {
-    
+    // Short circuit if there's no change.
     if (principals == compartment->principals)
         return;
 
-    
-    
+    // Any compartment with the trusted principals -- and there can be
+    // multiple -- is a system compartment.
     const JSPrincipals *trusted = compartment->runtimeFromMainThread()->trustedPrincipals();
     bool isSystem = principals && principals == trusted;
 
-    
+    // Clear out the old principals, if any.
     if (compartment->principals) {
         JS_DropPrincipals(compartment->runtimeFromMainThread(), compartment->principals);
         compartment->principals = nullptr;
-        
-        
-        
-        
+        // We'd like to assert that our new principals is always same-origin
+        // with the old one, but JSPrincipals doesn't give us a way to do that.
+        // But we can at least assert that we're not switching between system
+        // and non-system.
         MOZ_ASSERT(compartment->isSystem == isSystem);
     }
 
-    
+    // Set up the new principals.
     if (principals) {
         JS_HoldPrincipals(principals);
         compartment->principals = principals;
     }
 
-    
+    // Update the system flag.
     compartment->isSystem = isSystem;
 }
 
@@ -578,13 +578,13 @@ js::SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback)
     rt->preserveWrapperCallback = callback;
 }
 
-
-
-
-
+/*
+ * The below code is for temporary telemetry use. It can be removed when
+ * sufficient data has been harvested.
+ */
 
 namespace js {
-
+// Defined in vm/GlobalObject.cpp.
 extern size_t sSetProtoCalled;
 }
 
@@ -594,7 +594,7 @@ JS_SetProtoCalled(JSContext *)
     return sSetProtoCalled;
 }
 
-
+// Defined in jsiter.cpp.
 extern size_t sCustomIteratorCount;
 
 JS_FRIEND_API(size_t)
@@ -652,7 +652,7 @@ js::VisitGrayWrapperTargets(Zone *zone, GCThingCallback callback, void *closure)
     for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next()) {
         for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
             gc::Cell *thing = e.front().key().wrapped;
-            if (thing->isTenured() && thing->asTenured()->isMarked(gc::GRAY))
+            if (thing->isTenured() && thing->asTenured().isMarked(gc::GRAY))
                 callback(closure, thing);
         }
     }
@@ -723,11 +723,11 @@ FormatValue(JSContext *cx, const Value &vArg, JSAutoByteString &bytes)
 {
     RootedValue v(cx, vArg);
 
-    
-
-
-
-
+    /*
+     * We could use Maybe<AutoCompartment> here, but G++ can't quite follow
+     * that, and warns about uninitialized members being used in the
+     * destructor.
+     */
     RootedString str(cx);
     if (v.isObject()) {
         AutoCompartment ac(cx, &v.toObject());
@@ -770,7 +770,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
         thisVal = iter.computedThisValue();
     }
 
-    
+    // print the frame number and function name
     if (funname) {
         JSAutoByteString funbytes;
         buf = JS_sprintf_append(buf, "%d %s(", num, funbytes.encodeLatin1(cx, funname));
@@ -840,7 +840,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
         }
     }
 
-    
+    // print filename and line number
     buf = JS_sprintf_append(buf, "%s [\"%s\":%d]\n",
                             fun ? ")" : "",
                             filename ? filename : "<unknown>",
@@ -849,10 +849,10 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
         return buf;
 
 
-    
-    
+    // Note: Right now we don't dump the local variables anymore, because
+    // that is hard to support across all the JITs etc.
 
-    
+    // print the value of 'this'
     if (showLocals) {
         if (!thisVal.isUndefined()) {
             JSAutoByteString thisValBytes;
@@ -1189,7 +1189,7 @@ JS::IncrementalReferenceBarrier(void *ptr, JSGCTraceKind kind)
 #ifdef DEBUG
     Zone *zone = kind == JSTRACE_OBJECT
                  ? static_cast<JSObject *>(cell)->zone()
-                 : cell->asTenured()->zone();
+                 : cell->asTenured().zone();
     MOZ_ASSERT(!zone->runtimeFromMainThread()->isHeapMajorCollecting());
 #endif
 
@@ -1459,7 +1459,7 @@ JS_StoreStringPostBarrierCallback(JSContext* cx,
     if (IsInsideNursery(key))
         rt->gc.storeBuffer.putCallback(callback, key, data);
 }
-#endif 
+#endif /* JSGC_GENERATIONAL */
 
 JS_FRIEND_API(bool)
 js::ForwardToNative(JSContext *cx, JSNative native, const CallArgs &args)
