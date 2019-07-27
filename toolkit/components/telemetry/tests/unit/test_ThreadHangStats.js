@@ -24,7 +24,8 @@ function run_test() {
     
     
     
-    let kernel = Services.sysinfo.kernel_version || Services.sysinfo.version;
+    let kernel = Services.sysinfo.get('kernel_version') ||
+                 Services.sysinfo.get('version');
     if (Services.vc.compare(kernel, '2.6.31') < 0) {
       ok("Hang reporting not supported for old kernel.");
       return;
