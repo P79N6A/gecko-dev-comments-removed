@@ -2607,6 +2607,5 @@ nsMessageManagerSH<Super>::Enumerate(nsIXPConnectWrappedNative* wrapper,
 
   
   
-  MOZ_ASSERT(!(this->GetScriptableFlags() & nsIXPCScriptable::WANT_ENUMERATE));
   return NS_OK;
 }
