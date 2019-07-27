@@ -202,9 +202,6 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   MOZ_ASSERT_IF(aCompileOptions.versionSet,
                 aCompileOptions.version != JSVERSION_UNKNOWN);
   MOZ_ASSERT_IF(aEvaluateOptions.coerceToString, !aCompileOptions.noScriptRval);
-  MOZ_ASSERT_IF(!aEvaluateOptions.reportUncaught, !aCompileOptions.noScriptRval);
-  
-  
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
   MOZ_ASSERT(aSrcBuf.get());
   MOZ_ASSERT(js::GetGlobalForObjectCrossCompartment(aEvaluationGlobal) ==
@@ -225,12 +222,9 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   NS_ENSURE_TRUE(ssm->ScriptAllowed(aEvaluationGlobal), NS_OK);
 
-  mozilla::Maybe<AutoDontReportUncaught> dontReport;
-  if (!aEvaluateOptions.reportUncaught) {
-    
-    
-    dontReport.emplace(aCx);
-  }
+  
+  
+  AutoDontReportUncaught dontReport(aCx);
 
   bool ok = true;
   
@@ -275,24 +269,14 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   }
 
   if (!ok) {
-    if (aEvaluateOptions.reportUncaught) {
-      ReportPendingException(aCx);
-      if (!aCompileOptions.noScriptRval) {
-        aRetValue.setUndefined();
-      }
-    } else {
-      rv = JS_IsExceptionPending(aCx) ? NS_ERROR_FAILURE
-                                      : NS_ERROR_OUT_OF_MEMORY;
-      JS::Rooted<JS::Value> exn(aCx);
-      JS_GetPendingException(aCx, &exn);
-      MOZ_ASSERT(!aCompileOptions.noScriptRval); 
-      aRetValue.set(exn);
-      JS_ClearPendingException(aCx);
+    ReportPendingException(aCx);
+    if (!aCompileOptions.noScriptRval) {
+      aRetValue.setUndefined();
     }
   }
 
   
-  if (!aCompileOptions.noScriptRval) {
+  if (ok && !aCompileOptions.noScriptRval) {
     if (!JS_WrapValue(aCx, aRetValue)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
