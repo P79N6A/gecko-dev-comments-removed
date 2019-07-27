@@ -135,7 +135,7 @@ this.PluralForm = {
       
       if ((ret == undefined) || (ret == "")) {
         
-        let caller = PluralForm.get.caller ? PluralForm.get.caller.name : "top";
+        let caller = Components.stack.caller ? Components.stack.caller.name : "top";
 
         
         log(["Index #", index, " of '", aWords, "' for value ", aNum,
