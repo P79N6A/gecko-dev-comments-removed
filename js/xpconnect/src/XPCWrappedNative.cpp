@@ -1163,7 +1163,10 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
 
     const nsIID* iid = aInterface->GetIID();
     nsISupports* identity = GetIdentityObject();
-    nsISupports* obj;
+
+    
+    
+    nsRefPtr<nsISupports> obj;
 
     
     
@@ -1179,7 +1182,7 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
 
     aTearOff->SetReserved();
 
-    if (NS_FAILED(identity->QueryInterface(*iid, (void**)&obj)) || !obj) {
+    if (NS_FAILED(identity->QueryInterface(*iid, getter_AddRefs(obj))) || !obj) {
         aTearOff->SetInterface(nullptr);
         return NS_ERROR_NO_INTERFACE;
     }
@@ -1188,7 +1191,6 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
     if (iid->Equals(NS_GET_IID(nsIClassInfo))) {
         nsCOMPtr<nsISupports> alternate_identity(do_QueryInterface(obj));
         if (alternate_identity.get() != identity) {
-            NS_RELEASE(obj);
             aTearOff->SetInterface(nullptr);
             return NS_ERROR_NO_INTERFACE;
         }
@@ -1226,7 +1228,6 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
             
             
 
-            NS_RELEASE(obj);
             aTearOff->SetInterface(nullptr);
             return NS_OK;
         }
@@ -1248,7 +1249,6 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
                 RootedObject answer(cx, clasp->CallQueryInterfaceOnJSObject(cx, jso, *iid));
 
                 if (!answer) {
-                    NS_RELEASE(obj);
                     aTearOff->SetInterface(nullptr);
                     return NS_ERROR_NO_INTERFACE;
                 }
@@ -1259,7 +1259,6 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
     if (NS_FAILED(nsXPConnect::SecurityManager()->CanCreateWrapper(cx, *iid, identity,
                                                                    GetClassInfo()))) {
         
-        NS_RELEASE(obj);
         aTearOff->SetInterface(nullptr);
         return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
     }
@@ -1270,13 +1269,12 @@ XPCWrappedNative::InitTearOff(XPCWrappedNativeTearOff* aTearOff,
     
 
     if (!mSet->HasInterface(aInterface) && !ExtendSet(aInterface)) {
-        NS_RELEASE(obj);
         aTearOff->SetInterface(nullptr);
         return NS_ERROR_NO_INTERFACE;
     }
 
     aTearOff->SetInterface(aInterface);
-    aTearOff->SetNative(obj);
+    aTearOff->SetNative(obj.forget().take());
     if (needJSObject && !InitTearOffJSObject(aTearOff))
         return NS_ERROR_OUT_OF_MEMORY;
 
