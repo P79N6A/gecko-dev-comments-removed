@@ -1267,7 +1267,8 @@ WrapAndReturnHistogram(Histogram *h, JSContext *cx, JS::MutableHandle<JS::Value>
 {
   static const JSClass JSHistogram_class = {
     "JSHistogram",  
-    JSCLASS_HAS_PRIVATE  
+    JSCLASS_HAS_PRIVATE, 
+    nullptr, nullptr, JS_PropertyStub, JS_StrictPropertyStub
   };
 
   JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &JSHistogram_class, JS::NullPtr(), JS::NullPtr()));
@@ -1443,7 +1444,8 @@ WrapAndReturnKeyedHistogram(KeyedHistogram *h, JSContext *cx, JS::MutableHandle<
 {
   static const JSClass JSHistogram_class = {
     "JSKeyedHistogram",  
-    JSCLASS_HAS_PRIVATE  
+    JSCLASS_HAS_PRIVATE, 
+    nullptr, nullptr, JS_PropertyStub, JS_StrictPropertyStub
   };
 
   JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &JSHistogram_class, JS::NullPtr(), JS::NullPtr()));

@@ -958,7 +958,11 @@ OOMAfterAllocations(JSContext *cx, unsigned argc, jsval *vp)
 #endif
 
 static const js::Class FakePromiseClass = {
-    "Promise", JSCLASS_IS_ANONYMOUS
+    "Promise", JSCLASS_IS_ANONYMOUS,
+    nullptr,               
+    nullptr,               
+    JS_PropertyStub,       
+    JS_StrictPropertyStub  
 };
 
 static bool
@@ -1004,13 +1008,13 @@ finalize_counter_finalize(JSFreeOp *fop, JSObject *obj)
 
 static const JSClass FinalizeCounterClass = {
     "FinalizeCounter", JSCLASS_IS_ANONYMOUS,
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,               
+    nullptr,               
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
+    nullptr,               
+    nullptr,               
+    nullptr,               
     finalize_counter_finalize
 };
 
@@ -1546,14 +1550,21 @@ class CloneBufferObject : public NativeObject {
 
 const Class CloneBufferObject::class_ = {
     "CloneBuffer", JSCLASS_HAS_RESERVED_SLOTS(CloneBufferObject::NUM_SLOTS),
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    Finalize
+    nullptr,               
+    nullptr,               
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    Finalize,
+    nullptr,                  
+    nullptr,                  
+    nullptr,                  
+    nullptr,                  
+    JS_NULL_CLASS_SPEC,
+    JS_NULL_CLASS_EXT,
+    JS_NULL_OBJECT_OPS
 };
 
 const JSPropertySpec CloneBufferObject::props_[] = {

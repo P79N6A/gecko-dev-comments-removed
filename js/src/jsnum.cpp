@@ -463,7 +463,11 @@ static const JSFunctionSpec number_functions[] = {
 
 const Class NumberObject::class_ = {
     js_Number_str,
-    JSCLASS_HAS_RESERVED_SLOTS(1) | JSCLASS_HAS_CACHED_PROTO(JSProto_Number)
+    JSCLASS_HAS_RESERVED_SLOTS(1) | JSCLASS_HAS_CACHED_PROTO(JSProto_Number),
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub    
 };
 
 static bool

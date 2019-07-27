@@ -299,7 +299,11 @@ SharedArrayBufferObject::addSizeOfExcludingThis(JSObject *obj, mozilla::MallocSi
 
 const Class SharedArrayBufferObject::protoClass = {
     "SharedArrayBufferPrototype",
-    JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer)
+    JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer),
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub    
 };
 
 const Class SharedArrayBufferObject::class_ = {
@@ -307,18 +311,18 @@ const Class SharedArrayBufferObject::class_ = {
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(SharedArrayBufferObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer),
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     SharedArrayBufferObject::Finalize,
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,        
+    nullptr,        
+    nullptr,        
+    nullptr,        
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT
 };

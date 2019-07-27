@@ -144,12 +144,14 @@ XPCWrappedNativeXrayTraits::getWN(JSObject *wrapper)
 }
 
 const JSClass XPCWrappedNativeXrayTraits::HolderClass = {
-    "NativePropertyHolder", JSCLASS_HAS_RESERVED_SLOTS(2)
+    "NativePropertyHolder", JSCLASS_HAS_RESERVED_SLOTS(2),
+    nullptr, nullptr, JS_PropertyStub, JS_StrictPropertyStub
 };
 
 
 const JSClass JSXrayTraits::HolderClass = {
-    "JSXrayHolder", JSCLASS_HAS_RESERVED_SLOTS(SLOT_COUNT)
+    "JSXrayHolder", JSCLASS_HAS_RESERVED_SLOTS(SLOT_COUNT),
+    nullptr, nullptr, JS_PropertyStub, JS_StrictPropertyStub
 };
 
 bool
@@ -845,7 +847,7 @@ ExpandoObjectFinalize(JSFreeOp *fop, JSObject *obj)
 const JSClass ExpandoObjectClass = {
     "XrayExpandoObject",
     JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_EXPANDO_COUNT),
-    nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, JS_PropertyStub, JS_StrictPropertyStub,
     nullptr, nullptr, nullptr, ExpandoObjectFinalize
 };
 
@@ -1230,8 +1232,8 @@ XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, HandleObject wr
         
         
         
-        desc.setGetter(nullptr);
-        desc.setSetter(nullptr);
+        desc.setGetter(JS_PropertyStub);
+        desc.setSetter(JS_StrictPropertyStub);
     }
 
     if (!JS_WrapValue(cx, desc.value()) || !JS_WrapValue(cx, &fval))

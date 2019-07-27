@@ -939,17 +939,17 @@ const Class AsmJSModuleObject::class_ = {
     "AsmJSModuleObject",
     JSCLASS_IS_ANONYMOUS | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(AsmJSModuleObject::RESERVED_SLOTS),
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     AsmJSModuleObject_finalize,
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     AsmJSModuleObject_trace
 };
 

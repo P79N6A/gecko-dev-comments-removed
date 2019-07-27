@@ -923,18 +923,18 @@ const Class PropertyIteratorObject::class_ = {
     JSCLASS_HAS_CACHED_PROTO(JSProto_Iterator) |
     JSCLASS_HAS_PRIVATE |
     JSCLASS_BACKGROUND_FINALIZE,
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     finalize,
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    trace
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    trace,
 };
 
 enum {
@@ -947,7 +947,11 @@ enum {
 const Class ArrayIteratorObject::class_ = {
     "Array Iterator",
     JSCLASS_IMPLEMENTS_BARRIERS |
-    JSCLASS_HAS_RESERVED_SLOTS(ArrayIteratorSlotCount)
+    JSCLASS_HAS_RESERVED_SLOTS(ArrayIteratorSlotCount),
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub    
 };
 
 static const JSFunctionSpec array_iterator_methods[] = {
@@ -958,7 +962,11 @@ static const JSFunctionSpec array_iterator_methods[] = {
 
 static const Class StringIteratorPrototypeClass = {
     "String Iterator",
-    JSCLASS_IMPLEMENTS_BARRIERS
+    JSCLASS_IMPLEMENTS_BARRIERS,
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub    
 };
 
 enum {
@@ -970,7 +978,11 @@ enum {
 const Class StringIteratorObject::class_ = {
     "String Iterator",
     JSCLASS_IMPLEMENTS_BARRIERS |
-    JSCLASS_HAS_RESERVED_SLOTS(StringIteratorSlotCount)
+    JSCLASS_HAS_RESERVED_SLOTS(StringIteratorSlotCount),
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub    
 };
 
 static const JSFunctionSpec string_iterator_methods[] = {
@@ -1297,16 +1309,17 @@ stopiter_hasInstance(JSContext *cx, HandleObject obj, MutableHandleValue v, bool
 const Class StopIterationObject::class_ = {
     "StopIteration",
     JSCLASS_HAS_CACHED_PROTO(JSProto_StopIteration),
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    stopiter_hasInstance
+    nullptr,                 
+    nullptr,                 
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    stopiter_hasInstance,
+    nullptr                  
 };
 
  bool

@@ -1348,17 +1348,17 @@ const Class ScriptSourceObject::class_ = {
     "ScriptSource",
     JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
     JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_IS_ANONYMOUS,
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,                
+    nullptr,                
+    JS_PropertyStub,        
+    JS_StrictPropertyStub,  
+    nullptr,                
+    nullptr,                
+    nullptr,                
     finalize,
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr,                
+    nullptr,                
+    nullptr,                
     trace
 };
 

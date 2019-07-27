@@ -37,7 +37,11 @@ using mozilla::RangedPtr;
 
 const Class js::JSONClass = {
     js_JSON_str,
-    JSCLASS_HAS_CACHED_PROTO(JSProto_JSON)
+    JSCLASS_HAS_CACHED_PROTO(JSProto_JSON),
+    nullptr,                
+    nullptr,                
+    JS_PropertyStub,        
+    JS_StrictPropertyStub   
 };
 
 static inline bool

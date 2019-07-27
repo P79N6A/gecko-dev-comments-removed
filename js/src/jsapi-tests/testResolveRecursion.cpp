@@ -17,11 +17,11 @@ BEGIN_TEST(testResolveRecursion)
     static const JSClass my_resolve_class = {
         "MyResolve",
         JSCLASS_HAS_PRIVATE,
-        nullptr, 
-        nullptr, 
-        nullptr, 
-        nullptr, 
-        nullptr, 
+        nullptr,               
+        nullptr,               
+        JS_PropertyStub,       
+        JS_StrictPropertyStub, 
+        nullptr,
         my_resolve
     };
 
