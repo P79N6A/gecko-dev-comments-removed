@@ -951,57 +951,128 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
     
     
     
-    uint32_t dotLoc   = uint32_t(aURIString.FindChar('.'));
-    nsAutoCString tmpURIString(aURIString);
-    uint32_t lastDotLoc = uint32_t(tmpURIString.RFindChar('.'));
-    uint32_t colonLoc = uint32_t(aURIString.FindChar(':'));
-    uint32_t spaceLoc = uint32_t(aURIString.FindChar(' '));
-    if (spaceLoc == 0) {
-        
-        spaceLoc = uint32_t(kNotFound);
+
+    uint32_t firstDotLoc = uint32_t(kNotFound);
+    uint32_t firstColonLoc = uint32_t(kNotFound);
+    uint32_t firstQuoteLoc = uint32_t(kNotFound);
+    uint32_t firstSpaceLoc = uint32_t(kNotFound);
+    uint32_t firstQMarkLoc = uint32_t(kNotFound);
+    uint32_t lastLSBracketLoc = uint32_t(kNotFound);
+    uint32_t pos = 0;
+    uint32_t foundDots = 0;
+    uint32_t foundColons = 0;
+    uint32_t foundDigits = 0;
+    uint32_t foundRSBrackets = 0;
+    bool looksLikeIpv6 = true;
+    bool hasAsciiAlpha = false;
+
+    nsACString::const_iterator iterBegin;
+    nsACString::const_iterator iterEnd;
+    aURIString.BeginReading(iterBegin);
+    aURIString.EndReading(iterEnd);
+    nsACString::const_iterator iter = iterBegin;
+
+    while (iter != iterEnd) {
+        if (pos >= 1 && foundRSBrackets == 0) {
+            if (!(lastLSBracketLoc == 0 &&
+                  (*iter == ':' ||
+                   *iter == '.' ||
+                   *iter == ']' ||
+                   (*iter >= 'a' && *iter <= 'f') ||
+                   (*iter >= 'A' && *iter <= 'F') ||
+                   nsCRT::IsAsciiDigit(*iter)))) {
+                looksLikeIpv6 = false;
+            }
+        }
+        if (*iter == '.') {
+            ++foundDots;
+            if (firstDotLoc == uint32_t(kNotFound)) {
+                firstDotLoc = pos;
+            }
+        } else if (*iter == ':') {
+            ++foundColons;
+            if (firstColonLoc == uint32_t(kNotFound)) {
+                firstColonLoc = pos;
+            }
+        } else if (*iter == ' ' && firstSpaceLoc == uint32_t(kNotFound)) {
+            firstSpaceLoc = pos;
+        } else if (*iter == '?' && firstQMarkLoc == uint32_t(kNotFound)) {
+            firstQMarkLoc = pos;
+        } else if ((*iter == '\'' || *iter == '"') && firstQuoteLoc == uint32_t(kNotFound)) {
+            firstQuoteLoc = pos;
+        } else if (*iter == '[') {
+            lastLSBracketLoc = pos;
+        } else if (*iter == ']') {
+            foundRSBrackets++;
+        } else if (nsCRT::IsAsciiAlpha(*iter)) {
+            hasAsciiAlpha = true;
+        } else if (nsCRT::IsAsciiDigit(*iter)) {
+            ++foundDigits;
+        }
+
+        pos++;
+        iter++;
     }
-    uint32_t qMarkLoc = uint32_t(aURIString.FindChar('?'));
-    uint32_t quoteLoc = std::min(uint32_t(aURIString.FindChar('"')),
-                               uint32_t(aURIString.FindChar('\'')));
+
+    if (lastLSBracketLoc > 0 || foundRSBrackets != 1) {
+        looksLikeIpv6 = false;
+    }
 
     nsresult rv;
+    nsAutoCString asciiHost;
+    nsAutoCString host;
+
+    bool isValidAsciiHost = aFixupInfo->mFixedURI &&
+        NS_SUCCEEDED(aFixupInfo->mFixedURI->GetAsciiHost(asciiHost)) &&
+        !asciiHost.IsEmpty();
+
+    bool isValidHost = aFixupInfo->mFixedURI &&
+        NS_SUCCEEDED(aFixupInfo->mFixedURI->GetHost(host)) &&
+        !host.IsEmpty();
+
     
     
-    if (((spaceLoc < dotLoc || quoteLoc < dotLoc) &&
-         (spaceLoc < colonLoc || quoteLoc < colonLoc) &&
-         (spaceLoc < qMarkLoc || quoteLoc < qMarkLoc)) ||
-        qMarkLoc == 0)
-    {
+    if (foundDots == 3 && (foundDots + foundDigits == pos)) {
+        return;
+    }
+
+    
+    
+    if (looksLikeIpv6) {
+        return;
+    }
+
+    
+    
+    
+    
+    if (((firstSpaceLoc < firstDotLoc || firstQuoteLoc < firstDotLoc) &&
+         (firstSpaceLoc < firstColonLoc || firstQuoteLoc < firstColonLoc) &&
+         (firstSpaceLoc < firstQMarkLoc || firstQuoteLoc < firstQMarkLoc)) || firstQMarkLoc == 0 ||
+        (isValidAsciiHost && isValidHost && !hasAsciiAlpha &&
+         host.EqualsIgnoreCase(asciiHost.get()))) {
+
         rv = KeywordToURI(aFixupInfo->mOriginalInput, aPostData,
                           getter_AddRefs(aFixupInfo->mPreferredURI));
-        if (NS_SUCCEEDED(rv) && aFixupInfo->mPreferredURI)
-        {
+        if (NS_SUCCEEDED(rv) && aFixupInfo->mPreferredURI) {
             aFixupInfo->mFixupUsedKeyword = true;
         }
     }
     
     
-    else if ((dotLoc == uint32_t(kNotFound) ||
-              (dotLoc == lastDotLoc && (dotLoc == 0 || dotLoc == aURIString.Length() - 1))) &&
-             colonLoc == uint32_t(kNotFound) && qMarkLoc == uint32_t(kNotFound))
-    {
+    else if ((firstDotLoc == uint32_t(kNotFound) ||
+              (foundDots == 1 && (firstDotLoc == 0 || firstDotLoc == aURIString.Length() - 1))) &&
+              firstColonLoc == uint32_t(kNotFound) && firstQMarkLoc == uint32_t(kNotFound)) {
 
-        nsAutoCString asciiHost;
-        if (aFixupInfo->mFixedURI &&
-            NS_SUCCEEDED(aFixupInfo->mFixedURI->GetAsciiHost(asciiHost)) &&
-            !asciiHost.IsEmpty()) {
-
-            if (IsDomainWhitelisted(asciiHost, dotLoc)) {
-                return;
-            }
+        if (isValidAsciiHost && IsDomainWhitelisted(asciiHost, firstDotLoc)) {
+            return;
         }
 
         
         
         rv = KeywordToURI(aFixupInfo->mOriginalInput, aPostData,
                           getter_AddRefs(aFixupInfo->mPreferredURI));
-        if (NS_SUCCEEDED(rv) && aFixupInfo->mPreferredURI)
-        {
+        if (NS_SUCCEEDED(rv) && aFixupInfo->mPreferredURI) {
             aFixupInfo->mFixupUsedKeyword = true;
         }
     }
