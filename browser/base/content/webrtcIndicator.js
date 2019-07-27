@@ -57,11 +57,8 @@ function updateIndicatorState() {
   
   let screenShareButton = document.getElementById("screenShareButton");
   if (webrtcUI.showScreenSharingIndicator) {
-    
-    let typeForL10n = webrtcUI.showScreenSharingIndicator;
-    if (typeForL10n == "Browser")
-      typeForL10n = "Window";
-    let stringId = "webrtcIndicator.sharing" + typeForL10n + ".tooltip";
+    let stringId = "webrtcIndicator.sharing" +
+      webrtcUI.showScreenSharingIndicator + ".tooltip";
     screenShareButton.setAttribute("tooltiptext",
                                     gStringBundle.GetStringFromName(stringId));
   }
