@@ -96,7 +96,7 @@ ProfilerConnection.prototype = {
     }
     
     
-    else if (this._target.root) {
+    else if (this._target.root && this._target.root.profilerActor) {
       this._profiler = this._target.root.profilerActor;
       yield this._registerEventNotifications();
     }
@@ -117,7 +117,20 @@ ProfilerConnection.prototype = {
 
 
   _connectMiscActors: function() {
+    
+    
+    
+    if (this._target.form && this._target.form.framerateActor) {
     this._framerate = new FramerateFront(this._target.client, this._target.form);
+    } else {
+      this._framerate = {
+        startRecording: () => {},
+        stopRecording: () => {},
+        cancelRecording: () => {},
+        isRecording: () => false,
+        getPendingTicks: () => null
+      };
+    }
   },
 
   
@@ -146,11 +159,11 @@ ProfilerConnection.prototype = {
 
     
     if (actor == "framerate") {
-      
-      
-      
-      
       switch (method) {
+      
+      
+      
+      
         case "startRecording":
           this._pendingFramerateConsumers++;
           break;
@@ -158,6 +171,12 @@ ProfilerConnection.prototype = {
         case "cancelRecording":
           if (--this._pendingFramerateConsumers > 0) return;
           break;
+        
+        
+        
+        case "getPendingTicks":
+          if (method in this._framerate) break;
+          return null;
       }
       checkPendingFramerateConsumers(this);
       return this._framerate[method].apply(this._framerate, args);
@@ -389,7 +408,11 @@ ProfilerFront.prototype = {
 
 
 
-  _options: undefined
+  _customProfilerOptions: {
+    entries: 1000000,
+    interval: 1,
+    features: ["js"]
+  }
 };
 
 

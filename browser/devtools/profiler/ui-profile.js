@@ -382,6 +382,7 @@ let ProfileView = {
     if (oldGraph) {
       oldGraph.destroy();
     }
+
     
     if (!framerateData || framerateData.length < 2) {
       return null;
@@ -620,15 +621,28 @@ let RecordingUtils = {
       if (!time || time < beginAt || time > endAt) continue;
       let blocks = [];
 
-      for (let { category } of frames) {
-        if (!category) continue;
-        let ordinal = CATEGORY_MAPPINGS[category].ordinal;
+      for (let { category: bitmask } of frames) {
+        if (!bitmask) continue;
+        let category = CATEGORY_MAPPINGS[bitmask];
 
-        if (!blocks[ordinal]) {
-          blocks[ordinal] = 1;
-        } else {
-          blocks[ordinal]++;
+        
+        
+        
+        if (!category) {
+          category = CATEGORY_MAPPINGS[CATEGORY_OTHER];
         }
+
+        if (!blocks[category.ordinal]) {
+          blocks[category.ordinal] = 1;
+        } else {
+          blocks[category.ordinal]++;
+        }
+      }
+
+      
+      
+      if (blocks.length == 0) {
+        blocks[CATEGORY_MAPPINGS[CATEGORY_OTHER].ordinal] = frames.length;
       }
 
       categoriesData.push({
@@ -654,6 +668,12 @@ let RecordingUtils = {
 
 
   plotFramerateFor: function(ticksData, beginAt, endAt) {
+    
+    
+    if (ticksData == null) {
+      return [];
+    }
+
     let framerateData = this._frameratePlotsCache.get(ticksData);
     if (framerateData == null) {
       framerateData = FramerateFront.plotFPS(ticksData, FRAMERATE_CALC_INTERVAL);
