@@ -15,7 +15,6 @@ const XMLHttpRequest =
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/Timer.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
@@ -58,9 +57,6 @@ const ALLOWED_IMAGE_SCHEMES = new Set(["https", "data"]);
 const DIRECTORY_FRECENCY = 1000;
 
 
-const RELATED_FRECENCY = Infinity;
-
-
 const PING_SCORE_DIVISOR = 10000;
 
 
@@ -92,11 +88,6 @@ let DirectoryLinksProvider = {
 
 
   _relatedLinks: new Map(),
-
-  
-
-
-  _topSitesWithRelatedLinks: new Set(),
 
   get _observedPrefs() Object.freeze({
     enhanced: PREF_NEWTAB_ENHANCED,
@@ -441,10 +432,7 @@ let DirectoryLinksProvider = {
     }).catch(ex => {
       Cu.reportError(ex);
       return [];
-    }).then(links => {
-      aCallback(links);
-      this._populatePlacesLinks();
-    });
+    }).then(aCallback);
   },
 
   init: function DirectoryLinksProvider_init() {
@@ -453,9 +441,6 @@ let DirectoryLinksProvider = {
     
     this._directoryFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, DIRECTORY_LINKS_FILE);
     this._lastDownloadMS = 0;
-
-    NewTabUtils.placesProvider.addObserver(this);
-
     return Task.spawn(function() {
       
       let doesFileExists = yield OS.File.exists(this._directoryFilePath);
@@ -467,123 +452,6 @@ let DirectoryLinksProvider = {
       yield this._fetchAndCacheLinksIfNecessary();
     }.bind(this));
   },
-
-  _handleManyLinksChanged: function() {
-    this._topSitesWithRelatedLinks.clear();
-    this._relatedLinks.forEach((relatedLinks, site) => {
-      if (NewTabUtils.isTopPlacesSite(site)) {
-        this._topSitesWithRelatedLinks.add(site);
-      }
-    });
-    this._updateRelatedTile();
-  },
-
-  
-
-
-
-
-  _handleLinkChanged: function(aLink) {
-    let changedLinkSite = NewTabUtils.extractSite(aLink.url);
-    let linkStored = this._topSitesWithRelatedLinks.has(changedLinkSite);
-
-    if (!NewTabUtils.isTopPlacesSite(changedLinkSite) && linkStored) {
-      this._topSitesWithRelatedLinks.delete(changedLinkSite);
-      return true;
-    }
-
-    if (this._relatedLinks.has(changedLinkSite) &&
-        NewTabUtils.isTopPlacesSite(changedLinkSite) && !linkStored) {
-      this._topSitesWithRelatedLinks.add(changedLinkSite);
-      return true;
-    }
-    return false;
-  },
-
-  _populatePlacesLinks: function () {
-    NewTabUtils.links.populateProviderCache(NewTabUtils.placesProvider, () => {
-      this._handleManyLinksChanged();
-    });
-  },
-
-  onLinkChanged: function (aProvider, aLink) {
-    
-    setTimeout(() => {
-      if (this._handleLinkChanged(aLink)) {
-        this._updateRelatedTile();
-      }
-    }, 0);
-  },
-
-  onManyLinksChanged: function () {
-    
-    setTimeout(() => {
-      this._handleManyLinksChanged();
-    }, 0);
-  },
-
-  
-
-
-
-
-
-  _updateRelatedTile: function() {
-    let sortedLinks = NewTabUtils.getProviderLinks(this);
-
-    if (!sortedLinks) {
-      
-      
-      return;
-    }
-
-    
-    let initialLength = sortedLinks.length;
-    this.maxNumLinks = initialLength;
-    if (initialLength) {
-      let mostFrecentLink = sortedLinks[0];
-      if ("related" == mostFrecentLink.type) {
-        this._callObservers("onLinkChanged", {
-          url: mostFrecentLink.url,
-          frecency: 0,
-          lastVisitDate: mostFrecentLink.lastVisitDate,
-          type: "related",
-        }, 0, true);
-      }
-    }
-
-    if (this._topSitesWithRelatedLinks.size == 0) {
-      
-      return;
-    }
-
-    
-    
-    
-    
-    
-    let possibleLinks = new Map();
-    this._topSitesWithRelatedLinks.forEach(topSiteWithRelatedLink => {
-      let relatedLinksMap = this._relatedLinks.get(topSiteWithRelatedLink);
-      relatedLinksMap.forEach((relatedLink, url) => {
-        possibleLinks.set(url, relatedLink);
-      })
-    });
-    let flattenedLinks = [...possibleLinks.values()];
-
-    
-    let relatedIndex = Math.floor(Math.random() * flattenedLinks.length);
-    let chosenRelatedLink = flattenedLinks[relatedIndex];
-
-    
-    this._callObservers("onLinkChanged", {
-      url: chosenRelatedLink.url,
-      frecency: RELATED_FRECENCY,
-      lastVisitDate: chosenRelatedLink.lastVisitDate,
-      type: "related",
-    });
-    return chosenRelatedLink;
-   },
 
   
 
