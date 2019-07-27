@@ -393,6 +393,86 @@ function test_http2_altsvc() {
   chan.asyncOpen(altsvcClientListener, null);
 }
 
+var Http2PushApiListener = function() {};
+
+Http2PushApiListener.prototype = {
+  checksPending: 9, 
+
+  getInterface: function(aIID) {
+    return this.QueryInterface(aIID);
+  },
+
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsIHttpPushListener) ||
+        aIID.equals(Ci.nsIStreamListener))
+      return this;
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  },
+
+  
+  onPush: function onPush(associatedChannel, pushChannel) {
+    do_check_eq(associatedChannel.originalURI.spec, "https://localhost:6944/pushapi1");
+    do_check_eq (pushChannel.getRequestHeader("x-pushed-request"), "true");
+
+    pushChannel.asyncOpen(this, pushChannel);
+    if (pushChannel.originalURI.spec == "https://localhost:6944/pushapi1/2") {
+	pushChannel.cancel(Components.results.NS_ERROR_ABORT);
+    }
+  },
+
+ 
+  onStartRequest: function pushAPIOnStart(request, ctx) {
+  },
+
+  onDataAvailable: function pushAPIOnDataAvailable(request, ctx, stream, offset, cnt) {
+    do_check_neq(ctx.originalURI.spec, "https://localhost:6944/pushapi1/2");
+
+    var data = read_stream(stream, cnt);
+
+    if (ctx.originalURI.spec == "https://localhost:6944/pushapi1") {
+	do_check_eq(data[0], '0');
+	--this.checksPending;
+    } else if (ctx.originalURI.spec == "https://localhost:6944/pushapi1/1") {
+	do_check_eq(data[0], '1');
+	--this.checksPending; 
+    } else if (ctx.originalURI.spec == "https://localhost:6944/pushapi1/3") {
+	do_check_eq(data[0], '3');
+	--this.checksPending;
+    } else {
+	do_check_eq(true, false);
+    }
+  },
+
+  onStopRequest: function test_onStopR(request, ctx, status) {
+    if (ctx.originalURI.spec == "https://localhost:6944/pushapi1/2") {
+	do_check_eq(request.status, Components.results.NS_ERROR_ABORT);
+    } else {
+	do_check_eq(request.status, Components.results.NS_OK);
+    }
+
+    --this.checksPending; 
+    if (!this.checksPending) {
+	run_next_test();
+        do_test_finished();
+    }
+  }
+};
+
+
+
+
+
+
+
+
+function test_http2_pushapi_1() {
+  var chan = makeChan("https://localhost:6944/pushapi1");
+  chan.loadGroup = loadGroup;
+  var listener = new Http2PushApiListener();
+  chan.notificationCallbacks = listener;
+  chan.asyncOpen(listener, chan);
+}
+
 
 
 
@@ -413,6 +493,7 @@ var tests = [ test_http2_post_big
             , test_http2_multiplex
             , test_http2_big
             , test_http2_post
+            , test_http2_pushapi_1
             ];
 var current_test = 0;
 
@@ -483,6 +564,8 @@ var spdy3pref;
 var spdypush;
 var http2pref;
 var tlspref;
+var altsvcpref1;
+var altsvcpref2;
 
 var loadGroup;
 

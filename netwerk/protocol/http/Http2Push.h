@@ -31,8 +31,11 @@ public:
   virtual ~Http2PushedStream() {}
 
   bool GetPushComplete();
-  Http2Stream *GetConsumerStream() { return mConsumerStream; };
-  void SetConsumerStream(Http2Stream *aStream) { mConsumerStream = aStream; }
+
+  
+  virtual Http2Stream *GetConsumerStream() MOZ_OVERRIDE { return mConsumerStream; };
+
+  void SetConsumerStream(Http2Stream *aStream);
   bool GetHashKey(nsCString &key);
 
   
@@ -42,15 +45,20 @@ public:
   nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return mLoadGroupCI; };
   void ConnectPushedStream(Http2Stream *consumer);
 
-  bool DeferCleanupOnSuccess() { return mDeferCleanupOnSuccess; }
+  bool TryOnPush();
+
+  virtual bool DeferCleanup(nsresult status) MOZ_OVERRIDE;
   void SetDeferCleanupOnSuccess(bool val) { mDeferCleanupOnSuccess = val; }
 
   bool IsOrphaned(TimeStamp now);
+  void OnPushFailed() { mDeferCleanupOnPush = false; mOnPushFailed = true; }
 
   nsresult GetBufferedData(char *buf, uint32_t count, uint32_t *countWritten);
 
   
   virtual bool HasSink() { return !!mConsumerStream; }
+
+  nsCString &GetRequestString() { return mRequestString; }
 
 private:
 
@@ -59,6 +67,8 @@ private:
 
   nsCOMPtr<nsILoadGroupConnectionInfo> mLoadGroupCI;
 
+  nsAHttpTransaction *mAssociatedTransaction;
+
   Http2PushTransactionBuffer *mBufferedPush;
   mozilla::TimeStamp mLastRead;
 
@@ -66,6 +76,17 @@ private:
   nsresult mStatus;
   bool mPushCompleted; 
   bool mDeferCleanupOnSuccess;
+
+  
+  
+  
+  
+  
+  
+  bool mDeferCleanupOnPush;
+  bool mOnPushFailed;
+  nsCString mRequestString;
+
 };
 
 class Http2PushTransactionBuffer MOZ_FINAL : public nsAHttpTransaction
