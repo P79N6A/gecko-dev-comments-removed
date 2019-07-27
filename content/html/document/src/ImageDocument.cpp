@@ -458,25 +458,18 @@ ImageDocument::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aDa
     return OnStartContainer(aRequest, image);
   }
 
-  nsDOMTokenList* classList = mImageContent->AsElement()->ClassList();
-  mozilla::ErrorResult rv;
+  
+  
   if (aType == imgINotificationObserver::DECODE_COMPLETE) {
-    if (mImageContent && !nsContentUtils::IsChildOfSameType(this)) {
-      
-      
-      
-      classList->Add(NS_LITERAL_STRING("decoded"), rv);
-      NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
-    }
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewRunnableMethod(this, &ImageDocument::AddDecodedClass);
+    nsContentUtils::AddScriptRunner(runnable);
   }
 
   if (aType == imgINotificationObserver::DISCARD) {
-    
-    if (mImageContent && !nsContentUtils::IsChildOfSameType(this)) {
-      
-      classList->Remove(NS_LITERAL_STRING("decoded"), rv);
-      NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
-    }
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewRunnableMethod(this, &ImageDocument::RemoveDecodedClass);
+    nsContentUtils::AddScriptRunner(runnable);
   }
 
   if (aType == imgINotificationObserver::LOAD_COMPLETE) {
@@ -488,6 +481,34 @@ ImageDocument::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aDa
   }
 
   return NS_OK;
+}
+
+void
+ImageDocument::AddDecodedClass()
+{
+  if (!mImageContent || nsContentUtils::IsChildOfSameType(this)) {
+    return;
+  }
+
+  nsDOMTokenList* classList = mImageContent->AsElement()->ClassList();
+  mozilla::ErrorResult rv;
+  
+  
+  
+  classList->Add(NS_LITERAL_STRING("decoded"), rv);
+}
+
+void
+ImageDocument::RemoveDecodedClass()
+{
+  if (!mImageContent || nsContentUtils::IsChildOfSameType(this)) {
+    return;
+  }
+
+  nsDOMTokenList* classList = mImageContent->AsElement()->ClassList();
+  mozilla::ErrorResult rv;
+  
+  classList->Remove(NS_LITERAL_STRING("decoded"), rv);
 }
 
 void
