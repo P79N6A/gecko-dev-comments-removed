@@ -50,6 +50,59 @@ add_test(function test_read_icc_ucs2_string() {
 
 
 
+add_test(function test_write_icc_ucs2_string() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let helper = context.GsmPDUHelper;
+  let iccHelper = context.ICCPDUHelper;
+  let alphaLen = 18;
+  let test_data = [
+    {
+      encode: 0x80,
+      
+      data: "\u82b3"
+    }, {
+      encode: 0x80,
+      
+      data: "Fire \u82b3\u8233"
+    }, {
+      encode: 0x80,
+      
+      data: "\u694a\u704a"
+    }, {
+      encode: 0x81,
+      
+      data: "Fire \u6901\u697f"
+    }, {
+      encode: 0x81,
+      
+      data: "Fire \u6980\u69ff"
+    }, {
+      encode: 0x82,
+      
+      data: "Fire \u0514\u0593"
+    }, {
+      encode: 0x82,
+      
+      data: "Fire \u8000\u8001"
+    }, {
+      encode: 0x82,
+      
+      data: "Fire \ufffd\ufffe"
+    }];
+
+  for (let i = 0; i < test_data.length; i++) {
+    let test = test_data[i];
+    iccHelper.writeICCUCS2String(alphaLen, test.data);
+    equal(helper.readHexOctet(), test.encode);
+    equal(iccHelper.readICCUCS2String(test.encode, alphaLen - 1), test.data);
+  }
+
+  run_next_test();
+});
+
+
+
 add_test(function test_read_dialling_number() {
   let worker = newUint8Worker();
   let context = worker.ContextPool._contexts[0];
@@ -292,7 +345,7 @@ add_test(function test_write_alpha_identifier() {
   equal(iccHelper.readAlphaIdentifier(str.length + ffLen), str);
 
   
-  str = "Mozilla\u694a";
+  str = "Mozilla\u8000";
   iccHelper.writeAlphaIdentifier(str.length * 2 + ffLen, str);
   
   equal(iccHelper.readAlphaIdentifier(str.length * 2 + ffLen), str);
@@ -305,7 +358,7 @@ add_test(function test_write_alpha_identifier() {
 
   
   
-  str = "\u694a\u694a";
+  str = "\u694a\u69ca";
   iccHelper.writeAlphaIdentifier(4, str);
   helper.writeHexOctet(0xff); 
   equal(iccHelper.readAlphaIdentifier(5), str.substring(0, 1));
