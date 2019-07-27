@@ -1148,6 +1148,15 @@ NotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
       }
     }
   } else if (!strcmp("alertfinished", aTopic)) {
+    
+    
+    
+    
+    nsCOMPtr<nsPIDOMWindow> window = notification->GetOwner();
+    if (NS_WARN_IF(!window || !window->IsCurrentInnerWindow())) {
+      return NS_ERROR_FAILURE;
+    }
+
     notification->UnpersistNotification();
     notification->mIsClosed = true;
     notification->DispatchTrustedEvent(NS_LITERAL_STRING("close"));
