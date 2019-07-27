@@ -775,6 +775,8 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
 
     
+    
+    
     size_t              numCompartments;
 
     
