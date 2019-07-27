@@ -43,6 +43,10 @@ let Reader = {
   },
 
   updatePageAction: function(tab) {
+    if (!tab.getActive()) {
+      return;
+    }
+
     if (this.pageAction.id) {
       PageActions.remove(this.pageAction.id);
       delete this.pageAction.id;
@@ -65,7 +69,7 @@ let Reader = {
     
     UITelemetry.stopSession("reader.1", "", null);
 
-    if (tab.readerEnabled) {
+    if (tab.savedArticle) {
       this.pageAction.id = PageActions.add({
         title: Strings.browser.GetStringFromName("readerMode.enter"),
         icon: "drawable://reader",
