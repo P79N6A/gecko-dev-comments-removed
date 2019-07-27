@@ -35,7 +35,7 @@ function test()
 
 
 
-  (function(){for(var x = arguments in []){} function x(){}})();
+  (function(){for(var x in [arguments]){} function x(){}})();
 
 
 

@@ -75,7 +75,7 @@ function test()
 
 
 
-  uneval(function(){for(var [arguments] = ({ get y(){} }) in y ) (x);});
+  uneval(function(){arguments = ({ get y(){} }); for(var [arguments] in y ) (x);});
 
 
 

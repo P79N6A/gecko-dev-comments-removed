@@ -27,7 +27,7 @@ function test()
 
 
 
-  for (var [x]=[] in null) ;
+  for (var [x] in null) ;
 
 
 
