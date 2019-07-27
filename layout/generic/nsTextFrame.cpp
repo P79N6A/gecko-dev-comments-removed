@@ -1149,17 +1149,9 @@ CanTextCrossFrameBoundary(nsIFrame* aFrame, nsIAtom* aType)
       result.mScanSiblings = true;
       result.mTextRunCanCrossFrameBoundary = true;
       result.mLineBreakerCanCrossFrameBoundary = true;
-    } else if (aFrame->GetType() == nsGkAtoms::rubyTextFrame ||
-               aFrame->GetType() == nsGkAtoms::rubyTextContainerFrame) {
-      result.mFrameToScan = aFrame->GetFirstPrincipalChild();
-      result.mOverflowFrameToScan =
-        aFrame->GetFirstChild(nsIFrame::kOverflowList);
-      NS_WARN_IF_FALSE(!result.mOverflowFrameToScan,
-                       "Scanning overflow inline frames is something we should avoid");
-      result.mScanSiblings = true;
-      result.mTextRunCanCrossFrameBoundary = false;
-      result.mLineBreakerCanCrossFrameBoundary = false;
     } else {
+      MOZ_ASSERT(aType != nsGkAtoms::rubyTextContainerFrame,
+                 "Shouldn't call this method for ruby text container");
       result.mFrameToScan = nullptr;
       result.mOverflowFrameToScan = nullptr;
       result.mTextRunCanCrossFrameBoundary = false;
@@ -1173,6 +1165,12 @@ BuildTextRunsScanner::FindBoundaryResult
 BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState)
 {
   nsIAtom* frameType = aFrame->GetType();
+  if (frameType == nsGkAtoms::rubyTextContainerFrame) {
+    
+    
+    return FB_CONTINUE;
+  }
+
   nsTextFrame* textFrame = frameType == nsGkAtoms::textFrame
     ? static_cast<nsTextFrame*>(aFrame) : nullptr;
   if (textFrame) {
@@ -1663,12 +1661,18 @@ BuildTextRunsScanner::ContinueTextRunAcrossFrames(nsTextFrame* aFrame1, nsTextFr
 
 void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
 {
+  nsIAtom* frameType = aFrame->GetType();
+  if (frameType == nsGkAtoms::rubyTextContainerFrame) {
+    
+    return;
+  }
+
   
   if (mMappedFlows.Length() > 0) {
     MappedFlow* mappedFlow = &mMappedFlows[mMappedFlows.Length() - 1];
     if (mappedFlow->mEndFrame == aFrame &&
         (aFrame->GetStateBits() & NS_FRAME_IS_FLUID_CONTINUATION)) {
-      NS_ASSERTION(aFrame->GetType() == nsGkAtoms::textFrame,
+      NS_ASSERTION(frameType == nsGkAtoms::textFrame,
                    "Flow-sibling of a text frame is not a text frame?");
 
       
@@ -1682,7 +1686,6 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
     }
   }
 
-  nsIAtom* frameType = aFrame->GetType();
   
   if (frameType == nsGkAtoms::textFrame) {
     nsTextFrame* frame = static_cast<nsTextFrame*>(aFrame);
