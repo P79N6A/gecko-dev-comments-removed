@@ -3509,15 +3509,13 @@ void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatu
     bool hasVideo = !VideoTracks()->IsEmpty();
 
     if ((!hasAudio && !hasVideo) ||
-        (IsVideo() && hasVideo && mMediaInfo.mVideo.mDisplay == nsIntSize(0, 0))) {
+        (IsVideo() && hasVideo && !HasVideo())) {
       return;
     }
 
     
     
     MediaInfo mediaInfo = mMediaInfo;
-    mediaInfo.mAudio.mHasAudio = hasAudio;
-    mediaInfo.mVideo.mHasVideo = hasVideo;
     MetadataLoaded(&mediaInfo, nsAutoPtr<const MetadataTags>(nullptr));
   }
 

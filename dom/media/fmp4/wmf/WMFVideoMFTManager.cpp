@@ -307,7 +307,6 @@ WMFVideoMFTManager::ConfigureVideoFrameGeometry()
 
   
   mVideoInfo.mDisplay = displaySize;
-  mVideoInfo.mHasVideo = true;
   GetDefaultStride(mediaType, &mVideoStride);
   mVideoWidth = width;
   mVideoHeight = height;
