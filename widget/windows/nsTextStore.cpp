@@ -1230,6 +1230,7 @@ nsTextStore::nsTextStore()
   , mPendingOnSelectionChange(false)
   , mPendingOnLayoutChange(false)
   , mPendingDestroy(false)
+  , mPendingClearLockedContent(false)
   , mNativeCaretIsCreated(false)
   , mDeferNotifyingTSF(false)
 {
@@ -1604,7 +1605,10 @@ nsTextStore::FlushPendingActions()
     return;
   }
 
-  mLockedContent.Clear();
+  
+  
+  
+  mPendingClearLockedContent = !mPendingActions.Length();
 
   nsRefPtr<nsWindowBase> kungFuDeathGrip(mWidget);
   for (uint32_t i = 0; i < mPendingActions.Length(); i++) {
@@ -1638,6 +1642,8 @@ nsTextStore::FlushPendingActions()
         WidgetCompositionEvent compositionStart(true, NS_COMPOSITION_START,
                                                 mWidget);
         mWidget->InitEvent(compositionStart);
+        
+        mPendingClearLockedContent = true;
         DispatchEvent(compositionStart);
         if (!mWidget || mWidget->Destroyed()) {
           break;
@@ -1701,6 +1707,11 @@ nsTextStore::FlushPendingActions()
           action.mRanges->AppendElement(wholeRange);
         }
         compositionChange.mRanges = action.mRanges;
+        
+        
+        if (compositionChange.CausesDOMTextEvent()) {
+          mPendingClearLockedContent = true;
+        }
         DispatchEvent(compositionChange);
         
         break;
@@ -1721,6 +1732,11 @@ nsTextStore::FlushPendingActions()
                                                  mWidget);
         mWidget->InitEvent(compositionCommit);
         compositionCommit.mData = action.mData;
+        
+        
+        if (compositionCommit.CausesDOMTextEvent()) {
+          mPendingClearLockedContent = true;
+        }
         DispatchEvent(compositionCommit);
         if (!mWidget || mWidget->Destroyed()) {
           break;
@@ -1781,6 +1797,11 @@ nsTextStore::MaybeFlushPendingNotifications()
   if (mPendingDestroy) {
     Destroy();
     return;
+  }
+
+  if (mPendingClearLockedContent) {
+    mPendingClearLockedContent = false;
+    mLockedContent.Clear();
   }
 
   if (mPendingOnLayoutChange) {
@@ -1904,9 +1925,9 @@ nsTextStore::GetSelection(ULONG ulIndex,
 nsTextStore::Content&
 nsTextStore::LockedContent()
 {
-  MOZ_ASSERT(IsReadLocked(),
-             "LockedContent must be called only during the document is locked");
-  if (!IsReadLocked()) {
+  
+  
+  if (NS_WARN_IF(!IsReadLocked() && !mLockedContent.IsInitialized())) {
     mLockedContent.Clear();
     return mLockedContent;
   }
@@ -4364,6 +4385,8 @@ nsTextStore::OnTextChangeInternal(const IMENotification& aIMENotification)
 void
 nsTextStore::NotifyTSFOfTextChange(const TS_TEXTCHANGE& aTextChange)
 {
+  
+  
   if (NS_WARN_IF(IsReadLocked())) {
     return;
   }
@@ -4531,9 +4554,7 @@ nsTextStore::OnUpdateCompositionInternal()
      "mDeferNotifyingTSF=%s",
      this, GetBoolName(mDeferNotifyingTSF)));
 
-  if (!mDeferNotifyingTSF) {
-    return NS_OK;
-  }
+  mPendingClearLockedContent = true;
   mDeferNotifyingTSF = false;
   MaybeFlushPendingNotifications();
   return NS_OK;

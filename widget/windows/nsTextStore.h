@@ -780,6 +780,9 @@ protected:
   
   bool                         mPendingDestroy;
   
+  
+  bool                         mPendingClearLockedContent;
+  
   bool                         mNativeCaretIsCreated;
   
   
