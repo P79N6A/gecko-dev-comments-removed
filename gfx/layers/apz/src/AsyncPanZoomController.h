@@ -913,8 +913,6 @@ public:
 
 
 
-
-
   bool AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                      const OverscrollHandoffChain& aOverscrollHandoffChain,
                      uint32_t aOverscrollHandoffChainIndex = 0);

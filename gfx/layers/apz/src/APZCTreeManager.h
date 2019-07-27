@@ -299,8 +299,6 @@ public:
 
 
 
-
-
   bool DispatchScroll(AsyncPanZoomController* aApzc,
                       ScreenPoint aStartPoint,
                       ScreenPoint aEndPoint,
