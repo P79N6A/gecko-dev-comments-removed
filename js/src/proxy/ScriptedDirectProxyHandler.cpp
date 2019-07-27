@@ -1090,6 +1090,35 @@ ScriptedDirectProxyHandler::isCallable(JSObject *obj) const
     return obj->as<ProxyObject>().extra(IS_CALLABLE_EXTRA).toBoolean();
 }
 
+
+
+bool
+ScriptedDirectProxyHandler::getPrototypeOf(JSContext *cx, HandleObject proxy,
+                                           MutableHandleObject protop) const
+{
+    RootedObject target(cx, proxy->as<ProxyObject>().target());
+    
+    if (!target) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
+        return false;
+    }
+
+    return DirectProxyHandler::getPrototypeOf(cx, proxy, protop);
+}
+
+bool
+ScriptedDirectProxyHandler::setPrototypeOf(JSContext *cx, HandleObject proxy,
+                                           HandleObject proto, bool *bp) const
+{
+    RootedObject target(cx, proxy->as<ProxyObject>().target());
+    if (!target) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
+        return false;
+    }
+
+    return DirectProxyHandler::setPrototypeOf(cx, proxy, proto, bp);
+}
+
 const char ScriptedDirectProxyHandler::family = 0;
 const ScriptedDirectProxyHandler ScriptedDirectProxyHandler::singleton;
 
