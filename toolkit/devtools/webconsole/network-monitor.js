@@ -735,6 +735,17 @@ NetworkMonitor.prototype = {
       return true;
     }
 
+    
+    
+    
+    
+    
+    if (!gDevTools.testing && aChannel.loadInfo &&
+        aChannel.loadInfo.loadingDocument === null &&
+        aChannel.loadInfo.loadingPrincipal === Services.scriptSecurityManager.getSystemPrincipal()) {
+      return false;
+    }
+
     if (this.window) {
       
       
