@@ -233,7 +233,7 @@ function finishTests() {
 
 
 function click(node) {
-  node.scrollIntoView()
+  node.scrollIntoView();
   executeSoon(() => EventUtils.synthesizeMouseAtCenter(node, {}, gPanelWindow));
 }
 
@@ -483,8 +483,35 @@ function selectTreeItem(ids) {
   
   
   gUI.tree.expandAll();
-  click(gPanelWindow.document.querySelector("[data-id='" + JSON.stringify(ids) +
-        "'] > .tree-widget-item"));
+  let target = gPanelWindow.document.querySelector(
+                 "[data-id='" + JSON.stringify(ids) + "'] > .tree-widget-item");
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  let animatingList = target.nextElementSibling;
+  while (animatingList) {
+    if (window.getComputedStyle(animatingList).maxHeight != "none") {
+      break;
+    }
+    animatingList = animatingList.parentNode.closest(".tree-widget-item + ul");
+  }
+
+  if (animatingList) {
+    animatingList.addEventListener("animationend", function animationend() {
+      animatingList.removeEventListener("animationend", animationend);
+      click(target);
+    });
+  } else {
+    click(target);
+  }
 }
 
 
