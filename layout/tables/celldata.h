@@ -165,19 +165,19 @@ typedef uint16_t BCPixelSize;
 
 #define MAX_BORDER_WIDTH nscoord((1u << (sizeof(BCPixelSize) * 8)) - 1)
 
-static inline nscoord
-BC_BORDER_TOP_HALF_COORD(int32_t p2t, uint16_t px)    { return (px - px / 2) * p2t; }
-static inline nscoord
-BC_BORDER_RIGHT_HALF_COORD(int32_t p2t, uint16_t px)  { return (     px / 2) * p2t; }
-static inline nscoord
-BC_BORDER_BOTTOM_HALF_COORD(int32_t p2t, uint16_t px) { return (     px / 2) * p2t; }
-static inline nscoord
-BC_BORDER_LEFT_HALF_COORD(int32_t p2t, uint16_t px)   { return (px - px / 2) * p2t; }
 
-#define BC_BORDER_TOP_HALF(px)    ((px) - (px) / 2)
-#define BC_BORDER_RIGHT_HALF(px)  ((px) / 2)
-#define BC_BORDER_BOTTOM_HALF(px) ((px) / 2)
-#define BC_BORDER_LEFT_HALF(px)   ((px) - (px) / 2)
+static inline BCPixelSize
+BC_BORDER_START_HALF(BCPixelSize px) { return px - px / 2; }
+
+static inline BCPixelSize
+BC_BORDER_END_HALF(BCPixelSize px) { return px / 2; }
+
+static inline nscoord
+BC_BORDER_START_HALF_COORD(int32_t p2t, BCPixelSize px)
+  { return BC_BORDER_START_HALF(px) * p2t; }
+static inline nscoord
+BC_BORDER_END_HALF_COORD(int32_t p2t, BCPixelSize px)
+  { return BC_BORDER_END_HALF(px) * p2t; }
 
 
 class BCData
