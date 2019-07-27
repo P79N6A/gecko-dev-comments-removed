@@ -242,6 +242,44 @@ function markMessageRead(aMmdb, aMessageId, aRead) {
 
 
 
+function deleteMessage(aMmdb, aMessageIds, aLength) {
+  let deferred = Promise.defer();
+
+  aMmdb.deleteMessage(aMessageIds, aLength, {
+    notifyDeleteMessageFailed: function(aRv) {
+      ok(true, "deleteMessage returns a unsuccessful code: " + aRv);
+      deferred.reject(aRv);
+    },
+
+    notifyMessageDeleted: function(aDeleted, aLength) {
+      ok(true, "deleteMessage successfully!");
+      deferred.resolve(aDeleted);
+    }
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+function saveSmsSegment(aMmdb, aSmsSegment) {
+  return callMmdbMethod(aMmdb, "saveSmsSegment", aSmsSegment);
+}
+
+
+
+
+
+
+
+
+
 
 
 
