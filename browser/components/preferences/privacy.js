@@ -325,12 +325,12 @@ var gPrivacyPane = {
 
 
 
-  writeSuggestionPref: function PPP_writeSuggestionPref() {
+  writeSuggestionPref() {
     let getVal = (aPref) => {
       return document.getElementById("browser.urlbar.suggest." + aPref).value;
     }
     
-    let enabled = ["history", "bookmark", "openpage"].map(getVal).some(v => v);
+    let enabled = ["history", "bookmark", "openpage", "searches"].map(getVal).some(v => v);
     Services.prefs.setBoolPref("browser.urlbar.autocomplete.enabled", enabled);
   },
 
