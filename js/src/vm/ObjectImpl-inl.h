@@ -328,7 +328,10 @@ NativeObject::copy(ExclusiveContext *cx, gc::AllocKind kind, gc::InitialHeap hea
     if (span) {
         uint32_t numFixed = templateObject->numFixedSlots();
         const Value *fixed = &templateObject->getSlot(0);
-        MOZ_ASSERT(numFixed <= span);
+        
+        
+        if (span < numFixed)
+            numFixed = span;
         obj->copySlotRange(0, fixed, numFixed);
 
         if (numFixed < span) {
