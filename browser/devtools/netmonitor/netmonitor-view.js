@@ -2104,8 +2104,7 @@ NetworkDetailsView.prototype = {
     
     let hasSecurityInfo = aData.securityState &&
                           aData.securityState !== "insecure";
-
-    $("#security-tab").hidden = !hasSecurityInfo;
+    this.sidebar.toggleTab(hasSecurityInfo, "security-tab", "security-tabpanel");
 
     
     
