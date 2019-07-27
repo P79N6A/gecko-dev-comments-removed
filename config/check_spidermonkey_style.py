@@ -67,6 +67,7 @@ included_inclnames_to_ignore = set([
     'js-config.h',              
     'pratom.h',                 
     'prcvar.h',                 
+    'prerror.h',                
     'prinit.h',                 
     'prlink.h',                 
     'prlock.h',                 
