@@ -97,8 +97,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
         
         
         MOZ_ASSERT(win->IsInnerWindow());
-        nsPIDOMWindow* outer = win->GetOuterWindow();
-        if (!outer || win != outer->GetCurrentInnerWindow()) {
+        if (!win->HasActiveDocument()) {
           
           return;
         }
