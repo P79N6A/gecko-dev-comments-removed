@@ -97,7 +97,7 @@ public:
 
   BluetoothGattCharacteristic(nsPIDOMWindow* aOwner,
                               BluetoothGattService* aService,
-                              const BluetoothGattId& aCharId);
+                              const BluetoothGattCharAttribute& aChar);
 
 private:
   ~BluetoothGattCharacteristic();
@@ -110,6 +110,13 @@ private:
 
 
   void HandleDescriptorsDiscovered(const BluetoothValue& aValue);
+
+  
+
+
+
+
+  void HandleCharacteristicValueUpdated(const BluetoothValue& aValue);
 
   
 
