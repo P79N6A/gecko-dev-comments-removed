@@ -223,7 +223,10 @@ public:
 
 
 
-  virtual void UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
+
+
+
+  virtual bool UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
                                    const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
 
   
