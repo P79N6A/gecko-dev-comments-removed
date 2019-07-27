@@ -83,6 +83,12 @@ HttpBaseChannel::HttpBaseChannel()
   LOG(("Creating HttpBaseChannel @%x\n", this));
 
   
+#ifdef MOZ_VALGRIND
+  
+  
+  memset(&mSelfAddr, 0, sizeof(NetAddr));
+  memset(&mPeerAddr, 0, sizeof(NetAddr));
+#endif
   mSelfAddr.raw.family = PR_AF_UNSPEC;
   mPeerAddr.raw.family = PR_AF_UNSPEC;
 }
