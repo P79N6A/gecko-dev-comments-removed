@@ -625,6 +625,9 @@ class TypeSet
     TemporaryTypeSet *filter(LifoAlloc *alloc, bool filterUndefined, bool filterNull) const;
 
     
+    TemporaryTypeSet *cloneObjectsOnly(LifoAlloc *alloc);
+
+    
     static void readBarrier(const TypeSet *types);
 
   protected:
