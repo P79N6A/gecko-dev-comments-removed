@@ -1717,6 +1717,25 @@ Layer::DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent)
     DumpRegion(layer->mutable_vregion(), mVisibleRegion);
   }
   
+  if (!mEventRegions.IsEmpty()) {
+    const EventRegions &e = mEventRegions;
+    if (!e.mHitRegion.IsEmpty()) {
+      DumpRegion(layer->mutable_hitregion(), e.mHitRegion);
+    }
+    if (!e.mDispatchToContentHitRegion.IsEmpty()) {
+      DumpRegion(layer->mutable_dispatchregion(), e.mDispatchToContentHitRegion);
+    }
+    if (!e.mNoActionRegion.IsEmpty()) {
+      DumpRegion(layer->mutable_noactionregion(), e.mNoActionRegion);
+    }
+    if (!e.mHorizontalPanRegion.IsEmpty()) {
+      DumpRegion(layer->mutable_hpanregion(), e.mHorizontalPanRegion);
+    }
+    if (!e.mVerticalPanRegion.IsEmpty()) {
+      DumpRegion(layer->mutable_vpanregion(), e.mVerticalPanRegion);
+    }
+  }
+  
   layer->set_opacity(mOpacity);
   
   layer->set_copaque(static_cast<bool>(GetContentFlags() & CONTENT_OPAQUE));
