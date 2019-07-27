@@ -796,7 +796,15 @@ public:
 
 
 
-    CONTENT_DISABLE_SUBPIXEL_AA = 0x20
+    CONTENT_DISABLE_SUBPIXEL_AA = 0x20,
+
+    
+
+
+
+
+
+    CONTENT_DISABLE_FLATTENING = 0x40
   };
   
 
