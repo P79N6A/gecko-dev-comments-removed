@@ -22,22 +22,22 @@ if (typeof findReferences == "function") {
     function g() { return 42; }
     function s(v) { }
     var p = Object.defineProperty({}, 'a', { get:g, set:s });
-    assertEq(referencesVia(p, 'shape; base; getter', g), true);
-    assertEq(referencesVia(p, 'shape; base; setter', s), true);
+    assertEq(referencesVia(p, 'shape; getter', g), true);
+    assertEq(referencesVia(p, 'shape; setter', s), true);
 
     
     
     
     var q = Object.defineProperty({}, 'a', { get:g, set:s });
-    assertEq(referencesVia(p, 'shape; base; getter', g), true);
-    assertEq(referencesVia(q, 'shape; base; getter', g), true);
+    assertEq(referencesVia(p, 'shape; getter', g), true);
+    assertEq(referencesVia(q, 'shape; getter', g), true);
 
     
     
     p.b = 9;
     q.b = 9;
-    assertEq(referencesVia(p, 'shape; parent; base; getter', g), true);
-    assertEq(referencesVia(q, 'shape; parent; base; getter', g), true);
+    assertEq(referencesVia(p, 'shape; parent; getter', g), true);
+    assertEq(referencesVia(q, 'shape; parent; getter', g), true);
 
     
     assertEq(referencesVia(C, 'prototype', Object.getPrototypeOf(o)), true);
