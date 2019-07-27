@@ -865,7 +865,7 @@ SessionStore.prototype = {
     return this._windows[aWindow.__SSID].closedTabs;
   },
 
-  undoCloseTab: function ss_undoCloseTab(aWindow, aIndex) {
+  undoCloseTab: function ss_undoCloseTab(aWindow, aCloseTabData) {
     if (!aWindow.__SSID)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
 
@@ -874,27 +874,27 @@ SessionStore.prototype = {
       return null;
 
     
-    aIndex = aIndex || 0;
-    if (!(aIndex in closedTabs))
-      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
-
-    
-    let closedTab = closedTabs.splice(aIndex, 1).shift();
+    closedTabs.find(function (tabData, i) {
+      if (tabData == aCloseTabData) {
+        closedTabs.splice(i, 1);
+        return true;
+      }
+    });
 
     
     let params = {
       selected: true,
-      isPrivate: closedTab.isPrivate,
-      desktopMode: closedTab.desktopMode,
+      isPrivate: aCloseTabData.isPrivate,
+      desktopMode: aCloseTabData.desktopMode,
       tabIndex: this._lastClosedTabIndex
     };
-    let tab = aWindow.BrowserApp.addTab(closedTab.entries[closedTab.index - 1].url, params);
-    this._restoreHistory(closedTab, tab.browser.sessionHistory);
+    let tab = aWindow.BrowserApp.addTab(aCloseTabData.entries[aCloseTabData.index - 1].url, params);
+    this._restoreHistory(aCloseTabData, tab.browser.sessionHistory);
 
     this._lastClosedTabIndex = -1;
 
     
-    tab.browser.__SS_extdata = closedTab.extData;
+    tab.browser.__SS_extdata = aCloseTabData.extData;
 
     if (this._notifyClosedTabs) {
       this._sendClosedTabsToJava(aWindow);
