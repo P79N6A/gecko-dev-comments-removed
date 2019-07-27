@@ -162,6 +162,11 @@ assertEq(obj.meth, 3);
 assertThrowsInstanceOf(function() {obj.meth();}, TypeError);
 
 
+a = {b(c){"use strict";return c;}};
+assertEq(a.b(1), 1);
+a = {["b"](c){"use strict";return c;}};
+assertEq(a.b(1), 1);
+
 
 assertEq(({ method() {} }).method.name, "method");
 assertThrowsInstanceOf(function() {({ method() { method() } }).method() }, ReferenceError);
