@@ -88,6 +88,7 @@
 #include "mozilla/Preferences.h"
 #include "nsFrameSelection.h"
 #include "FrameLayerBuilder.h"
+#include "mozilla/layers/AsyncPanZoomController.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
@@ -98,10 +99,6 @@
 #include "nsTransitionManager.h"
 #include "RestyleManager.h"
 
-
-#ifdef MOZ_WIDGET_GONK
-#include "mozilla/layers/AsyncPanZoomController.h"
-#endif
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2735,9 +2732,6 @@ nsLayoutUtils::GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
 }
 
 
-
-#ifdef MOZ_WIDGET_GONK
-
 static FrameMetrics
 CalculateFrameMetricsForDisplayPort(nsIFrame* aScrollFrame,
                                     nsIScrollableFrame* aScrollFrameAsScrollable) {
@@ -2784,7 +2778,6 @@ CalculateFrameMetricsForDisplayPort(nsIFrame* aScrollFrame,
 
   return metrics;
 }
-#endif
 
 bool
 nsLayoutUtils::GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
@@ -2804,7 +2797,6 @@ nsLayoutUtils::GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
 
   bool haveDisplayPort = GetDisplayPort(content, aOutDisplayport);
 
-#ifdef MOZ_WIDGET_GONK
   
   
   
@@ -2834,7 +2826,6 @@ nsLayoutUtils::GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
     
     aBuilder.SetHaveScrollableDisplayPort();
   }
-#endif
 
   return haveDisplayPort;
 }
