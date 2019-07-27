@@ -119,8 +119,8 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_PLUGIN_ID            105
 
 #define NS_IWIDGET_IID \
-{ 0x53376F57, 0xF081, 0x4949, \
-  { 0xB5, 0x5E, 0x87, 0xEF, 0x6A, 0xE9, 0xE3, 0x5A } };
+{ 0xb81e1264, 0x9f79, 0x4962, \
+  { 0x8d, 0x9a, 0x64, 0xdd, 0x21, 0x5d, 0x6a, 0x01 } }
 
 
 
@@ -1703,11 +1703,7 @@ class nsIWidget : public nsISupports {
 
 
 
-
-
-
-
-    virtual void PrepareForDOMFullscreenTransition() = 0;
+    NS_IMETHOD MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen = nullptr) = 0;
 
     
 
@@ -1715,8 +1711,11 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen = nullptr) = 0;
+    NS_IMETHOD MakeFullScreenWithNativeTransition(
+      bool aFullScreen, nsIScreen* aTargetScreen = nullptr)
+    {
+      return MakeFullScreen(aFullScreen, aTargetScreen);
+    }
 
     
 

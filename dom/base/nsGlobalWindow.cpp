@@ -6104,10 +6104,13 @@ nsGlobalWindow::SetFullscreenInternal(FullscreenReason aReason,
       if (aHMD) {
         screen = aHMD->GetScreen();
       }
-      if (aReason == eForFullscreenAPI) {
-        widget->PrepareForDOMFullscreenTransition();
+      if (aReason == eForFullscreenMode) {
+        
+        
+        widget->MakeFullScreenWithNativeTransition(aFullScreen, screen);
+      } else {
+        widget->MakeFullScreen(aFullScreen, screen);
       }
-      widget->MakeFullScreen(aFullScreen, screen);
       
       
       
