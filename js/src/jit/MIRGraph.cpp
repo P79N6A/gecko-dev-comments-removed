@@ -449,9 +449,6 @@ bool
 MBasicBlock::initEntrySlots(TempAllocator &alloc)
 {
     
-    discardResumePoint(entryResumePoint_);
-
-    
     entryResumePoint_ = MResumePoint::New(alloc, this, pc(), callerResumePoint(),
                                           MResumePoint::ResumeAt);
     if (!entryResumePoint_)
@@ -720,19 +717,6 @@ AssertSafelyDiscardable(MDefinition *def)
 }
 
 void
-MBasicBlock::discardResumePoint(MResumePoint *rp)
-{
-    rp->discardUses();
-    MResumePointIterator iter = resumePointsBegin();
-    while (*iter != rp) {
-        
-        MOZ_ASSERT(iter != resumePointsEnd());
-        iter++;
-    }
-    resumePoints_.removeAt(iter);
-}
-
-void
 MBasicBlock::prepareForDiscard(MInstruction *ins, ReferencesType refType )
 {
     
@@ -740,8 +724,19 @@ MBasicBlock::prepareForDiscard(MInstruction *ins, ReferencesType refType )
     MOZ_ASSERT(ins->block() == this);
 
     MResumePoint *rp = ins->resumePoint();
-    if (refType & RefType_DiscardResumePoint && rp)
-        discardResumePoint(rp);
+    if (refType & RefType_DiscardResumePoint && rp) {
+        rp->discardUses();
+        
+        
+        MResumePointIterator iter = resumePointsBegin();
+        while (*iter != rp) {
+            
+            
+            MOZ_ASSERT(iter != resumePointsEnd());
+            iter++;
+        }
+        resumePoints_.removeAt(iter);
+    }
 
     
     
