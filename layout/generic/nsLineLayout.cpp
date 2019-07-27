@@ -1443,10 +1443,16 @@ nsLineLayout::PlaceFrame(PerFrameData* pfd, nsHTMLReflowMetrics& aMetrics)
   WritingMode lineWM = mRootSpan->mWritingMode;
 
   
-  if (aMetrics.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    pfd->mAscent = pfd->mFrame->GetLogicalBaseline(lineWM);
+  
+  
+  if (pfd->mFrame->GetWritingMode().GetBlockDir() != lineWM.GetBlockDir()) {
+    pfd->mAscent = lineWM.IsLineInverted() ? 0 : aMetrics.BSize(lineWM);
   } else {
-    pfd->mAscent = aMetrics.BlockStartAscent();
+    if (aMetrics.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+      pfd->mAscent = pfd->mFrame->GetLogicalBaseline(lineWM);
+    } else {
+      pfd->mAscent = aMetrics.BlockStartAscent();
+    }
   }
 
   
