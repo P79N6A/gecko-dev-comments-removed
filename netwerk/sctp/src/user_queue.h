@@ -31,9 +31,6 @@
 #ifndef _USER_QUEUE_H_
 #define	_USER_QUEUE_H_
 
-#if !defined (__Userspace_os_Windows)
-#include <sys/cdefs.h>
-#endif
 
 
 

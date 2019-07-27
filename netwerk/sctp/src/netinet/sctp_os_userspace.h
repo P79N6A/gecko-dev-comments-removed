@@ -273,7 +273,6 @@ typedef char* caddr_t;
 #endif
 
 #else 
-#include <sys/cdefs.h> 
 #include <sys/socket.h>
 #if defined(__Userspace_os_DragonFly) || defined(__Userspace_os_FreeBSD) || defined(__Userspace_os_Linux) || defined(__Userspace_os_NetBSD) || defined(__Userspace_os_OpenBSD) || defined(__Userspace_os_NaCl)
 #include <pthread.h>
@@ -437,10 +436,10 @@ struct sx {int dummy;};
 
 
 
-#if defined(__Userspace_os_Windows)
-#include <user_queue.h>
-#else
+#if defined(HAVE_SYS_QUEUE_H)
 #include <sys/queue.h>
+#else
+#include <user_queue.h>
 #endif
 #include <user_malloc.h>
 
@@ -496,7 +495,7 @@ struct sx {int dummy;};
 
 #include <sys/types.h>
 #if !defined(__Userspace_os_Windows)
-#if !defined(ANDROID) && (defined(INET) || defined(INET6))
+#if defined(INET) || defined(INET6)
 #include <ifaddrs.h>
 #endif
 
