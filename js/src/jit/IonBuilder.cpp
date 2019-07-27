@@ -1857,7 +1857,11 @@ IonBuilder::inspectOpcode(JSOp op)
 
       case JSOP_GETELEM:
       case JSOP_CALLELEM:
-        return jsop_getelem();
+        if (!jsop_getelem())
+            return false;
+        if (op == JSOP_CALLELEM && !improveThisTypesForCall())
+            return false;
+        return true;
 
       case JSOP_SETELEM:
       case JSOP_STRICTSETELEM:
@@ -1882,7 +1886,11 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_CALLPROP:
       {
         PropertyName *name = info().getAtom(pc)->asPropertyName();
-        return jsop_getprop(name);
+        if (!jsop_getprop(name))
+            return false;
+        if (op == JSOP_CALLPROP && !improveThisTypesForCall())
+            return false;
+        return true;
       }
 
       case JSOP_SETPROP:
@@ -7632,6 +7640,14 @@ IonBuilder::jsop_getelem()
     if (!resumeAfter(ins))
         return false;
 
+    if (*pc == JSOP_CALLELEM && IsNullOrUndefined(obj->type())) {
+        
+        
+        
+        
+        return true;
+    }
+
     TemporaryTypeSet *types = bytecodeTypes(pc);
     return pushTypeBarrier(ins, types, BarrierKind::TypeSet);
 }
@@ -9917,7 +9933,50 @@ IonBuilder::jsop_getprop(PropertyName *name)
     if (!resumeAfter(call))
         return false;
 
+    if (*pc == JSOP_CALLPROP && IsNullOrUndefined(obj->type())) {
+        
+        
+        
+        
+        return true;
+    }
+
     return pushTypeBarrier(call, types, BarrierKind::TypeSet);
+}
+
+bool
+IonBuilder::improveThisTypesForCall()
+{
+    
+    
+    
+    
+    
+    
+    
+    
+
+    MOZ_ASSERT(*pc == JSOP_CALLPROP || *pc == JSOP_CALLELEM);
+
+    
+    MDefinition *thisDef = current->peek(-2);
+    if (thisDef->type() != MIRType_Value ||
+        !thisDef->mightBeType(MIRType_Object) ||
+        !thisDef->resultTypeSet() ||
+        !thisDef->resultTypeSet()->objectOrSentinel())
+    {
+        return true;
+    }
+
+    
+    TemporaryTypeSet *types = thisDef->resultTypeSet()->cloneObjectsOnly(alloc_->lifoAlloc());
+    if (!types)
+        return false;
+
+    MFilterTypeSet *filter = MFilterTypeSet::New(alloc(), thisDef, types);
+    current->add(filter);
+    current->rewriteAtDepth(-2, filter);
+    return true;
 }
 
 bool
