@@ -55,21 +55,31 @@ function nativeMouseMoveEventMsg() {
 
 
 
+function coordinatesRelativeToWindow(aX, aY, aElement) {
+  var targetWindow = aElement.ownerDocument.defaultView;
+  var scale = targetWindow.devicePixelRatio;
+  var rect = aElement.getBoundingClientRect();
+  return {
+    x: targetWindow.mozInnerScreenX + ((rect.left + aX) * scale),
+    y: targetWindow.mozInnerScreenY + ((rect.top + aY) * scale)
+  };
+}
+
+
+
 
 
 
 
 function synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY, aObserver) {
-  var targetWindow = aElement.ownerDocument.defaultView;
-  aX += targetWindow.mozInnerScreenX;
-  aY += targetWindow.mozInnerScreenY;
+  var pt = coordinatesRelativeToWindow(aX, aY, aElement);
   if (aDeltaX && aDeltaY) {
     throw "Simultaneous wheeling of horizontal and vertical is not supported on all platforms.";
   }
   aDeltaX = nativeScrollUnits(aElement, aDeltaX);
   aDeltaY = nativeScrollUnits(aElement, aDeltaY);
   var msg = aDeltaX ? nativeHorizontalWheelEventMsg() : nativeVerticalWheelEventMsg();
-  _getDOMWindowUtils().sendNativeMouseScrollEvent(aX, aY, msg, aDeltaX, aDeltaY, 0, 0, 0, aElement, aObserver);
+  _getDOMWindowUtils().sendNativeMouseScrollEvent(pt.x, pt.y, msg, aDeltaX, aDeltaY, 0, 0, 0, aElement, aObserver);
   return true;
 }
 
@@ -119,10 +129,8 @@ function synthesizeNativeWheelAndWaitForScrollEvent(aElement, aX, aY, aDeltaX, a
 
 
 function synthesizeNativeMouseMove(aElement, aX, aY) {
-  var targetWindow = aElement.ownerDocument.defaultView;
-  aX += targetWindow.mozInnerScreenX;
-  aY += targetWindow.mozInnerScreenY;
-  _getDOMWindowUtils().sendNativeMouseEvent(aX, aY, nativeMouseMoveEventMsg(), 0, aElement);
+  var pt = coordinatesRelativeToWindow(aX, aY, aElement);
+  _getDOMWindowUtils().sendNativeMouseEvent(pt.x, pt.y, nativeMouseMoveEventMsg(), 0, aElement);
   return true;
 }
 
@@ -143,15 +151,9 @@ function synthesizeNativeMouseMoveAndWaitForMoveEvent(aElement, aX, aY, aCallbac
 
 
 function synthesizeNativeTouch(aElement, aX, aY, aType, aObserver = null, aTouchId = 0) {
-  var targetWindow = aElement.ownerDocument.defaultView;
-
-  var scale = targetWindow.devicePixelRatio;
-  var rect = aElement.getBoundingClientRect();
-  var x = targetWindow.mozInnerScreenX + ((rect.left + aX) * scale);
-  var y = targetWindow.mozInnerScreenY + ((rect.top + aY) * scale);
-
-  var utils = SpecialPowers.getDOMWindowUtils(targetWindow);
-  utils.sendNativeTouchPoint(aTouchId, aType, x, y, 1, 90, aObserver);
+  var pt = coordinatesRelativeToWindow(aX, aY, aElement);
+  var utils = SpecialPowers.getDOMWindowUtils(aElement.ownerDocument.defaultView);
+  utils.sendNativeTouchPoint(aTouchId, aType, pt.x, pt.y, 1, 90, aObserver);
   return true;
 }
 
