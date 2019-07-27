@@ -39,6 +39,10 @@ AppleVDADecoder::AppleVDADecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
   : mTaskQueue(aVideoTaskQueue)
   , mCallback(aCallback)
   , mImageContainer(aImageContainer)
+  , mPictureWidth(aConfig.image_width)
+  , mPictureHeight(aConfig.image_height)
+  , mDisplayWidth(aConfig.display_width)
+  , mDisplayHeight(aConfig.display_height)
   , mDecoder(nullptr)
   , mIs106(!nsCocoaFeatures::OnLionOrLater())
 {
@@ -47,18 +51,10 @@ AppleVDADecoder::AppleVDADecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
 
   
   mPictureWidth = aConfig.image_width;
-  mPictureHeight = aConfig.image_height;
-  mDisplayWidth = aConfig.display_width;
-  mDisplayHeight = aConfig.display_height;
   mExtraData = aConfig.extra_data;
   mMaxRefFrames = 4;
   mp4_demuxer::SPSData spsdata;
-  if (mp4_demuxer::H264::DecodeSPSFromExtraData(mExtraData, spsdata) &&
-      spsdata.pic_width && spsdata.pic_height) {
-    mPictureWidth = spsdata.pic_width;
-    mPictureHeight = spsdata.pic_height;
-    mDisplayWidth = spsdata.display_width;
-    mDisplayHeight = spsdata.display_height;
+  if (mp4_demuxer::H264::DecodeSPSFromExtraData(mExtraData, spsdata)) {
     
     
     
