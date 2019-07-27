@@ -2322,8 +2322,6 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
     mReader->ReadUpdatedMetadata(&mInfo);
   }
 
-  nsAutoPtr<MediaInfo> info(new MediaInfo());
-  *info = mInfo;
   if (!mNotifyMetadataBeforeFirstFrame) {
     
     EnqueueLoadedMetadataEvent();
