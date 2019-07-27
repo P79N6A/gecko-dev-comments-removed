@@ -452,7 +452,10 @@ fun_resolve(JSContext* cx, HandleObject obj, HandleId id, bool* resolvedp)
 
 
 
-        if (fun->isBuiltin() || fun->isArrow() || fun->isFunctionPrototype())
+
+
+
+        if (fun->isBuiltin() || !fun->isConstructor())
             return true;
 
         if (!ResolveInterpretedFunctionPrototype(cx, fun))

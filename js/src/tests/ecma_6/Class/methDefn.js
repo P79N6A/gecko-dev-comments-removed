@@ -119,6 +119,10 @@ assertEq(b.writable, true);
 assertEq(b.value(), 4);
 
 
+assertEq(a.b.prototype, undefined);
+assertEq(a.b.hasOwnProperty("prototype"), false);
+
+
 var code = "({";
 for (i = 0; i < 1000; i++)
     code += "['foo' + " + i + "]() {return 'ok';}, "

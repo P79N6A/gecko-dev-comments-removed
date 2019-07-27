@@ -67,6 +67,9 @@ assertEq(next.value.hello, 2);
 assertEq(next.value.world, 3);
 
 
+assertEq(b.g.hasOwnProperty("prototype"), true);
+
+
 a = {*b(c){"use strict";yield c;}};
 assertEq(a.b(1).next().value, 1);
 a = {*["b"](c){"use strict";return c;}};
