@@ -83,7 +83,7 @@ static JSObjWrapperTable sJSObjWrappers;
 static bool sJSObjWrappersAccessible = false;
 
 
-static PLDHashTable sNPObjWrappers;
+static PLDHashTable* sNPObjWrappers;
 
 
 
@@ -401,23 +401,24 @@ DestroyJSObjWrapperTable()
 static bool
 CreateNPObjWrapperTable()
 {
-  MOZ_ASSERT(!sNPObjWrappers.IsInitialized());
+  MOZ_ASSERT(!sNPObjWrappers);
 
   if (!RegisterGCCallbacks()) {
     return false;
   }
 
-  PL_DHashTableInit(&sNPObjWrappers, PL_DHashGetStubOps(),
-                    sizeof(NPObjWrapperHashEntry));
+  sNPObjWrappers =
+    new PLDHashTable(PL_DHashGetStubOps(), sizeof(NPObjWrapperHashEntry));
   return true;
 }
 
 static void
 DestroyNPObjWrapperTable()
 {
-  MOZ_ASSERT(sNPObjWrappers.EntryCount() == 0);
+  MOZ_ASSERT(sNPObjWrappers->EntryCount() == 0);
 
-  PL_DHashTableFinish(&sNPObjWrappers);
+  delete sNPObjWrappers;
+  sNPObjWrappers = nullptr;
 }
 
 static void
@@ -436,7 +437,7 @@ OnWrapperDestroyed()
       DestroyJSObjWrapperTable();
     }
 
-    if (sNPObjWrappers.IsInitialized()) {
+    if (sNPObjWrappers) {
       
       
       DestroyNPObjWrapperTable();
@@ -1761,8 +1762,8 @@ NPObjWrapper_Finalize(js::FreeOp *fop, JSObject *obj)
 {
   NPObject *npobj = (NPObject *)::JS_GetPrivate(obj);
   if (npobj) {
-    if (sNPObjWrappers.IsInitialized()) {
-      PL_DHashTableRemove(&sNPObjWrappers, npobj);
+    if (sNPObjWrappers) {
+      PL_DHashTableRemove(sNPObjWrappers, npobj);
     }
   }
 
@@ -1777,7 +1778,7 @@ NPObjWrapper_ObjectMoved(JSObject *obj, const JSObject *old)
   
   
 
-  if (!sNPObjWrappers.IsInitialized()) {
+  if (!sNPObjWrappers) {
     return;
   }
 
@@ -1790,7 +1791,7 @@ NPObjWrapper_ObjectMoved(JSObject *obj, const JSObject *old)
   JS::AutoSuppressGCAnalysis nogc;
 
   NPObjWrapperHashEntry *entry = static_cast<NPObjWrapperHashEntry *>
-    (PL_DHashTableSearch(&sNPObjWrappers, npobj));
+    (PL_DHashTableSearch(sNPObjWrappers, npobj));
   MOZ_ASSERT(entry && entry->mJSObj);
   MOZ_ASSERT(entry->mJSObj == old);
   entry->mJSObj = obj;
@@ -1836,14 +1837,14 @@ nsNPObjWrapper::OnDestroy(NPObject *npobj)
     return;
   }
 
-  if (!sNPObjWrappers.IsInitialized()) {
+  if (!sNPObjWrappers) {
     
 
     return;
   }
 
   NPObjWrapperHashEntry *entry = static_cast<NPObjWrapperHashEntry *>
-    (PL_DHashTableSearch(&sNPObjWrappers, npobj));
+    (PL_DHashTableSearch(sNPObjWrappers, npobj));
 
   if (entry && entry->mJSObj) {
     
@@ -1852,7 +1853,7 @@ nsNPObjWrapper::OnDestroy(NPObject *npobj)
     ::JS_SetPrivate(entry->mJSObj, nullptr);
 
     
-    PL_DHashTableRawRemove(&sNPObjWrappers, entry);
+    PL_DHashTableRawRemove(sNPObjWrappers, entry);
 
     
   }
@@ -1886,7 +1887,7 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
     return nullptr;
   }
 
-  if (!sNPObjWrappers.IsInitialized()) {
+  if (!sNPObjWrappers) {
     
     if (!CreateNPObjWrapperTable()) {
       return nullptr;
@@ -1894,7 +1895,7 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
   }
 
   NPObjWrapperHashEntry *entry = static_cast<NPObjWrapperHashEntry *>
-    (PL_DHashTableAdd(&sNPObjWrappers, npobj, fallible));
+    (PL_DHashTableAdd(sNPObjWrappers, npobj, fallible));
 
   if (!entry) {
     
@@ -1916,24 +1917,24 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
   entry->mNPObj = npobj;
   entry->mNpp = npp;
 
-  uint32_t generation = sNPObjWrappers.Generation();
+  uint32_t generation = sNPObjWrappers->Generation();
 
   
 
   JS::Rooted<JSObject*> obj(cx, ::JS_NewObject(cx, js::Jsvalify(&sNPObjectJSWrapperClass)));
 
-  if (generation != sNPObjWrappers.Generation()) {
+  if (generation != sNPObjWrappers->Generation()) {
       
       
 
-      NS_ASSERTION(PL_DHashTableSearch(&sNPObjWrappers, npobj),
+      NS_ASSERTION(PL_DHashTableSearch(sNPObjWrappers, npobj),
                    "Hashtable didn't find what we just added?");
   }
 
   if (!obj) {
     
 
-    PL_DHashTableRawRemove(&sNPObjWrappers, entry);
+    PL_DHashTableRawRemove(sNPObjWrappers, entry);
 
     return nullptr;
   }
@@ -2039,9 +2040,9 @@ nsJSNPRuntime::OnPluginDestroy(NPP npp)
   
   
   AutoSafeJSContext cx;
-  if (sNPObjWrappers.IsInitialized()) {
+  if (sNPObjWrappers) {
     NppAndCx nppcx = { npp, cx };
-    PL_DHashTableEnumerate(&sNPObjWrappers,
+    PL_DHashTableEnumerate(sNPObjWrappers,
                            NPObjWrapperPluginDestroyedCallback, &nppcx);
   }
 }
@@ -2074,7 +2075,7 @@ LookupNPP(NPObject *npobj)
   }
 
   NPObjWrapperHashEntry *entry = static_cast<NPObjWrapperHashEntry *>
-    (PL_DHashTableAdd(&sNPObjWrappers, npobj, fallible));
+    (PL_DHashTableAdd(sNPObjWrappers, npobj, fallible));
 
   if (!entry) {
     return nullptr;
