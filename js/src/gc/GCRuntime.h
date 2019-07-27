@@ -480,6 +480,8 @@ class GCRuntime
     bool                  dynamicHeapGrowth;
     bool                  dynamicMarkSlice;
     uint64_t              decommitThreshold;
+    unsigned              minEmptyChunkCount;
+    unsigned              maxEmptyChunkCount;
 
     
     bool                  cleanUpEverything;

@@ -2145,7 +2145,16 @@ typedef enum JSGCParamKey {
 
 
 
-    JSGC_DECOMMIT_THRESHOLD = 20
+    JSGC_DECOMMIT_THRESHOLD = 20,
+
+    
+
+
+
+    JSGC_MIN_EMPTY_CHUNK_COUNT = 21,
+
+    
+    JSGC_MAX_EMPTY_CHUNK_COUNT = 22
 } JSGCParamKey;
 
 extern JS_PUBLIC_API(void)
