@@ -178,6 +178,7 @@ this.TelemetryPing = Object.freeze({
 
 
 
+
   send: function(aType, aPayload, aOptions = {}) {
     let options = aOptions;
     options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
@@ -201,6 +202,7 @@ this.TelemetryPing = Object.freeze({
 
 
 
+
   savePendingPings: function(aType, aPayload, aOptions = {}) {
     let options = aOptions;
     options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
@@ -211,6 +213,7 @@ this.TelemetryPing = Object.freeze({
   },
 
   
+
 
 
 
@@ -326,6 +329,7 @@ let Impl = {
 
 
 
+
   assemblePing: function assemblePing(aType, aPayload, aOptions = {}) {
     this._log.trace("assemblePing - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
@@ -350,7 +354,7 @@ let Impl = {
     }
 
     if (aOptions.addEnvironment) {
-      pingData.environment = TelemetryEnvironment.currentEnvironment;
+      pingData.environment = aOptions.overrideEnvironment || TelemetryEnvironment.currentEnvironment;
     }
 
     return pingData;
@@ -417,6 +421,7 @@ let Impl = {
 
 
 
+
   send: function send(aType, aPayload, aOptions) {
     this._log.trace("send - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
@@ -468,6 +473,7 @@ let Impl = {
 
 
 
+
   savePendingPings: function savePendingPings(aType, aPayload, aOptions) {
     this._log.trace("savePendingPings - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
@@ -477,6 +483,7 @@ let Impl = {
   },
 
   
+
 
 
 
