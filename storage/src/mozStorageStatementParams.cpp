@@ -4,6 +4,7 @@
 
 
 
+#include "nsJSUtils.h"
 #include "nsMemory.h"
 #include "nsString.h"
 
@@ -63,10 +64,12 @@ StatementParams::SetProperty(nsIXPConnectWrappedNative *aWrapper,
   }
   else if (JSID_IS_STRING(aId)) {
     JSString *str = JSID_TO_STRING(aId);
-    size_t length;
-    const jschar *chars = JS_GetStringCharsAndLength(aCtx, str, &length);
-    NS_ENSURE_TRUE(chars, NS_ERROR_UNEXPECTED);
-    NS_ConvertUTF16toUTF8 name(chars, length);
+    nsAutoJSString autoStr;
+    if (!autoStr.init(aCtx, str)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    NS_ConvertUTF16toUTF8 name(autoStr);
 
     
     nsCOMPtr<nsIVariant> variant(convertJSValToVariant(aCtx, *_vp));
@@ -182,13 +185,14 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
   }
   else if (JSID_IS_STRING(id)) {
     JSString *str = JSID_TO_STRING(id);
-    size_t nameLength;
-    const jschar *nameChars = JS_GetStringCharsAndLength(aCtx, str, &nameLength);
-    NS_ENSURE_TRUE(nameChars, NS_ERROR_UNEXPECTED);
+    nsAutoJSString autoStr;
+    if (!autoStr.init(aCtx, str)) {
+      return NS_ERROR_FAILURE;
+    }
 
     
     
-    NS_ConvertUTF16toUTF8 name(nameChars, nameLength);
+    NS_ConvertUTF16toUTF8 name(autoStr);
     uint32_t idx;
     nsresult rv = mStatement->GetParameterIndex(name, &idx);
     if (NS_SUCCEEDED(rv)) {
