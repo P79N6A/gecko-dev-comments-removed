@@ -1908,6 +1908,12 @@ class Mochitest(MochitestUtilsMixin):
         stackFixerModule = import_stackFixerModule('fix_stack_using_bpsyms')
         stackFixerFunction = lambda line: stackFixerModule.fixSymbols(line, self.symbolsPath)
 
+      elif mozinfo.isMac:
+        
+        
+        stackFixerModule = import_stackFixerModule('fix_macosx_stack')
+        stackFixerFunction = lambda line: stackFixerModule.fixSymbols(line)
+
       elif mozinfo.isLinux:
         
         
