@@ -152,7 +152,7 @@ function run_test()
                           createURI(destFile), null, null,
                           Math.round(Date.now() * 1000), null, persist, false);
   persist.progressListener = dl.QueryInterface(nsIWPL);
-  persist.saveURI(dl.source, null, null, null, null, dl.targetFile, null);
+  persist.saveURI(dl.source, null, null, 0, null, null, dl.targetFile, null);
 
   
   do_test_pending();
