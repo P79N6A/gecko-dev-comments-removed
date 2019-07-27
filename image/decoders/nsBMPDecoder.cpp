@@ -742,6 +742,9 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
                         byte = *aBuffer++;
                         aCount--;
                         mCurPos += byte;
+                        
+                        
+                        mUseAlphaData = mHaveAlphaData = true;
                         if (mCurPos > mBIH.width)
                             mCurPos = mBIH.width;
 
@@ -753,6 +756,9 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
                         byte = *aBuffer++;
                         aCount--;
                         mState = eRLEStateInitial;
+                        
+                        
+                        mUseAlphaData = mHaveAlphaData = true;
                         mCurLine -= std::min<int32_t>(byte, mCurLine);
                         break;
 
