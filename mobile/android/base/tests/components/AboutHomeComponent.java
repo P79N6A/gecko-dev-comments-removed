@@ -34,11 +34,12 @@ public class AboutHomeComponent extends BaseComponent {
     
     
     private static final PanelType[] PANEL_ORDERING_PHONE = {
+            PanelType.REMOTE_TABS,
             PanelType.RECENT_TABS,
             PanelType.HISTORY,
             PanelType.TOP_SITES,
             PanelType.BOOKMARKS,
-            PanelType.READING_LIST
+            PanelType.READING_LIST,
     };
 
     private static final PanelType[] PANEL_ORDERING_TABLET = {
@@ -46,7 +47,8 @@ public class AboutHomeComponent extends BaseComponent {
             PanelType.BOOKMARKS,
             PanelType.READING_LIST,
             PanelType.HISTORY,
-            PanelType.RECENT_TABS
+            PanelType.RECENT_TABS,
+            PanelType.REMOTE_TABS,
     };
 
     
@@ -189,5 +191,20 @@ public class AboutHomeComponent extends BaseComponent {
 
     public static PanelType[] getPanelOrderingForDevice() {
         return HardwareUtils.isTablet() ? PANEL_ORDERING_TABLET : PANEL_ORDERING_PHONE;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    public AboutHomeComponent navigateToBuiltinPanelType(PanelType panelType) throws IllegalArgumentException {
+        Tabs.getInstance().loadUrl(AboutPages.getURLForBuiltinPanelType(panelType));
+        return this;
     }
 }
