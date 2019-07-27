@@ -86,6 +86,14 @@ SandboxBroker::SetSecurityLevelForContentProcess(bool inWarnOnlyMode)
   result = mPolicy->SetAlternateDesktop(true);
   ret = ret && (sandbox::SBOX_ALL_OK == result);
 
+  
+  
+  
+  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                            sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                            L"\\??\\pipe\\chrome.*");
+  ret = ret && (sandbox::SBOX_ALL_OK == result);
+
   if (inWarnOnlyMode) {
     mozilla::warnonlysandbox::ApplyWarnOnlyPolicy(*mPolicy);
   }
