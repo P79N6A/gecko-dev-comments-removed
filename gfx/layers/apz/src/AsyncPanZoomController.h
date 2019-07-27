@@ -120,16 +120,6 @@ public:
 
 
 
-
-
-
-  nsEventStatus ReceiveInputEvent(const InputData& aEvent, uint64_t* aOutInputBlockId);
-
-  
-
-
-
-
   void ZoomToRect(CSSRect aRect);
 
   
@@ -580,6 +570,11 @@ protected:
   
 
 
+  const nsRefPtr<InputQueue>& GetInputQueue() const;
+
+  
+
+
 
 
 
@@ -631,7 +626,6 @@ protected:
   
   already_AddRefed<GeckoContentController> GetGeckoContentController() const;
   already_AddRefed<GestureEventListener> GetGestureEventListener() const;
-  const nsRefPtr<InputQueue>& GetInputQueue() const;
 
   
   bool mSharingFrameMetricsAcrossProcesses;
@@ -774,16 +768,6 @@ private:
 
 
 public:
-  
-
-
-  void ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault);
-
-  
-
-
-  void SetAllowedTouchBehavior(uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aBehaviors);
-
   
 
 
