@@ -183,7 +183,6 @@ private:
 
 
   nsresult BuildSourcePaint(SourceInfo *aPrimitive,
-                            gfxASurface* aTargetSurface,
                             DrawTarget* aTargetDT);
 
   
@@ -191,15 +190,13 @@ private:
 
 
 
-  nsresult BuildSourcePaints(gfxASurface* aTargetSurface,
-                             DrawTarget* aTargetDT);
+  nsresult BuildSourcePaints(DrawTarget* aTargetDT);
 
   
 
 
 
-  nsresult BuildSourceImage(gfxASurface* aTargetSurface,
-                            DrawTarget* aTargetDT);
+  nsresult BuildSourceImage(DrawTarget* aTargetDT);
 
   
 
