@@ -261,7 +261,7 @@ MozMtpDatabase::getObjectList(MtpStorageID aStorageID,
   DbArray::index_type entryIndex;
   for (entryIndex = 1; entryIndex < numEntries; entryIndex++) {
     RefPtr<DbEntry> entry = mDb[entryIndex];
-    if (entry->mParent == aParent) {
+    if (entry && entry->mParent == aParent) {
       list->push(entry->mHandle);
     }
   }
@@ -785,11 +785,19 @@ MozMtpDatabase::getObjectFilePath(MtpObjectHandle aHandle,
 MtpResponseCode
 MozMtpDatabase::deleteFile(MtpObjectHandle aHandle)
 {
-  MTP_LOG("Handle: 0x%08x (NOT SUPPORTED)", aHandle);
+  RefPtr<DbEntry> entry = GetEntry(aHandle);
+  if (!entry) {
+    MTP_ERR("Invalid Handle: 0x%08x", aHandle);
+    return MTP_RESPONSE_INVALID_OBJECT_HANDLE;
+  }
+
+  MTP_LOG("Handle: 0x%08x '%s'", aHandle, entry->mPath.get());
 
   
+  
+  RemoveEntry(aHandle);
 
-  return MTP_RESPONSE_OPERATION_NOT_SUPPORTED;
+  return MTP_RESPONSE_OK;
 }
 
 #if 0
