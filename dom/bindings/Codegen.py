@@ -4635,10 +4635,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         descriptor = descriptorProvider.getDescriptor(
             type.unroll().inner.identifier.name)
 
-        if descriptor.nativeType == 'JSObject':
-            
-            assert descriptor.workers
-            return handleJSObjectType(type, isMember, failureCode, exceptionCode, sourceDescription)
+        assert descriptor.nativeType != 'JSObject'
 
         if descriptor.interface.isCallback():
             name = descriptor.interface.identifier.name
@@ -4715,9 +4712,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                     exceptionCode,
                     isCallbackReturnValue,
                     firstCap(sourceDescription)))
-        elif descriptor.workers:
-            return handleJSObjectType(type, isMember, failureCode, exceptionCode, sourceDescription)
         else:
+            
+            
+            assert not descriptor.workers
             
             
             
