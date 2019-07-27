@@ -499,7 +499,8 @@ struct SizeConstraints {
 
 
 
-enum IMEMessage MOZ_ENUM_TYPE(int8_t)
+typedef int8_t IMEMessageType;
+enum IMEMessage MOZ_ENUM_TYPE(IMEMessageType)
 {
   
   
@@ -528,6 +529,10 @@ enum IMEMessage MOZ_ENUM_TYPE(int8_t)
 
 struct IMENotification
 {
+  IMENotification()
+    : mMessage(static_cast<IMEMessage>(-1))
+  {}
+
   MOZ_IMPLICIT IMENotification(IMEMessage aMessage)
     : mMessage(aMessage)
   {
@@ -649,9 +654,6 @@ struct IMENotification
         return false;
     }
   }
-
-private:
-  IMENotification();
 };
 
 } 
