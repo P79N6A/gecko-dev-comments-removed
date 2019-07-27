@@ -195,7 +195,7 @@ IDBRequest::NotifyHelperCompleted(HelperBase* aHelper)
     
     
     jsapi.Init();
-    ac.construct(jsapi.cx(), GetScriptOwner());
+    ac.emplace(jsapi.cx(), GetScriptOwner());
   } else {
     
     if (!jsapi.InitWithLegacyErrorReporting(GetOwner())) {

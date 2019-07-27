@@ -227,7 +227,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   if (!aEvaluateOptions.reportUncaught) {
     
     
-    dontReport.construct(aCx);
+    dontReport.emplace(aCx);
   }
 
   

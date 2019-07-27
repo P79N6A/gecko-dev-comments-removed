@@ -3630,17 +3630,17 @@ WorkerPrivate::Constructor(JSContext* aCx,
 
   Maybe<LoadInfo> stackLoadInfo;
   if (!aLoadInfo) {
-    stackLoadInfo.construct();
+    stackLoadInfo.emplace();
 
     nsresult rv = GetLoadInfo(aCx, nullptr, parent, aScriptURL,
-                              aIsChromeWorker, stackLoadInfo.addr());
+                              aIsChromeWorker, stackLoadInfo.ptr());
     if (NS_FAILED(rv)) {
       scriptloader::ReportLoadError(aCx, aScriptURL, rv, !parent);
       aRv.Throw(rv);
       return nullptr;
     }
 
-    aLoadInfo = stackLoadInfo.addr();
+    aLoadInfo = stackLoadInfo.ptr();
   }
 
   
@@ -3939,9 +3939,9 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
   for (;;) {
     
     
-    if (workerCompartment.empty()) {
+    if (!workerCompartment) {
       if (JSObject* global = js::DefaultObjectForContextOrNull(aCx)) {
-        workerCompartment.construct(aCx, global);
+        workerCompartment.emplace(aCx, global);
       }
     }
 
@@ -4028,7 +4028,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
     if (NS_HasPendingEvents(mThread)) {
       
-      if (!workerCompartment.empty()) {
+      if (workerCompartment) {
         JS_MaybeGC(aCx);
       }
     }

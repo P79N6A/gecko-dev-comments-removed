@@ -11798,7 +11798,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
         
         if (mContext == GetScriptContextFromJSContext(aJSCallerContext)) {
           mBlockScriptedClosingFlag = true;
-          closeUnblocker.construct(this);
+          closeUnblocker.emplace(this);
         }
       }
 
@@ -11847,7 +11847,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       
       Maybe<AutoNoJSAPI> nojsapi;
       if (!aContentModal) {
-        nojsapi.construct();
+        nojsapi.emplace();
       }
 
 

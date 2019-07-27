@@ -126,8 +126,8 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
       return;
     }
 
-    mAutoEntryScript.construct(globalObject, mIsMainThread, cx);
-    mAutoEntryScript.ref().SetWebIDLCallerPrincipal(webIDLCallerPrincipal);
+    mAutoEntryScript.emplace(globalObject, mIsMainThread, cx);
+    mAutoEntryScript->SetWebIDLCallerPrincipal(webIDLCallerPrincipal);
     nsIGlobalObject* incumbent = aCallback->IncumbentGlobalOrNull();
     if (incumbent) {
       
@@ -138,7 +138,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
       if (!incumbent->GetGlobalJSObject()) {
         return;
       }
-      mAutoIncumbentScript.construct(incumbent);
+      mAutoIncumbentScript.emplace(incumbent);
     }
 
     
@@ -150,7 +150,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
     
     
     
-    mRootedCallable.construct(cx, aCallback->Callback());
+    mRootedCallable.emplace(cx, aCallback->Callback());
   }
 
   
@@ -172,7 +172,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   
   
   
-  mAc.construct(cx, mRootedCallable.ref());
+  mAc.emplace(cx, *mRootedCallable);
 
   
   mCx = cx;
@@ -219,7 +219,7 @@ CallbackObject::CallSetup::~CallSetup()
   
   
   
-  mAc.destroyIfConstructed();
+  mAc.reset();
 
   
   
@@ -273,8 +273,8 @@ CallbackObject::CallSetup::~CallSetup()
     }
   }
 
-  mAutoIncumbentScript.destroyIfConstructed();
-  mAutoEntryScript.destroyIfConstructed();
+  mAutoIncumbentScript.reset();
+  mAutoEntryScript.reset();
 
   
   

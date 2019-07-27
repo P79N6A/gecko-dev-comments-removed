@@ -172,7 +172,7 @@ public:
     return mCx;
   }
 
-  bool CxPusherIsStackTop() const { return mCxPusher.ref().IsStackTop(); }
+  bool CxPusherIsStackTop() const { return mCxPusher->IsStackTop(); }
 
 protected:
   
