@@ -191,10 +191,18 @@ public:
 
     
     
+    
     gfxUserFontEntry* FindUserFontEntry(gfxFontFamily* aFamily,
                                         const gfxFontStyle& aFontStyle,
-                                        bool& aNeedsBold,
-                                        bool& aWaitForUserFont);
+                                        bool& aNeedsBold);
+
+    
+    
+    
+    gfxUserFontEntry* FindUserFontEntryAndLoad(gfxFontFamily* aFamily,
+                                               const gfxFontStyle& aFontStyle,
+                                               bool& aNeedsBold,
+                                               bool& aWaitForUserFont);
 
     
     
@@ -213,7 +221,12 @@ public:
     uint64_t GetGeneration() { return mGeneration; }
 
     
-    void IncrementGeneration();
+    void IncrementGeneration(bool aIsRebuild = false);
+
+    
+    
+    
+    uint64_t GetRebuildGeneration() { return mRebuildGeneration; }
 
     
     void RebuildLocalRules();
@@ -448,7 +461,8 @@ protected:
     
     nsRefPtrHashtable<nsStringHashKey, gfxUserFontFamily> mFontFamilies;
 
-    uint64_t        mGeneration;
+    uint64_t        mGeneration;        
+    uint64_t        mRebuildGeneration; 
 
     
     bool mLocalRulesUsed;

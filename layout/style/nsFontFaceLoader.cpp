@@ -486,7 +486,7 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   }
 
   if (modified) {
-    IncrementGeneration();
+    IncrementGeneration(true);
   }
 
   

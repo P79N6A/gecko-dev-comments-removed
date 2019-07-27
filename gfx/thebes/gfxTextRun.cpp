@@ -1474,6 +1474,10 @@ gfxFontGroup::gfxFontGroup(const FontFamilyList& aFontFamilyList,
     BuildFontList();
 }
 
+gfxFontGroup::~gfxFontGroup()
+{
+}
+
 void
 gfxFontGroup::FindGenericFonts(FontFamilyType aGenericType,
                                nsIAtom *aLanguage,
@@ -1611,69 +1615,7 @@ gfxFontGroup::BuildFontList()
 {
 
 #if defined(XP_MACOSX) || defined(XP_WIN) || defined(ANDROID)
-
     EnumerateFontList(mStyle.language);
-
-    
-    
-    if (mFonts.Length() == 0) {
-        bool needsBold;
-        gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
-        gfxFontFamily *defaultFamily = pfl->GetDefaultFont(&mStyle);
-        NS_ASSERTION(defaultFamily,
-                     "invalid default font returned by GetDefaultFont");
-
-        if (defaultFamily) {
-            gfxFontEntry *fe = defaultFamily->FindFontForStyle(mStyle,
-                                                               needsBold);
-            if (fe) {
-                mFonts.AppendElement(FamilyFace(defaultFamily, fe, needsBold));
-            }
-        }
-
-        if (mFonts.Length() == 0) {
-            
-            
-            
-            
-            
-            nsAutoTArray<nsRefPtr<gfxFontFamily>,200> families;
-            pfl->GetFontFamilyList(families);
-            uint32_t count = families.Length();
-            for (uint32_t i = 0; i < count; ++i) {
-                gfxFontEntry *fe = families[i]->FindFontForStyle(mStyle,
-                                                                 needsBold);
-                if (fe) {
-                    mFonts.AppendElement(FamilyFace(families[i], fe, needsBold));
-                }
-            }
-        }
-
-        if (mFonts.Length() == 0) {
-            
-            
-            char msg[256]; 
-            nsAutoString families;
-            mFamilyList.ToString(families);
-            sprintf(msg, "unable to find a usable font (%.220s)",
-                    NS_ConvertUTF16toUTF8(families).get());
-            NS_RUNTIMEABORT(msg);
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif
 }
 
@@ -1694,19 +1636,9 @@ gfxFontGroup::FindPlatformFont(const nsAString& aName,
         if (mUserFontSet) {
             
             
-            
             family = mUserFontSet->LookupFamily(aName);
             if (family) {
-                bool waitForUserFont = false;
-                gfxUserFontEntry* userFontEntry =
-                    mUserFontSet->FindUserFontEntry(family, mStyle, needsBold,
-                                                    waitForUserFont);
-                if (userFontEntry) {
-                    fe = userFontEntry->GetPlatformFontEntry();
-                }
-                if (!fe && waitForUserFont) {
-                    mSkipDrawing = true;
-                }
+                fe = mUserFontSet->FindUserFontEntry(family, mStyle, needsBold);
             }
         }
     }
@@ -1738,9 +1670,135 @@ gfxFontGroup::HasFont(const gfxFontEntry *aFontEntry)
     return false;
 }
 
-gfxFontGroup::~gfxFontGroup()
+gfxFont*
+gfxFontGroup::GetFontAt(int32_t i)
 {
-    mFonts.Clear();
+    if (uint32_t(i) >= mFonts.Length()) {
+        return nullptr;
+    }
+
+    FamilyFace& ff = mFonts[i];
+    if (ff.IsInvalid() || ff.IsLoading()) {
+        return nullptr;
+    }
+
+    nsRefPtr<gfxFont> font = ff.Font();
+    if (!font) {
+        gfxFontEntry *fe = mFonts[i].FontEntry();
+        if (fe->mIsUserFontContainer) {
+            gfxUserFontEntry* ufe = static_cast<gfxUserFontEntry*>(fe);
+            if (ufe->LoadState() == gfxUserFontEntry::STATUS_NOT_LOADED) {
+                ufe->Load();
+                if (ufe->WaitForUserFont()) {
+                    mSkipDrawing = true;
+                }
+            }
+            fe = ufe->GetPlatformFontEntry();
+            if (!fe) {
+                return nullptr;
+            }
+        }
+        font = fe->FindOrMakeFont(&mStyle, mFonts[i].NeedsBold());
+        if (font && !font->Valid()) {
+            ff.SetInvalid();
+            return nullptr;
+        }
+        mFonts[i].SetFont(font);
+    }
+    return font.get();
+}
+
+gfxFont*
+gfxFontGroup::GetDefaultFont()
+{
+    if (mDefaultFont) {
+        return mDefaultFont.get();
+    }
+
+    bool needsBold;
+    gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
+    gfxFontFamily *defaultFamily = pfl->GetDefaultFont(&mStyle);
+    NS_ASSERTION(defaultFamily,
+                 "invalid default font returned by GetDefaultFont");
+
+    if (defaultFamily) {
+        gfxFontEntry *fe = defaultFamily->FindFontForStyle(mStyle,
+                                                           needsBold);
+        if (fe) {
+            mDefaultFont = fe->FindOrMakeFont(&mStyle, needsBold);
+        }
+    }
+
+    if (!mDefaultFont) {
+        
+        
+        
+        
+        
+        nsAutoTArray<nsRefPtr<gfxFontFamily>,200> families;
+        pfl->GetFontFamilyList(families);
+        uint32_t count = families.Length();
+        for (uint32_t i = 0; i < count; ++i) {
+            gfxFontEntry *fe = families[i]->FindFontForStyle(mStyle,
+                                                             needsBold);
+            if (fe) {
+                mDefaultFont = fe->FindOrMakeFont(&mStyle, needsBold);
+            }
+        }
+    }
+
+    if (!mDefaultFont) {
+        
+        
+        char msg[256]; 
+        nsAutoString families;
+        mFamilyList.ToString(families);
+        sprintf(msg, "unable to find a usable font (%.220s)",
+                NS_ConvertUTF16toUTF8(families).get());
+        NS_RUNTIMEABORT(msg);
+    }
+
+    return mDefaultFont.get();
+}
+
+
+gfxFont*
+gfxFontGroup::GetFirstValidFont()
+{
+    uint32_t count = mFonts.Length();
+    for (uint32_t i = 0; i < count; ++i) {
+        FamilyFace& ff = mFonts[i];
+        if (ff.IsInvalid()) {
+            continue;
+        }
+
+        
+        gfxFont* font = ff.Font();
+        if (font) {
+            return font;
+        }
+
+        
+        if (ff.IsUserFont()) {
+            gfxUserFontEntry* ufe =
+                static_cast<gfxUserFontEntry*>(mFonts[i].FontEntry());
+            if (ufe->LoadState() == gfxUserFontEntry::STATUS_NOT_LOADED) {
+                ufe->Load();
+                if (ufe->WaitForUserFont()) {
+                    mSkipDrawing = true;
+                }
+            }
+            if (ufe->LoadState() != gfxUserFontEntry::STATUS_LOADED) {
+                continue;
+            }
+        }
+
+        font = GetFontAt(i);
+        if (font) {
+            return font;
+        }
+    }
+    return GetDefaultFont();
 }
 
 gfxFont *
@@ -1749,7 +1807,7 @@ gfxFontGroup::GetFirstMathFont()
     uint32_t count = mFonts.Length();
     for (uint32_t i = 0; i < count; ++i) {
         gfxFont* font = GetFontAt(i);
-        if (font->GetFontEntry()->TryGetMathTable()) {
+        if (font && font->GetFontEntry()->TryGetMathTable()) {
             return font;
         }
     }
@@ -2137,6 +2195,14 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
     NS_ASSERTION(aTextRun->GetShapingState() != gfxTextRun::eShapingState_Aborted,
                  "don't call InitScriptRun with aborted shaping state");
 
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(ANDROID)
+    
+    
+    if (mUserFontSet && mCurrGeneration != mUserFontSet->GetGeneration()) {
+        UpdateUserFonts();
+    }
+#endif
+
     gfxFont *mainFont = GetFirstValidFont();
 
     uint32_t runStart = 0;
@@ -2379,6 +2445,8 @@ gfxFontGroup::FindNonItalicFaceForChar(gfxFontFamily* aFamily, uint32_t aCh)
     regularStyle.style = NS_FONT_STYLE_NORMAL;
     bool needsBold;
     gfxFontEntry *fe = aFamily->FindFontForStyle(regularStyle, needsBold);
+    NS_ASSERTION(!fe->mIsUserFontContainer,
+                 "should only be searching platform fonts");
     if (!fe->HasCharacter(aCh)) {
         return nullptr;
     }
@@ -2388,6 +2456,36 @@ gfxFontGroup::FindNonItalicFaceForChar(gfxFontFamily* aFamily, uint32_t aCh)
         return nullptr;
     }
     return font.forget();
+}
+
+gfxFloat
+gfxFontGroup::GetUnderlineOffset()
+{
+    if (mUnderlineOffset == UNDERLINE_OFFSET_NOT_SET) {
+        
+        
+        uint32_t len = mFonts.Length();
+        for (uint32_t i = 0; i < len; i++) {
+            FamilyFace& ff = mFonts[i];
+            if (!ff.IsUserFont() && ff.Family() &&
+                ff.Family()->IsBadUnderlineFamily()) {
+                nsRefPtr<gfxFont> font = GetFontAt(i);
+                if (!font) {
+                    continue;
+                }
+                gfxFloat bad = font->GetMetrics().underlineOffset;
+                gfxFloat first =
+                    GetFirstValidFont()->GetMetrics().underlineOffset;
+                mUnderlineOffset = std::min(first, bad);
+                return mUnderlineOffset;
+            }
+        }
+
+        
+        mUnderlineOffset = GetFirstValidFont()->GetMetrics().underlineOffset;
+    }
+
+    return mUnderlineOffset;
 }
 
 already_AddRefed<gfxFont>
@@ -2403,21 +2501,23 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     bool isVarSelector = gfxFontUtils::IsVarSelector(aCh);
 
     if (!isJoinControl && !wasJoinCauser && !isVarSelector) {
-        nsRefPtr<gfxFont> firstFont = GetFirstValidFont();
-        if (firstFont->HasCharacter(aCh)) {
-            *aMatchType = gfxTextRange::kFontGroup;
-            return firstFont.forget();
-        }
-
-        
-        
-        if (mStyle.style != NS_FONT_STYLE_NORMAL &&
-            !firstFont->GetFontEntry()->IsUserFont()) {
-            nsRefPtr<gfxFont> font =
-                FindNonItalicFaceForChar(mFonts[0].Family(), aCh);
-            if (font) {
+        nsRefPtr<gfxFont> firstFont = GetFontAt(0);
+        if (firstFont) {
+            if (firstFont->HasCharacter(aCh)) {
                 *aMatchType = gfxTextRange::kFontGroup;
-                return font.forget();
+                return firstFont.forget();
+            }
+
+            
+            
+            if (mStyle.style != NS_FONT_STYLE_NORMAL &&
+                !firstFont->GetFontEntry()->IsUserFont()) {
+                nsRefPtr<gfxFont> font =
+                    FindNonItalicFaceForChar(mFonts[0].Family(), aCh);
+                if (font) {
+                    *aMatchType = gfxTextRange::kFontGroup;
+                    return font.forget();
+                }
             }
         }
 
@@ -2458,19 +2558,38 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     }
 
     
-    uint32_t fontListLength = FontListLength();
+    uint32_t fontListLength = mFonts.Length();
     for (uint32_t i = nextIndex; i < fontListLength; i++) {
+        FamilyFace& ff = mFonts[i];
+        if (ff.IsInvalid() || ff.IsLoading()) {
+            continue;
+        }
+
         nsRefPtr<gfxFont> font;
 
         
-        gfxFontEntry *fe = mFonts[i].FontEntry();
-        if (fe->HasCharacter(aCh)) {
-            font = mFonts[i].Font();
-            if (!font) {
-                font = fe->FindOrMakeFont(&mStyle, mFonts[i].NeedsBold());
-                mFonts[i].SetFont(font);
+        gfxFontEntry *fe = ff.FontEntry();
+
+        if (fe->mIsUserFontContainer) {
+            
+            gfxUserFontEntry* ufe = static_cast<gfxUserFontEntry*>(fe);
+            if (ufe->LoadState() == gfxUserFontEntry::STATUS_NOT_LOADED) {
+                ufe->Load();
+                if (ufe->WaitForUserFont()) {
+                    mSkipDrawing = true;
+                }
             }
-            if (font->Valid()) {
+            gfxFontEntry* pfe = ufe->GetPlatformFontEntry();
+            if (pfe && pfe->HasCharacter(aCh)) {
+                font = GetFontAt(i);
+                if (font) {
+                    *aMatchType = gfxTextRange::kFontGroup;
+                    return font.forget();
+                }
+            }
+        } else if (fe->HasCharacter(aCh)) {
+            font = GetFontAt(i);
+            if (font) {
                 *aMatchType = gfxTextRange::kFontGroup;
                 return font.forget();
             }
@@ -2478,12 +2597,20 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
 
         
         
-        if (mStyle.style != NS_FONT_STYLE_NORMAL && !fe->IsUserFont()) {
+        if (mStyle.style != NS_FONT_STYLE_NORMAL && !ff.IsUserFont()) {
             font = FindNonItalicFaceForChar(mFonts[i].Family(), aCh);
             if (font) {
                 *aMatchType = gfxTextRange::kFontGroup;
                 return font.forget();
             }
+        }
+    }
+
+    if (fontListLength == 0) {
+        nsRefPtr<gfxFont> defaultFont = GetDefaultFont();
+        if (defaultFont->HasCharacter(aCh)) {
+            *aMatchType = gfxTextRange::kFontGroup;
+            return defaultFont.forget();
         }
     }
 
@@ -2654,12 +2781,20 @@ gfxFontGroup::GetGeneration()
     return mUserFontSet->GetGeneration();
 }
 
+uint64_t
+gfxFontGroup::GetRebuildGeneration()
+{
+    if (!mUserFontSet)
+        return 0;
+    return mUserFontSet->GetRebuildGeneration();
+}
+
 
 
 void
 gfxFontGroup::UpdateUserFonts()
 {
-    if (mCurrGeneration != GetGeneration()) {
+    if (mCurrGeneration < GetRebuildGeneration()) {
         
         mFonts.Clear();
         mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
@@ -2667,6 +2802,39 @@ gfxFontGroup::UpdateUserFonts()
         BuildFontList();
         mCurrGeneration = GetGeneration();
         mCachedEllipsisTextRun = nullptr;
+    } else if (mCurrGeneration != GetGeneration()) {
+        
+        mSkipDrawing = false;
+        mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
+        mCachedEllipsisTextRun = nullptr;
+
+        uint32_t len = mFonts.Length();
+        for (uint32_t i = 0; i < len; i++) {
+            FamilyFace& ff = mFonts[i];
+            if (ff.Font() || !ff.IsUserFont()) {
+                continue;
+            }
+
+            
+            gfxUserFontEntry *ufe =
+                static_cast<gfxUserFontEntry*>(mFonts[i].FontEntry());
+            gfxUserFontEntry::UserFontLoadState state = ufe->LoadState();
+            switch (state) {
+                case gfxUserFontEntry::STATUS_LOADING:
+                    ff.SetLoading(true);
+                    break;
+                case gfxUserFontEntry::STATUS_FAILED:
+                    ff.SetInvalid();
+                    
+                default:
+                    ff.SetLoading(false);
+            }
+            if (ufe->WaitForUserFont()) {
+                mSkipDrawing = true;
+            }
+        }
+
+        mCurrGeneration = GetGeneration();
     }
 }
 

@@ -3456,7 +3456,6 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
 
   
   processor.mFontgrp->UpdateUserFonts(); 
-  NS_ASSERTION(processor.mFontgrp->FontListLength()>0, "font group contains no fonts");
   const gfxFont::Metrics& fontMetrics =
     processor.mFontgrp->GetFirstValidFont()->GetMetrics();
 
