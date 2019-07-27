@@ -92,12 +92,6 @@ Result
 VerifySignedData(const SignedDataWithSignature& sd,
                  Input subjectPublicKeyInfo, void* pkcs11PinArg)
 {
-  
-  if (sd.data.GetLength() >
-        static_cast<unsigned int>(std::numeric_limits<int>::max())) {
-    return Result::FATAL_ERROR_INVALID_ARGS;
-  }
-
   SECOidTag pubKeyAlg;
   SECOidTag digestAlg;
   switch (sd.algorithm) {
@@ -155,6 +149,10 @@ VerifySignedData(const SignedDataWithSignature& sd,
 
   
   
+  
+  
+  static_assert(sizeof(decltype(sd.data.GetLength())) < sizeof(int),
+                "sd.data.GetLength() must fit in an int");
   SECItem dataSECItem(UnsafeMapInputToSECItem(sd.data));
   SECItem signatureSECItem(UnsafeMapInputToSECItem(sd.signature));
   SECStatus srv = VFY_VerifyDataDirect(dataSECItem.data,
