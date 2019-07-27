@@ -1209,7 +1209,7 @@ class GCRuntime
 
     bool poked;
 
-    volatile js::HeapState heapState;
+    js::HeapState heapState;
 
     
 
