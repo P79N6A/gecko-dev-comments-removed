@@ -576,18 +576,6 @@ public:
 
     mozilla::gfx::Point GetDeviceOffset() const;
 
-    enum {
-         
-
-
-
-        FLAG_DISABLE_SNAPPING = (1 << 1),
-    };
-
-    void SetFlag(int32_t aFlag) { mFlags |= aFlag; }
-    void ClearFlag(int32_t aFlag) { mFlags &= ~aFlag; }
-    int32_t GetFlags() const { return mFlags; }
-
     
     void GetRoundOffsetsToPixels(bool *aRoundX, bool *aRoundY);
 
@@ -695,7 +683,6 @@ private:
   const AzureState &CurrentState() const { return mStateStack[mStateStack.Length() - 1]; }
 
   cairo_t *mRefCairo;
-  int32_t mFlags;
 
   mozilla::RefPtr<DrawTarget> mDT;
   mozilla::RefPtr<DrawTarget> mOriginalDT;

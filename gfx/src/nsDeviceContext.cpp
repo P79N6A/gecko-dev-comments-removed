@@ -10,6 +10,7 @@
 #include "gfxImageSurface.h"            
 #include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
+#include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/Preferences.h"        
 #include "mozilla/Services.h"           
 #include "mozilla/mozalloc.h"           
@@ -48,6 +49,7 @@
 #endif
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 using mozilla::services::GetObserverService;
 
 class nsFontCache MOZ_FINAL : public nsIObserver
@@ -409,7 +411,8 @@ nsDeviceContext::CreateRenderingContext()
 #endif
 
     pContext->Init(this, dt);
-    pContext->ThebesContext()->SetFlag(gfxContext::FLAG_DISABLE_SNAPPING);
+    pContext->GetDrawTarget()->AddUserData(&sDisablePixelSnapping,
+                                           (void*)0x1, nullptr);
     pContext->ThebesContext()->SetMatrix(gfxMatrix::Scaling(mPrintingScale,
                                                             mPrintingScale));
 
