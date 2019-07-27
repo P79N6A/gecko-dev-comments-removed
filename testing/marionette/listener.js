@@ -522,8 +522,7 @@ function createExecuteContentSandbox(aWindow, timeout) {
       inactivityTimeoutId = null;
     }
   };
-
-  sandbox.finish = function() {
+  sandbox.finish = function sandbox_finish() {
     if (asyncTestRunning) {
       sandbox.asyncComplete(marionette.generate_results(), sandbox.asyncTestCommandId);
     } else {
@@ -700,6 +699,11 @@ function executeWithCallback(msg, useFinish) {
   }
   sandbox.tag = script;
 
+  
+  
+  
+  
+  
   asyncTestTimeoutId = curFrame.setTimeout(function() {
     sandbox.asyncComplete(new ScriptTimeoutError("timed out"), asyncTestCommandId);
   }, msg.json.timeout);
@@ -1441,7 +1445,7 @@ function isElementDisplayed(msg) {
 
 
 
-function getElementValueOfCssProperty(msg) {
+function getElementValueOfCssProperty(msg){
   let command_id = msg.json.command_id;
   let propertyName = msg.json.propertyName;
   try {
@@ -1613,11 +1617,6 @@ function clearElement(msg) {
     }
     sendOk(command_id);
   } catch (e) {
-    
-    
-    if (e.name == "InvalidElementStateError") {
-      e = new InvalidElementStateError(e.message);
-    }
     sendError(e, command_id);
   }
 }
