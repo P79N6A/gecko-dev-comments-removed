@@ -16,6 +16,10 @@ HOST_FINGERPRINTS = {
 }
 
 
+class HgIncludeException(Exception):
+    pass
+
+
 class MercurialConfig(object):
     """Interface for manipulating a Mercurial config file."""
 
@@ -34,6 +38,15 @@ class MercurialConfig(object):
             self.config_path = infile
         else:
             infile = None
+
+        
+        
+        
+        with open(infile, 'r') as f:
+            for line in f:
+                if line.startswith('%include'):
+                    raise HgIncludeException(
+                        '%include directive is not supported by MercurialConfig')
 
         
         
