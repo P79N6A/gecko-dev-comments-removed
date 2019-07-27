@@ -23,24 +23,12 @@ const TEST_DATA = [
   
   {
     input: {
-      rxlev: 63,
-      rsrp: 65535,
-      rssnr: 65535
-    },
-    expect: {
-      signalStrength: -48,
-      relSignalStrength: 100
-    }
-  },
-  
-  {
-    input: {
       rxlev: 12,
       rsrp: 65535,
       rssnr: 65535
     },
     expect: {
-      signalStrength: -99,
+      signalStrength: null,
       relSignalStrength: 100
     }
   },
@@ -52,8 +40,56 @@ const TEST_DATA = [
       rssnr: 65535
     },
     expect: {
-      signalStrength: -111,
+      signalStrength: null,
       relSignalStrength: 0
+    }
+  },
+  
+  {
+    input: {
+      rxlev: 63,
+      rsrp: 65535,
+      rssnr: 65535
+    },
+    expect: {
+      signalStrength: null,
+      relSignalStrength: 100
+    }
+  },
+  
+  {
+    input: {
+      rxlev: 31,
+      rsrp: 50,
+      rssnr: 65535
+    },
+    expect: {
+      signalStrength: 50,
+      relSignalStrength: 100
+    }
+  },
+  
+  {
+    input: {
+      rxlev: 31,
+      rsrp: 65535,
+      rssnr: 100
+    },
+    expect: {
+      signalStrength: null,
+      relSignalStrength: 81
+    }
+  },
+  
+  {
+    input: {
+      rxlev: 31,
+      rsrp: 100,
+      rssnr: 30
+    },
+    expect: {
+      signalStrength: 100,
+      relSignalStrength: 37
     }
   }
 ];

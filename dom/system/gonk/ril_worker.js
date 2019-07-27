@@ -82,6 +82,8 @@ let RILQUIRKS_DATA_REGISTRATION_ON_DEMAND;
 
 let RILQUIRKS_SUBSCRIPTION_CONTROL;
 
+let RILQUIRKS_SIGNAL_EXTRA_INT32;
+
 const TELEPHONY_REQUESTS = [
   REQUEST_GET_CURRENT_CALLS,
   REQUEST_ANSWER,
@@ -3377,14 +3379,11 @@ RilObject.prototype = {
 
 
 
-  _processLteSignal: function(signal) {
-    
-    if (signal.lteSignalStrength === undefined ||
-        signal.lteSignalStrength < 0 ||
-        signal.lteSignalStrength > 63) {
-      return null;
-    }
 
+
+
+
+  _processLteSignal: function(signal) {
     let info = {
       voice: {
         signalStrength:    null,
@@ -3397,15 +3396,50 @@ RilObject.prototype = {
     };
 
     
-    
-    let signalStrength = -111 + signal.lteSignalStrength;
+    let signalStrength = (signal.lteRSRP === undefined || signal.lteRSRP === 0x7FFFFFFF) ?
+                         null : signal.lteRSRP;
     info.voice.signalStrength = info.data.signalStrength = signalStrength;
-    
-    
-    let signalLevel = this._processSignalLevel(signal.lteSignalStrength, 0, 12);
-    info.voice.relSignalStrength = info.data.relSignalStrength = signalLevel;
 
-    return info;
+    
+    
+    let rsrpLevel = -1;
+    let rssnrLevel = -1;
+    if (signal.lteRSRP !== undefined &&
+        signal.lteRSRP !== 0x7FFFFFFF &&
+        signal.lteRSRP >= 44 &&
+        signal.lteRSRP <= 140) {
+      rsrpLevel = this._processSignalLevel(signal.lteRSRP * -1, -115, -85);
+    }
+
+    if (signal.lteRSSNR !== undefined &&
+        signal.lteRSSNR !== 0x7FFFFFFF &&
+        signal.lteRSSNR >= -200 &&
+        signal.lteRSSNR <= 300) {
+      rssnrLevel = this._processSignalLevel(signal.lteRSSNR, -30, 130);
+    }
+
+    if (rsrpLevel !== -1 && rssnrLevel !== -1) {
+      info.voice.relSignalStrength = info.data.relSignalStrength =
+        Math.min(rsrpLevel, rssnrLevel);
+      return info;
+    }
+
+    let level = Math.max(rsrpLevel, rssnrLevel);
+    if (level !== -1) {
+      info.voice.relSignalStrength = info.data.relSignalStrength = level;
+      return info;
+    }
+
+    
+    if (signal.lteSignalStrength !== undefined &&
+        signal.lteSignalStrength >= 0 &&
+        signal.lteSignalStrength <= 63) {
+      level = this._processSignalLevel(signal.lteSignalStrength, 0, 12);
+      info.voice.relSignalStrength = info.data.relSignalStrength = level;
+      return info;
+    }
+
+    return null;
   },
 
   _processSignalStrength: function(signal) {
@@ -5323,15 +5357,18 @@ RilObject.prototype[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(
   }
 
   let Buf = this.context.Buf;
-  let signal = {
-    gsmSignalStrength: Buf.readInt32(),
-    gsmBitErrorRate:   Buf.readInt32(),
-    cdmaDBM:           Buf.readInt32(),
-    cdmaECIO:          Buf.readInt32(),
-    evdoDBM:           Buf.readInt32(),
-    evdoECIO:          Buf.readInt32(),
-    evdoSNR:           Buf.readInt32()
-  };
+  let signal = {};
+
+  signal.gsmSignalStrength = Buf.readInt32();
+  signal.gsmBitErrorRate = Buf.readInt32();
+  if (RILQUIRKS_SIGNAL_EXTRA_INT32) {
+    Buf.readInt32();
+  }
+  signal.cdmaDBM = Buf.readInt32();
+  signal.cdmaECIO = Buf.readInt32();
+  signal.evdoDBM = Buf.readInt32();
+  signal.evdoECIO = Buf.readInt32();
+  signal.evdoSNR = Buf.readInt32();
 
   if (!this.v5Legacy) {
     signal.lteSignalStrength = Buf.readInt32();
@@ -16093,6 +16130,7 @@ let ContextPool = {
     RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD = quirks.sendStkProfileDownload;
     RILQUIRKS_DATA_REGISTRATION_ON_DEMAND = quirks.dataRegistrationOnDemand;
     RILQUIRKS_SUBSCRIPTION_CONTROL = quirks.subscriptionControl;
+    RILQUIRKS_SIGNAL_EXTRA_INT32 = quirks.signalExtraInt;
   },
 
   setDebugFlag: function(aOptions) {
