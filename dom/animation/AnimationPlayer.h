@@ -88,10 +88,10 @@ public:
 
   void SetSource(Animation* aSource);
   void Tick();
+
   
   
-  
-  void ResolveStartTime();
+  void StartNow();
   void Cancel();
 
   const nsString& Name() const {

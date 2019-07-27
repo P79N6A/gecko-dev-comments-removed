@@ -139,7 +139,7 @@ AnimationPlayer::Tick()
 }
 
 void
-AnimationPlayer::ResolveStartTime()
+AnimationPlayer::StartNow()
 {
   
   
@@ -248,7 +248,7 @@ AnimationPlayer::DoPlay()
   
   mReady = nullptr;
 
-  ResolveStartTime();
+  StartNow();
 }
 
 void
