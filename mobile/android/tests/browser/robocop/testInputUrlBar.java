@@ -88,10 +88,10 @@ public final class testInputUrlBar extends BaseTest {
         assertUrlBarText("uv");
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
 
         waitForText(mStringHelper.TITLE_PLACE_HOLDER);
 
