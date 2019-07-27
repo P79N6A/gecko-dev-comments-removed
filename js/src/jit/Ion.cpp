@@ -1717,6 +1717,30 @@ TrackPropertiesForSingletonScopes(JSContext *cx, JSScript *script, BaselineFrame
     }
 }
 
+static void
+TrackIonAbort(JSContext *cx, JSScript *script, jsbytecode *pc, const char *message)
+{
+    if (!cx->runtime()->jitRuntime()->isOptimizationTrackingEnabled(cx->runtime()))
+        return;
+
+    
+    
+    if (!script->hasBaselineScript())
+        return;
+
+    JitcodeGlobalTable *table = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
+    JitcodeGlobalEntry entry;
+    table->lookupInfallible(script->baselineScript()->method()->raw(), &entry, cx->runtime());
+    entry.baselineEntry().trackIonAbort(pc, message);
+}
+
+static void
+TrackAndSpewIonAbort(JSContext *cx, JSScript *script, const char *message)
+{
+    JitSpew(JitSpew_IonAbort, message);
+    TrackIonAbort(cx, script, script->code(), message);
+}
+
 static AbortReason
 IonCompile(JSContext *cx, JSScript *script,
            BaselineFrame *baselineFrame, jsbytecode *osrPc, bool constructing,
@@ -1822,6 +1846,15 @@ IonCompile(JSContext *cx, JSScript *script,
                     return AbortReason_Alloc;
             }
         }
+
+        if (builder->hadActionableAbort()) {
+            JSScript *abortScript;
+            jsbytecode *abortPc;
+            const char *abortMessage;
+            builder->actionableAbortLocationAndMessage(&abortScript, &abortPc, &abortMessage);
+            TrackIonAbort(cx, abortScript, abortPc, abortMessage);
+        }
+
         return reason;
     }
 
@@ -1861,7 +1894,7 @@ IonCompile(JSContext *cx, JSScript *script,
 }
 
 static bool
-CheckFrame(BaselineFrame *frame)
+CheckFrame(JSContext *cx, BaselineFrame *frame)
 {
     MOZ_ASSERT(!frame->script()->isGenerator());
     MOZ_ASSERT(!frame->isDebuggerEvalFrame());
@@ -1869,12 +1902,12 @@ CheckFrame(BaselineFrame *frame)
     
     if (frame->isFunctionFrame()) {
         if (TooManyActualArguments(frame->numActualArgs())) {
-            JitSpew(JitSpew_IonAbort, "too many actual args");
+            TrackAndSpewIonAbort(cx, frame->script(), "too many actual arguments");
             return false;
         }
 
         if (TooManyFormalArguments(frame->numFormalArgs())) {
-            JitSpew(JitSpew_IonAbort, "too many args");
+            TrackAndSpewIonAbort(cx, frame->script(), "too many arguments");
             return false;
         }
     }
@@ -1889,12 +1922,12 @@ CheckScript(JSContext *cx, JSScript *script, bool osr)
         
         
         
-        JitSpew(JitSpew_IonAbort, "eval script");
+        TrackAndSpewIonAbort(cx, script, "eval script");
         return false;
     }
 
     if (script->isGenerator()) {
-        JitSpew(JitSpew_IonAbort, "generator script");
+        TrackAndSpewIonAbort(cx, script, "generator script");
         return false;
     }
 
@@ -1902,7 +1935,7 @@ CheckScript(JSContext *cx, JSScript *script, bool osr)
         
         
         
-        JitSpew(JitSpew_IonAbort, "not compile-and-go");
+        TrackAndSpewIonAbort(cx, script, "not compile-and-go");
         return false;
     }
 
@@ -1923,6 +1956,7 @@ CheckScriptSize(JSContext *cx, JSScript* script)
         if (!OffThreadCompilationAvailable(cx)) {
             JitSpew(JitSpew_IonAbort, "Script too large (%u bytes) (%u locals/args)",
                     script->length(), numLocalsAndArgs);
+            TrackIonAbort(cx, script, script->code(), "too large");
             return Method_CantCompile;
         }
     }
@@ -1957,7 +1991,7 @@ Compile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode 
         return Method_Skipped;
 
     if (script->isDebuggee() || (osrFrame && osrFrame->isDebuggee())) {
-        JitSpew(JitSpew_IonAbort, "debugging");
+        TrackAndSpewIonAbort(cx, script, "debugging");
         return Method_Skipped;
     }
 
@@ -2045,7 +2079,7 @@ jit::CanEnterAtBranch(JSContext *cx, JSScript *script, BaselineFrame *osrFrame, 
         return Method_Skipped;
 
     
-    if (!CheckFrame(osrFrame)) {
+    if (!CheckFrame(cx, osrFrame)) {
         ForbidCompilation(cx, script);
         return Method_CantCompile;
     }
@@ -2112,13 +2146,13 @@ jit::CanEnter(JSContext *cx, RunState &state)
         InvokeState &invoke = *state.asInvoke();
 
         if (TooManyActualArguments(invoke.args().length())) {
-            JitSpew(JitSpew_IonAbort, "too many actual args");
+            TrackAndSpewIonAbort(cx, script, "too many actual args");
             ForbidCompilation(cx, script);
             return Method_CantCompile;
         }
 
         if (TooManyFormalArguments(invoke.args().callee().as<JSFunction>().nargs())) {
-            JitSpew(JitSpew_IonAbort, "too many args");
+            TrackAndSpewIonAbort(cx, script, "too many args");
             ForbidCompilation(cx, script);
             return Method_CantCompile;
         }
@@ -2157,7 +2191,7 @@ jit::CompileFunctionForBaseline(JSContext *cx, HandleScript script, BaselineFram
     MOZ_ASSERT(frame->isFunctionFrame());
 
     
-    if (!CheckFrame(frame)) {
+    if (!CheckFrame(cx, frame)) {
         ForbidCompilation(cx, script);
         return Method_CantCompile;
     }

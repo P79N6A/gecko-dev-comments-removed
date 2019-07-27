@@ -222,6 +222,12 @@ class JitcodeGlobalEntry
         JSScript *script_;
         const char *str_;
 
+        
+        
+        
+        jsbytecode *ionAbortPc_;
+        const char *ionAbortMessage_;
+
         void init(void *nativeStartAddr, void *nativeEndAddr, JSScript *script, const char *str)
         {
             MOZ_ASSERT(script != nullptr);
@@ -236,6 +242,18 @@ class JitcodeGlobalEntry
 
         const char *str() const {
             return str_;
+        }
+
+        void trackIonAbort(jsbytecode *pc, const char *message) {
+            MOZ_ASSERT(script_->containsPC(pc));
+            MOZ_ASSERT(message);
+            ionAbortPc_ = pc;
+            ionAbortMessage_ = message;
+        }
+
+        bool hadIonAbort() const {
+            MOZ_ASSERT(!ionAbortPc_ || ionAbortMessage_);
+            return ionAbortPc_ != nullptr;
         }
 
         void destroy();
