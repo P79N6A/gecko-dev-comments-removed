@@ -329,6 +329,9 @@ public:
   
 
 private:
+  
+  void RequestScale(imgFrame* aFrame, gfxSize aScale);
+
   already_AddRefed<imgStatusTracker> CurrentStatusTracker()
   {
     mDecodingMonitor.AssertCurrentThreadIn();
