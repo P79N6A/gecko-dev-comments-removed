@@ -646,7 +646,6 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
   
   
   
-  
   if (IsBidiUI())
   {
     
