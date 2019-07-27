@@ -4,7 +4,9 @@
 
 package org.mozilla.search;
 
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.net.URL;
 
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.R;
@@ -40,6 +42,8 @@ public class PostSearchFragment extends Fragment {
     private WebView webview;
     private View errorView;
 
+    private String resultsPageHost;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -72,6 +76,7 @@ public class PostSearchFragment extends Fragment {
         final String url = engine.resultsUriForQuery(query);
         
         if (!TextUtils.equals(webview.getUrl(), url)) {
+            resultsPageHost = null;
             webview.loadUrl(Constants.ABOUT_BLANK);
             webview.loadUrl(url);
         }
@@ -96,13 +101,21 @@ public class PostSearchFragment extends Fragment {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             
-            if (TextUtils.equals(url, Constants.ABOUT_BLANK)) {
+            if (TextUtils.equals(url, Constants.ABOUT_BLANK) || resultsPageHost == null) {
                 return false;
+            }
+
+            String host = null;
+            try {
+                host = new URL(url).getHost();
+            } catch (MalformedURLException e) {
+                Log.e(LOG_TAG, "Error getting host from URL loading in webview", e);
             }
 
             
             
-            if (engine.isSearchResultsPage(url)) {
+            if (TextUtils.equals(resultsPageHost, host)) {
+                
                 final String query = engine.queryForResultsUrl(url);
                 if (!TextUtils.isEmpty(query)) {
                     ((AcceptsSearchQuery) getActivity()).onQueryChange(query);
@@ -132,7 +145,7 @@ public class PostSearchFragment extends Fragment {
             }
 
             return false;
-}
+        }
 
         @Override
         public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
@@ -165,6 +178,14 @@ public class PostSearchFragment extends Fragment {
             if (errorView != null) {
                 errorView.setVisibility(networkError ? View.VISIBLE : View.GONE);
                 webview.setVisibility(networkError ? View.GONE : View.VISIBLE);
+            }
+
+            if (!TextUtils.equals(url, Constants.ABOUT_BLANK) && resultsPageHost == null) {
+                try {
+                    resultsPageHost = new URL(url).getHost();
+                } catch (MalformedURLException e) {
+                    Log.e(LOG_TAG, "Error getting host from results page URL", e);
+                }
             }
         }
     }

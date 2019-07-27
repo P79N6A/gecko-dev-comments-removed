@@ -223,14 +223,6 @@ public class SearchEngine {
 
 
 
-    public boolean isSearchResultsPage(String url) {
-        return getResultsUri().getAuthority().equalsIgnoreCase(Uri.parse(url).getAuthority());
-    }
-
-    
-
-
-
 
 
     public String queryForResultsUrl(String url) {
