@@ -211,23 +211,6 @@ MarkGCThingUnbarriered(JSTracer* trc, void** thingp, const char* name);
 
 
 
-void
-MarkId(JSTracer* trc, BarrieredBase<jsid>* id, const char* name);
-
-void
-MarkIdRoot(JSTracer* trc, jsid* id, const char* name);
-
-void
-MarkIdUnbarriered(JSTracer* trc, jsid* id, const char* name);
-
-void
-MarkIdRange(JSTracer* trc, size_t len, HeapId* vec, const char* name);
-
-void
-MarkIdRootRange(JSTracer* trc, size_t len, jsid* vec, const char* name);
-
-
-
 bool
 IsValueMarked(Value* v);
 
@@ -259,6 +242,10 @@ void
 PushArena(GCMarker* gcmarker, ArenaHeader* aheader);
 
 
+
+template <typename T>
+static bool
+IsMarked(T** thingp);
 
 inline bool
 IsMarked(BarrieredBase<Value>* v)
