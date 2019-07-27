@@ -496,6 +496,15 @@ typedef Log<LOG_CRITICAL, CriticalLogger> CriticalLog;
 
 
 
+#define gfxCriticalNote gfxCriticalError(gfxCriticalError::DefaultOptions(false))
+
+
+
+
+
+
+
+
 
 #ifdef GFX_LOG_DEBUG
 #define gfxDebug mozilla::gfx::DebugLog
