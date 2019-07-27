@@ -61,7 +61,6 @@
 #include "nsThreadManager.h"
 #endif
 
-#include "Principal.h"
 #include "ServiceWorker.h"
 #include "SharedWorker.h"
 #include "WorkerPrivate.h"
@@ -853,7 +852,6 @@ public:
                               WORKER_DEFAULT_NURSERY_SIZE),
     mWorkerPrivate(aWorkerPrivate)
   {
-    JS_InitDestroyPrincipalsCallback(Runtime(), DestroyWorkerPrincipals);
   }
 
   ~WorkerJSRuntime()
@@ -1693,7 +1691,7 @@ RuntimeService::ShutdownIdleThreads(nsITimer* aTimer, void* )
     }
   }
 
-  NS_ASSERTION(nextExpiration.IsNull() || !expiredThreads.IsEmpty(),
+  NS_ASSERTION(!nextExpiration.IsNull() || !expiredThreads.IsEmpty(),
                "Should have a new time or there should be some threads to shut "
                "down");
 
