@@ -676,10 +676,26 @@ SetUpSandboxEnvironment()
   }
 }
 
-#if defined(NIGHTLY_BUILD)
 static void
-CleanUpOldSandboxEnvironment()
+CleanUpSandboxEnvironment()
 {
+  
+  if (!IsVistaOrLater()) {
+    return;
+  }
+
+  
+  nsAdoptingString tempDirSuffix =
+    Preferences::GetString("security.sandbox.content.tempDirSuffix");
+  if (tempDirSuffix.IsEmpty()) {
+    return;
+  }
+
+  
+  
+  unused << GetAndCleanLowIntegrityTemp(tempDirSuffix);
+
+#if defined(NIGHTLY_BUILD)
   
   
   nsCOMPtr<nsIFile> lowIntegrityMozilla;
@@ -718,31 +734,7 @@ CleanUpOldSandboxEnvironment()
       file->Remove( true);
     }
   }
-}
 #endif
-
-static void
-CleanUpSandboxEnvironment()
-{
-  
-  if (!IsVistaOrLater()) {
-    return;
-  }
-
-#if defined(NIGHTLY_BUILD)
-  CleanUpOldSandboxEnvironment();
-#endif
-
-  
-  nsAdoptingString tempDirSuffix =
-    Preferences::GetString("security.sandbox.content.tempDirSuffix");
-  if (tempDirSuffix.IsEmpty()) {
-    return;
-  }
-
-  
-  
-  nsCOMPtr<nsIFile> lowIntegrityTemp = GetAndCleanLowIntegrityTemp(tempDirSuffix);
 }
 #endif
 
