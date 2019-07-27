@@ -871,8 +871,8 @@ nsPlaintextEditor::UpdateIMEComposition(nsIDOMEvent* aDOMTextEvent)
   
   MOZ_ASSERT(!mPlaceHolderBatch,
     "UpdateIMEComposition() must be called without place holder batch");
-  TextComposition::TextEventHandlingMarker
-    textEventHandlingMarker(mComposition, compositionChangeEvent);
+  TextComposition::CompositionChangeEventHandlingMarker
+    compositionChangeEventHandlingMarker(mComposition, compositionChangeEvent);
 
   NotifyEditorObservers(eNotifyEditorObserversOfBefore);
 

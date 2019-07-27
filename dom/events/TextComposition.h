@@ -53,6 +53,7 @@ public:
   
   
   
+  
   const nsString& String() const { return mString; }
   
   
@@ -128,26 +129,29 @@ public:
 
 
 
-  class MOZ_STACK_CLASS TextEventHandlingMarker
+
+  class MOZ_STACK_CLASS CompositionChangeEventHandlingMarker
   {
   public:
-    TextEventHandlingMarker(
+    CompositionChangeEventHandlingMarker(
       TextComposition* aComposition,
       const WidgetCompositionEvent* aCompositionChangeEvent)
       : mComposition(aComposition)
     {
-      mComposition->EditorWillHandleTextEvent(aCompositionChangeEvent);
+      mComposition->EditorWillHandleCompositionChangeEvent(
+                      aCompositionChangeEvent);
     }
 
-    ~TextEventHandlingMarker()
+    ~CompositionChangeEventHandlingMarker()
     {
-      mComposition->EditorDidHandleTextEvent();
+      mComposition->EditorDidHandleCompositionChangeEvent();
     }
 
   private:
     nsRefPtr<TextComposition> mComposition;
-    TextEventHandlingMarker();
-    TextEventHandlingMarker(const TextEventHandlingMarker& aOther);
+    CompositionChangeEventHandlingMarker();
+    CompositionChangeEventHandlingMarker(
+      const CompositionChangeEventHandlingMarker& aOther);
   };
 
 private:
@@ -236,14 +240,14 @@ private:
 
 
 
-  void EditorWillHandleTextEvent(
+  void EditorWillHandleCompositionChangeEvent(
          const WidgetCompositionEvent* aCompositionChangeEvent);
 
   
 
 
 
-  void EditorDidHandleTextEvent();
+  void EditorDidHandleCompositionChangeEvent();
 
   
 

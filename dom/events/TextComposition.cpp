@@ -180,8 +180,8 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
   
   
   if (aEvent->message == NS_COMPOSITION_CHANGE && !HasEditor()) {
-    EditorWillHandleTextEvent(aEvent->AsCompositionEvent());
-    EditorDidHandleTextEvent();
+    EditorWillHandleCompositionChangeEvent(aEvent->AsCompositionEvent());
+    EditorDidHandleCompositionChangeEvent();
   }
 
 #ifdef DEBUG
@@ -266,7 +266,6 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
     if (!mIsSynthesizedForTests) {
       
       
-      
       nsresult rv =
         aWidget->NotifyIME(IMENotification(aDiscard ?
                                              REQUEST_TO_CANCEL_COMPOSITION :
@@ -339,7 +338,7 @@ TextComposition::NotifyIME(IMEMessage aMessage)
 }
 
 void
-TextComposition::EditorWillHandleTextEvent(
+TextComposition::EditorWillHandleCompositionChangeEvent(
                    const WidgetCompositionEvent* aCompositionChangeEvent)
 {
   mIsComposing = aCompositionChangeEvent->IsComposing();
@@ -352,7 +351,7 @@ TextComposition::EditorWillHandleTextEvent(
 }
 
 void
-TextComposition::EditorDidHandleTextEvent()
+TextComposition::EditorDidHandleCompositionChangeEvent()
 {
   mString = mLastData;
   mIsEditorHandlingEvent = false;
