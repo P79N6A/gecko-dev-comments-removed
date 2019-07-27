@@ -67,7 +67,8 @@ nsIContentChild::AllocPBrowserChild(const IPCTabContext& aContext,
     MOZ_CRASH("Invalid TabContext received from the parent process.");
   }
 
-  nsRefPtr<TabChild> child = TabChild::Create(this, tc.GetTabContext(), aChromeFlags);
+  nsRefPtr<TabChild> child =
+    TabChild::Create(this, tc.GetTabContext(), aChromeFlags);
 
   
   return child.forget().take();
