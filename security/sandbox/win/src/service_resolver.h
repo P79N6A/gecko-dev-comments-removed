@@ -16,7 +16,7 @@ class ServiceResolverThunk : public ResolverThunk {
  public:
   
   ServiceResolverThunk(HANDLE process, bool relaxed)
-      : process_(process), ntdll_base_(NULL),
+      : process_(process), ntdll_base_(NULL), win2k_(false),
         relaxed_(relaxed), relative_jump_(0) {}
   virtual ~ServiceResolverThunk() {}
 
@@ -43,24 +43,16 @@ class ServiceResolverThunk : public ResolverThunk {
   
   virtual size_t GetThunkSize() const;
 
-  
-  virtual void AllowLocalPatches();
-
-  
-  
-  
-  virtual NTSTATUS CopyThunk(const void* target_module,
-                             const char* target_name,
-                             BYTE* thunk_storage,
-                             size_t storage_bytes,
-                             size_t* storage_used);
-
  protected:
   
   HMODULE ntdll_base_;
 
   
   HANDLE process_;
+
+ protected:
+  
+  bool win2k_;
 
  private:
   
@@ -116,6 +108,23 @@ class Wow64W8ResolverThunk : public ServiceResolverThunk {
   virtual bool IsFunctionAService(void* local_thunk) const;
 
   DISALLOW_COPY_AND_ASSIGN(Wow64W8ResolverThunk);
+};
+
+
+
+class Win2kResolverThunk : public ServiceResolverThunk {
+ public:
+  
+  Win2kResolverThunk(HANDLE process, bool relaxed)
+      : ServiceResolverThunk(process, relaxed) {
+    win2k_ = true;
+  }
+  virtual ~Win2kResolverThunk() {}
+
+ private:
+  virtual bool IsFunctionAService(void* local_thunk) const;
+
+  DISALLOW_COPY_AND_ASSIGN(Win2kResolverThunk);
 };
 
 

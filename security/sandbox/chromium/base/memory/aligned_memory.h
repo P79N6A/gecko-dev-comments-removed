@@ -102,8 +102,8 @@ inline void AlignedFree(void* ptr) {
 }
 
 
-
-struct AlignedFreeDeleter {
+class BASE_EXPORT ScopedPtrAlignedFree {
+ public:
   inline void operator()(void* ptr) const {
     AlignedFree(ptr);
   }

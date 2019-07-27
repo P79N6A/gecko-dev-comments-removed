@@ -41,23 +41,13 @@ class BASE_EXPORT PathService {
   
   
   
-  
-  
-  
   static bool Override(int key, const base::FilePath& path);
 
   
   
   
-  
-  
-  
-  
-  
-  
   static bool OverrideAndCreateIfNeeded(int key,
                                         const base::FilePath& path,
-                                        bool is_absolute,
                                         bool create);
 
   

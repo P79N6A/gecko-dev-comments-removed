@@ -73,28 +73,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-#if defined(COMPILER_MSVC)
-#define STATIC_CONST_MEMBER_DEFINITION __declspec(selectany)
-#else
-#define STATIC_CONST_MEMBER_DEFINITION
-#endif
-
-
-
-
-
-
 #if defined(COMPILER_GCC)
 #define ALLOW_UNUSED __attribute__((unused))
 #else
@@ -137,11 +115,9 @@
 
 
 
-#if defined(__clang__) || defined(COMPILER_MSVC)
+#if defined(COMPILER_MSVC)
 #define OVERRIDE override
-#elif defined(COMPILER_GCC) && __cplusplus >= 201103 && \
-      (__GNUC__ * 10000 + __GNUC_MINOR__ * 100) >= 40700
-
+#elif defined(__clang__)
 #define OVERRIDE override
 #else
 #define OVERRIDE
@@ -152,11 +128,10 @@
 
 
 
-#if defined(__clang__) || defined(COMPILER_MSVC)
-#define FINAL final
-#elif defined(COMPILER_GCC) && __cplusplus >= 201103 && \
-      (__GNUC__ * 10000 + __GNUC_MINOR__ * 100) >= 40700
+#if defined(COMPILER_MSVC)
 
+#define FINAL sealed
+#elif defined(__clang__)
 #define FINAL final
 #else
 #define FINAL
@@ -192,8 +167,11 @@
 
 
 
-#if defined(MEMORY_SANITIZER) && !defined(OS_NACL)
-#include <sanitizer/msan_interface.h>
+
+#ifdef MEMORY_SANITIZER
+extern "C" {
+void __msan_unpoison(const void *p, unsigned long s);
+}  
 
 
 
@@ -201,24 +179,6 @@
 #define MSAN_UNPOISON(p, s)  __msan_unpoison(p, s)
 #else  
 #define MSAN_UNPOISON(p, s)
-#endif  
-
-
-#if !defined(CDECL)
-#if defined(OS_WIN)
-#define CDECL __cdecl
-#else  
-#define CDECL
-#endif  
-#endif  
-
-
-#if !defined(UNLIKELY)
-#if defined(COMPILER_GCC)
-#define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#else
-#define UNLIKELY(x) (x)
-#endif  
 #endif  
 
 #endif  

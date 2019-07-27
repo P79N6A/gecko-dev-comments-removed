@@ -23,47 +23,11 @@
 
 namespace base {
 
-
 #if defined(OS_WIN)
 typedef DWORD PlatformThreadId;
 #elif defined(OS_POSIX)
 typedef pid_t PlatformThreadId;
 #endif
-
-
-
-
-
-
-
-
-
-class PlatformThreadRef {
- public:
-#if defined(OS_WIN)
-  typedef DWORD RefType;
-#elif defined(OS_POSIX)
-  typedef pthread_t RefType;
-#endif
-  PlatformThreadRef()
-      : id_(0) {
-  }
-
-  explicit PlatformThreadRef(RefType id)
-      : id_(id) {
-  }
-
-  bool operator==(PlatformThreadRef other) const {
-    return id_ == other.id_;
-  }
-
-  bool is_null() const {
-    return id_ == 0;
-  }
- private:
-  RefType id_;
-};
-
 
 class PlatformThreadHandle {
  public:
@@ -89,15 +53,15 @@ class PlatformThreadHandle {
         id_(id) {
   }
 
-  bool is_equal(const PlatformThreadHandle& other) const {
+  bool is_equal(const PlatformThreadHandle& other) {
     return handle_ == other.handle_;
   }
 
-  bool is_null() const {
+  bool is_null() {
     return !handle_;
   }
 
-  Handle platform_handle() const {
+  Handle platform_handle() {
     return handle_;
   }
 
@@ -136,10 +100,6 @@ class BASE_EXPORT PlatformThread {
 
   
   static PlatformThreadId CurrentId();
-
-  
-  
-  static PlatformThreadRef CurrentRef();
 
   
   static PlatformThreadHandle CurrentHandle();

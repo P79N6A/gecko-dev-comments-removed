@@ -151,7 +151,7 @@ PolicyRule::PolicyRule(const PolicyRule& other) {
 bool PolicyRule::GenStringOpcode(RuleType rule_type,
                                  StringMatchOptions match_opts,
                                  uint16 parameter, int state, bool last_call,
-                                 int* skip_count, base::string16* fragment) {
+                                 int* skip_count, std::wstring* fragment) {
 
   
   
@@ -226,7 +226,7 @@ bool PolicyRule::AddStringMatch(RuleType rule_type, int16 parameter,
   uint32 last_char = kLastCharIsNone;
   int state = PENDING_NONE;
   int skip_count = 0;       
-  base::string16 fragment;  
+  std::wstring fragment;    
 
   while (L'\0' != *current_char) {
     switch (*current_char) {

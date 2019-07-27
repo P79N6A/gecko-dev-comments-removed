@@ -9,7 +9,6 @@
 #include <vector>
 #include "base/basictypes.h"
 #include "base/callback.h"
-#include "base/strings/string16.h"
 #include "sandbox/win/src/crosscall_params.h"
 
 
@@ -113,7 +112,7 @@ class CrossCallParamsEx : public CrossCallParams {
 
   
   
-  bool GetParameterStr(uint32 index, base::string16* string);
+  bool GetParameterStr(uint32 index, std::wstring* string);
 
   
   

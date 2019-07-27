@@ -83,6 +83,17 @@ SANDBOX_INTERCEPT BOOL WINAPI TargetCreateProcessA(
     LPVOID environment, LPCSTR current_directory, LPSTARTUPINFOA startup_info,
     LPPROCESS_INFORMATION process_information);
 
+
+SANDBOX_INTERCEPT HANDLE WINAPI TargetCreateThread(
+    CreateThreadFunction orig_CreateThread,
+    LPSECURITY_ATTRIBUTES thread_attributes, SIZE_T stack_size,
+    LPTHREAD_START_ROUTINE start_address, PVOID parameter,
+    DWORD creation_flags, LPDWORD thread_id);
+
+
+SANDBOX_INTERCEPT LCID WINAPI TargetGetUserDefaultLCID(
+    GetUserDefaultLCIDFunction orig_GetUserDefaultLCID);
+
 }  
 
 }  

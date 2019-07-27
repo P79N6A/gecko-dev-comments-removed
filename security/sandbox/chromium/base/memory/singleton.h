@@ -63,12 +63,10 @@ struct DefaultSingletonTraits {
   
   static const bool kRegisterAtExit = true;
 
-#ifndef NDEBUG
   
   
   
   static const bool kAllowedToAccessOnNonjoinableThread = false;
-#endif
 };
 
 
@@ -78,9 +76,7 @@ struct DefaultSingletonTraits {
 template<typename Type>
 struct LeakySingletonTraits : public DefaultSingletonTraits<Type> {
   static const bool kRegisterAtExit = false;
-#ifndef NDEBUG
   static const bool kAllowedToAccessOnNonjoinableThread = true;
-#endif
 };
 
 
@@ -233,9 +229,7 @@ class Singleton {
       base::ThreadRestrictions::AssertSingletonAllowed();
 #endif
 
-    
-    
-    base::subtle::AtomicWord value = base::subtle::Acquire_Load(&instance_);
+    base::subtle::AtomicWord value = base::subtle::NoBarrier_Load(&instance_);
     if (value != 0 && value != base::internal::kBeingCreatedMarker) {
       
       ANNOTATE_HAPPENS_AFTER(&instance_);
@@ -254,7 +248,6 @@ class Singleton {
       
       
       ANNOTATE_HAPPENS_BEFORE(&instance_);
-      
       base::subtle::Release_Store(
           &instance_, reinterpret_cast<base::subtle::AtomicWord>(newval));
 

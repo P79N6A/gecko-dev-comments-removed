@@ -8,7 +8,6 @@
 #include <string>
 
 #include "base/basictypes.h"
-#include "base/strings/string16.h"
 #include "sandbox/win/src/crosscall_server.h"
 #include "sandbox/win/src/nt_internals.h"
 #include "sandbox/win/src/policy_low_level.h"
@@ -40,7 +39,7 @@ class FileSystemPolicy {
   
   static bool CreateFileAction(EvalResult eval_result,
                                const ClientInfo& client_info,
-                               const base::string16 &file,
+                               const std::wstring &file,
                                uint32 attributes,
                                uint32 desired_access,
                                uint32 file_attributes,
@@ -58,7 +57,7 @@ class FileSystemPolicy {
   
   static bool OpenFileAction(EvalResult eval_result,
                              const ClientInfo& client_info,
-                             const base::string16 &file,
+                             const std::wstring &file,
                              uint32 attributes,
                              uint32 desired_access,
                              uint32 share_access,
@@ -71,7 +70,7 @@ class FileSystemPolicy {
   
   static bool QueryAttributesFileAction(EvalResult eval_result,
                                         const ClientInfo& client_info,
-                                        const base::string16 &file,
+                                        const std::wstring &file,
                                         uint32 attributes,
                                         FILE_BASIC_INFORMATION* file_info,
                                         NTSTATUS* nt_status);
@@ -81,7 +80,7 @@ class FileSystemPolicy {
   static bool QueryFullAttributesFileAction(
       EvalResult eval_result,
       const ClientInfo& client_info,
-      const base::string16 &file,
+      const std::wstring &file,
       uint32 attributes,
       FILE_NETWORK_OPEN_INFORMATION* file_info,
       NTSTATUS* nt_status);
@@ -101,7 +100,7 @@ class FileSystemPolicy {
 
 
 
-bool PreProcessName(const base::string16& path, base::string16* new_path);
+bool PreProcessName(const std::wstring& path, std::wstring* new_path);
 
 }  
 

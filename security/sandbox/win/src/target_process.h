@@ -113,7 +113,7 @@ class TargetProcess {
   
   void* base_address_;
   
-  scoped_ptr<wchar_t, base::FreeDeleter> exe_name_;
+  scoped_ptr_malloc<wchar_t> exe_name_;
 
   
   friend TargetProcess* MakeTestTargetProcess(HANDLE process,

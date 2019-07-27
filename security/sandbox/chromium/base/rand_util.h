@@ -47,7 +47,6 @@ BASE_EXPORT void RandBytes(void* output, size_t output_length);
 
 
 
-
 BASE_EXPORT std::string RandBytesAsString(size_t length);
 
 #if defined(OS_POSIX)

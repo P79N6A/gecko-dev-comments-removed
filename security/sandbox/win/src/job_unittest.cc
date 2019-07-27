@@ -16,7 +16,7 @@ TEST(JobTest, TestCreation) {
   {
     
     Job job;
-    ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0, 0));
+    ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0));
 
     
     HANDLE job_handle = ::OpenJobObjectW(GENERIC_ALL, FALSE,
@@ -40,7 +40,7 @@ TEST(JobTest, TestDetach) {
   {
     
     Job job;
-    ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0, 0));
+    ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0));
 
     job_handle = job.Detach();
     ASSERT_TRUE(job_handle != NULL);
@@ -73,7 +73,7 @@ TEST(JobTest, TestExceptions) {
     
     Job job;
     ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name",
-                                      JOB_OBJECT_UILIMIT_READCLIPBOARD, 0));
+                                      JOB_OBJECT_UILIMIT_READCLIPBOARD));
 
     job_handle = job.Detach();
     ASSERT_TRUE(job_handle != NULL);
@@ -93,7 +93,7 @@ TEST(JobTest, TestExceptions) {
   {
     
     Job job;
-    ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0, 0));
+    ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0));
 
     job_handle = job.Detach();
     ASSERT_TRUE(job_handle != NULL);
@@ -115,8 +115,8 @@ TEST(JobTest, TestExceptions) {
 TEST(JobTest, DoubleInit) {
   
   Job job;
-  ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0, 0));
-  ASSERT_EQ(ERROR_ALREADY_INITIALIZED, job.Init(JOB_LOCKDOWN, L"test", 0, 0));
+  ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_LOCKDOWN, L"my_test_job_name", 0));
+  ASSERT_EQ(ERROR_ALREADY_INITIALIZED, job.Init(JOB_LOCKDOWN, L"test", 0));
 }
 
 
@@ -131,45 +131,43 @@ TEST(JobTest, NoInit) {
 
 TEST(JobTest, SecurityLevel) {
   Job job1;
-  ASSERT_EQ(ERROR_SUCCESS, job1.Init(JOB_LOCKDOWN, L"job1", 0, 0));
+  ASSERT_EQ(ERROR_SUCCESS, job1.Init(JOB_LOCKDOWN, L"job1", 0));
 
   Job job2;
-  ASSERT_EQ(ERROR_SUCCESS, job2.Init(JOB_RESTRICTED, L"job2", 0, 0));
+  ASSERT_EQ(ERROR_SUCCESS, job2.Init(JOB_RESTRICTED, L"job2", 0));
 
   Job job3;
-  ASSERT_EQ(ERROR_SUCCESS, job3.Init(JOB_LIMITED_USER, L"job3", 0, 0));
+  ASSERT_EQ(ERROR_SUCCESS, job3.Init(JOB_LIMITED_USER, L"job3", 0));
 
   Job job4;
-  ASSERT_EQ(ERROR_SUCCESS, job4.Init(JOB_INTERACTIVE, L"job4", 0, 0));
+  ASSERT_EQ(ERROR_SUCCESS, job4.Init(JOB_INTERACTIVE, L"job4", 0));
 
   Job job5;
-  ASSERT_EQ(ERROR_SUCCESS, job5.Init(JOB_UNPROTECTED, L"job5", 0, 0));
+  ASSERT_EQ(ERROR_SUCCESS, job5.Init(JOB_UNPROTECTED, L"job5", 0));
 
   
   Job job6;
-  ASSERT_EQ(ERROR_BAD_ARGUMENTS, job6.Init(JOB_NONE, L"job6", 0, 0));
+  ASSERT_EQ(ERROR_BAD_ARGUMENTS, job6.Init(JOB_NONE, L"job6", 0));
 
   Job job7;
   ASSERT_EQ(ERROR_BAD_ARGUMENTS, job7.Init(
-      static_cast<JobLevel>(JOB_NONE+1), L"job7", 0, 0));
+      static_cast<JobLevel>(JOB_NONE+1), L"job7", 0));
 }
 
 
 TEST(JobTest, ProcessInJob) {
   
   Job job;
-  ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_UNPROTECTED, L"job_test_process", 0,
-                                    0));
+  ASSERT_EQ(ERROR_SUCCESS, job.Init(JOB_UNPROTECTED, L"job_test_process", 0));
 
   BOOL result = FALSE;
 
   wchar_t notepad[] = L"notepad";
   STARTUPINFO si = { sizeof(si) };
-  PROCESS_INFORMATION temp_process_info = {};
+  base::win::ScopedProcessInformation pi;
   result = ::CreateProcess(NULL, notepad, NULL, NULL, FALSE, 0, NULL, NULL, &si,
-                           &temp_process_info);
+                           pi.Receive());
   ASSERT_TRUE(result);
-  base::win::ScopedProcessInformation pi(temp_process_info);
   ASSERT_EQ(ERROR_SUCCESS, job.AssignProcessToJob(pi.process_handle()));
 
   

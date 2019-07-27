@@ -201,11 +201,9 @@ namespace base {
 
 template <typename Container>
 bool STLIsSorted(const Container& cont) {
-  
-  
-  return std::adjacent_find(cont.rbegin(), cont.rend(),
-                            std::less<typename Container::value_type>())
-      == cont.rend();
+  return std::adjacent_find(cont.begin(), cont.end(),
+                            std::greater<typename Container::value_type>())
+      == cont.end();
 }
 
 
@@ -218,41 +216,6 @@ ResultType STLSetDifference(const Arg1& a1, const Arg2& a2) {
                       a2.begin(), a2.end(),
                       std::inserter(difference, difference.end()));
   return difference;
-}
-
-
-template <typename ResultType, typename Arg1, typename Arg2>
-ResultType STLSetUnion(const Arg1& a1, const Arg2& a2) {
-  DCHECK(STLIsSorted(a1));
-  DCHECK(STLIsSorted(a2));
-  ResultType result;
-  std::set_union(a1.begin(), a1.end(),
-                 a2.begin(), a2.end(),
-                 std::inserter(result, result.end()));
-  return result;
-}
-
-
-
-template <typename ResultType, typename Arg1, typename Arg2>
-ResultType STLSetIntersection(const Arg1& a1, const Arg2& a2) {
-  DCHECK(STLIsSorted(a1));
-  DCHECK(STLIsSorted(a2));
-  ResultType result;
-  std::set_intersection(a1.begin(), a1.end(),
-                        a2.begin(), a2.end(),
-                        std::inserter(result, result.end()));
-  return result;
-}
-
-
-
-template <typename Arg1, typename Arg2>
-bool STLIncludes(const Arg1& a1, const Arg2& a2) {
-  DCHECK(STLIsSorted(a1));
-  DCHECK(STLIsSorted(a2));
-  return std::includes(a1.begin(), a1.end(),
-                       a2.begin(), a2.end());
 }
 
 }  

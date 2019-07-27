@@ -70,16 +70,6 @@ class BASE_EXPORT CallbackBase {
 
 
 
-template <typename T> struct IsMoveOnlyType {
-  template <typename U>
-  static YesType Test(const typename U::MoveOnlyTypeForCPP03*);
-
-  template <typename U>
-  static NoType Test(...);
-
-  static const bool value = sizeof(Test<T>(0)) == sizeof(YesType) &&
-                            !is_const<T>::value;
-};
 
 
 
@@ -88,11 +78,7 @@ template <typename T> struct IsMoveOnlyType {
 
 
 
-
-
-
-
-template <typename T, bool is_move_only = IsMoveOnlyType<T>::value>
+template <typename T>
 struct CallbackParamTraits {
   typedef const T& ForwardType;
   typedef T StorageType;
@@ -104,7 +90,7 @@ struct CallbackParamTraits {
 
 
 template <typename T>
-struct CallbackParamTraits<T&, false> {
+struct CallbackParamTraits<T&> {
   typedef T& ForwardType;
   typedef T StorageType;
 };
@@ -115,14 +101,14 @@ struct CallbackParamTraits<T&, false> {
 
 
 template <typename T, size_t n>
-struct CallbackParamTraits<T[n], false> {
+struct CallbackParamTraits<T[n]> {
   typedef const T* ForwardType;
   typedef const T* StorageType;
 };
 
 
 template <typename T>
-struct CallbackParamTraits<T[], false> {
+struct CallbackParamTraits<T[]> {
   typedef const T* ForwardType;
   typedef const T* StorageType;
 };
@@ -140,10 +126,26 @@ struct CallbackParamTraits<T[], false> {
 
 
 
+
+
+
+
+template <typename T, typename D>
+struct CallbackParamTraits<scoped_ptr<T, D> > {
+  typedef scoped_ptr<T, D> ForwardType;
+  typedef scoped_ptr<T, D> StorageType;
+};
+
+template <typename T, typename R>
+struct CallbackParamTraits<scoped_ptr_malloc<T, R> > {
+  typedef scoped_ptr_malloc<T, R> ForwardType;
+  typedef scoped_ptr_malloc<T, R> StorageType;
+};
+
 template <typename T>
-struct CallbackParamTraits<T, true> {
-  typedef T ForwardType;
-  typedef T StorageType;
+struct CallbackParamTraits<ScopedVector<T> > {
+  typedef ScopedVector<T> ForwardType;
+  typedef ScopedVector<T> StorageType;
 };
 
 
@@ -163,14 +165,18 @@ struct CallbackParamTraits<T, true> {
 
 
 template <typename T>
-typename enable_if<!IsMoveOnlyType<T>::value, T>::type& CallbackForward(T& t) {
-  return t;
+T& CallbackForward(T& t) { return t; }
+
+template <typename T, typename D>
+scoped_ptr<T, D> CallbackForward(scoped_ptr<T, D>& p) { return p.Pass(); }
+
+template <typename T, typename R>
+scoped_ptr_malloc<T, R> CallbackForward(scoped_ptr_malloc<T, R>& p) {
+  return p.Pass();
 }
 
 template <typename T>
-typename enable_if<IsMoveOnlyType<T>::value, T>::type CallbackForward(T& t) {
-  return t.Pass();
-}
+ScopedVector<T> CallbackForward(ScopedVector<T>& p) { return p.Pass(); }
 
 }  
 }  

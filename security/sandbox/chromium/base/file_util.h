@@ -25,9 +25,9 @@
 
 #include "base/base_export.h"
 #include "base/basictypes.h"
-#include "base/files/file.h"
 #include "base/files/file_path.h"
 #include "base/memory/scoped_ptr.h"
+#include "base/platform_file.h"
 #include "base/strings/string16.h"
 
 #if defined(OS_POSIX)
@@ -39,6 +39,8 @@
 namespace base {
 
 class Time;
+
+extern bool g_bug108724_debug;
 
 
 
@@ -93,17 +95,11 @@ BASE_EXPORT bool Move(const FilePath& from_path, const FilePath& to_path);
 
 BASE_EXPORT bool ReplaceFile(const FilePath& from_path,
                              const FilePath& to_path,
-                             File::Error* error);
-
-
-
+                             PlatformFileError* error);
 
 
 
 BASE_EXPORT bool CopyFile(const FilePath& from_path, const FilePath& to_path);
-
-
-
 
 
 
@@ -141,25 +137,15 @@ BASE_EXPORT bool TextContentsEqual(const FilePath& filename1,
 
 
 
-
-
 BASE_EXPORT bool ReadFileToString(const FilePath& path, std::string* contents);
 
+}  
 
 
 
-
-
-
-
-
-
-BASE_EXPORT bool ReadFileToString(const FilePath& path,
-                                  std::string* contents,
-                                  size_t max_size);
+namespace file_util {
 
 #if defined(OS_POSIX)
-
 
 
 
@@ -167,12 +153,13 @@ BASE_EXPORT bool ReadFromFD(int fd, char* buffer, size_t bytes);
 
 
 
-BASE_EXPORT bool CreateSymbolicLink(const FilePath& target,
-                                    const FilePath& symlink);
+BASE_EXPORT bool CreateSymbolicLink(const base::FilePath& target,
+                                    const base::FilePath& symlink);
 
 
 
-BASE_EXPORT bool ReadSymbolicLink(const FilePath& symlink, FilePath* target);
+BASE_EXPORT bool ReadSymbolicLink(const base::FilePath& symlink,
+                                  base::FilePath* target);
 
 
 enum FilePermissionBits {
@@ -195,15 +182,80 @@ enum FilePermissionBits {
 
 
 
-BASE_EXPORT bool GetPosixFilePermissions(const FilePath& path, int* mode);
+BASE_EXPORT bool GetPosixFilePermissions(const base::FilePath& path,
+                                         int* mode);
 
 
-BASE_EXPORT bool SetPosixFilePermissions(const FilePath& path, int mode);
-
+BASE_EXPORT bool SetPosixFilePermissions(const base::FilePath& path,
+                                         int mode);
 #endif  
 
 
-BASE_EXPORT bool IsDirectoryEmpty(const FilePath& dir_path);
+BASE_EXPORT bool IsDirectoryEmpty(const base::FilePath& dir_path);
+
+
+
+
+BASE_EXPORT bool GetTempDir(base::FilePath* path);
+
+
+BASE_EXPORT bool GetShmemTempDir(base::FilePath* path, bool executable);
+
+
+
+BASE_EXPORT base::FilePath GetHomeDir();
+
+
+
+
+BASE_EXPORT bool CreateTemporaryFile(base::FilePath* path);
+
+
+BASE_EXPORT bool CreateTemporaryFileInDir(const base::FilePath& dir,
+                                          base::FilePath* temp_file);
+
+
+
+
+BASE_EXPORT FILE* CreateAndOpenTemporaryFile(base::FilePath* path);
+
+
+
+BASE_EXPORT FILE* CreateAndOpenTemporaryShmemFile(base::FilePath* path,
+                                                  bool executable);
+
+BASE_EXPORT FILE* CreateAndOpenTemporaryFileInDir(const base::FilePath& dir,
+                                                  base::FilePath* path);
+
+
+
+
+
+BASE_EXPORT bool CreateNewTempDirectory(
+    const base::FilePath::StringType& prefix,
+    base::FilePath* new_temp_path);
+
+
+
+
+BASE_EXPORT bool CreateTemporaryDirInDir(
+    const base::FilePath& base_dir,
+    const base::FilePath::StringType& prefix,
+    base::FilePath* new_dir);
+
+
+
+
+
+
+BASE_EXPORT bool CreateDirectoryAndGetError(const base::FilePath& full_path,
+                                            base::PlatformFileError* error);
+
+
+BASE_EXPORT bool CreateDirectory(const base::FilePath& full_path);
+
+
+BASE_EXPORT bool GetFileSize(const base::FilePath& file_path, int64* file_size);
 
 
 
@@ -211,106 +263,51 @@ BASE_EXPORT bool IsDirectoryEmpty(const FilePath& dir_path);
 
 
 
-BASE_EXPORT bool GetTempDir(FilePath* path);
-
-
-
-
-
-
-
-BASE_EXPORT FilePath GetHomeDir();
-
-
-
-
-BASE_EXPORT bool CreateTemporaryFile(FilePath* path);
-
-
-BASE_EXPORT bool CreateTemporaryFileInDir(const FilePath& dir,
-                                          FilePath* temp_file);
-
-
-
-
-BASE_EXPORT FILE* CreateAndOpenTemporaryFile(FilePath* path);
-
-
-BASE_EXPORT FILE* CreateAndOpenTemporaryFileInDir(const FilePath& dir,
-                                                  FilePath* path);
-
-
-
-
-
-BASE_EXPORT bool CreateNewTempDirectory(const FilePath::StringType& prefix,
-                                        FilePath* new_temp_path);
-
-
-
-
-BASE_EXPORT bool CreateTemporaryDirInDir(const FilePath& base_dir,
-                                         const FilePath::StringType& prefix,
-                                         FilePath* new_dir);
-
-
-
-
-
-
-BASE_EXPORT bool CreateDirectoryAndGetError(const FilePath& full_path,
-                                            File::Error* error);
-
-
-BASE_EXPORT bool CreateDirectory(const FilePath& full_path);
-
-
-BASE_EXPORT bool GetFileSize(const FilePath& file_path, int64* file_size);
-
-
-
-
-
-
-
-BASE_EXPORT bool NormalizeFilePath(const FilePath& path, FilePath* real_path);
+BASE_EXPORT bool NormalizeFilePath(const base::FilePath& path,
+                                   base::FilePath* real_path);
 
 #if defined(OS_WIN)
 
 
 
 
-BASE_EXPORT bool DevicePathToDriveLetterPath(const FilePath& device_path,
-                                             FilePath* drive_letter_path);
+BASE_EXPORT bool DevicePathToDriveLetterPath(const base::FilePath& device_path,
+                                             base::FilePath* drive_letter_path);
 
 
 
 
 
-BASE_EXPORT bool NormalizeToNativeFilePath(const FilePath& path,
-                                           FilePath* nt_path);
+BASE_EXPORT bool NormalizeToNativeFilePath(const base::FilePath& path,
+                                           base::FilePath* nt_path);
 #endif
 
 
-BASE_EXPORT bool IsLink(const FilePath& file_path);
+BASE_EXPORT bool IsLink(const base::FilePath& file_path);
 
 
-BASE_EXPORT bool GetFileInfo(const FilePath& file_path, File::Info* info);
+BASE_EXPORT bool GetFileInfo(const base::FilePath& file_path,
+                             base::PlatformFileInfo* info);
 
 
-BASE_EXPORT bool TouchFile(const FilePath& path,
-                           const Time& last_accessed,
-                           const Time& last_modified);
+BASE_EXPORT bool TouchFile(const base::FilePath& path,
+                           const base::Time& last_accessed,
+                           const base::Time& last_modified);
 
 
-BASE_EXPORT FILE* OpenFile(const FilePath& filename, const char* mode);
+BASE_EXPORT bool SetLastModifiedTime(const base::FilePath& path,
+                                     const base::Time& last_modified);
+
+#if defined(OS_POSIX)
+
+BASE_EXPORT bool GetInode(const base::FilePath& path, ino_t* inode);
+#endif
+
+
+BASE_EXPORT FILE* OpenFile(const base::FilePath& filename, const char* mode);
 
 
 BASE_EXPORT bool CloseFile(FILE* file);
-
-
-
-BASE_EXPORT FILE* FileToFILE(File file, const char* mode);
 
 
 
@@ -318,35 +315,40 @@ BASE_EXPORT bool TruncateFile(FILE* file);
 
 
 
-BASE_EXPORT int ReadFile(const FilePath& filename, char* data, int max_size);
+BASE_EXPORT int ReadFile(const base::FilePath& filename, char* data, int size);
 
 
 
-BASE_EXPORT int WriteFile(const FilePath& filename, const char* data,
+BASE_EXPORT int WriteFile(const base::FilePath& filename, const char* data,
                           int size);
-
 #if defined(OS_POSIX)
 
 BASE_EXPORT int WriteFileDescriptor(const int fd, const char* data, int size);
 #endif
 
 
-
-BASE_EXPORT int AppendToFile(const FilePath& filename,
+BASE_EXPORT int AppendToFile(const base::FilePath& filename,
                              const char* data, int size);
 
 
-BASE_EXPORT bool GetCurrentDirectory(FilePath* path);
+BASE_EXPORT bool GetCurrentDirectory(base::FilePath* path);
 
 
-BASE_EXPORT bool SetCurrentDirectory(const FilePath& path);
+BASE_EXPORT bool SetCurrentDirectory(const base::FilePath& path);
 
 
 
 
 
-BASE_EXPORT int GetUniquePathNumber(const FilePath& path,
-                                    const FilePath::StringType& suffix);
+BASE_EXPORT int GetUniquePathNumber(const base::FilePath& path,
+                                    const base::FilePath::StringType& suffix);
+
+#if defined(OS_POSIX)
+
+
+
+BASE_EXPORT base::FilePath MakeUniqueDirectory(const base::FilePath& path);
+#endif
 
 #if defined(OS_POSIX)
 
@@ -381,6 +383,33 @@ BASE_EXPORT bool VerifyPathControlledByAdmin(const base::FilePath& path);
 
 BASE_EXPORT int GetMaximumPathComponentLength(const base::FilePath& path);
 
+
+class ScopedFILEClose {
+ public:
+  inline void operator()(FILE* x) const {
+    if (x) {
+      fclose(x);
+    }
+  }
+};
+
+typedef scoped_ptr_malloc<FILE, ScopedFILEClose> ScopedFILE;
+
+#if defined(OS_POSIX)
+
+class ScopedFDClose {
+ public:
+  inline void operator()(int* x) const {
+    if (x && *x >= 0) {
+      if (HANDLE_EINTR(close(*x)) < 0)
+        DPLOG(ERROR) << "close";
+    }
+  }
+};
+
+typedef scoped_ptr_malloc<int, ScopedFDClose> ScopedFD;
+#endif  
+
 #if defined(OS_LINUX)
 
 enum FileSystemType {
@@ -398,34 +427,9 @@ enum FileSystemType {
 
 
 
-BASE_EXPORT bool GetFileSystemType(const FilePath& path, FileSystemType* type);
+BASE_EXPORT bool GetFileSystemType(const base::FilePath& path,
+                                   FileSystemType* type);
 #endif
-
-#if defined(OS_POSIX)
-
-
-
-
-
-BASE_EXPORT bool GetShmemTempDir(bool executable, FilePath* path);
-#endif
-
-}  
-
-
-
-namespace file_util {
-
-
-struct ScopedFILEClose {
-  inline void operator()(FILE* x) const {
-    if (x)
-      fclose(x);
-  }
-};
-
-
-typedef scoped_ptr<FILE, ScopedFILEClose> ScopedFILE;
 
 }  
 

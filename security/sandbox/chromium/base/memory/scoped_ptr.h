@@ -573,6 +573,134 @@ bool operator!=(T* p1, const scoped_ptr<T, D>& p2) {
 
 
 
+
+
+template<class C, class FreeProc = base::FreeDeleter>
+class scoped_ptr_malloc {
+  MOVE_ONLY_TYPE_FOR_CPP_03(scoped_ptr_malloc, RValue)
+
+ public:
+
+  
+  typedef C element_type;
+
+  
+  
+  
+  
+  
+  explicit scoped_ptr_malloc(C* p = NULL): ptr_(p) {}
+
+  
+  scoped_ptr_malloc(RValue rvalue)
+      : ptr_(rvalue.object->release()) {
+  }
+
+  
+  ~scoped_ptr_malloc() {
+    reset();
+  }
+
+  
+  scoped_ptr_malloc& operator=(RValue rhs) {
+    reset(rhs.object->release());
+    return *this;
+  }
+
+  
+  
+  
+  void reset(C* p = NULL) {
+    if (ptr_ != p) {
+      if (ptr_ != NULL) {
+        FreeProc free_proc;
+        free_proc(ptr_);
+      }
+      ptr_ = p;
+    }
+  }
+
+  
+  
+  
+  C& operator*() const {
+    assert(ptr_ != NULL);
+    return *ptr_;
+  }
+
+  C* operator->() const {
+    assert(ptr_ != NULL);
+    return ptr_;
+  }
+
+  C* get() const {
+    return ptr_;
+  }
+
+  
+  
+  typedef C* scoped_ptr_malloc::*Testable;
+  operator Testable() const { return ptr_ ? &scoped_ptr_malloc::ptr_ : NULL; }
+
+  
+  
+  
+  
+  
+  bool operator==(C* p) const {
+    return ptr_ == p;
+  }
+
+  bool operator!=(C* p) const {
+    return ptr_ != p;
+  }
+
+  
+  void swap(scoped_ptr_malloc & b) {
+    C* tmp = b.ptr_;
+    b.ptr_ = ptr_;
+    ptr_ = tmp;
+  }
+
+  
+  
+  
+  
+  
+  C* release() WARN_UNUSED_RESULT {
+    C* tmp = ptr_;
+    ptr_ = NULL;
+    return tmp;
+  }
+
+ private:
+  C* ptr_;
+
+  
+  template <class C2, class GP>
+  bool operator==(scoped_ptr_malloc<C2, GP> const& p) const;
+  template <class C2, class GP>
+  bool operator!=(scoped_ptr_malloc<C2, GP> const& p) const;
+};
+
+template<class C, class FP> inline
+void swap(scoped_ptr_malloc<C, FP>& a, scoped_ptr_malloc<C, FP>& b) {
+  a.swap(b);
+}
+
+template<class C, class FP> inline
+bool operator==(C* p, const scoped_ptr_malloc<C, FP>& b) {
+  return p == b.get();
+}
+
+template<class C, class FP> inline
+bool operator!=(C* p, const scoped_ptr_malloc<C, FP>& b) {
+  return p != b.get();
+}
+
+
+
+
 template <typename T>
 scoped_ptr<T> make_scoped_ptr(T* ptr) {
   return scoped_ptr<T>(ptr);

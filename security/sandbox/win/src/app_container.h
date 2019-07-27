@@ -29,8 +29,8 @@ class AppContainerAttributes {
   ~AppContainerAttributes();
 
   
-  ResultCode SetAppContainer(const base::string16& app_container_sid,
-                             const std::vector<base::string16>& capabilities);
+  ResultCode SetAppContainer(const string16& app_container_sid,
+                             const std::vector<string16>&  capabilities);
 
   
   
@@ -53,16 +53,15 @@ class AppContainerAttributes {
 
 
 
-ResultCode CreateAppContainer(const base::string16& sid,
-                              const base::string16& name);
+ResultCode CreateAppContainer(const string16& sid, const string16& name);
 
 
 
-ResultCode DeleteAppContainer(const base::string16& sid);
+ResultCode DeleteAppContainer(const string16& sid);
 
 
 
-base::string16 LookupAppContainer(const base::string16& sid);
+string16 LookupAppContainer(const string16& sid);
 
 }  
 

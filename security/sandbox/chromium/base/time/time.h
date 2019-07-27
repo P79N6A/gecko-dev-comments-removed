@@ -61,13 +61,11 @@ class BASE_EXPORT TimeDelta {
   }
 
   
-  static TimeDelta FromDays(int days);
-  static TimeDelta FromHours(int hours);
-  static TimeDelta FromMinutes(int minutes);
+  static TimeDelta FromDays(int64 days);
+  static TimeDelta FromHours(int64 hours);
+  static TimeDelta FromMinutes(int64 minutes);
   static TimeDelta FromSeconds(int64 secs);
   static TimeDelta FromMilliseconds(int64 ms);
-  static TimeDelta FromSecondsD(double secs);
-  static TimeDelta FromMillisecondsD(double ms);
   static TimeDelta FromMicroseconds(int64 us);
 #if defined(OS_WIN)
   static TimeDelta FromQPCValue(LONGLONG qpc_value);
@@ -84,19 +82,9 @@ class BASE_EXPORT TimeDelta {
   
   
   
-  static TimeDelta Max();
-
-  
-  
-  
   
   int64 ToInternalValue() const {
     return delta_;
-  }
-
-  
-  bool is_max() const {
-    return delta_ == std::numeric_limits<int64>::max();
   }
 
 #if defined(OS_POSIX)
@@ -505,66 +493,32 @@ class BASE_EXPORT Time {
 
 
 
-inline TimeDelta TimeDelta::FromDays(int days) {
-  
-  if (days == std::numeric_limits<int>::max())
-    return Max();
+inline TimeDelta TimeDelta::FromDays(int64 days) {
   return TimeDelta(days * Time::kMicrosecondsPerDay);
 }
 
 
-inline TimeDelta TimeDelta::FromHours(int hours) {
-  
-  if (hours == std::numeric_limits<int>::max())
-    return Max();
+inline TimeDelta TimeDelta::FromHours(int64 hours) {
   return TimeDelta(hours * Time::kMicrosecondsPerHour);
 }
 
 
-inline TimeDelta TimeDelta::FromMinutes(int minutes) {
-  
-  if (minutes == std::numeric_limits<int>::max())
-    return Max();
+inline TimeDelta TimeDelta::FromMinutes(int64 minutes) {
   return TimeDelta(minutes * Time::kMicrosecondsPerMinute);
 }
 
 
 inline TimeDelta TimeDelta::FromSeconds(int64 secs) {
-  
-  if (secs == std::numeric_limits<int64>::max())
-    return Max();
   return TimeDelta(secs * Time::kMicrosecondsPerSecond);
 }
 
 
 inline TimeDelta TimeDelta::FromMilliseconds(int64 ms) {
-  
-  if (ms == std::numeric_limits<int64>::max())
-    return Max();
-  return TimeDelta(ms * Time::kMicrosecondsPerMillisecond);
-}
-
-
-inline TimeDelta TimeDelta::FromSecondsD(double secs) {
-  
-  if (secs == std::numeric_limits<double>::infinity())
-    return Max();
-  return TimeDelta(secs * Time::kMicrosecondsPerSecond);
-}
-
-
-inline TimeDelta TimeDelta::FromMillisecondsD(double ms) {
-  
-  if (ms == std::numeric_limits<double>::infinity())
-    return Max();
   return TimeDelta(ms * Time::kMicrosecondsPerMillisecond);
 }
 
 
 inline TimeDelta TimeDelta::FromMicroseconds(int64 us) {
-  
-  if (us == std::numeric_limits<int64>::max())
-    return Max();
   return TimeDelta(us);
 }
 
@@ -576,14 +530,6 @@ inline Time TimeDelta::operator+(Time t) const {
 
 class BASE_EXPORT TimeTicks {
  public:
-  
-#if defined(OS_LINUX)
-  
-  
-  
-  static const clockid_t kClockSystemTrace = 11;
-#endif
-
   TimeTicks() : ticks_(0) {
   }
 
@@ -598,12 +544,9 @@ class BASE_EXPORT TimeTicks {
   
   static TimeTicks HighResNow();
 
-  static bool IsHighResNowFastAndReliable();
-
   
   static bool IsThreadNowSupported() {
-#if (defined(_POSIX_THREAD_CPUTIME) && (_POSIX_THREAD_CPUTIME >= 0)) || \
-    (defined(OS_MACOSX) && !defined(OS_IOS)) || defined(OS_ANDROID)
+#if defined(_POSIX_THREAD_CPUTIME) && (_POSIX_THREAD_CPUTIME >= 0)
     return true;
 #else
     return false;
@@ -658,14 +601,6 @@ class BASE_EXPORT TimeTicks {
   static TimeTicks FromInternalValue(int64 ticks) {
     return TimeTicks(ticks);
   }
-
-  
-  
-  
-  
-  
-  
-  static TimeTicks UnixEpoch();
 
   
   

@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "base/basictypes.h"
-#include "sandbox/sandbox_export.h"
+#include "sandbox/linux/sandbox_export.h"
 
 namespace sandbox {
 
@@ -63,6 +63,10 @@ class SANDBOX_EXPORT Trap {
   static ErrorCode ErrorCodeFromTrapId(uint16_t id);
 
  private:
+  
+  
+  ~Trap();
+
   struct TrapKey {
     TrapKey(TrapFnc f, const void* a, bool s) : fnc(f), aux(a), safe(s) {}
     TrapFnc fnc;
@@ -71,14 +75,6 @@ class SANDBOX_EXPORT Trap {
     bool operator<(const TrapKey&) const;
   };
   typedef std::map<TrapKey, uint16_t> TrapIds;
-
-  
-  
-  Trap();
-
-  
-  
-  ~Trap();
 
   
   
@@ -111,7 +107,9 @@ class SANDBOX_EXPORT Trap {
 
   
   
-  DISALLOW_COPY_AND_ASSIGN(Trap);
+  
+  
+  DISALLOW_IMPLICIT_CONSTRUCTORS(Trap);
 };
 
 }  

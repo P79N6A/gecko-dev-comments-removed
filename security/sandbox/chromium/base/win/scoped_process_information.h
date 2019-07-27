@@ -18,9 +18,32 @@ namespace win {
 
 class BASE_EXPORT ScopedProcessInformation {
  public:
+  
+  
+  class Receiver {
+   public:
+    explicit Receiver(ScopedProcessInformation* owner)
+        : info_(),
+          owner_(owner) {}
+    ~Receiver() { owner_->Set(info_); }
+
+    operator PROCESS_INFORMATION*() { return &info_; }
+
+   private:
+    PROCESS_INFORMATION info_;
+    ScopedProcessInformation* owner_;
+  };
+
   ScopedProcessInformation();
-  explicit ScopedProcessInformation(const PROCESS_INFORMATION& process_info);
   ~ScopedProcessInformation();
+
+  
+  
+  
+  
+  
+  
+  Receiver Receive();
 
   
   bool IsValid() const;

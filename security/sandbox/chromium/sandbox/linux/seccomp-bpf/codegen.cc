@@ -106,8 +106,6 @@ void CodeGen::PrintProgram(const SandboxBPF::Program& program) {
           fprintf(stderr, "Trap #%d\n", iter->k & SECCOMP_RET_DATA);
         } else if ((iter->k & SECCOMP_RET_ACTION) == SECCOMP_RET_ERRNO) {
           fprintf(stderr, "errno = %d\n", iter->k & SECCOMP_RET_DATA);
-        } else if ((iter->k & SECCOMP_RET_ACTION) == SECCOMP_RET_TRACE) {
-          fprintf(stderr, "Trace #%d\n", iter->k & SECCOMP_RET_DATA);
         } else if (iter->k == SECCOMP_RET_ALLOW) {
           fprintf(stderr, "Allowed\n");
         } else {
@@ -445,74 +443,80 @@ static int PointerCompare(const BasicBlock* block1,
     
     
     
-    if (iter1 == insns1.end() || iter2 == insns2.end()) {
-      if (iter1 != insns1.end()) {
-        return 1;
+    if (iter1 == insns1.end()) {
+      if (iter2 == insns2.end()) {
+        
+        
+        
+        
+        Instruction* const insns1_last = insns1.back();
+        Instruction* const insns2_last = insns2.back();
+        if (BPF_CLASS(insns1_last->code) != BPF_JMP &&
+            BPF_CLASS(insns1_last->code) != BPF_RET) {
+          
+          CHECK(insns1_last->next);
+          CHECK(insns2_last->next);
+          return PointerCompare(blocks.find(insns1_last->next)->second,
+                                blocks.find(insns2_last->next)->second,
+                                blocks);
+        } else {
+          return 0;
+        }
       }
-      if (iter2 != insns2.end()) {
-        return -1;
-      }
-
-      
-      
-      
-      
-      Instruction* const insns1_last = insns1.back();
-      Instruction* const insns2_last = insns2.back();
-      CHECK(BPF_CLASS(insns1_last->code) != BPF_JMP &&
-            BPF_CLASS(insns1_last->code) != BPF_RET);
-
-      
-      CHECK(insns1_last->next);
-      CHECK(insns2_last->next);
-      return PointerCompare(blocks.find(insns1_last->next)->second,
-                            blocks.find(insns2_last->next)->second,
-                            blocks);
+      return -1;
+    } else if (iter2 == insns2.end()) {
+      return 1;
     }
 
     
     const Instruction& insn1 = **iter1;
     const Instruction& insn2 = **iter2;
-    if (insn1.code != insn2.code) {
+    if (insn1.code == insn2.code) {
+      if (insn1.k == insn2.k) {
+        
+        
+        if (BPF_CLASS(insn1.code) == BPF_JMP) {
+          if (BPF_OP(insn1.code) != BPF_JA) {
+            
+            
+            
+            
+            
+            
+            int c = PointerCompare(blocks.find(insn1.jt_ptr)->second,
+                                   blocks.find(insn2.jt_ptr)->second,
+                                   blocks);
+            if (c == 0) {
+              c = PointerCompare(blocks.find(insn1.jf_ptr)->second,
+                                 blocks.find(insn2.jf_ptr)->second,
+                                 blocks);
+              if (c == 0) {
+                continue;
+              } else {
+                return c;
+              }
+            } else {
+              return c;
+            }
+          } else {
+            int c = PointerCompare(blocks.find(insn1.jt_ptr)->second,
+                                   blocks.find(insn2.jt_ptr)->second,
+                                   blocks);
+            if (c == 0) {
+              continue;
+            } else {
+              return c;
+            }
+          }
+        } else {
+          continue;
+        }
+      } else {
+        return insn1.k - insn2.k;
+      }
+    } else {
       return insn1.code - insn2.code;
     }
-    if (insn1.k != insn2.k) {
-      return insn1.k - insn2.k;
-    }
-
-    
-    
-    if (BPF_CLASS(insn1.code) == BPF_JMP || BPF_CLASS(insn1.code) == BPF_RET) {
-      CHECK_EQ(insns1.back(), &insn1);
-      CHECK_EQ(insns2.back(), &insn2);
-    }
-
-    
-    
-    
-    if (BPF_CLASS(insn1.code) == BPF_RET) {
-      return 0;
-    } else if (BPF_CLASS(insn1.code) != BPF_JMP) {
-      continue;
-    }
-
-    
-    
-    
-    
-    
-    
-    if (BPF_OP(insn1.code) != BPF_JA) {
-      int c = PointerCompare(blocks.find(insn1.jf_ptr)->second,
-                             blocks.find(insn2.jf_ptr)->second,
-                             blocks);
-      if (c != 0) {
-        return c;
-      }
-    }
-    return PointerCompare(blocks.find(insn1.jt_ptr)->second,
-                          blocks.find(insn2.jt_ptr)->second,
-                          blocks);
   }
 }
 

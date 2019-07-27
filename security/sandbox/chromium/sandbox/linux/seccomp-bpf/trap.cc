@@ -168,13 +168,13 @@ void Trap::SigSys(int nr, siginfo_t* info, void* void_context) {
     if (sigsys.nr == __NR_clone) {
       RAW_SANDBOX_DIE("Cannot call clone() from an UnsafeTrap() handler.");
     }
-    rc = Syscall::Call(sigsys.nr,
-                       SECCOMP_PARM1(ctx),
-                       SECCOMP_PARM2(ctx),
-                       SECCOMP_PARM3(ctx),
-                       SECCOMP_PARM4(ctx),
-                       SECCOMP_PARM5(ctx),
-                       SECCOMP_PARM6(ctx));
+    rc = SandboxSyscall(sigsys.nr,
+                        SECCOMP_PARM1(ctx),
+                        SECCOMP_PARM2(ctx),
+                        SECCOMP_PARM3(ctx),
+                        SECCOMP_PARM4(ctx),
+                        SECCOMP_PARM5(ctx),
+                        SECCOMP_PARM6(ctx));
   } else {
     const ErrorCode& err = trap_array_[info->si_errno - 1];
     if (!err.safe_) {

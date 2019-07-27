@@ -189,13 +189,6 @@ class BASE_EXPORT FilePath {
   
   
   
-  
-  
-  
-  
-  
-  
-  
   void GetComponents(std::vector<FilePath::StringType>* components) const;
 
   
@@ -236,27 +229,12 @@ class BASE_EXPORT FilePath {
   
   
   
-  
-  
   StringType Extension() const;
 
   
   
   
-  
-  
-  
-  
-  StringType FinalExtension() const;
-
-  
-  
-  
   FilePath RemoveExtension() const WARN_UNUSED_RESULT;
-
-  
-  
-  FilePath RemoveFinalExtension() const WARN_UNUSED_RESULT;
 
   
   
@@ -362,6 +340,24 @@ class BASE_EXPORT FilePath {
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  static FilePath FromWStringHack(const std::wstring& wstring);
+
+  
+  
+  
+  
+  
+  
+  
+  
   static FilePath FromUTF8Unsafe(const std::string& utf8);
 
   
@@ -373,10 +369,6 @@ class BASE_EXPORT FilePath {
   
   
   FilePath NormalizePathSeparators() const;
-
-  
-  
-  FilePath NormalizePathSeparatorsTo(CharType separator) const;
 
   
   
@@ -411,15 +403,6 @@ class BASE_EXPORT FilePath {
   
   static int HFSFastUnicodeCompare(const StringType& string1,
                                    const StringType& string2);
-#endif
-
-#if defined(OS_ANDROID)
-  
-  
-  
-  
-  
-  bool IsContentUri() const;
 #endif
 
  private:

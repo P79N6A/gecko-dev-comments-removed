@@ -5,10 +5,7 @@
 #include "build/build_config.h"
 
 #if defined(COMPILER_MSVC)
-
-extern "C" {
-  void* _ReturnAddress();
-}
+#include <intrin.h>
 #endif
 
 #include "base/location.h"
@@ -92,11 +89,11 @@ __declspec(noinline)
 BASE_EXPORT const void* GetProgramCounter() {
 #if defined(COMPILER_MSVC)
   return _ReturnAddress();
-#elif defined(COMPILER_GCC) && !defined(OS_NACL)
+#elif defined(COMPILER_GCC)
   return __builtin_extract_return_addr(__builtin_return_address(0));
-#else
+#endif  
+
   return NULL;
-#endif
 }
 
 }  

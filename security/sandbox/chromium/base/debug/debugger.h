@@ -16,6 +16,10 @@ namespace debug {
 
 
 
+BASE_EXPORT bool SpawnDebuggerOnProcess(unsigned process_id);
+
+
+
 BASE_EXPORT bool WaitForDebugger(int wait_seconds, bool silent);
 
 

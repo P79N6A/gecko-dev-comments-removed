@@ -14,7 +14,6 @@
 
 #include "base/basictypes.h"
 #include "base/gtest_prod_util.h"
-#include "base/strings/string16.h"
 #include "sandbox/win/src/sandbox_types.h"
 
 namespace sandbox {
@@ -136,7 +135,7 @@ class InterceptionManager {
   struct InterceptionData {
     InterceptionType type;            
     InterceptorId id;                 
-    base::string16 dll;               
+    std::wstring dll;                 
     std::string function;             
     std::string interceptor;          
     const void* interceptor_address;  
@@ -242,10 +241,6 @@ class InterceptionManager {
   ((&Target##service) ? \
     manager->ADD_NT_INTERCEPTION(service, id, num_params) : false)
 
-
-
-
-
 #define INTERCEPT_EAT(manager, dll, function, id, num_params) \
   ((&Target##function) ? \
     manager->AddToPatchedFunctions(dll, #function, sandbox::INTERCEPTION_EAT, \
@@ -266,10 +261,6 @@ class InterceptionManager {
 
 #define INTERCEPT_NT(manager, service, id, num_params) \
   manager->ADD_NT_INTERCEPTION(service, id, num_params)
-
-
-
-
 
 #define INTERCEPT_EAT(manager, dll, function, id, num_params) \
   manager->AddToPatchedFunctions(dll, #function, sandbox::INTERCEPTION_EAT, \

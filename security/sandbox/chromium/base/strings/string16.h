@@ -181,4 +181,9 @@ class BASE_EXPORT std::basic_string<base::char16, base::string16_char_traits>;
 
 #endif  
 
+
+
+using base::char16;
+using base::string16;
+
 #endif  

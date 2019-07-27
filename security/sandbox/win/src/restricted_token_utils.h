@@ -75,10 +75,6 @@ DWORD SetTokenIntegrityLevel(HANDLE token, IntegrityLevel integrity_level);
 
 
 
-const wchar_t* GetIntegrityLevelString(IntegrityLevel integrity_level);
-
-
-
 
 DWORD SetProcessIntegrityLevel(IntegrityLevel integrity_level);
 

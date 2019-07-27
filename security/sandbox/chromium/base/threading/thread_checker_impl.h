@@ -35,7 +35,7 @@ class BASE_EXPORT ThreadCheckerImpl {
   mutable base::Lock lock_;
   
   
-  mutable PlatformThreadRef valid_thread_id_;
+  mutable PlatformThreadId valid_thread_id_;
 };
 
 }  

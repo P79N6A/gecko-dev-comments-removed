@@ -83,7 +83,7 @@ class BASE_EXPORT WeakReference {
  public:
   
   
-  class BASE_EXPORT Flag : public RefCountedThreadSafe<Flag> {
+  class Flag : public RefCountedThreadSafe<Flag> {
    public:
     Flag();
 

@@ -5,9 +5,9 @@
 #ifndef SANDBOX_LINUX_SECCOMP_BPF_ERRORCODE_H__
 #define SANDBOX_LINUX_SECCOMP_BPF_ERRORCODE_H__
 
+#include "sandbox/linux/sandbox_export.h"
 #include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
 #include "sandbox/linux/seccomp-bpf/trap.h"
-#include "sandbox/sandbox_export.h"
 
 namespace sandbox {
 
@@ -29,12 +29,6 @@ class SANDBOX_EXPORT ErrorCode {
     
     
     ERR_ALLOWED = 0x04000000,
-
-    
-    
-    
-    
-    ERR_TRACE   = 0x08000000,
 
     
     

@@ -45,6 +45,15 @@ SANDBOX_INTERCEPT NTSTATUS WINAPI TargetNtOpenThreadTokenEx64(
     ULONG handle_attributes, PHANDLE token);
 
 
+SANDBOX_INTERCEPT HANDLE WINAPI TargetCreateThread64(
+    LPSECURITY_ATTRIBUTES thread_attributes, SIZE_T stack_size,
+    LPTHREAD_START_ROUTINE start_address, PVOID parameter,
+    DWORD creation_flags, LPDWORD thread_id);
+
+
+SANDBOX_INTERCEPT LCID WINAPI TargetGetUserDefaultLCID64();
+
+
 
 
 
@@ -145,28 +154,13 @@ SANDBOX_INTERCEPT NTSTATUS WINAPI TargetNtOpenKeyEx64(
 
 
 
-SANDBOX_INTERCEPT NTSTATUS WINAPI TargetNtCreateEvent64(
-    PHANDLE event_handle, ACCESS_MASK desired_access,
-    POBJECT_ATTRIBUTES object_attributes, EVENT_TYPE event_type,
-    BOOLEAN initial_state);
-
-SANDBOX_INTERCEPT NTSTATUS WINAPI TargetNtOpenEvent64(
-    PHANDLE event_handle, ACCESS_MASK desired_access,
-    POBJECT_ATTRIBUTES object_attributes);
+SANDBOX_INTERCEPT HANDLE WINAPI TargetCreateEventW64(
+    LPSECURITY_ATTRIBUTES security_attributes, BOOL manual_reset,
+    BOOL initial_state, LPCWSTR name);
 
 
-
-
-
-SANDBOX_INTERCEPT BOOL WINAPI TargetGdiDllInitialize64(
-    HANDLE dll,
-    DWORD reason);
-
-
-SANDBOX_INTERCEPT HGDIOBJ WINAPI TargetGetStockObject64(int object);
-
-
-SANDBOX_INTERCEPT ATOM WINAPI TargetRegisterClassW64(const WNDCLASS* wnd_class);
+SANDBOX_INTERCEPT HANDLE WINAPI TargetOpenEventW64(
+    ACCESS_MASK desired_access, BOOL inherit_handle, LPCWSTR name);
 
 }  
 

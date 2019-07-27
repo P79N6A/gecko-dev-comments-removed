@@ -135,6 +135,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 namespace logging {
 
 
@@ -176,7 +185,13 @@ enum LogLockingState { LOCK_LOG_FILE, DONT_LOCK_LOG_FILE };
 
 enum OldFileDeletionState { DELETE_OLD_LOG_FILE, APPEND_TO_OLD_LOG_FILE };
 
+enum DcheckState {
+  DISABLE_DCHECK_FOR_NON_OFFICIAL_RELEASE_BUILDS,
+  ENABLE_DCHECK_FOR_NON_OFFICIAL_RELEASE_BUILDS
+};
+
 struct BASE_EXPORT LoggingSettings {
+  
   
   
   
@@ -192,6 +207,8 @@ struct BASE_EXPORT LoggingSettings {
   const PathChar* log_file;
   LogLockingState lock_log;
   OldFileDeletionState delete_old;
+
+  DcheckState dcheck_state;
 };
 
 
@@ -275,6 +292,13 @@ BASE_EXPORT void SetLogAssertHandler(LogAssertHandlerFunction handler);
 
 
 
+typedef void (*LogReportHandlerFunction)(const std::string& str);
+BASE_EXPORT void SetLogReportHandler(LogReportHandlerFunction handler);
+
+
+
+
+
 typedef bool (*LogMessageHandlerFunction)(int severity,
     const char* file, int line, size_t message_start, const std::string& str);
 BASE_EXPORT void SetLogMessageHandler(LogMessageHandlerFunction handler);
@@ -287,8 +311,9 @@ const LogSeverity LOG_VERBOSE = -1;
 const LogSeverity LOG_INFO = 0;
 const LogSeverity LOG_WARNING = 1;
 const LogSeverity LOG_ERROR = 2;
-const LogSeverity LOG_FATAL = 3;
-const LogSeverity LOG_NUM_SEVERITIES = 4;
+const LogSeverity LOG_ERROR_REPORT = 3;
+const LogSeverity LOG_FATAL = 4;
+const LogSeverity LOG_NUM_SEVERITIES = 5;
 
 
 #ifdef NDEBUG
@@ -306,6 +331,9 @@ const LogSeverity LOG_DFATAL = LOG_FATAL;
   logging::ClassName(__FILE__, __LINE__, logging::LOG_WARNING , ##__VA_ARGS__)
 #define COMPACT_GOOGLE_LOG_EX_ERROR(ClassName, ...) \
   logging::ClassName(__FILE__, __LINE__, logging::LOG_ERROR , ##__VA_ARGS__)
+#define COMPACT_GOOGLE_LOG_EX_ERROR_REPORT(ClassName, ...) \
+  logging::ClassName(__FILE__, __LINE__, \
+                     logging::LOG_ERROR_REPORT , ##__VA_ARGS__)
 #define COMPACT_GOOGLE_LOG_EX_FATAL(ClassName, ...) \
   logging::ClassName(__FILE__, __LINE__, logging::LOG_FATAL , ##__VA_ARGS__)
 #define COMPACT_GOOGLE_LOG_EX_DFATAL(ClassName, ...) \
@@ -317,6 +345,8 @@ const LogSeverity LOG_DFATAL = LOG_FATAL;
   COMPACT_GOOGLE_LOG_EX_WARNING(LogMessage)
 #define COMPACT_GOOGLE_LOG_ERROR \
   COMPACT_GOOGLE_LOG_EX_ERROR(LogMessage)
+#define COMPACT_GOOGLE_LOG_ERROR_REPORT \
+  COMPACT_GOOGLE_LOG_EX_ERROR_REPORT(LogMessage)
 #define COMPACT_GOOGLE_LOG_FATAL \
   COMPACT_GOOGLE_LOG_EX_FATAL(LogMessage)
 #define COMPACT_GOOGLE_LOG_DFATAL \
@@ -335,6 +365,7 @@ const LogSeverity LOG_DFATAL = LOG_FATAL;
 
 const LogSeverity LOG_0 = LOG_ERROR;
 #endif
+
 
 
 
@@ -407,13 +438,29 @@ const LogSeverity LOG_0 = LOG_ERROR;
   SYSLOG_IF(FATAL, !(condition)) << "Assert failed: " #condition ". "
 
 #if defined(OS_WIN)
-#define PLOG_STREAM(severity) \
+#define LOG_GETLASTERROR_STREAM(severity) \
   COMPACT_GOOGLE_LOG_EX_ ## severity(Win32ErrorLogMessage, \
       ::logging::GetLastSystemErrorCode()).stream()
+#define LOG_GETLASTERROR(severity) \
+  LAZY_STREAM(LOG_GETLASTERROR_STREAM(severity), LOG_IS_ON(severity))
+#define LOG_GETLASTERROR_MODULE_STREAM(severity, module) \
+  COMPACT_GOOGLE_LOG_EX_ ## severity(Win32ErrorLogMessage, \
+      ::logging::GetLastSystemErrorCode(), module).stream()
+#define LOG_GETLASTERROR_MODULE(severity, module)                       \
+  LAZY_STREAM(LOG_GETLASTERROR_STREAM(severity, module),                \
+              LOG_IS_ON(severity))
+
+
+#define PLOG_STREAM(severity) LOG_GETLASTERROR_STREAM(severity)
 #elif defined(OS_POSIX)
-#define PLOG_STREAM(severity) \
+#define LOG_ERRNO_STREAM(severity) \
   COMPACT_GOOGLE_LOG_EX_ ## severity(ErrnoLogMessage, \
       ::logging::GetLastSystemErrorCode()).stream()
+#define LOG_ERRNO(severity) \
+  LAZY_STREAM(LOG_ERRNO_STREAM(severity), LOG_IS_ON(severity))
+
+
+#define PLOG_STREAM(severity) LOG_ERRNO_STREAM(severity)
 #endif
 
 #define PLOG(severity)                                          \
@@ -421,6 +468,20 @@ const LogSeverity LOG_0 = LOG_ERROR;
 
 #define PLOG_IF(severity, condition) \
   LAZY_STREAM(PLOG_STREAM(severity), LOG_IS_ON(severity) && (condition))
+
+#if !defined(NDEBUG)
+
+#undef LOGGING_IS_OFFICIAL_BUILD
+#define LOGGING_IS_OFFICIAL_BUILD 0
+#elif defined(OFFICIAL_BUILD)
+
+#undef LOGGING_IS_OFFICIAL_BUILD
+#define LOGGING_IS_OFFICIAL_BUILD 1
+#elif !defined(LOGGING_IS_OFFICIAL_BUILD)
+
+
+#define LOGGING_IS_OFFICIAL_BUILD 0
+#endif
 
 
 #define EAT_STREAM_PARAMETERS                                           \
@@ -433,7 +494,7 @@ const LogSeverity LOG_0 = LOG_ERROR;
 
 
 
-#if defined(OFFICIAL_BUILD) && defined(NDEBUG) && !defined(OS_ANDROID)
+#if LOGGING_IS_OFFICIAL_BUILD
 
 
 
@@ -533,16 +594,22 @@ DEFINE_CHECK_OP_IMPL(GT, > )
 #define CHECK_GE(val1, val2) CHECK_OP(GE, >=, val1, val2)
 #define CHECK_GT(val1, val2) CHECK_OP(GT, > , val1, val2)
 
-#if defined(NDEBUG)
-#define ENABLE_DLOG 0
-#else
-#define ENABLE_DLOG 1
-#endif
+#if LOGGING_IS_OFFICIAL_BUILD
 
-#if defined(NDEBUG) && !defined(DCHECK_ALWAYS_ON)
-#define DCHECK_IS_ON 0
+
+#define ENABLE_DLOG 0
+#define ENABLE_DCHECK 0
+
+#elif defined(NDEBUG)
+
+
+#define ENABLE_DLOG 0
+#define ENABLE_DCHECK 1
+
 #else
-#define DCHECK_IS_ON 1
+
+#define ENABLE_DLOG 1
+#define ENABLE_DCHECK 1
 #endif
 
 
@@ -587,6 +654,17 @@ enum { DEBUG_MODE = ENABLE_DLOG };
 #define DLOG(severity)                                          \
   LAZY_STREAM(LOG_STREAM(severity), DLOG_IS_ON(severity))
 
+#if defined(OS_WIN)
+#define DLOG_GETLASTERROR(severity) \
+  LAZY_STREAM(LOG_GETLASTERROR_STREAM(severity), DLOG_IS_ON(severity))
+#define DLOG_GETLASTERROR_MODULE(severity, module)                      \
+  LAZY_STREAM(LOG_GETLASTERROR_STREAM(severity, module),                \
+              DLOG_IS_ON(severity))
+#elif defined(OS_POSIX)
+#define DLOG_ERRNO(severity)                                    \
+  LAZY_STREAM(LOG_ERRNO_STREAM(severity), DLOG_IS_ON(severity))
+#endif
+
 #define DPLOG(severity)                                         \
   LAZY_STREAM(PLOG_STREAM(severity), DLOG_IS_ON(severity))
 
@@ -596,40 +674,75 @@ enum { DEBUG_MODE = ENABLE_DLOG };
 
 
 
-#if DCHECK_IS_ON
+#if ENABLE_DCHECK
 
+#if defined(NDEBUG)
+
+BASE_EXPORT DcheckState get_dcheck_state();
+BASE_EXPORT void set_dcheck_state(DcheckState state);
+
+#if defined(DCHECK_ALWAYS_ON)
+
+#define DCHECK_IS_ON() true
 #define COMPACT_GOOGLE_LOG_EX_DCHECK(ClassName, ...) \
   COMPACT_GOOGLE_LOG_EX_FATAL(ClassName , ##__VA_ARGS__)
 #define COMPACT_GOOGLE_LOG_DCHECK COMPACT_GOOGLE_LOG_FATAL
 const LogSeverity LOG_DCHECK = LOG_FATAL;
 
+#else
+
+#define COMPACT_GOOGLE_LOG_EX_DCHECK(ClassName, ...) \
+  COMPACT_GOOGLE_LOG_EX_ERROR_REPORT(ClassName , ##__VA_ARGS__)
+#define COMPACT_GOOGLE_LOG_DCHECK COMPACT_GOOGLE_LOG_ERROR_REPORT
+const LogSeverity LOG_DCHECK = LOG_ERROR_REPORT;
+#define DCHECK_IS_ON()                                                  \
+  ((::logging::get_dcheck_state() ==                                        \
+    ::logging::ENABLE_DCHECK_FOR_NON_OFFICIAL_RELEASE_BUILDS) &&        \
+   LOG_IS_ON(DCHECK))
+
+#endif  
+
 #else  
+
+
+#define COMPACT_GOOGLE_LOG_EX_DCHECK(ClassName, ...) \
+  COMPACT_GOOGLE_LOG_EX_FATAL(ClassName , ##__VA_ARGS__)
+#define COMPACT_GOOGLE_LOG_DCHECK COMPACT_GOOGLE_LOG_FATAL
+const LogSeverity LOG_DCHECK = LOG_FATAL;
+#define DCHECK_IS_ON() true
+
+#endif  
+
+#else  
+
 
 
 #define COMPACT_GOOGLE_LOG_EX_DCHECK(ClassName, ...) \
   COMPACT_GOOGLE_LOG_EX_INFO(ClassName , ##__VA_ARGS__)
 #define COMPACT_GOOGLE_LOG_DCHECK COMPACT_GOOGLE_LOG_INFO
 const LogSeverity LOG_DCHECK = LOG_INFO;
+#define DCHECK_IS_ON() false
 
 #endif  
+#undef ENABLE_DCHECK
 
 
 
 
 
 
-#define DCHECK(condition)                                         \
-  LAZY_STREAM(LOG_STREAM(DCHECK), DCHECK_IS_ON && !(condition))   \
+#define DCHECK(condition)                                           \
+  LAZY_STREAM(LOG_STREAM(DCHECK), DCHECK_IS_ON() && !(condition))   \
   << "Check failed: " #condition ". "
 
-#define DPCHECK(condition)                                        \
-  LAZY_STREAM(PLOG_STREAM(DCHECK), DCHECK_IS_ON && !(condition))  \
+#define DPCHECK(condition)                                          \
+  LAZY_STREAM(PLOG_STREAM(DCHECK), DCHECK_IS_ON() && !(condition))  \
   << "Check failed: " #condition ". "
 
 
 
 #define DCHECK_OP(name, op, val1, val2)                         \
-  if (DCHECK_IS_ON)                                             \
+  if (DCHECK_IS_ON())                                           \
     if (std::string* _result =                                  \
         logging::Check##name##Impl((val1), (val2),              \
                                    #val1 " " #op " " #val2))    \
@@ -663,12 +776,7 @@ const LogSeverity LOG_DCHECK = LOG_INFO;
 #define DCHECK_GE(val1, val2) DCHECK_OP(GE, >=, val1, val2)
 #define DCHECK_GT(val1, val2) DCHECK_OP(GT, > , val1, val2)
 
-#if defined(NDEBUG) && defined(OS_CHROMEOS)
-#define NOTREACHED() LOG(ERROR) << "NOTREACHED() hit in " << \
-    __FUNCTION__ << ". "
-#else
 #define NOTREACHED() DCHECK(false)
-#endif
 
 
 #undef assert
@@ -684,13 +792,31 @@ const LogSeverity LOG_DCHECK = LOG_INFO;
 
 class BASE_EXPORT LogMessage {
  public:
+  LogMessage(const char* file, int line, LogSeverity severity, int ctr);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  LogMessage(const char* file, int line);
+
+  
+  
+  
+  
   
   LogMessage(const char* file, int line, LogSeverity severity);
 
   
   
+  
   LogMessage(const char* file, int line, std::string* result);
 
+  
   
   LogMessage(const char* file, int line, LogSeverity severity,
              std::string* result);
@@ -759,12 +885,17 @@ typedef int SystemErrorCode;
 
 
 BASE_EXPORT SystemErrorCode GetLastSystemErrorCode();
-BASE_EXPORT std::string SystemErrorCodeToString(SystemErrorCode error_code);
 
 #if defined(OS_WIN)
 
 class BASE_EXPORT Win32ErrorLogMessage {
  public:
+  Win32ErrorLogMessage(const char* file,
+                       int line,
+                       LogSeverity severity,
+                       SystemErrorCode err,
+                       const char* module);
+
   Win32ErrorLogMessage(const char* file,
                        int line,
                        LogSeverity severity,
@@ -777,6 +908,8 @@ class BASE_EXPORT Win32ErrorLogMessage {
 
  private:
   SystemErrorCode err_;
+  
+  const char* module_;
   LogMessage log_message_;
 
   DISALLOW_COPY_AND_ASSIGN(Win32ErrorLogMessage);
@@ -833,20 +966,10 @@ BASE_EXPORT std::wstring GetLogFileFullPath();
 
 
 
-
-
-namespace std {
-
-
-
-
-
-
 BASE_EXPORT std::ostream& operator<<(std::ostream& out, const wchar_t* wstr);
 inline std::ostream& operator<<(std::ostream& out, const std::wstring& wstr) {
   return out << wstr.c_str();
 }
-}  
 
 
 

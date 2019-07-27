@@ -41,9 +41,6 @@ BASE_EXPORT string16 Int64ToString16(int64 value);
 BASE_EXPORT std::string Uint64ToString(uint64 value);
 BASE_EXPORT string16 Uint64ToString16(uint64 value);
 
-BASE_EXPORT std::string SizeTToString(size_t value);
-BASE_EXPORT string16 SizeTToString16(size_t value);
-
 
 
 BASE_EXPORT std::string DoubleToString(double value);
@@ -101,12 +98,6 @@ BASE_EXPORT std::string HexEncode(const void* bytes, size_t size);
 
 
 BASE_EXPORT bool HexStringToInt(const StringPiece& input, int* output);
-
-
-
-
-
-BASE_EXPORT bool HexStringToUInt(const StringPiece& input, uint32* output);
 
 
 

@@ -30,12 +30,30 @@ namespace win {
 
 
 
+
+
 template <class Traits, class Verifier>
 class GenericScopedHandle {
   MOVE_ONLY_TYPE_FOR_CPP_03(GenericScopedHandle, RValue)
 
  public:
   typedef typename Traits::Handle Handle;
+
+  
+  
+  class Receiver {
+   public:
+    explicit Receiver(GenericScopedHandle* owner)
+        : handle_(Traits::NullHandle()),
+          owner_(owner) {}
+    ~Receiver() { owner_->Set(handle_); }
+
+    operator Handle*() { return &handle_; }
+
+   private:
+    Handle handle_;
+    GenericScopedHandle* owner_;
+  };
 
   GenericScopedHandle() : handle_(Traits::NullHandle()) {}
 
@@ -82,6 +100,16 @@ class GenericScopedHandle {
 
   operator Handle() const {
     return handle_;
+  }
+
+  
+  
+  
+  
+  
+  Receiver Receive() {
+    DCHECK(!Traits::IsHandleValid(handle_)) << "Handle must be NULL";
+    return Receiver(this);
   }
 
   

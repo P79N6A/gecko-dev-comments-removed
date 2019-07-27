@@ -18,13 +18,12 @@
 
 #include "base/compiler_specific.h"
 #include "base/memory/scoped_ptr.h"
+#include "sandbox/linux/sandbox_export.h"
 #include "sandbox/linux/seccomp-bpf/die.h"
 #include "sandbox/linux/seccomp-bpf/errorcode.h"
 #include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
-#include "sandbox/sandbox_export.h"
 
 namespace sandbox {
-
 
 struct arch_seccomp_data {
   int nr;
@@ -68,6 +67,15 @@ class SANDBOX_EXPORT SandboxBPF {
 
   
   
+  
+  
+  
+  typedef ErrorCode (*EvaluateSyscall)(SandboxBPF* sandbox_compiler,
+                                       int system_call_number,
+                                       void* aux);
+  typedef std::vector<std::pair<EvaluateSyscall, void*> > Evaluators;
+  
+  
   typedef std::vector<struct sock_filter> Program;
 
   
@@ -101,6 +109,20 @@ class SANDBOX_EXPORT SandboxBPF {
   
   
   void set_proc_fd(int proc_fd);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void SetSandboxPolicyDeprecated(EvaluateSyscall syscallEvaluator, void* aux);
 
   
   
@@ -208,7 +230,8 @@ class SANDBOX_EXPORT SandboxBPF {
   
   
   bool RunFunctionInPolicy(void (*code_in_sandbox)(),
-                           scoped_ptr<SandboxBPFPolicy> policy);
+                           EvaluateSyscall syscall_evaluator,
+                           void* aux);
 
   
   
