@@ -66,7 +66,7 @@ let wantVerbose =
   Services.prefs.getPrefType(VERBOSE_PREF) !== Services.prefs.PREF_INVALID &&
   Services.prefs.getBoolPref(VERBOSE_PREF);
 
-let noop = () => {};
+const noop = () => {};
 
 function dumpn(str) {
   if (wantLogging) {
@@ -901,7 +901,8 @@ DebuggerClient.prototype = {
 
       
       if (aPacket.type in ThreadStateTypes &&
-          this._clients.has(aPacket.from)) {
+          this._clients.has(aPacket.from) &&
+          typeof this._clients.get(aPacket.from)._onThreadState == "function") {
         this._clients.get(aPacket.from)._onThreadState(aPacket);
       }
       
@@ -2683,11 +2684,3 @@ this.debuggerSocketConnect = function (aHost, aPort)
   }
   return transport;
 }
-
-
-
-
-function pair(aItemOne, aItemTwo) {
-  return [aItemOne, aItemTwo];
-}
-function noop() {}
