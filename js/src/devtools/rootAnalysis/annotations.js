@@ -13,7 +13,7 @@ var ignoreIndirectCalls = {
     "__conv" : true,
     "__convf" : true,
     "prerrortable.c:callback_newtable" : true,
-    "mozalloc_oom.cpp:void (* gAbortHandler)(size_t)" : true
+    "mozalloc_oom.cpp:void (* gAbortHandler)(size_t)" : true,
 };
 
 function indirectCallCannotGC(fullCaller, fullVariable)
@@ -174,7 +174,33 @@ var ignoreFunctions = {
     
     
     "void js::AutoCompartment::AutoCompartment(js::ExclusiveContext*, JSCompartment*)": true,
+
+    
+    
+    
+    
+    
+    
+    
+    "void test::RingbufferDumper::OnTestPartResult(testing::TestPartResult*)" : true,
 };
+
+function isProtobuf(name)
+{
+    return name.match(/\bgoogle::protobuf\b/) ||
+           name.match(/\bmozilla::devtools::protobuf\b/);
+}
+
+function isHeapSnapshotMockClass(name)
+{
+    return name.match(/\bMockWriter\b/) ||
+           name.match(/\bMockDeserializedNode\b/);
+}
+
+function isGTest(name)
+{
+    return name.match(/\btesting::/);
+}
 
 function ignoreGCFunction(mangled)
 {
@@ -182,6 +208,23 @@ function ignoreGCFunction(mangled)
     var fun = readableNames[mangled][0];
 
     if (fun in ignoreFunctions)
+        return true;
+
+    
+    
+    
+    if (isProtobuf(fun))
+        return true;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (isHeapSnapshotMockClass(fun) || isGTest(fun))
         return true;
 
     
