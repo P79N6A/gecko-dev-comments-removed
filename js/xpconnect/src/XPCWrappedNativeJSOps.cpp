@@ -673,7 +673,6 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
     {
         nullptr, 
         nullptr, 
-        nullptr, 
         true,    
         nullptr, 
         WrappedNativeObjectMoved
@@ -1389,7 +1388,6 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, HandleObject obj, HandleId id)
     {                                                                  \
         nullptr,    /* outerObject */                                  \
         nullptr,    /* innerObject */                                  \
-        nullptr,    /* iteratorObject */                               \
         false,      /* isWrappedNative */                              \
         nullptr,    /* weakmapKeyDelegateOp */                         \
         XPC_WN_Shared_Proto_ObjectMoved                                \
@@ -1644,7 +1642,6 @@ const js::Class XPC_WN_Tearoff_JSClass = {
 
     
     {
-        nullptr,                               
         nullptr,                               
         nullptr,                               
         false,                                 

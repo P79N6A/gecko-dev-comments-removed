@@ -467,7 +467,6 @@ static const js::Class SandboxClass = {
     {
       nullptr,      
       nullptr,      
-      nullptr,      
       false,        
       nullptr,      
       sandbox_moved 
@@ -485,7 +484,6 @@ static const js::Class SandboxWriteToProtoClass = {
     nullptr, nullptr, nullptr, JS_GlobalObjectTraceHook,
     JS_NULL_CLASS_SPEC,
     {
-      nullptr,      
       nullptr,      
       nullptr,      
       false,        
