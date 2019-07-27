@@ -460,19 +460,6 @@ public:
 
   void MarkPreserve3DFramesForDisplayList(nsIFrame* aDirtyFrame, const nsRect& aDirtyRect);
 
-  
-
-
-  const nsRegion* GetFinalTransparentRegion() { return mFinalTransparentRegion; }
-  
-
-
-
-  void SetFinalTransparentRegion(const nsRegion& aFinalTransparentRegion)
-  {
-    mFinalTransparentRegion = &aFinalTransparentRegion;
-  }
-
   const nsTArray<ThemeGeometry>& GetThemeGeometries() { return mThemeGeometries; }
 
   
@@ -772,7 +759,6 @@ private:
   nsAutoTArray<ThemeGeometry,2>  mThemeGeometries;
   nsDisplayTableItem*            mCurrentTableItem;
   DisplayListClipState           mClipState;
-  const nsRegion*                mFinalTransparentRegion;
   
   
   const nsIFrame*                mCurrentFrame;
