@@ -4822,6 +4822,8 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     return rv;
 }
 
+
+
 nsresult
 nsHttpChannel::BeginConnect()
 {
@@ -4845,12 +4847,17 @@ nsHttpChannel::BeginConnect()
         mURI->GetUsername(mUsername);
     if (NS_SUCCEEDED(rv))
         rv = mURI->GetAsciiSpec(mSpec);
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
+        AsyncAbort(rv);
         return rv;
+    }
 
     
-    if (host.IsEmpty())
-        return NS_ERROR_MALFORMED_URI;
+    if (host.IsEmpty()) {
+        rv = NS_ERROR_MALFORMED_URI;
+        AsyncAbort(rv);
+        return rv;
+    }
     LOG(("host=%s port=%d\n", host.get(), port));
     LOG(("uri=%s\n", mSpec.get()));
 
@@ -4923,8 +4930,10 @@ nsHttpChannel::BeginConnect()
                           &rv);
     if (NS_SUCCEEDED(rv))
         rv = mAuthProvider->Init(this);
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
+        AsyncAbort(rv);
         return rv;
+    }
 
     
     mAuthProvider->AddAuthorizationHeaders();
@@ -4935,7 +4944,11 @@ nsHttpChannel::BeginConnect()
     
     
     if (mAPIRedirectToURI) {
-        return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
+        rv = AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
+        if (NS_FAILED(rv)) {
+            AsyncAbort(rv);
+        }
+        return rv;
     }
     
     nsRefPtr<nsChannelClassifier> channelClassifier = new nsChannelClassifier();
@@ -5028,6 +5041,8 @@ nsHttpChannel::BeginConnect()
         mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
     }
     if (!(mLoadFlags & LOAD_CLASSIFY_URI)) {
+        
+        
         return ContinueBeginConnect();
     }
     
@@ -5038,6 +5053,8 @@ nsHttpChannel::BeginConnect()
     if (mCanceled || !mLocalBlocklist) {
        rv = ContinueBeginConnect();
        if (NS_FAILED(rv)) {
+           
+           
            return rv;
        }
        callContinueBeginConnect = false;
@@ -5161,21 +5178,15 @@ nsHttpChannel::OnProxyAvailable(nsICancelable *request, nsIChannel *channel,
         LOG(("nsHttpChannel::OnProxyAvailable [this=%p] "
              "Handler no longer active.\n", this));
         rv = NS_ERROR_NOT_AVAILABLE;
+        AsyncAbort(rv);
     }
     else {
+        
         rv = BeginConnect();
     }
 
     if (NS_FAILED(rv)) {
         Cancel(rv);
-        
-        
-        nsRefPtr<nsRunnableMethod<HttpBaseChannel> > event =
-            NS_NewRunnableMethod(this, &nsHttpChannel::DoNotifyListener);
-        rv = NS_DispatchToCurrentThread(event);
-        if (NS_FAILED(rv)) {
-            NS_WARNING("Failed To Dispatch DoNotifyListener");
-        }
     }
     return rv;
 }
