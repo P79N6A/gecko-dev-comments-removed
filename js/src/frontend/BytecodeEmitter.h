@@ -291,10 +291,10 @@ struct BytecodeEmitter
     
     
     
-    
-    int newSrcNote(SrcNoteType type);
-    int newSrcNote2(SrcNoteType type, ptrdiff_t offset);
-    int newSrcNote3(SrcNoteType type, ptrdiff_t offset1, ptrdiff_t offset2);
+    bool newSrcNote(SrcNoteType type, unsigned *indexp = nullptr);
+    bool newSrcNote2(SrcNoteType type, ptrdiff_t offset, unsigned *indexp = nullptr);
+    bool newSrcNote3(SrcNoteType type, ptrdiff_t offset1, ptrdiff_t offset2,
+                     unsigned *indexp = nullptr);
 
     void copySrcNotes(jssrcnote *destination, uint32_t nsrcnotes);
     bool setSrcNoteOffset(unsigned index, unsigned which, ptrdiff_t offset);

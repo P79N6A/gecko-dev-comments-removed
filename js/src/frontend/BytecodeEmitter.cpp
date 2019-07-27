@@ -452,11 +452,11 @@ BytecodeEmitter::updateLineNumberNotes(uint32_t offset)
         current->currentLine = line;
         current->lastColumn  = 0;
         if (delta >= LengthOfSetLine(line)) {
-            if (newSrcNote2(SRC_SETLINE, ptrdiff_t(line)) < 0)
+            if (!newSrcNote2(SRC_SETLINE, ptrdiff_t(line)))
                 return false;
         } else {
             do {
-                if (newSrcNote(SRC_NEWLINE) < 0)
+                if (!newSrcNote(SRC_NEWLINE))
                     return false;
             } while (--delta != 0);
         }
@@ -481,7 +481,7 @@ BytecodeEmitter::updateSourceCoordNotes(uint32_t offset)
         
         if (!SN_REPRESENTABLE_COLSPAN(colspan))
             return true;
-        if (newSrcNote2(SRC_COLSPAN, SN_COLSPAN_TO_OFFSET(colspan)) < 0)
+        if (!newSrcNote2(SRC_COLSPAN, SN_COLSPAN_TO_OFFSET(colspan)))
             return false;
         current->lastColumn = columnIndex;
     }
@@ -688,7 +688,7 @@ BytecodeEmitter::emitGoto(StmtInfoBCE *toStmt, ptrdiff_t *lastp, SrcNoteType not
         return false;
 
     if (noteType != SRC_NULL) {
-        if (newSrcNote(noteType) < 0)
+        if (!newSrcNote(noteType))
             return false;
     }
 
@@ -2621,7 +2621,6 @@ BytecodeEmitter::emitSwitch(ParseNode *pn)
     ptrdiff_t top, off, defaultOffset;
     ParseNode *pn2, *pn3, *pn4;
     int32_t low, high;
-    int noteIndex;
     size_t switchSize;
     jsbytecode *pc;
 
@@ -2763,19 +2762,20 @@ BytecodeEmitter::emitSwitch(ParseNode *pn)
 
 
 
+    unsigned noteIndex;
     if (switchOp == JSOP_CONDSWITCH) {
         
         switchSize = 0;
-        noteIndex = newSrcNote3(SRC_CONDSWITCH, 0, 0);
+        if (!newSrcNote3(SRC_CONDSWITCH, 0, 0, &noteIndex))
+            return false;
     } else {
         MOZ_ASSERT(switchOp == JSOP_TABLESWITCH);
 
         
         switchSize = (size_t)(JUMP_OFFSET_LEN * (3 + tableLength));
-        noteIndex = newSrcNote2(SRC_TABLESWITCH, 0);
+        if (!newSrcNote2(SRC_TABLESWITCH, 0, &noteIndex))
+            return false;
     }
-    if (noteIndex < 0)
-        return false;
 
     
     if (!emitN(switchOp, switchSize))
@@ -2783,7 +2783,7 @@ BytecodeEmitter::emitSwitch(ParseNode *pn)
 
     off = -1;
     if (switchOp == JSOP_CONDSWITCH) {
-        int caseNoteIndex = -1;
+        unsigned caseNoteIndex;
         bool beforeCases = true;
 
         
@@ -2791,17 +2791,16 @@ BytecodeEmitter::emitSwitch(ParseNode *pn)
             pn4 = pn3->pn_left;
             if (pn4 && !emitTree(pn4))
                 return false;
-            if (caseNoteIndex >= 0) {
+            if (!beforeCases) {
                 
-                if (!setSrcNoteOffset(unsigned(caseNoteIndex), 0, offset() - off))
+                if (!setSrcNoteOffset(caseNoteIndex, 0, offset() - off))
                     return false;
             }
             if (!pn4) {
                 MOZ_ASSERT(pn3->isKind(PNK_DEFAULT));
                 continue;
             }
-            caseNoteIndex = newSrcNote2(SRC_NEXTCASE, 0);
-            if (caseNoteIndex < 0)
+            if (!newSrcNote2(SRC_NEXTCASE, 0, &caseNoteIndex))
                 return false;
             if (!emitJump(JSOP_CASE, 0, &off))
                 return false;
@@ -2811,7 +2810,7 @@ BytecodeEmitter::emitSwitch(ParseNode *pn)
 
                 
                 noteCount = notes().length();
-                if (!setSrcNoteOffset(unsigned(noteIndex), 1, off - top))
+                if (!setSrcNoteOffset(noteIndex, 1, off - top))
                     return false;
                 noteCountDelta = notes().length() - noteCount;
                 if (noteCountDelta != 0)
@@ -2827,8 +2826,8 @@ BytecodeEmitter::emitSwitch(ParseNode *pn)
 
 
         if (!hasDefault &&
-            caseNoteIndex >= 0 &&
-            !setSrcNoteOffset(unsigned(caseNoteIndex), 0, offset() - off))
+            caseNoteIndex != UINT_MAX &&
+            !setSrcNoteOffset(caseNoteIndex, 0, offset() - off))
         {
             return false;
         }
@@ -3379,7 +3378,7 @@ BytecodeEmitter::emitDefault(ParseNode *defaultExpr)
     if (!emit1(JSOP_STRICTEQ))                            
         return false;
     
-    if (newSrcNote(SRC_IF) < 0)
+    if (!newSrcNote(SRC_IF))
         return false;
     ptrdiff_t jump;
     if (!emitJump(JSOP_IFEQ, 0, &jump))                   
@@ -3453,8 +3452,8 @@ BytecodeEmitter::emitDestructuringOpsArrayHelper(ParseNode *pattern, VarEmitOpti
             
             
             
-            ptrdiff_t noteIndex = newSrcNote(SRC_COND);
-            if (noteIndex < 0)
+            unsigned noteIndex;
+            if (!newSrcNote(SRC_COND, &noteIndex))
                 return false;
             ptrdiff_t beq;
             if (!emitJump(JSOP_IFEQ, 0, &beq))
@@ -4043,7 +4042,7 @@ BytecodeEmitter::emitAssignment(ParseNode *lhs, JSOp op, ParseNode *rhs)
 
 
         if (!lhs->isKind(PNK_NAME) || !lhs->isConst()) {
-            if (newSrcNote(SRC_ASSIGNOP) < 0)
+            if (!newSrcNote(SRC_ASSIGNOP))
                 return false;
         }
         if (!emit1(op))
@@ -4391,9 +4390,12 @@ BytecodeEmitter::emitTry(ParseNode *pn)
     int depth = stackDepth;
 
     
-    ptrdiff_t noteIndex = newSrcNote(SRC_TRY);
-    if (noteIndex < 0 || !emit1(JSOP_TRY))
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_TRY, &noteIndex))
         return false;
+    if (!emit1(JSOP_TRY))
+        return false;
+
     ptrdiff_t tryStart = offset();
     if (!emitTree(pn->pn_kid1))
         return false;
@@ -4540,7 +4542,7 @@ BytecodeEmitter::emitIf(ParseNode *pn)
     stmtInfo.type = STMT_IF;
     ptrdiff_t beq = -1;
     ptrdiff_t jmp = -1;
-    ptrdiff_t noteIndex = -1;
+    unsigned noteIndex = -1;
 
   if_again:
     
@@ -4564,8 +4566,7 @@ BytecodeEmitter::emitIf(ParseNode *pn)
 
     
     ParseNode *pn3 = pn->pn_kid3;
-    noteIndex = newSrcNote(pn3 ? SRC_IF_ELSE : SRC_IF);
-    if (noteIndex < 0)
+    if (!newSrcNote(pn3 ? SRC_IF_ELSE : SRC_IF, &noteIndex))
         return false;
     if (!emitJump(JSOP_IFEQ, 0, &beq))
         return false;
@@ -4810,8 +4811,8 @@ BytecodeEmitter::emitForOf(StmtType type, ParseNode *pn, ptrdiff_t top)
     
     
     
-    int noteIndex = newSrcNote(SRC_FOR_OF);
-    if (noteIndex < 0)
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_FOR_OF, &noteIndex))
         return false;
     ptrdiff_t jmp;
     if (!emitJump(JSOP_GOTO, 0, &jmp))
@@ -4891,7 +4892,7 @@ BytecodeEmitter::emitForOf(StmtType type, ParseNode *pn, ptrdiff_t top)
     MOZ_ASSERT(this->stackDepth == loopDepth);
 
     
-    if (!setSrcNoteOffset(unsigned(noteIndex), 0, beq - jmp))
+    if (!setSrcNoteOffset(noteIndex, 0, beq - jmp))
         return false;
 
     
@@ -4957,8 +4958,8 @@ BytecodeEmitter::emitForIn(ParseNode *pn, ptrdiff_t top)
     pushLoopStatement(&stmtInfo, STMT_FOR_IN_LOOP, top);
 
     
-    int noteIndex = newSrcNote(SRC_FOR_IN);
-    if (noteIndex < 0)
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_FOR_IN, &noteIndex))
         return false;
 
     
@@ -5013,7 +5014,7 @@ BytecodeEmitter::emitForIn(ParseNode *pn, ptrdiff_t top)
         return false;
 
     
-    if (!setSrcNoteOffset(unsigned(noteIndex), 0, beq - jmp))
+    if (!setSrcNoteOffset(noteIndex, 0, beq - jmp))
         return false;
 
     
@@ -5067,8 +5068,10 @@ BytecodeEmitter::emitNormalFor(ParseNode *pn, ptrdiff_t top)
 
 
 
-    int noteIndex = newSrcNote(SRC_FOR);
-    if (noteIndex < 0 || !emit1(op))
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_FOR, &noteIndex))
+        return false;
+    if (!emit1(op))
         return false;
     ptrdiff_t tmp = offset();
 
@@ -5094,7 +5097,6 @@ BytecodeEmitter::emitNormalFor(ParseNode *pn, ptrdiff_t top)
         return false;
 
     
-    MOZ_ASSERT(noteIndex != -1);
     ptrdiff_t tmp2 = offset();
 
     
@@ -5119,7 +5121,7 @@ BytecodeEmitter::emitNormalFor(ParseNode *pn, ptrdiff_t top)
         
         uint32_t lineNum = parser->tokenStream.srcCoords.lineNum(pn->pn_pos.end);
         if (currentLine() != lineNum) {
-            if (newSrcNote2(SRC_SETLINE, ptrdiff_t(lineNum)) < 0)
+            if (!newSrcNote2(SRC_SETLINE, ptrdiff_t(lineNum)))
                 return false;
             current->currentLine = lineNum;
             current->lastColumn = 0;
@@ -5140,12 +5142,12 @@ BytecodeEmitter::emitNormalFor(ParseNode *pn, ptrdiff_t top)
     }
 
     
-    if (!setSrcNoteOffset(unsigned(noteIndex), 0, tmp3 - tmp))
+    if (!setSrcNoteOffset(noteIndex, 0, tmp3 - tmp))
         return false;
-    if (!setSrcNoteOffset(unsigned(noteIndex), 1, tmp2 - tmp))
+    if (!setSrcNoteOffset(noteIndex, 1, tmp2 - tmp))
         return false;
     
-    if (!setSrcNoteOffset(unsigned(noteIndex), 2, offset() - tmp))
+    if (!setSrcNoteOffset(noteIndex, 2, offset() - tmp))
         return false;
 
     
@@ -5329,12 +5331,14 @@ bool
 BytecodeEmitter::emitDo(ParseNode *pn)
 {
     
-    ptrdiff_t noteIndex = newSrcNote(SRC_WHILE);
-    if (noteIndex < 0 || !emit1(JSOP_NOP))
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_WHILE, &noteIndex))
+        return false;
+    if (!emit1(JSOP_NOP))
         return false;
 
-    ptrdiff_t noteIndex2 = newSrcNote(SRC_WHILE);
-    if (noteIndex2 < 0)
+    unsigned noteIndex2;
+    if (!newSrcNote(SRC_WHILE, &noteIndex2))
         return false;
 
     
@@ -5404,8 +5408,8 @@ BytecodeEmitter::emitWhile(ParseNode *pn, ptrdiff_t top)
     LoopStmtInfo stmtInfo(cx);
     pushLoopStatement(&stmtInfo, STMT_WHILE_LOOP, top);
 
-    ptrdiff_t noteIndex = newSrcNote(SRC_WHILE);
-    if (noteIndex < 0)
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_WHILE, &noteIndex))
         return false;
 
     ptrdiff_t jmp;
@@ -5642,9 +5646,11 @@ BytecodeEmitter::emitYieldStar(ParseNode *iter, ParseNode *gen)
     
     StmtInfoBCE stmtInfo(cx);
     pushStatement(&stmtInfo, STMT_TRY, offset());
-    ptrdiff_t noteIndex = newSrcNote(SRC_TRY);
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_TRY, &noteIndex))
+        return false;
     ptrdiff_t tryStart = offset();                               
-    if (noteIndex < 0 || !emit1(JSOP_TRY))
+    if (!emit1(JSOP_TRY))
         return false;
     MOZ_ASSERT(this->stackDepth == depth);
 
@@ -6350,8 +6356,8 @@ BytecodeEmitter::emitConditionalExpression(ConditionalExpression &conditional)
     if (!emitTree(&conditional.condition()))
         return false;
 
-    ptrdiff_t noteIndex = newSrcNote(SRC_COND);
-    if (noteIndex < 0)
+    unsigned noteIndex;
+    if (!newSrcNote(SRC_COND, &noteIndex))
         return false;
 
     ptrdiff_t beq;
@@ -6691,7 +6697,7 @@ BytecodeEmitter::emitDefaults(ParseNode *pn)
         if (!emit1(JSOP_STRICTEQ))
             return false;
         
-        if (newSrcNote(SRC_IF) < 0)
+        if (!newSrcNote(SRC_IF))
             return false;
         ptrdiff_t jump;
         if (!emitJump(JSOP_IFEQ, 0, &jump))
@@ -7305,29 +7311,30 @@ BytecodeEmitter::emitTree(ParseNode *pn)
     return ok;
 }
 
-static int
-AllocSrcNote(ExclusiveContext *cx, SrcNotesVector &notes)
+static bool
+AllocSrcNote(ExclusiveContext *cx, SrcNotesVector &notes, unsigned *index)
 {
     
     
     if (notes.capacity() == 0 && !notes.reserve(256))
-        return -1;
+        return false;
 
-    jssrcnote dummy = 0;
-    if (!notes.append(dummy)) {
+    if (!notes.growBy(1)) {
         ReportOutOfMemory(cx);
-        return -1;
+        return false;
     }
-    return notes.length() - 1;
+
+    *index = notes.length() - 1;
+    return true;
 }
 
-int
-BytecodeEmitter::newSrcNote(SrcNoteType type)
+bool
+BytecodeEmitter::newSrcNote(SrcNoteType type, unsigned *indexp)
 {
     SrcNotesVector &notes = this->notes();
-    int index = AllocSrcNote(cx, notes);
-    if (index < 0)
-        return -1;
+    unsigned index;
+    if (!AllocSrcNote(cx, notes, &index))
+        return false;
 
     
 
@@ -7341,9 +7348,8 @@ BytecodeEmitter::newSrcNote(SrcNoteType type)
             ptrdiff_t xdelta = Min(delta, SN_XDELTA_MASK);
             SN_MAKE_XDELTA(&notes[index], xdelta);
             delta -= xdelta;
-            index = AllocSrcNote(cx, notes);
-            if (index < 0)
-                return -1;
+            if (!AllocSrcNote(cx, notes, &index))
+                return false;
         } while (delta >= SN_DELTA_LIMIT);
     }
 
@@ -7354,34 +7360,42 @@ BytecodeEmitter::newSrcNote(SrcNoteType type)
 
     SN_MAKE_NOTE(&notes[index], type, delta);
     for (int n = (int)js_SrcNoteSpec[type].arity; n > 0; n--) {
-        if (newSrcNote(SRC_NULL) < 0)
-            return -1;
+        if (!newSrcNote(SRC_NULL))
+            return false;
     }
-    return index;
+
+    if (indexp)
+        *indexp = index;
+    return true;
 }
 
-int
-BytecodeEmitter::newSrcNote2(SrcNoteType type, ptrdiff_t offset)
+bool
+BytecodeEmitter::newSrcNote2(SrcNoteType type, ptrdiff_t offset, unsigned *indexp)
 {
-    int index = newSrcNote(type);
-    if (index >= 0) {
-        if (!setSrcNoteOffset(index, 0, offset))
-            return -1;
-    }
-    return index;
+    unsigned index;
+    if (!newSrcNote(type, &index))
+        return false;
+    if (!setSrcNoteOffset(index, 0, offset))
+        return false;
+    if (indexp)
+        *indexp = index;
+    return true;
 }
 
-int
-BytecodeEmitter::newSrcNote3(SrcNoteType type, ptrdiff_t offset1, ptrdiff_t offset2)
+bool
+BytecodeEmitter::newSrcNote3(SrcNoteType type, ptrdiff_t offset1, ptrdiff_t offset2,
+                             unsigned *indexp)
 {
-    int index = newSrcNote(type);
-    if (index >= 0) {
-        if (!setSrcNoteOffset(index, 0, offset1))
-            return -1;
-        if (!setSrcNoteOffset(index, 1, offset2))
-            return -1;
-    }
-    return index;
+    unsigned index;
+    if (!newSrcNote(type, &index))
+        return false;
+    if (!setSrcNoteOffset(index, 0, offset1))
+        return false;
+    if (!setSrcNoteOffset(index, 1, offset2))
+        return false;
+    if (indexp)
+        *indexp = index;
+    return true;
 }
 
 bool
@@ -7419,7 +7433,7 @@ BytecodeEmitter::setSrcNoteOffset(unsigned index, unsigned which, ptrdiff_t offs
     SrcNotesVector &notes = this->notes();
 
     
-    jssrcnote *sn = notes.begin() + index;
+    jssrcnote *sn = &notes[index];
     MOZ_ASSERT(SN_TYPE(sn) != SRC_XDELTA);
     MOZ_ASSERT((int) which < js_SrcNoteSpec[SN_TYPE(sn)].arity);
     for (sn++; which; sn++, which--) {
@@ -7461,7 +7475,7 @@ BytecodeEmitter::finishTakingSrcNotes(uint32_t *out)
     unsigned prologCount = prolog.notes.length();
     if (prologCount && prolog.currentLine != firstLine) {
         switchToProlog();
-        if (newSrcNote2(SRC_SETLINE, ptrdiff_t(firstLine)) < 0)
+        if (!newSrcNote2(SRC_SETLINE, ptrdiff_t(firstLine)))
             return false;
         switchToMain();
     } else {
