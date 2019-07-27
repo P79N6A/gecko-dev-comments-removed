@@ -14,7 +14,7 @@ function runAJAXTest() {
 function onManifestLoad(manifest) {
   if (manifest.testcases) {
     AJAXtests = manifest.testcases;
-    runAJAXTest();    
+    runAJAXTest();
   } else {
     ok(false, "manifest check", "no manifest!?!");
     SimpleTest.finish();
@@ -25,6 +25,11 @@ function fetchManifest() {
   var d = loadJSONDoc("manifest.json");
   d.addBoth(onManifestLoad);
 }
+
+
+
+
+SimpleTest.requestLongerTimeout(2);
 
 SimpleTest.waitForExplicitFinish();
 addLoadEvent(fetchManifest);
