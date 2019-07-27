@@ -45,7 +45,7 @@ var SelectionHandler = {
 
   _activeType: 0, 
   _selectionPrivate: null, 
-  _selectionID: 0, 
+  _selectionID: null, 
 
   _draggingHandles: false, 
   _dragStartAnchorOffset: null, 
@@ -82,6 +82,13 @@ var SelectionHandler = {
   get _domWinUtils() {
     return BrowserApp.selectedBrowser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).
                                                     getInterface(Ci.nsIDOMWindowUtils);
+  },
+
+  
+  get _idService() {
+    delete this._idService;
+    return this._idService = Cc["@mozilla.org/uuid-generator;1"].
+      getService(Ci.nsIUUIDGenerator);
   },
 
   _addObservers: function sh_addObservers() {
@@ -828,7 +835,7 @@ var SelectionHandler = {
       aElement.focus();
     }
 
-    this._selectionID++;
+    this._selectionID = this._idService.generateUUID().toString();
     this._stopDraggingHandles();
     this._contentWindow = aElement.ownerDocument.defaultView;
     this._targetIsRTL = (this._contentWindow.getComputedStyle(aElement, "").direction == "rtl");
