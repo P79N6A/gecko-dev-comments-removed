@@ -53,6 +53,96 @@
 
 CAIRO_BEGIN_DECLS
 
+
+
+
+
+
+
+
+
+
+
+#if HAVE_CXX11_ATOMIC_PRIMITIVES
+
+#define HAS_ATOMIC_OPS 1
+
+typedef int cairo_atomic_int_t;
+
+static cairo_always_inline cairo_atomic_int_t
+_cairo_atomic_int_get (cairo_atomic_int_t *x)
+{
+    return __atomic_load_n(x, __ATOMIC_SEQ_CST);
+}
+
+static cairo_always_inline void *
+_cairo_atomic_ptr_get (void **x)
+{
+    return __atomic_load_n(x, __ATOMIC_SEQ_CST);
+}
+
+# define _cairo_atomic_int_inc(x) ((void) __atomic_fetch_add(x, 1, __ATOMIC_SEQ_CST))
+# define _cairo_atomic_int_dec(x) ((void) __atomic_fetch_sub(x, 1, __ATOMIC_SEQ_CST))
+# define _cairo_atomic_int_dec_and_test(x) (__atomic_fetch_sub(x, 1, __ATOMIC_SEQ_CST) == 1)
+
+#if SIZEOF_VOID_P==SIZEOF_INT
+typedef int cairo_atomic_intptr_t;
+#elif SIZEOF_VOID_P==SIZEOF_LONG
+typedef long cairo_atomic_intptr_t;
+#elif SIZEOF_VOID_P==SIZEOF_LONG_LONG
+typedef long long cairo_atomic_intptr_t;
+#else
+#error No matching integer pointer type
+#endif
+
+static cairo_always_inline cairo_bool_t
+_cairo_atomic_int_cmpxchg_impl(cairo_atomic_int_t *x,
+			       cairo_atomic_int_t oldv,
+			       cairo_atomic_int_t newv)
+{
+    cairo_atomic_int_t expected = oldv;
+    return __atomic_compare_exchange_n(x, &expected, newv, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+}
+
+#define _cairo_atomic_int_cmpxchg(x, oldv, newv) \
+  _cairo_atomic_int_cmpxchg_impl(x, oldv, newv)
+
+static cairo_always_inline cairo_atomic_int_t
+_cairo_atomic_int_cmpxchg_return_old_impl(cairo_atomic_int_t *x,
+					  cairo_atomic_int_t oldv,
+					  cairo_atomic_int_t newv)
+{
+    cairo_atomic_int_t expected = oldv;
+    (void) __atomic_compare_exchange_n(x, &expected, newv, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    return expected;
+}
+
+#define _cairo_atomic_int_cmpxchg_return_old(x, oldv, newv) \
+  _cairo_atomic_int_cmpxchg_return_old_impl(x, oldv, newv)
+
+static cairo_always_inline cairo_bool_t
+_cairo_atomic_ptr_cmpxchg_impl(void **x, void *oldv, void *newv)
+{
+    void *expected = oldv;
+    return __atomic_compare_exchange_n(x, &expected, newv, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+}
+
+#define _cairo_atomic_ptr_cmpxchg(x, oldv, newv) \
+  _cairo_atomic_ptr_cmpxchg_impl(x, oldv, newv)
+
+static cairo_always_inline void *
+_cairo_atomic_ptr_cmpxchg_return_old_impl(void **x, void *oldv, void *newv)
+{
+    void *expected = oldv;
+    (void) __atomic_compare_exchange_n(x, &expected, newv, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    return expected;
+}
+
+#define _cairo_atomic_ptr_cmpxchg_return_old(x, oldv, newv) \
+  _cairo_atomic_ptr_cmpxchg_return_old_impl(x, oldv, newv)
+
+#endif
+
 #if HAVE_INTEL_ATOMIC_PRIMITIVES
 
 #define HAS_ATOMIC_OPS 1
