@@ -974,6 +974,12 @@ SEGVHandler::SEGVHandler()
 
 
 
+  Logging::Init();
+
+  
+
+
+
   oldStack.ss_flags = SS_ONSTACK;
 
   
