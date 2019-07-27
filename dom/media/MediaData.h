@@ -99,11 +99,14 @@ public:
             AudioDataValue* aData,
             uint32_t aChannels,
             uint32_t aRate)
-    : MediaData(AUDIO_DATA, aOffset, aTime, aDuration)
+    : MediaData(sType, aOffset, aTime, aDuration)
     , mFrames(aFrames)
     , mChannels(aChannels)
     , mRate(aRate)
     , mAudioData(aData) {}
+
+  static const Type sType = AUDIO_DATA;
+  static const char* sTypeName;
 
   
   
@@ -147,6 +150,9 @@ public:
   typedef layers::ImageContainer ImageContainer;
   typedef layers::Image Image;
   typedef layers::PlanarYCbCrImage PlanarYCbCrImage;
+
+  static const Type sType = VIDEO_DATA;
+  static const char* sTypeName;
 
   
   
