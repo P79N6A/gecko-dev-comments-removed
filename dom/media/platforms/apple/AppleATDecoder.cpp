@@ -5,7 +5,6 @@
 
 
 #include "AppleUtils.h"
-#include "MP4Reader.h"
 #include "MP4Decoder.h"
 #include "mp4_demuxer/Adts.h"
 #include "MediaInfo.h"
