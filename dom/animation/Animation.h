@@ -184,8 +184,6 @@ struct ElementPropertyTransition;
 
 namespace dom {
 
-class AnimationEffect;
-
 class Animation : public nsWrapperCache
 {
 public:
@@ -219,9 +217,6 @@ public:
   }
 
   
-  
-  
-  already_AddRefed<AnimationEffect> GetEffect();
   Element* GetTarget() const {
     
     
@@ -231,6 +226,10 @@ public:
                " pseudo-element is not yet supported.");
     return mTarget;
   }
+  void GetName(nsString& aRetVal) const
+  {
+    aRetVal = Name();
+  }
 
   
   
@@ -238,6 +237,12 @@ public:
                  nsCSSPseudoElements::Type& aPseudoType) const {
     aTarget = mTarget;
     aPseudoType = mPseudoType;
+  }
+  
+  
+  virtual const nsString& Name() const
+  {
+    return mName;
   }
 
   void SetParentTime(Nullable<TimeDuration> aParentTime);
@@ -247,10 +252,6 @@ public:
   }
   AnimationTiming& Timing() {
     return mTiming;
-  }
-
-  virtual const nsString& Name() const {
-    return mName;
   }
 
   
