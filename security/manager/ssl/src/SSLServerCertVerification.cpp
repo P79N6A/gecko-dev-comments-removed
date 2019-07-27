@@ -759,7 +759,7 @@ AuthCertificate(CertVerifier& certVerifier,
   rv = certVerifier.VerifySSLServerCert(cert, stapledOCSPResponse,
                                         time, infoObject,
                                         infoObject->GetHostNameRaw(),
-                                        saveIntermediates, nullptr,
+                                        saveIntermediates, 0, nullptr,
                                         &evOidPolicy);
 
   

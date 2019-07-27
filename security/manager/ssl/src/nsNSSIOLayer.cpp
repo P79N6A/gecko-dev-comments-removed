@@ -432,9 +432,35 @@ nsNSSSocketInfo::JoinConnection(const nsACString& npnProtocol,
     return NS_OK;
   }
 
-  if (CERT_VerifyCertName(nssCert, PromiseFlatCString(hostname).get()) !=
-      SECSuccess) {
-      return NS_OK;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  RefPtr<SharedCertVerifier> certVerifier(GetDefaultCertVerifier());
+  if (!certVerifier) {
+    return NS_OK;
+  }
+  nsAutoCString hostnameFlat(PromiseFlatCString(hostname));
+  CertVerifier::Flags flags = CertVerifier::FLAG_LOCAL_ONLY;
+  SECStatus rv = certVerifier->VerifySSLServerCert(nssCert, nullptr,
+                                                   mozilla::pkix::Now(),
+                                                   nullptr, hostnameFlat.get(),
+                                                   false, flags, nullptr,
+                                                   nullptr);
+  if (rv != SECSuccess) {
+    return NS_OK;
   }
 
   

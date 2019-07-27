@@ -432,6 +432,7 @@ CertVerifier::VerifySSLServerCert(CERTCertificate* peerCert,
                       void* pinarg,
                                   const char* hostname,
                                   bool saveIntermediatesInPermanentDatabase,
+                                  Flags flags,
                   ScopedCERTCertList* builtChain,
                   SECOidTag* evOidPolicy)
 {
@@ -456,8 +457,8 @@ CertVerifier::VerifySSLServerCert(CERTCertificate* peerCert,
   
   
   SECStatus rv = VerifyCert(peerCert, certificateUsageSSLServer, time, pinarg,
-                            hostname, 0, stapledOCSPResponse, &builtChainTemp,
-                            evOidPolicy);
+                            hostname, flags, stapledOCSPResponse,
+                            &builtChainTemp, evOidPolicy);
   if (rv != SECSuccess) {
     return rv;
   }

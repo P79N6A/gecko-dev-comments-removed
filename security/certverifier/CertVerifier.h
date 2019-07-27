@@ -43,6 +43,7 @@ public:
         void* pinarg,
                     const char* hostname,
                     bool saveIntermediatesInPermanentDatabase = false,
+                    Flags flags = 0,
     ScopedCERTCertList* builtChain = nullptr,
     SECOidTag* evOidPolicy = nullptr);
 
