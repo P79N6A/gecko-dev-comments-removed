@@ -282,40 +282,20 @@ const DOM = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 const CollapseFunctions = {
-  
-
-
   identical: function (parent, curr, peek) {
-    let next = peek(1);
     
     
     if (parent && parent.name == curr.name) {
-      let finalize = next && next.name !== curr.name;
-      return { collapse: true, finalize };
+      return { toParent: parent.name };
     }
     
     
+    let next = peek(1);
     if (next && curr.name == next.name) {
-      return { toParent: { name: curr.name, start: curr.start }, collapse: true };
+      return { toParent: curr.name };
     }
   },
-
-  
-
 
   adjacent: function (parent, curr, peek) {
     let next = peek(1);
@@ -324,29 +304,35 @@ const CollapseFunctions = {
     }
   },
 
-  
-
-
-
-  child: function (parent, curr, peek) {
-    let next = peek(1);
+  DOMtoDOMJS: function (parent, curr, peek) {
     
-    if (parent && curr.end <= parent.end) {
-      let finalize = next && next.end > parent.end;
-      return { collapse: true, finalize };
+    
+    let next = peek(1);
+    if (next && next.name == "Javascript") {
+      return {
+        forceNew: true,
+        toParent: "meta::DOMEvent+JS",
+        withData: {
+          type: curr.type,
+          eventPhase: curr.eventPhase
+        },
+      };
     }
   },
 
-  
-
-
-
-  parent: function (parent, curr, peek) {
-    let next = peek(1);
+  JStoDOMJS: function (parent, curr, peek) {
     
     
-    if (next && curr.end >= next.end) {
-      return { toParent: curr };
+    
+    if (parent && parent.name == "meta::DOMEvent+JS") {
+      return {
+        forceEnd: true,
+        toParent: "meta::DOMEvent+JS",
+        withData: {
+          stack: curr.stack,
+          endStack: curr.endStack
+        },
+      };
     }
   },
 };
