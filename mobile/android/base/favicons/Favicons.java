@@ -450,9 +450,15 @@ public class Favicons {
             return;
         }
 
+        final boolean isNewTabletEnabled = NewTabletUI.isEnabled(context);
         final Resources res = context.getResources();
 
-        defaultFavicon = BitmapFactory.decodeResource(res, R.drawable.toolbar_favicon_default);
+        
+        
+        
+        final int defaultFaviconDrawableID =
+                isNewTabletEnabled ? R.drawable.new_tablet_default_favicon : R.drawable.favicon;
+        defaultFavicon = BitmapFactory.decodeResource(res, defaultFaviconDrawableID);
         if (defaultFavicon == null) {
             throw new IllegalStateException("Null default favicon was returned from the resources system!");
         }
@@ -463,7 +469,10 @@ public class Favicons {
         
         largestFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_largest_interesting_size);
 
-        browserToolbarFaviconSize = res.getDimensionPixelSize(R.dimen.browser_toolbar_favicon_size);
+        
+        final int browserToolbarFaviconSizeDimenID = NewTabletUI.isEnabled(context) ?
+                R.dimen.new_tablet_tab_strip_favicon_size : R.dimen.browser_toolbar_favicon_size;
+        browserToolbarFaviconSize = res.getDimensionPixelSize(browserToolbarFaviconSizeDimenID);
 
         faviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, largestFaviconSize);
 

@@ -22,7 +22,9 @@ public class MenuItemActionBar extends ThemedImageButton
     }
 
     public MenuItemActionBar(Context context, AttributeSet attrs) {
-        this(context, attrs, R.attr.menuItemActionBarStyle);
+        
+        this(context, attrs, (NewTabletUI.isEnabled(context)) ?
+                R.attr.menuItemActionBarStyleNewTablet : R.attr.menuItemActionBarStyle);
     }
 
     public MenuItemActionBar(Context context, AttributeSet attrs, int defStyle) {

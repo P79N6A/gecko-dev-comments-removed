@@ -659,7 +659,7 @@ public class TopSitesPanel extends HomeFragment {
             }
 
             
-            view.displayThumbnail(R.drawable.favicon_globe);
+            view.displayThumbnail(R.drawable.favicon);
 
             
             listener.setLoadId(loadId);
