@@ -15,6 +15,7 @@ namespace jit {
 
 
 
+
 uint32_t
 MacroAssembler::framePushed() const
 {
@@ -74,6 +75,7 @@ MacroAssembler::call(const CallSiteDesc& desc, Label* label)
     call(label);
     append(desc, currentOffset(), framePushed());
 }
+
 
 
 

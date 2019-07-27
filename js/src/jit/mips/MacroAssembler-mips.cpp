@@ -3654,6 +3654,7 @@ MacroAssemblerMIPSCompat::asMasm() const
 
 
 
+
 void
 MacroAssembler::PushRegsInMask(LiveRegisterSet set)
 {
@@ -3822,3 +3823,5 @@ MacroAssembler::call(JitCode* c)
     ma_liPatchable(ScratchRegister, Imm32((uint32_t)c->raw()));
     ma_callJitHalfPush(ScratchRegister);
 }
+
+

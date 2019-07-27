@@ -2557,6 +2557,7 @@ MacroAssembler::icRestoreLive(LiveRegisterSet& liveRegs, AfterICSaveLive& aic)
 
 
 
+
 void
 MacroAssembler::PushRegsInMask(LiveGeneralRegisterSet set)
 {
@@ -2718,3 +2719,5 @@ MacroAssembler::freeStack(Register amount)
 {
     addToStackPtr(amount);
 }
+
+

@@ -5113,6 +5113,7 @@ MacroAssemblerARMCompat::asMasm() const
 
 
 
+
 void
 MacroAssembler::PushRegsInMask(LiveRegisterSet set)
 {
@@ -5300,3 +5301,5 @@ MacroAssembler::call(JitCode* c)
     ma_movPatchable(ImmPtr(c->raw()), ScratchRegister, Always, rs);
     ma_callJitHalfPush(ScratchRegister);
 }
+
+

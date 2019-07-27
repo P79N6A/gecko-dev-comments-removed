@@ -198,6 +198,7 @@ MacroAssemblerX86Shared::asMasm() const
 
 
 
+
 void
 MacroAssembler::PushRegsInMask(LiveRegisterSet set)
 {
@@ -415,3 +416,5 @@ MacroAssembler::call(JitCode* target)
 {
     Assembler::call(target);
 }
+
+

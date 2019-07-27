@@ -568,6 +568,7 @@ MacroAssemblerX86::asMasm() const
 
 
 
+
 void
 MacroAssembler::reserveStack(uint32_t amount)
 {
@@ -587,3 +588,5 @@ MacroAssembler::reserveStack(uint32_t amount)
     }
     framePushed_ += amount;
 }
+
+
