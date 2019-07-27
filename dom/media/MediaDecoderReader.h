@@ -65,7 +65,7 @@ public:
   
   
   
-  virtual void Shutdown();
+  virtual nsRefPtr<ShutdownPromise> Shutdown();
 
   virtual void SetCallback(RequestSampleCallback* aDecodedSampleCallback);
   MediaTaskQueue* EnsureTaskQueue();
