@@ -1719,6 +1719,40 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   
   
   
+  { ByteString(), NO_SAN,
+    GeneralSubtree(DNSName("!")),
+    Success, Success
+  },
+  { 
+    
+    ByteString(), NO_SAN,
+    GeneralSubtree(Name(ByteString(reinterpret_cast<const uint8_t*>("!"), 1))),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { ByteString(), NO_SAN,
+    GeneralSubtree(IPAddress(ipv4_constraint_truncated_bytes)),
+    Success, Success
+  },
+  { ByteString(), NO_SAN,
+    GeneralSubtree(IPAddress(ipv4_constraint_overlong_bytes)),
+    Success, Success
+  },
+  { ByteString(), NO_SAN,
+  GeneralSubtree(IPAddress(ipv6_constraint_truncated_bytes)),
+  Success, Success
+  },
+  { ByteString(), NO_SAN,
+  GeneralSubtree(IPAddress(ipv6_constraint_overlong_bytes)),
+  Success, Success
+  },
+  { ByteString(), NO_SAN,
+    GeneralSubtree(RFC822Name("!")),
+    Success, Success
+  },
+
+  
+  
+  
   
 
   
