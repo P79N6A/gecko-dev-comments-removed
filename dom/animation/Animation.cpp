@@ -56,6 +56,23 @@ Animation::SetEffect(KeyframeEffectReadOnly* aEffect)
 }
 
 void
+Animation::SetTimeline(AnimationTimeline* aTimeline)
+{
+  if (mTimeline == aTimeline) {
+    return;
+  }
+
+  mTimeline = aTimeline;
+
+  
+  
+  UpdateTiming(SeekFlag::NoSeek);
+
+  
+  
+}
+
+void
 Animation::SetStartTime(const Nullable<TimeDuration>& aNewStartTime)
 {
   Nullable<TimeDuration> timelineTime;
