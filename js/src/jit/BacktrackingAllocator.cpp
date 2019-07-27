@@ -1678,9 +1678,11 @@ BacktrackingAllocator::minimalInterval(const LiveInterval *interval, bool *pfixe
         return minimalDef(interval, reg.ins());
     }
 
-    bool fixed = false, minimal = false;
+    bool fixed = false, minimal = false, multiple = false;
 
     for (UsePositionIterator iter = interval->usesBegin(); iter != interval->usesEnd(); iter++) {
+        if (iter != interval->usesBegin())
+            multiple = true;
         LUse *use = iter->use;
 
         switch (use->policy()) {
@@ -1701,6 +1703,11 @@ BacktrackingAllocator::minimalInterval(const LiveInterval *interval, bool *pfixe
             break;
         }
     }
+
+    
+    
+    if (multiple && fixed)
+        minimal = false;
 
     if (pfixed)
         *pfixed = fixed;
@@ -2024,11 +2031,15 @@ BacktrackingAllocator::splitAtAllRegisterUses(LiveInterval *interval)
             
             
             CodePosition from = inputOf(ins);
-            CodePosition to = iter->pos.next();
+            CodePosition to = iter->use->usedAtStart() ? outputOf(ins) : iter->pos.next();
 
             
             
-            if (newIntervals.empty() || newIntervals.back()->end() != to || iter->use->policy() == LUse::FIXED) {
+            if (newIntervals.empty() ||
+                newIntervals.back()->end() != to ||
+                newIntervals.back()->usesBegin()->use->policy() == LUse::FIXED ||
+                iter->use->policy() == LUse::FIXED)
+            {
                 if (!addLiveInterval(newIntervals, vreg, spillInterval, from, to))
                     return false;
             }
