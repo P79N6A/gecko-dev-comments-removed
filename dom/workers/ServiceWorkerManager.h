@@ -199,6 +199,15 @@ public:
   struct ServiceWorkerDomainInfo
   {
     
+    
+    
+    
+    
+    
+    
+    nsTArray<nsCString> mOrderedScopes;
+
+    
     nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistration> mServiceWorkerRegistrations;
 
     ServiceWorkerDomainInfo()
@@ -220,6 +229,7 @@ public:
       
       
       mServiceWorkerRegistrations.Put(aScope, registration);
+      ServiceWorkerManager::AddScope(mOrderedScopes, aScope);
       return registration;
     }
   };
@@ -285,6 +295,25 @@ private:
   CleanupServiceWorkerInformation(const nsACString& aDomain,
                                   ServiceWorkerDomainInfo* aDomainInfo,
                                   void *aUnused);
+
+  already_AddRefed<ServiceWorkerRegistration>
+  GetServiceWorkerRegistration(nsPIDOMWindow* aWindow);
+
+  already_AddRefed<ServiceWorkerRegistration>
+  GetServiceWorkerRegistration(nsIDocument* aDoc);
+
+  already_AddRefed<ServiceWorkerRegistration>
+  GetServiceWorkerRegistration(nsIURI* aURI);
+
+  static void
+  AddScope(nsTArray<nsCString>& aList, const nsACString& aScope);
+
+  static nsCString
+  FindScopeForPath(nsTArray<nsCString>& aList, const nsACString& aPath);
+
+  static void
+  RemoveScope(nsTArray<nsCString>& aList, const nsACString& aScope);
+
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(ServiceWorkerManager,

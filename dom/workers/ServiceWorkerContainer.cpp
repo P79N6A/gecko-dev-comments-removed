@@ -137,6 +137,22 @@ ServiceWorkerContainer::ClearAllServiceWorkerData(ErrorResult& aRv)
 
 
 void
+ServiceWorkerContainer::GetScopeForUrl(const nsAString& aUrl,
+                                       nsString& aScope,
+                                       ErrorResult& aRv)
+{
+  nsresult rv;
+  nsCOMPtr<nsIServiceWorkerManager> swm = do_GetService(SERVICEWORKERMANAGER_CONTRACTID, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRv.Throw(rv);
+    return;
+  }
+
+  aRv = swm->GetScopeForUrl(aUrl, aScope);
+}
+
+
+void
 ServiceWorkerContainer::GetControllingWorkerScriptURLForPath(
                                                         const nsAString& aPath,
                                                         nsString& aScriptURL,

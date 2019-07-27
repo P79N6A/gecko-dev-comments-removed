@@ -367,8 +367,7 @@ public:
     }
 
     nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-    ServiceWorkerManager::ServiceWorkerDomainInfo* domainInfo =
-      swm->mDomainMap.Get(domain);
+    ServiceWorkerManager::ServiceWorkerDomainInfo* domainInfo;
     
     
     if (!swm->mDomainMap.Get(domain, &domainInfo)) {
@@ -987,6 +986,163 @@ ServiceWorkerManager::CreateServiceWorkerForWindow(nsPIDOMWindow* aWindow,
   return rv;
 }
 
+already_AddRefed<ServiceWorkerRegistration>
+ServiceWorkerManager::GetServiceWorkerRegistration(nsPIDOMWindow* aWindow)
+{
+  nsCOMPtr<nsIURI> documentURI = aWindow->GetDocumentURI();
+  return GetServiceWorkerRegistration(documentURI);
+}
+
+already_AddRefed<ServiceWorkerRegistration>
+ServiceWorkerManager::GetServiceWorkerRegistration(nsIDocument* aDoc)
+{
+  nsCOMPtr<nsIURI> documentURI = aDoc->GetDocumentURI();
+  return GetServiceWorkerRegistration(documentURI);
+}
+
+already_AddRefed<ServiceWorkerRegistration>
+ServiceWorkerManager::GetServiceWorkerRegistration(nsIURI* aURI)
+{
+  if (!aURI) {
+    return nullptr;
+  }
+
+  nsCString domain;
+  nsresult rv = aURI->GetHost(domain);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nullptr;
+  }
+
+  ServiceWorkerDomainInfo* domainInfo = mDomainMap.Get(domain);
+
+  
+  
+  if (!domainInfo) {
+    return nullptr;
+  }
+
+  nsCString spec;
+  rv = aURI->GetSpec(spec);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return nullptr;
+  }
+
+  nsCString scope = FindScopeForPath(domainInfo->mOrderedScopes, spec);
+  if (scope.IsEmpty()) {
+    return nullptr;
+  }
+
+  ServiceWorkerRegistration* registration;
+  domainInfo->mServiceWorkerRegistrations.Get(scope, &registration);
+  
+  MOZ_ASSERT(registration);
+
+  return registration;
+}
+
+namespace {
+
+
+
+void ScopeWithoutStar(const nsACString& aScope, nsACString& out)
+{
+  if (aScope.Last() == '*') {
+    out.Assign(StringHead(aScope, aScope.Length() - 1));
+    return;
+  }
+
+  out.Assign(aScope);
+}
+}; 
+
+ void
+ServiceWorkerManager::AddScope(nsTArray<nsCString>& aList, const nsACString& aScope)
+{
+  for (uint32_t i = 0; i < aList.Length(); ++i) {
+    const nsCString& current = aList[i];
+
+    
+    if (aScope.Equals(current)) {
+      return;
+    }
+
+    nsCString withoutStar;
+    ScopeWithoutStar(current, withoutStar);
+    
+    
+    if (aScope.Equals(withoutStar)) {
+      aList.InsertElementAt(i, aScope);
+      return;
+    }
+
+    
+    
+    
+    if (StringBeginsWith(aScope, withoutStar)) {
+      
+      
+      
+      if (aScope.Last() == '*' &&
+          withoutStar.Equals(current)) {
+        aList.InsertElementAt(i+1, aScope);
+      } else {
+        aList.InsertElementAt(i, aScope);
+      }
+      return;
+    }
+  }
+
+  aList.AppendElement(aScope);
+}
+
+
+ nsCString
+ServiceWorkerManager::FindScopeForPath(nsTArray<nsCString>& aList, const nsACString& aPath)
+{
+  MOZ_ASSERT(aPath.FindChar('*') == -1);
+
+  nsCString match;
+
+  for (uint32_t i = 0; i < aList.Length(); ++i) {
+    const nsCString& current = aList[i];
+    nsCString withoutStar;
+    ScopeWithoutStar(current, withoutStar);
+    if (StringBeginsWith(aPath, withoutStar)) {
+      
+      if (current.Last() == '*' ||
+          aPath.Equals(current)) {
+        match = current;
+        break;
+      }
+    }
+  }
+
+  return match;
+}
+
+ void
+ServiceWorkerManager::RemoveScope(nsTArray<nsCString>& aList, const nsACString& aScope)
+{
+  aList.RemoveElement(aScope);
+}
+
+NS_IMETHODIMP
+ServiceWorkerManager::GetScopeForUrl(const nsAString& aUrl, nsAString& aScope)
+{
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aUrl, nullptr, nullptr);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsRefPtr<ServiceWorkerRegistration> r = GetServiceWorkerRegistration(uri);
+  if (!r) {
+      return NS_ERROR_FAILURE;
+  }
+
+  aScope = NS_ConvertUTF8toUTF16(r->mScope);
+  return NS_OK;
+}
 NS_IMETHODIMP
 ServiceWorkerManager::CreateServiceWorker(const nsACString& aScriptSpec,
                                           const nsACString& aScope,

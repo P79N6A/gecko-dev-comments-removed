@@ -81,6 +81,10 @@ public:
 
   
   void
+  GetScopeForUrl(const nsAString& aUrl, nsString& aScope, ErrorResult& aRv);
+
+  
+  void
   GetControllingWorkerScriptURLForPath(const nsAString& aPath,
                                        nsString& aScriptURL,
                                        ErrorResult& aRv);
