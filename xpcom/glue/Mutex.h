@@ -43,7 +43,7 @@ public:
 
 
 
-  OffTheBooksMutex(const char* aName)
+  explicit OffTheBooksMutex(const char* aName)
     : BlockingResourceBase(aName, eMutex)
   {
     mLock = PR_NewLock();
@@ -120,7 +120,7 @@ private:
 class NS_COM_GLUE Mutex : public OffTheBooksMutex
 {
 public:
-  Mutex(const char* aName)
+  explicit Mutex(const char* aName)
     : OffTheBooksMutex(aName)
   {
     MOZ_COUNT_CTOR(Mutex);
@@ -156,7 +156,7 @@ public:
 
 
 
-  BaseAutoLock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  explicit BaseAutoLock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     : mLock(&aLock)
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -194,7 +194,7 @@ template<typename T>
 class NS_COM_GLUE MOZ_STACK_CLASS BaseAutoUnlock
 {
 public:
-  BaseAutoUnlock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  explicit BaseAutoUnlock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     : mLock(&aLock)
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;

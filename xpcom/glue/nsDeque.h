@@ -66,7 +66,7 @@ class NS_COM_GLUE nsDeque
   friend class nsDequeIterator;
   typedef mozilla::fallible_t fallible_t;
 public:
-  nsDeque(nsDequeFunctor* aDeallocator = nullptr);
+  explicit nsDeque(nsDequeFunctor* aDeallocator = nullptr);
   ~nsDeque();
 
   
@@ -256,7 +256,7 @@ public:
 
 
 
-  nsDequeIterator(const nsDeque& aQueue, int aIndex = 0);
+  explicit nsDequeIterator(const nsDeque& aQueue, int aIndex = 0);
 
   
 

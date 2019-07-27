@@ -112,7 +112,7 @@ public:
   
   
   
-  nsMainThreadPtrHolder(T* aPtr, bool aStrict = true)
+  explicit nsMainThreadPtrHolder(T* aPtr, bool aStrict = true)
     : mRawPtr(nullptr)
     , mStrict(aStrict)
   {

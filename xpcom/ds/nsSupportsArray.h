@@ -141,7 +141,7 @@ protected:
 
 private:
   
-  nsSupportsArray(const nsISupportsArray& aOther);
+  explicit nsSupportsArray(const nsISupportsArray& aOther);
 };
 
 #endif 
