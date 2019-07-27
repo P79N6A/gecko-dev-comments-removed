@@ -2470,7 +2470,7 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
     UpdatePreloadAction();
   }
   if (mDecoder) {
-    mDecoder->SetDormantIfNecessary(false);
+    mDecoder->SetDormantIfNecessary(OwnerDoc()->Hidden());
   }
 
   return rv;
@@ -3467,7 +3467,12 @@ void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
 
   if (mDecoder) {
     mDecoder->SetElementVisibility(!ownerDoc->Hidden());
-    mDecoder->SetDormantIfNecessary(ownerDoc->Hidden());
+    
+    
+    nsCOMPtr<nsIDOMNode> parent;
+    nsresult rv = GetParentNode(getter_AddRefs(parent));
+    bool hasParent = NS_SUCCEEDED(rv) && parent;
+    mDecoder->SetDormantIfNecessary(ownerDoc->Hidden() || !hasParent);
   }
 
   
