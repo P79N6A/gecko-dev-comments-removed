@@ -81,6 +81,7 @@
 
 
 
+
 #define FOR_EACH_OPCODE(macro) \
     /* legend:  op      val   name          image       len use def  format */ \
     /*
@@ -867,6 +868,10 @@
 
 
 
+
+
+
+
 \
     macro(JSOP_INITHOMEOBJECT,  92, "inithomeobject",   NULL,         1,  2,  2, JOF_BYTE|JOF_SET|JOF_DETECTING) \
     \
@@ -988,6 +993,14 @@
  \
     macro(JSOP_NEWARRAY_COPYONWRITE, 102, "newarray_copyonwrite", NULL, 5, 0, 1, JOF_OBJECT) \
     \
+    
+
+
+
+
+
+
+\
     macro(JSOP_SUPERBASE,  103, "superbase",   NULL,         1,  0,  1,  JOF_BYTE) \
     
 
