@@ -757,6 +757,43 @@ var SelectionHandler = {
       }
     },
 
+    SEARCH_ADD: {
+      id: "search_add_action",
+      label: Strings.browser.GetStringFromName("contextmenu.addSearchEngine2"),
+      icon: "drawable://ab_add_search_engine",
+
+      selector: {
+        matches: function(element) {
+          if(!(element instanceof HTMLInputElement)) {
+            return false;
+          }
+          let form = element.form;
+          if (!form || element.type == "password") {
+            return false;
+          }
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          let method = form.method.toUpperCase();
+          return (method == "GET" || method == "") ||
+                 (form.enctype != "text/plain") && (form.enctype != "multipart/form-data");
+        },
+      },
+
+      action: function(element) {
+        UITelemetry.addEvent("action.1", "actionbar", null, "add_search_engine");
+        SearchEngines.addEngine(element);
+      },
+    },
+
     SEARCH: {
       label: function() {
         return Strings.browser.formatStringFromName("contextmenu.search", [Services.search.defaultEngine.name], 1);
