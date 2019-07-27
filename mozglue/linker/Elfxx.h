@@ -9,7 +9,7 @@
 
 
 
-#ifdef ANDROID
+#if defined(ANDROID) && __ANDROID_API__ < 21
 #include <linux/elf.h>
 #else
 #include <elf.h>
