@@ -60,9 +60,7 @@ template<typename T> OutParamRef<T> byRef(RefPtr<T>&);
 
 
 namespace detail {
-#ifdef DEBUG
 const MozRefCountType DEAD = 0xffffdead;
-#endif
 
 
 
