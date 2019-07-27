@@ -270,6 +270,58 @@ class NameResolver
         return pos >= 0 && call(parents[pos]) && parents[pos]->pn_head == cur;
     }
 
+    bool resolveTemplateLiteral(ParseNode* node, HandleAtom prefix) {
+        MOZ_ASSERT(node->isKind(PNK_TEMPLATE_STRING_LIST));
+        ParseNode* element = node->pn_head;
+        while (true) {
+            MOZ_ASSERT(element->isKind(PNK_TEMPLATE_STRING));
+
+            element = element->pn_next;
+            if (!element)
+                return true;
+
+            if (!resolve(element, prefix))
+                return false;
+
+            element = element->pn_next;
+        }
+    }
+
+    bool resolveTaggedTemplate(ParseNode* node, HandleAtom prefix) {
+        MOZ_ASSERT(node->isKind(PNK_TAGGED_TEMPLATE));
+
+        ParseNode* element = node->pn_head;
+
+        
+        
+        if (!resolve(element, prefix))
+            return false;
+
+        
+        
+        element = element->pn_next;
+#ifdef DEBUG
+        {
+            MOZ_ASSERT(element->isKind(PNK_CALLSITEOBJ));
+            ParseNode* array = element->pn_head;
+            MOZ_ASSERT(array->isKind(PNK_ARRAY));
+            for (ParseNode* kid = array->pn_head; kid; kid = kid->pn_next)
+                MOZ_ASSERT(kid->isKind(PNK_TEMPLATE_STRING));
+            for (ParseNode* next = array->pn_next; next; next = next->pn_next)
+                MOZ_ASSERT(next->isKind(PNK_TEMPLATE_STRING));
+        }
+#endif
+
+        
+        ParseNode* interpolated = element->pn_next;
+        for (; interpolated; interpolated = interpolated->pn_next) {
+            if (!resolve(interpolated, prefix))
+                return false;
+        }
+
+        return true;
+    }
+
   public:
     explicit NameResolver(ExclusiveContext* cx) : cx(cx), nparents(0), buf(nullptr) {}
 
@@ -598,6 +650,7 @@ class NameResolver
           case PNK_NEW:
           case PNK_CALL:
           case PNK_GENEXP:
+          case PNK_ARRAY:
             MOZ_ASSERT(cur->isArity(PN_LIST));
             for (ParseNode* element = cur->pn_head; element; element = element->pn_next) {
                 if (!resolve(element, prefix))
@@ -605,12 +658,29 @@ class NameResolver
             }
             goto done;
 
-          case PNK_ARRAY:
           case PNK_OBJECT:
           case PNK_CLASSMETHODLIST:
+            MOZ_ASSERT(cur->isArity(PN_LIST));
+            for (ParseNode* element = cur->pn_head; element; element = element->pn_next) {
+                if (!resolve(element, prefix))
+                    return false;
+            }
+            goto done;
+
+          
+          
           case PNK_TEMPLATE_STRING_LIST:
+            MOZ_ASSERT(cur->isArity(PN_LIST));
+            if (!resolveTemplateLiteral(cur, prefix))
+                return false;
+            goto done;
+
           case PNK_TAGGED_TEMPLATE:
-          case PNK_CALLSITEOBJ:
+            MOZ_ASSERT(cur->isArity(PN_LIST));
+            if (!resolveTaggedTemplate(cur, prefix))
+                return false;
+            goto done;
+
           case PNK_VAR:
           case PNK_CONST:
           case PNK_LET:
@@ -634,6 +704,9 @@ class NameResolver
             if (!resolve(cur->pn_body, prefix))
                 return false;
             goto done;
+
+          case PNK_CALLSITEOBJ:
+            MOZ_CRASH("should have been handled by a parent PNK_TAGGED_TEMPLATE node");
 
           case PNK_LIMIT: 
             MOZ_CRASH("invalid node kind");
