@@ -65,6 +65,22 @@
 
 
 
+#tracking-protection-icon {
+  width: 16px;
+  height: 16px;
+  list-style-image: url(chrome://browser/skin/tracking-protection-16.svg);
+}
+
+#tracking-protection-icon[state="loaded-tracking-content"] {
+  list-style-image: url(chrome://browser/skin/tracking-protection-disabled-16.svg);
+}
+
+#tracking-protection-icon:not([state]) {
+  display: none;
+}
+
+
+
 #page-proxy-favicon {
   width: 16px;
   height: 16px;
