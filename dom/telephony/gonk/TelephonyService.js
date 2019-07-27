@@ -414,6 +414,16 @@ TelephonyService.prototype = {
     }
 
     
+    if (aIsEmergency) {
+      aClientId = gRadioInterfaceLayer.getClientIdForEmergencyCall() ;
+      if (aClientId === -1) {
+        if (DEBUG) debug("Error: No client is avaialble for emergency call.");
+        aTelephonyCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
+        return;
+      }
+    }
+
+    
     
     if (this._hasCallsOnOtherClient(aClientId)) {
       if (DEBUG) debug("Error: Already has a call on other sim.");
