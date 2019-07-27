@@ -1411,9 +1411,7 @@ Manager::RemoveListener(Listener* aListener)
   mListeners.RemoveElement(aListener, ListenerEntryListenerComparator());
   MOZ_ASSERT(!mListeners.Contains(aListener,
                                   ListenerEntryListenerComparator()));
-  if (mListeners.IsEmpty() && mContext) {
-    mContext->AllowToClose();
-  }
+  MaybeAllowContextToClose();
 }
 
 void
@@ -1422,6 +1420,12 @@ Manager::RemoveContext(Context* aContext)
   NS_ASSERT_OWNINGTHREAD(Manager);
   MOZ_ASSERT(mContext);
   MOZ_ASSERT(mContext == aContext);
+
+  
+  
+  
+  MOZ_ASSERT(!mValid);
+
   mContext = nullptr;
 
   
@@ -1483,6 +1487,7 @@ Manager::ReleaseCacheId(CacheId aCacheId)
           context->Dispatch(mIOThread, action);
         }
       }
+      MaybeAllowContextToClose();
       return;
     }
   }
@@ -1524,6 +1529,7 @@ Manager::ReleaseBodyId(const nsID& aBodyId)
           context->Dispatch(mIOThread, action);
         }
       }
+      MaybeAllowContextToClose();
       return;
     }
   }
@@ -1903,6 +1909,29 @@ Manager::NoteOrphanedBodyIdList(const nsTArray<nsID>& aDeletedBodyIdList)
     nsRefPtr<Action> action = new DeleteOrphanedBodyAction(deleteNowList);
     nsRefPtr<Context> context = CurrentContext();
     context->Dispatch(mIOThread, action);
+  }
+}
+
+void
+Manager::MaybeAllowContextToClose()
+{
+  NS_ASSERT_OWNINGTHREAD(Manager);
+
+  
+  
+  
+  
+  
+  if (mContext && mListeners.IsEmpty()
+               && mCacheIdRefs.IsEmpty()
+               && mBodyIdRefs.IsEmpty()) {
+
+    
+    
+    
+    mValid = false;
+
+    mContext->AllowToClose();
   }
 }
 

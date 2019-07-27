@@ -59,6 +59,8 @@ class StreamList;
 
 
 
+
+
 class Manager final
 {
 public:
@@ -208,6 +210,8 @@ private:
   bool SetCacheIdOrphanedIfRefed(CacheId aCacheId);
   bool SetBodyIdOrphanedIfRefed(const nsID& aBodyId);
   void NoteOrphanedBodyIdList(const nsTArray<nsID>& aDeletedBodyIdList);
+
+  void MaybeAllowContextToClose();
 
   nsRefPtr<ManagerId> mManagerId;
   nsCOMPtr<nsIThread> mIOThread;
