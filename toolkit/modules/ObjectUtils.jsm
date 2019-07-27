@@ -14,6 +14,12 @@ this.EXPORTED_SYMBOLS = [
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+
+
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+  "resource://gre/modules/Promise.jsm");
+
 this.ObjectUtils = {
   
 
@@ -30,6 +36,25 @@ this.ObjectUtils = {
   deepEqual: function(a, b) {
     return _deepEqual(a, b);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  strict: function(obj) {
+    return _strict(obj);
+  }
 };
 
 
@@ -90,7 +115,7 @@ function objEquiv(a, b) {
     return false;
   }
   
-  if ((a.prototype || undefined)  != (b.prototype || undefined)) {
+  if (a.prototype !== b.prototype) {
     return false;
   }
   
@@ -129,3 +154,21 @@ function objEquiv(a, b) {
 }
 
 
+
+function _strict(obj) {
+  if (typeof obj != "object") {
+    throw new TypeError("Expected an object");
+  }
+
+  return new Proxy(obj, {
+    get: function(target, name) {
+      if (name in obj) {
+        return obj[name];
+      }
+
+      let error = new TypeError(`No such property: "${name}"`);
+      Promise.reject(error); 
+      throw error;
+    }
+  });
+}
