@@ -655,7 +655,7 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
     
     XPC_WN_OnlyIWrite_AddPropertyStub, 
     XPC_WN_CantDeletePropertyStub,     
-    JS_PropertyStub,                   
+    nullptr,                           
     XPC_WN_OnlyIWrite_SetPropertyStub, 
 
     XPC_WN_Shared_Enumerate,           
@@ -1122,13 +1122,13 @@ XPCNativeScriptableShared::PopulateJSClass()
     if (mFlags.WantGetProperty())
         mJSClass.base.getProperty = XPC_WN_Helper_GetProperty;
     else
-        mJSClass.base.getProperty = JS_PropertyStub;
+        mJSClass.base.getProperty = nullptr;
 
     JSStrictPropertyOp setProperty;
     if (mFlags.WantSetProperty())
         setProperty = XPC_WN_Helper_SetProperty;
     else if (mFlags.UseJSStubForSetProperty())
-        setProperty = JS_StrictPropertyStub;
+        setProperty = nullptr;
     else if (mFlags.AllowPropModsDuringResolve())
         setProperty = XPC_WN_MaybeResolvingStrictPropertyStub;
     else
@@ -1395,8 +1395,8 @@ const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     
     nullptr,                        
     nullptr,                        
-    JS_PropertyStub,                
-    JS_StrictPropertyStub,          
+    nullptr,                        
+    nullptr,                        
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
     nullptr,                        
@@ -1420,8 +1420,8 @@ const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     
     nullptr,                        
     nullptr,                        
-    JS_PropertyStub,                
-    JS_StrictPropertyStub,          
+    nullptr,                        
+    nullptr,                        
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
     nullptr,                        
@@ -1507,7 +1507,7 @@ const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
     XPC_WN_CantDeletePropertyStub,             
-    JS_PropertyStub,                           
+    nullptr,                                   
     XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
@@ -1532,7 +1532,7 @@ const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
     XPC_WN_CantDeletePropertyStub,             
-    JS_PropertyStub,                           
+    nullptr,                                   
     XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
@@ -1621,7 +1621,7 @@ const js::Class XPC_WN_Tearoff_JSClass = {
 
     XPC_WN_OnlyIWrite_AddPropertyStub,         
     XPC_WN_CantDeletePropertyStub,             
-    JS_PropertyStub,                           
+    nullptr,                                   
     XPC_WN_OnlyIWrite_SetPropertyStub,         
     XPC_WN_TearOff_Enumerate,                  
     XPC_WN_TearOff_Resolve,                    

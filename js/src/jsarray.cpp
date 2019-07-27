@@ -467,15 +467,8 @@ array_length_setter(JSContext *cx, HandleObject obj, HandleId id, bool strict, M
         
         
         const Class *clasp = obj->getClass();
-        JSPropertyOp getter = clasp->getProperty;
-        if (getter == JS_PropertyStub)
-            getter = nullptr;
-        JSStrictPropertyOp setter = clasp->setProperty;
-        if (setter == JS_StrictPropertyStub)
-            setter = nullptr;
-
         return JSObject::defineProperty(cx, obj, cx->names().length, vp,
-                                        getter, setter, JSPROP_ENUMERATE);
+                                        clasp->getProperty, clasp->setProperty, JSPROP_ENUMERATE);
     }
 
     Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
@@ -3371,17 +3364,17 @@ const Class ArrayObject::class_ = {
     "Array",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Array),
     array_addProperty,
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     {
         GenericCreateConstructor<js_Array, 1, JSFunction::FinalizeKind>,
         CreateArrayPrototype,

@@ -38,17 +38,17 @@ resc_trace(JSTracer *trc, JSObject *obj)
 const Class RegExpStaticsObject::class_ = {
     "RegExpStatics",
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS,
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     resc_finalize,
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     resc_trace
 };
 

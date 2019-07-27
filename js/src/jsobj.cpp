@@ -176,18 +176,18 @@ FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject pro
 const Class JSObject::class_ = {
     js_Object_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     {
         CreateObjectConstructor,
         CreateObjectPrototype,
@@ -2727,9 +2727,9 @@ js_InitClass(JSContext *cx, HandleObject obj, JSObject *protoProto_,
     RootedObject protoProto(cx, protoProto_);
 
     
-    MOZ_ASSERT(clasp->addProperty != JS_PropertyStub);  
-    MOZ_ASSERT(clasp->getProperty);
-    MOZ_ASSERT(clasp->setProperty);
+    MOZ_ASSERT(clasp->addProperty != JS_PropertyStub);
+    MOZ_ASSERT(clasp->getProperty != JS_PropertyStub);
+    MOZ_ASSERT(clasp->setProperty != JS_StrictPropertyStub);
 
     RootedAtom atom(cx, Atomize(cx, clasp->name, strlen(clasp->name)));
     if (!atom)
@@ -3355,7 +3355,7 @@ js::GetPropertyPure(ThreadSafeContext *cx, JSObject *obj, jsid id, Value *vp)
 
     if (!shape) {
         
-        if (obj->getClass()->getProperty && obj->getClass()->getProperty != JS_PropertyStub)
+        if (obj->getClass()->getProperty)
             return false;
 
         if (obj->getOps()->getElement)
