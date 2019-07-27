@@ -610,7 +610,8 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly)
       
       
       
-      mCallbacks.InsertElementAt(i, callback);
+      size_t pos = std::min(mCallbacks.Length(), static_cast<size_t>(i));
+      mCallbacks.InsertElementAt(pos, callback);
       ++i;
     }
   }
