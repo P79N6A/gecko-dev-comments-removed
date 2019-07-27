@@ -578,10 +578,6 @@ nsCSSProps::OtherNameFor(nsCSSProperty aProperty)
       return eCSSProperty_margin_left;
     case eCSSProperty_margin_right_value:
       return eCSSProperty_margin_right;
-    case eCSSProperty_padding_left_value:
-      return eCSSProperty_padding_left;
-    case eCSSProperty_padding_right_value:
-      return eCSSProperty_padding_right;
     default:
       NS_ABORT_IF_FALSE(false, "bad caller");
   }
@@ -2704,46 +2700,9 @@ static const nsCSSProperty gOverflowSubpropTable[] = {
 static const nsCSSProperty gPaddingSubpropTable[] = {
   
   eCSSProperty_padding_top,
-  eCSSProperty_padding_right_value,
+  eCSSProperty_padding_right,
   eCSSProperty_padding_bottom,
-  eCSSProperty_padding_left_value,
-  
-  eCSSProperty_padding_left_ltr_source,
-  eCSSProperty_padding_left_rtl_source,
-  eCSSProperty_padding_right_ltr_source,
-  eCSSProperty_padding_right_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gPaddingLeftSubpropTable[] = {
-  
-  eCSSProperty_padding_left_value,
-  eCSSProperty_padding_left_ltr_source,
-  eCSSProperty_padding_left_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gPaddingRightSubpropTable[] = {
-  
-  eCSSProperty_padding_right_value,
-  eCSSProperty_padding_right_ltr_source,
-  eCSSProperty_padding_right_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gPaddingStartSubpropTable[] = {
-  
-  eCSSProperty_padding_start_value,
-  eCSSProperty_padding_left_ltr_source,
-  eCSSProperty_padding_right_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gPaddingEndSubpropTable[] = {
-  
-  eCSSProperty_padding_end_value,
-  eCSSProperty_padding_right_ltr_source,
-  eCSSProperty_padding_left_rtl_source,
+  eCSSProperty_padding_left,
   eCSSProperty_UNKNOWN
 };
 
