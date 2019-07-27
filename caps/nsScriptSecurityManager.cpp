@@ -785,6 +785,14 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             }
         }
 
+        
+        
+        nsCAutoString sourceSpec;
+        if (NS_SUCCEEDED(sourceBaseURI->GetSpec(sourceSpec)) &&
+            sourceSpec.EqualsLiteral("resource://gre-resources/hiddenWindow.html")) {
+            return NS_OK;
+        }
+
         if (reportErrors) {
             ReportError(nullptr, errorTag, sourceURI, aTargetURI);
         }
