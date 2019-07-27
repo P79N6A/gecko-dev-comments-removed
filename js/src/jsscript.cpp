@@ -133,7 +133,7 @@ Bindings::initWithTemporaryStorage(ExclusiveContext *cx, InternalBindingsHandle 
             
             if (numBodyLevelLexicals > 0 &&
                 nslots < aliasedBodyLevelLexicalBegin &&
-                bi.isBodyLevelLexical() &&
+                bi->kind() == Binding::VARIABLE &&
                 bi.localIndex() >= numVars)
             {
                 aliasedBodyLevelLexicalBegin = nslots;

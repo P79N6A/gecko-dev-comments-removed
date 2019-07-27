@@ -1,5 +1,3 @@
-
-
 var g = newGlobal();
 var dbg = new g.Debugger(this);
 

@@ -1,5 +1,5 @@
 
 
 
-const [x]='';
+const x;[x]='';
 for(;[] && false;){}

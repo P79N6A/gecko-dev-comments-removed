@@ -10,4 +10,15 @@ function assertThrowsReferenceError(f) {
 
 
 assertThrowsReferenceError(function () { x; let x; });
-assertThrowsReferenceError(function () { x; const x = undefined; });
+
+
+function constIsLexical() {
+  try {
+    (function () { z++; const z; })();
+    return false;
+  } catch (e) {
+    return true;
+  }
+}
+if (constIsLexical())
+  assertThrowsReferenceError(function () { x; const x; });
