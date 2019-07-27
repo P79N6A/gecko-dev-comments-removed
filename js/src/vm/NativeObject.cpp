@@ -1443,6 +1443,10 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         CompletePropertyDescriptor(&desc);
     } else if (desc.isDataDescriptor()) {
         
+        bool frozen = !IsConfigurable(shapeAttrs) && !IsWritable(shapeAttrs);
+        if (frozen && desc.hasWritable() && desc.writable() && !skipRedefineChecks)
+            return result.fail(JSMSG_CANT_REDEFINE_PROP);
+
         if (desc.hasValue()) {
             
             
