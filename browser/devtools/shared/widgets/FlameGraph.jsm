@@ -1,0 +1,755 @@
+
+
+
+"use strict";
+
+const Cu = Components.utils;
+
+Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+Cu.import("resource:///modules/devtools/Graphs.jsm");
+const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
+const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
+const {EventEmitter} = Cu.import("resource://gre/modules/devtools/event-emitter.js", {});
+
+this.EXPORTED_SYMBOLS = [
+  "FlameGraph",
+  "FlameGraphUtils"
+];
+
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
+const L10N = new ViewHelpers.L10N();
+
+const GRAPH_WHEEL_ZOOM_SENSITIVITY = 0.00035;
+const GRAPH_WHEEL_SCROLL_SENSITIVITY = 0.5;
+const GRAPH_MIN_SELECTION_WIDTH = 10; 
+
+const TIMELINE_TICKS_MULTIPLE = 5; 
+const TIMELINE_TICKS_SPACING_MIN = 75; 
+
+const OVERVIEW_HEADER_HEIGHT = 18; 
+const OVERVIEW_HEADER_SAFE_BOUNDS = 50; 
+const OVERVIEW_HEADER_TEXT_COLOR = "#18191a";
+const OVERVIEW_HEADER_TEXT_FONT_SIZE = 9; 
+const OVERVIEW_HEADER_TEXT_FONT_FAMILY = "sans-serif";
+const OVERVIEW_HEADER_TEXT_PADDING_LEFT = 6; 
+const OVERVIEW_HEADER_TEXT_PADDING_TOP = 5; 
+const OVERVIEW_TIMELINE_STROKES = "#ddd";
+
+const FLAME_GRAPH_BLOCK_BORDER = 1; 
+const FLAME_GRAPH_BLOCK_TEXT_COLOR = "#000";
+const FLAME_GRAPH_BLOCK_TEXT_FONT_SIZE = 9; 
+const FLAME_GRAPH_BLOCK_TEXT_FONT_FAMILY = "sans-serif";
+const FLAME_GRAPH_BLOCK_TEXT_PADDING_TOP = 1; 
+const FLAME_GRAPH_BLOCK_TEXT_PADDING_LEFT = 3; 
+const FLAME_GRAPH_BLOCK_TEXT_PADDING_RIGHT = 3; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function FlameGraph(parent, sharpness) {
+  EventEmitter.decorate(this);
+
+  this._parent = parent;
+  this._ready = promise.defer();
+
+  AbstractCanvasGraph.createIframe(GRAPH_SRC, parent, iframe => {
+    this._iframe = iframe;
+    this._window = iframe.contentWindow;
+    this._document = iframe.contentDocument;
+    this._pixelRatio = sharpness || this._window.devicePixelRatio;
+
+    let container = this._container = this._document.getElementById("graph-container");
+    container.className = "flame-graph-widget-container graph-widget-container";
+
+    let canvas = this._canvas = this._document.getElementById("graph-canvas");
+    canvas.className = "flame-graph-widget-canvas graph-widget-canvas";
+
+    let bounds = parent.getBoundingClientRect();
+    bounds.width = this.fixedWidth || bounds.width;
+    bounds.height = this.fixedHeight || bounds.height;
+    iframe.setAttribute("width", bounds.width);
+    iframe.setAttribute("height", bounds.height);
+
+    this._width = canvas.width = bounds.width * this._pixelRatio;
+    this._height = canvas.height = bounds.height * this._pixelRatio;
+    this._ctx = canvas.getContext("2d");
+
+    this._selection = new GraphSelection();
+    this._selectionDragger = new GraphSelectionDragger();
+
+    
+    
+    
+    this._textWidthsCache = {};
+
+    let fontSize = FLAME_GRAPH_BLOCK_TEXT_FONT_SIZE * this._pixelRatio;
+    let fontFamily = FLAME_GRAPH_BLOCK_TEXT_FONT_FAMILY;
+    this._ctx.font = fontSize + "px " + fontFamily;
+    this._averageCharWidth = this._calcAverageCharWidth();
+    this._overflowCharWidth = this._getTextWidth(this.overflowChar);
+
+    this._onMouseMove = this._onMouseMove.bind(this);
+    this._onMouseDown = this._onMouseDown.bind(this);
+    this._onMouseUp = this._onMouseUp.bind(this);
+    this._onMouseWheel = this._onMouseWheel.bind(this);
+    this._onAnimationFrame = this._onAnimationFrame.bind(this);
+
+    container.addEventListener("mousemove", this._onMouseMove);
+    container.addEventListener("mousedown", this._onMouseDown);
+    container.addEventListener("mouseup", this._onMouseUp);
+    container.addEventListener("MozMousePixelScroll", this._onMouseWheel);
+
+    this._animationId = this._window.requestAnimationFrame(this._onAnimationFrame);
+
+    this._ready.resolve(this);
+    this.emit("ready", this);
+  });
+}
+
+FlameGraph.prototype = {
+  
+
+
+
+  get width() {
+    return this._width;
+  },
+  get height() {
+    return this._height;
+  },
+
+  
+
+
+  ready: function() {
+    return this._ready.promise;
+  },
+
+  
+
+
+  destroy: function() {
+    let container = this._container;
+    container.removeEventListener("mousemove", this._onMouseMove);
+    container.removeEventListener("mousedown", this._onMouseDown);
+    container.removeEventListener("mouseup", this._onMouseUp);
+    container.removeEventListener("MozMousePixelScroll", this._onMouseWheel);
+
+    this._window.cancelAnimationFrame(this._animationId);
+    this._iframe.remove();
+
+    this._selection = null;
+    this._selectionDragger = null;
+
+    this._data = null;
+
+    this.emit("destroyed");
+  },
+
+  
+
+
+  overviewHeaderTextColor: OVERVIEW_HEADER_TEXT_COLOR,
+  overviewTimelineStrokes: OVERVIEW_TIMELINE_STROKES,
+  blockTextColor: FLAME_GRAPH_BLOCK_TEXT_COLOR,
+
+  
+
+
+
+  fixedWidth: null,
+  fixedHeight: null,
+
+  
+
+
+
+  timelineTickUnits: "",
+
+  
+
+
+
+  overflowChar: L10N.ellipsis,
+
+  
+
+
+
+
+
+  setData: function(data) {
+    this._data = data;
+    this._selection = { start: 0, end: this._width };
+    this._shouldRedraw = true;
+  },
+
+  
+
+
+
+
+
+
+
+  setDataWhenReady: Task.async(function*(data) {
+    yield this.ready();
+    this.setData(data);
+  }),
+
+  
+
+
+
+  getDataWindowStart: function() {
+    return this._selection.start;
+  },
+  getDataWindowEnd: function() {
+    return this._selection.end;
+  },
+
+  
+
+
+
+
+  _shouldRedraw: false,
+
+  
+
+
+  _onAnimationFrame: function() {
+    this._animationId = this._window.requestAnimationFrame(this._onAnimationFrame);
+    this._drawWidget();
+  },
+
+  
+
+
+
+  _drawWidget: function() {
+    if (!this._shouldRedraw) {
+      return;
+    }
+    let ctx = this._ctx;
+    let canvasWidth = this._width;
+    let canvasHeight = this._height;
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    let selection = this._selection;
+    let selectionWidth = selection.end - selection.start;
+    let selectionScale = canvasWidth / selectionWidth;
+    this._drawTicks(selection.start, selectionScale);
+    this._drawPyramid(this._data, selection.start, selectionScale);
+
+    this._shouldRedraw = false;
+  },
+
+  
+
+
+
+
+
+
+  _drawTicks: function(dataOffset, dataScale) {
+    let ctx = this._ctx;
+    let canvasWidth = this._width;
+    let canvasHeight = this._height;
+    let scaledOffset = dataOffset * dataScale;
+
+    let safeBounds = OVERVIEW_HEADER_SAFE_BOUNDS * this._pixelRatio;
+    let availableWidth = canvasWidth - safeBounds;
+
+    let fontSize = OVERVIEW_HEADER_TEXT_FONT_SIZE * this._pixelRatio;
+    let fontFamily = OVERVIEW_HEADER_TEXT_FONT_FAMILY;
+    let textPaddingLeft = OVERVIEW_HEADER_TEXT_PADDING_LEFT * this._pixelRatio;
+    let textPaddingTop = OVERVIEW_HEADER_TEXT_PADDING_TOP * this._pixelRatio;
+    let tickInterval = this._findOptimalTickInterval(dataScale);
+
+    ctx.textBaseline = "top";
+    ctx.font = fontSize + "px " + fontFamily;
+    ctx.fillStyle = this.overviewHeaderTextColor;
+    ctx.strokeStyle = this.overviewTimelineStrokes;
+    ctx.beginPath();
+
+    for (let x = 0; x < availableWidth + scaledOffset; x += tickInterval) {
+      let lineLeft = x - scaledOffset;
+      let textLeft = lineLeft + textPaddingLeft;
+      let time = Math.round(x / dataScale / this._pixelRatio);
+      let label = time + " " + this.timelineTickUnits;
+      ctx.fillText(label, textLeft, textPaddingTop);
+      ctx.moveTo(lineLeft, 0);
+      ctx.lineTo(lineLeft, canvasHeight);
+    }
+
+    ctx.stroke();
+  },
+
+  
+
+
+
+
+
+
+
+
+  _drawPyramid: function(dataSource, dataOffset, dataScale) {
+    let ctx = this._ctx;
+
+    let fontSize = FLAME_GRAPH_BLOCK_TEXT_FONT_SIZE * this._pixelRatio;
+    let fontFamily = FLAME_GRAPH_BLOCK_TEXT_FONT_FAMILY;
+    let visibleBlocks = this._drawPyramidFill(dataSource, dataOffset, dataScale);
+
+    ctx.textBaseline = "middle";
+    ctx.font = fontSize + "px " + fontFamily;
+    ctx.fillStyle = this.blockTextColor;
+
+    this._drawPyramidText(visibleBlocks, dataOffset, dataScale);
+  },
+
+  
+
+
+
+  _drawPyramidFill: function(dataSource, dataOffset, dataScale) {
+    let visibleBlocksStore = [];
+    let minVisibleBlockWidth = this._overflowCharWidth;
+
+    for (let { color, blocks } of dataSource) {
+      this._drawBlocksFill(
+        color, blocks, dataOffset, dataScale,
+        visibleBlocksStore, minVisibleBlockWidth);
+    }
+
+    return visibleBlocksStore;
+  },
+
+  
+
+
+
+  _drawPyramidText: function(blocks, dataOffset, dataScale) {
+    for (let block of blocks) {
+      this._drawBlockText(block, dataOffset, dataScale);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _drawBlocksFill: function(
+    color, blocks, dataOffset, dataScale,
+    visibleBlocksStore, minVisibleBlockWidth)
+  {
+    let ctx = this._ctx;
+    let canvasWidth = this._width;
+    let canvasHeight = this._height;
+    let scaledOffset = dataOffset * dataScale;
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+
+    for (let block of blocks) {
+      let { x, y, width, height } = block;
+      let rectLeft = x * this._pixelRatio * dataScale - scaledOffset;
+      let rectTop = (y + OVERVIEW_HEADER_HEIGHT) * this._pixelRatio;
+      let rectWidth = width * this._pixelRatio * dataScale;
+      let rectHeight = height * this._pixelRatio;
+
+      if (rectLeft > canvasWidth || 
+          rectLeft < -rectWidth ||  
+          rectTop > canvasHeight) { 
+        continue;
+      }
+
+      
+      
+      if (rectLeft < 0) {
+        rectWidth += rectLeft;
+        rectLeft = 0;
+      }
+
+      
+      if (rectWidth <= FLAME_GRAPH_BLOCK_BORDER ||
+          rectHeight <= FLAME_GRAPH_BLOCK_BORDER) {
+        continue;
+      }
+
+      ctx.rect(
+        rectLeft, rectTop,
+        rectWidth - FLAME_GRAPH_BLOCK_BORDER,
+        rectHeight - FLAME_GRAPH_BLOCK_BORDER);
+
+      
+      
+      if (rectWidth > minVisibleBlockWidth) {
+        visibleBlocksStore.push(block);
+      }
+    }
+
+    ctx.fill();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _drawBlockText: function(block, dataOffset, dataScale) {
+    let ctx = this._ctx;
+    let scaledOffset = dataOffset * dataScale;
+
+    let { x, y, width, height, text } = block;
+
+    let paddingTop = FLAME_GRAPH_BLOCK_TEXT_PADDING_TOP * this._pixelRatio;
+    let paddingLeft = FLAME_GRAPH_BLOCK_TEXT_PADDING_LEFT * this._pixelRatio;
+    let paddingRight = FLAME_GRAPH_BLOCK_TEXT_PADDING_RIGHT * this._pixelRatio;
+    let totalHorizontalPadding = paddingLeft + paddingRight;
+
+    let rectLeft = x * this._pixelRatio * dataScale - scaledOffset;
+    let rectWidth = width * this._pixelRatio * dataScale;
+
+    
+    
+    if (rectLeft < 0) {
+      rectWidth += rectLeft;
+      rectLeft = 0;
+    }
+
+    let textLeft = rectLeft + paddingLeft;
+    let textTop = (y + height / 2 + OVERVIEW_HEADER_HEIGHT) * this._pixelRatio + paddingTop;
+    let textAvailableWidth = rectWidth - totalHorizontalPadding;
+
+    
+    
+    let fittedText = this._getFittedText(text, textAvailableWidth);
+    if (fittedText.length < 1) {
+      return;
+    }
+
+    ctx.fillText(fittedText, textLeft, textTop);
+  },
+
+  
+
+
+
+
+  _textWidthsCache: null,
+  _overflowCharWidth: null,
+  _averageCharWidth: null,
+
+  
+
+
+
+
+
+
+
+
+  _getTextWidth: function(text) {
+    let cachedWidth = this._textWidthsCache[text];
+    if (cachedWidth) {
+      return cachedWidth;
+    }
+    let metrics = this._ctx.measureText(text);
+    return (this._textWidthsCache[text] = metrics.width);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getTextWidthApprox: function(text) {
+    return text.length * this._averageCharWidth;
+  },
+
+  
+
+
+
+
+
+
+
+  _calcAverageCharWidth: function() {
+    let letterWidthsSum = 0;
+    let start = 32; 
+    let end = 123; 
+
+    for (let i = start; i < end; i++) {
+      let char = String.fromCharCode(i);
+      letterWidthsSum += this._getTextWidth(char);
+    }
+
+    return letterWidthsSum / (end - start);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _getFittedText: function(text, maxWidth) {
+    let textWidth = this._getTextWidth(text);
+    if (textWidth < maxWidth) {
+      return text;
+    }
+    if (this._overflowCharWidth > maxWidth) {
+      return "";
+    }
+    for (let i = 1, len = text.length; i <= len; i++) {
+      let trimmedText = text.substring(0, len - i);
+      let trimmedWidth = this._getTextWidthApprox(trimmedText) + this._overflowCharWidth;
+      if (trimmedWidth < maxWidth) {
+        return trimmedText + this.overflowChar;
+      }
+    }
+    return "";
+  },
+
+  
+
+
+  _onMouseMove: function(e) {
+    let offset = this._getContainerOffset();
+    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+
+    let canvasWidth = this._width;
+    let canvasHeight = this._height;
+
+    let selection = this._selection;
+    let selectionWidth = selection.end - selection.start;
+    let selectionScale = canvasWidth / selectionWidth;
+
+    let dragger = this._selectionDragger;
+    if (dragger.origin != null) {
+      selection.start = dragger.anchor.start + (dragger.origin - mouseX) / selectionScale;
+      selection.end = dragger.anchor.end + (dragger.origin - mouseX) / selectionScale;
+      this._normalizeSelectionBounds();
+      this._shouldRedraw = true;
+    }
+  },
+
+  
+
+
+  _onMouseDown: function(e) {
+    let offset = this._getContainerOffset();
+    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+
+    this._selectionDragger.origin = mouseX;
+    this._selectionDragger.anchor.start = this._selection.start;
+    this._selectionDragger.anchor.end = this._selection.end;
+    this._canvas.setAttribute("input", "adjusting-selection-boundary");
+  },
+
+  
+
+
+  _onMouseUp: function() {
+    this._selectionDragger.origin = null;
+    this._canvas.removeAttribute("input");
+  },
+
+  
+
+
+  _onMouseWheel: function(e) {
+    let offset = this._getContainerOffset();
+    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+
+    let canvasWidth = this._width;
+    let canvasHeight = this._height;
+
+    let selection = this._selection;
+    let selectionWidth = selection.end - selection.start;
+    let selectionScale = canvasWidth / selectionWidth;
+
+    switch (e.axis) {
+      case e.VERTICAL_AXIS: {
+        let distFromStart = mouseX;
+        let distFromEnd = canvasWidth - mouseX;
+        let vector = e.detail * GRAPH_WHEEL_ZOOM_SENSITIVITY / selectionScale;
+        selection.start -= distFromStart * vector;
+        selection.end += distFromEnd * vector;
+        break;
+      }
+      case e.HORIZONTAL_AXIS: {
+        let vector = e.detail * GRAPH_WHEEL_SCROLL_SENSITIVITY / selectionScale;
+        selection.start += vector;
+        selection.end += vector;
+        break;
+      }
+    }
+
+    this._normalizeSelectionBounds();
+    this._shouldRedraw = true;
+  },
+
+  
+
+
+
+
+  _normalizeSelectionBounds: function() {
+    let canvasWidth = this._width * 2;
+    let canvasHeight = this._height;
+
+    let { start, end } = this._selection;
+    let minSelectionWidth = GRAPH_MIN_SELECTION_WIDTH * this._pixelRatio;
+
+    if (start < 0) {
+      start = 0;
+    }
+    if (end < 0) {
+      start = 0;
+      end = minSelectionWidth;
+    }
+    if (end > canvasWidth) {
+      end = canvasWidth;
+    }
+    if (start > canvasWidth) {
+      end = canvasWidth;
+      start = canvasWidth - minSelectionWidth;
+    }
+    if (end - start < minSelectionWidth) {
+      let midPoint = (start + end) / 2;
+      start = midPoint - minSelectionWidth / 2;
+      end = midPoint + minSelectionWidth / 2;
+    }
+
+    this._selection.start = start;
+    this._selection.end = end;
+  },
+
+  
+
+
+
+
+
+
+  _findOptimalTickInterval: function(dataScale) {
+    let timingStep = TIMELINE_TICKS_MULTIPLE;
+    let spacingMin = TIMELINE_TICKS_SPACING_MIN * this._pixelRatio;
+
+    if (dataScale > spacingMin) {
+      return dataScale;
+    }
+
+    while (true) {
+      let scaledStep = dataScale * timingStep;
+      if (scaledStep < spacingMin) {
+        timingStep <<= 1;
+        continue;
+      }
+      return scaledStep;
+    }
+  },
+
+  
+
+
+
+
+
+  _getContainerOffset: function() {
+    let node = this._canvas;
+    let x = 0;
+    let y = 0;
+
+    while ((node = node.offsetParent)) {
+      x += node.offsetLeft;
+      y += node.offsetTop;
+    }
+
+    return { left: x, top: y };
+  }
+};
+
+
+
+
+
+let FlameGraphUtils = {
+  
+};
