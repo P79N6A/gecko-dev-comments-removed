@@ -232,6 +232,10 @@ public:
   NS_IMETHOD_(TextEventDispatcher*) GetTextEventDispatcher() MOZ_OVERRIDE MOZ_FINAL;
 
   
+  
+  nsEventStatus DispatchInputEvent(mozilla::WidgetInputEvent* aEvent);
+
+  
   nsEventStatus DispatchAPZAwareEvent(mozilla::WidgetInputEvent* aEvent) MOZ_OVERRIDE;
 
   void NotifyWindowDestroyed();
