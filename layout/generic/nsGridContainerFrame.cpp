@@ -137,73 +137,79 @@ private:
 
 
 static uint32_t
-FindLine(const nsString& aName, uint32_t aNth,
+FindLine(const nsString& aName, int32_t* aNth,
          uint32_t aFromIndex, uint32_t aImplicitLine,
          const nsTArray<nsTArray<nsString>>& aNameList)
 {
-  MOZ_ASSERT(aNth != 0);
+  MOZ_ASSERT(aNth && *aNth > 0);
+  int32_t nth = *aNth;
   const uint32_t len = aNameList.Length();
-  uint32_t lastFound = 0;
   uint32_t line;
   uint32_t i = aFromIndex;
   for (; i < len; i = line) {
     line = i + 1;
     if (line == aImplicitLine || aNameList[i].Contains(aName)) {
-      lastFound = line;
-      if (--aNth == 0) {
-        return lastFound;
+      if (--nth == 0) {
+        return line;
       }
     }
   }
   if (aImplicitLine > i) {
     
     
-    lastFound = aImplicitLine;
+    if (--nth == 0) {
+      return aImplicitLine;
+    }
   }
-  return lastFound;
+  MOZ_ASSERT(nth > 0, "should have returned a valid line above already");
+  *aNth = nth;
+  return 0;
 }
 
 
 
 
 static uint32_t
-RFindLine(const nsString& aName, uint32_t aNth,
+RFindLine(const nsString& aName, int32_t* aNth,
           uint32_t aFromIndex, uint32_t aImplicitLine,
           const nsTArray<nsTArray<nsString>>& aNameList)
 {
-  MOZ_ASSERT(aNth != 0);
+  MOZ_ASSERT(aNth && *aNth > 0);
+  int32_t nth = *aNth;
   const uint32_t len = aNameList.Length();
-  uint32_t lastFound = 0;
   
   
   if (aImplicitLine > len && aImplicitLine < aFromIndex) {
-    lastFound = aImplicitLine;
-    if (--aNth == 0) {
-      return lastFound;
+    if (--nth == 0) {
+      return aImplicitLine;
     }
   }
   uint32_t i = aFromIndex == 0 ? len : std::min(aFromIndex, len);
   for (; i; --i) {
     if (i == aImplicitLine || aNameList[i - 1].Contains(aName)) {
-      lastFound = i;
-      if (--aNth == 0) {
-        break;
+      if (--nth == 0) {
+        return i;
       }
     }
   }
-  return lastFound;
+  MOZ_ASSERT(nth > 0, "should have returned a valid line above already");
+  *aNth = nth;
+  return 0;
 }
 
 static uint32_t
-FindNamedLine(const nsString& aName, int32_t aNth,
+FindNamedLine(const nsString& aName, int32_t* aNth,
               uint32_t aFromIndex, uint32_t aImplicitLine,
               const nsTArray<nsTArray<nsString>>& aNameList)
 {
-  MOZ_ASSERT(aNth != 0);
-  if (aNth > 0) {
+  MOZ_ASSERT(aNth && *aNth != 0);
+  if (*aNth > 0) {
     return ::FindLine(aName, aNth, aFromIndex, aImplicitLine, aNameList);
   }
-  return ::RFindLine(aName, -aNth, aFromIndex, aImplicitLine, aNameList);
+  int32_t nth = -*aNth;
+  int32_t line = ::RFindLine(aName, &nth, aFromIndex, aImplicitLine, aNameList);
+  *aNth = -nth;
+  return line;
 }
 
 
@@ -392,7 +398,7 @@ nsGridContainerFrame::ResolveLine(
   int32_t line = 0;
   if (aLine.mLineName.IsEmpty()) {
     MOZ_ASSERT(aNth != 0, "css-grid 9.2: <integer> must not be zero.");
-    line = std::max(int32_t(aFromIndex) + aNth, 1);
+    line = int32_t(aFromIndex) + aNth;
   } else {
     if (aNth == 0) {
       
@@ -416,7 +422,7 @@ nsGridContainerFrame::ResolveLine(
         }
         
         
-        line = ::FindNamedLine(lineName, aNth, aFromIndex, implicitLine,
+        line = ::FindNamedLine(lineName, &aNth, aFromIndex, implicitLine,
                                aLineNameList);
       }
     }
@@ -439,29 +445,27 @@ nsGridContainerFrame::ResolveLine(
           implicitLine = area->*areaEdge;
         }
       }
-      line = ::FindNamedLine(aLine.mLineName, aNth, aFromIndex, implicitLine,
+      line = ::FindNamedLine(aLine.mLineName, &aNth, aFromIndex, implicitLine,
                              aLineNameList);
     }
 
     if (line == 0) {
-      
+      MOZ_ASSERT(aNth != 0, "we found all N named lines but 'line' is zero!");
+      int32_t edgeLine;
       if (aLine.mHasSpan) {
         
         
-        line = std::max(int32_t(aFromIndex) + aNth, 1);
+        edgeLine = aSide == eLineRangeSideStart ? 1 : aExplicitGridEnd;
       } else {
         
         
-        
-        
-        line = aNth >= 0 ? 1 : aExplicitGridEnd;
+        edgeLine = aNth < 0 ? 1 : aExplicitGridEnd;
       }
+      
+      
+      line = edgeLine + aNth;
     }
   }
-  
-  
-  MOZ_ASSERT(line != 0 || (!aLine.mHasSpan && aLine.mInteger == 0),
-             "Given a <integer> or 'span' the result should never be auto");
   return clamped(line, nsStyleGridLine::kMinLine, nsStyleGridLine::kMaxLine);
 }
 
@@ -494,6 +498,12 @@ nsGridContainerFrame::ResolveLineRangeHelper(
                            aAreaEnd, aExplicitGridEnd, eLineRangeSideEnd,
                            aStyle);
     int32_t span = aStart.mInteger == 0 ? 1 : aStart.mInteger;
+    if (end <= 1) {
+      
+      
+      int32_t start = std::max(end - span, nsStyleGridLine::kMinLine);
+      return LinePair(start, end);
+    }
     auto start = ResolveLine(aStart, -span, end, aLineNameList, aAreaStart,
                              aAreaEnd, aExplicitGridEnd, eLineRangeSideStart,
                              aStyle);
@@ -528,12 +538,28 @@ nsGridContainerFrame::ResolveLineRangeHelper(
     }
   }
 
-  uint32_t from = aEnd.mHasSpan ? start : 0;
-  auto end = ResolveLine(aEnd, aEnd.mInteger, from, aLineNameList, aAreaStart,
+  uint32_t from = 0;
+  int32_t nth = aEnd.mInteger == 0 ? 1 : aEnd.mInteger;
+  if (aEnd.mHasSpan) {
+    if (MOZ_UNLIKELY(start < 0)) {
+      if (aEnd.mLineName.IsEmpty()) {
+        return LinePair(start, start + nth);
+      }
+      
+    } else {
+      if (start >= int32_t(aExplicitGridEnd)) {
+        
+        
+        return LinePair(start, std::min(start + nth, nsStyleGridLine::kMaxLine));
+      }
+      from = start;
+    }
+  }
+  auto end = ResolveLine(aEnd, nth, from, aLineNameList, aAreaStart,
                          aAreaEnd, aExplicitGridEnd, eLineRangeSideEnd, aStyle);
   if (start == kAutoLine) {
     
-    start = std::max(1, end - 1);
+    start = std::max(nsStyleGridLine::kMinLine, end - 1);
   }
   return LinePair(start, end);
 }
