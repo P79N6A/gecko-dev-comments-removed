@@ -119,10 +119,12 @@ NS_IMPL_ISUPPORTS(nsPlainTextSerializer,
 
 
 NS_IMETHODIMP 
-nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
-                            const char* aCharSet, bool aIsCopying,
-                            bool aIsWholeDocument)
+nsPlainTextSerializer::Init(nsIDocument* aDocument, uint32_t aFlags,
+                            uint32_t aWrapColumn, const char* aCharSet,
+                            bool aIsCopying, bool aIsWholeDocument)
 {
+  MOZ_ASSERT(aDocument);
+
 #ifdef DEBUG
   
   if (aFlags & nsIDocumentEncoder::OutputFormatFlowed) {
@@ -186,6 +188,10 @@ nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
 
   
   mFlags &= ~nsIDocumentEncoder::OutputNoFramesContent;
+
+  
+  
+  aDocument->FlushPendingNotifications(Flush_Style);
 
   return NS_OK;
 }

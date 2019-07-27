@@ -61,10 +61,12 @@ nsXHTMLContentSerializer::~nsXHTMLContentSerializer()
 }
 
 NS_IMETHODIMP
-nsXHTMLContentSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
-                              const char* aCharSet, bool aIsCopying,
-                              bool aRewriteEncodingDeclaration)
+nsXHTMLContentSerializer::Init(nsIDocument* aDocument, uint32_t aFlags,
+                               uint32_t aWrapColumn, const char* aCharSet,
+                               bool aIsCopying, bool aRewriteEncodingDeclaration)
 {
+  MOZ_ASSERT(aDocument);
+
   
   
   
@@ -74,7 +76,8 @@ nsXHTMLContentSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
   }
 
   nsresult rv;
-  rv = nsXMLContentSerializer::Init(aFlags, aWrapColumn, aCharSet, aIsCopying, aRewriteEncodingDeclaration);
+  rv = nsXMLContentSerializer::Init(aDocument, aFlags, aWrapColumn, aCharSet,
+                                    aIsCopying, aRewriteEncodingDeclaration);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mRewriteEncodingDeclaration = aRewriteEncodingDeclaration;
@@ -89,6 +92,13 @@ nsXHTMLContentSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
   if (mFlags & nsIDocumentEncoder::OutputEncodeW3CEntities) {
     mEntityConverter = do_CreateInstance(NS_ENTITYCONVERTER_CONTRACTID);
   }
+
+  
+  
+  if (ShouldMaintainPreLevel()) {
+    aDocument->FlushPendingNotifications(Flush_Style);
+  }
+
   return NS_OK;
 }
 
