@@ -383,7 +383,7 @@ let Printing = {
     let data = message.data;
     switch(message.name) {
       case "Printing:Preview:Enter": {
-        this.enterPrintPreview(objects.printSettings, objects.contentWindow);
+        this.enterPrintPreview(objects.contentWindow);
         break;
       }
 
@@ -403,19 +403,31 @@ let Printing = {
       }
 
       case "Printing:Print": {
-        this.print(objects.printSettings, objects.contentWindow);
+        this.print(objects.contentWindow);
         break;
       }
     }
   },
 
-  enterPrintPreview(printSettings, contentWindow) {
-    
-    
-    if (Cu.isCrossProcessWrapper(printSettings)) {
-      printSettings = null;
-    }
+  getPrintSettings() {
+    let PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"]
+                  .getService(Ci.nsIPrintSettingsService);
 
+    let printSettings = PSSVC.globalPrintSettings;
+    if (!printSettings.printerName) {
+      printSettings.printerName = PSSVC.defaultPrinterName;
+    }
+    
+    PSSVC.initPrintSettingsFromPrinter(printSettings.printerName,
+                                       printSettings);
+    
+    PSSVC.initPrintSettingsFromPrefs(printSettings, true,
+                                     printSettings.kInitSaveAll);
+
+    return printSettings;
+  },
+
+  enterPrintPreview(contentWindow) {
     
     
     
@@ -438,6 +450,7 @@ let Printing = {
     addEventListener("printPreviewUpdate", onPrintPreviewReady);
 
     try {
+      let printSettings = this.getPrintSettings();
       docShell.printPreview.printPreview(printSettings, contentWindow, this);
     } catch(error) {
       
@@ -451,13 +464,8 @@ let Printing = {
     docShell.printPreview.exitPrintPreview();
   },
 
-  print(printSettings, contentWindow) {
-    
-    
-    if (Cu.isCrossProcessWrapper(printSettings)) {
-      printSettings = null;
-    }
-
+  print(contentWindow) {
+    let printSettings = this.getPrintSettings();
     let rv = Cr.NS_OK;
     try {
       let print = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
