@@ -1,6 +1,6 @@
 
 
-var s = Set();
+var s = new Set();
 for (var i = 0; i < 10; i++) {
     assertEq(s.size, i);
     s.add(i);

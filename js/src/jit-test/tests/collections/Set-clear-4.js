@@ -1,6 +1,6 @@
 
 
-var s = Set(["a", "b", "c", "d"]);
+var s = new Set(["a", "b", "c", "d"]);
 for (var v of s)
     if (v !== "c")
         s.delete(v);

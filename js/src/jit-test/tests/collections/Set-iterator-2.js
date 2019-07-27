@@ -1,6 +1,6 @@
 
 
-var map = Set(['a', 'b']);
+var map = new Set(['a', 'b']);
 var log = '';
 for (let x of map) {
     log += x + ':'

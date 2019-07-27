@@ -25,7 +25,7 @@ try {
 
 
 assertEq(eval(...["a + b"][Symbol.iterator]()), 11);
-assertEq(eval(...Set(["a + b"])), 11);
+assertEq(eval(...new Set(["a + b"])), 11);
 let itr = {};
 itr[Symbol.iterator] = function() {
     return {

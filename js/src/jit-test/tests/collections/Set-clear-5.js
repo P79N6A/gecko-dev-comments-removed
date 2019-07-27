@@ -1,7 +1,7 @@
 
 
 var data = ["a", 1, {}];
-var s1 = Set(data), s2 = Set(data);
+var s1 = new Set(data), s2 = new Set(data);
 
 delete Set.prototype.delete;
 delete Set.prototype.iterator;

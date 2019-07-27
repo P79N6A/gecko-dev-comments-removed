@@ -1,6 +1,6 @@
 
 
-var set = Set(['a', 'b', 'c']);
+var set = new Set(['a', 'b', 'c']);
 var log = '';
 
 for (let i = 0; i < 2; i++) {

@@ -1,6 +1,6 @@
 
 
-var s = Set();
+var s = new Set();
 var ki = s.keys(), vi = s.values(), ei = s.entries();
 var p = Object.getPrototypeOf(ki);
 assertEq(Object.getPrototypeOf(vi), p);
