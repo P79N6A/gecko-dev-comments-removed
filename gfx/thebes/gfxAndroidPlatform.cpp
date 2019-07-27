@@ -487,12 +487,7 @@ private:
 already_AddRefed<mozilla::gfx::VsyncSource>
 gfxAndroidPlatform::CreateHardwareVsyncSource()
 {
-    
-    
-    
-    
-    
-#if defined(MOZ_WIDGET_GONK) && (ANDROID_VERSION == 19)
+#ifdef MOZ_WIDGET_GONK
     nsRefPtr<GonkVsyncSource> vsyncSource = new GonkVsyncSource();
     VsyncSource::Display& display = vsyncSource->GetGlobalDisplay();
     display.EnableVsync();
