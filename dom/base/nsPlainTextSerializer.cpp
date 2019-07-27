@@ -1556,14 +1556,14 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
   
   
   
-  if ((mPreFormatted && !mWrapColumn) || IsInPre()
+  if ((mPreFormatted && !mWrapColumn) || (IsInPre() && !mPreFormatted)
       || ((mSpanLevel > 0 || mDontWrapAnyQuotes)
           && mEmptyLines >= 0 && str.First() == char16_t('>'))) {
     
 
     
     
-    NS_ASSERTION(mCurrentLine.IsEmpty() || IsInPre(),
+    NS_ASSERTION(mCurrentLine.IsEmpty() || (IsInPre() && !mPreFormatted),
                  "Mixed wrapping data and nonwrapping data on the same line");
     if (!mCurrentLine.IsEmpty()) {
       FlushLine();

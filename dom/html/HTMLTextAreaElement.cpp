@@ -1480,7 +1480,7 @@ HTMLTextAreaElement::GetWrapCols()
   nsITextControlElement::GetWrapPropertyEnum(this, wrapProp);
   if (wrapProp == nsITextControlElement::eHTMLTextWrap_Off) {
     
-    return -1;
+    return 0;
   }
 
   

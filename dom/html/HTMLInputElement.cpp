@@ -7219,7 +7219,7 @@ HTMLInputElement::GetCols()
 NS_IMETHODIMP_(int32_t)
 HTMLInputElement::GetWrapCols()
 {
-  return -1; 
+  return 0; 
 }
 
 NS_IMETHODIMP_(int32_t)
