@@ -916,8 +916,12 @@ JsepSessionImpl::AddCommonCodecs(const SdpMediaSection& remoteMsection,
   for (auto fmt = formats.begin(); fmt != formats.end(); ++fmt) {
     JsepCodecDescription* codec = FindMatchingCodec(*fmt, remoteMsection);
     if (codec) {
-      codec->mDefaultPt = *fmt; 
-      codec->AddToMediaSection(*msection);
+      UniquePtr<JsepCodecDescription> negotiated(
+          codec->MakeNegotiatedCodec(*fmt, remoteMsection));
+      if (negotiated) {
+        negotiated->AddToMediaSection(*msection);
+        codec->mDefaultPt = *fmt; 
+      }
       
       
       break;
@@ -1685,10 +1689,21 @@ JsepSessionImpl::NegotiateTrack(const SdpMediaSection& remoteMsection,
     
     
     
-    JsepCodecDescription* negotiated =
-        codec->MakeNegotiatedCodec(remoteMsection, *fmt, sending);
+    
+    
+    
+    
+    UniquePtr<JsepCodecDescription> sendOrReceiveCodec;
 
-    if (!negotiated) {
+    if (sending) {
+      sendOrReceiveCodec =
+        Move(codec->MakeSendCodec(remoteMsection, *fmt));
+    } else {
+      sendOrReceiveCodec =
+        Move(codec->MakeRecvCodec(remoteMsection, *fmt));
+    }
+
+    if (!sendOrReceiveCodec) {
       continue;
     }
 
@@ -1696,7 +1711,7 @@ JsepSessionImpl::NegotiateTrack(const SdpMediaSection& remoteMsection,
         remoteMsection.GetMediaType() == SdpMediaSection::kVideo) {
       
       uint16_t payloadType;
-      if (!negotiated->GetPtAsInt(&payloadType) ||
+      if (!sendOrReceiveCodec->GetPtAsInt(&payloadType) ||
           payloadType > UINT8_MAX) {
         JSEP_SET_ERROR("audio/video payload type is not an 8 bit unsigned int: "
                        << *fmt);
@@ -1704,7 +1719,7 @@ JsepSessionImpl::NegotiateTrack(const SdpMediaSection& remoteMsection,
       }
     }
 
-    negotiatedDetails->mCodecs.push_back(negotiated);
+    negotiatedDetails->mCodecs.push_back(sendOrReceiveCodec.release());
     break;
   }
 
