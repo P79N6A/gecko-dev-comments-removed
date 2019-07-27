@@ -1568,6 +1568,57 @@ js::NativeDefineElement(ExclusiveContext *cx, HandleNativeObject obj, uint32_t i
 
 
 
+bool
+js::NativeHasProperty(JSContext *cx, HandleNativeObject obj, HandleId id, bool *foundp)
+{
+    RootedNativeObject pobj(cx, obj);
+    RootedShape shape(cx);
+
+    
+    
+    for (;;) {
+        
+        bool done;
+        if (!LookupOwnPropertyInline<CanGC>(cx, pobj, id, &shape, &done))
+            return false;
+
+        
+        if (shape) {
+            *foundp = true;
+            return true;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        RootedObject proto(cx, done ? nullptr : pobj->getProto());
+
+        
+        if (!proto) {
+            *foundp = false;
+            return true;
+        }
+
+        
+        
+        
+        
+        
+        if (!proto->isNative())
+            return HasProperty(cx, proto, id, foundp);
+
+        pobj = &proto->as<NativeObject>();
+    }
+}
+
+
+
 static inline bool
 CallGetter(JSContext* cx, HandleObject receiver, HandleShape shape, MutableHandleValue vp)
 {
