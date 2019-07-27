@@ -599,10 +599,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         return info_.script()->strict();
     }
 
-    void dumpStack(GenericPrinter& out);
-    void dumpStack();
+    void dumpStack(FILE* fp);
 
-    void dump(GenericPrinter& out);
+    void dump(FILE* fp);
     void dump();
 
     
@@ -810,7 +809,7 @@ class MIRGraph
         hasTryBlock_ = true;
     }
 
-    void dump(GenericPrinter& out);
+    void dump(FILE* fp);
     void dump();
 };
 

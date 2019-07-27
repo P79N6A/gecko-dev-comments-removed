@@ -106,7 +106,7 @@ class LMoveGroup : public LInstructionHelper<0, 0, 0>
         return new(alloc) LMoveGroup(alloc);
     }
 
-    void printOperands(GenericPrinter& out);
+    void printOperands(FILE* fp);
 
     
     bool add(LAllocation* from, LAllocation* to, LDefinition::Type type);
