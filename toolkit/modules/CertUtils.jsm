@@ -1,7 +1,9 @@
+#if 0
 
 
 
 
+#endif
 this.EXPORTED_SYMBOLS = [ "BadCertHandler", "checkCert", "readCertPrefs", "validateCert" ];
 
 const Ce = Components.Exception;

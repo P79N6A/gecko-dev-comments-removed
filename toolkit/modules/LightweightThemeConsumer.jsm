@@ -8,7 +8,6 @@ const {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/AppConstants.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeImageOptimizer",
   "resource://gre/modules/addons/LightweightThemeImageOptimizer.jsm");
@@ -139,12 +138,13 @@ LightweightThemeConsumer.prototype = {
         footer.removeAttribute("lwthemefooter");
     }
 
+#ifdef XP_MACOSX
     
     
     
     
     
-    if (AppConstants.platform == "macosx" && stateChanging) {
+    if (stateChanging) {
       if (!root.hasAttribute("chromemargin-nonlwtheme")) {
         root.setAttribute("chromemargin-nonlwtheme", root.getAttribute("chromemargin"));
       }
@@ -160,6 +160,7 @@ LightweightThemeConsumer.prototype = {
         }
       }
     }
+#endif
     Services.obs.notifyObservers(this._win, "lightweight-theme-window-updated",
                                  JSON.stringify(aData));
   }

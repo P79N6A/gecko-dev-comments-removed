@@ -15,7 +15,6 @@ if (Cu === undefined) {
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/AppConstants.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
   "resource://gre/modules/Services.jsm");
@@ -554,28 +553,19 @@ Tester.prototype = {
         
         if (gConfig.testRoot == "browser") {
           
-          if (AppConstants.MOZ_APP_NAME == "browser") {
-            
-            
-            
-            
-            let sidebar = document.getElementById("sidebar");
-            sidebar.setAttribute("src", "data:text/html;charset=utf-8,");
-            sidebar.docShell.createAboutBlankContentViewer(null);
-            sidebar.setAttribute("src", "about:blank");
+          
+          
+          
+          let sidebar = document.getElementById("sidebar");
+          sidebar.setAttribute("src", "data:text/html;charset=utf-8,");
+          sidebar.docShell.createAboutBlankContentViewer(null);
+          sidebar.setAttribute("src", "about:blank");
 
-            
-            let socialSidebar = document.getElementById("social-sidebar-browser");
-            socialSidebar.setAttribute("src", "data:text/html;charset=utf-8,");
-            socialSidebar.docShell.createAboutBlankContentViewer(null);
-            socialSidebar.setAttribute("src", "about:blank");
-
-            SelfSupportBackend.uninit();
-            CustomizationTabPreloader.uninit();
-            SocialFlyout.unload();
-            SocialShare.uninit();
-            TabView.uninit();
-          }
+          
+          let socialSidebar = document.getElementById("social-sidebar-browser");
+          socialSidebar.setAttribute("src", "data:text/html;charset=utf-8,");
+          socialSidebar.docShell.createAboutBlankContentViewer(null);
+          socialSidebar.setAttribute("src", "about:blank");
 
           
           let {BackgroundPageThumbs} =
@@ -588,6 +578,12 @@ Tester.prototype = {
             gBrowser._preloadedBrowser = null;
             gBrowser.getNotificationBox(browser).remove();
           }
+
+          SelfSupportBackend.uninit();
+          CustomizationTabPreloader.uninit();
+          SocialFlyout.unload();
+          SocialShare.uninit();
+          TabView.uninit();
         }
 
         

@@ -1,3 +1,5 @@
+#filter substitution
+
 
 
 
@@ -7,7 +9,6 @@ this.EXPORTED_SYMBOLS = ["UpdateChannel"];
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/AppConstants.jsm");
 
 this.UpdateChannel = {
   
@@ -19,7 +20,7 @@ this.UpdateChannel = {
 
 
   get: function UpdateChannel_get(aIncludePartners = true) {
-    let channel = AppConstants.MOZ_UPDATE_CHANNEL;
+    let channel = "@MOZ_UPDATE_CHANNEL@";
     let defaults = Services.prefs.getDefaultBranch(null);
     try {
       channel = defaults.getCharPref("app.update.channel");
