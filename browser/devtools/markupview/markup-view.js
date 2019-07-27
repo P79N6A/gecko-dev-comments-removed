@@ -1829,7 +1829,15 @@ MarkupContainer.prototype = {
     this.hovered = false;
     this.markup.navigate(this);
     event.stopPropagation();
-    event.preventDefault();
+
+    
+    
+    
+    
+    
+    if (!target.closest(".open [tabindex]")) {
+      event.preventDefault();
+    }
 
     
     this.markup._dragStartEl = target;
