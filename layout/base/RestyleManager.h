@@ -466,7 +466,9 @@ private:
 private:
   nsPresContext* mPresContext; 
 
-  bool mRebuildAllStyleData : 1;
+  
+  
+  bool mDoRebuildAllStyleData : 1;
   
   bool mObservingRefreshDriver : 1;
   
