@@ -6,6 +6,9 @@
 
 #include "mozilla/dom/cache/DBAction.h"
 
+#include "mozilla/dom/cache/Connection.h"
+#include "mozilla/dom/cache/DBSchema.h"
+#include "mozilla/dom/cache/FileUtils.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/net/nsFileProtocolHandler.h"
 #include "mozIStorageConnection.h"
@@ -15,8 +18,6 @@
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
-#include "DBSchema.h"
-#include "FileUtils.h"
 
 namespace mozilla {
 namespace dom {
@@ -79,7 +80,12 @@ DBAction::RunOnTarget(Resolver* aResolver, const QuotaInfo& aQuotaInfo,
     
     
     if (aOptionalData) {
-      aOptionalData->SetConnection(conn);
+      
+      
+      
+      
+      nsCOMPtr<mozIStorageConnection> wrapped = new Connection(conn);
+      aOptionalData->SetConnection(wrapped);
     }
   }
 
