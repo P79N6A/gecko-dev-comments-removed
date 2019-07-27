@@ -447,23 +447,9 @@ CertVerifier::VerifySSLServerCert(CERTCertificate* peerCert,
     return rv;
   }
 
-  Input peerCertInput;
-  Result result = peerCertInput.Init(peerCert->derCert.data,
-                                     peerCert->derCert.len);
-  if (result != Success) {
-    PR_SetError(MapResultToPRErrorCode(result), 0);
-    return SECFailure;
-  }
-  Input hostnameInput;
-  result = hostnameInput.Init(uint8_t_ptr_cast(hostname), strlen(hostname));
-  if (result != Success) {
-    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
-    return SECFailure;
-  }
-  result = CheckCertHostname(peerCertInput, hostnameInput);
-  if (result != Success) {
-    PR_SetError(MapResultToPRErrorCode(result), 0);
-    return SECFailure;
+  rv = CERT_VerifyCertName(peerCert, hostname);
+  if (rv != SECSuccess) {
+    return rv;
   }
 
   if (saveIntermediatesInPermanentDatabase) {
