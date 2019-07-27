@@ -19,7 +19,6 @@
 this.DEBUG_ALL = false;
 
 
-this.DEBUG_WORKER = false || DEBUG_ALL;
 this.DEBUG_CONTENT_HELPER = false || DEBUG_ALL;
 this.DEBUG_NFC = false || DEBUG_ALL;
 
