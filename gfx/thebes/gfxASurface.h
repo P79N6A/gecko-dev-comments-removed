@@ -175,22 +175,6 @@ public:
 
     virtual const nsIntSize GetSize() const;
 
-    
-
-
-
-    
-
-
-    void WriteAsPNG(const char* aFile);
-
-    
-
-
-    void CopyAsDataURL();
-
-    void WriteAsPNG_internal(FILE* aFile, bool aBinary);
-
     void SetOpaqueRect(const gfxRect& aRect);
 
     const gfxRect& GetOpaqueRect() {

@@ -707,12 +707,12 @@ public:
     
 
 
-    void DumpAsDataURL();
+    void DumpAsDataURI();
 
     
 
 
-    void CopyAsDataURL();
+    void CopyAsDataURI();
 #endif
 
     static mozilla::gfx::UserDataKey sDontUseAsSourceKey;
