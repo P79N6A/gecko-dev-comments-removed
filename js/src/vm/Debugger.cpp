@@ -6261,12 +6261,14 @@ EvaluateInEnv(JSContext* cx, Handle<Env*> env, HandleValue thisv, AbstractFrameP
 
 
 
-    Rooted<StaticEvalObject*> staticScope(cx, StaticEvalObject::create(cx, nullptr));
+    Rooted<ScopeObject*> enclosingStaticScope(cx);
+    if (!env->is<GlobalObject>())
+        enclosingStaticScope = StaticNonSyntacticScopeObjects::create(cx, nullptr);
+    Rooted<StaticEvalObject*> staticScope(cx, StaticEvalObject::create(cx, enclosingStaticScope));
     if (!staticScope)
         return false;
     CompileOptions options(cx);
-    options.setHasPollutedScope(true)
-           .setIsRunOnce(true)
+    options.setIsRunOnce(true)
            .setForEval(true)
            .setNoScriptRval(false)
            .setFileAndLine(filename, lineno)
@@ -6417,14 +6419,8 @@ DebuggerGenericEval(JSContext* cx, const char* fullMethodName, const Value& code
             return false;
 
         RootedObject dynamicScope(cx);
-        
-        
-        RootedObject unusedStaticScope(cx);
-        if (!CreateScopeObjectsForScopeChain(cx, scopeChain, env, &dynamicScope,
-                                             &unusedStaticScope))
-        {
+        if (!CreateScopeObjectsForScopeChain(cx, scopeChain, env, &dynamicScope))
             return false;
-        }
 
         env = dynamicScope;
     }
