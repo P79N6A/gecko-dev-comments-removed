@@ -173,18 +173,11 @@ function run_test() {
 
   
   
-  jsonFile = FileUtils.getFile("CurWorkD", ["script-show-all-block-sizes.json"]);
-  test("script-show-all-block-sizes",
-       ["--ignore-reports", "--show-all-block-sizes", jsonFile.path]);
-
-  
-  
   jsonFile  = FileUtils.getFile("CurWorkD", ["script-diff1.json"]);
   jsonFile2 = FileUtils.getFile("CurWorkD", ["script-diff2.json"]);
   test("script-diff-basic",
        [jsonFile.path, jsonFile2.path]);
   test("script-diff-options",
-       ["--ignore-reports", "--show-all-block-sizes",
-        jsonFile.path, jsonFile2.path]);
+       ["--ignore-reports", jsonFile.path, jsonFile2.path]);
 }
 
