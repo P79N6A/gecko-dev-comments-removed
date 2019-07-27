@@ -4981,7 +4981,7 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
   
   for (uint32_t i = 0; i < numAnimations; ++i) {
-    nsAnimation *animation = &display->mAnimations[i];
+    StyleAnimation *animation = &display->mAnimations[i];
 
     if (i >= animDelay.num) {
       animation->SetDelay(display->mAnimations[i % animDelay.num].GetDelay());

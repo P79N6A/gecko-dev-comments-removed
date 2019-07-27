@@ -1850,9 +1850,11 @@ private:
                                       
 };
 
-struct nsAnimation {
-  nsAnimation() {  }
-  explicit nsAnimation(const nsAnimation& aCopy);
+namespace mozilla {
+
+struct StyleAnimation {
+  StyleAnimation() {  }
+  explicit StyleAnimation(const StyleAnimation& aCopy);
 
   void SetInitialValues();
 
@@ -1890,6 +1892,8 @@ private:
   uint8_t mPlayState;
   float mIterationCount; 
 };
+
+} 
 
 struct nsStyleDisplay {
   nsStyleDisplay();
@@ -1976,7 +1980,7 @@ struct nsStyleDisplay {
            mTransitionDelayCount,
            mTransitionPropertyCount;
 
-  nsAutoTArray<nsAnimation, 1> mAnimations; 
+  nsAutoTArray<mozilla::StyleAnimation, 1> mAnimations; 
   
   
   uint32_t mAnimationTimingFunctionCount,
