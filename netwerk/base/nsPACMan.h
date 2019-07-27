@@ -54,9 +54,10 @@ class PendingPACQuery final : public nsRunnable,
                                   public mozilla::LinkedListElement<PendingPACQuery>
 {
 public:
-  PendingPACQuery(nsPACMan *pacMan, nsIURI *uri,
-                  nsPACManCallback *callback, bool mainThreadResponse);
-
+  PendingPACQuery(nsPACMan *pacMan, nsIURI *uri, uint32_t appId,
+                  bool isInBrowser, nsPACManCallback *callback,
+                  bool mainThreadResponse);
+ 
   
   void Complete(nsresult status, const nsCString &pacString);
   void UseAlternatePACFile(const nsCString &pacURL);
@@ -70,6 +71,13 @@ public:
 
 private:
   nsPACMan                  *mPACMan;  
+
+public:
+  uint32_t                   mAppId;
+  bool                       mIsInBrowser;
+  nsString                   mAppOrigin;
+
+private:
   nsRefPtr<nsPACManCallback> mCallback;
   bool                       mOnMainThreadOnly;
 };
@@ -108,7 +116,13 @@ public:
 
 
 
-  nsresult AsyncGetProxyForURI(nsIURI *uri, nsPACManCallback *callback,
+
+
+
+
+  nsresult AsyncGetProxyForURI(nsIURI *uri, uint32_t appId,
+                               bool isInBrowser,
+                               nsPACManCallback *callback,
                                bool mustCallbackOnMainThread);
 
   
