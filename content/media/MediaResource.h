@@ -17,6 +17,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h"
 #include "nsThreadUtils.h"
+#include <algorithm>
 
 
 
@@ -149,6 +150,12 @@ public:
 
   bool Contains(const MediaByteRange& aByteRange) const {
     return aByteRange.mStart >= mStart && aByteRange.mEnd <= mEnd;
+  }
+
+  MediaByteRange Extents(const MediaByteRange& aByteRange) const
+  {
+    return MediaByteRange(std::min(mStart, aByteRange.mStart),
+                          std::max(mEnd, aByteRange.mEnd));
   }
 
   int64_t mStart, mEnd;
