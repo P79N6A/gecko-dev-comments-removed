@@ -388,12 +388,33 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
 
     
     
-    if (info->mFixedURI)
-    {
-        info->mPreferredURI = info->mFixedURI;
+    if (info->mFixedURI) {
+        if (aFixupFlags & FIXUP_FLAG_REQUIRE_WHITELISTED_HOST) {
+
+            nsAutoCString asciiHost;
+            if (NS_SUCCEEDED(info->mFixedURI->GetAsciiHost(asciiHost)) &&
+                !asciiHost.IsEmpty()) {
+
+                uint32_t dotLoc = uint32_t(asciiHost.FindChar('.'));
+
+                if ((dotLoc == uint32_t(kNotFound) || dotLoc == asciiHost.Length() - 1)) {
+                    if (IsDomainWhitelisted(asciiHost, dotLoc)) {
+                        info->mPreferredURI = info->mFixedURI;
+                    }
+                } else {
+                    info->mPreferredURI = info->mFixedURI;
+                }
+            }
+        } else {
+            info->mPreferredURI = info->mFixedURI;
+        }
+
+        return NS_OK;
     }
-    else if (sFixupKeywords && (aFixupFlags & FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP))
-    {
+
+    
+    
+    if (sFixupKeywords && (aFixupFlags & FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP)) {
         rv = KeywordToURI(aStringURI, aPostData, getter_AddRefs(info->mPreferredURI));
         if (NS_SUCCEEDED(rv) && info->mPreferredURI)
         {
@@ -964,26 +985,17 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
               (dotLoc == lastDotLoc && (dotLoc == 0 || dotLoc == aURIString.Length() - 1))) &&
              colonLoc == uint32_t(kNotFound) && qMarkLoc == uint32_t(kNotFound))
     {
+
         nsAutoCString asciiHost;
         if (aFixupInfo->mFixedURI &&
             NS_SUCCEEDED(aFixupInfo->mFixedURI->GetAsciiHost(asciiHost)) &&
-            !asciiHost.IsEmpty())
-        {
-            
-            
-            
-            
-            nsAutoCString pref("browser.fixup.domainwhitelist.");
-            if (dotLoc == aURIString.Length() - 1) {
-              pref.Append(Substring(asciiHost, 0, asciiHost.Length() - 1));
-            } else {
-              pref.Append(asciiHost);
-            }
-            if (Preferences::GetBool(pref.get(), false))
-            {
+            !asciiHost.IsEmpty()) {
+
+            if (IsDomainWhitelisted(asciiHost, dotLoc)) {
                 return;
             }
         }
+
         
         
         rv = KeywordToURI(aFixupInfo->mOriginalInput, aPostData,
@@ -993,6 +1005,25 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
             aFixupInfo->mFixupUsedKeyword = true;
         }
     }
+}
+
+bool nsDefaultURIFixup::IsDomainWhitelisted(const nsAutoCString aAsciiHost,
+                                            const uint32_t aDotLoc)
+{
+    
+    
+    
+    
+
+    nsAutoCString pref("browser.fixup.domainwhitelist.");
+
+    if (aDotLoc == aAsciiHost.Length() - 1) {
+      pref.Append(Substring(aAsciiHost, 0, aAsciiHost.Length() - 1));
+    } else {
+      pref.Append(aAsciiHost);
+    }
+
+    return Preferences::GetBool(pref.get(), false);
 }
 
 
