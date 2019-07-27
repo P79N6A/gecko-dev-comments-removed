@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "gfxGDIFont.h"
 
@@ -94,10 +94,10 @@ gfxGDIFont::ShapeText(gfxContext     *aContext,
         return false;
     }
 
-    // Ensure the cairo font is set up, so there's no risk it'll fall back to
-    // creating a "toy" font internally (see bug 544617).
-    // We must check that this succeeded, otherwise we risk cairo creating the
-    // wrong kind of font internally as a fallback (bug 744480).
+    
+    
+    
+    
     if (!SetupCairoFont(aContext)) {
         return false;
     }
@@ -132,8 +132,8 @@ gfxGDIFont::SetupCairoFont(gfxContext *aContext)
     }
     if (!mScaledFont ||
         cairo_scaled_font_status(mScaledFont) != CAIRO_STATUS_SUCCESS) {
-        // Don't cairo_set_scaled_font as that would propagate the error to
-        // the cairo_t, precluding any further drawing.
+        
+        
         return false;
     }
     cairo_set_scaled_font(aContext->GetCairo(), mScaledFont);
@@ -145,17 +145,19 @@ gfxGDIFont::Measure(gfxTextRun *aTextRun,
                     uint32_t aStart, uint32_t aEnd,
                     BoundingBoxType aBoundingBoxType,
                     gfxContext *aRefContext,
-                    Spacing *aSpacing)
+                    Spacing *aSpacing,
+                    uint16_t aOrientation)
 {
     gfxFont::RunMetrics metrics =
         gfxFont::Measure(aTextRun, aStart, aEnd,
-                         aBoundingBoxType, aRefContext, aSpacing);
+                         aBoundingBoxType, aRefContext, aSpacing,
+                         aOrientation);
 
-    // if aBoundingBoxType is LOOSE_INK_EXTENTS
-    // and the underlying cairo font may be antialiased,
-    // we can't trust Windows to have considered all the pixels
-    // so we need to add "padding" to the bounds.
-    // (see bugs 475968, 439831, compare also bug 445087)
+    
+    
+    
+    
+    
     if (aBoundingBoxType == LOOSE_INK_EXTENTS &&
         mAntialiasOption != kAntialiasNone &&
         metrics.mBoundingBox.width > 0) {
@@ -175,40 +177,40 @@ gfxGDIFont::Initialize()
 
     LOGFONTW logFont;
 
-    // Figure out if we want to do synthetic oblique styling.
+    
     GDIFontEntry* fe = static_cast<GDIFontEntry*>(GetFontEntry());
     bool wantFakeItalic =
         (mStyle.style & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE)) &&
         !fe->IsItalic() && mStyle.allowSyntheticStyle;
 
-    // If the font's family has an actual italic face (but font matching
-    // didn't choose it), we have to use a cairo transform instead of asking
-    // GDI to italicize, because that would use a different face and result
-    // in a possible glyph ID mismatch between shaping and rendering.
-    //
-    // We use the mFamilyHasItalicFace flag in the entry in case of user fonts,
-    // where the *CSS* family may not know about italic faces that are present
-    // in the *GDI* family, and which GDI would use if we asked it to perform
-    // the "italicization".
+    
+    
+    
+    
+    
+    
+    
+    
+    
     bool useCairoFakeItalic = wantFakeItalic && fe->mFamilyHasItalicFace;
 
     if (mAdjustedSize == 0.0) {
         mAdjustedSize = mStyle.size;
         if (mStyle.sizeAdjust != 0.0 && mAdjustedSize > 0.0) {
-            // to implement font-size-adjust, we first create the "unadjusted" font
+            
             FillLogFont(logFont, mAdjustedSize,
                         wantFakeItalic && !useCairoFakeItalic);
             mFont = ::CreateFontIndirectW(&logFont);
 
-            // initialize its metrics so we can calculate size adjustment
+            
             Initialize();
 
-            // calculate the properly adjusted size, and then proceed
-            // to recreate mFont and recalculate metrics
+            
+            
             gfxFloat aspect = mMetrics->xHeight / mMetrics->emHeight;
             mAdjustedSize = mStyle.GetAdjustedSize(aspect);
 
-            // delete the temporary font and metrics
+            
             ::DeleteObject(mFont);
             mFont = nullptr;
             delete mMetrics;
@@ -216,14 +218,14 @@ gfxGDIFont::Initialize()
         }
     }
 
-    // (bug 724231) for local user fonts, we don't use GDI's synthetic bold,
-    // as it could lead to a different, incompatible face being used
-    // but instead do our own multi-striking
+    
+    
+    
     if (mNeedsBold && GetFontEntry()->IsLocalUserFont()) {
         mApplySyntheticBold = true;
     }
 
-    // this may end up being zero
+    
     mAdjustedSize = ROUND(mAdjustedSize);
     FillLogFont(logFont, mAdjustedSize, wantFakeItalic && !useCairoFakeItalic);
     mFont = ::CreateFontIndirectW(&logFont);
@@ -235,7 +237,7 @@ gfxGDIFont::Initialize()
     SetGraphicsMode(dc.GetDC(), GM_ADVANCED);
     AutoSelectFont selectFont(dc.GetDC(), mFont);
 
-    // Get font metrics if size > 0
+    
     if (mAdjustedSize > 0.0) {
 
         OUTLINETEXTMETRIC oMetrics;
@@ -251,7 +253,7 @@ gfxGDIFont::Initialize()
             GLYPHMETRICS gm;
             DWORD len = GetGlyphOutlineW(dc.GetDC(), char16_t('x'), GGO_METRICS, &gm, 0, nullptr, &kIdentityMatrix);
             if (len == GDI_ERROR || gm.gmptGlyphOrigin.y <= 0) {
-                // 56% of ascent, best guess for true type
+                
                 mMetrics->xHeight =
                     ROUND((double)metrics.tmAscent * DEFAULT_XHEIGHT_FACTOR);
             } else {
@@ -265,11 +267,11 @@ gfxGDIFont::Initialize()
                 mFUnitsConvFactor = float(mAdjustedSize / oMetrics.otmEMSquare);
             }
         } else {
-            // Make a best-effort guess at extended metrics
-            // this is based on general typographic guidelines
+            
+            
 
-            // GetTextMetrics can fail if the font file has been removed
-            // or corrupted recently.
+            
+            
             BOOL result = GetTextMetrics(dc.GetDC(), &metrics);
             if (!result) {
                 NS_WARNING("Missing or corrupt font data, fasten your seatbelt");
@@ -281,9 +283,9 @@ gfxGDIFont::Initialize()
             mMetrics->xHeight =
                 ROUND((float)metrics.tmAscent * DEFAULT_XHEIGHT_FACTOR);
             mMetrics->strikeoutSize = 1;
-            mMetrics->strikeoutOffset = ROUND(mMetrics->xHeight * 0.5f); // 50% of xHeight
+            mMetrics->strikeoutOffset = ROUND(mMetrics->xHeight * 0.5f); 
             mMetrics->underlineSize = 1;
-            mMetrics->underlineOffset = -ROUND((float)metrics.tmDescent * 0.30f); // 30% of descent
+            mMetrics->underlineOffset = -ROUND((float)metrics.tmDescent * 0.30f); 
             mMetrics->emHeight = metrics.tmHeight - metrics.tmInternalLeading;
             mMetrics->emAscent = metrics.tmAscent - metrics.tmInternalLeading;
             mMetrics->emDescent = metrics.tmDescent;
@@ -296,21 +298,21 @@ gfxGDIFont::Initialize()
         mMetrics->maxDescent = metrics.tmDescent;
         mMetrics->maxAdvance = metrics.tmMaxCharWidth;
         mMetrics->aveCharWidth = std::max<gfxFloat>(1, metrics.tmAveCharWidth);
-        // The font is monospace when TMPF_FIXED_PITCH is *not* set!
-        // See http://msdn2.microsoft.com/en-us/library/ms534202(VS.85).aspx
+        
+        
         if (!(metrics.tmPitchAndFamily & TMPF_FIXED_PITCH)) {
             mMetrics->maxAdvance = mMetrics->aveCharWidth;
         }
 
-        // Cache the width of a single space.
+        
         SIZE size;
         GetTextExtentPoint32W(dc.GetDC(), L" ", 1, &size);
         mMetrics->spaceWidth = ROUND(size.cx);
 
-        // Cache the width of digit zero.
-        // XXX MSDN (http://msdn.microsoft.com/en-us/library/ms534223.aspx)
-        // does not say what the failure modes for GetTextExtentPoint32 are -
-        // is it safe to assume it will fail iff the font has no '0'?
+        
+        
+        
+        
         if (GetTextExtentPoint32W(dc.GetDC(), L"0", 1, &size)) {
             mMetrics->zeroOrAveCharWidth = ROUND(size.cx);
         } else {
@@ -340,17 +342,17 @@ gfxGDIFont::Initialize()
     cairo_matrix_init_scale(&sizeMatrix, mAdjustedSize, mAdjustedSize);
 
     if (useCairoFakeItalic) {
-        // Skew the matrix to do fake italic if it wasn't already applied
-        // via the LOGFONT
+        
+        
         double skewfactor = OBLIQUE_SKEW_FACTOR;
         cairo_matrix_t style;
         cairo_matrix_init(&style,
-                          1,                //xx
-                          0,                //yx
-                          -1 * skewfactor,  //xy
-                          1,                //yy
-                          0,                //x0
-                          0);               //y0
+                          1,                
+                          0,                
+                          -1 * skewfactor,  
+                          1,                
+                          0,                
+                          0);               
         cairo_matrix_multiply(&sizeMatrix, &sizeMatrix, &style);
     }
 
@@ -398,13 +400,13 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
     uint16_t weight;
     if (fe->IsUserFont()) {
         if (fe->IsLocalUserFont()) {
-            // for local user fonts, don't change the original weight
-            // in the entry's logfont, because that could alter the
-            // choice of actual face used (bug 724231)
+            
+            
+            
             weight = 0;
         } else {
-            // avoid GDI synthetic bold which occurs when weight
-            // specified is >= font data weight + 200
+            
+            
             weight = mNeedsBold ? 700 : 200;
         }
     } else {
@@ -414,7 +416,7 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
     fe->FillLogFont(&aLogFont, weight, aSize, 
                     (mAntialiasOption == kAntialiasSubpixel) ? true : false);
 
-    // If GDI synthetic italic is wanted, force the lfItalic field to true
+    
     if (aUseGDIFakeItalic) {
         aLogFont.lfItalic = 1;
     }
@@ -423,11 +425,11 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
 uint32_t
 gfxGDIFont::GetGlyph(uint32_t aUnicode, uint32_t aVarSelector)
 {
-    // Callback used only for fonts that lack a 'cmap' table.
+    
 
-    // We don't support variation selector sequences or non-BMP characters
-    // in the legacy bitmap, vector or postscript fonts that might use
-    // this code path.
+    
+    
+    
     if (aUnicode > 0xffff || aVarSelector) {
         return 0;
     }
@@ -474,7 +476,7 @@ gfxGDIFont::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
 
     int devWidth;
     if (GetCharWidthI(dc, aGID, 1, nullptr, &devWidth)) {
-        // clamp value to range [0..0x7fff], and convert to 16.16 fixed-point
+        
         devWidth = std::min(std::max(0, devWidth), 0x7fff);
         width = devWidth << 16;
         mGlyphWidths->Put(aGID, width);
