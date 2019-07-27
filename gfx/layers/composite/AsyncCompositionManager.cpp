@@ -141,12 +141,14 @@ AsyncCompositionManager::ComputeRotation()
   }
 }
 
-static bool
-GetBaseTransform2D(Layer* aLayer, Matrix* aTransform)
+static void
+GetBaseTransform(Layer* aLayer, Matrix4x4* aTransform)
 {
   
-  return (aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation() ?
-          aLayer->GetLocalTransform() : aLayer->GetTransform()).Is2D(aTransform);
+  *aTransform =
+    (aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation()
+        ? aLayer->GetLocalTransform()
+        : aLayer->GetTransform());
 }
 
 static void
@@ -183,9 +185,9 @@ SetShadowTransform(Layer* aLayer, Matrix4x4 aTransform)
 }
 
 static void
-TranslateShadowLayer2D(Layer* aLayer,
-                       const gfxPoint& aTranslation,
-                       bool aAdjustClipRect)
+TranslateShadowLayer(Layer* aLayer,
+                     const gfxPoint& aTranslation,
+                     bool aAdjustClipRect)
 {
   
   
@@ -193,16 +195,12 @@ TranslateShadowLayer2D(Layer* aLayer,
   
   
   
-  Matrix layerTransform;
-  if (!aLayer->GetLocalTransform().Is2D(&layerTransform)) {
-    return;
-  }
+  Matrix4x4 layerTransform = aLayer->GetLocalTransform();
 
   
-  layerTransform._31 += aTranslation.x;
-  layerTransform._32 += aTranslation.y;
+  layerTransform.PostTranslate(aTranslation.x, aTranslation.y, 0);
 
-  SetShadowTransform(aLayer, Matrix4x4::From2D(layerTransform));
+  SetShadowTransform(aLayer, layerTransform);
   aLayer->AsLayerComposite()->SetShadowTransformSetByAnimation(false);
 
   if (aAdjustClipRect) {
@@ -212,25 +210,21 @@ TranslateShadowLayer2D(Layer* aLayer,
   
   
   if (Layer* maskLayer = aLayer->GetMaskLayer()) {
-    TranslateShadowLayer2D(maskLayer, aTranslation, false);
+    TranslateShadowLayer(maskLayer, aTranslation, false);
   }
 }
 
-static bool
-AccumulateLayerTransforms2D(Layer* aLayer,
-                            Layer* aAncestor,
-                            Matrix& aMatrix)
+static void
+AccumulateLayerTransforms(Layer* aLayer,
+                          Layer* aAncestor,
+                          Matrix4x4& aMatrix)
 {
   
   for (Layer* l = aLayer; l && l != aAncestor; l = l->GetParent()) {
-    Matrix l2D;
-    if (!GetBaseTransform2D(l, &l2D)) {
-      return false;
-    }
-    aMatrix *= l2D;
+    Matrix4x4 transform;
+    GetBaseTransform(l, &transform);
+    aMatrix *= transform;
   }
-
-  return true;
 }
 
 static LayerPoint
@@ -312,37 +306,25 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
 
   
   
-  
 
   
-  Matrix ancestorTransform;
-  if (!AccumulateLayerTransforms2D(aLayer->GetParent(), aTransformedSubtreeRoot,
-                                   ancestorTransform)) {
-    return;
-  }
-
-  Matrix oldRootTransform;
-  Matrix newRootTransform;
-  if (!aPreviousTransformForRoot.Is2D(&oldRootTransform) ||
-      !aCurrentTransformForRoot.Is2D(&newRootTransform)) {
-    return;
-  }
+  Matrix4x4 ancestorTransform;
+  AccumulateLayerTransforms(aLayer->GetParent(), aTransformedSubtreeRoot,
+                            ancestorTransform);
 
   
   
-  Matrix oldCumulativeTransform = ancestorTransform * oldRootTransform;
-  Matrix newCumulativeTransform = ancestorTransform * newRootTransform;
+  Matrix4x4 oldCumulativeTransform = ancestorTransform * aPreviousTransformForRoot;
+  Matrix4x4 newCumulativeTransform = ancestorTransform * aCurrentTransformForRoot;
   if (newCumulativeTransform.IsSingular()) {
     return;
   }
-  Matrix newCumulativeTransformInverse = newCumulativeTransform.Inverse();
+  Matrix4x4 newCumulativeTransformInverse = newCumulativeTransform.Inverse();
 
   
   
-  Matrix layerTransform;
-  if (!GetBaseTransform2D(aLayer, &layerTransform)) {
-    return;
-  }
+  Matrix4x4 layerTransform;
+  GetBaseTransform(aLayer, &layerTransform);
 
   
   
@@ -395,7 +377,7 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   
   
   
-  TranslateShadowLayer2D(aLayer, ThebesPoint(translation), aLayer != aTransformedSubtreeRoot);
+  TranslateShadowLayer(aLayer, ThebesPoint(translation), aLayer != aTransformedSubtreeRoot);
 }
 
 static void
