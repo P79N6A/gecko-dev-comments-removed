@@ -212,6 +212,12 @@ TabTarget.prototype = {
 
 
 
+
+
+
+
+
+
   getActorDescription: function (actorName) {
     if (!this.client) {
       throw new Error("TabTarget#getActorDescription() can only be called on remote tabs.");
@@ -249,6 +255,7 @@ TabTarget.prototype = {
   },
 
   
+
 
 
 
