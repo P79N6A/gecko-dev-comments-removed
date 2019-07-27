@@ -229,10 +229,12 @@ Animation::ActiveDuration(const AnimationTiming& aTiming)
     aTiming.mIterationDuration.MultDouble(aTiming.mIterationCount));
 }
 
+
 bool
-Animation::IsCurrent() const
+Animation::IsCurrent(const AnimationPlayer& aPlayer) const
 {
-  if (IsFinishedTransition()) {
+  if (IsFinishedTransition() ||
+      aPlayer.PlayState() == AnimationPlayState::Finished) {
     return false;
   }
 
