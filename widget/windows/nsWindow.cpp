@@ -485,7 +485,7 @@ nsWindow::Create(nsIWidget *aParent,
   
   nsToolkit::GetToolkit();
 
-  BaseCreate(baseParent, aRect, aContext, aInitData);
+  BaseCreate(baseParent, aRect, aInitData);
 
   HWND parent;
   if (aParent) { 

@@ -219,7 +219,7 @@ MetroWidget::Create(nsIWidget *aParent,
   
   nsToolkit::GetToolkit();
 
-  BaseCreate(aParent, aRect, aContext, aInitData);
+  BaseCreate(aParent, aRect, aInitData);
 
   if (mWindowType != eWindowType_toplevel) {
     switch(mWindowType) {
