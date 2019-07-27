@@ -92,8 +92,10 @@ public:
     return mMediaStreamController;
   }
 
+  
+  
   virtual bool IsRealTime() MOZ_OVERRIDE {
-    return mRealTime;
+    return !mHasTimestamp;
   }
 
   
@@ -154,7 +156,7 @@ public:
   virtual double  GetDownloadRate(bool* aIsReliable) MOZ_OVERRIDE { *aIsReliable = false; return 0; }
 
   virtual int64_t GetLength() MOZ_OVERRIDE {
-    if (mRealTime) {
+    if (mIsLiveStream) {
       return -1;
     }
     return 0;
@@ -248,7 +250,9 @@ private:
   
   bool mIsConnected;
   
-  bool mRealTime;
+  bool mIsLiveStream;
+  
+  bool mHasTimestamp;
   
   bool mIsSuspend;
 };

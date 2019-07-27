@@ -152,6 +152,18 @@ private:
 
     void onTrackEndOfStream(size_t trackIndex);
 
+    bool isLiveStream();
+
+    
+    
+    bool mDisconnectedToPauseLiveStream;
+
+    
+    
+    
+    
+    bool mPlayOnConnected;
+
     nsMainThreadPtrHandle<nsIStreamingProtocolListener> mListener;
     int mPrintCount;
 
