@@ -31,7 +31,7 @@ public:
   
   NS_FORWARD_TO_UIEVENT
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx) MOZ_OVERRIDE
   {
     return XULCommandEventBinding::Wrap(aCx, this);
   }

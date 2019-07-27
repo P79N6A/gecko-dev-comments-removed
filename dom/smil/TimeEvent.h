@@ -31,7 +31,7 @@ public:
   
   NS_FORWARD_TO_EVENT
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx) MOZ_OVERRIDE
   {
     return TimeEventBinding::Wrap(aCx, this);
   }
