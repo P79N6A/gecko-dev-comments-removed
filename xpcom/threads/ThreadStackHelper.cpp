@@ -38,6 +38,10 @@
 #include "processor/stackwalker_arm.h"
 #endif
 
+#if defined(MOZ_VALGRIND)
+# include <valgrind/valgrind.h>
+#endif
+
 #include <string.h>
 #include <vector>
 
@@ -260,6 +264,14 @@ ThreadStackHelper::GetStack(Stack& aStack)
   MOZ_ALWAYS_TRUE(::ResumeThread(mThreadID) != DWORD(-1));
 
 #elif defined(XP_MACOSX)
+# if defined(MOZ_VALGRIND) && defined(RUNNING_ON_VALGRIND)
+  if (RUNNING_ON_VALGRIND) {
+    
+
+    return;
+  }
+# endif
+
   if (::thread_suspend(mThreadID) != KERN_SUCCESS) {
     MOZ_ASSERT(false);
     return;
