@@ -80,11 +80,15 @@ struct BaseRect {
             y <= aRect.y && aRect.YMost() <= YMost());
   }
   
+  
+  
   bool Contains(T aX, T aY) const
   {
-    return x <= aX && aX + 1 <= XMost() &&
-           y <= aY && aY + 1 <= YMost();
+    return x <= aX && aX < XMost() &&
+           y <= aY && aY < YMost();
   }
+  
+  
   
   bool Contains(const Point& aPoint) const { return Contains(aPoint.x, aPoint.y); }
 
