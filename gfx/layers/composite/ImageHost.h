@@ -82,10 +82,24 @@ public:
   virtual already_AddRefed<TexturedEffect> GenEffect(const gfx::Filter& aFilter) override;
 
 protected:
+  struct TimedImage {
+    CompositableTextureHostRef mFrontBuffer;
+    CompositableTextureSourceRef mTextureSource;
+    TimeStamp mTimeStamp;
+    gfx::IntRect mPictureRect;
+  };
 
-  CompositableTextureHostRef mFrontBuffer;
-  CompositableTextureSourceRef mTextureSource;
-  gfx::IntRect mPictureRect;
+  
+
+
+
+
+  const TimedImage* ChooseImage() const;
+  TimedImage* ChooseImage();
+  int ChooseImageIndex() const;
+
+  nsTArray<TimedImage> mImages;
+
   bool mLocked;
 };
 
