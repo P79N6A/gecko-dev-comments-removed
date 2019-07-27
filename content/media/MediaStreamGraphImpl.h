@@ -235,12 +235,6 @@ public:
   
 
 
-
-  void UpdateStreamOrderForStream(mozilla::LinkedList<MediaStream>* aStack,
-                                  MediaStream* aStream);
-  
-
-
   static void MarkConsumed(MediaStream* aStream);
   
 
@@ -436,7 +430,8 @@ public:
 
 
 
-  nsTArray<MediaStream*> mOldStreams;
+
+  uint32_t mFirstCycleBreaker;
   
 
 

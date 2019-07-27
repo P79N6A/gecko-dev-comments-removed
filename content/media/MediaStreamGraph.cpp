@@ -4,7 +4,6 @@
 
 
 #include "MediaStreamGraphImpl.h"
-#include "mozilla/LinkedList.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/unused.h"
 
@@ -530,69 +529,6 @@ MediaStreamGraphImpl::MarkConsumed(MediaStream* aStream)
   }
 }
 
-void
-MediaStreamGraphImpl::UpdateStreamOrderForStream(mozilla::LinkedList<MediaStream>* aStack,
-                                                 MediaStream* aStream)
-{
-  MediaStream* stream = aStream;
-  NS_ASSERTION(!stream->mHasBeenOrdered, "stream should not have already been ordered");
-  if (stream->mIsOnOrderingStack) {
-    MediaStream* iter = aStack->getLast();
-    AudioNodeStream* ns = stream->AsAudioNodeStream();
-    bool delayNodePresent = ns ? ns->Engine()->AsDelayNodeEngine() != nullptr : false;
-    bool cycleFound = false;
-    if (iter) {
-      do {
-        cycleFound = true;
-        iter->AsProcessedStream()->mInCycle = true;
-        AudioNodeStream* ns = iter->AsAudioNodeStream();
-        if (ns && ns->Engine()->AsDelayNodeEngine()) {
-          delayNodePresent = true;
-        }
-        iter = iter->getPrevious();
-      } while (iter && iter != stream);
-    }
-    if (cycleFound && !delayNodePresent) {
-      
-      
-      
-      if (!iter) {
-        
-        
-        
-        iter = aStack->getLast();
-        MOZ_ASSERT(iter->AsAudioNodeStream());
-        iter->AsAudioNodeStream()->Mute();
-      } else {
-        MOZ_ASSERT(iter);
-        do {
-          AudioNodeStream* nodeStream = iter->AsAudioNodeStream();
-          if (nodeStream) {
-            nodeStream->Mute();
-          }
-        } while((iter = iter->getNext()));
-      }
-    }
-    return;
-  }
-  ProcessedMediaStream* ps = stream->AsProcessedStream();
-  if (ps) {
-    aStack->insertBack(stream);
-    stream->mIsOnOrderingStack = true;
-    for (uint32_t i = 0; i < ps->mInputs.Length(); ++i) {
-      MediaStream* source = ps->mInputs[i]->mSource;
-      if (!source->mHasBeenOrdered) {
-        UpdateStreamOrderForStream(aStack, source);
-      }
-    }
-    aStack->popLast();
-    stream->mIsOnOrderingStack = false;
-  }
-
-  stream->mHasBeenOrdered = true;
-  *mStreams.AppendElement() = stream;
-}
-
 static void AudioMixerCallback(AudioDataValue* aMixedBuffer,
                                AudioSampleFormat aFormat,
                                uint32_t aChannels,
@@ -614,26 +550,19 @@ static void AudioMixerCallback(AudioDataValue* aMixedBuffer,
 void
 MediaStreamGraphImpl::UpdateStreamOrder()
 {
-  mOldStreams.SwapElements(mStreams);
-  mStreams.ClearAndRetainStorage();
   bool shouldMix = false;
-  for (uint32_t i = 0; i < mOldStreams.Length(); ++i) {
-    MediaStream* stream = mOldStreams[i];
-    stream->mHasBeenOrdered = false;
+  
+  const uint32_t NOT_VISITED = UINT32_MAX;
+  
+  const uint32_t IN_MUTED_CYCLE = 1;
+
+  for (uint32_t i = 0; i < mStreams.Length(); ++i) {
+    MediaStream* stream = mStreams[i];
     stream->mIsConsumed = false;
-    stream->mIsOnOrderingStack = false;
     stream->mInBlockingSet = false;
     if (stream->AsSourceStream() &&
         stream->AsSourceStream()->NeedsMixing()) {
       shouldMix = true;
-    }
-    ProcessedMediaStream* ps = stream->AsProcessedStream();
-    if (ps) {
-      ps->mInCycle = false;
-      AudioNodeStream* ns = ps->AsAudioNodeStream();
-      if (ns) {
-        ns->Unmute();
-      }
     }
   }
 
@@ -643,16 +572,174 @@ MediaStreamGraphImpl::UpdateStreamOrder()
     mMixer = nullptr;
   }
 
-  mozilla::LinkedList<MediaStream> stack;
-  for (uint32_t i = 0; i < mOldStreams.Length(); ++i) {
-    MediaStream* s = mOldStreams[i];
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  mozilla::LinkedList<MediaStream> dfsStack;
+  
+  
+  mozilla::LinkedList<MediaStream> sccStack;
+
+  
+  
+  uint32_t orderedStreamCount = 0;
+
+  for (uint32_t i = 0; i < mStreams.Length(); ++i) {
+    MediaStream* s = mStreams[i];
     if (s->IsIntrinsicallyConsumed()) {
       MarkConsumed(s);
     }
-    if (!s->mHasBeenOrdered) {
-      UpdateStreamOrderForStream(&stack, s);
+    ProcessedMediaStream* ps = s->AsProcessedStream();
+    if (ps) {
+      
+      
+      dfsStack.insertBack(s);
+      ps->mCycleMarker = NOT_VISITED;
+    } else {
+      
+      mStreams[orderedStreamCount] = s;
+      ++orderedStreamCount;
     }
   }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  uint32_t nextStackMarker = NOT_VISITED - 1;
+  
+  mFirstCycleBreaker = mStreams.Length();
+
+  
+  
+  while (auto ps = static_cast<ProcessedMediaStream*>(dfsStack.getFirst())) {
+    const auto& inputs = ps->mInputs;
+    MOZ_ASSERT(ps->AsProcessedStream());
+    if (ps->mCycleMarker == NOT_VISITED) {
+      
+      
+      ps->mCycleMarker = nextStackMarker;
+      --nextStackMarker;
+      
+      
+      for (uint32_t i = inputs.Length(); i--; ) {
+        auto input = inputs[i]->mSource->AsProcessedStream();
+        if (input && input->mCycleMarker == NOT_VISITED) {
+          input->remove();
+          dfsStack.insertFront(input);
+        }
+      }
+      continue;
+    }
+
+    
+    ps->remove();
+
+    
+    
+    
+    
+    
+    uint32_t cycleStackMarker = 0;
+    for (uint32_t i = inputs.Length(); i--; ) {
+      auto input = inputs[i]->mSource->AsProcessedStream();
+      if (input) {
+        cycleStackMarker = std::max(cycleStackMarker, input->mCycleMarker);
+      }
+    }
+
+    if (cycleStackMarker <= IN_MUTED_CYCLE) {
+      
+      
+      ps->mCycleMarker = 0;
+      mStreams[orderedStreamCount] = ps;
+      ++orderedStreamCount;
+      continue;
+    }
+
+    
+    
+    sccStack.insertFront(ps);
+
+    if (cycleStackMarker > ps->mCycleMarker) {
+      
+      
+      
+      
+      
+      
+      ps->mCycleMarker = cycleStackMarker;
+      continue;
+    }
+
+    
+    
+    
+    MOZ_ASSERT(cycleStackMarker == ps->mCycleMarker);
+    
+    bool haveDelayNode = false;
+    auto next = static_cast<ProcessedMediaStream*>(sccStack.getFirst());
+    
+    
+    
+    
+    
+    
+    while (next && next->mCycleMarker <= cycleStackMarker) {
+      auto ns = next->AsAudioNodeStream();
+      
+      next = static_cast<ProcessedMediaStream*>(next->getNext());
+      if (ns && ns->Engine()->AsDelayNodeEngine()) {
+        haveDelayNode = true;
+        
+        
+        
+        
+        ns->remove();
+        ns->mCycleMarker = 0;
+        --mFirstCycleBreaker;
+        mStreams[mFirstCycleBreaker] = ns;
+      }
+    }
+    auto after_scc = next;
+    while ((next = static_cast<ProcessedMediaStream*>(sccStack.popFirst()))
+           != after_scc) {
+      if (haveDelayNode) {
+        
+        
+        
+        
+        
+        
+        
+        next->mCycleMarker = NOT_VISITED;
+        dfsStack.insertFront(next);
+      } else {
+        
+        
+        
+        next->mCycleMarker = IN_MUTED_CYCLE;
+        mStreams[orderedStreamCount] = next;
+        ++orderedStreamCount;
+      }
+    }
+  }
+
+  MOZ_ASSERT(orderedStreamCount == mFirstCycleBreaker);
 }
 
 void
@@ -1166,9 +1253,16 @@ MediaStreamGraphImpl::ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
                                                         GraphTime aFrom,
                                                         GraphTime aTo)
 {
+  MOZ_ASSERT(aStreamIndex <= mFirstCycleBreaker,
+             "Cycle breaker is not AudioNodeStream?");
   GraphTime t = aFrom;
   while (t < aTo) {
     GraphTime next = RoundUpToNextAudioBlock(aSampleRate, t);
+    for (uint32_t i = mFirstCycleBreaker; i < mStreams.Length(); ++i) {
+      auto ns = static_cast<AudioNodeStream*>(mStreams[i]);
+      MOZ_ASSERT(ns->AsAudioNodeStream());
+      ns->ProduceOutputBeforeInput(t);
+    }
     for (uint32_t i = aStreamIndex; i < mStreams.Length(); ++i) {
       ProcessedMediaStream* ps = mStreams[i]->AsProcessedStream();
       if (ps) {

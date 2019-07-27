@@ -42,7 +42,7 @@ public:
               WebAudioUtils::ComputeSmoothingRate(0.02,
                                                   mDestination->SampleRate()))
     , mMaxDelay(aMaxDelayTicks)
-    , mLastOutputPosition(-1)
+    , mHaveProducedBeforeInput(false)
     , mLeftOverData(INT32_MIN)
   {
   }
@@ -110,20 +110,17 @@ public:
 
     mBuffer.Write(aInput);
 
-    UpdateOutputBlock(aOutput);
+    
+    
+    if (!mHaveProducedBeforeInput) {
+      UpdateOutputBlock(aOutput, 0.0);
+    }
+    mHaveProducedBeforeInput = false;
     mBuffer.NextBlock();
   }
 
-  void UpdateOutputBlock(AudioChunk* aOutput)
+  void UpdateOutputBlock(AudioChunk* aOutput, double minDelay)
   {
-    TrackTicks tick = mSource->GetCurrentPosition();
-    if (tick == mLastOutputPosition) {
-      return; 
-    }
-
-    mLastOutputPosition = tick;
-    bool inCycle = mSource->AsProcessedStream()->InCycle();
-    double minDelay = inCycle ? static_cast<double>(WEBAUDIO_BLOCK_SIZE) : 0.0;
     double maxDelay = mMaxDelay;
     double sampleRate = mSource->SampleRate();
     ChannelInterpretation channelInterpretation =
@@ -139,6 +136,7 @@ public:
       
       
       
+      TrackTicks tick = mSource->GetCurrentPosition();
       double computedDelay[WEBAUDIO_BLOCK_SIZE];
       for (size_t counter = 0; counter < WEBAUDIO_BLOCK_SIZE; ++counter) {
         double delayAtTick = mDelay.GetValueAtTime(tick, counter) * sampleRate;
@@ -155,8 +153,9 @@ public:
     if (mLeftOverData <= 0) {
       aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
     } else {
-      UpdateOutputBlock(aOutput);
+      UpdateOutputBlock(aOutput, WEBAUDIO_BLOCK_SIZE);
     }
+    mHaveProducedBeforeInput = true;
   }
 
   virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
@@ -180,7 +179,7 @@ public:
   AudioParamTimeline mDelay;
   DelayBuffer mBuffer;
   double mMaxDelay;
-  TrackTicks mLastOutputPosition;
+  bool mHaveProducedBeforeInput;
   
   
   int32_t mLeftOverData;

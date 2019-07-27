@@ -312,19 +312,6 @@ AudioNodeStream::ObtainInputBlock(AudioChunk& aTmpChunk, uint32_t aPortIndex)
       continue;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (a->mLastChunks.IsEmpty()) {
-      continue;
-    }
-
     AudioChunk* chunk = &a->mLastChunks[mInputs[i]->OutputNumber()];
     MOZ_ASSERT(chunk);
     if (chunk->IsNull() || chunk->mChannelData.IsEmpty()) {
@@ -453,7 +440,7 @@ AudioNodeStream::ProcessInput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags)
   
   bool blocked = mFinished || mBlocked.GetAt(aFrom);
   
-  if (mMuted || blocked) {
+  if (blocked || InMutedCycle()) {
     for (uint16_t i = 0; i < outputCount; ++i) {
       mLastChunks[i].SetNull(WEBAUDIO_BLOCK_SIZE);
     }
@@ -494,6 +481,32 @@ AudioNodeStream::ProcessInput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags)
       
       
       FinishOutput();
+    }
+  }
+}
+
+void
+AudioNodeStream::ProduceOutputBeforeInput(GraphTime aFrom)
+{
+  MOZ_ASSERT(mEngine->AsDelayNodeEngine());
+  MOZ_ASSERT(mEngine->OutputCount() == 1,
+             "DelayNodeEngine output count should be 1");
+  MOZ_ASSERT(!InMutedCycle(), "DelayNodes should break cycles");
+  mLastChunks.SetLength(1);
+
+  
+  
+  
+  bool blocked = mFinished || mBlocked.GetAt(aFrom);
+  
+  if (blocked) {
+    mLastChunks[0].SetNull(WEBAUDIO_BLOCK_SIZE);
+  } else {
+    mEngine->ProduceBlockBeforeInput(&mLastChunks[0]);
+    NS_ASSERTION(mLastChunks[0].GetDuration() == WEBAUDIO_BLOCK_SIZE,
+                 "Invalid WebAudio chunk size");
+    if (mDisabledTrackIDs.Contains(static_cast<TrackID>(AUDIO_TRACK))) {
+      mLastChunks[0].SetNull(WEBAUDIO_BLOCK_SIZE);
     }
   }
 }
