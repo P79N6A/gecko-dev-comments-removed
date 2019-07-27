@@ -76,6 +76,12 @@ InlineSpellChecker.prototype = {
     return (this.mInlineSpellChecker != null);
   },
 
+  get initialSpellCheckPending() {
+    return !!(this.mInlineSpellChecker &&
+              !this.mInlineSpellChecker.spellChecker &&
+              this.mInlineSpellChecker.spellCheckPending);
+  },
+
   
   get enabled()
   {
