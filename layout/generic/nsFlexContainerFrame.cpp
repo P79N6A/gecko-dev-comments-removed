@@ -126,18 +126,6 @@ GetReverseAxis(AxisOrientationType aAxis)
 
 
 
-static inline const nsStyleCoord&
-GetSizePropertyForAxis(const nsIFrame* aFrame, AxisOrientationType aAxis)
-{
-  const nsStylePosition* stylePos = aFrame->StylePosition();
-
-  return IsAxisHorizontal(aAxis) ?
-    stylePos->mWidth :
-    stylePos->mHeight;
-}
-
-
-
 
 
 
@@ -206,6 +194,17 @@ public:
     return IsCrossAxisHorizontal() ?
       aMargin.LeftRight() :
       aMargin.TopBottom();
+  }
+
+  
+  
+  
+  const nsStyleCoord& ComputedCrossSize(const nsIFrame* aFrame) const {
+    const nsStylePosition* stylePos = aFrame->StylePosition();
+
+    return IsCrossAxisHorizontal() ?
+      stylePos->mWidth :
+      stylePos->mHeight;
   }
 
   
@@ -2742,7 +2741,7 @@ FlexItem::ResolveStretchedCrossSize(nscoord aLineCrossSize,
   
   if (mAlignSelf != NS_STYLE_ALIGN_ITEMS_STRETCH ||
       GetNumAutoMarginsInAxis(crossAxis) != 0 ||
-      eStyleUnit_Auto != GetSizePropertyForAxis(mFrame, crossAxis).GetUnit()) {
+      eStyleUnit_Auto != aAxisTracker.ComputedCrossSize(mFrame).GetUnit()) {
     return;
   }
 
