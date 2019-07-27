@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.lwt;
 
 import android.content.res.Resources;
 import android.graphics.Bitmap;
