@@ -63,7 +63,10 @@ public class LocaleListPreference extends ListPreference {
         private static byte[] getPixels(final Bitmap b) {
             final int byteCount;
             if (Versions.feature19Plus) {
-                byteCount = b.getAllocationByteCount();
+                
+                
+                
+                byteCount = b.getRowBytes() * b.getHeight();
             } else {
                 
                 
