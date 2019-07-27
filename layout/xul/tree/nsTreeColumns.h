@@ -211,7 +211,7 @@ private:
 
 
 
-  nsTreeColumn* mFirstColumn;
+  nsRefPtr<nsTreeColumn> mFirstColumn;
 };
 
 #endif 
