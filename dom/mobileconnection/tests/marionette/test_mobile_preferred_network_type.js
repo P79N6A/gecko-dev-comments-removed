@@ -37,6 +37,9 @@ const TEST_DATA = [
   }, {
     preferredNetworkType: "lte",
     expectedErrorMessage: "ModeNotSupported"
+  }, {
+    preferredNetworkType: "lte/wcdma",
+    expectedErrorMessage: "ModeNotSupported"
   },
   
   {
