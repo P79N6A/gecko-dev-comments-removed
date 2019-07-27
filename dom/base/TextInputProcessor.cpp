@@ -159,7 +159,7 @@ TextInputProcessor::BeginInputTransactionInternal(
   
   
   
-  if (dispatcher->IsComposing()) {
+  if (dispatcher->IsComposing() || dispatcher->IsDispatchingEvent()) {
     return NS_OK;
   }
 

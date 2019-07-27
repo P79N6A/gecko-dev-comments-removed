@@ -85,6 +85,11 @@ public:
   
 
 
+  bool IsDispatchingEvent() const { return mDispatchingEvent > 0; }
+
+  
+
+
   nsresult StartComposition(nsEventStatus& aStatus);
 
   
@@ -231,6 +236,9 @@ private:
   };
   PendingComposition mPendingComposition;
 
+  
+  uint16_t mDispatchingEvent;
+
   bool mForTests;
   
   bool mIsComposing;
@@ -248,6 +256,13 @@ private:
 
 
   void InitEvent(WidgetGUIEvent& aEvent) const;
+
+  
+
+
+  nsresult DispatchEvent(nsIWidget* aWidget,
+                         WidgetGUIEvent& aEvent,
+                         nsEventStatus& aStatus);
 
   
 
