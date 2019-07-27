@@ -35,14 +35,10 @@ function do_crash(setup, callback, canReturnZero)
   
   let ds = Components.classes["@mozilla.org/file/directory_service;1"]
     .getService(Components.interfaces.nsIProperties);
-  let bin = ds.get("CurProcD", Components.interfaces.nsILocalFile);
-  bin.append("xpcshell");
+  let bin = ds.get("XREExeF", Components.interfaces.nsILocalFile);
   if (!bin.exists()) {
-    bin.leafName = "xpcshell.exe";
-    do_check_true(bin.exists());
-    if (!bin.exists())
-      
-      do_throw("Can't find xpcshell binary!");
+    
+    do_throw("Can't find xpcshell binary!");
   }
   
   let greD = ds.get("GreD", Components.interfaces.nsILocalFile);
