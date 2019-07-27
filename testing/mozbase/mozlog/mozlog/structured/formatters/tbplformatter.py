@@ -2,9 +2,9 @@
 
 
 
-from machformatter import BaseMachFormatter
+from .base import BaseFormatter
 
-class TbplFormatter(BaseMachFormatter):
+class TbplFormatter(BaseFormatter):
     """Formatter that formats logs in the legacy formatting format used by TBPL
     This is intended to be used to preserve backward compatibility with existing tools
     hand-parsing this format.
