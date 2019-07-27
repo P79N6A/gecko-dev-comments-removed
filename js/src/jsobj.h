@@ -256,6 +256,20 @@ class JSObject : public js::gc::Cell
 
     
 
+
+
+    bool constructorDisplayAtom(JSContext* cx, js::MutableHandleAtom name);
+
+    
+
+
+
+
+
+    JSAtom* maybeConstructorDisplayAtom() const;
+
+    
+
     void traceChildren(JSTracer* trc);
 
     void fixupAfterMovingGC();
