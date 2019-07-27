@@ -7,13 +7,6 @@ function test() {
 };
 
 
-try {
-    test();
-} catch (x) {
-    if (typeof x == "string")
-        quit();
-}
-
 
 
 function assertInstruction(ins) {
@@ -65,12 +58,22 @@ g.eval(`
 `);
 
 
-function check() {
+function check(assert) {
   
   with ({}) {       
     gc();           
     hits = 0;       
-    test();         
+
+    try {           
+        test();         
+    } catch (msg) {
+        if (typeof msg == "string") {
+            
+            return;
+        }
+    }
+
+    assert();       
   }
 }
 
@@ -84,9 +87,11 @@ g.eval(`
     parent.hits++;
   };
 `);
-check();
 
-assertEq(hits >= 1, true);
+check(function () {
+    
+    assertEq(hits >= 1, true);
+});
 
 
 
@@ -97,8 +102,7 @@ g.dbg.onIonCompilation = function (graph) {
   assertOnIonCompilationArgument(graph);
   hits++;
 };
-check();
-assertEq(hits >= 1, true);
+check(function () { assertEq(hits >= 1, true); });
 
 
 g.eval(`
@@ -107,12 +111,11 @@ g.eval(`
     parent.hits++;
   };
 `);
-check();
-assertEq(hits, 0);
+check(function () { assertEq(hits, 0); });
+
 
 g.dbg.enabled = false;
 g.dbg.onIonCompilation = function (graph) {
   hits++;
 };
-check();
-assertEq(hits, 0);
+check(function () { assertEq(hits, 0); });
