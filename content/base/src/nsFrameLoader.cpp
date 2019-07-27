@@ -1021,7 +1021,7 @@ nsFrameLoader::ShowRemoteFrame(const nsIntSize& size,
       mRemoteBrowserInitialized = true;
     }
   } else {
-    nsRect dimensions;
+    nsIntRect dimensions;
     NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), false);
 
     
@@ -1877,7 +1877,7 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
 }
 
 nsresult
-nsFrameLoader::GetWindowDimensions(nsRect& aRect)
+nsFrameLoader::GetWindowDimensions(nsIntRect& aRect)
 {
   
   nsIDocument* doc = mOwnerContent->GetDocument();
@@ -1917,7 +1917,7 @@ nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame *aIFrame)
   if (mRemoteFrame) {
     if (mRemoteBrowser) {
       nsIntSize size = aIFrame->GetSubdocumentSize();
-      nsRect dimensions;
+      nsIntRect dimensions;
       NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), NS_ERROR_FAILURE);
       mRemoteBrowser->UpdateDimensions(dimensions, size);
     }

@@ -370,7 +370,7 @@ private:
   nsresult EnsureMessageManager();
 
   
-  nsresult GetWindowDimensions(nsRect& aRect);
+  nsresult GetWindowDimensions(nsIntRect& aRect);
 
   
   
