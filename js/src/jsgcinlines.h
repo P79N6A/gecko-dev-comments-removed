@@ -368,14 +368,13 @@ class ZoneCellIter : public ZoneCellIterImpl
         if (IsBackgroundFinalized(kind) &&
             zone->allocator.arenas.needBackgroundFinalizeWait(kind))
         {
-            gc::FinishBackgroundFinalize(zone->runtimeFromMainThread());
+            zone->runtimeFromMainThread()->gc.waitBackgroundSweepEnd();
         }
 
 #ifdef JSGC_GENERATIONAL
         
         JSRuntime *rt = zone->runtimeFromMainThread();
-        if (!rt->gc.nursery.isEmpty())
-            MinorGC(rt, JS::gcreason::EVICT_NURSERY);
+        rt->gc.evictNursery();
 #endif
 
         if (lists->isSynchronizedFreeList(kind)) {
@@ -473,7 +472,7 @@ TryNewNurseryObject(JSContext *cx, size_t thingSize, size_t nDynamicSlots)
     if (obj)
         return obj;
     if (allowGC && !rt->mainThread.suppressGC) {
-        MinorGC(cx, JS::gcreason::OUT_OF_NURSERY);
+        cx->minorGC(JS::gcreason::OUT_OF_NURSERY);
 
         
         if (nursery.isEnabled()) {
@@ -547,13 +546,13 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
     if (allowGC) {
 #ifdef JS_GC_ZEAL
         if (rt->gc.needZealousGC())
-            js::gc::RunDebugGC(ncx);
+            rt->gc.runDebugGC();
 #endif
 
         if (rt->interrupt) {
             
             
-            js::gc::GCIfNeeded(ncx);
+            ncx->gcIfNeeded();
         }
     }
 
@@ -682,7 +681,7 @@ AllocateObjectForCacheHit(JSContext *cx, AllocKind kind, InitialHeap heap)
 
         JSObject *obj = TryNewNurseryObject<NoGC>(cx, thingSize, 0);
         if (!obj && allowGC) {
-            MinorGC(cx, JS::gcreason::OUT_OF_NURSERY);
+            cx->minorGC(JS::gcreason::OUT_OF_NURSERY);
             return nullptr;
         }
         return obj;
