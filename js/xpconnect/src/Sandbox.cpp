@@ -601,7 +601,7 @@ const xpc::SandboxCallableProxyHandler xpc::sandboxCallableProxyHandler;
 
 
 static JSObject*
-WrapCallable(JSContext *cx, JSObject *callable, JSObject *sandboxProtoProxy)
+WrapCallable(JSContext *cx, HandleObject callable, HandleObject sandboxProtoProxy)
 {
     MOZ_ASSERT(JS_ObjectIsCallable(cx, callable));
     
@@ -677,7 +677,7 @@ xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx,
         !BindPropertyOp(cx, desc.setter(), desc.address(), id, JSPROP_SETTER, proxy))
         return false;
     if (desc.value().isObject()) {
-        JSObject* val = &desc.value().toObject();
+        RootedObject val (cx, &desc.value().toObject());
         if (JS_ObjectIsCallable(cx, val)) {
             val = WrapCallable(cx, val, proxy);
             if (!val)
