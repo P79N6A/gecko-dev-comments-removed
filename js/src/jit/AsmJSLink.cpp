@@ -374,7 +374,7 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
     if (module.profilingEnabled() != cx->runtime()->spsProfiler.enabled() && !module.active())
-        module.setProfilingEnabled(cx->runtime()->spsProfiler.enabled());
+        module.setProfilingEnabled(cx->runtime()->spsProfiler.enabled(), cx);
 
     
     

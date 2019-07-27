@@ -1155,7 +1155,7 @@ class AsmJSModule
         JS_ASSERT(isDynamicallyLinked());
         return profilingEnabled_;
     }
-    void setProfilingEnabled(bool enabled);
+    void setProfilingEnabled(bool enabled, JSContext *cx);
 
     
     

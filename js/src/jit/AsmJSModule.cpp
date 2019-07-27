@@ -457,11 +457,11 @@ AsmJSReportOverRecursed()
     js_ReportOverRecursed(cx);
 }
 
-static void
+static bool
 AsmJSHandleExecutionInterrupt()
 {
     JSContext *cx = PerThreadData::innermostAsmJSActivation()->cx();
-    HandleExecutionInterrupt(cx);
+    return HandleExecutionInterrupt(cx);
 }
 
 static int32_t
@@ -1450,7 +1450,8 @@ AsmJSModule::deserialize(ExclusiveContext *cx, const uint8_t *cursor)
 
 
 
-class AutoUnprotectCodeForClone
+
+class AutoUnprotectCode
 {
     JSRuntime *rt_;
     JSRuntime::AutoLockForInterrupt lock_;
@@ -1458,7 +1459,7 @@ class AutoUnprotectCodeForClone
     const bool protectedBefore_;
 
   public:
-    AutoUnprotectCodeForClone(JSContext *cx, const AsmJSModule &module)
+    AutoUnprotectCode(JSContext *cx, const AsmJSModule &module)
       : rt_(cx->runtime()),
         lock_(rt_),
         module_(module),
@@ -1468,7 +1469,7 @@ class AutoUnprotectCodeForClone
             module_.unprotectCode(rt_);
     }
 
-    ~AutoUnprotectCodeForClone()
+    ~AutoUnprotectCode()
     {
         if (protectedBefore_)
             module_.protectCode(rt_);
@@ -1478,7 +1479,7 @@ class AutoUnprotectCodeForClone
 bool
 AsmJSModule::clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) const
 {
-    AutoUnprotectCodeForClone cloneGuard(cx, *this);
+    AutoUnprotectCode auc(cx, *this);
 
     *moduleOut = cx->new_<AsmJSModule>(scriptSource_, srcStart_, srcBodyStart_, pod.strict_,
                                        pod.usesSignalHandlers_);
@@ -1527,7 +1528,7 @@ AsmJSModule::clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) con
 }
 
 void
-AsmJSModule::setProfilingEnabled(bool enabled)
+AsmJSModule::setProfilingEnabled(bool enabled, JSContext *cx)
 {
     JS_ASSERT(isDynamicallyLinked());
 
@@ -1539,6 +1540,7 @@ AsmJSModule::setProfilingEnabled(bool enabled)
     setAutoFlushICacheRange();
 
     
+    AutoUnprotectCode auc(cx, *this);
 
     
     
