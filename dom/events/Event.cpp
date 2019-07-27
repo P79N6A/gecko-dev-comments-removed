@@ -695,7 +695,7 @@ Event::GetEventPopupControlState(WidgetEvent* aEvent)
       }
     }
     break;
-  case NS_INPUT_EVENT :
+  case eInputEventClass:
     
     
     
