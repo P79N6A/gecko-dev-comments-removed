@@ -9074,23 +9074,27 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
         
         RootedPlainObject templateObject(cx);
         if (constructing) {
-            templateObject = CreateThisForFunction(cx, fun, MaybeSingletonObject);
-            if (!templateObject)
+            JSObject *thisObject = CreateThisForFunction(cx, fun, MaybeSingletonObject);
+            if (!thisObject)
                 return false;
 
-            
-            
-            
-            
-            
-            if (templateObject->type()->newScript() &&
-                !templateObject->type()->newScript()->analyzed())
-            {
+            if (thisObject->is<PlainObject>()) {
+                templateObject = &thisObject->as<PlainObject>();
+
                 
                 
                 
-                templateObject->type()->newScript()->unregisterNewObject(templateObject);
-                return true;
+                
+                
+                if (templateObject->type()->newScript() &&
+                    !templateObject->type()->newScript()->analyzed())
+                {
+                    
+                    
+                    
+                    templateObject->type()->newScript()->unregisterNewObject(templateObject);
+                    return true;
+                }
             }
         }
 

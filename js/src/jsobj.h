@@ -599,6 +599,9 @@ class JSObject : public js::gc::Cell
     static size_t offsetOfType() { return offsetof(JSObject, type_); }
     js::HeapPtrTypeObject *addressOfType() { return &type_; }
 
+    
+    static const size_t MAX_BYTE_SIZE = 4 * sizeof(void *) + 16 * sizeof(JS::Value);
+
   private:
     JSObject() = delete;
     JSObject(const JSObject &other) = delete;
@@ -1154,12 +1157,12 @@ GetInitialHeap(NewObjectKind newKind, const Class *clasp)
 
 
 
-extern PlainObject *
+extern JSObject *
 CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, JSObject *proto,
                                NewObjectKind newKind = GenericObject);
 
 
-extern PlainObject *
+extern JSObject *
 CreateThisForFunction(JSContext *cx, js::HandleObject callee, NewObjectKind newKind);
 
 
