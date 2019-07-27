@@ -16,7 +16,8 @@ function testNewTarget() {
     assertError("(() => new.target))", SyntaxError);
 
     
-    assertError("function *foo() { new.target; }", SyntaxError);
+    assertStmt("function *foo() { new.target; }", genFunDecl(ident("foo"), [],
+               blockStmt([exprStmt(newTarget())])));
 
     
     
