@@ -75,7 +75,9 @@ class nsPluginHost MOZ_FINAL : public nsIPluginHost,
                                public nsITimerCallback,
                                public nsSupportsWeakReference
 {
+  friend class nsPluginTag;
   virtual ~nsPluginHost();
+
 public:
   nsPluginHost();
 
@@ -88,16 +90,26 @@ public:
   NS_DECL_NSIOBSERVER
   NS_DECL_NSITIMERCALLBACK
 
-  nsresult Init();
   nsresult LoadPlugins();
   nsresult UnloadPlugins();
 
-  nsresult SetUpPluginInstance(const char *aMimeType,
+  nsresult SetUpPluginInstance(const nsACString &aMimeType,
                                nsIURI *aURL,
                                nsPluginInstanceOwner *aOwner);
-  bool PluginExistsForType(const char* aMimeType);
 
-  nsresult IsPluginEnabledForExtension(const char* aExtension, const char* &aMimeType);
+  
+  enum PluginFilter {
+    eExcludeNone     = nsIPluginHost::EXCLUDE_NONE,
+    eExcludeDisabled = nsIPluginHost::EXCLUDE_DISABLED
+  };
+  
+  bool HavePluginForType(const nsACString & aMimeType,
+                         PluginFilter aFilter = eExcludeDisabled);
+
+  
+  bool HavePluginForExtension(const nsACString & aExtension,
+                               nsACString & aMimeType,
+                              PluginFilter aFilter = eExcludeDisabled);
 
   void GetPlugins(nsTArray<nsRefPtr<nsPluginTag> >& aPluginArray);
   void FindPluginsForContent(uint32_t aPluginEpoch,
@@ -126,35 +138,39 @@ public:
 
   nsresult FindProxyForURL(const char* url, char* *result);
   nsresult UserAgent(const char **retstring);
-  nsresult ParsePostBufferToFixHeaders(const char *inPostData, uint32_t inPostDataLen,
-                                       char **outPostData, uint32_t *outPostDataLen);
+  nsresult ParsePostBufferToFixHeaders(const char *inPostData,
+                                       uint32_t inPostDataLen,
+                                       char **outPostData,
+                                       uint32_t *outPostDataLen);
   nsresult CreateTempFileToPost(const char *aPostDataURL, nsIFile **aTmpFile);
   nsresult NewPluginNativeWindow(nsPluginNativeWindow ** aPluginNativeWindow);
 
   void AddIdleTimeTarget(nsIPluginInstanceOwner* objectFrame, bool isVisible);
   void RemoveIdleTimeTarget(nsIPluginInstanceOwner* objectFrame);
 
-  nsresult GetPluginName(nsNPAPIPluginInstance *aPluginInstance, const char** aPluginName);
+  nsresult GetPluginName(nsNPAPIPluginInstance *aPluginInstance,
+                         const char** aPluginName);
   nsresult StopPluginInstance(nsNPAPIPluginInstance* aInstance);
-  nsresult GetPluginTagForInstance(nsNPAPIPluginInstance *aPluginInstance, nsIPluginTag **aPluginTag);
+  nsresult GetPluginTagForInstance(nsNPAPIPluginInstance *aPluginInstance,
+                                   nsIPluginTag **aPluginTag);
 
   nsresult
-  NewPluginURLStream(const nsString& aURL, 
-                     nsNPAPIPluginInstance *aInstance, 
+  NewPluginURLStream(const nsString& aURL,
+                     nsNPAPIPluginInstance *aInstance,
                      nsNPAPIPluginStreamListener *aListener,
                      nsIInputStream *aPostStream = nullptr,
-                     const char *aHeadersData = nullptr, 
+                     const char *aHeadersData = nullptr,
                      uint32_t aHeadersDataLen = 0);
 
   nsresult
-  GetURLWithHeaders(nsNPAPIPluginInstance *pluginInst, 
-                    const char* url, 
+  GetURLWithHeaders(nsNPAPIPluginInstance *pluginInst,
+                    const char* url,
                     const char* target = nullptr,
                     nsNPAPIPluginStreamListener* streamListener = nullptr,
                     const char* altHost = nullptr,
                     const char* referrer = nullptr,
                     bool forceJSEnabled = false,
-                    uint32_t getHeadersLength = 0, 
+                    uint32_t getHeadersLength = 0,
                     const char* getHeaders = nullptr);
 
   nsresult
@@ -162,14 +178,10 @@ public:
                          const char* aURL);
 
   nsresult
-  AddHeadersToChannel(const char *aHeadersData, uint32_t aHeadersDataLen, 
+  AddHeadersToChannel(const char *aHeadersData, uint32_t aHeadersDataLen,
                       nsIChannel *aGenericChannel);
 
   static nsresult GetPluginTempDir(nsIFile **aDir);
-
-  
-  
-  nsresult UpdatePluginInfo(nsPluginTag* aPluginTag);
 
   
   
@@ -202,14 +214,12 @@ public:
 
   nsTArray< nsRefPtr<nsNPAPIPluginInstance> > *InstanceArray();
 
-  void DestroyRunningInstances(nsPluginTag* aPluginTag);
-
   
   nsPluginTag* FindTagForLibrary(PRLibrary* aLibrary);
 
   
   
-  nsresult InstantiatePluginInstance(const char *aMimeType, nsIURI* aURL,
+  nsresult InstantiatePluginInstance(const nsACString& aMimeType, nsIURI* aURL,
                                      nsObjectLoadingContent *aContent,
                                      nsPluginInstanceOwner** aOwner);
 
@@ -218,7 +228,7 @@ public:
 
   nsPluginTag* PluginWithId(uint32_t aId);
 
-  nsresult GetPlugin(const char *aMimeType, nsNPAPIPlugin** aPlugin);
+  nsresult GetPlugin(const nsACString &aMimeType, nsNPAPIPlugin** aPlugin);
   nsresult GetPluginForContentProcess(uint32_t aPluginId, nsNPAPIPlugin** aPlugin);
   void NotifyContentModuleDestroyed(uint32_t aPluginId);
 
@@ -231,19 +241,27 @@ public:
 private:
   friend class nsPluginUnloadRunnable;
 
-  nsresult
-  TrySetUpPluginInstance(const char *aMimeType, nsIURI *aURL, nsPluginInstanceOwner *aOwner);
+  void DestroyRunningInstances(nsPluginTag* aPluginTag);
 
+  
+  
+  void UpdatePluginInfo(nsPluginTag* aPluginTag);
+
+  nsresult TrySetUpPluginInstance(const nsACString &aMimeType, nsIURI *aURL,
+                                  nsPluginInstanceOwner *aOwner);
+
+  
   nsPluginTag*
   FindPreferredPlugin(const InfallibleTArray<nsPluginTag*>& matches);
 
   
   
-  nsPluginTag*
-  FindPluginForType(const char* aMimeType, bool aCheckEnabled);
+  nsPluginTag* FindNativePluginForType(const nsACString & aMimeType,
+                                       bool aCheckEnabled);
 
-  nsPluginTag*
-  FindPluginEnabledForExtension(const char* aExtension, const char* &aMimeType);
+  nsPluginTag* FindNativePluginForExtension(const nsACString & aExtension,
+                                             nsACString & aMimeType,
+                                            bool aCheckEnabled);
 
   nsresult
   FindStoppedPluginForURL(nsIURI* aURL, nsIPluginInstanceOwner *aOwner);
@@ -253,6 +271,7 @@ private:
   nsresult
   FindPlugins(bool aCreatePluginList, bool * aPluginsChanged);
 
+  
   
   
   enum nsRegisterType { ePluginRegister, ePluginUnregister };
@@ -287,10 +306,10 @@ private:
 
   
   bool IsLiveTag(nsIPluginTag* tag);
-  
+
   
   nsPluginTag* HaveSamePlugin(const nsPluginTag * aPluginTag);
-    
+
   
   nsPluginTag* FirstPluginWithPath(const nsCString& path);
 

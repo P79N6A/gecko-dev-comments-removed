@@ -106,8 +106,16 @@ public:
   int64_t       mLastModifiedTime;
   nsCOMPtr<nsITimer> mUnloadTimer;
 
-  uint32_t      GetBlocklistState();
   void          InvalidateBlocklistState();
+
+  
+  
+  bool          HasMimeType(const nsACString & aMimeType) const;
+  
+  
+  
+  bool          HasExtension(const nsACString & aExtension,
+                              nsACString & aMatchingType) const;
 
 private:
   virtual ~nsPluginTag();
