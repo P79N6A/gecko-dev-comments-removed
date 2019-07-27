@@ -410,9 +410,6 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
     
     
     
-    if (useCredentials) {
-      return FailWithNetworkError();
-    }
   }
 
   
