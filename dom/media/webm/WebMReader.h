@@ -187,8 +187,8 @@ public:
   int GetVideoCodec();
   nsIntRect GetPicture();
   nsIntSize GetInitialFrame();
-  uint64_t GetLastVideoFrameTime();
-  void SetLastVideoFrameTime(uint64_t aFrameTime);
+  int64_t GetLastVideoFrameTime();
+  void SetLastVideoFrameTime(int64_t aFrameTime);
   layers::LayersBackend GetLayersBackendType() { return mLayersBackendType; }
   FlushableMediaTaskQueue* GetVideoTaskQueue() { return mVideoTaskQueue; }
 
@@ -268,7 +268,7 @@ private:
 
   
   
-  uint64_t mLastVideoFrameTime;
+  int64_t mLastVideoFrameTime;
 
   
   

@@ -98,23 +98,16 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     return false;
   }
 
-  uint64_t tstamp = 0;
-  r = nestegg_packet_tstamp(packet, &tstamp);
-  if (r == -1) {
-    return false;
-  }
+  int64_t tstamp = holder->Timestamp();
 
   
   
   
   
-  uint64_t next_tstamp = 0;
+  int64_t next_tstamp = 0;
   nsRefPtr<NesteggPacketHolder> next_holder(mReader->NextPacket(WebMReader::VIDEO));
   if (next_holder) {
-    r = nestegg_packet_tstamp(next_holder->Packet(), &next_tstamp);
-    if (r == -1) {
-      return false;
-    }
+    next_tstamp = next_holder->Timestamp();
     mReader->PushVideoPacket(next_holder.forget());
   } else {
     next_tstamp = tstamp;
@@ -122,7 +115,6 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
   }
   mReader->SetLastVideoFrameTime(tstamp);
 
-  int64_t tstamp_usecs = tstamp / NS_PER_USEC;
   for (uint32_t i = 0; i < count; ++i) {
     unsigned char* data;
     size_t length;
@@ -139,7 +131,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     } else if (mReader->GetVideoCodec() == NESTEGG_CODEC_VP9) {
       vpx_codec_peek_stream_info(vpx_codec_vp9_dx(), data, length, &si);
     }
-    if (aKeyframeSkip && (!si.is_kf || tstamp_usecs < aTimeThreshold)) {
+    if (aKeyframeSkip && (!si.is_kf || tstamp < aTimeThreshold)) {
       
       a.mParsed++; 
       a.mDropped++;
@@ -157,7 +149,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     
     
     
-    if (tstamp_usecs < aTimeThreshold) {
+    if (tstamp < aTimeThreshold) {
       a.mParsed++; 
       a.mDropped++;
       continue;
@@ -208,8 +200,8 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
       nsRefPtr<VideoData> v = VideoData::Create(videoInfo,
                                                 mReader->GetDecoder()->GetImageContainer(),
                                                 holder->Offset(),
-                                                tstamp_usecs,
-                                                (next_tstamp / NS_PER_USEC) - tstamp_usecs,
+                                                tstamp,
+                                                next_tstamp - tstamp,
                                                 b,
                                                 si.is_kf,
                                                 -1,
