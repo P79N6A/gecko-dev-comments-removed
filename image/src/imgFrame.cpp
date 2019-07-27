@@ -579,9 +579,34 @@ imgFrame::GetStride() const
   return VolatileSurfaceStride(mSize, mFormat);
 }
 
+<<<<<<< found
 SurfaceFormat imgFrame::GetFormat() const
 {
+||||||| expected
+bool imgFrame::GetNeedsBackground() const
+{
+  
+=======
+bool imgFrame::GetNeedsBackground() const
+{
+  
+  if (!ImageComplete()) {
+    return true;
+  }
+
+  
+>>>>>>> replacement
+<<<<<<< found
   return mFormat;
+||||||| expected
+  return (mFormat == SurfaceFormat::B8G8R8A8 || !ImageComplete());
+=======
+  if (mFormat == SurfaceFormat::B8G8R8A8 && !mHasNoAlpha) {
+    return true;
+  }
+
+  return false;
+>>>>>>> replacement
 }
 
 uint32_t imgFrame::GetImageBytesPerRow() const
@@ -651,6 +676,16 @@ uint32_t* imgFrame::GetPaletteData() const
   uint32_t length;
   GetPaletteData(&data, &length);
   return data;
+}
+
+uint8_t*
+imgFrame::GetRawData() const
+{
+  MOZ_ASSERT(mLockCount, "Should be locked to call GetRawData()");
+  if (mPalettedImageData) {
+    return mPalettedImageData;
+  }
+  return GetImageData();
 }
 
 nsresult imgFrame::LockImageData()
