@@ -136,6 +136,14 @@
 
 
 
+
+namespace js {
+namespace jit {
+class JitCode;
+}
+}
+
+
 namespace JS {
 namespace ubi {
 
@@ -462,6 +470,7 @@ template<> struct Concrete<JSObject> : TracerConcreteWithCompartment<JSObject> {
 template<> struct Concrete<JSString> : TracerConcrete<JSString> { };
 template<> struct Concrete<JS::Symbol> : TracerConcrete<JS::Symbol> { };
 template<> struct Concrete<JSScript> : TracerConcreteWithCompartment<JSScript> { };
+template<> struct Concrete<js::jit::JitCode> : TracerConcrete<js::jit::JitCode> { };
 
 
 template<>
