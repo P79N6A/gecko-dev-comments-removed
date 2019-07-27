@@ -1211,6 +1211,9 @@ pref("security.sandbox.content.level", 0);
 #endif
 
 
+
+pref("security.sandbox.content.tempDirSuffix", "");
+
 #if defined(MOZ_STACKWALKING)
 
 
