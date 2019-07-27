@@ -17,8 +17,6 @@
 #include "nsIThread.h"
 #include "nsThreadUtils.h"
 #include "nsITimer.h"
-#include "nsClassHashtable.h"
-#include "nsDataHashtable.h"
 
 template <class> struct already_AddRefed;
 
@@ -115,14 +113,6 @@ private:
   nsCOMPtr<nsITimer> mAsyncShutdownTimeout; 
 
   nsCOMPtr<nsIFile> mStorageBaseDir;
-
-  
-  
-  nsClassHashtable<nsUint32HashKey, nsCString> mTempNodeIds;
-
-  
-  
-  nsDataHashtable<nsCStringHashKey, bool> mPersistentStorageAllowed;
 };
 
 } 
