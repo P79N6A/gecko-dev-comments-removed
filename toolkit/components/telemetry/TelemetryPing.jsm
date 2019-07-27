@@ -326,24 +326,58 @@ this.TelemetryPing = Object.freeze({
 
 
 
-   get clientID() {
+  get clientID() {
     return Impl.clientID;
-   },
+  },
 
-   
+  
 
 
-   get shutdown() {
+  get shutdown() {
     return Impl._shutdownBarrier.client;
-   },
+  },
 
-   
+  
 
 
 
-   getSessionRecorder: function() {
+  getSessionRecorder: function() {
     return Impl._sessionRecorder;
-   },
+  },
+
+  
+
+
+
+
+  promiseInitialized: function() {
+    return Impl.promiseInitialized();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  promiseArchivedPingList: function() {
+    return Impl.promiseArchivedPingList();
+  },
+
+  
+
+
+
+
+
+  promiseArchivedPingById: function(id) {
+    return Impl.promiseArchivedPingById(id);
+  },
 });
 
 let Impl = {
@@ -372,6 +406,10 @@ let Impl = {
 
   
   _pendingPingRequests: new Map(),
+
+  
+  
+  _archivedPings: null,
 
   
 
@@ -899,6 +937,9 @@ let Impl = {
     }
 
     
+    this._archivedPings = new Map();
+
+    
     
     
     
@@ -937,6 +978,9 @@ let Impl = {
           
           yield OS.File.makeDir(DATAREPORTING_PATH, {ignoreExisting: true}).catch(reportError);
           yield OS.File.makeDir(gPingsArchivePath, {ignoreExisting: true}).catch(reportError);
+
+          yield this._scanArchivedPingDirectory()
+                    .catch((e) => this._log.error("setupTelemetry - failure scanning archived ping directory", e));
         }
 
         Telemetry.asyncFetchTelemetryData(function () {});
@@ -945,7 +989,6 @@ let Impl = {
         this._delayedInitTaskDeferred.reject(e);
       } finally {
         this._delayedInitTask = null;
-        this._delayedInitTaskDeferred = null;
       }
     }.bind(this), this._testMode ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
 
@@ -1082,6 +1125,11 @@ let Impl = {
     yield OS.File.makeDir(OS.Path.dirname(filePath), { ignoreExisting: true,
                                                        from: OS.Constants.Path.profileDir });
     yield TelemetryFile.savePingToFile(aPingData, filePath, true);
+
+    this._archivedPings.set(aPingData.id, {
+      timestampCreated: creationDate.getTime(),
+      type: aPingData.type,
+    });
   }),
 
   
@@ -1096,4 +1144,152 @@ let Impl = {
       connectionsBarrier: this._connectionsBarrier.state,
     };
   },
+
+  
+
+
+
+
+
+
+
+  promiseArchivedPingList: function() {
+    this._log.trace("getArchivedPingList");
+
+    let list = [for (p of this._archivedPings) {
+      id: p[0],
+      timestampCreated: p[1].timestampCreated,
+      type: p[1].type,
+    }];
+    list.sort((a, b) => a.timestampCreated - b.timestampCreated);
+
+    return list;
+  },
+
+  
+
+
+
+  promiseArchivedPingById: function(id) {
+    this._log.trace("getArchivedPingById - id: " + id);
+    const data = this._archivedPings.get(id);
+    if (!data) {
+      this._log.trace("getArchivedPingById - no ping with id: " + id);
+      return Promise.reject(new Error("TelemetryPing.getArchivedPingById - no ping with id " + id));
+    }
+
+    const path = getArchivedPingPath(id, new Date(data.timestampCreated), data.type);
+    this._log.trace("getArchivedPingById - loading ping from: " + path);
+    return TelemetryFile.loadPingFile(path);
+  },
+
+  
+
+
+
+
+  promiseInitialized: function() {
+    return this._delayedInitTaskDeferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _getArchivedPingDataFromFileName: function(fileName) {
+    
+    let parts = fileName.split(".");
+    if (parts.length != 4) {
+      this._log.trace("_getArchivedPingDataFromFileName - should have 4 parts");
+      return null;
+    }
+
+    let [timestamp, uuid, type, extension] = parts;
+    if (extension != "json") {
+      this._log.trace("_getArchivedPingDataFromFileName - should have a 'json' extension");
+      return null;
+    }
+
+    
+    timestamp = parseInt(timestamp);
+    if (Number.isNaN(timestamp)) {
+      this._log.trace("_getArchivedPingDataFromFileName - should have a valid timestamp");
+      return null;
+    }
+
+    
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(uuid)) {
+      this._log.trace("_getArchivedPingDataFromFileName - should have a valid id");
+      return null;
+    }
+
+    
+    const typeRegex = /^[a-z0-9][a-z0-9-]+[a-z0-9]$/i;
+    if (!typeRegex.test(type)) {
+      this._log.trace("_getArchivedPingDataFromFileName - should have a valid type");
+      return null;
+    }
+
+    return {
+      timestamp: timestamp,
+      id: uuid,
+      type: type,
+    };
+  },
+
+  
+
+
+  _scanArchivedPingDirectory: Task.async(function*() {
+    this._log.trace("_scanArchivedPingDirectory");
+
+    let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
+    let subdirs = (yield dirIterator.nextBatch()).filter(e => e.isDir);
+
+    
+    for (let dir of subdirs) {
+      const dirRegEx = /^[0-9]{4}-[0-9]{2}$/;
+      if (!dirRegEx.test(dir.name)) {
+        this._log.warn("_scanArchivedPingDirectory - skipping invalidly named subdirectory " + dir.path);
+        continue;
+      }
+
+      this._log.trace("_scanArchivedPingDirectory - checking in subdir: " + dir.path);
+      let pingIterator = new OS.File.DirectoryIterator(dir.path);
+      let pings = (yield pingIterator.nextBatch()).filter(e => !e.isDir);
+
+      
+      for (let p of pings) {
+        
+        let data = this._getArchivedPingDataFromFileName(p.name);
+        if (!data) {
+          continue;
+        }
+
+        
+        if (this._archivedPings.has(data.id)) {
+          const overwrite = data.timestamp > this._archivedPings.get(data.id).timestampCreated;
+          this._log.warn("_scanArchivedPingDirectory - have seen this id before: " + data.id +
+                         ", overwrite: " + overwrite);
+          if (!overwrite) {
+            continue;
+          }
+        }
+
+        this._archivedPings.set(data.id, {
+          timestampCreated: data.timestamp,
+          type: data.type,
+        });
+      }
+    }
+  }),
 };

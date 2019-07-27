@@ -135,7 +135,7 @@ this.TelemetryFile = {
     
     
     
-    return loadPingFile(aPingPath).then(ping => {
+    return this.loadPingFile(aPingPath).then(ping => {
         
         pendingPings.push(ping);
         
@@ -276,7 +276,26 @@ this.TelemetryFile = {
   testLoadHistograms: function(file) {
     pingsLoaded = 0;
     return this.loadHistograms(file.path);
-  }
+  },
+
+  
+
+
+
+
+
+  loadPingFile: Task.async(function* (aFilePath) {
+    let array = yield OS.File.read(aFilePath);
+    let decoder = new TextDecoder();
+    let string = decoder.decode(array);
+
+    let ping = JSON.parse(string);
+    
+    if (typeof(ping.payload) == "string") {
+      ping.payload = JSON.parse(ping.payload);
+    }
+    return ping;
+  }),
 };
 
 
@@ -299,32 +318,13 @@ function getPingDirectory() {
   });
 }
 
-
-
-
-
-
-
-let loadPingFile = Task.async(function* (aFilePath) {
-  let array = yield OS.File.read(aFilePath);
-  let decoder = new TextDecoder();
-  let string = decoder.decode(array);
-
-  let ping = JSON.parse(string);
-  
-  if (typeof(ping.payload) == "string") {
-    ping.payload = JSON.parse(ping.payload);
-  }
-  return ping;
-});
-
 function addToPendingPings(file) {
   function onLoad(success) {
     let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
     success_histogram.add(success);
   }
 
-  return loadPingFile(file).then(ping => {
+  return TelemetryFile.loadPingFile(file).then(ping => {
       pendingPings.push(ping);
       onLoad(true);
     },
