@@ -95,6 +95,7 @@ public:
 
 
 
+
   int32_t MoveToNewPosition();
   int32_t GetIncrement() { return mIncrement; }
 
