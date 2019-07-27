@@ -1077,6 +1077,10 @@ SpecialPowersAPI.prototype = {
     this.pushPrefEnv({set: [['dom.mozApps.auto_confirm_install', true]]}, cb);
   },
 
+  autoConfirmAppUninstall: function(cb) {
+    this.pushPrefEnv({set: [['dom.mozApps.auto_confirm_uninstall', true]]}, cb);
+  },
+
   
   
   setAllAppsLaunchable: function(launchable) {
