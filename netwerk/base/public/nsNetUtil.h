@@ -2399,26 +2399,4 @@ NS_IsSrcdocChannel(nsIChannel *aChannel)
   return false;
 }
 
-
-
-
-inline uint32_t
-NS_Get32BitsOfPseudoRandom()
-{
-    
-    
-
-    PR_STATIC_ASSERT(RAND_MAX >= 0xfff);
-
-#if RAND_MAX < 0xffffU
-    return ((uint16_t) rand() << 20) |
-            (((uint16_t) rand() & 0xfff) << 8) |
-            ((uint16_t) rand() & 0xff);
-#elif RAND_MAX < 0xffffffffU
-    return ((uint16_t) rand() << 16) | ((uint16_t) rand() & 0xffff);
-#else
-    return (uint32_t) rand();
-#endif
-}
-
 #endif 

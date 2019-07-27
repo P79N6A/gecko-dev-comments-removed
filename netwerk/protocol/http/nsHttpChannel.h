@@ -19,7 +19,6 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIThreadRetargetableRequest.h"
 #include "nsIThreadRetargetableStreamListener.h"
-#include "nsINetworkZonePolicy.h"
 #include "nsWeakReference.h"
 #include "TimingStruct.h"
 #include "AutoClose.h"
@@ -422,12 +421,6 @@ protected:
 
 private: 
     bool mDidReval;
-
-    
-    uint64_t mPrivateNetworkID;
-
-    
-    nsCOMPtr<nsINetworkZonePolicy> mNZP;
 };
 
 } } 

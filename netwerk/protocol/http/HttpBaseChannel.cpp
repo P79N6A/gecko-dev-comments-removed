@@ -76,9 +76,7 @@ HttpBaseChannel::HttpBaseChannel()
 
   
   mSelfAddr.raw.family = PR_AF_UNSPEC;
-  memset(&mSelfAddr, 0, sizeof(mSelfAddr.raw.data));
   mPeerAddr.raw.family = PR_AF_UNSPEC;
-  memset(&mPeerAddr, 0, sizeof(mPeerAddr.raw.data));
 }
 
 HttpBaseChannel::~HttpBaseChannel()
