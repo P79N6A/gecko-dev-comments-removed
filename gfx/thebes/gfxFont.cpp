@@ -3403,14 +3403,19 @@ gfxFont::CreateVerticalMetrics()
         
         if (len >= offsetof(OS2Table, sTypoLineGap) + sizeof(int16_t)) {
             SET_SIGNED(strikeoutSize, os2->yStrikeoutSize);
-            SET_SIGNED(aveCharWidth, int16_t(os2->sTypoAscender) -
-                                     int16_t(os2->sTypoDescender));
-            metrics->maxAscent =
-                std::max(metrics->maxAscent, int16_t(os2->xAvgCharWidth) *
-                                             gfxFloat(mFUnitsConvFactor));
-            metrics->maxDescent =
-                std::max(metrics->maxDescent, int16_t(os2->xAvgCharWidth) *
-                                              gfxFloat(mFUnitsConvFactor));
+            
+            
+            gfxFloat ascentDescent = gfxFloat(mFUnitsConvFactor) *
+                (int16_t(os2->sTypoAscender) - int16_t(os2->sTypoDescender));
+            metrics->aveCharWidth =
+                std::max(metrics->emHeight, ascentDescent);
+            
+            
+            
+            gfxFloat halfCharWidth =
+                int16_t(os2->xAvgCharWidth) * gfxFloat(mFUnitsConvFactor) / 2;
+            metrics->maxAscent = std::max(metrics->maxAscent, halfCharWidth);
+            metrics->maxDescent = std::max(metrics->maxDescent, halfCharWidth);
         }
     }
 
