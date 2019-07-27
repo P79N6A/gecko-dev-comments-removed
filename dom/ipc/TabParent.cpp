@@ -338,16 +338,23 @@ TabParent::SetOwnerElement(Element* aElement)
 
   
   mFrameElement = aElement;
-  if (mFrameElement && mFrameElement->OwnerDoc()->GetWindow()) {
-    nsCOMPtr<nsPIDOMWindow> window = mFrameElement->OwnerDoc()->GetWindow();
-    nsCOMPtr<EventTarget> eventTarget = window->GetTopWindowRoot();
-    if (eventTarget) {
-      eventTarget->AddEventListener(NS_LITERAL_STRING("MozUpdateWindowPos"),
-                                    this, false, false);
+
+  AddWindowListeners();
+  TryCacheDPIAndScale();
+}
+
+void
+TabParent::AddWindowListeners()
+{
+  if (mFrameElement && mFrameElement->OwnerDoc()) {
+    if (nsCOMPtr<nsPIDOMWindow> window = mFrameElement->OwnerDoc()->GetWindow()) {
+      nsCOMPtr<EventTarget> eventTarget = window->GetTopWindowRoot();
+      if (eventTarget) {
+        eventTarget->AddEventListener(NS_LITERAL_STRING("MozUpdateWindowPos"),
+                                      this, false, false);
+      }
     }
   }
-
-  TryCacheDPIAndScale();
 }
 
 void
