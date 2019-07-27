@@ -1362,7 +1362,8 @@ PurgeScopeChainHelper(ExclusiveContext *cx, HandleObject objArg, HandleId id)
     if (JSID_IS_INT(id))
         return true;
 
-    PurgeProtoChain(cx, obj->getProto(), id);
+    if (!PurgeProtoChain(cx, obj->getProto(), id))
+        return false;
 
     
 
@@ -1387,7 +1388,7 @@ PurgeScopeChainHelper(ExclusiveContext *cx, HandleObject objArg, HandleId id)
 
 
 static inline bool
-PurgeScopeChain(ExclusiveContext *cx, JS::HandleObject obj, JS::HandleId id)
+PurgeScopeChain(ExclusiveContext *cx, HandleObject obj, HandleId id)
 {
     if (obj->isDelegate() && obj->isNative())
         return PurgeScopeChainHelper(cx, obj, id);
