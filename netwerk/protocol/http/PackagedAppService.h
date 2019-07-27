@@ -14,6 +14,8 @@
 namespace mozilla {
 namespace net {
 
+class nsHttpResponseHead;
+
 
 
 
@@ -85,6 +87,10 @@ private:
     
     
     nsresult CopySecurityInfo(nsIChannel *aChannel);
+
+    
+    static nsresult CopyHeadersFromChannel(nsIChannel *aChannel,
+                                           nsHttpResponseHead *aHead);
 
     
     
