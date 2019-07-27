@@ -3,9 +3,10 @@
 
 
 
-const { addDebuggerToGlobal } = Cu.import("resource://gre/modules/jsdebugger.jsm", {});
-var Debugger;
-addDebuggerToGlobal(this);
+if (typeof Debugger != "function") {
+  const { addDebuggerToGlobal } = Cu.import("resource://gre/modules/jsdebugger.jsm", {});
+  addDebuggerToGlobal(this);
+}
 
 function run_test() {
   const filePath = getFilePath("core-dump.tmp", true, true);
