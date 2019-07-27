@@ -102,3 +102,17 @@ function LegacyGeneratorClose() {
 
     callFunction(LegacyGeneratorCloseInternal, this);
 }
+
+function InterpretGeneratorResume(gen, val, kind) {
+    
+    
+    
+    
+    forceInterpreter();
+    if (kind === "next")
+       return resumeGenerator(gen, val, "next");
+    if (kind === "throw")
+       return resumeGenerator(gen, val, "throw");
+    assert(kind === "close", "Invalid resume kind");
+    return resumeGenerator(gen, val, "close");
+}
