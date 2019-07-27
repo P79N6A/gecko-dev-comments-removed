@@ -66,3 +66,12 @@ NS_DestroyXPTCallStub(nsISomeInterface* aStub)
     nsXPTCStubBase* stub = static_cast<nsXPTCStubBase*>(aStub);
     delete(stub);
 }
+
+EXPORT_XPCOM_API(size_t)
+NS_SizeOfIncludingThisXPTCallStub(const nsISomeInterface* aStub,
+                                  mozilla::MallocSizeOf aMallocSizeOf)
+{
+    
+    
+    return aMallocSizeOf(aStub);
+}

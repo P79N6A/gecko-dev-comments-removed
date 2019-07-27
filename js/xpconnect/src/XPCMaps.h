@@ -74,6 +74,10 @@ public:
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
+    
+    
+    size_t SizeOfWrappedJS(mozilla::MallocSizeOf mallocSizeOf) const;
+
 private:
     JSObject2WrappedJSMap() {}
 

@@ -552,6 +552,25 @@ nsXPCWrappedJS::SystemIsBeingShutDown()
         mNext->SystemIsBeingShutDown();
 }
 
+size_t
+nsXPCWrappedJS::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+    
+    
+    
+    
+    size_t n = mallocSizeOf(this);
+    n += nsAutoXPTCStub::SizeOfExcludingThis(mallocSizeOf);
+
+    
+    
+    
+    if (mNext)
+        n += mNext->SizeOfIncludingThis(mallocSizeOf);
+
+    return n;
+}
+
 
 
 
