@@ -654,61 +654,6 @@ var gTestFilesPartialSuccess = [
 
 gTestFilesPartialSuccess = gTestFilesPartialSuccess.concat(gTestFilesCommon);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var gTestDirsCommon = [
 {
   relPathDir   : DIR_RESOURCES + "3/",
@@ -1111,6 +1056,21 @@ function setTestFilesAndDirsForFailure() {
     }
   });
 }
+
+
+
+
+
+function preventDistributionFiles() {
+  gTestFiles = gTestFiles.filter(function(aTestFile) {
+    return aTestFile.relPathDir.indexOf("distribution/") == -1;
+  });
+
+  gTestDirs = gTestDirs.filter(function(aTestDir) {
+    return aTestDir.relPathDir.indexOf("distribution/") == -1;
+  });
+}
+
 
 
 
@@ -2387,7 +2347,10 @@ function createUpdaterINI(aIsExeAsync) {
 
 
 
-function checkUpdateLogContents(aCompareLogFile) {
+
+
+
+function checkUpdateLogContents(aCompareLogFile, aExcludeDistributionDir) {
   if (IS_UNIX && !IS_MACOSX) {
     
     return;
@@ -2422,16 +2385,14 @@ function checkUpdateLogContents(aCompareLogFile) {
   updateLogContents = updateLogContents.replace(/WORKING DIRECTORY.*/g, "");
   
   updateLogContents = updateLogContents.replace(/NS_main: callback app file .*/g, "");
+  if (IS_MACOSX) {
+    
+    updateLogContents = updateLogContents.replace(/Moving old [^\n]*\nrename_file: .*/g, "");
+    updateLogContents = updateLogContents.replace(/New distribution directory .*/g, "");
+  }
   if (gSwitchApp) {
     
     updateLogContents = updateLogContents.replace(/^Begin moving.*$/mg, "");
-    if (IS_MACOSX) {
-      
-      
-      updateLogContents = updateLogContents.replace(/\n/g, "%%%EOL%%%");
-      updateLogContents = updateLogContents.replace(/Moving the precomplete file.*Finished moving the precomplete file/, "");
-      updateLogContents = updateLogContents.replace(/%%%EOL%%%/g, "\n");
-    }
   }
   updateLogContents = updateLogContents.replace(/\r/g, "");
   
@@ -2467,6 +2428,9 @@ function checkUpdateLogContents(aCompareLogFile) {
       gTestFiles[gTestFiles.length - 2].fileName == FILE_UPDATE_SETTINGS_INI &&
       !gTestFiles[gTestFiles.length - 2].originalContents) {
     compareLogContents = compareLogContents.replace(/.*update-settings.ini.*/g, "");
+  }
+  if (aExcludeDistributionDir) {
+    compareLogContents = compareLogContents.replace(/.*distribution\/.*/g, "");
   }
   
   compareLogContents = compareLogContents.replace(/\n+/g, "\n");
