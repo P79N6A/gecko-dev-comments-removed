@@ -397,6 +397,9 @@ protected:
         pJmp32 = nBytes;
         
         nBytes += 5;
+      } else if (origBytes[nBytes] == 0xff && origBytes[nBytes + 1] == 0x25) {
+        
+        nBytes += 6;
       } else {
         
         return;
