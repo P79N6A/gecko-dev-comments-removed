@@ -430,9 +430,6 @@ function checkSystemSection(data) {
     }
   }
 
-  Assert.equal(typeof gfxData.features, "object");
-  Assert.equal(typeof gfxData.features.compositor, "string");
-
   try {
     
     
@@ -442,9 +439,6 @@ function checkSystemSection(data) {
       Assert.equal(GFX_VENDOR_ID, gfxData.adapters[0].vendorID);
       Assert.equal(GFX_DEVICE_ID, gfxData.adapters[0].deviceID);
     }
-
-    let features = gfxInfo.getFeatures();
-    Assert.equal(features.compositor, gfxData.features.compositor);
   }
   catch (e) {}
 }
@@ -1103,6 +1097,15 @@ add_task(function* test_defaultSearchEngine() {
   data = TelemetryEnvironment.currentEnvironment;
   checkEnvironmentData(data);
   Assert.equal(data.settings.defaultSearchEngine, EXPECTED_SEARCH_ENGINE);
+
+  
+  Assert.equal(data.settings.searchCohort, undefined);
+
+  
+  Services.prefs.setCharPref("browser.search.cohort", "testcohort");
+  Services.obs.notifyObservers(null, "browser-search-service", "init-complete");
+  data = TelemetryEnvironment.currentEnvironment;
+  Assert.equal(data.settings.searchCohort, "testcohort");
 });
 
 add_task(function*() {

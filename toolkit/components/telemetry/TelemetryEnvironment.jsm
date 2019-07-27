@@ -153,11 +153,11 @@ const PREF_PARTNER_ID = "mozilla.partner.id";
 const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 const PREF_UPDATE_ENABLED = "app.update.enabled";
 const PREF_UPDATE_AUTODOWNLOAD = "app.update.auto";
+const PREF_SEARCH_COHORT = "browser.search.cohort";
 
 const EXPERIMENTS_CHANGED_TOPIC = "experiments-changed";
 const SEARCH_ENGINE_MODIFIED_TOPIC = "browser-search-engine-modified";
 const SEARCH_SERVICE_TOPIC = "browser-search-service";
-const COMPOSITOR_CREATED_TOPIC = "compositor:created";
 
 
 
@@ -810,14 +810,12 @@ EnvironmentCache.prototype = {
     
     Services.obs.addObserver(this, SEARCH_ENGINE_MODIFIED_TOPIC, false);
     Services.obs.addObserver(this, SEARCH_SERVICE_TOPIC, false);
-    Services.obs.addObserver(this, COMPOSITOR_CREATED_TOPIC, false);
   },
 
   _removeObservers: function () {
     
     Services.obs.removeObserver(this, SEARCH_ENGINE_MODIFIED_TOPIC);
     Services.obs.removeObserver(this, SEARCH_SERVICE_TOPIC);
-    Services.obs.removeObserver(this, COMPOSITOR_CREATED_TOPIC);
   },
 
   observe: function (aSubject, aTopic, aData) {
@@ -836,12 +834,6 @@ EnvironmentCache.prototype = {
         }
         
         this._updateSearchEngine();
-        break;
-      case COMPOSITOR_CREATED_TOPIC:
-        
-        
-        
-        this._onCompositorCreated();
         break;
     }
   },
@@ -891,6 +883,10 @@ EnvironmentCache.prototype = {
     this._currentEnvironment.settings.defaultSearchEngine = this._getDefaultSearchEngine();
     this._currentEnvironment.settings.defaultSearchEngineData =
       Services.search.getDefaultEngineInfo();
+
+    
+    if (Services.prefs.prefHasUserValue(PREF_SEARCH_COHORT))
+      this._currentEnvironment.settings.searchCohort = Services.prefs.getCharPref(PREF_SEARCH_COHORT);
   },
 
   
@@ -903,19 +899,6 @@ EnvironmentCache.prototype = {
     let oldEnvironment = Cu.cloneInto(this._currentEnvironment, myScope);
     this._updateSearchEngine();
     this._onEnvironmentChange("search-engine-changed", oldEnvironment);
-  },
-
-  
-
-
-  _onCompositorCreated: function () {
-    let gfxData = this._currentEnvironment.system.gfx;
-    try {
-      let gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
-      gfxData.features = gfxInfo.getFeatures();
-    } catch (e) {
-      this._log.error("nsIGfxInfo.getFeatures() caught error", e);
-    }
   },
 
   
@@ -1150,7 +1133,6 @@ EnvironmentCache.prototype = {
       
       adapters: [],
       monitors: [],
-      features: {},
     };
 
 #if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_WIDGET_GTK)
@@ -1161,13 +1143,6 @@ EnvironmentCache.prototype = {
       this._log.error("nsIGfxInfo.getMonitors() caught error", e);
     }
 #endif
-
-    try {
-      let gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
-      gfxData.features = gfxInfo.getFeatures();
-    } catch (e) {
-      this._log.error("nsIGfxInfo.getFeatures() caught error", e);
-    }
 
     
     gfxData.adapters.push(getGfxAdapter(""));
