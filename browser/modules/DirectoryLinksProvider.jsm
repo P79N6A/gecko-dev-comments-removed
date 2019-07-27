@@ -61,6 +61,9 @@ const DIRECTORY_FRECENCY = 1000;
 const SUGGESTED_FRECENCY = Infinity;
 
 
+const DEFAULT_FREQUENCY_CAP = 5;
+
+
 const PING_SCORE_DIVISOR = 10000;
 
 
@@ -87,6 +90,11 @@ let DirectoryLinksProvider = {
 
 
   _enhancedLinks: new Map(),
+
+  
+
+
+  _frequencyCaps: new Map(),
 
   
 
@@ -325,6 +333,23 @@ let DirectoryLinksProvider = {
 
 
   reportSitesAction: function DirectoryLinksProvider_reportSitesAction(sites, action, triggeringSiteIndex) {
+    
+    if (action == "view") {
+      sites.slice(0, triggeringSiteIndex + 1).forEach(site => {
+        let {targetedSite, url} = site.link;
+        if (targetedSite) {
+          this._decreaseFrequencyCap(url, 1);
+        }
+      });
+    }
+    
+    else if (action == "click") {
+      let {targetedSite, url} = sites[triggeringSiteIndex].link;
+      if (targetedSite) {
+        this._decreaseFrequencyCap(url, DEFAULT_FREQUENCY_CAP);
+      }
+    }
+
     let newtabEnhanced = false;
     let pingEndPoint = "";
     try {
@@ -415,6 +440,7 @@ let DirectoryLinksProvider = {
     this._readDirectoryLinksFile().then(rawLinks => {
       
       this._enhancedLinks.clear();
+      this._frequencyCaps.clear();
       this._suggestedLinks.clear();
 
       let validityFilter = function(link) {
@@ -438,13 +464,19 @@ let DirectoryLinksProvider = {
         
         
         this._cacheSuggestedLinks(link);
+        this._frequencyCaps.set(link.url, DEFAULT_FREQUENCY_CAP);
       });
 
-      return rawLinks.directory.filter(validityFilter).map((link, position) => {
+      let links = rawLinks.directory.filter(validityFilter).map((link, position) => {
         setCommonProperties(link, rawLinks.directory.length, position);
         link.frecency = DIRECTORY_FRECENCY;
         return link;
       });
+
+      
+      this.maxNumLinks = links.length + 1;
+
+      return links;
     }).catch(ex => {
       Cu.reportError(ex);
       return [];
@@ -534,6 +566,21 @@ let DirectoryLinksProvider = {
 
 
 
+  _decreaseFrequencyCap(url, amount) {
+    let remainingViews = this._frequencyCaps.get(url) - amount;
+    this._frequencyCaps.set(url, remainingViews);
+
+    
+    if (remainingViews <= 0) {
+      this._updateSuggestedTile();
+    }
+  },
+
+  
+
+
+
+
 
   _updateSuggestedTile: function() {
     let sortedLinks = NewTabUtils.getProviderLinks(this);
@@ -546,13 +593,12 @@ let DirectoryLinksProvider = {
 
     
     let initialLength = sortedLinks.length;
-    this.maxNumLinks = initialLength;
     if (initialLength) {
       let mostFrecentLink = sortedLinks[0];
       if (mostFrecentLink.targetedSite) {
         this._callObservers("onLinkChanged", {
           url: mostFrecentLink.url,
-          frecency: 0,
+          frecency: SUGGESTED_FRECENCY,
           lastVisitDate: mostFrecentLink.lastVisitDate,
           type: mostFrecentLink.type,
         }, 0, true);
@@ -574,6 +620,11 @@ let DirectoryLinksProvider = {
     this._topSitesWithSuggestedLinks.forEach(topSiteWithSuggestedLink => {
       let suggestedLinksMap = this._suggestedLinks.get(topSiteWithSuggestedLink);
       suggestedLinksMap.forEach((suggestedLink, url) => {
+        
+        if (this._frequencyCaps.get(url) <= 0) {
+          return;
+        }
+
         possibleLinks.set(url, suggestedLink);
 
         
@@ -584,10 +635,17 @@ let DirectoryLinksProvider = {
         targetedSites.get(url).push(topSiteWithSuggestedLink);
       })
     });
+
+    
+    let numLinks = possibleLinks.size;
+    if (numLinks == 0) {
+      return;
+    }
+
     let flattenedLinks = [...possibleLinks.values()];
 
     
-    let suggestedIndex = Math.floor(Math.random() * flattenedLinks.length);
+    let suggestedIndex = Math.floor(Math.random() * numLinks);
     let chosenSuggestedLink = flattenedLinks[suggestedIndex];
 
     
@@ -624,11 +682,11 @@ let DirectoryLinksProvider = {
     this._observers.delete(aObserver);
   },
 
-  _callObservers: function DirectoryLinksProvider__callObservers(aMethodName, aArg) {
+  _callObservers(methodName, ...args) {
     for (let obs of this._observers) {
-      if (typeof(obs[aMethodName]) == "function") {
+      if (typeof(obs[methodName]) == "function") {
         try {
-          obs[aMethodName](this, aArg);
+          obs[methodName](this, ...args);
         } catch (err) {
           Cu.reportError(err);
         }
