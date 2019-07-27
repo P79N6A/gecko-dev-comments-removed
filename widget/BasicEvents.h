@@ -57,7 +57,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
   eFormEventClass,                   
   eFocusEventClass,                  
   eClipboardEventClass,              
-  NS_TRANSITION_EVENT,               
+  eTransitionEventClass,             
   NS_ANIMATION_EVENT,                
   NS_SVGZOOM_EVENT,                  
   NS_SMIL_TIME_EVENT,                
