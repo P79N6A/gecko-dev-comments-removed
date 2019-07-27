@@ -24,6 +24,11 @@
 #include "SourceBufferList.h"
 #include "VideoUtils.h"
 
+#ifdef MOZ_FMP4
+#include "MP4Decoder.h"
+#include "MP4Reader.h"
+#endif
+
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaSourceLog;
 #define MSE_DEBUG(...) PR_LOG(gMediaSourceLog, PR_LOG_DEBUG, (__VA_ARGS__))
@@ -418,6 +423,23 @@ MediaSourceReader::InitializePendingDecoders()
   mDecoder->NotifyWaitingForResourcesStatusChanged();
 }
 
+MediaDecoderReader*
+CreateReaderForType(const nsACString& aType, AbstractMediaDecoder* aDecoder)
+{
+#ifdef MOZ_FMP4
+  
+  
+  
+  
+  if ((aType.LowerCaseEqualsLiteral("video/mp4") ||
+       aType.LowerCaseEqualsLiteral("audio/mp4")) &&
+      MP4Decoder::IsEnabled()) {
+    return new MP4Reader(aDecoder);
+  }
+#endif
+  return DecoderTraits::CreateReader(aType, aDecoder);
+}
+
 already_AddRefed<SubBufferDecoder>
 MediaSourceReader::CreateSubDecoder(const nsACString& aType,
                                     MediaSourceDecoder* aParentDecoder,
@@ -426,7 +448,7 @@ MediaSourceReader::CreateSubDecoder(const nsACString& aType,
   
   nsRefPtr<SubBufferDecoder> decoder =
     new SubBufferDecoder(new SourceBufferResource(nullptr, aType), aParentDecoder);
-  nsRefPtr<MediaDecoderReader> reader(DecoderTraits::CreateReader(aType, decoder));
+  nsRefPtr<MediaDecoderReader> reader(CreateReaderForType(aType, decoder));
   if (!reader) {
     return nullptr;
   }
