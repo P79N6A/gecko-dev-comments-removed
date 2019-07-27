@@ -677,11 +677,22 @@ void MediaDecoder::QueueMetadata(int64_t aPublishTime,
 }
 
 bool
-MediaDecoder::IsDataCachedToEndOfResource()
+MediaDecoder::IsExpectingMoreData()
 {
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  return (mResource &&
-          mResource->IsDataCachedToEndOfResource(mDecoderPosition));
+
+  
+  if (!mResource) {
+    return true;
+  }
+
+  
+  if (mResource->IsDataCachedToEndOfResource(mDecoderPosition)) {
+    return false;
+  }
+
+  
+  return !mResource->IsSuspended();
 }
 
 void MediaDecoder::MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
