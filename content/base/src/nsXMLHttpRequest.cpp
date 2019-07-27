@@ -1735,16 +1735,16 @@ nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
     channelPolicy->SetLoadType(nsIContentPolicy::TYPE_XMLHTTPREQUEST);
   }
 
-  nsCOMPtr<nsIPrincipal> documentPrincipal;
+  nsSecurityFlags secFlags = nsILoadInfo::SEC_NORMAL;
   if (IsSystemXHR()) {
     
     
     
     
-    documentPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    secFlags |= nsILoadInfo::SEC_SANDBOXED;
   } else {
-    documentPrincipal = mPrincipal;
+    secFlags |= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;
   }
 
   
@@ -1752,7 +1752,7 @@ nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
     rv = NS_NewChannel(getter_AddRefs(mChannel),
                        uri,
                        doc,
-                       nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                       secFlags,
                        nsIContentPolicy::TYPE_XMLHTTPREQUEST,
                        channelPolicy,
                        loadGroup,
@@ -1762,8 +1762,8 @@ nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
     
     rv = NS_NewChannel(getter_AddRefs(mChannel),
                        uri,
-                       documentPrincipal,
-                       nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                       mPrincipal,
+                       secFlags,
                        nsIContentPolicy::TYPE_XMLHTTPREQUEST,
                        channelPolicy,
                        loadGroup,
@@ -1987,19 +1987,6 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
   NS_ENSURE_TRUE(channel, NS_ERROR_UNEXPECTED);
 
-  nsCOMPtr<nsIPrincipal> documentPrincipal;
-  if (IsSystemXHR()) {
-    
-    
-    
-    
-    nsresult rv;
-    documentPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    documentPrincipal = mPrincipal;
-  }
-
   nsresult status;
   request->GetStatus(&status);
   mErrorLoad = mErrorLoad || NS_FAILED(status);
@@ -2138,20 +2125,22 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     }
 
     
-    
-    
-    
     const nsAString& emptyStr = EmptyString();
     nsCOMPtr<nsIDOMDocument> responseDoc;
     nsIGlobalObject* global = DOMEventTargetHelper::GetParentObject();
+
+    nsCOMPtr<nsIPrincipal> requestingPrincipal;
+    rv = nsContentUtils::GetSecurityManager()->
+       GetChannelResultPrincipal(channel, getter_AddRefs(requestingPrincipal));
+    NS_ENSURE_SUCCESS(rv, rv);
+
     rv = NS_NewDOMDocument(getter_AddRefs(responseDoc),
                            emptyStr, emptyStr, nullptr, docURI,
-                           baseURI, mPrincipal, true, global,
+                           baseURI, requestingPrincipal, true, global,
                            mIsHtml ? DocumentFlavorHTML :
                                      DocumentFlavorLegacyGuess);
     NS_ENSURE_SUCCESS(rv, rv);
     mResponseXML = do_QueryInterface(responseDoc);
-    mResponseXML->SetPrincipal(documentPrincipal);
     mResponseXML->SetChromeXHRDocURI(chromeXHRDocURI);
     mResponseXML->SetChromeXHRDocBaseURI(chromeXHRDocBaseURI);
 
