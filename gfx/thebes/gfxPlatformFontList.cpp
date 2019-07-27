@@ -199,6 +199,13 @@ gfxPlatformFontList::~gfxPlatformFontList()
 nsresult
 gfxPlatformFontList::InitFontList()
 {
+    
+    gfxFontCache *fontCache = gfxFontCache::GetCache();
+    if (fontCache) {
+        fontCache->AgeAllGenerations();
+        fontCache->FlushShapedWordCaches();
+    }
+
     mFontFamilies.Clear();
     mOtherFamilyNames.Clear();
     mOtherFamilyNamesInitialized = false;
