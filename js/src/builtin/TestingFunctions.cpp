@@ -1245,11 +1245,8 @@ ReadSPSProfilingStack(JSContext *cx, unsigned argc, jsval *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     args.rval().setUndefined();
 
-    
-    if (!cx->runtime()->spsProfiler.enabled()) {
+    if (!cx->runtime()->spsProfiler.enabled())
         args.rval().setBoolean(false);
-        return true;
-    }
 
     
     RootedObject stack(cx, NewDenseEmptyArray(cx));
