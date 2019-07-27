@@ -1881,6 +1881,9 @@ struct DelayedDeleteContentParentTask : public nsRunnable
 void
 ContentParent::ActorDestroy(ActorDestroyReason why)
 {
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ChildShutdownState"),
+                                       NS_LITERAL_CSTRING("ActorDestroy"));
+
     if (mForceKillTimer) {
         mForceKillTimer->Cancel();
         mForceKillTimer = nullptr;
@@ -2042,6 +2045,12 @@ ContentParent::NotifyTabDestroying(PBrowserParent* aTab)
     StartForceKillTimer();
 }
 
+static int32_t
+ForceKillTimeout()
+{
+    return Preferences::GetInt("dom.ipc.tabs.shutdownTimeoutSecs", 5);
+}
+
 void
 ContentParent::StartForceKillTimer()
 {
@@ -2049,8 +2058,7 @@ ContentParent::StartForceKillTimer()
         return;
     }
 
-    int32_t timeoutSecs =
-        Preferences::GetInt("dom.ipc.tabs.shutdownTimeoutSecs", 5);
+    int32_t timeoutSecs = ForceKillTimeout();
     if (timeoutSecs > 0) {
         mForceKillTimer = do_CreateInstance("@mozilla.org/timer;1");
         MOZ_ASSERT(mForceKillTimer);
@@ -2882,13 +2890,25 @@ ContentParent::Observe(nsISupports* aSubject,
 {
     if (mSubprocess && (!strcmp(aTopic, "profile-before-change") ||
                         !strcmp(aTopic, "xpcom-shutdown"))) {
+        CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ChildShutdownState"),
+                                           NS_LITERAL_CSTRING("Begin"));
+
         
         ShutDownProcess(SEND_SHUTDOWN_MESSAGE);
+
+        int32_t timeout = ForceKillTimeout();
+
+        
+        MOZ_RELEASE_ASSERT(!timeout || !mIPCOpen || mCalledKillHard || mForceKillTimer);
 
         
         
         
         while (mIPCOpen) {
+            
+            
+            
+            MOZ_RELEASE_ASSERT(!timeout || mCalledKillHard || mForceKillTimer);
             NS_ProcessNextEvent(nullptr, true);
         }
         NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
@@ -3335,6 +3355,9 @@ ContentParent::ForceKillTimerCallback(nsITimer* aTimer, void* aClosure)
 void
 ContentParent::KillHard(const char* aReason)
 {
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ChildShutdownState"),
+                                       NS_LITERAL_CSTRING("KillHard"));
+
     
     
     
