@@ -35,6 +35,24 @@ from tempfile import (
 )
 
 
+
+if platform.system() != 'Windows':
+    _copyfile = shutil.copyfile
+else:
+    import ctypes
+    _kernel32 = ctypes.windll.kernel32
+    _CopyFileA = _kernel32.CopyFileA
+    _CopyFileW = _kernel32.CopyFileW
+
+    def _copyfile(src, dest):
+        
+        if isinstance(src, unicode) and isinstance(dest, unicode):
+            _CopyFileW(src, dest, False)
+        elif isinstance(src, str) and isinstance(dest, str):
+            _CopyFileA(src, dest, False)
+        else:
+            raise TypeError('mismatched path types!')
+
 class Dest(object):
     '''
     Helper interface for BaseFile.copy. The interface works as follows:
@@ -135,7 +153,8 @@ class BaseFile(object):
 
         if can_skip_content_check:
             if getattr(self, 'path', None) and getattr(dest, 'path', None):
-                shutil.copy2(self.path, dest.path)
+                _copyfile(self.path, dest.path)
+                shutil.copystat(self.path, dest.path)
             else:
                 
                 if not dest.exists():
