@@ -72,10 +72,20 @@ NS_IMPL_ISUPPORTS(RemoteOpenFileChild,
 
 RemoteOpenFileChild::RemoteOpenFileChild(const RemoteOpenFileChild& other)
   : mTabChild(other.mTabChild)
-  , mNSPRFileDesc(other.mNSPRFileDesc)
+  , mNSPRFileDesc(nullptr)
   , mAsyncOpenCalled(other.mAsyncOpenCalled)
-  , mNSPROpenCalled(other.mNSPROpenCalled)
 {
+#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
+  
+  
+  MOZ_ASSERT(!other.mNSPRFileDesc);
+#else
+  if (other.mNSPRFileDesc) {
+    PROsfd osfd = dup(PR_FileDesc2NativeHandle(other.mNSPRFileDesc));
+    mNSPRFileDesc = PR_ImportFile(osfd);
+  }
+#endif
+
   
   other.mURI->Clone(getter_AddRefs(mURI));
   if (other.mAppURI) {
@@ -123,8 +133,6 @@ RemoteOpenFileChild::~RemoteOpenFileChild()
   }
 
   if (mNSPRFileDesc) {
-    
-    MOZ_ASSERT(!mNSPROpenCalled);
     
     PR_Close(mNSPRFileDesc);
   }
@@ -347,11 +355,6 @@ RemoteOpenFileChild::Clone(nsIFile **file)
   *file = new RemoteOpenFileChild(*this);
   NS_ADDREF(*file);
 
-  
-  if (mNSPRFileDesc) {
-    mNSPRFileDesc = nullptr;
-  }
-
   return NS_OK;
 }
 
@@ -370,21 +373,13 @@ RemoteOpenFileChild::OpenNSPRFileDesc(int32_t aFlags, int32_t aMode,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  
-  if (mNSPROpenCalled) {
-    return NS_ERROR_ALREADY_OPENED;
-  }
-
   if (!mNSPRFileDesc) {
-    
     
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  
-  *aRetval = mNSPRFileDesc;
-  mNSPRFileDesc = nullptr;
-  mNSPROpenCalled = true;
+  PROsfd osfd = dup(PR_FileDesc2NativeHandle(mNSPRFileDesc));
+  *aRetval = PR_ImportFile(osfd);
 
   return NS_OK;
 #endif
