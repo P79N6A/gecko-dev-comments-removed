@@ -646,13 +646,14 @@ WebSocketImpl::DoOnMessageAvailable(const nsACString& aMsg, bool isBinary)
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to dispatch the message event");
     }
-  } else {
-    
-    
-    MOZ_ASSERT(readyState == WebSocket::CLOSING,
-               "Received message while CONNECTING or CLOSED");
+
+    return NS_OK;
   }
 
+  
+  
+  MOZ_ASSERT(readyState == WebSocket::CLOSING,
+             "Received message while CONNECTING or CLOSED");
   return NS_OK;
 }
 
@@ -719,13 +720,16 @@ WebSocketImpl::OnStart(nsISupports* aContext)
   mWebSocket->SetReadyState(WebSocket::OPEN);
 
   
-  rv = mWebSocket->CreateAndDispatchSimpleEvent(NS_LITERAL_STRING("open"));
+  
+  nsRefPtr<WebSocket> webSocket = mWebSocket;
+
+  
+  rv = webSocket->CreateAndDispatchSimpleEvent(NS_LITERAL_STRING("open"));
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to dispatch the open event");
   }
 
-  mWebSocket->UpdateMustKeepAlive();
-
+  webSocket->UpdateMustKeepAlive();
   return NS_OK;
 }
 
@@ -1597,22 +1601,26 @@ WebSocketImpl::DispatchConnectionCloseEvents()
   mWebSocket->SetReadyState(WebSocket::CLOSED);
 
   
+  
+  nsRefPtr<WebSocket> webSocket = mWebSocket;
+
+  
   if (mFailed) {
     nsresult rv =
-      mWebSocket->CreateAndDispatchSimpleEvent(NS_LITERAL_STRING("error"));
+      webSocket->CreateAndDispatchSimpleEvent(NS_LITERAL_STRING("error"));
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to dispatch the error event");
     }
   }
 
-  nsresult rv = mWebSocket->CreateAndDispatchCloseEvent(mCloseEventWasClean,
-                                                        mCloseEventCode,
-                                                        mCloseEventReason);
+  nsresult rv = webSocket->CreateAndDispatchCloseEvent(mCloseEventWasClean,
+                                                       mCloseEventCode,
+                                                       mCloseEventReason);
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to dispatch the close event");
   }
 
-  mWebSocket->UpdateMustKeepAlive();
+  webSocket->UpdateMustKeepAlive();
   Disconnect();
 }
 
