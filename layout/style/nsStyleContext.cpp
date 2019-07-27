@@ -326,7 +326,7 @@ already_AddRefed<nsStyleContext>
 nsStyleContext::FindChildWithRules(const nsIAtom* aPseudoTag, 
                                    nsRuleNode* aRuleNode,
                                    nsRuleNode* aRulesIfVisited,
-                                   bool aRelevantLinkVisited)
+                                   uint32_t aFlags)
 {
   uint32_t threshold = 10; 
                            
@@ -334,13 +334,16 @@ nsStyleContext::FindChildWithRules(const nsIAtom* aPseudoTag,
   nsRefPtr<nsStyleContext> result;
   nsStyleContext *list = aRuleNode->IsRoot() ? mEmptyChild : mChild;
 
+  bool relevantLinkVisited = aFlags & eRelevantLinkVisited;
+  bool suppressLineBreak = aFlags & eSuppressLineBreak;
   if (list) {
     nsStyleContext *child = list;
     do {
       if (child->mRuleNode == aRuleNode &&
           child->mPseudoTag == aPseudoTag &&
           !child->IsStyleIfVisited() &&
-          child->RelevantLinkVisited() == aRelevantLinkVisited) {
+          child->RelevantLinkVisited() == relevantLinkVisited &&
+          child->ShouldSuppressLineBreak() == suppressLineBreak) {
         bool match = false;
         if (aRulesIfVisited) {
           match = child->GetStyleIfVisited() &&
@@ -684,7 +687,10 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
     }
 
     if (::ShouldSuppressLineBreak(disp, containerContext, containerDisp)) {
-      mBits |= NS_STYLE_SUPPRESS_LINEBREAK;
+      
+      
+      
+      AddStyleBit(NS_STYLE_SUPPRESS_LINEBREAK);
       uint8_t displayVal = disp->mDisplay;
       nsRuleNode::EnsureInlineDisplay(displayVal);
       if (displayVal != disp->mDisplay) {

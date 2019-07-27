@@ -9804,6 +9804,23 @@ nsCSSFrameConstructor::WrapItemsInPseudoRubyLevelContainer(
     
     RubyWhitespaceType whitespaceType =
       InterpretRubyWhitespace(aState, endIter, contentEndIter);
+    if ((whitespaceType == eRubyInterLeafWhitespace ||
+         whitespaceType == eRubyInterSegmentWhitespace) &&
+        !endIter.item().mStyleContext->ShouldSuppressLineBreak()) {
+      
+      
+      
+      
+      nsStyleContext* oldContext = endIter.item().mStyleContext;
+      nsRefPtr<nsStyleContext> newContext = mPresShell->StyleSet()->
+        ResolveStyleForNonElement(oldContext->GetParent(), true);
+      MOZ_ASSERT(newContext->ShouldSuppressLineBreak());
+      for (FCItemIterator iter(endIter); iter != contentEndIter; iter.Next()) {
+        MOZ_ASSERT(iter.item().mStyleContext == oldContext,
+                   "all whitespaces should share the same style context");
+        iter.item().mStyleContext = newContext;
+      }
+    }
     if (whitespaceType == eRubyInterLevelWhitespace) {
       
       bool atStart = (aIter == endIter);
