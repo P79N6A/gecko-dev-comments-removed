@@ -32,11 +32,7 @@ let SidebarUI = {
     this._title = document.getElementById("sidebar-title");
     this._splitter = document.getElementById("sidebar-splitter");
 
-    if (window.opener && !window.opener.closed &&
-        window.opener.document.documentURIObject.schemeIs("chrome") &&
-        PrivateBrowsingUtils.isWindowPrivate(window) == PrivateBrowsingUtils.isWindowPrivate(window.opener)) {
-      this.adoptFromWindow(window.opener);
-    } else {
+    if (!this.adoptFromWindow(window.opener)) {
       let commandID = this._box.getAttribute("sidebarcommand");
       if (commandID) {
         let command = document.getElementById(commandID);
@@ -70,21 +66,37 @@ let SidebarUI = {
 
 
 
+
+
   adoptFromWindow(sourceWindow) {
+    
+    
+    if (!sourceWindow || sourceWindow.closed ||
+        !sourceWindow.document.documentURIObject.schemeIs("chrome") ||
+        PrivateBrowsingUtils.isWindowPrivate(window) != PrivateBrowsingUtils.isWindowPrivate(sourceWindow)) {
+      return false;
+    }
+
     
     
     
     let sourceUI = sourceWindow.SidebarUI;
-    if (!sourceUI || sourceUI._box.hidden) {
-      return;
+    if (!sourceUI || !sourceUI._box) {
+      
+      return false;
+    }
+    if (sourceUI._box.hidden) {
+      
+      return true;
     }
 
     let commandID = sourceUI._box.getAttribute("sidebarcommand");
     let commandElem = document.getElementById(commandID);
 
     
+    
     if (!commandElem) {
-      return;
+      return true;
     }
 
     this._title.setAttribute("value",
@@ -101,6 +113,7 @@ let SidebarUI = {
     this._box.hidden = false;
     this._splitter.hidden = false;
     commandElem.setAttribute("checked", "true");
+    return true;
   },
 
   
