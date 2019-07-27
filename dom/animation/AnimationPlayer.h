@@ -57,6 +57,7 @@ public:
     , mPendingState(PendingState::NotPending)
     , mIsRunningOnCompositor(false)
     , mIsPreviousStateFinished(false)
+    , mFinishedAtLastComposeStyle(false)
     , mIsRelevant(false)
   {
   }
@@ -332,6 +333,7 @@ protected:
   
   
   bool mIsPreviousStateFinished; 
+  bool mFinishedAtLastComposeStyle;
   
   
   bool mIsRelevant;
