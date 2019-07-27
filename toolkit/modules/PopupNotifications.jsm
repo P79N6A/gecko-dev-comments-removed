@@ -311,13 +311,14 @@ PopupNotifications.prototype = {
     if (isActiveBrowser) {
       if (isActiveWindow) {
         
-        this._update(notifications, notification.anchorElement, true);
+        this._update(notifications, new Set([notification.anchorElement]), true);
       } else {
         
         if (!notification.dismissed) {
           this.window.getAttention();
         }
-        this._updateAnchorIcon(notifications, notification.anchorElement);
+        this._updateAnchorIcons(notifications, this._getAnchorsForNotifications(
+          notifications, notification.anchorElement));
         this._notify("backgroundShow");
       }
 
@@ -383,10 +384,8 @@ PopupNotifications.prototype = {
       
       
       
-      let anchorElement = notifications.length > 0 ? notifications[0].anchorElement : null;
-      if (!anchorElement)
-        anchorElement = getAnchorFromBrowser(aBrowser);
-      this._update(notifications, anchorElement);
+      this._update(notifications, this._getAnchorsForNotifications(notifications,
+        getAnchorFromBrowser(aBrowser)));
     }
   },
 
@@ -400,7 +399,7 @@ PopupNotifications.prototype = {
 
     if (this._isActiveBrowser(notification.browser)) {
       let notifications = this._getNotificationsForBrowser(notification.browser);
-      this._update(notifications, notification.anchorElement);
+      this._update(notifications);
     }
   },
 
@@ -661,43 +660,55 @@ PopupNotifications.prototype = {
 
 
 
-  _update: function PopupNotifications_update(notifications, anchor, dismissShowing = false) {
-    let useIconBox = this.iconBox && (!anchor || anchor.parentNode == this.iconBox);
+  _update: function PopupNotifications_update(notifications, anchors = new Set(), dismissShowing = false) {
+    if (anchors instanceof Ci.nsIDOMXULElement)
+      anchors = new Set([anchors]);
+    if (!notifications)
+      notifications = this._currentNotifications;
+    let haveNotifications = notifications.length > 0;
+    if (!anchors.size && haveNotifications)
+      anchors = this._getAnchorsForNotifications(notifications);
+
+    let useIconBox = !!this.iconBox;
+    if (useIconBox && anchors.size) {
+      for (let anchor of anchors) {
+        if (anchor.parentNode == this.iconBox)
+          continue;
+        useIconBox = false;
+        break;
+      }
+    }
+
     if (useIconBox) {
       
       this._hideIcons();
     }
 
-    let anchorElement = anchor, notificationsToShow = [];
-    if (!notifications)
-      notifications = this._currentNotifications;
-    let haveNotifications = notifications.length > 0;
+    let notificationsToShow = [];
     if (haveNotifications) {
       
       notificationsToShow = notifications.filter(function (n) {
         return !n.dismissed && !n.options.neverShow;
       });
 
-      
-      
-      if (!anchorElement && notificationsToShow.length)
-        anchorElement = notificationsToShow[0].anchorElement;
-
       if (useIconBox) {
         this._showIcons(notifications);
         this.iconBox.hidden = false;
-      } else if (anchorElement) {
-        this._updateAnchorIcon(notifications, anchorElement);
+      } else if (anchors.size) {
+        this._updateAnchorIcons(notifications, anchors);
       }
 
       
       notificationsToShow = notificationsToShow.filter(function (n) {
-        return n.anchorElement == anchorElement;
+        return anchors.has(n.anchorElement);
       });
     }
 
     if (notificationsToShow.length > 0) {
-      this._showPanel(notificationsToShow, anchorElement);
+      for (let anchorElement of anchors) {
+        this._showPanel(notificationsToShow, anchorElement);
+        break;
+      }
     } else {
       
       this._notify("updateNotShowing");
@@ -712,39 +723,43 @@ PopupNotifications.prototype = {
       
       
       if (!haveNotifications) {
-        if (useIconBox)
+        if (useIconBox) {
           this.iconBox.hidden = true;
-        else if (anchorElement)
-          anchorElement.removeAttribute(ICON_ATTRIBUTE_SHOWING);
+        } else if (anchors.size) {
+          for (let anchorElement of anchors)
+            anchorElement.removeAttribute(ICON_ATTRIBUTE_SHOWING);
+        }
       }
     }
   },
 
-  _updateAnchorIcon: function PopupNotifications_updateAnchorIcon(notifications,
-                                                                  anchorElement) {
-    anchorElement.setAttribute(ICON_ATTRIBUTE_SHOWING, "true");
-    
-    
-    
-    
-    if (anchorElement.classList.contains("notification-anchor-icon")) {
+  _updateAnchorIcons: function PopupNotifications_updateAnchorIcons(notifications,
+                                                                    anchorElements) {
+    for (let anchorElement of anchorElements) {
+      anchorElement.setAttribute(ICON_ATTRIBUTE_SHOWING, "true");
       
-      let className = anchorElement.className.replace(/([-\w]+-notification-icon\s?)/g,"")
-      className = "default-notification-icon " + className;
-      if (notifications.length > 0) {
+      
+      
+      
+      if (anchorElement.classList.contains("notification-anchor-icon")) {
         
-        let notification = notifications[0];
-        for (let n of notifications) {
-          if (n.anchorElement == anchorElement) {
-            notification = n;
-            break;
+        let className = anchorElement.className.replace(/([-\w]+-notification-icon\s?)/g,"")
+        className = "default-notification-icon " + className;
+        if (notifications.length > 0) {
+          
+          let notification = notifications[0];
+          for (let n of notifications) {
+            if (n.anchorElement == anchorElement) {
+              notification = n;
+              break;
+            }
           }
+          
+          
+          className = notification.anchorID + " " + className;
         }
-        
-        
-        className = notification.anchorID + " " + className;
+        anchorElement.className = className;
       }
-      anchorElement.className = className;
     }
   },
 
@@ -779,6 +794,17 @@ PopupNotifications.prototype = {
   _setNotificationsForBrowser: function PopupNotifications_setNotifications(browser, notifications) {
     popupNotificationsMap.set(browser, notifications);
     return notifications;
+  },
+
+  _getAnchorsForNotifications: function PopupNotifications_getAnchorsForNotifications(notifications, defaultAnchor) {
+    let anchors = new Set();
+    for (let notification of notifications) {
+      if (notification.anchorElement)
+        anchors.add(notification.anchorElement)
+    }
+    if (defaultAnchor && !anchors.size)
+      anchors.add(defaultAnchor);
+    return anchors;
   },
 
   _isActiveBrowser: function (browser) {
@@ -874,9 +900,9 @@ PopupNotifications.prototype = {
     other._setNotificationsForBrowser(ourBrowser, otherNotifications);
 
     if (otherNotifications.length > 0)
-      this._update(otherNotifications, otherNotifications[0].anchorElement);
+      this._update(otherNotifications);
     if (ourNotifications.length > 0)
-      other._update(ourNotifications, ourNotifications[0].anchorElement);
+      other._update(ourNotifications);
   },
 
   _fireCallback: function PopupNotifications_fireCallback(n, event, ...args) {
