@@ -214,7 +214,7 @@ nsCommandParams::RemoveValue(const char* aName)
 {
   
   
-  (void)PL_DHashTableOperate(&mValuesHash, (void *)aName, PL_DHASH_REMOVE);
+  (void)PL_DHashTableRemove(&mValuesHash, (void *)aName);
   return NS_OK;
 }
 
@@ -222,8 +222,7 @@ nsCommandParams::HashEntry*
 nsCommandParams::GetNamedEntry(const char* aName)
 {
   HashEntry *foundEntry =
-    (HashEntry *)PL_DHashTableOperate(&mValuesHash, (void *)aName,
-                                      PL_DHASH_LOOKUP);
+    (HashEntry *)PL_DHashTableLookup(&mValuesHash, (void *)aName);
   if (PL_DHASH_ENTRY_IS_BUSY(foundEntry)) {
     return foundEntry;
   }
@@ -234,15 +233,13 @@ nsCommandParams::HashEntry*
 nsCommandParams::GetOrMakeEntry(const char* aName, uint8_t entryType)
 {
   HashEntry *foundEntry =
-    (HashEntry *)PL_DHashTableOperate(&mValuesHash, (void *)aName,
-                                      PL_DHASH_LOOKUP);
+    (HashEntry *)PL_DHashTableLookup(&mValuesHash, (void *)aName);
   if (PL_DHASH_ENTRY_IS_BUSY(foundEntry)) { 
     foundEntry->Reset(entryType);
     return foundEntry;
   }
 
-  foundEntry = (HashEntry *)PL_DHashTableOperate(&mValuesHash, (void *)aName,
-                                                 PL_DHASH_ADD);
+  foundEntry = (HashEntry *)PL_DHashTableAdd(&mValuesHash, (void *)aName);
   if (!foundEntry) {
     return nullptr;
   }
