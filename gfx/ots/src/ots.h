@@ -29,48 +29,33 @@ namespace ots {
 bool Failure(const char *f, int l, const char *fn);
 #endif
 
-#if defined(_MSC_VER)
 
-#define OTS_WARNING(format, ...)
+
+
+
+#if defined(_MSC_VER) || !defined(OTS_DEBUG)
+#define OTS_MESSAGE_(otf_,...) \
+  (otf_)->context->Message(__VA_ARGS__)
 #else
-
-#if defined(OTS_DEBUG)
-#define OTS_WARNING(format, args...) \
-    ots::Warning(__FILE__, __LINE__, format, ##args)
-void Warning(const char *f, int l, const char *format, ...)
-     __attribute__((format(printf, 3, 4)));
-#else
-#define OTS_WARNING(format, args...)
+#define OTS_MESSAGE_(otf_,...) \
+  OTS_FAILURE(), \
+  (otf_)->context->Message(__VA_ARGS__)
 #endif
-#endif
-
-
-
-
-
-
 
 
 #define OTS_FAILURE_MSG_(otf_,...) \
-  ((otf_)->context->Message(__VA_ARGS__), false)
+  (OTS_MESSAGE_(otf_,__VA_ARGS__), false)
 
 
 #define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
-  ((otf_)->context->Message("%4.4s: %s", tag_, msg_), false)
+  (OTS_MESSAGE_(otf_,"%4.4s: %s", tag_, msg_), false)
 
 
 
 
 #define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(file, TABLE_NAME ": " __VA_ARGS__)
 
-
-
-
-#if defined(OTS_NO_TRANSCODE_HINTS)
-const bool g_transcode_hints = false;
-#else
-const bool g_transcode_hints = true;
-#endif
+#define OTS_WARNING OTS_FAILURE_MSG
 
 
 

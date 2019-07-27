@@ -766,12 +766,13 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   
   
   
+  
 
   for (unsigned i = 0; i < num_tables; ++i) {
     if (subtable_headers[i].platform == 0) {
       
 
-      if ((subtable_headers[i].encoding == 0) &&
+      if ((subtable_headers[i].encoding == 0 || subtable_headers[i].encoding == 1) &&
           (subtable_headers[i].format == 4)) {
         
         
@@ -877,7 +878,7 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   
   
   if (!have_304 && !have_314 && !have_034 && !have_31012 && !have_31013) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("no supported subtables were found");
   }
 
   if (!out->WriteU16(0) ||

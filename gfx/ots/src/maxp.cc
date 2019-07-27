@@ -93,26 +93,14 @@ bool ots_maxp_serialise(OTSStream *out, OpenTypeFile *file) {
     return OTS_FAILURE_MSG("Failed to write maxp");
   }
 
-  if (g_transcode_hints) {
-    if (!out->WriteU16(maxp->max_zones) ||
-        !out->WriteU16(maxp->max_t_points) ||
-        !out->WriteU16(maxp->max_storage) ||
-        !out->WriteU16(maxp->max_fdefs) ||
-        !out->WriteU16(maxp->max_idefs) ||
-        !out->WriteU16(maxp->max_stack) ||
-        !out->WriteU16(maxp->max_size_glyf_instructions)) {
-      return OTS_FAILURE_MSG("Failed to write more maxp");
-    }
-  } else {
-    if (!out->WriteU16(1) ||  
-        !out->WriteU16(0) ||  
-        !out->WriteU16(0) ||  
-        !out->WriteU16(0) ||  
-        !out->WriteU16(0) ||  
-        !out->WriteU16(0) ||  
-        !out->WriteU16(0)) {  
-      return OTS_FAILURE_MSG("Failed to write more maxp");
-    }
+  if (!out->WriteU16(maxp->max_zones) ||
+      !out->WriteU16(maxp->max_t_points) ||
+      !out->WriteU16(maxp->max_storage) ||
+      !out->WriteU16(maxp->max_fdefs) ||
+      !out->WriteU16(maxp->max_idefs) ||
+      !out->WriteU16(maxp->max_stack) ||
+      !out->WriteU16(maxp->max_size_glyf_instructions)) {
+    return OTS_FAILURE_MSG("Failed to write more maxp");
   }
 
   if (!out->WriteU16(maxp->max_c_components) ||
