@@ -158,6 +158,13 @@ class CodeGeneratorShared : public LInstructionVisitor
     void dropArguments(unsigned argc);
 
   protected:
+#ifdef CHECK_OSIPOINT_REGISTERS
+    
+    
+    
+    bool checkOsiPointRegisters;
+#endif
+
     
     
     
