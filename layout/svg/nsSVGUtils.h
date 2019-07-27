@@ -471,7 +471,14 @@ public:
 
 
 
-  static gfxMatrix GetStrokeTransform(nsIFrame *aFrame);
+
+
+
+
+
+
+  static bool GetNonScalingStrokeTransform(nsIFrame *aFrame,
+                                           gfxMatrix* aUserToOuterSVG);
 
   
 

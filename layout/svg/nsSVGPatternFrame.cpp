@@ -325,12 +325,14 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
 
   
   if (aFillOrStroke == &nsStyleSVG::mStroke) {
-    Matrix strokeTransform = ToMatrix(nsSVGUtils::GetStrokeTransform(aSource));
-    if (!strokeTransform.Invert()) {
-      NS_WARNING("Should we get here if the stroke transform is singular?");
-      return nullptr;
+    gfxMatrix userToOuterSVG;
+    if (nsSVGUtils::GetNonScalingStrokeTransform(aSource, &userToOuterSVG)) {
+      patternTransform *= ToMatrix(userToOuterSVG);
+      if (patternTransform.IsSingular()) {
+        NS_WARNING("Singular matrix painting non-scaling-stroke");
+        return nullptr;
+      }
     }
-    patternTransform *= strokeTransform;
   }
 
   

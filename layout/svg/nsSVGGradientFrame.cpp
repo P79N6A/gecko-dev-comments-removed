@@ -265,11 +265,10 @@ nsSVGGradientFrame::GetPaintServerPattern(nsIFrame* aSource,
 
   
   if (aFillOrStroke == &nsStyleSVG::mStroke) {
-    gfxMatrix nonScalingStrokeTM = nsSVGUtils::GetStrokeTransform(aSource);
-    if (!nonScalingStrokeTM.Invert()) {
-      return nullptr;
+    gfxMatrix userToOuterSVG;
+    if (nsSVGUtils::GetNonScalingStrokeTransform(aSource, &userToOuterSVG)) {
+      patternMatrix *= userToOuterSVG;
     }
-    patternMatrix *= nonScalingStrokeTM;
   }
 
   if (!patternMatrix.Invert()) {
