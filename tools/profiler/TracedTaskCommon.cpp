@@ -162,10 +162,10 @@ CreateTracedTask(Task* aTask)
 
 
 
-FakeTracedTask*
+already_AddRefed<FakeTracedTask>
 CreateFakeTracedTask(int* aVptr)
 {
-  nsAutoPtr<FakeTracedTask> task(new FakeTracedTask(aVptr));
+  nsRefPtr<FakeTracedTask> task(new FakeTracedTask(aVptr));
   return task.forget();
 }
 
