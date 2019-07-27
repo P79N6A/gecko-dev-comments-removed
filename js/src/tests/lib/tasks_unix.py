@@ -184,6 +184,7 @@ def kill_undead(tasks, timeout):
 
 def run_all_tests(tests, prefix, results, options):
     
+    tests = list(tests)
     tests = tests[:]
     tests.reverse()
 

@@ -94,10 +94,14 @@ def run_all_tests(tests, prefix, results, options):
     
     
     
-    for test in tests:
-        qTasks.put(test)
-    for _ in workers:
-        qTasks.put(EndMarker)
+    def _do_push(num_workers, qTasks):
+        for test in tests:
+            qTasks.put(test)
+        for _ in range(num_workers):
+            qTasks.put(EndMarker)
+    pusher = Thread(target=_do_push, args=(len(workers), qTasks))
+    pusher.setDaemon(True)
+    pusher.start()
 
     
     ended = 0
@@ -113,6 +117,7 @@ def run_all_tests(tests, prefix, results, options):
             results.pb.poke()
 
     
+    pusher.join()
     for worker in workers:
         worker.join()
     for watcher in watchdogs:
