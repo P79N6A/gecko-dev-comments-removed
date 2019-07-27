@@ -83,7 +83,7 @@ private:
 
   struct OrderingEntry
   {
-    OrderingEntry(const T* aResource)
+    explicit OrderingEntry(const T* aResource)
       : mOrderedLT()        
       , mExternalRefs()
       , mResource(aResource)

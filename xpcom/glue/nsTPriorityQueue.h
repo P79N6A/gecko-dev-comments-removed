@@ -31,7 +31,7 @@ public:
 
 
 
-  nsTPriorityQueue(const Compare& aComp) : mCompare(aComp) {}
+  explicit nsTPriorityQueue(const Compare& aComp) : mCompare(aComp) {}
 
   
 
