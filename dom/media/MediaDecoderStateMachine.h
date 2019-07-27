@@ -642,10 +642,6 @@ protected:
 
   
   
-  void SetReaderIdle();
-
-  
-  
   
   
   void DispatchDecodeTasksIfNeeded();
