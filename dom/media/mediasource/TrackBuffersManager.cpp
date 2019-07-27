@@ -263,6 +263,7 @@ TrackBuffersManager::CompleteResetParserState()
     
     
     track->mQueuedSamples.Clear();
+    track->mLongestFrameDuration.reset();
   }
   
   mIncomingBuffers.Clear();
@@ -699,6 +700,9 @@ TrackBuffersManager::OnDemuxerInitDone(nsresult)
     
     mVideoTracks.mNeedRandomAccessPoint = true;
     mAudioTracks.mNeedRandomAccessPoint = true;
+
+    mVideoTracks.mLongestFrameDuration = mVideoTracks.mLastFrameDuration;
+    mAudioTracks.mLongestFrameDuration = mAudioTracks.mLastFrameDuration;
   }
 
   
@@ -1054,10 +1058,15 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
 
   
 
+  
+  
+  
+  
+  
   if ((trackBuffer.mLastDecodeTimestamp.isSome() &&
        decodeTimestamp < trackBuffer.mLastDecodeTimestamp.ref()) ||
       (trackBuffer.mLastDecodeTimestamp.isSome() &&
-       decodeTimestamp - trackBuffer.mLastDecodeTimestamp.ref() > 2*trackBuffer.mLastFrameDuration.ref())) {
+       decodeTimestamp - trackBuffer.mLastDecodeTimestamp.ref() > 2*trackBuffer.mLongestFrameDuration.ref())) {
 
     
     if (mParent->mAppendMode == SourceBufferAppendMode::Segments) {
@@ -1078,6 +1087,8 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
       track->mHighestEndTimestamp.reset();
       
       track->mNeedRandomAccessPoint = true;
+
+      trackBuffer.mLongestFrameDuration.reset();
     }
     MSE_DEBUG("Detected discontinuity. Restarting process");
     
@@ -1208,7 +1219,17 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
   
   trackBuffer.mLastDecodeTimestamp = Some(decodeTimestamp);
   
-  trackBuffer.mLastFrameDuration = Some(TimeUnit::FromMicroseconds(aSample->mDuration));
+  trackBuffer.mLastFrameDuration =
+    Some(TimeUnit::FromMicroseconds(aSample->mDuration));
+
+  if (trackBuffer.mLongestFrameDuration.isNothing()) {
+    trackBuffer.mLongestFrameDuration = trackBuffer.mLastFrameDuration;
+  } else {
+    trackBuffer.mLongestFrameDuration =
+      Some(std::max(trackBuffer.mLongestFrameDuration.ref(),
+               trackBuffer.mLastFrameDuration.ref()));
+  }
+
   
   if (trackBuffer.mHighestEndTimestamp.isNothing() ||
       frameEndTimestamp > trackBuffer.mHighestEndTimestamp.ref()) {

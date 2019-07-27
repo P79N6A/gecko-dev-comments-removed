@@ -171,6 +171,8 @@ private:
     Maybe<TimeUnit> mLastDecodeTimestamp;
     Maybe<TimeUnit> mLastFrameDuration;
     Maybe<TimeUnit> mHighestEndTimestamp;
+    
+    Maybe<TimeUnit> mLongestFrameDuration;
     bool mNeedRandomAccessPoint;
     nsRefPtr<MediaTrackDemuxer> mDemuxer;
     TrackBuffer mQueuedSamples;
