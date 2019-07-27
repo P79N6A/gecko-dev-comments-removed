@@ -3175,6 +3175,8 @@ nsBrowserAccess.prototype = {
       }
     }
 
+    
+    
     let newTab = (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWWINDOW ||
                   aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB ||
                   aWhere == Ci.nsIBrowserDOMWindow.OPEN_SWITCHTAB);
@@ -3204,8 +3206,9 @@ nsBrowserAccess.prototype = {
 
     
     let browser = BrowserApp.selectedBrowser;
-    if (aURI && browser)
+    if (aURI && browser) {
       browser.loadURIWithFlags(aURI.spec, loadflags, referrer, null, null);
+    }
 
     return browser;
   },

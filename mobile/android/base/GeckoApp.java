@@ -1438,16 +1438,15 @@ public abstract class GeckoApp
 
 
 
-    protected void loadStartupTab(String url) {
+    protected void loadStartupTab(String url, int flags) {
         if (url == null) {
             if (!mShouldRestore) {
                 
                 
-                Tabs.getInstance().loadUrl(AboutPages.HOME, Tabs.LOADURL_NEW_TAB);
+                Tabs.getInstance().loadUrl(AboutPages.HOME, flags);
             }
         } else {
             
-            int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED | Tabs.LOADURL_EXTERNAL;
             Tabs.getInstance().loadUrl(url, flags);
         }
     }
@@ -1514,10 +1513,14 @@ public abstract class GeckoApp
             
             
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
-            loadStartupTab(passedUri);
+            int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED | Tabs.LOADURL_EXTERNAL;
+            if (ACTION_HOMESCREEN_SHORTCUT.equals(action)) {
+                flags |= Tabs.LOADURL_PINNED;
+            }
+            loadStartupTab(passedUri, flags);
         } else {
             if (!mIsRestoringActivity) {
-                loadStartupTab(null);
+                loadStartupTab(null, Tabs.LOADURL_NEW_TAB);
             }
 
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
