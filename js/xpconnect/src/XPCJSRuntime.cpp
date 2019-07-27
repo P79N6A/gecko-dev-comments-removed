@@ -822,8 +822,6 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop,
             self->mDetachedWrappedNativeProtoMap->
                 Enumerate(DetachedWrappedNativeProtoMarker, nullptr);
 
-            DOM_MarkInterfaces();
-
             
             
             
@@ -1470,8 +1468,6 @@ void XPCJSRuntime::DestroyJSContextStack()
 
 void XPCJSRuntime::SystemIsBeingShutDown()
 {
-    DOM_ClearInterfaces();
-
     if (mDetachedWrappedNativeProtoMap)
         mDetachedWrappedNativeProtoMap->
             Enumerate(DetachedWrappedNativeProtoShutdownMarker, nullptr);
@@ -3150,8 +3146,6 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
    mCompilationScope(MOZ_THIS_IN_INITIALIZER_LIST()->Runtime(), nullptr),
    mAsyncSnowWhiteFreer(new AsyncFreeSnowWhite())
 {
-    DOM_InitInterfaces();
-
     
     mStrIDs[0] = JSID_VOID;
 
