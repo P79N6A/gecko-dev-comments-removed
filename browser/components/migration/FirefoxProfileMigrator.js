@@ -20,8 +20,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
                                   "resource://gre/modules/PlacesBackups.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionMigration",
                                   "resource:///modules/sessionstore/SessionMigration.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
 
-function FirefoxProfileMigrator() { }
+
+function FirefoxProfileMigrator() {
+  this.wrappedJSObject = this; 
+}
 
 FirefoxProfileMigrator.prototype = Object.create(MigratorPrototype);
 
@@ -58,6 +65,10 @@ FirefoxProfileMigrator.prototype.getResources = function() {
   if (sourceProfileDir.equals(currentProfileDir))
     return null;
 
+  return this._getResourcesInternal(sourceProfileDir, currentProfileDir);
+}
+
+FirefoxProfileMigrator.prototype._getResourcesInternal = function(sourceProfileDir, currentProfileDir) {
   let getFileResource = function(aMigrationType, aFileNames) {
     let files = [];
     for (let fileName of aFileNames) {
@@ -120,8 +131,72 @@ FirefoxProfileMigrator.prototype.getResources = function() {
     }
   }
 
+  
+  let times = getFileResource(types.OTHERDATA, ["times.json"]);
+  let healthReporter = {
+    name: "healthreporter", 
+    type: types.OTHERDATA,
+    migrate: aCallback => {
+      
+      
+
+      
+      const DEFAULT_DATABASE_NAME = "healthreport.sqlite";
+      let path = OS.Path.join(sourceProfileDir.path, DEFAULT_DATABASE_NAME);
+      let sqliteFile = FileUtils.File(path);
+      if (sqliteFile.exists()) {
+        sqliteFile.copyTo(currentProfileDir, "");
+      }
+      
+      
+      
+      
+      
+      
+      
+      
+      path = OS.Path.join(sourceProfileDir.path, DEFAULT_DATABASE_NAME + "-wal");
+      let sqliteWal = FileUtils.File(path);
+      if (sqliteWal.exists()) {
+        sqliteWal.copyTo(currentProfileDir, "");
+      }
+
+      
+      let subdir = this._getFileObject(sourceProfileDir, "healthreport");
+      if (subdir && subdir.isDirectory()) {
+        
+        let dest = currentProfileDir.clone();
+        dest.append("healthreport");
+        dest.create(Components.interfaces.nsIFile.DIRECTORY_TYPE,
+                    FileUtils.PERMS_DIRECTORY);
+        let enumerator = subdir.directoryEntries;
+        while (enumerator.hasMoreElements()) {
+          let file = enumerator.getNext().QueryInterface(Components.interfaces.nsIFile);
+          if (file.isDirectory()) {
+            continue;
+          }
+          file.copyTo(dest, "");
+        }
+      }
+      
+      subdir = this._getFileObject(sourceProfileDir, "datareporting");
+      if (subdir && subdir.isDirectory()) {
+        let stateFile = this._getFileObject(subdir, "state.json");
+        if (stateFile) {
+          let dest = currentProfileDir.clone();
+          dest.append("datareporting");
+          dest.create(Components.interfaces.nsIFile.DIRECTORY_TYPE,
+                      FileUtils.PERMS_DIRECTORY);
+          stateFile.copyTo(dest, "");
+        }
+      }
+      aCallback(true);
+    }
+  }
+
   return [r for each (r in [places, cookies, passwords, formData,
-                            dictionary, bookmarksBackups, session]) if (r)];
+                            dictionary, bookmarksBackups, session,
+                            times, healthReporter]) if (r)];
 }
 
 Object.defineProperty(FirefoxProfileMigrator.prototype, "startupOnlyMigrator", {
