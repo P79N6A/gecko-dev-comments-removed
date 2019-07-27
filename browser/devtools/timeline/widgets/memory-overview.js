@@ -36,7 +36,7 @@ const OVERVIEW_SELECTION_LINE_COLOR = "#555";
 
 
 function MemoryOverview(parent) {
-  LineGraphWidget.call(this, parent, L10N.getStr("graphs.memory"));
+  LineGraphWidget.call(this, parent, { metric: L10N.getStr("graphs.memory") });
   this.setTheme();
   this.once("ready", () => {
     
