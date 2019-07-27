@@ -1223,8 +1223,24 @@ bool
 GetOwnPropertyDescriptor(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp);
 
 
-bool
+
+
+
+
+extern bool
 FromPropertyDescriptor(JSContext* cx, Handle<PropertyDescriptor> desc, MutableHandleValue vp);
+
+
+
+
+
+
+
+
+
+extern bool
+FromPropertyDescriptorToObject(JSContext* cx, Handle<PropertyDescriptor> desc,
+                               MutableHandleValue vp);
 
 extern bool
 IsDelegate(JSContext* cx, HandleObject obj, const Value& v, bool* result);

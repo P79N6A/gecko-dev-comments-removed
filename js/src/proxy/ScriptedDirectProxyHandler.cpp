@@ -574,7 +574,7 @@ ScriptedDirectProxyHandler::defineProperty(JSContext* cx, HandleObject proxy, Ha
 
     
     RootedValue descObj(cx);
-    if (!FromPropertyDescriptor(cx, desc, &descObj))
+    if (!FromPropertyDescriptorToObject(cx, desc, &descObj))
         return false;
 
     
