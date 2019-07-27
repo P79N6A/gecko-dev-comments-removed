@@ -2220,6 +2220,7 @@ static
 bool
 forEach(const char* funcName, JSContext *cx, HandleObject obj, HandleValue callbackFn, HandleValue thisArg)
 {
+    CHECK_REQUEST(cx);
     RootedId forEachId(cx, NameToId(cx->names().forEach));
     RootedFunction forEachFunc(cx, JS::GetSelfHostedFunction(cx, funcName, forEachId, 2));
     if (!forEachFunc)
@@ -2235,6 +2236,77 @@ forEach(const char* funcName, JSContext *cx, HandleObject obj, HandleValue callb
 }
 
 
+template<typename RetT>
+RetT
+CallObjFunc(RetT(*ObjFunc)(JSContext*, HandleObject), JSContext* cx, HandleObject obj)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+
+    
+    RootedObject unwrappedObj(cx);
+    unwrappedObj = UncheckedUnwrap(obj);
+
+    
+    
+    JSAutoCompartment ac(cx, unwrappedObj);
+    return ObjFunc(cx, unwrappedObj);
+}
+
+
+bool
+CallObjFunc(bool(*ObjFunc)(JSContext *cx, HandleObject obj, HandleValue key, bool *rval),
+            JSContext *cx, HandleObject obj, HandleValue key, bool *rval)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj, key);
+
+    
+    RootedObject unwrappedObj(cx);
+    unwrappedObj = UncheckedUnwrap(obj);
+    JSAutoCompartment ac(cx, unwrappedObj);
+
+    
+    
+    RootedValue wrappedKey(cx, key);
+    if (obj != unwrappedObj) {
+        if (!JS_WrapValue(cx, &wrappedKey))
+            return false;
+    }
+    return ObjFunc(cx, unwrappedObj, wrappedKey, rval);
+}
+
+
+template<typename Iter>
+bool
+CallObjFunc(bool(*ObjFunc)(JSContext* cx, Iter kind,
+                           HandleObject obj, MutableHandleValue iter),
+            JSContext *cx, Iter iterType, HandleObject obj, MutableHandleValue rval)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+
+    
+    RootedObject unwrappedObj(cx);
+    unwrappedObj = UncheckedUnwrap(obj);
+    {
+        
+        
+        JSAutoCompartment ac(cx, unwrappedObj);
+        if (!ObjFunc(cx, iterType, unwrappedObj, rval))
+            return false;
+    }
+
+    
+    
+    if (obj != unwrappedObj) {
+        if (!JS_WrapValue(cx, rval))
+            return false;
+    }
+    return true;
+}
+
+
 
 JS_PUBLIC_API(JSObject*)
 JS::NewMapObject(JSContext* cx)
@@ -2245,78 +2317,106 @@ JS::NewMapObject(JSContext* cx)
 JS_PUBLIC_API(uint32_t)
 JS::MapSize(JSContext* cx, HandleObject obj)
 {
-    CHECK_REQUEST(cx);
-    return MapObject::size(cx, obj);
+    return CallObjFunc<uint32_t>(&MapObject::size, cx, obj);
 }
 
 JS_PUBLIC_API(bool)
-JS::MapGet(JSContext* cx, HandleObject obj,
-           HandleValue key, MutableHandleValue rval)
+JS::MapGet(JSContext* cx, HandleObject obj, HandleValue key, MutableHandleValue rval)
 {
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, key, rval);
-    return MapObject::get(cx, obj, key, rval);
+    assertSameCompartment(cx, obj, key, rval);
+
+    
+    
+    RootedObject unwrappedObj(cx);
+    unwrappedObj = UncheckedUnwrap(obj);
+    {
+        JSAutoCompartment ac(cx, unwrappedObj);
+        RootedValue wrappedKey(cx, key);
+
+        
+        if (obj != unwrappedObj) {
+            if (!JS_WrapValue(cx, &wrappedKey))
+                return false;
+        }
+        if (!MapObject::get(cx, unwrappedObj, wrappedKey, rval))
+            return false;
+    }
+
+    
+    if (obj != unwrappedObj) {
+        if (!JS_WrapValue(cx, rval))
+            return false;
+    }
+    return true;
+}
+
+JS_PUBLIC_API(bool)
+JS::MapSet(JSContext *cx, HandleObject obj, HandleValue key, HandleValue val)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj, key, val);
+
+    
+    
+    RootedObject unwrappedObj(cx);
+    unwrappedObj = UncheckedUnwrap(obj);
+    {
+        JSAutoCompartment ac(cx, unwrappedObj);
+
+        
+        
+        RootedValue wrappedKey(cx, key);
+        RootedValue wrappedValue(cx, val);
+        if (obj != unwrappedObj) {
+            if (!JS_WrapValue(cx, &wrappedKey) ||
+                !JS_WrapValue(cx, &wrappedValue)) {
+                return false;
+            }
+        }
+        return MapObject::set(cx, unwrappedObj, wrappedKey, wrappedValue);
+    }
 }
 
 JS_PUBLIC_API(bool)
 JS::MapHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, key);
-    return MapObject::has(cx, obj, key, rval);
+    return CallObjFunc(MapObject::has, cx, obj, key, rval);
 }
 
 JS_PUBLIC_API(bool)
-JS::MapDelete(JSContext *cx, HandleObject obj, HandleValue key, bool *rval)
+JS::MapDelete(JSContext *cx, HandleObject obj, HandleValue key, bool* rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, key);
-    return MapObject::delete_(cx, obj, key, rval);
-}
-
-JS_PUBLIC_API(bool)
-JS::MapSet(JSContext *cx, HandleObject obj,
-           HandleValue key, HandleValue val)
-{
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, key, val);
-    return MapObject::set(cx, obj, key, val);
+    return CallObjFunc(MapObject::delete_, cx, obj, key, rval);
 }
 
 JS_PUBLIC_API(bool)
 JS::MapClear(JSContext* cx, HandleObject obj)
 {
-    CHECK_REQUEST(cx);
-    return MapObject::clear(cx, obj);
+    return CallObjFunc(&MapObject::clear, cx, obj);
 }
 
 JS_PUBLIC_API(bool)
 JS::MapKeys(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, rval);
-    return MapObject::iterator(cx, MapObject::Keys, obj, rval);
+    return CallObjFunc(&MapObject::iterator, cx, MapObject::Keys, obj, rval);
 }
 
 JS_PUBLIC_API(bool)
 JS::MapValues(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, rval);
-    return MapObject::iterator(cx, MapObject::Values, obj, rval);
+    return CallObjFunc(&MapObject::iterator, cx, MapObject::Values, obj, rval);
 }
 
 JS_PUBLIC_API(bool)
 JS::MapEntries(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, rval);
-    return MapObject::iterator(cx, MapObject::Entries, obj, rval);
+    return CallObjFunc(&MapObject::iterator, cx, MapObject::Entries, obj, rval);
+}
 
 JS_PUBLIC_API(bool)
 JS::MapForEach(JSContext *cx, HandleObject obj, HandleValue callbackFn, HandleValue thisVal)
 {
-    CHECK_REQUEST(cx);
     return forEach("MapForEach", cx, obj, callbackFn, thisVal);
 }
 
@@ -2329,66 +2429,70 @@ JS::NewSetObject(JSContext *cx)
 JS_PUBLIC_API(uint32_t)
 JS::SetSize(JSContext *cx, HandleObject obj)
 {
-    CHECK_REQUEST(cx);
-    return SetObject::size(cx, obj);
+    return CallObjFunc<uint32_t>(&SetObject::size, cx, obj);
 }
 
 JS_PUBLIC_API(bool)
-JS::SetHas(JSContext *cx, HandleObject obj, HandleValue key, bool *rval)
+JS::SetAdd(JSContext *cx, HandleObject obj, HandleValue key)
 {
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, key);
-    return SetObject::has(cx, obj, key, rval);
+    assertSameCompartment(cx, obj, key);
+
+    
+    
+    RootedObject unwrappedObj(cx);
+    unwrappedObj = UncheckedUnwrap(obj);
+    {
+        JSAutoCompartment ac(cx, unwrappedObj);
+
+        
+        RootedValue wrappedKey(cx, key);
+        if (obj != unwrappedObj) {
+            if (!JS_WrapValue(cx, &wrappedKey))
+                return false;
+        }
+        return SetObject::add(cx, unwrappedObj, wrappedKey);
+    }
+}
+
+JS_PUBLIC_API(bool)
+JS::SetHas(JSContext* cx, HandleObject obj, HandleValue key, bool* rval)
+{
+    return CallObjFunc(SetObject::has, cx, obj, key, rval);
 }
 
 JS_PUBLIC_API(bool)
 JS::SetDelete(JSContext *cx, HandleObject obj, HandleValue key, bool *rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, key);
-    return SetObject::delete_(cx, obj, key, rval);
+    return CallObjFunc(SetObject::delete_, cx, obj, key, rval);
 }
 
 JS_PUBLIC_API(bool)
-JS::SetAdd(JSContext *cx, HandleObject obj,
-           HandleValue key)
+JS::SetClear(JSContext* cx, HandleObject obj)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, key);
-    return SetObject::add(cx, obj, key);
+    return CallObjFunc(&SetObject::clear, cx, obj);
 }
 
 JS_PUBLIC_API(bool)
-JS::SetClear(JSContext *cx, HandleObject obj)
-{
-    CHECK_REQUEST(cx);
-    return SetObject::clear(cx, obj);
-}
-
-JS_PUBLIC_API(bool)
-JS::SetKeys(JSContext *cx, HandleObject obj, MutableHandleValue rval)
+JS::SetKeys(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
     return SetValues(cx, obj, rval);
 }
 
 JS_PUBLIC_API(bool)
-JS::SetValues(JSContext *cx, HandleObject obj, MutableHandleValue rval)
+JS::SetValues(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, rval);
-    return SetObject::iterator(cx, SetObject::Values, obj, rval);
+    return CallObjFunc(&SetObject::iterator, cx, SetObject::Values, obj, rval);
 }
 
 JS_PUBLIC_API(bool)
-JS::SetEntries(JSContext *cx, HandleObject obj, MutableHandleValue rval)
+JS::SetEntries(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, rval);
-    return SetObject::iterator(cx, SetObject::Entries, obj, rval);
+    return CallObjFunc(&SetObject::iterator, cx, SetObject::Entries, obj, rval);
+}
 
 JS_PUBLIC_API(bool)
 JS::SetForEach(JSContext *cx, HandleObject obj, HandleValue callbackFn, HandleValue thisVal)
 {
-    CHECK_REQUEST(cx);
     return forEach("SetForEach", cx, obj, callbackFn, thisVal);
 }
