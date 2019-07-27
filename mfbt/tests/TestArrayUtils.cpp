@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/NullPtr.h"
@@ -79,7 +80,7 @@ TestIsInRangeVoid()
   MOZ_RELEASE_ASSERT(!IsInRange(voidEnd2, uintBegin, uintEnd2));
 }
 
-struct Base { int x; };
+struct Base { int mX; };
 
 static void
 TestIsInRangeClass()
@@ -213,12 +214,17 @@ TestIsInRangeClassDerivedEmpty()
   uintptr_t uderivedEmptyEnd = uintptr_t(derivedEmptyEnd);
   uintptr_t uderivedEmptyEnd2 = uintptr_t(derivedEmptyEnd2);
 
-  MOZ_RELEASE_ASSERT(IsInRange(derivedEmptyBegin, uderivedEmptyBegin, uderivedEmptyEnd));
-  MOZ_RELEASE_ASSERT(!IsInRange(derivedEmptyEnd, uderivedEmptyBegin, uderivedEmptyEnd));
+  MOZ_RELEASE_ASSERT(IsInRange(derivedEmptyBegin, uderivedEmptyBegin,
+                               uderivedEmptyEnd));
+  MOZ_RELEASE_ASSERT(!IsInRange(derivedEmptyEnd, uderivedEmptyBegin,
+                                uderivedEmptyEnd));
 
-  MOZ_RELEASE_ASSERT(IsInRange(derivedEmptyBegin, uderivedEmptyBegin, uderivedEmptyEnd2));
-  MOZ_RELEASE_ASSERT(IsInRange(derivedEmptyEnd, uderivedEmptyBegin, uderivedEmptyEnd2));
-  MOZ_RELEASE_ASSERT(!IsInRange(derivedEmptyEnd2, uderivedEmptyBegin, uderivedEmptyEnd2));
+  MOZ_RELEASE_ASSERT(IsInRange(derivedEmptyBegin, uderivedEmptyBegin,
+                               uderivedEmptyEnd2));
+  MOZ_RELEASE_ASSERT(IsInRange(derivedEmptyEnd, uderivedEmptyBegin,
+                               uderivedEmptyEnd2));
+  MOZ_RELEASE_ASSERT(!IsInRange(derivedEmptyEnd2, uderivedEmptyBegin,
+                                uderivedEmptyEnd2));
 }
 
 struct ExtraDerived : Base { int y; };
@@ -293,7 +299,8 @@ TestIsInRangeClassExtraDerivedEmpty()
   MOZ_RELEASE_ASSERT(!IsInRange(derivedEnd2, uderivedBegin, uderivedEnd2));
 }
 
-int main()
+int
+main()
 {
   TestIsInRangeNonClass();
   TestIsInRangeVoid();

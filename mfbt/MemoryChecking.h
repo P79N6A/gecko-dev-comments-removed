@@ -40,8 +40,10 @@ extern "C" {
 
 
 
-void MOZ_EXPORT __asan_poison_memory_region(void const volatile *addr, size_t size);
-void MOZ_EXPORT __asan_unpoison_memory_region(void const volatile *addr, size_t size);
+void MOZ_EXPORT
+__asan_poison_memory_region(void const volatile *addr, size_t size);
+void MOZ_EXPORT
+__asan_unpoison_memory_region(void const volatile *addr, size_t size);
 
 #define MOZ_MAKE_MEM_NOACCESS(addr, size) \
   __asan_poison_memory_region((addr), (size))

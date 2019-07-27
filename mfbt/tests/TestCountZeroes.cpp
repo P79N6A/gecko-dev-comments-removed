@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/MathAlgorithms.h"
 
 using mozilla::CountLeadingZeroes32;
@@ -90,7 +91,8 @@ TestTrailingZeroes64()
   MOZ_RELEASE_ASSERT(CountTrailingZeroes64(0x8000000000000000) == 63);
 }
 
-int main()
+int
+main()
 {
   TestLeadingZeroes32();
   TestLeadingZeroes64();

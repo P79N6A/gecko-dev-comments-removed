@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TypedEnum.h"
@@ -193,24 +195,24 @@ TestTypedEnumBasics()
 
 
 template<char o, typename T1, typename T2>
-auto Op(const T1& t1, const T2& t2)
-  -> decltype(t1 | t2) 
-                       
-                       
+auto Op(const T1& aT1, const T2& aT2)
+  -> decltype(aT1 | aT2) 
+                         
+                         
 {
   using mozilla::IsSame;
-  static_assert(IsSame<decltype(t1 | t2), decltype(t1 & t2)>::value,
+  static_assert(IsSame<decltype(aT1 | aT2), decltype(aT1 & aT2)>::value,
                 "binary ops should have the same result type");
-  static_assert(IsSame<decltype(t1 | t2), decltype(t1 ^ t2)>::value,
+  static_assert(IsSame<decltype(aT1 | aT2), decltype(aT1 ^ aT2)>::value,
                 "binary ops should have the same result type");
 
   static_assert(o == '|' ||
                 o == '&' ||
                 o == '^', "unexpected operator character");
 
-  return o == '|' ? t1 | t2
-       : o == '&' ? t1 & t2
-                  : t1 ^ t2;
+  return o == '|' ? aT1 | aT2
+       : o == '&' ? aT1 & aT2
+                  : aT1 ^ aT2;
 }
 
 
@@ -224,16 +226,16 @@ auto Op(const T1& t1, const T2& t2)
 
 
 template<char o, typename T1, typename T2>
-T1& OpAssign(T1& t1, const T2& t2)
+T1& OpAssign(T1& aT1, const T2& aT2)
 {
   static_assert(o == '|' ||
                 o == '&' ||
                 o == '^', "unexpected operator character");
 
   switch (o) {
-    case '|': return t1 |= t2;
-    case '&': return t1 &= t2;
-    case '^': return t1 ^= t2;
+    case '|': return aT1 |= aT2;
+    case '&': return aT1 &= aT2;
+    case '^': return aT1 ^= aT2;
     default: MOZ_CRASH();
   }
 }
@@ -255,8 +257,9 @@ T1& OpAssign(T1& t1, const T2& t2)
 
 
 
+
 template<typename TypedEnum, char o, typename T1, typename T2, typename T3>
-void TestBinOp(const T1& t1, const T2& t2, const T3& t3)
+void TestBinOp(const T1& aT1, const T2& aT2, const T3& aT3)
 {
   typedef typename mozilla::detail::UnsignedIntegerTypeForEnum<TypedEnum>::Type
           UnsignedIntegerType;
@@ -264,15 +267,15 @@ void TestBinOp(const T1& t1, const T2& t2, const T3& t3)
   
   
   
-  auto result = Op<o>(t1, t2);
+  auto result = Op<o>(aT1, aT2);
 
   typedef decltype(result) ResultType;
 
   RequireLiteralType<ResultType>();
   TestNonConvertibilityForOneType<ResultType>();
 
-  UnsignedIntegerType unsignedIntegerResult
-    = Op<o>(UnsignedIntegerType(t1), UnsignedIntegerType(t2));
+  UnsignedIntegerType unsignedIntegerResult =
+    Op<o>(UnsignedIntegerType(aT1), UnsignedIntegerType(aT2));
 
   MOZ_RELEASE_ASSERT(unsignedIntegerResult == UnsignedIntegerType(result));
   MOZ_RELEASE_ASSERT(TypedEnum(unsignedIntegerResult) == TypedEnum(result));
@@ -284,9 +287,9 @@ void TestBinOp(const T1& t1, const T2& t2, const T3& t3)
   
   
   TypedEnum newResult = result;
-  OpAssign<o>(newResult, t3);
+  OpAssign<o>(newResult, aT3);
   UnsignedIntegerType unsignedIntegerNewResult = unsignedIntegerResult;
-  OpAssign<o>(unsignedIntegerNewResult, UnsignedIntegerType(t3));
+  OpAssign<o>(unsignedIntegerNewResult, UnsignedIntegerType(aT3));
   MOZ_RELEASE_ASSERT(TypedEnum(unsignedIntegerNewResult) == newResult);
 
   
@@ -307,19 +310,19 @@ void TestBinOp(const T1& t1, const T2& t2, const T3& t3)
 
 
 template<typename TypedEnum, typename T>
-void TestTilde(const T& t)
+void TestTilde(const T& aT)
 {
   typedef typename mozilla::detail::UnsignedIntegerTypeForEnum<TypedEnum>::Type
           UnsignedIntegerType;
 
-  auto result = ~t;
+  auto result = ~aT;
 
   typedef decltype(result) ResultType;
 
   RequireLiteralType<ResultType>();
   TestNonConvertibilityForOneType<ResultType>();
 
-  UnsignedIntegerType unsignedIntegerResult = ~(UnsignedIntegerType(t));
+  UnsignedIntegerType unsignedIntegerResult = ~(UnsignedIntegerType(aT));
 
   MOZ_RELEASE_ASSERT(unsignedIntegerResult == UnsignedIntegerType(result));
   MOZ_RELEASE_ASSERT(TypedEnum(unsignedIntegerResult) == TypedEnum(result));
@@ -331,12 +334,12 @@ void TestTilde(const T& t)
 
 
 template<typename TypedEnum, typename T1, typename T2, typename T3>
-void TestAllOpsForGivenOperands(const T1& t1, const T2& t2, const T3& t3)
+void TestAllOpsForGivenOperands(const T1& aT1, const T2& aT2, const T3& aT3)
 {
-  TestBinOp<TypedEnum, '|'>(t1, t2, t3);
-  TestBinOp<TypedEnum, '&'>(t1, t2, t3);
-  TestBinOp<TypedEnum, '^'>(t1, t2, t3);
-  TestTilde<TypedEnum>(t1);
+  TestBinOp<TypedEnum, '|'>(aT1, aT2, aT3);
+  TestBinOp<TypedEnum, '&'>(aT1, aT2, aT3);
+  TestBinOp<TypedEnum, '^'>(aT1, aT2, aT3);
+  TestTilde<TypedEnum>(aT1);
 }
 
 

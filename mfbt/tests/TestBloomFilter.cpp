@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/Assertions.h"
 #include "mozilla/BloomFilter.h"
 
@@ -13,19 +14,19 @@ using mozilla::BloomFilter;
 
 class FilterChecker
 {
-  public:
-    explicit FilterChecker(uint32_t hash) : mHash(hash) { }
+public:
+  explicit FilterChecker(uint32_t aHash) : mHash(aHash) { }
 
-    uint32_t hash() const { return mHash; }
+  uint32_t hash() const { return mHash; }
 
-  private:
-    uint32_t mHash;
+private:
+  uint32_t mHash;
 };
 
 int
 main()
 {
-  BloomFilter<12, FilterChecker> *filter = new BloomFilter<12, FilterChecker>();
+  BloomFilter<12, FilterChecker>* filter = new BloomFilter<12, FilterChecker>();
   MOZ_RELEASE_ASSERT(filter);
 
   FilterChecker one(1);
@@ -55,31 +56,31 @@ main()
 
   
   const size_t FILTER_SIZE = 255;
-  for (size_t i = 0; i < FILTER_SIZE - 1; ++i)
+  for (size_t i = 0; i < FILTER_SIZE - 1; ++i) {
     filter->add(&two);
-
+  }
   MOZ_RELEASE_ASSERT(filter->mightContain(&multiple),
              "Filter should contain 'multiple' after 'two' added lots of times "
              "(false positive)");
 
-  for (size_t i = 0; i < FILTER_SIZE - 1; ++i)
+  for (size_t i = 0; i < FILTER_SIZE - 1; ++i) {
     filter->remove(&two);
-
+  }
   MOZ_RELEASE_ASSERT(!filter->mightContain(&multiple),
              "Filter claims to contain 'multiple' when it should not after two "
              "was removed lots of times");
 
   
-  for (size_t i = 0; i < FILTER_SIZE + 1; ++i)
+  for (size_t i = 0; i < FILTER_SIZE + 1; ++i) {
     filter->add(&two);
-
+  }
   MOZ_RELEASE_ASSERT(filter->mightContain(&multiple),
              "Filter should contain 'multiple' after 'two' added lots more "
              "times (false positive)");
 
-  for (size_t i = 0; i < FILTER_SIZE + 1; ++i)
+  for (size_t i = 0; i < FILTER_SIZE + 1; ++i) {
     filter->remove(&two);
-
+  }
   MOZ_RELEASE_ASSERT(filter->mightContain(&multiple),
              "Filter claims to not contain 'multiple' even though we should "
              "have run out of space in the buckets (false positive)");

@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/Pair.h"
 
 using mozilla::Pair;
@@ -29,20 +30,20 @@ INSTANTIATE(int, int, prim1, 2 * sizeof(int));
 INSTANTIATE(int, long, prim2, 2 * sizeof(long));
 
 struct EmptyClass { EmptyClass(int) {} };
-struct NonEmpty { char c; NonEmpty(int) {} };
+struct NonEmpty { char mC; NonEmpty(int) {} };
 
 INSTANTIATE(int, EmptyClass, both1, sizeof(int));
 INSTANTIATE(int, NonEmpty, both2, 2 * sizeof(int));
 INSTANTIATE(EmptyClass, NonEmpty, both3, 1);
 
 struct A { char dummy; A(int) {} };
-struct B : A { B(int i) : A(i) {} };
+struct B : A { B(int aI) : A(aI) {} };
 
 INSTANTIATE(A, A, class1, 2);
 INSTANTIATE(A, B, class2, 2);
 INSTANTIATE(A, EmptyClass, class3, 1);
 
-struct OtherEmpty : EmptyClass { OtherEmpty(int i) : EmptyClass(i) {} };
+struct OtherEmpty : EmptyClass { OtherEmpty(int aI) : EmptyClass(aI) {} };
 
 
 
@@ -58,4 +59,5 @@ struct OtherEmpty : EmptyClass { OtherEmpty(int i) : EmptyClass(i) {} };
 int
 main()
 {
+  return 0;
 }

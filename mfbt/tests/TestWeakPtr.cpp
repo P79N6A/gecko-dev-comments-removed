@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "mozilla/WeakPtr.h"
 
 using mozilla::SupportsWeakPtr;
@@ -10,17 +12,16 @@ using mozilla::WeakPtr;
 
 class C : public SupportsWeakPtr<C>
 {
-  public:
-    MOZ_DECLARE_REFCOUNTED_TYPENAME(C)
-    int num;
-    void act() {}
+public:
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(C)
+  int mNum;
+  void act() {}
 };
 
 static void
 Example()
 {
-
-  C* ptr =  new C();
+  C* ptr = new C();
 
   
   
@@ -31,7 +32,7 @@ Example()
 
   
   if (weak) {
-    weak->num = 17;
+    weak->mNum = 17;
     weak->act();
   }
 
@@ -44,28 +45,26 @@ Example()
 
 struct A : public SupportsWeakPtr<A>
 {
-    MOZ_DECLARE_REFCOUNTED_TYPENAME(A)
-    int data;
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(A)
+  int mData;
 };
-
 
 int
 main()
 {
-
   A* a = new A;
 
   
   
   A* a2 = new A;
 
-  a->data = 5;
+  a->mData = 5;
   WeakPtr<A> ptr = a->asWeakPtr();
   {
-      WeakPtr<A> ptr2 = a->asWeakPtr();
-      MOZ_RELEASE_ASSERT(ptr->data == 5);
-      WeakPtr<A> ptr3 = a->asWeakPtr();
-      MOZ_RELEASE_ASSERT(ptr->data == 5);
+    WeakPtr<A> ptr2 = a->asWeakPtr();
+    MOZ_RELEASE_ASSERT(ptr->mData == 5);
+    WeakPtr<A> ptr3 = a->asWeakPtr();
+    MOZ_RELEASE_ASSERT(ptr->mData == 5);
   }
 
   delete a;

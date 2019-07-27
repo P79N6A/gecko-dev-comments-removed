@@ -159,7 +159,7 @@
 #define RETURN_INSTR 0xd65f03c0 /* ret */
 
 #elif defined __ia64
-struct ia64_instr { uint32_t i[4]; };
+struct ia64_instr { uint32_t mI[4]; };
 static const ia64_instr _return_instr =
   {{ 0x00000011, 0x00000001, 0x80000200, 0x00840008 }}; 
 
@@ -179,18 +179,20 @@ static const ia64_instr _return_instr =
 #ifdef _WIN32
 
 static LPSTR
-StrW32Error(DWORD errcode)
+StrW32Error(DWORD aErrcode)
 {
   LPSTR errmsg;
   FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                  FORMAT_MESSAGE_FROM_SYSTEM |
                  FORMAT_MESSAGE_IGNORE_INSERTS,
-                 nullptr, errcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                 nullptr, aErrcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                  (LPSTR)&errmsg, 0, nullptr);
 
   
   size_t n = strlen(errmsg)-1;
-  while (errmsg[n] == '\r' || errmsg[n] == '\n') n--;
+  while (errmsg[n] == '\r' || errmsg[n] == '\n') {
+    n--;
+  }
   errmsg[n+1] = '\0';
   return errmsg;
 }
@@ -206,33 +208,29 @@ PageSize()
   return sInfo_.dwAllocationGranularity;
 }
 
-static void *
-ReserveRegion(uintptr_t request, bool accessible)
+static void*
+ReserveRegion(uintptr_t aRequest, bool aAccessible)
 {
-  return VirtualAlloc((void *)request, PageSize(),
-                      accessible ? MEM_RESERVE|MEM_COMMIT : MEM_RESERVE,
-                      accessible ? PAGE_EXECUTE_READWRITE : PAGE_NOACCESS);
+  return VirtualAlloc((void*)aRequest, PageSize(),
+                      aAccessible ? MEM_RESERVE|MEM_COMMIT : MEM_RESERVE,
+                      aAccessible ? PAGE_EXECUTE_READWRITE : PAGE_NOACCESS);
 }
 
 static void
-ReleaseRegion(void *page)
+ReleaseRegion(void* aPage)
 {
-  VirtualFree(page, PageSize(), MEM_RELEASE);
+  VirtualFree(aPage, PageSize(), MEM_RELEASE);
 }
 
 static bool
-ProbeRegion(uintptr_t page)
+ProbeRegion(uintptr_t aPage)
 {
-  if (page >= (uintptr_t)sInfo_.lpMaximumApplicationAddress &&
-      page + PageSize() >= (uintptr_t)sInfo_.lpMaximumApplicationAddress) {
-    return true;
-  } else {
-    return false;
-  }
+  return aPage >= (uintptr_t)sInfo_.lpMaximumApplicationAddress &&
+         aPage + PageSize() >= (uintptr_t)sInfo_.lpMaximumApplicationAddress;
 }
 
 static bool
-MakeRegionExecutable(void *)
+MakeRegionExecutable(void*)
 {
   return false;
 }
@@ -244,42 +242,38 @@ MakeRegionExecutable(void *)
 
 #define LastErrMsg() (strerror(errno))
 
-static unsigned long unixPageSize;
+static unsigned long gUnixPageSize;
 
 static inline unsigned long
 PageSize()
 {
-  return unixPageSize;
+  return gUnixPageSize;
 }
 
-static void *
-ReserveRegion(uintptr_t request, bool accessible)
+static void*
+ReserveRegion(uintptr_t aRequest, bool aAccessible)
 {
-  return mmap(reinterpret_cast<void*>(request), PageSize(),
-              accessible ? PROT_READ|PROT_WRITE : PROT_NONE,
+  return mmap(reinterpret_cast<void*>(aRequest), PageSize(),
+              aAccessible ? PROT_READ|PROT_WRITE : PROT_NONE,
               MAP_PRIVATE|MAP_ANON, -1, 0);
 }
 
 static void
-ReleaseRegion(void *page)
+ReleaseRegion(void* aPage)
 {
-  munmap(page, PageSize());
+  munmap(aPage, PageSize());
 }
 
 static bool
-ProbeRegion(uintptr_t page)
+ProbeRegion(uintptr_t aPage)
 {
-  if (madvise(reinterpret_cast<void*>(page), PageSize(), MADV_NORMAL)) {
-    return true;
-  } else {
-    return false;
-  }
+  return !!madvise(reinterpret_cast<void*>(aPage), PageSize(), MADV_NORMAL);
 }
 
 static int
-MakeRegionExecutable(void *page)
+MakeRegionExecutable(void* aPage)
 {
-  return mprotect((caddr_t)page, PageSize(), PROT_READ|PROT_WRITE|PROT_EXEC);
+  return mprotect((caddr_t)aPage, PageSize(), PROT_READ|PROT_WRITE|PROT_EXEC);
 }
 
 #endif
@@ -296,48 +290,51 @@ ReservePoisonArea()
                         ~uintptr_t(PageSize()-1));
     printf("INFO | poison area assumed at 0x%.*" PRIxPTR "\n", SIZxPTR, result);
     return result;
-  } else {
-    
-    uintptr_t candidate = (0xF0DEAFFF & ~(PageSize()-1));
-    void *result = ReserveRegion(candidate, false);
-    if (result == (void *)candidate) {
-      
-      printf("INFO | poison area allocated at 0x%.*" PRIxPTR
-             " (preferred addr)\n", SIZxPTR, (uintptr_t)result);
-      return candidate;
-    }
-
-    
-    
-    if (ProbeRegion(candidate)) {
-      
-      if (result != MAP_FAILED)
-        ReleaseRegion(result);
-      printf("INFO | poison area assumed at 0x%.*" PRIxPTR
-             " (preferred addr)\n", SIZxPTR, candidate);
-      return candidate;
-    }
-
-    
-    
-    if (result != MAP_FAILED) {
-      printf("INFO | poison area allocated at 0x%.*" PRIxPTR
-             " (consolation prize)\n", SIZxPTR, (uintptr_t)result);
-      return (uintptr_t)result;
-    }
-
-    
-    
-    result = ReserveRegion(0, false);
-    if (result != MAP_FAILED) {
-      printf("INFO | poison area allocated at 0x%.*" PRIxPTR
-             " (fallback)\n", SIZxPTR, (uintptr_t)result);
-      return (uintptr_t)result;
-    }
-
-    printf("ERROR | no usable poison area found\n");
-    return 0;
   }
+
+  
+  uintptr_t candidate = (0xF0DEAFFF & ~(PageSize() - 1));
+  void* result = ReserveRegion(candidate, false);
+  if (result == reinterpret_cast<void*>(candidate)) {
+    
+    printf("INFO | poison area allocated at 0x%.*" PRIxPTR
+           " (preferred addr)\n", SIZxPTR, reinterpret_cast<uintptr_t>(result));
+    return candidate;
+  }
+
+  
+  
+  if (ProbeRegion(candidate)) {
+    
+    if (result != MAP_FAILED) {
+      ReleaseRegion(result);
+    }
+    printf("INFO | poison area assumed at 0x%.*" PRIxPTR
+           " (preferred addr)\n", SIZxPTR, candidate);
+    return candidate;
+  }
+
+  
+  
+  if (result != MAP_FAILED) {
+    uintptr_t ures = reinterpret_cast<uintptr_t>(result);
+    printf("INFO | poison area allocated at 0x%.*" PRIxPTR
+           " (consolation prize)\n", SIZxPTR, ures);
+    return ures;
+  }
+
+  
+  
+  result = ReserveRegion(0, false);
+  if (result != MAP_FAILED) {
+    uintptr_t ures = reinterpret_cast<uintptr_t>(result);
+    printf("INFO | poison area allocated at 0x%.*" PRIxPTR
+           " (fallback)\n", SIZxPTR, ures);
+    return ures;
+  }
+
+  printf("ERROR | no usable poison area found\n");
+  return 0;
 }
 
 
@@ -347,7 +344,7 @@ static uintptr_t
 ReservePositiveControl()
 {
 
-  void *result = ReserveRegion(0, false);
+  void* result = ReserveRegion(0, false);
   if (result == MAP_FAILED) {
     printf("ERROR | allocating positive control | %s\n", LastErrMsg());
     return 0;
@@ -363,17 +360,20 @@ ReservePositiveControl()
 static uintptr_t
 ReserveNegativeControl()
 {
-  void *result = ReserveRegion(0, true);
+  void* result = ReserveRegion(0, true);
   if (result == MAP_FAILED) {
     printf("ERROR | allocating negative control | %s\n", LastErrMsg());
     return 0;
   }
 
   
-  RETURN_INSTR_TYPE *p = (RETURN_INSTR_TYPE *)result;
-  RETURN_INSTR_TYPE *limit = (RETURN_INSTR_TYPE *)(((char *)result) + PageSize());
-  while (p < limit)
+  RETURN_INSTR_TYPE* p = reinterpret_cast<RETURN_INSTR_TYPE*>(result);
+  RETURN_INSTR_TYPE* limit =
+    reinterpret_cast<RETURN_INSTR_TYPE*>(
+      reinterpret_cast<char*>(result) + PageSize());
+  while (p < limit) {
     *p++ = RETURN_INSTR;
+  }
 
   
   
@@ -389,35 +389,36 @@ ReserveNegativeControl()
 }
 
 static void
-JumpTo(uintptr_t opaddr)
+JumpTo(uintptr_t aOpaddr)
 {
 #ifdef __ia64
-  struct func_call {
-    uintptr_t func;
-    uintptr_t gp;
-  } call = { opaddr, };
+  struct func_call
+  {
+    uintptr_t mFunc;
+    uintptr_t mGp;
+  } call = { aOpaddr, };
   ((void (*)())&call)();
 #else
-  ((void (*)())opaddr)();
+  ((void (*)())aOpaddr)();
 #endif
 }
 
 #ifdef _WIN32
 static BOOL
-IsBadExecPtr(uintptr_t ptr)
+IsBadExecPtr(uintptr_t aPtr)
 {
   BOOL ret = false;
 
 #if defined(_MSC_VER) && !defined(__clang__)
   __try {
-    JumpTo(ptr);
+    JumpTo(aPtr);
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     ret = true;
   }
 #else
   printf("INFO | exec test not supported on MinGW or clang-cl builds\n");
   
-  ret = IsBadReadPtr((const void*)ptr, 1);
+  ret = IsBadReadPtr((const void*)aPtr, 1);
 #endif
   return ret;
 }
@@ -425,9 +426,9 @@ IsBadExecPtr(uintptr_t ptr)
 
 
 static bool
-TestPage(const char *pagelabel, uintptr_t pageaddr, int should_succeed)
+TestPage(const char* aPageLabel, uintptr_t aPageAddr, int aShouldSucceed)
 {
-  const char *oplabel;
+  const char* oplabel;
   uintptr_t opaddr;
 
   bool failed = false;
@@ -435,9 +436,9 @@ TestPage(const char *pagelabel, uintptr_t pageaddr, int should_succeed)
     switch (test) {
       
       
-    case 0: oplabel = "reading"; opaddr = pageaddr + PageSize()/2 - 1; break;
-    case 1: oplabel = "executing"; opaddr = pageaddr + PageSize()/2; break;
-    case 2: oplabel = "writing"; opaddr = pageaddr + PageSize()/2 - 1; break;
+    case 0: oplabel = "reading"; opaddr = aPageAddr + PageSize()/2 - 1; break;
+    case 1: oplabel = "executing"; opaddr = aPageAddr + PageSize()/2; break;
+    case 2: oplabel = "writing"; opaddr = aPageAddr + PageSize()/2 - 1; break;
     default: abort();
     }
 
@@ -452,33 +453,33 @@ TestPage(const char *pagelabel, uintptr_t pageaddr, int should_succeed)
     }
 
     if (badptr) {
-      if (should_succeed) {
-        printf("TEST-UNEXPECTED-FAIL | %s %s\n", oplabel, pagelabel);
+      if (aShouldSucceed) {
+        printf("TEST-UNEXPECTED-FAIL | %s %s\n", oplabel, aPageLabel);
         failed = true;
       } else {
-        printf("TEST-PASS | %s %s\n", oplabel, pagelabel);
+        printf("TEST-PASS | %s %s\n", oplabel, aPageLabel);
       }
     } else {
       
-      if (should_succeed) {
-        printf("TEST-PASS | %s %s\n", oplabel, pagelabel);
+      if (aShouldSucceed) {
+        printf("TEST-PASS | %s %s\n", oplabel, aPageLabel);
       } else {
-        printf("TEST-UNEXPECTED-FAIL | %s %s\n", oplabel, pagelabel);
+        printf("TEST-UNEXPECTED-FAIL | %s %s\n", oplabel, aPageLabel);
         failed = true;
       }
     }
 #else
     pid_t pid = fork();
     if (pid == -1) {
-      printf("ERROR | %s %s | fork=%s\n", oplabel, pagelabel,
+      printf("ERROR | %s %s | fork=%s\n", oplabel, aPageLabel,
              LastErrMsg());
       exit(2);
     } else if (pid == 0) {
       volatile unsigned char scratch;
       switch (test) {
-      case 0: scratch = *(volatile unsigned char *)opaddr; break;
+      case 0: scratch = *(volatile unsigned char*)opaddr; break;
       case 1: JumpTo(opaddr); break;
-      case 2: *(volatile unsigned char *)opaddr = 0; break;
+      case 2: *(volatile unsigned char*)opaddr = 0; break;
       default: abort();
       }
       (void)scratch;
@@ -486,35 +487,35 @@ TestPage(const char *pagelabel, uintptr_t pageaddr, int should_succeed)
     } else {
       int status;
       if (waitpid(pid, &status, 0) != pid) {
-        printf("ERROR | %s %s | wait=%s\n", oplabel, pagelabel,
+        printf("ERROR | %s %s | wait=%s\n", oplabel, aPageLabel,
                LastErrMsg());
         exit(2);
       }
 
       if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-        if (should_succeed) {
-          printf("TEST-PASS | %s %s\n", oplabel, pagelabel);
+        if (aShouldSucceed) {
+          printf("TEST-PASS | %s %s\n", oplabel, aPageLabel);
         } else {
           printf("TEST-UNEXPECTED-FAIL | %s %s | unexpected successful exit\n",
-                 oplabel, pagelabel);
+                 oplabel, aPageLabel);
           failed = true;
         }
       } else if (WIFEXITED(status)) {
         printf("ERROR | %s %s | unexpected exit code %d\n",
-               oplabel, pagelabel, WEXITSTATUS(status));
+               oplabel, aPageLabel, WEXITSTATUS(status));
         exit(2);
       } else if (WIFSIGNALED(status)) {
-        if (should_succeed) {
+        if (aShouldSucceed) {
           printf("TEST-UNEXPECTED-FAIL | %s %s | unexpected signal %d\n",
-                 oplabel, pagelabel, WTERMSIG(status));
+                 oplabel, aPageLabel, WTERMSIG(status));
           failed = true;
         } else {
           printf("TEST-PASS | %s %s | signal %d (as expected)\n",
-                 oplabel, pagelabel, WTERMSIG(status));
+                 oplabel, aPageLabel, WTERMSIG(status));
         }
       } else {
         printf("ERROR | %s %s | unexpected exit status %d\n",
-               oplabel, pagelabel, status);
+               oplabel, aPageLabel, status);
         exit(2);
       }
     }
@@ -529,15 +530,16 @@ main()
 #ifdef _WIN32
   GetSystemInfo(&sInfo_);
 #else
-  unixPageSize = sysconf(_SC_PAGESIZE);
+  gUnixPageSize = sysconf(_SC_PAGESIZE);
 #endif
 
   uintptr_t ncontrol = ReserveNegativeControl();
   uintptr_t pcontrol = ReservePositiveControl();
   uintptr_t poison = ReservePoisonArea();
 
-  if (!ncontrol || !pcontrol || !poison)
+  if (!ncontrol || !pcontrol || !poison) {
     return 2;
+  }
 
   bool failed = false;
   failed |= TestPage("negative control", ncontrol, 1);

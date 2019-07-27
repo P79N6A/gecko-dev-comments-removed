@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/MathAlgorithms.h"
 
 using mozilla::CountPopulation32;
@@ -25,7 +26,8 @@ TestCountPopulation32()
   MOZ_RELEASE_ASSERT(CountPopulation32(0x00000000) == 0);
 }
 
-int main()
+int
+main()
 {
   TestCountPopulation32();
   return 0;

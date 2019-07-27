@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/Casting.h"
 
 #include <stdint.h>
@@ -16,15 +17,16 @@ struct UintUlongBitwiseCast;
 template<typename Uint, typename Ulong>
 struct UintUlongBitwiseCast<Uint, Ulong, true>
 {
-    static void test() {
-      MOZ_RELEASE_ASSERT(BitwiseCast<Ulong>(Uint(8675309)) == Ulong(8675309));
-    }
+  static void test()
+  {
+    MOZ_RELEASE_ASSERT(BitwiseCast<Ulong>(Uint(8675309)) == Ulong(8675309));
+  }
 };
 
 template<typename Uint, typename Ulong>
 struct UintUlongBitwiseCast<Uint, Ulong, false>
 {
-    static void test() { }
+  static void test() { }
 };
 
 static void
@@ -105,4 +107,6 @@ main()
   TestSameSize();
   TestToBiggerSize();
   TestToSmallerSize();
+
+  return 0;
 }
