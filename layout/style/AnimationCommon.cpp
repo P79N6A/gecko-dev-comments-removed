@@ -604,7 +604,8 @@ AnimationPlayerCollection::CanThrottleTransformChanges(TimeStamp aTime)
   }
 
   
-  if ((aTime - mStyleRuleRefreshTime) < TimeDuration::FromMilliseconds(200)) {
+  if (!mStyleRuleRefreshTime.IsNull() &&
+      (aTime - mStyleRuleRefreshTime) < TimeDuration::FromMilliseconds(200)) {
     return true;
   }
 
