@@ -177,7 +177,10 @@ pref("browser.sessionhistory.max_total_viewers", -1);
 pref("ui.use_native_colors", true);
 pref("ui.click_hold_context_menus", false);
 pref("browser.display.use_document_fonts",  1);  
-pref("browser.display.use_document_colors", true);
+
+
+
+pref("browser.display.document_color_use", 0);
 pref("browser.display.use_system_colors",   false);
 pref("browser.display.foreground_color",    "#000000");
 pref("browser.display.background_color",    "#FFFFFF");
@@ -2366,7 +2369,12 @@ pref("svg.display-lists.painting.enabled", true);
 pref("svg.paint-order.enabled", true);
 
 
+
+#ifdef RELEASE_BUILD
+pref("svg.marker-improvements.enabled", false);
+#else
 pref("svg.marker-improvements.enabled", true);
+#endif
 
 #ifdef RELEASE_BUILD
 pref("svg.svg-iframe.enabled", false);
