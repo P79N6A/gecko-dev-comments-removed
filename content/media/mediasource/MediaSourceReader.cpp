@@ -275,7 +275,9 @@ MediaSourceReader::SelectReader(double aTarget,
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
-  for (uint32_t i = 0; i < aTrackDecoders.Length(); ++i) {
+  
+  
+  for (int32_t i = aTrackDecoders.Length() - 1; i >= 0; --i) {
     nsRefPtr<MediaDecoderReader> newReader = aTrackDecoders[i]->GetReader();
 
     
