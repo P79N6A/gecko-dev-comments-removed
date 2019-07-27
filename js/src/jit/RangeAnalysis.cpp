@@ -3218,6 +3218,8 @@ RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
 {
     *shouldRemoveDeadCode = false;
 
+    MDefinitionVector deadConditions(alloc());
+
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
         MBasicBlock *block = *iter;
 
@@ -3232,6 +3234,7 @@ RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
         
         
         MTest *test = cond->toTest();
+        MDefinition *condition = test->input();
         MConstant *constant = nullptr;
         if (block == test->ifTrue()) {
             constant = MConstant::New(alloc(), BooleanValue(false));
@@ -3239,12 +3242,70 @@ RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
             MOZ_ASSERT(block == test->ifFalse());
             constant = MConstant::New(alloc(), BooleanValue(true));
         }
+
+        if (DeadIfUnused(condition) && !condition->isInWorklist()) {
+            condition->setInWorklist();
+            if (!deadConditions.append(condition))
+                return false;
+        }
+
         test->block()->insertBefore(test, constant);
+
         test->replaceOperand(0, constant);
         JitSpew(JitSpew_Range, "Update condition of %d to reflect unreachable branches.",
                 test->id());
 
         *shouldRemoveDeadCode = true;
+    }
+
+    
+    
+    
+    
+    for (size_t i = 0; i < deadConditions.length(); i++) {
+        MDefinition *cond = deadConditions[i];
+
+        
+        
+        if (cond->isGuard())
+            continue;
+
+        if (cond->range()) {
+            
+            Range typeFilteredRange(cond);
+
+            
+            
+            
+            
+            
+            
+            if (typeFilteredRange.update(cond->range())) {
+                cond->setGuard();
+                continue;
+            }
+        }
+
+        for (size_t op = 0, e = cond->numOperands(); op < e; op++) {
+            MDefinition *operand = cond->getOperand(op);
+            if (!DeadIfUnused(operand) || operand->isInWorklist())
+                continue;
+
+            
+            
+            
+            if (!operand->range())
+                continue;
+
+            operand->setInWorklist();
+            if (!deadConditions.append(operand))
+                return false;
+        }
+    }
+
+    while (!deadConditions.empty()) {
+        MDefinition *cond = deadConditions.popCopy();
+        cond->setNotInWorklist();
     }
 
     return true;
