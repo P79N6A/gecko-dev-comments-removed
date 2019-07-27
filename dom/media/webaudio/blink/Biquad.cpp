@@ -27,13 +27,13 @@
 
 
 
-#ifdef _MSC_VER
-#  define _USE_MATH_DEFINES
-#endif
+
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include "Biquad.h"
 
-#include <cmath>
 #include <float.h>
 #include <algorithm>
 
