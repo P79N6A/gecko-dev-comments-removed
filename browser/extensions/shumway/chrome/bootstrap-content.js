@@ -66,6 +66,12 @@
     }
   }
 
+  if (isRemote && typeof ShumwayBootstrapUtils !== 'undefined') {
+    
+    
+    isRemote = false;
+  }
+
   if (isRemote) {
     addMessageListener('Shumway:Child:refreshSettings', updateSettings);
     updateSettings();

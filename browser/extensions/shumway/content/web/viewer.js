@@ -14,63 +14,8 @@
 
 
 
-
-var FirefoxCom = (function FirefoxComClosure() {
-  return {
-    
-
-
-
-
-
-
-
-
-    requestSync: function(action, data) {
-      var result = String(ShumwayCom.sendMessage(action, data, true, undefined));
-      return result !== 'undefined' ? JSON.parse(result) : undefined;
-    },
-    
-
-
-
-
-
-
-
-    request: function(action, data, callback) {
-      var cookie = undefined;
-      if (callback) {
-        cookie = "requestId" + (this._nextRequestId++);
-
-        if (!ShumwayCom.onMessageCallback) {
-          ShumwayCom.onMessageCallback = this._notifyMessageCallback.bind(this);
-        }
-        this._requestCallbacks[cookie] = callback;
-      }
-      ShumwayCom.sendMessage(action, data, false, cookie);
-    },
-    _notifyMessageCallback: function (cookie, response) {
-      var callback = this._requestCallbacks[cookie];
-      if (!callback) {
-        return;
-      }
-      delete this._requestCallbacks[cookie];
-      callback(response !== 'undefined' ? JSON.parse(response) : undefined);
-    },
-    _nextRequestId: 1,
-    _requestCallbacks: Object.create(null),
-    initJS: function (callback) {
-      FirefoxCom.request('externalCom', {action: 'init'});
-      ShumwayCom.onExternalCallback = function (call) {
-        return callback(call.functionName, call.args);
-      };
-    }
-  };
-})();
-
 function notifyUserInput() {
-  ShumwayCom.sendMessage('userInput', null, true, undefined);
+  ShumwayCom.userInput();
 }
 
 document.addEventListener('mousedown', notifyUserInput, true);
@@ -79,7 +24,7 @@ document.addEventListener('keydown', notifyUserInput, true);
 document.addEventListener('keyup', notifyUserInput, true);
 
 function fallback() {
-  FirefoxCom.requestSync('fallback', null)
+  ShumwayCom.fallback();
 }
 
 window.print = function(msg) {
@@ -88,37 +33,23 @@ window.print = function(msg) {
 
 var SHUMWAY_ROOT = "resource://shumway/";
 
-var viewerPlayerglobalInfo = {
-  abcs: SHUMWAY_ROOT + "playerglobal/playerglobal.abcs",
-  catalog: SHUMWAY_ROOT + "playerglobal/playerglobal.json"
-};
-
-var builtinPath = SHUMWAY_ROOT + "libs/builtin.abc";
-
 var playerWindow;
 var playerWindowLoaded = new Promise(function(resolve) {
   var playerWindowIframe = document.getElementById("playerWindow");
   playerWindowIframe.addEventListener('load', function () {
     playerWindow = playerWindowIframe.contentWindow;
-    resolve();
+    resolve(playerWindowIframe);
   });
   playerWindowIframe.src = 'resource://shumway/web/viewer.player.html';
 });
 
 function runViewer() {
-  ShumwayCom.onLoadFileCallback = function (data) {
-    playerWindow.postMessage({
-      type: "loadFileResponse",
-      args: data
-    }, '*');
-  };
-
-  var flashParams = FirefoxCom.requestSync('getPluginParams', null);
+  var flashParams = ShumwayCom.getPluginParams();
 
   movieUrl = flashParams.url;
   if (!movieUrl) {
     console.log("no movie url provided -- stopping here");
-    FirefoxCom.request('endActivation', null);
+    ShumwayCom.endActivation();
     return;
   }
 
@@ -127,6 +58,7 @@ function runViewer() {
   var baseUrl = flashParams.baseUrl;
   var isOverlay = flashParams.isOverlay;
   pauseExecution = flashParams.isPausedAtStart;
+  var isDebuggerEnabled = flashParams.isDebuggerEnabled;
 
   console.log("url=" + movieUrl + ";params=" + uneval(movieParams));
   if (movieParams.fmt_list && movieParams.url_encoded_fmt_stream_map) {
@@ -137,7 +69,8 @@ function runViewer() {
     }).join(',');
   }
 
-  playerWindowLoaded.then(function () {
+  playerWindowLoaded.then(function (playerWindowIframe) {
+    ShumwayCom.setupComBridge(playerWindowIframe);
     parseSwf(movieUrl, baseUrl, movieParams, objectParams);
   });
 
@@ -166,8 +99,7 @@ function runViewer() {
   document.getElementById('aboutMenu').label =
     document.getElementById('aboutMenu').label.replace('%version%', version);
 
-  var debugMenuEnabled = FirefoxCom.requestSync('getBoolPref', {pref: 'shumway.debug.enabled', def: false});
-  if (debugMenuEnabled) {
+  if (isDebuggerEnabled) {
     document.getElementById('debugMenu').addEventListener('click', enableDebug);
   } else {
     document.getElementById('debugMenu').remove();
@@ -205,7 +137,7 @@ function reportIssue() {
   
   
   
-  FirefoxCom.requestSync('reportIssue');
+  ShumwayCom.reportIssue();
 }
 
 function showAbout() {
@@ -221,18 +153,6 @@ var movieUrl, movieParams, objectParams;
 window.addEventListener("message", function handlerMessage(e) {
   var args = e.data;
   switch (args.callback) {
-    case 'loadFileRequest':
-      FirefoxCom.request('loadFile', args.data, null);
-      break;
-    case 'reportTelemetry':
-      FirefoxCom.request('reportTelemetry', args.data, null);
-      break;
-    case 'setClipboard':
-      FirefoxCom.request('setClipboard', args.data, null);
-      break;
-    case 'navigateTo':
-      FirefoxCom.request('navigateTo', args.data, null);
-      break;
     case 'started':
       document.body.classList.add('started');
       break;
@@ -241,35 +161,19 @@ window.addEventListener("message", function handlerMessage(e) {
 
 var easelHost;
 
-function processExternalCommand(command) {
-  switch (command.action) {
-    case 'isEnabled':
-      command.result = true;
-      break;
-    case 'initJS':
-      FirefoxCom.initJS(function (functionName, args) {
-        return easelHost.sendExernalCallback(functionName, args);
-      });
-      break;
-    default:
-      command.result = FirefoxCom.requestSync('externalCom', command);
-      break;
-  }
-}
-
 function parseSwf(url, baseUrl, movieParams, objectParams) {
-  var compilerSettings = FirefoxCom.requestSync('getCompilerSettings', null);
+  var settings = ShumwayCom.getSettings();
+  var compilerSettings = settings.compilerSettings;
 
   
-  var turboMode = FirefoxCom.requestSync('getBoolPref', {pref: 'shumway.turboMode', def: false});
-  Shumway.GFX.hud.value = FirefoxCom.requestSync('getBoolPref', {pref: 'shumway.hud', def: false});
-  
+  var turboMode = settings.playerSettings.turboMode;
+  Shumway.GFX.hud.value = settings.playerSettings.hud;
   
 
   console.info("Compiler settings: " + JSON.stringify(compilerSettings));
   console.info("Parsing " + url + "...");
   function loaded() {
-    FirefoxCom.request('endActivation', null);
+    ShumwayCom.endActivation();
   }
 
   var backgroundColor;
@@ -286,7 +190,6 @@ function parseSwf(url, baseUrl, movieParams, objectParams) {
 
   var easel = createEasel(backgroundColor);
   easelHost = new Shumway.GFX.Window.WindowEaselHost(easel, playerWindow, window);
-  easelHost.processExternalCommand = processExternalCommand;
 
   var displayParameters = easel.getDisplayParameters();
   var data = {

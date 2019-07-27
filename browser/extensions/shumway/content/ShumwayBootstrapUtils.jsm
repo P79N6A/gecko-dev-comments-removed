@@ -95,7 +95,11 @@ function allowedPlatformForMedia() {
 }
 
 var ShumwayBootstrapUtils = {
+  isRegistered: false,
+
   register: function () {
+    this.isRegistered = true;
+
     
     converterFactory.register(ShumwayStreamConverter);
     overlayConverterFactory.register(ShumwayStreamOverlayConverter);
@@ -117,6 +121,8 @@ var ShumwayBootstrapUtils = {
   },
 
   unregister: function () {
+    this.isRegistered = false;
+
     
     converterFactory.unregister();
     overlayConverterFactory.unregister();
