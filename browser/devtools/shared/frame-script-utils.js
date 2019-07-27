@@ -112,3 +112,69 @@ addMessageListener("devtools:test:eval", function ({ data }) {
 addEventListener("load", function() {
   sendAsyncMessage("devtools:test:load");
 }, true);
+
+
+
+
+
+
+
+
+
+addMessageListener("devtools:test:setStyle", function(msg) {
+  let {selector, propertyName, propertyValue} = msg.data;
+  let node = superQuerySelector(selector);
+  if (!node) {
+    return;
+  }
+
+  node.style[propertyName] = propertyValue;
+
+  sendAsyncMessage("devtools:test:setStyle");
+});
+
+
+
+
+
+
+
+
+
+addMessageListener("devtools:test:setAttribute", function(msg) {
+  let {selector, attributeName, attributeValue} = msg.data;
+  let node = superQuerySelector(selector);
+  if (!node) {
+    return;
+  }
+
+  node.setAttribute(attributeName, attributeValue);
+
+  sendAsyncMessage("devtools:test:setAttribute");
+});
+
+
+
+
+
+
+
+
+
+
+
+function superQuerySelector(superSelector, root=content.document) {
+  let frameIndex = superSelector.indexOf("||");
+  if (frameIndex === -1) {
+    return root.querySelector(superSelector);
+  } else {
+    let rootSelector = superSelector.substring(0, frameIndex).trim();
+    let childSelector = superSelector.substring(frameIndex+2).trim();
+    root = root.querySelector(rootSelector);
+    if (!root || !root.contentWindow) {
+      return null;
+    }
+
+    return superQuerySelector(childSelector, root.contentWindow.document);
+  }
+}

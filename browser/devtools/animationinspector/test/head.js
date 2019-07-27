@@ -91,20 +91,6 @@ function reloadTab() {
 
 
 
-function getNode(nodeOrSelector) {
-  info("Getting the node for '" + nodeOrSelector + "'");
-  return typeof nodeOrSelector === "string" ?
-    content.document.querySelector(nodeOrSelector) :
-    nodeOrSelector;
-}
-
-
-
-
-
-
-
-
 function getNodeFront(selector, {walker}) {
   return walker.querySelector(walker.rootNode, selector);
 }
@@ -301,8 +287,7 @@ let togglePlayPauseButton = Task.async(function*(widget) {
 
 let getAnimationPlayerState = Task.async(function*(selector, animationIndex=0) {
   let playState = yield executeInContent("Test:GetAnimationPlayerState",
-                                         {animationIndex},
-                                         {node: getNode(selector)});
+                                         {selector, animationIndex});
   return playState;
 });
 

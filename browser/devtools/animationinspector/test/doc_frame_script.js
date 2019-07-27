@@ -13,9 +13,13 @@
 
 
 
+
 addMessageListener("Test:ToggleAnimationPlayer", function(msg) {
-  let {animationIndex, pause} = msg.data;
-  let {node} = msg.objects;
+  let {selector, animationIndex, pause} = msg.data;
+  let node = superQuerySelector(selector);
+  if (!node) {
+    return;
+  }
 
   let player = node.getAnimationPlayers()[animationIndex];
   if (pause) {
@@ -35,14 +39,17 @@ addMessageListener("Test:ToggleAnimationPlayer", function(msg) {
 
 
 
+addMessageListener("Test:SetAnimationPlayerCurrentTime", function(msg) {
+  let {selector, animationIndex, currentTime} = msg.data;
+  let node = superQuerySelector(selector);
+  if (!node) {
+    return;
+  }
 
-addMessageListener("Test:SetNodeStyle", function(msg) {
-  let {propertyName, propertyValue} = msg.data;
-  let {node} = msg.objects;
+  let player = node.getAnimationPlayers()[animationIndex];
+  player.currentTime = currentTime;
 
-  node.style[propertyName] = propertyValue;
-
-  sendAsyncMessage("Test:SetNodeStyle");
+  sendAsyncMessage("Test:SetAnimationPlayerCurrentTime");
 });
 
 
@@ -53,11 +60,40 @@ addMessageListener("Test:SetNodeStyle", function(msg) {
 
 
 addMessageListener("Test:GetAnimationPlayerState", function(msg) {
-  let {animationIndex} = msg.data;
-  let {node} = msg.objects;
+  let {selector, animationIndex} = msg.data;
+  let node = superQuerySelector(selector);
+  if (!node) {
+    return;
+  }
 
   let player = node.getAnimationPlayers()[animationIndex];
   player.ready.then(() => {
     sendAsyncMessage("Test:GetAnimationPlayerState", player.playState);
   });
 });
+
+
+
+
+
+
+
+
+
+
+
+function superQuerySelector(superSelector, root=content.document) {
+  let frameIndex = superSelector.indexOf("||");
+  if (frameIndex === -1) {
+    return root.querySelector(superSelector);
+  } else {
+    let rootSelector = superSelector.substring(0, frameIndex).trim();
+    let childSelector = superSelector.substring(frameIndex+2).trim();
+    root = root.querySelector(rootSelector);
+    if (!root || !root.contentWindow) {
+      return null;
+    }
+
+    return superQuerySelector(childSelector, root.contentWindow.document);
+  }
+}
