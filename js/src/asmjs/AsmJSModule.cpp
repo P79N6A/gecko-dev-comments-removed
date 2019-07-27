@@ -99,7 +99,7 @@ AsmJSModule::AsmJSModule(ScriptSource* scriptSource, uint32_t srcStart, uint32_t
 
     
     
-    MOZ_ASSERT(AsmJSCheckedImmediateRange - pod.minHeapLength_ <= AsmJSCheckedImmediateRange);
+    MOZ_ASSERT(pod.minHeapLength_ - AsmJSCheckedImmediateRange <= pod.minHeapLength_);
 
     scriptSource_->incref();
 }
