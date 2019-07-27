@@ -95,7 +95,7 @@ class ChannelEventQueue MOZ_FINAL
   nsISupports *mOwner;
 
   
-  nsCOMPtr<nsIThread> mTargetThread;
+  nsCOMPtr<nsIEventTarget> mTargetThread;
 
   friend class AutoEventEnqueuer;
 };
