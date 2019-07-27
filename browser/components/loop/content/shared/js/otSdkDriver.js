@@ -31,9 +31,7 @@ loop.OTSdkDriver = (function() {
 
       this.dispatcher.register(this, [
         "setupStreamElements",
-        "setMute",
-        "startScreenShare",
-        "endScreenShare"
+        "setMute"
       ]);
   };
 
@@ -89,13 +87,20 @@ loop.OTSdkDriver = (function() {
     
 
 
-    startScreenShare: function(actionData) {
-      this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
-        state: SCREEN_SHARE_STATES.PENDING
-      }));
 
-      var config = this._getCopyPublisherConfig();
-      config.videoSource = actionData.type;
+
+
+
+
+
+
+
+
+
+
+
+    startScreenShare: function(options) {
+      var config = _.extend(this._getCopyPublisherConfig(), options);
 
       this.screenshare = this.sdk.initPublisher(this.getScreenShareElementFunc(),
         config);
@@ -106,18 +111,19 @@ loop.OTSdkDriver = (function() {
     
 
 
+
+
+
     endScreenShare: function() {
       if (!this.screenshare) {
-        return;
+        return false;
       }
 
       this.session.unpublish(this.screenshare);
       this.screenshare.off("accessAllowed accessDenied");
       this.screenshare.destroy();
       delete this.screenshare;
-      this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
-        state: SCREEN_SHARE_STATES.INACTIVE
-      }));
+      return true;
     },
 
     
