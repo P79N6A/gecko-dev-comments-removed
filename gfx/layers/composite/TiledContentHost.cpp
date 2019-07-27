@@ -147,14 +147,21 @@ TiledLayerBufferComposite::ValidateTile(TileHost aTile,
 #endif
 
   MOZ_ASSERT(aTile.mTextureHost->GetFlags() & TextureFlags::IMMEDIATE_UPLOAD);
+
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+  MOZ_ASSERT(!aTile.mTextureHostOnWhite);
   
   
   
   
   aTile.mTextureHost->Updated(nullptr);
+#else
+  nsIntRegion tileUpdated = aDirtyRect.MovedBy(-aTileOrigin);
+  aTile.mTextureHost->Updated(&tileUpdated);
   if (aTile.mTextureHostOnWhite) {
-    aTile.mTextureHostOnWhite->Updated(nullptr);
+    aTile.mTextureHostOnWhite->Updated(&tileUpdated);
   }
+#endif
 
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
   if (PR_IntervalNow() - start > 1) {

@@ -223,9 +223,14 @@ struct TileClient
 
 
 
+
+
+
+
   TextureClient* GetBackBuffer(const nsIntRegion& aDirtyRegion,
                                gfxContentType aContent, SurfaceMode aMode,
                                bool *aCreatedTextureClient,
+                               nsIntRegion& aAddPaintedRegion,
                                bool aCanRerasterizeValidRegion,
                                RefPtr<TextureClient>* aTextureClientOnWhite);
 
@@ -263,8 +268,11 @@ struct TileClient
   nsExpirationState mExpirationState;
 
 private:
+  
+  
   void ValidateBackBufferFromFront(const nsIntRegion &aDirtyRegion,
-                                   bool aCanRerasterizeValidRegion);
+                                   bool aCanRerasterizeValidRegion,
+                                   nsIntRegion& aAddPaintedRegion);
 };
 
 
@@ -454,6 +462,10 @@ private:
   CSSToParentLayerScale mFrameResolution;
   gfxContentType mLastPaintContentType;
   SurfaceMode mLastPaintSurfaceMode;
+
+  
+  
+  nsIntRegion mNewValidRegion;
 
   
   RefPtr<gfx::DrawTarget>       mSinglePaintDrawTarget;
