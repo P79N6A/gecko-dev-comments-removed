@@ -19,7 +19,7 @@ namespace layers {
 
 
 
-class MacIOSurfaceTextureSourceOGL : public NewTextureSource
+class MacIOSurfaceTextureSourceOGL : public TextureSource
                                    , public TextureSourceOGL
 {
 public:
@@ -73,7 +73,7 @@ public:
 
   virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
 
-  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
+  virtual TextureSource* GetTextureSources() MOZ_OVERRIDE
   {
     return mTextureSource;
   }

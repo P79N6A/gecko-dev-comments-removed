@@ -88,13 +88,17 @@ public:
 
 class TextureSource
 {
-protected:
-  virtual ~TextureSource();
-
 public:
   NS_INLINE_DECL_REFCOUNTING(TextureSource)
 
   TextureSource();
+
+  
+
+
+
+  virtual void DeallocateDeviceData() {}
+
 
   
 
@@ -114,7 +118,6 @@ public:
   virtual TextureSourceD3D9* AsSourceD3D9() { return nullptr; }
   virtual TextureSourceD3D11* AsSourceD3D11() { return nullptr; }
   virtual TextureSourceBasic* AsSourceBasic() { return nullptr; }
-
   
 
 
@@ -124,53 +127,19 @@ public:
 
 
 
-  virtual TextureSource* GetSubSource(int index) { return nullptr; }
-
-  
-
-
-
   virtual BigImageIterator* AsBigImageIterator() { return nullptr; }
-};
-
-
-
-
-
-class NewTextureSource : public TextureSource
-{
-public:
-  NewTextureSource()
-  {
-    MOZ_COUNT_CTOR(NewTextureSource);
-  }
-protected:
-  virtual ~NewTextureSource()
-  {
-    MOZ_COUNT_DTOR(NewTextureSource);
-  }
-
-public:
-  
-
-
-
-  virtual void DeallocateDeviceData() = 0;
 
   virtual void SetCompositor(Compositor* aCompositor) {}
 
-  void SetNextSibling(NewTextureSource* aTexture)
-  {
-    mNextSibling = aTexture;
-  }
+  void SetNextSibling(TextureSource* aTexture) { mNextSibling = aTexture; }
 
-  NewTextureSource* GetNextSibling() const
-  {
-    return mNextSibling;
-  }
+  TextureSource* GetNextSibling() const { return mNextSibling; }
 
   
-  virtual TextureSource* GetSubSource(int index) MOZ_OVERRIDE
+
+
+
+  TextureSource* GetSubSource(int index)
   {
     switch (index) {
       case 0: return this;
@@ -181,7 +150,9 @@ public:
   }
 
 protected:
-  RefPtr<NewTextureSource> mNextSibling;
+  virtual ~TextureSource();
+
+  RefPtr<TextureSource> mNextSibling;
 };
 
 
@@ -189,7 +160,7 @@ protected:
 
 
 
-class DataTextureSource : public NewTextureSource
+class DataTextureSource : public TextureSource
 {
 public:
   DataTextureSource()
@@ -328,7 +299,7 @@ public:
 
 
 
-  virtual NewTextureSource* GetTextureSources() = 0;
+  virtual TextureSource* GetTextureSources() = 0;
 
   
 
@@ -499,7 +470,7 @@ public:
 
   virtual void Unlock() MOZ_OVERRIDE;
 
-  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE;
+  virtual TextureSource* GetTextureSources() MOZ_OVERRIDE;
 
   virtual void DeallocateDeviceData() MOZ_OVERRIDE;
 
@@ -621,7 +592,7 @@ public:
 
   virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
 
-  virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
+  virtual TextureSource* GetTextureSources() MOZ_OVERRIDE
   {
     return mTextureSource;
   }
@@ -640,7 +611,7 @@ public:
 protected:
   Compositor* mCompositor;
   gl::SurfaceStream* mStream;
-  RefPtr<NewTextureSource> mTextureSource;
+  RefPtr<TextureSource> mTextureSource;
   RefPtr<DataTextureSource> mDataTextureSource;
 };
 
@@ -671,9 +642,10 @@ private:
 
 
 
-class CompositingRenderTarget : public TextureSource
+class CompositingRenderTarget: public TextureSource
 {
 public:
+
   explicit CompositingRenderTarget(const gfx::IntPoint& aOrigin)
     : mOrigin(aOrigin)
   {}
