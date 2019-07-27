@@ -1179,6 +1179,9 @@ IMEContentObserver::FlushMergeableNotifications()
     nsContentUtils::AddScriptRunner(new TextChangeEvent(this, mTextChangeData));
   }
 
+  
+  
+  
   if (mIsSelectionChangeEventPending) {
     mIsSelectionChangeEventPending = false;
     nsContentUtils::AddScriptRunner(
