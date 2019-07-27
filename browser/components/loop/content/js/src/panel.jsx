@@ -1,53 +1,53 @@
+/** @jsx React.DOM */
 
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
+/*jshint newcap:false*/
+/*global loop:true, React */
 
 var loop = loop || {};
 loop.panel = (function(_, mozL10n) {
   "use strict";
 
   var sharedViews = loop.shared.views,
-      
+      // aliasing translation function as __ for concision
       __ = mozL10n.get;
 
-  
-
-
-
+  /**
+   * Panel router.
+   * @type {loop.desktopRouter.DesktopRouter}
+   */
   var router;
 
-  
-
-
-  var DoNotDisturb = React.createClass({displayName: 'DoNotDisturb',
+  /**
+   * Do not disturb panel subview.
+   */
+  var DoNotDisturb = React.createClass({
     getInitialState: function() {
       return {doNotDisturb: navigator.mozLoop.doNotDisturb};
     },
 
     handleCheckboxChange: function() {
-      
+      // Note: side effect!
       navigator.mozLoop.doNotDisturb = !navigator.mozLoop.doNotDisturb;
       this.setState({doNotDisturb: navigator.mozLoop.doNotDisturb});
     },
 
     render: function() {
-      
+      // XXX https://github.com/facebook/react/issues/310 for === htmlFor
       return (
-        React.DOM.p( {className:"dnd"}, 
-          React.DOM.input( {type:"checkbox", checked:this.state.doNotDisturb,
-                 id:"dnd-component", onChange:this.handleCheckboxChange} ),
-          React.DOM.label( {htmlFor:"dnd-component"}, __("do_not_disturb"))
-        )
+        <p className="dnd">
+          <input type="checkbox" checked={this.state.doNotDisturb}
+                 id="dnd-component" onChange={this.handleCheckboxChange} />
+          <label htmlFor="dnd-component">{__("do_not_disturb")}</label>
+        </p>
       );
     }
   });
 
-  var ToSView = React.createClass({displayName: 'ToSView',
+  var ToSView = React.createClass({
     getInitialState: function() {
       return {seenToS: navigator.mozLoop.getLoopCharPref('seenToS')};
     },
@@ -60,34 +60,34 @@ loop.panel = (function(_, mozL10n) {
 
       if (!this.state.seenToS) {
         navigator.mozLoop.setLoopCharPref('seenToS', 'seen');
-        return React.DOM.p( {className:"tos",
-                  dangerouslySetInnerHTML:{__html: tosHTML}});
+        return <p className="tos"
+                  dangerouslySetInnerHTML={{__html: tosHTML}}></p>;
       } else {
-        return React.DOM.div(null );
+        return <div />;
       }
     }
   });
 
-  var PanelLayout = React.createClass({displayName: 'PanelLayout',
+  var PanelLayout = React.createClass({
     propTypes: {
       summary: React.PropTypes.string.isRequired
     },
 
     render: function() {
       return (
-        React.DOM.div( {className:"share generate-url"}, 
-          React.DOM.div( {className:"description"}, 
-            React.DOM.p(null, this.props.summary)
-          ),
-          React.DOM.div( {className:"action"}, 
-            this.props.children
-          )
-        )
+        <div className="share generate-url">
+          <div className="description">
+            <p>{this.props.summary}</p>
+          </div>
+          <div className="action">
+            {this.props.children}
+          </div>
+        </div>
       );
     }
   });
 
-  var CallUrlResult = React.createClass({displayName: 'CallUrlResult',
+  var CallUrlResult = React.createClass({
     propTypes: {
       callUrl: React.PropTypes.string.isRequired,
       retry: React.PropTypes.func.isRequired
@@ -98,23 +98,23 @@ loop.panel = (function(_, mozL10n) {
     },
 
     render: function() {
-      
-      
-      
-      
+      // XXX setting elem value from a state (in the callUrl input)
+      // makes it immutable ie read only but that is fine in our case.
+      // readOnly attr will suppress a warning regarding this issue
+      // from the react lib.
       return (
-        PanelLayout( {summary:__("share_link_url")}, 
-          React.DOM.div( {className:"invite"}, 
-            React.DOM.input( {type:"url", value:this.props.callUrl, readOnly:"true"} ),
-            React.DOM.button( {onClick:this.handleButtonClick,
-                    className:"btn btn-success"}, __("new_url"))
-          )
-        )
+        <PanelLayout summary={__("share_link_url")}>
+          <div className="invite">
+            <input type="url" value={this.props.callUrl} readOnly="true" />
+            <button onClick={this.handleButtonClick}
+                    className="btn btn-success">{__("new_url")}</button>
+          </div>
+        </PanelLayout>
       );
     }
   });
 
-  var CallUrlForm = React.createClass({displayName: 'CallUrlForm',
+  var CallUrlForm = React.createClass({
     propTypes: {
       client: React.PropTypes.object.isRequired,
       notifier: React.PropTypes.object.isRequired
@@ -160,39 +160,39 @@ loop.panel = (function(_, mozL10n) {
     },
 
     render: function() {
-      
+      // If we have a call url, render result
       if (this.state.callUrl) {
         return (
-          CallUrlResult( {callUrl:this.state.callUrl, retry:this.retry})
+          <CallUrlResult callUrl={this.state.callUrl} retry={this.retry}/>
         );
       }
 
-      
+      // If we don't display the form
       var cx = React.addons.classSet;
       return (
-        PanelLayout( {summary:__("get_link_to_share")}, 
-          React.DOM.form( {className:"invite", onSubmit:this.handleFormSubmit}, 
+        <PanelLayout summary={__("get_link_to_share")}>
+          <form className="invite" onSubmit={this.handleFormSubmit}>
 
-            React.DOM.input( {type:"text", name:"caller", ref:"caller", required:"required",
-                   className:cx({'pending': this.state.pending}),
-                   onChange:this.handleTextChange,
-                   placeholder:__("call_identifier_textinput_placeholder")} ),
+            <input type="text" name="caller" ref="caller" required="required"
+                   className={cx({'pending': this.state.pending})}
+                   onChange={this.handleTextChange}
+                   placeholder={__("call_identifier_textinput_placeholder")} />
 
-            React.DOM.button( {type:"submit", className:"get-url btn btn-success",
-                    disabled:this.state.disabled}, 
-              __("get_a_call_url")
-            )
-          ),
-          ToSView(null )
-        )
+            <button type="submit" className="get-url btn btn-success"
+                    disabled={this.state.disabled}>
+              {__("get_a_call_url")}
+            </button>
+          </form>
+          <ToSView />
+        </PanelLayout>
       );
     }
   });
 
-  
-
-
-  var PanelView = React.createClass({displayName: 'PanelView',
+  /**
+   * Panel view.
+   */
+  var PanelView = React.createClass({
     propTypes: {
       notifier: React.PropTypes.object.isRequired,
       client: React.PropTypes.object.isRequired
@@ -200,20 +200,20 @@ loop.panel = (function(_, mozL10n) {
 
     render: function() {
       return (
-        React.DOM.div(null, 
-          CallUrlForm( {client:this.props.client,
-                       notifier:this.props.notifier} ),
-          DoNotDisturb(null )
-        )
+        <div>
+          <CallUrlForm client={this.props.client}
+                       notifier={this.props.notifier} />
+          <DoNotDisturb />
+        </div>
       );
     }
   });
 
   var PanelRouter = loop.desktopRouter.DesktopRouter.extend({
-    
-
-
-
+    /**
+     * DOM document object.
+     * @type {HTMLDocument}
+     */
     document: undefined,
 
     routes: {
@@ -232,15 +232,15 @@ loop.panel = (function(_, mozL10n) {
       this.on("panel:open panel:closed", this.reset, this);
     },
 
-    
-
-
-
-
-
-
-
-
+    /**
+     * Register the DOM visibility API event for the whole document, and trigger
+     * appropriate events accordingly:
+     *
+     * - `panel:opened` when the panel is open
+     * - `panel:closed` when the panel is closed
+     *
+     * @link  http://www.w3.org/TR/page-visibility/
+     */
     _registerVisibilityChangeEvent: function() {
       this.document.addEventListener("visibilitychange", function(event) {
         this.trigger(event.currentTarget.hidden ? "panel:closed"
@@ -248,32 +248,32 @@ loop.panel = (function(_, mozL10n) {
       }.bind(this));
     },
 
-    
-
-
+    /**
+     * Default entry point.
+     */
     home: function() {
       this.reset();
     },
 
-    
-
-
+    /**
+     * Resets this router to its initial state.
+     */
     reset: function() {
       this._notifier.clear();
       var client = new loop.Client({
         baseServerUrl: navigator.mozLoop.serverUrl
       });
-      this.loadReactComponent(PanelView( {client:client,
-                                         notifier:this._notifier} ));
+      this.loadReactComponent(<PanelView client={client}
+                                         notifier={this._notifier} />);
     }
   });
 
-  
-
-
+  /**
+   * Panel initialisation.
+   */
   function init() {
-    
-    
+    // Do the initial L10n setup, we do this before anything
+    // else to ensure the L10n environment is setup correctly.
     mozL10n.initialize(navigator.mozLoop);
 
     router = new PanelRouter({
@@ -282,7 +282,7 @@ loop.panel = (function(_, mozL10n) {
     });
     Backbone.history.start();
 
-    
+    // Notify the window that we've finished initalization and initial layout
     var evtObject = document.createEvent('Event');
     evtObject.initEvent('loopPanelInitialized', true, false);
     window.dispatchEvent(evtObject);

@@ -16,8 +16,8 @@ function test_getStrings() {
 
   
   
-  
-  Assert.equal(MozLoopService.getStrings("caller"), '{"placeholder":"Identify this call"}');
+  Assert.equal(MozLoopService.getStrings("get_link_to_share"),
+               '{"textContent":"Get a link and invite someone to talk"}');
 }
 
 function run_test()
