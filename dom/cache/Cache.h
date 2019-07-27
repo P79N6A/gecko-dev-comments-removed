@@ -7,7 +7,6 @@
 #ifndef mozilla_dom_cache_Cache_h
 #define mozilla_dom_cache_Cache_h
 
-#include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/cache/Types.h"
 #include "mozilla/dom/cache/TypeUtils.h"
 #include "nsCOMPtr.h"
@@ -33,12 +32,10 @@ template<typename T> class Sequence;
 
 namespace cache {
 
+class AutoChildOpArgs;
 class CacheChild;
-class PCacheRequest;
-class PCacheResponse;
-class PCacheResponseOrVoid;
 
-class Cache final : public PromiseNativeHandler
+class Cache final : public nsISupports
                   , public nsWrapperCache
                   , public TypeUtils
 {
@@ -77,20 +74,6 @@ public:
   void DestroyInternal(CacheChild* aActor);
 
   
-  void RecvMatchResponse(RequestId aRequestId, nsresult aRv,
-                         const PCacheResponseOrVoid& aResponse);
-  void RecvMatchAllResponse(RequestId aRequestId, nsresult aRv,
-                            const nsTArray<PCacheResponse>& aResponses);
-  void RecvAddAllResponse(RequestId aRequestId,
-                          const mozilla::ErrorResult& aError);
-  void RecvPutResponse(RequestId aRequestId, nsresult aRv);
-
-  void RecvDeleteResponse(RequestId aRequestId, nsresult aRv,
-                          bool aSuccess);
-  void RecvKeysResponse(RequestId aRequestId, nsresult aRv,
-                        const nsTArray<PCacheRequest>& aRequests);
-
-  
   virtual nsIGlobalObject*
   GetGlobalObject() const override;
 
@@ -101,26 +84,17 @@ public:
   virtual CachePushStreamChild*
   CreatePushStream(nsIAsyncInputStream* aStream) override;
 
-  
-  virtual void
-  ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override;
-
-  virtual void
-  RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override;
-
 private:
   ~Cache();
 
   
   void DisconnectFromActor();
 
-  
-  RequestId AddRequestPromise(Promise* aPromise, ErrorResult& aRv);
-  already_AddRefed<Promise> RemoveRequestPromise(RequestId aRequestId);
+  already_AddRefed<Promise>
+  ExecuteOp(AutoChildOpArgs& aOpArgs, ErrorResult& aRv);
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
   CacheChild* mActor;
-  nsTArray<nsRefPtr<Promise>> mRequestPromises;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
