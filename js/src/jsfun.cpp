@@ -504,10 +504,10 @@ js::fun_resolve(JSContext *cx, HandleObject obj, HandleId id, bool *resolvedp)
             if (fun->hasResolvedLength())
                 return true;
 
-            uint16_t length;
-            if (!fun->getLength(cx, &length))
+            if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
                 return false;
-
+            uint16_t length = fun->hasScript() ? fun->nonLazyScript()->funLength() :
+                fun->nargs() - fun->hasRest();
             v.setInt32(length);
         } else {
             if (fun->hasResolvedName())
@@ -1665,81 +1665,34 @@ JSObject*
 js_fun_bind(JSContext *cx, HandleObject target, HandleValue thisArg,
             Value *boundArgs, unsigned argslen)
 {
-    double length = 0.0;
     
-    if (target->is<JSFunction>() && !target->as<JSFunction>().hasResolvedLength()) {
-        uint16_t len;
-        if (!target->as<JSFunction>().getLength(cx, &len))
-            return nullptr;
-        length = Max(0.0, double(len) - argslen);
-    } else {
-        
-        RootedId id(cx, NameToId(cx->names().length));
-        bool hasLength;
-        if (!HasOwnProperty(cx, target, id, &hasLength))
-            return nullptr;
-
-        
-        if (hasLength) {
-            
-            RootedValue targetLen(cx);
-            if (!GetProperty(cx, target, target, id, &targetLen))
-                return nullptr;
-            
-            if (targetLen.isNumber())
-                length = Max(0.0, JS::ToInteger(targetLen.toNumber()) - argslen);
-        }
-    }
-
-    RootedString name(cx, cx->names().empty);
-    if (target->is<JSFunction>() && !target->as<JSFunction>().hasResolvedName()) {
-        if (target->as<JSFunction>().atom())
-            name = target->as<JSFunction>().atom();
-    } else {
-        
-        RootedValue targetName(cx);
-        if (!GetProperty(cx, target, target, cx->names().name, &targetName))
-            return nullptr;
-
-        
-        if (targetName.isString())
-            name = targetName.toString();
+    unsigned length = 0;
+    if (target->is<JSFunction>()) {
+        unsigned nargs = target->as<JSFunction>().nargs();
+        if (nargs > argslen)
+            length = nargs - argslen;
     }
 
     
-    StringBuffer sb(cx);
-    if (!sb.append("bound ") || !sb.append(name))
-        return nullptr;
+    RootedAtom name(cx, target->is<JSFunction>() ? target->as<JSFunction>().atom() : nullptr);
 
-    RootedAtom nameAtom(cx, sb.finishAtom());
-    if (!nameAtom)
-        return nullptr;
-
-    
     JSFunction::Flags flags = target->isConstructor() ? JSFunction::NATIVE_CTOR
                                                       : JSFunction::NATIVE_FUN;
-    RootedFunction fun(cx, NewFunction(cx, js::NullPtr(), CallOrConstructBoundFunction, length,
-                                       flags, target, nameAtom));
-    if (!fun)
+    RootedObject funobj(cx, NewFunction(cx, js::NullPtr(), CallOrConstructBoundFunction, length,
+                                        flags, target, name));
+    if (!funobj)
         return nullptr;
 
     
-    MOZ_ASSERT(fun->getParent() == target);
+    if (!JSObject::setParent(cx, funobj, target))
+        return nullptr;
 
-    if (!fun->initBoundFunction(cx, thisArg, boundArgs, argslen))
+    if (!funobj->as<JSFunction>().initBoundFunction(cx, thisArg, boundArgs, argslen))
         return nullptr;
 
     
-    if (length != fun->nargs()) {
-        RootedValue lengthVal(cx, NumberValue(length));
-        if (!DefineProperty(cx, fun, cx->names().length, lengthVal, nullptr, nullptr,
-                            JSPROP_READONLY))
-        {
-            return nullptr;
-        }
-    }
-
-    return fun;
+    
+    return funobj;
 }
 
 
