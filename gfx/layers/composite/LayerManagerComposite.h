@@ -9,6 +9,7 @@
 #include <stdint.h>                     
 #include "GLDefs.h"                     
 #include "Layers.h"
+#include "Units.h"                      
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -18,6 +19,7 @@
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/Maybe.h"              
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsAString.h"
@@ -403,12 +405,9 @@ public:
     mShadowOpacity = aOpacity;
   }
 
-  void SetShadowClipRect(const nsIntRect* aRect)
+  void SetShadowClipRect(const Maybe<ParentLayerIntRect>& aRect)
   {
-    mUseShadowClipRect = aRect != nullptr;
-    if (aRect) {
-      mShadowClipRect = *aRect;
-    }
+    mShadowClipRect = aRect;
   }
 
   void SetShadowTransform(const gfx::Matrix4x4& aMatrix)
@@ -432,7 +431,7 @@ public:
 
   
   float GetShadowOpacity() { return mShadowOpacity; }
-  const nsIntRect* GetShadowClipRect() { return mUseShadowClipRect ? &mShadowClipRect : nullptr; }
+  const Maybe<ParentLayerIntRect>& GetShadowClipRect() { return mShadowClipRect; }
   const nsIntRegion& GetShadowVisibleRegion() { return mShadowVisibleRegion; }
   const gfx::Matrix4x4& GetShadowTransform() { return mShadowTransform; }
   bool GetShadowTransformSetByAnimation() { return mShadowTransformSetByAnimation; }
@@ -449,11 +448,10 @@ public:
 protected:
   gfx::Matrix4x4 mShadowTransform;
   nsIntRegion mShadowVisibleRegion;
-  nsIntRect mShadowClipRect;
+  Maybe<ParentLayerIntRect> mShadowClipRect;
   LayerManagerComposite* mCompositeManager;
   RefPtr<Compositor> mCompositor;
   float mShadowOpacity;
-  bool mUseShadowClipRect;
   bool mShadowTransformSetByAnimation;
   bool mDestroyed;
   bool mLayerComposited;

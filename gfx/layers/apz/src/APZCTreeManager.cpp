@@ -29,6 +29,7 @@
 #include "gfxPrefs.h"                   
 #include "OverscrollHandoffState.h"     
 #include "LayersLogging.h"              
+#include "Units.h"                      
 
 #define ENABLE_APZCTM_LOGGING 0
 
@@ -202,7 +203,7 @@ ComputeClipRegion(GeckoContentController* aController,
 {
   ParentLayerIntRegion clipRegion;
   if (aLayer.GetClipRect()) {
-    clipRegion = ViewAs<ParentLayerPixel>(*aLayer.GetClipRect());
+    clipRegion = *aLayer.GetClipRect();
   } else {
     
     
@@ -334,7 +335,7 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     node = RecycleOrCreateNode(aState, nullptr);
     AttachNodeToTree(node, aParent, aNextSibling);
     node->SetHitTestData(GetEventRegions(aLayer), aLayer.GetTransform(),
-        aLayer.GetClipRect() ? Some(ParentLayerIntRegion(ViewAs<ParentLayerPixel>(*aLayer.GetClipRect()))) : Nothing(),
+        aLayer.GetClipRect() ? Some(ParentLayerIntRegion(*aLayer.GetClipRect())) : Nothing(),
         GetEventRegionsOverride(aParent, aLayer));
     return node;
   }

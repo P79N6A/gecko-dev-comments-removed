@@ -8,6 +8,7 @@
 #include "ImageContainer.h"             
 #include "ImageLayers.h"                
 #include "Layers.h"                     
+#include "Units.h"                      
 #include "gfxColor.h"                   
 #include "GraphicsFilter.h"             
 #include "gfxRect.h"                    
@@ -140,7 +141,7 @@ struct LayerPropertiesBase : public LayerProperties
                             mLayer->GetPostXScale() != mPostXScale ||
                             mLayer->GetPostYScale() != mPostYScale;
     Layer* otherMask = mLayer->GetMaskLayer();
-    const nsIntRect* otherClip = mLayer->GetClipRect();
+    const Maybe<ParentLayerIntRect>& otherClip = mLayer->GetClipRect();
     nsIntRegion result;
     if ((mMaskLayer ? mMaskLayer->mLayer : nullptr) != otherMask ||
         (mUseClipRect != !!otherClip) ||
@@ -166,7 +167,7 @@ struct LayerPropertiesBase : public LayerProperties
       if (!mClipRect.IsEqualInterior(*otherClip)) {
         aGeometryChanged = true;
         nsIntRegion tmp; 
-        tmp.Xor(mClipRect, *otherClip); 
+        tmp.Xor(ParentLayerIntRect::ToUntyped(mClipRect), ParentLayerIntRect::ToUntyped(*otherClip)); 
         AddRegion(result, tmp);
       }
     }
@@ -199,7 +200,7 @@ struct LayerPropertiesBase : public LayerProperties
   float mPostXScale;
   float mPostYScale;
   float mOpacity;
-  nsIntRect mClipRect;
+  ParentLayerIntRect mClipRect;
   bool mUseClipRect;
 };
 

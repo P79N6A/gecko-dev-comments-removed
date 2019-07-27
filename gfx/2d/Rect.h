@@ -99,6 +99,12 @@ struct IntRectTyped :
       yMost += this->height;
       return !xMost.isValid() || !yMost.isValid();
     }
+
+    
+    bool operator==(const IntRectTyped<units>& aRect) const
+    {
+      return IntRectTyped<units>::IsEqualEdges(aRect);
+    }
 };
 typedef IntRectTyped<UnknownUnits> IntRect;
 

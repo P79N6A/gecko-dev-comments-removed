@@ -19,6 +19,7 @@
 #include "base/task.h"
 #include "Layers.h"
 #include "TestLayers.h"
+#include "UnitTransforms.h"
 #include "gfxPrefs.h"
 
 using namespace mozilla;
@@ -1789,7 +1790,7 @@ protected:
     metrics.SetScrollableRect(aScrollableRect);
     metrics.SetScrollOffset(CSSPoint(0, 0));
     aLayer->SetFrameMetrics(metrics);
-    aLayer->SetClipRect(&layerBound);
+    aLayer->SetClipRect(Some(ViewAs<ParentLayerPixel>(layerBound)));
     if (!aScrollableRect.IsEqualEdges(CSSRect(-1, -1, -1, -1))) {
       
       
