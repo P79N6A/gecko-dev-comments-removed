@@ -23,7 +23,7 @@ class UbuntuBootstrapper(DebianBootstrapper):
         
         
         self._add_ppa('mercurial-ppa/releases')
-        self._update_package_manager()
+        
         self.apt_install('mercurial')
 
     def _add_ppa(self, ppa):
