@@ -214,6 +214,8 @@ public:
     eUnit_Color,
     eUnit_Calc, 
                 
+    eUnit_ObjectPosition, 
+                          
     eUnit_CSSValuePair, 
     eUnit_CSSValueTriplet, 
     eUnit_CSSRect, 
@@ -374,7 +376,8 @@ private:
            aUnit == eUnit_Integer;
   }
   static bool IsCSSValueUnit(Unit aUnit) {
-    return aUnit == eUnit_Calc;
+    return aUnit == eUnit_Calc ||
+           aUnit == eUnit_ObjectPosition;
   }
   static bool IsCSSValuePairUnit(Unit aUnit) {
     return aUnit == eUnit_CSSValuePair;
