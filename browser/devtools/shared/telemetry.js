@@ -170,11 +170,6 @@ Telemetry.prototype = {
       userHistogram: "DEVTOOLS_DEVELOPERTOOLBAR_OPENED_PER_USER_FLAG",
       timerHistogram: "DEVTOOLS_DEVELOPERTOOLBAR_TIME_ACTIVE_SECONDS"
     },
-    webide: {
-      histogram: "DEVTOOLS_WEBIDE_OPENED_BOOLEAN",
-      userHistogram: "DEVTOOLS_WEBIDE_OPENED_PER_USER_FLAG",
-      timerHistogram: "DEVTOOLS_WEBIDE_TIME_ACTIVE_SECONDS"
-    },
     custom: {
       histogram: "DEVTOOLS_CUSTOM_OPENED_BOOLEAN",
       userHistogram: "DEVTOOLS_CUSTOM_OPENED_PER_USER_FLAG",
@@ -199,7 +194,7 @@ Telemetry.prototype = {
       this.logOncePerBrowserVersion(charts.userHistogram, true);
     }
     if (charts.timerHistogram) {
-      this.startTimer(charts.timerHistogram);
+      this._timers.set(charts.timerHistogram, new Date());
     }
   },
 
@@ -210,31 +205,12 @@ Telemetry.prototype = {
       return;
     }
 
-    this.stopTimer(charts.timerHistogram);
-  },
+    let startTime = this._timers.get(charts.timerHistogram);
 
-  
-
-
-
-
-
-  startTimer: function(histogramId) {
-    this._timers.set(histogramId, new Date());
-  },
-
-  
-
-
-
-
-
-  stopTimer: function(histogramId) {
-    let startTime = this._timers.get(histogramId);
     if (startTime) {
       let time = (new Date() - startTime) / 1000;
-      this.log(histogramId, time);
-      this._timers.delete(histogramId);
+      this.log(charts.timerHistogram, time);
+      this._timers.delete(charts.timerHistogram);
     }
   },
 
@@ -282,8 +258,11 @@ Telemetry.prototype = {
   },
 
   destroy: function() {
-    for (let histogramId of this._timers.keys()) {
-      this.stopTimer(histogramId);
+    for (let [histogram, time] of this._timers) {
+      time = (new Date() - time) / 1000;
+
+      this.log(histogram, time);
+      this._timers.delete(histogram);
     }
   }
 };
