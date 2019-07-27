@@ -168,4 +168,22 @@ private:
   mozilla::ScreenIntPoint mPoint;
 };
 
+
+
+
+class VsyncPayload : public ProfilerMarkerPayload
+{
+public:
+  explicit VsyncPayload(mozilla::TimeStamp aVsyncTimestamp);
+  virtual ~VsyncPayload() {}
+
+protected:
+  virtual void
+  streamPayload(JSStreamWriter& b) { return streamPayloadImpl(b); }
+
+private:
+  void streamPayloadImpl(JSStreamWriter& b);
+  mozilla::TimeStamp mVsyncTimestamp;
+};
+
 #endif 
