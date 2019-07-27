@@ -158,7 +158,7 @@ function ToLength(v) {
 
 
 function SameValueZero(x, y) {
-    return x !== x && y !== y || x === y
+    return x === y || (x !== x && y !== y);
 }
 
 

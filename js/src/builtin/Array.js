@@ -603,8 +603,9 @@ function ArrayContains(searchElement, fromIndex = 0) {
 
     
     var k;
-    if (n >= 0)
+    if (n >= 0) {
         k = n;
+    }
     
     else {
         
@@ -617,10 +618,7 @@ function ArrayContains(searchElement, fromIndex = 0) {
     
     while (k < len) {
         
-        var elementK = O[k];
-
-        
-        if (SameValueZero(searchElement, elementK))
+        if (SameValueZero(searchElement, O[k]))
             return true;
 
         
