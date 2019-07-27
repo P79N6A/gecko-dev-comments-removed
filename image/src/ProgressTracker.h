@@ -7,6 +7,7 @@
 #ifndef mozilla_image_src_ProgressTracker_h
 #define mozilla_image_src_ProgressTracker_h
 
+#include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/WeakPtr.h"
 #include "nsCOMPtr.h"
@@ -76,13 +77,15 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ProgressTracker)
 
   ProgressTracker()
-    : mImage(nullptr)
+    : mImageMutex("ProgressTracker::mImage")
+    , mImage(nullptr)
     , mProgress(NoProgress)
   { }
 
-  bool HasImage() const { return mImage; }
+  bool HasImage() const { MutexAutoLock lock(mImageMutex); return mImage; }
   already_AddRefed<Image> GetImage() const
   {
+    MutexAutoLock lock(mImageMutex);
     nsRefPtr<Image> image = mImage;
     return image.forget();
   }
@@ -191,6 +194,8 @@ private:
   nsCOMPtr<nsIRunnable> mRunnable;
 
   
+  
+  mutable Mutex mImageMutex;
   Image* mImage;
 
   
