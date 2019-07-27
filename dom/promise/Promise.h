@@ -29,6 +29,7 @@ namespace dom {
 
 class AnyCallback;
 class DOMError;
+class MediaStreamError;
 class PromiseCallback;
 class PromiseInit;
 class PromiseNativeHandler;
@@ -99,6 +100,9 @@ public:
     MOZ_ASSERT(NS_FAILED(aArg));
     MaybeSomething(aArg, &Promise::MaybeReject);
   }
+
+  void MaybeReject(const nsRefPtr<MediaStreamError>& aArg);
+
   
   
   
