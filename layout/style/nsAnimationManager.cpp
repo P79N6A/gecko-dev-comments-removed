@@ -399,7 +399,13 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
     
     
     
-    if (src.GetName().IsEmpty()) {
+    
+    nsCSSKeyframesRule* rule =
+      src.GetName().IsEmpty()
+      ? nullptr
+      : mPresContext->StyleSet()->KeyframesRuleForName(mPresContext,
+                                                       src.GetName());
+    if (!rule) {
       continue;
     }
 
@@ -421,14 +427,6 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
       dest->mPauseStart = now;
     } else {
       dest->mPauseStart = TimeStamp();
-    }
-
-    nsCSSKeyframesRule* rule =
-      mPresContext->StyleSet()->KeyframesRuleForName(mPresContext,
-                                                     dest->mName);
-    if (!rule) {
-      
-      continue;
     }
 
     
