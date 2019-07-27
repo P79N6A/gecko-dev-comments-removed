@@ -262,7 +262,6 @@ SessionStartup.prototype = {
 
 
   get state() {
-    this._ensureInitialized();
     return this._initialState;
   },
 
@@ -271,9 +270,7 @@ SessionStartup.prototype = {
 
 
 
-
   doRestore: function sss_doRestore() {
-    this._ensureInitialized();
     return this._willRestore();
   },
 
@@ -324,7 +321,6 @@ SessionStartup.prototype = {
 
 
   get sessionType() {
-    this._ensureInitialized();
     return this._sessionType;
   },
 
@@ -332,17 +328,7 @@ SessionStartup.prototype = {
 
 
   get previousSessionCrashed() {
-    this._ensureInitialized();
     return this._previousSessionCrashed;
-  },
-
-  
-  
-  
-  _ensureInitialized: function sss__ensureInitialized() {
-    if (!this._initialized) {
-      throw new Error("Session Store is not initialized.");
-    }
   },
 
   
