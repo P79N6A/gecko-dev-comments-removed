@@ -2445,14 +2445,6 @@ void MediaDecoderStateMachine::DecodeSeek()
   mDropAudioUntilNextDiscontinuity = HasAudio();
   mDropVideoUntilNextDiscontinuity = HasVideo();
 
-  
-  
-  
-  
-  
-  
-  
-  
   int64_t seekTime = mCurrentSeekTarget.mTime;
   mDecoder->StopProgressUpdates();
 
@@ -2466,19 +2458,12 @@ void MediaDecoderStateMachine::DecodeSeek()
   
   
   
-  {
-    ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-    nsCOMPtr<nsIRunnable> startEvent =
-      NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
-        mDecoder,
-        &MediaDecoder::SeekingStarted,
-        mCurrentSeekTarget.mEventVisibility);
-    NS_DispatchToMainThread(startEvent, NS_DISPATCH_SYNC);
-  }
-  if (mState != DECODER_STATE_SEEKING) {
-    
-    return;
-  }
+  nsCOMPtr<nsIRunnable> startEvent =
+    NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
+      mDecoder,
+      &MediaDecoder::SeekingStarted,
+      mCurrentSeekTarget.mEventVisibility);
+  NS_DispatchToMainThread(startEvent, NS_DISPATCH_NORMAL);
 
   mDecodeToSeekTarget = false;
 
@@ -2539,15 +2524,12 @@ MediaDecoderStateMachine::OnSeekFailed(nsresult aResult)
     
     mCurrentSeekTarget = mSeekTarget;
     mSeekTarget.Reset();
-    {
-      ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-      nsCOMPtr<nsIRunnable> startEvent =
-        NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
-          mDecoder,
-          &MediaDecoder::SeekingStarted,
-          mCurrentSeekTarget.mEventVisibility);
-      NS_DispatchToMainThread(startEvent, NS_DISPATCH_SYNC);
-    }
+    nsCOMPtr<nsIRunnable> startEvent =
+      NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
+        mDecoder,
+        &MediaDecoder::SeekingStarted,
+        mCurrentSeekTarget.mEventVisibility);
+    NS_DispatchToMainThread(startEvent, NS_DISPATCH_NORMAL);
     mReader->Seek(mCurrentSeekTarget.mTime, mEndTime)
            ->Then(DecodeTaskQueue(), __func__, this,
                   &MediaDecoderStateMachine::OnSeekCompleted,
