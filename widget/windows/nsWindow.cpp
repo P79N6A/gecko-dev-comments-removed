@@ -6554,6 +6554,12 @@ nsWindow::ClearCompositor(nsWindow* aWindow)
 }
 
 bool
+nsWindow::IsPopup()
+{
+  return mWindowType == eWindowType_popup;
+}
+
+bool
 nsWindow::ShouldUseOffMainThreadCompositing()
 {
   
@@ -6576,7 +6582,11 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
   
   
   if (!(prefs.mDisableAcceleration ||
-        mTransparencyMode == eTransparencyTransparent)) {
+        mTransparencyMode == eTransparencyTransparent ||
+        IsPopup())) {
+    
+    
+    
     if (prefs.mPreferOpenGL) {
       aHints.AppendElement(LayersBackend::LAYERS_OPENGL);
     }
