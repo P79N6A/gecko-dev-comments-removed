@@ -10,11 +10,55 @@ let manifest = {
   iconURL: "https://example.com/browser/browser/base/content/test/general/moz.png",
   shareURL: "https://example.com/browser/browser/base/content/test/social/share.html"
 };
+let activationPage = "https://example.com/browser/browser/base/content/test/social/share_activate.html";
+
+function waitForProviderEnabled(cb) {
+  Services.obs.addObserver(function providerSet(subject, topic, data) {
+    Services.obs.removeObserver(providerSet, "social:provider-enabled");
+    info("social:provider-enabled observer was notified");
+    cb();
+  }, "social:provider-enabled", false);
+}
+
+function sendActivationEvent(subframe, callback) {
+  
+  Social.lastEventReceived = 0;
+  let doc = subframe.contentDocument;
+  
+  let button = doc.getElementById("activation");
+  ok(!!button, "got the activation button");
+  EventUtils.synthesizeMouseAtCenter(button, {}, doc.defaultView);
+  if (callback)
+    executeSoon(callback);
+}
+
+function waitForEvent(iframe, eventName, callback) {
+  iframe.addEventListener(eventName, function load() {
+    info("page load is " + iframe.contentDocument.location.href);
+    if (iframe.contentDocument.location.href != "data:text/plain;charset=utf8,") {
+      iframe.removeEventListener(eventName, load, true);
+      executeSoon(callback);
+    }
+  }, true);
+}
 
 function test() {
   waitForExplicitFinish();
-
-  runSocialTests(tests);
+  Services.prefs.setCharPref("social.shareDirectory", activationPage);
+  registerCleanupFunction(function () {
+    Services.prefs.clearUserPref("social.directories");
+    Services.prefs.clearUserPref("social.shareDirectory");
+    Services.prefs.clearUserPref("social.share.activationPanelEnabled");
+  });
+  runSocialTests(tests, undefined, function(next) {
+    let shareButton = SocialShare.shareButton;
+    if (shareButton) {
+      CustomizableUI.removeWidgetFromArea("social-share-button", CustomizableUI.AREA_NAVBAR)
+      shareButton.remove();
+    }
+    ok(CustomizableUI.inDefaultState, "Should start in default state.");
+    next();
+  });
 }
 
 let corpus = [
@@ -75,11 +119,10 @@ let corpus = [
 function loadURLInTab(url, callback) {
   info("Loading tab with "+url);
   let tab = gBrowser.selectedTab = gBrowser.addTab(url);
-  tab.linkedBrowser.addEventListener("load", function listener() {
+  waitForEvent(tab.linkedBrowser, "load", () => {
     is(tab.linkedBrowser.currentURI.spec, url, "tab loaded")
-    tab.linkedBrowser.removeEventListener("load", listener, true);
-    executeSoon(function() { callback(tab) });
-  }, true);
+    callback(tab)
+  });
 }
 
 function hasoptions(testOptions, options) {
@@ -105,12 +148,17 @@ var tests = {
     
     
     is(gBrowser.contentDocument.location.href, "about:blank");
+
+    
+    CustomizableUI.addWidgetToArea("social-share-button", CustomizableUI.AREA_NAVBAR);
+    
+    SocialUI.onCustomizeEnd(window);
+
     SocialService.addProvider(manifest, function(provider) {
       is(SocialUI.enabled, true, "SocialUI is enabled");
       checkSocialUI();
       
       let shareButton = SocialShare.shareButton;
-      is(shareButton.disabled, true, "share button is disabled");
       
       is(shareButton.getAttribute("disabled"), "true", "share button attribute is disabled");
       
@@ -121,6 +169,11 @@ var tests = {
   testShareEnabledOnActivation: function(next) {
     
     
+    
+    CustomizableUI.addWidgetToArea("social-share-button", CustomizableUI.AREA_NAVBAR);
+    
+    SocialUI.onCustomizeEnd(window);
+
     let testData = corpus[0];
     loadURLInTab(testData.url, function(tab) {
       SocialService.addProvider(manifest, function(provider) {
@@ -128,7 +181,6 @@ var tests = {
         checkSocialUI();
         
         let shareButton = SocialShare.shareButton;
-        is(shareButton.disabled, false, "share button is enabled");
         
         ok(!shareButton.hasAttribute("disabled"), "share button is enabled");
         
@@ -149,7 +201,7 @@ var tests = {
     function runOneTest() {
       loadURLInTab(testData.url, function(tab) {
         testTab = tab;
-        SocialShare.sharePage();
+        SocialShare.sharePage(manifest.origin);
       });
     }
 
@@ -240,6 +292,49 @@ var tests = {
         target = doc.getElementById("simple-hcard");
         SocialShare.sharePage(manifest.origin, null, target);
       });
+    });
+  },
+  testSharePanelActivation: function(next) {
+    let testTab;
+    
+    Services.prefs.setCharPref("social.directories", "https://example.com");
+    Services.prefs.setBoolPref("social.share.activationPanelEnabled", true);
+    
+    SocialShare._createFrame();
+    let iframe = SocialShare.iframe;
+
+    waitForEvent(iframe, "load", () => {
+      let subframe = iframe.contentDocument.getElementById("activation-frame");
+      waitForCondition(() => {
+          
+          
+          return SocialShare.panel.state == "open"
+                 && subframe.contentDocument
+                 && subframe.contentDocument.readyState == "complete";
+        }, () => {
+        is(subframe.contentDocument.location.href, activationPage, "activation page loaded");
+        waitForProviderEnabled(() => {
+          let provider = Social._getProviderFromOrigin(manifest.origin);
+          let port = provider.getWorkerPort();
+          ok(!!port, "got port");
+          port.onmessage = function (e) {
+            let topic = e.data.topic;
+            switch (topic) {
+              case "got-share-data-message":
+                ok(true, "share completed");
+                gBrowser.removeTab(testTab);
+                SocialService.uninstallProvider(manifest.origin, next);
+                break;
+            }
+          }
+          port.postMessage({topic: "test-init"});
+        });
+        sendActivationEvent(subframe);
+      }, "share panel did not open and load share page");
+    });
+    loadURLInTab(activationPage, function(tab) {
+      testTab = tab;
+      SocialShare.sharePage();
     });
   }
 }
