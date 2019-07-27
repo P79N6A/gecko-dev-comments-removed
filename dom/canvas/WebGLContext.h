@@ -1209,9 +1209,10 @@ protected:
 
     
     
-
+public:
     virtual bool IsWebGL2() const = 0;
 
+protected:
     bool InitWebGL2();
 
     
