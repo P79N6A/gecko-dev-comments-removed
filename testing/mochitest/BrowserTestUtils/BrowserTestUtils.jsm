@@ -19,6 +19,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://testing-common/TestUtils.jsm");
 
@@ -29,6 +30,45 @@ Cc["@mozilla.org/globalmessagemanager;1"]
 
 this.BrowserTestUtils = {
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  withNewTab: Task.async(function* (options, taskFn) {
+    let tab = options.gBrowser.addTab(options.url);
+    yield BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    options.gBrowser.selectedTab = tab;
+
+    yield taskFn(tab.linkedBrowser);
+
+    options.gBrowser.removeTab(tab);
+  }),
+
+  
+
+
+
+
+
+
+
+
 
 
 
