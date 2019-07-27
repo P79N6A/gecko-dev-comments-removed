@@ -195,24 +195,24 @@ HitTestingTreeNode::HitTest(const ParentLayerPoint& aPoint) const
   
   
   if (!gfxPrefs::LayoutEventRegionsEnabled() && GetApzc()) {
-    return HitTestResult::ApzcHitRegion;
+    return HitTestResult::HitLayer;
   }
 
   
   Maybe<LayerPoint> pointInLayerPixels = Untransform(aPoint);
   if (!pointInLayerPixels) {
-    return HitTestResult::NoApzcHit;
+    return HitTestResult::HitNothing;
   }
   LayerIntPoint point = RoundedToInt(pointInLayerPixels.ref());
 
   
   if (!mEventRegions.mHitRegion.Contains(point.x, point.y)) {
-    return HitTestResult::NoApzcHit;
+    return HitTestResult::HitNothing;
   }
   if (mEventRegions.mDispatchToContentHitRegion.Contains(point.x, point.y)) {
-    return HitTestResult::ApzcContentRegion;
+    return HitTestResult::HitDispatchToContentRegion;
   }
-  return HitTestResult::ApzcHitRegion;
+  return HitTestResult::HitLayer;
 }
 
 void
