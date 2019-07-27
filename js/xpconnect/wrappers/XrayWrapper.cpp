@@ -944,8 +944,7 @@ XrayTraits::attachExpandoObject(JSContext *cx, HandleObject target,
 
     
     RootedObject expandoObject(cx,
-      JS_DeprecatedNewObjectWithGivenProtoAndParent(cx, &ExpandoObjectClass,
-                                                    JS::NullPtr(), target));
+      JS_NewObjectWithGivenProto(cx, &ExpandoObjectClass, JS::NullPtr()));
     if (!expandoObject)
         return nullptr;
 
