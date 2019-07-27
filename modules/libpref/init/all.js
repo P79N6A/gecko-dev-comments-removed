@@ -371,7 +371,12 @@ pref("media.navigator.enabled", true);
 #endif
 
 pref("media.getusermedia.screensharing.enabled", true);
+#ifdef RELEASE_BUILD
 pref("media.getusermedia.screensharing.allowed_domains", "");
+#else
+ 
+pref("media.getusermedia.screensharing.allowed_domains", "mozilla.github.io");
+#endif
 
 pref("media.getusermedia.screensharing.allow_on_old_platforms", false);
 
