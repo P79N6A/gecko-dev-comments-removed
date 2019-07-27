@@ -516,6 +516,7 @@ TabChildBase::DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
   event.time = aTime;
   event.button = WidgetMouseEvent::eLeftButton;
   event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
+  event.ignoreRootScrollFrame = true;
   if (aMsg != NS_MOUSE_MOVE) {
     event.clickCount = 1;
   }
@@ -1845,7 +1846,7 @@ TabChild::RecvHandleLongTap(const CSSPoint& aPoint, const ScrollableLayerGuid& a
   bool eventHandled =
       DispatchMouseEvent(NS_LITERAL_STRING("contextmenu"),
                          APZCCallbackHelper::ApplyCallbackTransform(aPoint, aGuid),
-                         2, 1, 0, false,
+                         2, 1, 0, true,
                          nsIDOMMouseEvent::MOZ_SOURCE_TOUCH);
 
   
@@ -2078,7 +2079,7 @@ TabChild::FireContextMenuEvent()
                                              2 ,
                                              1 ,
                                              0 ,
-                                             false ,
+                                             true ,
                                              nsIDOMMouseEvent::MOZ_SOURCE_TOUCH);
 
   
