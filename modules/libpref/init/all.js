@@ -2399,12 +2399,6 @@ pref("svg.paint-order.enabled", true);
 
 pref("svg.marker-improvements.enabled", true);
 
-#ifdef RELEASE_BUILD
-pref("svg.svg-iframe.enabled", false);
-#else
-pref("svg.svg-iframe.enabled", false);
-#endif
-
 
 
 pref("svg.new-getBBox.enabled", false);
