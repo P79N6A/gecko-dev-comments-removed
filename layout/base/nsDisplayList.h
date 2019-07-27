@@ -1687,9 +1687,6 @@ private:
   
   void* operator new(size_t sz) CPP_THROW_NEW;
   
-  
-  void FlattenTo(nsTArray<nsDisplayItem*>* aElements);
-  
   nsDisplayItemLink  mSentinel;
   nsDisplayItemLink* mTop;
 
