@@ -5,6 +5,7 @@
 from __future__ import unicode_literals
 
 import argparse
+import difflib
 import sys
 
 from operator import itemgetter
@@ -105,12 +106,21 @@ class CommandAction(argparse.Action):
         else:
             raise NoCommandError()
 
-        handler = self._mach_registrar.command_handlers.get(command)
+        
+        if command not in self._mach_registrar.command_handlers:
+            
+            suggested_commands = difflib.get_close_matches(command, self._mach_registrar.command_handlers.keys(), cutoff=0.8)
+            
+            
+            
+            if len(suggested_commands) != 1:
+                suggested_commands = set(difflib.get_close_matches(command, self._mach_registrar.command_handlers.keys(), cutoff=0.5))
+                suggested_commands |= {cmd for cmd in self._mach_registrar.command_handlers if cmd.startswith(command)}
+                raise UnknownCommandError(command, 'run', suggested_commands)
+            sys.stderr.write("We're assuming the '%s' command is '%s' and we're executing it for you.\n\n" % (command, suggested_commands[0]))
+            command = suggested_commands[0]
 
-        
-        
-        if not handler:
-            raise UnknownCommandError(command, 'run')
+        handler = self._mach_registrar.command_handlers.get(command)
 
         
         
