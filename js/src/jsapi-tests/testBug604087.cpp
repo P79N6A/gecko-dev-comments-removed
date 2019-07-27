@@ -23,7 +23,8 @@ const js::Class OuterWrapperClass =
             nullptr, 
             js::proxy_innerObject,
             nullptr, 
-            false   
+            false,   
+            nullptr  
         ));
 
 static JSObject *
