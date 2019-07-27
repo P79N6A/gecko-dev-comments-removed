@@ -122,6 +122,7 @@ public class GeckoApplication extends Application
         Clipboard.init(context);
         FilePicker.init(context);
         GeckoLoader.loadMozGlue(context);
+        DownloadsIntegration.init();
         HomePanelsManager.getInstance().init(context);
 
         
