@@ -48,7 +48,6 @@
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/MessagePortList.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "mozilla/dom/StructuredClone.h"
 #include "mozilla/dom/WorkerBinding.h"
 #include "mozilla/Preferences.h"
 #include "nsAlgorithm.h"
@@ -353,7 +352,25 @@ struct WorkerStructuredCloneCallbacks
     
     else if (aTag == SCTAG_DOM_IMAGEDATA) {
       MOZ_ASSERT(!aData);
-      return ReadStructuredCloneImageData(aCx, aReader);
+
+      
+      uint32_t width, height;
+      JS::Rooted<JS::Value> dataArray(aCx);
+      if (!JS_ReadUint32Pair(aReader, &width, &height) ||
+          !JS_ReadTypedArray(aReader, &dataArray))
+      {
+        return nullptr;
+      }
+      MOZ_ASSERT(dataArray.isObject());
+
+      {
+        
+        nsRefPtr<ImageData> imageData = new ImageData(width, height,
+                                                      dataArray.toObject());
+        
+        result = imageData->WrapObject(aCx);
+      }
+      return result;
     }
 
     Error(aCx, 0);
@@ -401,7 +418,17 @@ struct WorkerStructuredCloneCallbacks
     {
       ImageData* imageData = nullptr;
       if (NS_SUCCEEDED(UNWRAP_OBJECT(ImageData, aObj, imageData))) {
-        return WriteStructuredCloneImageData(aCx, aWriter, imageData);
+        
+        uint32_t width = imageData->Width();
+        uint32_t height = imageData->Height();
+        JS::Rooted<JSObject*> dataArray(aCx, imageData->GetDataObject());
+
+        
+        JSAutoCompartment ac(aCx, dataArray);
+        JS::Rooted<JS::Value> arrayValue(aCx, JS::ObjectValue(*dataArray));
+        return JS_WriteUint32Pair(aWriter, SCTAG_DOM_IMAGEDATA, 0) &&
+               JS_WriteUint32Pair(aWriter, width, height) &&
+               JS_WriteTypedArray(aWriter, arrayValue);
       }
     }
 
