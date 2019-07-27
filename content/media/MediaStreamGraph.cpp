@@ -1564,26 +1564,6 @@ MediaStreamGraphImpl::RunInStableState()
     }
     mStreamUpdates.Clear();
 
-    
-    
-    if (mLifecycleState == LIFECYCLE_THREAD_NOT_STARTED &&
-        (mRealtime || mNonRealtimeProcessing)) {
-      mLifecycleState = LIFECYCLE_RUNNING;
-      
-      
-      
-      {
-        
-        
-        
-        MonitorAutoUnlock unlock(mMonitor);
-        STREAM_LOG(PR_LOG_DEBUG, ("Starting a graph with a %s\n",
-              CurrentDriver()->AsAudioCallbackDriver() ? "AudioDriver" :
-                                                         "SystemDriver"));
-        CurrentDriver()->Start();
-      }
-    }
-
     if (mCurrentTaskMessageQueue.IsEmpty()) {
       if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP && IsEmpty()) {
         
@@ -1623,6 +1603,23 @@ MediaStreamGraphImpl::RunInStableState()
           MonitorAutoUnlock unlock(mMonitor);
           CurrentDriver()->Revive();
         }
+      }
+    }
+
+    
+    
+    if (mLifecycleState == LIFECYCLE_THREAD_NOT_STARTED &&
+        (mRealtime || mNonRealtimeProcessing)) {
+      mLifecycleState = LIFECYCLE_RUNNING;
+      
+      
+      
+      {
+        
+        
+        MonitorAutoUnlock unlock(mMonitor);
+        STREAM_LOG(PR_LOG_DEBUG, ("Starting a graph ! %s\n", CurrentDriver()->AsAudioCallbackDriver() ? "AudioDriver" : "SystemDriver"));
+        CurrentDriver()->Start();
       }
     }
 
