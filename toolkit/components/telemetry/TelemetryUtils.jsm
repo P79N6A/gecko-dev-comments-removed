@@ -10,7 +10,19 @@ this.EXPORTED_SYMBOLS = [
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
 this.TelemetryUtils = {
+  
+
+
+
+
+
+  millisecondsToDays: function(aMsec) {
+    return Math.floor(aMsec / MILLISECONDS_PER_DAY);
+  },
+
   
 
 
