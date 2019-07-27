@@ -37,6 +37,69 @@ JS_GetScriptFilename(JSScript *script);
 
 namespace JS {
 
+class FrameDescription
+{
+  public:
+    explicit FrameDescription(const js::FrameIter& iter);
+    FrameDescription(const FrameDescription &rhs);
+    ~FrameDescription();
+
+    unsigned lineno() {
+        if (!linenoComputed_) {
+            lineno_ = JS_PCToLineNumber(nullptr, script_, pc_);
+            linenoComputed_ = true;
+        }
+        return lineno_;
+    }
+
+    const char *filename() const {
+        return filename_;
+    }
+
+    JSFlatString *funDisplayName() const {
+        return funDisplayName_ ? JS_ASSERT_STRING_IS_FLAT(funDisplayName_) : nullptr;
+    }
+
+    
+    
+    Heap<JSScript*> &markedLocation1() {
+        return script_;
+    }
+    Heap<JSString*> &markedLocation2() {
+        return funDisplayName_;
+    }
+
+  private:
+    void operator=(const FrameDescription &) MOZ_DELETE;
+
+    
+    Heap<JSString*> funDisplayName_;
+    const char *filename_;
+
+    
+    Heap<JSScript*> script_;
+    js::ScriptSource *scriptSource_;
+
+    
+    bool linenoComputed_;
+    unsigned lineno_;
+
+    
+    jsbytecode *pc_;
+};
+
+struct StackDescription
+{
+    unsigned nframes;
+    FrameDescription *frames;
+};
+
+extern JS_PUBLIC_API(StackDescription *)
+DescribeStack(JSContext *cx, unsigned maxFrames);
+
+extern JS_PUBLIC_API(void)
+FreeStackDescription(JSContext *cx, StackDescription *desc);
+
 extern JS_PUBLIC_API(char *)
 FormatStackDump(JSContext *cx, char *buf, bool showArgs, bool showLocals, bool showThisProps);
 
