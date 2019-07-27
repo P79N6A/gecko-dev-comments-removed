@@ -51,9 +51,13 @@ function checkError (assert, name, e) {
   
   
   let tb = traceback.fromException(e);
+
   
-  
-  let lastFrame = tb[tb.length-2];
+  let lastFrame = tb[tb.length - 1];
+  if (lastFrame.fileName.indexOf("toolkit/loader.js") !== -1 ||
+      lastFrame.fileName.indexOf("sdk/loader/cuddlefish.js") !== -1)
+    lastFrame = tb[tb.length - 2];
+
   assert.ok(lastFrame.fileName.indexOf("test-require.js") !== -1,
                           'Filename found in stacktrace');
   assert.equal(lastFrame.lineNumber, REQUIRE_LINE_NO,

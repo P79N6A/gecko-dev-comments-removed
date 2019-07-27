@@ -181,7 +181,7 @@ class ModuleInfo:
 
 class ManifestBuilder:
     def __init__(self, target_cfg, pkg_cfg, deps, extra_modules,
-                 stderr=sys.stderr):
+                 stderr=sys.stderr, abort_on_missing=False):
         self.manifest = {} 
         self.target_cfg = target_cfg 
         self.pkg_cfg = pkg_cfg 
@@ -193,6 +193,7 @@ class ManifestBuilder:
         self.datamaps = {} 
         self.files = [] 
         self.test_modules = [] 
+        self.abort_on_missing = abort_on_missing 
 
     def build(self, scan_tests, test_filter_re):
         """
@@ -416,6 +417,12 @@ class ManifestBuilder:
                         
                         
                         continue
+                    if not self.abort_on_missing:
+                        
+                        
+                        print >>self.stderr, "Warning: missing module: %s" % reqname
+                        me.add_requirement(reqname, reqname)
+                        continue
                     lineno = locations.get(reqname) 
                     if lineno is None:
                         reqtype = "define"
@@ -633,7 +640,7 @@ class ManifestBuilder:
         return None
 
 def build_manifest(target_cfg, pkg_cfg, deps, scan_tests,
-                   test_filter_re=None, extra_modules=[]):
+                   test_filter_re=None, extra_modules=[], abort_on_missing=False):
     """
     Perform recursive dependency analysis starting from entry_point,
     building up a manifest of modules that need to be included in the XPI.
@@ -659,7 +666,8 @@ def build_manifest(target_cfg, pkg_cfg, deps, scan_tests,
     code which does, so it knows what to copy into the XPI.
     """
 
-    mxt = ManifestBuilder(target_cfg, pkg_cfg, deps, extra_modules)
+    mxt = ManifestBuilder(target_cfg, pkg_cfg, deps, extra_modules,
+                          abort_on_missing=abort_on_missing)
     mxt.build(scan_tests, test_filter_re)
     return mxt
 

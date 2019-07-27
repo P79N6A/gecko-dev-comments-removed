@@ -1,7 +1,7 @@
 
 
 
- "use strict";
+"use strict";
 
 var options = require("@loader/options");
 
@@ -43,4 +43,4 @@ exports.testPackaging = function(assert) {
                    "private browsing metadata should be be frozen");
 };
 
-require('sdk/test').run(exports);
+require("sdk/test/runner").runTestsFromModule(module);

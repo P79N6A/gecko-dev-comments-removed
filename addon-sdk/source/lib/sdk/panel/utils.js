@@ -211,7 +211,7 @@ function show(panel, options, anchor) {
   
   
   panel.setAttribute("noautofocus", !options.focus);
-
+  
   let window = anchor && getOwnerBrowserWindow(anchor);
   let { document } = window ? window : getMostRecentBrowserWindow();
   attach(panel, document);
@@ -404,3 +404,13 @@ exports.getContentDocument = getContentDocument;
 
 function setURL(panel, url) getContentFrame(panel).setAttribute("src", url)
 exports.setURL = setURL;
+
+function allowContextMenu(panel, allow) {
+  if(allow) {
+    panel.setAttribute("context", "contentAreaContextMenu");
+  } 
+  else {
+    panel.removeAttribute("context");
+  }
+}
+exports.allowContextMenu = allowContextMenu;

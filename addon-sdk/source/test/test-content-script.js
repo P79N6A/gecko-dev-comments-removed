@@ -138,33 +138,34 @@ exports["test Create Proxy Test With Events"] = createProxyTest("", function (he
 
 
 
-exports["test Shared To String Proxies"] = createProxyTest("", function(helper) {
 
-  let worker = helper.createWorker(
-    'new ' + function ContentScriptScope() {
-      
-      
-      
-      
-      document.location.toString.foo = "bar";
-      assert("foo" in document.location.toString, "document.location.toString can be modified");
-      assert(document.location.toString() == "data:text/html;charset=utf-8,",
-             "First document.location.toString()");
-      self.postMessage("next");
-    }
-  );
-  worker.on("message", function () {
-    helper.createWorker(
-      'new ' + function ContentScriptScope2() {
-        assert(!("foo" in document.location.toString),
-               "document.location.toString is different for each content script");
-        assert(document.location.toString() == "data:text/html;charset=utf-8,",
-               "Second document.location.toString()");
-        done();
-      }
-    );
-  });
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

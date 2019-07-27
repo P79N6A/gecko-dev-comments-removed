@@ -48,6 +48,7 @@ class Basic(unittest.TestCase):
         def assertReqIs(modname, reqname, path):
             reqs = m["one/%s" % modname]["requirements"]
             self.failUnlessEqual(reqs[reqname], path)
+
         assertReqIs("main", "sdk/panel", "sdk/panel")
         assertReqIs("main", "two.js", "one/two")
         assertReqIs("main", "./two", "one/two")
@@ -57,11 +58,26 @@ class Basic(unittest.TestCase):
         assertReqIs("subdir/three", "../main", "one/main")
 
         target_cfg.dependencies = []
+
+        try:
+            
+            m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
+            m = m.get_harness_options_manifest(False)
+
+            assertReqIs("main", "sdk/panel", "sdk/panel")
+            
+            
+            
+            assertReqIs("main", "sdk/tabs.js", "sdk/tabs.js")
+        except Exception, e:
+            self.fail("Must not throw from build_manifest() if modules are missing")
+
         
         
         self.assertRaises(manifest.ModuleNotFoundError,
                           manifest.build_manifest,
-                          target_cfg, pkg_cfg, deps, scan_tests=False)
+                          target_cfg, pkg_cfg, deps, scan_tests=False,
+                          abort_on_missing=True)
 
     def test_main_in_deps(self):
         target_cfg = self.get_pkg("three")
