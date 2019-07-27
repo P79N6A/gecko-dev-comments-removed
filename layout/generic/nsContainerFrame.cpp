@@ -921,24 +921,46 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext* aRenderingContext,
     
     AutoMaybeDisableFontInflation an(this);
 
-    
-    uint8_t captionSide = StyleTableBorder()->mCaptionSide;
-    if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
-        captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
-      result.ISize(aWM) = GetMinISize(aRenderingContext);
-    } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
-               captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
-      
-      
-      
-      
-      
-      nscoord min = GetMinISize(aRenderingContext);
-      if (min > aCBSize.ISize(aWM)) {
-        min = aCBSize.ISize(aWM);
+    WritingMode tableWM = GetParent()->GetWritingMode();
+    uint8_t captionSide = StyleTableBorder()->LogicalCaptionSide(tableWM);
+
+    if (aWM.IsOrthogonalTo(tableWM)) {
+      if (captionSide == NS_STYLE_CAPTION_SIDE_BSTART ||
+          captionSide == NS_STYLE_CAPTION_SIDE_BSTART_OUTSIDE ||
+          captionSide == NS_STYLE_CAPTION_SIDE_BEND ||
+          captionSide == NS_STYLE_CAPTION_SIDE_BEND_OUTSIDE) {
+        
+        
+        result.ISize(aWM) = GetMinISize(aRenderingContext);
+      } else {
+        
+        
+        nscoord pref = GetPrefISize(aRenderingContext);
+        if (pref > aCBSize.ISize(aWM)) {
+          pref = aCBSize.ISize(aWM);
+        }
+        if (pref < result.ISize(aWM)) {
+          result.ISize(aWM) = pref;
+        }
       }
-      if (min > result.ISize(aWM)) {
-        result.ISize(aWM) = min;
+    } else {
+      if (captionSide == NS_STYLE_CAPTION_SIDE_ISTART ||
+          captionSide == NS_STYLE_CAPTION_SIDE_IEND) {
+        result.ISize(aWM) = GetMinISize(aRenderingContext);
+      } else if (captionSide == NS_STYLE_CAPTION_SIDE_BSTART ||
+                 captionSide == NS_STYLE_CAPTION_SIDE_BEND) {
+        
+        
+        
+        
+        
+        nscoord min = GetMinISize(aRenderingContext);
+        if (min > aCBSize.ISize(aWM)) {
+          min = aCBSize.ISize(aWM);
+        }
+        if (min > result.ISize(aWM)) {
+          result.ISize(aWM) = min;
+        }
       }
     }
   }
