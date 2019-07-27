@@ -181,6 +181,7 @@
 
 #include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/InputAPZContext.h"
+#include "InputData.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -6138,47 +6139,47 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
   PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
 
   if (mGesture.GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs)) {
-    WidgetTouchEvent* touchEventToSend = nullptr;
-    WidgetTouchEvent* touchEndEventToSend = nullptr;
-    nsEventStatus status;
+    MultiTouchInput touchInput, touchEndInput;
 
     
     for (uint32_t i = 0; i < cInputs; i++) {
-      uint32_t msg;
+      bool addToEvent = false, addToEndEvent = false;
+
+      
+      
+      
+      
 
       if (pInputs[i].dwFlags & (TOUCHEVENTF_DOWN | TOUCHEVENTF_MOVE)) {
-        
-        if (!touchEventToSend) {
-          touchEventToSend = new WidgetTouchEvent(true, NS_TOUCH_MOVE, this);
-          touchEventToSend->time = ::GetMessageTime();
-          touchEventToSend->timeStamp =
-            GetMessageTimeStamp(touchEventToSend->time);
+        if (touchInput.mTimeStamp.IsNull()) {
+          
+          touchInput.mType = MultiTouchInput::MULTITOUCH_MOVE;
+          touchInput.mTime = ::GetMessageTime();
+          touchInput.mTimeStamp = GetMessageTimeStamp(touchInput.mTime);
           ModifierKeyState modifierKeyState;
-          modifierKeyState.InitInputEvent(*touchEventToSend);
+          touchInput.modifiers = modifierKeyState.GetModifiers();
         }
-
         
         
         if (pInputs[i].dwFlags & TOUCHEVENTF_DOWN) {
-          touchEventToSend->message = msg = NS_TOUCH_START;
-        } else {
-          msg = NS_TOUCH_MOVE;
+          touchInput.mType = MultiTouchInput::MULTITOUCH_START;
         }
-      } else if (pInputs[i].dwFlags & TOUCHEVENTF_UP) {
+        addToEvent = true;
+      }
+      if (pInputs[i].dwFlags & TOUCHEVENTF_UP) {
         
         
-        
-        if (!touchEndEventToSend) {
-          touchEndEventToSend = new WidgetTouchEvent(true, NS_TOUCH_END, this);
-          touchEndEventToSend->time = ::GetMessageTime();
-          touchEndEventToSend->timeStamp =
-            GetMessageTimeStamp(touchEndEventToSend->time);
+        if (touchEndInput.mTimeStamp.IsNull()) {
+          
+          touchEndInput.mType = MultiTouchInput::MULTITOUCH_END;
+          touchEndInput.mTime = ::GetMessageTime();
+          touchEndInput.mTimeStamp = GetMessageTimeStamp(touchEndInput.mTime);
           ModifierKeyState modifierKeyState;
-          modifierKeyState.InitInputEvent(*touchEndEventToSend);
+          touchEndInput.modifiers = modifierKeyState.GetModifiers();
         }
-        msg = NS_TOUCH_END;
-      } else {
-        
+        addToEndEvent = true;
+      }
+      if (!addToEvent && !addToEndEvent) {
         
         continue;
       }
@@ -6188,36 +6189,39 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
       touchPoint.x = TOUCH_COORD_TO_PIXEL(pInputs[i].x);
       touchPoint.y = TOUCH_COORD_TO_PIXEL(pInputs[i].y);
       touchPoint.ScreenToClient(mWnd);
-      nsRefPtr<Touch> touch =
-        new Touch(pInputs[i].dwID,
-                  LayoutDeviceIntPoint::FromUntyped(touchPoint),
-                  
-                  pInputs[i].dwFlags & TOUCHINPUTMASKF_CONTACTAREA ?
-                    nsIntPoint(
-                      TOUCH_COORD_TO_PIXEL(pInputs[i].cxContact) / 2,
-                      TOUCH_COORD_TO_PIXEL(pInputs[i].cyContact) / 2) :
-                    nsIntPoint(1,1),
-                  
-                  0.0f, 0.0f);
 
       
-      if (msg == NS_TOUCH_START || msg == NS_TOUCH_MOVE) {
-        touchEventToSend->touches.AppendElement(touch);
-      } else {
-        touchEndEventToSend->touches.AppendElement(touch);
+      SingleTouchData touchData(pInputs[i].dwID,                                      
+                                ScreenIntPoint::FromUntyped(touchPoint),              
+                                
+                                pInputs[i].dwFlags & TOUCHINPUTMASKF_CONTACTAREA
+                                  ? ScreenSize(
+                                      TOUCH_COORD_TO_PIXEL(pInputs[i].cxContact) / 2,
+                                      TOUCH_COORD_TO_PIXEL(pInputs[i].cyContact) / 2)
+                                  : ScreenSize(1, 1),                                 
+                                0.0f,                                                 
+                                0.0f);                                                
+
+      
+      if (addToEvent) {
+        touchInput.mTouches.AppendElement(touchData);
+      }
+      if (addToEndEvent) {
+        touchEndInput.mTouches.AppendElement(touchData);
       }
     }
 
     
-    if (touchEventToSend) {
-      status = DispatchAPZAwareEvent(touchEventToSend);
-      delete touchEventToSend;
+    if (!touchInput.mTimeStamp.IsNull()) {
+      
+      WidgetTouchEvent widgetTouchEvent = touchInput.ToWidgetTouchEvent(this);
+      DispatchAPZAwareEvent(&widgetTouchEvent);
     }
-
     
-    if (touchEndEventToSend) {
-      status = DispatchAPZAwareEvent(touchEndEventToSend);
-      delete touchEndEventToSend;
+    if (!touchEndInput.mTimeStamp.IsNull()) {
+      
+      WidgetTouchEvent widgetTouchEvent = touchEndInput.ToWidgetTouchEvent(this);
+      DispatchAPZAwareEvent(&widgetTouchEvent);
     }
   }
 
