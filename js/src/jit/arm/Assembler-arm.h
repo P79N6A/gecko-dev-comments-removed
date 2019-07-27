@@ -153,9 +153,14 @@ static const uint32_t CodeAlignment = 8;
 
 
 static const bool SupportsSimd = false;
-static const uint32_t SimdStackAlignment = 8;
+static const uint32_t SimdMemoryAlignment = 8;
 
-static const uint32_t AsmJSStackAlignment = SimdStackAlignment;
+static_assert(CodeAlignment % SimdMemoryAlignment == 0,
+  "Code alignment should be larger than any of the alignment which are used for "
+  "the constant sections of the code buffer.  Thus it should be larger than the "
+  "alignment for SIMD constants.");
+
+static const uint32_t AsmJSStackAlignment = SimdMemoryAlignment;
 
 static const Scale ScalePointer = TimesFour;
 

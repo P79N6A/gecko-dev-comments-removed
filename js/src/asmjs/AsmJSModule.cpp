@@ -290,7 +290,7 @@ AsmJSModule::finish(ExclusiveContext *cx, TokenStream &tokenStream, MacroAssembl
     
     
     
-    pod.codeBytes_ = AlignBytes(masm.bytesNeeded(), SimdStackAlignment);
+    pod.codeBytes_ = AlignBytes(masm.bytesNeeded(), SimdMemoryAlignment);
 
     
     

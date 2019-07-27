@@ -160,7 +160,7 @@ MacroAssemblerX64::finish()
 
     
     if (!simds_.empty())
-        masm.align(SimdStackAlignment);
+        masm.align(SimdMemoryAlignment);
     for (size_t i = 0; i < simds_.length(); i++) {
         SimdData &v = simds_[i];
         bind(&v.uses);

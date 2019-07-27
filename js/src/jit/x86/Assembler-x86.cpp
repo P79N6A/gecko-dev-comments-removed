@@ -35,7 +35,7 @@ ABIArgGenerator::next(MIRType type)
         
         
         
-        stackOffset_ = AlignBytes(stackOffset_, SimdStackAlignment);
+        stackOffset_ = AlignBytes(stackOffset_, SimdMemoryAlignment);
         current_ = ABIArg(stackOffset_);
         stackOffset_ += Simd128DataSize;
         break;

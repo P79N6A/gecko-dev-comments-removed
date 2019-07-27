@@ -170,9 +170,9 @@ static const uint32_t CodeAlignment = 4;
 static const bool SupportsSimd = false;
 
 
-static const uint32_t SimdStackAlignment = 8;
+static const uint32_t SimdMemoryAlignment = 8;
 
-static const uint32_t AsmJSStackAlignment = SimdStackAlignment;
+static const uint32_t AsmJSStackAlignment = SimdMemoryAlignment;
 
 static const Scale ScalePointer = TimesFour;
 

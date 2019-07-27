@@ -178,16 +178,21 @@ static MOZ_CONSTEXPR_VAR Register OsrFrameReg = IntArgReg3;
 static MOZ_CONSTEXPR_VAR Register PreBarrierReg = rdx;
 
 static const uint32_t ABIStackAlignment = 16;
-static const uint32_t CodeAlignment = 8;
+static const uint32_t CodeAlignment = 16;
 
 
 
 
 
 static const bool SupportsSimd = true;
-static const uint32_t SimdStackAlignment = 16;
+static const uint32_t SimdMemoryAlignment = 16;
 
-static const uint32_t AsmJSStackAlignment = SimdStackAlignment;
+static_assert(CodeAlignment % SimdMemoryAlignment == 0,
+  "Code alignment should be larger than any of the alignment which are used for "
+  "the constant sections of the code buffer.  Thus it should be larger than the "
+  "alignment for SIMD constants.");
+
+static const uint32_t AsmJSStackAlignment = SimdMemoryAlignment;
 
 static const Scale ScalePointer = TimesEight;
 
