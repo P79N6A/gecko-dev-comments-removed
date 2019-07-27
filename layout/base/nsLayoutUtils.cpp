@@ -7516,11 +7516,26 @@ nsLayoutUtils::GetBoxShadowRectForFrame(nsIFrame* aFrame,
   if (!boxShadows) {
     return nsRect();
   }
+
+  bool nativeTheme;
+  const nsStyleDisplay* styleDisplay = aFrame->StyleDisplay();
+  nsITheme::Transparency transparency;
+  if (aFrame->IsThemed(styleDisplay, &transparency)) {
+    
+    
+    nativeTheme = transparency != nsITheme::eOpaque;
+  } else {
+    nativeTheme = false;
+  }
+
+  nsRect frameRect = nativeTheme ?
+    aFrame->GetVisualOverflowRectRelativeToSelf() :
+    nsRect(nsPoint(0, 0), aFrameSize);
   
   nsRect shadows;
   int32_t A2D = aFrame->PresContext()->AppUnitsPerDevPixel();
   for (uint32_t i = 0; i < boxShadows->Length(); ++i) {
-    nsRect tmpRect(nsPoint(0, 0), aFrameSize);
+    nsRect tmpRect = frameRect;
     nsCSSShadowItem* shadow = boxShadows->ShadowAt(i);
 
     
