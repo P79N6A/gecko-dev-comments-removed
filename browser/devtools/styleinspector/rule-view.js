@@ -689,6 +689,8 @@ Rule.prototype = {
 
 
   previewPropertyValue: function(aProperty, aValue, aPriority) {
+    aProperty.value = aValue;
+
     let modifications = this.style.startModifyingProperties();
     modifications.setProperty(aProperty.name, aValue, aPriority);
     modifications.apply();
@@ -1406,7 +1408,7 @@ CssRuleView.prototype = {
 
   get isEditing() {
     return this.element.querySelectorAll(".styleinspector-propertyeditor").length > 0
-      || this.tooltips.colorPicker.tooltip.isShown();
+      || this.tooltips.isEditing;
   },
 
   _handlePrefChange: function(pref) {
@@ -2168,9 +2170,7 @@ TextPropertyEditor.prototype = {
 
   get editing() {
     return !!(this.nameSpan.inplaceEditor || this.valueSpan.inplaceEditor ||
-      this.ruleEditor.ruleView.tooltips.colorPicker.tooltip.isShown() ||
-      this.ruleEditor.ruleView.tooltips.colorPicker.eyedropperOpen) ||
-      this.popup.isOpen;
+      this.ruleEditor.ruleView.tooltips.isEditing) || this.popup.isOpen;
   },
 
   
@@ -2405,11 +2405,15 @@ TextPropertyEditor.prototype = {
       this.element.removeAttribute("dirty");
     }
 
-    let swatchClass = "ruleview-colorswatch";
+    let colorSwatchClass = "ruleview-colorswatch";
+    let bezierSwatchClass = "ruleview-bezierswatch";
+
     let outputParser = this.ruleEditor.ruleView._outputParser;
     let frag = outputParser.parseCssProperty(name, val, {
-      colorSwatchClass: swatchClass,
+      colorSwatchClass: colorSwatchClass,
       colorClass: "ruleview-color",
+      bezierSwatchClass: bezierSwatchClass,
+      bezierClass: "ruleview-bezier",
       defaultColorType: !propDirty,
       urlClass: "theme-link",
       baseURI: this.sheetURI
@@ -2418,13 +2422,28 @@ TextPropertyEditor.prototype = {
     this.valueSpan.appendChild(frag);
 
     
-    this._swatchSpans = this.valueSpan.querySelectorAll("." + swatchClass);
+    this._colorSwatchSpans = this.valueSpan.querySelectorAll("." + colorSwatchClass);
     if (this.ruleEditor.isEditable) {
-      for (let span of this._swatchSpans) {
+      for (let span of this._colorSwatchSpans) {
         
         let originalValue = this.valueSpan.textContent;
         
         this.ruleEditor.ruleView.tooltips.colorPicker.addSwatch(span, {
+          onPreview: () => this._previewValue(this.valueSpan.textContent),
+          onCommit: () => this._applyNewValue(this.valueSpan.textContent),
+          onRevert: () => this._applyNewValue(originalValue)
+        });
+      }
+    }
+
+    
+    this._bezierSwatchSpans = this.valueSpan.querySelectorAll("." + bezierSwatchClass);
+    if (this.ruleEditor.isEditable) {
+      for (let span of this._bezierSwatchSpans) {
+        
+        let originalValue = this.valueSpan.textContent;
+        
+        this.ruleEditor.ruleView.tooltips.cubicBezier.addSwatch(span, {
           onPreview: () => this._previewValue(this.valueSpan.textContent),
           onCommit: () => this._applyNewValue(this.valueSpan.textContent),
           onRevert: () => this._applyNewValue(originalValue)
@@ -2563,8 +2582,8 @@ TextPropertyEditor.prototype = {
 
 
   remove: function() {
-    if (this._swatchSpans && this._swatchSpans.length) {
-      for (let span of this._swatchSpans) {
+    if (this._colorSwatchSpans && this._colorSwatchSpans.length) {
+      for (let span of this._colorSwatchSpans) {
         this.ruleEditor.ruleView.tooltips.colorPicker.removeSwatch(span);
       }
     }
