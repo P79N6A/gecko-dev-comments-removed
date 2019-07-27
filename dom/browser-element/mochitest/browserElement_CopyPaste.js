@@ -190,6 +190,7 @@ function testPaste1(e) {
   
   copyToClipboard(pasteData);
 
+  doCommand('selectall');
   doCommand("paste");
   SimpleTest.executeSoon(function() { testPaste2(e); });
 }
