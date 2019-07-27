@@ -102,6 +102,11 @@ public:
     return true;
   }
 
+  size_t Length()
+  {
+    return mDecoders.Length();
+  }
+
 private:
   TrackBuffer* mOwner;
   nsAutoTArray<nsRefPtr<SourceBufferDecoder>,2> mDecoders;
@@ -144,20 +149,24 @@ TrackBuffer::ContinueShutdown()
   mShutdownPromise.Resolve(true, __func__);
 }
 
-bool
+nsRefPtr<TrackBuffer::InitializationPromise>
 TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
 {
   MOZ_ASSERT(NS_IsMainThread());
   DecodersToInitialize decoders(this);
+  nsRefPtr<InitializationPromise> p = mInitializationPromise.Ensure(__func__);
+
   
   if (mParser->IsInitSegmentPresent(aData)) {
     MSE_DEBUG("TrackBuffer(%p)::AppendData: New initialization segment.", this);
     if (!decoders.NewDecoder(aTimestampOffset)) {
-      return false;
+      mInitializationPromise.Reject(NS_ERROR_FAILURE, __func__);
+      return p;
     }
   } else if (!mParser->HasInitData()) {
     MSE_DEBUG("TrackBuffer(%p)::AppendData: Non-init segment appended during initialization.", this);
-    return false;
+    mInitializationPromise.Reject(NS_ERROR_FAILURE, __func__);
+    return p;
   }
 
   int64_t start = 0, end = 0;
@@ -175,7 +184,8 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
       
       
       if (!decoders.NewDecoder(aTimestampOffset)) {
-        return false;
+        mInitializationPromise.Reject(NS_ERROR_FAILURE, __func__);
+        return p;
       }
       MSE_DEBUG("TrackBuffer(%p)::AppendData: Decoder marked as initialized.", this);
       nsRefPtr<LargeDataBuffer> initData = mParser->InitData();
@@ -190,13 +200,22 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
   }
 
   if (!AppendDataToCurrentResource(aData, end - start)) {
-    return false;
+    mInitializationPromise.Reject(NS_ERROR_FAILURE, __func__);
+    return p;
   }
 
+  if (decoders.Length()) {
+    
+    
+    
+    return p;
+  }
   
   
   mParentDecoder->GetReader()->MaybeNotifyHaveData();
-  return true;
+
+  mInitializationPromise.Resolve(end - start > 0, __func__);
+  return p;
 }
 
 bool
@@ -410,6 +429,7 @@ bool
 TrackBuffer::QueueInitializeDecoder(SourceBufferDecoder* aDecoder)
 {
   if (NS_WARN_IF(!mTaskQueue)) {
+    mInitializationPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
     return false;
   }
 
@@ -418,8 +438,9 @@ TrackBuffer::QueueInitializeDecoder(SourceBufferDecoder* aDecoder)
                                                       &TrackBuffer::InitializeDecoder,
                                                       aDecoder);
   if (NS_FAILED(mTaskQueue->Dispatch(task))) {
-    MSE_DEBUG("MediaSourceReader(%p): Failed to enqueue decoder initialization task", this);
+    MSE_DEBUG("TrackBuffer(%p): Failed to enqueue decoder initialization task", this);
     RemoveDecoder(aDecoder);
+    mInitializationPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
     return false;
   }
   return true;
@@ -441,6 +462,7 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
   
   if (mShutdown) {
     MSE_DEBUG("TrackBuffer(%p) was shut down. Aborting initialization.", this);
+    mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
     return;
   }
 
@@ -460,6 +482,7 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
   reader->SetIdle();
   if (mShutdown) {
     MSE_DEBUG("TrackBuffer(%p) was shut down while reading metadata. Aborting initialization.", this);
+    mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
     return;
   }
 
@@ -475,6 +498,7 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
     MSE_DEBUG("TrackBuffer(%p): Reader %p failed to initialize rv=%x audio=%d video=%d",
               this, reader, rv, mi.HasAudio(), mi.HasVideo());
     RemoveDecoder(aDecoder);
+    mInitializationPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
     return;
   }
 
@@ -487,18 +511,51 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
               this, reader, mi.mAudio.mRate, mi.mAudio.mChannels);
   }
 
-  if (!RegisterDecoder(aDecoder)) {
-    
-    MSE_DEBUG("TrackBuffer(%p): Reader %p not activated", this, reader);
+  RefPtr<nsIRunnable> task =
+    NS_NewRunnableMethodWithArg<SourceBufferDecoder*>(this,
+                                                      &TrackBuffer::CompleteInitializeDecoder,
+                                                      aDecoder);
+  if (NS_FAILED(NS_DispatchToMainThread(task))) {
+    MSE_DEBUG("TrackBuffer(%p): Failed to enqueue decoder initialization task", this);
     RemoveDecoder(aDecoder);
+    mInitializationPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
     return;
   }
+}
+
+void
+TrackBuffer::CompleteInitializeDecoder(SourceBufferDecoder* aDecoder)
+{
+  ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
+  if (mShutdown) {
+    MSE_DEBUG("TrackBuffer(%p) was shut down while reading metadata. Aborting initialization.", this);
+    RemoveDecoder(aDecoder);
+    mInitializationPromise.RejectIfExists(NS_ERROR_ABORT, __func__);
+    return;
+  }
+
+  if (!RegisterDecoder(aDecoder)) {
+    MSE_DEBUG("TrackBuffer(%p): Reader %p not activated",
+              this, aDecoder->GetReader());
+    RemoveDecoder(aDecoder);
+    mInitializationPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
+    return;
+  }
+
+  int64_t duration = aDecoder->GetMediaDuration();
+  if (!duration) {
+    
+    duration = -1;
+  }
+  mParentDecoder->SetInitialDuration(duration);
 
   
   
   mParentDecoder->GetReader()->MaybeNotifyHaveData();
 
-  MSE_DEBUG("TrackBuffer(%p): Reader %p activated", this, reader);
+  MSE_DEBUG("TrackBuffer(%p): Reader %p activated",
+            this, aDecoder->GetReader());
+  mInitializationPromise.ResolveIfExists(aDecoder->GetRealMediaDuration() > 0, __func__);
 }
 
 bool

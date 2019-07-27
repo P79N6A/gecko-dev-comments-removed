@@ -33,6 +33,8 @@ class TrackBuffer MOZ_FINAL {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackBuffer);
 
+  typedef MediaPromise<bool, nsresult,  false> InitializationPromise;
+
   TrackBuffer(MediaSourceDecoder* aParentDecoder, const nsACString& aType);
 
   nsRefPtr<ShutdownPromise> Shutdown();
@@ -40,7 +42,8 @@ public:
   
   
   
-  bool AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset );
+  nsRefPtr<InitializationPromise> AppendData(LargeDataBuffer* aData,
+                                             int64_t aTimestampOffset );
 
   
   
@@ -130,6 +133,11 @@ private:
   
   
   void InitializeDecoder(SourceBufferDecoder* aDecoder);
+  
+  
+  
+  
+  void CompleteInitializeDecoder(SourceBufferDecoder* aDecoder);
 
   
   
@@ -193,6 +201,9 @@ private:
   MediaPromiseHolder<ShutdownPromise> mShutdownPromise;
   bool mDecoderPerSegment;
   bool mShutdown;
+
+  MediaPromiseHolder<InitializationPromise> mInitializationPromise;
+
 };
 
 } 
