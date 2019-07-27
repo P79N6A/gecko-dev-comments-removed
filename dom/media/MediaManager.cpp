@@ -857,9 +857,14 @@ public:
                              tracksAvailableCallback,
                              mAudioSource, mVideoSource, false, mWindowID,
                              mOnFailure.forget()));
-
     
     mOnFailure = nullptr;
+
+    if (!MediaManager::IsPrivateBrowsing(window)) {
+      
+      
+      nsRefPtr<Pledge<nsCString>> p = media::GetOriginKey(mOrigin, false, true);
+    }
     return NS_OK;
   }
 
@@ -1936,13 +1941,15 @@ MediaManager::EnumerateDevicesImpl(uint64_t aWindowId, MediaSourceEnum aVideoTyp
   nsCString origin;
   nsPrincipal::GetOriginForURI(window->GetDocumentURI(), origin);
 
+  bool persist = IsActivelyCapturingOrHasAPermission(aWindowId);
+
   
   
   
   
 
   nsRefPtr<Pledge<nsCString>> p = media::GetOriginKey(origin, privateBrowsing,
-                                                      true);
+                                                      persist);
   p->Then([id, aWindowId, aVideoType,
            aFake, aFakeTracks](const nsCString& aOriginKey) mutable {
     MOZ_ASSERT(NS_IsMainThread());
