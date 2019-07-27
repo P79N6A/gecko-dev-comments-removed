@@ -14,7 +14,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Move.h"
 #include "mozilla/SizePrintfMacros.h"
-#include "mozilla/Telemetry.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 #include "nsContentUtils.h"
@@ -23,11 +22,6 @@
 
 
 #undef compress
-
-
-
-
-
 
 
 
@@ -106,7 +100,7 @@ struct RunnableMethodTraits<mozilla::ipc::MessageChannel>
             DebugAbort(__FILE__, __LINE__, #_cond,## __VA_ARGS__);  \
     } while (0)
 
-static MessageChannel* gParentProcessBlocker;
+static bool gParentIsBlocked;
 
 namespace mozilla {
 namespace ipc {
@@ -404,10 +398,6 @@ MessageChannel::Clear()
     
     
 
-    if (gParentProcessBlocker == this) {
-        gParentProcessBlocker = nullptr;
-    }
-
     mDequeueOneTask->Cancel();
 
     mWorkerLoop = nullptr;
@@ -562,42 +552,23 @@ MessageChannel::Send(Message* aMsg)
     return true;
 }
 
-class CancelMessage : public IPC::Message
-{
-public:
-    CancelMessage() :
-        IPC::Message(MSG_ROUTING_NONE, CANCEL_MESSAGE_TYPE, PRIORITY_NORMAL)
-    {
-    }
-    static bool Read(const Message* msg) {
-        return true;
-    }
-    void Log(const std::string& aPrefix, FILE* aOutf) const {
-        fputs("(special `Cancel' message)", aOutf);
-    }
-};
-
 bool
 MessageChannel::MaybeInterceptSpecialIOMessage(const Message& aMsg)
 {
     AssertLinkThread();
     mMonitor->AssertCurrentThreadOwns();
 
-    if (MSG_ROUTING_NONE == aMsg.routing_id()) {
-        if (GOODBYE_MESSAGE_TYPE == aMsg.type()) {
-            
-            
-            mChannelState = ChannelClosing;
-            if (LoggingEnabled()) {
-                printf("NOTE: %s process received `Goodbye', closing down\n",
-                       (mSide == ChildSide) ? "child" : "parent");
-            }
-            return true;
-        } else if (CANCEL_MESSAGE_TYPE == aMsg.type()) {
-            CancelCurrentTransactionInternal();
-            NotifyWorkerThread();
-            return true;
+    if (MSG_ROUTING_NONE == aMsg.routing_id() &&
+        GOODBYE_MESSAGE_TYPE == aMsg.type())
+    {
+        
+        
+        mChannelState = ChannelClosing;
+        if (LoggingEnabled()) {
+            printf("NOTE: %s process received `Goodbye', closing down\n",
+                   (mSide == ChildSide) ? "child" : "parent");
         }
+        return true;
     }
     return false;
 }
@@ -672,7 +643,6 @@ MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
             return;
         }
 
-        MOZ_ASSERT(aMsg.transaction_id() == mCurrentTransaction);
         MOZ_ASSERT(AwaitingSyncReply());
         MOZ_ASSERT(!mRecvd);
 
@@ -797,50 +767,8 @@ MessageChannel::ProcessPendingRequests()
 }
 
 bool
-MessageChannel::WasTransactionCanceled(int transaction, int prio)
-{
-    if (transaction == mCurrentTransaction) {
-        return false;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    IPC_ASSERT(prio != IPC::Message::PRIORITY_NORMAL,
-               "Intentional crash: We canceled a CPOW that was racing with a sync message.");
-
-    return true;
-}
-
-bool
 MessageChannel::Send(Message* aMsg, Message* aReply)
 {
-    nsAutoPtr<Message> msg(aMsg);
-
     
     MaybeScriptBlocker scriptBlocker(this, true);
 
@@ -855,7 +783,7 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
     SyncStackFrame frame(this, false);
 #endif
 
-    CxxStackFrame f(*this, OUT_MESSAGE, msg);
+    CxxStackFrame f(*this, OUT_MESSAGE, aMsg);
 
     MonitorAutoLock lock(*mMonitor);
 
@@ -867,34 +795,18 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
         return false;
     }
 
-    if (DispatchingSyncMessagePriority() == IPC::Message::PRIORITY_NORMAL &&
-        msg->priority() > IPC::Message::PRIORITY_NORMAL)
-    {
-        
-        
-        return false;
-    }
-
-    if (mCurrentTransaction &&
-        (msg->priority() < DispatchingSyncMessagePriority() ||
-         mAwaitingSyncReplyPriority > msg->priority() ||
-         DispatchingSyncMessagePriority() == IPC::Message::PRIORITY_URGENT ||
-         DispatchingAsyncMessagePriority() == IPC::Message::PRIORITY_URGENT))
-    {
-        CancelCurrentTransactionInternal();
-        mLink->SendMessage(new CancelMessage());
-    }
-
-    IPC_ASSERT(msg->is_sync(), "can only Send() sync messages here");
-    IPC_ASSERT(msg->priority() >= DispatchingSyncMessagePriority(),
+    IPC_ASSERT(aMsg->is_sync(), "can only Send() sync messages here");
+    IPC_ASSERT(aMsg->priority() >= DispatchingSyncMessagePriority(),
                "can't send sync message of a lesser priority than what's being dispatched");
-    IPC_ASSERT(AwaitingSyncReplyPriority() <= msg->priority(),
+    IPC_ASSERT(mAwaitingSyncReplyPriority <= aMsg->priority(),
                "nested sync message sends must be of increasing priority");
 
     IPC_ASSERT(DispatchingSyncMessagePriority() != IPC::Message::PRIORITY_URGENT,
                "not allowed to send messages while dispatching urgent messages");
     IPC_ASSERT(DispatchingAsyncMessagePriority() != IPC::Message::PRIORITY_URGENT,
                "not allowed to send messages while dispatching urgent messages");
+
+    nsAutoPtr<Message> msg(aMsg);
 
     if (!Connected()) {
         ReportConnectionError("MessageChannel::SendAndWait", msg);
@@ -915,17 +827,11 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
     msg->set_transaction_id(transaction);
 
     ProcessPendingRequests();
-    if (WasTransactionCanceled(transaction, prio)) {
-        return false;
-    }
 
     mLink->SendMessage(msg.forget());
 
     while (true) {
         ProcessPendingRequests();
-        if (WasTransactionCanceled(transaction, prio)) {
-            return false;
-        }
 
         
         if (mRecvdErrors) {
@@ -943,10 +849,6 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
 
         if (!Connected()) {
             ReportConnectionError("MessageChannel::SendAndWait");
-            return false;
-        }
-
-        if (WasTransactionCanceled(transaction, prio)) {
             return false;
         }
 
@@ -1072,7 +974,12 @@ MessageChannel::Call(Message* aMsg, Message* aReply)
 
         
         if (!recvd.is_interrupt()) {
-            DispatchMessage(recvd);
+            {
+                AutoEnterTransaction transaction(this, recvd);
+                MonitorAutoUnlock unlock(*mMonitor);
+                CxxStackFrame frame(*this, IN_MESSAGE, &recvd);
+                DispatchMessage(recvd);
+            }
             if (!Connected()) {
                 ReportConnectionError("MessageChannel::DispatchMessage");
                 return false;
@@ -1200,7 +1107,14 @@ MessageChannel::ProcessPendingRequest(const Message &aUrgent)
     
     nsAutoPtr<Message> savedReply(mRecvd.forget());
 
-    DispatchMessage(aUrgent);
+    {
+        
+        
+        AutoEnterTransaction transaction(this, aUrgent);
+
+        MonitorAutoUnlock unlock(*mMonitor);
+        DispatchMessage(aUrgent);
+    }
     if (!Connected()) {
         ReportConnectionError("MessageChannel::ProcessPendingRequest");
         return false;
@@ -1257,10 +1171,16 @@ MessageChannel::OnMaybeDequeueOne()
         return false;
     }
 
-    
-    MOZ_ASSERT(mCurrentTransaction == 0);
-    DispatchMessage(recvd);
+    {
+        
+        MOZ_ASSERT(mCurrentTransaction == 0);
+        AutoEnterTransaction transaction(this, recvd);
 
+        MonitorAutoUnlock unlock(*mMonitor);
+
+        CxxStackFrame frame(*this, IN_MESSAGE, &recvd);
+        DispatchMessage(recvd);
+    }
     return true;
 }
 
@@ -1270,42 +1190,20 @@ MessageChannel::DispatchMessage(const Message &aMsg)
     Maybe<AutoNoJSAPI> nojsapi;
     if (ScriptSettingsInitialized() && NS_IsMainThread())
         nojsapi.emplace();
-
-    nsAutoPtr<Message> reply;
-
-    {
-        AutoEnterTransaction transaction(this, aMsg);
-
-        int id = aMsg.transaction_id();
-        MOZ_ASSERT_IF(aMsg.is_sync(), id == mCurrentTransaction);
-
-        {
-            MonitorAutoUnlock unlock(*mMonitor);
-            CxxStackFrame frame(*this, IN_MESSAGE, &aMsg);
-
-            if (aMsg.is_sync())
-                DispatchSyncMessage(aMsg, *getter_Transfers(reply));
-            else if (aMsg.is_interrupt())
-                DispatchInterruptMessage(aMsg, 0);
-            else
-                DispatchAsyncMessage(aMsg);
-        }
-
-        if (mCurrentTransaction != id) {
-            
-            reply = nullptr;
-        }
-    }
-
-    if (reply && ChannelConnected == mChannelState) {
-        mLink->SendMessage(reply.forget());
-    }
+    if (aMsg.is_sync())
+        DispatchSyncMessage(aMsg);
+    else if (aMsg.is_interrupt())
+        DispatchInterruptMessage(aMsg, 0);
+    else
+        DispatchAsyncMessage(aMsg);
 }
 
 void
-MessageChannel::DispatchSyncMessage(const Message& aMsg, Message*& aReply)
+MessageChannel::DispatchSyncMessage(const Message& aMsg)
 {
     AssertWorkerThread();
+
+    nsAutoPtr<Message> reply;
 
     int prio = aMsg.priority();
 
@@ -1316,13 +1214,13 @@ MessageChannel::DispatchSyncMessage(const Message& aMsg, Message*& aReply)
     MOZ_ASSERT_IF(prio > IPC::Message::PRIORITY_NORMAL, NS_IsMainThread());
     MaybeScriptBlocker scriptBlocker(this, prio > IPC::Message::PRIORITY_NORMAL);
 
-    IPC_ASSERT(prio >= DispatchingSyncMessagePriority(),
+    IPC_ASSERT(prio >= mDispatchingSyncMessagePriority,
                "priority inversion while dispatching sync message");
     IPC_ASSERT(prio >= mAwaitingSyncReplyPriority,
                "dispatching a message of lower priority while waiting for a response");
 
-    MessageChannel* dummy;
-    MessageChannel*& blockingVar = ShouldBlockScripts() ? gParentProcessBlocker : dummy;
+    bool dummy;
+    bool& blockingVar = ShouldBlockScripts() ? gParentIsBlocked : dummy;
 
     Result rv;
     if (mTimedOutMessageSeqno && mTimedOutMessagePriority >= prio) {
@@ -1341,21 +1239,26 @@ MessageChannel::DispatchSyncMessage(const Message& aMsg, Message*& aReply)
         
         rv = MsgNotAllowed;
     } else {
-        AutoSetValue<MessageChannel*> blocked(blockingVar, this);
+        AutoSetValue<bool> blocked(blockingVar, true);
         AutoSetValue<bool> sync(mDispatchingSyncMessage, true);
         AutoSetValue<int> prioSet(mDispatchingSyncMessagePriority, prio);
-        rv = mListener->OnMessageReceived(aMsg, aReply);
+        rv = mListener->OnMessageReceived(aMsg, *getter_Transfers(reply));
     }
 
     if (!MaybeHandleError(rv, aMsg, "DispatchSyncMessage")) {
-        aReply = new Message();
-        aReply->set_sync();
-        aReply->set_priority(aMsg.priority());
-        aReply->set_reply();
-        aReply->set_reply_error();
+        reply = new Message();
+        reply->set_sync();
+        reply->set_priority(aMsg.priority());
+        reply->set_reply();
+        reply->set_reply_error();
     }
-    aReply->set_seqno(aMsg.seqno());
-    aReply->set_transaction_id(aMsg.transaction_id());
+    reply->set_seqno(aMsg.seqno());
+    reply->set_transaction_id(aMsg.transaction_id());
+
+    MonitorAutoLock lock(*mMonitor);
+    if (ChannelConnected == mChannelState) {
+        mLink->SendMessage(reply.forget());
+    }
 }
 
 void
@@ -2012,38 +1915,10 @@ MessageChannel::GetTopmostMessageRoutingId() const
     return frame.GetRoutingId();
 }
 
-void
-MessageChannel::CancelCurrentTransactionInternal()
+bool
+ParentProcessIsBlocked()
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    MOZ_ASSERT(!mCurrentTransaction);
-    mCurrentTransaction = 0;
-}
-
-void
-MessageChannel::CancelCurrentTransaction()
-{
-    MonitorAutoLock lock(*mMonitor);
-    CancelCurrentTransactionInternal();
-    mLink->SendMessage(new CancelMessage());
-}
-
-void
-CancelCPOWs()
-{
-    if (gParentProcessBlocker) {
-        mozilla::Telemetry::Accumulate(mozilla::Telemetry::IPC_TRANSACTION_CANCEL, true);
-        gParentProcessBlocker->CancelCurrentTransaction();
-    }
+    return gParentIsBlocked;
 }
 
 } 

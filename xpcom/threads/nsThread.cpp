@@ -738,9 +738,8 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
 
 #if !defined(MOZILLA_XPCOMRT_API)
   
-  if (mIsMainThread == MAIN_THREAD) {
-    ipc::CancelCPOWs();
-  }
+  MOZ_RELEASE_ASSERT(mIsMainThread != MAIN_THREAD ||
+                     !ipc::ParentProcessIsBlocked());
 #endif 
 
   if (NS_WARN_IF(PR_GetCurrentThread() != mThread)) {
