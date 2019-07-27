@@ -5,6 +5,7 @@
 #include "ServiceWorkerManager.h"
 
 #include "nsIDocument.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsPIDOMWindow.h"
 
 #include "jsapi.h"
@@ -13,6 +14,8 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/ErrorEvent.h"
+#include "mozilla/dom/InstallEventBinding.h"
+#include "mozilla/dom/PromiseNativeHandler.h"
 
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
@@ -22,9 +25,11 @@
 
 #include "RuntimeService.h"
 #include "ServiceWorker.h"
+#include "ServiceWorkerEvents.h"
 #include "WorkerInlines.h"
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
+#include "WorkerScope.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -708,11 +713,243 @@ ServiceWorkerManager::HandleError(JSContext* aCx,
   }
 }
 
+class FinishInstallRunnable MOZ_FINAL : public nsRunnable
+{
+  nsMainThreadPtrHandle<ServiceWorkerRegistration> mRegistration;
+
+public:
+  explicit FinishInstallRunnable(
+    const nsMainThreadPtrHandle<ServiceWorkerRegistration>& aRegistration)
+    : mRegistration(aRegistration)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+  }
+
+  NS_IMETHOD
+  Run() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+    swm->FinishInstall(mRegistration.get());
+    return NS_OK;
+  }
+};
+
+class CancelServiceWorkerInstallationRunnable MOZ_FINAL : public nsRunnable
+{
+  nsMainThreadPtrHandle<ServiceWorkerRegistration> mRegistration;
+
+public:
+  explicit CancelServiceWorkerInstallationRunnable(
+    const nsMainThreadPtrHandle<ServiceWorkerRegistration>& aRegistration)
+    : mRegistration(aRegistration)
+  {
+  }
+
+  NS_IMETHOD
+  Run() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+    
+    
+    mRegistration->mInstallingWorker.Invalidate();
+    return NS_OK;
+  }
+};
+
+
+
+
+class FinishInstallHandler MOZ_FINAL : public PromiseNativeHandler
+{
+  nsMainThreadPtrHandle<ServiceWorkerRegistration> mRegistration;
+
+  virtual
+  ~FinishInstallHandler()
+  { }
+
+public:
+  explicit FinishInstallHandler(
+    const nsMainThreadPtrHandle<ServiceWorkerRegistration>& aRegistration)
+    : mRegistration(aRegistration)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+  }
+
+  void
+  ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) MOZ_OVERRIDE
+  {
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    MOZ_ASSERT(workerPrivate);
+    workerPrivate->AssertIsOnWorkerThread();
+
+    nsRefPtr<FinishInstallRunnable> r = new FinishInstallRunnable(mRegistration);
+    NS_DispatchToMainThread(r);
+  }
+
+  void
+  RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) MOZ_OVERRIDE
+  {
+    nsRefPtr<CancelServiceWorkerInstallationRunnable> r =
+      new CancelServiceWorkerInstallationRunnable(mRegistration);
+    NS_DispatchToMainThread(r);
+  }
+};
+
+
+
+
+
+
+
+class InstallEventRunnable MOZ_FINAL : public WorkerRunnable
+{
+  nsMainThreadPtrHandle<ServiceWorkerRegistration> mRegistration;
+  nsCString mScope;
+
+public:
+  InstallEventRunnable(
+    WorkerPrivate* aWorkerPrivate,
+    const nsMainThreadPtrHandle<ServiceWorkerRegistration>& aRegistration)
+      : WorkerRunnable(aWorkerPrivate, WorkerThreadModifyBusyCount),
+        mRegistration(aRegistration),
+        mScope(aRegistration.get()->mScope) 
+  {
+    AssertIsOnMainThread();
+    MOZ_ASSERT(aWorkerPrivate);
+  }
+
+  bool
+  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    return DispatchInstallEvent(aCx, aWorkerPrivate);
+  }
+
+private:
+  bool
+  DispatchInstallEvent(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+  {
+    aWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
+    InstallEventInit init;
+    init.mBubbles = false;
+    init.mCancelable = true;
+
+    
+
+    nsRefPtr<EventTarget> target = aWorkerPrivate->GlobalScope();
+    nsRefPtr<InstallEvent> event =
+      InstallEvent::Constructor(target, NS_LITERAL_STRING("install"), init);
+
+    event->SetTrusted(true);
+
+    nsRefPtr<Promise> waitUntilPromise;
+
+    nsresult rv = target->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
+
+    nsCOMPtr<nsIGlobalObject> sgo = aWorkerPrivate->GlobalScope();
+    if (NS_SUCCEEDED(rv)) {
+      waitUntilPromise = event->GetPromise();
+      if (!waitUntilPromise) {
+        ErrorResult rv;
+        waitUntilPromise =
+          Promise::Resolve(sgo,
+                           aCx, JS::UndefinedHandleValue, rv);
+      }
+    } else {
+      ErrorResult rv;
+      
+      waitUntilPromise = Promise::Reject(sgo, aCx,
+                                         JS::UndefinedHandleValue, rv);
+    }
+
+    nsRefPtr<FinishInstallHandler> handler =
+      new FinishInstallHandler(mRegistration);
+    waitUntilPromise->AppendNativeHandler(handler);
+    return true;
+  }
+};
+
 void
 ServiceWorkerManager::Install(ServiceWorkerRegistration* aRegistration,
                               ServiceWorkerInfo aServiceWorkerInfo)
 {
+  AssertIsOnMainThread();
+  aRegistration->mInstallingWorker = aServiceWorkerInfo;
+
+  nsMainThreadPtrHandle<ServiceWorkerRegistration> handle =
+    new nsMainThreadPtrHolder<ServiceWorkerRegistration>(aRegistration);
+
+  nsRefPtr<ServiceWorker> serviceWorker;
+  nsresult rv =
+    CreateServiceWorker(aServiceWorkerInfo.GetScriptSpec(),
+                        aRegistration->mScope,
+                        getter_AddRefs(serviceWorker));
+
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRegistration->mInstallingWorker.Invalidate();
+    return;
+  }
+
+  nsRefPtr<InstallEventRunnable> r =
+    new InstallEventRunnable(serviceWorker->GetWorkerPrivate(), handle);
+
+  AutoSafeJSContext cx;
+  r->Dispatch(cx);
+
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+}
+
+class ActivationRunnable : public nsRunnable
+{
+public:
+  explicit ActivationRunnable(ServiceWorkerRegistration* aRegistration)
+  { }
+};
+
+void
+ServiceWorkerManager::FinishInstall(ServiceWorkerRegistration* aRegistration)
+{
+  AssertIsOnMainThread();
+
+  if (aRegistration->mWaitingWorker.IsValid()) {
+    
+  }
+
+  aRegistration->mWaitingWorker = aRegistration->mInstallingWorker;
+  aRegistration->mInstallingWorker.Invalidate();
+
+  
+  
+  
+
+  
+
+  
+
+  nsRefPtr<ActivationRunnable> r =
+    new ActivationRunnable(aRegistration);
+
+  nsresult rv = NS_DispatchToMainThread(r);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    
+  }
 }
 
 NS_IMETHODIMP
@@ -745,6 +982,54 @@ ServiceWorkerManager::CreateServiceWorkerForWindow(nsPIDOMWindow* aWindow,
 
   serviceWorker.forget(aServiceWorker);
   return rv;
+}
+
+NS_IMETHODIMP
+ServiceWorkerManager::CreateServiceWorker(const nsACString& aScriptSpec,
+                                          const nsACString& aScope,
+                                          ServiceWorker** aServiceWorker)
+{
+  AssertIsOnMainThread();
+
+  WorkerPrivate::LoadInfo info;
+  nsresult rv = NS_NewURI(getter_AddRefs(info.mBaseURI), aScriptSpec, nullptr, nullptr);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  info.mResolvedScriptURI = info.mBaseURI;
+
+  rv = info.mBaseURI->GetHost(info.mDomain);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  
+  
+  
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  rv = ssm->GetNoAppCodebasePrincipal(info.mBaseURI, getter_AddRefs(info.mPrincipal));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  AutoSafeJSContext cx;
+
+  nsRefPtr<ServiceWorker> serviceWorker;
+  RuntimeService* rs = RuntimeService::GetService();
+  if (!rs) {
+    return NS_ERROR_FAILURE;
+  }
+
+  rv = rs->CreateServiceWorkerFromLoadInfo(cx, info, NS_ConvertUTF8toUTF16(aScriptSpec), aScope,
+                                           getter_AddRefs(serviceWorker));
+
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  serviceWorker.forget(aServiceWorker);
+  return NS_OK;
 }
 
 END_WORKERS_NAMESPACE
