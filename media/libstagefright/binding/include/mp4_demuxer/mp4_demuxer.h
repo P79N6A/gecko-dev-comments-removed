@@ -59,8 +59,8 @@ public:
 
   
   
-  MP4Sample* DemuxAudioSample();
-  MP4Sample* DemuxVideoSample();
+  already_AddRefed<mozilla::MediaRawData> DemuxAudioSample();
+  already_AddRefed<mozilla::MediaRawData> DemuxVideoSample();
 
   const CryptoFile& Crypto() { return mCrypto; }
   const AudioDecoderConfig& AudioConfig() { return mAudioConfig; }

@@ -17,12 +17,13 @@ namespace mp4_demuxer {
 class TrackConfig;
 class VideoDecoderConfig;
 class AudioDecoderConfig;
-class MP4Sample;
 }
 
 class nsIThreadPool;
 
 namespace mozilla {
+class MediaRawData;
+class DataBuffer;
 
 namespace layers {
 class ImageContainer;
@@ -220,9 +221,7 @@ public:
   virtual nsresult Init() = 0;
 
   
-  
-  
-  virtual nsresult Input(mp4_demuxer::MP4Sample* aSample) = 0;
+  virtual nsresult Input(MediaRawData* aSample) = 0;
 
   
   

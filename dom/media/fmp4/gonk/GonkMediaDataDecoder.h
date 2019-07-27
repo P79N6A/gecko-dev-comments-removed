@@ -6,7 +6,6 @@
 
 #if !defined(GonkMediaDataDecoder_h_)
 #define GonkMediaDataDecoder_h_
-#include "mp4_demuxer/mp4_demuxer.h"
 #include "mozilla/RefPtr.h"
 #include "MP4Reader.h"
 
@@ -15,6 +14,7 @@ class MediaCodecProxy;
 } 
 
 namespace mozilla {
+class MediaRawData;
 
 
 class GonkDecoderManager {
@@ -28,7 +28,7 @@ public:
   virtual android::sp<android::MediaCodecProxy> Init(MediaDataDecoderCallback* aCallback) = 0;
 
   
-  virtual nsresult Input(mp4_demuxer::MP4Sample* aSample);
+  virtual nsresult Input(MediaRawData* aSample);
 
   
   
@@ -62,15 +62,15 @@ public:
 protected:
   
   
-  virtual bool PerformFormatSpecificProcess(mp4_demuxer::MP4Sample* aSample) { return true; }
+  virtual bool PerformFormatSpecificProcess(MediaRawData* aSample) { return true; }
 
   
-  virtual android::status_t SendSampleToOMX(mp4_demuxer::MP4Sample* aSample) = 0;
+  virtual android::status_t SendSampleToOMX(MediaRawData* aSample) = 0;
 
   
   
   
-  nsTArray<nsAutoPtr<mp4_demuxer::MP4Sample>> mQueueSample;
+  nsTArray<nsRefPtr<MediaRawData>> mQueueSample;
 
   RefPtr<MediaTaskQueue> mTaskQueue;
 };
@@ -90,7 +90,7 @@ public:
 
   virtual nsresult Init() override;
 
-  virtual nsresult Input(mp4_demuxer::MP4Sample* aSample);
+  virtual nsresult Input(MediaRawData* aSample);
 
   virtual nsresult Flush() override;
 
@@ -112,7 +112,7 @@ private:
   
   
   
-  void ProcessDecode(mp4_demuxer::MP4Sample* aSample);
+  void ProcessDecode(MediaRawData* aSample);
 
   
   

@@ -22,7 +22,7 @@ public:
 
   virtual TemporaryRef<MFTDecoder> Init() override;
 
-  virtual HRESULT Input(mp4_demuxer::MP4Sample* aSample) override;
+  virtual HRESULT Input(MediaRawData* aSample) override;
 
   
   

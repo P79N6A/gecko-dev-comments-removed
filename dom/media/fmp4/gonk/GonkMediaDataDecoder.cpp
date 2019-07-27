@@ -8,6 +8,7 @@
 #include "VideoUtils.h"
 #include "nsTArray.h"
 #include "MediaCodecProxy.h"
+#include "MediaData.h"
 
 #include "prlog.h"
 #include <android/log.h>
@@ -30,7 +31,7 @@ GonkDecoderManager::GonkDecoderManager(MediaTaskQueue* aTaskQueue)
 }
 
 nsresult
-GonkDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
+GonkDecoderManager::Input(MediaRawData* aSample)
 {
   MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
 
@@ -51,16 +52,16 @@ GonkDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
 
   
   
-  nsAutoPtr<mp4_demuxer::MP4Sample> sample;
+  nsRefPtr<MediaRawData> sample;
   if (!aSample) {
-    sample = new mp4_demuxer::MP4Sample();
+    sample = new MediaRawData();
   }
 
   
   
   if (rv == OK) {
     MOZ_ASSERT(!mQueueSample.Length());
-    mp4_demuxer::MP4Sample* tmp;
+    MediaRawData* tmp;
     if (aSample) {
       tmp = aSample;
       if (!PerformFormatSpecificProcess(aSample)) {
@@ -151,18 +152,18 @@ GonkMediaDataDecoder::Shutdown()
 
 
 nsresult
-GonkMediaDataDecoder::Input(mp4_demuxer::MP4Sample* aSample)
+GonkMediaDataDecoder::Input(MediaRawData* aSample)
 {
   mTaskQueue->Dispatch(
-    NS_NewRunnableMethodWithArg<nsAutoPtr<mp4_demuxer::MP4Sample>>(
+    NS_NewRunnableMethodWithArg<nsRefPtr<MediaRawData>>(
       this,
       &GonkMediaDataDecoder::ProcessDecode,
-      nsAutoPtr<mp4_demuxer::MP4Sample>(aSample)));
+      nsRefPtr<MediaRawData>(aSample)));
   return NS_OK;
 }
 
 void
-GonkMediaDataDecoder::ProcessDecode(mp4_demuxer::MP4Sample* aSample)
+GonkMediaDataDecoder::ProcessDecode(MediaRawData* aSample)
 {
   nsresult rv = mManager->Input(aSample);
   if (rv != NS_OK) {
@@ -172,7 +173,7 @@ GonkMediaDataDecoder::ProcessDecode(mp4_demuxer::MP4Sample* aSample)
     return;
   }
   if (aSample) {
-    mLastStreamOffset = aSample->byte_offset;
+    mLastStreamOffset = aSample->mOffset;
   }
   ProcessOutput();
 }

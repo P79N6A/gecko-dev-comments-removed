@@ -13,10 +13,6 @@
 #include "MFTDecoder.h"
 #include "mozilla/RefPtr.h"
 
-namespace mp4_demuxer {
-class MP4Sample;
-}
-
 namespace mozilla {
 
 
@@ -33,7 +29,7 @@ public:
   
   
   
-  virtual HRESULT Input(mp4_demuxer::MP4Sample* aSample) = 0;
+  virtual HRESULT Input(MediaRawData* aSample) = 0;
 
   
   
@@ -65,7 +61,7 @@ public:
 
   virtual nsresult Init() override;
 
-  virtual nsresult Input(mp4_demuxer::MP4Sample* aSample);
+  virtual nsresult Input(MediaRawData* aSample);
 
   virtual nsresult Flush() override;
 
@@ -83,7 +79,7 @@ private:
 
   
   
-  void ProcessDecode(mp4_demuxer::MP4Sample* aSample);
+  void ProcessDecode(MediaRawData* aSample);
 
   
   

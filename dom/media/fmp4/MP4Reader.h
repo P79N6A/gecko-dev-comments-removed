@@ -23,7 +23,7 @@ namespace dom {
 class TimeRanges;
 }
 
-typedef std::deque<MediaSample*> MediaSampleQueue;
+typedef std::deque<nsRefPtr<MediaRawData>> MediaSampleQueue;
 
 class MP4Stream;
 
@@ -121,8 +121,8 @@ private:
 
   
   
-  MediaSample* PopSample(mp4_demuxer::TrackType aTrack);
-  MediaSample* PopSampleLocked(mp4_demuxer::TrackType aTrack);
+  already_AddRefed<MediaRawData> PopSample(mp4_demuxer::TrackType aTrack);
+  already_AddRefed<MediaRawData> PopSampleLocked(mp4_demuxer::TrackType aTrack);
 
   bool SkipVideoDemuxToNextKeyFrame(int64_t aTimeThreshold, uint32_t& parsed);
 
@@ -260,7 +260,7 @@ private:
 
   
   
-  nsAutoPtr<MediaSample> mQueuedVideoSample;
+  nsRefPtr<MediaRawData> mQueuedVideoSample;
 
   
   
@@ -275,6 +275,10 @@ private:
   DecoderData& GetDecoderData(mp4_demuxer::TrackType aTrack);
 
   layers::LayersBackend mLayersBackendType;
+
+  
+  nsRefPtr<MediaRawData> DemuxVideoSample();
+  nsRefPtr<MediaRawData> DemuxAudioSample();
 
   
   bool mDemuxerInitialized;

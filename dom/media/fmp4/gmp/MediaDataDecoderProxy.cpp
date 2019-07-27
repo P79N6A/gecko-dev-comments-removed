@@ -5,6 +5,7 @@
 
 
 #include "MediaDataDecoderProxy.h"
+#include "MediaData.h"
 
 namespace mozilla {
 
@@ -33,7 +34,7 @@ MediaDataDecoderProxy::Init()
 }
 
 nsresult
-MediaDataDecoderProxy::Input(mp4_demuxer::MP4Sample* aSample)
+MediaDataDecoderProxy::Input(MediaRawData* aSample)
 {
   MOZ_ASSERT(!IsOnProxyThread());
   MOZ_ASSERT(!mIsShutdown);
