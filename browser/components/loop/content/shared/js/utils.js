@@ -84,42 +84,35 @@ loop.shared.utils = (function(mozL10n) {
     return !!localStorage.getItem(prefName);
   }
 
+  var IOS_REGEX = /^(iPad|iPhone|iPod)/;
+
+  function isFirefox(platform) {
+    return platform.indexOf("Firefox") !== -1;
+  }
+
+  function isFirefoxOS(platform) {
+    
+    
+    
+    
+    
+    return !!window.MozActivity && /mobi/i.test(platform);
+  }
+
+  function isIOS(platform) {
+    return IOS_REGEX.test(platform);
+  }
+
   
 
 
-  function Helper() {
-    this._iOSRegex = /^(iPad|iPhone|iPod)/;
+
+  function locationData() {
+    return {
+      hash: window.location.hash,
+      pathname: window.location.pathname
+    };
   }
-
-  Helper.prototype = {
-    isFirefox: function(platform) {
-      return platform.indexOf("Firefox") !== -1;
-    },
-
-    isFirefoxOS: function(platform) {
-      
-      
-      
-      
-      
-      return !!window.MozActivity && /mobi/i.test(platform);
-    },
-
-    isIOS: function(platform) {
-      return this._iOSRegex.test(platform);
-    },
-
-    
-
-
-
-    locationData: function() {
-      return {
-        hash: window.location.hash,
-        pathname: window.location.pathname
-      };
-    }
-  };
 
   
 
@@ -153,9 +146,12 @@ loop.shared.utils = (function(mozL10n) {
     WEBSOCKET_REASONS: WEBSOCKET_REASONS,
     STREAM_PROPERTIES: STREAM_PROPERTIES,
     SCREEN_SHARE_STATES: SCREEN_SHARE_STATES,
-    Helper: Helper,
     composeCallUrlEmail: composeCallUrlEmail,
     formatDate: formatDate,
-    getBoolPreference: getBoolPreference
+    getBoolPreference: getBoolPreference,
+    isFirefox: isFirefox,
+    isFirefoxOS: isFirefoxOS,
+    isIOS: isIOS,
+    locationData: locationData
   };
 })(document.mozL10n || navigator.mozL10n);
