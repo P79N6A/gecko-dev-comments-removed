@@ -977,11 +977,6 @@ private:
   
   uint32_t mJSRunToCompletionDepth;
 
-  nsTArray<mozilla::UniquePtr<TimelineMarker>> mProfileTimelineMarkers;
-
-  
-  void ClearProfileTimelineMarkers();
-
   
   
   nsresult DoFindItemWithName(const char16_t* aName,

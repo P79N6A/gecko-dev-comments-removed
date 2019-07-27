@@ -2940,7 +2940,6 @@ nsDocShell::SetRecordProfileTimelineMarkers(bool aValue)
     } else {
       TimelineConsumers::RemoveConsumer(this, mObserved);
       UnuseEntryScriptProfiling();
-      ClearProfileTimelineMarkers();
     }
   }
 
@@ -2971,13 +2970,15 @@ nsDocShell::PopProfileTimelineMarkers(
   SequenceRooter<mozilla::dom::ProfileTimelineMarker> rooter(
     aCx, &profileTimelineMarkers);
 
+  nsTArray<UniquePtr<TimelineMarker>>& markersStore = mObserved.get()->mTimelineMarkers;
+
   
   
   
   nsTArray<UniquePtr<TimelineMarker>> keptMarkers;
 
-  for (uint32_t i = 0; i < mProfileTimelineMarkers.Length(); ++i) {
-    UniquePtr<TimelineMarker>& startPayload = mProfileTimelineMarkers[i];
+  for (uint32_t i = 0; i < markersStore.Length(); ++i) {
+    UniquePtr<TimelineMarker>& startPayload = markersStore[i];
     const char* startMarkerName = startPayload->GetName();
 
     bool hasSeenPaintedLayer = false;
@@ -3013,8 +3014,8 @@ nsDocShell::PopProfileTimelineMarkers(
       
       
       
-      for (uint32_t j = i + 1; j < mProfileTimelineMarkers.Length(); ++j) {
-        UniquePtr<TimelineMarker>& endPayload = mProfileTimelineMarkers[j];
+      for (uint32_t j = i + 1; j < markersStore.Length(); ++j) {
+        UniquePtr<TimelineMarker>& endPayload = markersStore[j];
         const char* endMarkerName = endPayload->GetName();
 
         
@@ -3060,14 +3061,14 @@ nsDocShell::PopProfileTimelineMarkers(
 
       
       if (!hasSeenEnd) {
-        keptMarkers.AppendElement(Move(mProfileTimelineMarkers[i]));
-        mProfileTimelineMarkers.RemoveElementAt(i);
+        keptMarkers.AppendElement(Move(markersStore[i]));
+        markersStore.RemoveElementAt(i);
         --i;
       }
     }
   }
 
-  mProfileTimelineMarkers.SwapElements(keptMarkers);
+  markersStore.SwapElements(keptMarkers);
 
   if (!ToJSValue(aCx, profileTimelineMarkers, aProfileTimelineMarkers)) {
     JS_ClearPendingException(aCx);
@@ -3091,8 +3092,7 @@ nsDocShell::AddProfileTimelineMarker(const char* aName,
                                      TracingMetadata aMetaData)
 {
   if (IsObserved()) {
-    TimelineMarker* marker = new TimelineMarker(this, aName, aMetaData);
-    mProfileTimelineMarkers.AppendElement(marker);
+    mObserved->AddMarker(aName, aMetaData);
   }
 }
 
@@ -3100,7 +3100,7 @@ void
 nsDocShell::AddProfileTimelineMarker(UniquePtr<TimelineMarker>&& aMarker)
 {
   if (IsObserved()) {
-    mProfileTimelineMarkers.AppendElement(Move(aMarker));
+    mObserved->AddMarker(Move(aMarker));
   }
 }
 
@@ -3131,12 +3131,6 @@ nsDocShell::GetWindowDraggingAllowed(bool* aValue)
     *aValue = mWindowDraggingAllowed;
   }
   return NS_OK;
-}
-
-void
-nsDocShell::ClearProfileTimelineMarkers()
-{
-  mProfileTimelineMarkers.Clear();
 }
 
 nsIDOMStorageManager*
