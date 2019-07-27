@@ -229,7 +229,7 @@ nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
   
   nsresult result = NS_OK;
   PropertyListMapEntry *entry = static_cast<PropertyListMapEntry*>
-    (PL_DHashTableAdd(&propertyList->mObjectValueMap, aObject, fallible));
+    (PL_DHashTableAdd(&propertyList->mObjectValueMap, aObject, mozilla::fallible));
   if (!entry)
     return NS_ERROR_OUT_OF_MEMORY;
   
