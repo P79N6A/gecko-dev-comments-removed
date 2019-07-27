@@ -12,6 +12,7 @@
 #include "mozilla/UniquePtr.h"
 #include "jsprf.h"
 #include "gc/Marking.h"
+#include "gc/Statistics.h"
 
 #include "jit/BaselineJIT.h"
 #include "jit/JitSpewer.h"
@@ -475,8 +476,12 @@ JitcodeGlobalTable::lookupForSampler(void* ptr, JitcodeGlobalEntry* result, JSRu
     
     
     
-    if (rt->isHeapBusy() && rt->gc.state() == gc::SWEEP)
+    if (rt->isHeapBusy() &&
+        rt->gc.stats.currentPhase() >= gcstats::PHASE_FINALIZE_START &&
+        rt->gc.stats.currentPhase() <= gcstats::PHASE_FINALIZE_END)
+    {
         MOZ_ASSERT(entry->isMarkedFromAnyThread(rt));
+    }
 #endif
 
     *result = *entry;
