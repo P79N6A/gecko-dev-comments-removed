@@ -4,11 +4,9 @@
 
 
 
-
-
-
-
-load(_HTTPD_JS_PATH);
+var _HTTPD_JS_PATH = __LOCATION__.parent;
+_HTTPD_JS_PATH.append("httpd.js");
+load(_HTTPD_JS_PATH.path);
 
 
 DEBUG = true;
