@@ -27,8 +27,8 @@ public:
   
   
   
-  SnappyCompressOutputStream(nsIOutputStream* aBaseStream,
-                             size_t aBlockSize = kMaxBlockSize);
+  explicit SnappyCompressOutputStream(nsIOutputStream* aBaseStream,
+                                      size_t aBlockSize = kMaxBlockSize);
 
   
   

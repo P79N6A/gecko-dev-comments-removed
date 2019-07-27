@@ -23,7 +23,7 @@ public:
   
   
   
-  SnappyUncompressInputStream(nsIInputStream* aBaseStream);
+  explicit SnappyUncompressInputStream(nsIInputStream* aBaseStream);
 
 private:
   virtual ~SnappyUncompressInputStream();

@@ -202,7 +202,7 @@ private:
 
 class FdReader {
 public:
-  FdReader(int aFd)
+  explicit FdReader(int aFd)
     : mFd(aFd)
     , mData(&mRawBuf, 0)
     , mBuf(&mRawBuf, sizeof(mRawBuf))
