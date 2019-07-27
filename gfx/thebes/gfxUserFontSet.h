@@ -467,6 +467,10 @@ public:
         mLocalRulesUsed = true;
     }
 
+#ifdef PR_LOGGING
+    static PRLogModuleInfo* GetUserFontsLog();
+#endif
+
 protected:
     
     virtual ~gfxUserFontSet();
@@ -512,8 +516,6 @@ protected:
 
     
     bool mLocalRulesUsed;
-
-    static PRLogModuleInfo* GetUserFontsLog();
 };
 
 
