@@ -92,7 +92,7 @@ class WeakMapBase {
     virtual void finish() = 0;
 
     
-    RelocatablePtrObject memberOf;
+    HeapPtrObject memberOf;
 
     
     JSCompartment* compartment;
