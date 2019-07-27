@@ -23,8 +23,8 @@ class AccessCheck {
     static bool isChrome(JSCompartment *compartment);
     static bool isChrome(JSObject *obj);
     static nsIPrincipal *getPrincipal(JSCompartment *compartment);
-    static bool isCrossOriginAccessPermitted(JSContext *cx, JSObject *obj, jsid id,
-                                             js::Wrapper::Action act);
+    static bool isCrossOriginAccessPermitted(JSContext *cx, JS::HandleObject obj,
+                                             JS::HandleId id, js::Wrapper::Action act);
 };
 
 struct Policy {
@@ -59,7 +59,7 @@ struct OpaqueWithCall : public Policy {
 
 
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
+    static bool check(JSContext *cx, JS::HandleObject wrapper, JS::HandleId id, js::Wrapper::Action act) {
         return AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act);
     }
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
@@ -76,7 +76,7 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
 
 
 struct ExposedPropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act);
+    static bool check(JSContext *cx, JS::HandleObject wrapper, JS::HandleId id, js::Wrapper::Action act);
 
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
         
