@@ -20,7 +20,7 @@ function test(str, arg, result)
 
     
     var code = "(function (x) { " + str + " })";
-    var c = clone(otherGlobal.evaluate(code, {compileAndGo: false}));
+    var c = clone(otherGlobal.evaluate(code));
     assertEq(c.toSource(), eval(code).toSource());
 
     var got = fun(arg);
