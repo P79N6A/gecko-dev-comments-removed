@@ -395,7 +395,7 @@ public:
   
   
 
-  void UpdateDecodedStream();
+  void UpdateStreamBlockingForPlayState();
 
   
 
