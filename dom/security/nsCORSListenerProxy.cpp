@@ -698,7 +698,8 @@ nsCORSListenerProxy::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
                                             nsIAsyncVerifyRedirectCallback *cb)
 {
   nsresult rv;
-  if (!NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags)) {
+  if (!NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags) &&
+      !NS_IsHSTSUpgradeRedirect(aOldChannel, aNewChannel, aFlags)) {
     rv = CheckRequestApproved(aOldChannel);
     if (NS_FAILED(rv)) {
       if (sPreflightCache) {
@@ -1110,7 +1111,8 @@ nsCORSPreflightListener::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
                                                 nsIAsyncVerifyRedirectCallback *callback)
 {
   
-  if (!NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags))
+  if (!NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags) &&
+      !NS_IsHSTSUpgradeRedirect(aOldChannel, aNewChannel, aFlags))
     return NS_ERROR_DOM_BAD_URI;
 
   callback->OnRedirectVerifyCallback(NS_OK);
