@@ -252,7 +252,8 @@ public:
       image->UnlockImage();
     }
 
-    if (DiscardingEnabled() && dstFrame) {
+    if (dstFrame) {
+      dstFrame->SetOptimizable();
       dstFrame->SetDiscardable();
     }
 
@@ -1428,15 +1429,11 @@ RasterImage::DecodingComplete()
   
   
   if ((GetNumFrames() == 1) && !mMultipart) {
-    
-    
-    
     nsRefPtr<imgFrame> firstFrame = mFrameBlender.RawGetFrame(0);
+    firstFrame->SetOptimizable();
     if (DiscardingEnabled() && CanForciblyDiscard()) {
       firstFrame->SetDiscardable();
     }
-    rv = firstFrame->Optimize();
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -2604,6 +2601,11 @@ RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
   
   
   if (mLockCount != 1) {
+    return;
+  }
+
+  
+  if (!aFrame->ImageComplete()) {
     return;
   }
 
