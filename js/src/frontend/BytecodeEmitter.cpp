@@ -3346,30 +3346,14 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
                                  VarEmitOption emitOption)
 {
     MOZ_ASSERT(pattern->isKind(PNK_OBJECT));
+    MOZ_ASSERT(pattern->isArity(PN_LIST));
 
     bool doElemOp;
-    bool needToPopIterator = false;
 
 #ifdef DEBUG
     int stackDepth = bce->stackDepth;
-    JS_ASSERT(stackDepth != 0);
-    JS_ASSERT(pattern->isArity(PN_LIST));
-    JS_ASSERT(pattern->isKind(PNK_ARRAY) || pattern->isKind(PNK_OBJECT));
+    MOZ_ASSERT(bce->stackDepth != 0);
 #endif
-
-    
-
-
-
-    if (pattern->isKind(PNK_ARRAY)) {
-        if (emitOption == InitializeVars) {
-            if (Emit1(cx, bce, JSOP_DUP) < 0)                      
-                return false;
-        }
-        if (!EmitIterator(cx, bce))                                
-            return false;
-        needToPopIterator = true;
-    }
 
     for (ParseNode *member = pattern->pn_head; member; member = member->pn_next) {
         
@@ -3379,7 +3363,7 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
 
 
         ParseNode *subpattern;
-        if (pattern->isKind(PNK_OBJECT)) {
+        {
             doElemOp = true;
             JS_ASSERT(member->isKind(PNK_COLON) || member->isKind(PNK_SHORTHAND));
 
@@ -3424,82 +3408,14 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
             }
 
             subpattern = member->pn_right;
-        } else {
-            JS_ASSERT(pattern->isKind(PNK_ARRAY));
-
-            if (member->isKind(PNK_SPREAD)) {
-                
-                ptrdiff_t off = EmitN(cx, bce, JSOP_NEWARRAY, 3);          
-                if (off < 0)
-                    return false;
-                CheckTypeSet(cx, bce, JSOP_NEWARRAY);
-                jsbytecode *pc = bce->code(off);
-                SET_UINT24(pc, 0);
-
-                if (!EmitNumberOp(cx, 0, bce))                             
-                    return false;
-                if (!EmitSpread(cx, bce))                                  
-                    return false;
-                if (Emit1(cx, bce, JSOP_POP) < 0)                          
-                    return false;
-                if (Emit1(cx, bce, JSOP_ENDINIT) < 0)
-                    return false;
-                needToPopIterator = false;
-            } else {
-                if (Emit1(cx, bce, JSOP_DUP) < 0)                          
-                    return false;
-                if (!EmitIteratorNext(cx, bce, pattern))                   
-                    return false;
-                if (Emit1(cx, bce, JSOP_DUP) < 0)                          
-                    return false;
-                if (!EmitAtomOp(cx, cx->names().done, JSOP_GETPROP, bce))  
-                    return false;
-
-                
-                
-                
-                ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_COND);
-                if (noteIndex < 0)
-                    return false;
-                ptrdiff_t beq = EmitJump(cx, bce, JSOP_IFEQ, 0);
-                if (beq < 0)
-                    return false;
-
-                if (Emit1(cx, bce, JSOP_POP) < 0)                          
-                    return false;
-                if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                    
-                    return false;
-
-                
-                ptrdiff_t jmp = EmitJump(cx, bce, JSOP_GOTO, 0);
-                if (jmp < 0)
-                    return false;
-                SetJumpOffsetAt(bce, beq);
-
-                if (!EmitAtomOp(cx, cx->names().value, JSOP_GETPROP, bce)) 
-                    return false;
-
-                SetJumpOffsetAt(bce, jmp);
-                if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq))
-                    return false;
-            }
-
-            subpattern = member;
         }
 
-        
-        if (subpattern->isKind(PNK_ELISION)) {
-            JS_ASSERT(pattern->isKind(PNK_ARRAY));
-            JS_ASSERT(member == subpattern);
-            if (Emit1(cx, bce, JSOP_POP) < 0)
-                return false;
-        } else {
+        {
             int32_t depthBefore = bce->stackDepth;
             if (!EmitDestructuringLHS(cx, bce, subpattern, emitOption))
                 return false;
 
-            if (emitOption == PushInitialValues &&
-                (pattern->isKind(PNK_OBJECT) || needToPopIterator)) {
+            if (emitOption == PushInitialValues) {
                 
 
 
@@ -3524,15 +3440,9 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
         }
     }
 
-    if (needToPopIterator && Emit1(cx, bce, JSOP_POP) < 0)
-        return false;
-
-    if (emitOption == PushInitialValues && pattern->isKind(PNK_OBJECT)) {
+    if (emitOption == PushInitialValues) {
         
-
-
-
-
+        
         if (Emit1(cx, bce, JSOP_POP) < 0)
             return false;
     }
