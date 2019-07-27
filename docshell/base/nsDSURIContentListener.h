@@ -34,6 +34,8 @@ protected:
 
     void DropDocShellreference() {
         mDocShell = nullptr;
+        mExistingJPEGRequest = nullptr;
+        mExistingJPEGStreamListener = nullptr;
     }
 
     
@@ -53,6 +55,9 @@ protected:
                             XFOHeader aHeader);
 protected:
     nsDocShell*                      mDocShell;
+    
+    nsCOMPtr<nsIStreamListener>      mExistingJPEGStreamListener;
+    nsCOMPtr<nsIChannel>             mExistingJPEGRequest;
 
     
     

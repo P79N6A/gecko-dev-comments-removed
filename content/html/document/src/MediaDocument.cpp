@@ -21,6 +21,7 @@
 #include "mozilla/Services.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIPrincipal.h"
+#include "nsIMultiPartChannel.h"
 
 namespace mozilla {
 namespace dom {
@@ -71,8 +72,15 @@ MediaDocumentStreamListener::OnStopRequest(nsIRequest* request,
   }
 
   
-  mDocument = nullptr;
+  bool lastPart = true;
+  nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(request));
+  if (mpchan) {
+    mpchan->GetIsLastPart(&lastPart);
+  }
 
+  if (lastPart) {
+    mDocument = nullptr;
+  }
   return rv;
 }
 
