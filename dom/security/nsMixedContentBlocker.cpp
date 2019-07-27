@@ -565,7 +565,14 @@ nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   
   
   bool parentIsHttps;
-  nsresult rv = requestingLocation->SchemeIs("https", &parentIsHttps);
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(requestingLocation);
+  if (!innerURI) {
+    NS_ERROR("Can't get innerURI from requestingLocation");
+    *aDecision = REJECT_REQUEST;
+    return NS_OK;
+  }
+
+  nsresult rv = innerURI->SchemeIs("https", &parentIsHttps);
   if (NS_FAILED(rv)) {
     NS_ERROR("requestingLocation->SchemeIs failed");
     *aDecision = REJECT_REQUEST;
