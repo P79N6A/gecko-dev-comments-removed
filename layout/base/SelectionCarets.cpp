@@ -1251,8 +1251,12 @@ SelectionCarets::Reflow(DOMHighResTimeStamp aStart, DOMHighResTimeStamp aEnd)
     SELECTIONCARETS_LOG("Update selection carets after reflow!");
     UpdateSelectionCarets();
 
-    DispatchSelectionStateChangedEvent(GetSelection(),
-                                       SelectionState::Updateposition);
+    
+    
+    if (mDragMode == NONE) {
+      DispatchSelectionStateChangedEvent(GetSelection(),
+                                         SelectionState::Updateposition);
+    }
   }
   return NS_OK;
 }
