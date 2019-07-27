@@ -12,7 +12,7 @@
 
 
 #define PP_DISALLOW_COPY_AND_ASSIGN(TypeName) \
-  TypeName(const TypeName&);               \
-  void operator=(const TypeName&)
+  TypeName(const TypeName &);               \
+  void operator=(const TypeName &)
 
 #endif 

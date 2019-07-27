@@ -22,7 +22,7 @@ struct Token;
 class Preprocessor
 {
   public:
-    Preprocessor(Diagnostics* diagnostics, DirectiveHandler* directiveHandler);
+    Preprocessor(Diagnostics *diagnostics, DirectiveHandler *directiveHandler);
     ~Preprocessor();
 
     
@@ -34,16 +34,19 @@ class Preprocessor
     
     
     
-    bool init(size_t count, const char* const string[], const int length[]);
+    bool init(size_t count, const char * const string[], const int length[]);
     
-    void predefineMacro(const char* name, int value);
+    void predefineMacro(const char *name, int value);
 
-    void lex(Token* token);
+    void lex(Token *token);
+
+    
+    void setMaxTokenSize(size_t maxTokenSize);
 
   private:
     PP_DISALLOW_COPY_AND_ASSIGN(Preprocessor);
 
-    PreprocessorImpl* mImpl;
+    PreprocessorImpl *mImpl;
 };
 
 }  

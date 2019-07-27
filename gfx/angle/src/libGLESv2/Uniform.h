@@ -10,38 +10,69 @@
 #include <string>
 #include <vector>
 
-#define GL_APICALL
+#include <GLES3/gl3.h>
 #include <GLES2/gl2.h>
 
 #include "common/debug.h"
+#include "angletypes.h"
+#include "common/shadervars.h"
 
 namespace gl
 {
 
 
-struct Uniform
+struct LinkedUniform
 {
-    Uniform(GLenum type, GLenum precision, const std::string &name, unsigned int arraySize);
+    LinkedUniform(GLenum type, GLenum precision, const std::string &name, unsigned int arraySize, const int blockIndex, const BlockMemberInfo &blockInfo);
 
-    ~Uniform();
+    ~LinkedUniform();
 
     bool isArray() const;
     unsigned int elementCount() const;
+    bool isReferencedByVertexShader() const;
+    bool isReferencedByFragmentShader() const;
+    bool isInDefaultBlock() const;
+    size_t dataSize() const;
+    bool isSampler() const;
 
     const GLenum type;
     const GLenum precision;
     const std::string name;
     const unsigned int arraySize;
+    const int blockIndex;
+    const BlockMemberInfo blockInfo;
 
     unsigned char *data;
     bool dirty;
 
-    int psRegisterIndex;
-    int vsRegisterIndex;
+    unsigned int psRegisterIndex;
+    unsigned int vsRegisterIndex;
     unsigned int registerCount;
+
+    
+    
+    unsigned int registerElement;
 };
 
-typedef std::vector<Uniform*> UniformArray;
+
+struct UniformBlock
+{
+    
+    UniformBlock(const std::string &name, unsigned int elementIndex, unsigned int dataSize);
+
+    bool isArrayElement() const;
+    bool isReferencedByVertexShader() const;
+    bool isReferencedByFragmentShader() const;
+
+    const std::string name;
+    const unsigned int elementIndex;
+    const unsigned int dataSize;
+
+    std::vector<unsigned int> memberUniformIndexes;
+
+    unsigned int psRegisterIndex;
+    unsigned int vsRegisterIndex;
+};
 
 }
 
