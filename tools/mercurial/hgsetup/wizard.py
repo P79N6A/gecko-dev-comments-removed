@@ -178,13 +178,21 @@ class MercurialSetupWizard(object):
             if e.errno != errno.EEXIST:
                 raise
 
+        
+        
+        
+        
+        
         try:
-            hg = which.which('hg')
-        except which.WhichError as e:
-            print(e)
-            print('Try running |mach bootstrap| to ensure your environment is '
-                'up to date.')
-            return 1
+            hg = which.which('hg.exe')
+        except which.WhichError:
+            try:
+                hg = which.which('hg')
+            except which.WhichError as e:
+                print(e)
+                print('Try running |mach bootstrap| to ensure your environment is '
+                      'up to date.')
+                return 1
 
         try:
             c = MercurialConfig(config_paths)
