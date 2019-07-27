@@ -1163,7 +1163,13 @@ public abstract class GeckoApp
             }
         }
 
-        BrowserDB.initialize(getProfile().getName());
+        
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                getProfile();
+            }
+        });
 
         
         try {
@@ -1425,6 +1431,8 @@ public abstract class GeckoApp
 
         initializeChrome();
 
+        BrowserDB.initialize(getProfile().getName());
+
         
         if (!mIsRestoringActivity) {
             String restoreMessage = null;
@@ -1647,7 +1655,7 @@ public abstract class GeckoApp
         }
     }
 
-    public GeckoProfile getProfile() {
+    public synchronized GeckoProfile getProfile() {
         
         if (mProfile == null) {
             mProfile = GeckoProfile.get(this);
