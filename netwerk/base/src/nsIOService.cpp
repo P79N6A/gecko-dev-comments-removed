@@ -28,7 +28,6 @@
 #include "nsIConsoleService.h"
 #include "nsIUploadChannel2.h"
 #include "nsXULAppAPI.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIProtocolProxyCallback.h"
 #include "nsICancelable.h"
 #include "nsINetworkLinkService.h"
@@ -38,19 +37,12 @@
 #include "nsPIDNSService.h"
 #include "nsIProtocolProxyService2.h"
 #include "MainThreadUtils.h"
-#include "nsThreadUtils.h"
-#include "mozilla/net/NeckoCommon.h"
-
-#ifdef MOZ_WIDGET_GONK
-#include "nsINetworkManager.h"
-#endif
 
 #if defined(XP_WIN)
 #include "nsNativeConnectionHelper.h"
 #endif
 
 using namespace mozilla;
-using mozilla::net::IsNeckoChild;
 
 #define PORT_PREF_PREFIX           "network.security.ports."
 #define PORT_PREF(x)               PORT_PREF_PREFIX x
@@ -139,14 +131,10 @@ int16_t gBadPortList[] = {
 static const char kProfileChangeNetTeardownTopic[] = "profile-change-net-teardown";
 static const char kProfileChangeNetRestoreTopic[] = "profile-change-net-restore";
 static const char kProfileDoChange[] = "profile-do-change";
-static const char kNetworkActiveChanged[] = "network-active-changed";
 
 
 uint32_t   nsIOService::gDefaultSegmentSize = 4096;
 uint32_t   nsIOService::gDefaultSegmentCount = 24;
-
-
-NS_IMPL_ISUPPORTS(nsAppOfflineInfo, nsIAppOfflineInfo)
 
 
 
@@ -160,7 +148,6 @@ nsIOService::nsIOService()
     , mNetworkLinkServiceInitialized(false)
     , mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY)
     , mAutoDialEnabled(false)
-    , mPreviousWifiState(-1)
 {
 }
 
@@ -212,7 +199,6 @@ nsIOService::Init()
         observerService->AddObserver(this, kProfileDoChange, true);
         observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, true);
         observerService->AddObserver(this, NS_NETWORK_LINK_TOPIC, true);
-        observerService->AddObserver(this, kNetworkActiveChanged, true);
     }
     else
         NS_WARNING("failed to get observer service");
@@ -916,62 +902,6 @@ nsIOService::GetPrefBranch(nsIPrefBranch **result)
 }
 
 
-
-static bool
-IsWifiActive()
-{
-    
-    if (IsNeckoChild()) {
-        return false;
-    }
-#ifdef MOZ_WIDGET_GONK
-    
-    nsCOMPtr<nsINetworkManager> networkManager =
-        do_GetService("@mozilla.org/network/manager;1");
-    if (!networkManager) {
-        return false;
-    }
-    nsCOMPtr<nsINetworkInterface> active;
-    networkManager->GetActive(getter_AddRefs(active));
-    if (!active) {
-        return false;
-    }
-    int32_t type;
-    if (NS_FAILED(active->GetType(&type))) {
-        return false;
-    }
-    switch (type) {
-    case nsINetworkInterface::NETWORK_TYPE_WIFI:
-    case nsINetworkInterface::NETWORK_TYPE_WIFI_P2P:
-        return true;
-    default:
-        return false;
-    }
-#else
-    
-    
-    return true;
-#endif
-}
-
-struct EnumeratorParams {
-    nsIOService *service;
-    int32_t     status;
-};
-
-PLDHashOperator
-nsIOService::EnumerateWifiAppsChangingState(const unsigned int &aKey,
-                                            int32_t aValue,
-                                            void *aUserArg)
-{
-    EnumeratorParams *params = reinterpret_cast<EnumeratorParams*>(aUserArg);
-    if (aValue == nsIAppOfflineInfo::WIFI_ONLY) {
-        params->service->NotifyAppOfflineStatus(aKey, params->status);
-    }
-    return PL_DHASH_NEXT;
-}
-
-
 NS_IMETHODIMP
 nsIOService::Observe(nsISupports *subject,
                      const char *topic,
@@ -1026,37 +956,7 @@ nsIOService::Observe(nsISupports *subject,
             TrackNetworkLinkStatusForOffline();
         }
     }
-    else if (!strcmp(topic, kNetworkActiveChanged)) {
-#ifdef MOZ_WIDGET_GONK
-        if (IsNeckoChild()) {
-          return NS_OK;
-        }
-        nsCOMPtr<nsINetworkInterface> interface = do_QueryInterface(subject);
-        if (!interface) {
-            return NS_ERROR_FAILURE;
-        }
-        int32_t state;
-        if (NS_FAILED(interface->GetState(&state))) {
-            return NS_ERROR_FAILURE;
-        }
-
-        bool wifiActive = IsWifiActive();
-        int32_t newWifiState = wifiActive ?
-            nsINetworkInterface::NETWORK_TYPE_WIFI :
-            nsINetworkInterface::NETWORK_TYPE_MOBILE;
-        if (mPreviousWifiState != newWifiState) {
-            
-            int32_t status = wifiActive ?
-                nsIAppOfflineInfo::ONLINE : nsIAppOfflineInfo::OFFLINE;
-
-            EnumeratorParams params = {this, status};
-            mAppsOfflineStatus.EnumerateRead(EnumerateWifiAppsChangingState, &params);
-        }
-
-        mPreviousWifiState = newWifiState;
-#endif
-    }
-
+    
     return NS_OK;
 }
 
@@ -1349,157 +1249,4 @@ nsIOService::SpeculativeConnect(nsIURI *aURI,
     nsRefPtr<IOServiceProxyCallback> callback =
         new IOServiceProxyCallback(aCallbacks, this);
     return pps->AsyncResolve(aURI, 0, callback, getter_AddRefs(cancelable));
-}
-
-void
-nsIOService::NotifyAppOfflineStatus(uint32_t appId, int32_t state)
-{
-    MOZ_RELEASE_ASSERT(NS_IsMainThread(),
-            "Should be called on the main thread");
-
-    nsCOMPtr<nsIObserverService> observerService =
-        mozilla::services::GetObserverService();
-    MOZ_ASSERT(observerService, "The observer service should not be null");
-
-    if (observerService) {
-        nsRefPtr<nsAppOfflineInfo> info = new nsAppOfflineInfo(appId, state);
-        observerService->NotifyObservers(
-            info,
-            NS_IOSERVICE_APP_OFFLINE_STATUS_TOPIC,
-            MOZ_UTF16("all data in nsIAppOfflineInfo subject argument"));
-    }
-}
-
-namespace {
-
-class SetAppOfflineMainThread : public nsRunnable
-{
-public:
-    SetAppOfflineMainThread(uint32_t aAppId, int32_t aState)
-        : mAppId(aAppId)
-        , mState(aState)
-    {
-    }
-
-    NS_IMETHOD Run()
-    {
-        MOZ_ASSERT(NS_IsMainThread());
-        gIOService->SetAppOfflineInternal(mAppId, mState);
-        return NS_OK;
-    }
-private:
-    uint32_t mAppId;
-    int32_t mState;
-};
-
-}
-
-NS_IMETHODIMP
-nsIOService::SetAppOffline(uint32_t aAppId, int32_t aState)
-{
-    NS_ENSURE_TRUE(!IsNeckoChild(),
-                   NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(aAppId != nsIScriptSecurityManager::NO_APP_ID,
-                   NS_ERROR_INVALID_ARG);
-    NS_ENSURE_TRUE(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID,
-                   NS_ERROR_INVALID_ARG);
-
-    if (!NS_IsMainThread()) {
-        NS_DispatchToMainThread(new SetAppOfflineMainThread(aAppId, aState));
-        return NS_OK;
-    }
-
-    SetAppOfflineInternal(aAppId, aState);
-
-    return NS_OK;
-}
-
-
-
-
-
-
-
-
-void
-nsIOService::SetAppOfflineInternal(uint32_t aAppId, int32_t aState)
-{
-    MOZ_ASSERT(NS_IsMainThread());
-    NS_ENSURE_TRUE_VOID(NS_IsMainThread());
-
-    int32_t state = nsIAppOfflineInfo::ONLINE;
-    mAppsOfflineStatus.Get(aAppId, &state);
-    if (state == aState) {
-        
-        return;
-    }
-
-    
-    
-    
-    bool wifiActive = IsWifiActive();
-    bool offline = (state == nsIAppOfflineInfo::OFFLINE) ||
-                   (state == nsIAppOfflineInfo::WIFI_ONLY && !wifiActive);
-
-    switch (aState) {
-    case nsIAppOfflineInfo::OFFLINE:
-        mAppsOfflineStatus.Put(aAppId, nsIAppOfflineInfo::OFFLINE);
-        if (!offline) {
-            NotifyAppOfflineStatus(aAppId, nsIAppOfflineInfo::OFFLINE);
-        }
-        break;
-    case nsIAppOfflineInfo::WIFI_ONLY:
-        MOZ_RELEASE_ASSERT(!IsNeckoChild());
-        mAppsOfflineStatus.Put(aAppId, nsIAppOfflineInfo::WIFI_ONLY);
-        if (offline && wifiActive) {
-            NotifyAppOfflineStatus(aAppId, nsIAppOfflineInfo::ONLINE);
-        } else if (!offline && !wifiActive) {
-            NotifyAppOfflineStatus(aAppId, nsIAppOfflineInfo::OFFLINE);
-        }
-        break;
-    case nsIAppOfflineInfo::ONLINE:
-        mAppsOfflineStatus.Remove(aAppId);
-        if (offline) {
-            NotifyAppOfflineStatus(aAppId, nsIAppOfflineInfo::ONLINE);
-        }
-        break;
-    default:
-        break;
-    }
-
-}
-
-NS_IMETHODIMP
-nsIOService::IsAppOffline(uint32_t aAppId, bool* aResult)
-{
-    NS_ENSURE_ARG(aResult);
-    *aResult = mOffline;
-
-    if (mOffline) {
-        
-        return NS_OK;
-    }
-
-    if (aAppId == NECKO_NO_APP_ID ||
-        aAppId == NECKO_UNKNOWN_APP_ID) {
-        return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    int32_t state;
-    if (mAppsOfflineStatus.Get(aAppId, &state)) {
-        switch (state) {
-        case nsIAppOfflineInfo::OFFLINE:
-            *aResult = true;
-            break;
-        case nsIAppOfflineInfo::WIFI_ONLY:
-            MOZ_RELEASE_ASSERT(!IsNeckoChild());
-            *aResult = !IsWifiActive();
-            break;
-        default:
-            
-            break;
-        }
-    }
-
-    return NS_OK;
 }

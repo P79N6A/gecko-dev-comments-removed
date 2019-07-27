@@ -416,10 +416,6 @@ private:
     
     bool mAppPackageFileDescriptorSent;
 
-    
-    
-    bool mSendOfflineStatus;
-
     uint32_t mChromeFlags;
 
     nsCOMPtr<nsILoadContext> mLoadContext;

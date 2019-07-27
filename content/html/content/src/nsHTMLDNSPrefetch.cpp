@@ -94,10 +94,6 @@ nsHTMLDNSPrefetch::Shutdown()
 bool
 nsHTMLDNSPrefetch::IsAllowed (nsIDocument *aDocument)
 {
-  if (NS_IsAppOffline(aDocument->NodePrincipal())) {
-    return false;
-  }
-
   
   return aDocument->IsDNSPrefetchAllowed() && aDocument->GetWindow();
 }
