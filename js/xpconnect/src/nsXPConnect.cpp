@@ -1034,6 +1034,9 @@ nsXPConnect::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
     mEventDepth++;
 
     
+    mRuntime->OnProcessNextEvent();
+
+    
     
     bool ok = PushJSContextNoScriptContext(nullptr);
     NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
