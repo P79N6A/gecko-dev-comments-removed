@@ -60,34 +60,23 @@ class Test1BrowserCall(MarionetteTestCase):
         self.marionette.set_context("content")
         self.marionette.navigate(url)
 
-        call_url_link = self.marionette.find_element(By.CLASS_NAME, "call-url") \
-            .text
-        self.assertEqual(url, call_url_link,
-                         "should be on the correct page")
+    def start_a_conversation(self):
+        
+        sleep(2)
+        button = self.marionette.find_element(By.CSS_SELECTOR, ".rooms .btn-info")
+
+        
+        button.click()
 
     def get_and_verify_call_url(self):
         
-        url_input_element = self.wait_for_element_displayed(By.TAG_NAME,
-                                                            "input")
+        self.start_a_conversation()
 
         
-        self.assertEqual(url_input_element.get_attribute("class"), "pending",
-                         "expect the input to be pending")
+        sleep(2)
+        call_url = self.marionette.find_element(By.CLASS_NAME, \
+                                                "room-url-link").text
 
-        
-        
-        
-        
-        
-        
-        
-        url_input_element = self.wait_for_element_displayed(By.CLASS_NAME,
-                                                            "callUrl")
-        call_url = url_input_element.get_attribute("value")
-
-        self.assertNotEqual(call_url, u'',
-                            "input is populated with call URL after pending"
-                            " is finished")
         self.assertIn(urlparse.urlparse(call_url).scheme, ['http', 'https'],
                       "call URL returned by server " + call_url +
                       " has invalid scheme")
@@ -95,15 +84,11 @@ class Test1BrowserCall(MarionetteTestCase):
 
     def start_and_verify_outgoing_call(self):
         
-        call_button = self.marionette.find_element(By.CLASS_NAME,
-                                                   "btn-accept")
-        call_button.click()
-
+        sleep(2)
         
-        pending_header = self.wait_for_element_displayed(By.CLASS_NAME,
-                                                         "pending-header")
-        self.assertEqual(pending_header.tag_name, "header",
-                         "expect a pending header")
+        call_button = self.marionette.find_element(By.CLASS_NAME,
+                                                   "btn-join")
+        call_button.click()
 
     def accept_and_verify_incoming_call(self):
         self.marionette.set_context("chrome")
@@ -116,12 +101,6 @@ class Test1BrowserCall(MarionetteTestCase):
                   "arguments[0], 'class', 'chat-frame');")
         frame = self.marionette.execute_script(script, [chatbox])
         self.marionette.switch_to_frame(frame)
-
-        
-        call_button = self.marionette.find_element(By.CLASS_NAME,
-                                                   "btn-accept")
-        
-        call_button.click()
 
         
         video = self.wait_for_element_displayed(By.CLASS_NAME, "media")
@@ -155,6 +134,10 @@ class Test1BrowserCall(MarionetteTestCase):
 
         
         self.accept_and_verify_incoming_call()
+
+        
+        
+        sleep(5)
 
         
         self.hangup_call_and_verify_feedback()
