@@ -955,6 +955,14 @@ class JSExternalString : public JSFlatString
 
     
 
+
+
+    const jschar *twoByteChars() const {
+        return rawTwoByteChars();
+    }
+
+    
+
     inline void finalize(js::FreeOp *fop);
 };
 
