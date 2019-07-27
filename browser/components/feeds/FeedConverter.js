@@ -237,6 +237,11 @@ FeedConverter.prototype = {
 
       
       
+      var oldChannel = this._request.QueryInterface(Ci.nsIChannel);
+      var loadInfo = oldChannel.loadInfo;
+
+      
+      
       
       if (result.doc) {
 
@@ -246,12 +251,12 @@ FeedConverter.prototype = {
 
         
         var aboutFeedsURI = ios.newURI("about:feeds", null, null);
-        chromeChannel = ios.newChannelFromURI(aboutFeedsURI, null);
+        chromeChannel = ios.newChannelFromURIWithLoadInfo(aboutFeedsURI, loadInfo);
         chromeChannel.originalURI = result.uri;
         chromeChannel.owner =
           Services.scriptSecurityManager.getNoAppCodebasePrincipal(aboutFeedsURI);
       } else {
-        chromeChannel = ios.newChannelFromURI(result.uri, null);
+        chromeChannel = ios.newChannelFromURIWithLoadInfo(result.uri, loadInfo);
       }
 
       chromeChannel.loadGroup = this._request.loadGroup;
@@ -546,7 +551,12 @@ GenericProtocolHandler.prototype = {
   newChannel: function GPH_newChannel(aUri) {
     var inner = aUri.QueryInterface(Ci.nsINestedURI).innerURI;
     var channel = Cc["@mozilla.org/network/io-service;1"].
-                  getService(Ci.nsIIOService).newChannelFromURI(inner, null);
+                  getService(Ci.nsIIOService).newChannelFromURI2(inner,
+                                                                 null,      
+                                                                 Services.scriptSecurityManager.getSystemPrincipal(),
+                                                                 null,      
+                                                                 Ci.nsILoadInfo.SEC_NORMAL,
+                                                                 Ci.nsIContentPolicy.TYPE_OTHER);
     if (channel instanceof Components.interfaces.nsIHttpChannel)
       
       channel.setRequestHeader("X-Moz-Is-Feed", "1", false);
