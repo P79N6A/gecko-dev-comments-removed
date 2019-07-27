@@ -1666,8 +1666,6 @@ pref("prompts.tab_modal.enabled", true);
 pref("browser.panorama.animate_zoom", true);
 
 
-pref("browser.newtab.url", "about:newtab");
-
 pref("browser.newtab.preload", true);
 
 

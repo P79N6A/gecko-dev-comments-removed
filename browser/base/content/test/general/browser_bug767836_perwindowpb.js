@@ -5,7 +5,6 @@
 function test() {
   
   waitForExplicitFinish();
-  let newTabPrefName = "browser.newtab.url";
   let newTabURL;
   let testURL = "http://example.com/";
   let mode;
@@ -17,15 +16,15 @@ function test() {
         newTabURL = "about:privatebrowsing";
       } else {
         mode = "normal";
-        newTabURL = Services.prefs.getCharPref(newTabPrefName) || "about:blank";
+        newTabURL = NewTabURL.get();
       }
 
       
       is(aWindow.gBrowser.selectedBrowser.currentURI.spec, newTabURL,
         "URL of NewTab should be " + newTabURL + " in " + mode +  " mode");
       
-      Services.prefs.setCharPref(newTabPrefName, testURL);
-      ok(Services.prefs.prefHasUserValue(newTabPrefName), "Custom newtab url is set");
+      NewTabURL.override(testURL);
+      is(NewTabURL.get(), testURL, "Custom newtab url is set");
 
       
       openNewTab(aWindow, function () {
@@ -33,8 +32,8 @@ function test() {
            "URL of NewTab should be the custom url");
 
         
-        Services.prefs.clearUserPref(newTabPrefName);
-        ok(!Services.prefs.prefHasUserValue(newTabPrefName), "No custom newtab url is set");
+        NewTabURL.reset();
+        is(NewTabURL.get(), "about:newtab", "No custom newtab url is set");
 
         aWindow.gBrowser.removeTab(aWindow.gBrowser.selectedTab);
         aWindow.gBrowser.removeTab(aWindow.gBrowser.selectedTab);
@@ -51,7 +50,7 @@ function test() {
   }
 
   
-  ok(!Services.prefs.prefHasUserValue(newTabPrefName), "No custom newtab url is set");
+  ok(!NewTabURL.overridden, "No custom newtab url is set");
 
   
   testOnWindow(false, function(aWindow) {
