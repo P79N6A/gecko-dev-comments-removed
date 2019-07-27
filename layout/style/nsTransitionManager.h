@@ -76,8 +76,10 @@ namespace dom {
 class CSSTransition final : public Animation
 {
 public:
- explicit CSSTransition(DocumentTimeline* aTimeline)
-    : Animation(aTimeline)
+ explicit CSSTransition(dom::DocumentTimeline* aTimeline)
+    : dom::Animation(aTimeline)
+    , mOwningElement(nullptr)
+    , mOwningPseudoType(nsCSSPseudoElements::ePseudo_NotPseudoElement)
   {
   }
 
@@ -103,10 +105,69 @@ public:
     MOZ_ASSERT(!rv.Failed(), "Unexpected exception playing transition");
   }
 
+  void CancelFromStyle() override
+  {
+    mOwningElement = nullptr;
+    mOwningPseudoType = nsCSSPseudoElements::ePseudo_NotPseudoElement;
+
+    Animation::CancelFromStyle();
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void GetOwningElement(dom::Element*& aElement,
+                        nsCSSPseudoElements::Type& aPseudoType) const {
+    MOZ_ASSERT(mOwningElement != nullptr ||
+               mOwningPseudoType ==
+                 nsCSSPseudoElements::ePseudo_NotPseudoElement,
+               "When there is no owning element there should be no "
+               "pseudo-type");
+    aElement = mOwningElement;
+    aPseudoType = mOwningPseudoType;
+  }
+
+  
+  
+  
+  
+  void SetOwningElement(dom::Element& aElement,
+                        nsCSSPseudoElements::Type aPseudoType)
+  {
+    mOwningElement = &aElement;
+    mOwningPseudoType = aPseudoType;
+  }
+
 protected:
-  virtual ~CSSTransition() { }
+  virtual ~CSSTransition()
+  {
+    MOZ_ASSERT(!mOwningElement, "Owning element should be cleared before a "
+                                "CSS transition is destroyed");
+  }
 
   virtual css::CommonAnimationManager* GetAnimationManager() const override;
+
+  
+  
+  
+  
+  
+  dom::Element* MOZ_NON_OWNING_REF mOwningElement;
+  nsCSSPseudoElements::Type        mOwningPseudoType;
 };
 
 } 
