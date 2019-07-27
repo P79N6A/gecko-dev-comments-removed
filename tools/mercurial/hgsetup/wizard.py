@@ -283,8 +283,10 @@ class MercurialSetupWizard(object):
                 print('Fixed patch settings.')
                 print('')
 
-        self.prompt_native_extension(c, 'progress',
-            'Would you like to see progress bars during Mercurial operations')
+        
+        if hg_version < LooseVersion('3.5'):
+            self.prompt_native_extension(c, 'progress',
+                'Would you like to see progress bars during Mercurial operations')
 
         self.prompt_native_extension(c, 'color',
             'Would you like Mercurial to colorize output to your terminal')
