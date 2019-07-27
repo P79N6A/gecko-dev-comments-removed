@@ -2,6 +2,15 @@
 
 
 
+
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
+
+
 function test() {
   Harness.authenticationCallback = get_auth_info;
   Harness.downloadFailedCallback = download_failed;

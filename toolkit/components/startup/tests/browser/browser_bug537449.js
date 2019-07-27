@@ -4,6 +4,13 @@
 
 "use strict";
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
+
 const TEST_URL = "http://example.com/browser/toolkit/components/startup/tests/browser/beforeunload.html";
 
 function test() {
