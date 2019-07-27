@@ -8,28 +8,30 @@
 
 #include "AudioSampleFormat.h"
 #include "nsAutoPtr.h"
-#include "nsAutoRef.h"
 #include "nsCOMPtr.h"
 #include "nsThreadUtils.h"
 #include "Latency.h"
 #include "mozilla/dom/AudioChannelBinding.h"
-#include "mozilla/StaticMutex.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticMutex.h"
+#include "mozilla/UniquePtr.h"
 
 #include "cubeb/cubeb.h"
-
-template <>
-class nsAutoRefTraits<cubeb_stream> : public nsPointerRefTraits<cubeb_stream>
-{
-public:
-  static void Release(cubeb_stream* aStream) { cubeb_stream_destroy(aStream); }
-};
 
 namespace soundtouch {
 class SoundTouch;
 }
 
 namespace mozilla {
+
+template<>
+struct DefaultDelete<cubeb_stream>
+{
+  void operator()(cubeb_stream* aStream) const
+  {
+    cubeb_stream_destroy(aStream);
+  }
+};
 
 class AudioStream;
 class FrameHistory;
@@ -388,8 +390,7 @@ private:
   CircularByteBuffer mBuffer;
 
   
-  
-  nsAutoRef<cubeb_stream> mCubebStream;
+  UniquePtr<cubeb_stream> mCubebStream;
 
   uint32_t mBytesPerFrame;
 
