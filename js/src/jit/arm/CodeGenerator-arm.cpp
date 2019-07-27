@@ -185,7 +185,7 @@ CodeGeneratorARM::bailoutIf(Assembler::Condition condition, LSnapshot *snapshot)
 
     
     
-    if (!addOutOfLineCode(ool, BytecodeSite(tree, tree->script()->code())))
+    if (!addOutOfLineCode(ool, new(alloc()) BytecodeSite(tree, tree->script()->code())))
         return false;
 
     masm.ma_b(ool->entry(), condition);
@@ -215,7 +215,7 @@ CodeGeneratorARM::bailoutFrom(Label *label, LSnapshot *snapshot)
 
     
     
-    if (!addOutOfLineCode(ool, BytecodeSite(tree, tree->script()->code())))
+    if (!addOutOfLineCode(ool, new(alloc()) BytecodeSite(tree, tree->script()->code())))
         return false;
 
     masm.retarget(label, ool->entry());

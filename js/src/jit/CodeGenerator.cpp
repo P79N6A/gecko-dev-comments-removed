@@ -4099,7 +4099,7 @@ CodeGenerator::generateBody()
 
             if (iter->mirRaw()) {
                 
-                if (iter->mirRaw()->trackedSite().hasTree()) {
+                if (iter->mirRaw()->trackedTree()) {
                     if (!addNativeToBytecodeEntry(iter->mirRaw()->trackedSite()))
                         return false;
                 }
@@ -7335,7 +7335,8 @@ CodeGenerator::generate()
     
     InlineScriptTree *tree = gen->info().inlineScriptTree();
     jsbytecode *startPC = tree->script()->code();
-    if (!addNativeToBytecodeEntry(BytecodeSite(tree, startPC)))
+    BytecodeSite *startSite = new(gen->alloc()) BytecodeSite(tree, startPC);
+    if (!addNativeToBytecodeEntry(startSite))
         return false;
 
     if (!snapshots_.init())
@@ -7394,21 +7395,21 @@ CodeGenerator::generate()
         return false;
 
     
-    if (!addNativeToBytecodeEntry(BytecodeSite(tree, startPC)))
+    if (!addNativeToBytecodeEntry(startSite))
         return false;
 
     if (!generateBody())
         return false;
 
     
-    if (!addNativeToBytecodeEntry(BytecodeSite(tree, startPC)))
+    if (!addNativeToBytecodeEntry(startSite))
         return false;
 
     if (!generateEpilogue())
         return false;
 
     
-    if (!addNativeToBytecodeEntry(BytecodeSite(tree, startPC)))
+    if (!addNativeToBytecodeEntry(startSite))
         return false;
 
     if (!generateInvalidateEpilogue())
@@ -7424,7 +7425,7 @@ CodeGenerator::generate()
         return false;
 
     
-    if (!addNativeToBytecodeEntry(BytecodeSite(tree, startPC)))
+    if (!addNativeToBytecodeEntry(startSite))
         return false;
 
     

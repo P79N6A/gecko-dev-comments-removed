@@ -199,7 +199,7 @@ CodeGeneratorMIPS::bailoutFrom(Label *label, LSnapshot *snapshot)
     
     InlineScriptTree *tree = snapshot->mir()->block()->trackedTree();
     OutOfLineBailout *ool = new(alloc()) OutOfLineBailout(snapshot, masm.framePushed());
-    if (!addOutOfLineCode(ool, BytecodeSite(tree, tree->script()->code()))) {
+    if (!addOutOfLineCode(ool, new(alloc()) BytecodeSite(tree, tree->script()->code()))) {
         return false;
     }
 
