@@ -13607,8 +13607,10 @@ SimRecordHelperObject.prototype = {
 
       
       
-      if (octetLen != (9 * numInstances + 1) ||
-          octetLen != (9 * numInstances + 2)) {
+      
+      if (octetLen < (9 * numInstances + 1)) {
+        Buf.seekIncoming((octetLen - 1) * Buf.PDU_HEX_OCTET_SIZE);
+        Buf.readStringDelimiter(strLen);
         if (onerror) {
           onerror();
         }
@@ -13629,6 +13631,7 @@ SimRecordHelperObject.prototype = {
                    GsmPDUHelper.readHexOctet()
         };
       }
+      Buf.seekIncoming((octetLen - 9 * numInstances - 1) * Buf.PDU_HEX_OCTET_SIZE);
       Buf.readStringDelimiter(strLen);
 
       let instances = [];
@@ -13688,6 +13691,8 @@ SimRecordHelperObject.prototype = {
       if (octetLen < offset + dataLen) {
         
         
+        Buf.seekIncoming(octetLen * Buf.PDU_HEX_OCTET_SIZE);
+        Buf.readStringDelimiter(strLen);
         if (onerror) {
           onerror();
         }
