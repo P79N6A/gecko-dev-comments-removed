@@ -1093,6 +1093,7 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
     nsRefPtr<nsWindow> lastFocusedWindow = mLastFocusedWindow;
 
     
+    
     if (mCompositionState == eCompositionState_CompositionStartDispatched) {
         
         
@@ -1106,7 +1107,7 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
         }
     }
 
-    WidgetTextEvent textEvent(true, NS_TEXT_TEXT, mLastFocusedWindow);
+    WidgetTextEvent textEvent(true, NS_COMPOSITION_CHANGE, mLastFocusedWindow);
     InitEvent(textEvent);
 
     uint32_t targetOffset = mCompositionStart;
@@ -1128,7 +1129,8 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
     if (lastFocusedWindow->IsDestroyed() ||
         lastFocusedWindow != mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-            ("    NOTE, the focused widget was destroyed/changed by text event"));
+            ("    NOTE, the focused widget was destroyed/changed by "
+             "compositionchange event"));
         return false;
     }
 

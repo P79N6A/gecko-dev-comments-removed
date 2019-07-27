@@ -97,7 +97,6 @@ public:
 
 
 
-
   static void DispatchCompositionEvent(nsINode* aEventTargetNode,
                                        nsPresContext* aPresContext,
                                        WidgetEvent* aEvent,
@@ -118,7 +117,6 @@ public:
     GetTextCompositionFor(nsIWidget* aWidget);
 
   
-
 
 
 

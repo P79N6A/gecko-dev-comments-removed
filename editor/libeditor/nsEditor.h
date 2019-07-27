@@ -420,7 +420,6 @@ protected:
 
 
 
-
   void EnsureComposition(mozilla::WidgetGUIEvent* aEvent);
 
 public:

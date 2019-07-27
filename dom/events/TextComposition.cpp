@@ -148,7 +148,7 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
       case NS_COMPOSITION_END:
         committingData = &aEvent->AsCompositionEvent()->mData;
         break;
-      case NS_TEXT_TEXT:
+      case NS_COMPOSITION_CHANGE:
         committingData = &aEvent->AsTextEvent()->mData;
         break;
       default:
@@ -166,7 +166,7 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
     }
   }
 
-  if (aEvent->message == NS_TEXT_TEXT) {
+  if (aEvent->message == NS_COMPOSITION_CHANGE) {
     if (!MaybeDispatchCompositionUpdate(aEvent->AsTextEvent())) {
       return;
     }
@@ -181,7 +181,7 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
 
   
   
-  if (aEvent->message == NS_TEXT_TEXT && !HasEditor()) {
+  if (aEvent->message == NS_COMPOSITION_CHANGE && !HasEditor()) {
     EditorWillHandleTextEvent(aEvent->AsTextEvent());
     EditorDidHandleTextEvent();
   }
@@ -286,7 +286,7 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
       nsAutoString commitData(aDiscard ? EmptyString() : lastData);
       bool changingData = lastData != commitData;
 
-      WidgetTextEvent textEvent(true, NS_TEXT_TEXT, widget);
+      WidgetTextEvent textEvent(true, NS_COMPOSITION_CHANGE, widget);
       textEvent.mData = commitData;
       textEvent.mFlags.mIsSynthesizedForTests = true;
 
@@ -325,7 +325,7 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
   
   
   if (lastData != data || !data.IsEmpty()) {
-    DispatchCompositionEventRunnable(NS_TEXT_TEXT, data, true);
+    DispatchCompositionEventRunnable(NS_COMPOSITION_CHANGE, data, true);
   }
   DispatchCompositionEventRunnable(NS_COMPOSITION_END, data, true);
 
@@ -347,8 +347,8 @@ TextComposition::EditorWillHandleTextEvent(const WidgetTextEvent* aTextEvent)
   mIsEditorHandlingEvent = true;
 
   MOZ_ASSERT(mLastData == aTextEvent->mData,
-    "The text of a text event must be same as previous data attribute value "
-    "of the latest compositionupdate event");
+    "The text of a compositionchange event must be same as previous data "
+    "attribute value of the latest compositionupdate event");
 }
 
 void
@@ -453,8 +453,8 @@ TextComposition::CompositionEventDispatcher::Run()
                                                 mIsSynthesizedEvent);
       break;
     }
-    case NS_TEXT_TEXT: {
-      WidgetTextEvent textEvent(true, NS_TEXT_TEXT, widget);
+    case NS_COMPOSITION_CHANGE: {
+      WidgetTextEvent textEvent(true, NS_COMPOSITION_CHANGE, widget);
       textEvent.mData = mData;
       textEvent.mFlags.mIsSynthesizedForTests =
         mTextComposition->IsSynthesizedForTests();

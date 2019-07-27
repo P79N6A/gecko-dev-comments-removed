@@ -1068,6 +1068,7 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
 
     
     
+    
   }
 
   
@@ -1590,7 +1591,7 @@ nsIMM32Handler::DispatchTextEvent(nsWindow* aWindow,
 
   nsIntPoint point(0, 0);
 
-  WidgetTextEvent event(true, NS_TEXT_TEXT, aWindow);
+  WidgetTextEvent event(true, NS_COMPOSITION_CHANGE, aWindow);
 
   aWindow->InitEvent(event, &point);
 
@@ -1615,7 +1616,8 @@ nsIMM32Handler::CreateTextRangeArray()
   
   
   NS_ASSERTION(ShouldDrawCompositionStringOurselves(),
-    "CreateTextRangeArray is called when we don't need to fire text event");
+    "CreateTextRangeArray is called when we don't need to fire "
+    "compositionchange event");
 
   nsRefPtr<TextRangeArray> textRangeArray = new TextRangeArray();
 

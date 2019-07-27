@@ -318,9 +318,6 @@ private:
 
 
 
-
-
-
   void DispatchCompositionEventRunnable(uint32_t aEventMessage,
                                         const nsAString& aData,
                                         bool aIsSynthesizingCommit = false);

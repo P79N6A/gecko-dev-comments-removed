@@ -306,6 +306,7 @@ protected:
 
     
     
+    
     bool DispatchTextEvent(const nsAString& aCompositionString,
                            bool aIsCommit);
 
