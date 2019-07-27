@@ -23,6 +23,40 @@ NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 NS_IMPL_ADDREF_INHERITED(OscillatorNode, AudioNode)
 NS_IMPL_RELEASE_INHERITED(OscillatorNode, AudioNode)
 
+static const float sLeakTriangle = 0.995f;
+static const float sLeak = 0.999f;
+
+class DCBlocker
+{
+public:
+  
+  explicit DCBlocker(float aLastInput = 0.0f,
+            float aLastOutput = 0.0f,
+            float aPole = 0.995)
+    :mLastInput(aLastInput),
+     mLastOutput(aLastOutput),
+     mPole(aPole)
+  {
+    MOZ_ASSERT(aPole > 0);
+  }
+
+  inline float Process(float aInput)
+  {
+    float out;
+
+    out = mLastOutput * mPole + aInput - mLastInput;
+    mLastOutput = out;
+    mLastInput = aInput;
+
+    return out;
+  }
+private:
+  float mLastInput;
+  float mLastOutput;
+  float mPole;
+};
+
+
 class OscillatorNodeEngine : public AudioNodeEngine
 {
 public:
@@ -37,6 +71,12 @@ public:
     , mDetune(0.f)
     , mType(OscillatorType::Sine)
     , mPhase(0.)
+    
+    
+    
+    
+    
+    
     , mRecomputeParameters(true)
     , mCustomLength(0)
   {
@@ -92,27 +132,41 @@ public:
       case TYPE:
         
         mType = static_cast<OscillatorType>(aParam);
-        if (mType == OscillatorType::Sine) {
+        if (mType != OscillatorType::Custom) {
           
           mCustomLength = 0;
           mCustom = nullptr;
           mPeriodicWave = nullptr;
           mRecomputeParameters = true;
         }
+        
         switch (mType) {
           case OscillatorType::Sine:
             mPhase = 0.0;
             break;
           case OscillatorType::Square:
-            mPeriodicWave = WebCore::PeriodicWave::createSquare(mSource->SampleRate());
+            mPhase = 0.0;
+            
+            
+            mSquare = -0.5;
             break;
           case OscillatorType::Triangle:
-            mPeriodicWave = WebCore::PeriodicWave::createTriangle(mSource->SampleRate());
+            
+            
+            
+            mPhase = (float)(M_PI / 2);
+            mSquare = 0.5;
+            mTriangle = 0.0;
             break;
           case OscillatorType::Sawtooth:
-            mPeriodicWave = WebCore::PeriodicWave::createSawtooth(mSource->SampleRate());
+            
+            
+            mPhase = (float)(M_PI / 2);
+            
+            mSaw = 0.0;
             break;
           case OscillatorType::Custom:
+            
             break;
           default:
             NS_ERROR("Bad OscillatorNodeEngine type parameter.");
@@ -141,27 +195,30 @@ public:
 
   void IncrementPhase()
   {
-    const float twoPiFloat = float(2 * M_PI);
     mPhase += mPhaseIncrement;
-    if (mPhase > twoPiFloat) {
-      mPhase -= twoPiFloat;
-    } else if (mPhase < -twoPiFloat) {
-      mPhase += twoPiFloat;
+    if (mPhase > mPhaseWrap) {
+      mPhase -= mPhaseWrap;
     }
+  }
+
+  
+  
+  bool UsesBipolarBLIT() {
+    return mType == OscillatorType::Square || mType == OscillatorType::Triangle;
   }
 
   void UpdateParametersIfNeeded(StreamTime ticks, size_t count)
   {
     double frequency, detune;
 
-    
-    
-    if (!ParametersMayNeedUpdate()) {
-      return;
-    }
-
     bool simpleFrequency = mFrequency.HasSimpleValue();
     bool simpleDetune = mDetune.HasSimpleValue();
+
+    
+    
+    if (simpleFrequency && simpleDetune && !mRecomputeParameters) {
+      return;
+    }
 
     if (simpleFrequency) {
       frequency = mFrequency.GetValue();
@@ -175,10 +232,21 @@ public:
     }
 
     mFinalFrequency = frequency * pow(2., detune / 1200.);
-    float signalPeriod = mSource->SampleRate() / mFinalFrequency;
     mRecomputeParameters = false;
 
-    mPhaseIncrement = 2 * M_PI / signalPeriod;
+    
+    
+    mSignalPeriod = UsesBipolarBLIT() ? 0.5 * mSource->SampleRate() / mFinalFrequency
+                                      : mSource->SampleRate() / mFinalFrequency;
+    
+    mPhaseWrap = UsesBipolarBLIT() || mType == OscillatorType::Sine ? 2 * M_PI
+                                   : M_PI;
+    
+    mNumberOfHarmonics = UsesBipolarBLIT() ? 2 * floor(0.5 * mSignalPeriod)
+                                           : 2 * floor(0.5 * mSignalPeriod) + 1;
+    mPhaseIncrement = mType == OscillatorType::Sine ? 2 * M_PI / mSignalPeriod
+                                                    : M_PI / mSignalPeriod;
+    mAmplitudeAtZero = mNumberOfHarmonics / mSignalPeriod;
   }
 
   void FillBounds(float* output, StreamTime ticks,
@@ -203,6 +271,39 @@ public:
     }
   }
 
+  float BipolarBLIT()
+  {
+    float blit;
+    float denom = sin(mPhase);
+
+    if (fabs(denom) < std::numeric_limits<float>::epsilon()) {
+      if (mPhase < 0.1f || mPhase > 2 * M_PI - 0.1f) {
+        blit = mAmplitudeAtZero;
+      } else {
+        blit = -mAmplitudeAtZero;
+      }
+    } else {
+      blit = sin(mNumberOfHarmonics * mPhase);
+      blit /= mSignalPeriod * denom;
+    }
+    return blit;
+  }
+
+  float UnipolarBLIT()
+  {
+    float blit;
+    float denom = sin(mPhase);
+
+    if (fabs(denom) <= std::numeric_limits<float>::epsilon()) {
+      blit = mAmplitudeAtZero;
+    } else {
+      blit = sin(mNumberOfHarmonics * mPhase);
+      blit /= mSignalPeriod * denom;
+    }
+
+    return blit;
+  }
+
   void ComputeSine(float * aOutput, StreamTime ticks, uint32_t aStart, uint32_t aEnd)
   {
     for (uint32_t i = aStart; i < aEnd; ++i) {
@@ -214,11 +315,54 @@ public:
     }
   }
 
-  bool ParametersMayNeedUpdate()
+  void ComputeSquare(float * aOutput, StreamTime ticks, uint32_t aStart, uint32_t aEnd)
   {
-    return mDetune.HasSimpleValue() ||
-           mFrequency.HasSimpleValue() ||
-           mRecomputeParameters;
+    for (uint32_t i = aStart; i < aEnd; ++i) {
+      UpdateParametersIfNeeded(ticks, i);
+      
+      
+      mSquare = mSquare * sLeak + BipolarBLIT();
+      aOutput[i] = mSquare;
+      
+      aOutput[i] *= 1.5;
+      IncrementPhase();
+    }
+  }
+
+  void ComputeSawtooth(float * aOutput, StreamTime ticks, uint32_t aStart, uint32_t aEnd)
+  {
+    float dcoffset;
+    for (uint32_t i = aStart; i < aEnd; ++i) {
+      UpdateParametersIfNeeded(ticks, i);
+      
+      dcoffset = mFinalFrequency / mSource->SampleRate();
+      
+      
+      mSaw = mSaw * sLeak + (UnipolarBLIT() - dcoffset);
+      
+      aOutput[i] = -mSaw * 1.5;
+
+      IncrementPhase();
+    }
+  }
+
+  void ComputeTriangle(float * aOutput, StreamTime ticks, uint32_t aStart, uint32_t aEnd)
+  {
+    for (uint32_t i = aStart; i < aEnd; ++i) {
+      UpdateParametersIfNeeded(ticks, i);
+      
+      mSquare += BipolarBLIT();
+      
+      
+      
+      
+      float C6 = 0.25 / (mSource->SampleRate() / mFinalFrequency);
+      mTriangle = mTriangle * sLeakTriangle + mSquare + C6;
+      
+      aOutput[i] = mDCBlocker.Process(mTriangle) / (mSignalPeriod/2) * 1.5;
+
+      IncrementPhase();
+    }
   }
 
   void ComputeCustom(float* aOutput,
@@ -238,24 +382,15 @@ public:
     float tableInterpolationFactor;
     
     
-    float basePhaseIncrement = mPeriodicWave->rateScale();
+    float basePhaseIncrement =
+      static_cast<float>(periodicWaveSize) / mSource->SampleRate();
 
-    bool parametersMayNeedUpdate = ParametersMayNeedUpdate();
-    if (!parametersMayNeedUpdate) {
+    for (uint32_t i = aStart; i < aEnd; ++i) {
+      UpdateParametersIfNeeded(ticks, i);
       mPeriodicWave->waveDataForFundamentalFrequency(mFinalFrequency,
                                                      lowerWaveData,
                                                      higherWaveData,
                                                      tableInterpolationFactor);
-    }
-
-    for (uint32_t i = aStart; i < aEnd; ++i) {
-      if (parametersMayNeedUpdate) {
-        mPeriodicWave->waveDataForFundamentalFrequency(mFinalFrequency,
-                                                       lowerWaveData,
-                                                       higherWaveData,
-                                                       tableInterpolationFactor);
-        UpdateParametersIfNeeded(ticks, i);
-      }
       
       float floorPhase = floorf(mPhase);
       uint32_t j1 = floorPhase;
@@ -322,8 +457,14 @@ public:
         ComputeSine(output, ticks, start, end);
         break;
       case OscillatorType::Square:
+        ComputeSquare(output, ticks, start, end);
+        break;
       case OscillatorType::Triangle:
+        ComputeTriangle(output, ticks, start, end);
+        break;
       case OscillatorType::Sawtooth:
+        ComputeSawtooth(output, ticks, start, end);
+        break;
       case OscillatorType::Custom:
         ComputeCustom(output, ticks, start, end);
         break;
@@ -359,6 +500,7 @@ public:
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
+  DCBlocker mDCBlocker;
   AudioNodeStream* mSource;
   AudioNodeStream* mDestination;
   StreamTime mStart;
@@ -368,7 +510,14 @@ public:
   OscillatorType mType;
   float mPhase;
   float mFinalFrequency;
+  uint32_t mNumberOfHarmonics;
+  float mSignalPeriod;
+  float mAmplitudeAtZero;
   float mPhaseIncrement;
+  float mSquare;
+  float mTriangle;
+  float mSaw;
+  float mPhaseWrap;
   bool mRecomputeParameters;
   nsRefPtr<ThreadSharedFloatArrayBufferList> mCustom;
   uint32_t mCustomLength;
