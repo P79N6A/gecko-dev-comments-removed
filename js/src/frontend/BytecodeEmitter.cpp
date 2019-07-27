@@ -7570,6 +7570,7 @@ BytecodeEmitter::emitTree(ParseNode* pn)
 
       case PNK_IMPORT:
       case PNK_EXPORT:
+      case PNK_EXPORT_DEFAULT:
       case PNK_EXPORT_FROM:
        
        reportError(nullptr, JSMSG_MODULES_NOT_IMPLEMENTED);
