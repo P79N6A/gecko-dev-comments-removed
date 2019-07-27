@@ -25,7 +25,9 @@
 #include "nsILocalFileMac.h"
 
 #include "nsCocoaFeatures.h"
+#if defined(MOZ_CRASHREPORTER)
 #include "nsExceptionHandler.h"
+#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -480,12 +482,14 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
       NS_WARNING("Preventing load of fbplugin (see bug 1086977)");
       return NS_ERROR_FAILURE;
     }
+#if defined(MOZ_CRASHREPORTER)
     
     
     
     
     CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug 1086977"),
                                        fileName);
+#endif
   }
 
   
@@ -495,6 +499,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 
   
   rv = LoadPlugin(outLibrary);
+#if defined(MOZ_CRASHREPORTER)
   if (nsCocoaFeatures::OnYosemiteOrLater()) {
     
     
@@ -502,6 +507,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
     CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("Bug 1086977"),
                                        NS_LITERAL_CSTRING("Didn't crash, please ignore"));
   }
+#endif
   if (NS_FAILED(rv))
     return rv;
 
