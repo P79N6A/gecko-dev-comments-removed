@@ -12,26 +12,26 @@ loop.shared.models = (function(l10n) {
 
   var ConversationModel = Backbone.Model.extend({
     defaults: {
-      connected:    false,         
-      ongoing:      false,         
-      callerId:     undefined,     
-      loopToken:    undefined,     
-      sessionId:    undefined,     
+      connected: false,            
+      ongoing: false,              
+      callerId: undefined,         
+      loopToken: undefined,        
+      sessionId: undefined,        
       sessionToken: undefined,     
-      sessionType:  undefined,     
-      apiKey:       undefined,     
-      windowId:     undefined,     
-      callId:       undefined,     
-      progressURL:  undefined,     
+      sessionType: undefined,      
+      apiKey: undefined,           
+      windowId: undefined,         
+      callId: undefined,           
+      progressURL: undefined,      
       websocketToken: undefined,   
                                    
                                    
-      callType:     undefined,     
+      callType: undefined,         
                                    
       selectedCallType: "audio-video", 
                                        
-      callToken:    undefined,     
-      callUrl:      undefined,     
+      callToken: undefined,        
+      callUrl: undefined,          
                                    
       subscribedStream: false,     
                                    
@@ -134,11 +134,11 @@ loop.shared.models = (function(l10n) {
     setOutgoingSessionData: function(sessionData) {
       
       this.set({
-        sessionId:      sessionData.sessionId,
-        sessionToken:   sessionData.sessionToken,
-        apiKey:         sessionData.apiKey,
-        callId:         sessionData.callId,
-        progressURL:    sessionData.progressURL,
+        sessionId: sessionData.sessionId,
+        sessionToken: sessionData.sessionToken,
+        apiKey: sessionData.apiKey,
+        callId: sessionData.callId,
+        progressURL: sessionData.progressURL,
         websocketToken: sessionData.websocketToken.toString(16)
       });
     },
@@ -151,18 +151,18 @@ loop.shared.models = (function(l10n) {
     setIncomingSessionData: function(sessionData) {
       
       this.set({
-        sessionId:       sessionData.sessionId,
-        sessionToken:    sessionData.sessionToken,
-        sessionType:     sessionData.sessionType,
-        apiKey:          sessionData.apiKey,
-        callId:          sessionData.callId,
-        callerId:        sessionData.callerId,
+        sessionId: sessionData.sessionId,
+        sessionToken: sessionData.sessionToken,
+        sessionType: sessionData.sessionType,
+        apiKey: sessionData.apiKey,
+        callId: sessionData.callId,
+        callerId: sessionData.callerId,
         urlCreationDate: sessionData.urlCreationDate,
-        progressURL:     sessionData.progressURL,
-        websocketToken:  sessionData.websocketToken.toString(16),
-        callType:        sessionData.callType || "audio-video",
-        callToken:       sessionData.callToken,
-        callUrl:         sessionData.callUrl
+        progressURL: sessionData.progressURL,
+        websocketToken: sessionData.websocketToken.toString(16),
+        callType: sessionData.callType || "audio-video",
+        callToken: sessionData.callToken,
+        callUrl: sessionData.callUrl
       });
     },
 
