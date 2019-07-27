@@ -29,17 +29,6 @@ public class MenuPanel extends LinearLayout {
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
-        
-        DisplayMetrics metrics = getContext().getResources().getDisplayMetrics();
-        int restrictedHeightSpec = MeasureSpec.makeMeasureSpec((int) (0.75 * metrics.heightPixels), MeasureSpec.AT_MOST);
-
-        super.onMeasure(widthMeasureSpec, restrictedHeightSpec);
-    }
-
-    @Override
     public boolean dispatchPopulateAccessibilityEvent (AccessibilityEvent event) {
         if (Versions.feature14Plus) {
             onPopulateAccessibilityEvent(event);
