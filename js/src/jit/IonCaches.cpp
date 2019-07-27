@@ -2584,26 +2584,10 @@ GenerateAddSlot(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &att
     if (oldType != obj->type()) {
         
         
-        
-        Label noTypeChange, skipPop;
-
-        masm.push(object);
-        masm.loadPtr(Address(object, JSObject::offsetOfType()), object);
-        masm.branchPtr(Assembler::Equal,
-                       Address(object, types::TypeObject::offsetOfNewScript()),
-                       ImmWord(0),
-                       &noTypeChange);
-        masm.pop(object);
-
         Address typeAddr(object, JSObject::offsetOfType());
         if (cx->zone()->needsIncrementalBarrier())
             masm.callPreBarrier(typeAddr, MIRType_TypeObject);
         masm.storePtr(ImmGCPtr(obj->type()), typeAddr);
-
-        masm.jump(&skipPop);
-        masm.bind(&noTypeChange);
-        masm.pop(object);
-        masm.bind(&skipPop);
     }
 
     

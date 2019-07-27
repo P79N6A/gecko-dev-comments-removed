@@ -7913,24 +7913,11 @@ ICSetPropNativeAddCompiler::generateStubCode(MacroAssembler &masm)
 
     
     Label noTypeChange;
-
-    
     masm.loadPtr(Address(BaselineStubReg, ICSetProp_NativeAdd::offsetOfNewType()), scratch);
     masm.branchTestPtr(Assembler::Zero, scratch, scratch, &noTypeChange);
-
-    
-    Register scratch2 = protoReg;
-    masm.loadPtr(Address(objReg, JSObject::offsetOfType()), scratch2);
-    masm.branchPtr(Assembler::Equal,
-                   Address(scratch2, types::TypeObject::offsetOfNewScript()),
-                   ImmWord(0),
-                   &noTypeChange);
-
-    
     Address typeAddr(objReg, JSObject::offsetOfType());
     EmitPreBarrier(masm, typeAddr, MIRType_TypeObject);
     masm.storePtr(scratch, typeAddr);
-
     masm.bind(&noTypeChange);
 
     Register holderReg;
