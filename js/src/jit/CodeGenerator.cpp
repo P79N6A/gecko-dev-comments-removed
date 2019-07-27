@@ -2006,6 +2006,10 @@ CodeGenerator::visitOsrEntry(LOsrEntry *lir)
     
     MOZ_ASSERT(masm.framePushed() == frameSize());
     masm.setFramePushed(0);
+
+    
+    masm.assertStackAlignment(JitStackAlignment, 0);
+
     masm.reserveStack(frameSize());
 }
 

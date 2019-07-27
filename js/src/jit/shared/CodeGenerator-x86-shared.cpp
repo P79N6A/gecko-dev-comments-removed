@@ -49,6 +49,9 @@ CodeGeneratorX86Shared::generatePrologue()
         masm.profilerEnterFrame(StackPointer, CallTempReg0);
 
     
+    masm.assertStackAlignment(JitStackAlignment, 0);
+
+    
     masm.reserveStack(frameSize());
 
     emitTracelogIonStart();
