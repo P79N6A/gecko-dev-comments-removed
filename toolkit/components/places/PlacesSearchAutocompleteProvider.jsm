@@ -17,6 +17,9 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SearchSuggestionController",
+  "resource://gre/modules/SearchSuggestionController.jsm");
+
 const SEARCH_ENGINE_TOPIC = "browser-search-engine-modified";
 
 const SearchAutocompleteProviderInternal = {
@@ -110,9 +113,64 @@ const SearchAutocompleteProviderInternal = {
     }
   },
 
+  getSuggestionController(searchToken, inPrivateContext, maxResults) {
+    let engine = Services.search.currentEngine;
+    if (!engine) {
+      return null;
+    }
+    return new SearchSuggestionControllerWrapper(engine, searchToken,
+                                                 inPrivateContext, maxResults);
+  },
+
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
 }
+
+function SearchSuggestionControllerWrapper(engine, searchToken,
+                                           inPrivateContext, maxResults) {
+  this._controller = new SearchSuggestionController();
+  this._controller.maxLocalResults = 0;
+  this._controller.maxRemoteResults = maxResults;
+  let promise = this._controller.fetch(searchToken, inPrivateContext, engine);
+  this._suggestions = [];
+  this._promise = promise.then(results => {
+    this._suggestions = (results ? results.remote : null) || [];
+  }).catch(err => {
+    
+  });
+}
+
+SearchSuggestionControllerWrapper.prototype = {
+
+  
+
+
+  get fetchCompletePromise() {
+    return this._promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+  consume() {
+    return !this._suggestions.length ? [null, null] :
+           [SearchAutocompleteProviderInternal.defaultMatch,
+            this._suggestions.shift()];
+  },
+
+  
+
+
+  stop() {
+    this._controller.stop();
+  },
+};
 
 let gInitializationPromise = null;
 
@@ -213,5 +271,13 @@ this.PlacesSearchAutocompleteProvider = Object.freeze({
       engineName: parseUrlResult.engine.name,
       terms: parseUrlResult.terms,
     };
+  },
+
+  getSuggestionController(searchToken, inPrivateContext, maxResults) {
+    if (!SearchAutocompleteProviderInternal.initialized) {
+      throw new Error("The component has not been initialized.");
+    }
+    return SearchAutocompleteProviderInternal.getSuggestionController(
+             searchToken, inPrivateContext, maxResults);
   },
 });

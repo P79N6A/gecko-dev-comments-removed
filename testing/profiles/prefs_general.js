@@ -325,3 +325,7 @@ user_pref("dom.serviceWorkers.periodic-updates.enabled", false);
 
 
 user_pref("media.webspeech.synth.test", true);
+
+
+
+user_pref("browser.urlbar.suggest.searches", false);
