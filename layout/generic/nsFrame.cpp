@@ -2672,8 +2672,7 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection* aFrameSelection,
   if (offset < 0) return NS_ERROR_FAILURE;
 
   
-  *aParentContent = parentContent;
-  NS_ADDREF(*aParentContent);
+  parentContent.forget(aParentContent);
 
   *aContentOffset = offset;
 

@@ -621,7 +621,7 @@ nsTreeBodyFrame::GetSelectionRegion(nsIScriptableRegion **aRegion)
   
   region->IntersectRect(x, top, rect.width, rect.height);
 
-  NS_ADDREF(*aRegion = region);
+  region.forget(aRegion);
   return NS_OK;
 }
 

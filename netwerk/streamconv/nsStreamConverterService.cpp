@@ -454,9 +454,7 @@ nsStreamConverterService::Convert(nsIInputStream *aFromStream,
         }
 
         delete converterChain;
-        *_retval = convertedData;
-        NS_ADDREF(*_retval);
-
+        convertedData.forget(_retval);
     } else {
         
         rv = converter->Convert(aFromStream, aFromType, aToType, aContext, _retval);
@@ -546,15 +544,11 @@ nsStreamConverterService::AsyncConvertData(const char *aFromType,
         }
         delete converterChain;
         
-        *_retval = finalListener;
-        NS_ADDREF(*_retval);
-
+        finalListener.forget(_retval);
     } else {
         
-        *_retval = listener;
-        NS_ADDREF(*_retval);
-
         rv = listener->AsyncConvertData(aFromType, aToType, aListener, aContext);
+        listener.forget(_retval);
     }
 
     return rv;

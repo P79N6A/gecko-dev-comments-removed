@@ -1743,8 +1743,7 @@ HTMLFormElement::GetActionURL(nsIURI** aActionURL,
   
   
   
-  *aActionURL = actionURL;
-  NS_ADDREF(*aActionURL);
+  actionURL.forget(aActionURL);
 
   return rv;
 }
