@@ -340,7 +340,6 @@ JitRuntime::generateInvalidator(JSContext *cx)
 
     
     
-    uint32_t increment = 2;
     for (uint32_t i = 0; i < FloatRegisters::TotalDouble; i ++)
         masm.as_sd(FloatRegister::FromIndex(i, FloatRegister::Double), StackPointer,
                    InvalidationBailoutStack::offsetOfFpRegs() + i * sizeof(double));

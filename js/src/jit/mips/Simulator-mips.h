@@ -96,7 +96,7 @@ const uint32_t kMaxStopCode = 127;
 
 
 
-typedef int32_t Instr;
+typedef uint32_t Instr;
 class SimInstruction;
 
 class Simulator {
