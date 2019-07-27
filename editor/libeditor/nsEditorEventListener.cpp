@@ -1069,6 +1069,11 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
 
   
   SpellCheckIfNeeded();
+  if (!mEditor) {
+    
+    
+    return NS_OK;
+  }
 
   nsCOMPtr<nsIDOMEventTarget> target;
   aEvent->GetTarget(getter_AddRefs(target));
