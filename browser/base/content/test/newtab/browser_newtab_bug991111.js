@@ -2,7 +2,7 @@
 
 
 function runTests() {
-  yield setLinks("0");
+  yield setLinks("-1");
   yield addNewTabPageTab();
 
   
