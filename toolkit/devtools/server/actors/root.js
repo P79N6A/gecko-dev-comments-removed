@@ -159,6 +159,9 @@ RootActor.prototype = {
     noNeedToFakeResumptionOnNavigation: true,
     
     
+    webConsoleCommands: true,
+    
+    
     
     
     
