@@ -234,6 +234,7 @@ protected:
   
   
   
+  
   nsTArray<std::pair<uint32_t, float> > mVelocityQueue;
 
   const FrameMetrics& GetFrameMetrics() const;

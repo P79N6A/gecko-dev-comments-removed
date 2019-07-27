@@ -1022,6 +1022,12 @@ public:
   
 
 
+
+
+  static void AssertOnControllerThread();
+  
+
+
   void SetTestAsyncScrollOffset(const CSSPoint& aPoint)
   {
     mTestAsyncScrollOffset = aPoint;

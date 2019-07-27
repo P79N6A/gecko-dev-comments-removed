@@ -393,6 +393,7 @@ static inline void LogRendertraceRect(const ScrollableLayerGuid& aGuid, const ch
 
 static TimeStamp sFrameTime;
 static bool sThreadAssertionsEnabled = true;
+static PRThread* sControllerThread;
 
 
 static uint32_t sAsyncPanZoomControllerCount = 0;
@@ -403,26 +404,6 @@ GetFrameTime() {
     return TimeStamp::Now();
   }
   return sFrameTime;
-}
-
-static PRThread* sControllerThread;
-
-static void
-AssertOnControllerThread() {
-  if (!AsyncPanZoomController::GetThreadAssertionsEnabled()) {
-    return;
-  }
-
-  static bool sControllerThreadDetermined = false;
-  if (!sControllerThreadDetermined) {
-    
-    
-    
-    
-    sControllerThread = PR_GetCurrentThread();
-    sControllerThreadDetermined = true;
-  }
-  MOZ_ASSERT(sControllerThread == PR_GetCurrentThread());
 }
 
 class FlingAnimation: public AsyncPanZoomAnimation {
@@ -686,6 +667,24 @@ AsyncPanZoomController::SetThreadAssertionsEnabled(bool aEnabled) {
 bool
 AsyncPanZoomController::GetThreadAssertionsEnabled() {
   return sThreadAssertionsEnabled;
+}
+
+void
+AsyncPanZoomController::AssertOnControllerThread() {
+  if (!GetThreadAssertionsEnabled()) {
+    return;
+  }
+
+  static bool sControllerThreadDetermined = false;
+  if (!sControllerThreadDetermined) {
+    
+    
+    
+    
+    sControllerThread = PR_GetCurrentThread();
+    sControllerThreadDetermined = true;
+  }
+  MOZ_ASSERT(sControllerThread == PR_GetCurrentThread());
 }
 
  void
