@@ -132,9 +132,9 @@ class Image;
 
 namespace image {
 
+class ScaleRequest;
 class Decoder;
 class FrameAnimator;
-class ScaleRunner;
 
 class RasterImage MOZ_FINAL : public ImageResource
                             , public nsIProperties
@@ -298,6 +298,23 @@ public:
   
   static void Initialize();
 
+  enum ScaleStatus
+  {
+    SCALE_INVALID,
+    SCALE_PENDING,
+    SCALE_DONE
+  };
+
+  
+  
+  
+  void ScalingStart(ScaleRequest* request);
+
+  
+  
+  
+  void ScalingDone(ScaleRequest* request, ScaleStatus status);
+
   
   enum eShutdownIntent {
     eShutdownIntent_Done        = 0,
@@ -309,6 +326,9 @@ public:
   
 
 private:
+  
+  void RequestScale(imgFrame* aFrame, nsIntSize aScale);
+
   already_AddRefed<imgStatusTracker> CurrentStatusTracker()
   {
     mDecodingMonitor.AssertCurrentThreadIn();
@@ -704,27 +724,31 @@ private:
   bool     IsDecodeFinished();
   TimeStamp mDrawStartTime;
 
+  inline bool CanQualityScale(const gfx::Size& scale);
+  inline bool CanScale(GraphicsFilter aFilter, gfx::Size aScale, uint32_t aFlags);
+
+  struct ScaleResult
+  {
+    ScaleResult()
+     : status(SCALE_INVALID)
+    {}
+
+    nsIntSize scaledSize;
+    nsRefPtr<imgFrame> frame;
+    ScaleStatus status;
+  };
+
+  ScaleResult mScaleResult;
+
+  
+  
+  
+  ScaleRequest* mScaleRequest;
+
   
   nsAutoPtr<imgStatusTrackerInit> mStatusTrackerInit;
 
   nsresult ShutdownDecoder(eShutdownIntent aIntent);
-
-
-  
-  
-  
-
-  
-  void RequestScale(imgFrame* aFrame, uint32_t aFlags, const nsIntSize& aSize);
-
-  
-  bool CanScale(GraphicsFilter aFilter, const nsIntSize& aSize, uint32_t aFlags);
-
-  
-  void NotifyNewScaledFrame();
-
-  friend class ScaleRunner;
-
 
   
   void DoError();
