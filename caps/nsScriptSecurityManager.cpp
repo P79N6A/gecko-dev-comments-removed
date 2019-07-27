@@ -1256,8 +1256,7 @@ nsresult nsScriptSecurityManager::Init()
 
     
     
-    rv = nsXPConnect::XPConnect()->GetRuntime(&sRuntime);
-    NS_ENSURE_SUCCESS(rv, rv);
+    sRuntime = xpc::GetJSRuntime();
 
     static const JSSecurityCallbacks securityCallbacks = {
         ContentSecurityPolicyPermitsJSAction,
