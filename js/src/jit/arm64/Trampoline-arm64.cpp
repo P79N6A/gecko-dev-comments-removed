@@ -327,11 +327,11 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
     masm.Ldr(x1, MemOperand(masm.GetStackPointer64(), RectifierFrameLayout::offsetOfCalleeToken()));
 
     
-    masm.And(x6, x1, Operand(CalleeTokenMask));
     
+    masm.And(x5, x1, Operand(CalleeTokenMask));
 
     
-    masm.Ldrh(x6, MemOperand(x6, JSFunction::offsetOfNargs()));
+    masm.Ldrh(x6, MemOperand(x5, JSFunction::offsetOfNargs()));
 
     static_assert(CalleeToken_FunctionConstructing == 0x1, "Constructing must be low-order bit");
     masm.And(x4, x1, Operand(CalleeToken_FunctionConstructing));
@@ -401,9 +401,7 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
               r6); 
 
     
-    
-    masm.And(x1, x1, Operand(CalleeTokenMask));
-    masm.Ldr(x3, MemOperand(x1, JSFunction::offsetOfNativeOrScript()));
+    masm.Ldr(x3, MemOperand(x5, JSFunction::offsetOfNativeOrScript()));
     masm.loadBaselineOrIonRaw(r3, r3, nullptr);
     masm.call(r3);
     uint32_t returnOffset = masm.currentOffset();
