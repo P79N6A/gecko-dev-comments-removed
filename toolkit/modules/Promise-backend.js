@@ -24,7 +24,26 @@
 
 
 
-if (!isWorker) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let Cu = this.require ? require("chrome").Cu : Components.utils;
+
+
+if (Cu) {
   Cu.import("resource://gre/modules/Services.jsm");
   Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -46,7 +65,7 @@ const salt = Math.floor(Math.random() * 100);
 const N_INTERNALS = "{private:internals:" + salt + "}";
 
 
-const DOMPromise = isWorker ? null : Promise;
+const DOMPromise = Cu ? Promise : null;
 
 
 
@@ -254,8 +273,7 @@ let PendingErrors = {
 
 
 
-
-if (!isWorker) {
+if (Cu) {
   PendingErrors.init();
 }
 
@@ -630,7 +648,7 @@ Object.freeze(Promise);
 
 
 
-if (isWorker) {
+if (this.module) {
   module.exports = Promise;
 }
 
@@ -685,7 +703,7 @@ this.PromiseWalker = {
     aPromise[N_INTERNALS].value = aValue;
     if (aPromise[N_INTERNALS].handlers.length > 0) {
       this.schedulePromise(aPromise);
-    } else if (!isWorker && aStatus == STATUS_REJECTED) {
+    } else if (Cu && aStatus == STATUS_REJECTED) {
       
       
       let id = PendingErrors.register(aValue);
@@ -701,10 +719,25 @@ this.PromiseWalker = {
   scheduleWalkerLoop: function()
   {
     this.walkerLoopScheduled = true;
-    if (isWorker) {
-      setImmediate(this.walkerLoop);
-    } else {
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (Cu) {
       DOMPromise.resolve().then(() => this.walkerLoop());
+    } else {
+      setImmediate(this.walkerLoop);
     }
   },
 

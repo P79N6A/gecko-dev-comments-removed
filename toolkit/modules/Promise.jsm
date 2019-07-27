@@ -96,17 +96,6 @@ this.Ci = Components.interfaces;
 this.Cu = Components.utils;
 this.Cr = Components.results;
 
-
-
-
-
-
-
-
-
-
-this.isWorker = false;
-
 this.Cc["@mozilla.org/moz/jssubscript-loader;1"]
     .getService(this.Ci.mozIJSSubScriptLoader)
     .loadSubScript("resource://gre/modules/Promise-backend.js", this);
