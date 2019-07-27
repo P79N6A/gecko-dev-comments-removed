@@ -189,6 +189,8 @@ public:
   z_stream *UpstreamZlib() { return &mUpstreamZlib; }
   nsISocketTransport *SocketTransport() { return mSocketTransport; }
 
+  void SendPing() MOZ_OVERRIDE;
+
 private:
 
   enum stateType {
@@ -377,6 +379,9 @@ private:
   PRIntervalTime       mLastDataReadEpoch; 
   PRIntervalTime       mPingSentEpoch;
   uint32_t             mNextPingID;
+
+  PRIntervalTime       mPreviousPingThreshold; 
+  bool                 mPreviousUsed;          
 
   
   nsDeque  mGoAwayStreamsToRestart;

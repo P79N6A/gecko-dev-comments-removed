@@ -91,6 +91,14 @@ public:
     nsresult PruneDeadConnections();
 
     
+    nsresult PruneNoTraffic();
+
+    
+    
+    
+    nsresult VerifyTraffic();
+
+    
     
     
     nsresult DoShiftReloadConnectionCleanup(nsHttpConnectionInfo *);
@@ -242,6 +250,9 @@ public:
     void ResetIPFamilyPreference(nsHttpConnectionInfo *);
 
     uint16_t MaxRequestDelay() { return mMaxRequestDelay; }
+
+    
+    void ActivateTimeoutTick();
 
 private:
     virtual ~nsHttpConnectionMgr();
@@ -525,6 +536,8 @@ private:
     static PLDHashOperator PurgeExcessIdleConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     static PLDHashOperator PurgeExcessSpdyConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     static PLDHashOperator ClosePersistentConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
+    static PLDHashOperator VerifyTrafficCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
+    static PLDHashOperator PruneNoTrafficCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     bool     ProcessPendingQForEntry(nsConnectionEntry *, bool considerAll);
     bool     IsUnderPressure(nsConnectionEntry *ent,
                              nsHttpTransaction::Classifier classification);
@@ -643,6 +656,8 @@ private:
     void OnMsgProcessFeedback      (int32_t, void *);
     void OnMsgProcessAllSpdyPendingQ (int32_t, void *);
     void OnMsgUpdateRequestTokenBucket (int32_t, void *);
+    void OnMsgVerifyTraffic (int32_t, void *);
+    void OnMsgPruneNoTraffic (int32_t, void *);
 
     
     
@@ -660,6 +675,9 @@ private:
     uint64_t mTimeOfNextWakeUp;
     
     nsCOMPtr<nsITimer> mTimer;
+    
+    nsCOMPtr<nsITimer> mTrafficTimer;
+    bool mPruningNoTraffic;
 
     
     
@@ -685,7 +703,6 @@ private:
         void *aArg);
 
     
-    void ActivateTimeoutTick();
     void TimeoutTick();
     static PLDHashOperator TimeoutTickCB(const nsACString &key,
                                          nsAutoPtr<nsConnectionEntry> &ent,

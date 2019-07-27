@@ -212,6 +212,8 @@ public:
   int64_t ServerSessionWindow() { return mServerSessionWindow; }
   void DecrementServerSessionWindow (uint32_t bytes) { mServerSessionWindow -= bytes; }
 
+  void SendPing() MOZ_OVERRIDE;
+
 private:
 
   
@@ -440,6 +442,9 @@ private:
   PRIntervalTime       mLastReadEpoch;     
   PRIntervalTime       mLastDataReadEpoch; 
   PRIntervalTime       mPingSentEpoch;
+
+  PRIntervalTime       mPreviousPingThreshold; 
+  bool                 mPreviousUsed;          
 
   
   nsDeque  mGoAwayStreamsToRestart;

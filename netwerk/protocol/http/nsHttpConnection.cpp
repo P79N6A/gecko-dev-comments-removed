@@ -69,6 +69,7 @@ nsHttpConnection::nsHttpConnection()
     , mExperienced(false)
     , mInSpdyTunnel(false)
     , mForcePlainText(false)
+    , mTrafficStamp(false)
     , mHttp1xTransactionCount(0)
     , mRemainingConnectionUses(0xffffffff)
     , mClassification(nsAHttpTransaction::CLASS_GENERAL)
@@ -2078,6 +2079,24 @@ nsHttpConnection::GetInterface(const nsIID &iid, void **result)
     if (callbacks)
         return callbacks->GetInterface(iid, result);
     return NS_ERROR_NO_INTERFACE;
+}
+
+void
+nsHttpConnection::CheckForTraffic(bool check)
+{
+    if (check) {
+        if (mSpdySession) {
+            
+            mSpdySession->SendPing();
+        } else {
+            
+            mTrafficCount = mTotalBytesWritten + mTotalBytesRead;
+            mTrafficStamp = true;
+        }
+    } else {
+        
+        mTrafficStamp = false;
+    }
 }
 
 } 
