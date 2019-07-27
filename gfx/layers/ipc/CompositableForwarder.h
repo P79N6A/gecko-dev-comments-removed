@@ -128,16 +128,17 @@ public:
     mTexturesToRemove.Clear();
   }
 
+  struct TimedTextureClient {
+    TextureClient* mTextureClient;
+    TimeStamp mTimeStamp;
+    nsIntRect mPictureRect;
+  };
   
 
 
 
-
-
-
-  virtual void UseTexture(CompositableClient* aCompositable,
-                          TextureClient* aClient,
-                          const nsIntRect* aPictureRect = nullptr) = 0;
+  virtual void UseTextures(CompositableClient* aCompositable,
+                           const nsTArray<TimedTextureClient>& aTextures) = 0;
   virtual void UseComponentAlphaTextures(CompositableClient* aCompositable,
                                          TextureClient* aClientOnBlack,
                                          TextureClient* aClientOnWhite) = 0;

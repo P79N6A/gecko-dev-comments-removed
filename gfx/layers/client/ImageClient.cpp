@@ -113,9 +113,11 @@ void
 ImageClientSingle::FlushAllImages(bool aExceptFront,
                                   AsyncTransactionWaiter* aAsyncTransactionWaiter)
 {
-  if (!aExceptFront && mFrontBuffer) {
-    RemoveTextureWithWaiter(mFrontBuffer, aAsyncTransactionWaiter);
-    mFrontBuffer = nullptr;
+  if (!aExceptFront) {
+    for (auto& b : mBuffers) {
+      RemoveTextureWithWaiter(b.mTextureClient, aAsyncTransactionWaiter);
+    }
+    mBuffers.Clear();
   }
 }
 
@@ -131,107 +133,137 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
   }
   mLastUpdateGenerationCounter = generationCounter;
 
-  Image* image = images[0].mImage;
-  
-  
-  
-  if (!image->IsValid()) {
+  for (int32_t i = images.Length() - 1; i >= 0; --i) {
+    if (!images[i].mImage->IsValid()) {
+      
+      images.RemoveElementAt(i);
+    }
+  }
+  if (images.IsEmpty()) {
+    
+    
     return true;
   }
 
-  RefPtr<TextureClient> texture = image->GetTextureClient(this);
+  nsTArray<Buffer> newBuffers;
+  nsAutoTArray<CompositableForwarder::TimedTextureClient,4> textures;
 
-  AutoRemoveTexture autoRemoveTexture(this);
-  if (texture != mFrontBuffer) {
-    autoRemoveTexture.mTexture = mFrontBuffer;
-    mFrontBuffer = nullptr;
-  }
+  for (auto& img : images) {
+    Image* image = img.mImage;
+    RefPtr<TextureClient> texture = image->GetTextureClient(this);
 
-  if (!texture) {
-    
-    
-    
-    if (image->GetFormat() == ImageFormat::PLANAR_YCBCR) {
-      PlanarYCbCrImage* ycbcr = static_cast<PlanarYCbCrImage*>(image);
-      const PlanarYCbCrData* data = ycbcr->GetData();
-      if (!data) {
-        return false;
-      }
-      texture = TextureClient::CreateForYCbCr(GetForwarder(),
-        data->mYSize, data->mCbCrSize, data->mStereoMode,
-        TextureFlags::DEFAULT | mTextureFlags
-      );
-      if (!texture || !texture->Lock(OpenMode::OPEN_WRITE_ONLY)) {
-        return false;
-      }
-      bool status = texture->AsTextureClientYCbCr()->UpdateYCbCr(*data);
-      MOZ_ASSERT(status);
-
-      texture->Unlock();
-      if (!status) {
-        return false;
-      }
-
-    } else if (image->GetFormat() == ImageFormat::SURFACE_TEXTURE ||
-               image->GetFormat() == ImageFormat::EGLIMAGE) {
-      gfx::IntSize size = image->GetSize();
-
-      if (image->GetFormat() == ImageFormat::EGLIMAGE) {
-        EGLImageImage* typedImage = static_cast<EGLImageImage*>(image);
-        texture = new EGLImageTextureClient(GetForwarder(),
-                                            mTextureFlags,
-                                            typedImage,
-                                            size);
-#ifdef MOZ_WIDGET_ANDROID
-      } else if (image->GetFormat() == ImageFormat::SURFACE_TEXTURE) {
-        SurfaceTextureImage* typedImage = static_cast<SurfaceTextureImage*>(image);
-        const SurfaceTextureImage::Data* data = typedImage->GetData();
-        texture = new SurfaceTextureClient(GetForwarder(), mTextureFlags,
-                                           data->mSurfTex, size,
-                                           data->mOriginPos);
-#endif
-      } else {
-        MOZ_ASSERT(false, "Bad ImageFormat.");
-      }
-    } else {
-      RefPtr<gfx::SourceSurface> surface = image->GetAsSourceSurface();
-      MOZ_ASSERT(surface);
-      texture = CreateTextureClientForDrawing(surface->GetFormat(), image->GetSize(),
-                                              gfx::BackendType::NONE, mTextureFlags);
-      if (!texture) {
-        return false;
-      }
-
-      MOZ_ASSERT(texture->CanExposeDrawTarget());
-
-      if (!texture->Lock(OpenMode::OPEN_WRITE_ONLY)) {
-        return false;
-      }
-
-      {
+    for (int32_t i = mBuffers.Length() - 1; i >= 0; --i) {
+      if (mBuffers[i].mImageSerial == image->GetSerial()) {
+        if (texture) {
+          MOZ_ASSERT(texture == mBuffers[i].mTextureClient);
+        } else {
+          texture = mBuffers[i].mTextureClient;
+        }
         
-        DrawTarget* dt = texture->BorrowDrawTarget();
-        if (!dt) {
-          gfxWarning() << "ImageClientSingle::UpdateImage failed in BorrowDrawTarget";
+        
+        mBuffers.RemoveElementAt(i);
+      }
+    }
+
+    if (!texture) {
+      
+      
+      
+      if (image->GetFormat() == ImageFormat::PLANAR_YCBCR) {
+        PlanarYCbCrImage* ycbcr = static_cast<PlanarYCbCrImage*>(image);
+        const PlanarYCbCrData* data = ycbcr->GetData();
+        if (!data) {
           return false;
         }
-        MOZ_ASSERT(surface.get());
-        dt->CopySurface(surface, IntRect(IntPoint(), surface->GetSize()), IntPoint());
+        texture = TextureClient::CreateForYCbCr(GetForwarder(),
+          data->mYSize, data->mCbCrSize, data->mStereoMode,
+          TextureFlags::DEFAULT | mTextureFlags
+        );
+        if (!texture || !texture->Lock(OpenMode::OPEN_WRITE_ONLY)) {
+          return false;
+        }
+        bool status = texture->AsTextureClientYCbCr()->UpdateYCbCr(*data);
+        MOZ_ASSERT(status);
+
+        texture->Unlock();
+        if (!status) {
+          return false;
+        }
+
+      } else if (image->GetFormat() == ImageFormat::SURFACE_TEXTURE ||
+                 image->GetFormat() == ImageFormat::EGLIMAGE) {
+        gfx::IntSize size = image->GetSize();
+
+        if (image->GetFormat() == ImageFormat::EGLIMAGE) {
+          EGLImageImage* typedImage = static_cast<EGLImageImage*>(image);
+          texture = new EGLImageTextureClient(GetForwarder(),
+                                              mTextureFlags,
+                                              typedImage,
+                                              size);
+#ifdef MOZ_WIDGET_ANDROID
+        } else if (image->GetFormat() == ImageFormat::SURFACE_TEXTURE) {
+          SurfaceTextureImage* typedImage = static_cast<SurfaceTextureImage*>(image);
+          const SurfaceTextureImage::Data* data = typedImage->GetData();
+          texture = new SurfaceTextureClient(GetForwarder(), mTextureFlags,
+                                             data->mSurfTex, size,
+                                             data->mOriginPos);
+#endif
+        } else {
+          MOZ_ASSERT(false, "Bad ImageFormat.");
+        }
+      } else {
+        RefPtr<gfx::SourceSurface> surface = image->GetAsSourceSurface();
+        MOZ_ASSERT(surface);
+        texture = CreateTextureClientForDrawing(surface->GetFormat(), image->GetSize(),
+                                                gfx::BackendType::NONE, mTextureFlags);
+        if (!texture) {
+          return false;
+        }
+
+        MOZ_ASSERT(texture->CanExposeDrawTarget());
+
+        if (!texture->Lock(OpenMode::OPEN_WRITE_ONLY)) {
+          return false;
+        }
+
+        {
+          
+          DrawTarget* dt = texture->BorrowDrawTarget();
+          if (!dt) {
+            gfxWarning() << "ImageClientSingle::UpdateImage failed in BorrowDrawTarget";
+            return false;
+          }
+          MOZ_ASSERT(surface.get());
+          dt->CopySurface(surface, IntRect(IntPoint(), surface->GetSize()), IntPoint());
+        }
+
+        texture->Unlock();
       }
-
-      texture->Unlock();
     }
-  }
-  if (!texture || !AddTextureClient(texture)) {
-    return false;
+    if (!texture || !AddTextureClient(texture)) {
+      return false;
+    }
+
+
+    CompositableForwarder::TimedTextureClient* t = textures.AppendElement();
+    t->mTextureClient = texture;
+    t->mTimeStamp = img.mTimeStamp;
+    t->mPictureRect = image->GetPictureRect();
+
+    Buffer* newBuf = newBuffers.AppendElement();
+    newBuf->mImageSerial = image->GetSerial();
+    newBuf->mTextureClient = texture;
+
+    aContainer->NotifyPaintedImage(image);
+    texture->SyncWithObject(GetForwarder()->GetSyncObject());
   }
 
-  mFrontBuffer = texture;
-  IntRect pictureRect = image->GetPictureRect();
-  GetForwarder()->UseTexture(this, texture, &pictureRect);
+  GetForwarder()->UseTextures(this, textures);
 
-  aContainer->NotifyPaintedImage(image);
-  texture->SyncWithObject(GetForwarder()->GetSyncObject());
+  for (auto& b : mBuffers) {
+    RemoveTexture(b.mTextureClient);
+  }
+  mBuffers.SwapElements(newBuffers);
 
   return true;
 }
@@ -246,7 +278,7 @@ ImageClientSingle::AddTextureClient(TextureClient* aTexture)
 void
 ImageClientSingle::OnDetach()
 {
-  mFrontBuffer = nullptr;
+  mBuffers.Clear();
 }
 
 ImageClient::ImageClient(CompositableForwarder* aFwd, TextureFlags aFlags,
