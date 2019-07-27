@@ -771,10 +771,8 @@ SelectionCarets::DragSelection(const nsPoint &movePoint)
     return nsEventStatus_eConsumeNoDefault;
   }
 
-  
-  
   nsRefPtr<nsRange> range = mDragMode == START_FRAME ?
-    selection->GetRangeAt(rangeCount - 1) : selection->GetRangeAt(0);
+    selection->GetRangeAt(0) : selection->GetRangeAt(rangeCount - 1);
   if (!CompareRangeWithContentOffset(range, fs, offsets, mDragMode)) {
     return nsEventStatus_eConsumeNoDefault;
   }
