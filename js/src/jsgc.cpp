@@ -2953,22 +2953,14 @@ GCRuntime::refillFreeListFromMainThread(JSContext *cx, AllocKind thingKind)
     ArenaLists *arenas = cx->arenas();
     Zone *zone = cx->zone();
 
-    
-    
-    
-    const bool mustCollectNow = allowGC && rt->gc.isIncrementalGCInProgress() &&
-                                zone->usage.gcBytes() > zone->threshold.gcTriggerBytes();
-
     bool outOfMemory = false;  
     bool ranGC = false;  
     do {
-        if (MOZ_UNLIKELY(mustCollectNow || outOfMemory)) {
+        if (MOZ_UNLIKELY(outOfMemory)) {
             
             
-            if (!allowGC) {
-                MOZ_ASSERT(!mustCollectNow);
+            if (!allowGC)
                 return nullptr;
-            }
 
             if (void *thing = RunLastDitchGC(cx, zone, thingKind))
                 return thing;

@@ -452,6 +452,17 @@ CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
             
             rt->gc.gcIfRequested(ncx);
         }
+
+        
+        
+        
+        if (rt->gc.isIncrementalGCInProgress() &&
+            ncx->zone()->usage.gcBytes() > ncx->zone()->threshold.gcTriggerBytes())
+        {
+            PrepareZoneForGC(ncx->zone());
+            AutoKeepAtoms keepAtoms(cx->perThreadData);
+            rt->gc.gc(GC_NORMAL, JS::gcreason::INCREMENTAL_TOO_SLOW);
+        }
     }
 
     return true;
