@@ -19,6 +19,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -277,7 +278,7 @@ private:
                                float aContrastEffect);
 
   RefPtr<Compositor> mCompositor;
-  nsAutoPtr<LayerProperties> mClonedLayerTreeProperties;
+  UniquePtr<LayerProperties> mClonedLayerTreeProperties;
 
   
 
@@ -287,7 +288,7 @@ private:
 
   gfx::Matrix mWorldMatrix;
   nsIntRegion mInvalidRegion;
-  nsAutoPtr<FPSState> mFPS;
+  UniquePtr<FPSState> mFPS;
 
   bool mInTransaction;
   bool mIsCompositorReady;

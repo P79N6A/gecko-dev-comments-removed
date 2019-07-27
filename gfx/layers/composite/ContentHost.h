@@ -23,7 +23,7 @@
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/TextureHost.h"  
 #include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
+#include "mozilla/UniquePtr.h"          
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
@@ -374,7 +374,7 @@ private:
     nsIntPoint mBufferRotation;
   };
 
-  nsTArray<nsAutoPtr<Request> > mUpdateList;
+  nsTArray<UniquePtr<Request> > mUpdateList;
 
   
   

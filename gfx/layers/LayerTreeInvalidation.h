@@ -7,6 +7,7 @@
 #define GFX_LAYER_TREE_INVALIDATION_H
 
 #include "nsRegion.h"                   
+#include "mozilla/UniquePtr.h"          
 
 class nsPresContext;
 struct nsIntPoint;
@@ -42,7 +43,7 @@ struct LayerProperties
 
 
 
-  static LayerProperties* CloneFrom(Layer* aRoot);
+  static UniquePtr<LayerProperties> CloneFrom(Layer* aRoot);
 
   
 
