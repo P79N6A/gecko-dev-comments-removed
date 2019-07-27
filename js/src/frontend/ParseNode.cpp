@@ -216,9 +216,13 @@ PushBinaryNodeNullableChildren(ParseNode *node, NodeStack *stack)
 {
     MOZ_ASSERT(node->isArity(PN_BINARY) || node->isArity(PN_BINARY_OBJ));
 
-    
-    if (node->pn_left != node->pn_right)
+    if (node->pn_left != node->pn_right) {
+        
+        
+        
+        
         stack->pushUnlessNull(node->pn_left);
+    }
 
     stack->pushUnlessNull(node->pn_right);
 
@@ -291,6 +295,12 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
         return PushUnaryNodeChild(pn, stack);
 
       
+      case PNK_SEMI:
+        return PushUnaryNodeNullableChild(pn, stack);
+
+      
+
+      
       case PNK_ASSIGN:
       case PNK_ADDASSIGN:
       case PNK_SUBASSIGN:
@@ -303,7 +313,21 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
       case PNK_MULASSIGN:
       case PNK_DIVASSIGN:
       case PNK_MODASSIGN:
+      
+      case PNK_COLON:
+      case PNK_CASE:
+      case PNK_SHORTHAND:
         return PushBinaryNodeChildren(pn, stack);
+
+      
+      
+      
+      case PNK_DEFAULT: {
+        MOZ_ASSERT(pn->isArity(PN_BINARY));
+        MOZ_ASSERT(pn->pn_left == nullptr);
+        stack->push(pn->pn_right);
+        return PushResult::Recyclable;
+      }
 
       
       case PNK_OR:
@@ -332,12 +356,12 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
       case PNK_COMMA:
       case PNK_ARRAY:
       case PNK_OBJECT:
+      case PNK_VAR:
+      case PNK_CONST:
+      case PNK_GLOBALCONST:
         return PushListNodeChildren(pn, stack);
 
-      case PNK_SEMI:
       case PNK_CONDITIONAL:
-      case PNK_COLON:
-      case PNK_SHORTHAND:
       case PNK_DOT:
       case PNK_ELEM:
       case PNK_STATEMENTLIST:
@@ -350,14 +374,9 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
       case PNK_FUNCTION:
       case PNK_IF:
       case PNK_SWITCH:
-      case PNK_CASE:
-      case PNK_DEFAULT:
       case PNK_WHILE:
       case PNK_DOWHILE:
       case PNK_FOR:
-      case PNK_VAR:
-      case PNK_CONST:
-      case PNK_GLOBALCONST:
       case PNK_WITH:
       case PNK_RETURN:
       case PNK_NEW:
