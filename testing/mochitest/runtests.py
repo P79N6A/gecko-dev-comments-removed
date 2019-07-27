@@ -2212,6 +2212,11 @@ class Mochitest(MochitestUtilsMixin):
             if self.urlOpts:
                 testURL += "?" + "&".join(self.urlOpts)
 
+            
+            
+            if mozinfo.isMac and options.webapprtChrome:
+                options.browserArgs.extend(('-runtime', os.path.dirname(os.path.dirname(options.xrePath))))
+
             if options.webapprtContent:
                 options.browserArgs.extend(('-test-mode', testURL))
                 testURL = None
