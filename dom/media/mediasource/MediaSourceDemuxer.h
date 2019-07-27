@@ -127,8 +127,7 @@ private:
   nsRefPtr<MediaSourceDemuxer> mParent;
   nsRefPtr<TrackBuffersManager> mManager;
   TrackInfo::TrackType mType;
-  uint32_t mNextSampleIndex;
-  media::TimeUnit mNextSampleTime;
+  media::TimeIntervals mBufferedRanges;
   
   Monitor mMonitor;
   media::TimeUnit mNextRandomAccessPoint;
