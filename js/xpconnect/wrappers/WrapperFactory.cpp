@@ -107,15 +107,6 @@ WrapperFactory::WaiveXray(JSContext *cx, JSObject *objArg)
     return CreateXrayWaiver(cx, obj);
 }
 
-
-
-
-static bool
-ForceCOWBehavior(JSObject *obj)
-{
-    return IdentifyStandardInstanceOrPrototype(obj) == JSProto_Object;
-}
-
 inline bool
 ShouldWaiveXray(JSContext *cx, JSObject *originalObj)
 {
@@ -170,45 +161,6 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     
     
     MOZ_ASSERT(!IsWrapper(obj));
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool subsumes = AccessCheck::subsumes(js::GetContextCompartment(cx),
-                                          js::GetObjectCompartment(obj));
-    XrayType xrayType = GetXrayType(obj);
-    if (!subsumes && (xrayType == NotXray || ForceCOWBehavior(obj))) {
-        JSProtoKey key = JSProto_Null;
-        {
-            JSAutoCompartment ac(cx, obj);
-            key = IdentifyStandardPrototype(obj);
-        }
-        if (key != JSProto_Null) {
-            RootedObject homeProto(cx);
-            if (!JS_GetClassPrototype(cx, key, &homeProto))
-                return nullptr;
-            MOZ_ASSERT(homeProto);
-            
-            
-            return homeProto;
-        }
-    }
 
     
     
@@ -481,10 +433,8 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
     
     
     
-    
-    
     else if (originIsChrome && !targetIsChrome &&
-             (xrayType == NotXray || ForceCOWBehavior(obj)))
+             IdentifyStandardInstance(obj) == JSProto_Object)
     {
         wrapper = &ChromeObjectWrapper::singleton;
     }

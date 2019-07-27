@@ -178,10 +178,6 @@ FilteringWrapper<Base, Policy>::getPrototypeOf(JSContext *cx, JS::HandleObject w
                                                JS::MutableHandleObject protop) const
 {
     
-    if (Policy::AllowGetPrototypeOf)
-        return Base::getPrototypeOf(cx, wrapper, protop);
-
-    
     protop.set(nullptr);
     return true;
 }
