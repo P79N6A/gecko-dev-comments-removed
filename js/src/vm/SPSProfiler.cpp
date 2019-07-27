@@ -321,12 +321,16 @@ SPSEntryMarker::SPSEntryMarker(JSRuntime *rt,
         return;
     }
     size_before = *profiler->size_;
+    
     profiler->push("js::RunScript", this, nullptr, nullptr,  false);
+    
+    profiler->push("js::RunScript", nullptr, script, script->code(),  false);
 }
 
 SPSEntryMarker::~SPSEntryMarker()
 {
     if (profiler != nullptr) {
+        profiler->pop();
         profiler->pop();
         JS_ASSERT(size_before == *profiler->size_);
     }
