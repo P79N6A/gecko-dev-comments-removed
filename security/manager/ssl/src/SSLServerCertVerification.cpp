@@ -98,6 +98,7 @@
 
 #include "pkix/pkixtypes.h"
 #include "pkix/pkixnss.h"
+#include "pkix/ScopedPtr.h"
 #include "CertVerifier.h"
 #include "CryptoTask.h"
 #include "ExtendedValidation.h"
@@ -112,6 +113,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/net/DNS.h"
 #include "mozilla/unused.h"
 #include "nsIThreadPool.h"
 #include "nsNetUtil.h"
@@ -121,6 +123,7 @@
 #include "PSMRunnable.h"
 #include "SharedSSLState.h"
 #include "nsContentUtils.h"
+#include "nsURLHelper.h"
 
 #include "ssl.h"
 #include "secerr.h"
@@ -739,6 +742,216 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   return SECFailure;
 }
 
+void
+AccumulateSubjectCommonNameTelemetry(const char* commonName,
+                                     bool commonNameInSubjectAltNames)
+{
+  if (!commonName) {
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_2_SUBJECT_COMMON_NAME, 1);
+  } else if (!commonNameInSubjectAltNames) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("BR telemetry: common name '%s' not in subject alt. names "
+            "(or the subject alt. names extension is not present)\n",
+            commonName));
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_2_SUBJECT_COMMON_NAME, 2);
+  } else {
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_2_SUBJECT_COMMON_NAME, 0);
+  }
+}
+
+
+
+
+static bool
+TryMatchingWildcardSubjectAltName(const char* commonName,
+                                  nsDependentCString altName)
+{
+  if (!commonName) {
+    return false;
+  }
+  
+  nsDependentCString altNameSubstr(altName.get() + 1, altName.Length() - 1);
+  nsDependentCString commonNameStr(commonName, strlen(commonName));
+  int32_t altNameIndex = commonNameStr.Find(altNameSubstr);
+  
+  
+  
+  
+  
+  
+  
+  
+  return altNameIndex >= 0 &&
+         altNameIndex + altNameSubstr.Length() == commonNameStr.Length();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
+{
+  CERTCertListNode* endEntityNode = CERT_LIST_HEAD(certList);
+  CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
+  PR_ASSERT(endEntityNode && rootNode);
+  if (!endEntityNode || !rootNode) {
+    return;
+  }
+  CERTCertificate* cert = endEntityNode->cert;
+  mozilla::pkix::ScopedPtr<char, PORT_Free_string> commonName(
+    CERT_GetCommonName(&cert->subject));
+  
+  
+  bool isBuiltIn = false;
+  SECStatus rv = IsCertBuiltInRoot(rootNode->cert, isBuiltIn);
+  if (rv != SECSuccess || !isBuiltIn) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("BR telemetry: '%s' not a built-in root (or IsCertBuiltInRoot "
+            "failed)\n", commonName.get()));
+    return;
+  }
+  SECItem altNameExtension;
+  rv = CERT_FindCertExtension(cert, SEC_OID_X509_SUBJECT_ALT_NAME,
+                              &altNameExtension);
+  if (rv != SECSuccess) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("BR telemetry: no subject alt names extension for '%s'\n",
+            commonName.get()));
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 1);
+    AccumulateSubjectCommonNameTelemetry(commonName.get(), false);
+    return;
+  }
+
+  ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+  CERTGeneralName* subjectAltNames =
+    CERT_DecodeAltNameExtension(arena, &altNameExtension);
+  
+  
+  
+  
+  PORT_Free(altNameExtension.data);
+  if (!subjectAltNames) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("BR telemetry: could not decode subject alt names for '%s'\n",
+            commonName.get()));
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 2);
+    AccumulateSubjectCommonNameTelemetry(commonName.get(), false);
+    return;
+  }
+
+  CERTGeneralName* currentName = subjectAltNames;
+  bool commonNameInSubjectAltNames = false;
+  bool nonDNSNameOrIPAddressPresent = false;
+  bool malformedDNSNameOrIPAddressPresent = false;
+  bool nonFQDNPresent = false;
+  do {
+    nsDependentCString altName;
+    if (currentName->type == certDNSName) {
+      altName.Assign(reinterpret_cast<char*>(currentName->name.other.data),
+                     currentName->name.other.len);
+      nsDependentCString altNameWithoutWildcard(altName);
+      if (altNameWithoutWildcard.Find("*.") == 0) {
+        altNameWithoutWildcard.Assign(altName.get() + 2, altName.Length() - 2);
+        commonNameInSubjectAltNames |=
+          TryMatchingWildcardSubjectAltName(commonName.get(), altName);
+      }
+      
+      
+      
+      
+      if (!net_IsValidHostName(altNameWithoutWildcard) ||
+          net_IsValidIPv4Addr(altName.get(), altName.Length()) ||
+          net_IsValidIPv6Addr(altName.get(), altName.Length())) {
+        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+               ("BR telemetry: DNSName '%s' not valid (for '%s')\n",
+                altName.get(), commonName.get()));
+        malformedDNSNameOrIPAddressPresent = true;
+      }
+      if (altName.FindChar('.') == kNotFound) {
+        nonFQDNPresent = true;
+      }
+    } else if (currentName->type == certIPAddress) {
+      
+      char buf[net::kNetAddrMaxCStrBufSize] = { 0 };
+      PRNetAddr addr;
+      if (currentName->name.other.len == 4) {
+        addr.inet.family = PR_AF_INET;
+        memcpy(&addr.inet.ip, currentName->name.other.data,
+               currentName->name.other.len);
+        if (PR_NetAddrToString(&addr, buf, sizeof(buf) - 1) != PR_SUCCESS) {
+        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+               ("BR telemetry: IPAddress (v4) not valid (for '%s')\n",
+                commonName.get()));
+          malformedDNSNameOrIPAddressPresent = true;
+        } else {
+          altName.Assign(buf, strlen(buf));
+        }
+      } else if (currentName->name.other.len == 16) {
+        addr.inet.family = PR_AF_INET6;
+        memcpy(&addr.ipv6.ip, currentName->name.other.data,
+               currentName->name.other.len);
+        if (PR_NetAddrToString(&addr, buf, sizeof(buf) - 1) != PR_SUCCESS) {
+        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+               ("BR telemetry: IPAddress (v6) not valid (for '%s')\n",
+                commonName.get()));
+          malformedDNSNameOrIPAddressPresent = true;
+        } else {
+          altName.Assign(buf, strlen(buf));
+        }
+      } else {
+        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+               ("BR telemetry: IPAddress not valid (for '%s')\n",
+                commonName.get()));
+        malformedDNSNameOrIPAddressPresent = true;
+      }
+    } else {
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+             ("BR telemetry: non-DNSName, non-IPAddress present for '%s'\n",
+              commonName.get()));
+      nonDNSNameOrIPAddressPresent = true;
+    }
+    if (commonName && altName.Equals(commonName.get())) {
+      commonNameInSubjectAltNames = true;
+    }
+    currentName = CERT_GetNextGeneralName(currentName);
+  } while (currentName && currentName != subjectAltNames);
+
+  if (nonDNSNameOrIPAddressPresent) {
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 3);
+  }
+  if (malformedDNSNameOrIPAddressPresent) {
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 4);
+  }
+  if (nonFQDNPresent) {
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 5);
+  }
+  if (!nonDNSNameOrIPAddressPresent && !malformedDNSNameOrIPAddressPresent &&
+      !nonFQDNPresent) {
+    
+    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 0);
+  }
+
+  AccumulateSubjectCommonNameTelemetry(commonName.get(),
+                                       commonNameInSubjectAltNames);
+}
+
 SECStatus
 AuthCertificate(CertVerifier& certVerifier,
                 TransportSecurityInfo* infoObject,
@@ -759,10 +972,11 @@ AuthCertificate(CertVerifier& certVerifier,
     !(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE);
 
   SECOidTag evOidPolicy;
+  ScopedCERTCertList certList;
   rv = certVerifier.VerifySSLServerCert(cert, stapledOCSPResponse,
                                         time, infoObject,
                                         infoObject->GetHostNameRaw(),
-                                        saveIntermediates, 0, nullptr,
+                                        saveIntermediates, 0, &certList,
                                         &evOidPolicy);
 
   
@@ -782,6 +996,7 @@ AuthCertificate(CertVerifier& certVerifier,
   }
 
   if (rv == SECSuccess) {
+    GatherBaselineRequirementsTelemetry(certList);
     
     
     
