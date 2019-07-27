@@ -68,6 +68,9 @@ public:
     void GetKeyStatusesForSession(const nsAString& aSessionId,
                                   nsTArray<KeyStatus>& aOutKeyStatuses);
 
+    void GetSessionIdsForKeyId(const CencKeyId& aKeyId,
+                               nsTArray<nsCString>& aOutSessionIds);
+
     
     
     void SetCaps(uint64_t aCaps);
