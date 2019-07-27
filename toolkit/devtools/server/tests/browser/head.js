@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -17,14 +17,14 @@ const MAIN_DOMAIN = "http://test1.example.org/" + PATH;
 const ALT_DOMAIN = "http://sectest1.example.org/" + PATH;
 const ALT_DOMAIN_SECURED = "https://sectest1.example.org:443/" + PATH;
 
-
+// All tests are asynchronous.
 waitForExplicitFinish();
 
-
-
-
-
-
+/**
+ * Add a new test tab in the browser and load the given url.
+ * @param {String} url The url to be loaded in the new tab
+ * @return a promise that resolves to the document when the url is loaded
+ */
 let addTab = Task.async(function* (url) {
   info("Adding a new tab with URL: '" + url + "'");
   let tab = gBrowser.selectedTab = gBrowser.addTab();
@@ -45,20 +45,20 @@ let addTab = Task.async(function* (url) {
 
 function initDebuggerServer() {
   try {
-    
-    
+    // Sometimes debugger server does not get destroyed correctly by previous
+    // tests.
     DebuggerServer.destroy();
   } catch (ex) { }
   DebuggerServer.init();
   DebuggerServer.addBrowserActors();
 }
 
-
-
-
-
-
-
+/**
+ * Connect a debugger client.
+ * @param {DebuggerClient}
+ * @return {Promise} Resolves to the selected tabActor form when the client is
+ * connected.
+ */
 function connectDebuggerClient(client) {
   return new Promise(resolve => {
     client.connect(() => {
@@ -69,23 +69,23 @@ function connectDebuggerClient(client) {
   });
 }
 
-
-
-
-
-
+/**
+ * Close a debugger client's connection.
+ * @param {DebuggerClient}
+ * @return {Promise} Resolves when the connection is closed.
+ */
 function closeDebuggerClient(client) {
   return new Promise(resolve => client.close(resolve));
 }
 
-
-
-
-
-
-
-
-
+/**
+ * Wait for eventName on target.
+ * @param {Object} target An observable object that either supports on/off or
+ * addEventListener/removeEventListener
+ * @param {String} eventName
+ * @param {Boolean} useCapture Optional, for addEventListener/removeEventListener
+ * @return A promise that resolves when the event has been handled
+ */
 function once(target, eventName, useCapture=false) {
   info("Waiting for event: '" + eventName + "' on " + target + ".");
 
@@ -108,14 +108,28 @@ function once(target, eventName, useCapture=false) {
   });
 }
 
-
-
-
-
+/**
+ * Forces GC, CC and Shrinking GC to get rid of disconnected docshells and
+ * windows.
+ */
 function forceCollections() {
   Cu.forceGC();
   Cu.forceCC();
   Cu.forceShrinkingGC();
+}
+
+/**
+ * Get a mock tabActor from a given window.
+ * This is sometimes useful to test actors or classes that use the tabActor in
+ * isolation.
+ * @param {DOMWindow} win
+ * @return {Object}
+ */
+function getMockTabActor(win) {
+  return {
+    window: win,
+    isRootActor: true
+  };
 }
 
 registerCleanupFunction(function tearDown() {

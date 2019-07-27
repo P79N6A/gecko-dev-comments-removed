@@ -125,6 +125,7 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
     this._highlighterHidden = this._highlighterHidden.bind(this);
     this._onNavigate = this._onNavigate.bind(this);
 
+    this._layoutHelpers = new LayoutHelpers(this._tabActor.window);
     this._createHighlighter();
 
     
@@ -179,6 +180,7 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
     this._inspector = null;
     this._walker = null;
     this._tabActor = null;
+    this._layoutHelpers = null;
   },
 
   
@@ -512,7 +514,11 @@ function CanvasFrameAnonymousContentHelper(tabActor, nodeBuilder) {
 
   this._onNavigate = this._onNavigate.bind(this);
   events.on(this.tabActor, "navigate", this._onNavigate);
+
+  this.listeners = new Map();
 }
+
+exports.CanvasFrameAnonymousContentHelper = CanvasFrameAnonymousContentHelper;
 
 CanvasFrameAnonymousContentHelper.prototype = {
   destroy: function() {
@@ -526,6 +532,8 @@ CanvasFrameAnonymousContentHelper.prototype = {
     this.tabActor = this.nodeBuilder = this._content = null;
     this.anonymousContentDocument = null;
     this.anonymousContentGlobal = null;
+
+    this._removeAllListeners();
   },
 
   _insert: function() {
@@ -562,7 +570,9 @@ CanvasFrameAnonymousContentHelper.prototype = {
 
   _onNavigate: function({isTopLevel}) {
     if (isTopLevel) {
+      this._removeAllListeners();
       this._insert();
+      this.anonymousContentDocument = this.tabActor.window.document;
     }
   },
 
@@ -598,6 +608,129 @@ CanvasFrameAnonymousContentHelper.prototype = {
     }
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addEventListenerForElement: function(id, type, handler) {
+    if (typeof id !== "string") {
+      throw new Error("Expected a string ID in addEventListenerForElement but" +
+        " got: " + id);
+    }
+
+    
+    if (!this.listeners.has(type)) {
+      let target = getPageListenerTarget(this.tabActor);
+      target.addEventListener(type, this, true);
+      
+      this.listeners.set(type, new Map);
+    }
+
+    let listeners = this.listeners.get(type);
+    listeners.set(id, handler);
+  },
+
+  
+
+
+
+
+
+
+  removeEventListenerForElement: function(id, type, handler) {
+    let listeners = this.listeners.get(type);
+    if (!listeners) {
+      return;
+    }
+    listeners.delete(id);
+
+    
+    if (!this.listeners.has(type)) {
+      let target = getPageListenerTarget(this.tabActor);
+      target.removeEventListener(type, this, true);
+    }
+  },
+
+  handleEvent: function(event) {
+    let listeners = this.listeners.get(event.type);
+    if (!listeners) {
+      return;
+    }
+
+    
+    
+    let isPropagationStopped = false;
+    let eventProxy = new Proxy(event, {
+      get: (obj, name) => {
+        if (name === "originalTarget") {
+          return null;
+        } else if (name === "stopPropagation") {
+          return () => {
+            isPropagationStopped = true;
+          };
+        } else {
+          return obj[name];
+        }
+      }
+    });
+
+    
+    
+    let node = event.originalTarget;
+    while (node) {
+      let handler = listeners.get(node.id);
+      if (handler) {
+        handler(eventProxy, node.id);
+        if (isPropagationStopped) {
+          break;
+        }
+      }
+      node = node.parentNode;
+    }
+  },
+
+  _removeAllListeners: function() {
+    if (this.tabActor) {
+      let target = getPageListenerTarget(this.tabActor);
+      for (let [type] of this.listeners) {
+        target.removeEventListener(type, this, true);
+      }
+    }
+    this.listeners.clear();
+  },
+
   getElement: function(id) {
     let self = this;
     return {
@@ -605,7 +738,13 @@ CanvasFrameAnonymousContentHelper.prototype = {
       setTextContent: text => self.setTextContentForElement(id, text),
       setAttribute: (name, value) => self.setAttributeForElement(id, name, value),
       getAttribute: name => self.getAttributeForElement(id, name),
-      removeAttribute: name => self.removeAttributeForElement(id, name)
+      removeAttribute: name => self.removeAttributeForElement(id, name),
+      addEventListener: (type, handler) => {
+        return self.addEventListenerForElement(id, type, handler);
+      },
+      removeEventListener: (type, handler) => {
+        return self.removeEventListenerForElement(id, type, handler);
+      }
     };
   },
 
@@ -904,11 +1043,6 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
   ID_CLASS_PREFIX: "box-model-",
 
-  get zoom() {
-    return this.win.QueryInterface(Ci.nsIInterfaceRequestor)
-               .getInterface(Ci.nsIDOMWindowUtils).fullZoom;
-  },
-
   get currentNode() {
     return this._currentNode;
   },
@@ -943,7 +1077,6 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
         "id": "elements",
         "width": "100%",
         "height": "100%",
-        "style": "width:100%;height:100%;",
         "hidden": "true"
       },
       prefix: this.ID_CLASS_PREFIX
@@ -1447,8 +1580,8 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
   _moveInfobar: function() {
     let bounds = this._getOuterBounds();
-    let winHeight = this.win.innerHeight * this.zoom;
-    let winWidth = this.win.innerWidth * this.zoom;
+    let winHeight = this.win.innerHeight * LayoutHelpers.getCurrentZoom(this.win);
+    let winWidth = this.win.innerWidth * LayoutHelpers.getCurrentZoom(this.win);
 
     
     
@@ -1731,7 +1864,6 @@ exports.CssTransformHighlighter = CssTransformHighlighter;
 
 
 
-
 function SelectorHighlighter(tabActor) {
   this.tabActor = tabActor;
   this._highlighters = [];
@@ -1739,6 +1871,7 @@ function SelectorHighlighter(tabActor) {
 
 SelectorHighlighter.prototype = {
   typeName: "SelectorHighlighter",
+
   
 
 
@@ -2002,8 +2135,7 @@ GeometryEditorHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.pro
       attributes: {
         "id": "elements",
         "width": "100%",
-        "height": "100%",
-        "style": "width:100%;height:100%;"
+        "height": "100%"
       },
       prefix: this.ID_CLASS_PREFIX
     });
