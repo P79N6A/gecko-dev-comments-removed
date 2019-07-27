@@ -491,25 +491,27 @@ var gUnseekableTests = [
   { name:"bogus.duh", type:"bogus/duh"}
 ];
 
-
+var androidVersion = -1; 
 if (manifestNavigator().userAgent.indexOf("Mobile") != -1) {
   
   
-  var androidVersion;
-  if (navigator.userAgent.indexOf("Android") != -1) {
-    androidSDKVer = SpecialPowers.Cc['@mozilla.org/system-info;1']
-                                 .getService(SpecialPowers.Ci.nsIPropertyBag2)
-                                 .getProperty('version');
-  } else if (navigator.userAgent.indexOf("Android") == -1) {
-    androidSDKVer = SpecialPowers.Cc['@mozilla.org/system-info;1']
-                                 .getService(SpecialPowers.Ci.nsIPropertyBag2)
-                                 .getProperty('sdk_version');
-  }
-  if (androidVersion >= 18) {
-    gUnseekableTests = gUnseekableTests.concat([
-      { name:"street.mp4", type:"video/mp4" }
-    ]);
-  }
+  var versionString = manifestNavigator().userAgent.indexOf("Android") != -1 ?
+                      'version' : 'sdk_version';
+  androidVersion = SpecialPowers.Cc['@mozilla.org/system-info;1']
+                                .getService(SpecialPowers.Ci.nsIPropertyBag2)
+                                .getProperty(versionString);
+}
+
+function getAndroidVersion() {
+  return androidVersion;
+}
+
+
+
+if (getAndroidVersion() >= 18) {
+  gUnseekableTests = gUnseekableTests.concat([
+    { name:"street.mp4", type:"video/mp4" }
+  ]);
 }
 
 
@@ -1547,8 +1549,7 @@ function setMediaTestsPrefs(callback, extraPrefs) {
 
 
 function isSlowPlatform() {
-  return SpecialPowers.Services.appinfo.name == "B2G" ||
-         navigator.userAgent.indexOf("Mobile") != -1 && androidVersion == 10;
+  return SpecialPowers.Services.appinfo.name == "B2G" || getAndroidVersion() == 10;
 }
 
 SimpleTest.requestFlakyTimeout("untriaged");
