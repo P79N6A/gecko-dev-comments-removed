@@ -75,96 +75,78 @@ namespace js {
 namespace jit {
 
     class AssemblerBuffer {
-        static const size_t inlineCapacity = 256;
     public:
         AssemblerBuffer()
-            : m_buffer(m_inlineBuffer)
-            , m_capacity(inlineCapacity)
-            , m_size(0)
-            , m_allocSize(0)
-            , m_oom(false)
+            : m_oom(false)
         {
-        }
-
-        ~AssemblerBuffer()
-        {
-            if (m_buffer != m_inlineBuffer)
-                js_free(m_buffer);
         }
 
         void ensureSpace(size_t space)
         {
-            if (m_size > m_capacity - space)
-                grow();
+            if (MOZ_UNLIKELY(!m_buffer.reserve(m_buffer.length() + space)))
+                oomDetected();
         }
 
         bool isAligned(size_t alignment) const
         {
-            return !(m_size & (alignment - 1));
+            return !(m_buffer.length() & (alignment - 1));
         }
 
         void putByteUnchecked(int value)
         {
-            MOZ_ASSERT(!(m_size > m_capacity - 4));
-            m_buffer[m_size] = char(value);
-            m_size++;
+            m_buffer.infallibleAppend(char(value));
         }
 
         void putByte(int value)
         {
-            if (m_size > m_capacity - 4)
-                grow();
-            putByteUnchecked(value);
+            if (MOZ_UNLIKELY(!m_buffer.append(char(value))))
+                oomDetected();
         }
 
         void putShortUnchecked(int value)
         {
-            MOZ_ASSERT(!(m_size > m_capacity - 4));
-            *reinterpret_cast<short*>(&m_buffer[m_size]) = short(value);
-            m_size += 2;
+            m_buffer.infallibleGrowByUninitialized(2);
+            memcpy(m_buffer.end() - 2, &value, 2);
         }
 
         void putShort(int value)
         {
-            if (m_size > m_capacity - 4)
-                grow();
-            putShortUnchecked(value);
+            if (MOZ_UNLIKELY(!m_buffer.growByUninitialized(2))) {
+                oomDetected();
+                return;
+            }
+            memcpy(m_buffer.end() - 2, &value, 2);
         }
 
         void putIntUnchecked(int value)
         {
-            MOZ_ASSERT(!(m_size > m_capacity - 4));
-            *reinterpret_cast<int*>(&m_buffer[m_size]) = value;
-            m_size += 4;
+            m_buffer.infallibleGrowByUninitialized(4);
+            memcpy(m_buffer.end() - 4, &value, 4);
         }
 
         void putInt64Unchecked(int64_t value)
         {
-            MOZ_ASSERT(!(m_size > m_capacity - 8));
-            *reinterpret_cast<int64_t*>(&m_buffer[m_size]) = value;
-            m_size += 8;
+            m_buffer.infallibleGrowByUninitialized(8);
+            memcpy(m_buffer.end() - 8, &value, 8);
         }
 
         void putInt(int value)
         {
-            if (m_size > m_capacity - 4)
-                grow();
-            putIntUnchecked(value);
+            if (MOZ_UNLIKELY(!m_buffer.growByUninitialized(4))) {
+                oomDetected();
+                return;
+            }
+            memcpy(m_buffer.end() - 4, &value, 4);
         }
 
-        void* data() const
+        unsigned char *data()
         {
-            return m_buffer;
+            return m_buffer.begin();
         }
 
         size_t size() const
         {
-            return m_size;
-        }
-
-        size_t allocSize() const
-        {
-            return m_allocSize;
+            return m_buffer.length();
         }
 
         bool oom() const
@@ -172,24 +154,12 @@ namespace jit {
             return m_oom;
         }
 
-        unsigned char *buffer() const {
+        const unsigned char *buffer() const {
             MOZ_ASSERT(!m_oom);
-            return reinterpret_cast<unsigned char *>(m_buffer);
+            return m_buffer.begin();
         }
 
     protected:
-        void append(const char* data, size_t size)
-        {
-            if (m_size > m_capacity - size)
-                grow(size);
-
-            
-            if (m_oom)
-                return;
-            memcpy(m_buffer + m_size, data, size);
-            m_size += size;
-        }
-
         
 
 
@@ -204,59 +174,12 @@ namespace jit {
 
 
 
-
-        void grow(size_t extraCapacity = 0)
-        {
-            char* newBuffer;
-
-            
-
-
-
-            size_t doubleCapacity = m_capacity + m_capacity;
-
-            
-            if (doubleCapacity < m_capacity) {
-                m_size = 0;
-                m_oom = true;
-                return;
-            }
-
-            size_t newCapacity = doubleCapacity + extraCapacity;
-
-            
-            if (newCapacity < doubleCapacity) {
-                m_size = 0;
-                m_oom = true;
-                return;
-            }
-
-            if (m_buffer == m_inlineBuffer) {
-                newBuffer = static_cast<char*>(js_malloc(newCapacity));
-                if (!newBuffer) {
-                    m_size = 0;
-                    m_oom = true;
-                    return;
-                }
-                memcpy(newBuffer, m_buffer, m_size);
-            } else {
-                newBuffer = static_cast<char*>(js_realloc(m_buffer, newCapacity));
-                if (!newBuffer) {
-                    m_size = 0;
-                    m_oom = true;
-                    return;
-                }
-            }
-
-            m_buffer = newBuffer;
-            m_capacity = newCapacity;
+        void oomDetected() {
+            m_oom = true;
+            m_buffer.clear();
         }
 
-        char m_inlineBuffer[inlineCapacity];
-        char* m_buffer;
-        size_t m_capacity;
-        size_t m_size;
-        size_t m_allocSize;
+        mozilla::Vector<unsigned char, 256, SystemAllocPolicy> m_buffer;
         bool m_oom;
     };
 
