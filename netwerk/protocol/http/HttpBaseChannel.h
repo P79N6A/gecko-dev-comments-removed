@@ -241,7 +241,7 @@ public:
     const NetAddr& GetPeerAddr() { return mPeerAddr; }
 
 public: 
-
+    bool IsNavigation();
 
     
     
