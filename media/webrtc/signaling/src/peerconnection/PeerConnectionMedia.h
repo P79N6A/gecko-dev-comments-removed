@@ -244,7 +244,7 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   }
 
   
-  void UpdateTransports(const JsepSession& session);
+  void UpdateTransports(const JsepSession& session, bool restartGathering);
 
   
   void StartIceChecks(const JsepSession& session);
