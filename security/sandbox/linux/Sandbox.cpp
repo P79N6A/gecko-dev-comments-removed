@@ -225,10 +225,29 @@ InstallSyscallFilter(const sock_fprog *prog)
 
 static mozilla::Atomic<int> sSetSandboxDone;
 
-
-static const int sSetSandboxSignum = SIGRTMIN + 3;
-
 static const sock_fprog *sSetSandboxFilter;
+
+
+
+
+
+
+
+
+static int
+FindFreeSignalNumber()
+{
+  for (int signum = SIGRTMIN; signum <= SIGRTMAX; ++signum) {
+    struct sigaction sa;
+
+    if (sigaction(signum, nullptr, &sa) == 0 &&
+        (sa.sa_flags & SA_SIGINFO) == 0 &&
+        sa.sa_handler == SIG_DFL) {
+      return signum;
+    }
+  }
+  return 0;
+}
 
 static bool
 SetThreadSandbox()
@@ -268,6 +287,7 @@ SetThreadSandboxHandler(int signum)
 static void
 BroadcastSetThreadSandbox()
 {
+  int signum;
   pid_t pid, tid;
   DIR *taskdp;
   struct dirent *de;
@@ -283,8 +303,16 @@ BroadcastSetThreadSandbox()
     LOG_ERROR("opendir /proc/self/task: %s\n", strerror(errno));
     MOZ_CRASH();
   }
-  if (signal(sSetSandboxSignum, SetThreadSandboxHandler) != SIG_DFL) {
-    LOG_ERROR("signal %d in use!\n", sSetSandboxSignum);
+  signum = FindFreeSignalNumber();
+  if (signum == 0) {
+    LOG_ERROR("No available signal numbers!");
+    MOZ_CRASH();
+  }
+  void (*oldHandler)(int);
+  oldHandler = signal(signum, SetThreadSandboxHandler);
+  if (oldHandler != SIG_DFL) {
+    
+    LOG_ERROR("signal %d in use by handler %p!\n", signum, oldHandler);
     MOZ_CRASH();
   }
 
@@ -309,7 +337,7 @@ BroadcastSetThreadSandbox()
       }
       
       sSetSandboxDone = 0;
-      if (syscall(__NR_tgkill, pid, tid, sSetSandboxSignum) != 0) {
+      if (syscall(__NR_tgkill, pid, tid, signum) != 0) {
         if (errno == ESRCH) {
           LOG_ERROR("Thread %d unexpectedly exited.", tid);
           
@@ -378,7 +406,12 @@ BroadcastSetThreadSandbox()
     }
     rewinddir(taskdp);
   } while (sandboxProgress);
-  unused << signal(sSetSandboxSignum, SIG_DFL);
+  oldHandler = signal(signum, SIG_DFL);
+  if (oldHandler != SetThreadSandboxHandler) {
+    
+    LOG_ERROR("handler for signal %d was changed to %p!", signum, oldHandler);
+    MOZ_CRASH();
+  }
   unused << closedir(taskdp);
   
   SetThreadSandbox();
