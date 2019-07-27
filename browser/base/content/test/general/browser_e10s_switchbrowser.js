@@ -49,6 +49,11 @@ let check_history = Task.async(function*() {
   }
 });
 
+function clear_history() {
+  gExpectedHistory.index = -1;
+  gExpectedHistory.entries = [];
+}
+
 
 let waitForLoad = Task.async(function*(uri) {
   info("Loading " + uri);
@@ -61,6 +66,28 @@ let waitForLoad = Task.async(function*(uri) {
     uri: gBrowser.currentURI.spec,
     title: gBrowser.contentTitle
   });
+});
+
+
+let waitForLoadWithFlags = Task.async(function*(uri, flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE) {
+  info("Loading " + uri + " flags = " + flags);
+  gBrowser.selectedBrowser.loadURIWithFlags(uri, flags, null, null, null);
+
+  yield waitForDocLoadComplete();
+  if (!(flags & Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY)) {
+
+    if (flags & Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY) {
+      gExpectedHistory.entries.pop();
+    }
+    else {
+      gExpectedHistory.index++;
+    }
+
+    gExpectedHistory.entries.push({
+      uri: gBrowser.currentURI.spec,
+      title: gBrowser.contentTitle
+    });
+  }
 });
 
 let back = Task.async(function*() {
@@ -80,10 +107,7 @@ let forward = Task.async(function*() {
 
 
 add_task(function* test_navigation() {
-  SimpleTest.requestCompleteLog();
-
-  let remoting = Services.prefs.getBoolPref("browser.tabs.remote.autostart");
-  let expectedRemote = remoting ? "true" : "";
+  let expectedRemote = gMultiProcessBrowser ? "true" : "";
 
   info("1");
   
@@ -154,13 +178,13 @@ add_task(function* test_navigation() {
 
   info("11");
   gBrowser.removeCurrentTab();
+  clear_history();
 });
 
 
 
 add_task(function* test_synchronous() {
-  let remoting = Services.prefs.getBoolPref("browser.tabs.remote.autostart");
-  let expectedRemote = remoting ? "true" : "";
+  let expectedRemote = gMultiProcessBrowser ? "true" : "";
 
   info("1");
   
@@ -194,4 +218,42 @@ add_task(function* test_synchronous() {
 
   info("4");
   gBrowser.removeCurrentTab();
+  clear_history();
+});
+
+
+
+add_task(function* test_loadflags() {
+  let expectedRemote = gMultiProcessBrowser ? "true" : "";
+
+  info("1");
+  
+  gBrowser.selectedTab = gBrowser.addTab("about:blank", {skipAnimation: true});
+  yield waitForLoadWithFlags("about:robots");
+  is(gBrowser.selectedTab.getAttribute("remote"), "", "Remote attribute should be correct");
+  yield check_history();
+
+  info("2");
+  
+  yield waitForLoadWithFlags("http://example.com/" + DUMMY_PATH, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY);
+  is(gBrowser.selectedTab.getAttribute("remote"), expectedRemote, "Remote attribute should be correct");
+  yield check_history();
+
+  info("3");
+  
+  yield waitForLoadWithFlags("about:robots");
+  is(gBrowser.selectedTab.getAttribute("remote"), "", "Remote attribute should be correct");
+  yield check_history();
+
+  info("4");
+  
+  yield waitForLoadWithFlags("http://example.org/" + DUMMY_PATH, Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY);
+  is(gBrowser.selectedTab.getAttribute("remote"), expectedRemote, "Remote attribute should be correct");
+  yield check_history();
+
+  is(gExpectedHistory.entries.length, 2, "Should end with the right number of history entries");
+
+  info("5");
+  gBrowser.removeCurrentTab();
+  clear_history();
 });
