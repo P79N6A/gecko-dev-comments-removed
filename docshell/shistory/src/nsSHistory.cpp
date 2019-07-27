@@ -1790,26 +1790,12 @@ nsSHistory::InitiateLoad(nsISHEntry * aFrameEntry, nsIDocShell * aFrameDS, long 
 
 }
 
-
-
 NS_IMETHODIMP
 nsSHistory::SetRootDocShell(nsIDocShell * aDocShell)
 {
   mRootDocShell = aDocShell;
   return NS_OK;
 }
-
-NS_IMETHODIMP
-nsSHistory::GetRootDocShell(nsIDocShell ** aDocShell)
-{
-  NS_ENSURE_ARG_POINTER(aDocShell);
-
-  *aDocShell = mRootDocShell;
-  
-  
-  return NS_OK;
-}
-
 
 NS_IMETHODIMP
 nsSHistory::GetSHistoryEnumerator(nsISimpleEnumerator** aEnumerator)
