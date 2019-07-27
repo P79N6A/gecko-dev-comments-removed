@@ -18,7 +18,7 @@
 class Task : public tracked_objects::Tracked {
  public:
   Task() {}
-  virtual ~Task() {}
+  virtual  B2G_ACL_EXPORT ~Task() {}
 
   
   virtual void Run() = 0;

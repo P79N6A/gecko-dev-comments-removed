@@ -121,6 +121,12 @@
 
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+#define B2G_ACL_EXPORT NS_EXPORT
+#else
+#define B2G_ACL_EXPORT
+#endif
+
 
 
 

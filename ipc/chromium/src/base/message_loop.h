@@ -109,7 +109,7 @@ public:
   
   
 
-  void PostTask(
+  B2G_ACL_EXPORT void PostTask(
       const tracked_objects::Location& from_here, Task* task);
 
   void PostDelayedTask(

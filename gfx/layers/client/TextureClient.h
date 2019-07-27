@@ -485,7 +485,7 @@ private:
 
 
 
-  void Finalize();
+  B2G_ACL_EXPORT void Finalize();
 
   friend class AtomicRefCountedWithFinalize<TextureClient>;
 

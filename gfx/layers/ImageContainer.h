@@ -303,7 +303,7 @@ public:
 
 
 
-  already_AddRefed<Image> CreateImage(ImageFormat aFormat);
+  B2G_ACL_EXPORT already_AddRefed<Image> CreateImage(ImageFormat aFormat);
 
   
 
@@ -523,7 +523,7 @@ private:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
   
-  ~ImageContainer();
+  B2G_ACL_EXPORT ~ImageContainer();
 
   void SetCurrentImageInternal(Image* aImage);
 
