@@ -56,7 +56,10 @@ ServiceWorkerContainer::RemoveReadyPromise()
   if (window) {
     nsCOMPtr<nsIServiceWorkerManager> swm =
       mozilla::services::GetServiceWorkerManager();
-    MOZ_ASSERT(swm);
+    if (!swm) {
+      
+      return;
+    }
 
     swm->RemoveReadyPromise(window);
   }
