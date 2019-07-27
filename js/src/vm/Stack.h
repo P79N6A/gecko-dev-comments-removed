@@ -204,6 +204,8 @@ class AbstractFramePtr
     inline Value calleev() const;
     inline Value& thisValue() const;
 
+    inline Value newTarget() const;
+
     inline bool isNonEvalFunctionFrame() const;
     inline bool isNonStrictDirectEvalFrame() const;
     inline bool isStrictEvalFrame() const;
@@ -405,7 +407,8 @@ class InterpreterFrame
 
     
     void initExecuteFrame(JSContext* cx, HandleScript script, AbstractFramePtr prev,
-                          const Value& thisv, HandleObject scopeChain, ExecuteType type);
+                          const Value& thisv, const Value& newTargetValue,
+                          HandleObject scopeChain, ExecuteType type);
 
   public:
     
@@ -748,8 +751,10 @@ class InterpreterFrame
 
 
     Value newTarget() const {
-        
-        MOZ_ASSERT(isNonEvalFunctionFrame());
+        MOZ_ASSERT(isFunctionFrame());
+        if (isEvalFrame())
+            return ((Value*)this)[-3];
+
         if (isConstructing()) {
             unsigned pushedArgs = Max(numFormalArgs(), numActualArgs());
             return argv()[pushedArgs];
@@ -1017,8 +1022,8 @@ class InterpreterStack
 
     
     InterpreterFrame* pushExecuteFrame(JSContext* cx, HandleScript script, const Value& thisv,
-                                 HandleObject scopeChain, ExecuteType type,
-                                 AbstractFramePtr evalInFrame);
+                                 const Value& newTargetValue, HandleObject scopeChain,
+                                 ExecuteType type, AbstractFramePtr evalInFrame);
 
     
     InterpreterFrame* pushInvokeFrame(JSContext* cx, const CallArgs& args,
@@ -1755,6 +1760,8 @@ class FrameIter
     
     Value       computedThisValue() const;
     Value       thisv(JSContext* cx) const;
+
+    Value       newTarget() const;
 
     Value       returnValue() const;
     void        setReturnValue(const Value& v);
