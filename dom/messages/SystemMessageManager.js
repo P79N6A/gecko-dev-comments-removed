@@ -195,6 +195,14 @@ SystemMessageManager.prototype = {
 
 
     
+    if (Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT) {
+      return cpmm.sendSyncMessage("SystemMessageManager:HasPendingMessages",
+                                  { type: aType,
+                                    pageURL: this._pageURL,
+                                    manifestURL: this._manifestURL })[0];
+    }
+
+    
 
 
 
