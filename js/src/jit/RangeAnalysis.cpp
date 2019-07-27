@@ -2904,8 +2904,11 @@ ComputeTruncateKind(MDefinition* candidate, bool* shouldClone)
 
     
     
-    if (candidate->isDiv() && candidate->toDiv()->specialization() == MIRType_Int32)
+    if ((candidate->isDiv() || candidate->isMod()) &&
+        static_cast<const MBinaryArithInstruction *>(candidate)->specialization() == MIRType_Int32)
+    {
         canHaveRoundingErrors = false;
+    }
 
     if (canHaveRoundingErrors)
         return MDefinition::NoTruncate;
