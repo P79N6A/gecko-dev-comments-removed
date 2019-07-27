@@ -835,7 +835,7 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
   }
 
   if (!aChildrenOnly &&
-      mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
+      mHTMLCSSUtils->IsCSSEditableProperty(content, aProperty, aAttribute)) {
     
     
     
