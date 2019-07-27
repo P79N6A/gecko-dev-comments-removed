@@ -206,8 +206,10 @@ MOZ_END_ENUM_CLASS(PatternType)
 MOZ_BEGIN_ENUM_CLASS(JoinStyle, int8_t)
   BEVEL,
   ROUND,
-  MITER,
-  MITER_OR_BEVEL
+  MITER, 
+         
+         
+  MITER_OR_BEVEL 
 MOZ_END_ENUM_CLASS(JoinStyle)
 
 MOZ_BEGIN_ENUM_CLASS(CapStyle, int8_t)
