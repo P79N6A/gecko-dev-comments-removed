@@ -139,8 +139,9 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   VideoSegment segment;
 
   MonitorAutoLock lock(mMonitor);
-  if (mState != kStarted)
-    return;
+  
+  
+  
 
   
   nsRefPtr<layers::Image> image = mImage;
