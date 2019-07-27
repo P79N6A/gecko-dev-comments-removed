@@ -531,6 +531,12 @@ let DirectoryLinksProvider = {
   _updateRelatedTile: function() {
     let sortedLinks = NewTabUtils.getProviderLinks(this);
 
+    if (!sortedLinks) {
+      
+      
+      return;
+    }
+
     
     let initialLength = sortedLinks.length;
     this.maxNumLinks = initialLength;
