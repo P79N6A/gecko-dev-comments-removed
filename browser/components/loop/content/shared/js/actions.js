@@ -273,6 +273,12 @@ loop.shared.actions = (function() {
       sessionToken: String,
       sessionId: String,
       expires: Number
+    }),
+
+    
+
+
+    LeaveRoom: Action.define("leaveRoom", {
     })
   };
 })();

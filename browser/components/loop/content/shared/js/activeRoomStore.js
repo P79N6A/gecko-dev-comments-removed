@@ -52,10 +52,12 @@ loop.store.ActiveRoomStore = (function() {
     this._dispatcher.register(this, [
       "roomFailure",
       "setupWindowData",
+      "fetchServerData",
       "updateRoomInfo",
       "joinRoom",
       "joinedRoom",
-      "windowUnload"
+      "windowUnload",
+      "leaveRoom"
     ]);
 
     
@@ -157,6 +159,26 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
+
+
+    fetchServerData: function(actionData) {
+      if (actionData.windowType !== "room") {
+        
+        return;
+      }
+
+      this.setStoreState({
+        roomToken: actionData.token,
+        roomState: ROOM_STATES.READY
+      });
+    },
+
+    
+
+
+
+
+
     updateRoomInfo: function(actionData) {
       this.setStoreState({
         roomName: actionData.roomName,
@@ -210,6 +232,13 @@ loop.store.ActiveRoomStore = (function() {
 
 
     windowUnload: function() {
+      this._leaveRoom();
+    },
+
+    
+
+
+    leaveRoom: function() {
       this._leaveRoom();
     },
 
