@@ -1980,6 +1980,26 @@ MUrsh::infer(BaselineInspector *inspector, jsbytecode *pc)
 }
 
 static inline bool
+CanProduceNegativeZero(MDefinition *def) {
+    
+    
+    switch (def->op()) {
+        case MDefinition::Op_Constant:
+            if (def->type() == MIRType_Double && def->constantValue().toDouble() == -0.0)
+                return true;
+        case MDefinition::Op_BitAnd:
+        case MDefinition::Op_BitOr:
+        case MDefinition::Op_BitXor:
+        case MDefinition::Op_BitNot:
+        case MDefinition::Op_Lsh:
+        case MDefinition::Op_Rsh:
+            return false;
+        default:
+            return true;
+    }
+}
+
+static inline bool
 NeedNegativeZeroCheck(MDefinition *def)
 {
     
@@ -1999,50 +2019,54 @@ NeedNegativeZeroCheck(MDefinition *def)
             
             
             
-            MDefinition *first = use_def->toAdd()->getOperand(0);
-            MDefinition *second = use_def->toAdd()->getOperand(1);
+            MDefinition *first = use_def->toAdd()->lhs();
+            MDefinition *second = use_def->toAdd()->rhs();
             if (first->id() > second->id()) {
                 MDefinition *temp = first;
                 first = second;
                 second = temp;
             }
-
-            if (def == first) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                switch (second->op()) {
-                  case MDefinition::Op_Constant:
-                  case MDefinition::Op_BitAnd:
-                  case MDefinition::Op_BitOr:
-                  case MDefinition::Op_BitXor:
-                  case MDefinition::Op_BitNot:
-                  case MDefinition::Op_Lsh:
-                  case MDefinition::Op_Rsh:
-                    break;
-                  default:
-                    return true;
-                }
-            }
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (def == first && CanProduceNegativeZero(second))
+                return true;
 
             
             
             
             break;
           }
-          case MDefinition::Op_Sub:
+          case MDefinition::Op_Sub: {
             
             if (use_def->toSub()->isTruncated())
                 break;
+
             
+
+            
+            
+
+            
+            
+            
+            
+            
+            MDefinition *lhs = use_def->toSub()->lhs();
+            MDefinition *rhs = use_def->toSub()->rhs();
+            if (rhs->id() < lhs->id() && CanProduceNegativeZero(lhs))
+                return true;
+
+            
+          }
           case MDefinition::Op_StoreElement:
           case MDefinition::Op_StoreElementHole:
           case MDefinition::Op_LoadElement:
