@@ -318,6 +318,10 @@ class MacroAssemblerARM : public Assembler
     void ma_vpush(VFPRegister r);
 
     
+    void ma_dmb(BarrierOption option=BarrierSY);
+    void ma_dsb(BarrierOption option=BarrierSY);
+
+    
     BufferOffset ma_b(Label *dest, Condition c = Always);
     void ma_bx(Register dest, Condition c = Always);
 

@@ -280,6 +280,19 @@ bool HasMOVWT()
     return armHwCapFlags & HWCAP_ARMv7;
 }
 
+bool HasLDSTREXBHD()
+{
+    
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_ARMv7;
+}
+
+bool HasDMBDSBISB()
+{
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_ARMv7;
+}
+
 bool HasVFPv3()
 {
     MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);

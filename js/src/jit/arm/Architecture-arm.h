@@ -515,6 +515,8 @@ typedef VFPRegister FloatRegister;
 
 uint32_t GetARMFlags();
 bool HasMOVWT();
+bool HasLDSTREXBHD();           
+bool HasDMBDSBISB();            
 bool HasVFPv3();
 bool HasVFP();
 bool Has32DP();

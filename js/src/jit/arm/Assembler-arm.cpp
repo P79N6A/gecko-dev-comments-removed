@@ -1463,6 +1463,39 @@ Assembler::as_tst(Register src1, Operand2 op2, Condition c)
     return as_alu(InvalidReg, src1, op2, OpTst, SetCond, c);
 }
 
+static MOZ_CONSTEXPR_VAR Register NoAddend = { Registers::pc };
+
+static const int SignExtend = 0x06000070;
+
+enum SignExtend {
+    SxSxtb = 10 << 20,
+    SxSxth = 11 << 20,
+    SxUxtb = 14 << 20,
+    SxUxth = 15 << 20
+};
+
+
+BufferOffset
+Assembler::as_sxtb(Register dest, Register src, int rotate, Condition c)
+{
+    return writeInst((int)c | SignExtend | SxSxtb | RN(NoAddend) | RD(dest) | ((rotate & 3) << 10) | src.code());
+}
+BufferOffset
+Assembler::as_sxth(Register dest, Register src, int rotate, Condition c)
+{
+    return writeInst((int)c | SignExtend | SxSxth | RN(NoAddend) | RD(dest) | ((rotate & 3) << 10) | src.code());
+}
+BufferOffset
+Assembler::as_uxtb(Register dest, Register src, int rotate, Condition c)
+{
+    return writeInst((int)c | SignExtend | SxUxtb | RN(NoAddend) | RD(dest) | ((rotate & 3) << 10) | src.code());
+}
+BufferOffset
+Assembler::as_uxth(Register dest, Register src, int rotate, Condition c)
+{
+    return writeInst((int)c | SignExtend | SxUxth | RN(NoAddend) | RD(dest) | ((rotate & 3) << 10) | src.code());
+}
+
 
 
 
@@ -1813,6 +1846,90 @@ Assembler::PatchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
       }
     }
     return true;
+}
+
+
+
+BufferOffset
+Assembler::as_ldrex(Register rt, Register rn, Condition c)
+{
+    return writeInst(0x01900f9f | (int)c | RT(rt) | RN(rn));
+}
+
+BufferOffset
+Assembler::as_ldrexh(Register rt, Register rn, Condition c)
+{
+    return writeInst(0x01f00f9f | (int)c | RT(rt) | RN(rn));
+}
+
+BufferOffset
+Assembler::as_ldrexb(Register rt, Register rn, Condition c)
+{
+    return writeInst(0x01d00f9f | (int)c | RT(rt) | RN(rn));
+}
+
+BufferOffset
+Assembler::as_strex(Register rd, Register rt, Register rn, Condition c)
+{
+    return writeInst(0x01800f90 | (int)c | RD(rd) | RN(rn) | rt.code());
+}
+
+BufferOffset
+Assembler::as_strexh(Register rd, Register rt, Register rn, Condition c)
+{
+    return writeInst(0x01e00f90 | (int)c | RD(rd) | RN(rn) | rt.code());
+}
+
+BufferOffset
+Assembler::as_strexb(Register rd, Register rt, Register rn, Condition c)
+{
+    return writeInst(0x01c00f90 | (int)c | RD(rd) | RN(rn) | rt.code());
+}
+
+
+
+BufferOffset
+Assembler::as_dmb(BarrierOption option)
+{
+    return writeInst(0xf57ff050U | (int)option);
+}
+BufferOffset
+Assembler::as_dsb(BarrierOption option)
+{
+    return writeInst(0xf57ff040U | (int)option);
+}
+BufferOffset
+Assembler::as_isb()
+{
+    return writeInst(0xf57ff06fU); 
+}
+BufferOffset
+Assembler::as_dsb_trap()
+{
+    
+    
+    
+    
+    
+    return writeInst(0xee070f9a);
+}
+BufferOffset
+Assembler::as_dmb_trap()
+{
+    
+    
+    
+    
+    return writeInst(0xee070fba);
+}
+BufferOffset
+Assembler::as_isb_trap()
+{
+    
+    
+    
+    
+    return writeInst(0xee070f94);
 }
 
 

@@ -1137,6 +1137,11 @@ class Assembler : public AssemblerShared
         return static_cast<Condition>(cond);
     }
 
+    enum BarrierOption {
+        BarrierSY = 15,         
+        BarrierST = 14          
+    };
+
     
     
 
@@ -1348,6 +1353,11 @@ class Assembler : public AssemblerShared
                 Condition c = Always);
     BufferOffset as_tst(Register src1, Operand2 op2,
                 Condition c = Always);
+    
+    BufferOffset as_sxtb(Register dest, Register src, int rotate, Condition c = Always);
+    BufferOffset as_sxth(Register dest, Register src, int rotate, Condition c = Always);
+    BufferOffset as_uxtb(Register dest, Register src, int rotate, Condition c = Always);
+    BufferOffset as_uxth(Register dest, Register src, int rotate, Condition c = Always);
 
     
     
@@ -1400,6 +1410,36 @@ class Assembler : public AssemblerShared
     BufferOffset as_FImm64Pool(VFPRegister dest, double value, Condition c = Always);
     
     BufferOffset as_FImm32Pool(VFPRegister dest, float value, Condition c = Always);
+
+    
+    
+    
+    
+    
+    
+
+    
+    BufferOffset as_ldrex(Register rt, Register rn, Condition c = Always);
+    BufferOffset as_ldrexh(Register rt, Register rn, Condition c = Always);
+    BufferOffset as_ldrexb(Register rt, Register rn, Condition c = Always);
+
+    
+    BufferOffset as_strex(Register rd, Register rt, Register rn, Condition c = Always);
+    BufferOffset as_strexh(Register rd, Register rt, Register rn, Condition c = Always);
+    BufferOffset as_strexb(Register rd, Register rt, Register rn, Condition c = Always);
+
+    
+    
+    
+
+    BufferOffset as_dmb(BarrierOption option = BarrierSY);
+    BufferOffset as_dsb(BarrierOption option = BarrierSY);
+    BufferOffset as_isb();
+
+    
+    BufferOffset as_dsb_trap();
+    BufferOffset as_dmb_trap();
+    BufferOffset as_isb_trap();
 
     
 
