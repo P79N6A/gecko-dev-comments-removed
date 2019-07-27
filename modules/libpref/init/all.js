@@ -4256,6 +4256,3 @@ pref("dom.fetch.enabled", false);
 
 pref("camera.control.low_memory_thresholdMB", 404);
 #endif
-
-
-pref("dom.udpsocket.enabled", false);
