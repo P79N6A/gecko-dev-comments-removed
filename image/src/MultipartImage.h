@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_MULTIPARTIMAGE_H_
-#define MOZILLA_IMAGELIB_MULTIPARTIMAGE_H_
+#ifndef mozilla_image_src_MultipartImage_h
+#define mozilla_image_src_MultipartImage_h
 
 #include "ImageWrapper.h"
 #include "IProgressObserver.h"
