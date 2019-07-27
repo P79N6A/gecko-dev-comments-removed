@@ -219,12 +219,12 @@ nsFieldSetFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
     clipRect.width = legendRect.x - rect.x;
     clipRect.height = topBorder;
 
-    aRenderingContext.PushState();
+    aRenderingContext.ThebesContext()->Save();
     aRenderingContext.IntersectClip(clipRect);
     nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
                                 aDirtyRect, rect, mStyleContext);
 
-    aRenderingContext.PopState();
+    aRenderingContext.ThebesContext()->Restore();
 
 
     
@@ -233,12 +233,12 @@ nsFieldSetFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
     clipRect.width = rect.XMost() - legendRect.XMost();
     clipRect.height = topBorder;
 
-    aRenderingContext.PushState();
+    aRenderingContext.ThebesContext()->Save();
     aRenderingContext.IntersectClip(clipRect);
     nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
                                 aDirtyRect, rect, mStyleContext);
 
-    aRenderingContext.PopState();
+    aRenderingContext.ThebesContext()->Restore();
 
     
     
@@ -246,12 +246,12 @@ nsFieldSetFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
     clipRect.y += topBorder;
     clipRect.height = mRect.height - (yoff + topBorder);
     
-    aRenderingContext.PushState();
+    aRenderingContext.ThebesContext()->Save();
     aRenderingContext.IntersectClip(clipRect);
     nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
                                 aDirtyRect, rect, mStyleContext);
 
-    aRenderingContext.PopState();
+    aRenderingContext.ThebesContext()->Restore();
   } else {
 
     nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
