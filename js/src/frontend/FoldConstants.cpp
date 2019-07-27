@@ -825,92 +825,47 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
       case PNK_OR:
       case PNK_AND:
         if (sc == SyntacticContext::Condition) {
-            if (pn->isArity(PN_LIST)) {
-                ParseNode **listp = &pn->pn_head;
-                MOZ_ASSERT(*listp == pn1);
-                uint32_t orig = pn->pn_count;
-                do {
-                    Truthiness t = Boolish(pn1);
-                    if (t == Unknown) {
-                        listp = &pn1->pn_next;
-                        continue;
-                    }
-                    if ((t == Truthy) == pn->isKind(PNK_OR)) {
-                        for (pn2 = pn1->pn_next; pn2; pn2 = pn3) {
-                            pn3 = pn2->pn_next;
-                            handler.freeTree(pn2);
-                            --pn->pn_count;
-                        }
-                        pn1->pn_next = nullptr;
-                        break;
-                    }
-                    MOZ_ASSERT((t == Truthy) == pn->isKind(PNK_AND));
-                    if (pn->pn_count == 1)
-                        break;
-                    *listp = pn1->pn_next;
-                    handler.freeTree(pn1);
-                    --pn->pn_count;
-                } while ((pn1 = *listp) != nullptr);
-
-                
-                pn1 = pn->pn_head;
-                if (pn->pn_count == 2) {
-                    pn2 = pn1->pn_next;
-                    pn1->pn_next = nullptr;
-                    MOZ_ASSERT(!pn2->pn_next);
-                    pn->setArity(PN_BINARY);
-                    pn->pn_left = pn1;
-                    pn->pn_right = pn2;
-                } else if (pn->pn_count == 1) {
-                    ReplaceNode(pnp, pn1);
-                    pn = pn1;
-                } else if (orig != pn->pn_count) {
-                    
-                    pn2 = pn1->pn_next;
-                    for (; pn1; pn2 = pn1, pn1 = pn1->pn_next)
-                        ;
-                    pn->pn_tail = &pn2->pn_next;
-                }
-            } else {
+            ParseNode **listp = &pn->pn_head;
+            MOZ_ASSERT(*listp == pn1);
+            uint32_t orig = pn->pn_count;
+            do {
                 Truthiness t = Boolish(pn1);
-                if (t != Unknown) {
-                    if ((t == Truthy) == pn->isKind(PNK_OR)) {
-                        handler.freeTree(pn2);
-                        ReplaceNode(pnp, pn1);
-                        pn = pn1;
-                    } else {
-                        MOZ_ASSERT((t == Truthy) == pn->isKind(PNK_AND));
-                        handler.freeTree(pn1);
-                        ReplaceNode(pnp, pn2);
-                        pn = pn2;
-                    }
+                if (t == Unknown) {
+                    listp = &pn1->pn_next;
+                    continue;
                 }
+                if ((t == Truthy) == pn->isKind(PNK_OR)) {
+                    for (pn2 = pn1->pn_next; pn2; pn2 = pn3) {
+                        pn3 = pn2->pn_next;
+                        handler.freeTree(pn2);
+                        --pn->pn_count;
+                    }
+                    pn1->pn_next = nullptr;
+                    break;
+                }
+                MOZ_ASSERT((t == Truthy) == pn->isKind(PNK_AND));
+                if (pn->pn_count == 1)
+                    break;
+                *listp = pn1->pn_next;
+                handler.freeTree(pn1);
+                --pn->pn_count;
+            } while ((pn1 = *listp) != nullptr);
+
+            
+            pn1 = pn->pn_head;
+            if (pn->pn_count == 1) {
+                ReplaceNode(pnp, pn1);
+                pn = pn1;
+            } else if (orig != pn->pn_count) {
+                
+                pn2 = pn1->pn_next;
+                for (; pn1; pn2 = pn1, pn1 = pn1->pn_next)
+                    continue;
+                pn->pn_tail = &pn2->pn_next;
             }
         }
         break;
 
-      case PNK_SUBASSIGN:
-      case PNK_BITORASSIGN:
-      case PNK_BITXORASSIGN:
-      case PNK_BITANDASSIGN:
-      case PNK_LSHASSIGN:
-      case PNK_RSHASSIGN:
-      case PNK_URSHASSIGN:
-      case PNK_MULASSIGN:
-      case PNK_DIVASSIGN:
-      case PNK_MODASSIGN:
-        
-
-
-
-
-
-
-        goto do_binary_op;
-
-      case PNK_ADDASSIGN:
-        MOZ_ASSERT(pn->isOp(JSOP_ADD));
-        
       case PNK_ADD:
         if (pn->isArity(PN_LIST)) {
             bool folded = false;
@@ -1029,7 +984,13 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
         }
 
         
-        goto do_binary_op;
+        if (!FoldType(cx, pn1, PNK_NUMBER) || !FoldType(cx, pn2, PNK_NUMBER))
+            return false;
+        if (pn1->isKind(PNK_NUMBER) && pn2->isKind(PNK_NUMBER)) {
+            if (!FoldBinaryNumeric(cx, pn->getOp(), pn1, pn2, pn))
+                return false;
+        }
+        break;
 
       case PNK_SUB:
       case PNK_STAR:
@@ -1038,39 +999,27 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
       case PNK_URSH:
       case PNK_DIV:
       case PNK_MOD:
-      do_binary_op:
-        if (pn->isArity(PN_LIST)) {
-            MOZ_ASSERT(pn->pn_count > 2);
-            for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
-                if (!FoldType(cx, pn2, PNK_NUMBER))
-                    return false;
-            }
-            for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
-                
-                if (!pn2->isKind(PNK_NUMBER))
-                    break;
-            }
-            if (!pn2) {
-                JSOp op = pn->getOp();
-
-                pn2 = pn1->pn_next;
-                pn3 = pn2->pn_next;
-                if (!FoldBinaryNumeric(cx, op, pn1, pn2, pn))
-                    return false;
-                while ((pn2 = pn3) != nullptr) {
-                    pn3 = pn2->pn_next;
-                    if (!FoldBinaryNumeric(cx, op, pn, pn2, pn))
-                        return false;
-                }
-            }
-        } else {
-            MOZ_ASSERT(pn->isArity(PN_BINARY));
-            if (!FoldType(cx, pn1, PNK_NUMBER) ||
-                !FoldType(cx, pn2, PNK_NUMBER)) {
+        MOZ_ASSERT(pn->getArity() == PN_LIST);
+        MOZ_ASSERT(pn->pn_count >= 2);
+        for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
+            if (!FoldType(cx, pn2, PNK_NUMBER))
                 return false;
-            }
-            if (pn1->isKind(PNK_NUMBER) && pn2->isKind(PNK_NUMBER)) {
-                if (!FoldBinaryNumeric(cx, pn->getOp(), pn1, pn2, pn))
+        }
+        for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
+            
+            if (!pn2->isKind(PNK_NUMBER))
+                break;
+        }
+        if (!pn2) {
+            JSOp op = pn->getOp();
+
+            pn2 = pn1->pn_next;
+            pn3 = pn2->pn_next;
+            if (!FoldBinaryNumeric(cx, op, pn1, pn2, pn))
+                return false;
+            while ((pn2 = pn3) != nullptr) {
+                pn3 = pn2->pn_next;
+                if (!FoldBinaryNumeric(cx, op, pn, pn2, pn))
                     return false;
             }
         }

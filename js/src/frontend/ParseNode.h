@@ -510,6 +510,11 @@ class ParseNode
         return PNK_ASSIGNMENT_START <= kind && kind <= PNK_ASSIGNMENT_LAST;
     }
 
+    bool isBinaryOperation() const {
+        ParseNodeKind kind = getKind();
+        return PNK_BINOP_FIRST <= kind && kind <= PNK_BINOP_LAST;
+    }
+
     
     bool isInParens() const                { return pn_parens; }
     bool isLikelyIIFE() const              { return isInParens(); }
@@ -645,17 +650,9 @@ class ParseNode
 
 
     static ParseNode *
-    append(ParseNodeKind tt, JSOp op, ParseNode *left, ParseNode *right, FullParseHandler *handler);
-
-    
-
-
-
-
-    static ParseNode *
-    newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
-                      FullParseHandler *handler, ParseContext<FullParseHandler> *pc,
-                      bool foldConstants);
+    appendOrCreateList(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
+                       FullParseHandler *handler, ParseContext<FullParseHandler> *pc,
+                       bool foldConstants);
 
     inline PropertyName *name() const;
     inline JSAtom *atom() const;

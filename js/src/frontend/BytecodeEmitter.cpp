@@ -2039,15 +2039,10 @@ CheckSideEffects(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool
             return true;
         }
 
-        if (pn->isOp(JSOP_OR) || pn->isOp(JSOP_AND) || pn->isOp(JSOP_STRICTEQ) ||
-            pn->isOp(JSOP_STRICTNE)) {
-            
-
-
-
-            return CheckSideEffects(cx, bce, pn->pn_left, answer) &&
-                   CheckSideEffects(cx, bce, pn->pn_right, answer);
-        }
+        MOZ_ASSERT(!pn->isOp(JSOP_OR), "|| produces a list now");
+        MOZ_ASSERT(!pn->isOp(JSOP_AND), "&& produces a list now");
+        MOZ_ASSERT(!pn->isOp(JSOP_STRICTEQ), "=== produces a list now");
+        MOZ_ASSERT(!pn->isOp(JSOP_STRICTNE), "!== produces a list now");
 
         
 
@@ -6331,6 +6326,8 @@ EmitCallOrNew(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 static bool
 EmitLogical(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
+    MOZ_ASSERT(pn->isArity(PN_LIST));
+
     
 
 
@@ -6340,26 +6337,6 @@ EmitLogical(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
-    if (pn->isArity(PN_BINARY)) {
-        if (!EmitTree(cx, bce, pn->pn_left))
-            return false;
-        ptrdiff_t top = EmitJump(cx, bce, JSOP_BACKPATCH, 0);
-        if (top < 0)
-            return false;
-        if (Emit1(cx, bce, JSOP_POP) < 0)
-            return false;
-        if (!EmitTree(cx, bce, pn->pn_right))
-            return false;
-        ptrdiff_t off = bce->offset();
-        jsbytecode *pc = bce->code(top);
-        SET_JUMP_OFFSET(pc, off - top);
-        *pc = pn->getOp();
-        return true;
-    }
-
-    MOZ_ASSERT(pn->isArity(PN_LIST));
-    MOZ_ASSERT(pn->pn_head->pn_next->pn_next);
 
     
     ParseNode *pn2 = pn->pn_head;
@@ -7138,29 +7115,21 @@ frontend::EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case PNK_URSH:
       case PNK_STAR:
       case PNK_DIV:
-      case PNK_MOD:
-        if (pn->isArity(PN_LIST)) {
-            
-            ParseNode *pn2 = pn->pn_head;
-            if (!EmitTree(cx, bce, pn2))
+      case PNK_MOD: {
+        MOZ_ASSERT(pn->isArity(PN_LIST));
+        
+        ParseNode *subexpr = pn->pn_head;
+        if (!EmitTree(cx, bce, subexpr))
+            return false;
+        JSOp op = pn->getOp();
+        while ((subexpr = subexpr->pn_next) != nullptr) {
+            if (!EmitTree(cx, bce, subexpr))
                 return false;
-            JSOp op = pn->getOp();
-            while ((pn2 = pn2->pn_next) != nullptr) {
-                if (!EmitTree(cx, bce, pn2))
-                    return false;
-                if (Emit1(cx, bce, op) < 0)
-                    return false;
-            }
-        } else {
-            
-            if (!EmitTree(cx, bce, pn->pn_left))
-                return false;
-            if (!EmitTree(cx, bce, pn->pn_right))
-                return false;
-            if (Emit1(cx, bce, pn->getOp()) < 0)
+            if (Emit1(cx, bce, op) < 0)
                 return false;
         }
         break;
+      }
 
       case PNK_THROW:
       case PNK_TYPEOF:

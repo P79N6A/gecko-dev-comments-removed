@@ -245,54 +245,37 @@ ParseNodeAllocator::allocNode()
 }
 
 ParseNode *
-ParseNode::append(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
-                  FullParseHandler *handler)
+ParseNode::appendOrCreateList(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
+                              FullParseHandler *handler, ParseContext<FullParseHandler> *pc,
+                              bool foldConstants)
 {
-    if (!left || !right)
-        return nullptr;
+    
+    
+    
+    
+    
+    if (!pc->useAsmOrInsideUseAsm()) {
+        
+        
+        
+        
+        
+        if (left->isKind(kind) && left->isOp(op) && (js_CodeSpec[op].format & JOF_LEFTASSOC)) {
+            ListNode *list = &left->as<ListNode>();
 
-    MOZ_ASSERT(left->isKind(kind) && left->isOp(op) && (js_CodeSpec[op].format & JOF_LEFTASSOC));
+            list->append(right);
+            list->pn_pos.end = right->pn_pos.end;
 
-    ListNode *list;
-    if (left->pn_arity == PN_LIST) {
-        list = &left->as<ListNode>();
-    } else {
-        ParseNode *pn1 = left->pn_left, *pn2 = left->pn_right;
-        list = handler->new_<ListNode>(kind, op, pn1);
-        if (!list)
-            return nullptr;
-        list->append(pn2);
+            return list;
+        }
     }
 
-    list->append(right);
-    list->pn_pos.end = right->pn_pos.end;
-
-    return list;
-}
-
-ParseNode *
-ParseNode::newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
-                             FullParseHandler *handler, ParseContext<FullParseHandler> *pc,
-                             bool foldConstants)
-{
-    if (!left || !right)
+    ParseNode *list = handler->new_<ListNode>(kind, op, left);
+    if (!list)
         return nullptr;
 
-    
-
-
-
-    if (pc->useAsmOrInsideUseAsm())
-        return handler->new_<BinaryNode>(kind, op, left, right);
-
-    
-
-
-
-    if (left->isKind(kind) && left->isOp(op) && (js_CodeSpec[op].format & JOF_LEFTASSOC))
-        return append(kind, op, left, right, handler);
-
-    return handler->new_<BinaryNode>(kind, op, left, right);
+    list->append(right);
+    return list;
 }
 
 const char *
