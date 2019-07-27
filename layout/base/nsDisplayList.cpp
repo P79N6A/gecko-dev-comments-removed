@@ -71,6 +71,7 @@
 #include "nsISelection.h"
 #include "nsDOMTokenList.h"
 #include "mozilla/RuleNodeCacheConditions.h"
+#include "nsCSSProps.h"
 
 
 
@@ -2519,7 +2520,7 @@ nsDisplayBackgroundImage::ConfigureLayer(ImageLayer* aLayer,
   if (imageWidth > 0 && imageHeight > 0) {
     
     
-    nsDisplayBackgroundGeometry::UpdateDrawResult(this, DrawResult::SUCCESS);
+    nsDisplayBackgroundGeometry::UpdateDrawResult(this, mozilla::image::DrawResult::SUCCESS);
   }
 
   
@@ -2696,7 +2697,7 @@ nsDisplayBackgroundImage::PaintInternal(nsDisplayListBuilder* aBuilder,
   uint32_t flags = aBuilder->GetBackgroundPaintFlags();
   CheckForBorderItem(this, flags);
 
-  DrawResult result =
+  mozilla::image::DrawResult result =
     nsCSSRendering::PaintBackground(mFrame->PresContext(), *aCtx, mFrame,
                                     aBounds,
                                     nsRect(offset, mFrame->GetSize()),
