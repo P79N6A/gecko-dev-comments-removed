@@ -1947,6 +1947,19 @@ NetworkDetailsView.prototype = {
   
 
 
+  _viewState: {
+    
+    updating: [],
+    
+    
+    dirty: [],
+    
+    latestData: null,
+  },
+
+  
+
+
   initialize: function() {
     dumpn("Initializing the NetworkDetailsView");
 
@@ -2049,7 +2062,19 @@ NetworkDetailsView.prototype = {
       return;
     }
 
+    let viewState = this._viewState;
+    if (viewState.updating[tab]) {
+      
+      
+      
+      
+      viewState.dirty[tab] = true;
+      viewState.latestData = src;
+      return;
+    }
+
     Task.spawn(function*() {
+      viewState.updating[tab] = true;
       switch (tab) {
         case 0: 
           yield view._setSummary(src);
@@ -2079,13 +2104,32 @@ NetworkDetailsView.prototype = {
           yield view._setHtmlPreview(src.responseContent);
           break;
       }
-      populated[tab] = true;
-      window.emit(EVENTS.TAB_UPDATED);
+      viewState.updating[tab] = false;
+    }).then(() => {
+      if (tab == this.widget.selectedIndex) {
+        if (viewState.dirty[tab]) {
+          
+          viewState.dirty[tab] = false;
+          view.populate(viewState.latestData);
+        }
+        else {
+          
+          populated[tab] = true;
+          window.emit(EVENTS.TAB_UPDATED);
 
-      if (NetMonitorController.isConnected()) {
-        NetMonitorView.RequestsMenu.ensureSelectedItemIsVisible();
+          if (NetMonitorController.isConnected()) {
+            NetMonitorView.RequestsMenu.ensureSelectedItemIsVisible();
+          }
+        }
       }
-    });
+      else {
+        if (viewState.dirty[tab]) {
+          
+          
+          viewState.dirty[tab] = false;
+        }
+      }
+    }, Cu.reportError);
   },
 
   
