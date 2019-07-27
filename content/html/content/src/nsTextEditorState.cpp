@@ -1521,8 +1521,10 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   
   
   
+  bool isInEditAction = false;
   if (mTextListener && mEditor && mEditorInitialized &&
-      mEditor->GetIsInEditAction()) {
+      NS_SUCCEEDED(mEditor->GetIsInEditAction(&isInEditAction)) &&
+      isInEditAction) {
     mTextListener->EditAction();
   }
 

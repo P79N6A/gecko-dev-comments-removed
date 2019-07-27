@@ -991,7 +991,9 @@ IMEContentObserver::FlushMergeableNotifications()
   }
 
   
-  if (mEditor && mEditor->GetIsInEditAction()) {
+  bool isInEditAction = false;
+  if (mEditor && NS_SUCCEEDED(mEditor->GetIsInEditAction(&isInEditAction)) &&
+      isInEditAction) {
     return;
   }
 
