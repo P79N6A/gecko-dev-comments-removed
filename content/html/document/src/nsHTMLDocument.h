@@ -240,7 +240,7 @@ public:
   
   
   
-  already_AddRefed<nsIDOMLocation> GetLocation() const {
+  already_AddRefed<nsLocation> GetLocation() const {
     return nsIDocument::GetLocation();
   }
 
