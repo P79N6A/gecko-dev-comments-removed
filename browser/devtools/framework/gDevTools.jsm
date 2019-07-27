@@ -406,6 +406,10 @@ DevTools.prototype = {
 
       this._toolboxes.set(target, toolbox);
 
+      toolbox.once("destroy", () => {
+        this.emit("toolbox-destroy", target);
+      });
+
       toolbox.once("destroyed", () => {
         this._toolboxes.delete(target);
         this.emit("toolbox-destroyed", target);
