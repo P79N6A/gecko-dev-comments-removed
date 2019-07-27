@@ -4,6 +4,7 @@
 
 
 #include "Hal.h"
+#include "HalLog.h"
 
 #include <unistd.h>
 #include <sys/reboot.h>
