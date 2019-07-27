@@ -2136,7 +2136,7 @@ CssRuleView.prototype = {
       
       
       if (!isPropertyHighlighted && isComputedHighlighted &&
-          !editor.computed.classList.contains("user-open")) {
+          !editor.computed.classList.contains("styleinspector-open")) {
         editor.expandForFilter();
         this._editorsExpandedForFilter.push(editor);
       }
@@ -3054,13 +3054,13 @@ TextPropertyEditor.prototype = {
 
   _onExpandClicked: function(aEvent) {
     if (this.computed.classList.contains("filter-open") ||
-        this.computed.classList.contains("user-open")) {
+        this.computed.classList.contains("styleinspector-open")) {
       this.expander.removeAttribute("open");
       this.computed.classList.remove("filter-open");
-      this.computed.classList.remove("user-open");
+      this.computed.classList.remove("styleinspector-open");
     } else {
       this.expander.setAttribute("open", "true");
-      this.computed.classList.add("user-open");
+      this.computed.classList.add("styleinspector-open");
     }
 
     aEvent.stopPropagation();
@@ -3072,7 +3072,7 @@ TextPropertyEditor.prototype = {
 
 
   expandForFilter: function() {
-    if (!this.computed.classList.contains("user-open")) {
+    if (!this.computed.classList.contains("styleinspector-open")) {
       this.computed.classList.add("filter-open");
       this.expander.setAttribute("open", "true");
     }
@@ -3083,7 +3083,7 @@ TextPropertyEditor.prototype = {
 
   collapseForFilter: function() {
     this.computed.classList.remove("filter-open");
-    if (!this.computed.classList.contains("user-open")) {
+    if (!this.computed.classList.contains("styleinspector-open")) {
       this.expander.removeAttribute("open");
     }
   },
