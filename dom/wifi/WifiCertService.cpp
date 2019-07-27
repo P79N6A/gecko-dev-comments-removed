@@ -10,6 +10,7 @@
 #include "WifiCertService.h"
 
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Endian.h"
 #include "mozilla/ModuleUtils.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/ToJSValue.h"
@@ -72,8 +73,13 @@ private:
     }
 
     
-    return ImportDERBlob(buf, size, mResult.mNickname,
-                         &mResult.mUsageFlag);
+    rv = ImportDERBlob(buf, size);
+    if (NS_SUCCEEDED(rv)) {
+      return rv;
+    }
+
+    
+    return ImportPKCS12Blob(buf, size, mPassword);
   }
 
   virtual void CallCallback(nsresult rv)
@@ -84,12 +90,8 @@ private:
     gWifiCertService->DispatchResult(mResult);
   }
 
-  nsresult ImportDERBlob(char* buf, uint32_t size,
-                         const nsAString& aNickname,
-                          uint16_t* aUsageFlag)
+  nsresult ImportDERBlob(char* buf, uint32_t size)
   {
-    NS_ENSURE_ARG_POINTER(aUsageFlag);
-
     
     ScopedCERTCertificate cert(CERT_DecodeCertFromPackage(buf, size));
     if (!cert) {
@@ -97,7 +99,139 @@ private:
     }
 
     
-    return ImportCert(cert, aNickname, aUsageFlag);
+    return ImportCert(cert);
+  }
+
+  static SECItem*
+  HandleNicknameCollision(SECItem* aOldNickname, PRBool* aCancel, void* aWincx)
+  {
+    const char* dummyName = "Imported User Cert";
+    const size_t dummyNameLen = strlen(dummyName);
+    SECItem* newNick = ::SECITEM_AllocItem(nullptr, nullptr, dummyNameLen + 1);
+    if (!newNick) {
+      return nullptr;
+    }
+
+    newNick->type = siAsciiString;
+    
+    memcpy(newNick->data, dummyName, dummyNameLen + 1);
+    newNick->len = dummyNameLen;
+
+    return newNick;
+  }
+
+  static SECStatus
+  HandleNicknameUpdate(const CERTCertificate *aCert,
+                       const SECItem *default_nickname,
+                       SECItem **new_nickname,
+                       void *arg)
+  {
+    WifiCertServiceResultOptions *result = (WifiCertServiceResultOptions *)arg;
+
+    nsCString userNickname;
+    CopyUTF16toUTF8(result->mNickname, userNickname);
+
+    nsCString fullNickname;
+    if (aCert->isRoot && (aCert->nsCertType & NS_CERT_TYPE_SSL_CA)) {
+      
+      fullNickname.AssignLiteral("WIFI_SERVERCERT_");
+      fullNickname += userNickname;
+      result->mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_SERVER;
+    } else if (aCert->nsCertType & NS_CERT_TYPE_SSL_CLIENT) {
+      
+      fullNickname.AssignLiteral("WIFI_USERCERT_");
+      fullNickname += userNickname;
+      result->mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_USER;
+    }
+    char* nickname;
+    uint32_t length = fullNickname.GetMutableData(&nickname);
+
+    SECItem* newNick = ::SECITEM_AllocItem(nullptr, nullptr, length + 1);
+    if (!newNick) {
+      return SECFailure;
+    }
+
+    newNick->type = siAsciiString;
+    memcpy(newNick->data, nickname, length + 1);
+    newNick->len = length;
+
+    *new_nickname = newNick;
+    return SECSuccess;
+  }
+
+  nsresult ImportPKCS12Blob(char* buf, uint32_t size, const nsAString& aPassword)
+  {
+    nsString password(aPassword);
+
+    
+    
+    
+    uint32_t length = password.Length() + 1;
+    ScopedSECItem passwordItem(
+      ::SECITEM_AllocItem(nullptr, nullptr, length * sizeof(nsString::char_type)));
+
+    if (!passwordItem) {
+      return NS_ERROR_FAILURE;
+    }
+
+    mozilla::NativeEndian::copyAndSwapToBigEndian(passwordItem->data,
+                                                  password.BeginReading(),
+                                                  length);
+    
+    ScopedSEC_PKCS12DecoderContext p12dcx(SEC_PKCS12DecoderStart(
+                                            passwordItem, nullptr, nullptr,
+                                            nullptr, nullptr, nullptr, nullptr,
+                                            nullptr));
+
+    if (!p12dcx) {
+      return NS_ERROR_FAILURE;
+    }
+
+    
+    SECStatus srv = SEC_PKCS12DecoderUpdate(p12dcx,
+                                            reinterpret_cast<unsigned char*>(buf),
+                                            size);
+    if (srv != SECSuccess) {
+      return MapSECStatus(srv);
+    }
+
+    
+    srv = SEC_PKCS12DecoderVerify(p12dcx);
+    if (srv != SECSuccess) {
+      return MapSECStatus(srv);
+    }
+
+    
+    srv = SEC_PKCS12DecoderRenameCertNicknames(p12dcx, HandleNicknameUpdate,
+                                               &mResult);
+
+    
+    srv = SEC_PKCS12DecoderValidateBags(p12dcx, HandleNicknameCollision);
+    if (srv != SECSuccess) {
+      return MapSECStatus(srv);
+    }
+
+    
+    ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
+    if (!slot) {
+      return NS_ERROR_FAILURE;
+    }
+    if (PK11_NeedLogin(slot) && PK11_NeedUserInit(slot)) {
+      srv = PK11_InitPin(slot, "", "");
+      if (srv != SECSuccess) {
+        return MapSECStatus(srv);
+      }
+    }
+
+    
+    srv = SEC_PKCS12DecoderImportBags(p12dcx);
+    if (srv != SECSuccess) {
+      return MapSECStatus(srv);
+    }
+
+    
+    return (mResult.mUsageFlag & nsIWifiCertService::WIFI_CERT_USAGE_FLAG_USER)
+            ? NS_OK : NS_ERROR_FAILURE;
   }
 
   nsresult ReadBlob( nsCString& aBuf)
@@ -128,20 +262,22 @@ private:
     return NS_OK;
   }
 
-  nsresult ImportCert(CERTCertificate* aCert, const nsAString& aNickname,
-                       uint16_t* aUsageFlag)
+  nsresult ImportCert(CERTCertificate* aCert)
   {
-    NS_ENSURE_ARG_POINTER(aUsageFlag);
-
     nsCString userNickname, fullNickname;
 
-    CopyUTF16toUTF8(aNickname, userNickname);
+    CopyUTF16toUTF8(mResult.mNickname, userNickname);
     
     if (aCert->isRoot && (aCert->nsCertType & NS_CERT_TYPE_SSL_CA)) {
       
       fullNickname.AssignLiteral("WIFI_SERVERCERT_");
       fullNickname += userNickname;
-      *aUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_SERVER;
+      mResult.mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_SERVER;
+    } else if (aCert->nsCertType & NS_CERT_TYPE_SSL_CLIENT) {
+      
+      fullNickname.AssignLiteral("WIFI_USERCERT_");
+      fullNickname += userNickname;
+      mResult.mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_USER;
     } else {
       return NS_ERROR_ABORT;
     }
@@ -154,7 +290,7 @@ private:
     }
 
     
-    SECStatus srv = CERT_AddTempCertToPerm(aCert, nickname, NULL);
+    SECStatus srv = CERT_AddTempCertToPerm(aCert, nickname, nullptr);
     if (srv != SECSuccess) {
       return MapSECStatus(srv);
     }
