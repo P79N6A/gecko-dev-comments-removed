@@ -18,7 +18,6 @@ import org.mozilla.mozstumbler.service.stumblerthread.blocklist.WifiBlockListInt
 import org.mozilla.mozstumbler.service.stumblerthread.datahandling.DataStorageManager;
 import org.mozilla.mozstumbler.service.stumblerthread.scanners.ScanManager;
 import org.mozilla.mozstumbler.service.uploadthread.UploadAlarmReceiver;
-import org.mozilla.mozstumbler.service.utils.NetworkUtils;
 import org.mozilla.mozstumbler.service.utils.PersistentIntentService;
 
 
@@ -118,7 +117,6 @@ public class StumblerService extends PersistentIntentService
     protected void init() {
         
         Prefs.getInstance(this);
-        NetworkUtils.createGlobalInstance(this);
         DataStorageManager.createGlobalInstance(this, this);
 
         mReporter.startup(this);

@@ -14,18 +14,9 @@ public final class NetworkUtils {
     private static final String LOG_TAG = AppGlobals.makeLogTag(NetworkUtils.class.getSimpleName());
 
     ConnectivityManager mConnectivityManager;
-    static NetworkUtils sInstance;
 
-    
-    static public void createGlobalInstance(Context context) {
-        sInstance = new NetworkUtils();
-        sInstance.mConnectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-    }
-
-    
-    public static NetworkUtils getInstance() {
-        assert(sInstance != null);
-        return sInstance;
+    public NetworkUtils(Context context) {
+        mConnectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     public synchronized boolean isWifiAvailable() {
