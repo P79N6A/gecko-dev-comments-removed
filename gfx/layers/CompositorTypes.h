@@ -133,20 +133,16 @@ MOZ_END_ENUM_CLASS(EffectTypes)
 
 
 MOZ_BEGIN_ENUM_CLASS(CompositableType, uint8_t)
-  BUFFER_UNKNOWN,
-  
-  BUFFER_CONTENT_INC,     
-                          
-  
-  BUFFER_TILED,           
-  BUFFER_SIMPLE_TILED,
-  
+  UNKNOWN,
+  CONTENT_INC,     
+                   
+  CONTENT_TILED,   
   IMAGE,           
   IMAGE_OVERLAY,   
   IMAGE_BRIDGE,    
   CONTENT_SINGLE,  
   CONTENT_DOUBLE,  
-  BUFFER_COUNT
+  COUNT
 MOZ_END_ENUM_CLASS(CompositableType)
 
 
@@ -219,7 +215,7 @@ struct TextureInfo
   TextureFlags mTextureFlags;
 
   TextureInfo()
-    : mCompositableType(CompositableType::BUFFER_UNKNOWN)
+    : mCompositableType(CompositableType::UNKNOWN)
     , mDeprecatedTextureHostFlags(DeprecatedTextureHostFlags::DEFAULT)
     , mTextureFlags(TextureFlags::NO_FLAGS)
   {}
