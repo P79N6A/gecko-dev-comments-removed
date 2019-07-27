@@ -491,6 +491,9 @@ public:
         
     }
 
+    
+    static bool InSafeMode();
+
     static bool OffMainThreadCompositingEnabled();
 
     static bool CanUseDirect3D9();

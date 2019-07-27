@@ -129,7 +129,6 @@ nsBaseWidget::nsBaseWidget()
 , mUpdateCursor(true)
 , mBorderStyle(eBorderStyle_none)
 , mUseLayersAcceleration(false)
-, mForceLayersAcceleration(false)
 , mUseAttachedEvents(false)
 , mBounds(0,0,0,0)
 , mOriginalBounds(nullptr)
@@ -826,35 +825,23 @@ nsBaseWidget::AutoLayerManagerSetup::~AutoLayerManagerSetup()
 bool
 nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
 {
-#if defined(XP_WIN) || defined(ANDROID) || \
-    defined(MOZ_GL_PROVIDER) || defined(XP_MACOSX) || defined(MOZ_WIDGET_QT)
-  bool accelerateByDefault = true;
-#else
-  bool accelerateByDefault = false;
-#endif
-
-#ifdef XP_MACOSX
   
-  
-  
-  
-  
-  accelerateByDefault = nsCocoaFeatures::AccelerateByDefault();
-#endif
+  if (gfxPrefs::LayersAccelerationDisabled()) {
+    return false;
+  }
 
   
-  bool disableAcceleration = gfxPrefs::LayersAccelerationDisabled();
-  mForceLayersAcceleration = gfxPrefs::LayersAccelerationForceEnabled();
+  if (gfxPlatform::InSafeMode()) {
+    return false;
+  }
 
-  const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
-  accelerateByDefault = accelerateByDefault ||
-                        (acceleratedEnv && (*acceleratedEnv != '0'));
+  
+  if (gfxPrefs::LayersAccelerationForceEnabled()) {
+    return true;
+  }
 
-  nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
-  bool safeMode = false;
-  if (xr)
-    xr->GetInSafeMode(&safeMode);
-
+  
+  
   bool whitelisted = false;
 
   nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
@@ -873,12 +860,6 @@ nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
     }
   }
 
-  if (disableAcceleration || safeMode)
-    return false;
-
-  if (mForceLayersAcceleration)
-    return true;
-
   if (!whitelisted) {
     static int tell_me_once = 0;
     if (!tell_me_once) {
@@ -892,8 +873,26 @@ nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
     return false;
   }
 
-  if (accelerateByDefault)
+#if defined (XP_MACOSX)
+  
+  
+  
+  
+  
+  bool accelerateByDefault = nsCocoaFeatures::AccelerateByDefault();
+#elif defined(XP_WIN) || defined(ANDROID) || \
+    defined(MOZ_GL_PROVIDER) || defined(MOZ_WIDGET_QT)
+  bool accelerateByDefault = true;
+#else
+  bool accelerateByDefault = false;
+#endif
+
+  
+  
+  const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
+  if (accelerateByDefault || (acceleratedEnv && (*acceleratedEnv != '0'))) {
     return true;
+  }
 
   
   return aDefault;
