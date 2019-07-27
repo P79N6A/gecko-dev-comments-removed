@@ -4806,7 +4806,7 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
       else if (nsHTMLEditUtils::IsList(curParent)) {
         
         
-        res = AlignInnerBlocks(curNode, alignType);
+        res = AlignInnerBlocks(*curContent, alignType);
         NS_ENSURE_SUCCESS(res, res);
         curDiv = 0;
         continue;
@@ -4853,30 +4853,23 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
 
 
 nsresult
-nsHTMLEditRules::AlignInnerBlocks(nsIDOMNode *aNode, const nsAString *alignType)
+nsHTMLEditRules::AlignInnerBlocks(nsINode& aNode, const nsAString* alignType)
 {
-  NS_ENSURE_TRUE(aNode && alignType, NS_ERROR_NULL_POINTER);
-  nsresult res;
-  
-  
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  nsTableCellAndListItemFunctor functor;
-  nsDOMIterator iter(*aNode);
-  iter.AppendList(functor, arrayOfNodes);
-  
-  
-  int32_t listCount = arrayOfNodes.Count();
-  int32_t j;
+  NS_ENSURE_TRUE(alignType, NS_ERROR_NULL_POINTER);
 
-  for (j = 0; j < listCount; j++)
-  {
-    nsIDOMNode* node = arrayOfNodes[0];
-    res = AlignBlockContents(node, alignType);
+  
+  nsTArray<nsCOMPtr<nsINode>> nodeArray;
+  nsTableCellAndListItemFunctor functor;
+  nsDOMIterator iter(aNode);
+  iter.AppendList(functor, nodeArray);
+
+  
+  for (auto& node : nodeArray) {
+    nsresult res = AlignBlockContents(node->AsDOMNode(), alignType);
     NS_ENSURE_SUCCESS(res, res);
-    arrayOfNodes.RemoveObjectAt(0);
   }
 
-  return res;  
+  return NS_OK;
 }
 
 
@@ -6134,7 +6127,7 @@ nsHTMLEditRules::BustUpInlinesAtBRs(nsINode& aNode,
   
   nsTArray<nsCOMPtr<nsINode>> arrayOfBreaks;
   nsBRNodeFunctor functor;
-  nsDOMIterator iter(*GetAsDOMNode(&aNode));
+  nsDOMIterator iter(aNode);
   iter.AppendList(functor, arrayOfBreaks);
 
   
