@@ -321,7 +321,6 @@ var shell = {
     
     
     chromeEventHandler.addEventListener('keydown', this, true);
-    chromeEventHandler.addEventListener('keypress', this, true);
     chromeEventHandler.addEventListener('keyup', this, true);
 
     window.addEventListener('MozApplicationManifest', this);
@@ -353,7 +352,6 @@ var shell = {
   stop: function shell_stop() {
     window.removeEventListener('unload', this);
     window.removeEventListener('keydown', this, true);
-    window.removeEventListener('keypress', this, true);
     window.removeEventListener('keyup', this, true);
     window.removeEventListener('MozApplicationManifest', this);
     window.removeEventListener('mozfullscreenchange', this);
@@ -371,6 +369,7 @@ var shell = {
   
   
   
+  
   filterHardwareKeys: function shell_filterHardwareKeys(evt) {
     var type;
     switch (evt.keyCode) {
@@ -381,10 +380,10 @@ var shell = {
       case evt.DOM_VK_END:          
         type = 'sleep-button';
         break;
-      case evt.DOM_VK_PAGE_UP:      
+      case evt.DOM_VK_VOLUME_UP:      
         type = 'volume-up-button';
         break;
-      case evt.DOM_VK_PAGE_DOWN:    
+      case evt.DOM_VK_VOLUME_DOWN:    
         type = 'volume-down-button';
         break;
       case evt.DOM_VK_ESCAPE:       
@@ -415,17 +414,11 @@ var shell = {
       type = mediaKeys[evt.key];
     }
 
+    
     if (!type) {
       return;
     }
 
-    
-    
-    evt.stopImmediatePropagation();
-    evt.preventDefault(); 
-
-    
-    
     switch (evt.type) {
       case 'keydown':
         type = type + '-press';
@@ -433,8 +426,6 @@ var shell = {
       case 'keyup':
         type = type + '-release';
         break;
-      case 'keypress':
-        return;
     }
 
     
@@ -471,7 +462,6 @@ var shell = {
     switch (evt.type) {
       case 'keydown':
       case 'keyup':
-      case 'keypress':
         this.filterHardwareKeys(evt);
         break;
       case 'mozfullscreenchange':
