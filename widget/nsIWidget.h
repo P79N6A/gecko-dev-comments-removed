@@ -1673,7 +1673,11 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsIntPoint WidgetToScreenOffset() = 0;
+
+    virtual mozilla::LayoutDeviceIntPoint WidgetToScreenOffset() = 0;
+    virtual nsIntPoint WidgetToScreenOffsetUntyped() {
+      return mozilla::LayoutDeviceIntPoint::ToUntyped(WidgetToScreenOffset());
+    }
 
     
 

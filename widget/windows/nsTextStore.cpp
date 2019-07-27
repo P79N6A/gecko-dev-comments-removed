@@ -3198,7 +3198,7 @@ nsTextStore::GetTextExt(TsViewCookie vcView,
       return E_FAIL;
     }
 
-    event.mReply.mRect.MoveBy(refWindow->WidgetToScreenOffset());
+    event.mReply.mRect.MoveBy(refWindow->WidgetToScreenOffsetUntyped());
   }
 
   
@@ -3336,7 +3336,7 @@ nsTextStore::GetScreenExtInternal(RECT &aScreenExt)
     
     boundRect.IntersectRect(event.mReply.mRect, boundRect);
     if (!boundRect.IsEmpty()) {
-      boundRect.MoveBy(refWindow->WidgetToScreenOffset());
+      boundRect.MoveBy(refWindow->WidgetToScreenOffsetUntyped());
       ::SetRect(&aScreenExt, boundRect.x, boundRect.y,
                 boundRect.XMost(), boundRect.YMost());
     } else {
@@ -4325,8 +4325,8 @@ nsTextStore::CreateNativeCaret()
   }
 
   if (toplevelWindow != window) {
-    caretRect.MoveBy(toplevelWindow->WidgetToScreenOffset());
-    caretRect.MoveBy(-window->WidgetToScreenOffset());
+    caretRect.MoveBy(toplevelWindow->WidgetToScreenOffsetUntyped());
+    caretRect.MoveBy(-window->WidgetToScreenOffsetUntyped());
   }
 
   ::SetCaretPos(caretRect.x, caretRect.y);

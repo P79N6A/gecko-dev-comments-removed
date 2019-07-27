@@ -1957,7 +1957,7 @@ nsIMM32Handler::SetIMERelatedWindowsPosOnPlugin(nsWindow* aWindow,
   
   nsWindow* toplevelWindow = aWindow->GetTopLevelWindow(false);
   nsIntRect pluginRectInScreen =
-    editorRectEvent.mReply.mRect + toplevelWindow->WidgetToScreenOffset();
+    editorRectEvent.mReply.mRect + toplevelWindow->WidgetToScreenOffsetUntyped();
   nsIntRect winRectInScreen;
   aWindow->GetClientBounds(winRectInScreen);
   
@@ -1974,7 +1974,7 @@ nsIMM32Handler::SetIMERelatedWindowsPosOnPlugin(nsWindow* aWindow,
   int32_t yMost = std::min(pluginRectInScreen.YMost(), winRectInScreen.YMost());
   clippedPluginRect.width = std::max(0, xMost - clippedPluginRect.x);
   clippedPluginRect.height = std::max(0, yMost - clippedPluginRect.y);
-  clippedPluginRect -= aWindow->WidgetToScreenOffset();
+  clippedPluginRect -= aWindow->WidgetToScreenOffsetUntyped();
 
   
   
@@ -2013,10 +2013,10 @@ nsIMM32Handler::ResolveIMECaretPos(nsIWidget* aReferenceWidget,
     return;
 
   if (aReferenceWidget)
-    aOutRect.MoveBy(aReferenceWidget->WidgetToScreenOffset());
+    aOutRect.MoveBy(aReferenceWidget->WidgetToScreenOffsetUntyped());
 
   if (aNewOriginWidget)
-    aOutRect.MoveBy(-aNewOriginWidget->WidgetToScreenOffset());
+    aOutRect.MoveBy(-aNewOriginWidget->WidgetToScreenOffsetUntyped());
 }
 
  nsresult

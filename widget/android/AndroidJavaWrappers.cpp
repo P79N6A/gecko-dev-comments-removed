@@ -730,7 +730,7 @@ AndroidGeckoEvent::MakeTouchEvent(nsIWidget* widget)
     event.modifiers = DOMModifiers();
     event.time = Time();
 
-    const nsIntPoint& offset = widget->WidgetToScreenOffset();
+    const LayoutDeviceIntPoint& offset = widget->WidgetToScreenOffset();
     event.touches.SetCapacity(endIndex - startIndex);
     for (int i = startIndex; i < endIndex; i++) {
         
@@ -796,7 +796,7 @@ AndroidGeckoEvent::MakeMultiTouchInput(nsIWidget* widget)
         return event;
     }
 
-    const nsIntPoint& offset = widget->WidgetToScreenOffset();
+    const nsIntPoint& offset = widget->WidgetToScreenOffsetUntyped();
     event.mTouches.SetCapacity(endIndex - startIndex);
     for (int i = startIndex; i < endIndex; i++) {
         nsIntPoint point = Points()[i] - offset;
@@ -853,11 +853,10 @@ AndroidGeckoEvent::MakeMouseEvent(nsIWidget* widget)
     
     
     
-    const nsIntPoint& offset = widget->WidgetToScreenOffset();
+    const LayoutDeviceIntPoint& offset = widget->WidgetToScreenOffset();
     CSSToLayoutDeviceScale scale = widget->GetDefaultScale();
     event.refPoint = LayoutDeviceIntPoint((Points()[0].x * scale.scale) - offset.x,
                                           (Points()[0].y * scale.scale) - offset.y);
-
     return event;
 }
 

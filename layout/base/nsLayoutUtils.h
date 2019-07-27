@@ -728,9 +728,10 @@ public:
 
 
 
-  static nsIntPoint TranslateViewToWidget(nsPresContext* aPresContext,
-                                          nsView* aView, nsPoint aPt,
-                                          nsIWidget* aWidget);
+  static mozilla::LayoutDeviceIntPoint
+    TranslateViewToWidget(nsPresContext* aPresContext,
+                          nsView* aView, nsPoint aPt,
+                          nsIWidget* aWidget);
 
   enum FrameForPointFlags {
     
