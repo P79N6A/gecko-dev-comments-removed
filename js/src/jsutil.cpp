@@ -33,12 +33,6 @@ JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations = UINT32_MAX;
 JS_PUBLIC_DATA(uint32_t) OOM_counter = 0;
 #endif
 
-
-
-
-
-JS_STATIC_ASSERT(sizeof(void *) == sizeof(void (*)()));
-
 JS_PUBLIC_API(void)
 JS_Assert(const char *s, const char *file, int ln)
 {

@@ -22,6 +22,7 @@
 #define jstypes_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Casting.h"
 #include "mozilla/Types.h"
 
 
@@ -206,14 +207,8 @@
 
 
 
-#ifdef __GNUC__
-# define JS_FUNC_TO_DATA_PTR(type, fun) (__extension__ (type) (size_t) (fun))
-# define JS_DATA_TO_FUNC_PTR(type, ptr) (__extension__ (type) (size_t) (ptr))
-#else
-
-# define JS_FUNC_TO_DATA_PTR(type, fun) ((type) (void *) (fun))
-# define JS_DATA_TO_FUNC_PTR(type, ptr) ((type) (void *) (ptr))
-#endif
+#define JS_FUNC_TO_DATA_PTR(type, fun)  (mozilla::BitwiseCast<type>(fun))
+#define JS_DATA_TO_FUNC_PTR(type, ptr)  (mozilla::BitwiseCast<type>(ptr))
 
 #ifdef __GNUC__
 # define JS_EXTENSION __extension__
