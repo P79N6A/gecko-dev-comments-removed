@@ -412,7 +412,7 @@ CloseLiveIterator(JSContext *cx, const InlineFrameIterator &frame, uint32_t loca
 
 static void
 HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromException *rfe,
-                   bool *overrecursed)
+                   bool *overrecursed, bool *poppedLastSPSFrameOut)
 {
     RootedScript script(cx, frame.script());
     jsbytecode *pc = frame.pc();
@@ -444,7 +444,8 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
             
             
             ExceptionBailoutInfo propagateInfo;
-            uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed);
+            uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed,
+                                                      poppedLastSPSFrameOut);
             if (retval == BAILOUT_RETURN_OK)
                 return;
         }
@@ -486,7 +487,8 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
                 
                 jsbytecode *catchPC = script->main() + tn->start + tn->length;
                 ExceptionBailoutInfo excInfo(frame.frameNo(), catchPC, tn->stackDepth);
-                uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, excInfo, overrecursed);
+                uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, excInfo, overrecursed,
+                                                          poppedLastSPSFrameOut);
                 if (retval == BAILOUT_RETURN_OK)
                     return;
 
@@ -742,7 +744,8 @@ HandleException(ResumeFromException *rfe)
             bool invalidated = iter.checkInvalidation(&ionScript);
 
             for (;;) {
-                HandleExceptionIon(cx, frames, rfe, &overrecursed);
+                bool poppedLastSPSFrame = false;
+                HandleExceptionIon(cx, frames, rfe, &overrecursed, &poppedLastSPSFrame);
 
                 if (rfe->kind == ResumeFromException::RESUME_BAILOUT) {
                     if (invalidated)
@@ -762,6 +765,11 @@ HandleException(ResumeFromException *rfe)
 
                 
                 if (frames.more())
+                    popSPSFrame = false;
+
+                
+                
+                if (poppedLastSPSFrame)
                     popSPSFrame = false;
 
                 
