@@ -492,7 +492,10 @@ public:
     mWriteParams(aWriteParams),
     mNeedAllowNextSynchronizedOp(false),
     mPersistence(quota::PERSISTENCE_TYPE_INVALID),
-    mState(eInitial)
+    mState(eInitial),
+    mIsApp(false),
+    mHasUnlimStoragePerm(false),
+    mEnforcingQuota(true)
   {
     MOZ_ASSERT(IsMainProcess());
   }
@@ -593,6 +596,9 @@ protected:
   }
 
 private:
+  void
+  InitPersistenceType();
+
   nsresult
   InitOnMainThread();
 
@@ -659,7 +665,57 @@ private:
     eFinished, 
   };
   State mState;
+
+  bool mIsApp;
+  bool mHasUnlimStoragePerm;
+  bool mEnforcingQuota;
 };
+
+void
+MainProcessRunnable::InitPersistenceType()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mState == eInitial);
+
+  if (mOpenMode == eOpenForWrite) {
+    MOZ_ASSERT(mPersistence == quota::PERSISTENCE_TYPE_INVALID);
+
+    
+    
+    
+    
+    
+    
+    
+
+    MOZ_ASSERT_IF(mWriteParams.mInstalled, mIsApp);
+
+    if (mWriteParams.mInstalled &&
+        !QuotaManager::IsQuotaEnforced(quota::PERSISTENCE_TYPE_PERSISTENT,
+                                       mOrigin, mHasUnlimStoragePerm)) {
+      mPersistence = quota::PERSISTENCE_TYPE_PERSISTENT;
+    } else {
+      mPersistence = quota::PERSISTENCE_TYPE_TEMPORARY;
+    }
+
+    return;
+  }
+
+  
+  
+  
+  
+  
+
+  MOZ_ASSERT_IF(mPersistence != quota::PERSISTENCE_TYPE_INVALID,
+                mIsApp && mPersistence == quota::PERSISTENCE_TYPE_PERSISTENT);
+
+  if (mPersistence == quota::PERSISTENCE_TYPE_INVALID && mIsApp) {
+    mPersistence = quota::PERSISTENCE_TYPE_PERSISTENT;
+  } else {
+    mPersistence = quota::PERSISTENCE_TYPE_TEMPORARY;
+  }
+}
 
 nsresult
 MainProcessRunnable::InitOnMainThread()
@@ -670,57 +726,28 @@ MainProcessRunnable::InitOnMainThread()
   QuotaManager* qm = QuotaManager::GetOrCreate();
   NS_ENSURE_STATE(qm);
 
-  nsresult rv = QuotaManager::GetInfoFromPrincipal(mPrincipal, &mGroup,
-                                                   &mOrigin, nullptr, nullptr);
+  nsresult rv =
+    QuotaManager::GetInfoFromPrincipal(mPrincipal,
+                                       quota::PERSISTENCE_TYPE_INVALID,
+                                       &mGroup, &mOrigin, &mIsApp,
+                                       &mHasUnlimStoragePerm);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bool isApp = mPrincipal->GetAppStatus() !=
-               nsIPrincipal::APP_STATUS_NOT_INSTALLED;
+  
+  
 
-  if (mOpenMode == eOpenForWrite) {
-    MOZ_ASSERT(mPersistence == quota::PERSISTENCE_TYPE_INVALID);
-    if (mWriteParams.mInstalled) {
-      
-      
-      
-      
-      
-      
-      MOZ_ASSERT(isApp);
+  InitPersistenceType();
 
-      nsCOMPtr<nsIPermissionManager> pm =
-        services::GetPermissionManager();
-      NS_ENSURE_TRUE(pm, NS_ERROR_UNEXPECTED);
-
-      uint32_t permission;
-      rv = pm->TestPermissionFromPrincipal(mPrincipal,
-                                           PERMISSION_STORAGE_UNLIMITED,
-                                           &permission);
-      NS_ENSURE_SUCCESS(rv, NS_ERROR_UNEXPECTED);
-
-      
-      
-      mPersistence = permission == nsIPermissionManager::ALLOW_ACTION
-                     ? quota::PERSISTENCE_TYPE_PERSISTENT
-                     : quota::PERSISTENCE_TYPE_TEMPORARY;
-    } else {
-      mPersistence = quota::PERSISTENCE_TYPE_TEMPORARY;
-    }
-  } else {
-    
-    
-    
-    
-    
-    if (mPersistence == quota::PERSISTENCE_TYPE_INVALID) {
-      mPersistence = isApp ? quota::PERSISTENCE_TYPE_PERSISTENT
-                           : quota::PERSISTENCE_TYPE_TEMPORARY;
-    } else {
-      MOZ_ASSERT(isApp);
-      MOZ_ASSERT(mPersistence == quota::PERSISTENCE_TYPE_PERSISTENT);
-      mPersistence = quota::PERSISTENCE_TYPE_TEMPORARY;
-    }
+  
+  
+  
+  
+  if (mPersistence == quota::PERSISTENCE_TYPE_PERSISTENT) {
+    mGroup = mOrigin;
   }
+
+  mEnforcingQuota =
+    QuotaManager::IsQuotaEnforced(mPersistence, mOrigin, mHasUnlimStoragePerm);
 
   QuotaManager::GetStorageId(mPersistence, mOrigin, quota::Client::ASMJS,
                              NS_LITERAL_STRING("asmjs"), mStorageId);
@@ -737,13 +764,10 @@ MainProcessRunnable::ReadMetadata()
   QuotaManager* qm = QuotaManager::Get();
   MOZ_ASSERT(qm, "We are on the QuotaManager's IO thread");
 
-  
-  
-  bool trackQuota = mPersistence == quota::PERSISTENCE_TYPE_TEMPORARY;
-
-  nsresult rv = qm->EnsureOriginIsInitialized(mPersistence, mGroup, mOrigin,
-                                              trackQuota,
-                                              getter_AddRefs(mDirectory));
+  nsresult rv =
+    qm->EnsureOriginIsInitialized(mPersistence, mGroup, mOrigin,
+                                  mHasUnlimStoragePerm,
+                                  getter_AddRefs(mDirectory));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mDirectory->Append(NS_LITERAL_STRING(ASMJSCACHE_DIRECTORY_NAME));
@@ -811,11 +835,7 @@ MainProcessRunnable::OpenCacheFileForWrite()
   QuotaManager* qm = QuotaManager::Get();
   MOZ_ASSERT(qm, "We are on the QuotaManager's IO thread");
 
-  
-  
-  
-  
-  if (mPersistence == quota::PERSISTENCE_TYPE_TEMPORARY) {
+  if (mEnforcingQuota) {
     
     
     
@@ -866,7 +886,7 @@ MainProcessRunnable::OpenCacheFileForRead()
   QuotaManager* qm = QuotaManager::Get();
   MOZ_ASSERT(qm, "We are on the QuotaManager's IO thread");
 
-  if (mPersistence == quota::PERSISTENCE_TYPE_TEMPORARY) {
+  if (mEnforcingQuota) {
     
     
     
