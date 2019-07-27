@@ -1163,11 +1163,6 @@ pref("network.warnOnAboutNetworking", true);
 
 
 
-pref("network.manage-offline-status", false);
-
-pref("network.offline-mirrors-connectivity", true);
-
-
 pref("network.http.version", "1.1");      
 
 
