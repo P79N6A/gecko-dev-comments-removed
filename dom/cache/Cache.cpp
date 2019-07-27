@@ -452,16 +452,12 @@ Cache::RecvMatchAllResponse(RequestId aRequestId, nsresult aRv,
 }
 
 void
-Cache::RecvAddAllResponse(RequestId aRequestId,
-                          const mozilla::ErrorResult& aError)
+Cache::RecvAddAllResponse(RequestId aRequestId, nsresult aRv)
 {
   nsRefPtr<Promise> promise = RemoveRequestPromise(aRequestId);
 
-  if (aError.Failed()) {
-    
-    
-    
-    promise->MaybeReject(const_cast<ErrorResult&>(aError));
+  if (NS_FAILED(aRv)) {
+    promise->MaybeReject(aRv);
     return;
   }
 
