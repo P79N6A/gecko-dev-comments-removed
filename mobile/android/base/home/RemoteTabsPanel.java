@@ -6,7 +6,6 @@
 package org.mozilla.gecko.home;
 
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.mozilla.gecko.R;
@@ -53,8 +52,12 @@ public class RemoteTabsPanel extends HomeFragment {
     
     
     
-    
     private final Map<Action, Fragment> mFragmentCache = new EnumMap<>(Action.class);
+
+    
+    
+    
+    private Fragment mFallbackFragment;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -175,12 +178,20 @@ public class RemoteTabsPanel extends HomeFragment {
     private Fragment getFragmentNeeded(Account account) {
         final Action actionNeeded = getActionNeeded(account);
 
-        
-        if (!mFragmentCache.containsKey(actionNeeded)) {
-            final Fragment fragment = makeFragmentForAction(actionNeeded);
+        if (actionNeeded == null) {
+            if (mFallbackFragment == null) {
+                mFallbackFragment = makeFragmentForAction(null);
+            }
+            return mFallbackFragment;
+        }
+
+        Fragment fragment = mFragmentCache.get(actionNeeded);
+        if (fragment == null) {
+            fragment = makeFragmentForAction(actionNeeded);
             mFragmentCache.put(actionNeeded, fragment);
         }
-        return mFragmentCache.get(actionNeeded);
+
+        return fragment;
     }
 
     
