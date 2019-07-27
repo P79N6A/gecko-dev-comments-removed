@@ -132,9 +132,7 @@ template<typename TYPE> inline
 void construct_type(TYPE* p, size_t n) {
     if (!traits<TYPE>::has_trivial_ctor) {
         while (n--) {
-            
-            new(p) TYPE;
-            ++p;
+            new(p++) TYPE;
         }
     }
 }
