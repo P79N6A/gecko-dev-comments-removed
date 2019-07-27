@@ -943,14 +943,16 @@ Messages.Simple.prototype = Heritage.extend(Messages.BaseMessage.prototype,
       return null;
     }
 
-    let {url, line} = this.location;
+    let {url, line, column} = this.location;
     if (IGNORED_SOURCE_URLS.indexOf(url) != -1) {
       return null;
     }
 
     
     
-    return this.output.owner.createLocationNode(url, line);
+    return this.output.owner.createLocationNode({url: url,
+                                                 line: line,
+                                                 column: column});
   },
 }); 
 
@@ -1250,6 +1252,7 @@ Messages.ConsoleGeneric = function(packet)
     location: {
       url: packet.filename,
       line: packet.lineNumber,
+      column: packet.columnNumber
     },
   };
 
@@ -3446,8 +3449,8 @@ Widgets.Stacktrace.prototype = Heritage.extend(Widgets.BaseWidget.prototype,
       fn.textContent = l10n.getStr("stacktrace.anonymousFunction");
     }
 
-    let location = this.output.owner.createLocationNode(frame.filename,
-                                                        frame.lineNumber,
+    let location = this.output.owner.createLocationNode({url: frame.filename,
+                                                        line: frame.lineNumber},
                                                         "jsdebugger");
 
     
