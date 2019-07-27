@@ -126,7 +126,7 @@ struct BreadthFirst {
             pending.popFront();
 
             
-            auto range = origin.edges(cx, wantNames);
+            js::ScopedJSDeletePtr<EdgeRange> range(origin.edges(cx, wantNames));
             if (!range)
                 return false;
 

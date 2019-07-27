@@ -1,10 +1,20 @@
 
 
+
+
+
 load(libdir + "asserts.js");
 
-let dbg1, dbg2, root1, root2;
+let root1 = newGlobal();
+let root2 = newGlobal();
 
-function FakeMetadata() {}
+let dbg1 = new Debugger();
+let dbg2 = new Debugger();
+
+let d1r1 = dbg1.addDebuggee(root1);
+let d2r1 = dbg2.addDebuggee(root1);
+
+let wrappedObj, allocationSite;
 
 function isTrackingAllocations(global, dbgObj) {
   const site = dbgObj.makeDebuggeeValue(global.eval("({})")).allocationSite;
@@ -14,94 +24,41 @@ function isTrackingAllocations(global, dbgObj) {
   return !!site;
 }
 
-function test(name, fn) {
-  print();
-  print(name);
 
-  
-  root1 = newGlobal();
-  root2 = newGlobal();
-  dbg1 = new Debugger;
-  dbg2 = new Debugger;
+dbg1.memory.trackingAllocationSites = true;
+assertThrowsInstanceOf(() => dbg2.memory.trackingAllocationSites = true,
+                       Error);
 
-  
-  fn();
 
-  print("  OK");
-}
+dbg1.removeDebuggee(root1);
+assertEq(isTrackingAllocations(root1, d1r1), false);
 
-test("Can track allocations even if a different debugger is already tracking " +
-     "them.",
-     () => {
-       let d1r1 = dbg1.addDebuggee(root1);
-       let d2r1 = dbg2.addDebuggee(root1);
-       dbg1.memory.trackingAllocationSites = true;
-       dbg2.memory.trackingAllocationSites = true;
-       assertEq(isTrackingAllocations(root1, d1r1), true);
-       assertEq(isTrackingAllocations(root1, d2r1), true);
-     });
 
-test("Removing root1 as a debuggee from all debuggers should disable the " +
-     "allocation hook.",
-     () => {
-       dbg1.memory.trackingAllocationSites = true;
-       let d1r1 = dbg1.addDebuggee(root1);
-       dbg1.removeAllDebuggees();
-       assertEq(isTrackingAllocations(root1, d1r1), false);
-     });
+dbg2.memory.trackingAllocationSites = true;
+assertEq(isTrackingAllocations(root1, d2r1), true);
 
-test("Adding a new debuggee to a debugger that is tracking allocations should " +
-     "enable the hook for the new debuggee.",
-     () => {
-       dbg1.memory.trackingAllocationSites = true;
-       let d1r1 = dbg1.addDebuggee(root1);
-       assertEq(isTrackingAllocations(root1, d1r1), true);
-     });
 
-test("Setting trackingAllocationSites to true should throw if the debugger " +
-     "cannot install the allocation hooks for *every* debuggee.",
-     () => {
-       let d1r1 = dbg1.addDebuggee(root1);
-       let d1r2 = dbg1.addDebuggee(root2);
 
-       
-       root2.setObjectMetadataCallback(function () { return new FakeMetadata; });
+assertThrowsInstanceOf(() => dbg1.addDebuggee(root1),
+                       Error);
+assertEq(dbg1.hasDebuggee(root1), false);
 
-       assertThrowsInstanceOf(() => dbg1.memory.trackingAllocationSites = true,
-                              Error);
 
-       
-       
-       assertEq(dbg1.memory.trackingAllocationSites, false);
-       assertEq(isTrackingAllocations(root1, d1r1), false);
-       assertEq(isTrackingAllocations(root2, d1r2), false);
-     });
 
-test("A Debugger isn't tracking allocation sites when disabled.",
-     () => {
-       dbg1.memory.trackingAllocationSites = true;
-       let d1r1 = dbg1.addDebuggee(root1);
+dbg2.removeDebuggee(root1);
+d1r1 = dbg1.addDebuggee(root1);
+assertEq(isTrackingAllocations(root1, d1r1), true);
 
-       assertEq(isTrackingAllocations(root1, d1r1), true);
-       dbg1.enabled = false;
-       assertEq(isTrackingAllocations(root1, d1r1), false);
-     });
 
-test("Re-enabling throws an error if we can't reinstall allocations tracking " +
-     "for all debuggees.",
-     () => {
-       dbg1.enabled = false
-       dbg1.memory.trackingAllocationSites = true;
-       let d1r1 = dbg1.addDebuggee(root1);
-       let d1r2 = dbg1.addDebuggee(root2);
 
-       
-       root2.setObjectMetadataCallback(function () { return new FakeMetadata; });
+dbg1.memory.trackingAllocationSites = true;
+dbg1.addDebuggee(root1);
+dbg2.memory.trackingAllocationSites = false;
+let d2r2 = dbg2.addDebuggee(root2);
+dbg2.addDebuggee(root1);
+assertThrowsInstanceOf(() => dbg2.memory.trackingAllocationSites = true,
+                       Error);
 
-       assertThrowsInstanceOf(() => dbg1.enabled = true,
-                              Error);
 
-       assertEq(dbg1.enabled, false);
-       assertEq(isTrackingAllocations(root1, d1r1), false);
-       assertEq(isTrackingAllocations(root2, d1r2), false);
-     });
+
+assertEq(isTrackingAllocations(root2, d2r2), false);

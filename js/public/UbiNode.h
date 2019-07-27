@@ -13,7 +13,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
-#include "mozilla/UniquePtr.h"
 
 #include "jspubtd.h"
 
@@ -142,22 +141,10 @@
 namespace JS {
 namespace ubi {
 
+using mozilla::Maybe;
+
 class Edge;
 class EdgeRange;
-
-}
-}
-
-namespace mozilla {
-template<>
-class DefaultDelete<JS::ubi::EdgeRange> : public JS::DeletePolicy<JS::ubi::EdgeRange> { };
-}
-
-namespace JS {
-namespace ubi {
-
-using mozilla::Maybe;
-using mozilla::UniquePtr;
 
 
 
@@ -192,26 +179,6 @@ class Base {
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    typedef uintptr_t Id;
-    virtual Id identifier() const { return reinterpret_cast<Id>(ptr); }
-
-    
-    
-    
-    virtual bool isLive() const { return true; };
-
-    
-    
-    
-    
-    
     virtual const char16_t* typeName() const = 0;
 
     
@@ -225,7 +192,9 @@ class Base {
     
     
     
-    virtual UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const = 0;
+    
+    
+    virtual EdgeRange* edges(JSContext* cx, bool wantNames) const = 0;
 
     
     
@@ -341,8 +310,6 @@ class Node {
         return base()->ptr != nullptr;
     }
 
-    bool isLive() const { return base()->isLive(); }
-
     template<typename T>
     bool is() const {
         return base()->typeName() == Concrete<T>::concreteTypeName;
@@ -350,14 +317,12 @@ class Node {
 
     template<typename T>
     T* as() const {
-        MOZ_ASSERT(isLive());
         MOZ_ASSERT(is<T>());
         return static_cast<T*>(base()->ptr);
     }
 
     template<typename T>
     T* asOrNull() const {
-        MOZ_ASSERT(isLive());
         return is<T>() ? static_cast<T*>(base()->ptr) : nullptr;
     }
 
@@ -376,12 +341,9 @@ class Node {
         return base()->size(mallocSizeof);
     }
 
-    UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames = true) const {
+    EdgeRange* edges(JSContext* cx, bool wantNames = true) const {
         return base()->edges(cx, wantNames);
     }
-
-    typedef Base::Id Id;
-    Id identifier() const { return base()->identifier(); }
 
     
     
@@ -506,33 +468,6 @@ typedef mozilla::Vector<SimpleEdge, 8, js::TempAllocPolicy> SimpleEdgeVector;
 
 
 
-class PreComputedEdgeRange : public EdgeRange {
-    SimpleEdgeVector& edges;
-    size_t            i;
-
-    void settle() {
-        front_ = i < edges.length() ? &edges[i] : nullptr;
-    }
-
-  public:
-    explicit PreComputedEdgeRange(JSContext* cx, SimpleEdgeVector& edges)
-      : edges(edges),
-        i(0)
-    {
-        settle();
-    }
-
-    void popFront() override {
-        MOZ_ASSERT(!empty());
-        i++;
-        settle();
-    }
-};
-
-
-
-
-
 
 
 
@@ -577,10 +512,6 @@ class MOZ_STACK_CLASS RootList {
 
     
     
-    bool initialized() { return noGC.isSome(); }
-
-    
-    
     
     bool addRoot(Node node, const char16_t* edgeName = nullptr);
 };
@@ -590,7 +521,7 @@ class MOZ_STACK_CLASS RootList {
 
 template<>
 struct Concrete<RootList> : public Base {
-    UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const override;
+    EdgeRange* edges(JSContext* cx, bool wantNames) const override;
     const char16_t* typeName() const override { return concreteTypeName; }
 
   protected:
@@ -607,7 +538,7 @@ struct Concrete<RootList> : public Base {
 template<typename Referent>
 class TracerConcrete : public Base {
     const char16_t* typeName() const override { return concreteTypeName; }
-    UniquePtr<EdgeRange> edges(JSContext*, bool wantNames) const override;
+    EdgeRange* edges(JSContext*, bool wantNames) const override;
     JS::Zone* zone() const override;
 
   protected:
@@ -660,7 +591,7 @@ template<>
 class Concrete<void> : public Base {
     const char16_t* typeName() const override;
     size_t size(mozilla::MallocSizeOf mallocSizeOf) const override;
-    UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const override;
+    EdgeRange* edges(JSContext* cx, bool wantNames) const override;
     JS::Zone* zone() const override;
     JSCompartment* compartment() const override;
 

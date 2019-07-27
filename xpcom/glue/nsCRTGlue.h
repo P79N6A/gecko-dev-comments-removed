@@ -50,11 +50,6 @@ int NS_strcmp(const char16_t* aStrA, const char16_t* aStrB);
 
 
 
-int NS_strncmp(const char16_t* aStrA, const char16_t* aStrB, size_t aLen);
-
-
-
-
 char16_t* NS_strdup(const char16_t* aString);
 
 
