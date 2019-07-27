@@ -299,6 +299,7 @@ private:
   
   nsresult OpenCubeb(cubeb_stream_params &aParams,
                      LatencyRequest aLatencyRequest);
+  void AudioInitTaskFinished();
 
   void CheckForStart();
 
@@ -425,6 +426,9 @@ private:
   
   
   bool mShouldDropFrames;
+  
+  
+  bool mPendingAudioInitTask;
 
   
   static StaticMutex sMutex;
