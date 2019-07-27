@@ -15,7 +15,8 @@ Cu.import("resource://gre/modules/PermissionsTable.jsm");
 Cu.import("resource://gre/modules/PermissionSettings.jsm");
 
 this.EXPORTED_SYMBOLS = ["SystemMessagePermissionsChecker",
-                         "SystemMessagePermissionsTable"];
+                         "SystemMessagePermissionsTable",
+                         "SystemMessagePrefixPermissionsTable"];
 
 function debug(aStr) {
   
@@ -122,6 +123,18 @@ this.SystemMessagePermissionsTable = {
   }
 };
 
+
+
+
+
+
+
+
+
+this.SystemMessagePrefixPermissionsTable = {
+  "datastore-update-": { },
+};
+
 this.SystemMessagePermissionsChecker = {
   
 
@@ -140,16 +153,26 @@ this.SystemMessagePermissionsChecker = {
 
     let permNames = SystemMessagePermissionsTable[aSysMsgName];
     if (permNames === undefined) {
-      debug("'" + aSysMsgName + "' is not associated with permissions. " +
-            "Please add them to the SystemMessagePermissionsTable.");
-      return null;
+      
+      for (let sysMsgPrefix in SystemMessagePrefixPermissionsTable) {
+        if (aSysMsgName.indexOf(sysMsgPrefix) === 0) {
+          permNames = SystemMessagePrefixPermissionsTable[sysMsgPrefix];
+          break;
+        }
+      }
+
+      if (permNames === undefined) {
+        debug("'" + aSysMsgName + "' is not associated with permissions. " +
+              "Please add them to the SystemMessage[Prefix]PermissionsTable.");
+        return null;
+      }
     }
 
     let object = { };
     for (let permName in permNames) {
       if (PermissionsTable[permName] === undefined) {
         debug("'" + permName + "' for '" + aSysMsgName + "' is invalid. " +
-              "Please correct it in the SystemMessagePermissionsTable.");
+              "Please correct it in the SystemMessage[Prefix]PermissionsTable.");
         return null;
       }
 
@@ -157,7 +180,7 @@ this.SystemMessagePermissionsChecker = {
       let access = permNames[permName];
       if (!access || !Array.isArray(access)) {
         debug("'" + permName + "' is not associated with access array. " +
-              "Please correct it in the SystemMessagePermissionsTable.");
+              "Please correct it in the SystemMessage[Prefix]PermissionsTable.");
         return null;
       }
       object[permName] = appendAccessToPermName(permName, access);

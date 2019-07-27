@@ -891,6 +891,10 @@ pref("network.sntp.timeout", 30);
 pref("dom.datastore.enabled", true);
 
 
+pref("dom.datastore.sysMsgOnChangeShortTimeoutSec", 10);
+pref("dom.datastore.sysMsgOnChangeLongTimeoutSec", 60);
+
+
 pref("dom.inter-app-communication-api.enabled", true);
 
 
@@ -993,7 +997,7 @@ pref("browser.autofocus", false);
 pref("dom.wakelock.enabled", true);
 
 
-pref("touchcaret.enabled", true);
+pref("touchcaret.enabled", false);
 
 
 pref("selectioncaret.enabled", false);
