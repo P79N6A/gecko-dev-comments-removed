@@ -10,6 +10,13 @@ xul|window xul|scrollbar {
   display: none;
 }
 
+
+@-moz-document domain(system.gaiamobile.org) {
+  .browser-container > xul|scrollbar {
+    display: none;
+  }
+}
+
 html xul|scrollbar[root="true"] {
   position: relative;
   z-index: 2147483647;
