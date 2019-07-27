@@ -111,12 +111,6 @@ AccountState.prototype = {
     this.signedInUser = null;
     this.uid = null;
     this.fxaInternal = null;
-    this.initProfilePromise = null;
-
-    if (this.profile) {
-      this.profile.tearDown();
-      this.profile = null;
-    }
   },
 
   
@@ -292,41 +286,6 @@ AccountState.prototype = {
       d.resolve(this.keyPair.keyPair);
     });
     return d.promise.then(result => this.resolve(result));
-  },
-
-  
-  getProfile: function () {
-    return this.initProfile()
-      .then(() => this.profile.getProfile());
-  },
-
-  
-  initProfile: function () {
-
-    let profileServerUrl = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.profile.uri");
-
-    let oAuthOptions = {
-      scope: "profile"
-    };
-
-    if (this.initProfilePromise) {
-      return this.initProfilePromise;
-    }
-
-    this.initProfilePromise = this.fxaInternal.getOAuthToken(oAuthOptions)
-      .then(token => {
-        this.profile = new FxAccountsProfile(this, {
-          profileServerUrl: profileServerUrl,
-          token: token
-        });
-        this.initProfilePromise = null;
-      })
-      .then(null, err => {
-        this.initProfilePromise = null;
-        throw err;
-      });
-
-    return this.initProfilePromise;
   },
 
   resolve: function(result) {
@@ -595,6 +554,19 @@ FxAccountsInternal.prototype = {
   },
 
   
+  _profile: null,
+  get profile() {
+    if (!this._profile) {
+      let profileServerUrl = Services.urlFormatter.formatURLPref("identity.fxaccounts.remote.profile.uri");
+      this._profile = new FxAccountsProfile({
+        fxa: this,
+        profileServerUrl: profileServerUrl,
+      });
+    }
+    return this._profile;
+  },
+
+  
 
 
 
@@ -849,6 +821,10 @@ FxAccountsInternal.prototype = {
 
   _signOutLocal: function signOutLocal() {
     let currentAccountState = this.currentAccountState;
+    if (this._profile) {
+      this._profile.tearDown();
+      this._profile = null;
+    }
     return currentAccountState.signOut().then(() => {
       this.abortExistingFlow(); 
     });
@@ -1430,17 +1406,17 @@ FxAccountsInternal.prototype = {
 
 
   getSignedInUserProfile: function () {
-    let accountState = this.currentAccountState;
-    return accountState.getProfile()
-      .then((profileData) => {
+    let currentState = this.currentAccountState;
+    return this.profile.getProfile().then(
+      profileData => {
         let profile = JSON.parse(JSON.stringify(profileData));
-        return accountState.resolve(profile);
+        return currentState.resolve(profile);
       },
-      (error) => {
+      error => {
         log.error("Could not retrieve profile data", error);
-        return accountState.reject(error);
-      })
-      .then(null, err => Promise.reject(this._errorToErrorClass(err)));
+        return currentState.reject(error);
+      }
+    ).catch(err => Promise.reject(this._errorToErrorClass(err)));
   },
 };
 

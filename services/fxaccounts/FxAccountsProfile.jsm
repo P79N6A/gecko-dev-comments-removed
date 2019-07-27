@@ -17,9 +17,9 @@ this.EXPORTED_SYMBOLS = ["FxAccountsProfile"];
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
+Cu.import("resource://gre/modules/FxAccounts.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsProfileClient",
   "resource://gre/modules/FxAccountsProfileClient.jsm");
@@ -71,11 +71,12 @@ function hasChanged(oldData, newData) {
   return !deepEqual(oldData, newData);
 }
 
-this.FxAccountsProfile = function (accountState, options = {}) {
-  this.currentAccountState = accountState;
+this.FxAccountsProfile = function (options = {}) {
+  this._cachedProfile = null;
+  this.fxa = options.fxa || fxAccounts;
   this.client = options.profileClient || new FxAccountsProfileClient({
+    fxa: this.fxa,
     serverURL: options.profileServerUrl,
-    token: options.token
   });
 
   
@@ -87,14 +88,15 @@ this.FxAccountsProfile = function (accountState, options = {}) {
 this.FxAccountsProfile.prototype = {
 
   tearDown: function () {
-    this.currentAccountState = null;
+    this.fxa = null;
     this.client = null;
+    this._cachedProfile = null;
   },
 
   _getCachedProfile: function () {
-    let currentState = this.currentAccountState;
-    return currentState.getUserAccountData()
-      .then(cachedData => cachedData.profile);
+    
+    
+    return Promise.resolve(this._cachedProfile);
   },
 
   _notifyProfileChange: function (uid) {
@@ -104,18 +106,16 @@ this.FxAccountsProfile.prototype = {
   
   
   _cacheProfile: function (profileData) {
-    let currentState = this.currentAccountState;
-    if (!currentState) {
-      return;
+    if (!hasChanged(this._cachedProfile, profileData)) {
+      log.debug("fetched profile matches cached copy");
+      return Promise.resolve(null); 
     }
-    return currentState.getUserAccountData()
-      .then(data => {
-        if (!hasChanged(data.profile, profileData)) {
-          return;
-        }
-        data.profile = profileData;
-        return currentState.setUserAccountData(data)
-          .then(() => this._notifyProfileChange(data.uid));
+    this._cachedProfile = profileData;
+    return this.fxa.getSignedInUser()
+      .then(userData => {
+        log.debug("notifying profile changed for user ${uid}", userData);
+        this._notifyProfileChange(userData.uid);
+        return profileData;
       });
   },
 
@@ -133,7 +133,11 @@ this.FxAccountsProfile.prototype = {
     return this._getCachedProfile()
       .then(cachedProfile => {
         if (cachedProfile) {
-          this._fetchAndCacheProfile();
+          
+          
+          this._fetchAndCacheProfile().catch(err => {
+            log.error("Background refresh of profile failed", err);
+          });
           return cachedProfile;
         }
         return this._fetchAndCacheProfile();

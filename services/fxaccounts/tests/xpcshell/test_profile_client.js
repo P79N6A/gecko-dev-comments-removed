@@ -6,11 +6,6 @@
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/FxAccountsProfileClient.jsm");
 
-const PROFILE_OPTIONS = {
-  token: "123ABC",
-  serverURL: "http://127.0.0.1:1111/v1",
-};
-
 const STATUS_SUCCESS = 200;
 
 
@@ -33,6 +28,21 @@ let mockResponse = function (response) {
   };
 
   return Request;
+};
+
+
+
+
+let mockFxa = {
+  getOAuthToken(options) {
+    do_check_eq(options.scope, "profile");
+    return "token";
+  }
+}
+
+const PROFILE_OPTIONS = {
+  serverURL: "http://127.0.0.1:1111/v1",
+  fxa: mockFxa,
 };
 
 
@@ -98,8 +108,8 @@ add_test(function parseErrorResponse () {
 add_test(function serverErrorResponse () {
   let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
   let response = {
-    status: 401,
-    body: "{ \"code\": 401, \"errno\": 100, \"error\": \"Bad Request\", \"message\": \"Unauthorized\", \"reason\": \"Bearer token not provided\" }",
+    status: 500,
+    body: "{ \"code\": 500, \"errno\": 100, \"error\": \"Bad Request\", \"message\": \"Something went wrong\", \"reason\": \"Because the internet\" }",
   };
 
   client._Request = new mockResponse(response);
@@ -108,10 +118,149 @@ add_test(function serverErrorResponse () {
     null,
     function (e) {
       do_check_eq(e.name, "FxAccountsProfileClientError");
-      do_check_eq(e.code, 401);
+      do_check_eq(e.code, 500);
       do_check_eq(e.errno, 100);
       do_check_eq(e.error, "Bad Request");
-      do_check_eq(e.message, "Unauthorized");
+      do_check_eq(e.message, "Something went wrong");
+      run_next_test();
+    }
+  );
+});
+
+
+
+add_test(function server401ResponseThenSuccess () {
+  
+  let lastToken = -1;
+  
+  let numTokensRemoved = 0;
+
+  let mockFxa = {
+    getOAuthToken(options) {
+      do_check_eq(options.scope, "profile");
+      return "" + ++lastToken; 
+    },
+    removeCachedOAuthToken(options) {
+      
+      
+      do_check_eq(parseInt(options.token), lastToken);
+      ++numTokensRemoved;
+    }
+  }
+  let profileOptions = {
+    serverURL: "http://127.0.0.1:1111/v1",
+    fxa: mockFxa,
+  };
+  let client = new FxAccountsProfileClient(profileOptions);
+
+  
+  let responses = [
+    {
+      status: 401,
+      body: "{ \"code\": 401, \"errno\": 100, \"error\": \"Token expired\", \"message\": \"That token is too old\", \"reason\": \"Because security\" }",
+    },
+    {
+      success: true,
+      status: STATUS_SUCCESS,
+      body: "{\"avatar\":\"http://example.com/image.jpg\",\"id\":\"0d5c1a89b8c54580b8e3e8adadae864a\"}",
+    },
+  ];
+
+  let numRequests = 0;
+  let numAuthHeaders = 0;
+  
+  client._Request = function(requestUri) {
+    return {
+      setHeader: function (name, value) {
+        if (name == "Authorization") {
+          numAuthHeaders++;
+          do_check_eq(value, "Bearer " + lastToken);
+        }
+      },
+      get: function () {
+        this.response = responses[numRequests];
+        ++numRequests;
+        this.onComplete();
+      }
+    };
+  }
+
+  client.fetchProfile()
+    .then(result => {
+      do_check_eq(result.avatar, "http://example.com/image.jpg");
+      do_check_eq(result.id, "0d5c1a89b8c54580b8e3e8adadae864a");
+      
+      do_check_eq(numRequests, 2);
+      do_check_eq(numAuthHeaders, 2);
+      
+      do_check_eq(numTokensRemoved, 1);
+
+      run_next_test();
+    }
+  );
+});
+
+
+
+add_test(function server401ResponsePersists () {
+  
+  let lastToken = -1;
+  
+  let numTokensRemoved = 0;
+
+  let mockFxa = {
+    getOAuthToken(options) {
+      do_check_eq(options.scope, "profile");
+      return "" + ++lastToken; 
+    },
+    removeCachedOAuthToken(options) {
+      
+      
+      do_check_eq(parseInt(options.token), lastToken);
+      ++numTokensRemoved;
+    }
+  }
+  let profileOptions = {
+    serverURL: "http://127.0.0.1:1111/v1",
+    fxa: mockFxa,
+  };
+  let client = new FxAccountsProfileClient(profileOptions);
+
+  let response = {
+      status: 401,
+      body: "{ \"code\": 401, \"errno\": 100, \"error\": \"It's not your token, it's you!\", \"message\": \"I don't like you\", \"reason\": \"Because security\" }",
+  };
+
+  let numRequests = 0;
+  let numAuthHeaders = 0;
+  client._Request = function(requestUri) {
+    return {
+      setHeader: function (name, value) {
+        if (name == "Authorization") {
+          numAuthHeaders++;
+          do_check_eq(value, "Bearer " + lastToken);
+        }
+      },
+      get: function () {
+        this.response = response;
+        ++numRequests;
+        this.onComplete();
+      }
+    };
+  }
+
+  client.fetchProfile().then(
+    null,
+    function (e) {
+      do_check_eq(e.name, "FxAccountsProfileClientError");
+      do_check_eq(e.code, 401);
+      do_check_eq(e.errno, 100);
+      do_check_eq(e.error, "It's not your token, it's you!");
+      
+      do_check_eq(numRequests, 2);
+      do_check_eq(numAuthHeaders, 2);
+      
+      do_check_eq(numTokensRemoved, 2);
       run_next_test();
     }
   );
@@ -119,8 +268,8 @@ add_test(function serverErrorResponse () {
 
 add_test(function networkErrorResponse () {
   let client = new FxAccountsProfileClient({
-    token: "123ABC",
-    serverURL: "http://"
+    serverURL: "http://",
+    fxa: mockFxa,
   });
   client.fetchProfile()
     .then(
@@ -191,18 +340,12 @@ add_test(function fetchProfileImage_successfulResponse () {
 
 add_test(function constructorTests() {
   validationHelper(undefined,
-    "Error: Missing 'serverURL' or 'token' configuration option");
+    "Error: Missing 'serverURL' configuration option");
 
   validationHelper({},
-    "Error: Missing 'serverURL' or 'token' configuration option");
+    "Error: Missing 'serverURL' configuration option");
 
-  validationHelper({ serverURL: "http://example.com" },
-    "Error: Missing 'serverURL' or 'token' configuration option");
-
-  validationHelper({ token: "123ABC" },
-    "Error: Missing 'serverURL' or 'token' configuration option");
-
-  validationHelper({ token: "123ABC", serverURL: "badUrl" },
+  validationHelper({ serverURL: "badUrl" },
     "Error: Invalid 'serverURL'");
 
   run_next_test();
@@ -255,6 +398,10 @@ function run_test() {
 
 
 function validationHelper(options, expected) {
+  
+  if (options) {
+    options.fxa = mockFxa;
+  }
   try {
     new FxAccountsProfileClient(options);
   } catch (e) {

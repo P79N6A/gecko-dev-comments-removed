@@ -5,6 +5,7 @@
 
 
 
+ "use strict;"
 
 this.EXPORTED_SYMBOLS = ["FxAccountsProfileClient", "FxAccountsProfileClientError"];
 
@@ -13,6 +14,8 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
+Cu.import("resource://gre/modules/FxAccounts.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://services-common/rest.js");
 
 Cu.importGlobalProperties(["URL"]);
@@ -29,16 +32,27 @@ Cu.importGlobalProperties(["URL"]);
 
 
 this.FxAccountsProfileClient = function(options) {
-  if (!options || !options.serverURL || !options.token) {
-    throw new Error("Missing 'serverURL' or 'token' configuration option");
+  if (!options || !options.serverURL) {
+    throw new Error("Missing 'serverURL' configuration option");
   }
+
+  this.fxa = options.fxa || fxAccounts;
+  
+  
+  
+  
+  
+  
+  this.token = options.token;
 
   try {
     this.serverURL = new URL(options.serverURL);
   } catch (e) {
     throw new Error("Invalid 'serverURL'");
   }
-  this.token = options.token;
+  this.oauthOptions = {
+    scope: "profile",
+  };
   log.debug("FxAccountsProfileClient: Initialized");
 };
 
@@ -48,12 +62,6 @@ this.FxAccountsProfileClient.prototype = {
 
 
   serverURL: null,
-
-  
-
-
-
-  token: null,
 
   
 
@@ -72,13 +80,55 @@ this.FxAccountsProfileClient.prototype = {
 
 
 
-  _createRequest: function(path, method = "GET") {
+  _createRequest: Task.async(function* (path, method = "GET") {
+    let token = this.token;
+    if (!token) {
+      
+      token = yield this.fxa.getOAuthToken(this.oauthOptions);
+    }
+    try {
+      return (yield this._rawRequest(path, method, token));
+    } catch (ex if ex instanceof FxAccountsProfileClientError && ex.code == 401) {
+      
+      if (this.token) {
+        throw ex;
+      }
+      
+      log.info("Fetching the profile returned a 401 - revoking our token and retrying");
+      yield this.fxa.removeCachedOAuthToken({token});
+      token = yield this.fxa.getOAuthToken(this.oauthOptions);
+      
+      
+      try {
+        return (yield this._rawRequest(path, method, token));
+      } catch (ex if ex instanceof FxAccountsProfileClientError && ex.code == 401) {
+        log.info("Retry fetching the profile still returned a 401 - revoking our token and failing");
+        yield this.fxa.removeCachedOAuthToken({token});
+        throw ex;
+      }
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _rawRequest: function(path, method, token) {
     return new Promise((resolve, reject) => {
       let profileDataUrl = this.serverURL + path;
       let request = new this._Request(profileDataUrl);
       method = method.toUpperCase();
 
-      request.setHeader("Authorization", "Bearer " + this.token);
+      request.setHeader("Authorization", "Bearer " + token);
       request.setHeader("Accept", "application/json");
 
       request.onComplete = function (error) {
@@ -106,7 +156,12 @@ this.FxAccountsProfileClient.prototype = {
         if (request.response.success) {
           return resolve(body);
         } else {
-          return reject(new FxAccountsProfileClientError(body));
+          return reject(new FxAccountsProfileClientError({
+            error: body.error || ERROR_UNKNOWN,
+            errno: body.errno || ERRNO_UNKNOWN_ERROR,
+            code: request.response.status,
+            message: body.message || body,
+          }));
         }
       };
 
