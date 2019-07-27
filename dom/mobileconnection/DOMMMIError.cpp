@@ -4,7 +4,7 @@
 
 
 
-#include "DOMMMIError.h"
+#include "mozilla/dom/DOMMMIError.h"
 #include "mozilla/dom/DOMMMIErrorBinding.h"
 
 using namespace mozilla::dom;

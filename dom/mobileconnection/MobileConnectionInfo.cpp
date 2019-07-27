@@ -4,7 +4,7 @@
 
 
 
-#include "MobileConnectionInfo.h"
+#include "mozilla/dom/MobileConnectionInfo.h"
 
 #include "mozilla/dom/ScriptSettings.h"
 

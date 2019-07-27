@@ -4,7 +4,7 @@
 
 
 
-#include "MobileNetworkInfo.h"
+#include "mozilla/dom/MobileNetworkInfo.h"
 
 using namespace mozilla::dom;
 
