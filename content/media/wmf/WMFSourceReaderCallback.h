@@ -21,6 +21,8 @@ namespace mozilla {
 
 class WMFSourceReaderCallback MOZ_FINAL : public IMFSourceReaderCallback
 {
+  ~WMFSourceReaderCallback() {}
+
 public:
   WMFSourceReaderCallback();
 
