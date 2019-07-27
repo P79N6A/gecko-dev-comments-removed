@@ -72,11 +72,6 @@ private:
   };
 
   class ResourceQueue : private nsDeque {
-  private:
-    
-    
-    uint64_t mOffset;
-
   public:
     ResourceQueue() :
       nsDeque(new ResourceQueueDeallocator()),
@@ -85,22 +80,8 @@ private:
     }
 
     
-    inline void Clear() {
-      return nsDeque::Erase();
-    }
-
-    
-    inline uint32_t GetSize() {
-      return nsDeque::GetSize();
-    }
-
-    
     inline uint64_t GetOffset() {
       return mOffset;
-    }
-
-    inline ResourceItem* ResourceAt(uint32_t aIndex) {
-      return static_cast<ResourceItem*>(nsDeque::ObjectAt(aIndex));
     }
 
     
@@ -112,29 +93,6 @@ private:
         s += item->mData.Length();
       }
       return s;
-    }
-
-    
-    
-    
-    
-    
-    inline uint32_t GetAtOffset(uint64_t aOffset, uint32_t *aResourceOffset) {
-      MOZ_ASSERT(aOffset >= mOffset);
-      uint64_t offset = mOffset;
-      for (uint32_t i = 0; i < GetSize(); ++i) {
-        ResourceItem* item = ResourceAt(i);
-        
-        
-        if (item->mData.Length() + offset > aOffset) {
-          if (aResourceOffset) {
-            *aResourceOffset = aOffset - offset;
-          }
-          return i;
-        }
-        offset += item->mData.Length();
-      }
-      return GetSize();
     }
 
     
@@ -156,18 +114,6 @@ private:
 
     inline void PushBack(ResourceItem* aItem) {
       nsDeque::Push(aItem);
-    }
-
-    inline void PushFront(ResourceItem* aItem) {
-      nsDeque::PushFront(aItem);
-    }
-
-    inline ResourceItem* PopBack() {
-      return static_cast<ResourceItem*>(nsDeque::Pop());
-    }
-
-    inline ResourceItem* PopFront() {
-      return static_cast<ResourceItem*>(nsDeque::PopFront());
     }
 
     
@@ -200,6 +146,47 @@ private:
 
       return size;
     }
+
+  private:
+    
+    inline uint32_t GetSize() {
+      return nsDeque::GetSize();
+    }
+
+    inline ResourceItem* ResourceAt(uint32_t aIndex) {
+      return static_cast<ResourceItem*>(nsDeque::ObjectAt(aIndex));
+    }
+
+    
+    
+    
+    
+    
+    inline uint32_t GetAtOffset(uint64_t aOffset, uint32_t *aResourceOffset) {
+      MOZ_ASSERT(aOffset >= mOffset);
+      uint64_t offset = mOffset;
+      for (uint32_t i = 0; i < GetSize(); ++i) {
+        ResourceItem* item = ResourceAt(i);
+        
+        
+        if (item->mData.Length() + offset > aOffset) {
+          if (aResourceOffset) {
+            *aResourceOffset = aOffset - offset;
+          }
+          return i;
+        }
+        offset += item->mData.Length();
+      }
+      return GetSize();
+    }
+
+    inline ResourceItem* PopFront() {
+      return static_cast<ResourceItem*>(nsDeque::PopFront());
+    }
+
+    
+    
+    uint64_t mOffset;
   };
 
 public:
