@@ -7,12 +7,15 @@ package org.mozilla.gecko;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.util.HardwareUtils;
 
 public class NewTabletUI {
     
-    private static final boolean DEFAULT = false;
+    
+    
+    private static final boolean DEFAULT = !AppConstants.RELEASE_BUILD;
 
     private static Boolean sNewTabletUI;
 
