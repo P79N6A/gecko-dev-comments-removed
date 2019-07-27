@@ -685,7 +685,7 @@ ScriptedDirectProxyHandler::ownPropertyKeys(JSContext *cx, HandleObject proxy,
     
     return ArrayToIdVector(cx, proxy, target, trapResult, props,
                            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
-                           cx->names().getOwnPropertyNames);
+                           cx->names().ownKeys);
 }
 
 
@@ -786,12 +786,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy,
 
     
     if (trapResult.isPrimitive()) {
-        JSAutoByteString bytes;
-        if (!AtomToPrintableString(cx, cx->names().enumerate, &bytes))
-            return false;
-        RootedValue v(cx, ObjectOrNullValue(proxy));
-        js_ReportValueError2(cx, JSMSG_INVALID_TRAP_RESULT, JSDVG_SEARCH_STACK,
-                             v, js::NullPtr(), bytes.ptr());
+        ReportInvalidTrapResult(cx, proxy, cx->names().enumerate);
         return false;
     }
 
@@ -1005,7 +1000,7 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
     }
 
     
-    vp.set(BooleanValue(success));
+    vp.setBoolean(success);
     return true;
 }
 
@@ -1025,11 +1020,7 @@ ScriptedDirectProxyHandler::call(JSContext *cx, HandleObject proxy, const CallAr
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
-
-    
-
-
-
+    MOZ_ASSERT(target->isCallable());
 
     
     RootedObject argsArray(cx, NewDenseCopiedArray(cx, args.length(), args.array()));
@@ -1070,11 +1061,7 @@ ScriptedDirectProxyHandler::construct(JSContext *cx, HandleObject proxy, const C
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
-
-    
-
-
-
+    MOZ_ASSERT(target->isConstructor());
 
     
     RootedObject argsArray(cx, NewDenseCopiedArray(cx, args.length(), args.array()));
