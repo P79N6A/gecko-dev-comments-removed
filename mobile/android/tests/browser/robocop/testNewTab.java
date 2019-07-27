@@ -8,8 +8,9 @@ import org.mozilla.gecko.Element;
 import org.mozilla.gecko.R;
 
 import android.app.Activity;
+import android.view.View;
 
-import com.robotium.solo.Condition;
+import com.jayway.android.robotium.solo.Condition;
 
 
 public class testNewTab extends BaseTest {

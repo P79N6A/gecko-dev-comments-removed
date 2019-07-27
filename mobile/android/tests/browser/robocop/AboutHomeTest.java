@@ -18,8 +18,7 @@ import android.widget.ListView;
 import android.widget.TabWidget;
 import android.widget.TextView;
 
-import com.robotium.solo.Condition;
-
+import com.jayway.android.robotium.solo.Condition;
 
 
 
