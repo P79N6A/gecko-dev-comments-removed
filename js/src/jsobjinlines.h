@@ -324,11 +324,6 @@ JSObject::getMetadata() const
 inline js::GlobalObject &
 JSObject::global() const
 {
-#ifdef DEBUG
-    JSObject *obj = const_cast<JSObject *>(this);
-    while (JSObject *parent = obj->getParent())
-        obj = parent;
-#endif
     
 
 
