@@ -432,7 +432,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
 
 
 
-    ObjectBox *newObjectBox(NativeObject *obj);
+    ObjectBox *newObjectBox(JSObject *obj);
     FunctionBox *newFunctionBox(Node fn, JSFunction *fun, ParseContext<ParseHandler> *pc,
                                 Directives directives, GeneratorKind generatorKind);
 
