@@ -286,7 +286,7 @@ ContentPrefService2.prototype = {
     
     if (group) {
       stmt = this._stmt(`
-        INSERT OR REPLACE INTO prefs (id, groupID, settingID, value)
+        INSERT OR REPLACE INTO prefs (id, groupID, settingID, value, timestamp)
         VALUES(
           (SELECT prefs.id
            FROM prefs
@@ -295,14 +295,15 @@ ContentPrefService2.prototype = {
            WHERE groups.name = :group AND settings.name = :name),
           (SELECT id FROM groups WHERE name = :group),
           (SELECT id FROM settings WHERE name = :name),
-          :value
+          :value,
+          :now
         )
       `);
       stmt.params.group = group;
     }
     else {
       stmt = this._stmt(`
-        INSERT OR REPLACE INTO prefs (id, groupID, settingID, value)
+        INSERT OR REPLACE INTO prefs (id, groupID, settingID, value, timestamp)
         VALUES(
           (SELECT prefs.id
            FROM prefs
@@ -310,12 +311,14 @@ ContentPrefService2.prototype = {
            WHERE prefs.groupID IS NULL AND settings.name = :name),
           NULL,
           (SELECT id FROM settings WHERE name = :name),
-          :value
+          :value,
+          :now
         )
       `);
     }
     stmt.params.name = name;
     stmt.params.value = value;
+    stmt.params.now = Date.now() / 1000;
     stmts.push(stmt);
 
     this._execStmts(stmts, {
@@ -379,18 +382,7 @@ ContentPrefService2.prototype = {
     stmt.params.name = name;
     stmts.push(stmt);
 
-    
-    
-    
-    stmts.push(this._stmt(`
-      DELETE FROM settings
-      WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)
-    `));
-    stmts.push(this._stmt(`
-      DELETE FROM groups WHERE id NOT IN (
-        SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL
-      )
-    `));
+    stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
 
     let prefs = new ContentPrefStore();
 
@@ -422,6 +414,23 @@ ContentPrefService2.prototype = {
         cbHandleError(callback, nsresult);
       }
     });
+  },
+
+  
+  _settingsAndGroupsCleanupStmts: function() {
+    
+    
+    return [
+      this._stmt(`
+        DELETE FROM settings
+        WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)
+      `),
+      this._stmt(`
+        DELETE FROM groups WHERE id NOT IN (
+          SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL
+        )
+      `)
+    ];
   },
 
   removeByDomain: function CPS2_removeByDomain(group, context, callback) {
@@ -516,9 +525,12 @@ ContentPrefService2.prototype = {
     });
   },
 
-  removeAllDomains: function CPS2_removeAllDomains(context, callback) {
+  _removeAllDomainsSince: function CPS2__removeAllDomainsSince(since, context, callback) {
     checkCallbackArg(callback, false);
 
+    since /= 1000;
+
+    
     
     
     this._cache.removeAllGroups();
@@ -526,26 +538,27 @@ ContentPrefService2.prototype = {
     let stmts = [];
 
     
-    stmts.push(this._stmt(`
+    let stmt = this._stmt(`
       SELECT groups.name AS grp, settings.name AS name
       FROM prefs
       JOIN settings ON settings.id = prefs.settingID
       JOIN groups ON groups.id = prefs.groupID
-    `));
+      WHERE timestamp >= :since
+    `);
+    stmt.params.since = since;
+    stmts.push(stmt);
 
-    stmts.push(this._stmt(
-      "DELETE FROM prefs WHERE groupID NOTNULL"
-    ));
-    stmts.push(this._stmt(
-      "DELETE FROM groups"
-    ));
-    stmts.push(this._stmt(`
-      DELETE FROM settings
-      WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)
-    `));
+    
+    stmt = this._stmt(`
+      DELETE FROM prefs WHERE groupID NOTNULL AND timestamp >= :since
+    `);
+    stmt.params.since = since;
+    stmts.push(stmt);
+
+    
+    stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
 
     let prefs = new ContentPrefStore();
-
     this._execStmts(stmts, {
       onRow: function onRow(row) {
         let grp = row.getResultByName("grp");
@@ -554,6 +567,8 @@ ContentPrefService2.prototype = {
         this._cache.set(grp, name, undefined);
       },
       onDone: function onDone(reason, ok) {
+        
+        
         if (ok && context && context.usePrivateBrowsing) {
           for (let [sgroup, sname, ] in this._pbStore) {
             prefs.set(sgroup, sname, undefined);
@@ -571,6 +586,14 @@ ContentPrefService2.prototype = {
         cbHandleError(callback, nsresult);
       }
     });
+  },
+
+  removeAllDomainsSince: function CPS2_removeAllDomainsSince(since, context, callback) {
+    this._removeAllDomainsSince(since, context, callback);
+  },
+
+  removeAllDomains: function CPS2_removeAllDomains(context, callback) {
+    this._removeAllDomainsSince(0, context, callback);
   },
 
   removeByName: function CPS2_removeByName(name, context, callback) {
