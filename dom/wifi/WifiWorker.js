@@ -810,15 +810,6 @@ var WifiManager = (function() {
       manager.connectionInfo.id = -1;
       return true;
     }
-    
-    if (eventData.indexOf("CTRL-EVENT-ASSOC-REJECT") === 0) {
-      notify("passwordmaybeincorrect");
-      if (manager.authenticationFailuresCount > MAX_RETRIES_ON_AUTHENTICATION_FAILURE) {
-        manager.authenticationFailuresCount = 0;
-        notify("disconnected", {connectionInfo: manager.connectionInfo});
-      }
-      return true;
-    }
     if (eventData.indexOf("CTRL-EVENT-CONNECTED") === 0) {
       
       var bssid = event.split(" ")[4];
