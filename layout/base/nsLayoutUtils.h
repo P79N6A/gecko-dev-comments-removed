@@ -2205,13 +2205,12 @@ public:
 
 
 
-
-  static void LogTestDataForPaint(nsIPresShell* aPresShell,
+  static void LogTestDataForPaint(mozilla::layers::LayerManager* aManager,
                                   ViewID aScrollId,
                                   const std::string& aKey,
                                   const std::string& aValue) {
     if (IsAPZTestLoggingEnabled()) {
-      DoLogTestDataForPaint(aPresShell, aScrollId, aKey, aValue);
+      DoLogTestDataForPaint(aManager, aScrollId, aKey, aValue);
     }
   }
 
@@ -2221,12 +2220,12 @@ public:
 
 
   template <typename Value>
-  static void LogTestDataForPaint(nsIPresShell* aPresShell,
+  static void LogTestDataForPaint(mozilla::layers::LayerManager* aManager,
                                   ViewID aScrollId,
                                   const std::string& aKey,
                                   const Value& aValue) {
     if (IsAPZTestLoggingEnabled()) {
-      DoLogTestDataForPaint(aPresShell, aScrollId, aKey,
+      DoLogTestDataForPaint(aManager, aScrollId, aKey,
           mozilla::ToString(aValue));
     }
   }
@@ -2268,7 +2267,7 @@ private:
   
 
 
-  static void DoLogTestDataForPaint(nsIPresShell* aPresShell,
+  static void DoLogTestDataForPaint(mozilla::layers::LayerManager* aManager,
                                     ViewID aScrollId,
                                     const std::string& aKey,
                                     const std::string& aValue);
