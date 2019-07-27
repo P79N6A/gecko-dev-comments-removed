@@ -1277,5 +1277,13 @@ nsSliderFrame::PageScroll(nscoord aChange)
   PageUpDown(aChange);
 }
 
+float
+nsSliderFrame::GetThumbRatio() const
+{
+  
+  
+  return mRatio / mozilla::AppUnitsPerCSSPixel();
+}
+
 NS_IMPL_ISUPPORTS(nsSliderMediator,
                   nsIDOMEventListener)

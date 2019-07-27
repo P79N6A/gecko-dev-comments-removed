@@ -132,6 +132,10 @@ public:
                            mozilla::WidgetGUIEvent* aEvent,
                            nsEventStatus* aEventStatus) override;
 
+  
+  
+  float GetThumbRatio() const;
+
 private:
 
   bool GetScrollToClick();

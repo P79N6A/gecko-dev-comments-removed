@@ -737,12 +737,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     const CSSCoord scrollableHeight = metrics.GetScrollableRect().height;
 
     
-    
-    
-    
-    
-    
-    const float ratio = compositedHeight / scrollableHeight;
+    const float ratio = aScrollbar->GetScrollbarThumbRatio();
     ParentLayerCoord yTranslation = -asyncScrollY * ratio;
 
     
@@ -788,7 +783,8 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     const CSSCoord compositedWidth = (metrics.mCompositionBounds / effectiveZoom).width;
     const CSSCoord scrollableWidth = metrics.GetScrollableRect().width;
 
-    const float ratio = compositedWidth / scrollableWidth;
+    
+    const float ratio = aScrollbar->GetScrollbarThumbRatio();
     ParentLayerCoord xTranslation = -asyncScrollX * ratio;
 
     const CSSCoord thumbOrigin = (metrics.GetScrollOffset().x / scrollableWidth) * compositedWidth;

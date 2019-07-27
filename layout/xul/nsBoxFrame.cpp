@@ -66,6 +66,7 @@
 #include "mozilla/Preferences.h"
 #include "nsThemeConstants.h"
 #include "nsLayoutUtils.h"
+#include "nsSliderFrame.h"
 #include <algorithm>
 
 
@@ -1312,6 +1313,7 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   uint32_t flags = 0;
   mozilla::layers::FrameMetrics::ViewID scrollTargetId =
     mozilla::layers::FrameMetrics::NULL_SCROLL_ID;
+  float scrollbarThumbRatio = 0.0f;
 
   if (GetContent()->IsXULElement()) {
     
@@ -1323,6 +1325,9 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         aBuilder->GetScrollbarInfo(&scrollTargetId, &flags);
         forceLayer = (scrollTargetId != layers::FrameMetrics::NULL_SCROLL_ID);
         nsLayoutUtils::SetScrollbarThumbLayerization(this, forceLayer);
+
+        nsSliderFrame* slider = do_QueryFrame(parent);
+        scrollbarThumbRatio = slider->GetThumbRatio();
       }
     }
     
@@ -1369,7 +1374,8 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     
     aLists.Content()->AppendNewToTop(new (aBuilder)
-      nsDisplayOwnLayer(aBuilder, this, &masterList, flags, scrollTargetId));
+      nsDisplayOwnLayer(aBuilder, this, &masterList, flags, scrollTargetId,
+                        scrollbarThumbRatio));
   }
 }
 
