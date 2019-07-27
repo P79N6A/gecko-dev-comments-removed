@@ -4,18 +4,11 @@
 
 
 
+
 var BUGNUMBER = 394709;
 var summary = 'Do not leak with object.watch and closure';
 var actual = 'No Leak';
 var expect = 'No Leak';
-
-if (typeof countHeap == 'undefined')
-{
-  countHeap = function () { 
-    print('This test requires countHeap which is not supported'); 
-    return 0;
-  };
-}
 
 
 test();
@@ -27,25 +20,23 @@ function test()
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  
-  
-  eval();
+  assertEq(finalizeCount(), 0, "invalid initial state");
 
   runtest();
   gc();
-  var count1 = countHeap();
+  assertEq(finalizeCount(), 1, "leaked");
+
   runtest();
   gc();
-  var count2 = countHeap();
+  assertEq(finalizeCount(), 2, "leaked");
+
   runtest();
   gc();
-  var count3 = countHeap();
-  
-  if (count1 < count2 && count2 < count3)
-    throw "A leaky watch point is detected";
+  assertEq(finalizeCount(), 3, "leaked");
+
 
   function runtest () {
-    var obj = { b: 0 };
+    var obj = { b: makeFinalizeObserver() };
     obj.watch('b', watcher);
 
     function watcher(id, old, value) {
