@@ -699,6 +699,17 @@ function getRuleViewLinkByIndex(view, index) {
 
 
 
+function getRuleViewLinkTextByIndex(view, index) {
+  let link = getRuleViewLinkByIndex(view, index);
+  return link.querySelector(".source-link-label").value;
+}
+
+
+
+
+
+
+
 
 function getRuleViewRuleEditor(view, childrenIndex, nodeIndex) {
   return nodeIndex !== undefined ?
