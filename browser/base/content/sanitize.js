@@ -73,11 +73,25 @@ Sanitizer.prototype = {
     if (openWindowsIndex != -1) {
       itemsToClear.splice(openWindowsIndex, 1);
       let item = this.items.openWindows;
-      if (!item.clear()) {
-        
-        deferred.reject();
-        return deferred.promise;
+
+      function onWindowsCleaned() {
+        try {
+          let clearedPromise = this.sanitize(itemsToClear);
+          clearedPromise.then(deferred.resolve, deferred.reject);
+        } catch(e) {
+          let error = "Sanitizer threw after closing windows: " + e;
+          Cu.reportError(error);
+          deferred.reject(error);
+        }
       }
+
+      let ok = item.clear(onWindowsCleaned.bind(this));
+      
+      if (!ok) {
+        deferred.reject("Sanitizer canceled closing windows");
+      }
+
+      return deferred.promise;
     }
 
     
@@ -465,10 +479,14 @@ Sanitizer.prototype = {
           win.getInterface(Ci.nsIDocShell).contentViewer.resetCloseWindow();
         }
       },
-      clear: function()
+      clear: function(aCallback)
       {
         
         
+
+        if (!aCallback) {
+          throw "Sanitizer's openWindows clear() requires a callback.";
+        }
 
         
         
@@ -506,6 +524,38 @@ Sanitizer.prototype = {
         let features = "chrome,all,dialog=no," + this.privateStateForNewWindow;
         let newWindow = existingWindow.openDialog("chrome://browser/content/", "_blank",
                                                   features, defaultArgs);
+
+        
+        
+        
+        
+        
+        
+        let newWindowOpened = false;
+        function onWindowOpened(subject, topic, data) {
+          if (subject != newWindow)
+            return;
+
+          Services.obs.removeObserver(onWindowOpened, "browser-delayed-startup-finished");
+          newWindowOpened = true;
+          
+          if (numWindowsClosing == 0)
+            aCallback();
+        }
+
+        let numWindowsClosing = windowList.length;
+        function onWindowClosed() {
+          numWindowsClosing--;
+          if (numWindowsClosing == 0) {
+            Services.obs.removeObserver(onWindowClosed, "xul-window-destroyed");
+            
+            if (newWindowOpened)
+              aCallback();
+          }
+        }
+
+        Services.obs.addObserver(onWindowOpened, "browser-delayed-startup-finished", false);
+        Services.obs.addObserver(onWindowClosed, "xul-window-destroyed", false);
 
         
         while (windowList.length) {
