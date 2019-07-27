@@ -1375,9 +1375,17 @@ nsTableFrame::PaintTableBorderBackground(nsRenderingContext& aRenderingContext,
                                   aDirtyRect, rect, mStyleContext, skipSides);
     }
     else {
+      gfxContext* ctx = aRenderingContext.ThebesContext();
+
+      gfxPoint devPixelOffset =
+        nsLayoutUtils::PointToGfxPoint(aPt,
+                                       PresContext()->AppUnitsPerDevPixel());
+
       
       
-      nsRenderingContext::AutoPushTranslation translate(&aRenderingContext, aPt);
+      gfxContextMatrixAutoSaveRestore autoSR(ctx);
+      ctx->SetMatrix(ctx->CurrentMatrix().Translate(devPixelOffset));
+
       PaintBCBorders(aRenderingContext, aDirtyRect - aPt);
     }
   }

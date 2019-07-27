@@ -9,6 +9,7 @@
 #include "nsObjectFrame.h"
 
 #include "gfx2DGlue.h"
+#include "gfxMatrix.h"
 #include "mozilla/BasicEvents.h"
 #ifdef XP_WIN
 
@@ -832,9 +833,18 @@ nsObjectFrame::DidReflow(nsPresContext*            aPresContext,
 nsObjectFrame::PaintPrintPlugin(nsIFrame* aFrame, nsRenderingContext* aCtx,
                                 const nsRect& aDirtyRect, nsPoint aPt)
 {
-  nsPoint pt = aPt + aFrame->GetContentRectRelativeToSelf().TopLeft();
-  nsRenderingContext::AutoPushTranslation translate(aCtx, pt);
+  gfxContext* ctx = aCtx->ThebesContext();
+
   
+  nsPoint pt = aPt + aFrame->GetContentRectRelativeToSelf().TopLeft();
+  gfxPoint devPixelPt =
+    nsLayoutUtils::PointToGfxPoint(pt, aFrame->PresContext()->AppUnitsPerDevPixel());
+
+  gfxContextMatrixAutoSaveRestore autoSR(ctx);
+  ctx->SetMatrix(ctx->CurrentMatrix().Translate(devPixelPt));
+
+  
+
   static_cast<nsObjectFrame*>(aFrame)->PrintPlugin(*aCtx, aDirtyRect);
 }
 
@@ -1676,9 +1686,17 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
 
       nativeDrawing.EndNativeDrawing();
     } else {
+      gfxContext* ctx = aRenderingContext.ThebesContext();
+
       
-      nsRenderingContext::AutoPushTranslation
-        translate(&aRenderingContext, aPluginRect.TopLeft());
+      gfxPoint devPixelPt =
+        nsLayoutUtils::PointToGfxPoint(aPluginRect.TopLeft(),
+                                       PresContext()->AppUnitsPerDevPixel());
+
+      gfxContextMatrixAutoSaveRestore autoSR(ctx);
+      ctx->SetMatrix(ctx->CurrentMatrix().Translate(devPixelPt));
+
+      
 
       
       gfxRect tmpRect(0, 0, 0, 0);
