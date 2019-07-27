@@ -1035,7 +1035,7 @@ DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, char16_t **aText,
 
   bool lookingForSVGTitle = true;
   bool found = false;
-  nsCOMPtr<nsIDOMNode> current ( aNode );
+  nsCOMPtr<nsIDOMNode> current(aNode);
 
   
   
@@ -1059,8 +1059,8 @@ DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, char16_t **aText,
     }
   }
 
-  while ( !found && current ) {
-    nsCOMPtr<nsIDOMElement> currElement ( do_QueryInterface(current) );
+  while (!found && current) {
+    nsCOMPtr<nsIDOMElement> currElement(do_QueryInterface(current));
     if (currElement) {
       nsCOMPtr<nsIContent> content(do_QueryInterface(currElement));
       if (content) {
@@ -1108,7 +1108,7 @@ DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, char16_t **aText,
 
     
     if (!found) {
-      nsCOMPtr<nsIDOMNode> temp ( current );
+      nsCOMPtr<nsIDOMNode> temp(current);
       temp->GetParentNode(getter_AddRefs(current));
     }
   } 
@@ -1166,7 +1166,7 @@ ChromeTooltipListener::AddChromeListeners()
   
   
   nsresult rv = NS_OK;
-  nsCOMPtr<nsITooltipListener> tooltipListener ( do_QueryInterface(mWebBrowserChrome) );
+  nsCOMPtr<nsITooltipListener> tooltipListener(do_QueryInterface(mWebBrowserChrome));
   if (tooltipListener && !mTooltipListenerInstalled) {
     rv = AddTooltipListener();
     if (NS_FAILED(rv))
@@ -1215,7 +1215,7 @@ ChromeTooltipListener::AddTooltipListener()
 
 
 NS_IMETHODIMP
-ChromeTooltipListener::RemoveChromeListeners ( )
+ChromeTooltipListener::RemoveChromeListeners()
 {
   HideTooltip();
 
@@ -1290,7 +1290,7 @@ ChromeTooltipListener::HandleEvent(nsIDOMEvent* aEvent)
 nsresult
 ChromeTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
 {
-  nsCOMPtr<nsIDOMMouseEvent> mouseEvent ( do_QueryInterface(aMouseEvent) );
+  nsCOMPtr<nsIDOMMouseEvent> mouseEvent(do_QueryInterface(aMouseEvent));
   if (!mouseEvent)
     return NS_OK;
 
@@ -1334,7 +1334,7 @@ ChromeTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
       }
     }
     else {
-      NS_WARNING ( "Could not create a timer for tooltip tracking" );
+      NS_WARNING("Could not create a timer for tooltip tracking");
     }
   } else {
     mTooltipShownOnce = true;
@@ -1358,9 +1358,9 @@ ChromeTooltipListener::ShowTooltip(int32_t inXCoords, int32_t inYCoords,
   nsresult rv = NS_OK;
 
   
-  nsCOMPtr<nsITooltipListener> tooltipListener ( do_QueryInterface(mWebBrowserChrome) );
+  nsCOMPtr<nsITooltipListener> tooltipListener(do_QueryInterface(mWebBrowserChrome));
   if (tooltipListener) {
-    rv = tooltipListener->OnShowTooltip ( inXCoords, inYCoords, PromiseFlatString(inTipText).get() );
+    rv = tooltipListener->OnShowTooltip(inXCoords, inYCoords, PromiseFlatString(inTipText).get());
     if (NS_SUCCEEDED(rv))
       mShowingTooltip = true;
   }
@@ -1391,9 +1391,9 @@ ChromeTooltipListener::HideTooltip()
 
   
   if (mShowingTooltip) {
-    nsCOMPtr<nsITooltipListener> tooltipListener ( do_QueryInterface(mWebBrowserChrome) );
+    nsCOMPtr<nsITooltipListener> tooltipListener(do_QueryInterface(mWebBrowserChrome));
     if (tooltipListener) {
-      rv = tooltipListener->OnHideTooltip ( );
+      rv = tooltipListener->OnHideTooltip();
       if (NS_SUCCEEDED(rv))
         mShowingTooltip = false;
     }
@@ -1467,9 +1467,9 @@ ChromeTooltipListener::sTooltipCallback(nsITimer *aTimer,
       if (textFound) {
         nsString tipText(tooltipText);
         nsIntPoint screenDot = widget->WidgetToScreenOffset();
-        self->ShowTooltip (self->mMouseScreenX - screenDot.x,
-                           self->mMouseScreenY - screenDot.y,
-                           tipText);
+        self->ShowTooltip(self->mMouseScreenX - screenDot.x,
+                          self->mMouseScreenY - screenDot.y,
+                          tipText);
       }
     }
 
@@ -1486,7 +1486,7 @@ NS_IMPL_ISUPPORTS(ChromeContextMenuListener, nsIDOMEventListener)
 
 
 
-ChromeContextMenuListener::ChromeContextMenuListener(nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome )
+ChromeContextMenuListener::ChromeContextMenuListener(nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome)
   : mContextMenuListenerInstalled(false),
     mWebBrowser(inBrowser),
     mWebBrowserChrome(inChrome)
@@ -1561,8 +1561,8 @@ ChromeContextMenuListener::AddChromeListeners()
   
   nsresult rv = NS_OK;
 
-  nsCOMPtr<nsIContextMenuListener2> contextListener2 ( do_QueryInterface(mWebBrowserChrome) );
-  nsCOMPtr<nsIContextMenuListener> contextListener ( do_QueryInterface(mWebBrowserChrome) );
+  nsCOMPtr<nsIContextMenuListener2> contextListener2(do_QueryInterface(mWebBrowserChrome));
+  nsCOMPtr<nsIContextMenuListener> contextListener(do_QueryInterface(mWebBrowserChrome));
   if ((contextListener || contextListener2) && !mContextMenuListenerInstalled)
     rv = AddContextMenuListener();
 
