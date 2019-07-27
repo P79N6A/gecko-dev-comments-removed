@@ -2,6 +2,8 @@
 
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 let gSyncProfile;
 
@@ -13,7 +15,7 @@ let fhs = Cc["@mozilla.org/satchel/form-history-startup;1"]
 fhs.observe(null, "profile-after-change", null);
 
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Services.prefs.setCharPref("identity.sync.tokenserver.uri", "http://token-server");
 
 
 let OS = "XPCShell";
@@ -56,7 +58,6 @@ registrar.registerFactory(Components.ID("{fbfae60b-64a4-44ef-a911-08ceb70b9f31}"
 
 
 function addResourceAlias() {
-  Cu.import("resource://gre/modules/Services.jsm");
   const resProt = Services.io.getProtocolHandler("resource")
                           .QueryInterface(Ci.nsIResProtocolHandler);
   for each (let s in ["common", "sync", "crypto"]) {

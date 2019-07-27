@@ -507,13 +507,26 @@ this.BrowserIDManager.prototype = {
   },
 
   
+  get _tokenServerUrl() {
+    
+    
+    
+    let url = Svc.Prefs.get("tokenServerURI"); 
+    if (!url) {
+      url = Services.prefs.getCharPref("identity.sync.tokenserver.uri");
+    }
+    while (url.endsWith("/")) { 
+      url = url.slice(0, -1);
+    }
+    return url;
+  },
+
+  
   
   
   _fetchTokenForUser: function() {
-    let tokenServerURI = Svc.Prefs.get("tokenServerURI");
-    if (tokenServerURI.endsWith("/")) { 
-      tokenServerURI = tokenServerURI.slice(0, -1);
-    }
+    
+    let tokenServerURI = this._tokenServerUrl;
     let log = this._log;
     let client = this._tokenServerClient;
     let fxa = this._fxaService;

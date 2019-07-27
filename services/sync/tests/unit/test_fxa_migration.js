@@ -269,6 +269,45 @@ add_task(function *testMigration() {
 });
 
 
+
+add_task(function* testTokenServerOldPrefName() {
+  let value = "http://custom-token-server/";
+  
+  Services.prefs.setCharPref("services.sync.tokenServerURI", value);
+  
+  
+  Assert.notEqual(Services.prefs.getCharPref("identity.sync.tokenserver.uri"), value);
+
+  let prefs = fxaMigrator._getSentinelPrefs();
+  Assert.equal(prefs["services.sync.tokenServerURI"], value);
+  
+  Services.prefs.clearUserPref("services.sync.tokenServerURI");
+  Assert.ok(!Services.prefs.prefHasUserValue("services.sync.tokenServerURI"));
+  fxaMigrator._applySentinelPrefs(prefs);
+  
+  Assert.equal(Services.prefs.getCharPref("identity.sync.tokenserver.uri"), value);
+  
+  Assert.ok(!Services.prefs.prefHasUserValue("services.sync.tokenServerURI"));
+});
+
+add_task(function* testTokenServerNewPrefName() {
+  let value = "http://token-server/";
+  
+  Services.prefs.setCharPref("identity.sync.tokenserver.uri", value);
+
+  let prefs = fxaMigrator._getSentinelPrefs();
+  
+  Assert.equal(prefs["services.sync.tokenServerURI"], value);
+  
+  Services.prefs.clearUserPref("services.sync.tokenServerURI");
+  Assert.ok(!Services.prefs.prefHasUserValue("services.sync.tokenServerURI"));
+  fxaMigrator._applySentinelPrefs(prefs);
+  
+  Assert.equal(Services.prefs.getCharPref("identity.sync.tokenserver.uri"), value);
+  
+  Assert.ok(!Services.prefs.prefHasUserValue("services.sync.tokenServerURI"));
+});
+
 function run_test() {
   initTestLogging();
   do_register_cleanup(() => {

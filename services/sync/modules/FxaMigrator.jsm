@@ -62,7 +62,8 @@ const FXA_SENTINEL_PREFS = [
   "identity.fxaccounts.remote.signup.uri",
   "identity.fxaccounts.remote.signin.uri",
   "identity.fxaccounts.settings.uri",
-  "services.sync.tokenServerURI",
+  
+  
 ];
 
 function Migrator() {
@@ -303,6 +304,20 @@ Migrator.prototype = {
         result[pref] = Services.prefs.getCharPref(pref);
       }
     }
+    
+    
+    
+    
+    let tokenServerValue;
+    for (let pref of ["services.sync.tokenServerURI", "identity.sync.tokenserver.uri"]) {
+      if (Services.prefs.prefHasUserValue(pref)) {
+        tokenServerValue = Services.prefs.getCharPref(pref);
+        break;
+      }
+    }
+    if (tokenServerValue) {
+      result["services.sync.tokenServerURI"] = tokenServerValue;
+    }
     return result;
   },
 
@@ -312,6 +327,11 @@ Migrator.prototype = {
       if (savedPrefs[pref]) {
         Services.prefs.setCharPref(pref, savedPrefs[pref]);
       }
+    }
+    
+    let tokenServerValue = savedPrefs["services.sync.tokenServerURI"];
+    if (tokenServerValue) {
+      Services.prefs.setCharPref("identity.sync.tokenserver.uri", tokenServerValue);
     }
   },
 
