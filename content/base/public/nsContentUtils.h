@@ -2170,6 +2170,13 @@ public:
 
   static bool IsContentInsertionPoint(const nsIContent* aContent);
 
+
+  
+
+
+
+  static bool HasDistributedChildren(nsIContent* aContent);
+
   
 
 

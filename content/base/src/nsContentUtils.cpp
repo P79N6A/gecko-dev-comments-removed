@@ -40,6 +40,7 @@
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLTemplateElement.h"
 #include "mozilla/dom/HTMLContentElement.h"
+#include "mozilla/dom/HTMLShadowElement.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/TextDecoder.h"
 #include "mozilla/dom/TouchEvent.h"
@@ -6869,6 +6870,45 @@ nsContentUtils::IsContentInsertionPoint(const nsIContent* aContent)
   
   if (aContent->IsHTML(nsGkAtoms::content)) {
     return static_cast<const HTMLContentElement*>(aContent)->IsInsertionPoint();
+  }
+
+  return false;
+}
+
+
+bool
+nsContentUtils::HasDistributedChildren(nsIContent* aContent)
+{
+  if (!aContent) {
+    return false;
+  }
+
+  if (aContent->GetShadowRoot()) {
+    
+    
+    return true;
+  }
+
+  ShadowRoot* shadow = ShadowRoot::FromNode(aContent);
+  if (shadow) {
+    
+    
+    return shadow->GetYoungerShadow();
+  }
+
+  HTMLShadowElement* shadowEl = HTMLShadowElement::FromContent(aContent);
+  if (shadowEl && shadowEl->IsInsertionPoint()) {
+    
+    
+    return shadow->GetOlderShadow();
+  }
+
+  HTMLContentElement* contentEl = HTMLContentElement::FromContent(aContent);
+  if (contentEl && contentEl->IsInsertionPoint()) {
+    
+    
+    
+    return contentEl->MatchedNodes().IsEmpty();
   }
 
   return false;

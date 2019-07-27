@@ -152,21 +152,23 @@ nsIContent::FindFirstNonChromeOnlyAccessContent() const
 nsIContent*
 nsIContent::GetFlattenedTreeParent() const
 {
-  nsIContent* parent = nullptr;
+  nsIContent* parent = GetParent();
 
-  nsTArray<nsIContent*>* destInsertionPoints = GetExistingDestInsertionPoints();
-  if (destInsertionPoints && !destInsertionPoints->IsEmpty()) {
+  if (nsContentUtils::HasDistributedChildren(parent)) {
     
     
     
-    nsIContent* lastInsertionPoint = destInsertionPoints->LastElement();
-    parent = lastInsertionPoint->GetParent();
+    
+    
+    
+    nsTArray<nsIContent*>* destInsertionPoints = GetExistingDestInsertionPoints();
+    parent = destInsertionPoints && !destInsertionPoints->IsEmpty() ?
+      destInsertionPoints->LastElement()->GetParent() : nullptr;
   } else if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
-    parent = GetXBLInsertionParent();
-  }
-
-  if (!parent) {
-    parent = GetParent();
+    nsIContent* insertionParent = GetXBLInsertionParent();
+    if (insertionParent) {
+      parent = insertionParent;
+    }
   }
 
   

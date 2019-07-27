@@ -8480,9 +8480,25 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIContent*   aContainer,
       return ::GetContentInsertionFrameFor(aContainer);
     }
 
+    if (nsContentUtils::HasDistributedChildren(aContainer)) {
+      
+      
+      
+      nsIContent* flattenedParent = aChildContent->GetFlattenedTreeParent();
+      return flattenedParent ? ::GetContentInsertionFrameFor(flattenedParent) : nullptr;
+    }
+
     insertionElement = bindingManager->FindNestedInsertionPoint(aContainer, aChildContent);
   }
   else {
+    if (nsContentUtils::HasDistributedChildren(aContainer)) {
+      
+      
+      
+      *aMultiple = true;
+      return nullptr;
+    }
+
     bool multiple;
     insertionElement = bindingManager->FindNestedSingleInsertionPoint(aContainer, &multiple);
 
