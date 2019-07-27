@@ -912,14 +912,18 @@ AudioContext::Close(ErrorResult& aRv)
   mCloseCalled = true;
 
   mPromiseGripArray.AppendElement(promise);
-  Graph()->ApplyAudioContextOperation(DestinationStream()->AsAudioNodeStream(),
-                                      AudioContextOperation::Close, promise);
 
+  
+  
   MediaStream* ds = DestinationStream();
   if (ds) {
-    ds->BlockStreamIfNeeded();
-  }
+    Graph()->ApplyAudioContextOperation(ds->AsAudioNodeStream(),
+                                        AudioContextOperation::Close, promise);
 
+    if (ds) {
+      ds->BlockStreamIfNeeded();
+    }
+  }
   return promise.forget();
 }
 
