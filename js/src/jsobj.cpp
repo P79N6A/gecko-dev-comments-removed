@@ -277,6 +277,22 @@ js::Throw(JSContext* cx, JSObject* obj, unsigned errorNumber)
 
 
 bool
+js::StandardDefineProperty(JSContext* cx, HandleObject obj, HandleId id,
+                           Handle<PropertyDescriptor> desc, ObjectOpResult& result)
+{
+    return DefineProperty(cx, obj, id, desc, result);
+}
+
+bool
+js::StandardDefineProperty(JSContext* cx, HandleObject obj, HandleId id,
+                           Handle<PropertyDescriptor> desc)
+{
+    ObjectOpResult success;
+    return DefineProperty(cx, obj, id, desc, success) &&
+           success.checkStrict(cx, obj, id);
+}
+
+bool
 CheckCallable(JSContext* cx, JSObject* obj, const char* fieldName)
 {
     if (obj && !obj->isCallable()) {
@@ -471,13 +487,12 @@ js::DefineProperties(JSContext* cx, HandleObject obj, HandleObject props)
         return false;
 
     for (size_t i = 0, len = ids.length(); i < len; i++) {
-        if (!DefineProperty(cx, obj, ids[i], descs[i]))
+        if (!StandardDefineProperty(cx, obj, ids[i], descs[i]))
             return false;
     }
 
     return true;
 }
-
 
 
 
@@ -581,7 +596,7 @@ js::SetIntegrityLevel(JSContext* cx, HandleObject obj, IntegrityLevel level)
             }
 
             
-            if (!DefineProperty(cx, obj, id, desc))
+            if (!StandardDefineProperty(cx, obj, id, desc))
                 return false;
         }
     }
@@ -1095,7 +1110,7 @@ JS_CopyPropertyFrom(JSContext* cx, HandleId id, HandleObject target,
     if (!cx->compartment()->wrap(cx, &desc))
         return false;
 
-    return DefineProperty(cx, target, wrappedId, desc);
+    return StandardDefineProperty(cx, target, wrappedId, desc);
 }
 
 JS_FRIEND_API(bool)
@@ -2596,14 +2611,6 @@ js::GetOwnPropertyDescriptor(JSContext* cx, HandleObject obj, HandleId id,
     desc.object().set(nobj);
     desc.assertComplete();
     return true;
-}
-
-bool
-js::DefineProperty(JSContext* cx, HandleObject obj, HandleId id, Handle<PropertyDescriptor> desc)
-{
-    ObjectOpResult result;
-    return DefineProperty(cx, obj, id, desc, result) &&
-           result.checkStrict(cx, obj, id);
 }
 
 bool
