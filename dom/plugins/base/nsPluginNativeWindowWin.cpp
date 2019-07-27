@@ -191,6 +191,13 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
 
 
+
+
+
+
+
+
+
 static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   nsPluginNativeWindowWin * win = (nsPluginNativeWindowWin *)::GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
@@ -601,6 +608,8 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
   
   if (!aPluginInstance) {
     UndoSubclassAndAssociateWindow();
+    
+    SetPluginInstance(nullptr);
     nsPluginNativeWindow::CallSetWindow(aPluginInstance);
     return NS_OK;
   }
@@ -619,6 +628,14 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
       else
         mPluginType = nsPluginType_Other;
     }
+  }
+
+  
+  
+  
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    nsPluginNativeWindow::CallSetWindow(aPluginInstance);
+    return NS_OK;
   }
 
   if (window) {
@@ -706,9 +723,6 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
 
 nsresult nsPluginNativeWindowWin::UndoSubclassAndAssociateWindow()
 {
-  
-  SetPluginInstance(nullptr);
-
   
   HWND hWnd = (HWND)window;
   if (IsWindow(hWnd))
