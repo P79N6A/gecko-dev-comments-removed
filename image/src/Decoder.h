@@ -189,6 +189,19 @@ public:
     mImageIsTransient = aIsTransient;
   }
 
+  
+
+
+
+
+  void SetImageIsLocked()
+  {
+    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
+    mImageIsLocked = true;
+  }
+
+  bool ImageIsLocked() const { return mImageIsLocked; }
+
   size_t BytesDecoded() const { return mBytesDecoded; }
 
   
@@ -445,6 +458,7 @@ protected:
   bool mDataError;
   bool mDecodeAborted;
   bool mImageIsTransient;
+  bool mImageIsLocked;
 
 private:
   uint32_t mFrameCount; 

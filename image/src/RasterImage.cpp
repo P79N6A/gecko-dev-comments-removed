@@ -1365,6 +1365,15 @@ RasterImage::CreateDecoder(const Maybe<nsIntSize>& aSize, uint32_t aFlags)
   decoder->SetSendPartialInvalidations(!mHasBeenDecoded);
   decoder->SetImageIsTransient(mTransient);
   decoder->SetDecodeFlags(DecodeFlags(aFlags));
+
+  if (!mHasBeenDecoded && aSize) {
+    
+    
+    
+    LockImage();
+    decoder->SetImageIsLocked();
+  }
+
   if (aSize) {
     
     
@@ -1544,11 +1553,6 @@ RasterImage::Decode(DecodeStrategy aStrategy,
     NotifyProgress(decoder->TakeProgress(),
                    decoder->TakeInvalidRect(),
                    decoder->GetDecodeFlags());
-
-    
-    
-    
-    LockImage();
   }
 
   if (mHasSourceData) {
@@ -2045,7 +2049,7 @@ RasterImage::FinalizeDecoder(Decoder* aDecoder)
     }
   }
 
-  if (!wasSize) {
+  if (aDecoder->ImageIsLocked()) {
     
     UnlockImage();
   }
