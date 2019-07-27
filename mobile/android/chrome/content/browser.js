@@ -1769,7 +1769,7 @@ var BrowserApp = {
               
               
               
-              Services.perms.remove(browser.currentURI.host, "trackingprotection");
+              Services.perms.remove(browser.currentURI, "trackingprotection");
               Telemetry.addData("TRACKING_PROTECTION_EVENTS", 2);
             }
           }

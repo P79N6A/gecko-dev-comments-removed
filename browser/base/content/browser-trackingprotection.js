@@ -85,7 +85,7 @@ let TrackingProtection = {
     
     
     
-    Services.perms.remove(gBrowser.selectedBrowser.currentURI.host,
+    Services.perms.remove(gBrowser.selectedBrowser.currentURI,
       "trackingprotection");
 
     
