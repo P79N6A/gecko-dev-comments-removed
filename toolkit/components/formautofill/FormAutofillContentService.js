@@ -95,8 +95,37 @@ FormHandler.prototype = {
       return "disabled";
     }
 
-    let ui = yield FormAutofill.integration.createRequestAutocompleteUI(data);
-    let result = yield ui.show();
+    
+    let rootDocShell = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                  .getInterface(Ci.nsIDocShell)
+                                  .sameTypeRootTreeItem
+                                  .QueryInterface(Ci.nsIDocShell);
+    let frameMM = rootDocShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                              .getInterface(Ci.nsIContentFrameMessageManager);
+
+    
+    
+    
+    
+    let promiseRequestAutocompleteResult = new Promise((resolve, reject) => {
+      frameMM.addMessageListener("FormAutofill:RequestAutocompleteResult",
+        function onResult(aMessage) {
+          frameMM.removeMessageListener(
+                        "FormAutofill:RequestAutocompleteResult", onResult);
+          
+          
+          if ("exception" in aMessage.data) {
+            reject(aMessage.data.exception);
+          } else {
+            resolve(aMessage.data);
+          }
+        });
+    });
+
+    
+    
+    frameMM.sendAsyncMessage("FormAutofill:RequestAutocomplete", data);
+    let result = yield promiseRequestAutocompleteResult;
     if (result.canceled) {
       return "cancel";
     }

@@ -112,4 +112,18 @@ this.FormAutofill = {
 
     this.integration = combined;
   },
+
+  
+
+
+
+
+
+
+
+
+  processRequestAutocomplete: Task.async(function* (aData) {
+    let ui = yield FormAutofill.integration.createRequestAutocompleteUI(aData);
+    return yield ui.show();
+  }),
 };
