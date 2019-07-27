@@ -44,18 +44,15 @@ FrozenImage::GetFrame(uint32_t aWhichFrame,
   return InnerImage()->GetFrame(FRAME_FIRST, aFlags);
 }
 
-NS_IMETHODIMP
-FrozenImage::GetImageContainer(layers::LayerManager* aManager,
-                               layers::ImageContainer** _retval)
+NS_IMETHODIMP_(already_AddRefed<ImageContainer>)
+FrozenImage::GetImageContainer(layers::LayerManager* aManager, uint32_t aFlags)
 {
   
   
   
   
   
-
-  *_retval = nullptr;
-  return NS_OK;
+  return nullptr;
 }
 
 NS_IMETHODIMP_(DrawResult)

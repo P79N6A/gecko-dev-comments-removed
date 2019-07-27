@@ -30,6 +30,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Pair.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/UniquePtr.h"
@@ -297,8 +298,9 @@ private:
 
   TemporaryRef<gfx::SourceSurface> CopyFrame(uint32_t aWhichFrame,
                                              uint32_t aFlags);
-  TemporaryRef<gfx::SourceSurface> GetFrameInternal(uint32_t aWhichFrame,
-                                                    uint32_t aFlags);
+
+  Pair<DrawResult, RefPtr<gfx::SourceSurface>>
+    GetFrameInternal(uint32_t aWhichFrame, uint32_t aFlags);
 
   DrawableFrameRef LookupFrameInternal(uint32_t aFrameNum,
                                        const gfx::IntSize& aSize,
@@ -314,8 +316,9 @@ private:
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
                                                  MallocSizeOf aMallocSizeOf) const;
 
-  already_AddRefed<layers::Image>
-    GetCurrentImage(layers::ImageContainer* aContainer);
+  Pair<DrawResult, nsRefPtr<layers::Image>>
+    GetCurrentImage(layers::ImageContainer* aContainer, uint32_t aFlags);
+
   void UpdateImageContainer();
 
   
@@ -380,6 +383,10 @@ private:
   
   
   WeakPtr<layers::ImageContainer> mImageContainer;
+
+  
+  
+  DrawResult mLastImageContainerDrawResult;
 
 #ifdef DEBUG
   uint32_t                       mFramesNotified;

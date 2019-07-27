@@ -256,6 +256,7 @@ RasterImage::RasterImage(ProgressTracker* aProgressTracker,
   mLockCount(0),
   mDecodeCount(0),
   mRequestedSampleSize(0),
+  mLastImageContainerDrawResult(DrawResult::NOT_READY),
 #ifdef DEBUG
   mFramesNotified(0),
 #endif
@@ -727,19 +728,21 @@ NS_IMETHODIMP_(TemporaryRef<SourceSurface>)
 RasterImage::GetFrame(uint32_t aWhichFrame,
                       uint32_t aFlags)
 {
-  return GetFrameInternal(aWhichFrame, aFlags);
+  return GetFrameInternal(aWhichFrame, aFlags).second().forget();
 }
 
-TemporaryRef<SourceSurface>
+Pair<DrawResult, RefPtr<SourceSurface>>
 RasterImage::GetFrameInternal(uint32_t aWhichFrame, uint32_t aFlags)
 {
   MOZ_ASSERT(aWhichFrame <= FRAME_MAX_VALUE);
 
-  if (aWhichFrame > FRAME_MAX_VALUE)
-    return nullptr;
+  if (aWhichFrame > FRAME_MAX_VALUE) {
+    return MakePair(DrawResult::BAD_ARGS, RefPtr<SourceSurface>());
+  }
 
-  if (mError)
-    return nullptr;
+  if (mError) {
+    return MakePair(DrawResult::BAD_IMAGE, RefPtr<SourceSurface>());
+  }
 
   
   
@@ -748,7 +751,7 @@ RasterImage::GetFrameInternal(uint32_t aWhichFrame, uint32_t aFlags)
     LookupFrame(GetRequestedFrameIndex(aWhichFrame), mSize, aFlags);
   if (!frameRef) {
     
-    return nullptr;
+    return MakePair(DrawResult::TEMPORARY_ERROR, RefPtr<SourceSurface>());
   }
 
   
@@ -767,50 +770,57 @@ RasterImage::GetFrameInternal(uint32_t aWhichFrame, uint32_t aFlags)
     frameSurf = CopyFrame(aWhichFrame, aFlags);
   }
 
-  return frameSurf;
+  if (!frameRef->IsImageComplete()) {
+    return MakePair(DrawResult::INCOMPLETE, Move(frameSurf));
+  }
+
+  return MakePair(DrawResult::SUCCESS, Move(frameSurf));
 }
 
-already_AddRefed<layers::Image>
-RasterImage::GetCurrentImage(ImageContainer* aContainer)
+Pair<DrawResult, nsRefPtr<layers::Image>>
+RasterImage::GetCurrentImage(ImageContainer* aContainer, uint32_t aFlags)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aContainer);
 
-  RefPtr<SourceSurface> surface =
-    GetFrameInternal(FRAME_CURRENT, FLAG_ASYNC_NOTIFY);
-  if (!surface) {
+  auto result = GetFrameInternal(FRAME_CURRENT, aFlags | FLAG_ASYNC_NOTIFY);
+  if (!result.second()) {
     
     
-    return nullptr;
+    return MakePair(result.first(), nsRefPtr<layers::Image>());
   }
 
   CairoImage::Data cairoData;
   GetWidth(&cairoData.mSize.width);
   GetHeight(&cairoData.mSize.height);
-  cairoData.mSourceSurface = surface;
+  cairoData.mSourceSurface = result.second();
 
   nsRefPtr<layers::Image> image =
     aContainer->CreateImage(ImageFormat::CAIRO_SURFACE);
-  NS_ASSERTION(image, "Failed to create Image");
+  MOZ_ASSERT(image);
 
   static_cast<CairoImage*>(image.get())->SetData(cairoData);
 
-  return image.forget();
+  return MakePair(result.first(), Move(image));
 }
 
 
-NS_IMETHODIMP
-RasterImage::GetImageContainer(LayerManager* aManager, ImageContainer **_retval)
+NS_IMETHODIMP_(already_AddRefed<ImageContainer>)
+RasterImage::GetImageContainer(LayerManager* aManager, uint32_t aFlags)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aManager);
+  MOZ_ASSERT((aFlags & ~(FLAG_SYNC_DECODE |
+                         FLAG_SYNC_DECODE_IF_FAST |
+                         FLAG_ASYNC_NOTIFY))
+               == FLAG_NONE,
+             "Unsupported flag passed to GetImageContainer");
 
   int32_t maxTextureSize = aManager->GetMaxTextureSize();
   if (!mHasSize ||
       mSize.width > maxTextureSize ||
       mSize.height > maxTextureSize) {
-    *_retval = nullptr;
-    return NS_OK;
+    return nullptr;
   }
 
   if (IsUnlocked() && mProgressTracker) {
@@ -818,28 +828,34 @@ RasterImage::GetImageContainer(LayerManager* aManager, ImageContainer **_retval)
   }
 
   nsRefPtr<layers::ImageContainer> container = mImageContainer.get();
-  if (container) {
-    container.forget(_retval);
-    return NS_OK;
+
+  bool mustRedecode =
+    (aFlags & (FLAG_SYNC_DECODE | FLAG_SYNC_DECODE_IF_FAST)) &&
+    mLastImageContainerDrawResult != DrawResult::SUCCESS &&
+    mLastImageContainerDrawResult != DrawResult::BAD_IMAGE;
+
+  if (container && !mustRedecode) {
+    return container.forget();
   }
 
   
   container = LayerManager::CreateImageContainer();
 
-  nsRefPtr<layers::Image> image = GetCurrentImage(container);
-  if (!image) {
-    return NS_ERROR_NOT_AVAILABLE;
+  auto result = GetCurrentImage(container, aFlags);
+  if (!result.second()) {
+    
+    return nullptr;
   }
 
   
   
   
-  container->SetCurrentImageInTransaction(image);
+  container->SetCurrentImageInTransaction(result.second());
 
+  mLastImageContainerDrawResult = result.first();
   mImageContainer = container;
-  container.forget(_retval);
 
-  return NS_OK;
+  return container.forget();
 }
 
 void
@@ -852,12 +868,14 @@ RasterImage::UpdateImageContainer()
     return;
   }
 
-  nsRefPtr<layers::Image> image = GetCurrentImage(container);
-  if (!image) {
+  auto result = GetCurrentImage(container, FLAG_NONE);
+  if (!result.second()) {
+    
     return;
   }
 
-  container->SetCurrentImage(image);
+  mLastImageContainerDrawResult = result.first();
+  container->SetCurrentImage(result.second());
 }
 
 size_t
