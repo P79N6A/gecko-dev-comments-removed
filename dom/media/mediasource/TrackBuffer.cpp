@@ -589,6 +589,7 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
 
   if (mCurrentDecoder != aDecoder) {
     MSE_DEBUG("append was cancelled. Aborting initialization.");
+    RemoveDecoder(aDecoder);
     
     
     return;
@@ -642,6 +643,7 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
   }
   if (mCurrentDecoder != aDecoder) {
     MSE_DEBUG("append was cancelled. Aborting initialization.");
+    RemoveDecoder(aDecoder);
     return;
   }
 
@@ -693,6 +695,7 @@ TrackBuffer::CompleteInitializeDecoder(SourceBufferDecoder* aDecoder)
     MSE_DEBUG("append was cancelled. Aborting initialization.");
     
     
+    RemoveDecoder(aDecoder);
     return;
   }
 
