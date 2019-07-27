@@ -74,7 +74,7 @@ public class LocalReadingListAccessor implements ReadingListAccessor {
 
     @Override
     public boolean isReadingListItem(final ContentResolver cr, String uri) {
-        uri = stripURI(uri);
+        uri = ReaderModeUtils.stripAboutReaderUrl(uri);
 
         final Cursor c = cr.query(mReadingListUriWithProfile,
                                   new String[] { ReadingListItems._ID },
@@ -105,7 +105,7 @@ public class LocalReadingListAccessor implements ReadingListAccessor {
         }
 
         
-        final String url = stripURI(values.getAsString(ReadingListItems.URL));
+        final String url = ReaderModeUtils.stripAboutReaderUrl(values.getAsString(ReadingListItems.URL));
         values.put(ReadingListItems.URL, url);
 
         
@@ -144,7 +144,7 @@ public class LocalReadingListAccessor implements ReadingListAccessor {
         }
 
         if (values.containsKey(ReadingListItems.URL)) {
-            values.put(ReadingListItems.URL, stripURI(values.getAsString(ReadingListItems.URL)));
+            values.put(ReadingListItems.URL, ReaderModeUtils.stripAboutReaderUrl(values.getAsString(ReadingListItems.URL)));
         }
 
         final int updated = cr.update(mReadingListUriWithProfile,
@@ -199,16 +199,5 @@ public class LocalReadingListAccessor implements ReadingListAccessor {
 
         
         cr.update(mReadingListUriWithProfile, values, ReadingListItems._ID + " = " + itemID, null);
-    }
-
-    
-
-
-    private String stripURI(final String uri) {
-        if (!AboutPages.isAboutReader(uri)) {
-            return uri;
-        }
-        final String strippedUrl = ReaderModeUtils.getUrlFromAboutReader(uri);
-        return strippedUrl != null ? strippedUrl : uri;
     }
 }
