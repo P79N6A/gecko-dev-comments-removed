@@ -199,6 +199,17 @@ protected:
 
 
 
+    nsCOMPtr<nsINode>     mOverrideContent;
+    
+
+
+
+    int32_t               mOverrideOffset;
+
+    
+
+
+
     bool                  mIsBlinking;
     
 
@@ -208,26 +219,21 @@ protected:
 
 
     bool                  mVisible;
+    
 
-    bool                  mDrawn;             
-    bool                  mPendingDraw;       
 
-    bool                  mReadOnly;          
-    bool                  mShowDuringSelection; 
+
+    bool                  mReadOnly;
+    
+
+
+
+    bool                  mShowDuringSelection;
+    
+
+
 
     bool                  mIgnoreUserModify;
-
-    uint8_t               mLastBidiLevel;     
-
-    nsCOMPtr<nsINode>     mLastContent;       
-                                              
-                                              
-                                              
-    int32_t               mLastContentOffset; 
-
-    CaretAssociationHint  mLastHint;          
-                                              
-
 };
 
 #endif 
