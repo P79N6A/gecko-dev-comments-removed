@@ -76,7 +76,7 @@ public:
 
   
   
-  bool ContainsTime(int64_t aTime);
+  bool ContainsTime(int64_t aTime, int64_t aTolerance);
 
   void BreakCycles();
 
