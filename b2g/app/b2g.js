@@ -1020,9 +1020,6 @@ pref("apz.overscroll.stop_distance_threshold", "5.0");
 pref("apz.overscroll.stop_velocity_threshold", "0.01");
 
 
-pref("layout.event-regions.enabled", true);
-
-
 
 
 
