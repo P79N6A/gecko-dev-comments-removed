@@ -423,10 +423,6 @@ class JSObject : public js::gc::Cell
 
 
     
-    JSObject *getParent() const;
-    static bool setParent(JSContext *cx, js::HandleObject obj, js::HandleObject newParent);
-
-    
 
 
 

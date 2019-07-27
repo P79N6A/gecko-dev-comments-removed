@@ -407,7 +407,6 @@ class BaseShape : public gc::TenuredCell
 
   private:
     const Class         *clasp_;        
-    HeapPtrObject       parent;         
     HeapPtrObject       metadata;       
 
     JSCompartment       *compartment_;  
@@ -421,30 +420,37 @@ class BaseShape : public gc::TenuredCell
     
     ShapeTable       *table_;
 
+    
+
+
+
+
+#ifndef HAVE_64BIT_BUILD
+    uint32_t unusedPadding_;
+#endif
+
     BaseShape(const BaseShape &base) = delete;
 
   public:
     void finalize(FreeOp *fop);
 
-    BaseShape(JSCompartment *comp, const Class *clasp, JSObject *parent, JSObject *metadata,
+    BaseShape(JSCompartment *comp, const Class *clasp, JSObject *metadata,
               uint32_t objectFlags)
     {
         MOZ_ASSERT(!(objectFlags & ~OBJECT_FLAG_MASK));
         mozilla::PodZero(this);
         this->clasp_ = clasp;
-        this->parent = parent;
         this->metadata = metadata;
         this->flags = objectFlags;
         this->compartment_ = comp;
     }
 
-    BaseShape(JSCompartment *comp, const Class *clasp, JSObject *parent, JSObject *metadata,
+    BaseShape(JSCompartment *comp, const Class *clasp, JSObject *metadata,
               uint32_t objectFlags, uint8_t attrs)
     {
         MOZ_ASSERT(!(objectFlags & ~OBJECT_FLAG_MASK));
         mozilla::PodZero(this);
         this->clasp_ = clasp;
-        this->parent = parent;
         this->metadata = metadata;
         this->flags = objectFlags;
         this->compartment_ = comp;
@@ -457,7 +463,6 @@ class BaseShape : public gc::TenuredCell
 
     BaseShape &operator=(const BaseShape &other) {
         clasp_ = other.clasp_;
-        parent = other.parent;
         metadata = other.metadata;
         flags = other.flags;
         slotSpan_ = other.slotSpan_;
@@ -476,7 +481,6 @@ class BaseShape : public gc::TenuredCell
         this->unowned_ = unowned;
     }
 
-    JSObject *getObjectParent() const { return parent; }
     JSObject *getObjectMetadata() const { return metadata; }
     uint32_t getObjectFlags() const { return flags & OBJECT_FLAG_MASK; }
 
@@ -508,21 +512,11 @@ class BaseShape : public gc::TenuredCell
     void assertConsistency();
 
     
-    static inline size_t offsetOfParent() { return offsetof(BaseShape, parent); }
     static inline size_t offsetOfFlags() { return offsetof(BaseShape, flags); }
 
     static inline ThingRootKind rootKind() { return THING_ROOT_BASE_SHAPE; }
 
-    void markChildren(JSTracer *trc) {
-        if (isOwned())
-            gc::MarkBaseShape(trc, &unowned_, "base");
-
-        if (parent)
-            gc::MarkObject(trc, &parent, "parent");
-
-        if (metadata)
-            gc::MarkObject(trc, &metadata, "metadata");
-    }
+    void markChildren(JSTracer *trc);
 
     void fixupAfterMovingGC() {}
     bool fixupBaseShapeTableEntry();
@@ -530,6 +524,9 @@ class BaseShape : public gc::TenuredCell
   private:
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(BaseShape, clasp_) == offsetof(js::shadow::BaseShape, clasp_));
+        static_assert(sizeof(BaseShape) % gc::CellSize == 0,
+                      "Things inheriting from gc::Cell must have a size that's "
+                      "a multiple of gc::CellSize");
     }
 };
 
@@ -576,36 +573,30 @@ struct StackBaseShape : public DefaultHasher<ReadBarrieredUnownedBaseShape>
 {
     uint32_t flags;
     const Class *clasp;
-    JSObject *parent;
     JSObject *metadata;
     JSCompartment *compartment;
 
     explicit StackBaseShape(BaseShape *base)
       : flags(base->flags & BaseShape::OBJECT_FLAG_MASK),
         clasp(base->clasp_),
-        parent(base->parent),
         metadata(base->metadata),
         compartment(base->compartment())
     {}
 
     inline StackBaseShape(ExclusiveContext *cx, const Class *clasp,
-                          JSObject *parent, JSObject *metadata, uint32_t objectFlags);
+                          JSObject *metadata, uint32_t objectFlags);
     explicit inline StackBaseShape(Shape *shape);
 
     struct Lookup
     {
         uint32_t flags;
         const Class *clasp;
-        JSObject *hashParent;
-        JSObject *matchParent;
         JSObject *hashMetadata;
         JSObject *matchMetadata;
 
         MOZ_IMPLICIT Lookup(const StackBaseShape &base)
           : flags(base.flags),
             clasp(base.clasp),
-            hashParent(base.parent),
-            matchParent(base.parent),
             hashMetadata(base.metadata),
             matchMetadata(base.metadata)
         {}
@@ -613,8 +604,6 @@ struct StackBaseShape : public DefaultHasher<ReadBarrieredUnownedBaseShape>
         MOZ_IMPLICIT Lookup(UnownedBaseShape *base)
           : flags(base->getObjectFlags()),
             clasp(base->clasp()),
-            hashParent(base->getObjectParent()),
-            matchParent(base->getObjectParent()),
             hashMetadata(base->getObjectMetadata()),
             matchMetadata(base->getObjectMetadata())
         {
@@ -623,12 +612,9 @@ struct StackBaseShape : public DefaultHasher<ReadBarrieredUnownedBaseShape>
 
         
         Lookup(uint32_t flags, const Class *clasp,
-               JSObject *hashParent, JSObject *matchParent,
                JSObject *hashMetadata, JSObject *matchMetadata)
           : flags(flags),
             clasp(clasp),
-            hashParent(hashParent),
-            matchParent(matchParent),
             hashMetadata(hashMetadata),
             matchMetadata(matchMetadata)
         {}
@@ -646,7 +632,6 @@ BaseShape::BaseShape(const StackBaseShape &base)
 {
     mozilla::PodZero(this);
     this->clasp_ = base.clasp;
-    this->parent = base.parent;
     this->metadata = base.metadata;
     this->flags = base.flags;
     this->compartment_ = base.compartment;
@@ -822,11 +807,8 @@ class Shape : public gc::TenuredCell
     const Class *getObjectClass() const {
         return base()->clasp_;
     }
-    JSObject *getObjectParent() const { return base()->parent; }
     JSObject *getObjectMetadata() const { return base()->metadata; }
 
-    static Shape *setObjectParent(ExclusiveContext *cx,
-                                  JSObject *obj, TaggedProto proto, Shape *last);
     static Shape *setObjectMetadata(JSContext *cx,
                                     JSObject *metadata, TaggedProto proto, Shape *last);
     static Shape *setObjectFlags(ExclusiveContext *cx,
@@ -1130,7 +1112,6 @@ inline
 StackBaseShape::StackBaseShape(Shape *shape)
   : flags(shape->getObjectFlags()),
     clasp(shape->getObjectClass()),
-    parent(shape->getObjectParent()),
     metadata(shape->getObjectMetadata()),
     compartment(shape->compartment())
 {}
@@ -1180,11 +1161,11 @@ struct EmptyShape : public js::Shape
 
 
     static Shape *getInitialShape(ExclusiveContext *cx, const Class *clasp,
-                                  TaggedProto proto, JSObject *parent,
-                                  JSObject *metadata, size_t nfixed, uint32_t objectFlags = 0);
+                                  TaggedProto proto, JSObject *metadata,
+                                  size_t nfixed, uint32_t objectFlags = 0);
     static Shape *getInitialShape(ExclusiveContext *cx, const Class *clasp,
-                                  TaggedProto proto, JSObject *parent,
-                                  JSObject *metadata, gc::AllocKind kind, uint32_t objectFlags = 0);
+                                  TaggedProto proto, JSObject *metadata,
+                                  gc::AllocKind kind, uint32_t objectFlags = 0);
 
     
 
@@ -1231,17 +1212,14 @@ struct InitialShapeEntry
         const Class *clasp;
         TaggedProto hashProto;
         TaggedProto matchProto;
-        JSObject *hashParent;
-        JSObject *matchParent;
         JSObject *hashMetadata;
         JSObject *matchMetadata;
         uint32_t nfixed;
         uint32_t baseFlags;
-        Lookup(const Class *clasp, TaggedProto proto, JSObject *parent, JSObject *metadata,
+        Lookup(const Class *clasp, TaggedProto proto, JSObject *metadata,
                uint32_t nfixed, uint32_t baseFlags)
           : clasp(clasp),
             hashProto(proto), matchProto(proto),
-            hashParent(parent), matchParent(parent),
             hashMetadata(metadata), matchMetadata(metadata),
             nfixed(nfixed), baseFlags(baseFlags)
         {}
@@ -1252,12 +1230,10 @@ struct InitialShapeEntry
 
 
         Lookup(const Class *clasp, TaggedProto proto,
-               JSObject *hashParent, JSObject *matchParent,
                JSObject *hashMetadata, JSObject *matchMetadata,
                uint32_t nfixed, uint32_t baseFlags)
           : clasp(clasp),
             hashProto(proto), matchProto(proto),
-            hashParent(hashParent), matchParent(matchParent),
             hashMetadata(hashMetadata), matchMetadata(matchMetadata),
             nfixed(nfixed), baseFlags(baseFlags)
         {}
@@ -1545,8 +1521,8 @@ IsImplicitNonNativeProperty(Shape *prop)
 }
 
 Shape *
-ReshapeForParentAndAllocKind(JSContext *cx, Shape *shape, TaggedProto proto, JSObject *parent,
-                             gc::AllocKind allocKind);
+ReshapeForAllocKind(JSContext *cx, Shape *shape, TaggedProto proto,
+                    gc::AllocKind allocKind);
 
 } 
 

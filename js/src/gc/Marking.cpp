@@ -1061,6 +1061,20 @@ PushMarkStack(GCMarker *gcmarker, Shape *thing)
 static inline void
 ScanBaseShape(GCMarker *gcmarker, BaseShape *base);
 
+void
+BaseShape::markChildren(JSTracer *trc)
+{
+    if (isOwned())
+        gc::MarkBaseShape(trc, &unowned_, "base");
+
+    JSObject* global = compartment()->unsafeUnbarrieredMaybeGlobal();
+    MOZ_ASSERT(global);
+    MarkObjectUnbarriered(trc, &global, "global");
+
+    if (metadata)
+        gc::MarkObject(trc, &metadata, "metadata");
+}
+
 static void
 PushMarkStack(GCMarker *gcmarker, BaseShape *thing)
 {
@@ -1102,11 +1116,8 @@ ScanBaseShape(GCMarker *gcmarker, BaseShape *base)
 
     base->compartment()->mark();
 
-    if (JSObject *parent = base->getObjectParent()) {
-        MaybePushMarkStackBetweenSlices(gcmarker, parent);
-    } else if (GlobalObject *global = base->compartment()->unsafeUnbarrieredMaybeGlobal()) {
+    if (GlobalObject *global = base->compartment()->unsafeUnbarrieredMaybeGlobal())
         gcmarker->traverse(global);
-    }
 
     if (JSObject *metadata = base->getObjectMetadata())
         MaybePushMarkStackBetweenSlices(gcmarker, metadata);
@@ -1255,39 +1266,24 @@ PushMarkStack(GCMarker *gcmarker, JS::Symbol *sym)
 
 
 
-static inline void
-MarkCycleCollectorChildren(JSTracer *trc, BaseShape *base, JSObject **prevParent)
+void
+gc::MarkCycleCollectorChildren(JSTracer *trc, Shape *shape)
 {
-    MOZ_ASSERT(base);
-
     
 
 
 
-    base->assertConsistency();
 
-    JSObject *parent = base->getObjectParent();
-    if (parent && parent != *prevParent) {
-        MarkObjectUnbarriered(trc, &parent, "parent");
-        MOZ_ASSERT(parent == base->getObjectParent());
-        *prevParent = parent;
-    }
-}
+    JSObject *global = shape->compartment()->unsafeUnbarrieredMaybeGlobal();
+    MOZ_ASSERT(global);
+    MarkObjectUnbarriered(trc, &global, "global");
 
-
-
-
-
-
-
-
-
-void
-gc::MarkCycleCollectorChildren(JSTracer *trc, Shape *shape)
-{
-    JSObject *prevParent = nullptr;
     do {
-        MarkCycleCollectorChildren(trc, shape->base(), &prevParent);
+        MOZ_ASSERT(global == shape->compartment()->unsafeUnbarrieredMaybeGlobal());
+
+        MOZ_ASSERT(shape->base());
+        shape->base()->assertConsistency();
+
         MarkId(trc, &shape->propidRef(), "propid");
 
         if (shape->hasGetterObject()) {
