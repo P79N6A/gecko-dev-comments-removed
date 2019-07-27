@@ -83,36 +83,6 @@ private:
 class pkixocsp_CreateEncodedOCSPRequest : public NSSTest
 {
 protected:
-  
-  SECItem* unsupportedLongSerialNumber;
-  SECItem* longestRequiredSerialNumber;
-
-  void SetUp()
-  {
-    static const uint8_t UNSUPPORTED_LEN = 128; 
-    
-    unsupportedLongSerialNumber = SECITEM_AllocItem(arena.get(), nullptr,
-                                                    1 + 2 + UNSUPPORTED_LEN);
-    memset(unsupportedLongSerialNumber->data, 0,
-           unsupportedLongSerialNumber->len);
-    unsupportedLongSerialNumber->data[0] = der::INTEGER;
-    
-    
-    unsupportedLongSerialNumber->data[1] = 0x80 + 1;
-    unsupportedLongSerialNumber->data[2] = UNSUPPORTED_LEN;
-    unsupportedLongSerialNumber->data[3] = 0x01; 
-
-    static const uint8_t LONGEST_REQUIRED_LEN = 20;
-    
-    longestRequiredSerialNumber = SECITEM_AllocItem(arena.get(), nullptr,
-                                    1 + 1 + LONGEST_REQUIRED_LEN);
-    memset(longestRequiredSerialNumber->data, 0,
-           longestRequiredSerialNumber->len);
-    longestRequiredSerialNumber->data[0] = der::INTEGER;
-    longestRequiredSerialNumber->data[1] = LONGEST_REQUIRED_LEN;
-    longestRequiredSerialNumber->data[2] = 0x01; 
-  }
-
   void MakeIssuerCertIDComponents(const char* issuerASCII,
                                    ByteString& issuerDER,
                                    ByteString& issuerSPKI)
@@ -138,6 +108,20 @@ protected:
 
 TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest)
 {
+  static const uint8_t UNSUPPORTED_LEN = 128; 
+
+  ByteString serialNumberString;
+  
+  
+  
+  serialNumberString.push_back(0x80 + 1);
+  serialNumberString.push_back(UNSUPPORTED_LEN);
+  
+  serialNumberString.push_back(0x01);
+  for (size_t i = 1; i < UNSUPPORTED_LEN; ++i) {
+    serialNumberString.push_back(0x00);
+  }
+
   ByteString issuerDER;
   ByteString issuerSPKI;
   ASSERT_NO_FATAL_FAILURE(MakeIssuerCertIDComponents("CA", issuerDER,
@@ -150,8 +134,8 @@ TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest)
   ASSERT_EQ(Success, spki.Init(issuerSPKI.data(), issuerSPKI.length()));
 
   Input serialNumber;
-  ASSERT_EQ(Success, serialNumber.Init(unsupportedLongSerialNumber->data,
-                                       unsupportedLongSerialNumber->len));
+  ASSERT_EQ(Success, serialNumber.Init(serialNumberString.data(),
+                                       serialNumberString.length()));
 
   uint8_t ocspRequest[OCSP_REQUEST_MAX_LENGTH];
   size_t ocspRequestLength;
@@ -165,6 +149,18 @@ TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest)
 
 TEST_F(pkixocsp_CreateEncodedOCSPRequest, LongestSupportedSerialNumberTest)
 {
+  static const uint8_t LONGEST_REQUIRED_LEN = 20;
+
+  ByteString serialNumberString;
+  
+  serialNumberString.push_back(der::INTEGER);
+  serialNumberString.push_back(LONGEST_REQUIRED_LEN);
+  serialNumberString.push_back(0x01);
+  
+  for (size_t i = 1; i < LONGEST_REQUIRED_LEN; ++i) {
+    serialNumberString.push_back(0x00);
+  }
+
   ByteString issuerDER;
   ByteString issuerSPKI;
   ASSERT_NO_FATAL_FAILURE(MakeIssuerCertIDComponents("CA", issuerDER,
@@ -177,8 +173,8 @@ TEST_F(pkixocsp_CreateEncodedOCSPRequest, LongestSupportedSerialNumberTest)
   ASSERT_EQ(Success, spki.Init(issuerSPKI.data(), issuerSPKI.length()));
 
   Input serialNumber;
-  ASSERT_EQ(Success, serialNumber.Init(longestRequiredSerialNumber->data,
-                                       longestRequiredSerialNumber->len));
+  ASSERT_EQ(Success, serialNumber.Init(serialNumberString.data(),
+                                       serialNumberString.length()));
 
   uint8_t ocspRequest[OCSP_REQUEST_MAX_LENGTH];
   size_t ocspRequestLength;
