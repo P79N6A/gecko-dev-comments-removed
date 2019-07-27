@@ -1814,6 +1814,9 @@ MediaDecoderStateMachine::StartAudioThread()
 
   mStopAudioThread = false;
   if (HasAudio() && !mAudioSink) {
+    
+    mAudioEndTime = mAudioStartTime;
+    MOZ_ASSERT(mAudioStartTime == GetMediaTime());
     mAudioCompleted = false;
     mAudioSink = new AudioSink(this, mAudioStartTime,
                                mInfo.mAudio, mDecoder->GetAudioChannel());
@@ -2564,6 +2567,15 @@ void MediaDecoderStateMachine::RenderVideoFrame(VideoData* aData,
   }
 }
 
+void MediaDecoderStateMachine::ResyncAudioClock()
+{
+  AssertCurrentThreadInMonitor();
+  if (IsPlaying()) {
+    SetPlayStartTime(TimeStamp::Now());
+    mPlayDuration = GetAudioClock() - mStartTime;
+  }
+}
+
 int64_t
 MediaDecoderStateMachine::GetAudioClock()
 {
@@ -2571,14 +2583,9 @@ MediaDecoderStateMachine::GetAudioClock()
   
   
   AssertCurrentThreadInMonitor();
-  if (!HasAudio() || mAudioCaptured)
-    return -1;
-  if (!mAudioSink) {
-    
-    return mAudioStartTime;
-  }
-  int64_t t = mAudioSink->GetPosition();
-  return (t == -1) ? -1 : t + mAudioStartTime;
+  MOZ_ASSERT(HasAudio() && !mAudioCaptured);
+  return mAudioStartTime +
+         (mAudioSink ? mAudioSink->GetPosition() : 0);
 }
 
 int64_t MediaDecoderStateMachine::GetVideoStreamPosition()
@@ -2605,27 +2612,23 @@ int64_t MediaDecoderStateMachine::GetClock()
   
   
   int64_t clock_time = -1;
-  DecodedStreamData* stream = mDecoder->GetDecodedStream();
   if (!IsPlaying()) {
     clock_time = mPlayDuration + mStartTime;
-  } else if (stream) {
+  } else if (mDecoder->GetDecodedStream()) {
     clock_time = GetCurrentTimeViaMediaStreamSync();
   } else {
-    int64_t audio_time = GetAudioClock();
-    if (HasAudio() && !mAudioCompleted && audio_time != -1) {
-      clock_time = audio_time;
-      
-      
-      mPlayDuration = clock_time - mStartTime;
-      SetPlayStartTime(TimeStamp::Now());
+    if (HasAudio() && !mAudioCompleted && !mAudioCaptured) {
+      clock_time = GetAudioClock();
     } else {
       
       clock_time = GetVideoStreamPosition();
-      
-      NS_ASSERTION(mCurrentFrameTime <= clock_time || mPlaybackRate <= 0,
-          "Clock should go forwards if the playback rate is > 0.");
     }
+    
+    
+    NS_ASSERTION(GetMediaTime() <= clock_time || mPlaybackRate <= 0,
+      "Clock should go forwards if the playback rate is > 0.");
   }
+
   return clock_time;
 }
 
@@ -2646,7 +2649,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
     return;
   }
 
-  int64_t clock_time = GetClock();
+  const int64_t clock_time = GetClock();
   TimeStamp nowTime = TimeStamp::Now();
   
   
@@ -2745,13 +2748,11 @@ void MediaDecoderStateMachine::AdvanceFrame()
   
   if (mVideoFrameEndTime != -1 || mAudioEndTime != -1) {
     
-    clock_time = std::min(clock_time, std::max(mVideoFrameEndTime, mAudioEndTime));
-    if (clock_time > GetMediaTime()) {
-      
-      
-      
-      
-      UpdatePlaybackPosition(clock_time);
+    int64_t t = std::min(clock_time, std::max(mVideoFrameEndTime, mAudioEndTime));
+    
+    
+    if (t > GetMediaTime()) {
+      UpdatePlaybackPosition(t);
     }
   }
 
@@ -3141,6 +3142,7 @@ void MediaDecoderStateMachine::OnAudioSinkComplete()
   if (mAudioCaptured) {
     return;
   }
+  ResyncAudioClock();
   mAudioCompleted = true;
   UpdateReadyState();
   
@@ -3155,6 +3157,7 @@ void MediaDecoderStateMachine::OnAudioSinkError()
     return;
   }
 
+  ResyncAudioClock();
   mAudioCompleted = true;
 
   
