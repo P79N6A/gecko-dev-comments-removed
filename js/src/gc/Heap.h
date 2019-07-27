@@ -746,7 +746,7 @@ static_assert(sizeof(ChunkTrailer) == 2 * sizeof(uintptr_t) + sizeof(uint64_t),
 struct ChunkInfo
 {
     Chunk           *next;
-    Chunk           **prevp;
+    Chunk           *prev;
 
     
     ArenaHeader     *freeArenasHead;
@@ -957,22 +957,6 @@ struct Chunk
     static Chunk *allocate(JSRuntime *rt);
 
     void decommitAllArenas(JSRuntime *rt);
-
-    
-
-
-
-    Chunk *getPrevious() {
-        MOZ_ASSERT(info.prevp);
-        return fromPointerToNext(info.prevp);
-    }
-
-    
-    static Chunk *fromPointerToNext(Chunk **nextFieldPtr) {
-        uintptr_t addr = reinterpret_cast<uintptr_t>(nextFieldPtr);
-        MOZ_ASSERT((addr & ChunkMask) == offsetof(Chunk, info.next));
-        return reinterpret_cast<Chunk *>(addr - offsetof(Chunk, info.next));
-    }
 
   private:
     inline void init(JSRuntime *rt);
