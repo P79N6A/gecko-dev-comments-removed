@@ -42,6 +42,8 @@ private:
   
   ~RestyleManager()
   {
+    MOZ_ASSERT(!mReframingStyleContexts,
+               "temporary member should be nulled out before destruction");
   }
 
 public:
@@ -149,6 +151,14 @@ public:
     ReframingStyleContextTable mBeforePseudoContexts;
     ReframingStyleContextTable mAfterPseudoContexts;
   };
+
+  
+
+
+
+  ReframingStyleContexts* GetReframingStyleContexts() {
+    return mReframingStyleContexts;
+  }
 
 private:
   void RestyleForEmptyChange(Element* aContainer);
@@ -330,6 +340,8 @@ private:
   
   
   uint64_t mAnimationGeneration;
+
+  ReframingStyleContexts* mReframingStyleContexts;
 
   RestyleTracker mPendingRestyles;
   RestyleTracker mPendingAnimationRestyles;
