@@ -26,6 +26,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
+#include "mozilla/dom/MediaStreamError.h"
 #include "prlog.h"
 #include "DOMMediaStream.h"
 
@@ -306,16 +307,16 @@ class ErrorCallbackRunnable : public nsRunnable
 {
 public:
   ErrorCallbackRunnable(
-    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback>& aSuccess,
-    nsCOMPtr<nsIDOMGetUserMediaErrorCallback>& aError,
-    const nsAString& aErrorMsg, uint64_t aWindowID);
+    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback>& aOnSuccess,
+    nsCOMPtr<nsIDOMGetUserMediaErrorCallback>& aOnFailure,
+    MediaMgrError& aError, uint64_t aWindowID);
   NS_IMETHOD Run();
 private:
   ~ErrorCallbackRunnable();
 
   nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> mOnSuccess;
   nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mOnFailure;
-  const nsString mErrorMsg;
+  nsRefPtr<MediaMgrError> mError;
   uint64_t mWindowID;
   nsRefPtr<MediaManager> mManager; 
 };
@@ -373,10 +374,12 @@ public:
           mOnTracksAvailableCallback.forget()));
     nsString log;
 
-    log.AssignASCII(errorLog, strlen(errorLog));
+    log.AssignASCII(errorLog);
     nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> onSuccess;
+    nsRefPtr<MediaMgrError> error = new MediaMgrError(
+        NS_LITERAL_STRING("InternalError"), log);
     NS_DispatchToMainThread(new ErrorCallbackRunnable(onSuccess, mOnFailure,
-      log, mWindowID));
+        *error, mWindowID));
   }
 
   void

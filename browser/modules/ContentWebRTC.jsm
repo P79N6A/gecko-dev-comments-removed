@@ -108,7 +108,7 @@ function prompt(aContentWindow, aWindowID, aCallID, aConstraints, aDevices, aSec
     requestTypes.push("Microphone");
 
   if (!requestTypes.length) {
-    denyRequest({callID: aCallID}, "NO_DEVICES_FOUND");
+    denyRequest({callID: aCallID}, "NotFoundError");
     return;
   }
 
