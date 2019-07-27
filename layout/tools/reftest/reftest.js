@@ -1780,7 +1780,6 @@ function FinishTestItem()
     gDumpLog("REFTEST INFO | Loading a blank page\n");
     
     
-    SetAsyncScroll(false);
     SendClear();
     gFailedNoPaint = false;
 }
@@ -1910,19 +1909,8 @@ function RegisterMessageListenersAndLoadContentScript()
         "reftest:ExpectProcessCrash",
         function (m) { RecvExpectProcessCrash(); }
     );
-    gBrowserMessageManager.addMessageListener(
-        "reftest:EnableAsyncScroll",
-        function (m) { SetAsyncScroll(true); }
-    );
 
     gBrowserMessageManager.loadFrameScript("chrome://reftest/content/reftest-content.js", true, true);
-}
-
-function SetAsyncScroll(enabled)
-{
-    gBrowser.QueryInterface(CI.nsIFrameLoaderOwner).frameLoader.renderMode =
-        enabled ? CI.nsIFrameLoader.RENDER_MODE_ASYNC_SCROLL :
-                  CI.nsIFrameLoader.RENDER_MODE_DEFAULT;
 }
 
 function RecvAssertionCount(count)

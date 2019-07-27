@@ -3220,9 +3220,6 @@ Tab.prototype = {
 
     this.browser.stop();
 
-    let frameLoader = this.browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
-    frameLoader.renderMode = Ci.nsIFrameLoader.RENDER_MODE_ASYNC_SCROLL;
-
     
     let uri = null;
     let title = aParams.title || aURL;

@@ -69,11 +69,6 @@ protected:
   ~nsFrameLoader();
 
 public:
-  bool AsyncScrollEnabled() const
-  {
-    return !!(mRenderMode & RENDER_MODE_ASYNC_SCROLL);
-  }
-
   static nsFrameLoader* Create(mozilla::dom::Element* aOwner,
                                bool aNetworkCreated);
 
@@ -366,11 +361,6 @@ private:
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
   uint64_t mChildID;
-
-  
-  
-  
-  uint32_t mRenderMode;
 
   
   
