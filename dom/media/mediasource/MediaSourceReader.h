@@ -136,6 +136,10 @@ private:
   
   bool SwitchAudioReader(int64_t aTarget, int64_t aError = 0);
   bool SwitchVideoReader(int64_t aTarget, int64_t aError = 0);
+  void RequestAudioDataComplete(int64_t aTime);
+  void RequestAudioDataFailed(nsresult aResult);
+  void RequestVideoDataComplete(int64_t aTime);
+  void RequestVideoDataFailed(nsresult aResult);
 
   
   
