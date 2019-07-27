@@ -36,7 +36,6 @@ class EventChainPreVisitor;
 namespace dom {
 
 class Date;
-class DirPickerFileListBuilderTask;
 class File;
 class FileList;
 
@@ -94,11 +93,8 @@ class HTMLInputElement final : public nsGenericHTMLFormElementWithState,
                                public nsITextControlElement,
                                public nsIPhonetic,
                                public nsIDOMNSEditableElement,
-                               public nsITimerCallback,
                                public nsIConstraintValidation
 {
-  friend class DirPickerFileListBuilderTask;
-
 public:
   using nsIConstraintValidation::GetValidationMessage;
   using nsIConstraintValidation::CheckValidity;
@@ -277,14 +273,6 @@ public:
   }
 
   
-  NS_DECL_NSITIMERCALLBACK
-
-  
-  
-  
-  using nsImageLoadingContent::Notify;
-
-  
   bool     IsTooLong();
   bool     IsValueMissing() const;
   bool     HasTypeMismatch() const;
@@ -445,15 +433,6 @@ public:
   
 
   FileList* GetFiles();
-
-  void OpenDirectoryPicker(ErrorResult& aRv);
-  void CancelDirectoryPickerScanIfRunning();
-
-  void StartProgressEventTimer();
-  void MaybeDispatchProgressEvent(bool aFinalProgress);
-  void DispatchProgressEvent(const nsAString& aType,
-                             bool aLengthComputable,
-                             uint64_t aLoaded, uint64_t aTotal);
 
   
   void SetFormAction(const nsAString& aValue, ErrorResult& aRv)
@@ -1276,8 +1255,6 @@ protected:
 
   nsRefPtr<FileList>  mFileList;
 
-  nsRefPtr<DirPickerFileListBuilderTask> mDirPickerFileListBuilderTask;
-
   nsString mStaticDocFileList;
   
   
@@ -1295,13 +1272,6 @@ protected:
 
 
   Decimal mRangeThumbDragStartValue;
-
-  
-
-
-
-
-  nsCOMPtr<nsITimer> mProgressTimer;
 
   
 
@@ -1346,7 +1316,6 @@ protected:
   bool                     mCanShowInvalidUI    : 1;
   bool                     mHasRange            : 1;
   bool                     mIsDraggingRange     : 1;
-  bool                     mProgressTimerIsActive : 1;
   bool                     mNumberControlSpinnerIsSpinning : 1;
   bool                     mNumberControlSpinnerSpinsUp : 1;
   bool                     mPickerRunning : 1;
