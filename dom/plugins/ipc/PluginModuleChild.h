@@ -76,6 +76,10 @@ protected:
     virtual bool AnswerNP_GetEntryPoints(NPError* rv) MOZ_OVERRIDE;
     virtual bool AnswerNP_Initialize(NPError* rv) MOZ_OVERRIDE;
 
+    virtual PPluginModuleChild*
+    AllocPPluginModuleChild(mozilla::ipc::Transport* aTransport,
+                            base::ProcessId aOtherProcess) MOZ_OVERRIDE;
+
     virtual PPluginInstanceChild*
     AllocPPluginInstanceChild(const nsCString& aMimeType,
                               const uint16_t& aMode,
@@ -140,14 +144,26 @@ protected:
     AnswerGeckoGetProfile(nsCString* aProfile) MOZ_OVERRIDE;
 
 public:
-    PluginModuleChild();
+    PluginModuleChild(bool aIsChrome);
     virtual ~PluginModuleChild();
 
+    bool CommonInit(base::ProcessHandle aParentProcessHandle,
+                    MessageLoop* aIOLoop,
+                    IPC::Channel* aChannel);
+
     
-    bool Init(const std::string& aPluginFilename,
-              base::ProcessHandle aParentProcessHandle,
-              MessageLoop* aIOLoop,
-              IPC::Channel* aChannel);
+    bool InitForChrome(const std::string& aPluginFilename,
+                       base::ProcessHandle aParentProcessHandle,
+                       MessageLoop* aIOLoop,
+                       IPC::Channel* aChannel);
+
+    bool InitForContent(base::ProcessHandle aParentProcessHandle,
+                        MessageLoop* aIOLoop,
+                        IPC::Channel* aChannel);
+
+    static PluginModuleChild*
+    CreateForContentProcess(mozilla::ipc::Transport* aTransport,
+                            base::ProcessId aOtherProcess);
 
     void CleanUp();
 
@@ -155,7 +171,7 @@ public:
 
     static const NPNetscapeFuncs sBrowserFuncs;
 
-    static PluginModuleChild* current();
+    static PluginModuleChild* GetChrome();
 
     
 
@@ -288,6 +304,9 @@ private:
     nsCString mUserAgent;
     int mQuirks;
 
+    bool mIsChrome;
+    Transport* mTransport;
+
     
     NP_PLUGINSHUTDOWN mShutdownFunc;
 #if defined(OS_LINUX) || defined(OS_BSD)
@@ -298,7 +317,6 @@ private:
 #endif
 
     NPPluginFuncs mFunctions;
-    NPSavedData mSavedData;
 
 #if defined(MOZ_WIDGET_GTK)
     

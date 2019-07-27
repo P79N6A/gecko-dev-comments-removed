@@ -525,6 +525,10 @@ private:
     
     void ClearAllSurfaces();
 
+    void Destroy();
+
+    void ActorDestroy(ActorDestroyReason why);
+
     
     
     bool mLayersRendering;
@@ -598,6 +602,9 @@ private:
     
     
     nsIntRect mSurfaceDifferenceRect;
+
+    
+    bool mDestroyed;
 };
 
 } 
