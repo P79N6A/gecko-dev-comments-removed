@@ -530,14 +530,14 @@ TelephonyService.prototype = {
       }
 
       if (!response.isCdma) {
-        aCallback.notifyDialSuccess(response.callIndex);
+        aCallback.notifyDialSuccess(response.callIndex, response.number);
       } else {
         let currentCallId = Object.keys(this._currentCalls[aClientId])[0];
         if (currentCallId === undefined) {
-          aCallback.notifyDialSuccess(response.callIndex);
+          aCallback.notifyDialSuccess(response.callIndex, response.number);
         } else {
           
-          aCallback.notifyDialSuccess(CDMA_SECOND_CALL_INDEX);
+          aCallback.notifyDialSuccess(CDMA_SECOND_CALL_INDEX, response.number);
           this._addCdmaChildCall(aClientId, aNumber, currentCallId);
         }
       }
