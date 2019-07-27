@@ -681,83 +681,42 @@ ErrorReport::~ErrorReport()
     js_free(const_cast<char16_t*>(ownedReport.ucmessage));
 }
 
-void
-ErrorReport::ReportAddonExceptionToTelementry(JSContext* cx)
-{
-    MOZ_ASSERT(exnObject);
-    RootedObject unwrapped(cx, UncheckedUnwrap(exnObject));
-    MOZ_ASSERT(unwrapped, "UncheckedUnwrap failed?");
-
-    
-    if (!unwrapped->is<ErrorObject>())
-        return;
-
-    Rooted<ErrorObject*> errObj(cx, &unwrapped->as<ErrorObject>());
-    RootedObject stack(cx, errObj->stack());
-
-    
-    
-    
-    
-    if (!stack)
-        return;
-
-    JSCompartment* comp = stack->compartment();
-    JSAddonId* addonId = comp->addonId;
-
-    
-    
-    if (!addonId)
-        return;
-
-    RootedString funnameString(cx);
-    JS::SavedFrameResult result = GetSavedFrameFunctionDisplayName(cx, stack, &funnameString);
-    
-    JSAutoByteString bytes;
-    const char* funname = nullptr;
-    funname = result == JS::SavedFrameResult::AccessDenied ? "unknown"
-                                                           : AtomToPrintableString(cx,
-                                                                                   &funnameString->asAtom(),
-                                                                                   &bytes);
-
-    UniqueChars addonIdChars(JS_EncodeString(cx, addonId));
-
-    const char* filename = nullptr;
-    if (reportp && reportp->filename) {
-        filename = strrchr(reportp->filename, '/');
-        if (filename)
-            filename++;
-    }
-    if (!filename) {
-        filename = "FILE_NOT_FOUND";
-    }
-    char histogramKey[64];
-    JS_snprintf(histogramKey, sizeof(histogramKey),
-                "%s %s %s %u",
-                addonIdChars.get(),
-                funname,
-                filename,
-                (reportp ? reportp->lineno : 0) );
-    cx->runtime()->addTelemetry(JS_TELEMETRY_ADDON_EXCEPTIONS, 1, histogramKey);
-}
-
 bool
 ErrorReport::init(JSContext* cx, HandleValue exn)
 {
     MOZ_ASSERT(!cx->isExceptionPending());
 
+    
+
+
+
     if (exn.isObject()) {
-        
-        
         exnObject = &exn.toObject();
         reportp = ErrorFromException(cx, exnObject);
 
-        
-        
-        ReportAddonExceptionToTelementry(cx);
+        JSCompartment* comp = exnObject->compartment();
+        JSAddonId* addonId = comp->addonId;
+        if (addonId) {
+            UniqueChars addonIdChars(JS_EncodeString(cx, addonId));
+
+            const char* filename = nullptr;
+            if (reportp && reportp->filename) {
+                filename = strrchr(reportp->filename, '/');
+                if (filename)
+                    filename++;
+            }
+            if (!filename) {
+                filename = "FILE_NOT_FOUND";
+            }
+            char histogramKey[64];
+            JS_snprintf(histogramKey, sizeof(histogramKey),
+                        "%s %s %u",
+                        addonIdChars.get(),
+                        filename,
+                        (reportp ? reportp->lineno : 0) );
+            cx->runtime()->addTelemetry(JS_TELEMETRY_ADDON_EXCEPTIONS, 1, histogramKey);
+        }
     }
-
-
     
     
     

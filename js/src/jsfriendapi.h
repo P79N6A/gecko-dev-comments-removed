@@ -1397,9 +1397,6 @@ struct MOZ_STACK_CLASS JS_FRIEND_API(ErrorReport)
     bool populateUncaughtExceptionReportVA(JSContext* cx, va_list ap);
 
     
-    void ReportAddonExceptionToTelementry(JSContext* cx);
-
-    
     JSErrorReport* reportp;
 
     
