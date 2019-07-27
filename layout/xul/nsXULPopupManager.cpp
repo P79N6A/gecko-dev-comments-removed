@@ -196,9 +196,18 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
       
       
       
+      
       nsMenuChainItem* first = item;
-      while (first->GetParent())
-        first = first->GetParent();
+      while (first->GetParent()) {
+        nsMenuChainItem* parent = first->GetParent();
+        if (first->Frame()->PopupType() != parent->Frame()->PopupType() ||
+            first->IsContextMenu() != parent->IsContextMenu()) {
+          break;
+        }
+        first = parent;
+      }
+
+
       *aLastRolledUp = first->Content();
     }
 
