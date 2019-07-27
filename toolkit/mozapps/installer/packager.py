@@ -81,6 +81,13 @@ class ToolLauncher(object):
             env[e] = extra_env[e]
 
         
+        if 'VS120COMNTOOLS' in env and not buildconfig.substs['HAVE_64BIT_BUILD']:
+            vc12dir = os.path.abspath(os.path.join(env['VS120COMNTOOLS'],
+                                                   '../../VC/bin'))
+            if os.path.exists(vc12dir):
+                env['PATH'] = vc12dir + ';' + env['PATH']
+
+        
         
         for k, v in env.items():
             if isinstance(v, unicode):
@@ -138,14 +145,6 @@ def precompile_cache(formatter, source_path, gre_path, app_path):
     os.close(fd)
     os.remove(cache)
 
-    
-    env = os.environ.copy()
-    if 'VS120COMNTOOLS' in env and not buildconfig.substs['HAVE_64BIT_BUILD']:
-      vc12dir = os.path.abspath(os.path.join(env['VS120COMNTOOLS'],
-                                             '../../VC/bin'))
-      if os.path.exists(vc12dir):
-        env['PATH'] = vc12dir + ';' + env['PATH']
-
     try:
         if launcher.launch(['xpcshell', '-g', gre_path, '-a', app_path,
                             '-f', os.path.join(os.path.dirname(__file__),
@@ -153,8 +152,7 @@ def precompile_cache(formatter, source_path, gre_path, app_path):
                             '-e', 'precompile_startupcache("resource://%s/");'
                                   % resource],
                            extra_linker_path=gre_path,
-                           extra_env={'MOZ_STARTUP_CACHE': cache,
-                                      'PATH': env['PATH']}):
+                           extra_env={'MOZ_STARTUP_CACHE': cache}):
             errors.fatal('Error while running startup cache precompilation')
             return
         from mozpack.mozjar import JarReader
