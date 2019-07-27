@@ -40,6 +40,7 @@ add_task(function* test_swap_protocol() {
 
   
   Services.prefs.setBoolPref("browser.urlbar.autoFill", "false");
+  Services.prefs.setBoolPref("browser.urlbar.autoFill.searchEngines", false);
 
   do_log_info("http://www.site matches all site");
   yield check_autocomplete({
