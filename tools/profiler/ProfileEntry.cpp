@@ -112,7 +112,7 @@ ProfileBuffer::ProfileBuffer(int aEntrySize)
 
 ProfileBuffer::~ProfileBuffer()
 {
-  mGeneration = UINT32_MAX;
+  mGeneration = INT_MAX;
   deleteExpiredStoredMarkers();
 }
 
@@ -121,11 +121,6 @@ void ProfileBuffer::addTag(const ProfileEntry& aTag)
 {
   mEntries[mWritePos++] = aTag;
   if (mWritePos == mEntrySize) {
-    
-    
-    
-    
-    MOZ_ASSERT(mGeneration != UINT32_MAX - 2);
     mGeneration++;
     mWritePos = 0;
   }

@@ -486,16 +486,7 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
   
   
 
-  
-  
-  
-  
-  uint32_t startBufferGen;
-  if (aSample->isSamplingCurrentThread) {
-    startBufferGen = UINT32_MAX;
-  } else {
-    startBufferGen = aProfile.bufferGeneration();
-  }
+  uint32_t startBufferGen = aProfile.bufferGeneration();
   uint32_t jsCount = 0;
   JS::ProfilingFrameIterator::Frame jsFrames[1000];
   
@@ -644,13 +635,14 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
     nativeIndex--;
   }
 
+  MOZ_ASSERT(aProfile.bufferGeneration() >= startBufferGen);
+  uint32_t lapCount = aProfile.bufferGeneration() - startBufferGen;
+
   
   
   
   
   if (!aSample->isSamplingCurrentThread && pseudoStack->mRuntime) {
-    MOZ_ASSERT(aProfile.bufferGeneration() >= startBufferGen);
-    uint32_t lapCount = aProfile.bufferGeneration() - startBufferGen;
     JS::UpdateJSRuntimeProfilerSampleBufferGen(pseudoStack->mRuntime,
                                                aProfile.bufferGeneration(),
                                                lapCount);
