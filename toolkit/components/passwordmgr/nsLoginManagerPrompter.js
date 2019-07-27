@@ -16,6 +16,8 @@ const LoginInfo =
       Components.Constructor("@mozilla.org/login-manager/loginInfo;1",
                              "nsILoginInfo", "init");
 
+const BRAND_BUNDLE = "chrome://branding/locale/brand.properties";
+
 
 
 
@@ -775,21 +777,26 @@ LoginManagerPrompter.prototype = {
     let { browser } = this._getNotifyWindow();
 
     let saveMsgNames = {
-      prompt: "rememberPasswordMsgNoUsername",
-      buttonLabel: "notifyBarRememberPasswordButtonText",
-      buttonAccessKey: "notifyBarRememberPasswordButtonAccessKey",
+      prompt: login.username === "" ? "rememberLoginMsgNoUser"
+                                    : "rememberLoginMsg",
+      buttonLabel: "rememberLoginButtonText",
+      buttonAccessKey: "rememberLoginButtonAccessKey",
     };
 
     let changeMsgNames = {
-      
-      
-      prompt: "updatePasswordMsg",
-      buttonLabel: "notifyBarUpdateButtonText",
-      buttonAccessKey: "notifyBarUpdateButtonAccessKey",
+      prompt: login.username === "" ? "updateLoginMsgNoUser"
+                                    : "updateLoginMsg",
+      buttonLabel: "updateLoginButtonText",
+      buttonAccessKey: "updateLoginButtonAccessKey",
     };
 
     let initialMsgNames = type == "password-save" ? saveMsgNames
                                                   : changeMsgNames;
+
+    let brandBundle = Services.strings.createBundle(BRAND_BUNDLE);
+    let brandShortName = brandBundle.GetStringFromName("brandShortName");
+    let promptMsg = type == "password-save" ? this._getLocalizedString(saveMsgNames.prompt, [brandShortName])
+                                            : this._getLocalizedString(changeMsgNames.prompt);
 
     let histogramName = type == "password-save" ? "PWMGR_PROMPT_REMEMBER_ACTION"
                                                 : "PWMGR_PROMPT_UPDATE_ACTION";
@@ -960,7 +967,7 @@ LoginManagerPrompter.prototype = {
     this._getPopupNote().show(
       browser,
       "password",
-      this._getLocalizedString(initialMsgNames.prompt, [displayHost]),
+      promptMsg,
       "password-notification-icon",
       mainAction,
       secondaryActions,
