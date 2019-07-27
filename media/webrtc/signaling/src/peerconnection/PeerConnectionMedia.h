@@ -107,7 +107,8 @@ class Fake_VideoGenerator {
 
     
     mozilla::VideoSegment *segment = new mozilla::VideoSegment();
-    mStream->GetStream()->AsSourceStream()->AddTrack(1, mozilla::USECS_PER_S, 0, segment);
+    mStream->GetStream()->AsSourceStream()->AddTrack(1,
+        mStream->GetStream()->GraphRate(), 0, segment);
     mStream->GetStream()->AsSourceStream()->AdvanceKnownTracksTime(mozilla::STREAM_TIME_MAX);
 
     
@@ -157,7 +158,8 @@ class Fake_VideoGenerator {
     
     mozilla::VideoSegment *segment = new mozilla::VideoSegment();
     
-    segment->AppendFrame(image.forget(), mozilla::USECS_PER_S / 10,
+    segment->AppendFrame(image.forget(),
+                         gen->mStream->GetStream()->GraphRate() / 10,
                          IntSize(WIDTH, HEIGHT));
 
     gen->mStream->GetStream()->AsSourceStream()->AppendToTrack(1, segment);
