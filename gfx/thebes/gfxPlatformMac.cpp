@@ -514,7 +514,6 @@ public:
       }
 
       mPreviousTimestamp = TimeStamp::Now();
-      mStartingVsync = true;
       if (CVDisplayLinkStart(mDisplayLink) != kCVReturnSuccess) {
         NS_WARNING("Could not activate the display link");
         CVDisplayLinkRelease(mDisplayLink);
@@ -548,7 +547,6 @@ public:
     
     
     TimeStamp mPreviousTimestamp;
-    bool mStartingVsync;
 
   private:
     
@@ -574,29 +572,25 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
   
   OSXVsyncSource::OSXDisplay* display = (OSXVsyncSource::OSXDisplay*) aDisplayLinkContext;
   int64_t nextVsyncTimestamp = aOutputTime->hostTime;
+
   mozilla::TimeStamp nextVsync = mozilla::TimeStamp::FromSystemTime(nextVsyncTimestamp);
-
   mozilla::TimeStamp previousVsync = display->mPreviousTimestamp;
-  bool firstVsync = display->mStartingVsync;
-
-  display->mStartingVsync = false;
-  display->mPreviousTimestamp = nextVsync;
   mozilla::TimeStamp now = TimeStamp::Now();
-  if (nextVsync <= previousVsync) {
-    TimeDuration next = nextVsync - now;
-    TimeDuration prev = now - previousVsync;
-    printf_stderr("Next from now: %f, prev from now: %f, first vsync %d\n",
-      next.ToMilliseconds(), prev.ToMilliseconds(), firstVsync);
-    MOZ_ASSERT(false, "Next vsync less than previous vsync\n");
-  }
 
   
   
-  
-  
-  if (now < previousVsync) {
+  if (nextVsync <= previousVsync) {
+    nextVsync = now;
+    previousVsync = now;
+  } else if (now < previousVsync) {
+    
+    
+    
+    
     previousVsync = now;
   }
+
+  display->mPreviousTimestamp = nextVsync;
 
   display->NotifyVsync(previousVsync);
   return kCVReturnSuccess;
