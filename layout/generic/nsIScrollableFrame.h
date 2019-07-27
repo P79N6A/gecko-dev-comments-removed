@@ -15,6 +15,7 @@
 #include "mozilla/gfx/Point.h"
 #include "nsIScrollbarMediator.h"
 #include "Units.h"
+#include "FrameMetrics.h"
 
 #define NS_DEFAULT_VERTICAL_SCROLL_DISTANCE   3
 #define NS_DEFAULT_HORIZONTAL_SCROLL_DISTANCE 5
@@ -27,6 +28,13 @@ class nsIContent;
 class nsRenderingContext;
 class nsIAtom;
 
+namespace mozilla {
+struct ContainerLayerParameters;
+namespace layers {
+class Layer;
+}
+}
+
 
 
 
@@ -35,6 +43,8 @@ class nsIAtom;
 class nsIScrollableFrame : public nsIScrollbarMediator {
 public:
   typedef mozilla::CSSIntPoint CSSIntPoint;
+  typedef mozilla::ContainerLayerParameters ContainerLayerParameters;
+  typedef mozilla::layers::FrameMetrics FrameMetrics;
 
   NS_DECL_QUERYFRAME_TARGET(nsIScrollableFrame)
 
@@ -340,6 +350,15 @@ public:
 
 
   virtual bool WantAsyncScroll() const = 0;
+  
+
+
+
+  virtual void ComputeFrameMetrics(mozilla::layers::Layer* aLayer,
+                                   nsIFrame* aContainerReferenceFrame,
+                                   const ContainerLayerParameters& aParameters,
+                                   nsRect* aOutClipRect,
+                                   nsTArray<FrameMetrics>* aOutput) const = 0;
 };
 
 #endif
