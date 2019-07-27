@@ -22,6 +22,10 @@
 #include "FrameLayerBuilder.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/unused.h"
+#include "mozilla/DebugOnly.h"
+#if defined(XP_WIN)
+#include "WinUtils.h"
+#endif
 
 using mozilla::layers::LayerTransactionChild;
 using mozilla::dom::TabChildBase;
@@ -133,6 +137,118 @@ CompositorChild::RecvInvalidateAll()
     FrameLayerBuilder::InvalidateAllLayers(mLayerManager);
   }
   return true;
+}
+
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
+static void CalculatePluginClip(const nsIntRect& aBounds,
+                                const nsTArray<nsIntRect>& aPluginClipRects,
+                                const nsIntPoint& aContentOffset,
+                                const nsIntRegion& aParentLayerVisibleRegion,
+                                nsTArray<nsIntRect>& aResult,
+                                nsIntRect& aVisibleBounds,
+                                bool& aPluginIsVisible)
+{
+  aPluginIsVisible = true;
+  
+  nsIntRegion contentVisibleRegion(aBounds);
+  
+  for (uint32_t idx = 0; idx < aPluginClipRects.Length(); idx++) {
+    nsIntRect rect = aPluginClipRects[idx];
+    
+    rect.MoveBy(aBounds.x, aBounds.y);
+    contentVisibleRegion.AndWith(rect);
+  }
+  
+  nsIntRegion region = aParentLayerVisibleRegion;
+  region.MoveBy(-aContentOffset.x, -aContentOffset.y);
+  contentVisibleRegion.AndWith(region);
+  if (contentVisibleRegion.IsEmpty()) {
+    aPluginIsVisible = false;
+    return;
+  }
+  
+  contentVisibleRegion.MoveBy(-aBounds.x, -aBounds.y);
+  nsIntRegionRectIterator iter(contentVisibleRegion);
+  for (const nsIntRect* rgnRect = iter.Next(); rgnRect; rgnRect = iter.Next()) {
+    aResult.AppendElement(*rgnRect);
+    aVisibleBounds.UnionRect(aVisibleBounds, *rgnRect);
+  }
+}
+#endif
+
+bool
+CompositorChild::RecvUpdatePluginConfigurations(const nsIntPoint& aContentOffset,
+                                                const nsIntRegion& aParentLayerVisibleRegion,
+                                                nsTArray<PluginWindowData>&& aPlugins)
+{
+#if !defined(XP_WIN) && !defined(MOZ_WIDGET_GTK)
+  NS_NOTREACHED("CompositorChild::RecvUpdatePluginConfigurations calls "
+                "unexpected on this platform.");
+  return false;
+#else
+  
+  
+  
+  DebugOnly<nsresult> rv;
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  nsTArray<uintptr_t> visiblePluginIds;
+
+  for (uint32_t pluginsIdx = 0; pluginsIdx < aPlugins.Length(); pluginsIdx++) {
+    nsIWidget* widget = nsIWidget::LookupRegisteredPluginWindow(aPlugins[pluginsIdx].windowId());
+    bool isVisible = aPlugins[pluginsIdx].visible();
+    if (widget && !widget->Destroyed()) {
+      nsIntRect bounds;
+      nsIntRect visibleBounds;
+      
+      if (isVisible) {
+        
+        
+        
+        bounds = aPlugins[pluginsIdx].bounds();
+        rv = widget->Resize(aContentOffset.x + bounds.x,
+                            aContentOffset.y + bounds.y,
+                            bounds.width, bounds.height, false);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "widget call failure");
+        nsTArray<nsIntRect> rectsOut;
+        CalculatePluginClip(bounds, aPlugins[pluginsIdx].clip(),
+                            aContentOffset, aParentLayerVisibleRegion,
+                            rectsOut, visibleBounds, isVisible);
+        if (isVisible) {
+          
+          rv = widget->SetWindowClipRegion(rectsOut, false);
+          NS_ASSERTION(NS_SUCCEEDED(rv), "widget call failure");
+        }
+      }
+
+      
+      rv = widget->Show(isVisible);
+      NS_ASSERTION(NS_SUCCEEDED(rv), "widget call failure");
+
+      
+      if (isVisible) {
+        
+        nsIntRect bounds = aPlugins[pluginsIdx].bounds();
+        nsIntRect rect(0, 0, bounds.width, bounds.height);
+#if defined(XP_WIN)
+        
+        
+        
+        mozilla::widget::WinUtils::InvalidatePluginAsWorkaround(widget, visibleBounds);
+#else
+        rv = widget->Invalidate(visibleBounds);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "widget call failure");
+#endif
+        visiblePluginIds.AppendElement(aPlugins[pluginsIdx].windowId());
+      }
+    }
+  }
+  
+  
+  nsIWidget::UpdateRegisteredPluginWindowVisibility(visiblePluginIds);
+  return true;
+#endif 
 }
 
 bool
