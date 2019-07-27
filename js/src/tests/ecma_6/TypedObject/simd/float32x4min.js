@@ -9,6 +9,7 @@ function test() {
   print(BUGNUMBER + ": " + summary);
 
   
+  
 
   var a = float32x4(1, 20, 3, 40);
   var b = float32x4(10, 2, 30, 4);
@@ -17,6 +18,14 @@ function test() {
   assertEq(c.y, 2);
   assertEq(c.z, 3);
   assertEq(c.w, 4);
+
+  var d = float32x4(1.4321, 20.5567, 30.8999, 4.0002);
+  var e = float32x4(1.432, 20.5568, 30.8998, 4.0001);
+  var f = float32x4.min(d, e);
+  assertEq(f.x, Math.fround(1.432));
+  assertEq(f.y, Math.fround(20.5567));
+  assertEq(f.z, Math.fround(30.8998));
+  assertEq(f.w, Math.fround(4.0001));
 
   if (typeof reportCompare === "function")
     reportCompare(true, true);

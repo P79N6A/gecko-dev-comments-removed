@@ -9,6 +9,7 @@ function test() {
   print(BUGNUMBER + ": " + summary);
 
   
+  
 
   var a = float32x4(1, 20, 3, 40);
   var b = float32x4(10, 2, 30, 4);
@@ -17,6 +18,14 @@ function test() {
   assertEq(c.y, 0);
   assertEq(c.z, -1);
   assertEq(c.w, 0);
+
+  var d = float32x4(1.5399, 20.001, 30.045, 4.74);
+  var e = float32x4(1.54, 19.999, 30.05, 4.72);
+  var f = float32x4.lessThan(a, b);
+  assertEq(f.x, -1);
+  assertEq(f.y, 0);
+  assertEq(f.z, -1);
+  assertEq(f.w, 0);
 
   if (typeof reportCompare === "function")
     reportCompare(true, true);

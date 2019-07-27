@@ -9,14 +9,23 @@ function test() {
   print(BUGNUMBER + ": " + summary);
 
   
+  
 
   var a = float32x4(1, 20, 30, 40);
   var b = float32x4(10, 20, 30, 4);
-  var c = SIMD.float32x4.greaterThanOrEqual(b,a);
+  var c = SIMD.float32x4.greaterThanOrEqual(b, a);
   assertEq(c.x, -1);
   assertEq(c.y, -1);
   assertEq(c.z, -1);
   assertEq(c.w, 0);
+
+  var d = float32x4(10.029, 20.87, 30.56, 4.7);
+  var e = float32x4(10.03, 20.87, 30.56, 4.698);
+  var f = float32x4.greaterThanOrEqual(e, d);
+  assertEq(f.x, -1);
+  assertEq(f.y, -1);
+  assertEq(f.z, -1);
+  assertEq(f.w, 0);
 
   if (typeof reportCompare === "function")
     reportCompare(true, true);
