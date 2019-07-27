@@ -21,6 +21,8 @@ loop.shared.mixins = (function() {
 
 
 
+
+
   function setRootObject(obj) {
     console.info("loop.shared.mixins: rootObject set to " + obj);
     rootObject = obj;
@@ -61,6 +63,21 @@ loop.shared.mixins = (function() {
   var DocumentTitleMixin = {
     setTitle: function(newTitle) {
       rootObject.document.title = newTitle;
+    }
+  };
+
+  
+
+
+
+
+
+
+
+
+  var WindowCloseMixin = {
+    closeWindow: function() {
+      rootObject.close();
     }
   };
 
@@ -291,6 +308,7 @@ loop.shared.mixins = (function() {
     DocumentVisibilityMixin: DocumentVisibilityMixin,
     DocumentLocationMixin: DocumentLocationMixin,
     DocumentTitleMixin: DocumentTitleMixin,
-    UrlHashChangeMixin: UrlHashChangeMixin
+    UrlHashChangeMixin: UrlHashChangeMixin,
+    WindowCloseMixin: WindowCloseMixin
   };
 })();
