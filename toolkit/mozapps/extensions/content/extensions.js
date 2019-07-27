@@ -463,7 +463,7 @@ var gEventManager = {
 
     let addonTooltip = document.getElementById("addonitem-tooltip");
     addonTooltip.addEventListener("popupshowing", function() {
-      let addonItem = document.tooltipNode;
+      let addonItem = addonTooltip.triggerNode;
       
       
       
