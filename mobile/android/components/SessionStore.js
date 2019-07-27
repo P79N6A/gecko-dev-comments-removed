@@ -15,6 +15,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm
 XPCOMUtils.defineLazyModuleGetter(this, "Messaging", "resource://gre/modules/Messaging.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "FormData", "resource://gre/modules/FormData.jsm");
+
 function dump(a) {
   Services.console.logStringMessage(a);
 }
@@ -25,6 +27,10 @@ function dump(a) {
 
 const STATE_STOPPED = 0;
 const STATE_RUNNING = 1;
+
+const PRIVACY_NONE = 0;
+const PRIVACY_ENCRYPTED = 1;
+const PRIVACY_FULL = 2;
 
 function SessionStore() { }
 
@@ -174,7 +180,7 @@ SessionStore.prototype = {
         break;
       case "Session:RestoreRecentTabs": {
         let data = JSON.parse(aData);
-        this._restoreTabsWithHistory(data);
+        this._restoreTabs(data);
         break;
       }
     }
@@ -203,14 +209,32 @@ SessionStore.prototype = {
         let browser = aEvent.currentTarget;
 
         
-        if (browser.contentDocument !== aEvent.originalTarget)
+        if (browser.contentDocument !== aEvent.originalTarget) {
           return;
+        }
 
         
         
         
         
         this.onTabLoad(window, browser);
+        break;
+      }
+      case "load": {
+        
+        
+        
+        let browser = aEvent.currentTarget;
+        if (browser.__SS_restore_data) {
+          this._restoreTextData(browser.__SS_restore_data, browser);
+        }
+        break;
+      }
+      case "change":
+      case "input":
+      case "DOMAutoComplete": {
+        let browser = aEvent.currentTarget;
+        this.onTabInput(window, browser);
         break;
       }
     }
@@ -276,14 +300,29 @@ SessionStore.prototype = {
   },
 
   onTabAdd: function ss_onTabAdd(aWindow, aBrowser, aNoNotification) {
+    
     aBrowser.addEventListener("DOMTitleChanged", this, true);
+
+    
+    aBrowser.addEventListener("load", this, true);
+
+    
+    aBrowser.addEventListener("change", this, true);
+    aBrowser.addEventListener("input", this, true);
+    aBrowser.addEventListener("DOMAutoComplete", this, true);
+
     if (!aNoNotification)
       this.saveStateDelayed();
     this._updateCrashReportURL(aWindow);
   },
 
   onTabRemove: function ss_onTabRemove(aWindow, aBrowser, aNoNotification) {
+    
     aBrowser.removeEventListener("DOMTitleChanged", this, true);
+    aBrowser.removeEventListener("load", this, true);
+    aBrowser.removeEventListener("change", this, true);
+    aBrowser.removeEventListener("input", this, true);
+    aBrowser.removeEventListener("DOMAutoComplete", this, true);
 
     
     if (aBrowser.__SS_restore)
@@ -364,8 +403,7 @@ SessionStore.prototype = {
     
     if (aBrowser.__SS_restore) {
       let data = aBrowser.__SS_data;
-      if (data.entries.length > 0)
-        this._restoreHistory(data, aBrowser.sessionHistory);
+      this._restoreTab(data, aBrowser);
 
       delete aBrowser.__SS_restore;
       aBrowser.removeAttribute("pending");
@@ -379,6 +417,57 @@ SessionStore.prototype = {
     
     if (this._notifyClosedTabs) {
       this._sendClosedTabsToJava(aWindow);
+    }
+  },
+
+  onTabInput: function ss_onTabInput(aWindow, aBrowser) {
+    
+    if (aBrowser.__SS_restore) {
+      return;
+    }
+
+    
+    let data = aBrowser.__SS_data;
+    if (!data || data.entries.length == 0) {
+      return;
+    }
+
+    
+    let content = aBrowser.contentWindow;
+
+    
+    
+    
+    if (!this.checkPrivacyLevel(content.document.documentURI)) {
+      return;
+    }
+
+    
+    let formdata = FormData.collect(content) || {};
+
+    
+    let children = [];
+    for (let i = 0; i < content.frames.length; i++) {
+      let frame = content.frames[i];
+      if (!this.checkPrivacyLevel(frame.document.documentURI)) {
+        continue;
+      }
+
+      let result = FormData.collect(frame);
+      if (result && Object.keys(result).length) {
+        children[i] = result;
+      }
+    }
+
+    
+    if (children.length) {
+      formdata.children = children;
+    }
+
+    
+    if (Object.keys(formdata).length) {
+      data.formdata = formdata;
+      this.saveStateDelayed();
     }
   },
 
@@ -601,29 +690,35 @@ SessionStore.prototype = {
   _serializeHistoryEntry: function _serializeHistoryEntry(aEntry) {
     let entry = { url: aEntry.URI.spec };
 
-    if (aEntry.title && aEntry.title != entry.url)
+    if (aEntry.title && aEntry.title != entry.url) {
       entry.title = aEntry.title;
+    }
 
-    if (!(aEntry instanceof Ci.nsISHEntry))
+    if (!(aEntry instanceof Ci.nsISHEntry)) {
       return entry;
+    }
 
     let cacheKey = aEntry.cacheKey;
-    if (cacheKey && cacheKey instanceof Ci.nsISupportsPRUint32 && cacheKey.data != 0)
+    if (cacheKey && cacheKey instanceof Ci.nsISupportsPRUint32 && cacheKey.data != 0) {
       entry.cacheKey = cacheKey.data;
+    }
 
     entry.ID = aEntry.ID;
     entry.docshellID = aEntry.docshellID;
 
-    if (aEntry.referrerURI)
+    if (aEntry.referrerURI) {
       entry.referrer = aEntry.referrerURI.spec;
+    }
 
-    if (aEntry.contentType)
+    if (aEntry.contentType) {
       entry.contentType = aEntry.contentType;
+    }
 
     let x = {}, y = {};
     aEntry.getScrollPosition(x, y);
-    if (x.value != 0 || y.value != 0)
+    if (x.value != 0 || y.value != 0) {
       entry.scroll = x.value + "," + y.value;
+    }
 
     if (aEntry.owner) {
       try {
@@ -652,8 +747,9 @@ SessionStore.prototype = {
       entry.structuredCloneVersion = aEntry.stateData.formatVersion;
     }
 
-    if (!(aEntry instanceof Ci.nsISHContainer))
+    if (!(aEntry instanceof Ci.nsISHContainer)) {
       return entry;
+    }
 
     if (aEntry.childCount > 0) {
       let children = [];
@@ -683,13 +779,16 @@ SessionStore.prototype = {
 
     shEntry.setURI(Services.io.newURI(aEntry.url, null, null));
     shEntry.setTitle(aEntry.title || aEntry.url);
-    if (aEntry.subframe)
+    if (aEntry.subframe) {
       shEntry.setIsSubFrame(aEntry.subframe || false);
+    }
     shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
-    if (aEntry.contentType)
+    if (aEntry.contentType) {
       shEntry.contentType = aEntry.contentType;
-    if (aEntry.referrer)
+    }
+    if (aEntry.referrer) {
       shEntry.referrerURI = Services.io.newURI(aEntry.referrer, null, null);
+    }
 
     if (aEntry.cacheKey) {
       let cacheKey = Cc["@mozilla.org/supports-PRUint32;1"].createInstance(Ci.nsISupportsPRUint32);
@@ -709,8 +808,9 @@ SessionStore.prototype = {
       shEntry.ID = id;
     }
 
-    if (aEntry.docshellID)
+    if (aEntry.docshellID) {
       shEntry.docshellID = aEntry.docshellID;
+    }
 
     if (aEntry.structuredCloneState && aEntry.structuredCloneVersion) {
       shEntry.stateData =
@@ -755,8 +855,9 @@ SessionStore.prototype = {
 
     if (aEntry.children && shEntry instanceof Ci.nsISHContainer) {
       for (let i = 0; i < aEntry.children.length; i++) {
-        if (!aEntry.children[i].url)
+        if (!aEntry.children[i].url) {
           continue;
+        }
 
         
         
@@ -781,24 +882,52 @@ SessionStore.prototype = {
   },
 
   
-  _restoreTabsWithHistory: function ss_restoreTabsWithHistory(data) {
+  _restoreTabs: function ss_restoreTabs(aData) {
     let window = Services.wm.getMostRecentWindow("navigator:browser");
-    for (let i = 0; i < data.tabs.length; i++) {
-      let tabData = JSON.parse(data.tabs[i]);
+    for (let i = 0; i < aData.tabs.length; i++) {
+      let tabData = JSON.parse(aData.tabs[i]);
       let params = {
-        selected: (i == data.tabs.length - 1),
+        selected: (i == aData.tabs.length - 1),
         isPrivate: tabData.isPrivate,
         desktopMode: tabData.desktopMode,
       };
 
       let tab = window.BrowserApp.addTab(tabData.entries[tabData.index - 1].url, params);
-      this._restoreHistory(tabData, tab.browser.sessionHistory);
+      this._restoreTab(tabData, tab.browser);
     }
   },
 
+  
+
+
+
+  checkPrivacyLevel: function ss_checkPrivacyLevel(aURL) {
+    let isHTTPS = aURL.startsWith("https:");
+    let pref = "browser.sessionstore.privacy_level";
+    return Services.prefs.getIntPref(pref) < (isHTTPS ? PRIVACY_ENCRYPTED : PRIVACY_FULL);
+  },
+
+  
+
+
+
+  _restoreTab: function ss_restoreTab(aTabData, aBrowser) {
+    this._restoreHistory(aTabData, aBrowser.sessionHistory);
+
+    
+    
+    
+    aBrowser.__SS_restore_data = aTabData || {};
+  },
+
+  
+
+
+
   _restoreHistory: function ss_restoreHistory(aTabData, aHistory) {
-    if (aHistory.count > 0)
+    if (aHistory.count > 0) {
       aHistory.PurgeHistory(aHistory.count);
+    }
     aHistory.QueryInterface(Ci.nsISHistoryInternal);
 
     
@@ -807,8 +936,9 @@ SessionStore.prototype = {
     let docIdentMap = {};
 
     for (let i = 0; i < aTabData.entries.length; i++) {
-      if (!aTabData.entries[i].url)
+      if (!aTabData.entries[i].url) {
         continue;
+      }
       aHistory.addEntry(this._deserializeHistoryEntry(aTabData.entries[i], idMap, docIdentMap), true);
     }
 
@@ -817,6 +947,17 @@ SessionStore.prototype = {
     let activeIndex = (aTabData.index || aTabData.entries.length) - 1;
     aHistory.getEntryAtIndex(activeIndex, true);
     aHistory.QueryInterface(Ci.nsISHistory).reloadCurrentEntry();
+  },
+
+  
+
+
+  _restoreTextData: function ss_restoreTextData(aTabData, aBrowser) {
+    let formdata = aTabData.formdata;
+    if (formdata) {
+      FormData.restoreTree(aBrowser.contentWindow, formdata);
+    }
+    delete aBrowser.__SS_restore_data;
   },
 
   getBrowserState: function ss_getBrowserState() {
@@ -840,8 +981,9 @@ SessionStore.prototype = {
 
     let tabs = state.windows[0].tabs;
     let selected = state.windows[0].selected;
-    if (selected == null || selected > tabs.length) 
+    if (selected == null || selected > tabs.length) { 
       selected = 1;
+    }
 
     for (let i = 0; i < tabs.length; i++) {
       let tabData = tabs[i];
@@ -869,7 +1011,8 @@ SessionStore.prototype = {
       }
 
       if (window.BrowserApp.selectedTab == tab) {
-        this._restoreHistory(tabData, tab.browser.sessionHistory);
+        this._restoreTab(tabData, tab.browser);
+
         delete tab.browser.__SS_restore;
         tab.browser.removeAttribute("pending");
       } else {
@@ -926,7 +1069,7 @@ SessionStore.prototype = {
       tabIndex: this._lastClosedTabIndex
     };
     let tab = aWindow.BrowserApp.addTab(aCloseTabData.entries[aCloseTabData.index - 1].url, params);
-    this._restoreHistory(aCloseTabData, tab.browser.sessionHistory);
+    this._restoreTab(aCloseTabData, tab.browser);
 
     this._lastClosedTabIndex = -1;
 
