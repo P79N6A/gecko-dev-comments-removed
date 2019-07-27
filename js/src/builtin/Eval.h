@@ -30,8 +30,8 @@ DirectEval(JSContext* cx, const CallArgs& args);
 extern bool
 DirectEvalStringFromIon(JSContext* cx,
                         HandleObject scopeObj, HandleScript callerScript,
-                        HandleValue thisValue, HandleString str,
-                        jsbytecode * pc, MutableHandleValue vp);
+                        HandleValue thisValue, HandleValue newTargetValue,
+                        HandleString str, jsbytecode * pc, MutableHandleValue vp);
 
 
 extern bool
