@@ -405,6 +405,36 @@ CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
 
 
 
+#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && !defined(XP_MACOSX)
+#include "prprf.h"
+#define PATH_SEPARATOR ":"
+#define LD_LIBRARY_PATH_ENVVAR_NAME "LD_LIBRARY_PATH"
+static void
+AppendToLibPath(const char *pathToAppend)
+{
+  char *s = nullptr;
+  char *pathValue = getenv(LD_LIBRARY_PATH_ENVVAR_NAME);
+  if (nullptr == pathValue || '\0' == *pathValue) {
+    s = PR_smprintf("%s=%s", LD_LIBRARY_PATH_ENVVAR_NAME, pathToAppend);
+  } else {
+    s = PR_smprintf("%s=%s" PATH_SEPARATOR "%s",
+                    LD_LIBRARY_PATH_ENVVAR_NAME, pathToAppend, pathValue);
+  }
+
+  
+  
+  
+  
+  PR_SetEnv(s);
+}
+#endif
+
+
+
+
+
+
+
 
 
 
@@ -585,6 +615,9 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir,
   if (gSafeMode) {
     PR_SetEnv("MOZ_SAFE_MODE_RESTART=1");
   }
+#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && !defined(XP_MACOSX)
+  AppendToLibPath(installDirPath.get());
+#endif
 
   LOG(("spawning updater process for replacing [%s]\n", updaterPath.get()));
 
@@ -850,6 +883,9 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   if (gSafeMode) {
     PR_SetEnv("MOZ_SAFE_MODE_RESTART=1");
   }
+#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && !defined(XP_MACOSX)
+  AppendToLibPath(installDirPath.get());
+#endif
 
   if (isOSUpdate) {
     PR_SetEnv("MOZ_OS_UPDATE=1");
