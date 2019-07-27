@@ -2609,6 +2609,10 @@ Navigator::RequestMediaKeySystemAccess(const nsAString& aKeySystem,
   }
 
   if (!Preferences::GetBool("media.eme.enabled", false)) {
+    
+    
+    MediaKeySystemAccess::NotifyObservers(aKeySystem,
+                                          MediaKeySystemStatus::Api_disabled);
     p->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return p.forget();
   }
@@ -2619,7 +2623,14 @@ Navigator::RequestMediaKeySystemAccess(const nsAString& aKeySystem,
     return p.forget();
   }
 
-  if (!MediaKeySystemAccess::IsKeySystemSupported(aKeySystem)) {
+  MediaKeySystemStatus status = MediaKeySystemAccess::GetKeySystemStatus(aKeySystem);
+  if (status != MediaKeySystemStatus::Available) {
+    if (status != MediaKeySystemStatus::Error) {
+      
+      
+      
+      MediaKeySystemAccess::NotifyObservers(aKeySystem, status);
+    }
     p->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return p.forget();
   }

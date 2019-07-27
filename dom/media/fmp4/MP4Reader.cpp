@@ -405,11 +405,9 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
 
   if (mDemuxer->Crypto().valid) {
 #ifdef MOZ_EME
-    if (!sIsEMEEnabled) {
-      
-      return NS_ERROR_FAILURE;
-    }
-
+    
+    
+    
     
     
     
