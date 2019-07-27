@@ -121,7 +121,8 @@ private:
 
 
 
-  bool IsCaretShowingInScrollFrame();
+  static bool IsRectVisibleInScrollFrames(nsIFrame* aFrame,
+                                          const nsRect& aRect);
 
   
 
