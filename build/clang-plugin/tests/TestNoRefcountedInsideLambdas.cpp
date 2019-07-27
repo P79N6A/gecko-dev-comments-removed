@@ -19,40 +19,76 @@ void take(...);
 void foo() {
   R* ptr;
   SmartPtr<R> sp;
-  take([&]() {
+  take([&](R* argptr) {
+    R* localptr;
     ptr->method(); 
+    argptr->method();
+    localptr->method();
   });
-  take([&]() {
+  take([&](SmartPtr<R> argsp) {
+    SmartPtr<R> localsp;
     sp->method();
+    argsp->method();
+    localsp->method();
   });
-  take([&]() {
+  take([&](R* argptr) {
+    R* localptr;
     take(ptr); 
+    take(argptr);
+    take(localptr);
   });
-  take([&]() {
+  take([&](SmartPtr<R> argsp) {
+    SmartPtr<R> localsp;
     take(sp);
+    take(argsp);
+    take(localsp);
   });
-  take([=]() {
+  take([=](R* argptr) {
+    R* localptr;
     ptr->method(); 
+    argptr->method();
+    localptr->method();
   });
-  take([=]() {
+  take([=](SmartPtr<R> argsp) {
+    SmartPtr<R> localsp;
     sp->method();
+    argsp->method();
+    localsp->method();
   });
-  take([=]() {
+  take([=](R* argptr) {
+    R* localptr;
     take(ptr); 
+    take(argptr);
+    take(localptr);
   });
-  take([=]() {
+  take([=](SmartPtr<R> argsp) {
+    SmartPtr<R> localsp;
     take(sp);
+    take(argsp);
+    take(localsp);
   });
-  take([ptr]() {
+  take([ptr](R* argptr) {
+    R* localptr;
     ptr->method(); 
+    argptr->method();
+    localptr->method();
   });
-  take([sp]() {
+  take([sp](SmartPtr<R> argsp) {
+    SmartPtr<R> localsp;
     sp->method();
+    argsp->method();
+    localsp->method();
   });
-  take([ptr]() {
+  take([ptr](R* argptr) {
+    R* localptr;
     take(ptr); 
+    take(argptr);
+    take(localptr);
   });
-  take([sp]() {
+  take([sp](SmartPtr<R> argsp) {
+    SmartPtr<R> localsp;
     take(sp);
+    take(argsp);
+    take(localsp);
   });
 }
