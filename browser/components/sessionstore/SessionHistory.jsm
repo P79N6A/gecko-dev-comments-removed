@@ -67,7 +67,7 @@ let SessionHistoryInternal = {
     let data = {entries: []};
     let isPinned = docShell.isAppTab;
     let webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
-    let history = webNavigation.sessionHistory;
+    let history = webNavigation.sessionHistory.QueryInterface(Ci.nsISHistoryInternal);
 
     if (history && history.count > 0) {
       let oldest;
@@ -88,14 +88,25 @@ let SessionHistoryInternal = {
         newest = history.count - 1;
       }
 
-      try {
-        for (let i = oldest; i <= newest; i++) {
-          let shEntry = history.getEntryAtIndex(i, false);
-          let entry = this.serializeEntry(shEntry, isPinned);
-          data.entries.push(entry);
-        }
-      } catch (ex) {
-        
+      
+      
+      let txn = history.rootTransaction;
+      let i = 0;
+      while (txn && i < oldest) {
+        txn = txn.next;
+        i++;
+      }
+
+      while (txn && i <= newest) {
+        let shEntry = txn.sHEntry;
+        let entry = this.serializeEntry(shEntry, isPinned);
+        entry.persist = txn.persist;
+        data.entries.push(entry);
+        txn = txn.next;
+        i++;
+      }
+
+      if (i <= newest) {
         
         
         
@@ -297,11 +308,12 @@ let SessionHistoryInternal = {
     let idMap = { used: {} };
     let docIdentMap = {};
     for (let i = 0; i < tabData.entries.length; i++) {
+      let entry = tabData.entries[i];
       
-      if (!tabData.entries[i].url)
+      if (!entry.url)
         continue;
-      history.addEntry(this.deserializeEntry(tabData.entries[i],
-                                             idMap, docIdentMap), true);
+      let persist = "persist" in entry ? entry.persist : true;
+      history.addEntry(this.deserializeEntry(entry, idMap, docIdentMap), persist);
     }
   },
 
