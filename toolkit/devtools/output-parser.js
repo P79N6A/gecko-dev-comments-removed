@@ -14,8 +14,13 @@ const MAX_ITERATIONS = 100;
 const REGEX_QUOTES = /^".*?"|^".*|^'.*?'|^'.*/;
 const REGEX_WHITESPACE = /^\s+/;
 const REGEX_FIRST_WORD_OR_CHAR = /^\w+|^./;
-const REGEX_CSS_PROPERTY_VALUE = /(^[^;]+)/;
 const REGEX_CUBIC_BEZIER = /^linear|^ease-in-out|^ease-in|^ease-out|^ease|^cubic-bezier\(([0-9.\- ]+,){3}[0-9.\- ]+\)/;
+
+
+
+
+
+const REGEX_CSS_VAR = /\bvar\(\s*--[-_a-zA-Z0-9\u00A0-\u10FFFF]+\s*\)/;
 
 
 
@@ -180,6 +185,15 @@ OutputParser.prototype = {
       }
 
       matched = text.match(REGEX_QUOTES);
+      if (matched) {
+        let match = matched[0];
+
+        text = this._trimMatchFromStart(text, match);
+        this._appendTextNode(match);
+        continue;
+      }
+
+      matched = text.match(REGEX_CSS_VAR);
       if (matched) {
         let match = matched[0];
 
