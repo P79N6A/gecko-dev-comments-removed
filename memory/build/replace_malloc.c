@@ -107,17 +107,6 @@ replace_malloc_init_funcs()
 
 
 
-
-
-#ifdef XP_DARWIN
-#undef MOZ_MEMORY_API
-#define MOZ_MEMORY_API static
-#endif
-
-
-
-
-
 #define MALLOC_DECL(name, return_type, ...) \
   MOZ_MEMORY_API return_type name ## _impl(__VA_ARGS__);
 #define MALLOC_FUNCS MALLOC_FUNCS_MALLOC
