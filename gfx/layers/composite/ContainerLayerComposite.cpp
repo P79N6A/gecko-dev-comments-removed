@@ -13,6 +13,7 @@
 #include "gfxUtils.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
+#include "mozilla/UniquePtr.h"          
 #include "mozilla/gfx/BaseRect.h"       
 #include "mozilla/gfx/Matrix.h"         
 #include "mozilla/gfx/Point.h"          
@@ -277,91 +278,36 @@ static void PrintUniformityInfo(Layer* aLayer)
 }
 
 
-template<class ContainerT> void
-ContainerRender(ContainerT* aContainer,
-                LayerManagerComposite* aManager,
-                const nsIntRect& aClipRect)
+struct PreparedLayer
 {
+  PreparedLayer(LayerComposite *aLayer, nsIntRect aClipRect, bool aRestoreVisibleRegion, nsIntRegion &aVisibleRegion) :
+    mLayer(aLayer), mClipRect(aClipRect), mRestoreVisibleRegion(aRestoreVisibleRegion), mSavedVisibleRegion(aVisibleRegion) {}
+  LayerComposite* mLayer;
+  nsIntRect mClipRect;
+  bool mRestoreVisibleRegion;
+  nsIntRegion mSavedVisibleRegion;
+};
+
+
+struct PreparedData
+{
+  RefPtr<CompositingRenderTarget> mTmpTarget;
+  nsAutoTArray<PreparedLayer, 12> mLayers;
+};
+
+
+template<class ContainerT> void
+ContainerPrepare(ContainerT* aContainer,
+                 LayerManagerComposite* aManager,
+                 const nsIntRect& aClipRect)
+{
+  aContainer->mPrepared = MakeUnique<PreparedData>();
+
   
 
-
-  RefPtr<CompositingRenderTarget> surface;
-
-  Compositor* compositor = aManager->GetCompositor();
-
-  RefPtr<CompositingRenderTarget> previousTarget = compositor->GetCurrentRenderTarget();
-
-  nsIntRect visibleRect = aContainer->GetEffectiveVisibleRegion().GetBounds();
-
-  float opacity = aContainer->GetEffectiveOpacity();
-
-  bool needsSurface = aContainer->UseIntermediateSurface();
-  bool surfaceCopyNeeded;
-  aContainer->DefaultComputeSupportsComponentAlphaChildren(&surfaceCopyNeeded);
-  if (needsSurface) {
-    MOZ_PERFORMANCE_WARNING("gfx", "[%p] Container layer requires intermediate surface\n", aContainer);
-    SurfaceInitMode mode = INIT_MODE_CLEAR;
-    gfx::IntRect surfaceRect = gfx::IntRect(visibleRect.x, visibleRect.y,
-                                            visibleRect.width, visibleRect.height);
-    if (aContainer->GetEffectiveVisibleRegion().GetNumRects() == 1 &&
-        (aContainer->GetContentFlags() & Layer::CONTENT_OPAQUE))
-    {
-      mode = INIT_MODE_NONE;
-    }
-
-    if (surfaceCopyNeeded) {
-      gfx::IntPoint sourcePoint = gfx::IntPoint(visibleRect.x, visibleRect.y);
-
-      gfx::Matrix4x4 transform = aContainer->GetEffectiveTransform();
-      DebugOnly<gfx::Matrix> transform2d;
-      MOZ_ASSERT(transform.Is2D(&transform2d) && !gfx::ThebesMatrix(transform2d).HasNonIntegerTranslation());
-      sourcePoint += gfx::IntPoint(transform._41, transform._42);
-
-      sourcePoint -= compositor->GetCurrentRenderTarget()->GetOrigin();
-
-      surface = compositor->CreateRenderTargetFromSource(surfaceRect, previousTarget, sourcePoint);
-    } else {
-      surface = compositor->CreateRenderTarget(surfaceRect, mode);
-    }
-
-    if (!surface) {
-      return;
-    }
-
-    compositor->SetRenderTarget(surface);
-  } else {
-    surface = previousTarget;
-  }
 
   nsAutoTArray<Layer*, 12> children;
   aContainer->SortChildrenBy3DZOrder(children);
-
-  
-  
-  
-  
-  
-  if (AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController()) {
-    
-    
-    if (apzc->IsOverscrolled() && !aContainer->GetVisibleRegion().IsEmpty()) {
-      gfxRGBA color = aContainer->GetBackgroundColor();
-      
-      
-      
-      if (color.a != 0.0) {
-        EffectChain effectChain(aContainer);
-        effectChain.mPrimaryEffect = new EffectSolidColor(ToColor(color));
-        gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
-        Compositor* compositor = aManager->GetCompositor();
-        compositor->DrawQuad(compositor->ClipRectInLayersCoordinates(clipRect),
-            clipRect, effectChain, opacity, Matrix4x4());
-      }
-    }
-  }
-
-  
-
 
   for (uint32_t i = 0; i < children.Length(); i++) {
     LayerComposite* layerToRender = static_cast<LayerComposite*>(children.ElementAt(i)->ImplData());
@@ -397,7 +343,66 @@ ContainerRender(ContainerT* aContainer,
         restoreVisibleRegion = true;
       }
     }
+    layerToRender->Prepare(clipRect);
+    aContainer->mPrepared->mLayers.AppendElement(PreparedLayer(layerToRender, clipRect, restoreVisibleRegion, savedVisibleRegion));
+  }
 
+  
+
+
+
+  bool surfaceCopyNeeded;
+  
+  aContainer->DefaultComputeSupportsComponentAlphaChildren(&surfaceCopyNeeded);
+  if (aContainer->UseIntermediateSurface()) {
+    MOZ_PERFORMANCE_WARNING("gfx", "[%p] Container layer requires intermediate surface\n", aContainer);
+    if (!surfaceCopyNeeded) {
+      
+      
+      RefPtr<CompositingRenderTarget> surface = CreateTemporaryTarget(aContainer, aManager);
+      RenderIntermediate(aContainer, aManager, aClipRect, surface);
+      aContainer->mPrepared->mTmpTarget = surface;
+    }
+  }
+}
+
+template<class ContainerT> void
+RenderLayers(ContainerT* aContainer,
+	     LayerManagerComposite* aManager,
+	     const nsIntRect& aClipRect)
+{
+  Compositor* compositor = aManager->GetCompositor();
+
+  float opacity = aContainer->GetEffectiveOpacity();
+
+  
+  
+  
+  
+  
+  if (AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController()) {
+    
+    
+    if (apzc->IsOverscrolled() && !aContainer->GetVisibleRegion().IsEmpty()) {
+      gfxRGBA color = aContainer->GetBackgroundColor();
+      
+      
+      
+      if (color.a != 0.0) {
+        EffectChain effectChain(aContainer);
+        effectChain.mPrimaryEffect = new EffectSolidColor(ToColor(color));
+        gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
+        Compositor* compositor = aManager->GetCompositor();
+        compositor->DrawQuad(compositor->ClipRectInLayersCoordinates(clipRect),
+            clipRect, effectChain, opacity, Matrix4x4());
+      }
+    }
+  }
+
+  for (size_t i = 0u; i < aContainer->mPrepared->mLayers.Length(); i++) {
+    PreparedLayer& preparedData = aContainer->mPrepared->mLayers[i];
+    LayerComposite* layerToRender = preparedData.mLayer;
+    nsIntRect clipRect = preparedData.mClipRect;
     if (layerToRender->HasLayerBeenComposited()) {
       
       
@@ -413,9 +418,9 @@ ContainerRender(ContainerT* aContainer,
       layerToRender->RenderLayer(clipRect);
     }
 
-    if (restoreVisibleRegion) {
+    if (preparedData.mRestoreVisibleRegion) {
       
-      layerToRender->SetShadowVisibleRegion(savedVisibleRegion);
+      layerToRender->SetShadowVisibleRegion(preparedData.mSavedVisibleRegion);
     }
 
     if (gfxPrefs::LayersScrollGraph()) {
@@ -432,9 +437,87 @@ ContainerRender(ContainerT* aContainer,
     
     
   }
+}
 
-  if (needsSurface) {
-    
+template<class ContainerT> RefPtr<CompositingRenderTarget>
+CreateTemporaryTarget(ContainerT* aContainer,
+                      LayerManagerComposite* aManager)
+{
+  Compositor* compositor = aManager->GetCompositor();
+  nsIntRect visibleRect = aContainer->GetEffectiveVisibleRegion().GetBounds();
+  SurfaceInitMode mode = INIT_MODE_CLEAR;
+  gfx::IntRect surfaceRect = gfx::IntRect(visibleRect.x, visibleRect.y,
+                                          visibleRect.width, visibleRect.height);
+  if (aContainer->GetEffectiveVisibleRegion().GetNumRects() == 1 &&
+      (aContainer->GetContentFlags() & Layer::CONTENT_OPAQUE))
+  {
+    mode = INIT_MODE_NONE;
+  }
+  return compositor->CreateRenderTarget(surfaceRect, mode);
+}
+
+template<class ContainerT> RefPtr<CompositingRenderTarget>
+CreateTemporaryTargetAndCopyFromBackground(ContainerT* aContainer,
+                                           LayerManagerComposite* aManager)
+{
+  Compositor* compositor = aManager->GetCompositor();
+  nsIntRect visibleRect = aContainer->GetEffectiveVisibleRegion().GetBounds();
+  RefPtr<CompositingRenderTarget> previousTarget = compositor->GetCurrentRenderTarget();
+  gfx::IntRect surfaceRect = gfx::IntRect(visibleRect.x, visibleRect.y,
+                                          visibleRect.width, visibleRect.height);
+
+  gfx::IntPoint sourcePoint = gfx::IntPoint(visibleRect.x, visibleRect.y);
+
+  gfx::Matrix4x4 transform = aContainer->GetEffectiveTransform();
+  DebugOnly<gfx::Matrix> transform2d;
+  MOZ_ASSERT(transform.Is2D(&transform2d) && !gfx::ThebesMatrix(transform2d).HasNonIntegerTranslation());
+  sourcePoint += gfx::IntPoint(transform._41, transform._42);
+
+  sourcePoint -= compositor->GetCurrentRenderTarget()->GetOrigin();
+
+  return compositor->CreateRenderTargetFromSource(surfaceRect, previousTarget, sourcePoint);
+}
+
+template<class ContainerT> void
+RenderIntermediate(ContainerT* aContainer,
+                   LayerManagerComposite* aManager,
+                   const nsIntRect& aClipRect,
+                   RefPtr<CompositingRenderTarget> surface)
+{
+  Compositor* compositor = aManager->GetCompositor();
+  RefPtr<CompositingRenderTarget> previousTarget = compositor->GetCurrentRenderTarget();
+
+  if (!surface) {
+    return;
+  }
+
+  compositor->SetRenderTarget(surface);
+  
+  RenderLayers(aContainer, aManager, aClipRect);
+  
+  compositor->SetRenderTarget(previousTarget);
+}
+
+template<class ContainerT> void
+ContainerRender(ContainerT* aContainer,
+                 LayerManagerComposite* aManager,
+                 const nsIntRect& aClipRect)
+{
+  MOZ_ASSERT(aContainer->mPrepared);
+  if (aContainer->UseIntermediateSurface()) {
+    RefPtr<CompositingRenderTarget> surface;
+
+    if (!aContainer->mPrepared->mTmpTarget) {
+      
+      surface = CreateTemporaryTargetAndCopyFromBackground(aContainer, aManager);
+      RenderIntermediate(aContainer, aManager, aClipRect, surface);
+    } else {
+      surface = aContainer->mPrepared->mTmpTarget;
+    }
+
+    float opacity = aContainer->GetEffectiveOpacity();
+
+    nsIntRect visibleRect = aContainer->GetEffectiveVisibleRegion().GetBounds();
 #ifdef MOZ_DUMP_PAINTING
     if (gfxUtils::sDumpPainting) {
       RefPtr<gfx::DataSourceSurface> surf = surface->Dump(aManager->GetCompositor());
@@ -444,7 +527,6 @@ ContainerRender(ContainerT* aContainer,
     }
 #endif
 
-    compositor->SetRenderTarget(previousTarget);
     EffectChain effectChain(aContainer);
     LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(aContainer->GetMaskLayer(),
                                                             effectChain,
@@ -457,7 +539,10 @@ ContainerRender(ContainerT* aContainer,
     gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
     aManager->GetCompositor()->DrawQuad(rect, clipRect, effectChain, opacity,
                                         aContainer->GetEffectiveTransform());
+  } else {
+    RenderLayers(aContainer, aManager, aClipRect);
   }
+  aContainer->mPrepared = nullptr;
 
   if (aContainer->GetFrameMetrics().IsScrollable()) {
     const FrameMetrics& frame = aContainer->GetFrameMetrics();
@@ -524,6 +609,12 @@ ContainerLayerComposite::RenderLayer(const nsIntRect& aClipRect)
 }
 
 void
+ContainerLayerComposite::Prepare(const nsIntRect& aClipRect)
+{
+  ContainerPrepare(this, mCompositeManager, aClipRect);
+}
+
+void
 ContainerLayerComposite::CleanupResources()
 {
   for (Layer* l = GetFirstChild(); l; l = l->GetNextSibling()) {
@@ -565,6 +656,13 @@ RefLayerComposite::RenderLayer(const nsIntRect& aClipRect)
 {
   ContainerRender(this, mCompositeManager, aClipRect);
 }
+
+void
+RefLayerComposite::Prepare(const nsIntRect& aClipRect)
+{
+  ContainerPrepare(this, mCompositeManager, aClipRect);
+}
+
 
 void
 RefLayerComposite::CleanupResources()

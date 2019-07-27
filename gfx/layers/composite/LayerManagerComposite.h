@@ -324,6 +324,13 @@ public:
 
   virtual Layer* GetLayer() = 0;
 
+  
+
+
+
+
+  virtual void Prepare(const nsIntRect& aClipRect) {}
+
   virtual void RenderLayer(const nsIntRect& aClipRect) = 0;
 
   virtual bool SetCompositableHost(CompositableHost*)
