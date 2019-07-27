@@ -342,6 +342,7 @@ public:
   void OnAudioDecoded(AudioData* aSample);
   void OnVideoDecoded(VideoData* aSample);
   void OnNotDecoded(MediaData::Type aType, RequestSampleCallback::NotDecodedReason aReason);
+  void OnSeekCompleted(nsresult aResult);
 
 private:
   void AcquireMonitorAndInvokeDecodeError();
@@ -914,6 +915,11 @@ protected:
   
   
   bool mDecodeToSeekTarget;
+
+  
+  
+  
+  bool mWaitingForDecoderSeek;
 
   
   

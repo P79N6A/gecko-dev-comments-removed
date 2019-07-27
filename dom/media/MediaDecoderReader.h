@@ -104,10 +104,12 @@ public:
   
   
   
-  virtual nsresult Seek(int64_t aTime,
-                        int64_t aStartTime,
-                        int64_t aEndTime,
-                        int64_t aCurrentTime) = 0;
+  
+  
+  virtual void Seek(int64_t aTime,
+                    int64_t aStartTime,
+                    int64_t aEndTime,
+                    int64_t aCurrentTime) = 0;
 
   
   
@@ -275,6 +277,8 @@ public:
   
   virtual void OnNotDecoded(MediaData::Type aType, NotDecodedReason aReason) = 0;
 
+  virtual void OnSeekCompleted(nsresult aResult) = 0;
+
   
   virtual void BreakCycles() = 0;
 
@@ -298,6 +302,7 @@ public:
   virtual void OnAudioDecoded(AudioData* aSample) MOZ_OVERRIDE;
   virtual void OnVideoDecoded(VideoData* aSample) MOZ_OVERRIDE {}
   virtual void OnNotDecoded(MediaData::Type aType, NotDecodedReason aReason) MOZ_OVERRIDE;
+  virtual void OnSeekCompleted(nsresult aResult) MOZ_OVERRIDE {};
   virtual void BreakCycles() MOZ_OVERRIDE {};
   void Reset();
 
