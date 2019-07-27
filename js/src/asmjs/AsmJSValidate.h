@@ -53,7 +53,7 @@ ValidateAsmJS(ExclusiveContext *cx, AsmJSParser &parser, frontend::ParseNode *st
 
 const size_t AsmJSPageSize = 4096;
 
-#ifdef JS_CODEGEN_X64
+#ifdef JS_CPU_X64
 
 
 
