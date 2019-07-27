@@ -3070,12 +3070,6 @@ this.DOMApplicationRegistry = {
       }
     }
 
-    this.broadcastMessage("Webapps:UpdateState", {
-      app: app,
-      manifest: aManifest,
-      manifestURL: aNewApp.manifestURL
-    });
-
     
     yield ScriptPreloader.preload(aNewApp, aManifest);
 
