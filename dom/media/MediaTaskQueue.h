@@ -10,7 +10,6 @@
 #include <queue>
 #include "mozilla/RefPtr.h"
 #include "mozilla/Monitor.h"
-#include "mozilla/ThreadLocal.h"
 #include "mozilla/unused.h"
 #include "SharedThreadPool.h"
 #include "nsThreadUtils.h"
@@ -31,14 +30,7 @@ typedef MediaPromise<bool, bool, false> ShutdownPromise;
 
 
 class MediaTaskQueue : public AbstractThread {
-  static ThreadLocal<MediaTaskQueue*> sCurrentQueueTLS;
 public:
-  static void InitStatics();
-
-  
-  
-  static MediaTaskQueue* GetCurrentQueue() { return sCurrentQueueTLS.get(); }
-
   explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool, bool aRequireTailDispatch = false);
 
   void Dispatch(TemporaryRef<nsIRunnable> aRunnable,
@@ -48,36 +40,7 @@ public:
     return Dispatch(r.forget(), aFailureHandling);
   }
 
-  
-  
-  
-  
-  TaskDispatcher& TailDispatcher();
-
-  
-  
-  bool RequiresTailDispatch() { return mRequireTailDispatch; }
-
-#ifdef DEBUG
-  static void AssertInTailDispatchIfNeeded()
-  {
-    
-    
-    MediaTaskQueue* currentQueue = MediaTaskQueue::GetCurrentQueue();
-    if (!currentQueue || !currentQueue->RequiresTailDispatch()) {
-      return;
-    }
-
-    
-    
-    
-    
-    MOZ_ASSERT(!currentQueue->mTailDispatcher,
-               "Not allowed to dispatch tasks directly from this task queue - use TailDispatcher()");
-  }
-#else
-  static void AssertInTailDispatchIfNeeded() {}
-#endif
+  TaskDispatcher& TailDispatcher() override;
 
   
   void Dispatch(already_AddRefed<nsIRunnable> aRunnable,
@@ -113,6 +76,17 @@ public:
   
   
   bool IsCurrentThreadIn() override;
+
+  bool InTailDispatch() override
+  {
+    MOZ_ASSERT(IsCurrentThreadIn());
+
+    
+    
+    
+    
+    return !mTailDispatcher;
+  }
 
 protected:
   virtual ~MediaTaskQueue();
@@ -156,8 +130,8 @@ protected:
       MOZ_ASSERT(!mQueue->mTailDispatcher);
       mQueue->mTailDispatcher = this;
 
-      MOZ_ASSERT(sCurrentQueueTLS.get() == nullptr);
-      sCurrentQueueTLS.set(aQueue);
+      MOZ_ASSERT(sCurrentThreadTLS.get() == nullptr);
+      sCurrentThreadTLS.set(aQueue);
 
       MOZ_ASSERT(mQueue->mRunningThread == nullptr);
       mQueue->mRunningThread = NS_GetCurrentThread();
@@ -168,7 +142,7 @@ protected:
       MOZ_ASSERT(mQueue->mRunningThread == NS_GetCurrentThread());
       mQueue->mRunningThread = nullptr;
 
-      sCurrentQueueTLS.set(nullptr);
+      sCurrentThreadTLS.set(nullptr);
       mQueue->mTailDispatcher = nullptr;
     }
 
@@ -188,10 +162,6 @@ protected:
 
   
   bool mIsFlushing;
-
-  
-  
-  bool mRequireTailDispatch;
 
   class Runner : public nsRunnable {
   public:
