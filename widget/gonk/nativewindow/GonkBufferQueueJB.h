@@ -255,8 +255,8 @@ public:
     virtual status_t disconnect(int api);
 
     
-    virtual void dump(String8& result) const;
-    virtual void dump(String8& result, const char* prefix, char* buffer, size_t SIZE) const;
+    virtual void dumpToString(String8& result) const;
+    virtual void dumpToString(String8& result, const char* prefix, char* buffer, size_t SIZE) const;
 
     
     struct BufferItem {
