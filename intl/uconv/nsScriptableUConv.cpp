@@ -99,6 +99,16 @@ nsScriptableUnicodeConverter::FinishWithLength(char **_retval, int32_t* aLength)
 NS_IMETHODIMP
 nsScriptableUnicodeConverter::Finish(nsACString& _retval)
 {
+  
+  
+  
+  
+  
+  
+  if (!mEncoder) {
+    _retval.Truncate();
+    return NS_OK;
+  }
   int32_t len;
   char* str;
   nsresult rv = FinishWithLength(&str, &len);
