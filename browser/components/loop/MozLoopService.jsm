@@ -959,6 +959,9 @@ let MozLoopServiceInternal = {
 
     gFxAOAuthClientPromise = this.promiseFxAOAuthParameters().then(
       parameters => {
+        
+        parameters.keys = true;
+
         try {
           gFxAOAuthClient = new FxAccountsOAuthClient({
             parameters: parameters,
@@ -1031,7 +1034,10 @@ let MozLoopServiceInternal = {
 
 
 
-  _fxAOAuthComplete: function(deferred, result) {
+  _fxAOAuthComplete: function(deferred, result, keys) {
+    if (keys.kBr) {
+      Services.prefs.setCharPref("loop.key.fxa", keys.kBr.k);
+    }
     gFxAOAuthClientPromise = null;
     
     deferred.resolve(result);
@@ -1331,8 +1337,14 @@ this.MozLoopService = {
     return new Promise((resolve, reject) => {
       if (this.userProfile) {
         
+        if (Services.prefs.prefHasUserValue("loop.key.fxa")) {
+          resolve(MozLoopService.getLoopPref("key.fxa"));
+          return;
+        }
+
         
-        reject(new Error("unimplemented"));
+        
+        reject(new Error("FxA re-register not implemented"));
         return;
       }
 

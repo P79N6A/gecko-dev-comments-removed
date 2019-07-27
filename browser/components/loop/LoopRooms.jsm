@@ -204,8 +204,8 @@ let LoopRoomsInternal = {
   promiseEncryptRoomData: Task.async(function* (roomData) {
     
     
-    if (!MozLoopService.getLoopPref("contextInConverations.enabled") ||
-        this.sessionType == LOOP_SESSION_TYPE.FXA) {
+    
+    function getUnencryptedData() {
       var serverRoomData = extend({}, roomData);
       delete serverRoomData.decryptedContext;
 
@@ -218,6 +218,11 @@ let LoopRoomsInternal = {
       };
     }
 
+    
+    if (!MozLoopService.getLoopPref("contextInConverations.enabled")) {
+      return getUnencryptedData();
+    }
+
     var newRoomData = extend({}, roomData);
 
     if (!newRoomData.context) {
@@ -227,7 +232,17 @@ let LoopRoomsInternal = {
     
     let key = yield this.promiseGetOrCreateRoomKey(newRoomData);
 
-    newRoomData.context.wrappedKey = yield this.promiseEncryptedRoomKey(key);
+    try {
+      newRoomData.context.wrappedKey = yield this.promiseEncryptedRoomKey(key);
+    }
+    catch (ex) {
+      
+      
+      if (ex.message == "FxA re-register not implemented") {
+        return getUnencryptedData();
+      }
+      return Promise.reject(ex);
+    }
 
     
     newRoomData.context.value = yield loopCrypto.encryptBytes(key,
@@ -654,8 +669,7 @@ let LoopRoomsInternal = {
       };
 
       
-      if (!Services.prefs.getBoolPref("loop.contextInConverations.enabled") ||
-          this.sessionType == LOOP_SESSION_TYPE.FXA) {
+      if (!Services.prefs.getBoolPref("loop.contextInConverations.enabled")) {
         sendData = {
           roomName: newRoomName
         };
