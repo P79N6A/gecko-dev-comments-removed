@@ -162,7 +162,7 @@ ChannelEventQueue::MaybeFlushQueue()
 
 
 
-class AutoEventEnqueuer
+class MOZ_STACK_CLASS AutoEventEnqueuer
 {
  public:
   explicit AutoEventEnqueuer(ChannelEventQueue *queue) : mEventQueue(queue) {
@@ -172,7 +172,7 @@ class AutoEventEnqueuer
     mEventQueue->EndForcedQueueing();
   }
  private:
-  ChannelEventQueue* mEventQueue;
+  nsRefPtr<ChannelEventQueue> mEventQueue;
 };
 
 }
