@@ -50,6 +50,12 @@ CodeGeneratorARM::generatePrologue()
     
     masm.reserveStack(frameSize());
     masm.checkStackAlignment();
+
+#ifdef JS_TRACE_LOGGING
+    emitTracelogScriptStart();
+    emitTracelogStartEvent(TraceLogger_IonMonkey);
+#endif
+
     return true;
 }
 
