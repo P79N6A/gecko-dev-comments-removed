@@ -160,7 +160,7 @@ public:
   static void ReorderFrames(nsIFrame*            aFirstFrameOnLine,
                             int32_t              aNumFramesOnLine,
                             mozilla::WritingMode aLineWM,
-                            nscoord&             aLineWidth,
+                            nscoord              aLineWidth,
                             nscoord              aStart);
 
   
@@ -399,7 +399,7 @@ private:
                               nscoord&               aStart,
                               nsContinuationStates*  aContinuationStates,
                               mozilla::WritingMode   aContainerWM,
-                              nscoord&               aContainerWidth);
+                              nscoord                aContainerWidth);
 
   
 
@@ -452,8 +452,8 @@ private:
   static void RepositionInlineFrames(BidiLineData* aBld,
                                      nsIFrame* aFirstChild,
                                      mozilla::WritingMode aLineWM,
-                                     nscoord& aLineWidth,
-                                     nscoord& aStart);
+                                     nscoord aLineWidth,
+                                     nscoord aStart);
   
   
 
