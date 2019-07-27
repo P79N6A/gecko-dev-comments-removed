@@ -58,10 +58,15 @@ public class AndroidFxAccount {
   public static final String ACCOUNT_KEY_PROFILE = "profile";
   public static final String ACCOUNT_KEY_IDP_SERVER = "idpServerURI";
 
-  
-  public static final String ACCOUNT_KEY_AUDIENCE = "audience";                 
   public static final String ACCOUNT_KEY_TOKEN_SERVER = "tokenServerURI";       
   public static final String ACCOUNT_KEY_DESCRIPTOR = "descriptor";
+
+  
+  
+  
+  
+  
+  public static final String ACCOUNT_KEY_READING_LIST_AUTHORITY_INITIALIZED = "readingListAuthorityInitialized";
 
   public static final int CURRENT_BUNDLE_VERSION = 2;
   public static final String BUNDLE_KEY_BUNDLE_VERSION = "version";
@@ -401,6 +406,10 @@ public class AndroidFxAccount {
     userdata.putString(ACCOUNT_KEY_IDP_SERVER, idpServerURI);
     userdata.putString(ACCOUNT_KEY_TOKEN_SERVER, tokenServerURI);
     userdata.putString(ACCOUNT_KEY_PROFILE, profile);
+    if (DEFAULT_AUTHORITIES_TO_SYNC_AUTOMATICALLY_MAP.containsKey(BrowserContract.READING_LIST_AUTHORITY)) {
+      
+      userdata.putString(ACCOUNT_KEY_READING_LIST_AUTHORITY_INITIALIZED, "1");
+    }
 
     if (bundle == null) {
       bundle = new ExtendedJSONObject();
