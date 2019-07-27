@@ -62,6 +62,10 @@ Animation::SetTimeline(AnimationTimeline* aTimeline)
     return;
   }
 
+  if (mTimeline) {
+    mTimeline->RemoveAnimation(*this);
+  }
+
   mTimeline = aTimeline;
 
   
@@ -788,6 +792,35 @@ Animation::UpdateTiming(SeekFlag aSeekFlag)
   
   UpdateFinishedState(aSeekFlag);
   UpdateEffect();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mTimeline) {
+    if (IsRelevant()) {
+      mTimeline->AddAnimation(*this);
+    } else {
+      mTimeline->RemoveAnimation(*this);
+    }
+  }
 }
 
 void
