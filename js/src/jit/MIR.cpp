@@ -1225,7 +1225,7 @@ MPhi::foldsTernary()
     
     
     
-    if (IsNumberType(testArg->type()) && c->vp()->toNumber() == 0) {
+    if (testArg->type() == MIRType_Int32 && c->vp()->toNumber() == 0) {
         
         if (trueDef == c && !c->block()->dominates(block()))
             c->block()->moveBefore(pred->lastIns(), c);
