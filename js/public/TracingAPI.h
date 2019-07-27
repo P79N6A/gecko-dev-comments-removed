@@ -80,11 +80,6 @@ GCTraceKindToAscii(JSGCTraceKind kind);
 typedef void
 (* JSTraceCallback)(JS::CallbackTracer* trc, void** thingp, JSGCTraceKind kind);
 
-
-
-typedef void
-(* JSTraceNamePrinter)(JSTracer* trc, char* buf, size_t bufsize);
-
 enum WeakMapTraceKind {
     DoNotTraceWeakMaps = 0,
     TraceWeakMapValues = 1,
@@ -95,78 +90,10 @@ class JS_PUBLIC_API(JSTracer)
 {
   public:
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    void setTracingDetails(JSTraceNamePrinter printer, const void* arg, size_t index) {
-        debugPrinter_ = printer;
-        debugPrintArg_ = arg;
-        debugPrintIndex_ = index;
-    }
-
-    void setTracingIndex(const char* name, size_t index) {
-        setTracingDetails(nullptr, (void*)name, index);
-    }
-
-    void setTracingName(const char* name) {
-        setTracingDetails(nullptr, (void*)name, InvalidIndex);
-    }
-
-    
-    void clearTracingDetails() {
-        debugPrinter_ = nullptr;
-        debugPrintArg_ = nullptr;
-    }
-
-    const static size_t InvalidIndex = size_t(-1);
-
-    
-    bool hasTracingDetails() const;
-
-    
-    
-    const char* tracingName(const char* fallback) const;
-
-    
-    
-    const char* getTracingEdgeName(char* buffer, size_t bufferSize);
-
-    
-    JSTraceNamePrinter debugPrinter() const;
-    const void* debugPrintArg() const;
-    size_t debugPrintIndex() const;
-
-    
     JSRuntime* runtime() const { return runtime_; }
 
     
     WeakMapTraceKind eagerlyTraceWeakMaps() const { return eagerlyTraceWeakMaps_; }
-
-#ifdef JS_GC_ZEAL
-    
-    
-    
-    
-    
-    
-    void setTracingLocation(void* location);
-    void unsetTracingLocation();
-    void** tracingLocation(void** thingp);
-#else
-    void setTracingLocation(void* location) {}
-    void unsetTracingLocation() {}
-    void** tracingLocation(void** thingp) { return nullptr; }
-#endif
 
     
     enum TracerKindTag {
@@ -184,23 +111,24 @@ class JS_PUBLIC_API(JSTracer)
   private:
     JSRuntime*          runtime_;
     TracerKindTag       tag;
-    JSTraceNamePrinter  debugPrinter_;
-    const void*         debugPrintArg_;
-    size_t              debugPrintIndex_;
     WeakMapTraceKind    eagerlyTraceWeakMaps_;
-#ifdef JS_GC_ZEAL
-    void*               realLocation_;
-#endif
 };
 
 namespace JS {
+
+class AutoTracingName;
+class AutoTracingIndex;
+class AutoTracingCallback;
+class AutoOriginalTraceLocation;
 
 class JS_PUBLIC_API(CallbackTracer) : public JSTracer
 {
   public:
     CallbackTracer(JSRuntime* rt, JSTraceCallback traceCallback,
                    WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
-      : JSTracer(rt, JSTracer::CallbackTracer, weakTraceKind), callback(traceCallback)
+      : JSTracer(rt, JSTracer::CallbackTracer, weakTraceKind), callback(traceCallback),
+        contextName_(nullptr), contextIndex_(InvalidIndex), contextFunctor_(nullptr),
+        contextRealLocation_(nullptr)
     {}
 
     
@@ -216,10 +144,173 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
         callback(this, thing, kind);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    const char* contextName() const { MOZ_ASSERT(contextName_); return contextName_; }
+
+    
+    
+    
+    const static size_t InvalidIndex = size_t(-1);
+    size_t contextIndex() const { return contextIndex_; }
+
+    
+    
+    
+    
+    
+    const char* getTracingEdgeName(char* buffer, size_t bufferSize);
+
+    
+    
+    
+    
+    
+    class ContextFunctor {
+      public:
+        virtual void operator()(CallbackTracer* trc, char* buf, size_t bufsize) = 0;
+    };
+
+    
+    
+    
+    
+    void*const* tracingLocation(void** thingp) {
+        return contextRealLocation_ ? contextRealLocation_ : thingp;
+    }
+
   private:
     
     
     JSTraceCallback callback;
+
+    friend class AutoTracingName;
+    const char* contextName_;
+
+    friend class AutoTracingIndex;
+    size_t contextIndex_;
+
+    friend class AutoTracingDetails;
+    ContextFunctor* contextFunctor_;
+
+    friend class AutoOriginalTraceLocation;
+    void*const* contextRealLocation_;
+};
+
+
+class AutoTracingName
+{
+    CallbackTracer* trc_;
+    const char *prior_;
+
+  public:
+    AutoTracingName(CallbackTracer* trc, const char* name) : trc_(trc), prior_(trc->contextName_) {
+        MOZ_ASSERT(name);
+        trc->contextName_ = name;
+    }
+    ~AutoTracingName() {
+        MOZ_ASSERT(trc_->contextName_);
+        trc_->contextName_ = prior_;
+    }
+};
+
+
+class AutoTracingIndex
+{
+    CallbackTracer* trc_;
+
+  public:
+    explicit AutoTracingIndex(JSTracer* trc, size_t initial = 0) : trc_(nullptr) {
+        if (trc->isCallbackTracer()) {
+            trc_ = trc->asCallbackTracer();
+            MOZ_ASSERT(trc_->contextIndex_ == CallbackTracer::InvalidIndex);
+            trc_->contextIndex_ = initial;
+        }
+    }
+    ~AutoTracingIndex() {
+        if (trc_) {
+            MOZ_ASSERT(trc_->contextIndex_ != CallbackTracer::InvalidIndex);
+            trc_->contextIndex_ = CallbackTracer::InvalidIndex;
+        }
+    }
+
+    void operator++() {
+        if (trc_) {
+            MOZ_ASSERT(trc_->contextIndex_ != CallbackTracer::InvalidIndex);
+            ++trc_->contextIndex_;
+        }
+    }
+};
+
+
+
+class AutoTracingDetails
+{
+    CallbackTracer* trc_;
+
+  public:
+    AutoTracingDetails(JSTracer* trc, CallbackTracer::ContextFunctor& func) : trc_(nullptr) {
+        if (trc->isCallbackTracer()) {
+            trc_ = trc->asCallbackTracer();
+            MOZ_ASSERT(trc_->contextFunctor_ == nullptr);
+            trc_->contextFunctor_ = &func;
+        }
+    }
+    ~AutoTracingDetails() {
+        if (trc_) {
+            MOZ_ASSERT(trc_->contextFunctor_);
+            trc_->contextFunctor_ = nullptr;
+        }
+    }
+};
+
+
+
+
+
+
+class AutoOriginalTraceLocation
+{
+#ifdef JS_GC_ZEAL
+    CallbackTracer *trc_;
+
+  public:
+    template <typename T>
+    AutoOriginalTraceLocation(JSTracer* trc, T*const* realLocation) : trc_(nullptr) {
+        if (trc->isCallbackTracer() && trc->asCallbackTracer()->contextRealLocation_ == nullptr) {
+            trc_ = trc->asCallbackTracer();
+            trc_->contextRealLocation_ = reinterpret_cast<void*const*>(realLocation);
+        }
+    }
+    ~AutoOriginalTraceLocation() {
+        if (trc_) {
+            MOZ_ASSERT(trc_->contextRealLocation_);
+            trc_->contextRealLocation_ = nullptr;
+        }
+    }
+#else
+  public:
+    template <typename T>
+    AutoOriginalTraceLocation(JSTracer* trc, T*const* realLocation) {}
+#endif
 };
 
 } 
@@ -284,7 +375,7 @@ inline void
 JS_CallHashSetObjectTracer(JSTracer* trc, HashSetEnum& e, JSObject* const& key, const char* name)
 {
     JSObject* updated = key;
-    trc->setTracingLocation(reinterpret_cast<void*>(&const_cast<JSObject*&>(key)));
+    JS::AutoOriginalTraceLocation reloc(trc, &key);
     JS_CallUnbarrieredObjectTracer(trc, &updated, name);
     if (updated != key)
         e.rekeyFront(updated);
@@ -314,4 +405,4 @@ extern JS_PUBLIC_API(void)
 JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc,
                      void* thing, JSGCTraceKind kind, bool includeDetails);
 
-#endif 
+#endif

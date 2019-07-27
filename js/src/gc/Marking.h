@@ -77,14 +77,6 @@ IsNullTaggedPointer(void* p)
 
 
 
-
-
-
-
-
-void
-MarkKind(JSTracer* trc, void** thingp, JSGCTraceKind kind);
-
 void
 TraceGenericPointerRoot(JSTracer* trc, Cell** thingp, const char* name);
 
@@ -167,7 +159,7 @@ class HashKeyRef : public BufferableRef
         typename Map::Ptr p = map->lookup(key);
         if (!p)
             return;
-        trc->setTracingLocation(&*p);
+        JS::AutoOriginalTraceLocation reloc(trc, (void**)&*p);
         TraceManuallyBarrieredEdge(trc, &key, "HashKeyRef");
         map->rekeyIfMoved(prior, key);
     }
