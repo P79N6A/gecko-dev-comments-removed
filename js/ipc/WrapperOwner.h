@@ -12,7 +12,7 @@
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 #include "js/Class.h"
-#include "jsproxy.h"
+#include "js/Proxy.h"
 
 namespace mozilla {
 namespace jsipc {

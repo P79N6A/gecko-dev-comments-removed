@@ -4,8 +4,7 @@
 
 
 
-#include "jsproxy.h"
-
+#include "js/Proxy.h"
 #include "vm/ProxyObject.h"
 
 #include "jscntxtinlines.h"

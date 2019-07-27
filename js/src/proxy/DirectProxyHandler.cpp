@@ -4,9 +4,9 @@
 
 
 
-#include "jsproxy.h"
 #include "jswrapper.h" 
 
+#include "js/Proxy.h"
 #include "vm/ProxyObject.h"
 
 #include "jsobjinlines.h"
