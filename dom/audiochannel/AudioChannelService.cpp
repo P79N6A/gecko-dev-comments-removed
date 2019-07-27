@@ -58,6 +58,20 @@ AudioChannelService::GetAudioChannelService()
     return AudioChannelServiceChild::GetAudioChannelService();
   }
 
+  return gAudioChannelService;
+
+}
+
+
+AudioChannelService*
+AudioChannelService::GetOrCreateAudioChannelService()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    return AudioChannelServiceChild::GetOrCreateAudioChannelService();
+  }
+
   
   if (gAudioChannelService) {
     return gAudioChannelService;
@@ -65,7 +79,7 @@ AudioChannelService::GetAudioChannelService()
 
   
   nsRefPtr<AudioChannelService> service = new AudioChannelService();
-  NS_ENSURE_TRUE(service, nullptr);
+  MOZ_ASSERT(service);
 
   gAudioChannelService = service;
   return gAudioChannelService;

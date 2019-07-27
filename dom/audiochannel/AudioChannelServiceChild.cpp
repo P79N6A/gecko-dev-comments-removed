@@ -32,6 +32,16 @@ AudioChannelServiceChild::GetAudioChannelService()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  return gAudioChannelServiceChild;
+
+}
+
+
+AudioChannelService*
+AudioChannelServiceChild::GetOrCreateAudioChannelService()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
   
   if (gAudioChannelServiceChild) {
     return gAudioChannelServiceChild;
@@ -39,7 +49,7 @@ AudioChannelServiceChild::GetAudioChannelService()
 
   
   nsRefPtr<AudioChannelServiceChild> service = new AudioChannelServiceChild();
-  NS_ENSURE_TRUE(service, nullptr);
+  MOZ_ASSERT(service);
 
   gAudioChannelServiceChild = service;
   return gAudioChannelServiceChild;

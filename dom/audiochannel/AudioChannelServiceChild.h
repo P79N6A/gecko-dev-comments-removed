@@ -24,9 +24,14 @@ public:
 
 
 
-
-
   static AudioChannelService* GetAudioChannelService();
+
+  
+
+
+
+
+  static AudioChannelService* GetOrCreateAudioChannelService();
 
   static void Shutdown();
 
