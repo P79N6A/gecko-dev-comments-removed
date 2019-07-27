@@ -1474,13 +1474,6 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     SetInDocument();
 
     
-    
-    if (GetCustomElementData() && aDocument->GetDocShell()) {
-      
-      aDocument->EnqueueLifecycleCallback(nsIDocument::eAttached, this);
-    }
-
-    
     UnsetFlags(NODE_FORCE_XBL_BINDINGS |
                
                NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES |
@@ -1500,6 +1493,16 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
     
     SetSubtreeRootPointer(aParent->SubtreeRoot());
+  }
+
+  nsIDocument* composedDoc = GetComposedDoc();
+  if (composedDoc) {
+    
+    
+    if (GetCustomElementData() && composedDoc->GetDocShell()) {
+      
+      composedDoc->EnqueueLifecycleCallback(nsIDocument::eAttached, this);
+    }
   }
 
   

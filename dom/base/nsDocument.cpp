@@ -458,7 +458,7 @@ CustomElementCallback::Call()
 
       
       
-      nsIDocument* document = mThisObject->GetUncomposedDoc();
+      nsIDocument* document = mThisObject->GetComposedDoc();
       if (document && document->GetDocShell()) {
         document->EnqueueLifecycleCallback(nsIDocument::eAttached, mThisObject);
       }
