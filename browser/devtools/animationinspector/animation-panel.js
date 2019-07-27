@@ -254,7 +254,7 @@ PlayerWidget.prototype = {
       }
     });
 
-    let max = state.duration; 
+    let max = state.duration;
     if (state.iterationCount) {
       
       max = state.iterationCount * state.duration;
@@ -285,10 +285,11 @@ PlayerWidget.prototype = {
         "class": "time-display"
       }
     });
-    this.timeDisplayEl.textContent = L10N.getFormatStr("player.timeLabel",
-      this.getFormattedTime(0));
 
     this.containerEl.appendChild(this.el);
+
+    
+    this.displayTime(state.currentTime);
   },
 
   
