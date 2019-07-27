@@ -703,6 +703,9 @@ pref("plugin.state.npplayerplugin", 2);
 #endif
 #ifdef XP_MACOSX
 pref("plugin.state.playerplugin", 2);
+pref("plugin.state.playerplugin.dtv", 2);
+pref("plugin.state.playerplugin.ciscodrm", 2);
+pref("plugin.state.playerplugin.charter", 2);
 #endif
 
 
