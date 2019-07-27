@@ -41,7 +41,7 @@ public:
     
     
     
-    void CacheColorStops(mozilla::gfx::DrawTarget *aDT);
+    void CacheColorStops(const mozilla::gfx::DrawTarget *aDT);
 
     void SetMatrix(const gfxMatrix& matrix);
     gfxMatrix GetMatrix() const;
