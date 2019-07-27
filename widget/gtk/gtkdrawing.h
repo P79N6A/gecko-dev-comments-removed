@@ -266,6 +266,19 @@ gint moz_gtk_get_widget_border(GtkThemeWidgetType widget, gint* left, gint* top,
 
 
 
+
+gint
+moz_gtk_get_tab_border(gint* left, gint* top, gint* right, gint* bottom, 
+                       GtkTextDirection direction, GtkTabFlags flags);
+
+
+
+
+
+
+
+
+
 gint
 moz_gtk_checkbox_get_metrics(gint* indicator_size, gint* indicator_spacing);
 
