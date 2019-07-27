@@ -48,6 +48,8 @@ const DONTFILL =        1 << 13;
 
 const DONTSETVALID =    1 << 14;
 
+const NOTIFYBEFOREREAD = 1 << 15;
+
 var log_c2 = true;
 function LOG_C2(o, m)
 {
@@ -237,6 +239,8 @@ OpenCallback.prototype =
       do_check_eq(entry.getMetaDataElement("meto"), this.workingMetadata);
       if (this.behavior & THROWAVAIL)
         this.throwAndNotify(entry);
+      if (this.behavior & NOTIFYBEFOREREAD)
+        this.goon(entry, true);
 
       var wrapper = Cc["@mozilla.org/scriptableinputstream;1"].
                     createInstance(Ci.nsIScriptableInputStream);
