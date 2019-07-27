@@ -355,6 +355,7 @@ gfxProxyFontEntry::LoadNext(gfxMixedFontFamily *aFamily,
                      uint32_t(mFontSet->mGeneration)));
                 fe->mFeatureSettings.AppendElements(mFeatureSettings);
                 fe->mLanguageOverride = mLanguageOverride;
+                fe->mFamilyName = mFamilyName;
                 
                 
                 
@@ -528,6 +529,7 @@ gfxProxyFontEntry::LoadFont(gfxMixedFontFamily *aFamily,
         
         fe->mFeatureSettings.AppendElements(mFeatureSettings);
         fe->mLanguageOverride = mLanguageOverride;
+        fe->mFamilyName = mFamilyName;
         StoreUserFontData(fe, mFontSet->GetPrivateBrowsing(), originalFullName,
                           &metadata, metaOrigLen);
 #ifdef PR_LOGGING
@@ -642,6 +644,7 @@ gfxUserFontSet::AddFontFace(const nsAString& aFamilyName,
                               aFeatureSettings,
                               aLanguageOverride,
                               aUnicodeRanges);
+    proxyEntry->mFamilyName = aFamilyName;
     family->AddFontEntry(proxyEntry);
 #ifdef PR_LOGGING
     if (LOG_ENABLED()) {
