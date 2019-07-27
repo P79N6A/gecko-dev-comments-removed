@@ -18,7 +18,6 @@
 #include "mozIGeckoMediaPluginService.h"
 #include "nsContentCID.h"
 #include "nsServiceManagerUtils.h"
-#include "mozilla/Base64.h"
 #include "nsISimpleEnumerator.h"
 
 namespace mozilla {
@@ -106,17 +105,9 @@ OpenStorageFile(const nsCString& aRecordName,
     return rv;
   }
 
-  nsAutoCString recordNameBase64;
-  rv = Base64Encode(aRecordName, recordNameBase64);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  
-  
-  recordNameBase64.ReplaceChar('/', '-');
-
-  f->AppendNative(recordNameBase64);
+  nsAutoString recordNameHash;
+  recordNameHash.AppendInt(HashString(aRecordName.get()));
+  f->Append(recordNameHash);
 
   auto mode = PR_RDWR | PR_CREATE_FILE;
   if (aMode == Truncate) {
@@ -162,24 +153,100 @@ public:
     return mFiles.Contains(aRecordName);
   }
 
+  GMPErr ReadRecordMetadata(PRFileDesc* aFd,
+                            int32_t& aOutFileLength,
+                            int32_t& aOutRecordLength,
+                            nsACString& aOutRecordName)
+  {
+    int32_t fileLength = PR_Seek(aFd, 0, PR_SEEK_END);
+    PR_Seek(aFd, 0, PR_SEEK_SET);
+
+    if (fileLength > GMP_MAX_RECORD_SIZE) {
+      
+      return GMPQuotaExceededErr;
+    }
+    aOutFileLength = fileLength;
+    aOutRecordLength = 0;
+
+    
+    
+    
+    
+
+    size_t recordNameLength = 0;
+    if (fileLength == 0 || sizeof(recordNameLength) >= (size_t)fileLength) {
+      
+      
+      
+      return GMPNoErr;
+    }
+
+    int32_t bytesRead = PR_Read(aFd, &recordNameLength, sizeof(recordNameLength));
+    if (sizeof(recordNameLength) != bytesRead ||
+        recordNameLength > fileLength - sizeof(recordNameLength)) {
+      
+      return GMPNoErr;
+    }
+
+    nsCString recordName;
+    recordName.SetLength(recordNameLength);
+    bytesRead = PR_Read(aFd, recordName.BeginWriting(), recordNameLength);
+    if (bytesRead != (int32_t)recordNameLength) {
+      
+      return GMPGenericErr;
+    }
+
+    MOZ_ASSERT(fileLength > 0 && (size_t)fileLength >= sizeof(recordNameLength) + recordNameLength);
+    int32_t recordLength = fileLength - (sizeof(recordNameLength) + recordNameLength);
+
+    aOutRecordLength = recordLength;
+    aOutRecordName = recordName;
+
+    return GMPNoErr;
+  }
+
   virtual GMPErr Read(const nsCString& aRecordName,
                       nsTArray<uint8_t>& aOutBytes) MOZ_OVERRIDE
   {
+    
+    
+    
+    aOutBytes.SetLength(0);
+
     PRFileDesc* fd = mFiles.Get(aRecordName);
     if (!fd) {
       return GMPGenericErr;
     }
 
-    int32_t len = PR_Seek(fd, 0, PR_SEEK_END);
-    PR_Seek(fd, 0, PR_SEEK_SET);
-
-    if (len > GMP_MAX_RECORD_SIZE) {
-      
-      return GMPQuotaExceededErr;
+    int32_t fileLength = 0;
+    int32_t recordLength = 0;
+    nsCString recordName;
+    GMPErr err = ReadRecordMetadata(fd,
+                                    fileLength,
+                                    recordLength,
+                                    recordName);
+    if (NS_WARN_IF(GMP_FAILED(err))) {
+      return err;
     }
-    aOutBytes.SetLength(len);
-    auto bytesRead = PR_Read(fd, aOutBytes.Elements(), len);
-    return (bytesRead == len) ? GMPNoErr : GMPGenericErr;
+
+    if (recordLength == 0) {
+      
+      
+      return GMPNoErr;
+    }
+
+    if (!aRecordName.Equals(recordName)) {
+      NS_WARNING("Hash collision in GMPStorage");
+      return GMPGenericErr;
+    }
+
+    
+    
+    MOZ_ASSERT(PR_Available(fd) == recordLength);
+
+    aOutBytes.SetLength(recordLength);
+    int32_t bytesRead = PR_Read(fd, aOutBytes.Elements(), recordLength);
+    return (bytesRead == recordLength) ? GMPNoErr : GMPGenericErr;
   }
 
   virtual GMPErr Write(const nsCString& aRecordName,
@@ -199,7 +266,22 @@ public:
     }
     mFiles.Put(aRecordName, fd);
 
-    int32_t bytesWritten = PR_Write(fd, aBytes.Elements(), aBytes.Length());
+    
+    
+    int32_t bytesWritten = 0;
+    if (aBytes.Length() > 0) {
+      size_t recordNameLength = aRecordName.Length();
+      bytesWritten = PR_Write(fd, &recordNameLength, sizeof(recordNameLength));
+      if (NS_WARN_IF(bytesWritten != sizeof(recordNameLength))) {
+        return GMPGenericErr;
+      }
+      bytesWritten = PR_Write(fd, aRecordName.get(), recordNameLength);
+      if (NS_WARN_IF(bytesWritten != (int32_t)recordNameLength)) {
+        return GMPGenericErr;
+      }
+    }
+
+    bytesWritten = PR_Write(fd, aBytes.Elements(), aBytes.Length());
     return (bytesWritten == (int32_t)aBytes.Length()) ? GMPNoErr : GMPGenericErr;
   }
 
@@ -235,13 +317,31 @@ public:
         continue;
       }
 
+      PRFileDesc* fd = nullptr;
+      if (NS_FAILED(dirEntry->OpenNSPRFileDesc(PR_RDONLY, 0, &fd))) {
+        continue;
+      }
+      int32_t fileLength = 0;
+      int32_t recordLength = 0;
+      nsCString recordName;
+      GMPErr err = ReadRecordMetadata(fd,
+                                      fileLength,
+                                      recordLength,
+                                      recordName);
+      PR_Close(fd);
+      if (NS_WARN_IF(GMP_FAILED(err))) {
+        return err;
+      }
+
+      if (recordName.IsEmpty() || recordLength == 0) {
+        continue;
+      }
+
       
       
-      
-      leafName.ReplaceChar('-', '/');
-      nsAutoCString recordName;
-      rv = Base64Decode(leafName, recordName);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
+      nsAutoCString recordNameHash;
+      recordNameHash.AppendInt(HashString(recordName.get()));
+      if (!recordNameHash.Equals(leafName)) {
         continue;
       }
 

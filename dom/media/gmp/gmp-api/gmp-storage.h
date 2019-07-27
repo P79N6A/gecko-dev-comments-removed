@@ -21,10 +21,10 @@
 #include <stdint.h>
 
 
-#define GMP_MAX_RECORD_SIZE (1024 * 1024 * 1024)
+#define GMP_MAX_RECORD_SIZE (10 * 1024 * 1024)
 
 
-#define GMP_MAX_RECORD_NAME_SIZE 200
+#define GMP_MAX_RECORD_NAME_SIZE 2000
 
 
 
