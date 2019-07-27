@@ -208,7 +208,11 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, in
 
   
   
-  decoder->GetMaxLength(inText, inTextLen, outUnicodeLen);   
+  rv = decoder->GetMaxLength(inText, inTextLen, outUnicodeLen);   
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
   if ( *outUnicodeLen ) {
     *outUnicode = reinterpret_cast<char16_t*>(moz_xmalloc((*outUnicodeLen + 1) * sizeof(char16_t)));
     if ( *outUnicode ) {

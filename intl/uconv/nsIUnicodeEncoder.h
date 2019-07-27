@@ -51,41 +51,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIUnicharEncoder, NS_IUNICHARENCODER_IID)
 
 
 
-
-
-
-
-
-
-#define ENCODER_BUFFER_ALLOC_IF_NEEDED(p,e,s,l,sb,sbl,al) \
-  PR_BEGIN_MACRO                                          \
-    if (e                                                 \
-        && NS_SUCCEEDED((e)->GetMaxLength((s), (l), &(al)))\
-        && ((al) > (int32_t)(sbl))                        \
-        && (nullptr!=((p)=(char*)moz_xmalloc((al)+1)))    \
-        ) {                                               \
-    }                                                     \
-    else {                                                \
-      (p) = (char*)(sb);                                  \
-      (al) = (sbl);                                       \
-    }                                                     \
-  PR_END_MACRO 
-
-
-
-
-#define ENCODER_BUFFER_FREE_IF_NEEDED(p,sb) \
-  PR_BEGIN_MACRO                            \
-    if ((p) != (char*)(sb))                 \
-      free(p);                              \
-  PR_END_MACRO 
-
-
-
-
-
-
-
 class nsIUnicodeEncoder : public nsISupports
 {
 public:
@@ -158,8 +123,10 @@ public:
 
 
 
-  NS_IMETHOD GetMaxLength(const char16_t * aSrc, int32_t aSrcLength, 
-      int32_t * aDestLength) = 0;
+
+  MOZ_WARN_UNUSED_RESULT NS_IMETHOD GetMaxLength(const char16_t * aSrc,
+                                                 int32_t aSrcLength,
+                                                 int32_t * aDestLength) = 0;
 
   
 

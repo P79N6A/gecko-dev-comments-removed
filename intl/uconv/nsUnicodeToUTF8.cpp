@@ -6,29 +6,40 @@
 
 
 #include "nsUnicodeToUTF8.h"
+#include "mozilla/CheckedInt.h"
 
 NS_IMPL_ISUPPORTS(nsUnicodeToUTF8, nsIUnicodeEncoder)
 
 
 
 
-NS_IMETHODIMP nsUnicodeToUTF8::GetMaxLength(const char16_t * aSrc, 
-                                              int32_t aSrcLength,
-                                              int32_t * aDestLength)
+NS_IMETHODIMP nsUnicodeToUTF8::GetMaxLength(const char16_t* aSrc,
+                                            int32_t aSrcLength,
+                                            int32_t* aDestLength)
 {
+  MOZ_ASSERT(aDestLength);
+
   
   
   
   
   
-  *aDestLength = 3*aSrcLength + 3;
+  mozilla::CheckedInt32 length = aSrcLength;
+  length *= 3;
+  length += 3;
+
+  if (!length.isValid()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *aDestLength = length.value();
   return NS_OK;
 }
 
-NS_IMETHODIMP nsUnicodeToUTF8::Convert(const char16_t * aSrc, 
-                                int32_t * aSrcLength, 
-                                char * aDest, 
-                                int32_t * aDestLength)
+NS_IMETHODIMP nsUnicodeToUTF8::Convert(const char16_t * aSrc,
+                                       int32_t * aSrcLength,
+                                       char * aDest,
+                                       int32_t * aDestLength)
 {
   const char16_t * src = aSrc;
   const char16_t * srcEnd = aSrc + *aSrcLength;
