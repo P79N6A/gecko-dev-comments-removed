@@ -453,6 +453,25 @@ private:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   AsyncPanZoomController* UpdatePanZoomControllerTree(TreeBuildingState& aState,
                                                       const LayerMetricsWrapper& aLayer,
                                                       uint64_t aLayersId,

@@ -57,8 +57,22 @@ struct APZCTreeManager::TreeBuildingState {
   const APZPaintLogHelper mPaintLogger;
 
   
+
+  
+  
+  
   nsTArray< nsRefPtr<AsyncPanZoomController> > mApzcsToDestroy;
+
+  
+  
+  
   std::map<ScrollableLayerGuid, AsyncPanZoomController*> mApzcMap;
+
+  
+  
+  
+  
+  
   nsTArray<EventRegions> mEventRegions;
 };
 
@@ -194,6 +208,8 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
     state.mApzcsToDestroy[i]->Destroy();
   }
 }
+
+
 
 static nsIntRegion
 ComputeTouchSensitiveRegion(GeckoContentController* aController,
@@ -339,6 +355,10 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
     if (!gfxPrefs::LayoutEventRegionsEnabled()) {
       unobscured = ComputeTouchSensitiveRegion(state->mController, aMetrics, aObscured);
     }
+    
+    
+    
+    
     apzc->SetLayerHitTestData(EventRegions(unobscured), aAncestorTransform);
     APZCTM_LOG("Setting region %s as visible region for APZC %p\n",
         Stringify(unobscured).c_str(), apzc);
@@ -385,6 +405,7 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
       }
     }
 
+    
     insertResult.first->second = apzc;
   } else {
     
@@ -468,6 +489,12 @@ APZCTreeManager::UpdatePanZoomControllerTree(TreeBuildingState& aState,
   
   AsyncPanZoomController* next = aNextSibling;
   if (apzc) {
+    
+    
+    
+    
+    
+    
     
     
     aParent = apzc;
