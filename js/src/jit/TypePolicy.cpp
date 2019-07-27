@@ -1050,11 +1050,9 @@ namespace {
 
 
 
-static TypePolicy *
-thisTypePolicy()
-{
-    return nullptr;
-}
+
+inline TypePolicy *
+thisTypePolicy() MOZ_DELETE;
 
 static MIRType
 thisTypeSpecialization()
@@ -1077,12 +1075,11 @@ MGetElementCache::thisTypePolicy()
 
 
 
-
 #define DEFINE_MIR_TYPEPOLICY_MEMBERS_(op)      \
     TypePolicy *                                \
     js::jit::M##op::typePolicy()                \
     {                                           \
-        return thisTypePolicy();                \
+        return M##op::thisTypePolicy();         \
     }                                           \
                                                 \
     MIRType                                     \
