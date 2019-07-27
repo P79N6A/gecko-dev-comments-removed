@@ -29,6 +29,8 @@ public:
 
     
     nsAndroidProtocolHandler() {}
+
+private:
     ~nsAndroidProtocolHandler() {}
 };
 

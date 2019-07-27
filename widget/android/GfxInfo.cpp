@@ -115,6 +115,10 @@ GfxInfo::GfxInfo()
 {
 }
 
+GfxInfo::~GfxInfo()
+{
+}
+
 
 
 nsresult
