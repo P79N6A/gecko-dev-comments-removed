@@ -185,8 +185,9 @@ class AndroidEclipseBackend(CommonBackend):
         
         
         
-        if project.libs:
-            manifest.add_pattern_copy(mozpath.join(srcdir, project.libs), '**', 'libs')
+        
+        for src, dst in project.libs:
+            manifest.add_copy(mozpath.join(srcdir, src), dst)
 
         return manifest
 
