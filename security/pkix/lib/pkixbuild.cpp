@@ -327,14 +327,6 @@ BuildCertChain(TrustDomain& trustDomain, Input certDER,
     return rv;
   }
 
-  
-  
-  
-  rv = trustDomain.CheckPublicKey(cert.GetSubjectPublicKeyInfo());
-  if (rv != Success) {
-    return rv;
-  }
-
   return BuildForward(trustDomain, cert, time, requiredKeyUsageIfPresent,
                       requiredEKUIfPresent, requiredPolicy, stapledOCSPResponse,
                       0);

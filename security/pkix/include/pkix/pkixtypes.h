@@ -307,9 +307,21 @@ public:
   
   
   
-  
-  virtual Result CheckPublicKey(Input subjectPublicKeyInfo) = 0;
+  virtual Result CheckRSAPublicKeyModulusSizeInBits(
+                   EndEntityOrCA endEntityOrCA,
+                   unsigned int modulusSizeInBits) = 0;
 
+  
+  
+  
+  
+  
+  virtual Result CheckECDSACurveIsAcceptable(EndEntityOrCA endEntityOrCA,
+                                             NamedCurve curve) = 0;
+
+  
+  
+  
   
   
   

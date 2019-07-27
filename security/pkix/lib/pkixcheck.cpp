@@ -29,6 +29,8 @@
 
 namespace mozilla { namespace pkix {
 
+
+
 Result
 CheckValidity(Input encodedValidity, Time time)
 {
@@ -50,6 +52,187 @@ CheckValidity(Input encodedValidity, Time time)
   }
 
   return der::End(validity);
+}
+
+
+
+Result
+CheckSubjectPublicKeyInfo(Reader& input, TrustDomain& trustDomain,
+                          EndEntityOrCA endEntityOrCA)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  Reader algorithm;
+  Input subjectPublicKey;
+  Result rv = der::ExpectTagAndGetValue(input, der::SEQUENCE, algorithm);
+  if (rv != Success) {
+    return rv;
+  }
+  rv = der::BitStringWithNoUnusedBits(input, subjectPublicKey);
+  if (rv != Success) {
+    return rv;
+  }
+  rv = der::End(input);
+  if (rv != Success) {
+    return rv;
+  }
+
+  Reader subjectPublicKeyReader(subjectPublicKey);
+
+  Reader algorithmOID;
+  rv = der::ExpectTagAndGetValue(algorithm, der::OIDTag, algorithmOID);
+  if (rv != Success) {
+    return rv;
+  }
+
+  
+  
+  static const uint8_t rsaEncryption[] = {
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01
+  };
+
+  
+  
+  static const uint8_t id_ecPublicKey[] = {
+    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01
+  };
+
+  if (algorithmOID.MatchRest(id_ecPublicKey)) {
+    
+    
+    
+    
+
+    Reader namedCurveOIDValue;
+    rv = der::ExpectTagAndGetValue(algorithm, der::OIDTag,
+                                   namedCurveOIDValue);
+    if (rv != Success) {
+      return rv;
+    }
+
+    
+    
+    static const uint8_t secp256r1[] = {
+      0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
+    };
+
+    
+    
+    static const uint8_t secp384r1[] = {
+      0x2b, 0x81, 0x04, 0x00, 0x22
+    };
+
+    
+    
+    static const uint8_t secp521r1[] = {
+      0x2b, 0x81, 0x04, 0x00, 0x23
+    };
+
+    
+    
+    NamedCurve curve;
+    unsigned int bits;
+    if (namedCurveOIDValue.MatchRest(secp256r1)) {
+      curve = NamedCurve::secp256r1;
+      bits = 256;
+    } else if (namedCurveOIDValue.MatchRest(secp384r1)) {
+      curve = NamedCurve::secp384r1;
+      bits = 384;
+    } else if (namedCurveOIDValue.MatchRest(secp521r1)) {
+      curve = NamedCurve::secp521r1;
+      bits = 521;
+    } else {
+      return Result::ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
+    }
+
+    rv = trustDomain.CheckECDSACurveIsAcceptable(endEntityOrCA, curve);
+    if (rv != Success) {
+      return rv;
+    }
+
+    
+    
+    uint8_t compressedOrUncompressed;
+    rv = subjectPublicKeyReader.Read(compressedOrUncompressed);
+    if (rv != Success) {
+      return rv;
+    }
+    if (compressedOrUncompressed != 0x04) {
+      return Result::ERROR_UNSUPPORTED_EC_POINT_FORM;
+    }
+
+    
+    
+    Input point;
+    rv = subjectPublicKeyReader.SkipToEnd(point);
+    if (rv != Success) {
+      return rv;
+    }
+    if (point.GetLength() != ((bits + 7) / 8u) * 2u) {
+      return Result::ERROR_BAD_DER;
+    }
+
+    
+    
+    
+  } else if (algorithmOID.MatchRest(rsaEncryption)) {
+    
+    
+    rv = der::ExpectTagAndEmptyValue(algorithm, der::NULLTag);
+    if (rv != Success) {
+      return rv;
+    }
+
+    
+    
+    
+    rv = der::Nested(subjectPublicKeyReader, der::SEQUENCE,
+                     [&trustDomain, endEntityOrCA](Reader& r) {
+      Input modulus;
+      Input::size_type modulusSignificantBytes;
+      Result rv = der::PositiveInteger(r, modulus, &modulusSignificantBytes);
+      if (rv != Success) {
+        return rv;
+      }
+      
+      rv = trustDomain.CheckRSAPublicKeyModulusSizeInBits(
+             endEntityOrCA, modulusSignificantBytes * 8u);
+      if (rv != Success) {
+        return rv;
+      }
+
+      
+      
+      Input exponent;
+      return der::PositiveInteger(r, exponent);
+    });
+    if (rv != Success) {
+      return rv;
+    }
+  } else {
+    return Result::ERROR_UNSUPPORTED_KEYALG;
+  }
+
+  rv = der::End(algorithm);
+  if (rv != Success) {
+    return rv;
+  }
+  rv = der::End(subjectPublicKeyReader);
+  if (rv != Success) {
+    return rv;
+  }
+
+  return Success;
 }
 
 
@@ -554,6 +737,21 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
       trustLevel != TrustLevel::InheritsTrust) {
     
     return Result::FATAL_ERROR_INVALID_STATE;
+  }
+
+  
+  
+  
+  Reader spki(cert.GetSubjectPublicKeyInfo());
+  rv = der::Nested(spki, der::SEQUENCE, [&](Reader& r) {
+    return CheckSubjectPublicKeyInfo(r, trustDomain, endEntityOrCA);
+  });
+  if (rv != Success) {
+    return rv;
+  }
+  rv = der::End(spki);
+  if (rv != Success) {
+    return rv;
   }
 
   

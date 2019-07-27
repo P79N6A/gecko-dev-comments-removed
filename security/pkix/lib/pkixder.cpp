@@ -223,42 +223,6 @@ SignatureAlgorithmOIDValue(Reader& algorithmID,
   return Success;
 }
 
-static Result
-NamedCurveOIDValue(Reader& namedCurveID,  NamedCurve& namedCurve)
-{
-  
-  
-  static const uint8_t secp256r1[] = {
-    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
-  };
-
-  
-  
-  static const uint8_t secp384r1[] = {
-    0x2b, 0x81, 0x04, 0x00, 0x22
-  };
-
-  
-  
-  static const uint8_t secp521r1[] = {
-    0x2b, 0x81, 0x04, 0x00, 0x23
-  };
-
-  
-  
-  if (namedCurveID.MatchRest(secp256r1)) {
-    namedCurve = NamedCurve::secp256r1;
-  } else if (namedCurveID.MatchRest(secp384r1)) {
-    namedCurve = NamedCurve::secp384r1;
-  } else if (namedCurveID.MatchRest(secp521r1)) {
-    namedCurve = NamedCurve::secp521r1;
-  } else {
-    return Result::ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
-  }
-
-  return Success;
-}
-
 template <typename OidValueParser, typename Algorithm>
 Result
 AlgorithmIdentifier(OidValueParser oidValueParser, Reader& input,
@@ -301,23 +265,6 @@ Result
 DigestAlgorithmIdentifier(Reader& input,  DigestAlgorithm& algorithm)
 {
   return AlgorithmIdentifier(DigestAlgorithmOIDValue, input, algorithm);
-}
-
-Result
-NamedCurveOID(Reader& input,  NamedCurve& namedCurve)
-{
-  Reader namedCurveID;
-  Result rv = ExpectTagAndGetValue(input, der::OIDTag, namedCurveID);
-  if (rv != Success) {
-    return rv;
-  }
-
-  rv = NamedCurveOIDValue(namedCurveID, namedCurve);
-  if (rv != Success) {
-    return rv;
-  }
-
-  return Success;
 }
 
 Result

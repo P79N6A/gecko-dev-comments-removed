@@ -603,8 +603,6 @@ Result DigestAlgorithmIdentifier(Reader& input,
 Result SignatureAlgorithmIdentifier(Reader& input,
                                      SignatureAlgorithm& algorithm);
 
-Result NamedCurveOID(Reader& input,  NamedCurve& namedCurve);
-
 
 
 

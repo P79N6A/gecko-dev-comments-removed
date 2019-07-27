@@ -141,7 +141,7 @@ function add_tests(certDB, otherTestCA) {
   
   
   add_ocsp_test("keysize-ocsp-delegated.example.com",
-                getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE),
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT),
                 true);
 
   add_ocsp_test("revoked-ca-cert-used-as-end-entity.example.com",

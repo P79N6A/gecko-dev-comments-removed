@@ -103,13 +103,6 @@ BackCert::Init()
   if (rv != Success) {
     return rv;
   }
-  
-  
-  
-  
-  
-  
-  
   rv = der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE,
                                subjectPublicKeyInfo);
   if (rv != Success) {
