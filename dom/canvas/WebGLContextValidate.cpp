@@ -416,10 +416,10 @@ bool WebGLContext::ValidateGLSLString(const nsAString& string, const char* info)
 
 
 bool
-WebGLContext::ValidateFramebufferAttachment(GLenum attachment,
+WebGLContext::ValidateFramebufferAttachment(const WebGLFramebuffer* fb, GLenum attachment,
                                             const char* funcName)
 {
-    if (!mBoundFramebuffer) {
+    if (!fb) {
         switch (attachment) {
         case LOCAL_GL_COLOR:
         case LOCAL_GL_DEPTH:
@@ -1328,15 +1328,15 @@ WebGLContext::ValidateCopyTexImage(GLenum format, WebGLTexImageFunc func,
     
     GLenum fboFormat = mOptions.alpha ? LOCAL_GL_RGBA : LOCAL_GL_RGB;
 
-    if (mBoundFramebuffer) {
-        if (!mBoundFramebuffer->CheckAndInitializeAttachments()) {
+    if (mBoundReadFramebuffer) {
+        if (!mBoundReadFramebuffer->CheckAndInitializeAttachments()) {
             ErrorInvalidFramebufferOperation("%s: Incomplete framebuffer.",
                                              InfoFrom(func, dims));
             return false;
         }
 
         GLenum readPlaneBits = LOCAL_GL_COLOR_BUFFER_BIT;
-        if (!mBoundFramebuffer->HasCompletePlanes(readPlaneBits)) {
+        if (!mBoundReadFramebuffer->HasCompletePlanes(readPlaneBits)) {
             ErrorInvalidOperation("%s: Read source attachment doesn't have the"
                                   " correct color/depth/stencil type.",
                                   InfoFrom(func, dims));
@@ -1344,11 +1344,10 @@ WebGLContext::ValidateCopyTexImage(GLenum format, WebGLTexImageFunc func,
         }
 
         
-        
         const WebGLFramebuffer::Attachment& color0 =
-            mBoundFramebuffer->GetAttachment(LOCAL_GL_COLOR_ATTACHMENT0);
+            mBoundReadFramebuffer->GetAttachment(LOCAL_GL_COLOR_ATTACHMENT0);
 
-        fboFormat = mBoundFramebuffer->GetFormatForAttachment(color0);
+        fboFormat = mBoundReadFramebuffer->GetFormatForAttachment(color0);
     }
 
     
@@ -1949,7 +1948,8 @@ WebGLContext::InitAndValidateGL()
     mBoundTransformFeedbackBuffer = nullptr;
     mCurrentProgram = nullptr;
 
-    mBoundFramebuffer = nullptr;
+    mBoundDrawFramebuffer = nullptr;
+    mBoundReadFramebuffer = nullptr;
     mBoundRenderbuffer = nullptr;
 
     MakeContextCurrent();
@@ -2141,6 +2141,34 @@ WebGLContext::InitAndValidateGL()
         mContextObserver->RegisterMemoryPressureEvent();
 
     return true;
+}
+
+bool
+WebGLContext::ValidateFramebufferTarget(GLenum target,
+                                        const char* const info)
+{
+    bool isValid = true;
+    switch (target) {
+    case LOCAL_GL_FRAMEBUFFER:
+        break;
+
+    case LOCAL_GL_DRAW_FRAMEBUFFER:
+    case LOCAL_GL_READ_FRAMEBUFFER:
+        isValid = IsWebGL2();
+        break;
+
+    default:
+        isValid = false;
+        break;
+    }
+
+    if (MOZ_LIKELY(isValid)) {
+        return true;
+    }
+
+    ErrorInvalidEnum("%s: Invalid target: %s (0x%04x).", info, EnumName(target),
+                     target);
+    return false;
 }
 
 } 
