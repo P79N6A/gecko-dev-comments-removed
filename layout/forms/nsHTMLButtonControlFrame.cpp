@@ -142,7 +142,9 @@ nsHTMLButtonControlFrame::GetMinISize(nsRenderingContext* aRenderingContext)
                                                 kid,
                                                 nsLayoutUtils::MIN_ISIZE);
 
-  result += mRenderer.GetAddedButtonBorderAndPadding().LeftRight();
+  result += GetWritingMode().IsVertical()
+    ? mRenderer.GetAddedButtonBorderAndPadding().TopBottom()
+    : mRenderer.GetAddedButtonBorderAndPadding().LeftRight();
 
   return result;
 }
@@ -157,7 +159,11 @@ nsHTMLButtonControlFrame::GetPrefISize(nsRenderingContext* aRenderingContext)
   result = nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
                                                 kid,
                                                 nsLayoutUtils::PREF_ISIZE);
-  result += mRenderer.GetAddedButtonBorderAndPadding().LeftRight();
+
+  result += GetWritingMode().IsVertical()
+    ? mRenderer.GetAddedButtonBorderAndPadding().TopBottom()
+    : mRenderer.GetAddedButtonBorderAndPadding().LeftRight();
+
   return result;
 }
 
@@ -170,8 +176,8 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsHTMLButtonControlFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
-  NS_PRECONDITION(aReflowState.ComputedWidth() != NS_INTRINSICSIZE,
-                  "Should have real computed width by now");
+  NS_PRECONDITION(aReflowState.ComputedISize() != NS_INTRINSICSIZE,
+                  "Should have real computed inline-size by now");
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
     nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), true);
@@ -245,43 +251,49 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
                                                const nsHTMLReflowState& aButtonReflowState,
                                                nsIFrame* aFirstKid)
 {
-  
-  
-  const nsMargin focusPadding = mRenderer.GetAddedButtonBorderAndPadding();
-
-  WritingMode wm = aFirstKid->GetWritingMode();
-  LogicalSize availSize = aButtonReflowState.ComputedSize(GetWritingMode());
+  WritingMode wm = GetWritingMode();
+  bool isVertical = wm.IsVertical();
+  LogicalSize availSize = aButtonReflowState.ComputedSize(wm);
   availSize.BSize(wm) = NS_INTRINSICSIZE;
 
   
   
-  availSize.ISize(wm) -= LogicalMargin(wm, focusPadding).IStartEnd(wm);
+  const LogicalMargin focusPadding =
+    LogicalMargin(wm, mRenderer.GetAddedButtonBorderAndPadding());
+
+  
+  const LogicalMargin& clbp = aButtonReflowState.ComputedLogicalBorderPadding();
+
+  
+  
+  availSize.ISize(wm) -= focusPadding.IStartEnd(wm);
 
   
   
   
   
-  nscoord xoffset = focusPadding.left +
-    aButtonReflowState.ComputedPhysicalBorderPadding().left;
-  nscoord extrawidth = GetMinISize(aButtonReflowState.rendContext) -
-    aButtonReflowState.ComputedWidth();
-  if (extrawidth > 0) {
-    nscoord extraleft = extrawidth / 2;
-    nscoord extraright = extrawidth - extraleft;
-    NS_ASSERTION(extraright >=0, "How'd that happen?");
+  nscoord ioffset = focusPadding.IStart(wm) + clbp.IStart(wm);
+  nscoord extraISize = GetMinISize(aButtonReflowState.rendContext) -
+    aButtonReflowState.ComputedISize();
+  if (extraISize > 0) {
+    nscoord extraIStart = extraISize / 2;
+    nscoord extraIEnd = extraISize - extraIStart;
+    NS_ASSERTION(extraIEnd >=0, "How'd that happen?");
 
     
-    extraleft = std::min(extraleft, aButtonReflowState.ComputedPhysicalPadding().left);
-    extraright = std::min(extraright, aButtonReflowState.ComputedPhysicalPadding().right);
-    xoffset -= extraleft;
-    availSize.Width(wm) = availSize.Width(wm) + extraleft + extraright;
+    const LogicalMargin& padding = aButtonReflowState.ComputedLogicalPadding();
+    extraIStart = std::min(extraIStart, padding.IStart(wm));
+    extraIEnd = std::min(extraIEnd, padding.IEnd(wm));
+    ioffset -= extraIStart;
+    availSize.ISize(wm) = availSize.ISize(wm) + extraIStart + extraIEnd;
   }
-  availSize.Width(wm) = std::max(availSize.Width(wm), 0);
+  availSize.ISize(wm) = std::max(availSize.ISize(wm), 0);
 
   
   
   nsHTMLReflowState adjustedButtonReflowState =
-    CloneReflowStateWithReducedContentBox(aButtonReflowState, focusPadding);
+    CloneReflowStateWithReducedContentBox(aButtonReflowState,
+                                          focusPadding.GetPhysicalMargin(wm));
 
   nsHTMLReflowState contentsReflowState(aPresContext,
                                         adjustedButtonReflowState,
@@ -289,53 +301,56 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
 
   nsReflowStatus contentsReflowStatus;
   nsHTMLReflowMetrics contentsDesiredSize(aButtonReflowState);
+  nscoord boffset = focusPadding.BStart(wm) + clbp.BStart(wm);
   ReflowChild(aFirstKid, aPresContext,
               contentsDesiredSize, contentsReflowState,
-              xoffset,
-              focusPadding.top + aButtonReflowState.ComputedPhysicalBorderPadding().top,
+              isVertical ? boffset : ioffset,
+              isVertical ? ioffset : boffset,
               0, contentsReflowStatus);
   MOZ_ASSERT(NS_FRAME_IS_COMPLETE(contentsReflowStatus),
              "We gave button-contents frame unconstrained available height, "
              "so it should be complete");
 
   
-  nscoord buttonContentBoxHeight = 0;
-  if (aButtonReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
+  nscoord buttonContentBoxBSize = 0;
+  if (aButtonReflowState.ComputedBSize() != NS_INTRINSICSIZE) {
     
-    buttonContentBoxHeight = aButtonReflowState.ComputedHeight();
+    buttonContentBoxBSize = aButtonReflowState.ComputedBSize();
   } else {
     
     
-    buttonContentBoxHeight =
-      contentsDesiredSize.Height() + focusPadding.TopBottom();
+    buttonContentBoxBSize =
+      contentsDesiredSize.BSize(wm) + focusPadding.BStartEnd(wm);
 
     
     
     
     
     
-    buttonContentBoxHeight =
-      NS_CSS_MINMAX(buttonContentBoxHeight,
-                    aButtonReflowState.ComputedMinHeight(),
-                    aButtonReflowState.ComputedMaxHeight());
+    buttonContentBoxBSize =
+      NS_CSS_MINMAX(buttonContentBoxBSize,
+                    aButtonReflowState.ComputedMinBSize(),
+                    aButtonReflowState.ComputedMaxBSize());
   }
 
   
   
   nscoord extraSpace =
-    buttonContentBoxHeight - focusPadding.TopBottom() -
-    contentsDesiredSize.Height();
+    buttonContentBoxBSize - focusPadding.BStartEnd(wm) -
+    contentsDesiredSize.BSize(wm);
 
-  nscoord yoffset = std::max(0, extraSpace / 2);
+  boffset = std::max(0, extraSpace / 2);
 
   
   
-  yoffset += focusPadding.top + aButtonReflowState.ComputedPhysicalBorderPadding().top;
+  boffset += focusPadding.BStart(wm) + clbp.BStart(wm);
 
   
   FinishReflowChild(aFirstKid, aPresContext,
                     contentsDesiredSize, &contentsReflowState,
-                    xoffset, yoffset, 0);
+                    isVertical ? boffset : ioffset,
+                    isVertical ? ioffset : boffset,
+                    0);
 
   
   if (contentsDesiredSize.BlockStartAscent() ==
@@ -347,16 +362,20 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   
   
-  aButtonDesiredSize.Width() = aButtonReflowState.ComputedWidth() +
-    aButtonReflowState.ComputedPhysicalBorderPadding().LeftRight();
-
-  aButtonDesiredSize.Height() = buttonContentBoxHeight +
-    aButtonReflowState.ComputedPhysicalBorderPadding().TopBottom();
+  aButtonDesiredSize.SetSize(wm,
+    LogicalSize(wm, aButtonReflowState.ComputedISize() + clbp.IStartEnd(wm),
+                    buttonContentBoxBSize + clbp.BStartEnd(wm)));
 
   
   
-  aButtonDesiredSize.SetBlockStartAscent(contentsDesiredSize.BlockStartAscent() +
-                                         yoffset);
+  
+  
+  if (aButtonDesiredSize.GetWritingMode().IsOrthogonalTo(wm)) {
+    aButtonDesiredSize.SetBlockStartAscent(contentsDesiredSize.ISize(wm));
+  } else {
+    aButtonDesiredSize.SetBlockStartAscent(contentsDesiredSize.BlockStartAscent() +
+                                           boffset);
+  }
 
   aButtonDesiredSize.SetOverflowAreasToDesiredBounds();
 }
