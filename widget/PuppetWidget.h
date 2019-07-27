@@ -259,7 +259,6 @@ private:
   mozilla::RefPtr<DrawTarget> mDrawTarget;
   
   nsIMEUpdatePreference mIMEPreferenceOfParent;
-  bool mIMEComposing;
   
   uint32_t mIMELastReceivedSeqno;
   
