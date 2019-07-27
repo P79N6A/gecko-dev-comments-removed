@@ -66,6 +66,8 @@ IsSignalHandlingBroken();
 
 
 class BaseElf;
+class CustomElf;
+class SystemElf;
 
 
 
@@ -220,10 +222,12 @@ protected:
 
 
 
+
   friend class ElfLoader;
   friend class CustomElf;
   friend class SEGVHandler;
-  virtual bool IsSystemElf() const { return false; }
+  virtual BaseElf *AsBaseElf() { return nullptr; }
+  virtual SystemElf *AsSystemElf() { return nullptr; }
 
 private:
   MozRefCountType directRefCnt;
@@ -297,7 +301,7 @@ protected:
 
 
   friend class ElfLoader;
-  virtual bool IsSystemElf() const { return true; }
+  virtual SystemElf *AsSystemElf() { return this; }
 
   
 
@@ -433,12 +437,14 @@ protected:
 
 
   void Register(LibHandle *handle);
+  void Register(CustomElf *handle);
 
   
 
 
 
   void Forget(LibHandle *handle);
+  void Forget(CustomElf *handle);
 
   
   friend class SystemElf;
