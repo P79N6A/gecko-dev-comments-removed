@@ -11,6 +11,8 @@ let {EventTarget} = require("sdk/event/target");
 let events = require("sdk/event/core");
 let object = require("sdk/util/object");
 
+exports.emit = events.emit;
+
 
 function promiseDone(err) {
   console.error(err);
