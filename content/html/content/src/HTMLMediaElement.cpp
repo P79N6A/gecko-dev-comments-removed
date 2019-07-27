@@ -1062,13 +1062,6 @@ void HTMLMediaElement::UpdatePreloadAction()
     }
   }
 
-  if ((mBegun || mIsRunningSelectResource) && nextAction < mPreloadAction) {
-    
-    
-    
-    return;
-  }
-
   mPreloadAction = nextAction;
   if (nextAction == HTMLMediaElement::PRELOAD_ENOUGH) {
     if (mSuspendedForPreloadNone) {
