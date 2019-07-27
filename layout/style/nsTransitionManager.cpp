@@ -581,6 +581,8 @@ nsTransitionManager::ConsiderStartingTransition(
   }
 #endif
   if (haveCurrentTransition) {
+    players[currentIndex]->Cancel();
+    oldPT = nullptr; 
     players[currentIndex] = player;
   } else {
     if (!players.AppendElement(player)) {
