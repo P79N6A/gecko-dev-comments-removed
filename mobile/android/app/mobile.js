@@ -563,7 +563,7 @@ pref("media.fragmented-mp4.android-media-codec.enabled", true);
 pref("media.fragmented-mp4.android-media-codec.preferred", true);
 
 
-pref("image.mem.decodeondraw", false);
+pref("image.mem.decodeondraw", true);
 
 #ifdef NIGHTLY_BUILD
 
@@ -696,26 +696,6 @@ pref("network.manage-offline-status", true);
 
 
 pref("dom.min_background_timeout_value", 900000);
-
-
-pref("reader.parse-on-load.enabled", true);
-
-
-
-pref("reader.parse-on-load.force-enabled", false);
-
-
-pref("reader.font_size", 3);
-
-
-
-pref("reader.color_scheme", "auto");
-
-
-pref("reader.font_type", "sans-serif");
-
-
-pref("reader.has_used_toolbar", false);
 
 
 pref("media.plugins.enabled", true);

@@ -3789,7 +3789,7 @@ pref("image.mem.discardable", true);
 
 
 
-pref("image.mem.decodeondraw", false);
+pref("image.mem.decodeondraw", true);
 
 
 pref("image.mem.allow_locking_in_content_processes", true);
@@ -4511,3 +4511,24 @@ pref("media.gmp-manager.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\
 pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
 #endif
 
+
+
+pref("reader.parse-on-load.enabled", true);
+
+
+
+pref("reader.parse-on-load.force-enabled", false);
+
+
+pref("reader.font_size", 3);
+
+
+
+pref("reader.color_scheme", "auto");
+
+
+pref("reader.font_type", "sans-serif");
+
+
+
+pref("reader.has_used_toolbar", false);

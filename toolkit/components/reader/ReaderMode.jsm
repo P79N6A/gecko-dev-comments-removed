@@ -75,13 +75,6 @@ let ReaderMode = {
       return null;
     }
 
-    
-    let article = yield this.getArticleFromCache(uri);
-    if (article) {
-      this.log("Page found in cache, return article immediately");
-      return article;
-    }
-
     return yield this._readerParse(uri, doc);
   }),
 
