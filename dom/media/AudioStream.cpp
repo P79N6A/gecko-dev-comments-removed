@@ -612,7 +612,7 @@ AudioStream::Write(const AudioDataValue* aBuf, uint32_t aFrames, TimeStamp *aTim
   uint32_t bytesToCopy = FramesToBytes(aFrames);
 
   
-  if (PR_LOG_TEST(GetLatencyLog(), PR_LOG_DEBUG)) {
+  if (MOZ_LOG_TEST(GetLatencyLog(), PR_LOG_DEBUG)) {
     
     int64_t timeMs;
     if (aTime && !aTime->IsNull()) {
@@ -1133,7 +1133,7 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
 
   WriteDumpFile(mDumpFile, this, aFrames, aBuffer);
   
-  if (PR_LOG_TEST(GetLatencyLog(), PR_LOG_DEBUG) &&
+  if (MOZ_LOG_TEST(GetLatencyLog(), PR_LOG_DEBUG) &&
       mState != SHUTDOWN &&
       insertTime != INT64_MAX && servicedFrames > underrunFrames) {
     uint32_t latency = UINT32_MAX;
