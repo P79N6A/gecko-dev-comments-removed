@@ -15,6 +15,7 @@
 #include "nsRenderingContext.h"
 #include "nsStyleContext.h"
 #include "nsStyleConsts.h"
+#include "nsStyleUtil.h"
 #include "nsCOMPtr.h"
 #include "nsPresContext.h"
 #include "nsBoxLayoutState.h"
@@ -51,6 +52,7 @@
 
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventDispatcher.h"
+#include "mozilla/Maybe.h"
 
 #define ONLOAD_CALLED_TOO_EARLY 1
 
@@ -307,6 +309,13 @@ nsImageBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!IsVisibleForPainting(aBuilder))
     return;
 
+  uint32_t clipFlags =
+    nsStyleUtil::ObjectPropsMightCauseOverflow(StylePosition()) ?
+    0 : DisplayListClipState::ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT;
+
+  DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox
+    clip(aBuilder, this, clipFlags);
+
   nsDisplayList list;
   list.AppendNewToTop(
     new (aBuilder) nsDisplayXULImage(aBuilder, this));
@@ -321,10 +330,10 @@ nsImageBoxFrame::PaintImage(nsRenderingContext& aRenderingContext,
                             const nsRect& aDirtyRect, nsPoint aPt,
                             uint32_t aFlags)
 {
-  nsRect rect;
-  GetClientRect(rect);
+  nsRect constraintRect;
+  GetClientRect(constraintRect);
 
-  rect += aPt;
+  constraintRect += aPt;
 
   if (!mImageRequest) {
     
@@ -334,7 +343,7 @@ nsImageBoxFrame::PaintImage(nsRenderingContext& aRenderingContext,
   
   
   nsRect dirty;
-  if (!dirty.IntersectRect(aDirtyRect, rect)) {
+  if (!dirty.IntersectRect(aDirtyRect, constraintRect)) {
     return DrawResult::TEMPORARY_ERROR;
   }
 
@@ -346,11 +355,47 @@ nsImageBoxFrame::PaintImage(nsRenderingContext& aRenderingContext,
   }
 
   bool hasSubRect = !mUseSrcAttr && (mSubRect.width > 0 || mSubRect.height > 0);
+
+  Maybe<nsPoint> anchorPoint;
+  nsRect dest;
+  if (!mUseSrcAttr) {
+    
+    
+    
+    
+    
+    
+    dest = constraintRect;
+  } else {
+    
+    
+    IntrinsicSize intrinsicSize;
+    nsSize intrinsicRatio;
+    if (mIntrinsicSize.width > 0 && mIntrinsicSize.height > 0) {
+      
+      intrinsicSize.width.SetCoordValue(mIntrinsicSize.width);
+      intrinsicSize.height.SetCoordValue(mIntrinsicSize.height);
+      intrinsicRatio = mIntrinsicSize;
+    } else {
+      
+      
+      imgCon->GetIntrinsicRatio(&intrinsicRatio);
+    }
+    anchorPoint.emplace();
+    dest = nsLayoutUtils::ComputeObjectDestRect(constraintRect,
+                                                intrinsicSize,
+                                                intrinsicRatio,
+                                                StylePosition(),
+                                                anchorPoint.ptr());
+  }
+
+
   return nsLayoutUtils::DrawSingleImage(
            *aRenderingContext.ThebesContext(),
            PresContext(), imgCon,
            nsLayoutUtils::GetGraphicsFilterForFrame(this),
-           rect, dirty, nullptr, aFlags, nullptr,
+           dest, dirty, nullptr, aFlags,
+           anchorPoint.ptrOr(nullptr),
            hasSubRect ? &mSubRect : nullptr);
 }
 
