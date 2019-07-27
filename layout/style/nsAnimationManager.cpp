@@ -272,6 +272,11 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
 
   if (newPlayers.IsEmpty()) {
     if (collection) {
+      
+      
+      mPresContext->TransitionManager()->
+        UpdateCascadeResultsWithAnimationsToBeDestroyed(collection);
+
       collection->Destroy();
     }
     return nullptr;
