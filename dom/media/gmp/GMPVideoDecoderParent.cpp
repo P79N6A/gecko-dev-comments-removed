@@ -69,7 +69,7 @@ void
 GMPVideoDecoderParent::Close()
 {
   LOGD(("%s: %p", __FUNCTION__, this));
-  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
+  MOZ_ASSERT(!mPlugin || mPlugin->GMPThread() == NS_GetCurrentThread());
   
   
   mCallback = nullptr;
