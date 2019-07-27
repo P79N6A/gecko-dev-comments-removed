@@ -230,16 +230,17 @@ class CommandAction(argparse.Action):
         if handler.parser:
             c_parser = handler.parser
             c_parser.formatter_class = NoUsageFormatter
-            try:
-                
-                
-                
-                c_parser._action_groups[0].title = 'Command Parameters'
-                c_parser._action_groups[1].title = 'Command Arguments'
-            except:
-                
-                
-                pass
+            
+            
+            
+            group = c_parser._action_groups[1]
+
+            
+            
+            
+            c_parser._action_groups[0].title = 'Command Parameters'
+            c_parser._action_groups[1].title = 'Command Arguments'
+
             if not handler.description:
                 handler.description = c_parser.description
                 c_parser.description = None
