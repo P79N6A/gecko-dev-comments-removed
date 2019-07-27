@@ -21,7 +21,6 @@
 #include "jit/BaselineInspector.h"
 #include "jit/BaselineJIT.h"
 #include "jit/CodeGenerator.h"
-#include "jit/EdgeCaseAnalysis.h"
 #include "jit/EffectiveAddressAnalysis.h"
 #include "jit/IonAnalysis.h"
 #include "jit/IonBuilder.h"
@@ -1579,18 +1578,6 @@ OptimizeMIR(MIRGenerator *mir)
 
     
     
-
-    if (mir->optimizationInfo().edgeCaseAnalysisEnabled()) {
-        AutoTraceLog log(logger, TraceLogger::EdgeCaseAnalysis);
-        EdgeCaseAnalysis edgeCaseAnalysis(mir, graph);
-        if (!edgeCaseAnalysis.analyzeLate())
-            return false;
-        IonSpewPass("Edge Case Analysis (Late)");
-        AssertGraphCoherency(graph);
-
-        if (mir->shouldCancel("Edge Case Analysis (Late)"))
-            return false;
-    }
 
     if (mir->optimizationInfo().eliminateRedundantChecksEnabled()) {
         AutoTraceLog log(logger, TraceLogger::EliminateRedundantChecks);
