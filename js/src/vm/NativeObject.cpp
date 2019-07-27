@@ -2002,6 +2002,41 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
                                          JSPROP_ENUMERATE, v, true, strict);
 }
 
+
+
+
+
+
+
+
+
+
+
+template <ExecutionMode mode>
+static bool
+SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
+                       HandleObject obj, HandleObject receiver, HandleId id,
+                       baseops::QualifiedBool qualified, HandleValue v, bool strict)
+{
+    
+    MOZ_ASSERT(!obj->is<BlockObject>());
+
+    if (obj->isUnqualifiedVarObj() && !qualified) {
+        if (mode == ParallelExecution)
+            return false;
+
+        if (!MaybeReportUndeclaredVarAssignment(cxArg->asJSContext(), JSID_TO_STRING(id)))
+            return false;
+    }
+
+    if (obj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
+        Rooted<ArrayObject*> arr(cxArg, &obj->as<ArrayObject>());
+        return ArraySetLength<mode>(cxArg, arr, id, JSPROP_ENUMERATE, v, strict);
+    }
+
+    return SetPropertyByDefining<mode>(cxArg, receiver, id, v, strict);
+}
+
 template <ExecutionMode mode>
 bool
 baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg,
@@ -2033,56 +2068,44 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
         if (!LookupNativeProperty(cx, obj, id, &pobj, &shape))
             return false;
     }
-    if (shape) {
-        if (!pobj->isNative()) {
-            if (pobj->is<ProxyObject>()) {
-                if (mode == ParallelExecution)
-                    return false;
 
-                JSContext *cx = cxArg->asJSContext();
-                Rooted<PropertyDescriptor> pd(cx);
-                if (!Proxy::getPropertyDescriptor(cx, pobj, id, &pd))
-                    return false;
+    if (!shape)
+        return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp, strict);
 
-                if ((pd.attributes() & (JSPROP_SHARED | JSPROP_SHADOWABLE)) == JSPROP_SHARED) {
-                    return !pd.setter() ||
-                           CallSetter(cx, receiver, id, pd.setter(), pd.attributes(), strict, vp);
-                }
-
-                if (pd.isReadonly()) {
-                    if (strict)
-                        return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
-                    if (cx->compartment()->options().extraWarnings(cx))
-                        return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
-                    return true;
-                }
-            }
-
-            shape = nullptr;
-        }
-    } else {
-        
-        MOZ_ASSERT(!obj->is<BlockObject>());
-
-        if (obj->isUnqualifiedVarObj() && !qualified) {
+    if (!pobj->isNative()) {
+        if (pobj->is<ProxyObject>()) {
             if (mode == ParallelExecution)
                 return false;
 
-            if (!MaybeReportUndeclaredVarAssignment(cxArg->asJSContext(), JSID_TO_STRING(id)))
+            JSContext *cx = cxArg->asJSContext();
+            Rooted<PropertyDescriptor> pd(cx);
+            if (!Proxy::getPropertyDescriptor(cx, pobj, id, &pd))
                 return false;
+
+            if ((pd.attributes() & (JSPROP_SHARED | JSPROP_SHADOWABLE)) == JSPROP_SHARED) {
+                return !pd.setter() ||
+                       CallSetter(cx, receiver, id, pd.setter(), pd.attributes(), strict, vp);
+            }
+
+            if (pd.isReadonly()) {
+                if (strict)
+                    return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
+                if (cx->compartment()->options().extraWarnings(cx))
+                    return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+                return true;
+            }
         }
+
+        return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
     }
 
     
-
-
-
     unsigned attrs = JSPROP_ENUMERATE;
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
         
         if (pobj != obj)
             shape = nullptr;
-    } else if (shape) {
+    } else {
         
         if (shape->isAccessorDescriptor()) {
             if (shape->hasDefaultSetter()) {
