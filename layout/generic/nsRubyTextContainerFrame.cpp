@@ -72,6 +72,7 @@ nsRubyTextContainerFrame::Reflow(nsPresContext* aPresContext,
 
   
   
+  
 
   
   
@@ -79,12 +80,5 @@ nsRubyTextContainerFrame::Reflow(nsPresContext* aPresContext,
   
   aStatus = NS_FRAME_COMPLETE;
   WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
-  WritingMode frameWM = aReflowState.GetWritingMode();
-  LogicalMargin borderPadding = aReflowState.ComputedLogicalBorderPadding();
-
-  
-  
-  aDesiredSize.ISize(lineWM) = mISize;
-  nsLayoutUtils::SetBSizeFromFontMetrics(this, aDesiredSize, aReflowState,
-                                         borderPadding, lineWM, frameWM);
+  aDesiredSize.SetSize(lineWM, mLineSize);
 }

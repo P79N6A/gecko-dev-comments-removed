@@ -90,7 +90,10 @@ nsRubyTextFrame::Reflow(nsPresContext* aPresContext,
                                aReflowState, aStatus);
 
   if (GetStateBits() & NS_RUBY_TEXT_FRAME_AUTOHIDE) {
-    aDesiredSize.ClearSize();
+    
+    
+    WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
+    aDesiredSize.ISize(lineWM) = 0;
     aDesiredSize.SetOverflowAreasToDesiredBounds();
   }
 }

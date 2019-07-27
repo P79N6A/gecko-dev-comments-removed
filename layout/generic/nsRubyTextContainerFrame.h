@@ -47,15 +47,16 @@ protected:
     NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
   explicit nsRubyTextContainerFrame(nsStyleContext* aContext)
-    : nsRubyTextContainerFrameSuper(aContext) {}
+    : nsRubyTextContainerFrameSuper(aContext)
+    , mLineSize(mozilla::WritingMode(aContext)) {}
 
   friend class nsRubyBaseContainerFrame;
-  void SetISize(nscoord aISize) { mISize = aISize; }
+  void SetLineSize(const mozilla::LogicalSize& aSize) { mLineSize = aSize; }
 
   
   
   
-  nscoord mISize;
+  mozilla::LogicalSize mLineSize;
 };
 
 #endif 
