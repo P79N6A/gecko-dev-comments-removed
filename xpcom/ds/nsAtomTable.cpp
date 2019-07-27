@@ -57,7 +57,6 @@ public:
 
   bool KeyEquals(KeyTypePointer aKey) const
   {
-    
     return mAtom->Equals(*aKey);
   }
 

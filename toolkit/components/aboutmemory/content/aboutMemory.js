@@ -336,6 +336,7 @@ function onLoad()
   appendButton(row2, SvDesc, saveReportsToFile, "Measure and save" + kEllipsis);
 
   
+  
   let label2 = appendElementWithText(labelDiv2, "label", "");
   gAnonymize = appendElement(label2, "input", "");
   gAnonymize.type = "checkbox";
