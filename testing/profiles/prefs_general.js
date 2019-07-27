@@ -140,7 +140,12 @@ user_pref("layout.css.grid.enabled", true);
 user_pref("layout.css.ruby.enabled", true);
 
 
+user_pref("layout.spammy_warnings.enabled", false);
+
+
 user_pref("dom.mozContacts.enabled", true);
+user_pref("dom.navigator-property.disable.mozContacts", false);
+user_pref("dom.global-constructor.disable.mozContact", false);
 
 
 user_pref("dom.mozSettings.enabled", true);
