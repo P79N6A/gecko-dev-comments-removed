@@ -19,6 +19,7 @@ namespace mozilla {
 
 class MediaSourceDecoder;
 class SourceBufferDecoder;
+class TrackBuffer;
 
 namespace dom {
 
@@ -70,13 +71,16 @@ public:
   nsresult ReadMetadata(MediaInfo* aInfo, MetadataTags** aTags) MOZ_OVERRIDE;
   nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
                 int64_t aCurrentTime) MOZ_OVERRIDE;
+
   already_AddRefed<SourceBufferDecoder> CreateSubDecoder(const nsACString& aType);
+
+  void AddTrackBuffer(TrackBuffer* aTrackBuffer);
+  void RemoveTrackBuffer(TrackBuffer* aTrackBuffer);
+  void OnTrackBufferConfigured(TrackBuffer* aTrackBuffer, const MediaInfo& aInfo);
 
   void Shutdown();
 
   virtual void BreakCycles();
-
-  void InitializePendingDecoders();
 
   bool IsShutdown()
   {
@@ -85,7 +89,7 @@ public:
   }
 
   
-  bool DecodersContainTime(double aTime);
+  bool TrackBuffersContainTime(double aTime);
 
   
   void Ended();
@@ -94,26 +98,23 @@ public:
   bool IsEnded();
 
 private:
-  enum SwitchType {
-    SWITCH_OPTIONAL,
-    SWITCH_FORCED
-  };
-
-  bool SwitchReaders(SwitchType aType);
-
-  bool SwitchAudioReader(MediaDecoderReader* aTargetReader);
-  bool SwitchVideoReader(MediaDecoderReader* aTargetReader);
-
-  
-  int64_t mTimeThreshold;
-  bool mDropAudioBeforeThreshold;
-  bool mDropVideoBeforeThreshold;
-
-  nsTArray<nsRefPtr<SourceBufferDecoder>> mPendingDecoders;
-  nsTArray<nsRefPtr<SourceBufferDecoder>> mDecoders;
+  bool SwitchAudioReader(double aTarget);
+  bool SwitchVideoReader(double aTarget);
 
   nsRefPtr<MediaDecoderReader> mAudioReader;
   nsRefPtr<MediaDecoderReader> mVideoReader;
+
+  nsTArray<nsRefPtr<TrackBuffer>> mTrackBuffers;
+  nsRefPtr<TrackBuffer> mAudioTrack;
+  nsRefPtr<TrackBuffer> mVideoTrack;
+
+  
+  int64_t mLastAudioTime;
+  int64_t mLastVideoTime;
+
+  int64_t mTimeThreshold;
+  bool mDropAudioBeforeThreshold;
+  bool mDropVideoBeforeThreshold;
 
   bool mEnded;
 
@@ -128,4 +129,4 @@ private:
 
 } 
 
-#endif
+#endif 
