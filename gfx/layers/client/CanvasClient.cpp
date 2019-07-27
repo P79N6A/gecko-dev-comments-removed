@@ -386,6 +386,7 @@ CanvasClientSharedSurface::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
   
   MOZ_ALWAYS_TRUE( AddTextureClient(newTex) );
 
+#ifdef MOZ_WIDGET_GONK
   
   if (mFrontTex) {
     
@@ -398,6 +399,7 @@ CanvasClientSharedSurface::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 
     mFrontTex = nullptr;
   }
+#endif
 
   
   mFrontTex = newTex;
