@@ -93,16 +93,6 @@ function dispatchTest(e) {
       focusScript = "var elt=content.document.getElementById('text');elt.focus();elt.select();";
       break;
     case 2: 
-      defaultData = "Test for selection change event";
-      pasteData = "from parent ";
-      iframe.src = "data:text/html,<html><body>" +
-                   "<input type='password' id='text' value='" + defaultData + "'>" +
-                   "</body>" +
-                   "</html>";
-      stateMeaning = " (test: <input type=password>)";
-      focusScript = "var elt=content.document.getElementById('text');elt.focus();elt.select();";
-      break;
-    case 3: 
       defaultData = "12345";
       pasteData = "67890";
       iframe.src = "data:text/html,<html><body>" +
@@ -112,7 +102,7 @@ function dispatchTest(e) {
       stateMeaning = " (test: <input type=number>)";
       focusScript = "var elt=content.document.getElementById('text');elt.focus();elt.select();";
       break;
-    case 4: 
+    case 3: 
       defaultData = "Test for selection change event";
       pasteData = "from parent ";
       iframe.src = "data:text/html,<html><body>" +
@@ -122,7 +112,7 @@ function dispatchTest(e) {
       stateMeaning = " (test: content editable div)";
       focusScript = "var elt=content.document.getElementById('text');elt.focus();";
       break;
-    case 5: 
+    case 4: 
       SimpleTest.finish();
       return;
       defaultData = "Test for selection change event";
@@ -134,7 +124,7 @@ function dispatchTest(e) {
       stateMeaning = " (test: normal div)";
       focusScript = "var elt=content.document.getElementById('text');elt.focus();";
       break;
-    case 6: 
+    case 5: 
       defaultData = "Test for selection change event";
       pasteData = "from parent ";
       iframe.src = "data:text/html,<html><body id='text'>" +
@@ -192,14 +182,6 @@ function testCopy1(e) {
   }
 
   let compareData = defaultData;
-  if (state == 2) {
-    
-    
-    compareData = function(clipboardText) {
-      return clipboardText.length == defaultData.length;
-    };
-  }
-
   SimpleTest.waitForClipboard(compareData, setup, success, fail);
 }
 
@@ -215,10 +197,10 @@ function testPaste1(e) {
 function testPaste2(e) {
   mm.addMessageListener('content-text', function messageforpaste(msg) {
     mm.removeMessageListener('content-text', messageforpaste);
-    if (state == 5) {
+    if (state == 4) {
       
       ok(SpecialPowers.wrap(msg).json === defaultData, "paste command works" + stateMeaning);
-    } else if (state == 4 && browserElementTestHelpers.getOOPByDefaultPref()) {
+    } else if (state == 3 && browserElementTestHelpers.getOOPByDefaultPref()) {
       
       todo(false, "paste command works" + stateMeaning);
     } else {
@@ -239,7 +221,7 @@ function testCut1(e) {
   };
 
   let nextTest = function(success) {
-    if (state == 4 && browserElementTestHelpers.getOOPByDefaultPref()) {
+    if (state == 3 && browserElementTestHelpers.getOOPByDefaultPref()) {
       
       todo(false, "cut function works" + stateMeaning);
     } else {
@@ -257,13 +239,7 @@ function testCut1(e) {
   }
 
   let compareData = pasteData;
-  if (state == 2) {
-    
-    
-    compareData = function(clipboardText) {
-      return clipboardText.length == pasteData.length;
-    };
-  } else if (state == 4 && browserElementTestHelpers.getOOPByDefaultPref()) {
+  if (state == 3 && browserElementTestHelpers.getOOPByDefaultPref()) {
     
     
     compareData = function() { return true; }
@@ -276,9 +252,9 @@ function testCut2(e) {
   mm.addMessageListener('content-text', function messageforcut(msg) {
     mm.removeMessageListener('content-text', messageforcut);
     
-    if (state == 5) {
+    if (state == 4) {
       ok(SpecialPowers.wrap(msg).json !== "", "cut command works" + stateMeaning);
-    } else if (state == 4 && browserElementTestHelpers.getOOPByDefaultPref()) {
+    } else if (state == 3 && browserElementTestHelpers.getOOPByDefaultPref()) {
       
       todo(false, "cut command works" + stateMeaning);
     } else {
