@@ -655,6 +655,9 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
       {
         tmp = selNode;
         selNode = GetNodeLocation(tmp, &selOffset);
+        
+        
+        NS_ENSURE_STATE(selNode);
         ++selOffset;  
       }
 
