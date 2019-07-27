@@ -31,16 +31,10 @@ class nsFoo : public nsISupports {
     *aBool = true;
     return NS_OK;
   }
+
+private:
   virtual ~nsFoo() {}
 };
-
-namespace mozilla {
-template<>
-struct HasDangerousPublicDestructor<nsFoo>
-{
-  static const bool value = true;
-};
-}
 
 NS_IMPL_ISUPPORTS0(nsFoo)
 
@@ -129,7 +123,7 @@ int main(int argc, char** argv)
 
     
     
-    nsFoo * rawFoo = new nsFoo();
+    nsRefPtr<nsFoo> rawFoo = new nsFoo();
 
     
     char* message = (char*)"Test message";
@@ -152,8 +146,6 @@ int main(int argc, char** argv)
     NS_DispatchToMainThread(NS_NewRunnableMethodWithArg<nsFoo*>(bar, &nsBar::DoBar5std, rawFoo));
     NS_DispatchToMainThread(NS_NewRunnableMethodWithArg<char*>(bar, &nsBar::DoBar6std, message));
 #endif
-
-    delete rawFoo;
   }
 
   
