@@ -57,6 +57,14 @@ class nsGlobalWindow;
 class nsICSSDeclaration;
 class nsISMILAttr;
 
+namespace mozilla {
+namespace dom {
+  struct ScrollIntoViewOptions;
+  struct ScrollToOptions;
+} 
+} 
+
+
 already_AddRefed<nsContentList>
 NS_GetContentList(nsINode* aRootNode,
                   int32_t  aMatchNameSpaceId,
@@ -737,49 +745,23 @@ public:
   already_AddRefed<DestinationInsertionPointList> GetDestinationInsertionPoints();
 
   void ScrollIntoView();
-  void ScrollIntoView(bool aTop, const ScrollOptions &aOptions);
-  int32_t ScrollTop()
-  {
-    nsIScrollableFrame* sf = GetScrollFrame();
-    return sf ? sf->GetScrollPositionCSSPixels().y : 0;
-  }
-  void SetScrollTop(int32_t aScrollTop)
-  {
-    nsIScrollableFrame* sf = GetScrollFrame();
-    if (sf) {
-      nsIScrollableFrame::ScrollMode scrollMode = nsIScrollableFrame::INSTANT;
-      if (sf->GetScrollbarStyles().mScrollBehavior == NS_STYLE_SCROLL_BEHAVIOR_SMOOTH) {
-        scrollMode = nsIScrollableFrame::SMOOTH_MSD;
-      }
-      sf->ScrollToCSSPixels(CSSIntPoint(sf->GetScrollPositionCSSPixels().x,
-                                        aScrollTop),
-                            scrollMode);
-    }
-  }
-  int32_t ScrollLeft()
-  {
-    nsIScrollableFrame* sf = GetScrollFrame();
-    return sf ? sf->GetScrollPositionCSSPixels().x : 0;
-  }
-  void SetScrollLeft(int32_t aScrollLeft)
-  {
-    nsIScrollableFrame* sf = GetScrollFrame();
-    if (sf) {
-      nsIScrollableFrame::ScrollMode scrollMode = nsIScrollableFrame::INSTANT;
-      if (sf->GetScrollbarStyles().mScrollBehavior == NS_STYLE_SCROLL_BEHAVIOR_SMOOTH) {
-        scrollMode = nsIScrollableFrame::SMOOTH_MSD;
-      }
-
-      sf->ScrollToCSSPixels(CSSIntPoint(aScrollLeft,
-                                        sf->GetScrollPositionCSSPixels().y),
-                            scrollMode);
-    }
-  }
+  void ScrollIntoView(bool aTop);
+  void ScrollIntoView(const ScrollIntoViewOptions &aOptions);
+  void Scroll(double aXScroll, double aYScroll);
+  void Scroll(const ScrollToOptions& aOptions);
+  void ScrollTo(double aXScroll, double aYScroll);
+  void ScrollTo(const ScrollToOptions& aOptions);
+  void ScrollBy(double aXScrollDif, double aYScrollDif);
+  void ScrollBy(const ScrollToOptions& aOptions);
   
 
 
 
   bool ScrollByNoFlush(int32_t aDx, int32_t aDy);
+  int32_t ScrollTop();
+  void SetScrollTop(int32_t aScrollTop);
+  int32_t ScrollLeft();
+  void SetScrollLeft(int32_t aScrollLeft);
   int32_t ScrollWidth();
   int32_t ScrollHeight();
   int32_t ClientTop()
@@ -1125,6 +1107,17 @@ protected:
                             bool aFireMutation,
                             bool aNotify,
                             bool aCallAfterSetAttr);
+
+  
+
+
+
+
+
+
+
+
+  void Scroll(const CSSIntPoint& aScroll, const ScrollOptions& aOptions);
 
   
 
