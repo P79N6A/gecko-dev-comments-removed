@@ -179,16 +179,22 @@ void TestTextureClientSurface(TextureClient* texture, gfxImageSurface* surface) 
   ASSERT_EQ(host->GetFlags(), texture->GetFlags());
 
   
-  ASSERT_TRUE(host->Lock());
-  RefPtr<mozilla::gfx::DataSourceSurface> hostDataSurface = host->GetAsSurface();
-  host->Unlock();
 
-  nsRefPtr<gfxImageSurface> hostSurface =
-    new gfxImageSurface(hostDataSurface->GetData(),
-                        ThebesIntSize(hostDataSurface->GetSize()),
-                        hostDataSurface->Stride(),
-                        SurfaceFormatToImageFormat(hostDataSurface->GetFormat()));
-  AssertSurfacesEqual(surface, hostSurface.get());
+  
+  
+  
+  
+  if (host->Lock()) {
+    RefPtr<mozilla::gfx::DataSourceSurface> hostDataSurface = host->GetAsSurface();
+
+    nsRefPtr<gfxImageSurface> hostSurface =
+      new gfxImageSurface(hostDataSurface->GetData(),
+                          ThebesIntSize(hostDataSurface->GetSize()),
+                          hostDataSurface->Stride(),
+                          SurfaceFormatToImageFormat(hostDataSurface->GetFormat()));
+    AssertSurfacesEqual(surface, hostSurface.get());
+    host->Unlock();
+  }
 }
 
 
@@ -223,31 +229,32 @@ void TestTextureClientYCbCr(TextureClient* client, PlanarYCbCrData& ycbcrData) {
   ASSERT_EQ(host->GetFlags(), client->GetFlags());
 
   
-  ASSERT_TRUE(host->Lock());
 
-  
-  ASSERT_EQ(host->GetFormat(), mozilla::gfx::SurfaceFormat::YUV);
+  if (host->Lock()) {
+    
+    ASSERT_EQ(host->GetFormat(), mozilla::gfx::SurfaceFormat::YUV);
 
-  YCbCrImageDataDeserializer yuvDeserializer(host->GetBuffer(), host->GetBufferSize());
-  ASSERT_TRUE(yuvDeserializer.IsValid());
-  PlanarYCbCrData data;
-  data.mYChannel = yuvDeserializer.GetYData();
-  data.mCbChannel = yuvDeserializer.GetCbData();
-  data.mCrChannel = yuvDeserializer.GetCrData();
-  data.mYStride = yuvDeserializer.GetYStride();
-  data.mCbCrStride = yuvDeserializer.GetCbCrStride();
-  data.mStereoMode = yuvDeserializer.GetStereoMode();
-  data.mYSize = yuvDeserializer.GetYSize();
-  data.mCbCrSize = yuvDeserializer.GetCbCrSize();
-  data.mYSkip = 0;
-  data.mCbSkip = 0;
-  data.mCrSkip = 0;
-  data.mPicSize = data.mYSize;
-  data.mPicX = 0;
-  data.mPicY = 0;
+    YCbCrImageDataDeserializer yuvDeserializer(host->GetBuffer(), host->GetBufferSize());
+    ASSERT_TRUE(yuvDeserializer.IsValid());
+    PlanarYCbCrData data;
+    data.mYChannel = yuvDeserializer.GetYData();
+    data.mCbChannel = yuvDeserializer.GetCbData();
+    data.mCrChannel = yuvDeserializer.GetCrData();
+    data.mYStride = yuvDeserializer.GetYStride();
+    data.mCbCrStride = yuvDeserializer.GetCbCrStride();
+    data.mStereoMode = yuvDeserializer.GetStereoMode();
+    data.mYSize = yuvDeserializer.GetYSize();
+    data.mCbCrSize = yuvDeserializer.GetCbCrSize();
+    data.mYSkip = 0;
+    data.mCbSkip = 0;
+    data.mCrSkip = 0;
+    data.mPicSize = data.mYSize;
+    data.mPicX = 0;
+    data.mPicY = 0;
 
-  AssertYCbCrSurfacesEqual(&ycbcrData, &data);
-  host->Unlock();
+    AssertYCbCrSurfacesEqual(&ycbcrData, &data);
+    host->Unlock();
+  }
 }
 
 } 
