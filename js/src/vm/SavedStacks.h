@@ -132,10 +132,6 @@ class SavedStacks {
       : frames(),
         allocationSamplingProbability(1.0),
         allocationSkipCount(0),
-        
-        
-        
-        
         rngState(0)
     { }
 
