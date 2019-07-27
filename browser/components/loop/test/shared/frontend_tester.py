@@ -62,7 +62,6 @@ class BaseTestFrontendUnits(MarionetteTestCase):
 
         
         
-        
         self.marionette.set_search_timeout(60000)
 
     
