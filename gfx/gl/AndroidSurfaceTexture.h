@@ -15,6 +15,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Monitor.h"
 
+#include "SurfaceTexture.h"
 #include "AndroidNativeWindow.h"
 
 class gfxASurface;
@@ -42,30 +43,26 @@ public:
 
   
   
-  static AndroidSurfaceTexture* Create(GLContext* aGLContext, GLuint aTexture);
+  static TemporaryRef<AndroidSurfaceTexture> Create(GLContext* aGLContext, GLuint aTexture);
 
   
   
   
   
-  static AndroidSurfaceTexture* Create();
+  static TemporaryRef<AndroidSurfaceTexture> Create();
 
   static AndroidSurfaceTexture* Find(int id);
 
   
   
-  static bool Check();
+  
+  
+  
+  
+  nsresult Attach(GLContext* aContext, PRIntervalTime aTiemout = PR_INTERVAL_NO_TIMEOUT);
 
   
-  
-  
-  
-  
-  
-  bool Attach(GLContext* aContext, PRIntervalTime aTiemout = PR_INTERVAL_NO_TIMEOUT);
-
-  
-  bool Detach();
+  nsresult Detach();
 
   GLContext* GetAttachedContext() { return mAttachedContext; }
 
@@ -76,7 +73,7 @@ public:
   
   void UpdateTexImage();
 
-  bool GetTransformMatrix(mozilla::gfx::Matrix4x4& aMatrix);
+  void GetTransformMatrix(mozilla::gfx::Matrix4x4& aMatrix);
   int ID() { return mID; }
 
   void SetDefaultSize(mozilla::gfx::IntSize size);
@@ -90,7 +87,7 @@ public:
   void NotifyFrameAvailable();
 
   GLuint Texture() { return mTexture; }
-  jobject JavaSurface() { return mSurface; }
+  jobject JavaSurface() { return mSurface->wrappedObject(); }
 private:
   AndroidSurfaceTexture();
   ~AndroidSurfaceTexture();
@@ -98,8 +95,8 @@ private:
   bool Init(GLContext* aContext, GLuint aTexture);
 
   GLuint mTexture;
-  jobject mSurfaceTexture;
-  jobject mSurface;
+  nsAutoPtr<mozilla::widget::android::sdk::SurfaceTexture> mSurfaceTexture;
+  nsAutoPtr<mozilla::widget::android::sdk::Surface> mSurface;
 
   Monitor mMonitor;
   GLContext* mAttachedContext;
