@@ -808,21 +808,23 @@ bool
 js::obj_defineProperty(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+
+    
     RootedObject obj(cx);
     if (!GetFirstArgumentAsObject(cx, args, "Object.defineProperty", &obj))
         return false;
-
     RootedId id(cx);
     if (!ValueToId<CanGC>(cx, args.get(1), &id))
         return false;
 
-    Rooted<PropDesc> desc(cx);
-    if (!desc.initialize(cx, args.get(2)))
+    
+    Rooted<PropertyDescriptor> desc(cx);
+    if (!ToPropertyDescriptor(cx, args.get(2), true, &desc))
         return false;
 
+    
     if (!StandardDefineProperty(cx, obj, id, desc))
         return false;
-
     args.rval().setObject(*obj);
     return true;
 }

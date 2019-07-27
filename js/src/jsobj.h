@@ -33,7 +33,7 @@ struct ClassInfo;
 
 namespace js {
 
-class AutoPropDescVector;
+class AutoPropertyDescriptorVector;
 class GCMarker;
 struct NativeIterator;
 class Nursery;
@@ -767,19 +767,12 @@ GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
 
 
 extern bool
-StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id, const PropDesc &desc,
-                       ObjectOpResult &result);
-
-extern bool
 StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
                        Handle<PropertyDescriptor> descriptor, ObjectOpResult &result);
 
 
 
 
-
-extern bool
-StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id, const PropDesc &desc);
 
 extern bool
 StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
@@ -1151,12 +1144,25 @@ extern bool
 DefineProperties(JSContext *cx, HandleObject obj, HandleObject props);
 
 
+bool
+ToPropertyDescriptor(JSContext *cx, HandleValue v, bool checkAccessors,
+                     MutableHandle<PropertyDescriptor> desc);
+
+
+
+
+
+
+bool
+CheckPropertyDescriptorAccessors(JSContext *cx, Handle<PropertyDescriptor> desc);
+
+
 
 
 
 extern bool
 ReadPropertyDescriptors(JSContext *cx, HandleObject props, bool checkAccessors,
-                        AutoIdVector *ids, AutoPropDescVector *descs);
+                        AutoIdVector *ids, AutoPropertyDescriptorVector *descs);
 
 
 extern bool
