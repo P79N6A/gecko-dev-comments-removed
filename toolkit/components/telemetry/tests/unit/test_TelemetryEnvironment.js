@@ -630,17 +630,20 @@ add_task(function* test_prefWatchPolicies() {
   Assert.strictEqual(TelemetryEnvironment.currentEnvironment.settings.userPrefs[PREF_TEST_1], undefined);
   Assert.strictEqual(TelemetryEnvironment.currentEnvironment.settings.userPrefs[PREF_TEST_4], expectedValue);
 
-  TelemetryEnvironment.registerChangeListener("testWatchPrefs", deferred.resolve);
+  TelemetryEnvironment.registerChangeListener("testWatchPrefs",
+    (reason, data) => deferred.resolve(data));
+  let oldEnvironmentData = TelemetryEnvironment.currentEnvironment;
 
   
   Preferences.set(PREF_TEST_1, expectedValue);
   Preferences.set(PREF_TEST_2, false);
-  yield deferred.promise;
+  let eventEnvironmentData = yield deferred.promise;
 
   
   TelemetryEnvironment.unregisterChangeListener("testWatchPrefs");
 
   
+  Assert.deepEqual(oldEnvironmentData, eventEnvironmentData);
   let userPrefs = TelemetryEnvironment.currentEnvironment.settings.userPrefs;
 
   Assert.equal(userPrefs[PREF_TEST_1], expectedValue,
