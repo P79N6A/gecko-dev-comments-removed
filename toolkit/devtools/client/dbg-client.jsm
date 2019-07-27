@@ -1070,6 +1070,27 @@ DebuggerClient.prototype = {
 
   onClosed: function (aStatus) {
     this.emit("closed");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for (let pool of this._pools) {
+      pool.cleanup();
+    }
   },
 
   registerClient: function (client) {
