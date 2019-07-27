@@ -315,8 +315,13 @@ MTest::foldsTo(TempAllocator &alloc)
 {
     MDefinition *op = getOperand(0);
 
-    if (op->isNot())
+    if (op->isNot()) {
+        
+        MDefinition *opop = op->getOperand(0);
+        if (opop->isNot())
+            return MTest::New(alloc, opop->toNot()->input(), ifTrue(), ifFalse());
         return MTest::New(alloc, op->toNot()->input(), ifFalse(), ifTrue());
+    }
 
     return this;
 }
@@ -2986,6 +2991,16 @@ MNot::foldsTo(TempAllocator &alloc)
 
         
         return MConstant::New(alloc, BooleanValue(!result));
+    }
+
+    
+    
+    
+    MDefinition *op = getOperand(0);
+    if (op->isNot()) {
+        MDefinition *opop = op->getOperand(0);
+        if (opop->isNot())
+            return opop;
     }
 
     
