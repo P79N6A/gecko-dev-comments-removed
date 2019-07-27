@@ -147,7 +147,7 @@ public:
   
   
   virtual nsRefPtr<VideoDataPromise>
-  RequestVideoData(bool aSkipToNextKeyframe, int64_t aTimeThreshold);
+  RequestVideoData(bool aSkipToNextKeyframe, int64_t aTimeThreshold, bool aForceDecodeAhead);
 
   friend class ReRequestVideoWithSkipTask;
   friend class ReRequestAudioTask;

@@ -83,7 +83,8 @@ public:
   
   virtual nsRefPtr<VideoDataPromise>
   RequestVideoData(bool aSkipToNextKeyframe,
-                   int64_t aTimeThreshold) override;
+                   int64_t aTimeThreshold,
+                   bool aForceDecodeAhead) override;
 
   
   virtual nsRefPtr<AudioDataPromise> RequestAudioData() override;

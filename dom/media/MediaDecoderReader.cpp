@@ -296,7 +296,8 @@ public:
 
     
     if (!mReader->mBaseVideoPromise.IsEmpty()) {
-      mReader->RequestVideoData( true, mTimeThreshold);
+      mReader->RequestVideoData( true, mTimeThreshold,
+                                 false);
     }
 
     return NS_OK;
@@ -333,7 +334,8 @@ private:
 
 nsRefPtr<MediaDecoderReader::VideoDataPromise>
 MediaDecoderReader::RequestVideoData(bool aSkipToNextKeyframe,
-                                     int64_t aTimeThreshold)
+                                     int64_t aTimeThreshold,
+                                     bool aForceDecodeAhead)
 {
   nsRefPtr<VideoDataPromise> p = mBaseVideoPromise.Ensure(__func__);
   bool skip = aSkipToNextKeyframe;
