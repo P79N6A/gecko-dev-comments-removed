@@ -81,9 +81,6 @@ AudioChannelAgent::InitInternal(nsIDOMWindow* aWindow, int32_t aChannelType,
                                 bool aUseWeakRef, bool aWithVideo)
 {
   
-  MOZ_ASSERT(aWindow || XRE_GetProcessType() == GeckoProcessType_Default);
-
-  
   
   MOZ_ASSERT(int(AUDIO_AGENT_CHANNEL_NORMAL) == int(AudioChannel::Normal) &&
              int(AUDIO_AGENT_CHANNEL_CONTENT) == int(AudioChannel::Content) &&
