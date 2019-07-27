@@ -58,7 +58,7 @@ notification[type="critical"] {
 
 
 
-.popup-notification-description {
+.popup-notification-body {
   max-width: 24em;
 }
 
