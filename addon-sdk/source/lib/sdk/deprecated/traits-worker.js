@@ -184,34 +184,17 @@ const WorkerSandbox = EventEmitter.compose({
     
     
     
-    
-    
-    
-    
-    let chromeAPI = {
+    let chromeAPI = Cu.cloneInto({
       timers: {
-        setTimeout: timer.setTimeout,
-        setInterval: timer.setInterval,
-        clearTimeout: timer.clearTimeout,
-        clearInterval: timer.clearInterval,
-        __exposedProps__: {
-          setTimeout: 'r',
-          setInterval: 'r',
-          clearTimeout: 'r',
-          clearInterval: 'r'
-        }
+        setTimeout: timer.setTimeout.bind(timer),
+        setInterval: timer.setInterval.bind(timer),
+        clearTimeout: timer.clearTimeout.bind(timer),
+        clearInterval: timer.clearInterval.bind(timer),
       },
       sandbox: {
         evaluate: evaluate,
-        __exposedProps__: {
-          evaluate: 'r',
-        }
       },
-      __exposedProps__: {
-        timers: 'r',
-        sandbox: 'r',
-      }
-    };
+    }, ContentWorker, {cloneFunctions: true});
     let onEvent = this._onContentEvent.bind(this);
     let result = Cu.waiveXrays(ContentWorker).inject(content, chromeAPI, onEvent, options);
     this._emitToContent = result;

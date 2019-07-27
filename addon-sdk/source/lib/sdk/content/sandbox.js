@@ -176,12 +176,8 @@ const WorkerSandbox = Class({
     
     
     
-    
-    
-    
-    
     let onEvent = onContentEvent.bind(null, this);
-    let chromeAPI = createChromeAPI();
+    let chromeAPI = createChromeAPI(ContentWorker);
     let result = Cu.waiveXrays(ContentWorker).inject(content, chromeAPI, onEvent, options);
 
     
@@ -379,29 +375,16 @@ function emitToContent (workerSandbox, args) {
   return modelFor(workerSandbox).emitToContent(args);
 }
 
-function createChromeAPI () {
-  return {
+function createChromeAPI (scope) {
+  return Cu.cloneInto({
     timers: {
-      setTimeout: timer.setTimeout,
-      setInterval: timer.setInterval,
-      clearTimeout: timer.clearTimeout,
-      clearInterval: timer.clearInterval,
-      __exposedProps__: {
-        setTimeout: 'r',
-        setInterval: 'r',
-        clearTimeout: 'r',
-        clearInterval: 'r'
-      },
+      setTimeout: timer.setTimeout.bind(timer),
+      setInterval: timer.setInterval.bind(timer),
+      clearTimeout: timer.clearTimeout.bind(timer),
+      clearInterval: timer.clearInterval.bind(timer),
     },
     sandbox: {
       evaluate: evaluate,
-      __exposedProps__: {
-        evaluate: 'r'
-      }
     },
-    __exposedProps__: {
-      timers: 'r',
-      sandbox: 'r'
-    }
-  };
+  }, scope, {cloneFunctions: true});
 }
