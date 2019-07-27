@@ -848,7 +848,8 @@ DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
         if (needClip || aTransparency != nsITheme::eOpaque) {
           
           aDrawTarget->DrawSurface(dataSurface,
-                                   Rect(aDrawOrigin, Size(aDrawSize)),
+                                   Rect(aSnapped ? aDrawOrigin - aDrawTarget->GetTransform().GetTranslation() : aDrawOrigin,
+                                        Size(aDrawSize)),
                                    Rect(0, 0, aDrawSize.width, aDrawSize.height));
         } else {
           
