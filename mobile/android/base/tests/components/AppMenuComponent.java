@@ -124,9 +124,18 @@ public class AppMenuComponent extends BaseComponent {
             }
         } else {
             
+            
+            
+            
+            
+            openLegacyMoreMenu();
+
             final View pageMenuItemView = findAppMenuItemView(pageMenuItem.getString(mSolo));
             fAssertFalse("The page menu item is not enabled", pageMenuItemView.isEnabled());
             fAssertEquals("The page menu item is visible", View.VISIBLE, pageMenuItemView.getVisibility());
+
+            
+            mSolo.goBack();
         }
 
         
@@ -138,6 +147,8 @@ public class AppMenuComponent extends BaseComponent {
     }
 
     
+
+
 
 
 
@@ -229,6 +240,25 @@ public class AppMenuComponent extends BaseComponent {
         waitForMenuOpen();
     }
 
+    
+
+
+
+    private void openLegacyMoreMenu() {
+        fAssertTrue("The base menu is already open", isMenuOpen());
+
+        
+        
+        mSolo.clickOnText("^More$");
+
+        WaitHelper.waitFor("legacy \"More\" menu to open", new Condition() {
+            @Override
+            public boolean isSatisfied() {
+                return isLegacyMoreMenuOpen();
+            }
+        });
+    }
+
     private void pressOverflowMenuButton() {
         final View overflowMenuButton = getOverflowMenuButtonView();
 
@@ -247,6 +277,11 @@ public class AppMenuComponent extends BaseComponent {
         return isMenuOpen(MenuItem.NEW_TAB.getString(mSolo));
     }
 
+    private boolean isLegacyMoreMenuOpen() {
+        
+        return mSolo.searchText(mSolo.getString(R.string.share), true);
+    }
+
     
 
 
@@ -255,7 +290,7 @@ public class AppMenuComponent extends BaseComponent {
 
 
     private boolean isMenuOpen(String menuItemTitle) {
-        return mSolo.searchText(menuItemTitle);
+        return mSolo.searchText(menuItemTitle, true);
     }
 
     private void waitForMenuOpen() {
