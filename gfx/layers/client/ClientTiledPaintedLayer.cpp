@@ -419,19 +419,35 @@ ClientTiledPaintedLayer::RenderLayer()
     }
 
     
-    if (UseFastPath()) {
-      TILING_LOG("TILING %p: Taking fast-path\n", this);
-      mValidRegion = neededRegion;
-      mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
-      ClientManager()->Hold(this);
-      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
+    
+    BeginPaint();
+    if (mPaintData.mPaintFinished) {
       return;
     }
 
     
-    
-    BeginPaint();
-    if (mPaintData.mPaintFinished) {
+    if (UseFastPath()) {
+      TILING_LOG("TILING %p: Taking fast-path\n", this);
+      mValidRegion = neededRegion;
+
+      
+      
+      
+      if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
+        mValidRegion.And(mValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
+        invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
+      }
+
+      if (invalidRegion.IsEmpty()) {
+        EndPaint();
+        return;
+      }
+
+      mContentClient->mTiledBuffer.SetFrameResolution(mPaintData.mResolution);
+      mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
+      ClientManager()->Hold(this);
+      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
+      EndPaint();
       return;
     }
 
