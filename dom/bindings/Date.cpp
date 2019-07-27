@@ -39,7 +39,7 @@ Date::SetTimeStamp(JSContext* aCx, JSObject* aObject)
     return false;
   }
 
-  mMsecSinceEpoch = js_DateGetMsecSinceEpoch(obj);
+  mMsecSinceEpoch = js::DateGetMsecSinceEpoch(aCx, obj);
   return true;
 }
 
