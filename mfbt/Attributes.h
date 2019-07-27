@@ -50,8 +50,6 @@
 
 
 
-#  define MOZ_HAVE_CXX11_FINAL         final
-#  define MOZ_HAVE_CXX11_OVERRIDE
 #  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
 #  define MOZ_HAVE_NORETURN              __declspec(noreturn)
 #  ifdef __clang__
@@ -78,10 +76,6 @@
 #  if __has_extension(cxx_explicit_conversions)
 #    define MOZ_HAVE_EXPLICIT_CONVERSION
 #  endif
-#  if __has_extension(cxx_override_control)
-#    define MOZ_HAVE_CXX11_OVERRIDE
-#    define MOZ_HAVE_CXX11_FINAL         final
-#  endif
 #  if __has_attribute(noinline)
 #    define MOZ_HAVE_NEVER_INLINE        __attribute__((noinline))
 #  endif
@@ -90,17 +84,8 @@
 #  endif
 #elif defined(__GNUC__)
 #  if defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L
-#    if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
-#      define MOZ_HAVE_CXX11_OVERRIDE
-#      define MOZ_HAVE_CXX11_FINAL       final
-#    endif
 #      define MOZ_HAVE_CXX11_CONSTEXPR
 #      define MOZ_HAVE_EXPLICIT_CONVERSION
-#  else
-     
-#    if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
-#      define MOZ_HAVE_CXX11_FINAL       __final
-#    endif
 #  endif
 #  define MOZ_HAVE_NEVER_INLINE          __attribute__((noinline))
 #  define MOZ_HAVE_NORETURN              __attribute__((noreturn))
@@ -290,116 +275,6 @@
 #endif
 
 #ifdef __cplusplus
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(MOZ_HAVE_CXX11_OVERRIDE)
-#  define MOZ_OVERRIDE          override
-#else
-#  define MOZ_OVERRIDE
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(MOZ_HAVE_CXX11_FINAL)
-#  define MOZ_FINAL             MOZ_HAVE_CXX11_FINAL
-#else
-#  define MOZ_FINAL
-#endif
 
 
 
