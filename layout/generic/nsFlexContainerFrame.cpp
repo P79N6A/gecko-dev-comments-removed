@@ -252,6 +252,11 @@ public:
 private:
   
   
+  FlexboxAxisTracker(const FlexboxAxisTracker&) = delete;
+  FlexboxAxisTracker& operator=(const FlexboxAxisTracker&) = delete;
+
+  
+  
   
   
   static inline bool IsAxisHorizontal(AxisOrientationType aAxis) {
@@ -1722,15 +1727,11 @@ protected:
       mAxis(aAxis)
   {}
 
-private:
   
   
-  PositionTracker(const PositionTracker& aOther)
-    : mPosition(aOther.mPosition),
-      mAxis(aOther.mAxis)
-  {}
+  PositionTracker(const PositionTracker&) = delete;
+  PositionTracker& operator=(const PositionTracker&) = delete;
 
-protected:
   
   nscoord mPosition;               
   const AxisOrientationType mAxis; 
