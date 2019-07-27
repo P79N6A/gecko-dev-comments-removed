@@ -1060,10 +1060,7 @@ let loadManifestFromDir = Task.async(function* loadManifestFromDir(aDir) {
     addon.hasBinaryComponents = ChromeManifestParser.hasType(chromeManifest,
                                                              "binary-component");
 
-    if (SIGNED_TYPES.has(addon.type))
-      addon.signedState = yield verifyDirSignedState(aDir, addon.id);
-    else
-      addon.signedState = AddonManager.SIGNEDSTATE_MISSING;
+    addon.signedState = yield verifyDirSignedState(aDir, addon);
 
     addon.appDisabled = !isUsableAddon(addon);
     return addon;
@@ -1108,10 +1105,7 @@ let loadManifestFromZipReader = Task.async(function* loadManifestFromZipReader(a
       addon.hasBinaryComponents = false;
     }
 
-    if (SIGNED_TYPES.has(addon.type))
-      addon.signedState = yield verifyZipSignedState(aZipReader.file, addon.id, addon.version);
-    else
-      addon.signedState = AddonManager.SIGNEDSTATE_MISSING;
+    addon.signedState = yield verifyZipSignedState(aZipReader.file, addon);
 
     addon.appDisabled = !isUsableAddon(addon);
     return addon;
@@ -1329,7 +1323,10 @@ function getSignedStatus(aRv, aCert, aExpectedID) {
 
 
 
-function verifyZipSignedState(aFile, aExpectedID, aVersion) {
+function verifyZipSignedState(aFile, aAddon) {
+  if (!SIGNED_TYPES.has(aAddon.type))
+    return Promise.resolve(undefined);
+
   let certDB = Cc["@mozilla.org/security/x509certdb;1"]
                .getService(Ci.nsIX509CertDB);
 
@@ -1341,7 +1338,7 @@ function verifyZipSignedState(aFile, aExpectedID, aVersion) {
     certDB.openSignedAppFileAsync(root, aFile, (aRv, aZipReader, aCert) => {
       if (aZipReader)
         aZipReader.close();
-      resolve(getSignedStatus(aRv, aCert, aExpectedID));
+      resolve(getSignedStatus(aRv, aCert, aAddon.id));
     });
   });
 }
@@ -1356,7 +1353,10 @@ function verifyZipSignedState(aFile, aExpectedID, aVersion) {
 
 
 
-function verifyDirSignedState(aDir, aExpectedID) {
+function verifyDirSignedState(aDir, aAddon) {
+  if (!SIGNED_TYPES.has(aAddon.type))
+    return Promise.resolve(undefined);
+
   
   return Promise.resolve(AddonManager.SIGNEDSTATE_MISSING);
 }
@@ -1371,10 +1371,10 @@ function verifyDirSignedState(aDir, aExpectedID) {
 
 
 
-function verifyBundleSignedState(aBundle, aExpectedID) {
+function verifyBundleSignedState(aBundle, aAddon) {
   if (aBundle.isFile())
-    return verifyZipSignedState(aBundle, aExpectedID);
-  return verifyDirSignedState(aBundle, aExpectedID);
+    return verifyZipSignedState(aBundle, aAddon);
+  return verifyDirSignedState(aBundle, aAddon);
 }
 
 
@@ -2522,7 +2522,7 @@ this.XPIProvider = {
 
 
   verifySignatures: function XPI_verifySignatures() {
-    XPIDatabase.getAddonList(addon => SIGNED_TYPES.has(addon.type), (addons) => {
+    XPIDatabase.getAddonList(a => true, (addons) => {
       Task.spawn(function*() {
         let changes = {
           enabled: [],
@@ -2534,7 +2534,7 @@ this.XPIProvider = {
           if (!addon._sourceBundle.exists())
             continue;
 
-          let signedState = yield verifyBundleSignedState(addon._sourceBundle, addon.id);
+          let signedState = yield verifyBundleSignedState(addon._sourceBundle, addon);
           if (signedState == addon.signedState)
             continue;
 
@@ -3168,7 +3168,7 @@ this.XPIProvider = {
 
         
         
-        if (aOldAddon.signedState === undefined) {
+        if (aOldAddon.signedState === undefined && SIGNED_TYPES.has(aOldAddon.type)) {
           let file = aInstallLocation.getLocationForID(aOldAddon.id);
           let manifest = syncLoadManifestFromFile(file);
           aOldAddon.signedState = manifest.signedState;
@@ -5418,7 +5418,8 @@ AddonInstall.prototype = {
                                "signature verification failed"])
       }
     }
-    else if (this.addon.signedState == AddonManager.SIGNEDSTATE_UNKNOWN) {
+    else if (this.addon.signedState == AddonManager.SIGNEDSTATE_UNKNOWN ||
+             this.addon.signedState == undefined) {
       
       let x509 = zipreader.getSigningCert(null);
       if (x509) {
