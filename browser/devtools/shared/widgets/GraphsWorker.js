@@ -7,7 +7,7 @@
 
 
 importScripts("resource://gre/modules/workers/require.js");
-const { createTask } = require("resource:///modules/devtools/shared/worker-helper");
+const { createTask } = require("resource://gre/modules/devtools/shared/worker-helper");
 
 
 
