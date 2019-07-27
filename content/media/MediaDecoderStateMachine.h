@@ -100,7 +100,6 @@ class VideoSegment;
 class MediaTaskQueue;
 class SharedThreadPool;
 class AudioSink;
-class MediaDecoderStateMachineScheduler;
 
 
 
@@ -280,7 +279,7 @@ public:
   }
 
   
-  nsIEventTarget* GetStateMachineThread() const;
+  nsIEventTarget* GetStateMachineThread();
 
   
   
@@ -292,8 +291,7 @@ public:
   nsresult ScheduleStateMachine(int64_t aUsecs = 0);
 
   
-  
-  static nsresult TimeoutExpired(void* aClosure);
+  nsresult TimeoutExpired(int aGeneration);
 
   
   void SetFragmentEndTime(int64_t aEndTime);
@@ -612,7 +610,10 @@ protected:
   
   nsresult RunStateMachine();
 
-  bool IsStateMachineScheduled() const;
+  bool IsStateMachineScheduled() const {
+    AssertCurrentThreadInMonitor();
+    return !mTimeout.IsNull();
+  }
 
   
   
@@ -651,10 +652,6 @@ protected:
 
   
   
-  const nsAutoPtr<MediaDecoderStateMachineScheduler> mScheduler;
-
-  
-  
   
   TimeStamp mVideoDecodeStartTime;
 
@@ -676,6 +673,19 @@ protected:
   
   
   RefPtr<MediaTaskQueue> mDecodeTaskQueue;
+
+  RefPtr<SharedThreadPool> mStateMachineThreadPool;
+
+  
+  
+  nsCOMPtr<nsITimer> mTimer;
+
+  
+  
+  TimeStamp mTimeout;
+
+  
+  DebugOnly<bool> mInRunningStateMachine;
 
   
   
@@ -902,6 +912,9 @@ protected:
   bool mDecodeThreadWaiting;
 
   
+  bool mRealTime;
+
+  
   
   
   bool mDispatchedDecodeMetadataTask;
@@ -929,6 +942,9 @@ protected:
   mozilla::MediaMetadataManager mMetadataManager;
 
   MediaDecoderOwner::NextFrameStatus mLastFrameStatus;
+
+  
+  int mTimerId;
 };
 
 } 
