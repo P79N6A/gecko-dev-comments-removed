@@ -9896,8 +9896,7 @@ nsCSSFrameConstructor::CreateNeededPseudoInternalRubyBoxes(
     return;
   }
 
-  nsStyleContext* parentStyle = aParentFrame->StyleContext();
-  if (!parentStyle->GetPseudo()) {
+  if (!IsRubyPseudo(aParentFrame)) {
     
     
     
@@ -9913,6 +9912,7 @@ nsCSSFrameConstructor::CreateNeededPseudoInternalRubyBoxes(
 
   FCItemIterator iter(aItems);
   nsIContent* parentContent = aParentFrame->GetContent();
+  nsStyleContext* parentStyle = aParentFrame->StyleContext();
   while (!iter.IsDone()) {
     if (!iter.SkipItemsWantingParentType(ourParentType)) {
       if (ourParentType == eTypeRuby) {
