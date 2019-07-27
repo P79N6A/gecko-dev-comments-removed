@@ -130,6 +130,10 @@ var CastingApps = {
     return filteredServices;
   },
 
+  getServicesForMirroring: function () {
+    return SimpleServiceDiscovery.services.filter(service => service.mirror);
+  },
+
   
   onRemoteMediaStart: function (remoteMedia) {
     if (!this.session) {
