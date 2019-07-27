@@ -296,7 +296,7 @@ private:
                                                     bool aShouldSyncNotify = true);
 
   DrawableFrameRef LookupFrameInternal(uint32_t aFrameNum,
-                                       const nsIntSize& aSize,
+                                       const gfx::IntSize& aSize,
                                        uint32_t aFlags);
   DrawableFrameRef LookupFrame(uint32_t aFrameNum,
                                const nsIntSize& aSize,
@@ -422,6 +422,9 @@ private:
 
   
   bool CanScale(GraphicsFilter aFilter, const nsIntSize& aSize, uint32_t aFlags);
+
+  
+  bool CanDownscaleDuringDecode(const nsIntSize& aSize, uint32_t aFlags);
 
   
   void NotifyNewScaledFrame();
