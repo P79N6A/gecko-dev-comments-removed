@@ -264,34 +264,6 @@ MP4Reader::Init(MediaDecoderReader* aCloneDonor)
   return NS_OK;
 }
 
-#ifdef MOZ_EME
-class DispatchKeyNeededEvent : public nsRunnable {
-public:
-  DispatchKeyNeededEvent(AbstractMediaDecoder* aDecoder,
-                         nsTArray<uint8_t>& aInitData,
-                         const nsString& aInitDataType)
-    : mDecoder(aDecoder)
-    , mInitData(aInitData)
-    , mInitDataType(aInitDataType)
-  {
-  }
-  NS_IMETHOD Run() {
-    
-    
-    MediaDecoderOwner* owner = mDecoder->GetOwner();
-    if (owner) {
-      owner->DispatchEncrypted(mInitData, mInitDataType);
-    }
-    mDecoder = nullptr;
-    return NS_OK;
-  }
-private:
-  nsRefPtr<AbstractMediaDecoder> mDecoder;
-  nsTArray<uint8_t> mInitData;
-  nsString mInitDataType;
-};
-#endif
-
 void MP4Reader::RequestCodecResource() {
   if (mVideo.mDecoder) {
     mVideo.mDecoder->AllocateMediaResources();
@@ -435,11 +407,6 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
       return NS_ERROR_FAILURE;
     }
 
-    
-    NS_DispatchToMainThread(
-      new DispatchKeyNeededEvent(mDecoder, initData, NS_LITERAL_STRING("cenc")));
-    
-    
     mInfo.mCrypto.AddInitData(NS_LITERAL_STRING("cenc"), Move(initData));
   }
 
