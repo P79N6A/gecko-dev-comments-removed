@@ -377,6 +377,8 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   aRenderingContext.SetFont(fm);
 
   nscoord xHeight = fm->XHeight();
+  nscoord oneDevPixel = fm->AppUnitsPerDevPixel();
+  gfxFont* mathFont = fm->GetThebesFontGroup()->GetFirstMathFont();
 
   nscoord ruleThickness;
   GetRuleThickness (aRenderingContext, fm, ruleThickness);
@@ -397,13 +399,26 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
                       dummy, bigOpSpacing2, 
                       dummy, bigOpSpacing4, 
                       bigOpSpacing5);
+    if (mathFont) {
+      
+      
+      
+      bigOpSpacing2 =
+        mathFont->GetMathConstant(gfxFontEntry::LowerLimitGapMin,
+                                  oneDevPixel);
+      bigOpSpacing4 =
+        mathFont->GetMathConstant(gfxFontEntry::LowerLimitBaselineDropMin,
+                                  oneDevPixel);
+      bigOpSpacing5 = 0;
+    }
     underDelta1 = std::max(bigOpSpacing2, (bigOpSpacing4 - bmUnder.ascent));
     underDelta2 = bigOpSpacing5;
   }
   else {
     
     
-
+    
+    
     
     underDelta1 = ruleThickness + onePixel/2;
     underDelta2 = ruleThickness;
@@ -419,11 +434,26 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
 
   if (!NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)) {    
     
+    
+    
+    
     nscoord bigOpSpacing1, bigOpSpacing3, bigOpSpacing5, dummy; 
     GetBigOpSpacings (fm, 
                       bigOpSpacing1, dummy, 
                       bigOpSpacing3, dummy, 
                       bigOpSpacing5);
+    if (mathFont) {
+      
+      
+      
+      bigOpSpacing1 =
+        mathFont->GetMathConstant(gfxFontEntry::UpperLimitGapMin,
+                                  oneDevPixel);
+      bigOpSpacing3 =
+        mathFont->GetMathConstant(gfxFontEntry::UpperLimitBaselineRiseMin,
+                                  oneDevPixel);
+      bigOpSpacing5 = 0;
+    }
     overDelta1 = std::max(bigOpSpacing1, (bigOpSpacing3 - bmOver.descent));
     overDelta2 = bigOpSpacing5;
 
@@ -464,9 +494,15 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     
     
     overDelta1 = ruleThickness + onePixel/2;
-    if (bmBase.ascent < xHeight) {
+    nscoord accentBaseHeight = xHeight;
+    if (mathFont) {
+      accentBaseHeight =
+        mathFont->GetMathConstant(gfxFontEntry::AccentBaseHeight,
+                                  oneDevPixel);
+    }
+    if (bmBase.ascent < accentBaseHeight) {
       
-      overDelta1 += xHeight - bmBase.ascent;
+      overDelta1 += accentBaseHeight - bmBase.ascent;
     }
     overDelta2 = ruleThickness;
   }
