@@ -931,9 +931,9 @@ class AssemblerShared
         if (ptr.value && gc::IsInsideNursery(ptr.value)) {
             
             
-            
-            
             MOZ_ASSERT(GetJitContext()->runtime->onMainThread());
+            
+            MOZ_ASSERT(!GetJitContext()->runtime->mainThread()->ionCompiling);
             embedsNurseryPointers_ = true;
         }
         return ImmGCPtr(ptr);
