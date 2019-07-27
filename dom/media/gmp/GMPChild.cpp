@@ -310,6 +310,10 @@ GMPChild::PreLoadLibraries(const std::string& aPluginPath)
     {
        "d3d9.dll", 
        "dxva2.dll", 
+       "evr.dll", 
+       "mfh264dec.dll", 
+       "mfheaacdec.dll", 
+       "mfplat.dll", 
        "msauddecmft.dll", 
        "msmpeg2adec.dll", 
        "msmpeg2vdec.dll", 
