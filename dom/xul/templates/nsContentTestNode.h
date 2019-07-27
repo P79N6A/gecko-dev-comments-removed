@@ -12,6 +12,8 @@
 #include "nsIAtom.h"
 #include "nsIDOMDocument.h"
 
+class nsXULTemplateQueryProcessorRDF;
+
 
 
 

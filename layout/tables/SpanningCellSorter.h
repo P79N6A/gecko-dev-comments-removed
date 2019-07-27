@@ -15,8 +15,6 @@
 #include "nsDebug.h"
 #include "StackArena.h"
 
-class nsIPresShell;
-
 
 
 

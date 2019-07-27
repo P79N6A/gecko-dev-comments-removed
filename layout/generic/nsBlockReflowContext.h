@@ -16,8 +16,6 @@ class nsBlockReflowState;
 struct nsHTMLReflowState;
 class nsLineBox;
 class nsPresContext;
-class nsLineLayout;
-struct nsBlockHorizontalAlign;
 
 
 

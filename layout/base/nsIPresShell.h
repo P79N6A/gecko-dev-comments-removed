@@ -94,7 +94,6 @@ class DocAccessible;
 } 
 } 
 #endif
-class nsIWidget;
 struct nsArenaMemoryStats;
 class nsITimer;
 

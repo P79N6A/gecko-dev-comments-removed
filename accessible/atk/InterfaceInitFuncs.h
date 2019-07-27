@@ -17,8 +17,6 @@ class AccessibleWrap;
 } 
 } 
 
-struct MaiUtilClass;
-
 extern "C" {
 void actionInterfaceInitCB(AtkActionIface* aIface);
 void componentInterfaceInitCB(AtkComponentIface* aIface);

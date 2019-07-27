@@ -20,11 +20,7 @@ class Accessible;
 } 
 } 
 
-class nsINode;
-class nsIContent;
-class nsIFrame;
 class nsIPresShell;
-class nsPluginFrame;
 
 
 #define NS_IACCESSIBILITYSERVICE_IID \

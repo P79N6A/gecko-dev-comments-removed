@@ -11,9 +11,6 @@
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 
-
-class nsIHTMLContentSink;
-
 #ifdef _MSC_VER
 #pragma warning( disable : 4275 )
 #endif

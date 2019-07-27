@@ -18,7 +18,6 @@
 
 class nsITransaction;
 class nsITransactionListener;
-class nsTransactionItem;
 
 
 

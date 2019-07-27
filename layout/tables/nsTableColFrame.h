@@ -11,8 +11,6 @@
 #include "nsContainerFrame.h"
 #include "nsTArray.h"
 
-class nsTableCellFrame;
-
 enum nsTableColType {
   eColContent            = 0, 
   eColAnonymousCol       = 1, 
