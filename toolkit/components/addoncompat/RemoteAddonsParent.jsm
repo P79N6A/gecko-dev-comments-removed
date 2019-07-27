@@ -581,6 +581,22 @@ let SandboxParent = {
       .QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIContentFrameMessageManager);
 
+    if (rest.length) {
+      
+      
+      
+      
+      
+      
+      
+      let options = rest[0];
+      let optionsCopy = new chromeGlobal.Object();
+      for (let prop in options) {
+        optionsCopy[prop] = options[prop];
+      }
+      rest[0] = optionsCopy;
+    }
+
     
     let cu = chromeGlobal.Components.utils;
     let sandbox = cu.Sandbox(principal, ...rest);
