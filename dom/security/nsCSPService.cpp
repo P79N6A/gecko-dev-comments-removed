@@ -48,6 +48,56 @@ CSPService::~CSPService()
 NS_IMPL_ISUPPORTS(CSPService, nsIContentPolicy, nsIChannelEventSink)
 
 
+bool
+subjectToCSP(nsIURI* aURI) {
+  
+  
+  
+  
+  
+  
+  bool match = false;
+  nsresult rv = aURI->SchemeIs("data", &match);
+  if (NS_SUCCEEDED(rv) && match) {
+    return true;
+  }
+  rv = aURI->SchemeIs("blob", &match);
+  if (NS_SUCCEEDED(rv) && match) {
+    return true;
+  }
+  rv = aURI->SchemeIs("filesystem", &match);
+  if (NS_SUCCEEDED(rv) && match) {
+    return true;
+  }
+  
+  
+  rv = aURI->SchemeIs("about", &match);
+  if (NS_SUCCEEDED(rv) && match) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  rv = NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE, &match);
+  if (NS_SUCCEEDED(rv) && match) {
+    return false;
+  }
+  rv = NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT, &match);
+  if (NS_SUCCEEDED(rv) && match) {
+    return false;
+  }
+  
+  return true;
+}
+
+
 NS_IMETHODIMP
 CSPService::ShouldLoad(uint32_t aContentType,
                        nsIURI *aContentLocation,
@@ -58,8 +108,9 @@ CSPService::ShouldLoad(uint32_t aContentType,
                        nsIPrincipal *aRequestPrincipal,
                        int16_t *aDecision)
 {
-  if (!aContentLocation)
+  if (!aContentLocation) {
     return NS_ERROR_FAILURE;
+  }
 
 #ifdef PR_LOGGING
   {
@@ -74,25 +125,13 @@ CSPService::ShouldLoad(uint32_t aContentType,
   *aDecision = nsIContentPolicy::ACCEPT;
 
   
-  if (!sCSPEnabled)
-    return NS_OK;
-
   
   
-  bool schemeMatch = false;
-  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("about", &schemeMatch), NS_OK);
-  if (schemeMatch)
+  
+  
+  if (!sCSPEnabled || !subjectToCSP(aContentLocation)) {
     return NS_OK;
-  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("chrome", &schemeMatch), NS_OK);
-  if (schemeMatch)
-    return NS_OK;
-  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("resource", &schemeMatch), NS_OK);
-  if (schemeMatch)
-    return NS_OK;
-  NS_ENSURE_SUCCESS(aContentLocation->SchemeIs("javascript", &schemeMatch), NS_OK);
-  if (schemeMatch)
-    return NS_OK;
-
+  }
 
   
   
