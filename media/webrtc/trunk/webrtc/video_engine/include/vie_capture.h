@@ -47,6 +47,19 @@ struct CaptureCapability {
   }
 };
 
+enum CaptureDeviceType {
+  Camera = 0,
+  Screen = 1,
+  Application = 2,
+  Window = 3
+};
+struct CaptureDeviceInfo {
+  CaptureDeviceType type;
+
+  CaptureDeviceInfo() : type(CaptureDeviceType::Camera) {}
+  CaptureDeviceInfo(CaptureDeviceType t) : type(t) {}
+};
+
 
 enum Brightness {
   Normal = 0,
@@ -257,4 +270,4 @@ class WEBRTC_DLLEXPORT ViECapture {
 
 }  
 
-#endif  
+#endif
