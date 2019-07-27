@@ -17,6 +17,7 @@
 #include "XrayWrapper.h"
 
 #include "nsContentUtils.h"
+#include "nsCycleCollectionNoteRootCallback.h"
 
 #include <stdint.h>
 #include "mozilla/DeferredFinalize.h"
@@ -91,6 +92,22 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse
     tmp->NoteTearoffs(cb);
 
     return NS_OK;
+}
+
+void
+XPCWrappedNative::Suspect(nsCycleCollectionNoteRootCallback& cb)
+{
+    if (!IsValid() || IsWrapperExpired())
+        return;
+
+    MOZ_ASSERT(NS_IsMainThread(),
+               "Suspecting wrapped natives from non-main thread");
+
+    
+    
+    JSObject* obj = GetFlatJSObjectPreserveColor();
+    if (JS::ObjectIsMarkedGray(obj) || cb.WantAllTraces())
+        cb.NoteJSRoot(obj);
 }
 
 void
