@@ -23,7 +23,7 @@
 
 
 #include "cert.h"
-#include "nssgtest.h"
+#include "nss.h"
 #include "pkix/pkix.h"
 #include "pkix/pkixnss.h"
 #include "pkixgtest.h"
@@ -201,20 +201,24 @@ public:
   }
 };
 
-class pkixbuild : public NSSTest
+class pkixbuild : public ::testing::Test
 {
 public:
   static void SetUpTestCase()
   {
-    NSSTest::SetUpTestCase();
     
     
+    if (NSS_NoDB_Init(nullptr) != SECSuccess) {
+      abort();
+    }
+
     if (!trustDomain.SetUpCertChainTail()) {
       abort();
     }
   }
 
 protected:
+
   static TestTrustDomain trustDomain;
 };
 
