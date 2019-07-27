@@ -6,31 +6,38 @@ MARIONETTE_HEAD_JS = "head.js";
 
 const TEST_DATA = [
   
-  {command: "d009810301260082028182",
-   expect: {commandNumber: 0x01,
-            commandQualifier: MozIccManager.STK_LOCAL_INFO_LOCATION_INFO,
+  {command: "D009" + 
+            "8103012600" + 
+            "82028182", 
+   expect: {commandQualifier: MozIccManager.STK_LOCAL_INFO_LOCATION_INFO,
             localInfoType: MozIccManager.STK_LOCAL_INFO_LOCATION_INFO}},
   
-  {command: "d009810301260182028182",
-   expect: {commandNumber: 0x01,
-            commandQualifier: MozIccManager.STK_LOCAL_INFO_IMEI,
+  {command: "D009" + 
+            "8103012601" + 
+            "82028182", 
+   expect: {commandQualifier: MozIccManager.STK_LOCAL_INFO_IMEI,
             localInfoType: MozIccManager.STK_LOCAL_INFO_IMEI}},
   
-  {command: "d009810301260382028182",
-   expect: {commandNumber: 0x01,
-            commandQualifier: MozIccManager.STK_LOCAL_INFO_DATE_TIME_ZONE,
+  {command: "D009" + 
+            "8103012603" + 
+            "82028182", 
+   expect: {commandQualifier: MozIccManager.STK_LOCAL_INFO_DATE_TIME_ZONE,
             localInfoType: MozIccManager.STK_LOCAL_INFO_DATE_TIME_ZONE}},
   
-  {command: "d009810301260482028182",
-   expect: {commandNumber: 0x01,
-            commandQualifier: MozIccManager.STK_LOCAL_INFO_LANGUAGE,
+  {command: "D009" + 
+            "8103012604" + 
+            "82028182", 
+   expect: {commandQualifier: MozIccManager.STK_LOCAL_INFO_LANGUAGE,
             localInfoType: MozIccManager.STK_LOCAL_INFO_LANGUAGE}},
 ];
 
 function testLocalInfo(aCommand, aExpect) {
-  is(aCommand.typeOfCommand, MozIccManager.STK_CMD_PROVIDE_LOCAL_INFO, "typeOfCommand");
+  is(aCommand.commandNumber, 0x01, "commandNumber");
+  is(aCommand.typeOfCommand, MozIccManager.STK_CMD_PROVIDE_LOCAL_INFO,
+     "typeOfCommand");
   is(aCommand.commandQualifier, aExpect.commandQualifier, "commandQualifier");
-  is(aCommand.options.localInfoType, aExpect.localInfoType, "options.localInfoType");
+  is(aCommand.options.localInfoType, aExpect.localInfoType,
+     "options.localInfoType");
 }
 
 

@@ -6,34 +6,43 @@ MARIONETTE_HEAD_JS = "head.js";
 
 const TEST_DATA = [
   
-  {command: "d011810301270082028182a40101a503102030",
-   expect: {commandNumber: 0x01,
-            commandQualifier: MozIccManager.STK_TIMER_START,
+  {command: "D011" + 
+            "8103012700" + 
+            "82028182" + 
+            "A40101" + 
+            "A503102030", 
+   expect: {commandQualifier: MozIccManager.STK_TIMER_START,
             timerAction: MozIccManager.STK_TIMER_START,
             timerId: 0x01,
             timerValue: (0x01 * 60 * 60) + (0x02 * 60) + 0x03}},
   
-  {command: "d00c810301270182028182a40104",
-   expect: {commandNumber: 0x01,
-            commandQualifier: MozIccManager.STK_TIMER_DEACTIVATE,
+  {command: "D00C" + 
+            "8103012701" + 
+            "82028182" + 
+            "A40104", 
+   expect: {commandQualifier: MozIccManager.STK_TIMER_DEACTIVATE,
             timerAction: MozIccManager.STK_TIMER_DEACTIVATE,
             timerId: 0x04}},
   
-  {command: "d00c810301270282028182a40108",
-   expect: {commandNumber: 0x01,
-            commandQualifier: MozIccManager.STK_TIMER_GET_CURRENT_VALUE,
+  {command: "D00C" + 
+            "8103012702" + 
+            "82028182" + 
+            "A40108", 
+   expect: {commandQualifier: MozIccManager.STK_TIMER_GET_CURRENT_VALUE,
             timerAction: MozIccManager.STK_TIMER_GET_CURRENT_VALUE,
             timerId: 0x08}},
 ];
 
 function testTimerManagement(aCommand, aExpect) {
+  is(aCommand.commandNumber, 0x01, "commandNumber");
   is(aCommand.typeOfCommand, MozIccManager.STK_CMD_TIMER_MANAGEMENT,
      "typeOfCommand");
   is(aCommand.commandQualifier, aExpect.commandQualifier, "commandQualifier");
+
   is(aCommand.options.timerAction, aExpect.timerAction, "options.timerAction");
   is(aCommand.options.timerId, aExpect.timerId, "options.timerId");
 
-  if (aExpect.timerValue) {
+  if ("timerValue" in aExpect) {
     is(aCommand.options.timerValue, aExpect.timerValue, "options.timerValue");
   }
 }

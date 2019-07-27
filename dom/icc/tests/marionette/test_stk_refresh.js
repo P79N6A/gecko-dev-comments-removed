@@ -5,13 +5,19 @@ MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = "head.js";
 
 const TEST_DATA = [
-  {command: "d0108103010101820281829205013f002fe2",
+  {command: "D010" + 
+            "8103010101" + 
+            "82028182" + 
+            "9205013F002FE2", 
    expect: {commandQualifier: 0x01}},
-  {command: "d009810301010482028182",
+  {command: "D009" + 
+            "8103010104" + 
+            "82028182", 
    expect: {commandQualifier: 0x04}}
 ];
 
 function testRefresh(aCommand, aExpect) {
+  is(aCommand.commandNumber, 0x01, "commandNumber");
   is(aCommand.typeOfCommand, MozIccManager.STK_CMD_REFRESH, "typeOfCommand");
   is(aCommand.commandQualifier, aExpect.commandQualifier, "commandQualifier");
 }
