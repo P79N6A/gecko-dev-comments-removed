@@ -214,10 +214,12 @@ private:
 
 
 
-class VisualEventTracer : public nsIVisualEventTracer
+class VisualEventTracer MOZ_FINAL: public nsIVisualEventTracer
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIVISUALEVENTTRACER
+private:
+  ~VisualEventTracer() {}
 };
 
 #define NS_VISUALEVENTTRACER_CID \
