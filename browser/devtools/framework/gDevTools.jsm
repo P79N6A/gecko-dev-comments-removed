@@ -70,13 +70,22 @@ DevTools.prototype = {
   },
 
   set testing(state) {
+    let oldState = this._testing;
     this._testing = state;
 
-    if (state) {
-      
-      
-      
-      Services.prefs.setBoolPref("dom.send_after_paint_to_content", false);
+    if (state !== oldState) {
+      if (state) {
+        this._savedSendAfterPaintToContentPref =
+          Services.prefs.getBoolPref("dom.send_after_paint_to_content");
+
+        
+        
+        
+        Services.prefs.setBoolPref("dom.send_after_paint_to_content", false);
+      } else {
+        Services.prefs.setBoolPref("dom.send_after_paint_to_content",
+                                   this._savedSendAfterPaintToContentPref);
+      }
     }
   },
 
