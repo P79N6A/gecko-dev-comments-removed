@@ -37,8 +37,17 @@ add_task(function* () {
   is(infobox.hidden, false, "Information box visible.");
 
   
-  checkLabel("#security-protocol-version-value", "TLSv1.2");
-  checkLabel("#security-ciphersuite-value", "TLS_RSA_WITH_AES_128_CBC_SHA");
+
+  
+  
+  let protocol = $("#security-protocol-version-value").value;
+  ok(protocol.startsWith("TLS"), "The protocol " + protocol + " seems valid.");
+
+  
+  
+  
+  let suite = $("#security-ciphersuite-value").value;
+  ok(suite.startsWith("TLS_"), "The suite " + suite + " seems valid.");
 
   
   checkLabel("#security-info-host-header", "Host example.com:");
