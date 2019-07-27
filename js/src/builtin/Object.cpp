@@ -664,6 +664,8 @@ bool
 js::obj_create(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+
+    
     if (args.length() == 0) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_MORE_ARGS_NEEDED,
                              "Object.create", "0", "s");
@@ -681,6 +683,7 @@ js::obj_create(JSContext *cx, unsigned argc, Value *vp)
         return false;
     }
 
+    
     RootedObject proto(cx, args[0].toObjectOrNull());
     RootedPlainObject obj(cx, ObjectCreateImpl(cx, proto));
     if (!obj)
@@ -688,16 +691,9 @@ js::obj_create(JSContext *cx, unsigned argc, Value *vp)
 
     
     if (args.hasDefined(1)) {
-        if (args[1].isPrimitive()) {
-            char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, args[1], NullPtr());
-            if (!bytes)
-                return false;
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_NONNULL_OBJECT, bytes);
-            return false;
-        }
-
-        RootedObject props(cx, &args[1].toObject());
-        if (!DefineProperties(cx, obj, props))
+        RootedValue val(cx, args[1]);
+        RootedObject props(cx, ToObject(cx, val));
+        if (!props || !DefineProperties(cx, obj, props))
             return false;
     }
 
