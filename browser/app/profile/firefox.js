@@ -1163,8 +1163,7 @@ pref("toolbar.customization.usesheet", true);
 pref("toolbar.customization.usesheet", false);
 #endif
 
-
-pref("dom.ipc.plugins.flash.disable-protected-mode", true);
+pref("dom.ipc.plugins.flash.disable-protected-mode", false);
 
 
 pref("browser.flash-protected-mode-flip.enable", true);
@@ -1201,7 +1200,6 @@ pref("security.sandbox.windows.log", false);
 
 
 pref("dom.ipc.plugins.sandbox-level.default", 0);
-pref("dom.ipc.plugins.sandbox-level.flash", 1);
 
 #if defined(MOZ_CONTENT_SANDBOX)
 
