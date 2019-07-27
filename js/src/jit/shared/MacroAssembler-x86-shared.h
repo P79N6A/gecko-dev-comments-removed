@@ -532,19 +532,6 @@ class MacroAssemblerX86Shared : public Assembler
     void packedSubInt32(const Operand &src, FloatRegister dest) {
         psubd(src, dest);
     }
-    void packedReciprocalFloat32x4(const Operand &src, FloatRegister dest) {
-        
-        
-        
-        rcpps(src, dest);
-    }
-    void packedReciprocalSqrtFloat32x4(const Operand &src, FloatRegister dest) {
-        
-        rsqrtps(src, dest);
-    }
-    void packedSqrtFloat32x4(const Operand &src, FloatRegister dest) {
-        sqrtps(src, dest);
-    }
 
     void packedLeftShiftByScalar(FloatRegister src, FloatRegister dest) {
         pslld(src, dest);
