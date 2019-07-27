@@ -751,7 +751,7 @@ pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
 
 
 pref("hal.gonk.COMPOSITOR.rt_priority", 0);
-pref("hal.gonk.COMPOSITOR.nice", 0);
+pref("hal.gonk.COMPOSITOR.nice", -4);
 
 
 
