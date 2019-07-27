@@ -75,7 +75,7 @@ GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAn
     
     
     const FrameMetrics& metrics = iter.Metrics();
-    transform = transform * gfx::Matrix4x4().Scale(metrics.mResolution.scale, metrics.mResolution.scale, 1.f);
+    transform.PostScale(metrics.mResolution.scale, metrics.mResolution.scale, 1.f);
   }
   return transform;
 }
