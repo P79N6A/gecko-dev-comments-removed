@@ -44,6 +44,9 @@ namespace gl {
 class GLContext;
 class SkiaGLGlue;
 }
+namespace layers {
+class VsyncSource;
+}
 namespace gfx {
 class DrawTarget;
 class SourceSurface;
@@ -583,17 +586,18 @@ public:
     static bool UsesOffMainThreadCompositing();
 
     bool HasEnoughTotalSystemMemoryForSkiaGL();
+
+    
+
+
+    virtual already_AddRefed<mozilla::layers::VsyncSource> GetVsyncSource();
+
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
 
     void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], uint32_t &aLen,
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
-
-    
-
-
-    virtual void InitHardwareVsync() {}
 
     
 
