@@ -450,7 +450,7 @@ struct MOZ_STACK_CLASS AutoCairoPixmanBugWorkaround
         
         
         
-        mContext->IdentityMatrix();
+        mContext->SetMatrix(gfxMatrix());
         gfxRect bounds = currentMatrix.TransformBounds(aFill);
         bounds.RoundOut();
         mContext->Clip(bounds);

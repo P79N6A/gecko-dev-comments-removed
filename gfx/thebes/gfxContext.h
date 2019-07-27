@@ -260,11 +260,6 @@ public:
     
 
 
-    void IdentityMatrix();
-
-    
-
-
     gfxMatrix CurrentMatrix() const;
 
     
