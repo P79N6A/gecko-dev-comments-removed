@@ -1746,6 +1746,21 @@ sdp_result_e sdp_parse_attr_fmtp (sdp_t *sdp_p, sdp_attr_t *attr_p,
                 }
             } 
             done = TRUE;
+        } else {
+          
+          
+
+          
+          CSFLogDebug(logTag, "%s Unknown fmtp type (%s) - ignoring", __FUNCTION__,
+                      tmp);
+          fmtp_ptr = sdp_getnextstrtok(fmtp_ptr, tmp, sizeof(tmp), "; \t",
+                                       &result1);
+          if (result1 != SDP_SUCCESS) {
+            fmtp_ptr = sdp_getnextstrtok(fmtp_ptr, tmp, sizeof(tmp), " \t", &result1);
+            if (result1 != SDP_SUCCESS) {
+              
+            }
+          }
         }
         fmtp_ptr++;
       } else {
