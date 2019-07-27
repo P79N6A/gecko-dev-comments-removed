@@ -2955,7 +2955,6 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
     } else if (!(aFlags & PAINT_DOCUMENT_RELATIVE)) {
       nsIWidget *widget = aFrame->GetNearestWidget();
       if (widget) {
-        builder.SetFinalTransparentRegion(visibleRegion);
         
         
         widget->UpdateThemeGeometries(builder.GetThemeGeometries());
