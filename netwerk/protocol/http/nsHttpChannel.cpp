@@ -316,7 +316,6 @@ nsHttpChannel::Connect()
     
     mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
     mConnectionInfo->SetPrivate(mPrivateBrowsing);
-    mConnectionInfo->SetNoSpdy(mCaps & NS_HTTP_DISALLOW_SPDY);
 
     
     RetrieveSSLOptions();
@@ -1247,7 +1246,7 @@ nsHttpChannel::ProcessAltService()
     
     
 
-    if (!gHttpHandler->AllowAltSvc() || (mCaps & NS_HTTP_DISALLOW_SPDY)) {
+    if (!gHttpHandler->AllowAltSvc()) {
         return;
     }
 
