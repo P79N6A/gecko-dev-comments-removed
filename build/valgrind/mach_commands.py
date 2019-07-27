@@ -126,6 +126,7 @@ class MachCommands(MachCommandBase):
                 valgrind_args.append('--suppressions=' + supps_file2)
 
             exitcode = None
+            timeout = 1100
             try:
                 runner = FirefoxRunner(profile=profile,
                                        binary=self.get_binary_path(),
@@ -133,14 +134,17 @@ class MachCommands(MachCommandBase):
                                        env=env,
                                        process_args=kp_kwargs)
                 runner.start(debug_args=valgrind_args)
-                exitcode = runner.wait()
+                
+                
+                
+                exitcode = runner.wait(timeout=timeout)
 
             finally:
                 errs = outputHandler.error_count
                 supps = outputHandler.suppression_count
                 if errs != supps:
                     status = 1  
-                    print('TEST-UNEXPECTED-FAILURE | valgrind-test | error parsing:', errs, "errors seen, but", supps, "generated suppressions seen")
+                    print('TEST-UNEXPECTED-FAIL | valgrind-test | error parsing: {} errors seen, but {} generated suppressions seen'.format(errs, supps))
 
                 elif errs == 0:
                     status = 0
@@ -149,7 +153,10 @@ class MachCommands(MachCommandBase):
                     status = 1  
                     
 
-                if exitcode != 0:
+                if exitcode == None:
+                    status = 2  
+                    print('TEST-UNEXPECTED-FAIL | valgrind-test | Valgrind timed out (reached {} second limit)'.format(timeout))
+                elif exitcode != 0:
                     status = 2  
                     print('TEST-UNEXPECTED-FAIL | valgrind-test | non-zero exit code from Valgrind')
 
