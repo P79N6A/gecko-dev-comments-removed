@@ -1311,7 +1311,15 @@ nsInsertHTMLCommand::IsCommandEnabled(const char * aCommandName,
 NS_IMETHODIMP
 nsInsertHTMLCommand::DoCommand(const char *aCommandName, nsISupports *refCon)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  
+  NS_ENSURE_ARG_POINTER(refCon);
+
+  nsCOMPtr<nsIHTMLEditor> editor = do_QueryInterface(refCon);
+  NS_ENSURE_TRUE(editor, NS_ERROR_NOT_IMPLEMENTED);
+
+  nsString html = EmptyString();
+  return editor->InsertHTML(html);
 }
 
 NS_IMETHODIMP
@@ -1330,10 +1338,7 @@ nsInsertHTMLCommand::DoCommandParams(const char *aCommandName,
   nsresult rv = aParams->GetStringValue(STATE_DATA, html);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!html.IsEmpty())
-    return editor->InsertHTML(html);
-
-  return NS_OK;
+  return editor->InsertHTML(html);
 }
 
 NS_IMETHODIMP

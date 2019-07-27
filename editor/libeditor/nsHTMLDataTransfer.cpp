@@ -303,6 +303,11 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
                            streamEndParentNode, streamEndOffset);
 
   if (nodeList.Length() == 0) {
+    
+    
+    if (aDeleteSelection) {
+      return DeleteSelection(eNone, eStrip);
+    }
     return NS_OK;
   }
 
