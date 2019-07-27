@@ -47,7 +47,8 @@ public:
 
   AudioNodeStream(AudioNodeEngine* aEngine,
                   MediaStreamGraph::AudioNodeStreamKind aKind,
-                  TrackRate aSampleRate);
+                  TrackRate aSampleRate,
+                  AudioContext::AudioContextId aContextId);
 
 protected:
   ~AudioNodeStream();
@@ -121,6 +122,7 @@ public:
   
   AudioNodeEngine* Engine() { return mEngine; }
   TrackRate SampleRate() const { return mSampleRate; }
+  AudioContext::AudioContextId AudioContextId() const override { return mAudioContextId; }
 
   
 
@@ -147,6 +149,7 @@ public:
   void SizeOfAudioNodesIncludingThis(MallocSizeOf aMallocSizeOf,
                                      AudioNodeSizes& aUsage) const;
 
+
 protected:
   void AdvanceOutputSegment();
   void FinishOutput();
@@ -167,7 +170,10 @@ protected:
   
   const TrackRate mSampleRate;
   
-  MediaStreamGraph::AudioNodeStreamKind mKind;
+  
+  const AudioContext::AudioContextId mAudioContextId;
+  
+  const MediaStreamGraph::AudioNodeStreamKind mKind;
   
   uint32_t mNumberOfInputChannels;
   
