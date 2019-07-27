@@ -1881,6 +1881,7 @@ protected:
                           const char16_t *aText,
                           uint32_t         aOffset, 
                           uint32_t         aLength,
+                          bool             aVertical,
                           gfxShapedText   *aShapedText);
 
     
