@@ -5720,7 +5720,7 @@ nsTableFrame::CalcBCBorders()
   
   
   bool tableBorderReset[4];
-  for (uint32_t sideX = eLogicalSideBStart; sideX <= eLogicalSideIStart; sideX++) {
+  for (uint32_t sideX = 0; sideX < ArrayLength(tableBorderReset); sideX++) {
     tableBorderReset[sideX] = false;
   }
 
