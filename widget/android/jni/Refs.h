@@ -46,6 +46,13 @@ enum class ExceptionMode
 
 
 
+
+template<typename...>
+struct Args {};
+
+
+
+
 template<class Cls>
 class Class
 {
