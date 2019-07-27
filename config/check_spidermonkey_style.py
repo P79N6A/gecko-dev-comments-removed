@@ -400,6 +400,10 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
     
     for linenum, line in enumerate(f, start=1):
         
+        if not '#' in line:
+            continue
+
+        
         m = re.match(r'\s*#\s*include\s+"([^"]*)"', line)
         if m is not None:
             block_stack[-1].kids.append(Include(m.group(1), linenum, False))
@@ -484,14 +488,10 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
 
     
     
-    skip_order_checking = inclname.startswith('assembler/')
-
-    
-    
     def pair_traverse(prev, this):
         if this.isLeaf():
             check_include_statement(this)
-            if prev is not None and prev.isLeaf() and not skip_order_checking:
+            if prev is not None and prev.isLeaf():
                 check_includes_order(prev, this)
         else:
             for prev2, this2 in zip([None] + this.kids[0:-1], this.kids):
