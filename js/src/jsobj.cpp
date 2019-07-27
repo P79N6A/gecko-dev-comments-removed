@@ -1791,10 +1791,6 @@ js::DeepCloneObjectLiteral(JSContext *cx, HandleNativeObject obj, NewObjectKind 
 
     
     uint32_t initialized = obj->getDenseInitializedLength();
-    if (initialized)
-        clone->setDenseInitializedLength(initialized);
-
-    
     for (uint32_t i = 0; i < initialized; ++i) {
         v = obj->getDenseElement(i);
         if (v.isObject()) {
@@ -1806,6 +1802,7 @@ js::DeepCloneObjectLiteral(JSContext *cx, HandleNativeObject obj, NewObjectKind 
             }
             v.setObject(*deepObj);
         }
+        clone->setDenseInitializedLength(i + 1);
         clone->initDenseElement(i, v);
     }
 
