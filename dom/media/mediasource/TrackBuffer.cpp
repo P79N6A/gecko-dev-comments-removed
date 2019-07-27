@@ -1027,7 +1027,7 @@ TrackBuffer::RangeRemoval(int64_t aStart, int64_t aEnd)
   } else {
     
     for (size_t i = 0; i < decoders.Length(); ++i) {
-      if (aStart <= int64_t(buffered->GetStartTime() * USECS_PER_SEC)) {
+      if (aStart <= int64_t(buffered->GetStartTime() * USECS_PER_S)) {
         
         decoders[i]->GetResource()->EvictAll();
       } else {
