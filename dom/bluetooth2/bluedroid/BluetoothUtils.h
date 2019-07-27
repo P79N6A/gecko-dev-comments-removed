@@ -38,15 +38,54 @@ bool
 BroadcastSystemMessage(const nsAString& aType,
                        const BluetoothValue& aData);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
                        const BluetoothValue& aValue,
                        const nsAString& aErrorStr);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
+                       const BluetoothValue& aValue,
+                       const enum BluetoothStatus aStatusCode);
+
 void
 DispatchStatusChangedEvent(const nsAString& aType,
                            const nsAString& aDeviceAddress,
                            bool aStatus);
+
 
 END_BLUETOOTH_NAMESPACE
 
