@@ -118,7 +118,9 @@ public:
 
 
 
+
   nsFilterInstance(nsIFrame *aTargetFrame,
+                   nsIContent* aTargetContent,
                    const UserSpaceMetrics& aMetrics,
                    const nsTArray<nsStyleFilter>& aFilterChain,
                    nsSVGFilterPaintCallback *aPaintCallback,
@@ -277,6 +279,11 @@ private:
 
 
   nsIFrame* mTargetFrame;
+
+  
+
+
+  nsIContent* mTargetContent;
 
   
 
