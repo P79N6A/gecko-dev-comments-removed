@@ -447,8 +447,8 @@ var SelectionHandler = {
       if (selection.focusNode != focusNode) {
         let nextContainer = (selection.focusNode instanceof Text) ?
           selection.focusNode.parentNode : selection.focusNode;
-        if (nextContainer.mozMatchesSelector &&
-            nextContainer.mozMatchesSelector(PHONE_NUMBER_CONTAINERS)) {
+        if (nextContainer.matches &&
+            nextContainer.matches(PHONE_NUMBER_CONTAINERS)) {
           
           selection.collapse(selection.anchorNode, selection.anchorOffset);
           selection.extend(focusNode, focusOffset);
