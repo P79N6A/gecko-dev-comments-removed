@@ -412,4 +412,28 @@ class TestJSPrincipals : public JSPrincipals
     }
 };
 
+#ifdef JS_GC_ZEAL
+
+
+
+
+class AutoLeaveZeal
+{
+    JSContext *cx_;
+    uint8_t zeal_;
+    uint32_t frequency_;
+
+  public:
+    AutoLeaveZeal(JSContext *cx) : cx_(cx) {
+        JS_GetGCZeal(cx_, &zeal_, &frequency_);
+        JS_SetGCZeal(cx_, 0, 0);
+        JS::PrepareForFullGC(JS_GetRuntime(cx_));
+        JS::ShrinkingGC(JS_GetRuntime(cx_), JS::gcreason::DEBUG_GC);
+    }
+    ~AutoLeaveZeal() {
+        JS_SetGCZeal(cx_, zeal_, frequency_);
+    }
+};
+#endif 
+
 #endif 

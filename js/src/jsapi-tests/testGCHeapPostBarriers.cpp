@@ -10,6 +10,8 @@
 
 BEGIN_TEST(testGCHeapPostBarriers)
 {
+    AutoLeaveZeal nozeal(cx);
+
     
     JS_GC(cx->runtime());
     JS::RootedObject obj(cx, NurseryObject());
