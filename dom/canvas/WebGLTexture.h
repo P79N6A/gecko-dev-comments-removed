@@ -213,9 +213,6 @@ protected:
     bool mHaveGeneratedMipmap; 
     bool mImmutable; 
 
-    size_t mBaseMipmapLevel; 
-    size_t mMaxMipmapLevel;  
-
     WebGLTextureFakeBlackStatus mFakeBlackStatus;
 
     void EnsureMaxLevelWithCustomImagesAtLeast(size_t aMaxLevelWithCustomImages) {
@@ -285,17 +282,6 @@ public:
 
     bool IsImmutable() const { return mImmutable; }
     void SetImmutable() { mImmutable = true; }
-
-    void SetBaseMipmapLevel(unsigned level) { mBaseMipmapLevel = level; }
-    void SetMaxMipmapLevel(unsigned level) { mMaxMipmapLevel = level; }
-    size_t GetBaseMipmapLevel() const {
-        
-        return std::min(mBaseMipmapLevel, mMaxLevelWithCustomImages);
-    }
-    size_t GetMaxMipmapLevel() const {
-        
-        return std::min(mMaxMipmapLevel, mMaxLevelWithCustomImages);
-    }
 
     size_t MaxLevelWithCustomImages() const { return mMaxLevelWithCustomImages; }
 
