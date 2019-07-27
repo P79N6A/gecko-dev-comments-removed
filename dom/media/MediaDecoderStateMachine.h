@@ -179,7 +179,8 @@ public:
 
   void FinishShutdown();
 
-  bool IsRealTime() const;
+  
+  bool IsRealTime() const { return mRealTime; }
 
   
   
@@ -725,7 +726,7 @@ private:
   WatchManager<MediaDecoderStateMachine> mWatchManager;
 
   
-  bool mRealTime;
+  const bool mRealTime;
 
   
   
