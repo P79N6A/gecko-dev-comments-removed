@@ -29,6 +29,7 @@ function middle(element) {
 
 
 var testTarget = {
+  id: "test:dummy",
   target: "test:service",
   factory: function(service) {   },
   types: ["video/mp4", "video/webm"],
