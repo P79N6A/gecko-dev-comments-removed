@@ -22,6 +22,7 @@ BEGIN_TEST(testGCOutOfMemory)
 
     JS::RootedValue root(cx);
 
+    
     static const char source[] =
         "var max = 0; (function() {"
         "    var array = [];"
@@ -39,8 +40,7 @@ BEGIN_TEST(testGCOutOfMemory)
     JS_GC(rt);
 
     
-    return true;
-
+    
     EVAL("(function() {"
          "    var array = [];"
          "    for (var i = max >> 2; i != 0;) {"
@@ -53,7 +53,14 @@ BEGIN_TEST(testGCOutOfMemory)
 }
 
 virtual JSRuntime * createRuntime() MOZ_OVERRIDE {
-    JSRuntime *rt = JS_NewRuntime(768 * 1024);
+    
+    
+    
+    
+    
+    
+    
+    JSRuntime *rt = JS_NewRuntime(768 * 1024, 128 * 1024);
     if (!rt)
         return nullptr;
     setNativeStackQuota(rt);
