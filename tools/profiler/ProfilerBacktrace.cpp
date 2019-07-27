@@ -4,10 +4,10 @@
 
 
 
-#include "JSStreamWriter.h"
 #include "ProfilerBacktrace.h"
-#include "SyncProfile.h"
 
+#include "JSStreamWriter.h"
+#include "SyncProfile.h"
 
 ProfilerBacktrace::ProfilerBacktrace(SyncProfile* aProfile)
   : mProfile(aProfile)
