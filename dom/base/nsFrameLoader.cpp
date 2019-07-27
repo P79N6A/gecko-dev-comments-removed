@@ -2665,17 +2665,8 @@ nsFrameLoader::RequestNotifyAfterRemotePaint()
   
   if (mRemoteBrowser) {
     unused << mRemoteBrowser->SendRequestNotifyAfterRemotePaint();
-    return NS_OK;
   }
 
-  
-  nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(mDocShell);
-  if (!window) {
-    NS_WARNING("Unable to get window for synchronous MozAfterRemotePaint event.");
-    return NS_OK;
-  }
-
-  window->SetRequestNotifyAfterRemotePaint();
   return NS_OK;
 }
 
