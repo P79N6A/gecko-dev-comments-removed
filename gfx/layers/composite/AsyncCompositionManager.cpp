@@ -635,11 +635,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     
-    if (asyncClip &&
-        !(gfxPrefs::LayoutUseContainersForRootFrames() &&
-          aLayer->AsContainerLayer() &&
-          i == 0))
-    {
+    if (asyncClip && !metrics.UsesContainerScrolling()) {
       asyncClip = Some(TransformTo<ParentLayerPixel>(asyncTransform, *asyncClip));
     }
 

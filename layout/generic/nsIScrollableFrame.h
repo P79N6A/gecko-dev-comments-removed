@@ -432,6 +432,11 @@ public:
 
   virtual void SetTransformingByAPZ(bool aTransforming) = 0;
   virtual bool IsTransformingByAPZ() const = 0;
+
+  
+
+
+  virtual bool UsesContainerScrolling() const = 0;
 };
 
 #endif

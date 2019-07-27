@@ -14,6 +14,7 @@
 #include "mozilla/gfx/ScaleFactor.h"    
 #include "mozilla/gfx/Logging.h"        
 #include "gfxColor.h"
+#include "gfxPrefs.h"                   
 #include "nsString.h"
 
 namespace IPC {
@@ -68,6 +69,7 @@ public:
     , mPageScrollAmount(0, 0)
     , mAllowVerticalScrollWithWheel(false)
     , mIsLayersIdRoot(false)
+    , mUsesContainerScrolling(false)
   {
   }
 
@@ -102,7 +104,8 @@ public:
            mPageScrollAmount == aOther.mPageScrollAmount &&
            mAllowVerticalScrollWithWheel == aOther.mAllowVerticalScrollWithWheel &&
            mClipRect == aOther.mClipRect &&
-           mIsLayersIdRoot == aOther.mIsLayersIdRoot;
+           mIsLayersIdRoot == aOther.mIsLayersIdRoot &&
+		   mUsesContainerScrolling == aOther.mUsesContainerScrolling;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -534,6 +537,14 @@ public:
     return mIsLayersIdRoot;
   }
 
+  void SetUsesContainerScrolling(bool aValue) {
+    MOZ_ASSERT_IF(aValue, gfxPrefs::LayoutUseContainersForRootFrames());
+    mUsesContainerScrolling = aValue;
+  }
+  bool UsesContainerScrolling() const {
+    return mUsesContainerScrolling;
+  }
+
 private:
 
   
@@ -711,6 +722,10 @@ private:
   
   
   bool mIsLayersIdRoot;
+
+  
+  
+  bool mUsesContainerScrolling;
 
   
   
