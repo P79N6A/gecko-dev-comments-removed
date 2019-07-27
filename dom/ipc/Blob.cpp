@@ -2891,10 +2891,13 @@ BlobParent::RecvGetFilePath(nsString* aFilePath)
   MOZ_ASSERT_IF(!mBlob, mBlobImpl);
   MOZ_ASSERT(!mRemoteBlob);
 
+  
+#ifdef MOZ_CHILD_PERMISSIONS
   if (NS_WARN_IF(!IndexedDatabaseManager::InTestingMode())) {
     ASSERT_UNLESS_FUZZING();
     return false;
   }
+#endif
 
   nsRefPtr<DOMFileImpl> blobImpl;
   if (mBlob) {
