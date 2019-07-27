@@ -321,10 +321,13 @@ protected:
     bool DispatchCompositionStart();
 
     
-    
-    
-    bool DispatchCompositionChangeEvent(const nsAString& aCompositionString,
-                                        bool aIsCommit);
+
+
+
+
+
+
+    bool DispatchCompositionChangeEvent(const nsAString& aCompositionString);
 
     
 
