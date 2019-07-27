@@ -17,6 +17,29 @@ loop.contacts = (function(_, mozL10n) {
   
   const CONTACTS_CHUNK_SIZE = 100;
 
+  
+  const MIN_CONTACTS_FOR_FILTERING = 7;
+
+  let getContactNames = function(contact) {
+    
+    
+    
+    
+    let names = contact.name[0].split(" ");
+    return {
+      firstName: names.shift(),
+      lastName: names.join(" ")
+    };
+  };
+
+  let getPreferredEmail = function(contact) {
+    
+    if (!contact.email || contact.email.length == 0) {
+      return { value: "" };
+    }
+    return contact.email.find(e => e.pref) || contact.email[0];
+  };
+
   const ContactDropdown = React.createClass({displayName: 'ContactDropdown',
     propTypes: {
       handleAction: React.PropTypes.func.isRequired,
@@ -137,7 +160,7 @@ loop.contacts = (function(_, mozL10n) {
       return (
         currContact.name[0] !== nextContact.name[0] ||
         currContact.blocked !== nextContact.blocked ||
-        this.getPreferredEmail(currContact).value !== this.getPreferredEmail(nextContact).value
+        getPreferredEmail(currContact).value !== getPreferredEmail(nextContact).value
       );
     },
 
@@ -147,34 +170,6 @@ loop.contacts = (function(_, mozL10n) {
       }
     },
 
-    getContactNames: function() {
-      
-      
-      
-      
-      let names = this.props.contact.name[0].split(" ");
-      return {
-        firstName: names.shift(),
-        lastName: names.join(" ")
-      };
-    },
-
-    getPreferredEmail: function(contact = this.props.contact) {
-      let email;
-      
-      if (contact.email) {
-        email = contact.email[0];
-        contact.email.some(function(address) {
-          if (address.pref) {
-            email = address;
-            return true;
-          }
-          return false;
-        });
-      }
-      return email || { value: "" };
-    },
-
     canEdit: function() {
       
       
@@ -182,8 +177,8 @@ loop.contacts = (function(_, mozL10n) {
     },
 
     render: function() {
-      let names = this.getContactNames();
-      let email = this.getPreferredEmail();
+      let names = getContactNames(this.props.contact);
+      let email = getPreferredEmail(this.props.contact);
       let cx = React.addons.classSet;
       let contactCSSClass = cx({
         contact: true,
@@ -218,10 +213,13 @@ loop.contacts = (function(_, mozL10n) {
   });
 
   const ContactsList = React.createClass({displayName: 'ContactsList',
+    mixins: [React.addons.LinkedStateMixin],
+
     getInitialState: function() {
       return {
         contacts: {},
-        importBusy: false
+        importBusy: false,
+        filter: "",
       };
     },
 
@@ -344,6 +342,24 @@ loop.contacts = (function(_, mozL10n) {
         return contact.blocked ? "blocked" : "available";
       });
 
+      let showFilter = Object.getOwnPropertyNames(this.state.contacts).length >=
+                       MIN_CONTACTS_FOR_FILTERING;
+      if (showFilter) {
+        let filter = this.state.filter.trim().toLocaleLowerCase();
+        if (filter) {
+          let filterFn = contact => {
+            return contact.name[0].toLocaleLowerCase().contains(filter) ||
+                   getPreferredEmail(contact).value.toLocaleLowerCase().contains(filter);
+          };
+          if (shownContacts.available) {
+            shownContacts.available = shownContacts.available.filter(filterFn);
+          }
+          if (shownContacts.blocked) {
+            shownContacts.blocked = shownContacts.blocked.filter(filterFn);
+          }
+        }
+      }
+
       
       return (
         React.DOM.div(null, 
@@ -356,13 +372,18 @@ loop.contacts = (function(_, mozL10n) {
                       onClick: this.handleImportButtonClick}), 
               Button({caption: mozL10n.get("new_contact_button"), 
                       onClick: this.handleAddContactButtonClick})
-            )
+            ), 
+            showFilter ?
+            React.DOM.input({className: "contact-filter", 
+                   placeholder: mozL10n.get("contacts_search_placesholder"), 
+                   valueLink: this.linkState("filter")})
+            : null
           ), 
           React.DOM.ul({className: "contact-list"}, 
             shownContacts.available ?
               shownContacts.available.sort(this.sortContacts).map(viewForItem) :
               null, 
-            shownContacts.blocked ?
+            shownContacts.blocked && shownContacts.blocked.length > 0 ?
               React.DOM.div({className: "contact-separator"}, mozL10n.get("contacts_blocked_contacts")) :
               null, 
             shownContacts.blocked ?

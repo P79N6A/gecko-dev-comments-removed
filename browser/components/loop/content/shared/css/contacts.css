@@ -2,14 +2,18 @@
 
 
 
+.content-area input.contact-filter {
+  margin-top: 14px;
+  border-radius: 10000px;
+}
+
 .contact-list {
   border-top: 1px solid #ccc;
   overflow-x: hidden;
   overflow-y: auto;
   
-  min-height: 204px;
-  
-  max-height: 306px;
+
+  height: 306px;
 }
 
 .contact,
