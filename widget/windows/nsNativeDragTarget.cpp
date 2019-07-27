@@ -203,6 +203,31 @@ nsNativeDragTarget::ProcessDrag(uint32_t     aEventType,
   
   DispatchDragDropEvent(aEventType, ptl);
 
+  
+  
+  
+  
+  nsDragService* dragService = static_cast<nsDragService *>(mDragService);
+  currSession->GetDragAction(&geckoAction);
+
+  int32_t childDragAction = dragService->TakeChildProcessDragAction();
+  if (childDragAction != nsIDragService::DRAGDROP_ACTION_UNINITIALIZED) {
+    geckoAction = childDragAction;
+  }
+
+  if (nsIDragService::DRAGDROP_ACTION_LINK & geckoAction) {
+    *pdwEffect = DROPEFFECT_LINK;
+  }
+  else if (nsIDragService::DRAGDROP_ACTION_COPY & geckoAction) {
+    *pdwEffect = DROPEFFECT_COPY;
+  }
+  else if (nsIDragService::DRAGDROP_ACTION_MOVE & geckoAction) {
+    *pdwEffect = DROPEFFECT_MOVE;
+  }
+  else {
+    *pdwEffect = DROPEFFECT_NONE;
+  }
+
   if (aEventType != NS_DRAGDROP_DROP) {
     
     
