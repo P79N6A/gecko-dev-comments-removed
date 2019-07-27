@@ -52,6 +52,14 @@ MarkerDetails.prototype = {
   
 
 
+
+  set hidden(value) {
+    this._parent.hidden = value;
+  },
+
+  
+
+
   empty: function() {
     this._parent.innerHTML = "";
   },
