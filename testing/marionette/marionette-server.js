@@ -2417,6 +2417,53 @@ MarionetteServerConnection.prototype = {
 
 
 
+  closeChromeWindow: function MDA_closeChromeWindow() {
+    let command_id = this.command_id = this.getCommandId();
+    if (appName == "B2G") {
+      
+      this.sendOk(command_id);
+    }
+    else {
+      
+      let numOpenWindows = 0;
+      let winEnum = this.getWinEnumerator();
+      while (winEnum.hasMoreElements()) {
+        numOpenWindows += 1;
+        winEnum.getNext();
+      }
+
+      
+      if (numOpenWindows === 1) {
+        try {
+          this.sessionTearDown();
+        }
+        catch (e) {
+          this.sendError("Could not clear session", 500,
+                         e.name + ": " + e.message, command_id);
+          return;
+        }
+        this.sendOk(command_id);
+        return;
+      }
+
+      try {
+        this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT);
+        this.getCurrentWindow().close();
+        this.sendOk(command_id);
+      }
+      catch (e) {
+        this.sendError("Could not close window: " + e.message, 13, e.stack,
+                       command_id);
+      }
+    }
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -3028,6 +3075,7 @@ MarionetteServerConnection.prototype.requestTypes = {
   "getAppCacheStatus": MarionetteServerConnection.prototype.getAppCacheStatus,
   "close": MarionetteServerConnection.prototype.close,
   "closeWindow": MarionetteServerConnection.prototype.close,  
+  "closeChromeWindow": MarionetteServerConnection.prototype.closeChromeWindow,
   "setTestName": MarionetteServerConnection.prototype.setTestName,
   "takeScreenshot": MarionetteServerConnection.prototype.takeScreenshot,
   "screenShot": MarionetteServerConnection.prototype.takeScreenshot,  
