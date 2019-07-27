@@ -1546,7 +1546,7 @@ PeerConnectionWrapper.prototype = {
     
     var inputSenderTracks = from._pc.getSenders().map(sn => sn.track);
     var inputAudioStream = from._pc.getLocalStreams()
-      .find(s => s.getAudioTracks().some(t => inputSenderTracks.includes(t)));
+      .find(s => s.getAudioTracks().some(t => inputSenderTracks.some(t2 => t == t2)));
     var inputAnalyser = new AudioStreamAnalyser(inputAudioStream);
 
     
