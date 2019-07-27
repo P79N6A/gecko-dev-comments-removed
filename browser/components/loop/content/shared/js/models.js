@@ -422,6 +422,27 @@ loop.shared.models = (function(l10n) {
 
     errorL10n: function(messageId, l10nProps) {
       this.error(l10n.get(messageId, l10nProps));
+    },
+
+    
+
+
+
+
+    success: function(message) {
+      this.add({level: "success", message: message});
+    },
+
+    
+
+
+
+
+
+
+
+    successL10n: function(messageId, l10nProps) {
+      this.success(l10n.get(messageId, l10nProps));
     }
   });
 

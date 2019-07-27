@@ -263,6 +263,11 @@ loop.contacts = (function(_, mozL10n) {
       loop.shared.mixins.WindowCloseMixin
     ],
 
+    propTypes: {
+      notifications: React.PropTypes.instanceOf(
+        loop.shared.models.NotificationCollection).isRequired
+    },
+
     
 
 
@@ -389,10 +394,14 @@ loop.contacts = (function(_, mozL10n) {
         service: "google"
       }, (err, stats) => {
         this.setState({ importBusy: false });
-        
         if (err) {
-          throw err;
+          console.error("Contact import error", err);
+          this.props.notifications.errorL10n("import_contacts_failure_message");
+          return;
         }
+        this.props.notifications.successL10n("import_contacts_success_message", {
+          total: stats.total
+        });
       });
     },
 
