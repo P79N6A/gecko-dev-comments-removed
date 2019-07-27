@@ -92,6 +92,10 @@ public:
   void CloseActive(bool aDieWhenUnloaded);
 
   
+  void MarkForDeletion();
+  bool IsMarkedForDeletion();
+
+  
   void Shutdown();
 
   
@@ -135,6 +139,9 @@ public:
   }
 
   void AbortAsyncShutdown();
+
+  
+  void ChildTerminated();
 
   bool GetGMPContentParent(UniquePtr<GetGMPContentParentCallback>&& aCallback);
   already_AddRefed<GMPContentParent> ForgetGMPContentParent();
@@ -191,6 +198,7 @@ private:
   GMPProcessParent* mProcess;
   bool mDeleteProcessOnlyOnUnload;
   bool mAbnormalShutdownInProgress;
+  bool mIsBlockingDeletion;
 
   nsTArray<nsRefPtr<GMPTimerParent>> mTimers;
   nsTArray<nsRefPtr<GMPStorageParent>> mStorage;

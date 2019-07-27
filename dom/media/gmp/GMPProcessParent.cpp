@@ -68,18 +68,23 @@ GMPProcessParent::Launch(int32_t aTimeoutMs)
 }
 
 void
-GMPProcessParent::Delete()
+GMPProcessParent::Delete(nsCOMPtr<nsIRunnable> aCallback)
 {
-  MessageLoop* currentLoop = MessageLoop::current();
-  MessageLoop* ioLoop = XRE_GetIOMessageLoop();
+  mDeletedCallback = aCallback;
+  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, NewRunnableMethod(this, &GMPProcessParent::DoDelete));
+}
 
-  if (currentLoop == ioLoop) {
-    Join();
-    delete this;
-    return;
+void
+GMPProcessParent::DoDelete()
+{
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+  Join();
+
+  if (mDeletedCallback) {
+    mDeletedCallback->Run();
   }
 
-  ioLoop->PostTask(FROM_HERE, NewRunnableMethod(this, &GMPProcessParent::Delete));
+  delete this;
 }
 
 } 
