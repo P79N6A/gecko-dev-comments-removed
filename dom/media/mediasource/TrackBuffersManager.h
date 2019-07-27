@@ -138,6 +138,9 @@ private:
   
   nsRefPtr<SourceBufferResource> mCurrentInputBuffer;
   nsRefPtr<MediaDataDemuxer> mInputDemuxer;
+  
+  uint32_t mProcessedInput;
+
   void OnDemuxerInitDone(nsresult);
   void OnDemuxerInitFailed(DemuxerFailureReason aFailure);
   MediaPromiseRequestHolder<MediaDataDemuxer::InitPromise> mDemuxerInitRequest;
@@ -168,20 +171,45 @@ private:
       , mSizeBuffer(0)
     {}
     uint32_t mNumTracks;
+    
+    
+    
+    
+    
+    
     Maybe<TimeUnit> mLastDecodeTimestamp;
+    
+    
+    
+    
     Maybe<TimeUnit> mLastFrameDuration;
+    
+    
+    
+    
+    
     Maybe<TimeUnit> mHighestEndTimestamp;
     
     Maybe<TimeUnit> mLongestFrameDuration;
+    
+    
+    
+    
+    
     bool mNeedRandomAccessPoint;
     nsRefPtr<MediaTrackDemuxer> mDemuxer;
-    TrackBuffer mQueuedSamples;
     MediaPromiseRequestHolder<MediaTrackDemuxer::SamplesPromise> mDemuxRequest;
-    UniquePtr<TrackInfo> mInfo;
+    
+    TrackBuffer mQueuedSamples;
     
     nsTArray<TrackBuffer> mBuffers;
+    
+    
     TimeIntervals mBufferedRanges;
+    
     uint32_t mSizeBuffer;
+    
+    UniquePtr<TrackInfo> mInfo;
   };
   bool ProcessFrame(MediaRawData* aSample, TrackData& aTrackData);
   MediaPromiseRequestHolder<CodedFrameProcessingPromise> mProcessingRequest;
@@ -234,13 +262,12 @@ private:
 
   
   mutable Monitor mMonitor;
-  
-  
-  
   typedef Pair<nsRefPtr<MediaLargeByteBuffer>, TimeUnit> IncomingBuffer;
   nsTArray<IncomingBuffer> mIncomingBuffers;
+  
   TimeIntervals mVideoBufferedRanges;
   TimeIntervals mAudioBufferedRanges;
+  
   MediaInfo mInfo;
 };
 

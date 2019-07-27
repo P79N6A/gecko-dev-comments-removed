@@ -44,6 +44,7 @@ TrackBuffersManager::TrackBuffersManager(dom::SourceBuffer* aParent, MediaSource
   , mActiveTrack(false)
   , mType(aType)
   , mParser(ContainerParser::CreateForMIMEType(aType))
+  , mProcessedInput(0)
   , mTaskQueue(new MediaTaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK)))
   , mParent(new nsMainThreadPtrHolder<dom::SourceBuffer>(aParent, false ))
   , mParentDecoder(new nsMainThreadPtrHolder<MediaSourceDecoder>(aParentDecoder, false ))
@@ -267,7 +268,7 @@ TrackBuffersManager::CompleteResetParserState()
   }
   
   mIncomingBuffers.Clear();
-  mInputBuffer->Clear();
+  mInputBuffer = nullptr;
   if (mCurrentInputBuffer) {
     mCurrentInputBuffer->EvictAll();
     mCurrentInputBuffer = new SourceBufferResource(mType);
@@ -282,7 +283,10 @@ TrackBuffersManager::CompleteResetParserState()
     MOZ_ASSERT(initData->Length(), "we must have an init segment");
     
     CreateDemuxerforMIMEType();
-    mInputBuffer->AppendElements(*initData);
+    
+    
+    mInputBuffer = new MediaLargeByteBuffer;
+    MOZ_ALWAYS_TRUE(mInputBuffer->AppendElements(*initData, fallible));
   }
   RecreateParser();
 
@@ -362,11 +366,25 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
 {
   MSE_DEBUG("From %.2fs to %.2f",
             aInterval.mStart.ToSeconds(), aInterval.mEnd.ToSeconds());
-  TimeUnit duration{TimeUnit::FromSeconds(mParentDecoder->GetMediaSourceDuration())};
+
+  double mediaSourceDuration = mParentDecoder->GetMediaSourceDuration();
+  if (IsNaN(mediaSourceDuration)) {
+    MSE_DEBUG("Nothing to remove, aborting");
+    MonitorAutoLock mon(mMonitor);
+    mRangeRemovalPromise.ResolveIfExists(false, __func__);
+    return;
+  }
+  TimeUnit duration{TimeUnit::FromSeconds(mediaSourceDuration)};
 
   MSE_DEBUG("duration:%.2f", duration.ToSeconds());
-  MSE_DEBUG("before video ranges=%s", DumpTimeRanges(mVideoTracks.mBufferedRanges).get());
-  MSE_DEBUG("before audio ranges=%s", DumpTimeRanges(mAudioTracks.mBufferedRanges).get());
+  if (HasAudio()) {
+    MSE_DEBUG("before video ranges=%s",
+              DumpTimeRanges(mVideoTracks.mBufferedRanges).get());
+  }
+  if (HasVideo()) {
+    MSE_DEBUG("before audio ranges=%s",
+              DumpTimeRanges(mAudioTracks.mBufferedRanges).get());
+  }
 
   
   TimeUnit start = aInterval.mStart;
@@ -445,8 +463,15 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
     mVideoBufferedRanges = mVideoTracks.mBufferedRanges;
     mAudioBufferedRanges = mAudioTracks.mBufferedRanges;
   }
-  MSE_DEBUG("after video ranges=%s", DumpTimeRanges(mVideoTracks.mBufferedRanges).get());
-  MSE_DEBUG("after audio ranges=%s", DumpTimeRanges(mAudioTracks.mBufferedRanges).get());
+
+  if (HasAudio()) {
+    MSE_DEBUG("after video ranges=%s",
+              DumpTimeRanges(mVideoTracks.mBufferedRanges).get());
+  }
+  if (HasVideo()) {
+    MSE_DEBUG("after audio ranges=%s",
+              DumpTimeRanges(mAudioTracks.mBufferedRanges).get());
+  }
 
   
   mSizeSourceBuffer = mVideoTracks.mSizeBuffer + mAudioTracks.mSizeBuffer;
@@ -467,12 +492,12 @@ TrackBuffersManager::AppendIncomingBuffers()
   MOZ_ASSERT(OnTaskQueue());
   MonitorAutoLock mon(mMonitor);
   for (auto& incomingBuffer : mIncomingBuffers) {
-    if (!mInputBuffer->AppendElements(*incomingBuffer.first())) {
+    if (!mInputBuffer) {
+      mInputBuffer = incomingBuffer.first();
+    } else if (!mInputBuffer->AppendElements(*incomingBuffer.first(), fallible)) {
       RejectAppend(NS_ERROR_OUT_OF_MEMORY, __func__);
     }
-  }
-  if (!mIncomingBuffers.IsEmpty()) {
-    mTimestampOffset = mIncomingBuffers.LastElement().second();
+    mTimestampOffset = incomingBuffer.second();
     mLastTimestampOffset = mTimestampOffset;
   }
   mIncomingBuffers.Clear();
@@ -483,7 +508,6 @@ TrackBuffersManager::SegmentParserLoop()
 {
   MOZ_ASSERT(OnTaskQueue());
   while (true) {
-    bool completeMediaHeader;
     
     if (!mInputBuffer || mInputBuffer->IsEmpty()) {
       NeedMoreData();
@@ -518,8 +542,8 @@ TrackBuffersManager::SegmentParserLoop()
     }
 
     int64_t start, end;
-    completeMediaHeader =
-      mParser->ParseStartAndEndTimestamps(mInputBuffer, start, end);
+    mParser->ParseStartAndEndTimestamps(mInputBuffer, start, end);
+    mProcessedInput += mInputBuffer->Length();
 
     
     
@@ -538,7 +562,7 @@ TrackBuffersManager::SegmentParserLoop()
         return;
       }
       
-      if (!completeMediaHeader) {
+      if (mParser->MediaHeaderRange().IsNull()) {
         NeedMoreData();
         return;
       }
@@ -567,10 +591,6 @@ void
 TrackBuffersManager::NeedMoreData()
 {
   MSE_DEBUG("");
-  
-  
-  
-  RecreateParser();
   RestoreCachedVariables();
   mAppendPromise.ResolveIfExists(mActiveTrack, __func__);
 }
@@ -622,6 +642,12 @@ TrackBuffersManager::InitializationSegmentReceived()
   MOZ_ASSERT(mParser->HasCompleteInitData());
   mCurrentInputBuffer = new SourceBufferResource(mType);
   mCurrentInputBuffer->AppendData(mParser->InitData());
+  uint32_t initLength = mParser->InitSegmentRange().mEnd;
+  if (mInputBuffer->Length() == initLength) {
+    mInputBuffer = nullptr;
+  } else {
+    mInputBuffer->RemoveElementsAt(0, initLength);
+  }
   CreateDemuxerforMIMEType();
   if (!mInputDemuxer) {
     MOZ_ASSERT(false, "TODO type not supported");
@@ -804,7 +830,9 @@ TrackBuffersManager::OnDemuxerInitDone(nsresult)
   }
 
   
-  mInputBuffer->RemoveElementsAt(0, mParser->InitSegmentRange().mEnd);
+  
+  
+  mCurrentInputBuffer->EvictAll();
   RecreateParser();
 
   
@@ -830,23 +858,21 @@ TrackBuffersManager::CodedFrameProcessing()
 
   int64_t offset = mCurrentInputBuffer->GetLength();
   MediaByteRange mediaRange = mParser->MediaSegmentRange();
-  
-  int64_t rangeOffset = mParser->InitData()->Length();
-  int64_t length;
+  uint32_t length;
   if (mediaRange.IsNull()) {
     length = mInputBuffer->Length();
     mCurrentInputBuffer->AppendData(mInputBuffer);
+    mInputBuffer = nullptr;
   } else {
+    
+    length = mediaRange.mEnd - (mProcessedInput - mInputBuffer->Length());
     nsRefPtr<MediaLargeByteBuffer> segment = new MediaLargeByteBuffer;
-    length = mediaRange.Length();
-    MOZ_ASSERT(mInputBuffer->Length() >= uint64_t(mediaRange.mEnd - rangeOffset),
-               "We're missing some data");
-    MOZ_ASSERT(mediaRange.mStart >= rangeOffset, "Invalid media segment range");
-    if (!segment->AppendElements(mInputBuffer->Elements() +
-                                 mediaRange.mStart - rangeOffset, length)) {
+    MOZ_ASSERT(mInputBuffer->Length() >= length);
+    if (!segment->AppendElements(mInputBuffer->Elements(), length, fallible)) {
       return CodedFrameProcessingPromise::CreateAndReject(NS_ERROR_OUT_OF_MEMORY, __func__);
     }
     mCurrentInputBuffer->AppendData(segment);
+    mInputBuffer->RemoveElementsAt(0, length);
   }
   mInputDemuxer->NotifyDataArrived(length, offset);
 
@@ -974,6 +1000,14 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
     
     mVideoBufferedRanges = mVideoTracks.mBufferedRanges;
     mAudioBufferedRanges = mAudioTracks.mBufferedRanges;
+    if (HasAudio()) {
+      MSE_DEBUG("audio new buffered range = %s",
+                DumpTimeRanges(mAudioBufferedRanges).get());
+    }
+    if (HasVideo()) {
+      MSE_DEBUG("video new buffered range = %s",
+                DumpTimeRanges(mVideoBufferedRanges).get());
+    }
   }
 
   
@@ -991,15 +1025,12 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
   }
 
   
-  int64_t rangeOffset = mParser->InitSegmentRange().mEnd;
-  mInputBuffer->RemoveElementsAt(0, mParser->MediaSegmentRange().mEnd - rangeOffset);
-  RecreateParser();
-
   
   
   
   mCurrentInputBuffer->EvictAll();
   mInputDemuxer->NotifyDataRemoved();
+  RecreateParser();
 
   
   SetAppendState(AppendState::WAITING_FOR_SEGMENT);
@@ -1266,6 +1297,9 @@ TrackBuffersManager::RecreateParser()
   if (initData) {
     int64_t start, end;
     mParser->ParseStartAndEndTimestamps(initData, start, end);
+    mProcessedInput = initData->Length();
+  } else {
+    mProcessedInput = 0;
   }
 }
 
