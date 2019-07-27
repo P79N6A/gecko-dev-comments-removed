@@ -166,7 +166,7 @@ GetGCThingTraceKind(const void* thing);
 
 
 
-#ifdef XP_WIN
+#ifdef _MSC_VER
 # define DEPENDENT_TEMPLATE_HINT
 #else
 # define DEPENDENT_TEMPLATE_HINT template
