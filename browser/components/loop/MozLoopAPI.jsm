@@ -48,6 +48,28 @@ const cloneErrorObject = function(error, targetWindow) {
 
 
 
+
+
+const cloneValueInto = function(value, targetWindow) {
+  if (!value || typeof value != "object") {
+    return value;
+  }
+
+  
+  if (value.constructor.name == "Error") {
+    return cloneErrorObject(value, targetWindow);
+  }
+
+  return Cu.cloneInto(value, targetWindow);
+};
+
+
+
+
+
+
+
+
 const injectObjectAPI = function(api, targetWindow) {
   let injectedAPI = {};
   
@@ -56,17 +78,7 @@ const injectObjectAPI = function(api, targetWindow) {
     injectedAPI[func] = function(...params) {
       let callback = params.pop();
       api[func](...params, function(...results) {
-        results = results.map(result => {
-          if (result && typeof result == "object") {
-            
-            if (result.constructor.name == "Error") {
-              return cloneErrorObject(result.message)
-            }
-            return Cu.cloneInto(result, targetWindow);
-          }
-          return result;
-        });
-        callback(...results);
+        callback(...[cloneValueInto(r, targetWindow) for (r of results)]);
       });
     };
   });
@@ -203,11 +215,11 @@ function injectLoopAPI(targetWindow) {
       value: function(callback) {
         
         
-        return MozLoopService.register().then(() => {
+        MozLoopService.register().then(() => {
           callback(null);
         }, err => {
-          callback(err);
-        });
+          callback(cloneValueInto(err, targetWindow));
+        }).catch(Cu.reportError);
       }
     },
 
@@ -357,11 +369,20 @@ function injectLoopAPI(targetWindow) {
       value: function(path, method, payloadObj, callback) {
         
         
-        return MozLoopService.hawkRequest(LOOP_SESSION_TYPE.GUEST, path, method, payloadObj).then((response) => {
+        MozLoopService.hawkRequest(LOOP_SESSION_TYPE.GUEST, path, method, payloadObj).then((response) => {
           callback(null, response.body);
-        }, (error) => {
-          callback(Cu.cloneInto(error, targetWindow));
-        });
+        }, hawkError => {
+          
+          
+          
+          callback(Cu.cloneInto({
+            error: (hawkError.error && typeof hawkError.error == "string")
+                   ? hawkError.error : "Unexpected exception",
+            message: hawkError.message,
+            code: hawkError.code,
+            errno: hawkError.errno,
+          }, targetWindow));
+        }).catch(Cu.reportError);
       }
     },
 
