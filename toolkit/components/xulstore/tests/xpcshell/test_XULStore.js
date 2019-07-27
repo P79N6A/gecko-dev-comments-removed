@@ -97,6 +97,21 @@ add_task(function* testImport(){
   checkOldStore();
 });
 
+add_task(function* testTruncation() {
+  let dos = Array(8192).join("~");
+  
+  Assert.throws(() => XULStore.setValue(browserURI, dos, "foo", "foo"), /NS_ERROR_ILLEGAL_VALUE/);
+
+  
+  Assert.throws(() => XULStore.setValue(browserURI, "foo", dos, "foo"), /NS_ERROR_ILLEGAL_VALUE/);
+
+  
+  XULStore.setValue(browserURI, "dos", "dos", dos);
+  dos =XULStore.getValue(browserURI, "dos", "dos");
+  do_check_true(dos.length == 4096)
+  XULStore.removeValue(browserURI, "dos", "dos")
+});
+
 add_task(function* testGetValue() {
   
   checkValue(browserURI, "side-window", "height", "");
