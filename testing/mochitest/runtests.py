@@ -1639,6 +1639,9 @@ class Mochitest(MochitestUtilsMixin):
       
       result = self.runMochitests(options, onLaunch)
 
+      
+      self.message_logger.dump_buffered()
+
     
     if options.browserChrome:
       print "TEST-INFO | checking window state"
