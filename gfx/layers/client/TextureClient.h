@@ -8,7 +8,6 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "GLContextTypes.h"             
 #include "GLTextureImage.h"             
 #include "ImageTypes.h"                 
 #include "mozilla/Assertions.h"         
@@ -32,10 +31,6 @@
 class gfxImageSurface;
 
 namespace mozilla {
-namespace gl {
-class GLContext;
-class SharedSurface;
-}
 
 
 
@@ -476,8 +471,12 @@ public:
    virtual void SetReadbackSink(TextureReadbackSink* aReadbackSink) {
      mReadbackSink = aReadbackSink;
    }
-   
+
    virtual void SyncWithObject(SyncObject* aSyncObject) { }
+
+   void MarkShared() {
+     mShared = true;
+   }
 
 private:
   
@@ -688,66 +687,6 @@ public:
 protected:
   uint8_t* mBuffer;
   size_t mBufSize;
-};
-
-
-
-
-class SharedSurfaceTextureClient : public TextureClient
-{
-public:
-  SharedSurfaceTextureClient(ISurfaceAllocator* aAllocator, TextureFlags aFlags,
-                             gl::SharedSurface* surf);
-
-protected:
-  ~SharedSurfaceTextureClient();
-
-public:
-  
-  virtual bool IsAllocated() const override { return true; }
-
-  virtual bool Lock(OpenMode) override {
-    MOZ_ASSERT(!mIsLocked);
-    mIsLocked = true;
-    return true;
-  }
-
-  virtual void Unlock() override {
-    MOZ_ASSERT(mIsLocked);
-    mIsLocked = false;
-  }
-
-  virtual bool IsLocked() const override { return mIsLocked; }
-
-  virtual bool HasInternalBuffer() const override { return false; }
-
-  virtual gfx::SurfaceFormat GetFormat() const override {
-    return gfx::SurfaceFormat::UNKNOWN;
-  }
-
-  virtual gfx::IntSize GetSize() const override { return gfx::IntSize(); }
-
-  
-  
-  
-  virtual TemporaryRef<TextureClient>
-  CreateSimilar(TextureFlags, TextureAllocationFlags) const override {
-    return nullptr;
-  }
-
-  virtual bool AllocateForSurface(gfx::IntSize,
-                                  TextureAllocationFlags) override {
-    MOZ_CRASH("Should never hit this.");
-    return false;
-  }
-  
-
-  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) override;
-
-protected:
-  bool mIsLocked;
-  gl::SharedSurface* const mSurf;
-  RefPtr<gl::GLContext> mGL; 
 };
 
 struct TextureClientAutoUnlock
