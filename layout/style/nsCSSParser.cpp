@@ -656,7 +656,10 @@ protected:
   
   bool ParseBoxPositionValues(nsCSSValuePair& aOut, bool aAcceptsInherit,
                               bool aAllowExplicitCenter = true); 
-  bool ParseBackgroundPositionValues(nsCSSValue& aOut, bool aAcceptsInherit);
+
+  
+  
+  bool ParsePositionValue(nsCSSValue& aOut);
 
   bool ParseBackgroundSize();
   bool ParseBackgroundSizeValues(nsCSSValuePair& aOut);
@@ -10197,7 +10200,7 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
         if (havePositionAndSize)
           return false;
         havePositionAndSize = true;
-        if (!ParseBackgroundPositionValues(aState.mPosition->mValue, false)) {
+        if (!ParsePositionValue(aState.mPosition->mValue)) {
           return false;
         }
         if (ExpectSymbol('/', true)) {
@@ -10281,7 +10284,7 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
       if (havePositionAndSize)
         return false;
       havePositionAndSize = true;
-      if (!ParseBackgroundPositionValues(aState.mPosition->mValue, false)) {
+      if (!ParsePositionValue(aState.mPosition->mValue)) {
         return false;
       }
       if (ExpectSymbol('/', true)) {
@@ -10393,7 +10396,7 @@ CSSParserImpl::ParseBackgroundPosition()
   
   if (!ParseVariant(value, VARIANT_INHERIT, nullptr)) {
     nsCSSValue itemValue;
-    if (!ParseBackgroundPositionValues(itemValue, false)) {
+    if (!ParsePositionValue(itemValue)) {
       return false;
     }
     nsCSSValueList* item = value.SetListValue();
@@ -10402,7 +10405,7 @@ CSSParserImpl::ParseBackgroundPosition()
       if (!ExpectSymbol(',', true)) {
         break;
       }
-      if (!ParseBackgroundPositionValues(itemValue, false)) {
+      if (!ParsePositionValue(itemValue)) {
         return false;
       }
       item->mNext = new nsCSSValueList;
@@ -10515,19 +10518,11 @@ bool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut,
   return true;
 }
 
-bool CSSParserImpl::ParseBackgroundPositionValues(nsCSSValue& aOut,
-                                                  bool aAcceptsInherit)
-{
-  
-  
-  
-  
-  
-  
-  if (aAcceptsInherit && ParseVariant(aOut, VARIANT_INHERIT, nullptr)) {
-    return true;
-  }
 
+
+bool
+CSSParserImpl::ParsePositionValue(nsCSSValue& aOut)
+{
   nsRefPtr<nsCSSValue::Array> value = nsCSSValue::Array::Create(4);
   aOut.SetArrayValue(value, eCSSUnit_Array);
 
