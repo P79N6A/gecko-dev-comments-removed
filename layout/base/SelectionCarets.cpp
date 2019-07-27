@@ -187,6 +187,12 @@ SelectionCarets::HandleEvent(WidgetEvent* aEvent)
   }
 
   
+  if (!mPresShell->GetSelectionCaretsStartElement() ||
+      !mPresShell->GetSelectionCaretsEndElement()) {
+    return nsEventStatus_eIgnore;
+  }
+
+  
   nsIFrame* rootFrame = mPresShell->GetRootFrame();
   if (!rootFrame) {
     return nsEventStatus_eIgnore;
