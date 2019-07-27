@@ -1604,11 +1604,12 @@ public:
   
   
   
+  template<typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex, size_type aCount)
   {
-    if (!base_type::template InsertSlotsAt<Alloc>(aIndex, aCount,
-                                                  sizeof(elem_type),
-                                                  MOZ_ALIGNOF(elem_type))) {
+    if (!base_type::template InsertSlotsAt<ActualAlloc>(aIndex, aCount,
+                                                        sizeof(elem_type),
+                                                        MOZ_ALIGNOF(elem_type))) {
       return nullptr;
     }
 
@@ -1623,19 +1624,26 @@ public:
   }
 
   
+  elem_type* InsertElementsAt(index_type aIndex, size_type aCount,
+                              const mozilla::fallible_t&)
+  {
+    return InsertElementsAt<FallibleAlloc>(aIndex, aCount);
+  }
+
   
   
   
   
   
   
-  template<class Item>
+  
+  template<class Item, typename ActualAlloc = Alloc>
   elem_type* InsertElementsAt(index_type aIndex, size_type aCount,
                               const Item& aItem)
   {
-    if (!base_type::template InsertSlotsAt<Alloc>(aIndex, aCount,
-                                                  sizeof(elem_type),
-                                                  MOZ_ALIGNOF(elem_type))) {
+    if (!base_type::template InsertSlotsAt<ActualAlloc>(aIndex, aCount,
+                                                        sizeof(elem_type),
+                                                        MOZ_ALIGNOF(elem_type))) {
       return nullptr;
     }
 
@@ -1647,6 +1655,14 @@ public:
     }
 
     return Elements() + aIndex;
+  }
+
+  template<class Item>
+  
+  elem_type* InsertElementsAt(index_type aIndex, size_type aCount,
+                              const Item& aItem, const mozilla::fallible_t&)
+  {
+    return InsertElementsAt<Item, FallibleAlloc>(aIndex, aCount, aItem);
   }
 
   
