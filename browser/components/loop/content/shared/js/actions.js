@@ -402,6 +402,8 @@ loop.shared.actions = (function() {
 
     SetupRoomInfo: Action.define("setupRoomInfo", {
       
+      
+      
       roomOwner: String,
       roomToken: String,
       roomUrl: String,

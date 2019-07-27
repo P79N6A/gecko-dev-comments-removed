@@ -23,6 +23,13 @@ loop.store.ActiveRoomStore = (function() {
 
   var ROOM_INFO_FAILURES = loop.shared.utils.ROOM_INFO_FAILURES;
 
+  var OPTIONAL_ROOMINFO_FIELDS = {
+    urls: "roomContextUrls",
+    description: "roomDescription",
+    roomInfoFailure: "roomInfoFailure",
+    roomName: "roomName"
+  };
+
   
 
 
@@ -84,6 +91,8 @@ loop.store.ActiveRoomStore = (function() {
         roomContextUrls: null,
         
         roomCryptoKey: null,
+        
+        roomDescription: null,
         
         roomInfoFailure: null,
         
@@ -185,6 +194,8 @@ loop.store.ActiveRoomStore = (function() {
 
           this.dispatchAction(new sharedActions.SetupRoomInfo({
             roomToken: actionData.roomToken,
+            roomContextUrls: roomData.decryptedContext.urls,
+            roomDescription: roomData.decryptedContext.description,
             roomName: roomData.decryptedContext.roomName,
             roomOwner: roomData.roomOwner,
             roomUrl: roomData.roomUrl,
@@ -275,6 +286,7 @@ loop.store.ActiveRoomStore = (function() {
               .then(function(decryptedResult) {
           var realResult = JSON.parse(decryptedResult);
 
+          roomInfoData.description = realResult.description;
           roomInfoData.urls = realResult.urls;
           roomInfoData.roomName = realResult.roomName;
 
@@ -299,6 +311,8 @@ loop.store.ActiveRoomStore = (function() {
       }
 
       this.setStoreState({
+        roomContextUrls: actionData.roomContextUrls,
+        roomDescription: actionData.roomDescription,
         roomName: actionData.roomName,
         roomOwner: actionData.roomOwner,
         roomState: ROOM_STATES.READY,
@@ -324,13 +338,18 @@ loop.store.ActiveRoomStore = (function() {
 
 
     updateRoomInfo: function(actionData) {
-      this.setStoreState({
-        roomContextUrls: actionData.urls,
-        roomInfoFailure: actionData.roomInfoFailure,
-        roomName: actionData.roomName,
+      var newState = {
         roomOwner: actionData.roomOwner,
         roomUrl: actionData.roomUrl
+      };
+      
+      
+      Object.keys(OPTIONAL_ROOMINFO_FIELDS).forEach(function(field) {
+        if (actionData[field]) {
+          newState[OPTIONAL_ROOMINFO_FIELDS[field]] = actionData[field];
+        }
       });
+      this.setStoreState(newState);
     },
 
     
