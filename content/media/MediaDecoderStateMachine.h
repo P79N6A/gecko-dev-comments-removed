@@ -638,6 +638,10 @@ protected:
 
   
   
+  void DoNotifyWaitingForResourcesStatusChanged();
+
+  
+  
   
   
   

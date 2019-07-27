@@ -135,6 +135,7 @@ MediaOmxReader::MediaOmxReader(AbstractMediaDecoder *aDecoder)
   , mSkipCount(0)
   , mUseParserDuration(false)
   , mLastParserDuration(-1)
+  , mIsWaitingResources(false)
 {
 #ifdef PR_LOGGING
   if (!gMediaDecoderLog) {
@@ -172,10 +173,16 @@ void MediaOmxReader::Shutdown()
 
 bool MediaOmxReader::IsWaitingMediaResources()
 {
-  if (!mOmxDecoder.get()) {
-    return false;
+  return mIsWaitingResources;
+}
+
+void MediaOmxReader::UpdateIsWaitingMediaResources()
+{
+  if (mOmxDecoder.get()) {
+    mIsWaitingResources = mOmxDecoder->IsWaitingMediaResources();
+  } else {
+    mIsWaitingResources = false;
   }
-  return mOmxDecoder->IsWaitingMediaResources();
 }
 
 bool MediaOmxReader::IsDormantNeeded()
@@ -245,12 +252,20 @@ nsresult MediaOmxReader::ReadMetadata(MediaInfo* aInfo,
     ProcessCachedData(0, true);
   }
 
-  if (!mOmxDecoder->TryLoad()) {
+  if (!mOmxDecoder->AllocateMediaResources()) {
     return NS_ERROR_FAILURE;
   }
-
+  
+  
+  
+  
+  UpdateIsWaitingMediaResources();
   if (IsWaitingMediaResources()) {
     return NS_OK;
+  }
+  
+  if (!mOmxDecoder->EnsureMetadata()) {
+    return NS_ERROR_FAILURE;
   }
 
   if (isMP3 && mMP3FrameParser.IsMP3()) {
