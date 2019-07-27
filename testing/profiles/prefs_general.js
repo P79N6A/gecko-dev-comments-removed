@@ -318,3 +318,6 @@ user_pref("browser.devedition.theme.enabled", false);
 
 
 user_pref("dom.serviceWorkers.periodic-updates.enabled", false);
+
+
+user_pref("media.webspeech.synth.test", true);
