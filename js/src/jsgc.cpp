@@ -6214,6 +6214,17 @@ GCRuntime::shrinkBuffers()
 }
 
 void
+GCRuntime::onOutOfMallocMemory()
+{
+    
+    allocTask.cancel(GCParallelTask::CancelAndWait);
+
+    
+    AutoLockGC lock(rt);
+    expireChunksAndArenas(true, lock);
+}
+
+void
 GCRuntime::minorGC(JS::gcreason::Reason reason)
 {
 #ifdef JSGC_GENERATIONAL
