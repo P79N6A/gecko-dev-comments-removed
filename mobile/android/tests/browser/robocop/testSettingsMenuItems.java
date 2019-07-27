@@ -144,7 +144,7 @@ public class testSettingsMenuItems extends PixelTest {
                 "The Settings menu did not load", mStringHelper.SETTINGS_LABEL);
 
         
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+        mSolo.goBack();
 
         
         mAsserter.ok(mSolo.waitForText(mStringHelper.TITLE_PLACE_HOLDER), "about:home did not load",
@@ -281,7 +281,7 @@ public class testSettingsMenuItems extends PixelTest {
                         mSolo.clickOnText("^Cancel$");
                     } else {
                         
-                        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+                        mSolo.goBack();
                     }
                 }
             }
@@ -290,10 +290,8 @@ public class testSettingsMenuItems extends PixelTest {
             if (mDevice.type.equals("phone")) {
                 int menuDepth = menuPath.length;
                 while (menuDepth > 0) {
-                    mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+                    mSolo.goBack();
                     menuDepth--;
-                    
-                    mSolo.sleep(150);
                 }
             }
         }
