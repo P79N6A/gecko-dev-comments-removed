@@ -577,7 +577,7 @@ var gUpdates = {
     if (this.update)
       this.update.QueryInterface(CoI.nsIWritablePropertyBag);
   }
-}
+};
 
 
 
