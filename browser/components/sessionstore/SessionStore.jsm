@@ -649,7 +649,20 @@ let SessionStoreInternal = {
           browser.userTypedValue = uri;
 
           
-          this.updateTabLabelAndIcon(tab, tabData);
+          if (activePageData) {
+            if (activePageData.title) {
+              tab.label = activePageData.title;
+              tab.crop = "end";
+            } else if (activePageData.url != "about:blank") {
+              tab.label = activePageData.url;
+              tab.crop = "center";
+            }
+          }
+
+          
+          if ("image" in tabData) {
+            win.gBrowser.setIcon(tab, tabData.image);
+          }
 
           let event = win.document.createEvent("Events");
           event.initEvent("SSTabRestoring", true, false);
@@ -1860,26 +1873,6 @@ let SessionStoreInternal = {
     }
   },
 
-  updateTabLabelAndIcon(tab, tabData) {
-    let activePageData = tabData.entries[tabData.index - 1] || null;
-
-    
-    if (activePageData) {
-      if (activePageData.title) {
-        tab.label = activePageData.title;
-        tab.crop = "end";
-      } else if (activePageData.url != "about:blank") {
-        tab.label = activePageData.url;
-        tab.crop = "center";
-      }
-    }
-
-    
-    if ("image" in tabData) {
-      tab.ownerDocument.defaultView.gBrowser.setIcon(tab, tabData.image);
-    }
-  },
-
   
 
 
@@ -2553,16 +2546,8 @@ let SessionStoreInternal = {
     }
 
     
-    let selectedIndex = aTabs.indexOf(tabbrowser.selectedTab);
-    if (selectedIndex > -1) {
-      this.restoreTab(tabbrowser.selectedTab, aTabData[selectedIndex]);
-    }
-
-    
     for (let t = 0; t < aTabs.length; t++) {
-      if (t != selectedIndex) {
-        this.restoreTab(aTabs[t], aTabData[t]);
-      }
+      this.restoreTab(aTabs[t], aTabData[t]);
     }
   },
 
@@ -2667,10 +2652,6 @@ let SessionStoreInternal = {
 
     browser.messageManager.sendAsyncMessage("SessionStore:restoreHistory",
                                             {tabData: tabData, epoch: epoch});
-
-    
-    
-    this.updateTabLabelAndIcon(tab, tabData);
 
     
     if ("attributes" in tabData) {
