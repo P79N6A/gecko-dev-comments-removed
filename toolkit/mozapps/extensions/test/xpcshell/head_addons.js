@@ -174,21 +174,18 @@ function do_get_addon(aName) {
 }
 
 function do_get_addon_hash(aName, aAlgorithm) {
-  let file = do_get_addon(aName);
-  return do_get_file_hash(file);
-}
-
-function do_get_file_hash(aFile, aAlgorithm) {
   if (!aAlgorithm)
     aAlgorithm = "sha1";
+
+  let file = do_get_addon(aName);
 
   let crypto = AM_Cc["@mozilla.org/security/hash;1"].
                createInstance(AM_Ci.nsICryptoHash);
   crypto.initWithString(aAlgorithm);
   let fis = AM_Cc["@mozilla.org/network/file-input-stream;1"].
             createInstance(AM_Ci.nsIFileInputStream);
-  fis.init(aFile, -1, -1, false);
-  crypto.updateFromStream(fis, aFile.fileSize);
+  fis.init(file, -1, -1, false);
+  crypto.updateFromStream(fis, file.fileSize);
 
   
   function toHexString(charCode)
@@ -511,8 +508,7 @@ function loadAddonsList() {
 
   gAddonsList = {
     extensions: [],
-    themes: [],
-    mpIncompatible: new Set()
+    themes: []
   };
 
   if (!gExtensionsINI.exists())
@@ -523,11 +519,6 @@ function loadAddonsList() {
   var parser = factory.createINIParser(gExtensionsINI);
   gAddonsList.extensions = readDirectories("ExtensionDirs");
   gAddonsList.themes = readDirectories("ThemeDirs");
-  var keys = parser.getKeys("MultiprocessIncompatibleExtensions");
-  while (keys.hasMore()) {
-    let id = parser.getString("MultiprocessIncompatibleExtensions", keys.getNext());
-    gAddonsList.mpIncompatible.add(id);
-  }
 }
 
 function isItemInAddonsList(aType, aDir, aId) {
@@ -545,10 +536,6 @@ function isItemInAddonsList(aType, aDir, aId) {
       return true;
   }
   return false;
-}
-
-function isItemMarkedMPIncompatible(aId) {
-  return gAddonsList.mpIncompatible.has(aId);
 }
 
 function isThemeInAddonsList(aDir, aId) {
@@ -601,54 +588,6 @@ function writeLocaleStrings(aData) {
   return rdf;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-function createUpdateRDF(aData) {
-  var rdf = '<?xml version="1.0"?>\n';
-  rdf += '<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n' +
-         '     xmlns:em="http://www.mozilla.org/2004/em-rdf#">\n';
-
-  for (let addon in aData) {
-    rdf += '  <Description about="urn:mozilla:extension:' + escapeXML(addon) + '"><em:updates><Seq>\n';
-
-    for (let versionData of aData[addon]) {
-      rdf += '    <li><Description>\n';
-
-      for (let prop of ["version", "multiprocessCompatible"]) {
-        if (prop in versionData)
-          rdf += "      <em:" + prop + ">" + escapeXML(versionData[prop]) + "</em:" + prop + ">\n";
-      }
-
-      if ("targetApplications" in versionData) {
-        for (let app of versionData.targetApplications) {
-          rdf += "      <em:targetApplication><Description>\n";
-          for (let prop of ["id", "minVersion", "maxVersion", "updateLink", "updateHash"]) {
-            if (prop in app)
-              rdf += "        <em:" + prop + ">" + escapeXML(app[prop]) + "</em:" + prop + ">\n";
-          }
-          rdf += "      </Description></em:targetApplication>\n";
-        }
-      }
-
-      rdf += '    </Description></li>\n';
-    }
-
-    rdf += '  </Seq></em:updates></Description>\n'
-  }
-  rdf += "</RDF>\n";
-
-  return rdf;
-}
-
 function createInstallRDF(aData) {
   var rdf = '<?xml version="1.0"?>\n';
   rdf += '<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n' +
@@ -657,7 +596,7 @@ function createInstallRDF(aData) {
 
   ["id", "version", "type", "internalName", "updateURL", "updateKey",
    "optionsURL", "optionsType", "aboutURL", "iconURL", "icon64URL",
-   "skinnable", "bootstrap", "strictCompatibility", "multiprocessCompatible"].forEach(function(aProp) {
+   "skinnable", "bootstrap", "strictCompatibility"].forEach(function(aProp) {
     if (aProp in aData)
       rdf += "<em:" + aProp + ">" + escapeXML(aData[aProp]) + "</em:" + aProp + ">\n";
   });
@@ -789,65 +728,25 @@ function writeInstallRDFForExtension(aData, aDir, aId, aExtraFile) {
 function writeInstallRDFToXPI(aData, aDir, aId, aExtraFile) {
   var id = aId ? aId : aData.id
 
-  if (!aDir.exists())
-    aDir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+  var dir = aDir.clone();
 
-  var file = aDir.clone();
-  file.append(id + ".xpi");
-  writeInstallRDFToXPIFile(aData, file, aExtraFile);
-
-  return file;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function writeInstallRDFToXPIFile(aData, aFile, aExtraFile) {
+  if (!dir.exists())
+    dir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+  dir.append(id + ".xpi");
   var rdf = createInstallRDF(aData);
   var stream = AM_Cc["@mozilla.org/io/string-input-stream;1"].
                createInstance(AM_Ci.nsIStringInputStream);
   stream.setData(rdf, -1);
   var zipW = AM_Cc["@mozilla.org/zipwriter;1"].
              createInstance(AM_Ci.nsIZipWriter);
-  zipW.open(aFile, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE);
+  zipW.open(dir, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE);
   zipW.addEntryStream("install.rdf", 0, AM_Ci.nsIZipWriter.COMPRESSION_NONE,
                       stream, false);
   if (aExtraFile)
     zipW.addEntryStream(aExtraFile, 0, AM_Ci.nsIZipWriter.COMPRESSION_NONE,
                         stream, false);
   zipW.close();
-}
-
-let temp_xpis = [];
-
-
-
-
-
-
-
-
-function createTempXPIFile(aData) {
-  var file = gTmpD.clone();
-  file.append("foo.xpi");
-  do {
-    file.leafName = Math.floor(Math.random() * 1000000) + ".xpi";
-  } while (file.exists());
-
-  temp_xpis.push(file);
-  writeInstallRDFToXPIFile(aData, file);
-  return file;
+  return dir;
 }
 
 
@@ -1264,12 +1163,6 @@ function completeAllInstalls(aInstalls, aCallback) {
   });
 }
 
-function promiseCompleteAllInstalls(aInstalls) {
-  return new Promise(resolve => {
-    completeAllInstalls(aInstalls, resolve);
-  });
-}
-
 
 
 
@@ -1522,11 +1415,6 @@ do_register_cleanup(function addon_cleanup() {
   if (timer)
     timer.cancel();
 
-  for (let file of temp_xpis) {
-    if (file.exists())
-      file.remove(false);
-  }
-
   
   var dirEntries = gTmpD.directoryEntries
                         .QueryInterface(AM_Ci.nsIDirectoryEnumerator);
@@ -1724,28 +1612,4 @@ function promiseAddonsByIDs(list) {
 
 function promiseAddonByID(aId) {
   return new Promise((resolve, reject) => AddonManager.getAddonByID(aId, resolve));
-}
-
-
-
-
-
-
-function promiseFindAddonUpdates(addon, reason = AddonManager.UPDATE_WHEN_PERIODIC_UPDATE) {
-  return new Promise((resolve, reject) => {
-    addon.findUpdates({
-      install: null,
-
-      onUpdateAvailable: function(addon, install) {
-        this.install = install;
-      },
-
-      onUpdateFinished: function(addon, error) {
-        if (error == AddonManager.UPDATE_STATUS_NO_ERROR)
-          resolve(this.install);
-        else
-          reject(error);
-      }
-    }, reason);
-  });
 }
