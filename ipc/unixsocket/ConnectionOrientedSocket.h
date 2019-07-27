@@ -35,6 +35,18 @@ public:
                           const struct sockaddr* aAddress,
                           socklen_t aAddressLength) = 0;
 
+  void Send(UnixSocketIOBuffer* aBuffer);
+
+  
+  
+
+  void OnSocketCanReceiveWithoutBlocking() final;
+  void OnSocketCanSendWithoutBlocking() final;
+
+  void OnListening() final;
+  void OnConnected() final;
+  void OnError(const char* aFunction, int aErrno) final;
+
 protected:
   
 

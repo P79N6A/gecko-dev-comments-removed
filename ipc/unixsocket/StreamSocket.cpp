@@ -56,17 +56,6 @@ public:
 
   void Connect();
 
-  void Send(UnixSocketIOBuffer* aBuffer);
-
-  
-  
-
-  void OnConnected() override;
-  void OnError(const char* aFunction, int aErrno) override;
-  void OnListening() override;
-  void OnSocketCanReceiveWithoutBlocking() override;
-  void OnSocketCanSendWithoutBlocking() override;
-
   
   
 
@@ -237,78 +226,6 @@ StreamSocketIO::Connect()
   
   rv = UnixSocketWatcher::Connect(address, mAddressLength);
   NS_WARN_IF(NS_FAILED(rv));
-}
-
-void
-StreamSocketIO::Send(UnixSocketIOBuffer* aData)
-{
-  EnqueueData(aData);
-  AddWatchers(WRITE_WATCHER, false);
-}
-
-void
-StreamSocketIO::OnConnected()
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED);
-
-  GetConsumerThread()->Dispatch(
-    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS),
-    NS_DISPATCH_NORMAL);
-
-  AddWatchers(READ_WATCHER, true);
-  if (HasPendingData()) {
-    AddWatchers(WRITE_WATCHER, false);
-  }
-}
-
-void
-StreamSocketIO::OnListening()
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-
-  NS_NOTREACHED("Invalid call to |StreamSocketIO::OnListening|");
-}
-
-void
-StreamSocketIO::OnError(const char* aFunction, int aErrno)
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-
-  UnixFdWatcher::OnError(aFunction, aErrno);
-  FireSocketError();
-}
-
-void
-StreamSocketIO::OnSocketCanReceiveWithoutBlocking()
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); 
-
-  ssize_t res = ReceiveData(GetFd());
-  if (res < 0) {
-    
-    RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
-  } else if (!res) {
-    
-    RemoveWatchers(READ_WATCHER);
-  }
-}
-
-void
-StreamSocketIO::OnSocketCanSendWithoutBlocking()
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); 
-
-  nsresult rv = SendPendingData(GetFd());
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  if (HasPendingData()) {
-    AddWatchers(WRITE_WATCHER, false);
-  }
 }
 
 void
