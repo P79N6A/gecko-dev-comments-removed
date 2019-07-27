@@ -243,9 +243,15 @@ addMessageListener("Test:GetAllAdjustedQuads", function(msg) {
 
 
 
+
+
 addMessageListener("Test:SynthesizeMouse", function(msg) {
+  let {x, y, center, options, selector} = msg.data;
   let {node} = msg.objects;
-  let {x, y, center, options} = msg.data;
+
+  if (!node && selector) {
+    node = content.document.querySelector(selector);
+  }
 
   if (center) {
     EventUtils.synthesizeMouseAtCenter(node, options, node.ownerDocument.defaultView);
@@ -257,6 +263,20 @@ addMessageListener("Test:SynthesizeMouse", function(msg) {
   
   
   sendAsyncMessage("Test:SynthesizeMouse");
+});
+
+
+
+
+
+
+
+
+
+addMessageListener("Test:SynthesizeKey", function(msg) {
+  let {key, options} = msg.data;
+
+  EventUtils.synthesizeKey(key, options, content);
 });
 
 
