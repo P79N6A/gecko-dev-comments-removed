@@ -912,14 +912,19 @@ public:
     mozStorageTransaction transaction(mDBConn, false,
                                       mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    VisitData* lastPlace = nullptr;
+    VisitData* lastFetchedPlace = nullptr;
     for (nsTArray<VisitData>::size_type i = 0; i < mPlaces.Length(); i++) {
       VisitData& place = mPlaces.ElementAt(i);
       VisitData& referrer = mReferrers.ElementAt(i);
 
       
       
-      bool known = lastPlace && lastPlace->IsSamePlaceAs(place);
+      bool typed = place.typed;
+      bool hidden = place.hidden;
+
+      
+      
+      bool known = lastFetchedPlace && lastFetchedPlace->IsSamePlaceAs(place);
       if (!known) {
         nsresult rv = mHistory->FetchPageInfo(place, &known);
         if (NS_FAILED(rv)) {
@@ -930,6 +935,17 @@ public:
           }
           return NS_OK;
         }
+        lastFetchedPlace = &mPlaces.ElementAt(i);
+      }
+
+      
+      if (typed != lastFetchedPlace->typed) {
+        place.typed = true;
+      }
+
+      
+      if (hidden != lastFetchedPlace->hidden) {
+        place.hidden = false;
       }
 
       FetchReferrerInfo(referrer, place);
@@ -953,8 +969,6 @@ public:
         rv = NS_DispatchToMainThread(event);
         NS_ENSURE_SUCCESS(rv, rv);
       }
-
-      lastPlace = &mPlaces.ElementAt(i);
     }
 
     nsresult rv = transaction.Commit();
@@ -2291,24 +2305,15 @@ History::FetchPageInfo(VisitData& _place, bool* _exists)
                             (_place.title.IsEmpty() && title.IsVoid()));
   }
 
-  if (_place.hidden) {
-    
-    
-    
-    int32_t hidden;
-    rv = stmt->GetInt32(3, &hidden);
-    NS_ENSURE_SUCCESS(rv, rv);
-    _place.hidden = !!hidden;
-  }
+  int32_t hidden;
+  rv = stmt->GetInt32(3, &hidden);
+  NS_ENSURE_SUCCESS(rv, rv);
+  _place.hidden = !!hidden;
 
-  if (!_place.typed) {
-    
-    
-    int32_t typed;
-    rv = stmt->GetInt32(4, &typed);
-    NS_ENSURE_SUCCESS(rv, rv);
-    _place.typed = !!typed;
-  }
+  int32_t typed;
+  rv = stmt->GetInt32(4, &typed);
+  NS_ENSURE_SUCCESS(rv, rv);
+  _place.typed = !!typed;
 
   rv = stmt->GetInt32(5, &_place.frecency);
   NS_ENSURE_SUCCESS(rv, rv);
