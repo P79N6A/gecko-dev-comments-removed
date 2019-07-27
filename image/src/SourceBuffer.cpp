@@ -122,7 +122,12 @@ SourceBuffer::Compact()
   mWaitingConsumers.Compact();
 
   
-  if (mChunks.Length() < 2) {
+  if (mChunks.Length() < 1) {
+    return NS_OK;
+  }
+
+  
+  if (mChunks.Length() == 1 && mChunks[0].Length() == mChunks[0].Capacity()) {
     return NS_OK;
   }
 
