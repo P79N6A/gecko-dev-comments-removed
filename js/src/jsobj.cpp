@@ -4280,6 +4280,9 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, Ha
 
 
 
+
+
+
         shape = obj->nativeLookup(cx, id);
         if (shape && shape->isDataDescriptor())
             attrs = ApplyOrDefaultAttributes(attrs, shape);
@@ -4293,6 +4296,21 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, Ha
             return false;
 
         if (shape) {
+            
+            if (IsImplicitDenseOrTypedArrayElement(shape)) {
+                if (obj->is<TypedArrayObject>()) {
+                    
+
+
+
+
+                    return true;
+                }
+                if (!JSObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
+                    return false;
+                shape = obj->nativeLookup(cx, id);
+            }
+
             attrs = ApplyOrDefaultAttributes(attrs, shape);
 
             
