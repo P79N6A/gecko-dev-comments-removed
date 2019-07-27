@@ -255,6 +255,12 @@ struct BytecodeEmitter
     bool reportStrictWarning(ParseNode *pn, unsigned errorNumber, ...);
     bool reportStrictModeError(ParseNode *pn, unsigned errorNumber, ...);
 
+    
+    
+    void checkTypeSet(JSOp op);
+
+    bool flushPops(int *npops);
+
     ptrdiff_t emitCheck(ptrdiff_t delta);
 
     
@@ -268,10 +274,25 @@ struct BytecodeEmitter
     bool emit3(JSOp op, jsbytecode op1, jsbytecode op2);
 
     
+    
+    bool emitUint16Operand(JSOp op, uint32_t i);
+
+    
     ptrdiff_t emitN(JSOp op, size_t extra);
 
     ptrdiff_t emitJump(JSOp op, ptrdiff_t off);
     bool emitCall(JSOp op, uint16_t argc, ParseNode *pn = nullptr);
+
+    bool emitLoopHead(ParseNode *nextpn);
+    bool emitLoopEntry(ParseNode *nextpn);
+
+    
+    
+    
+    bool emitBackPatchOp(ptrdiff_t *lastp);
+    void backPatch(ptrdiff_t last, jsbytecode *target, jsbytecode op);
+
+    ptrdiff_t emitGoto(StmtInfoBCE *toStmt, ptrdiff_t *lastp, SrcNoteType noteType = SRC_NULL);
 };
 
 
