@@ -1111,18 +1111,6 @@ js::TestIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level, bo
         return true;
     }
 
-    if (IsAnyTypedArray(obj)) {
-        if (level == IntegrityLevel::Sealed) {
-            
-            *result = true;
-        } else {
-            
-            
-            *result = (AnyTypedArrayLength(obj) == 0);
-        }
-        return true;
-    }
-
     
     AutoIdVector props(cx);
     if (!GetPropertyKeys(cx, obj, JSITER_HIDDEN | JSITER_OWNONLY | JSITER_SYMBOLS, &props))
