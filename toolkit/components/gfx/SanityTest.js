@@ -29,12 +29,6 @@ const TEST_FAILED_VIDEO=2;
 const TEST_CRASHED=3;
 
 
-const REASON_FIRST_RUN=0;
-const REASON_FIREFOX_CHANGED=1;
-const REASON_DEVICE_CHANGED=2;
-const REASON_DRIVER_CHANGED=3;
-
-
 const SNAPSHOT_VIDEO_OK=0;
 const SNAPSHOT_VIDEO_FAIL=1;
 const SNAPSHOT_ERROR=2;
@@ -66,11 +60,6 @@ function reportResult(val) {
 
 function reportSnapshotResult(val) {
   let histogram = Services.telemetry.getHistogramById("GRAPHICS_SANITY_TEST_OS_SNAPSHOT");
-  histogram.add(val);
-}
-
-function reportTestReason(val) {
-  let histogram = Services.telemetry.getHistogramById("GRAPHICS_SANITY_TEST_REASON");
   histogram.add(val);
 }
 
@@ -229,24 +218,10 @@ SanityTest.prototype = {
       return false;
     }
 
-    function checkPref(pref, value, reason) {
-      var prefValue = Preferences.get(pref, "");
-      if (prefValue == value) {
-        return true;
-      }
-      if (value == "") {
-        reportTestReason(REASON_FIRST_RUN);
-      } else {
-        reportTestReason(reason);
-      }
-      return false;
-    }
-
     
-    if (checkPref(DRIVER_PREF, gfxinfo.adapterDriverVersion, REASON_DRIVER_CHANGED) &&
-        checkPref(DEVICE_PREF, gfxinfo.adapterDeviceID, REASON_DEVICE_CHANGED) &&
-        checkPref(VERSION_PREF, xulVersion, REASON_FIREFOX_CHANGED))
-    {
+    if (Preferences.get(DRIVER_PREF, "") == gfxinfo.adapterDriverVersion &&
+        Preferences.get(DEVICE_PREF, "") == gfxinfo.adapterDeviceID &&
+        Preferences.get(VERSION_PREF, "") == xulVersion) {
       return false;
     }
 
