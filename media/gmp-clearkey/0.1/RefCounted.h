@@ -18,8 +18,6 @@
 #define __RefCount_h__
 
 #include <stdint.h>
-#include <atomic>
-#include <assert.h>
 
 
 class RefCounted {
@@ -43,9 +41,8 @@ protected:
   }
   virtual ~RefCounted()
   {
-    assert(!mRefCount);
   }
-  std::atomic<uint32_t> mRefCount;
+  uint32_t mRefCount;
 };
 
 template<class T>
