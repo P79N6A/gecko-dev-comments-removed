@@ -74,8 +74,7 @@ bool
 SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
                                            int64_t aTimeThreshold)
 {
-  NS_ASSERTION(mReader->GetDecoder()->OnDecodeThread(),
-               "Should be on decode thread.");
+  MOZ_ASSERT(mReader->OnTaskQueue());
 
   
   

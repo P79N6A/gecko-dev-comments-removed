@@ -353,7 +353,7 @@ IntelWebMVideoDecoder::DecodeVideoFrame(bool& aKeyframeSkip,
     NS_ENSURE_SUCCESS(rv, false);
   }
 
-  NS_ASSERTION(mReader->GetDecoder()->OnDecodeThread(), "Should be on decode thread.");
+  MOZ_ASSERT(mReader->OnTaskQueue());
   bool rv = Decode();
   {
     
