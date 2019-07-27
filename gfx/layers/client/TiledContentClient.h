@@ -424,6 +424,10 @@ protected:
                           const nsIntPoint& aTileRect,
                           const nsIntRegion& dirtyRect);
 
+  void PostValidate(const nsIntRegion& aPaintRegion);
+
+  void UnlockTile(TileClient aTile);
+
   
   
   
@@ -450,7 +454,8 @@ private:
   RefPtr<gfx::DrawTarget>       mSinglePaintDrawTarget;
   nsIntPoint                    mSinglePaintBufferOffset;
   SharedFrameMetricsHelper*  mSharedFrameMetricsHelper;
-
+  
+  std::vector<gfx::Tile> mMoz2DTiles;
   
 
 
