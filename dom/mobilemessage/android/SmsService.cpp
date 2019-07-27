@@ -69,7 +69,20 @@ SmsService::GetSmscAddress(uint32_t aServiceId,
                            nsIMobileMessageCallback *aRequest)
 {
   
-  return NS_OK;
+  NS_NOTYETIMPLEMENTED("Implement me!");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+SmsService::SetSmscAddress(uint32_t aServiceId,
+                           const nsAString& aNumber,
+                           uint32_t aTypeOfNumber,
+                           uint32_t aNumberPlanIdentification,
+                           nsIMobileMessageCallback* aRequest)
+{
+  
+  NS_NOTYETIMPLEMENTED("Implement me!");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 } 
