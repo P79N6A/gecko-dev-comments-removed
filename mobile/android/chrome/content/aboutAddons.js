@@ -537,7 +537,7 @@ var Addons = {
 
     
     let detailItem = document.querySelector("#addons-details > .addon-item");
-    if (detailItem.addon == aAddon) {
+    if (detailItem.addon.id == aAddon.id) {
       history.back();
     }
   },
