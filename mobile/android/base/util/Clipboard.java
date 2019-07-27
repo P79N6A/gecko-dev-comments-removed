@@ -14,7 +14,10 @@ import android.content.Context;
 import android.util.Log;
 
 public final class Clipboard {
-    private static Context mContext;
+    
+    
+    
+     volatile static Context mContext;
     private final static String LOGTAG = "GeckoClipboard";
     private final static SynchronousQueue<String> sClipboardQueue = new SynchronousQueue<String>();
 
@@ -48,6 +51,7 @@ public final class Clipboard {
                 } catch (InterruptedException ie) {}
             }
         });
+
         try {
             return sClipboardQueue.take();
         } catch (InterruptedException ie) {
@@ -61,9 +65,11 @@ public final class Clipboard {
             @Override
             @SuppressWarnings("deprecation")
             public void run() {
+                
+                
                 if (Versions.feature11Plus) {
-                    android.content.ClipboardManager cm = getClipboardManager(mContext);
-                    ClipData clip = ClipData.newPlainText("Text", text);
+                    final android.content.ClipboardManager cm = (android.content.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
+                    final ClipData clip = ClipData.newPlainText("Text", text);
                     try {
                         cm.setPrimaryClip(clip);
                     } catch (NullPointerException e) {
@@ -71,10 +77,12 @@ public final class Clipboard {
                         
                         
                     }
-                } else {
-                    android.text.ClipboardManager cm = getDeprecatedClipboardManager(mContext);
-                    cm.setText(text);
+                    return;
                 }
+
+                
+                android.text.ClipboardManager cm = (android.text.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
+                cm.setText(text);
             }
         });
     }
@@ -82,16 +90,15 @@ public final class Clipboard {
     
 
 
-
-
     @WrapElementForJNI
     public static boolean hasText() {
         if (Versions.feature11Plus) {
-            android.content.ClipboardManager cm = getClipboardManager(mContext);
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
             return cm.hasPrimaryClip();
         }
 
-        android.text.ClipboardManager cm = getDeprecatedClipboardManager(mContext);
+        
+        android.text.ClipboardManager cm = (android.text.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
         return cm.hasText();
     }
 
@@ -103,23 +110,15 @@ public final class Clipboard {
         setText(null);
     }
 
-    private static android.content.ClipboardManager getClipboardManager(Context context) {
-        
-        
-        return (android.content.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
-    }
-
-    private static android.text.ClipboardManager getDeprecatedClipboardManager(Context context) {
-        return (android.text.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
-    }
-
     
 
 
+
+
     @SuppressWarnings("deprecation")
-    private static String getClipboardTextImpl() {
+     static String getClipboardTextImpl() {
         if (Versions.feature11Plus) {
-            android.content.ClipboardManager cm = getClipboardManager(mContext);
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm.hasPrimaryClip()) {
                 ClipData clip = cm.getPrimaryClip();
                 if (clip != null) {
@@ -128,7 +127,7 @@ public final class Clipboard {
                 }
             }
         } else {
-            android.text.ClipboardManager cm = getDeprecatedClipboardManager(mContext);
+            android.text.ClipboardManager cm = (android.text.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm.hasText()) {
                 return cm.getText().toString();
             }
