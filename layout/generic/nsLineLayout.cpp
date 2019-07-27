@@ -1657,8 +1657,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
   if ((emptyContinuation ||
        mPresContext->CompatibilityMode() != eCompatibility_FullStandards) &&
       ((psd == mRootSpan) ||
-       (spanFramePFD->mBorderPadding.IsEmpty() &&
-        spanFramePFD->mMargin.IsEmpty()))) {
+       (spanFramePFD->mBorderPadding.IsAllZero() &&
+        spanFramePFD->mMargin.IsAllZero()))) {
     
     
     
