@@ -545,12 +545,6 @@ class TreeMetadataEmitter(LoggingMixin):
             yield XPIDLFile(context, mozpath.join(context.srcdir, idl),
                 xpidl_module)
 
-        for symbol in ('SOURCES', 'HOST_SOURCES', 'UNIFIED_SOURCES'):
-            for src in (context[symbol] or []):
-                if not os.path.exists(mozpath.join(context.srcdir, src)):
-                    raise SandboxValidationError('File listed in %s does not '
-                        'exist: \'%s\'' % (symbol, src), context)
-
         
         
         
@@ -595,78 +589,8 @@ class TreeMetadataEmitter(LoggingMixin):
         if context['NO_VISIBILITY_FLAGS']:
             passthru.variables['VISIBILITY_FLAGS'] = ''
 
-        no_pgo = context.get('NO_PGO')
-        sources = context.get('SOURCES', [])
-        no_pgo_sources = [f for f in sources if sources[f].no_pgo]
-        if no_pgo:
-            if no_pgo_sources:
-                raise SandboxValidationError('NO_PGO and SOURCES[...].no_pgo '
-                    'cannot be set at the same time', context)
-            passthru.variables['NO_PROFILE_GUIDED_OPTIMIZE'] = no_pgo
-        if no_pgo_sources:
-            passthru.variables['NO_PROFILE_GUIDED_OPTIMIZE'] = no_pgo_sources
-
-        
-        
-        
-        
-        
-        
-        suffix_map = {
-            '.s': set(['.asm']),
-            '.c': set(),
-            '.m': set(),
-            '.mm': set(),
-            '.cpp': set(['.cc', '.cxx']),
-            '.S': set(),
-        }
-
-        
-        canonicalized_suffix_map = {}
-        for suffix, alternatives in suffix_map.iteritems():
-            alternatives.add(suffix)
-            for a in alternatives:
-                canonicalized_suffix_map[a] = suffix
-
-        def canonical_suffix_for_file(f):
-            return canonicalized_suffix_map[mozpath.splitext(f)[1]]
-
-        
-        
-        all_suffixes = list(suffix_map.keys())
-        varmap = dict(
-            SOURCES=(Sources, all_suffixes),
-            HOST_SOURCES=(HostSources, ['.c', '.mm', '.cpp']),
-            UNIFIED_SOURCES=(UnifiedSources, ['.c', '.mm', '.cpp']),
-            GENERATED_SOURCES=(GeneratedSources, all_suffixes),
-        )
-
-        for variable, (klass, suffixes) in varmap.items():
-            allowed_suffixes = set().union(*[suffix_map[s] for s in suffixes])
-
-            
-            
-            for f in context[variable]:
-                ext = mozpath.splitext(f)[1]
-                if ext not in allowed_suffixes:
-                    raise SandboxValidationError(
-                        '%s has an unknown file type.' % f, context)
-                if variable.startswith('GENERATED_'):
-                    l = passthru.variables.setdefault('GARBAGE', [])
-                    l.append(f)
-
-            
-            sorted_files = sorted(context[variable], key=canonical_suffix_for_file)
-            for canonical_suffix, files in itertools.groupby(sorted_files, canonical_suffix_for_file):
-                arglist = [context, list(files), canonical_suffix]
-                if variable.startswith('UNIFIED_') and 'FILES_PER_UNIFIED_FILE' in context:
-                    arglist.append(context['FILES_PER_UNIFIED_FILE'])
-                yield klass(*arglist)
-
-        sources_with_flags = [f for f in sources if sources[f].flags]
-        for f in sources_with_flags:
-            ext = mozpath.splitext(f)[1]
-            yield PerSourceFlag(context, f, sources[f].flags)
+        for obj in self._process_sources(context, passthru):
+            yield obj
 
         exports = context.get('EXPORTS')
         if exports:
@@ -870,6 +794,86 @@ class TreeMetadataEmitter(LoggingMixin):
         sub.relpath = path
 
         return sub
+
+    def _process_sources(self, context, passthru):
+        for symbol in ('SOURCES', 'HOST_SOURCES', 'UNIFIED_SOURCES'):
+            for src in (context[symbol] or []):
+                if not os.path.exists(mozpath.join(context.srcdir, src)):
+                    raise SandboxValidationError('File listed in %s does not '
+                        'exist: \'%s\'' % (symbol, src), context)
+
+        no_pgo = context.get('NO_PGO')
+        sources = context.get('SOURCES', [])
+        no_pgo_sources = [f for f in sources if sources[f].no_pgo]
+        if no_pgo:
+            if no_pgo_sources:
+                raise SandboxValidationError('NO_PGO and SOURCES[...].no_pgo '
+                    'cannot be set at the same time', context)
+            passthru.variables['NO_PROFILE_GUIDED_OPTIMIZE'] = no_pgo
+        if no_pgo_sources:
+            passthru.variables['NO_PROFILE_GUIDED_OPTIMIZE'] = no_pgo_sources
+
+        
+        
+        
+        
+        
+        
+        suffix_map = {
+            '.s': set(['.asm']),
+            '.c': set(),
+            '.m': set(),
+            '.mm': set(),
+            '.cpp': set(['.cc', '.cxx']),
+            '.S': set(),
+        }
+
+        
+        canonicalized_suffix_map = {}
+        for suffix, alternatives in suffix_map.iteritems():
+            alternatives.add(suffix)
+            for a in alternatives:
+                canonicalized_suffix_map[a] = suffix
+
+        def canonical_suffix_for_file(f):
+            return canonicalized_suffix_map[mozpath.splitext(f)[1]]
+
+        
+        
+        all_suffixes = list(suffix_map.keys())
+        varmap = dict(
+            SOURCES=(Sources, all_suffixes),
+            HOST_SOURCES=(HostSources, ['.c', '.mm', '.cpp']),
+            UNIFIED_SOURCES=(UnifiedSources, ['.c', '.mm', '.cpp']),
+            GENERATED_SOURCES=(GeneratedSources, all_suffixes),
+        )
+
+        for variable, (klass, suffixes) in varmap.items():
+            allowed_suffixes = set().union(*[suffix_map[s] for s in suffixes])
+
+            
+            
+            for f in context[variable]:
+                ext = mozpath.splitext(f)[1]
+                if ext not in allowed_suffixes:
+                    raise SandboxValidationError(
+                        '%s has an unknown file type.' % f, context)
+                if variable.startswith('GENERATED_'):
+                    l = passthru.variables.setdefault('GARBAGE', [])
+                    l.append(f)
+
+            
+            sorted_files = sorted(context[variable], key=canonical_suffix_for_file)
+            for canonical_suffix, files in itertools.groupby(sorted_files, canonical_suffix_for_file):
+                arglist = [context, list(files), canonical_suffix]
+                if variable.startswith('UNIFIED_') and 'FILES_PER_UNIFIED_FILE' in context:
+                    arglist.append(context['FILES_PER_UNIFIED_FILE'])
+                yield klass(*arglist)
+
+        sources_with_flags = [f for f in sources if sources[f].flags]
+        for f in sources_with_flags:
+            ext = mozpath.splitext(f)[1]
+            yield PerSourceFlag(context, f, sources[f].flags)
 
     def _process_test_manifests(self, context):
         
