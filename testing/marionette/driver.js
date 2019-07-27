@@ -602,18 +602,33 @@ GeckoDriver.prototype.getSessionCapabilities = function(cmd, resp) {
 
 GeckoDriver.prototype.setSessionCapabilities = function(newCaps) {
   const copy = (from, to={}) => {
-    let errors = {};
+    let errors = [];
+
+    
+    
+    if (from !== null && from.desiredCapabilities) {
+      for (let cap in from.requiredCapabilities) {
+        if (from.desiredCapabilities[cap]) {
+          delete from.desiredCapabilities[cap];
+        }
+      }
+
+      
+      for (let cap in this.sessionCapabilities) {
+        if (from.desiredCapabilities && from.desiredCapabilities[cap]) {
+          delete from.desiredCapabilities[cap];
+        }
+      }
+    }
 
     for (let key in from) {
       if (key === "desiredCapabilities") {
-        
-        
         to = copy(from[key], to);
       } else if (key === "requiredCapabilities") {
         for (let caps in from[key]) {
           if (from[key][caps] !== this.sessionCapabilities[caps]) {
-            errors[caps] = from[key][caps] + " does not equal " +
-                this.sessionCapabilities[caps];
+            errors.push(from[key][caps] + " does not equal " +
+                this.sessionCapabilities[caps])   ;
           }
         }
       }
