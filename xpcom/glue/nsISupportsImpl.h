@@ -50,7 +50,7 @@ struct HasDangerousPublicDestructor
 #    define MOZ_HAVE_STD_IS_DESTRUCTIBLE
 
 
-#  elif MOZ_GCC_VERSION_AT_LEAST(4, 8, 2)
+#  elif MOZ_GCC_VERSION_AT_LEAST(4, 8, 0)
 #    define MOZ_CAN_USE_IS_DESTRUCTIBLE_FALLBACK
 #  endif
 #endif
