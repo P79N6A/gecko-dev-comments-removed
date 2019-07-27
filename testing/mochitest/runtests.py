@@ -1713,7 +1713,8 @@ class Mochitest(MochitestUtilsMixin):
 
     
     
-    if options.browserChrome:
+    
+    if options.browserChrome and not (options.subsuite and options.e10s):
       options.runByDir = True
 
     if not options.runByDir:
