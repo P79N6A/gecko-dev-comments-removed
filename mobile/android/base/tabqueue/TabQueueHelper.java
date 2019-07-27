@@ -34,6 +34,54 @@ public class TabQueueHelper {
     public static final int TAB_QUEUE_NOTIFICATION_ID = R.id.tabQueueNotification;
 
     public static final String PREF_TAB_QUEUE_COUNT = "tab_queue_count";
+    public static final String PREF_TAB_QUEUE_LAUNCHES = "tab_queue_launches";
+    public static final String PREF_TAB_QUEUE_TIMES_PROMPT_SHOWN = "tab_queue_times_prompt_shown";
+
+    public static final int MAX_TIMES_TO_SHOW_PROMPT = 3;
+    public static final int EXTERNAL_LAUNCHES_BEFORE_SHOWING_PROMPT = 3;
+
+    
+    public static final int TAB_QUEUE_YES = 201;
+    public static final int TAB_QUEUE_NO = 202;
+
+    
+
+
+
+
+
+    public static boolean shouldShowTabQueuePrompt(Context context) {
+        final SharedPreferences prefs = GeckoSharedPrefs.forApp(context);
+
+        boolean isTabQueueEnabled = prefs.getBoolean(GeckoPreferences.PREFS_TAB_QUEUE, false);
+        int numberOfTimesTabQueuePromptSeen = prefs.getInt(PREF_TAB_QUEUE_TIMES_PROMPT_SHOWN, 0);
+
+        
+        
+        if (isTabQueueEnabled || numberOfTimesTabQueuePromptSeen >= MAX_TIMES_TO_SHOW_PROMPT) {
+            return false;
+        }
+
+        final int viewActionIntentLaunches = prefs.getInt(PREF_TAB_QUEUE_LAUNCHES, 0) + 1;
+        if (viewActionIntentLaunches < EXTERNAL_LAUNCHES_BEFORE_SHOWING_PROMPT) {
+            
+            prefs.edit().putInt(PREF_TAB_QUEUE_LAUNCHES, viewActionIntentLaunches).apply();
+        } else if (viewActionIntentLaunches == EXTERNAL_LAUNCHES_BEFORE_SHOWING_PROMPT) {
+            
+            
+            final SharedPreferences.Editor editor = prefs.edit();
+            editor.remove(TabQueueHelper.PREF_TAB_QUEUE_LAUNCHES);
+
+            int timesPromptShown = prefs.getInt(TabQueueHelper.PREF_TAB_QUEUE_TIMES_PROMPT_SHOWN, 0) + 1;
+            editor.putInt(TabQueueHelper.PREF_TAB_QUEUE_TIMES_PROMPT_SHOWN, timesPromptShown);
+            editor.apply();
+
+            
+            return true;
+        }
+
+        return false;
+    }
 
     
 
@@ -146,5 +194,38 @@ public class TabQueueHelper {
         
         final SharedPreferences prefs = GeckoSharedPrefs.forApp(context);
         prefs.edit().remove(PREF_TAB_QUEUE_COUNT).apply();
+    }
+
+    public static void processTabQueuePromptResponse(int resultCode, Context context) {
+        final SharedPreferences prefs = GeckoSharedPrefs.forApp(context);
+        final SharedPreferences.Editor editor = prefs.edit();
+
+        switch (resultCode) {
+            case TAB_QUEUE_YES:
+                editor.putBoolean(GeckoPreferences.PREFS_TAB_QUEUE, true);
+
+                
+                
+                editor.putInt(TabQueueHelper.PREF_TAB_QUEUE_LAUNCHES,
+                                     TabQueueHelper.EXTERNAL_LAUNCHES_BEFORE_SHOWING_PROMPT + 1);
+                break;
+
+            case TAB_QUEUE_NO:
+                
+                
+
+                editor.putInt(TabQueueHelper.PREF_TAB_QUEUE_LAUNCHES,
+                                     TabQueueHelper.EXTERNAL_LAUNCHES_BEFORE_SHOWING_PROMPT + 1);
+
+                editor.putInt(TabQueueHelper.PREF_TAB_QUEUE_TIMES_PROMPT_SHOWN,
+                                     TabQueueHelper.MAX_TIMES_TO_SHOW_PROMPT + 1);
+                break;
+
+            default:
+                
+                Log.w(LOGTAG, "Unrecognized result code received from the tab queue prompt: " + resultCode);
+        }
+
+        editor.apply();
     }
 }
