@@ -236,6 +236,7 @@ function checkPayloadInfo(data) {
     sessionId: uuidCheck,
     subsessionId: uuidCheck,
     
+    previousSessionId: (arg) => { return (arg) ? uuidCheck(arg) : true; },
     previousSubsessionId: (arg) => { return (arg) ? uuidCheck(arg) : true; },
     subsessionCounter: positiveNumberCheck,
     profileSubsessionCounter: positiveNumberCheck,
@@ -1182,8 +1183,9 @@ add_task(function* test_savedSessionData() {
   
   
   const expectedSubsessions = sessionState.profileSubsessionCounter + 2;
-  const expectedUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
-  fakeGenerateUUID(generateUUID, () => expectedUUID);
+  const expectedSessionUUID = "ff602e52-47a1-b7e8-4c1a-ffffffffc87a";
+  const expectedSubsessionUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
+  fakeGenerateUUID(() => expectedSessionUUID, () => expectedSubsessionUUID);
 
   if (gIsAndroid) {
     
@@ -1210,7 +1212,8 @@ add_task(function* test_savedSessionData() {
   
   let data = yield CommonUtils.readJSON(dataFilePath);
   Assert.equal(data.profileSubsessionCounter, expectedSubsessions);
-  Assert.equal(data.subsessionId, expectedUUID);
+  Assert.equal(data.sessionId, expectedSessionUUID);
+  Assert.equal(data.subsessionId, expectedSubsessionUUID);
 });
 
 add_task(function* test_sessionData_ShortSession() {
@@ -1225,8 +1228,9 @@ add_task(function* test_sessionData_ShortSession() {
   yield TelemetrySession.shutdown();
   yield OS.File.remove(SESSION_STATE_PATH, { ignoreAbsent: true });
 
-  const expectedUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
-  fakeGenerateUUID(generateUUID, () => expectedUUID);
+  const expectedSessionUUID = "ff602e52-47a1-b7e8-4c1a-ffffffffc87a";
+  const expectedSubsessionUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
+  fakeGenerateUUID(() => expectedSessionUUID, () => expectedSubsessionUUID);
 
   
   
@@ -1243,7 +1247,8 @@ add_task(function* test_sessionData_ShortSession() {
   
   let payload = TelemetrySession.getPayload();
   Assert.equal(payload.info.profileSubsessionCounter, 2);
-  Assert.equal(payload.info.previousSubsessionId, expectedUUID);
+  Assert.equal(payload.info.previousSessionId, expectedSessionUUID);
+  Assert.equal(payload.info.previousSubsessionId, expectedSubsessionUUID);
 });
 
 add_task(function* test_invalidSessionData() {
@@ -1261,8 +1266,9 @@ add_task(function* test_invalidSessionData() {
 
   
   const expectedSubsessions = 1;
-  const expectedUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
-  fakeGenerateUUID(() => expectedUUID, () => expectedUUID);
+  const expectedSessionUUID = "ff602e52-47a1-b7e8-4c1a-ffffffffc87a";
+  const expectedSubsessionUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
+  fakeGenerateUUID(() => expectedSessionUUID, () => expectedSubsessionUUID);
   
   yield TelemetrySession.reset();
   let payload = TelemetrySession.getPayload();
@@ -1272,7 +1278,8 @@ add_task(function* test_invalidSessionData() {
   
   let data = yield CommonUtils.readJSON(dataFilePath);
   Assert.equal(data.profileSubsessionCounter, expectedSubsessions);
-  Assert.equal(data.subsessionId, expectedUUID);
+  Assert.equal(data.sessionId, expectedSessionUUID);
+  Assert.equal(data.subsessionId, expectedSubsessionUUID);
 });
 
 add_task(function* test_abortedSession() {
