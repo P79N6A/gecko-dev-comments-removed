@@ -492,12 +492,26 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
     default:
     let channel;
       try {
-        channel = Services.io.newChannel(url, null, null);
+        channel = Services.io.newChannel2(url,
+                                          null,
+                                          null,
+                                          null,      
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER);
       } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
         
         
         url = "file:///" + url;
-        channel = Services.io.newChannel(url, null, null);
+        channel = Services.io.newChannel2(url,
+                                          null,
+                                          null,
+                                          null,      
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER);
       }
       let chunks = [];
       let streamListener = {
