@@ -1258,11 +1258,13 @@ let SessionStoreInternal = {
     LastSession.clear();
     let openWindows = {};
     this._forEachBrowserWindow(function(aWindow) {
-      Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
-        delete aTab.linkedBrowser.__SS_data;
-        if (aTab.linkedBrowser.__SS_restoreState)
-          this._resetTabRestoringState(aTab);
-      }, this);
+      let tabs = aWindow.gBrowser.tabs;
+      
+      for (let i = tabs.length - 1; i >= 0 && tabs.length > 1; i--) {
+        if (tabs[i].linkedBrowser.__SS_restoreState) {
+          aWindow.gBrowser.removeTab(tabs[i], {animate: false});
+        }
+      }
       openWindows[aWindow.__SSi] = true;
     });
     
@@ -1273,6 +1275,9 @@ let SessionStoreInternal = {
         delete this._windows[ix];
       }
     }
+    
+    
+    this._closedTabs.clear();
     
     this._closedWindows = [];
     
