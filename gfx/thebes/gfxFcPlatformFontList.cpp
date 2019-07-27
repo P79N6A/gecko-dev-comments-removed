@@ -1355,6 +1355,9 @@ gfxFcPlatformFontList::FindGenericFamily(const nsAString& aGeneric,
                        ToFcChar8Ptr(generic.get()));
 
     
+    FcPatternAddBool(genericPattern, FC_SCALABLE, FcTrue);
+
+    
     if (!fcLang.IsEmpty()) {
         FcPatternAddString(genericPattern, FC_LANG,
                            ToFcChar8Ptr(fcLang.get()));
