@@ -179,7 +179,7 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
     
     
     
-    const char* getTracingEdgeName(char* buffer, size_t bufferSize);
+    void getTracingEdgeName(char* buffer, size_t bufferSize);
 
     
     

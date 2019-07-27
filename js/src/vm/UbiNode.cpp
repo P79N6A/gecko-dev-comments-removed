@@ -135,7 +135,8 @@ class SimpleEdgeVectorTracer : public JS::CallbackTracer {
         if (wantNames) {
             
             char buffer[1024];
-            const char* name = getTracingEdgeName(buffer, sizeof(buffer));
+            getTracingEdgeName(buffer, sizeof(buffer));
+            const char* name = buffer;
 
             
             name16 = js_pod_malloc<char16_t>(strlen(name) + 1);
