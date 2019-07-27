@@ -434,8 +434,8 @@ js::EnqueuePendingParseTasksAfterGC(JSRuntime* rt)
     HelperThreadState().notifyAll(GlobalHelperThreadState::PRODUCER);
 }
 
-static const uint32_t kDefaultHelperStackSize = 512 * 1024;
-static const uint32_t kDefaultHelperStackQuota = 450 * 1024;
+static const uint32_t kDefaultHelperStackSize = 2048 * 1024;
+static const uint32_t kDefaultHelperStackQuota = 1800 * 1024;
 
 
 
