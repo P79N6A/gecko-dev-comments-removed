@@ -203,6 +203,7 @@ class SamplerThread : public Thread {
   
   virtual void Run() {
     while (SamplerRegistry::sampler->IsActive()) {
+      SamplerRegistry::sampler->DeleteExpiredMarkers();
       if (!SamplerRegistry::sampler->IsPaused()) {
         mozilla::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
         std::vector<ThreadInfo*> threads =
@@ -218,8 +219,6 @@ class SamplerThread : public Thread {
           PseudoStack::SleepState sleeping = info->Stack()->observeSleeping();
           if (sleeping == PseudoStack::SLEEPING_AGAIN) {
             info->Profile()->DuplicateLastSample();
-            
-            info->Profile()->flush();
             continue;
           }
 

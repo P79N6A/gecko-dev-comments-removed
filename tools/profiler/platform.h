@@ -309,6 +309,8 @@ class Sampler {
   virtual void RequestSave() = 0;
   
   virtual void HandleSaveRequest() = 0;
+  
+  virtual void DeleteExpiredMarkers() = 0;
 
   
   void Start();

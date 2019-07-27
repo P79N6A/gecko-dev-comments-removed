@@ -155,11 +155,10 @@ void genPseudoBacktraceEntries(UnwinderThreadBuffer* utb,
 
 static
 void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
-                    UTB_RELEASE_FUNC releaseFunction, bool jankOnly)
+                    UTB_RELEASE_FUNC releaseFunction)
 {
   ThreadProfile& sampledThreadProfile = *sample->threadProfile;
   PseudoStack* stack = sampledThreadProfile.GetPseudoStack();
-  stack->updateGeneration(sampledThreadProfile.GetGenerationID());
 
   
 
@@ -178,29 +177,8 @@ void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
     ProfilerMarkerLinkedList* pendingMarkersList = stack->getPendingMarkers();
     while (pendingMarkersList && pendingMarkersList->peek()) {
       ProfilerMarker* marker = pendingMarkersList->popHead();
-      stack->addStoredMarker(marker);
+      sampledThreadProfile.addStoredMarker(marker);
       utb__addEntry( utb, ProfileEntry('m', marker) );
-    }
-    if (jankOnly) {
-      
-      
-      if (sLastSampledEventGeneration != sCurrentEventGeneration) {
-        
-        
-        
-        sampledThreadProfile.erase();
-      }
-      sLastSampledEventGeneration = sCurrentEventGeneration;
-
-      recordSample = false;
-      
-      
-      if (!sLastTracerEvent.IsNull()) {
-        mozilla::TimeDuration delta = sample->timestamp - sLastTracerEvent;
-        if (delta.ToMilliseconds() > 100.0) {
-            recordSample = true;
-        }
-      }
     }
   }
 
@@ -318,7 +296,7 @@ void sampleCurrent(TickSample* sample)
     return;
   }
   UnwinderThreadBuffer* utb = syncBuf->GetBuffer();
-  populateBuffer(utb, sample, &utb__finish_sync_buffer, false);
+  populateBuffer(utb, sample, &utb__finish_sync_buffer);
 }
 
 
@@ -344,7 +322,7 @@ void TableTicker::UnwinderTick(TickSample* sample)
   if (!utb)
     return;
 
-  populateBuffer(utb, sample, &uwt__release_full_buffer, mJankOnly);
+  populateBuffer(utb, sample, &uwt__release_full_buffer);
 }
 
 

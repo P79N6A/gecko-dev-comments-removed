@@ -1186,7 +1186,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
     for (k = 0; k < buff->entsUsed; k++) {
       ProfileEntry ent = utb_get_profent(buff, k);
       
-      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      if (ent.is_ent_hint('F')) { continue; }
       
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
@@ -1223,7 +1223,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
         continue;
       }
       
-      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      if (ent.is_ent_hint('F')) { continue; }
       
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
@@ -1249,7 +1249,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
         buff->aProfile->addTag( ProfileEntry('s', "(root)") );
       }
       
-      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      if (ent.is_ent_hint('F')) { continue; }
       
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
@@ -1281,7 +1281,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
     for (k = 0; k < ix_first_hP; k++) {
       ProfileEntry ent = utb_get_profent(buff, k);
       
-      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      if (ent.is_ent_hint('F')) { continue; }
       
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
@@ -1400,7 +1400,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
     for (k = ix_last_hQ+1; k < buff->entsUsed; k++) {
       ProfileEntry ent = utb_get_profent(buff, k);
       
-      if (ent.is_ent_hint('F')) { buff->aProfile->flush(); continue; }
+      if (ent.is_ent_hint('F')) { continue; }
       
       if (ent.is_ent_hint() || ent.is_ent('S')) { continue; }
       
@@ -1418,11 +1418,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
   for (k = 0; k < buff->entsUsed; k++) {
     ProfileEntry ent = utb_get_profent(buff, k);
     if (show) ent.log();
-    if (ent.is_ent_hint('F')) {
-      
-      buff->aProfile->flush();
-    } 
-    else if (ent.is_ent_hint('N')) {
+    if (ent.is_ent_hint('N')) {
       
       MOZ_ASSERT(buff->haveNativeInfo);
       PCandSP* pairs = nullptr;

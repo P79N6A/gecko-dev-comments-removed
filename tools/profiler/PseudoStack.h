@@ -176,90 +176,62 @@ private:
 typedef ProfilerLinkedList<ProfilerMarker> ProfilerMarkerLinkedList;
 typedef ProfilerLinkedList<LinkedUWTBuffer> UWTBufferLinkedList;
 
-class PendingMarkers {
+template<typename T>
+class ProfilerSignalSafeLinkedList {
 public:
-  PendingMarkers()
+  ProfilerSignalSafeLinkedList()
     : mSignalLock(false)
   {}
 
-  ~PendingMarkers();
-
-  void addMarker(ProfilerMarker *aMarker);
-
-  void updateGeneration(int aGenID);
-
-  
-
-
-
-
-  void addStoredMarker(ProfilerMarker *aStoredMarker);
-
-  
-  ProfilerMarkerLinkedList* getPendingMarkers()
+  ~ProfilerSignalSafeLinkedList()
   {
-    
-    
-    
-    
-    
     if (mSignalLock) {
-      return nullptr;
+      
+      
+      abort();
     }
-    return &mPendingMarkers;
-  }
 
-  void clearMarkers()
-  {
-    while (mPendingMarkers.peek()) {
-      delete mPendingMarkers.popHead();
-    }
-    while (mStoredMarkers.peek()) {
-      delete mStoredMarkers.popHead();
+    while (mList.peek()) {
+      delete mList.popHead();
     }
   }
 
-private:
-  
-  ProfilerMarkerLinkedList mPendingMarkers;
-  ProfilerMarkerLinkedList mStoredMarkers;
-  
-  volatile bool mSignalLock;
   
   
-  volatile mozilla::sig_safe_t mGenID;
-};
+  
+  
+  
+  
+  void insert(T* aElement) {
+    MOZ_ASSERT(aElement);
 
-class PendingUWTBuffers
-{
-public:
-  PendingUWTBuffers()
-    : mSignalLock(false)
-  {
-  }
-
-  void addLinkedUWTBuffer(LinkedUWTBuffer* aBuff)
-  {
-    MOZ_ASSERT(aBuff);
     mSignalLock = true;
     STORE_SEQUENCER();
-    mPendingUWTBuffers.insert(aBuff);
+
+    mList.insert(aElement);
+
     STORE_SEQUENCER();
     mSignalLock = false;
   }
 
   
-  UWTBufferLinkedList* getLinkedUWTBuffers()
+  
+  
+  
+  ProfilerLinkedList<T>* accessList()
   {
     if (mSignalLock) {
       return nullptr;
     }
-    return &mPendingUWTBuffers;
+    return &mList;
   }
 
 private:
-  UWTBufferLinkedList mPendingUWTBuffers;
-  volatile bool       mSignalLock;
+  ProfilerLinkedList<T> mList;
+
+  
+  
+  volatile bool mSignalLock;
 };
 
 
@@ -285,32 +257,27 @@ public:
 
   void addLinkedUWTBuffer(LinkedUWTBuffer* aBuff)
   {
-    mPendingUWTBuffers.addLinkedUWTBuffer(aBuff);
+    mPendingUWTBuffers.insert(aBuff);
   }
 
   UWTBufferLinkedList* getLinkedUWTBuffers()
   {
-    return mPendingUWTBuffers.getLinkedUWTBuffers();
+    return mPendingUWTBuffers.accessList();
   }
 
   void addMarker(const char *aMarkerStr, ProfilerMarkerPayload *aPayload, float aTime)
   {
     ProfilerMarker* marker = new ProfilerMarker(aMarkerStr, aPayload, aTime);
-    mPendingMarkers.addMarker(marker);
-  }
-
-  void addStoredMarker(ProfilerMarker *aStoredMarker) {
-    mPendingMarkers.addStoredMarker(aStoredMarker);
-  }
-
-  void updateGeneration(int aGenID) {
-    mPendingMarkers.updateGeneration(aGenID);
+    mPendingMarkers.insert(marker);
   }
 
   
   ProfilerMarkerLinkedList* getPendingMarkers()
   {
-    return mPendingMarkers.getPendingMarkers();
+    
+    
+    
+    return mPendingMarkers.accessList();
   }
 
   void push(const char *aName, js::ProfileEntry::Category aCategory, uint32_t line)
@@ -450,9 +417,9 @@ public:
 
   
   
-  PendingMarkers mPendingMarkers;
+  ProfilerSignalSafeLinkedList<ProfilerMarker> mPendingMarkers;
   
-  PendingUWTBuffers mPendingUWTBuffers;
+  ProfilerSignalSafeLinkedList<LinkedUWTBuffer> mPendingUWTBuffers;
   
   
   mozilla::sig_safe_t mStackPointer;

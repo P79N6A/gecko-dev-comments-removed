@@ -57,13 +57,6 @@ const char* PROFILER_STACK = "MOZ_PROFILER_STACK_SCAN";
 const char* PROFILER_FEATURES = "MOZ_PROFILING_FEATURES";
 
 
-unsigned int sLastSampledEventGeneration = 0;
-
-
-
-
-unsigned int sCurrentEventGeneration = 0;
-
 
 
 
@@ -201,45 +194,6 @@ void ProfilerMarker::StreamJSObject(JSStreamWriter& b) const {
     }
     b.NameValue("time", mTime);
   b.EndObject();
-}
-
-PendingMarkers::~PendingMarkers() {
-  clearMarkers();
-  if (mSignalLock != false) {
-    
-    
-    
-    
-    abort();
-  }
-}
-
-void
-PendingMarkers::addMarker(ProfilerMarker *aMarker) {
-  mSignalLock = true;
-  STORE_SEQUENCER();
-
-  MOZ_ASSERT(aMarker);
-  mPendingMarkers.insert(aMarker);
-
-  
-  while (mStoredMarkers.peek() &&
-         mStoredMarkers.peek()->HasExpired(mGenID)) {
-    delete mStoredMarkers.popHead();
-  } 
-  STORE_SEQUENCER();
-  mSignalLock = false;
-}
-
-void
-PendingMarkers::updateGeneration(int aGenID) {
-  mGenID = aGenID;
-}
-
-void
-PendingMarkers::addStoredMarker(ProfilerMarker *aStoredMarker) {
-  aStoredMarker->SetGeneration(mGenID);
-  mStoredMarkers.insert(aStoredMarker);
 }
 
 bool sps_version2()
@@ -939,8 +893,6 @@ bool mozilla_sampler_is_active()
 
 void mozilla_sampler_responsiveness(const mozilla::TimeStamp& aTime)
 {
-  sCurrentEventGeneration++;
-
   sLastTracerEvent = aTime;
 }
 
