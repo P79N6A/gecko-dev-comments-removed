@@ -89,6 +89,12 @@ this.WebappManager = {
   },
 
   _installApk: function(aMessage, aMessageManager) { return Task.spawn((function*() {
+    if (this.inGuestSession()) {
+      aMessage.error = Strings.GetStringFromName("webappsDisabledInGuest"),
+      aMessageManager.sendAsyncMessage("Webapps:Install:Return:KO", aMessage);
+      return;
+    }
+
     let filePath;
 
     try {
@@ -194,12 +200,6 @@ this.WebappManager = {
     });
   },
 
-  askUninstall: function(aData) {
-    
-    
-    DOMApplicationRegistry.denyUninstall(aData, "NOT_SUPPORTED");
-  },
-
   launch: function({ apkPackageName }) {
     debug("launch: " + apkPackageName);
 
@@ -256,6 +256,10 @@ this.WebappManager = {
     }
 
   }),
+
+  inGuestSession: function() {
+    return Services.wm.getMostRecentWindow("navigator:browser").BrowserApp.isGuest;
+  },
 
   autoInstall: function(aData) {
     debug("autoInstall " + aData.manifestURL);
@@ -639,7 +643,8 @@ this.WebappManager = {
         let app = DOMApplicationRegistry.webapps[id];
         if (aData.apkPackageNames.indexOf(app.apkPackageName) > -1) {
           debug("attempting to uninstall " + app.name);
-          DOMApplicationRegistry.uninstall(app.manifestURL).then(
+          DOMApplicationRegistry.uninstall(
+            app.manifestURL,
             function() {
               debug("success uninstalling " + app.name);
             },
