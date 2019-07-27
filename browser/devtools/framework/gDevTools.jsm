@@ -572,7 +572,11 @@ let gDevToolsBrowser = {
     let target = devtools.TargetFactory.forTab(gBrowser.selectedTab);
     let toolbox = gDevTools.getToolbox(target);
 
-    toolbox ? toolbox.destroy() : gDevTools.showToolbox(target);
+    
+    
+    
+    let isDocked = toolbox && toolbox.hostType != devtools.Toolbox.HostType.WINDOW;
+    isDocked ? toolbox.destroy() : gDevTools.showToolbox(target);
   },
 
   toggleBrowserToolboxCommand: function(gBrowser) {
