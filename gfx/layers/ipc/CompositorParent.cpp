@@ -37,6 +37,7 @@
 #include "mozilla/layers/CompositorLRU.h"  
 #include "mozilla/layers/CompositorOGL.h"  
 #include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/FrameUniformityData.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/PLayerTransactionParent.h"
@@ -1325,6 +1326,13 @@ CompositorParent::ApplyAsyncProperties(LayerTransactionParent* aLayerTree)
 }
 
 bool
+CompositorParent::RecvGetFrameUniformity(FrameUniformityData* aOutData)
+{
+  mCompositionManager->GetFrameUniformity(aOutData);
+  return true;
+}
+
+bool
 CompositorParent::RecvRequestOverfill()
 {
   uint32_t overfillRatio = mCompositor->GetFillRatio();
@@ -1713,6 +1721,13 @@ public:
     return true;
   }
 
+  virtual bool RecvGetFrameUniformity(FrameUniformityData* aOutData) override
+  {
+    
+    
+    MOZ_ASSERT(false);
+    return true;
+  }
 
   
 

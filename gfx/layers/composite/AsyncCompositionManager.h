@@ -14,6 +14,7 @@
 #include "mozilla/dom/ScreenOrientation.h"  
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/Matrix.h"         
+#include "mozilla/layers/FrameUniformityData.h" 
 #include "mozilla/layers/LayersMessages.h"  
 #include "nsRefPtr.h"                   
 #include "nsISupportsImpl.h"            
@@ -70,19 +71,12 @@ struct ViewTransform {
 class AsyncCompositionManager final
 {
   friend class AutoResolveRefLayers;
-  ~AsyncCompositionManager()
-  {
-  }
+  ~AsyncCompositionManager();
+
 public:
   NS_INLINE_DECL_REFCOUNTING(AsyncCompositionManager)
 
-  explicit AsyncCompositionManager(LayerManagerComposite* aManager)
-    : mLayerManager(aManager)
-    , mIsFirstPaint(true)
-    , mLayersUpdated(false)
-    , mReadyForCompose(true)
-  {
-  }
+  explicit AsyncCompositionManager(LayerManagerComposite* aManager);
 
   
 
@@ -122,6 +116,10 @@ public:
   
   
   bool IsFirstPaint() { return mIsFirstPaint; }
+
+  
+  
+  void GetFrameUniformity(FrameUniformityData* aFrameUniformityData);
 
 private:
   void TransformScrollableLayer(Layer* aLayer);
@@ -190,6 +188,9 @@ private:
 
   void DetachRefLayers();
 
+  
+  void RecordShadowTransforms(Layer* aLayer);
+
   TargetConfig mTargetConfig;
   CSSRect mContentRect;
 
@@ -208,6 +209,7 @@ private:
   bool mReadyForCompose;
 
   gfx::Matrix mWorldTransform;
+  LayerTransformRecorder mLayerTransformRecorder;
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(AsyncCompositionManager::TransformsToSkip)
