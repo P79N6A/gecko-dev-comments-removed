@@ -548,6 +548,14 @@ struct JSContext : public js::ExclusiveContext,
     }
 #endif
 
+    void minorGC(JS::gcreason::Reason reason) {
+        runtime_->gc.minorGC(this, reason);
+    }
+
+    void gcIfNeeded() {
+        runtime_->gc.gcIfNeeded(this);
+    }
+
   private:
     
     JSGenerator *innermostGenerator_;
