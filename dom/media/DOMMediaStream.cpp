@@ -734,6 +734,42 @@ DOMHwMediaStream::RequestOverlayId()
 }
 
 void
+DOMHwMediaStream::SetImageSize(uint32_t width, uint32_t height)
+{
+#ifdef MOZ_WIDGET_GONK
+  OverlayImage::Data imgData;
+
+  imgData.mOverlayId = mOverlayImage->GetOverlayId();
+  imgData.mSize = IntSize(width, height);
+  mOverlayImage->SetData(imgData);
+#endif
+
+  SourceMediaStream* srcStream = GetStream()->AsSourceStream();
+  StreamBuffer::Track* track = srcStream->FindTrack(TRACK_VIDEO_PRIMARY);
+
+  if (!track || !track->GetSegment()) {
+    return;
+  }
+
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  
+  
+  track->GetSegment()->Clear();
+
+  
+  const StreamTime delta = STREAM_TIME_MAX;
+  nsRefPtr<Image> image = static_cast<Image*>(mOverlayImage.get());
+  mozilla::gfx::IntSize size = image->GetSize();
+  VideoSegment segment;
+
+  segment.AppendFrame(image.forget(), delta, size);
+  srcStream->AppendToTrack(TRACK_VIDEO_PRIMARY, &segment);
+#endif
+}
+void
 DOMHwMediaStream::SetOverlayId(int32_t aOverlayId)
 {
 #ifdef MOZ_WIDGET_GONK

@@ -804,6 +804,11 @@ public:
   
 
 
+  StreamBuffer::Track* FindTrack(TrackID aID);
+
+  
+
+
 
 
 
