@@ -328,11 +328,7 @@ PerformanceFront.prototype = {
     if (!options.withAllocations) {
       return 0;
     }
-    yield this._request("memory", "attach");
-    let memoryStartTime = yield this._request("memory", "startRecordingAllocations", {
-      probability: options.allocationsSampleProbability,
-      maxLogLength: options.allocationsMaxLogLength
-    });
+    let memoryStartTime = yield this._startRecordingAllocations(options);
     yield this._pullAllocationSites();
     return memoryStartTime;
   }),
@@ -344,7 +340,33 @@ PerformanceFront.prototype = {
     if (!options.withAllocations) {
       return 0;
     }
+    
+    
+    
+    
+    
+    yield this._lastPullAllocationSitesFinished;
     clearTimeout(this._sitesPullTimeout);
+
+    return yield this._stopRecordingAllocations();
+  }),
+
+  
+
+
+  _startRecordingAllocations: Task.async(function*(options) {
+    yield this._request("memory", "attach");
+    let memoryStartTime = yield this._request("memory", "startRecordingAllocations", {
+      probability: options.allocationsSampleProbability,
+      maxLogLength: options.allocationsMaxLogLength
+    });
+    return memoryStartTime;
+  }),
+
+  
+
+
+  _stopRecordingAllocations: Task.async(function*() {
     let memoryEndTime = yield this._request("memory", "stopRecordingAllocations");
     yield this._request("memory", "detach");
     return memoryEndTime;
@@ -355,13 +377,16 @@ PerformanceFront.prototype = {
 
 
   _pullAllocationSites: Task.async(function *() {
+    let deferred = promise.defer();
+    this._lastPullAllocationSitesFinished = deferred.promise;
+
     let isDetached = (yield this._request("memory", "getState")) !== "attached";
     if (isDetached) {
+      deferred.resolve();
       return;
     }
 
     let memoryData = yield this._request("memory", "getAllocations");
-
     this.emit("allocations", {
       sites: memoryData.allocations,
       timestamps: memoryData.allocationsTimestamps,
@@ -371,6 +396,8 @@ PerformanceFront.prototype = {
 
     let delay = DEFAULT_ALLOCATION_SITES_PULL_TIMEOUT;
     this._sitesPullTimeout = setTimeout(this._pullAllocationSites, delay);
+
+    deferred.resolve();
   }),
 
   
