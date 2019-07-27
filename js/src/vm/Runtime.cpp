@@ -372,6 +372,9 @@ JSRuntime::~JSRuntime()
         finishAtoms();
 
         
+        gc.finishRoots();
+
+        
 
 
 
