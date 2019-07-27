@@ -29,6 +29,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                         "resource://gre/modules/UpdateChannel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UITour",
                                         "resource:///modules/UITour.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Social",
+                                        "resource:///modules/Social.jsm");
 XPCOMUtils.defineLazyGetter(this, "appInfo", function() {
   return Cc["@mozilla.org/xre/app-info;1"]
            .getService(Ci.nsIXULAppInfo)
@@ -207,6 +209,10 @@ function injectLoopAPI(targetWindow) {
   let roomsAPI;
   let callsAPI;
   let savedWindowListeners = new Map();
+  let socialProviders;
+  const kShareWidgetId = "social-share-button";
+  let socialShareButtonListenersAdded = false;
+
 
   let api = {
     
@@ -918,20 +924,212 @@ function injectLoopAPI(targetWindow) {
       value: function(windowId, active) {
         MozLoopService.setScreenShareState(windowId, active);
       }
+    },
+
+    
+
+
+
+
+
+
+    isSocialShareButtonAvailable: {
+      enumerable: true,
+      writable: true,
+      value: function() {
+        let win = Services.wm.getMostRecentWindow("navigator:browser");
+        if (!win || !win.CustomizableUI) {
+          return false;
+        }
+
+        let widget = win.CustomizableUI.getWidget(kShareWidgetId);
+        if (widget) {
+          if (!socialShareButtonListenersAdded) {
+            let eventName = "social:" + kShareWidgetId;
+            Services.obs.addObserver(onShareWidgetChanged, eventName + "-added", false);
+            Services.obs.addObserver(onShareWidgetChanged, eventName + "-removed", false);
+            socialShareButtonListenersAdded = true;
+          }
+          return !!widget.areaType;
+        }
+
+        return false;
+      }
+    },
+
+    
+
+
+
+    addSocialShareButton: {
+      enumerable: true,
+      writable: true,
+      value: function() {
+        
+        if (api.isSocialShareButtonAvailable.value()) {
+          return;
+        }
+
+        let win = Services.wm.getMostRecentWindow("navigator:browser");
+        if (!win || !win.CustomizableUI) {
+          return;
+        }
+        win.CustomizableUI.addWidgetToArea(kShareWidgetId, win.CustomizableUI.AREA_NAVBAR);
+      }
+    },
+
+    
+
+
+
+    addSocialShareProvider: {
+      enumerable: true,
+      writable: true,
+      value: function() {
+        
+        if (!api.isSocialShareButtonAvailable.value()) {
+          return;
+        }
+
+        let win = Services.wm.getMostRecentWindow("navigator:browser");
+        if (!win || !win.SocialShare) {
+          return;
+        }
+        win.SocialShare.showDirectory();
+      }
+    },
+
+    
+
+
+
+
+
+    getSocialShareProviders: {
+      enumerable: true,
+      writable: true,
+      value: function() {
+        if (socialProviders) {
+          return socialProviders;
+        }
+        return updateSocialProvidersCache();
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    socialShareRoom: {
+      enumerable: true,
+      writable: true,
+      value: function(providerOrigin, roomURL, title, body = null) {
+        let win = Services.wm.getMostRecentWindow("navigator:browser");
+        if (!win || !win.SocialShare) {
+          return;
+        }
+
+        let graphData = {
+          url: roomURL,
+          title: title
+        };
+        if (body) {
+          graphData.body = body;
+        }
+        win.SocialShare.sharePage(providerOrigin, graphData);
+      }
     }
   };
 
-  function onStatusChanged(aSubject, aTopic, aData) {
-    let event = new targetWindow.CustomEvent("LoopStatusChanged");
+  
+
+
+
+
+
+  function sendEvent(name = "LoopStatusChanged") {
+    if (typeof targetWindow.CustomEvent != "function") {
+      MozLoopService.log.debug("Could not send event to content document, " +
+        "because it's being destroyed or we're in a unit test where " +
+        "`targetWindow` is mocked.");
+      return;
+    }
+
+    let event = new targetWindow.CustomEvent(name);
     targetWindow.dispatchEvent(event);
-  };
+  }
+
+  function onStatusChanged(aSubject, aTopic, aData) {
+    sendEvent();
+  }
 
   function onDOMWindowDestroyed(aSubject, aTopic, aData) {
     if (targetWindow && aSubject != targetWindow)
       return;
     Services.obs.removeObserver(onDOMWindowDestroyed, "dom-window-destroyed");
     Services.obs.removeObserver(onStatusChanged, "loop-status-changed");
-  };
+    
+    if (socialProviders)
+      Services.obs.removeObserver(updateSocialProvidersCache, "social:providers-changed");
+    if (socialShareButtonListenersAdded) {
+      let eventName = "social:" + kShareWidgetId;
+      Services.obs.removeObserver(onShareWidgetChanged, eventName + "-added");
+      Services.obs.removeObserver(onShareWidgetChanged, eventName + "-removed");
+    }
+  }
+
+  function onShareWidgetChanged(aSubject, aTopic, aData) {
+    sendEvent("LoopShareWidgetChanged");
+  }
+
+  
+
+
+
+
+
+
+
+  function updateSocialProvidersCache() {
+    let providers = [];
+
+    for (let provider of Social.providers) {
+      if (!provider.shareURL) {
+        continue;
+      }
+
+      
+      providers.push({
+        iconURL: provider.iconURL,
+        name: provider.name,
+        origin: provider.origin
+      });
+    }
+
+    let providersWasSet = !!socialProviders;
+    
+    socialProviders = cloneValueInto(providers.sort((a, b) =>
+      a.name.toLowerCase().localeCompare(b.name.toLowerCase())), targetWindow);
+
+    
+    
+    if (!providersWasSet) {
+      Services.obs.addObserver(updateSocialProvidersCache, "social:providers-changed", false);
+    } else {
+      
+      sendEvent("LoopSocialProvidersChanged");
+    }
+
+    return socialProviders;
+  }
 
   let contentObj = Cu.createObjectIn(targetWindow);
   Object.defineProperties(contentObj, api);
