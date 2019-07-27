@@ -1561,16 +1561,6 @@ MacroAssemblerMIPSCompat::callJit(Register callee)
         ma_callJit(callee);
     }
 }
-void
-MacroAssemblerMIPSCompat::callJitFromAsmJS(Register callee)
-{
-    ma_callJitNoPush(callee);
-
-    
-    
-    
-    subPtr(Imm32(sizeof(void*)), StackPointer);
-}
 
 void
 MacroAssemblerMIPSCompat::reserveStack(uint32_t amount)

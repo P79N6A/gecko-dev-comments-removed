@@ -1880,17 +1880,6 @@ MacroAssemblerARMCompat::callJit(Register callee)
 }
 
 void
-MacroAssemblerARMCompat::callJitFromAsmJS(Register callee)
-{
-    ma_callJitNoPush(callee);
-
-    
-    
-    
-    subPtr(Imm32(sizeof(void*)), sp);
-}
-
-void
 MacroAssembler::alignFrameForICArguments(AfterICSaveLive &aic)
 {
     

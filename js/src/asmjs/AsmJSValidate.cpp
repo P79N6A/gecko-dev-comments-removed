@@ -8044,10 +8044,10 @@ CheckModuleReturn(ModuleCompiler &m)
 }
 
 static void
-AssertStackAlignment(MacroAssembler &masm, uint32_t alignment)
+AssertStackAlignment(MacroAssembler &masm, uint32_t alignment, uint32_t addBeforeAssert = 0)
 {
-    MOZ_ASSERT((sizeof(AsmJSFrame) + masm.framePushed()) % alignment == 0);
-    masm.assertStackAlignment(alignment);
+    MOZ_ASSERT((sizeof(AsmJSFrame) + masm.framePushed() + addBeforeAssert) % alignment == 0);
+    masm.assertStackAlignment(alignment, addBeforeAssert);
 }
 
 static unsigned
@@ -8330,6 +8330,7 @@ GenerateCheckForHeapDetachment(ModuleCompiler &m, Register scratch)
         return;
 
     MacroAssembler &masm = m.masm();
+    MOZ_ASSERT(masm.framePushed() >= ShadowStackSpace);
     AssertStackAlignment(masm, ABIStackAlignment);
 #if defined(JS_CODEGEN_X86)
     CodeOffsetLabel label = masm.movlWithPatch(PatchedAbsoluteAddress(), scratch);
@@ -8434,17 +8435,9 @@ GenerateFFIInterpExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &e
     return m.finishGeneratingInterpExit(exitIndex, &begin, &profilingReturn) && !masm.oom();
 }
 
-
-
-
-
-
-
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-static const unsigned MaybeRetAddr = sizeof(void*);
 static const unsigned MaybeSavedGlobalReg = sizeof(void*);
 #else
-static const unsigned MaybeRetAddr = 0;
 static const unsigned MaybeSavedGlobalReg = 0;
 #endif
 
@@ -8453,38 +8446,26 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
                    unsigned exitIndex, Label *throwLabel)
 {
     MacroAssembler &masm = m.masm();
+    MOZ_ASSERT(masm.framePushed() == 0);
 
     
     
     
     
-
     
-    
-    unsigned offsetToIonArgs = MaybeRetAddr;
-    unsigned ionArgBytes = 3 * sizeof(size_t) + (1 + exit.sig().args().length()) * sizeof(Value);
-    unsigned totalIonBytes = offsetToIonArgs + ionArgBytes + MaybeSavedGlobalReg;
-    unsigned ionFrameSize = StackDecrementForCall(masm, AsmJSStackAlignment, totalIonBytes);
-
-    
-    
-    
-    MIRTypeVector coerceArgTypes(m.cx());
-    if (!coerceArgTypes.append(MIRType_Pointer)) 
-        return false;
-
-    unsigned offsetToCoerceArgv = AlignBytes(StackArgBytes(coerceArgTypes), sizeof(double));
-    unsigned totalCoerceBytes = offsetToCoerceArgv + sizeof(Value) + MaybeSavedGlobalReg;
-    unsigned coerceFrameSize = StackDecrementForCall(masm, AsmJSStackAlignment, totalCoerceBytes);
-
-    unsigned framePushed = Max(ionFrameSize, coerceFrameSize);
+    static_assert(AsmJSStackAlignment >= JitStackAlignment, "subsumes");
+    unsigned sizeOfRetAddr = sizeof(void*);
+    unsigned ionFrameBytes = 3 * sizeof(void*) + (1 + exit.sig().args().length()) * sizeof(Value);
+    unsigned totalIonBytes = sizeOfRetAddr + ionFrameBytes + MaybeSavedGlobalReg;
+    unsigned ionFramePushed = StackDecrementForCall(masm, JitStackAlignment, totalIonBytes) -
+                              sizeOfRetAddr;
 
     Label begin;
-    GenerateAsmJSExitPrologue(masm, framePushed, AsmJSExit::JitFFI, &begin);
+    GenerateAsmJSExitPrologue(masm, ionFramePushed, AsmJSExit::JitFFI, &begin);
 
     
-    size_t argOffset = offsetToIonArgs;
-    uint32_t descriptor = MakeFrameDescriptor(framePushed, JitFrame_Entry);
+    size_t argOffset = 0;
+    uint32_t descriptor = MakeFrameDescriptor(ionFramePushed, JitFrame_Entry);
     masm.storePtr(ImmWord(uintptr_t(descriptor)), Address(StackPointer, argOffset));
     argOffset += sizeof(size_t);
 
@@ -8523,10 +8504,10 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     argOffset += sizeof(Value);
 
     
-    unsigned offsetToCallerStackArgs = framePushed + sizeof(AsmJSFrame);
+    unsigned offsetToCallerStackArgs = ionFramePushed + sizeof(AsmJSFrame);
     FillArgumentArray(m, exit.sig().args(), argOffset, offsetToCallerStackArgs, scratch);
     argOffset += exit.sig().args().length() * sizeof(Value);
-    MOZ_ASSERT(argOffset == offsetToIonArgs + ionArgBytes);
+    MOZ_ASSERT(argOffset == ionFrameBytes);
 
     
     
@@ -8535,11 +8516,8 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     
     
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-    JS_STATIC_ASSERT(MaybeSavedGlobalReg > 0);
-    unsigned savedGlobalOffset = framePushed - MaybeSavedGlobalReg;
-    masm.storePtr(GlobalReg, Address(StackPointer, savedGlobalOffset));
-#else
-    JS_STATIC_ASSERT(MaybeSavedGlobalReg == 0);
+    static_assert(MaybeSavedGlobalReg == sizeof(void*), "stack frame accounting");
+    masm.storePtr(GlobalReg, Address(StackPointer, ionFrameBytes));
 #endif
 
     {
@@ -8601,10 +8579,9 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         masm.storePtr(reg1, Address(reg0, offsetOfProfilingActivation));
     }
 
-    
-    AssertStackAlignment(masm, AsmJSStackAlignment);
+    AssertStackAlignment(masm, JitStackAlignment, sizeOfRetAddr);
     masm.callJitFromAsmJS(callee);
-    AssertStackAlignment(masm, AsmJSStackAlignment);
+    AssertStackAlignment(masm, JitStackAlignment, sizeOfRetAddr);
 
     {
         
@@ -8653,15 +8630,20 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         masm.storePtr(reg2, Address(reg0, offsetOfJitActivation));
     }
 
-    MOZ_ASSERT(masm.framePushed() == framePushed);
-
     
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-    JS_STATIC_ASSERT(MaybeSavedGlobalReg > 0);
-    masm.loadPtr(Address(StackPointer, savedGlobalOffset), GlobalReg);
-#else
-    JS_STATIC_ASSERT(MaybeSavedGlobalReg == 0);
+    static_assert(MaybeSavedGlobalReg == sizeof(void*), "stack frame accounting");
+    masm.loadPtr(Address(StackPointer, ionFrameBytes), GlobalReg);
 #endif
+
+    
+    
+    
+    
+    static_assert(ABIStackAlignment <= JitStackAlignment, "subsumes");
+    masm.reserveStack(sizeOfRetAddr);
+    unsigned nativeFramePushed = masm.framePushed();
+    AssertStackAlignment(masm, ABIStackAlignment);
 
     masm.branchTestMagic(Assembler::Equal, JSReturnOperand, throwLabel);
 
@@ -8692,11 +8674,19 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     GenerateCheckForHeapDetachment(m, ABIArgGenerator::NonReturn_VolatileReg0);
 
     Label profilingReturn;
-    GenerateAsmJSExitEpilogue(masm, framePushed, AsmJSExit::JitFFI, &profilingReturn);
+    GenerateAsmJSExitEpilogue(masm, masm.framePushed(), AsmJSExit::JitFFI, &profilingReturn);
 
     if (oolConvert.used()) {
         masm.bind(&oolConvert);
-        masm.setFramePushed(framePushed);
+        masm.setFramePushed(nativeFramePushed);
+
+        
+        
+        MIRTypeVector coerceArgTypes(m.cx());
+        JS_ALWAYS_TRUE(coerceArgTypes.append(MIRType_Pointer));
+        unsigned offsetToCoerceArgv = AlignBytes(StackArgBytes(coerceArgTypes), sizeof(Value));
+        MOZ_ASSERT(nativeFramePushed >= offsetToCoerceArgv + sizeof(Value));
+        AssertStackAlignment(masm, ABIStackAlignment);
 
         
         masm.storeValue(JSReturnOperand, Address(StackPointer, offsetToCoerceArgv));

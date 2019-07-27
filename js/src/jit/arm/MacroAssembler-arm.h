@@ -1323,7 +1323,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     void callJit(Register callee);
-    void callJitFromAsmJS(Register callee);
+    void callJitFromAsmJS(Register callee) { as_blx(callee); }
 
     void reserveStack(uint32_t amount);
     void freeStack(uint32_t amount);
