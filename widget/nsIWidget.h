@@ -107,8 +107,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x029a269f, 0x8b1a, 0x466b, \
-  { 0x89, 0x61, 0xc9, 0xcd, 0x23, 0x4e, 0x21, 0x27 } };
+{ 0xa7db3e01, 0xb8fe, 0x4122, \
+  { 0xbe, 0xa6, 0x45, 0x6c, 0xdd, 0x85, 0x30, 0x64 } };
 
 
 
@@ -1393,6 +1393,30 @@ class nsIWidget : public nsISupports {
 
 
     virtual void GetWindowClipRegion(nsTArray<nsIntRect>* aRects) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+    virtual void RegisterPluginWindowForRemoteUpdates() = 0;
+    virtual void UnregisterPluginWindowForRemoteUpdates() = 0;
+    static nsIWidget* LookupRegisteredPluginWindow(uintptr_t aWindowID);
+
+    
+
+
+
+
+
+
+
+    static void UpdateRegisteredPluginWindowVisibility(nsTArray<uintptr_t>& aVisibleList);
 
     
 

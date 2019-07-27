@@ -228,6 +228,10 @@ public:
   void NotifyWindowMoved(int32_t aX, int32_t aY);
 
   
+  virtual void RegisterPluginWindowForRemoteUpdates() MOZ_OVERRIDE;
+  virtual void UnregisterPluginWindowForRemoteUpdates() MOZ_OVERRIDE;
+
+  
   
   void NotifySysColorChanged();
   void NotifyThemeChanged();

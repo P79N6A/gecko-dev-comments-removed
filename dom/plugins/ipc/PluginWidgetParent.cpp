@@ -50,6 +50,7 @@ PluginWidgetParent::~PluginWidgetParent()
   
   
   if (mWidget) {
+    mWidget->UnregisterPluginWindowForRemoteUpdates();
     mWidget->Destroy();
     mWidget = nullptr;
   }
@@ -113,6 +114,12 @@ PluginWidgetParent::RecvCreate()
   
   
   
+  
+  mWidget->RegisterPluginWindowForRemoteUpdates();
+
+  
+  
+  
   RecvMove(0, 0);
 
 #if defined(MOZ_WIDGET_GTK)
@@ -131,6 +138,7 @@ PluginWidgetParent::RecvDestroy()
 {
   ENSURE_CHANNEL;
   PWLOG("PluginWidgetParent::RecvDestroy()\n");
+  mWidget->UnregisterPluginWindowForRemoteUpdates();
   mWidget->Destroy();
   mWidget = nullptr;
   return true;
