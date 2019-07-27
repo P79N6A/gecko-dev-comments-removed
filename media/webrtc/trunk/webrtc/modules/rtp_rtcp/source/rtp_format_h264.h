@@ -34,32 +34,45 @@ namespace webrtc {
 
 class RtpFormatH264 {
  public:
-  enum {
-    kH264NALU_SLICE             = 1,
-    kH264NALU_IDR               = 5,
-    kH264NALU_SEI               = 6,
-    kH264NALU_SPS               = 7,
-    kH264NALU_PPS               = 8,
-    kh264NALU_PREFIX            = 14,
-    kH264NALU_STAPA             = 24,
-    kH264NALU_FUA               = 28
+
+  
+  
+  
+  
+
+  enum NalHeader { 
+    kNalHeaderOffset = 0, 
+    kNalHeaderSize = 1, 
+    kTypeMask = 0x1f, 
+    kNriMask = 0x60, 
+    kFBit = 0x80, 
   };
 
-  static const int kH264NALHeaderLengthInBytes = 1;
-  static const int kH264FUAHeaderLengthInBytes = 2;
-
-
-  enum H264NalDefs {
-    kH264NAL_FBit = 0x80,
-    kH264NAL_NRIMask = 0x60,
-    kH264NAL_TypeMask = 0x1F
+  enum NalType { 
+    kIpb = 1, 
+    kIdr = 5, 
+    kSei = 6, 
+    kSeiRecPt = 6, 
+    kSps = 7, 
+    kPps = 8, 
+    kPrefix = 14, 
+    kStapA = 24, 
+    kFuA = 28, 
   };
 
-  enum H264FUDefs {
-    
-    kH264FU_SBit = 0x80,
-    kH264FU_EBit = 0x40,
-    kH264FU_RBit = 0x20
+  enum FuAHeader {
+    kFuAHeaderOffset = 1, 
+    kFuAHeaderSize = 1, 
+    kFragStartBit = 0x80, 
+    kFragEndBit = 0x40, 
+    kReservedBit = 0x20 
+  };
+  enum StapAHeader {
+    kStapAHeaderOffset = 1, 
+    kAggUnitLengthSize = 2 
+  };
+  enum StartCodePrefix { 
+    kStartCodeSize = 4 
   };
 
   
@@ -97,4 +110,4 @@ class RtpFormatH264 {
 
 }  
 
-#endif  
+#endif

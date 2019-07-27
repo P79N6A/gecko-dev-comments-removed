@@ -125,9 +125,9 @@ int32_t RTPReceiverVideo::ParseVideoCodecSpecific(
                __FUNCTION__,
                rtp_header->header.timestamp);
 
+  rtp_header->type.Video.isFirstPacket = is_first_packet;
   switch (rtp_header->type.Video.codec) {
     case kRtpVideoGeneric:
-      rtp_header->type.Video.isFirstPacket = is_first_packet;
       return ReceiveGenericCodec(rtp_header, payload_data, payload_data_length);
     case kRtpVideoVp8:
       return ReceiveVp8Codec(rtp_header, payload_data, payload_data_length);
@@ -232,135 +232,42 @@ int32_t RTPReceiverVideo::ReceiveVp8Codec(WebRtcRTPHeader* rtp_header,
 int32_t RTPReceiverVideo::ReceiveH264Codec(WebRtcRTPHeader* rtp_header,
                                           const uint8_t* payload_data,
                                           uint16_t payload_data_length) {
+  size_t offset = RtpFormatH264::kNalHeaderOffset;
+  uint8_t nal_type = payload_data[offset] & RtpFormatH264::kTypeMask;
+  rtp_header->type.Video.codecHeader.H264.nalu_header = nal_type;
   
-  uint8_t* payload;
-  uint16_t payload_length;
-  uint8_t nal_type = payload_data[0] & RtpFormatH264::kH264NAL_TypeMask;
-
+  switch (nal_type) {
+    case RtpFormatH264::kFuA:
+      offset = RtpFormatH264::kFuAHeaderOffset;
+      if (offset >= payload_data_length) return -1; 
+      nal_type = payload_data[offset] & RtpFormatH264::kTypeMask;
+      break;
+    case RtpFormatH264::kStapA:
+      offset = RtpFormatH264::kStapAHeaderOffset +
+               RtpFormatH264::kAggUnitLengthSize;
+      if (offset >= payload_data_length) return -1; 
+      nal_type = payload_data[offset] & RtpFormatH264::kTypeMask;
+      break;
+    default:
+      break;
+  }
   
-  if (nal_type == RtpFormatH264::kH264NALU_FUA) {
-    
-    uint8_t fnri = payload_data[0] & 
-                   (RtpFormatH264::kH264NAL_FBit | RtpFormatH264::kH264NAL_NRIMask);
-    uint8_t original_nal_type = payload_data[1] & RtpFormatH264::kH264NAL_TypeMask;
-    bool first_fragment = !!(payload_data[1] & RtpFormatH264::kH264FU_SBit);
-    
-
-    uint8_t original_nal_header = fnri | original_nal_type;
-    if (first_fragment) {
-      payload = const_cast<uint8_t*> (payload_data) +
-          RtpFormatH264::kH264NALHeaderLengthInBytes;
-      payload[0] = original_nal_header;
-      payload_length = payload_data_length -
-          RtpFormatH264::kH264NALHeaderLengthInBytes;
-    } else {
-      payload = const_cast<uint8_t*> (payload_data)  +
-          RtpFormatH264::kH264FUAHeaderLengthInBytes;
-      payload_length = payload_data_length -
-          RtpFormatH264::kH264FUAHeaderLengthInBytes;
-    }
-
-    
-    if (original_nal_type == RtpFormatH264::kH264NALU_IDR) {
+  rtp_header->frameType = kVideoFrameDelta;
+  switch (nal_type) {
+    case RtpFormatH264::kSei: 
+      if (offset+1 >= payload_data_length) return -1; 
+      if (payload_data[offset+1] != RtpFormatH264::kSeiRecPt) break;
+      
+    case RtpFormatH264::kSps:
+    case RtpFormatH264::kPps:
+    case RtpFormatH264::kIdr:
       rtp_header->frameType = kVideoFrameKey;
-    } else {
-      rtp_header->frameType = kVideoFrameDelta;
-    }
-    rtp_header->type.Video.codec    = kRtpVideoH264;
-    rtp_header->type.Video.isFirstPacket = first_fragment;
-    RTPVideoHeaderH264* h264_header = &rtp_header->type.Video.codecHeader.H264;
-    h264_header->nalu_header        = original_nal_header;
-    h264_header->single_nalu        = false;
-
-  } else if (nal_type == RtpFormatH264::kH264NALU_STAPA) {
-
-    payload = const_cast<uint8_t*> (payload_data) +
-              RtpFormatH264::kH264NALHeaderLengthInBytes;
-    size_t size = payload_data_length -
-                  RtpFormatH264::kH264NALHeaderLengthInBytes;
-    uint32_t timestamp = rtp_header->header.timestamp;
-    rtp_header->type.Video.codec    = kRtpVideoH264;
-    rtp_header->type.Video.isFirstPacket = true;
-    RTPVideoHeaderH264* h264_header = &rtp_header->type.Video.codecHeader.H264;
-    h264_header->single_nalu        = true;
-
-    while (size > 0) {
-      payload_length = ntohs(*(reinterpret_cast<uint16_t*>(payload)));
-      
-      payload += sizeof(uint16_t); 
-      h264_header->nalu_header        = payload[0];
-      switch (*payload & RtpFormatH264::kH264NAL_TypeMask) {
-        case RtpFormatH264::kH264NALU_SPS:
-          
-          rtp_header->header.timestamp = timestamp - 20;
-          rtp_header->frameType = kVideoFrameKey;
-          break;
-        case RtpFormatH264::kH264NALU_PPS:
-          
-          rtp_header->header.timestamp = timestamp - 10;
-          rtp_header->frameType = kVideoFrameKey;
-          break;
-        case RtpFormatH264::kh264NALU_PREFIX:
-          rtp_header->header.timestamp = timestamp - 5;
-          rtp_header->frameType = kVideoFrameKey;
-          break;
-        case RtpFormatH264::kH264NALU_IDR:
-          rtp_header->frameType = kVideoFrameKey;
-          break;
-        default:
-          rtp_header->frameType = kVideoFrameDelta;
-          break;
-      }
-      if (data_callback_->OnReceivedPayloadData(payload,
-                                                payload_length,
-                                                rtp_header) != 0) {
-        return -1;
-      }
-      payload += payload_length;
-      assert(size >= sizeof(uint16_t) + payload_length);
-      size -= sizeof(uint16_t) + payload_length;
-    }
-    return 0;
-
-  } else {
-
-    
-    payload = const_cast<uint8_t*> (payload_data);
-    payload_length = payload_data_length;
-
-    rtp_header->type.Video.codec    = kRtpVideoH264;
-    rtp_header->type.Video.isFirstPacket = true;
-    RTPVideoHeaderH264* h264_header = &rtp_header->type.Video.codecHeader.H264;
-    h264_header->nalu_header        = payload_data[0];
-    h264_header->single_nalu        = true;
-
-    
-    switch (nal_type) {
-      
-      
-      
-      
-      case RtpFormatH264::kH264NALU_SPS:
-        rtp_header->header.timestamp -= 10;
-        
-      case RtpFormatH264::kH264NALU_PPS:
-        rtp_header->header.timestamp -= 10;
-        
-      case RtpFormatH264::kh264NALU_PREFIX:
-        rtp_header->header.timestamp -= 5;
-        
-      case RtpFormatH264::kH264NALU_IDR:
-        rtp_header->frameType = kVideoFrameKey;
-        break;
-      default:
-        rtp_header->frameType = kVideoFrameDelta;
-        break;
-    }
+      break;
   }
 
-  if (data_callback_->OnReceivedPayloadData(payload,
-                                            payload_length,
-                                            rtp_header) != 0) {
+  
+  if (data_callback_->OnReceivedPayloadData(
+      payload_data, payload_data_length, rtp_header) != 0) {
     return -1;
   }
   return 0;

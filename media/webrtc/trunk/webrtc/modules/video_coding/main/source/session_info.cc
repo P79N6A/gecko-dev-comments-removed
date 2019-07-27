@@ -9,7 +9,6 @@
 
 
 #include "webrtc/modules/video_coding/main/source/session_info.h"
-
 #include "webrtc/modules/video_coding/main/source/packet.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_format_h264.h"
 
@@ -116,38 +115,104 @@ int VCMSessionInfo::NumPackets() const {
   return packets_.size();
 }
 
+void VCMSessionInfo::CopyPacket(uint8_t* dst, const uint8_t* src, size_t len) {
+  memcpy(dst, src, len);
+}
+
+void VCMSessionInfo::CopyWithStartCode(uint8_t* dst, const uint8_t* src, size_t len) {
+  
+  memset(dst, 0, RtpFormatH264::kStartCodeSize-1);
+  dst[RtpFormatH264::kStartCodeSize-1] = 1;
+  CopyPacket(dst + RtpFormatH264::kStartCodeSize, src, len);
+}
+
 int VCMSessionInfo::InsertBuffer(uint8_t* frame_buffer,
                                  PacketIterator packet_it) {
   VCMPacket& packet = *packet_it;
-  PacketIterator it;
-
-  int packet_size = packet.sizeBytes;
-  packet_size += (packet.insertStartCode ? kH264StartCodeLengthBytes : 0);
 
   
-  int offset = 0;
-  for (it = packets_.begin(); it != packet_it; ++it)
-    offset += (*it).sizeBytes;
+  for (PacketIterator it = packets_.begin(); it != packet_it; ++it)
+    frame_buffer += (*it).sizeBytes;
 
-  
-  
-  const uint8_t* data = packet.dataPtr;
-  packet.dataPtr = frame_buffer + offset;
-  packet.sizeBytes = packet_size;
-
-  ShiftSubsequentPackets(packet_it, packet_size);
-
-  const uint8_t startCode[] = {0, 0, 0, 1};
-  if (packet.insertStartCode) {
-    memcpy(const_cast<uint8_t*>(packet.dataPtr), startCode,
-           kH264StartCodeLengthBytes);
+  if (packet.codec == kVideoCodecH264) {
+    
+    
+    size_t nalu_size;
+    size_t all_nalu_size = 0;
+    const uint8_t* nalu_ptr = packet.dataPtr;
+    uint8_t nal_header = *nalu_ptr;
+    uint8_t fu_header;
+    switch (nal_header & RtpFormatH264::kTypeMask) {
+      case RtpFormatH264::kFuA:
+        fu_header = nalu_ptr[RtpFormatH264::kFuAHeaderOffset];
+        if (fu_header & RtpFormatH264::kFragStartBit) {
+          nal_header &= ~RtpFormatH264::kTypeMask; 
+          nal_header |= fu_header & RtpFormatH264::kTypeMask; 
+          packet.sizeBytes -= RtpFormatH264::kFuAHeaderOffset;
+          packet.dataPtr += RtpFormatH264::kFuAHeaderOffset;
+          ShiftSubsequentPackets(packet_it, packet.sizeBytes +
+                                 RtpFormatH264::kStartCodeSize);
+          CopyWithStartCode(frame_buffer, packet.dataPtr, packet.sizeBytes);
+          frame_buffer[RtpFormatH264::kStartCodeSize] = nal_header;
+          packet.sizeBytes += RtpFormatH264::kStartCodeSize;
+          packet.dataPtr = frame_buffer;
+          packet.completeNALU = kNaluStart;
+        } else {
+          packet.sizeBytes -= RtpFormatH264::kFuAHeaderOffset +
+                              RtpFormatH264::kFuAHeaderSize;
+          packet.dataPtr += RtpFormatH264::kFuAHeaderOffset +
+                            RtpFormatH264::kFuAHeaderSize;
+          ShiftSubsequentPackets(packet_it, packet.sizeBytes);
+          CopyPacket(frame_buffer, packet.dataPtr, packet.sizeBytes);
+          packet.dataPtr = frame_buffer;
+          if (fu_header & RtpFormatH264::kFragEndBit) {
+            packet.completeNALU = kNaluEnd;
+          } else {
+            packet.completeNALU = kNaluIncomplete;
+          }
+        }
+        break;
+      case RtpFormatH264::kStapA:
+        packet.sizeBytes -= RtpFormatH264::kStapAHeaderOffset;
+        packet.dataPtr += RtpFormatH264::kStapAHeaderOffset;
+        for (nalu_ptr = packet.dataPtr;
+             nalu_ptr < packet.dataPtr + packet.sizeBytes;
+             nalu_ptr += nalu_size + RtpFormatH264::kAggUnitLengthSize) {
+          nalu_size = (nalu_ptr[0] << 8) + nalu_ptr[1];
+          all_nalu_size += nalu_size + RtpFormatH264::kStartCodeSize;
+        }
+        if (nalu_ptr > packet.dataPtr + packet.sizeBytes) {
+          
+          packet.completeNALU = kNaluIncomplete;
+          return -1;
+        }
+        ShiftSubsequentPackets(packet_it, all_nalu_size);
+        for (nalu_ptr = packet.dataPtr;
+             nalu_ptr < packet.dataPtr + packet.sizeBytes;
+             nalu_ptr += nalu_size + RtpFormatH264::kAggUnitLengthSize) {
+          nalu_size = (nalu_ptr[0] << 8) + nalu_ptr[1];
+          CopyWithStartCode(frame_buffer, nalu_ptr+2, nalu_size);
+          frame_buffer += nalu_size + RtpFormatH264::kStartCodeSize;
+        }
+        packet.sizeBytes = all_nalu_size;
+        packet.dataPtr = frame_buffer - all_nalu_size;
+        packet.completeNALU = kNaluComplete;
+        break;
+      default:
+        ShiftSubsequentPackets(packet_it, packet.sizeBytes +
+                               RtpFormatH264::kStartCodeSize);
+        CopyWithStartCode(frame_buffer, packet.dataPtr, packet.sizeBytes);
+        packet.sizeBytes += RtpFormatH264::kStartCodeSize;
+        packet.dataPtr = frame_buffer;
+        packet.completeNALU = kNaluComplete;
+        break;
+    } 
+  } else { 
+    ShiftSubsequentPackets(packet_it, packet.sizeBytes);
+    CopyPacket(frame_buffer, packet.dataPtr, packet.sizeBytes);
+    packet.dataPtr = frame_buffer;
   }
-  memcpy(const_cast<uint8_t*>(packet.dataPtr
-      + (packet.insertStartCode ? kH264StartCodeLengthBytes : 0)),
-      data,
-      packet.sizeBytes);
-
-  return packet_size;
+  return packet.sizeBytes;
 }
 
 void VCMSessionInfo::ShiftSubsequentPackets(PacketIterator it,
@@ -420,70 +485,39 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
     return -2;
 
   PacketIterator packet_list_it;
-  if (packet.codec == kVideoCodecH264) {
-    RTPVideoHeaderH264 h264 = packet.codecSpecificHeader.codecHeader.H264;
-    uint8_t nal_type = h264.nalu_header & RtpFormatH264::kH264NAL_TypeMask;
 
-    if (packet.isFirstPacket) {
-      if (HaveFirstPacket() == false ||
-          IsNewerSequenceNumber(first_packet_seq_num_, packet.seqNum)) {
-        first_packet_seq_num_ = packet.seqNum;
-        frame_type_ = packet.frameType;
-      }
-    }
-
+  
+  
+  
+  
+  if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
+    
+    frame_type_ = packet.frameType;
+    
+    first_packet_seq_num_ = static_cast<int>(packet.seqNum);
+  } else if (first_packet_seq_num_ != -1 &&
+             !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
     
     
-
+    return -3;
+  } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
     
     
-    
-    if ((packet.completeNALU == kNaluComplete || packet.completeNALU == kNaluEnd) &&
-        last_packet_seq_num_ == -1) {
-      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
-    } else if (last_packet_seq_num_ != -1 &&
-      IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
-      
-      
-      return -3;
-    }
-
-    
-    packet_list_it = packets_.insert(rit.base(), packet);
-  } else {
-    
-    
-    
-    
-    if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
-      
-      frame_type_ = packet.frameType;
-      
-      first_packet_seq_num_ = static_cast<int>(packet.seqNum);
-    } else if (first_packet_seq_num_ != -1 &&
-      !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
-      
-      
-      return -3;
-    } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
-      
-      
-      frame_type_ = packet.frameType;
-    }
-
-    
-    if (packet.markerBit && last_packet_seq_num_ == -1) {
-      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
-    } else if (last_packet_seq_num_ != -1 &&
-        IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
-      
-      
-      return -3;
-    }
-
-    
-    packet_list_it = packets_.insert(rit.base(), packet);
+    frame_type_ = packet.frameType;
   }
+
+  
+  if (packet.markerBit && last_packet_seq_num_ == -1) {
+    last_packet_seq_num_ = static_cast<int>(packet.seqNum);
+  } else if (last_packet_seq_num_ != -1 &&
+             IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
+    
+    
+    return -3;
+  }
+
+  
+  packet_list_it = packets_.insert(rit.base(), packet);
 
   int returnLength = InsertBuffer(frame_buffer, packet_list_it);
   UpdateCompleteSession();
