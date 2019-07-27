@@ -1217,27 +1217,6 @@ if (Services.prefs.getBoolPref("browser.pocket.enabled")) {
 }
 
 #ifdef E10S_TESTING_ONLY
-
-
-
-
-
-
-let getCommandFunction = function(aOpenRemote) {
-  return function(aEvent) {
-    let win = aEvent.view;
-    if (win && typeof win.OpenBrowserWindow == "function") {
-      win.OpenBrowserWindow({remote: aOpenRemote});
-    }
-  };
-}
-
-let openRemote = !Services.appinfo.browserTabsRemoteAutostart;
-
-
-let buttonLabel = openRemote ? "New e10s Window"
-                              : "New Non-e10s Window";
-
 let e10sDisabled = Services.appinfo.inSafeMode;
 #ifdef XP_MACOSX
 
@@ -1245,12 +1224,19 @@ let e10sDisabled = Services.appinfo.inSafeMode;
 e10sDisabled |= Services.prefs.getBoolPref("layers.acceleration.disabled");
 #endif
 
-CustomizableWidgets.push({
-  id: "e10s-button",
-  label: buttonLabel,
-  tooltiptext: buttonLabel,
-  disabled: e10sDisabled,
-  defaultArea: CustomizableUI.AREA_PANEL,
-  onCommand: getCommandFunction(openRemote),
-});
+if (Services.appinfo.browserTabsRemoteAutostart) {
+  CustomizableWidgets.push({
+    id: "e10s-button",
+    label: "New Non-e10s Window",
+    tooltiptext: "New Non-e10s Window",
+    disabled: e10sDisabled,
+    defaultArea: CustomizableUI.AREA_PANEL,
+    onCommand: function(aEvent) {
+      let win = aEvent.view;
+      if (win && typeof win.OpenBrowserWindow == "function") {
+        win.OpenBrowserWindow({remote: false});
+      }
+    },
+  });
+}
 #endif
