@@ -34,9 +34,9 @@ protected:
 
 public:
   explicit AnimationPlayer(AnimationTimeline* aTimeline)
-    : mIsPaused(false)
-    , mIsRunningOnCompositor(false)
+    : mIsRunningOnCompositor(false)
     , mTimeline(aTimeline)
+    , mIsPaused(false)
   {
   }
 
@@ -93,8 +93,6 @@ public:
 
   
   Nullable<TimeDuration> mStartTime; 
-  Nullable<TimeDuration> mHoldTime;  
-  bool mIsPaused;
   bool mIsRunningOnCompositor;
 
   nsRefPtr<AnimationTimeline> mTimeline;
@@ -103,6 +101,9 @@ public:
 protected:
   void FlushStyle() const;
   void MaybePostRestyle() const;
+
+  Nullable<TimeDuration> mHoldTime;  
+  bool mIsPaused;
 };
 
 } 
