@@ -61,6 +61,8 @@
 #include "nsIDOMHTMLButtonElement.h"
 #include "nsSandboxFlags.h"
 
+#include "nsIContentSecurityPolicy.h"
+
 
 #include "mozilla/dom/HTMLImageElement.h"
 
@@ -1624,6 +1626,19 @@ HTMLFormElement::GetActionURL(nsIURI** aActionURL,
     CheckLoadURIWithPrincipal(NodePrincipal(), actionURL,
                               nsIScriptSecurityManager::STANDARD);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIContentSecurityPolicy> csp;
+  rv = NodePrincipal()->GetCsp(getter_AddRefs(csp));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (csp) {
+    bool permitsFormAction = true;
+    rv = csp->PermitsFormAction(actionURL, &permitsFormAction);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!permitsFormAction) {
+      rv = NS_ERROR_CSP_FORM_ACTION_VIOLATION;
+    }
+  }
 
   
   
