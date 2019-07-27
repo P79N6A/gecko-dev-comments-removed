@@ -188,6 +188,10 @@ JSObject *
 GCRuntime::tryNewTenuredObject(ExclusiveContext *cx, AllocKind kind, size_t thingSize,
                                size_t nDynamicSlots)
 {
+    
+    
+    AutoSuppressGCAnalysis suppress(cx);
+
     UniqueSlots slots = MakeSlotArray(cx, nDynamicSlots);
     if (nDynamicSlots && !slots)
         return nullptr;
