@@ -17,6 +17,9 @@ class nsIFrame;
 class nsStyleContext;
 class nsPresContext;
 struct nsRect;
+namespace mozilla {
+class RuleNodeCacheConditions;
+}
 
 
 
@@ -128,7 +131,7 @@ namespace nsStyleTransformMatrix {
   float ProcessTranslatePart(const nsCSSValue& aValue,
                              nsStyleContext* aContext,
                              nsPresContext* aPresContext,
-                             bool& aCanStoreInRuleTree,
+                             mozilla::RuleNodeCacheConditions& aConditions,
                              TransformReferenceBox* aRefBox,
                              TransformReferenceBox::DimensionGetter aDimensionGetter = nullptr);
 
@@ -137,7 +140,7 @@ namespace nsStyleTransformMatrix {
                             const nsCSSValue::Array* aData,
                             nsStyleContext* aContext,
                             nsPresContext* aPresContext,
-                            bool& aCanStoreInRuleTree,
+                            mozilla::RuleNodeCacheConditions& aConditions,
                             TransformReferenceBox& aBounds);
 
   
@@ -159,7 +162,7 @@ namespace nsStyleTransformMatrix {
   gfx3DMatrix ReadTransforms(const nsCSSValueList* aList,
                              nsStyleContext* aContext,
                              nsPresContext* aPresContext,
-                             bool &aCanStoreInRuleTree,
+                             mozilla::RuleNodeCacheConditions& aConditions,
                              TransformReferenceBox& aBounds,
                              float aAppUnitsPerMatrixUnit);
 

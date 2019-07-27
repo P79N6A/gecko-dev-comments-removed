@@ -254,7 +254,7 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                 
                 
                 
-                aRuleData->mCanStoreInRuleTree = false;
+                aRuleData->mConditions.SetUncacheable();
             }
             nsCSSValue* target = aRuleData->ValueFor(iProp);
             if (target->GetUnit() == eCSSUnit_Null) {
@@ -693,7 +693,7 @@ nsCSSExpandedDataBlock::MapRuleInfoInto(nsCSSProperty aPropID,
   nsCSSProperty physicalProp = aPropID;
   if (nsCSSProps::PropHasFlags(aPropID, CSS_PROPERTY_LOGICAL)) {
     EnsurePhysicalProperty(physicalProp, aRuleData);
-    aRuleData->mCanStoreInRuleTree = false;
+    aRuleData->mConditions.SetUncacheable();
   }
 
   nsCSSValue* dest = aRuleData->ValueFor(physicalProp);
