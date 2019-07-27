@@ -726,7 +726,7 @@ nsEditorEventListener::CleanupDragDropCaret()
   if (mCaret)
   {
     mCaret->EraseCaret();
-    mCaret->SetCaretVisible(false);    
+    mCaret->SetVisible(false);    
 
     nsCOMPtr<nsIPresShell> presShell = GetPresShell();
     if (presShell)

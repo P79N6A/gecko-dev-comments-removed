@@ -66,14 +66,12 @@ class nsCaret : public nsISelectionListener
     
 
 
-    void SetCaretVisible(bool intMakeVisible);
+    void SetVisible(bool intMakeVisible);
     
 
 
 
-
-
-    nsresult GetCaretVisible(bool *outMakeVisible);
+    bool IsVisible();
     
 
 
