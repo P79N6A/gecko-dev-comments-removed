@@ -106,8 +106,25 @@ SPSProfiler::enable(bool enabled)
 
 
     if (rt->jitActivation) {
-        void *lastProfilingFrame = GetTopProfilingJitFrame(rt->jitTop);
-        rt->jitActivation->setLastProfilingFrame(lastProfilingFrame);
+        
+        if (enabled) {
+            void *lastProfilingFrame = GetTopProfilingJitFrame(rt->jitTop);
+            jit::JitActivation *jitActivation = rt->jitActivation;
+            while (jitActivation) {
+                jitActivation->setLastProfilingFrame(lastProfilingFrame);
+                jitActivation->setLastProfilingCallSite(nullptr);
+
+                lastProfilingFrame = GetTopProfilingJitFrame(jitActivation->prevJitTop());
+                jitActivation = jitActivation->prevJitActivation();
+            }
+        } else {
+            jit::JitActivation *jitActivation = rt->jitActivation;
+            while (jitActivation) {
+                jitActivation->setLastProfilingFrame(nullptr);
+                jitActivation->setLastProfilingCallSite(nullptr);
+                jitActivation = jitActivation->prevJitActivation();
+            }
+        }
     }
 }
 
