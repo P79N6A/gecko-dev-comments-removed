@@ -152,9 +152,36 @@ BackCert::Init()
   if (version == der::Version::v3 || version == der::Version::v4) {
     rv = der::OptionalExtensions(tbsCertificate, CSC | 3,
                                  bind(&BackCert::RememberExtension, this, _1,
-                                      _2, _3));
+                                      _2, _3, _4));
     if (rv != Success) {
       return rv;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (criticalNetscapeCertificateType.GetLength() > 0 &&
+        (basicConstraints.GetLength() == 0 || extKeyUsage.GetLength() == 0)) {
+      return Result::ERROR_UNKNOWN_CRITICAL_EXTENSION;
     }
   }
 
@@ -165,7 +192,7 @@ BackCert::Init()
 
 Result
 BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
-                             bool& understood)
+                            bool critical,  bool& understood)
 {
   understood = false;
 
@@ -205,6 +232,10 @@ BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
   static const uint8_t id_pe_authorityInfoAccess[] = {
     0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01
   };
+  
+  static const uint8_t Netscape_certificate_type[] = {
+    0x60, 0x86, 0x48, 0x01, 0x86, 0xf8, 0x42, 0x01, 0x01
+  };
 
   Input* out = nullptr;
 
@@ -238,6 +269,8 @@ BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
     out = &inhibitAnyPolicy;
   } else if (extnID.MatchRest(id_pe_authorityInfoAccess)) {
     out = &authorityInfoAccess;
+  } else if (extnID.MatchRest(Netscape_certificate_type) && critical) {
+    out = &criticalNetscapeCertificateType;
   }
 
   if (out) {

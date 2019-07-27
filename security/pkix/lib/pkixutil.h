@@ -134,9 +134,10 @@ private:
   Input keyUsage;
   Input nameConstraints;
   Input subjectAltName;
+  Input criticalNetscapeCertificateType;
 
   Result RememberExtension(Reader& extnID, const Input& extnValue,
-                            bool& understood);
+                           bool critical,  bool& understood);
 
   BackCert(const BackCert&) ;
   void operator=(const BackCert&); ;
