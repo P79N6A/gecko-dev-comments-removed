@@ -62,9 +62,12 @@ public:
       snapped = mat.TransformBounds(snapped);
     }
 
+    
+    aDT->PushClipRect(snapped);
     FillRectWithMask(aDT, aDeviceOffset, snapped, ToColor(mColor),
                      DrawOptions(GetEffectiveOpacity(), GetEffectiveOperator(this)),
                      aMaskLayer);
+    aDT->PopClip();
   }
 
 protected:
