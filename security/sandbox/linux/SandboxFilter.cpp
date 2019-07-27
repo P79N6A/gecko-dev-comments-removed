@@ -200,7 +200,6 @@ SandboxFilterImplContent::Build() {
 
   
   
-  
   Allow(SYSCALL_LARGEFILE(fstat, fstat64));
   Allow(SYSCALL_LARGEFILE(stat, stat64));
   Allow(SYSCALL_LARGEFILE(lstat, lstat64));
@@ -212,8 +211,6 @@ SandboxFilterImplContent::Build() {
   Allow(SYSCALL(readlinkat)); 
   Allow(SYSCALL(prctl));
   Allow(SYSCALL(access));
-  Allow(SYSCALL(unlink));
-  Allow(SYSCALL(unlinkat));
   Allow(SYSCALL(fsync));
   Allow(SYSCALL(msync));
 
