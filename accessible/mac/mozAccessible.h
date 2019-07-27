@@ -124,6 +124,9 @@ static const uintptr_t IS_PROXY = 1;
 - (void)valueDidChange;
 - (void)selectedTextDidChange;
 
+
+- (id)childAt:(uint32_t)i;
+
 #pragma mark -
 
 
