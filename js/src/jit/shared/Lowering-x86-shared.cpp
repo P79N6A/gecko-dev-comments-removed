@@ -390,7 +390,6 @@ LIRGeneratorX86Shared::lowerCompareExchangeTypedArrayElement(MCompareExchangeTyp
     
     
     
-    
 
     bool fixedOutput = false;
     LDefinition tempDef = LDefinition::BogusTemp();
@@ -432,6 +431,27 @@ LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
     const LAllocation index = useRegisterOrConstant(ins->index());
 
     
+    
+    
+    
+    
+    
+    
+
+    if (!ins->hasUses()) {
+        LAllocation value;
+        if (useI386ByteRegisters && ins->isByteArray())
+            value = useFixed(ins->value(), ebx);
+        else
+            value = useRegister(ins->value());
+
+        LAtomicTypedArrayElementBinopForEffect *lir =
+            new(alloc()) LAtomicTypedArrayElementBinopForEffect(elements, index, value);
+
+        add(lir, ins);
+        return;
+    }
+
     
     
     

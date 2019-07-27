@@ -215,6 +215,11 @@ LIRGeneratorX64::visitAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap *ins)
     MDefinition *ptr = ins->ptr();
     MOZ_ASSERT(ptr->type() == MIRType_Int32);
 
+    
+    
+    
+    
+
     const LAllocation oldval = useRegister(ins->oldValue());
     const LAllocation newval = useRegister(ins->newValue());
 
@@ -233,6 +238,16 @@ LIRGeneratorX64::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins)
     
     
     
+    
+
+    if (!ins->hasUses()) {
+        LAsmJSAtomicBinopHeapForEffect *lir =
+            new(alloc()) LAsmJSAtomicBinopHeapForEffect(useRegister(ptr),
+                                                        useRegister(ins->value()));
+        add(lir, ins);
+        return;
+    }
+
     
     
     

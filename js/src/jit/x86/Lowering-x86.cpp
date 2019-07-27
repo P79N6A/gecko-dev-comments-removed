@@ -303,6 +303,7 @@ LIRGeneratorX86::visitAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap *ins)
     
     
     
+    
 
     const LAllocation oldval = useRegister(ins->oldValue());
     const LAllocation newval = byteArray ? useFixed(ins->newValue(), ebx) : useRegister(ins->newValue());
@@ -325,6 +326,22 @@ LIRGeneratorX86::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins)
     bool byteArray = byteSize(ins->accessType()) == 1;
 
     
+    
+    
+    
+    
+    
+    
+
+    if (!ins->hasUses()) {
+        LAllocation value = byteArray ? useFixed(ins->value(), ebx) : useRegister(ins->value());
+        LAsmJSAtomicBinopHeapForEffect *lir =
+            new(alloc()) LAsmJSAtomicBinopHeapForEffect(useRegister(ptr), value);
+        lir->setAddrTemp(temp());
+        add(lir, ins);
+        return;
+    }
+
     
     
     
