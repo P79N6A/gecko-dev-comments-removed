@@ -266,6 +266,13 @@ TransportSecurityInfo::formatErrorMessage(MutexAutoLock const & proofOfLock,
   return rv;
 }
 
+NS_IMETHODIMP
+TransportSecurityInfo::GetErrorCode(int32_t* state)
+{
+  *state = GetErrorCode();
+  return NS_OK;
+}
+
 
 NS_IMETHODIMP
 TransportSecurityInfo::GetInterface(const nsIID & uuid, void * *result)
