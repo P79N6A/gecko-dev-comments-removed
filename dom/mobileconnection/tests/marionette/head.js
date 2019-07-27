@@ -482,22 +482,6 @@ function selectNetworkAutomaticallyAndWait() {
 
 
 
-function sendMMI(aMmi) {
-  let request = mobileConnection.sendMMI(aMmi);
-  return request.then(() => request.result, () => { throw request.error });
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
  function setRoamingPreference(aMode) {
   let request = mobileConnection.setRoamingPreference(aMode);
