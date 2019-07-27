@@ -16,6 +16,13 @@ function dprint(...xs) {
     print(s);
 }
 
+
+
+
+function CLONE(f) {
+    return this.eval("(" + f.toSource() + ")");
+}
+
 function testMethod(a, ...indices) {
     dprint("Method: " + a.constructor.name);
     var poison;
@@ -238,7 +245,7 @@ function testInt8Extremes(a) {
     Atomics.and(a, 10, 256);	
     assertEq(a[10], 0);
     assertEq(Atomics.load(a, 10), 0);
-    
+
     assertEq(a[11], 0);
 }
 
@@ -271,7 +278,7 @@ function testUint8Extremes(a) {
     Atomics.and(a, 10, 256);	
     assertEq(a[10], 0);
     assertEq(Atomics.load(a, 10), 0);
-    
+
     assertEq(a[11], 0);
 }
 
@@ -355,13 +362,13 @@ function runTests() {
     t1[0] = 0;
 
     
-    testMethod(new SharedInt8Array(sab), 0, 42, 4095);
-    testMethod(new SharedUint8Array(sab), 0, 42, 4095);
-    testMethod(new SharedUint8ClampedArray(sab), 0, 42, 4095);
-    testMethod(new SharedInt16Array(sab), 0, 42, 2047);
-    testMethod(new SharedUint16Array(sab), 0, 42, 2047);
-    testMethod(new SharedInt32Array(sab), 0, 42, 1023);
-    testMethod(new SharedUint32Array(sab), 0, 42, 1023);
+    CLONE(testMethod)(new SharedInt8Array(sab), 0, 42, 4095);
+    CLONE(testMethod)(new SharedUint8Array(sab), 0, 42, 4095);
+    CLONE(testMethod)(new SharedUint8ClampedArray(sab), 0, 42, 4095);
+    CLONE(testMethod)(new SharedInt16Array(sab), 0, 42, 2047);
+    CLONE(testMethod)(new SharedUint16Array(sab), 0, 42, 2047);
+    CLONE(testMethod)(new SharedInt32Array(sab), 0, 42, 1023);
+    CLONE(testMethod)(new SharedUint32Array(sab), 0, 42, 1023);
 
     
     gAtomics_compareExchange = Atomics.compareExchange;
@@ -374,36 +381,36 @@ function runTests() {
     gAtomics_or = Atomics.or;
     gAtomics_xor = Atomics.xor;
 
-    testFunction(new SharedInt8Array(sab), 0, 42, 4095);
-    testFunction(new SharedUint8Array(sab), 0, 42, 4095);
-    testFunction(new SharedUint8ClampedArray(sab), 0, 42, 4095);
-    testFunction(new SharedInt16Array(sab), 0, 42, 2047);
-    testFunction(new SharedUint16Array(sab), 0, 42, 2047);
-    testFunction(new SharedInt32Array(sab), 0, 42, 1023);
-    testFunction(new SharedUint32Array(sab), 0, 42, 1023);
+    CLONE(testFunction)(new SharedInt8Array(sab), 0, 42, 4095);
+    CLONE(testFunction)(new SharedUint8Array(sab), 0, 42, 4095);
+    CLONE(testFunction)(new SharedUint8ClampedArray(sab), 0, 42, 4095);
+    CLONE(testFunction)(new SharedInt16Array(sab), 0, 42, 2047);
+    CLONE(testFunction)(new SharedUint16Array(sab), 0, 42, 2047);
+    CLONE(testFunction)(new SharedInt32Array(sab), 0, 42, 1023);
+    CLONE(testFunction)(new SharedUint32Array(sab), 0, 42, 1023);
 
     
     var v8 = new SharedInt8Array(sab);
     var v32 = new SharedInt32Array(sab);
 
-    testTypeCAS(v8);
-    testTypeCAS(v32);
+    CLONE(testTypeCAS)(v8);
+    CLONE(testTypeCAS)(v32);
 
-    testTypeBinop(v8, Atomics.add);
-    testTypeBinop(v8, Atomics.sub);
-    testTypeBinop(v8, Atomics.and);
-    testTypeBinop(v8, Atomics.or);
-    testTypeBinop(v8, Atomics.xor);
+    CLONE(testTypeBinop)(v8, Atomics.add);
+    CLONE(testTypeBinop)(v8, Atomics.sub);
+    CLONE(testTypeBinop)(v8, Atomics.and);
+    CLONE(testTypeBinop)(v8, Atomics.or);
+    CLONE(testTypeBinop)(v8, Atomics.xor);
 
-    testTypeBinop(v32, Atomics.add);
-    testTypeBinop(v32, Atomics.sub);
-    testTypeBinop(v32, Atomics.and);
-    testTypeBinop(v32, Atomics.or);
-    testTypeBinop(v32, Atomics.xor);
+    CLONE(testTypeBinop)(v32, Atomics.add);
+    CLONE(testTypeBinop)(v32, Atomics.sub);
+    CLONE(testTypeBinop)(v32, Atomics.and);
+    CLONE(testTypeBinop)(v32, Atomics.or);
+    CLONE(testTypeBinop)(v32, Atomics.xor);
 
     
-    testRangeCAS(v8);
-    testRangeCAS(v32);
+    CLONE(testRangeCAS)(v8);
+    CLONE(testRangeCAS)(v32);
 
     
     testInt8Extremes(new SharedInt8Array(sab));
