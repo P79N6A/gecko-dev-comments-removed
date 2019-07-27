@@ -1,5 +1,6 @@
 
 
+
 toolbaritem[sdkstylewidget="true"] > toolbarbutton,
 :-moz-any(@primaryToolbarButtons@)[cui-areatype="menu-panel"],
 toolbarpaletteitem[place="palette"] > :-moz-any(@primaryToolbarButtons@) {
@@ -144,6 +145,15 @@ toolbarpaletteitem[place="palette"] > #sidebar-button {
 
 #sidebar-button[cui-areatype="menu-panel"][panel-multiview-anchor=true] {
   -moz-image-region: rect(32px, 864px, 64px, 832px);
+}
+
+#panic-button[cui-areatype="menu-panel"],
+toolbarpaletteitem[place="palette"] > #panic-button {
+  -moz-image-region: rect(0, 896px, 32px, 864px);
+}
+
+#panic-button[cui-areatype="menu-panel"][panel-multiview-anchor=true] {
+  -moz-image-region: rect(32px, 896px, 64px, 864px);
 }
 
 toolbaritem[sdkstylewidget="true"] > toolbarbutton {

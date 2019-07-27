@@ -4,6 +4,7 @@
 # file, You can obtain one at http:
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
@@ -51,13 +52,33 @@ Sanitizer.prototype = {
 
 
 
-  sanitize: function ()
+
+
+
+  sanitize: function (aItemsToClear)
   {
     var deferred = Promise.defer();
-    var psvc = Components.classes["@mozilla.org/preferences-service;1"]
-                         .getService(Components.interfaces.nsIPrefService);
-    var branch = psvc.getBranch(this.prefDomain);
     var seenError = false;
+    if (Array.isArray(aItemsToClear)) {
+      var itemsToClear = [...aItemsToClear];
+    } else {
+      let branch = Services.prefs.getBranch(this.prefDomain);
+      itemsToClear = Object.keys(this.items).filter(itemName => branch.getBoolPref(itemName));
+    }
+
+    
+    
+    
+    let openWindowsIndex = itemsToClear.indexOf("openWindows");
+    if (openWindowsIndex != -1) {
+      itemsToClear.splice(openWindowsIndex, 1);
+      let item = this.items.openWindows;
+      if (!item.clear()) {
+        
+        deferred.reject();
+        return deferred.promise;
+      }
+    }
 
     
     if (this.ignoreTimespan)
@@ -65,16 +86,16 @@ Sanitizer.prototype = {
     else
       range = this.range || Sanitizer.getClearRange();
 
-    let itemCount = Object.keys(this.items).length;
+    let itemCount = Object.keys(itemsToClear).length;
     let onItemComplete = function() {
       if (!--itemCount) {
         seenError ? deferred.reject() : deferred.resolve();
       }
     };
-    for (var itemName in this.items) {
+    for (let itemName of itemsToClear) {
       let item = this.items[itemName];
       item.range = range;
-      if ("clear" in item && branch.getBoolPref(itemName)) {
+      if ("clear" in item) {
         let clearCallback = (itemName, aCanClear) => {
           
           
@@ -401,7 +422,89 @@ Sanitizer.prototype = {
       {
         return true;
       }
-    }
+    },
+    openWindows: {
+      privateStateForNewWindow: "non-private",
+      _canCloseWindow: function(aWindow) {
+        
+        if (!aWindow.gMultiProcessBrowser) {
+          
+          
+          
+          
+          for (let browser of aWindow.gBrowser.browsers) {
+            let ds = browser.docShell;
+            
+            
+            
+            
+            if (ds.contentViewer && !ds.contentViewer.permitUnload(true)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      },
+      _resetAllWindowClosures: function(aWindowList) {
+        for (let win of aWindowList) {
+          win.getInterface(Ci.nsIDocShell).contentViewer.resetCloseWindow();
+        }
+      },
+      clear: function()
+      {
+        
+        
+
+        
+        
+        let existingWindow = Services.appShell.hiddenDOMWindow;
+        let startDate = existingWindow.performance.now();
+
+        
+        let windowEnumerator = Services.wm.getEnumerator("navigator:browser");
+        let windowList = [];
+        while (windowEnumerator.hasMoreElements()) {
+          let someWin = windowEnumerator.getNext();
+          windowList.push(someWin);
+          
+          if (!this._canCloseWindow(someWin)) {
+            this._resetAllWindowClosures(windowList);
+            return false;
+          }
+
+          
+          
+          
+          
+          if (existingWindow.performance.now() > (startDate + 60 * 1000)) {
+            this._resetAllWindowClosures(windowList);
+            return false;
+          }
+        }
+
+        
+
+        
+        
+        let handler = Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler);
+        let defaultArgs = handler.defaultArgs;
+        let features = "chrome,all,dialog=no," + this.privateStateForNewWindow;
+        let newWindow = existingWindow.openDialog("chrome://browser/content/", "_blank",
+                                                  features, defaultArgs);
+
+        
+        while (windowList.length) {
+          windowList.pop().close();
+        }
+        newWindow.focus();
+        return true;
+      },
+
+      get canClear()
+      {
+        return true;
+      }
+    },
   }
 };
 
@@ -419,6 +522,8 @@ Sanitizer.TIMESPAN_HOUR       = 1;
 Sanitizer.TIMESPAN_2HOURS     = 2;
 Sanitizer.TIMESPAN_4HOURS     = 3;
 Sanitizer.TIMESPAN_TODAY      = 4;
+Sanitizer.TIMESPAN_5MIN       = 5;
+Sanitizer.TIMESPAN_24HOURS    = 6;
 
 
 
@@ -433,8 +538,11 @@ Sanitizer.getClearRange = function (ts) {
   
   var endDate = Date.now() * 1000;
   switch (ts) {
+    case Sanitizer.TIMESPAN_5MIN :
+      var startDate = endDate - 300000000; 
+      break;
     case Sanitizer.TIMESPAN_HOUR :
-      var startDate = endDate - 3600000000; 
+      startDate = endDate - 3600000000; 
       break;
     case Sanitizer.TIMESPAN_2HOURS :
       startDate = endDate - 7200000000; 
@@ -448,6 +556,9 @@ Sanitizer.getClearRange = function (ts) {
       d.setMinutes(0);
       d.setSeconds(0);
       startDate = d.valueOf() * 1000; 
+      break;
+    case Sanitizer.TIMESPAN_24HOURS :
+      startDate = endDate - 86400000000; 
       break;
     default:
       throw "Invalid time span for clear private data: " + ts;

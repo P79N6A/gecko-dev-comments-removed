@@ -526,6 +526,7 @@ pref("privacy.clearOnShutdown.cache",       true);
 pref("privacy.clearOnShutdown.sessions",    true);
 pref("privacy.clearOnShutdown.offlineApps", false);
 pref("privacy.clearOnShutdown.siteSettings", false);
+pref("privacy.clearOnShutdown.openWindows", false);
 
 pref("privacy.cpd.history",                 true);
 pref("privacy.cpd.formdata",                true);
@@ -536,6 +537,9 @@ pref("privacy.cpd.cache",                   true);
 pref("privacy.cpd.sessions",                true);
 pref("privacy.cpd.offlineApps",             false);
 pref("privacy.cpd.siteSettings",            false);
+pref("privacy.cpd.openWindows",             false);
+
+
 
 
 
@@ -547,6 +551,8 @@ pref("privacy.sanitize.timeSpan", 1);
 pref("privacy.sanitize.sanitizeOnShutdown", false);
 
 pref("privacy.sanitize.migrateFx3Prefs",    false);
+
+pref("privacy.panicButton.enabled",         true);
 
 pref("network.proxy.share_proxy_settings",  false); 
 
