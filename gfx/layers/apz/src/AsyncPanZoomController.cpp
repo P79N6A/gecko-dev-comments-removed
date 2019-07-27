@@ -2276,6 +2276,10 @@ void AsyncPanZoomController::CancelAnimation(CancelAnimationFlags aFlags) {
   mAnimation = nullptr;
   
   
+  
+  
+  
+  bool repaint = !IsZero(GetVelocityVector());
   mX.SetVelocity(0);
   mY.SetVelocity(0);
   
@@ -2283,6 +2287,9 @@ void AsyncPanZoomController::CancelAnimation(CancelAnimationFlags aFlags) {
   
   if (!(aFlags & ExcludeOverscroll) && IsOverscrolled()) {
     ClearOverscroll();
+    repaint = true;
+  }
+  if (repaint) {
     RequestContentRepaint();
     ScheduleComposite();
     UpdateSharedCompositorFrameMetrics();
