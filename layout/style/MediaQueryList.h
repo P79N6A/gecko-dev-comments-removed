@@ -48,11 +48,8 @@ public:
     nsRefPtr<mozilla::dom::MediaQueryListListener> callback;
   };
 
-  typedef FallibleTArray< nsRefPtr<mozilla::dom::MediaQueryListListener> > CallbackList;
-  typedef FallibleTArray<HandleChangeData> NotifyList;
-
   
-  void MediumFeaturesChanged(NotifyList &aListenersToNotify);
+  void MediumFeaturesChanged(nsTArray<HandleChangeData>& aListenersToNotify);
 
   bool HasListeners() const { return !mCallbacks.IsEmpty(); }
 
@@ -88,7 +85,7 @@ private:
   nsRefPtr<nsMediaList> mMediaList;
   bool mMatches;
   bool mMatchesValid;
-  CallbackList mCallbacks;
+  nsTArray<nsRefPtr<mozilla::dom::MediaQueryListListener>> mCallbacks;
 };
 
 } 
