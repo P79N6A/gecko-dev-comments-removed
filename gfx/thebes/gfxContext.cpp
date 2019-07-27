@@ -297,24 +297,6 @@ gfxContext::Rectangle(const gfxRect& rect, bool snapToPixels)
   mPathBuilder->Close();
 }
 
-void
-gfxContext::DrawSurface(gfxASurface *surface, const gfxSize& size)
-{
-  
-  RefPtr<SourceSurface> surf =
-    gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(mDT, surface);
-
-  if (!surf) {
-    return;
-  }
-
-  Rect rect(0, 0, Float(size.width), Float(size.height));
-  rect.Intersect(Rect(0, 0, Float(surf->GetSize().width), Float(surf->GetSize().height)));
-
-  
-  mDT->DrawSurface(surf, rect, rect);
-}
-
 
 void
 gfxContext::Multiply(const gfxMatrix& matrix)

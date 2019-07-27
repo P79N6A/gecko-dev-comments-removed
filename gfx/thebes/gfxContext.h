@@ -325,16 +325,6 @@ public:
 
 
 
-    
-
-
-
-    void DrawSurface(gfxASurface *surface, const gfxSize& size);
-
-    
-
-
-
     void SetDash(gfxFloat *dashes, int ndash, gfxFloat offset);
     
     
