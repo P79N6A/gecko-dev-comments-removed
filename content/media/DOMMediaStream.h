@@ -175,7 +175,7 @@ public:
     HINT_CONTENTS_UNKNOWN = 1 << 2
   };
   TrackTypeHints GetHintContents() const { return mHintContents; }
-  void SetHintContents(TrackTypeHints aHintContents) { mHintContents = aHintContents; }
+  void SetHintContents(TrackTypeHints aHintContents);
 
   TrackTypeHints GetTrackTypesAvailable() const { return mTrackTypesAvailable; }
 
@@ -198,6 +198,7 @@ public:
 
   
   
+  MediaStreamTrack* BindDOMTrack(TrackID aTrackID, MediaSegment::Type aType);
   MediaStreamTrack* CreateDOMTrack(TrackID aTrackID, MediaSegment::Type aType);
   MediaStreamTrack* GetDOMTrackFor(TrackID aTrackID);
 
