@@ -766,10 +766,12 @@ Animation::UpdateTiming(SeekFlag aSeekFlag)
 {
   
   
-  if (PlayState() == AnimationPlayState::Idle) {
-    mSequenceNum = kUnsequenced;
-  } else if (mSequenceNum == kUnsequenced) {
-    mSequenceNum = sNextSequenceNum++;
+  if (!IsUsingCustomCompositeOrder()) {
+    if (PlayState() == AnimationPlayState::Idle) {
+      mSequenceNum = kUnsequenced;
+    } else if (mSequenceNum == kUnsequenced) {
+      mSequenceNum = sNextSequenceNum++;
+    }
   }
 
   
