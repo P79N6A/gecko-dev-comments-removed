@@ -116,26 +116,31 @@ static const unsigned PushedRetAddr = 0;
 # endif
 static const unsigned PushedFP = 10;
 static const unsigned StoredFP = 14;
+static const unsigned PostStorePrePopFP = 0;
 #elif defined(JS_CODEGEN_X86)
 # if defined(DEBUG)
 static const unsigned PushedRetAddr = 0;
 # endif
 static const unsigned PushedFP = 8;
 static const unsigned StoredFP = 11;
+static const unsigned PostStorePrePopFP = 0;
 #elif defined(JS_CODEGEN_ARM)
 static const unsigned PushedRetAddr = 4;
 static const unsigned PushedFP = 16;
 static const unsigned StoredFP = 20;
+static const unsigned PostStorePrePopFP = 4;
 #elif defined(JS_CODEGEN_MIPS)
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 24;
 static const unsigned StoredFP = 28;
+static const unsigned PostStorePrePopFP = 4;
 #elif defined(JS_CODEGEN_NONE)
 # if defined(DEBUG)
 static const unsigned PushedRetAddr = 0;
 # endif
 static const unsigned PushedFP = 1;
 static const unsigned StoredFP = 1;
+static const unsigned PostStorePrePopFP = 0;
 #else
 # error "Unknown architecture!"
 #endif
@@ -224,18 +229,26 @@ GenerateProfilingEpilogue(MacroAssembler &masm, unsigned framePushed, AsmJSExit:
     
     
     
-    
-    
     {
 #if defined(JS_CODEGEN_ARM)
-        AutoForbidPools afp(&masm,  3);
+        AutoForbidPools afp(&masm,  4);
 #endif
+
+        
+        
+        
+        
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-        masm.pop(scratch2);
+        masm.loadPtr(Address(StackPointer, 0), scratch2);
         masm.storePtr(scratch2, Address(scratch, AsmJSActivation::offsetOfFP()));
+        DebugOnly<uint32_t> prePop = masm.currentOffset();
+        masm.add32(Imm32(4), StackPointer);
+        MOZ_ASSERT(PostStorePrePopFP == masm.currentOffset() - prePop);
 #else
         masm.pop(Address(scratch, AsmJSActivation::offsetOfFP()));
+        MOZ_ASSERT(PostStorePrePopFP == 0);
 #endif
+
         masm.bind(profilingReturn);
         masm.ret();
     }
@@ -530,9 +543,7 @@ AsmJSProfilingFrameIterator::AsmJSProfilingFrameIterator(const AsmJSActivation &
         
         
         
-        
-        
-        uint32_t offsetInModule = ((uint8_t*)state.pc) - module_->codeBase();
+        uint32_t offsetInModule = (uint8_t*)state.pc - module_->codeBase();
         MOZ_ASSERT(offsetInModule < module_->codeBytes());
         MOZ_ASSERT(offsetInModule >= codeRange->begin());
         MOZ_ASSERT(offsetInModule < codeRange->end());
@@ -540,21 +551,34 @@ AsmJSProfilingFrameIterator::AsmJSProfilingFrameIterator(const AsmJSActivation &
         void **sp = (void**)state.sp;
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
         if (offsetInCodeRange < PushedRetAddr) {
+            
+            
             callerPC_ = state.lr;
             callerFP_ = fp;
             AssertMatchesCallSite(*module_, codeRange, callerPC_, callerFP_, sp - 2);
+        } else if (offsetInModule == codeRange->profilingReturn() - PostStorePrePopFP) {
+            
+            
+            callerPC_ = ReturnAddressFromFP(sp);
+            callerFP_ = CallerFPFromFP(sp);
+            AssertMatchesCallSite(*module_, codeRange, callerPC_, callerFP_, sp);
         } else
 #endif
         if (offsetInCodeRange < PushedFP || offsetInModule == codeRange->profilingReturn()) {
+            
+            
             callerPC_ = *sp;
             callerFP_ = fp;
             AssertMatchesCallSite(*module_, codeRange, callerPC_, callerFP_, sp - 1);
         } else if (offsetInCodeRange < StoredFP) {
+            
+            
             MOZ_ASSERT(fp == CallerFPFromFP(sp));
             callerPC_ = ReturnAddressFromFP(sp);
             callerFP_ = CallerFPFromFP(sp);
             AssertMatchesCallSite(*module_, codeRange, callerPC_, callerFP_, sp);
         } else {
+            
             callerPC_ = ReturnAddressFromFP(fp);
             callerFP_ = CallerFPFromFP(fp);
             AssertMatchesCallSite(*module_, codeRange, callerPC_, callerFP_, fp);
@@ -577,6 +601,8 @@ AsmJSProfilingFrameIterator::AsmJSProfilingFrameIterator(const AsmJSActivation &
             return;
         }
 
+        
+        
         
         
         
@@ -617,7 +643,6 @@ AsmJSProfilingFrameIterator::operator++()
     switch (codeRange->kind()) {
       case AsmJSModule::CodeRange::Entry:
         MOZ_ASSERT(callerFP_ == nullptr);
-        MOZ_ASSERT(callerPC_ != nullptr);
         callerPC_ = nullptr;
         break;
       case AsmJSModule::CodeRange::Function:
