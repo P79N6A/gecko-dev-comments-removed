@@ -801,22 +801,6 @@ CompositorParent::SchedulePauseOnCompositorThread()
 }
 
 bool
-CompositorParent::ScheduleResumeOnCompositorThread()
-{
-  MonitorAutoLock lock(mResumeCompositionMonitor);
-
-  CancelableTask *resumeTask =
-    NewRunnableMethod(this, &CompositorParent::ResumeComposition);
-  MOZ_ASSERT(CompositorLoop());
-  CompositorLoop()->PostTask(FROM_HERE, resumeTask);
-
-  
-  lock.Wait();
-
-  return !mPaused;
-}
-
-bool
 CompositorParent::ScheduleResumeOnCompositorThread(int width, int height)
 {
   MonitorAutoLock lock(mResumeCompositionMonitor);
@@ -1457,6 +1441,19 @@ CompositorParent::DeallocateLayerTreeId(uint64_t aId)
   MOZ_ASSERT(CompositorLoop());
   CompositorLoop()->PostTask(FROM_HERE,
                              NewRunnableFunction(&EraseLayerState, aId));
+}
+
+ void
+CompositorParent::SwapLayerTreeObservers(uint64_t aLayerId, uint64_t aOtherLayerId)
+{
+  EnsureLayerTreeMapReady();
+  MonitorAutoLock lock(*sIndirectLayerTreesLock);
+  NS_ASSERTION(sIndirectLayerTrees.find(aLayerId) != sIndirectLayerTrees.end(),
+    "SwapLayerTrees missing layer 1");
+  NS_ASSERTION(sIndirectLayerTrees.find(aOtherLayerId) != sIndirectLayerTrees.end(),
+    "SwapLayerTrees missing layer 2");
+  std::swap(sIndirectLayerTrees[aLayerId].mLayerTreeReadyObserver,
+    sIndirectLayerTrees[aOtherLayerId].mLayerTreeReadyObserver);
 }
 
 static void
