@@ -460,9 +460,9 @@ var LoginManagerContent = {
 
     if (!usernameField)
       log("(form -- no username field found)");
-
-    log("Username field id/name/value is: ", usernameField.id, " / ",
-        usernameField.name, " / ", usernameField.value);
+    else
+      log("Username field id/name/value is: ", usernameField.id, " / ",
+          usernameField.name, " / ", usernameField.value);
 
     
     
