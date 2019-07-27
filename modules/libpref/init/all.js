@@ -245,9 +245,8 @@ pref("media.directshow.enabled", true);
 #ifdef MOZ_FMP4
 pref("media.fragmented-mp4.enabled", true);
 pref("media.fragmented-mp4.ffmpeg.enabled", false);
+#if defined(XP_WIN) && defined(MOZ_WMF) || defined(XP_MACOSX)
 
-
-#if defined(XP_WIN) && defined(MOZ_WMF)
 pref("media.fragmented-mp4.exposed", true);
 #else
 pref("media.fragmented-mp4.exposed", false);
