@@ -50,7 +50,16 @@
 
 
 
+
 #define NS_GRE_DIR                              "GreD"
+
+
+
+
+
+
+
+#define NS_GRE_BIN_DIR                          "GreBinD"
 
 
 

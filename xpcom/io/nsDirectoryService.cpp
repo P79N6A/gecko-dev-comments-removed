@@ -575,7 +575,8 @@ nsDirectoryService::GetFile(const char* aProp, bool* aPersistent,
 
   
   
-  else if (inAtom == nsDirectoryService::sGRE_Directory) {
+  else if (inAtom == nsDirectoryService::sGRE_Directory ||
+           inAtom == nsDirectoryService::sGRE_BinDirectory) {
     rv = GetCurrentProcessDirectory(getter_AddRefs(localFile));
   } else if (inAtom == nsDirectoryService::sOS_DriveDirectory) {
     rv = GetSpecialSystemDirectory(OS_DriveDirectory, getter_AddRefs(localFile));

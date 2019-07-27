@@ -72,6 +72,7 @@ public:
 
   
   nsIFile* GetGREDir() { return mGREDir; }
+  nsIFile* GetGREBinDir() { return mGREBinDir; }
   nsIFile* GetAppDir() {
     if (mXULAppDir)
       return mXULAppDir;
@@ -134,6 +135,8 @@ protected:
   nsCOMPtr<nsIDirectoryServiceProvider> mAppProvider;
   
   nsCOMPtr<nsIFile>      mGREDir;
+  
+  nsCOMPtr<nsIFile>      mGREBinDir;
   
   nsCOMPtr<nsIFile>      mXULAppDir;
   nsCOMPtr<nsIFile>      mProfileDir;
