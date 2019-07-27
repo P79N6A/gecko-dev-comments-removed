@@ -530,6 +530,8 @@ class GCRuntime
     
     void releaseArena(ArenaHeader *aheader, const AutoLockGC &lock);
 
+    void releaseHeldRelocatedArenas();
+
   private:
     void minorGCImpl(JS::gcreason::Reason reason, Nursery::TypeObjectList *pretenureTypes);
 

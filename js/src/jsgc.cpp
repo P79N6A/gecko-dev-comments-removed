@@ -2699,6 +2699,19 @@ GCRuntime::releaseRelocatedArenasWithoutUnlocking(ArenaHeader *relocatedList, co
 #endif 
 
 void
+GCRuntime::releaseHeldRelocatedArenas()
+{
+#if defined(JSGC_COMPACTING) && defined(DEBUG)
+    
+    
+    
+    unprotectRelocatedArenas(relocatedArenasToRelease);
+    releaseRelocatedArenas(relocatedArenasToRelease);
+    relocatedArenasToRelease = nullptr;
+#endif
+}
+
+void
 ReleaseArenaList(JSRuntime *rt, ArenaHeader *aheader, const AutoLockGC &lock)
 {
     ArenaHeader *next;
@@ -5119,11 +5132,7 @@ GCRuntime::beginSweepPhase(bool lastGC)
 
     MOZ_ASSERT(!abortSweepAfterCurrentGroup);
 
-#if defined(JSGC_COMPACTING) && defined(DEBUG)
-    unprotectRelocatedArenas(relocatedArenasToRelease);
-    releaseRelocatedArenas(relocatedArenasToRelease);
-    relocatedArenasToRelease = nullptr;
-#endif
+    releaseHeldRelocatedArenas();
 
     computeNonIncrementalMarkingForValidation();
 
@@ -6387,6 +6396,7 @@ GCRuntime::onOutOfMallocMemory(const AutoLockGC &lock)
     freeEmptyChunks(rt, lock);
 
     
+    
 #if defined(JSGC_COMPACTING) && defined(DEBUG)
     unprotectRelocatedArenas(relocatedArenasToRelease);
     releaseRelocatedArenasWithoutUnlocking(relocatedArenasToRelease, lock);
@@ -6548,6 +6558,10 @@ gc::MergeCompartments(JSCompartment *source, JSCompartment *target)
 
     source->clearTables();
     source->unsetIsDebuggee();
+
+    
+    
+    rt->gc.releaseHeldRelocatedArenas();
 
     
     
