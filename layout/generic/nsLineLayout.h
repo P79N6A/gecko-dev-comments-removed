@@ -137,7 +137,10 @@ public:
 
 
 
-  void RelativePositionFrames(nsOverflowAreas& aOverflowAreas);
+  void RelativePositionFrames(nsOverflowAreas& aOverflowAreas)
+  {
+    RelativePositionFrames(mRootSpan, aOverflowAreas);
+  }
 
   
 
@@ -358,15 +361,15 @@ public:
 
 
 
-  void AdvanceICoord(nscoord aAmount);
+  void AdvanceICoord(nscoord aAmount) { mCurrentSpan->mICoord += aAmount; }
   
 
 
-  mozilla::WritingMode GetWritingMode();
+  mozilla::WritingMode GetWritingMode() { return mRootSpan->mWritingMode; }
   
 
 
-  nscoord GetCurrentICoord();
+  nscoord GetCurrentICoord() { return mCurrentSpan->mICoord; }
 
 protected:
   
