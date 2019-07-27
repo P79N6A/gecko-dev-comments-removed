@@ -466,7 +466,8 @@ private:
   void ProcessRestyles(RestyleTracker& aRestyleTracker) {
     
     
-    if (aRestyleTracker.Count()) {
+    if (aRestyleTracker.Count() ||
+        mInRebuildAllStyleData) {
       aRestyleTracker.DoProcessRestyles();
     }
   }
