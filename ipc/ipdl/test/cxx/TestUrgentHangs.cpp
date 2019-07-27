@@ -140,7 +140,7 @@ TestUrgentHangsChild::RecvTest4()
 
     
     
-    if (SendTestInner())
+    if (!SendTestInner())
         fail("sending TestInner");
 
     return true;
