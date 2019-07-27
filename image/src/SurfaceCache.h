@@ -11,13 +11,15 @@
 #ifndef MOZILLA_IMAGELIB_SURFACECACHE_H_
 #define MOZILLA_IMAGELIB_SURFACECACHE_H_
 
-#include "mozilla/Maybe.h"          
-#include "mozilla/HashFunctions.h"  
-#include "gfxPoint.h"               
-#include "nsCOMPtr.h"               
-#include "mozilla/gfx/Point.h"      
-#include "mozilla/gfx/2D.h"         
-#include "SVGImageContext.h"        
+#include "mozilla/Maybe.h"           
+#include "mozilla/MemoryReporting.h" 
+#include "mozilla/HashFunctions.h"   
+#include "gfx2DGlue.h"               
+#include "gfxPoint.h"                
+#include "nsCOMPtr.h"                
+#include "mozilla/gfx/Point.h"       
+#include "mozilla/gfx/2D.h"          
+#include "SVGImageContext.h"         
 
 namespace mozilla {
 namespace image {
@@ -292,6 +294,23 @@ struct SurfaceCache
 
 
   static void DiscardAll();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static size_t SizeOfSurfaces(const ImageKey    aImageKey,
+                               gfxMemoryLocation aLocation,
+                               MallocSizeOf      aMallocSizeOf);
 
 private:
   virtual ~SurfaceCache() = 0;  
