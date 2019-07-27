@@ -4115,8 +4115,6 @@ pref("browser.history.maxStateObjectSize", 655360);
 
 
 pref("xpinstall.whitelist.required", true);
-
-pref("xpinstall.signatures.required", false);
 pref("extensions.alwaysUnpack", false);
 pref("extensions.minCompatiblePlatformVersion", "2.0");
 

@@ -223,8 +223,6 @@ class RefTest(object):
     
     prefs['browser.newtabpage.directory.source'] = 'data:application/json,{"reftest":1}'
     prefs['browser.newtabpage.directory.ping'] = ''
-    
-    prefs['xpinstall.signatures.required'] = False
 
     
     prefs['browser.tabs.remote.autostart.1'] = False
