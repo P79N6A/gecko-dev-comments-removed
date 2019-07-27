@@ -1,10 +1,9 @@
 
 
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
-const Cu = Components.utils;
+"use strict"
+
+const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -16,7 +15,7 @@ let (commonFile = do_get_file("../head_common.js", false)) {
 
 
 
-const kDBName = "places.sqlite";
+const DB_FILENAME = "places.sqlite";
 
 
 
@@ -26,15 +25,21 @@ const kDBName = "places.sqlite";
 
 
 
-function setPlacesDatabase(aFileName)
-{
-  let file = do_get_file(aFileName);
+
+let setupPlacesDatabase = Task.async(function* (aFileName) {
+  let currentDir = yield OS.File.getCurrentDirectory();
+
+  let src = OS.Path.join(currentDir, aFileName);
+  Assert.ok((yield OS.File.exists(src)), "Database file found");
 
   
-  let (dbFile = gProfD.clone()) {
-    dbFile.append(kDBName);
-    do_check_false(dbFile.exists());
-  }
+  let dest = OS.Path.join(OS.Constants.Path.profileDir, DB_FILENAME);
+  Assert.ok(!(yield OS.File.exists(dest)), "Database file should not exist yet");
 
-  file.copyToFollowingLinks(gProfD, kDBName);
+  yield OS.File.copy(src, dest);
+});
+
+
+function run_test() {
+  run_next_test();
 }
