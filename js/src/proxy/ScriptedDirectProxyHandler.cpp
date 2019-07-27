@@ -761,7 +761,7 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
 
 
 bool
-ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy, AutoIdVector &props) const
+ScriptedDirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObject proxy, AutoIdVector &props) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
@@ -782,7 +782,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy, AutoIdV
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::enumerate(cx, proxy, props);
+        return DirectProxyHandler::getEnumerablePropertyKeys(cx, proxy, props);
 
     
     Value argv[] = {
