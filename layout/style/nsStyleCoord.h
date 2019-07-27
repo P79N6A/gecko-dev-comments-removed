@@ -11,6 +11,26 @@
 #include "nsCoord.h"
 #include "nsStyleConsts.h"
 
+namespace mozilla {
+class WritingMode;
+
+
+enum LogicalAxis {
+  eLogicalAxisBlock  = 0x0,
+  eLogicalAxisInline = 0x1
+};
+enum LogicalEdge {
+  eLogicalEdgeStart  = 0x0,
+  eLogicalEdgeEnd    = 0x1
+};
+enum LogicalSide {
+  eLogicalSideBStart = (eLogicalAxisBlock  << 1) | eLogicalEdgeStart,  
+  eLogicalSideBEnd   = (eLogicalAxisBlock  << 1) | eLogicalEdgeEnd,    
+  eLogicalSideIStart = (eLogicalAxisInline << 1) | eLogicalEdgeStart,  
+  eLogicalSideIEnd   = (eLogicalAxisInline << 1) | eLogicalEdgeEnd     
+};
+};
+
 enum nsStyleUnit : uint8_t {
   eStyleUnit_Null         = 0,      
   eStyleUnit_Normal       = 1,      
@@ -220,6 +240,24 @@ public:
   inline nsStyleCoord GetTop() const;
   inline nsStyleCoord GetRight() const;
   inline nsStyleCoord GetBottom() const;
+
+  
+  
+  
+  
+  inline nsStyleUnit GetUnit(mozilla::WritingMode aWritingMode,
+                             mozilla::LogicalSide aSide) const;
+  inline nsStyleUnit GetIStartUnit(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleUnit GetBStartUnit(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleUnit GetIEndUnit(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleUnit GetBEndUnit(mozilla::WritingMode aWritingMode) const;
+
+  inline nsStyleCoord Get(mozilla::WritingMode aWritingMode,
+                          mozilla::LogicalSide aSide) const;
+  inline nsStyleCoord GetIStart(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleCoord GetBStart(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleCoord GetIEnd(mozilla::WritingMode aWritingMode) const;
+  inline nsStyleCoord GetBEnd(mozilla::WritingMode aWritingMode) const;
 
   
   
