@@ -123,6 +123,13 @@ let handleContentContextMenu = function (event) {
         InlineSpellCheckerContent.initContextMenu(event, editFlags, this);
     }
 
+    
+    
+    
+    docShell.contentViewer.QueryInterface(Ci.nsIContentViewerEdit)
+            .setCommandNode(event.target);
+    event.target.ownerDocument.defaultView.updateCommands("contentcontextmenu");
+
     let customMenuItems = PageMenuChild.build(event.target);
     let principal = doc.nodePrincipal;
     sendSyncMessage("contextmenu",

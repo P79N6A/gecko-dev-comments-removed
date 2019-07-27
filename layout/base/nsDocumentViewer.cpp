@@ -60,6 +60,7 @@
 #include "nsIImageLoadingContent.h"
 #include "nsCopySupport.h"
 #include "nsIDOMHTMLFrameSetElement.h"
+#include "nsIDOMHTMLImageElement.h"
 #ifdef MOZ_XUL
 #include "nsIXULDocument.h"
 #include "nsXULPopupManager.h"
@@ -2707,6 +2708,20 @@ NS_IMETHODIMP nsDocumentViewer::GetCanGetContents(bool *aCanGetContents)
   return NS_OK;
 }
 
+NS_IMETHODIMP nsDocumentViewer::SetCommandNode(nsIDOMNode* aNode)
+{
+  nsIDocument* document = GetDocument();
+  NS_ENSURE_STATE(document);
+
+  nsCOMPtr<nsPIDOMWindow> window(document->GetWindow());
+  NS_ENSURE_TRUE(window, NS_ERROR_NOT_AVAILABLE);
+
+  nsCOMPtr<nsPIWindowRoot> root = window->GetTopWindowRoot();
+  NS_ENSURE_STATE(root);
+
+  root->SetPopupNode(aNode);
+  return NS_OK;
+}
 
 
 
@@ -3530,7 +3545,15 @@ NS_IMETHODIMP nsDocumentViewer::GetInImage(bool* aInImage)
   NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
 
   
-  *aInImage = true;
+  
+  
+  nsCOMPtr<nsIURI> uri;
+  node->GetCurrentURI(getter_AddRefs(uri));
+  if (uri) {
+    
+    *aInImage = true;
+  }
+
   return NS_OK;
 }
 

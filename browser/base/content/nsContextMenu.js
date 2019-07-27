@@ -629,6 +629,8 @@ nsContextMenu.prototype = {
     
     if (this.target.nodeType == Node.ELEMENT_NODE) {
       
+      
+      
       if (this.target instanceof Ci.nsIImageLoadingContent &&
           this.target.currentURI) {
         this.onImage = true;
