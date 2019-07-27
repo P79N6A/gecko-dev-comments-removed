@@ -650,7 +650,7 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
             {
                 JSAutoCompartment ac(cx, target);
                 AutoIdVector targetProps(cx);
-                if (!js::GetPropertyNames(cx, target, flags | JSITER_OWNONLY, &targetProps))
+                if (!js::GetPropertyKeys(cx, target, flags | JSITER_OWNONLY, &targetProps))
                     return false;
                 
                 
@@ -1373,7 +1373,7 @@ XPCWrappedNativeXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, 
     {
         RootedObject target(cx, singleton.getTargetObject(wrapper));
         JSAutoCompartment ac(cx, target);
-        if (!js::GetPropertyNames(cx, target, flags, &wnProps))
+        if (!js::GetPropertyKeys(cx, target, flags, &wnProps))
             return false;
     }
 
@@ -2012,7 +2012,7 @@ XrayWrapper<Base, Traits>::enumerate(JSContext *cx, HandleObject wrapper, unsign
     RootedObject expando(cx, Traits::singleton.getExpandoObject(cx, target, wrapper));
     if (expando) {
         JSAutoCompartment ac(cx, expando);
-        if (!js::GetPropertyNames(cx, expando, flags, &props))
+        if (!js::GetPropertyKeys(cx, expando, flags, &props))
             return false;
     }
 

@@ -862,7 +862,7 @@ StructMetaTypeDescr::create(JSContext *cx,
 {
     
     AutoIdVector ids(cx);
-    if (!GetPropertyNames(cx, fields, JSITER_OWNONLY | JSITER_SYMBOLS, &ids))
+    if (!GetPropertyKeys(cx, fields, JSITER_OWNONLY | JSITER_SYMBOLS, &ids))
         return nullptr;
 
     
