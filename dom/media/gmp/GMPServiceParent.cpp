@@ -584,9 +584,11 @@ GeckoMediaPluginServiceParent::SelectPluginForAPI(const nsACString& aNodeId,
         return gmp;
       }
 
-      
-      
-      gmpToClone = gmp;
+      if (!gmp->IsMarkedForDeletion()) {
+        
+        
+        gmpToClone = gmp;
+      }
       
       index++;
     }
@@ -729,6 +731,7 @@ GeckoMediaPluginServiceParent::RemoveOnGMPThread(const nsAString& aDirectory,
     return;
   }
 
+  bool inUse = false;
   MutexAutoLock lock(mMutex);
   for (size_t i = mPlugins.Length() - 1; i < mPlugins.Length(); i--) {
     nsCOMPtr<nsIFile> pluginpath = mPlugins[i]->GetDirectory();
@@ -741,6 +744,7 @@ GeckoMediaPluginServiceParent::RemoveOnGMPThread(const nsAString& aDirectory,
     if (aDeleteFromDisk && gmp->State() != GMPStateNotLoaded) {
       
       
+      inUse = true;
       gmp->MarkForDeletion();
 
       if (!mPluginsWaitingForDeletion.Contains(aDirectory)) {
@@ -756,7 +760,7 @@ GeckoMediaPluginServiceParent::RemoveOnGMPThread(const nsAString& aDirectory,
     }
   }
 
-  if (aDeleteFromDisk) {
+  if (aDeleteFromDisk && !inUse) {
     if (NS_SUCCEEDED(directory->Remove(true))) {
       mPluginsWaitingForDeletion.RemoveElement(aDirectory);
     }
