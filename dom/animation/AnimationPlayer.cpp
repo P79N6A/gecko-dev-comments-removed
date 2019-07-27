@@ -6,6 +6,7 @@
 #include "AnimationPlayer.h"
 #include "AnimationUtils.h"
 #include "mozilla/dom/AnimationPlayerBinding.h"
+#include "mozilla/AutoRestore.h"
 #include "AnimationCommon.h" 
                              
 #include "nsIDocument.h" 
@@ -423,7 +424,68 @@ AnimationPlayer::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
     aNeedsRefreshes = true;
   }
 
-  mSource->ComposeStyle(aStyleRule, aSetProperties);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  {
+    AutoRestore<Nullable<TimeDuration>> restoreHoldTime(mHoldTime);
+    bool updatedHoldTime = false;
+
+    if (PlayState() == AnimationPlayState::Pending &&
+        mHoldTime.IsNull() &&
+        !mStartTime.IsNull()) {
+      Nullable<TimeDuration> timeToUse = mPendingReadyTime;
+      if (timeToUse.IsNull() &&
+          mTimeline &&
+          !mTimeline->IsUnderTestControl()) {
+        timeToUse = mTimeline->ToTimelineTime(TimeStamp::Now());
+      }
+      if (!timeToUse.IsNull()) {
+        mHoldTime.SetValue((timeToUse.Value() - mStartTime.Value())
+                            .MultDouble(mPlaybackRate));
+        
+        UpdateSourceContent();
+        updatedHoldTime = true;
+      }
+    }
+
+    mSource->ComposeStyle(aStyleRule, aSetProperties);
+
+    if (updatedHoldTime) {
+      UpdateTiming();
+    }
+  }
 }
 
 void
