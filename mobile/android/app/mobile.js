@@ -283,6 +283,13 @@ pref("browser.search.official", true);
 
 
 pref("browser.casting.enabled", true);
+#ifdef RELEASE_BUILD
+pref("browser.mirroring.enabled", false);
+pref("browser.mirroring.enabled.roku", false);
+#else
+pref("browser.mirroring.enabled", true);
+pref("browser.mirroring.enabled.roku", true);
+#endif
 
 
 pref("chrome.override_package.global", "browser");
