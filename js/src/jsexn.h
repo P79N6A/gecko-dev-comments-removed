@@ -99,4 +99,13 @@ GetExceptionProtoKey(JSExnType exn)
     return JSProtoKey(JSProto_Error + int(exn));
 }
 
+static inline JSExnType
+ExnTypeFromProtoKey(JSProtoKey key)
+{
+    JSExnType type = static_cast<JSExnType>(key - JSProto_Error);
+    JS_ASSERT(type >= JSEXN_ERR);
+    JS_ASSERT(type < JSEXN_LIMIT);
+    return type;
+}
+
 #endif 
