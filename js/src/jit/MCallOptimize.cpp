@@ -398,6 +398,10 @@ IonBuilder::inlineNativeCall(CallInfo& callInfo, JSFunction* target)
     if (native == js::simd_float32x4_storeXYZ)
         return inlineSimdStore(callInfo, native, SimdTypeDescr::Float32x4, 3);
 
+    
+    
+    trackOptimizationOutcome(TrackedOutcome::CantInlineNativeNoSpecialization);
+
     return InliningStatus_NotInlined;
 }
 
