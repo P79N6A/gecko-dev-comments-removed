@@ -130,18 +130,13 @@ HealthReporterState.prototype = Object.freeze({
     return Task.spawn(function* init() {
       yield OS.File.makeDir(this._stateDir);
 
-      let drs = Cc["@mozilla.org/datareporting/service;1"]
-                  .getService(Ci.nsISupports)
-                  .wrappedJSObject;
-      let drsClientID = yield drs.getClientID();
-
       let resetObjectState = function () {
         this._s = {
           
           
           v: 1,
           
-          clientID: drsClientID,
+          clientID: CommonUtils.generateUUID(),
           
           
           clientIDVersion: 1,
@@ -181,7 +176,22 @@ HealthReporterState.prototype = Object.freeze({
         
       }
 
-      this._s.clientID = drsClientID;
+      let regen = false;
+      if (!this._s.clientID) {
+        this._log.warn("No client ID stored. Generating random ID.");
+        regen = true;
+      }
+
+      if (typeof(this._s.clientID) != "string") {
+        this._log.warn("Client ID is not a string. Regenerating.");
+        regen = true;
+      }
+
+      if (regen) {
+        this._s.clientID = CommonUtils.generateUUID();
+        this._s.clientIDVersion = 1;
+        yield this.save();
+      }
 
       
       
@@ -247,16 +257,19 @@ HealthReporterState.prototype = Object.freeze({
 
 
 
-  resetClientID: Task.async(function* () {
-    let drs = Cc["@mozilla.org/datareporting/service;1"]
-                .getService(Ci.nsISupports)
-                .wrappedJSObject;
-    yield drs.resetClientID();
-    this._s.clientID = yield drs.getClientID();
-    this._log.info("Reset client id to " + this._s.clientID + ".");
 
-    yield this.save();
-  }),
+
+  resetClientID: function () {
+    if (this.remoteIDs.length) {
+      throw new Error("Cannot reset client ID while remote IDs are stored.");
+    }
+
+    this._log.warn("Resetting client ID.");
+    this._s.clientID = CommonUtils.generateUUID();
+    this._s.clientIDVersion = 1;
+
+    return this.save();
+  },
 
   _migratePrefs: function () {
     let prefs = this._reporter._prefs;
