@@ -2436,6 +2436,11 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     bool addScrollBars = mIsRoot &&
       nsLayoutUtils::GetDisplayPort(mOuter->GetContent()) &&
       !aBuilder->IsForEventDelivery();
+    
+    
+    if (aBuilder->RootReferenceFrame()->PresContext() == mOuter->PresContext()) {
+      addScrollBars = false;
+    }
 
     if (addScrollBars) {
       
