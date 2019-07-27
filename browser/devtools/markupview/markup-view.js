@@ -2201,21 +2201,53 @@ function parseAttributeValues(attr, doc) {
   attr = attr.trim();
 
   
-  let el = DOMParser.parseFromString("<div " + attr + "></div>", "text/html").body.childNodes[0] ||
-           DOMParser.parseFromString("<div " + attr + "\"></div>", "text/html").body.childNodes[0] ||
-           DOMParser.parseFromString("<div " + attr + "'></div>", "text/html").body.childNodes[0];
+  
+  let stringsToParse = [
+    "<div " + attr + "></div>",
+    "<div " + attr + "\"></div>",
+    "<div " + attr + "'></div>"
+  ];
+
+  
+  
+  let parsedAttributes = [];
+  for (let str of stringsToParse) {
+    let parsed = DOMParser.parseFromString(str, "text/xml");
+    
+    
+    
+    if (parsed.childNodes[0].localName === "div") {
+      for (let {name, value} of parsed.childNodes[0].attributes) {
+        parsedAttributes.push({ name, value });
+      }
+      break;
+    }
+  }
+
+  
+  if (parsedAttributes.length === 0) {
+    for (let str of stringsToParse) {
+      let parsed = DOMParser.parseFromString(str, "text/html");
+      
+      
+      if (parsed.body.childNodes[0]) {
+        for (let {name, value} of parsed.body.childNodes[0].attributes) {
+          parsedAttributes.push({ name, value });
+        }
+        break;
+      }
+    }
+  }
+
   let div = doc.createElement("div");
 
   let attributes = [];
-  for (let attribute of el.attributes) {
+  for (let {name, value} of parsedAttributes) {
     
     
     try {
-      div.setAttribute(attribute.name, attribute.value);
-      attributes.push({
-        name: attribute.name,
-        value: attribute.value
-      });
+      div.setAttribute(name, value);
+      attributes.push({ name, value });
     }
     catch(e) { }
   }
