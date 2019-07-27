@@ -315,13 +315,6 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     
 
     
-    memset(maybeEOL, 0, sizeof(maybeEOL));
-    maybeEOL[unsigned('\n')] = true;
-    maybeEOL[unsigned('\r')] = true;
-    maybeEOL[unsigned(LINE_SEPARATOR & 0xff)] = true;
-    maybeEOL[unsigned(PARA_SEPARATOR & 0xff)] = true;
-
-    
     memset(maybeStrSpecial, 0, sizeof(maybeStrSpecial));
     maybeStrSpecial[unsigned('"')] = true;
     maybeStrSpecial[unsigned('`')] = true;
@@ -398,30 +391,17 @@ TokenStream::getChar()
         c = userbuf.getRawChar();
 
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (MOZ_UNLIKELY(maybeEOL[c & 0xff])) {
-            if (c == '\n')
-                goto eol;
-            if (c == '\r') {
-                
-                if (userbuf.hasRawChars())
-                    userbuf.matchRawChar('\n');
-                goto eol;
-            }
-            if (c == LINE_SEPARATOR || c == PARA_SEPARATOR)
-                goto eol;
+        if (MOZ_UNLIKELY(c == '\n'))
+            goto eol;
+        if (MOZ_UNLIKELY(c == '\r')) {
+            
+            if (MOZ_LIKELY(userbuf.hasRawChars()))
+                userbuf.matchRawChar('\n');
+            goto eol;
         }
+        if (MOZ_UNLIKELY(c == LINE_SEPARATOR || c == PARA_SEPARATOR))
+            goto eol;
+
         return c;
     }
 
@@ -1684,8 +1664,6 @@ bool TokenStream::getStringOrTemplateToken(int qc, Token **tp)
     int nc = -1;
     tokenbuf.clear();
     while (true) {
-        
-        
         
         
         

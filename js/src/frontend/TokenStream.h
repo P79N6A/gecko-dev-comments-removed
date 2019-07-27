@@ -824,7 +824,6 @@ class MOZ_STACK_CLASS TokenStream
     mozilla::UniquePtr<char16_t[], JS::FreePolicy> displayURL_; 
     mozilla::UniquePtr<char16_t[], JS::FreePolicy> sourceMapURL_; 
     CharBuffer          tokenbuf;           
-    bool                maybeEOL[256];      
     bool                maybeStrSpecial[256];   
     uint8_t             isExprEnding[TOK_LIMIT];
     ExclusiveContext    *const cx;
