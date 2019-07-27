@@ -957,6 +957,7 @@ final class GeckoEditable
             throw new IllegalArgumentException("newEnd does not match text");
         }
         final int newEnd = start + text.length();
+        final Action action = mActionQueue.peek();
 
         
 
@@ -964,55 +965,60 @@ final class GeckoEditable
 
         ++mGeckoUpdateSeqno;
 
-        mChangedText.clearSpans();
-        mChangedText.replace(0, mChangedText.length(), text);
-        
-        TextUtils.copySpansFrom(mText, start, Math.min(oldEnd, newEnd),
-                                Object.class, mChangedText, 0);
-
-        final Action action = mActionQueue.peek();
-        if (action != null &&
-                (action.mType == Action.TYPE_REPLACE_TEXT ||
-                action.mType == Action.TYPE_COMPOSE_TEXT) &&
-                start <= action.mStart &&
-                action.mStart + action.mSequence.length() <= newEnd) {
-
+        if (action != null && action.mType == Action.TYPE_ACKNOWLEDGE_FOCUS) {
             
-            final int actionNewEnd = action.mStart + action.mSequence.length();
-            int selStart = Selection.getSelectionStart(mText);
-            int selEnd = Selection.getSelectionEnd(mText);
-
-            
-            mChangedText.replace(action.mStart - start, actionNewEnd - start,
-                                 action.mSequence);
-            geckoReplaceText(start, oldEnd, mChangedText);
-
-            
-            
-            
-            if (selStart >= start && selStart <= oldEnd) {
-                selStart = selStart < action.mStart ? selStart :
-                           selStart < action.mEnd   ? actionNewEnd :
-                                                      selStart + actionNewEnd - action.mEnd;
-                mText.setSpan(Selection.SELECTION_START, selStart, selStart,
-                              Spanned.SPAN_POINT_POINT);
-            }
-            if (selEnd >= start && selEnd <= oldEnd) {
-                selEnd = selEnd < action.mStart ? selEnd :
-                         selEnd < action.mEnd   ? actionNewEnd :
-                                                  selEnd + actionNewEnd - action.mEnd;
-                mText.setSpan(Selection.SELECTION_END, selEnd, selEnd,
-                              Spanned.SPAN_POINT_POINT);
-            }
+            mText.replace(0, mText.length(), text);
 
         } else {
+            mChangedText.clearSpans();
+            mChangedText.replace(0, mChangedText.length(), text);
             
-            if (isSameText(start, oldEnd, mChangedText)) {
+            TextUtils.copySpansFrom(mText, start, Math.min(oldEnd, newEnd),
+                                    Object.class, mChangedText, 0);
+
+            if (action != null &&
+                    (action.mType == Action.TYPE_REPLACE_TEXT ||
+                    action.mType == Action.TYPE_COMPOSE_TEXT) &&
+                    start <= action.mStart &&
+                    action.mStart + action.mSequence.length() <= newEnd) {
+
+                
+                final int actionNewEnd = action.mStart + action.mSequence.length();
+                int selStart = Selection.getSelectionStart(mText);
+                int selEnd = Selection.getSelectionEnd(mText);
+
+                
+                mChangedText.replace(action.mStart - start, actionNewEnd - start,
+                                     action.mSequence);
+                geckoReplaceText(start, oldEnd, mChangedText);
+
                 
                 
-                return;
+                
+                if (selStart >= start && selStart <= oldEnd) {
+                    selStart = selStart < action.mStart ? selStart :
+                               selStart < action.mEnd   ? actionNewEnd :
+                                                          selStart + actionNewEnd - action.mEnd;
+                    mText.setSpan(Selection.SELECTION_START, selStart, selStart,
+                                  Spanned.SPAN_POINT_POINT);
+                }
+                if (selEnd >= start && selEnd <= oldEnd) {
+                    selEnd = selEnd < action.mStart ? selEnd :
+                             selEnd < action.mEnd   ? actionNewEnd :
+                                                      selEnd + actionNewEnd - action.mEnd;
+                    mText.setSpan(Selection.SELECTION_END, selEnd, selEnd,
+                                  Spanned.SPAN_POINT_POINT);
+                }
+
+            } else {
+                
+                if (isSameText(start, oldEnd, mChangedText)) {
+                    
+                    
+                    return;
+                }
+                geckoReplaceText(start, oldEnd, mChangedText);
             }
-            geckoReplaceText(start, oldEnd, mChangedText);
         }
 
         geckoPostToIc(new Runnable() {
