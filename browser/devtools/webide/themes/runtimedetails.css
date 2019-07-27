@@ -2,6 +2,10 @@
 
 
 
+html, body {
+  background: white;
+}
+
 #devicePrivileges {
   font-family: monospace;
   padding-left: 6px;
