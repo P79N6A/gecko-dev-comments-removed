@@ -2552,6 +2552,19 @@ this.DOMApplicationRegistry = {
 
     this.broadcastMessage("Webapps:AddApp", { id: id, app: appObject });
 
+    if (!aData.isPackage) {
+      this.updateAppHandlers(null, app.manifest, app);
+      if (aInstallSuccessCallback) {
+        try {
+          yield aInstallSuccessCallback(app, app.manifest);
+        } catch (e) {
+          
+          
+          
+        }
+      }
+    }
+
     
     if (aData.isPackage && aData.apkInstall && !aData.requestID) {
       
@@ -2563,13 +2576,6 @@ this.DOMApplicationRegistry = {
       
       
       this.broadcastMessage("Webapps:Install:Return:OK", aData);
-    }
-
-    if (!aData.isPackage) {
-      this.updateAppHandlers(null, app.manifest, app);
-      if (aInstallSuccessCallback) {
-        aInstallSuccessCallback(app, app.manifest);
-      }
     }
 
     Services.obs.notifyObservers(null, "webapps-installed",
@@ -2642,6 +2648,16 @@ this.DOMApplicationRegistry = {
     this.updateDataStore(this.webapps[aId].localId, aNewApp.origin,
                          aNewApp.manifestURL, aManifest);
 
+    if (aInstallSuccessCallback) {
+      try {
+        yield aInstallSuccessCallback(aNewApp, aManifest, zipFile.path);
+      } catch (e) {
+        
+        
+        
+      }
+    }
+
     this.broadcastMessage("Webapps:UpdateState", {
       app: app,
       manifest: aManifest,
@@ -2655,10 +2671,6 @@ this.DOMApplicationRegistry = {
       eventType: ["downloadsuccess", "downloadapplied"],
       manifestURL: aNewApp.manifestURL
     });
-
-    if (aInstallSuccessCallback) {
-      aInstallSuccessCallback(aNewApp, aManifest, zipFile.path);
-    }
   }),
 
   _nextLocalId: function() {
