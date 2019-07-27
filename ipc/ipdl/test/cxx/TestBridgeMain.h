@@ -72,6 +72,16 @@ public:
 protected:
     virtual bool RecvStart() MOZ_OVERRIDE;
 
+    virtual PTestBridgeMainSubChild*
+    AllocPTestBridgeMainSubChild(Transport* transport,
+                                 ProcessId otherProcess) MOZ_OVERRIDE
+    {
+        
+        
+        
+        MOZ_CRASH();
+    }
+
     virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
     IPDLUnitTestSubprocess* mSubprocess;
