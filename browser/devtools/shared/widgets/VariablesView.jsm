@@ -18,13 +18,6 @@ const PAGE_SIZE_MAX_JUMPS = 30;
 const SEARCH_ACTION_MAX_DELAY = 300; 
 const ITEM_FLASH_DURATION = 300 
 
-
-
-
-
-const JS_HAS_SYMBOLS = typeof Symbol === "function";
-const ITERATOR_SYMBOL = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
@@ -3080,10 +3073,10 @@ Property.prototype = Heritage.extend(Variable.prototype, {
 
 
 
-VariablesView.prototype[ITERATOR_SYMBOL] =
-Scope.prototype[ITERATOR_SYMBOL] =
-Variable.prototype[ITERATOR_SYMBOL] =
-Property.prototype[ITERATOR_SYMBOL] = function*() {
+VariablesView.prototype[Symbol.iterator] =
+Scope.prototype[Symbol.iterator] =
+Variable.prototype[Symbol.iterator] =
+Property.prototype[Symbol.iterator] = function*() {
   yield* this._store;
 };
 

@@ -36,13 +36,6 @@ const bundle = Services.strings.createBundle("chrome://browser/locale/devtools/t
 
 
 
-const JS_HAS_SYMBOLS = typeof Symbol === "function";
-const ITERATOR_SYMBOL = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
-
-
-
-
-
 this.DevTools = function DevTools() {
   this._tools = new Map();     
   this._themes = new Map();    
@@ -500,7 +493,7 @@ DevTools.prototype = {
   
 
 
-  *[ITERATOR_SYMBOL]() {
+  *[Symbol.iterator]() {
     for (let toolbox of this._toolboxes) {
       yield toolbox;
     }

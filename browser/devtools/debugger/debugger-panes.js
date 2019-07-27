@@ -3345,14 +3345,9 @@ LineResults.prototype = {
 
 
 
-
-
-
-const JS_HAS_SYMBOLS = typeof Symbol === "function";
-const ITERATOR_SYMBOL = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
-GlobalResults.prototype[ITERATOR_SYMBOL] =
-SourceResults.prototype[ITERATOR_SYMBOL] =
-LineResults.prototype[ITERATOR_SYMBOL] = function*() {
+GlobalResults.prototype[Symbol.iterator] =
+SourceResults.prototype[Symbol.iterator] =
+LineResults.prototype[Symbol.iterator] = function*() {
   yield* this._store;
 };
 
