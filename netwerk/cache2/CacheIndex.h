@@ -926,6 +926,8 @@ private:
   
   size_t SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const;
 
+  void ReportHashStats();
+
   static CacheIndex *gInstance;
 
   nsCOMPtr<nsIFile> mCacheDirectory;
