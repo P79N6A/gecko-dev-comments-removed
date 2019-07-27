@@ -669,8 +669,11 @@ function BuildConditionSandbox(aURL) {
     httpProps.forEach((x) => sandbox.http[x] = hh[x]);
 
     
-    var osxmatch = /Mac OS X (\d+.\d+)$/.exec(hh.oscpu);
-    sandbox.OSX = osxmatch ? parseFloat(osxmatch[1]) : 0;
+    
+    
+    
+    var osxmatch = /Mac OS X (\d+).(\d+)$/.exec(hh.oscpu);
+    sandbox.OSX = osxmatch ? parseInt(osxmatch[1]) * 100 + parseInt(osxmatch[2]) : undefined;
 
     
     
