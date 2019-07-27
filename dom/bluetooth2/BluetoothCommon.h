@@ -143,6 +143,7 @@ extern bool gBluetoothDebugFlag;
 #define KEY_REMOTE_AGENT      "/B2G/bluetooth/remote_device_agent"
 #define KEY_MANAGER           "/B2G/bluetooth/manager"
 #define KEY_ADAPTER           "/B2G/bluetooth/adapter"
+#define KEY_PAIRING_LISTENER  "/B2G/bluetooth/pairing_listener"
 
 
 
@@ -169,6 +170,18 @@ extern bool gBluetoothDebugFlag;
 #define PAIRING_REQ_TYPE_ENTERPINCODE         "enterpincodereq"
 #define PAIRING_REQ_TYPE_CONFIRMATION         "pairingconfirmationreq"
 #define PAIRING_REQ_TYPE_CONSENT              "pairingconsentreq"
+
+
+
+
+
+#define SYS_MSG_BT_PAIRING_REQ                "bluetooth-pairing-request"
+
+
+
+
+
+#define BLUETOOTH_APP_ORIGIN                  "app://bluetooth.gaiamobile.org"
 
 
 

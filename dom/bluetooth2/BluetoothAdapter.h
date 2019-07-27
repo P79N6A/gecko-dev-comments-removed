@@ -251,13 +251,6 @@ private:
   
 
 
-
-
-  void HandlePairingRequest(const BluetoothValue& aValue);
-
-  
-
-
   void DispatchAttributeEvent(const nsTArray<nsString>& aTypes);
 
   
@@ -286,6 +279,13 @@ private:
 
   bool IsAdapterAttributeChanged(BluetoothAdapterAttribute aType,
                                  const BluetoothValue& aValue);
+
+  
+
+
+
+
+  bool IsBluetoothCertifiedApp();
 
   
 
