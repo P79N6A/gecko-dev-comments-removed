@@ -137,7 +137,6 @@ public:
   MediaEngineWebRTCAudioSource(nsIThread* aThread, webrtc::VoiceEngine* aVoiceEnginePtr,
                                int aIndex, const char* name, const char* uuid)
     : MediaEngineAudioSource(kReleased)
-    , mSamples(0)
     , mVoiceEngine(aVoiceEnginePtr)
     , mMonitor("WebRTCMic.Monitor")
     , mThread(aThread)
@@ -198,12 +197,6 @@ public:
 
 protected:
   ~MediaEngineWebRTCAudioSource() { Shutdown(); }
-
-  
-  
-  
-  
-  int mSamples;
 
 private:
   void Init();
