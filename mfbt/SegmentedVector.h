@@ -37,7 +37,19 @@ namespace mozilla {
 
 
 
-template<typename T, size_t IdealSegmentSize,
+
+
+
+
+
+
+
+
+
+
+
+template<typename T,
+         size_t IdealSegmentSize = 4096,
          typename AllocPolicy = MallocAllocPolicy>
 class SegmentedVector : private AllocPolicy
 {
