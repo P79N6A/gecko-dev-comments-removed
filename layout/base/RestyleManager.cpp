@@ -64,6 +64,8 @@ RestyleManager::RestyleManager(nsPresContext* aPresContext)
   , mRebuildAllStyleData(false)
   , mObservingRefreshDriver(false)
   , mInStyleRefresh(false)
+  , mSkipAnimationRules(false)
+  , mPostAnimationRestyles(false)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
   , mLastUpdateForThrottledAnimations(aPresContext->RefreshDriver()->
@@ -1443,12 +1445,21 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   
   
+  mSkipAnimationRules = true;
+  mPostAnimationRestyles = true;
+
+  
+  
+  
+  
   
   
   DoRebuildAllStyleData(mPendingRestyles, aExtraHint,
                         nsRestyleHint(eRestyle_Subtree |
                                       eRestyle_ForceDescendants));
 
+  mPostAnimationRestyles = false;
+  mSkipAnimationRules = false;
 #ifdef DEBUG
   mIsProcessingRestyles = false;
 #endif
@@ -1539,7 +1550,17 @@ RestyleManager::ProcessPendingRestyles()
     UpdateOnlyAnimationStyles();
   }
 
+  
+  
+  
+  
+  mSkipAnimationRules = true;
+  mPostAnimationRestyles = true;
+
   mPendingRestyles.ProcessRestyles();
+
+  mPostAnimationRestyles = false;
+  mSkipAnimationRules = false;
 
 #ifdef DEBUG
   uint32_t oldPendingRestyleCount = mPendingRestyles.Count();

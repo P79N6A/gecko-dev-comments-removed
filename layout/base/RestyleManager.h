@@ -93,6 +93,22 @@ public:
   uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
 
   
+  bool SkipAnimationRules() const {
+    MOZ_ASSERT(mSkipAnimationRules || !mPostAnimationRestyles,
+               "inconsistent state");
+    return mSkipAnimationRules;
+  }
+
+  
+  
+  
+  bool PostAnimationRestyles() const {
+    MOZ_ASSERT(mSkipAnimationRules || !mPostAnimationRestyles,
+               "inconsistent state");
+    return mPostAnimationRestyles;
+  }
+
+  
 
 
 
@@ -427,6 +443,13 @@ private:
   bool mObservingRefreshDriver : 1;
   
   bool mInStyleRefresh : 1;
+  
+  bool mSkipAnimationRules : 1;
+  
+  
+  
+  bool mPostAnimationRestyles : 1;
+
   uint32_t mHoverGeneration;
   nsChangeHint mRebuildAllExtraHint;
 
