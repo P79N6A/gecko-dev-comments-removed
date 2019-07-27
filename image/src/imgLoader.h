@@ -206,6 +206,11 @@ private:
   uint32_t mSize;
 };
 
+MOZ_BEGIN_ENUM_CLASS(AcceptedMimeTypes, uint8_t)
+  IMAGES,
+  IMAGES_AND_DOCUMENTS,
+MOZ_END_ENUM_CLASS(AcceptedMimeTypes)
+
 class imgLoader MOZ_FINAL : public imgILoader,
                             public nsIContentSniffer,
                             public imgICache,
@@ -271,8 +276,22 @@ public:
                                 imgRequestProxy **_retval);
 
   static nsresult GetMimeTypeFromContent(const char* aContents, uint32_t aLength, nsACString& aContentType);
+
   
-  static NS_EXPORT_(bool) SupportImageWithMimeType(const char* aMimeType);
+
+
+
+
+
+
+
+
+
+
+  static NS_EXPORT_(bool)
+  SupportImageWithMimeType(const char* aMimeType,
+                           AcceptedMimeTypes aAccept =
+                             AcceptedMimeTypes::IMAGES);
 
   static void GlobalInit(); 
   static void Shutdown(); 
