@@ -1359,11 +1359,14 @@ ScriptedDirectProxyHandler::~ScriptedDirectProxyHandler()
 {
 }
 
+
 bool
 ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
@@ -1396,13 +1399,17 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy)
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_AS_NON_EXTENSIBLE);
             return false;
         }
+        
         return true;
     }
 
     
+    
+    
     JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_CHANGE_EXTENSIBILITY);
     return false;
 }
+
 
 
 bool
@@ -1735,6 +1742,8 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy, AutoIdV
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
 
     
+
+    
     RootedObject target(cx, proxy->as<ProxyObject>().target());
 
     
@@ -1767,6 +1776,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy, AutoIdV
 
     
     
+    
     return ArrayToIdVector(cx, proxy, target, trapResult, props, 0, cx->names().enumerate);
 }
 
@@ -1776,6 +1786,8 @@ ScriptedDirectProxyHandler::has(JSContext *cx, HandleObject proxy, HandleId id, 
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
@@ -1838,6 +1850,8 @@ ScriptedDirectProxyHandler::get(JSContext *cx, HandleObject proxy, HandleObject 
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
@@ -1903,6 +1917,8 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
 
     
+
+    
     RootedObject target(cx, proxy->as<ProxyObject>().target());
 
     
@@ -1931,12 +1947,13 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
     
     bool success = ToBoolean(trapResult);
 
-    
     if (success) {
+        
         Rooted<PropertyDescriptor> desc(cx);
         if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
             return false;
 
+        
         if (desc.object()) {
             if (IsDataDescriptor(desc) && desc.isPermanent() && desc.isReadonly()) {
                 bool same;
@@ -1964,17 +1981,24 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 bool
 ScriptedDirectProxyHandler::isExtensible(JSContext *cx, HandleObject proxy, bool *extensible) const
 {
+    
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
 
+    
+
+    
     RootedObject target(cx, proxy->as<ProxyObject>().target());
 
+    
     RootedValue trap(cx);
     if (!JSObject::getProperty(cx, handler, handler, cx->names().isExtensible, &trap))
         return false;
 
+    
     if (trap.isUndefined())
         return DirectProxyHandler::isExtensible(cx, proxy, extensible);
 
+    
     Value argv[] = {
         ObjectValue(*target)
     };
@@ -1982,16 +2006,21 @@ ScriptedDirectProxyHandler::isExtensible(JSContext *cx, HandleObject proxy, bool
     if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
         return false;
 
+    
     bool booleanTrapResult = ToBoolean(trapResult);
+
+    
     bool targetResult;
     if (!JSObject::isExtensible(cx, target, &targetResult))
         return false;
 
+    
     if (targetResult != booleanTrapResult) {
        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_EXTENSIBILITY);
        return false;
     }
 
+    
     *extensible = booleanTrapResult;
     return true;
 }
@@ -2004,11 +2033,14 @@ ScriptedDirectProxyHandler::iterate(JSContext *cx, HandleObject proxy, unsigned 
     return DirectProxyHandler::iterate(cx, proxy, flags, vp);
 }
 
+
 bool
 ScriptedDirectProxyHandler::call(JSContext *cx, HandleObject proxy, const CallArgs &args) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
@@ -2042,11 +2074,14 @@ ScriptedDirectProxyHandler::call(JSContext *cx, HandleObject proxy, const CallAr
     return Invoke(cx, thisValue, trap, ArrayLength(argv), argv, args.rval());
 }
 
+
 bool
 ScriptedDirectProxyHandler::construct(JSContext *cx, HandleObject proxy, const CallArgs &args) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
@@ -2078,6 +2113,8 @@ ScriptedDirectProxyHandler::construct(JSContext *cx, HandleObject proxy, const C
     RootedValue thisValue(cx, ObjectValue(*handler));
     if (!Invoke(cx, thisValue, trap, ArrayLength(constructArgv), constructArgv, args.rval()))
         return false;
+
+    
     if (!args.rval().isObject()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_CONSTRUCT_OBJECT);
         return false;
