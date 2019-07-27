@@ -21,6 +21,7 @@ namespace mozilla {
 
 class ContainerParser;
 class MediaSourceDecoder;
+class LargeDataBuffer;
 
 namespace dom {
 
@@ -39,7 +40,7 @@ public:
   
   
   
-  bool AppendData(const uint8_t* aData, uint32_t aLength, int64_t aTimestampOffset );
+  bool AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset );
 
   
   
@@ -120,7 +121,7 @@ private:
 
   
   
-  bool AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength,
+  bool AppendDataToCurrentResource(LargeDataBuffer* aData,
                                    uint32_t aDuration );
 
   

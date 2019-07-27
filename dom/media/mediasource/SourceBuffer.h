@@ -29,6 +29,7 @@ struct JSContext;
 namespace mozilla {
 
 class ErrorResult;
+class LargeDataBuffer;
 class TrackBuffer;
 template <typename T> class AsyncEventRunner;
 
@@ -138,8 +139,7 @@ private:
 
   
   void AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv);
-  void AppendData(const uint8_t* aData, uint32_t aLength,
-                  double aTimestampOffset);
+  void AppendData(LargeDataBuffer* aData, double aTimestampOffset);
 
   
   
@@ -149,7 +149,9 @@ private:
 
   
   
-  bool PrepareAppend(ErrorResult& aRv);
+  already_AddRefed<LargeDataBuffer> PrepareAppend(const uint8_t* aData,
+                                                uint32_t aLength,
+                                                ErrorResult& aRv);
 
   nsRefPtr<MediaSource> mMediaSource;
 

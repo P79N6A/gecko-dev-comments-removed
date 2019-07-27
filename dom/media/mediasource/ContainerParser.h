@@ -7,29 +7,31 @@
 #ifndef MOZILLA_CONTAINERPARSER_H_
 #define MOZILLA_CONTAINERPARSER_H_
 
-#include "nsTArray.h"
+#include "nsRefPtr.h"
 
 namespace mozilla {
 
+class LargeDataBuffer;
+
 class ContainerParser {
 public:
-  ContainerParser() : mHasInitData(false) {}
+  ContainerParser();
   virtual ~ContainerParser() {}
 
   
   
   
-  virtual bool IsInitSegmentPresent(const uint8_t* aData, uint32_t aLength);
+  virtual bool IsInitSegmentPresent(LargeDataBuffer* aData);
 
   
   
   
-  virtual bool IsMediaSegmentPresent(const uint8_t* aData, uint32_t aLength);
+  virtual bool IsMediaSegmentPresent(LargeDataBuffer* aData);
 
   
   
   
-  virtual bool ParseStartAndEndTimestamps(const uint8_t* aData, uint32_t aLength,
+  virtual bool ParseStartAndEndTimestamps(LargeDataBuffer* aData,
                                           int64_t& aStart, int64_t& aEnd);
 
   
@@ -39,7 +41,7 @@ public:
 
   virtual int64_t GetRoundingError();
 
-  const nsTArray<uint8_t>& InitData();
+  LargeDataBuffer* InitData();
 
   bool HasInitData()
   {
@@ -49,7 +51,7 @@ public:
   static ContainerParser* CreateForMIMEType(const nsACString& aType);
 
 protected:
-  nsTArray<uint8_t> mInitData;
+  nsRefPtr<LargeDataBuffer> mInitData;
   bool mHasInitData;
 };
 
