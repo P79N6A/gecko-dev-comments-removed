@@ -808,7 +808,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     size_t              numCompartments;
 
     
-    JSLocaleCallbacks *localeCallbacks;
+    const JSLocaleCallbacks *localeCallbacks;
 
     
     char *defaultLocale;

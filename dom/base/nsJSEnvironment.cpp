@@ -2748,7 +2748,7 @@ nsJSContext::EnsureStatics()
   sPrevGCSliceCallback = JS::SetGCSliceCallback(sRuntime, DOMGCSliceCallback);
 
   
-  static JSStructuredCloneCallbacks cloneCallbacks = {
+  static const JSStructuredCloneCallbacks cloneCallbacks = {
     NS_DOMReadStructuredClone,
     NS_DOMWriteStructuredClone,
     NS_DOMStructuredCloneError,
@@ -2759,7 +2759,7 @@ nsJSContext::EnsureStatics()
   JS_SetStructuredCloneCallbacks(sRuntime, &cloneCallbacks);
 
   
-  static JS::AsmJSCacheOps asmJSCacheOps = {
+  static const JS::AsmJSCacheOps asmJSCacheOps = {
     AsmJSCacheOpenEntryForRead,
     asmjscache::CloseEntryForRead,
     AsmJSCacheOpenEntryForWrite,
