@@ -147,6 +147,10 @@ namespace mozilla {
 
 
 
+
+
+
+
 template<typename T, class D>
 class UniquePtr
 {
@@ -601,6 +605,61 @@ struct UniqueSelector<T[N]>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template<typename T>
 typename detail::UniqueSelector<T>::SingleObject
 MakeUnique()
@@ -671,6 +730,10 @@ MakeUnique(A1&& a1, A2&& a2, A3&& a3) MOZ_DELETE;
 template<typename T, typename A1, typename A2, typename A3, typename A4>
 typename detail::UniqueSelector<T>::KnownBound
 MakeUnique(A1&& a1, A2&& a2, A3&& a3, A4&& a4) MOZ_DELETE;
+
+template<typename T, typename A1, typename A2, typename A3, typename A4, typename A5>
+typename detail::UniqueSelector<T>::KnownBound
+MakeUnique(A1&& a1, A2&& a2, A3&& a3, A4&& a4, A5&& a5) MOZ_DELETE;
 
 } 
 
