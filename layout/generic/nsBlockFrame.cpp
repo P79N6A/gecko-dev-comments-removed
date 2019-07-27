@@ -3118,7 +3118,6 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       
       WritingMode wm = frame->GetWritingMode();
       LogicalSize availSpace = aState.ContentSize(wm);
-      availSpace.BSize(wm) = NS_UNCONSTRAINEDSIZE;
       nsHTMLReflowState reflowState(aState.mPresContext, aState.mReflowState,
                                     frame, availSpace);
 
