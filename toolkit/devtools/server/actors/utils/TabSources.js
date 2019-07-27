@@ -292,7 +292,13 @@ TabSources.prototype = {
       if (url) {
         try {
           let urlInfo = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
-          if (urlInfo.fileExtension === "js") {
+          if (urlInfo.fileExtension === "xml") {
+            
+            
+            
+            spec.isInlineSource = true;
+          }
+          else if (urlInfo.fileExtension === "js") {
             spec.contentType = "text/javascript";
           }
         } catch(ex) {
