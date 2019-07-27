@@ -2748,6 +2748,15 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
   }
 
   
+  
+  
+  
+  if (pseudoType != nsCSSPseudoElements::ePseudo_NotPseudoElement &&
+      (aRestyleHint & eRestyle_StyleAttribute)) {
+    aRestyleHint = (aRestyleHint & ~eRestyle_StyleAttribute) | eRestyle_Self;
+  }
+
+  
   nsRefPtr<nsStyleContext> newContext;
   nsIFrame *prevContinuation =
     GetPrevContinuationWithPossiblySameStyle(aSelf);
