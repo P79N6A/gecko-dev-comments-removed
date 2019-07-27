@@ -124,7 +124,7 @@ var gPlayTests = [
   
   { name:"bug500311.ogv", type:"video/ogg", duration:1.96 },
   
-  { name:"small-shot.ogg", type:"video/ogg", duration:0.276 },
+  { name:"small-shot.ogg", type:"audio/ogg", duration:0.276 },
   
   { name:"short-video.ogv", type:"video/ogg", duration:1.081 },
   
@@ -679,11 +679,15 @@ function checkMetadata(msg, e, test) {
 
 
 function getPlayableVideo(candidates) {
-  var v = document.createElement("video");
-  var resources = candidates.filter(function(x){return /^video/.test(x.type) && v.canPlayType(x.type);});
+  var resources = getPlayableVideos(candidates);
   if (resources.length > 0)
     return resources[0];
   return null;
+}
+
+function getPlayableVideos(candidates) {
+  var v = document.createElement("video");
+  return candidates.filter(function(x){return /^video/.test(x.type) && v.canPlayType(x.type);});
 }
 
 function getPlayableAudio(candidates) {
