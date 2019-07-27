@@ -633,10 +633,17 @@ this.DOMApplicationRegistry = {
           }
         } else {
           
+          let fieldsBlacklist = ["basePath", "id", "installerAppId",
+            "installerIsBrowser", "localId", "receipts", "storeId",
+            "storeVersion"];
           
           
-          this.webapps[id].updateTime = data[id].updateTime;
-          this.webapps[id].lastUpdateCheck = data[id].updateTime;
+          
+          for (let field in data[id]) {
+            if (fieldsBlacklist.indexOf(field) === -1) {
+              this.webapps[id][field] = data[id][field];
+            }
+          }
         }
       }
     }.bind(this)).then(null, Cu.reportError);
