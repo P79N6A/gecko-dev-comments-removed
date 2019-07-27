@@ -58,16 +58,16 @@ function checkEVStatus(cert, usage, isEVExpected) {
 
 
 function addKeySizeTestForEV(expectedNamesForOCSP,
-                             rootCACertFileName, subCACertFileNames,
+                             rootCertFileName, intCertFileNames,
                              endEntityCertFileName, expectedResult)
 {
   add_test(function() {
     clearOCSPCache();
     let ocspResponder = getOCSPResponder(expectedNamesForOCSP);
 
-    loadCert(rootCACertFileName, "CTu,CTu,CTu");
-    for (let subCACertFileName of subCACertFileNames) {
-      loadCert(subCACertFileName, ",,");
+    loadCert(rootCertFileName, "CTu,CTu,CTu");
+    for (let intCertFileName of intCertFileNames) {
+      loadCert(intCertFileName, ",,");
     }
     checkEVStatus(certFromFile(endEntityCertFileName + ".der"),
                   certificateUsageSSLServer, expectedResult);
@@ -92,21 +92,15 @@ function addKeySizeTestForEV(expectedNamesForOCSP,
 
 
 
-
-
-function checkForKeyType(keyType, inadequateKeySize, adequateKeySize) {
+function checkRSAChains(inadequateKeySize, adequateKeySize) {
   
-  let rootOKCertFileName = keyType == "rsa"
-                         ? "../test_ev_certs/evroot"
-                         : "ev_root_" + keyType + "_" + adequateKeySize;
-  let rootOKName = keyType == "rsa"
-                 ? "evroot"
-                 : "ev_root_" + keyType + "_" + adequateKeySize;
-  let rootNotOKName = "ev_root_" + keyType + "_" + inadequateKeySize;
-  let intOKName = "ev_int_" + keyType + "_" + adequateKeySize;
-  let intNotOKName = "ev_int_" + keyType + "_" + inadequateKeySize;
-  let eeOKName = "ev_ee_" + keyType + "_" + adequateKeySize;
-  let eeNotOKName = "ev_ee_" + keyType + "_" + inadequateKeySize;
+  let rootOKCertFileName = "../test_ev_certs/evroot";
+  let rootOKName = "evroot";
+  let rootNotOKName = "ev_root_rsa_" + inadequateKeySize;
+  let intOKName = "ev_int_rsa_" + adequateKeySize;
+  let intNotOKName = "ev_int_rsa_" + inadequateKeySize;
+  let eeOKName = "ev_ee_rsa_" + adequateKeySize;
+  let eeNotOKName = "ev_ee_rsa_" + inadequateKeySize;
 
   
   
@@ -149,10 +143,9 @@ function checkForKeyType(keyType, inadequateKeySize, adequateKeySize) {
 }
 
 function run_test() {
-  
   Services.prefs.setCharPref("network.dns.localDomains", "www.example.com");
 
-  checkForKeyType("rsa", 2040, 2048);
+  checkRSAChains(2040, 2048);
 
   run_next_test();
 }
