@@ -104,6 +104,8 @@ public:
   void
   SetBody(nsIInputStream* aBody)
   {
+    
+    MOZ_ASSERT(!mBody);
     mBody = aBody;
   }
 

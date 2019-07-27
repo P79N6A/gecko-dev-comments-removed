@@ -6,13 +6,20 @@
 #ifndef mozilla_dom_Fetch_h
 #define mozilla_dom_Fetch_h
 
+#include "nsIInputStreamPump.h"
+#include "nsIStreamLoader.h"
+
 #include "nsCOMPtr.h"
 #include "nsError.h"
+#include "nsProxyRelease.h"
 #include "nsString.h"
+
+#include "mozilla/DebugOnly.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/RequestBinding.h"
+#include "mozilla/dom/workers/bindings/WorkerFeature.h"
 
-class nsIInputStream;
+class nsIOutputStream;
 class nsIGlobalObject;
 
 namespace mozilla {
@@ -53,6 +60,41 @@ ExtractByteStreamFromBody(const ArrayBufferOrArrayBufferViewOrBlobOrUSVStringOrU
                           nsIInputStream** aStream,
                           nsCString& aContentType);
 
+template <class Derived> class FetchBodyFeature;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template <class Derived>
 class FetchBody {
 public:
@@ -83,9 +125,27 @@ public:
     return ConsumeBody(CONSUME_TEXT, aRv);
   }
 
+  
+  void
+  BeginConsumeBodyMainThread();
+
+  void
+  ContinueConsumeBody(nsresult aStatus, uint32_t aLength, uint8_t* aResult);
+
+  void
+  CancelPump();
+
+  
+  workers::WorkerPrivate* mWorkerPrivate;
+
+  
+  
+  nsAutoPtr<workers::WorkerFeature> mFeature;
+
 protected:
-  FetchBody()
-    : mBodyUsed(false)
+  FetchBody();
+
+  virtual ~FetchBody()
   {
   }
 
@@ -97,7 +157,6 @@ protected:
 
   void
   SetMimeType(ErrorResult& aRv);
-
 private:
   enum ConsumeType
   {
@@ -114,11 +173,46 @@ private:
     return static_cast<Derived*>(const_cast<FetchBody*>(this));
   }
 
+  nsresult
+  BeginConsumeBody();
+
   already_AddRefed<Promise>
   ConsumeBody(ConsumeType aType, ErrorResult& aRv);
 
+  bool
+  AddRefObject();
+
+  void
+  ReleaseObject();
+
+  bool
+  RegisterFeature();
+
+  void
+  UnregisterFeature();
+
+  bool
+  IsOnTargetThread()
+  {
+    return NS_IsMainThread() == !mWorkerPrivate;
+  }
+
+  void
+  AssertIsOnTargetThread()
+  {
+    MOZ_ASSERT(IsOnTargetThread());
+  }
+
+  
   bool mBodyUsed;
   nsCString mMimeType;
+
+  
+  ConsumeType mConsumeType;
+  nsRefPtr<Promise> mConsumePromise;
+  DebugOnly<bool> mReadDone;
+
+  nsMainThreadPtrHandle<nsIInputStreamPump> mConsumeBodyPump;
 };
 
 } 

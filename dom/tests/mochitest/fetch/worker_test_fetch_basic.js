@@ -83,7 +83,6 @@ function runTest() {
     .then(testDataURL)
     .then(testSameOriginBlobURL)
     
-    
     .then(done)
     .catch(function(e) {
       ok(false, "Some Response tests failed " + e);
