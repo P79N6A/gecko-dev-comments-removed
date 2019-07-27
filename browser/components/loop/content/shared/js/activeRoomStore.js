@@ -21,7 +21,9 @@ loop.store.ActiveRoomStore = (function() {
     
     JOINED: "room-joined",
     
-    FAILED: "room-failed"
+    FAILED: "room-failed",
+    
+    HAS_PARTICIPANTS: "room-has-participants"
   };
 
   
