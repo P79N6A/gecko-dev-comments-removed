@@ -56,12 +56,18 @@ namespace dom {
 class CSSAnimation final : public Animation
 {
 public:
- explicit CSSAnimation(DocumentTimeline* aTimeline)
+ explicit CSSAnimation(DocumentTimeline* aTimeline,
+                       const nsSubstring& aAnimationName)
     : Animation(aTimeline)
+    , mAnimationName(aAnimationName)
     , mIsStylePaused(false)
     , mPauseShouldStick(false)
     , mPreviousPhaseOrIteration(PREVIOUS_PHASE_BEFORE)
   {
+    
+    
+    
+    MOZ_ASSERT(!mAnimationName.IsEmpty(), "animation-name should not be empty");
   }
 
   JSObject* WrapObject(JSContext* aCx,
@@ -70,7 +76,11 @@ public:
   virtual CSSAnimation* AsCSSAnimation() override { return this; }
 
   
-  void GetAnimationName(nsString& aRetVal) const { aRetVal = Name(); }
+  void GetAnimationName(nsString& aRetVal) const { aRetVal = mAnimationName; }
+
+  
+  
+  const nsString& AnimationName() const { return mAnimationName; }
 
   
   virtual Promise* GetReady(ErrorResult& aRv) override;
@@ -99,6 +109,8 @@ protected:
   virtual css::CommonAnimationManager* GetAnimationManager() const override;
 
   static nsString PseudoTypeAsString(nsCSSPseudoElements::Type aPseudoType);
+
+  nsString mAnimationName;
 
   
   
