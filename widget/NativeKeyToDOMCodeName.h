@@ -789,22 +789,31 @@ CODE_MAP_ANDROID(WakeUp,                0x008F)
 
 
 CODE_MAP_X11(Again,                     0x0089) 
+CODE_MAP_ANDROID(Again,                 0x0081) 
 
 CODE_MAP_X11(Copy,                      0x008D) 
+CODE_MAP_ANDROID(Copy,                  0x0085) 
 
 CODE_MAP_X11(Cut,                       0x0091) 
+CODE_MAP_ANDROID(Cut,                   0x0089) 
 
 CODE_MAP_X11(Find,                      0x0090) 
+CODE_MAP_ANDROID(Find,                  0x0088) 
 
 CODE_MAP_X11(Open,                      0x008E) 
+CODE_MAP_ANDROID(Open,                  0x0086) 
 
 CODE_MAP_X11(Paste,                     0x008F) 
+CODE_MAP_ANDROID(Paste,                 0x0087) 
 
 CODE_MAP_X11(Props,                     0x008A) 
+CODE_MAP_ANDROID(Props,                 0x0082) 
 
 CODE_MAP_X11(Select,                    0x008C) 
+CODE_MAP_ANDROID(Select,                0x0084) 
 
 CODE_MAP_X11(Undo,                      0x008B) 
+CODE_MAP_ANDROID(Undo,                  0x0083) 
 
 #undef CODE_MAP_WIN
 #undef CODE_MAP_MAC
