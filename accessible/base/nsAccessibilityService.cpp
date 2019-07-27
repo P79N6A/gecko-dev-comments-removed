@@ -970,51 +970,50 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   }
 
   if (!newAcc && isHTML) {  
-    if (roleMapEntry) {
-      
-      
-      if ((roleMapEntry->accTypes & eTableCell)) {
-        if (aContext->IsTableRow() &&
-            (frame->AccessibleType() != eHTMLTableCellType ||
-             aContext->GetContent() != content->GetParent())) {
-          newAcc = new ARIAGridCellAccessibleWrap(content, document);
-        }
+    bool isARIATableOrCell = roleMapEntry &&
+      (roleMapEntry->accTypes & (eTableCell | eTable));
 
-      } else if ((roleMapEntry->IsOfType(eTable)) &&
-                 frame->AccessibleType() != eHTMLTableType) {
+    if (!isARIATableOrCell ||
+        frame->AccessibleType() == eHTMLTableCellType ||
+        frame->AccessibleType() == eHTMLTableType) {
+      
+      
+      newAcc = CreateHTMLAccessibleByMarkup(frame, content, aContext);
+      if (!newAcc) 
+        newAcc = CreateAccessibleByFrameType(frame, content, aContext);
+    }
+
+    
+    
+    if (isARIATableOrCell && (!newAcc || newAcc->IsGenericHyperText())) {
+      if ((roleMapEntry->accTypes & eTableCell)) {
+        if (aContext->IsTableRow())
+          newAcc = new ARIAGridCellAccessibleWrap(content, document);
+
+      } else if (roleMapEntry->IsOfType(eTable)) {
         newAcc = new ARIAGridAccessibleWrap(content, document);
       }
     }
 
-    if (!newAcc) {
-      
-      
-      newAcc = CreateHTMLAccessibleByMarkup(frame, content, aContext);
-
-      
-      if (!newAcc)
-        newAcc = CreateAccessibleByFrameType(frame, content, aContext);
-
-      
-      
-      if (!roleMapEntry && newAcc && aContext->HasStrongARIARole()) {
-        if (frame->AccessibleType() == eHTMLTableRowType) {
-          nsRoleMapEntry* contextRoleMap = aContext->ARIARoleMap();
-          if (!contextRoleMap->IsOfType(eTable))
-            roleMapEntry = &aria::gEmptyRoleMap;
-
-        } else if (frame->AccessibleType() == eHTMLTableCellType &&
-                   aContext->ARIARoleMap() == &aria::gEmptyRoleMap) {
+    
+    
+    if (!roleMapEntry && newAcc && aContext->HasStrongARIARole()) {
+      if (frame->AccessibleType() == eHTMLTableRowType) {
+        nsRoleMapEntry* contextRoleMap = aContext->ARIARoleMap();
+        if (!contextRoleMap->IsOfType(eTable))
           roleMapEntry = &aria::gEmptyRoleMap;
 
-        } else if (content->Tag() == nsGkAtoms::dt ||
-                   content->Tag() == nsGkAtoms::li ||
-                   content->Tag() == nsGkAtoms::dd ||
-                   frame->AccessibleType() == eHTMLLiType) {
-          nsRoleMapEntry* contextRoleMap = aContext->ARIARoleMap();
-          if (!contextRoleMap->IsOfType(eList))
-            roleMapEntry = &aria::gEmptyRoleMap;
-        }
+      } else if (frame->AccessibleType() == eHTMLTableCellType &&
+                 aContext->ARIARoleMap() == &aria::gEmptyRoleMap) {
+        roleMapEntry = &aria::gEmptyRoleMap;
+
+      } else if (content->Tag() == nsGkAtoms::dt ||
+                 content->Tag() == nsGkAtoms::li ||
+                 content->Tag() == nsGkAtoms::dd ||
+                 frame->AccessibleType() == eHTMLLiType) {
+        nsRoleMapEntry* contextRoleMap = aContext->ARIARoleMap();
+        if (!contextRoleMap->IsOfType(eList))
+          roleMapEntry = &aria::gEmptyRoleMap;
       }
     }
   }
