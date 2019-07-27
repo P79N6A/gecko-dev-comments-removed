@@ -298,6 +298,14 @@ AboutReader.prototype = {
 
 
 
+  _showListIntro: function() {
+    this._mm.sendAsyncMessage("ReadingList:ShowIntro");
+  },
+
+  
+
+
+
   _onList: function() {
     this._mm.sendAsyncMessage("ReadingList:ToggleVisibility");
   },
@@ -717,6 +725,7 @@ AboutReader.prototype = {
     this._updateImageMargins();
     this._requestReadingListStatus();
 
+    this._showListIntro();
     this._requestFavicon();
     this._doc.body.classList.add("loaded");
   },
