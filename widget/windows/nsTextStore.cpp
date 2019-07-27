@@ -104,6 +104,34 @@ GetFindFlagName(DWORD aFindFlag)
   return description;
 }
 
+class GetACPFromPointFlagName : public nsAutoCString
+{
+public:
+  GetACPFromPointFlagName(DWORD aFlags)
+  {
+    if (!aFlags) {
+      AppendLiteral("no flags (0)");
+      return;
+    }
+    if (aFlags & GXFPF_ROUND_NEAREST) {
+      AppendLiteral("GXFPF_ROUND_NEAREST");
+      aFlags &= ~GXFPF_ROUND_NEAREST;
+    }
+    if (aFlags & GXFPF_NEAREST) {
+      HandleSeparator(*this);
+      AppendLiteral("GXFPF_NEAREST");
+      aFlags &= ~GXFPF_NEAREST;
+    }
+    if (aFlags) {
+      HandleSeparator(*this);
+      AppendLiteral("Unknown(");
+      AppendInt(static_cast<uint32_t>(aFlags));
+      Append(')');
+    }
+  }
+  virtual ~GetACPFromPointFlagName() {}
+};
+
 static const char*
 GetIMEEnabledName(IMEState::Enabled aIMEEnabled)
 {
@@ -3117,6 +3145,12 @@ nsTextStore::GetACPFromPoint(TsViewCookie vcView,
                              DWORD dwFlags,
                              LONG *pacp)
 {
+  PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
+         ("TSF: 0x%p nsTextStore::GetACPFromPoint(pvcView=%d, pt=%p (x=%d, "
+          "y=%d), dwFlags=%s, pacp=%p",
+          this, vcView, pt, pt ? pt->x : 0, pt ? pt->y : 0,
+          GetACPFromPointFlagName(dwFlags).get(), pacp));
+
   if (!IsReadLocked()) {
     PR_LOG(sTextStoreLog, PR_LOG_ERROR,
            ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to "
@@ -3131,6 +3165,20 @@ nsTextStore::GetACPFromPoint(TsViewCookie vcView,
     return E_INVALIDARG;
   }
 
+  if (!pt) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to "
+            "null pt", this));
+    return E_INVALIDARG;
+  }
+
+  if (!pacp) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to "
+            "null pacp", this));
+    return E_INVALIDARG;
+  }
+
   if (mLockedContent.IsLayoutChanged()) {
     PR_LOG(sTextStoreLog, PR_LOG_ERROR,
            ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to "
@@ -3139,13 +3187,106 @@ nsTextStore::GetACPFromPoint(TsViewCookie vcView,
     return TS_E_NOLAYOUT;
   }
 
-  PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
-         ("TSF: 0x%p nsTextStore::GetACPFromPoint(vcView=%ld, "
-          "pt(0x%p)={ x=%ld, y=%ld }, dwFlags=%s, pacp=0x%p) called "
-          "but not supported (E_NOTIMPL)", this));
+  nsIntPoint ourPt(pt->x, pt->y);
+  
+  ourPt -= mWidget->WidgetToScreenOffsetUntyped();
 
   
-  return E_NOTIMPL;
+  
+
+  WidgetQueryContentEvent charAtPt(true, NS_QUERY_CHARACTER_AT_POINT, mWidget);
+  mWidget->InitEvent(charAtPt, &ourPt);
+
+  
+  
+  nsRefPtr<nsTextStore> kungFuDeathGrip(this);
+  mWidget->DispatchWindowEvent(&charAtPt);
+  if (!mWidget || mWidget->Destroyed()) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to "
+            "mWidget was destroyed during NS_QUERY_CHARACTER_AT_POINT", this));
+    return E_FAIL;
+  }
+
+  PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
+         ("TSF: 0x%p   nsTextStore::GetACPFromPoint(), charAtPt={ "
+          "mSucceeded=%s, mReply={ mOffset=%u, mTentativeCaretOffset=%u }}",
+          this, GetBoolName(charAtPt.mSucceeded), charAtPt.mReply.mOffset,
+          charAtPt.mReply.mTentativeCaretOffset));
+
+  if (NS_WARN_IF(!charAtPt.mSucceeded)) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to "
+            "NS_QUERY_CHARACTER_AT_POINT failure", this));
+    return E_FAIL;
+  }
+
+  
+  
+  if (!(dwFlags & GXFPF_NEAREST) &&
+      charAtPt.mReply.mOffset == WidgetQueryContentEvent::NOT_FOUND) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to the "
+            "point contained by no bounding box", this));
+    return TS_E_INVALIDPOINT;
+  }
+
+  
+  
+  if (NS_WARN_IF(charAtPt.mReply.mTentativeCaretOffset ==
+                   WidgetQueryContentEvent::NOT_FOUND)) {
+    charAtPt.mReply.mTentativeCaretOffset = 0;
+  }
+
+  uint32_t offset;
+
+  
+  
+  if (dwFlags & GXFPF_ROUND_NEAREST) {
+    offset = charAtPt.mReply.mTentativeCaretOffset;
+  } else if (charAtPt.mReply.mOffset != WidgetQueryContentEvent::NOT_FOUND) {
+    
+    
+    offset = charAtPt.mReply.mOffset;
+  } else {
+    
+    
+    
+    
+    
+    
+
+    
+    offset = charAtPt.mReply.mTentativeCaretOffset;
+
+    
+    
+    Content& lockedContent = LockedContent();
+    if (!lockedContent.IsInitialized()) {
+      PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+             ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to "
+              "LockedContent() failure", this));
+      return E_FAIL;
+    }
+    if (lockedContent.Text().Length() <= offset) {
+      
+      
+      offset = lockedContent.Text().Length() - 1;
+    }
+  }
+
+  if (NS_WARN_IF(offset > LONG_MAX)) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::GetACPFromPoint() FAILED due to out of "
+            "range of the result", this));
+    return TS_E_INVALIDPOINT;
+  }
+
+  *pacp = static_cast<LONG>(offset);
+  PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
+         ("TSF: 0x%p   nsTextStore::GetACPFromPoint() succeeded: *pacp=%d",
+          this, *pacp));
+  return S_OK;
 }
 
 STDMETHODIMP
