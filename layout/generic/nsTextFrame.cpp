@@ -4908,17 +4908,16 @@ nsTextFrame::GetTextDecorations(
       break;
     }
 
-    if (compatMode == eCompatibility_NavQuirks) {
-      
-      if (f->GetContent()->IsHTML(nsGkAtoms::table)) {
-        break;
-      }
-    } else {
-      
-      
-      if (f->IsFloating() || f->IsAbsolutelyPositioned()) {
-        break;
-      }
+    
+    if (compatMode == eCompatibility_NavQuirks &&
+        f->GetContent()->IsHTML(nsGkAtoms::table)) {
+      break;
+    }
+
+    
+    
+    if (f->IsFloating() || f->IsAbsolutelyPositioned()) {
+      break;
     }
   }
 }
