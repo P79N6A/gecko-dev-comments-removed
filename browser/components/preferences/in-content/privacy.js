@@ -2,8 +2,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
-
 var gPrivacyPane = {
 
   
@@ -105,8 +103,6 @@ var gPrivacyPane = {
                      gPrivacyPane.showCookies);
     setEventListener("clearDataSettings", "command",
                      gPrivacyPane.showClearPrivateDataSettings);
-
-    document.getElementById("searchesSuggestion").hidden = !AppConstants.NIGHTLY_BUILD;
   },
 
   
