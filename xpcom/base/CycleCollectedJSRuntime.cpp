@@ -98,7 +98,7 @@ class IncrementalFinalizeRunnable : public nsRunnable
   uint32_t mFinalizeFunctionToRun;
   bool mReleasing;
 
-  static const PRTime SliceMillis = 10; 
+  static const PRTime SliceMillis = 5; 
 
   static PLDHashOperator
   DeferredFinalizerEnumerator(DeferredFinalizeFunction& aFunction,
