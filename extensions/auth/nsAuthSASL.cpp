@@ -100,11 +100,11 @@ nsAuthSASL::GetNextToken(const void *inToken,
         
         
         
-        nsMemory::Free(unwrappedToken);
+        free(unwrappedToken);
         
         NS_CopyUnicodeToNative(mUsername, userbuf);
         messageLen = userbuf.Length() + 4 + 1;
-        message = (char *)nsMemory::Alloc(messageLen);
+        message = (char *)moz_xmalloc(messageLen);
         if (!message) {
           Reset();
           return NS_ERROR_OUT_OF_MEMORY;
@@ -118,7 +118,7 @@ nsAuthSASL::GetNextToken(const void *inToken,
         
         rv = mInnerModule->Wrap((void *) message, messageLen-1, false, 
                                 outToken, outTokenLen);
-        nsMemory::Free(message);
+        free(message);
         Reset(); 
         return NS_SUCCEEDED(rv) ? NS_SUCCESS_AUTH_FINISHED : rv;
     }

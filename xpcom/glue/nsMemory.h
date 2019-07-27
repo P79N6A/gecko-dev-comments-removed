@@ -80,8 +80,6 @@ public:
 
 
 
-
-
 #define NS_FREE_XPCOM_POINTER_ARRAY(size, array, freeFunc)                    \
     PR_BEGIN_MACRO                                                            \
         int32_t iter_ = int32_t(size);                                        \

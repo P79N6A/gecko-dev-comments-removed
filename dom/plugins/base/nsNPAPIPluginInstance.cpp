@@ -1293,7 +1293,7 @@ nsNPAPIPluginInstance::GetFormValue(nsAString& aValue)
 
   
   
-  nsMemory::Free(value);
+  free(value);
 
   return NS_OK;
 }

@@ -779,7 +779,7 @@ PendingLookup::ParseCertificates(nsIArray* aSigArray)
 
       
       certChain->add_element()->set_certificate(data, len);
-      nsMemory::Free(data);
+      free(data);
 
       rv = chainElt->HasMoreElements(&hasMoreCerts);
       NS_ENSURE_SUCCESS(rv, rv);

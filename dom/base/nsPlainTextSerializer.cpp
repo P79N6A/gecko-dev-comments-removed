@@ -1710,7 +1710,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
     foo = ToNewCString(remaining);
     
     
-    nsMemory::Free(foo);
+    free(foo);
 #endif
 
     if (nextpos == kNotFound) {

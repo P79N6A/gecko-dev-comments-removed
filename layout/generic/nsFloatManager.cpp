@@ -66,7 +66,7 @@ void* nsFloatManager::operator new(size_t aSize) CPP_THROW_NEW
 
   
   
-  return nsMemory::Alloc(aSize);
+  return moz_xmalloc(aSize);
 }
 
 void
@@ -89,7 +89,7 @@ nsFloatManager::operator delete(void* aPtr, size_t aSize)
 
   
   
-  nsMemory::Free(aPtr);
+  free(aPtr);
 }
 
 
@@ -104,7 +104,7 @@ void nsFloatManager::Shutdown()
   for (i = 0; i < sCachedFloatManagerCount; i++) {
     void* floatManager = sCachedFloatManagers[i];
     if (floatManager)
-      nsMemory::Free(floatManager);
+      free(floatManager);
   }
 
   

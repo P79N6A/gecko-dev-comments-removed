@@ -157,7 +157,7 @@ TestPref(nsIURI *uri, const char *pref)
         start = end + 1;
     }
 
-    nsMemory::Free(hostList);
+    free(hostList);
     return false;
 }
 
@@ -446,12 +446,12 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
 
         
         inBufLen = (len * 3)/4;      
-        inBuf = nsMemory::Alloc(inBufLen);
+        inBuf = moz_xmalloc(inBufLen);
         if (!inBuf)
             return NS_ERROR_OUT_OF_MEMORY;
 
         if (PL_Base64Decode(challenge, len, (char *) inBuf) == nullptr) {
-            nsMemory::Free(inBuf);
+            free(inBuf);
             return NS_ERROR_UNEXPECTED; 
         }
     }
@@ -460,7 +460,7 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
     if (NS_SUCCEEDED(rv)) {
         
         int credsLen = 5 + ((outBufLen + 2)/3)*4;
-        *creds = (char *) nsMemory::Alloc(credsLen + 1);
+        *creds = (char *) moz_xmalloc(credsLen + 1);
         if (!*creds)
             rv = NS_ERROR_OUT_OF_MEMORY;
         else {
@@ -469,11 +469,11 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
             (*creds)[credsLen] = '\0'; 
         }
         
-        nsMemory::Free(outBuf);
+        free(outBuf);
     }
 
     if (inBuf)
-        nsMemory::Free(inBuf);
+        free(inBuf);
 
     return rv;
 }

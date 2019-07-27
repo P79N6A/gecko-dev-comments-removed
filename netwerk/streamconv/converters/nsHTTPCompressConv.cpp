@@ -52,10 +52,10 @@ nsHTTPCompressConv::~nsHTTPCompressConv()
     NS_IF_RELEASE(mListener);
 
     if (mInpBuffer)
-        nsMemory::Free(mInpBuffer);
+        free(mInpBuffer);
 
     if (mOutBuffer)
-        nsMemory::Free(mOutBuffer);
+        free(mOutBuffer);
 
     
     

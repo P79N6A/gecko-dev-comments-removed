@@ -858,7 +858,7 @@ main(void)
 exit:
 
         if (currentDirPath)
-            nsMemory::Free(currentDirPath);
+            free(currentDirPath);
     } 
     
     if (NS_FAILED(rv))

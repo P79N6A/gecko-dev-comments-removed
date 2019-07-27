@@ -634,7 +634,7 @@ nsScriptNameSpaceManager::OperateCategoryEntryHash(nsICategoryManager* aCategory
   
   
   nsCID cid = *cidPtr;
-  nsMemory::Free(cidPtr);
+  free(cidPtr);
 
   if (type == nsGlobalNameStruct::eTypeExternalConstructor) {
     nsXPIDLCString constructorProto;

@@ -263,7 +263,6 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
     uint8_t* buf = ExtractMessage(line, outTokenLen);
     if (!buf)
         return NS_ERROR_FAILURE;
-    
     *outToken = nsMemory::Clone(buf, *outTokenLen);
     free(buf);
     if (!*outToken) {

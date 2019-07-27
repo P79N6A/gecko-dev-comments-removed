@@ -210,7 +210,7 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, in
   
   decoder->GetMaxLength(inText, inTextLen, outUnicodeLen);   
   if ( *outUnicodeLen ) {
-    *outUnicode = reinterpret_cast<char16_t*>(nsMemory::Alloc((*outUnicodeLen + 1) * sizeof(char16_t)));
+    *outUnicode = reinterpret_cast<char16_t*>(moz_xmalloc((*outUnicodeLen + 1) * sizeof(char16_t)));
     if ( *outUnicode ) {
       rv = decoder->Convert(inText, &inTextLen, *outUnicode, outUnicodeLen);
       (*outUnicode)[*outUnicodeLen] = '\0';                   
@@ -251,7 +251,7 @@ nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, voi
                                                               *ioLengthInBytes, ioLengthInBytes );
     if ( NS_SUCCEEDED(retVal) ) {
       if ( buffAsChars != oldBuffer )             
-        nsMemory::Free ( oldBuffer );
+        free ( oldBuffer );
       *ioData = buffAsChars;
     }
   }
@@ -267,7 +267,7 @@ nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, voi
                                                                      *ioLengthInBytes / sizeof(char16_t), &newLengthInChars );
     if ( NS_SUCCEEDED(retVal) ) {
       if ( buffAsUnichar != oldBuffer )           
-        nsMemory::Free ( oldBuffer );
+        free ( oldBuffer );
       *ioData = buffAsUnichar;
       *ioLengthInBytes = newLengthInChars * sizeof(char16_t);
     }

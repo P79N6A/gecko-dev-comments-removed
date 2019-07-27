@@ -587,7 +587,7 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
       
       else if (fullEntityText) {
         bool ok = AppendASCIItoUTF16(fullEntityText, aOutputStr, mozilla::fallible);
-        nsMemory::Free(fullEntityText);
+        free(fullEntityText);
         advanceLength += lengthReplaced;
         NS_ENSURE_TRUE(ok, false);
       }
