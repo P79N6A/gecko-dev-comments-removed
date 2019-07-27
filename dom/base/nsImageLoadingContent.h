@@ -317,11 +317,8 @@ protected:
   
 
 
-
-
-
-  void ClearCurrentRequest(nsresult aReason, uint32_t aNonvisibleAction);
-  void ClearPendingRequest(nsresult aReason, uint32_t aNonvisibleAction);
+  void ClearCurrentRequest(nsresult aReason, uint32_t aFlags);
+  void ClearPendingRequest(nsresult aReason, uint32_t aFlags);
 
   
 
@@ -353,11 +350,11 @@ protected:
 
 
 
-
-
   void TrackImage(imgIRequest* aImage);
-  void UntrackImage(imgIRequest* aImage,
-                    uint32_t aNonvisibleAction = ON_NONVISIBLE_NO_ACTION);
+  enum {
+    REQUEST_DISCARD = 0x1
+  };
+  void UntrackImage(imgIRequest* aImage, uint32_t aFlags = 0);
 
   
   nsRefPtr<imgRequestProxy> mCurrentRequest;
