@@ -48,7 +48,7 @@ searchbar {
 
 
 .browserStack > browser {
-  min-height: 25px;
+  min-height: 100px;
   min-width: 25px;
 }
 
