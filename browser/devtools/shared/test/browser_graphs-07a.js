@@ -201,11 +201,13 @@ function buggyDragStop(graph, x, y = 1) {
   x /= window.devicePixelRatio;
   y /= window.devicePixelRatio;
 
-  
-  
-  
   graph._onMouseMove({ testX: x, testY: y });
-  graph._onMouseMove({ testX: x, testY: y, buttons: 0 });
+
+  
+  
+  
+  
+  graph._onMouseMove({ testX: x+1, testY: y+1, buttons: 0 });
 }
 
 function scroll(graph, wheel, x, y = 1) {
