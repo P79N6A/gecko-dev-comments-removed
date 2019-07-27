@@ -15,16 +15,7 @@ loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
 loader.lazyServiceGetter(this, "gActivityDistributor",
                          "@mozilla.org/network/http-activity-distributor;1",
                          "nsIHttpActivityDistributor");
-loader.lazyGetter(this, "gTesting", () => {
-  let testing = false;
-  try {
-    const { gDevTools } = require("resource:///modules/devtools/gDevTools.jsm");
-    testing = gDevTools.testing;
-  } catch (e) {
-    
-  }
-  return testing;
-});
+loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
 
 
 
@@ -756,7 +747,7 @@ NetworkMonitor.prototype = {
     
     
     
-    if (!gTesting && aChannel.loadInfo &&
+    if (!gDevTools.testing && aChannel.loadInfo &&
         aChannel.loadInfo.loadingDocument === null &&
         aChannel.loadInfo.loadingPrincipal === Services.scriptSecurityManager.getSystemPrincipal()) {
       return false;
@@ -777,6 +768,12 @@ NetworkMonitor.prototype = {
       }
     }
 
+    if (aChannel.loadInfo) {
+      if (aChannel.loadInfo.contentPolicyType == Ci.nsIContentPolicy.TYPE_BEACON) {
+        return true;
+      }
+    }
+
     if (this.topFrame) {
       let topFrame = NetworkHelper.getTopFrameForRequest(aChannel);
       if (topFrame && topFrame === this.topFrame) {
@@ -787,24 +784,6 @@ NetworkMonitor.prototype = {
     if (this.appId) {
       let appId = NetworkHelper.getAppIdForRequest(aChannel);
       if (appId && appId == this.appId) {
-        return true;
-      }
-    }
-
-    
-    
-    
-    if (aChannel.loadInfo &&
-        aChannel.loadInfo.contentPolicyType == Ci.nsIContentPolicy.TYPE_BEACON) {
-      let nonE10sMatch = this.window &&
-                         aChannel.loadInfo.loadingDocument === this.window.document;
-      let e10sMatch = this.topFrame &&
-                      this.topFrame.contentPrincipal &&
-                      this.topFrame.contentPrincipal.equals(aChannel.loadInfo.loadingPrincipal) &&
-                      this.topFrame.contentPrincipal.URI.spec == aChannel.referrer.spec;
-      let b2gMatch = this.appId &&
-                     aChannel.loadInfo.loadingPrincipal.appId === this.appId;
-      if (nonE10sMatch || e10sMatch || b2gMatch) {
         return true;
       }
     }
