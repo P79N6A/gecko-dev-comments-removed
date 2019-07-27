@@ -455,7 +455,10 @@ private:
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
   nsScriptLoadRequestList mNonAsyncExternalScriptInsertedRequests;
-  nsScriptLoadRequestList mAsyncRequests;
+  
+  
+  nsScriptLoadRequestList mLoadingAsyncRequests;
+  nsScriptLoadRequestList mLoadedAsyncRequests;
   nsScriptLoadRequestList mDeferRequests;
   nsScriptLoadRequestList mXSLTRequests;
   nsRefPtr<nsScriptLoadRequest> mParserBlockingRequest;
