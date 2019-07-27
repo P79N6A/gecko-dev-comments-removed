@@ -131,6 +131,7 @@ private:
   void NotifyDrainComplete(TrackType aTrack);
   void NotifyError(TrackType aTrack);
   void NotifyWaitingForData(TrackType aTrack);
+  void NotifyEndOfStream(TrackType aTrack);
 
   void ExtractCryptoInitData(nsTArray<uint8_t>& aInitData);
 
@@ -205,6 +206,7 @@ private:
       , mNumSamplesInput(0)
       , mNumSamplesOutput(0)
       , mSizeOfQueue(0)
+      , mLastStreamSourceID(UINT32_MAX)
       , mMonitor(aType == MediaData::AUDIO_DATA ? "audio decoder data"
                                                 : "video decoder data")
     {}
@@ -231,6 +233,9 @@ private:
     bool mDiscontinuity;
 
     
+    MediaPromiseRequestHolder<MediaTrackDemuxer::SeekPromise> mSeekRequest;
+
+    
     nsTArray<nsRefPtr<MediaRawData>> mQueuedSamples;
     MediaPromiseRequestHolder<MediaTrackDemuxer::SamplesPromise> mDemuxRequest;
     MediaPromiseHolder<WaitForDataPromise> mWaitingPromise;
@@ -245,6 +250,10 @@ private:
     bool mInputExhausted;
     bool mError;
     bool mDrainComplete;
+    
+    
+    Maybe<media::TimeUnit> mTimeThreshold;
+
     
     
     nsTArray<nsRefPtr<MediaData>> mOutput;
@@ -276,6 +285,7 @@ private:
       mOutputRequested = false;
       mInputExhausted = false;
       mDrainComplete = false;
+      mTimeThreshold.reset();
       mOutput.Clear();
       mNumSamplesInput = 0;
       mNumSamplesOutput = 0;
@@ -284,9 +294,12 @@ private:
     
     Atomic<size_t> mSizeOfQueue;
     
+    uint32_t mLastStreamSourceID;
+    
     
     Monitor mMonitor;
     media::TimeIntervals mTimeRanges;
+    nsRefPtr<SharedTrackInfo> mInfo;
   };
 
   template<typename PromiseType>
@@ -393,8 +406,6 @@ private:
   }
   
   Maybe<media::TimeUnit> mPendingSeekTime;
-  MediaPromiseRequestHolder<MediaTrackDemuxer::SeekPromise> mVideoSeekRequest;
-  MediaPromiseRequestHolder<MediaTrackDemuxer::SeekPromise> mAudioSeekRequest;
   MediaPromiseHolder<SeekPromise> mSeekPromise;
 
 #ifdef MOZ_EME
