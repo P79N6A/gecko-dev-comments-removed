@@ -192,6 +192,11 @@ let PerformanceController = {
     this._onProfilerStatusUpdated = this._onProfilerStatusUpdated.bind(this);
 
     
+    this._e10s = Services.appinfo.browserTabsRemoteAutostart;
+
+    this._setMultiprocessAttributes();
+
+    
     
     
     this._nonBooleanPrefs = new ViewHelpers.Prefs("devtools.performance", {
@@ -511,6 +516,44 @@ let PerformanceController = {
       return false;
     }
     return true;
+  },
+
+  
+
+
+
+
+
+
+  getMultiprocessStatus: function () {
+    
+    
+    
+    
+    if (gDevTools.testing) {
+      return { supported: true, enabled: true };
+    }
+    let supported = SYSTEM.MULTIPROCESS_SUPPORTED;
+    
+    
+    let enabled = this._e10s;
+    return { supported, enabled };
+  },
+
+  
+
+
+
+
+  _setMultiprocessAttributes: function () {
+    let { enabled, supported } = this.getMultiprocessStatus();
+    if (!enabled && supported) {
+      $("#performance-view").setAttribute("e10s", "disabled");
+    }
+    
+    else if (!enabled && !supported) {
+      $("#performance-view").setAttribute("e10s", "unsupported");
+    }
   },
 
   toString: () => "[object PerformanceController]"

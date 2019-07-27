@@ -33,6 +33,12 @@ let OverviewView = {
   
 
 
+
+  OVERVIEW_UPDATE_INTERVAL: OVERVIEW_UPDATE_INTERVAL,
+
+  
+
+
   initialize: function () {
     this.graphs = new GraphsController({
       root: $("#overview-pane"),
@@ -45,6 +51,9 @@ let OverviewView = {
       this.disable();
       return;
     }
+
+    
+    this._multiprocessData = PerformanceController.getMultiprocessStatus();
 
     this._onRecordingWillStart = this._onRecordingWillStart.bind(this);
     this._onRecordingStarted = this._onRecordingStarted.bind(this);
@@ -173,6 +182,7 @@ let OverviewView = {
     if (this.isDisabled()) {
       return;
     }
+
     let recording = PerformanceController.getCurrentRecording();
     yield this.graphs.render(recording.getAllData(), resolution);
 
@@ -197,7 +207,7 @@ let OverviewView = {
     
     
     if (this.isRendering()) {
-      this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
+      this._timeoutId = setTimeout(this._onRecordingTick, this.OVERVIEW_UPDATE_INTERVAL);
     }
   },
 
@@ -255,7 +265,7 @@ let OverviewView = {
 
 
   _startPolling: function () {
-    this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
+    this._timeoutId = setTimeout(this._onRecordingTick, this.OVERVIEW_UPDATE_INTERVAL);
   },
 
   
@@ -343,6 +353,35 @@ let OverviewView = {
   
 
 
+
+
+
+  isRealtimeRenderingEnabled: function () {
+    return this._multiprocessData.enabled;
+  },
+
+  
+
+
+
+
+
+
+  _showGraphsPanel: function (recording) {
+    this._setGraphVisibilityFromRecordingFeatures(recording);
+    $("#overview-pane").hidden = false;
+  },
+
+  
+
+
+  _hideGraphsPanel: function () {
+    $("#overview-pane").hidden = true;
+  },
+
+  
+
+
   _onThemeChanged: function (_, theme) {
     this.graphs.setTheme({ theme, redraw: true });
   },
@@ -361,12 +400,26 @@ let OverviewView = {
 
 
 function OverviewViewOnStateChange (fn) {
-  return function _onRecordingStateChange () {
+  return function _onRecordingStateChange (eventName, recording) {
     let currentRecording = PerformanceController.getCurrentRecording();
 
     
-    if (!currentRecording) {
+    
+    
+    if (!currentRecording || !recording) {
       return;
+    }
+
+    
+    
+    if (!this.isRealtimeRenderingEnabled()) {
+      if (recording.isRecording()) {
+        this._hideGraphsPanel();
+        
+        return;
+      } else {
+        this._showGraphsPanel(recording);
+      }
     }
 
     if (this.isRendering() && !currentRecording.isRecording()) {
