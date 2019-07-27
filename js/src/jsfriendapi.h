@@ -565,6 +565,7 @@ public:
 
 
 
+
 struct Object {
     shadow::ObjectGroup *group;
     shadow::Shape       *shape;
@@ -683,10 +684,14 @@ IsScopeObject(JSObject *obj);
 JS_FRIEND_API(bool)
 IsCallObject(JSObject *obj);
 
+JS_FRIEND_API(bool)
+CanAccessObjectShape(JSObject *obj);
+
 inline JSObject *
 GetObjectParent(JSObject *obj)
 {
     MOZ_ASSERT(!IsScopeObject(obj));
+    MOZ_ASSERT(CanAccessObjectShape(obj));
     return reinterpret_cast<shadow::Object*>(obj)->shape->base->parent;
 }
 
@@ -695,9 +700,6 @@ GetObjectCompartment(JSObject *obj)
 {
     return reinterpret_cast<shadow::Object*>(obj)->group->compartment;
 }
-
-JS_FRIEND_API(JSObject *)
-GetObjectParentMaybeScope(JSObject *obj);
 
 JS_FRIEND_API(JSObject *)
 GetGlobalForObjectCrossCompartment(JSObject *obj);

@@ -38,7 +38,7 @@ NewObjectCache::fillGlobal(EntryIndex entry, const Class *clasp, js::GlobalObjec
     return fill(entry, clasp, global, kind, obj);
 }
 
-inline JSObject *
+inline NativeObject *
 NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::InitialHeap heap)
 {
     
@@ -47,7 +47,7 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::I
     MOZ_ASSERT(unsigned(entryIndex) < mozilla::ArrayLength(entries));
     Entry *entry = &entries[entryIndex];
 
-    JSObject *templateObj = reinterpret_cast<JSObject *>(&entry->templateObject);
+    NativeObject *templateObj = reinterpret_cast<NativeObject *>(&entry->templateObject);
 
     
     
@@ -59,7 +59,7 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::I
     if (cx->runtime()->gc.upcomingZealousGC())
         return nullptr;
 
-    JSObject *obj = js::gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, group->clasp());
+    NativeObject *obj = js::gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, group->clasp());
     if (obj) {
         copyCachedToObject(obj, templateObj, entry->kind);
         probes::CreateObject(cx, obj);

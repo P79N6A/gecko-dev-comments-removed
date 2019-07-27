@@ -16,6 +16,8 @@ namespace js {
 
 class ProxyObject : public JSObject
 {
+    HeapPtrShape shape;
+
     
     ProxyDataLayout data;
 

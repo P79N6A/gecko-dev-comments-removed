@@ -297,7 +297,7 @@ class NewObjectCache
 
 
 
-    inline JSObject *newObjectFromHit(JSContext *cx, EntryIndex entry, js::gc::InitialHeap heap);
+    inline NativeObject *newObjectFromHit(JSContext *cx, EntryIndex entry, js::gc::InitialHeap heap);
 
     
     void fillProto(EntryIndex entry, const Class *clasp, js::TaggedProto proto,
@@ -344,7 +344,7 @@ class NewObjectCache
         js_memcpy(&entry->templateObject, obj, entry->nbytes);
     }
 
-    static void copyCachedToObject(JSObject *dst, JSObject *src, gc::AllocKind kind) {
+    static void copyCachedToObject(NativeObject *dst, NativeObject *src, gc::AllocKind kind) {
         js_memcpy(dst, src, gc::Arena::thingSize(kind));
         Shape::writeBarrierPost(dst->shape_, &dst->shape_);
         ObjectGroup::writeBarrierPost(dst->group_, &dst->group_);

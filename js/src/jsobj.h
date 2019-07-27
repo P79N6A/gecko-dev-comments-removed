@@ -101,11 +101,12 @@ bool SetImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool 
 
 
 
+
+
 class JSObject : public js::gc::Cell
 {
   protected:
     js::HeapPtrObjectGroup group_;
-    js::HeapPtrShape shape_;
 
   private:
     friend class js::Shape;
@@ -121,13 +122,8 @@ class JSObject : public js::gc::Cell
     static js::ObjectGroup *makeLazyGroup(JSContext *cx, js::HandleObject obj);
 
   public:
-    js::Shape * lastProperty() const {
-        MOZ_ASSERT(shape_);
-        return shape_;
-    }
-
     bool isNative() const {
-        return lastProperty()->isNative();
+        return getClass()->isNative();
     }
 
     const js::Class *getClass() const {
@@ -172,6 +168,9 @@ class JSObject : public js::gc::Cell
         return group_->compartment();
     }
 
+    inline js::Shape *maybeShape() const;
+    inline js::Shape *ensureShape(js::ExclusiveContext *cx);
+
     
 
 
@@ -186,6 +185,13 @@ class JSObject : public js::gc::Cell
     
     
     
+    inline void setInitialShapeMaybeNonNative(js::Shape *shape);
+    inline void setShapeMaybeNonNative(js::Shape *shape);
+
+    
+    
+    
+    
     inline void setInitialSlotsMaybeNonNative(js::HeapSlot *slots);
     inline void setInitialElementsMaybeNonNative(js::HeapSlot *elements);
 
@@ -194,8 +200,9 @@ class JSObject : public js::gc::Cell
         GENERATE_SHAPE
     };
 
-    bool setFlags(js::ExclusiveContext *cx,  uint32_t flags,
+    bool setFlags(js::ExclusiveContext *cx, js::BaseShape::Flag flags,
                   GenerateShape generateShape = GENERATE_NONE);
+    inline bool hasAllFlags(js::BaseShape::Flag flags) const;
 
     
 
@@ -206,23 +213,15 @@ class JSObject : public js::gc::Cell
 
 
 
-    bool isDelegate() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::DELEGATE);
-    }
-
+    inline bool isDelegate() const;
     bool setDelegate(js::ExclusiveContext *cx) {
         return setFlags(cx, js::BaseShape::DELEGATE, GENERATE_SHAPE);
     }
 
-    bool isBoundFunction() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::BOUND_FUNCTION);
-    }
-
+    inline bool isBoundFunction() const;
     inline bool hasSpecialEquality() const;
 
-    bool watched() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::WATCHED);
-    }
+    inline bool watched() const;
     bool setWatched(js::ExclusiveContext *cx) {
         return setFlags(cx, js::BaseShape::WATCHED, GENERATE_SHAPE);
     }
@@ -244,9 +243,7 @@ class JSObject : public js::gc::Cell
 
 
 
-    bool hasUncacheableProto() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::UNCACHEABLE_PROTO);
-    }
+    inline bool hasUncacheableProto() const;
     bool setUncacheableProto(js::ExclusiveContext *cx) {
         return setFlags(cx, js::BaseShape::UNCACHEABLE_PROTO, GENERATE_SHAPE);
     }
@@ -255,9 +252,7 @@ class JSObject : public js::gc::Cell
 
 
 
-    bool hadElementsAccess() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::HAD_ELEMENTS_ACCESS);
-    }
+    inline bool hadElementsAccess() const;
     bool setHadElementsAccess(js::ExclusiveContext *cx) {
         return setFlags(cx, js::BaseShape::HAD_ELEMENTS_ACCESS);
     }
@@ -266,17 +261,7 @@ class JSObject : public js::gc::Cell
 
 
 
-    bool isIndexed() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::INDEXED);
-    }
-
-    uint32_t propertyCount() const {
-        return lastProperty()->entryCount();
-    }
-
-    bool hasShapeTable() const {
-        return lastProperty()->hasTable();
-    }
+    inline bool isIndexed() const;
 
     
 
@@ -295,7 +280,7 @@ class JSObject : public js::gc::Cell
         return JS::shadow::Zone::asShadowZone(zone());
     }
     MOZ_ALWAYS_INLINE JS::Zone *zoneFromAnyThread() const {
-        return shape_->zoneFromAnyThread();
+        return group_->zoneFromAnyThread();
     }
     MOZ_ALWAYS_INLINE JS::shadow::Zone *shadowZoneFromAnyThread() const {
         return JS::shadow::Zone::asShadowZone(zoneFromAnyThread());
@@ -377,10 +362,7 @@ class JSObject : public js::gc::Cell
 
     
     
-    bool nonLazyPrototypeIsImmutable() const {
-        MOZ_ASSERT(!hasLazyPrototype());
-        return lastProperty()->hasObjectFlag(js::BaseShape::IMMUTABLE_PROTOTYPE);
-    }
+    inline bool nonLazyPrototypeIsImmutable() const;
 
     inline void setGroup(js::ObjectGroup *group);
 
@@ -389,9 +371,7 @@ class JSObject : public js::gc::Cell
 
 
 
-    bool isIteratedSingleton() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::ITERATED_SINGLETON);
-    }
+    inline bool isIteratedSingleton() const;
     bool setIteratedSingleton(js::ExclusiveContext *cx) {
         return setFlags(cx, js::BaseShape::ITERATED_SINGLETON);
     }
@@ -400,15 +380,11 @@ class JSObject : public js::gc::Cell
 
 
 
-    bool isNewGroupUnknown() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::NEW_GROUP_UNKNOWN);
-    }
+    inline bool isNewGroupUnknown() const;
     static bool setNewGroupUnknown(JSContext *cx, const js::Class *clasp, JS::HandleObject obj);
 
     
-    bool wasNewScriptCleared() const {
-        return lastProperty()->hasObjectFlag(js::BaseShape::NEW_SCRIPT_CLEARED);
-    }
+    inline bool wasNewScriptCleared() const;
     bool setNewScriptCleared(js::ExclusiveContext *cx) {
         return setFlags(cx, js::BaseShape::NEW_SCRIPT_CLEARED);
     }
@@ -449,9 +425,7 @@ class JSObject : public js::gc::Cell
 
 
     
-    JSObject *getParent() const {
-        return lastProperty()->getObjectParent();
-    }
+    JSObject *getParent() const;
     static bool setParent(JSContext *cx, js::HandleObject obj, js::HandleObject newParent);
 
     
@@ -462,9 +436,7 @@ class JSObject : public js::gc::Cell
     inline JSObject *enclosingScope();
 
     
-    inline JSObject *getMetadata() const {
-        return lastProperty()->getObjectMetadata();
-    }
+    inline JSObject *getMetadata() const;
     static bool setMetadata(JSContext *cx, js::HandleObject obj, js::HandleObject newMetadata);
 
     inline js::GlobalObject &global() const;
@@ -479,12 +451,7 @@ class JSObject : public js::gc::Cell
     
     
     
-    bool nonProxyIsExtensible() const {
-        MOZ_ASSERT(!uninlinedIsProxy());
-
-        
-        return !lastProperty()->hasObjectFlag(js::BaseShape::NOT_EXTENSIBLE);
-    }
+    inline bool nonProxyIsExtensible() const;
 
   public:
     
@@ -576,8 +543,8 @@ class JSObject : public js::gc::Cell
 
     
 
-    static size_t offsetOfShape() { return offsetof(JSObject, shape_); }
     static size_t offsetOfGroup() { return offsetof(JSObject, group_); }
+    static size_t offsetOfShape() { return sizeof(JSObject); }
 
     
     static const size_t MAX_BYTE_SIZE = 4 * sizeof(void *) + 16 * sizeof(JS::Value);
@@ -624,12 +591,12 @@ operator!=(const JSObject &lhs, const JSObject &rhs)
 }
 
 
-struct JSObject_Slots0 : JSObject { void *data[2]; };
-struct JSObject_Slots2 : JSObject { void *data[2]; js::Value fslots[2]; };
-struct JSObject_Slots4 : JSObject { void *data[2]; js::Value fslots[4]; };
-struct JSObject_Slots8 : JSObject { void *data[2]; js::Value fslots[8]; };
-struct JSObject_Slots12 : JSObject { void *data[2]; js::Value fslots[12]; };
-struct JSObject_Slots16 : JSObject { void *data[2]; js::Value fslots[16]; };
+struct JSObject_Slots0 : JSObject { void *data[3]; };
+struct JSObject_Slots2 : JSObject { void *data[3]; js::Value fslots[2]; };
+struct JSObject_Slots4 : JSObject { void *data[3]; js::Value fslots[4]; };
+struct JSObject_Slots8 : JSObject { void *data[3]; js::Value fslots[8]; };
+struct JSObject_Slots12 : JSObject { void *data[3]; js::Value fslots[12]; };
+struct JSObject_Slots16 : JSObject { void *data[3]; js::Value fslots[16]; };
 
  MOZ_ALWAYS_INLINE void
 JSObject::readBarrier(JSObject *obj)

@@ -170,7 +170,7 @@ js::ForOfPIC::Chain::getMatchingStub(JSObject *obj)
 
     
     for (Stub *stub = stubs(); stub != nullptr; stub = stub->next()) {
-        if (stub->shape() == obj->lastProperty())
+        if (stub->shape() == obj->maybeShape())
             return stub;
     }
 

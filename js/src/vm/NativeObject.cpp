@@ -386,13 +386,14 @@ void
 NativeObject::setLastPropertyMakeNative(ExclusiveContext *cx, Shape *shape)
 {
     MOZ_ASSERT(getClass()->isNative());
-    MOZ_ASSERT(!lastProperty()->isNative());
     MOZ_ASSERT(shape->isNative());
-    MOZ_ASSERT(!inDictionaryMode());
     MOZ_ASSERT(!shape->inDictionary());
-    MOZ_ASSERT(shape->compartment() == compartment());
 
-    shape_ = shape;
+    
+    
+    
+    shape_.init(shape);
+
     slots_ = nullptr;
     elements_ = emptyObjectElements;
 

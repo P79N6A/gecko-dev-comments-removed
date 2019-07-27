@@ -152,6 +152,9 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
 class UnboxedPlainObject : public JSObject
 {
     
+    void *dummy_;
+
+    
     uint8_t data_[1];
 
   public:
