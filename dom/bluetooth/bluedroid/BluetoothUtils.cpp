@@ -58,6 +58,15 @@ UuidToServiceClassInt(bt_uuid_t* p_uuid)
   return ntohs(shortUuid);
 }
 
+uint16_t
+UuidToServiceClassInt(const BluetoothUuid& mUuid)
+{
+  
+  uint16_t shortUuid;
+  memcpy(&shortUuid, mUuid.mUuid + 2, sizeof(uint16_t));
+  return ntohs(shortUuid);
+}
+
 bool
 SetJsObject(JSContext* aContext,
             const BluetoothValue& aValue,
