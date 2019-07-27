@@ -545,6 +545,33 @@ private:
     }
   }
 
+  bool Check3gppPermission()
+  {
+    nsCOMPtr<nsIDocument> doc = mRecorder->GetOwner()->GetExtantDoc();
+    if (!doc) {
+      return false;
+    }
+
+    uint16_t appStatus = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
+    doc->NodePrincipal()->GetAppStatus(&appStatus);
+
+    
+    if (appStatus == nsIPrincipal::APP_STATUS_CERTIFIED) {
+      return true;
+    }
+
+    nsCOMPtr<nsIPermissionManager> pm =
+       do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+
+    if (!pm) {
+      return false;
+    }
+
+    uint32_t perm = nsIPermissionManager::DENY_ACTION;
+    pm->TestExactPermissionFromPrincipal(doc->NodePrincipal(), "audio-capture:3gpp", &perm);
+    return perm == nsIPermissionManager::ALLOW_ACTION;
+  }
+
   void InitEncoder(uint8_t aTrackTypes)
   {
     LOG(PR_LOG_DEBUG, ("Session.InitEncoder %p", this));
@@ -553,14 +580,8 @@ private:
     
     
 
-    nsCOMPtr<nsIDocument> doc = mRecorder->GetOwner()->GetExtantDoc();
-    uint16_t appStatus = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
-    if (doc) {
-      doc->NodePrincipal()->GetAppStatus(&appStatus);
-    }
     
-    if (appStatus == nsIPrincipal::APP_STATUS_CERTIFIED &&
-         mRecorder->mMimeType.EqualsLiteral(AUDIO_3GPP)) {
+    if (mRecorder->mMimeType.EqualsLiteral(AUDIO_3GPP) && Check3gppPermission()) {
       mEncoder = MediaEncoder::CreateEncoder(NS_LITERAL_STRING(AUDIO_3GPP), aTrackTypes);
     } else {
       mEncoder = MediaEncoder::CreateEncoder(NS_LITERAL_STRING(""), aTrackTypes);
