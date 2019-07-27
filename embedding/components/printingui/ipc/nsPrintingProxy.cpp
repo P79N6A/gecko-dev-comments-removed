@@ -95,17 +95,24 @@ nsPrintingProxy::ShowPrintDialog(nsIDOMWindow *parent,
   rv = po->SerializeToPrintData(printSettings, webBrowserPrint, &inSettings);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PrintData modifiedSettings;
-  bool success;
+  
+  
+  
+  
 
-  mozilla::unused << SendShowPrintDialog(pBrowser, inSettings, &modifiedSettings, &success);
+  nsRefPtr<PrintSettingsDialogChild> dialog = new PrintSettingsDialogChild();
+  SendPPrintSettingsDialogConstructor(dialog);
 
-  if (!success) {
-    
-    return NS_ERROR_FAILURE;
+  mozilla::unused << SendShowPrintDialog(dialog, pBrowser, inSettings);
+
+  while(!dialog->returned()) {
+    NS_ProcessNextEvent(nullptr, true);
   }
 
-  rv = po->DeserializeToPrintSettings(modifiedSettings, printSettings);
+  rv = dialog->result();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = po->DeserializeToPrintSettings(dialog->data(), printSettings);
   return NS_OK;
 }
 
@@ -205,4 +212,22 @@ nsPrintingProxy::DeallocPPrintProgressDialogChild(PPrintProgressDialogChild* aAc
   NS_NOTREACHED("Deallocator for PPrintProgressDialogChild should not be "
                 "called on nsPrintingProxy.");
   return false;
+}
+
+PPrintSettingsDialogChild*
+nsPrintingProxy::AllocPPrintSettingsDialogChild()
+{
+  
+  
+  NS_NOTREACHED("Allocator for PPrintSettingsDialogChild should not be "
+                "called on nsPrintingProxy.");
+  return nullptr;
+}
+
+bool
+nsPrintingProxy::DeallocPPrintSettingsDialogChild(PPrintSettingsDialogChild* aActor)
+{
+  
+  
+  return true;
 }
