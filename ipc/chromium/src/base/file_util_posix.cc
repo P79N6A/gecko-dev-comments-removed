@@ -14,7 +14,7 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <sys/mman.h>
 #define _DARWIN_USE_64_BIT_INODE
 #include <sys/stat.h>
