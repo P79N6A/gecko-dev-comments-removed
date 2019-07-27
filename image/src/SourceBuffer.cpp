@@ -22,6 +22,13 @@ namespace image {
 
 
 
+SourceBufferIterator::~SourceBufferIterator()
+{
+  if (mOwner) {
+    mOwner->OnIteratorRelease();
+  }
+}
+
 SourceBufferIterator::State
 SourceBufferIterator::AdvanceOrScheduleResume(IResumable* aConsumer)
 {
@@ -43,7 +50,14 @@ SourceBufferIterator::RemainingBytesIsNoMoreThan(size_t aBytes) const
 
 SourceBuffer::SourceBuffer()
   : mMutex("image::SourceBuffer")
+  , mConsumerCount(0)
 { }
+
+SourceBuffer::~SourceBuffer()
+{
+  MOZ_ASSERT(mConsumerCount == 0,
+             "SourceBuffer destroyed with active consumers");
+}
 
 nsresult
 SourceBuffer::AppendChunk(Maybe<Chunk>&& aChunk)
@@ -72,7 +86,7 @@ SourceBuffer::AppendChunk(Maybe<Chunk>&& aChunk)
 }
 
 Maybe<SourceBuffer::Chunk>
-SourceBuffer::CreateChunk(size_t aCapacity)
+SourceBuffer::CreateChunk(size_t aCapacity, bool aRoundUp )
 {
   if (MOZ_UNLIKELY(aCapacity == 0)) {
     MOZ_ASSERT_UNREACHABLE("Appending a chunk of zero size?");
@@ -80,8 +94,79 @@ SourceBuffer::CreateChunk(size_t aCapacity)
   }
 
   
-  if (MOZ_UNLIKELY(SIZE_MAX - aCapacity < MIN_CHUNK_CAPACITY)) {
+  size_t finalCapacity = aRoundUp ? RoundedUpCapacity(aCapacity)
+                                  : aCapacity;
+
+  
+  
+  
+  
+  if (MOZ_UNLIKELY(!SurfaceCache::CanHold(finalCapacity))) {
     return Nothing();
+  }
+
+  return Some(Chunk(finalCapacity));
+}
+
+nsresult
+SourceBuffer::Compact()
+{
+  mMutex.AssertCurrentThreadOwns();
+
+  MOZ_ASSERT(mConsumerCount == 0, "Should have no consumers here");
+  MOZ_ASSERT(mWaitingConsumers.Length() == 0, "Shouldn't have waiters");
+  MOZ_ASSERT(mStatus, "Should be complete here");
+
+  
+  
+  mWaitingConsumers.Compact();
+
+  
+  if (mChunks.Length() < 2) {
+    return NS_OK;
+  }
+
+  
+  size_t length = 0;
+  for (uint32_t i = 0 ; i < mChunks.Length() ; ++i) {
+    length += mChunks[i].Length();
+  }
+
+  Maybe<Chunk> newChunk = CreateChunk(length,  false);
+  if (MOZ_UNLIKELY(!newChunk || newChunk->AllocationFailed())) {
+    NS_WARNING("Failed to allocate chunk for SourceBuffer compacting - OOM?");
+    return NS_OK;
+  }
+
+  
+  for (uint32_t i = 0 ; i < mChunks.Length() ; ++i) {
+    size_t offset = newChunk->Length();
+    MOZ_ASSERT(offset < newChunk->Capacity());
+    MOZ_ASSERT(offset + mChunks[i].Length() <= newChunk->Capacity());
+
+    memcpy(newChunk->Data() + offset, mChunks[i].Data(), mChunks[i].Length());
+    newChunk->AddLength(mChunks[i].Length());
+  }
+
+  MOZ_ASSERT(newChunk->Length() == newChunk->Capacity(),
+             "Compacted chunk has slack space");
+
+  
+  mChunks.Clear();
+  if (MOZ_UNLIKELY(NS_FAILED(AppendChunk(Move(newChunk))))) {
+    return HandleError(NS_ERROR_OUT_OF_MEMORY);
+  }
+  mChunks.Compact();
+
+  return NS_OK;
+}
+
+ size_t
+SourceBuffer::RoundedUpCapacity(size_t aCapacity)
+{
+  
+  if (MOZ_UNLIKELY(SIZE_MAX - aCapacity < MIN_CHUNK_CAPACITY)) {
+    return aCapacity;
   }
 
   
@@ -91,15 +176,7 @@ SourceBuffer::CreateChunk(size_t aCapacity)
   MOZ_ASSERT(roundedCapacity >= aCapacity, "Bad math?");
   MOZ_ASSERT(roundedCapacity - aCapacity < MIN_CHUNK_CAPACITY, "Bad math?");
 
-  
-  
-  
-  
-  if (MOZ_UNLIKELY(!SurfaceCache::CanHold(roundedCapacity))) {
-    return Nothing();
-  }
-
-  return Some(Chunk(roundedCapacity));
+  return roundedCapacity;
 }
 
 size_t
@@ -291,6 +368,14 @@ SourceBuffer::Complete(nsresult aStatus)
 
   
   ResumeWaitingConsumers();
+
+  
+  if (mConsumerCount > 0) {
+    return;
+  }
+
+  
+  Compact();
 }
 
 bool
@@ -321,6 +406,34 @@ SourceBuffer::SizeOfIncludingThisWithComputedFallback(MallocSizeOf
   }
 
   return n;
+}
+
+SourceBufferIterator
+SourceBuffer::Iterator()
+{
+  {
+    MutexAutoLock lock(mMutex);
+    mConsumerCount++;
+  }
+
+  return SourceBufferIterator(this);
+}
+
+void
+SourceBuffer::OnIteratorRelease()
+{
+  MutexAutoLock lock(mMutex);
+
+  MOZ_ASSERT(mConsumerCount > 0, "Consumer count doesn't add up");
+  mConsumerCount--;
+
+  
+  if (mConsumerCount > 0 || !mStatus) {
+    return;
+  }
+
+  
+  Compact();
 }
 
 bool

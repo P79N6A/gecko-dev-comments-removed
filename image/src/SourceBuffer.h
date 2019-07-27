@@ -91,6 +91,8 @@ public:
     , mData(aOther.mData)
   { }
 
+  ~SourceBufferIterator();
+
   SourceBufferIterator& operator=(SourceBufferIterator&& aOther)
   {
     mOwner = Move(aOther.mOwner);
@@ -250,13 +252,13 @@ public:
   
 
   
-  SourceBufferIterator Iterator() { return SourceBufferIterator(this); }
+  SourceBufferIterator Iterator();
 
 
 private:
   friend class SourceBufferIterator;
 
-  ~SourceBuffer() { }
+  ~SourceBuffer();
 
   
   
@@ -321,7 +323,9 @@ private:
   };
 
   nsresult AppendChunk(Maybe<Chunk>&& aChunk);
-  Maybe<Chunk> CreateChunk(size_t aCapacity);
+  Maybe<Chunk> CreateChunk(size_t aCapacity, bool aRoundUp = true);
+  nsresult Compact();
+  static size_t RoundedUpCapacity(size_t aCapacity);
   size_t FibonacciCapacityWithMinimum(size_t aMinCapacity);
 
 
@@ -339,6 +343,7 @@ private:
   bool RemainingBytesIsNoMoreThan(const SourceBufferIterator& aIterator,
                                   size_t aBytes) const;
 
+  void OnIteratorRelease();
 
   
   
@@ -366,6 +371,9 @@ private:
 
   
   Maybe<nsresult> mStatus;
+
+  
+  uint32_t mConsumerCount;
 };
 
 } 
