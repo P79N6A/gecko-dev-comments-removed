@@ -763,10 +763,10 @@ class MacroAssemblerX86Shared : public Assembler
         movapd(src, dest);
     }
     void zeroDouble(FloatRegister reg) {
-        xorpd(reg, reg);
+        vxorpd(reg, reg, reg);
     }
     void zeroFloat32(FloatRegister reg) {
-        xorps(reg, reg);
+        vxorps(reg, reg, reg);
     }
     void negateDouble(FloatRegister reg) {
         
@@ -774,14 +774,14 @@ class MacroAssemblerX86Shared : public Assembler
         psllq(Imm32(63), ScratchDoubleReg);
 
         
-        xorpd(ScratchDoubleReg, reg); 
+        vxorpd(ScratchDoubleReg, reg, reg); 
     }
     void negateFloat(FloatRegister reg) {
         pcmpeqw(ScratchFloat32Reg, ScratchFloat32Reg);
         psllq(Imm32(31), ScratchFloat32Reg);
 
         
-        xorps(ScratchFloat32Reg, reg); 
+        vxorps(ScratchFloat32Reg, reg, reg); 
     }
     void addDouble(FloatRegister src, FloatRegister dest) {
         vaddsd(src, dest, dest);
@@ -820,16 +820,22 @@ class MacroAssemblerX86Shared : public Assembler
     void bitwiseAndX4(const Operand &src, FloatRegister dest) {
         
         
-        andps(src, dest);
+        vandps(src, dest, dest);
     }
     void bitwiseAndNotX4(const Operand &src, FloatRegister dest) {
-        andnps(src, dest);
+        vandnps(src, dest, dest);
     }
     void bitwiseOrX4(const Operand &src, FloatRegister dest) {
-        orps(src, dest);
+        vorps(src, dest, dest);
     }
     void bitwiseXorX4(const Operand &src, FloatRegister dest) {
-        xorps(src, dest);
+        vxorps(src, dest, dest);
+    }
+    void zeroFloat32x4(FloatRegister dest) {
+        vxorps(dest, dest, dest);
+    }
+    void zeroInt32x4(FloatRegister dest) {
+        vpxor(dest, dest, dest);
     }
 
     void loadAlignedInt32x4(const Address &src, FloatRegister dest) {
@@ -875,10 +881,10 @@ class MacroAssemblerX86Shared : public Assembler
         pcmpgtd(src, dest);
     }
     void packedAddInt32(const Operand &src, FloatRegister dest) {
-        paddd(src, dest);
+        vpaddd(src, dest, dest);
     }
     void packedSubInt32(const Operand &src, FloatRegister dest) {
-        psubd(src, dest);
+        vpsubd(src, dest, dest);
     }
     void packedReciprocalFloat32x4(const Operand &src, FloatRegister dest) {
         
@@ -1105,7 +1111,7 @@ class MacroAssemblerX86Shared : public Assembler
 
         
         if (u == 0) {
-            xorpd(dest, dest);
+            zeroDouble(dest);
             return true;
         }
 
@@ -1125,7 +1131,7 @@ class MacroAssemblerX86Shared : public Assembler
 
         
         if (u == 0) {
-            xorps(dest, dest);
+            zeroFloat32(dest);
             return true;
         }
         return false;
@@ -1135,7 +1141,7 @@ class MacroAssemblerX86Shared : public Assembler
         static const SimdConstant zero = SimdConstant::CreateX4(0, 0, 0, 0);
         static const SimdConstant minusOne = SimdConstant::CreateX4(-1, -1, -1, -1);
         if (v == zero) {
-            pxor(dest, dest);
+            zeroInt32x4(dest);
             return true;
         }
         if (v == minusOne) {
@@ -1149,7 +1155,7 @@ class MacroAssemblerX86Shared : public Assembler
         if (v == zero) {
             
             
-            xorps(dest, dest);
+            zeroFloat32x4(dest);
             return true;
         }
         return false;

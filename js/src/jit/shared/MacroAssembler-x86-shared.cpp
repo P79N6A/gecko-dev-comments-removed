@@ -217,7 +217,7 @@ MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
     
     if (maybeNonZero) {
         
-        xorpd(ScratchDoubleReg, ScratchDoubleReg);
+        zeroDouble(ScratchDoubleReg);
 
         
         branchDouble(DoubleNotEqual, reg, ScratchDoubleReg, &nonZero);
