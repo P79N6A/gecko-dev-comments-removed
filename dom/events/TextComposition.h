@@ -88,6 +88,14 @@ public:
   
 
 
+  uint32_t NativeOffsetOfStartComposition() const
+  {
+    return mCompositionStartOffset;
+  }
+
+  
+
+
   uint32_t OffsetOfTargetClause() const { return mCompositionTargetOffset; }
 
   
