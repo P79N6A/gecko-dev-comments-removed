@@ -70,6 +70,36 @@ BufferSizeFromStrideAndHeight(int32_t aStride,
                               int32_t aHeight,
                               int32_t aExtraBytes = 0);
 
+
+
+
+void
+CopyRect(DataSourceSurface* aSrc, DataSourceSurface* aDest,
+         IntRect aSrcRect, IntPoint aDestPoint);
+
+
+
+
+
+
+
+TemporaryRef<DataSourceSurface>
+CreateDataSourceSurfaceByCloning(DataSourceSurface* aSource);
+
+
+
+
+uint8_t*
+DataAtOffset(DataSourceSurface* aSurface, IntPoint aPoint);
+
+
+
+
+
+
+bool
+SurfaceContainsPoint(SourceSurface* aSurface, const IntPoint& aPoint);
+
 }
 }
 
