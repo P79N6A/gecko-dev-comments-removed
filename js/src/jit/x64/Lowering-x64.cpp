@@ -132,18 +132,6 @@ LIRGeneratorX64::lowerUntypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock 
 }
 
 void
-LIRGeneratorX64::visitCompareExchangeTypedArrayElement(MCompareExchangeTypedArrayElement *ins)
-{
-    lowerCompareExchangeTypedArrayElement(ins,  false);
-}
-
-void
-LIRGeneratorX64::visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop *ins)
-{
-    lowerAtomicTypedArrayElementBinop(ins,  false);
-}
-
-void
 LIRGeneratorX64::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins)
 {
     MOZ_ASSERT(ins->input()->type() == MIRType_Int32);
@@ -212,58 +200,13 @@ LIRGeneratorX64::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
 void
 LIRGeneratorX64::visitAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap *ins)
 {
-    MDefinition *ptr = ins->ptr();
-    MOZ_ASSERT(ptr->type() == MIRType_Int32);
-
-    const LAllocation oldval = useRegister(ins->oldValue());
-    const LAllocation newval = useRegister(ins->newValue());
-
-    LAsmJSCompareExchangeHeap *lir =
-        new(alloc()) LAsmJSCompareExchangeHeap(useRegister(ptr), oldval, newval);
-
-    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    lowerAsmJSCompareExchangeHeap(ins, LDefinition::BogusTemp());
 }
 
 void
 LIRGeneratorX64::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins)
 {
-    MDefinition *ptr = ins->ptr();
-    MOZ_ASSERT(ptr->type() == MIRType_Int32);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    bool bitOp = !(ins->operation() == AtomicFetchAddOp || ins->operation() == AtomicFetchSubOp);
-    LAllocation value = useRegister(ins->value());
-    LDefinition tempDef = bitOp ? temp() : LDefinition::BogusTemp();
-
-    LAsmJSAtomicBinopHeap *lir =
-        new(alloc()) LAsmJSAtomicBinopHeap(useRegister(ptr), value, tempDef);
-
-    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    lowerAsmJSAtomicBinopHeap(ins, LDefinition::BogusTemp());
 }
 
 void

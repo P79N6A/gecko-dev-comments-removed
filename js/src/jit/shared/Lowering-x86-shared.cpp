@@ -364,8 +364,7 @@ LIRGeneratorX86Shared::lowerTruncateFToInt32(MTruncateToInt32 *ins)
 }
 
 void
-LIRGeneratorX86Shared::lowerCompareExchangeTypedArrayElement(MCompareExchangeTypedArrayElement *ins,
-                                                             bool useI386ByteRegisters)
+LIRGeneratorX86Shared::visitCompareExchangeTypedArrayElement(MCompareExchangeTypedArrayElement *ins)
 {
     MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
     MOZ_ASSERT(ins->arrayType() != Scalar::Float64);
@@ -391,6 +390,7 @@ LIRGeneratorX86Shared::lowerCompareExchangeTypedArrayElement(MCompareExchangeTyp
     
     
     
+    
 
     bool fixedOutput = false;
     LDefinition tempDef = LDefinition::BogusTemp();
@@ -400,12 +400,13 @@ LIRGeneratorX86Shared::lowerCompareExchangeTypedArrayElement(MCompareExchangeTyp
         newval = useRegister(ins->newval());
     } else {
         fixedOutput = true;
-        if (useI386ByteRegisters && ins->isByteArray())
+        if (ins->isByteArray())
             newval = useFixed(ins->newval(), ebx);
         else
             newval = useRegister(ins->newval());
     }
 
+    
     const LAllocation oldval = useRegister(ins->oldval());
 
     LCompareExchangeTypedArrayElement *lir =
@@ -418,8 +419,7 @@ LIRGeneratorX86Shared::lowerCompareExchangeTypedArrayElement(MCompareExchangeTyp
 }
 
 void
-LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop *ins,
-                                                         bool useI386ByteRegisters)
+LIRGeneratorX86Shared::visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop *ins)
 {
     MOZ_ASSERT(ins->arrayType() != Scalar::Uint8Clamped);
     MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
@@ -488,11 +488,12 @@ LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
         } else {
             tempDef1 = temp();
         }
-    } else if (useI386ByteRegisters && ins->isByteArray()) {
+    } else if (ins->isByteArray()) {
         value = useFixed(ins->value(), ebx);
         if (bitOp)
             tempDef1 = tempFixed(ecx);
-    } else {
+    }
+    else {
         value = useRegister(ins->value());
         if (bitOp)
             tempDef1 = temp();
@@ -505,6 +506,133 @@ LIRGeneratorX86Shared::lowerAtomicTypedArrayElementBinop(MAtomicTypedArrayElemen
         defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
     else
         define(lir, ins);
+}
+
+void
+LIRGeneratorX86Shared::lowerAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap *ins,
+						     const LDefinition& addrTemp)
+{
+    MDefinition *ptr = ins->ptr();
+    MOZ_ASSERT(ptr->type() == MIRType_Int32);
+
+    bool byteArray = false;
+    switch (ins->accessType()) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+        byteArray = true;
+        break;
+      case Scalar::Int16:
+      case Scalar::Uint16:
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        break;
+      default:
+        MOZ_CRASH("Unexpected array type");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    const LAllocation newval = byteArray ? useFixed(ins->newValue(), ebx) : useRegister(ins->newValue());
+    const LAllocation oldval = useRegister(ins->oldValue());
+
+    LAsmJSCompareExchangeHeap *lir =
+        new(alloc()) LAsmJSCompareExchangeHeap(useRegister(ptr), oldval, newval);
+
+    lir->setAddrTemp(addrTemp);
+    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+}
+
+void
+LIRGeneratorX86Shared::lowerAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins,
+						 const LDefinition& addrTemp)
+{
+    MDefinition *ptr = ins->ptr();
+    MOZ_ASSERT(ptr->type() == MIRType_Int32);
+
+    bool byteArray = false;
+    switch (ins->accessType()) {
+      case Scalar::Int8:
+      case Scalar::Uint8:
+        byteArray = true;
+        break;
+      case Scalar::Int16:
+      case Scalar::Uint16:
+      case Scalar::Int32:
+      case Scalar::Uint32:
+        break;
+      default:
+        MOZ_CRASH("Unexpected array type");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    bool bitOp = !(ins->operation() == AtomicFetchAddOp || ins->operation() == AtomicFetchSubOp);
+    LDefinition tempDef = LDefinition::BogusTemp();
+    LAllocation value;
+
+    
+    
+    
+
+    if (byteArray) {
+        value = useFixed(ins->value(), ebx);
+        if (bitOp)
+            tempDef = tempFixed(ecx);
+    } else {
+        value = useRegister(ins->value());
+        if (bitOp)
+            tempDef = temp();
+    }
+
+    LAsmJSAtomicBinopHeap *lir =
+        new(alloc()) LAsmJSAtomicBinopHeap(useRegister(ptr), value, tempDef);
+
+    lir->setAddrTemp(addrTemp);
+    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
 }
 
 void

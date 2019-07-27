@@ -183,18 +183,6 @@ LIRGeneratorX86::lowerUntypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock 
 }
 
 void
-LIRGeneratorX86::visitCompareExchangeTypedArrayElement(MCompareExchangeTypedArrayElement *ins)
-{
-    lowerCompareExchangeTypedArrayElement(ins,  true);
-}
-
-void
-LIRGeneratorX86::visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop *ins)
-{
-    lowerAtomicTypedArrayElementBinop(ins,  true);
-}
-
-void
 LIRGeneratorX86::visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins)
 {
     MOZ_ASSERT(ins->input()->type() == MIRType_Int32);
@@ -285,101 +273,13 @@ LIRGeneratorX86::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic
 void
 LIRGeneratorX86::visitAsmJSCompareExchangeHeap(MAsmJSCompareExchangeHeap *ins)
 {
-    MOZ_ASSERT(ins->accessType() < Scalar::Float32);
-
-    MDefinition *ptr = ins->ptr();
-    MOZ_ASSERT(ptr->type() == MIRType_Int32);
-
-    bool byteArray = byteSize(ins->accessType()) == 1;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    const LAllocation oldval = useRegister(ins->oldValue());
-    const LAllocation newval = byteArray ? useFixed(ins->newValue(), ebx) : useRegister(ins->newValue());
-
-    LAsmJSCompareExchangeHeap *lir =
-        new(alloc()) LAsmJSCompareExchangeHeap(useRegister(ptr), oldval, newval);
-
-    lir->setAddrTemp(temp());
-    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    lowerAsmJSCompareExchangeHeap(ins, temp());
 }
 
 void
 LIRGeneratorX86::visitAsmJSAtomicBinopHeap(MAsmJSAtomicBinopHeap *ins)
 {
-    MOZ_ASSERT(ins->accessType() < Scalar::Float32);
-
-    MDefinition *ptr = ins->ptr();
-    MOZ_ASSERT(ptr->type() == MIRType_Int32);
-
-    bool byteArray = byteSize(ins->accessType()) == 1;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    bool bitOp = !(ins->operation() == AtomicFetchAddOp || ins->operation() == AtomicFetchSubOp);
-    LDefinition tempDef = LDefinition::BogusTemp();
-    LAllocation value;
-
-    
-    
-    
-
-    if (byteArray) {
-        value = useFixed(ins->value(), ebx);
-        if (bitOp)
-            tempDef = tempFixed(ecx);
-    } else {
-        value = useRegister(ins->value());
-        if (bitOp)
-            tempDef = temp();
-    }
-
-    LAsmJSAtomicBinopHeap *lir =
-        new(alloc()) LAsmJSAtomicBinopHeap(useRegister(ptr), value, tempDef);
-
-    lir->setAddrTemp(temp());
-    defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+    lowerAsmJSAtomicBinopHeap(ins, temp());
 }
 
 void
