@@ -5394,8 +5394,10 @@ CSSParserImpl::ParsePseudoSelector(int32_t&       aDataMask,
     nsCSSPseudoClasses::IsUserActionPseudoClass(pseudoClassType);
 
   if (!mUnsafeRulesEnabled &&
-      pseudoElementType < nsCSSPseudoElements::ePseudo_PseudoElementCount &&
-      nsCSSPseudoElements::PseudoElementIsChromeOnly(pseudoElementType)) {
+      ((pseudoElementType < nsCSSPseudoElements::ePseudo_PseudoElementCount &&
+        nsCSSPseudoElements::PseudoElementIsChromeOnly(pseudoElementType)) ||
+       (pseudoClassType != nsCSSPseudoClasses::ePseudoClass_NotPseudoClass &&
+        nsCSSPseudoClasses::PseudoClassIsUASheetOnly(pseudoClassType)))) {
     
     REPORT_UNEXPECTED_TOKEN(PEPseudoSelUnknown);
     UngetToken();
