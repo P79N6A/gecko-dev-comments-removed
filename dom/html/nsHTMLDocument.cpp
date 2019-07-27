@@ -3354,6 +3354,19 @@ nsHTMLDocument::QueryCommandEnabled(const nsAString& commandID, ErrorResult& rv)
   }
 
   
+  bool isCutCopy = commandID.LowerCaseEqualsLiteral("cut") ||
+                   commandID.LowerCaseEqualsLiteral("copy");
+  if (isCutCopy) {
+    return nsContentUtils::IsCutCopyAllowed();
+  }
+
+  
+  bool restricted = commandID.LowerCaseEqualsLiteral("paste");
+  if (restricted && !nsContentUtils::IsCallerChrome()) {
+    return false;
+  }
+
+  
   if (!IsEditingOnAfterFlush()) {
     rv.Throw(NS_ERROR_FAILURE);
     return false;

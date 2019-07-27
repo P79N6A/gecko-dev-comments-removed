@@ -6630,6 +6630,14 @@ nsContentUtils::IsRequestFullScreenAllowed()
 
 
 bool
+nsContentUtils::IsCutCopyAllowed()
+{
+  return EventStateManager::IsHandlingUserInput() ||
+         IsCallerChrome();
+}
+
+
+bool
 nsContentUtils::HaveEqualPrincipals(nsIDocument* aDoc1, nsIDocument* aDoc2)
 {
   if (!aDoc1 || !aDoc2) {

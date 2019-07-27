@@ -1866,6 +1866,13 @@ public:
   
 
 
+
+
+  static bool IsCutCopyAllowed();
+
+  
+
+
   static bool IsPerformanceTimingEnabled()
   {
     return sIsPerformanceTimingEnabled;
