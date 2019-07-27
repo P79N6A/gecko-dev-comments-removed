@@ -62,12 +62,7 @@ function addTab(url, callback) {
 function sendActivationEvent(tab, callback, nullManifest) {
   
   Social.lastEventReceived = 0;
-  let doc = tab.linkedBrowser.contentDocument;
-  
-  if (doc.defaultView.frames[0])
-    doc = doc.defaultView.frames[0].document;
-  let button = doc.getElementById(nullManifest ? "activation-old" : "activation");
-  EventUtils.synthesizeMouseAtCenter(button, {}, doc.defaultView);
+  BrowserTestUtils.synthesizeMouseAtCenter("#activation", {}, tab.linkedBrowser);
   executeSoon(callback);
 }
 
@@ -117,24 +112,22 @@ function clickAddonRemoveButton(tab, aCallback) {
   AddonManager.getAddonsByTypes(["service"], function(aAddons) {
     let addon = aAddons[0];
 
-    let doc = tab.linkedBrowser.contentDocument;
+    let doc = tab.linkedBrowser.contentDocument;;
     let list = doc.getElementById("addon-list");
 
     let item = getAddonItemInList(addon.id, list);
-    isnot(item, null, "Should have found the add-on in the list");
-
-    var button = doc.getAnonymousElementByAttribute(item, "anonid", "remove-btn");
+    let button = item._removeBtn;
     isnot(button, null, "Should have a remove button");
     ok(!button.disabled, "Button should not be disabled");
 
-    EventUtils.synthesizeMouseAtCenter(button, { }, doc.defaultView);
-
     
-    item.clientTop;
+    
+    promiseObserverNotified("social:provider-disabled").then(() => {
+      is(item.getAttribute("pending"), "uninstall", "Add-on should be uninstalling");
+      executeSoon(function() { aCallback(addon); });
+    });
 
-    is(item.getAttribute("pending"), "uninstall", "Add-on should be uninstalling");
-
-    executeSoon(function() { aCallback(addon); });
+    BrowserTestUtils.synthesizeMouseAtCenter(button, {}, tab.linkedBrowser);
   });
 }
 
