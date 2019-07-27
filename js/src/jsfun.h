@@ -516,16 +516,19 @@ NewNativeConstructor(ExclusiveContext *cx, JSNative native, unsigned nargs, Hand
                      JSFunction::Flags flags = JSFunction::NATIVE_CTOR);
 
 
+
 extern JSFunction *
-NewScriptedFunction(ExclusiveContext *cx, unsigned nargs,
-                    JSFunction::Flags flags, HandleObject parent, HandleAtom atom,
-                    gc::AllocKind allocKind = JSFunction::FinalizeKind,
-                    NewObjectKind newKind = GenericObject);
+NewScriptedFunction(ExclusiveContext *cx, unsigned nargs, JSFunction::Flags flags,
+                    HandleAtom atom, gc::AllocKind allocKind = JSFunction::FinalizeKind,
+                    NewObjectKind newKind = GenericObject,
+                    HandleObject enclosingDynamicScope = NullPtr());
+
+
 
 
 extern JSFunction *
 NewFunctionWithProto(ExclusiveContext *cx, JSNative native, unsigned nargs,
-                     JSFunction::Flags flags, HandleObject parent, HandleAtom atom,
+                     JSFunction::Flags flags, HandleObject enclosingDynamicScope, HandleAtom atom,
                      HandleObject proto, gc::AllocKind allocKind = JSFunction::FinalizeKind,
                      NewObjectKind newKind = GenericObject);
 
