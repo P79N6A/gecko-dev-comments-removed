@@ -919,40 +919,25 @@ WebMReader::DemuxPacket()
   }
 
   
-  
-  
-  
-  
-  
-  
-  
   bool isKeyframe = false;
   if (track == mAudioTrack) {
     isKeyframe = true;
   } else if (track == mVideoTrack) {
-    unsigned int count = 0;
-    r = nestegg_packet_count(packet, &count);
+    unsigned char* data;
+    size_t length;
+    r = nestegg_packet_data(packet, 0, &data, &length);
     if (r == -1) {
       return nullptr;
     }
-
-    for (unsigned i = 0; i < count; ++i) {
-      unsigned char* data;
-      size_t length;
-      r = nestegg_packet_data(packet, i, &data, &length);
-      if (r == -1) {
-        return nullptr;
-      }
-      vpx_codec_stream_info_t si;
-      memset(&si, 0, sizeof(si));
-      si.sz = sizeof(si);
-      if (mVideoCodec == NESTEGG_CODEC_VP8) {
-        vpx_codec_peek_stream_info(vpx_codec_vp8_dx(), data, length, &si);
-      } else if (mVideoCodec == NESTEGG_CODEC_VP9) {
-        vpx_codec_peek_stream_info(vpx_codec_vp9_dx(), data, length, &si);
-      }
-      isKeyframe = isKeyframe || si.is_kf;
+    vpx_codec_stream_info_t si;
+    memset(&si, 0, sizeof(si));
+    si.sz = sizeof(si);
+    if (mVideoCodec == NESTEGG_CODEC_VP8) {
+      vpx_codec_peek_stream_info(vpx_codec_vp8_dx(), data, length, &si);
+    } else if (mVideoCodec == NESTEGG_CODEC_VP9) {
+      vpx_codec_peek_stream_info(vpx_codec_vp9_dx(), data, length, &si);
     }
+    isKeyframe = si.is_kf;
   }
 
   int64_t offset = mDecoder->GetResource()->Tell();
