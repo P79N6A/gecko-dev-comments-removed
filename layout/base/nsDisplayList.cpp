@@ -1591,6 +1591,9 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
                          aBuilder->FindReferenceFrameFor(frame),
                          root, FrameMetrics::NULL_SCROLL_ID, viewport, Nothing(),
                          isRoot, containerParameters));
+  } else {
+    
+    root->SetFrameMetrics(nsTArray<FrameMetrics>());
   }
 
   
