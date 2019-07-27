@@ -37,3 +37,20 @@ function testFetchAppResource(aUrl,
     });
   });
 }
+
+function testRedirectedResponse() {
+  
+  
+  
+  
+  var iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  iframe.src = "redirected.html";
+  iframe.id = "redirected";
+  return new Promise(resolve => {
+    iframe.addEventListener("load", event => {
+      alert("IFRAMELOADED");
+      resolve();
+    }, false);
+  });
+}
