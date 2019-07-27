@@ -16,6 +16,8 @@ let logger = Log.repository.getLogger("Marionette");
 let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
                .getService(Ci.mozIJSSubScriptLoader);
 let specialpowers = {};
+loader.loadSubScript("chrome://specialpowers/content/SpecialPowersObserver.js",
+                     specialpowers);
 
 
 let remoteFrames = [];
@@ -105,11 +107,6 @@ FrameManager.prototype = {
     let frameWindow = Services.wm.getOuterWindowWithId(message.json.win); 
     let oopFrame = frameWindow.document.getElementsByTagName("iframe")[message.json.frame]; 
     let mm = oopFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager; 
-
-    if (!specialpowers.hasOwnProperty("specialPowersObserver")) {
-      loader.loadSubScript("chrome://specialpowers/content/SpecialPowersObserver.js",
-                           specialpowers);
-    }
 
     
     
