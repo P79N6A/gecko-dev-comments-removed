@@ -323,25 +323,30 @@ RTCPeerConnection.prototype = {
   __init: function(rtcConfig) {
     this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
     .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
-
     if (!rtcConfig.iceServers ||
         !Services.prefs.getBoolPref("media.peerconnection.use_document_iceservers")) {
-      rtcConfig.iceServers =
-        JSON.parse(Services.prefs.getCharPref("media.peerconnection.default_iceservers"));
-    }
-    
-    rtcConfig.iceServers.forEach(server => {
-      if (typeof server.urls === "string") {
-        server.urls = [server.urls];
-      } else if (!server.urls && server.url) {
-        
-        server.urls = [server.url];
-        this.logWarning("RTCIceServer.url is deprecated! Use urls instead.", null, 0);
+      try {
+         rtcConfig.iceServers =
+           JSON.parse(Services.prefs.getCharPref("media.peerconnection.default_iceservers") || "[]");
+      } catch (e) {
+        this.logWarning(
+            "Ignoring invalid media.peerconnection.default_iceservers in about:config",
+             null, 0);
+        rtcConfig.iceServers = [];
       }
-    });
-    this._mustValidateRTCConfiguration(rtcConfig,
+      try {
+        this._mustValidateRTCConfiguration(rtcConfig,
+            "Ignoring invalid media.peerconnection.default_iceservers in about:config");
+      } catch (e) {
+        this.logWarning(e.message, null, 0);
+        rtcConfig.iceServers = [];
+      }
+    } else {
+      
+      
+      this._mustValidateRTCConfiguration(rtcConfig,
         "RTCPeerConnection constructor passed invalid RTCConfiguration");
-
+    }
     
     this._appId = Cu.getWebIDLCallerPrincipal().appId;
 
@@ -467,8 +472,19 @@ RTCPeerConnection.prototype = {
 
 
 
-
   _mustValidateRTCConfiguration: function(rtcConfig, msg) {
+
+    
+    rtcConfig.iceServers.forEach(server => {
+      if (typeof server.urls === "string") {
+        server.urls = [server.urls];
+      } else if (!server.urls && server.url) {
+        
+        server.urls = [server.url];
+        this.logWarning("RTCIceServer.url is deprecated! Use urls instead.", null, 0);
+      }
+    });
+
     let ios = Cc['@mozilla.org/network/io-service;1'].getService(Ci.nsIIOService);
 
     let nicerNewURI = uriStr => {
