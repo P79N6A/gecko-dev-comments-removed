@@ -138,9 +138,11 @@ loop.shared.views = (function(_, OT, l10n) {
 
     render: function() {
       return (
-        React.DOM.button( {className:this._getClasses(),
-                title:this._getTitle(),
-                onClick:this.handleClick})
+        
+        React.DOM.button({className: this._getClasses(), 
+                title: this._getTitle(), 
+                onClick: this.handleClick})
+        
       );
     }
   });
@@ -176,19 +178,21 @@ loop.shared.views = (function(_, OT, l10n) {
     },
 
     render: function() {
+      
       return (
-        React.DOM.ul( {className:"controls"}, 
-          React.DOM.li(null, React.DOM.button( {className:"btn btn-hangup",
-                      onClick:this.handleClickHangup,
-                      title:__("hangup_button_title")})),
-          React.DOM.li(null, MediaControlButton( {action:this.handleToggleVideo,
-                                  enabled:this.props.video.enabled,
-                                  scope:"local", type:"video"} )),
-          React.DOM.li(null, MediaControlButton( {action:this.handleToggleAudio,
-                                  enabled:this.props.audio.enabled,
-                                  scope:"local", type:"audio"} ))
+        React.DOM.ul({className: "controls"}, 
+          React.DOM.li(null, React.DOM.button({className: "btn btn-hangup", 
+                      onClick: this.handleClickHangup, 
+                      title: __("hangup_button_title")})), 
+          React.DOM.li(null, MediaControlButton({action: this.handleToggleVideo, 
+                                  enabled: this.props.video.enabled, 
+                                  scope: "local", type: "video"})), 
+          React.DOM.li(null, MediaControlButton({action: this.handleToggleAudio, 
+                                  enabled: this.props.audio.enabled, 
+                                  scope: "local", type: "audio"}))
         )
       );
+      
     }
   });
 
@@ -329,20 +333,22 @@ loop.shared.views = (function(_, OT, l10n) {
     },
 
     render: function() {
+      
       return (
-        React.DOM.div( {className:"conversation"}, 
-          ConversationToolbar( {video:this.state.video,
-                               audio:this.state.audio,
-                               publishStream:this.publishStream,
-                               hangup:this.hangup} ),
-          React.DOM.div( {className:"media nested"}, 
-            React.DOM.div( {className:"video_wrapper remote_wrapper"}, 
-              React.DOM.div( {className:"video_inner remote"})
-            ),
-            React.DOM.div( {className:"local"})
+        React.DOM.div({className: "conversation"}, 
+          ConversationToolbar({video: this.state.video, 
+                               audio: this.state.audio, 
+                               publishStream: this.publishStream, 
+                               hangup: this.hangup}), 
+          React.DOM.div({className: "media nested"}, 
+            React.DOM.div({className: "video_wrapper remote_wrapper"}, 
+              React.DOM.div({className: "video_inner remote"})
+            ), 
+            React.DOM.div({className: "local"})
           )
         )
       );
+      
     }
   });
 

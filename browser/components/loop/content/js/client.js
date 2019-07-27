@@ -82,7 +82,15 @@ loop.Client = (function($) {
 
 
     _ensureRegistered: function(cb) {
-      this.mozLoop.ensureRegistered(cb);
+      this.mozLoop.ensureRegistered(function(error) {
+        if (error) {
+          console.log("Error registering with Loop server, code: " + error);
+          cb(error);
+          return;
+        } else {
+          cb(null);
+        }
+      });
     },
 
     
@@ -134,6 +142,45 @@ loop.Client = (function($) {
 
 
 
+    deleteCallUrl: function(token, cb) {
+      this._ensureRegistered(function(err) {
+        if (err) {
+          cb(err);
+          return;
+        }
+
+        this._deleteCallUrlInternal(token, cb);
+      }.bind(this));
+    },
+
+    _deleteCallUrlInternal: function(token, cb) {
+      this.mozLoop.hawkRequest("/call-url/" + token, "DELETE", null,
+                               (error, responseText) => {
+        if (error) {
+          this._failureHandler(cb, error);
+          return;
+        }
+
+        try {
+          cb(null);
+
+          this.mozLoop.noteCallUrlExpiry((new Date()).getTime() / 1000);
+        } catch (err) {
+          console.log("Error deleting call info", err);
+          cb(err);
+        }
+      });
+    },
+
+    
+
+
+
+
+
+
+
+
 
 
 
@@ -142,7 +189,6 @@ loop.Client = (function($) {
     requestCallUrl: function(nickname, cb) {
       this._ensureRegistered(function(err) {
         if (err) {
-          console.log("Error registering with Loop server, code: " + err);
           cb(err);
           return;
         }

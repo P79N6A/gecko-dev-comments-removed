@@ -48,6 +48,70 @@ describe("loop.Client", function() {
   });
 
   describe("loop.Client", function() {
+    describe("#deleteCallUrl", function() {
+      it("should ensure loop is registered", function() {
+        client.deleteCallUrl("fakeToken", callback);
+
+        sinon.assert.calledOnce(mozLoop.ensureRegistered);
+      });
+
+      it("should send an error when registration fails", function() {
+        mozLoop.ensureRegistered.callsArgWith(0, "offline");
+
+        client.deleteCallUrl("fakeToken", callback);
+
+        sinon.assert.calledOnce(callback);
+        sinon.assert.calledWithExactly(callback, "offline");
+      });
+
+      it("should make a delete call to /call-url/{fakeToken}", function() {
+        client.deleteCallUrl(fakeToken, callback);
+
+        sinon.assert.calledOnce(hawkRequestStub);
+        sinon.assert.calledWith(hawkRequestStub,
+                                "/call-url/" + fakeToken, "DELETE");
+      });
+
+      it("should call the callback with null when the request succeeds",
+         function() {
+
+           
+           
+           hawkRequestStub.callsArgWith(3, null);
+
+           client.deleteCallUrl(fakeToken, callback);
+
+           sinon.assert.calledWithExactly(callback, null);
+         });
+
+      it("should reset all url expiry when the request succeeds", function() {
+        
+        
+        var dateInMilliseconds = new Date(2014,7,20).getTime();
+        hawkRequestStub.callsArgWith(3, null);
+        sandbox.useFakeTimers(dateInMilliseconds);
+
+        client.deleteCallUrl(fakeToken, callback);
+
+        sinon.assert.calledOnce(mozLoop.noteCallUrlExpiry);
+        sinon.assert.calledWithExactly(mozLoop.noteCallUrlExpiry,
+                                       dateInMilliseconds / 1000);
+      });
+
+      it("should send an error when the request fails", function() {
+        
+        
+        hawkRequestStub.callsArgWith(3, fakeErrorRes);
+
+        client.deleteCallUrl(fakeToken, callback);
+
+        sinon.assert.calledOnce(callback);
+        sinon.assert.calledWithMatch(callback, sinon.match(function(err) {
+          return /400.*invalid token/.test(err.message);
+        }));
+      });
+    });
+
     describe("#requestCallUrl", function() {
       it("should ensure loop is registered", function() {
         client.requestCallUrl("foo", callback);
@@ -72,39 +136,41 @@ describe("loop.Client", function() {
                                 "/call-url/", "POST", {callerId: "foo"});
       });
 
-      it("should call the callback with the url when the request succeeds", function() {
-        var callUrlData = {
-          "callUrl": "fakeCallUrl",
-          "expiresAt": 60
-        };
+      it("should call the callback with the url when the request succeeds",
+        function() {
+          var callUrlData = {
+            "callUrl": "fakeCallUrl",
+            "expiresAt": 60
+          };
 
-        
-        
-        hawkRequestStub.callsArgWith(3, null,
-                                     JSON.stringify(callUrlData));
+          
+          
+          hawkRequestStub.callsArgWith(3, null,
+            JSON.stringify(callUrlData));
 
-        client.requestCallUrl("foo", callback);
+          client.requestCallUrl("foo", callback);
 
-        sinon.assert.calledWithExactly(callback, null, callUrlData);
-      });
+          sinon.assert.calledWithExactly(callback, null, callUrlData);
+        });
 
-      it("should note the call url expiry when the request succeeds", function() {
-        var callUrlData = {
-          "callUrl": "fakeCallUrl",
-          "expiresAt": 6000
-        };
+      it("should note the call url expiry when the request succeeds",
+        function() {
+          var callUrlData = {
+            "callUrl": "fakeCallUrl",
+            "expiresAt": 6000
+          };
 
-        
-        
-        hawkRequestStub.callsArgWith(3, null,
-                                     JSON.stringify(callUrlData));
+          
+          
+          hawkRequestStub.callsArgWith(3, null,
+            JSON.stringify(callUrlData));
 
-        client.requestCallUrl("foo", callback);
+          client.requestCallUrl("foo", callback);
 
-        sinon.assert.calledOnce(mozLoop.noteCallUrlExpiry);
-        sinon.assert.calledWithExactly(mozLoop.noteCallUrlExpiry,
-          6000);
-      });
+          sinon.assert.calledOnce(mozLoop.noteCallUrlExpiry);
+          sinon.assert.calledWithExactly(mozLoop.noteCallUrlExpiry,
+            6000);
+        });
 
       it("should send an error when the request fails", function() {
         
