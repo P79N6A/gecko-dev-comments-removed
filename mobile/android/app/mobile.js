@@ -855,3 +855,6 @@ pref("home.sync.checkIntervalSecs", 3600);
 
 
 pref("device.storage.enabled", true);
+
+
+pref("dom.meta-viewport.enabled", true);
