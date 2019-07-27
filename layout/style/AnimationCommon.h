@@ -66,6 +66,10 @@ public:
   
   void AddStyleUpdatesTo(mozilla::RestyleTracker& aTracker);
 
+  
+  
+  void NotifyCollectionUpdated(AnimationPlayerCollection& aCollection);
+
   enum FlushFlags {
     Can_Throttle,
     Cannot_Throttle
