@@ -27,6 +27,7 @@ class nsPresContext;
 class nsIContent;
 class nsRenderingContext;
 class nsIAtom;
+class nsDisplayListBuilder;
 
 namespace mozilla {
 struct ContainerLayerParameters;
@@ -294,7 +295,7 @@ public:
 
 
 
-  virtual bool IsScrollingActive() = 0;
+  virtual bool IsScrollingActive(nsDisplayListBuilder* aBuilder) = 0;
   
 
 
