@@ -615,66 +615,90 @@ SessionStore.prototype = {
     }
   },
 
+  
+
+
+
+
+
+
   _writeFile: function ss_writeFile(aFile, aData, aAsync) {
     TelemetryStopwatch.start("FX_SESSION_RESTORE_SERIALIZE_DATA_MS");
     let state = JSON.stringify(aData);
     TelemetryStopwatch.finish("FX_SESSION_RESTORE_SERIALIZE_DATA_MS");
 
+    
+    let buffer = new TextEncoder().encode(state);
+    Services.telemetry.getHistogramById("FX_SESSION_RESTORE_FILE_SIZE_BYTES").add(buffer.byteLength);
+
     Services.obs.notifyObservers(null, "sessionstore-state-write", "");
+    let startWriteMs = Cu.now();
  
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_MS");
-    if (aAsync) {
-      let array = new TextEncoder().encode(state);
-      Services.telemetry.getHistogramById("FX_SESSION_RESTORE_FILE_SIZE_BYTES").add(array.byteLength);
+    let pendingWrite = this._pendingWrite;
+    this._write(aFile, buffer, aAsync).then(() => {
+      let stopWriteMs = Cu.now();
 
-      let pendingWrite = this._pendingWrite;
-      OS.File.writeAtomic(aFile.path, array, { tmpPath: aFile.path + ".tmp" }).then(function onSuccess() {
-        
-        
-        
-        if (pendingWrite === this._pendingWrite) {
-          this._pendingWrite = 0;
-        }
+      
+      
+      
+      if (pendingWrite === this._pendingWrite) {
+        this._pendingWrite = 0;
+      }
 
-        TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_MS");
-        Services.obs.notifyObservers(null, "sessionstore-state-write-complete", "");
-      }.bind(this));
-    } else {
-      this._pendingWrite = 0;
-      let foStream = Cc["@mozilla.org/network/file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
-      foStream.init(aFile, 0x02 | 0x08 | 0x20, 0666, 0);
-      let converter = Cc["@mozilla.org/intl/converter-output-stream;1"].createInstance(Ci.nsIConverterOutputStream);
-      converter.init(foStream, "UTF-8", 0, 0);
-      converter.writeString(state);
-      converter.close();
-
-      TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_MS");
+      
+      
+      Services.telemetry.getHistogramById("FX_SESSION_RESTORE_WRITE_FILE_MS").add(Math.round(stopWriteMs - startWriteMs));
       Services.obs.notifyObservers(null, "sessionstore-state-write-complete", "");
+    });
+  },
+
+  
+
+
+
+
+
+
+  _write: function ss_write(aFile, aBuffer, aAsync) {
+    
+    if (aAsync) {
+      return OS.File.writeAtomic(aFile.path, aBuffer, { tmpPath: aFile.path + ".tmp" });
     }
+
+    
+    let bytes = String.fromCharCode.apply(null, new Uint16Array(aBuffer));
+    let stream = Cc["@mozilla.org/network/file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
+    stream.init(aFile, 0x02 | 0x08 | 0x20, 0666, 0);
+    stream.write(bytes, bytes.length);
+    stream.close();
+
+    
+    return Promise.resolve();
   },
 
   _updateCrashReportURL: function ss_updateCrashReportURL(aWindow) {
     let crashReporterBuilt = "nsICrashReporter" in Ci && Services.appinfo instanceof Ci.nsICrashReporter;
-    if (!crashReporterBuilt)
+    if (!crashReporterBuilt) {
       return;
+    }
 
-    if (!aWindow.BrowserApp.selectedBrowser)
+    if (!aWindow.BrowserApp.selectedBrowser) {
       return;
+    }
 
     try {
       let currentURI = aWindow.BrowserApp.selectedBrowser.currentURI.clone();
       
       try {
         currentURI.userPass = "";
-      }
-      catch (ex) { } 
+      } catch (ex) { } 
 
       Services.appinfo.annotateCrashReport("URL", currentURI.spec);
-    }
-    catch (ex) {
+    } catch (ex) {
       
-      if (ex.result != Cr.NS_ERROR_NOT_INITIALIZED)
+      if (ex.result != Cr.NS_ERROR_NOT_INITIALIZED) {
         Cu.reportError("SessionStore:" + ex);
+      }
     }
   },
 
