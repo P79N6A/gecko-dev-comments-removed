@@ -5,22 +5,18 @@
 
 package org.mozilla.gecko;
 
-import java.util.Set;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashSet;
-
-import org.mozilla.gecko.mozglue.RobocopTarget;
+import java.util.Set;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
-
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.UserManager;
 import android.util.Log;
@@ -87,10 +83,30 @@ public class RestrictedProfiles {
         throw new IllegalArgumentException("Unknown action " + action);
     }
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     @RobocopTarget
     private static Bundle getRestrictions() {
         final UserManager mgr = (UserManager) GeckoAppShell.getContext().getSystemService(Context.USER_SERVICE);
         return mgr.getUserRestrictions();
+    }
+
+    
+
+
+
+
+
+
+
+
+    private static boolean getRestriction(final String name) {
+        
+        
+        if (Versions.preJBMR2) {
+            return false;
+        }
+
+        return getRestrictions().getBoolean(name, false);
     }
 
     private static boolean canLoadUrl(final String url) {
@@ -102,10 +118,10 @@ public class RestrictedProfiles {
         try {
             
             if (!getInGuest() &&
-                !getRestrictions().getBoolean(Restriction.DISALLOW_BROWSE_FILES.name, false)) {
+                !getRestriction(Restriction.DISALLOW_BROWSE_FILES.name)) {
                 return true;
             }
-        } catch(IllegalArgumentException ex) {
+        } catch (IllegalArgumentException ex) {
             Log.i(LOGTAG, "Invalid action", ex);
         }
 
@@ -145,11 +161,19 @@ public class RestrictedProfiles {
 
     @WrapElementForJNI
     public static boolean isAllowed(int action, String url) {
+        
+        if (getInGuest()) {
+            return false;
+        }
+
         final Restriction restriction;
         try {
             restriction = geckoActionToRestriction(action);
-        } catch(IllegalArgumentException ex) {
-            return true;
+        } catch (IllegalArgumentException ex) {
+            
+            
+            Log.e(LOGTAG, "Unknown action " + action + "; check calling code.");
+            return false;
         }
 
         if (Restriction.DISALLOW_BROWSE_FILES == restriction) {
@@ -157,22 +181,7 @@ public class RestrictedProfiles {
         }
 
         
-        if (getInGuest()) {
-            return false;
-        }
-
-        if (Versions.preJBMR2) {
-            return true;
-        }
-
-        try {
-            
-            return !getRestrictions().getBoolean(restriction.name, false);
-        } catch(IllegalArgumentException ex) {
-            Log.i(LOGTAG, "Invalid action", ex);
-        }
-
-        return true;
+        return !getRestriction(restriction.name);
     }
 
     @WrapElementForJNI
