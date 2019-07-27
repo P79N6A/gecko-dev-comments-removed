@@ -55,6 +55,9 @@ class ChunkPool
     
     inline void put(Chunk *chunk);
 
+    
+    void expireAndFree(JSRuntime *rt, bool releaseAll);
+
     class Enum {
       public:
         Enum(ChunkPool &pool) : pool(pool), chunkp(&pool.emptyChunkListHead) {}
@@ -355,7 +358,7 @@ class GCRuntime
 
 
 
-    Chunk *expireChunkPool(bool shrinkBuffers, bool releaseAll);
+    Chunk *expireChunkPool(bool releaseAll);
     void expireAndFreeChunkPool(bool releaseAll);
     void freeChunkList(Chunk *chunkListHead);
     void prepareToFreeChunk(ChunkInfo &info);
