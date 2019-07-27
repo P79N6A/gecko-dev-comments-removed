@@ -292,6 +292,15 @@ public:
   
   static CycleCollectedJSRuntime* Get();
 
+  
+  
+  
+  
+  
+  nsTArray<nsCOMPtr<nsISupports >> mUncaughtRejections;
+  nsTArray<nsCOMPtr<nsISupports  >> mConsumedRejections;
+  nsTArray<nsCOMPtr<nsISupports  >> mUncaughtRejectionObservers;
+
 private:
   JSGCThingParticipant mGCThingCycleCollectorGlobal;
 

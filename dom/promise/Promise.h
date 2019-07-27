@@ -21,7 +21,16 @@
 #include "js/TypeDecls.h"
 #include "jspubtd.h"
 
+
+
+
+
+
+#define DOM_PROMISE_DEPRECATED_REPORTING 1
+
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
 #include "mozilla/dom/workers/bindings/WorkerFeature.h"
+#endif 
 
 class nsIGlobalObject;
 
@@ -37,6 +46,8 @@ class PromiseNativeHandler;
 class PromiseDebugging;
 
 class Promise;
+
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
 class PromiseReportRejectFeature : public workers::WorkerFeature
 {
   
@@ -52,6 +63,7 @@ public:
   virtual bool
   Notify(JSContext* aCx, workers::Status aStatus) override;
 };
+#endif 
 
 #define NS_PROMISE_IID \
   { 0x1b8d6215, 0x3e67, 0x43ba, \
@@ -65,7 +77,9 @@ class Promise : public nsISupports,
   friend class PromiseCallbackTask;
   friend class PromiseResolverTask;
   friend class PromiseTask;
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   friend class PromiseReportRejectFeature;
+#endif 
   friend class PromiseWorkerProxy;
   friend class PromiseWorkerProxyRunnable;
   friend class RejectPromiseCallback;
@@ -182,6 +196,9 @@ public:
 
   JSCompartment* Compartment() const;
 
+  
+  uint64_t GetID();
+
 protected:
   
   
@@ -208,6 +225,21 @@ protected:
   }
 
   void GetDependentPromises(nsTArray<nsRefPtr<Promise>>& aPromises);
+
+  bool IsLastInChain() const
+  {
+    return mIsLastInChain;
+  }
+
+  void SetNotifiedAsUncaught()
+  {
+    mWasNotifiedAsUncaught = true;
+  }
+
+  bool WasNotifiedAsUncaught() const
+  {
+    return mWasNotifiedAsUncaught;
+  }
 
 private:
   friend class PromiseDebugging;
@@ -242,6 +274,7 @@ private:
   void AppendCallbacks(PromiseCallback* aResolveCallback,
                        PromiseCallback* aRejectCallback);
 
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   
   
   
@@ -252,6 +285,7 @@ private:
     RemoveFeature();
     mResult.setUndefined();
   }
+#endif 
 
   void MaybeResolveInternal(JSContext* aCx,
                             JS::Handle<JS::Value> aValue);
@@ -299,7 +333,9 @@ private:
 
   void HandleException(JSContext* aCx);
 
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   void RemoveFeature();
+#endif 
 
   
   
@@ -325,21 +361,38 @@ private:
   
   JS::Heap<JSObject*> mFullfillmentStack;
   PromiseState mState;
-  bool mHadRejectCallback;
 
-  bool mResolvePending;
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
+  bool mHadRejectCallback;
 
   
   
   
   
   nsAutoPtr<PromiseReportRejectFeature> mFeature;
+#endif 
+
+  bool mTaskPending;
+  bool mResolvePending;
+
+  
+  
+  
+  bool mIsLastInChain;
+
+  
+  
+  bool mWasNotifiedAsUncaught;
 
   
   TimeStamp mCreationTimestamp;
 
   
   TimeStamp mSettlementTimestamp;
+
+  
+  
+  uint64_t mID;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Promise, NS_PROMISE_IID)

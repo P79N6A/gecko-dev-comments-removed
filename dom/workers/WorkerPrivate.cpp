@@ -54,6 +54,7 @@
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/MessagePortList.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/PromiseDebugging.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/StructuredClone.h"
 #include "mozilla/dom/WebCryptoCommon.h"
@@ -5159,6 +5160,10 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
       
       if (currentStatus == Killing) {
+        
+        
+        PromiseDebugging::FlushUncaughtRejections();
+
         ShutdownGCTimers();
 
         DisableMemoryReporter();
