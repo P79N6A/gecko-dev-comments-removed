@@ -2875,26 +2875,16 @@ nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen)
   
   
   UpdateNonClientMargins(mSizeMode,  !aFullScreen);
-
-  bool visible = mIsVisible;
-  if (mOldSizeMode == nsSizeMode_Normal)
-    Show(false);
   
   
   
   
   nsresult rv = nsBaseWidget::MakeFullScreen(aFullScreen, aTargetScreen);
 
-  if (visible) {
-    Show(true);
-    Invalidate();
-
-    if (!aFullScreen && mOldSizeMode == nsSizeMode_Normal) {
-      
-      
-      
-      DispatchFocusToTopLevelWindow(true);
-    }
+  if (mIsVisible && !aFullScreen && mOldSizeMode == nsSizeMode_Normal) {
+    
+    
+    DispatchFocusToTopLevelWindow(true);
   }
 
   
