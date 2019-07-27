@@ -911,8 +911,8 @@ TestRunner.updateUI = function(tests) {
   }
 
   
-  var testPath = $('current-test-path');
-  var row = !!testPath ? $("tr-" + testPath.innerHTML) : null;
+  var trID = "tr-" + $('current-test-path').innerHTML;
+  var row = $(trID);
 
   
   if (row != null) {
