@@ -962,7 +962,7 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
   
   
   
-  TrackTicks ticksNeeded = TimeToTicksRoundDown(mSampleRate, aTo) - TimeToTicksRoundDown(mSampleRate, aFrom);
+  TrackTicks ticksNeeded = aTo - aFrom;
 
   if (aStream->mAudioOutputStreams.IsEmpty()) {
     return 0;
@@ -1011,7 +1011,7 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
       if (end >= aTo) {
         toWrite = ticksNeeded;
       } else {
-        toWrite = TimeToTicksRoundDown(mSampleRate, end - t);
+        toWrite = end - t;
       }
       ticksNeeded -= toWrite;
 
