@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko.sync.setup.activities;
+package org.mozilla.gecko;
 
 import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.LocaleManager;
