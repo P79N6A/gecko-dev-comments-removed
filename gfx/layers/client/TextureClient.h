@@ -140,14 +140,6 @@ public:
                    TextureAllocationFlags flags = ALLOC_DEFAULT);
 
   
-  static TemporaryRef<BufferTextureClient>
-  CreateForYCbCr(ISurfaceAllocator* aAllocator,
-                 gfx::IntSize aYSize,
-                 gfx::IntSize aCbCrSize,
-                 StereoMode aStereoMode,
-                 TextureFlags aTextureFlags);
-
-  
   
   static TemporaryRef<BufferTextureClient>
   CreateForRawBufferAccess(ISurfaceAllocator* aAllocator,
