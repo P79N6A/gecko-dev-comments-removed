@@ -1038,6 +1038,20 @@ toolbarbutton[sdk-button="true"][cui-areatype="toolbar"] > .toolbarbutton-icon {
 }
 
 
+#alltabs_undoCloseTab {
+  list-style-image: url(chrome://browser/skin/undoCloseTab.png);
+}
+
+@media (min-resolution: 1.25dppx) {
+  #alltabs_undoCloseTab {
+    list-style-image: url(chrome://browser/skin/undoCloseTab@2x.png);
+  }
+  #alltabs_undoCloseTab > .toolbarbutton-icon {
+    width: 16px;
+  }
+}
+
+
 
 #nav-bar #zoom-reset-button > .toolbarbutton-text {
   
