@@ -292,6 +292,8 @@ MessageChannel::MessageChannel(MessageListener *aListener)
     mDispatchingSyncMessage(false),
     mDispatchingSyncMessagePriority(0),
     mCurrentTransaction(0),
+    mTimedOutMessageSeqno(0),
+    mRecvdErrors(0),
     mRemoteStackDepthGuess(false),
     mSawInterruptOutMsg(false),
     mAbortOnError(false),
@@ -611,8 +613,30 @@ MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
 
     
     
-    if (AwaitingSyncReply() && aMsg.is_sync() && aMsg.is_reply()) {
+    if (aMsg.is_sync() && aMsg.is_reply()) {
+        if (aMsg.seqno() == mTimedOutMessageSeqno) {
+            
+            mTimedOutMessageSeqno = 0;
+            return;
+        }
+
+        MOZ_ASSERT(AwaitingSyncReply());
         MOZ_ASSERT(!mRecvd);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (aMsg.is_reply_error()) {
+            mRecvdErrors++;
+            NotifyWorkerThread();
+            return;
+        }
+
         mRecvd = new Message(aMsg);
         NotifyWorkerThread();
         return;
@@ -698,6 +722,14 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
 
     MonitorAutoLock lock(*mMonitor);
 
+    if (mTimedOutMessageSeqno) {
+        
+        
+        
+        
+        return false;
+    }
+
     IPC_ASSERT(aMsg->is_sync(), "can only Send() sync messages here");
     IPC_ASSERT(aMsg->priority() >= DispatchingSyncMessagePriority(),
                "can't send sync message of a lesser priority than what's being dispatched");
@@ -713,12 +745,12 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
 
     msg->set_seqno(NextSeqno());
 
-    DebugOnly<int32_t> replySeqno = msg->seqno();
+    int32_t seqno = msg->seqno();
     DebugOnly<msgid_t> replyType = msg->type() + 1;
 
     AutoSetValue<bool> replies(mAwaitingSyncReply, true);
     AutoSetValue<int> prio(mAwaitingSyncReplyPriority, msg->priority());
-    AutoEnterTransaction transact(this, msg->seqno());
+    AutoEnterTransaction transact(this, seqno);
 
     int32_t transaction = mCurrentTransaction;
     msg->set_transaction_id(transaction);
@@ -750,22 +782,24 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
         }
 
         
+        if (mRecvdErrors) {
+            mRecvdErrors--;
+            return false;
+        }
+
         if (mRecvd) {
             MOZ_ASSERT(mRecvd->is_reply(), "expected reply");
-
-            if (mRecvd->is_reply_error()) {
-                mRecvd = nullptr;
-                return false;
-            }
-
+            MOZ_ASSERT(!mRecvd->is_reply_error());
             MOZ_ASSERT(mRecvd->type() == replyType, "wrong reply type");
-            MOZ_ASSERT(mRecvd->seqno() == replySeqno);
+            MOZ_ASSERT(mRecvd->seqno() == seqno);
             MOZ_ASSERT(mRecvd->is_sync());
 
             *aReply = Move(*mRecvd);
             mRecvd = nullptr;
             return true;
         }
+
+        MOZ_ASSERT(!mTimedOutMessageSeqno);
 
         bool maybeTimedOut = !WaitForSyncNotify();
 
@@ -774,8 +808,13 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
             return false;
         }
 
-        if (maybeTimedOut && !ShouldContinueFromTimeout())
+        
+        
+        bool canTimeOut = transaction == seqno;
+        if (maybeTimedOut && canTimeOut && !ShouldContinueFromTimeout()) {
+            mTimedOutMessageSeqno = seqno;
             return false;
+        }
     }
 
     return true;
@@ -1089,7 +1128,14 @@ MessageChannel::DispatchSyncMessage(const Message& aMsg)
     bool& blockingVar = ShouldBlockScripts() ? gParentIsBlocked : dummy;
 
     Result rv;
-    {
+    if (mTimedOutMessageSeqno) {
+        
+        
+        
+        
+        
+        rv = MsgNotAllowed;
+    } else {
         AutoSetValue<bool> blocked(blockingVar, true);
         AutoSetValue<bool> sync(mDispatchingSyncMessage, true);
         AutoSetValue<int> prioSet(mDispatchingSyncMessagePriority, prio);
@@ -1104,6 +1150,7 @@ MessageChannel::DispatchSyncMessage(const Message& aMsg)
         reply->set_reply_error();
     }
     reply->set_seqno(aMsg.seqno());
+    reply->set_transaction_id(aMsg.transaction_id());
 
     MonitorAutoLock lock(*mMonitor);
     if (ChannelConnected == mChannelState) {
@@ -1361,21 +1408,6 @@ MessageChannel::ShouldContinueFromTimeout()
         return true;
     }
 
-    if (!cont) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        SynchronouslyClose();
-        mChannelState = ChannelTimeout;
-    }
-
     return cont;
 }
 
@@ -1616,6 +1648,19 @@ MessageChannel::CloseWithError()
     SynchronouslyClose();
     mChannelState = ChannelError;
     PostErrorNotifyTask();
+}
+
+void
+MessageChannel::CloseWithTimeout()
+{
+    AssertWorkerThread();
+
+    MonitorAutoLock lock(*mMonitor);
+    if (ChannelConnected != mChannelState) {
+        return;
+    }
+    SynchronouslyClose();
+    mChannelState = ChannelTimeout;
 }
 
 void

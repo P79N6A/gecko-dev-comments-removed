@@ -1849,3 +1849,6 @@ pref("extensions.interposition.enabled", true);
 #endif
 
 pref("browser.defaultbrowser.notificationbar", false);
+
+
+pref("dom.ipc.cpow.timeout", 0);

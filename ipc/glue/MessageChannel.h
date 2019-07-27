@@ -84,6 +84,8 @@ class MessageChannel : HasResultCodes
     
     void CloseWithError();
 
+    void CloseWithTimeout();
+
     void SetAbortOnError(bool abort)
     {
         mAbortOnError = true;
@@ -520,7 +522,26 @@ class MessageChannel : HasResultCodes
 
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    int32_t mTimedOutMessageSeqno;
+
+    
+    
     nsAutoPtr<Message> mRecvd;
+
+    
+    
+    size_t mRecvdErrors;
 
     
     

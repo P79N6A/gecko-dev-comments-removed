@@ -2011,6 +2011,9 @@ ContentParent::ContentParent(mozIApplication* aApp,
                  true  );
 
     ContentProcessManager::GetSingleton()->AddContentProcess(this);
+
+    
+    SetReplyTimeoutMs(Preferences::GetInt("dom.ipc.cpow.timeout", 0));
 }
 
 #ifdef MOZ_NUWA_PROCESS
