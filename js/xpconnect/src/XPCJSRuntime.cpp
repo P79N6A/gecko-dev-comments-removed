@@ -111,9 +111,6 @@ bool xpc::ExtraWarningsForSystemJS() { return sExtraWarningsForSystemJS; }
 bool xpc::ExtraWarningsForSystemJS() { return false; }
 #endif
 
-static void * const UNMARK_ONLY = nullptr;
-static void * const UNMARK_AND_SWEEP = (void*)1;
-
 
 
 
@@ -811,7 +808,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp* fop,
             
             
             
-            void* sweepArg = isCompartmentGC ? UNMARK_ONLY : UNMARK_AND_SWEEP;
+            bool doSweep = !isCompartmentGC;
 
             
             
@@ -822,13 +819,10 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp* fop,
                     XPCNativeScriptableShared* shared = entry->key;
                     if (shared->IsMarked()) {
                         shared->Unmark();
-                        continue;
+                    } else if (doSweep) {
+                        delete shared;
+                        i.Remove();
                     }
-                    if (sweepArg == UNMARK_ONLY)
-                        continue;
-
-                    delete shared;
-                    i.Remove();
                 }
             }
 
@@ -845,13 +839,10 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp* fop,
                 XPCNativeSet* set = entry->key_value;
                 if (set->IsMarked()) {
                     set->Unmark();
-                    continue;
+                } else if (doSweep) {
+                    XPCNativeSet::DestroyInstance(set);
+                    i.Remove();
                 }
-                if (sweepArg == UNMARK_ONLY)
-                    continue;
-
-                XPCNativeSet::DestroyInstance(set);
-                i.Remove();
             }
 
             for (auto i = self->mIID2NativeInterfaceMap->RemovingIter(); !i.Done(); i.Next()) {
@@ -859,13 +850,10 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp* fop,
                 XPCNativeInterface* iface = entry->value;
                 if (iface->IsMarked()) {
                     iface->Unmark();
-                    continue;
+                } else if (doSweep) {
+                    XPCNativeInterface::DestroyInstance(iface);
+                    i.Remove();
                 }
-                if (sweepArg == UNMARK_ONLY)
-                    continue;
-
-                XPCNativeInterface::DestroyInstance(iface);
-                i.Remove();
             }
 
 #ifdef DEBUG
