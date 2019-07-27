@@ -13,6 +13,10 @@ add_task(function*() {
   let menubar = projecteditor.menubar;
 
   
+  
+  projecteditor._updateMenuItems();
+
+  
   ok(projecteditor, "ProjectEditor has loaded");
 
   let fileMenu = menubar.querySelector("#file-menu");

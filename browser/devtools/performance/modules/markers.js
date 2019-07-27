@@ -4,9 +4,7 @@
 "use strict";
 
 const { L10N } = require("devtools/performance/global");
-const { Formatters, CollapseFunctions } = require("devtools/performance/marker-utils");
-
-
+const { Formatters, CollapseFunctions: collapse } = require("devtools/performance/marker-utils");
 
 
 
@@ -61,20 +59,20 @@ const TIMELINE_BLUEPRINT = {
   "Styles": {
     group: 0,
     colorName: "graphs-purple",
-    collapseFunc: CollapseFunctions.identical,
+    collapseFunc: collapse.child,
     label: L10N.getStr("timeline.label.styles2"),
     fields: Formatters.StylesFields,
   },
   "Reflow": {
     group: 0,
     colorName: "graphs-purple",
-    collapseFunc: CollapseFunctions.identical,
+    collapseFunc: collapse.child,
     label: L10N.getStr("timeline.label.reflow2"),
   },
   "Paint": {
     group: 0,
     colorName: "graphs-green",
-    collapseFunc: CollapseFunctions.identical,
+    collapseFunc: collapse.child,
     label: L10N.getStr("timeline.label.paint"),
   },
 
@@ -82,38 +80,33 @@ const TIMELINE_BLUEPRINT = {
   "DOMEvent": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: CollapseFunctions.DOMtoDOMJS,
+    collapseFunc: collapse.parent,
     label: L10N.getStr("timeline.label.domevent"),
     fields: Formatters.DOMEventFields,
   },
   "Javascript": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: either(CollapseFunctions.JStoDOMJS, CollapseFunctions.identical),
+    collapseFunc: either(collapse.parent, collapse.child),
     label: Formatters.JSLabel,
     fields: Formatters.JSFields
-  },
-  "meta::DOMEvent+JS": {
-    colorName: "graphs-yellow",
-    label: Formatters.DOMJSLabel,
-    fields: Formatters.DOMJSFields,
   },
   "Parse HTML": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: CollapseFunctions.identical,
+    collapseFunc: either(collapse.parent, collapse.child),
     label: L10N.getStr("timeline.label.parseHTML"),
   },
   "Parse XML": {
     group: 1,
     colorName: "graphs-yellow",
-    collapseFunc: CollapseFunctions.identical,
+    collapseFunc: either(collapse.parent, collapse.child),
     label: L10N.getStr("timeline.label.parseXML"),
   },
   "GarbageCollection": {
     group: 1,
     colorName: "graphs-red",
-    collapseFunc: CollapseFunctions.adjacent,
+    collapseFunc: either(collapse.parent, collapse.child),
     label: Formatters.GCLabel,
     fields: [
       { property: "causeName", label: "Reason:" },
@@ -134,6 +127,7 @@ const TIMELINE_BLUEPRINT = {
   "TimeStamp": {
     group: 2,
     colorName: "graphs-blue",
+    collapseFunc: collapse.child,
     label: sublabelForProperty(L10N.getStr("timeline.label.timestamp"), "causeName"),
     fields: [{
       property: "causeName",

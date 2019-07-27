@@ -14,6 +14,10 @@ add_task(function*() {
 
   let {textEditorContextMenuPopup} = projecteditor;
 
+  
+  
+  projecteditor._updateMenuItems();
+
   let cmdDelete = textEditorContextMenuPopup.querySelector("[command=cmd_delete]");
   let cmdSelectAll = textEditorContextMenuPopup.querySelector("[command=cmd_selectAll]");
   let cmdCut = textEditorContextMenuPopup.querySelector("[command=cmd_cut]");
