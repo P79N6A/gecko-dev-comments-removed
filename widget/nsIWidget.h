@@ -1363,6 +1363,8 @@ class nsIWidget : public nsISupports {
 
     struct Configuration {
         nsIWidget* mChild;
+        uintptr_t mWindowID; 
+        bool mVisible; 
         nsIntRect mBounds;
         nsTArray<nsIntRect> mClipRegion;
     };

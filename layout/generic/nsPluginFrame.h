@@ -121,23 +121,7 @@ public:
   
 
 
-  void GetWidgetConfiguration(nsTArray<nsIWidget::Configuration>* aConfigurations)
-  {
-    if (mWidget) {
-      if (!mWidget->GetParent()) {
-        
-        
-        
-        
-        NS_ERROR("Plugin widgets registered for geometry updates should not be toplevel");
-        return;
-      }
-      nsIWidget::Configuration* configuration = aConfigurations->AppendElement();
-      configuration->mChild = mWidget;
-      configuration->mBounds = mNextConfigurationBounds;
-      configuration->mClipRegion = mNextConfigurationClipRegion;
-    }
-  }
+  void GetWidgetConfiguration(nsTArray<nsIWidget::Configuration>* aConfigurations);
 
   nsIntRect GetWidgetlessClipRect() {
     return RegionFromArray(mNextConfigurationClipRegion).GetBounds();
