@@ -3041,7 +3041,11 @@ EmitDestructuringDecls(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp prologOp
 
     MOZ_ASSERT(pattern->isKind(PNK_OBJECT));
     for (ParseNode *member = pattern->pn_head; member; member = member->pn_next) {
-        ParseNode *target = member->pn_right;
+        MOZ_ASSERT(member->isKind(PNK_MUTATEPROTO) ||
+                   member->isKind(PNK_COLON) ||
+                   member->isKind(PNK_SHORTHAND));
+
+        ParseNode *target = member->isKind(PNK_MUTATEPROTO) ? member->pn_kid : member->pn_right;
         DestructuringDeclEmitter emitter =
             target->isKind(PNK_NAME) ? EmitDestructuringDecl : EmitDestructuringDecls;
         if (!emitter(cx, bce, prologOp, target))
@@ -3361,31 +3365,41 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
         
         bool needsGetElem = true;
 
-        JS_ASSERT(member->isKind(PNK_COLON) || member->isKind(PNK_SHORTHAND));
-        ParseNode *key = member->pn_left;
-
-        if (key->isKind(PNK_NUMBER)) {
-            if (!EmitNumberOp(cx, key->pn_dval, bce))                  
+        ParseNode *subpattern;
+        if (member->isKind(PNK_MUTATEPROTO)) {
+            if (!EmitAtomOp(cx, cx->names().proto, JSOP_GETPROP, bce)) 
                 return false;
-        } else if (key->isKind(PNK_NAME) || key->isKind(PNK_STRING)) {
-            PropertyName *name = key->pn_atom->asPropertyName();
-
-            
-            
-            
-            jsid id = NameToId(name);
-            if (id != types::IdToTypeId(id)) {
-                if (!EmitTree(cx, bce, key))                           
-                    return false;
-            } else {
-                if (!EmitAtomOp(cx, name, JSOP_GETPROP, bce))          
-                    return false;
-                needsGetElem = false;
-            }
+            needsGetElem = false;
+            subpattern = member->pn_kid;
         } else {
-            JS_ASSERT(key->isKind(PNK_COMPUTED_NAME));
-            if (!EmitTree(cx, bce, key->pn_kid))                       
-                return false;
+            MOZ_ASSERT(member->isKind(PNK_COLON) || member->isKind(PNK_SHORTHAND));
+
+            ParseNode *key = member->pn_left;
+            if (key->isKind(PNK_NUMBER)) {
+                if (!EmitNumberOp(cx, key->pn_dval, bce))              
+                    return false;
+            } else if (key->isKind(PNK_NAME) || key->isKind(PNK_STRING)) {
+                PropertyName *name = key->pn_atom->asPropertyName();
+
+                
+                
+                
+                jsid id = NameToId(name);
+                if (id != types::IdToTypeId(id)) {
+                    if (!EmitTree(cx, bce, key))                       
+                        return false;
+                } else {
+                    if (!EmitAtomOp(cx, name, JSOP_GETPROP, bce))      
+                        return false;
+                    needsGetElem = false;
+                }
+            } else {
+                JS_ASSERT(key->isKind(PNK_COMPUTED_NAME));
+                if (!EmitTree(cx, bce, key->pn_kid))                   
+                    return false;
+            }
+
+            subpattern = member->pn_right;
         }
 
         
@@ -3393,7 +3407,6 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
             return false;
 
         
-        ParseNode *subpattern = member->pn_right;
         int32_t depthBefore = bce->stackDepth;
         if (!EmitDestructuringLHS(cx, bce, subpattern, emitOption))
             return false;
@@ -6061,6 +6074,17 @@ EmitObject(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
 
         
+        
+        if (member->isKind(PNK_MUTATEPROTO)) {
+            if (!EmitTree(cx, bce, member->pn_kid))
+                return false;
+            obj = nullptr;
+            if (!Emit1(cx, bce, JSOP_MUTATEPROTO))
+                return false;
+            continue;
+        }
+
+        
         ParseNode *key = member->pn_left;
         bool isIndex = false;
         if (key->isKind(PNK_NUMBER)) {
@@ -6089,9 +6113,9 @@ EmitObject(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
 
         JSOp op = member->getOp();
-        JS_ASSERT(op == JSOP_INITPROP ||
-                  op == JSOP_INITPROP_GETTER ||
-                  op == JSOP_INITPROP_SETTER);
+        MOZ_ASSERT(op == JSOP_INITPROP ||
+                   op == JSOP_INITPROP_GETTER ||
+                   op == JSOP_INITPROP_SETTER);
 
         if (op == JSOP_INITPROP_GETTER || op == JSOP_INITPROP_SETTER)
             obj = nullptr;
@@ -6109,21 +6133,9 @@ EmitObject(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         } else {
             JS_ASSERT(key->isKind(PNK_NAME) || key->isKind(PNK_STRING));
 
-            
-            if (op == JSOP_INITPROP && key->pn_atom == cx->names().proto) {
-                obj = nullptr;
-                if (Emit1(cx, bce, JSOP_MUTATEPROTO) < 0)
-                    return false;
-                continue;
-            }
-
             jsatomid index;
             if (!bce->makeAtomIndex(key->pn_atom, &index))
                 return false;
-
-            MOZ_ASSERT(op == JSOP_INITPROP ||
-                       op == JSOP_INITPROP_GETTER ||
-                       op == JSOP_INITPROP_SETTER);
 
             if (obj) {
                 JS_ASSERT(!obj->inDictionaryMode());

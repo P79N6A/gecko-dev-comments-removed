@@ -286,6 +286,18 @@ class FullParseHandler
         return literal;
     }
 
+    bool addPrototypeMutation(ParseNode *literal, uint32_t begin, ParseNode *expr) {
+        
+        
+        setListFlag(literal, PNX_NONCONST);
+
+        ParseNode *mutation = newUnary(PNK_MUTATEPROTO, JSOP_NOP, begin, expr);
+        if (!mutation)
+            return false;
+        literal->append(mutation);
+        return true;
+    }
+
     bool addPropertyDefinition(ParseNode *literal, ParseNode *name, ParseNode *expr,
                                bool isShorthand = false) {
         JS_ASSERT(literal->isArity(PN_LIST));
