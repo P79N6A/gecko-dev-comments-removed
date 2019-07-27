@@ -877,6 +877,8 @@ pref("general.useragent.updates.url", "https://dynamicua.cdn.mozilla.net/0/%APP_
 pref("general.useragent.updates.interval", 604800); 
 pref("general.useragent.updates.retry", 86400); 
 
+pref("general.useragent.device_id", "");
+
 
 pref("media.useAudioChannelService", true);
 
