@@ -6,6 +6,7 @@
 
 
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 
 
@@ -42,7 +43,7 @@ Services.ww.registerNotification({
 
 
 function becomeWebapp(manifestURL, parameters, onBecome) {
-  function observeInstall(subj, topic, data) {
+  let observeInstall = Task.async(function*(subj, topic, data) {
     Services.obs.removeObserver(observeInstall, "webapps-ask-install");
 
     
@@ -52,7 +53,7 @@ function becomeWebapp(manifestURL, parameters, onBecome) {
     let scope = {};
     Cu.import("resource://gre/modules/Webapps.jsm", scope);
     Cu.import("resource://webapprt/modules/Startup.jsm", scope);
-    scope.DOMApplicationRegistry.confirmInstall(JSON.parse(data));
+    yield scope.DOMApplicationRegistry.confirmInstall(JSON.parse(data));
 
     let installRecord = JSON.parse(data);
     installRecord.mm = subj;
@@ -68,8 +69,6 @@ function becomeWebapp(manifestURL, parameters, onBecome) {
                                    null);
     }
 
-    let promise = scope.startup(win);
-
     
     
     
@@ -80,8 +79,9 @@ function becomeWebapp(manifestURL, parameters, onBecome) {
     
     Services.obs.notifyObservers(this, "webapps-registry-start", null);
 
-    promise.then(onBecome);
-  }
+    yield scope.startup(win);
+    onBecome();
+  });
   Services.obs.addObserver(observeInstall, "webapps-ask-install", false);
 
   
