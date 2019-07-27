@@ -33,6 +33,8 @@ public:
     VCMEncodedFrameCallback(EncodedImageCallback* post_encode_callback);
     virtual ~VCMEncodedFrameCallback();
 
+  void SetCritSect(CriticalSectionWrapper* critSect);
+
     
 
 
@@ -54,6 +56,7 @@ public:
 
 private:
     VCMPacketizationCallback* _sendCallback;
+    CriticalSectionWrapper* _critSect;
     media_optimization::MediaOptimization* _mediaOpt;
     uint8_t _payloadType;
     bool _internalSource;

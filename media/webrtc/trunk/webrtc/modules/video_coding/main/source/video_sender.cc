@@ -107,6 +107,7 @@ int32_t VideoSender::InitializeSender() {
   _codecDataBase.ResetSender();
   _encoder = NULL;
   _encodedFrameCallback.SetTransportCallback(NULL);
+  _encodedFrameCallback.SetCritSect(_sendCritSect);
   _mediaOpt.Reset();  
   return VCM_OK;
 }
