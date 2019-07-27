@@ -1968,6 +1968,9 @@ pref("layout.css.grid.enabled", false);
 pref("layout.css.box-decoration-break.enabled", false);
 
 
+pref("layout.css.outline-style-auto.enabled", false);
+
+
 
 
 
