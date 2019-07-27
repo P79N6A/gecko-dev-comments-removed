@@ -710,6 +710,8 @@ pref("canvas.path.enabled", true);
 
 pref("accessibility.force_disabled", 0);
 
+pref("accessibility.ipc_architecture.enabled", true);
+
 #ifdef XP_WIN
 
 
