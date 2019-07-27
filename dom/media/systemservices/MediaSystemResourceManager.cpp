@@ -38,23 +38,6 @@ MediaSystemResourceManager::Shutdown()
   }
 }
 
- bool
-MediaSystemResourceManager::IsMediaSystemResourceManagerEnabled()
-{
-#ifdef MOZ_WIDGET_GONK
-  return true;
-#else
-  
-  
-  if (gfxPrefs::AsyncVideoOOPEnabled() &&
-      gfxPrefs::AsyncVideoEnabled()) {
-    return true;
-  } else  {
-    return false;
-  }
-#endif
-}
-
 class RunnableCallTask : public Task
 {
 public:
@@ -72,7 +55,6 @@ protected:
  void
 MediaSystemResourceManager::Init()
 {
-  MOZ_ASSERT(IsMediaSystemResourceManagerEnabled());
   if (!ImageBridgeChild::IsCreated()) {
     NS_WARNING("ImageBridge does not exist");
     return;
