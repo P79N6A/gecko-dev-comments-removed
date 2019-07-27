@@ -744,6 +744,7 @@ this.TelemetrySession = Object.freeze({
   reset: function() {
     Impl._sessionId = null;
     Impl._subsessionId = null;
+    Impl._previousSessionId = null;
     Impl._previousSubsessionId = null;
     Impl._subsessionCounter = 0;
     Impl._profileSubsessionCounter = 0;
@@ -816,6 +817,8 @@ let Impl = {
   _sessionId: null,
   
   _subsessionId: null,
+  
+  _previousSessionId: null,
   
   
   _previousSubsessionId: null,
@@ -1122,6 +1125,7 @@ let Impl = {
 
       sessionId: this._sessionId,
       subsessionId: this._subsessionId,
+      previousSessionId: this._previousSessionId,
       previousSubsessionId: this._previousSubsessionId,
 
       subsessionCounter: this._subsessionCounter,
@@ -1922,7 +1926,8 @@ let Impl = {
       if (data &&
           "profileSubsessionCounter" in data &&
           typeof(data.profileSubsessionCounter) == "number" &&
-          "subsessionId" in data) {
+          "subsessionId" in data && "sessionId" in data) {
+        this._previousSessionId = data.sessionId;
         this._previousSubsessionId = data.subsessionId;
         
         
@@ -1942,6 +1947,7 @@ let Impl = {
 
   _getSessionDataObject: function() {
     return {
+      sessionId: this._sessionId,
       subsessionId: this._subsessionId,
       profileSubsessionCounter: this._profileSubsessionCounter,
     };
