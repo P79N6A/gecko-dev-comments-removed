@@ -477,19 +477,21 @@ let AboutHomeListener = {
 AboutHomeListener.init(this);
 
 let AboutReaderListener = {
-  _savedArticle: null,
+
+  _articlePromise: null,
 
   init: function() {
     addEventListener("AboutReaderContentLoaded", this, false, true);
     addEventListener("pageshow", this, false);
     addEventListener("pagehide", this, false);
-    addMessageListener("Reader:SavedArticleGet", this);
+    addMessageListener("Reader:ParseDocument", this);
   },
 
   receiveMessage: function(message) {
     switch (message.name) {
-      case "Reader:SavedArticleGet":
-        sendAsyncMessage("Reader:SavedArticleData", { article: this._savedArticle });
+      case "Reader:ParseDocument":
+        this._articlePromise = ReaderMode.parseDocument(content.document);
+        content.document.location = "about:reader?url=" + encodeURIComponent(message.data.url);
         break;
     }
   },
@@ -512,7 +514,7 @@ let AboutReaderListener = {
         if (content.document.body) {
           
           sendAsyncMessage("Reader:UpdateReaderButton");
-          new AboutReader(global, content);
+          new AboutReader(global, content, this._articlePromise);
         }
         break;
 
@@ -525,27 +527,8 @@ let AboutReaderListener = {
           return;
         }
 
-        
-        this._savedArticle = null;
-
-        ReaderMode.parseDocument(content.document).then(article => {
-          
-          if (article === null || content === null) {
-            return;
-          }
-
-          
-          
-          let url = Services.io.newURI(content.document.documentURI, null, null).spec;
-          if (article.url !== url) {
-            return;
-          }
-
-          this._savedArticle = article;
-          sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
-
-        }).catch(e => Cu.reportError("Error parsing document: " + e));
-        break;
+        let isArticle = ReaderMode.isProbablyReaderable(content.document);
+        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: isArticle });
     }
   }
 };
