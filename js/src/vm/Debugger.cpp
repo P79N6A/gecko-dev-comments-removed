@@ -3109,7 +3109,7 @@ Debugger::construct(JSContext* cx, unsigned argc, Value* vp)
     Debugger* debugger;
     {
         
-        AutoInitGCManagedObject<Debugger> dbg(cx->make_unique<Debugger>(cx, obj.get()));
+        auto dbg = cx->make_unique<Debugger>(cx, obj.get());
         if (!dbg || !dbg->init(cx))
             return false;
 

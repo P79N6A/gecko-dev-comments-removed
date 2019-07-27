@@ -1078,9 +1078,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool                hadOutOfMemory;
 
     
-    mozilla::DebugOnly<bool> handlingInitFailure;
-
-    
     bool                haveCreatedContext;
 
     
@@ -1929,75 +1926,10 @@ class AutoEnterIonCompilation
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <typename T>
-class MOZ_STACK_CLASS AutoInitGCManagedObject
-{
-    typedef mozilla::UniquePtr<T, JS::DeletePolicy<T>> UniquePtrT;
-
-    UniquePtrT ptr_;
-
-  public:
-    explicit AutoInitGCManagedObject(UniquePtrT&& ptr)
-      : ptr_(mozilla::Move(ptr))
-    {}
-
-    ~AutoInitGCManagedObject() {
-#ifdef DEBUG
-        if (ptr_) {
-            JSRuntime* rt = TlsPerThreadData.get()->runtimeFromMainThread();
-            MOZ_ASSERT(!rt->handlingInitFailure);
-            rt->handlingInitFailure = true;
-            ptr_.reset(nullptr);
-            rt->handlingInitFailure = false;
-        }
-#endif
-    }
-
-    T& operator*() const {
-        return *ptr_.get();
-    }
-
-    T* operator->() const {
-        return ptr_.get();
-    }
-
-    explicit operator bool() const {
-        return ptr_.get() != nullptr;
-    }
-
-    T* release() {
-        return ptr_.release();
-    }
-
-    AutoInitGCManagedObject(const AutoInitGCManagedObject<T>& other) = delete;
-    AutoInitGCManagedObject& operator=(const AutoInitGCManagedObject<T>& other) = delete;
-};
-
 } 
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#endif 
+#endif

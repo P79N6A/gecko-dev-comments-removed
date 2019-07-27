@@ -212,9 +212,6 @@ CurrentThreadIsIonCompiling();
 
 bool
 CurrentThreadIsGCSweeping();
-
-bool
-CurrentThreadIsHandlingInitFailure();
 #endif
 
 namespace gc {
@@ -443,8 +440,7 @@ class HeapPtr : public BarrieredBase<T>
 #ifdef DEBUG
     ~HeapPtr() {
         
-        
-        MOZ_ASSERT(CurrentThreadIsGCSweeping() || CurrentThreadIsHandlingInitFailure());
+        MOZ_ASSERT(CurrentThreadIsGCSweeping());
     }
 #endif
 
