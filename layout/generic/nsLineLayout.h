@@ -78,6 +78,20 @@ public:
   
   nscoord EndSpan(nsIFrame* aFrame);
 
+  
+  
+  void AttachLastFrameToBaseLineLayout()
+  {
+    AttachFrameToBaseLineLayout(LastFrame());
+  }
+
+  
+  
+  void AttachRootFrameToBaseLineLayout()
+  {
+    AttachFrameToBaseLineLayout(mRootSpan->mFrame);
+  }
+
   int32_t GetCurrentSpanCount() const;
 
   void SplitLineTo(int32_t aNewCount);
@@ -605,6 +619,8 @@ protected:
 
   PerSpanData* NewPerSpanData();
 
+  PerFrameData* LastFrame() const { return mCurrentSpan->mLastFrame; }
+
   
 
 
@@ -659,6 +675,7 @@ protected:
   nscoord ApplyFrameJustification(
       PerSpanData* aPSD, mozilla::JustificationApplicationState& aState);
 
+  void AttachFrameToBaseLineLayout(PerFrameData* aFrame);
 
 #ifdef DEBUG
   void DumpPerSpanData(PerSpanData* psd, int32_t aIndent);
