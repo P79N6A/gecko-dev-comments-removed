@@ -7,6 +7,7 @@
 #include "MediaManager.h"
 
 #include "MediaStreamGraph.h"
+#include "mozilla/dom/MediaStreamTrack.h"
 #include "GetUserMediaRequest.h"
 #include "nsHashPropertyBag.h"
 #ifdef MOZ_WIDGET_GONK
@@ -481,19 +482,23 @@ class nsDOMUserMediaStream : public DOMLocalMediaStream
 public:
   static already_AddRefed<nsDOMUserMediaStream>
   CreateTrackUnionStream(nsIDOMWindow* aWindow,
-                         MediaEngineSource *aAudioSource,
-                         MediaEngineSource *aVideoSource)
+                         GetUserMediaCallbackMediaStreamListener* aListener,
+                         MediaEngineSource* aAudioSource,
+                         MediaEngineSource* aVideoSource)
   {
     DOMMediaStream::TrackTypeHints hints =
       (aAudioSource ? DOMMediaStream::HINT_CONTENTS_AUDIO : 0) |
       (aVideoSource ? DOMMediaStream::HINT_CONTENTS_VIDEO : 0);
 
-    nsRefPtr<nsDOMUserMediaStream> stream = new nsDOMUserMediaStream(aAudioSource);
+    nsRefPtr<nsDOMUserMediaStream> stream = new nsDOMUserMediaStream(aListener,
+                                                                     aAudioSource);
     stream->InitTrackUnionStream(aWindow, hints);
     return stream.forget();
   }
 
-  nsDOMUserMediaStream(MediaEngineSource *aAudioSource) :
+  nsDOMUserMediaStream(GetUserMediaCallbackMediaStreamListener* aListener,
+                       MediaEngineSource *aAudioSource) :
+    mListener(aListener),
     mAudioSource(aAudioSource),
     mEchoOn(true),
     mAgcOn(false),
@@ -528,6 +533,40 @@ public:
       mSourceStream->EndAllTrackAndFinish();
     }
   }
+
+  
+  
+  
+  
+  virtual void StopTrack(TrackID aTrackID)
+  {
+    if (mSourceStream) {
+      mSourceStream->EndTrack(aTrackID);
+      
+      
+      
+      if (GetDOMTrackFor(aTrackID)) {
+        mListener->StopTrack(aTrackID, !!GetDOMTrackFor(aTrackID)->AsAudioStreamTrack());
+      } else {
+        LOG(("StopTrack(%d) on non-existant track", aTrackID));
+      }
+    }
+  }
+
+#if 0
+  virtual void NotifyMediaStreamTrackEnded(dom::MediaStreamTrack* aTrack)
+  {
+    TrackID trackID = aTrack->GetTrackID();
+    
+    LOG(("track %d ending, type = %s",
+         trackID, aTrack->AsAudioStreamTrack() ? "audio" : "video"));
+    MOZ_ASSERT(aTrack->AsVideoStreamTrack() || aTrack->AsAudioStreamTrack());
+    mListener->StopTrack(trackID, !!aTrack->AsAudioStreamTrack());
+
+    
+    DOMLocalMediaStream::NotifyMediaStreamTrackEnded(aTrack);
+  }
+#endif
 
   
   virtual bool AddDirectListener(MediaStreamDirectListener *aListener) MOZ_OVERRIDE
@@ -576,6 +615,7 @@ public:
   
   nsRefPtr<SourceMediaStream> mSourceStream;
   nsRefPtr<MediaInputPort> mPort;
+  nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener;
   nsRefPtr<MediaEngineSource> mAudioSource; 
   bool mEchoOn;
   bool mAgcOn;
@@ -708,8 +748,8 @@ public:
 #endif
     
     nsRefPtr<nsDOMUserMediaStream> trackunion =
-      nsDOMUserMediaStream::CreateTrackUnionStream(window, mAudioSource,
-                                                   mVideoSource);
+      nsDOMUserMediaStream::CreateTrackUnionStream(window, mListener,
+                                                   mAudioSource, mVideoSource);
     if (!trackunion) {
       nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error = mError.forget();
       LOG(("Returning error for getUserMedia() - no stream"));
@@ -2291,6 +2331,28 @@ GetUserMediaCallbackMediaStreamListener::StopScreenWindowSharing()
   }
 }
 
+
+
+void
+GetUserMediaCallbackMediaStreamListener::StopTrack(TrackID aID, bool aIsAudio)
+{
+  if (((aIsAudio && mAudioSource) ||
+       (!aIsAudio && mVideoSource)) && !mStopped)
+  {
+    
+    
+    nsRefPtr<MediaOperationRunnable> runnable(
+      new MediaOperationRunnable(MEDIA_STOP_TRACK,
+                                 this, nullptr, nullptr,
+                                 aIsAudio  ? mAudioSource : nullptr,
+                                 !aIsAudio ? mVideoSource : nullptr,
+                                 mFinished, mWindowID, nullptr));
+    mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+  } else {
+    LOG(("gUM track %d ended, but we don't have type %s",
+         aID, aIsAudio ? "audio" : "video"));
+  }
+}
 
 
 void
