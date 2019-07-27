@@ -1983,10 +1983,13 @@ MediaDecoderStateMachine::FinishDecodeMetadata()
   }
 
   
-  nsAutoPtr<MediaInfo> info(new MediaInfo());
-  *info = mInfo;
   nsCOMPtr<nsIRunnable> metadataLoadedEvent =
-    new MetadataEventRunner(mDecoder, info.forget(), mMetadataTags.forget());
+    new AudioMetadataEventRunner(mDecoder,
+                                 mInfo.mAudio.mChannels,
+                                 mInfo.mAudio.mRate,
+                                 HasAudio(),
+                                 HasVideo(),
+                                 mMetadataTags.forget());
   NS_DispatchToMainThread(metadataLoadedEvent, NS_DISPATCH_NORMAL);
 
   if (mState == DECODER_STATE_DECODING_METADATA) {
@@ -3095,14 +3098,20 @@ bool MediaDecoderStateMachine::IsShutdown()
 }
 
 void MediaDecoderStateMachine::QueueMetadata(int64_t aPublishTime,
-                                             MediaInfo* aInfo,
+                                             int aChannels,
+                                             int aRate,
+                                             bool aHasAudio,
+                                             bool aHasVideo,
                                              MetadataTags* aTags)
 {
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
   AssertCurrentThreadInMonitor();
   TimedMetadata* metadata = new TimedMetadata;
   metadata->mPublishTime = aPublishTime;
-  metadata->mInfo = aInfo;
+  metadata->mChannels = aChannels;
+  metadata->mRate = aRate;
+  metadata->mHasAudio = aHasAudio;
+  metadata->mHasVideo = aHasVideo;
   metadata->mTags = aTags;
   mMetadataManager.QueueMetadata(metadata);
 }

@@ -23,9 +23,13 @@ namespace mozilla {
       
       nsAutoPtr<MetadataTags> mTags;
       
+      int mRate;
       
+      int mChannels;
       
-      nsAutoPtr<MediaInfo> mInfo;
+      bool mHasAudio;
+      
+      bool mHasVideo;
   };
 
   
@@ -47,9 +51,12 @@ namespace mozilla {
         TimedMetadata* metadata = mMetadataQueue.getFirst();
         while (metadata && aCurrentTime >= static_cast<double>(metadata->mPublishTime) / USECS_PER_S) {
           nsCOMPtr<nsIRunnable> metadataUpdatedEvent =
-            new MetadataEventRunner(aDecoder,
-                                    metadata->mInfo.forget(),
-                                    metadata->mTags.forget());
+            new AudioMetadataEventRunner(aDecoder,
+                                         metadata->mChannels,
+                                         metadata->mRate,
+                                         metadata->mHasAudio,
+                                         metadata->mHasVideo,
+                                         metadata->mTags.forget());
           NS_DispatchToMainThread(metadataUpdatedEvent);
           delete mMetadataQueue.popFirst();
           metadata = mMetadataQueue.getFirst();

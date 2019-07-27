@@ -2876,10 +2876,13 @@ void HTMLMediaElement::ProcessMediaFragmentURI()
   }
 }
 
-void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
+void HTMLMediaElement::MetadataLoaded(int aChannels,
+                                      int aRate,
+                                      bool aHasAudio,
+                                      bool aHasVideo,
                                       const MetadataTags* aTags)
 {
-  mHasAudio = aInfo->HasAudio();
+  mHasAudio = aHasAudio;
   mTags = aTags;
   ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
   DispatchAsyncEvent(NS_LITERAL_STRING("durationchange"));
@@ -2892,7 +2895,7 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
   
   
   
-  if (!aInfo->HasVideo() && mVideoFrameContainer) {
+  if (!aHasVideo && mVideoFrameContainer) {
     
     
     mVideoFrameContainer->ForgetElement();

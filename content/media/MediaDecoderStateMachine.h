@@ -323,7 +323,7 @@ public:
   
   bool IsShutdown();
 
-  void QueueMetadata(int64_t aPublishTime, MediaInfo* aInfo, MetadataTags* aTags);
+  void QueueMetadata(int64_t aPublishTime, int aChannels, int aRate, bool aHasAudio, bool aHasVideo, MetadataTags* aTags);
 
   
   

@@ -151,7 +151,10 @@ public:
   
   
   
-  virtual void MetadataLoaded(const MediaInfo* aInfo,
+  virtual void MetadataLoaded(int aChannels,
+                              int aRate,
+                              bool aHasAudio,
+                              bool aHasVideo,
                               const MetadataTags* aTags) MOZ_FINAL MOZ_OVERRIDE;
 
   
