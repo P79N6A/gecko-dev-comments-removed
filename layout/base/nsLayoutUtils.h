@@ -1400,8 +1400,12 @@ public:
 
 
 
+
+
+
   static nscoord GetCenteredFontBaseline(nsFontMetrics* aFontMetrics,
-                                         nscoord         aLineHeight);
+                                         nscoord        aLineHeight,
+                                         bool           aIsInverted);
 
   
 

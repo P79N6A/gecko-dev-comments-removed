@@ -1904,20 +1904,26 @@ gfxFont::Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
         const Metrics& metrics = GetMetrics(eHorizontal);
         
         
-        
-        
-        
-        
-        
-        
-        aRunParams.context->SetMatrix(aRunParams.context->CurrentMatrix().
+        gfxMatrix mat = aRunParams.context->CurrentMatrix().
             Translate(p).       
             Rotate(M_PI / 2.0). 
-            Translate(-p).      
-            Translate(gfxPoint(0, (metrics.emAscent - metrics.emDescent) / 2)));
-                                
-                                
-                                
+            Translate(-p);      
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (aTextRun->UseCenterBaseline()) {
+            gfxPoint baseAdj(0, (metrics.emAscent - metrics.emDescent) / 2);
+            mat.Translate(baseAdj);
+        }
+
+        aRunParams.context->SetMatrix(mat);
     }
 
     nsAutoPtr<gfxTextContextPaint> contextPaint;
@@ -2138,15 +2144,33 @@ gfxFont::Measure(gfxTextRun *aTextRun,
     
     gfxFont::Orientation orientation =
         aOrientation == gfxTextRunFactory::TEXT_ORIENT_VERTICAL_UPRIGHT
-        ? gfxFont::eVertical : gfxFont::eHorizontal;
+        ? eVertical : eHorizontal;
     const gfxFont::Metrics& fontMetrics = GetMetrics(orientation);
 
+    gfxFloat baselineOffset = 0;
+    if (aTextRun->UseCenterBaseline() && orientation == eHorizontal) {
+        
+        
+        
+        
+        
+        
+        
+        
+        baselineOffset = appUnitsPerDevUnit *
+            (fontMetrics.emAscent - fontMetrics.emDescent) / 2;
+    }
+
     RunMetrics metrics;
-    metrics.mAscent = fontMetrics.maxAscent*appUnitsPerDevUnit;
-    metrics.mDescent = fontMetrics.maxDescent*appUnitsPerDevUnit;
+    metrics.mAscent = fontMetrics.maxAscent * appUnitsPerDevUnit;
+    metrics.mDescent = fontMetrics.maxDescent * appUnitsPerDevUnit;
+
     if (aStart == aEnd) {
         
-        metrics.mBoundingBox = gfxRect(0, -metrics.mAscent, 0, metrics.mAscent + metrics.mDescent);
+        metrics.mAscent -= baselineOffset;
+        metrics.mDescent += baselineOffset;
+        metrics.mBoundingBox = gfxRect(0, -metrics.mAscent,
+                                       0, metrics.mAscent + metrics.mDescent);
         return metrics;
     }
 
@@ -2245,6 +2269,12 @@ gfxFont::Measure(gfxTextRun *aTextRun,
     }
     if (isRTL) {
         metrics.mBoundingBox -= gfxPoint(x, 0);
+    }
+
+    if (baselineOffset != 0) {
+        metrics.mAscent -= baselineOffset;
+        metrics.mDescent += baselineOffset;
+        metrics.mBoundingBox.y += baselineOffset;
     }
 
     metrics.mAdvanceWidth = x*direction;

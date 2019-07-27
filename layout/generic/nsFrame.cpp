@@ -1341,6 +1341,11 @@ nsFrame::GetLogicalBaseline(WritingMode aWritingMode) const
                "frame must not be dirty");
   
   
+  if (aWritingMode.IsLineInverted()) {
+    return -GetLogicalUsedMargin(aWritingMode).BStart(aWritingMode);
+  }
+  
+  
   return BSize(aWritingMode) +
          GetLogicalUsedMargin(aWritingMode).BEnd(aWritingMode);
 }

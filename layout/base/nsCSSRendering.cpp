@@ -4163,7 +4163,11 @@ nsCSSRendering::PaintDecorationLine(nsIFrame* aFrame,
   }
 
   
-  rect.y += lineThickness / 2;
+  if (aVertical) {
+    rect.x -= lineThickness / 2;
+  } else {
+    rect.y += lineThickness / 2;
+  }
 
   switch (aStyle) {
     case NS_STYLE_TEXT_DECORATION_STYLE_SOLID:
@@ -4361,11 +4365,17 @@ nsCSSRendering::DecorationLineToPath(nsIFrame* aFrame,
   gfxFloat lineThickness = std::max(NS_round(aLineSize.height), 1.0);
 
   
-  rect.y += lineThickness / 2;
-
-  aGfxContext->Rectangle
-    (gfxRect(gfxPoint(rect.TopLeft() - gfxPoint(0.0, lineThickness / 2)),
-             gfxSize(rect.Width(), lineThickness)));
+  if (aVertical) {
+    rect.x -= lineThickness / 2;
+    aGfxContext->Rectangle
+      (gfxRect(gfxPoint(rect.TopLeft() - gfxPoint(lineThickness / 2, 0.0)),
+               gfxSize(lineThickness, rect.Height())));
+  } else {
+    rect.y += lineThickness / 2;
+    aGfxContext->Rectangle
+      (gfxRect(gfxPoint(rect.TopLeft() - gfxPoint(0.0, lineThickness / 2)),
+               gfxSize(rect.Width(), lineThickness)));
+  }
 }
 
 nsRect

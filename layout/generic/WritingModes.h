@@ -168,12 +168,17 @@ public:
   
 
 
-  bool IsBidiLTR() const { return eBidiLTR == (mWritingMode & eBidiMask); }
+  bool IsBidiLTR() const { return eBidiLTR == GetBidiDir(); }
 
   
 
 
-  bool IsVerticalLR() const { return eBlockLR == (mWritingMode & eBlockMask); }
+  bool IsVerticalLR() const { return eBlockLR == GetBlockDir(); }
+
+  
+
+
+  bool IsVerticalRL() const { return eBlockRL == GetBlockDir(); }
 
   
 
