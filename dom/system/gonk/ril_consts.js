@@ -1259,6 +1259,7 @@ this.STK_SUPPORTED_TERMINAL_PROFILE = [
 
 
 this.GECKO_ICC_SERVICES = {
+  
   sim: {
     ADN: 2,
     FDN: 3,
@@ -1279,6 +1280,7 @@ this.GECKO_ICC_SERVICES = {
     MWIS: 54,
     SPDI: 56
   },
+  
   usim: {
     FDN: 2,
     SDN: 4,
@@ -1297,9 +1299,11 @@ this.GECKO_ICC_SERVICES = {
     MWIS: 48,
     SPDI: 51
   },
+  
   ruim: {
     ENHANCED_PHONEBOOK: 6,
-    SPN: 17
+    SPN: 17,
+    SDN: 18
   }
 };
 

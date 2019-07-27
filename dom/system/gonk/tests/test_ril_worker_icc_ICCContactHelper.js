@@ -27,7 +27,7 @@ add_test(function test_error_message_read_icc_contact () {
 
   
   ril.appType = CARD_APPTYPE_USIM;
-  do_test({contactType: "sdn"}, CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
+  do_test({contactType: "foo"}, CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
 
   
   
