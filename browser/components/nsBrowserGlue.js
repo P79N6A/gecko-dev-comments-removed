@@ -955,12 +955,14 @@ BrowserGlue.prototype = {
     
     
     aWindow.messageManager.loadFrameScript("resource://pdf.js/pdfjschildbootstrap.js", true);
+
 #ifdef NIGHTLY_BUILD
     
     aWindow.messageManager.loadFrameScript("chrome://shumway/content/bootstrap-content.js", true);
     
     ShumwayUtils.init();
 #endif
+
 #ifdef XP_WIN
     
     const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
@@ -1004,6 +1006,14 @@ BrowserGlue.prototype = {
     }
 
     this._checkForOldBuildUpdates();
+
+    let disabledAddons = AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_DISABLED);
+    for (let id of disabledAddons) {
+      if (AddonManager.getAddonByID(id).signedState <= AddonManager.SIGNEDSTATE_MISSING) {
+        this._notifyUnsignedAddonsDisabled();
+        break;
+      }
+    }
 
     this._firstWindowTelemetry(aWindow);
   },
