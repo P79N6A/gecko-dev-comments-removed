@@ -217,7 +217,7 @@ loop.panel = (function(_, mozL10n) {
     },
 
     handleClickAccountEntry: function() {
-      
+      navigator.mozLoop.openFxASettings();
     },
 
     handleClickAuthEntry: function() {
@@ -242,6 +242,7 @@ loop.panel = (function(_, mozL10n) {
               onMouseLeave: this.hideDropdownMenu}, 
             SettingsDropdownEntry({label: __("settings_menu_item_settings"), 
                                    onClick: this.handleClickSettingsEntry, 
+                                   displayed: false, 
                                    icon: "settings"}), 
             SettingsDropdownEntry({label: __("settings_menu_item_account"), 
                                    onClick: this.handleClickAccountEntry, 
@@ -427,7 +428,7 @@ loop.panel = (function(_, mozL10n) {
     },
 
     render: function() {
-      if (navigator.mozLoop.loggedInToFxA) { 
+      if (navigator.mozLoop.userProfile) {
         return null;
       }
       return (

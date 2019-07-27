@@ -221,7 +221,6 @@ body[dir=rtl] .dropdown-menu-item {
 
 
 .signin-link {
-  display: none; 
   flex: 2 1 auto;
   margin-top: 14px;
   border-right: 1px solid #aaa;
@@ -239,7 +238,6 @@ body[dir=rtl] .dropdown-menu-item {
 
 
 .btn-settings {
-  display: none; 
   background: transparent url(../img/svg/glyph-settings-16x16.svg) no-repeat center center;
   background-size: contain;
   width: 12px;
