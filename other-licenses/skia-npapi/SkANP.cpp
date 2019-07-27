@@ -60,7 +60,9 @@ SkBitmap* SkANP::SetBitmap(SkBitmap* dst, const ANPBitmap& src) {
 
     switch (src.format) {
         case kRGBA_8888_ANPBitmapFormat:
-            colorType = kRGBA_8888_SkColorType;
+            
+            
+            colorType = kN32_SkColorType;
             break;
         case kRGB_565_ANPBitmapFormat:
             colorType = kRGB_565_SkColorType;
