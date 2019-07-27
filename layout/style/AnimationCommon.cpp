@@ -398,10 +398,6 @@ CommonAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
     return nullptr;
   }
 
-  
-  if (!IsAnimationManager()) {
-    collection->mNeedsRefreshes = true;
-  }
   collection->EnsureStyleRuleFor(
     mPresContext->RefreshDriver()->MostRecentRefresh(),
     EnsureStyleRule_IsNotThrottled);
