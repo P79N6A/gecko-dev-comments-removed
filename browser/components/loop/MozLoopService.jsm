@@ -1084,13 +1084,6 @@ this.MozLoopService = {
     Object.freeze(this);
 
     
-    
-    Services.prefs.clearUserPref("loop.throttled");
-    Services.prefs.clearUserPref("loop.throttled2");
-    Services.prefs.clearUserPref("loop.soft_start_ticket_number");
-    Services.prefs.clearUserPref("loop.soft_start_hostname");
-
-    
     if (!Services.prefs.getBoolPref("loop.enabled")) {
       return Promise.reject(new Error("loop is not enabled"));
     }
