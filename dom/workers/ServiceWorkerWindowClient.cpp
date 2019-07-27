@@ -87,7 +87,8 @@ public:
       ErrorResult result;
       
       window->Focus(result);
-      clientInfo.reset(new ServiceWorkerClientInfo(window->GetDocument()));
+      clientInfo.reset(new ServiceWorkerClientInfo(window->GetDocument(),
+                                                   window->GetOuterWindow()));
     }
 
     DispatchResult(Move(clientInfo));

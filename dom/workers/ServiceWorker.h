@@ -11,6 +11,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/ServiceWorkerBinding.h" 
 
+class nsIDocument;
 class nsPIDOMWindow;
 
 namespace mozilla {
@@ -91,6 +92,10 @@ private:
   
   
   nsRefPtr<SharedWorker> mSharedWorker;
+  
+  
+  nsCOMPtr<nsIDocument> mDocument;
+  nsCOMPtr<nsPIDOMWindow> mWindow;
 };
 
 } 
