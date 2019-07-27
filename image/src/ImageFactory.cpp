@@ -31,22 +31,14 @@ namespace image {
 ImageFactory::Initialize()
 { }
 
-static bool
-ShouldDownscaleDuringDecode(const nsCString& aMimeType)
-{
-  
-  return false;
-}
-
 static uint32_t
-ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
+ComputeImageFlags(ImageURL* uri, bool isMultiPart)
 {
   nsresult rv;
 
   
   bool isDiscardable = gfxPrefs::ImageMemDiscardable();
   bool doDecodeOnDraw = gfxPrefs::ImageMemDecodeOnDraw();
-  bool doDownscaleDuringDecode = gfxPrefs::ImageDownscaleDuringDecodeEnabled();
 
   
   
@@ -65,14 +57,9 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   }
 
   
-  if (doDownscaleDuringDecode && !ShouldDownscaleDuringDecode(aMimeType)) {
-    doDownscaleDuringDecode = false;
-  }
-
-  
   
   if (isMultiPart) {
-    isDiscardable = doDecodeOnDraw = doDownscaleDuringDecode = false;
+    isDiscardable = doDecodeOnDraw = false;
   }
 
   
@@ -85,9 +72,6 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   }
   if (isMultiPart) {
     imageFlags |= Image::INIT_FLAG_TRANSIENT;
-  }
-  if (doDownscaleDuringDecode) {
-    imageFlags |= Image::INIT_FLAG_DOWNSCALE_DURING_DECODE;
   }
 
   return imageFlags;
@@ -105,7 +89,7 @@ ImageFactory::CreateImage(nsIRequest* aRequest,
              "Pref observers should have been initialized already");
 
   
-  uint32_t imageFlags = ComputeImageFlags(aURI, aMimeType, aIsMultiPart);
+  uint32_t imageFlags = ComputeImageFlags(aURI, aIsMultiPart);
 
   
   if (aMimeType.EqualsLiteral(IMAGE_SVG_XML)) {
