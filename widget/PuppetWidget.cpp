@@ -761,14 +761,6 @@ PuppetWidget::PaintTask::Run()
 bool
 PuppetWidget::NeedsPaint()
 {
-  
-  if (XRE_GetProcessType() == GeckoProcessType_Content &&
-      Preferences::GetBool("browser.tabs.remote.desktopbehavior", false) &&
-      mWindowType == eWindowType_popup) {
-    NS_WARNING("Trying to paint an e10s popup in the child process!");
-    return false;
-  }
-
   return mVisible;
 }
 
