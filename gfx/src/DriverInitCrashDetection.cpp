@@ -6,7 +6,6 @@
 #include "gfxPrefs.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
-#include "nsExceptionHandler.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
 #include "nsXULAppAPI.h"
@@ -71,10 +70,6 @@ DriverInitCrashDetection::~DriverInitCrashDetection()
     
     
     gfxPrefs::SetDriverInitStatus(int32_t(DriverInitStatus::Okay));
-
-    
-    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("GraphicsStartupTest"),
-                                       NS_LITERAL_CSTRING(""));
   }
 }
 
@@ -109,9 +104,6 @@ DriverInitCrashDetection::AllowDriverInitAttempt()
   
   
   RecordTelemetry(TelemetryState::EnvironmentChanged);
-
-  CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("GraphicsStartupTest"),
-                                     NS_LITERAL_CSTRING("1"));
 }
 
 bool
