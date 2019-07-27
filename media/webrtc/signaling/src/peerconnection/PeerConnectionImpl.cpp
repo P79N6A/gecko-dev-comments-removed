@@ -2810,13 +2810,6 @@ PeerConnectionImpl::BuildStatsQuery_m(
     return NS_ERROR_UNEXPECTED;
   }
 
-  
-  
-  query->iceCtx = mMedia->ice_ctx();
-  if (!query->iceCtx) {
-    CSFLogError(logTag, "Could not build stats query, no ice_ctx");
-    return NS_ERROR_UNEXPECTED;
-  }
   if (!mThread) {
     CSFLogError(logTag, "Could not build stats query, no MainThread");
     return NS_ERROR_UNEXPECTED;
@@ -2826,6 +2819,16 @@ PeerConnectionImpl::BuildStatsQuery_m(
   if (NS_FAILED(rv)) {
     CSFLogError(logTag, "Could not build stats query, could not get timestamp");
     return rv;
+  }
+
+  
+  
+  
+  
+  query->iceCtx = mMedia->ice_ctx();
+  if (!query->iceCtx) {
+    CSFLogError(logTag, "Could not build stats query, no ice_ctx");
+    return NS_ERROR_UNEXPECTED;
   }
 
   
