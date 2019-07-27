@@ -8,9 +8,7 @@
 
 #include "nsIDOMNodeList.h"
 #include "nsWrapperCache.h"
-
-class nsIContent;
-class nsINode;
+#include "nsIContent.h"
 
 
 #define NS_INODELIST_IID \
