@@ -151,6 +151,16 @@ void
 AppendToString(std::stringstream& aStream, mozilla::gfx::SurfaceFormat format,
                const char* pfx="", const char* sfx="");
 
+
+template <typename T>
+std::string
+Stringify(const T& obj)
+{
+  std::stringstream ss;
+  AppendToString(ss, obj);
+  return ss.str();
+}
+
 } 
 } 
 

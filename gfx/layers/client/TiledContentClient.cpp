@@ -187,7 +187,7 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   if (aLowPrecision && !mLastProgressiveUpdateWasLowPrecision) {
     
     if (!mProgressiveUpdateWasInDanger) {
-      TILING_LOG(("TILING: Aborting low-precision rendering because not at risk of checkerboarding\n"));
+      TILING_LOG("TILING: Aborting low-precision rendering because not at risk of checkerboarding\n");
       return true;
     }
     mProgressiveUpdateWasInDanger = false;
@@ -197,8 +197,8 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   
   
   if (!FuzzyEquals(compositorMetrics.GetZoom().scale, contentMetrics.GetZoom().scale)) {
-    TILING_LOG(("TILING: Aborting because resolution changed from %f to %f\n",
-        contentMetrics.GetZoom().scale, compositorMetrics.GetZoom().scale));
+    TILING_LOG("TILING: Aborting because resolution changed from %f to %f\n",
+        contentMetrics.GetZoom().scale, compositorMetrics.GetZoom().scale);
     return true;
   }
 
@@ -237,7 +237,7 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   
   
   if (aLowPrecision && !aHasPendingNewThebesContent) {
-    TILING_LOG(("TILING: Aborting low-precision because of new pending content\n"));
+    TILING_LOG("TILING: Aborting low-precision because of new pending content\n");
     return true;
   }
 
@@ -272,10 +272,10 @@ SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetric
   showing = showing.Intersect(aContentMetrics.mScrollableRect);
 
   if (!painted.Contains(showing)) {
-    TILING_LOG_OBJ(("TILING: About to checkerboard; content %s\n", tmpstr.get()), aContentMetrics);
-    TILING_LOG_OBJ(("TILING: About to checkerboard; painted %s\n", tmpstr.get()), painted);
-    TILING_LOG_OBJ(("TILING: About to checkerboard; compositor %s\n", tmpstr.get()), aCompositorMetrics);
-    TILING_LOG_OBJ(("TILING: About to checkerboard; showing %s\n", tmpstr.get()), showing);
+    TILING_LOG("TILING: About to checkerboard; content %s\n", Stringify(aContentMetrics).c_str());
+    TILING_LOG("TILING: About to checkerboard; painted %s\n", Stringify(painted).c_str());
+    TILING_LOG("TILING: About to checkerboard; compositor %s\n", Stringify(aCompositorMetrics).c_str());
+    TILING_LOG("TILING: About to checkerboard; showing %s\n", Stringify(showing).c_str());
     return true;
   }
   return false;
@@ -711,8 +711,8 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
                                    LayerManager::DrawThebesLayerCallback aCallback,
                                    void* aCallbackData)
 {
-  TILING_LOG_OBJ(("TILING %p: PaintThebes painting region %s\n", mThebesLayer, tmpstr.get()), aPaintRegion);
-  TILING_LOG_OBJ(("TILING %p: PaintThebes new valid region %s\n", mThebesLayer, tmpstr.get()), aNewValidRegion);
+  TILING_LOG("TILING %p: PaintThebes painting region %s\n", mThebesLayer, Stringify(aPaintRegion).c_str());
+  TILING_LOG("TILING %p: PaintThebes new valid region %s\n", mThebesLayer, Stringify(aNewValidRegion).c_str());
 
   mCallback = aCallback;
   mCallbackData = aCallbackData;
@@ -1042,7 +1042,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   nsIntRegion staleRegion;
   staleRegion.And(aInvalidRegion, aOldValidRegion);
 
-  TILING_LOG_OBJ(("TILING %p: Progressive update stale region %s\n", mThebesLayer, tmpstr.get()), staleRegion);
+  TILING_LOG("TILING %p: Progressive update stale region %s\n", mThebesLayer, Stringify(staleRegion).c_str());
 
   ContainerLayer* scrollAncestor = nullptr;
   mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr);
@@ -1074,7 +1074,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
       viewTransform);
 #endif
 
-  TILING_LOG(("TILING %p: Progressive update view transform %f %f zoom %f abort %d\n", mThebesLayer, viewTransform.mTranslation.x, viewTransform.mTranslation.y, viewTransform.mScale.scale, abortPaint));
+  TILING_LOG("TILING %p: Progressive update view transform %f %f zoom %f abort %d\n", mThebesLayer, viewTransform.mTranslation.x, viewTransform.mTranslation.y, viewTransform.mScale.scale, abortPaint);
 
   if (abortPaint) {
     
@@ -1094,7 +1094,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
                                        aPaintData->mTransformToCompBounds,
                                        viewTransform);
 
-  TILING_LOG_OBJ(("TILING %p: Progressive update transformed compositor bounds %s\n", mThebesLayer, tmpstr.get()), transformedCompositionBounds);
+  TILING_LOG("TILING %p: Progressive update transformed compositor bounds %s\n", mThebesLayer, Stringify(transformedCompositionBounds).c_str());
 
   
   
@@ -1113,7 +1113,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 #endif
   )));
 
-  TILING_LOG_OBJ(("TILING %p: Progressive update final coherency rect %s\n", mThebesLayer, tmpstr.get()), coherentUpdateRect);
+  TILING_LOG("TILING %p: Progressive update final coherency rect %s\n", mThebesLayer, Stringify(coherentUpdateRect).c_str());
 
   aRegionToPaint.And(aInvalidRegion, coherentUpdateRect);
   aRegionToPaint.Or(aRegionToPaint, staleRegion);
@@ -1129,14 +1129,14 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     paintingVisible = true;
   }
 
-  TILING_LOG_OBJ(("TILING %p: Progressive update final paint region %s\n", mThebesLayer, tmpstr.get()), aRegionToPaint);
+  TILING_LOG("TILING %p: Progressive update final paint region %s\n", mThebesLayer, Stringify(aRegionToPaint).c_str());
 
   
   
   bool paintInSingleTransaction = paintingVisible && (drawingStale || aPaintData->mFirstPaint);
 
-  TILING_LOG(("TILING %p: paintingVisible %d drawingStale %d firstPaint %d singleTransaction %d\n",
-    mThebesLayer, paintingVisible, drawingStale, aPaintData->mFirstPaint, paintInSingleTransaction));
+  TILING_LOG("TILING %p: paintingVisible %d drawingStale %d firstPaint %d singleTransaction %d\n",
+    mThebesLayer, paintingVisible, drawingStale, aPaintData->mFirstPaint, paintInSingleTransaction);
 
   
   
@@ -1209,9 +1209,9 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
                                          LayerManager::DrawThebesLayerCallback aCallback,
                                          void* aCallbackData)
 {
-  TILING_LOG_OBJ(("TILING %p: Progressive update valid region %s\n", mThebesLayer, tmpstr.get()), aValidRegion);
-  TILING_LOG_OBJ(("TILING %p: Progressive update invalid region %s\n", mThebesLayer, tmpstr.get()), aInvalidRegion);
-  TILING_LOG_OBJ(("TILING %p: Progressive update old valid region %s\n", mThebesLayer, tmpstr.get()), aOldValidRegion);
+  TILING_LOG("TILING %p: Progressive update valid region %s\n", mThebesLayer, Stringify(aValidRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update invalid region %s\n", mThebesLayer, Stringify(aInvalidRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update old valid region %s\n", mThebesLayer, Stringify(aOldValidRegion).c_str());
 
   bool repeat = false;
   bool isBufferChanged = false;
@@ -1225,7 +1225,7 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
                                             aPaintData,
                                             repeat);
 
-    TILING_LOG_OBJ(("TILING %p: Progressive update computed paint region %s repeat %d\n", mThebesLayer, tmpstr.get(), repeat), regionToPaint);
+    TILING_LOG("TILING %p: Progressive update computed paint region %s repeat %d\n", mThebesLayer, Stringify(regionToPaint).c_str(), repeat);
 
     
     if (regionToPaint.IsEmpty()) {
@@ -1248,8 +1248,8 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
     aInvalidRegion.Sub(aInvalidRegion, regionToPaint);
   } while (repeat);
 
-  TILING_LOG_OBJ(("TILING %p: Progressive update final valid region %s buffer changed %d\n", mThebesLayer, tmpstr.get(), isBufferChanged), aValidRegion);
-  TILING_LOG_OBJ(("TILING %p: Progressive update final invalid region %s\n", mThebesLayer, tmpstr.get()), aInvalidRegion);
+  TILING_LOG("TILING %p: Progressive update final valid region %s buffer changed %d\n", mThebesLayer, Stringify(aValidRegion).c_str(), isBufferChanged);
+  TILING_LOG("TILING %p: Progressive update final invalid region %s\n", mThebesLayer, Stringify(aInvalidRegion).c_str());
 
   
   
