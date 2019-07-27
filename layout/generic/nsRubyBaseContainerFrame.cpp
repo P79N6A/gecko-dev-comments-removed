@@ -250,14 +250,14 @@ GetIsLineBreakAllowed(nsIFrame* aFrame, bool aIsLineBreakable,
                       bool* aAllowInitialLineBreak, bool* aAllowLineBreak)
 {
   nsIFrame* parent = aFrame->GetParent();
-  bool inNestedRuby = parent->StyleContext()->IsInlineDescendantOfRuby();
+  bool lineBreakSuppressed = parent->StyleContext()->ShouldSuppressLineBreak();
   
   
-  bool allowLineBreak = !inNestedRuby &&
+  bool allowLineBreak = !lineBreakSuppressed &&
                         aFrame->StyleText()->WhiteSpaceCanWrap(aFrame);
   bool allowInitialLineBreak = allowLineBreak;
   if (!aFrame->GetPrevInFlow()) {
-    allowInitialLineBreak = !inNestedRuby &&
+    allowInitialLineBreak = !lineBreakSuppressed &&
                             parent->StyleText()->WhiteSpaceCanWrap(parent);
   }
   if (!aIsLineBreakable) {

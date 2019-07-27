@@ -155,8 +155,10 @@ public:
   
   
   
-  bool IsInlineDescendantOfRuby() const
-    { return !!(mBits & NS_STYLE_IS_INLINE_DESCENDANT_OF_RUBY); }
+  
+  
+  bool ShouldSuppressLineBreak() const
+    { return !!(mBits & NS_STYLE_SUPPRESS_LINEBREAK); }
 
   
   
