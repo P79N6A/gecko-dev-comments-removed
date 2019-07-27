@@ -260,6 +260,8 @@ private:
 
   
   bool mAsyncPanZoomEnabled;
+  
+  bool mInAsyncPanZoomGesture;
 
   bool mEndCaretVisible;
   bool mStartCaretVisible;
