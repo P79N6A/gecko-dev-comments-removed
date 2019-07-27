@@ -3186,6 +3186,8 @@ js::CloneFunctionScript(JSContext* cx, HandleFunction original, HandleFunction c
     RootedScript script(cx, clone->nonLazyScript());
     MOZ_ASSERT(script);
     MOZ_ASSERT(script->compartment() == original->compartment());
+    MOZ_ASSERT(cx->compartment() == clone->compartment(),
+               "Otherwise we could relazify clone below!");
 
     
     
@@ -4005,4 +4007,17 @@ LazyScriptHashPolicy::match(JSScript* script, const Lookup& lookup)
     size_t begin = script->sourceStart();
     size_t length = script->sourceEnd() - begin;
     return !memcmp(scriptChars + begin, lazyChars + begin, length);
+}
+
+void
+JSScript::AutoDelazify::holdScript(JS::HandleFunction fun)
+{
+    if (fun) {
+        JSAutoCompartment ac(cx_, fun);
+        script_ = fun->getOrCreateScript(cx_);
+        if (script_) {
+            oldDoNotRelazify_ = script_->doNotRelazify_;
+            script_->setDoNotRelazify(true);
+        }
+    }
 }

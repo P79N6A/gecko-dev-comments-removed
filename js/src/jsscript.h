@@ -1016,6 +1016,9 @@ class JSScript : public js::gc::TenuredCell
     
     
     
+    
+    
+    
     bool doNotRelazify_:1;
 
     
@@ -1697,6 +1700,50 @@ class JSScript : public js::gc::TenuredCell
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_SCRIPT; }
 
     void markChildren(JSTracer* trc);
+
+    
+    
+    class AutoDelazify;
+    friend class AutoDelazify;
+
+    class AutoDelazify
+    {
+        JS::RootedScript script_;
+        JSContext* cx_;
+        bool oldDoNotRelazify_;
+      public:
+        explicit AutoDelazify(JSContext* cx, JS::HandleFunction fun = JS::NullPtr())
+            : script_(cx)
+            , cx_(cx)
+        {
+            holdScript(fun);
+        }
+
+        ~AutoDelazify()
+        {
+            dropScript();
+        }
+
+        void operator=(JS::HandleFunction fun)
+        {
+            dropScript();
+            holdScript(fun);
+        }
+
+        operator JS::HandleScript() const { return script_; }
+        explicit operator bool() const { return script_; }
+
+      private:
+        void holdScript(JS::HandleFunction fun);
+
+        void dropScript()
+        {
+            if (script_) {
+                script_->setDoNotRelazify(oldDoNotRelazify_);
+                script_ = nullptr;
+            }
+        }
+    };
 };
 
 
