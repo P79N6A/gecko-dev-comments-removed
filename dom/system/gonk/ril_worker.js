@@ -1617,8 +1617,6 @@ RilObject.prototype = {
 
 
 
-
-
   dial: function(options) {
     let onerror = (function onerror(options, errorMsg) {
       options.success = false;
@@ -1649,18 +1647,6 @@ RilObject.prototype = {
       this.dialInternal(options);
     } else {
       
-      if (isRadioOff) {
-        onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
-        return;
-      }
-
-      
-      if (options.isDialEmergency || this.voiceRegistrationState.emergencyCallsOnly) {
-        onerror(GECKO_CALL_ERROR_BAD_NUMBER);
-        return;
-      }
-
-      
       if (this._isInEmergencyCbMode) {
         this.exitEmergencyCbMode();
       }
@@ -1672,13 +1658,6 @@ RilObject.prototype = {
   },
 
   dialInternal: function(options) {
-    
-    if (this._isCdma && Object.keys(this.currentCalls).length == 1) {
-      options.featureStr = options.number;
-      this.cdmaFlash(options);
-      return;
-    }
-
     this.telephonyRequestQueue.push(options.request, () => {
       let Buf = this.context.Buf;
       Buf.newParcel(options.request, options);

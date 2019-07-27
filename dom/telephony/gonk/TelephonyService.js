@@ -37,6 +37,7 @@ const kPrefDefaultServiceId = "dom.telephony.defaultServiceId";
 
 const nsITelephonyAudioService = Ci.nsITelephonyAudioService;
 const nsITelephonyService = Ci.nsITelephonyService;
+const nsIMobileConnection = Ci.nsIMobileConnection;
 
 const CALL_WAKELOCK_TIMEOUT = 5000;
 
@@ -48,7 +49,7 @@ const CDMA_SECOND_CALL_INDEX = 2;
 const DIAL_ERROR_INVALID_STATE_ERROR = "InvalidStateError";
 const DIAL_ERROR_OTHER_CONNECTION_IN_USE = "OtherConnectionInUse";
 const DIAL_ERROR_BAD_NUMBER = RIL.GECKO_CALL_ERROR_BAD_NUMBER;
-
+const DIAL_ERROR_RADIO_NOT_AVAILABLE = RIL.GECKO_ERROR_RADIO_NOT_AVAILABLE;
 
 const TONES_GAP_DURATION = 70;
 
@@ -106,11 +107,11 @@ MobileCallForwardingOptions.prototype = {
   
 
   active: false,
-  action: Ci.nsIMobileConnection.CALL_FORWARD_ACTION_UNKNOWN,
-  reason: Ci.nsIMobileConnection.CALL_FORWARD_REASON_UNKNOWN,
+  action: nsIMobileConnection.CALL_FORWARD_ACTION_UNKNOWN,
+  reason: nsIMobileConnection.CALL_FORWARD_REASON_UNKNOWN,
   number: null,
   timeSeconds: -1,
-  serviceClass: Ci.nsIMobileConnection.ICC_SERVICE_CLASS_NONE
+  serviceClass: nsIMobileConnection.ICC_SERVICE_CLASS_NONE
 };
 
 function TelephonyCallInfo(aCall) {
@@ -253,6 +254,14 @@ TelephonyService.prototype = {
     return !this._isGsmTechGroup(type);
   },
 
+  _isEmergencyOnly: function(aClientId) {
+    return gGonkMobileConnectionService.getItemByServiceId(aClientId).voice.emergencyCallsOnly;
+  },
+
+  _isRadioOn: function(aClientId) {
+    return gGonkMobileConnectionService.getItemByServiceId(aClientId).radioState === nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED;
+  },
+
   
   _listeners: null,
   _notifyAllListeners: function(aMethodName, aArgs) {
@@ -377,7 +386,7 @@ TelephonyService.prototype = {
 
 
 
-  _getTemporaryCLIRMode: function(aProcedure) {
+  _procedureToCLIRMode: function(aProcedure) {
     
     
     switch (aProcedure) {
@@ -473,33 +482,6 @@ TelephonyService.prototype = {
     return null;
   },
 
-  _addCdmaChildCall: function(aClientId, aNumber) {
-    let childCall = {
-      callIndex: CDMA_SECOND_CALL_INDEX,
-      state: RIL.CALL_STATE_DIALING,
-      number: aNumber,
-      isOutgoing: true,
-      isEmergency: false,
-      isConference: false,
-      isSwitchable: false,
-      isMergeable: true,
-      parentId: CDMA_FIRST_CALL_INDEX
-    };
-
-    
-    this.notifyCallStateChanged(aClientId, childCall);
-
-    childCall.state = RIL.CALL_STATE_ACTIVE;
-    this.notifyCallStateChanged(aClientId, childCall);
-
-    let parentCall = this._currentCalls[aClientId][childCall.parentId];
-    parentCall.childId = CDMA_SECOND_CALL_INDEX;
-    parentCall.state = RIL.CALL_STATE_HOLDING;
-    parentCall.isSwitchable = false;
-    parentCall.isMergeable = true;
-    this.notifyCallStateChanged(aClientId, parentCall);
-  },
-
   dial: function(aClientId, aNumber, aIsDialEmergency, aCallback) {
     if (DEBUG) debug("Dialing " + (aIsDialEmergency ? "emergency " : "") + aNumber);
 
@@ -517,68 +499,76 @@ TelephonyService.prototype = {
       return;
     }
 
+    let isEmergencyNumber = gDialNumberUtils.isEmergency(aNumber);
+
+    
+    if (!(this._isRadioOn(aClientId) || isEmergencyNumber)) {
+      aCallback.notifyError(DIAL_ERROR_RADIO_NOT_AVAILABLE);
+      return;
+    }
+
+    
+    if (!isEmergencyNumber &&
+        (aIsDialEmergency || this._isEmergencyOnly(aClientId))) {
+      if (DEBUG) debug("Error: Dail a non-emergency by dialEmergency. Drop.");
+      aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
+      return;
+    }
+
+    
+    if (this._isCdmaClient(aClientId)) {
+      this._dialCall(aClientId, aNumber, undefined, aCallback);
+      return;
+    }
+
     if (this._hasCalls(aClientId)) {
-      
-      
+      this._dialInCallMMI(aClientId, aNumber, aCallback);
+      return;
+    }
 
-      let mmiCallback = response => {
-        aCallback.notifyDialMMI(RIL.MMI_KS_SC_CALL);
-        if (!response.success) {
-          aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_ERROR);
-        } else {
-          aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_CALL_CONTROL);
-        }
-      };
-
-      if (aNumber === "0") {
-        this._sendToRilWorker(aClientId, "hangUpBackground", null, mmiCallback);
-      } else if (aNumber === "1") {
-        this._sendToRilWorker(aClientId, "hangUpForeground", null, mmiCallback);
-      } else if (aNumber[0] === "1" && aNumber.length === 2) {
-        this._sendToRilWorker(aClientId, "hangUpCall",
-                              { callIndex: parseInt(aNumber[1]) }, mmiCallback);
-      } else if (aNumber === "2") {
-        this._sendToRilWorker(aClientId, "switchActiveCall", null, mmiCallback);
-      } else if (aNumber[0] === "2" && aNumber.length === 2) {
-        this._sendToRilWorker(aClientId, "separateCall",
-                              { callIndex: parseInt(aNumber[1]) }, mmiCallback);
-      } else if (aNumber === "3") {
-        this._sendToRilWorker(aClientId, "conferenceCall", null, mmiCallback);
-      } else {
-        
-        this._dialCall(aClientId,
-                       { number: aNumber,
-                         isDialEmergency: aIsDialEmergency }, aCallback);
-      }
+    let mmi = gDialNumberUtils.parseMMI(aNumber);
+    if (!mmi) {
+      this._dialCall(aClientId, aNumber, undefined, aCallback);
+    } else if (this._isTemporaryCLIR(mmi)) {
+      this._dialCall(aClientId, mmi.dialNumber,
+                     this._procedureToCLIRMode(mmi.procedure), aCallback);
     } else {
-      let mmi = gDialNumberUtils.parseMMI(aNumber);
-      if (!mmi) {
-        this._dialCall(aClientId,
-                       { number: aNumber,
-                         isDialEmergency: aIsDialEmergency }, aCallback);
-      } else if (this._isTemporaryCLIR(mmi)) {
-        this._dialCall(aClientId,
-                       { number: mmi.dialNumber,
-                         clirMode: this._getTemporaryCLIRMode(mmi.procedure),
-                         isDialEmergency: aIsDialEmergency }, aCallback);
-      } else {
-        
-        if (aIsDialEmergency) {
-          aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
-          return;
-        }
-
-        this._dialMMI(aClientId, mmi, aCallback);
-      }
+      this._dialMMI(aClientId, mmi, aCallback);
     }
   },
 
   
+  _dialInCallMMI: function(aClientId, aNumber, aCallback) {
+    let mmiCallback = response => {
+      aCallback.notifyDialMMI(RIL.MMI_KS_SC_CALL);
+      if (!response.success) {
+        aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_ERROR);
+      } else {
+        aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_CALL_CONTROL);
+      }
+    };
 
+    if (aNumber === "0") {
+      this._sendToRilWorker(aClientId, "hangUpBackground", null, mmiCallback);
+    } else if (aNumber === "1") {
+      this._sendToRilWorker(aClientId, "hangUpForeground", null, mmiCallback);
+    } else if (aNumber[0] === "1" && aNumber.length === 2) {
+      this._sendToRilWorker(aClientId, "hangUpCall",
+                            { callIndex: parseInt(aNumber[1]) }, mmiCallback);
+    } else if (aNumber === "2") {
+      this._sendToRilWorker(aClientId, "switchActiveCall", null, mmiCallback);
+    } else if (aNumber[0] === "2" && aNumber.length === 2) {
+      this._sendToRilWorker(aClientId, "separateCall",
+                            { callIndex: parseInt(aNumber[1]) }, mmiCallback);
+    } else if (aNumber === "3") {
+      this._sendToRilWorker(aClientId, "conferenceCall", null, mmiCallback);
+    } else {
+      this._dialCall(aClientId, aNumber, undefined, aCallback);
+    }
+  },
 
-
-
-  _dialCall: function(aClientId, aOptions, aCallback) {
+  _dialCall: function(aClientId, aNumber, aClirMode = RIL.CLIR_DEFAULT,
+                      aCallback) {
     if (this._isDialing) {
       if (DEBUG) debug("Error: Already has a dialing call.");
       aCallback.notifyError(DIAL_ERROR_INVALID_STATE_ERROR);
@@ -600,8 +590,8 @@ TelephonyService.prototype = {
       return;
     }
 
-    aOptions.isEmergency = gDialNumberUtils.isEmergency(aOptions.number);
-    if (aOptions.isEmergency) {
+    let isEmergency = gDialNumberUtils.isEmergency(aNumber);
+    if (isEmergency) {
       
       aClientId = gRadioInterfaceLayer.getClientIdForEmergencyCall() ;
       if (aClientId === -1) {
@@ -611,10 +601,22 @@ TelephonyService.prototype = {
       }
     }
 
+    let options = {
+      isEmergency: isEmergency,
+      number: aNumber,
+      clirMode: aClirMode
+    };
+
     
     let activeCall = this._getOneActiveCall(aClientId);
     if (!activeCall) {
-      this._sendDialCallRequest(aClientId, aOptions, aCallback);
+      this._sendDialCallRequest(aClientId, options, aCallback);
+      return;
+    }
+
+    
+    if (this._isCdmaClient(aClientId)) {
+      this._dialCdmaThreeWayCall(aClientId, aNumber, aCallback);
       return;
     }
 
@@ -633,7 +635,7 @@ TelephonyService.prototype = {
       notifySuccess: () => {
         this._cachedDialRequest = {
           clientId: aClientId,
-          options: aOptions,
+          options: options,
           callback: aCallback
         };
       },
@@ -651,6 +653,45 @@ TelephonyService.prototype = {
     }
   },
 
+  _dialCdmaThreeWayCall: function(aClientId, aNumber, aCallback) {
+    this._sendToRilWorker(aClientId, "cdmaFlash", { featureStr: aNumber },
+                          response => {
+      if (!response.success) {
+        aCallback.notifyError(response.errorMsg);
+        return;
+      }
+
+      
+      aCallback.notifyDialCallSuccess(aClientId, CDMA_SECOND_CALL_INDEX,
+                                      aNumber);
+
+      let childCall = {
+        callIndex: CDMA_SECOND_CALL_INDEX,
+        state: RIL.CALL_STATE_DIALING,
+        number: aNumber,
+        isOutgoing: true,
+        isEmergency: false,
+        isConference: false,
+        isSwitchable: false,
+        isMergeable: true,
+        parentId: CDMA_FIRST_CALL_INDEX
+      };
+
+      
+      this.notifyCallStateChanged(aClientId, childCall);
+
+      childCall.state = RIL.CALL_STATE_ACTIVE;
+      this.notifyCallStateChanged(aClientId, childCall);
+
+      let parentCall = this._currentCalls[aClientId][childCall.parentId];
+      parentCall.childId = CDMA_SECOND_CALL_INDEX;
+      parentCall.state = RIL.CALL_STATE_HOLDING;
+      parentCall.isSwitchable = false;
+      parentCall.isMergeable = true;
+      this.notifyCallStateChanged(aClientId, parentCall);
+    });
+  },
+
   _sendDialCallRequest: function(aClientId, aOptions, aCallback) {
     this._isDialing = true;
 
@@ -662,18 +703,8 @@ TelephonyService.prototype = {
         return;
       }
 
-      let currentCdmaCallIndex = !response.isCdma ? null :
-        Object.keys(this._currentCalls[aClientId])[0];
-
-      if (currentCdmaCallIndex == null) {
-        aCallback.notifyDialCallSuccess(aClientId, response.callIndex,
-                                        response.number);
-      } else {
-        
-        aCallback.notifyDialCallSuccess(aClientId, CDMA_SECOND_CALL_INDEX,
-                                        response.number);
-        this._addCdmaChildCall(aClientId, response.number);
-      }
+      aCallback.notifyDialCallSuccess(aClientId, response.callIndex,
+                                      response.number);
     });
   },
 
