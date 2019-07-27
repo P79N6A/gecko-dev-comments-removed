@@ -74,7 +74,7 @@ static const uint8_t tlv_id_kp_serverAuth[] = {
   0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01
 };
 
-extern const ByteString sha256WithRSAEncryption;
+extern const Input sha256WithRSAEncryption;
 
 
 mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
@@ -96,7 +96,7 @@ public:
   const ByteString subjectPublicKey;
 
   virtual Result SignData(const ByteString& tbs,
-                          const ByteString& signatureAlgorithm,
+                          SignatureAlgorithm signatureAlgorithm,
                            ByteString& signature) const = 0;
 
   virtual TestKeyPair* Clone() const = 0;
@@ -150,17 +150,14 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 
-
-
-
-ByteString CreateEncodedCertificate(long version, const ByteString& signature,
+ByteString CreateEncodedCertificate(long version, Input signature,
                                     const ByteString& serialNumber,
                                     const ByteString& issuerNameDER,
                                     time_t notBefore, time_t notAfter,
                                     const ByteString& subjectNameDER,
                                      const ByteString* extensions,
                                      TestKeyPair* issuerKeyPair,
-                                    const ByteString& signatureAlgorithm,
+                                    SignatureAlgorithm signatureAlgorithm,
                                      ScopedTestKeyPair& keyPairResult);
 
 ByteString CreateEncodedSerialNumber(long value);

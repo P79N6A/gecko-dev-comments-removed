@@ -41,8 +41,7 @@ namespace mozilla { namespace pkix { namespace test {
 static const uint8_t alg_sha256WithRSAEncryption[] = {
   0x30, 0x0b, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b
 };
-const ByteString sha256WithRSAEncryption(alg_sha256WithRSAEncryption,
-  MOZILLA_PKIX_ARRAY_LENGTH(alg_sha256WithRSAEncryption));
+const Input sha256WithRSAEncryption(alg_sha256WithRSAEncryption);
 
 namespace {
 
@@ -343,7 +342,7 @@ YMDHMS(int16_t year, int16_t month, int16_t day,
 static ByteString
 SignedData(const ByteString& tbsData,
             TestKeyPair* keyPair,
-           const ByteString& signatureAlgorithm,
+           SignatureAlgorithm signatureAlgorithm,
            bool corrupt,  const ByteString* certs)
 {
   ByteString signature;
@@ -352,6 +351,16 @@ SignedData(const ByteString& tbsData,
           != Success) {
        return ByteString();
      }
+  }
+
+  ByteString signatureAlgorithmDER;
+  switch (signatureAlgorithm) {
+    case SignatureAlgorithm::rsa_pkcs1_with_sha256:
+      signatureAlgorithmDER.assign(alg_sha256WithRSAEncryption,
+                                   sizeof(alg_sha256WithRSAEncryption));
+      break;
+    default:
+      return ByteString();
   }
 
   
@@ -375,7 +384,7 @@ SignedData(const ByteString& tbsData,
 
   ByteString value;
   value.append(tbsData);
-  value.append(signatureAlgorithm);
+  value.append(signatureAlgorithmDER);
   value.append(signatureNested);
   value.append(certsNested);
   return TLV(der::SEQUENCE, value);
@@ -440,8 +449,7 @@ MaybeLogOutput(const ByteString& result, const char* suffix)
 
 
 static ByteString TBSCertificate(long version, const ByteString& serialNumber,
-                                 const ByteString& signature,
-                                 const ByteString& issuer,
+                                 Input signature, const ByteString& issuer,
                                  time_t notBefore, time_t notAfter,
                                  const ByteString& subject,
                                  const ByteString& subjectPublicKeyInfo,
@@ -452,14 +460,14 @@ static ByteString TBSCertificate(long version, const ByteString& serialNumber,
 
 
 ByteString
-CreateEncodedCertificate(long version, const ByteString& signature,
+CreateEncodedCertificate(long version, Input signature,
                          const ByteString& serialNumber,
                          const ByteString& issuerNameDER,
                          time_t notBefore, time_t notAfter,
                          const ByteString& subjectNameDER,
                           const ByteString* extensions,
                           TestKeyPair* issuerKeyPair,
-                         const ByteString& signatureAlgorithm,
+                         SignatureAlgorithm signatureAlgorithm,
                           ScopedTestKeyPair& keyPairResult)
 {
   
@@ -510,7 +518,7 @@ CreateEncodedCertificate(long version, const ByteString& signature,
 
 static ByteString
 TBSCertificate(long versionValue,
-               const ByteString& serialNumber, const ByteString& signature,
+               const ByteString& serialNumber, Input signature,
                const ByteString& issuer, time_t notBeforeTime,
                time_t notAfterTime, const ByteString& subject,
                const ByteString& subjectPublicKeyInfo,
@@ -526,7 +534,7 @@ TBSCertificate(long versionValue,
   }
 
   value.append(serialNumber);
-  value.append(signature);
+  value.append(signature.UnsafeGetData(), signature.GetLength());
   value.append(issuer);
 
   
@@ -758,7 +766,7 @@ BasicOCSPResponse(OCSPResponseContext& context)
 
   
   return SignedData(tbsResponseData, context.signerKeyPair.get(),
-                    sha256WithRSAEncryption,
+                    SignatureAlgorithm::rsa_pkcs1_with_sha256,
                     context.badSignature, context.certs);
 }
 
