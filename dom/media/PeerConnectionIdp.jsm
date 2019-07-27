@@ -124,7 +124,7 @@ PeerConnectionIdp.prototype = {
 
 
 
-  verifyIdentityFromSDP: function(sdp, callback) {
+  verifyIdentityFromSDP: function(sdp, origin, callback) {
     let identity = this._getIdentityFromSdp(sdp);
     let fingerprints = this._getFingerprintsFromSdp(sdp);
     
@@ -135,7 +135,7 @@ PeerConnectionIdp.prototype = {
     }
 
     this.setIdentityProvider(identity.idp.domain, identity.idp.protocol);
-    this._verifyIdentity(identity.assertion, fingerprints, callback);
+    this._verifyIdentity(identity.assertion, fingerprints, origin, callback);
   },
 
   
@@ -212,7 +212,7 @@ PeerConnectionIdp.prototype = {
   
 
 
-  _verifyIdentity: function(assertion, fingerprints, callback) {
+  _verifyIdentity: function(assertion, fingerprints, origin, callback) {
     function onVerification(message) {
       if (message && this._checkVerifyResponse(message, fingerprints)) {
         callback(message);
@@ -224,7 +224,8 @@ PeerConnectionIdp.prototype = {
 
     let request = {
       type: "VERIFY",
-      message: assertion
+      message: assertion,
+      origin: origin
     };
     this._sendToIdp(request, "validation", onVerification.bind(this));
   },
@@ -235,7 +236,7 @@ PeerConnectionIdp.prototype = {
 
 
 
-  appendIdentityToSDP: function(sdp, fingerprint, callback) {
+  appendIdentityToSDP: function(sdp, fingerprint, origin, callback) {
     let onAssertion = function() {
       callback(this.wrapSdp(sdp), this.assertion);
     }.bind(this);
@@ -245,7 +246,7 @@ PeerConnectionIdp.prototype = {
       return;
     }
 
-    this._getIdentityAssertion(fingerprint, onAssertion);
+    this._getIdentityAssertion(fingerprint, origin, onAssertion);
   },
 
   
@@ -270,10 +271,11 @@ PeerConnectionIdp.prototype = {
       return;
     }
 
-    this._getIdentityAssertion(fingerprint, callback);
+    let origin = Cu.getWebIDLCallerPrincipal().origin;
+    this._getIdentityAssertion(fingerprint, origin, callback);
   },
 
-  _getIdentityAssertion: function(fingerprint, callback) {
+  _getIdentityAssertion: function(fingerprint, origin, callback) {
     let [algorithm, digest] = fingerprint.split(" ", 2);
     let message = {
       fingerprint: [{
@@ -284,7 +286,8 @@ PeerConnectionIdp.prototype = {
     let request = {
       type: "SIGN",
       message: JSON.stringify(message),
-      username: this.username
+      username: this.username,
+      origin: origin
     };
 
     
@@ -308,7 +311,6 @@ PeerConnectionIdp.prototype = {
 
 
   _sendToIdp: function(request, type, callback) {
-    request.origin = Cu.getWebIDLCallerPrincipal().origin;
     this._idpchannel.send(request, this._wrapCallback(type, callback));
   },
 
