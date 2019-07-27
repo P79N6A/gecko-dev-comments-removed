@@ -82,12 +82,40 @@ ContentEventHandler::InitCommon()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  
-  if (NS_WARN_IF(!mSelection->RangeCount())) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  mFirstSelectedRange = mSelection->GetRangeAt(0);
+  if (!mSelection->RangeCount()) {
+    
+    
+    rv = mSelection->GetAncestorLimiter(getter_AddRefs(mRootContent));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return NS_ERROR_FAILURE;
+    }
+    if (!mRootContent) {
+      mRootContent = mPresShell->GetDocument()->GetRootElement();
+      if (NS_WARN_IF(!mRootContent)) {
+        return NS_ERROR_NOT_AVAILABLE;
+      }
+    }
 
+    
+    rv = nsRange::CreateRange(mRootContent, 0, mRootContent, 0,
+                              getter_AddRefs(mFirstSelectedRange));
+    if (NS_WARN_IF(NS_FAILED(rv)) || NS_WARN_IF(!mFirstSelectedRange)) {
+      return NS_ERROR_UNEXPECTED;
+    }
+    return NS_OK;
+  }
+
+  mFirstSelectedRange = mSelection->GetRangeAt(0);
+  if (NS_WARN_IF(!mFirstSelectedRange)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+  
+  
+  
+  
+  
   nsINode* startNode = mFirstSelectedRange->GetStartParent();
   NS_ENSURE_TRUE(startNode, NS_ERROR_FAILURE);
   nsINode* endNode = mFirstSelectedRange->GetEndParent();
