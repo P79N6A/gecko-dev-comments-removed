@@ -104,7 +104,8 @@
   }
 }
 
-.searchbar-dropmarker-image {
+
+:root[devtoolstheme="dark"] .searchbar-dropmarker-image {
   
   -moz-image-region: auto !important;
   
