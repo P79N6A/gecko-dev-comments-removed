@@ -16,7 +16,7 @@
 #include "jit/arm/Assembler-arm.h"
 #include "jit/RegisterSets.h"
 
-#if defined(ANDROID) || defined(MOZ_B2G) || defined(JS_ARM_SIMULATOR)
+#if defined(ANDROID) || defined(JS_ARM_SIMULATOR)
 
 
 # define HWCAP_VFP        (1 << 6)
@@ -40,10 +40,17 @@
 
 
 
+
 #define HWCAP_ARMv7 (1 << 28)
 
 
 #define HWCAP_USE_HARDFP_ABI (1 << 27)
+
+
+#define HWCAP_ALIGNMENT_FAULT (1 << 26)
+
+
+#define HWCAP_UNINITIALIZED (1 << 25)
 
 namespace js {
 namespace jit {
@@ -51,7 +58,7 @@ namespace jit {
 
 
 
-uint32_t
+static uint32_t
 ParseARMCpuFeatures(const char *features, bool override = false)
 {
     uint32_t flags = 0;
@@ -93,6 +100,8 @@ ParseARMCpuFeatures(const char *features, bool override = false)
             flags |= HWCAP_VFPD32;
         else if (count == 5 && strncmp(features, "armv7", 5) == 0)
             flags |= HWCAP_ARMv7;
+        else if (count == 5 && strncmp(features, "align", 5) == 0)
+            flags |= HWCAP_ALIGNMENT_FAULT;
 #if defined(JS_ARM_SIMULATOR)
         else if (count == 6 && strncmp(features, "hardfp", 6) == 0)
             flags |= HWCAP_USE_HARDFP_ABI;
@@ -101,25 +110,47 @@ ParseARMCpuFeatures(const char *features, bool override = false)
             fprintf(stderr, "Warning: unexpected ARM feature at: %s\n", features);
         features = end;
     }
-    IonSpew(IonSpew_Codegen, "ARM features: '%s'\n   flags: 0x%x\n", features, flags);
+    return flags;
+}
+
+static uint32_t
+CanonicalizeARMHwCapFlags(uint32_t flags)
+{
+    
+    
+
+    
+    
+    if (flags & HWCAP_VFPv3D16)
+        flags |= HWCAP_VFPv3;
+
+    
+    if (flags & (HWCAP_VFPv3 | HWCAP_NEON))
+        flags |= HWCAP_ARMv7;
+
+    
+    
+    if (flags & HWCAP_VFP && flags & HWCAP_ARMv7)
+        flags |= HWCAP_VFPv3;
+
+    
+    if ((flags & HWCAP_VFPv3) && !(flags & HWCAP_VFPv3D16))
+        flags |= HWCAP_VFPD32;
+
     return flags;
 }
 
 
 
-volatile static uint32_t armHwCapFlags = 0;
+volatile static uint32_t armHwCapFlags = HWCAP_UNINITIALIZED;
 
 bool
 ParseARMHwCapFlags(const char *armHwCap)
 {
     uint32_t flags = 0;
 
-    if (!armHwCap || !armHwCap[0])
+    if (!armHwCap)
         return false;
-
-#ifdef JS_CODEGEN_ARM_HARDFP
-    flags |= HWCAP_USE_HARDFP_ABI;
-#endif
 
     if (strstr(armHwCap, "help")) {
         fflush(NULL);
@@ -127,7 +158,6 @@ ParseARMHwCapFlags(const char *armHwCap)
                "\n"
                "usage: ARMHWCAP=option,option,option,... where options can be:\n"
                "\n"
-               "  armv7    \n"
                "  vfp      \n"
                "  neon     \n"
                "  vfpv3    \n"
@@ -136,6 +166,8 @@ ParseARMHwCapFlags(const char *armHwCap)
                "  idiva    \n"
                "  idivt    \n"
                "  vfpd32   \n"
+               "  armv7    \n"
+               "  align    \n"
 #if defined(JS_ARM_SIMULATOR)
                "  hardfp   \n"
 #endif
@@ -145,29 +177,35 @@ ParseARMHwCapFlags(const char *armHwCap)
         
     }
 
-    armHwCapFlags = ParseARMCpuFeatures(armHwCap,  true);
+    flags = ParseARMCpuFeatures(armHwCap,  true);
+
+#ifdef JS_CODEGEN_ARM_HARDFP
+    flags |= HWCAP_USE_HARDFP_ABI;
+#endif
+
+    armHwCapFlags = CanonicalizeARMHwCapFlags(flags);
+    IonSpew(IonSpew_Codegen, "ARM HWCAP: 0x%x\n", armHwCapFlags);
     return true;
 }
 
-uint32_t GetARMFlags()
+void
+InitARMFlags()
 {
-    volatile static bool isSet = false;
-    volatile static uint32_t flags = 0;
-    if (isSet)
-        return flags;
+    uint32_t flags = 0;
+
+    if (armHwCapFlags != HWCAP_UNINITIALIZED)
+        return;
 
     const char *env = getenv("ARMHWCAP");
-    if (ParseARMHwCapFlags(env) || armHwCapFlags) {
-        flags = armHwCapFlags;
-        isSet = true;
-        return flags;
-    }
+    if (ParseARMHwCapFlags(env))
+        return;
 
 #ifdef JS_ARM_SIMULATOR
     flags = HWCAP_ARMv7 | HWCAP_VFP | HWCAP_VFPv3 | HWCAP_VFPv4 | HWCAP_NEON;
 #else
 
-#if defined(__linux__) || defined(ANDROID) || defined(MOZ_B2G)
+#if defined(__linux__)
+    
     bool readAuxv = false;
     int fd = open("/proc/self/auxv", O_RDONLY);
     if (fd > 0) {
@@ -223,60 +261,63 @@ uint32_t GetARMFlags()
 
 #endif 
 
-    
-    
+    armHwCapFlags = CanonicalizeARMHwCapFlags(flags);
 
-    
-    
-    if (flags & HWCAP_VFPv3D16)
-        flags |= HWCAP_VFPv3;
+    IonSpew(IonSpew_Codegen, "ARM HWCAP: 0x%x\n", armHwCapFlags);
+    return;
+}
 
-    
-    if (flags & (HWCAP_VFPv3 | HWCAP_NEON))
-        flags |= HWCAP_ARMv7;
-
-    
-    
-    if (flags & HWCAP_VFP && flags & HWCAP_ARMv7)
-        flags |= HWCAP_VFPv3;
-
-    
-    if ((flags & HWCAP_VFPv3) && !(flags & HWCAP_VFPv3D16))
-        flags |= HWCAP_VFPD32;
-
-    IonSpew(IonSpew_Codegen, "ARM HWCAP: 0x%x\n", flags);
-    isSet = true;
-    return flags;
+uint32_t
+GetARMFlags()
+{
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags;
 }
 
 bool HasMOVWT()
 {
-    return GetARMFlags() & HWCAP_ARMv7;
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_ARMv7;
 }
+
 bool HasVFPv3()
 {
-    return GetARMFlags() & HWCAP_VFPv3;
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_VFPv3;
 }
+
 bool HasVFP()
 {
-    return GetARMFlags() & HWCAP_VFP;
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_VFP;
 }
 
 bool Has32DP()
 {
-    return GetARMFlags() & HWCAP_VFPD32;
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_VFPD32;
 }
 
 bool HasIDIV()
 {
-    return GetARMFlags() & HWCAP_IDIVA;
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_IDIVA;
+}
+
+
+
+bool HasAlignmentFault()
+{
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_ALIGNMENT_FAULT;
 }
 
 
 #if defined(JS_ARM_SIMULATOR)
 bool UseHardFpABI()
 {
-    return GetARMFlags() & HWCAP_USE_HARDFP_ABI;
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_USE_HARDFP_ABI;
 }
 #endif
 

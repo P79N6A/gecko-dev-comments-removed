@@ -519,6 +519,7 @@ bool HasVFPv3();
 bool HasVFP();
 bool Has32DP();
 bool HasIDIV();
+bool HasAlignmentFault();
 
 
 
@@ -537,6 +538,8 @@ hasMultiAlias()
 }
 
 bool ParseARMHwCapFlags(const char *armHwCap);
+void InitARMFlags();
+uint32_t GetARMFlags();
 
 
 
