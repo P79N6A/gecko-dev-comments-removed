@@ -9,6 +9,7 @@
 #include "nsISupportsImpl.h"
 #include "MediaDecoderReader.h"
 #include "mozilla/dom/AudioChannelBinding.h"
+#include "mozilla/Atomics.h"
 
 namespace mozilla {
 
@@ -116,7 +117,7 @@ private:
   const int64_t mStartTime;
 
   
-  int64_t mWritten;
+  Atomic<int64_t> mWritten;
 
   
   
