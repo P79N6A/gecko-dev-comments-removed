@@ -75,9 +75,6 @@ nsRubyTextFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 nsRubyTextFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
                                    nsIFrame::InlineMinISizeData *aData)
 {
-  
-  aData->lineContainer = this;
-
   for (nsFrameList::Enumerator e(PrincipalChildList()); !e.AtEnd(); e.Next()) {
     e.get()->AddInlineMinISize(aRenderingContext, aData);
   }
@@ -87,13 +84,6 @@ nsRubyTextFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
 nsRubyTextFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
                                     nsIFrame::InlinePrefISizeData *aData)
 {
-  
-  
-  
-  
-  
-  aData->lineContainer = this;
-
   for (nsFrameList::Enumerator e(PrincipalChildList()); !e.AtEnd(); e.Next()) {
     e.get()->AddInlinePrefISize(aRenderingContext, aData);
   }

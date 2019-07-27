@@ -164,6 +164,12 @@ nsRubyFrame::GetLogicalBaseline(WritingMode aWritingMode) const
   return mBaseline;
 }
 
+ bool
+nsRubyFrame::CanContinueTextRun() const
+{
+  return true;
+}
+
  void
 nsRubyFrame::Reflow(nsPresContext* aPresContext,
                     nsHTMLReflowMetrics& aDesiredSize,
