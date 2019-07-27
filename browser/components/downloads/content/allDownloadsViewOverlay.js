@@ -67,7 +67,6 @@ const NOT_AVAILABLE = Number.MAX_VALUE;
 
 
 
-
 function DownloadElementShell(aDataItem, aPlacesNode, aAnnotations) {
   this._element = document.createElement("richlistitem");
   this._element._shell = this;
@@ -175,13 +174,10 @@ DownloadElementShell.prototype = {
     }
 
     if (this._placesNode) {
-      
-      let ext = this._downloadURIObj.QueryInterface(Ci.nsIURL).fileExtension;
-      if (ext) {
-        return "moz-icon://." + ext + "?size=32";
-      }
-      return this._placesNode.icon || "moz-icon://.unknown?size=32";
+      return "moz-icon://.unknown?size=32";
     }
+
+    
     if (this._dataItem) {
       throw new Error("Session-download items should always have a target file uri");
     }
@@ -511,12 +507,6 @@ DownloadElementShell.prototype = {
       this._updateDownloadStatusUI();
     } else {
       this._fetchTargetFileInfo(true);
-    }
-  },
-
-  placesNodeIconChanged() {
-    if (!this._dataItem) {
-      this._element.setAttribute("image", this._getIcon());
     }
   },
 
@@ -1266,16 +1256,12 @@ DownloadsPlacesView.prototype = {
     this._removeHistoryDownloadFromView(aPlacesNode);
   },
 
-  nodeIconChanged(aNode) {
-    this._forEachDownloadElementShellForURI(aNode.uri,
-                                            des => des.placesNodeIconChanged());
-  },
-
   nodeAnnotationChanged(aNode, aAnnoName) {
     this._forEachDownloadElementShellForURI(aNode.uri,
                                             des => des.placesNodeAnnotationChanged(aAnnoName));
   },
 
+  nodeIconChanged() {},
   nodeTitleChanged() {},
   nodeKeywordChanged() {},
   nodeDateAddedChanged() {},
