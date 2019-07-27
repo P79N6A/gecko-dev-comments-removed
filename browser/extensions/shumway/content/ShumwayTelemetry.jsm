@@ -14,8 +14,6 @@
 
 
 
-
-
 'use strict';
 
 this.EXPORTED_SYMBOLS = ['ShumwayTelemetry'];
