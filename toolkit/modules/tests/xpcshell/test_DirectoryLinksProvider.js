@@ -426,6 +426,21 @@ add_task(function test_DirectoryLinksProvider_getLinks_noLocaleData() {
   yield promiseCleanDirectoryLinksProvider();
 });
 
+add_task(function test_DirectoryLinksProvider_getLinks_badData() {
+  let data = {
+    "en-US": {
+      "en-US": [{url: "http://example.com", title: "US"}],
+    },
+  };
+  let dataURI = 'data:application/json,' + JSON.stringify(data);
+  yield promiseSetupDirectoryLinksProvider({linksURL: dataURI});
+
+  
+  let links = yield fetchData();
+  do_check_eq(links.length, 0);
+  yield promiseCleanDirectoryLinksProvider();
+});
+
 add_task(function test_DirectoryLinksProvider_needsDownload() {
   
   DirectoryLinksProvider._lastDownloadMS = 0;

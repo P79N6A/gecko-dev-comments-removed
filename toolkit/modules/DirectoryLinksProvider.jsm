@@ -369,7 +369,7 @@ let DirectoryLinksProvider = {
       this._enhancedLinks.clear();
 
       
-      aCallback(rawLinks.map((link, position) => {
+      return rawLinks.map((link, position) => {
         
         if (link.enhancedImageURI) {
           this._enhancedLinks.set(NewTabUtils.extractSite(link.url), link);
@@ -378,8 +378,11 @@ let DirectoryLinksProvider = {
         link.frecency = DIRECTORY_FRECENCY;
         link.lastVisitDate = rawLinks.length - position;
         return link;
-      }));
-    });
+      });
+    }).catch(ex => {
+      Cu.reportError(ex);
+      return [];
+    }).then(aCallback);
   },
 
   init: function DirectoryLinksProvider_init() {
