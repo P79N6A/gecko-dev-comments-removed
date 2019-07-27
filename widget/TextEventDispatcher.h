@@ -55,8 +55,9 @@ public:
 
 
 
-  nsresult Init(TextEventDispatcherListener* aListener);
-  nsresult InitForTests(TextEventDispatcherListener* aListener);
+  nsresult BeginInputTransaction(TextEventDispatcherListener* aListener);
+  nsresult BeginInputTransactionForTests(
+             TextEventDispatcherListener* aListener);
 
   
 
@@ -64,6 +65,7 @@ public:
   void OnDestroyWidget();
 
   
+
 
 
 
@@ -197,7 +199,9 @@ private:
   
   bool mIsComposing;
 
-  nsresult InitInternal(TextEventDispatcherListener* aListener, bool aForTests);
+  nsresult BeginInputTransactionInternal(
+             TextEventDispatcherListener* aListener,
+             bool aForTests);
 
   
 
