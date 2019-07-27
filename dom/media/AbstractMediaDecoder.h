@@ -43,7 +43,7 @@ enum class MediaDecoderEventVisibility : int8_t {
 
 
 
-class AbstractMediaDecoder : public nsISupports
+class AbstractMediaDecoder : public nsIObserver
 {
 public:
   
@@ -145,6 +145,11 @@ public:
   private:
     AbstractMediaDecoder* mDecoder;
   };
+
+  
+  
+  NS_IMETHOD Observe(nsISupports *aSubject, const char * aTopic, const char16_t * aData) override
+  { MOZ_CRASH("Forbidden method"); return NS_OK; }
 
 #ifdef MOZ_EME
   virtual nsresult SetCDMProxy(CDMProxy* aProxy) { return NS_ERROR_NOT_IMPLEMENTED; }
