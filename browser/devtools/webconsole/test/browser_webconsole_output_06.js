@@ -6,6 +6,9 @@
 
 
 const TEST_URI = "data:text/html;charset=utf8,test for console output - 06";
+const ELLIPSIS = Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data;
+const test_str_in = "SHOW\\nALL\\nOF\\nTHIS\\nON\\nA\\nSINGLE\\nLINE ONLY. ESCAPE ALL NEWLINE";
+const test_str_out = "SHOW ALL OF THIS ON A SINGLE LINE O" + ELLIPSIS;
 
 let inputTests = [
   
@@ -97,6 +100,15 @@ let inputTests = [
     printOutput: "0,,,3,4,5",
     inspectable: true,
     variablesViewLabel: "Array[6]"
+  },
+
+  
+  {
+    input: '["' + test_str_in + '", "' + test_str_in + '", "' + test_str_in + '"]',
+    output: 'Array [ "' + test_str_out + '", "' + test_str_out + '", "' + test_str_out + '" ]',
+    inspectable: false,
+    printOutput: "SHOW\nALL\nOF\nTHIS\nON\nA\nSINGLE\nLINE ONLY. ESCAPE ALL NEWLINE,SHOW\nALL\nOF\nTHIS\nON\nA\nSINGLE\nLINE ONLY. ESCAPE ALL NEWLINE,SHOW\nALL\nOF\nTHIS\nON\nA\nSINGLE\nLINE ONLY. ESCAPE ALL NEWLINE",
+    variablesViewLabel: "Array[3]"
   }
 ];
 
