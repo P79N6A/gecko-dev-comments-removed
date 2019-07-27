@@ -60,9 +60,7 @@ Debugger.Object.prototype.getPromiseState = function () {
 
 
 
-
-
-function BreakpointStore() {
+function BreakpointActorMap() {
   this._size = 0;
 
   
@@ -88,9 +86,18 @@ function BreakpointStore() {
   this._breakpoints = Object.create(null);
 }
 
-BreakpointStore.prototype = {
-  _size: null,
-  get size() { return this._size; },
+BreakpointActorMap.prototype = {
+  
+
+
+
+
+
+
+
+  get size() {
+    return this._size;
+  },
 
   
 
@@ -102,38 +109,29 @@ BreakpointStore.prototype = {
 
 
 
+  findActors: function* (query = {}) {
+    if (query.column != null) {
+      dbg_assert(query.line != null);
+    }
+    if (query.line != null) {
+      dbg_assert(query.source != null);
+      dbg_assert(query.source.actor != null);
+    }
 
-
-
-
-
-  addBreakpoint: function (aBreakpoint, aActor) {
-    let { source: { actor }, line, column } = aBreakpoint;
-
-    if (column != null) {
-      if (!this._breakpoints[actor]) {
-        this._breakpoints[actor] = [];
+    let actor = query.source ? query.source.actor : null;
+    for (let actor of this._iterActors(actor)) {
+      for (let line of this._iterLines(actor, query.line)) {
+        
+        
+        if (query.column == null
+            && this._wholeLineBreakpoints[actor]
+            && this._wholeLineBreakpoints[actor][line]) {
+          yield this._wholeLineBreakpoints[actor][line];
+        }
+        for (let column of this._iterColumns(actor, line, query.column)) {
+          yield this._breakpoints[actor][line][column];
+        }
       }
-      if (!this._breakpoints[actor][line]) {
-        this._breakpoints[actor][line] = [];
-      }
-
-      if (!this._breakpoints[actor][line][column]) {
-        this._breakpoints[actor][line][column] = aActor;
-        this._size++;
-      }
-      return this._breakpoints[actor][line][column];
-    } else {
-      
-      if (!this._wholeLineBreakpoints[actor]) {
-        this._wholeLineBreakpoints[actor] = [];
-      }
-
-      if (!this._wholeLineBreakpoints[actor][line]) {
-        this._wholeLineBreakpoints[actor][line] = aActor;
-        this._size++;
-      }
-      return this._wholeLineBreakpoints[actor][line];
     }
   },
 
@@ -147,7 +145,81 @@ BreakpointStore.prototype = {
 
 
 
-  removeBreakpoint: function ({ source: { actor }, line, column }) {
+
+
+
+  getActor: function (location) {
+    let { source: { actor }, line, column } = location;
+
+    dbg_assert(actor != null);
+    dbg_assert(line != null);
+    for (let actor of this.findActors(location)) {
+      
+      
+      
+      
+      return actor;
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  setActor: function (location, actor) {
+    let { source, line, column } = location;
+
+    if (column != null) {
+      if (!this._breakpoints[source.actor]) {
+        this._breakpoints[source.actor] = [];
+      }
+      if (!this._breakpoints[source.actor][line]) {
+        this._breakpoints[source.actor][line] = [];
+      }
+
+      if (!this._breakpoints[source.actor][line][column]) {
+        this._breakpoints[source.actor][line][column] = actor;
+        this._size++;
+      }
+      return this._breakpoints[source.actor][line][column];
+    } else {
+      
+      if (!this._wholeLineBreakpoints[source.actor]) {
+        this._wholeLineBreakpoints[source.actor] = [];
+      }
+
+      if (!this._wholeLineBreakpoints[source.actor][line]) {
+        this._wholeLineBreakpoints[source.actor][line] = actor;
+        this._size++;
+      }
+      return this._wholeLineBreakpoints[source.actor][line];
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  deleteActor: function (location) {
+    let { source: { actor }, line, column } = location;
+
     if (column != null) {
       if (this._breakpoints[actor]) {
         if (this._breakpoints[actor][line]) {
@@ -173,69 +245,6 @@ BreakpointStore.prototype = {
         if (this._wholeLineBreakpoints[actor][line]) {
           delete this._wholeLineBreakpoints[actor][line];
           this._size--;
-        }
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  getBreakpoint: function (aLocation) {
-    let { source: { actor }, line, column } = aLocation;
-    dbg_assert(actor != null);
-    dbg_assert(line != null);
-    for (let actor of this.findBreakpoints(aLocation)) {
-      
-      
-      
-      
-      return actor;
-    }
-
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  findBreakpoints: function* (aSearchParams={}) {
-    if (aSearchParams.column != null) {
-      dbg_assert(aSearchParams.line != null);
-    }
-    if (aSearchParams.line != null) {
-      dbg_assert(aSearchParams.source != null);
-      dbg_assert(aSearchParams.source.actor != null);
-    }
-
-    let actor = aSearchParams.source ? aSearchParams.source.actor : null;
-    for (let actor of this._iterActors(actor)) {
-      for (let line of this._iterLines(actor, aSearchParams.line)) {
-        
-        
-        if (aSearchParams.column == null
-            && this._wholeLineBreakpoints[actor]
-            && this._wholeLineBreakpoints[actor][line]) {
-          yield this._wholeLineBreakpoints[actor][line];
-        }
-        for (let column of this._iterColumns(actor, line, aSearchParams.column)) {
-          yield this._breakpoints[actor][line][column];
         }
       }
     }
@@ -304,7 +313,7 @@ BreakpointStore.prototype = {
   },
 };
 
-exports.BreakpointStore = BreakpointStore;
+exports.BreakpointActorMap = BreakpointActorMap;
 
 
 
@@ -538,7 +547,7 @@ function ThreadActor(aParent, aGlobal)
     autoBlackBox: false
   };
 
-  this.breakpointStore = new BreakpointStore();
+  this.breakpointActorMap = new BreakpointActorMap();
   this.sourceActorStore = new SourceActorStore();
   this.blackBoxedSources = new Set(["self-hosted"]);
   this.prettyPrintedSources = new Map();
@@ -1289,7 +1298,7 @@ ThreadActor.prototype = {
           reportError(new Error("Unable to set breakpoint on event listener"));
           return;
         }
-        let bpActor = this.breakpointStore.getBreakpoint({
+        let bpActor = this.breakpointActorMap.getActor({
           source: sourceActor.form(),
           line: location.line
         });
@@ -1447,7 +1456,7 @@ ThreadActor.prototype = {
 
 
   disableAllBreakpoints: function () {
-    for (let bpActor of this.breakpointStore.findBreakpoints()) {
+    for (let bpActor of this.breakpointActorMap.findActors()) {
       bpActor.removeScripts();
     }
   },
@@ -2077,7 +2086,7 @@ ThreadActor.prototype = {
 
 
   _restoreBreakpoints: function () {
-    if (this.breakpointStore.size === 0) {
+    if (this.breakpointActorMap.size === 0) {
       return;
     }
 
@@ -2102,7 +2111,7 @@ ThreadActor.prototype = {
 
     let endLine = aScript.startLine + aScript.lineCount - 1;
     let source = this.sources.source({ source: aScript.source });
-    for (let bpActor of this.breakpointStore.findBreakpoints({ source: source.form() })) {
+    for (let bpActor of this.breakpointActorMap.findActors({ source: source.form() })) {
       
       if (bpActor.location.line >= aScript.startLine
           && bpActor.location.line <= endLine) {
@@ -2339,7 +2348,7 @@ SourceActor.prototype = {
   get dbg() { return this.threadActor.dbg; },
   get source() { return this._source; },
   get generatedSource() { return this._generatedSource; },
-  get breakpointStore() { return this.threadActor.breakpointStore; },
+  get breakpointActorMap() { return this.threadActor.breakpointActorMap; },
   get url() {
     if (this.source) {
       return getSourceURL(this.source);
@@ -2864,7 +2873,7 @@ SourceActor.prototype = {
 
 
   _getOrCreateBreakpointActor: function (location) {
-    let actor = this.breakpointStore.getBreakpoint(location);
+    let actor = this.breakpointActorMap.getActor(location);
     if (!actor) {
       actor = new BreakpointActor(this.threadActor, {
         sourceActor: this,
@@ -2873,7 +2882,7 @@ SourceActor.prototype = {
         condition: location.condition
       });
       this.threadActor.threadLifetimePool.addActor(actor);
-      this.breakpointStore.addBreakpoint(location, actor);
+      this.breakpointActorMap.setActor(location, actor);
       return actor;
     }
 
@@ -3042,10 +3051,10 @@ SourceActor.prototype = {
       
       
 
-      let existingActor = this.breakpointStore.getBreakpoint(actualLocation);
+      let existingActor = this.breakpointActorMap.getActor(actualLocation);
       if (existingActor) {
         actor.onDelete();
-        this.breakpointStore.removeBreakpoint(location);
+        this.breakpointActorMap.deleteActor(location);
         return {
           actor: existingActor.actorID,
           actualLocation
@@ -3056,8 +3065,8 @@ SourceActor.prototype = {
           sourceActor: this,
           line: actualLocation.line
         };
-        this.breakpointStore.removeBreakpoint(location);
-        this.breakpointStore.addBreakpoint(actualLocation, actor);
+        this.breakpointActorMap.deleteActor(location);
+        this.breakpointActorMap.setActor(actualLocation, actor);
       }
     }
 
@@ -4842,7 +4851,7 @@ BreakpointActor.prototype = {
 
   onDelete: function (aRequest) {
     
-    this.threadActor.breakpointStore.removeBreakpoint(
+    this.threadActor.breakpointActorMap.deleteActor(
       update({}, this.location, { source: this.location.sourceActor.form() })
     );
     this.threadActor.threadLifetimePool.removeActor(this);
