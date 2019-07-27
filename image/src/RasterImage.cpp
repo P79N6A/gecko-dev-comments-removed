@@ -933,9 +933,9 @@ RasterImage::OnAddedFrame(uint32_t aNewFrameCount,
     return;
   }
 
-  MOZ_ASSERT((mFrameCount == 1 && aNewFrameCount == 1) ||
-             mFrameCount < aNewFrameCount,
-             "Frame count running backwards");
+  MOZ_ASSERT(aNewFrameCount <= mFrameCount ||
+             aNewFrameCount == mFrameCount + 1,
+             "Skipped a frame?");
 
   mFrameCount = aNewFrameCount;
 
@@ -1480,15 +1480,6 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   
   mDecoder->SetSizeDecode(aDoSizeDecode);
   mDecoder->SetDecodeFlags(mFrameDecodeFlags);
-  if (!aDoSizeDecode) {
-    
-    
-    
-    mDecoder->SetSize(mSize, mOrientation);
-    mDecoder->NeedNewFrame(0, 0, 0, mSize.width, mSize.height,
-                           SurfaceFormat::B8G8R8A8);
-    mDecoder->AllocateFrame();
-  }
   mDecoder->Init();
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 

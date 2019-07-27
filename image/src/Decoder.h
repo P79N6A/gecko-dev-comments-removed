@@ -37,21 +37,6 @@ public:
 
 
 
-  void InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
-                         uint32_t* aColormap, uint32_t aColormapSize,
-                         RawAccessFrameRef&& aFrameRef);
-
-  
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -64,14 +49,6 @@ public:
 
 
   void Finish(ShutdownReason aReason);
-
-  
-
-
-
-
-
-  void FinishSharedDecoder();
 
   
 
@@ -156,36 +133,14 @@ public:
   void SetDecodeFlags(uint32_t aFlags) { mDecodeFlags = aFlags; }
   uint32_t GetDecodeFlags() { return mDecodeFlags; }
 
+  nsIntSize GetSize() const { return mImageMetadata.GetSize(); }
   bool HasSize() const { return mImageMetadata.HasSize(); }
   void SetSizeOnImage();
-
-  void SetSize(const nsIntSize& aSize, const Orientation& aOrientation)
-  {
-    PostSize(aSize.width, aSize.height, aOrientation);
-  }
 
   
   virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
 
   ImageMetadata& GetImageMetadata() { return mImageMetadata; }
-
-  
-  
-  
-  
-  
-  
-  
-  void NeedNewFrame(uint32_t frameNum, uint32_t x_offset, uint32_t y_offset,
-                    uint32_t width, uint32_t height,
-                    gfx::SurfaceFormat format,
-                    uint8_t palette_depth = 0);
-  virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
-
-
-  
-  
-  virtual nsresult AllocateFrame();
 
   already_AddRefed<imgFrame> GetCurrentFrame()
   {
@@ -200,6 +155,8 @@ public:
   }
 
 protected:
+  friend class nsICODecoder;
+
   virtual ~Decoder();
 
   
@@ -265,11 +222,6 @@ protected:
   void PostDecoderError(nsresult aFailCode);
 
   
-  
-  
-  bool NeedsToFlushData() const { return mNeedsToFlushData; }
-
-  
 
 
 
@@ -277,19 +229,18 @@ protected:
 
 
 
-  RawAccessFrameRef EnsureFrame(uint32_t aFrameNum,
-                                const nsIntRect& aFrameRect,
-                                uint32_t aDecodeFlags,
-                                gfx::SurfaceFormat aFormat,
-                                uint8_t aPaletteDepth,
-                                imgFrame* aPreviousFrame);
+  nsresult AllocateFrame(uint32_t aFrameNum,
+                         const nsIntRect& aFrameRect,
+                         gfx::SurfaceFormat aFormat,
+                         uint8_t aPaletteDepth = 0);
 
-  RawAccessFrameRef InternalAddFrame(uint32_t aFrameNum,
-                                     const nsIntRect& aFrameRect,
-                                     uint32_t aDecodeFlags,
-                                     gfx::SurfaceFormat aFormat,
-                                     uint8_t aPaletteDepth,
-                                     imgFrame* aPreviousFrame);
+  RawAccessFrameRef AllocateFrameInternal(uint32_t aFrameNum,
+                                          const nsIntRect& aFrameRect,
+                                          uint32_t aDecodeFlags,
+                                          gfx::SurfaceFormat aFormat,
+                                          uint8_t aPaletteDepth,
+                                          imgFrame* aPreviousFrame);
+
   
 
 
@@ -319,27 +270,6 @@ private:
 
   nsresult mFailCode;
 
-  struct NewFrameData
-  {
-    NewFrameData() { }
-
-    NewFrameData(uint32_t aFrameNum, const nsIntRect& aFrameRect,
-                 gfx::SurfaceFormat aFormat, uint8_t aPaletteDepth)
-      : mFrameNum(aFrameNum)
-      , mFrameRect(aFrameRect)
-      , mFormat(aFormat)
-      , mPaletteDepth(aPaletteDepth)
-    { }
-
-    uint32_t mFrameNum;
-    nsIntRect mFrameRect;
-    gfx::SurfaceFormat mFormat;
-    uint8_t mPaletteDepth;
-  };
-
-  NewFrameData mNewFrameData;
-  bool mNeedsNewFrame;
-  bool mNeedsToFlushData;
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;

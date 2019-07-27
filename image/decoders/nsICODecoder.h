@@ -40,10 +40,6 @@ public:
 
   virtual void WriteInternal(const char* aBuffer, uint32_t aCount) MOZ_OVERRIDE;
   virtual void FinishInternal() MOZ_OVERRIDE;
-  virtual nsresult AllocateFrame() MOZ_OVERRIDE;
-
-protected:
-  virtual bool NeedsNewFrame() const MOZ_OVERRIDE;
 
 private:
   
@@ -83,7 +79,6 @@ private:
   uint32_t mRowBytes; 
   int32_t mOldLine;   
   nsRefPtr<Decoder> mContainedDecoder; 
-  RawAccessFrameRef mRefForContainedDecoder; 
 
   char mDirEntryArray[ICODIRENTRYSIZE]; 
   IconDirEntry mDirEntry; 
