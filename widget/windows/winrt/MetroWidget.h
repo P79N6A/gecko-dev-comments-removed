@@ -148,7 +148,6 @@ public:
   virtual bool  IsEnabled() const;
   
   virtual bool  ShouldUseOffMainThreadCompositing();
-  bool          ShouldUseMainThreadD3D10Manager();
   bool          ShouldUseBasicManager();
   bool          ShouldUseAPZC();
   virtual LayerManager* GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,

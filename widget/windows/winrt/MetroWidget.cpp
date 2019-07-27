@@ -5,7 +5,6 @@
 
 
 #include "ContentHelper.h"
-#include "LayerManagerD3D10.h"
 #include "MetroWidget.h"
 #include "MetroApp.h"
 #include "mozilla/Preferences.h"
@@ -1006,17 +1005,6 @@ MetroWidget::ShouldUseOffMainThreadCompositing()
 }
 
 bool
-MetroWidget::ShouldUseMainThreadD3D10Manager()
-{
-  
-  if (!mView) {
-    return false;
-  }
-  return !gfxPlatform::UsesOffMainThreadCompositing() &&
-         mWindowType == eWindowType_toplevel;
-}
-
-bool
 MetroWidget::ShouldUseBasicManager()
 {
   
@@ -1158,22 +1146,6 @@ MetroWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
     retaining = false;
   }
 
-  
-  if (mLayerManager) {
-    if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_D3D10) {
-      LayerManagerD3D10 *layerManagerD3D10 =
-        static_cast<LayerManagerD3D10*>(mLayerManager.get());
-      if (layerManagerD3D10->device() !=
-          gfxWindowsPlatform::GetPlatform()->GetD3D10Device()) {
-        MOZ_ASSERT(!mLayerManager->IsInTransaction());
-
-        mLayerManager->Destroy();
-        mLayerManager = nullptr;
-        retaining = false;
-      }
-    }
-  }
-
   HRESULT hr = S_OK;
 
   
@@ -1182,13 +1154,7 @@ MetroWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
     if (ShouldUseOffMainThreadCompositing()) {
       NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");
       CreateCompositor();
-    } else if (ShouldUseMainThreadD3D10Manager()) {
-      nsRefPtr<mozilla::layers::LayerManagerD3D10> layerManager =
-        new mozilla::layers::LayerManagerD3D10(this);
-      if (layerManager->Initialize(true, &hr)) {
-        mLayerManager = layerManager;
-      }
-    } else if (ShouldUseBasicManager()) {
+    } else {
       mLayerManager = CreateBasicLayerManager();
     }
     
