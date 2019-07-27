@@ -2732,9 +2732,15 @@ GCRuntime::unprotectRelocatedArenas(ArenaHeader *relocatedList)
 void
 GCRuntime::releaseRelocatedArenas(ArenaHeader *relocatedList)
 {
-    
     AutoLockGC lock(rt);
+    releaseRelocatedArenasWithoutUnlocking(relocatedList, lock);
+    expireChunksAndArenas(true, lock);
+}
 
+void
+GCRuntime::releaseRelocatedArenasWithoutUnlocking(ArenaHeader *relocatedList, const AutoLockGC &lock)
+{
+    
     unsigned count = 0;
     while (relocatedList) {
         ArenaHeader *aheader = relocatedList;
@@ -2759,8 +2765,6 @@ GCRuntime::releaseRelocatedArenas(ArenaHeader *relocatedList)
         releaseArena(aheader, lock);
         ++count;
     }
-
-    expireChunksAndArenas(true, lock);
 }
 
 #endif 
@@ -6405,6 +6409,13 @@ GCRuntime::onOutOfMallocMemory(const AutoLockGC &lock)
 {
     
     freeEmptyChunks(rt, lock);
+
+    
+#if defined(JSGC_COMPACTING) && defined(DEBUG)
+    unprotectRelocatedArenas(relocatedArenasToRelease);
+    releaseRelocatedArenasWithoutUnlocking(relocatedArenasToRelease, lock);
+    relocatedArenasToRelease = nullptr;
+#endif
 
     
     
