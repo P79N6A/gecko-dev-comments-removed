@@ -602,34 +602,34 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
 
     
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
-	FcFontSet *fontSet = fontSets[fs];
-	if (!fontSet) { 
-	    continue;
-	}
-	for (int f = 0; f < fontSet->nfont; ++f) {
-	    FcPattern *font = fontSet->fonts[f];
+        FcFontSet *fontSet = fontSets[fs];
+        if (!fontSet) { 
+            continue;
+        }
+        for (int f = 0; f < fontSet->nfont; ++f) {
+            FcPattern *font = fontSet->fonts[f];
 
-	    FcChar8 *family;
-	    for (int v = 0;
-		 FcPatternGetString(font, FC_FAMILY, v, &family) == FcResultMatch;
-		 ++v) {
-		FontsByFcStrEntry *entry = mFontsByFamily.PutEntry(family);
-		if (entry) {
-		    bool added = entry->AddFont(font);
+            FcChar8 *family;
+            for (int v = 0;
+             FcPatternGetString(font, FC_FAMILY, v, &family) == FcResultMatch;
+             ++v) {
+                FontsByFcStrEntry *entry = mFontsByFamily.PutEntry(family);
+                if (entry) {
+                    bool added = entry->AddFont(font);
 
-		    if (!entry->mKey) {
-			
-			
-			
-			if (added) {
-			    entry->mKey = family;
-			} else {
-			    mFontsByFamily.RawRemoveEntry(entry);
-			}
-		    }
-		}
-	    }
-	}
+                    if (!entry->mKey) {
+                        
+                        
+                        
+                        if (added) {
+                            entry->mKey = family;
+                        } else {
+                            mFontsByFamily.RawRemoveEntry(entry);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     
@@ -847,53 +847,54 @@ gfxFontconfigUtils::AddFullnameEntries()
     };
 
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
-	FcFontSet *fontSet = fontSets[fs];
-	if (!fontSet) {
-	    continue;
-	}
-	
-	for (int f = 0; f < fontSet->nfont; ++f) {
-	    FcPattern *font = fontSet->fonts[f];
+        FcFontSet *fontSet = fontSets[fs];
+        if (!fontSet) {
+            continue;
+        }
+        
+        for (int f = 0; f < fontSet->nfont; ++f) {
+            FcPattern *font = fontSet->fonts[f];
 
-	    int v = 0;
-	    FcChar8 *fullname;
-	    while (FcPatternGetString(font,
-				      FC_FULLNAME, v, &fullname) == FcResultMatch) {
-		FontsByFullnameEntry *entry = mFontsByFullname.PutEntry(fullname);
-		if (entry) {
-		    
-		    
-		    
-		    bool added = entry->AddFont(font);
-		    
-		    
-		    
-		    
-		    
-		    if (!entry->mKey && added) {
-			entry->mKey = fullname;
-		    }
-		}
+            int v = 0;
+            FcChar8 *fullname;
+            while (FcPatternGetString(font,
+                          FC_FULLNAME, v, &fullname) == FcResultMatch) {
+                FontsByFullnameEntry *entry =
+                    mFontsByFullname.PutEntry(fullname);
+                if (entry) {
+                    
+                    
+                    
+                    bool added = entry->AddFont(font);
+                    
+                    
+                    
+                    
+                    
+                    if (!entry->mKey && added) {
+                        entry->mKey = fullname;
+                    }
+                }
 
-		++v;
-	    }
+                ++v;
+            }
 
-	    
-	    if (v == 0) {
-		nsAutoCString name;
-		if (!GetFullnameFromFamilyAndStyle(font, &name))
-		    continue;
+            
+            if (v == 0) {
+                nsAutoCString name;
+                if (!GetFullnameFromFamilyAndStyle(font, &name))
+                    continue;
 
-		FontsByFullnameEntry *entry =
-		    mFontsByFullname.PutEntry(ToFcChar8(name));
-		if (entry) {
-		    entry->AddFont(font);
-		    
-		    
-		    
-		}
-	    }
-	}
+                FontsByFullnameEntry *entry =
+                    mFontsByFullname.PutEntry(ToFcChar8(name));
+                if (entry) {
+                    entry->AddFont(font);
+                    
+                    
+                    
+                }
+            }
+        }
     }
 }
 
@@ -1018,33 +1019,34 @@ gfxFontconfigUtils::GetLangSupportEntry(const FcChar8 *aLang, bool aWithFonts)
     nsAutoTArray<FcPattern*,100> fonts;
 
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
-	FcFontSet *fontSet = fontSets[fs];
-	if (!fontSet) {
-	    continue;
-	}
-	for (int f = 0; f < fontSet->nfont; ++f) {
-	    FcPattern *font = fontSet->fonts[f];
+        FcFontSet *fontSet = fontSets[fs];
+        if (!fontSet) {
+            continue;
+        }
+        for (int f = 0; f < fontSet->nfont; ++f) {
+            FcPattern *font = fontSet->fonts[f];
 
-	    FcLangResult support = GetLangSupport(font, aLang);
+            FcLangResult support = GetLangSupport(font, aLang);
 
-	    if (support < best) { 
-		best = support;
-		if (aWithFonts) {
-		    fonts.Clear();
-		} else if (best == FcLangEqual) {
-		    break;
-		}
-	    }
+            if (support < best) { 
+                best = support;
+                if (aWithFonts) {
+                    fonts.Clear();
+                } else if (best == FcLangEqual) {
+                    break;
+                }
+            }
 
-	    
-	    
-	    
-	    
-	    
-	    if (aWithFonts && support != FcLangDifferentLang && support == best) {
-		fonts.AppendElement(font);
-	    }
-	}
+            
+            
+            
+            
+            
+            if (aWithFonts && support != FcLangDifferentLang &&
+                support == best) {
+                fonts.AppendElement(font);
+            }
+        }
     }
 
     entry->mSupport = best;
@@ -1094,25 +1096,25 @@ void
 gfxFontconfigUtils::ActivateBundledFonts()
 {
     if (!mBundledFontsInitialized) {
-	mBundledFontsInitialized = true;
-	nsCOMPtr<nsIFile> localDir;
-	nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(localDir));
-	if (NS_FAILED(rv)) {
-	    return;
-	}
-	if (NS_FAILED(localDir->Append(NS_LITERAL_STRING("fonts")))) {
-	    return;
-	}
-	bool isDir;
-	if (NS_FAILED(localDir->IsDirectory(&isDir)) || !isDir) {
-	    return;
-	}
-	if (NS_FAILED(localDir->GetNativePath(mBundledFontsPath))) {
-	    return;
-	}
+        mBundledFontsInitialized = true;
+        nsCOMPtr<nsIFile> localDir;
+        nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(localDir));
+        if (NS_FAILED(rv)) {
+            return;
+        }
+        if (NS_FAILED(localDir->Append(NS_LITERAL_STRING("fonts")))) {
+            return;
+        }
+        bool isDir;
+        if (NS_FAILED(localDir->IsDirectory(&isDir)) || !isDir) {
+            return;
+        }
+        if (NS_FAILED(localDir->GetNativePath(mBundledFontsPath))) {
+            return;
+        }
     }
     if (!mBundledFontsPath.IsEmpty()) {
-	FcConfigAppFontAddDir(nullptr, (const FcChar8*)mBundledFontsPath.get());
+        FcConfigAppFontAddDir(nullptr, (const FcChar8*)mBundledFontsPath.get());
     }
 }
 
