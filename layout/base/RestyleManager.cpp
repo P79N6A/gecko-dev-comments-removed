@@ -1943,7 +1943,8 @@ GetPrevContinuationWithSameStyle(nsIFrame* aFrame)
 
 static nsIFrame*
 GetNextContinuationWithSameStyle(nsIFrame* aFrame,
-                                 nsStyleContext* aOldStyleContext)
+                                 nsStyleContext* aOldStyleContext,
+                                 bool* aHaveMoreContinuations = nullptr)
 {
   
 
@@ -1973,6 +1974,9 @@ GetNextContinuationWithSameStyle(nsIFrame* aFrame,
                  aOldStyleContext->GetParent() != nextStyle->GetParent(),
                  "continuations should have the same style context");
     nextContinuation = nullptr;
+    if (aHaveMoreContinuations) {
+      *aHaveMoreContinuations = true;
+    }
   }
   return nextContinuation;
 }
@@ -2335,6 +2339,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   MOZ_ASSERT(!(aRestyleHint & eRestyle_LaterSiblings),
              "eRestyle_LaterSiblings must not be part of aRestyleHint");
 
+  nsRestyleHint hintToRestore = nsRestyleHint(0);
   if (mContent && mContent->IsElement()) {
     mContent->OwnerDoc()->FlushPendingLinkUpdates();
     RestyleTracker::RestyleData restyleData;
@@ -2342,6 +2347,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
       if (NS_UpdateHint(mHintsHandled, restyleData.mChangeHint)) {
         mChangeList->AppendChange(mFrame, mContent, restyleData.mChangeHint);
       }
+      hintToRestore = restyleData.mRestyleHint;
       aRestyleHint = nsRestyleHint(aRestyleHint | restyleData.mRestyleHint);
     }
   }
@@ -2354,9 +2360,19 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
 
+    bool haveMoreContinuations = false;
     for (nsIFrame* f = mFrame; f;
-         f = GetNextContinuationWithSameStyle(f, oldContext)) {
+         f = GetNextContinuationWithSameStyle(f, oldContext,
+                                              &haveMoreContinuations)) {
       RestyleSelf(f, aRestyleHint);
+    }
+
+    if (haveMoreContinuations && hintToRestore) {
+      
+      
+      
+      mRestyleTracker.AddPendingRestyleToTable(mContent->AsElement(),
+                                               hintToRestore, nsChangeHint(0));
     }
   }
 
@@ -2455,17 +2471,7 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
                  "non pseudo-element frame without content node");
     newContext = styleSet->ResolveStyleForNonElement(parentContext);
   }
-  else if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree)) &&
-           !prevContinuation) {
-    
-    
-    
-    
-    
-    
-    
-    
-
+  else if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree))) {
     Element* element = ElementForStyleContext(mParentContent, aSelf, pseudoType);
     if (aRestyleHint == nsRestyleHint(0)) {
       newContext =
