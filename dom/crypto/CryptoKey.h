@@ -171,6 +171,8 @@ public:
                                  JsonWebKey& aRetVal,
                                  const nsNSSShutDownPreventionLock& );
 
+  static bool PublicKeyValid(SECKEYPublicKey* aPubKey);
+
   
   bool WriteStructuredClone(JSStructuredCloneWriter* aWriter) const;
   bool ReadStructuredClone(JSStructuredCloneReader* aReader);
