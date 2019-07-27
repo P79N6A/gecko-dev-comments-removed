@@ -12,6 +12,7 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIFTPChannel.h"
+#include "nsIForcePendingChannel.h"
 #include "nsIUploadChannel.h"
 #include "nsIProxyInfo.h"
 #include "nsIProxiedChannel.h"
@@ -23,7 +24,8 @@ class nsFtpChannel : public nsBaseChannel,
                      public nsIFTPChannel,
                      public nsIUploadChannel,
                      public nsIResumableChannel,
-                     public nsIProxiedChannel
+                     public nsIProxiedChannel,
+                     public nsIForcePendingChannel
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -88,8 +90,8 @@ public:
     
     void GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult);
 
-public: 
-    void ForcePending(bool aForcePending);
+public:
+    NS_IMETHOD ForcePending(bool aForcePending);
 
 protected:
     virtual ~nsFtpChannel() {}

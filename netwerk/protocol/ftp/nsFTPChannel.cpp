@@ -29,7 +29,8 @@ NS_IMPL_ISUPPORTS_INHERITED(nsFtpChannel,
                             nsIUploadChannel,
                             nsIResumableChannel,
                             nsIFTPChannel,
-                            nsIProxiedChannel)
+                            nsIProxiedChannel,
+                            nsIForcePendingChannel)
 
 
 
@@ -199,7 +200,7 @@ nsFtpChannel::GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult)
     aResult = mFTPEventSink;
 }
 
-void
+NS_IMETHODIMP
 nsFtpChannel::ForcePending(bool aForcePending)
 {
     
@@ -207,6 +208,8 @@ nsFtpChannel::ForcePending(bool aForcePending)
     
     
     mForcePending = aForcePending;
+
+    return NS_OK;
 }
 
 NS_IMETHODIMP
