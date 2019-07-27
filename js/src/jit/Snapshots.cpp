@@ -121,7 +121,6 @@ using namespace js::jit;
 
 
 
-
 const RValueAllocation::Layout &
 RValueAllocation::layoutFromMode(Mode mode)
 {
@@ -498,7 +497,7 @@ SnapshotReader::SnapshotReader(const uint8_t *snapshots, uint32_t offset,
 
 
 static const uint32_t SNAPSHOT_BAILOUTKIND_SHIFT = 0;
-static const uint32_t SNAPSHOT_BAILOUTKIND_BITS = 5;
+static const uint32_t SNAPSHOT_BAILOUTKIND_BITS = 6;
 static const uint32_t SNAPSHOT_BAILOUTKIND_MASK = COMPUTE_MASK_(SNAPSHOT_BAILOUTKIND);
 
 static const uint32_t SNAPSHOT_ROFFSET_SHIFT = COMPUTE_SHIFT_AFTER_(SNAPSHOT_BAILOUTKIND);
