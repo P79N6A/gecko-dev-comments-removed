@@ -228,44 +228,6 @@ protected:
   { }
 };
 
-
-
-
-
-
-class DriverHolder
-{
-public:
-  DriverHolder(MediaStreamGraphImpl* aGraphImpl);
-  GraphTime GetCurrentTime();
-
-  
-  void Switch(GraphDriver* aDriver);
-  
-  
-  
-  void SwitchAtNextIteration(GraphDriver* aDriver);
-
-  GraphDriver* GetDriver() {
-    MOZ_ASSERT(mDriver);
-    return mDriver.get();
-  }
-
-  void SetCurrentDriver(GraphDriver* aDriver) {
-    mDriver = aDriver;
-  }
-
-protected:
-  
-  nsRefPtr<GraphDriver> mDriver;
-  
-  
-  MediaStreamGraphImpl* mGraphImpl;
-  
-  GraphTime mNextIterationStart;
-  GraphTime mNextStateComputedTime;
-};
-
 class MediaStreamGraphInitThreadRunnable;
 
 

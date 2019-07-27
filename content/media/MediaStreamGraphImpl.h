@@ -402,10 +402,21 @@ public:
 
 
 
+  void PausedIndefinitly();
+  void ResumedFromPaused();
+
+  GraphDriver* CurrentDriver() {
+    return mDriver;
+  }
+
+  
+
+
+
 
 
   void SetCurrentDriver(GraphDriver* aDriver) {
-    mDriverHolder.SetCurrentDriver(aDriver);
+    mDriver = aDriver;
   }
 
   Monitor& GetMonitor() {
@@ -413,6 +424,14 @@ public:
   }
 
   
+  
+  
+
+
+
+
+
+  nsRefPtr<GraphDriver> mDriver;
 
   
   
