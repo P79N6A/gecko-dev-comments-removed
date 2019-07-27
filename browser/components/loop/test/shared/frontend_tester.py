@@ -63,7 +63,7 @@ class BaseTestFrontendUnits(MarionetteTestCase):
         
         
         
-        self.marionette.set_search_timeout(10000)
+        self.marionette.set_search_timeout(60000)
 
     
     def set_server_prefix(self, srcdir_path):
