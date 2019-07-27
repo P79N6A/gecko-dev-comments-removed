@@ -308,15 +308,6 @@ loop.panel = (function(_, mozL10n) {
       this._fetchCallUrl();
     },
 
-    
-
-
-
-
-    conversationIdentifier: function() {
-      return Math.random().toString(36).substring(5);
-    },
-
     componentDidMount: function() {
       
       
@@ -332,7 +323,9 @@ loop.panel = (function(_, mozL10n) {
 
     _fetchCallUrl: function() {
       this.setState({pending: true});
-      this.props.client.requestCallUrl(this.conversationIdentifier(),
+      
+      
+      this.props.client.requestCallUrl("",
                                        this._onCallUrlReceived);
     },
 

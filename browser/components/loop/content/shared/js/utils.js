@@ -21,6 +21,18 @@ loop.shared.utils = (function() {
 
 
 
+
+
+  function formatDate(timestamp) {
+    var date = (new Date(timestamp * 1000));
+    var options = {year: "numeric", month: "long", day: "numeric"};
+    return date.toLocaleDateString(navigator.language, options);
+  }
+
+  
+
+
+
   function getTargetPlatform() {
     var platform="unknown_platform";
 
@@ -87,6 +99,7 @@ loop.shared.utils = (function() {
   return {
     CALL_TYPES: CALL_TYPES,
     Helper: Helper,
+    formatDate: formatDate,
     getTargetPlatform: getTargetPlatform,
     getBoolPreference: getBoolPreference
   };
