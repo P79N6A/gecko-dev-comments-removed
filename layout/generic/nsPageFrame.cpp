@@ -414,22 +414,22 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
   aList->AppendToTop(&newList);
 }
 
-static nsresult
+static void
 BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
                              nsPageFrame* aPage, nsIFrame* aExtraPage,
-                             nsDisplayList* aList)
+                             const nsRect& aDirtyRect, nsDisplayList* aList)
 {
+  
+  
+  
+  
+  if (!aExtraPage->HasAnyStateBits(NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO)) {
+    return;
+  }
   nsDisplayList list;
-  
-  
-  
-  
-  
-  
-  aExtraPage->BuildDisplayListForStackingContext(aBuilder, nsRect(), &list);
+  aExtraPage->BuildDisplayListForStackingContext(aBuilder, aDirtyRect, &list);
   PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, &list);
   aList->AppendToTop(&list);
-  return NS_OK;
 }
 
 static nsIFrame*
@@ -506,8 +506,8 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     clipState.Clear();
     clipState.ClipContainingBlockDescendants(clipRect, nullptr);
 
-    child->BuildDisplayListForStackingContext(aBuilder,
-      child->GetVisualOverflowRectRelativeToSelf(), &content);
+    nsRect dirtyRect = child->GetVisualOverflowRectRelativeToSelf();
+    child->BuildDisplayListForStackingContext(aBuilder, dirtyRect, &content);
 
     
     
@@ -518,7 +518,8 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     nsIFrame* page = child;
     while ((page = GetNextPage(page)) != nullptr) {
-      BuildDisplayListForExtraPage(aBuilder, this, page, &content);
+      BuildDisplayListForExtraPage(aBuilder, this, page,
+          dirtyRect + child->GetOffsetTo(page), &content);
     }
 
     
