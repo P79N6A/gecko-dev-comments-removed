@@ -856,7 +856,8 @@ gfxPlatform::InitializeSkiaCacheLimits()
     if (usingDynamicCache) {
       uint32_t totalMemory = mozilla::hal::GetTotalSystemMemory();
 
-      if (totalMemory <= 256*1024*1024) {
+      if (totalMemory < 512*1024*1024) {
+        
         
         cacheSizeLimit = 2*1024*1024;
       } else if (totalMemory > 0) {
