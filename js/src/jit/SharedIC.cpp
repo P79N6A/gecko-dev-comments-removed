@@ -5,11 +5,11 @@
 
 
 #include "jit/SharedIC.h"
-
 #include "mozilla/SizePrintfMacros.h"
 
 #include "jstypes.h"
 
+#include "jit/BaselineIC.h"
 #include "jit/JitSpewer.h"
 #include "jit/Linker.h"
 #include "jit/SharedICHelpers.h"
