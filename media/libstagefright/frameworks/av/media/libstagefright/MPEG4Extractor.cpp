@@ -2995,7 +2995,10 @@ status_t MPEG4Source::parseTrackFragmentRun(off64_t offset, off64_t size) {
     }
     ALOGV("fragment run flags: %08x", flags);
 
-    if (flags & 0xff000000) {
+    
+    
+    
+    if (flags & 0xfe000000) {
         return -EINVAL;
     }
 
