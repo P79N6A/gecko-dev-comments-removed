@@ -909,6 +909,9 @@ class TypeNewScript
 
 inline bool isInlinableCall(jsbytecode *pc);
 
+bool
+ClassCanHaveExtraProperties(const Class *clasp);
+
 
 
 
