@@ -869,6 +869,10 @@ BrowserElementChild.prototype = {
     }
 
     
+    menuData.clientX = e.clientX;
+    menuData.clientY = e.clientY;
+
+    
     
     
     
