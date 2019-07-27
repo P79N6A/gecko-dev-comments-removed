@@ -79,7 +79,7 @@ enum AllocatingBehaviour {
 
 
 
-extern ArrayObject * JS_FASTCALL
+extern ArrayObject *
 NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleTypeObject type,
               AllocatingBehaviour allocating);
 
