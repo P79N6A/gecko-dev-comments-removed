@@ -152,12 +152,6 @@ struct LayerPropertiesBase : public LayerProperties
       AddRegion(result, NewTransformedBounds());
 
       
-      
-      
-      if (!aCallback) {
-        ClearInvalidations(mLayer);
-        return result;
-      }
     }
 
     AddRegion(result, ComputeChangeInternal(aCallback, aGeometryChanged));
@@ -227,19 +221,16 @@ struct ContainerLayerProperties : public LayerPropertiesBase
     ContainerLayer* container = mLayer->AsContainerLayer();
     nsIntRegion result;
 
+    bool childrenChanged = false;
+
     if (mPreXScale != container->GetPreXScale() ||
         mPreYScale != container->GetPreYScale()) {
       aGeometryChanged = true;
       result = OldTransformedBounds();
       AddRegion(result, NewTransformedBounds());
+      childrenChanged = true;
 
       
-      
-      
-      if (!aCallback) {
-        ClearInvalidations(mLayer);
-        return result;
-      }
     }
 
     
@@ -270,10 +261,15 @@ struct ContainerLayerProperties : public LayerPropertiesBase
             
             for (uint32_t j = i; j < childsOldIndex; ++j) {
               AddRegion(result, mChildren[j]->OldTransformedBounds());
+              childrenChanged |= true;
             }
             
-            AddRegion(result, mChildren[childsOldIndex]->ComputeChange(aCallback, aGeometryChanged));
+            nsIntRegion region = mChildren[childsOldIndex]->ComputeChange(aCallback, aGeometryChanged);
             i = childsOldIndex + 1;
+            if (!region.IsEmpty()) {
+              AddRegion(result, region);
+              childrenChanged |= true;
+            }
           } else {
             
             
@@ -297,10 +293,12 @@ struct ContainerLayerProperties : public LayerPropertiesBase
           ClearInvalidations(child);
         }
       }
+      childrenChanged |= invalidateChildsCurrentArea;
     }
 
     
     while (i < mChildren.Length()) {
+      childrenChanged |= true;
       AddRegion(result, mChildren[i]->OldTransformedBounds());
       i++;
     }
@@ -309,7 +307,12 @@ struct ContainerLayerProperties : public LayerPropertiesBase
       aCallback(container, result);
     }
 
+    if (childrenChanged) {
+      container->SetChildrenChanged(true);
+    }
+
     result.Transform(gfx::To3DMatrix(mLayer->GetLocalTransform()));
+
     return result;
   }
 
