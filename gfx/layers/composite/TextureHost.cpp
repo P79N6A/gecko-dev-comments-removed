@@ -353,6 +353,13 @@ TextureHost::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 #endif
 }
 
+void
+TextureHost::Updated(const nsIntRegion* aRegion)
+{
+    LayerScope::ContentChanged(this);
+    UpdatedInternal(aRegion);
+}
+
 TextureSource::TextureSource()
 : mCompositableCount(0)
 {
@@ -401,7 +408,7 @@ BufferTextureHost::~BufferTextureHost()
 {}
 
 void
-BufferTextureHost::Updated(const nsIntRegion* aRegion)
+BufferTextureHost::UpdatedInternal(const nsIntRegion* aRegion)
 {
   ++mUpdateSerial;
   

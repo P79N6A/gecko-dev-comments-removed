@@ -155,14 +155,14 @@ public:
   DIBTextureHost(TextureFlags aFlags,
                  const SurfaceDescriptorDIB& aDescriptor);
 
-  virtual void Updated(const nsIntRegion* aRegion = nullptr) override;
-
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override
   {
     return nullptr; 
   }
 
 protected:
+  virtual void UpdatedInternal(const nsIntRegion* aRegion = nullptr) override;
+
   nsRefPtr<gfxWindowsSurface> mSurface;
 };
 
@@ -173,8 +173,6 @@ public:
                          const SurfaceDescriptorFileMapping& aDescriptor);
   ~TextureHostFileMapping();
 
-  virtual void Updated(const nsIntRegion* aRegion = nullptr) override;
-
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override
   {
     MOZ_CRASH(); 
@@ -183,6 +181,8 @@ public:
   }
 
 protected:
+  virtual void UpdatedInternal(const nsIntRegion* aRegion = nullptr) override;
+
   HANDLE mFileMapping;
 };
 

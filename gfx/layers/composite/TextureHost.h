@@ -388,7 +388,7 @@ public:
 
 
 
-  virtual void Updated(const nsIntRegion* aRegion = nullptr) {}
+   void Updated(const nsIntRegion* aRegion = nullptr);
 
   
 
@@ -538,6 +538,8 @@ protected:
 
   void RecycleTexture(TextureFlags aFlags);
 
+  virtual void UpdatedInternal(const nsIntRegion *Region) {}
+
   PTextureParent* mActor;
   TextureFlags mFlags;
   int mCompositableCount;
@@ -570,8 +572,6 @@ public:
 
   virtual size_t GetBufferSize() = 0;
 
-  virtual void Updated(const nsIntRegion* aRegion = nullptr) override;
-
   virtual bool Lock() override;
 
   virtual void Unlock() override;
@@ -602,6 +602,8 @@ protected:
   bool MaybeUpload(nsIntRegion *aRegion = nullptr);
 
   void InitSize();
+
+  virtual void UpdatedInternal(const nsIntRegion* aRegion = nullptr) override;
 
   RefPtr<Compositor> mCompositor;
   RefPtr<DataTextureSource> mFirstSource;

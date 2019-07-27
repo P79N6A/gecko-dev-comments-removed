@@ -297,7 +297,7 @@ DIBTextureHost::DIBTextureHost(TextureFlags aFlags,
 }
 
 void
-DIBTextureHost::Updated(const nsIntRegion* aRegion)
+DIBTextureHost::UpdatedInternal(const nsIntRegion* aRegion)
 {
   if (!mCompositor) {
     
@@ -331,7 +331,7 @@ TextureHostFileMapping::~TextureHostFileMapping()
 }
 
 void
-TextureHostFileMapping::Updated(const nsIntRegion* aRegion)
+TextureHostFileMapping::UpdatedInternal(const nsIntRegion* aRegion)
 {
   if (!mCompositor) {
     
