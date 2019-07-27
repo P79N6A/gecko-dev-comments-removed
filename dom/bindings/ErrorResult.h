@@ -23,7 +23,7 @@ namespace mozilla {
 namespace dom {
 
 enum ErrNum {
-#define MSG_DEF(_name, _argc, _str) \
+#define MSG_DEF(_name, _argc, _exn, _str) \
   _name,
 #include "mozilla/dom/Errors.msg"
 #undef MSG_DEF
@@ -51,7 +51,7 @@ public:
 
 #ifdef DEBUG
   ~ErrorResult() {
-    MOZ_ASSERT_IF(IsTypeError(), !mMessage);
+    MOZ_ASSERT_IF(IsErrorWithMessage(), !mMessage);
     MOZ_ASSERT(!mMightHaveUnreportedJSException);
   }
 #endif
@@ -59,7 +59,8 @@ public:
   void Throw(nsresult rv) {
     MOZ_ASSERT(NS_FAILED(rv), "Please don't try throwing success");
     MOZ_ASSERT(rv != NS_ERROR_TYPE_ERR, "Use ThrowTypeError()");
-    MOZ_ASSERT(!IsTypeError(), "Don't overwite TypeError");
+    MOZ_ASSERT(rv != NS_ERROR_RANGE_ERR, "Use ThrowRangeError()");
+    MOZ_ASSERT(!IsErrorWithMessage(), "Don't overwrite errors with message");
     MOZ_ASSERT(rv != NS_ERROR_DOM_JS_EXCEPTION, "Use ThrowJSException()");
     MOZ_ASSERT(!IsJSException(), "Don't overwrite JS exceptions");
     MOZ_ASSERT(rv != NS_ERROR_XPC_NOT_ENOUGH_ARGS, "Use ThrowNotEnoughArgsError()");
@@ -68,9 +69,10 @@ public:
   }
 
   void ThrowTypeError(const dom::ErrNum errorNumber, ...);
-  void ReportTypeError(JSContext* cx);
+  void ThrowRangeError(const dom::ErrNum errorNumber, ...);
+  void ReportErrorWithMessage(JSContext* cx);
   void ClearMessage();
-  bool IsTypeError() const { return ErrorCode() == NS_ERROR_TYPE_ERR; }
+  bool IsErrorWithMessage() const { return ErrorCode() == NS_ERROR_TYPE_ERR || ErrorCode() == NS_ERROR_RANGE_ERR; }
 
   
   
@@ -123,7 +125,8 @@ public:
   
   void operator=(nsresult rv) {
     MOZ_ASSERT(rv != NS_ERROR_TYPE_ERR, "Use ThrowTypeError()");
-    MOZ_ASSERT(!IsTypeError(), "Don't overwite TypeError");
+    MOZ_ASSERT(rv != NS_ERROR_RANGE_ERR, "Use ThrowRangeError()");
+    MOZ_ASSERT(!IsErrorWithMessage(), "Don't overwrite errors with message");
     MOZ_ASSERT(rv != NS_ERROR_DOM_JS_EXCEPTION, "Use ThrowJSException()");
     MOZ_ASSERT(!IsJSException(), "Don't overwrite JS exceptions");
     MOZ_ASSERT(rv != NS_ERROR_XPC_NOT_ENOUGH_ARGS, "Use ThrowNotEnoughArgsError()");
@@ -160,6 +163,8 @@ private:
   
   
   ErrorResult(const ErrorResult&) = delete;
+  void ThrowErrorWithMessage(va_list ap, const dom::ErrNum errorNumber,
+                             nsresult errorType);
 };
 
 

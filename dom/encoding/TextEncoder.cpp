@@ -20,14 +20,14 @@ TextEncoder::Init(const nsAString& aEncoding, ErrorResult& aRv)
   
   
   if (!EncodingUtils::FindEncodingForLabel(label, mEncoding)) {
-    aRv.ThrowTypeError(MSG_ENCODING_NOT_SUPPORTED, &label);
+    aRv.ThrowRangeError(MSG_ENCODING_NOT_SUPPORTED, &label);
     return;
   }
 
   if (!mEncoding.EqualsLiteral("UTF-8") &&
       !mEncoding.EqualsLiteral("UTF-16LE") &&
       !mEncoding.EqualsLiteral("UTF-16BE")) {
-    aRv.ThrowTypeError(MSG_DOM_ENCODING_NOT_UTF);
+    aRv.ThrowRangeError(MSG_DOM_ENCODING_NOT_UTF);
     return;
   }
 
