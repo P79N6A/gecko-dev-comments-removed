@@ -21,17 +21,8 @@ extern "C" {
 
 
 
-
-
-
-
-
-
-
-
 typedef void
-(*NS_WalkStackCallback)(uint32_t aFrameNumber, void* aPC, void* aSP,
-                        void* aClosure);
+(*NS_WalkStackCallback)(void* aPC, void* aSP, void* aClosure);
 
 
 
@@ -128,10 +119,8 @@ NS_DescribeCodeAddress(void* aPC, nsCodeAddressDetails* aDetails);
 
 
 
-
 XPCOM_API(nsresult)
-NS_FormatCodeAddressDetails(uint32_t aFrameNumber, void* aPC,
-                            const nsCodeAddressDetails* aDetails,
+NS_FormatCodeAddressDetails(void* aPC, const nsCodeAddressDetails* aDetails,
                             char* aBuffer, uint32_t aBufferSize);
 
 #ifdef __cplusplus
