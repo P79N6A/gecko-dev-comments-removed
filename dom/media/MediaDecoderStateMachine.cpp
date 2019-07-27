@@ -99,7 +99,7 @@ const int64_t NO_VIDEO_AMPLE_AUDIO_DIVISOR = 8;
 
 
 
-static const uint32_t LOW_VIDEO_FRAMES = 1;
+static const uint32_t LOW_VIDEO_FRAMES = 2;
 
 
 
@@ -344,7 +344,7 @@ bool MediaDecoderStateMachine::HaveNextFrameData()
   MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
   return (!HasAudio() || HasFutureAudio()) &&
-         (!HasVideo() || VideoQueue().GetSize() > 0);
+         (!HasVideo() || VideoQueue().GetSize() > 1);
 }
 
 int64_t MediaDecoderStateMachine::GetDecodedAudioDuration()
@@ -415,7 +415,7 @@ bool MediaDecoderStateMachine::HaveEnoughDecodedVideo()
   MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
 
-  if (static_cast<uint32_t>(VideoQueue().GetSize()) < GetAmpleVideoFrames() * mPlaybackRate) {
+  if (VideoQueue().GetSize() - 1 < GetAmpleVideoFrames() * mPlaybackRate) {
     return false;
   }
 
@@ -2387,7 +2387,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       
       
       
-      if (VideoQueue().GetSize() > 0 ||
+      if (VideoQueue().GetSize() > 1 ||
           (HasAudio() && !mAudioCompleted) ||
           (mAudioCaptured && !mDecodedStream->IsFinished()))
       {
@@ -2512,6 +2512,7 @@ void MediaDecoderStateMachine::RenderVideoFrame(VideoData* aData,
     } else {
       mCorruptFrames.insert(0);
     }
+    aData->mSentToCompositor = true;
     container->SetCurrentFrame(aData->mDisplay, aData->mImage, aTarget);
     MOZ_ASSERT(container->GetFrameDelay() >= 0 || IsRealTime());
   }
@@ -2614,30 +2615,31 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
   const int64_t clockTime = GetClock(&nowTime);
   
   
-  int64_t remainingTime = AUDIO_DURATION_USECS;
+  
   NS_ASSERTION(clockTime >= 0, "Should have positive clock time.");
+  int64_t remainingTime = AUDIO_DURATION_USECS;
   nsRefPtr<VideoData> currentFrame;
   if (VideoQueue().GetSize() > 0) {
-    VideoData* frame = VideoQueue().PeekFront();
-    int32_t droppedFrames = 0;
-    while (IsRealTime() || clockTime >= frame->mTime) {
-      mVideoFrameEndTime = frame->GetEndTime();
-      if (currentFrame) {
-        mDecoder->NotifyDecodedFrames(0, 0, 1);
-        VERBOSE_LOG("discarding video frame mTime=%lld clock_time=%lld (%d so far)",
-                    currentFrame->mTime, clockTime, ++droppedFrames);
-      }
-      currentFrame = frame;
-      nsRefPtr<VideoData> releaseMe = VideoQueue().PopFront();
-      OnPlaybackOffsetUpdate(frame->mOffset);
-      if (VideoQueue().GetSize() == 0)
+    currentFrame = VideoQueue().PopFront();
+    int32_t framesRemoved = 0;
+    while (VideoQueue().GetSize() > 0) {
+      VideoData* nextFrame = VideoQueue().PeekFront();
+      if (!IsRealTime() && nextFrame->mTime > clockTime) {
+        remainingTime = nextFrame->mTime - clockTime;
         break;
-      frame = VideoQueue().PeekFront();
+      }
+      ++framesRemoved;
+      if (!currentFrame->mSentToCompositor) {
+        mDecoder->NotifyDecodedFrames(0, 0, 1);
+        VERBOSE_LOG("discarding video frame mTime=%lld clock_time=%lld",
+                    currentFrame->mTime, clockTime);
+      }
+      currentFrame = VideoQueue().PopFront();
     }
-    
-    
-    if (frame && !currentFrame) {
-      remainingTime = frame->mTime - clockTime;
+    VideoQueue().PushFront(currentFrame);
+    if (framesRemoved > 0) {
+      OnPlaybackOffsetUpdate(currentFrame->mOffset);
+      mVideoFrameEndTime = currentFrame->GetEndTime();
     }
   }
 
@@ -2656,9 +2658,6 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
                      (OutOfDecodedVideo() && mVideoWaitRequest.Exists());
     }
     if (shouldBuffer) {
-      if (currentFrame) {
-        PushFront(currentFrame);
-      }
       StartBuffering();
       
       
@@ -2703,28 +2702,8 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
     currentFrame = nullptr;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  if (remainingTime <= 0) {
-    VideoData* nextFrame = VideoQueue().PeekFront();
-    if (nextFrame) {
-      remainingTime = nextFrame->mTime - clockTime;
-    } else {
-      remainingTime = AUDIO_DURATION_USECS;
-    }
-  }
-
-  int64_t delay = remainingTime / mPlaybackRate;
-  if (delay > 0) {
-    ScheduleStateMachineIn(delay);
-  } else {
-    ScheduleStateMachine();
-  }
+  int64_t delay = std::max<int64_t>(1, remainingTime / mPlaybackRate);
+  ScheduleStateMachineIn(delay);
 }
 
 nsresult
