@@ -71,9 +71,6 @@ struct GenericParseContext
     
 
     
-    bool parsingForInit:1;
-
-    
     
     bool parsingWith:1;
 
@@ -82,7 +79,6 @@ struct GenericParseContext
         sc(sc),
         funHasReturnExpr(false),
         funHasReturnVoid(false),
-        parsingForInit(false),
         parsingWith(parent ? parent->parsingWith : false)
     {}
 };

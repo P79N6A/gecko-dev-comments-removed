@@ -4757,19 +4757,14 @@ Parser<FullParseHandler>::forStatement(YieldHandling yieldHandling)
             pn1 = nullptr;
         } else {
             
-
-
-
-
-
-
-
-
-
-
-
-
-            pc->parsingForInit = true;
+            
+            
+            
+            
+            
+            
+            
+            
             if (tt == TOK_VAR) {
                 isForDecl = true;
                 tokenStream.consumeKnownToken(tt);
@@ -4785,9 +4780,12 @@ Parser<FullParseHandler>::forStatement(YieldHandling yieldHandling)
                 pn1 = variables(yieldHandling, constDecl ? PNK_CONST : PNK_LET, InForInit,
                                 nullptr, blockObj, DontHoistVars);
             } else {
+                
+                
+                
+                
                 pn1 = expr(InProhibited, yieldHandling);
             }
-            pc->parsingForInit = false;
             if (!pn1)
                 return null();
         }
@@ -4845,11 +4843,7 @@ Parser<FullParseHandler>::forStatement(YieldHandling yieldHandling)
     ParseNode* forLetDecl = nullptr;
 
     
-
-
-
-
-
+    
     StmtInfoPC letStmt(context); 
     ParseNode* pn2;      
     ParseNode* pn3;      
@@ -5109,7 +5103,6 @@ Parser<SyntaxParseHandler>::forStatement(YieldHandling yieldHandling)
             lhsNode = null();
         } else {
             
-            pc->parsingForInit = true;
             if (tt == TOK_VAR) {
                 isForDecl = true;
                 tokenStream.consumeKnownToken(tt);
@@ -5124,16 +5117,11 @@ Parser<SyntaxParseHandler>::forStatement(YieldHandling yieldHandling)
             }
             if (!lhsNode)
                 return null();
-            pc->parsingForInit = false;
         }
     }
 
     
-
-
-
-
-
+    
     bool isForIn = false, isForOf = false;
     if (lhsNode) {
         if (!matchInOrOf(&isForIn, &isForOf))
@@ -6356,9 +6344,6 @@ Parser<ParseHandler>::orExpr1(InHandling inHandling, YieldHandling yieldHandling
     ParseNodeKind kindStack[PRECEDENCE_CLASSES];
     int depth = 0;
 
-    bool oldParsingForInit = pc->parsingForInit;
-    pc->parsingForInit = false;
-
     Node pn;
     for (;;) {
         pn = unaryExpr(yieldHandling, invoked);
@@ -6406,7 +6391,6 @@ Parser<ParseHandler>::orExpr1(InHandling inHandling, YieldHandling yieldHandling
     }
 
     MOZ_ASSERT(depth == 0);
-    pc->parsingForInit = oldParsingForInit;
     return pn;
 }
 
@@ -6419,15 +6403,7 @@ Parser<ParseHandler>::condExpr1(InHandling inHandling, YieldHandling yieldHandli
     if (!condition || !tokenStream.isCurrentTokenType(TOK_HOOK))
         return condition;
 
-    
-
-
-
-
-    bool oldParsingForInit = pc->parsingForInit;
-    pc->parsingForInit = false;
     Node thenExpr = assignExpr(InAllowed, yieldHandling);
-    pc->parsingForInit = oldParsingForInit;
     if (!thenExpr)
         return null();
 
@@ -8801,16 +8777,7 @@ Parser<ParseHandler>::parenExprOrGeneratorComprehension(YieldHandling yieldHandl
     if (matched)
         return generatorComprehension(begin);
 
-    
-
-
-
-
-    bool oldParsingForInit = pc->parsingForInit;
-    pc->parsingForInit = false;
     Node pn = expr(InAllowed, yieldHandling, PredictInvoked);
-    pc->parsingForInit = oldParsingForInit;
-
     if (!pn)
         return null();
 
@@ -8878,16 +8845,7 @@ Parser<ParseHandler>::exprInParens(InHandling inHandling, YieldHandling yieldHan
     uint32_t begin = pos().begin;
     uint32_t startYieldOffset = pc->lastYieldOffset;
 
-    
-
-
-
-
-    bool oldParsingForInit = pc->parsingForInit;
-    pc->parsingForInit = false;
     Node pn = expr(inHandling, yieldHandling, PredictInvoked);
-    pc->parsingForInit = oldParsingForInit;
-
     if (!pn)
         return null();
 
