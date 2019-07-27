@@ -22,11 +22,9 @@ class ServiceWorker;
 }
 
 class ServiceWorkerRegistration MOZ_FINAL : public DOMEventTargetHelper
-                                          , public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIOBSERVER
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorkerRegistration,
                                            DOMEventTargetHelper)
 
@@ -34,12 +32,6 @@ public:
 
   ServiceWorkerRegistration(nsPIDOMWindow* aWindow,
                             const nsAString& aScope);
-
-  nsPIDOMWindow*
-  GetParentObject() const
-  {
-    return mWindow;
-  }
 
   JSObject*
   WrapObject(JSContext* aCx);
@@ -70,6 +62,9 @@ public:
   void
   InvalidateWorkerReference(WhichServiceWorker aWhichOnes);
 
+  
+  virtual void DisconnectFromOwner() MOZ_OVERRIDE;
+
 private:
   ~ServiceWorkerRegistration();
 
@@ -82,8 +77,6 @@ private:
   void
   StopListeningForEvents();
 
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-
   
   
   
@@ -93,9 +86,6 @@ private:
   nsRefPtr<workers::ServiceWorker> mActiveWorker;
 
   const nsString mScope;
-
-  uint64_t mInnerID;
-  bool mIsListeningForEvents;
 };
 
 } 
