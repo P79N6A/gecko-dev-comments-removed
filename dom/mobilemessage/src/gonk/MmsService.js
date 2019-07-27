@@ -423,19 +423,17 @@ MmsConnection.prototype = {
         return true;
       }
 
-      if (DEBUG) debug("acquire: buffer the MMS request and setup the MMS data call.");
-      this.radioInterface.setupDataCallByType("mms");
-
-      
-      this.hostsToRoute = [];
-      this.networkInterface = null;
-
       
       
       this.connectTimer.
         initWithCallback(this.flushPendingCallbacks.bind(this, _HTTP_STATUS_ACQUIRE_TIMEOUT),
                          TIME_TO_BUFFER_MMS_REQUESTS,
                          Ci.nsITimer.TYPE_ONE_SHOT);
+
+      
+      if (DEBUG) debug("acquire: buffer the MMS request and setup the MMS data call.");
+      this.radioInterface.setupDataCallByType("mms");
+
       return false;
     }
 
