@@ -202,6 +202,9 @@ Migrator.prototype = {
     yield this._setMigrationSentinelIfNecessary();
 
     
+    let enginePrefs = this._getEngineEnabledPrefs();
+
+    
     this.log.info("Performing final sync migration steps");
     
     let startOverComplete = new Promise((resolve, reject) => {
@@ -209,6 +212,21 @@ Migrator.prototype = {
       Services.obs.addObserver(observe = () => {
         this.log.info("observed that startOver is complete");
         Services.obs.removeObserver(observe, "weave:service:start-over:finish");
+        
+        
+        for (let [prefName, prefType, prefVal] of enginePrefs) {
+          switch (prefType) {
+            case Services.prefs.PREF_BOOL:
+              Services.prefs.setBoolPref(prefName, prefVal);
+              break;
+            case Services.prefs.PREF_STRING:
+              Services.prefs.setCharPref(prefName, prefVal);
+              break;
+            default:
+              
+              Cu.reportError("unknown engine pref type for " + prefName + ": " + prefType);
+          }
+        }
         resolve();
       }, "weave:service:start-over:finish", false);
     });
@@ -314,6 +332,33 @@ Migrator.prototype = {
   
 
 
+  _getEngineEnabledPrefs() {
+    let result = [];
+    for (let engine of Weave.Service.engineManager.getAll()) {
+      let prefName = "services.sync.engine." + engine.prefName;
+      let prefVal;
+      try {
+        prefVal = Services.prefs.getBoolPref(prefName);
+        result.push([prefName, Services.prefs.PREF_BOOL, prefVal]);
+      } catch (ex) {} 
+    }
+    
+    try {
+      let prefName = "services.sync.declinedEngines";
+      let prefVal = Services.prefs.getCharPref(prefName);
+      result.push([prefName, Services.prefs.PREF_STRING, prefVal]);
+    } catch (ex) {}
+    return result;
+  },
+
+  
+  _allEnginesEnabled() {
+    return Weave.Service.engineManager.getAll().every(e => e.enabled);
+  },
+
+  
+
+
 
   
   
@@ -338,6 +383,11 @@ Migrator.prototype = {
     
     let email = yield this._getDefaultAccountName(sentinel);
     let tail = email ? "&email=" + encodeURIComponent(email) : "";
+    
+    
+    let customize = !this._allEnginesEnabled();
+    tail += "&customizeSync=" + customize;
+
     win.switchToTabHavingURI("about:accounts?" + action + tail, true,
                              {ignoreFragment: true, replaceQueryString: true});
     

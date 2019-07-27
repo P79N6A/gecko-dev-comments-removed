@@ -90,8 +90,14 @@ add_task(function *testMigration() {
   
   let oldValue = Services.prefs.getBoolPref("services.sync-testing.startOverKeepIdentity");
   Services.prefs.setBoolPref("services.sync-testing.startOverKeepIdentity", false);
+
+  
+  
+  Services.prefs.setBoolPref("services.sync.engine.addons", false);
+
   do_register_cleanup(() => {
     Services.prefs.setBoolPref("services.sync-testing.startOverKeepIdentity", oldValue)
+    Services.prefs.setBoolPref("services.sync.engine.addons", true);
   });
 
   
@@ -100,6 +106,11 @@ add_task(function *testMigration() {
 
   
   let [engine, server] = configureLegacySync();
+
+  
+  
+  Assert.ok(!Service.engineManager.get("addons").enabled, "addons is disabled");
+  Assert.ok(Service.engineManager.get("passwords").enabled, "passwords is enabled");
 
   
   let haveStartedSentinel = false;
@@ -249,6 +260,9 @@ add_task(function *testMigration() {
   Assert.deepEqual((yield fxaMigrator._queueCurrentUserState()),
                    null,
                    "still no user action necessary");
+  
+  Assert.ok(!Service.engineManager.get("addons").enabled, "addons is still disabled");
+  Assert.ok(Service.engineManager.get("passwords").enabled, "passwords is still enabled");
 
   
   yield promiseStopServer(server);
