@@ -1681,9 +1681,6 @@ pref("browser.newtab.preload", true);
 pref("browser.newtabpage.introShown", false);
 
 
-pref("browser.newtabpage.updateIntroShown", false);
-
-
 pref("browser.newtabpage.enabled", true);
 
 
