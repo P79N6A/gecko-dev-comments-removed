@@ -3534,6 +3534,20 @@ public:
 
     ~CompartmentPrivate();
 
+    static CompartmentPrivate* Get(JSCompartment *compartment)
+    {
+        MOZ_ASSERT(compartment);
+        void *priv = JS_GetCompartmentPrivate(compartment);
+        return static_cast<CompartmentPrivate*>(priv);
+    }
+
+    static CompartmentPrivate* Get(JSObject *object)
+    {
+        JSCompartment *compartment = js::GetObjectCompartment(object);
+        return Get(compartment);
+    }
+
+
     bool wantXrays;
 
     
@@ -3604,44 +3618,15 @@ private:
     bool TryParseLocationURI(LocationHint aType, nsIURI** aURI);
 };
 
-CompartmentPrivate*
-EnsureCompartmentPrivate(JSObject *obj);
-
-CompartmentPrivate*
-EnsureCompartmentPrivate(JSCompartment *c);
-
-inline CompartmentPrivate*
-GetCompartmentPrivate(JSCompartment *compartment)
-{
-    MOZ_ASSERT(compartment);
-    void *priv = JS_GetCompartmentPrivate(compartment);
-    return static_cast<CompartmentPrivate*>(priv);
-}
-
-inline CompartmentPrivate*
-GetCompartmentPrivate(JSObject *object)
-{
-    MOZ_ASSERT(object);
-    JSCompartment *compartment = js::GetObjectCompartment(object);
-
-    MOZ_ASSERT(compartment);
-    return GetCompartmentPrivate(compartment);
-}
-
 bool IsUniversalXPConnectEnabled(JSCompartment *compartment);
 bool IsUniversalXPConnectEnabled(JSContext *cx);
 bool EnableUniversalXPConnect(JSContext *cx);
 
-
-
 inline XPCWrappedNativeScope*
-GetObjectScope(JSObject *obj)
+ObjectScope(JSObject *obj)
 {
-    return EnsureCompartmentPrivate(obj)->scope;
+    return CompartmentPrivate::Get(obj)->scope;
 }
-
-
-XPCWrappedNativeScope* MaybeGetObjectScope(JSObject *obj);
 
 extern const JSClass SafeJSContextGlobalClass;
 

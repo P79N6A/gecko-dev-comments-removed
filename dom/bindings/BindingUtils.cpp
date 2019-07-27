@@ -2475,7 +2475,7 @@ CreateGlobalOptions<nsGlobalWindow>::TraceGlobal(JSTracer* aTrc, JSObject* aObj)
   
   
   
-  xpc::CompartmentPrivate* compartmentPrivate = xpc::GetCompartmentPrivate(aObj);
+  xpc::CompartmentPrivate* compartmentPrivate = xpc::CompartmentPrivate::Get(aObj);
   if (compartmentPrivate && compartmentPrivate->scope) {
     compartmentPrivate->scope->TraceSelf(aTrc);
   }

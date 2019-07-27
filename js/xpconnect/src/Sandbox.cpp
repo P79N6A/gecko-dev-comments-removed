@@ -414,7 +414,7 @@ struct AutoSkipPropertyMirroring
 static bool
 sandbox_addProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
 {
-    CompartmentPrivate *priv = GetCompartmentPrivate(obj);
+    CompartmentPrivate *priv = CompartmentPrivate::Get(obj);
     MOZ_ASSERT(priv->writeToGlobalPrototype);
 
     
@@ -891,7 +891,7 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
     if (!sandbox)
         return NS_ERROR_FAILURE;
 
-    xpc::GetCompartmentPrivate(sandbox)->writeToGlobalPrototype =
+    CompartmentPrivate::Get(sandbox)->writeToGlobalPrototype =
       options.writeToGlobalPrototype;
 
     
@@ -903,7 +903,7 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
     
     
     
-    xpc::GetCompartmentPrivate(sandbox)->wantXrays =
+    CompartmentPrivate::Get(sandbox)->wantXrays =
       AccessCheck::isChrome(sandbox) ? false : options.wantXrays;
 
     {
@@ -947,12 +947,12 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
         JS_SetPrivate(sandbox, sbp.forget().take());
 
         
-        AutoSkipPropertyMirroring askip(GetCompartmentPrivate(sandbox));
+        AutoSkipPropertyMirroring askip(CompartmentPrivate::Get(sandbox));
 
         bool allowComponents = nsContentUtils::IsSystemPrincipal(principal) ||
                                nsContentUtils::IsExpandedPrincipal(principal);
         if (options.wantComponents && allowComponents &&
-            !GetObjectScope(sandbox)->AttachComponentsObject(cx))
+            !ObjectScope(sandbox)->AttachComponentsObject(cx))
             return NS_ERROR_XPC_UNEXPECTED;
 
         if (!XPCNativeWrapper::AttachNewConstructorObject(cx, sandbox))
