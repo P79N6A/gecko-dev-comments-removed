@@ -6,7 +6,11 @@
 
 
 
-function test() {
+function run_test() {
+  run_next_test();
+}
+
+add_task(function test() {
   let { ThreadNode } = devtools.require("devtools/performance/tree-model");
 
   
@@ -17,10 +21,10 @@ function test() {
 
   
 
-  is(root.duration, endTime - startTime,
+  equal(root.duration, endTime - startTime,
     "The correct duration was calculated for the root node.");
 
-  is(root.calls.length, 2,
+  equal(root.calls.length, 2,
     "The correct number of child calls were calculated for the root node.");
   ok(getFrameNodePath(root, "http://D"),
     "The root has a 'http://D' child call.");
@@ -29,26 +33,24 @@ function test() {
 
   
 
-  is(getFrameNodePath(root, "http://A").calls.length, 1,
+  equal(getFrameNodePath(root, "http://A").calls.length, 1,
     "The correct number of child calls were calculated for the 'http://A' node.");
   ok(getFrameNodePath(root, "http://A > https://E"),
     "The 'http://A' node's only child call is correct.");
 
-  is(getFrameNodePath(root, "http://A > https://E").calls.length, 1,
+  equal(getFrameNodePath(root, "http://A > https://E").calls.length, 1,
     "The correct number of child calls were calculated for the 'http://A > http://E' node.");
   ok(getFrameNodePath(root, "http://A > https://E > file://F"),
     "The 'http://A > https://E' node's only child call is correct.");
 
-  is(getFrameNodePath(root, "http://A > https://E > file://F").calls.length, 1,
+  equal(getFrameNodePath(root, "http://A > https://E > file://F").calls.length, 1,
     "The correct number of child calls were calculated for the 'http://A > https://E >> file://F' node.");
   ok(getFrameNodePath(root, "http://A > https://E > file://F > app://H"),
     "The 'http://A > https://E >> file://F' node's only child call is correct.");
 
-  is(getFrameNodePath(root, "http://D").calls.length, 0,
+  equal(getFrameNodePath(root, "http://D").calls.length, 0,
     "The correct number of child calls were calculated for the 'http://D' node.");
-
-  finish();
-}
+});
 
 let gThread = synthesizeProfileForTest([{
   time: 5,
