@@ -5,6 +5,8 @@
 
 
 
+const { setTheme } = devtools.require("devtools/shared/theme");
+
 add_task(function*() {
   let { target, panel } = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
   let { panelWin } = panel;
@@ -56,20 +58,4 @@ add_task(function*() {
 
 function getFill (el) {
   return el.getAttribute("style").match(/(#.*)$/)[1];
-}
-
-
-
-
-
-
-function setTheme (newTheme) {
-  let oldTheme = Services.prefs.getCharPref("devtools.theme");
-  info("Setting `devtools.theme` to \"" + newTheme + "\"");
-  Services.prefs.setCharPref("devtools.theme", newTheme);
-  gDevTools.emit("pref-changed", {
-    pref: "devtools.theme",
-    newValue: newTheme,
-    oldValue: oldTheme
-  });
 }
