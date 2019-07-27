@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_6_14 Your_png_h_is_not_version_1_6_14;
+typedef png_libpng_version_1_6_15 Your_png_h_is_not_version_1_6_15;
 
 
 
@@ -115,7 +115,7 @@ png_calculate_crc(png_structrp png_ptr, png_const_bytep ptr, png_size_t length)
 {
    int need_crc = 1;
 
-   if (PNG_CHUNK_ANCILLARY(png_ptr->chunk_name))
+   if (PNG_CHUNK_ANCILLARY(png_ptr->chunk_name) != 0)
    {
       if ((png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_MASK) ==
           (PNG_FLAG_CRC_ANCILLARY_USE | PNG_FLAG_CRC_ANCILLARY_NOWARN))
@@ -124,7 +124,7 @@ png_calculate_crc(png_structrp png_ptr, png_const_bytep ptr, png_size_t length)
 
    else 
    {
-      if (png_ptr->flags & PNG_FLAG_CRC_CRITICAL_IGNORE)
+      if ((png_ptr->flags & PNG_FLAG_CRC_CRITICAL_IGNORE) != 0)
          need_crc = 0;
    }
 
@@ -133,7 +133,7 @@ png_calculate_crc(png_structrp png_ptr, png_const_bytep ptr, png_size_t length)
 
 
 
-   if (need_crc && length > 0)
+   if (need_crc != 0 && length > 0)
    {
       uLong crc = png_ptr->crc; 
 
@@ -165,53 +165,51 @@ png_calculate_crc(png_structrp png_ptr, png_const_bytep ptr, png_size_t length)
 int
 png_user_version_check(png_structrp png_ptr, png_const_charp user_png_ver)
 {
-   if (user_png_ver != NULL)
-   {
-      int i = 0;
-
-      do
-      {
-         if (user_png_ver[i] != png_libpng_ver[i])
-            png_ptr->flags |= PNG_FLAG_LIBRARY_MISMATCH;
-      } while (png_libpng_ver[i++]);
-   }
-
-   else
-      png_ptr->flags |= PNG_FLAG_LIBRARY_MISMATCH;
-
-   if (png_ptr->flags & PNG_FLAG_LIBRARY_MISMATCH)
-   {
      
 
 
 
 
+   if (user_png_ver != NULL)
+   {
+      int i = -1;
+      int found_dots = 0;
 
-      if (user_png_ver == NULL || user_png_ver[0] != png_libpng_ver[0] ||
-          (user_png_ver[0] == '1' && (user_png_ver[2] != png_libpng_ver[2] ||
-          user_png_ver[3] != png_libpng_ver[3])) ||
-          (user_png_ver[0] == '0' && user_png_ver[2] < '9'))
+      do
       {
+         i++;
+         if (user_png_ver[i] != PNG_LIBPNG_VER_STRING[i])
+            png_ptr->flags |= PNG_FLAG_LIBRARY_MISMATCH;
+         if (user_png_ver[i] == '.')
+            found_dots++;
+      } while (found_dots < 2 && user_png_ver[i] != 0 &&
+            PNG_LIBPNG_VER_STRING[i] != 0);
+   }
+
+   else
+      png_ptr->flags |= PNG_FLAG_LIBRARY_MISMATCH;
+
+   if ((png_ptr->flags & PNG_FLAG_LIBRARY_MISMATCH) != 0)
+   {
 #ifdef PNG_WARNINGS_SUPPORTED
-         size_t pos = 0;
-         char m[128];
+      size_t pos = 0;
+      char m[128];
 
-         pos = png_safecat(m, (sizeof m), pos,
-             "Application built with libpng-");
-         pos = png_safecat(m, (sizeof m), pos, user_png_ver);
-         pos = png_safecat(m, (sizeof m), pos, " but running with ");
-         pos = png_safecat(m, (sizeof m), pos, png_libpng_ver);
-         PNG_UNUSED(pos)
+      pos = png_safecat(m, (sizeof m), pos,
+          "Application built with libpng-");
+      pos = png_safecat(m, (sizeof m), pos, user_png_ver);
+      pos = png_safecat(m, (sizeof m), pos, " but running with ");
+      pos = png_safecat(m, (sizeof m), pos, PNG_LIBPNG_VER_STRING);
+      PNG_UNUSED(pos)
 
-         png_warning(png_ptr, m);
+      png_warning(png_ptr, m);
 #endif
 
 #ifdef PNG_ERROR_NUMBERS_SUPPORTED
-         png_ptr->flags = 0;
+      png_ptr->flags = 0;
 #endif
 
-         return 0;
-      }
+      return 0;
    }
 
    
@@ -289,7 +287,7 @@ png_create_png_struct,(png_const_charp user_png_ver, png_voidp error_ptr,
 #  endif
 
 
-         if (png_user_version_check(&create_struct, user_png_ver))
+         if (png_user_version_check(&create_struct, user_png_ver) != 0)
          {
             png_structrp png_ptr = png_voidcast(png_structrp,
                png_malloc_warn(&create_struct, (sizeof *png_ptr)));
@@ -451,32 +449,32 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
 #ifdef PNG_TEXT_SUPPORTED
    
-   if ((mask & PNG_FREE_TEXT) & info_ptr->free_me)
+   if (info_ptr->text != 0 &&
+       ((mask & PNG_FREE_TEXT) & info_ptr->free_me) != 0)
    {
       if (num != -1)
       {
-         if (info_ptr->text && info_ptr->text[num].key)
-         {
-            png_free(png_ptr, info_ptr->text[num].key);
-            info_ptr->text[num].key = NULL;
-         }
+         png_free(png_ptr, info_ptr->text[num].key);
+         info_ptr->text[num].key = NULL;
       }
 
       else
       {
          int i;
+
          for (i = 0; i < info_ptr->num_text; i++)
-             png_free_data(png_ptr, info_ptr, PNG_FREE_TEXT, i);
+            png_free(png_ptr, info_ptr->text[i].key);
+
          png_free(png_ptr, info_ptr->text);
          info_ptr->text = NULL;
-         info_ptr->num_text=0;
+         info_ptr->num_text = 0;
       }
    }
 #endif
 
 #ifdef PNG_tRNS_SUPPORTED
    
-   if ((mask & PNG_FREE_TRNS) & info_ptr->free_me)
+   if (((mask & PNG_FREE_TRNS) & info_ptr->free_me) != 0)
    {
       png_free(png_ptr, info_ptr->trans_alpha);
       info_ptr->trans_alpha = NULL;
@@ -486,7 +484,7 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
 #ifdef PNG_sCAL_SUPPORTED
    
-   if ((mask & PNG_FREE_SCAL) & info_ptr->free_me)
+   if (((mask & PNG_FREE_SCAL) & info_ptr->free_me) != 0)
    {
       png_free(png_ptr, info_ptr->scal_s_width);
       png_free(png_ptr, info_ptr->scal_s_height);
@@ -498,20 +496,20 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
 #ifdef PNG_pCAL_SUPPORTED
    
-   if ((mask & PNG_FREE_PCAL) & info_ptr->free_me)
+   if (((mask & PNG_FREE_PCAL) & info_ptr->free_me) != 0)
    {
       png_free(png_ptr, info_ptr->pcal_purpose);
       png_free(png_ptr, info_ptr->pcal_units);
       info_ptr->pcal_purpose = NULL;
       info_ptr->pcal_units = NULL;
+
       if (info_ptr->pcal_params != NULL)
          {
-            unsigned int i;
+            int i;
+
             for (i = 0; i < info_ptr->pcal_nparams; i++)
-            {
                png_free(png_ptr, info_ptr->pcal_params[i]);
-               info_ptr->pcal_params[i] = NULL;
-            }
+
             png_free(png_ptr, info_ptr->pcal_params);
             info_ptr->pcal_params = NULL;
          }
@@ -521,7 +519,7 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
 #ifdef PNG_iCCP_SUPPORTED
    
-   if ((mask & PNG_FREE_ICCP) & info_ptr->free_me)
+   if (((mask & PNG_FREE_ICCP) & info_ptr->free_me) != 0)
    {
       png_free(png_ptr, info_ptr->iccp_name);
       png_free(png_ptr, info_ptr->iccp_profile);
@@ -533,26 +531,28 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
 #ifdef PNG_sPLT_SUPPORTED
    
-   if ((mask & PNG_FREE_SPLT) & info_ptr->free_me)
+   if (info_ptr->splt_palettes != 0 &&
+       ((mask & PNG_FREE_SPLT) & info_ptr->free_me) != 0)
    {
       if (num != -1)
       {
-         if (info_ptr->splt_palettes)
-         {
-            png_free(png_ptr, info_ptr->splt_palettes[num].name);
-            png_free(png_ptr, info_ptr->splt_palettes[num].entries);
-            info_ptr->splt_palettes[num].name = NULL;
-            info_ptr->splt_palettes[num].entries = NULL;
-         }
+         png_free(png_ptr, info_ptr->splt_palettes[num].name);
+         png_free(png_ptr, info_ptr->splt_palettes[num].entries);
+         info_ptr->splt_palettes[num].name = NULL;
+         info_ptr->splt_palettes[num].entries = NULL;
       }
 
       else
       {
-         if (info_ptr->splt_palettes_num)
+         if (info_ptr->splt_palettes_num != 0)
          {
             int i;
+
             for (i = 0; i < info_ptr->splt_palettes_num; i++)
-               png_free_data(png_ptr, info_ptr, PNG_FREE_SPLT, (int)i);
+            {
+               png_free(png_ptr, info_ptr->splt_palettes[i].name);
+               png_free(png_ptr, info_ptr->splt_palettes[i].entries);
+            }
 
             png_free(png_ptr, info_ptr->splt_palettes);
             info_ptr->splt_palettes = NULL;
@@ -564,25 +564,23 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 #endif
 
 #ifdef PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED
-   if ((mask & PNG_FREE_UNKN) & info_ptr->free_me)
+   if (info_ptr->unknown_chunks != 0 &&
+       ((mask & PNG_FREE_UNKN) & info_ptr->free_me) != 0)
    {
       if (num != -1)
       {
-          if (info_ptr->unknown_chunks)
-          {
-             png_free(png_ptr, info_ptr->unknown_chunks[num].data);
-             info_ptr->unknown_chunks[num].data = NULL;
-          }
+          png_free(png_ptr, info_ptr->unknown_chunks[num].data);
+          info_ptr->unknown_chunks[num].data = NULL;
       }
 
       else
       {
          int i;
 
-         if (info_ptr->unknown_chunks_num)
+         if (info_ptr->unknown_chunks_num != 0)
          {
             for (i = 0; i < info_ptr->unknown_chunks_num; i++)
-               png_free_data(png_ptr, info_ptr, PNG_FREE_UNKN, (int)i);
+               png_free(png_ptr, info_ptr->unknown_chunks[i].data);
 
             png_free(png_ptr, info_ptr->unknown_chunks);
             info_ptr->unknown_chunks = NULL;
@@ -594,7 +592,7 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
 #ifdef PNG_hIST_SUPPORTED
    
-   if ((mask & PNG_FREE_HIST)  & info_ptr->free_me)
+   if (((mask & PNG_FREE_HIST) & info_ptr->free_me) != 0)
    {
       png_free(png_ptr, info_ptr->hist);
       info_ptr->hist = NULL;
@@ -603,7 +601,7 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 #endif
 
    
-   if ((mask & PNG_FREE_PLTE) & info_ptr->free_me)
+   if (((mask & PNG_FREE_PLTE) & info_ptr->free_me) != 0)
    {
       png_free(png_ptr, info_ptr->palette);
       info_ptr->palette = NULL;
@@ -613,16 +611,14 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
 #ifdef PNG_INFO_IMAGE_SUPPORTED
    
-   if ((mask & PNG_FREE_ROWS) & info_ptr->free_me)
+   if (((mask & PNG_FREE_ROWS) & info_ptr->free_me) != 0)
    {
-      if (info_ptr->row_pointers)
+      if (info_ptr->row_pointers != 0)
       {
          png_uint_32 row;
          for (row = 0; row < info_ptr->height; row++)
-         {
             png_free(png_ptr, info_ptr->row_pointers[row]);
-            info_ptr->row_pointers[row] = NULL;
-         }
+
          png_free(png_ptr, info_ptr->row_pointers);
          info_ptr->row_pointers = NULL;
       }
@@ -750,7 +746,7 @@ png_convert_to_rfc1123(png_structrp png_ptr, png_const_timep ptime)
    if (png_ptr != NULL)
    {
       
-      if (!png_convert_to_rfc1123_buffer(png_ptr->time_buffer, ptime))
+      if (png_convert_to_rfc1123_buffer(png_ptr->time_buffer, ptime) == 0)
          png_warning(png_ptr, "Ignoring invalid time value");
 
       else
@@ -773,13 +769,13 @@ png_get_copyright(png_const_structrp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.6.14 - October 23, 2014" PNG_STRING_NEWLINE \
+     "libpng version 1.6.15 - November 20, 2014" PNG_STRING_NEWLINE \
      "Copyright (c) 1998-2014 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.6.14 - October 23, 2014\
+      return "libpng version 1.6.15 - November 20, 2014\
       Copyright (c) 1998-2014 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
@@ -904,7 +900,7 @@ png_handle_as_unknown(png_const_structrp png_ptr, png_const_bytep chunk_name)
    {
       p -= 5;
 
-      if (!memcmp(chunk_name, p, 4))
+      if (memcmp(chunk_name, p, 4) == 0)
          return p[4];
    }
    while (p > p_end);
@@ -1046,8 +1042,8 @@ png_colorspace_check_gamma(png_const_structrp png_ptr,
    png_fixed_point gtest;
 
    if ((colorspace->flags & PNG_COLORSPACE_HAVE_GAMMA) != 0 &&
-      (!png_muldiv(&gtest, colorspace->gamma, PNG_FP_1, gAMA) ||
-      png_gamma_significant(gtest)))
+      (png_muldiv(&gtest, colorspace->gamma, PNG_FP_1, gAMA) == 0  ||
+      png_gamma_significant(gtest) != 0))
    {
       
 
@@ -1102,12 +1098,13 @@ png_colorspace_set_gamma(png_const_structrp png_ptr,
 #  endif
 
    
-   else if (colorspace->flags & PNG_COLORSPACE_INVALID)
+   else if ((colorspace->flags & PNG_COLORSPACE_INVALID) != 0)
       return;
 
    else
    {
-      if (png_colorspace_check_gamma(png_ptr, colorspace, gAMA, 1))
+      if (png_colorspace_check_gamma(png_ptr, colorspace, gAMA,
+          1) != 0)
       {
          
          colorspace->gamma = gAMA;
@@ -1131,7 +1128,7 @@ png_colorspace_set_gamma(png_const_structrp png_ptr,
 void 
 png_colorspace_sync_info(png_const_structrp png_ptr, png_inforp info_ptr)
 {
-   if (info_ptr->colorspace.flags & PNG_COLORSPACE_INVALID)
+   if ((info_ptr->colorspace.flags & PNG_COLORSPACE_INVALID) != 0)
    {
       
       info_ptr->valid &= ~(PNG_INFO_gAMA|PNG_INFO_cHRM|PNG_INFO_sRGB|
@@ -1152,20 +1149,20 @@ png_colorspace_sync_info(png_const_structrp png_ptr, png_inforp info_ptr)
 
 
 
-         if (info_ptr->colorspace.flags & PNG_COLORSPACE_MATCHES_sRGB)
+         if ((info_ptr->colorspace.flags & PNG_COLORSPACE_MATCHES_sRGB) != 0)
             info_ptr->valid |= PNG_INFO_sRGB;
 
          else
             info_ptr->valid &= ~PNG_INFO_sRGB;
 
-         if (info_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_ENDPOINTS)
+         if ((info_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_ENDPOINTS) != 0)
             info_ptr->valid |= PNG_INFO_cHRM;
 
          else
             info_ptr->valid &= ~PNG_INFO_cHRM;
 #     endif
 
-      if (info_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_GAMMA)
+      if ((info_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_GAMMA) != 0)
          info_ptr->valid |= PNG_INFO_gAMA;
 
       else
@@ -1198,22 +1195,28 @@ png_xy_from_XYZ(png_xy *xy, const png_XYZ *XYZ)
    png_int_32 d, dwhite, whiteX, whiteY;
 
    d = XYZ->red_X + XYZ->red_Y + XYZ->red_Z;
-   if (!png_muldiv(&xy->redx, XYZ->red_X, PNG_FP_1, d)) return 1;
-   if (!png_muldiv(&xy->redy, XYZ->red_Y, PNG_FP_1, d)) return 1;
+   if (png_muldiv(&xy->redx, XYZ->red_X, PNG_FP_1, d) == 0)
+      return 1;
+   if (png_muldiv(&xy->redy, XYZ->red_Y, PNG_FP_1, d) == 0)
+      return 1;
    dwhite = d;
    whiteX = XYZ->red_X;
    whiteY = XYZ->red_Y;
 
    d = XYZ->green_X + XYZ->green_Y + XYZ->green_Z;
-   if (!png_muldiv(&xy->greenx, XYZ->green_X, PNG_FP_1, d)) return 1;
-   if (!png_muldiv(&xy->greeny, XYZ->green_Y, PNG_FP_1, d)) return 1;
+   if (png_muldiv(&xy->greenx, XYZ->green_X, PNG_FP_1, d) == 0)
+      return 1;
+   if (png_muldiv(&xy->greeny, XYZ->green_Y, PNG_FP_1, d) == 0)
+      return 1;
    dwhite += d;
    whiteX += XYZ->green_X;
    whiteY += XYZ->green_Y;
 
    d = XYZ->blue_X + XYZ->blue_Y + XYZ->blue_Z;
-   if (!png_muldiv(&xy->bluex, XYZ->blue_X, PNG_FP_1, d)) return 1;
-   if (!png_muldiv(&xy->bluey, XYZ->blue_Y, PNG_FP_1, d)) return 1;
+   if (png_muldiv(&xy->bluex, XYZ->blue_X, PNG_FP_1, d) == 0)
+      return 1;
+   if (png_muldiv(&xy->bluey, XYZ->blue_Y, PNG_FP_1, d) == 0)
+      return 1;
    dwhite += d;
    whiteX += XYZ->blue_X;
    whiteY += XYZ->blue_Y;
@@ -1221,8 +1224,10 @@ png_xy_from_XYZ(png_xy *xy, const png_XYZ *XYZ)
    
 
 
-   if (!png_muldiv(&xy->whitex, whiteX, PNG_FP_1, dwhite)) return 1;
-   if (!png_muldiv(&xy->whitey, whiteY, PNG_FP_1, dwhite)) return 1;
+   if (png_muldiv(&xy->whitex, whiteX, PNG_FP_1, dwhite) == 0)
+      return 1;
+   if (png_muldiv(&xy->whitey, whiteY, PNG_FP_1, dwhite) == 0)
+      return 1;
 
    return 0;
 }
@@ -1425,16 +1430,16 @@ png_XYZ_from_xy(png_XYZ *XYZ, const png_xy *xy)
    
 
 
-   if (!png_muldiv(&left, xy->greenx-xy->bluex, xy->redy - xy->bluey, 7))
+   if (png_muldiv(&left, xy->greenx-xy->bluex, xy->redy - xy->bluey, 7) == 0)
       return 2;
-   if (!png_muldiv(&right, xy->greeny-xy->bluey, xy->redx - xy->bluex, 7))
+   if (png_muldiv(&right, xy->greeny-xy->bluey, xy->redx - xy->bluex, 7) == 0)
       return 2;
    denominator = left - right;
 
    
-   if (!png_muldiv(&left, xy->greenx-xy->bluex, xy->whitey-xy->bluey, 7))
+   if (png_muldiv(&left, xy->greenx-xy->bluex, xy->whitey-xy->bluey, 7) == 0)
       return 2;
-   if (!png_muldiv(&right, xy->greeny-xy->bluey, xy->whitex-xy->bluex, 7))
+   if (png_muldiv(&right, xy->greeny-xy->bluey, xy->whitex-xy->bluex, 7) == 0)
       return 2;
 
    
@@ -1442,16 +1447,16 @@ png_XYZ_from_xy(png_XYZ *XYZ, const png_xy *xy)
 
 
 
-   if (!png_muldiv(&red_inverse, xy->whitey, denominator, left-right) ||
+   if (png_muldiv(&red_inverse, xy->whitey, denominator, left-right) == 0 ||
        red_inverse <= xy->whitey )
       return 1;
 
    
-   if (!png_muldiv(&left, xy->redy-xy->bluey, xy->whitex-xy->bluex, 7))
+   if (png_muldiv(&left, xy->redy-xy->bluey, xy->whitex-xy->bluex, 7) == 0)
       return 2;
-   if (!png_muldiv(&right, xy->redx-xy->bluex, xy->whitey-xy->bluey, 7))
+   if (png_muldiv(&right, xy->redx-xy->bluex, xy->whitey-xy->bluey, 7) == 0)
       return 2;
-   if (!png_muldiv(&green_inverse, xy->whitey, denominator, left-right) ||
+   if (png_muldiv(&green_inverse, xy->whitey, denominator, left-right) == 0 ||
        green_inverse <= xy->whitey)
       return 1;
 
@@ -1459,29 +1464,34 @@ png_XYZ_from_xy(png_XYZ *XYZ, const png_xy *xy)
 
 
    blue_scale = png_reciprocal(xy->whitey) - png_reciprocal(red_inverse) -
-      png_reciprocal(green_inverse);
-   if (blue_scale <= 0) return 1;
+       png_reciprocal(green_inverse);
+   if (blue_scale <= 0)
+      return 1;
 
 
    
-   if (!png_muldiv(&XYZ->red_X, xy->redx, PNG_FP_1, red_inverse)) return 1;
-   if (!png_muldiv(&XYZ->red_Y, xy->redy, PNG_FP_1, red_inverse)) return 1;
-   if (!png_muldiv(&XYZ->red_Z, PNG_FP_1 - xy->redx - xy->redy, PNG_FP_1,
-      red_inverse))
+   if (png_muldiv(&XYZ->red_X, xy->redx, PNG_FP_1, red_inverse) == 0)
+      return 1;
+   if (png_muldiv(&XYZ->red_Y, xy->redy, PNG_FP_1, red_inverse) == 0)
+      return 1;
+   if (png_muldiv(&XYZ->red_Z, PNG_FP_1 - xy->redx - xy->redy, PNG_FP_1,
+       red_inverse) == 0)
       return 1;
 
-   if (!png_muldiv(&XYZ->green_X, xy->greenx, PNG_FP_1, green_inverse))
+   if (png_muldiv(&XYZ->green_X, xy->greenx, PNG_FP_1, green_inverse) == 0)
       return 1;
-   if (!png_muldiv(&XYZ->green_Y, xy->greeny, PNG_FP_1, green_inverse))
+   if (png_muldiv(&XYZ->green_Y, xy->greeny, PNG_FP_1, green_inverse) == 0)
       return 1;
-   if (!png_muldiv(&XYZ->green_Z, PNG_FP_1 - xy->greenx - xy->greeny, PNG_FP_1,
-      green_inverse))
+   if (png_muldiv(&XYZ->green_Z, PNG_FP_1 - xy->greenx - xy->greeny, PNG_FP_1,
+       green_inverse) == 0)
       return 1;
 
-   if (!png_muldiv(&XYZ->blue_X, xy->bluex, blue_scale, PNG_FP_1)) return 1;
-   if (!png_muldiv(&XYZ->blue_Y, xy->bluey, blue_scale, PNG_FP_1)) return 1;
-   if (!png_muldiv(&XYZ->blue_Z, PNG_FP_1 - xy->bluex - xy->bluey, blue_scale,
-      PNG_FP_1))
+   if (png_muldiv(&XYZ->blue_X, xy->bluex, blue_scale, PNG_FP_1) == 0)
+      return 1;
+   if (png_muldiv(&XYZ->blue_Y, xy->bluey, blue_scale, PNG_FP_1) == 0)
+      return 1;
+   if (png_muldiv(&XYZ->blue_Z, PNG_FP_1 - xy->bluex - xy->bluey, blue_scale,
+       PNG_FP_1) == 0)
       return 1;
 
    return 0; 
@@ -1503,24 +1513,35 @@ png_XYZ_normalize(png_XYZ *XYZ)
 
 
    Y = XYZ->red_Y;
-   if (0x7fffffff - Y < XYZ->green_X) return 1;
+   if (0x7fffffff - Y < XYZ->green_X)
+      return 1;
    Y += XYZ->green_Y;
-   if (0x7fffffff - Y < XYZ->blue_X) return 1;
+   if (0x7fffffff - Y < XYZ->blue_X)
+      return 1;
    Y += XYZ->blue_Y;
 
    if (Y != PNG_FP_1)
    {
-      if (!png_muldiv(&XYZ->red_X, XYZ->red_X, PNG_FP_1, Y)) return 1;
-      if (!png_muldiv(&XYZ->red_Y, XYZ->red_Y, PNG_FP_1, Y)) return 1;
-      if (!png_muldiv(&XYZ->red_Z, XYZ->red_Z, PNG_FP_1, Y)) return 1;
+      if (png_muldiv(&XYZ->red_X, XYZ->red_X, PNG_FP_1, Y) == 0)
+         return 1;
+      if (png_muldiv(&XYZ->red_Y, XYZ->red_Y, PNG_FP_1, Y) == 0)
+         return 1;
+      if (png_muldiv(&XYZ->red_Z, XYZ->red_Z, PNG_FP_1, Y) == 0)
+         return 1;
 
-      if (!png_muldiv(&XYZ->green_X, XYZ->green_X, PNG_FP_1, Y)) return 1;
-      if (!png_muldiv(&XYZ->green_Y, XYZ->green_Y, PNG_FP_1, Y)) return 1;
-      if (!png_muldiv(&XYZ->green_Z, XYZ->green_Z, PNG_FP_1, Y)) return 1;
+      if (png_muldiv(&XYZ->green_X, XYZ->green_X, PNG_FP_1, Y) == 0)
+         return 1;
+      if (png_muldiv(&XYZ->green_Y, XYZ->green_Y, PNG_FP_1, Y) == 0)
+         return 1;
+      if (png_muldiv(&XYZ->green_Z, XYZ->green_Z, PNG_FP_1, Y) == 0)
+         return 1;
 
-      if (!png_muldiv(&XYZ->blue_X, XYZ->blue_X, PNG_FP_1, Y)) return 1;
-      if (!png_muldiv(&XYZ->blue_Y, XYZ->blue_Y, PNG_FP_1, Y)) return 1;
-      if (!png_muldiv(&XYZ->blue_Z, XYZ->blue_Z, PNG_FP_1, Y)) return 1;
+      if (png_muldiv(&XYZ->blue_X, XYZ->blue_X, PNG_FP_1, Y) == 0)
+         return 1;
+      if (png_muldiv(&XYZ->blue_Y, XYZ->blue_Y, PNG_FP_1, Y) == 0)
+         return 1;
+      if (png_muldiv(&XYZ->blue_Z, XYZ->blue_Z, PNG_FP_1, Y) == 0)
+         return 1;
    }
 
    return 0;
@@ -1530,14 +1551,16 @@ static int
 png_colorspace_endpoints_match(const png_xy *xy1, const png_xy *xy2, int delta)
 {
    
-   return !(PNG_OUT_OF_RANGE(xy1->whitex, xy2->whitex,delta) ||
-      PNG_OUT_OF_RANGE(xy1->whitey, xy2->whitey,delta) ||
-      PNG_OUT_OF_RANGE(xy1->redx,   xy2->redx,  delta) ||
-      PNG_OUT_OF_RANGE(xy1->redy,   xy2->redy,  delta) ||
-      PNG_OUT_OF_RANGE(xy1->greenx, xy2->greenx,delta) ||
-      PNG_OUT_OF_RANGE(xy1->greeny, xy2->greeny,delta) ||
-      PNG_OUT_OF_RANGE(xy1->bluex,  xy2->bluex, delta) ||
-      PNG_OUT_OF_RANGE(xy1->bluey,  xy2->bluey, delta));
+   if (PNG_OUT_OF_RANGE(xy1->whitex, xy2->whitex,delta) ||
+       PNG_OUT_OF_RANGE(xy1->whitey, xy2->whitey,delta) ||
+       PNG_OUT_OF_RANGE(xy1->redx,   xy2->redx,  delta) ||
+       PNG_OUT_OF_RANGE(xy1->redy,   xy2->redy,  delta) ||
+       PNG_OUT_OF_RANGE(xy1->greenx, xy2->greenx,delta) ||
+       PNG_OUT_OF_RANGE(xy1->greeny, xy2->greeny,delta) ||
+       PNG_OUT_OF_RANGE(xy1->bluex,  xy2->bluex, delta) ||
+       PNG_OUT_OF_RANGE(xy1->bluey,  xy2->bluey, delta))
+      return 0;
+   return 1;
 }
 
 
@@ -1558,13 +1581,15 @@ png_colorspace_check_xy(png_XYZ *XYZ, const png_xy *xy)
 
    
    result = png_XYZ_from_xy(XYZ, xy);
-   if (result != 0) return result;
+   if (result != 0)
+      return result;
 
    result = png_xy_from_XYZ(&xy_test, XYZ);
-   if (result != 0) return result;
+   if (result != 0)
+      return result;
 
    if (png_colorspace_endpoints_match(xy, &xy_test,
-      5))
+       5) != 0)
       return 0;
 
    
@@ -1581,10 +1606,12 @@ png_colorspace_check_XYZ(png_xy *xy, png_XYZ *XYZ)
    png_XYZ XYZtemp;
 
    result = png_XYZ_normalize(XYZ);
-   if (result != 0) return result;
+   if (result != 0)
+      return result;
 
    result = png_xy_from_XYZ(xy, XYZ);
-   if (result != 0) return result;
+   if (result != 0)
+      return result;
 
    XYZtemp = *XYZ;
    return png_colorspace_check_xy(&XYZtemp, xy);
@@ -1605,19 +1632,21 @@ png_colorspace_set_xy_and_XYZ(png_const_structrp png_ptr,
    png_colorspacerp colorspace, const png_xy *xy, const png_XYZ *XYZ,
    int preferred)
 {
-   if (colorspace->flags & PNG_COLORSPACE_INVALID)
+   if ((colorspace->flags & PNG_COLORSPACE_INVALID) != 0)
       return 0;
 
    
 
 
 
-   if (preferred < 2 && (colorspace->flags & PNG_COLORSPACE_HAVE_ENDPOINTS))
+   if (preferred < 2 &&
+       (colorspace->flags & PNG_COLORSPACE_HAVE_ENDPOINTS) != 0)
    {
       
 
 
-      if (!png_colorspace_endpoints_match(xy, &colorspace->end_points_xy, 100))
+      if (png_colorspace_endpoints_match(xy, &colorspace->end_points_xy,
+          100) == 0)
       {
          colorspace->flags |= PNG_COLORSPACE_INVALID;
          png_benign_error(png_ptr, "inconsistent chromaticities");
@@ -1636,7 +1665,7 @@ png_colorspace_set_xy_and_XYZ(png_const_structrp png_ptr,
    
 
 
-   if (png_colorspace_endpoints_match(xy, &sRGB_xy, 1000))
+   if (png_colorspace_endpoints_match(xy, &sRGB_xy, 1000) != 0)
       colorspace->flags |= PNG_COLORSPACE_ENDPOINTS_MATCH_sRGB;
 
    else
@@ -1764,7 +1793,7 @@ png_icc_profile_error(png_const_structrp png_ptr, png_colorspacerp colorspace,
    pos = png_safecat(message, (sizeof message), 0, "profile '"); 
    pos = png_safecat(message, pos+79, pos, name); 
    pos = png_safecat(message, (sizeof message), pos, "': "); 
-   if (is_ICC_signature(value))
+   if (is_ICC_signature(value) != 0)
    {
       
       png_icc_tag_name(message+pos, (png_uint_32)value);
@@ -1825,7 +1854,7 @@ png_colorspace_set_sRGB(png_const_structrp png_ptr, png_colorspacerp colorspace,
    };
 
    
-   if (colorspace->flags & PNG_COLORSPACE_INVALID)
+   if ((colorspace->flags & PNG_COLORSPACE_INVALID) != 0)
       return 0;
 
    
@@ -2004,13 +2033,13 @@ png_icc_check_header(png_const_structrp png_ptr, png_colorspacerp colorspace,
    switch (temp)
    {
       case 0x52474220: 
-         if (!(color_type & PNG_COLOR_MASK_COLOR))
+         if ((color_type & PNG_COLOR_MASK_COLOR) == 0)
             return png_icc_profile_error(png_ptr, colorspace, name, temp,
                "RGB color space not permitted on grayscale PNG");
          break;
 
       case 0x47524159: 
-         if (color_type & PNG_COLOR_MASK_COLOR)
+         if ((color_type & PNG_COLOR_MASK_COLOR) != 0)
             return png_icc_profile_error(png_ptr, colorspace, name, temp,
                "Gray color space not permitted on RGB PNG");
          break;
@@ -2238,7 +2267,7 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
 
 
 #        if PNG_sRGB_PROFILE_CHECKS == 0
-            if (png_sRGB_checks[i].have_md5)
+            if (png_sRGB_checks[i].have_md5 != 0)
                return 1+png_sRGB_checks[i].is_broken;
 #        endif
 
@@ -2278,7 +2307,7 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
                   if (crc == png_sRGB_checks[i].crc)
 #              endif
                {
-                  if (png_sRGB_checks[i].is_broken)
+                  if (png_sRGB_checks[i].is_broken != 0)
                   {
                      
 
@@ -2293,7 +2322,7 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
 
 
 
-                  else if (!png_sRGB_checks[i].have_md5)
+                  else if (png_sRGB_checks[i].have_md5 == 0)
                   {
                      png_chunk_report(png_ptr, "out-of-date sRGB profile with"
                         " no signature",
@@ -2331,7 +2360,7 @@ png_icc_set_sRGB(png_const_structrp png_ptr,
 
 
 #if PNG_sRGB_PROFILE_CHECKS >= 0
-   if (png_compare_ICC_profile_with_sRGB(png_ptr, profile, adler))
+   if (png_compare_ICC_profile_with_sRGB(png_ptr, profile, adler) != 0)
 #endif
       (void)png_colorspace_set_sRGB(png_ptr, colorspace,
          (int)png_get_uint_32(profile+64));
@@ -2343,14 +2372,14 @@ png_colorspace_set_ICC(png_const_structrp png_ptr, png_colorspacerp colorspace,
    png_const_charp name, png_uint_32 profile_length, png_const_bytep profile,
    int color_type)
 {
-   if (colorspace->flags & PNG_COLORSPACE_INVALID)
+   if ((colorspace->flags & PNG_COLORSPACE_INVALID) != 0)
       return 0;
 
-   if (png_icc_check_length(png_ptr, colorspace, name, profile_length) &&
-      png_icc_check_header(png_ptr, colorspace, name, profile_length, profile,
-         color_type) &&
-      png_icc_check_tag_table(png_ptr, colorspace, name, profile_length,
-         profile))
+   if (png_icc_check_length(png_ptr, colorspace, name, profile_length) != 0 &&
+       png_icc_check_header(png_ptr, colorspace, name, profile_length, profile,
+          color_type) != 0 &&
+       png_icc_check_tag_table(png_ptr, colorspace, name, profile_length,
+          profile) != 0)
    {
 #     ifdef PNG_sRGB_SUPPORTED
          
@@ -2369,7 +2398,7 @@ void
 png_colorspace_set_rgb_coefficients(png_structrp png_ptr)
 {
    
-   if (!png_ptr->rgb_to_gray_coefficients_set &&
+   if (png_ptr->rgb_to_gray_coefficients_set == 0 &&
       (png_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_ENDPOINTS) != 0)
    {
       
@@ -2533,13 +2562,13 @@ png_check_IHDR(png_const_structrp png_ptr,
 
 
 
-   if ((png_ptr->mode & PNG_HAVE_PNG_SIGNATURE) &&
-       png_ptr->mng_features_permitted)
+   if ((png_ptr->mode & PNG_HAVE_PNG_SIGNATURE) != 0 &&
+       png_ptr->mng_features_permitted != 0)
       png_warning(png_ptr, "MNG features are not allowed in a PNG datastream");
 
    if (filter_type != PNG_FILTER_TYPE_BASE)
    {
-      if (!((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) &&
+      if (!((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) != 0 &&
           (filter_type == PNG_INTRAPIXEL_DIFFERENCING) &&
           ((png_ptr->mode & PNG_HAVE_PNG_SIGNATURE) == 0) &&
           (color_type == PNG_COLOR_TYPE_RGB ||
@@ -2549,7 +2578,7 @@ png_check_IHDR(png_const_structrp png_ptr,
          error = 1;
       }
 
-      if (png_ptr->mode & PNG_HAVE_PNG_SIGNATURE)
+      if ((png_ptr->mode & PNG_HAVE_PNG_SIGNATURE) != 0)
       {
          png_warning(png_ptr, "Invalid filter method in IHDR");
          error = 1;
@@ -2609,7 +2638,7 @@ png_check_fp_number(png_const_charp string, png_size_t size, int *statep,
       switch ((state & PNG_FP_STATE) + (type & PNG_FP_SAW_ANY))
       {
       case PNG_FP_INTEGER + PNG_FP_SAW_SIGN:
-         if (state & PNG_FP_SAW_ANY)
+         if ((state & PNG_FP_SAW_ANY) != 0)
             goto PNG_FP_End; 
 
          png_fp_add(state, type);
@@ -2617,10 +2646,10 @@ png_check_fp_number(png_const_charp string, png_size_t size, int *statep,
 
       case PNG_FP_INTEGER + PNG_FP_SAW_DOT:
          
-         if (state & PNG_FP_SAW_DOT) 
+         if ((state & PNG_FP_SAW_DOT) != 0) 
             goto PNG_FP_End;
 
-         else if (state & PNG_FP_SAW_DIGIT) 
+         else if ((state & PNG_FP_SAW_DIGIT) != 0) 
             png_fp_add(state, type);
 
          else
@@ -2629,7 +2658,7 @@ png_check_fp_number(png_const_charp string, png_size_t size, int *statep,
          break;
 
       case PNG_FP_INTEGER + PNG_FP_SAW_DIGIT:
-         if (state & PNG_FP_SAW_DOT) 
+         if ((state & PNG_FP_SAW_DOT) != 0) 
             png_fp_set(state, PNG_FP_FRACTION | PNG_FP_SAW_DOT);
 
          png_fp_add(state, type | PNG_FP_WAS_VALID);
@@ -2667,7 +2696,7 @@ png_check_fp_number(png_const_charp string, png_size_t size, int *statep,
          break;
 
       case PNG_FP_EXPONENT + PNG_FP_SAW_SIGN:
-         if (state & PNG_FP_SAW_ANY)
+         if ((state & PNG_FP_SAW_ANY) != 0)
             goto PNG_FP_End; 
 
          png_fp_add(state, PNG_FP_SAW_SIGN);
@@ -2710,7 +2739,7 @@ png_check_fp_string(png_const_charp string, png_size_t size)
    int        state=0;
    png_size_t char_index=0;
 
-   if (png_check_fp_number(string, size, &state, &char_index) &&
+   if (png_check_fp_number(string, size, &state, &char_index) != 0 &&
       (char_index == size || string[char_index] == 0))
       return state ;
 
@@ -2964,7 +2993,8 @@ png_ascii_from_fp(png_const_structrp png_ptr, png_charp ascii, png_size_t size,
 
                   if (exp_b10 != (-1))
                   {
-                     if (exp_b10 == 0) *ascii++ = 46, --size; 
+                     if (exp_b10 == 0)
+                        *ascii++ = 46, --size; 
 
                      --exp_b10;
                   }
@@ -3277,7 +3307,8 @@ png_muldiv(png_fixed_point_p res, png_fixed_point a, png_int_32 times,
                result = -result;
 
             
-            if ((negative && result <= 0) || (!negative && result >= 0))
+            if ((negative != 0 && result <= 0) ||
+                (negative == 0 && result >= 0))
             {
                *res = result;
                return 1;
@@ -3301,7 +3332,7 @@ png_muldiv_warn(png_const_structrp png_ptr, png_fixed_point a, png_int_32 times,
 {
    png_fixed_point result;
 
-   if (png_muldiv(&result, a, times, divisor))
+   if (png_muldiv(&result, a, times, divisor) != 0)
       return result;
 
    png_warning(png_ptr, "fixed point overflow ignored");
@@ -3322,7 +3353,7 @@ png_reciprocal(png_fixed_point a)
 #else
    png_fixed_point res;
 
-   if (png_muldiv(&res, 100000, 100000, a))
+   if (png_muldiv(&res, 100000, 100000, a) != 0)
       return res;
 #endif
 
@@ -3341,7 +3372,7 @@ png_gamma_significant(png_fixed_point gamma_val)
 #endif
 
 #ifdef PNG_READ_GAMMA_SUPPORTED
-#  ifdef PNG_16BIT_SUPPORTED
+#if defined(PNG_16BIT_SUPPORTED) || !defined(PNG_FLOATING_ARITHMETIC_SUPPORTED)
 
 static png_fixed_point
 png_product2(png_fixed_point a, png_fixed_point b)
@@ -3357,13 +3388,13 @@ png_product2(png_fixed_point a, png_fixed_point b)
 #    else
    png_fixed_point res;
 
-   if (png_muldiv(&res, a, b, 100000))
+   if (png_muldiv(&res, a, b, 100000) != 0)
       return res;
 #    endif
 
    return 0; 
 }
-#  endif 
+#endif 
 
 
 png_fixed_point
@@ -3515,6 +3546,7 @@ png_log8bit(unsigned int x)
 
 
 
+#ifdef PNG_16BIT_SUPPORTED
 static png_int_32
 png_log16bit(png_uint_32 x)
 {
@@ -3565,6 +3597,7 @@ png_log16bit(png_uint_32 x)
    
    return (png_int_32)((lg2 + 2048) >> 12);
 }
+#endif 
 
 
 
@@ -3688,13 +3721,37 @@ png_gamma_8bit_correct(unsigned int value, png_fixed_point gamma_val)
    if (value > 0 && value < 255)
    {
 #     ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
-         double r = floor(255*pow(value/255.,gamma_val*.00001)+.5);
+         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+         double r = floor(255*pow((int)value/255.,gamma_val*.00001)+.5);
          return (png_byte)r;
 #     else
          png_int_32 lg2 = png_log8bit(value);
          png_fixed_point res;
 
-         if (png_muldiv(&res, gamma_val, lg2, PNG_FP_1))
+         if (png_muldiv(&res, gamma_val, lg2, PNG_FP_1) != 0)
             return png_exp8bit(res);
 
          
@@ -3712,13 +3769,19 @@ png_gamma_16bit_correct(unsigned int value, png_fixed_point gamma_val)
    if (value > 0 && value < 65535)
    {
 #     ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
-         double r = floor(65535*pow(value/65535.,gamma_val*.00001)+.5);
+         
+
+
+
+
+         double r = floor(65535*pow((png_int_32)value/65535.,
+                     gamma_val*.00001)+.5);
          return (png_uint_16)r;
 #     else
          png_int_32 lg2 = png_log16bit(value);
          png_fixed_point res;
 
-         if (png_muldiv(&res, gamma_val, lg2, PNG_FP_1))
+         if (png_muldiv(&res, gamma_val, lg2, PNG_FP_1) != 0)
             return png_exp16bit(res);
 
          
@@ -3766,6 +3829,12 @@ png_build_16bit_table(png_structrp png_ptr, png_uint_16pp *ptable,
 {
    
    PNG_CONST unsigned int num = 1U << (8U - shift);
+#ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
+   
+
+
+   PNG_CONST double fmax = 1./(((png_int_32)1 << (16U - shift))-1);
+#endif
    PNG_CONST unsigned int max = (1U << (16U - shift))-1U;
    PNG_CONST unsigned int max_by_2 = 1U << (15U-shift);
    unsigned int i;
@@ -3781,7 +3850,7 @@ png_build_16bit_table(png_structrp png_ptr, png_uint_16pp *ptable,
       
 
 
-      if (png_gamma_significant(gamma_val))
+      if (png_gamma_significant(gamma_val) != 0)
       {
          
 
@@ -3797,7 +3866,10 @@ png_build_16bit_table(png_structrp png_ptr, png_uint_16pp *ptable,
             png_uint_32 ig = (j << (8-shift)) + i;
 #           ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
                
-               double d = floor(65535*pow(ig/(double)max, gamma_val*.00001)+.5);
+               
+
+
+               double d = floor(65535.*pow(ig*fmax, gamma_val*.00001)+.5);
                sub_table[j] = (png_uint_16)d;
 #           else
                if (shift != 0)
@@ -3903,11 +3975,13 @@ png_build_8bit_table(png_structrp png_ptr, png_bytepp ptable,
    unsigned int i;
    png_bytep table = *ptable = (png_bytep)png_malloc(png_ptr, 256);
 
-   if (png_gamma_significant(gamma_val)) for (i=0; i<256; i++)
-      table[i] = png_gamma_8bit_correct(i, gamma_val);
+   if (png_gamma_significant(gamma_val) != 0)
+      for (i=0; i<256; i++)
+         table[i] = png_gamma_8bit_correct(i, gamma_val);
 
-   else for (i=0; i<256; ++i)
-      table[i] = (png_byte)i;
+   else
+      for (i=0; i<256; ++i)
+         table[i] = (png_byte)i;
 }
 
 
@@ -3999,7 +4073,7 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
 #if defined(PNG_READ_BACKGROUND_SUPPORTED) || \
    defined(PNG_READ_ALPHA_MODE_SUPPORTED) || \
    defined(PNG_READ_RGB_TO_GRAY_SUPPORTED)
-     if (png_ptr->transformations & (PNG_COMPOSE | PNG_RGB_TO_GRAY))
+     if ((png_ptr->transformations & (PNG_COMPOSE | PNG_RGB_TO_GRAY)) != 0)
      {
         png_build_8bit_table(png_ptr, &png_ptr->gamma_to_1,
             png_reciprocal(png_ptr->colorspace.gamma));
@@ -4015,7 +4089,7 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
   {
      png_byte shift, sig_bit;
 
-     if (png_ptr->color_type & PNG_COLOR_MASK_COLOR)
+     if ((png_ptr->color_type & PNG_COLOR_MASK_COLOR) != 0)
      {
         sig_bit = png_ptr->sig_bit.red;
 
@@ -4052,7 +4126,7 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
      else
         shift = 0; 
 
-     if (png_ptr->transformations & (PNG_16_TO_8 | PNG_SCALE_16_TO_8))
+     if ((png_ptr->transformations & (PNG_16_TO_8 | PNG_SCALE_16_TO_8)) != 0)
      {
         
 
@@ -4072,7 +4146,7 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
 
 
 
-     if (png_ptr->transformations & (PNG_16_TO_8 | PNG_SCALE_16_TO_8))
+     if ((png_ptr->transformations & (PNG_16_TO_8 | PNG_SCALE_16_TO_8)) != 0)
          png_build_16to8_table(png_ptr, &png_ptr->gamma_16_table, shift,
          png_ptr->screen_gamma > 0 ? png_product2(png_ptr->colorspace.gamma,
          png_ptr->screen_gamma) : PNG_FP_1);
@@ -4085,7 +4159,7 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
 #if defined(PNG_READ_BACKGROUND_SUPPORTED) || \
    defined(PNG_READ_ALPHA_MODE_SUPPORTED) || \
    defined(PNG_READ_RGB_TO_GRAY_SUPPORTED)
-     if (png_ptr->transformations & (PNG_COMPOSE | PNG_RGB_TO_GRAY))
+     if ((png_ptr->transformations & (PNG_COMPOSE | PNG_RGB_TO_GRAY)) != 0)
      {
         png_build_16bit_table(png_ptr, &png_ptr->gamma_16_to_1, shift,
             png_reciprocal(png_ptr->colorspace.gamma));
@@ -4311,7 +4385,7 @@ png_image_free_function(png_voidp argument)
 
    
 #  ifdef PNG_STDIO_SUPPORTED
-      if (cp->owned_file)
+      if (cp->owned_file != 0)
       {
          FILE *fp = png_voidcast(FILE*, cp->png_ptr->io_ptr);
          cp->owned_file = 0;
@@ -4335,7 +4409,7 @@ png_image_free_function(png_voidp argument)
    png_free(c.png_ptr, cp);
 
    
-   if (c.for_write)
+   if (c.for_write != 0)
    {
 #     ifdef PNG_SIMPLIFIED_WRITE_SUPPORTED
          png_destroy_write_struct(&c.png_ptr, &c.info_ptr);
