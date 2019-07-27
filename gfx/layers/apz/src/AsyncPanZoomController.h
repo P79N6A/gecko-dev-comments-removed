@@ -45,6 +45,7 @@ class FlingAnimation;
 class InputBlockState;
 class TouchBlockState;
 class OverscrollHandoffChain;
+class StateChangeNotificationBlocker;
 
 
 
@@ -350,27 +351,6 @@ public:
                                 const ScreenPoint& aAnchor) const;
 
 protected:
-  enum PanZoomState {
-    NOTHING,                  
-    FLING,                    
-    TOUCHING,                 
-
-    PANNING,                  
-    PANNING_LOCKED_X,         
-    PANNING_LOCKED_Y,         
-
-    CROSS_SLIDING_X,          
-
-
-    CROSS_SLIDING_Y,          
-
-    PINCHING,                 
-    ANIMATING_ZOOM,           
-    SNAP_BACK,                
-    SMOOTH_SCROLL,            
-
-  };
-
   
   ~AsyncPanZoomController();
 
@@ -601,21 +581,8 @@ private:
 
 
 
-  void SetState(PanZoomState aState);
-
-  
-
-
-
-
 
   bool ConvertToGecko(const ScreenPoint& aPoint, CSSPoint* aOut);
-
-  
-
-
-  static bool IsTransformingState(PanZoomState aState);
-  bool IsInPanningState() const;
 
   
 
@@ -682,10 +649,6 @@ protected:
   
   mutable ReentrantMonitor mMonitor;
 
-  
-  
-  PanZoomState mState;
-
 private:
   
   
@@ -740,6 +703,66 @@ private:
   nsRefPtr<AsyncPanZoomAnimation> mAnimation;
 
   friend class Axis;
+
+
+
+  
+
+
+
+protected:
+  enum PanZoomState {
+    NOTHING,                  
+    FLING,                    
+    TOUCHING,                 
+
+    PANNING,                  
+    PANNING_LOCKED_X,         
+    PANNING_LOCKED_Y,         
+
+    CROSS_SLIDING_X,          
+
+
+    CROSS_SLIDING_Y,          
+
+    PINCHING,                 
+    ANIMATING_ZOOM,           
+    SNAP_BACK,                
+    SMOOTH_SCROLL,            
+
+  };
+
+  
+  
+  PanZoomState mState;
+
+private:
+  friend class StateChangeNotificationBlocker;
+  
+
+
+
+
+  int mNotificationBlockers;
+
+  
+
+
+
+
+  void SetState(PanZoomState aState);
+  
+
+
+
+  void DispatchStateChangeNotification(PanZoomState aOldState, PanZoomState aNewState);
+  
+
+
+  static bool IsTransformingState(PanZoomState aState);
+  bool IsInPanningState() const;
+
+
 
   
 
