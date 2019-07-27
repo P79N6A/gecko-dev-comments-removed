@@ -1600,7 +1600,18 @@ nsBaseWidget::NotifyIME(const IMENotification& aIMENotification)
         return mTextEventDispatcher->NotifyIME(aIMENotification);
       }
       
+      return NotifyIMEInternal(aIMENotification);
+    case NOTIFY_IME_OF_FOCUS:
+    case NOTIFY_IME_OF_BLUR:
+      
+      
+      
+      if (mTextEventDispatcher) {
+        mTextEventDispatcher->NotifyIME(aIMENotification);
+      }
+      return NotifyIMEInternal(aIMENotification);
     default:
+      
       return NotifyIMEInternal(aIMENotification);
   }
 }
