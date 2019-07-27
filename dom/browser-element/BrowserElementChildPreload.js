@@ -154,8 +154,8 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
-    addEventListener("MozDOMFullscreen:Exited",
-                     this._mozExitedDomFullscreen.bind(this),
+    addEventListener("MozDOMFullscreen:Exit",
+                     this._mozExitDomFullscreen.bind(this),
                       true,
                       false);
 
@@ -450,7 +450,7 @@ BrowserElementChild.prototype = {
       
       
       
-      sendAsyncMsg("exited-dom-fullscreen");
+      sendAsyncMsg("exit-dom-fullscreen");
     }
   },
 
@@ -997,8 +997,8 @@ BrowserElementChild.prototype = {
     });
   },
 
-  _mozExitedDomFullscreen: function(e) {
-    sendAsyncMsg("exited-dom-fullscreen");
+  _mozExitDomFullscreen: function(e) {
+    sendAsyncMsg("exit-dom-fullscreen");
   },
 
   _getContentDimensions: function() {

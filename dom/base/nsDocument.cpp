@@ -11210,6 +11210,27 @@ nsDocument::RestorePreviousFullScreenState()
   }
 
   
+  bool exitingFullscreen = true;
+  for (nsIDocument* doc = this; doc; doc = doc->GetParentDocument()) {
+    if (static_cast<nsDocument*>(doc)->mFullScreenStack.Length() > 1) {
+      exitingFullscreen = false;
+      break;
+    }
+  }
+  if (exitingFullscreen) {
+    
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      (new AsyncEventDispatcher(
+        this, NS_LITERAL_STRING("MozDOMFullscreen:Exit"),
+         true,  true))->PostDOMEvent();
+    } else {
+      SetWindowFullScreen(this, false);
+    }
+    return;
+  }
+
+  
   UnlockPointer();
 
   nsCOMPtr<nsIDocument> fullScreenDoc = GetFullscreenLeaf(this);
@@ -11256,17 +11277,9 @@ nsDocument::RestorePreviousFullScreenState()
     }
   }
 
-  if (doc == nullptr) {
-    
-    
-    NS_ASSERTION(!nsContentUtils::GetRootDocument(this)->IsFullScreenDoc(),
-                 "Should have cleared all docs' stacks");
-    nsRefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
-      this, NS_LITERAL_STRING("MozDOMFullscreen:Exited"), true, true);
-    asyncDispatcher->PostDOMEvent();
-    FullscreenRoots::Remove(this);
-    SetWindowFullScreen(this, false);
-  }
+  MOZ_ASSERT(doc, "If we were going to exit from fullscreen on all documents "
+             "in this doctree, we should've asked the window to exit first "
+             "instead of reaching here.");
 }
 
 bool
