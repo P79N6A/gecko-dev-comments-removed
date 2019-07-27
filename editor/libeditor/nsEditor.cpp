@@ -1621,68 +1621,47 @@ nsEditor::RemoveContainer(nsIContent* aNode)
 
 
 
-nsresult
-nsEditor::InsertContainerAbove( nsIDOMNode *inNode, 
-                                nsCOMPtr<nsIDOMNode> *outNode, 
-                                const nsAString &aNodeType,
-                                const nsAString *aAttribute,
-                                const nsAString *aValue)
-{
-  NS_ENSURE_TRUE(inNode && outNode, NS_ERROR_NULL_POINTER);
-
-  nsCOMPtr<nsIContent> node = do_QueryInterface(inNode);
-  NS_ENSURE_STATE(node);
-
-  nsCOMPtr<dom::Element> element;
-  nsresult rv = InsertContainerAbove(node, getter_AddRefs(element), aNodeType,
-                                     aAttribute, aValue);
-  *outNode = element ? element->AsDOMNode() : nullptr;
-  return rv;
-}
-
-nsresult
+already_AddRefed<Element>
 nsEditor::InsertContainerAbove(nsIContent* aNode,
-                               dom::Element** aOutNode,
-                               const nsAString& aNodeType,
-                               const nsAString* aAttribute,
+                               nsIAtom* aNodeType,
+                               nsIAtom* aAttribute,
                                const nsAString* aValue)
 {
-  MOZ_ASSERT(aNode);
+  MOZ_ASSERT(aNode && aNodeType);
 
   nsCOMPtr<nsIContent> parent = aNode->GetParent();
-  NS_ENSURE_STATE(parent);
+  NS_ENSURE_TRUE(parent, nullptr);
   int32_t offset = parent->IndexOf(aNode);
 
   
-  nsCOMPtr<Element> newContent =
-    CreateHTMLContent(nsCOMPtr<nsIAtom>(do_GetAtom(aNodeType)));
-  NS_ENSURE_STATE(newContent);
+  nsCOMPtr<Element> newContent = CreateHTMLContent(aNodeType);
+  NS_ENSURE_TRUE(newContent, nullptr);
 
   
   nsresult res;
-  if (aAttribute && aValue && !aAttribute->IsEmpty()) {
-    nsIDOMNode* elem = newContent->AsDOMNode();
-    res = static_cast<nsIDOMElement*>(elem)->SetAttribute(*aAttribute, *aValue);
-    NS_ENSURE_SUCCESS(res, res);
+  if (aAttribute && aValue && aAttribute != nsGkAtoms::_empty) {
+    res = newContent->SetAttr(kNameSpaceID_None, aAttribute, *aValue, true);
+    NS_ENSURE_SUCCESS(res, nullptr);
   }
-  
+
   
   nsAutoInsertContainerSelNotify selNotify(mRangeUpdater);
+
   
-  
-  res = DeleteNode(aNode->AsDOMNode());
-  NS_ENSURE_SUCCESS(res, res);
+  res = DeleteNode(aNode);
+  NS_ENSURE_SUCCESS(res, nullptr);
 
   {
     nsAutoTxnsConserveSelection conserveSelection(this);
-    res = InsertNode(aNode->AsDOMNode(), newContent->AsDOMNode(), 0);
-    NS_ENSURE_SUCCESS(res, res);
+    res = InsertNode(aNode, newContent, 0);
+    NS_ENSURE_SUCCESS(res, nullptr);
   }
 
   
-  res = InsertNode(newContent->AsDOMNode(), parent->AsDOMNode(), offset);
-  newContent.forget(aOutNode);
-  return res;  
+  res = InsertNode(newContent, parent, offset);
+  NS_ENSURE_SUCCESS(res, nullptr);
+
+  return newContent.forget();
 }
 
 
