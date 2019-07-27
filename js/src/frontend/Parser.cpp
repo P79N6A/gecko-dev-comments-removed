@@ -1254,6 +1254,17 @@ ConvertDefinitionToNamedLambdaUse(TokenStream &ts, ParseContext<FullParseHandler
     return true;
 }
 
+static bool
+IsNonDominatingInScopedSwitch(ParseContext<FullParseHandler> *pc, HandleAtom name,
+                              Definition *dn)
+{
+    MOZ_ASSERT(dn->isLet());
+    StmtInfoPC *stmt = LexicalLookup(pc, name, nullptr, nullptr);
+    if (stmt && stmt->type == STMT_SWITCH)
+        return dn->pn_cookie.slot() < stmt->firstDominatingLexicalInCase;
+    return false;
+}
+
 
 
 
@@ -1348,7 +1359,15 @@ Parser<FullParseHandler>::leaveFunction(ParseNode *fn, ParseContext<FullParseHan
                     
                     
                     
-                    if (bodyLevelHoistedUse && outer_dn->isLet()) {
+                    
+                    
+                    
+                    
+                    RootedAtom name(context, atom);
+                    if (outer_dn->isLet() &&
+                        (bodyLevelHoistedUse ||
+                         IsNonDominatingInScopedSwitch(outerpc, name, outer_dn)))
+                    {
                         while (true) {
                             pnu->pn_dflags |= PND_LET;
                             if (!pnu->pn_link)
@@ -1864,6 +1883,13 @@ Parser<ParseHandler>::addFreeVariablesFromLazyFunction(JSFunction *fun,
                 return false;
         }
 
+        
+        
+        
+        
+        
+        
+        
         
         
         
