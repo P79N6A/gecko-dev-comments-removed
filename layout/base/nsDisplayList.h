@@ -1360,6 +1360,11 @@ public:
     }
   }
 
+  
+  
+  
+  virtual bool SetVisibleRegionOnLayer() { return true; }
+
   bool IsInFixedPos() { return mInFixedPos; }
 
 protected:
@@ -2614,6 +2619,12 @@ public:
     return &mList;
   }
   virtual nsDisplayList* GetChildren() MOZ_OVERRIDE { return &mList; }
+  
+
+
+
+
+  virtual bool SetVisibleRegionOnLayer() { return false; }
 
   virtual int32_t ZIndex() const MOZ_OVERRIDE
   {
