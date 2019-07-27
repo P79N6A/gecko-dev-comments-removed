@@ -515,7 +515,8 @@ private:
   nsTObserverArray<nsCOMPtr<nsICSSLoaderObserver> > mObservers;
 
   
-  nsIDocument*      mDocument;  
+  
+  nsIDocument* MOZ_NON_OWNING_REF mDocument;  
 
 
   
