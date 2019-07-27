@@ -1308,9 +1308,24 @@ function do_send_remote_message(name) {
 
 
 
+
+
+
+
+
+
+
+
 let _gTests = [];
-function add_test(func) {
-  _gTests.push([false, func]);
+function add_test(funcOrProperties, func) {
+  if (typeof funcOrProperties == "function") {
+    _gTests.push([{ _isTask: false }, funcOrProperties]);
+  } else if (typeof funcOrProperties == "object") {
+    funcOrProperties._isTask = false;
+    _gTests.push([funcOrProperties, func]);
+  } else {
+    do_throw("add_test() should take a function or an object and a function");
+  }
   return func;
 }
 
@@ -1351,8 +1366,33 @@ function add_test(func) {
 
 
 
-function add_task(func) {
-  _gTests.push([true, func]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function add_task(funcOrProperties, func) {
+  if (typeof funcOrProperties == "function") {
+    _gTests.push([{ _isTask: true }, funcOrProperties]);
+  } else if (typeof funcOrProperties == "object") {
+    funcOrProperties._isTask = true;
+    _gTests.push([funcOrProperties, func]);
+  } else {
+    do_throw("add_task() should take a function or an object and a function");
+  }
 }
 let _Task = Components.utils.import("resource://gre/modules/Task.jsm", {}).Task;
 _Task.Debugging.maintainStack = true;
@@ -1377,12 +1417,25 @@ function run_next_test()
     if (_gTestIndex < _gTests.length) {
       
       _Promise.Debugging.flushUncaughtErrors();
-      let _isTask;
-      [_isTask, _gRunningTest] = _gTests[_gTestIndex++];
+      let _properties;
+      [_properties, _gRunningTest,] = _gTests[_gTestIndex++];
+      if (typeof(_properties.skip_if) == "function" && _properties.skip_if()) {
+        let _condition = _properties.skip_if.toSource().replace(/\(\)\s*=>\s*/, "");
+        let _message = _gRunningTest.name
+          + " skipped because the following conditions were"
+          + " met: (" + _condition + ")";
+        _testLogger.testStatus(_TEST_NAME,
+                               _gRunningTest.name,
+                               "SKIP",
+                               "SKIP",
+                               _message);
+        do_execute_soon(run_next_test);
+        return;
+      }
       _testLogger.info(_TEST_NAME + " | Starting " + _gRunningTest.name);
       do_test_pending(_gRunningTest.name);
 
-      if (_isTask) {
+      if (_properties._isTask) {
         _gTaskRunning = true;
         _Task.spawn(_gRunningTest).then(
           () => { _gTaskRunning = false; run_next_test(); },
