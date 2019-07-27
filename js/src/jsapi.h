@@ -4347,12 +4347,13 @@ GetSymbolDescription(HandleSymbol symbol);
 enum class SymbolCode : uint32_t {
     iterator,                       
     match,                          
+    species,                        
     InSymbolRegistry = 0xfffffffe,  
     UniqueSymbol = 0xffffffff       
 };
 
 
-const size_t WellKnownSymbolLimit = 2;
+const size_t WellKnownSymbolLimit = 3;
 
 
 
