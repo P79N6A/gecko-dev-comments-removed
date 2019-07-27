@@ -426,8 +426,10 @@ MarkupView.prototype = {
         }
         break;
       case Ci.nsIDOMKeyEvent.DOM_VK_DELETE:
-      case Ci.nsIDOMKeyEvent.DOM_VK_BACK_SPACE:
         this.deleteNode(this._selectedContainer.node);
+        break;
+      case Ci.nsIDOMKeyEvent.DOM_VK_BACK_SPACE:
+        this.deleteNode(this._selectedContainer.node, true);
         break;
       case Ci.nsIDOMKeyEvent.DOM_VK_HOME:
         let rootContainer = this.getContainer(this._rootNode);
@@ -509,7 +511,11 @@ MarkupView.prototype = {
 
 
 
-  deleteNode: function(aNode) {
+
+
+
+
+  deleteNode: function(aNode, moveBackward) {
     if (aNode.isDocumentElement ||
         aNode.nodeType == Ci.nsIDOMNode.DOCUMENT_TYPE_NODE ||
         aNode.isAnonymous) {
@@ -524,8 +530,15 @@ MarkupView.prototype = {
       let nextSibling = null;
       this.undo.do(() => {
         this.walker.removeNode(aNode).then(siblings => {
-          let focusNode = siblings.previousSibling || parent;
           nextSibling = siblings.nextSibling;
+          let focusNode = moveBackward ? siblings.previousSibling : nextSibling;
+
+          
+          
+          if (!focusNode) {
+            focusNode = nextSibling || siblings.previousSibling || parent;
+          }
+
           if (container.selected) {
             this.navigate(this.getContainer(focusNode));
           }
