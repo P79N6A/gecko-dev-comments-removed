@@ -89,6 +89,11 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 
 
 
+namespace detail {
+
+
+
+
 
 static const uint32_t LOW_AUDIO_USECS = 300000;
 
@@ -97,6 +102,8 @@ static const uint32_t LOW_AUDIO_USECS = 300000;
 
 
 const int64_t AMPLE_AUDIO_USECS = 1000000;
+
+} 
 
 
 
@@ -126,6 +133,8 @@ static const int AUDIO_DURATION_USECS = 40000;
 
 static const int THRESHOLD_FACTOR = 2;
 
+namespace detail {
+
 
 
 
@@ -136,6 +145,8 @@ static const int64_t LOW_DATA_THRESHOLD_USECS = 5000000;
 
 static_assert(LOW_DATA_THRESHOLD_USECS > AMPLE_AUDIO_USECS,
               "LOW_DATA_THRESHOLD_USECS is too small");
+
+} 
 
 
 static const uint32_t EXHAUSTED_DATA_MARGIN_USECS = 60000;
@@ -159,7 +170,7 @@ static const uint32_t QUICK_BUFFERING_LOW_DATA_USECS = 1000000;
 
 
 
-static_assert(QUICK_BUFFERING_LOW_DATA_USECS <= AMPLE_AUDIO_USECS,
+static_assert(QUICK_BUFFERING_LOW_DATA_USECS <= detail::AMPLE_AUDIO_USECS,
               "QUICK_BUFFERING_LOW_DATA_USECS is too large");
 
 
@@ -202,8 +213,8 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mPlaybackRate(1.0),
   mPreservesPitch(true),
   mAmpleVideoFrames(2),
-  mLowAudioThresholdUsecs(LOW_AUDIO_USECS),
-  mAmpleAudioThresholdUsecs(AMPLE_AUDIO_USECS),
+  mLowAudioThresholdUsecs(detail::LOW_AUDIO_USECS),
+  mAmpleAudioThresholdUsecs(detail::AMPLE_AUDIO_USECS),
   mIsAudioPrerolling(false),
   mIsVideoPrerolling(false),
   mAudioRequestStatus(RequestStatus::Idle),
@@ -235,7 +246,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
     std::max<uint32_t>(Preferences::GetUint("media.video-queue.default-size", 10), 3);
 
   mBufferingWait = IsRealTime() ? 0 : 30;
-  mLowDataThresholdUsecs = IsRealTime() ? 0 : LOW_DATA_THRESHOLD_USECS;
+  mLowDataThresholdUsecs = IsRealTime() ? 0 : detail::LOW_DATA_THRESHOLD_USECS;
 
 #ifdef XP_WIN
   
@@ -1022,7 +1033,7 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
           !HasLowUndecodedData())
       {
         mLowAudioThresholdUsecs =
-          std::min(THRESHOLD_FACTOR * DurationToUsecs(decodeTime), AMPLE_AUDIO_USECS);
+          std::min(THRESHOLD_FACTOR * DurationToUsecs(decodeTime), mAmpleAudioThresholdUsecs);
         mAmpleAudioThresholdUsecs = std::max(THRESHOLD_FACTOR * mLowAudioThresholdUsecs,
                                               mAmpleAudioThresholdUsecs);
         DECODER_LOG("Slow video decode, set mLowAudioThresholdUsecs=%lld mAmpleAudioThresholdUsecs=%lld",
