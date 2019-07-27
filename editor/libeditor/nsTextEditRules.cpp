@@ -427,12 +427,20 @@ nsTextEditRules::CollapseSelectionToTrailingBRIfNeeded(Selection* aSelection)
     return NS_OK;
   }
 
+  NS_ENSURE_STATE(mEditor);
+
+  
+  
+  
+  if (!aSelection->RangeCount()) {
+    mEditor->EndOfDocument();
+  }
+
   
   
   int32_t selOffset;
   nsCOMPtr<nsIDOMNode> selNode;
   nsresult res;
-  NS_ENSURE_STATE(mEditor);
   res = mEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(selNode), &selOffset);
   NS_ENSURE_SUCCESS(res, res);
 
