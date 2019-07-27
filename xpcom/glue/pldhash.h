@@ -9,6 +9,7 @@
 
 
 
+#include "mozilla/Attributes.h" 
 #include "mozilla/fallible.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Types.h"

@@ -18,7 +18,6 @@
 #include "nsMargin.h"                   
 #include "nsStringGlue.h"               
 #include "xpcom-config.h"               
-#include "mozilla/TypedEnum.h"          
 #include "mozilla/Move.h"               
 
 class nsIntRegion;

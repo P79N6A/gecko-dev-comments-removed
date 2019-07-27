@@ -8,8 +8,6 @@
 
 #include <stdint.h>
 
-#include "mozilla/TypedEnum.h"
-
 
 
 

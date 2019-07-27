@@ -21,7 +21,6 @@
 #include "Point.h"
 #include "BaseRect.h"
 #include "Matrix.h"
-#include "mozilla/TypedEnum.h"
 
 #ifdef WIN32
 

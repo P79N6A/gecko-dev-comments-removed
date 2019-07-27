@@ -8,7 +8,6 @@
 #define nsError_h__
 
 #include "mozilla/Likely.h"
-#include "mozilla/TypedEnum.h"
 
 #include <stdint.h>
 
@@ -122,7 +121,7 @@
 
 
 
-#if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
+#if defined(__cplusplus)
   typedef enum class tag_nsresult : uint32_t
   {
     #undef ERROR
@@ -136,14 +135,6 @@
 
 
   #include "ErrorListCxxDefines.h"
-#elif defined(__cplusplus)
-  typedef enum tag_nsresult : uint32_t
-  {
-    #undef ERROR
-    #define ERROR(key, val) key = val
-    #include "ErrorList.h"
-    #undef ERROR
-  } nsresult;
 #else
   
 

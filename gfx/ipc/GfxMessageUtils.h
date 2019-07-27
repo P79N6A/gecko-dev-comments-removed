@@ -34,13 +34,7 @@
 namespace mozilla {
 
 typedef gfxImageFormat PixelFormat;
-#if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
 typedef ::GraphicsFilter GraphicsFilterType;
-#else
-
-
-typedef GraphicsFilter::Enum GraphicsFilterType;
-#endif
 
 } 
 
