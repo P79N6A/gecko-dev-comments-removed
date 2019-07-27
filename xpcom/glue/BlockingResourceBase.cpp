@@ -229,7 +229,9 @@ BlockingResourceBase::~BlockingResourceBase()
   
   
   mChainPrev = 0;             
-  sDeadlockDetector->Remove(this);
+  if (sDeadlockDetector) {
+    sDeadlockDetector->Remove(this);
+  }
 }
 
 
