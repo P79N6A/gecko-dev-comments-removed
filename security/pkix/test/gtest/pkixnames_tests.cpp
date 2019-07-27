@@ -1064,12 +1064,124 @@ static const uint8_t ipv6_addr_bytes_as_str[] =
 static const uint8_t ipv6_addr_str[] =
   "1122:3344:5566:7788:99aa:bbcc:ddee:ff11";
 
+static const uint8_t ipv6_other_addr_bytes[] = {
+  0xff, 0xee, 0xdd, 0xcc,
+  0xbb, 0xaa, 0x99, 0x88,
+  0x77, 0x66, 0x55, 0x44,
+  0x33, 0x22, 0x11, 0x00,
+};
+
 static const uint8_t ipv4_other_addr_bytes[] = {
   5, 6, 7, 8
 };
 static const uint8_t ipv4_other_addr_str[] = "5.6.7.8";
 static const uint8_t ipv4_other_addr_bytes_FFFFFFFF[] = {
   5, 6, 7, 8, 0xff, 0xff, 0xff, 0xff
+};
+
+static const uint8_t ipv4_addr_00000000_bytes[] = {
+  0, 0, 0, 0
+};
+static const uint8_t ipv4_addr_FFFFFFFF_bytes[] = {
+  0, 0, 0, 0
+};
+
+static const uint8_t ipv4_constraint_all_zeros_bytes[] = {
+  0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static const uint8_t ipv6_addr_all_zeros_bytes[] = {
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+static const uint8_t ipv6_constraint_all_zeros_bytes[] = {
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static const uint8_t ipv4_constraint_CIDR_16_bytes[] = {
+  1, 2, 0, 0, 0xff, 0xff, 0, 0
+};
+static const uint8_t ipv4_constraint_CIDR_17_bytes[] = {
+  1, 2, 0, 0, 0xff, 0xff, 0x80, 0
+};
+
+
+static const uint8_t ipv4_constraint_CIDR_16_bad_addr_bytes[] = {
+  1, 2, 3, 0, 0xff, 0xff, 0, 0
+};
+
+
+
+static const uint8_t ipv4_constraint_bad_mask_bytes[] = {
+  1, 2, 3, 0, 0xff, 0, 0xff, 0
+};
+
+static const uint8_t ipv6_constraint_CIDR_16_bytes[] = {
+  0x11, 0x22, 0, 0, 0, 0, 0, 0,
+     0,    0, 0, 0, 0, 0, 0, 0,
+  0xff, 0xff, 0, 0, 0, 0, 0, 0,
+     0,    0, 0, 0, 0, 0, 0, 0
+};
+
+
+static const uint8_t ipv6_constraint_CIDR_16_bad_addr_bytes[] = {
+  0x11, 0x22, 0x33, 0x44, 0, 0, 0, 0,
+     0,    0,    0,    0, 0, 0, 0, 0,
+  0xff, 0xff,    0,    0, 0, 0, 0, 0,
+     0,    0,    0,    0, 0, 0, 0, 0
+};
+
+
+
+static const uint8_t ipv6_constraint_bad_mask_bytes[] = {
+  0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0, 0,
+     0,    0,    0,    0,    0,    0, 0, 0,
+  0xff, 0xff,    0,    0, 0xff, 0xff, 0, 0,
+     0,    0,    0,    0,    0,    0, 0, 0,
+};
+
+static const uint8_t ipv4_addr_truncated_bytes[] = {
+  1, 2, 3
+};
+static const uint8_t ipv4_addr_overlong_bytes[] = {
+  1, 2, 3, 4, 5
+};
+static const uint8_t ipv4_constraint_truncated_bytes[] = {
+  0, 0, 0, 0,
+  0, 0, 0,
+};
+static const uint8_t ipv4_constraint_overlong_bytes[] = {
+  0, 0, 0, 0,
+  0, 0, 0, 0, 0
+};
+
+static const uint8_t ipv6_addr_truncated_bytes[] = {
+  0x11, 0x22, 0x33, 0x44,
+  0x55, 0x66, 0x77, 0x88,
+  0x99, 0xaa, 0xbb, 0xcc,
+  0xdd, 0xee, 0xff
+};
+static const uint8_t ipv6_addr_overlong_bytes[] = {
+  0x11, 0x22, 0x33, 0x44,
+  0x55, 0x66, 0x77, 0x88,
+  0x99, 0xaa, 0xbb, 0xcc,
+  0xdd, 0xee, 0xff, 0x11, 0x00
+};
+static const uint8_t ipv6_constraint_truncated_bytes[] = {
+  0x11, 0x22, 0, 0, 0, 0, 0, 0,
+     0,    0, 0, 0, 0, 0, 0, 0,
+  0xff, 0xff, 0, 0, 0, 0, 0, 0,
+     0,    0, 0, 0, 0, 0, 0
+};
+static const uint8_t ipv6_constraint_overlong_bytes[] = {
+  0x11, 0x22, 0, 0, 0, 0, 0, 0,
+     0,    0, 0, 0, 0, 0, 0, 0,
+  0xff, 0xff, 0, 0, 0, 0, 0, 0,
+     0,    0, 0, 0, 0, 0, 0, 0, 0
 };
 
 
@@ -1687,6 +1799,165 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   { ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName(".")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  
+
+  
+  { ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_all_zeros_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), IPAddress(ipv4_addr_00000000_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_all_zeros_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), IPAddress(ipv4_addr_FFFFFFFF_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_all_zeros_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  { ByteString(), IPAddress(ipv6_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_all_zeros_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), IPAddress(ipv6_addr_all_zeros_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_all_zeros_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  
+  
+  { ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_all_zeros_bytes)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { ByteString(), IPAddress(ipv6_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_all_zeros_bytes)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+  { ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_CIDR_16_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_CIDR_17_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), IPAddress(ipv4_other_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_CIDR_16_bytes)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_CIDR_16_bad_addr_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    ByteString(), IPAddress(ipv4_other_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_bad_mask_bytes)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+  { ByteString(), IPAddress(ipv6_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_CIDR_16_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), IPAddress(ipv6_other_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_CIDR_16_bytes)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    ByteString(), IPAddress(ipv6_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_CIDR_16_bad_addr_bytes)),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    ByteString(), IPAddress(ipv6_other_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_bad_mask_bytes)),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+
+  { 
+    ByteString(), IPAddress(),
+    GeneralSubtree(IPAddress(ipv4_constraint_all_zeros_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv4_addr_truncated_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_all_zeros_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv4_addr_overlong_bytes),
+    GeneralSubtree(IPAddress(ipv4_constraint_all_zeros_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress()),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_addr_truncated_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv4_addr_bytes),
+    GeneralSubtree(IPAddress(ipv4_addr_overlong_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(),
+    GeneralSubtree(IPAddress(ipv6_constraint_all_zeros_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv6_addr_truncated_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_all_zeros_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv6_addr_overlong_bytes),
+    GeneralSubtree(IPAddress(ipv6_constraint_all_zeros_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv6_addr_bytes),
+    GeneralSubtree(IPAddress()),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv6_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_addr_truncated_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), IPAddress(ipv6_addr_bytes),
+    GeneralSubtree(IPAddress(ipv6_addr_overlong_bytes)),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+
+  
+  
+  
+  { ByteString(), NO_SAN, GeneralSubtree(DNSName("!")),
+    Success, Success
+  },
+  { ByteString(), NO_SAN, GeneralSubtree(IPAddress(ipv4_addr_overlong_bytes)),
+    Success, Success
+  },
+  { ByteString(), NO_SAN, GeneralSubtree(IPAddress(ipv6_addr_overlong_bytes)),
+    Success, Success
   },
 
   

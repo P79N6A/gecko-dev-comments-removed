@@ -197,6 +197,13 @@ DNSName(const char (&bytes)[L])
                             L - 1));
 }
 
+inline ByteString
+IPAddress()
+{
+  
+  return TLV((2 << 6) | 7, ByteString());
+}
+
 template <size_t L>
 inline ByteString
 IPAddress(const uint8_t (&bytes)[L])
