@@ -48,6 +48,7 @@ JitCode *
 JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 {
     MacroAssembler masm(cx);
+    masm.assertStackAlignment(ABIStackAlignment, -int32_t(sizeof(uintptr_t)) );
 
     
     masm.push(ebp);
@@ -76,12 +77,14 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
     
     
+    
     masm.movl(esp, ecx);
     masm.subl(eax, ecx);
-    masm.subl(Imm32(4 * 3), ecx);
+    static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
 
     
-    masm.andl(Imm32(15), ecx);
+    masm.andl(Imm32(JitStackAlignment - 1), ecx);
     masm.subl(ecx, esp);
 
     
@@ -248,6 +251,10 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.bind(&notOsr);
         masm.loadPtr(Address(ebp, ARG_SCOPECHAIN), R1.scratchReg());
     }
+
+    
+    
+    masm.assertStackAlignment(JitStackAlignment, sizeof(uintptr_t));
 
     
 

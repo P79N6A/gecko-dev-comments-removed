@@ -26,13 +26,11 @@ static const RegisterSet AllRegs =
 
 
 
-
-
-
 JitCode *
 JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 {
     MacroAssembler masm(cx);
+    masm.assertStackAlignment(ABIStackAlignment, -int32_t(sizeof(uintptr_t)) );
 
     const Register reg_code  = IntArgReg0;
     const Register reg_argc  = IntArgReg1;
@@ -89,16 +87,23 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     
     masm.mov(reg_argc, r13);
-    masm.shll(Imm32(3), r13);
+    masm.shll(Imm32(3), r13);   
+    static_assert(sizeof(Value) == 1 << 3, "Constant is baked in assembly code");
 
+    
+    
+    
+    
+    
     
     
     
     
     masm.mov(rsp, r12);
     masm.subq(r13, r12);
-    masm.subq(Imm32(8), r12);
-    masm.andl(Imm32(0xf), r12);
+    static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
+    masm.andl(Imm32(JitStackAlignment - 1), r12);
     masm.subq(r12, rsp);
 
     
@@ -257,6 +262,10 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.bind(&notOsr);
         masm.movq(scopeChain, R1.scratchReg());
     }
+
+    
+    
+    masm.assertStackAlignment(JitStackAlignment, sizeof(uintptr_t));
 
     
     masm.call(reg_code);
