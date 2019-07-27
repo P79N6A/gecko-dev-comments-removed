@@ -11802,7 +11802,7 @@ CSSParserImpl::ParseFont()
     values[1].SetNormalValue();
   } else {
     if (values[1].GetUnit() == eCSSUnit_Enumerated &&
-        !values[1].GetIntValue() == NS_FONT_VARIANT_CAPS_SMALLCAPS) {
+        values[1].GetIntValue() != NS_FONT_VARIANT_CAPS_SMALLCAPS) {
       
       
       
