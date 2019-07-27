@@ -420,7 +420,7 @@ public:
     WidgetMouseEventBase(aIsTrusted, aMessage, aWidget, NS_WHEEL_EVENT),
     deltaX(0.0), deltaY(0.0), deltaZ(0.0),
     deltaMode(nsIDOMWheelEvent::DOM_DELTA_PIXEL),
-    customizedByUserPrefs(false), isMomentum(false), isPixelOnlyDevice(false),
+    customizedByUserPrefs(false), isMomentum(false), mIsNoLineOrPageDelta(false),
     lineOrPageDeltaX(0), lineOrPageDeltaY(0), scrollType(SCROLL_DEFAULT),
     overflowDeltaX(0.0), overflowDeltaY(0.0),
     mViewPortIsOverscrolled(false)
@@ -462,7 +462,7 @@ public:
   
   
   
-  bool isPixelOnlyDevice;
+  bool mIsNoLineOrPageDelta;
 
   
   
@@ -531,7 +531,7 @@ public:
     deltaMode = aEvent.deltaMode;
     customizedByUserPrefs = aEvent.customizedByUserPrefs;
     isMomentum = aEvent.isMomentum;
-    isPixelOnlyDevice = aEvent.isPixelOnlyDevice;
+    mIsNoLineOrPageDelta = aEvent.mIsNoLineOrPageDelta;
     lineOrPageDeltaX = aEvent.lineOrPageDeltaX;
     lineOrPageDeltaY = aEvent.lineOrPageDeltaY;
     scrollType = aEvent.scrollType;

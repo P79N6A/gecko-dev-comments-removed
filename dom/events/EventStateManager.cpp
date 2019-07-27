@@ -5096,7 +5096,7 @@ EventStateManager::DeltaAccumulator::InitLineOrPageDelta(
   if (IsInTransaction()) {
     
     if (mHandlingDeltaMode != aEvent->deltaMode ||
-        mHandlingPixelOnlyDevice != aEvent->isPixelOnlyDevice) {
+        mIsNoLineOrPageDeltaDevice != aEvent->mIsNoLineOrPageDelta) {
       Reset();
     } else {
       
@@ -5111,13 +5111,12 @@ EventStateManager::DeltaAccumulator::InitLineOrPageDelta(
   }
 
   mHandlingDeltaMode = aEvent->deltaMode;
-  mHandlingPixelOnlyDevice = aEvent->isPixelOnlyDevice;
+  mIsNoLineOrPageDeltaDevice = aEvent->mIsNoLineOrPageDelta;
 
   
   
   
-  if (!(mHandlingDeltaMode == nsIDOMWheelEvent::DOM_DELTA_PIXEL &&
-        mHandlingPixelOnlyDevice) &&
+  if (!mIsNoLineOrPageDeltaDevice &&
       !EventStateManager::WheelPrefs::GetInstance()->
         NeedToComputeLineOrPageDelta(aEvent)) {
     
@@ -5178,7 +5177,7 @@ EventStateManager::DeltaAccumulator::Reset()
   mX = mY = 0.0;
   mPendingScrollAmountX = mPendingScrollAmountY = 0.0;
   mHandlingDeltaMode = UINT32_MAX;
-  mHandlingPixelOnlyDevice = false;
+  mIsNoLineOrPageDeltaDevice = false;
 }
 
 nsIntPoint
