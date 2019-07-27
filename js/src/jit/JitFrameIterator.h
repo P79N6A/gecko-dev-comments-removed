@@ -266,8 +266,6 @@ class JitFrameIterator
 #endif
 };
 
-class IonJSFrameLayout;
-
 class RResumePoint;
 
 
