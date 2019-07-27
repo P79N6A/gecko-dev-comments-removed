@@ -132,6 +132,9 @@ window.addEventListener('ContentStart', function() {
     GlobalSimulatorScreen.width = width;
     GlobalSimulatorScreen.height = height;
 
+    Services.prefs.setCharPref('layout.css.devPixelsPerPx',
+                               ratio == 1 ? -1 : ratio);
+
     
     
     
@@ -175,8 +178,6 @@ window.addEventListener('ContentStart', function() {
       style.transform +=
         ' rotate(0.25turn) translate(-' + shift + 'px, -' + shift + 'px)';
     }
-
-    Services.prefs.setCharPref('layout.css.devPixelsPerPx', ratio);
   }
 
   
