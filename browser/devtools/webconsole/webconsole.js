@@ -26,6 +26,8 @@ loader.lazyGetter(this, "ConsoleOutput",
                   () => require("devtools/webconsole/console-output").ConsoleOutput);
 loader.lazyGetter(this, "Messages",
                   () => require("devtools/webconsole/console-output").Messages);
+loader.lazyGetter(this, "asyncStorage",
+                  () => require("devtools/toolkit/shared/async-storage"));
 loader.lazyImporter(this, "EnvironmentClient", "resource://gre/modules/devtools/dbg-client.jsm");
 loader.lazyImporter(this, "ObjectClient", "resource://gre/modules/devtools/dbg-client.jsm");
 loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm");
@@ -176,6 +178,7 @@ const MIN_FONT_SIZE = 10;
 const PREF_CONNECTION_TIMEOUT = "devtools.debugger.remote-timeout";
 const PREF_PERSISTLOG = "devtools.webconsole.persistlog";
 const PREF_MESSAGE_TIMESTAMP = "devtools.webconsole.timestampMessages";
+const PREF_INPUT_HISTORY_COUNT = "devtools.webconsole.inputHistoryCount";
 
 
 
@@ -445,10 +448,27 @@ WebConsoleFrame.prototype = {
 
 
 
-  init: function WCF_init()
+  init: function()
   {
     this._initUI();
-    return this._initConnection();
+    let connectionInited = this._initConnection();
+
+    
+    
+    let allReady = this.jsterm.historyLoaded.catch(() => {}).then(() => {
+      return connectionInited;
+    });
+
+    
+    
+    
+    let notifyObservers = () => {
+      let id = WebConsoleUtils.supportsString(this.hudId);
+      Services.obs.notifyObservers(id, "web-console-created", null);
+    };
+    allReady.then(notifyObservers, notifyObservers);
+
+    return allReady;
   },
 
   
@@ -475,9 +495,6 @@ WebConsoleFrame.prototype = {
                                         aReason.error + ": " + aReason.message);
       this.outputMessage(CATEGORY_JS, node, [aReason]);
       this._initDefer.reject(aReason);
-    }).then(() => {
-      let id = WebConsoleUtils.supportsString(this.hudId);
-      Services.obs.notifyObservers(id, "web-console-created", null);
     });
 
     return this._initDefer.promise;
@@ -3054,17 +3071,11 @@ function JSTerm(aWebConsoleFrame)
 {
   this.hud = aWebConsoleFrame;
   this.hudId = this.hud.hudId;
+  this.inputHistoryCount = Services.prefs.getIntPref(PREF_INPUT_HISTORY_COUNT);
 
   this.lastCompletion = { value: null };
-  this.history = [];
+  this._loadHistory();
 
-  
-  
-  this.historyIndex = 0; 
-
-  
-  
-  this.historyPlaceHolder = 0;
   this._objectActorsInVariablesViews = new Map();
 
   this._keyPress = this._keyPress.bind(this);
@@ -3078,6 +3089,38 @@ function JSTerm(aWebConsoleFrame)
 
 JSTerm.prototype = {
   SELECTED_FRAME: -1,
+
+  
+
+
+
+  _loadHistory: function() {
+    this.history = [];
+    this.historyIndex = this.historyPlaceHolder = 0;
+
+    this.historyLoaded = asyncStorage.getItem("webConsoleHistory").then(value => {
+      if (Array.isArray(value)) {
+        
+        
+        this.history = value.concat(this.history);
+
+        
+        
+        this.historyIndex = this.history.length;
+
+        
+        
+        this.historyPlaceHolder = this.history.length;
+      }
+    }, console.error);
+  },
+
+  
+
+
+  storeHistory: function() {
+    asyncStorage.setItem("webConsoleHistory", this.history);
+  },
 
   
 
@@ -3388,6 +3431,12 @@ JSTerm.prototype = {
     
     this.history[this.historyIndex++] = aExecuteString;
     this.historyPlaceHolder = this.history.length;
+
+    if (this.history.length > this.inputHistoryCount) {
+      this.history.splice(0, this.history.length - this.inputHistoryCount);
+      this.historyIndex = this.historyPlaceHolder = this.history.length;
+    }
+    this.storeHistory();
     WebConsoleUtils.usageCount++;
     this.setInputValue("");
     this.clearCompletion();

@@ -13,6 +13,7 @@ let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let {require, TargetFactory} = devtools;
 let {Utils: WebConsoleUtils} = require("devtools/toolkit/webconsole/utils");
 let {Messages} = require("devtools/webconsole/console-output");
+const asyncStorage = require("devtools/toolkit/shared/async-storage");
 
 
 
@@ -321,6 +322,9 @@ let finishTest = Task.async(function* () {
 
 registerCleanupFunction(function*() {
   gDevTools.testing = false;
+
+  
+  yield asyncStorage.removeItem("webConsoleHistory");
 
   dumpConsoles();
 

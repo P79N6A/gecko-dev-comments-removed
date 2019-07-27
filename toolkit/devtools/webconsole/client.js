@@ -154,7 +154,11 @@ WebConsoleClient.prototype = {
     };
 
     this._client.request(packet, response => {
-      this.pendingEvaluationResults.set(response.resultID, aOnResponse);
+      
+      
+      if (this.pendingEvaluationResults) {
+        this.pendingEvaluationResults.set(response.resultID, aOnResponse);
+      }
     });
   },
 
