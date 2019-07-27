@@ -399,6 +399,28 @@ byRef(RefPtr<T>& aPtr)
   return OutParamRef<T>(aPtr);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T, typename... Args>
+TemporaryRef<T>
+MakeAndAddRef(Args&&... aArgs)
+{
+  RefPtr<T> p(new T(Forward<Args>(aArgs)...));
+  return p.forget();
+}
+
 } 
 
 #endif 
