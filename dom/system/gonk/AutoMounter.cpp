@@ -216,7 +216,7 @@ public:
       mMode(AUTOMOUNTER_DISABLE)
   {
     VolumeManager::RegisterStateObserver(&mVolumeManagerStateObserver);
-    Volume::RegisterObserver(&mVolumeEventObserver);
+    Volume::RegisterVolumeObserver(&mVolumeEventObserver, "AutoMounter");
 
     
     
@@ -229,15 +229,7 @@ public:
 
   ~AutoMounter()
   {
-    VolumeManager::VolumeArray::size_type numVolumes = VolumeManager::NumVolumes();
-    VolumeManager::VolumeArray::index_type volIndex;
-    for (volIndex = 0; volIndex < numVolumes; volIndex++) {
-      RefPtr<Volume> vol = VolumeManager::GetVolume(volIndex);
-      if (vol) {
-        vol->UnregisterObserver(&mVolumeEventObserver);
-      }
-    }
-    Volume::UnregisterObserver(&mVolumeEventObserver);
+    Volume::UnregisterVolumeObserver(&mVolumeEventObserver, "AutoMounter");
     VolumeManager::UnregisterStateObserver(&mVolumeManagerStateObserver);
   }
 
@@ -258,7 +250,6 @@ public:
     for (i = 0; i < numVolumes; i++) {
       RefPtr<Volume> vol = VolumeManager::GetVolume(i);
       if (vol) {
-        vol->RegisterObserver(&mVolumeEventObserver);
         
         
         AutoMounterSetting::CheckVolumeSettings(vol->Name());
