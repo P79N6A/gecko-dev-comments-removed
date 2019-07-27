@@ -1146,6 +1146,7 @@ var WifiManager = (function() {
         createWaitForDriverReadyTimer(doStartWifiTethering);
       });
     } else {
+      cancelWifiHotspotStatusTimer();
       gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface,
                                        configuration, function(result) {
         
