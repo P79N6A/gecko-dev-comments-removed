@@ -175,6 +175,10 @@ BagheeraClient.prototype = Object.freeze({
 
     let deferred = Promise.defer();
 
+    
+    
+    
+    data = CommonUtils.encodeUTF8(data);
     data = CommonUtils.convertString(data, "uncompressed", "deflate");
     if (options.telemetryCompressed) {
       try {
