@@ -4267,6 +4267,8 @@ nsGlobalWindow::DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObj,
   MOZ_ASSERT(IsInnerWindow());
 
   
+
+  
   if (!JSID_IS_STRING(aId)) {
     return true;
   }
@@ -4277,6 +4279,44 @@ nsGlobalWindow::DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObj,
   }
 
   return true;
+}
+
+
+bool
+nsGlobalWindow::MayResolve(jsid aId)
+{
+  
+  
+  if (!JSID_IS_STRING(aId)) {
+    return false;
+  }
+
+  if (aId == XPCJSRuntime::Get()->GetStringID(XPCJSRuntime::IDX_COMPONENTS)) {
+    return true;
+  }
+
+  if (aId == XPCJSRuntime::Get()->GetStringID(XPCJSRuntime::IDX_CONTROLLERS)) {
+    
+    
+    return true;
+  }
+
+  nsScriptNameSpaceManager *nameSpaceManager = PeekNameSpaceManager();
+  if (!nameSpaceManager) {
+    
+    return true;
+  }
+
+  nsAutoString name;
+  AssignJSFlatString(name, JSID_TO_FLAT_STRING(aId));
+
+  const nsGlobalNameStruct *name_struct =
+    nameSpaceManager->LookupName(name);
+
+  
+  MOZ_ASSERT_IF(name_struct,
+                name_struct->mType != nsGlobalNameStruct::eTypeNavigatorProperty);
+  return name_struct;
 }
 
 struct GlobalNameEnumeratorClosure

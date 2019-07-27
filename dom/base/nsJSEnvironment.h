@@ -183,6 +183,9 @@ void ShutdownJSEnvironment();
 nsScriptNameSpaceManager* GetNameSpaceManager();
 
 
+nsScriptNameSpaceManager* PeekNameSpaceManager();
+
+
 class AsyncErrorReporter : public nsRunnable
 {
 public:

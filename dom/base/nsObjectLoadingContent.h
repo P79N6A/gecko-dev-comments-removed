@@ -172,6 +172,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                    JS::Handle<jsid> aId,
                    JS::MutableHandle<JSPropertyDescriptor> aDesc);
     
+    
+    static bool MayResolve(jsid aId);
+
+    
     void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& ,
                              mozilla::ErrorResult& aRv);
 

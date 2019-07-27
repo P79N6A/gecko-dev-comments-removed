@@ -2087,6 +2087,7 @@ Navigator::DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
                      JS::Handle<jsid> aId,
                      JS::MutableHandle<JSPropertyDescriptor> aDesc)
 {
+  
   if (!JSID_IS_STRING(aId)) {
     return true;
   }
@@ -2236,6 +2237,28 @@ Navigator::DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
 
   FillPropertyDescriptor(aDesc, aObject, prop_val, false);
   return true;
+}
+
+
+bool
+Navigator::MayResolve(jsid aId)
+{
+  
+  
+  if (!JSID_IS_STRING(aId)) {
+    return false;
+  }
+
+  nsScriptNameSpaceManager *nameSpaceManager = PeekNameSpaceManager();
+  if (!nameSpaceManager) {
+    
+    return true;
+  }
+
+  nsAutoString name;
+  AssignJSFlatString(name, JSID_TO_FLAT_STRING(aId));
+
+  return nameSpaceManager->LookupNavigatorName(name);
 }
 
 struct NavigatorNameEnumeratorClosure
