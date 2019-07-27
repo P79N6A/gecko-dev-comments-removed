@@ -135,6 +135,13 @@ public:
 
 
 
+  bool SelectSendFrameRate(unsigned int framerate);
+
+  
+
+
+
+
 
 
 
@@ -325,6 +332,7 @@ private:
   unsigned short mSendingHeight;
   unsigned short mReceivingWidth;
   unsigned short mReceivingHeight;
+  unsigned int   mSendingFramerate;
   bool mVideoLatencyTestEnable;
   uint64_t mVideoLatencyAvg;
   uint32_t mMinBitrate;
