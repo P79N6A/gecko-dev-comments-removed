@@ -382,17 +382,7 @@ void
 URL::GetHostname(nsString& aHostname, ErrorResult& aRv) const
 {
   aHostname.Truncate();
-  nsAutoCString tmp;
-  nsresult rv = mURI->GetHost(tmp);
-  if (NS_SUCCEEDED(rv)) {
-    if (tmp.FindChar(':') != -1) { 
-      MOZ_ASSERT(!tmp.Length() ||
-        (tmp[0] !='[' && tmp[tmp.Length() - 1] != ']'));
-      tmp.Insert('[', 0);
-      tmp.Append(']');
-    }
-    CopyUTF8toUTF16(tmp, aHostname);
-  }
+  nsContentUtils::GetHostOrIPv6WithBrackets(mURI, aHostname);
 }
 
 void

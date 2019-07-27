@@ -2184,6 +2184,12 @@ public:
 
   static uint64_t GetInnerWindowID(nsIRequest* aRequest);
 
+  
+
+
+
+  static void GetHostOrIPv6WithBrackets(nsIURI* aURI, nsAString& aHost);
+
 private:
   static bool InitializeEventTable();
 

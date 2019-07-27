@@ -361,13 +361,7 @@ Link::GetHostname(nsAString &_hostname, ErrorResult& aError)
     return;
   }
 
-  nsAutoCString host;
-  nsresult rv = uri->GetHost(host);
-  
-  
-  if (NS_SUCCEEDED(rv)) {
-    CopyUTF8toUTF16(host, _hostname);
-  }
+  nsContentUtils::GetHostOrIPv6WithBrackets(uri, _hostname);
 }
 
 void
