@@ -68,6 +68,8 @@ this.BrowserElementParentBuilder = {
 function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
   debug("Creating new BrowserElementParent object for " + frameLoader);
   this._domRequestCounter = 0;
+  this._domRequestReady = false;
+  this._pendingAPICalls = [];
   this._pendingDOMRequests = {};
   this._pendingSetInputMethodActive = [];
   this._hasRemoteFrame = hasRemoteFrame;
@@ -94,7 +96,7 @@ function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
 
   let defineNoReturnMethod = function(name, fn) {
     XPCNativeWrapper.unwrap(self._frameElement)[name] = function method() {
-      if (!self._mm) {
+      if (!self._domRequestReady) {
         
         let args = Array.slice(arguments);
         args.unshift(self);
@@ -175,7 +177,6 @@ function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
   } else {
     
     
-    this._pendingAPICalls = [];
     Services.obs.addObserver(this, 'remote-browser-frame-shown',  true);
   }
 }
@@ -348,6 +349,13 @@ BrowserElementParent.prototype = {
       this._ownerVisibilityChange();
     }
 
+    if (!this._domRequestReady) {
+      
+      
+      this._domRequestReady = true;
+      this._runPendingAPICall();
+    }
+
     return {
       name: this._frameElement.getAttribute('name'),
       fullscreenAllowed:
@@ -509,7 +517,7 @@ BrowserElementParent.prototype = {
         Services.DOMRequest.fireErrorAsync(req, "fail");
       }
     };
-    if (this._mm) {
+    if (this._domRequestReady) {
       send();
     } else {
       
@@ -775,7 +783,7 @@ BrowserElementParent.prototype = {
       if (self._nextPaintListeners.push(listener) == 1)
         self._sendAsyncMsg('activate-next-paint-listener');
     };
-    if (!this._mm) {
+    if (!this._domRequestReady) {
       this._pendingAPICalls.push(run);
     } else {
       run();
@@ -798,7 +806,7 @@ BrowserElementParent.prototype = {
       if (self._nextPaintListeners.length == 0)
         self._sendAsyncMsg('deactivate-next-paint-listener');
     };
-    if (!this._mm) {
+    if (!this._domRequestReady) {
       this._pendingAPICalls.push(run);
     } else {
       run();
@@ -886,7 +894,6 @@ BrowserElementParent.prototype = {
         if (!this._mm) {
           this._setupMessageListener();
           this._registerAppManifest();
-          this._runPendingAPICall();
         }
         Services.obs.removeObserver(this, 'remote-browser-frame-shown');
       }
