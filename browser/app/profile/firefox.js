@@ -70,6 +70,9 @@ pref("extensions.hotfix.certs.1.sha1Fingerprint", "91:53:98:0C:C1:86:DF:47:8F:35
 pref("extensions.autoDisableScopes", 15);
 
 
+pref("xpinstall.signatures.required", false);
+
+
 pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
 
 
@@ -1530,9 +1533,6 @@ pref("devtools.webconsole.filter.info", true);
 pref("devtools.webconsole.filter.log", true);
 pref("devtools.webconsole.filter.secerror", true);
 pref("devtools.webconsole.filter.secwarn", true);
-pref("devtools.webconsole.filter.serviceworkers", false);
-pref("devtools.webconsole.filter.sharedworkers", false);
-pref("devtools.webconsole.filter.windowlessworkers", false);
 
 
 pref("devtools.browserconsole.filter.network", true);
@@ -1551,9 +1551,6 @@ pref("devtools.browserconsole.filter.info", true);
 pref("devtools.browserconsole.filter.log", true);
 pref("devtools.browserconsole.filter.secerror", true);
 pref("devtools.browserconsole.filter.secwarn", true);
-pref("devtools.browserconsole.filter.serviceworkers", true);
-pref("devtools.browserconsole.filter.sharedworkers", true);
-pref("devtools.browserconsole.filter.windowlessworkers", true);
 
 
 pref("devtools.webconsole.fontSize", 0);
