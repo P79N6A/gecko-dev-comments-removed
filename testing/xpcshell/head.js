@@ -501,7 +501,14 @@ function _execute_test() {
 
   try {
     do_test_pending("MAIN run_test");
-    run_test();
+    
+    
+    
+    if (typeof run_test === "function") {
+      run_test();
+    } else {
+      run_next_test();
+    }
     do_test_finished("MAIN run_test");
     _do_main();
   } catch (e) {
