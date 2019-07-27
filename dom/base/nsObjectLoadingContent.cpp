@@ -3622,9 +3622,9 @@ nsObjectLoadingContent::TeardownProtoChain()
 }
 
 bool
-nsObjectLoadingContent::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
-                                     JS::Handle<jsid> aId,
-                                     JS::MutableHandle<JSPropertyDescriptor> aDesc)
+nsObjectLoadingContent::DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
+                                  JS::Handle<jsid> aId,
+                                  JS::MutableHandle<JSPropertyDescriptor> aDesc)
 {
   
   

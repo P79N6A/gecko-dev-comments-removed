@@ -274,9 +274,9 @@ public:
 
   already_AddRefed<ServiceWorkerContainer> ServiceWorker();
 
-  bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
-                    JS::Handle<jsid> aId,
-                    JS::MutableHandle<JSPropertyDescriptor> aDesc);
+  bool DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
+                 JS::Handle<jsid> aId,
+                 JS::MutableHandle<JSPropertyDescriptor> aDesc);
   void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
                            ErrorResult& aRv);
   void GetLanguages(nsTArray<nsString>& aLanguages);
