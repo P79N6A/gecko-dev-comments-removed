@@ -428,6 +428,21 @@ class RectifierFrameLayout : public JitFrameLayout
     }
 };
 
+class IonAccessorICFrameLayout : public CommonFrameLayout
+{
+  protected:
+    
+    JitCode *stubCode_;
+
+  public:
+    JitCode **stubCode() {
+        return &stubCode_;
+    }
+    static size_t Size() {
+        return sizeof(IonAccessorICFrameLayout);
+    }
+};
+
 
 class IonUnwoundRectifierFrameLayout : public RectifierFrameLayout
 {

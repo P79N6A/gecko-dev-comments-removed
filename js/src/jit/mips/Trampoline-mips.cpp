@@ -1125,6 +1125,7 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext *cx)
     Label handle_IonJS;
     Label handle_BaselineStub;
     Label handle_Rectifier;
+    Label handle_IonAccessorIC;
     Label handle_Entry;
     Label end;
 
@@ -1132,6 +1133,7 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext *cx)
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineJS), &handle_IonJS);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineStub), &handle_BaselineStub);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Rectifier), &handle_Rectifier);
+    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_IonAccessorIC), &handle_IonAccessorIC);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Entry), &handle_Entry);
 
     masm.assumeUnreachable("Invalid caller frame type when exiting from Ion frame.");
@@ -1299,6 +1301,54 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext *cx)
         masm.loadPtr(stubFrameSavedFramePtr, scratch2);
         masm.addPtr(Imm32(sizeof(void *)), scratch2);
         masm.storePtr(scratch2, lastProfilingFrame);
+        masm.ret();
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    masm.bind(&handle_IonAccessorIC);
+    {
+        
+        masm.ma_addu(StackPointer, scratch1, scratch2);
+        masm.addPtr(Imm32(JitFrameLayout::Size()), scratch2);
+
+        
+        masm.loadPtr(Address(scratch2, IonAccessorICFrameLayout::offsetOfDescriptor()), scratch3);
+#ifdef DEBUG
+        
+        masm.movePtr(scratch3, scratch1);
+        masm.and32(Imm32((1 << FRAMETYPE_BITS) - 1), scratch1);
+        {
+            Label checkOk;
+            masm.branch32(Assembler::Equal, scratch1, Imm32(JitFrame_IonJS), &checkOk);
+            masm.assumeUnreachable("IonAccessorIC frame must be preceded by IonJS frame");
+            masm.bind(&checkOk);
+        }
+#endif
+        masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), scratch3);
+
+        
+        masm.loadPtr(Address(scratch2, IonAccessorICFrameLayout::offsetOfReturnAddress()), scratch1);
+        masm.storePtr(scratch1, lastProfilingCallSite);
+
+        
+        
+        masm.ma_addu(scratch2, scratch3, scratch1);
+        masm.addPtr(Imm32(IonAccessorICFrameLayout::Size()), scratch1);
+        masm.storePtr(scratch1, lastProfilingFrame);
         masm.ret();
     }
 

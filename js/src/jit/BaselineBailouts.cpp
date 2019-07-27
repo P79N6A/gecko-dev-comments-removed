@@ -332,7 +332,8 @@ struct BaselineStackBuilder
         
         
         
-        if (type == JitFrame_IonJS || type == JitFrame_Entry)
+        
+        if (type == JitFrame_IonJS || type == JitFrame_Entry || type == JitFrame_IonAccessorIC)
             return nullptr;
 
         
@@ -1348,7 +1349,8 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
     MOZ_ASSERT(prevFrameType == JitFrame_IonJS ||
                prevFrameType == JitFrame_BaselineStub ||
                prevFrameType == JitFrame_Entry ||
-               prevFrameType == JitFrame_Rectifier);
+               prevFrameType == JitFrame_Rectifier ||
+               prevFrameType == JitFrame_IonAccessorIC);
 
     
     
