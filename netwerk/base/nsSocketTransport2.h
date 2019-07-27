@@ -298,6 +298,10 @@ private:
 
     
     
+    nsCString mNetworkInterfaceId;
+
+    
+    
     bool mResolving;
 
     nsCOMPtr<nsICancelable> mDNSRequest;
