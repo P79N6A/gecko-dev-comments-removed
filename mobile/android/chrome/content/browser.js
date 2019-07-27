@@ -1629,7 +1629,7 @@ var BrowserApp = {
         
         
         
-        this.isSearch = true;
+        this.selectedTab.isSearch = true;
 
         
         let isPrivate = PrivateBrowsingUtils.isBrowserPrivate(this.selectedTab.browser);
