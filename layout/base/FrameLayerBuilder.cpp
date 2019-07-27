@@ -1295,6 +1295,16 @@ public:
   nsPoint mLastAnimatedGeometryRootOrigin;
   nsPoint mAnimatedGeometryRootOrigin;
 
+  
+  
+  nsIntRect mOldVisibleBounds;
+
+  
+  
+  
+  
+  Maybe<nsIntRect> mIgnoreInvalidationsOutsideRect;
+
   nsRefPtr<ColorLayer> mColorLayer;
   nsRefPtr<ImageLayer> mImageLayer;
 };
@@ -1471,23 +1481,29 @@ AppendToString(nsACString& s, const nsIntRegion& r,
 
 
 
-static void
-InvalidatePostTransformRegion(PaintedLayer* aLayer, const nsIntRegion& aRegion,
-                              const nsIntPoint& aTranslation)
+template<typename RegionOrRect> void
+InvalidatePostTransformRegion(PaintedLayer* aLayer, const RegionOrRect& aRegion,
+                              const nsIntPoint& aTranslation,
+                              PaintedDisplayItemLayerUserData* aData)
 {
   
   
   
-  nsIntRegion rgn = aRegion;
+  RegionOrRect rgn = aRegion;
   rgn.MoveBy(-aTranslation);
-  aLayer->InvalidateRegion(rgn);
-#ifdef MOZ_DUMP_PAINTING
-  if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-    nsAutoCString str;
-    AppendToString(str, rgn);
-    printf_stderr("Invalidating layer %p: %s\n", aLayer, str.get());
+  if (aData->mIgnoreInvalidationsOutsideRect) {
+    rgn = rgn.Intersect(*aData->mIgnoreInvalidationsOutsideRect);
   }
+  if (!rgn.IsEmpty()) {
+    aLayer->InvalidateRegion(rgn);
+#ifdef MOZ_DUMP_PAINTING
+    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+      nsAutoCString str;
+      AppendToString(str, rgn);
+      printf_stderr("Invalidating layer %p: %s\n", aLayer, str.get());
+    }
 #endif
+  }
 }
 
 static void
@@ -1501,7 +1517,7 @@ InvalidatePostTransformRegion(PaintedLayer* aLayer, const nsRect& aRect,
   nsRect rect = aClip.ApplyNonRoundedIntersection(aRect);
 
   nsIntRect pixelRect = rect.ScaleToOutsidePixels(data->mXScale, data->mYScale, data->mAppUnitsPerDevPixel);
-  InvalidatePostTransformRegion(aLayer, pixelRect, aTranslation);
+  InvalidatePostTransformRegion(aLayer, pixelRect, aTranslation, data);
 }
 
 
@@ -2106,6 +2122,89 @@ ContainerState::RecyclePaintedLayer(PaintedLayer* aLayer,
   return data;
 }
 
+static void
+ComputeAndSetIgnoreInvalidationRect(PaintedLayer* aLayer,
+                                    PaintedDisplayItemLayerUserData* aData,
+                                    const nsIFrame* aAnimatedGeometryRoot,
+                                    nsDisplayListBuilder* aBuilder,
+                                    const nsIntPoint& aLayerTranslation)
+{
+  if (!aLayer->Manager()->IsWidgetLayerManager()) {
+    
+    return;
+  }
+
+  const nsIFrame* parentFrame = aAnimatedGeometryRoot->GetParent();
+
+  
+  
+  nsRect dirtyRect = aBuilder->GetDirtyRectForScrolledContents(parentFrame);
+
+  if (dirtyRect.IsEmpty()) {
+    
+    
+    
+    return;
+  }
+
+  
+  
+
+  
+  
+  nsIntRect maxNewVisibleBounds =
+    dirtyRect.ScaleToOutsidePixels(aData->mXScale, aData->mYScale,
+                                   aData->mAppUnitsPerDevPixel) - aLayerTranslation;
+  aData->mOldVisibleBounds = aLayer->GetValidRegion().GetBounds();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  aData->mIgnoreInvalidationsOutsideRect =
+    Some(maxNewVisibleBounds.Intersect(aData->mOldVisibleBounds));
+}
+
 void
 ContainerState::PreparePaintedLayerForUse(PaintedLayer* aLayer,
                                           PaintedDisplayItemLayerUserData* aData,
@@ -2138,6 +2237,8 @@ ContainerState::PreparePaintedLayerForUse(PaintedLayer* aLayer,
   pixOffset += mParameters.mOffset;
   Matrix matrix = Matrix::Translation(pixOffset.x, pixOffset.y);
   aLayer->SetBaseTransform(Matrix4x4::From2D(matrix));
+
+  ComputeAndSetIgnoreInvalidationRect(aLayer, aData, aAnimatedGeometryRoot, mBuilder, pixOffset);
 
   
 #ifndef MOZ_WIDGET_ANDROID
@@ -3948,7 +4049,8 @@ FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData)
     }
     InvalidatePostTransformRegion(paintedLayer,
         combined.ScaleToOutsidePixels(layerData->mXScale, layerData->mYScale, layerData->mAppUnitsPerDevPixel),
-        layerData->mTranslation);
+        layerData->mTranslation,
+        layerData);
   }
 
   aData->EndUpdate(geometry);
@@ -4066,7 +4168,8 @@ FrameLayerBuilder::AddPaintedDisplayItem(PaintedLayerData* aLayerData,
         }
 
         InvalidatePostTransformRegion(layer, invalid,
-                                      GetTranslationForPaintedLayer(layer));
+                                      GetTranslationForPaintedLayer(layer),
+                                      paintedData);
       }
     }
     ClippedDisplayItem* cdi =
@@ -4288,6 +4391,39 @@ ContainerState::SetupScrollingMetadata(NewLayerEntry* aEntry)
   aEntry->mLayer->SetFrameMetrics(metricsArray);
 }
 
+static void
+InvalidateVisibleBoundsChangesForScrolledLayer(PaintedLayer* aLayer)
+{
+  PaintedDisplayItemLayerUserData* data =
+    static_cast<PaintedDisplayItemLayerUserData*>(aLayer->GetUserData(&gPaintedDisplayItemLayerUserData));
+
+  if (data->mIgnoreInvalidationsOutsideRect) {
+    
+    
+    
+    
+    
+    
+    
+    
+    nsIntRegion rgn;
+    rgn.Or(data->mOldVisibleBounds, aLayer->GetVisibleRegion().GetBounds());
+    rgn.Sub(rgn, *data->mIgnoreInvalidationsOutsideRect);
+    if (!rgn.IsEmpty()) {
+      aLayer->InvalidateRegion(rgn);
+#ifdef MOZ_DUMP_PAINTING
+      if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+        printf_stderr("Invalidating changes of the visible region bounds of the scrolled contents\n");
+        nsAutoCString str;
+        AppendToString(str, rgn);
+        printf_stderr("Invalidating layer %p: %s\n", aLayer, str.get());
+      }
+#endif
+    }
+    data->mIgnoreInvalidationsOutsideRect = Nothing();
+  }
+}
+
 void
 ContainerState::PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer)
 {
@@ -4325,6 +4461,11 @@ ContainerState::PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer
 
     SetOuterVisibleRegionForLayer(e->mLayer, e->mVisibleRegion,
       e->mLayerContentsVisibleRect.width >= 0 ? &e->mLayerContentsVisibleRect : nullptr);
+
+    PaintedLayer* p = e->mLayer->AsPaintedLayer();
+    if (p) {
+      InvalidateVisibleBoundsChangesForScrolledLayer(p);
+    }
 
     if (!e->mOpaqueRegion.IsEmpty()) {
       const nsIFrame* animatedGeometryRootToCover = animatedGeometryRootForOpaqueness;

@@ -854,6 +854,22 @@ public:
 
   void AppendNewScrollInfoItemForHoisting(nsDisplayScrollInfoLayer* aScrollInfoItem);
 
+  
+
+
+
+
+
+
+  void StoreDirtyRectForScrolledContents(const nsIFrame* aScrollableFrame, const nsRect& aDirty);
+
+  
+
+
+
+
+  nsRect GetDirtyRectForScrolledContents(const nsIFrame* aScrollableFrame) const;
+
 private:
   void MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame, nsIFrame* aFrame,
                                     const nsRect& aDirtyRect);
@@ -930,6 +946,10 @@ private:
                                  mWillChangeBudget;
   
   mutable mozilla::DebugOnly<bool> mWillChangeBudgetCalculated;
+
+  
+  nsDataHashtable<nsPtrHashKey<nsIFrame>, nsRect> mDirtyRectForScrolledContents;
+
   
   nsRect                         mDirtyRect;
   nsRegion                       mWindowExcludeGlassRegion;
