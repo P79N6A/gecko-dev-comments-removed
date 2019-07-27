@@ -294,6 +294,33 @@ class RInstructionResults
     void trace(JSTracer *trc);
 };
 
+struct MaybeReadFallback
+{
+    JSContext *maybeCx;
+    JitActivation *activation;
+    JitFrameIterator *frame;
+    const Value unreadablePlaceholder;
+
+    MaybeReadFallback(const Value &placeholder = UndefinedValue())
+      : maybeCx(nullptr),
+        activation(nullptr),
+        frame(nullptr),
+        unreadablePlaceholder(placeholder)
+    {
+    }
+
+    MaybeReadFallback(JSContext *cx, JitActivation *activation, JitFrameIterator *frame)
+      : maybeCx(cx),
+        activation(activation),
+        frame(frame),
+        unreadablePlaceholder(UndefinedValue())
+    {
+    }
+
+    bool canRecoverResults() { return maybeCx; }
+};
+
+
 class RResumePoint;
 
 
@@ -425,13 +452,15 @@ class SnapshotIterator
     Value read() {
         return allocationValue(readAllocation());
     }
-    Value maybeRead(const Value &placeholder = UndefinedValue(), bool silentFailure = false) {
+
+    Value maybeRead(MaybeReadFallback &fallback) {
         RValueAllocation a = readAllocation();
         if (allocationReadable(a))
             return allocationValue(a);
-        if (!silentFailure)
+
+        if (fallback.canRecoverResults())
             warnUnreadableAllocation();
-        return placeholder;
+        return fallback.unreadablePlaceholder;
     }
 
     void readCommonFrameSlots(Value *scopeChain, Value *rval) {
@@ -449,8 +478,7 @@ class SnapshotIterator
     template <class Op>
     void readFunctionFrameArgs(Op &op, ArgumentsObject **argsObj, Value *thisv,
                                unsigned start, unsigned end, JSScript *script,
-                               const Value &unreadablePlaceholder = UndefinedValue(),
-                               bool silentFailure = false)
+                               MaybeReadFallback &fallback)
     {
         
         if (script->argumentsHasVarBinding()) {
@@ -478,7 +506,7 @@ class SnapshotIterator
             
             
             
-            Value v = maybeRead(unreadablePlaceholder, silentFailure);
+            Value v = maybeRead(fallback);
             op(v);
         }
     }
@@ -489,7 +517,8 @@ class SnapshotIterator
             skip();
         }
 
-        Value s = maybeRead( UndefinedValue(), true);
+        MaybeReadFallback fallback(UndefinedValue());
+        Value s = maybeRead(fallback);
 
         while (moreAllocations())
             skip();
@@ -566,8 +595,7 @@ class InlineFrameIterator
                                 JSObject **scopeChain, Value *rval,
                                 ArgumentsObject **argsObj, Value *thisv,
                                 ReadFrameArgsBehavior behavior,
-                                const Value &unreadablePlaceholder = UndefinedValue(),
-                                bool silentFailure = false) const
+                                MaybeReadFallback &fallback) const
     {
         SnapshotIterator s(si_);
 
@@ -586,10 +614,8 @@ class InlineFrameIterator
             
             
             
-            if (behavior != ReadFrame_Overflown) {
-                s.readFunctionFrameArgs(argOp, argsObj, thisv, 0, nformal, script(),
-                                        unreadablePlaceholder, silentFailure);
-            }
+            if (behavior != ReadFrame_Overflown)
+                s.readFunctionFrameArgs(argOp, argsObj, thisv, 0, nformal, script(), fallback);
 
             if (behavior != ReadFrame_Formals) {
                 if (more()) {
@@ -618,7 +644,7 @@ class InlineFrameIterator
                     parent_s.readCommonFrameSlots(nullptr, nullptr);
                     parent_s.readFunctionFrameArgs(argOp, nullptr, nullptr,
                                                    nformal, nactual, it.script(),
-                                                   unreadablePlaceholder, silentFailure);
+                                                   fallback);
                 } else {
                     
                     
@@ -637,16 +663,17 @@ class InlineFrameIterator
             
             
             
-            localOp(s.maybeRead(unreadablePlaceholder, silentFailure));
+            localOp(s.maybeRead(fallback));
         }
     }
 
     template <class Op>
     void unaliasedForEachActual(ThreadSafeContext *cx, Op op,
-                                ReadFrameArgsBehavior behavior) const
+                                ReadFrameArgsBehavior behavior,
+                                MaybeReadFallback &fallback) const
     {
         Nop nop;
-        readFrameArgsAndLocals(cx, op, nop, nullptr, nullptr, nullptr, nullptr, behavior);
+        readFrameArgsAndLocals(cx, op, nop, nullptr, nullptr, nullptr, nullptr, behavior, fallback);
     }
 
     JSScript *script() const {
