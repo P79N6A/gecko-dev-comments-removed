@@ -139,6 +139,11 @@ function StructuredLogger(name) {
     };
 
     this.testStatus = function(test, subtest, status, expected="PASS", message=null) {
+        
+        if (subtest === null || subtest === undefined) {
+            subtest = "undefined assertion name";
+        }
+
         var data = {test: test, subtest: subtest, status: status};
 
         if (message) {
