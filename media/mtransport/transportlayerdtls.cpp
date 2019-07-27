@@ -102,6 +102,11 @@ int32_t TransportLayerNSPRAdapter::Recv(void *buf, int32_t buflen) {
 }
 
 int32_t TransportLayerNSPRAdapter::Write(const void *buf, int32_t length) {
+  if (!enabled_) {
+    MOZ_MTLOG(ML_WARNING, "Writing to disabled transport layer");
+    return -1;
+  }
+
   TransportResult r = output_->SendPacket(
       static_cast<const unsigned char *>(buf), length);
   if (r >= 0) {
@@ -200,8 +205,12 @@ static PRStatus TransportLayerListen(PRFileDesc *f, int32_t depth) {
 }
 
 static PRStatus TransportLayerShutdown(PRFileDesc *f, int32_t how) {
-  UNIMPLEMENTED;
-  return PR_FAILURE;
+  
+  
+  
+  TransportLayerNSPRAdapter *io = reinterpret_cast<TransportLayerNSPRAdapter *>(f->secret);
+  io->SetEnabled(false);
+  return PR_SUCCESS;
 }
 
 
