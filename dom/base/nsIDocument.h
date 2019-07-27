@@ -151,8 +151,8 @@ struct FullScreenOptions {
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x0b78eabe, 0x8b94, 0x4ea1, \
-  { 0x93, 0x31, 0x5d, 0x48, 0xe8, 0x3a, 0xda, 0x95 } }
+{ 0xdcfa30f2, 0x2197, 0x421f, \
+  { 0xa7, 0x5a, 0x3e, 0x70, 0x18, 0x08, 0xde, 0x81 } }
 
 
 enum DocumentFlavor {
@@ -1096,9 +1096,8 @@ public:
 
 
 
-
-  virtual nsresult RemoteFrameFullscreenChanged(nsIDOMElement* aFrameElement,
-                                                const nsAString& aNewOrigin) = 0;
+  virtual nsresult
+    RemoteFrameFullscreenChanged(nsIDOMElement* aFrameElement) = 0;
 
   
 
