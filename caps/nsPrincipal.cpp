@@ -460,17 +460,20 @@ IsOnFullDomainWhitelist(nsIURI* aURI)
     NS_LITERAL_CSTRING("m.video.baidu.com"),
     NS_LITERAL_CSTRING("m.video.baidu.com"),
     NS_LITERAL_CSTRING("imgcache.gtimg.cn"), 
+    NS_LITERAL_CSTRING("s.tabelog.jp"),
+    NS_LITERAL_CSTRING("s.yimg.jp"), 
     NS_LITERAL_CSTRING("i.yimg.jp"), 
     NS_LITERAL_CSTRING("ai.yimg.jp"), 
+    NS_LITERAL_CSTRING("m.finance.yahoo.co.jp"),
     NS_LITERAL_CSTRING("daily.c.yimg.jp"), 
     NS_LITERAL_CSTRING("stat100.ameba.jp"), 
     NS_LITERAL_CSTRING("user.ameba.jp"), 
     NS_LITERAL_CSTRING("www.goo.ne.jp"),
-    NS_LITERAL_CSTRING("s.tabelog.jp"),
     NS_LITERAL_CSTRING("x.gnst.jp"), 
     NS_LITERAL_CSTRING("c.x.gnst.jp"), 
     NS_LITERAL_CSTRING("www.smbc-card.com"),
     NS_LITERAL_CSTRING("static.card.jp.rakuten-static.com"), 
+    NS_LITERAL_CSTRING("img.travel.rakuten.co.jp"), 
     NS_LITERAL_CSTRING("img.mixi.net"), 
     NS_LITERAL_CSTRING("girlschannel.net"),
     NS_LITERAL_CSTRING("www.fancl.co.jp"),
@@ -488,13 +491,14 @@ IsOnFullDomainWhitelist(nsIURI* aURI)
     NS_LITERAL_CSTRING("www.tokyo-sports.co.jp"),
     NS_LITERAL_CSTRING("www.bellemaison.jp"),
     NS_LITERAL_CSTRING("www.kuronekoyamato.co.jp"),
-    NS_LITERAL_CSTRING("s.tsite.jp"),
     NS_LITERAL_CSTRING("formassist.jp"), 
     NS_LITERAL_CSTRING("sp.m.reuters.co.jp"),
     NS_LITERAL_CSTRING("www.atre.co.jp"),
     NS_LITERAL_CSTRING("www.jtb.co.jp"),
     NS_LITERAL_CSTRING("www.sharp.co.jp"),
     NS_LITERAL_CSTRING("www.biccamera.com"),
+    NS_LITERAL_CSTRING("weathernews.jp"),
+    NS_LITERAL_CSTRING("cache.ymail.jp"), 
   };
   static const size_t sNumFullDomainsOnWhitelist =
     MOZ_ARRAY_LENGTH(sFullDomainsOnWhitelist);
@@ -524,6 +528,7 @@ IsOnBaseDomainWhitelist(nsIURI* aURI)
     NS_LITERAL_CSTRING("dpfile.com"), 
     NS_LITERAL_CSTRING("hao123img.com"), 
     NS_LITERAL_CSTRING("tabelog.k-img.com"), 
+    NS_LITERAL_CSTRING("tsite.jp"), 
   };
   static const size_t sNumBaseDomainsOnWhitelist =
     MOZ_ARRAY_LENGTH(sBaseDomainsOnWhitelist);
