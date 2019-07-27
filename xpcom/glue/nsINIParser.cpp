@@ -143,9 +143,9 @@ nsINIParser::InitFromFILE(FILE* aFd)
   char* buffer = &mFileContents[0];
 
   if (flen >= 3 &&
-      mFileContents[0] == static_cast<char>(0xEF) &&
-      mFileContents[1] == static_cast<char>(0xBB) &&
-      mFileContents[2] == static_cast<char>(0xBF)) {
+      mFileContents[0] == '\xEF' &&
+      mFileContents[1] == '\xBB' &&
+      mFileContents[2] == '\xBF') {
     
     
     
@@ -154,8 +154,8 @@ nsINIParser::InitFromFILE(FILE* aFd)
 
 #ifdef XP_WIN
   if (flen >= 2 &&
-      mFileContents[0] == static_cast<char>(0xFF) &&
-      mFileContents[1] == static_cast<char>(0xFE)) {
+      mFileContents[0] == '\xFF' &&
+      mFileContents[1] == '\xFE') {
     
     buffer = &mFileContents[2];
     
