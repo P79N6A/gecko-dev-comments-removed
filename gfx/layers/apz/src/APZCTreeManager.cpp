@@ -574,11 +574,25 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
       result = ProcessTouchInput(touchInput, aOutTargetGuid, aOutInputBlockId);
       break;
     } case SCROLLWHEEL_INPUT: {
+      FlushRepaintsToClearScreenToGeckoTransform();
+
       ScrollWheelInput& wheelInput = aEvent.AsScrollWheelInput();
       nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(wheelInput.mOrigin,
                                                             &hitResult);
       if (apzc) {
         MOZ_ASSERT(hitResult == HitLayer || hitResult == HitDispatchToContentRegion);
+
+        
+        
+        
+        
+        
+        
+        
+        MOZ_ASSERT(
+          (GetScreenToApzcTransform(apzc) * GetApzcToGeckoTransform(apzc))
+          .NudgeToIntegersFixedEpsilon()
+          .IsIdentity());
 
         result = mInputQueue->ReceiveInputEvent(
           apzc,
@@ -587,10 +601,6 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
 
         
         apzc->GetGuid(aOutTargetGuid);
-        Matrix4x4 transformToGecko = GetScreenToApzcTransform(apzc)
-                                   * GetApzcToGeckoTransform(apzc);
-        wheelInput.mOrigin =
-          TransformTo<ScreenPixel>(transformToGecko, wheelInput.mOrigin);
       }
       break;
     } case PANGESTURE_INPUT: {
@@ -668,17 +678,7 @@ APZCTreeManager::GetTouchInputBlockAPZC(const MultiTouchInput& aEvent,
     return apzc.forget();
   }
 
-  { 
-    
-    
-    
-    
-    
-    
-    
-    MonitorAutoLock lock(mTreeLock);
-    FlushRepaintsRecursively(mRootNode);
-  }
+  FlushRepaintsToClearScreenToGeckoTransform();
 
   apzc = GetTargetAPZC(aEvent.mTouches[0].mScreenPoint, aOutHitResult);
   for (size_t i = 1; i < aEvent.mTouches.Length(); i++) {
@@ -770,6 +770,12 @@ APZCTreeManager::ProcessTouchInput(MultiTouchInput& aInput,
     Matrix4x4 transformToApzc = GetScreenToApzcTransform(mApzcForInputBlock);
     Matrix4x4 transformToGecko = GetApzcToGeckoTransform(mApzcForInputBlock);
     Matrix4x4 outTransform = transformToApzc * transformToGecko;
+    if (aInput.mType == MultiTouchInput::MULTITOUCH_START) {
+      
+      
+      
+      MOZ_ASSERT(outTransform.NudgeToIntegersFixedEpsilon().IsIdentity());
+    }
     for (size_t i = 0; i < aInput.mTouches.Length(); i++) {
       SingleTouchData& touchData = aInput.mTouches[i];
       touchData.mScreenPoint = TransformTo<ScreenPixel>(
@@ -1055,6 +1061,32 @@ APZCTreeManager::UpdateZoomConstraintsRecursively(HitTestingTreeNode* aNode,
     }
     UpdateZoomConstraintsRecursively(child, aConstraints);
   }
+}
+
+void
+APZCTreeManager::FlushRepaintsToClearScreenToGeckoTransform()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  MonitorAutoLock lock(mTreeLock);
+  FlushRepaintsRecursively(mRootNode);
 }
 
 void
