@@ -48,8 +48,8 @@ class nsAutoRefTraits<GdkDragContext> :
 
 
 
-class nsDragService : public nsBaseDragService,
-                      public nsIObserver
+class nsDragService MOZ_FINAL : public nsBaseDragService,
+                                public nsIObserver
 {
 public:
     nsDragService();

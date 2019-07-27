@@ -101,9 +101,9 @@ bool InImageBridgeChildThread();
 
 
 
-class ImageBridgeChild : public PImageBridgeChild
-                       , public CompositableForwarder
-                       , public AsyncTransactionTrackersHolder
+class ImageBridgeChild MOZ_FINAL : public PImageBridgeChild
+                                 , public CompositableForwarder
+                                 , public AsyncTransactionTrackersHolder
 {
   friend class ImageContainer;
   typedef InfallibleTArray<AsyncParentMessageData> AsyncParentMessageArray;

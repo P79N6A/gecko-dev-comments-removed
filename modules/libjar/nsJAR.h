@@ -52,7 +52,7 @@ typedef enum
 
 
 
-class nsJAR : public nsIZipReader
+class nsJAR MOZ_FINAL : public nsIZipReader
 {
   
   friend class nsJARInputStream;

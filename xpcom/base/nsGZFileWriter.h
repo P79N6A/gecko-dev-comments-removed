@@ -13,7 +13,7 @@
 
 
 
-class nsGZFileWriter : public nsIGZFileWriter
+class nsGZFileWriter MOZ_FINAL : public nsIGZFileWriter
 {
   virtual ~nsGZFileWriter();
 

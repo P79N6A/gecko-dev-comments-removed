@@ -26,10 +26,10 @@ class GlobalObject;
 } 
 } 
 
-class nsFormData : public nsIDOMFormData,
-                   public nsIXHRSendable,
-                   public nsFormSubmission,
-                   public nsWrapperCache
+class nsFormData MOZ_FINAL : public nsIDOMFormData,
+                             public nsIXHRSendable,
+                             public nsFormSubmission,
+                             public nsWrapperCache
 {
   ~nsFormData() {}
 

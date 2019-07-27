@@ -40,8 +40,8 @@ class SVGAnimationElement;
 
 
 
-class nsSMILAnimationController : public nsSMILTimeContainer,
-                                  public nsARefreshObserver
+class nsSMILAnimationController MOZ_FINAL : public nsSMILTimeContainer,
+                                            public nsARefreshObserver
 {
 public:
   explicit nsSMILAnimationController(nsIDocument* aDoc);
