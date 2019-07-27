@@ -203,7 +203,6 @@ GMPVideoEncoderParent::CheckThread()
 
 bool
 GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameData& aEncodedFrame,
-                                   const GMPBufferType& aBufferType,
                                    const nsTArray<uint8_t>& aCodecSpecificInfo)
 {
   if (!mCallback) {
@@ -213,7 +212,7 @@ GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameData& aEncodedFrame
   auto f = new GMPVideoEncodedFrameImpl(aEncodedFrame, &mVideoHost);
 
   
-  mCallback->Encoded(f, aBufferType, aCodecSpecificInfo);
+  mCallback->Encoded(f, aCodecSpecificInfo);
 
   
   

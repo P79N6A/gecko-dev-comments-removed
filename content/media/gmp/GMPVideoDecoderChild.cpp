@@ -123,7 +123,6 @@ GMPVideoDecoderChild::RecvInitDecode(const GMPVideoCodec& aCodecSettings,
 bool
 GMPVideoDecoderChild::RecvDecode(const GMPVideoEncodedFrameData& aInputFrame,
                                  const bool& aMissingFrames,
-                                 const GMPBufferType& aBufferType,
                                  const nsTArray<uint8_t>& aCodecSpecificInfo,
                                  const int64_t& aRenderTimeMs)
 {
@@ -136,7 +135,6 @@ GMPVideoDecoderChild::RecvDecode(const GMPVideoEncodedFrameData& aInputFrame,
   
   mVideoDecoder->Decode(f,
                         aMissingFrames,
-                        aBufferType,
                         aCodecSpecificInfo.Elements(),
                         aCodecSpecificInfo.Length(),
                         aRenderTimeMs);

@@ -66,7 +66,6 @@ public:
 
   
   virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
-                       GMPBufferType aBufferType,
                        const nsTArray<uint8_t>& aCodecSpecificInfo) MOZ_OVERRIDE;
 
 
