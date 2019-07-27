@@ -106,7 +106,7 @@ EnterBaseline(JSContext *cx, EnterJitData &data)
     data.result.setInt32(data.numActualArgs);
     {
         AssertCompartmentUnchanged pcc(cx);
-        JitActivation activation(cx, data.constructing);
+        JitActivation activation(cx);
 
         if (data.osrFrame)
             data.osrFrame->setRunningInJit();
@@ -178,7 +178,7 @@ jit::EnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, jsbytecode *pc)
         data.maxArgc = Max(fp->numActualArgs(), fp->numFormalArgs()) + 1; 
         data.maxArgv = fp->argv() - 1; 
         data.scopeChain = nullptr;
-        data.calleeToken = CalleeToToken(&fp->callee());
+        data.calleeToken = CalleeToToken(&fp->callee(), data.constructing);
     } else {
         thisv = fp->thisValue();
         data.constructing = false;
@@ -189,7 +189,7 @@ jit::EnterBaselineAtBranch(JSContext *cx, InterpreterFrame *fp, jsbytecode *pc)
 
         
         if (fp->isFunctionFrame())
-            data.calleeToken = CalleeToToken(&fp->callee());
+            data.calleeToken = CalleeToToken(&fp->callee(),  false);
         else
             data.calleeToken = CalleeToToken(fp->script());
     }

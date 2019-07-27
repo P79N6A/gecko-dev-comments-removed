@@ -406,7 +406,9 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     
     masm.loadPtr(Address(StackPointer, IonRectifierFrameLayout::offsetOfCalleeToken()),
                  calleeTokenReg);
-    masm.load16ZeroExtend(Address(calleeTokenReg, JSFunction::offsetOfNargs()), numArgsReg);
+    masm.mov(calleeTokenReg, numArgsReg);
+    masm.andPtr(Imm32(CalleeTokenMask), numArgsReg);
+    masm.load16ZeroExtend(Address(numArgsReg, JSFunction::offsetOfNargs()), numArgsReg);
 
     masm.ma_subu(t1, numArgsReg, s3);
 
@@ -472,6 +474,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     
+    masm.andPtr(Imm32(CalleeTokenMask), calleeTokenReg);
     masm.loadPtr(Address(calleeTokenReg, JSFunction::offsetOfNativeOrScript()), t1);
     masm.loadBaselineOrIonRaw(t1, t1, mode, nullptr);
     masm.ma_callIonHalfPush(t1);

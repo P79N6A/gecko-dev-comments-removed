@@ -365,7 +365,9 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     masm.loadPtr(Address(esp, IonRectifierFrameLayout::offsetOfCalleeToken()), eax);
-    masm.movzwl(Operand(eax, JSFunction::offsetOfNargs()), ecx);
+    masm.mov(eax, ecx);
+    masm.andl(Imm32(CalleeTokenMask), ecx);
+    masm.movzwl(Operand(ecx, JSFunction::offsetOfNargs()), ecx);
     masm.subl(esi, ecx);
 
     
@@ -422,6 +424,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     
+    masm.andl(Imm32(CalleeTokenMask), eax);
     masm.loadPtr(Address(eax, JSFunction::offsetOfNativeOrScript()), eax);
     masm.loadBaselineOrIonRaw(eax, eax, mode, nullptr);
     masm.call(eax);
