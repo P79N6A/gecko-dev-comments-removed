@@ -3251,8 +3251,11 @@ nsHTMLDocument::ExecCommand(const nsAString& commandID,
     return false;
   }
 
+  bool isCutCopy = (commandID.LowerCaseEqualsLiteral("cut") ||
+                    commandID.LowerCaseEqualsLiteral("copy"));
+
   
-  if (!IsEditingOnAfterFlush()) {
+  if (!isCutCopy && !IsEditingOnAfterFlush()) {
     rv.Throw(NS_ERROR_FAILURE);
     return false;
   }
@@ -3262,14 +3265,33 @@ nsHTMLDocument::ExecCommand(const nsAString& commandID,
     return false;
   }
 
+  
+  
+  if (isCutCopy) {
+    if (!nsContentUtils::IsCutCopyAllowed()) {
+      return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIDocShell> docShell(mDocumentContainer);
+    if (docShell) {
+      nsresult res = docShell->DoCommand(cmdToDispatch.get());
+      return NS_SUCCEEDED(res);
+    }
+    return false;
+  }
+
   if (commandID.LowerCaseEqualsLiteral("gethtml")) {
     rv.Throw(NS_ERROR_FAILURE);
     return false;
   }
 
-  bool restricted = commandID.LowerCaseEqualsLiteral("cut") ||
-                    commandID.LowerCaseEqualsLiteral("copy")||
-                    commandID.LowerCaseEqualsLiteral("paste");
+  bool restricted = commandID.LowerCaseEqualsLiteral("paste");
   if (restricted && !nsContentUtils::IsCallerChrome()) {
     rv = NS_ERROR_DOM_SECURITY_ERR;
     return false;
