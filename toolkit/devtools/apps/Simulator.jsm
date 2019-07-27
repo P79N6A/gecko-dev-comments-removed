@@ -6,6 +6,16 @@
 
 Components.utils.import("resource://gre/modules/devtools/event-emitter.js");
 
+
+
+
+
+
+
+
+
+
+
 const EXPORTED_SYMBOLS = ["Simulator"];
 
 const Simulator = {
