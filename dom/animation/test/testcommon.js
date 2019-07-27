@@ -8,8 +8,16 @@
 
 
 
-function addDiv(t) {
+
+
+
+function addDiv(t, attrs) {
   var div = document.createElement('div');
+  if (attrs) {
+    for (var attrName in attrs) {
+      div.setAttribute(attrName, attrs[attrName]);
+    }
+  }
   document.body.appendChild(div);
   if (t && typeof t.add_cleanup === 'function') {
     t.add_cleanup(function() {
