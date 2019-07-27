@@ -395,6 +395,15 @@ function selectBrowserTab(tab, callback) {
   gBrowser.selectedTab = tab;
 }
 
+function ensureEventFired(elem, event) {
+  let deferred = Promise.defer();
+  elem.addEventListener(event, function handler() {
+    elem.removeEventListener(event, handler, true);
+    deferred.resolve()
+  }, true);
+  return deferred.promise;
+}
+
 function loadIntoTab(tab, url, callback) {
   tab.linkedBrowser.addEventListener("load", function tabLoad(event) {
     tab.linkedBrowser.removeEventListener("load", tabLoad, true);
@@ -403,6 +412,24 @@ function loadIntoTab(tab, url, callback) {
   tab.linkedBrowser.loadURI(url);
 }
 
+function ensureBrowserTabClosed(tab) {
+  let promise = ensureEventFired(gBrowser.tabContainer, "TabClose");
+  gBrowser.removeTab(tab);
+  return promise;
+}
+
+function ensureFrameLoaded(frame) {
+  let deferred = Promise.defer();
+  if (frame.contentDocument && frame.contentDocument.readyState == "complete") {
+    deferred.resolve();
+  } else {
+    frame.addEventListener("load", function handler() {
+      frame.removeEventListener("load", handler, true);
+      deferred.resolve()
+    }, true);
+  }
+  return deferred.promise;
+}
 
 
 
@@ -592,4 +619,46 @@ function closeAllChats() {
   while (chatbar.selectedChat) {
     chatbar.selectedChat.close();
   }
+}
+
+
+
+
+let origProxyType = Services.prefs.getIntPref('network.proxy.type');
+
+function toggleOfflineStatus(goOffline) {
+  
+  let deferred = Promise.defer();
+  if (!goOffline) {
+    Services.prefs.setIntPref('network.proxy.type', origProxyType);
+  }
+  if (goOffline != Services.io.offline) {
+    info("initial offline state " + Services.io.offline);
+    let expect = !Services.io.offline;
+    Services.obs.addObserver(function offlineChange(subject, topic, data) {
+      Services.obs.removeObserver(offlineChange, "network:offline-status-changed");
+      info("offline state changed to " + Services.io.offline);
+      is(expect, Services.io.offline, "network:offline-status-changed successful toggle");
+      deferred.resolve();
+    }, "network:offline-status-changed", false);
+    BrowserOffline.toggleOfflineStatus();
+  } else {
+    deferred.resolve();
+  }
+  if (goOffline) {
+    Services.prefs.setIntPref('network.proxy.type', 0);
+    
+    Services.cache2.clear();
+  }
+  return deferred.promise;
+}
+
+function goOffline() {
+  
+  
+  return toggleOfflineStatus(true);
+}
+
+function goOnline(callback) {
+  return toggleOfflineStatus(false);
 }

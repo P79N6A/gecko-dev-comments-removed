@@ -327,6 +327,9 @@ function SocialErrorListener(iframe, errorHandler) {
   this.setErrorMessage = errorHandler;
   this.iframe = iframe;
   iframe.socialErrorListener = this;
+  
+  
+  iframe.clientTop;
   iframe.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
                                    .getInterface(Ci.nsIWebProgress)
                                    .addProgressListener(this,
