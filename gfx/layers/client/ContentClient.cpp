@@ -309,7 +309,7 @@ ContentClientRemoteBuffer::CreateBackBuffer(const IntRect& aBufferRect)
   
   mTextureClient = CreateTextureClientForDrawing(
     mSurfaceFormat, mSize, gfx::BackendType::NONE,
-    mTextureFlags,
+    mTextureFlags | ExtraTextureFlags(),
     TextureAllocationFlags::ALLOC_CLEAR_BUFFER
   );
   if (!mTextureClient || !AddTextureClient(mTextureClient)) {
@@ -319,7 +319,7 @@ ContentClientRemoteBuffer::CreateBackBuffer(const IntRect& aBufferRect)
 
   if (mTextureFlags & TextureFlags::COMPONENT_ALPHA) {
     mTextureClientOnWhite = mTextureClient->CreateSimilar(
-      mTextureFlags,
+      mTextureFlags | ExtraTextureFlags(),
       TextureAllocationFlags::ALLOC_CLEAR_BUFFER_WHITE
     );
     if (!mTextureClientOnWhite || !AddTextureClient(mTextureClientOnWhite)) {
