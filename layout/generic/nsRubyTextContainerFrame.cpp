@@ -52,6 +52,15 @@ nsRubyTextContainerFrame::GetFrameName(nsAString& aResult) const
 }
 #endif
 
+ bool
+nsRubyTextContainerFrame::IsFrameOfType(uint32_t aFlags) const
+{
+  if (aFlags & eSupportsCSSTransforms) {
+    return false;
+  }
+  return nsRubyTextContainerFrameSuper::IsFrameOfType(aFlags);
+}
+
  void
 nsRubyTextContainerFrame::Reflow(nsPresContext* aPresContext,
                                  nsHTMLReflowMetrics& aDesiredSize,

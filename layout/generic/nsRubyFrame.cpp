@@ -187,6 +187,20 @@ nsRubyFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
   aData->currentLine += sum;
 }
 
+ LogicalSize
+nsRubyFrame::ComputeSize(nsRenderingContext *aRenderingContext,
+                           WritingMode aWM,
+                           const LogicalSize& aCBSize,
+                           nscoord aAvailableISize,
+                           const LogicalSize& aMargin,
+                           const LogicalSize& aBorder,
+                           const LogicalSize& aPadding,
+                           ComputeSizeFlags aFlags)
+{
+  
+  return LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+}
+
  nscoord
 nsRubyFrame::GetLogicalBaseline(WritingMode aWritingMode) const
 {
