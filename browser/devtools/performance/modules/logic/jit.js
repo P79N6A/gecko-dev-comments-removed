@@ -213,6 +213,19 @@ const JITOptimizations = function (rawSites, stringTable) {
 
 
 
+JITOptimizations.prototype = {
+  [Symbol.iterator]: function *() {
+    yield* this.optimizationSites;
+  },
+
+  get length() {
+    return this.optimizationSites.length;
+  }
+};
+
+
+
+
 
 
 

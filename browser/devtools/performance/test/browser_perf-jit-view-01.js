@@ -32,11 +32,13 @@ function* spawnTest() {
   yield injectAndRenderProfilerData();
 
   
-  
-  yield checkFrame(1, [{ i: 0, opt: gRawSite1 }, { i: 1, opt: gRawSite2 }]);
+  yield checkFrame(1);
 
   
-  yield checkFrame(2, [{ i: 0, opt: gRawSite3 }]);
+  
+  yield checkFrame(2, [{ i: 0, opt: gRawSite2 }, { i: 1, opt: gRawSite3 }]);
+
+  
   yield checkFrame(3);
 
   let select = once(PerformanceController, EVENTS.RECORDING_SELECTED);
@@ -114,7 +116,7 @@ function* spawnTest() {
 
       
       let warningIcon = $(`.tree-widget-container li[data-id='["${i}"]'] .opt-icon[severity=warning]`);
-      if (opt === gRawSite2 || opt === gRawSite3) {
+      if (opt === gRawSite3 || opt === gRawSite1) {
         ok(warningIcon, "did find a warning icon for all strategies failing.");
       } else {
         ok(!warningIcon, "did not find a warning icon for no successful strategies");
@@ -143,7 +145,7 @@ let gThread = RecordingUtils.deflateThread({
     frames: [
       { location: "(root)" },
       { location: "A_O1" },
-      { location: "B_O3" },
+      { location: "B_O2" },
       { location: "C (http://foo/bar/baz:56)" }
     ]
   }, {
@@ -151,14 +153,14 @@ let gThread = RecordingUtils.deflateThread({
     frames: [
       { location: "(root)" },
       { location: "A (http://foo/bar/baz:12)" },
-      { location: "B (http://foo/bar/boo:34)" },
+      { location: "B_O2" },
     ]
   }, {
     time: 5 + 1 + 2,
     frames: [
       { location: "(root)" },
-      { location: "A_O2" },
-      { location: "B (http://foo/bar/boo:34)" },
+      { location: "A_O1" },
+      { location: "B_O3" },
     ]
   }, {
     time: 5 + 1 + 2 + 7,
@@ -197,14 +199,14 @@ let gRawSite1 = {
     data: [
       [uniqStr("Failure1"), uniqStr("SomeGetter1")],
       [uniqStr("Failure2"), uniqStr("SomeGetter2")],
-      [uniqStr("Inlined"), uniqStr("SomeGetter3")]
+      [uniqStr("Failure3"), uniqStr("SomeGetter3")]
     ]
   }
 };
 
 let gRawSite2 = {
-  _testFrameInfo: { name: "A", line: "12", file: "@baz" },
-  line: 12,
+  _testFrameInfo: { name: "B", line: "10", file: "@boo" },
+  line: 40,
   types: [{
     mirType: uniqStr("Int32"),
     site: uniqStr("Receiver")
@@ -217,13 +219,13 @@ let gRawSite2 = {
     data: [
       [uniqStr("Failure1"), uniqStr("SomeGetter1")],
       [uniqStr("Failure2"), uniqStr("SomeGetter2")],
-      [uniqStr("Failure3"), uniqStr("SomeGetter3")]
+      [uniqStr("Inlined"), uniqStr("SomeGetter3")]
     ]
   }
 };
 
 let gRawSite3 = {
-  _testFrameInfo: { name: "B", line: "34", file: "@boo" },
+  _testFrameInfo: { name: "B", line: "10", file: "@boo" },
   line: 34,
   types: [{
     mirType: uniqStr("Int32"),
@@ -252,12 +254,12 @@ gThread.frameTable.data.forEach((frame) => {
     frame[LOCATION_SLOT] = uniqStr("A (http://foo/bar/baz:12)");
     frame[OPTIMIZATIONS_SLOT] = gRawSite1;
     break;
-  case "A_O2":
-    frame[LOCATION_SLOT] = uniqStr("A (http://foo/bar/baz:12)");
+  case "B_O2":
+    frame[LOCATION_SLOT] = uniqStr("B (http://foo/bar/boo:10)");
     frame[OPTIMIZATIONS_SLOT] = gRawSite2;
     break;
   case "B_O3":
-    frame[LOCATION_SLOT] = uniqStr("B (http://foo/bar/boo:34)");
+    frame[LOCATION_SLOT] = uniqStr("B (http://foo/bar/boo:10)");
     frame[OPTIMIZATIONS_SLOT] = gRawSite3;
     break;
   }
