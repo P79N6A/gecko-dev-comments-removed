@@ -4,6 +4,7 @@
 
 
 #include "CrashReporterParent.h"
+#include "mozilla/Snprintf.h"
 #include "mozilla/dom/ContentParent.h"
 #include "nsXULAppAPI.h"
 #include <time.h>
@@ -126,7 +127,7 @@ CrashReporterParent::GenerateChildData(const AnnotationTable* processNotes)
     mNotes.Put(NS_LITERAL_CSTRING("ProcessType"), type);
 
     char startTime[32];
-    sprintf(startTime, "%lld", static_cast<long long>(mStartTime));
+    snprintf_literal(startTime, "%lld", static_cast<long long>(mStartTime));
     mNotes.Put(NS_LITERAL_CSTRING("StartupTime"), nsDependentCString(startTime));
 
     if (!mAppNotes.IsEmpty())
