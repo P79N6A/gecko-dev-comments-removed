@@ -433,6 +433,9 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
     
     return NS_OK;
   }
+
+  aSource->EndTrack(aID);
+
   if (!mSources.IsEmpty()) {
     return NS_OK;
   }
@@ -443,7 +446,6 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
   {
     MonitorAutoLock lock(mMonitor);
     mState = kStopped;
-    aSource->EndTrack(aID);
     
     
     mImage = nullptr;
