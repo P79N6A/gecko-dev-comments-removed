@@ -62,12 +62,12 @@ add_task(function* () {
     
     done = waitForNetworkEvents(monitor, 1);
     info("Requesting a resource over HTTP.");
-    debuggee.performRequests(1, "http://test1.example.com" + CORS_SJS_PATH);
+    debuggee.performRequests(1, "http://test1.example.com");
     yield done;
 
     done = waitForNetworkEvents(monitor, 1);
     info("Requesting a resource over HTTPS.");
-    debuggee.performRequests(1, "https://example.com" + CORS_SJS_PATH);
+    debuggee.performRequests(1, "https://example.com");
     yield done;
 
     is(RequestsMenu.itemCount, 3, "Three events logged.");
