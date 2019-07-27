@@ -844,12 +844,7 @@ let SessionStoreInternal = {
 
 
 
-
-
-
-
-
-  onLoad: function ssi_onLoad(aWindow, aInitialState = null) {
+  onLoad(aWindow) {
     
     if (aWindow && aWindow.__SSi && this._windows[aWindow.__SSi])
       return;
@@ -874,13 +869,42 @@ let SessionStoreInternal = {
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
 
-    let isPrivateWindow = false;
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow))
-      this._windows[aWindow.__SSi].isPrivate = isPrivateWindow = true;
+      this._windows[aWindow.__SSi].isPrivate = true;
     if (!this._isWindowLoaded(aWindow))
       this._windows[aWindow.__SSi]._restoring = true;
     if (!aWindow.toolbar.visible)
       this._windows[aWindow.__SSi].isPopup = true;
+
+    let tabbrowser = aWindow.gBrowser;
+
+    
+    for (let i = 0; i < tabbrowser.tabs.length; i++) {
+      this.onTabAdd(aWindow, tabbrowser.tabs[i], true);
+    }
+    
+    TAB_EVENTS.forEach(function(aEvent) {
+      tabbrowser.tabContainer.addEventListener(aEvent, this, true);
+    }, this);
+
+    
+    aWindow.gBrowser.addEventListener("XULFrameLoaderCreated", this);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  initializeWindow(aWindow, aInitialState = null) {
+    let isPrivateWindow = PrivateBrowsingUtils.isWindowPrivate(aWindow);
 
     
     if (RunState.isStopped) {
@@ -1007,20 +1031,6 @@ let SessionStoreInternal = {
       
       this._restoreLastWindow = false;
     }
-
-    var tabbrowser = aWindow.gBrowser;
-
-    
-    for (let i = 0; i < tabbrowser.tabs.length; i++) {
-      this.onTabAdd(aWindow, tabbrowser.tabs[i], true);
-    }
-    
-    TAB_EVENTS.forEach(function(aEvent) {
-      tabbrowser.tabContainer.addEventListener(aEvent, this, true);
-    }, this);
-
-    
-    aWindow.gBrowser.addEventListener("XULFrameLoaderCreated", this);
   },
 
   
@@ -1030,8 +1040,11 @@ let SessionStoreInternal = {
 
   onBeforeBrowserWindowShown: function (aWindow) {
     
+    this.onLoad(aWindow);
+
+    
     if (this._sessionInitialized) {
-      this.onLoad(aWindow);
+      this.initializeWindow(aWindow);
       return;
     }
 
@@ -1067,13 +1080,13 @@ let SessionStoreInternal = {
       }
 
       if (this._sessionInitialized) {
-        this.onLoad(aWindow);
+        this.initializeWindow(aWindow);
       } else {
         let initialState = this.initSession();
         this._sessionInitialized = true;
 
         TelemetryStopwatch.start("FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS");
-        this.onLoad(aWindow, initialState);
+        this.initializeWindow(aWindow, initialState);
         TelemetryStopwatch.finish("FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS");
 
         
@@ -2173,6 +2186,7 @@ let SessionStoreInternal = {
 
   navigateAndRestore(tab, loadArguments, historyIndex) {
     let window = tab.ownerDocument.defaultView;
+    NS_ASSERT(window.__SSi, "tab's window must be tracked");
     let browser = tab.linkedBrowser;
 
     
