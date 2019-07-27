@@ -273,14 +273,6 @@ public:
                             AudioChunk* aOutput,
                             bool* aFinished) override
   {
-    MutexAutoLock lock(NodeMutex());
-
-    
-    if (!Node()) {
-      aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
-      return;
-    }
-
     
     
     

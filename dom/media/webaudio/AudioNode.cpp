@@ -382,17 +382,12 @@ void
 AudioNode::DestroyMediaStream()
 {
   if (mStream) {
-    {
-      
-      
-      
-      
-      AudioNodeStream* ns = mStream;
-      MutexAutoLock lock(ns->Engine()->NodeMutex());
-      MOZ_ASSERT(ns, "How come we don't have a stream here?");
-      MOZ_ASSERT(ns->Engine()->Node() == this, "Invalid node reference");
-      ns->Engine()->ClearNode();
-    }
+    
+    AudioNodeStream* ns = mStream;
+    MOZ_ASSERT(ns, "How come we don't have a stream here?");
+    MOZ_ASSERT(ns->Engine()->NodeMainThread() == this,
+               "Invalid node reference");
+    ns->Engine()->ClearNode();
 
     mStream->Destroy();
     mStream = nullptr;
