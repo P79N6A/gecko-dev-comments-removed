@@ -268,10 +268,15 @@ class Mirror : public AbstractMirror<T>, public WatchTarget
 public:
   using AbstractMirror<T>::OwnerThread;
 
-  Mirror(AbstractThread* aThread, const T& aInitialValue, const char* aName)
+  Mirror(AbstractThread* aThread, const T& aInitialValue, const char* aName,
+         AbstractCanonical<T>* aCanonical)
     : AbstractMirror<T>(aThread), WatchTarget(aName), mValue(aInitialValue)
   {
     MIRROR_LOG("%s [%p] initialized", mName, this);
+
+    if (aCanonical) {
+      ConnectInternal(aCanonical);
+    }
   }
 
   operator const T&()
@@ -300,8 +305,16 @@ public:
 
   void Connect(AbstractCanonical<T>* aCanonical)
   {
-    MIRROR_LOG("%s [%p] Connecting to %p", mName, this, aCanonical);
     MOZ_ASSERT(OwnerThread()->IsCurrentThreadIn());
+    ConnectInternal(aCanonical);
+  }
+
+private:
+  
+  
+  void ConnectInternal(AbstractCanonical<T>* aCanonical)
+  {
+    MIRROR_LOG("%s [%p] Connecting to %p", mName, this, aCanonical);
     MOZ_ASSERT(!IsConnected());
 
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableMethodWithArg<StorensRefPtrPassByPtr<AbstractMirror<T>>>
@@ -309,6 +322,7 @@ public:
     aCanonical->OwnerThread()->Dispatch(r.forget(), AbstractThread::DontAssertDispatchSuccess);
     mCanonical = aCanonical;
   }
+public:
 
   void DisconnectIfConnected()
   {
@@ -336,9 +350,10 @@ public:
 
     
     
-    void Init(AbstractThread* aThread, const T& aInitialValue, const char* aName)
+    void Init(AbstractThread* aThread, const T& aInitialValue, const char* aName,
+              AbstractCanonical<T>* aCanonical = nullptr)
     {
-      mMirror = new Mirror<T>(aThread, aInitialValue, aName);
+      mMirror = new Mirror<T>(aThread, aInitialValue, aName, aCanonical);
     }
 
     
