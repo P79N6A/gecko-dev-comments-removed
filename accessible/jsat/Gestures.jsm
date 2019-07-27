@@ -766,25 +766,6 @@ AndroidTap.prototype.pointerup = function AndroidTap_pointerup(aPoints) {
 
 
 
-
-AndroidTap.prototype._handleReject = function AndroidTap__handleReject(aRejectTo) {
-  let keys = Object.keys(this.points);
-  if (aRejectTo === Swipe && keys.length === 1) {
-    let key = keys[0];
-    let point = this.points[key];
-    
-    this.points[key + '-copy'] = point;
-  }
-  return TapGesture.prototype._handleReject.call(this, aRejectTo);
-};
-
-
-
-
-
-
-
-
 function DoubleTap(aTimeStamp, aPoints, aLastEvent) {
   TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, TapHold);
 }
