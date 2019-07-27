@@ -5937,6 +5937,12 @@ DebuggerFrame_setOnStep(JSContext *cx, unsigned argc, Value *vp)
     if (!args[0].isUndefined() && prior.isUndefined()) {
         
         AutoCompartment ac(cx, frame.scopeChain());
+        
+        
+        
+        Debugger *dbg = Debugger::fromChildJSObject(thisobj);
+        if (!dbg->ensureExecutionObservabilityOfScript(cx, frame.script()))
+            return false;
         if (!frame.script()->incrementStepModeCount(cx))
             return false;
     } else if (args[0].isUndefined() && !prior.isUndefined()) {
