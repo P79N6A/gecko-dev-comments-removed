@@ -834,7 +834,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
           } else if ((computedTiming.mPhase ==
                       ComputedTiming::AnimationPhase_Active) &&
                      canThrottleTick &&
-                    !player->mIsRunningOnCompositor) {
+                     !player->IsRunningOnCompositor()) {
             
             
             collection->UpdateAnimationGeneration(mPresContext);

@@ -311,7 +311,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           }
 
           
-          oldPlayer->mIsRunningOnCompositor = false;
+          oldPlayer->ClearIsRunningOnCompositor();
 
           
           

@@ -35,9 +35,9 @@ protected:
 
 public:
   explicit AnimationPlayer(AnimationTimeline* aTimeline)
-    : mIsRunningOnCompositor(false)
-    , mTimeline(aTimeline)
+    : mTimeline(aTimeline)
     , mIsPaused(false)
+    , mIsRunningOnCompositor(false)
   {
   }
 
@@ -92,6 +92,9 @@ public:
     return GetSource() && GetSource()->IsInEffect();
   }
 
+  void SetIsRunningOnCompositor() { mIsRunningOnCompositor = true; }
+  void ClearIsRunningOnCompositor() { mIsRunningOnCompositor = false; }
+
   
   
   
@@ -99,7 +102,6 @@ public:
 
   
   Nullable<TimeDuration> mStartTime; 
-  bool mIsRunningOnCompositor;
 
   nsRefPtr<AnimationTimeline> mTimeline;
   nsRefPtr<Animation> mSource;
@@ -111,6 +113,7 @@ protected:
 
   Nullable<TimeDuration> mHoldTime;  
   bool mIsPaused;
+  bool mIsRunningOnCompositor;
 };
 
 } 
