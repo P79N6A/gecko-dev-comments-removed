@@ -4,7 +4,7 @@
 
 
 
-#include "jsinferinlines.h"
+#include "vm/TypeInference-inl.h"
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
@@ -34,7 +34,6 @@
 
 #include "jsatominlines.h"
 #include "jsgcinlines.h"
-#include "jsobjinlines.h"
 #include "jsscriptinlines.h"
 
 #include "vm/NativeObject-inl.h"

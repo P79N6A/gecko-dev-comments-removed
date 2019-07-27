@@ -6,8 +6,8 @@
 
 
 
-#ifndef jsinfer_h
-#define jsinfer_h
+#ifndef vm_TypeInference_h
+#define vm_TypeInference_h
 
 #include "mozilla/MemoryReporting.h"
 

@@ -6,10 +6,10 @@
 
 
 
-#ifndef jsinferinlines_h
-#define jsinferinlines_h
+#ifndef vm_TypeInference_inl_h
+#define vm_TypeInference_inl_h
 
-#include "jsinfer.h"
+#include "vm/TypeInference.h"
 
 #include "mozilla/PodOperations.h"
 
