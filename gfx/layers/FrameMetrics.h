@@ -8,6 +8,7 @@
 
 #include <stdint.h>                     
 #include "Units.h"                      
+#include "mozilla/Maybe.h"
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/ScaleFactor.h"    
@@ -98,7 +99,8 @@ public:
            mDoSmoothScroll == aOther.mDoSmoothScroll &&
            mLineScrollAmount == aOther.mLineScrollAmount &&
            mPageScrollAmount == aOther.mPageScrollAmount &&
-           mAllowVerticalScrollWithWheel == aOther.mAllowVerticalScrollWithWheel;
+           mAllowVerticalScrollWithWheel == aOther.mAllowVerticalScrollWithWheel &&
+           mClipRect == aOther.mClipRect;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -517,6 +519,21 @@ public:
     mAllowVerticalScrollWithWheel = true;
   }
 
+  void SetClipRect(const Maybe<ParentLayerIntRect>& aClipRect)
+  {
+    mClipRect = aClipRect;
+  }
+  const Maybe<ParentLayerIntRect>& GetClipRect() const
+  {
+    return mClipRect;
+  }
+  bool HasClipRect() const {
+    return mClipRect.isSome();
+  }
+  const ParentLayerIntRect& ClipRect() const {
+    return mClipRect.ref();
+  }
+
 private:
 
   
@@ -687,6 +704,9 @@ private:
 
   
   bool mAllowVerticalScrollWithWheel;
+
+  
+  Maybe<ParentLayerIntRect> mClipRect;
 
   
   

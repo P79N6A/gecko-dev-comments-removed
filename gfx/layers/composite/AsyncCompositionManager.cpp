@@ -623,6 +623,17 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     mLayerManager->GetCompositor()->SetScreenRenderOffset(offset);
 
+    
+    
+    
+    if (i == 0 && metrics.HasClipRect()) {
+      if (clipRect) {
+        clipRect = Some(clipRect.value().Intersect(metrics.ClipRect()));
+      } else {
+        clipRect = Some(metrics.ClipRect());
+      }
+    }
+
     combinedAsyncTransformWithoutOverscroll *= asyncTransformWithoutOverscroll;
     combinedAsyncTransform *= (Matrix4x4(asyncTransformWithoutOverscroll) * overscrollTransform);
     if (i > 0 && clipRect) {
