@@ -22,10 +22,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
 XPCOMUtils.defineLazyModuleGetter(this, "BinarySearch",
   "resource://gre/modules/BinarySearch.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "Timer", () => {
-  return Cu.import("resource://gre/modules/Timer.jsm", {});
-});
-
 XPCOMUtils.defineLazyGetter(this, "gPrincipal", function () {
   let uri = Services.io.newURI("about:newtab", null, null);
   return Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
@@ -60,9 +56,6 @@ const LINKS_GET_LINKS_LIMIT = 100;
 
 
 const TOPIC_GATHER_TELEMETRY = "gather-telemetry";
-
-
-const SCHEDULE_UPDATE_TIMEOUT_MS = 1000;
 
 
 
@@ -283,26 +276,12 @@ let AllPages = {
 
 
 
-
-  update: function AllPages_update(aExceptPage, aHiddenPagesOnly=false) {
+  update(aExceptPage, aReason = "") {
     this._pages.forEach(function (aPage) {
-      if (aExceptPage != aPage)
-        aPage.update(aHiddenPagesOnly);
+      if (aExceptPage != aPage) {
+        aPage.update(aReason);
+      }
     });
-  },
-
-  
-
-
-
-
-  scheduleUpdateForHiddenPages: function AllPages_scheduleUpdateForHiddenPages() {
-    if (!this._scheduleUpdateTimeout) {
-      this._scheduleUpdateTimeout = Timer.setTimeout(() => {
-        delete this._scheduleUpdateTimeout;
-        this.update(null, true);
-      }, SCHEDULE_UPDATE_TIMEOUT_MS);
-    }
   },
 
   
@@ -1016,8 +995,9 @@ let Links = {
       updatePages = true;
     }
 
-    if (updatePages)
-      AllPages.scheduleUpdateForHiddenPages();
+    if (updatePages) {
+      AllPages.update(null, "links-changed");
+    }
   },
 
   
@@ -1025,7 +1005,7 @@ let Links = {
 
   onManyLinksChanged: function Links_onManyLinksChanged(aProvider) {
     this._populateProviderCache(aProvider, () => {
-      AllPages.scheduleUpdateForHiddenPages();
+      AllPages.update(null, "links-changed");
     }, true);
   },
 

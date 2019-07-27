@@ -1,6 +1,7 @@
 
 
 
+"use strict";
 
 
 
@@ -10,40 +11,37 @@ function runTests() {
   
   
   
-  
-  
-  
-  
-  
-  setLinks([]);
-  whenPagesUpdated(null, true);
-  yield null;
-  yield null;
+  yield whenPagesUpdatedAnd(resolve => setLinks([], resolve));
 
   
-  fillHistory([link(1)]);
-  yield whenPagesUpdated(null, true);
+  yield fillHistoryAndWaitForPageUpdate([1]);
   yield addNewTabPageTab();
   checkGrid("1,,,,,,,,");
 
-  fillHistory([link(2)]);
-  yield whenPagesUpdated(null, true);
+  yield fillHistoryAndWaitForPageUpdate([2]);
   yield addNewTabPageTab();
   checkGrid("2,1,,,,,,,");
 
-  fillHistory([link(1)]);
-  yield whenPagesUpdated(null, true);
+  yield fillHistoryAndWaitForPageUpdate([1]);
   yield addNewTabPageTab();
   checkGrid("1,2,,,,,,,");
 
-  
-  yield fillHistory([link(2), link(3), link(4)], TestRunner.next);
-  yield whenPagesUpdated(null, true);
+  yield fillHistoryAndWaitForPageUpdate([2, 3, 4]);
   yield addNewTabPageTab();
   checkGrid("2,1,3,4,,,,,");
 
   
   is(getCell(1).site.link.type, "history", "added link is history");
+}
+
+function fillHistoryAndWaitForPageUpdate(links) {
+  return whenPagesUpdatedAnd(resolve => fillHistory(links.map(link), resolve));
+}
+
+function whenPagesUpdatedAnd(promiseConstructor) {
+  let promise1 = new Promise(whenPagesUpdated);
+  let promise2 = new Promise(promiseConstructor);
+  return Promise.all([promise1, promise2]).then(TestRunner.next);
 }
 
 function link(id) {

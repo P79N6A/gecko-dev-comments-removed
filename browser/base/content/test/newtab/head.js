@@ -214,7 +214,7 @@ function getCell(aIndex) {
 
 
 
-function setLinks(aLinks) {
+function setLinks(aLinks, aCallback = TestRunner.next) {
   let links = aLinks;
 
   if (typeof links == "string") {
@@ -233,7 +233,7 @@ function setLinks(aLinks) {
       fillHistory(links, function () {
         NewTabUtils.links.populateCache(function () {
           NewTabUtils.allPages.update();
-          TestRunner.next();
+          aCallback();
         }, true);
       });
     });
@@ -249,7 +249,7 @@ function clearHistory(aCallback) {
   PlacesUtils.history.removeAllPages();
 }
 
-function fillHistory(aLinks, aCallback) {
+function fillHistory(aLinks, aCallback = TestRunner.next) {
   let numLinks = aLinks.length;
   if (!numLinks) {
     if (aCallback)
@@ -326,6 +326,33 @@ function restore() {
 
 
 
+function waitForCondition(aConditionFn, aMaxTries=50, aCheckInterval=100) {
+  return new Promise((resolve, reject) => {
+    let tries = 0;
+
+    function tryNow() {
+      tries++;
+
+      if (aConditionFn()) {
+        resolve();
+      } else if (tries < aMaxTries) {
+        tryAgain();
+      } else {
+        reject("Condition timed out: " + aConditionFn.toSource());
+      }
+    }
+
+    function tryAgain() {
+      setTimeout(tryNow, aCheckInterval);
+    }
+
+    tryAgain();
+  });
+}
+
+
+
+
 function addNewTabPageTab() {
   addNewTabPageTabPromise().then(TestRunner.next);
 }
@@ -349,7 +376,7 @@ function addNewTabPageTabPromise() {
 
   
   if (browser.contentDocument.readyState == "complete") {
-    whenNewTabLoaded();
+    waitForCondition(() => !browser.contentDocument.hidden).then(whenNewTabLoaded);
     return deferred.promise;
   }
 
@@ -618,17 +645,13 @@ function createDragEvent(aEventType, aData) {
 
 
 
-
-
-
-function whenPagesUpdated(aCallback, aOnlyIfHidden=false) {
+function whenPagesUpdated(aCallback = TestRunner.next) {
   let page = {
     observe: _ => _,
-    update: function (onlyIfHidden=false) {
-      if (onlyIfHidden == aOnlyIfHidden) {
-        NewTabUtils.allPages.unregister(this);
-        executeSoon(aCallback || TestRunner.next);
-      }
+
+    update() {
+      NewTabUtils.allPages.unregister(this);
+      executeSoon(aCallback);
     }
   };
 

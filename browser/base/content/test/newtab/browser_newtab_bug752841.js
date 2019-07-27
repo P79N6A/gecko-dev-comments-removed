@@ -44,6 +44,10 @@ function runTests() {
       "New page grid is updated correctly.");
 
     gBrowser.removeTab(newTab);
+
+    
+    let doc = existingTab.linkedBrowser.contentDocument;
+    yield waitForCondition(() => !doc.hidden).then(TestRunner.next);
   }
 
   gBrowser.removeTab(existingTab);

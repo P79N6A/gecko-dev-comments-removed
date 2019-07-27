@@ -5,6 +5,9 @@
 #endif
 
 
+const SCHEDULE_UPDATE_TIMEOUT_MS = 1000;
+
+
 
 
 
@@ -73,12 +76,35 @@ let gPage = {
 
 
 
-  update: function Page_update(aOnlyIfHidden=false) {
-    let skipUpdate = aOnlyIfHidden && !document.hidden;
+
+
+
+  update(reason = "") {
     
-    if (gGrid.ready && !skipUpdate) {
-      gGrid.refresh();
+    if (!document.hidden) {
+      
+      
+      
+      if (reason != "links-changed" && gGrid.ready) {
+        gGrid.refresh();
+      }
+
+      return;
     }
+
+    
+    if (this._scheduleUpdateTimeout) {
+      return;
+    }
+
+    this._scheduleUpdateTimeout = setTimeout(() => {
+      
+      if (gGrid.ready) {
+        gGrid.refresh();
+      }
+
+      this._scheduleUpdateTimeout = null;
+    }, SCHEDULE_UPDATE_TIMEOUT_MS);
   },
 
   
@@ -170,6 +196,15 @@ let gPage = {
         }
         break;
       case "visibilitychange":
+        
+        if (this._scheduleUpdateTimeout) {
+          clearTimeout(this._scheduleUpdateTimeout);
+          this._scheduleUpdateTimeout = null;
+
+          
+          this.update();
+        }
+
         setTimeout(() => this.onPageFirstVisible());
         removeEventListener("visibilitychange", this);
         break;
