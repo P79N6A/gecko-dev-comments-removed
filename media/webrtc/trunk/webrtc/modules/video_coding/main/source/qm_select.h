@@ -42,6 +42,11 @@ struct VCMResolutionScale {
   bool change_resolution_temporal;
 };
 
+
+
+
+
+
 enum ImageType {
   kQCIF = 0,            
   kHCIF,                

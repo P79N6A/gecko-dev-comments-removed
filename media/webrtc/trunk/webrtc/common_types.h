@@ -671,6 +671,8 @@ struct VideoCodec
 
     unsigned short      width;
     unsigned short      height;
+    
+    unsigned char       resolution_divisor;
 
     unsigned int        startBitrate;  
     unsigned int        maxBitrate;  

@@ -328,6 +328,8 @@ void VCMQmResolution::UpdateRates(float target_bitrate,
 
 
 
+
+
 int VCMQmResolution::SelectResolution(VCMResolutionScale** qm) {
   if (!init_) {
     return VCM_UNINITIALIZED;
