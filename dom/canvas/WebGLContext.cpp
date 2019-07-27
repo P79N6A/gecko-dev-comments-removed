@@ -821,6 +821,11 @@ WebGLContext::SetDimensions(int32_t signedWidth, int32_t signedHeight)
         
         PresentScreenBuffer();
 
+        if (IsContextLost()) {
+            GenerateWarning("WebGL context was lost due to swap failure.");
+            return NS_OK;
+        }
+
         
         if (!ResizeBackbuffer(width, height)) {
             GenerateWarning("WebGL context failed to resize.");
