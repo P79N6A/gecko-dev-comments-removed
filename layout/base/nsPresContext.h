@@ -256,7 +256,8 @@ public:
 
 
 
-  void RebuildAllStyleData(nsChangeHint aExtraHint);
+
+  void RebuildAllStyleData(nsChangeHint aExtraHint, nsRestyleHint aRestyleHint);
   
 
 
