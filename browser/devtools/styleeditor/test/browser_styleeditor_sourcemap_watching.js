@@ -32,7 +32,7 @@ function test()
 
   Services.prefs.setBoolPref(TRANSITIONS_PREF, false);
 
-  Task.spawn(function() {
+  Task.spawn(function*() {
     
     let HTMLFile = yield copy(TESTCASE_URI_HTML, ["sourcemaps.html"]);
     let CSSFile = yield copy(TESTCASE_URI_CSS, ["sourcemap-css", "sourcemaps.css"]);
@@ -43,7 +43,19 @@ function test()
     let uri = Services.io.newFileURI(HTMLFile);
     let testcaseURI = uri.resolve("");
 
-    let editor = yield openEditor(testcaseURI);
+    let { ui } = yield openStyleEditorForURL(testcaseURI);
+
+    let editor = ui.editors[1];
+    if (getStylesheetNameFor(editor) != TESTCASE_SCSS_NAME) {
+      editor = ui.editors[2];
+    }
+
+    is(getStylesheetNameFor(editor), TESTCASE_SCSS_NAME, "found scss editor");
+
+    let link = getLinkFor(editor);
+    link.click();
+
+    yield editor.getSourceEditor();
 
     let element = content.document.querySelector("div");
     let style = content.getComputedStyle(element, null);
@@ -67,31 +79,6 @@ function test()
 
     info("wrote to CSS file");
   })
-}
-
-function openEditor(testcaseURI) {
-  let deferred = promise.defer();
-
-  addTabAndOpenStyleEditors(3, panel => {
-    let UI = panel.UI;
-
-    
-    
-    
-    let editor = UI.editors[1];
-    if (getStylesheetNameFor(editor) != TESTCASE_SCSS_NAME) {
-      editor = UI.editors[2];
-    }
-    is(getStylesheetNameFor(editor), TESTCASE_SCSS_NAME, "found scss editor");
-
-    let link = getLinkFor(editor);
-    link.click();
-
-    editor.getSourceEditor().then(deferred.resolve);
-  });
-  content.location = testcaseURI;
-
-  return deferred.promise;
 }
 
 function editSCSS(editor) {
