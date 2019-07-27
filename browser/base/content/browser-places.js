@@ -275,24 +275,17 @@ var PlacesCommandHook = {
     var itemId = PlacesUtils.getMostRecentBookmarkForURI(uri);
     if (itemId == -1) {
       
-      
-      
-      
-      
-      
-      var webNav = aBrowser.webNavigation;
-      var url = webNav.currentURI;
       var title;
       var description;
       var charset;
       try {
         let isErrorPage = /^about:(neterror|certerror|blocked)/
-                          .test(webNav.document.documentURI);
-        title = isErrorPage ? PlacesUtils.history.getPageTitle(url)
-                            : webNav.document.title;
-        title = title || url.spec;
-        description = PlacesUIUtils.getDescriptionFromDocument(webNav.document);
-        charset = webNav.document.characterSet;
+                          .test(aBrowser.contentDocumentAsCPOW.documentURI);
+        title = isErrorPage ? PlacesUtils.history.getPageTitle(uri)
+                            : aBrowser.contentTitle;
+        title = title || uri.spec;
+        description = PlacesUIUtils.getDescriptionFromDocument(aBrowser.contentDocumentAsCPOW);
+        charset = aBrowser.characterSet;
       }
       catch (e) { }
 
