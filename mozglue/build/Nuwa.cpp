@@ -140,21 +140,7 @@ struct thread_info : public mozilla::LinkedListElement<thread_info> {
 
   TLSInfoList tlsInfo;
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  pthread_mutex_t *condMutex;
-  bool condMutexNeedsBalancing;
-
+  pthread_mutex_t *reacquireMutex;
   void *stk;
 
   pid_t origNativeThreadID;
@@ -515,8 +501,7 @@ thread_info_new(void) {
   tinfo->recrArg = nullptr;
   tinfo->recreatedThreadID = 0;
   tinfo->recreatedNativeThreadID = 0;
-  tinfo->condMutex = nullptr;
-  tinfo->condMutexNeedsBalancing = false;
+  tinfo->reacquireMutex = nullptr;
   tinfo->stk = MozTaggedAnonymousMmap(nullptr,
                                       NUWA_STACK_SIZE + getPageSize(),
                                       PROT_READ | PROT_WRITE,
@@ -1031,16 +1016,13 @@ __wrap_pthread_cond_wait(pthread_cond_t *cond,
     return rv;
   }
   if (recreated && mtx) {
-    if (!freezePoint1) {
-      tinfo->condMutex = mtx;
+    if (!freezePoint1 && pthread_mutex_trylock(mtx)) {
       
       
       
       
       
-      if (!pthread_mutex_trylock(mtx)) {
-        tinfo->condMutexNeedsBalancing = true;
-      }
+      tinfo->reacquireMutex = mtx;
     }
     RECREATE_CONTINUE();
     RECREATE_PASS_VIP();
@@ -1070,11 +1052,8 @@ __wrap_pthread_cond_timedwait(pthread_cond_t *cond,
     return rv;
   }
   if (recreated && mtx) {
-    if (!freezePoint1) {
-      tinfo->condMutex = mtx;
-      if (!pthread_mutex_trylock(mtx)) {
-        tinfo->condMutexNeedsBalancing = true;
-      }
+    if (!freezePoint1 && pthread_mutex_trylock(mtx)) {
+      tinfo->reacquireMutex = mtx;
     }
     RECREATE_CONTINUE();
     RECREATE_PASS_VIP();
@@ -1108,11 +1087,8 @@ __wrap___pthread_cond_timedwait(pthread_cond_t *cond,
     return rv;
   }
   if (recreated && mtx) {
-    if (!freezePoint1) {
-      tinfo->condMutex = mtx;
-      if (!pthread_mutex_trylock(mtx)) {
-        tinfo->condMutexNeedsBalancing = true;
-      }
+    if (!freezePoint1 && pthread_mutex_trylock(mtx)) {
+      tinfo->reacquireMutex = mtx;
     }
     RECREATE_CONTINUE();
     RECREATE_PASS_VIP();
@@ -1427,12 +1403,8 @@ RecreateThreads() {
       RECREATE_BEFORE(tinfo);
       thread_recreate(tinfo);
       RECREATE_WAIT();
-      if (tinfo->condMutex) {
-        
-        REAL(pthread_mutex_lock)(tinfo->condMutex);
-        if (tinfo->condMutexNeedsBalancing) {
-          pthread_mutex_unlock(tinfo->condMutex);
-        }
+      if (tinfo->reacquireMutex) {
+        REAL(pthread_mutex_lock)(tinfo->reacquireMutex);
       }
     } else if(!(tinfo->flags & TINFO_FLAG_NUWA_SKIP)) {
       
