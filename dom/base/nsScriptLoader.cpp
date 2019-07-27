@@ -1113,6 +1113,7 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
 
   
   
+  nsAutoMicroTask mt;
   AutoEntryScript entryScript(globalObject, "<script> element", true,
                               context->GetNativeContext());
   entryScript.TakeOwnershipOfErrorReporting();

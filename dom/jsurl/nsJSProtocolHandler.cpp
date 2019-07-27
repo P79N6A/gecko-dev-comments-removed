@@ -250,6 +250,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
     
     
+    nsAutoMicroTask mt;
     AutoEntryScript entryScript(innerGlobal, "javascript: URI", true,
                                 scriptContext->GetNativeContext());
     

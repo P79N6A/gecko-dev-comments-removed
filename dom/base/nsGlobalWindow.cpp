@@ -12014,6 +12014,7 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
 
     
     
+    nsAutoMicroTask mt;
     AutoEntryScript entryScript(this, reason, true, aScx->GetNativeContext());
     entryScript.TakeOwnershipOfErrorReporting();
     JS::CompileOptions options(entryScript.cx());

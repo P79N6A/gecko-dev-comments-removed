@@ -174,6 +174,8 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   MOZ_ASSERT(js::GetGlobalForObjectCrossCompartment(aEvaluationGlobal) ==
              aEvaluationGlobal);
   MOZ_ASSERT_IF(aOffThreadToken, aCompileOptions.noScriptRval);
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsInMicroTask());
 
   
   
@@ -183,7 +185,6 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   
   aRetValue.setUndefined();
 
-  nsAutoMicroTask mt;
   nsresult rv = NS_OK;
 
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
