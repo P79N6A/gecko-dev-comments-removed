@@ -349,6 +349,8 @@ public:
   uint8_t* mData;
   
   size_t mSize;
+  
+  CryptoSample& mCrypto;
 
   
 
@@ -380,7 +382,7 @@ public:
   
   size_t mSize;
 
-  CryptoSample mCrypto;
+  const CryptoSample& mCrypto;
   nsRefPtr<DataBuffer> mExtraData;
 
   
@@ -402,6 +404,7 @@ private:
   
   bool EnsureCapacity(size_t aSize);
   nsRefPtr<LargeDataBuffer> mBuffer;
+  CryptoSample mCryptoInternal;
   uint32_t mPadding;
   MediaRawData(const MediaRawData&); 
 };
