@@ -160,9 +160,9 @@ function getOriginActivationType(origin) {
 
   let directories = Services.prefs.getCharPref("social.directories").split(',');
   if (directories.indexOf(origin) >= 0)
-    return 'directory';
+    return "directory";
 
-  return 'foreign';
+  return "foreign";
 }
 
 let ActiveProviders = {
@@ -549,9 +549,15 @@ this.SocialService = {
     let brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
     let browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
 
+
     
-    let requestingURI =  Services.io.newURI(data.installType == "internal" ?
-                                            data.manifest.origin : data.url, null, null);
+    
+    let url = data.installType == "foreign" ?
+            data.url :
+            data.installType == "directory" ||
+            data.installType == "internal" ?
+              data.manifest.origin : undefined;
+    let requestingURI = Services.io.newURI(url, null, null);
     let productName = brandBundle.GetStringFromName("brandShortName");
 
     let message = browserBundle.formatStringFromName("service.install.description",
