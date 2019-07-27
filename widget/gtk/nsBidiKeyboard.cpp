@@ -22,7 +22,13 @@ nsBidiKeyboard::Reset()
 {
     
     
-    GdkKeymap *keymap = gdk_keymap_get_default();
+    mHaveBidiKeyboards = false;
+
+    GdkDisplay *display = gdk_display_get_default();
+    if (!display)
+        return NS_OK;
+
+    GdkKeymap *keymap = gdk_keymap_get_for_display(display);
     mHaveBidiKeyboards = keymap && gdk_keymap_have_bidi_layouts(keymap);
     return NS_OK;
 }
