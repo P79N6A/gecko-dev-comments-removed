@@ -962,7 +962,9 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   
   
   
-  if (roleMapEntry && roleMapEntry->Is(nsGkAtoms::presentation)) {
+  if (roleMapEntry &&
+      (roleMapEntry->Is(nsGkAtoms::presentation) ||
+       roleMapEntry->Is(nsGkAtoms::none))) {
     if (!MustBeAccessible(content, document))
       return nullptr;
 
