@@ -243,6 +243,7 @@ MediaSourceReader::OnAudioNotDecoded(NotDecodedReason aReason)
 
   
   
+  int64_t lastAudioTime = mLastAudioTime;
   if (aReason == END_OF_STREAM && mAudioSourceDecoder) {
     AdjustEndTime(&mLastAudioTime, mAudioSourceDecoder);
   }
@@ -268,6 +269,12 @@ MediaSourceReader::OnAudioNotDecoded(NotDecodedReason aReason)
   }
 
   CheckForWaitOrEndOfStream(MediaData::AUDIO_DATA, mLastAudioTime);
+
+  if (mLastAudioTime - lastAudioTime >= EOS_FUZZ_US) {
+    
+    
+    mLastAudioTime = lastAudioTime;
+  }
 }
 
 nsRefPtr<MediaDecoderReader::VideoDataPromise>
@@ -384,6 +391,7 @@ MediaSourceReader::OnVideoNotDecoded(NotDecodedReason aReason)
 
   
   
+  int64_t lastVideoTime = mLastVideoTime;
   if (aReason == END_OF_STREAM && mVideoSourceDecoder) {
     AdjustEndTime(&mLastVideoTime, mVideoSourceDecoder);
   }
@@ -409,6 +417,12 @@ MediaSourceReader::OnVideoNotDecoded(NotDecodedReason aReason)
   }
 
   CheckForWaitOrEndOfStream(MediaData::VIDEO_DATA, mLastVideoTime);
+
+  if (mLastVideoTime - lastVideoTime >= EOS_FUZZ_US) {
+    
+    
+    mLastVideoTime = lastVideoTime;
+  }
 }
 
 void
