@@ -29,6 +29,7 @@ const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_BRANCH_LOG = PREF_BRANCH + "log.";
 const PREF_SERVER = PREF_BRANCH + "server";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
+const PREF_ARCHIVE_ENABLED = PREF_BRANCH + "archive.enabled";
 const PREF_LOG_LEVEL = PREF_BRANCH_LOG + "level";
 const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
 const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID";
@@ -66,6 +67,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionRecorder",
                                   "resource://gre/modules/SessionRecorder.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
+
+
+const DATAREPORTING_DIR = "datareporting";
+const PINGS_ARCHIVE_DIR = "archived";
+XPCOMUtils.defineLazyGetter(this, "gPingsArchivePath", function() {
+  return OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIR, PINGS_ARCHIVE_DIR);
+});
 
 
 
@@ -113,6 +121,25 @@ function isNewPingFormat(aPing) {
   return ("id" in aPing) && ("application" in aPing) &&
          ("version" in aPing) && (aPing.version >= 2);
 }
+
+
+
+
+
+
+
+
+function getArchivedPingPath(aPingId, aDate, aType) {
+  
+  let addLeftPadding = value => (value < 10) ? ("0" + value) : value;
+  
+  
+  let archivedPingDir = OS.Path.join(gPingsArchivePath,
+    aDate.getFullYear() + '-' + addLeftPadding(aDate.getMonth() + 1));
+  
+  let fileName = [aDate.getTime(), aPingId, aType, "json"].join(".");
+  return OS.Path.join(archivedPingDir, fileName);
+};
 
 this.EXPORTED_SYMBOLS = ["TelemetryPing"];
 
@@ -166,8 +193,8 @@ this.TelemetryPing = Object.freeze({
 
 
 
-  addPendingPing: function(aPingPath, aRemoveOriginal) {
-    return Impl.addPendingPing(aPingPath, aRemoveOriginal);
+  addPendingPingFromFile: function(aPingPath, aRemoveOriginal) {
+    return Impl.addPendingPingFromFile(aPingPath, aRemoveOriginal);
   },
 
   
@@ -237,16 +264,45 @@ this.TelemetryPing = Object.freeze({
 
 
 
-
-
-  savePing: function(aType, aPayload, aOptions = {}) {
+  addPendingPing: function(aType, aPayload, aOptions = {}) {
     let options = aOptions;
     options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
     options.addClientId = aOptions.addClientId || false;
     options.addEnvironment = aOptions.addEnvironment || false;
     options.overwrite = aOptions.overwrite || false;
 
-    return Impl.savePing(aType, aPayload, options);
+    return Impl.addPendingPing(aType, aPayload, options);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  savePing: function(aType, aPayload, aFilePath, aOptions = {}) {
+    let options = aOptions;
+    options.retentionDays = aOptions.retentionDays || DEFAULT_RETENTION_DAYS;
+    options.addClientId = aOptions.addClientId || false;
+    options.addEnvironment = aOptions.addEnvironment || false;
+    options.overwrite = aOptions.overwrite || false;
+
+    return Impl.savePing(aType, aPayload, aFilePath, options);
   },
 
   
@@ -304,6 +360,8 @@ let Impl = {
   _shutdownBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for clients."),
   
   _connectionsBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for pending ping activity"),
+  
+  _testMode: false,
 
   
   _pendingPingRequests: new Map(),
@@ -421,15 +479,16 @@ let Impl = {
 
 
 
-  addPendingPing: function(aPingPath, aRemoveOriginal) {
+  addPendingPingFromFile: function(aPingPath, aRemoveOriginal) {
     return TelemetryFile.addPendingPing(aPingPath).then(() => {
         if (aRemoveOriginal) {
           return OS.File.remove(aPingPath);
         }
-      }, error => this._log.error("addPendingPing - Unable to add the pending ping", error));
+      }, error => this._log.error("addPendingPingFromFile - Unable to add the pending ping", error));
   },
 
   
+
 
 
 
@@ -452,7 +511,12 @@ let Impl = {
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
     
+    let archivePromise = this._archivePing(pingData)
+      .catch(e => this._log.error("send - Failed to archive ping " + pingData.id, e));
+
+    
     let p = [
+      archivePromise,
       
       this.doPing(pingData, false)
           .catch(() => TelemetryFile.savePing(pingData, true)),
@@ -461,7 +525,7 @@ let Impl = {
 
     let promise = Promise.all(p);
     this._trackPendingPingTask(promise);
-    return promise;
+    return promise.then(() => pingData.id);
   },
 
   
@@ -470,7 +534,11 @@ let Impl = {
 
 
   sendPersistedPings: function sendPersistedPings() {
-    this._log.trace("sendPersistedPings");
+    this._log.trace("sendPersistedPings - Can send: " + this._canSend());
+    if (!this._canSend()) {
+      this._log.trace("sendPersistedPings - Telemetry is not allowed to send pings.");
+      return Promise.resolve();
+    }
 
     let pingsIterator = Iterator(this.popPayloads());
     let p = [for (data of pingsIterator) this.doPing(data, true).catch((e) => {
@@ -524,20 +592,48 @@ let Impl = {
 
 
 
-
-
-  savePing: function savePing(aType, aPayload, aOptions) {
-    this._log.trace("savePing - Type " + aType + ", Server " + this._server +
+  addPendingPing: function addPendingPing(aType, aPayload, aOptions) {
+    this._log.trace("addPendingPing - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
-    if ("filePath" in aOptions) {
-      return TelemetryFile.savePingToFile(pingData, aOptions.filePath, aOptions.overwrite)
-                          .then(() => { return pingData.id; });
-    } else {
-      return TelemetryFile.savePing(pingData, aOptions.overwrite)
-                          .then(() => { return pingData.id; });
-    }
+    let archivePromise = this._archivePing(pingData)
+      .catch(e => this._log.error("addPendingPing - Failed to archive ping " + pingData.id, e));
+
+    
+    let promises = [
+      archivePromise,
+      TelemetryFile.savePing(pingData, aOptions.overwrite),
+    ];
+    return Promise.all(promises).then(() => pingData.id);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  savePing: function savePing(aType, aPayload, aFilePath, aOptions) {
+    this._log.trace("savePing - Type " + aType + ", Server " + this._server +
+                    ", File Path " + aFilePath + ", aOptions " + JSON.stringify(aOptions));
+    let pingData = this.assemblePing(aType, aPayload, aOptions);
+    return TelemetryFile.savePingToFile(pingData, aFilePath, aOptions.overwrite)
+                        .then(() => pingData.id);
   },
 
   onPingRequestFinished: function(success, startTime, ping, isPersisted) {
@@ -590,8 +686,13 @@ let Impl = {
   },
 
   doPing: function doPing(ping, isPersisted) {
-    this._log.trace("doPing - Server " + this._server + ", Persisted " + isPersisted);
+    if (!this._canSend()) {
+      
+      this._log.trace("doPing - Sending is disabled.");
+      return Promise.resolve();
+    }
 
+    this._log.trace("doPing - Server " + this._server + ", Persisted " + isPersisted);
     const isNewPing = isNewPingFormat(ping);
     const version = isNewPing ? PING_FORMAT_VERSION : 1;
     const url = this._server + this.submissionPath(ping) + "?v=" + version;
@@ -708,25 +809,24 @@ let Impl = {
   
 
 
-  enableTelemetryRecording: function enableTelemetryRecording(testing) {
+
+
+  enableTelemetryRecording: function enableTelemetryRecording() {
     
 #if !defined(MOZ_WIDGET_ANDROID)
-    Telemetry.canRecordBase =
-      Preferences.get("datareporting.healthreport.service.enabled", false) ||
-      Preferences.get("browser.selfsupport.enabled", false);
+    Telemetry.canRecordBase = Preferences.get(PREF_FHR_ENABLED, false);
 #else
     
     Telemetry.canRecordBase = true;
 #endif
 
 #ifdef MOZILLA_OFFICIAL
-    if (!Telemetry.isOfficialTelemetry && !testing) {
+    if (!Telemetry.isOfficialTelemetry && !this._testMode) {
       
       
       
       Telemetry.canRecordExtended = false;
-      this._log.config("enableTelemetryRecording - Can't send data, disabling Telemetry recording.");
-      return false;
+      this._log.config("enableTelemetryRecording - Can't send data, disabling extended Telemetry recording.");
     }
 #endif
 
@@ -736,11 +836,10 @@ let Impl = {
       
       
       Telemetry.canRecordExtended = false;
-      this._log.config("enableTelemetryRecording - Telemetry is disabled, turning off Telemetry recording.");
-      return false;
+      this._log.config("enableTelemetryRecording - Disabling extended Telemetry recording.");
     }
 
-    return true;
+    return Telemetry.canRecordBase;
   },
 
   
@@ -755,7 +854,8 @@ let Impl = {
 
   setupTelemetry: function setupTelemetry(testing) {
     this._initStarted = true;
-    if (testing && !this._log) {
+    this._testMode = testing;
+    if (this._testMode && !this._log) {
       this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
     }
 
@@ -766,7 +866,7 @@ let Impl = {
       return this._delayedInitTaskDeferred.promise;
     }
 
-    if (this._initialized && !testing) {
+    if (this._initialized && !this._testMode) {
       this._log.error("setupTelemetry - already initialized");
       return Promise.resolve();
     }
@@ -783,8 +883,8 @@ let Impl = {
     this._thirdPartyCookies = new ThirdPartyCookieProbe();
     this._thirdPartyCookies.init();
 
-    if (!this.enableTelemetryRecording(testing)) {
-      this._log.config("setupTelemetry - Telemetry recording is disabled, skipping Telemetry setup.");
+    if (!this.enableTelemetryRecording()) {
+      this._log.config("setupChromeProcess - Telemetry recording is disabled, skipping Chrome process setup.");
       return Promise.resolve();
     }
 
@@ -818,6 +918,17 @@ let Impl = {
         this._clientID = yield ClientID.getClientID();
         Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
 
+        
+        if (this._shouldArchivePings()) {
+          const DATAREPORTING_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIR);
+          let reportError =
+            e => this._log.error("setupTelemetry - Unable to create the directory", e);
+          
+          
+          yield OS.File.makeDir(DATAREPORTING_PATH, {ignoreExisting: true}).catch(reportError);
+          yield OS.File.makeDir(gPingsArchivePath, {ignoreExisting: true}).catch(reportError);
+        }
+
         Telemetry.asyncFetchTelemetryData(function () {});
         this._delayedInitTaskDeferred.resolve();
       } catch (e) {
@@ -826,7 +937,7 @@ let Impl = {
         this._delayedInitTask = null;
         this._delayedInitTaskDeferred = null;
       }
-    }.bind(this), testing ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
+    }.bind(this), this._testMode ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
 
     AsyncShutdown.sendTelemetry.addBlocker("TelemetryPing: shutting down",
                                            () => this.shutdown(),
@@ -924,6 +1035,41 @@ let Impl = {
   get clientID() {
     return this._clientID;
   },
+
+  
+
+
+
+
+  _canSend: function() {
+    return (Telemetry.isOfficialTelemetry || this._testMode) &&
+           Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
+  },
+
+  
+
+
+
+
+  _shouldArchivePings: function() {
+    return Preferences.get(PREF_ARCHIVE_ENABLED, true);
+  },
+
+  
+
+
+
+
+  _archivePing: Task.async(function*(aPingData) {
+    if (!this._shouldArchivePings()) {
+      return;
+    }
+
+    const creationDate = new Date(aPingData.creationDate);
+    const filePath = getArchivedPingPath(aPingData.id, creationDate, aPingData.type);
+    yield OS.File.makeDir(OS.Path.dirname(filePath), { ignoreExisting: true });
+    yield TelemetryFile.savePingToFile(aPingData, filePath, true);
+  }),
 
   
 
