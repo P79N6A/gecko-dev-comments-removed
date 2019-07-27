@@ -72,6 +72,7 @@ ContentHostTexture::Composite(EffectChain& aEffectChain,
 
   nsIntRegion tmpRegion;
   const nsIntRegion* renderRegion;
+#ifndef MOZ_IGNORE_PAINT_WILL_RESAMPLE
   if (PaintWillResample()) {
     
     
@@ -81,6 +82,9 @@ ContentHostTexture::Composite(EffectChain& aEffectChain,
   } else {
     renderRegion = aVisibleRegion;
   }
+#else
+  renderRegion = aVisibleRegion;
+#endif
 
   nsIntRegion region(*renderRegion);
   nsIntPoint origin = GetOriginOffset();

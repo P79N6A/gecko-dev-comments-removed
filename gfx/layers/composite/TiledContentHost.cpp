@@ -410,7 +410,7 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
 
   nsIntRegion tmpRegion;
   const nsIntRegion* renderRegion = aVisibleRegion;
-#ifndef MOZ_GFX_OPTIMIZE_MOBILE
+#ifndef MOZ_IGNORE_PAINT_WILL_RESAMPLE
   if (PaintWillResample()) {
     
     
