@@ -10,7 +10,6 @@
 
 #ifndef __TH_CHAR_H__
 #define __TH_CHAR_H__
-#include "nscore.h"
 
 
 typedef unsigned char	tis_char;
