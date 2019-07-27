@@ -23,6 +23,8 @@ enum class PixelCastJustification : uint8_t {
   
   ScreenIsParentLayerForRoot,
   
+  LayoutDeviceIsScreenForBounds,
+  
   RenderTargetIsParentLayerForRoot,
   
   ParentLayerToLayerForRootComposition,

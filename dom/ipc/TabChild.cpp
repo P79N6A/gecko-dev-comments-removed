@@ -311,18 +311,8 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
   nsViewportInfo viewportInfo = nsContentUtils::GetViewportInfo(document, GetInnerSize());
   uint32_t presShellId = 0;
   mozilla::layers::FrameMetrics::ViewID viewId = FrameMetrics::NULL_SCROLL_ID;
-  bool scrollIdentifiersValid = APZCCallbackHelper::GetOrCreateScrollIdentifiers(
+  APZCCallbackHelper::GetOrCreateScrollIdentifiers(
         document->GetDocumentElement(), &presShellId, &viewId);
-  if (scrollIdentifiersValid) {
-    ZoomConstraints constraints(
-      viewportInfo.IsZoomAllowed(),
-      viewportInfo.IsDoubleTapZoomAllowed(),
-      ConvertScaleForRoot(viewportInfo.GetMinZoom()),
-      ConvertScaleForRoot(viewportInfo.GetMaxZoom()));
-    DoUpdateZoomConstraints(presShellId,
-                            viewId,
-                            Some(constraints));
-  }
 
   float screenW = GetInnerSize().width;
   float screenH = GetInnerSize().height;
@@ -468,24 +458,6 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
   
   
   mLastRootMetrics = ProcessUpdateFrame(metrics);
-
-  if (viewportInfo.IsZoomAllowed() && scrollIdentifiersValid) {
-    
-    
-    bool allowDoubleTapZoom = (viewport.width > screenW / metrics.GetDevPixelsPerCSSPixel().scale);
-    if (allowDoubleTapZoom != viewportInfo.IsDoubleTapZoomAllowed()) {
-      viewportInfo.SetAllowDoubleTapZoom(allowDoubleTapZoom);
-
-      ZoomConstraints constraints(
-        viewportInfo.IsZoomAllowed(),
-        viewportInfo.IsDoubleTapZoomAllowed(),
-        ConvertScaleForRoot(viewportInfo.GetMinZoom()),
-        ConvertScaleForRoot(viewportInfo.GetMaxZoom()));
-      DoUpdateZoomConstraints(presShellId,
-                              viewId,
-                              Some(constraints));
-    }
-  }
 
   return true;
 }
@@ -1077,15 +1049,12 @@ TabChild::DoUpdateZoomConstraints(const uint32_t& aPresShellId,
                                   const ViewID& aViewId,
                                   const Maybe<ZoomConstraints>& aConstraints)
 {
-  ScrollableLayerGuid newGuid(0, aPresShellId, aViewId);
-  if (mLastZoomConstraintsGuid && newGuid != mLastZoomConstraintsGuid.value()) {
+  if (sPreallocatedTab == this) {
     
     
-    SendUpdateZoomConstraints(mLastZoomConstraintsGuid->mPresShellId,
-                              mLastZoomConstraintsGuid->mScrollId,
-                              mozilla::void_t());
+    
+    return true;
   }
-  mLastZoomConstraintsGuid = Some(newGuid);
 
   return SendUpdateZoomConstraints(aPresShellId,
                                    aViewId,
@@ -2812,11 +2781,6 @@ TabChild::RecvDestroy()
     mTabChildGlobal->DispatchTrustedEvent(NS_LITERAL_STRING("unload"));
   }
 
-  if (mLastZoomConstraintsGuid) {
-    DoUpdateZoomConstraints(mLastZoomConstraintsGuid->mPresShellId,
-                            mLastZoomConstraintsGuid->mScrollId,
-                            Nothing());
-  }
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
 
