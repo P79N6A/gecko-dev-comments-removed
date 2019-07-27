@@ -321,7 +321,9 @@ struct nsBackgroundLayerState {
 struct nsCSSRendering {
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Float Float;
+  typedef mozilla::gfx::Point Point;
   typedef mozilla::gfx::Rect Rect;
+  typedef mozilla::gfx::Size Size;
   typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
   typedef mozilla::image::DrawResult DrawResult;
   typedef nsIFrame::Sides Sides;
@@ -689,20 +691,15 @@ struct nsCSSRendering {
 
 
 
-
-  static void DecorationLineToPath(nsIFrame* aFrame,
-                                   gfxContext* aGfxContext,
-                                   const gfxRect& aDirtyRect,
-                                   const nscolor aColor,
-                                   const gfxPoint& aPt,
-                                   const gfxFloat aICoordInFrame,
-                                   const gfxSize& aLineSize,
-                                   const gfxFloat aAscent,
-                                   const gfxFloat aOffset,
+  static Rect DecorationLineToPath(const Rect& aDirtyRect,
+                                   const Point& aPt,
+                                   const Size& aLineSize,
+                                   const Float aAscent,
+                                   const Float aOffset,
                                    const uint8_t aDecoration,
                                    const uint8_t aStyle,
                                    bool aVertical,
-                                   const gfxFloat aDescentLimit = -1.0);
+                                   const Float aDescentLimit = -1.0);
 
   
 
