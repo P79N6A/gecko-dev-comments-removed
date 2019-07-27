@@ -678,7 +678,9 @@ public:
 
 
 
-  virtual bool DispatchCustomEvent(const char *aEventName) = 0;
+
+
+  virtual bool DispatchCustomEvent(const nsAString& aEventName) = 0;
 
   
 

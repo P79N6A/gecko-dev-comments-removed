@@ -330,6 +330,8 @@ nsWebShellWindow::SizeModeChanged(nsSizeMode sizeMode)
   nsCOMPtr<nsPIDOMWindow> ourWindow =
     mDocShell ? mDocShell->GetWindow() : nullptr;
   if (ourWindow) {
+    MOZ_ASSERT(ourWindow->IsOuterWindow());
+
     
     
     if (sizeMode == nsSizeMode_Fullscreen) {
@@ -340,7 +342,7 @@ nsWebShellWindow::SizeModeChanged(nsSizeMode sizeMode)
     }
 
     
-    ourWindow->DispatchCustomEvent("sizemodechange");
+    ourWindow->DispatchCustomEvent(NS_LITERAL_STRING("sizemodechange"));
   }
 
   

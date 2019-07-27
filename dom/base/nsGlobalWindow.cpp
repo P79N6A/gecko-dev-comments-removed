@@ -5818,12 +5818,12 @@ nsGlobalWindow::GetChildWindow(const nsAString& aName)
 }
 
 bool
-nsGlobalWindow::DispatchCustomEvent(const char *aEventName)
+nsGlobalWindow::DispatchCustomEvent(const nsAString& aEventName)
 {
+  MOZ_ASSERT(IsOuterWindow());
+
   bool defaultActionEnabled = true;
-  nsContentUtils::DispatchTrustedEvent(mDoc,
-                                       GetOuterWindow(),
-                                       NS_ConvertASCIItoUTF16(aEventName),
+  nsContentUtils::DispatchTrustedEvent(mDoc, ToSupports(this), aEventName,
                                        true, true, &defaultActionEnabled);
 
   return defaultActionEnabled;
@@ -5999,7 +5999,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
 
   
   
-  if (!DispatchCustomEvent("fullscreen")) {
+  if (!DispatchCustomEvent(NS_LITERAL_STRING("fullscreen"))) {
     return NS_OK;
   }
 
@@ -8435,7 +8435,7 @@ nsGlobalWindow::Close(ErrorResult& aError)
   bool wasInClose = mInClose;
   mInClose = true;
 
-  if (!DispatchCustomEvent("DOMWindowClose")) {
+  if (!DispatchCustomEvent(NS_LITERAL_STRING("DOMWindowClose"))) {
     
     
 
@@ -8474,7 +8474,7 @@ nsGlobalWindow::ForceClose()
 
   mInClose = true;
 
-  DispatchCustomEvent("DOMWindowClose");
+  DispatchCustomEvent(NS_LITERAL_STRING("DOMWindowClose"));
 
   FinalClose();
 }
