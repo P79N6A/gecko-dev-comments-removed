@@ -186,6 +186,22 @@ nsContextMenu.prototype = {
         CustomizableUI.getPlacementOfWidget("pocket-button") &&
         (uri.schemeIs("http") || uri.schemeIs("https") ||
          (uri.schemeIs("about") && ReaderMode.getOriginalUrl(uri.spec)));
+      if (canPocket) {
+        let locale = Cc["@mozilla.org/chrome/chrome-registry;1"].
+                     getService(Ci.nsIXULChromeRegistry).
+                     getSelectedLocale("browser");
+        let url = "chrome://browser/content/browser-pocket-" + locale + ".properties";
+        let bundle = Services.strings.createBundle(url);
+        let item = document.getElementById("context-pocket");
+        try {
+          item.setAttribute("label", bundle.GetStringFromName("saveToPocketCmd.label"));
+          item.setAttribute("accesskey", bundle.GetStringFromName("saveToPocketCmd.accesskey"));
+        } catch (err) {
+          
+          
+          
+        }
+      }
     }
     this.showItem("context-pocket", canPocket && window.pktApi && window.pktApi.isUserLoggedIn());
   },
