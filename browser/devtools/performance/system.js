@@ -8,6 +8,10 @@
 
 
 
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+const { devtools: loader } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const require = loader.require;
+
 const SYSTEM = {};
 
 

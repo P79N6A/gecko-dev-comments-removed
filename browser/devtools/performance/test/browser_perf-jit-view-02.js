@@ -6,7 +6,7 @@
 
 
 
-const { CATEGORY_MASK } = devtools.require("devtools/shared/profiler/global");
+const { CATEGORY_MASK } = devtools.require("devtools/performance/global");
 const { RecordingUtils } = devtools.require("devtools/performance/recording-utils");
 
 Services.prefs.setBoolPref(INVERT_PREF, false);

@@ -9,6 +9,7 @@
 let PerformanceView = {
 
   _state: null,
+
   
   
   _bufferStatusSupported: false,

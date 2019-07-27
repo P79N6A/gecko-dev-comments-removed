@@ -3,10 +3,8 @@
 
 "use strict";
 
-const {Cc, Ci, Cu, Cr} = require("chrome");
-loader.lazyRequireGetter(this, "ViewHelpers",
-  "resource:///modules/devtools/ViewHelpers.jsm", true);
-loader.lazyRequireGetter(this, "Services");
+const { Cc, Ci, Cu, Cr } = require("chrome");
+const { ViewHelpers } = require("resource:///modules/devtools/ViewHelpers.jsm");
 
 
 const GECKO_SYMBOL = "(Gecko)";

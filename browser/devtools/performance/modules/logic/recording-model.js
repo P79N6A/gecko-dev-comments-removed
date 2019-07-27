@@ -16,7 +16,6 @@ loader.lazyRequireGetter(this, "RecordingUtils",
 
 
 
-
 const RecordingModel = function (options={}) {
   this._label = options.label || "";
   this._console = options.console || false;

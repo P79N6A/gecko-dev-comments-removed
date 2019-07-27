@@ -4,23 +4,21 @@
 "use strict";
 
 const { Task } = require("resource://gre/modules/Task.jsm");
-const { Promise } = require("resource://gre/modules/Promise.jsm");
-const {
-  actorCompatibilityBridge, getProfiler,
-  MockMemoryFront, MockTimelineFront,
-  memoryActorSupported, timelineActorSupported
-} = require("devtools/performance/compatibility");
 
+loader.lazyRequireGetter(this, "promise");
 loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
+loader.lazyRequireGetter(this, "Poller",
+  "devtools/shared/poller", true);
+
+loader.lazyRequireGetter(this, "CompatUtils",
+  "devtools/performance/compatibility");
 loader.lazyRequireGetter(this, "RecordingUtils",
   "devtools/performance/recording-utils", true);
 loader.lazyRequireGetter(this, "TimelineFront",
   "devtools/server/actors/timeline", true);
 loader.lazyRequireGetter(this, "MemoryFront",
   "devtools/server/actors/memory", true);
-loader.lazyRequireGetter(this, "Poller",
-  "devtools/shared/poller", true);
 
 
 const ALLOCATION_SITE_POLL_TIMER = 200; 
@@ -60,7 +58,7 @@ ProfilerFrontFacade.prototype = {
   
   connect: Task.async(function*() {
     let target = this._target;
-    this._actor = yield getProfiler(target);
+    this._actor = yield CompatUtils.getProfiler(target);
 
     
     
@@ -140,7 +138,7 @@ ProfilerFrontFacade.prototype = {
 
 
   getStatus: Task.async(function *() {
-    let data = yield (actorCompatibilityBridge("isActive").call(this));
+    let data = yield (CompatUtils.actorCompatibilityBridge("isActive").call(this));
     
     
     if (!data) {
@@ -167,7 +165,7 @@ ProfilerFrontFacade.prototype = {
 
 
   getProfile: Task.async(function *(options) {
-    let profilerData = yield (actorCompatibilityBridge("getProfile").call(this, options));
+    let profilerData = yield (CompatUtils.actorCompatibilityBridge("getProfile").call(this, options));
     
     
     if (profilerData.profile.meta.version === 2) {
@@ -210,7 +208,7 @@ ProfilerFrontFacade.prototype = {
 };
 
 
-PROFILER_ACTOR_METHODS.forEach(method => ProfilerFrontFacade.prototype[method] = actorCompatibilityBridge(method));
+PROFILER_ACTOR_METHODS.forEach(method => ProfilerFrontFacade.prototype[method] = CompatUtils.actorCompatibilityBridge(method));
 exports.ProfilerFront = ProfilerFrontFacade;
 
 
@@ -225,10 +223,10 @@ TimelineFrontFacade.prototype = {
   EVENTS: ["markers", "frames", "memory", "ticks"],
 
   connect: Task.async(function*() {
-    let supported = yield timelineActorSupported(this._target);
+    let supported = yield CompatUtils.timelineActorSupported(this._target);
     this._actor = supported ?
                   new TimelineFront(this._target.client, this._target.form) :
-                  new MockTimelineFront();
+                  new CompatUtils.MockTimelineFront();
 
     this.IS_MOCK = !supported;
 
@@ -261,7 +259,7 @@ TimelineFrontFacade.prototype = {
 };
 
 
-TIMELINE_ACTOR_METHODS.forEach(method => TimelineFrontFacade.prototype[method] = actorCompatibilityBridge(method));
+TIMELINE_ACTOR_METHODS.forEach(method => TimelineFrontFacade.prototype[method] = CompatUtils.actorCompatibilityBridge(method));
 exports.TimelineFront = TimelineFrontFacade;
 
 
@@ -276,10 +274,10 @@ function MemoryFrontFacade (target) {
 
 MemoryFrontFacade.prototype = {
   connect: Task.async(function*() {
-    let supported = yield memoryActorSupported(this._target);
+    let supported = yield CompatUtils.memoryActorSupported(this._target);
     this._actor = supported ?
                   new MemoryFront(this._target.client, this._target.form) :
-                  new MockMemoryFront();
+                  new CompatUtils.MockMemoryFront();
 
     this.IS_MOCK = !supported;
   }),
@@ -355,11 +353,11 @@ MemoryFrontFacade.prototype = {
 
 
   _pullAllocationSites: Task.async(function *() {
-    let { promise, resolve } = Promise.defer();
-    this._lastPullAllocationSitesFinished = promise;
+    let deferred = promise.defer();
+    this._lastPullAllocationSitesFinished = deferred.promise;
 
     if ((yield this.getState()) !== "attached") {
-      resolve();
+      deferred.resolve();
       return;
     }
 
@@ -373,12 +371,12 @@ MemoryFrontFacade.prototype = {
       counts: memoryData.counts
     });
 
-    resolve();
+    deferred.resolve();
   }),
 
   toString: () => "[object MemoryFrontFacade]"
 };
 
 
-MEMORY_ACTOR_METHODS.forEach(method => MemoryFrontFacade.prototype[method] = actorCompatibilityBridge(method));
+MEMORY_ACTOR_METHODS.forEach(method => MemoryFrontFacade.prototype[method] = CompatUtils.actorCompatibilityBridge(method));
 exports.MemoryFront = MemoryFrontFacade;

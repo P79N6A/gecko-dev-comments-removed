@@ -4,7 +4,8 @@
 "use strict";
 
 const { Task } = require("resource://gre/modules/Task.jsm");
-const { Promise } = require("resource://gre/modules/Promise.jsm");
+
+loader.lazyRequireGetter(this, "promise");
 loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 
@@ -113,22 +114,22 @@ exports.timelineActorSupported = Task.async(timelineActorSupported);
 
 
 function getProfiler (target) {
-  let { promise, resolve } = Promise.defer();
+  let deferred = promise.defer();
   
   
   if (target.form && target.form.profilerActor) {
-    resolve(target.form.profilerActor);
+    deferred.resolve(target.form.profilerActor);
   }
   
   
   else if (target.root && target.root.profilerActor) {
-    resolve(target.root.profilerActor);
+    deferred.resolve(target.root.profilerActor);
   }
   
   else {
-    target.client.listTabs(({ profilerActor }) => resolve(profilerActor));
+    target.client.listTabs(({ profilerActor }) => deferred.resolve(profilerActor));
   }
-  return promise;
+  return deferred.promise;
 }
 exports.getProfiler = Task.async(getProfiler);
 
@@ -137,12 +138,12 @@ exports.getProfiler = Task.async(getProfiler);
 
 
 function legacyRequest (target, actor, method, args) {
-  let { promise, resolve } = Promise.defer();
+  let deferred = promise.defer();
   let data = args[0] || {};
   data.to = actor;
   data.type = method;
-  target.client.request(data, resolve);
-  return promise;
+  target.client.request(data, deferred.resolve);
+  return deferred.promise;
 }
 
 
