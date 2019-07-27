@@ -6056,27 +6056,32 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
 }
 
 bool
+nsGlobalWindow::FullScreen() const
+{
+  MOZ_ASSERT(IsOuterWindow());
+
+  NS_ENSURE_TRUE(mDocShell, mFullScreen);
+
+  
+  
+  nsCOMPtr<nsIDocShellTreeItem> rootItem;
+  mDocShell->GetRootTreeItem(getter_AddRefs(rootItem));
+  if (rootItem == mDocShell) {
+    
+    return mFullScreen;
+  }
+
+  nsCOMPtr<nsIDOMWindow> window = rootItem->GetWindow();
+  NS_ENSURE_TRUE(window, mFullScreen);
+
+  return static_cast<nsGlobalWindow*>(window.get())->FullScreen();
+}
+
+bool
 nsGlobalWindow::GetFullScreen(ErrorResult& aError)
 {
   FORWARD_TO_OUTER_OR_THROW(GetFullScreen, (aError), aError, false);
-
-  
-  
-  if (mDocShell) {
-    nsCOMPtr<nsIDocShellTreeItem> rootItem;
-    mDocShell->GetRootTreeItem(getter_AddRefs(rootItem));
-    if (rootItem != mDocShell) {
-      nsCOMPtr<nsIDOMWindow> window = rootItem->GetWindow();
-      if (window) {
-        bool fullScreen = false;
-        aError = window->GetFullScreen(&fullScreen);
-        return fullScreen;
-      }
-    }
-  }
-
-  
-  return mFullScreen;
+  return FullScreen();
 }
 
 NS_IMETHODIMP
