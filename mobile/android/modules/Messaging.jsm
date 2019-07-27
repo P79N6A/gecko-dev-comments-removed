@@ -7,9 +7,8 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 
-this.EXPORTED_SYMBOLS = ["sendMessageToJava", "RequestService"];
+this.EXPORTED_SYMBOLS = ["sendMessageToJava"];
 
 XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
@@ -43,103 +42,3 @@ function sendMessageToJava(aMessage, aCallback) {
 
   return Services.androidBridge.handleGeckoMessage(aMessage);
 }
-
-let RequestService = {
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  addListener: function (aListener, aMessage) {
-    requestHandler.addListener(aListener, aMessage);
-  },
-
-  
-
-
-
-
-  removeListener: function (aMessage) {
-    requestHandler.removeListener(aMessage);
-  },
-};
-
-let requestHandler = {
-  _listeners: {},
-
-  addListener: function (aListener, aMessage) {
-    if (aMessage in this._listeners) {
-      throw new Error("Error in addListener: A listener already exists for message " + aMessage);
-    }
-
-    if (typeof aListener !== "function") {
-      throw new Error("Error in addListener: Listener must be a function for message " + aMessage);
-    }
-
-    this._listeners[aMessage] = aListener;
-    Services.obs.addObserver(this, aMessage, false);
-  },
-
-  removeListener: function (aMessage) {
-    if (!(aMessage in this._listeners)) {
-      throw new Error("Error in removeListener: There is no listener for message " + aMessage);
-    }
-
-    delete this._listeners[aMessage];
-    Services.obs.removeObserver(this, aMessage);
-  },
-
-  observe: Task.async(function* (aSubject, aTopic, aData) {
-    let wrapper = JSON.parse(aData);
-    let listener = this._listeners[aTopic];
-
-    
-    
-    
-    let response = null;
-
-    try {
-      let result = yield listener(wrapper.data);
-      if (typeof result !== "object" || result === null) {
-        throw new Error("Gecko request listener did not return an object");
-      }
-      response = result;
-    } catch (e) {
-      Cu.reportError(e);
-    }
-
-    sendMessageToJava({
-      type: "Gecko:Request" + wrapper.id,
-      response: response
-    });
-  })
-};
