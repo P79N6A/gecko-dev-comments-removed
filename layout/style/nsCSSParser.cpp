@@ -7655,9 +7655,10 @@ CSSParserImpl::ParseGridAutoFlow()
   int32_t bitField = value.GetIntValue();
 
   
-  if (!(bitField & NS_STYLE_GRID_AUTO_FLOW_ROW ||
-        bitField & NS_STYLE_GRID_AUTO_FLOW_COLUMN)) {
-    return false;
+  if (!(bitField & (NS_STYLE_GRID_AUTO_FLOW_ROW |
+                    NS_STYLE_GRID_AUTO_FLOW_COLUMN))) {
+    value.SetIntValue(bitField | NS_STYLE_GRID_AUTO_FLOW_ROW,
+                      eCSSUnit_Enumerated);
   }
 
   AppendValue(eCSSProperty_grid_auto_flow, value);
