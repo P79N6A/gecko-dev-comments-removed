@@ -419,7 +419,8 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     
     
     if (InResponsiveMode()) {
-      if (mResponsiveSelector->Content() == this) {
+      if (mResponsiveSelector &&
+          mResponsiveSelector->Content() == this) {
         mResponsiveSelector->SetDefaultSource(NullString());
       }
       QueueImageLoadTask();
