@@ -322,6 +322,8 @@ public:
   static bool DecodeSPSFromExtraData(const ByteBuffer* aExtraData, SPSData& aDest);
   
 
+
+
   static already_AddRefed<ByteBuffer> DecodeNALUnit(const ByteBuffer* aNAL);
   
   static bool DecodeSPS(const ByteBuffer* aSPS, SPSData& aDest);
