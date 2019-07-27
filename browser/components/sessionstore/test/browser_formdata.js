@@ -205,8 +205,10 @@ add_task(function test_design_mode() {
   yield sendMessage(browser, "ss-test:sendKeyEvent", {key: "m"});
 
   
-  let tab2 = gBrowser.duplicateTab(tab);
-  yield promiseTabRestored(tab2);
+  gBrowser.removeTab(tab);
+  tab = ss.undoCloseTab(window, 0);
+  browser = tab.linkedBrowser;
+  yield promiseTabRestored(tab);
 
   
   let html = yield getInnerHTML(browser);
@@ -214,7 +216,17 @@ add_task(function test_design_mode() {
   is(html, expected, "editable document has been restored correctly");
 
   
-  gBrowser.removeTab(tab2);
+  gBrowser.removeTab(tab);
+  tab = ss.undoCloseTab(window, 0);
+  browser = tab.linkedBrowser;
+  yield promiseTabRestored(tab);
+
+  
+  let html = yield getInnerHTML(browser);
+  let expected = "<h1>Mmozilla</h1><script>document.designMode='on'</script>";
+  is(html, expected, "editable document has been restored correctly");
+
+  
   gBrowser.removeTab(tab);
 });
 
