@@ -1030,7 +1030,7 @@ JSRuntime::initSelfHosting(JSContext *cx)
 
 
 
-    JSErrorReporter oldReporter = JS_SetErrorReporter(cx, selfHosting_ErrorReporter);
+    JSErrorReporter oldReporter = JS_SetErrorReporter(cx->runtime(), selfHosting_ErrorReporter);
     RootedValue rv(cx);
     bool ok = false;
 
@@ -1053,7 +1053,7 @@ JSRuntime::initSelfHosting(JSContext *cx)
 
         ok = Evaluate(cx, shg, options, src, srcLen, &rv);
     }
-    JS_SetErrorReporter(cx, oldReporter);
+    JS_SetErrorReporter(cx->runtime(), oldReporter);
     return ok;
 }
 
