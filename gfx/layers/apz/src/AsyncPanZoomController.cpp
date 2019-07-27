@@ -374,6 +374,11 @@ typedef mozilla::gfx::Matrix4x4 Matrix4x4;
 
 
 
+
+
+
+
+
 StaticAutoPtr<ComputedTimingFunction> gZoomAnimationFunction;
 
 
