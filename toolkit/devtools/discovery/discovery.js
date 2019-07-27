@@ -193,6 +193,10 @@ LocalDevice.prototype = {
       
       randomID = ("00000000" + randomID.toString(16)).slice(-8);
       this.name = name + "-" + randomID;
+    } else if (Services.appinfo.widgetToolkit == "android") {
+      
+      
+      this.name = sysInfo.get("device");
     } else {
       this.name = sysInfo.get("host");
     }
