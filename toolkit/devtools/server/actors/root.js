@@ -124,10 +124,7 @@ RootActor.prototype = {
     bulk: true,
     
     
-    selectorEditable: true,
-    
-    
-    addNewRule: true
+    selectorEditable: true
   },
 
   
