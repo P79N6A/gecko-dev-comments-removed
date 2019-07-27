@@ -3243,10 +3243,17 @@ this.DOMApplicationRegistry = {
     
     AppDownloadManager.remove(aNewApp.manifestURL);
 
-    let hash = yield this._computeFileHash(zipFile.path);
-
     let responseStatus = requestChannel.responseStatus;
-    let oldPackage = (responseStatus == 304 || hash == aOldApp.packageHash);
+    let oldPackage = responseStatus == 304;
+
+    
+    let hash = null;
+    if (!oldPackage) {
+      hash = yield this._computeFileHash(zipFile.path);
+    }
+
+    oldPackage = oldPackage || (hash == aOldApp.packageHash);
+
 
     if (oldPackage) {
       debug("package's etag or hash unchanged; sending 'applied' event");
