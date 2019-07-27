@@ -39,6 +39,12 @@ enum HeapState {
     MinorCollecting   
 };
 
+enum ThreadType
+{
+    MainThread,
+    BackgroundThread
+};
+
 namespace jit {
     class JitCode;
 }
@@ -845,7 +851,7 @@ class ArenaLists
 
     bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget,
                             SortedArenaList &sweepList);
-    static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead);
+    static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, ArenaHeader **empty);
 
     void wipeDuringParallelExecution(JSRuntime *rt);
 
@@ -1040,11 +1046,8 @@ class GCHelperState
 
     void work();
 
-    
-    void startBackgroundSweep();
-
-    
-    void startBackgroundShrink();
+    void maybeStartBackgroundSweep(const AutoLockGC &lock);
+    void startBackgroundShrink(const AutoLockGC &lock);
 
     
     void waitBackgroundSweepEnd();
@@ -1456,6 +1459,34 @@ class AutoEnterOOMUnsafeRegion {};
 
 bool
 IsInsideGGCNursery(const gc::Cell *cell);
+
+
+class ZoneList
+{
+    static Zone * const End;
+
+    Zone *head;
+    Zone *tail;
+
+  public:
+    ZoneList();
+    explicit ZoneList(Zone *singleZone);
+
+    bool isEmpty() const;
+    Zone *front() const;
+
+    void append(Zone *zone);
+    void append(ZoneList& list);
+    Zone *removeFront();
+
+    void transferFrom(ZoneList &other);
+
+  private:
+    void check() const;
+
+    ZoneList(const ZoneList &other) MOZ_DELETE;
+    ZoneList &operator=(const ZoneList &other) MOZ_DELETE;
+};
 
 } 
 

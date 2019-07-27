@@ -599,7 +599,8 @@ class GCRuntime
     void decommitAllWithoutUnlocking(const AutoLockGC &lock);
     void decommitArenas(AutoLockGC &lock);
     void expireChunksAndArenas(bool shouldShrink, AutoLockGC &lock);
-    void sweepBackgroundThings();
+    void queueZonesForBackgroundSweep(js::gc::ZoneList& zones);
+    void sweepBackgroundThings(js::gc::ZoneList &zones, ThreadType threadType);
     void assertBackgroundSweepingFinished();
     bool shouldCompact();
 #ifdef JSGC_COMPACTING
@@ -759,8 +760,7 @@ class GCRuntime
     bool foundBlackGrayEdges;
 
     
-    JS::Zone *sweepingZones;
-
+    js::gc::ZoneList backgroundSweepZones;
     
 
 
