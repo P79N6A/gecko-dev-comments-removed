@@ -4,11 +4,13 @@
 #include "nspr.h"
 
 #include "mozilla/dom/SmartCardEvent.h"
+#include "mozilla/Services.h"
 #include "mozilla/unused.h"
 #include "nsIDOMCryptoLegacy.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMWindow.h"
 #include "nsIDOMWindowCollection.h"
+#include "nsIObserverService.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIWindowWatcher.h"
 #include "nsServiceManagerUtils.h"
@@ -17,6 +19,9 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+
+
+
 
 
 
@@ -58,9 +63,22 @@ nsTokenEventRunnable::Run()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  nsCOMPtr<nsIObserverService> observerService =
+    mozilla::services::GetObserverService();
+  if (!observerService) {
+    return NS_ERROR_FAILURE;
+  }
   
   
-  nsresult rv;
+  NS_ConvertUTF16toUTF8 eventTypeUTF8(mType);
+  nsresult rv = observerService->NotifyObservers(nullptr, eventTypeUTF8.get(),
+                                                 mTokenName.get());
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  
+  
   nsCOMPtr<nsIWindowWatcher> windowWatcher =
     do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
   if (NS_FAILED(rv)) {
