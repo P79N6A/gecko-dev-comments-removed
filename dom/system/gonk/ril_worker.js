@@ -2641,14 +2641,6 @@ RilObject.prototype = {
     }
 
     options.ussd = mmi.fullMMI;
-
-    if (options.startNewSession && this._ussdSession) {
-      if (DEBUG) this.context.debug("Cancel existing ussd session.");
-      this.cachedUSSDRequest = options;
-      this.cancelUSSD({});
-      return;
-    }
-
     this.sendUSSD(options);
   },
 
@@ -2656,33 +2648,15 @@ RilObject.prototype = {
 
 
 
-  cachedUSSDRequest : null,
-
-  
 
 
 
-
-
-
-
-  sendUSSD: function(options) {
-    if (options.checkSession && !this._ussdSession) {
-      options.success = false;
-      options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-      this.sendChromeMessage(options);
-      return;
-    }
-
-    this.sendRilRequestSendUSSD(options);
-  },
-
-  sendRilRequestSendUSSD: function(options) {
-    let Buf = this.context.Buf;
-    Buf.newParcel(REQUEST_SEND_USSD, options);
-    Buf.writeString(options.ussd);
-    Buf.sendParcel();
-  },
+   sendUSSD: function(options) {
+     let Buf = this.context.Buf;
+     Buf.newParcel(REQUEST_SEND_USSD, options);
+     Buf.writeString(options.ussd);
+     Buf.sendParcel();
+   },
 
   
 
@@ -5707,19 +5681,9 @@ RilObject.prototype[REQUEST_CANCEL_USSD] = function REQUEST_CANCEL_USSD(length, 
   if (DEBUG) {
     this.context.debug("REQUEST_CANCEL_USSD" + JSON.stringify(options));
   }
-
   options.success = (options.rilRequestError === 0);
   this._ussdSession = !options.success;
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-
-  
-  if (this.cachedUSSDRequest) {
-    if (DEBUG) this.context.debug("Send out the cached ussd request");
-    this.sendUSSD(this.cachedUSSDRequest);
-    this.cachedUSSDRequest = null;
-    return;
-  }
-
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_GET_CLIR] = function REQUEST_GET_CLIR(length, options) {
