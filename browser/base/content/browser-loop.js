@@ -32,9 +32,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
         }, true);
       };
 
-      
-      Services.obs.notifyObservers(null, "loop-status-changed", null);
-
       PanelFrame.showPopup(window, event.target, "loop", null,
                            "about:looppanel", null, callback);
     },
@@ -72,25 +69,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       if (topic != "loop-status-changed") {
         return;
       }
-      this.updateToolbarState(data);
+      this.updateToolbarState();
     },
 
-    
-
-
-
-
-
-
-
-
-
-    updateToolbarState: function(aReason = null) {
+    updateToolbarState: function() {
       let state = "";
       if (MozLoopService.errors.size) {
         state = "error";
-      } else if (aReason == "login" && MozLoopService.userProfile) {
-        state = "active";
       } else if (MozLoopService.doNotDisturb) {
         state = "disabled";
       }
