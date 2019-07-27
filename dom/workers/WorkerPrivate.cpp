@@ -2431,9 +2431,9 @@ WorkerPrivateParent<Derived>::Suspend(JSContext* aCx, nsPIDOMWindow* aWindow)
 
   
   
-  if (IsSharedWorker() || IsServiceWorker()) {
+  
+  if ((IsSharedWorker() || IsServiceWorker()) && mSharedWorkers.Count()) {
     AssertIsOnMainThread();
-    MOZ_ASSERT(mSharedWorkers.Count());
 
     struct Closure
     {
@@ -2515,9 +2515,10 @@ WorkerPrivateParent<Derived>::Resume(JSContext* aCx, nsPIDOMWindow* aWindow)
   MOZ_ASSERT_IF(IsDedicatedWorker(), mParentSuspended);
 
   
-  if (IsSharedWorker() || IsServiceWorker()) {
+  
+  
+  if ((IsSharedWorker() || IsServiceWorker()) && mSharedWorkers.Count()) {
     AssertIsOnMainThread();
-    MOZ_ASSERT(mSharedWorkers.Count());
 
     struct Closure
     {
