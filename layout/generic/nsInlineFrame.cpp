@@ -107,27 +107,40 @@ nsInlineFrame::IsSelfEmpty()
   
   
   
-  bool haveRight =
-    border->GetComputedBorderWidth(NS_SIDE_RIGHT) != 0 ||
-    !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetRight()) ||
-    !IsMarginZero(margin->mMargin.GetRight());
-  bool haveLeft =
-    border->GetComputedBorderWidth(NS_SIDE_LEFT) != 0 ||
-    !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetLeft()) ||
-    !IsMarginZero(margin->mMargin.GetLeft());
-  if (haveLeft || haveRight) {
+  WritingMode wm = GetWritingMode();
+  bool haveStart, haveEnd;
+  
+  
+  
+  if (wm.IsVertical()) {
+    haveStart =
+      border->GetComputedBorderWidth(NS_SIDE_TOP) != 0 ||
+      !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetTop()) ||
+      !IsMarginZero(margin->mMargin.GetTop());
+    haveEnd =
+      border->GetComputedBorderWidth(NS_SIDE_BOTTOM) != 0 ||
+      !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetBottom()) ||
+      !IsMarginZero(margin->mMargin.GetBottom());
+  } else {
+    haveStart =
+      border->GetComputedBorderWidth(NS_SIDE_LEFT) != 0 ||
+      !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetLeft()) ||
+      !IsMarginZero(margin->mMargin.GetLeft());
+    haveEnd =
+      border->GetComputedBorderWidth(NS_SIDE_RIGHT) != 0 ||
+      !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetRight()) ||
+      !IsMarginZero(margin->mMargin.GetRight());
+  }
+  if (haveStart || haveEnd) {
     
     
     if ((GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) &&
         StyleBorder()->mBoxDecorationBreak ==
           NS_STYLE_BOX_DECORATION_BREAK_SLICE) {
-      bool haveStart, haveEnd;
-      if (NS_STYLE_DIRECTION_LTR == StyleVisibility()->mDirection) {
-        haveStart = haveLeft;
-        haveEnd = haveRight;
-      } else {
-        haveStart = haveRight;
-        haveEnd = haveLeft;
+      
+      
+      if (!wm.IsBidiLTR()) {
+        Swap(haveStart, haveEnd);
       }
       
       
