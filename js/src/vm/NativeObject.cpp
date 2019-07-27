@@ -2017,6 +2017,8 @@ js::SetPropertyByDefining(JSContext *cx, HandleObject obj, HandleObject receiver
     if (!receiver->is<NativeObject>())
         return DefineProperty(cx, receiver, id, v, getter, setter, attrs, result);
 
+    
+    
     Rooted<NativeObject*> nativeReceiver(cx, &receiver->as<NativeObject>());
     return DefinePropertyOrElement(cx, nativeReceiver, id, getter, setter, attrs, v, true, result);
 }
@@ -2155,27 +2157,38 @@ NativeSet(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
 
 
 
+
 static bool
 SetExistingProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver, HandleId id,
                     HandleNativeObject pobj, HandleShape shape, MutableHandleValue vp,
                     ObjectOpResult &result)
 {
+    
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
+        
+        
+
         
         if (pobj == receiver)
             return SetDenseOrTypedArrayElement(cx, pobj, JSID_TO_INT(id), vp, result);
-    } else {
-        
-        if (shape->isAccessorDescriptor()) {
-            if (shape->hasDefaultSetter())
-                return result.fail(JSMSG_GETTER_ONLY);
-        } else {
-            MOZ_ASSERT(shape->isDataDescriptor());
-            if (!shape->writable())
-                return result.fail(JSMSG_READ_ONLY);
-        }
 
+        
+        return SetPropertyByDefining(cx, obj, receiver, id, vp, obj == pobj, result);
+    }
+
+    
+    if (shape->isDataDescriptor()) {
+        
+        if (!shape->writable())
+            return result.fail(JSMSG_READ_ONLY);
+
+        
         if (pobj == receiver) {
+            
+            
+            
+
+            
             if (pobj->is<ArrayObject>() && id == NameToId(cx->names().length)) {
                 Rooted<ArrayObject*> arr(cx, &pobj->as<ArrayObject>());
                 return ArraySetLength(cx, arr, id, shape->attributes(), vp, result);
@@ -2184,19 +2197,35 @@ SetExistingProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver
         }
 
         
-        if (!shape->shadowable() &&
+        
+        
+        
+        if (!shape->hasSlot() &&
+            !shape->hasShadowable() &&
             !(pobj->is<ArrayObject>() && id == NameToId(cx->names().length)))
         {
             
-            if (shape->hasDefaultSetter() && !shape->hasGetterValue())
+            
+            if (shape->hasDefaultSetter())
                 return result.succeed();
 
             return shape->set(cx, obj, receiver, vp, result);
         }
+
+        
+        
+        return SetPropertyByDefining(cx, obj, receiver, id, vp, obj == pobj, result);
     }
 
     
-    return SetPropertyByDefining(cx, obj, receiver, id, vp, obj == pobj, result);
+    MOZ_ASSERT(shape->isAccessorDescriptor());
+    MOZ_ASSERT_IF(!shape->hasSetterObject(), shape->hasDefaultSetter());
+    if (shape->hasDefaultSetter())
+        return result.fail(JSMSG_GETTER_ONLY);
+    Value setter = ObjectValue(*shape->setterObject());
+    if (!InvokeGetterOrSetter(cx, receiver, setter, 1, vp.address(), vp))
+        return false;
+    return result.succeed();
 }
 
 bool
