@@ -81,6 +81,15 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "copy_buffer",
+        310, 
+        300, 
+        GLContext::ARB_copy_buffer,
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
         "depth_texture",
         200, 
         300, 
