@@ -4563,7 +4563,7 @@ nsHTMLEditRules::CreateStyleForInsertText(Selection* aSelection,
     
     nsAutoString curValue;
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetInlinePropertyBase(propItem->tag, &propItem->attr,
+    res = mHTMLEditor->GetInlinePropertyBase(*propItem->tag, &propItem->attr,
                                              nullptr, &bFirst, &bAny, &bAll,
                                              &curValue, false);
     NS_ENSURE_SUCCESS(res, res);
@@ -7558,7 +7558,8 @@ nsHTMLEditRules::ReapplyCachedStyles()
       if (!bAny) {
         
         NS_ENSURE_STATE(mHTMLEditor);
-        nsresult res = mHTMLEditor->GetInlinePropertyBase(mCachedStyles[i].tag,
+        nsresult res = mHTMLEditor->GetInlinePropertyBase(
+                                                     *mCachedStyles[i].tag,
                                                      &(mCachedStyles[i].attr),
                                                      &(mCachedStyles[i].value),
                                                      &bFirst, &bAny, &bAll,
