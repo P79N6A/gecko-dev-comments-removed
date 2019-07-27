@@ -53,8 +53,10 @@
 #include "client/linux/crash_generation/client_info.h"
 #include "client/linux/crash_generation/crash_generation_server.h"
 #include "client/linux/handler/exception_handler.h"
+#include "common/linux/eintr_wrapper.h"
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #elif defined(XP_SOLARIS)
 #include "client/solaris/handler/exception_handler.h"
@@ -956,9 +958,16 @@ bool MinidumpCallback(
     }
 #endif
     _exit(1);
+#ifdef MOZ_WIDGET_ANDROID
+  } else {
+    
+    
+    int status;
+    unused << HANDLE_EINTR(sys_waitpid(pid, &status, __WALL));
+#endif
   }
-#endif 
-#endif 
+#endif
+#endif
 
   return returnValue;
 }
