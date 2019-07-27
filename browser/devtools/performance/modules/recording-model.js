@@ -24,7 +24,9 @@ const RecordingModel = function (options={}) {
   this._configuration = {
     withTicks: options.withTicks || false,
     withMemory: options.withMemory || false,
-    withAllocations: options.withAllocations || false
+    withAllocations: options.withAllocations || false,
+    allocationsSampleProbability: options.allocationsSampleProbability || 0,
+    allocationsMaxLogLength: options.allocationsMaxLogLength || 0
   };
 };
 
@@ -81,17 +83,14 @@ RecordingModel.prototype = {
   
 
 
-
-
-
-  startRecording: Task.async(function *(options = {}) {
+  startRecording: Task.async(function *() {
     
     
     
     
     this._localStartTime = this._performance.now();
 
-    let info = yield this._front.startRecording(options);
+    let info = yield this._front.startRecording(this.getConfiguration());
     this._profilerStartTime = info.profilerStartTime;
     this._timelineStartTime = info.timelineStartTime;
     this._memoryStartTime = info.memoryStartTime;
