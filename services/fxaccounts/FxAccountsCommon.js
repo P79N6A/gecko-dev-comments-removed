@@ -90,7 +90,7 @@ exports.ONLOGOUT_NOTIFICATION = "fxaccounts:onlogout";
 
 exports.ON_FXA_UPDATE_NOTIFICATION = "fxaccounts:update";
 
-exports.ONPROFILE_IMAGE_CHANGE_NOTIFICATION = "fxaccounts:profileimagechange";
+exports.ON_PROFILE_CHANGE_NOTIFICATION = "fxaccounts:profilechange";
 
 
 exports.UI_REQUEST_SIGN_IN_FLOW = "signInFlow";
