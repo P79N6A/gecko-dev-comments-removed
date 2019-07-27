@@ -20,6 +20,11 @@ self.addEventListener("fetch", function(event) {
     if (event.request.context == "audio") {
       event.respondWith(fetch("realaudio.ogg"));
     }
+  } else if (event.request.url.indexOf("video.ogg") >= 0) {
+    
+    if (event.request.context == "audio") {
+      event.respondWith(fetch("realaudio.ogg"));
+    }
   }
   
   try {
