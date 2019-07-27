@@ -213,11 +213,6 @@ XPCWrappedNativeScope::EnsureContentXBLScope(JSContext *cx)
     
     
     
-    
-    
-    
-    
-    
     SandboxOptions options;
     options.wantXrays = true;
     options.wantComponents = true;

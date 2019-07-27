@@ -964,13 +964,8 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
             return NS_ERROR_XPC_UNEXPECTED;
     }
 
-    
-    
-    
     vp.setObject(*sandbox);
-    if (options.wantXrays && !JS_WrapValue(cx, vp))
-        return NS_ERROR_UNEXPECTED;
-    if (!options.wantXrays && !xpc::WrapperFactory::WaiveXrayAndWrap(cx, vp))
+    if (!JS_WrapValue(cx, vp))
         return NS_ERROR_UNEXPECTED;
 
     
@@ -1438,6 +1433,12 @@ nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative *wrappe
 
     if (NS_FAILED(rv))
         return ThrowAndFail(rv, cx, _retval);
+
+    
+    
+    
+    if (!options.wantXrays && !xpc::WrapperFactory::WaiveXrayAndWrap(cx, args.rval()))
+        return NS_ERROR_UNEXPECTED;
 
     *_retval = true;
     return NS_OK;
