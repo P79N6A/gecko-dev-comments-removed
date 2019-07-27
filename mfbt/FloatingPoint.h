@@ -191,6 +191,17 @@ IsNegativeZero(T aValue)
 
 
 
+template<typename T>
+static MOZ_ALWAYS_INLINE T
+ToZeroIfNonfinite(T aValue)
+{
+  return IsFinite(aValue) ? aValue : 0;
+}
+
+
+
+
+
 
 
 template<typename T>
