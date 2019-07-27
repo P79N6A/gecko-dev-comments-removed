@@ -59,7 +59,7 @@ private:
   VP8Sample* PopSample();
 
   nsRefPtr<WebMReader> mReader;
-  nsAutoPtr<PlatformDecoderModule> mPlatform;
+  nsRefPtr<PlatformDecoderModule> mPlatform;
   nsRefPtr<MediaDataDecoder> mMediaDataDecoder;
 
   

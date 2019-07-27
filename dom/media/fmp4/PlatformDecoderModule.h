@@ -54,6 +54,8 @@ typedef int64_t Microseconds;
 
 class PlatformDecoderModule {
 public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PlatformDecoderModule)
+
   
   
   static void Init();
@@ -64,7 +66,7 @@ public:
   
   
   
-  static PlatformDecoderModule* Create();
+  static already_AddRefed<PlatformDecoderModule> Create();
 
 #ifdef MOZ_EME
   
@@ -72,10 +74,11 @@ public:
   
   
   
-  static PlatformDecoderModule* CreateCDMWrapper(CDMProxy* aProxy,
-                                                 bool aHasAudio,
-                                                 bool aHasVideo,
-                                                 MediaTaskQueue* aTaskQueue);
+  static already_AddRefed<PlatformDecoderModule>
+  CreateCDMWrapper(CDMProxy* aProxy,
+                   bool aHasAudio,
+                   bool aHasVideo,
+                   MediaTaskQueue* aTaskQueue);
 #endif
 
   
@@ -124,10 +127,9 @@ public:
   virtual bool SupportsAudioMimeType(const char* aMimeType);
   virtual bool SupportsVideoMimeType(const char* aMimeType);
 
-  virtual ~PlatformDecoderModule() {}
-
 protected:
   PlatformDecoderModule() {}
+  virtual ~PlatformDecoderModule() {}
   
   static bool sUseBlankDecoder;
   static bool sFFmpegDecoderEnabled;

@@ -48,7 +48,7 @@ public:
 private:
   nsRefPtr<CDMProxy> mProxy;
   
-  nsAutoPtr<PlatformDecoderModule> mPDM;
+  nsRefPtr<PlatformDecoderModule> mPDM;
   
   nsRefPtr<MediaTaskQueue> mTaskQueue;
   bool mCDMDecodesAudio;
