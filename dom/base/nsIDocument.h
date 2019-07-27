@@ -152,8 +152,8 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x21bbd52a, 0xc2d2, 0x4b2f, \
-  { 0xbc, 0x6c, 0xc9, 0x52, 0xbe, 0x23, 0x6b, 0x19 } }
+{ 0xbbce44c8, 0x22fe, 0x404f, \
+  { 0x9e, 0x71, 0x23, 0x1d, 0xf4, 0xcc, 0x8e, 0x34 } }
 
 
 enum DocumentFlavor {
@@ -1155,14 +1155,6 @@ public:
 
 
   virtual void SetFullscreenRoot(nsIDocument* aRoot) = 0;
-
-  
-
-
-
-
-
-  virtual void SetApprovedForFullscreen(bool aIsApproved) = 0;
 
   
 

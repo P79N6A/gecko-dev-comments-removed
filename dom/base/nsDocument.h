@@ -1208,7 +1208,6 @@ public:
   virtual void RestorePreviousFullScreenState() override;
   virtual bool IsFullscreenLeaf() override;
   virtual bool IsFullScreenDoc() override;
-  virtual void SetApprovedForFullscreen(bool aIsApproved) override;
   virtual nsresult
     RemoteFrameFullscreenChanged(nsIDOMElement* aFrameElement) override;
 
@@ -1253,13 +1252,6 @@ public:
   
   
   void CleanupFullscreenState();
-
-  
-  
-  
-  
-  nsresult AddFullscreenApprovedObserver();
-  nsresult RemoveFullscreenApprovedObserver();
 
   
   
@@ -1660,26 +1652,6 @@ public:
   
   
   bool mParserAborted:1;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  bool mIsApprovedForFullscreen:1;
-
-  
-  
-  
-  bool mHasFullscreenApprovedObserver:1;
 
   friend class nsPointerLockPermissionRequest;
   friend class nsCallRequestFullScreen;
