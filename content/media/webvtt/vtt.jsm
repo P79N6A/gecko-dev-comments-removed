@@ -29,7 +29,7 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
 
 (function(global) {
 
-  _objCreate = Object.create || (function() {
+  var _objCreate = Object.create || (function() {
     function F() {}
     return function(o) {
       if (arguments.length !== 1) {
@@ -166,10 +166,13 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
 
   function parseCue(input, cue, regionList) {
     
+    var oInput = input;
+    
     function consumeTimeStamp() {
       var ts = parseTimeStamp(input);
       if (ts === null) {
-        throw new ParsingError(ParsingError.Errors.BadTimeStamp);
+        throw new ParsingError(ParsingError.Errors.BadTimeStamp,
+                              "Malformed timestamp: " + oInput);
       }
       
       input = input.replace(/^[^\sa-zA-Z-]+/, "");
@@ -254,7 +257,8 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
     skipWhitespace();
     if (input.substr(0, 3) !== "-->") {     
       throw new ParsingError(ParsingError.Errors.BadTimeStamp,
-                             "Malformed time stamp (time stamps must be separated by '-->').");
+                             "Malformed time stamp (time stamps must be separated by '-->'): " +
+                             oInput);
     }
     input = input.substr(3);
     skipWhitespace();
@@ -1304,13 +1308,18 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
           self.state = "HEADER";
         }
 
+        var alreadyCollectedLine = false;
         while (self.buffer) {
           
           if (!/\r\n|\n/.test(self.buffer)) {
             return this;
           }
 
-          line = collectNextLine();
+          if (!alreadyCollectedLine) {
+            line = collectNextLine();
+          } else {
+            alreadyCollectedLine = false;
+          }
 
           switch (self.state) {
           case "HEADER":
@@ -1361,8 +1370,12 @@ this.EXPORTED_SYMBOLS = ["WebVTT"];
             self.state = "CUETEXT";
             continue;
           case "CUETEXT":
+            var hasSubstring = line.indexOf("-->") !== -1;
             
-            if (!line) {
+            
+            
+            
+            if (!line || hasSubstring && (alreadyCollectedLine = true)) {
               
               self.oncue && self.oncue(self.cue);
               self.cue = null;
