@@ -1478,6 +1478,14 @@ nsStyleSet::ResolveStyleWithReplacement(Element* aElement,
                  "aElement should be the element and not the pseudo-element");
   }
 
+  if (aElement && aElement->IsRootOfAnonymousSubtree()) {
+    
+    
+    
+    
+    flags |= eSkipParentDisplayBasedStyleFixup;
+  }
+
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,
                     aOldStyleContext->GetPseudo(), pseudoType,
                     elementForAnimation, flags);
