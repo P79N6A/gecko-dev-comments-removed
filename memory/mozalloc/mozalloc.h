@@ -180,9 +180,16 @@ MOZALLOC_EXPORT void* moz_valloc(size_t size)
 #  define MOZALLOC_EXPORT_NEW
 #endif
 
-#if defined(ANDROID) || defined(_MSC_VER)
+#if defined(ANDROID)
 
 
+
+
+
+
+#define MOZALLOC_THROW_IF_HAS_EXCEPTIONS throw()
+#define MOZALLOC_THROW_BAD_ALLOC_IF_HAS_EXCEPTIONS
+#elif defined(_MSC_VER)
 
 
 
