@@ -563,6 +563,16 @@ var FullScreen = {
       document.documentElement.setAttribute("inFullscreen", true);
     }
 
+    ToolbarIconColor.inferFromText();
+
+    
+    
+    
+    
+    if (this.useLionFullScreen) {
+      return;
+    }
+
     var fullscreenctls = document.getElementById("window-controls");
     var navbar = document.getElementById("nav-bar");
     var ctlsOnTabbar = window.toolbar.visible;
@@ -575,8 +585,6 @@ var FullScreen = {
       navbar.appendChild(fullscreenctls);
     }
     fullscreenctls.hidden = aShow;
-
-    ToolbarIconColor.inferFromText();
   }
 };
 XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {
