@@ -9,7 +9,9 @@
 
 namespace mozilla {
 
-MP4Stream::MP4Stream(MediaResource* aResource) : mResource(aResource)
+MP4Stream::MP4Stream(MediaResource* aResource, Monitor* aDemuxerMonitor)
+  : mResource(aResource)
+  , mDemuxerMonitor(aDemuxerMonitor)
 {
   MOZ_COUNT_CTOR(MP4Stream);
   MOZ_ASSERT(aResource);
@@ -24,6 +26,12 @@ bool
 MP4Stream::ReadAt(int64_t aOffset, void* aBuffer, size_t aCount,
                   size_t* aBytesRead)
 {
+  
+  
+  
+  mDemuxerMonitor->AssertCurrentThreadOwns();
+  MonitorAutoUnlock unlock(*mDemuxerMonitor);
+
   uint32_t sum = 0;
   uint32_t bytesRead = 0;
   do {
@@ -44,6 +52,12 @@ bool
 MP4Stream::CachedReadAt(int64_t aOffset, void* aBuffer, size_t aCount,
                         size_t* aBytesRead)
 {
+  
+  
+  
+  mDemuxerMonitor->AssertCurrentThreadOwns();
+  MonitorAutoUnlock unlock(*mDemuxerMonitor);
+
   nsresult rv = mResource->ReadFromCache(reinterpret_cast<char*>(aBuffer),
                                          aOffset, aCount);
   if (NS_FAILED(rv)) {
