@@ -76,6 +76,44 @@
 
 
 
+.dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  background: #fdfdfd;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  list-style: none;
+  padding: 5px;
+  border-radius: 2px;
+}
+
+body[dir=rtl] .dropdown-menu-item {
+  left: auto;
+  right: 10px;
+}
+
+.dropdown-menu-item {
+  text-align: start;
+  margin: .3em 0;
+  padding: .2em .5em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-size: 1em;
+  white-space: nowrap;
+}
+
+.dropdown-menu-item:hover {
+  border: 1px solid #ccc;
+  background: #eee;
+}
+
+
+
 .dnd-status {
   border: 1px solid transparent;
   padding: 2px 4px;
@@ -87,42 +125,6 @@
 .dnd-status:hover {
   border: 1px solid #DDD;
   background: #F1F1F1;
-}
-
-.do-not-disturb {
-  position: relative;
-}
-
-.dnd-menu {
-  position: absolute;
-  top: -28px;
-  left: 0;
-  background: #fdfdfd;
-  box-shadow: 0 1px 3px rgba(0,0,0,.3);
-  list-style: none;
-  padding: 5px;
-  border-radius: 2px;
-}
-
-body[dir=rtl] .dnd-menu {
-  left: auto;
-  right: 10px;
-}
-
-.dnd-menu-item {
-  text-align: start;
-  margin: .3em 0;
-  padding: .2em .5em;
-  cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  font-size: 1em;
-  white-space: nowrap;
-}
-
-.dnd-menu-item:hover {
-  border: 1px solid #ccc;
-  background: #eee;
 }
 
 
@@ -147,11 +149,67 @@ body[dir=rtl] .dnd-menu {
 
 .signin-link {
   display: none; 
-  line-height: 100%;
+  flex: 2 1 auto;
+  margin-top: 14px;
+  border-right: 1px solid #aaa;
+  padding-right: 1em;
+  margin-right: 1em;
+  text-align: right;
+}
+
+.signin-link a {
   font-size: .9em;
   text-decoration: none;
   color: #888;
-  margin-top: 16px;
+}
+
+
+
+.btn-settings {
+  display: none; 
+  background: transparent url(../img/svg/glyph-settings-16x16.svg) no-repeat center center;
+  background-size: contain;
+  width: 12px;
+  height: 12px;
+}
+
+.footer .btn-settings {
+  margin-top: 17px; 
+  opacity: .6;      
+}
+
+.settings-menu .dropdown-menu {
+  
+
+
+  top: auto;
+  left: auto;
+  bottom: -8px;
+  right: 14px;
+}
+
+.settings-menu .icon {
+  display: inline-block;
+  background-size: contain;
+  width: 12px;
+  height: 12px;
+  margin-right: 1em;
+}
+
+.settings-menu .icon-settings {
+  background: transparent url(../img/svg/glyph-settings-16x16.svg) no-repeat center center;
+}
+
+.settings-menu .icon-account {
+  background: transparent url(../img/svg/glyph-account-16x16.svg) no-repeat center center;
+}
+
+.settings-menu .icon-signin {
+  background: transparent url(../img/svg/glyph-signin-16x16.svg) no-repeat center center;
+}
+
+.settings-menu .icon-signout {
+  background: transparent url(../img/svg/glyph-signout-16x16.svg) no-repeat center center;
 }
 
 
@@ -186,4 +244,3 @@ body[dir=rtl] .dnd-menu {
   padding: 14px;
   margin-top: 14px;
 }
-
