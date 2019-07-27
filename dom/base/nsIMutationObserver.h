@@ -62,7 +62,7 @@ struct CharacterDataChangeInfo
 
 
 
-  struct Details {
+  struct MOZ_STACK_CLASS Details {
     enum {
       eMerge,  
       eSplit   
@@ -71,7 +71,7 @@ struct CharacterDataChangeInfo
 
 
 
-    nsIContent* mNextSibling;
+    nsIContent* MOZ_NON_OWNING_REF mNextSibling;
   };
 
   
