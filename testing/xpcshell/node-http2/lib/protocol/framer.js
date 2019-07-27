@@ -815,63 +815,24 @@ frameFlags.ALTSVC = [];
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typeSpecificAttributes.ALTSVC = ['maxAge', 'port', 'protocolID', 'host',
                                  'origin'];
 
 Serializer.ALTSVC = function writeAltSvc(frame, buffers) {
-  var buffer = new Buffer(8);
-  buffer.writeUInt32BE(frame.maxAge, 0);
-  buffer.writeUInt16BE(frame.port, 4);
-  buffer.writeUInt8(0, 6);
-  buffer.writeUInt8(frame.protocolID.length, 7);
+  var hdr = frame.protocolID + "=\"" + frame.host + ":" + frame.port + "\"";
+  if (frame.maxAge) {
+   hdr += "; ma=" + frame.maxAge;
+  }
+  
+  buffer = new Buffer(2);
+  buffer.writeUInt16BE(frame.origin.length, 0);
   buffers.push(buffer);
-
-  buffers.push(new Buffer(frame.protocolID, 'ascii'));
-
-  buffer = new Buffer(1);
-  buffer.writeUInt8(frame.host.length, 0);
-  buffers.push(buffer);
-
-  buffers.push(new Buffer(frame.host, 'ascii'));
-
   buffers.push(new Buffer(frame.origin, 'ascii'));
+  buffers.push(new Buffer(hdr, 'ascii'));
 };
 
 Deserializer.ALTSVC = function readAltSvc(buffer, frame) {
-  frame.maxAge = buffer.readUInt32BE(0);
-  frame.port = buffer.readUInt16BE(4);
-  var pidLength = buffer.readUInt8(7);
-  frame.protocolID = buffer.toString('ascii', 8, 8 + pidLength);
-  var hostLength = buffer.readUInt8(8 + pidLength);
-  frame.host = buffer.toString('ascii', 9 + pidLength, 9 + pidLength + hostLength);
-  frame.origin = buffer.toString('ascii', 9 + pidLength + hostLength);
+  
 };
 
 
