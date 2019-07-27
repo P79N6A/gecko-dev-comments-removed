@@ -358,6 +358,15 @@ this.PermissionsTable =  { geolocation: {
                              app: DENY_ACTION,
                              privileged: PROMPT_ACTION,
                              certified: PROMPT_ACTION
+                           },
+                           
+                           
+                           
+                           "test-permission": {
+                             app: PROMPT_ACTION,
+                             privileged: PROMPT_ACTION,
+                             certified: ALLOW_ACTION,
+                             access: ["read", "write", "create"]
                            }
                          };
 

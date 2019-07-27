@@ -167,7 +167,7 @@ this.PermissionsInstaller = {
             
             
             permValue =
-              PermissionSettingsModule.getPermission(permName,
+              PermissionSettingsModule.getPermission(expandedPermNames[idx],
                                                      aApp.manifestURL,
                                                      aApp.origin,
                                                      false);
