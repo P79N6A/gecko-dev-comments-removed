@@ -666,7 +666,7 @@ protected:
   
   int64_t GetMediaTime() const {
     AssertCurrentThreadInMonitor();
-    return mStartTime + mCurrentFrameTime;
+    return mStartTime + mCurrentPosition;
   }
 
   
@@ -993,7 +993,7 @@ protected:
   
   
   
-  int64_t mCurrentFrameTime;
+  int64_t mCurrentPosition;
 
   
   
