@@ -677,18 +677,16 @@ LIRGeneratorX86Shared::visitSimdTernaryBitwise(MSimdTernaryBitwise *ins)
 
     if (ins->type() == MIRType_Int32x4 || ins->type() == MIRType_Float32x4) {
         LSimdSelect *lins = new(alloc()) LSimdSelect;
+        MDefinition *r0 = ins->getOperand(0);
+        MDefinition *r1 = ins->getOperand(1);
+        MDefinition *r2 = ins->getOperand(2);
 
-        
-        lins->setOperand(0, useRegisterAtStart(ins->getOperand(0)));
-        
-        lins->setOperand(1, useRegisterAtStart(ins->getOperand(1)));
-        
-        
-        lins->setOperand(2, useRegisterAtStart(ins->getOperand(2)));
-        
-        
-        
-        defineReuseInput(lins, ins, 1);
+        lins->setOperand(0, useRegister(r0));
+        lins->setOperand(1, useRegister(r1));
+        lins->setOperand(2, useRegister(r2));
+        lins->setTemp(0, temp(LDefinition::FLOAT32X4));
+
+        define(lins, ins);
     } else {
         MOZ_CRASH("Unknown SIMD kind when doing bitwise operations");
     }
