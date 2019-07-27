@@ -51,6 +51,13 @@ struct nsXREAppData
 
 
 
+  const char* remotingName;
+
+  
+
+
+
+
   const char* version;
 
   
