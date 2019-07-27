@@ -2,12 +2,14 @@
 
 
 
+import glob
 import time
 import re
 import os
 import tempfile
 import shutil
 import subprocess
+import sys
 
 from automation import Automation
 from devicemanager import DMError
@@ -128,8 +130,51 @@ class RemoteAutomation(Automation):
         else:
             print "%s not found" % traces
 
+    def deleteTombstones(self):
+        
+        remoteDir = "/data/tombstones"
+        try:
+            self._devicemanager.shellCheckOutput(['rm', '-r', remoteDir], root=True)
+        except DMError:
+            
+            pass
+
+    def checkForTombstones(self):
+        
+        remoteDir = "/data/tombstones"
+        blobberUploadDir = os.environ.get('MOZ_UPLOAD_DIR', None)
+        if blobberUploadDir:
+            if not os.path.exists(blobberUploadDir):
+                os.mkdir(blobberUploadDir)
+            if self._devicemanager.dirExists(remoteDir):
+                
+                try:
+                    self._devicemanager.shellCheckOutput(['chmod', '777', remoteDir], root=True)
+                    self._devicemanager.shellCheckOutput(['chmod', '666', os.path.join(remoteDir, '*')], root=True)
+                    self._devicemanager.getDirectory(remoteDir, blobberUploadDir, False)
+                except DMError:
+                    
+                    pass
+                self.deleteTombstones()
+                
+                
+                for f in glob.glob(os.path.join(blobberUploadDir, "tombstone_??")):
+                    
+                    
+                    
+                    for i in xrange(1, sys.maxint):
+                        newname = "%s.%d.txt" % (f, i)
+                        if not os.path.exists(newname):
+                            os.rename(f, newname)
+                            break
+            else:
+                print "%s does not exist; tombstone check skipped" % remoteDir
+        else:
+            print "MOZ_UPLOAD_DIR not defined; tombstone check skipped"
+
     def checkForCrashes(self, directory, symbolsPath):
         self.checkForANRs()
+        self.checkForTombstones()
 
         logcat = self._devicemanager.getLogcat(filterOutRegexps=fennecLogcatFilters)
         javaException = mozcrash.check_for_java_exception(logcat)
