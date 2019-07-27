@@ -16,26 +16,6 @@ menulist > menupopup {
 
 
 
-titlebar,
-toolbar:not([nowindowdrag="true"]):not([customizing="true"]),
-statusbar:not([nowindowdrag="true"]),
-windowdragbox {
-  -moz-window-dragging: drag;
-}
-
-
-toolbarbutton,
-button,
-textbox,
-searchbar,
-tab,
-radio,
-splitter {
-  -moz-window-dragging: no-drag;
-}
-
-
-
 window,
 page,
 dialog,
