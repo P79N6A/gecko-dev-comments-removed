@@ -238,6 +238,8 @@ public:
 
   virtual bool            AutoErase(HDC dc);
 
+  static void             ClearCompositor(nsWindow* aWindow);
+
   
 
 
