@@ -1612,10 +1612,15 @@ bool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
     return false;
 
   
+  
+  
+  
   nsAutoCString scheme;
   aURI->GetScheme(scheme);
-  if (scheme.EqualsLiteral("data"))
+  if (scheme.EqualsLiteral("data") &&
+      !(aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE)) {
     return true;
+  }
 
   bool validateRequest = false;
 
