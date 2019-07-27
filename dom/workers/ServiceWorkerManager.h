@@ -235,6 +235,11 @@ private:
   nsCString mScriptSpec;
   nsString mCacheName;
   ServiceWorkerState mState;
+
+  
+  
+  uint64_t mServiceWorkerID;
+
   
   
   
@@ -243,6 +248,11 @@ private:
 
   ~ServiceWorkerInfo()
   { }
+
+  
+  
+  uint64_t
+  GetNextID() const;
 
 public:
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerInfo)
@@ -272,6 +282,7 @@ public:
     , mScriptSpec(aScriptSpec)
     , mCacheName(aCacheName)
     , mState(ServiceWorkerState::EndGuard_)
+    , mServiceWorkerID(GetNextID())
   {
     MOZ_ASSERT(mRegistration);
     MOZ_ASSERT(!aCacheName.IsEmpty());
@@ -287,6 +298,12 @@ public:
   CacheName() const
   {
     return mCacheName;
+  }
+
+  uint64_t
+  ID() const
+  {
+    return mServiceWorkerID;
   }
 
   void
@@ -365,6 +382,9 @@ public:
   nsRefPtrHashtable<nsISupportsHashKey, ServiceWorkerRegistrationInfo> mControlledDocuments;
 
   
+  nsTHashtable<nsISupportsHashKey> mAllDocuments;
+
+  
   nsClassHashtable<nsCStringHashKey, ServiceWorkerJobQueue> mJobQueues;
 
   nsDataHashtable<nsCStringHashKey, bool> mSetOfScopesBeingUpdated;
@@ -411,6 +431,13 @@ public:
   void
   GetAllClients(const nsCString& aScope,
                 nsTArray<ServiceWorkerClientInfo>& aControlledDocuments);
+
+  void
+  MaybeClaimClient(nsIDocument* aDocument,
+                   ServiceWorkerRegistrationInfo* aWorkerRegistration);
+
+  nsresult
+  ClaimClients(const nsCString& aScope, uint64_t aId);
 
   static already_AddRefed<ServiceWorkerManager>
   GetInstance();
@@ -465,6 +492,13 @@ private:
   void
   InvalidateServiceWorkerRegistrationWorker(ServiceWorkerRegistrationInfo* aRegistration,
                                             WhichServiceWorker aWhichOnes);
+
+  void
+  StartControllingADocument(ServiceWorkerRegistrationInfo* aRegistration,
+                            nsIDocument* aDoc);
+
+  void
+  StopControllingADocument(ServiceWorkerRegistrationInfo* aRegistration);
 
   already_AddRefed<ServiceWorkerRegistrationInfo>
   GetServiceWorkerRegistrationInfo(nsPIDOMWindow* aWindow);

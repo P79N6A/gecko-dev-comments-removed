@@ -63,12 +63,16 @@ public:
   
   void DisconnectFromOwner() override;
 
+  
+  
+  void
+  ControllerChanged(ErrorResult& aRv);
+
 private:
   ~ServiceWorkerContainer();
 
   void RemoveReadyPromise();
 
-  
   
   
   nsRefPtr<workers::ServiceWorker> mControllerWorker;
