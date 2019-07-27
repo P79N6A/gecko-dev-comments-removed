@@ -7001,23 +7001,16 @@ BuildTargetChainForBeforeAfterKeyboardEvent(nsINode* aTarget,
                                             bool& aTargetIsIframe)
 {
   nsCOMPtr<nsIContent> content(do_QueryInterface(aTarget));
-  nsCOMPtr<nsPIDOMWindow> window;
-  Element* frameElement;
+  aTargetIsIframe = content && content->IsHTML(nsGkAtoms::iframe);
 
+  Element* frameElement;
   
-  if (content && content->IsHTML(nsGkAtoms::iframe)) {
-    aTargetIsIframe = true;
+  
+  if (aTargetIsIframe) {
     frameElement = aTarget->AsElement();
   } else {
-    
-    
-    aTargetIsIframe = false;
-
-    
-    window = aTarget->OwnerDoc()->GetWindow();
-    if (window) {
-      frameElement = window->GetFrameElementInternal();
-    }
+    nsPIDOMWindow* window = aTarget->OwnerDoc()->GetWindow();
+    frameElement = window ? window->GetFrameElementInternal() : nullptr;
   }
 
   
@@ -7025,7 +7018,7 @@ BuildTargetChainForBeforeAfterKeyboardEvent(nsINode* aTarget,
     if (CheckPermissionForBeforeAfterKeyboardEvent(frameElement)) {
       aChain.AppendElement(frameElement);
     }
-    window = frameElement->OwnerDoc()->GetWindow();
+    nsPIDOMWindow* window = frameElement->OwnerDoc()->GetWindow();
     frameElement = window ? window->GetFrameElementInternal() : nullptr;
   }
 }
