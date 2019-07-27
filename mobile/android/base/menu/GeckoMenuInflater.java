@@ -7,6 +7,7 @@ package org.mozilla.gecko.menu;
 import java.io.IOException;
 
 import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
 import org.xmlpull.v1.XmlPullParser;
@@ -133,11 +134,19 @@ public class GeckoMenuInflater extends MenuInflater {
 
         
         
-        if (item.id == R.id.reload && NewTabletUI.isEnabled(mContext)) {
-            item.iconRes = R.drawable.new_tablet_ic_menu_reload;
+        final int iconResID;
+        if (!NewTabletUI.isEnabled(mContext)) {
+            iconResID = a.getResourceId(R.styleable.MenuItem_android_icon, 0);
         } else {
-            item.iconRes = a.getResourceId(R.styleable.MenuItem_android_icon, 0);
+            if (item.id == R.id.reload) {
+                iconResID = R.drawable.new_tablet_ic_menu_reload;
+            } else if (HardwareUtils.isLargeTablet() && item.id == R.id.bookmark) {
+                iconResID = R.drawable.new_tablet_ic_menu_bookmark_add;
+            } else {
+                iconResID = a.getResourceId(R.styleable.MenuItem_android_icon, 0);
+            }
         }
+        item.iconRes = iconResID;
 
         if (Versions.feature11Plus) {
             item.showAsAction = a.getInt(R.styleable.MenuItem_android_showAsAction, 0);
