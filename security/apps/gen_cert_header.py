@@ -22,8 +22,18 @@ def create_header(array_name, in_filename):
   print "};"
   return 0
 
+def create_empty_header(array_name):
+  
+  
+  
+  
+  print "const uint8_t " + array_name + "[] = { 0x0 };"
+  return 0
+
 if __name__ == '__main__':
-  if len(sys.argv) < 3:
+  if len(sys.argv) < 2:
     print 'ERROR: usage: gen_cert_header.py array_name in_filename'
     sys.exit(1);
+  if len(sys.argv) == 2:
+    sys.exit(create_empty_header(sys.argv[1]))
   sys.exit(create_header(sys.argv[1], sys.argv[2]))
