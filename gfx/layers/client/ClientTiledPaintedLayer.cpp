@@ -83,7 +83,7 @@ GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAn
       
       
       const FrameMetrics& metrics = iter.Metrics();
-      transform.PostScale(metrics.mPresShellResolution, metrics.mPresShellResolution, 1.f);
+      transform.PostScale(metrics.GetPresShellResolution(), metrics.GetPresShellResolution(), 1.f);
     }
   }
   return transform;

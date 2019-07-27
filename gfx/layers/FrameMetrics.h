@@ -251,20 +251,17 @@ public:
   
   ParentLayerRect mCompositionBounds;
 
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  float mPresShellResolution;
-
 public:
+  void SetPresShellResolution(const float aPresShellResolution)
+  {
+    mPresShellResolution = aPresShellResolution;
+  }
+
+  float GetPresShellResolution() const
+  {
+    return mPresShellResolution;
+  }
+
   void SetDisplayPort(const CSSRect& aDisplayPort)
   {
     mDisplayPort = aDisplayPort;
@@ -523,6 +520,16 @@ public:
   }
 
 private:
+
+  
+  
+  
+  
+  
+  
+  
+  float mPresShellResolution;
+
   
   
   

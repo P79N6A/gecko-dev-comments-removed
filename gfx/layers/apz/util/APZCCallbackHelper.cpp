@@ -143,7 +143,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
 
     
     
-    float presShellResolution = aMetrics.mPresShellResolution
+    float presShellResolution = aMetrics.GetPresShellResolution()
                               * aMetrics.GetAsyncZoom().scale;
     aUtils->SetResolutionAndScaleTo(presShellResolution, presShellResolution);
 

@@ -246,7 +246,7 @@ ComputeClipRegion(GeckoContentController* aController,
     
     LayoutDeviceToParentLayerScale parentCumulativeResolution =
           aLayer.Metrics().GetCumulativeResolution()
-        / ParentLayerToLayerScale(aLayer.Metrics().mPresShellResolution);
+        / ParentLayerToLayerScale(aLayer.Metrics().GetPresShellResolution());
     
     
     

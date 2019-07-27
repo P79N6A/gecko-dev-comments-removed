@@ -744,7 +744,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
       
       
       
-      yTranslation *= metrics.mPresShellResolution;
+      yTranslation *= metrics.GetPresShellResolution();
     }
 
     scrollbarTransform.PostScale(1.f, yScale, 1.f);
@@ -772,7 +772,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     xTranslation -= thumbOriginDeltaPL;
 
     if (aScrollbarIsDescendant) {
-      xTranslation *= metrics.mPresShellResolution;
+      xTranslation *= metrics.GetPresShellResolution();
     }
 
     scrollbarTransform.PostScale(xScale, 1.f, 1.f);
@@ -802,8 +802,8 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     
     
     Matrix4x4 resolutionCancellingTransform =
-        Matrix4x4::Scaling(metrics.mPresShellResolution,
-                           metrics.mPresShellResolution,
+        Matrix4x4::Scaling(metrics.GetPresShellResolution(),
+                           metrics.GetPresShellResolution(),
                            1.0f).Inverse();
     Matrix4x4 asyncUntransform = (asyncTransform * apzc->GetOverscrollTransform()).Inverse();
     Matrix4x4 contentTransform = aContent.GetTransform();

@@ -769,9 +769,9 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   
   
   if (aScrollFrame == presShell->GetRootScrollFrame()) {
-    metrics.mPresShellResolution = presShell->GetXResolution();
+    metrics.SetPresShellResolution(presShell->GetXResolution());
   } else {
-    metrics.mPresShellResolution = 1.0f;
+    metrics.SetPresShellResolution(1.0f);
   }
   
   
