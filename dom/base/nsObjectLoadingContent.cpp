@@ -20,6 +20,7 @@
 #include "nsIDOMHTMLObjectElement.h"
 #include "nsIDOMHTMLAppletElement.h"
 #include "nsIExternalProtocolHandler.h"
+#include "nsIHttpChannelInternal.h"
 #include "nsIObjectFrame.h"
 #include "nsIPermissionManager.h"
 #include "nsPluginHost.h"
@@ -2507,6 +2508,13 @@ nsObjectLoadingContent::OpenChannel()
   if (scriptChannel) {
     
     scriptChannel->SetExecutionPolicy(nsIScriptChannel::EXECUTE_NORMAL);
+  }
+
+  nsCOMPtr<nsIHttpChannelInternal> internalChannel = do_QueryInterface(httpChan);
+  if (internalChannel) {
+    
+    
+    internalChannel->ForceNoIntercept();
   }
 
   
