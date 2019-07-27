@@ -103,6 +103,11 @@ static MOZ_CONSTEXPR_VAR FloatRegister ScratchUIntReg = { FloatRegisters::d15, V
 static MOZ_CONSTEXPR_VAR FloatRegister ScratchIntReg = { FloatRegisters::d15, VFPRegister::Int };
 
 
+
+
+static const int32_t AsmJSGlobalRegBias = 1024;
+
+
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegCallee = r4;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE0 = r0;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE1 = r1;

@@ -5966,8 +5966,10 @@ GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
 
     
     
+    
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     masm.movePtr(IntArgReg1, GlobalReg);
+    masm.addPtr(Imm32(AsmJSGlobalRegBias), GlobalReg);
 #endif
 
     
@@ -6254,7 +6256,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
 #elif defined(JS_CODEGEN_X86)
     m.masm().append(AsmJSGlobalAccess(masm.movlWithPatch(Imm32(0), callee), globalDataOffset));
 #else
-    masm.computeEffectiveAddress(Address(GlobalReg, globalDataOffset), callee);
+    masm.computeEffectiveAddress(Address(GlobalReg, globalDataOffset - AsmJSGlobalRegBias), callee);
 #endif
 
     
