@@ -955,6 +955,22 @@ DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute
 
   nsIContent* elm = aAccessible->GetContent();
 
+  
+  
+  
+  if (aAttribute == nsGkAtoms::aria_hidden) {
+    bool isDefined = aria::HasDefinedARIAHidden(elm);
+    if (isDefined != aAccessible->IsARIAHidden() &&
+        !aAccessible->Parent()->IsARIAHidden()) {
+      aAccessible->SetARIAHidden(isDefined);
+
+      nsRefPtr<AccEvent> event =
+        new AccObjectAttrChangedEvent(aAccessible, aAttribute);
+      FireDelayedEvent(event);
+    }
+    return;
+  }
+
   if (aAttribute == nsGkAtoms::aria_checked ||
       (aAccessible->IsButton() &&
        aAttribute == nsGkAtoms::aria_pressed)) {

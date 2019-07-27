@@ -227,6 +227,11 @@ uint64_t UniversalStatesFor(mozilla::dom::Element* aElement);
 
 uint8_t AttrCharacteristicsFor(nsIAtom* aAtom);
 
+
+
+
+bool HasDefinedARIAHidden(nsIContent* aContent);
+
  
 
 
