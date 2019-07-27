@@ -1000,12 +1000,41 @@ public:
 
 
 
+
+
+
   static nsresult DispatchChromeEvent(nsIDocument* aDoc,
                                       nsISupports* aTarget,
                                       const nsAString& aEventName,
                                       bool aCanBubble,
                                       bool aCancelable,
                                       bool *aDefaultAction = nullptr);
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult DispatchEventOnlyToChrome(nsIDocument* aDoc,
+                                            nsISupports* aTarget,
+                                            const nsAString& aEventName,
+                                            bool aCanBubble,
+                                            bool aCancelable,
+                                            bool *aDefaultAction = nullptr);
 
   
 
@@ -2253,7 +2282,8 @@ private:
                                 bool aCanBubble,
                                 bool aCancelable,
                                 bool aTrusted,
-                                bool *aDefaultAction = nullptr);
+                                bool *aDefaultAction = nullptr,
+                                bool aOnlyChromeDispatch = false);
 
   static void InitializeModifierStrings();
 
