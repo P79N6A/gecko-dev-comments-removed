@@ -21,42 +21,12 @@ const kMissingAPIMessage = "Unsupported blocklist call in the child process."
 
 
 function Blocklist() {
-  this.init();
 }
 
 Blocklist.prototype = {
   classID: Components.ID("{e0a106ed-6ad4-47a4-b6af-2f1c8aa4712d}"),
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIBlocklistService]),
-
-  init: function () {
-    Services.cpmm.addMessageListener("Blocklist:blocklistInvalidated", this);
-    Services.obs.addObserver(this, "xpcom-shutdown", false);
-  },
-
-  uninit: function () {
-    Services.cpmm.removeMessageListener("Blocklist:blocklistInvalidated", this);
-    Services.obs.removeObserver(this, "xpcom-shutdown", false);
-  },
-
-  observe: function (aSubject, aTopic, aData) {
-    switch (aTopic) {
-    case "xpcom-shutdown":
-      this.uninit();
-      break;
-    }
-  },
-
-  
-  receiveMessage: function (aMsg) {
-    switch (aMsg.name) {
-      case "Blocklist:blocklistInvalidated":
-        Services.obs.notifyObservers(null, "blocklist-updated", null);
-        break;
-      default:
-        throw new Error("Unknown blocklist message received from content: " + aMsg.name);
-    }
-  },
 
   
 
@@ -87,7 +57,7 @@ Blocklist.prototype = {
   },
 
   getPluginBlocklistState: function (aPluginTag, aAppVersion, aToolkitVersion) {
-    return Services.cpmm.sendSyncMessage("Blocklist:getPluginBlocklistState", {
+    return Services.cpmm.sendSyncMessage("Blocklist::getPluginBlocklistState", {
       addonData: this.flattenObject(aPluginTag),
       appVersion: aAppVersion,
       toolkitVersion: aToolkitVersion
