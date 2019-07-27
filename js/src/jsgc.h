@@ -945,17 +945,6 @@ TraceRuntime(JSTracer *trc);
 extern void
 ReleaseAllJITCode(FreeOp *op);
 
-
-
-
-typedef enum JSGCInvocationKind {
-    
-    GC_NORMAL           = 0,
-
-    
-    GC_SHRINK             = 1
-} JSGCInvocationKind;
-
 extern void
 PrepareForDebugGC(JSRuntime *rt);
 
