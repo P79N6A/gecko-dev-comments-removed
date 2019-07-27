@@ -342,6 +342,7 @@ public:
                              long aFrames);
   static void StateCallback_s(cubeb_stream* aStream, void * aUser,
                               cubeb_state aState);
+  static void DeviceChangedCallback_s(void * aUser);
   
 
 
@@ -370,7 +371,19 @@ public:
   bool InCallback();
 
   bool IsStarted();
+
+  
+
+  void SetMicrophoneActive(bool aActive);
 private:
+  
+
+
+
+  void PanOutputIfNeeded(bool aMicrophoneActive);
+  
+
+  void DeviceChangedCallback();
   
   void StartStream();
   friend class AsyncCubebTask;
@@ -426,6 +439,10 @@ private:
 
 
   bool mPauseRequested;
+  
+
+
+  bool mMicrophoneActive;
 };
 
 class AsyncCubebTask : public nsRunnable
