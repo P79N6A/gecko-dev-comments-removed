@@ -1038,7 +1038,6 @@ class GCRuntime
     
     
     
-    friend class js::GCMarker;
     enum class GrayBufferState {
         Unused,
         Okay,
