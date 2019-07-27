@@ -25,6 +25,12 @@ using namespace mozilla::widget;
 namespace mozilla {
 namespace plugins {
 
+#if defined(XP_WIN)
+
+const wchar_t* kPluginWidgetParentProperty =
+  L"kPluginWidgetParentProperty";
+#endif
+
 static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 
 
@@ -54,6 +60,10 @@ PluginWidgetParent::~PluginWidgetParent()
   
   
   if (mWidget) {
+#if defined(XP_WIN)
+    ::RemovePropW((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW),
+                  kPluginWidgetParentProperty);
+#endif
     mWidget->UnregisterPluginWindowForRemoteUpdates();
     mWidget->Destroy();
     mWidget = nullptr;
@@ -65,6 +75,25 @@ PluginWidgetParent::GetTabParent()
 {
   return static_cast<mozilla::dom::TabParent*>(Manager());
 }
+
+#if defined(XP_WIN)
+
+void
+PluginWidgetParent::SendAsyncUpdate(nsIWidget* aWidget)
+{
+  if (!aWidget || aWidget->Destroyed()) {
+    return;
+  }
+  
+  HWND hwnd = (HWND)aWidget->GetNativeData(NS_NATIVE_WINDOW);
+  NS_ASSERTION(hwnd, "Expected valid hwnd value.");
+  PluginWidgetParent* parent = reinterpret_cast<PluginWidgetParent*>(
+    ::GetPropW(hwnd, mozilla::plugins::kPluginWidgetParentProperty));
+  if (parent && !parent->ActorDestroyed()) {
+    parent->SendUpdateWindow((uintptr_t)hwnd);
+  }
+}
+#endif 
 
 
 
@@ -127,6 +156,11 @@ PluginWidgetParent::RecvCreate()
   NS_ASSERTION(NS_SUCCEEDED(drv), "widget call failure");
   mWrapper->SetAllocation();
   PWLOG("Plugin XID=%p\n", (void*)mWrapper->window);
+#elif defined(XP_WIN)
+  DebugOnly<DWORD> winres =
+    ::SetPropW((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW),
+               kPluginWidgetParentProperty, this);
+  NS_ASSERTION(winres, "SetPropW call failure");
 #endif
 
   return true;

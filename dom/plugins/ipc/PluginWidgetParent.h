@@ -24,6 +24,15 @@ namespace plugins {
 class PluginWidgetParent : public PPluginWidgetParent
 {
 public:
+  
+
+
+
+
+
+  static void SendAsyncUpdate(nsIWidget* aWidget);
+
+public:
   PluginWidgetParent();
   virtual ~PluginWidgetParent();
 
