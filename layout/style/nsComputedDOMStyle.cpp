@@ -53,6 +53,7 @@ using namespace mozilla;
 using namespace mozilla::dom;
 typedef const nsStyleBackground::Position Position;
 typedef const nsStyleBackground::Position::PositionCoord PositionCoord;
+typedef nsStyleTransformMatrix::TransformReferenceBox TransformReferenceBox;
 
 #if defined(DEBUG_bzbarsky) || defined(DEBUG_caillon)
 #define DEBUG_ComputedDOMStyle
@@ -1262,9 +1263,9 @@ nsComputedDOMStyle::DoGetTransform()
 
 
 
-  nsRect bounds =
-    (mInnerFrame ? nsDisplayTransform::GetFrameBoundsForTransform(mInnerFrame) :
-     nsRect(0, 0, 0, 0));
+
+
+  TransformReferenceBox refBox(mInnerFrame, nsSize(0, 0));
 
    bool dummy;
    gfx3DMatrix matrix =
@@ -1272,7 +1273,7 @@ nsComputedDOMStyle::DoGetTransform()
                                             mStyleContextHolder,
                                             mStyleContextHolder->PresContext(),
                                             dummy,
-                                            bounds,
+                                            refBox,
                                             float(mozilla::AppUnitsPerCSSPixel()));
 
   return MatrixToCSSValue(matrix);
@@ -4958,7 +4959,7 @@ nsComputedDOMStyle::GetFrameBoundsWidthForTransform(nscoord& aWidth)
 
   AssertFlushedPendingReflows();
 
-  aWidth = nsDisplayTransform::GetFrameBoundsForTransform(mInnerFrame).width;
+  aWidth = TransformReferenceBox(mInnerFrame).Width();
   return true;
 }
 
@@ -4972,7 +4973,7 @@ nsComputedDOMStyle::GetFrameBoundsHeightForTransform(nscoord& aHeight)
 
   AssertFlushedPendingReflows();
 
-  aHeight = nsDisplayTransform::GetFrameBoundsForTransform(mInnerFrame).height;
+  aHeight = TransformReferenceBox(mInnerFrame).Height();
   return true;
 }
 
