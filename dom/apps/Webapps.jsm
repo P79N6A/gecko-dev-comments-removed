@@ -203,6 +203,7 @@ this.DOMApplicationRegistry = {
   dirKey: DIRECTORY_NAME,
 
   init: function() {
+    
     this.messages = ["Webapps:Install",
                      "Webapps:Uninstall",
                      "Webapps:GetSelf",

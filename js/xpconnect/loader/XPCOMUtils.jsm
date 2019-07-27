@@ -243,14 +243,36 @@ this.XPCOMUtils = {
 
 
 
-  defineLazyModuleGetter: function XPCU_defineLazyModuleGetter(aObject, aName,
-                                                               aResource,
-                                                               aSymbol)
+
+
+
+
+
+
+
+
+
+
+
+
+  defineLazyModuleGetter: function XPCU_defineLazyModuleGetter(
+                                   aObject, aName, aResource, aSymbol,
+                                   aPreLambda, aPostLambda, aProxy)
   {
+    let proxy = aProxy || {};
+
+    if (typeof(aPreLambda) === "function") {
+      aPreLambda.apply(proxy);
+    }
+
     this.defineLazyGetter(aObject, aName, function XPCU_moduleLambda() {
       var temp = {};
       try {
         Cu.import(aResource, temp);
+
+        if (typeof(aPostLambda) === "function") {
+          aPostLambda.apply(proxy);
+        }
       } catch (ex) {
         Cu.reportError("Failed to load module " + aResource + ".");
         throw ex;
