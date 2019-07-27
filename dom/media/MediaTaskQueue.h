@@ -38,7 +38,7 @@ public:
   
   static MediaTaskQueue* GetCurrentQueue() { return sCurrentQueueTLS.get(); }
 
-  explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool);
+  explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool, bool aRequireTailDispatch = false);
 
   nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable);
 
@@ -47,6 +47,31 @@ public:
   
   
   TaskDispatcher& TailDispatcher();
+
+  
+  
+  bool RequiresTailDispatch() { return mRequireTailDispatch; }
+
+#ifdef DEBUG
+  static void AssertInTailDispatchIfNeeded()
+  {
+    
+    
+    MediaTaskQueue* currentQueue = MediaTaskQueue::GetCurrentQueue();
+    if (!currentQueue || !currentQueue->RequiresTailDispatch()) {
+      return;
+    }
+
+    
+    
+    
+    
+    MOZ_ASSERT(!currentQueue->mTailDispatcher,
+               "Not allowed to dispatch tasks directly from this task queue - use TailDispatcher()");
+  }
+#else
+  static void AssertInTailDispatchIfNeeded() {}
+#endif
 
   
   nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable) override
@@ -156,6 +181,10 @@ protected:
 
   
   bool mIsFlushing;
+
+  
+  
+  bool mRequireTailDispatch;
 
   class Runner : public nsRunnable {
   public:
