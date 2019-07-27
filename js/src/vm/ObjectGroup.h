@@ -149,13 +149,6 @@ enum NewObjectKind {
 
 
 
-    MaybeSingletonObject,
-
-    
-
-
-
-
     TenuredObject
 };
 
