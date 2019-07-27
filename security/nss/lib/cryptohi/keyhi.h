@@ -41,6 +41,11 @@ SECKEY_UpdateCertPQG(CERTCertificate * subjectCert);
 
 
 
+extern unsigned SECKEY_BigIntegerBitLength(const SECItem *number);
+
+
+
+
 extern unsigned SECKEY_PublicKeyStrength(const SECKEYPublicKey *pubk);
 
 
