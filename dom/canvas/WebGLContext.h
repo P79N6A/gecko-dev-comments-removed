@@ -1524,7 +1524,10 @@ protected:
         const bool mNeedsChange;
 
         static bool NeedsChange(WebGLContext& webgl) {
-            return webgl.mNeedsFakeNoAlpha &&
+            
+            
+            return !webgl.mBoundDrawFramebuffer &&
+                   webgl.mNeedsFakeNoAlpha &&
                    webgl.mColorWriteMask[3] != false;
         }
 
