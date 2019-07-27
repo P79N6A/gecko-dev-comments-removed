@@ -126,7 +126,12 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(const InputData& aEvent,
+
+
+
+
+
+  nsEventStatus ReceiveInputEvent(InputData& aEvent,
                                   ScrollableLayerGuid* aOutTargetGuid);
 
   
