@@ -191,6 +191,18 @@ struct SurfaceCache
 
 
 
+
+
+  static void RemoveIfPresent(const ImageKey    aImageKey,
+                              const SurfaceKey& aSurfaceKey);
+  
+
+
+
+
+
+
+
   static void Discard(const ImageKey aImageKey);
 
   
