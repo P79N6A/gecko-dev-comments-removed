@@ -19,6 +19,6 @@ const allocs = dbg.memory.drainAllocationsLog();
 
 assertEq(allocs.length, 3);
 
-assertEq(allocs[2].line, 4);
+assertEq(allocs[2].frame.line, 4);
 
-assertEq(allocs.map(x => x.line).indexOf(1), -1);
+assertEq(allocs.map(x => x.frame.line).indexOf(1), -1);
