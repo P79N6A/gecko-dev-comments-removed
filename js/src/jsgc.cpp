@@ -2194,9 +2194,22 @@ RelocateCell(Zone *zone, TenuredCell *src, AllocKind thingKind, size_t thingSize
         JSObject *srcObj = static_cast<JSObject *>(static_cast<Cell *>(src));
         JSObject *dstObj = static_cast<JSObject *>(static_cast<Cell *>(dst));
 
-        
-        if (srcObj->isNative() && srcObj->as<NativeObject>().hasFixedElements())
-            dstObj->as<NativeObject>().setFixedElements();
+        if (srcObj->isNative()) {
+            NativeObject *srcNative = &srcObj->as<NativeObject>();
+            NativeObject *dstNative = &dstObj->as<NativeObject>();
+
+            
+            if (srcNative->hasFixedElements())
+                dstNative->setFixedElements();
+
+            
+            
+            if (srcNative->hasDynamicElements() && srcNative->denseElementsAreCopyOnWrite()) {
+                HeapPtrNativeObject &owner = srcNative->getElementsHeader()->ownerObject();
+                if (owner == srcNative)
+                    owner = dstNative;
+            }
+        }
 
         
         if (JSObjectMovedOp op = srcObj->getClass()->ext.objectMovedOp)
