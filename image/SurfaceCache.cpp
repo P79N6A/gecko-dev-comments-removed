@@ -16,6 +16,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/Move.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/Pair.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
 #include "nsIMemoryReporter.h"
@@ -66,6 +67,10 @@ static StaticRefPtr<SurfaceCacheImpl> sInstance;
 
 
 typedef size_t Cost;
+
+
+
+static const Cost sPlaceholderCost = 1;
 
 static Cost
 ComputeCost(const IntSize& aSize, uint32_t aBytesPerPixel)
@@ -137,17 +142,28 @@ public:
     , mSurfaceKey(aSurfaceKey)
     , mLifetime(aLifetime)
   {
-    MOZ_ASSERT(mSurface, "Must have a valid surface");
+    MOZ_ASSERT(!IsPlaceholder() ||
+               (mCost == sPlaceholderCost && mLifetime == Lifetime::Transient),
+               "Placeholder should have trivial cost and transient lifetime");
     MOZ_ASSERT(mImageKey, "Must have a valid image key");
   }
 
   DrawableFrameRef DrawableRef() const
   {
+    if (MOZ_UNLIKELY(IsPlaceholder())) {
+      MOZ_ASSERT_UNREACHABLE("Shouldn't call DrawableRef() on a placeholder");
+      return DrawableFrameRef();
+    }
+
     return mSurface->DrawableRef();
   }
 
   void SetLocked(bool aLocked)
   {
+    if (IsPlaceholder()) {
+      return;  
+    }
+
     if (aLocked && mLifetime == Lifetime::Persistent) {
       
       
@@ -158,6 +174,7 @@ public:
     }
   }
 
+  bool IsPlaceholder() const { return !bool(mSurface); }
   bool IsLocked() const { return bool(mDrawableRef); }
 
   ImageKey GetImageKey() const { return mImageKey; }
@@ -165,7 +182,11 @@ public:
   CostEntry GetCostEntry() { return image::CostEntry(this, mCost); }
   nsExpirationState* GetExpirationState() { return &mExpirationState; }
   Lifetime GetLifetime() const { return mLifetime; }
-  bool IsDecoded() const { return mSurface->IsImageComplete(); }
+
+  bool IsDecoded() const
+  {
+    return !IsPlaceholder() && mSurface->IsImageComplete();
+  }
 
   
   struct MOZ_STACK_CLASS SurfaceMemoryReport
@@ -262,21 +283,47 @@ public:
     return surface.forget();
   }
 
-  already_AddRefed<CachedSurface>
+  MOZ_WARN_UNUSED_RESULT  
+  Pair<already_AddRefed<CachedSurface>, MatchType>
   LookupBestMatch(const SurfaceKey&      aSurfaceKey,
                   const Maybe<uint32_t>& aAlternateFlags)
   {
     
-    nsRefPtr<CachedSurface> surface;
-    mSurfaces.Get(aSurfaceKey, getter_AddRefs(surface));
-    if (surface && surface->IsDecoded()) {
-      return surface.forget();
+    nsRefPtr<CachedSurface> exactMatch;
+    mSurfaces.Get(aSurfaceKey, getter_AddRefs(exactMatch));
+    if (exactMatch && exactMatch->IsDecoded()) {
+      return MakePair(exactMatch.forget(), MatchType::EXACT);
     }
 
     
     MatchContext matchContext(aSurfaceKey, aAlternateFlags);
     ForEach(TryToImproveMatch, &matchContext);
-    return matchContext.mBestMatch.forget();
+
+    MatchType matchType;
+    if (matchContext.mBestMatch) {
+      if (!exactMatch) {
+        
+        matchType = MatchType::SUBSTITUTE_BECAUSE_NOT_FOUND;
+      } else if (exactMatch != matchContext.mBestMatch) {
+        
+        matchType = MatchType::SUBSTITUTE_BECAUSE_PENDING;
+      } else {
+        
+        matchType = MatchType::EXACT;
+      }
+    } else {
+      if (exactMatch) {
+        
+        
+        MOZ_ASSERT(exactMatch->IsPlaceholder());
+        matchType = MatchType::PENDING;
+      } else {
+        
+        matchType = MatchType::NOT_FOUND;
+      }
+    }
+
+    return MakePair(matchContext.mBestMatch.forget(), matchType);
   }
 
   void ForEach(SurfaceTable::EnumReadFunction aFunction, void* aData)
@@ -307,6 +354,11 @@ private:
   {
     auto context = static_cast<MatchContext*>(aContext);
     const SurfaceKey& idealKey = context->mIdealKey;
+
+    
+    if (aSurface->IsPlaceholder()) {
+      return PL_DHASH_NEXT;
+    }
 
     
     if (aSurfaceKey.AnimationTime() != idealKey.AnimationTime() ||
@@ -425,9 +477,20 @@ public:
                        Lifetime          aLifetime)
   {
     
-    if (MOZ_UNLIKELY(Lookup(aImageKey, aSurfaceKey,  false))) {
+    
+    
+    LookupResult result = Lookup(aImageKey, aSurfaceKey,  false);
+    if (MOZ_UNLIKELY(result)) {
       return InsertOutcome::FAILURE_ALREADY_PRESENT;
     }
+
+    if (result.Type() == MatchType::PENDING) {
+      RemoveSurface(aImageKey, aSurfaceKey);
+    }
+
+    MOZ_ASSERT(result.Type() == MatchType::NOT_FOUND ||
+               result.Type() == MatchType::PENDING,
+               "A LookupResult with no surface should be NOT_FOUND or PENDING");
 
     
     
@@ -458,6 +521,7 @@ public:
     
     
     if (cache->IsLocked() && aLifetime == Lifetime::Persistent) {
+      MOZ_ASSERT(!surface->IsPlaceholder(), "Placeholders should be transient");
       surface->SetLocked(true);
       if (!surface->IsLocked()) {
         return InsertOutcome::FAILURE;
@@ -560,6 +624,10 @@ public:
       return LookupResult(MatchType::NOT_FOUND);
     }
 
+    if (surface->IsPlaceholder()) {
+      return LookupResult(MatchType::PENDING);
+    }
+
     DrawableFrameRef ref = surface->DrawableRef();
     if (!ref) {
       
@@ -595,11 +663,16 @@ public:
 
     nsRefPtr<CachedSurface> surface;
     DrawableFrameRef ref;
+    MatchType matchType = MatchType::NOT_FOUND;
     while (true) {
-      surface = cache->LookupBestMatch(aSurfaceKey, aAlternateFlags);
+      
+      Pair<already_AddRefed<CachedSurface>, MatchType> lookupResult =
+        cache->LookupBestMatch(aSurfaceKey, aAlternateFlags);
+      surface = lookupResult.first();
+      matchType = lookupResult.second();
+
       if (!surface) {
-        
-        return LookupResult(MatchType::NOT_FOUND);
+        return LookupResult(matchType);  
       }
 
       ref = surface->DrawableRef();
@@ -612,21 +685,17 @@ public:
       Remove(surface);
     }
 
-    SurfaceKey key = surface->GetSurfaceKey();
-    const bool isExactMatch = key.Size() == aSurfaceKey.Size();
-
-    MOZ_ASSERT(isExactMatch ==
-      (key == aSurfaceKey ||
-         (aAlternateFlags && key == aSurfaceKey.WithNewFlags(*aAlternateFlags))),
+    MOZ_ASSERT((matchType == MatchType::EXACT) ==
+      (surface->GetSurfaceKey() == aSurfaceKey ||
+         (aAlternateFlags &&
+          surface->GetSurfaceKey() ==
+            aSurfaceKey.WithNewFlags(*aAlternateFlags))),
       "Result differs in a way other than size or alternate flags");
 
-
-    if (isExactMatch) {
+    if (matchType == MatchType::EXACT) {
       MarkUsed(surface, cache);
     }
 
-    MatchType matchType = isExactMatch ? MatchType::EXACT
-                                       : MatchType::SUBSTITUTE_BECAUSE_NOT_FOUND;
     return LookupResult(Move(ref), matchType);
   }
 
@@ -1046,6 +1115,19 @@ SurfaceCache::Insert(imgFrame*         aSurface,
   MutexAutoLock lock(sInstance->GetMutex());
   Cost cost = ComputeCost(aSurface->GetSize(), aSurface->GetBytesPerPixel());
   return sInstance->Insert(aSurface, cost, aImageKey, aSurfaceKey, aLifetime);
+}
+
+ InsertOutcome
+SurfaceCache::InsertPlaceholder(const ImageKey    aImageKey,
+                                const SurfaceKey& aSurfaceKey)
+{
+  if (!sInstance) {
+    return InsertOutcome::FAILURE;
+  }
+
+  MutexAutoLock lock(sInstance->GetMutex());
+  return sInstance->Insert(nullptr, sPlaceholderCost, aImageKey, aSurfaceKey,
+                           Lifetime::Transient);
 }
 
  bool

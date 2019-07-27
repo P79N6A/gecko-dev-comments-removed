@@ -526,7 +526,10 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
     return DrawableFrameRef();
   }
 
-  if (!result || result.Type() == MatchType::SUBSTITUTE_BECAUSE_NOT_FOUND) {
+  if (result.Type() == MatchType::NOT_FOUND ||
+      result.Type() == MatchType::SUBSTITUTE_BECAUSE_NOT_FOUND ||
+      ((aFlags & FLAG_SYNC_DECODE) && !result)) {
+    
     
     
     MOZ_ASSERT(!mAnim, "Animated frames should be locked");
@@ -1498,6 +1501,19 @@ RasterImage::CreateDecoder(const Maybe<IntSize>& aSize, uint32_t aFlags)
 
   if (NS_FAILED(decoder->GetDecoderError())) {
     return nullptr;
+  }
+
+  if (aSize) {
+    
+    
+    InsertOutcome outcome =
+      SurfaceCache::InsertPlaceholder(ImageKey(this),
+                                      RasterSurfaceKey(*aSize,
+                                                       decoder->GetDecodeFlags(),
+                                                        0));
+    if (outcome != InsertOutcome::SUCCESS) {
+      return nullptr;
+    }
   }
 
   if (!aSize) {

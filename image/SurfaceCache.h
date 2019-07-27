@@ -275,10 +275,38 @@ struct SurfaceCache
 
 
 
+
   static InsertOutcome Insert(imgFrame*         aSurface,
                               const ImageKey    aImageKey,
                               const SurfaceKey& aSurfaceKey,
                               Lifetime          aLifetime);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static InsertOutcome InsertPlaceholder(const ImageKey    aImageKey,
+                                         const SurfaceKey& aSurfaceKey);
 
   
 
@@ -378,6 +406,7 @@ struct SurfaceCache
                             const SurfaceKey& aSurfaceKey);
 
   
+
 
 
 
