@@ -9,6 +9,7 @@
 #ifndef js_Class_h
 #define js_Class_h
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/NullPtr.h"
 
 #include "jstypes.h"
@@ -226,9 +227,44 @@ typedef bool
 typedef bool
 (* UnwatchOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
 
+class JS_FRIEND_API(ElementAdder)
+{
+  public:
+    enum GetBehavior {
+        
+        
+        CheckHasElemPreserveHoles,
+
+        
+        GetElement
+    };
+
+  private:
+    
+    JS::RootedObject resObj_;
+    JS::Value *vp_;
+
+    uint32_t index_;
+    mozilla::DebugOnly<uint32_t> length_;
+    GetBehavior getBehavior_;
+
+  public:
+    ElementAdder(JSContext *cx, JSObject *obj, uint32_t length, GetBehavior behavior)
+      : resObj_(cx, obj), vp_(nullptr), index_(0), length_(length), getBehavior_(behavior)
+    {}
+    ElementAdder(JSContext *cx, JS::Value *vp, uint32_t length, GetBehavior behavior)
+      : resObj_(cx), vp_(vp), index_(0), length_(length), getBehavior_(behavior)
+    {}
+
+    GetBehavior getBehavior() const { return getBehavior_; }
+
+    void append(JSContext *cx, JS::HandleValue v);
+    void appendHole();
+};
+
 typedef bool
-(* SliceOp)(JSContext *cx, JS::HandleObject obj, uint32_t begin, uint32_t end,
-            JS::HandleObject result); 
+(* GetElementsOp)(JSContext *cx, JS::HandleObject obj, uint32_t begin, uint32_t end,
+                  ElementAdder *adder);
 
 
 
@@ -364,7 +400,7 @@ struct ObjectOps
     DeleteGenericOp     deleteGeneric;
     WatchOp             watch;
     UnwatchOp           unwatch;
-    SliceOp             slice; 
+    GetElementsOp       getElements;
     JSNewEnumerateOp    enumerate;
     ObjectOp            thisObject;
 };
