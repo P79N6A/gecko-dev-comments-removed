@@ -21,10 +21,7 @@
 nsContainerFrame* NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                                nsStyleContext* aContext);
 
-
-
-
-class nsRubyTextContainerFrame MOZ_FINAL : public nsBlockFrame
+class nsRubyTextContainerFrame MOZ_FINAL : public nsContainerFrame
 {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -41,24 +38,15 @@ public:
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
 #endif
-
-  void ReflowRubyTextFrame(nsRubyTextFrame* rtFrame, nsIFrame* rbFrame,
-                           nscoord baseStart, nsPresContext* aPresContext,
-                           nsHTMLReflowMetrics& aDesiredSize,
-                           const nsHTMLReflowState& aReflowState);
-  void BeginRTCLineLayout(nsPresContext* aPresContext,
-                          const nsHTMLReflowState& aReflowState);
-  nsLineLayout* GetLineLayout() { return mLineLayout.get(); };
+  void SetISize(nscoord aISize) { mISize = aISize; }
 
 protected:
   friend nsContainerFrame*
     NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
-  explicit nsRubyTextContainerFrame(nsStyleContext* aContext) : nsBlockFrame(aContext) {}
-  
-  
-  
-  mozilla::UniquePtr<nsLineLayout> mLineLayout;
+  explicit nsRubyTextContainerFrame(nsStyleContext* aContext)
+    : nsContainerFrame(aContext) {}
+
   
   
   
