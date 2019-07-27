@@ -24,6 +24,7 @@
 #include "nsStyleConsts.h"
 #include "nsWidgetInitData.h"
 #include "mozilla/Attributes.h"
+#include "Units.h"
 
 
 #ifdef KeyPress
@@ -533,7 +534,7 @@ public:
 
 
 
-  void PopupResized(nsIFrame* aFrame, nsIntSize ASize);
+  void PopupResized(nsIFrame* aFrame, mozilla::LayoutDeviceIntSize aSize);
 
   
 
