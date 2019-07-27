@@ -7,14 +7,12 @@
 
 #include "nsITextToSubURI.h"
 #include "nsString.h"
+#include "nsTArray.h"
 
 
 class nsTextToSubURI: public nsITextToSubURI {
   NS_DECL_ISUPPORTS
   NS_DECL_NSITEXTTOSUBURI
-
-public:
-  nsTextToSubURI();
 
 private:
   virtual ~nsTextToSubURI();
@@ -34,7 +32,8 @@ private:
                                nsAString &_retval);
 
   
-  nsXPIDLString mUnsafeChars;
+  
+  nsTArray<char16_t> mUnsafeChars;
 };
 
 #endif 

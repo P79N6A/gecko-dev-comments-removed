@@ -170,6 +170,19 @@ NS_EscapeURL(const nsSubstring& aStr, uint32_t aFlags, nsSubstring& aResult);
 
 
 
+
+
+
+
+
+const nsSubstring&
+NS_EscapeURL(const nsAFlatString& aStr, const nsTArray<char16_t>& aForbidden,
+             nsSubstring& aResult);
+
+
+
+
+
 inline bool
 NS_Escape(const nsCString& aOriginal, nsCString& aEscaped,
           nsEscapeMask aMask)
