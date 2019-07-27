@@ -194,11 +194,12 @@ public:
                                 bool                   aAllowLazyConstruction);
 
   enum RemoveFlags { REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION };
-  nsresult ContentRemoved(nsIContent* aContainer,
-                          nsIContent* aChild,
-                          nsIContent* aOldNextSibling,
-                          RemoveFlags aFlags,
-                          bool*     aDidReconstruct);
+  nsresult ContentRemoved(nsIContent*  aContainer,
+                          nsIContent*  aChild,
+                          nsIContent*  aOldNextSibling,
+                          RemoveFlags  aFlags,
+                          bool*        aDidReconstruct,
+                          nsIContent** aDestroyedFramesFor = nullptr);
 
   nsresult CharacterDataChanged(nsIContent* aContent,
                                 CharacterDataChangeInfo* aInfo);
@@ -1467,8 +1468,17 @@ private:
   nsresult MaybeRecreateFramesForElement(Element* aElement);
 
   
-  
-  nsresult RecreateFramesForContent(nsIContent* aContent, bool aAsyncInsert);
+
+
+
+
+
+
+  nsresult
+  RecreateFramesForContent(nsIContent*  aContent,
+                           bool         aAsyncInsert,
+                           RemoveFlags  aFlags = REMOVE_FOR_RECONSTRUCTION,
+                           nsIContent** aDestroyedFramesFor = nullptr);
 
   
   
@@ -1479,8 +1489,11 @@ private:
   
   
   
-  bool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
-                                               nsresult* aResult);
+  
+  bool MaybeRecreateContainerForFrameRemoval(nsIFrame*    aFrame,
+                                             RemoveFlags  aFlags,
+                                             nsresult*    aResult,
+                                             nsIContent** aDestroyedFramesFor);
 
   nsIFrame* CreateContinuingOuterTableFrame(nsIPresShell*     aPresShell,
                                             nsPresContext*    aPresContext,
@@ -1606,7 +1619,9 @@ private:
                              bool                     aIsAppend,
                              nsIFrame*                aPrevSibling);
 
-  nsresult ReframeContainingBlock(nsIFrame* aFrame);
+  nsresult ReframeContainingBlock(nsIFrame*    aFrame,
+                                  RemoveFlags  aFlags,
+                                  nsIContent** aReframeContent);
 
   
 
