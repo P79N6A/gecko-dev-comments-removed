@@ -594,7 +594,6 @@ NS_IMETHODIMP CleaupCacheDirectoriesRunnable::Run()
   }
 #if defined(MOZ_WIDGET_ANDROID)
   if (mCache2Profileless) {
-    nsDeleteDir::RemoveOldTrashes(mCache2Profileless);
     
     nsDeleteDir::DeleteDir(mCache2Profileless, true, 30000);
   }
