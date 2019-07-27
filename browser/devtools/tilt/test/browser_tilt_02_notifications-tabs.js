@@ -17,6 +17,10 @@ function notification(win, topic) {
   }
 
   let { notification, window } = expected.shift();
+  if (Cu.isDeadWrapper(window)) {
+    
+    return;
+  }
   is(topic, notification, "Saw the expected notification");
   is(win, window, "Saw the expected window");
 }
