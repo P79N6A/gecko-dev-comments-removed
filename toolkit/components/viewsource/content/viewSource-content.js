@@ -51,6 +51,16 @@ let ViewSourceContent = {
 
   selectionListenerAttached: false,
 
+  get isViewSource() {
+    let uri = content.document.documentURI;
+    return uri.startsWith("view-source:");
+  },
+
+  get isAboutBlank() {
+    let uri = content.document.documentURI;
+    return uri == "about:blank";
+  },
+
   
 
 
@@ -93,6 +103,9 @@ let ViewSourceContent = {
 
 
   receiveMessage(msg) {
+    if (!this.isViewSource && !this.isAboutBlank) {
+      return;
+    }
     let data = msg.data;
     let objects = msg.objects;
     switch(msg.name) {
@@ -124,6 +137,9 @@ let ViewSourceContent = {
 
 
   handleEvent(event) {
+    if (!this.isViewSource) {
+      return;
+    }
     switch(event.type) {
       case "pagehide":
         this.onPageHide(event);
@@ -250,8 +266,13 @@ let ViewSourceContent = {
       docShell.charset = forcedCharSet;
     }
 
-    if (lineNumber) {
+    if (lineNumber && lineNumber > 0) {
       let doneLoading = (event) => {
+        
+        if (this.isAboutBlank ||
+            !content.document.body) {
+          return;
+        }
         this.goToLine(lineNumber);
         removeEventListener("pageshow", doneLoading);
       };
@@ -341,11 +362,12 @@ let ViewSourceContent = {
 
 
   onPageShow(event) {
-    content.getSelection()
-           .QueryInterface(Ci.nsISelectionPrivate)
-           .addSelectionListener(this);
-    this.selectionListenerAttached = true;
-
+    let selection = content.getSelection();
+    if (selection) {
+      selection.QueryInterface(Ci.nsISelectionPrivate)
+               .addSelectionListener(this);
+      this.selectionListenerAttached = true;
+    }
     content.focus();
     sendAsyncMessage("ViewSource:SourceLoaded");
   },
