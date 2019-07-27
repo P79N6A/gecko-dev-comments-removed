@@ -123,7 +123,12 @@ PerformanceActorsConnection.prototype = {
   _connectProfilerActor: Task.async(function*() {
     
     
-    if (this._target.form && this._target.form.profilerActor) {
+    if (this._target.chrome) {
+      this._profiler = this._target.form.profilerActor;
+    }
+    
+    
+    else if (this._target.form && this._target.form.profilerActor) {
       this._profiler = this._target.form.profilerActor;
     }
     

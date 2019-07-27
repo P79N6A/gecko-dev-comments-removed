@@ -211,9 +211,7 @@ let NetMonitorController = {
 
     let target = this._target;
     let { client, form } = target;
-    
-    
-    if (!target.isTabActor) {
+    if (target.chrome) {
       this._startChromeMonitoring(client, form.consoleActor, deferred.resolve);
     } else {
       this._startMonitoringTab(client, form, deferred.resolve);

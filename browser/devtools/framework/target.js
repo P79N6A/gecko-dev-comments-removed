@@ -175,8 +175,6 @@ function TabTarget(tab) {
     this._client = tab.client;
     this._chrome = tab.chrome;
   }
-  
-  this._isTabActor = typeof(tab.isTabActor) == "boolean" ? tab.isTabActor : true;
 }
 
 TabTarget.prototype = {
@@ -317,19 +315,8 @@ TabTarget.prototype = {
     return this._client;
   },
 
-  
-  
-  
-  
   get chrome() {
     return this._chrome;
-  },
-
-  
-  
-  
-  get isTabActor() {
-    return this._isTabActor;
   },
 
   get window() {
@@ -449,12 +436,11 @@ TabTarget.prototype = {
           attachTab();
         });
       });
-    } else if (this.isTabActor) {
+    } else if (!this.chrome) {
       
       
       attachTab();
     } else {
-      
       
       this._remote.resolve(null);
     }

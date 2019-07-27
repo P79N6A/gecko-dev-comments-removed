@@ -206,9 +206,7 @@ let DebuggerController = {
 
     if (target.isAddon) {
       yield this._startAddonDebugging(actor);
-    } else if (!target.isTabActor) {
-      
-      
+    } else if (target.chrome) {
       yield this._startChromeDebugging(chromeDebugger);
     } else {
       yield this._startDebuggingTab();
