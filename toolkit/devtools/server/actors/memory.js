@@ -51,18 +51,28 @@ let MemoryActor = exports.MemoryActor = protocol.ActorClass({
       type: "garbage-collection",
       data: Arg(0, "json"),
     },
+
+    
+    
+    "allocations": {
+      type: "allocations",
+      data: Arg(0, "json"),
+    },
   },
 
   initialize: function(conn, parent, frameCache = new StackFrameCache()) {
     protocol.Actor.prototype.initialize.call(this, conn);
 
     this._onGarbageCollection = this._onGarbageCollection.bind(this);
+    this._onAllocations = this._onAllocations.bind(this);
     this.bridge = new Memory(parent, frameCache);
     this.bridge.on("garbage-collection", this._onGarbageCollection);
+    this.bridge.on("allocations", this._onAllocations);
   },
 
   destroy: function() {
     this.bridge.off("garbage-collection", this._onGarbageCollection);
+    this.bridge.off("allocations", this._onAllocations);
     this.bridge.destroy();
     protocol.Actor.prototype.destroy.call(this);
   },
@@ -144,6 +154,10 @@ let MemoryActor = exports.MemoryActor = protocol.ActorClass({
 
   _onGarbageCollection: function (data) {
     events.emit(this, "garbage-collection", data);
+  },
+
+  _onAllocations: function (data) {
+    events.emit(this, "allocations", data);
   },
 });
 

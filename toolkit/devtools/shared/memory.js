@@ -10,8 +10,11 @@ const { Class } = require("sdk/core/heritage");
 const { expectState } = require("devtools/server/actors/common");
 loader.lazyRequireGetter(this, "events", "sdk/event/core");
 loader.lazyRequireGetter(this, "EventTarget", "sdk/event/target", true);
+loader.lazyRequireGetter(this, "DeferredTask",
+  "resource://gre/modules/DeferredTask.jsm", true);
 loader.lazyRequireGetter(this, "StackFrameCache",
-                         "devtools/server/actors/utils/stack", true);
+  "devtools/server/actors/utils/stack", true);
+
 
 
 
@@ -37,6 +40,7 @@ let Memory = exports.Memory = Class({
     this._frameCache = frameCache;
 
     this._onGarbageCollection = this._onGarbageCollection.bind(this);
+    this._emitAllocations = this._emitAllocations.bind(this);
     this._onWindowReady = this._onWindowReady.bind(this);
 
     events.on(this.parent, "window-ready", this._onWindowReady);
@@ -121,19 +125,21 @@ let Memory = exports.Memory = Class({
   
 
 
-  _onGarbageCollection: function (data) {
-    events.emit(this, "garbage-collection", data);
-  },
-
-  
-
-
 
   takeCensus: expectState("attached", function() {
     return this.dbg.memory.takeCensus();
   }, `taking census`),
 
   
+
+
+
+
+
+
+
+
+
 
 
 
@@ -149,6 +155,17 @@ let Memory = exports.Memory = Class({
     this.dbg.memory.allocationSamplingProbability = options.probability != null
       ? options.probability
       : 1.0;
+
+    this.drainAllocationsTimeoutTimer = typeof options.drainAllocationsTimeout === "number" ? options.drainAllocationsTimeout : null;
+
+    if (this.drainAllocationsTimeoutTimer != null) {
+      if (this._poller) {
+        this._poller.disarm();
+      }
+      this._poller = new DeferredTask(this._emitAllocations, this.drainAllocationsTimeoutTimer);
+      this._poller.arm();
+    }
+
     if (options.maxLogLength != null) {
       this.dbg.memory.maxAllocationsLogLength = options.maxLogLength;
     }
@@ -163,6 +180,11 @@ let Memory = exports.Memory = Class({
   stopRecordingAllocations: expectState("attached", function() {
     this.dbg.memory.trackingAllocationSites = false;
     this._clearFrames();
+
+    if (this._poller) {
+      this._poller.disarm();
+      this._poller = null;
+    }
 
     return Date.now();
   }, `stopping recording allocations`),
@@ -332,5 +354,30 @@ let Memory = exports.Memory = Class({
 
   residentUnique: function () {
     return this._mgr.residentUnique;
-  }
+  },
+
+  
+
+
+  _onGarbageCollection: function (data) {
+    events.emit(this, "garbage-collection", data);
+
+    
+    
+    if (this._poller) {
+      this._poller.disarm();
+      this._emitAllocations();
+    }
+  },
+
+
+  
+
+
+
+
+  _emitAllocations: function () {
+    events.emit(this, "allocations", this.getAllocations());
+    this._poller.arm();
+  },
 });
