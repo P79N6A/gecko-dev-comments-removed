@@ -144,9 +144,11 @@ AnimationPlayer::Tick()
     mPendingReadyTime.SetNull();
   }
 
-  
-  
-  
+  if (IsPossiblyOrphanedPendingPlayer()) {
+    MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
+               "Orphaned pending players should have an active timeline");
+    ResumeAt(mTimeline->GetCurrentTime().Value());
+  }
 
   UpdateSourceContent();
 }
@@ -372,6 +374,55 @@ AnimationPlayer::CancelPendingPlay()
 
   mIsPending = false;
   mPendingReadyTime.SetNull();
+}
+
+bool
+AnimationPlayer::IsPossiblyOrphanedPendingPlayer() const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  if (!mIsPending) {
+    return false;
+  }
+
+  
+  
+  if (!mPendingReadyTime.IsNull()) {
+    return false;
+  }
+
+  
+  
+  if (!mTimeline || mTimeline->GetCurrentTime().IsNull()) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  nsIDocument* doc = GetRenderedDocument();
+  return !doc ||
+         !doc->GetPendingPlayerTracker() ||
+         !doc->GetPendingPlayerTracker()->IsWaitingToPlay(*this);
 }
 
 StickyTimeDuration

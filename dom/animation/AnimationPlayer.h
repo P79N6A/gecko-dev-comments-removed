@@ -196,6 +196,8 @@ protected:
   
   
   void CancelPendingPlay();
+
+  bool IsPossiblyOrphanedPendingPlayer() const;
   StickyTimeDuration SourceContentEnd() const;
 
   nsIDocument* GetRenderedDocument() const;
