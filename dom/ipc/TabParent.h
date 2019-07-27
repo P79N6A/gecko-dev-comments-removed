@@ -25,13 +25,13 @@
 #include "nsIXULBrowserWindow.h"
 #include "nsWeakReference.h"
 #include "Units.h"
+#include "nsIWidget.h"
 
 class nsFrameLoader;
 class nsIFrameLoader;
 class nsIContent;
 class nsIPrincipal;
 class nsIURI;
-class nsIWidget;
 class nsILoadContext;
 class nsIDocShell;
 
@@ -586,6 +586,14 @@ private:
     
     
     bool mNeedLayerTreeReadyNotification;
+
+    
+    
+    nsCursor mCursor;
+
+    
+    
+    bool mTabSetsCursor;
 
 private:
     

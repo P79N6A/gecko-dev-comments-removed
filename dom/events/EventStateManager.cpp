@@ -1180,7 +1180,9 @@ CrossProcessSafeEvent(const WidgetEvent& aEvent)
     case NS_MOUSE_BUTTON_UP:
     case NS_MOUSE_MOVE:
     case NS_CONTEXTMENU:
+    case NS_MOUSE_ENTER:
     case NS_MOUSE_EXIT:
+    case NS_MOUSE_ENTER_SYNTH:
       return true;
     default:
       return false;
@@ -3789,18 +3791,25 @@ EventStateManager::DispatchMouseOrPointerEvent(WidgetMouseEvent* aMouseEvent,
 
     
     
-    if (aMessage == NS_MOUSE_EXIT_SYNTH && IsRemoteTarget(aTargetContent)) {
-      
-      nsAutoPtr<WidgetMouseEvent> remoteEvent;
-      CreateMouseOrPointerWidgetEvent(aMouseEvent, NS_MOUSE_EXIT,
-                                      aRelatedContent, remoteEvent);
+    if (IsRemoteTarget(aTargetContent)) {
+      if (aMessage == NS_MOUSE_EXIT_SYNTH) {
+        
+        nsAutoPtr<WidgetMouseEvent> remoteEvent;
+        CreateMouseOrPointerWidgetEvent(aMouseEvent, NS_MOUSE_EXIT,
+                                        aRelatedContent, remoteEvent);
 
-      
-      
-      
-      
-      mCurrentTarget = targetFrame;
-      HandleCrossProcessEvent(remoteEvent, &status);
+        
+        
+        
+        
+        mCurrentTarget = targetFrame;
+        HandleCrossProcessEvent(remoteEvent, &status);
+      } else if (aMessage == NS_MOUSE_ENTER_SYNTH) {
+        nsAutoPtr<WidgetMouseEvent> remoteEvent;
+        CreateMouseOrPointerWidgetEvent(aMouseEvent, NS_MOUSE_ENTER,
+                                        aRelatedContent, remoteEvent);
+        HandleCrossProcessEvent(remoteEvent, &status);
+      }
     }
   }
 
