@@ -231,6 +231,9 @@ class SyntaxParseHandler
         
         return (pn == NodeString) ? NodeGeneric : pn;
     }
+    Node setLikelyIIFE(Node pn) {
+        return pn; 
+    }
     void setPrologue(Node pn) {}
 
     bool isConstant(Node pn) { return false; }
