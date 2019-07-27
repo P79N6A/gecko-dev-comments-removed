@@ -1114,9 +1114,39 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
                                 aAllowVisibleRegionExpansion.Intersect(bounds))) {
       anyVisible = true;
 
-      nsRegion opaque = TreatAsOpaque(item, aBuilder);
       
-      aBuilder->SubtractFromVisibleRegion(aVisibleRegion, opaque);
+      
+      
+      
+      
+      
+      
+      bool occlude = true;
+      nsIPresShell* presShell = nullptr;
+      if (aDisplayPortFrame && item->IsInFixedPos()) {
+        if (item->Frame()->PresContext() == aDisplayPortFrame->PresContext()) {
+          occlude = false;
+          presShell = aDisplayPortFrame->PresContext()->PresShell();
+        }
+      }
+
+      nsRegion opaque = TreatAsOpaque(item, aBuilder);
+      if (occlude) {
+        
+        aBuilder->SubtractFromVisibleRegion(aVisibleRegion, opaque);
+      } else if (presShell &&
+                 presShell->IsScrollPositionClampingScrollPortSizeSet() &&
+                 !opaque.IsEmpty()) {
+        
+        
+        
+        
+        nsRect scrollClampingScrollPort(nsPoint(0, 0),
+          presShell->GetScrollPositionClampingScrollPortSize());
+        if (opaque.Contains(scrollClampingScrollPort)) {
+          aVisibleRegion->SetEmpty();
+        }
+      }
     }
     AppendToBottom(item);
   }
