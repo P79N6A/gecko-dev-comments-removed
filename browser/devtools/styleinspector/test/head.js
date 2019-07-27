@@ -8,7 +8,7 @@ const Cu = Components.utils;
 let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let TargetFactory = devtools.TargetFactory;
-let {CssHtmlTree} = devtools.require("devtools/styleinspector/computed-view");
+let {CssComputedView} = devtools.require("devtools/styleinspector/computed-view");
 let {CssRuleView, _ElementStyle} = devtools.require("devtools/styleinspector/rule-view");
 let {CssLogic, CssSelector} = devtools.require("devtools/styleinspector/css-logic");
 let DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils");
@@ -644,7 +644,7 @@ function synthesizeKeys(input, win) {
 
 function getRuleViewRule(view, selectorText) {
   let rule;
-  for (let r of view.doc.querySelectorAll(".ruleview-rule")) {
+  for (let r of view.styleDocument.querySelectorAll(".ruleview-rule")) {
     let selector = r.querySelector(".ruleview-selectorcontainer, " +
                                    ".ruleview-selector-matched");
     if (selector && selector.textContent === selectorText) {
@@ -763,7 +763,7 @@ let simulateColorPickerChange = Task.async(function*(ruleView, colorPicker, newR
 
 
 function getRuleViewLinkByIndex(view, index) {
-  let links = view.doc.querySelectorAll(".ruleview-rule-source");
+  let links = view.styleDocument.querySelectorAll(".ruleview-rule-source");
   return links[index];
 }
 
@@ -775,7 +775,7 @@ function getRuleViewLinkByIndex(view, index) {
 
 function getRuleViewLinkTextByIndex(view, index) {
   let link = getRuleViewLinkByIndex(view, index);
-  return link.querySelector(".source-link-label").value;
+  return link.querySelector(".ruleview-rule-source-label").value;
 }
 
 
