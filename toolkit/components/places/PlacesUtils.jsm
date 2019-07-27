@@ -1634,9 +1634,6 @@ this.PlacesUtils = {
 
 
 
-
-
-
   promiseBookmarksTree: Task.async(function* (aItemGUID = "", aOptions = {}) {
     let createItemInfoObject = (aRow, aIncludeParentGUID) => {
       let item = {};
@@ -1647,16 +1644,9 @@ this.PlacesUtils = {
             item[prop] = val;
         }
       };
-      copyProps("guid", "title", "index", "dateAdded", "lastModified");
+      copyProps("id" ,"guid", "title", "index", "dateAdded", "lastModified");
       if (aIncludeParentGUID)
         copyProps("parentGUID");
-
-      let itemId = aRow.getResultByName("id");
-      if (aOptions.includeItemIds)
-        item.id = itemId;
-
-      
-      GUIDHelper.idsForGUIDs.set(item.guid, itemId);
 
       let type = aRow.getResultByName("type");
       if (type == Ci.nsINavBookmarksService.TYPE_BOOKMARK)
@@ -1665,7 +1655,7 @@ this.PlacesUtils = {
       
       if (aRow.getResultByName("has_annos")) {
         try {
-          item.annos = PlacesUtils.getAnnotationsForItem(itemId);
+          item.annos = PlacesUtils.getAnnotationsForItem(item.id);
         } catch (e) {
           Cu.reportError("Unexpected error while reading annotations " + e);
         }
@@ -1677,20 +1667,20 @@ this.PlacesUtils = {
           
           item.uri = NetUtil.newURI(aRow.getResultByName("url")).spec;
           
-          let keyword = PlacesUtils.bookmarks.getKeywordForBookmark(itemId);
+          let keyword = PlacesUtils.bookmarks.getKeywordForBookmark(item.id);
           if (keyword)
             item.keyword = keyword;
           break;
         case Ci.nsINavBookmarksService.TYPE_FOLDER:
           item.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
           
-          if (itemId == PlacesUtils.placesRootId)
+          if (item.id == PlacesUtils.placesRootId)
             item.root = "placesRoot";
-          else if (itemId == PlacesUtils.bookmarksMenuFolderId)
+          else if (item.id == PlacesUtils.bookmarksMenuFolderId)
             item.root = "bookmarksMenuFolder";
-          else if (itemId == PlacesUtils.unfiledBookmarksFolderId)
+          else if (item.id == PlacesUtils.unfiledBookmarksFolderId)
             item.root = "unfiledBookmarksFolder";
-          else if (itemId == PlacesUtils.toolbarFolderId)
+          else if (item.id == PlacesUtils.toolbarFolderId)
             item.root = "toolbarFolder";
           break;
         case Ci.nsINavBookmarksService.TYPE_SEPARATOR:
