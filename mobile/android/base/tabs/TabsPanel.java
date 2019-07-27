@@ -61,6 +61,10 @@ public class TabsPanel extends LinearLayout
         public void closeAll();
     }
 
+    public static interface TabsLayout extends CloseAllPanelView {
+        public void setEmptyView(View view);
+    }
+
     public static interface TabsLayoutChangeListener {
         public void onTabsLayoutChange(int width, int height);
     }
@@ -140,12 +144,7 @@ public class TabsPanel extends LinearLayout
         mPanelRemote = (PanelView) findViewById(R.id.remote_tabs);
         mPanelRemote.setTabsPanel(this);
 
-        
-        
-        
-        if (Versions.feature11Plus) {
-            mFooter = (RelativeLayout) findViewById(R.id.tabs_panel_footer);
-        }
+        mFooter = (RelativeLayout) findViewById(R.id.tabs_panel_footer);
 
         mAddTab = (ImageButton) findViewById(R.id.add_tab);
         mAddTab.setOnClickListener(new Button.OnClickListener() {
@@ -430,10 +429,8 @@ public class TabsPanel extends LinearLayout
         mPanel.show();
 
         if (mCurrentPanel == Panel.REMOTE_TABS) {
-            
-            if (mFooter != null) {
+            if (mFooter != null)
                 mFooter.setVisibility(View.GONE);
-            }
 
             mAddTab.setVisibility(View.INVISIBLE);
 
@@ -519,7 +516,6 @@ public class TabsPanel extends LinearLayout
             if (mVisible) {
                 ViewHelper.setTranslationX(mHeader, -tabsPanelWidth);
                 ViewHelper.setTranslationX(mTabsContainer, -tabsPanelWidth);
-
                 
                 ViewHelper.setTranslationX(mFooter, -tabsPanelWidth);
             }
