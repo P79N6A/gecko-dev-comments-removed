@@ -140,8 +140,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-  { 0x025264c6, 0x0b12, 0x4804, \
-    { 0xa3, 0x3e, 0xb7, 0x73, 0xf2, 0x19, 0x48, 0x90 } }
+  { 0xb7b89561, 0x4f03, 0x44b3, \
+    { 0x9a, 0xfa, 0xb4, 0x7e, 0x7f, 0x31, 0x3f, 0xfb } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1549,6 +1549,8 @@ public:
 
   
   virtual bool AssumeAllImagesVisible() = 0;
+
+  virtual void FireResizeEvent() = 0;
 
   
 
