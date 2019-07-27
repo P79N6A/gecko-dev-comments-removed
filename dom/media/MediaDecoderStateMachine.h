@@ -202,7 +202,7 @@ public:
 
   
   
-  bool OnDecodeThread() const;
+  bool OnDecodeTaskQueue() const;
   bool OnTaskQueue() const;
 
   MediaDecoderOwner::NextFrameStatus GetNextFrameStatus();
