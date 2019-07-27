@@ -72,9 +72,6 @@ class DeviceRunner(BaseRunner):
         
         self.device.wait_for_net()
 
-        if not isinstance(self.device, Emulator):
-            self.device.reboot()
-
         if not self.device.wait_for_net():
             raise Exception("Network did not come up when starting device")
         self.app_ctx.stop_application()
