@@ -100,44 +100,6 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
   *aAppId = NECKO_UNKNOWN_APP_ID;
   *aInBrowserElement = false;
 
-  if (UsingNeckoIPCSecurity()) {
-    if (!aSerialized.IsNotNull()) {
-      return "SerializedLoadContext from child is null";
-    }
-  }
-
-  const InfallibleTArray<PBrowserParent*>& browsers = aContent->ManagedPBrowserParent();
-  for (uint32_t i = 0; i < browsers.Length(); i++) {
-    nsRefPtr<TabParent> tabParent = static_cast<TabParent*>(browsers[i]);
-    uint32_t appId = tabParent->OwnOrContainingAppId();
-    bool inBrowserElement = aSerialized.IsNotNull() ? aSerialized.mIsInBrowserElement
-                                                    : tabParent->IsBrowserElement();
-
-    if (appId == NECKO_UNKNOWN_APP_ID) {
-      continue;
-    }
-    
-    if (appId == NECKO_NO_APP_ID) {
-      if (tabParent->HasOwnApp()) {
-        continue;
-      }
-      if (UsingNeckoIPCSecurity() && tabParent->IsBrowserElement()) {
-        
-        
-        
-        
-        continue;
-      }
-    }
-    *aAppId = appId;
-    *aInBrowserElement = inBrowserElement;
-    return nullptr;
-  }
-
-  if (browsers.Length() != 0) {
-    return "App does not have permission";
-  }
-
   if (!UsingNeckoIPCSecurity()) {
     
     if (aSerialized.IsNotNull()) {
@@ -147,6 +109,59 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
       *aAppId = NECKO_NO_APP_ID;
     }
     return nullptr;
+  }
+
+  if (!aSerialized.IsNotNull()) {
+    return "SerializedLoadContext from child is null";
+  }
+
+  const InfallibleTArray<PBrowserParent*>& browsers =
+    aContent->ManagedPBrowserParent();
+
+  for (uint32_t i = 0; i < browsers.Length(); i++) {
+    nsRefPtr<TabParent> tabParent = static_cast<TabParent*>(browsers[i]);
+    uint32_t appId = tabParent->OwnOrContainingAppId();
+
+    if (appId == NECKO_UNKNOWN_APP_ID) {
+      continue;
+    }
+    
+    if (appId == NECKO_NO_APP_ID) {
+      if (tabParent->HasOwnApp()) {
+        continue;
+      }
+      if (tabParent->IsBrowserElement()) {
+        
+        
+        
+        
+        continue;
+      }
+    }
+    
+    
+    
+    if (appId == aSerialized.mAppId) {
+      bool inBrowser = aSerialized.mIsInBrowserElement;
+
+      
+      
+      
+      
+      
+      if (!tabParent->IsBrowserElement() || inBrowser) {
+        
+        *aAppId = appId;
+        
+        *aInBrowserElement = inBrowser;
+        return nullptr;
+      }
+      
+    }
+  }
+
+  if (browsers.Length() != 0) {
+    return "App does not have permission";
   }
 
   return "ContentParent does not have any PBrowsers";
@@ -160,7 +175,8 @@ NeckoParent::CreateChannelLoadContext(const PBrowserOrId& aBrowser,
 {
   uint32_t appId = NECKO_UNKNOWN_APP_ID;
   bool inBrowser = false;
-  const char* error = GetValidatedAppInfo(aSerialized, aContent, &appId, &inBrowser);
+  const char* error = GetValidatedAppInfo(aSerialized, aContent, &appId,
+                                          &inBrowser);
   if (error) {
     return error;
   }
@@ -529,36 +545,31 @@ NeckoParent::AllocPRemoteOpenFileParent(const SerializedLoadContext& aSerialized
 
   
   if (UsingNeckoIPCSecurity()) {
+    uint32_t appId = NECKO_UNKNOWN_APP_ID;
+    bool inBrowser = false;
+    const char* error = GetValidatedAppInfo(aSerialized, Manager(), &appId,
+                                            &inBrowser);
+    if (error) {
+      printf_stderr("NeckoParent::AllocPRemoteOpenFileParent: "
+                    "FATAL error: %s: KILLING CHILD PROCESS\n",
+                    error);
+      return nullptr;
+    }
+
     nsCOMPtr<nsIAppsService> appsService =
       do_GetService(APPS_SERVICE_CONTRACTID);
     if (!appsService) {
       return nullptr;
     }
-    bool haveValidBrowser = false;
     bool hasManage = false;
     nsCOMPtr<mozIApplication> mozApp;
-    for (uint32_t i = 0; i < Manager()->ManagedPBrowserParent().Length(); i++) {
-      nsRefPtr<TabParent> tabParent =
-        static_cast<TabParent*>(Manager()->ManagedPBrowserParent()[i]);
-      uint32_t appId = tabParent->OwnOrContainingAppId();
-      
-      
-      
-      if (appId == aSerialized.mAppId) {
-        nsresult rv = appsService->GetAppByLocalId(appId, getter_AddRefs(mozApp));
-        if (NS_FAILED(rv) || !mozApp) {
-          break;
-        }
-        rv = mozApp->HasPermission("webapps-manage", &hasManage);
-        if (NS_FAILED(rv)) {
-          break;
-        }
-        haveValidBrowser = true;
-        break;
-      }
-    }
 
-    if (!haveValidBrowser) {
+    nsresult rv = appsService->GetAppByLocalId(appId, getter_AddRefs(mozApp));
+    if (NS_FAILED(rv) || !mozApp) {
+      return nullptr;
+    }
+    rv = mozApp->HasPermission("webapps-manage", &hasManage);
+    if (NS_FAILED(rv)) {
       return nullptr;
     }
 
