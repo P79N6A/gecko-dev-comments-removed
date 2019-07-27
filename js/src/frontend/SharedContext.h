@@ -255,6 +255,7 @@ class FunctionBox : public ObjectBox, public SharedContext
     
     bool            usesArguments:1;  
     bool            usesApply:1;      
+    bool            usesThis:1;       
 
     FunctionContextFlags funCxFlags;
 
