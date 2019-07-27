@@ -6,6 +6,7 @@
 #include "jsapi-tests/tests.h"
 
 using namespace JS;
+using mozilla::UniquePtr;
 
 struct BarkWhenTracedClass {
     static int finalizeCount;
@@ -81,13 +82,13 @@ BEGIN_TEST(test_PersistentRooted)
 {
     BarkWhenTracedClass::reset();
 
-    Kennel* kennel = Allocate(cx);
-    CHECK(kennel);
+    UniquePtr<Kennel> kennel(Allocate(cx));
+    CHECK(kennel.get());
 
     
     CHECK(GCFinalizesNBarkers(cx, 0));
 
-    delete(kennel);
+    kennel = nullptr;
 
     
     JS_GC(JS_GetRuntime(cx));
@@ -117,21 +118,21 @@ BEGIN_TEST(test_PersistentRootedCopy)
 {
     BarkWhenTracedClass::reset();
 
-    Kennel* kennel = Allocate(cx);
-    CHECK(kennel);
+    UniquePtr<Kennel> kennel(Allocate(cx));
+    CHECK(kennel.get());
 
     CHECK(GCFinalizesNBarkers(cx, 0));
 
     
-    Kennel* newKennel = new Kennel(*kennel);
+    UniquePtr<Kennel> newKennel(new Kennel(*kennel));
 
     CHECK(GCFinalizesNBarkers(cx, 0));
 
-    delete(kennel);
+    kennel = nullptr;
 
     CHECK(GCFinalizesNBarkers(cx, 0));
 
-    delete(newKennel);
+    newKennel = nullptr;
 
     
     
@@ -147,13 +148,13 @@ BEGIN_TEST(test_PersistentRootedAssign)
 {
     BarkWhenTracedClass::reset();
 
-    Kennel* kennel = Allocate(cx);
-    CHECK(kennel);
+    UniquePtr<Kennel> kennel(Allocate(cx));
+    CHECK(kennel.get());
 
     CHECK(GCFinalizesNBarkers(cx, 0));
 
     
-    Kennel* kennel2 = new Kennel(cx);
+    UniquePtr<Kennel> kennel2(new Kennel(cx));
 
     
     *kennel2 = *kennel;
@@ -161,22 +162,22 @@ BEGIN_TEST(test_PersistentRootedAssign)
     
     CHECK(GCFinalizesNBarkers(cx, 0));
 
-    delete(kennel2);
+    kennel2 = nullptr;
 
     
     CHECK(GCFinalizesNBarkers(cx, 0));
 
     
-    kennel2 = Allocate(cx);
-    CHECK(kennel);
+    kennel2 = UniquePtr<Kennel>(Allocate(cx));
+    CHECK(kennel2.get());
 
     *kennel = *kennel2;
 
     
     CHECK(GCFinalizesNBarkers(cx, 1));
 
-    delete(kennel);
-    delete(kennel2);
+    kennel = nullptr;
+    kennel2 = nullptr;
 
     
     
