@@ -468,16 +468,16 @@ public class Favicons {
             throw new IllegalStateException("Null default favicon was returned from the resources system!");
         }
 
-        
-        final int defaultFaviconSizeDimenID =
-                isNewTabletEnabled ? R.dimen.new_tablet_tab_strip_favicon_size : R.dimen.favicon_bg;
-        defaultFaviconSize = res.getDimensionPixelSize(defaultFaviconSizeDimenID);
+        defaultFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_bg);
 
         
         
-        largestFaviconSize = context.getResources().getDimensionPixelSize(R.dimen.favicon_largest_interesting_size);
+        largestFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_largest_interesting_size);
 
-        browserToolbarFaviconSize = context.getResources().getDimensionPixelSize(R.dimen.browser_toolbar_favicon_size);
+        
+        final int browserToolbarFaviconSizeDimenID = NewTabletUI.isEnabled(context) ?
+                R.dimen.new_tablet_tab_strip_favicon_size : R.dimen.browser_toolbar_favicon_size;
+        browserToolbarFaviconSize = res.getDimensionPixelSize(browserToolbarFaviconSizeDimenID);
 
         faviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, largestFaviconSize);
 
