@@ -19,6 +19,7 @@
 #include "gfxUserFontSet.h"
 #include "gfxUtils.h"
 #include "gfxFT2FontBase.h"
+#include "gfxPrefs.h"
 
 #include "mozilla/gfx/2D.h"
 
@@ -333,6 +334,18 @@ gfxPlatformGtk::GetDPIScale()
     
     int32_t dpi = GetDPI();
     return (dpi > 96) ? round(dpi/96.0) : 1.0;
+}
+
+bool
+gfxPlatformGtk::UseImageOffscreenSurfaces()
+{
+    
+    
+#if (MOZ_WIDGET_GTK == 3)
+    return gfxPrefs::UseImageOffscreenSurfaces();
+#else
+    return false;
+#endif
 }
 
 gfxImageFormat
