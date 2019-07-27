@@ -95,8 +95,6 @@ namespace gfx {
 class SourceSurface;
 }
 
-typedef WebGLRefPtr<WebGLQuery> WebGLQueryRefPtr;
-
 WebGLTexelFormat GetWebGLTexelFormat(TexInternalFormat format);
 
 void AssertUintParamCorrect(gl::GLContext* gl, GLenum pname, GLuint shadow);
@@ -901,10 +899,10 @@ private:
 
 
 protected:
-    WebGLQueryRefPtr* GetQueryTargetSlot(GLenum target);
+    WebGLRefPtr<WebGLQuery>* GetQueryTargetSlot(GLenum target);
 
-    WebGLQueryRefPtr mActiveOcclusionQuery;
-    WebGLQueryRefPtr mActiveTransformFeedbackQuery;
+    WebGLRefPtr<WebGLQuery> mActiveOcclusionQuery;
+    WebGLRefPtr<WebGLQuery> mActiveTransformFeedbackQuery;
 
 
 
