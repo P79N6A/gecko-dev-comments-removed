@@ -402,6 +402,9 @@ private:
   
   
   bool mPendingAudioInitTask;
+  
+  
+  uint64_t mLastGoodPosition;
 };
 
 class AudioInitTask : public nsRunnable
