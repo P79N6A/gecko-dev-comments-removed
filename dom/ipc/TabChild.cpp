@@ -733,11 +733,11 @@ private:
 StaticRefPtr<TabChild> sPreallocatedTab;
 
 
-std::map<uint64_t, nsRefPtr<TabChild> >&
+std::map<TabId, nsRefPtr<TabChild>>&
 TabChild::NestedTabChildMap()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  static std::map<uint64_t, nsRefPtr<TabChild> > sNestedTabChildMap;
+  static std::map<TabId, nsRefPtr<TabChild>> sNestedTabChildMap;
   return sNestedTabChildMap;
 }
 
@@ -750,6 +750,7 @@ TabChild::PreloadSlowThings()
     
     
     nsRefPtr<TabChild> tab(new TabChild(nullptr,
+                                        TabId(0),
                                         TabContext(),  0));
     if (!NS_SUCCEEDED(tab->Init()) ||
         !tab->InitTabChildGlobal(DONT_LOAD_SCRIPTS)) {
@@ -780,6 +781,7 @@ TabChild::PreloadSlowThings()
 
  already_AddRefed<TabChild>
 TabChild::Create(nsIContentChild* aManager,
+                 const TabId& aTabId,
                  const TabContext &aContext,
                  uint32_t aChromeFlags)
 {
@@ -793,18 +795,20 @@ TabChild::Create(nsIContentChild* aManager,
         MOZ_ASSERT(!child->mTriedBrowserInit);
 
         child->mManager = aManager;
+        child->SetTabId(aTabId);
         child->SetTabContext(aContext);
         child->NotifyTabContextUpdated();
         return child.forget();
     }
 
-    nsRefPtr<TabChild> iframe = new TabChild(aManager,
+    nsRefPtr<TabChild> iframe = new TabChild(aManager, aTabId,
                                              aContext, aChromeFlags);
     return NS_SUCCEEDED(iframe->Init()) ? iframe.forget() : nullptr;
 }
 
 
 TabChild::TabChild(nsIContentChild* aManager,
+                   const TabId& aTabId,
                    const TabContext& aContext,
                    uint32_t aChromeFlags)
   : TabContext(aContext)
@@ -827,14 +831,20 @@ TabChild::TabChild(nsIContentChild* aManager,
   , mIgnoreKeyPressEvent(false)
   , mActiveElementManager(new ActiveElementManager())
   , mHasValidInnerSize(false)
-  , mUniqueId(0)
   , mDestroyed(false)
+  , mUniqueId(aTabId)
 {
   if (!sActiveDurationMsSet) {
     Preferences::AddIntVarCache(&sActiveDurationMs,
                                 "ui.touch_activation.duration_ms",
                                 sActiveDurationMs);
     sActiveDurationMsSet = true;
+  }
+
+  
+  if (mUniqueId) {
+    MOZ_ASSERT(NestedTabChildMap().find(mUniqueId) == NestedTabChildMap().end());
+    NestedTabChildMap()[mUniqueId] = this;
   }
 }
 
@@ -1433,26 +1443,36 @@ TabChild::BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
 {
   *aReturn = nullptr;
 
-  nsRefPtr<TabChild> newChild =
-      new TabChild(ContentChild::GetSingleton(),
-                    *this,  0);
-  if (!NS_SUCCEEDED(newChild->Init())) {
-      return NS_ERROR_ABORT;
-  }
+  ContentChild* cc = ContentChild::GetSingleton();
+  const TabId openerTabId = GetTabId();
 
   
   
   
   
   PopupIPCTabContext context;
-  context.openerChild() = this;
+  context.opener() = openerTabId;
   context.isBrowserElement() = IsBrowserElement();
 
-  ContentChild* cc = static_cast<ContentChild*>(Manager());
+  IPCTabContext ipcContext(context, mScrolling);
+
+  TabId tabId;
+  cc->SendAllocateTabId(openerTabId,
+                        ipcContext,
+                        cc->GetID(),
+                        &tabId);
+
+  nsRefPtr<TabChild> newChild = new TabChild(ContentChild::GetSingleton(), tabId,
+                                              *this,  0);
+  if (NS_FAILED(newChild->Init())) {
+    return NS_ERROR_ABORT;
+  }
+
+  context.opener() = this;
   unused << Manager()->SendPBrowserConstructor(
       
       nsRefPtr<TabChild>(newChild).forget().take(),
-      IPCTabContext(context, mScrolling),  0,
+      tabId, IPCTabContext(context, mScrolling),  0,
       cc->GetID(), cc->IsForApp(), cc->IsForBrowser());
 
   nsAutoCString spec;
@@ -1562,8 +1582,8 @@ TabChild::ActorDestroy(ActorDestroyReason why)
   CompositorChild* compositorChild = static_cast<CompositorChild*>(CompositorChild::Get());
   compositorChild->CancelNotifyAfterRemotePaint(this);
 
-  if (Id() != 0) {
-    NestedTabChildMap().erase(Id());
+  if (GetTabId() != 0) {
+    NestedTabChildMap().erase(GetTabId());
   }
 }
 

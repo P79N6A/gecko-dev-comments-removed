@@ -24,6 +24,13 @@
 
 using namespace mozilla::jsipc;
 
+
+#ifdef DISABLE_ASSERTS_FOR_FUZZING
+#define ASSERT_UNLESS_FUZZING(...) do { } while (0)
+#else
+#define ASSERT_UNLESS_FUZZING(...) MOZ_ASSERT(false, __VA_ARGS__)
+#endif
+
 namespace mozilla {
 namespace dom {
 
@@ -74,14 +81,19 @@ nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
   
   
   if (appBrowser.type() != IPCTabAppBrowserContext::TPopupIPCTabContext) {
-    NS_ERROR("Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
+    ASSERT_UNLESS_FUZZING("Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
     return false;
   }
 
   const PopupIPCTabContext& popupContext = appBrowser.get_PopupIPCTabContext();
-  TabParent* opener = static_cast<TabParent*>(popupContext.openerParent());
+  if (popupContext.opener().type() != PBrowserOrId::TPBrowserParent) {
+    ASSERT_UNLESS_FUZZING("Unexpected PopupIPCTabContext type.  Aborting AllocPBrowserParent.");
+    return false;
+  }
+
+  auto opener = static_cast<TabParent*>(popupContext.opener().get_PBrowserParent());
   if (!opener) {
-    NS_ERROR("Got null opener from child; aborting AllocPBrowserParent.");
+    ASSERT_UNLESS_FUZZING("Got null opener from child; aborting AllocPBrowserParent.");
     return false;
   }
 
@@ -89,7 +101,7 @@ nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
   
   
   if (!popupContext.isBrowserElement() && opener->IsBrowserElement()) {
-    NS_ERROR("Child trying to escalate privileges!  Aborting AllocPBrowserParent.");
+    ASSERT_UNLESS_FUZZING("Child trying to escalate privileges!  Aborting AllocPBrowserParent.");
     return false;
   }
 
@@ -105,7 +117,8 @@ nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
 }
 
 PBrowserParent*
-nsIContentParent::AllocPBrowserParent(const IPCTabContext& aContext,
+nsIContentParent::AllocPBrowserParent(const TabId& aTabId,
+                                      const IPCTabContext& aContext,
                                       const uint32_t& aChromeFlags,
                                       const ContentParentId& aCpId,
                                       const bool& aIsForApp,
@@ -121,7 +134,7 @@ nsIContentParent::AllocPBrowserParent(const IPCTabContext& aContext,
 
   MaybeInvalidTabContext tc(aContext);
   MOZ_ASSERT(tc.IsValid());
-  TabParent* parent = new TabParent(this, tc.GetTabContext(), aChromeFlags);
+  TabParent* parent = new TabParent(this, aTabId, tc.GetTabContext(), aChromeFlags);
 
   
   NS_ADDREF(parent);
