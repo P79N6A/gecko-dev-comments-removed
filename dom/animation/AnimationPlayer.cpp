@@ -141,6 +141,23 @@ AnimationPlayer::Tick()
 }
 
 void
+AnimationPlayer::StartOnNextTick(const Nullable<TimeDuration>& aReadyTime)
+{
+  
+  
+  
+  
+  
+  if (PlayState() != AnimationPlayState::Pending) {
+    return;
+  }
+
+  
+  
+  mPendingReadyTime = aReadyTime;
+}
+
+void
 AnimationPlayer::StartNow()
 {
   MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
@@ -351,6 +368,7 @@ AnimationPlayer::CancelPendingPlay()
   }
 
   mIsPending = false;
+  mPendingReadyTime.SetNull();
 }
 
 StickyTimeDuration

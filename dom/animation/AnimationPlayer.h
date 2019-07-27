@@ -116,7 +116,39 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void StartOnNextTick(const Nullable<TimeDuration>& aReadyTime);
+
+  
+  
+  
+  
+  
+  
+  
+  
   void StartNow();
+
   void Cancel();
 
   const nsString& Name() const {
@@ -176,6 +208,7 @@ protected:
   
   Nullable<TimeDuration> mStartTime; 
   Nullable<TimeDuration> mHoldTime;  
+  Nullable<TimeDuration> mPendingReadyTime; 
 
   
   
