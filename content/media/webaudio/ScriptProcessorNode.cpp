@@ -383,12 +383,6 @@ private:
 
       NS_IMETHODIMP Run()
       {
-        
-        if (!nsContentUtils::IsSafeToRunScript()) {
-          nsContentUtils::AddScriptRunner(this);
-          return NS_OK;
-        }
-
         nsRefPtr<ScriptProcessorNode> node;
         {
           
