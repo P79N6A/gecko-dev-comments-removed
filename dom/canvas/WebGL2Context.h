@@ -324,7 +324,6 @@ public:
 
 
 
-    virtual JS::Value GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv) override;
     void GetIndexedParameter(GLenum target, GLuint index,
                              dom::Nullable<dom::OwningWebGLBufferOrLongLong>& retval);
     void GetUniformIndices(WebGLProgram* program,
