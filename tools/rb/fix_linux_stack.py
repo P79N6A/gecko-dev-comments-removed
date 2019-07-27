@@ -46,8 +46,8 @@ class unbufferedLineConverter:
 objdump_section_re = re.compile("^ [0-9a-f]* ([0-9a-f ]{8}) ([0-9a-f ]{8}) ([0-9a-f ]{8}) ([0-9a-f ]{8}).*")
 def elf_section(file, section):
     """
-    Return the requested ELF section of the file as a str, represented
-    as a sequence of bytes.
+    Return the requested ELF section of the file as a str, representing
+    a sequence of bytes.
     """
     
     
