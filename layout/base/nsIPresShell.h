@@ -59,6 +59,7 @@ class nsCanvasFrame;
 class nsAString;
 class nsCaret;
 namespace mozilla {
+class AccessibleCaretEventHub;
 class TouchCaret;
 class SelectionCarets;
 } 
@@ -807,6 +808,11 @@ public:
 
 
   virtual mozilla::dom::Element* GetSelectionCaretsEndElement() const = 0;
+
+  
+
+
+  virtual already_AddRefed<mozilla::AccessibleCaretEventHub> GetAccessibleCaretEventHub() const = 0;
 
   
 

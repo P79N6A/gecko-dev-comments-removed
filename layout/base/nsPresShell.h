@@ -77,6 +77,8 @@ public:
   
   static bool SelectionCaretPrefEnabled();
 
+  static bool AccessibleCaretEnabled();
+
   
   static bool BeforeAfterKeyboardEventEnabled();
 
@@ -240,6 +242,9 @@ public:
   virtual already_AddRefed<mozilla::SelectionCarets> GetSelectionCarets() const override;
   virtual mozilla::dom::Element* GetSelectionCaretsStartElement() const override;
   virtual mozilla::dom::Element* GetSelectionCaretsEndElement() const override;
+
+  virtual already_AddRefed<mozilla::AccessibleCaretEventHub> GetAccessibleCaretEventHub() const override;
+
   
   virtual already_AddRefed<nsCaret> GetCaret() const override;
   NS_IMETHOD SetCaretEnabled(bool aInEnable) override;
@@ -811,6 +816,7 @@ protected:
   
   nsRefPtr<mozilla::TouchCaret> mTouchCaret;
   nsRefPtr<mozilla::SelectionCarets> mSelectionCarets;
+  nsRefPtr<mozilla::AccessibleCaretEventHub> mAccessibleCaretEventHub;
 
   
   

@@ -76,6 +76,7 @@
 #include "nsIPermissionManager.h"
 #include "nsIMozBrowserFrame.h"
 #include "nsCaret.h"
+#include "AccessibleCaretEventHub.h"
 #include "TouchCaret.h"
 #include "SelectionCarets.h"
 #include "nsIDOMHTMLDocument.h"
@@ -706,6 +707,7 @@ static uint32_t sNextPresShellId;
 static bool sPointerEventEnabled = true;
 static bool sTouchCaretEnabled = false;
 static bool sSelectionCaretEnabled = false;
+static bool sAccessibleCaretEnabled = false;
 static bool sBeforeAfterKeyboardEventEnabled = false;
 
  bool
@@ -728,6 +730,17 @@ PresShell::SelectionCaretPrefEnabled()
     initialized = true;
   }
   return sSelectionCaretEnabled;
+}
+
+ bool
+PresShell::AccessibleCaretEnabled()
+{
+  static bool initialized = false;
+  if (!initialized) {
+    Preferences::AddBoolVarCache(&sAccessibleCaretEnabled, "layout.accessiblecaret.enabled");
+    initialized = true;
+  }
+  return sAccessibleCaretEnabled;
 }
 
  bool
@@ -883,17 +896,21 @@ PresShell::Init(nsIDocument* aDocument,
   
   SetPreferenceStyleRules(false);
 
-  if (TouchCaretPrefEnabled()) {
+  if (TouchCaretPrefEnabled() && !AccessibleCaretEnabled()) {
     
     mTouchCaret = new TouchCaret(this);
   }
 
-  if (SelectionCaretPrefEnabled()) {
+  if (SelectionCaretPrefEnabled() && !AccessibleCaretEnabled()) {
     
     mSelectionCarets = new SelectionCarets(this);
     mSelectionCarets->Init();
   }
 
+  if (AccessibleCaretEnabled()) {
+    
+    mAccessibleCaretEventHub = new AccessibleCaretEventHub();
+  }
 
   mSelection = new nsFrameSelection();
 
@@ -1161,6 +1178,11 @@ PresShell::Destroy()
   if (mSelectionCarets) {
     mSelectionCarets->Terminate();
     mSelectionCarets = nullptr;
+  }
+
+  if (mAccessibleCaretEventHub) {
+    mAccessibleCaretEventHub->Terminate();
+    mAccessibleCaretEventHub = nullptr;
   }
 
   
@@ -1908,6 +1930,11 @@ PresShell::Initialize(nscoord aWidth, nscoord aHeight)
     }
 
     
+    if (mAccessibleCaretEventHub) {
+      mAccessibleCaretEventHub->Init(this);
+    }
+
+    
     NS_ENSURE_STATE(!mHaveShutDown);
 
     
@@ -2212,6 +2239,12 @@ already_AddRefed<SelectionCarets> PresShell::GetSelectionCarets() const
 {
   nsRefPtr<SelectionCarets> selectionCaret = mSelectionCarets;
   return selectionCaret.forget();
+}
+
+already_AddRefed<AccessibleCaretEventHub> PresShell::GetAccessibleCaretEventHub() const
+{
+  nsRefPtr<AccessibleCaretEventHub> eventHub = mAccessibleCaretEventHub;
+  return eventHub.forget();
 }
 
 void PresShell::SetCaret(nsCaret *aNewCaret)
@@ -7244,6 +7277,28 @@ PresShell::HandleEvent(nsIFrame* aFrame,
                                                nullptr;
     if (selectionCaret) {
       *aEventStatus = selectionCaret->HandleEvent(aEvent);
+      if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
+        
+        
+        aEvent->mFlags.mMultipleActionsPrevented = true;
+        return NS_OK;
+      }
+    }
+  }
+
+  if (AccessibleCaretEnabled()) {
+    
+    
+    nsCOMPtr<nsPIDOMWindow> window = GetFocusedDOMWindowInOurWindow();
+    nsCOMPtr<nsIDocument> retargetEventDoc =
+      window ? window->GetExtantDoc() : nullptr;
+    nsCOMPtr<nsIPresShell> presShell =
+      retargetEventDoc ? retargetEventDoc->GetShell() : nullptr;
+
+    nsRefPtr<AccessibleCaretEventHub> eventHub =
+      presShell ? presShell->GetAccessibleCaretEventHub() : nullptr;
+    if (eventHub) {
+      *aEventStatus = eventHub->HandleEvent(aEvent);
       if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
         
         

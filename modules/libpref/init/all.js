@@ -4554,6 +4554,13 @@ pref("selectioncaret.inflatesize.threshold", 40);
 pref("selectioncaret.detects.longtap", true);
 
 
+pref("layout.accessiblecaret.enabled", false);
+
+
+
+pref("layout.accessiblecaret.timeout_ms", 3000);
+
+
 pref("dom.wakelock.enabled", false);
 
 
