@@ -84,6 +84,10 @@ private:
 
     
     
+    nsresult CopySecurityInfo(nsIChannel *aChannel);
+
+    
+    
     static NS_METHOD ConsumeData(nsIInputStream *in, void *closure,
                                  const char *fromRawSegment, uint32_t toOffset,
                                  uint32_t count, uint32_t *writeCount);
