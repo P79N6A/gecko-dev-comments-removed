@@ -441,11 +441,6 @@ AsmJSProfilingFrameIterator::initFromFP(const AsmJSActivation &activation)
     
     
     
-    
-    
-
-    exitReason_ = activation.exitReason();
-
     void *pc = ReturnAddressFromFP(fp);
     const AsmJSModule::CodeRange *codeRange = module_->lookupCodeRange(pc);
     JS_ASSERT(codeRange);
@@ -470,6 +465,17 @@ AsmJSProfilingFrameIterator::initFromFP(const AsmJSActivation &activation)
       case AsmJSModule::CodeRange::Thunk:
         MOZ_CRASH("Unexpected CodeRange kind");
     }
+
+    
+    
+    
+    
+    
+    
+    
+    exitReason_ = activation.exitReason();
+    if (exitReason_ == AsmJSExit::None)
+        exitReason_ = AsmJSExit::Interrupt;
 
     JS_ASSERT(!done());
 }
@@ -668,7 +674,7 @@ AsmJSProfilingFrameIterator::label() const
     
     const char *ionFFIDescription = "fast FFI trampoline (in asm.js)";
     const char *slowFFIDescription = "slow FFI trampoline (in asm.js)";
-    const char *interruptDescription = "slow script interrupt trampoline (in asm.js)";
+    const char *interruptDescription = "interrupt due to out-of-bounds or long execution (in asm.js)";
 
     switch (AsmJSExit::ExtractReasonKind(exitReason_)) {
       case AsmJSExit::Reason_None:
