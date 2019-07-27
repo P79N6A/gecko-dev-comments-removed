@@ -1861,7 +1861,7 @@ extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
 
 extern JS_PUBLIC_API(void *)
-JS_realloc(JSContext *cx, void *p, size_t nbytes);
+JS_realloc(JSContext *cx, void *p, size_t oldBytes, size_t newBytes);
 
 
 
