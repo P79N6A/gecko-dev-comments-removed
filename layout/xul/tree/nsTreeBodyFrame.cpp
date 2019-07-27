@@ -3552,9 +3552,10 @@ nsTreeBodyFrame::PaintImage(int32_t              aRowIndex,
     
     
     
-    nsIntSize rawImageSize;
-    image->GetWidth(&rawImageSize.width);
-    image->GetHeight(&rawImageSize.height);
+    CSSIntSize rawImageCSSIntSize;
+    image->GetWidth(&rawImageCSSIntSize.width);
+    image->GetHeight(&rawImageCSSIntSize.height);
+    nsSize rawImageSize(CSSPixel::ToAppUnits(rawImageCSSIntSize));
     nsRect wholeImageDest =
       nsLayoutUtils::GetWholeImageDestination(rawImageSize, sourceRect,
           nsRect(destRect.TopLeft(), imageDestSize));
