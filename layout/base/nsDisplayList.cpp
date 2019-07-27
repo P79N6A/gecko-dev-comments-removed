@@ -802,8 +802,10 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   
   
   
-  metrics.SetCumulativeResolution(LayoutDeviceToLayerScale(aContainerParameters.mXScale,
-                                                           aContainerParameters.mYScale));
+  
+  
+  
+  metrics.SetCumulativeResolution(LayoutDeviceToLayerScale(aContainerParameters.mXScale));
 
   LayoutDeviceToScreenScale resolutionToScreen(
       presShell->GetCumulativeResolution().width
