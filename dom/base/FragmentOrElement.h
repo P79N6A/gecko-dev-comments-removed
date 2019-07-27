@@ -17,7 +17,6 @@
 #include "nsAttrAndChildArray.h"          
 #include "nsCycleCollectionParticipant.h" 
 #include "nsIContent.h"                   
-#include "nsINodeList.h"                  
 #include "nsIWeakReference.h"             
 #include "nsNodeUtils.h"                  
 #include "nsIHTMLCollection.h"
@@ -37,50 +36,6 @@ namespace dom {
 class Element;
 }
 }
-
-
-
-
-
-
-
-class nsChildContentList final : public nsINodeList
-{
-public:
-  explicit nsChildContentList(nsINode* aNode)
-    : mNode(aNode)
-  {
-  }
-
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(nsChildContentList)
-
-  
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
-
-  
-  NS_DECL_NSIDOMNODELIST
-
-  
-  virtual int32_t IndexOf(nsIContent* aContent) override;
-  virtual nsIContent* Item(uint32_t aIndex) override;
-
-  void DropReference()
-  {
-    mNode = nullptr;
-  }
-
-  virtual nsINode* GetParentObject() override
-  {
-    return mNode;
-  }
-
-private:
-  ~nsChildContentList() {}
-
-  
-  nsINode* mNode;
-};
 
 
 

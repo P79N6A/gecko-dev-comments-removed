@@ -11,6 +11,7 @@
 #include "nsGkAtoms.h"              
 #include "nsIDOMNode.h"
 #include "mozilla/dom/NodeInfo.h"            
+#include "nsINodeList.h"            
 #include "nsIVariant.h"             
 #include "nsNodeInfoManager.h"      
 #include "nsPropertyTable.h"        
@@ -41,7 +42,7 @@ class nsIDOMNodeList;
 class nsIEditor;
 class nsIFrame;
 class nsIMutationObserver;
-class nsINodeList;
+class nsINode;
 class nsIPresShell;
 class nsIPrincipal;
 class nsIURI;
@@ -232,6 +233,50 @@ private:
 
   
   static uint64_t sGeneration;
+};
+
+
+
+
+
+
+
+class nsChildContentList final : public nsINodeList
+{
+public:
+  explicit nsChildContentList(nsINode* aNode)
+    : mNode(aNode)
+  {
+  }
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(nsChildContentList)
+
+  
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+
+  
+  NS_DECL_NSIDOMNODELIST
+
+  
+  virtual int32_t IndexOf(nsIContent* aContent) override;
+  virtual nsIContent* Item(uint32_t aIndex) override;
+
+  void DropReference()
+  {
+    mNode = nullptr;
+  }
+
+  virtual nsINode* GetParentObject() override
+  {
+    return mNode;
+  }
+
+private:
+  ~nsChildContentList() {}
+
+  
+  nsINode* mNode;
 };
 
 
@@ -1021,8 +1066,7 @@ public:
   {
   public:
     nsSlots()
-      : mChildNodes(nullptr),
-        mWeakReference(nullptr)
+      : mWeakReference(nullptr)
     {
     }
 
@@ -1043,9 +1087,7 @@ public:
 
 
 
-
-
-    nsChildContentList* mChildNodes;
+    nsRefPtr<nsChildContentList> mChildNodes;
 
     
 
