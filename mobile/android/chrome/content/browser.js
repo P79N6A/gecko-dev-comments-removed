@@ -478,6 +478,7 @@ var BrowserApp = {
     DesktopUserAgent.init();
     Distribution.init();
     Tabs.init();
+    SearchEngines.init();
 #ifdef ACCESSIBILITY
     AccessFu.attach(window);
 #endif
@@ -486,7 +487,6 @@ var BrowserApp = {
 #endif
 
     let url = null;
-    let pinned = false;
     if ("arguments" in window) {
       if (window.arguments[0])
         url = window.arguments[0];
@@ -494,18 +494,11 @@ var BrowserApp = {
         gScreenWidth = window.arguments[1];
       if (window.arguments[2])
         gScreenHeight = window.arguments[2];
-      if (window.arguments[3])
-        pinned = window.arguments[3];
     }
 
-    if (pinned) {
-      this._initRuntime(this._startupStatus, url, aUrl => this.addTab(aUrl));
-    } else {
-      SearchEngines.init();
-      this.initContextMenu();
-    }
     
     
+    this.initContextMenu();
     ExternalApps.init();
 
     
@@ -516,8 +509,9 @@ var BrowserApp = {
     event.initEvent("UIReady", true, false);
     window.dispatchEvent(event);
 
-    if (this._startupStatus)
+    if (this._startupStatus) {
       this.onAppUpdated();
+    }
 
     if (!ParentalControls.isAllowed(ParentalControls.INSTALL_EXTENSION)) {
       
@@ -1103,7 +1097,8 @@ var BrowserApp = {
   },
 
   _loadWebapp: function(aMessage) {
-
+    
+    
     this._initRuntime(this._startupStatus, aMessage.url, aUrl => {
       this.manifestUrl = aMessage.url;
       this.addTab(aUrl, { title: aMessage.name });
