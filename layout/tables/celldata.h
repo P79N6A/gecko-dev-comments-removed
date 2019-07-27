@@ -201,11 +201,11 @@ public:
                   nscoord       aSize,
                   bool          aStart);
 
-  BCPixelSize GetCorner(mozilla::Side&       aCornerOwner,
+  BCPixelSize GetCorner(mozilla::css::Side&       aCornerOwner,
                         bool&  aBevel) const;
 
   void SetCorner(BCPixelSize aSubSize,
-                 mozilla::Side aOwner,
+                 mozilla::css::Side aOwner,
                  bool    aBevel);
 
   bool IsLeftStart() const;
@@ -449,16 +449,16 @@ inline void BCData::SetTopEdge(BCBorderOwner  aOwner,
   mTopStart = aStart;
 }
 
-inline BCPixelSize BCData::GetCorner(mozilla::Side& aOwnerSide,
+inline BCPixelSize BCData::GetCorner(mozilla::css::Side& aOwnerSide,
                                      bool&       aBevel) const
 {
-  aOwnerSide = mozilla::Side(mCornerSide);
+  aOwnerSide = mozilla::css::Side(mCornerSide);
   aBevel     = (bool)mCornerBevel;
   return mCornerSubSize;
 }
 
 inline void BCData::SetCorner(BCPixelSize aSubSize,
-                              mozilla::Side aOwnerSide,
+                              mozilla::css::Side aOwnerSide,
                               bool    aBevel)
 {
   mCornerSubSize = aSubSize;

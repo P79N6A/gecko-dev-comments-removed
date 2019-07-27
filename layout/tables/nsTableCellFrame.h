@@ -222,7 +222,7 @@ public:
   virtual void InvalidateFrameForRemoval() MOZ_OVERRIDE { InvalidateFrameSubtree(); }
 
 protected:
-  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState= nullptr) const MOZ_OVERRIDE;
+  virtual int GetLogicalSkipSides(const nsHTMLReflowState* aReflowState= nullptr) const MOZ_OVERRIDE;
 
   
 
@@ -301,7 +301,7 @@ public:
   virtual nsMargin GetUsedBorder() const MOZ_OVERRIDE;
   virtual bool GetBorderRadii(const nsSize& aFrameSize,
                               const nsSize& aBorderArea,
-                              Sides aSkipSides,
+                              int aSkipSides,
                               nscoord aRadii[8]) const MOZ_OVERRIDE;
 
   

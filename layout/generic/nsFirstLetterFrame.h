@@ -1,12 +1,12 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsFirstLetterFrame_h__
 #define nsFirstLetterFrame_h__
 
-/* rendering object for CSS :first-letter pseudo-element */
+
 
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
@@ -60,9 +60,9 @@ public:
 
   virtual bool CanContinueTextRun() const MOZ_OVERRIDE;
   virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
-  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
+  virtual int GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
 
-//override of nsFrame method
+
   virtual nsresult GetChildFrameContainingOffset(int32_t inContentOffset,
                                                  bool inHint,
                                                  int32_t* outFrameContentOffset,
@@ -70,10 +70,10 @@ public:
 
   nscoord GetFirstLetterBaseline() const { return mBaseline; }
 
-  // For floating first letter frames, create a continuation for aChild and
-  // place it in the correct place. aContinuation is an outparam for the
-  // continuation that is created. aIsFluid determines if the continuation is
-  // fluid or not.
+  
+  
+  
+  
   nsresult CreateContinuationForFloatingParent(nsPresContext* aPresContext,
                                                nsIFrame* aChild,
                                                nsIFrame** aContinuation,
@@ -85,4 +85,4 @@ protected:
   void DrainOverflowFrames(nsPresContext* aPresContext);
 };
 
-#endif /* nsFirstLetterFrame_h__ */
+#endif 
