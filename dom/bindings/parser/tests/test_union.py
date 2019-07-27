@@ -63,7 +63,6 @@ def WebIDLTest(parser, harness):
              "octet",
              "DOMString",
              "ByteString",
-             "ScalarValueString",
              
              "object",
              "ArrayBuffer",
