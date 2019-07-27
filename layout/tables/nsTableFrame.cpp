@@ -1806,14 +1806,14 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
   if (NS_SUBTREE_DIRTY(this) ||
       aReflowState.ShouldReflowAllKids() ||
       IsGeometryDirty() ||
-      aReflowState.mFlags.mVResize) {
+      aReflowState.IsVResize()) {
 
     if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE ||
         
         
         
         
-        aReflowState.mFlags.mVResize) {
+        aReflowState.IsVResize()) {
       
       
       
@@ -2669,7 +2669,7 @@ nsTableFrame::InitChildReflowState(nsHTMLReflowState& aReflowState)
                !aReflowState.parentReflowState->mFlags.mSpecialHeightReflow,
                "should not resize columns on special height reflow");
   if (mBits.mResizedColumns) {
-    aReflowState.mFlags.mHResize = true;
+    aReflowState.SetHResize(true);
   }
 }
 

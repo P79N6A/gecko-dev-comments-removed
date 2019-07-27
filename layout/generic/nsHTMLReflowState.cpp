@@ -577,8 +577,8 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
     }
   }
 
-  mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
-                    isHResize;
+  SetHResize(!(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
+             isHResize);
 
   
   
@@ -590,25 +590,25 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
     
     
     
-    mFlags.mVResize = true;
+    SetVResize(true);
   } else if (mCBReflowState && !nsLayoutUtils::IsNonWrapperBlock(frame)) {
     
     
     
     
-    mFlags.mVResize = mCBReflowState->mFlags.mVResize;
+    SetVResize(mCBReflowState->IsVResize());
   } else if (ComputedHeight() == NS_AUTOHEIGHT) {
     if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
         mCBReflowState) {
-      mFlags.mVResize = mCBReflowState->mFlags.mVResize;
+      SetVResize(mCBReflowState->IsVResize());
     } else {
-      mFlags.mVResize = mFlags.mHResize;
+      SetVResize(IsHResize());
     }
-    mFlags.mVResize = mFlags.mVResize || NS_SUBTREE_DIRTY(frame);
+    SetVResize(IsVResize() || NS_SUBTREE_DIRTY(frame));
   } else {
     
-    mFlags.mVResize = frame->GetSize().height !=
-                        ComputedHeight() + ComputedPhysicalBorderPadding().TopBottom();
+    SetVResize(frame->GetSize().height !=
+               ComputedHeight() + ComputedPhysicalBorderPadding().TopBottom());
   }
 
   bool dependsOnCBHeight =
@@ -638,12 +638,12 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   
   
   
-  if (!mFlags.mVResize && mCBReflowState &&
+  if (!IsVResize() && mCBReflowState &&
       (IS_TABLE_CELL(mCBReflowState->frame->GetType()) || 
        mCBReflowState->mFlags.mHeightDependsOnAncestorCell) &&
       !mCBReflowState->mFlags.mSpecialHeightReflow && 
       dependsOnCBHeight) {
-    mFlags.mVResize = true;
+    SetVResize(true);
     mFlags.mHeightDependsOnAncestorCell = true;
   }
 

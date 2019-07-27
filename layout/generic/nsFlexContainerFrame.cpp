@@ -1389,11 +1389,11 @@ nsFlexContainerFrame::
 
   if (aFlexItem.IsStretched()) {
     childRSForMeasuringHeight.SetComputedWidth(aFlexItem.GetCrossSize());
-    childRSForMeasuringHeight.mFlags.mHResize = true;
+    childRSForMeasuringHeight.SetHResize(true);
   }
 
   if (aForceVerticalResizeForMeasuringReflow) {
-    childRSForMeasuringHeight.mFlags.mVResize = true;
+    childRSForMeasuringHeight.SetVResize(true);
   }
 
   nsHTMLReflowMetrics childDesiredSize(childRSForMeasuringHeight);
@@ -3273,7 +3273,7 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
     
     
     
-    aChildReflowState.mFlags.mVResize = true;
+    aChildReflowState.SetVResize(true);
   }
   nsHTMLReflowMetrics childDesiredSize(aChildReflowState);
   nsReflowStatus childReflowStatus;
@@ -3671,10 +3671,10 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
           
           
           
-          childReflowState.mFlags.mHResize = true;
+          childReflowState.SetHResize(true);
         }
         if (didOverrideComputedHeight) {
-          childReflowState.mFlags.mVResize = true;
+          childReflowState.SetVResize(true);
         }
       }
       

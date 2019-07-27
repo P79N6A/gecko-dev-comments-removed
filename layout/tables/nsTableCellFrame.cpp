@@ -955,7 +955,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    kidReflowState.mFlags.mVResize = true;
+    kidReflowState.SetVResize(true);
   }
 
   nsPoint kidOrigin(leftInset, topInset);

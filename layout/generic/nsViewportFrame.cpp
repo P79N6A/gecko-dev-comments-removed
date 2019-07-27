@@ -201,7 +201,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     
     
     if (aReflowState.ShouldReflowAllKids() ||
-        aReflowState.mFlags.mVResize ||
+        aReflowState.IsVResize() ||
         NS_SUBTREE_DIRTY(mFrames.FirstChild())) {
       
       nsIFrame*           kidFrame = mFrames.FirstChild();

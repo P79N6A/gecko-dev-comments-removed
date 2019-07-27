@@ -518,10 +518,10 @@ public:
     uint16_t mAssumingVScrollbar:1;  
                                      
 
-    uint16_t mHResize:1;             
+    uint16_t mIsHResize:1;           
                                      
 
-    uint16_t mVResize:1;             
+    uint16_t mIsVResize:1;           
                                      
                                      
                                      
@@ -544,6 +544,42 @@ public:
                                         
                                         
   } mFlags;
+
+  
+  
+  
+  bool IsHResize() const {
+    return mFlags.mIsHResize;
+  }
+  bool IsVResize() const {
+    return mFlags.mIsVResize;
+  }
+  bool IsIResize() const {
+    return mWritingMode.IsVertical() ? mFlags.mIsVResize : mFlags.mIsHResize;
+  }
+  bool IsBResize() const {
+    return mWritingMode.IsVertical() ? mFlags.mIsHResize : mFlags.mIsVResize;
+  }
+  void SetHResize(bool aValue) {
+    mFlags.mIsHResize = aValue;
+  }
+  void SetVResize(bool aValue) {
+    mFlags.mIsVResize = aValue;
+  }
+  void SetIResize(bool aValue) {
+    if (mWritingMode.IsVertical()) {
+      mFlags.mIsVResize = aValue;
+    } else {
+      mFlags.mIsHResize = aValue;
+    }
+  }
+  void SetBResize(bool aValue) {
+    if (mWritingMode.IsVertical()) {
+      mFlags.mIsHResize = aValue;
+    } else {
+      mFlags.mIsVResize = aValue;
+    }
+  }
 
   
   
@@ -688,8 +724,8 @@ public:
     
     
     return (frame->GetStateBits() & NS_FRAME_IS_DIRTY) ||
-           mFlags.mHResize ||
-           (mFlags.mVResize && 
+           IsHResize() ||
+           (IsVResize() && 
             (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT));
   }
 
