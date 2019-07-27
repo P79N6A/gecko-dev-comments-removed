@@ -10,7 +10,6 @@
 
 
 #undef CreateEvent
-#undef LoadImage
 
 
 
