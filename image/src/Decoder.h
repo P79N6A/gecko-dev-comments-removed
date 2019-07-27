@@ -273,6 +273,18 @@ public:
                          : RawAccessFrameRef();
   }
 
+  
+
+
+
+
+
+
+
+
+  void Write(const char* aBuffer, uint32_t aCount);
+
+
 protected:
   virtual ~Decoder();
 
@@ -364,15 +376,6 @@ protected:
                                      gfx::SurfaceFormat aFormat,
                                      uint8_t aPaletteDepth,
                                      imgFrame* aPreviousFrame);
-  
-
-
-
-
-
-
-
-  void Write(const char* aBuffer, uint32_t aCount);
 
   
 
