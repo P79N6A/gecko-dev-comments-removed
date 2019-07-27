@@ -413,6 +413,9 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
       if (display->IsInnerTableStyle()) {
         
         
+        
+        
+        
         return true;
       }
 

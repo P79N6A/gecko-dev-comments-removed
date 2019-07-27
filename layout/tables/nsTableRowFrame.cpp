@@ -987,8 +987,12 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
         
         
         
-        LogicalMargin computedOffsets(wm, *static_cast<nsMargin*>
-          (kidFrame->Properties().Get(nsIFrame::ComputedOffsetProperty())));
+        nsMargin* computedOffsetProp = static_cast<nsMargin*>
+          (kidFrame->Properties().Get(nsIFrame::ComputedOffsetProperty()));
+        
+        
+        LogicalMargin computedOffsets(wm, computedOffsetProp ?
+                                            *computedOffsetProp : nsMargin());
         nsHTMLReflowState::ApplyRelativePositioning(kidFrame, wm, computedOffsets,
                                                     &kidPosition, containerSize);
       }
