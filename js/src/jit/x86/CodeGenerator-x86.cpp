@@ -375,8 +375,7 @@ CodeGeneratorX86::loadSimd(Scalar::Type type, unsigned numElems, T srcAddr, Floa
           
           case 1: masm.vmovdWithPatch(srcAddr, out); break;
           
-          
-          case 2: masm.vmovsdWithPatch(srcAddr, out); break;
+          case 2: masm.vmovqWithPatch(srcAddr, out); break;
           case 4: masm.vmovdquWithPatch(srcAddr, out); break;
           default: MOZ_CRASH("unexpected size for partial load");
         }
@@ -597,8 +596,7 @@ CodeGeneratorX86::storeSimd(Scalar::Type type, unsigned numElems, FloatRegister 
           
           case 1: masm.vmovdWithPatch(in, destAddr); break;
           
-          
-          case 2: masm.vmovsdWithPatch(in, destAddr); break;
+          case 2: masm.vmovqWithPatch(in, destAddr); break;
           case 4: masm.vmovdquWithPatch(in, destAddr); break;
           default: MOZ_CRASH("unexpected size for partial load");
         }
