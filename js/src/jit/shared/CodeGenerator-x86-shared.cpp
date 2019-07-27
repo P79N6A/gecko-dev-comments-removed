@@ -2677,6 +2677,8 @@ CodeGeneratorX86Shared::visitSimdShuffle(LSimdShuffle *ins)
 bool
 CodeGeneratorX86Shared::visitSimdBinaryCompIx4(LSimdBinaryCompIx4 *ins)
 {
+    static const SimdConstant allOnes = SimdConstant::SplatX4(-1);
+
     FloatRegister lhs = ToFloatRegister(ins->lhs());
     Operand rhs = ToOperand(ins->rhs());
     MOZ_ASSERT(ToFloatRegister(ins->output()) == lhs);
@@ -2702,10 +2704,29 @@ CodeGeneratorX86Shared::visitSimdBinaryCompIx4(LSimdBinaryCompIx4 *ins)
         masm.moveAlignedInt32x4(ScratchSimdReg, lhs);
         return true;
       case MSimdBinaryComp::notEqual:
+        
+        
+        
+        masm.loadConstantInt32x4(allOnes, ScratchSimdReg);
+        masm.packedEqualInt32x4(rhs, lhs);
+        masm.bitwiseXorX4(Operand(ScratchSimdReg), lhs);
+        return true;
       case MSimdBinaryComp::greaterThanOrEqual:
+        
+        if (rhs.kind() == Operand::FPREG)
+            masm.moveAlignedInt32x4(ToFloatRegister(ins->rhs()), ScratchSimdReg);
+        else
+            masm.loadAlignedInt32x4(rhs, ScratchSimdReg);
+        masm.packedGreaterThanInt32x4(ToOperand(ins->lhs()), ScratchSimdReg);
+        masm.loadConstantInt32x4(allOnes, lhs);
+        masm.bitwiseXorX4(Operand(ScratchSimdReg), lhs);
+        return true;
       case MSimdBinaryComp::lessThanOrEqual:
         
-        break;
+        masm.loadConstantInt32x4(allOnes, ScratchSimdReg);
+        masm.packedGreaterThanInt32x4(rhs, lhs);
+        masm.bitwiseXorX4(Operand(ScratchSimdReg), lhs);
+        return true;
     }
     MOZ_CRASH("unexpected SIMD op");
 }
