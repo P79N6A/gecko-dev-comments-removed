@@ -1235,7 +1235,9 @@ protected:
   nsIAtom* MOZ_UNSAFE_REF("always a static atom") mMedium; 
   nsCOMPtr<nsIAtom> mMediaEmulated;
 
-  nsILinkHandler*       mLinkHandler;   
+  
+  
+  nsILinkHandler* MOZ_NON_OWNING_REF mLinkHandler;
 
   
   
