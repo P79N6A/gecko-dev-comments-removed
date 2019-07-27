@@ -733,12 +733,12 @@ toolbarbutton[cui-areatype="toolbar"] > :-moz-any(@nestedButtons@) > .toolbarbut
 }
 
 
-toolbarbutton[sdk-button="true"][cui-areatype="toolbar"] > .toolbarbutton-icon,
-toolbarbutton[sdk-button="true"][cui-areatype="toolbar"] > .toolbarbutton-badge-container > .toolbarbutton-icon {
+toolbarbutton[constrain-size="true"][cui-areatype="toolbar"] > .toolbarbutton-icon,
+toolbarbutton[constrain-size="true"][cui-areatype="toolbar"] > .toolbarbutton-badge-container > .toolbarbutton-icon {
   width: 16px;
 }
 
-#nav-bar toolbarbutton[sdk-button="true"][cui-areatype="toolbar"] > .toolbarbutton-icon {
+#nav-bar toolbarbutton[constrain-size="true"][cui-areatype="toolbar"] > .toolbarbutton-icon {
   
   width: 32px;
 }
@@ -1629,13 +1629,6 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   max-height: 16px;
 }
 
-
-toolbarbutton[type="socialmark"] > .toolbarbutton-icon {
-  width: auto;
-  height: auto;
-  max-width: 32px;
-  max-height: 24px;
-}
 
 
 .social-panel > .social-panel-frame {
