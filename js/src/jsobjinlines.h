@@ -797,15 +797,6 @@ NewObjectMetadata(ExclusiveContext *cxArg, JSObject **pmetadata)
     return true;
 }
 
-inline bool
-DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj,
-                     PropertyName *name, HandleValue value,
-                     PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
-{
-    Rooted<jsid> id(cx, NameToId(name));
-    return DefineNativeProperty(cx, obj, id, value, getter, setter, attrs);
-}
-
 namespace baseops {
 
 inline bool
@@ -825,6 +816,40 @@ DefineProperty(ExclusiveContext *cx, HandleNativeObject obj, PropertyName *name,
 }
 
 } 
+
+static inline unsigned
+ApplyAttributes(unsigned attrs, bool enumerable, bool writable, bool configurable)
+{
+    
+
+
+
+    if (attrs & JSPROP_IGNORE_ENUMERATE) {
+        attrs &= ~JSPROP_IGNORE_ENUMERATE;
+        if (enumerable)
+            attrs |= JSPROP_ENUMERATE;
+        else
+            attrs &= ~JSPROP_ENUMERATE;
+    }
+    if (attrs & JSPROP_IGNORE_READONLY) {
+        attrs &= ~JSPROP_IGNORE_READONLY;
+        
+        if (!(attrs & (JSPROP_GETTER | JSPROP_SETTER))) {
+            if (!writable)
+                attrs |= JSPROP_READONLY;
+            else
+                attrs &= ~JSPROP_READONLY;
+        }
+    }
+    if (attrs & JSPROP_IGNORE_PERMANENT) {
+        attrs &= ~JSPROP_IGNORE_PERMANENT;
+        if (!configurable)
+            attrs |= JSPROP_PERMANENT;
+        else
+            attrs &= ~JSPROP_PERMANENT;
+    }
+    return attrs;
+}
 
 } 
 

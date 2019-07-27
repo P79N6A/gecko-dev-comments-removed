@@ -2150,29 +2150,6 @@ js::ReportIncompatible(JSContext *cx, CallReceiver call)
     }
 }
 
-bool
-JSObject::hasIdempotentProtoChain() const
-{
-    
-    
-    JSObject *obj = const_cast<JSObject *>(this);
-    while (true) {
-        if (!obj->isNative())
-            return false;
-
-        JSResolveOp resolve = obj->getClass()->resolve;
-        if (resolve != JS_ResolveStub && resolve != (JSResolveOp) js::fun_resolve)
-            return false;
-
-        if (obj->getOps()->lookupProperty || obj->getOps()->lookupGeneric || obj->getOps()->lookupElement)
-            return false;
-
-        obj = obj->getProto();
-        if (!obj)
-            return true;
-    }
-}
-
 namespace JS {
 namespace detail {
 
