@@ -509,6 +509,7 @@ class ErrorReport {
                   , mLineNumber(0)
                   , mColumn(0)
                   , mFlags(0)
+                  , mIsMuted(false)
     {}
 
     void Init(JSErrorReport *aReport, const char *aFallbackMessage,
@@ -534,6 +535,7 @@ class ErrorReport {
     uint32_t mLineNumber;
     uint32_t mColumn;
     uint32_t mFlags;
+    bool mIsMuted;
 
     
     nsCOMPtr<nsIGlobalObject> mGlobal;

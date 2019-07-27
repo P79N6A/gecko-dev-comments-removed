@@ -301,13 +301,9 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     sourceMapURL_(nullptr),
     tokenbuf(cx),
     cx(cx),
-    originPrincipals(options.originPrincipals(cx)),
+    mutedErrors(options.mutedErrors()),
     strictModeGetter(smg)
 {
-    
-    
-    JS_ASSERT_IF(originPrincipals, originPrincipals->refcount > 0);
-
     
     
     
@@ -354,7 +350,6 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
 
 TokenStream::~TokenStream()
 {
-    JS_ASSERT_IF(originPrincipals, originPrincipals->refcount);
 }
 
 
@@ -642,7 +637,7 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     err.report.flags = flags;
     err.report.errorNumber = errorNumber;
     err.report.filename = filename;
-    err.report.originPrincipals = originPrincipals;
+    err.report.isMuted = mutedErrors;
     if (offset == NoOffset) {
         err.report.lineno = 0;
         err.report.column = 0;

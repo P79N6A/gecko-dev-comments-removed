@@ -329,7 +329,7 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
 
     report->filename = iter.scriptFilename();
     report->lineno = iter.computeLine(&report->column);
-    report->originPrincipals = iter.originPrincipals();
+    report->isMuted = iter.mutedErrors();
 }
 
 
