@@ -479,6 +479,12 @@ ValueNumberer::visitDefinition(MDefinition *def)
         IonSpew(IonSpew_GVN, "    Folded %s%u to %s%u",
                 def->opName(), def->id(), sim->opName(), sim->id());
         ReplaceAllUsesWith(def, sim);
+
+        
+        
+        
+        def->setNotGuardUnchecked();
+
         if (IsDead(def) && !deleteDefsRecursively(def))
             return false;
         def = sim;
@@ -495,7 +501,6 @@ ValueNumberer::visitDefinition(MDefinition *def)
                     def->opName(), def->id(), rep->opName(), rep->id());
             ReplaceAllUsesWith(def, rep);
 
-            
             
             
             
