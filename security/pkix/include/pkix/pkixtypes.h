@@ -201,7 +201,7 @@ public:
   virtual Result GetCertTrust(EndEntityOrCA endEntityOrCA,
                               const CertPolicyId& policy,
                               const SECItem& candidateCertDER,
-                               TrustLevel* trustLevel) = 0;
+                               TrustLevel& trustLevel) = 0;
 
   class IssuerChecker
   {

@@ -36,7 +36,7 @@ class CreateEncodedOCSPRequestTrustDomain : public TrustDomain
 {
 private:
   virtual Result GetCertTrust(EndEntityOrCA, const CertPolicyId&,
-                              const SECItem&,  TrustLevel*)
+                              const SECItem&,  TrustLevel&)
   {
     ADD_FAILURE();
     return Result::FATAL_ERROR_LIBRARY_FAILURE;

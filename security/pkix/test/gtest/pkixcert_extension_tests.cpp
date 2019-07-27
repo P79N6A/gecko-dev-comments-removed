@@ -77,9 +77,9 @@ class TrustEverythingTrustDomain : public TrustDomain
 private:
   virtual Result GetCertTrust(EndEntityOrCA, const CertPolicyId&,
                               const SECItem& candidateCert,
-                               TrustLevel* trustLevel)
+                               TrustLevel& trustLevel)
   {
-    *trustLevel = TrustLevel::TrustAnchor;
+    trustLevel = TrustLevel::TrustAnchor;
     return Success;
   }
 

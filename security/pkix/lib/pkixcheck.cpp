@@ -626,15 +626,14 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                                  KeyPurposeId requiredEKUIfPresent,
                                  const CertPolicyId& requiredPolicy,
                                  unsigned int subCACount,
-                 TrustLevel* trustLevelOut)
+                                  TrustLevel& trustLevel)
 {
   Result rv;
 
   const EndEntityOrCA endEntityOrCA = cert.endEntityOrCA;
 
-  TrustLevel trustLevel;
   rv = trustDomain.GetCertTrust(endEntityOrCA, requiredPolicy, cert.GetDER(),
-                                &trustLevel);
+                                trustLevel);
   if (rv != Success) {
     return rv;
   }
@@ -645,9 +644,6 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
       trustLevel != TrustLevel::InheritsTrust) {
     
     return Result::FATAL_ERROR_INVALID_STATE;
-  }
-  if (trustLevelOut) {
-    *trustLevelOut = trustLevel;
   }
 
   
