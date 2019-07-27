@@ -1924,7 +1924,7 @@ nsWindow::HasPendingInputEvent()
     
     
     
-    bool haveEvent;
+    bool haveEvent = false;
 #ifdef MOZ_X11
     XEvent ev;
     GdkDisplay* gdkDisplay = gdk_display_get_default();
@@ -1947,8 +1947,6 @@ nsWindow::HasPendingInputEvent()
             XPutBackEvent(display, &ev);
         }
     }
-#else
-    haveEvent = false;
 #endif
     return haveEvent;
 }
