@@ -343,5 +343,63 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
       this.activeSound.addEventListener("ended", () => this.activeSound = undefined, false);
     },
+
+    
+
+
+
+
+
+
+
+
+
+
+    addBrowserSharingListener: function(listener) {
+      if (!this._tabChangeListeners) {
+        this._tabChangeListeners = new Set();
+        gBrowser.addEventListener("select", this);
+      }
+
+      this._tabChangeListeners.add(listener);
+
+      
+      listener(null, gBrowser.selectedTab.linkedBrowser.outerWindowID);
+    },
+
+    
+
+
+
+
+    removeBrowserSharingListener: function(listener) {
+      if (!this._tabChangeListeners) {
+        return;
+      }
+
+      if (this._tabChangeListeners.has(listener)) {
+        this._tabChangeListeners.delete(listener);
+      }
+
+      if (!this._tabChangeListeners.size) {
+        gBrowser.removeEventListener("select", this);
+        delete this._tabChangeListeners;
+      }
+    },
+
+    
+
+
+    handleEvent: function(event) {
+      
+      if (event.type != "select") {
+        return;
+      }
+
+      
+      for (let listener of this._tabChangeListeners) {
+        listener(null, gBrowser.selectedTab.linkedBrowser.outerWindowID);
+      };
+    },
   };
 })();

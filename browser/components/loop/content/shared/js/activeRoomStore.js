@@ -400,6 +400,38 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
+
+    _handleSwitchBrowserShare: function(err, windowId) {
+      if (err) {
+        console.error("Error getting the windowId: " + err);
+        return;
+      }
+
+      var screenSharingState = this.getStoreState().screenSharingState;
+
+      if (screenSharingState === SCREEN_SHARE_STATES.INACTIVE) {
+        
+        var options = {
+          videoSource: "browser",
+          constraints: {
+            browserWindow: windowId,
+            scrollWithPage: true
+          },
+        };
+        this._sdkDriver.startScreenShare(options);
+      } else if (screenSharingState === SCREEN_SHARE_STATES.ACTIVE) {
+        
+        this._sdkDriver.switchAcquiredWindow(windowId);
+      } else {
+        console.error("Unexpectedly received windowId for browser sharing when pending");
+      }
+    },
+
+    
+
+
+
+
     startScreenShare: function(actionData) {
       this.dispatchAction(new sharedActions.ScreenSharingState({
         state: SCREEN_SHARE_STATES.PENDING
@@ -409,19 +441,12 @@ loop.store.ActiveRoomStore = (function() {
         videoSource: actionData.type
       };
       if (options.videoSource === "browser") {
-        this._mozLoop.getActiveTabWindowId(function(err, windowId) {
-          if (err || !windowId) {
-            this.dispatchAction(new sharedActions.ScreenSharingState({
-              state: SCREEN_SHARE_STATES.INACTIVE
-            }));
-            return;
-          }
-          options.constraints = {
-            browserWindow: windowId,
-            scrollWithPage: true
-          };
-          this._sdkDriver.startScreenShare(options);
-        }.bind(this));
+        this._browserSharingListener = this._handleSwitchBrowserShare.bind(this);
+
+        
+        
+        
+        this._mozLoop.addBrowserSharingListener(this._browserSharingListener);
       } else {
         this._sdkDriver.startScreenShare(options);
       }
@@ -431,6 +456,12 @@ loop.store.ActiveRoomStore = (function() {
 
 
     endScreenShare: function() {
+      if (this._browserSharingListener) {
+        
+        this._mozLoop.removeBrowserSharingListener(this._browserSharingListener);
+        this._browserSharingListener = null;
+      }
+
       if (this._sdkDriver.endScreenShare()) {
         this.dispatchAction(new sharedActions.ScreenSharingState({
           state: SCREEN_SHARE_STATES.INACTIVE

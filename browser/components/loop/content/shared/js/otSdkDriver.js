@@ -100,12 +100,32 @@ loop.OTSdkDriver = (function() {
 
 
     startScreenShare: function(options) {
+      
+      
+      if (options.videoSource === "browser") {
+        this._windowId = options.constraints.browserWindow;
+      }
+
       var config = _.extend(this._getCopyPublisherConfig(), options);
 
       this.screenshare = this.sdk.initPublisher(this.getScreenShareElementFunc(),
         config);
       this.screenshare.on("accessAllowed", this._onScreenShareGranted.bind(this));
       this.screenshare.on("accessDenied", this._onScreenShareDenied.bind(this));
+    },
+
+    
+
+
+
+
+    switchAcquiredWindow: function(windowId) {
+      if (windowId === this._windowId) {
+        return;
+      }
+
+      this._windowId = windowId;
+      this.screenshare._.switchAcquiredWindow(windowId);
     },
 
     
@@ -123,6 +143,7 @@ loop.OTSdkDriver = (function() {
       this.screenshare.off("accessAllowed accessDenied");
       this.screenshare.destroy();
       delete this.screenshare;
+      delete this._windowId;
       return true;
     },
 

@@ -196,6 +196,7 @@ function injectLoopAPI(targetWindow) {
   let contactsAPI;
   let roomsAPI;
   let callsAPI;
+  let savedWindowListeners = new Map();
 
   let api = {
     
@@ -266,10 +267,21 @@ function injectLoopAPI(targetWindow) {
       }
     },
 
-    getActiveTabWindowId: {
+    
+
+
+
+
+
+
+
+
+
+
+    addBrowserSharingListener: {
       enumerable: true,
       writable: true,
-      value: function(callback) {
+      value: function(listener) {
         let win = Services.wm.getMostRecentWindow("navigator:browser");
         let browser = win && win.gBrowser.selectedTab.linkedBrowser;
         if (!win || !browser) {
@@ -277,16 +289,39 @@ function injectLoopAPI(targetWindow) {
           
           let err = new Error("No tabs available to share.");
           MozLoopService.log.error(err);
-          callback(cloneValueInto(err, targetWindow));
+          listener(cloneValueInto(err, targetWindow));
+          return;
+        }
+        win.LoopUI.addBrowserSharingListener(listener);
+
+        savedWindowListeners.set(listener, Cu.getWeakReference(win));
+      }
+    },
+
+    
+
+
+
+
+    removeBrowserSharingListener: {
+      enumerable: true,
+      writable: true,
+      value: function(listener) {
+        if (!savedWindowListeners.has(listener)) {
           return;
         }
 
-        let mm = browser.messageManager;
-        mm.addMessageListener("webrtc:response:StartBrowserSharing", function listener(message) {
-          mm.removeMessageListener("webrtc:response:StartBrowserSharing", listener);
-          callback(null, message.data.windowID);
-        });
-        mm.sendAsyncMessage("webrtc:StartBrowserSharing");
+        let win = savedWindowListeners.get(listener).get();
+
+        
+        
+        savedWindowListeners.delete(listener);
+
+        if (!win) {
+          return;
+        }
+
+        win.LoopUI.removeBrowserSharingListener(listener);
       }
     },
 
