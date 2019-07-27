@@ -602,6 +602,9 @@ function ThreadActor(aParent, aGlobal)
   this.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
   this.onDebuggerStatement = this.onDebuggerStatement.bind(this);
   this.onNewScript = this.onNewScript.bind(this);
+  
+  
+  this.wrappedJSObject = this;
 }
 
 ThreadActor.prototype = {
@@ -1178,6 +1181,11 @@ ThreadActor.prototype = {
 
       let packet = this._resumed();
       this._popThreadPause();
+      
+      
+      if (Services.obs) {
+        Services.obs.notifyObservers(this, "devtools-thread-resumed", null);
+      }
       return packet;
     }, error => {
       return error instanceof Error
@@ -1322,7 +1330,7 @@ ThreadActor.prototype = {
     for (let line = 0, n = offsets.length; line < n; line++) {
       if (offsets[line]) {
         let location = { line: line };
-        let resp = sourceActor._createAndStoreBreakpoint(location);
+        let resp = sourceActor.createAndStoreBreakpoint(location);
         dbg_assert(!resp.actualLocation, "No actualLocation should be returned");
         if (resp.error) {
           reportError(new Error("Unable to set breakpoint on event listener"));
@@ -2516,11 +2524,10 @@ SourceActor.prototype = {
         let sourceFetched = fetch(this.url, { loadFromCache: !this.source });
 
         
-        sourceFetched.then(({ contentType }) => {
-          this._contentType = contentType;
+        return sourceFetched.then(result => {
+          this._contentType = result.contentType;
+          return result;
         });
-
-        return sourceFetched;
       }
     });
   },
@@ -2848,7 +2855,7 @@ SourceActor.prototype = {
 
   _createBreakpoint: function(loc, originalLoc, condition) {
     return resolve(null).then(() => {
-      return this._createAndStoreBreakpoint({
+      return this.createAndStoreBreakpoint({
         line: loc.line,
         column: loc.column,
         condition: condition
@@ -2920,7 +2927,9 @@ SourceActor.prototype = {
 
 
 
-  _createAndStoreBreakpoint: function (aRequest) {
+
+
+  createAndStoreBreakpoint: function (aRequest) {
     let bp = update({}, aRequest, { source: this.form() });
     this.breakpointStore.addBreakpoint(bp);
     return this._setBreakpoint(aRequest);
