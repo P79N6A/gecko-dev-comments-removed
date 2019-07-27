@@ -2579,6 +2579,16 @@ EventStateManager::DecideGestureEvent(WidgetGestureNotifyEvent* aEvent,
   for (nsIFrame* current = targetFrame; current;
        current = nsLayoutUtils::GetCrossDocParentFrame(current)) {
 
+    
+    
+    
+    if (current && IsRemoteTarget(current->GetContent())) {
+      panDirection = WidgetGestureNotifyEvent::ePanBoth;
+      
+      displayPanFeedback = false;
+      break;
+    }
+
     nsIAtom* currentFrameType = current->GetType();
 
     
