@@ -119,3 +119,39 @@ nsEventQueue::PutEvent(nsIRunnable* aRunnable)
   LOG(("EVENTQ(%p): notify\n", this));
   mon.NotifyAll();
 }
+
+size_t
+nsEventQueue::Count()
+{
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+
+  
+  if (!mHead) {
+    return 0;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  int count = -mOffsetHead;
+
+  
+  for (Page* page = mHead; page != mTail; page = page->mNext) {
+    count += EVENTS_PER_PAGE;
+  }
+
+  count += mOffsetTail;
+  MOZ_ASSERT(count >= 0);
+
+  return count;
+}

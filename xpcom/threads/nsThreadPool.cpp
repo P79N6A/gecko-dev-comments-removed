@@ -82,7 +82,10 @@ nsThreadPool::PutEvent(nsIRunnable* aEvent)
     MOZ_ASSERT(mIdleCount <= (uint32_t)mThreads.Count(), "oops");
 
     
-    if (mIdleCount == 0 && mThreads.Count() < (int32_t)mThreadLimit) {
+    if (mThreads.Count() < (int32_t)mThreadLimit &&
+        
+        
+        mEvents.Count() >= mIdleCount) {
       spawnThread = true;
     }
 
