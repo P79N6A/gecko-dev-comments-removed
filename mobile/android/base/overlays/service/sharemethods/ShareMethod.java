@@ -7,6 +7,7 @@ package org.mozilla.gecko.overlays.service.sharemethods;
 import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
+import org.mozilla.gecko.overlays.service.ShareData;
 
 
 
@@ -30,14 +31,7 @@ public abstract class ShareMethod {
 
 
 
-    public abstract Result handle(String title, String url, Parcelable extra);
-
-    
-
-
-    public Result handle(String title, String url) {
-        return handle(title, url, null);
-    }
+    public abstract Result handle(ShareData shareData);
 
     public abstract String getSuccessMesssage();
     public abstract String getFailureMessage();
