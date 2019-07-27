@@ -5,8 +5,6 @@
 loadRelativeToScript('utility.js');
 loadRelativeToScript('annotations.js');
 
-var annotatedGCPointers = [];
-
 function processCSU(csu, body)
 {
     if (!("DataField" in body))
@@ -27,8 +25,6 @@ function processCSU(csu, body)
             addNestedStructure(csu, type.Name, fieldName);
         }
     }
-    if (isGCPointer(csu))
-        annotatedGCPointers.push(csu);
 }
 
 var structureParents = {}; 
@@ -146,9 +142,6 @@ addGCType('js::LazyScript');
 addGCType('js::ion::IonCode');
 addGCPointer('JS::Value');
 addGCPointer('jsid');
-
-for (var typeName of annotatedGCPointers)
-    addGCPointer(typeName);
 
 
 addGCPointer('JS::AutoCheckCannotGC');
