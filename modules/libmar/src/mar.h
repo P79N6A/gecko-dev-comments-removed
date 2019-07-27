@@ -134,6 +134,25 @@ int mar_create(const char *dest,
 
 int mar_extract(const char *path);
 
+#define MAR_MAX_CERT_SIZE (16*1024) // Way larger than necessary
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int mar_read_entire_file(const char * filePath,
+                         uint32_t maxSize,
+                          const uint8_t * *data,
+                          uint32_t *size);
 
 
 
@@ -154,12 +173,11 @@ int mar_extract(const char *path);
 
 
 
-#ifdef XP_WIN
-int mar_verify_signaturesW(MarFile *mar,
-                           const uint8_t * const *certData,
-                           const uint32_t *certDataSizes,
-                           uint32_t certCount);
-#endif
+
+int mar_verify_signatures(MarFile *mar,
+                          const uint8_t * const *certData,
+                          const uint32_t *certDataSizes,
+                          uint32_t certCount);
 
 
 

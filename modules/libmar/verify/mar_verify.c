@@ -17,6 +17,46 @@
 #include "mar.h"
 #include "cryptox.h"
 
+int
+mar_read_entire_file(const char * filePath, uint32_t maxSize,
+                      const uint8_t * *data,
+                      uint32_t *size)
+{
+  int result;
+  FILE * f;
+
+  if (!filePath || !data || !size) {
+    return -1;
+  }
+
+  f = fopen(filePath, "rb");
+  if (!f) {
+    return -1;
+  }
+
+  result = -1;
+  if (!fseeko(f, 0, SEEK_END)) {
+    int64_t fileSize = ftello(f);
+    if (fileSize > 0 && fileSize <= maxSize && !fseeko(f, 0, SEEK_SET)) {
+      unsigned char * fileData;
+
+      *size = (unsigned int) fileSize;
+      fileData = malloc(*size);
+      if (fileData) {
+        if (fread(fileData, *size, 1, f) == 1) {
+          *data = fileData;
+          result = 0;
+        } else {
+          free(fileData);
+        }
+      }
+    }
+    fclose(f);
+  }
+
+  return result;
+}
+
 int mar_extract_and_verify_signatures_fp(FILE *fp,
                                          CryptoX_ProviderHandle provider,
                                          CryptoX_PublicKey *keys,
@@ -90,102 +130,16 @@ ReadAndUpdateVerifyContext(FILE *fp,
 
 
 
-
-
-
-
-
-
-
-
 int
-mar_verify_signatures(const char *pathToMARFile,
+mar_verify_signatures(MarFile *mar,
                       const uint8_t * const *certData,
                       const uint32_t *certDataSizes,
-                      const char * const *certNames,
                       uint32_t certCount) {
-  int rv;
-  CryptoX_ProviderHandle provider = CryptoX_InvalidHandleValue;
-  CryptoX_Certificate certs[MAX_SIGNATURES];
-  CryptoX_PublicKey keys[MAX_SIGNATURES];
-  FILE *fp;
-  uint32_t k;
-  
-  memset(certs, 0, sizeof(certs));
-  memset(keys, 0, sizeof(keys));
-
-  if (!pathToMARFile || certCount == 0) {
-    fprintf(stderr, "ERROR: Invalid parameter specified.\n");
-    return CryptoX_Error;
-  }
-
-  fp = fopen(pathToMARFile, "rb");
-  if (!fp) {
-    fprintf(stderr, "ERROR: Could not open MAR file.\n");
-    return CryptoX_Error;
-  }
-
-  if (CryptoX_Failed(CryptoX_InitCryptoProvider(&provider))) {
-    fclose(fp);
-    fprintf(stderr, "ERROR: Could not init crytpo library.\n");
-    return CryptoX_Error;
-  }
-
-  
-  for (k = 0; k < certCount; k++) {
-    if (CryptoX_Failed(CryptoX_LoadPublicKey(provider, certData[k], certDataSizes[k],
-                                             &keys[k], certNames[k], &certs[k]))) {
-      fclose(fp);
-      fprintf(stderr, "ERROR: Could not load public key.\n");
-      return CryptoX_Error;
-    }
-  }
-
-  rv = mar_extract_and_verify_signatures_fp(fp, provider, keys, certCount);
-  fclose(fp);
-
-  
-  for (k = 0; k < certCount; k++) {
-    if (keys[k]) {
-      CryptoX_FreePublicKey(&keys[k]);
-    }
-
-    if (certs[k]) {
-      CryptoX_FreeCertificate(&certs[k]);
-    }
-  }
-  return rv;
-}
-
-#ifdef XP_WIN
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int
-mar_verify_signaturesW(MarFile *mar,
-                       const uint8_t * const *certData,
-                       const uint32_t *certDataSizes,
-                       uint32_t certCount) {
   int rv = -1;
   CryptoX_ProviderHandle provider = CryptoX_InvalidHandleValue;
-  CryptoX_Certificate certs[MAX_SIGNATURES];
   CryptoX_PublicKey keys[MAX_SIGNATURES];
   uint32_t k;
   
-  memset(certs, 0, sizeof(certs));
   memset(keys, 0, sizeof(keys));
 
   if (!mar || !certData || !certDataSizes || certCount == 0) {
@@ -205,7 +159,7 @@ mar_verify_signaturesW(MarFile *mar,
 
   for (k = 0; k < certCount; ++k) {
     if (CryptoX_Failed(CryptoX_LoadPublicKey(provider, certData[k], certDataSizes[k],
-                                             &keys[k], "", &certs[k]))) {
+                                             &keys[k]))) {
       fprintf(stderr, "ERROR: Could not load public key.\n");
       goto failure;
     }
@@ -219,15 +173,10 @@ failure:
     if (keys[k]) {
       CryptoX_FreePublicKey(&keys[k]);
     }
-
-    if (certs[k]) {
-      CryptoX_FreeCertificate(&certs[k]);
-    }
   }
 
   return rv;
 }
-#endif
 
 
 
