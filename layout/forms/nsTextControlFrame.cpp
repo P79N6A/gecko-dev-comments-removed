@@ -351,6 +351,13 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
                                  placeholderStyleContext))) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
+
+    if (!IsSingleLineTextControl()) {
+      
+      
+      
+      txtCtrl->UpdatePlaceholderVisibility(true);
+    }
   }
 
   rv = UpdateValueDisplay(false);
