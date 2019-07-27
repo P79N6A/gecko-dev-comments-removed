@@ -884,6 +884,19 @@ nsBindingManager::ContentAppended(nsIDocument* aDocument,
   
   XBLChildrenElement* point = nullptr;
   nsIContent* parent = aContainer;
+
+  
+  if (parent && parent->IsActiveChildrenElement()) {
+    XBLChildrenElement* childrenEl = static_cast<XBLChildrenElement*>(parent);
+    if (childrenEl->HasInsertedChildren()) {
+      
+      return;
+    }
+
+    childrenEl->MaybeSetupDefaultContent();
+    parent = childrenEl->GetParent();
+  }
+
   bool first = true;
   do {
     nsXBLBinding* binding = GetBindingWithContent(parent);
@@ -957,6 +970,18 @@ nsBindingManager::ContentRemoved(nsIDocument* aDocument,
 
   XBLChildrenElement* point = nullptr;
   nsIContent* parent = aContainer;
+
+  
+  if (parent && parent->IsActiveChildrenElement()) {
+    XBLChildrenElement* childrenEl = static_cast<XBLChildrenElement*>(parent);
+    if (childrenEl->HasInsertedChildren()) {
+      
+      return;
+    }
+
+    parent = childrenEl->GetParent();
+  }
+
   do {
     nsXBLBinding* binding = GetBindingWithContent(parent);
     if (!binding) {
@@ -1075,6 +1100,19 @@ nsBindingManager::HandleChildInsertion(nsIContent* aContainer,
 
   XBLChildrenElement* point = nullptr;
   nsIContent* parent = aContainer;
+
+  
+  if (parent && parent->IsActiveChildrenElement()) {
+    XBLChildrenElement* childrenEl = static_cast<XBLChildrenElement*>(parent);
+    if (childrenEl->HasInsertedChildren()) {
+      
+      return;
+    }
+
+    childrenEl->MaybeSetupDefaultContent();
+    parent = childrenEl->GetParent();
+  }
+
   while (parent) {
     nsXBLBinding* binding = GetBindingWithContent(parent);
     if (!binding) {

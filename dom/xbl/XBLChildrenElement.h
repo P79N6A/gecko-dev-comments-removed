@@ -55,12 +55,20 @@ public:
   {
     mInsertedChildren.AppendElement(aChild);
     aChild->SetXBLInsertionParent(GetParent());
+
+    
+    
+    MaybeRemoveDefaultContent();
   }
 
   void InsertInsertedChildAt(nsIContent* aChild, uint32_t aIndex)
   {
     mInsertedChildren.InsertElementAt(aIndex, aChild);
     aChild->SetXBLInsertionParent(GetParent());
+
+    
+    
+    MaybeRemoveDefaultContent();
   }
 
   void RemoveInsertedChild(nsIContent* aChild)
@@ -70,6 +78,10 @@ public:
     
     
     mInsertedChildren.RemoveElement(aChild);
+
+    
+    
+    MaybeSetupDefaultContent();
   }
 
   void ClearInsertedChildren()
@@ -78,6 +90,10 @@ public:
       mInsertedChildren[c]->SetXBLInsertionParent(nullptr);
     }
     mInsertedChildren.Clear();
+
+    
+    
+    MaybeSetupDefaultContent();
   }
 
   void MaybeSetupDefaultContent()
