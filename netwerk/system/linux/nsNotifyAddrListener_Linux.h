@@ -56,6 +56,9 @@ private:
     nsresult SendEvent(const char *aEventID);
 
     
+    void checkLink(void);
+
+    
     void OnNetlinkMessage(int NetlinkSocket);
 
     nsCOMPtr<nsIThread> mThread;
