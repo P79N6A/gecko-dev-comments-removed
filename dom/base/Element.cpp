@@ -3078,8 +3078,10 @@ GetFullScreenError(nsIDocument* aDoc)
 }
 
 void
-Element::MozRequestFullScreen(const RequestFullscreenOptions& aOptions)
+Element::MozRequestFullScreen(JSContext* aCx, JS::Handle<JS::Value> aOptions,
+                              ErrorResult& aError)
 {
+  MOZ_ASSERT_IF(!aCx, aOptions.isNullOrUndefined());
   
   
   
@@ -3103,13 +3105,23 @@ Element::MozRequestFullScreen(const RequestFullscreenOptions& aOptions)
   }
 
   FullScreenOptions opts;
-  if (aOptions.mVrDisplay) {
-    opts.mVRHMDDevice = aOptions.mVrDisplay->GetHMD();
+  RequestFullscreenOptions fsOptions;
+
+  
+  
+  
+  if (aCx && IsConvertibleToDictionary(aCx, aOptions)) {
+    if (!fsOptions.Init(aCx, aOptions)) {
+      aError.Throw(NS_ERROR_FAILURE);
+      return;
+    }
+
+    if (fsOptions.mVrDisplay) {
+      opts.mVRHMDDevice = fsOptions.mVrDisplay->GetHMD();
+    }
   }
 
   OwnerDoc()->AsyncRequestFullScreen(this, opts);
-
-  return;
 }
 
 void
