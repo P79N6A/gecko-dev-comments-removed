@@ -189,8 +189,19 @@ this.XPCOMUtils = {
   {
     Object.defineProperty(aObject, aName, {
       get: function () {
+        
+        
+        
+        
         delete aObject[aName];
-        return aObject[aName] = aLambda.apply(aObject);
+        let value = aLambda.apply(aObject);
+        Object.defineProperty(aObject, aName, {
+          value,
+          writable: true,
+          configurable: true,
+          enumerable: true
+        });
+        return value;
       },
       configurable: true,
       enumerable: true
