@@ -117,7 +117,7 @@ function test()
       
       
       if (timeCompensation < 5) {
-        window.mozRequestAnimationFrame(checkScroll);
+        window.requestAnimationFrame(checkScroll);
         return;
       }
 
@@ -174,7 +174,7 @@ function test()
       Services.prefs.clearUserPref("middlemouse.paste");
 
     
-    window.mozRequestAnimationFrame(checkScroll);
+    window.requestAnimationFrame(checkScroll);
   }
 
   waitForExplicitFinish();
