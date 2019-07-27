@@ -35,11 +35,11 @@ namespace {
 
 
 
-static_assert(JS_STRUCTURED_CLONE_VERSION == 3,
+static_assert(JS_STRUCTURED_CLONE_VERSION == 4,
               "Need to update the major schema version.");
 
 
-const uint32_t kMajorSchemaVersion = 15;
+const uint32_t kMajorSchemaVersion = 16;
 
 
 
@@ -1471,6 +1471,17 @@ UpgradeSchemaFrom14_0To15_0(mozIStorageConnection* aConnection)
   return NS_OK;
 }
 
+nsresult
+UpgradeSchemaFrom15_0To16_0(mozIStorageConnection* aConnection)
+{
+  
+  
+  nsresult rv = aConnection->SetSchemaVersion(MakeSchemaVersion(16, 0));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
 class VersionChangeEventsRunnable;
 
 class SetVersionHelper : public AsyncConnectionHelper,
@@ -2088,7 +2099,7 @@ OpenDatabaseHelper::CreateDatabaseConnection(
     }
     else  {
       
-      static_assert(kSQLiteSchemaVersion == int32_t((15 << 4) + 0),
+      static_assert(kSQLiteSchemaVersion == int32_t((16 << 4) + 0),
                     "Need upgrade code from schema version increase.");
 
       while (schemaVersion != kSQLiteSchemaVersion) {
@@ -2125,6 +2136,9 @@ OpenDatabaseHelper::CreateDatabaseConnection(
         }
         else if (schemaVersion == MakeSchemaVersion(14, 0)) {
           rv = UpgradeSchemaFrom14_0To15_0(connection);
+        }
+        else if (schemaVersion == MakeSchemaVersion(15, 0)) {
+          rv = UpgradeSchemaFrom15_0To16_0(connection);
         }
         else {
           NS_WARNING("Unable to open IndexedDB database, no upgrade path is "

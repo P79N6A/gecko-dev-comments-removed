@@ -121,7 +121,7 @@ typedef void (*FreeTransferStructuredCloneOp)(uint32_t tag, JS::TransferableOwne
 
 
 
-#define JS_STRUCTURED_CLONE_VERSION 3
+#define JS_STRUCTURED_CLONE_VERSION 4
 
 struct JSStructuredCloneCallbacks {
     ReadStructuredCloneOp read;
