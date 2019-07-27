@@ -242,7 +242,8 @@ AVCCDecoderModule::CreateVideoDecoder(const mp4_demuxer::VideoDecoderConfig& aCo
 {
   nsRefPtr<MediaDataDecoder> decoder;
 
-  if (strcmp(aConfig.mime_type, "video/avc")) {
+  if (strcmp(aConfig.mime_type, "video/avc") ||
+      !mPDM->DecoderNeedsAVCC(aConfig)) {
     
     decoder = mPDM->CreateVideoDecoder(aConfig,
                                        aLayersBackend,

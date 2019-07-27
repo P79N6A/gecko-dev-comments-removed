@@ -133,6 +133,9 @@ public:
   virtual bool SupportsAudioMimeType(const char* aMimeType);
   virtual bool SupportsVideoMimeType(const char* aMimeType);
 
+  
+  virtual bool DecoderNeedsAVCC(const mp4_demuxer::VideoDecoderConfig& aConfig);
+
 protected:
   PlatformDecoderModule() {}
   virtual ~PlatformDecoderModule() {}
