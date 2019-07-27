@@ -50,6 +50,9 @@ class WeakMapBase {
     static void unmarkCompartment(JSCompartment *c);
 
     
+    static void markAll(JSCompartment *c, JSTracer *tracer);
+
+    
     
     
     

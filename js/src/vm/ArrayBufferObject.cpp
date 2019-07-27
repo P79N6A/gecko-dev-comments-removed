@@ -932,6 +932,15 @@ ArrayBufferObject::sweep(JSCompartment *compartment)
     gcLiveArrayBuffers.clear();
 }
 
+ void
+ArrayBufferObject::fixupDataPointerAfterMovingGC(const ArrayBufferObject &src, ArrayBufferObject &dst)
+{
+    
+    const size_t reservedSlots = JSCLASS_RESERVED_SLOTS(&ArrayBufferObject::class_);
+    if (src.dataPointer() == src.fixedData(reservedSlots))
+        dst.setSlot(DATA_SLOT, PrivateValue(dst.fixedData(reservedSlots)));
+}
+
 void
 ArrayBufferObject::resetArrayBufferList(JSCompartment *comp)
 {
@@ -992,7 +1001,7 @@ ArrayBufferViewObject::trace(JSTracer *trc, JSObject *obj)
     
     
     if (bufSlot.isObject()) {
-        ArrayBufferObject &buf = AsArrayBuffer(&bufSlot.toObject());
+        ArrayBufferObject &buf = AsArrayBuffer(MaybeForwarded(&bufSlot.toObject()));
         int32_t offset = obj->getReservedSlot(BYTEOFFSET_SLOT).toInt32();
         MOZ_ASSERT(buf.dataPointer() != nullptr);
         obj->initPrivate(buf.dataPointer() + offset);
