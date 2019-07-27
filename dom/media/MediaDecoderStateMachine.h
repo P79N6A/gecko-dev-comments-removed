@@ -308,7 +308,7 @@ public:
   
   
   void SetSyncPointForMediaStream();
-  int64_t GetCurrentTimeViaMediaStreamSync();
+  int64_t GetCurrentTimeViaMediaStreamSync() const;
 
   
   
@@ -325,7 +325,7 @@ public:
 
   
   
-  bool IsPlaying();
+  bool IsPlaying() const;
 
   
   
@@ -457,17 +457,17 @@ protected:
 
   
   
-  int64_t GetAudioClock();
+  int64_t GetAudioClock() const;
 
   
   
   
-  int64_t GetVideoStreamPosition();
+  int64_t GetVideoStreamPosition() const;
 
   
   
   
-  int64_t GetClock();
+  int64_t GetClock() const;
 
   nsresult DropAudioUpToSeekTarget(AudioData* aSample);
   nsresult DropVideoUpToSeekTarget(VideoData* aSample);
