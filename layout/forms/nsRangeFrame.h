@@ -100,13 +100,24 @@ public:
 
 
 
+  bool IsHorizontal() const;
+
+  
+
+
+  bool IsInlineOriented() const {
+    return IsHorizontal() != GetWritingMode().IsVertical();
+  }
+
+  
 
 
 
-
-
-
-  bool IsHorizontal(const nsSize *aFrameSizeOverride = nullptr) const;
+  bool IsRightToLeft() const {
+    MOZ_ASSERT(IsHorizontal());
+    mozilla::WritingMode wm = GetWritingMode();
+    return wm.IsVertical() ? wm.IsVerticalRL() : !wm.IsBidiLTR();
+  }
 
   double GetMin() const;
   double GetMax() const;
