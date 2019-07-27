@@ -440,12 +440,10 @@ function ArrayFind(predicate) {
 
     for (var k = 0; k < len; k++) {
         
-        if (k in O) {
-            
-            var kValue = O[k];
-            if (callFunction(predicate, T, kValue, k, O))
-                return kValue;
-        }
+        var kValue = O[k];
+        
+        if (callFunction(predicate, T, kValue, k, O))
+            return kValue;
     }
 
     
@@ -478,11 +476,8 @@ function ArrayFindIndex(predicate) {
 
     for (var k = 0; k < len; k++) {
         
-        if (k in O) {
-            
-            if (callFunction(predicate, T, O[k], k, O))
-                return k;
-        }
+        if (callFunction(predicate, T, O[k], k, O))
+            return k;
     }
 
     
