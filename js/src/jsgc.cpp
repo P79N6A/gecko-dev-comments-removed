@@ -2662,7 +2662,7 @@ GCRuntime::updatePointersToRelocatedCells()
     
     markRuntime(&trc, MarkRuntime);
     Debugger::markAll(&trc);
-    Debugger::markCrossCompartmentDebuggerObjectReferents(&trc);
+    Debugger::markAllCrossCompartmentEdges(&trc);
 
     for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
         WeakMapBase::markAll(c, &trc);
