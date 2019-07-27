@@ -40,10 +40,11 @@ let startup = Task.async(function*(inspector) {
     throw new Error("AnimationsPanel was not loaded in the animationinspector window");
   }
 
-  yield promise.all([
-    AnimationsController.initialize(),
-    AnimationsPanel.initialize()
-  ]).then(null, Cu.reportError);
+  
+  
+  
+  yield AnimationsController.initialize();
+  yield AnimationsPanel.initialize();
 });
 
 
@@ -51,23 +52,20 @@ let startup = Task.async(function*(inspector) {
 
 
 let shutdown = Task.async(function*() {
-  yield promise.all([
-    AnimationsController.destroy(),
-    
-    typeof AnimationsPanel !== "undefined"
-      ? AnimationsPanel.destroy()
-      : promise.resolve()
-  ]).then(() => {
-    gToolbox = gInspector = null;
-  }, Cu.reportError);
+  yield AnimationsController.destroy();
+  
+  if (typeof AnimationsPanel !== "undefined") {
+    yield AnimationsPanel.destroy()
+  }
+  gToolbox = gInspector = null;
 });
 
 
 function setPanel(panel) {
-  return startup(panel);
+  return startup(panel).catch(Cu.reportError);
 }
 function destroy() {
-  return shutdown();
+  return shutdown().catch(Cu.reportError);
 }
 
 
@@ -101,6 +99,8 @@ let AnimationsController = {
 
     let target = gToolbox.target;
     this.animationsFront = new AnimationsFront(target.client, target.form);
+    
+    this.hasToggleAll = yield target.actorHasMethod("animations", "toggleAll");
 
     this.onPanelVisibilityChange = this.onPanelVisibilityChange.bind(this);
     this.onNewNodeFront = this.onNewNodeFront.bind(this);
@@ -185,6 +185,17 @@ let AnimationsController = {
 
     done();
   }),
+
+  
+
+
+  toggleAll: function() {
+    if (!this.hasToggleAll) {
+      return promis.resolve();
+    }
+
+    return this.animationsFront.toggleAll().catch(Cu.reportError);
+  },
 
   
   

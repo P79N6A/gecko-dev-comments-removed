@@ -44,3 +44,20 @@ addMessageListener("Test:SetNodeStyle", function(msg) {
 
   sendAsyncMessage("Test:SetNodeStyle");
 });
+
+
+
+
+
+
+
+
+addMessageListener("Test:GetAnimationPlayerState", function(msg) {
+  let {animationIndex} = msg.data;
+  let {node} = msg.objects;
+
+  let player = node.getAnimationPlayers()[animationIndex];
+  player.ready.then(() => {
+    sendAsyncMessage("Test:GetAnimationPlayerState", player.playState);
+  });
+});

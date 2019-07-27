@@ -1,13 +1,44 @@
+html {
+  height: 100%;
+}
+
 body {
   margin: 0;
   padding: 0;
+  display : flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  color: var(--theme-content-color3);
+}
+
+
+
+#toolbar {
+  border-bottom: 1px solid var(--theme-splitter-color);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  height: 20px;
+}
+
+#toolbar .label {
+  padding: 1px 4px;
+}
+
+#toggle-all {
+  border-width: 0px 1px;
+  min-height: 20px;
 }
 
 
 
 #error-message {
-  margin-top: 10%;
+  padding-top: 10%;
   text-align: center;
+  flex: 1;
+  overflow: auto;
 
   
   display: none;
@@ -15,11 +46,20 @@ body {
 
 
 
-#element-picker {
+#players {
+  flex: 1;
+  overflow: auto;
+}
+
+
+
+#element-picker,
+#toggle-all {
   position: relative;
 }
 
-#element-picker::before {
+#element-picker::before,
+#toggle-all::before {
   content: "";
   display: block;
   width: 16px;
@@ -31,15 +71,32 @@ body {
   background-image: url("chrome://browser/skin/devtools/command-pick.png");
 }
 
+#toggle-all::before {
+  background-image: url("debugger-pause.png");
+}
+
 #element-picker[checked]::before {
   background-position: -48px 0;
   filter: none; 
 }
 
+#toggle-all.paused::before {
+  background-image: url("debugger-play.png");
+}
+
 @media (min-resolution: 2dppx) {
-  #element-picker::before {
+  #element-picker::before,
+  #toggle-all::before {
     background-image: url("chrome://browser/skin/devtools/command-pick@2x.png");
     background-size: 64px;
+  }
+
+  #toggle-all::before {
+    background-image: url("debugger-pause@2x.png");
+  }
+
+  #toggle-all.paused::before {
+    background-image: url("debugger-play@2x.png");
   }
 }
 
@@ -54,7 +111,6 @@ body {
 
 .animation-title {
   background-color: var(--theme-toolbar-background);
-  color: var(--theme-content-color3);
   border-bottom: 1px solid var(--theme-splitter-color);
   padding: 1px 4px;
   word-wrap: break-word;
