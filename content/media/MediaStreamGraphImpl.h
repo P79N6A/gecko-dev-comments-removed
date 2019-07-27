@@ -414,6 +414,9 @@ public:
   void PausedIndefinitly();
   void ResumedFromPaused();
 
+  
+
+
   GraphDriver* CurrentDriver() {
     return mDriver;
   }
@@ -430,6 +433,16 @@ public:
 
   Monitor& GetMonitor() {
     return mMonitor;
+  }
+
+  
+
+
+
+
+  void EnsureNextIteration() {
+    MonitorAutoLock mon(mMonitor);
+    CurrentDriver()->EnsureNextIterationLocked();
   }
 
   
