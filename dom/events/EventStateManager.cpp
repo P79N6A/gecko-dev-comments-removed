@@ -3011,13 +3011,7 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       }
 
       WidgetWheelEvent* wheelEvent = aEvent->AsWheelEvent();
-      WheelPrefs::Action action = WheelPrefs::GetInstance()->ComputeActionFor(wheelEvent);
-      if (action == WheelPrefs::ACTION_SCROLL && gfxPrefs::AsyncPanZoomEnabled()) {
-        
-        
-        action = WheelPrefs::ACTION_NONE;
-      }
-      switch (action) {
+      switch (WheelPrefs::GetInstance()->ComputeActionFor(wheelEvent)) {
         case WheelPrefs::ACTION_SCROLL: {
           
           
