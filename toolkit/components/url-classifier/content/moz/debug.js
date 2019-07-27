@@ -711,7 +711,7 @@ G_Loggifier.prototype.loggify = function(obj) {
     
     
 
-    function wrap(meth, objName, methName) {
+    let wrap = function (meth, objName, methName) {
       return function() {
         
         
