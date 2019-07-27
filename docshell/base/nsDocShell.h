@@ -978,9 +978,6 @@ private:
                                 nsIDocShellTreeItem* aOriginalRequestor,
                                 nsIDocShellTreeItem** _retval);
 
-    
-    void MaybeNotifyKeywordSearchLoading(const nsString &aProvider, const nsString &aKeyword);
-
 #ifdef DEBUG
     
     static unsigned long gNumberOfDocShells;
