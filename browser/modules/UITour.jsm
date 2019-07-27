@@ -120,33 +120,6 @@ this.UITour = {
       allowAdd: true,
     }],
     ["loop",        {query: "#loop-button"}],
-    ["loop-newRoom", {
-      query: (aDocument) => {
-        let loopBrowser = aDocument.querySelector("#loop-notification-panel > #loop");
-        if (!loopBrowser) {
-          return null;
-        }
-        return loopBrowser.contentDocument.querySelector(".new-room-button");
-      },
-    }],
-    ["loop-roomList", {
-      query: (aDocument) => {
-        let loopBrowser = aDocument.querySelector("#loop-notification-panel > #loop");
-        if (!loopBrowser) {
-          return null;
-        }
-        return loopBrowser.contentDocument.querySelector(".room-list");
-      },
-    }],
-    ["loop-signInUpLink", {
-      query: (aDocument) => {
-        let loopBrowser = aDocument.querySelector("#loop-notification-panel > #loop");
-        if (!loopBrowser) {
-          return null;
-        }
-        return loopBrowser.contentDocument.querySelector(".signin-link");
-      },
-    }],
     ["privateWindow",  {query: "#privatebrowsing-button"}],
     ["quit",        {query: "#PanelUI-quit"}],
     ["search",      {
@@ -385,7 +358,7 @@ this.UITour = {
           if (this.highlightEffects.indexOf(data.effect) !== -1) {
             effect = data.effect;
           }
-          this.showHighlight(window, target, effect);
+          this.showHighlight(target, effect);
         }).catch(log.error);
         break;
       }
@@ -441,7 +414,7 @@ this.UITour = {
           if (typeof data.targetCallbackID == "string")
             infoOptions.targetCallbackID = data.targetCallbackID;
 
-          this.showInfo(window, messageManager, target, data.title, data.text, iconURL, buttons, infoOptions);
+          this.showInfo(messageManager, target, data.title, data.text, iconURL, buttons, infoOptions);
         }).catch(log.error);
         break;
       }
@@ -762,12 +735,10 @@ this.UITour = {
     }
 
     
-    aWindow.PanelUI.panel.removeEventListener("popuphiding", this.hideAppMenuAnnotations);
-    aWindow.PanelUI.panel.removeEventListener("ViewShowing", this.hideAppMenuAnnotations);
-    aWindow.PanelUI.panel.removeEventListener("popuphidden", this.onPanelHidden);
+    aWindow.PanelUI.panel.removeEventListener("popuphiding", this.hidePanelAnnotations);
+    aWindow.PanelUI.panel.removeEventListener("ViewShowing", this.hidePanelAnnotations);
     let loopPanel = aWindow.document.getElementById("loop-notification-panel");
-    loopPanel.removeEventListener("popuphidden", this.onPanelHidden);
-    loopPanel.removeEventListener("popuphiding", this.hideLoopPanelAnnotations);
+    loopPanel.removeEventListener("popuphidden", this.onLoopPanelHidden);
 
     this.endUrlbarCapture(aWindow);
     this.removePinnedTab(aWindow);
@@ -820,11 +791,8 @@ this.UITour = {
   },
 
   isElementVisible: function(aElement) {
-    log.debug("Checking visibility of", aElement);
     let targetStyle = aElement.ownerDocument.defaultView.getComputedStyle(aElement);
-    return !aElement.ownerDocument.hidden &&
-             targetStyle.display != "none" &&
-             targetStyle.visibility == "visible";
+    return (targetStyle.display != "none" && targetStyle.visibility == "visible");
   },
 
   getTarget: function(aWindow, aTargetName, aSticky = false) {
@@ -989,24 +957,23 @@ this.UITour = {
 
 
 
+  showHighlight: function(aTarget, aEffect = "none") {
+    let window = aTarget.node.ownerDocument.defaultView;
 
-
-
-  showHighlight: function(aChromeWindow, aTarget, aEffect = "none") {
     function showHighlightPanel() {
       if (aTarget.targetName.startsWith(TARGET_SEARCHENGINE_PREFIX)) {
         
         
-        this.hideHighlight(aChromeWindow);
+        this.hideHighlight(window);
         aTarget.node.setAttribute("_moz-menuactive", true);
         return;
       }
 
       
       
-      this._hideSearchEngineHighlight(aChromeWindow);
+      this._hideSearchEngineHighlight(window);
 
-      let highlighter = aChromeWindow.document.getElementById("UITourHighlight");
+      let highlighter = aTarget.node.ownerDocument.getElementById("UITourHighlight");
 
       let effect = aEffect;
       if (effect == "random") {
@@ -1018,7 +985,7 @@ this.UITour = {
       }
       
       highlighter.setAttribute("active", "none");
-      aChromeWindow.getComputedStyle(highlighter).animationName;
+      aTarget.node.ownerDocument.defaultView.getComputedStyle(highlighter).animationName;
       highlighter.setAttribute("active", effect);
       highlighter.parentElement.setAttribute("targetName", aTarget.targetName);
       highlighter.parentElement.hidden = false;
@@ -1058,7 +1025,7 @@ this.UITour = {
       }
       
 
-      let highlightWindow = aChromeWindow;
+      let highlightWindow = aTarget.node.ownerDocument.defaultView;
       let containerStyle = highlightWindow.getComputedStyle(highlighter.parentElement);
       let paddingTopPx = 0 - parseFloat(containerStyle.paddingTop);
       let paddingLeftPx = 0 - parseFloat(containerStyle.paddingLeft);
@@ -1079,7 +1046,7 @@ this.UITour = {
       return;
     }
 
-    this._setAppMenuStateForAnnotation(aChromeWindow, "highlight",
+    this._setAppMenuStateForAnnotation(aTarget.node.ownerDocument.defaultView, "highlight",
                                        this.targetIsInAppMenu(aTarget),
                                        showHighlightPanel.bind(this));
   },
@@ -1127,13 +1094,12 @@ this.UITour = {
 
 
 
-
-  showInfo: function(aChromeWindow, aMessageManager, aAnchor, aTitle = "", aDescription = "", aIconURL = "",
+  showInfo: function(aMessageManager, aAnchor, aTitle = "", aDescription = "", aIconURL = "",
                      aButtons = [], aOptions = {}) {
     function showInfoPanel(aAnchorEl) {
       aAnchorEl.focus();
 
-      let document = aChromeWindow.document;
+      let document = aAnchorEl.ownerDocument;
       let tooltip = document.getElementById("UITourTooltip");
       let tooltipTitle = document.getElementById("UITourTooltipTitle");
       let tooltipDesc = document.getElementById("UITourTooltipDescription");
@@ -1221,17 +1187,15 @@ this.UITour = {
     }
 
     
-    if (!this.isElementVisible(aAnchor.node)) {
-      log.warn("showInfo: Not showing since the target isn't visible", aAnchor);
+    if (!this.isElementVisible(aAnchor.node))
       return;
-    }
 
     
     
     if (aAnchor.targetName.startsWith(TARGET_SEARCHENGINE_PREFIX))
       return;
 
-    this._setAppMenuStateForAnnotation(aChromeWindow, "info",
+    this._setAppMenuStateForAnnotation(aAnchor.node.ownerDocument.defaultView, "info",
                                        this.targetIsInAppMenu(aAnchor),
                                        showInfoPanel.bind(this, aAnchor.node));
   },
@@ -1271,9 +1235,8 @@ this.UITour = {
       if (aWindow.PanelUI.panel.state != "open") {
         this.recreatePopup(aWindow.PanelUI.panel);
       }
-      aWindow.PanelUI.panel.addEventListener("popuphiding", this.hideAppMenuAnnotations);
-      aWindow.PanelUI.panel.addEventListener("ViewShowing", this.hideAppMenuAnnotations);
-      aWindow.PanelUI.panel.addEventListener("popuphidden", this.onPanelHidden);
+      aWindow.PanelUI.panel.addEventListener("popuphiding", this.hidePanelAnnotations);
+      aWindow.PanelUI.panel.addEventListener("ViewShowing", this.hidePanelAnnotations);
       if (aOpenCallback) {
         aWindow.PanelUI.panel.addEventListener("popupshown", onPopupShown);
       }
@@ -1291,7 +1254,6 @@ this.UITour = {
       panel.setAttribute("noautohide", true);
       if (panel.state != "open") {
         this.recreatePopup(panel);
-        this.availableTargetsCache.clear();
       }
 
       
@@ -1301,8 +1263,7 @@ this.UITour = {
           aOpenCallback();
         }
       });
-      panel.addEventListener("popuphidden", this.onPanelHidden);
-      panel.addEventListener("popuphiding", this.hideLoopPanelAnnotations);
+      panel.addEventListener("popuphidden", this.onLoopPanelHidden);
     } else if (aMenuName == "searchEngines") {
       this.getTarget(aWindow, "searchProvider").then(target => {
         openMenuButton(target.node);
@@ -1317,7 +1278,9 @@ this.UITour = {
     }
 
     if (aMenuName == "appMenu") {
+      aWindow.PanelUI.panel.removeAttribute("noautohide");
       aWindow.PanelUI.hide();
+      this.recreatePopup(aWindow.PanelUI.panel);
     } else if (aMenuName == "bookmarks") {
       let menuBtn = aWindow.document.getElementById("bookmarks-menu-button");
       closeMenuButton(menuBtn);
@@ -1330,7 +1293,7 @@ this.UITour = {
     }
   },
 
-  hideAnnotationsForPanel: function(aEvent, aTargetPositionCallback) {
+  hidePanelAnnotations: function(aEvent) {
     let win = aEvent.target.ownerDocument.defaultView;
     let annotationElements = new Map([
       
@@ -1345,7 +1308,7 @@ this.UITour = {
           
           if (annotationElement.getAttribute("targetName") != aTarget.targetName ||
               annotationElement.state == "closed" ||
-              !aTargetPositionCallback(aTarget)) {
+              !UITour.targetIsInAppMenu(aTarget)) {
             return;
           }
           hideMethod(win);
@@ -1355,18 +1318,7 @@ this.UITour = {
     UITour.appMenuOpenForAnnotation.clear();
   },
 
-  hideAppMenuAnnotations: function(aEvent) {
-    UITour.hideAnnotationsForPanel(aEvent, UITour.targetIsInAppMenu);
-  },
-
-  hideLoopPanelAnnotations: function(aEvent) {
-    UITour.hideAnnotationsForPanel(aEvent, (aTarget) => {
-      
-      return aTarget.targetName.startsWith("loop-");
-    });
-  },
-
-  onPanelHidden: function(aEvent) {
+  onLoopPanelHidden: function(aEvent) {
     aEvent.target.removeAttribute("noautohide");
     UITour.recreatePopup(aEvent.target);
   },
