@@ -1507,6 +1507,21 @@ let CustomizableUIInternal = {
     
     
     while (true && target) {
+      
+      if (target.nodeType == target.DOCUMENT_NODE) {
+        if (!target.defaultView) {
+          
+          break;
+        }
+        
+        target = target.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
+                                   .getInterface(Ci.nsIWebNavigation)
+                                   .QueryInterface(Ci.nsIDocShell)
+                                   .chromeEventHandler;
+        if (!target) {
+          break;
+        }
+      }
       let tagName = target.localName;
       inInput = tagName == "input" || tagName == "textbox";
       inItem = tagName == "toolbaritem" || tagName == "toolbarbutton";
