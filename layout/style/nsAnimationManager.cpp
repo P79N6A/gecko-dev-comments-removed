@@ -63,89 +63,110 @@ CSSAnimationPlayer::PauseFromStyle()
 }
 
 void
+CSSAnimationPlayer::QueueEvents(EventArray& aEventsToDispatch)
+{
+  if (!mSource) {
+    return;
+  }
+
+  ComputedTiming computedTiming = mSource->GetComputedTiming();
+
+  dom::Element* target;
+  nsCSSPseudoElements::Type targetPseudoType;
+  mSource->GetTarget(target, targetPseudoType);
+
+  switch (computedTiming.mPhase) {
+    case ComputedTiming::AnimationPhase_Null:
+    case ComputedTiming::AnimationPhase_Before:
+      
+      break;
+
+    case ComputedTiming::AnimationPhase_Active:
+      
+      if (computedTiming.mCurrentIteration != mLastNotification) {
+        
+        
+        
+        
+        
+        
+        uint32_t message = mLastNotification == LAST_NOTIFICATION_NONE
+                           ? NS_ANIMATION_START
+                           : NS_ANIMATION_ITERATION;
+        mLastNotification = computedTiming.mCurrentIteration;
+        TimeDuration iterationStart =
+          mSource->Timing().mIterationDuration *
+          computedTiming.mCurrentIteration;
+        TimeDuration elapsedTime =
+          std::max(iterationStart, mSource->InitialAdvance());
+        AnimationEventInfo ei(target, Name(), message,
+                              StickyTimeDuration(elapsedTime),
+                              PseudoTypeAsString(targetPseudoType));
+        aEventsToDispatch.AppendElement(ei);
+      }
+      break;
+
+    case ComputedTiming::AnimationPhase_After:
+      
+      
+      if (mLastNotification == LAST_NOTIFICATION_NONE) {
+        
+        
+        
+        mLastNotification = 0;
+        StickyTimeDuration elapsedTime =
+          std::min(StickyTimeDuration(mSource->InitialAdvance()),
+                   computedTiming.mActiveDuration);
+        AnimationEventInfo ei(target, Name(), NS_ANIMATION_START,
+                              elapsedTime,
+                              PseudoTypeAsString(targetPseudoType));
+        aEventsToDispatch.AppendElement(ei);
+      }
+      
+      if (mLastNotification != LAST_NOTIFICATION_END) {
+        mLastNotification = LAST_NOTIFICATION_END;
+        AnimationEventInfo ei(target, Name(), NS_ANIMATION_END,
+                              computedTiming.mActiveDuration,
+                              PseudoTypeAsString(targetPseudoType));
+        aEventsToDispatch.AppendElement(ei);
+      }
+      break;
+  }
+}
+
+ nsString
+CSSAnimationPlayer::PseudoTypeAsString(nsCSSPseudoElements::Type aPseudoType)
+{
+  switch (aPseudoType) {
+    case nsCSSPseudoElements::ePseudo_before:
+      return NS_LITERAL_STRING("::before");
+    case nsCSSPseudoElements::ePseudo_after:
+      return NS_LITERAL_STRING("::after");
+    default:
+      return EmptyString();
+  }
+}
+
+void
 nsAnimationManager::UpdateStyleAndEvents(AnimationPlayerCollection*
                                            aCollection,
                                          TimeStamp aRefreshTime,
                                          EnsureStyleRuleFlags aFlags)
 {
   aCollection->EnsureStyleRuleFor(aRefreshTime, aFlags);
-  GetEventsForCurrentTime(aCollection, mPendingEvents);
+  QueueEvents(aCollection, mPendingEvents);
   CheckNeedsRefresh();
 }
 
 void
-nsAnimationManager::GetEventsForCurrentTime(AnimationPlayerCollection*
-                                              aCollection,
-                                            EventArray& aEventsToDispatch)
+nsAnimationManager::QueueEvents(AnimationPlayerCollection* aCollection,
+                                EventArray& aEventsToDispatch)
 {
   for (size_t playerIdx = aCollection->mPlayers.Length(); playerIdx-- != 0; ) {
-    AnimationPlayer* player = aCollection->mPlayers[playerIdx];
-    Animation* anim = player->GetSource();
-    if (!anim) {
-      continue;
-    }
-
-    ComputedTiming computedTiming = anim->GetComputedTiming();
-
-    switch (computedTiming.mPhase) {
-      case ComputedTiming::AnimationPhase_Null:
-      case ComputedTiming::AnimationPhase_Before:
-        
-        break;
-
-      case ComputedTiming::AnimationPhase_Active:
-        
-        if (computedTiming.mCurrentIteration != anim->LastNotification()) {
-          
-          
-          
-          
-          
-          
-          uint32_t message =
-            anim->LastNotification() == Animation::LAST_NOTIFICATION_NONE
-                                        ? NS_ANIMATION_START
-                                        : NS_ANIMATION_ITERATION;
-          anim->SetLastNotification(computedTiming.mCurrentIteration);
-          TimeDuration iterationStart =
-            anim->Timing().mIterationDuration *
-            computedTiming.mCurrentIteration;
-          TimeDuration elapsedTime =
-            std::max(iterationStart, anim->InitialAdvance());
-          AnimationEventInfo ei(aCollection->mElement, player->Name(), message,
-                                StickyTimeDuration(elapsedTime),
-                                aCollection->PseudoElement());
-          aEventsToDispatch.AppendElement(ei);
-        }
-        break;
-
-      case ComputedTiming::AnimationPhase_After:
-        
-        
-        if (anim->LastNotification() == Animation::LAST_NOTIFICATION_NONE) {
-          
-          
-          
-          anim->SetLastNotification(0);
-          StickyTimeDuration elapsedTime =
-            std::min(StickyTimeDuration(anim->InitialAdvance()),
-                     computedTiming.mActiveDuration);
-          AnimationEventInfo ei(aCollection->mElement,
-                                player->Name(), NS_ANIMATION_START,
-                                elapsedTime, aCollection->PseudoElement());
-          aEventsToDispatch.AppendElement(ei);
-        }
-        
-        if (anim->LastNotification() != Animation::LAST_NOTIFICATION_END) {
-          anim->SetLastNotification(Animation::LAST_NOTIFICATION_END);
-          AnimationEventInfo ei(aCollection->mElement,
-                                player->Name(), NS_ANIMATION_END,
-                                computedTiming.mActiveDuration,
-                                aCollection->PseudoElement());
-          aEventsToDispatch.AppendElement(ei);
-        }
-        break;
-    }
+    CSSAnimationPlayer* player =
+      aCollection->mPlayers[playerIdx]->AsCSSAnimationPlayer();
+    MOZ_ASSERT(player, "Expected a collection of CSS Animation players");
+    player->QueueEvents(aEventsToDispatch);
   }
 }
 
