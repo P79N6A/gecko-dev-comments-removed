@@ -496,10 +496,7 @@ protected:
   
   bool HasLowDecodedData(int64_t aAudioUsecs);
 
-  bool OutOfDecodedAudio()
-  {
-    return IsAudioDecoding() && !AudioQueue().IsFinished() && AudioQueue().GetSize() == 0;
-  }
+  bool OutOfDecodedAudio();
 
   bool OutOfDecodedVideo()
   {

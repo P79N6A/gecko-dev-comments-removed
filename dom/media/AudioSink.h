@@ -29,6 +29,10 @@ public:
 
   
   
+  bool HasUnplayedFrames();
+
+  
+  
   void PrepareToShutdown();
 
   

@@ -85,6 +85,15 @@ AudioSink::GetPosition()
   return mLastGoodPosition;
 }
 
+bool
+AudioSink::HasUnplayedFrames()
+{
+  AssertCurrentThreadInMonitor();
+  
+  
+  return mAudioStream && mAudioStream->GetPositionInFrames() + 1 < mWritten;
+}
+
 void
 AudioSink::PrepareToShutdown()
 {
