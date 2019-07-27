@@ -3683,8 +3683,27 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       const nscoord itemNormalBPos = framePos.B(outerWM);
 
-      ReflowFlexItem(aPresContext, aAxisTracker, aReflowState,
-                     *item, framePos, containerWidth);
+      
+      
+      bool itemNeedsReflow = true; 
+      if (item->HadMeasuringReflow()) {
+        
+        
+        nsSize finalFlexedPhysicalSize =
+          aAxisTracker.PhysicalSizeFromLogicalSizes(item->GetMainSize(),
+                                                    item->GetCrossSize());
+        if (item->Frame()->GetSize() == finalFlexedPhysicalSize) {
+          
+          
+          itemNeedsReflow = false;
+          MoveFlexItemToFinalPosition(aReflowState, *item, framePos,
+                                      containerWidth);
+        }
+      }
+      if (itemNeedsReflow) {
+        ReflowFlexItem(aPresContext, aAxisTracker, aReflowState,
+                       *item, framePos, containerWidth);
+      }
 
       
       
@@ -3756,6 +3775,32 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                                  aReflowState, aStatus);
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize)
+}
+
+void
+nsFlexContainerFrame::MoveFlexItemToFinalPosition(
+  const nsHTMLReflowState& aReflowState,
+  const FlexItem& aItem,
+  LogicalPoint& aFramePos,
+  nscoord aContainerWidth)
+{
+  WritingMode outerWM = aReflowState.GetWritingMode();
+
+  
+  LogicalMargin logicalOffsets(outerWM);
+  if (NS_STYLE_POSITION_RELATIVE == aItem.Frame()->StyleDisplay()->mPosition) {
+    FrameProperties props = aItem.Frame()->Properties();
+    nsMargin* cachedOffsets =
+      static_cast<nsMargin*>(props.Get(nsIFrame::ComputedOffsetProperty()));
+    MOZ_ASSERT(cachedOffsets,
+               "relpos previously-reflowed frame should've cached its offsets");
+    logicalOffsets = LogicalMargin(outerWM, *cachedOffsets);
+  }
+  nsHTMLReflowState::ApplyRelativePositioning(aItem.Frame(), outerWM,
+                                              logicalOffsets, &aFramePos,
+                                              aContainerWidth);
+  aItem.Frame()->SetPosition(outerWM, aFramePos, aContainerWidth);
+  PositionChildViews(aItem.Frame());
 }
 
 void

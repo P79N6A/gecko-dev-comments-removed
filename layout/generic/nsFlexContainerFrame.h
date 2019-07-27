@@ -184,6 +184,25 @@ protected:
 
 
 
+
+
+  void MoveFlexItemToFinalPosition(const nsHTMLReflowState& aReflowState,
+                                   const FlexItem& aItem,
+                                   mozilla::LogicalPoint& aFramePos,
+                                   nscoord aContainerWidth);
+  
+
+
+
+
+
+
+
+
+
+
+
+
   void ReflowFlexItem(nsPresContext* aPresContext,
                       const FlexboxAxisTracker& aAxisTracker,
                       const nsHTMLReflowState& aReflowState,
