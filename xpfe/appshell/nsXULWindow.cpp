@@ -34,7 +34,6 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIIOService.h"
-#include "nsILoadContext.h"
 #include "nsIObserverService.h"
 #include "nsIWindowMediator.h"
 #include "nsIScreenManager.h"
@@ -1799,9 +1798,18 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
       if (!NS_ProcessNextEvent(thread))
         break;
     }
-  }
+ }
 
-  NS_ENSURE_STATE(xulWin->mPrimaryContentShell);
+  
+  
+  
+  
+  if (aOpeningTab) {
+    NS_ENSURE_STATE(xulWin->mDocShell);
+    NS_ENSURE_STATE(xulWin->mDocShell->GetOpenedRemote());
+  } else {
+    NS_ENSURE_STATE(xulWin->mPrimaryContentShell);
+  }
 
   *_retval = newWindow;
   NS_ADDREF(*_retval);

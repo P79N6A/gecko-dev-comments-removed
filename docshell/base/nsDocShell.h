@@ -963,6 +963,7 @@ private:
     nsTObserverArray<nsWeakPtr> mScrollObservers;
     nsCString         mOriginalUriString;
     nsWeakPtr mOpener;
+    nsWeakPtr mOpenedRemote;
 
     
     
