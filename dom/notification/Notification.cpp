@@ -340,11 +340,14 @@ public:
   }
 };
 
+
+
 class NotificationRef final {
   friend class WorkerNotificationObserver;
 
 private:
   Notification* mNotification;
+  bool mInited;
 
   
   void
@@ -364,12 +367,22 @@ public:
       AssertIsOnMainThread();
     }
 
-    mNotification->AddRefObject();
+    mInited = mNotification->AddRefObject();
+  }
+
+  
+  
+  
+  
+  bool
+  Initialized()
+  {
+    return mInited;
   }
 
   ~NotificationRef()
   {
-    if (mNotification) {
+    if (Initialized() && mNotification) {
       if (mNotification->mWorkerPrivate && NS_IsMainThread()) {
         nsRefPtr<ReleaseNotificationControlRunnable> r =
           new ReleaseNotificationControlRunnable(mNotification);
@@ -390,6 +403,7 @@ public:
   Notification*
   GetNotification()
   {
+    MOZ_ASSERT(Initialized());
     return mNotification;
   }
 };
@@ -667,10 +681,15 @@ Notification::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
 
-  auto n = MakeUnique<NotificationRef>(notification);
+  auto ref = MakeUnique<NotificationRef>(notification);
+  if (!ref->Initialized()) {
+    aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
+    return nullptr;
+  }
+
   
   nsCOMPtr<nsIRunnable> showNotificationTask =
-    new NotificationTask(Move(n), NotificationTask::eShow);
+    new NotificationTask(Move(ref), NotificationTask::eShow);
   nsresult rv = NS_DispatchToMainThread(showNotificationTask);
   if (NS_FAILED(rv)) {
     notification->DispatchTrustedEvent(NS_LITERAL_STRING("error"));
@@ -832,7 +851,6 @@ nsIPrincipal*
 Notification::GetPrincipal()
 {
   AssertIsOnMainThread();
-  MOZ_ASSERT_IF(mWorkerPrivate, mFeature);
   if (mWorkerPrivate) {
     return mWorkerPrivate->GetPrincipal();
   } else {
@@ -1413,6 +1431,9 @@ Notification::Close()
 {
   AssertIsOnTargetThread();
   auto ref = MakeUnique<NotificationRef>(this);
+  if (!ref->Initialized()) {
+    return;
+  }
 
   nsCOMPtr<nsIRunnable> closeNotificationTask =
     new NotificationTask(Move(ref), NotificationTask::eClose);
@@ -1532,17 +1553,20 @@ void Notification::InitFromBase64(JSContext* aCx, const nsAString& aData,
   mDataObjectContainer = container;
 }
 
-void
+bool
 Notification::AddRefObject()
 {
   AssertIsOnTargetThread();
-  AddRef();
-  MOZ_ASSERT_IF(mWorkerPrivate&& !mFeature, mTaskCount == 0);
+  MOZ_ASSERT_IF(mWorkerPrivate && !mFeature, mTaskCount == 0);
   MOZ_ASSERT_IF(mWorkerPrivate && mFeature, mTaskCount > 0);
   if (mWorkerPrivate && !mFeature) {
-    RegisterFeature();
+    if (!RegisterFeature()) {
+      return false;
+    }
   }
+  AddRef();
   ++mTaskCount;
+  return true;
 }
 
 void
@@ -1550,9 +1574,10 @@ Notification::ReleaseObject()
 {
   AssertIsOnTargetThread();
   MOZ_ASSERT(mTaskCount > 0);
+  MOZ_ASSERT_IF(mWorkerPrivate, mFeature);
 
   --mTaskCount;
-  if (mWorkerPrivate && mFeature && mTaskCount == 0) {
+  if (mWorkerPrivate && mTaskCount == 0) {
     UnregisterFeature();
   }
   Release();
@@ -1612,21 +1637,15 @@ NotificationFeature::Notify(JSContext* aCx, Status aStatus)
   return true;
 }
 
-void
+bool
 Notification::RegisterFeature()
 {
   MOZ_ASSERT(mWorkerPrivate);
   mWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(!mFeature);
-  
-  
   mFeature = MakeUnique<NotificationFeature>(this);
-  bool ok =
-    mWorkerPrivate->AddFeature(mWorkerPrivate->GetJSContext(),
-                               mFeature.get());
-  if (!ok) {
-    MOZ_CRASH("AddFeature failed");
-  }
+  return mWorkerPrivate->AddFeature(mWorkerPrivate->GetJSContext(),
+                                    mFeature.get());
 }
 
 void

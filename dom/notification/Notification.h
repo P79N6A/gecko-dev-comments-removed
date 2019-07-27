@@ -101,6 +101,13 @@ public:
 
 
 
+
+
+
+
+
+
+
 class Notification : public DOMEventTargetHelper
 {
   friend class CloseNotificationRunnable;
@@ -206,7 +213,10 @@ public:
     MOZ_ASSERT(IsTargetThread());
   }
 
+  
+  
   workers::WorkerPrivate* mWorkerPrivate;
+
   
   WorkerNotificationObserver* mObserver;
 
@@ -215,9 +225,12 @@ public:
   
   
   
+  
+  
   UniquePtr<NotificationRef> mTempRef;
 
-  void AddRefObject();
+  
+  bool AddRefObject();
   void ReleaseObject();
 
   static NotificationPermission GetPermissionInternal(nsIPrincipal* aPrincipal,
@@ -311,12 +324,14 @@ private:
     return NS_IsMainThread() == !mWorkerPrivate;
   }
 
-  void RegisterFeature();
+  bool RegisterFeature();
   void UnregisterFeature();
 
   nsresult ResolveIconAndSoundURL(nsString&, nsString&);
 
+  
   UniquePtr<NotificationFeature> mFeature;
+  
   uint32_t mTaskCount;
 };
 
