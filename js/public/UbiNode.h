@@ -204,6 +204,12 @@ class Base {
     
     virtual JS::Zone *zone() const = 0;
 
+    
+    
+    
+    
+    virtual JSCompartment *compartment() const = 0;
+
   private:
     Base(const Base &rhs) MOZ_DELETE;
     Base &operator=(const Base &rhs) MOZ_DELETE;
@@ -329,6 +335,7 @@ class Node {
     size_t size()                   const { return base()->size(); }
     EdgeRange *edges(JSContext *cx) const { return base()->edges(cx); }
     JS::Zone *zone()                const { return base()->zone(); }
+    JSCompartment *compartment()    const { return base()->compartment(); }
 
     
     
@@ -423,7 +430,9 @@ class TracerConcrete : public Base {
     size_t size() const MOZ_OVERRIDE { return 0; } 
     EdgeRange *edges(JSContext *) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE { return get().zone(); }
+    JSCompartment *compartment() const MOZ_OVERRIDE { return nullptr; }
 
+  protected:
     TracerConcrete(Referent *ptr) : Base(ptr) { }
     Referent &get() const { return *static_cast<Referent *>(ptr); }
 
@@ -432,14 +441,30 @@ class TracerConcrete : public Base {
     static void construct(void *storage, Referent *ptr) { new (storage) TracerConcrete(ptr); };
 };
 
-template<> struct Concrete<JSObject> : TracerConcrete<JSObject> { };
+
+template<typename Referent>
+class TracerConcreteWithCompartment : public TracerConcrete<Referent> {
+    typedef TracerConcrete<Referent> TracerBase;
+    JSCompartment *compartment() const MOZ_OVERRIDE {
+        return TracerBase::get().compartment();
+    }
+
+    TracerConcreteWithCompartment(Referent *ptr) : TracerBase(ptr) { }
+
+  public:
+    static void construct(void *storage, Referent *ptr) {
+        new (storage) TracerConcreteWithCompartment(ptr);
+    };
+};
+
+template<> struct Concrete<JSObject> : TracerConcreteWithCompartment<JSObject> { };
 template<> struct Concrete<JSString> : TracerConcrete<JSString> { };
 template<> struct Concrete<JS::Symbol> : TracerConcrete<JS::Symbol> { };
-template<> struct Concrete<JSScript> : TracerConcrete<JSScript> { };
+template<> struct Concrete<JSScript> : TracerConcreteWithCompartment<JSScript> { };
 template<> struct Concrete<js::LazyScript> : TracerConcrete<js::LazyScript> { };
 template<> struct Concrete<js::jit::JitCode> : TracerConcrete<js::jit::JitCode> { };
-template<> struct Concrete<js::Shape> : TracerConcrete<js::Shape> { };
-template<> struct Concrete<js::BaseShape> : TracerConcrete<js::BaseShape> { };
+template<> struct Concrete<js::Shape> : TracerConcreteWithCompartment<js::Shape> { };
+template<> struct Concrete<js::BaseShape> : TracerConcreteWithCompartment<js::BaseShape> { };
 template<> struct Concrete<js::types::TypeObject> : TracerConcrete<js::types::TypeObject> { };
 
 
@@ -449,6 +474,7 @@ class Concrete<void> : public Base {
     size_t size() const MOZ_OVERRIDE;
     EdgeRange *edges(JSContext *cx) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE;
+    JSCompartment *compartment() const MOZ_OVERRIDE;
 
     Concrete(void *ptr) : Base(ptr) { }
 
