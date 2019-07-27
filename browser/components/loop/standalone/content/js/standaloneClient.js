@@ -91,7 +91,9 @@ loop.StandaloneClient = (function($) {
 
 
 
-    requestCallInfo: function(loopToken, cb) {
+
+
+    requestCallInfo: function(loopToken, callType, cb) {
       if (!loopToken) {
         throw new Error("missing required parameter loopToken");
       }
@@ -100,7 +102,8 @@ loop.StandaloneClient = (function($) {
         url:         this.settings.baseServerUrl + "/calls/" + loopToken,
         method:      "POST",
         contentType: "application/json",
-        dataType:    "json"
+        dataType:    "json",
+        data: JSON.stringify({callType: callType})
       });
 
       req.done(function(sessionData) {

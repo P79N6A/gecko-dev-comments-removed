@@ -9,7 +9,7 @@ loop.Client = (function($) {
   "use strict";
 
   
-  const expectedCallUrlProperties = ["call_url", "expiresAt"];
+  const expectedCallUrlProperties = ["callUrl", "expiresAt"];
 
   
   const expectedCallProperties = ["calls"];
@@ -114,6 +114,13 @@ loop.Client = (function($) {
 
         try {
           var urlData = JSON.parse(responseText);
+
+          
+          
+          
+          if (urlData.call_url)
+            urlData.callUrl = urlData.call_url;
+
           cb(null, this._validate(urlData, expectedCallUrlProperties));
 
           var expiresHours = this._hoursToSeconds(urlData.expiresAt);

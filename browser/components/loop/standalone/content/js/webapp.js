@@ -95,7 +95,10 @@ loop.webapp = (function($, _, OT) {
         client: new loop.StandaloneClient({
           baseServerUrl: baseServerUrl,
         }),
-        outgoing: true
+        outgoing: true,
+        
+        
+        callType: "audio-video"
       });
       this.disableForm();
     }

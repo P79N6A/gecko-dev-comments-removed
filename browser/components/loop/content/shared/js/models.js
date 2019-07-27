@@ -76,6 +76,8 @@ loop.shared.models = (function() {
 
 
 
+
+
     initiate: function(options) {
       function handleResult(err, sessionData) {
         
@@ -97,7 +99,8 @@ loop.shared.models = (function() {
       }
 
       if (options.outgoing) {
-        options.client.requestCallInfo(this.get("loopToken"), handleResult.bind(this));
+        options.client.requestCallInfo(this.get("loopToken"), options.callType,
+          handleResult.bind(this));
       }
       else {
         options.client.requestCallsInfo(this.get("loopVersion"),
