@@ -1573,10 +1573,6 @@ public:
   static nsIInterfaceRequestor* GetSameOriginChecker();
 
   
-  static void TraceSafeJSContext(JSTracer* aTrc);
-
-
-  
 
 
 

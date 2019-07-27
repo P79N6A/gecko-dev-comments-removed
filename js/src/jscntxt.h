@@ -455,21 +455,7 @@ struct JSContext : public js::ExclusiveContext,
     bool saveFrameChain();
     void restoreFrameChain();
 
-    
-
-
-
-
-  private:
-    JSObject *defaultCompartmentObject_;
   public:
-    inline void setDefaultCompartmentObject(JSObject *obj);
-    inline void setDefaultCompartmentObjectIfUnset(JSObject *obj);
-    JSObject *maybeDefaultCompartmentObject() const {
-        JS_ASSERT(!options().noDefaultCompartmentObject());
-        return defaultCompartmentObject_;
-    }
-
     
     js::ObjectSet       cycleDetectorSet;
 
