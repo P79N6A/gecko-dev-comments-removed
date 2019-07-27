@@ -53,18 +53,12 @@ public:
   
 
 
-
-  void Close();
-
-  
-
-
   void GetSocketAddr(nsAString& aAddrStr);
 
   
   
 
-  void CloseSocket() override;
+  void Close() override;
 
 private:
   ListenSocketIO* mIO;

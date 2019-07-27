@@ -258,7 +258,7 @@ public:
 
 
 
-  virtual void CloseSocket() = 0;
+  virtual void Close() = 0;
 
   
 
