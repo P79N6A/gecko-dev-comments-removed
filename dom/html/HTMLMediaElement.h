@@ -217,8 +217,6 @@ public:
   layers::ImageContainer* GetImageContainer();
 
   
-  using nsGenericHTMLElement::DispatchEvent;
-  virtual nsresult DispatchEvent(const nsAString& aName) MOZ_FINAL MOZ_OVERRIDE;
   virtual nsresult DispatchAsyncEvent(const nsAString& aName) MOZ_FINAL MOZ_OVERRIDE;
 
   
@@ -979,6 +977,11 @@ protected:
   
   
   TextTrackManager* GetOrCreateTextTrackManager();
+
+  class nsAsyncEventRunner;
+  using nsGenericHTMLElement::DispatchEvent;
+  
+  nsresult DispatchEvent(const nsAString& aName);
 
   
   

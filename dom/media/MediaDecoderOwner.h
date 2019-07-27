@@ -22,9 +22,6 @@ public:
   virtual void DownloadProgressed() = 0;
 
   
-  virtual nsresult DispatchEvent(const nsAString& aName) = 0;
-
-  
   virtual nsresult DispatchAsyncEvent(const nsAString& aName) = 0;
 
   
