@@ -5,6 +5,7 @@
 
 const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
 const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
+let gAppInfo;
 
 function createAppInfo(id, name, version, platformVersion) {
   gAppInfo = {
