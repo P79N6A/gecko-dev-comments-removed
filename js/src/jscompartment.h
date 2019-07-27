@@ -317,16 +317,19 @@ struct JSCompartment
     bool                         gcPreserveJitCode;
 
     enum {
-        DebugMode = 1 << 0,
-        DebugObservesAllExecution = 1 << 1,
-        DebugNeedsDelazification = 1 << 2
+        IsDebuggee = 1 << 0,
+        DebuggerObservesAllExecution = 1 << 1,
+        DebuggerObservesAsmJS = 1 << 2,
+        DebuggerNeedsDelazification = 1 << 3
     };
 
-    
-    
-    static const unsigned DebugExecutionMask = DebugMode | DebugObservesAllExecution;
-
     unsigned                     debugModeBits;
+
+    static const unsigned DebuggerObservesMask = IsDebuggee |
+                                                 DebuggerObservesAllExecution |
+                                                 DebuggerObservesAsmJS;
+
+    void updateDebuggerObservesFlag(unsigned flag);
 
   public:
     JSCompartment(JS::Zone *zone, const JS::CompartmentOptions &options);
@@ -448,35 +451,50 @@ struct JSCompartment
     
     
     
+    
+    
+    
 
     
     
-    bool isDebuggee() const { return !!(debugModeBits & DebugMode); }
-    void setIsDebuggee() { debugModeBits |= DebugMode; }
+    bool isDebuggee() const { return !!(debugModeBits & IsDebuggee); }
+    void setIsDebuggee() { debugModeBits |= IsDebuggee; }
     void unsetIsDebuggee();
 
     
     
     
-    bool debugObservesAllExecution() const {
-        return (debugModeBits & DebugExecutionMask) == DebugExecutionMask;
+    bool debuggerObservesAllExecution() const {
+        static const unsigned Mask = IsDebuggee | DebuggerObservesAllExecution;
+        return (debugModeBits & Mask) == Mask;
     }
-    void setDebugObservesAllExecution() {
-        MOZ_ASSERT(isDebuggee());
-        debugModeBits |= DebugObservesAllExecution;
-    }
-    void unsetDebugObservesAllExecution() {
-        MOZ_ASSERT(isDebuggee());
-        debugModeBits &= ~DebugObservesAllExecution;
+    void updateDebuggerObservesAllExecution() {
+        updateDebuggerObservesFlag(DebuggerObservesAllExecution);
     }
 
-    bool needsDelazificationForDebugger() const { return debugModeBits & DebugNeedsDelazification; }
+    
+    
+    
+    
+    
+    
+    bool debuggerObservesAsmJS() const {
+        static const unsigned Mask = IsDebuggee | DebuggerObservesAsmJS;
+        return (debugModeBits & Mask) == Mask;
+    }
+    void updateDebuggerObservesAsmJS() {
+        updateDebuggerObservesFlag(DebuggerObservesAsmJS);
+    }
+
+    bool needsDelazificationForDebugger() const {
+        return debugModeBits & DebuggerNeedsDelazification;
+    }
 
     
 
 
 
-    void scheduleDelazificationForDebugger() { debugModeBits |= DebugNeedsDelazification; }
+    void scheduleDelazificationForDebugger() { debugModeBits |= DebuggerNeedsDelazification; }
 
     
 
