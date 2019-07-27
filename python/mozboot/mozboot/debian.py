@@ -95,6 +95,7 @@ class DebianBootstrapper(BaseBootstrapper):
         
         self.run_as_root(['dpkg', '--add-architecture', 'i386'])
         
+        self.run_as_root(['apt-get', 'update'])
         self.apt_install(*self.mobile_android_packages)
 
         
