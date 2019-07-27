@@ -23,6 +23,7 @@ loop.store.StandaloneAppStore = (function() {
 
 
 
+
   var StandaloneAppStore = function(options) {
     if (!options.dispatcher) {
       throw new Error("Missing option dispatcher");
@@ -69,9 +70,9 @@ loop.store.StandaloneAppStore = (function() {
       var windowType = "home";
 
       function extractId(path, regexp) {
-        var match = path.match(regexp);
-        if (match && match[1]) {
-          return match;
+        var pathMatch = path.match(regexp);
+        if (pathMatch && pathMatch[1]) {
+          return pathMatch;
         }
         return null;
       }
