@@ -387,7 +387,6 @@ public:
                                                      lowerWaveData,
                                                      higherWaveData,
                                                      tableInterpolationFactor);
-      mPhase += basePhaseIncrement * mFinalFrequency;
       mPhase = fmod(mPhase, periodicWaveSize);
       
       uint32_t j1 = floor(mPhase);
@@ -402,6 +401,8 @@ public:
                     (1 - sampleInterpolationFactor) * higherWaveData[j2];
       aOutput[i] = tableInterpolationFactor * lower +
                    (1 - tableInterpolationFactor) * higher;
+
+      mPhase += basePhaseIncrement * mFinalFrequency;
     }
   }
 
