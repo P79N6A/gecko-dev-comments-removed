@@ -298,7 +298,9 @@ PerformanceFront.prototype = {
     }
 
     
-    let profilerOptions = extend({}, this._customProfilerOptions);
+    
+    
+    let profilerOptions = this._customProfilerOptions || {};
     yield this._request("profiler", "startProfiler", profilerOptions);
 
     this.emit("profiler-activated");
@@ -399,19 +401,6 @@ PerformanceFront.prototype = {
 
     deferred.resolve();
   }),
-
-  
-
-
-
-
-
-  _customProfilerOptions: {
-    entries: 1000000,
-    interval: 1,
-    features: ["js"],
-    threadFilters: ["GeckoMain"]
-  },
 
   
 
