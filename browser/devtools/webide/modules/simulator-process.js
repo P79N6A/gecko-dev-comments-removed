@@ -35,7 +35,9 @@ function SimulatorProcess() {}
 SimulatorProcess.prototype = {
 
   
-  get isRunning() !!this.process,
+  get isRunning() {
+    return !!this.process;
+  },
 
   
   run() {
