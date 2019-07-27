@@ -700,7 +700,10 @@ loop.panel = (function(_, mozL10n) {
       userDisplayName: React.PropTypes.string.isRequired
     },
 
-    mixins: [sharedMixins.DocumentVisibilityMixin],
+    mixins: [
+      sharedMixins.DocumentVisibilityMixin,
+      React.addons.PureRenderMixin
+    ],
 
     getInitialState: function() {
       return {
@@ -712,6 +715,11 @@ loop.panel = (function(_, mozL10n) {
     },
 
     onDocumentVisible: function() {
+      
+      
+      
+      
+
       this.props.mozLoop.getSelectedTabMetadata(function callback(metadata) {
         var previewImage = metadata.favicon || "";
         var description = metadata.title || metadata.description;
@@ -722,14 +730,6 @@ loop.panel = (function(_, mozL10n) {
           url: url
         });
       }.bind(this));
-    },
-
-    onDocumentHidden: function() {
-      this.setState({
-        previewImage: "",
-        description: "",
-        url: ""
-      });
     },
 
     onCheckboxChange: function(newState) {
