@@ -152,7 +152,7 @@ public:
 
 
 
-  virtual JSObject* WrapObject(JSContext* cx) = 0;
+  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) = 0;
 
   
 

@@ -16,9 +16,9 @@ namespace mozilla {
 namespace dom {
 
  JSObject*
-RadioNodeList::WrapObject(JSContext* aCx)
+RadioNodeList::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return RadioNodeListBinding::Wrap(aCx, this);
+  return RadioNodeListBinding::Wrap(aCx, this, aGivenProto);
 }
 
 HTMLInputElement*

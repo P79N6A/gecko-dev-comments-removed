@@ -26,9 +26,9 @@ nsDOMCSSDeclaration::~nsDOMCSSDeclaration()
 }
 
  JSObject*
-nsDOMCSSDeclaration::WrapObject(JSContext* aCx)
+nsDOMCSSDeclaration::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return dom::CSS2PropertiesBinding::Wrap(aCx, this);
+  return dom::CSS2PropertiesBinding::Wrap(aCx, this, aGivenProto);
 }
 
 NS_INTERFACE_TABLE_HEAD(nsDOMCSSDeclaration)

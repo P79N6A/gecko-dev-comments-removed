@@ -71,7 +71,7 @@ public:
   static bool PrefEnabled(JSContext* aCx, JSObject* aObj);
 
   nsISupports* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aContext) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aContext, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
   
   void DestroyInternal(CacheChild* aActor);

@@ -51,9 +51,9 @@ TVProgram::~TVProgram()
 }
 
  JSObject*
-TVProgram::WrapObject(JSContext* aCx)
+TVProgram::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return TVProgramBinding::Wrap(aCx, this);
+  return TVProgramBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void

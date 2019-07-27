@@ -323,7 +323,7 @@ public:
   nsSVGElement* GetViewportElement();
   already_AddRefed<mozilla::dom::SVGAnimatedString> ClassName();
 protected:
-  virtual JSObject* WrapNode(JSContext *cx) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
 #ifdef DEBUG
   

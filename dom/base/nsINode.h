@@ -367,7 +367,7 @@ public:
 
   virtual bool IsNodeOfType(uint32_t aFlags) const = 0;
 
-  virtual JSObject* WrapObject(JSContext *aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
   
 
@@ -381,7 +381,11 @@ protected:
 
 
 
-  virtual JSObject* WrapNode(JSContext *aCx) = 0;
+
+
+
+
+  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) = 0;
 
 public:
   mozilla::dom::ParentObject GetParentObject() const; 

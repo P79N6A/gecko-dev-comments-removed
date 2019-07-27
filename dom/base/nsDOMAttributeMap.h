@@ -140,7 +140,7 @@ public:
   {
     return mContent;
   }
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
   
   Attr* GetNamedItem(const nsAString& aAttrName);

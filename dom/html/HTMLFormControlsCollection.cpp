@@ -411,9 +411,9 @@ HTMLFormControlsCollection::GetSupportedNames(unsigned aFlags,
 }
 
  JSObject*
-HTMLFormControlsCollection::WrapObject(JSContext* aCx)
+HTMLFormControlsCollection::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return HTMLFormControlsCollectionBinding::Wrap(aCx, this);
+  return HTMLFormControlsCollectionBinding::Wrap(aCx, this, aGivenProto);
 }
 
 } 

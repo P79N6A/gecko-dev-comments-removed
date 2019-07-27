@@ -52,7 +52,7 @@ public:
   void DefaultCheckOverflowing() { CheckOverflowing(mResizeImageByDefault); }
 
   
-  virtual JSObject* WrapNode(JSContext* aCx)
+  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
     MOZ_OVERRIDE;
 
   bool ImageResizingEnabled() const

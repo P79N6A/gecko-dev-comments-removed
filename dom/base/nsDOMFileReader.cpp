@@ -530,7 +530,7 @@ nsDOMFileReader::GetAsDataURL(nsIDOMBlob *aFile,
 }
 
  JSObject*
-nsDOMFileReader::WrapObject(JSContext* aCx)
+nsDOMFileReader::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return FileReaderBinding::Wrap(aCx, this);
+  return FileReaderBinding::Wrap(aCx, this, aGivenProto);
 }

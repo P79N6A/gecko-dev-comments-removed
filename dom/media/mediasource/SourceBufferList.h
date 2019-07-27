@@ -46,7 +46,7 @@ public:
 
   MediaSource* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
   
   void Append(SourceBuffer* aSourceBuffer);

@@ -31,7 +31,7 @@ public:
 
   explicit nsPluginArray(nsPIDOMWindow* aWindow);
   nsPIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
   
   
@@ -85,7 +85,7 @@ public:
   nsPluginElement(nsPIDOMWindow* aWindow, nsPluginTag* aPluginTag);
 
   nsPIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
   nsPluginTag* PluginTag() const
   {

@@ -44,7 +44,7 @@ public:
 protected:
   virtual ~HTMLDataListElement();
 
-  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
 
   
   nsRefPtr<nsContentList> mOptions;
