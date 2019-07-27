@@ -2450,7 +2450,7 @@ nsObjectLoadingContent::UnloadObject(bool aResetState)
 
   mScriptRequested = false;
 
-  if (!mInstanceOwner) {
+  if (mIsStopping) {
     
     
     
