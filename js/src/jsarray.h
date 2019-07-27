@@ -62,6 +62,13 @@ NewDenseUnallocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto 
                          NewObjectKind newKind = GenericObject);
 
 
+
+
+
+extern ArrayObject * JS_FASTCALL
+NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleTypeObject type, bool allocateArray);
+
+
 extern ArrayObject *
 NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t elementOffset, JSObject *proto = nullptr);
 

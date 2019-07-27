@@ -731,8 +731,7 @@ ScalarReplacementOfArray(MIRGenerator *mir, MIRGraph &graph,
     }
 
     MOZ_ASSERT(!arr->hasLiveDefUses());
-    
-    
+    arr->setRecoveredOnBailout();
     states.clear();
     return true;
 }
