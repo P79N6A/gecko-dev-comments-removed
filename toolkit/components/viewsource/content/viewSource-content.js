@@ -12,6 +12,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
   "resource://gre/modules/DeferredTask.jsm");
 
+const NS_XHTML = "http://www.w3.org/1999/xhtml";
 const BUNDLE_URL = "chrome://global/locale/viewSource.properties";
 
 
@@ -349,12 +350,24 @@ let ViewSourceContent = {
 
 
 
+
   onClick(event) {
+    let target = event.originalTarget;
+    
+    if (target.id) {
+      this.contextMenuItems.forEach(itemSpec => {
+        if (itemSpec.id !== target.id) {
+          return;
+        }
+        itemSpec.handler.call(this, event);
+        event.stopPropagation();
+      });
+    }
+
     
     if (!event.isTrusted || event.target.localName != "button")
       return;
 
-    let target = event.originalTarget;
     let errorDoc = target.ownerDocument;
 
     if (/^about:blocked/.test(errorDoc.documentURI)) {
@@ -400,6 +413,10 @@ let ViewSourceContent = {
         content.document.documentURI.startsWith("view-source:")) {
       this.needsDrawSelection = false;
       this.drawSelection();
+    }
+
+    if (content.document.body) {
+      this.injectContextMenu();
     }
 
     sendAsyncMessage("ViewSource:SourceLoaded");
@@ -661,11 +678,10 @@ let ViewSourceContent = {
   
 
 
+
   toggleSyntaxHighlighting() {
-    
-    
-    
-    this.reload();
+    let body = content.document.body;
+    body.classList.toggle("highlight");
   },
 
   
@@ -857,6 +873,81 @@ let ViewSourceContent = {
     findInst.wrapFind      = wrapFind;
     findInst.findBackwards = findBackwards;
     findInst.searchString  = searchString;
+  },
+
+  
+
+
+  contextMenuItems: [
+    {
+      id: "goToLine",
+      handler() {
+        sendAsyncMessage("ViewSource:PromptAndGoToLine");
+      }
+    },
+    {
+      id: "wrapLongLines",
+      get checked() {
+        return Services.prefs.getBoolPref("view_source.wrap_long_lines");
+      },
+      handler() {
+        this.toggleWrapping();
+      }
+    },
+    {
+      id: "highlightSyntax",
+      get checked() {
+        return Services.prefs.getBoolPref("view_source.syntax_highlight");
+      },
+      handler() {
+        this.toggleSyntaxHighlighting();
+      }
+    },
+  ],
+
+  
+
+
+  injectContextMenu() {
+    let doc = content.document;
+
+    let menu = doc.createElementNS(NS_XHTML, "menu");
+    menu.setAttribute("type", "context");
+    menu.setAttribute("id", "actions");
+    doc.body.appendChild(menu);
+    doc.body.setAttribute("contextmenu", "actions");
+
+    this.contextMenuItems.forEach(itemSpec => {
+      let item = doc.createElementNS(NS_XHTML, "menuitem");
+      item.setAttribute("id", itemSpec.id);
+      let labelName = `context_${itemSpec.id}_label`;
+      let label = this.bundle.GetStringFromName(labelName);
+      item.setAttribute("label", label);
+      if ("checked" in itemSpec) {
+        item.setAttribute("type", "checkbox");
+      }
+      menu.appendChild(item);
+    });
+
+    this.updateContextMenu();
+  },
+
+  
+
+
+  updateContextMenu() {
+    let doc = content.document;
+    this.contextMenuItems.forEach(itemSpec => {
+      if (!("checked" in itemSpec)) {
+        return;
+      }
+      let item = doc.getElementById(itemSpec.id);
+      if (itemSpec.checked) {
+        item.setAttribute("checked", true);
+      } else {
+        item.removeAttribute("checked");
+      }
+    });
   },
 };
 ViewSourceContent.init();

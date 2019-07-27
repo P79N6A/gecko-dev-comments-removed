@@ -59,9 +59,18 @@ ViewSourceBrowser.prototype = {
 
 
 
+  lastLineFound: null,
 
   
+
+
+
+
+
   messages: [
+    "ViewSource:PromptAndGoToLine",
+    "ViewSource:GoToLine:Success",
+    "ViewSource:GoToLine:Failed",
   ],
 
   
@@ -91,8 +100,16 @@ ViewSourceBrowser.prototype = {
   receiveMessage(message) {
     let data = message.data;
 
-    
     switch(message.name) {
+      case "ViewSource:PromptAndGoToLine":
+        this.promptAndGoToLine();
+        break;
+      case "ViewSource:GoToLine:Success":
+        this.onGoToLineSuccess(data.lineNumber);
+        break;
+      case "ViewSource:GoToLine:Failed":
+        this.onGoToLineFailed();
+        break;
     }
   },
 
@@ -538,5 +555,73 @@ ViewSourceBrowser.prototype = {
     str = str.replace(/[^\0-\u007f]/g, convertEntity);
 
     return str;
+  },
+
+  
+
+
+
+
+  promptAndGoToLine() {
+    let input = { value: this.lastLineFound };
+    let window = Services.wm.getMostRecentWindow(null);
+
+    let ok = Services.prompt.prompt(
+        window,
+        this.bundle.GetStringFromName("goToLineTitle"),
+        this.bundle.GetStringFromName("goToLineText"),
+        input,
+        null,
+        {value:0});
+
+    if (!ok)
+      return;
+
+    let line = parseInt(input.value, 10);
+
+    if (!(line > 0)) {
+      Services.prompt.alert(window,
+                            this.bundle.GetStringFromName("invalidInputTitle"),
+                            this.bundle.GetStringFromName("invalidInputText"));
+      this.promptAndGoToLine();
+    } else {
+      this.goToLine(line);
+    }
+  },
+
+  
+
+
+
+
+
+  goToLine(lineNumber) {
+    this.sendAsyncMessage("ViewSource:GoToLine", { lineNumber });
+  },
+
+  
+
+
+
+
+
+
+  onGoToLineSuccess(lineNumber) {
+    
+    
+    this.lastLineFound = lineNumber;
+  },
+
+  
+
+
+
+
+  onGoToLineFailed() {
+    let window = Services.wm.getMostRecentWindow(null);
+    Services.prompt.alert(window,
+                          this.bundle.GetStringFromName("outOfRangeTitle"),
+                          this.bundle.GetStringFromName("outOfRangeText"));
+    this.promptAndGoToLine();
   },
 };
