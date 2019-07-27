@@ -781,22 +781,27 @@ function coordinates(target, x, y) {
 
 
 
-function elementInViewport(el) {
-  let rect = el.getBoundingClientRect();
+
+
+function elementInViewport(el, x, y) {
+  let c = coordinates(el, x, y);
   let viewPort = {top: curFrame.pageYOffset,
                   left: curFrame.pageXOffset,
                   bottom: (curFrame.pageYOffset + curFrame.innerHeight),
                   right:(curFrame.pageXOffset + curFrame.innerWidth)};
-  return (viewPort.left <= rect.right + curFrame.pageXOffset &&
-          rect.left + curFrame.pageXOffset <= viewPort.right &&
-          viewPort.top <= rect.bottom + curFrame.pageYOffset &&
-          rect.top + curFrame.pageYOffset <= viewPort.bottom);
+  return (viewPort.left <= c.x + curFrame.pageXOffset &&
+          c.x + curFrame.pageXOffset <= viewPort.right &&
+          viewPort.top <= c.y + curFrame.pageYOffset &&
+          c.y + curFrame.pageYOffset <= viewPort.bottom);
 }
 
 
 
 
-function checkVisible(el) {
+
+
+
+function checkVisible(el, x, y) {
   
   let visible = utils.isElementDisplayed(el);
   if (!visible) {
@@ -805,7 +810,7 @@ function checkVisible(el) {
   if (el.tagName.toLowerCase() === 'body') {
     return true;
   }
-  if (!elementInViewport(el)) {
+  if (!elementInViewport(el, x, y)) {
     
     if (el.scrollIntoView) {
       el.scrollIntoView(false);
@@ -934,14 +939,14 @@ function singleTap(msg) {
   try {
     let el = elementManager.getKnownElement(msg.json.id, curFrame);
     
-    if (!checkVisible(el)) {
+    if (!checkVisible(el, msg.json.corx, msg.json.cory)) {
        sendError("Element is not currently visible and may not be manipulated", 11, null, command_id);
        return;
     }
     if (!curFrame.document.createTouch) {
       mouseEventsOnly = true;
     }
-    let c = coordinates(el, msg.json.corx, msg.json.cory);
+    c = coordinates(el, msg.json.corx, msg.json.cory);
     generateEvents('tap', c.x, c.y, null, el);
     sendOk(msg.json.command_id);
   }
