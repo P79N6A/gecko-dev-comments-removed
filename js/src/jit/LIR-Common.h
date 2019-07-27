@@ -129,25 +129,6 @@ class LMoveGroup : public LInstructionHelper<0, 0, 0>
 };
 
 
-class LSimdValueX4 : public LInstructionHelper<1, 4, 0>
-{
-  public:
-    LIR_HEADER(SimdValueX4)
-    LSimdValueX4(const LAllocation &x, const LAllocation &y,
-                 const LAllocation &z, const LAllocation &w)
-    {
-        setOperand(0, x);
-        setOperand(1, y);
-        setOperand(2, z);
-        setOperand(3, w);
-    }
-
-    MSimdValueX4 *mir() const {
-        return mir_->toSimdValueX4();
-    }
-};
-
-
 class LSimdSplatX4 : public LInstructionHelper<1, 1, 0>
 {
   public:
