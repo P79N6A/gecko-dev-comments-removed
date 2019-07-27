@@ -816,12 +816,25 @@ FilterNodeSoftware::GetInputDataSourceSurface(uint32_t aInputEnumIndex,
   RefPtr<DataSourceSurface> result =
     GetDataSurfaceInRect(surface, surfaceRect, aRect, aEdgeMode);
 
-  if (result &&
-      (result->Stride() != GetAlignedStride<16>(result->Stride()) ||
-       reinterpret_cast<uintptr_t>(result->GetData()) % 16 != 0)) {
+  if (result) {
     
-    result = CloneAligned(result);
+    
+    DataSourceSurface::MappedSurface map;
+    if (result->Map(DataSourceSurface::READ, &map)) {
+       
+       
+       
+      result->Unmap();
+      if (map.mStride != GetAlignedStride<16>(map.mStride) ||
+          reinterpret_cast<uintptr_t>(map.mData) % 16 != 0) {
+        
+        result = CloneAligned(result);
+      }
+    } else {
+      result = nullptr;
+    }
   }
+
 
   if (!result) {
 #ifdef DEBUG_DUMP_SURFACES
