@@ -26,7 +26,7 @@ const EXPECTED_COLOR = "rgb(255, 255, 85)";
 
 
 let test = asyncTest(function*() {
-  yield addTab("data:text/html,rule view eyedropper test");
+  yield addTab("data:text/html;charset=utf-8,rule view eyedropper test");
   content.document.body.innerHTML = PAGE_CONTENT;
   let {toolbox, inspector, view} = yield openRuleView();
 

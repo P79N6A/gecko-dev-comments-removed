@@ -9,7 +9,7 @@
 
 
 let test = asyncTest(function*() {
-  yield addTab("data:text/html,inline editor tests");
+  yield addTab("data:text/html;charset=utf-8,inline editor tests");
   yield testReturnCommit();
   yield testBlurCommit();
   yield testAdvanceCharCommit();

@@ -7,7 +7,7 @@
 
 
 
-const TEST_URL = "data:text/html," + encodeURIComponent([
+const TEST_URL = "data:text/html;charset=utf-8," + encodeURIComponent([
   '<html>' +
   '<head>' +
   '  <title>Computed view toggling test</title>',
