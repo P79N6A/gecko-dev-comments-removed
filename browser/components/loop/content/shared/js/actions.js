@@ -131,6 +131,25 @@ loop.shared.actions = (function() {
 
 
 
+    CreateRoom: Action.define("createRoom", {
+      
+      
+      nameTemplate: String,
+      roomOwner: String
+    }),
+
+    
+
+
+
+    CreateRoomError: Action.define("createRoomError", {
+      error: Error
+    }),
+
+    
+
+
+
     GetAllRooms: Action.define("getAllRooms", {
     }),
 
@@ -139,7 +158,7 @@ loop.shared.actions = (function() {
 
 
     GetAllRoomsError: Action.define("getAllRoomsError", {
-      error: String
+      error: Error
     }),
 
     
@@ -158,6 +177,6 @@ loop.shared.actions = (function() {
 
     SetupEmptyRoom: Action.define("setupEmptyRoom", {
       localRoomId: String
-    }),
+    })
   };
 })();
