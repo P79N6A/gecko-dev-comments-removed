@@ -119,7 +119,10 @@ static bool
 ArgumentsRestrictions(JSContext *cx, HandleFunction fun)
 {
     
-    if ((!fun->isBuiltin() && fun->isInterpreted() && fun->strict()) ||
+    
+    
+    if (fun->isBuiltin() ||
+        (fun->isInterpreted() && fun->strict()) ||
         fun->isBoundFunction())
     {
         ThrowTypeErrorBehavior(cx);
@@ -153,14 +156,6 @@ ArgumentsGetterImpl(JSContext *cx, CallArgs args)
     RootedFunction fun(cx, &args.thisv().toObject().as<JSFunction>());
     if (!ArgumentsRestrictions(cx, fun))
         return false;
-
-    
-    
-    
-    if (fun->isBuiltin()) {
-        args.rval().setNull();
-        return true;
-    }
 
     
     NonBuiltinScriptFrameIter iter(cx);
@@ -200,13 +195,6 @@ ArgumentsSetterImpl(JSContext *cx, CallArgs args)
         return false;
 
     
-    
-    if (fun->isBuiltin()) {
-        args.rval().setUndefined();
-        return true;
-    }
-
-    
     args.rval().setUndefined();
     return true;
 }
@@ -228,7 +216,10 @@ static bool
 CallerRestrictions(JSContext *cx, HandleFunction fun)
 {
     
-    if ((!fun->isBuiltin() && fun->isInterpreted() && fun->strict()) ||
+    
+    
+    if (fun->isBuiltin() ||
+        (fun->isInterpreted() && fun->strict()) ||
         fun->isBoundFunction())
     {
         ThrowTypeErrorBehavior(cx);
@@ -258,14 +249,6 @@ CallerGetterImpl(JSContext *cx, CallArgs args)
     RootedFunction fun(cx, &args.thisv().toObject().as<JSFunction>());
     if (!CallerRestrictions(cx, fun))
         return false;
-
-    
-    
-    
-    if (fun->isBuiltin()) {
-        args.rval().setNull();
-        return true;
-    }
 
     
     NonBuiltinScriptFrameIter iter(cx);
@@ -339,11 +322,6 @@ CallerSetterImpl(JSContext *cx, CallArgs args)
 
     
     args.rval().setUndefined();
-
-    
-    
-    if (fun->isBuiltin())
-        return true;
 
     
     
