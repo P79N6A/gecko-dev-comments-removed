@@ -248,6 +248,9 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
 
     Render();
     mGeometryChanged = false;
+  } else {
+    
+    mGeometryChanged = true;
   }
 
   mCompositor->ClearTargetContext();
@@ -429,6 +432,8 @@ LayerManagerComposite::Render()
       }
     }
     mCompositor->EndFrameForExternalComposition(mWorldMatrix);
+    
+    mInvalidRegion.SetEmpty();
     return;
   }
 
