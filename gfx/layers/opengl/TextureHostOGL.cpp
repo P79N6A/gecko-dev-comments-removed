@@ -14,6 +14,7 @@
 #include "gfxReusableSurfaceWrapper.h"  
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/gfx/Logging.h"        
 #ifdef MOZ_WIDGET_GONK
 # include "GrallocImages.h"  
 # include "EGLImageHelpers.h"
@@ -214,6 +215,10 @@ TextureImageTextureSourceOGL::Update(gfx::DataSourceSurface* aSurface,
   MOZ_ASSERT(gl);
   if (!gl) {
     NS_WARNING("trying to update TextureImageTextureSourceOGL without a GLContext");
+    return false;
+  }
+  if (!aSurface) {
+    gfxCriticalError() << "Invalid surface for OGL update";
     return false;
   }
   MOZ_ASSERT(aSurface);
