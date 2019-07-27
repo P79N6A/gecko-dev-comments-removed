@@ -113,7 +113,7 @@ private:
 
 
 
-    bool Print(const DDT::ResourceAcquisition& aFirstSeen,
+    bool Print(const DeadlockDetectorEntry* aFirstSeen,
                nsACString& aOut) const;
 
     
