@@ -740,23 +740,28 @@ function promisePopupHidden(popup) {
   return promisePopupEvent(popup, "hidden");
 }
 
+
+
+
 let gURLBarOnSearchComplete = null;
 function promiseSearchComplete() {
   info("Waiting for onSearchComplete");
-  let deferred = Promise.defer();
-  
-  if (!gURLBarOnSearchComplete) {
-    gURLBarOnSearchComplete = gURLBar.onSearchComplete;
-    registerCleanupFunction(() => {
-      gURLBar.onSearchComplete = gURLBarOnSearchComplete;
-    });
-  }
+  return new Promise(resolve => {
+    if (!gURLBarOnSearchComplete) {
+      gURLBarOnSearchComplete = gURLBar.onSearchComplete;
+      registerCleanupFunction(() => {
+        gURLBar.onSearchComplete = gURLBarOnSearchComplete;
+      });
+    }
 
-  gURLBar.onSearchComplete = function () {
-    ok(gURLBar.popupOpen, "The autocomplete popup is correctly open");
-    gURLBarOnSearchComplete.apply(gURLBar);
-    deferred.resolve();
-  }
-  
-  return deferred.promise;
+    gURLBar.onSearchComplete = function () {
+      ok(gURLBar.popupOpen, "The autocomplete popup is correctly open");
+      gURLBarOnSearchComplete.apply(gURLBar);
+      resolve();
+    }
+  }).then(() => {
+    
+    
+    return promisePopupShown(gURLBar.popup);
+  });
 }

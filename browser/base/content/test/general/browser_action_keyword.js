@@ -8,9 +8,6 @@ function* promise_first_result(inputText) {
   gURLBar.value = inputText.slice(0, -1);
   EventUtils.synthesizeKey(inputText.slice(-1) , {});
   yield promiseSearchComplete();
-  
-  
-  yield promisePopupShown(gURLBar.popup);
 
   let firstResult = gURLBar.popup.richlistbox.firstChild;
   return firstResult;

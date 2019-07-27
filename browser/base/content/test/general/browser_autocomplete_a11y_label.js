@@ -6,9 +6,6 @@ function* check_a11y_label(inputText, expectedLabel) {
   gURLBar.value = inputText.slice(0, -1);
   EventUtils.synthesizeKey(inputText.slice(-1) , {});
   yield promiseSearchComplete();
-  
-  
-  yield promisePopupShown(gURLBar.popup);
 
   ok(gURLBar.popup.richlistbox.children.length > 1, "Should get at least 2 results");
   let result = gURLBar.popup.richlistbox.children[1];
