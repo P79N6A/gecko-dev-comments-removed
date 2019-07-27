@@ -792,6 +792,26 @@ CompositorParent::CompositeCallback(TimeStamp aScheduleTime)
   CompositeToTarget(nullptr);
 }
 
+
+
+static void
+SetShadowProperties(Layer* aLayer)
+{
+  
+  LayerComposite* layerComposite = aLayer->AsLayerComposite();
+  
+  layerComposite->SetShadowTransform(aLayer->GetBaseTransform());
+  layerComposite->SetShadowTransformSetByAnimation(false);
+  layerComposite->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
+  layerComposite->SetShadowClipRect(aLayer->GetClipRect());
+  layerComposite->SetShadowOpacity(aLayer->GetOpacity());
+
+  for (Layer* child = aLayer->GetFirstChild();
+      child; child = child->GetNextSibling()) {
+    SetShadowProperties(child);
+  }
+}
+
 void
 CompositorParent::CompositeToTarget(DrawTarget* aTarget, const nsIntRect* aRect)
 {
@@ -823,6 +843,8 @@ CompositorParent::CompositeToTarget(DrawTarget* aTarget, const nsIntRect* aRect)
   } else {
     mLayerManager->BeginTransaction();
   }
+
+  SetShadowProperties(mLayerManager->GetRoot());
 
   if (mForceCompositionTask && !mOverrideComposeReadiness) {
     if (mCompositionManager->ReadyForCompose()) {
@@ -902,26 +924,6 @@ CompositorParent::CanComposite()
   return mLayerManager &&
          mLayerManager->GetRoot() &&
          !mPaused;
-}
-
-
-
-static void
-SetShadowProperties(Layer* aLayer)
-{
-  
-  LayerComposite* layerComposite = aLayer->AsLayerComposite();
-  
-  layerComposite->SetShadowTransform(aLayer->GetBaseTransform());
-  layerComposite->SetShadowTransformSetByAnimation(false);
-  layerComposite->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
-  layerComposite->SetShadowClipRect(aLayer->GetClipRect());
-  layerComposite->SetShadowOpacity(aLayer->GetOpacity());
-
-  for (Layer* child = aLayer->GetFirstChild();
-      child; child = child->GetNextSibling()) {
-    SetShadowProperties(child);
-  }
 }
 
 void
