@@ -167,8 +167,9 @@ GonkDisplayJB::~GonkDisplayJB()
 ANativeWindow*
 GonkDisplayJB::GetNativeWindow()
 {
-    StopBootAnim();
-
+    if (!mBootAnimBuffer.get()) {
+        StopBootAnimation();
+    }
     return mSTClient.get();
 }
 
@@ -234,7 +235,10 @@ GonkDisplayJB::GetDispSurface()
 bool
 GonkDisplayJB::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
 {
-    StopBootAnim();
+    if (mBootAnimBuffer.get()) {
+        StopBootAnimation();
+        mBootAnimBuffer = nullptr;
+    }
 
     
     
@@ -333,8 +337,10 @@ GonkDisplayJB::QueueBuffer(ANativeWindowBuffer* buf)
 void
 GonkDisplayJB::UpdateDispSurface(EGLDisplay dpy, EGLSurface sur)
 {
-    StopBootAnim();
-
+    if (mBootAnimBuffer.get()) {
+        StopBootAnimation();
+        mBootAnimBuffer = nullptr;
+    }
     eglSwapBuffers(dpy, sur);
 }
 
@@ -348,15 +354,6 @@ int
 GonkDisplayJB::GetPrevDispAcquireFd()
 {
     return mDispSurface->GetPrevDispAcquireFd();
-}
-
-void
-GonkDisplayJB::StopBootAnim()
-{
-    if (mBootAnimBuffer.get()) {
-        mBootAnimBuffer = nullptr;
-    }
-    StopBootAnimation();
 }
 
 __attribute__ ((visibility ("default")))
