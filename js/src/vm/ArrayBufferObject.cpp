@@ -712,8 +712,11 @@ ArrayBufferObject::ensureNonInline(JSContext *cx, Handle<ArrayBufferObject*> buf
 }
 
  ArrayBufferObject::BufferContents
-ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer)
+ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer,
+                                 bool hasStealableContents)
 {
+    MOZ_ASSERT_IF(hasStealableContents, buffer->hasStealableContents());
+
     if (!buffer->canNeuter(cx)) {
         js_ReportOverRecursed(cx);
         return BufferContents::createUnowned(nullptr);
@@ -724,7 +727,7 @@ ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffe
     if (!newContents)
         return BufferContents::createUnowned(nullptr);
 
-    if (buffer->hasStealableContents()) {
+    if (hasStealableContents) {
         
         
         
@@ -1167,7 +1170,19 @@ JS_StealArrayBufferContents(JSContext *cx, HandleObject objArg)
     }
 
     Rooted<ArrayBufferObject*> buffer(cx, &obj->as<ArrayBufferObject>());
-    return ArrayBufferObject::stealContents(cx, buffer).data();
+    if (buffer->isNeutered()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_DETACHED);
+        return nullptr;
+    }
+
+    
+    
+    
+    
+    bool hasStealableContents = buffer->hasStealableContents() &&
+                                buffer->bufferKind() == ArrayBufferObject::PLAIN_BUFFER;
+
+    return ArrayBufferObject::stealContents(cx, buffer, hasStealableContents).data();
 }
 
 JS_PUBLIC_API(JSObject *)
