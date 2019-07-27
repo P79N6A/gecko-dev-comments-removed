@@ -101,6 +101,16 @@ invoke_copy_to_stack(uint64_t * d, uint32_t paramCount, nsXPTCVariant * s,
     }
 }
 
+
+
+
+
+
+
+
+#pragma GCC push_options
+#pragma GCC target ("no-avx")
+
 EXPORT_XPCOM_API(nsresult)
 NS_InvokeByIndex(nsISupports * that, uint32_t methodIndex,
                  uint32_t paramCount, nsXPTCVariant * params)
@@ -164,3 +174,5 @@ NS_InvokeByIndex(nsISupports * that, uint32_t methodIndex,
                                               d6, d7);
     return result;
 }
+
+#pragma GCC pop_options
