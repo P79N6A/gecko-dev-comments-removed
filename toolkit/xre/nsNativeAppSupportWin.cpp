@@ -334,8 +334,8 @@ NS_IMPL_RELEASE_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 void
 nsNativeAppSupportWin::CheckConsole() {
     for ( int i = 1; i < gArgc; i++ ) {
-        if ( strcmp( "-console", gArgv[i] ) == 0
-             ||
+        if ( strcmp( "-console", gArgv[i] ) == 0 ||
+             strcmp( "--console", gArgv[i] ) == 0 ||
              strcmp( "/console", gArgv[i] ) == 0 ) {
             
             
