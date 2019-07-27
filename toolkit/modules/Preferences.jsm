@@ -16,7 +16,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 const MAX_INT = 0x7FFFFFFF; 
-const MIN_INT = -MAX_INT;
+const MIN_INT = -0x80000000;
 
 this.Preferences =
   function Preferences(args) {
