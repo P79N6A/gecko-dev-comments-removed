@@ -273,8 +273,9 @@ struct SortComparatorIds
 static bool
 Snapshot(JSContext *cx, HandleObject pobj_, unsigned flags, AutoIdVector *props)
 {
+    
     IdSet ht(cx);
-    if (!ht.init(32))
+    if (!ht.init(3))
         return false;
 
     RootedObject pobj(cx, pobj_);
