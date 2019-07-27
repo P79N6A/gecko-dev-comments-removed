@@ -554,6 +554,19 @@ KEY_MAP_QT      (Dead, Qt::Key_Dead_Horn)
 KEY_MAP_WIN     (FinalMode, VK_FINAL)
 
 
+KEY_MAP_GTK     (GroupFirst, GDK_ISO_First_Group)
+
+
+KEY_MAP_GTK     (GroupLast, GDK_ISO_Last_Group)
+
+
+KEY_MAP_GTK     (GroupNext, GDK_ISO_Next_Group)
+KEY_MAP_ANDROID (GroupNext, AKEYCODE_LANGUAGE_SWITCH)
+
+
+KEY_MAP_GTK     (GroupPrevious, GDK_ISO_Prev_Group)
+
+
 KEY_MAP_WIN     (ModeChange, VK_MODECHANGE)
 KEY_MAP_ANDROID (ModeChange, AKEYCODE_SWITCH_CHARSET)
 
