@@ -3522,8 +3522,11 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
   public:
     
     ObjectQuery(JSContext *cx, Debugger *dbg) :
-        cx(cx), dbg(dbg), className(cx)
-    {}
+        objects(cx), cx(cx), dbg(dbg), className(cx)
+    { }
+
+    
+    AutoObjectVector objects;
 
     
 
@@ -3555,7 +3558,7 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
 
 
 
-    bool findObjects(AutoObjectVector &objs) {
+    bool findObjects() {
         if (!prepareQuery())
             return false;
 
@@ -3575,35 +3578,8 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
                 return false;
             traversal.wantNames = false;
 
-            if (!traversal.addStart(JS::ubi::Node(&rootList)) ||
-                !traversal.traverse())
-            {
-                return false;
-            }
-
-            
-
-
-
-            for (Traversal::NodeMap::Range r = traversal.visited.all(); !r.empty(); r.popFront()) {
-                JS::ubi::Node node = r.front().key();
-                if (!node.is<JSObject>())
-                    continue;
-                MOZ_ASSERT(dbg->isDebuggee(node.compartment()));
-
-                JSObject *obj = node.as<JSObject>();
-
-                if (!className.isUndefined()) {
-                    const char *objClassName = obj->getClass()->name;
-                    if (strcmp(objClassName, classNameCString.ptr()) != 0)
-                        continue;
-                }
-
-                if (!objs.append(obj))
-                    return false;
-            }
-
-            return true;
+            return traversal.addStart(JS::ubi::Node(&rootList)) &&
+                   traversal.traverse();
         }
     }
 
@@ -3615,12 +3591,46 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
     bool operator() (Traversal &traversal, JS::ubi::Node origin, const JS::ubi::Edge &edge,
                      NodeData *, bool first)
     {
-        
-        JSCompartment *comp = edge.referent.compartment();
-        if (first && comp && !dbg->isDebuggee(edge.referent.compartment()))
-            traversal.abandonReferent();
+        if (!first)
+            return true;
 
-        return true;
+        JS::ubi::Node referent = edge.referent;
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        JSCompartment *comp = referent.compartment();
+        if (comp && !dbg->isDebuggee(comp)) {
+            traversal.abandonReferent();
+            return true;
+        }
+
+        
+
+
+
+
+        if (!referent.is<JSObject>())
+            return true;
+
+        JSObject *obj = referent.as<JSObject>();
+
+        if (!className.isUndefined()) {
+            const char *objClassName = obj->getClass()->name;
+            if (strcmp(objClassName, classNameCString.ptr()) != 0)
+                return true;
+        }
+
+        return objects.append(obj);
     }
 
   private:
@@ -3668,17 +3678,10 @@ Debugger::findObjects(JSContext *cx, unsigned argc, Value *vp)
         query.omittedQuery();
     }
 
-    
-
-
-
-
-    AutoObjectVector objects(cx);
-
-    if (!query.findObjects(objects))
+    if (!query.findObjects())
         return false;
 
-    size_t length = objects.length();
+    size_t length = query.objects.length();
     RootedArrayObject result(cx, NewDenseFullyAllocatedArray(cx, length));
     if (!result)
         return false;
@@ -3686,7 +3689,7 @@ Debugger::findObjects(JSContext *cx, unsigned argc, Value *vp)
     result->ensureDenseInitializedLength(cx, 0, length);
 
     for (size_t i = 0; i < length; i++) {
-        RootedValue debuggeeVal(cx, ObjectValue(*objects[i]));
+        RootedValue debuggeeVal(cx, ObjectValue(*query.objects[i]));
         if (!dbg->wrapDebuggeeValue(cx, &debuggeeVal))
             return false;
         result->setDenseElement(i, debuggeeVal);
