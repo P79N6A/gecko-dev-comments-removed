@@ -116,18 +116,6 @@ protected:
 };
 
 
-class ISharedImage {
-public:
-    virtual uint8_t* GetBuffer() = 0;
-
-    
-
-
-
-    virtual TextureClient* GetTextureClient(CompositableClient* aClient) = 0;
-};
-
-
 
 
 
@@ -145,8 +133,6 @@ class Image {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Image)
 
 public:
-  virtual ISharedImage* AsSharedImage() { return nullptr; }
-
   ImageFormat GetFormat() { return mFormat; }
   void* GetImplData() { return mImplData; }
 
@@ -174,6 +160,14 @@ public:
   }
 
   virtual bool IsValid() { return true; }
+
+  virtual uint8_t* GetBuffer() { return nullptr; }
+
+  
+
+
+
+  virtual TextureClient* GetTextureClient(CompositableClient* aClient) { return nullptr; }
 
 protected:
   Image(void* aImplData, ImageFormat aFormat) :
@@ -793,8 +787,7 @@ protected:
 
 
 
-class CairoImage MOZ_FINAL : public Image,
-                             public ISharedImage {
+class CairoImage MOZ_FINAL : public Image {
 public:
   struct Data {
     gfx::IntSize mSize;
@@ -817,8 +810,6 @@ public:
     return mSourceSurface.get();
   }
 
-  virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE { return nullptr; }
   virtual TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE;
 
   virtual gfx::IntSize GetSize() MOZ_OVERRIDE { return mSize; }

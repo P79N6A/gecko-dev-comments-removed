@@ -18,8 +18,7 @@ namespace layers {
 
 
 
-class D3D9SurfaceImage : public Image
-                       , public ISharedImage {
+class D3D9SurfaceImage : public Image {
 public:
 
   struct Data {
@@ -31,8 +30,6 @@ public:
 
   D3D9SurfaceImage();
   virtual ~D3D9SurfaceImage();
-
-  virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
 
   
   
@@ -46,7 +43,6 @@ public:
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
 
   virtual TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE;
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE { return nullptr; }
 
   virtual bool IsValid() MOZ_OVERRIDE;
 
