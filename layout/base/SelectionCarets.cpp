@@ -307,9 +307,9 @@ static void
 ReduceRectToVerticalEdge(nsRect& aRect, bool aToRightEdge)
 {
   if (aToRightEdge) {
-    aRect.x = aRect.XMost() - 1;
+    aRect.x = aRect.XMost() - AppUnitsPerCSSPixel();
   }
-  aRect.width = 1;
+  aRect.width = AppUnitsPerCSSPixel();
 }
 
 static nsIFrame*
