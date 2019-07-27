@@ -39,6 +39,10 @@ var SelectionHandler = {
   
   
   _cache: null,
+  _targetIsRTL: false,
+  _anchorIsRTL: false,
+  _focusIsRTL: false,
+
   _activeType: 0, 
 
   _draggingHandles: false, 
@@ -77,8 +81,6 @@ var SelectionHandler = {
     return BrowserApp.selectedBrowser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).
                                                     getInterface(Ci.nsIDOMWindowUtils);
   },
-
-  _isRTL: false,
 
   _addObservers: function sh_addObservers() {
     Services.obs.addObserver(this, "Gesture:SingleTap", false);
@@ -796,7 +798,7 @@ var SelectionHandler = {
 
     this._stopDraggingHandles();
     this._contentWindow = aElement.ownerDocument.defaultView;
-    this._isRTL = (this._contentWindow.getComputedStyle(aElement, "").direction == "rtl");
+    this._targetIsRTL = (this._contentWindow.getComputedStyle(aElement, "").direction == "rtl");
 
     this._addObservers();
   },
@@ -1043,7 +1045,6 @@ var SelectionHandler = {
       Messaging.sendRequest({
         type: "TextSelection:PositionHandles",
         positions: positions,
-        rtl: this._isRTL
       });
     }
   },
@@ -1109,7 +1110,7 @@ var SelectionHandler = {
 
     this._contentWindow = null;
     this._targetElement = null;
-    this._isRTL = false;
+    this._targetIsRTL = false;
     this._cache = null;
     this._ignoreCompositionChanges = false;
     this._prevHandlePositions = [];
@@ -1166,24 +1167,52 @@ var SelectionHandler = {
 
 
 
+
+
+
   _updateCacheForSelection: function() {
-    let rects = this._getSelection().getRangeAt(0).getClientRects();
+    let selection = this._getSelection();
+    let rects = selection.getRangeAt(0).getClientRects();
     if (rects.length == 0) {
       
       throw "Failed to update cache for invalid selection";
     }
 
+    
+    
+    this._anchorIsRTL = this._isNodeRTL(selection.anchorNode);
     let anchorIdx = 0;
+    this._cache.anchorPt = (this._anchorIsRTL) ?
+      new Point(rects[anchorIdx].right, rects[anchorIdx].bottom) :
+      new Point(rects[anchorIdx].left, rects[anchorIdx].bottom);
+
+    
+    
+    this._focusIsRTL = this._isNodeRTL(selection.focusNode);
     let focusIdx = rects.length - 1;
-    if (this._isRTL) {
-      
-      this._cache.anchorPt = new Point(rects[anchorIdx].right, rects[anchorIdx].bottom);
-      this._cache.focusPt = new Point(rects[focusIdx].left, rects[focusIdx].bottom);
-    } else {
-      
-      this._cache.anchorPt = new Point(rects[anchorIdx].left, rects[anchorIdx].bottom);
-      this._cache.focusPt = new Point(rects[focusIdx].right, rects[focusIdx].bottom);
+    this._cache.focusPt = (this._focusIsRTL) ?
+      new Point(rects[focusIdx].left, rects[focusIdx].bottom) :
+      new Point(rects[focusIdx].right, rects[focusIdx].bottom);
+  },
+
+  
+
+
+  _isNodeRTL: function(node) {
+    
+    
+    while (node && !(node instanceof Element)) {
+      node = node.parentNode;
     }
+
+    
+    if (!node) {
+      return this._targetIsRTL;
+    }
+
+    let nodeWin = node.ownerDocument.defaultView;
+    let nodeStyle = nodeWin.getComputedStyle(node, "");
+    return (nodeStyle.direction == "rtl");
   },
 
   _getHandlePositions: function sh_getHandlePositions(scroll) {
@@ -1228,10 +1257,12 @@ var SelectionHandler = {
       return  [{ handle: this.HANDLE_TYPE_ANCHOR,
                  left: anchorX + offset.x + scroll.X,
                  top: anchorY + offset.y + scroll.Y,
+                 rtl: this._anchorIsRTL,
                  hidden: checkHidden(anchorX, anchorY) },
                { handle: this.HANDLE_TYPE_FOCUS,
                  left: focusX + offset.x + scroll.X,
                  top: focusY + offset.y + scroll.Y,
+                 rtl: this._focusIsRTL,
                  hidden: checkHidden(focusX, focusY) }];
     }
   },
@@ -1247,6 +1278,7 @@ var SelectionHandler = {
       for (let i = 0; i < aPrev.length; i++) {
         if (aPrev[i].left != aCurr[i].left ||
             aPrev[i].top != aCurr[i].top ||
+            aPrev[i].rtl != aCurr[i].rtl ||
             aPrev[i].hidden != aCurr[i].hidden) {
           return false;
         }
@@ -1271,7 +1303,6 @@ var SelectionHandler = {
     Messaging.sendRequest({
       type: "TextSelection:PositionHandles",
       positions: positions,
-      rtl: this._isRTL
     });
     this._prevHandlePositions = positions;
 
