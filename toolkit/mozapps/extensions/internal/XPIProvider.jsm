@@ -1787,6 +1787,8 @@ this.XPIStates = {
 };
 
 this.XPIProvider = {
+  get name() "XPIProvider",
+
   
   installLocations: null,
   

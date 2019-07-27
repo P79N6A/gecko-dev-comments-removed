@@ -48,6 +48,8 @@ function getIDHashForString(aStr) {
 }
 
 var PluginProvider = {
+  get name() "PluginProvider",
+
   
   plugins: null,
 
