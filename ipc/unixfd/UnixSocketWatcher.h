@@ -61,14 +61,13 @@ public:
   nsresult Listen(const struct sockaddr* aAddr, socklen_t aAddrLen);
 
   
-  virtual void OnAccepted(int aFd, const sockaddr_any* aAddr,
-                          socklen_t aAddrLen) {};
-
-  
   virtual void OnConnected() {};
 
   
   virtual void OnListening() {};
+
+  
+  virtual void OnSocketCanAcceptWithoutBlocking() {};
 
   
   virtual void OnSocketCanReceiveWithoutBlocking() {};
