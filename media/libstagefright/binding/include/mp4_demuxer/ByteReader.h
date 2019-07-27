@@ -22,6 +22,16 @@ public:
   {
   }
 
+  ~ByteReader()
+  {
+    MOZ_ASSERT(!mRemaining);
+  }
+
+  
+  void DiscardRemaining() {
+    mRemaining = 0;
+  }
+
   size_t Remaining() const { return mRemaining; }
 
   bool CanRead8() { return mRemaining >= 1; }
