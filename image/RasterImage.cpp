@@ -262,6 +262,7 @@ RasterImage::RasterImage(ImageURL* aURI ) :
 #endif
   mSourceBuffer(new SourceBuffer()),
   mFrameCount(0),
+  mRetryCount(0),
   mHasSize(false),
   mDecodeOnlyOnDraw(false),
   mTransient(false),
@@ -1342,6 +1343,31 @@ RasterImage::CanDiscard() {
          !mAnim;                 
 }
 
+class RetryDecodeRunnable : public nsRunnable
+{
+public:
+  RetryDecodeRunnable(RasterImage* aImage,
+                      const IntSize& aSize,
+                      uint32_t aFlags)
+    : mImage(aImage)
+    , mSize(aSize)
+    , mFlags(aFlags)
+  {
+    MOZ_ASSERT(aImage);
+  }
+
+  NS_IMETHOD Run()
+  {
+    mImage->RequestDecodeForSize(mSize, mFlags);
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<RasterImage> mImage;
+  const IntSize mSize;
+  const uint32_t mFlags;
+};
+
 
 already_AddRefed<Decoder>
 RasterImage::CreateDecoder(const Maybe<IntSize>& aSize, uint32_t aFlags)
@@ -1418,6 +1444,33 @@ RasterImage::CreateDecoder(const Maybe<IntSize>& aSize, uint32_t aFlags)
                           SurfaceFormat::B8G8R8A8);
     decoder->AllocateFrame(*aSize);
   }
+
+  if (aSize && decoder->HasError()) {
+    if (gfxPrefs::ImageDecodeRetryOnAllocFailure() &&
+        mRetryCount < 10) {
+      
+      
+      
+      
+      mRetryCount++;
+
+      if (decoder->ImageIsLocked()) {
+        UnlockImage();
+      }
+      decoder->TakeProgress();
+      decoder->TakeInvalidRect();
+
+      nsCOMPtr<nsIRunnable> runnable =
+        new RetryDecodeRunnable(this, *aSize, aFlags);
+      NS_DispatchToMainThread(runnable);
+
+      return nullptr;
+    }
+  } else {
+    
+    mRetryCount = 0;
+  }
+
   decoder->SetIterator(mSourceBuffer->Iterator());
 
   
