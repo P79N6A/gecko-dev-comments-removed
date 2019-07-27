@@ -38,9 +38,6 @@ DOMCI_CLASS(CSSMozDocumentRule)
 DOMCI_CLASS(CSSSupportsRule)
 
 
-DOMCI_CLASS(XSLTProcessor)
-
-
 DOMCI_CLASS(XPathNSResolver)
 
 DOMCI_CLASS(MozSmsMessage)
