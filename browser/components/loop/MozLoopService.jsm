@@ -63,6 +63,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI",
 
 XPCOMUtils.defineLazyModuleGetter(this, "convertToRTCStatsReport",
   "resource://gre/modules/media/RTCStatsReport.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "loopUtils",
+  "resource:///modules/loop/utils.js", "utils")
+XPCOMUtils.defineLazyModuleGetter(this, "loopCrypto",
+  "resource:///modules/loop/crypto.js", "LoopCrypto");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Chat", "resource:///modules/Chat.jsm");
 
@@ -1318,6 +1322,36 @@ this.MozLoopService = {
   get userProfile() {
     return getJSONPref("loop.fxa_oauth.tokendata") &&
            getJSONPref("loop.fxa_oauth.profile");
+  },
+
+  
+
+
+  promiseProfileEncryptionKey: function() {
+    return new Promise((resolve, reject) => {
+      if (this.userProfile) {
+        
+        
+        reject(new Error("unimplemented"));
+        return;
+      }
+
+      
+      
+      if (!Services.prefs.prefHasUserValue("loop.key")) {
+        
+        loopCrypto.generateKey().then(key => {
+          Services.prefs.setCharPref("loop.key", key);
+          resolve(key);
+        }).catch(function(error) {
+          MozLoopService.log.error(error);
+          reject(error);
+        });
+        return;
+      }
+
+      resolve(MozLoopService.getLoopPref("key"));
+    });
   },
 
   get errors() {

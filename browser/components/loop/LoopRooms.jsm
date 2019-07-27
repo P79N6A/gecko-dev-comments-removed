@@ -19,6 +19,11 @@ XPCOMUtils.defineLazyGetter(this, "eventEmitter", function() {
 XPCOMUtils.defineLazyGetter(this, "gLoopBundle", function() {
   return Services.strings.createBundle('chrome://browser/locale/loop/loop.properties');
 });
+XPCOMUtils.defineLazyModuleGetter(this, "loopUtils",
+  "resource:///modules/loop/utils.js", "utils")
+XPCOMUtils.defineLazyModuleGetter(this, "loopCrypto",
+  "resource:///modules/loop/crypto.js", "LoopCrypto");
+
 
 this.EXPORTED_SYMBOLS = ["LoopRooms", "roomsPushNotification"];
 
@@ -149,6 +154,195 @@ let LoopRoomsInternal = {
 
 
 
+  promiseGetOrCreateRoomKey: Task.async(function* (roomData) {
+    if (roomData.roomKey) {
+      return roomData.roomKey;
+    }
+
+    return yield loopCrypto.generateKey();
+  }),
+
+  
+
+
+
+
+
+
+  promiseEncryptedRoomKey: Task.async(function* (key) {
+    let profileKey = yield MozLoopService.promiseProfileEncryptionKey();
+
+    let encryptedRoomKey = yield loopCrypto.encryptBytes(profileKey, key);
+    return encryptedRoomKey;
+  }),
+
+  
+
+
+
+
+
+  promiseDecryptRoomKey: Task.async(function* (encryptedKey) {
+    let profileKey = yield MozLoopService.promiseProfileEncryptionKey();
+
+    let decryptedRoomKey = yield loopCrypto.decryptBytes(profileKey, encryptedKey);
+    return decryptedRoomKey;
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  promiseEncryptRoomData: Task.async(function* (roomData) {
+    
+    
+    if (!MozLoopService.getLoopPref("contextInConverations.enabled") ||
+        this.sessionType == LOOP_SESSION_TYPE.FXA) {
+      var serverRoomData = extend({}, roomData);
+      delete serverRoomData.decryptedContext;
+
+      
+      serverRoomData.roomName = roomData.decryptedContext.roomName;
+
+      return {
+        all: roomData,
+        encrypted: serverRoomData
+      };
+    }
+
+    var newRoomData = extend({}, roomData);
+
+    if (!newRoomData.context) {
+      newRoomData.context = {};
+    }
+
+    
+    let key = yield this.promiseGetOrCreateRoomKey(newRoomData);
+
+    newRoomData.context.wrappedKey = yield this.promiseEncryptedRoomKey(key);
+
+    
+    newRoomData.context.value = yield loopCrypto.encryptBytes(key,
+      JSON.stringify(newRoomData.decryptedContext));
+
+    
+    
+    newRoomData.context.alg = "AES-GCM";
+    newRoomData.roomKey = key;
+
+    var serverRoomData = extend({}, newRoomData);
+
+    
+    delete serverRoomData.decryptedContext;
+    delete serverRoomData.roomKey;
+
+    return {
+      encrypted: serverRoomData,
+      all: newRoomData
+    };
+  }),
+
+  
+
+
+
+
+
+  promiseDecryptRoomData: Task.async(function* (roomData) {
+    if (!roomData.context) {
+      return roomData;
+    }
+
+    if (!roomData.context.wrappedKey) {
+      throw new Error("Missing wrappedKey");
+    }
+
+    
+    
+    let key = yield this.promiseDecryptRoomKey(roomData.context.wrappedKey);
+
+    let decryptedData = yield loopCrypto.decryptBytes(key, roomData.context.value);
+
+    roomData.roomKey = key;
+    roomData.decryptedContext = JSON.parse(decryptedData);
+
+    
+    roomData.roomUrl = roomData.roomUrl.split("#")[0];
+    
+    roomData.roomUrl = roomData.roomUrl + "#" + roomData.roomKey;
+
+    return roomData;
+  }),
+
+  
+
+
+
+
+
+  saveAndNotifyUpdate: function(roomData, isUpdate) {
+    this.rooms.set(roomData.roomToken, roomData);
+
+    let eventName = isUpdate ? "update" : "add";
+    eventEmitter.emit(eventName, roomData);
+    eventEmitter.emit(eventName + ":" + roomData.roomToken, roomData);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  addOrUpdateRoom: Task.async(function* (room, isUpdate) {
+    if (!room.context) {
+      
+      
+
+      
+      
+      
+      room.decryptedContext = {
+        roomName: room.roomName
+      };
+      delete room.roomName;
+
+      this.saveAndNotifyUpdate(room, isUpdate);
+    } else {
+      
+      try {
+        let roomData = yield this.promiseDecryptRoomData(room);
+
+        this.saveAndNotifyUpdate(roomData, isUpdate);
+      } catch (error) {
+        MozLoopService.log.error("Failed to decrypt room data: " + error);
+        
+        room.decryptedContext = {};
+        this.saveAndNotifyUpdate(room, isUpdate);
+      };
+    }
+  }),
+
+  
+
+
+
+
+
+
+
 
 
   getAll: function(version = null, callback = null) {
@@ -189,11 +383,7 @@ let LoopRoomsInternal = {
             checkForParticipantsUpdate(orig, room);
           }
 
-          this.rooms.set(room.roomToken, room);
-
-          let eventName = orig ? "update" : "add";
-          eventEmitter.emit(eventName, room);
-          eventEmitter.emit(eventName + ":" + room.roomToken, room);
+          yield this.addOrUpdateRoom(room, !!orig);
         }
       }
 
@@ -232,29 +422,28 @@ let LoopRoomsInternal = {
       return;
     }
 
-    MozLoopService.hawkRequest(this.sessionType, "/rooms/" + encodeURIComponent(roomToken), "GET")
-      .then(response => {
-        let data = JSON.parse(response.body);
+    Task.spawn(function* () {
+      let response = yield MozLoopService.hawkRequest(this.sessionType,
+        "/rooms/" + encodeURIComponent(roomToken), "GET");
 
-        room.roomToken = roomToken;
+      let data = JSON.parse(response.body);
 
-        if (data.deleted) {
-          this.rooms.delete(room.roomToken);
+      room.roomToken = roomToken;
 
-          extend(room, data);
-          eventEmitter.emit("delete", room);
-          eventEmitter.emit("delete:" + room.roomToken, room);
-        } else {
-          checkForParticipantsUpdate(room, data);
-          extend(room, data);
-          this.rooms.set(roomToken, room);
+      if (data.deleted) {
+        this.rooms.delete(room.roomToken);
 
-          let eventName = !needsUpdate ? "update" : "add";
-          eventEmitter.emit(eventName, room);
-          eventEmitter.emit(eventName + ":" + roomToken, room);
-        }
-        callback(null, room);
-      }, err => callback(err)).catch(err => callback(err));
+        extend(room, data);
+        eventEmitter.emit("delete", room);
+        eventEmitter.emit("delete:" + room.roomToken, room);
+      } else {
+        checkForParticipantsUpdate(room, data);
+        extend(room, data);
+
+        yield this.addOrUpdateRoom(room, !needsUpdate);
+      }
+      callback(null, room);
+    }.bind(this)).catch(callback);
   },
 
   
@@ -267,27 +456,33 @@ let LoopRoomsInternal = {
 
 
   create: function(room, callback) {
-    if (!("roomName" in room) || !("roomOwner" in room) ||
+    if (!("decryptedContext" in room) || !("roomOwner" in room) ||
         !("maxSize" in room)) {
       callback(new Error("Missing required property to create a room"));
       return;
     }
 
-    MozLoopService.hawkRequest(this.sessionType, "/rooms", "POST", room)
-      .then(response => {
-        let data = JSON.parse(response.body);
-        extend(room, data);
-        
-        delete room.expiresIn;
-        this.rooms.set(room.roomToken, room);
+    Task.spawn(function* () {
+      let {all, encrypted} = yield this.promiseEncryptRoomData(room);
 
-        if (this.sessionType == LOOP_SESSION_TYPE.GUEST) {
-          this.setGuestCreatedRoom(true);
-        }
+      
+      room = all;
+      
+      let response = yield MozLoopService.hawkRequest(this.sessionType, "/rooms",
+        "POST", encrypted);
 
-        eventEmitter.emit("add", room);
-        callback(null, room);
-      }, error => callback(error)).catch(error => callback(error));
+      extend(room, JSON.parse(response.body));
+      
+      delete room.expiresIn;
+      this.rooms.set(room.roomToken, room);
+
+      if (this.sessionType == LOOP_SESSION_TYPE.GUEST) {
+        this.setGuestCreatedRoom(true);
+      }
+
+      eventEmitter.emit("add", room);
+      callback(null, room);
+    }.bind(this)).catch(callback);
   },
 
   
@@ -441,16 +636,40 @@ let LoopRoomsInternal = {
     let room = this.rooms.get(roomToken);
     let url = "/rooms/" + encodeURIComponent(roomToken);
 
-    let origRoom = this.rooms.get(roomToken);
-    let patchData = {
-      roomName: newRoomName
-    };
-    MozLoopService.hawkRequest(this.sessionType, url, "PATCH", patchData)
-      .then(response => {
-        let data = JSON.parse(response.body);
-        extend(room, data);
-        callback(null, room);
-      }, error => callback(error)).catch(error => callback(error));
+    let roomData = this.rooms.get(roomToken);
+    if (!roomData.decryptedContext) {
+      roomData.decryptedContext = {
+        roomName: newRoomName
+      };
+    } else {
+      roomData.decryptedContext.roomName = newRoomName;
+    }
+
+    Task.spawn(function* () {
+      let {all, encrypted} = yield this.promiseEncryptRoomData(roomData);
+
+      
+      let sendData = {
+        context: encrypted.context
+      };
+
+      
+      if (!Services.prefs.getBoolPref("loop.contextInConverations.enabled") ||
+          this.sessionType == LOOP_SESSION_TYPE.FXA) {
+        sendData = {
+          roomName: newRoomName
+        };
+      }
+
+      let response = yield MozLoopService.hawkRequest(this.sessionType,
+          url, "PATCH", sendData);
+
+      let newRoomData = all;
+
+      extend(newRoomData, JSON.parse(response.body));
+      this.rooms.set(roomToken, newRoomData);
+      callback(null, newRoomData);
+    }.bind(this)).catch(callback);
   },
 
   
