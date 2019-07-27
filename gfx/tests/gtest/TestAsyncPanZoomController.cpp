@@ -1020,32 +1020,21 @@ TEST_F(APZCBasicTester, OverScrollPanning) {
   EXPECT_TRUE(apzc->IsOverscrolled());
 
   
-  
-  
-  
-  
-  
-
+  const TimeDuration increment = TimeDuration::FromMilliseconds(1);
+  bool recoveredFromOverscroll = false;
   ScreenPoint pointOut;
   ViewTransform viewTransformOut;
+  while (apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut)) {
+    
+    EXPECT_EQ(ScreenPoint(0, 90), pointOut);
 
-  
-  
-  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(10000), &viewTransformOut, pointOut);
-  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
-  EXPECT_TRUE(apzc->IsOverscrolled());
+    if (!apzc->IsOverscrolled()) {
+      recoveredFromOverscroll = true;
+    }
 
-  
-  
-  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(20000), &viewTransformOut, pointOut);
-  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
-  EXPECT_TRUE(apzc->IsOverscrolled());
-
-  
-  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(30000), &viewTransformOut, pointOut);
-  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
-  EXPECT_FALSE(apzc->IsOverscrolled());
-
+    testStartTime += increment;
+  }
+  EXPECT_TRUE(recoveredFromOverscroll);
   apzc->AssertStateIsReset();
 }
 
@@ -1062,7 +1051,6 @@ TEST_F(APZCBasicTester, OverScrollAbort) {
   ScreenPoint pointOut;
   ViewTransform viewTransformOut;
 
-  
   
   
   apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(10000), &viewTransformOut, pointOut);
