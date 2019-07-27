@@ -4,6 +4,7 @@
 
 
 const {OptionsView} = devtools.require("devtools/shared/options-view");
+const {Services} = devtools.require("resource://gre/modules/Services.jsm");
 
 const BRANCH = "devtools.debugger.";
 const BLACK_BOX_PREF = "auto-black-box";
