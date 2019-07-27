@@ -667,8 +667,6 @@ let ContextUtils = {
         replayContext[name].apply(replayContext, args);
       } else if (type == CallWatcherFront.SETTER_FUNCTION) {
         replayContext[name] = args;
-      } else {
-        
       }
       if (CanvasFront.DRAW_CALLS.has(name)) {
         lastDrawCallIndex = i;
