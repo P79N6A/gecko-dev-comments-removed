@@ -286,56 +286,6 @@ PushArena(GCMarker* gcmarker, ArenaHeader* aheader);
 
 
 
-
-
-
-
-
-inline void
-Mark(JSTracer* trc, BarrieredBase<Value>* v, const char* name)
-{
-    MarkValue(trc, v, name);
-}
-
-inline void
-Mark(JSTracer* trc, BarrieredBase<JSObject*>* o, const char* name)
-{
-    MarkObject(trc, o, name);
-}
-
-inline void
-Mark(JSTracer* trc, BarrieredBase<JSScript*>* o, const char* name)
-{
-    MarkScript(trc, o, name);
-}
-
-inline void
-Mark(JSTracer* trc, HeapPtrJitCode* code, const char* name)
-{
-    MarkJitCode(trc, code, name);
-}
-
-
-inline void
-Mark(JSTracer* trc, JSObject** objp, const char* name)
-{
-    MarkObjectUnbarriered(trc, objp, name);
-}
-
-
-inline void
-Mark(JSTracer* trc, NativeObject** obj, const char* name)
-{
-    MarkObjectUnbarriered(trc, obj, name);
-}
-
-
-inline void
-Mark(JSTracer* trc, ScopeObject** obj, const char* name)
-{
-    MarkObjectUnbarriered(trc, obj, name);
-}
-
 inline bool
 IsMarked(BarrieredBase<Value>* v)
 {
@@ -405,6 +355,30 @@ ToMarkable(Cell* cell)
 {
     return cell;
 }
+
+
+
+
+
+template <typename Map, typename Key>
+class HashKeyRef : public BufferableRef
+{
+    Map* map;
+    Key key;
+
+  public:
+    HashKeyRef(Map* m, const Key& k) : map(m), key(k) {}
+
+    void mark(JSTracer* trc) {
+        Key prior = key;
+        typename Map::Ptr p = map->lookup(key);
+        if (!p)
+            return;
+        trc->setTracingLocation(&*p);
+        TraceManuallyBarrieredEdge(trc, &key, "HashKeyRef");
+        map->rekeyIfMoved(prior, key);
+    }
+};
 
 } 
 
