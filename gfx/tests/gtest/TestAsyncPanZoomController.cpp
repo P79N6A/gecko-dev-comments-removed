@@ -1721,7 +1721,7 @@ protected:
   }
 
   void CreatePotentiallyLeakingTree() {
-    const char* layerTreeSyntax = "c(c(c(c))c(c(c)))";
+    const char* layerTreeSyntax = "c(c(c(t))c(c(t)))";
     
     root = CreateLayerTree(layerTreeSyntax, nullptr, nullptr, lm, layers);
     SetScrollableFrameMetrics(layers[0], FrameMetrics::START_SCROLL_ID);
@@ -1748,7 +1748,7 @@ protected:
 
 protected:
   void CreateHitTesting1LayerTree() {
-    const char* layerTreeSyntax = "c(ttcc)";
+    const char* layerTreeSyntax = "c(tttt)";
     
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(nsIntRect(0,0,100,100)),
@@ -1761,7 +1761,7 @@ protected:
   }
 
   void CreateHitTesting2LayerTree() {
-    const char* layerTreeSyntax = "c(cc(c))";
+    const char* layerTreeSyntax = "c(tc(t))";
     
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(nsIntRect(0,0,100,100)),
@@ -2159,7 +2159,7 @@ protected:
   TestAsyncPanZoomController* rootApzc;
 
   void CreateOverscrollHandoffLayerTree1() {
-    const char* layerTreeSyntax = "c(c)";
+    const char* layerTreeSyntax = "c(t)";
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(nsIntRect(0, 0, 100, 100)),
       nsIntRegion(nsIntRect(0, 50, 100, 50))
@@ -2174,7 +2174,7 @@ protected:
   }
 
   void CreateOverscrollHandoffLayerTree2() {
-    const char* layerTreeSyntax = "c(c(c))";
+    const char* layerTreeSyntax = "c(c(t))";
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(nsIntRect(0, 0, 100, 100)),
       nsIntRegion(nsIntRect(0, 0, 100, 100)),
@@ -2194,7 +2194,7 @@ protected:
   }
 
   void CreateOverscrollHandoffLayerTree3() {
-    const char* layerTreeSyntax = "c(c(c)c(c))";
+    const char* layerTreeSyntax = "c(c(t)c(t))";
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(nsIntRect(0, 0, 100, 100)),  
       nsIntRegion(nsIntRect(0, 0, 100, 50)),   
@@ -2214,7 +2214,7 @@ protected:
   }
 
   void CreateScrollgrabLayerTree() {
-    const char* layerTreeSyntax = "c(c)";
+    const char* layerTreeSyntax = "c(t)";
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(nsIntRect(0, 0, 100, 100)),  
       nsIntRegion(nsIntRect(0, 20, 100, 80))   
