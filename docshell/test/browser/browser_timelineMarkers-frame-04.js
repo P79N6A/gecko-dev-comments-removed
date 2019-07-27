@@ -15,12 +15,17 @@ let TESTS = [{
     content.dispatchEvent(new content.Event("dog"));
   },
   check: function(markers) {
-    markers = markers.filter(m => m.name == "DOMEvent");
+    let domMarkers = markers.filter(m => m.name == "DOMEvent");
     
     
     
     
-    is(markers.length, 5, "Got 5 markers");
+    is(domMarkers.length, 5, "Got 5 markers");
+
+    
+    
+    let jsMarkers = markers.filter(m => m.name == "Javascript" && m.causeName);
+    ok(jsMarkers.length > 0, "Got some Javascript markers");
   }
 }];
 
