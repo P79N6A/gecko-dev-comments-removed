@@ -1096,6 +1096,10 @@ class IonBuilder
 
     
     
+    size_t inlinedBytecodeLength_;
+
+    
+    
     static const size_t MAX_LOOP_RESTARTS = 40;
     size_t numLoopRestarts_;
 

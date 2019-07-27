@@ -146,6 +146,7 @@ IonBuilder::IonBuilder(JSContext *analysisContext, CompileCompartment *comp,
     loopHeaders_(*temp),
     inspector(inspector),
     inliningDepth_(inliningDepth),
+    inlinedBytecodeLength_(0),
     numLoopRestarts_(0),
     failedBoundsCheck_(info->script()->failedBoundsCheck()),
     failedShapeGuard_(info->script()->failedShapeGuard()),
@@ -4911,9 +4912,21 @@ IonBuilder::makeInliningDecision(JSObject *targetArg, CallInfo &callInfo)
         return InliningDecision_WarmUpCountTooLow;
     }
 
+    IonBuilder *outerBuilder = outermostBuilder();
+
+    
+    
+    size_t totalBytecodeLength = outerBuilder->inlinedBytecodeLength_ + targetScript->length();
+    if (totalBytecodeLength > optimizationInfo().inlineMaxTotalBytecodeLength()) {
+        trackOptimizationOutcome(TrackedOutcome::CantInlineExceededTotalBytecodeLength);
+        return DontInline(targetScript, "Vetoed: exceeding max total bytecode length");
+    }
+
     
     TypeSet::ObjectKey *targetKey = TypeSet::ObjectKey::get(target);
     targetKey->watchStateChangeForInlinedCall(constraints());
+
+    outerBuilder->inlinedBytecodeLength_ += targetScript->length();
 
     return InliningDecision_Inline;
 }
