@@ -174,7 +174,7 @@ IMEHandler::NotifyIME(nsWindow* aWindow,
   if (IsTSFAvailable()) {
     switch (aIMENotification.mMessage) {
       case NOTIFY_IME_OF_SELECTION_CHANGE: {
-        nsresult rv = nsTextStore::OnSelectionChange();
+        nsresult rv = nsTextStore::OnSelectionChange(aIMENotification);
         
         
         
