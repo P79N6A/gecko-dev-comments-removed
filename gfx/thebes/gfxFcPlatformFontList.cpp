@@ -956,6 +956,11 @@ gfxFcPlatformFontList::AddFontSetFamilies(FcFontSet* aFontSet)
     
     
 
+    if (!aFontSet) {
+        NS_WARNING("AddFontSetFamilies called with a null font set.");
+        return;
+    }
+
     FcChar8* lastFamilyName = (FcChar8*)"";
     gfxFontFamily* fontFamily = nullptr;
     nsAutoString familyName;
