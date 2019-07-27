@@ -10,7 +10,6 @@
 #include "nsIJARChannel.h"
 #include "nsIJARURI.h"
 #include "nsIInputStreamPump.h"
-#include "InterceptedJARChannel.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIProgressEventSink.h"
 #include "nsIStreamListener.h"
@@ -28,13 +27,6 @@
 #include "mozilla/Logging.h"
 
 class nsJARInputThunk;
-class nsInputStreamPump;
-
-namespace mozilla {
-namespace net {
-  class InterceptedJARChannel;
-} 
-} 
 
 
 
@@ -77,18 +69,6 @@ private:
                                     mozilla::net::MemoryDownloader::Data aData)
         override;
 
-    
-    
-    bool ShouldIntercept();
-    nsresult ContinueAsyncOpen();
-    
-    
-    void ResetInterception();
-    
-    
-    void OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput);
-    nsresult OverrideSecurityInfo(nsISupports* aSecurityInfo);
-
     nsCString                       mSpec;
 
     bool                            mOpened;
@@ -127,11 +107,6 @@ private:
     nsCOMPtr<nsIURI>                mJarBaseURI;
     nsCString                       mJarEntry;
     nsCString                       mInnerJarEntry;
-
-    nsRefPtr<nsInputStreamPump> mSynthesizedResponsePump;
-    int64_t mSynthesizedStreamLength;
-
-    friend class mozilla::net::InterceptedJARChannel;
 };
 
 #endif 
