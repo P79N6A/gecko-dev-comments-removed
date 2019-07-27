@@ -29,8 +29,8 @@ loop.shared.models = (function(l10n) {
                                    
       callType:     undefined,     
                                    
-      selectedCallType: undefined, 
-                                   
+      selectedCallType: "audio-video", 
+                                       
       callToken:    undefined,     
                                    
       subscribedStream: false,     
@@ -87,7 +87,12 @@ loop.shared.models = (function(l10n) {
 
 
 
-    setupOutgoingCall: function() {
+
+
+    setupOutgoingCall: function(selectedCallType) {
+      if (selectedCallType) {
+        this.set("selectedCallType", selectedCallType);
+      }
       this.trigger("call:outgoing:setup");
     },
 
