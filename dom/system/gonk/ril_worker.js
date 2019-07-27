@@ -3010,52 +3010,28 @@ RilObject.prototype = {
     
     if (response.resultCode != STK_RESULT_HELP_INFO_REQUIRED) {
       let text;
+      let coding = command.options.isUCS2 ?
+                       STK_TEXT_CODING_UCS2 :
+                       (command.options.isPacked ?
+                          STK_TEXT_CODING_GSM_7BIT_PACKED :
+                          STK_TEXT_CODING_GSM_8BIT);
       if (response.isYesNo !== undefined) {
         
         
         
         
         
-        text = response.isYesNo ? String.fromCharCode(0x01)
-                                : String.fromCharCode(0x00);
-      } else {
-        text = response.input;
-      }
-
-      if (text !== undefined) {
         GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TEXT_STRING |
                                    COMPREHENSIONTLV_FLAG_CR);
-
         
-        Buf.startCalOutgoingSize(function(size) {
-          
-          GsmPDUHelper.writeHexOctet(size / 4);
-        });
-
-        let coding = command.options.isUCS2 ?
-                       STK_TEXT_CODING_UCS2 :
-                       (command.options.isPacked ?
-                          STK_TEXT_CODING_GSM_7BIT_PACKED :
-                          STK_TEXT_CODING_GSM_8BIT);
+        GsmPDUHelper.writeHexOctet(2);
+        
         GsmPDUHelper.writeHexOctet(coding);
-
-        
-        switch (coding) {
-          case STK_TEXT_CODING_UCS2:
-            GsmPDUHelper.writeUCS2String(text);
-            break;
-          case STK_TEXT_CODING_GSM_7BIT_PACKED:
-            GsmPDUHelper.writeStringAsSeptets(text, 0, 0, 0);
-            break;
-          case STK_TEXT_CODING_GSM_8BIT:
-            for (let i = 0; i < text.length; i++) {
-              GsmPDUHelper.writeHexOctet(text.charCodeAt(i));
-            }
-            break;
+        GsmPDUHelper.writeHexOctet(response.isYesNo ? 0x01 : 0x00);
+      } else {
+        if (response.input !== undefined) {
+            ComprehensionTlvHelper.writeTextStringTlv(response.input, coding);
         }
-
-        
-        Buf.stopCalOutgoingSize();
       }
     }
 
@@ -7214,6 +7190,36 @@ GsmPDUHelperObject.prototype = {
 
 
 
+  writeWithBuffer: function(writeFunction) {
+    let buf = [];
+    let writeHexOctet = this.writeHexOctet;
+    this.writeHexOctet = function(octet) {
+      buf.push(octet);
+    }
+
+    try {
+      writeFunction();
+    } catch (e) {
+      if (DEBUG) {
+        debug("Error when writeWithBuffer: " + e);
+      }
+      buf = [];
+    } finally {
+      this.writeHexOctet = writeHexOctet;
+    }
+
+    return buf;
+  },
+
+  
+
+
+
+
+
+
+
+
 
   octetToBCD: function(octet) {
     return ((octet & 0xf0) <= 0x90) * ((octet >> 4) & 0x0f) +
@@ -7554,6 +7560,28 @@ GsmPDUHelperObject.prototype = {
 
     if (dataBits !== 0) {
       this.writeHexOctet(data & 0xFF);
+    }
+  },
+
+  writeStringAs8BitUnpacked: function(text) {
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+    let len = text ? text.length : 0;
+    for (let i = 0; i < len; i++) {
+      let c = text.charAt(i);
+      let octet = langTable.indexOf(c);
+
+      if (octet == -1) {
+        octet = langShiftTable.indexOf(c);
+        if (octet == -1) {
+          
+          octet = langTable.indexOf(' ');
+        } else {
+          this.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+        }
+      }
+      this.writeHexOctet(octet);
     }
   },
 
@@ -10389,9 +10417,10 @@ ICCPDUHelperObject.prototype = {
         if (octet == -1) {
           
           octet = langTable.indexOf(' ');
+        } else {
+          GsmPDUHelper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+          j++;
         }
-        GsmPDUHelper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
-        j++;
       }
       GsmPDUHelper.writeHexOctet(octet);
       j++;
@@ -12164,6 +12193,40 @@ ComprehensionTlvHelperObject.prototype = {
     GsmPDUHelper.writeSwappedNibbleBCDNum(Math.floor(seconds / 60 / 60));
     GsmPDUHelper.writeSwappedNibbleBCDNum(Math.floor(seconds / 60) % 60);
     GsmPDUHelper.writeSwappedNibbleBCDNum(seconds % 60);
+  },
+
+  writeTextStringTlv: function(text, coding) {
+    let GsmPDUHelper = this.context.GsmPDUHelper;
+    let buf = GsmPDUHelper.writeWithBuffer(() => {
+      
+      GsmPDUHelper.writeHexOctet(coding);
+
+      
+      switch (coding) {
+        case STK_TEXT_CODING_UCS2:
+          GsmPDUHelper.writeUCS2String(text);
+          break;
+        case STK_TEXT_CODING_GSM_7BIT_PACKED:
+          GsmPDUHelper.writeStringAsSeptets(text, 0, 0, 0);
+          break;
+        case STK_TEXT_CODING_GSM_8BIT:
+          GsmPDUHelper.writeStringAs8BitUnpacked(text);
+          break;
+      }
+    });
+
+    let length = buf.length;
+    if (length) {
+      
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TEXT_STRING |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      
+      this.writeLength(length);
+      
+      for (let i = 0; i < length; i++) {
+        GsmPDUHelper.writeHexOctet(buf[i]);
+      }
+    }
   },
 
   getSizeOfLengthOctets: function(length) {
