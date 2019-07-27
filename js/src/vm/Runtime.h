@@ -452,7 +452,6 @@ AtomStateOffsetToName(const JSAtomState &atomState, size_t offset)
 enum RuntimeLock {
     ExclusiveAccessLock,
     HelperThreadStateLock,
-    InterruptLock,
     GCLock
 };
 
@@ -540,14 +539,6 @@ class PerThreadData : public PerThreadDataFriendFields
 #ifdef JS_TRACE_LOGGING
     TraceLogger         *traceLogger;
 #endif
-
-    
-
-
-
-
-
-
 
   private:
     friend class js::Activation;
@@ -714,10 +705,8 @@ struct JSRuntime : public JS::shadow::Runtime,
   public:
 
     enum InterruptMode {
-        RequestInterruptMainThread,
-        RequestInterruptAnyThread,
-        RequestInterruptAnyThreadDontStopIon,
-        RequestInterruptAnyThreadForkJoin
+        RequestInterruptUrgent,
+        RequestInterruptCanWait
     };
 
     
@@ -775,37 +764,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
-    PRLock *interruptLock;
-    PRThread *interruptLockOwner;
-
-  public:
-    class AutoLockForInterrupt {
-        JSRuntime *rt;
-      public:
-        explicit AutoLockForInterrupt(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
-            MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-            rt->assertCanLock(js::InterruptLock);
-            PR_Lock(rt->interruptLock);
-            rt->interruptLockOwner = PR_GetCurrentThread();
-        }
-        ~AutoLockForInterrupt() {
-            MOZ_ASSERT(rt->currentThreadOwnsInterruptLock());
-            rt->interruptLockOwner = nullptr;
-            PR_Unlock(rt->interruptLock);
-        }
-
-        MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-    };
-
-    bool currentThreadOwnsInterruptLock() {
-        return interruptLockOwner == PR_GetCurrentThread();
-    }
-
-  private:
-    
-
-
-
 
 
 
@@ -852,8 +810,13 @@ struct JSRuntime : public JS::shadow::Runtime,
   private:
     
     void *ownerThread_;
+    size_t ownerThreadNative_;
     friend bool js::CurrentThreadCanAccessRuntime(JSRuntime *rt);
   public:
+
+    size_t ownerThreadNative() const {
+        return ownerThreadNative_;
+    }
 
     
     static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 4 * 1024;
@@ -1092,13 +1055,12 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     
     bool signalHandlersInstalled_;
+
     
     
     bool canUseSignalHandlers_;
+
   public:
-    bool signalHandlersInstalled() const {
-        return signalHandlersInstalled_;
-    }
     bool canUseSignalHandlers() const {
         return canUseSignalHandlers_;
     }

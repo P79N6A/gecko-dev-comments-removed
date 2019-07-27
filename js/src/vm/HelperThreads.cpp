@@ -1065,7 +1065,7 @@ HelperThread::handleIonWorkload()
     
     
     
-    rt->requestInterrupt(JSRuntime::RequestInterruptAnyThreadDontStopIon);
+    rt->requestInterrupt(JSRuntime::RequestInterruptCanWait);
 
     
     HelperThreadState().notifyAll(GlobalHelperThreadState::CONSUMER);

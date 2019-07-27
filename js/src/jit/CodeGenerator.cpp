@@ -7627,20 +7627,6 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     
     
-    
-    JSRuntime::AutoLockForInterrupt lock(cx->runtime());
-
-    
-    
-    cx->runtime()->jitRuntime()->ensureIonCodeAccessible(cx->runtime());
-
-    
-    
-    
-    
-    
-    
-    
     Linker linker(masm);
     AutoFlushICache afc("IonLink");
     JitCode *code = (executionMode == SequentialExecution)

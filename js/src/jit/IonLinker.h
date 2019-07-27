@@ -82,10 +82,6 @@ class Linker
     }
 
     JitCode *newCodeForIonScript(JSContext *cx) {
-        
-        
-        MOZ_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
-
         ExecutableAllocator *alloc = cx->runtime()->jitRuntime()->getIonAlloc(cx);
         if (!alloc)
             return nullptr;

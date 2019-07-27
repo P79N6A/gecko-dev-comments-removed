@@ -826,10 +826,6 @@ class AsmJSModule
     bool                                  profilingEnabled_;
     bool                                  interrupted_;
 
-    
-    
-    mutable bool                          codeIsProtected_;
-
     void restoreHeapToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer);
     void restoreToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer, uint8_t *prevCode,
                                ExclusiveContext *cx);
@@ -1529,12 +1525,6 @@ class AsmJSModule
         MOZ_ASSERT(isDynamicallyLinked());
         interrupted_ = interrupted;
     }
-
-    
-    
-    void protectCode(JSRuntime *rt) const;
-    void unprotectCode(JSRuntime *rt) const;
-    bool codeIsProtected(JSRuntime *rt) const;
 };
 
 
