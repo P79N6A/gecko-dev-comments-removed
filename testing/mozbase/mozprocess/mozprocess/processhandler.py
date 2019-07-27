@@ -11,7 +11,7 @@ import threading
 import time
 import traceback
 from Queue import Queue
-from datetime import datetime, timedelta
+from datetime import datetime
 __all__ = ['ProcessHandlerMixin', 'ProcessHandler']
 
 
@@ -23,7 +23,7 @@ isPosix = os.name == "posix"
 
 if isWin:
     import ctypes, ctypes.wintypes, msvcrt
-    from ctypes import sizeof, addressof, c_ulong, byref, POINTER, WinError, c_longlong
+    from ctypes import sizeof, addressof, c_ulong, byref, WinError, c_longlong
     import winprocess
     from qijo import JobObjectAssociateCompletionPortInformation,\
     JOBOBJECT_ASSOCIATE_COMPLETION_PORT, JobObjectExtendedLimitInformation,\
@@ -94,7 +94,7 @@ class ProcessHandlerMixin(object):
                                           preexec_fn, close_fds,
                                           shell, cwd, env,
                                           universal_newlines, startupinfo, creationflags)
-            except OSError, e:
+            except OSError:
                 print >> sys.stderr, args
                 raise
 
@@ -915,7 +915,7 @@ class StreamOutput(object):
     def __call__(self, line):
         try:
             self.stream.write(line + '\n')
-        except UnicodeDecodeError as err:
+        except UnicodeDecodeError:
             
             
             self.stream.write(line.decode('iso8859-1') + '\n')

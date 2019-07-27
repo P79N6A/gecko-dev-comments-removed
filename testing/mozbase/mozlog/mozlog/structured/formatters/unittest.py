@@ -3,11 +3,7 @@
 
 
 
-import sys
-
 import base
-from .. import handlers
-
 
 class UnittestFormatter(base.BaseFormatter):
     """Formatter designed to produce output in a format like that used by

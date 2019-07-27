@@ -3,7 +3,6 @@
 
 
 import multiprocessing
-import tempfile
 import time
 import unittest
 
@@ -85,7 +84,6 @@ class TestResourceMonitor(unittest.TestCase):
         monitor.record_event('t0')
         time.sleep(0.5)
 
-        t1 = time.time()
         monitor.record_event('t1')
         time.sleep(0.5)
         monitor.stop()

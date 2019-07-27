@@ -3,10 +3,6 @@
 
 
 
-import os
-
-import mozrunner
-
 import mozrunnertest
 
 

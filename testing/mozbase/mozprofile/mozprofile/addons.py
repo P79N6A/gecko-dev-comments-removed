@@ -74,7 +74,7 @@ class AddonManager(object):
             
             try:
                 self.remove_addon(addon)
-            except IOError, e:
+            except IOError:
                 pass
 
         
@@ -153,9 +153,9 @@ class AddonManager(object):
         :param addon_path: path to the add-on directory or XPI
         """
         try:
-            details = self.addon_details(addon_path)
+            self.addon_details(addon_path)
             return True
-        except AddonFormatError, e:
+        except AddonFormatError:
             return False
 
     def install_addons(self, addons=None, manifests=None):

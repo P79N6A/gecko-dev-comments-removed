@@ -2,7 +2,6 @@
 
 
 
-import json
 from ..reader import LogHandler
 
 class BaseFormatter(LogHandler):

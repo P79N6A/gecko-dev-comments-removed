@@ -8,10 +8,8 @@ import mozinfo
 import mozinstall
 import mozfile
 import os
-import tarfile
 import tempfile
 import unittest
-import zipfile
 
 
 here = os.path.dirname(os.path.abspath(__file__))
