@@ -854,17 +854,9 @@ let gDevToolsBrowser = {
                          .getService(Ci.nsISlowScriptDebug);
     let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
 
-    debugService.activationHandler = function(aWindow) {
-      let chromeWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIWebNavigation)
-                                .QueryInterface(Ci.nsIDocShellTreeItem)
-                                .rootTreeItem
-                                .QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIDOMWindow)
-                                .QueryInterface(Ci.nsIDOMChromeWindow);
-      let target = devtools.TargetFactory.forTab(chromeWindow.gBrowser.selectedTab);
+    function slowScriptDebugHandler(aTab, aCallback) {
+      let target = devtools.TargetFactory.forTab(aTab);
 
-      let setupFinished = false;
       gDevTools.showToolbox(target, "jsdebugger").then(toolbox => {
         let threadClient = toolbox.getCurrentPanel().panelWin.gThreadClient;
 
@@ -874,13 +866,13 @@ let gDevToolsBrowser = {
           case "paused":
             
             threadClient.breakOnNext();
-            setupFinished = true;
+            aCallback();
             break;
           case "attached":
             
             threadClient.interrupt(() => {
               threadClient.breakOnNext();
-              setupFinished = true;
+              aCallback();
             });
             break;
           case "resuming":
@@ -888,7 +880,7 @@ let gDevToolsBrowser = {
             threadClient.addOneTimeListener("resumed", () => {
               threadClient.interrupt(() => {
                 threadClient.breakOnNext();
-                setupFinished = true;
+                aCallback();
               });
             });
             break;
@@ -897,6 +889,20 @@ let gDevToolsBrowser = {
                         threadClient.state);
           }
       });
+    }
+
+    debugService.activationHandler = function(aWindow) {
+      let chromeWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIWebNavigation)
+                                .QueryInterface(Ci.nsIDocShellTreeItem)
+                                .rootTreeItem
+                                .QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindow)
+                                .QueryInterface(Ci.nsIDOMChromeWindow);
+
+      let setupFinished = false;
+      slowScriptDebugHandler(chromeWindow.gBrowser.selectedTab,
+                             () => { setupFinished = true; });
 
       
       
@@ -907,6 +913,18 @@ let gDevToolsBrowser = {
         tm.currentThread.processNextEvent(true);
       }
       utils.leaveModalState();
+    };
+
+    debugService.remoteActivationHandler = function(aBrowser, aCallback) {
+      let chromeWindow = aBrowser.ownerDocument.defaultView;
+      let tab = chromeWindow.gBrowser.getTabForBrowser(aBrowser);
+      chromeWindow.gBrowser.selected = tab;
+
+      function callback() {
+        aCallback.finishDebuggerStartup();
+      }
+
+      slowScriptDebugHandler(tab, callback);
     };
   },
 

@@ -67,6 +67,7 @@
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/ProcessHangMonitor.h"
 #include "AudioChannelService.h"
 #include "MessageEvent.h"
 #include "nsAboutProtocolUtils.h"
@@ -10970,15 +10971,43 @@ nsGlobalWindow::ShowSlowScriptDialog()
   }
 
   
+  JS::AutoFilename filename;
+  unsigned lineno;
+  bool hasFrame = JS::DescribeScriptedCaller(cx, &filename, &lineno);
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content &&
+      ProcessHangMonitor::Get()) {
+    ProcessHangMonitor::SlowScriptAction action;
+    nsRefPtr<ProcessHangMonitor> monitor = ProcessHangMonitor::Get();
+    nsCOMPtr<nsITabChild> child = do_GetInterface(GetDocShell());
+    action = monitor->NotifySlowScript(child,
+                                       filename.get(),
+                                       lineno);
+    if (action == ProcessHangMonitor::Terminate) {
+      return KillSlowScript;
+    }
+
+    if (action == ProcessHangMonitor::StartDebugger) {
+      
+      
+      
+      nsRefPtr<nsGlobalWindow> outer = GetOuterWindowInternal();
+      outer->EnterModalState();
+      while (!monitor->IsDebuggerStartupComplete()) {
+        NS_ProcessNextEvent(nullptr, true);
+      }
+      outer->LeaveModalState();
+      return ContinueSlowScript;
+    }
+
+    return ContinueSlowScriptAndKeepNotifying;
+  }
+
+  
   nsCOMPtr<nsIDocShell> ds = GetDocShell();
   NS_ENSURE_TRUE(ds, KillSlowScript);
   nsCOMPtr<nsIPrompt> prompt = do_GetInterface(ds);
   NS_ENSURE_TRUE(prompt, KillSlowScript);
-
-  
-  JS::AutoFilename filename;
-  unsigned lineno;
-  bool hasFrame = JS::DescribeScriptedCaller(cx, &filename, &lineno);
 
   
   nsCOMPtr<nsISlowScriptDebugCallback> debugCallback;
