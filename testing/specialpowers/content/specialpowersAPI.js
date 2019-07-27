@@ -1574,7 +1574,10 @@ SpecialPowersAPI.prototype = {
 
     var xferable = Components.classes["@mozilla.org/widget/transferable;1"].
                    createInstance(Components.interfaces.nsITransferable);
-    xferable.init(this._getDocShell(content.window)
+    
+    
+    
+    xferable.init(this._getDocShell(content.window || window)
                       .QueryInterface(Components.interfaces.nsILoadContext));
     xferable.addDataFlavor(flavor);
     this._cb.getData(xferable, whichClipboard);
