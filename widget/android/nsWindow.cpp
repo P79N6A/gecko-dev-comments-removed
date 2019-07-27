@@ -1841,27 +1841,22 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
                 InitEvent(event, nullptr);
                 event.mData = ae->Characters();
 
-                if (ae->Action() == AndroidGeckoEvent::IME_COMPOSE_TEXT) {
-                    
-                    
-                    TextRange range;
-                    range.mStartOffset = 0;
-                    range.mEndOffset = event.mData.Length();
-                    range.mRangeType = NS_TEXTRANGE_RAWINPUT;
-                    event.mRanges = new TextRangeArray();
-                    event.mRanges->AppendElement(range);
-                }
+                
+                TextRange range;
+                range.mStartOffset = 0;
+                range.mEndOffset = event.mData.Length();
+                range.mRangeType = NS_TEXTRANGE_RAWINPUT;
+                event.mRanges = new TextRangeArray();
+                event.mRanges->AppendElement(range);
 
                 DispatchEvent(&event);
             }
 
             
-            if (ae->Action() != AndroidGeckoEvent::IME_COMPOSE_TEXT)
-            {
+            if (ae->Action() != AndroidGeckoEvent::IME_COMPOSE_TEXT) {
                 WidgetCompositionEvent compositionCommitEvent(
-                                           true, NS_COMPOSITION_COMMIT, this);
+                        true, NS_COMPOSITION_COMMIT_AS_IS, this);
                 InitEvent(compositionCommitEvent, nullptr);
-                compositionCommitEvent.mData = ae->Characters();
                 DispatchEvent(&compositionCommitEvent);
             }
 
