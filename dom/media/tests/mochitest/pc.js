@@ -28,6 +28,8 @@ const signalingStateTransitions = {
   "closed": []
 }
 
+var wait = (time) => new Promise(r => setTimeout(r, time));
+
 
 
 
@@ -62,8 +64,8 @@ function MediaElementChecker(element) {
 
     
     
-    if(element.mozSrcObject && element.mozSrcObject.currentTime > 0 &&
-       element.currentTime > 0) {
+    if (element.mozSrcObject && element.mozSrcObject.currentTime > 0 &&
+        element.currentTime > 0) {
       info('time passed for media element ' + elementId);
       this.timePassed = true;
       this.element.removeEventListener('timeupdate', timeUpdateCallback,
