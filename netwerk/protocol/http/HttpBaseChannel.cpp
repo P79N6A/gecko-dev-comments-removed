@@ -2011,16 +2011,19 @@ HttpBaseChannel::ReleaseListeners()
 void
 HttpBaseChannel::DoNotifyListener()
 {
-  
-  
-  
   if (mListener) {
     mListener->OnStartRequest(this, mListenerContext);
-    mIsPending = false;
-    mListener->OnStopRequest(this, mListenerContext, mStatus);
-  } else {
-    mIsPending = false;
   }
+
+  
+  
+  
+  mIsPending = false;
+
+  if (mListener) {
+    mListener->OnStopRequest(this, mListenerContext, mStatus);
+  }
+
   
   
   ReleaseListeners();
