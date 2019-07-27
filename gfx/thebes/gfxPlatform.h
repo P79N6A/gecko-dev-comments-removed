@@ -241,6 +241,16 @@ public:
 
 
 
+    virtual bool CanRenderContentToDataSurface() const {
+      return false;
+    }
+
+    
+
+
+
+
+
 
     bool SupportsAzureContentForDrawTarget(mozilla::gfx::DrawTarget* aTarget);
 
