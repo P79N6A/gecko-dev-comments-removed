@@ -838,7 +838,7 @@ GLBlitHelper::BlitTextureToFramebuffer(GLuint srcTex, GLuint destFB,
     if (!good) {
         
         
-        printf_stderr("[%s:%d] Fatal Error: Failed to prepare to blit texture->framebuffer.\n");
+        printf_stderr("Fatal Error: Failed to prepare to blit texture->framebuffer.\n");
         MOZ_CRASH();
     }
     mGL->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);

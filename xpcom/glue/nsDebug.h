@@ -402,12 +402,12 @@ typedef void (*StderrCallback)(const char* aFmt, va_list aArgs);
 extern "C" {
 #endif
 
-void printf_stderr(const char* aFmt, ...);
+void printf_stderr(const char* aFmt, ...) MOZ_FORMAT_PRINTF(1, 2);
 
 void vprintf_stderr(const char* aFmt, va_list aArgs);
 
 
-void fprintf_stderr(FILE* aFile, const char* aFmt, ...);
+void fprintf_stderr(FILE* aFile, const char* aFmt, ...) MOZ_FORMAT_PRINTF(2, 3);
 
 
 
