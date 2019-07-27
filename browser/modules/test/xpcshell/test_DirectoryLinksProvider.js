@@ -616,16 +616,11 @@ add_task(function test_DirectoryLinksProvider_setDefaultEnhanced() {
 
   
   Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
-  Services.prefs.clearUserPref("privacy.donottrackheader.value");
   checkDefault(true);
 
   
   Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
   checkDefault(false);
-
-  
-  Services.prefs.setIntPref("privacy.donottrackheader.value", 0);
-  checkDefault(true);
 
   
   Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
