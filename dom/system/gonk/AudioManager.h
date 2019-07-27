@@ -36,8 +36,47 @@ typedef Observer<SwitchEvent> SwitchObserver;
 
 namespace dom {
 namespace gonk {
+
+
+
+
+
+
+
+enum AudioOutputProfiles {
+  DEVICE_PRIMARY      = 0,
+  DEVICE_HEADSET      = 1,
+  DEVICE_BLUETOOTH    = 2,
+  DEVICE_TOTAL_NUMBER = 3,
+};
+
+
+
+
+
+
+
+
+
+
+enum AudioVolumeCategories {
+  VOLUME_MEDIA         = 0,
+  VOLUME_NOTIFICATION  = 1,
+  VOLUME_ALARM         = 2,
+  VOLUME_TELEPHONY     = 3,
+  VOLUME_BLUETOOTH_SCO = 4,
+  VOLUME_TOTAL_NUMBER  = 5,
+};
+
+struct VolumeData {
+  const char* mChannelName;
+  uint32_t mCategory;
+};
+
 class RecoverTask;
 class AudioChannelVolInitCallback;
+class AudioProfileData;
+
 class AudioManager final : public nsIAudioManager
                          , public nsIObserver
 {
@@ -53,12 +92,18 @@ public:
   friend class RecoverTask;
   friend class AudioChannelVolInitCallback;
 
+  
+  void SwitchProfileData(AudioOutputProfiles aProfile, bool aActive);
+
+  
+  nsresult ValidateVolumeIndex(uint32_t aCategory, uint32_t aIndex) const;
+
 protected:
   int32_t mPhoneState;
-  int mCurrentStreamVolumeTbl[AUDIO_STREAM_CNT];
+  uint32_t mCurrentStreamVolumeTbl[AUDIO_STREAM_CNT];
 
-  nsresult SetStreamVolumeIndex(int32_t aStream, int32_t aIndex);
-  nsresult GetStreamVolumeIndex(int32_t aStream, int32_t *aIndex);
+  nsresult SetStreamVolumeIndex(int32_t aStream, uint32_t aIndex);
+  nsresult GetStreamVolumeIndex(int32_t aStream, uint32_t *aIndex);
 
 private:
   nsAutoPtr<mozilla::hal::SwitchObserver> mObserver;
@@ -68,11 +113,37 @@ private:
   
   bool                                    mIsMicMuted;
 #endif
+  nsTArray<nsAutoPtr<AudioProfileData>>   mAudioProfiles;
+  AudioOutputProfiles mPresentProfile;
 
   void HandleBluetoothStatusChanged(nsISupports* aSubject,
                                     const char* aTopic,
                                     const nsCString aAddress);
   void HandleAudioChannelProcessChanged();
+
+  void CreateAudioProfilesData();
+
+  
+  void InitProfilesVolume(uint32_t aCatogory, uint32_t aIndex);
+
+  
+  void UpdateVolumeToProfile(AudioProfileData* aProfileData);
+
+  
+  void UpdateVolumeFromProfile(AudioProfileData* aProfileData);
+
+  
+  void SendVolumeChangeNotification(AudioProfileData* aProfileData);
+
+  
+  void UpdateProfileState(AudioOutputProfiles aProfile, bool aActive);
+
+  
+  nsresult SetVolumeByCategory(uint32_t aCategory, uint32_t aIndex);
+  uint32_t GetVolumeByCategory(uint32_t aCategory) const;
+  uint32_t GetMaxVolumeByCategory(uint32_t aCategory) const;
+
+  AudioProfileData* FindAudioProfileData(AudioOutputProfiles aProfile);
 
   AudioManager();
   ~AudioManager();
