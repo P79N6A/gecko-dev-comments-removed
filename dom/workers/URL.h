@@ -119,7 +119,7 @@ public:
   }
 
   
-  void URLSearchParamsUpdated() MOZ_OVERRIDE;
+  void URLSearchParamsUpdated(URLSearchParams* aSearchParams) MOZ_OVERRIDE;
 
 private:
   URLProxy* GetURLProxy() const
