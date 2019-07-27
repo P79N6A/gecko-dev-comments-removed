@@ -274,7 +274,10 @@ class Node {
     }
 
     
-    explicit Node(JS::HandleValue value);
+    
+    
+    
+    MOZ_IMPLICIT Node(JS::HandleValue value);
     Node(JSGCTraceKind kind, void *ptr);
 
     
