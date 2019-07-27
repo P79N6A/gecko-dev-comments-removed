@@ -285,7 +285,7 @@ PluginContent.prototype = {
     }
 
     if (eventType == "PluginRemoved") {
-      this.updateNotificationUI();
+      this.updateNotificationUI(event.target);
       return;
     }
 
@@ -698,7 +698,29 @@ PluginContent.prototype = {
     }, null, principal);
   },
 
-  updateNotificationUI: function () {
+  
+
+
+
+
+
+
+
+
+
+
+  updateNotificationUI: function (document) {
+    let principal;
+
+    if (document) {
+      
+      
+      
+      principal = document.defaultView.top.document.nodePrincipal;
+    } else {
+      principal = this.content.document.nodePrincipal;
+    }
+
     
     let haveInsecure = false;
     let actions = new Map();
@@ -718,9 +740,8 @@ PluginContent.prototype = {
     }
 
     
-    let contentWindow = this.global.content;
-    let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils);
+    let cwu = this.content.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIDOMWindowUtils);
     for (let plugin of cwu.plugins) {
       let info = this._getPluginInfo(plugin);
       if (!actions.has(info.permissionString)) {
@@ -755,7 +776,6 @@ PluginContent.prototype = {
 
     
     
-    let principal = contentWindow.document.nodePrincipal;
     this.global.sendAsyncMessage("PluginContent:UpdateHiddenPluginUI", {
       haveInsecure: haveInsecure,
       actions: [... actions.values()],

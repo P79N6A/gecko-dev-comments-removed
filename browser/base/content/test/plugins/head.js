@@ -121,15 +121,78 @@ function waitForNotificationPopup(notificationID, browser, callback) {
   );
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function waitForNotificationBar(notificationID, browser, callback) {
-  let notification;
-  let notificationBox = gBrowser.getNotificationBox(browser);
-  waitForCondition(
-    () => (notification = notificationBox.getNotificationWithValue(notificationID)),
-    () => {
-      ok(notification, `Successfully got the ${notificationID} notification bar`);
-      callback(notification);
-    },
-    `Waited too long for the ${notificationID} notification bar`
-  );
+  return new Promise((resolve, reject) => {
+    let notification;
+    let notificationBox = gBrowser.getNotificationBox(browser);
+    waitForCondition(
+      () => (notification = notificationBox.getNotificationWithValue(notificationID)),
+      () => {
+        ok(notification, `Successfully got the ${notificationID} notification bar`);
+        if (callback) {
+          callback(notification);
+        }
+        resolve(notification);
+      },
+      `Waited too long for the ${notificationID} notification bar`
+    );
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+function forcePluginBindingAttached(browser) {
+  return new Promise((resolve, reject) => {
+    let doc = browser.contentDocument;
+    let elems = doc.getElementsByTagName('embed');
+    if (elems.length < 1) {
+      elems = doc.getElementsByTagName('object');
+    }
+    elems[0].clientTop;
+    executeSoon(resolve);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function loadPage(browser, uri) {
+  return new Promise((resolve, reject) => {
+    browser.addEventListener("load", function onLoad(event) {
+      browser.removeEventListener("load", onLoad, true);
+      resolve();
+    }, true);
+    browser.loadURI(uri);
+  });
 }

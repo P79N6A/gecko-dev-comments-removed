@@ -307,6 +307,15 @@ var gPluginHandler = {
 
   updateHiddenPluginUI: function (browser, haveInsecure, actions, principal, host) {
     
+    
+    
+    
+    
+    if (!principal.equals(browser.contentPrincipal)) {
+      return;
+    }
+
+    
     document.getElementById("plugins-notification-icon").classList.
       toggle("plugin-blocked", haveInsecure);
 
