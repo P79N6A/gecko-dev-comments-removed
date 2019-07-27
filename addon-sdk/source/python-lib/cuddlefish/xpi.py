@@ -88,7 +88,6 @@ def build_xpi(template_root_dir, manifest, xpi_path,
     for packageName in harness_options['packages']:
       base_arcpath = ZIPSEP.join(['resources', packageName])
       
-      
       if not bundle_sdk and packageName == 'addon-sdk':
           continue
       

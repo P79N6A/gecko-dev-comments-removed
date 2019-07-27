@@ -21,8 +21,8 @@ const { deprecateUsage } = require('../util/deprecate');
 const { getURL } = require('../url/utils');
 const { viewFor } = require('../view/core');
 const { observer } = require('./observer');
-
-require('../../framescript/FrameScriptManager.jsm').enableTabEvents();
+const { remoteRequire, frames } = require('../remote/parent');
+remoteRequire('sdk/content/tab-events');
 
 
 const TABS = [];
@@ -60,7 +60,7 @@ const TabTrait = Trait.compose(EventEmitter, {
     this.on(EVENTS.close.name, this.destroy.bind(this));
 
     this._onContentEvent = this._onContentEvent.bind(this);
-    this._window.messageManager.addMessageListener('sdk/tab/event', this._onContentEvent);
+    frames.port.on('sdk/tab/event', this._onContentEvent);
 
     
     
@@ -84,7 +84,7 @@ const TabTrait = Trait.compose(EventEmitter, {
   destroy: function destroy() {
     this._removeAllListeners();
     if (this._tab) {
-      this._window.messageManager.removeMessageListener('sdk/tab/event', this._onContentEvent);
+      frames.port.off('sdk/tab/event', this._onContentEvent);
       this._tab = null;
       TABS.splice(TABS.indexOf(this), 1);
     }
@@ -94,8 +94,8 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
 
-  _onContentEvent: function({ target, data }) {
-    if (target !== this._browser)
+  _onContentEvent: function(frame, event, persisted) {
+    if (frame.frameElement !== this._browser)
       return;
 
     
@@ -105,7 +105,7 @@ const TabTrait = Trait.compose(EventEmitter, {
     
     this._skipBlankEvents = false;
 
-    this._emit(data.type, this._public, data.persisted);
+    this._emit(event, this._public, persisted);
   },
 
   

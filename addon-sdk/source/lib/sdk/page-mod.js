@@ -7,49 +7,31 @@ module.metadata = {
   "stability": "stable"
 };
 
-const observers = require('./system/events');
 const { contract: loaderContract } = require('./content/loader');
 const { contract } = require('./util/contract');
-const { getAttachEventType, WorkerHost } = require('./content/utils');
+const { WorkerHost, connect } = require('./content/utils');
 const { Class } = require('./core/heritage');
 const { Disposable } = require('./core/disposable');
-const { WeakReference } = require('./core/reference');
 const { Worker } = require('./content/worker');
 const { EventTarget } = require('./event/target');
 const { on, emit, once, setListeners } = require('./event/core');
-const { on: domOn, removeListener: domOff } = require('./dom/events');
 const { isRegExp, isUndefined } = require('./lang/type');
-const { merge } = require('./util/object');
-const { windowIterator } = require('./deprecated/window-utils');
-const { isBrowser, getFrames } = require('./window/utils');
-const { getTabs, getTabContentWindow, getTabForContentWindow,
-        getURI: getTabURI } = require('./tabs/utils');
-const { ignoreWindow } = require('./private-browsing/utils');
-const { Style } = require("./stylesheet/style");
-const { attach, detach } = require("./content/mod");
-const { has, hasAny } = require("./util/array");
+const { merge, omit } = require('./util/object');
+const { remove, has, hasAny } = require("./util/array");
 const { Rules } = require("./util/rules");
-const { List, addListItem, removeListItem } = require('./util/list');
-const { when: unload } = require("./system/unload");
+const { processes, frames, remoteRequire } = require('./remote/parent');
+remoteRequire('sdk/content/page-mod');
 
-
-const VALID_ATTACHTO_OPTIONS = ['existing', 'top', 'frame'];
-
-const pagemods = new Set();
-const workers = new WeakMap();
-const styles = new WeakMap();
+const pagemods = new Map();
+const workers = new Map();
 const models = new WeakMap();
 let modelFor = (mod) => models.get(mod);
-let workerFor = (mod) => workers.get(mod);
-let styleFor = (mod) => styles.get(mod);
-
-
-observers.on('document-element-inserted', onContentWindow);
-unload(() => observers.off('document-element-inserted', onContentWindow));
+let workerFor = (mod) => workers.get(mod)[0];
 
 
 let isRegExpOrString = (v) => isRegExp(v) || typeof v === 'string';
-let modMatchesURI = (mod, uri) => mod.include.matchesAny(uri) && !mod.exclude.matchesAny(uri);
+
+let PAGEMOD_ID = 0;
 
 
 const modOptions = {
@@ -119,10 +101,7 @@ const PageMod = Class({
     let mod = this;
     let model = modContract(options);
     models.set(this, model);
-
-    
-    
-    setListeners(this, options);
+    model.id = PAGEMOD_ID++;
 
     let include = model.include;
     model.include = Rules();
@@ -132,158 +111,77 @@ const PageMod = Class({
     model.exclude = Rules();
     model.exclude.add.apply(model.exclude, [].concat(exclude));
 
-    if (model.contentStyle || model.contentStyleFile) {
-      styles.set(mod, Style({
-        uri: model.contentStyleFile,
-        source: model.contentStyle
-      }));
+    
+    
+    setListeners(this, options);
+
+    pagemods.set(model.id, this);
+    workers.set(this, []);
+
+    function serializeRules(rules) {
+      for (let rule of rules) {
+        yield isRegExp(rule) ? { type: "regexp", pattern: rule.source, flags: rule.flags }
+                             : { type: "string", value: rule };
+      }
     }
 
-    pagemods.add(this);
-    model.seenDocuments = new WeakMap();
+    model.childOptions = omit(model, ["include", "exclude"]);
+    model.childOptions.include = [...serializeRules(model.include)];
+    model.childOptions.exclude = [...serializeRules(model.exclude)];
 
-    
-    
-    if (has(model.attachTo, 'existing'))
-      applyOnExistingDocuments(mod);
+    processes.port.emit('sdk/page-mod/create', model.childOptions);
   },
 
-  dispose: function() {
-    let style = styleFor(this);
-    if (style)
-      detach(style);
+  dispose: function(reason) {
+    processes.port.emit('sdk/page-mod/destroy', modelFor(this).id);
+    pagemods.delete(modelFor(this).id);
+    workers.delete(this);
+  },
 
-    for (let i in this.include)
-      this.include.remove(this.include[i]);
+  destroy: function(reason) {
+    
+    let list = workers.get(this);
+    if (!list)
+      return;
 
-    pagemods.delete(this);
+    
+    Disposable.prototype.destroy.call(this, reason);
+
+    
+    for (let worker of list)
+      worker.destroy(reason);
   }
 });
 exports.PageMod = PageMod;
 
-function onContentWindow({ subject: document }) {
-  
-  if (pagemods.size === 0)
+
+processes.forEvery(process => {
+  for (let mod of pagemods.values())
+    process.port.emit('sdk/page-mod/create', modelFor(mod).childOptions);
+});
+
+frames.port.on('sdk/page-mod/worker-create', (frame, modId, workerOptions) => {
+  let mod = pagemods.get(modId);
+  if (!mod)
     return;
 
-  let window = document.defaultView;
   
-  if (!window)
-    return;
-  
-  if (!getTabForContentWindow(window))
-    return;
+  let worker = Worker();
 
-  
-  
-  if (ignoreWindow(window))
-    return;
-
-  for (let pagemod of pagemods) {
-    if (modMatchesURI(pagemod, document.URL))
-      onContent(pagemod, window);
-  }
-}
-
-function applyOnExistingDocuments (mod) {
-  getTabs().forEach(tab => {
-    
-    let window = getTabContentWindow(tab);
-    
-    
-    if (!window || !window.frames)
-      return;
-    let uri = getTabURI(tab);
-    if (has(mod.attachTo, "top") && modMatchesURI(mod, uri))
-      onContent(mod, window);
-    if (has(mod.attachTo, "frame"))
-      getFrames(window).
-        filter(iframe => modMatchesURI(mod, iframe.location.href)).
-        forEach(frame => onContent(mod, frame));
-  });
-}
-
-function createWorker (mod, window) {
-  let worker = Worker({
-    window: window,
-    contentScript: mod.contentScript,
-    contentScriptFile: mod.contentScriptFile,
-    contentScriptOptions: mod.contentScriptOptions,
-    
-    
-    
-    onError: (e) => emit(mod, 'error', e)
-  });
-  workers.set(mod, worker);
+  workers.get(mod).unshift(worker);
   worker.on('*', (event, ...args) => {
-    
     
     if (event === 'attach')
       emit(mod, event, worker)
     else
       emit(mod, event, ...args);
-  })
-  once(worker, 'detach', () => worker.destroy());
-}
+  });
 
-function onContent (mod, window) {
-  
-  if (!pagemods.has(mod))
-    return;
+  worker.on('detach', () => {
+    let array = workers.get(mod);
+    if (array)
+      remove(array, worker);
+  });
 
-  let isTopDocument = window.top === window;
-  
-  if (isTopDocument && !has(mod.attachTo, "top"))
-    return;
-  
-  if (!isTopDocument && !has(mod.attachTo, "frame"))
-    return;
-
-  
-  let seen = modelFor(mod).seenDocuments;
-  if (seen.has(window.document))
-    return;
-  seen.set(window.document, true);
-
-  let style = styleFor(mod);
-  if (style)
-    attach(style, window);
-
-  
-  
-  if (isMatchingAttachState(mod, window)) {
-    createWorker(mod, window);
-    return;
-  }
-
-  let eventName = getAttachEventType(mod) || 'load';
-  domOn(window, eventName, function onReady (e) {
-    if (e.target.defaultView !== window)
-      return;
-    domOff(window, eventName, onReady, true);
-    createWorker(mod, window);
-
-    
-    
-    if (window.document.readyState == "complete") {
-      mod.on('attach', worker => {
-        try {
-          worker.send('pageshow');
-          emit(worker, 'pageshow');
-        }
-        catch (e) {
-          
-        }
-      });
-    }
-  }, true);
-}
-
-function isMatchingAttachState (mod, window) {
-  let state = window.document.readyState;
-  return 'start' === mod.contentScriptWhen ||
-      
-      'complete' === state ||
-      
-      ('ready' === mod.contentScriptWhen && state === 'interactive')
-}
+  connect(worker, frame, workerOptions);
+});

@@ -527,8 +527,8 @@ function isNodeModule (name) {
 
 function sortPaths (paths) {
   return keys(paths).
-    sort(function(a, b) { return b.length - a.length }).
-    map(function(path) { return [ path, paths[path] ] });
+    sort((a, b) => (b.length - a.length)).
+    map((path) => [ path, paths[path] ]);
 }
 
 const resolveURI = iced(function resolveURI(id, mapping) {
@@ -538,7 +538,7 @@ const resolveURI = iced(function resolveURI(id, mapping) {
   if (isAbsoluteURI(id)) return normalizeExt(id);
 
   while (index < count) {
-    let [ path, uri ] = mapping[index ++];
+    let [ path, uri ] = mapping[index++];
     if (id.indexOf(path) === 0)
       return normalizeExt(id.replace(path, uri));
   }
@@ -552,12 +552,13 @@ Loader.resolveURI = resolveURI;
 
 const Require = iced(function Require(loader, requirer) {
   let {
-    modules, mapping, resolve: loaderResolve, load, manifest, rootURI, isNative, requireMap
+    modules, mapping, resolve: loaderResolve, load,
+    manifest, rootURI, isNative, requireMap
   } = loader;
 
   function require(id) {
     if (!id) 
-      throw Error('you must provide a module name when calling require() from '
+      throw Error('You must provide a module name when calling require() from '
                   + requirer.id, requirer.uri);
 
     let { uri, requirement } = getRequirements(id);
@@ -592,6 +593,7 @@ const Require = iced(function Require(loader, requirer) {
         uri = uri + '.js';
       }
     }
+
     
     
     
@@ -623,16 +625,35 @@ const Require = iced(function Require(loader, requirer) {
       throw Error('you must provide a module name when calling require() from '
                   + requirer.id, requirer.uri);
 
-    let requirement;
-    let uri;
+    let requirement, uri;
 
     
     
     if (isNative) {
       
       
+      
       if (requireMap && requireMap[requirer.id])
         requirement = requireMap[requirer.id][id];
+
+      let { overrides } = manifest.jetpack;
+      for (let key in overrides) {
+        
+        if (/^[\.\/]/.test(key)) {
+          continue;
+        }
+
+        
+        
+        
+        if (id == key || (id.substr(0, key.length + 1) == (key + "/"))) {
+          id = overrides[key] + id.substr(key.length);
+          id = id.replace(/^[\.\/]+/, "./");
+          if (id.substr(0, 2) == "./") {
+            id = "" + id.substr(2);
+          }
+        }
+      }
 
       
       
@@ -660,7 +681,8 @@ const Require = iced(function Require(loader, requirer) {
       if (!requirement) {
         requirement = isRelative(id) ? Loader.resolve(id, requirer.id) : id;
       }
-    } else {
+    }
+    else {
       
       requirement = requirer ? loaderResolve(id, requirer.id) : id;
     }
@@ -668,9 +690,11 @@ const Require = iced(function Require(loader, requirer) {
     
     uri = uri || resolveURI(requirement, mapping);
 
-    if (!uri) 
+    
+    if (!uri) {
       throw Error('Module: Can not resolve "' + id + '" module required by ' +
                   requirer.id + ' located at ' + requirer.uri, requirer.uri);
+    }
 
     return { uri: uri, requirement: requirement };
   }
@@ -763,6 +787,19 @@ function Loader(options) {
       Loader.resolve,
     sharedGlobalBlacklist: ["sdk/indexed-db"]
   }, options);
+
+  
+  if (typeof manifest != "object" || !manifest) {
+    manifest = {};
+  }
+  if (typeof manifest.jetpack != "object" || !manifest.jetpack) {
+    manifest.jetpack = {
+      overrides: {}
+    };
+  }
+  if (typeof manifest.jetpack.overrides != "object" || !manifest.jetpack.overrides) {
+    manifest.jetpack.overrides = {};
+  }
 
   
   

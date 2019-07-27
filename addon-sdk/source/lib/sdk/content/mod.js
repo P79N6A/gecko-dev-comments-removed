@@ -56,6 +56,10 @@ function detach(modification, target) {
   else {
     let documents = iterator(modification);
     for (let document of documents) {
+      let window = document.defaultView;
+      
+      if (!window)
+        continue;
       detachFrom(modification, document.defaultView);
       remove(modification, document);
     }

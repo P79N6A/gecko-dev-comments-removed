@@ -3,7 +3,6 @@
 
 "use strict";
 
-var BLACKLIST = [];
 var readParam = require("./node-scripts/utils").readParam;
 var path = require("path");
 var Mocha = require("mocha");

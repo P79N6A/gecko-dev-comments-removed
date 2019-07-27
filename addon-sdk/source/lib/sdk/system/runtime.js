@@ -15,6 +15,7 @@ exports.inSafeMode = runtime.inSafeMode;
 exports.OS = runtime.OS;
 exports.processType = runtime.processType;
 exports.widgetToolkit = runtime.widgetToolkit;
+exports.processID = runtime.processID;
 
 
 
