@@ -161,7 +161,12 @@ HTMLObjectElement::OnFocusBlurPlugin(Element* aElement, bool aFocus)
     nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(aElement);
     bool hasRunningPlugin = false;
     if (olc) {
-      olc->GetHasRunningPlugin(&hasRunningPlugin);
+      
+      
+      
+      
+      hasRunningPlugin =
+        static_cast<nsObjectLoadingContent*>(olc.get())->HasRunningPlugin();
     }
     if (!hasRunningPlugin) {
       aFocus = false;
