@@ -134,8 +134,30 @@ class TableBackgroundPainter
 
 
 
-    nsresult PaintCell(nsTableCellFrame* aFrame,
+
+
+
+
+    nsresult PaintCell(nsTableCellFrame* aCell,
+                       nsRect&           aCellBGRect,
+                       nsRect&           aRowBGRect,
+                       nsRect&           aRowGroupBGRect,
+                       nsRect&           aColBGRect,
                        bool              aPassSelf);
+
+    
+
+
+
+
+
+
+
+    void ComputeCellBackgrounds(nsTableCellFrame* aCell,
+                                nsRect&           aCellBGRect,
+                                nsRect&           aRowBGRect,
+                                nsRect&           aRowGroupBGRect,
+                                nsRect&           aColBGRect);
 
     
 
@@ -214,7 +236,6 @@ class TableBackgroundPainter
     uint32_t             mNumCols;
     TableBackgroundData  mRowGroup; 
     TableBackgroundData  mRow;      
-    nsRect               mCellRect; 
 
     nsStyleBorder        mZeroBorder;  
     uint32_t             mBGPaintFlags;
