@@ -457,13 +457,13 @@ MP4Reader::Flush(TrackType aTrack)
   
   
   {
-    data.mIsFlushing = true;
     MonitorAutoLock mon(data.mMonitor);
+    data.mIsFlushing = true;
   }
   data.mDecoder->Flush();
   {
-    data.mIsFlushing = false;
     MonitorAutoLock mon(data.mMonitor);
+    data.mIsFlushing = false;
   }
 }
 
