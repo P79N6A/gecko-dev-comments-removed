@@ -227,7 +227,10 @@ protected:
                               const nsIMEContext &aIMEContext);
   bool HandleComposition(nsWindow* aWindow, const nsIMEContext &aIMEContext,
                            LPARAM lParam);
-  void HandleEndComposition(nsWindow* aWindow);
+  
+  
+  void HandleEndComposition(nsWindow* aWindow,
+                            const nsAString* aCommitString = nullptr);
   bool HandleReconvert(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
   bool HandleQueryCharPosition(nsWindow* aWindow, LPARAM lParam,
                                  LRESULT *oResult);
@@ -276,7 +279,9 @@ protected:
                                           uint32_t aOffset,
                                           nsIntRect &aCharRect);
   bool GetCaretRect(nsWindow* aWindow, nsIntRect &aCaretRect);
-  void GetCompositionString(const nsIMEContext &aIMEContext, DWORD aIndex);
+  void GetCompositionString(const nsIMEContext &aIMEContext,
+                            DWORD aIndex,
+                            nsAString& aCompositionString) const;
   
 
 
@@ -290,9 +295,18 @@ protected:
 
 
   bool GetTargetClauseRange(uint32_t *aOffset, uint32_t *aLength = nullptr);
+
+  
+
+
+
+
+
+
+
+
   void DispatchCompositionChangeEvent(nsWindow* aWindow,
-                                      const nsIMEContext &aIMEContext,
-                                      bool aCheckAttr = true);
+                                      const nsIMEContext& aIMEContext);
   already_AddRefed<mozilla::TextRangeArray> CreateTextRangeArray();
 
   nsresult EnsureClauseArray(int32_t aCount);
@@ -335,7 +349,6 @@ protected:
 
   nsWindow* mComposingWindow;
   nsString  mCompositionString;
-  nsString  mLastDispatchedCompositionString;
   InfallibleTArray<uint32_t> mClauseArray;
   InfallibleTArray<uint8_t> mAttributeArray;
 
