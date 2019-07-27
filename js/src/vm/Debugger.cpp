@@ -1910,7 +1910,7 @@ UpdateExecutionObservabilityOfScriptsInZone(JSContext *cx, Zone *zone,
     
     
     {
-        types::AutoEnterAnalysis enter(fop, zone);
+        AutoEnterAnalysis enter(fop, zone);
         if (JSScript *script = obs.singleScriptForZoneInvalidation()) {
             if (obs.shouldRecompileOrInvalidate(script)) {
                 if (!AppendAndInvalidateScript(cx, zone, script, scripts))

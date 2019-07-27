@@ -9,6 +9,7 @@
 
 #include "jsbytecode.h"
 #include "jsfriendapi.h"
+#include "jsinfer.h"
 
 #include "ds/IdValuePair.h"
 #include "gc/Barrier.h"
@@ -18,16 +19,10 @@ namespace js {
 class TypeDescr;
 class UnboxedLayout;
 
-namespace types {
-
-class Type;
 class TypeNewScript;
 class HeapTypeSet;
-struct Property;
 class AutoClearTypeInferenceStateOnOOM;
 class CompilerConstraintList;
-
-} 
 
 
 
@@ -117,81 +112,6 @@ class RootedBase<TaggedProto> : public TaggedProtoOperations<Rooted<TaggedProto>
         return static_cast<const Rooted<TaggedProto> *>(this)->address();
     }
 };
-
-
-enum : uint32_t {
-    
-    OBJECT_FLAG_FROM_ALLOCATION_SITE  = 0x1,
-
-    
-
-    
-    OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff8,
-    OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 3,
-    OBJECT_FLAG_PROPERTY_COUNT_LIMIT  =
-        OBJECT_FLAG_PROPERTY_COUNT_MASK >> OBJECT_FLAG_PROPERTY_COUNT_SHIFT,
-
-    
-    OBJECT_FLAG_SPARSE_INDEXES        = 0x00010000,
-
-    
-    OBJECT_FLAG_NON_PACKED            = 0x00020000,
-
-    
-
-
-
-    OBJECT_FLAG_LENGTH_OVERFLOW       = 0x00040000,
-
-    
-    OBJECT_FLAG_ITERATED              = 0x00080000,
-
-    
-    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00100000,
-
-    
-
-
-
-    OBJECT_FLAG_RUNONCE_INVALIDATED   = 0x00200000,
-
-    
-
-
-
-    OBJECT_FLAG_TYPED_OBJECT_NEUTERED = 0x00400000,
-
-    
-
-
-
-    OBJECT_FLAG_PRE_TENURE            = 0x00800000,
-
-    
-    OBJECT_FLAG_COPY_ON_WRITE         = 0x01000000,
-
-    
-    OBJECT_FLAG_NEW_SCRIPT_CLEARED    = 0x02000000,
-
-    
-
-
-
-    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x04000000,
-
-    
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x07ff0000,
-
-    
-    OBJECT_FLAG_ADDENDUM_MASK         = 0x38000000,
-    OBJECT_FLAG_ADDENDUM_SHIFT        = 27,
-
-    
-    
-    OBJECT_FLAG_GENERATION_MASK       = 0x40000000,
-    OBJECT_FLAG_GENERATION_SHIFT      = 30,
-};
-typedef uint32_t ObjectGroupFlags;
 
 
 
@@ -301,9 +221,9 @@ class ObjectGroup : public gc::TenuredCell
             ((flags_ & OBJECT_FLAG_ADDENDUM_MASK) >> OBJECT_FLAG_ADDENDUM_SHIFT);
     }
 
-    types::TypeNewScript *newScriptDontCheckGeneration() const {
+    TypeNewScript *newScriptDontCheckGeneration() const {
         if (addendumKind() == Addendum_NewScript)
-            return reinterpret_cast<types::TypeNewScript *>(addendum_);
+            return reinterpret_cast<TypeNewScript *>(addendum_);
         return nullptr;
     }
 
@@ -313,7 +233,7 @@ class ObjectGroup : public gc::TenuredCell
         return nullptr;
     }
 
-    types::TypeNewScript *anyNewScript();
+    TypeNewScript *anyNewScript();
     void detachNewScript(bool writeBarrier);
 
   public:
@@ -333,12 +253,12 @@ class ObjectGroup : public gc::TenuredCell
         flags_ &= ~flags;
     }
 
-    types::TypeNewScript *newScript() {
+    TypeNewScript *newScript() {
         maybeSweep(nullptr);
         return newScriptDontCheckGeneration();
     }
 
-    void setNewScript(types::TypeNewScript *newScript) {
+    void setNewScript(TypeNewScript *newScript) {
         setAddendum(Addendum_NewScript, newScript);
     }
 
@@ -385,13 +305,71 @@ class ObjectGroup : public gc::TenuredCell
         setAddendum(Addendum_InterpretedFunction, fun);
     }
 
+    class Property
+    {
+      public:
+        
+        
+        
+        HeapId id;
+
+        
+        HeapTypeSet types;
+
+        explicit Property(jsid id)
+          : id(id)
+        {}
+
+        Property(const Property &o)
+          : id(o.id.get()), types(o.types)
+        {}
+
+        static uint32_t keyBits(jsid id) { return uint32_t(JSID_BITS(id)); }
+        static jsid getKey(Property *p) { return p->id; }
+    };
+
   private:
     
-    
-    
-    
-    
-    types::Property **propertySet;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Property **propertySet;
   public:
 
     inline ObjectGroup(const Class *clasp, TaggedProto proto, ObjectGroupFlags initialFlags);
@@ -415,7 +393,7 @@ class ObjectGroup : public gc::TenuredCell
         return hasAnyFlags(OBJECT_FLAG_PRE_TENURE) && !unknownProperties();
     }
 
-    gc::InitialHeap initialHeap(types::CompilerConstraintList *constraints);
+    gc::InitialHeap initialHeap(CompilerConstraintList *constraints);
 
     bool canPreTenure() {
         return !unknownProperties();
@@ -434,17 +412,17 @@ class ObjectGroup : public gc::TenuredCell
 
 
 
-    inline types::HeapTypeSet *getProperty(ExclusiveContext *cx, jsid id);
+    inline HeapTypeSet *getProperty(ExclusiveContext *cx, jsid id);
 
     
-    inline types::HeapTypeSet *maybeGetProperty(jsid id);
+    inline HeapTypeSet *maybeGetProperty(jsid id);
 
     inline unsigned getPropertyCount();
-    inline types::Property *getProperty(unsigned i);
+    inline Property *getProperty(unsigned i);
 
     
 
-    void updateNewPropertyTypes(ExclusiveContext *cx, jsid id, types::HeapTypeSet *types);
+    void updateNewPropertyTypes(ExclusiveContext *cx, jsid id, HeapTypeSet *types);
     bool addDefiniteProperties(ExclusiveContext *cx, Shape *shape);
     bool matchDefiniteProperties(HandleObject obj);
     void markPropertyNonData(ExclusiveContext *cx, jsid id);
@@ -460,7 +438,7 @@ class ObjectGroup : public gc::TenuredCell
     void print();
 
     inline void clearProperties();
-    void maybeSweep(types::AutoClearTypeInferenceStateOnOOM *oom);
+    void maybeSweep(AutoClearTypeInferenceStateOnOOM *oom);
 
   private:
 #ifdef DEBUG
@@ -568,12 +546,13 @@ class ObjectGroup : public gc::TenuredCell
     static ArrayObject *getCopyOnWriteObject(JSScript *script, jsbytecode *pc);
 
     
-    static bool findAllocationSiteForType(JSContext *cx, types::Type type,
-                                          JSScript **script, uint32_t *offset);
+    static bool findAllocationSite(JSContext *cx, ObjectGroup *group,
+                                   JSScript **script, uint32_t *offset);
 
   private:
     static ObjectGroup *defaultNewGroup(JSContext *cx, JSProtoKey key);
-    static void setGroupToHomogenousArray(ExclusiveContext *cx, JSObject *obj, types::Type type);
+    static void setGroupToHomogenousArray(ExclusiveContext *cx, JSObject *obj,
+                                          TypeSet::Type type);
 };
 
 

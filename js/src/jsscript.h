@@ -823,7 +823,7 @@ class JSScript : public js::gc::TenuredCell
 
   private:
     
-    js::types::TypeScript *types_;
+    js::TypeScript *types_;
 
     
     
@@ -1455,9 +1455,9 @@ class JSScript : public js::gc::TenuredCell
     
     inline bool ensureHasTypes(JSContext *cx);
 
-    inline js::types::TypeScript *types();
+    inline js::TypeScript *types();
 
-    void maybeSweepTypes(js::types::AutoClearTypeInferenceStateOnOOM *oom);
+    void maybeSweepTypes(js::AutoClearTypeInferenceStateOnOOM *oom);
 
     inline js::GlobalObject &global() const;
     js::GlobalObject &uninlinedGlobal() const;

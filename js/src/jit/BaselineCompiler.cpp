@@ -90,7 +90,7 @@ BaselineCompiler::compile()
         return Method_Error;
 
     
-    types::AutoEnterAnalysis autoEnterAnalysis(cx);
+    AutoEnterAnalysis autoEnterAnalysis(cx);
 
     MOZ_ASSERT(!script->hasBaselineScript());
 
@@ -250,7 +250,7 @@ BaselineCompiler::compile()
 #endif
 
     uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
-    types::FillBytecodeTypeMap(script, bytecodeMap);
+    FillBytecodeTypeMap(script, bytecodeMap);
 
     
     

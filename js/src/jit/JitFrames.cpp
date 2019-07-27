@@ -2115,7 +2115,7 @@ SnapshotIterator::computeInstructionResults(JSContext *cx, RInstructionResults *
 
         
         
-        types::AutoEnterAnalysis enter(cx);
+        AutoEnterAnalysis enter(cx);
 
         
         SnapshotIterator s(*this);

@@ -99,7 +99,7 @@ InvokeFunction(JSContext *cx, HandleObject obj0, uint32_t argc, Value *argv, Val
     if (obj->is<JSFunction>()) {
         jsbytecode *pc;
         RootedScript script(cx, cx->currentScript(&pc));
-        types::TypeScript::Monitor(cx, script, pc, rv.get());
+        TypeScript::Monitor(cx, script, pc, rv.get());
     }
 
     *rval = rv;
@@ -330,7 +330,7 @@ ArrayPopDense(JSContext *cx, HandleObject obj, MutableHandleValue rval)
     
     rval.set(argv[0]);
     if (rval.isUndefined())
-        types::TypeScript::Monitor(cx, rval);
+        TypeScript::Monitor(cx, rval);
     return true;
 }
 
@@ -380,7 +380,7 @@ ArrayShiftDense(JSContext *cx, HandleObject obj, MutableHandleValue rval)
     
     rval.set(argv[0]);
     if (rval.isUndefined())
-        types::TypeScript::Monitor(cx, rval);
+        TypeScript::Monitor(cx, rval);
     return true;
 }
 
@@ -583,7 +583,7 @@ GetIntrinsicValue(JSContext *cx, HandlePropertyName name, MutableHandleValue rva
     
     
     
-    types::TypeScript::Monitor(cx, rval);
+    TypeScript::Monitor(cx, rval);
 
     return true;
 }

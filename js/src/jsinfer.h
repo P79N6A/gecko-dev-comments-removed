@@ -23,7 +23,6 @@
 #include "js/UbiNode.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
-#include "vm/ObjectGroup.h"
 
 namespace js {
 
@@ -33,174 +32,24 @@ namespace jit {
     class TempAllocator;
 }
 
-namespace types {
-
+class TaggedProto;
 struct TypeZone;
-class TypeSet;
-struct TypeSetObjectKey;
+class TypeConstraint;
+class TypeNewScript;
+class CompilerConstraintList;
+class HeapTypeSetKey;
 
 
 
 
 
 
-class Type
-{
-    uintptr_t data;
-    explicit Type(uintptr_t data) : data(data) {}
 
-  public:
 
-    uintptr_t raw() const { return data; }
 
-    bool isPrimitive() const {
-        return data < JSVAL_TYPE_OBJECT;
-    }
 
-    bool isPrimitive(JSValueType type) const {
-        MOZ_ASSERT(type < JSVAL_TYPE_OBJECT);
-        return (uintptr_t) type == data;
-    }
 
-    JSValueType primitive() const {
-        MOZ_ASSERT(isPrimitive());
-        return (JSValueType) data;
-    }
 
-    bool isMagicArguments() const {
-        return primitive() == JSVAL_TYPE_MAGIC;
-    }
-
-    bool isSomeObject() const {
-        return data == JSVAL_TYPE_OBJECT || data > JSVAL_TYPE_UNKNOWN;
-    }
-
-    bool isAnyObject() const {
-        return data == JSVAL_TYPE_OBJECT;
-    }
-
-    bool isUnknown() const {
-        return data == JSVAL_TYPE_UNKNOWN;
-    }
-
-    
-
-    bool isObject() const {
-        MOZ_ASSERT(!isAnyObject() && !isUnknown());
-        return data > JSVAL_TYPE_UNKNOWN;
-    }
-
-    bool isObjectUnchecked() const {
-        return data > JSVAL_TYPE_UNKNOWN;
-    }
-
-    inline TypeSetObjectKey *objectKey() const;
-
-    
-
-    bool isSingleton() const {
-        return isObject() && !!(data & 1);
-    }
-
-    inline JSObject *singleton() const;
-    inline JSObject *singletonNoBarrier() const;
-
-    
-
-    bool isGroup() const {
-        return isObject() && !(data & 1);
-    }
-
-    inline ObjectGroup *group() const;
-    inline ObjectGroup *groupNoBarrier() const;
-
-    bool operator == (Type o) const { return data == o.data; }
-    bool operator != (Type o) const { return data != o.data; }
-
-    static inline Type UndefinedType() { return Type(JSVAL_TYPE_UNDEFINED); }
-    static inline Type NullType()      { return Type(JSVAL_TYPE_NULL); }
-    static inline Type BooleanType()   { return Type(JSVAL_TYPE_BOOLEAN); }
-    static inline Type Int32Type()     { return Type(JSVAL_TYPE_INT32); }
-    static inline Type DoubleType()    { return Type(JSVAL_TYPE_DOUBLE); }
-    static inline Type StringType()    { return Type(JSVAL_TYPE_STRING); }
-    static inline Type SymbolType()    { return Type(JSVAL_TYPE_SYMBOL); }
-    static inline Type MagicArgType()  { return Type(JSVAL_TYPE_MAGIC); }
-    static inline Type AnyObjectType() { return Type(JSVAL_TYPE_OBJECT); }
-    static inline Type UnknownType()   { return Type(JSVAL_TYPE_UNKNOWN); }
-
-    static inline Type PrimitiveType(JSValueType type) {
-        MOZ_ASSERT(type < JSVAL_TYPE_UNKNOWN);
-        return Type(type);
-    }
-
-    static inline Type ObjectType(JSObject *obj);
-    static inline Type ObjectType(ObjectGroup *group);
-    static inline Type ObjectType(TypeSetObjectKey *key);
-
-    static js::ThingRootKind rootKind() { return js::THING_ROOT_TYPE; }
-};
-
-
-inline Type GetValueType(const Value &val);
-
-
-
-
-
-
-inline Type GetMaybeUntrackedValueType(const Value &val);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class TypeConstraint
-{
-public:
-    
-    TypeConstraint *next;
-
-    TypeConstraint()
-        : next(nullptr)
-    {}
-
-    
-    virtual const char *kind() = 0;
-
-    
-    virtual void newType(JSContext *cx, TypeSet *source, Type type) = 0;
-
-    
-
-
-
-    virtual void newPropertyState(JSContext *cx, TypeSet *source) {}
-
-    
-
-
-
-
-    virtual void newObjectState(JSContext *cx, ObjectGroup *group) {}
-
-    
-
-
-
-    virtual bool sweep(TypeZone &zone, TypeConstraint **res) = 0;
-};
 
 
 enum : uint32_t {
@@ -261,6 +110,81 @@ enum : uint32_t {
 };
 typedef uint32_t TypeFlags;
 
+
+enum : uint32_t {
+    
+    OBJECT_FLAG_FROM_ALLOCATION_SITE  = 0x1,
+
+    
+
+    
+    OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff8,
+    OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 3,
+    OBJECT_FLAG_PROPERTY_COUNT_LIMIT  =
+        OBJECT_FLAG_PROPERTY_COUNT_MASK >> OBJECT_FLAG_PROPERTY_COUNT_SHIFT,
+
+    
+    OBJECT_FLAG_SPARSE_INDEXES        = 0x00010000,
+
+    
+    OBJECT_FLAG_NON_PACKED            = 0x00020000,
+
+    
+
+
+
+    OBJECT_FLAG_LENGTH_OVERFLOW       = 0x00040000,
+
+    
+    OBJECT_FLAG_ITERATED              = 0x00080000,
+
+    
+    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00100000,
+
+    
+
+
+
+    OBJECT_FLAG_RUNONCE_INVALIDATED   = 0x00200000,
+
+    
+
+
+
+    OBJECT_FLAG_TYPED_OBJECT_NEUTERED = 0x00400000,
+
+    
+
+
+
+    OBJECT_FLAG_PRE_TENURE            = 0x00800000,
+
+    
+    OBJECT_FLAG_COPY_ON_WRITE         = 0x01000000,
+
+    
+    OBJECT_FLAG_NEW_SCRIPT_CLEARED    = 0x02000000,
+
+    
+
+
+
+    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x04000000,
+
+    
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x07ff0000,
+
+    
+    OBJECT_FLAG_ADDENDUM_MASK         = 0x38000000,
+    OBJECT_FLAG_ADDENDUM_SHIFT        = 27,
+
+    
+    
+    OBJECT_FLAG_GENERATION_MASK       = 0x40000000,
+    OBJECT_FLAG_GENERATION_SHIFT      = 30,
+};
+typedef uint32_t ObjectGroupFlags;
+
 class StackTypeSet;
 class HeapTypeSet;
 class TemporaryTypeSet;
@@ -287,14 +211,165 @@ class TemporaryTypeSet;
 
 
 
+
 class TypeSet
 {
+  public:
+    
+    
+    class ObjectKey {
+      public:
+        static intptr_t keyBits(ObjectKey *obj) { return (intptr_t) obj; }
+        static ObjectKey *getKey(ObjectKey *obj) { return obj; }
+
+        static inline ObjectKey *get(JSObject *obj);
+        static inline ObjectKey *get(ObjectGroup *group);
+
+        bool isGroup() {
+            return (uintptr_t(this) & 1) == 0;
+        }
+        bool isSingleton() {
+            return (uintptr_t(this) & 1) != 0;
+        }
+
+        inline ObjectGroup *group();
+        inline JSObject *singleton();
+
+        inline ObjectGroup *groupNoBarrier();
+        inline JSObject *singletonNoBarrier();
+
+        const Class *clasp();
+        TaggedProto proto();
+        TypeNewScript *newScript();
+
+        bool unknownProperties();
+        bool hasFlags(CompilerConstraintList *constraints, ObjectGroupFlags flags);
+        bool hasStableClassAndProto(CompilerConstraintList *constraints);
+        void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
+        void watchStateChangeForTypedArrayData(CompilerConstraintList *constraints);
+        HeapTypeSetKey property(jsid id);
+        void ensureTrackedProperty(JSContext *cx, jsid id);
+
+        ObjectGroup *maybeGroup();
+    };
+
+    
+    
+    
+    class Type
+    {
+        friend class TypeSet;
+
+        uintptr_t data;
+        explicit Type(uintptr_t data) : data(data) {}
+
+      public:
+
+        uintptr_t raw() const { return data; }
+
+        bool isPrimitive() const {
+            return data < JSVAL_TYPE_OBJECT;
+        }
+
+        bool isPrimitive(JSValueType type) const {
+            MOZ_ASSERT(type < JSVAL_TYPE_OBJECT);
+            return (uintptr_t) type == data;
+        }
+
+        JSValueType primitive() const {
+            MOZ_ASSERT(isPrimitive());
+            return (JSValueType) data;
+        }
+
+        bool isMagicArguments() const {
+            return primitive() == JSVAL_TYPE_MAGIC;
+        }
+
+        bool isSomeObject() const {
+            return data == JSVAL_TYPE_OBJECT || data > JSVAL_TYPE_UNKNOWN;
+        }
+
+        bool isAnyObject() const {
+            return data == JSVAL_TYPE_OBJECT;
+        }
+
+        bool isUnknown() const {
+            return data == JSVAL_TYPE_UNKNOWN;
+        }
+
+        
+
+        bool isObject() const {
+            MOZ_ASSERT(!isAnyObject() && !isUnknown());
+            return data > JSVAL_TYPE_UNKNOWN;
+        }
+
+        bool isObjectUnchecked() const {
+            return data > JSVAL_TYPE_UNKNOWN;
+        }
+
+        inline ObjectKey *objectKey() const;
+
+        
+
+        bool isSingleton() const {
+            return isObject() && !!(data & 1);
+        }
+
+        inline JSObject *singleton() const;
+        inline JSObject *singletonNoBarrier() const;
+
+        
+
+        bool isGroup() const {
+            return isObject() && !(data & 1);
+        }
+
+        inline ObjectGroup *group() const;
+        inline ObjectGroup *groupNoBarrier() const;
+
+        bool operator == (Type o) const { return data == o.data; }
+        bool operator != (Type o) const { return data != o.data; }
+
+        static ThingRootKind rootKind() { return THING_ROOT_TYPE; }
+    };
+
+    static inline Type UndefinedType() { return Type(JSVAL_TYPE_UNDEFINED); }
+    static inline Type NullType()      { return Type(JSVAL_TYPE_NULL); }
+    static inline Type BooleanType()   { return Type(JSVAL_TYPE_BOOLEAN); }
+    static inline Type Int32Type()     { return Type(JSVAL_TYPE_INT32); }
+    static inline Type DoubleType()    { return Type(JSVAL_TYPE_DOUBLE); }
+    static inline Type StringType()    { return Type(JSVAL_TYPE_STRING); }
+    static inline Type SymbolType()    { return Type(JSVAL_TYPE_SYMBOL); }
+    static inline Type MagicArgType()  { return Type(JSVAL_TYPE_MAGIC); }
+    static inline Type AnyObjectType() { return Type(JSVAL_TYPE_OBJECT); }
+    static inline Type UnknownType()   { return Type(JSVAL_TYPE_UNKNOWN); }
+
+    static inline Type PrimitiveType(JSValueType type) {
+        MOZ_ASSERT(type < JSVAL_TYPE_UNKNOWN);
+        return Type(type);
+    }
+
+    static inline Type ObjectType(JSObject *obj);
+    static inline Type ObjectType(ObjectGroup *group);
+    static inline Type ObjectType(ObjectKey *key);
+
+    static const char *NonObjectTypeString(Type type);
+
+#ifdef DEBUG
+    static const char *TypeString(Type type);
+    static const char *ObjectGroupString(ObjectGroup *group);
+#else
+    static const char *TypeString(Type type) { return nullptr; }
+    static const char *ObjectGroupString(ObjectGroup *group) { return nullptr; }
+#endif
+
   protected:
     
     TypeFlags flags;
 
     
-    TypeSetObjectKey **objectSet;
+    ObjectKey **objectSet;
 
   public:
 
@@ -350,7 +425,7 @@ class TypeSet
 
 
     inline unsigned getObjectCount() const;
-    inline TypeSetObjectKey *getObject(unsigned i) const;
+    inline ObjectKey *getObject(unsigned i) const;
     inline JSObject *getSingleton(unsigned i) const;
     inline ObjectGroup *getGroup(unsigned i) const;
     inline JSObject *getSingletonNoBarrier(unsigned i) const;
@@ -412,6 +487,58 @@ class TypeSet
     inline void setBaseObjectCount(uint32_t count);
 
     void clearObjects();
+
+  public:
+    static inline Type GetValueType(const Value &val);
+
+    static inline bool IsUntrackedValue(const Value &val);
+
+    
+    
+    
+    static inline Type GetMaybeUntrackedValueType(const Value &val);
+
+    static void MarkTypeRoot(JSTracer *trc, Type *v, const char *name);
+};
+
+
+
+
+
+class TypeConstraint
+{
+public:
+    
+    TypeConstraint *next;
+
+    TypeConstraint()
+        : next(nullptr)
+    {}
+
+    
+    virtual const char *kind() = 0;
+
+    
+    virtual void newType(JSContext *cx, TypeSet *source, TypeSet::Type type) = 0;
+
+    
+
+
+
+    virtual void newPropertyState(JSContext *cx, TypeSet *source) {}
+
+    
+
+
+
+
+    virtual void newObjectState(JSContext *cx, ObjectGroup *group) {}
+
+    
+
+
+
+    virtual bool sweep(TypeZone &zone, TypeConstraint **res) = 0;
 };
 
 
@@ -487,7 +614,7 @@ class TemporaryTypeSet : public TypeSet
     TemporaryTypeSet() {}
     TemporaryTypeSet(LifoAlloc *alloc, Type type);
 
-    TemporaryTypeSet(uint32_t flags, TypeSetObjectKey **objectSet) {
+    TemporaryTypeSet(uint32_t flags, ObjectKey **objectSet) {
         this->flags = flags;
         this->objectSet = objectSet;
     }
@@ -776,66 +903,6 @@ inline bool isInlinableCall(jsbytecode *pc);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct Property
-{
-    
-    HeapId id;
-
-    
-    HeapTypeSet types;
-
-    explicit Property(jsid id)
-      : id(id)
-    {}
-
-    Property(const Property &o)
-      : id(o.id.get()), types(o.types)
-    {}
-
-    static uint32_t keyBits(jsid id) { return uint32_t(JSID_BITS(id)); }
-    static jsid getKey(Property *p) { return p->id; }
-};
-
-
-
-
-
 bool
 ArrayPrototypeHasIndexedProperty(CompilerConstraintList *constraints, JSScript *script);
 
@@ -894,9 +961,10 @@ class TypeScript
     static inline void MonitorAssign(JSContext *cx, HandleObject obj, jsid id);
 
     
-    static inline void SetThis(JSContext *cx, JSScript *script, Type type);
+    static inline void SetThis(JSContext *cx, JSScript *script, TypeSet::Type type);
     static inline void SetThis(JSContext *cx, JSScript *script, const js::Value &value);
-    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
+    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg,
+                                   TypeSet::Type type);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg,
                                    const js::Value &value);
 
@@ -940,45 +1008,6 @@ FinishCompilation(JSContext *cx, HandleScript script, CompilerConstraintList *co
 void
 FinishDefinitePropertiesAnalysis(JSContext *cx, CompilerConstraintList *constraints);
 
-class HeapTypeSetKey;
-
-
-struct TypeSetObjectKey
-{
-    static intptr_t keyBits(TypeSetObjectKey *obj) { return (intptr_t) obj; }
-    static TypeSetObjectKey *getKey(TypeSetObjectKey *obj) { return obj; }
-
-    static inline TypeSetObjectKey *get(JSObject *obj);
-    static inline TypeSetObjectKey *get(ObjectGroup *group);
-
-    bool isGroup() {
-        return (uintptr_t(this) & 1) == 0;
-    }
-    bool isSingleton() {
-        return (uintptr_t(this) & 1) != 0;
-    }
-
-    inline ObjectGroup *group();
-    inline JSObject *singleton();
-
-    inline ObjectGroup *groupNoBarrier();
-    inline JSObject *singletonNoBarrier();
-
-    const Class *clasp();
-    TaggedProto proto();
-    TypeNewScript *newScript();
-
-    bool unknownProperties();
-    bool hasFlags(CompilerConstraintList *constraints, ObjectGroupFlags flags);
-    bool hasStableClassAndProto(CompilerConstraintList *constraints);
-    void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
-    void watchStateChangeForTypedArrayData(CompilerConstraintList *constraints);
-    HeapTypeSetKey property(jsid id);
-    void ensureTrackedProperty(JSContext *cx, jsid id);
-
-    ObjectGroup *maybeGroup();
-};
-
 
 
 
@@ -989,10 +1018,10 @@ struct TypeSetObjectKey
 
 class HeapTypeSetKey
 {
-    friend struct TypeSetObjectKey;
+    friend class TypeSet::ObjectKey;
 
     
-    TypeSetObjectKey *object_;
+    TypeSet::ObjectKey *object_;
     jsid id_;
 
     
@@ -1003,7 +1032,7 @@ class HeapTypeSetKey
       : object_(nullptr), id_(JSID_EMPTY), maybeTypes_(nullptr)
     {}
 
-    TypeSetObjectKey *object() const { return object_; }
+    TypeSet::ObjectKey *object() const { return object_; }
     jsid id() const { return id_; }
     HeapTypeSet *maybeTypes() const { return maybeTypes_; }
 
@@ -1166,8 +1195,6 @@ enum SpewChannel {
     SPEW_COUNT
 };
 
-const char *NonObjectTypeString(Type type);
-
 #ifdef DEBUG
 
 const char * InferSpewColorReset();
@@ -1175,11 +1202,9 @@ const char * InferSpewColor(TypeConstraint *constraint);
 const char * InferSpewColor(TypeSet *types);
 
 void InferSpew(SpewChannel which, const char *fmt, ...);
-const char * TypeString(Type type);
-const char * ObjectGroupString(ObjectGroup *group);
 
 
-bool TypeHasProperty(JSContext *cx, ObjectGroup *group, jsid id, const Value &value);
+bool ObjectGroupHasProperty(JSContext *cx, ObjectGroup *group, jsid id, const Value &value);
 
 #else
 
@@ -1187,8 +1212,6 @@ inline const char * InferSpewColorReset() { return nullptr; }
 inline const char * InferSpewColor(TypeConstraint *constraint) { return nullptr; }
 inline const char * InferSpewColor(TypeSet *types) { return nullptr; }
 inline void InferSpew(SpewChannel which, const char *fmt, ...) {}
-inline const char * TypeString(Type type) { return nullptr; }
-inline const char * ObjectGroupString(ObjectGroup *group) { return nullptr; }
 
 #endif
 
@@ -1199,7 +1222,6 @@ MOZ_NORETURN MOZ_COLD void TypeFailure(JSContext *cx, const char *fmt, ...);
 void
 PrintTypes(JSContext *cx, JSCompartment *comp, bool force);
 
-} 
 } 
 
 

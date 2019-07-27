@@ -58,7 +58,7 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
     size_t size_;
 
     
-    types::TypeNewScript *newScript_;
+    TypeNewScript *newScript_;
 
     
     
@@ -80,11 +80,11 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
         return properties_;
     }
 
-    types::TypeNewScript *newScript() const {
+    TypeNewScript *newScript() const {
         return newScript_;
     }
 
-    void setNewScript(types::TypeNewScript *newScript, bool writeBarrier = true);
+    void setNewScript(TypeNewScript *newScript, bool writeBarrier = true);
 
     const int32_t *traceList() const {
         return traceList_;
@@ -182,7 +182,7 @@ class UnboxedPlainObject : public JSObject
 
 bool
 TryConvertToUnboxedLayout(JSContext *cx, Shape *templateShape,
-                          ObjectGroup *group, types::PreliminaryObjectArray *objects);
+                          ObjectGroup *group, PreliminaryObjectArray *objects);
 
 inline gc::AllocKind
 UnboxedLayout::getAllocKind() const

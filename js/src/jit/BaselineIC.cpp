@@ -1197,12 +1197,12 @@ DoTypeMonitorFallback(JSContext *cx, BaselineFrame *frame, ICTypeMonitor_Fallbac
     uint32_t argument;
     if (stub->monitorsThis()) {
         MOZ_ASSERT(pc == script->code());
-        types::TypeScript::SetThis(cx, script, value);
+        TypeScript::SetThis(cx, script, value);
     } else if (stub->monitorsArgument(&argument)) {
         MOZ_ASSERT(pc == script->code());
-        types::TypeScript::SetArgument(cx, script, argument, value);
+        TypeScript::SetArgument(cx, script, argument, value);
     } else {
-        types::TypeScript::Monitor(cx, script, pc, value);
+        TypeScript::Monitor(cx, script, pc, value);
     }
 
     if (!stub->addMonitorStubForValue(cx, script, value))
@@ -1324,12 +1324,12 @@ ICUpdatedStub::addUpdateStubForValue(JSContext *cx, HandleScript script, HandleO
         return true;
     }
 
-    types::EnsureTrackPropertyTypes(cx, obj, id);
+    EnsureTrackPropertyTypes(cx, obj, id);
 
     
     
-    if (val.isUndefined() && types::CanHaveEmptyPropertyTypesForOwnProperty(obj))
-        types::AddTypePropertyId(cx, obj, id, val);
+    if (val.isUndefined() && CanHaveEmptyPropertyTypesForOwnProperty(obj))
+        AddTypePropertyId(cx, obj, id, val);
 
     if (val.isPrimitive()) {
         JSValueType type = val.isDouble() ? JSVAL_TYPE_DOUBLE : val.extractNonDoubleType();
@@ -1423,7 +1423,7 @@ DoTypeUpdateFallback(JSContext *cx, BaselineFrame *frame, ICUpdatedStub *stub, H
       case ICStub::SetElem_DenseAdd: {
         MOZ_ASSERT(obj->isNative());
         id = JSID_VOID;
-        types::AddTypePropertyId(cx, obj, id, value);
+        AddTypePropertyId(cx, obj, id, value);
         break;
       }
       case ICStub::SetProp_Native:
@@ -1435,7 +1435,7 @@ DoTypeUpdateFallback(JSContext *cx, BaselineFrame *frame, ICUpdatedStub *stub, H
             id = NameToId(ScopeCoordinateName(cx->runtime()->scopeCoordinateNameCache, script, pc));
         else
             id = NameToId(script->getName(pc));
-        types::AddTypePropertyId(cx, obj, id, value);
+        AddTypePropertyId(cx, obj, id, value);
         break;
       }
       case ICStub::SetProp_TypedObject: {
@@ -1448,12 +1448,12 @@ DoTypeUpdateFallback(JSContext *cx, BaselineFrame *frame, ICUpdatedStub *stub, H
             
             
             if (value.isObject())
-                types::AddTypePropertyId(cx, obj, id, value);
+                AddTypePropertyId(cx, obj, id, value);
         } else {
             
             
             if (!value.isUndefined())
-                types::AddTypePropertyId(cx, obj, id, value);
+                AddTypePropertyId(cx, obj, id, value);
         }
         break;
       }
@@ -3975,13 +3975,13 @@ DoGetElemFallback(JSContext *cx, BaselineFrame *frame, ICGetElem_Fallback *stub_
         if (!GetElemOptimizedArguments(cx, frame, &lhsCopy, rhs, res, &isOptimizedArgs))
             return false;
         if (isOptimizedArgs)
-            types::TypeScript::Monitor(cx, frame->script(), pc, res);
+            TypeScript::Monitor(cx, frame->script(), pc, res);
     }
 
     if (!isOptimizedArgs) {
         if (!GetElementOperation(cx, op, &lhsCopy, rhs, res))
             return false;
-        types::TypeScript::Monitor(cx, frame->script(), pc, res);
+        TypeScript::Monitor(cx, frame->script(), pc, res);
     }
 
     
@@ -5803,7 +5803,7 @@ TryAttachGlobalNameStub(JSContext *cx, HandleScript script, jsbytecode *pc,
 
     
     if (IsIonEnabled(cx))
-        types::EnsureTrackPropertyTypes(cx, current, id);
+        EnsureTrackPropertyTypes(cx, current, id);
 
     if (shape->hasDefaultGetter() && shape->hasSlot()) {
 
@@ -6006,7 +6006,7 @@ DoGetNameFallback(JSContext *cx, BaselineFrame *frame, ICGetName_Fallback *stub_
             return false;
     }
 
-    types::TypeScript::Monitor(cx, script, pc, res);
+    TypeScript::Monitor(cx, script, pc, res);
 
     
     if (stub.invalid())
@@ -6195,7 +6195,7 @@ DoGetIntrinsicFallback(JSContext *cx, BaselineFrame *frame, ICGetIntrinsic_Fallb
     
     
 
-    types::TypeScript::Monitor(cx, script, pc, res);
+    TypeScript::Monitor(cx, script, pc, res);
 
     
     if (stub.invalid())
@@ -6383,7 +6383,7 @@ HasUnanalyzedNewScript(JSObject *obj)
     if (obj->isSingleton())
         return false;
 
-    types::TypeNewScript *newScript = obj->group()->newScript();
+    TypeNewScript *newScript = obj->group()->newScript();
     if (newScript && !newScript->analyzed())
         return true;
 
@@ -6451,7 +6451,7 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
 
         
         if (IsIonEnabled(cx))
-            types::EnsureTrackPropertyTypes(cx, holder, NameToId(name));
+            EnsureTrackPropertyTypes(cx, holder, NameToId(name));
 
         ICStub::Kind kind;
         if (obj == holder)
@@ -6741,7 +6741,7 @@ TryAttachPrimitiveGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc
     
     RootedId id(cx, NameToId(name));
     if (IsIonEnabled(cx))
-        types::EnsureTrackPropertyTypes(cx, proto, id);
+        EnsureTrackPropertyTypes(cx, proto, id);
 
     
     RootedShape shape(cx, proto->lookup(cx, id));
@@ -6869,7 +6869,7 @@ DoGetPropFallback(JSContext *cx, BaselineFrame *frame, ICGetProp_Fallback *stub_
     if (!ComputeGetPropResult(cx, frame, op, name, val, res))
         return false;
 
-    types::TypeScript::Monitor(cx, frame->script(), pc, res);
+    TypeScript::Monitor(cx, frame->script(), pc, res);
 
     
     if (stub.invalid())
@@ -8054,8 +8054,8 @@ TryAttachSetValuePropStub(JSContext *cx, HandleScript script, jsbytecode *pc, IC
         
         
         
-        types::EnsureTrackPropertyTypes(cx, obj, id);
-        if (!types::PropertyHasBeenMarkedNonConstant(obj, id)) {
+        EnsureTrackPropertyTypes(cx, obj, id);
+        if (!PropertyHasBeenMarkedNonConstant(obj, id)) {
             *attached = true;
             return true;
         }
@@ -9327,7 +9327,7 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
         
         
         if (IsIonEnabled(cx))
-            types::EnsureTrackPropertyTypes(cx, fun, NameToId(cx->names().prototype));
+            EnsureTrackPropertyTypes(cx, fun, NameToId(cx->names().prototype));
 
         
         
@@ -9345,7 +9345,7 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
                 
                 
                 
-                types::TypeNewScript *newScript = templateObject->group()->newScript();
+                TypeNewScript *newScript = templateObject->group()->newScript();
                 if (newScript && !newScript->analyzed()) {
                     
                     
@@ -9573,7 +9573,7 @@ DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_, uint
             return false;
     }
 
-    types::TypeScript::Monitor(cx, script, pc, res);
+    TypeScript::Monitor(cx, script, pc, res);
 
     
     if (stub.invalid())
@@ -11234,7 +11234,7 @@ DoInstanceOfFallback(JSContext *cx, BaselineFrame *frame, ICInstanceOf_Fallback 
 
     
     
-    types::EnsureTrackPropertyTypes(cx, obj, NameToId(cx->names().prototype));
+    EnsureTrackPropertyTypes(cx, obj, NameToId(cx->names().prototype));
 
     if (stub->numOptimizedStubs() >= ICInstanceOf_Fallback::MAX_OPTIMIZED_STUBS)
         return true;

@@ -3395,7 +3395,7 @@ CodeGenerator::generateArgumentsChecks(bool bailout)
     for (uint32_t i = info.startArgSlot(); i < info.endArgSlot(); i++) {
         
         MParameter *param = rp->getOperand(i)->toParameter();
-        const types::TypeSet *types = param->resultTypeSet();
+        const TypeSet *types = param->resultTypeSet();
         if (!types || types->unknown())
             continue;
 
@@ -7215,11 +7215,11 @@ CodeGenerator::generate()
 struct AutoDiscardIonCode
 {
     JSContext *cx;
-    types::RecompileInfo *recompileInfo;
+    RecompileInfo *recompileInfo;
     IonScript *ionScript;
     bool keep;
 
-    AutoDiscardIonCode(JSContext *cx, types::RecompileInfo *recompileInfo)
+    AutoDiscardIonCode(JSContext *cx, RecompileInfo *recompileInfo)
       : cx(cx), recompileInfo(recompileInfo), ionScript(nullptr), keep(false) {}
 
     ~AutoDiscardIonCode() {
@@ -7240,7 +7240,7 @@ struct AutoDiscardIonCode
 };
 
 bool
-CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
+CodeGenerator::link(JSContext *cx, CompilerConstraintList *constraints)
 {
     RootedScript script(cx, gen->info().script());
     OptimizationLevel optimizationLevel = gen->optimizationInfo().level();
@@ -7261,8 +7261,8 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     
     uint32_t warmUpCount = script->getWarmUpCount();
-    types::RecompileInfo recompileInfo;
-    if (!types::FinishCompilation(cx, script, constraints, &recompileInfo))
+    RecompileInfo recompileInfo;
+    if (!FinishCompilation(cx, script, constraints, &recompileInfo))
         return true;
 
     

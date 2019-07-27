@@ -834,7 +834,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
             }
         }
 
-        if (name && NameToId(name) == types::IdToTypeId(NameToId(name))) {
+        if (name && NameToId(name) == IdToTypeId(NameToId(name))) {
             
             
             

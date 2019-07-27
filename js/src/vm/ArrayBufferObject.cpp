@@ -58,7 +58,6 @@ using mozilla::UniquePtr;
 
 using namespace js;
 using namespace js::gc;
-using namespace js::types;
 
 
 
@@ -523,7 +522,7 @@ ArrayBufferObject::neuter(JSContext *cx, Handle<ArrayBufferObject*> buffer,
         
         if (!cx->global()->getGroup(cx))
             CrashAtUnhandlableOOM("ArrayBufferObject::neuter");
-        types::MarkObjectGroupFlags(cx, cx->global(), OBJECT_FLAG_TYPED_OBJECT_NEUTERED);
+        MarkObjectGroupFlags(cx, cx->global(), OBJECT_FLAG_TYPED_OBJECT_NEUTERED);
         cx->compartment()->neuteredTypedObjects = 1;
     }
 

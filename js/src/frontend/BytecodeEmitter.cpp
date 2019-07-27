@@ -3704,7 +3704,7 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
                 
                 
                 jsid id = NameToId(name);
-                if (id != types::IdToTypeId(id)) {
+                if (id != IdToTypeId(id)) {
                     if (!EmitTree(cx, bce, key))                       
                         return false;
                 } else {
@@ -6622,7 +6622,7 @@ EmitObject(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             
             
             jsid id = NameToId(key->pn_atom->asPropertyName());
-            if (id != types::IdToTypeId(id)) {
+            if (id != IdToTypeId(id)) {
                 if (!EmitTree(cx, bce, key))
                     return false;
                 isIndex = true;
