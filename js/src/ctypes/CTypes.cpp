@@ -5865,7 +5865,7 @@ FunctionType::Call(JSContext* cx,
         
         
         JS_ReportError(cx, "argument %d of type %s is not a CData object",
-                       i, JS_GetTypeName(cx, JS_TypeOfValue(cx, args[i])));
+                       i, InformalValueTypeName(args[i]));
         return false;
       }
       if (!(type = CData::GetCType(obj)) ||

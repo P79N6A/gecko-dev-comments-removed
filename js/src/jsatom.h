@@ -176,8 +176,6 @@ extern const char js_with_str[];
 
 namespace js {
 
-extern const char * const TypeStrings[];
-
 
 
 
