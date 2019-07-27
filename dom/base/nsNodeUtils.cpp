@@ -324,6 +324,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
   
   
 
+  nsAutoScriptBlocker scriptBlocker;
   AutoJSContext cx;
   nsresult rv;
 
