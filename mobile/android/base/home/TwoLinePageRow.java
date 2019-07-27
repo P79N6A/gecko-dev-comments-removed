@@ -129,12 +129,14 @@ public class TwoLinePageRow extends LinearLayout
         if (pageUrl == null) {
             return;
         }
-        final String tabUrl;
         if (tab == null) {
             return;
         }
-        tabUrl = tab.getURL();
-        if (!pageUrl.equals(tabUrl)) {
+
+        
+        
+        final String tabUrl = tab.getURL();
+        if (!pageUrl.equals(tabUrl) && !pageUrl.equals(data)) {
             return;
         }
 
