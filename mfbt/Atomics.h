@@ -28,7 +28,9 @@
 
 
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(_MSC_VER)
+#  define MOZ_HAVE_CXX11_ATOMICS
+#elif defined(__clang__) || defined(__GNUC__)
    
 
 
@@ -42,8 +44,6 @@
 #  elif MOZ_USING_LIBCXX && defined(__clang__)
 #    define MOZ_HAVE_CXX11_ATOMICS
 #  endif
-#elif defined(_MSC_VER)
-#  define MOZ_HAVE_CXX11_ATOMICS
 #endif
 
 namespace mozilla {
