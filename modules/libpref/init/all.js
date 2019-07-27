@@ -2369,12 +2369,7 @@ pref("svg.display-lists.painting.enabled", true);
 pref("svg.paint-order.enabled", true);
 
 
-
-#ifdef RELEASE_BUILD
-pref("svg.marker-improvements.enabled", false);
-#else
 pref("svg.marker-improvements.enabled", true);
-#endif
 
 #ifdef RELEASE_BUILD
 pref("svg.svg-iframe.enabled", false);
