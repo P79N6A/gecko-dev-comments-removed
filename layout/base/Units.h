@@ -373,6 +373,10 @@ struct RenderTargetPixel {
 
 
 struct ScreenPixel {
+  static nsIntSize ToUntyped(const ScreenIntSize& aSize) {
+    return nsIntSize(aSize.width, aSize.height);
+  }
+
   static ScreenIntPoint FromUntyped(const nsIntPoint& aPoint) {
     return ScreenIntPoint(aPoint.x, aPoint.y);
   }

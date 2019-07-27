@@ -577,6 +577,10 @@ nsImageFrame::OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage)
         presShell->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
                                     NS_FRAME_IS_DIRTY);
       }
+    } else {
+      
+      
+      MaybeDecodeForPredictedSize();
     }
   }
 
@@ -682,10 +686,91 @@ nsImageFrame::NotifyNewCurrentRequest(imgIRequest *aRequest,
         presShell->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
                                     NS_FRAME_IS_DIRTY);
       }
+    } else {
+      
+      
+      MaybeDecodeForPredictedSize();
     }
     
     InvalidateFrame();
   }
+}
+
+void
+nsImageFrame::MaybeDecodeForPredictedSize()
+{
+  
+  if (!mImage) {
+    return;  
+  }
+
+  if (mComputedSize.IsEmpty()) {
+    return;  
+  }
+
+  nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mContent);
+  MOZ_ASSERT(imageLoader);
+  if (imageLoader->GetVisibleCount() == 0) {
+    return;  
+  }
+
+  
+  nsIPresShell* presShell = PresContext()->GetPresShell();
+  LayoutDeviceToScreenScale2D resolutionToScreen(
+      presShell->GetCumulativeResolution()
+    * nsLayoutUtils::GetTransformToAncestorScale(this));
+
+  
+  const nsPoint offset =
+    GetOffsetToCrossDoc(nsLayoutUtils::GetReferenceFrame(this));
+  const nsRect frameContentBox = GetInnerArea() + offset;
+
+  
+  const int32_t factor = PresContext()->AppUnitsPerDevPixel();
+  const LayoutDeviceRect destRect =
+    LayoutDeviceRect::FromAppUnits(PredictedDestRect(frameContentBox), factor);
+
+  
+  const ScreenSize predictedScreenSize = destRect.Size() * resolutionToScreen;
+  const ScreenIntSize predictedScreenIntSize = RoundedToInt(predictedScreenSize);
+  if (predictedScreenIntSize.IsEmpty()) {
+    return;
+  }
+
+  
+  uint32_t flags = imgIContainer::FLAG_HIGH_QUALITY_SCALING
+                 | imgIContainer::FLAG_ASYNC_NOTIFY;
+  GraphicsFilter filter = nsLayoutUtils::GetGraphicsFilterForFrame(this);
+  gfxSize gfxPredictedScreenSize = gfxSize(predictedScreenIntSize.width,
+                                           predictedScreenIntSize.height);
+  nsIntSize predictedImageSize =
+    mImage->OptimalImageSizeForDest(gfxPredictedScreenSize,
+                                    imgIContainer::FRAME_CURRENT,
+                                    filter, flags);
+
+  
+  mImage->RequestDecodeForSize(predictedImageSize, flags);
+}
+
+nsRect
+nsImageFrame::PredictedDestRect(const nsRect& aFrameContentBox)
+{
+  
+  
+  
+
+  
+  
+  nsRect constraintRect(aFrameContentBox.TopLeft(), mComputedSize);
+  constraintRect.y -= GetContinuationOffset();
+
+  const nsRect destRect =
+    nsLayoutUtils::ComputeObjectDestRect(constraintRect,
+                                         mIntrinsicSize,
+                                         mIntrinsicRatio,
+                                         StylePosition());
+
+  return destRect.Intersect(aFrameContentBox);
 }
 
 void
@@ -935,6 +1020,10 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
     static_assert(eOverflowType_LENGTH == 2, "Unknown overflow types?");
     nsRect& visualOverflow = aMetrics.VisualOverflow();
     visualOverflow.UnionRect(visualOverflow, altFeedbackSize);
+  } else {
+    
+    
+    MaybeDecodeForPredictedSize();
   }
   FinishAndStoreOverflow(&aMetrics);
 
@@ -1475,30 +1564,14 @@ nsDisplayImage::GetContainer(LayerManager* aManager,
 nsRect
 nsDisplayImage::GetDestRect(bool* aSnap)
 {
-  
-  
-  
-  
   bool snap = true;
   const nsRect frameContentBox = GetBounds(&snap);
   if (aSnap) {
     *aSnap = snap;
   }
 
-  
-  
   nsImageFrame* imageFrame = static_cast<nsImageFrame*>(mFrame);
-  nsRect constraintRect(frameContentBox.TopLeft(),
-                        imageFrame->mComputedSize);
-  constraintRect.y -= imageFrame->GetContinuationOffset();
-
-  const nsRect destRect =
-    nsLayoutUtils::ComputeObjectDestRect(constraintRect,
-                                         imageFrame->mIntrinsicSize,
-                                         imageFrame->mIntrinsicRatio,
-                                         imageFrame->StylePosition());
-
-  return destRect.Intersect(frameContentBox);
+  return imageFrame->PredictedDestRect(frameContentBox);
 }
 
 LayerState

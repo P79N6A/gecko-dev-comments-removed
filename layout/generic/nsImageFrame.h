@@ -219,6 +219,14 @@ protected:
                         const nsRect& aDirtyRect, imgIContainer* aImage,
                         uint32_t aFlags);
 
+  
+
+
+
+
+
+  void MaybeDecodeForPredictedSize();
+
 protected:
   friend class nsImageListener;
   friend class nsImageLoadingContent;
@@ -234,6 +242,13 @@ protected:
 
   
   void SetForceSyncDecoding(bool aForce) { mForceSyncDecoding = aForce; }
+
+  
+
+
+
+
+  nsRect PredictedDestRect(const nsRect& aFrameContentBox);
 
 private:
   
