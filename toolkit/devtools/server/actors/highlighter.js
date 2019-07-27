@@ -601,6 +601,11 @@ CanvasFrameAnonymousContentHelper.prototype = {
 
 
 
+
+
+
+
+
 function AutoRefreshHighlighter(tabActor) {
   EventEmitter.decorate(this);
 
@@ -638,6 +643,8 @@ AutoRefreshHighlighter.prototype = {
     this._updateAdjustedQuads();
     this._startRefreshLoop();
     this._show();
+
+    this.emit("shown");
   },
 
   
@@ -653,6 +660,8 @@ AutoRefreshHighlighter.prototype = {
     this.currentNode = null;
     this.currentQuads = {};
     this.options = null;
+
+    this.emit("hidden");
   },
 
   

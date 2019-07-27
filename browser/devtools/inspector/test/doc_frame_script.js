@@ -25,14 +25,17 @@ loader.loadSubScript("chrome://marionette/content/EventUtils.js", EventUtils);
 
 
 
-function getHighlighterActor(actorID) {
+
+function getHighlighterActor(actorID, connPrefix) {
   let {DebuggerServer} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
   if (!DebuggerServer.initialized) {
     return;
   }
 
-  let connID = Object.keys(DebuggerServer._connections)[0];
-  let conn = DebuggerServer._connections[connID];
+  let conn = DebuggerServer._connections[connPrefix];
+  if (!conn) {
+    return;
+  }
 
   return conn.getActor(actorID);
 }
@@ -45,8 +48,9 @@ function getHighlighterActor(actorID) {
 
 
 
-function getHighlighterCanvasFrameHelper(actorID) {
-  let actor = getHighlighterActor(actorID);
+
+function getHighlighterCanvasFrameHelper(actorID, connPrefix) {
+  let actor = getHighlighterActor(actorID, connPrefix);
   if (actor && actor._highlighter) {
     return actor._highlighter.markup;
   }
@@ -61,11 +65,12 @@ function getHighlighterCanvasFrameHelper(actorID) {
 
 
 
+
 addMessageListener("Test:GetHighlighterAttribute", function(msg) {
-  let {nodeID, name, actorID} = msg.data;
+  let {nodeID, name, actorID, connPrefix} = msg.data;
 
   let value;
-  let helper = getHighlighterCanvasFrameHelper(actorID);
+  let helper = getHighlighterCanvasFrameHelper(actorID, connPrefix);
   if (helper) {
     value = helper.getAttributeForElement(nodeID, name);
   }
@@ -81,11 +86,12 @@ addMessageListener("Test:GetHighlighterAttribute", function(msg) {
 
 
 
+
 addMessageListener("Test:GetHighlighterTextContent", function(msg) {
-  let {nodeID, actorID} = msg.data;
+  let {nodeID, actorID, connPrefix} = msg.data;
 
   let value;
-  let helper = getHighlighterCanvasFrameHelper(actorID);
+  let helper = getHighlighterCanvasFrameHelper(actorID, connPrefix);
   if (helper) {
     value = helper.getTextContentForElement(nodeID);
   }
@@ -100,9 +106,10 @@ addMessageListener("Test:GetHighlighterTextContent", function(msg) {
 
 
 
+
 addMessageListener("Test:GetSelectorHighlighterBoxNb", function(msg) {
-  let {actorID} = msg.data;
-  let {_highlighter: h} = getHighlighterActor(actorID);
+  let {actorID, connPrefix} = msg.data;
+  let {_highlighter: h} = getHighlighterActor(actorID, connPrefix);
   if (!h || !h._highlighters) {
     sendAsyncMessage("Test:GetSelectorHighlighterBoxNb", null);
   } else {
@@ -119,10 +126,11 @@ addMessageListener("Test:GetSelectorHighlighterBoxNb", function(msg) {
 
 
 
+
 addMessageListener("Test:ChangeHighlightedNodeWaitForUpdate", function(msg) {
   
-  let {name, value, actorID} = msg.data;
-  let {_highlighter: h} = getHighlighterActor(actorID);
+  let {name, value, actorID, connPrefix} = msg.data;
+  let {_highlighter: h} = getHighlighterActor(actorID, connPrefix);
 
   h.once("updated", () => {
     sendAsyncMessage("Test:ChangeHighlightedNodeWaitForUpdate");
@@ -138,13 +146,30 @@ addMessageListener("Test:ChangeHighlightedNodeWaitForUpdate", function(msg) {
 
 
 
+addMessageListener("Test:WaitForHighlighterEvent", function(msg) {
+  let {event, actorID, connPrefix} = msg.data;
+  let {_highlighter: h} = getHighlighterActor(actorID, connPrefix);
+
+  h.once(event, () => {
+    sendAsyncMessage("Test:WaitForHighlighterEvent");
+  });
+});
+
+
+
+
+
+
+
+
+
 
 addMessageListener("Test:ChangeZoomLevel", function(msg) {
-  let {level, actorID} = msg.data;
+  let {level, actorID, connPrefix} = msg.data;
   dumpn("Zooming page to " + level);
 
   if (actorID) {
-    let {_highlighter: h} = getHighlighterActor(actorID);
+    let {_highlighter: h} = getHighlighterActor(actorID, connPrefix);
     h.once("updated", () => {
       sendAsyncMessage("Test:ChangeZoomLevel");
     });
