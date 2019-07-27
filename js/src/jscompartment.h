@@ -149,6 +149,7 @@ struct JSCompartment
     bool                         isSelfHosting;
     bool                         marked;
     bool                         warnedAboutNoSuchMethod;
+    bool                         warnedAboutFlagsArgument;
 
     
     
