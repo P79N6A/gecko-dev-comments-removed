@@ -74,9 +74,6 @@ XPCOMUtils.defineLazyGetter(this, "log", () => {
 this.UITour = {
   url: null,
   seenPageIDs: null,
-  
-  
-  pageIDsForSession: new Map(),
   pageIDSourceBrowsers: new WeakMap(),
   
   tourBrowsersByWindow: new WeakMap(),
@@ -378,22 +375,16 @@ this.UITour = {
 
     switch (action) {
       case "registerPageID": {
-        if (typeof data.pageID != "string") {
-          log.warn("registerPageID: pageID must be a string");
-          break;
-        }
-
-        this.pageIDsForSession.set(data.pageID, {lastSeen: Date.now()});
-
         
         if (!UITelemetry.enabled) {
-          log.debug("registerPageID: Telemetry disabled, not doing anything");
+          log.debug("registerPageID: Telemery disabled, not doing anything");
           break;
         }
 
         
         
-        if (data.pageID.contains(BrowserUITelemetry.BUCKET_SEPARATOR)) {
+        if (typeof data.pageID != "string" ||
+            data.pageID.contains(BrowserUITelemetry.BUCKET_SEPARATOR)) {
           log.warn("registerPageID: Invalid page ID specified");
           break;
         }
