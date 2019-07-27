@@ -258,8 +258,12 @@ function getDuplicateVariantRE() {
     
     
     
+    
+    
+    
+    
     return (internalIntlRegExps.duplicateVariantRE =
-            regexp_construct_no_statics(duplicateVariant));
+            regexp_construct_no_statics(duplicateVariant, "i"));
 }
 
 
@@ -300,8 +304,12 @@ function getDuplicateSingletonRE() {
     
     
     
+    
+    
+    
+    
     return (internalIntlRegExps.duplicateSingletonRE =
-            regexp_construct_no_statics(duplicateSingleton));
+            regexp_construct_no_statics(duplicateSingleton, "i"));
 }
 
 
