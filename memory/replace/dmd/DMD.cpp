@@ -117,6 +117,12 @@ static bool gIsDMDInitialized = false;
 
 
 
+
+
+
+
+
+
 class InfallibleAllocPolicy
 {
   static void ExitOnFailure(const void* aP);
