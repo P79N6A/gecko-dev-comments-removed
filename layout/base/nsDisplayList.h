@@ -667,7 +667,7 @@ public:
 
 
   
-  void AddExcludedGlassRegion(const nsRegion& bounds) {
+  void AddExcludedGlassRegion(nsRect &bounds) {
     mExcludedGlassRegion.Or(mExcludedGlassRegion, bounds);
   }
   const nsRegion& GetExcludedGlassRegion() {
@@ -683,10 +683,6 @@ public:
     } else {
       mGlassDisplayItem = aItem;
     }
-  }
-  
-  bool HasGlass() {
-    return mGlassDisplayItem != nullptr;
   }
   bool NeedToForceTransparentSurfaceForItem(nsDisplayItem* aItem) {
     return aItem == mGlassDisplayItem;

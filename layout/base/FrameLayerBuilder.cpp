@@ -2600,12 +2600,6 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
         opaqueClipped.Contains(mContainerBounds)) {
       aList->SetIsOpaque();
     }
-    
-    
-    
-    if (!mContainerLayer->GetParent() && mBuilder->HasGlass()) {
-      mBuilder->AddExcludedGlassRegion(opaqueClipped);
-    }
     opaquePixels = ScaleRegionToInsidePixels(opaqueClipped, snapOpaque);
     if (aFixedPosFrame && ItemCoversScrollableArea(aItem, opaque)) {
       *aHideAllLayersBelow = true;
