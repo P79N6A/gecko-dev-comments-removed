@@ -8,6 +8,7 @@
 #define EME_LOG_H_
 
 #include "prlog.h"
+#include "nsString.h"
 
 namespace mozilla {
 
@@ -42,6 +43,26 @@ namespace mozilla {
   #endif
 
 #endif 
+
+#define NO_CDM_VERSION -1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool ParseKeySystem(const nsAString& aKeySystem,
+                    nsAString& aOutKeySystem,
+                    int32_t& aOutMinCDMVersion);
 
 } 
 
