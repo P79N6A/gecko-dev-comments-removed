@@ -1212,9 +1212,11 @@ js_InitNumberClass(JSContext *cx, HandleObject obj)
     RootedValue valueInfinity(cx, cx->runtime()->positiveInfinityValue);
 
     
-    if (!DefineNativeProperty(cx, global, cx->names().NaN, valueNaN, nullptr, nullptr,
+    if (!DefineNativeProperty(cx, global, cx->names().NaN, valueNaN,
+                              JS_PropertyStub, JS_StrictPropertyStub,
                               JSPROP_PERMANENT | JSPROP_READONLY) ||
-        !DefineNativeProperty(cx, global, cx->names().Infinity, valueInfinity, nullptr, nullptr,
+        !DefineNativeProperty(cx, global, cx->names().Infinity, valueInfinity,
+                              JS_PropertyStub, JS_StrictPropertyStub,
                               JSPROP_PERMANENT | JSPROP_READONLY))
     {
         return nullptr;

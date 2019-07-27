@@ -719,19 +719,15 @@ RegExpCompartment::createMatchResultTemplateObject(JSContext *cx)
 
     
     RootedValue index(cx, Int32Value(0));
-    if (!baseops::DefineProperty(cx, templateObject, cx->names().index, index, nullptr, nullptr,
-                                 JSPROP_ENUMERATE))
-    {
+    if (!baseops::DefineProperty(cx, templateObject, cx->names().index, index,
+                                 JS_PropertyStub, JS_StrictPropertyStub, JSPROP_ENUMERATE))
         return matchResultTemplateObject_; 
-    }
 
     
     RootedValue inputVal(cx, StringValue(cx->runtime()->emptyString));
-    if (!baseops::DefineProperty(cx, templateObject, cx->names().input, inputVal, nullptr, nullptr,
-                                 JSPROP_ENUMERATE))
-    {
+    if (!baseops::DefineProperty(cx, templateObject, cx->names().input, inputVal,
+                                 JS_PropertyStub, JS_StrictPropertyStub, JSPROP_ENUMERATE))
         return matchResultTemplateObject_; 
-    }
 
     
     DebugOnly<Shape *> shape = templateObject->lastProperty();

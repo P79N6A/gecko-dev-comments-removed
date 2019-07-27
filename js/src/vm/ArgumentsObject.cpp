@@ -352,6 +352,7 @@ ArgSetter(JSContext *cx, HandleObject obj, HandleId id, bool strict, MutableHand
 
 
 
+
     bool succeeded;
     return baseops::DeleteGeneric(cx, argsobj, id, &succeeded) &&
            baseops::DefineGeneric(cx, argsobj, id, vp, nullptr, nullptr, attrs);
@@ -461,6 +462,7 @@ StrictArgSetter(JSContext *cx, HandleObject obj, HandleId id, bool strict, Mutab
     }
 
     
+
 
 
 
