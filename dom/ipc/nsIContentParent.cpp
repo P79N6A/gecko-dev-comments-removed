@@ -26,9 +26,9 @@ using namespace mozilla::jsipc;
 
 
 #ifdef DISABLE_ASSERTS_FOR_FUZZING
-#define ASSERT_UNLESS_FUZZING() do { } while (0)
+#define ASSERT_UNLESS_FUZZING(...) do { } while (0)
 #else
-#define ASSERT_UNLESS_FUZZING() MOZ_ASSERT(false)
+#define ASSERT_UNLESS_FUZZING(...) MOZ_ASSERT(false, __VA_ARGS__)
 #endif
 
 namespace mozilla {
@@ -77,19 +77,19 @@ nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
   
   
   if (appBrowser.type() != IPCTabAppBrowserContext::TPopupIPCTabContext) {
-    ASSERT_UNLESS_FUZZING();
+    ASSERT_UNLESS_FUZZING("Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
     return false;
   }
 
   const PopupIPCTabContext& popupContext = appBrowser.get_PopupIPCTabContext();
   if (popupContext.opener().type() != PBrowserOrId::TPBrowserParent) {
-    ASSERT_UNLESS_FUZZING();
+    ASSERT_UNLESS_FUZZING("Unexpected PopupIPCTabContext type.  Aborting AllocPBrowserParent.");
     return false;
   }
 
   auto opener = TabParent::GetFrom(popupContext.opener().get_PBrowserParent());
   if (!opener) {
-    ASSERT_UNLESS_FUZZING();
+    ASSERT_UNLESS_FUZZING("Got null opener from child; aborting AllocPBrowserParent.");
     return false;
   }
 
@@ -97,7 +97,7 @@ nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
   
   
   if (!popupContext.isBrowserElement() && opener->IsBrowserElement()) {
-    ASSERT_UNLESS_FUZZING();
+    ASSERT_UNLESS_FUZZING("Child trying to escalate privileges!  Aborting AllocPBrowserParent.");
     return false;
   }
 
