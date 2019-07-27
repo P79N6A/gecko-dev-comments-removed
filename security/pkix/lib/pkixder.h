@@ -42,7 +42,7 @@
 
 namespace mozilla { namespace pkix { namespace der {
 
-enum Class
+enum Class : uint8_t
 {
    UNIVERSAL = 0 << 6,
 
@@ -222,6 +222,30 @@ NestedOf(Reader& input, uint8_t outerTag, uint8_t innerTag,
   } while (!inner.AtEnd());
 
   return Success;
+}
+
+
+
+
+
+inline Result
+ExpectTagAndGetValueAtEnd(Reader& outer, uint8_t expectedTag,
+                           Reader& inner)
+{
+  Result rv = der::ExpectTagAndGetValue(outer, expectedTag, inner);
+  if (rv != Success) {
+    return rv;
+  }
+  return der::End(outer);
+}
+
+
+inline Result
+ExpectTagAndGetValueAtEnd(Input outer, uint8_t expectedTag,
+                           Reader& inner)
+{
+  Reader outerReader(outer);
+  return ExpectTagAndGetValueAtEnd(outerReader, expectedTag, inner);
 }
 
 
