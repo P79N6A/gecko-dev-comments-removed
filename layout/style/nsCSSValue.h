@@ -871,9 +871,8 @@ struct nsCSSValueList {
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult,
                       nsCSSValue::Serialization aValueSerialization) const;
 
-  bool operator==(nsCSSValueList const& aOther) const;
-  bool operator!=(const nsCSSValueList& aOther) const
-  { return !(*this == aOther); }
+  static bool Equal(const nsCSSValueList* aList1,
+                    const nsCSSValueList* aList2);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -886,6 +885,12 @@ private:
   {
     MOZ_COUNT_CTOR(nsCSSValueList);
   }
+
+  
+  
+  
+  bool operator==(nsCSSValueList const& aOther) const MOZ_DELETE;
+  bool operator!=(const nsCSSValueList& aOther) const MOZ_DELETE;
 };
 
 
@@ -1264,9 +1269,8 @@ struct nsCSSValuePairList {
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult,
                       nsCSSValue::Serialization aValueSerialization) const;
 
-  bool operator==(const nsCSSValuePairList& aOther) const;
-  bool operator!=(const nsCSSValuePairList& aOther) const
-  { return !(*this == aOther); }
+  static bool Equal(const nsCSSValuePairList* aList1,
+                    const nsCSSValuePairList* aList2);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -1280,6 +1284,12 @@ private:
   {
     MOZ_COUNT_CTOR(nsCSSValuePairList);
   }
+
+  
+  
+  
+  bool operator==(const nsCSSValuePairList& aOther) const MOZ_DELETE;
+  bool operator!=(const nsCSSValuePairList& aOther) const MOZ_DELETE;
 };
 
 
