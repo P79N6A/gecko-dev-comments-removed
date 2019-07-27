@@ -312,6 +312,12 @@ private:
   nsresult
   RemoveAllModifiedSince(int64_t aModificationTime);
 
+  
+
+
+  nsresult
+  FetchPermissions();
+
   nsCOMPtr<nsIObserverService> mObserverService;
   nsCOMPtr<nsIIDNService>      mIDNService;
 

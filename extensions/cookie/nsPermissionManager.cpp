@@ -420,33 +420,25 @@ nsPermissionManager::Init()
 
   if (IsChildProcess()) {
     
-    InfallibleTArray<IPC::Permission> perms;
-    ChildProcess()->SendReadPermissions(&perms);
-
-    for (uint32_t i = 0; i < perms.Length(); i++) {
-      const IPC::Permission &perm = perms[i];
-
-      nsCOMPtr<nsIPrincipal> principal;
-      rv = GetPrincipal(perm.host, perm.appId, perm.isInBrowserElement, getter_AddRefs(principal));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      
-      
-      uint64_t modificationTime = 0;
-      AddInternal(principal, perm.type, perm.capability, 0, perm.expireType,
-                  perm.expireTime, modificationTime, eNotify, eNoDBOperation,
-                  true );
-    }
-
-    
-    return NS_OK;
+    return FetchPermissions();
   }
 
   
   
   
   InitDB(false);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPermissionManager::RefreshPermission() {
+  NS_ENSURE_TRUE(IsChildProcess(), NS_ERROR_FAILURE);
+
+  nsresult rv = RemoveAllFromMemory();
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = FetchPermissions();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -2211,6 +2203,32 @@ nsPermissionManager::UpdateExpireTime(nsIPrincipal* aPrincipal,
     perm.mExpireTime = aPersistentExpireTime;
   } else if (perm.mExpireType == EXPIRE_SESSION && perm.mExpireTime != 0) {
     perm.mExpireTime = aSessionExpireTime;
+  }
+  return NS_OK;
+}
+
+nsresult
+nsPermissionManager::FetchPermissions() {
+  MOZ_ASSERT(IsChildProcess(), "FetchPermissions can only be invoked in child process");
+  
+  InfallibleTArray<IPC::Permission> perms;
+  ChildProcess()->SendReadPermissions(&perms);
+
+  for (uint32_t i = 0; i < perms.Length(); i++) {
+    const IPC::Permission &perm = perms[i];
+
+    nsCOMPtr<nsIPrincipal> principal;
+    nsresult rv = GetPrincipal(perm.host, perm.appId,
+                               perm.isInBrowserElement, getter_AddRefs(principal));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    uint64_t modificationTime = 0;
+    AddInternal(principal, perm.type, perm.capability, 0, perm.expireType,
+                perm.expireTime, modificationTime, eNotify, eNoDBOperation,
+                true );
   }
   return NS_OK;
 }
