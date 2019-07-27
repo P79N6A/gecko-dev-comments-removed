@@ -41,9 +41,6 @@ namespace {
 
 
 const uint32_t NPN_NOT_NEGOTIATED = 64;
-const uint32_t KEA_NOT_FORWARD_SECRET = 32;
-const uint32_t KEA_NOT_SAME_AS_EXPECTED = 16;
-const uint32_t KEA_NOT_ALLOWED = 8;
 const uint32_t POSSIBLE_VERSION_DOWNGRADE = 4;
 const uint32_t POSSIBLE_CIPHER_SUITE_DOWNGRADE = 2;
 const uint32_t KEA_NOT_SUPPORTED = 1;
@@ -972,40 +969,11 @@ CanFalseStartCallback(PRFileDesc* fd, void* client_data, PRBool *canFalseStart)
   }
 
   
-  if (cipherInfo.keaType != ssl_kea_rsa &&
-      cipherInfo.keaType != ssl_kea_dh &&
-      cipherInfo.keaType != ssl_kea_ecdh) {
+  if (cipherInfo.keaType != ssl_kea_ecdh) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
                                       "unsupported KEA %d\n", fd,
                                       static_cast<int32_t>(cipherInfo.keaType)));
     reasonsForNotFalseStarting |= KEA_NOT_SUPPORTED;
-  }
-
-  
-  
-  if (cipherInfo.keaType != ssl_kea_ecdh &&
-      cipherInfo.keaType != ssl_kea_dh) {
-    if (helpers.mFalseStartRequireForwardSecrecy) {
-      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-             ("CanFalseStartCallback [%p] failed - KEA used is %d, but "
-              "require-forward-secrecy configured.\n", fd,
-              static_cast<int32_t>(cipherInfo.keaType)));
-      reasonsForNotFalseStarting |= KEA_NOT_FORWARD_SECRET;
-    } else if (cipherInfo.keaType == ssl_kea_rsa) {
-      
-      
-      int16_t expected = infoObject->GetKEAExpected();
-      if (cipherInfo.keaType != expected) {
-        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-               ("CanFalseStartCallback [%p] failed - "
-                "KEA used is %d, expected %d\n", fd,
-                static_cast<int32_t>(cipherInfo.keaType),
-                static_cast<int32_t>(expected)));
-        reasonsForNotFalseStarting |= KEA_NOT_SAME_AS_EXPECTED;
-      }
-    } else {
-      reasonsForNotFalseStarting |= KEA_NOT_ALLOWED;
-    }
   }
 
   
