@@ -249,6 +249,9 @@ ImageBridgeChild::ImageBridgeChild()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  
+  SetMessageLoopToPostDestructionTo(MessageLoop::current());
+
   mTxn = new CompositableTransaction();
 }
 ImageBridgeChild::~ImageBridgeChild()
