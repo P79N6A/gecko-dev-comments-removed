@@ -13,6 +13,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Promise.jsm", this);
 
 this.PageThumbUtils = {
   
@@ -67,11 +68,13 @@ this.PageThumbUtils = {
 
 
   determineCropSize: function (aWindow, aCanvas) {
+    if (Cu.isCrossProcessWrapper(aWindow)) {
+      throw new Error('Do not pass cpows here.');
+    }
     let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                        .getInterface(Ci.nsIDOMWindowUtils);
     
-    let sbWidth = {__exposedProps__: {"value": "rw"}},
-      sbHeight = {__exposedProps__: {"value": "rw"}};
+    let sbWidth = {}, sbHeight = {};
 
     try {
       utils.getScrollbarSize(false, sbWidth, sbHeight);
@@ -83,20 +86,20 @@ this.PageThumbUtils = {
 
     
     
-    let sw = aWindow.innerWidth - sbWidth.value;
-    let sh = aWindow.innerHeight - sbHeight.value;
+    let width = aWindow.innerWidth - sbWidth.value;
+    let height = aWindow.innerHeight - sbHeight.value;
 
     let {width: thumbnailWidth, height: thumbnailHeight} = aCanvas;
-    let scale = Math.min(Math.max(thumbnailWidth / sw, thumbnailHeight / sh), 1);
-    let scaledWidth = sw * scale;
-    let scaledHeight = sh * scale;
+    let scale = Math.min(Math.max(thumbnailWidth / width, thumbnailHeight / height), 1);
+    let scaledWidth = width * scale;
+    let scaledHeight = height * scale;
 
     if (scaledHeight > thumbnailHeight)
-      sh -= Math.floor(Math.abs(scaledHeight - thumbnailHeight) * scale);
+      height -= Math.floor(Math.abs(scaledHeight - thumbnailHeight) * scale);
 
     if (scaledWidth > thumbnailWidth)
-      sw -= Math.floor(Math.abs(scaledWidth - thumbnailWidth) * scale);
+      width -= Math.floor(Math.abs(scaledWidth - thumbnailWidth) * scale);
 
-    return [sw, sh, scale];
+    return [width, height, scale];
   }
 };

@@ -216,12 +216,9 @@ this.PageThumbs = {
   
   _captureToCanvas: function (aBrowser, aCanvas, aCallback) {
     if (aBrowser.isRemoteBrowser) {
-      let [sw, sh, scale] =
-        PageThumbUtils.determineCropSize(aBrowser.contentWindowAsCPOW, aCanvas);
       Task.spawn(function () {
         let data =
-          yield this._captureRemoteThumbnail(aBrowser, sw, sh, scale,
-                                             PageThumbUtils.THUMBNAIL_BG_COLOR);
+          yield this._captureRemoteThumbnail(aBrowser, aCanvas);
         let canvas = data.thumbnail;
         let ctx = canvas.getContext("2d");
         let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -234,7 +231,7 @@ this.PageThumbs = {
     }
 
     
-    let [sw, sh, scale] =
+    let [width, height, scale] =
       PageThumbUtils.determineCropSize(aBrowser.contentWindow, aCanvas);
     let ctx = aCanvas.getContext("2d");
 
@@ -244,7 +241,7 @@ this.PageThumbs = {
 
     try {
       
-      ctx.drawWindow(aBrowser.contentWindow, 0, 0, sw, sh,
+      ctx.drawWindow(aBrowser.contentWindow, 0, 0, width, height,
                      PageThumbUtils.THUMBNAIL_BG_COLOR,
                      ctx.DRAWWINDOW_DO_NOT_FLUSH);
     } catch (e) {
@@ -264,12 +261,7 @@ this.PageThumbs = {
 
 
 
-
-
-
-
-  _captureRemoteThumbnail: function (aBrowser,  aWidth, aHeight,
-                                     aScaleFactor, aCssBackground) {
+  _captureRemoteThumbnail: function (aBrowser, aCanvas) {
     let deferred = Promise.defer();
 
     
@@ -308,18 +300,13 @@ this.PageThumbs = {
       
       reader.readAsDataURL(imageBlob);
     }
-    mm.addMessageListener("Browser:Thumbnail:Response", thumbFunc);
 
     
-    let width = aWidth || 0;
-    let height = aHeight || 0;
-    let scale = aScaleFactor || 1.0;
-    let background = aCssBackground || "#fff";
+    mm.addMessageListener("Browser:Thumbnail:Response", thumbFunc);
     mm.sendAsyncMessage("Browser:Thumbnail:Request", {
-      width: width,
-      height: height,
-      scale: scale,
-      background: background,
+      canvasWidth: aCanvas.width,
+      canvasHeight: aCanvas.height,
+      background: PageThumbUtils.THUMBNAIL_BG_COLOR,
       id: index
     });
 
