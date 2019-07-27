@@ -221,13 +221,19 @@ DecodedStream::DestroyData()
 }
 
 void
-DecodedStream::RecreateData(int64_t aInitialTime, SourceMediaStream* aStream)
+DecodedStream::RecreateData(int64_t aInitialTime, MediaStreamGraph* aGraph)
 {
   MOZ_ASSERT(NS_IsMainThread());
   GetReentrantMonitor().AssertCurrentThreadIn();
-  MOZ_ASSERT(!mData);
+  MOZ_ASSERT((aGraph && !mData && OutputStreams().IsEmpty()) || 
+             (!aGraph && mData)); 
 
-  mData.reset(new DecodedStreamData(aInitialTime, aStream));
+  if (!aGraph) {
+    aGraph = mData->mStream->Graph();
+  }
+  auto source = aGraph->CreateSourceStream(nullptr);
+  DestroyData();
+  mData.reset(new DecodedStreamData(aInitialTime, source));
 
   
   
