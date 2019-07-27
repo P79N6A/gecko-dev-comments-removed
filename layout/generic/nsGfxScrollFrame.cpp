@@ -1607,10 +1607,9 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
 
   EnsureImageVisPrefsCached();
 
-#ifndef MOZ_WIDGET_ANDROID
   if (mScrollingActive &&
       gfxPrefs::LayersTilesEnabled() &&
-      !gfxPrefs::AsyncPanZoomEnabled() &&
+      !nsLayoutUtils::UsesAsyncScrolling() &&
       mOuter->GetContent()) {
     
     
@@ -1622,7 +1621,6 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
                                          0,
                                          nsLayoutUtils::RepaintMode::DoNotRepaint);
   }
-#endif
 
 }
 
