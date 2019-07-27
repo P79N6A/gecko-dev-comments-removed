@@ -151,14 +151,87 @@ WebGL2Context::CopyBufferSubData(GLenum readTarget, GLenum writeTarget,
 
 void
 WebGL2Context::GetBufferSubData(GLenum target, GLintptr offset,
-                                const dom::ArrayBuffer& returnedData)
+                                const dom::Nullable<dom::ArrayBuffer>& maybeData)
 {
-    MOZ_CRASH("Not Implemented.");
-}
+    if (IsContextLost())
+        return;
+    
+    
+    
+    
 
-void
-WebGL2Context::GetBufferSubData(GLenum target, GLintptr offset,
-                                const dom::ArrayBufferView& returnedData)
-{
-    MOZ_CRASH("Not Implemented.");
+    
+    
+    if (!ValidateBufferTarget(target, "getBufferSubData"))
+        return;
+
+    
+    
+    if (offset < 0)
+        return ErrorInvalidValue("getBufferSubData: negative offset"); 
+
+    
+    
+    if (maybeData.IsNull())
+        return ErrorInvalidValue("getBufferSubData: returnedData is null");
+
+    WebGLRefPtr<WebGLBuffer>& bufferSlot = GetBufferSlotByTarget(target);
+    WebGLBuffer* boundBuffer = bufferSlot.get();
+    if (!boundBuffer)
+        return ErrorInvalidOperation("getBufferSubData: no buffer bound");
+    
+    
+    
+    const dom::ArrayBuffer& data = maybeData.Value();
+    data.ComputeLengthAndData();
+
+    CheckedInt<WebGLsizeiptr> neededByteLength = CheckedInt<WebGLsizeiptr>(offset) + data.Length();
+    if (!neededByteLength.isValid()) {
+        ErrorInvalidValue("getBufferSubData: Integer overflow computing the needed"
+                          " byte length.");
+        return;
+    }
+
+    if (neededByteLength.value() > boundBuffer->ByteLength()) {
+        ErrorInvalidValue("getBufferSubData: Not enough data. Operation requires"
+                          " %d bytes, but buffer only has %d bytes.",
+                          neededByteLength.value(), boundBuffer->ByteLength());
+        return;
+    }
+
+    
+    
+    
+    WebGLTransformFeedback* currentTF = mBoundTransformFeedback;
+    if (target == LOCAL_GL_TRANSFORM_FEEDBACK_BUFFER && currentTF) {
+        if (currentTF->mIsActive)
+            return ErrorInvalidOperation("getBufferSubData: Currently bound transform"
+                                         " feedback is active");
+
+        
+        
+        
+        
+        
+        
+        
+        
+
+        BindTransformFeedback(LOCAL_GL_TRANSFORM_FEEDBACK, nullptr);
+    }
+
+    
+
+
+
+
+
+
+    void* ptr = gl->fMapBufferRange(target, offset, data.Length(), LOCAL_GL_MAP_READ_BIT);
+    memcpy(data.Data(), ptr, data.Length());
+    gl->fUnmapBuffer(target);
+
+    if (target == LOCAL_GL_TRANSFORM_FEEDBACK_BUFFER && currentTF) {
+        BindTransformFeedback(LOCAL_GL_TRANSFORM_FEEDBACK, currentTF);
+    }
 }
