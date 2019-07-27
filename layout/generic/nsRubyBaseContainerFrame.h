@@ -14,6 +14,8 @@
 #include "nsRubyBaseFrame.h"
 #include "nsRubyTextFrame.h"
 
+#define RTC_ARRAY_SIZE 1
+
 
 
 
@@ -81,17 +83,27 @@ protected:
                       nsTArray<nsHTMLReflowState*>& aReflowStates,
                       nsReflowStatus& aStatus);
 
-  static nscoord ReflowOnePair(nsPresContext* aPresContext,
-                               const nsHTMLReflowState& aReflowState,
-                               nsTArray<nsHTMLReflowState*>& aReflowStates,
-                               nsIFrame* aBaseFrame,
-                               const nsTArray<nsIFrame*>& aTextFrames,
-                               nsReflowStatus& aStatus);
+  nscoord ReflowOnePair(nsPresContext* aPresContext,
+                        const nsHTMLReflowState& aReflowState,
+                        nsTArray<nsHTMLReflowState*>& aReflowStates,
+                        nsIFrame* aBaseFrame,
+                        const nsTArray<nsIFrame*>& aTextFrames,
+                        nsReflowStatus& aStatus);
 
   nscoord ReflowSpans(nsPresContext* aPresContext,
                       const nsHTMLReflowState& aReflowState,
                       nsTArray<nsHTMLReflowState*>& aReflowStates,
                       nsReflowStatus& aStatus);
+
+  struct PullFrameState;
+
+  
+  
+  void PullOnePair(nsLineLayout* aLineLayout,
+                   PullFrameState& aPullFrameState,
+                   nsIFrame*& aBaseFrame,
+                   nsTArray<nsIFrame*>& aTextFrames,
+                   bool& aIsComplete);
 
   
 
@@ -106,6 +118,7 @@ protected:
   nsTArray<nsRubyTextContainerFrame*> mTextContainers;
 
   nscoord mBaseline;
+  uint32_t mPairCount;
 };
 
 #endif 

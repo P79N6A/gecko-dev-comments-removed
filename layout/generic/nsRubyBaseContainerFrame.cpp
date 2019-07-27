@@ -14,8 +14,6 @@
 
 using namespace mozilla;
 
-#define RTC_ARRAY_SIZE 1
-
 
 
 
@@ -67,7 +65,7 @@ public:
   nsIFrame* GetFrame(uint32_t aIndex) const { return mFrames[aIndex]; }
   nsIFrame* GetBaseFrame() const { return GetFrame(0); }
   nsIFrame* GetTextFrame(uint32_t aIndex) const { return GetFrame(aIndex + 1); }
-  void GetTextFrames(nsTArray<nsIFrame*>& aFrames) const;
+  void GetFrames(nsIFrame*& aBaseFrame, nsTArray<nsIFrame*>& aTextFrames) const;
 
 private:
   nsAutoTArray<nsIFrame*, RTC_ARRAY_SIZE + 1> mFrames;
@@ -108,11 +106,13 @@ PairEnumerator::AtEnd() const
 }
 
 void
-PairEnumerator::GetTextFrames(nsTArray<nsIFrame*>& aFrames) const
+PairEnumerator::GetFrames(nsIFrame*& aBaseFrame,
+                          nsTArray<nsIFrame*>& aTextFrames) const
 {
-  aFrames.ClearAndRetainStorage();
+  aBaseFrame = mFrames[0];
+  aTextFrames.ClearAndRetainStorage();
   for (uint32_t i = 1, iend = mFrames.Length(); i < iend; i++) {
-    aFrames.AppendElement(mFrames[i]);
+    aTextFrames.AppendElement(mFrames[i]);
   }
 }
 
@@ -191,14 +191,16 @@ void nsRubyBaseContainerFrame::AppendTextContainer(nsIFrame* aFrame)
   nsRubyTextContainerFrame* rtcFrame = do_QueryFrame(aFrame);
   MOZ_ASSERT(rtcFrame, "Must provide a ruby text container.");
 
-  nsIFrame* onlyChild = rtcFrame->PrincipalChildList().OnlyChild();
-  if (onlyChild && onlyChild->IsPseudoFrame(rtcFrame->GetContent())) {
-    
-    
-    mSpanContainers.AppendElement(rtcFrame);
-  } else {
-    mTextContainers.AppendElement(rtcFrame);
+  nsTArray<nsRubyTextContainerFrame*>* containers = &mTextContainers;
+  if (!GetPrevContinuation() && !GetNextContinuation()) {
+    nsIFrame* onlyChild = rtcFrame->PrincipalChildList().OnlyChild();
+    if (onlyChild && onlyChild->IsPseudoFrame(rtcFrame->GetContent())) {
+      
+      
+      containers = &mSpanContainers;
+    }
   }
+  containers->AppendElement(rtcFrame);
 }
 
 void nsRubyBaseContainerFrame::ClearTextContainers() {
@@ -233,6 +235,18 @@ nsRubyBaseContainerFrame::GetLogicalBaseline(WritingMode aWritingMode) const
   return mBaseline;
 }
 
+
+static bool
+ShouldBreakBefore(const nsHTMLReflowState& aReflowState, nscoord aExtraISize)
+{
+  nsLineLayout* lineLayout = aReflowState.mLineLayout;
+  int32_t offset;
+  gfxBreakPriority priority;
+  nscoord icoord = lineLayout->GetCurrentICoord();
+  return icoord + aExtraISize > aReflowState.AvailableISize() &&
+         lineLayout->GetLastOptionalBreakPosition(&offset, &priority);
+}
+
  void
 nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
                                  nsHTMLReflowMetrics& aDesiredSize,
@@ -250,6 +264,13 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     return;
   }
 
+  MoveOverflowToChildList();
+  
+  const uint32_t rtcCount = mTextContainers.Length();
+  for (uint32_t i = 0; i < rtcCount; i++) {
+    mTextContainers[i]->MoveOverflowToChildList();
+  }
+
   aStatus = NS_FRAME_COMPLETE;
   WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
   WritingMode frameWM = aReflowState.GetWritingMode();
@@ -263,7 +284,6 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
   LogicalSize availSize(lineWM, aReflowState.AvailableWidth(),
                         aReflowState.AvailableHeight());
 
-  const uint32_t rtcCount = mTextContainers.Length();
   const uint32_t spanCount = mSpanContainers.Length();
   const uint32_t totalCount = rtcCount + spanCount;
   
@@ -322,18 +342,34 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
   nscoord isize = pairsISize;
 
   
-  nscoord spanISize = ReflowSpans(aPresContext, aReflowState,
-                                  spanReflowStates, aStatus);
-  if (isize < spanISize) {
-    aReflowState.mLineLayout->AdvanceICoord(spanISize - isize);
-    isize = spanISize;
+  
+  MOZ_ASSERT(NS_INLINE_IS_BREAK_BEFORE(aStatus) ||
+             NS_FRAME_IS_COMPLETE(aStatus) || mSpanContainers.IsEmpty());
+  if (!NS_INLINE_IS_BREAK_BEFORE(aStatus) &&
+      NS_FRAME_IS_COMPLETE(aStatus) && !mSpanContainers.IsEmpty()) {
+    
+    nscoord spanISize = ReflowSpans(aPresContext, aReflowState,
+                                    spanReflowStates, aStatus);
+    
+    
+    MOZ_ASSERT(aStatus == NS_FRAME_COMPLETE);
+    if (isize < spanISize) {
+      nscoord delta = spanISize - isize;
+      if (ShouldBreakBefore(aReflowState, delta)) {
+        aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      } else {
+        aReflowState.mLineLayout->AdvanceICoord(delta);
+        isize = spanISize;
+      }
+    }
   }
 
   DebugOnly<nscoord> lineSpanSize = aReflowState.mLineLayout->EndSpan(this);
   
   
   
-  MOZ_ASSERT(isize == lineSpanSize || mFrames.IsEmpty());
+  MOZ_ASSERT(NS_INLINE_IS_BREAK_BEFORE(aStatus) ||
+             isize == lineSpanSize || mFrames.IsEmpty());
   for (uint32_t i = 0; i < totalCount; i++) {
     
     
@@ -348,27 +384,126 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
                                          borderPadding, lineWM, frameWM);
 }
 
+
+
+
+
+
+struct MOZ_STACK_CLASS nsRubyBaseContainerFrame::PullFrameState
+{
+  ContinuationTraversingState mBase;
+  nsAutoTArray<ContinuationTraversingState, RTC_ARRAY_SIZE> mTexts;
+
+  PullFrameState(nsRubyBaseContainerFrame* aFrame);
+};
+
 nscoord
 nsRubyBaseContainerFrame::ReflowPairs(nsPresContext* aPresContext,
                                       const nsHTMLReflowState& aReflowState,
                                       nsTArray<nsHTMLReflowState*>& aReflowStates,
                                       nsReflowStatus& aStatus)
 {
-  nscoord istart = aReflowState.mLineLayout->GetCurrentICoord();
-  nscoord icoord = istart;
+  nsLineLayout* lineLayout = aReflowState.mLineLayout;
+  if (!lineLayout->LineIsEmpty()) {
+    
+    if (lineLayout->NotifyOptionalBreakPosition(
+          this, 0, true, gfxBreakPriority::eNormalBreak)) {
+      aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      return 0;
+    }
+  }
 
+  const uint32_t rtcCount = mTextContainers.Length();
+  nscoord istart = lineLayout->GetCurrentICoord();
+  nscoord icoord = istart;
+  nsReflowStatus reflowStatus = NS_FRAME_COMPLETE;
+  aStatus = NS_FRAME_COMPLETE;
+
+  mPairCount = 0;
+  nsIFrame* baseFrame = nullptr;
   nsAutoTArray<nsIFrame*, RTC_ARRAY_SIZE> textFrames;
-  textFrames.SetCapacity(mTextContainers.Length());
-  for (PairEnumerator e(this, mTextContainers); !e.AtEnd(); e.Next()) {
-    e.GetTextFrames(textFrames);
+  textFrames.SetCapacity(rtcCount);
+  PairEnumerator e(this, mTextContainers);
+  for (; !e.AtEnd(); e.Next()) {
+    e.GetFrames(baseFrame, textFrames);
     icoord += ReflowOnePair(aPresContext, aReflowState, aReflowStates,
-                            e.GetBaseFrame(), textFrames, aStatus);
+                            baseFrame, textFrames, reflowStatus);
+    if (NS_INLINE_IS_BREAK(reflowStatus)) {
+      break;
+    }
+    
+    MOZ_ASSERT(reflowStatus == NS_FRAME_COMPLETE);
+  }
+
+  bool isComplete = false;
+  PullFrameState pullFrameState(this);
+  while (!NS_INLINE_IS_BREAK(reflowStatus)) {
+    
+    MOZ_ASSERT(reflowStatus == NS_FRAME_COMPLETE);
+
+    
+    
+    PullOnePair(lineLayout, pullFrameState, baseFrame, textFrames, isComplete);
+    if (isComplete) {
+      
+      break;
+    }
+    icoord += ReflowOnePair(aPresContext, aReflowState, aReflowStates,
+                            baseFrame, textFrames, reflowStatus);
+  }
+
+  if (!e.AtEnd() && NS_INLINE_IS_BREAK_AFTER(reflowStatus)) {
+    
+    
+    e.Next();
+    e.GetFrames(baseFrame, textFrames);
+    reflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+  }
+  if (!e.AtEnd() || (GetNextInFlow() && !isComplete)) {
+    NS_FRAME_SET_INCOMPLETE(aStatus);
+  } else {
+    
+    
+    
+    if (lineLayout->NotifyOptionalBreakPosition(
+          this, INT32_MAX, true, gfxBreakPriority::eNormalBreak)) {
+      reflowStatus = NS_INLINE_LINE_BREAK_AFTER(reflowStatus);
+    }
+  }
+
+  if (NS_INLINE_IS_BREAK_BEFORE(reflowStatus)) {
+    if (!mPairCount || !mSpanContainers.IsEmpty()) {
+      
+      
+      aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      return 0;
+    }
+    aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
+    MOZ_ASSERT(NS_FRAME_IS_COMPLETE(aStatus) || mSpanContainers.IsEmpty());
+
+    if (baseFrame) {
+      PushChildren(baseFrame, baseFrame->GetPrevSibling());
+    }
+    for (uint32_t i = 0; i < rtcCount; i++) {
+      nsIFrame* textFrame = textFrames[i];
+      if (textFrame) {
+        mTextContainers[i]->PushChildren(textFrame,
+                                         textFrame->GetPrevSibling());
+      }
+    }
+  } else if (NS_INLINE_IS_BREAK_AFTER(reflowStatus)) {
+    
+    
+    
+    
+    MOZ_ASSERT(e.AtEnd());
+    aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
   }
 
   return icoord - istart;
 }
 
- nscoord
+nscoord
 nsRubyBaseContainerFrame::ReflowOnePair(nsPresContext* aPresContext,
                                         const nsHTMLReflowState& aReflowState,
                                         nsTArray<nsHTMLReflowState*>& aReflowStates,
@@ -377,11 +512,13 @@ nsRubyBaseContainerFrame::ReflowOnePair(nsPresContext* aPresContext,
                                         nsReflowStatus& aStatus)
 {
   WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
-  const uint32_t rtcCount = aTextFrames.Length();
+  const uint32_t rtcCount = mTextContainers.Length();
+  MOZ_ASSERT(aTextFrames.Length() == rtcCount);
   MOZ_ASSERT(aReflowStates.Length() == rtcCount);
   nscoord istart = aReflowState.mLineLayout->GetCurrentICoord();
   nscoord pairISize = 0;
 
+  
   for (uint32_t i = 0; i < rtcCount; i++) {
     if (aTextFrames[i]) {
       MOZ_ASSERT(aTextFrames[i]->GetType() == nsGkAtoms::rubyTextFrame);
@@ -391,13 +528,25 @@ nsRubyBaseContainerFrame::ReflowOnePair(nsPresContext* aPresContext,
       bool pushedFrame;
       aReflowStates[i]->mLineLayout->ReflowFrame(aTextFrames[i], reflowStatus,
                                                  &metrics, pushedFrame);
-      NS_ASSERTION(!NS_INLINE_IS_BREAK(reflowStatus),
-                   "Ruby line breaking is not yet implemented");
-      NS_ASSERTION(!pushedFrame, "Ruby line breaking is not yet implemented");
+      if (NS_INLINE_IS_BREAK(reflowStatus)) {
+        
+        
+        aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+        return 0;
+      }
+      MOZ_ASSERT(!pushedFrame, "Shouldn't push frame if there is no break");
       pairISize = std::max(pairISize, metrics.ISize(lineWM));
     }
   }
+  if (ShouldBreakBefore(aReflowState, pairISize)) {
+    
+    
+    
+    aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+    return 0;
+  }
 
+  
   if (aBaseFrame) {
     MOZ_ASSERT(aBaseFrame->GetType() == nsGkAtoms::rubyBaseFrame);
     nsReflowStatus reflowStatus;
@@ -406,9 +555,12 @@ nsRubyBaseContainerFrame::ReflowOnePair(nsPresContext* aPresContext,
     bool pushedFrame;
     aReflowState.mLineLayout->ReflowFrame(aBaseFrame, reflowStatus,
                                           &metrics, pushedFrame);
-    NS_ASSERTION(!NS_INLINE_IS_BREAK(reflowStatus),
-                 "Ruby line breaking is not yet implemented");
-    NS_ASSERTION(!pushedFrame, "Ruby line breaking is not yet implemented");
+    if (NS_INLINE_IS_BREAK(reflowStatus)) {
+      
+      aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      return 0;
+    }
+    MOZ_ASSERT(!pushedFrame, "Shouldn't push frame if there is no break");
     pairISize = std::max(pairISize, metrics.ISize(lineWM));
   }
 
@@ -421,7 +573,55 @@ nsRubyBaseContainerFrame::ReflowOnePair(nsPresContext* aPresContext,
     lineLayout->AdvanceICoord(icoord - lineLayout->GetCurrentICoord());
   }
 
+  mPairCount++;
+  
+  if (mSpanContainers.IsEmpty()) {
+    if (aReflowState.mLineLayout->NotifyOptionalBreakPosition(
+          this, mPairCount, icoord <= aReflowState.AvailableISize(),
+          gfxBreakPriority::eNormalBreak)) {
+      aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
+    }
+  }
+
   return pairISize;
+}
+
+nsRubyBaseContainerFrame::PullFrameState::PullFrameState(
+    nsRubyBaseContainerFrame* aFrame)
+  : mBase(aFrame)
+{
+  const uint32_t rtcCount = aFrame->mTextContainers.Length();
+  for (uint32_t i = 0; i < rtcCount; i++) {
+    mTexts.AppendElement(aFrame->mTextContainers[i]);
+  }
+}
+
+void
+nsRubyBaseContainerFrame::PullOnePair(nsLineLayout* aLineLayout,
+                                      PullFrameState& aPullFrameState,
+                                      nsIFrame*& aBaseFrame,
+                                      nsTArray<nsIFrame*>& aTextFrames,
+                                      bool& aIsComplete)
+{
+  const uint32_t rtcCount = mTextContainers.Length();
+
+  aBaseFrame = PullNextInFlowChild(aPullFrameState.mBase);
+  aIsComplete = !aBaseFrame;
+
+  aTextFrames.ClearAndRetainStorage();
+  for (uint32_t i = 0; i < rtcCount; i++) {
+    nsIFrame* nextText =
+      mTextContainers[i]->PullNextInFlowChild(aPullFrameState.mTexts[i]);
+    aTextFrames.AppendElement(nextText);
+    
+    
+    aIsComplete = aIsComplete && !nextText;
+  }
+
+  if (!aIsComplete) {
+    
+    aLineLayout->SetDirtyNextLine();
+  }
 }
 
 nscoord
@@ -442,9 +642,9 @@ nsRubyBaseContainerFrame::ReflowSpans(nsPresContext* aPresContext,
     bool pushedFrame;
     aReflowStates[i]->mLineLayout->ReflowFrame(rtFrame, reflowStatus,
                                                &metrics, pushedFrame);
-    NS_ASSERTION(!NS_INLINE_IS_BREAK(reflowStatus),
-                 "Ruby line breaking is not yet implemented");
-    NS_ASSERTION(!pushedFrame, "Ruby line breaking is not yet implemented");
+    
+    
+    MOZ_ASSERT(!NS_INLINE_IS_BREAK(reflowStatus) && !pushedFrame);
     spanISize = std::max(spanISize, metrics.ISize(lineWM));
   }
 

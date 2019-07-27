@@ -531,6 +531,32 @@ protected:
 
 
 
+  struct ContinuationTraversingState
+  {
+    nsContainerFrame* mNextInFlow;
+    ContinuationTraversingState(nsContainerFrame* aFrame)
+      : mNextInFlow(static_cast<nsContainerFrame*>(aFrame->GetNextInFlow()))
+    { }
+  };
+
+  
+
+
+
+  nsIFrame* GetNextInFlowChild(ContinuationTraversingState& aState,
+                               bool* aIsInOverflow = nullptr);
+
+  
+
+
+
+  nsIFrame* PullNextInFlowChild(ContinuationTraversingState& aState);
+
+  
+  
+
+
+
 
   
 
@@ -758,4 +784,4 @@ nsContainerFrame::DestroyOverflowList()
   list->Delete(PresContext()->PresShell());
 }
 
-#endif 
+#endif

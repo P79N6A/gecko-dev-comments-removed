@@ -230,6 +230,9 @@ nsRubyFrame::Reflow(nsPresContext* aPresContext,
   }
 
   
+  MoveOverflowToChildList();
+
+  
   WritingMode frameWM = aReflowState.GetWritingMode();
   WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
   LogicalMargin borderPadding = aReflowState.ComputedLogicalBorderPadding();
@@ -240,11 +243,28 @@ nsRubyFrame::Reflow(nsPresContext* aPresContext,
   aReflowState.mLineLayout->BeginSpan(this, &aReflowState,
                                       startEdge, endEdge, &mBaseline);
 
-  
   aStatus = NS_FRAME_COMPLETE;
   for (SegmentEnumerator e(this); !e.AtEnd(); e.Next()) {
     ReflowSegment(aPresContext, aReflowState, e.GetBaseContainer(), aStatus);
+
+    if (NS_INLINE_IS_BREAK(aStatus)) {
+      
+      
+      break;
+    }
   }
+
+  ContinuationTraversingState pullState(this);
+  while (aStatus == NS_FRAME_COMPLETE) {
+    nsRubyBaseContainerFrame* baseContainer = PullOneSegment(pullState);
+    if (!baseContainer) {
+      
+      break;
+    }
+    ReflowSegment(aPresContext, aReflowState, baseContainer, aStatus);
+  }
+  
+  MOZ_ASSERT(!NS_FRAME_OVERFLOW_IS_INCOMPLETE(aStatus));
 
   aDesiredSize.ISize(lineWM) = aReflowState.mLineLayout->EndSpan(this);
   nsLayoutUtils::SetBSizeFromFontMetrics(this, aDesiredSize, aReflowState,
@@ -262,24 +282,100 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
   LogicalSize availSize(lineWM, aReflowState.AvailableISize(),
                         aReflowState.AvailableBSize());
 
-  nsReflowStatus baseReflowStatus;
+  nsAutoTArray<nsRubyTextContainerFrame*, RTC_ARRAY_SIZE> textContainers;
+  for (TextContainerIterator iter(aBaseContainer); !iter.AtEnd(); iter.Next()) {
+    textContainers.AppendElement(iter.GetTextContainer());
+  }
+  const uint32_t rtcCount = textContainers.Length();
+
   nsHTMLReflowMetrics baseMetrics(aReflowState);
   bool pushedFrame;
-  aReflowState.mLineLayout->ReflowFrame(aBaseContainer, baseReflowStatus,
+  aReflowState.mLineLayout->ReflowFrame(aBaseContainer, aStatus,
                                         &baseMetrics, pushedFrame);
 
+  if (NS_INLINE_IS_BREAK_BEFORE(aStatus)) {
+    if (aBaseContainer != mFrames.FirstChild()) {
+      
+      
+      aStatus = NS_INLINE_LINE_BREAK_AFTER(NS_FRAME_NOT_COMPLETE);
+      PushChildren(aBaseContainer, aBaseContainer->GetPrevSibling());
+      aReflowState.mLineLayout->SetDirtyNextLine();
+    }
+    
+    
+    return;
+  }
+  if (NS_FRAME_IS_NOT_COMPLETE(aStatus)) {
+    
+    
+    
+    
+    MOZ_ASSERT(NS_INLINE_IS_BREAK_AFTER(aStatus));
+    
+    
+    nsIFrame* lastChild;
+    if (rtcCount > 0) {
+      lastChild = textContainers.LastElement();
+    } else {
+      lastChild = aBaseContainer;
+    }
+
+    
+    nsIFrame* newBaseContainer;
+    CreateNextInFlow(aBaseContainer, newBaseContainer);
+    
+    
+    if (newBaseContainer) {
+      
+      mFrames.RemoveFrame(newBaseContainer);
+      mFrames.InsertFrame(nullptr, lastChild, newBaseContainer);
+
+      
+      nsIFrame* newLastChild = newBaseContainer;
+      for (uint32_t i = 0; i < rtcCount; i++) {
+        nsIFrame* newTextContainer;
+        CreateNextInFlow(textContainers[i], newTextContainer);
+        MOZ_ASSERT(newTextContainer, "Next-in-flow of rtc should not exist "
+                   "if the corresponding rbc does not");
+        mFrames.RemoveFrame(newTextContainer);
+        mFrames.InsertFrame(nullptr, newLastChild, newTextContainer);
+        newLastChild = newTextContainer;
+      }
+      PushChildren(newBaseContainer, lastChild);
+      aReflowState.mLineLayout->SetDirtyNextLine();
+    }
+  } else {
+    
+    
+    
+    
+    for (uint32_t i = 0; i < rtcCount; i++) {
+      nsIFrame* nextRTC = textContainers[i]->GetNextInFlow();
+      if (nextRTC) {
+        nextRTC->GetParent()->DeleteNextInFlowChild(nextRTC, true);
+      }
+    }
+  }
+
   nsRect baseRect = aBaseContainer->GetRect();
-  for (TextContainerIterator iter(aBaseContainer); !iter.AtEnd(); iter.Next()) {
-    nsRubyTextContainerFrame* textContainer = iter.GetTextContainer();
+  for (uint32_t i = 0; i < rtcCount; i++) {
+    nsRubyTextContainerFrame* textContainer = textContainers[i];
     nsReflowStatus textReflowStatus;
     nsHTMLReflowMetrics textMetrics(aReflowState);
     nsHTMLReflowState textReflowState(aPresContext, aReflowState,
                                       textContainer, availSize);
+    
+    
+    
+    
     textReflowState.mLineLayout = aReflowState.mLineLayout;
     textContainer->Reflow(aPresContext, textMetrics,
                           textReflowState, textReflowStatus);
+    
+    
+    
     NS_ASSERTION(textReflowStatus == NS_FRAME_COMPLETE,
-                 "Ruby line breaking is not yet implemented");
+                 "Ruby text container must not break itself inside");
     textContainer->SetSize(LogicalSize(lineWM, textMetrics.ISize(lineWM),
                                        textMetrics.BSize(lineWM)));
     nscoord x, y;
@@ -294,4 +390,24 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
     FinishReflowChild(textContainer, aPresContext, textMetrics,
                       &textReflowState, x, y, 0);
   }
+}
+
+nsRubyBaseContainerFrame*
+nsRubyFrame::PullOneSegment(ContinuationTraversingState& aState)
+{
+  
+  nsIFrame* baseFrame = PullNextInFlowChild(aState);
+  if (!baseFrame) {
+    return nullptr;
+  }
+  MOZ_ASSERT(baseFrame->GetType() == nsGkAtoms::rubyBaseContainerFrame);
+
+  
+  nsIFrame* nextFrame;
+  while ((nextFrame = GetNextInFlowChild(aState)) != nullptr &&
+         nextFrame->GetType() == nsGkAtoms::rubyTextContainerFrame) {
+    PullNextInFlowChild(aState);
+  }
+
+  return static_cast<nsRubyBaseContainerFrame*>(baseFrame);
 }
