@@ -74,9 +74,15 @@ MozCameraTestHardware.prototype = {
   },
 
   dispatchEvent: function(evt) {
-    if (this._handler) {
-      this._handler.handleEvent(evt);
-    }
+    var self = this;
+    
+
+
+    this._window.setTimeout(function() {
+      if (self._handler) {
+        self._handler.handleEvent(evt);
+      }
+    }, 0);
   },
 
   reset: function(aWindow) {
