@@ -520,6 +520,7 @@ class IonBuilder
                                           ReferenceTypeDescr::Type type,
                                           PropertyName *name);
     MDefinition *neuterCheck(MDefinition *obj);
+    JSObject *getStaticTypedArrayObject(MDefinition *obj, MDefinition *index);
 
     
     bool setElemTryTypedArray(bool *emitted, MDefinition *object,
