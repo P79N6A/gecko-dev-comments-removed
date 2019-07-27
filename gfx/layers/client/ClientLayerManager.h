@@ -45,8 +45,10 @@ public:
 
   virtual void Destroy() MOZ_OVERRIDE
   {
-    LayerManager::Destroy();
+    
+    
     ClearCachedResources();
+    LayerManager::Destroy();
   }
 
 protected:

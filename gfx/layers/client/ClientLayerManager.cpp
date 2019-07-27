@@ -712,6 +712,10 @@ ClientLayerManager::ReportClientLost(TextureClient& aClient) {
 void
 ClientLayerManager::ClearCachedResources(Layer* aSubtree)
 {
+  if (mDestroyed) {
+    
+    return;
+  }
   MOZ_ASSERT(!HasShadowManager() || !aSubtree);
   mForwarder->ClearCachedResources();
   if (aSubtree) {
