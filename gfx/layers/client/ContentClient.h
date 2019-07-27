@@ -21,6 +21,7 @@
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/mozalloc.h"           
+#include "ReadbackProcessor.h"          
 #include "nsCOMPtr.h"                   
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
@@ -103,7 +104,7 @@ public:
 
   
   virtual void BeginPaint() {}
-  virtual void EndPaint();
+  virtual void EndPaint(nsTArray<ReadbackProcessor::Update>* aReadbackUpdates = nullptr);
 };
 
 
@@ -231,7 +232,7 @@ public:
 
 
   virtual void BeginPaint() MOZ_OVERRIDE;
-  virtual void EndPaint() MOZ_OVERRIDE;
+  virtual void EndPaint(nsTArray<ReadbackProcessor::Update>* aReadbackUpdates = nullptr) MOZ_OVERRIDE;
 
   virtual void Updated(const nsIntRegion& aRegionToDraw,
                        const nsIntRegion& aVisibleRegion,
@@ -430,7 +431,7 @@ public:
                        const nsIntRegion& aVisibleRegion,
                        bool aDidSelfCopy);
 
-  virtual void EndPaint()
+  virtual void EndPaint(nsTArray<ReadbackProcessor::Update>* aReadbackUpdates = nullptr)
   {
     if (IsSurfaceDescriptorValid(mUpdateDescriptor)) {
       mForwarder->DestroySharedSurface(&mUpdateDescriptor);
@@ -438,7 +439,7 @@ public:
     if (IsSurfaceDescriptorValid(mUpdateDescriptorOnWhite)) {
       mForwarder->DestroySharedSurface(&mUpdateDescriptorOnWhite);
     }
-    ContentClientRemote::EndPaint();
+    ContentClientRemote::EndPaint(aReadbackUpdates);
   }
 
 private:
