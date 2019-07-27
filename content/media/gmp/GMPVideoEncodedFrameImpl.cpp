@@ -7,6 +7,7 @@
 #include "GMPVideoHost.h"
 #include "mozilla/gmp/GMPTypes.h"
 #include "GMPSharedMemManager.h"
+#include "GMPEncryptedBufferDataImpl.h"
 
 namespace mozilla {
 namespace gmp {
@@ -40,6 +41,9 @@ GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(const GMPVideoEncodedFrameDat
   mBufferType(aFrameData.mBufferType())
 {
   MOZ_ASSERT(aHost);
+  if (aFrameData.mDecryptionData().mKeyId().Length() > 0) {
+    mCrypto = new GMPEncryptedBufferDataImpl(aFrameData.mDecryptionData());
+  }
   aHost->EncodedFrameCreated(this);
 }
 
@@ -51,10 +55,16 @@ GMPVideoEncodedFrameImpl::~GMPVideoEncodedFrameImpl()
   }
 }
 
+void
+GMPVideoEncodedFrameImpl::InitCrypto(const mp4_demuxer::CryptoSample& aCrypto)
+{
+  mCrypto = new GMPEncryptedBufferDataImpl(aCrypto);
+}
+
 const GMPEncryptedBufferMetadata*
 GMPVideoEncodedFrameImpl::GetDecryptionData() const
 {
-  return nullptr;
+  return mCrypto;
 }
 
 GMPVideoFrameFormat
@@ -95,6 +105,9 @@ GMPVideoEncodedFrameImpl::RelinquishFrameData(GMPVideoEncodedFrameData& aFrameDa
   aFrameData.mCompleteFrame() = mCompleteFrame;
   aFrameData.mBuffer() = mBuffer;
   aFrameData.mBufferType() = mBufferType;
+  if (mCrypto) {
+    mCrypto->RelinquishData(aFrameData.mDecryptionData());
+  }
 
   
   
@@ -151,6 +164,7 @@ GMPVideoEncodedFrameImpl::CopyFrame(const GMPVideoEncodedFrame& aFrame)
   mSize = f.mSize; 
   mCompleteFrame = f.mCompleteFrame;
   mBufferType = f.mBufferType;
+  mCrypto = new GMPEncryptedBufferDataImpl(*(f.mCrypto));
   
 
   return GMPNoErr;
