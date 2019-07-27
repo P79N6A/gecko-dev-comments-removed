@@ -13,7 +13,7 @@ class Configuration:
     Represents global configuration state based on IDL parse data and
     the configuration file.
     """
-    def __init__(self, filename, parseData):
+    def __init__(self, filename, parseData, generatedEvents=[]):
 
         
         glbl = {}
@@ -25,6 +25,7 @@ class Configuration:
         
         self.descriptors = []
         self.interfaces = {}
+        self.generatedEvents = generatedEvents;
         self.maxProtoChainLength = 0;
         for thing in parseData:
             if isinstance(thing, IDLImplementsStatement):
