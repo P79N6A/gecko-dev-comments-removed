@@ -352,7 +352,7 @@ nsXMLHttpRequest::Init()
   
   
   
-  Construct(subjectPrincipal, xpc::GetNativeForGlobal(xpc::PrivilegedJunkScope()));
+  Construct(subjectPrincipal, xpc::NativeGlobal(xpc::PrivilegedJunkScope()));
   return NS_OK;
 }
 

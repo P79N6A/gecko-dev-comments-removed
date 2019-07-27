@@ -427,12 +427,6 @@ Throw(JSContext *cx, nsresult rv);
 
 
 
-nsIGlobalObject *
-GetNativeForGlobal(JSObject *global);
-
-
-
-
 
 nsISupports *
 UnwrapReflectorToISupports(JSObject *reflector);
@@ -457,6 +451,12 @@ PrivilegedJunkScope();
 
 JSObject *
 CompilationScope();
+
+
+
+
+nsIGlobalObject*
+NativeGlobal(JSObject *aObj);
 
 
 

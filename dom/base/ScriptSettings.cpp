@@ -154,7 +154,7 @@ GetIncumbentGlobal()
   
   
   if (JSObject *global = JS::GetScriptedCallerGlobal(cx)) {
-    return xpc::GetNativeForGlobal(global);
+    return xpc::NativeGlobal(global);
   }
 
   
@@ -175,7 +175,7 @@ GetCurrentGlobal()
     return nullptr;
   }
 
-  return xpc::GetNativeForGlobal(global);
+  return xpc::NativeGlobal(global);
 }
 
 nsIPrincipal*

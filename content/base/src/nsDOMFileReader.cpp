@@ -107,7 +107,7 @@ nsDOMFileReader::Init()
   
   
   
-  BindToOwner(xpc::GetNativeForGlobal(xpc::PrivilegedJunkScope()));
+  BindToOwner(xpc::NativeGlobal(xpc::PrivilegedJunkScope()));
   return NS_OK;
 }
 

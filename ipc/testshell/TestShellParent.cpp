@@ -1,10 +1,10 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TestShellParent.h"
 
-
+/* This must occur *after* TestShellParent.h to avoid typedefs conflicts. */
 #include "jsfriendapi.h"
 #include "mozilla/ArrayUtils.h"
 
@@ -23,7 +23,7 @@ using mozilla::dom::ContentParent;
 void
 TestShellParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  
+  // Implement me! Bug 1005177
 }
 
 PTestShellCommandParent*
@@ -43,8 +43,8 @@ bool
 TestShellParent::CommandDone(TestShellCommandParent* command,
                              const nsString& aResponse)
 {
-  
-  command->RunCallback(aResponse);
+  // XXX what should happen if the callback fails?
+  /*bool ok = */command->RunCallback(aResponse);
   command->ReleaseCallback();
 
   return true;
@@ -68,9 +68,9 @@ TestShellCommandParent::RunCallback(const nsString& aResponse)
 {
   NS_ENSURE_TRUE(mCallback.ToJSObject(), false);
 
-  
-  
-  dom::AutoEntryScript aes(xpc::GetNativeForGlobal(js::GetGlobalForObjectCrossCompartment(mCallback.ToJSObject())));
+  // We're about to run script via JS_CallFunctionValue, so we need an
+  // AutoEntryScript. This is just for testing and not in any spec.
+  dom::AutoEntryScript aes(xpc::NativeGlobal(js::GetGlobalForObjectCrossCompartment(mCallback.ToJSObject())));
   JSContext* cx = aes.cx();
   JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
