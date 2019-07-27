@@ -755,6 +755,8 @@ class B2GOptions(MochitestOptions):
         defaults["closeWhenDone"] = True
         defaults["testPath"] = ""
         defaults["extensionsToExclude"] = ["specialpowers"]
+        
+        defaults["leakThreshold"] = 5200
         self.set_defaults(**defaults)
 
     def verifyRemoteOptions(self, options):
