@@ -279,6 +279,10 @@ protected:
   already_AddRefed<AudioTrack> CreateAudioTrack(AudioStreamTrack* aStreamTrack);
   already_AddRefed<VideoTrack> CreateVideoTrack(VideoStreamTrack* aStreamTrack);
 
+  
+  
+  void TracksCreated();
+
   void CheckTracksAvailable();
 
   class StreamListener;
@@ -298,6 +302,9 @@ protected:
   nsRefPtr<StreamListener> mListener;
 
   nsTArray<nsAutoPtr<OnTracksAvailableCallback> > mRunOnTracksAvailable;
+
+  
+  bool mTracksCreated;
 
   nsString mID;
 

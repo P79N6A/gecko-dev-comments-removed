@@ -177,6 +177,13 @@ public:
                                         StreamTime aTrackOffset,
                                         uint32_t aTrackEvents,
                                         const MediaSegment& aQueuedMedia) {}
+
+  
+
+
+
+
+  virtual void NotifyFinishedTrackCreation(MediaStreamGraph* aGraph) {}
 };
 
 
