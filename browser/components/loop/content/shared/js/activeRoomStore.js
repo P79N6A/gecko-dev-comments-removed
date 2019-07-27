@@ -497,13 +497,6 @@ loop.store.ActiveRoomStore = (function() {
     windowUnload: function() {
       this._leaveRoom(ROOM_STATES.CLOSING);
 
-      
-      
-      
-      this._mozLoop.setScreenShareState(
-        this.getStoreState().windowId,
-        false);
-
       if (!this._onUpdateListener) {
         return;
       }
@@ -520,7 +513,7 @@ loop.store.ActiveRoomStore = (function() {
 
 
     leaveRoom: function() {
-      this._leaveRoom();
+      this._leaveRoom(ROOM_STATES.ENDED);
     },
 
     
@@ -556,12 +549,22 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
-
     _leaveRoom: function(nextState) {
       if (loop.standaloneMedia) {
         loop.standaloneMedia.multiplexGum.reset();
       }
 
+      this._mozLoop.setScreenShareState(
+        this.getStoreState().windowId,
+        false);
+
+      if (this._browserSharingListener) {
+        
+        this._mozLoop.removeBrowserSharingListener(this._browserSharingListener);
+        this._browserSharingListener = null;
+      }
+
+      
       this._sdkDriver.disconnectSession();
 
       if (this._timeout) {
@@ -577,7 +580,7 @@ loop.store.ActiveRoomStore = (function() {
           this._storeState.sessionToken);
       }
 
-      this.setStoreState({roomState: nextState || ROOM_STATES.ENDED});
+      this.setStoreState({roomState: nextState});
     },
 
     
