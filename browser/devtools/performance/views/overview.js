@@ -3,8 +3,11 @@
 
 "use strict";
 
-const OVERVIEW_UPDATE_INTERVAL = 100;
-const FRAMERATE_CALC_INTERVAL = 16; 
+
+
+
+const OVERVIEW_UPDATE_INTERVAL = 200; 
+
 const FRAMERATE_GRAPH_HEIGHT = 60; 
 const GRAPH_SCROLL_EVENTS_DRAIN = 50; 
 
@@ -13,11 +16,10 @@ const GRAPH_SCROLL_EVENTS_DRAIN = 50;
 
 
 let OverviewView = {
-
   
 
 
-  initialize: function () {
+  initialize: Task.async(function *() {
     this._framerateEl = $("#time-framerate");
     this._ticksData = [];
 
@@ -28,14 +30,14 @@ let OverviewView = {
     this._onGraphMouseUp = this._onGraphMouseUp.bind(this);
     this._onGraphScroll = this._onGraphScroll.bind(this);
 
-    this._initializeFramerateGraph();
+    yield this._initializeFramerateGraph();
 
     this.framerateGraph.on("mouseup", this._onGraphMouseUp);
     this.framerateGraph.on("scroll", this._onGraphScroll);
     PerformanceController.on(EVENTS.RECORDING_STARTED, this._start);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._stop);
     PerformanceController.on(EVENTS.TIMELINE_DATA, this._onTimelineData);
-  },
+  }),
 
   
 
@@ -55,9 +57,13 @@ let OverviewView = {
 
 
   _onRecordingTick: Task.async(function *() {
-    yield this.framerateGraph.setDataWhenReady(this._ticksData);
+    
+    
+    let [, timestamps] = this._ticksData;
+    yield this.framerateGraph.setDataFromTimestamps(timestamps);
+
     this.emit(EVENTS.OVERVIEW_RENDERED);
-    this._draw();
+    this._prepareNextTick();
   }),
 
   
@@ -94,18 +100,19 @@ let OverviewView = {
   
 
 
-  _initializeFramerateGraph: function () {
+  _initializeFramerateGraph: Task.async(function *() {
     let graph = new LineGraphWidget(this._framerateEl, L10N.getStr("graphs.fps"));
-    graph.minDistanceBetweenPoints = 1;
     graph.fixedHeight = FRAMERATE_GRAPH_HEIGHT;
     graph.selectionEnabled = false;
     this.framerateGraph = graph;
-  },
+
+    yield graph.ready();
+  }),
 
   
 
 
-  _draw: function () {
+  _prepareNextTick: function () {
     
     
     if (this._timeoutId) {
@@ -134,11 +141,7 @@ let OverviewView = {
 
   _onTimelineData: function (_, eventName, ...data) {
     if (eventName === "ticks") {
-      let [delta, timestamps] = data;
-      
-      
-      
-      this._ticksData = FramerateFront.plotFPS(timestamps, FRAMERATE_CALC_INTERVAL);
+      this._ticksData = data;
     }
   }
 };

@@ -37,6 +37,19 @@ const DEFAULT_TIMELINE_DATA_PULL_TIMEOUT = 200;
 
 
 
+
+
+
+
+
+protocol.types.addType("array-of-numbers-as-strings", {
+  write: (v) => v.join(","),
+  read: (v) => v.split(",")
+});
+
+
+
+
 let TimelineActor = exports.TimelineActor = protocol.ActorClass({
   typeName: "timeline",
 
@@ -72,7 +85,7 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
     "ticks" : {
       type: "ticks",
       delta: Arg(0, "number"),
-      timestamps: Arg(1, "array:number")
+      timestamps: Arg(1, "array-of-numbers-as-strings")
     }
   },
 

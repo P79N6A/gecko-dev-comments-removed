@@ -19,6 +19,7 @@ this.EXPORTED_SYMBOLS = [
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
+const WORKER_URL = "resource:///modules/devtools/GraphsWorker.js";
 const L10N = new ViewHelpers.L10N();
 
 
@@ -44,7 +45,7 @@ const GRAPH_STRIPE_PATTERN_LINE_SPACING = 4;
 
 
 const LINE_GRAPH_DAMPEN_VALUES = 0.85;
-const LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS = 400; 
+const LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS = 1; 
 const LINE_GRAPH_TOOLTIP_SAFE_BOUNDS = 8; 
 const LINE_GRAPH_MIN_MAX_TOOLTIP_DISTANCE = 14; 
 
@@ -92,10 +93,10 @@ const BAR_GRAPH_LEGEND_MOUSEOVER_DEBOUNCE = 50;
 
 
 
-this.GraphCursor = function() {}
-this.GraphSelection = function() {}
-this.GraphSelectionDragger = function() {}
-this.GraphSelectionResizer = function() {}
+this.GraphCursor = function() {};
+this.GraphSelection = function() {};
+this.GraphSelectionDragger = function() {};
+this.GraphSelectionResizer = function() {};
 
 GraphCursor.prototype = {
   x: null,
@@ -206,7 +207,7 @@ this.AbstractCanvasGraph = function(parent, name, sharpness) {
     this._ready.resolve(this);
     this.emit("ready", this);
   });
-}
+};
 
 AbstractCanvasGraph.prototype = {
   
@@ -895,7 +896,7 @@ AbstractCanvasGraph.prototype = {
     while (node = node.offsetParent) {
       x += node.offsetLeft;
       y += node.offsetTop;
-    };
+    }
 
     return { left: x, top: y };
   },
@@ -1178,7 +1179,7 @@ this.LineGraphWidget = function(parent, metric, ...args) {
     this._avgTooltip = this._createTooltip("average", "end", "avg", metric);
     this._minTooltip = this._createTooltip("minimum", "start", "min", metric);
   });
-}
+};
 
 LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
   backgroundColor: LINE_GRAPH_BACKGROUND_COLOR,
@@ -1211,7 +1212,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
-  minDistanceBetweenPoints: LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS,
+  minSquaredDistanceBetweenPoints: LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS,
 
   
 
@@ -1228,6 +1229,36 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
+
+
+
+
+
+
+
+
+  setDataFromTimestamps: Task.async(function*(timestamps, interval) {
+    let {
+      plottedData,
+      plottedMinMaxSum
+    } = yield CanvasGraphUtils._performTaskInWorker("plotTimestampsGraph", {
+      width: this._width,
+      height: this._height,
+      dataOffsetX: this.dataOffsetX,
+      dampenValuesFactor: this.dampenValuesFactor,
+      minSquaredDistanceBetweenPoints: this.minSquaredDistanceBetweenPoints,
+      timestamps: timestamps,
+      interval: interval
+    });
+
+    this._tempMinMaxSum = plottedMinMaxSum;
+    this.setData(plottedData);
+  }),
+
+  
+
+
+
   buildGraphImage: function() {
     let { canvas, ctx } = this._getNamedCanvas("line-graph-data");
     let width = this._width;
@@ -1238,12 +1269,25 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     let lastTick = totalTicks ? this._data[totalTicks - 1].delta : 0;
     let maxValue = Number.MIN_SAFE_INTEGER;
     let minValue = Number.MAX_SAFE_INTEGER;
-    let sumValues = 0;
+    let avgValue = 0;
+    let forceDrawAllPoints = false;
 
-    for (let { delta, value } of this._data) {
-      maxValue = Math.max(value, maxValue);
-      minValue = Math.min(value, minValue);
-      sumValues += value;
+    if (this._tempMinMaxSum) {
+      maxValue = this._tempMinMaxSum.maxValue;
+      minValue = this._tempMinMaxSum.minValue;
+      avgValue = this._tempMinMaxSum.avgValue;
+      
+      
+      
+      forceDrawAllPoints = true;
+    } else {
+      let sumValues = 0;
+      for (let { delta, value } of this._data) {
+        maxValue = Math.max(value, maxValue);
+        minValue = Math.min(value, minValue);
+        sumValues += value;
+      }
+      avgValue = sumValues / totalTicks;
     }
 
     let dataScaleX = this.dataScaleX = width / (lastTick - this.dataOffsetX);
@@ -1251,17 +1295,10 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     
 
-
-    function distSquared(x0, y0, x1, y1) {
-      let xs = x1 - x0;
-      let ys = y1 - y0;
-      return xs * xs + ys * ys;
-    }
-
-    
-
     ctx.fillStyle = this.backgroundColor;
     ctx.fillRect(0, 0, width, height);
+
+    
 
     let gradient = ctx.createLinearGradient(0, height / 2, 0, height);
     gradient.addColorStop(0, this.backgroundGradientStart);
@@ -1273,6 +1310,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     let prevX = 0;
     let prevY = 0;
+    let minSqDist = this.minSquaredDistanceBetweenPoints;
 
     for (let { delta, value } of this._data) {
       let currX = (delta - this.dataOffsetX) * dataScaleX;
@@ -1283,8 +1321,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
         ctx.lineTo(-LINE_GRAPH_STROKE_WIDTH, currY);
       }
 
-      let distance = distSquared(prevX, prevY, currX, currY);
-      if (distance >= this.minDistanceBetweenPoints) {
+      if (forceDrawAllPoints || distSquared(prevX, prevY, currX, currY) >= minSqDist) {
         ctx.lineTo(currX, currY);
         prevX = currX;
         prevY = currY;
@@ -1298,6 +1335,26 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     ctx.fill();
     ctx.stroke();
+
+    this._drawOverlays(ctx, minValue, maxValue, avgValue, dataScaleY);
+
+    return canvas;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _drawOverlays: function(ctx, minValue, maxValue, avgValue, dataScaleY) {
+    let width = this._width;
+    let height = this._height;
+    let totalTicks = this._data.length;
 
     
 
@@ -1316,7 +1373,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     ctx.lineWidth = LINE_GRAPH_HELPER_LINES_WIDTH;
     ctx.setLineDash(LINE_GRAPH_HELPER_LINES_DASH);
     ctx.beginPath();
-    let avgValue = totalTicks ? sumValues / totalTicks : 0;
     let averageY = height - avgValue * dataScaleY;
     ctx.moveTo(0, averageY);
     ctx.lineTo(width, averageY);
@@ -1341,15 +1397,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       L10N.numberWithDecimals(avgValue, 2);
     this._minTooltip.querySelector("[text=value]").textContent =
       L10N.numberWithDecimals(minValue, 2);
-
-    
-
-
-    function clamp(value, min, max) {
-      if (value < min) return min;
-      if (value > max) return max;
-      return value;
-    }
 
     let bottom = height / this._pixelRatio;
     let maxPosY = map(maxValue * this.dampenValuesFactor, 0, maxValue, bottom, 0);
@@ -1384,8 +1431,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     this._minTooltip.hidden = !totalTicks;
 
     this._gutter.hidden = !this.withTooltipArrows;
-
-    return canvas;
   },
 
   
@@ -1479,7 +1524,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
-
 this.BarGraphWidget = function(parent, ...args) {
   AbstractCanvasGraph.apply(this, [parent, "bar-graph", ...args]);
 
@@ -1501,7 +1545,7 @@ this.BarGraphWidget = function(parent, ...args) {
     }
     this.outstandingEventListeners = null;
   });
-}
+};
 
 BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
   clipheadLineColor: BAR_GRAPH_CLIPHEAD_LINE_COLOR,
@@ -1955,6 +1999,9 @@ const gCachedStripePattern = new Map();
 
 
 this.CanvasGraphUtils = {
+  _graphUtilsWorker: null,
+  _graphUtilsTaskId: 0,
+
   
 
 
@@ -2004,6 +2051,47 @@ this.CanvasGraphUtils = {
     graph2.on("deselecting", () => {
       graph1.dropSelection();
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _performTaskInWorker: function(task, args, transferrable) {
+    let worker = this._graphUtilsWorker || new ChromeWorker(WORKER_URL);
+    let id = this._graphUtilsTaskId++;
+    worker.postMessage({ task, id, args }, transferrable);
+    return this._waitForWorkerResponse(worker, id);
+  },
+
+  
+
+
+
+
+
+
+
+  _waitForWorkerResponse: function(worker, id) {
+    let deferred = promise.defer();
+
+    worker.addEventListener("message", function listener({ data }) {
+      if (data.id != id) {
+        return;
+      }
+      worker.removeEventListener("message", listener);
+      deferred.resolve(data);
+    });
+
+    return deferred.promise;
   }
 };
 
@@ -2014,6 +2102,26 @@ this.CanvasGraphUtils = {
 
 function map(value, istart, istop, ostart, ostop) {
   return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+}
+
+
+
+
+
+
+function clamp(value, min, max) {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+
+
+
+function distSquared(x0, y0, x1, y1) {
+  let xs = x1 - x0;
+  let ys = y1 - y0;
+  return xs * xs + ys * ys;
 }
 
 
