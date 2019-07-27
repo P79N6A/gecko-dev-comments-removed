@@ -16,6 +16,7 @@
 #include "mozilla/mozalloc.h"           
 #include "mozilla/FloatingPoint.h"      
 #include "nsMathUtils.h"                
+#include "nsPrintfCString.h"            
 #include "nsThreadUtils.h"              
 #include "nscore.h"                     
 #include "gfxPrefs.h"                   
