@@ -64,12 +64,6 @@ const STATE_EMPTY = "empty";
 
 let Agent = {
   
-  
-  
-  
-  hasWrittenState: false,
-
-  
   Paths: null,
 
   
