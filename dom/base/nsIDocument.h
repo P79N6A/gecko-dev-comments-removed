@@ -48,6 +48,7 @@ class nsIChannel;
 class nsIContent;
 class nsIContentSink;
 class nsIDocShell;
+class nsIDocShellTreeItem;
 class nsIDocumentEncoder;
 class nsIDocumentObserver;
 class nsIDOMDocument;
@@ -83,6 +84,7 @@ class nsDOMCaretPosition;
 class nsViewportInfo;
 class nsIGlobalObject;
 struct nsCSSSelectorList;
+struct FullscreenRequest; 
 
 namespace mozilla {
 class CSSStyleSheet;
@@ -1179,6 +1181,22 @@ public:
 
 
   static void ExitFullscreen(nsIDocument* aDocument, bool aRunAsync);
+
+  
+
+
+
+
+  static bool HandlePendingFullscreenRequest(const FullscreenRequest& aRequest,
+                                             nsIDocShellTreeItem* aRootShell,
+                                             bool* aHandled);
+
+  
+
+
+
+
+  static bool HandlePendingFullscreenRequests(nsIDocument* aDocument);
 
   virtual void RequestPointerLock(Element* aElement) = 0;
 

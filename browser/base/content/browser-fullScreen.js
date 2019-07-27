@@ -7,14 +7,17 @@ var FullScreen = {
   _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
 
   _MESSAGES: [
-    "DOMFullscreen:Entered",
+    "DOMFullscreen:Request",
     "DOMFullscreen:NewOrigin",
-    "DOMFullscreen:Exited"
+    "DOMFullscreen:Exited",
   ],
 
   init: function() {
     
     window.addEventListener("fullscreen", this, true);
+    window.addEventListener("MozDOMFullscreen:Entered", this,
+                             true,
+                             false);
     window.addEventListener("MozDOMFullscreen:Exited", this,
                              true,
                              false);
@@ -108,6 +111,35 @@ var FullScreen = {
         if (event.propertyName == "opacity")
           this.cancelWarning();
         break;
+      case "MozDOMFullscreen:Entered": {
+        
+        
+        
+        
+        
+        
+        let originalTarget = event.originalTarget;
+        let browser;
+        if (this._isBrowser(originalTarget)) {
+          browser = originalTarget;
+        } else {
+          let topWin = originalTarget.ownerDocument.defaultView.top;
+          browser = gBrowser.getBrowserForContentWindow(topWin);
+          if (!browser) {
+            document.mozCancelFullScreen();
+            break;
+          }
+        }
+        this.enterDomFullscreen(browser);
+        
+        
+        
+        
+        if (this._isRemoteBrowser(browser)) {
+          browser.messageManager.sendAsyncMessage("DOMFullscreen:Entered");
+        }
+        break;
+      }
       case "MozDOMFullscreen:Exited":
         this.cleanupDomFullscreen();
         break;
@@ -117,16 +149,8 @@ var FullScreen = {
   receiveMessage: function(aMessage) {
     let browser = aMessage.target;
     switch (aMessage.name) {
-      case "DOMFullscreen:Entered": {
-        
-        
-        
-        
-        
-        if (this._isRemoteBrowser(browser)) {
-          this._windowUtils.remoteFrameFullscreenChanged(browser);
-        }
-        this.enterDomFullscreen(browser);
+      case "DOMFullscreen:Request": {
+        this._windowUtils.remoteFrameFullscreenChanged(browser);
         break;
       }
       case "DOMFullscreen:NewOrigin": {
@@ -216,6 +240,13 @@ var FullScreen = {
           .broadcastAsyncMessage("DOMFullscreen:CleanUp");
   },
 
+  _isBrowser: function (aNode) {
+    if (aNode.tagName != "xul:browser") {
+      return false;
+    }
+    let systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+    return aNode.nodePrincipal == systemPrincipal;
+  },
   _isRemoteBrowser: function (aBrowser) {
     return gMultiProcessBrowser && aBrowser.getAttribute("remote") == "true";
   },

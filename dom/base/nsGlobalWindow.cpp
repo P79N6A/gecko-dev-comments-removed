@@ -6181,6 +6181,14 @@ nsGlobalWindow::FinishFullscreenChange(bool aIsFullscreen)
 
   
   
+  
+  
+  if (mFullScreen) {
+    nsIDocument::HandlePendingFullscreenRequests(mDoc);
+  }
+
+  
+  
   DispatchCustomEvent(NS_LITERAL_STRING("fullscreen"));
 
   if (!mFullScreen) {
