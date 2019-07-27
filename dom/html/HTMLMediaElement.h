@@ -1375,6 +1375,11 @@ protected:
   bool mDisableVideo;
 
   
+  
+  
+  bool mPlayBlockedBecauseHidden;
+
+  
   nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 
   nsRefPtr<TextTrackManager> mTextTrackManager;
