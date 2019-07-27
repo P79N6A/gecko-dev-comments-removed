@@ -702,6 +702,21 @@ WindowsDllInterceptor NtDllIntercept;
 NS_EXPORT void
 DllBlocklist_Initialize()
 {
+#if defined(_MSC_VER) && _MSC_VER < 1900 && defined(_M_X64)
+  
+  
+  
+
+  
+  int cpuid0[4] = {0};
+  int cpuid7[4] = {0};
+  __cpuid(cpuid0, 0); 
+  __cpuid(cpuid7, 7); 
+  if (cpuid0[0] < 7 || !(cpuid7[1] & 0x20) || !IsWin7SP1OrLater()) {
+    _set_FMA3_enable(0);
+  }
+#endif
+
   if (GetModuleHandleA("user32.dll")) {
     sUser32BeforeBlocklist = true;
   }

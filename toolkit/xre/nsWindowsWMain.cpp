@@ -13,6 +13,7 @@
 #include "nsUTF8Utils.h"
 #include <intrin.h>
 #include <math.h>
+#include "mozilla/WindowsVersion.h"
 
 #ifndef XRE_DONT_PROTECT_DLL_LOAD
 #include "nsSetDllDirectory.h"
@@ -96,7 +97,7 @@ int wmain(int argc, WCHAR **argv)
   int cpuid7[4] = {0};
   __cpuid(cpuid0, 0); 
   __cpuid(cpuid7, 7); 
-  if (cpuid0[0] < 7 || !(cpuid7[1] & 0x20)) {
+  if (cpuid0[0] < 7 || !(cpuid7[1] & 0x20) || !mozilla::IsWin7SP1OrLater()) {
     _set_FMA3_enable(0);
   }
 #endif
