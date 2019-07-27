@@ -715,7 +715,7 @@ FlameGraph.prototype = {
 
 
   _normalizeSelectionBounds: function() {
-    let canvasWidth = this._width * 2;
+    let canvasWidth = this._width;
     let canvasHeight = this._height;
 
     let { start, end } = this._selection;
