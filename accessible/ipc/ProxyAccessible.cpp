@@ -17,9 +17,13 @@ ProxyAccessible::Shutdown()
 {
   MOZ_ASSERT(!mOuterDoc);
 
-  uint32_t childCount = mChildren.Length();
-  for (uint32_t idx = 0; idx < childCount; idx++)
-    mChildren[idx]->Shutdown();
+  
+  
+  if (!mOuterDoc) {
+    uint32_t childCount = mChildren.Length();
+    for (uint32_t idx = 0; idx < childCount; idx++)
+      mChildren[idx]->Shutdown();
+  }
 
   mChildren.Clear();
   ProxyDestroyed(this);
