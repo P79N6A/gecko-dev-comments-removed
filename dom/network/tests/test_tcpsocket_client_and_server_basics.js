@@ -127,7 +127,7 @@ function waitForConnection(listeningServer) {
     
     
     
-    listeningServer.onconnect = function(socket) {
+    listeningServer.onconnect = function(ev) {
       
       
       listeningServer.onconnect = function() {
@@ -135,9 +135,13 @@ function waitForConnection(listeningServer) {
       };
       ok(true, 'Listening server accepted socket');
       resolve({
-        socket: socket,
-        queue: listenForEventsOnSocket(socket, 'server')
+        socket: ev.socket,
+        queue: listenForEventsOnSocket(ev.socket, 'server')
       });
+    };
+    listeningServer.onerror = function(ev) {
+      ok(false, 'Received an error when not expecting one.');
+      reject();
     };
   });
 }
@@ -173,9 +177,9 @@ function* test_basics() {
 
   let TCPSocket = navigator.mozTCPSocket;
   
-  let listeningServer = TCPSocket.listen(serverPort,
-                                         { binaryType: 'arraybuffer' },
-                                         SERVER_BACKLOG);
+  let listeningServer = new mozTCPServerSocket(serverPort,
+                                               { binaryType: 'arraybuffer' },
+                                               SERVER_BACKLOG);
 
   let connectedPromise = waitForConnection(listeningServer);
 
@@ -343,7 +347,7 @@ function* test_basics() {
                          'server received/client sent');
   
   is((yield serverQueue.waitForEvent()).type, 'close',
-     'The drain event should fire after a large send that returned true.');
+     'The close event should fire after a large send that returned true.');
 
 
   

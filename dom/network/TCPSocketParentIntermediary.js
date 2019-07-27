@@ -9,6 +9,9 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+
+let global = this;
 
 function TCPSocketParentIntermediary() {
 }
@@ -58,19 +61,18 @@ TCPSocketParentIntermediary.prototype = {
 
   listen: function(aTCPServerSocketParent, aLocalPort, aBacklog, aBinaryType,
                    aAppId, aInBrowser) {
-    let baseSocket = Cc["@mozilla.org/tcp-socket;1"].createInstance(Ci.nsIDOMTCPSocket);
-    let serverSocket = baseSocket.listen(aLocalPort, { binaryType: aBinaryType }, aBacklog);
-    if (!serverSocket)
-      return null;
+    let serverSocket = new global.mozTCPServerSocket(aLocalPort, { binaryType: aBinaryType }, aBacklog);
+    let serverSocketInternal = serverSocket.getInternalSocket();
+    serverSocketInternal.initWithGlobal(global);
 
     let localPort = serverSocket.localPort;
 
-    serverSocket["onconnect"] = function(socket) {
+    serverSocket["onconnect"] = function(event) {
       var socketParent = Cc["@mozilla.org/tcp-socket-parent;1"]
                             .createInstance(Ci.nsITCPSocketParent);
       var intermediary = new TCPSocketParentIntermediary();
 
-      let socketInternal = socket.QueryInterface(Ci.nsITCPSocketInternal);
+      let socketInternal = event.socket.QueryInterface(Ci.nsITCPSocketInternal);
       socketInternal.setAppId(aAppId);
       socketInternal.setInBrowser(aInBrowser);
       socketInternal.setOnUpdateBufferedAmountHandler(
@@ -79,11 +81,11 @@ TCPSocketParentIntermediary.prototype = {
       
       
       
-      intermediary._setCallbacks(socketParent, socket);
+      intermediary._setCallbacks(socketParent, event.socket);
       
       
       
-      socketParent.setSocketAndIntermediary(socket, intermediary);
+      socketParent.setSocketAndIntermediary(event.socket, intermediary);
       aTCPServerSocketParent.sendCallbackAccept(socketParent);
     };
 
@@ -94,7 +96,7 @@ TCPSocketParentIntermediary.prototype = {
                                                  error.lineNumber, error.columnNumber);
     };
 
-    return serverSocket;
+    return serverSocketInternal;
   },
 
   onRecvSendString: function(aData, aTrackingNumber) {
