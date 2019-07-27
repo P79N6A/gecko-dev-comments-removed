@@ -76,6 +76,8 @@
 
 #include "GeckoProfiler.h"
 
+ #include "base/histogram.h"
+
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #define TARGET_SANDBOX_EXPORTS
 #include "mozilla/sandboxing/loggingCallbacks.h"
@@ -140,8 +142,8 @@ static int32_t sInitCounter;
 
 nsresult
 XRE_InitEmbedding2(nsIFile *aLibXULDirectory,
-		   nsIFile *aAppDirectory,
-		   nsIDirectoryServiceProvider *aAppDirProvider)
+                   nsIFile *aAppDirectory,
+                   nsIDirectoryServiceProvider *aAppDirProvider)
 {
   
   static char* kNullCommandLine[] = { nullptr };
@@ -304,6 +306,10 @@ XRE_InitChildProcess(int aArgc,
 #ifdef HAS_DLL_BLOCKLIST
   DllBlocklist_Initialize();
 #endif
+
+  
+  UniquePtr<base::StatisticsRecorder> statisticsRecorder =
+    MakeUnique<base::StatisticsRecorder>();
 
 #if !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_WIDGET_GONK)
   
@@ -581,6 +587,7 @@ XRE_InitChildProcess(int aArgc,
     }
   }
 
+  statisticsRecorder = nullptr;
   profiler_shutdown();
   NS_LogTerm();
   return XRE_DeinitCommandLine();
