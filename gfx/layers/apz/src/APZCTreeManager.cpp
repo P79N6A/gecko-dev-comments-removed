@@ -201,8 +201,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 {
   mTreeLock.AssertCurrentThreadOwns();
 
-  Matrix4x4 transform = aLayer->GetTransform();
-
   AsyncPanZoomController* apzc = nullptr;
   mApzcTreeLog << aLayer->Name() << '\t';
 
@@ -283,7 +281,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         apzc->SetScrollHandoffParentId(aLayer->GetScrollHandoffParentId());
 
         nsIntRegion unobscured = ComputeTouchSensitiveRegion(state->mController, metrics, aObscured);
-        apzc->SetLayerHitTestData(unobscured, aAncestorTransform, transform);
+        apzc->SetLayerHitTestData(unobscured, aAncestorTransform);
         APZCTM_LOG("Setting region %s as visible region for APZC %p\n",
             Stringify(unobscured).c_str(), apzc);
 
@@ -371,9 +369,10 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   
   
   
-  Matrix4x4 ancestorTransform;
+  Matrix4x4 transform = aLayer->GetTransform();
+  Matrix4x4 ancestorTransform = transform;
   if (!apzc) {
-    ancestorTransform = transform * aAncestorTransform;
+    ancestorTransform = ancestorTransform * aAncestorTransform;
   }
 
   uint64_t childLayersId = (aLayer->AsRefLayer() ? aLayer->AsRefLayer()->GetReferentId() : aLayersId);
@@ -1121,9 +1120,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
   
   Matrix4x4 asyncUntransform = aApzc->GetCurrentAsyncTransform();
   asyncUntransform.Invert();
-  Matrix4x4 cssUntransform = aApzc->GetCSSTransform();
-  cssUntransform.Invert();
-  Matrix4x4 childUntransform = ancestorUntransform * asyncUntransform * cssUntransform;
+  Matrix4x4 childUntransform = ancestorUntransform * asyncUntransform;
   gfxPointH3D hitTestPointForChildLayers = To3DMatrix(childUntransform).ProjectPoint(aHitTestPoint);
   APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
@@ -1285,14 +1282,12 @@ APZCTreeManager::GetInputTransforms(AsyncPanZoomController *aApzc, Matrix4x4& aT
     asyncUntransform = parent->GetCurrentAsyncTransform();
     asyncUntransform.Invert();
     
-    Matrix4x4 cssUntransform = parent->GetCSSTransform();
-    cssUntransform.Invert();
-    Matrix4x4 untransformSinceLastApzc = ancestorUntransform * asyncUntransform * cssUntransform;
+    Matrix4x4 untransformSinceLastApzc = ancestorUntransform * asyncUntransform;
 
     
     aTransformToApzcOut = untransformSinceLastApzc * aTransformToApzcOut;
     
-    aTransformToGeckoOut = aTransformToGeckoOut * parent->GetCSSTransform() * parent->GetTransformToLastDispatchedPaint() * parent->GetAncestorTransform();
+    aTransformToGeckoOut = aTransformToGeckoOut * parent->GetTransformToLastDispatchedPaint() * parent->GetAncestorTransform();
 
     
     

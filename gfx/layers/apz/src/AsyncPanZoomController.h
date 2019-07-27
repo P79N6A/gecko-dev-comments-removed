@@ -973,12 +973,9 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const nsIntRegion& aRegion, const Matrix4x4& aTransformToLayer,
-                           const Matrix4x4& aTransformForLayer) {
+  void SetLayerHitTestData(const nsIntRegion& aRegion, const Matrix4x4& aTransformToLayer) {
     mVisibleRegion = aRegion;
     mAncestorTransform = aTransformToLayer;
-    mCSSTransform = aTransformForLayer;
-    UpdateTransformScale();
   }
 
   void AddHitTestRegion(const nsIntRegion& aRegion) {
@@ -987,10 +984,6 @@ public:
 
   Matrix4x4 GetAncestorTransform() const {
     return mAncestorTransform;
-  }
-
-  Matrix4x4 GetCSSTransform() const {
-    return mCSSTransform;
   }
 
   bool VisibleRegionContains(const ParentLayerPoint& aPoint) const {
@@ -1011,8 +1004,6 @@ private:
   
 
   Matrix4x4 mAncestorTransform;
-  
-  Matrix4x4 mCSSTransform;
 
 
   
