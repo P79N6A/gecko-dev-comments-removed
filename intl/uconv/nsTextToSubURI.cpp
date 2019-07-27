@@ -243,31 +243,31 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
       != NS_OK) {
     
     CopyUTF8toUTF16(aURIFragment, _retval);
-  } else {
-    
-    if (mUnsafeChars.IsVoid()) {
-      nsCOMPtr<nsISupportsString> blacklist;
-      nsresult rv = mozilla::Preferences::GetComplex("network.IDN.blacklist_chars",
-                                                     NS_GET_IID(nsISupportsString),
-                                                     getter_AddRefs(blacklist));
-      if (NS_SUCCEEDED(rv)) {
-        blacklist->ToString(getter_Copies(mUnsafeChars));
-        mUnsafeChars.StripChars(" "); 
-        MOZ_ASSERT(!mUnsafeChars.IsVoid());
-      } else {
-        NS_WARNING("Failed to get the 'network.IDN.blacklist_chars' preference");
-      }
+  }
+
+  
+  if (mUnsafeChars.IsVoid()) {
+    nsCOMPtr<nsISupportsString> blacklist;
+    nsresult rv = mozilla::Preferences::GetComplex("network.IDN.blacklist_chars",
+                                                   NS_GET_IID(nsISupportsString),
+                                                   getter_AddRefs(blacklist));
+    if (NS_SUCCEEDED(rv)) {
+      blacklist->ToString(getter_Copies(mUnsafeChars));
+      mUnsafeChars.StripChars(" "); 
+      MOZ_ASSERT(!mUnsafeChars.IsVoid());
+    } else {
+      NS_WARNING("Failed to get the 'network.IDN.blacklist_chars' preference");
     }
+  }
+  
+  
+  const char16_t* unsafeChars =
+    mUnsafeChars.IsEmpty() ? sNetworkIDNBlacklistChars : mUnsafeChars;
+  if (PromiseFlatString(_retval).FindCharInSet(unsafeChars) != kNotFound) {
     
     
-    const char16_t* unsafeChars =
-      mUnsafeChars.IsEmpty() ? sNetworkIDNBlacklistChars : mUnsafeChars;
-    if (PromiseFlatString(_retval).FindCharInSet(unsafeChars) != kNotFound) {
-      
-      
-      nsString reescapedSpec;
-      _retval = NS_EscapeURL(_retval, esc_OnlyNonASCII, reescapedSpec);
-    }
+    nsString reescapedSpec;
+    _retval = NS_EscapeURL(_retval, esc_OnlyNonASCII, reescapedSpec);
   }
 
   return NS_OK;
