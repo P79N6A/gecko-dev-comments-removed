@@ -489,7 +489,7 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
   nsRefPtr<WebAudioDecodeJob> job(
     new WebAudioDecodeJob(contentType, this,
                           promise, successCallback, failureCallback));
-  mDecoder.AsyncDecodeMedia(contentType.get(), data, length, *job);
+  AsyncDecodeWebAudio(contentType.get(), data, length, *job);
   
   mDecodeJobs.AppendElement(job.forget());
 
@@ -584,8 +584,6 @@ AudioContext::Shutdown()
   if (!mIsOffline) {
     Mute();
   }
-
-  mDecoder.Shutdown();
 
   
   
@@ -701,7 +699,6 @@ AudioContext::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   if (mListener) {
     amount += mListener->SizeOfIncludingThis(aMallocSizeOf);
   }
-  amount += mDecoder.SizeOfExcludingThis(aMallocSizeOf);
   amount += mDecodeJobs.SizeOfExcludingThis(aMallocSizeOf);
   for (uint32_t i = 0; i < mDecodeJobs.Length(); ++i) {
     amount += mDecodeJobs[i]->SizeOfIncludingThis(aMallocSizeOf);
