@@ -2569,18 +2569,27 @@ function PageProxyClickHandler(aEvent)
 
 let gMenuButtonUpdateBadge = {
   enabled: false,
+  badgeWaitTime: 0,
+  timer: null,
 
   init: function () {
     try {
       this.enabled = Services.prefs.getBoolPref("app.update.badge");
     } catch (e) {}
     if (this.enabled) {
+      try {
+        this.badgeWaitTime = Services.prefs.getIntPref("app.update.badgeWaitTime");
+      } catch (e) {
+        this.badgeWaitTime = 345600; 
+      }
       PanelUI.menuButton.classList.add("badged-button");
       Services.obs.addObserver(this, "update-staged", false);
     }
   },
 
   uninit: function () {
+    if (this.timer)
+      this.timer.cancel();
     if (this.enabled) {
       Services.obs.removeObserver(this, "update-staged");
       PanelUI.panel.removeEventListener("popupshowing", this, true);
@@ -2624,23 +2633,14 @@ let gMenuButtonUpdateBadge = {
       case STATE_APPLIED_SVC:
       case STATE_PENDING:
       case STATE_PENDING_SVC:
+        if (this.timer) {
+          return;
+        }
         
+        this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+        this.timer.initWithCallback(this, this.badgeWaitTime * 1000,
+                                    this.timer.TYPE_ONE_SHOT);
         
-        
-        PanelUI.menuButton.setAttribute("update-status", "succeeded");
-
-        let brandBundle = document.getElementById("bundle_brand");
-        let brandShortName = brandBundle.getString("brandShortName");
-        stringId = "appmenu.restartNeeded.description";
-        updateButtonText = gNavigatorBundle.getFormattedString(stringId,
-                                                               [brandShortName]);
-
-        updateButton.setAttribute("label", updateButtonText);
-        updateButton.setAttribute("update-status", "succeeded");
-        updateButton.hidden = false;
-
-        PanelUI.panel.addEventListener("popupshowing", this, true);
-
         break;
       case STATE_FAILED:
         
@@ -2657,13 +2657,29 @@ let gMenuButtonUpdateBadge = {
 
         PanelUI.panel.addEventListener("popupshowing", this, true);
 
+        this.uninit();
         break;
-      case STATE_DOWNLOADING:
-        
-        
-        
-        return;
     }
+  },
+
+  notify: function () {
+    
+    
+    
+    PanelUI.menuButton.setAttribute("update-status", "succeeded");
+
+    let brandBundle = document.getElementById("bundle_brand");
+    let brandShortName = brandBundle.getString("brandShortName");
+    stringId = "appmenu.restartNeeded.description";
+    updateButtonText = gNavigatorBundle.getFormattedString(stringId,
+                                                           [brandShortName]);
+
+    let updateButton = document.getElementById("PanelUI-update-status");
+    updateButton.setAttribute("label", updateButtonText);
+    updateButton.setAttribute("update-status", "succeeded");
+    updateButton.hidden = false;
+
+    PanelUI.panel.addEventListener("popupshowing", this, true);
     this.uninit();
   },
 
