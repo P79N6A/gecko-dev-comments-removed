@@ -1017,9 +1017,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 #endif
 
     
-    JSDebugHooks        debugHooks;
-
-    
     bool                debugMode;
 
     

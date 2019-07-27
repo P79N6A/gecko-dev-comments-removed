@@ -3273,12 +3273,6 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     mozilla::RegisterJSSizeOfTab(JSSizeOfTab);
 
     
-#ifdef DEBUG
-    if (!JS_GetGlobalDebugHooks(runtime)->debuggerHandler)
-        xpc_InstallJSDebuggerKeywordHandler(runtime);
-#endif
-
-    
     ReloadPrefsCallback(nullptr, this);
     Preferences::RegisterCallback(ReloadPrefsCallback, JS_OPTIONS_DOT_STR, this);
 }

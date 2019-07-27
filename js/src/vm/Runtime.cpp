@@ -232,7 +232,6 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime)
     
     JS_INIT_CLIST(&onNewGlobalObjectWatchers);
 
-    PodZero(&debugHooks);
     PodArrayZero(nativeStackQuota);
     PodZero(&asmJSCacheOps);
 }
