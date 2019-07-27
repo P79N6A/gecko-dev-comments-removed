@@ -908,10 +908,8 @@ IMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
     return;
   }
 
-  
-  if (aEvent->message == NS_COMPOSITION_UPDATE) {
-    return;
-  }
+  MOZ_ASSERT(aEvent->message != NS_COMPOSITION_UPDATE,
+             "compositionupdate event shouldn't be dispatched manually");
 
   EnsureTextCompositionArray();
 
