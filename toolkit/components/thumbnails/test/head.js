@@ -10,7 +10,8 @@ Cu.import("resource://gre/modules/FileUtils.jsm", tmp);
 Cu.import("resource://gre/modules/osfile.jsm", tmp);
 let {PageThumbs, BackgroundPageThumbs, NewTabUtils, PageThumbsStorage, SessionStore, FileUtils, OS} = tmp;
 
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+  "resource://testing-common/PlacesTestUtils.jsm");
 
 let oldEnabledPref = Services.prefs.getBoolPref("browser.pagethumbnails.capturing_disabled");
 Services.prefs.setBoolPref("browser.pagethumbnails.capturing_disabled", false);
@@ -204,68 +205,10 @@ function removeThumbnail(aURL) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-function addVisits(aPlaceInfo, aCallback) {
-  let places = [];
-  if (aPlaceInfo instanceof Ci.nsIURI) {
-    places.push({ uri: aPlaceInfo });
-  }
-  else if (Array.isArray(aPlaceInfo)) {
-    places = places.concat(aPlaceInfo);
-  } else {
-    places.push(aPlaceInfo)
-  }
-
-  
-  let now = Date.now();
-  for (let i = 0; i < places.length; i++) {
-    if (typeof(places[i]) == "string") {
-      places[i] = { uri: Services.io.newURI(places[i], "", null) };
-    }
-    if (!places[i].title) {
-      places[i].title = "test visit for " + places[i].uri.spec;
-    }
-    places[i].visits = [{
-      transitionType: places[i].transition === undefined ? PlacesUtils.history.TRANSITION_LINK
-                                                         : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000,
-      referrerURI: places[i].referrer
-    }];
-  }
-
-  PlacesUtils.asyncHistory.updatePlaces(
-    places,
-    {
-      handleError: function AAV_handleError() {
-        throw("Unexpected error in adding visit.");
-      },
-      handleResult: function () {},
-      handleCompletion: function UP_handleCompletion() {
-        if (aCallback)
-          aCallback();
-      }
-    }
-  );
-}
-
-
-
-
-
 function addVisitsAndRepopulateNewTabLinks(aPlaceInfo, aCallback) {
-  addVisits(aPlaceInfo, () => NewTabUtils.links.populateCache(aCallback, true));
+  PlacesTestUtils.addVisits(makeURI(aPlaceInfo)).then(() => {
+    NewTabUtils.links.populateCache(aCallback, true);
+  });
 }
 
 

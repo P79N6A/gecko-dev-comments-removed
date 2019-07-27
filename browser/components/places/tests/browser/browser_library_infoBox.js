@@ -111,11 +111,10 @@ gTests.push({
       PlacesTestUtils.clearHistory().then(nextTest);
     }
     
-    addVisits(
+    PlacesTestUtils.addVisits(
       { uri: PlacesUtils._uri(TEST_URI), visitDate: Date.now() * 1000,
-        transition: PlacesUtils.history.TRANSITION_TYPED },
-      window,
-      addVisitsCallback);
+        transition: PlacesUtils.history.TRANSITION_TYPED }
+      ).then(addVisitsCallback);
   }
 });
 

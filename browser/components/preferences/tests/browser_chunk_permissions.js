@@ -34,7 +34,7 @@ function test() {
 
 function setup(aCallback) {
   
-  addVisits(TEST_URI_1, function() {
+  PlacesTestUtils.addVisits(TEST_URI_1).then(() => {
     
     
     for (let type in TEST_PERMS) {
