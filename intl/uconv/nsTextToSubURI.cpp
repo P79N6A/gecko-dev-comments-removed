@@ -170,23 +170,19 @@ static bool statefulCharset(const char *charset)
 
 nsresult nsTextToSubURI::convertURItoUnicode(const nsAFlatCString &aCharset,
                                              const nsAFlatCString &aURI, 
-                                             bool aIRI, 
                                              nsAString &_retval)
 {
-  nsresult rv = NS_OK;
-
   
   bool isStatefulCharset = statefulCharset(aCharset.get());
 
-  if (!isStatefulCharset && IsASCII(aURI)) {
-    CopyASCIItoUTF16(aURI, _retval);
-    return rv;
-  }
-
-  if (!isStatefulCharset && aIRI) {
+  if (!isStatefulCharset) {
+    if (IsASCII(aURI)) {
+      CopyASCIItoUTF16(aURI, _retval);
+      return NS_OK;
+    }
     if (IsUTF8(aURI)) {
       CopyUTF8toUTF16(aURI, _retval);
-      return rv;
+      return NS_OK;
     }
   }
 
@@ -200,12 +196,11 @@ nsresult nsTextToSubURI::convertURItoUnicode(const nsAFlatCString &aCharset,
   nsCOMPtr<nsIUnicodeDecoder> unicodeDecoder =
     EncodingUtils::DecoderForEncoding(encoding);
 
-  NS_ENSURE_SUCCESS(rv, rv);
   unicodeDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Signal);
 
   int32_t srcLen = aURI.Length();
   int32_t dstLen;
-  rv = unicodeDecoder->GetMaxLength(aURI.get(), srcLen, &dstLen);
+  nsresult rv = unicodeDecoder->GetMaxLength(aURI.get(), srcLen, &dstLen);
   NS_ENSURE_SUCCESS(rv, rv);
 
   char16_t *ustr = (char16_t *) NS_Alloc(dstLen * sizeof(char16_t));
@@ -234,7 +229,7 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
   
   
   if (convertURItoUnicode(
-                PromiseFlatCString(aCharset), unescapedSpec, true, _retval)
+                PromiseFlatCString(aCharset), unescapedSpec, _retval)
       != NS_OK) {
     
     CopyUTF8toUTF16(aURIFragment, _retval);
@@ -289,7 +284,7 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeNonAsciiURI(const nsACString & aCharset,
     return NS_OK;
   }
 
-  return convertURItoUnicode(PromiseFlatCString(aCharset), unescapedSpec, true, _retval);
+  return convertURItoUnicode(PromiseFlatCString(aCharset), unescapedSpec, _retval);
 }
 
 
