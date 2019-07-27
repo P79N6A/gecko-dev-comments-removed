@@ -80,6 +80,22 @@ void TestBasics()
   }
   MOZ_RELEASE_ASSERT(n == 1000);
 
+  
+  MOZ_RELEASE_ASSERT(v.Length() == 1000);
+  for (int len = (int)v.Length(); len > 0; len--) {
+    MOZ_RELEASE_ASSERT(v.GetLast() == len - 1);
+    v.PopLast();
+  }
+  MOZ_RELEASE_ASSERT(v.IsEmpty());
+  MOZ_RELEASE_ASSERT(v.Length() == 0);
+
+  
+  for (i = 0; i < 1000; i++) {
+    v.InfallibleAppend(mozilla::Move(i));
+  }
+  MOZ_RELEASE_ASSERT(!v.IsEmpty());
+  MOZ_RELEASE_ASSERT(v.Length() == 1000);
+
   v.Clear();
   MOZ_RELEASE_ASSERT(v.IsEmpty());
   MOZ_RELEASE_ASSERT(v.Length() == 0);
@@ -115,6 +131,8 @@ void TestConstructorsAndDestructors()
     gDummy = v.Append(mozilla::Move(y));  
     NonPOD z(1);                          
     v.InfallibleAppend(mozilla::Move(z)); 
+    v.PopLast();                          
+    MOZ_RELEASE_ASSERT(gNumDtors == 1);
     v.Clear();                            
 
     MOZ_RELEASE_ASSERT(gNumDefaultCtors  == 0);
