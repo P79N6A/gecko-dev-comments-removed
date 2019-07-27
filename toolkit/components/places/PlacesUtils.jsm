@@ -956,7 +956,7 @@ this.PlacesUtils = {
 
 
 
-  hasChildURIs: function PU_hasChildURIs(aNode, aMultiple=false) {
+  hasChildURIs: function PU_hasChildURIs(aNode) {
     if (!this.nodeIsContainer(aNode))
       return false;
 
@@ -972,14 +972,11 @@ this.PlacesUtils = {
       root.containerOpen = true;
     }
 
-    let foundFirst = !aMultiple;
     let found = false;
     for (let i = 0; i < root.childCount && !found; i++) {
       let child = root.getChild(i);
-      if (this.nodeIsURI(child)) {
-        found = foundFirst;
-        foundFirst = true;
-      }
+      if (this.nodeIsURI(child))
+        found = true;
     }
 
     if (!wasOpen) {
