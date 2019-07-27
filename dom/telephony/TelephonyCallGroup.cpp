@@ -87,41 +87,47 @@ TelephonyCallGroup::ChangeState(uint16_t aCallState)
   if (mCallState == aCallState) {
     return;
   }
+  
+  mCallState = aCallState;
 
-  nsString stateString;
+  
+  bool externalStateChanged = true;
   switch (aCallState) {
+    
+    
+    
+    case nsITelephonyService::CALL_STATE_HOLDING:
+    case nsITelephonyService::CALL_STATE_RESUMING:
+      externalStateChanged = false;
+      break;
+    
+    
     case nsITelephonyService::CALL_STATE_UNKNOWN:
+      mState.AssignLiteral("");
       break;
     case nsITelephonyService::CALL_STATE_CONNECTED:
-      stateString.AssignLiteral("connected");
-      break;
-    case nsITelephonyService::CALL_STATE_HOLDING:
-      stateString.AssignLiteral("holding");
+      mState.AssignLiteral("connected");
       break;
     case nsITelephonyService::CALL_STATE_HELD:
-      stateString.AssignLiteral("held");
-      break;
-    case nsITelephonyService::CALL_STATE_RESUMING:
-      stateString.AssignLiteral("resuming");
+      mState.AssignLiteral("held");
       break;
     default:
       NS_NOTREACHED("Unknown state!");
   }
 
-  mState = stateString;
-  mCallState = aCallState;
-
-  nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("statechange"), nullptr);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to dispatch specific event!");
-  }
-  if (!stateString.IsEmpty()) {
-    
-    
-    if (mCallState == aCallState) {
-      rv = DispatchCallEvent(stateString, nullptr);
-      if (NS_FAILED(rv)) {
-        NS_WARNING("Failed to dispatch specific event!");
+  if (externalStateChanged) {
+    nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("statechange"), nullptr);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Failed to dispatch specific event!");
+    }
+    if (!mState.IsEmpty()) {
+      
+      
+      if (mCallState == aCallState) {
+        rv = DispatchCallEvent(mState, nullptr);
+        if (NS_FAILED(rv)) {
+          NS_WARNING("Failed to dispatch specific event!");
+        }
       }
     }
   }
