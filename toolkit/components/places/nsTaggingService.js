@@ -115,7 +115,7 @@ TaggingService.prototype = {
         
         tag.__defineGetter__("name", function () this._self._tagFolders[this.id]);
       }
-      else if (typeof(val) == "string" && val.length > 0) {
+      else if (typeof(val) == "string" && val.length > 0 && val.length <= Ci.nsITaggingService.MAX_TAG_LENGTH) {
         
         tag.name = val;
         
