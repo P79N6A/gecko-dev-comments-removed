@@ -17,7 +17,7 @@
 
 
 #define MOZ_MEMORY_IMPL
-#include "mozmemory_wrap.h"
+#include "mozmemory.h"
 
 
 
