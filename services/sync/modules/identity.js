@@ -487,8 +487,15 @@ IdentityManager.prototype = {
   
 
 
+  _getSyncCredentialsHosts: function() {
+    return Utils.getSyncCredentialsHostsLegacy();
+  },
+
+  
+
+
   deleteSyncCredentials: function deleteSyncCredentials() {
-    for (let host of Utils.getSyncCredentialsHosts()) {
+    for (let host of this._getSyncCredentialsHosts()) {
       let logins = Services.logins.findLogins({}, host, "", "");
       for each (let login in logins) {
         Services.logins.removeLogin(login);

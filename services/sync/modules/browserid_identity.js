@@ -402,6 +402,13 @@ this.BrowserIDManager.prototype = {
   
 
 
+  _getSyncCredentialsHosts: function() {
+    return Utils.getSyncCredentialsHostsFxA();
+  },
+
+  
+
+
 
 
 

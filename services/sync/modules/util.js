@@ -596,13 +596,30 @@ this.Utils = {
 
 
   getSyncCredentialsHosts: function() {
+    let result = new Set(this.getSyncCredentialsHostsLegacy());
+    for (let host of this.getSyncCredentialsHostsFxA()) {
+      result.add(host);
+    }
+    return result;
+  },
+
+  
+
+
+  getSyncCredentialsHostsLegacy: function() {
     
-    if (this._syncCredentialsHosts) {
-      return this._syncCredentialsHosts;
+    return new Set([PWDMGR_HOST]);
+  },
+
+  
+
+
+  getSyncCredentialsHostsFxA: function() {
+    
+    if (this._syncCredentialsHostsFxA) {
+      return this._syncCredentialsHostsFxA;
     }
     let result = new Set();
-    
-    result.add(PWDMGR_HOST);
     
     result.add(FxAccountsCommon.FXA_PWDMGR_HOST);
     
@@ -621,7 +638,7 @@ this.Utils = {
       let uri = Services.io.newURI(prefVal, null, null);
       result.add(uri.prePath);
     }
-    return this._syncCredentialsHosts = result;
+    return this._syncCredentialsHostsFxA = result;
   },
 };
 
