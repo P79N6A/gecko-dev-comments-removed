@@ -545,53 +545,6 @@ tests.push({
 
 
 tests.push({
-  name: "D.5",
-  desc: "Fix wrong keywords",
-
-  _validKeywordItemId: null,
-  _invalidKeywordItemId: null,
-  _validKeywordId: 1,
-  _invalidKeywordId: 8888,
-  _placeId: null,
-
-  setup: function() {
-    
-    let stmt = mDBConn.createStatement("INSERT INTO moz_keywords (id, keyword) VALUES(:id, :keyword)");
-    stmt.params["id"] = this._validKeywordId;
-    stmt.params["keyword"] = "used";
-    stmt.execute();
-    stmt.finalize();
-    
-    this._placeId = addPlace();
-    
-    this._validKeywordItemId = addBookmark(this._placeId, bs.TYPE_BOOKMARK, bs.unfiledBookmarksFolder, this._validKeywordId);
-    
-    this._invalidKeywordItemId = addBookmark(this._placeId, bs.TYPE_BOOKMARK, bs.unfiledBookmarksFolder, this._invalidKeywordId);
-  },
-
-  check: function() {
-    
-    let stmt = mDBConn.createStatement("SELECT id FROM moz_bookmarks WHERE id = :item_id AND keyword_id = :keyword");
-    stmt.params["item_id"] = this._validKeywordItemId;
-    stmt.params["keyword"] = this._validKeywordId;
-    do_check_true(stmt.executeStep());
-    stmt.reset();
-    
-    stmt.params["item_id"] = this._invalidKeywordItemId;
-    stmt.params["keyword"] = this._invalidKeywordId;
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-    
-    stmt = mDBConn.createStatement("SELECT id FROM moz_bookmarks WHERE id = :item_id");
-    stmt.params["item_id"] = this._invalidKeywordItemId;
-    do_check_true(stmt.executeStep());
-    stmt.finalize();
-  }
-});
-
-
-
-tests.push({
   name: "D.6",
   desc: "Fix wrong item types | bookmarks",
 
@@ -1053,27 +1006,17 @@ tests.push({
 
   setup: function() {
     
-    let stmt = mDBConn.createStatement("INSERT INTO moz_keywords (id, keyword) VALUES(:id, :keyword)");
+    let stmt = mDBConn.createStatement("INSERT INTO moz_keywords (id, keyword, place_id) VALUES(:id, :keyword, :place_id)");
     stmt.params["id"] = 1;
-    stmt.params["keyword"] = "used";
-    stmt.execute();
-    stmt.reset();
-    stmt.params["id"] = 2;
     stmt.params["keyword"] = "unused";
+    stmt.params["place_id"] = 100;
     stmt.execute();
     stmt.finalize();
-    
-    this._placeId = addPlace();
-    
-    this._bookmarkId = addBookmark(this._placeId, bs.TYPE_BOOKMARK, bs.unfiledBookmarksFolder, 1);
   },
 
   check: function() {
     
     let stmt = mDBConn.createStatement("SELECT id FROM moz_keywords WHERE keyword = :keyword");
-    stmt.params["keyword"] = "used";
-    do_check_true(stmt.executeStep());
-    stmt.reset();
     
     stmt.params["keyword"] = "unused";
     do_check_false(stmt.executeStep());

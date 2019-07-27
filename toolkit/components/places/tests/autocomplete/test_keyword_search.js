@@ -43,13 +43,13 @@ let kTitles = [
 
 addPageBook(0, 0, 1, [], keyKey);
 
-gPages[1] = [1,1];
-gPages[2] = [2,1];
-gPages[3] = [3,1];
-gPages[4] = [4,1];
+gPages[1] = [1,0];
+gPages[2] = [2,0];
+gPages[3] = [3,0];
+gPages[4] = [4,0];
 
 addPageBook(5, 0);
-gPages[6] = [6,1];
+gPages[6] = [6,0];
 
 
 
@@ -68,14 +68,4 @@ let gTests = [
    keyKey, [6]],
   ["6: Keyword without query (with space)",
    keyKey + " ", [6]],
-
-  
-  ["7: Two keywords matched",
-   keyKey + " twoKey", [8,9],
-   function() {
-     
-     addPageBook(7, 0, 1, [], keyKey);
-     gPages[8] = [8,1];
-     gPages[9] = [9,1];
-   }]
 ];
