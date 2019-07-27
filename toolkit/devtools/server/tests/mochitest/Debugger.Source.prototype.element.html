@@ -10,7 +10,8 @@
 
 
 
-<body onresize='debugger;'>
+
+<body onresize='if (event.cancelable) debugger;'>
   
   <div id='heidi' onclick='heinrichFun();'>Heidi</div>
 </body>
