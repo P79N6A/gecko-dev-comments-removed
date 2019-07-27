@@ -134,6 +134,13 @@ GrallocImage::SetData(const Data& aData)
     }
   }
   graphicBuffer->unlock();
+  
+  
+  
+  
+  mData.mYChannel     = nullptr;
+  mData.mCrChannel    = nullptr;
+  mData.mCbChannel    = nullptr;
 }
 
 void GrallocImage::SetData(const GrallocData& aData)
@@ -334,6 +341,12 @@ ConvertOmxYUVFormatToRGB565(android::sp<GraphicBuffer>& aBuffer,
       ycbcrData.mCrSkip       = 0;
       
       ycbcrData.mCbCrStride   = ALIGN(ycbcrData.mYStride / 2, 16);
+      ycbcrData.mCbChannel    = ycbcrData.mCrChannel + (ycbcrData.mCbCrStride * aBuffer->getHeight() / 2);
+    } else {
+      
+      
+      ycbcrData.mYChannel     = buffer;
+      ycbcrData.mCrChannel    = buffer + ycbcrData.mYStride * aBuffer->getHeight();
       ycbcrData.mCbChannel    = ycbcrData.mCrChannel + (ycbcrData.mCbCrStride * aBuffer->getHeight() / 2);
     }
     gfx::ConvertYCbCrToRGB(ycbcrData,
