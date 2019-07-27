@@ -1,0 +1,44 @@
+
+
+
+
+<!DOCTYPE HTML>
+<html>
+<title>feImage Rendering Should Scale To Its Primitive Subregion</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<head>
+  <style>
+    .filtered {
+      filter: url(#f);
+      height: 30px;
+      background: red;
+    }
+  </style>
+</head>
+<body>
+  <p>You should see a long horizontal green rectangle.</p>
+  <div class="filtered"></div>
+  <svg>
+    <defs>
+      <filter id="f" x="0" y="0" width="1" height="1">
+        
+        <feImage width="600" height="600"
+                 xlink:href="data:image/gif;base64,R0lGODlhAQABAIAAAAD/AAAAACwAAAAAAQABAAACAkQBADs="/>
+      </filter>
+    </defs>
+  </svg>
+</body>
+</html>
