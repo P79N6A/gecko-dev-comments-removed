@@ -33,45 +33,6 @@ class ServiceWorkerRegistration;
 namespace workers {
 
 class ServiceWorker;
-class ServiceWorkerUpdateInstance;
-
-
-
-
-
-
-
-
-
-
-class UpdatePromise MOZ_FINAL
-{
-public:
-  UpdatePromise();
-  ~UpdatePromise();
-
-  void AddPromise(Promise* aPromise);
-  void ResolveAllPromises(const nsACString& aScriptSpec, const nsACString& aScope);
-  void RejectAllPromises(nsresult aRv);
-  void RejectAllPromises(const ErrorEventInit& aErrorDesc);
-
-  bool
-  IsRejected() const
-  {
-    return mState == Rejected;
-  }
-
-private:
-  enum {
-    Pending,
-    Resolved,
-    Rejected
-  } mState;
-
-  
-  
-  nsTArray<WeakPtr<Promise>> mPromises;
-};
 
 
 
@@ -82,6 +43,7 @@ private:
 class ServiceWorkerInfo MOZ_FINAL
 {
   nsCString mScriptSpec;
+  ServiceWorkerState mState;
 
   ~ServiceWorkerInfo()
   { }
@@ -97,7 +59,98 @@ public:
 
   explicit ServiceWorkerInfo(const nsACString& aScriptSpec)
     : mScriptSpec(aScriptSpec)
+    , mState(ServiceWorkerState::EndGuard_)
   { }
+
+  void
+  UpdateState(ServiceWorkerState aState)
+  {
+#ifdef DEBUG
+    
+    
+    if (aState != ServiceWorkerState::Redundant) {
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::EndGuard_, aState == ServiceWorkerState::Installing);
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::Installing, aState == ServiceWorkerState::Installed);
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::Installed, aState == ServiceWorkerState::Activating);
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::Activating, aState == ServiceWorkerState::Activated);
+    }
+    
+    MOZ_ASSERT_IF(mState == ServiceWorkerState::Activated, aState == ServiceWorkerState::Redundant);
+#endif
+    mState = aState;
+    
+  }
+};
+
+class ServiceWorkerJobQueue;
+
+class ServiceWorkerJob : public nsISupports
+{
+  
+  
+  ServiceWorkerJobQueue* mQueue;
+
+public:
+  NS_DECL_ISUPPORTS
+
+  virtual void Start() = 0;
+
+protected:
+  explicit ServiceWorkerJob(ServiceWorkerJobQueue* aQueue)
+    : mQueue(aQueue)
+  {
+  }
+
+  virtual ~ServiceWorkerJob()
+  { }
+
+  void
+  Done(nsresult aStatus);
+};
+
+class ServiceWorkerJobQueue MOZ_FINAL
+{
+  friend class ServiceWorkerJob;
+
+  nsTArray<nsRefPtr<ServiceWorkerJob>> mJobs;
+
+public:
+  ~ServiceWorkerJobQueue()
+  {
+    
+    MOZ_ASSERT(mJobs.IsEmpty());
+  }
+
+  void
+  Append(ServiceWorkerJob* aJob)
+  {
+    MOZ_ASSERT(aJob);
+    MOZ_ASSERT(!mJobs.Contains(aJob));
+    bool wasEmpty = mJobs.IsEmpty();
+    mJobs.AppendElement(aJob);
+    if (wasEmpty) {
+      aJob->Start();
+    }
+  }
+
+private:
+  void
+  Pop()
+  {
+    MOZ_ASSERT(!mJobs.IsEmpty());
+    mJobs.RemoveElementAt(0);
+    if (!mJobs.IsEmpty()) {
+      mJobs[0]->Start();
+    }
+  }
+
+  void
+  Done(ServiceWorkerJob* aJob)
+  {
+    MOZ_ASSERT(!mJobs.IsEmpty());
+    MOZ_ASSERT(mJobs[0] == aJob);
+    Pop();
+  }
 };
 
 
@@ -116,30 +169,15 @@ public:
   
   nsCString mScriptSpec;
 
-  nsRefPtr<ServiceWorkerInfo> mCurrentWorker;
+  nsRefPtr<ServiceWorkerInfo> mActiveWorker;
   nsRefPtr<ServiceWorkerInfo> mWaitingWorker;
   nsRefPtr<ServiceWorkerInfo> mInstallingWorker;
-
-  nsAutoPtr<UpdatePromise> mUpdatePromise;
-  nsRefPtr<ServiceWorkerUpdateInstance> mUpdateInstance;
-
-  void
-  AddUpdatePromiseObserver(Promise* aPromise)
-  {
-    MOZ_ASSERT(HasUpdatePromise());
-    mUpdatePromise->AddPromise(aPromise);
-  }
-
-  bool
-  HasUpdatePromise()
-  {
-    return mUpdatePromise;
-  }
 
   
   
   
   bool mPendingUninstall;
+  bool mWaitingToActivate;
 
   explicit ServiceWorkerRegistrationInfo(const nsACString& aScope);
 
@@ -152,7 +190,7 @@ public:
     } else if (mWaitingWorker) {
       newest = mWaitingWorker;
     } else {
-      newest = mCurrentWorker;
+      newest = mActiveWorker;
     }
 
     return newest.forget();
@@ -173,11 +211,20 @@ public:
   bool
   IsControllingDocuments() const
   {
-    return mControlledDocumentsCounter > 0;
+    return mActiveWorker && mControlledDocumentsCounter > 0;
   }
 
   void
   Clear();
+
+  void
+  TryToActivate();
+
+  void
+  Activate();
+
+  void
+  FinishActivate(bool aSuccess);
 };
 
 #define NS_SERVICEWORKERMANAGER_IMPL_IID                 \
@@ -196,14 +243,13 @@ public:
 class ServiceWorkerManager MOZ_FINAL : public nsIServiceWorkerManager
 {
   friend class ActivationRunnable;
-  friend class RegisterRunnable;
-  friend class CallInstallRunnable;
-  friend class CancelServiceWorkerInstallationRunnable;
   friend class ServiceWorkerRegistrationInfo;
-  friend class ServiceWorkerUpdateInstance;
+  friend class ServiceWorkerRegisterJob;
   friend class GetReadyPromiseRunnable;
   friend class GetRegistrationsRunnable;
   friend class GetRegistrationRunnable;
+  friend class QueueFireUpdateFoundRunnable;
+  friend class UnregisterRunnable;
 
 public:
   NS_DECL_ISUPPORTS
@@ -245,6 +291,8 @@ public:
 
     nsRefPtrHashtable<nsISupportsHashKey, ServiceWorkerRegistrationInfo> mControlledDocuments;
 
+    nsClassHashtable<nsCStringHashKey, ServiceWorkerJobQueue> mJobQueues;
+
     ServiceWorkerDomainInfo()
     { }
 
@@ -276,6 +324,12 @@ public:
       mServiceWorkerRegistrationInfos.Remove(aRegistration->mScope);
     }
 
+    ServiceWorkerJobQueue*
+    GetOrCreateJobQueue(const nsCString& aScope)
+    {
+      return mJobQueues.LookupOrAdd(aScope);
+    }
+
     NS_INLINE_DECL_REFCOUNTING(ServiceWorkerDomainInfo)
 
   private:
@@ -286,25 +340,8 @@ public:
   nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerDomainInfo> mDomainMap;
 
   void
-  ResolveRegisterPromises(ServiceWorkerRegistrationInfo* aRegistration,
-                          const nsACString& aWorkerScriptSpec);
-
-  void
-  RejectUpdatePromiseObservers(ServiceWorkerRegistrationInfo* aRegistration,
-                               nsresult aResult);
-
-  void
-  RejectUpdatePromiseObservers(ServiceWorkerRegistrationInfo* aRegistration,
-                               const ErrorEventInit& aErrorDesc);
-
-  void
   FinishFetch(ServiceWorkerRegistrationInfo* aRegistration);
 
-  void
-  FinishInstall(ServiceWorkerRegistrationInfo* aRegistration);
-
-  void
-  FinishActivate(ServiceWorkerRegistrationInfo* aRegistration);
 
   void
   HandleError(JSContext* aCx,
@@ -333,10 +370,6 @@ private:
 
   nsresult
   Update(ServiceWorkerRegistrationInfo* aRegistration);
-
-  void
-  Install(ServiceWorkerRegistrationInfo* aRegistration,
-          ServiceWorkerInfo* aServiceWorkerInfo);
 
   NS_IMETHOD
   CreateServiceWorkerForWindow(nsPIDOMWindow* aWindow,
@@ -392,8 +425,15 @@ private:
   RemoveScope(nsTArray<nsCString>& aList, const nsACString& aScope);
 
   void
+  QueueFireEventOnServiceWorkerRegistrations(ServiceWorkerRegistrationInfo* aRegistration,
+                                             const nsAString& aName);
+
+  void
   FireEventOnServiceWorkerRegistrations(ServiceWorkerRegistrationInfo* aRegistration,
                                         const nsAString& aName);
+
+  void
+  FireControllerChange(ServiceWorkerRegistrationInfo* aRegistration);
 
   void
   StorePendingReadyPromise(nsPIDOMWindow* aWindow, nsIURI* aURI, Promise* aPromise);

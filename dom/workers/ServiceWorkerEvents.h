@@ -78,6 +78,7 @@ class InstallEvent MOZ_FINAL : public InstallPhaseEvent
 {
   
   nsRefPtr<ServiceWorker> mActiveWorker;
+  bool mActivateImmediately;
 
 protected:
   explicit InstallEvent(mozilla::dom::EventTarget* aOwner);
@@ -126,9 +127,14 @@ public:
   void
   Replace()
   {
-    
-    NS_WARNING("Not Implemented");
+    mActivateImmediately = true;
   };
+
+  bool
+  ActivateImmediately() const
+  {
+    return mActivateImmediately;
+  }
 };
 
 END_WORKERS_NAMESPACE
