@@ -251,11 +251,13 @@ loop.conversation = (function(OT, mozL10n) {
       var feebackAPIBaseUrl = navigator.mozLoop.getLoopCharPref(
         "feedback.baseUrl");
 
+      var appVersionInfo = navigator.mozLoop.appVersionInfo;
+
       var feedbackClient = new loop.FeedbackAPIClient(feebackAPIBaseUrl, {
         product: navigator.mozLoop.getLoopCharPref("feedback.product"),
-        platform: navigator.platform
-        
-        
+        platform: appVersionInfo.OS,
+        channel: appVersionInfo.channel,
+        version: appVersionInfo.version
       });
 
       this.loadReactComponent(sharedViews.FeedbackView({
