@@ -41,6 +41,8 @@ private:
   
   nsCString mSpec;
   
+  nsCString mUserAgent;
+  
   
   State mState;
   
