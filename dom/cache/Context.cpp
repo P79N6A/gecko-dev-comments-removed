@@ -320,7 +320,7 @@ Context::QuotaInitRunnable::Run()
 
 
 class Context::ActionRunnable final : public nsIRunnable
-                                        , public Action::Resolver
+                                    , public Action::Resolver
 {
 public:
   ActionRunnable(Context* aContext, nsIEventTarget* aTarget, Action* aAction,

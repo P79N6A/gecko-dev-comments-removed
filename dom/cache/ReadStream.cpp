@@ -210,6 +210,11 @@ ReadStream::Inner::Serialize(PCacheReadStream* aReadStreamOut)
   MOZ_ASSERT(mState == Open);
   MOZ_ASSERT(mControl);
 
+  
+  
+  aReadStreamOut->pushStreamChild() = nullptr;
+  aReadStreamOut->pushStreamParent() = nullptr;
+
   aReadStreamOut->id() = mId;
   mControl->SerializeControl(aReadStreamOut);
 
@@ -405,6 +410,9 @@ ReadStream::Create(const PCacheReadStream& aReadStream)
   if (!aReadStream.controlChild() && !aReadStream.controlParent()) {
     return nullptr;
   }
+
+  MOZ_ASSERT(!aReadStream.pushStreamChild());
+  MOZ_ASSERT(!aReadStream.pushStreamParent());
 
   
   

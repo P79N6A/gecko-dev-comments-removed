@@ -516,6 +516,13 @@ CacheStorage::AssertOwningThread() const
 }
 #endif
 
+CachePushStreamChild*
+CacheStorage::CreatePushStream(nsIAsyncInputStream* aStream)
+{
+  
+  MOZ_CRASH("CacheStorage should never create a push stream.");
+}
+
 void
 CacheStorage::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue)
 {
