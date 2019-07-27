@@ -448,6 +448,9 @@ public class GeckoAppShell
     public static native void notifyGeckoOfEvent(GeckoEvent event);
 
     
+    public static native void notifyGeckoObservers(String subject, String data);
+
+    
 
 
 
