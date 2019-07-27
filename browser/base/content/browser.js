@@ -7201,7 +7201,7 @@ let gPrivateBrowsingUI = {
       
       
       let value = gURLBar.getAttribute("autocompletesearchparam") || "";
-      if (!value.contains("disable-private-actions")) {
+      if (!value.includes("disable-private-actions")) {
         gURLBar.setAttribute("autocompletesearchparam",
                              value + " disable-private-actions");
       }

@@ -2,7 +2,7 @@
 
 
 function serviceWorkerTestExec(testFile) {
-  var isB2G = !navigator.userAgent.contains("Android") &&
+  var isB2G = !navigator.userAgent.includes("Android") &&
               /Mobile|Tablet/.test(navigator.userAgent);
   if (isB2G) {
     

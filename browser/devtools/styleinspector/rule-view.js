@@ -2065,7 +2065,7 @@ CssRuleView.prototype = {
 
     
     for (let selectorNode of selectorNodes) {
-      if (selectorNode.textContent.toLowerCase().contains(aValue)) {
+      if (selectorNode.textContent.toLowerCase().includes(aValue)) {
         selectorNode.classList.add("ruleview-highlight");
         this._highlightedElements.push(selectorNode);
         isHighlighted = true;
@@ -2090,10 +2090,10 @@ CssRuleView.prototype = {
       
       let matches = false;
       if (propertyMatch && name && value) {
-        matches = propertyName.contains(name) && propertyValue.contains(value);
+        matches = propertyName.includes(name) && propertyValue.includes(value);
       } else {
-        matches = (name && propertyName.contains(name)) ||
-                  (value && propertyValue.contains(value));
+        matches = (name && propertyName.includes(name)) ||
+                  (value && propertyValue.includes(value));
       }
 
       if (matches) {

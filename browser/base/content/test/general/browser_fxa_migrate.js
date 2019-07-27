@@ -32,7 +32,7 @@ add_task(function* test() {
     return n.title == NOTIFICATION_TITLE;
   });
   Assert.ok(!!note, "Needs-verification notification should be present");
-  Assert.ok(note.description.contains(email.data),
+  Assert.ok(note.description.includes(email.data),
             "Needs-verification notification should include email");
 
   
