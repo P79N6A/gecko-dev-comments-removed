@@ -57,25 +57,30 @@ struct DeserializedNode {
   using EdgeVector = Vector<DeserializedEdge>;
   using UniqueStringPtr = UniquePtr<char16_t[]>;
 
-  NodeId         id;
+  NodeId          id;
   
   const char16_t* typeName;
-  uint64_t       size;
-  EdgeVector     edges;
+  uint64_t        size;
+  EdgeVector      edges;
   
   
-  HeapSnapshot*  owner;
+  HeapSnapshot*   owner;
 
-  
-  static UniquePtr<DeserializedNode> Create(const protobuf::Node& node,
-                                            HeapSnapshot& owner);
-
-  DeserializedNode(NodeId id,
-                   const char16_t* typeName,
-                   uint64_t size,
-                   EdgeVector&& edges,
-                   HeapSnapshot& owner);
+  explicit DeserializedNode()
+    : id(0)
+    , typeName(nullptr)
+    , size(0)
+    , edges()
+    , owner(nullptr)
+  { }
   virtual ~DeserializedNode() { }
+
+  DeserializedNode(DeserializedNode&& rhs);
+  DeserializedNode& operator=(DeserializedNode&& rhs);
+
+  
+  
+  bool init(const protobuf::Node& node, HeapSnapshot& owner);
 
   
   
@@ -86,6 +91,11 @@ protected:
   DeserializedNode(NodeId id, const char16_t* typeName, uint64_t size);
 
 private:
+  void assertInitialized() const {
+    MOZ_ASSERT(owner);
+    MOZ_ASSERT(typeName);
+  }
+
   DeserializedNode(const DeserializedNode&) = delete;
   DeserializedNode& operator=(const DeserializedNode&) = delete;
 };

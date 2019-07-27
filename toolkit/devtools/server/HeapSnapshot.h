@@ -89,7 +89,7 @@ class HeapSnapshot final : public nsISupports
   NodeId rootId;
 
   
-  using NodeMap = js::HashMap<NodeId, UniquePtr<DeserializedNode>>;
+  using NodeMap = js::HashMap<NodeId, DeserializedNode>;
   NodeMap nodes;
 
   
