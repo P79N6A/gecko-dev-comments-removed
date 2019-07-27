@@ -47,6 +47,11 @@ protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
   android::sp<android::MediaExtractor> mExtractor;
   MP3FrameParser mMP3FrameParser;
+
+  
+  
+  bool mIsWaitingResources;
+
   
   
   
@@ -56,6 +61,11 @@ protected:
   
   
   virtual void EnsureActive();
+
+  
+  
+  
+  void UpdateIsWaitingMediaResources();
 
 public:
   MediaOmxReader(AbstractMediaDecoder* aDecoder);
@@ -79,11 +89,13 @@ public:
     return mHasVideo;
   }
 
-  virtual bool IsWaitingMediaResources();
+  
+  virtual bool IsWaitingMediaResources() MOZ_OVERRIDE;
 
   virtual bool IsDormantNeeded();
   virtual void ReleaseMediaResources();
 
+  virtual void PreReadMetadata() MOZ_OVERRIDE;
   virtual nsresult ReadMetadata(MediaInfo* aInfo,
                                 MetadataTags** aTags);
   virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);

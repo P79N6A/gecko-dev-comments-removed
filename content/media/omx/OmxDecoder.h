@@ -152,9 +152,16 @@ public:
   
   bool Init(sp<MediaExtractor>& extractor);
 
-  bool TryLoad();
   bool IsDormantNeeded();
+
+  
+  
+  bool EnsureMetadata();
+
+  
+  
   bool IsWaitingMediaResources();
+
   bool AllocateMediaResources();
   void ReleaseMediaResources();
   bool SetVideoFormat();

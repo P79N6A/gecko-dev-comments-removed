@@ -89,6 +89,9 @@ public:
   virtual bool HasVideo() = 0;
 
   
+  virtual void PreReadMetadata() {};
+
+  
   
   
   

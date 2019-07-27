@@ -641,6 +641,10 @@ protected:
 
   
   
+  void DoNotifyWaitingForResourcesStatusChanged();
+
+  
+  
   
   
   
