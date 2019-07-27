@@ -1489,6 +1489,7 @@ typedef void (*JSIterateCompartmentCallback)(JSRuntime *rt, void *data, JSCompar
 
 
 
+
 extern JS_PUBLIC_API(void)
 JS_IterateCompartments(JSRuntime *rt, void *data,
                        JSIterateCompartmentCallback compartmentCallback);
