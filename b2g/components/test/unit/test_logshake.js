@@ -15,6 +15,11 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/LogCapture.jsm");
 Cu.import("resource://gre/modules/LogShake.jsm");
 
+const EVENTS_PER_SECOND = 6.25;
+const GRAVITY = 9.8;
+
+
+
 
 
 
@@ -32,6 +37,8 @@ function sendDeviceMotionEvent(x, y, z) {
 
 
 
+
+
 function sendScreenChangeEvent(screenEnabled) {
   let event = {
     type: "screenchange",
@@ -42,23 +49,41 @@ function sendScreenChangeEvent(screenEnabled) {
   LogShake.handleEvent(event);
 }
 
-function debug(msg) {
-  var timestamp = Date.now();
-  dump("LogShake: " + timestamp + ": " + msg);
-}
 
-add_test(function test_do_log_capture_after_shaking() {
-  
-  LogShake.init();
 
+
+
+
+function mockReadLogFile() {
   let readLocations = [];
+
   LogCapture.readLogFile = function(loc) {
     readLocations.push(loc);
     return null; 
   };
 
   
-  sendDeviceMotionEvent(9001, 9001, 9001);
+  return readLocations;
+}
+
+
+
+
+function sendSustainedShake() {
+  
+  for (let i = 0; i < 2 * EVENTS_PER_SECOND; i++) {
+    sendDeviceMotionEvent(0, 2 * GRAVITY, 2 * GRAVITY);
+  }
+
+}
+
+add_test(function test_do_log_capture_after_shaking() {
+  
+  LogShake.init();
+
+  let readLocations = mockReadLogFile();
+
+  sendSustainedShake();
 
   ok(readLocations.length > 0,
       "LogShake should attempt to read at least one log");
@@ -71,36 +96,28 @@ add_test(function test_do_nothing_when_resting() {
   
   LogShake.init();
 
-  let readLocations = [];
-  LogCapture.readLogFile = function(loc) {
-    readLocations.push(loc);
-    return null; 
-  };
+  let readLocations = mockReadLogFile();
 
   
-  sendDeviceMotionEvent(0, 9.8, 9.8);
+  for (let i = 0; i < 2 * EVENTS_PER_SECOND; i++) {
+    sendDeviceMotionEvent(0, GRAVITY, GRAVITY);
+  }
 
   ok(readLocations.length === 0,
       "LogShake should not read any logs");
 
-  debug("test_do_nothing_when_resting: stop");
   LogShake.uninit();
   run_next_test();
 });
 
 add_test(function test_do_nothing_when_disabled() {
-  debug("test_do_nothing_when_disabled: start");
   
   LogShake.uninit();
 
-  let readLocations = [];
-  LogCapture.readLogFile = function(loc) {
-    readLocations.push(loc);
-    return null; 
-  };
+  let readLocations = mockReadLogFile();
 
   
-  sendDeviceMotionEvent(0, 9001, 9001);
+  sendSustainedShake();
 
   ok(readLocations.length === 0,
       "LogShake should not read any logs");
@@ -112,18 +129,13 @@ add_test(function test_do_nothing_when_screen_off() {
   
   LogShake.init();
 
-
   
   sendScreenChangeEvent(false);
 
-  let readLocations = [];
-  LogCapture.readLogFile = function(loc) {
-    readLocations.push(loc);
-    return null; 
-  };
+  let readLocations = mockReadLogFile();
 
   
-  sendDeviceMotionEvent(0, 9001, 9001);
+  sendSustainedShake();
 
   ok(readLocations.length === 0,
       "LogShake should not read any logs");
@@ -146,7 +158,7 @@ add_test(function test_do_log_capture_resilient_readLogFile() {
   };
 
   
-  sendDeviceMotionEvent(9001, 9001, 9001);
+  sendSustainedShake();
 
   ok(readLocations.length > 0,
       "LogShake should attempt to read at least one log");
@@ -169,7 +181,7 @@ add_test(function test_do_log_capture_resilient_parseLog() {
   };
 
   
-  sendDeviceMotionEvent(9001, 9001, 9001);
+  sendSustainedShake();
 
   ok(readLocations.length > 0,
       "LogShake should attempt to read at least one log");
@@ -178,7 +190,29 @@ add_test(function test_do_log_capture_resilient_parseLog() {
   run_next_test();
 });
 
+add_test(function test_do_nothing_when_dropped() {
+  
+  LogShake.init();
+
+  let readLocations = mockReadLogFile();
+
+  
+  
+
+  for (let i = 0; i < 10 * EVENTS_PER_SECOND; i++) {
+    
+    sendDeviceMotionEvent(0, 0, GRAVITY);
+    
+    sendDeviceMotionEvent(0, 2 * GRAVITY, 2 * GRAVITY);
+  }
+
+  ok(readLocations.length === 0,
+      "LogShake should not read any logs");
+
+  LogShake.uninit();
+  run_next_test();
+});
+
 function run_test() {
-  debug("Starting");
   run_next_test();
 }

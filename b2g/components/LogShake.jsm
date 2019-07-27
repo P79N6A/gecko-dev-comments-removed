@@ -54,6 +54,12 @@ function debug(msg) {
 
 
 const EXCITEMENT_THRESHOLD = 500;
+
+
+
+
+
+const EXCITEMENT_FILTER_ALPHA = 0.2;
 const DEVICE_MOTION_EVENT = "devicemotion";
 const SCREEN_CHANGE_EVENT = "screenchange";
 const CAPTURE_LOGS_CONTENT_EVENT = "requestSystemLogs";
@@ -91,6 +97,11 @@ let LogShake = {
   
 
 
+  excitement: 0,
+
+  
+
+
   LOGS_WITH_PARSERS: {
     "/dev/log/main": LogParser.prettyPrintLogArray,
     "/dev/log/system": LogParser.prettyPrintLogArray,
@@ -121,6 +132,9 @@ let LogShake = {
     this.handleScreenChangeEvent({ detail: {
       screenEnabled: true
     }});
+
+    
+    this.excitement = 0;
 
     SystemAppProxy.addEventListener(CAPTURE_LOGS_CONTENT_EVENT, this, false);
     SystemAppProxy.addEventListener(SCREEN_CHANGE_EVENT, this, false);
@@ -196,9 +210,12 @@ let LogShake = {
 
     var acc = event.accelerationIncludingGravity;
 
-    var excitement = acc.x * acc.x + acc.y * acc.y + acc.z * acc.z;
+    
+    
+    var newExcitement = acc.x * acc.x + acc.y * acc.y + acc.z * acc.z;
+    this.excitement += (newExcitement - this.excitement) * EXCITEMENT_FILTER_ALPHA;
 
-    if (excitement > EXCITEMENT_THRESHOLD) {
+    if (this.excitement > EXCITEMENT_THRESHOLD) {
       this.startCapture();
     }
   },
