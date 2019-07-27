@@ -10,7 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/ErrorResult.h"
-#include "nsIVoicemailProvider.h"
+#include "nsIVoicemailService.h"
 
 class JSObject;
 struct JSContext;
@@ -42,7 +42,7 @@ public:
 
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
 
-  Voicemail(nsPIDOMWindow* aWindow, nsIVoicemailProvider* aProvider);
+  Voicemail(nsPIDOMWindow* aWindow, nsIVoicemailService* aService);
 
   nsPIDOMWindow*
   GetParentObject() const
@@ -67,7 +67,7 @@ public:
   IMPL_EVENT_HANDLER(statuschanged)
 
 private:
-  nsCOMPtr<nsIVoicemailProvider> mProvider;
+  nsCOMPtr<nsIVoicemailService> mService;
   nsRefPtr<Listener> mListener;
 
   bool
