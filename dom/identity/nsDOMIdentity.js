@@ -101,11 +101,16 @@ nsDOMIdentity.prototype = {
     
     
     checkRenamed(aOptions, "loggedInEmail", "loggedInUser");
-    message["loggedInUser"] = aOptions["loggedInUser"];
 
-    let emailType = typeof(aOptions["loggedInUser"]);
-    if (aOptions["loggedInUser"] && aOptions["loggedInUser"] !== "undefined") {
-      if (emailType !== "string") {
+    
+    
+    message["loggedInUser"] = aOptions["loggedInUser"];
+    if (message.loggedInUser == "null" || message.loggedInUser == "undefined") {
+      message.loggedInUser = null;
+    }
+
+    if (message.loggedInUser) {
+      if (typeof(message.loggedInUser) !== "string") {
         throw new Error("loggedInUser must be a String or null");
       }
 
@@ -115,8 +120,6 @@ nsDOMIdentity.prototype = {
           || aOptions["loggedInUser"].length > MAX_STRING_LENGTH) {
         throw new Error("loggedInUser is not valid");
       }
-      
-      message.loggedInUser = aOptions.loggedInUser;
     }
     this._log("loggedInUser: " + message.loggedInUser);
 
