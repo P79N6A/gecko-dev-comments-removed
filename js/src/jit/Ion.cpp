@@ -1990,7 +1990,10 @@ CheckScript(JSContext *cx, JSScript *script, bool osr)
         return false;
     }
 
-    if (!script->compileAndGo()) {
+    if (!script->compileAndGo() && !script->functionNonDelazifying()) {
+        
+        
+        
         IonSpew(IonSpew_Abort, "not compile-and-go");
         return false;
     }

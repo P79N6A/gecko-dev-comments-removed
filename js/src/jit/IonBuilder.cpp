@@ -400,9 +400,6 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
     if (inlineScript->needsArgsObj())
         return DontInline(inlineScript, "Script that needs an arguments object");
 
-    if (!inlineScript->compileAndGo())
-        return DontInline(inlineScript, "Non-compileAndGo script");
-
     types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
     if (targetType->unknownProperties())
         return DontInline(inlineScript, "Target type has unknown properties");
@@ -992,8 +989,6 @@ IonBuilder::initScopeChain(MDefinition *callee)
     
     
     
-    if (!script()->compileAndGo())
-        return abort("non-CNG global scripts are not supported");
 
     if (JSFunction *fun = info().funMaybeLazy()) {
         if (!callee) {
@@ -1019,6 +1014,8 @@ IonBuilder::initScopeChain(MDefinition *callee)
                 return false;
         }
     } else {
+        
+        MOZ_ASSERT(script()->compileAndGo());
         scope = constant(ObjectValue(script()->global()));
     }
 
@@ -5508,8 +5505,6 @@ IonBuilder::jsop_compare(JSOp op)
 bool
 IonBuilder::jsop_newarray(uint32_t count)
 {
-    JS_ASSERT(script()->compileAndGo());
-
     JSObject *templateObject = inspector->getTemplateObject(pc);
     if (!templateObject)
         return abort("No template object for NEWARRAY");
@@ -5540,9 +5535,6 @@ IonBuilder::jsop_newarray(uint32_t count)
 bool
 IonBuilder::jsop_newobject()
 {
-    
-    JS_ASSERT(script()->compileAndGo());
-
     JSObject *templateObject = inspector->getTemplateObject(pc);
     if (!templateObject)
         return abort("No template object for NEWOBJECT");
