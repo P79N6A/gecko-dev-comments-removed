@@ -21,7 +21,6 @@ import org.mozilla.gecko.fxa.tasks.FxAccountCodeResender;
 import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.SharedPreferencesClientsDataDelegate;
 import org.mozilla.gecko.sync.SyncConfiguration;
-import org.mozilla.gecko.util.HardwareUtils;
 
 import android.accounts.Account;
 import android.content.ContentResolver;
@@ -85,7 +84,6 @@ public class FxAccountStatusFragment
 
   protected EditTextPreference deviceNamePreference;
   protected Preference syncServerPreference;
-  protected Preference morePreference;
 
   protected volatile AndroidFxAccount fxAccount;
   
@@ -113,13 +111,6 @@ public class FxAccountStatusFragment
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-    
-    
-    
-    
-    HardwareUtils.init(getActivity());
-
     addPreferences();
   }
 
@@ -164,12 +155,6 @@ public class FxAccountStatusFragment
     deviceNamePreference.setOnPreferenceChangeListener(this);
 
     syncServerPreference = ensureFindPreference("sync_server");
-    morePreference = ensureFindPreference("more");
-    morePreference.setOnPreferenceClickListener(this);
-
-    if (HardwareUtils.hasMenuButton()) {
-      syncCategory.removePreference(morePreference);
-    }
   }
 
   
@@ -221,11 +206,6 @@ public class FxAccountStatusFragment
         preference == passwordsPreference ||
         preference == tabsPreference) {
       saveEngineSelections();
-      return true;
-    }
-
-    if (preference == morePreference) {
-      getActivity().openOptionsMenu();
       return true;
     }
 
