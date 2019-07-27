@@ -865,3 +865,6 @@ pref("home.sync.updateMode", 0);
 
 
 pref("home.sync.checkIntervalSecs", 3600);
+
+
+pref("device.storage.enabled", true);
