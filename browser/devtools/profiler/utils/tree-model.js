@@ -18,7 +18,7 @@ const CONTENT_SCHEMES = ["http://", "https://", "file://"];
 
 exports.ThreadNode = ThreadNode;
 exports.FrameNode = FrameNode;
-exports._isContent = isContent; 
+exports.FrameNode.isContent = isContent;
 
 
 
