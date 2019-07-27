@@ -80,3 +80,19 @@ nsTextEditRules::CheckBidiLevelForDeletion(Selection* aSelection,
   return NS_OK;
 }
 
+void
+nsTextEditRules::UndefineCaretBidiLevel(Selection* aSelection)
+{
+  
+
+
+
+
+
+
+
+  nsRefPtr<nsFrameSelection> frameSelection = aSelection->GetFrameSelection();
+  if (frameSelection) {
+    frameSelection->UndefineCaretBidiLevel();
+  }
+}
