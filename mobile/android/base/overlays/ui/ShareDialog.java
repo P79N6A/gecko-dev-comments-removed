@@ -376,6 +376,9 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
 
             @Override
             public void onAnimationEnd(Animation animation) {
+                
+                ShareDialog.this.setVisible(false);
+
                 finish();
             }
 
