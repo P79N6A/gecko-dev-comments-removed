@@ -250,7 +250,7 @@ TabChildBase::InitializeRootMetrics()
     mLastRootMetrics.GetZoom() / mLastRootMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   
   
-  mLastRootMetrics.mPresShellResolution = mLastRootMetrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
+  mLastRootMetrics.mResolution = mLastRootMetrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
   mLastRootMetrics.SetScrollOffset(CSSPoint(0, 0));
 
   TABC_LOG("After InitializeRootMetrics, mLastRootMetrics is %s\n",
@@ -417,8 +417,8 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
   metrics.mCumulativeResolution = metrics.GetZoom() / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   
   
-  metrics.mPresShellResolution = metrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
-  utils->SetResolution(metrics.mPresShellResolution.scale, metrics.mPresShellResolution.scale);
+  metrics.mResolution = metrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
+  utils->SetResolution(metrics.mResolution.scale, metrics.mResolution.scale);
 
   CSSSize scrollPort = metrics.CalculateCompositedSizeInCssPixels();
   utils->SetScrollPositionClampingScrollPortSize(scrollPort.width, scrollPort.height);
@@ -907,8 +907,8 @@ TabChild::Observe(nsISupports *aSubject,
         
         if (HasValidInnerSize()) {
           InitializeRootMetrics();
-          utils->SetResolution(mLastRootMetrics.mPresShellResolution.scale,
-                               mLastRootMetrics.mPresShellResolution.scale);
+          utils->SetResolution(mLastRootMetrics.mResolution.scale,
+                               mLastRootMetrics.mResolution.scale);
           HandlePossibleViewportChange(mInnerSize);
         }
       }

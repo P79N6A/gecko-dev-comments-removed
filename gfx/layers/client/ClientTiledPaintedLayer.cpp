@@ -75,7 +75,7 @@ GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAn
     
     
     const FrameMetrics& metrics = iter.Metrics();
-    transform.PostScale(metrics.mPresShellResolution.scale, metrics.mPresShellResolution.scale, 1.f);
+    transform.PostScale(metrics.mResolution.scale, metrics.mResolution.scale, 1.f);
   }
   return transform;
 }
@@ -167,7 +167,7 @@ ClientTiledPaintedLayer::BeginPaint()
   
   
   mPaintData.mResolution = displayportMetrics.GetZoomToParent();
-  TILING_LOG("TILING %p: Resolution %f\n", this, mPaintData.mPresShellResolution.scale);
+  TILING_LOG("TILING %p: Resolution %f\n", this, mPaintData.mResolution.scale);
 
   
   mPaintData.mTransformToCompBounds =

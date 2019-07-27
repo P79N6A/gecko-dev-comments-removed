@@ -718,7 +718,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
       
       
       
-      scale *= metrics.mPresShellResolution.scale;
+      scale *= metrics.mResolution.scale;
     }
     scrollbarTransform.PostScale(1.f, 1.f / transientTransform._22, 1.f);
     scrollbarTransform.PostTranslate(0, -transientTransform._42 * scale, 0);
@@ -726,7 +726,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   if (aScrollbar->GetScrollbarDirection() == Layer::HORIZONTAL) {
     float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.mScrollableRect.width;
     if (aScrollbarIsDescendant) {
-      scale *= metrics.mPresShellResolution.scale;
+      scale *= metrics.mResolution.scale;
     }
     scrollbarTransform.PostScale(1.f / transientTransform._11, 1.f, 1.f);
     scrollbarTransform.PostTranslate(-transientTransform._41 * scale, 0, 0);
@@ -888,10 +888,9 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   if (metrics.IsScrollable()) {
     geckoScroll = metrics.GetScrollOffset() * userZoom;
   }
-
-  LayerToScreenScale asyncZoom = userZoom / metrics.LayersPixelsPerCSSPixel();
-  ParentLayerToScreenScale scale = metrics.mPresShellResolution
-                                 * asyncZoom;
+  ParentLayerToScreenScale scale = userZoom
+                                  / metrics.mDevPixelsPerCSSPixel
+                                  / metrics.GetParentResolution();
   ScreenPoint translation = userScroll - geckoScroll;
   Matrix4x4 treeTransform = ViewTransform(scale, -translation);
 
@@ -901,7 +900,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 
   
   
-  oldTransform.PreScale(metrics.mPresShellResolution.scale, metrics.mPresShellResolution.scale, 1);
+  oldTransform.PreScale(metrics.mResolution.scale, metrics.mResolution.scale, 1);
 
   
   

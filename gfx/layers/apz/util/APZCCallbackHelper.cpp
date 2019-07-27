@@ -145,9 +145,16 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     
     
     
-    ParentLayerToLayerScale presShellResolution = aMetrics.mPresShellResolution
-                                                * aMetrics.GetAsyncZoom()
-                                                * ScreenToLayerScale(1.0f);
+    
+    
+    
+    
+    
+    ParentLayerToLayerScale presShellResolution =
+        aMetrics.GetZoom()
+        / aMetrics.mDevPixelsPerCSSPixel
+        / aMetrics.GetParentResolution()
+        * ScreenToLayerScale(1.0f);
     aUtils->SetResolution(presShellResolution.scale, presShellResolution.scale);
 
     
