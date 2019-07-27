@@ -21,6 +21,7 @@
 #include "mozilla/gfx/ScaleFactor.h"    
 #include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "nsCSSPropList.h"
 #include "nsCoord.h"                    
 #include "nsDebug.h"                    
@@ -942,7 +943,15 @@ AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
   if (!ApplyAsyncContentTransformToTree(root)) {
     nsAutoTArray<Layer*,1> scrollableLayers;
 #ifdef MOZ_WIDGET_ANDROID
-    scrollableLayers.AppendElement(mLayerManager->GetPrimaryScrollableLayer());
+    const LayerMetricsWrapper& primaryScrollable = mLayerManager->GetPrimaryScrollableLayer();
+    if (primaryScrollable) {
+      
+      
+      
+      
+      
+      scrollableLayers.AppendElement((Layer*)primaryScrollable.GetLayer());
+    }
 #else
     mLayerManager->GetScrollableLayers(scrollableLayers);
 #endif

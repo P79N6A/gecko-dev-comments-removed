@@ -77,8 +77,8 @@ public:
 
 
 
-  void GetAncestorLayers(Layer** aOutScrollAncestor,
-                         Layer** aOutDisplayPortAncestor);
+  void GetAncestorLayers(LayerMetricsWrapper* aOutScrollAncestor,
+                         LayerMetricsWrapper* aOutDisplayPortAncestor);
 
 private:
   ClientLayerManager* ClientManager()

@@ -354,7 +354,7 @@ public:
 
 
 
-  bool UpdateFromCompositorFrameMetrics(Layer* aLayer,
+  bool UpdateFromCompositorFrameMetrics(const LayerMetricsWrapper& aLayer,
                                         bool aHasPendingNewThebesContent,
                                         bool aLowPrecision,
                                         ViewTransform& aViewTransform);

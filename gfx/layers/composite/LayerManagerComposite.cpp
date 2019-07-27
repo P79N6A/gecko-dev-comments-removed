@@ -38,6 +38,7 @@
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/Effects.h"     
+#include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "mozilla/layers/LayersTypes.h"  
 #include "ipc/CompositorBench.h"        
 #include "ipc/ShadowLayerUtils.h"
@@ -809,12 +810,12 @@ LayerManagerComposite::ComputeRenderIntegrity()
 #ifdef MOZ_WIDGET_ANDROID
   
   
-  Layer* primaryScrollable = GetPrimaryScrollableLayer();
+  const LayerMetricsWrapper& primaryScrollable = GetPrimaryScrollableLayer();
   if (primaryScrollable) {
     
     
-    const FrameMetrics& metrics = primaryScrollable->GetFrameMetrics();
-    Matrix4x4 transform = primaryScrollable->GetEffectiveTransform();
+    const FrameMetrics& metrics = primaryScrollable.Metrics();
+    Matrix4x4 transform = primaryScrollable.GetEffectiveTransform();
     transform.ScalePost(metrics.mResolution.scale, metrics.mResolution.scale, 1);
 
     

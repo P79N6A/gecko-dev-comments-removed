@@ -19,6 +19,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/Tools.h"          
 #include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/LayerMetricsWrapper.h"
 #include "mozilla/layers/ShadowLayers.h"  
 #include "TextureClientPool.h"
 #include "nsDebug.h"                    
@@ -159,7 +160,7 @@ ComputeViewTransform(const FrameMetrics& aContentMetrics, const FrameMetrics& aC
 
 bool
 SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
-    Layer* aLayer,
+    const LayerMetricsWrapper& aLayer,
     bool aHasPendingNewThebesContent,
     bool aLowPrecision,
     ViewTransform& aViewTransform)
@@ -167,16 +168,16 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   MOZ_ASSERT(aLayer);
 
   CompositorChild* compositor = nullptr;
-  if (aLayer->Manager() &&
-      aLayer->Manager()->AsClientLayerManager()) {
-    compositor = aLayer->Manager()->AsClientLayerManager()->GetCompositorChild();
+  if (aLayer.Manager() &&
+      aLayer.Manager()->AsClientLayerManager()) {
+    compositor = aLayer.Manager()->AsClientLayerManager()->GetCompositorChild();
   }
 
   if (!compositor) {
     return false;
   }
 
-  const FrameMetrics& contentMetrics = aLayer->GetFrameMetrics();
+  const FrameMetrics& contentMetrics = aLayer.Metrics();
   FrameMetrics compositorMetrics;
 
   if (!compositor->LookupCompositorFrameMetrics(contentMetrics.GetScrollId(),
@@ -1366,13 +1367,13 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
 
 static LayerRect
-GetCompositorSideCompositionBounds(Layer* aScrollAncestor,
+GetCompositorSideCompositionBounds(const LayerMetricsWrapper& aScrollAncestor,
                                    const Matrix4x4& aTransformToCompBounds,
                                    const ViewTransform& aAPZTransform)
 {
   Matrix4x4 nonTransientAPZUntransform = Matrix4x4().Scale(
-    aScrollAncestor->GetFrameMetrics().mResolution.scale,
-    aScrollAncestor->GetFrameMetrics().mResolution.scale,
+    aScrollAncestor.Metrics().mResolution.scale,
+    aScrollAncestor.Metrics().mResolution.scale,
     1.f);
   nonTransientAPZUntransform.Invert();
 
@@ -1386,7 +1387,7 @@ GetCompositorSideCompositionBounds(Layer* aScrollAncestor,
   transform.Invert();
 
   return TransformTo<LayerPixel>(transform,
-            aScrollAncestor->GetFrameMetrics().mCompositionBounds);
+            aScrollAncestor.Metrics().mCompositionBounds);
 }
 
 bool
@@ -1417,7 +1418,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 
   TILING_LOG("TILING %p: Progressive update stale region %s\n", mThebesLayer, Stringify(staleRegion).c_str());
 
-  Layer* scrollAncestor = nullptr;
+  LayerMetricsWrapper scrollAncestor;
   mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr);
 
   
@@ -1425,7 +1426,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   
   ViewTransform viewTransform;
 #if defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_ANDROID_APZ)
-  FrameMetrics compositorMetrics = scrollAncestor->GetFrameMetrics();
+  FrameMetrics compositorMetrics = scrollAncestor.Metrics();
   bool abortPaint = false;
   
   
@@ -1434,7 +1435,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     abortPaint = mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
                                                      compositorMetrics,
                                                      !drawingLowPrecision);
-    viewTransform = ComputeViewTransform(scrollAncestor->GetFrameMetrics(), compositorMetrics);
+    viewTransform = ComputeViewTransform(scrollAncestor.Metrics(), compositorMetrics);
   }
 #else
   MOZ_ASSERT(mSharedFrameMetricsHelper);
