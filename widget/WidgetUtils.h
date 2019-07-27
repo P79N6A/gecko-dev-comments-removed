@@ -75,14 +75,6 @@ public:
                                          bool aIsCapsLock,
                                          uint32_t* aUnshiftedCharCode,
                                          uint32_t* aShiftedCharCode);
-
-  
-
-
-
-
-
-  static KeyNameIndex GetDeadKeyNameIndex(char16_t aChar);
 };
 
 } 
