@@ -3335,8 +3335,8 @@ RangeAnalysis::prepareForUCE(bool* shouldRemoveDeadCode)
     return tryRemovingGuards();
 }
 
-bool RangeAnalysis::tryRemovingGuards() {
-
+bool RangeAnalysis::tryRemovingGuards()
+{
     MDefinitionVector guards(alloc());
 
     for (ReversePostorderIterator block = graph_.rpoBegin(); block != graph_.rpoEnd(); block++) {
@@ -3344,6 +3344,7 @@ bool RangeAnalysis::tryRemovingGuards() {
             if (!iter->isGuardRangeBailouts())
                 continue;
 
+            iter->setInWorklist();
             if (!guards.append(*iter))
                 return false;
         }
@@ -3364,20 +3365,22 @@ bool RangeAnalysis::tryRemovingGuards() {
         guard->setGuardRangeBailouts();
 #endif
 
-        if (!guard->range())
-            continue;
+        if (!guard->isPhi()) {
+            if (!guard->range())
+                continue;
 
-        
-        Range typeFilteredRange(guard);
+            
+            Range typeFilteredRange(guard);
 
-        
-        
-        
-        
-        
-        
-        if (typeFilteredRange.update(guard->range()))
-            continue;
+            
+            
+            
+            
+            
+            
+            if (typeFilteredRange.update(guard->range()))
+                continue;
+        }
 
         guard->setNotGuardRangeBailouts();
 
@@ -3386,18 +3389,26 @@ bool RangeAnalysis::tryRemovingGuards() {
             MDefinition* operand = guard->getOperand(op);
 
             
-            if (operand->isGuardRangeBailouts())
+            if (operand->isInWorklist())
                 continue;
+
+            MOZ_ASSERT(!operand->isGuardRangeBailouts());
 
             
             
             if (!DeadIfUnused(operand))
                 continue;
 
+            operand->setInWorklist();
             operand->setGuardRangeBailouts();
             if (!guards.append(operand))
                 return false;
         }
+    }
+
+    for (size_t i = 0; i < guards.length(); i++) {
+        MDefinition* guard = guards[i];
+        guard->setNotInWorklist();
     }
 
     return true;
