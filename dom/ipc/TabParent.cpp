@@ -225,7 +225,7 @@ private:
             
             
             
-            mTabParent.forget();
+            mozilla::unused << mTabParent.forget();
             CloseFile();
         }
     }
