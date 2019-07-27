@@ -57,7 +57,8 @@ struct _mtx
   static const hb_tag_t hmtxTag	= HB_OT_TAG_hmtx;
   static const hb_tag_t vmtxTag	= HB_OT_TAG_vmtx;
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
     
 

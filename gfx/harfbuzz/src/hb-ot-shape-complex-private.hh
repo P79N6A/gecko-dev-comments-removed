@@ -180,8 +180,11 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
 
       
 
-      if (planner->map.chosen_script[0] != HB_OT_TAG_DEFAULT_SCRIPT ||
-	  planner->props.script == HB_SCRIPT_ARABIC)
+
+
+      if ((planner->map.chosen_script[0] != HB_OT_TAG_DEFAULT_SCRIPT ||
+	   planner->props.script == HB_SCRIPT_ARABIC) &&
+	  HB_DIRECTION_IS_HORIZONTAL(planner->props.direction))
 	return &_hb_ot_complex_shaper_arabic;
       else
 	return &_hb_ot_complex_shaper_default;
@@ -259,6 +262,7 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
 
     
     case HB_SCRIPT_KHAROSHTHI:
+    case HB_SCRIPT_NEW_TAI_LUE:
     case HB_SCRIPT_SYLOTI_NAGRI:
 
     
@@ -339,7 +343,6 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
 
     
     case HB_SCRIPT_BUGINESE:
-    case HB_SCRIPT_NEW_TAI_LUE:
 
     
     case HB_SCRIPT_CHAM:

@@ -94,20 +94,6 @@
 # endif
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER < 1900
-#define snprintf _snprintf
-#endif
-
-#ifdef _MSC_VER
-#undef inline
-#define inline __inline
-#endif
-
-#ifdef __STRICT_ANSI__
-#undef inline
-#define inline __inline__
-#endif
-
 #if __GNUC__ >= 3
 #define HB_FUNC __PRETTY_FUNCTION__
 #elif defined(_MSC_VER)
@@ -132,14 +118,21 @@
 #  ifndef STRICT
 #    define STRICT 1
 #  endif
-#endif
 
-#ifdef _WIN32_WCE
-
-#define MemoryBarrier()
-#define getenv(Name) NULL
-#define setlocale(Category, Locale) "C"
+#  if defined(_WIN32_WCE)
+     
+#    define strdup _strdup
+#    define getenv(Name) NULL
+#    if _WIN32_WCE < 0x800
+#      define setlocale(Category, Locale) "C"
 static int errno = 0; 
+#    endif
+#  elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)
+#    define getenv(Name) NULL
+#  endif
+#  if defined(_MSC_VER) && _MSC_VER < 1900
+#    define snprintf _snprintf
+#  endif
 #endif
 
 #if HAVE_ATEXIT
@@ -581,6 +574,30 @@ _hb_debug (unsigned int level,
 #define DEBUG_LEVEL_ENABLED(WHAT, LEVEL) (_hb_debug ((LEVEL), HB_DEBUG_##WHAT))
 #define DEBUG_ENABLED(WHAT) (DEBUG_LEVEL_ENABLED (WHAT, 0))
 
+static inline void
+_hb_print_func (const char *func)
+{
+  if (func)
+  {
+    unsigned int func_len = strlen (func);
+    
+    if (0 == strncmp (func, "static ", 7))
+      func += 7;
+    
+    if (0 == strncmp (func, "typename ", 9))
+      func += 9;
+    
+    const char *space = strchr (func, ' ');
+    if (space)
+      func = space + 1;
+    
+    const char *paren = strchr (func, '(');
+    if (paren)
+      func_len = paren - func;
+    fprintf (stderr, "%.*s", func_len, func);
+  }
+}
+
 template <int max_level> static inline void
 _hb_debug_msg_va (const char *what,
 		  const void *obj,
@@ -626,27 +643,13 @@ _hb_debug_msg_va (const char *what,
   } else
     fprintf (stderr, "   " VRBAR LBAR);
 
-  if (func)
-  {
-    unsigned int func_len = strlen (func);
-#ifndef HB_DEBUG_VERBOSE
-    
-    if (0 == strncmp (func, "typename ", 9))
-      func += 9;
-    
-    const char *space = strchr (func, ' ');
-    if (space)
-      func = space + 1;
-    
-    const char *paren = strchr (func, '(');
-    if (paren)
-      func_len = paren - func;
-#endif
-    fprintf (stderr, "%.*s: ", func_len, func);
-  }
+  _hb_print_func (func);
 
   if (message)
+  {
+    fprintf (stderr, ": ");
     vfprintf (stderr, message, ap);
+  }
 
   fprintf (stderr, "\n");
 }
