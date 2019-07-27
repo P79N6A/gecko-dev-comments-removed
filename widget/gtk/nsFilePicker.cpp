@@ -165,7 +165,8 @@ NS_IMPL_ISUPPORTS(nsFilePicker, nsIFilePicker)
 nsFilePicker::nsFilePicker()
   : mSelectedType(0),
     mRunning(false),
-    mAllowURLs(false)
+    mAllowURLs(false),
+    mFileChooserDelegate(nullptr)
 {
 }
 
@@ -431,6 +432,27 @@ nsFilePicker::Open(nsIFilePickerShownCallback *aCallback)
     } else {
       nsAutoCString directory;
       defaultPath->GetNativePath(directory);
+
+#if (MOZ_WIDGET_GTK == 3)
+      
+      
+      
+      
+      
+      GtkDialog *dialog = GTK_DIALOG(file_chooser);
+      GtkContainer *area = GTK_CONTAINER(gtk_dialog_get_content_area(dialog));
+      gtk_container_forall(area, [](GtkWidget *widget,
+                                    gpointer data) {
+          if (GTK_IS_FILE_CHOOSER_WIDGET(widget)) {
+            auto result = static_cast<GtkFileChooserWidget**>(data);
+            *result = GTK_FILE_CHOOSER_WIDGET(widget);
+          }
+      }, &mFileChooserDelegate);
+
+      if (mFileChooserDelegate)
+        g_object_ref(mFileChooserDelegate);
+#endif
+
       gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(file_chooser),
                                           directory.get());
     }
@@ -547,6 +569,21 @@ nsFilePicker::Done(GtkWidget* file_chooser, gint response)
   
   
   gtk_widget_destroy(file_chooser);
+
+#if (MOZ_WIDGET_GTK == 3)
+      if (mFileChooserDelegate) {
+        
+        
+        
+        
+        
+        g_idle_add([](gpointer data) -> gboolean {
+            g_object_unref(data);
+            return G_SOURCE_REMOVE;
+        }, mFileChooserDelegate);
+        mFileChooserDelegate = nullptr;
+      }
+#endif
 
   if (mCallback) {
     mCallback->Done(result);
