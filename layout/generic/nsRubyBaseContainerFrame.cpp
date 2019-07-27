@@ -217,6 +217,12 @@ nsRubyBaseContainerFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   return LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
 }
 
+ nscoord
+nsRubyBaseContainerFrame::GetLogicalBaseline(WritingMode aWritingMode) const
+{
+  return mBaseline;
+}
+
  void
 nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
                                  nsHTMLReflowMetrics& aDesiredSize,
@@ -237,6 +243,12 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
   aStatus = NS_FRAME_COMPLETE;
   WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
   WritingMode frameWM = aReflowState.GetWritingMode();
+  LogicalMargin borderPadding = aReflowState.ComputedLogicalBorderPadding();
+  nscoord startEdge = borderPadding.IStart(frameWM);
+  nscoord endEdge = aReflowState.AvailableISize() - borderPadding.IEnd(frameWM);
+
+  aReflowState.mLineLayout->BeginSpan(this, &aReflowState,
+                                      startEdge, endEdge, &mBaseline);
 
   LogicalSize availSize(lineWM, aReflowState.AvailableWidth(),
                         aReflowState.AvailableHeight());
@@ -363,6 +375,12 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     aReflowState.mLineLayout->AdvanceICoord(spanISize - isize);
     isize = spanISize;
   }
+
+  DebugOnly<nscoord> spanSize = aReflowState.mLineLayout->EndSpan(this);
+  
+  
+  
+  MOZ_ASSERT(isize == spanSize || mFrames.IsEmpty());
   for (uint32_t i = 0; i < totalCount; i++) {
     
     
@@ -372,7 +390,6 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     lineLayouts[i]->EndLineReflow();
   }
 
-  LogicalMargin borderPadding = aReflowState.ComputedLogicalBorderPadding();
   aDesiredSize.ISize(lineWM) = isize;
   nsLayoutUtils::SetBSizeFromFontMetrics(this, aDesiredSize, aReflowState,
                                          borderPadding, lineWM, frameWM);
