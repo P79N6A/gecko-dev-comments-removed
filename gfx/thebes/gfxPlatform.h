@@ -159,12 +159,6 @@ public:
 
     static gfxPlatform *GetPlatform();
 
-    
-
-
-
-
-    static bool Initialized();
 
     
 
@@ -637,11 +631,6 @@ public:
 
     static bool PerfWarnings();
 
-    void NotifyCompositorCreated(mozilla::layers::LayersBackend aBackend);
-    mozilla::layers::LayersBackend GetCompositorBackend() const {
-      return mCompositorBackend;
-    }
-
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
@@ -762,10 +751,6 @@ private:
 
     mozilla::RefPtr<mozilla::gfx::DrawEventRecorder> mRecorder;
     mozilla::RefPtr<mozilla::gl::SkiaGLGlue> mSkiaGlue;
-
-    
-    
-    mozilla::layers::LayersBackend mCompositorBackend;
 };
 
 #endif 
