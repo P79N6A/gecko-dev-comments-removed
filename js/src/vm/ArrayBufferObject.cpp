@@ -121,7 +121,7 @@ const Class ArrayBufferObject::class_ = {
     nullptr,        
     nullptr,        
     nullptr,        
-    nullptr,        
+    ArrayBufferObject::trace,
     JS_NULL_CLASS_SPEC,
     {
         nullptr,    
@@ -516,15 +516,40 @@ ArrayBufferObject::neuter(JSContext *cx, Handle<ArrayBufferObject*> buffer,
 
     
     
+    
+    MOZ_ASSERT_IF(buffer->forInlineTypedObject(),
+                  newContents.data() == buffer->dataPointer());
+
+    
+    
+    
+    
+    if (buffer->hasSizedObjectViews()) {
+        
+        
+        if (!cx->global()->getType(cx))
+            CrashAtUnhandlableOOM("ArrayBufferObject::neuter");
+        types::MarkTypeObjectFlags(cx, cx->global(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED);
+    }
+
+    
+    
 
     if (InnerViewTable::ViewVector *views = cx->compartment()->innerViews.maybeViewsUnbarriered(buffer)) {
         for (size_t i = 0; i < views->length(); i++)
             buffer->neuterView(cx, (*views)[i], newContents);
         cx->compartment()->innerViews.removeViews(buffer);
     }
-    if (buffer->firstView())
-        buffer->neuterView(cx, buffer->firstView(), newContents);
-    buffer->setFirstView(nullptr);
+    if (buffer->firstView()) {
+        if (buffer->forInlineTypedObject()) {
+            
+            
+            MOZ_ASSERT(buffer->firstView()->is<InlineTransparentTypedObject>());
+        } else {
+            buffer->neuterView(cx, buffer->firstView(), newContents);
+            buffer->setFirstView(nullptr);
+        }
+    }
 
     if (newContents.data() != buffer->dataPointer())
         buffer->setNewOwnedData(cx->runtime()->defaultFreeOp(), newContents);
@@ -567,6 +592,8 @@ ArrayBufferObject::changeViewContents(JSContext *cx, ArrayBufferViewObject *view
 void
 ArrayBufferObject::changeContents(JSContext *cx, BufferContents newContents)
 {
+    MOZ_ASSERT(!forInlineTypedObject());
+
     
     uint8_t* oldDataPointer = dataPointer();
     setNewOwnedData(cx->runtime()->defaultFreeOp(), newContents);
@@ -583,6 +610,11 @@ ArrayBufferObject::changeContents(JSContext *cx, BufferContents newContents)
  bool
 ArrayBufferObject::prepareForAsmJSNoSignals(JSContext *cx, Handle<ArrayBufferObject*> buffer)
 {
+    if (buffer->forInlineTypedObject()) {
+        JS_ReportError(cx, "ArrayBuffer can't be used by asm.js");
+        return false;
+    }
+
     if (!buffer->ownsData()) {
         BufferContents contents = AllocateArrayBufferContents(cx, buffer->byteLength());
         if (!contents)
@@ -610,6 +642,11 @@ ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buf
     
     if (buffer->isAsmJSMalloced()) {
         JS_ReportError(cx, "can't access same buffer with and without signals enabled");
+        return false;
+    }
+
+    if (buffer->forInlineTypedObject()) {
+        JS_ReportError(cx, "ArrayBuffer can't be used by asm.js");
         return false;
     }
 
@@ -740,6 +777,7 @@ ArrayBufferObject::setFlags(uint32_t flags)
 
 ArrayBufferObject *
 ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, BufferContents contents,
+                          OwnsState ownsState ,
                           NewObjectKind newKind )
 {
     MOZ_ASSERT_IF(contents.kind() == MAPPED, contents);
@@ -753,18 +791,21 @@ ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, BufferContents content
     size_t nslots = reservedSlots;
     bool allocated = false;
     if (contents) {
-        
-        size_t nAllocated = nbytes;
-        if (contents.kind() == MAPPED)
-            nAllocated = JS_ROUNDUP(nbytes, js::gc::SystemPageSize());
-        cx->zone()->updateMallocCounter(nAllocated);
+        if (ownsState == OwnsData) {
+            
+            size_t nAllocated = nbytes;
+            if (contents.kind() == MAPPED)
+                nAllocated = JS_ROUNDUP(nbytes, js::gc::SystemPageSize());
+            cx->zone()->updateMallocCounter(nAllocated);
+        }
     } else {
+        MOZ_ASSERT(ownsState == OwnsData);
         size_t usableSlots = NativeObject::MAX_FIXED_SLOTS - reservedSlots;
         if (nbytes <= usableSlots * sizeof(Value)) {
             int newSlots = (nbytes - 1) / sizeof(Value) + 1;
             MOZ_ASSERT(int(nbytes) <= newSlots * int(sizeof(Value)));
             nslots = reservedSlots + newSlots;
-            contents = BufferContents::createUnowned(nullptr);
+            contents = BufferContents::createPlain(nullptr);
         } else {
             contents = AllocateArrayBufferContents(cx, nbytes);
             if (!contents)
@@ -789,9 +830,9 @@ ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, BufferContents content
     if (!contents) {
         void *data = obj->inlineDataPointer();
         memset(data, 0, nbytes);
-        obj->initialize(nbytes, BufferContents::createUnowned(data), DoesntOwnData);
+        obj->initialize(nbytes, BufferContents::createPlain(data), DoesntOwnData);
     } else {
-        obj->initialize(nbytes, contents, OwnsData);
+        obj->initialize(nbytes, contents, ownsState);
     }
 
     return obj;
@@ -801,7 +842,7 @@ ArrayBufferObject *
 ArrayBufferObject::create(JSContext *cx, uint32_t nbytes,
                           NewObjectKind newKind )
 {
-    return create(cx, nbytes, BufferContents::createUnowned(nullptr));
+    return create(cx, nbytes, BufferContents::createPlain(nullptr));
 }
 
 JSObject *
@@ -866,7 +907,7 @@ ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffe
     BufferContents oldContents(buffer->dataPointer(), buffer->bufferKind());
     BufferContents newContents = AllocateArrayBufferContents(cx, buffer->byteLength());
     if (!newContents)
-        return BufferContents::createUnowned(nullptr);
+        return BufferContents::createPlain(nullptr);
 
     if (hasStealableContents) {
         
@@ -875,7 +916,7 @@ ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffe
         buffer->setOwnsData(DoesntOwnData);
         if (!ArrayBufferObject::neuter(cx, buffer, newContents)) {
             js_free(newContents.data());
-            return BufferContents::createUnowned(nullptr);
+            return BufferContents::createPlain(nullptr);
         }
         return oldContents;
     }
@@ -885,7 +926,7 @@ ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffe
     memcpy(newContents.data(), oldContents.data(), buffer->byteLength());
     if (!ArrayBufferObject::neuter(cx, buffer, oldContents)) {
         js_free(newContents.data());
-        return BufferContents::createUnowned(nullptr);
+        return BufferContents::createPlain(nullptr);
     }
     return newContents;
 }
@@ -922,6 +963,23 @@ ArrayBufferObject::finalize(FreeOp *fop, JSObject *obj)
 
     if (buffer.ownsData())
         buffer.releaseData(fop);
+}
+
+ void
+ArrayBufferObject::trace(JSTracer *trc, JSObject *obj)
+{
+    
+    
+    ArrayBufferObject &buf = obj->as<ArrayBufferObject>();
+
+    if (!buf.forInlineTypedObject())
+        return;
+
+    JSObject *view = buf.firstView();
+    MOZ_ASSERT(view && view->is<InlineTransparentTypedObject>());
+
+    gc::MarkObjectUnbarriered(trc, &view, "array buffer inline typed object owner");
+    buf.setSlot(DATA_SLOT, PrivateValue(view->as<InlineTransparentTypedObject>().inlineTypedMem()));
 }
 
  void
@@ -1279,7 +1337,7 @@ JS_NewArrayBufferWithContents(JSContext *cx, size_t nbytes, void *data)
     MOZ_ASSERT_IF(!data, nbytes == 0);
     ArrayBufferObject::BufferContents contents =
         ArrayBufferObject::BufferContents::create<ArrayBufferObject::PLAIN>(data);
-    return ArrayBufferObject::create(cx, nbytes, contents, TenuredObject);
+    return ArrayBufferObject::create(cx, nbytes, contents, ArrayBufferObject::OwnsData, TenuredObject);
 }
 
 JS_FRIEND_API(bool)
@@ -1336,7 +1394,7 @@ JS_NewMappedArrayBufferWithContents(JSContext *cx, size_t nbytes, void *data)
     MOZ_ASSERT(data);
     ArrayBufferObject::BufferContents contents =
         ArrayBufferObject::BufferContents::create<ArrayBufferObject::MAPPED>(data);
-    return ArrayBufferObject::create(cx, nbytes, contents, TenuredObject);
+    return ArrayBufferObject::create(cx, nbytes, contents, ArrayBufferObject::OwnsData, TenuredObject);
 }
 
 JS_PUBLIC_API(void *)

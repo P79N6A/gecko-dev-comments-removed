@@ -7352,42 +7352,6 @@ class MTypedArrayElements
 };
 
 
-class MNeuterCheck
-  : public MUnaryInstruction,
-    public SingleObjectPolicy::Data
-{
-  private:
-    explicit MNeuterCheck(MDefinition *object)
-      : MUnaryInstruction(object)
-    {
-        MOZ_ASSERT(object->type() == MIRType_Object);
-        setResultType(MIRType_Object);
-        setResultTypeSet(object->resultTypeSet());
-        setGuard();
-        setMovable();
-    }
-
-  public:
-    INSTRUCTION_HEADER(NeuterCheck)
-
-    static MNeuterCheck *New(TempAllocator &alloc, MDefinition *object) {
-        return new(alloc) MNeuterCheck(object);
-    }
-
-    MDefinition *object() const {
-        return getOperand(0);
-    }
-
-    bool congruentTo(const MDefinition *ins) const {
-        return congruentIfOperandsEqual(ins);
-    }
-
-    AliasSet getAliasSet() const {
-        return AliasSet::Load(AliasSet::ObjectFields);
-    }
-};
-
-
 
 
 class MTypedObjectElements

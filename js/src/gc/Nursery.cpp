@@ -395,12 +395,13 @@ GetObjectAllocKindForCopy(const Nursery &nursery, JSObject *obj)
 
     
     
-    if (obj->is<InlineOpaqueTypedObject>()) {
+    if (obj->is<InlineTypedObject>()) {
         
         
         
-        TypeDescr *descr = &obj->as<InlineOpaqueTypedObject>().typeDescr();
-        return InlineOpaqueTypedObject::allocKindForTypeDescriptor(descr);
+        TypeDescr *descr = &obj->as<InlineTypedObject>().typeDescr();
+        MOZ_ASSERT(!IsInsideNursery(descr));
+        return InlineTypedObject::allocKindForTypeDescriptor(descr);
     }
 
     

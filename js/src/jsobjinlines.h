@@ -283,8 +283,10 @@ JSObject::isUnqualifiedVarObj()
     return lastProperty()->hasObjectFlag(js::BaseShape::UNQUALIFIED_VAROBJ);
 }
 
+namespace js {
+
 inline bool
-ClassCanHaveFixedData(const js::Class *clasp)
+ClassCanHaveFixedData(const Class *clasp)
 {
     
     
@@ -293,9 +295,10 @@ ClassCanHaveFixedData(const js::Class *clasp)
     
     return !clasp->isNative()
         || clasp == &js::ArrayBufferObject::class_
-        || clasp == &js::InlineOpaqueTypedObject::class_
         || js::IsTypedArrayClass(clasp);
 }
+
+} 
 
  inline JSObject *
 JSObject::create(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::InitialHeap heap,
@@ -304,7 +307,7 @@ JSObject::create(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::Initi
     MOZ_ASSERT(shape && type);
     MOZ_ASSERT(type->clasp() == shape->getObjectClass());
     MOZ_ASSERT(type->clasp() != &js::ArrayObject::class_);
-    MOZ_ASSERT_IF(!ClassCanHaveFixedData(type->clasp()),
+    MOZ_ASSERT_IF(!js::ClassCanHaveFixedData(type->clasp()),
                   js::gc::GetGCKindSlots(kind, type->clasp()) == shape->numFixedSlots());
     MOZ_ASSERT_IF(type->clasp()->flags & JSCLASS_BACKGROUND_FINALIZE, IsBackgroundFinalized(kind));
     MOZ_ASSERT_IF(type->clasp()->finalize, heap == js::gc::TenuredHeap);

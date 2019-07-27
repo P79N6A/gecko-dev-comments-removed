@@ -7247,8 +7247,7 @@ IonBuilder::checkTypedObjectIndexInBounds(int32_t elemSize,
                                           MDefinition *obj,
                                           MDefinition *index,
                                           TypedObjectPrediction objPrediction,
-                                          MDefinition **indexAsByteOffset,
-                                          bool *canBeNeutered)
+                                          MDefinition **indexAsByteOffset)
 {
     
     MInstruction *idInt32 = MToInt32::New(alloc(), index);
@@ -7265,15 +7264,15 @@ IonBuilder::checkTypedObjectIndexInBounds(int32_t elemSize,
 
         
         
-        *canBeNeutered = true;
+        types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
+        if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+            return false;
     } else if (objPrediction.kind() == type::UnsizedArray) {
+        
+        
+        
         length = MTypedObjectUnsizedLength::New(alloc(), obj);
         current->add(length->toInstruction());
-
-        
-        
-        
-        *canBeNeutered = false;
     } else {
         return false;
     }
@@ -7304,31 +7303,25 @@ IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
     ScalarTypeDescr::Type elemType = elemPrediction.scalarType();
     MOZ_ASSERT(elemSize == ScalarTypeDescr::alignment(elemType));
 
-    bool canBeNeutered;
     MDefinition *indexAsByteOffset;
-    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction,
-                                       &indexAsByteOffset, &canBeNeutered))
-    {
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction, &indexAsByteOffset))
         return true;
-    }
 
-    return pushScalarLoadFromTypedObject(emitted, obj, indexAsByteOffset, elemType, canBeNeutered);
+    return pushScalarLoadFromTypedObject(emitted, obj, indexAsByteOffset, elemType);
 }
 
 bool
 IonBuilder::pushScalarLoadFromTypedObject(bool *emitted,
                                           MDefinition *obj,
                                           MDefinition *offset,
-                                          ScalarTypeDescr::Type elemType,
-                                          bool canBeNeutered)
+                                          ScalarTypeDescr::Type elemType)
 {
     int32_t size = ScalarTypeDescr::size(elemType);
     MOZ_ASSERT(size == ScalarTypeDescr::alignment(elemType));
 
     
     MDefinition *elements, *scaledOffset;
-    loadTypedObjectElements(obj, offset, size, canBeNeutered,
-                            &elements, &scaledOffset);
+    loadTypedObjectElements(obj, offset, size, &elements, &scaledOffset);
 
     
     MLoadTypedArrayElement *load = MLoadTypedArrayElement::New(alloc(), elements, scaledOffset, elemType);
@@ -7369,16 +7362,12 @@ IonBuilder::getElemTryComplexElemOfTypedObject(bool *emitted,
     MDefinition *type = loadTypedObjectType(obj);
     MDefinition *elemTypeObj = typeObjectForElementFromArrayStructType(type);
 
-    bool canBeNeutered;
     MDefinition *indexAsByteOffset;
-    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction,
-                                       &indexAsByteOffset, &canBeNeutered))
-    {
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction, &indexAsByteOffset))
         return true;
-    }
 
     return pushDerivedTypedObject(emitted, obj, indexAsByteOffset,
-                                  elemPrediction, elemTypeObj, canBeNeutered);
+                                  elemPrediction, elemTypeObj);
 }
 
 bool
@@ -7386,12 +7375,11 @@ IonBuilder::pushDerivedTypedObject(bool *emitted,
                                    MDefinition *obj,
                                    MDefinition *offset,
                                    TypedObjectPrediction derivedPrediction,
-                                   MDefinition *derivedTypeObj,
-                                   bool canBeNeutered)
+                                   MDefinition *derivedTypeObj)
 {
     
     MDefinition *owner, *ownerOffset;
-    loadTypedObjectData(obj, offset, canBeNeutered, &owner, &ownerOffset);
+    loadTypedObjectData(obj, offset, &owner, &ownerOffset);
 
     
     MInstruction *derivedTypedObj = MNewDerivedTypedObject::New(alloc(),
@@ -8159,16 +8147,12 @@ IonBuilder::setElemTryScalarElemOfTypedObject(bool *emitted,
     ScalarTypeDescr::Type elemType = elemPrediction.scalarType();
     MOZ_ASSERT(elemSize == ScalarTypeDescr::alignment(elemType));
 
-    bool canBeNeutered;
     MDefinition *indexAsByteOffset;
-    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction,
-                                       &indexAsByteOffset, &canBeNeutered))
-    {
+    if (!checkTypedObjectIndexInBounds(elemSize, obj, index, objPrediction, &indexAsByteOffset))
         return true;
-    }
 
     
-    if (!storeScalarTypedObjectValue(obj, indexAsByteOffset, elemType, canBeNeutered, false, value))
+    if (!storeScalarTypedObjectValue(obj, indexAsByteOffset, elemType, false, value))
         return false;
 
     current->push(value);
@@ -8543,7 +8527,7 @@ IonBuilder::jsop_setelem_typed_object(Scalar::Type arrayType, SetElemSafety safe
                                         MIRType_Int32, MMul::Integer);
     current->add(byteOffset);
 
-    if (!storeScalarTypedObjectValue(object, byteOffset, arrayType, false, racy, value))
+    if (!storeScalarTypedObjectValue(object, byteOffset, arrayType, racy, value))
         return false;
 
     return true;
@@ -9326,8 +9310,12 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted, MDefinition *typedO
     Scalar::Type fieldType = fieldPrediction.scalarType();
 
     
-    return pushScalarLoadFromTypedObject(emitted, typedObj, constantInt(fieldOffset),
-                                         fieldType, true);
+    types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
+    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+        return true;
+
+    
+    return pushScalarLoadFromTypedObject(emitted, typedObj, constantInt(fieldOffset), fieldType);
 }
 
 bool
@@ -9339,13 +9327,18 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
                                                types::TemporaryTypeSet *resultTypes)
 {
     
+    types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
+    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+        return true;
+
+    
 
     
     MDefinition *type = loadTypedObjectType(typedObj);
     MDefinition *fieldTypeObj = typeObjectForFieldFromStructType(type, fieldIndex);
 
     return pushDerivedTypedObject(emitted, typedObj, constantInt(fieldOffset),
-                                  fieldPrediction, fieldTypeObj, true);
+                                  fieldPrediction, fieldTypeObj);
 }
 
 bool
@@ -9993,8 +9986,13 @@ IonBuilder::setPropTryScalarPropOfTypedObject(bool *emitted,
     Scalar::Type fieldType = fieldPrediction.scalarType();
 
     
+    types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
+    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+        return true;
 
-    if (!storeScalarTypedObjectValue(obj, constantInt(fieldOffset), fieldType, true, false, value))
+    
+
+    if (!storeScalarTypedObjectValue(obj, constantInt(fieldOffset), fieldType, false, value))
         return false;
 
     current->push(value);
@@ -10958,7 +10956,6 @@ IonBuilder::loadTypedObjectType(MDefinition *typedObj)
 void
 IonBuilder::loadTypedObjectData(MDefinition *typedObj,
                                 MDefinition *offset,
-                                bool canBeNeutered,
                                 MDefinition **owner,
                                 MDefinition **ownerOffset)
 {
@@ -10985,12 +10982,6 @@ IonBuilder::loadTypedObjectData(MDefinition *typedObj,
         return;
     }
 
-    if (canBeNeutered) {
-        MNeuterCheck *chk = MNeuterCheck::New(alloc(), typedObj);
-        current->add(chk);
-        typedObj = chk;
-    }
-
     *owner = typedObj;
     *ownerOffset = offset;
 }
@@ -11004,12 +10995,11 @@ void
 IonBuilder::loadTypedObjectElements(MDefinition *typedObj,
                                     MDefinition *offset,
                                     int32_t unit,
-                                    bool canBeNeutered,
                                     MDefinition **ownerElements,
                                     MDefinition **ownerScaledOffset)
 {
     MDefinition *owner, *ownerOffset;
-    loadTypedObjectData(typedObj, offset, canBeNeutered, &owner, &ownerOffset);
+    loadTypedObjectData(typedObj, offset, &owner, &ownerOffset);
 
     
     MTypedObjectElements *elements = MTypedObjectElements::New(alloc(), owner);
@@ -11096,15 +11086,13 @@ bool
 IonBuilder::storeScalarTypedObjectValue(MDefinition *typedObj,
                                         MDefinition *byteOffset,
                                         ScalarTypeDescr::Type type,
-                                        bool canBeNeutered,
                                         bool racy,
                                         MDefinition *value)
 {
     
     MDefinition *elements, *scaledOffset;
     size_t alignment = ScalarTypeDescr::alignment(type);
-    loadTypedObjectElements(typedObj, byteOffset, alignment, canBeNeutered,
-                            &elements, &scaledOffset);
+    loadTypedObjectElements(typedObj, byteOffset, alignment, &elements, &scaledOffset);
 
     
     MDefinition *toWrite = value;

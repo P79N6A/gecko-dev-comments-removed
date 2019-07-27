@@ -4259,24 +4259,6 @@ class LSetTypedObjectOffset : public LInstructionHelper<0, 2, 2>
 };
 
 
-class LNeuterCheck : public LInstructionHelper<0, 1, 1>
-{
-  public:
-    LIR_HEADER(NeuterCheck)
-
-    LNeuterCheck(const LAllocation &object, const LDefinition &temp) {
-        setOperand(0, object);
-        setTemp(0, temp);
-    }
-    const LAllocation *object() {
-        return getOperand(0);
-    }
-    const LDefinition *temp() {
-        return getTemp(0);
-    }
-};
-
-
 class LBoundsCheck : public LInstructionHelper<0, 2, 0>
 {
   public:

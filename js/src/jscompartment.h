@@ -132,6 +132,7 @@ struct TypeInferenceSizes;
 namespace js {
 class AutoDebugModeInvalidation;
 class DebugScopes;
+class LazyArrayBufferTable;
 class WeakMapBase;
 }
 
@@ -249,6 +250,7 @@ struct JSCompartment
                                 size_t *compartmentObject,
                                 size_t *compartmentTables,
                                 size_t *innerViews,
+                                size_t *lazyArrayBuffers,
                                 size_t *crossCompartmentWrappers,
                                 size_t *regexpCompartment,
                                 size_t *savedStacksSet);
@@ -293,8 +295,10 @@ struct JSCompartment
     js::ReadBarrieredScriptSourceObject selfHostingScriptSource;
 
     
-    
     js::InnerViewTable innerViews;
+
+    
+    js::LazyArrayBufferTable *lazyArrayBuffers;
 
     
     unsigned                     gcIndex;

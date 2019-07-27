@@ -104,6 +104,11 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
 
   public:
 
+    enum OwnsState {
+        DoesntOwnData = 0,
+        OwnsData = 1,
+    };
+
     enum BufferKind {
         PLAIN               = 0, 
         ASMJS_MALLOCED      = 1,
@@ -125,7 +130,21 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
         
         
         
+        
+        
+        
+        
+        
         OWNS_DATA           = 0x8,
+
+        
+        
+        
+        
+        FOR_INLINE_TYPED_OBJECT = 0x10,
+
+        
+        SIZED_OBJECT_VIEWS  = 0x20
     };
 
   public:
@@ -151,7 +170,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
             return BufferContents(static_cast<uint8_t*>(data), Kind);
         }
 
-        static BufferContents createUnowned(void *data)
+        static BufferContents createPlain(void *data)
         {
             return BufferContents(static_cast<uint8_t*>(data), PLAIN);
         }
@@ -181,6 +200,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
 
     static ArrayBufferObject *create(JSContext *cx, uint32_t nbytes,
                                      BufferContents contents,
+                                     OwnsState ownsState = OwnsData,
                                      NewObjectKind newKind = GenericObject);
     static ArrayBufferObject *create(JSContext *cx, uint32_t nbytes,
                                      NewObjectKind newKind = GenericObject);
@@ -197,6 +217,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
     template<typename T>
     static bool createTypedArrayFromBuffer(JSContext *cx, unsigned argc, Value *vp);
 
+    static void trace(JSTracer *trc, JSObject *obj);
     static void objectMoved(JSObject *obj, const JSObject *old);
 
     static BufferContents stealContents(JSContext *cx,
@@ -301,12 +322,14 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
 
     static uint32_t neuteredFlag() { return NEUTERED; }
 
-  protected:
-    enum OwnsState {
-        DoesntOwnData = 0,
-        OwnsData = 1,
-    };
+    void setForInlineTypedObject() {
+        setFlags(flags() | FOR_INLINE_TYPED_OBJECT);
+    }
+    void setHasSizedObjectViews() {
+        setFlags(flags() | SIZED_OBJECT_VIEWS);
+    }
 
+  protected:
     void setDataPointer(BufferContents contents, OwnsState ownsState);
     void setByteLength(size_t length);
 
@@ -317,6 +340,9 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
     void setOwnsData(OwnsState owns) {
         setFlags(owns ? (flags() | OWNS_DATA) : (flags() & ~OWNS_DATA));
     }
+
+    bool forInlineTypedObject() const { return flags() & FOR_INLINE_TYPED_OBJECT; }
+    bool hasSizedObjectViews() const { return flags() & SIZED_OBJECT_VIEWS; }
 
     void setIsAsmJSMalloced() { setFlags((flags() & ~KIND_MASK) | ASMJS_MALLOCED); }
     void setIsNeutered() { setFlags(flags() | NEUTERED); }

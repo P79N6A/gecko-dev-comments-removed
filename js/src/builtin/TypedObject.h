@@ -8,10 +8,10 @@
 #define builtin_TypedObject_h
 
 #include "jsobj.h"
+#include "jsweakmap.h"
 
 #include "builtin/TypedObjectConstants.h"
 #include "vm/ArrayBufferObject.h"
-
 
 
 
@@ -671,6 +671,8 @@ class TypedObject : public JSObject
         return typedMem() + offset;
     }
 
+    inline bool opaque() const;
+
     
     
     
@@ -785,10 +787,12 @@ class OutlineTypedObject : public TypedObject
 };
 
 
-class TransparentTypedObject : public OutlineTypedObject
+class OutlineTransparentTypedObject : public OutlineTypedObject
 {
   public:
     static const Class class_;
+
+    ArrayBufferObject *getOrCreateBuffer(JSContext *cx);
 };
 
 
@@ -800,14 +804,12 @@ class OutlineOpaqueTypedObject : public OutlineTypedObject
 };
 
 
-class InlineOpaqueTypedObject : public TypedObject
+class InlineTypedObject : public TypedObject
 {
     
     uint8_t data_[1];
 
   public:
-    static const Class class_;
-
     static const size_t MaximumSize = NativeObject::MAX_FIXED_SLOTS * sizeof(Value);
 
     static gc::AllocKind allocKindForTypeDescriptor(TypeDescr *descr) {
@@ -820,16 +822,35 @@ class InlineOpaqueTypedObject : public TypedObject
     }
 
     uint8_t *inlineTypedMem() const {
-        static_assert(offsetof(InlineOpaqueTypedObject, data_) == sizeof(JSObject),
+        static_assert(offsetof(InlineTypedObject, data_) == sizeof(JSObject),
                       "The data for an inline typed object must follow the shape and type.");
         return (uint8_t *) &data_;
     }
 
     static void obj_trace(JSTracer *trace, JSObject *object);
 
-    static size_t offsetOfDataStart();
+    static size_t offsetOfDataStart() {
+        return offsetof(InlineTypedObject, data_);
+    }
 
-    static InlineOpaqueTypedObject *create(JSContext *cx, HandleTypeDescr descr);
+    static InlineTypedObject *create(JSContext *cx, HandleTypeDescr descr);
+};
+
+
+
+class InlineTransparentTypedObject : public InlineTypedObject
+{
+  public:
+    static const Class class_;
+
+    ArrayBufferObject *getOrCreateBuffer(JSContext *cx);
+};
+
+
+class InlineOpaqueTypedObject : public InlineTypedObject
+{
+  public:
+    static const Class class_;
 };
 
 
@@ -1044,7 +1065,8 @@ JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_LOAD_REFERENCE_CLASS_DEFN)
 inline bool
 IsTypedObjectClass(const Class *class_)
 {
-    return class_ == &TransparentTypedObject::class_ ||
+    return class_ == &OutlineTransparentTypedObject::class_ ||
+           class_ == &InlineTransparentTypedObject::class_ ||
            class_ == &OutlineOpaqueTypedObject::class_ ||
            class_ == &InlineOpaqueTypedObject::class_;
 }
@@ -1077,6 +1099,36 @@ IsTypeDescrClass(const Class* clasp)
     return IsSizedTypeDescrClass(clasp) ||
            clasp == &UnsizedArrayTypeDescr::class_;
 }
+
+inline bool
+TypedObject::opaque() const
+{
+    return is<OutlineOpaqueTypedObject>() || is<InlineOpaqueTypedObject>();
+}
+
+
+
+
+class LazyArrayBufferTable
+{
+  private:
+    
+    
+    
+    
+    typedef WeakMap<PreBarrieredObject, RelocatablePtrObject> Map;
+    Map map;
+
+  public:
+    LazyArrayBufferTable(JSContext *cx);
+    ~LazyArrayBufferTable();
+
+    ArrayBufferObject *maybeBuffer(InlineTransparentTypedObject *obj);
+    bool addBuffer(JSContext *cx, InlineTransparentTypedObject *obj, ArrayBufferObject *buffer);
+
+    void trace(JSTracer *trc);
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
+};
 
 } 
 
@@ -1122,8 +1174,16 @@ template <>
 inline bool
 JSObject::is<js::OutlineTypedObject>() const
 {
-    return getClass() == &js::TransparentTypedObject::class_ ||
+    return getClass() == &js::OutlineTransparentTypedObject::class_ ||
            getClass() == &js::OutlineOpaqueTypedObject::class_;
+}
+
+template <>
+inline bool
+JSObject::is<js::InlineTypedObject>() const
+{
+    return getClass() == &js::InlineTransparentTypedObject::class_ ||
+           getClass() == &js::InlineOpaqueTypedObject::class_;
 }
 
 inline void
