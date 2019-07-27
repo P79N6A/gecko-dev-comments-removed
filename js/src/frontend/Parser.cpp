@@ -596,7 +596,7 @@ FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunct
     bufEnd(0),
     length(0),
     generatorKindBits_(GeneratorKindAsBits(generatorKind)),
-    inWith_(false),                  
+    inWith(false),                  
     inGenexpLambda(false),
     hasDestructuringArgs(false),
     useAsm(false),
@@ -612,7 +612,7 @@ FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunct
     MOZ_ASSERT(fun->isTenured());
 
     if (!outerpc) {
-        inWith_ = false;
+        inWith = false;
 
     } else if (outerpc->parsingWith) {
         
@@ -621,7 +621,7 @@ FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunct
         
         
         
-        inWith_ = true;
+        inWith = true;
 
     } else if (outerpc->sc->isFunctionBox()) {
         
@@ -632,8 +632,8 @@ FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunct
         
         
         FunctionBox* parent = outerpc->sc->asFunctionBox();
-        if (parent && parent->inWith())
-            inWith_ = true;
+        if (parent && parent->inWith)
+            inWith = true;
     } else {
         
         
@@ -642,7 +642,7 @@ FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunct
         
         
         
-        inWith_ = outerpc->sc->inWith();
+        inWith = outerpc->sc->asGlobalSharedContext()->inWith();
     }
 }
 
@@ -2224,7 +2224,7 @@ Parser<SyntaxParseHandler>::finishFunctionDefinition(Node pn, FunctionBox* funbo
     
     
 
-    if (funbox->inWith())
+    if (funbox->inWith)
         return abortIfSyntaxParser();
 
     size_t numFreeVariables = pc->lexdeps->count();
