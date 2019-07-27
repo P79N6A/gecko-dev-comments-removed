@@ -22,13 +22,13 @@ const tests = [
   
   { contentType: "",
     expectedContentType: "application/ogg",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   { contentType: "application/octet-stream",
     expectedContentType: "application/ogg",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   { contentType: "application/something",
-    expectedContentType: "application/something",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    expectedContentType: "application/ogg",
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   
   
   { contentType: "application/octet-stream",
@@ -37,11 +37,15 @@ const tests = [
   { contentType: "",
     expectedContentType: "application/ogg",
     flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
+  { contentType: "application/something",
+    expectedContentType: "application/something",
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
 ];
 
 
 var listener = {
   onStartRequest: function(request, context) {
+    dump("Test index = " + testRan + "\n");
     do_check_eq(request.QueryInterface(Ci.nsIChannel).contentType,
                 tests[testRan].expectedContentType);
   },

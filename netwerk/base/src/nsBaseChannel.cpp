@@ -722,12 +722,8 @@ nsBaseChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   
   
   
-  
-  bool shouldSniff = mContentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE) ||
-            ((mLoadFlags & LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN) &&
-            mContentType.EqualsLiteral(APPLICATION_OCTET_STREAM));
-
-  if (NS_SUCCEEDED(mStatus) && shouldSniff) {
+  if (NS_SUCCEEDED(mStatus) &&
+      mContentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE)) {
     mPump->PeekStream(CallUnknownTypeSniffer, static_cast<nsIChannel*>(this));
   }
 
