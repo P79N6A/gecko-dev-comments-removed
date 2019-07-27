@@ -76,6 +76,16 @@ const ROOM_DELETE = {
 };
 
 
+
+
+
+
+const ROOM_CONTEXT_ADD = {
+  ADD_FROM_PANEL: 0,
+  ADD_FROM_CONVERSATION: 1
+};
+
+
 const PREF_LOG_LEVEL = "loop.debug.loglevel";
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -90,7 +100,7 @@ Cu.importGlobalProperties(["URL"]);
 
 this.EXPORTED_SYMBOLS = ["MozLoopService", "LOOP_SESSION_TYPE",
   "TWO_WAY_MEDIA_CONN_LENGTH", "SHARING_STATE_CHANGE", "SHARING_ROOM_URL",
-  "ROOM_CREATE", "ROOM_DELETE"];
+  "ROOM_CREATE", "ROOM_DELETE", "ROOM_CONTEXT_ADD"];
 
 XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI",
   "resource:///modules/loop/MozLoopAPI.jsm");
