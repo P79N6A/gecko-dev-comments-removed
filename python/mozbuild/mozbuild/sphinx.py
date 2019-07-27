@@ -5,6 +5,7 @@
 from __future__ import absolute_import
 
 import importlib
+import os
 
 from sphinx.util.compat import Directive
 from sphinx.util.docstrings import prepare_docstring
@@ -152,3 +153,19 @@ class MozbuildSymbols(Directive):
 
 def setup(app):
     app.add_directive('mozbuildsymbols', MozbuildSymbols)
+
+    
+    
+    
+    
+    
+    
+    from moztreedocs import SphinxManager
+
+    topsrcdir = app.config._raw_config['topsrcdir']
+    manager = SphinxManager(topsrcdir,
+        os.path.join(topsrcdir, 'tools', 'docs'),
+        app.outdir)
+    manager.generate_docs(app)
+
+    app.srcdir = manager._docs_dir

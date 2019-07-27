@@ -6,11 +6,17 @@ from __future__ import unicode_literals
 
 import os
 import re
+import sys
 
 from datetime import datetime
 
 
-mozilla_dir = os.environ['MOZILLA_DIR']
+OUR_DIR = os.path.dirname(__file__)
+topsrcdir = os.path.normpath(os.path.join(OUR_DIR, '..', '..'))
+
+sys.path.insert(0, os.path.join(topsrcdir, 'python', 'jsmin'))
+sys.path.insert(0, os.path.join(topsrcdir, 'python', 'mozbuild'))
+sys.path.insert(0, OUR_DIR)
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -27,7 +33,7 @@ year = datetime.now().year
 
 
 
-with open(os.path.join(mozilla_dir, 'config', 'milestone.txt'), 'rt') as fh:
+with open(os.path.join(topsrcdir, 'config', 'milestone.txt'), 'rt') as fh:
     for line in fh:
         line = line.strip()
 
@@ -39,7 +45,7 @@ with open(os.path.join(mozilla_dir, 'config', 'milestone.txt'), 'rt') as fh:
 
 version = re.sub(r'[ab]\d+$', '', release)
 
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', '_staging']
 pygments_style = 'sphinx'
 
 
