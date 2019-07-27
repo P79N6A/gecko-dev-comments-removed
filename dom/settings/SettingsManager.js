@@ -462,6 +462,17 @@ SettingsManager.prototype = {
 
   cleanup: function() {
     Services.obs.removeObserver(this, "inner-window-destroyed");
+    
+    
+    
+    for (let i = 0; i < this._locks.length; ++i) {	
+      if (DEBUG) debug("Lock alive at destroy, finalizing: " + this._locks[i]);
+      
+      
+      
+      cpmm.sendAsyncMessage("Settings:Finalize",	
+                            {lockID: this._locks[i]});	
+    }
     cpmm.removeMessageListener("Settings:Change:Return:OK", this);
     mrm.unregisterStrongReporter(this);
     this.innerWindowID = null;
