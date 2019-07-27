@@ -3,6 +3,7 @@
 
 
 
+
 #include <stdlib.h>                     
 
 #include "mozilla/Attributes.h"         
@@ -46,16 +47,16 @@
 
 using namespace mozilla;
 
-class UpdateDictionnaryHolder {
+class UpdateDictionaryHolder {
   private:
     nsEditorSpellCheck* mSpellCheck;
   public:
-    explicit UpdateDictionnaryHolder(nsEditorSpellCheck* esc): mSpellCheck(esc) {
+    explicit UpdateDictionaryHolder(nsEditorSpellCheck* esc): mSpellCheck(esc) {
       if (mSpellCheck) {
         mSpellCheck->BeginUpdateDictionary();
       }
     }
-    ~UpdateDictionnaryHolder() {
+    ~UpdateDictionaryHolder() {
       if (mSpellCheck) {
         mSpellCheck->EndUpdateDictionary();
       }
@@ -699,23 +700,15 @@ nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallba
   }
   NS_ENSURE_TRUE(rootContent, NS_ERROR_FAILURE);
 
-  DictionaryFetcher* fetcher = new DictionaryFetcher(this, aCallback,
-                                                     mDictionaryFetcherGroup);
+  nsRefPtr<DictionaryFetcher> fetcher =
+    new DictionaryFetcher(this, aCallback, mDictionaryFetcherGroup);
   rootContent->GetLang(fetcher->mRootContentLang);
   nsCOMPtr<nsIDocument> doc = rootContent->GetCurrentDoc();
   NS_ENSURE_STATE(doc);
   doc->GetContentLanguage(fetcher->mRootDocContentLang);
 
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    
-    
-    nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethodWithArg<uint16_t>(fetcher, &DictionaryFetcher::HandleCompletion, 0);
-    NS_DispatchToMainThread(runnable);
-  } else {
-    rv = fetcher->Fetch(mEditor);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  rv = fetcher->Fetch(mEditor);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -723,14 +716,13 @@ nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallba
 nsresult
 nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 {
+  MOZ_ASSERT(aFetcher);
   nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
-
-  nsresult rv = NS_OK;
 
   
   
   CallbackCaller callbackCaller(aFetcher->mCallback);
-  UpdateDictionnaryHolder holder(this);
+  UpdateDictionaryHolder holder(this);
 
   if (aFetcher->mGroup < mDictionaryFetcherGroup) {
     
@@ -742,10 +734,9 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 
   
   
-  nsAutoString dictName;
-  dictName.Assign(aFetcher->mDictionary);
+  nsAutoString dictName(aFetcher->mDictionary);
   if (!dictName.IsEmpty()) {
-    if (NS_FAILED(SetCurrentDictionary(dictName))) { 
+    if (NS_FAILED(SetCurrentDictionary(dictName))) {
       
       ClearCurrentDictionary(mEditor);
     }
@@ -773,8 +764,8 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
     dictName.Assign(preferedDict);
   }
 
-  if (dictName.IsEmpty())
-  {
+  nsresult rv = NS_OK;
+  if (dictName.IsEmpty()) {
     
     
 
