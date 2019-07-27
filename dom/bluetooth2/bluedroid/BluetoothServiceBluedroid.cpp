@@ -79,142 +79,6 @@ static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sUnbondingRunnableArray;
 
 
 
-
-class BluetoothServiceBluedroid::SetupAfterEnabledTask MOZ_FINAL
-  : public nsRunnable
-{
-public:
-  class SetAdapterPropertyResultHandler MOZ_FINAL
-  : public BluetoothResultHandler
-  {
-  public:
-    void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
-    {
-      BT_LOGR("Fail to set: BT_SCAN_MODE_CONNECTABLE");
-    }
-  };
-
-  NS_IMETHOD
-  Run()
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    
-    sControllerArray.Clear();
-    sChangeDiscoveryRunnableArray.Clear();
-    sSetPropertyRunnableArray.Clear();
-    sGetDeviceRunnableArray.Clear();
-    sFetchUuidsRunnableArray.Clear();
-    sBondingRunnableArray.Clear();
-    sUnbondingRunnableArray.Clear();
-
-    
-    
-    NS_ENSURE_TRUE(sBtInterface, NS_ERROR_FAILURE);
-    sBtInterface->SetAdapterProperty(
-      BluetoothNamedValue(NS_ConvertUTF8toUTF16("Discoverable"), false),
-      new SetAdapterPropertyResultHandler());
-
-    
-    BluetoothOppManager* opp = BluetoothOppManager::Get();
-    if (!opp || !opp->Listen()) {
-      BT_LOGR("Fail to start BluetoothOppManager listening");
-    }
-
-    return NS_OK;
-  }
-};
-
-
-
-
-
-class BluetoothServiceBluedroid::ProfileDeinitResultHandler MOZ_FINAL
-  : public BluetoothProfileResultHandler
-{
-public:
-  ProfileDeinitResultHandler(unsigned char aNumProfiles)
-    : mNumProfiles(aNumProfiles)
-  {
-    MOZ_ASSERT(mNumProfiles);
-  }
-
-  void Deinit() MOZ_OVERRIDE
-  {
-    if (!(--mNumProfiles)) {
-      Proceed();
-    }
-  }
-
-  void OnError(nsresult aResult) MOZ_OVERRIDE
-  {
-    if (!(--mNumProfiles)) {
-      Proceed();
-    }
-  }
-
-private:
-  void Proceed() const
-  {
-    sBtInterface->Cleanup(nullptr);
-  }
-
-  unsigned char mNumProfiles;
-};
-
-class BluetoothServiceBluedroid::CleanupTask MOZ_FINAL : public nsRunnable
-{
-public:
-  NS_IMETHOD
-  Run()
-  {
-    static void (* const sDeinitManager[])(BluetoothProfileResultHandler*) = {
-      BluetoothHfpManager::DeinitHfpInterface,
-      BluetoothA2dpManager::DeinitA2dpInterface,
-      BluetoothGattManager::DeinitGattInterface
-    };
-
-    MOZ_ASSERT(NS_IsMainThread());
-
-    
-    BluetoothService* bs = BluetoothService::Get();
-    NS_ENSURE_TRUE(bs, NS_ERROR_FAILURE);
-
-    
-    sAdapterBdAddress.Truncate();
-    sAdapterBdName.Truncate();
-
-    InfallibleTArray<BluetoothNamedValue> props;
-    BT_APPEND_NAMED_VALUE(props, "Name", sAdapterBdName);
-    BT_APPEND_NAMED_VALUE(props, "Address", sAdapterBdAddress);
-    if (sAdapterDiscoverable) {
-      sAdapterDiscoverable = false;
-      BT_APPEND_NAMED_VALUE(props, "Discoverable", false);
-    }
-    if (sAdapterDiscovering) {
-      sAdapterDiscovering = false;
-      BT_APPEND_NAMED_VALUE(props, "Discovering", false);
-    }
-
-    BluetoothSignal signal(NS_LITERAL_STRING("PropertyChanged"),
-                           NS_LITERAL_STRING(KEY_ADAPTER), props);
-    bs->DistributeSignal(signal);
-
-    
-    nsRefPtr<ProfileDeinitResultHandler> res =
-      new ProfileDeinitResultHandler(MOZ_ARRAY_LENGTH(sDeinitManager));
-
-    for (size_t i = 0; i < MOZ_ARRAY_LENGTH(sDeinitManager); ++i) {
-      sDeinitManager[i](res);
-    }
-
-    return NS_OK;
-  }
-};
-
-
-
-
 ControlPlayStatus
 BluetoothServiceBluedroid::PlayStatusStringToControlPlayStatus(
   const nsAString& aPlayStatus)
@@ -1211,6 +1075,54 @@ BluetoothServiceBluedroid::ToggleCalls(BluetoothReplyRunnable* aRunnable)
 
 
 
+
+
+
+
+class BluetoothServiceBluedroid::ProfileDeinitResultHandler MOZ_FINAL
+  : public BluetoothProfileResultHandler
+{
+public:
+  ProfileDeinitResultHandler(unsigned char aNumProfiles)
+    : mNumProfiles(aNumProfiles)
+  {
+    MOZ_ASSERT(mNumProfiles);
+  }
+
+  void Deinit() MOZ_OVERRIDE
+  {
+    if (!(--mNumProfiles)) {
+      Proceed();
+    }
+  }
+
+  void OnError(nsresult aResult) MOZ_OVERRIDE
+  {
+    if (!(--mNumProfiles)) {
+      Proceed();
+    }
+  }
+
+private:
+  void Proceed() const
+  {
+    sBtInterface->Cleanup(nullptr);
+  }
+
+  unsigned char mNumProfiles;
+};
+
+class BluetoothServiceBluedroid::SetAdapterPropertyDiscoverableResultHandler
+  MOZ_FINAL
+  : public BluetoothResultHandler
+{
+public:
+  void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
+  {
+    BT_LOGR("Fail to set: BT_SCAN_MODE_CONNECTABLE");
+  }
+};
+
 void
 BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
 {
@@ -1220,23 +1132,70 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
 
   sAdapterEnabled = aState;
 
-  if (!sAdapterEnabled &&
-      NS_FAILED(NS_DispatchToMainThread(new CleanupTask()))) {
-    BT_WARNING("Failed to dispatch to main thread!");
-    return;
+  if (!sAdapterEnabled) {
+    static void (* const sDeinitManager[])(BluetoothProfileResultHandler*) = {
+      BluetoothHfpManager::DeinitHfpInterface,
+      BluetoothA2dpManager::DeinitA2dpInterface,
+      BluetoothGattManager::DeinitGattInterface
+    };
+
+    
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE_VOID(bs);
+
+    
+    sAdapterBdAddress.Truncate();
+    sAdapterBdName.Truncate();
+
+    InfallibleTArray<BluetoothNamedValue> props;
+    BT_APPEND_NAMED_VALUE(props, "Name", sAdapterBdName);
+    BT_APPEND_NAMED_VALUE(props, "Address", sAdapterBdAddress);
+    if (sAdapterDiscoverable) {
+      sAdapterDiscoverable = false;
+      BT_APPEND_NAMED_VALUE(props, "Discoverable", false);
+    }
+    if (sAdapterDiscovering) {
+      sAdapterDiscovering = false;
+      BT_APPEND_NAMED_VALUE(props, "Discovering", false);
+    }
+
+    BluetoothSignal signal(NS_LITERAL_STRING("PropertyChanged"),
+                           NS_LITERAL_STRING(KEY_ADAPTER), props);
+    bs->DistributeSignal(signal);
+
+    
+    nsRefPtr<ProfileDeinitResultHandler> res =
+      new ProfileDeinitResultHandler(MOZ_ARRAY_LENGTH(sDeinitManager));
+
+    for (size_t i = 0; i < MOZ_ARRAY_LENGTH(sDeinitManager); ++i) {
+      sDeinitManager[i](res);
+    }
   }
 
-  nsRefPtr<nsRunnable> runnable =
-    new BluetoothService::ToggleBtAck(sAdapterEnabled);
-  if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
-    BT_WARNING("Failed to dispatch to main thread!");
-    return;
-  }
+  BluetoothService::AcknowledgeToggleBt(sAdapterEnabled);
 
-  if (sAdapterEnabled &&
-      NS_FAILED(NS_DispatchToMainThread(new SetupAfterEnabledTask()))) {
-    BT_WARNING("Failed to dispatch to main thread!");
-    return;
+  if (sAdapterEnabled) {
+    
+    sControllerArray.Clear();
+    sChangeDiscoveryRunnableArray.Clear();
+    sSetPropertyRunnableArray.Clear();
+    sGetDeviceRunnableArray.Clear();
+    sFetchUuidsRunnableArray.Clear();
+    sBondingRunnableArray.Clear();
+    sUnbondingRunnableArray.Clear();
+
+    
+    
+    NS_ENSURE_TRUE_VOID(sBtInterface);
+    sBtInterface->SetAdapterProperty(
+      BluetoothNamedValue(NS_ConvertUTF8toUTF16("Discoverable"), false),
+      new SetAdapterPropertyDiscoverableResultHandler());
+
+    
+    BluetoothOppManager* opp = BluetoothOppManager::Get();
+    if (!opp || !opp->Listen()) {
+      BT_LOGR("Fail to start BluetoothOppManager listening");
+    }
   }
 
   
