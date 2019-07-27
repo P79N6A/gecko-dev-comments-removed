@@ -13,7 +13,7 @@ browserElementTestHelpers.addPermission();
 
 function runTest() {
   var iframe1 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe1).mozbrowser = true;
+  iframe1.setAttribute('mozbrowser', 'true');
 
   
   
@@ -35,7 +35,7 @@ function runTest() {
 
     SimpleTest.executeSoon(function() {
       var iframe2 = document.createElement('iframe');
-      SpecialPowers.wrap(iframe2).mozbrowser = true;
+      iframe2.setAttribute('mozbrowser', 'true');
 
       iframe2.addEventListener('mozbrowseropenwindow', function(e) {
         ok(false, "Got second mozbrowseropenwindow event.");

@@ -23,14 +23,14 @@ function createLink(name, sizes, rel) {
 
 function runTest() {
   var iframe1 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe1).mozbrowser = true;
+  iframe1.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe1);
 
   
   
   
   var iframe2 = document.createElement('iframe');
-  SpecialPowers.wrap(iframe2).mozbrowser = true;
+  iframe2.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe2);
 
   

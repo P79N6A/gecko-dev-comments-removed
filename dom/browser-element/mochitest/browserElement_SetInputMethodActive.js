@@ -110,7 +110,7 @@ function createFrames() {
 
   
   gInputFrame = document.createElement('iframe');
-  SpecialPowers.wrap(gInputFrame).mozbrowser = true;
+  gInputFrame.setAttribute('mozbrowser', 'true');
   gInputFrame.src =
     'data:text/html,<input autofocus value="hello" />' +
     '<p>This is targetted mozbrowser frame.</p>';
@@ -119,7 +119,7 @@ function createFrames() {
 
   for (let i = 0; i < 2; i++) {
     let frame = gFrames[i] = document.createElement('iframe');
-    SpecialPowers.wrap(gFrames[i]).mozbrowser = true;
+    gFrames[i].setAttribute('mozbrowser', 'true');
     
     
     
