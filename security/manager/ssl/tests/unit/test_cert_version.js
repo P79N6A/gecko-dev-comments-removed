@@ -53,9 +53,9 @@ function run_test() {
   load_cert("v3_ca_missing_bc", "CTu,CTu,CTu");
 
   check_ok_ca(cert_from_file('v1_ca.der'));
-  check_ca_err(cert_from_file('v1_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v1_ca_bc.der'));
   check_ca_err(cert_from_file('v2_ca.der'), SEC_ERROR_CA_CERT_INVALID);
-  check_ca_err(cert_from_file('v2_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v2_ca_bc.der'));
   check_ok_ca(cert_from_file('v3_ca.der'));
   check_ca_err(cert_from_file('v3_ca_missing_bc.der'), SEC_ERROR_CA_CERT_INVALID);
 
@@ -82,19 +82,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v1_int-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v1_int-v1_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v1_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v1_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v1_int-v1_ca.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v1_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v1_ee-v1_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v1_bc_ee-v1_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v2_ee-v1_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v2_bc_ee-v1_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v1_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v3_bc_ee-v1_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v4_bc_ee-v1_int_bc-v1_ca.der'));
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -104,19 +104,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v2_int-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v2_int-v1_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v1_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v1_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v2_int-v1_ca.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v2_int_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v2_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v1_ee-v2_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v1_bc_ee-v2_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v2_ee-v2_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v2_bc_ee-v2_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v2_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v3_bc_ee-v2_int_bc-v1_ca.der'));
+  check_ok(cert_from_file('v4_bc_ee-v2_int_bc-v1_ca.der'));
 
   
   
@@ -127,8 +127,8 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int_missing_bc-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int_missing_bc-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int_missing_bc-v1_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v1_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v1_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v1_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int_missing_bc-v1_ca.der'), ee_error);
 
   
@@ -137,8 +137,8 @@ function run_test() {
   check_ok(cert_from_file('v2_ee-v3_int-v1_ca.der'));
   check_ok(cert_from_file('v3_missing_bc_ee-v3_int-v1_ca.der'));
   check_ok(cert_from_file('v3_bc_ee-v3_int-v1_ca.der'));
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v1_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v1_ca.der'), SEC_ERROR_BAD_DER);
+  check_ok(cert_from_file('v1_bc_ee-v3_int-v1_ca.der'));
+  check_ok(cert_from_file('v2_bc_ee-v3_int-v1_ca.der'));
   check_ok(cert_from_file('v4_bc_ee-v3_int-v1_ca.der'));
 
   
@@ -153,19 +153,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v1_int-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v1_int-v1_ca_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v1_ca_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v1_int-v1_ca_bc.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v1_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v1_ee-v1_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v1_bc_ee-v1_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v2_ee-v1_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v2_bc_ee-v1_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v1_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v3_bc_ee-v1_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v4_bc_ee-v1_int_bc-v1_ca_bc.der'));
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -175,19 +175,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v2_int-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v2_int-v1_ca_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v1_ca_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v2_int-v1_ca_bc.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v2_int_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v2_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v1_ee-v2_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v1_bc_ee-v2_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v2_ee-v2_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v2_bc_ee-v2_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v2_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v3_bc_ee-v2_int_bc-v1_ca_bc.der'));
+  check_ok(cert_from_file('v4_bc_ee-v2_int_bc-v1_ca_bc.der'));
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -197,21 +197,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int_missing_bc-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int_missing_bc-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int_missing_bc-v1_ca_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v1_ca_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v1_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int_missing_bc-v1_ca_bc.der'), ee_error);
 
   
-  ca_error = SEC_ERROR_EXTENSION_VALUE_INVALID;
-  ee_error = SEC_ERROR_EXTENSION_VALUE_INVALID;
-  check_ca_err(cert_from_file('v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v3_int-v1_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v3_int-v1_ca_bc.der'));
+  check_ok(cert_from_file('v1_ee-v3_int-v1_ca_bc.der'));
+  check_ok(cert_from_file('v1_bc_ee-v3_int-v1_ca_bc.der'));
+  check_ok(cert_from_file('v2_ee-v3_int-v1_ca_bc.der'));
+  check_ok(cert_from_file('v2_bc_ee-v3_int-v1_ca_bc.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v3_int-v1_ca_bc.der'));
+  check_ok(cert_from_file('v3_bc_ee-v3_int-v1_ca_bc.der'));
+  check_ok(cert_from_file('v4_bc_ee-v3_int-v1_ca_bc.der'));
 
 
   
@@ -226,19 +224,21 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v1_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v1_int-v2_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v2_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v1_int-v2_ca.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
+  ca_error = SEC_ERROR_CA_CERT_INVALID;
+  ee_error = SEC_ERROR_CA_CERT_INVALID;
+  check_ca_err(cert_from_file('v1_int_bc-v2_ca.der'), ca_error);
+  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -248,19 +248,21 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v2_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v2_int-v2_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v2_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v2_int-v2_ca.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v2_int_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
+  ca_error = SEC_ERROR_CA_CERT_INVALID;
+  ee_error = SEC_ERROR_CA_CERT_INVALID;
+  check_ca_err(cert_from_file('v1_int_bc-v2_ca.der'), ca_error);
+  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v2_ca.der'), ee_error);
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -270,8 +272,8 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int_missing_bc-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int_missing_bc-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int_missing_bc-v2_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v2_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int_missing_bc-v2_ca.der'), ee_error);
 
   
@@ -282,8 +284,8 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int-v2_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v2_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v2_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v2_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v2_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int-v2_ca.der'), ee_error);
 
   
@@ -294,19 +296,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v1_int-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v1_int-v2_ca_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v2_ca_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v1_int-v2_ca_bc.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v1_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v1_ee-v1_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v1_bc_ee-v1_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v2_ee-v1_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v2_bc_ee-v1_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v1_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v3_bc_ee-v1_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v4_bc_ee-v1_int_bc-v2_ca_bc.der'));
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -316,19 +318,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v2_int-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v2_int-v2_ca_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v2_ca_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v2_int-v2_ca_bc.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v2_int_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v2_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v1_ee-v2_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v1_bc_ee-v2_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v2_ee-v2_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v2_bc_ee-v2_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v2_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v3_bc_ee-v2_int_bc-v2_ca_bc.der'));
+  check_ok(cert_from_file('v4_bc_ee-v2_int_bc-v2_ca_bc.der'));
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -338,19 +340,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int_missing_bc-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int_missing_bc-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int_missing_bc-v2_ca_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v2_ca_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v2_ca_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int_missing_bc-v2_ca_bc.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v3_int-v2_ca_bc.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v3_int-v2_ca_bc.der'));
+  check_ok(cert_from_file('v1_ee-v3_int-v2_ca_bc.der'));
+  check_ok(cert_from_file('v1_bc_ee-v3_int-v2_ca_bc.der'));
+  check_ok(cert_from_file('v2_ee-v3_int-v2_ca_bc.der'));
+  check_ok(cert_from_file('v2_bc_ee-v3_int-v2_ca_bc.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v3_int-v2_ca_bc.der'));
+  check_ok(cert_from_file('v3_bc_ee-v3_int-v2_ca_bc.der'));
+  check_ok(cert_from_file('v4_bc_ee-v3_int-v2_ca_bc.der'));
 
   
   
@@ -364,19 +366,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v1_int-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v1_int-v3_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v3_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v3_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v1_int-v3_ca.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v1_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v1_ee-v1_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v1_bc_ee-v1_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v2_ee-v1_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v2_bc_ee-v1_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v1_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v3_bc_ee-v1_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v4_bc_ee-v1_int_bc-v3_ca.der'));
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -386,19 +388,19 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v2_int-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v2_int-v3_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v3_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v3_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v2_int-v3_ca.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v2_int_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
+  check_ok_ca(cert_from_file('v2_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v1_ee-v2_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v1_bc_ee-v2_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v2_ee-v2_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v2_bc_ee-v2_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v3_missing_bc_ee-v2_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v3_bc_ee-v2_int_bc-v3_ca.der'));
+  check_ok(cert_from_file('v4_bc_ee-v2_int_bc-v3_ca.der'));
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -408,19 +410,18 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int_missing_bc-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int_missing_bc-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int_missing_bc-v3_ca.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v3_ca.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v3_ca.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v3_ca.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int_missing_bc-v3_ca.der'), ee_error);
 
-  
   
   check_ok_ca(cert_from_file('v3_int-v3_ca.der'));
   check_ok(cert_from_file('v1_ee-v3_int-v3_ca.der'));
   check_ok(cert_from_file('v2_ee-v3_int-v3_ca.der'));
   check_ok(cert_from_file('v3_missing_bc_ee-v3_int-v3_ca.der'));
   check_ok(cert_from_file('v3_bc_ee-v3_int-v3_ca.der'));
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v3_ca.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v3_ca.der'), SEC_ERROR_BAD_DER);
+  check_ok(cert_from_file('v1_bc_ee-v3_int-v3_ca.der'));
+  check_ok(cert_from_file('v2_bc_ee-v3_int-v3_ca.der'));
   check_ok(cert_from_file('v4_bc_ee-v3_int-v3_ca.der'));
 
   
@@ -431,19 +432,21 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v1_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v1_int-v3_ca_missing_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v1_int-v3_ca_missing_bc.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
+  ca_error = SEC_ERROR_CA_CERT_INVALID;
+  ee_error = SEC_ERROR_CA_CERT_INVALID;
+  check_ca_err(cert_from_file('v1_int_bc-v3_ca_missing_bc.der'), ca_error);
+  check_cert_err(cert_from_file('v1_ee-v1_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v1_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_ee-v1_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v3_missing_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v3_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v4_bc_ee-v1_int_bc-v3_ca_missing_bc.der'), ee_error);
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -453,19 +456,21 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v2_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v2_int-v3_ca_missing_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v2_int-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v2_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v2_int-v3_ca_missing_bc.der'), ee_error);
 
   
-  check_ca_err(cert_from_file('v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_ee-v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v1_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_ee-v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v3_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v4_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
+  ca_error = SEC_ERROR_CA_CERT_INVALID;
+  ee_error = SEC_ERROR_CA_CERT_INVALID;
+  check_ca_err(cert_from_file('v2_int_bc-v3_ca_missing_bc.der'), ca_error);
+  check_cert_err(cert_from_file('v1_ee-v2_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v1_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_ee-v2_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v3_missing_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v3_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v4_bc_ee-v2_int_bc-v3_ca_missing_bc.der'), ee_error);
 
   
   ca_error = SEC_ERROR_CA_CERT_INVALID;
@@ -475,8 +480,8 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int_missing_bc-v3_ca_missing_bc.der'), ee_error);
 
   
@@ -487,11 +492,15 @@ function run_test() {
   check_cert_err(cert_from_file('v2_ee-v3_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_missing_bc_ee-v3_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v3_bc_ee-v3_int-v3_ca_missing_bc.der'), ee_error);
-  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
-  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v3_ca_missing_bc.der'), SEC_ERROR_BAD_DER);
+  check_cert_err(cert_from_file('v1_bc_ee-v3_int-v3_ca_missing_bc.der'), ee_error);
+  check_cert_err(cert_from_file('v2_bc_ee-v3_int-v3_ca_missing_bc.der'), ee_error);
   check_cert_err(cert_from_file('v4_bc_ee-v3_int-v3_ca_missing_bc.der'), ee_error);
 
   
+  check_cert_err(cert_from_file('v1_self_signed.der'), SEC_ERROR_UNKNOWN_ISSUER);
+  check_cert_err(cert_from_file('v1_self_signed_bc.der'), SEC_ERROR_UNKNOWN_ISSUER);
+  check_cert_err(cert_from_file('v2_self_signed.der'), SEC_ERROR_UNKNOWN_ISSUER);
+  check_cert_err(cert_from_file('v2_self_signed_bc.der'), SEC_ERROR_UNKNOWN_ISSUER);
   check_cert_err(cert_from_file('v3_self_signed.der'), SEC_ERROR_UNKNOWN_ISSUER);
   check_cert_err(cert_from_file('v3_self_signed_bc.der'), SEC_ERROR_UNKNOWN_ISSUER);
   check_cert_err(cert_from_file('v4_self_signed.der'), SEC_ERROR_UNKNOWN_ISSUER);
