@@ -506,8 +506,24 @@ void UnregisterFMRadioObserver(hal::FMRadioObserver* aRadioObserver);
 
 
 
+void RegisterFMRadioRDSObserver(hal::FMRadioRDSObserver* aRDSObserver);
+
+
+
+
+void UnregisterFMRadioRDSObserver(hal::FMRadioRDSObserver* aRDSObserver);
+
+
+
+
 
 void NotifyFMRadioStatus(const hal::FMRadioOperationInformation& aRadioState);
+
+
+
+
+
+void NotifyFMRadioRDSGroup(const hal::FMRadioRDSGroup& aRDSGroup);
 
 
 
@@ -564,6 +580,16 @@ void CancelFMRadioSeek();
 
 
 hal::FMRadioSettings GetFMBandSettings(hal::FMRadioCountry aCountry);
+
+
+
+
+void EnableRDS(uint32_t aMask);
+
+
+
+
+void DisableRDS();
 
 
 
