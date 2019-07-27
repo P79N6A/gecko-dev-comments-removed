@@ -203,6 +203,23 @@ RestyleTracker::DoProcessRestyles()
       }
 
       ProcessOneRestyle(element, data.mRestyleHint, data.mChangeHint);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      for (uint32_t i = 0; i < data.mDescendants.Length(); ++i) {
+        Element* descendant = data.mDescendants[i];
+        if (descendant->HasFlag(RestyleBit())) {
+          mRestyleRoots.AppendElement(descendant);
+        }
+      }
     }
 
     if (mHaveLaterSiblingRestyles) {
@@ -232,6 +249,8 @@ RestyleTracker::DoProcessRestyles()
         ProcessOneRestyle(currentRestyle->mElement,
                           currentRestyle->mRestyleHint,
                           currentRestyle->mChangeHint);
+
+        MOZ_ASSERT(currentRestyle->mDescendants.IsEmpty());
       }
     }
   }
@@ -261,6 +280,8 @@ RestyleTracker::GetRestyleData(Element* aElement, RestyleData* aData)
     
     
     
+    NS_ASSERTION(aData->mDescendants.IsEmpty(),
+                 "expected descendants to be handled by now");
     RestyleData newData;
     newData.mChangeHint = nsChangeHint(0);
     newData.mRestyleHint = eRestyle_LaterSiblings;

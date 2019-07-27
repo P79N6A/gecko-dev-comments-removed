@@ -288,8 +288,11 @@ public:
   }
   
   struct RestyleData {
-    nsRestyleHint mRestyleHint;  
-    nsChangeHint  mChangeHint;   
+    nsRestyleHint mRestyleHint;       
+    nsChangeHint mChangeHint;         
+    nsTArray<Element*> mDescendants;  
+                                      
+                                      
   };
 
   
@@ -400,7 +403,8 @@ RestyleTracker::AddPendingRestyle(Element* aElement,
   
   if ((aRestyleHint & ~eRestyle_LaterSiblings) ||
       (aMinChangeHint & nsChangeHint_ReconstructFrame)) {
-    for (const Element* cur = aElement; !cur->HasFlag(RootBit()); ) {
+    Element* cur = aElement;
+    while (!cur->HasFlag(RootBit())) {
       nsIContent* parent = cur->GetFlattenedTreeParent();
       
       
@@ -418,6 +422,7 @@ RestyleTracker::AddPendingRestyle(Element* aElement,
            cur->GetPrimaryFrame() &&
            cur->GetPrimaryFrame()->GetParent() != parent->GetPrimaryFrame())) {
         mRestyleRoots.AppendElement(aElement);
+        cur = aElement;
         break;
       }
       cur = parent->AsElement();
@@ -426,6 +431,22 @@ RestyleTracker::AddPendingRestyle(Element* aElement,
     
     
     aElement->SetFlags(RootBit());
+    if (cur != aElement) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      RestyleData curData;
+      
+      mPendingRestyles.Get(cur, &curData);
+      curData.mDescendants.AppendElement(aElement);
+      mPendingRestyles.Put(cur, curData);
+    }
   }
 
   mHaveLaterSiblingRestyles =
