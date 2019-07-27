@@ -773,7 +773,8 @@ nsXULTemplateBuilder::UpdateResultInContainer(nsIXULTemplateResult* aOldResult,
     if (aNewResult) {
         
         nsIAtom* tag = aQuerySet->GetTag();
-        if (aInsertionPoint && tag && tag != aInsertionPoint->Tag())
+        if (aInsertionPoint && tag &&
+            tag != aInsertionPoint->NodeInfo()->NameAtom())
             return NS_OK;
 
         int32_t findpriority = aQuerySet->Priority();
@@ -1438,7 +1439,8 @@ nsXULTemplateBuilder::DetermineMatchedRule(nsIContent *aContainer,
         
         
         nsIAtom* tag = rule->GetTag();
-        if ((!aContainer || !tag || tag == aContainer->Tag()) &&
+        if ((!aContainer || !tag ||
+             tag == aContainer->NodeInfo()->NameAtom()) &&
             rule->CheckMatch(aResult)) {
             *aMatchedRule = rule;
             *aRuleIndex = r;

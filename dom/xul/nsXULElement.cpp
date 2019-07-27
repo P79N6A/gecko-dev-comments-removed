@@ -632,7 +632,7 @@ nsXULElement::PerformAccesskey(bool aKeyCausesActivation,
 {
     nsCOMPtr<nsIContent> content(this);
 
-    if (Tag() == nsGkAtoms::label) {
+    if (IsXULElement(nsGkAtoms::label)) {
         nsCOMPtr<nsIDOMElement> element;
 
         nsAutoString control;
@@ -660,13 +660,12 @@ nsXULElement::PerformAccesskey(bool aKeyCausesActivation,
     nsXULElement* elm = FromContent(content);
     if (elm) {
         
-        nsIAtom *tag = content->Tag();
-        if (tag != nsGkAtoms::toolbarbutton) {
+        if (!content->IsXULElement(nsGkAtoms::toolbarbutton)) {
           nsIFocusManager* fm = nsFocusManager::GetFocusManager();
           if (fm) {
             nsCOMPtr<nsIDOMElement> element;
             
-            if (tag == nsGkAtoms::radio) {
+            if (content->IsXULElement(nsGkAtoms::radio)) {
               nsCOMPtr<nsIDOMXULSelectControlItemElement> controlItem(do_QueryInterface(content));
               if (controlItem) {
                 bool disabled;
@@ -685,7 +684,8 @@ nsXULElement::PerformAccesskey(bool aKeyCausesActivation,
               fm->SetFocus(element, nsIFocusManager::FLAG_BYKEY);
           }
         }
-        if (aKeyCausesActivation && tag != nsGkAtoms::textbox && tag != nsGkAtoms::menulist) {
+        if (aKeyCausesActivation &&
+            !content->IsAnyOfXULElements(nsGkAtoms::textbox, nsGkAtoms::menulist)) {
           elm->ClickWithInputSource(nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD);
         }
     }
@@ -857,7 +857,7 @@ nsXULElement::BindToTree(nsIDocument* aDocument,
     
     
 
-    if (!XULElementsRulesInMinimalXULSheet(Tag())) {
+    if (!XULElementsRulesInMinimalXULSheet(NodeInfo()->NameAtom())) {
       doc->EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::XULSheet());
       
       
@@ -1287,9 +1287,8 @@ nsresult
 nsXULElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
     aVisitor.mForceContentDispatch = true; 
-    nsIAtom* tag = Tag();
     if (IsRootOfNativeAnonymousSubtree() &&
-        (tag == nsGkAtoms::scrollbar || tag == nsGkAtoms::scrollcorner) &&
+        (IsAnyOfXULElements(nsGkAtoms::scrollbar, nsGkAtoms::scrollcorner)) &&
         (aVisitor.mEvent->message == NS_MOUSE_CLICK ||
          aVisitor.mEvent->message == NS_MOUSE_DOUBLECLICK ||
          aVisitor.mEvent->message == NS_XUL_COMMAND ||
@@ -1304,7 +1303,7 @@ nsXULElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
     if (aVisitor.mEvent->message == NS_XUL_COMMAND &&
         aVisitor.mEvent->mClass == eInputEventClass &&
         aVisitor.mEvent->originalTarget == static_cast<nsIContent*>(this) &&
-        tag != nsGkAtoms::command) {
+        !IsXULElement(nsGkAtoms::command)) {
         
         
         nsCOMPtr<nsIDOMXULCommandEvent> xulEvent =
@@ -1452,8 +1451,7 @@ nsXULElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
     if (aAttribute == nsGkAtoms::value &&
         (aModType == nsIDOMMutationEvent::REMOVAL ||
          aModType == nsIDOMMutationEvent::ADDITION)) {
-      nsIAtom *tag = Tag();
-      if (tag == nsGkAtoms::label || tag == nsGkAtoms::description)
+      if (IsAnyOfXULElements(nsGkAtoms::label, nsGkAtoms::description))
         
         
         
@@ -1584,10 +1582,8 @@ nsXULElement::LoadSrc()
 {
     
     
-    nsIAtom* tag = Tag();
-    if (tag != nsGkAtoms::browser &&
-        tag != nsGkAtoms::editor &&
-        tag != nsGkAtoms::iframe) {
+    if (!IsAnyOfXULElements(nsGkAtoms::browser, nsGkAtoms::editor,
+                            nsGkAtoms::iframe)) {
         return NS_OK;
     }
     if (!IsInDoc() ||
