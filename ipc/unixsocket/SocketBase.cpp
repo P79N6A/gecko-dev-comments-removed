@@ -272,37 +272,11 @@ SocketBase::SetConnectionStatus(SocketConnectionStatus aConnectionStatus)
 
 
 
-SocketConsumerBase::~SocketConsumerBase()
+SocketIOBase::SocketIOBase()
 { }
-
-
-
-
 
 SocketIOBase::~SocketIOBase()
 { }
-
-void
-SocketIOBase::EnqueueData(UnixSocketIOBuffer* aBuffer)
-{
-  if (!aBuffer->GetSize()) {
-    delete aBuffer; 
-    return;
-  }
-  mOutgoingQ.AppendElement(aBuffer);
-}
-
-bool
-SocketIOBase::HasPendingData() const
-{
-  return !mOutgoingQ.IsEmpty();
-}
-
-SocketIOBase::SocketIOBase(size_t aMaxReadSize)
-  : mMaxReadSize(aMaxReadSize)
-{
-  MOZ_ASSERT(mMaxReadSize);
-}
 
 }
 }
