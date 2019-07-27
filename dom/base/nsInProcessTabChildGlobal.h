@@ -118,8 +118,6 @@ public:
   virtual JSContext* GetJSContextForEventHandlers() MOZ_OVERRIDE { return nsContentUtils::GetSafeJSContext(); }
   virtual nsIPrincipal* GetPrincipal() MOZ_OVERRIDE { return mPrincipal; }
   void LoadFrameScript(const nsAString& aURL, bool aRunInGlobalScope);
-  void FireUnloadEvent();
-  void DisconnectEventListeners();
   void Disconnect();
   void SendMessageToParent(const nsString& aMessage, bool aSync,
                            const nsString& aJSON,
@@ -138,6 +136,8 @@ public:
   {
     mChromeMessageManager = aParent;
   }
+
+  void DelayedDisconnect();
 
   virtual JSObject* GetGlobalJSObject() MOZ_OVERRIDE {
     if (!mGlobal) {
@@ -164,7 +164,6 @@ protected:
   
   
   bool mIsBrowserOrAppFrame;
-  bool mPreventEventsEscaping;
 public:
   nsIContent* mOwner;
   nsFrameMessageManager* mChromeMessageManager;
