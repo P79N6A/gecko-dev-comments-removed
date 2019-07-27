@@ -6563,8 +6563,6 @@ static bool
 EmitPropertyList(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn,
                  MutableHandlePlainObject objp, PropListType type)
 {
-    MOZ_ASSERT(type == ObjectLiteral);
-
     for (ParseNode *propdef = pn->pn_head; propdef; propdef = propdef->pn_next) {
         if (!UpdateSourceCoordNotes(cx, bce, propdef->pn_pos.begin))
             return false;
@@ -6572,6 +6570,7 @@ EmitPropertyList(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn,
         
         
         if (propdef->isKind(PNK_MUTATEPROTO)) {
+            MOZ_ASSERT(type == ObjectLiteral);
             if (!EmitTree(cx, bce, propdef->pn_kid))
                 return false;
             objp.set(nullptr);
@@ -6588,6 +6587,10 @@ EmitPropertyList(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn,
                 return false;
             isIndex = true;
         } else if (key->isKind(PNK_OBJECT_PROPERTY_NAME) || key->isKind(PNK_STRING)) {
+            
+            if (type == ClassBody && key->pn_atom == cx->names().constructor)
+                continue;
+
             
             
             
@@ -6912,6 +6915,80 @@ EmitLexicalInitialization(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode 
         if (!EmitIndexOp(cx, pn->getOp(), atomIndex, bce))
             return false;
     }
+
+    return true;
+}
+
+
+
+static bool
+EmitClass(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    ClassNode &classNode = pn->as<ClassNode>();
+
+    ClassNames *names = classNode.names();
+
+    MOZ_ASSERT(!classNode.heritage(), "For now, no heritage expressions");
+    LexicalScopeNode *innerBlock = classNode.scope();
+
+    ParseNode *classMethods = innerBlock->pn_expr;
+    MOZ_ASSERT(classMethods->isKind(PNK_CLASSMETHODLIST));
+
+    ParseNode *constructor = nullptr;
+    for (ParseNode *mn = classMethods->pn_head; mn; mn = mn->pn_next) {
+        ClassMethod &method = mn->as<ClassMethod>();
+        ParseNode &methodName = method.name();
+        if (methodName.isKind(PNK_OBJECT_PROPERTY_NAME) &&
+            methodName.pn_atom == cx->names().constructor)
+        {
+            constructor = &method.method();
+            break;
+        }
+    }
+    MOZ_ASSERT(constructor, "For now, no default constructors");
+
+    bool savedStrictness = bce->sc->setLocalStrictMode(true);
+
+    StmtInfoBCE stmtInfo(cx);
+    if (!EnterBlockScope(cx, bce, &stmtInfo, innerBlock->pn_objbox, JSOP_UNINITIALIZED))
+        return false;
+
+    if (!EmitFunc(cx, bce, constructor))
+        return false;
+
+    if (!EmitNewInit(cx, bce, JSProto_Object))
+        return false;
+
+    if (Emit1(cx, bce, JSOP_DUP2) < 0)
+        return false;
+    if (!EmitAtomOp(cx, cx->names().prototype, JSOP_INITLOCKEDPROP, bce))
+        return false;
+    if (!EmitAtomOp(cx, cx->names().constructor, JSOP_INITHIDDENPROP, bce))
+        return false;
+
+    RootedPlainObject obj(cx);
+    if (!EmitPropertyList(cx, bce, classMethods, &obj, ClassBody))
+        return false;
+
+    if (Emit1(cx, bce, JSOP_POP) < 0)
+        return false;
+
+    
+    ParseNode *innerName = names->innerBinding();
+    if (!EmitLexicalInitialization(cx, bce, innerName, JSOP_DEFCONST))
+        return false;
+
+    if (!LeaveNestedScope(cx, bce, &stmtInfo))
+        return false;
+
+    ParseNode *outerName = names->outerBinding();
+    if (!EmitLexicalInitialization(cx, bce, outerName, JSOP_DEFVAR))
+        return false;
+
+    if (Emit1(cx, bce, JSOP_POP) < 0)
+        return false;
+
+    MOZ_ALWAYS_TRUE(bce->sc->setLocalStrictMode(savedStrictness));
 
     return true;
 }
@@ -7364,9 +7441,8 @@ frontend::EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_CLASS:
-        
-        bce->reportError(nullptr, JSMSG_CLASS_NOT_IMPLEMENTED);
-        return false;
+        ok = EmitClass(cx, bce, pn);
+        break;
 
       default:
         MOZ_ASSERT(0);
