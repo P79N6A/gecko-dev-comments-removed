@@ -2,9 +2,13 @@
 
 
 
-package org.mozilla.gecko.reading;
+package org.mozilla.gecko.background;
 
 import org.mozilla.gecko.AppConstants;
+
+
+
+
 
 public class ReadingListConstants {
   public static final String GLOBAL_LOG_TAG = "FxReadingList";
