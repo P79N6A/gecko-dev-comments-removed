@@ -141,12 +141,13 @@ class nsCaret : public nsISelectionListener
 
     static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
 
-    nsresult      GetCaretFrameForNodeOffset(nsIContent* aContentNode,
-                                             int32_t aOffset,
-                                             nsFrameSelection::HINT aFrameHint,
-                                             uint8_t aBidiLevel,
-                                             nsIFrame** aReturnFrame,
-                                             int32_t* aReturnOffset);
+    static nsresult GetCaretFrameForNodeOffset(nsFrameSelection* aFrameSelection,
+                                               nsIContent* aContentNode,
+                                               int32_t aOffset,
+                                               nsFrameSelection::HINT aFrameHint,
+                                               uint8_t aBidiLevel,
+                                               nsIFrame** aReturnFrame,
+                                               int32_t* aReturnOffset);
 
     void CheckCaretDrawingState();
 
@@ -228,7 +229,6 @@ protected:
     bool                  mIgnoreUserModify;
 
     bool                  mKeyboardRTL;       
-    bool                  mBidiUI;            
     nsRect                mHookRect;          
     uint8_t               mLastBidiLevel;     
     nsRect                mCaretRect;         
