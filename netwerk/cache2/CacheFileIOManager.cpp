@@ -1867,6 +1867,11 @@ CacheFileIOManager::Write(CacheFileHandle *aHandle, int64_t aOffset,
   nsRefPtr<CacheFileIOManager> ioMan = gInstance;
 
   if (aHandle->IsClosed() || !ioMan) {
+    if (!aCallback) {
+      
+      
+      free(const_cast<char *>(aBuf));
+    }
     return NS_ERROR_NOT_INITIALIZED;
   }
 
