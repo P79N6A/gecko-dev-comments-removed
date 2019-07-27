@@ -201,7 +201,6 @@ public:
     return PlayState() == AnimationPlayState::Paused ||
            mPendingState == PendingState::PausePending;
   }
-  bool IsRunning() const;
 
   bool HasInPlaySource() const
   {
@@ -214,6 +213,20 @@ public:
   bool HasInEffectSource() const
   {
     return GetSource() && GetSource()->IsInEffect();
+  }
+
+  
+
+
+
+
+
+
+
+  bool IsPlaying() const
+  {
+    return HasInPlaySource() && 
+           PlayState() == AnimationPlayState::Running; 
   }
 
   bool IsRelevant() const { return mIsRelevant; }
