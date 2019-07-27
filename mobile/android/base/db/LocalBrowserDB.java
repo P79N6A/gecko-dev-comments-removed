@@ -417,8 +417,12 @@ public class LocalBrowserDB {
             faviconField.setAccessible(true);
 
             return faviconField.getInt(null);
-        } catch (IllegalAccessException | NoSuchFieldException  ex) {
-            Log.wtf(LOGTAG, "Reflection error fetching favicon: " + name, ex);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            
+            
+            
+            
+            Log.d(LOGTAG, "No raw favicon resource found for " + name);
         }
 
         Log.e(LOGTAG, "Failed to find favicon resource ID for " + name);
