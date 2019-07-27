@@ -4,16 +4,21 @@
 "use strict";
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
+const {extend} = require("sdk/util/object");
 
 loader.lazyRequireGetter(this, "Services");
 loader.lazyRequireGetter(this, "L10N",
   "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
   "devtools/shared/profiler/global", true);
+loader.lazyRequireGetter(this, "CATEGORIES",
+  "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "CATEGORY_JIT",
   "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "JITOptimizations",
   "devtools/shared/profiler/jit", true);
+loader.lazyRequireGetter(this, "CATEGORY_OTHER",
+  "devtools/shared/profiler/global", true);
 
 const CHROME_SCHEMES = ["chrome://", "resource://", "jar:file://"];
 const CONTENT_SCHEMES = ["http://", "https://", "file://", "app://"];
@@ -97,7 +102,7 @@ ThreadNode.prototype = {
     
     if (options.contentOnly) {
       
-      sampleFrames = sampleFrames.filter(isContent);
+      sampleFrames = filterPlatformData(sampleFrames);
     } else {
       
       sampleFrames = sampleFrames.slice(1);
@@ -162,7 +167,10 @@ ThreadNode.prototype = {
 
 
 
-function FrameNode({ location, line, column, category, allocations }) {
+
+
+
+function FrameNode({ location, line, column, category, allocations, isMetaCategory }) {
   this.location = location;
   this.line = line;
   this.column = column;
@@ -173,6 +181,7 @@ function FrameNode({ location, line, column, category, allocations }) {
   this.duration = 0;
   this.calls = {};
   this._optimizations = null;
+  this.isMetaCategory = isMetaCategory;
 }
 
 FrameNode.prototype = {
@@ -202,8 +211,12 @@ FrameNode.prototype = {
     if (!frame) {
       return;
     }
-    let location = frame.location;
-    let child = _store[location] || (_store[location] = new FrameNode(frame));
+    
+    
+    
+    
+    let key = frame.isMetaCategory ? frame.category : frame.location;
+    let child = _store[key] || (_store[key] = new FrameNode(frame));
     child.sampleTimes.push({ start: time, end: time + duration });
     child.samples++;
     child.duration += duration;
@@ -273,7 +286,8 @@ FrameNode.prototype = {
       line: line,
       column: column,
       categoryData: categoryData,
-      isContent: !!isContent(this)
+      isContent: !!isContent(this),
+      isMetaCategory: this.isMetaCategory
     };
   },
 
@@ -332,3 +346,47 @@ function nsIURL(url) {
 
 
 let gNSURLStore = new Map();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function filterPlatformData (frames) {
+  let result = [];
+  let last = frames.length - 1;
+  let frame;
+
+  for (let i = 0; i < frames.length; i++) {
+    frame = frames[i];
+    if (isContent(frame)) {
+      result.push(frame);
+    } else if (last === i) {
+      
+      
+      
+      
+      result.push(extend({ isMetaCategory: true, category: CATEGORY_OTHER }, frame));
+    }
+  }
+
+  return result;
+}
