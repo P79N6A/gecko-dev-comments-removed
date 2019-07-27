@@ -55,11 +55,6 @@ MOZ_BEGIN_ENUM_CLASS(ImageFormat)
   
 
 
-  REMOTE_IMAGE_BITMAP,
-
-  
-
-
 
   SURFACE_TEXTURE,
 
@@ -67,11 +62,6 @@ MOZ_BEGIN_ENUM_CLASS(ImageFormat)
 
 
   EGLIMAGE,
-
-  
-
-
-  REMOTE_IMAGE_DXGI_TEXTURE,
 
   
 

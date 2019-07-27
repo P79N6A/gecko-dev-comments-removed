@@ -273,61 +273,6 @@ protected:
 
 
 
-struct RemoteImageData {
-  enum Type {
-    
-
-
-    RAW_BITMAP,
-
-    
-
-
-
-
-
-
-
-    DXGI_TEXTURE_HANDLE
-  };
-  
-  enum Format {
-    
-    BGRA32,
-    
-    BGRX32
-  };
-
-  
-  
-  bool mWasUpdated;
-  Type mType;
-  Format mFormat;
-  gfx::IntSize mSize;
-  union {
-    struct {
-      
-
-
-
-      unsigned char *mData;
-      int mStride;
-    } mBitmap;
-#ifdef XP_WIN
-    HANDLE mTextureHandle;
-#endif
-  };
-};
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -576,21 +521,6 @@ public:
     mCompositionNotifySink = aSink;
   }
 
-  
-
-
-
-
-
-
-
-  void SetRemoteImageData(RemoteImageData *aRemoteData,
-                          CrossProcessMutex *aRemoteDataMutex);
-  
-
-
-  RemoteImageData *GetRemoteImageData() { return mRemoteData; }
-
 private:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
@@ -640,16 +570,6 @@ private:
   gfx::IntSize mScaleHint;
 
   nsRefPtr<BufferRecycleBin> mRecycleBin;
-
-  
-  
-  
-  RemoteImageData *mRemoteData;
-
-  
-  
-  
-  CrossProcessMutex *mRemoteDataMutex;
 
   CompositionNotifySink *mCompositionNotifySink;
 
@@ -902,20 +822,6 @@ public:
 
   nsCountedRef<nsMainThreadSourceSurfaceRef> mSourceSurface;
   nsDataHashtable<nsUint32HashKey, RefPtr<TextureClient> >  mTextureClients;
-};
-
-class RemoteBitmapImage : public Image {
-public:
-  RemoteBitmapImage() : Image(nullptr, ImageFormat::REMOTE_IMAGE_BITMAP) {}
-
-  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
-
-  gfx::IntSize GetSize() { return mSize; }
-
-  unsigned char *mData;
-  int mStride;
-  gfx::IntSize mSize;
-  RemoteImageData::Format mFormat;
 };
 
 #ifdef MOZ_WIDGET_GONK
