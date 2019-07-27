@@ -408,7 +408,7 @@ JitExceptionHandler(void *exceptionRecord, void *context)
 
 
 
-static const SIZE_T kReserveSize = 0x3200000; 
+static const SIZE_T kReserveSize = 0x4000000; 
 static void* gBreakpadReservedVM;
 #endif
 
