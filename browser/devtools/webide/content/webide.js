@@ -62,7 +62,7 @@ let UI = {
     window.addEventListener("focus", this.onfocus, true);
 
     AppProjects.load().then(() => {
-      this.openLastProject();
+      this.autoSelectProject();
     });
 
     
@@ -78,21 +78,6 @@ let UI = {
     this.lastConnectedRuntime = Services.prefs.getCharPref("devtools.webide.lastConnectedRuntime");
 
     this.setupDeck();
-  },
-
-  openLastProject: function() {
-    let lastProjectLocation = Services.prefs.getCharPref("devtools.webide.lastprojectlocation");
-    let shouldRestore = Services.prefs.getBoolPref("devtools.webide.restoreLastProject");
-    if (lastProjectLocation && shouldRestore) {
-      let lastProject = AppProjects.get(lastProjectLocation);
-      if (lastProject) {
-        AppManager.selectedProject = lastProject;
-      } else {
-        AppManager.selectedProject = null;
-      }
-    } else {
-      AppManager.selectedProject = null;
-    }
   },
 
   uninit: function() {
@@ -141,6 +126,7 @@ let UI = {
           UI.updateProjectButton();
           UI.openProject();
           UI.autoStartProject();
+          UI.saveLastSelectedProject();
         });
         return;
       case "project-is-not-running":
@@ -160,6 +146,10 @@ let UI = {
         break;
       case "install-progress":
         this.updateProgress(Math.round(100 * details.bytesSent / details.totalBytes));
+        break;
+      case "runtime-apps-found":
+        this.autoSelectProject();
+        break;
     };
     this._updatePromise = promise.resolve();
   },
@@ -499,12 +489,6 @@ let UI = {
 
     
 
-    if (project.location) {
-      Services.prefs.setCharPref("devtools.webide.lastprojectlocation", project.location);
-    }
-
-    
-
     let forceDetailsOnly = false;
     if (project.type == "packaged") {
       forceDetailsOnly = !utils.doesFileExist(project.location);
@@ -569,6 +553,89 @@ let UI = {
     
     AppManager.selectedProject = project;
   }),
+
+  
+  saveLastSelectedProject: function() {
+    let shouldRestore = Services.prefs.getBoolPref("devtools.webide.restoreLastProject");
+    if (!shouldRestore) {
+      return;
+    }
+
+    
+    if (AppManager.connection.status != Connection.Status.CONNECTED) {
+      return;
+    }
+
+    let project = "", type = "";
+    let selected = AppManager.selectedProject;
+    if (selected) {
+      if (selected.type == "runtimeApp") {
+        type = "runtimeApp";
+        project = selected.app.manifestURL;
+      } else if (selected.type == "mainProcess") {
+        type = "mainProcess";
+      } else if (selected.type == "packaged" ||
+                 selected.type == "hosted") {
+        type = "local";
+        project = selected.location;
+      }
+    }
+    if (type) {
+      Services.prefs.setCharPref("devtools.webide.lastSelectedProject",
+                                 type + ":" + project);
+    } else {
+      Services.prefs.clearUserPref("devtools.webide.lastSelectedProject");
+    }
+  },
+
+  autoSelectProject: function() {
+    if (AppManager.selectedProject) {
+      return;
+    }
+    let shouldRestore = Services.prefs.getBoolPref("devtools.webide.restoreLastProject");
+    if (!shouldRestore) {
+      return;
+    }
+    let pref = Services.prefs.getCharPref("devtools.webide.lastSelectedProject");
+    if (!pref) {
+      return;
+    }
+    let m = pref.match(/^(\w+):(.*)$/);
+    if (!m) {
+      return;
+    }
+    let [_, type, project] = m;
+
+    if (type == "local") {
+      let lastProject = AppProjects.get(project);
+      if (lastProject) {
+        AppManager.selectedProject = lastProject;
+      }
+    }
+
+    
+    if (AppManager.connection.status != Connection.Status.CONNECTED) {
+      return;
+    }
+
+    if (type == "mainProcess" && AppManager.isMainProcessDebuggable()) {
+      AppManager.selectedProject = {
+        type: "mainProcess",
+        name: Strings.GetStringFromName("mainProcess_label"),
+        icon: AppManager.DEFAULT_PROJECT_ICON
+      }
+    } else if (type == "runtimeApp") {
+      let app = AppManager.apps.get(project);
+      if (app) {
+        AppManager.selectedProject = {
+          type: "runtimeApp",
+          app: app.manifest,
+          icon: app.iconURL,
+          name: app.manifest.name
+        };
+      }
+    }
+  },
 
   
 

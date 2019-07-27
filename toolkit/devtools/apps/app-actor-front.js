@@ -18,7 +18,6 @@ const PR_TRUNCATE = 0x20;
 const CHUNK_SIZE = 10000;
 
 const appTargets = new Map();
-const fronts = new Map();
 
 function addDirToZip(writer, dir, basePath) {
   let files = dir.directoryEntries;
@@ -436,10 +435,6 @@ App.prototype = {
 
 
 function AppActorFront(client, form) {
-  if (fronts.has(form.webappsActor)) {
-    return fronts.get(form.webappsActor);
-  }
-  fronts.set(form.webappsActor, this);
   this.client = client;
   this.actor = form.webappsActor;
 
