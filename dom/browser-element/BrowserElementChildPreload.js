@@ -840,6 +840,29 @@ BrowserElementChild.prototype = {
                        (elem.videoWidth == 0 || elem.videoHeight == 0));
       return {uri: elem.currentSrc || elem.src, hasVideo: hasVideo};
     }
+    if (elem instanceof Ci.nsIDOMHTMLInputElement &&
+        elem.hasAttribute("name")) {
+      
+      
+      let parent = elem.parentNode;
+      while (parent) {
+        if (parent instanceof Ci.nsIDOMHTMLFormElement &&
+            parent.hasAttribute("action")) {
+          let actionHref = docShell.QueryInterface(Ci.nsIWebNavigation)
+                                   .currentURI
+                                   .resolve(parent.getAttribute("action"));
+          let method = parent.hasAttribute("method")
+            ? parent.getAttribute("method").toLowerCase()
+            : "get";
+          return {
+            action: actionHref,
+            method: method,
+            name: elem.getAttribute("name"),
+          }
+        }
+        parent = parent.parentNode;
+      }
+    }
     return false;
   },
 
