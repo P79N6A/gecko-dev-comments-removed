@@ -2128,7 +2128,15 @@ nsDOMWindowUtils::SendCompositionEvent(const nsAString& aType,
   if (aType.EqualsLiteral("compositionstart")) {
     msg = NS_COMPOSITION_START;
   } else if (aType.EqualsLiteral("compositionend")) {
-    msg = NS_COMPOSITION_END;
+    
+    
+    
+    
+    NS_WARNING("Don't call nsIDOMWindowUtils.sendCompositionEvent() for "
+               "compositionend.  Instead, use it with compositioncommitasis or "
+               "compositioncommit.  Then, compositionend will be automatically "
+               "dispatched.");
+    return NS_OK;
   } else if (aType.EqualsLiteral("compositionupdate")) {
     
     
@@ -2140,6 +2148,8 @@ nsDOMWindowUtils::SendCompositionEvent(const nsAString& aType,
     return NS_OK;
   } else if (aType.EqualsLiteral("compositioncommitasis")) {
     msg = NS_COMPOSITION_COMMIT_AS_IS;
+  } else if (aType.EqualsLiteral("compositioncommit")) {
+    msg = NS_COMPOSITION_COMMIT;
   } else {
     return NS_ERROR_FAILURE;
   }
