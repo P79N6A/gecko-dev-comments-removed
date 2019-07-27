@@ -152,6 +152,14 @@ public:
 
 
 
+  float GetIntrinsicWidth();
+  float GetIntrinsicHeight();
+
+  
+
+
+
+
 
 
 
