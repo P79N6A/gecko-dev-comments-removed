@@ -738,27 +738,33 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
     return NS_OK;
   }
 
-  mPreferredLang.Assign(aFetcher->mRootContentLang);
-
-  
-  
   nsAutoString dictName;
-  dictName.Assign(aFetcher->mDictionary);
-  if (!dictName.IsEmpty()) {
-    if (NS_FAILED(SetCurrentDictionary(dictName))) { 
-      
-      ClearCurrentDictionary(mEditor);
-    }
-    return NS_OK;
-  }
-
-  if (mPreferredLang.IsEmpty()) {
-    mPreferredLang.Assign(aFetcher->mRootDocContentLang);
-  }
-
+  uint32_t flags;
+  mEditor->GetFlags(&flags);
   
-  if (!mPreferredLang.IsEmpty()) {
-    dictName.Assign(mPreferredLang);
+  if (!(flags & nsIPlaintextEditor::eEditorMailMask)) {
+    mPreferredLang.Assign(aFetcher->mRootContentLang);
+
+    
+    
+    nsAutoString dictName;
+    dictName.Assign(aFetcher->mDictionary);
+    if (!dictName.IsEmpty()) {
+      if (NS_FAILED(SetCurrentDictionary(dictName))) { 
+        
+        ClearCurrentDictionary(mEditor);
+      }
+      return NS_OK;
+    }
+
+    if (mPreferredLang.IsEmpty()) {
+      mPreferredLang.Assign(aFetcher->mRootDocContentLang);
+    }
+
+    
+    if (!mPreferredLang.IsEmpty()) {
+      dictName.Assign(mPreferredLang);
+    }
   }
 
   
