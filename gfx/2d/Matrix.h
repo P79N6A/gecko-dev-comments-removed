@@ -153,7 +153,22 @@ public:
 
     return *this;
   }
+
   
+
+
+  Matrix &PostScale(Float aScaleX, Float aScaleY)
+  {
+    _11 *= aScaleX;
+    _12 *= aScaleY;
+    _21 *= aScaleX;
+    _22 *= aScaleY;
+    _31 *= aScaleX;
+    _32 *= aScaleY;
+
+    return *this;
+  }
+
   GFX2D_API static Matrix Rotation(Float aAngle);
 
   
