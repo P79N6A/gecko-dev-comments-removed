@@ -2032,7 +2032,7 @@ RestyleManager::TryStartingTransition(nsPresContext* aPresContext,
     aContent->AsElement(), aOldStyleContext, aNewStyleContext);
 }
 
-static inline dom::Element*
+static dom::Element*
 ElementForStyleContext(nsIContent* aParentContent,
                        nsIFrame* aFrame,
                        nsCSSPseudoElements::Type aPseudoType)
@@ -2093,6 +2093,32 @@ ElementForStyleContext(nsIContent* aParentContent,
   MOZ_ASSERT(aFrame->GetContent()->GetParent(),
              "should not have got here for the root element");
   return aFrame->GetContent()->GetParent()->AsElement();
+}
+
+
+
+
+
+
+
+
+
+
+
+static dom::Element*
+PseudoElementForStyleContext(nsIFrame* aFrame,
+                             nsCSSPseudoElements::Type aPseudoType)
+{
+  if (aPseudoType >= nsCSSPseudoElements::ePseudo_PseudoElementCount) {
+    return nullptr;
+  }
+
+  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aPseudoType) ||
+      nsCSSPseudoElements::PseudoElementSupportsUserActionState(aPseudoType)) {
+    return aFrame->GetContent()->AsElement();
+  }
+
+  return nullptr;
 }
 
 
@@ -3064,15 +3090,6 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
       nsChangeHint_Hints_NotHandledForDescendants;
   }
 
-  
-  
-  
-  
-  if (pseudoType != nsCSSPseudoElements::ePseudo_NotPseudoElement &&
-      (aRestyleHint & eRestyle_StyleAttribute)) {
-    aRestyleHint = (aRestyleHint & ~eRestyle_StyleAttribute) | eRestyle_Self;
-  }
-
   LOG_RESTYLE("parentContext = %p", parentContext);
 
   
@@ -3109,9 +3126,15 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
       
       
       
+      Element* pseudoElement = PseudoElementForStyleContext(aSelf, pseudoType);
+      MOZ_ASSERT(!element || element != pseudoElement,
+                 "pseudo-element for selector matching should be "
+                 "the anonymous content node that we create, "
+                 "not the real element");
       LOG_RESTYLE("resolving style with replacement");
       newContext =
-        styleSet->ResolveStyleWithReplacement(element, parentContext, oldContext,
+        styleSet->ResolveStyleWithReplacement(element, pseudoElement,
+                                              parentContext, oldContext,
                                               aRestyleHint);
     }
   } else if (pseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
@@ -3153,10 +3176,11 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
                        nsCSSPseudoElements::ePseudo_PseudoElementCount,
                      "Unexpected pseudo type");
         Element* pseudoElement =
-          nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(pseudoType) ||
-          nsCSSPseudoElements::PseudoElementSupportsUserActionState(pseudoType) ?
-            aSelf->GetContent()->AsElement() : nullptr;
-        MOZ_ASSERT(element != pseudoElement);
+          PseudoElementForStyleContext(aSelf, pseudoType);
+        MOZ_ASSERT(element != pseudoElement,
+                   "pseudo-element for selector matching should be "
+                   "the anonymous content node that we create, "
+                   "not the real element");
         newContext = styleSet->ResolvePseudoElementStyle(element,
                                                          pseudoType,
                                                          parentContext,
@@ -3358,9 +3382,15 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
         
         
         
+        Element* pseudoElement =
+          PseudoElementForStyleContext(aSelf, extraPseudoType);
+        MOZ_ASSERT(!element || element != pseudoElement,
+                   "pseudo-element for selector matching should be "
+                   "the anonymous content node that we create, "
+                   "not the real element");
         newExtraContext =
-          styleSet->ResolveStyleWithReplacement(element, newContext,
-                                                oldExtraContext,
+          styleSet->ResolveStyleWithReplacement(element, pseudoElement,
+                                                newContext, oldExtraContext,
                                                 nsRestyleHint(0));
       } else {
         newExtraContext =
@@ -3677,7 +3707,7 @@ ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint    aChildRestyleHint,
       
       
       undisplayedContext =
-        styleSet->ResolveStyleWithReplacement(element,
+        styleSet->ResolveStyleWithReplacement(element, nullptr,
                                               aParentContext,
                                               undisplayed->mStyle,
                                               thisChildHint);

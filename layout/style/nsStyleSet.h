@@ -133,12 +133,15 @@ class nsStyleSet
   
   
   
+  
+  
   enum { 
     
     eSkipStartingAnimations = (1<<0),
   };
   already_AddRefed<nsStyleContext>
   ResolveStyleWithReplacement(mozilla::dom::Element* aElement,
+                              mozilla::dom::Element* aPseudoElement,
                               nsStyleContext* aNewParentContext,
                               nsStyleContext* aOldStyleContext,
                               nsRestyleHint aReplacements,
@@ -430,7 +433,10 @@ class nsStyleSet
                           bool aWalkAllXBLStylesheets);
 
   
+  
+  
   nsRuleNode* RuleNodeWithReplacement(mozilla::dom::Element* aElement,
+                                      mozilla::dom::Element* aPseudoElement,
                                       nsRuleNode* aOldRuleNode,
                                       nsCSSPseudoElements::Type aPseudoType,
                                       nsRestyleHint aReplacements);

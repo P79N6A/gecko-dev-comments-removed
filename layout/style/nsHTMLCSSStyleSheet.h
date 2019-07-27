@@ -55,6 +55,11 @@ public:
   void ElementRulesMatching(nsPresContext* aPresContext,
                             mozilla::dom::Element* aElement,
                             nsRuleWalker* aRuleWalker);
+  
+  
+  void PseudoElementRulesMatching(mozilla::dom::Element* aPseudoElement,
+                                  nsCSSPseudoElements::Type aPseudoType,
+                                  nsRuleWalker* aRuleWalker);
 
   void CacheStyleAttr(const nsAString& aSerialized, MiscContainer* aValue);
   void EvictStyleAttr(const nsAString& aSerialized, MiscContainer* aValue);
