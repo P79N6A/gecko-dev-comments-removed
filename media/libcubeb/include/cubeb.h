@@ -130,12 +130,6 @@ typedef struct {
 } cubeb_stream_params;
 
 
-typedef struct {
-  char * output_name; 
-  char * input_name; 
-} cubeb_device;
-
-
 typedef enum {
   CUBEB_STATE_STARTED, 
   CUBEB_STATE_STOPPED, 
@@ -171,11 +165,6 @@ typedef long (* cubeb_data_callback)(cubeb_stream * stream,
 typedef void (* cubeb_state_callback)(cubeb_stream * stream,
                                       void * user_ptr,
                                       cubeb_state state);
-
-
-
-
-typedef void (* cubeb_device_changed_callback)(void * user_ptr);
 
 
 
@@ -271,63 +260,6 @@ int cubeb_stream_get_position(cubeb_stream * stream, uint64_t * position);
 
 
 int cubeb_stream_get_latency(cubeb_stream * stream, uint32_t * latency);
-
-
-
-
-
-
-
-
-
-int cubeb_stream_set_volume(cubeb_stream * stream, float volume);
-
-
-
-
-
-
-
-
-
-
-
-
-
-int cubeb_stream_set_panning(cubeb_stream * stream, float panning);
-
-
-
-
-
-
-
-
-
-int cubeb_stream_get_current_device(cubeb_stream * stm,
-                                    cubeb_device ** const device);
-
-
-
-
-
-
-
-
-int cubeb_stream_device_destroy(cubeb_stream * stream,
-                                cubeb_device * devices);
-
-
-
-
-
-
-
-
-
-
-int cubeb_stream_register_device_changed_callback(cubeb_stream * stream,
-                                                  cubeb_device_changed_callback  device_changed_callback);
 
 #if defined(__cplusplus)
 }
