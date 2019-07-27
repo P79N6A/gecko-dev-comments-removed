@@ -1938,6 +1938,12 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 }
 
 template <ExecutionMode mode>
+static bool
+SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
+                      Handle<NativeObject*> obj, HandleId id, unsigned attrs, HandleValue v,
+                      bool strict);
+
+template <ExecutionMode mode>
 bool
 baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg,
                            HandleNativeObject obj, HandleObject receiver, HandleId id,
@@ -2124,50 +2130,67 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
         return ArraySetLength<mode>(cxArg, arr, id, attrs, vp, strict);
     }
 
-    if (!shape) {
-        bool extensible;
-        if (mode == ParallelExecution) {
-            if (obj->is<ProxyObject>())
-                return false;
-            extensible = obj->nonProxyIsExtensible();
-        } else {
-            if (!JSObject::isExtensible(cxArg->asJSContext(), obj, &extensible))
-                return false;
-        }
+    if (shape)
+        return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
+    return SetPropertyByDefining<mode>(cxArg, obj, id, attrs, vp, strict);
+}
 
-        if (!extensible) {
-            
-            if (strict)
-                return obj->reportNotExtensible(cxArg);
-            if (mode == SequentialExecution &&
-                cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
-            {
-                return obj->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
-            }
-            return true;
-        }
 
-        const Class *clasp = obj->getClass();
-        if (mode == ParallelExecution) {
-            if (obj->isDelegate())
-                return false;
 
-            if (clasp->getProperty != JS_PropertyStub || !types::HasTypePropertyId(obj, id, vp))
-                return false;
-        } else {
-            JSContext *cx = cxArg->asJSContext();
 
-            
-            if (!PurgeScopeChain(cx, obj, id))
-                return false;
-        }
 
-        return DefinePropertyOrElement<mode>(cxArg, obj, id,
-                                             clasp->getProperty, clasp->setProperty,
-                                             attrs, vp, true, strict);
+
+
+
+
+
+
+template <ExecutionMode mode>
+static bool
+SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
+                      Handle<NativeObject*> obj, HandleId id, unsigned attrs, HandleValue v,
+                      bool strict)
+{
+    bool extensible;
+    if (mode == ParallelExecution) {
+        if (obj->is<ProxyObject>())
+            return false;
+        extensible = obj->nonProxyIsExtensible();
+    } else {
+        if (!JSObject::isExtensible(cxArg->asJSContext(), obj, &extensible))
+            return false;
     }
 
-    return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
+    if (!extensible) {
+        
+        if (strict)
+            return obj->reportNotExtensible(cxArg);
+        if (mode == SequentialExecution &&
+            cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
+        {
+            return obj->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
+        }
+        return true;
+    }
+
+    const Class *clasp = obj->getClass();
+    if (mode == ParallelExecution) {
+        if (obj->isDelegate())
+            return false;
+
+        if (clasp->getProperty != JS_PropertyStub || !types::HasTypePropertyId(obj, id, v))
+            return false;
+    } else {
+        JSContext *cx = cxArg->asJSContext();
+
+        
+        if (!PurgeScopeChain(cx, obj, id))
+            return false;
+    }
+
+    return DefinePropertyOrElement<mode>(cxArg, obj, id,
+                                         clasp->getProperty, clasp->setProperty,
+                                         attrs, v, true, strict);
 }
 
 template bool
