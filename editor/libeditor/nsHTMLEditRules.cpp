@@ -3541,7 +3541,7 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
       arrayOfDOMNodes.AppendObject(GetAsDOMNode(node));
     }
     if (tString.EqualsLiteral("blockquote"))
-      res = MakeBlockquote(arrayOfDOMNodes);
+      res = MakeBlockquote(arrayOfNodes);
     else if (tString.EqualsLiteral("normal") ||
              tString.IsEmpty() )
       res = RemoveBlockStyle(arrayOfDOMNodes);
@@ -6805,73 +6805,49 @@ nsHTMLEditRules::ReturnInListItem(Selection* aSelection,
 
 
 
-nsresult 
-nsHTMLEditRules::MakeBlockquote(nsCOMArray<nsIDOMNode>& arrayOfNodes)
+nsresult
+nsHTMLEditRules::MakeBlockquote(nsTArray<nsCOMPtr<nsINode>>& aNodeArray)
 {
   
   
   
   
-  
-  nsresult res = NS_OK;
-  
-  nsCOMPtr<nsIDOMNode> curNode, newBlock;
-  nsCOMPtr<nsINode> curParent;
+  nsresult res;
   nsCOMPtr<Element> curBlock;
-  int32_t offset;
-  int32_t listCount = arrayOfNodes.Count();
-  
-  nsCOMPtr<nsIDOMNode> prevParent;
-  
-  int32_t i;
-  for (i=0; i<listCount; i++)
-  {
+  nsCOMPtr<nsINode> prevParent;
+
+  for (auto& curNode : aNodeArray) {
     
-    curNode = arrayOfNodes[i];
-    nsCOMPtr<nsIContent> curContent = do_QueryInterface(curNode);
-    NS_ENSURE_STATE(curContent);
-    curParent = curContent->GetParentNode();
-    offset = curParent ? curParent->IndexOf(curContent) : -1;
+    NS_ENSURE_STATE(curNode->IsContent());
 
     
-    if (nsHTMLEditUtils::IsTableElementButNotTable(curNode) || 
-        nsHTMLEditUtils::IsListItem(curNode))
-    {
-      curBlock = 0;  
+    if (nsHTMLEditUtils::IsTableElementButNotTable(curNode) ||
+        nsHTMLEditUtils::IsListItem(curNode)) {
+      
+      curBlock = nullptr;
       
       nsTArray<nsCOMPtr<nsINode>> childArray;
-      nsCOMPtr<nsINode> node = do_QueryInterface(curNode);
-      NS_ENSURE_STATE(node || !curNode);
-      GetChildNodesForOperation(*node, childArray);
-      nsCOMArray<nsIDOMNode> childArrayDOM;
-      for (auto& child : childArray) {
-        childArrayDOM.AppendObject(GetAsDOMNode(child));
-      }
-      res = MakeBlockquote(childArrayDOM);
+      GetChildNodesForOperation(*curNode, childArray);
+      res = MakeBlockquote(childArray);
       NS_ENSURE_SUCCESS(res, res);
     }
-    
-    
-    
-    if (prevParent)
-    {
-      nsCOMPtr<nsIDOMNode> temp;
-      curNode->GetParentNode(getter_AddRefs(temp));
-      if (temp != prevParent)
-      {
-        curBlock = 0;  
-        prevParent = temp;
-      }
-    }
-    else     
 
-    {
-      curNode->GetParentNode(getter_AddRefs(prevParent));
+    
+    
+    if (prevParent) {
+      if (prevParent != curNode->GetParentNode()) {
+        
+        curBlock = nullptr;
+        prevParent = curNode->GetParentNode();
+      }
+    } else {
+      prevParent = curNode->GetParentNode();
     }
+
     
-    
-    if (!curBlock)
-    {
+    if (!curBlock) {
+      nsCOMPtr<nsINode> curParent = curNode->GetParentNode();
+      int32_t offset = curParent ? curParent->IndexOf(curNode) : -1;
       res = SplitAsNeeded(*nsGkAtoms::blockquote, curParent, offset);
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_STATE(mHTMLEditor);
@@ -6882,14 +6858,13 @@ nsHTMLEditRules::MakeBlockquote(nsCOMArray<nsIDOMNode>& arrayOfNodes)
       mNewBlock = curBlock->AsDOMNode();
       
     }
-      
+
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->MoveNode(curContent, curBlock, -1);
+    res = mHTMLEditor->MoveNode(curNode->AsContent(), curBlock, -1);
     NS_ENSURE_SUCCESS(res, res);
   }
-  return res;
+  return NS_OK;
 }
-
 
 
 
