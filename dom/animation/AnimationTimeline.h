@@ -6,26 +6,24 @@
 #ifndef mozilla_dom_AnimationTimeline_h
 #define mozilla_dom_AnimationTimeline_h
 
+#include "nsISupports.h"
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozilla/AnimationUtils.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/TimeStamp.h"
 #include "nsIGlobalObject.h"
 #include "js/TypeDecls.h"
-#include "nsIDocument.h"
-#include "nsRefreshDriver.h"
-
-struct JSContext;
 
 namespace mozilla {
 namespace dom {
 
-class AnimationTimeline final : public nsWrapperCache
+class AnimationTimeline
+  : public nsISupports
+  , public nsWrapperCache
 {
 public:
-  explicit AnimationTimeline(nsIDocument* aDocument)
-    : mDocument(aDocument)
-    , mWindow(aDocument->GetParentObject())
+  explicit AnimationTimeline(nsIGlobalObject* aWindow)
+    : mWindow(aWindow)
   {
     MOZ_ASSERT(mWindow);
   }
@@ -34,56 +32,22 @@ protected:
   virtual ~AnimationTimeline() { }
 
 public:
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(AnimationTimeline)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(AnimationTimeline)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AnimationTimeline)
 
-  nsIGlobalObject* GetParentObject() const
-  {
-    return mWindow;
-  }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  nsIGlobalObject* GetParentObject() const { return mWindow; }
 
   
-  Nullable<TimeDuration> GetCurrentTime() const;
+  virtual Nullable<TimeDuration> GetCurrentTime() const = 0;
 
   
   
-  Nullable<double> GetCurrentTimeAsDouble() const;
-
-  
-  
-  
-  
-  
-  Nullable<TimeDuration> ToTimelineTime(const TimeStamp& aTimeStamp) const;
-  TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const;
-
-  nsRefreshDriver* GetRefreshDriver() const;
-  
-  
-  
-  
-  
-  bool IsUnderTestControl() const
-  {
-    nsRefreshDriver* refreshDriver = GetRefreshDriver();
-    return refreshDriver && refreshDriver->IsTestControllingRefreshesEnabled();
+  Nullable<double> GetCurrentTimeAsDouble() const {
+    return AnimationUtils::TimeDurationToDouble(GetCurrentTime());
   }
 
 protected:
-  TimeStamp GetCurrentTimeStamp() const;
-
-  
-  
-  
-  
-  nsCOMPtr<nsIDocument> mDocument;
   nsCOMPtr<nsIGlobalObject> mWindow;
-
-  
-  
-  
-  mutable TimeStamp mLastRefreshDriverTime;
 };
 
 } 
