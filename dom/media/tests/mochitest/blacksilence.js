@@ -13,46 +13,6 @@
     return good;
   }
 
-  function mkElement(type) {
-    
-    
-    
-    var e = document.createElement(type);
-    e.width = 32;
-    e.height = 24;
-    document.getElementById('display').appendChild(e);
-    return e;
-  }
-
-  
-  
-  
-  
-  function periodicCheck(checkFunc) {
-    var resolve;
-    var done = false;
-    
-    
-    var waitAndCheck = counter => () => {
-      if (done) {
-        return Promise.resolve();
-      }
-      return new Promise(r => setTimeout(r, 200 << counter))
-        .then(() => {
-          if (checkFunc()) {
-            done = true;
-            resolve();
-          }
-        });
-    };
-
-    var chain = Promise.resolve();
-    for (var i = 0; i < 10; ++i) {
-      chain = chain.then(waitAndCheck(i));
-    }
-    return new Promise(r => resolve = r);
-  }
-
   function isSilence(audioData) {
     var silence = true;
     for (var i = 0; i < audioData.length; ++i) {
@@ -63,41 +23,92 @@
     return silence;
   }
 
-  function checkAudio(constraintApplied, stream) {
-    var audio = mkElement('audio');
-    audio.mozSrcObject = stream;
-    audio.play();
+  function periodicCheck(type, checkFunc, successMessage, done) {
+    var num = 0;
+    var timeout;
+    function periodic() {
+      if (checkFunc()) {
+        ok(true, type + ' is ' + successMessage);
+        done();
+      } else {
+        setupNext();
+      }
+    }
+    function setupNext() {
+      
+      
+      
+      timeout = setTimeout(periodic, 200 << num);
+      num++;
+    }
 
+    setupNext();
+
+    return function cancel() {
+      if (timeout) {
+        ok(false, type + ' (' + successMessage + ')' +
+           ' failed after waiting full duration');
+        clearTimeout(timeout);
+        done();
+      }
+    };
+  }
+
+  function checkAudio(constraintApplied, stream, done) {
     var context = new AudioContext();
     var source = context.createMediaStreamSource(stream);
     var analyser = context.createAnalyser();
     source.connect(analyser);
     analyser.connect(context.destination);
 
-    return periodicCheck(() => {
+    function testAudio() {
       var sampleCount = analyser.frequencyBinCount;
       info('got some audio samples: ' + sampleCount);
-      var buffer = new Uint8Array(sampleCount);
-      analyser.getByteTimeDomainData(buffer);
+      var bucket = new ArrayBuffer(sampleCount);
+      var view = new Uint8Array(bucket);
+      analyser.getByteTimeDomainData(view);
 
-      var silent = check(constraintApplied, isSilence(buffer),
-                         'be silence for audio');
+      var silent = check(constraintApplied, isSilence(view), 'be silence for audio');
       return sampleCount > 0 && silent;
-    }).then(() => {
+    }
+    function disconnect() {
       source.disconnect();
       analyser.disconnect();
-      audio.pause();
-      ok(true, 'audio is ' + (constraintApplied ? '' : 'not ') + 'silent');
-    });
+      done();
+    }
+    return periodicCheck('audio', testAudio,
+                         (constraintApplied ? '' : 'not ') + 'silent', disconnect);
   }
 
-  function checkVideo(constraintApplied, stream) {
+  function mkElement(type) {
+    
+    
+    
+    var e = document.createElement(type);
+    e.width = 32;
+    e.height = 24;
+    return e;
+  }
+
+  function checkVideo(constraintApplied, stream, done) {
     var video = mkElement('video');
     video.mozSrcObject = stream;
+
+    var ready = false;
+    video.onplaying = function() {
+      ready = true;
+    }
     video.play();
 
-    return periodicCheck(() => {
+    function tryToRenderToCanvas() {
+      if (!ready) {
+        info('waiting for video to start');
+        return false;
+      }
+
       try {
+        
+        
         var canvas = mkElement('canvas');
         var ctx = canvas.getContext('2d');
         
@@ -110,10 +121,10 @@
         return check(constraintApplied, e.name === 'SecurityError',
                      'get a security error: ' + e.name);
       }
-    }).then(() => {
-      video.pause();
-      ok(true, 'video is ' + (constraintApplied ? '' : 'not ') + 'protected');
-    });
+    }
+
+    return periodicCheck('video', tryToRenderToCanvas,
+                         (constraintApplied ? '' : 'not ') + 'protected', done);
   }
 
   global.audioIsSilence = checkAudio;
