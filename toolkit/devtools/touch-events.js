@@ -37,7 +37,7 @@ function TouchEventHandler (window) {
 
   let TouchEventHandler = {
     enabled: false,
-    events: ['mousedown', 'mousemove', 'mouseup'],
+    events: ['mousedown', 'mousemove', 'mouseup', 'touchstart', 'touchend'],
     start: function teh_start() {
       if (this.enabled)
         return false;
@@ -63,15 +63,40 @@ function TouchEventHandler (window) {
     handleEvent: function teh_handleEvent(evt) {
       
       
-      if (evt.button || evt.mozInputSource != Ci.nsIDOMMouseEvent.MOZ_SOURCE_MOUSE || evt.isSynthesized) {
+      
+      let content = this.getContent(evt.target);
+      let isSystemWindow = content.location.toString().indexOf("system.gaiamobile.org") != -1;
+
+      
+      
+      if (evt.type.startsWith('touch') && !isSystemWindow) {
+        let sysFrame = content.realFrameElement;
+        let sysDocument = sysFrame.ownerDocument;
+        let sysWindow = sysDocument.defaultView;
+
+        let touchEvent = sysDocument.createEvent('touchevent');
+        let touch = evt.touches[0] || evt.changedTouches[0];
+        let point = sysDocument.createTouch(sysWindow, sysFrame, 0,
+                                            touch.pageX, touch.pageY,
+                                            touch.screenX, touch.screenY,
+                                            touch.clientX, touch.clientY,
+                                            1, 1, 0, 0);
+
+        let touches = sysDocument.createTouchList(point);
+        let targetTouches = touches;
+        let changedTouches = touches;
+        touchEvent.initTouchEvent(evt.type, true, true, sysWindow, 0,
+                                  false, false, false, false,
+                                  touches, targetTouches, changedTouches);
+        sysFrame.dispatchEvent(touchEvent);
         return;
       }
 
       
       
-      
-      let content = this.getContent(evt.target);
-      let isSystemWindow = content.location.toString().indexOf("system.gaiamobile.org") != -1;
+      if (evt.button || evt.mozInputSource != Ci.nsIDOMMouseEvent.MOZ_SOURCE_MOUSE || evt.isSynthesized) {
+        return;
+      }
 
       let eventTarget = this.target;
       let type = '';
