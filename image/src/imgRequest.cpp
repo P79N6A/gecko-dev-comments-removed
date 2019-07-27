@@ -648,11 +648,8 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   }
 
   
-  if (mImage && !mIsMultiPartChannel) {
-    MOZ_ASSERT_UNREACHABLE("Already have an image for a non-multipart request");
-    Cancel(NS_IMAGELIB_ERROR_FAILURE);
-    return NS_ERROR_FAILURE;
-  }
+  MOZ_ASSERT(mIsMultiPartChannel || !mImage,
+             "Already have an image for non-multipart request");
 
   
 
