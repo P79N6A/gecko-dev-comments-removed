@@ -904,7 +904,16 @@ function injectLoopAPI(targetWindow) {
         win.messageManager.addMessageListener("PageMetadata:PageDataResult", function onPageDataResult(msg) {
           win.messageManager.removeMessageListener("PageMetadata:PageDataResult", onPageDataResult);
           let pageData = msg.json;
-          callback(cloneValueInto(pageData, targetWindow));
+          win.LoopUI.getFavicon(function(err, favicon) {
+            if (err) {
+              MozLoopService.log.error("Error occurred whilst fetching favicon", err);
+              
+              
+            }
+            pageData.favicon = favicon || null;
+
+            callback(cloneValueInto(pageData, targetWindow));
+          });
         });
         win.gBrowser.selectedBrowser.messageManager.sendAsyncMessage("PageMetadata:GetPageData");
       }
