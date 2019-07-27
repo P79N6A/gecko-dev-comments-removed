@@ -29,15 +29,20 @@
 #include <errno.h>
 #include <math.h>
 
+#ifndef SPS_STANDALONE
 #include "ThreadResponsiveness.h"
 #include "nsThreadUtils.h"
+
+
+#include "nsMemoryReporterManager.h"
+#endif
 
 #include "platform.h"
 #include "TableTicker.h"
 #include "mozilla/TimeStamp.h"
 
-
-#include "nsMemoryReporterManager.h"
+using mozilla::TimeStamp;
+using mozilla::TimeDuration;
 
 
 
@@ -205,7 +210,7 @@ class SamplerThread : public Thread {
     while (SamplerRegistry::sampler->IsActive()) {
       SamplerRegistry::sampler->DeleteExpiredMarkers();
       if (!SamplerRegistry::sampler->IsPaused()) {
-        mozilla::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
+        ::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
         std::vector<ThreadInfo*> threads =
           SamplerRegistry::sampler->GetRegisteredThreads();
         bool isFirstProfiledThread = true;
@@ -222,7 +227,9 @@ class SamplerThread : public Thread {
             continue;
           }
 
+#ifndef SPS_STANDALONE
           info->Profile()->GetThreadResponsiveness()->Update();
+#endif
 
           ThreadProfile* thread_profile = info->Profile();
 
@@ -251,14 +258,15 @@ class SamplerThread : public Thread {
     TickSample sample_obj;
     TickSample* sample = &sample_obj;
 
-    if (isFirstProfiledThread && Sampler::GetActiveSampler()->ProfileMemory()) {
-      sample->rssMemory = nsMemoryReporterManager::ResidentFast();
-    } else {
-      sample->rssMemory = 0;
-    }
-
     
     sample->ussMemory = 0;
+    sample->rssMemory = 0;
+
+#ifndef SPS_STANDALONE
+    if (isFirstProfiledThread && Sampler::GetActiveSampler()->ProfileMemory()) {
+      sample->rssMemory = nsMemoryReporterManager::ResidentFast();
+    }
+#endif
 
     
     
@@ -370,7 +378,7 @@ bool Sampler::RegisterCurrentThread(const char* aName,
     return false;
 
 
-  mozilla::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
+  ::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
 
   int id = gettid();
   for (uint32_t i = 0; i < sRegisteredThreads->size(); i++) {
@@ -404,7 +412,7 @@ void Sampler::UnregisterCurrentThread()
 
   tlsStackTop.set(nullptr);
 
-  mozilla::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
+  ::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
 
   int id = gettid();
 

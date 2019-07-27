@@ -29,6 +29,11 @@
 #ifndef TOOLS_PLATFORM_H_
 #define TOOLS_PLATFORM_H_
 
+#ifdef SPS_STANDALONE
+#define MOZ_COUNT_CTOR(name)
+#define MOZ_COUNT_DTOR(name)
+#endif
+
 #ifdef ANDROID
 #include <android/log.h>
 #else
@@ -41,12 +46,15 @@
 
 #include <stdint.h>
 #include <math.h>
+#ifndef SPS_STANDALONE
 #include "MainThreadUtils.h"
-#include "mozilla/unused.h"
-#include "mozilla/TimeStamp.h"
 #include "mozilla/Mutex.h"
-#include "PlatformMacros.h"
 #include "ThreadResponsiveness.h"
+#endif
+#include "mozilla/TimeStamp.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/unused.h"
+#include "PlatformMacros.h"
 #include "v8-support.h"
 #include <vector>
 
@@ -111,10 +119,22 @@ class Mutex {
   
   
   virtual int Unlock() = 0;
+};
 
-  
-  
-  virtual bool TryLock() = 0;
+class MutexAutoLock {
+ public:
+  explicit MutexAutoLock(::Mutex& aMutex)
+    : mMutex(&aMutex)
+  {
+    mMutex->Lock();
+  }
+
+  ~MutexAutoLock() {
+    mMutex->Unlock();
+  }
+
+ private:
+  Mutex* mMutex;
 };
 
 
@@ -135,6 +155,8 @@ class OS {
 
   
   static void Startup();
+
+  static mozilla::UniquePtr< ::Mutex> CreateMutex(const char* aDesc);
 
  private:
   static const int msPerSecond = 1000;
@@ -351,7 +373,7 @@ class Sampler {
   static TableTicker* GetActiveSampler() { return sActiveSampler; }
   static void SetActiveSampler(TableTicker* sampler) { sActiveSampler = sampler; }
 
-  static mozilla::Mutex* sRegisteredThreadsMutex;
+  static mozilla::UniquePtr<Mutex> sRegisteredThreadsMutex;
 
   static bool CanNotifyObservers() {
 #ifdef MOZ_WIDGET_GONK
@@ -414,10 +436,12 @@ class ThreadInfo {
   void SetThreadId(int aThreadId) { mThreadId = aThreadId; }
 #endif
 
+#ifndef SPS_STANDALONE
   
 
 
   nsIThread* GetThread() const { return mThread.get(); }
+#endif
  private:
   char* mName;
   int mThreadId;
@@ -426,7 +450,9 @@ class ThreadInfo {
   PlatformData* mPlatformData;
   ThreadProfile* mProfile;
   void* const mStackTop;
+#ifndef SPS_STANDALONE
   nsCOMPtr<nsIThread> mThread;
+#endif
   bool mPendingDelete;
 };
 
