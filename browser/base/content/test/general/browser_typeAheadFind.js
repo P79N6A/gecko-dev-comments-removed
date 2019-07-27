@@ -2,27 +2,21 @@
 
 
 
-let testWindow = null;
+add_task(function *() {
+  let testWindow = yield BrowserTestUtils.openNewBrowserWindow();
 
-function test() {
-  waitForExplicitFinish();
+  testWindow.gBrowser.loadURI("data:text/html,<h1>A Page</h1>");
+  yield BrowserTestUtils.browserLoaded(testWindow.gBrowser.selectedBrowser);
 
-  testWindow = OpenBrowserWindow();
-  whenDelayedStartupFinished(testWindow, function () {
-    let selectedBrowser = testWindow.gBrowser.selectedBrowser;
-    selectedBrowser.addEventListener("load", function onLoad() {
-      selectedBrowser.removeEventListener("load", onLoad, true);
-      ok(true, "load listener called");
-      waitForFocus(onFocus, testWindow.content);
-    }, true);
-    testWindow.gBrowser.loadURI("data:text/html,<h1>A Page</h1>");
-  });
-}
+  yield SimpleTest.promiseFocus(testWindow.gBrowser.selectedBrowser);
 
-function onFocus() {
   ok(!testWindow.gFindBarInitialized, "find bar is not initialized");
+
+  let findBarOpenPromise = promiseWaitForEvent(testWindow.gBrowser, "findbaropen");
   EventUtils.synthesizeKey("/", {}, testWindow);
+  yield findBarOpenPromise;
+
   ok(testWindow.gFindBarInitialized, "find bar is now initialized");
-  testWindow.close();
-  finish();
-}
+
+  yield BrowserTestUtils.closeWindow(testWindow);
+});
