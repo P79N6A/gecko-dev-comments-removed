@@ -578,7 +578,7 @@ RasterImage::GetType()
 }
 
 already_AddRefed<imgFrame>
-RasterImage::GetFrameNoDecode(uint32_t aFrameNum)
+RasterImage::LookupFrameNoDecode(uint32_t aFrameNum)
 {
   if (!mAnim) {
     NS_ASSERTION(aFrameNum == 0, "Don't ask for a frame > 0 if we're not animated!");
@@ -588,7 +588,9 @@ RasterImage::GetFrameNoDecode(uint32_t aFrameNum)
 }
 
 DrawableFrameRef
-RasterImage::GetFrame(uint32_t aFrameNum)
+RasterImage::LookupFrame(uint32_t aFrameNum,
+                         uint32_t aFlags,
+                         bool aShouldSyncNotify )
 {
   if (mMultipart &&
       aFrameNum == GetCurrentFrameIndex() &&
@@ -600,10 +602,10 @@ RasterImage::GetFrame(uint32_t aFrameNum)
   }
 
   
-  nsresult rv = WantDecodedFrames();
+  nsresult rv = WantDecodedFrames(aFlags, aShouldSyncNotify);
   CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), DrawableFrameRef());
 
-  nsRefPtr<imgFrame> frame = GetFrameNoDecode(aFrameNum);
+  nsRefPtr<imgFrame> frame = LookupFrameNoDecode(aFrameNum);
   if (!frame) {
     return DrawableFrameRef();
   }
@@ -614,9 +616,17 @@ RasterImage::GetFrame(uint32_t aFrameNum)
     MOZ_ASSERT(!mAnim, "Animated frames should be locked");
     if (CanForciblyDiscardAndRedecode()) {
       ForceDiscard();
-      WantDecodedFrames();
+      WantDecodedFrames(aFlags, aShouldSyncNotify);
+
+      
+      frame = LookupFrameNoDecode(aFrameNum);
+      ref = frame->DrawableRef();
     }
-    return DrawableFrameRef();
+
+    if (!ref) {
+      
+      return DrawableFrameRef();
+    }
   }
 
   
@@ -659,7 +669,7 @@ RasterImage::FrameIsOpaque(uint32_t aWhichFrame)
 
   
   nsRefPtr<imgFrame> frame =
-    GetFrameNoDecode(GetRequestedFrameIndex(aWhichFrame));
+    LookupFrameNoDecode(GetRequestedFrameIndex(aWhichFrame));
 
   
   if (!frame)
@@ -683,7 +693,7 @@ RasterImage::FrameRect(uint32_t aWhichFrame)
 
   
   nsRefPtr<imgFrame> frame =
-    GetFrameNoDecode(GetRequestedFrameIndex(aWhichFrame));
+    LookupFrameNoDecode(GetRequestedFrameIndex(aWhichFrame));
 
   
   if (frame) {
@@ -748,7 +758,8 @@ RasterImage::GetFirstFrameDelay()
 
 TemporaryRef<SourceSurface>
 RasterImage::CopyFrame(uint32_t aWhichFrame,
-                       uint32_t aFlags)
+                       uint32_t aFlags,
+                       bool aShouldSyncNotify )
 {
   if (aWhichFrame > FRAME_MAX_VALUE)
     return nullptr;
@@ -760,27 +771,16 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
   if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
     return nullptr;
 
-  nsresult rv;
-
   if (!ApplyDecodeFlags(aFlags, aWhichFrame))
     return nullptr;
 
   
-  if (aFlags & FLAG_SYNC_DECODE) {
-    rv = SyncDecode();
-    CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nullptr);
-  }
-
   
   
-  
-  DrawableFrameRef frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+  DrawableFrameRef frameRef = LookupFrame(GetRequestedFrameIndex(aWhichFrame),
+                                          aFlags, aShouldSyncNotify);
   if (!frameRef) {
     
-    if (aFlags & FLAG_SYNC_DECODE) {
-      ForceDiscard();
-      return CopyFrame(aWhichFrame, aFlags);
-    }
     return nullptr;
   }
 
@@ -832,6 +832,14 @@ NS_IMETHODIMP_(TemporaryRef<SourceSurface>)
 RasterImage::GetFrame(uint32_t aWhichFrame,
                       uint32_t aFlags)
 {
+  return GetFrameInternal(aWhichFrame, aFlags);
+}
+
+TemporaryRef<SourceSurface>
+RasterImage::GetFrameInternal(uint32_t aWhichFrame,
+                              uint32_t aFlags,
+                              bool aShouldSyncNotify )
+{
   MOZ_ASSERT(aWhichFrame <= FRAME_MAX_VALUE);
 
   if (aWhichFrame > FRAME_MAX_VALUE)
@@ -848,24 +856,14 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
     return nullptr;
 
   
-  if (aFlags & FLAG_SYNC_DECODE) {
-    nsresult rv = SyncDecode();
-    CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nullptr);
-  }
-
   
   
-  
-  DrawableFrameRef frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+  DrawableFrameRef frameRef = LookupFrame(GetRequestedFrameIndex(aWhichFrame),
+                                          aFlags, aShouldSyncNotify);
   if (!frameRef) {
     
-    if (aFlags & FLAG_SYNC_DECODE) {
-      ForceDiscard();
-      return GetFrame(aWhichFrame, aFlags);
-    }
     return nullptr;
   }
-
 
   
   
@@ -880,7 +878,7 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
   
   
   if (!frameSurf) {
-    frameSurf = CopyFrame(aWhichFrame, aFlags);
+    frameSurf = CopyFrame(aWhichFrame, aFlags, aShouldSyncNotify);
   }
 
   return frameSurf;
@@ -889,21 +887,11 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
 already_AddRefed<layers::Image>
 RasterImage::GetCurrentImage()
 {
-  if (!mDecoded) {
-    
-    
-    RequestDecodeCore(ASYNCHRONOUS);
-    return nullptr;
-  }
-
-  RefPtr<SourceSurface> surface = GetFrame(FRAME_CURRENT, FLAG_NONE);
+  RefPtr<SourceSurface> surface =
+    GetFrameInternal(FRAME_CURRENT, FLAG_NONE,  false);
   if (!surface) {
     
     
-    
-    
-    ForceDiscard();
-    RequestDecodeCore(ASYNCHRONOUS);
     return nullptr;
   }
 
@@ -1405,7 +1393,7 @@ RasterImage::StartAnimation()
 
   EnsureAnimExists();
 
-  nsRefPtr<imgFrame> currentFrame = GetFrameNoDecode(GetCurrentFrameIndex());
+  nsRefPtr<imgFrame> currentFrame = LookupFrameNoDecode(GetCurrentFrameIndex());
   
   if (currentFrame &&
       mFrameBlender.GetTimeoutForFrame(GetCurrentFrameIndex()) < 0) {
@@ -2142,7 +2130,7 @@ RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount, DecodeStrategy
 
 
 nsresult
-RasterImage::WantDecodedFrames()
+RasterImage::WantDecodedFrames(uint32_t aFlags, bool aShouldSyncNotify)
 {
   nsresult rv;
 
@@ -2155,7 +2143,16 @@ RasterImage::WantDecodedFrames()
   }
 
   
-  return StartDecoding();
+  if (aShouldSyncNotify) {
+    
+    if (aFlags & FLAG_SYNC_DECODE) {
+      return SyncDecode();
+    }
+    return StartDecoding();
+  }
+
+  
+  return RequestDecodeCore(ASYNCHRONOUS);
 }
 
 
@@ -2675,7 +2672,8 @@ RasterImage::Draw(gfxContext* aContext,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  DrawableFrameRef ref = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+  DrawableFrameRef ref = LookupFrame(GetRequestedFrameIndex(aWhichFrame),
+                                     aFlags);
   if (!ref) {
     return NS_OK; 
   }
@@ -3596,7 +3594,7 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
     }
     if (!frameRef) {
       
-      frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+      frameRef = LookupFrame(GetRequestedFrameIndex(aWhichFrame), aFlags);
       if (frameRef) {
         RequestScale(frameRef.get(), aFlags, destSize);
       }
