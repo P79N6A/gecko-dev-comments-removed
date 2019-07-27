@@ -271,8 +271,8 @@ let LoopRoomsInternal = {
 
 
   create: function(room, callback) {
-    if (!("roomName" in room) || !("expiresIn" in room) ||
-        !("roomOwner" in room) || !("maxSize" in room)) {
+    if (!("roomName" in room) || !("roomOwner" in room) ||
+        !("maxSize" in room)) {
       callback(new Error("Missing required property to create a room"));
       return;
     }

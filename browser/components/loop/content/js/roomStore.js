@@ -28,12 +28,6 @@ loop.store = loop.store || {};
 
 
 
-  var DEFAULT_EXPIRES_IN = loop.store.DEFAULT_EXPIRES_IN = 24 * 7 * 8;
-
-  
-
-
-
   var roomSchema = {
     roomToken:    String,
     roomUrl:      String,
@@ -78,12 +72,6 @@ loop.store = loop.store || {};
 
 
     maxRoomCreationSize: MAX_ROOM_CREATION_SIZE,
-
-    
-
-
-
-    defaultExpiresIn: DEFAULT_EXPIRES_IN,
 
     
 
@@ -275,8 +263,7 @@ loop.store = loop.store || {};
       var roomCreationData = {
         roomName:  this._generateNewRoomName(actionData.nameTemplate),
         roomOwner: actionData.roomOwner,
-        maxSize:   this.maxRoomCreationSize,
-        expiresIn: this.defaultExpiresIn
+        maxSize:   this.maxRoomCreationSize
       };
 
       this._notifications.remove("create-room-error");
