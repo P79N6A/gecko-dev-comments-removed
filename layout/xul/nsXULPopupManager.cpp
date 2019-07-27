@@ -394,7 +394,7 @@ nsMenuPopupFrame* GetPopupToMoveOrResize(nsIFrame* aFrame)
     return nullptr;
 
   
-  if (menuPopupFrame->PopupState() != ePopupOpenAndVisible)
+  if (!menuPopupFrame->IsVisible())
     return nullptr;
 
   nsIWidget* widget = menuPopupFrame->GetWidget();
@@ -1390,7 +1390,11 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
     
     if (status == nsEventStatus_eConsumeNoDefault &&
         !popupFrame->IsInContentShell()) {
-      popupFrame->SetPopupState(ePopupOpenAndVisible);
+      
+      
+      
+      
+      popupFrame->SetPopupState(ePopupShown);
     }
     else {
       
@@ -1505,8 +1509,7 @@ nsXULPopupManager::GetVisiblePopups(nsTArray<nsIFrame *>& aPopups)
     while (item) {
       
       
-      if (item->Frame()->PopupState() == ePopupOpenAndVisible &&
-          !item->Frame()->IsMouseTransparent()) {
+      if (item->Frame()->IsVisible() && !item->Frame()->IsMouseTransparent()) {
         aPopups.AppendElement(item->Frame());
       }
 

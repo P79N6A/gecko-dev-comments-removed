@@ -35,6 +35,11 @@ class nsIWidget;
 
 
 
+
+
+
+
+
 enum nsPopupState {
   
   ePopupClosed,
@@ -42,9 +47,11 @@ enum nsPopupState {
   
   ePopupShowing,
   
-  ePopupOpen,
+  ePopupOpening,
   
-  ePopupOpenAndVisible,
+  ePopupVisible,
+  
+  ePopupShown,
   
   ePopupHiding,
   
@@ -251,7 +258,11 @@ public:
 
   nsPopupType PopupType() const { return mPopupType; }
   bool IsMenu() MOZ_OVERRIDE { return mPopupType == ePopupTypeMenu; }
-  bool IsOpen() MOZ_OVERRIDE { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
+  bool IsOpen() MOZ_OVERRIDE { return mPopupState == ePopupOpening ||
+                                      mPopupState == ePopupVisible ||
+                                      mPopupState == ePopupShown; }
+  bool IsVisible() { return mPopupState == ePopupVisible ||
+                            mPopupState == ePopupShown; }
 
   bool IsMouseTransparent() { return mMouseTransparent; }
 
