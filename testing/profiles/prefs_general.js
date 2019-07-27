@@ -196,9 +196,6 @@ user_pref("general.useragent.updates.enabled", false);
 user_pref("browser.webapps.checkForUpdates", 0);
 
 
-user_pref("browser.cache.use_new_backend_temp", false);
-
-
 
 user_pref('browser.contentHandlers.types.0.uri', 'http://test1.example.org/rss?url=%%s')
 user_pref('browser.contentHandlers.types.1.uri', 'http://test1.example.org/rss?url=%%s')
