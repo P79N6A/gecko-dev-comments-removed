@@ -2320,6 +2320,7 @@ GetUserMediaCallbackMediaStreamListener::StopScreenWindowSharing()
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   if (mVideoSource && !mStopped &&
       (mVideoSource->GetMediaSource() == MediaSourceType::Screen ||
+       mVideoSource->GetMediaSource() == MediaSourceType::Application ||
        mVideoSource->GetMediaSource() == MediaSourceType::Window)) {
     
     nsRefPtr<MediaOperationRunnable> runnable(
