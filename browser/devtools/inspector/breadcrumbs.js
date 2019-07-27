@@ -239,19 +239,20 @@ HTMLBreadcrumbs.prototype = {
     
     this.selection.setNodeFront(node, "breadcrumbs");
 
-    let title = this.chromeDoc.createElement("menuitem");
-    title.setAttribute("label", this.inspector.strings.GetStringFromName("breadcrumbs.siblings"));
-    title.setAttribute("disabled", "true");
-
-    let separator = this.chromeDoc.createElement("menuseparator");
-
-    let items = [title, separator];
+    
+    
+    let items = [this.chromeDoc.createElement("menuseparator")];
 
     this.walker.siblings(node, {
       whatToShow: Ci.nsIDOMNodeFilter.SHOW_ELEMENT
     }).then(siblings => {
       let nodes = siblings.nodes;
       for (let i = 0; i < nodes.length; i++) {
+        
+        if (nodes[i].nodeType !== Ci.nsIDOMNode.ELEMENT_NODE) {
+          continue;
+        }
+
         let item = this.chromeDoc.createElement("menuitem");
         if (nodes[i] === node) {
           item.setAttribute("disabled", "true");
@@ -269,8 +270,10 @@ HTMLBreadcrumbs.prototype = {
         })(nodes[i]);
 
         items.push(item);
-        this.inspector.showNodeMenu(button, "before_start", items);
       }
+
+      
+      this.inspector.showNodeMenu(button, "before_start", items);
     });
   },
 
