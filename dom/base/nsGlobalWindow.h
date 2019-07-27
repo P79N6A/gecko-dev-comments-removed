@@ -1088,6 +1088,15 @@ public:
 
 protected:
   
+
+  
+  
+  
+  void RedefineProperty(JSContext* aCx, const char* aPropName,
+                        JS::Handle<JS::Value> aValue,
+                        mozilla::ErrorResult& aError);
+
+  
   nsTObserverArray<IdleObserverHolder> mIdleObservers;
 
   
