@@ -173,7 +173,7 @@ HasTouchListener(nsIContent* aContent)
 }
 
 static bool
-IsElementClickable(nsIFrame* aFrame, nsIAtom* stopAt = nullptr)
+IsElementClickable(nsIFrame* aFrame, nsIAtom* stopAt = nullptr, nsAutoString* aLabelTargetId = nullptr)
 {
   
   
@@ -188,8 +188,13 @@ IsElementClickable(nsIFrame* aFrame, nsIAtom* stopAt = nullptr)
     if (content->IsAnyOfHTMLElements(nsGkAtoms::button,
                                      nsGkAtoms::input,
                                      nsGkAtoms::select,
-                                     nsGkAtoms::textarea,
-                                     nsGkAtoms::label)) {
+                                     nsGkAtoms::textarea)) {
+      return true;
+    }
+    if (content->IsHTMLElement(nsGkAtoms::label)) {
+      if (aLabelTargetId) {
+        content->GetAttr(kNameSpaceID_None, nsGkAtoms::_for, *aLabelTargetId);
+      }
       return true;
     }
 
@@ -320,6 +325,22 @@ SubtractFromExposedRegion(nsRegion* aExposedRegion, const nsRegion& aRegion)
   }
 }
 
+
+
+static bool IsElementPresent(nsTArray<nsIFrame*>& aCandidates, const nsAutoString& aLabelTargetId)
+{
+  for (uint32_t i = 0; i < aCandidates.Length(); ++i) {
+    nsIFrame* f = aCandidates[i];
+    nsIContent* aContent = f->GetContent();
+    if (aContent && aContent->IsElement()) {
+      if (aContent->GetID() && aLabelTargetId == nsAtomString(aContent->GetID())) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 static nsIFrame*
 GetClosest(nsIFrame* aRoot, const nsPoint& aPointRelativeToRootFrame,
            const nsRect& aTargetRect, const EventRadiusPrefs* aPrefs,
@@ -351,7 +372,8 @@ GetClosest(nsIFrame* aRoot, const nsPoint& aPointRelativeToRootFrame,
       SubtractFromExposedRegion(&exposedRegion, region);
     }
 
-    if (!IsElementClickable(f, nsGkAtoms::body)) {
+    nsAutoString labelTargetId;
+    if (!IsElementClickable(f, nsGkAtoms::body, &labelTargetId)) {
       PET_LOG("  candidate %p was not clickable\n", f);
       continue;
     }
@@ -366,7 +388,13 @@ GetClosest(nsIFrame* aRoot, const nsPoint& aPointRelativeToRootFrame,
       continue;
     }
 
-    (*aElementsInCluster)++;
+    
+    
+    
+    
+    if (labelTargetId.IsEmpty() || !IsElementPresent(aCandidates, labelTargetId)) {
+      (*aElementsInCluster)++;
+    }
 
     
     float distance = ComputeDistanceFromRegion(aPointRelativeToRootFrame, region);
