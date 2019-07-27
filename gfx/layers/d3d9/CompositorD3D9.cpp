@@ -590,7 +590,6 @@ CompositorD3D9::Ready()
       CheckResetCount();
       return true;
     }
-    FailedToResetDevice();
     return false;
   }
 
@@ -614,9 +613,6 @@ CompositorD3D9::Ready()
 void
 CompositorD3D9::FailedToResetDevice() {
   mFailedResetAttempts += 1;
-  auto withoutAssertion = CriticalLog::DefaultOptions(false);
-  gfxCriticalError(withoutAssertion) << "[D3D9] Failed to re-create a D3D9 device, attempt "
-                                     << mFailedResetAttempts;
   
   
   if (mFailedResetAttempts > 10) {
