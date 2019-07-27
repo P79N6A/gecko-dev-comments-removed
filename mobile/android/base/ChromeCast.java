@@ -2,6 +2,7 @@
 
 
 
+
 package org.mozilla.gecko;
 
 import java.io.IOException;
@@ -10,6 +11,8 @@ import org.mozilla.gecko.util.EventCallback;
 import org.json.JSONObject;
 import org.json.JSONException;
 
+import com.google.android.gms.cast.Cast.MessageReceivedCallback;
+import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
 import com.google.android.gms.cast.CastDevice;
@@ -33,10 +36,13 @@ import android.util.Log;
 class ChromeCast implements GeckoMediaPlayer {
     private static final boolean SHOW_DEBUG = false;
 
+    static final String MIRROR_RECIEVER_APP_ID = "D40D28D6";
+
     private final Context context;
     private final RouteInfo route;
     private GoogleApiClient apiClient;
     private RemoteMediaPlayer remoteMediaPlayer;
+    private boolean canMirror;
 
     
     private class VideoPlayCallback implements ResultCallback<ApplicationConnectionResult>,
@@ -133,6 +139,7 @@ class ChromeCast implements GeckoMediaPlayer {
     public ChromeCast(Context context, RouteInfo route) {
         this.context = context;
         this.route = route;
+        this.canMirror = route.supportsControlCategory(CastMediaControlIntent.categoryForCast(MIRROR_RECIEVER_APP_ID));
     }
 
     
@@ -146,6 +153,7 @@ class ChromeCast implements GeckoMediaPlayer {
             obj.put("friendlyName", device.getFriendlyName());
             obj.put("location", device.getIpAddress().toString());
             obj.put("modelName", device.getModelName());
+            obj.put("mirror", canMirror);
             
             obj.put("manufacturer", "Google Inc.");
         } catch(JSONException ex) {
@@ -261,6 +269,127 @@ class ChromeCast implements GeckoMediaPlayer {
                 }
             }
         });
+    }
+
+    private String mSessionId;
+    MirrorChannel mMirrorChannel;
+    boolean mApplicationStarted = false;
+
+    class MirrorChannel implements MessageReceivedCallback {
+
+        
+
+
+        public String getNamespace() {
+            return "urn:x-cast:org.mozilla.mirror";
+        }
+
+        
+
+
+        @Override
+        public void onMessageReceived(CastDevice castDevice, String namespace,
+                                      String message) {
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("MediaPlayer:Response", message));
+        }
+
+        public void sendMessage(String message) {
+            if (apiClient != null && mMirrorChannel != null) {
+                try {
+                    Cast.CastApi.sendMessage(apiClient, mMirrorChannel.getNamespace(), message)
+                        .setResultCallback(
+                                           new ResultCallback<Status>() {
+                                               @Override
+                                                   public void onResult(Status result) {
+                                               }
+                                           });
+                } catch (Exception e) {
+                    Log.e(LOGTAG, "Exception while sending message", e);
+                }
+            }
+        }
+    }
+    private class MirrorCallback implements ResultCallback<ApplicationConnectionResult> {
+
+        final EventCallback callback;
+        MirrorCallback(final EventCallback callback) {
+            this.callback = callback;
+        }
+
+
+        public void onResult(ApplicationConnectionResult result) {
+            Status status = result.getStatus();
+            if (status.isSuccess()) {
+                ApplicationMetadata applicationMetadata = result.getApplicationMetadata();
+                mSessionId = result.getSessionId();
+                String applicationStatus = result.getApplicationStatus();
+                boolean wasLaunched = result.getWasLaunched();
+                mApplicationStarted = true;
+
+                
+                
+                mMirrorChannel = new MirrorChannel();
+                try {
+                    Cast.CastApi.setMessageReceivedCallbacks(apiClient,
+                                                             mMirrorChannel
+                                                             .getNamespace(),
+                                                             mMirrorChannel);
+                    callback.sendSuccess(null);
+                } catch (IOException e) {
+                    Log.e(LOGTAG, "Exception while creating channel", e);
+                }
+
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Casting:Mirror", route.getId()));
+            } else {
+                callback.sendError(null);
+            }
+        }
+    }
+
+    public void message(String msg, final EventCallback callback) {
+        if (mMirrorChannel != null) {
+            mMirrorChannel.sendMessage(msg);
+        }
+    }
+
+    public void mirror(final EventCallback callback) {
+        final CastDevice device = CastDevice.getFromBundle(route.getExtras());
+        Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions.builder(device, new Cast.Listener() {
+                @Override
+                public void onApplicationStatusChanged() { }
+
+                @Override
+                public void onVolumeChanged() { }
+
+                @Override
+                public void onApplicationDisconnected(int errorCode) { }
+            });
+
+        apiClient = new GoogleApiClient.Builder(context)
+            .addApi(Cast.API, apiOptionsBuilder.build())
+            .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+                    @Override
+                    public void onConnected(Bundle connectionHint) {
+                        if (!apiClient.isConnected()) {
+                            return;
+                        }
+
+                        
+                        try {
+                            Cast.CastApi.launchApplication(apiClient, MIRROR_RECIEVER_APP_ID, true)
+                                .setResultCallback(new MirrorCallback(callback));
+                        } catch (Exception e) {
+                            debug("Failed to launch application", e);
+                        }
+                    }
+
+                    @Override
+                    public void onConnectionSuspended(int cause) {
+                        debug("suspended");
+                    }
+                }).build();
+
+        apiClient.connect();
     }
 
     private static final String LOGTAG = "GeckoChromeCast";

@@ -52,6 +52,12 @@ MediaPlayerApp.prototype = {
       callback(new RemoteMedia(this.id, listener));
     }
   },
+
+  mirror: function mirror(callback) {
+    send("MediaPlayer:Mirror", { id: this.id }, (result) => {
+      if (callback) callback(true);
+    });
+  }
 }
 
 
