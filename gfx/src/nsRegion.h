@@ -778,6 +778,11 @@ public:
     }
   };
 
+protected:
+  
+  
+  explicit BaseIntRegion(const nsRegion& aImpl) : mImpl(aImpl) {}
+  const nsRegion& Impl() const { return mImpl; }
 private:
   nsRegion mImpl;
 
