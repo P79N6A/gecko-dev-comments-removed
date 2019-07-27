@@ -19,9 +19,9 @@ public:
   virtual ~ApplicationAccessibleWrap();
 
   
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) MOZ_OVERRIDE;
   virtual bool InsertChildAt(uint32_t aIdx, Accessible* aChild) MOZ_OVERRIDE;
-  virtual bool RemoveChild(Accessible* aChild);
+  virtual bool RemoveChild(Accessible* aChild) MOZ_OVERRIDE;
 
   
 

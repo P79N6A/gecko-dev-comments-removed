@@ -41,7 +41,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(xpcAccessibleGeneric, nsIAccessible)
 
   
-  virtual Accessible* ToInternalAccessible() const MOZ_FINAL;
+  virtual Accessible* ToInternalAccessible() const MOZ_FINAL MOZ_OVERRIDE;
 
   
   virtual void Shutdown();

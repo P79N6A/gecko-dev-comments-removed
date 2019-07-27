@@ -174,8 +174,8 @@ public:
   XULToolbarButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual void GetPositionAndSizeInternal(int32_t *aPosInSet,
-                                          int32_t *aSetSize);
+  virtual void GetPositionAndSizeInternal(int32_t* aPosInSet,
+                                          int32_t* aSetSize) MOZ_OVERRIDE;
 
   
   static bool IsSeparator(Accessible* aAccessible);
