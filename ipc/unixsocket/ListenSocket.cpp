@@ -314,27 +314,6 @@ ListenSocket::~ListenSocket()
   MOZ_ASSERT(!mIO);
 }
 
-void
-ListenSocket::Close()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  if (!mIO) {
-    return;
-  }
-
-  
-  
-  
-  mIO->ShutdownOnMainThread();
-
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
-
-  mIO = nullptr;
-
-  NotifyDisconnect();
-}
-
 bool
 ListenSocket::Listen(UnixSocketConnector* aConnector,
                      ConnectionOrientedSocket* aCOSocket)
@@ -385,9 +364,24 @@ ListenSocket::GetSocketAddr(nsAString& aAddrStr)
 
 
 void
-ListenSocket::CloseSocket()
+ListenSocket::Close()
 {
-  Close();
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!mIO) {
+    return;
+  }
+
+  
+  
+  
+  mIO->ShutdownOnMainThread();
+
+  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
+
+  mIO = nullptr;
+
+  NotifyDisconnect();
 }
 
 } 
