@@ -11,6 +11,11 @@ assertExpr("b = { *a() { } }", aExpr("=", ident("b"),
               true}])));
 
 
+assertError("({ a() void 0 })", SyntaxError);
+assertError("({ a() 1 })", SyntaxError);
+assertError("({ a() false })", SyntaxError);
+
+
 
 assertExpr("({ get x() { return 42 } })",
            objExpr([ { key: ident("x"),
