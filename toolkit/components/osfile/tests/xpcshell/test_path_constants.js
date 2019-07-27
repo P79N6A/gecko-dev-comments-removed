@@ -58,7 +58,7 @@ add_task(function* test_simple_paths() {
 
 
 add_task(function* test_desktop_paths() {
-  if (OS.Constants.Sys.Name == "Android") {
+  if (OS.Constants.Sys.Name == "Android" || OS.Constants.Sys.Name == "Gonk") {
     return;
   }
   do_check_true(!!OS.Constants.Path.desktopDir);
