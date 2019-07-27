@@ -581,9 +581,6 @@ BrowserGlue.prototype = {
       SignInToWebsiteUX.init();
     }
 #endif
-#ifdef NIGHTLY_BUILD
-    ShumwayUtils.init();
-#endif
     webrtcUI.init();
     AboutHome.init();
     SessionStore.init();
@@ -756,6 +753,12 @@ BrowserGlue.prototype = {
     
     
     aWindow.messageManager.loadFrameScript("resource://pdf.js/pdfjschildbootstrap.js", true);
+#ifdef NIGHTLY_BUILD
+    
+    aWindow.messageManager.loadFrameScript("chrome://shumway/content/bootstrap-content.js", true);
+    
+    ShumwayUtils.init();
+#endif
 #ifdef XP_WIN
     
     const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
