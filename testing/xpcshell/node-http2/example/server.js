@@ -12,19 +12,19 @@ function onRequest(request, response) {
 
   
   if (request.url === cachedUrl) {
+    if (response.push) {
+      
+      
+      var push = response.push('/client.js');
+      push.writeHead(200);
+      fs.createReadStream(path.join(__dirname, '/client.js')).pipe(push);
+    }
     response.end(cachedFile);
   }
 
   
   else if ((filename.indexOf(__dirname) === 0) && fs.existsSync(filename) && fs.statSync(filename).isFile()) {
     response.writeHead('200');
-
-    
-    if (response.push && request.url === '/localhost.crt') {
-      var push = response.push('/localhost.key');
-      push.writeHead(200);
-      fs.createReadStream(path.join(__dirname, '/localhost.key')).pipe(push);
-    }
 
     fs.createReadStream(filename).pipe(response);
   }
