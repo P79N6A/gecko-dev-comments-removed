@@ -604,7 +604,7 @@ void nsDisplayMathMLSlash::Paint(nsDisplayListBuilder* aBuilder,
   gfxRect rect = presContext->AppUnitsToGfxUnits(mRect + ToReferenceFrame());
   
   
-  aCtx->SetColor(mFrame->GetVisitedDependentColor(eCSSProperty_color));
+  aCtx->ThebesContext()->SetColor(mFrame->GetVisitedDependentColor(eCSSProperty_color));
  
   
   gfxContext *gfxCtx = aCtx->ThebesContext();

@@ -49,10 +49,6 @@ public:
 
     
 
-    void SetColor(nscolor aColor);
-
-    
-
     void SetFont(nsFontMetrics *aFontMetrics);
     nsFontMetrics *FontMetrics() { return mFontMetrics; } 
 

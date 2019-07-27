@@ -774,7 +774,8 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
   
   ColorPattern color(ToDeviceColor(
                        mFrame->GetVisitedDependentColor(eCSSProperty_color)));
-  aCtx->SetColor(mFrame->GetVisitedDependentColor(eCSSProperty_color));
+  aCtx->ThebesContext()->SetColor(
+          mFrame->GetVisitedDependentColor(eCSSProperty_color));
 
   DrawTarget* drawTarget = aCtx->GetDrawTarget();
 

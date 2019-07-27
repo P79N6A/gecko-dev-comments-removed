@@ -85,19 +85,6 @@ nsRenderingContext::Init(nsDeviceContext* aContext,
 
 
 
-void
-nsRenderingContext::SetColor(nscolor aColor)
-{
-    
-
-
-    mThebes->SetColor(gfxRGBA(aColor));
-}
-
-
-
-
-
 
 void
 nsRenderingContext::SetTextRunRTL(bool aIsRTL)
