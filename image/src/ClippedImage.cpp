@@ -147,7 +147,8 @@ ClippedImage::ShouldClip()
       
       
       mShouldClip.emplace(!mClip.IsEqualInterior(nsIntRect(0, 0, width, height)));
-    } else if (progressTracker && progressTracker->IsLoading()) {
+    } else if (progressTracker &&
+               !(progressTracker->GetProgress() & FLAG_LOAD_COMPLETE)) {
       
       
       

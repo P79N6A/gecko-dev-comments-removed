@@ -99,15 +99,6 @@ ProgressTracker::ResetImage()
   mImage = nullptr;
 }
 
-bool
-ProgressTracker::IsLoading() const
-{
-  
-  
-  
-  return !(mProgress & FLAG_LOAD_COMPLETE);
-}
-
 uint32_t
 ProgressTracker::GetImageStatus() const
 {

@@ -89,10 +89,6 @@ public:
   }
 
   
-  
-  bool IsLoading() const;
-
-  
   uint32_t GetImageStatus() const;
 
   
