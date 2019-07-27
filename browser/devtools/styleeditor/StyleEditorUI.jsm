@@ -122,11 +122,12 @@ StyleEditorUI.prototype = {
       this._walker = toolbox.walker;
 
       let hUtils = toolbox.highlighterUtils;
-      if (hUtils.hasCustomHighlighter(SELECTOR_HIGHLIGHTER_TYPE)) {
+      if (hUtils.supportsCustomHighlighters()) {
         try {
           this._highlighter =
             yield hUtils.getHighlighterByType(SELECTOR_HIGHLIGHTER_TYPE);
         } catch (e) {
+          
           
           
           console.warn("The selectorHighlighter couldn't be instantiated, " +

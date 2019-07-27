@@ -46,12 +46,40 @@ const SIMPLE_OUTLINE_SHEET = ".__fx-devtools-hide-shortcut__ {" +
                              "}";
 
 
-let HIGHLIGHTER_CLASSES = exports.HIGHLIGHTER_CLASSES = {
-  "BoxModelHighlighter": BoxModelHighlighter,
-  "CssTransformHighlighter": CssTransformHighlighter,
-  "SelectorHighlighter": SelectorHighlighter,
-  "RectHighlighter": RectHighlighter
+
+
+
+
+
+
+
+
+const highlighterTypes = new Map();
+
+
+
+
+
+const isTypeRegistered = (typeName) => highlighterTypes.has(typeName);
+exports.isTypeRegistered = isTypeRegistered;
+
+
+
+
+
+
+const register = (constructor, typeName=constructor.prototype.typeName) => {
+  if (!typeName) {
+    throw Error("No type's name found, or provided.")
+  }
+
+  if (highlighterTypes.has(typeName)) {
+    throw Error(`${typeName} is already registered.`)
+  }
+
+  highlighterTypes.set(typeName, constructor);
 };
+exports.register = register;
 
 
 
@@ -319,10 +347,11 @@ let CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
 
     this._inspector = inspector;
 
-    let constructor = HIGHLIGHTER_CLASSES[typeName];
+    let constructor = highlighterTypes.get(typeName);
     if (!constructor) {
-      throw new Error(typeName + " isn't a valid highlighter class (" +
-        Object.keys(HIGHLIGHTER_CLASSES) + ")");
+      let list = [...highlighterTypes.keys()];
+
+      throw new Error(`${typeName} isn't a valid highlighter class (${list})`);
       return;
     }
 
@@ -798,6 +827,8 @@ function BoxModelHighlighter(tabActor) {
 }
 
 BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype, {
+  typeName: "BoxModelHighlighter",
+
   ID_CLASS_PREFIX: "box-model-",
 
   get zoom() {
@@ -1342,6 +1373,8 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
     this.markup.setAttributeForElement(containerId, "style", style);
   }
 });
+register(BoxModelHighlighter);
+exports.BoxModelHighlighter = BoxModelHighlighter;
 
 
 
@@ -1358,6 +1391,8 @@ function CssTransformHighlighter(tabActor) {
 let MARKER_COUNTER = 1;
 
 CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype, {
+  typeName: "CssTransformHighlighter",
+
   ID_CLASS_PREFIX: "css-transform-",
 
   _buildMarkup: function() {
@@ -1565,6 +1600,9 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
       "hidden");
   }
 });
+register(CssTransformHighlighter);
+exports.CssTransformHighlighter = CssTransformHighlighter;
+
 
 
 
@@ -1577,6 +1615,7 @@ function SelectorHighlighter(tabActor) {
 }
 
 SelectorHighlighter.prototype = {
+  typeName: "SelectorHighlighter",
   
 
 
@@ -1628,6 +1667,8 @@ SelectorHighlighter.prototype = {
     this.tabActor = null;
   }
 };
+register(SelectorHighlighter);
+exports.SelectorHighlighter = SelectorHighlighter;
 
 
 
@@ -1644,6 +1685,8 @@ function RectHighlighter(tabActor) {
 }
 
 RectHighlighter.prototype = {
+  typeName: "RectHighlighter",
+
   _buildMarkup: function() {
     let doc = this.win.document;
 
@@ -1708,6 +1751,8 @@ RectHighlighter.prototype = {
     this.markup.setAttributeForElement("highlighted-rect", "hidden", "true");
   }
 };
+register(RectHighlighter);
+exports.RectHighlighter = RectHighlighter;
 
 
 

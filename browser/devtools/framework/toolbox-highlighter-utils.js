@@ -64,19 +64,9 @@ exports.getHighlighterUtils = function(toolbox) {
   
 
 
-  let supportsCustomHighlighters = function() {
+  let supportsCustomHighlighters = exported.supportsCustomHighlighters = () => {
     return !!target.client.traits.customHighlighters;
-  }
-
-  
-
-
-
-
-  let hasCustomHighlighter = exported.hasCustomHighlighter = function(typeName) {
-    return supportsCustomHighlighters() &&
-           target.client.traits.customHighlighters.indexOf(typeName) !== -1;
-  }
+  };
 
   
 
@@ -273,12 +263,15 @@ exports.getHighlighterUtils = function(toolbox) {
 
   let getHighlighterByType = exported.getHighlighterByType = requireInspector(
   function*(typeName) {
-    if (hasCustomHighlighter(typeName)) {
-      return yield toolbox.inspector.getHighlighterByType(typeName);
-    } else {
-      throw "The target doesn't support creating highlighters by types or " +
-        typeName + " is unknown";
+    let highlighter = null;
+
+    if (supportsCustomHighlighters()) {
+      highlighter = yield toolbox.inspector.getHighlighterByType(typeName);
     }
+
+    return highlighter || promise.reject("The target doesn't support " +
+        `creating highlighters by types or ${typeName} is unknown`);
+
   });
 
   

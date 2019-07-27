@@ -125,12 +125,7 @@ RootActor.prototype = {
     highlightable: true,
     
     
-    customHighlighters: [
-      "BoxModelHighlighter",
-      "CssTransformHighlighter",
-      "SelectorHighlighter",
-      "RectHighlighter"
-    ],
+    customHighlighters: true,
     
     
     
