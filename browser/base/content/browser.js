@@ -694,7 +694,7 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
   
   
   let alternativeURI = deserializeURI(fixupInfo.fixedURI);
-  if (!fixupInfo.keywordProviderName  || !alternativeURI || !alternativeURI.host) {
+  if (!fixupInfo.fixupUsedKeyword || !alternativeURI || !alternativeURI.host) {
     return;
   }
 
@@ -2233,7 +2233,7 @@ function URLBarSetURI(aURI) {
     
     
     
-    if (gInitialPages.contains(uri.spec))
+    if (gInitialPages.indexOf(uri.spec) != -1)
       value = !gMultiProcessBrowser && content.opener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
@@ -2400,13 +2400,13 @@ let BrowserOnClick = {
   receiveMessage: function (msg) {
     switch (msg.name) {
       case "Browser:CertExceptionError":
-        this.onAboutCertError(msg.target, msg.data.elementId,
-                              msg.data.isTopFrame, msg.data.location,
-                              msg.data.sslStatusAsString);
+        this.onAboutCertError(msg.target, msg.json.elementId,
+                              msg.json.isTopFrame, msg.json.location,
+                              msg.objects.failedChannel);
       break;
       case "Browser:SiteBlockedError":
-        this.onAboutBlocked(msg.data.elementId, msg.data.isMalware,
-                            msg.data.isTopFrame, msg.data.location);
+        this.onAboutBlocked(msg.json.elementId, msg.json.isMalware,
+                            msg.json.isTopFrame, msg.json.location);
       break;
       case "Browser:NetworkError":
         
@@ -2415,7 +2415,7 @@ let BrowserOnClick = {
     }
   },
 
-  onAboutCertError: function (browser, elementId, isTopFrame, location, sslStatusAsString) {
+  onAboutCertError: function (browser, elementId, isTopFrame, location, failedChannel) {
     let secHistogram = Services.telemetry.getHistogramById("SECURITY_UI");
 
     switch (elementId) {
@@ -2423,11 +2423,8 @@ let BrowserOnClick = {
         if (isTopFrame) {
           secHistogram.add(Ci.nsISecurityUITelemetry.WARNING_BAD_CERT_TOP_CLICK_ADD_EXCEPTION);
         }
-
-        let serhelper = Cc["@mozilla.org/network/serialization-helper;1"]
-                           .getService(Ci.nsISerializationHelper);
-        let sslStatus = serhelper.deserializeObject(sslStatusAsString);
-        sslStatus.QueryInterface(Components.interfaces.nsISSLStatus);
+        let sslStatus = failedChannel.securityInfo.QueryInterface(Ci.nsISSLStatusProvider)
+                                                  .SSLStatus;
         let params = { exceptionAdded : false,
                        sslStatus : sslStatus };
 
