@@ -2431,9 +2431,9 @@ this.AddonManagerPrivate = {
   
   
   simpleTimer: function(aName) {
-    let startTime = Date.now();
+    let startTime = Cu.now();
     return {
-      done: () => this.recordSimpleMeasure(aName, Date.now() - startTime)
+      done: () => this.recordSimpleMeasure(aName, Math.round(Cu.now() - startTime))
     };
   },
 
