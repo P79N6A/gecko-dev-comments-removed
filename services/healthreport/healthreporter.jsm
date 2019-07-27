@@ -545,7 +545,7 @@ AbstractHealthReporter.prototype = Object.freeze({
       
       
       try {
-        let timerName = this._branch.replace(".", "-", "g") + "lastDailyCollection";
+        let timerName = this._branch.replace(/\./g, "-") + "lastDailyCollection";
         let tm = Cc["@mozilla.org/updates/timer-manager;1"]
                    .getService(Ci.nsIUpdateTimerManager);
         tm.registerTimer(timerName, this.collectMeasurements.bind(this),
@@ -762,13 +762,18 @@ AbstractHealthReporter.prototype = Object.freeze({
     
     
 
+    
+    function regexify(s) {
+      return new RegExp(s.replace(/[-\\^$*+?.()|[\]{}]/g, "\\$&"), "g");
+    }
+
     function replace(uri, path, thing) {
       
       try {
-        recordMessage = recordMessage.replace(uri.spec, '<' + thing + 'URI>', 'g');
+        recordMessage = recordMessage.replace(regexify(uri.spec), "<" + thing + "URI>");
       } catch (ex) { }
 
-      recordMessage = recordMessage.replace(path, '<' + thing + 'Path>', 'g');
+      recordMessage = recordMessage.replace(regexify(path), "<" + thing + "Path>");
     }
 
     if (appData.path.contains(profile.path)) {
