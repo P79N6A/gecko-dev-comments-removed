@@ -28,6 +28,7 @@ import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.overlays.ui.ShareDialog;
 import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
+import org.mozilla.gecko.sync.setup.SyncAccounts;
 import org.mozilla.gecko.R;
 import java.io.File;
 
@@ -1303,6 +1304,13 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
     private boolean hasOtherSyncClients() {
+        
+        
+        if (!FirefoxAccounts.firefoxAccountsExist(mContext) &&
+                !SyncAccounts.syncAccountsExist(mContext))  {
+            return false;
+        }
+
         final ClientsDatabaseAccessor db = new ClientsDatabaseAccessor(mContext);
         return db.clientsCount() > 0;
     }
