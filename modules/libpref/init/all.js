@@ -4530,6 +4530,9 @@ pref("selectioncaret.enabled", false);
 pref("selectioncaret.inflatesize.threshold", 40);
 
 
+pref("selectioncaret.detects.longtap", true);
+
+
 pref("dom.wakelock.enabled", false);
 
 

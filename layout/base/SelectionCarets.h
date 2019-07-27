@@ -271,6 +271,7 @@ private:
 
   
   static int32_t sSelectionCaretsInflateSize;
+  static bool sSelectionCaretDetectsLongTap;
 };
 } 
 
