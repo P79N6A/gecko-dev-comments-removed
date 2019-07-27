@@ -639,12 +639,14 @@ static int update_filter(SpeexResamplerState *st)
       st->cutoff = quality_map[st->quality].upsample_bandwidth;
    }
    
-   
    use_direct =
 #ifdef RESAMPLE_HUGEMEM
-     st->den_rate <= 16*(st->oversample+8)
+      
+
+      st->den_rate <= 441
 #else
-     st->filt_len*st->den_rate <= st->filt_len*st->oversample+8
+      
+      st->filt_len*st->den_rate <= st->filt_len*st->oversample+8
 #endif
                 && INT_MAX/sizeof(spx_word16_t)/st->den_rate >= st->filt_len;
    if (use_direct)
