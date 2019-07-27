@@ -517,6 +517,7 @@ TileClient::TileClient(const TileClient& o)
   mManager = o.mManager;
   mInvalidFront = o.mInvalidFront;
   mInvalidBack = o.mInvalidBack;
+  mOrigin = o.mOrigin;
 }
 
 TileClient&
@@ -536,6 +537,7 @@ TileClient::operator=(const TileClient& o)
   mManager = o.mManager;
   mInvalidFront = o.mInvalidFront;
   mInvalidBack = o.mInvalidBack;
+  mOrigin = o.mOrigin;
   return *this;
 }
 
@@ -1056,6 +1058,31 @@ ClientTiledLayerBuffer::PostValidate(const nsIntRegion& aPaintRegion)
     mTilingOrigin = IntPoint(std::numeric_limits<int32_t>::max(),
                              std::numeric_limits<int32_t>::max());
   }
+
+  for (size_t i = 0; i < mRetainedTiles.Length(); ++i) {
+    TileClient& tile = mRetainedTiles[i];
+    if (tile.mFrontBuffer && tile.mFrontBuffer->IsLocked()) {
+      
+      
+      
+      if (mResolution == 1) {
+        nsIntRect unscaledTile = nsIntRect(tile.mOrigin.x, tile.mOrigin.y,
+                                           GetTileSize().width, GetTileSize().height);
+        nsIntRegion tileValidRegion = GetValidRegion();
+        tileValidRegion.OrWith(aPaintRegion);
+
+        
+        if (!tileValidRegion.Contains(unscaledTile)) {
+          tileValidRegion = tileValidRegion.Intersect(unscaledTile);
+          
+          tileValidRegion.MoveBy(-nsIntPoint(unscaledTile.x, unscaledTile.y));
+          RefPtr<DrawTarget> drawTarget = tile.mFrontBuffer->BorrowDrawTarget();
+          PadDrawTargetOutFromRegion(drawTarget, tileValidRegion);
+        }
+      }
+    }
+  }
+
 }
 
 void
@@ -1143,6 +1170,8 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
       return TileClient();
     }
   }
+
+  aTile.mOrigin = gfx::ToIntPoint(aTileOrigin);
 
   if (usingTiledDrawTarget) {
     if (createdTextureClient) {
@@ -1245,26 +1274,6 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
     
     aTile.mInvalidFront.Or(aTile.mInvalidFront, nsIntRect(copyTarget.x, copyTarget.y, copyRect.width, copyRect.height));
-  }
-
-  
-  
-  
-  if (mResolution == 1) {
-    nsIntRect unscaledTile = nsIntRect(aTileOrigin.x,
-                                       aTileOrigin.y,
-                                       GetTileSize().width,
-                                       GetTileSize().height);
-
-    nsIntRegion tileValidRegion = GetValidRegion();
-    tileValidRegion.Or(tileValidRegion, aDirtyRegion);
-    
-    if (!tileValidRegion.Contains(unscaledTile)) {
-      tileValidRegion = tileValidRegion.Intersect(unscaledTile);
-      
-      tileValidRegion.MoveBy(-nsIntPoint(unscaledTile.x, unscaledTile.y));
-      PadDrawTargetOutFromRegion(drawTarget, tileValidRegion);
-    }
   }
 
   

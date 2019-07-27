@@ -274,6 +274,8 @@ struct TileClient
   nsIntRegion mInvalidBack;
   nsExpirationState mExpirationState;
 
+  gfx::IntPoint mOrigin;
+
 private:
   
   
