@@ -55,6 +55,8 @@ public:
   static sp<GonkCameraHardware> Connect(mozilla::nsGonkCameraControl* aTarget, uint32_t aCameraId);
   virtual void Close();
 
+  virtual void OnRateLimitPreview(bool aLimit);
+
   
   virtual void OnNewFrame() MOZ_OVERRIDE;
 

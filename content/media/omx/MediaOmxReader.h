@@ -104,6 +104,8 @@ public:
   
   void CheckAudioOffload();
 #endif
+
+  void ReleaseDecoder();
 };
 
 } 

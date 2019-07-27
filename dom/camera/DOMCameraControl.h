@@ -214,7 +214,7 @@ protected:
   DOMCameraControlListener* mListener;
 
   
-  CameraPreviewMediaStream* mInput;
+  nsRefPtr<CameraPreviewMediaStream> mInput;
 
   
   nsCOMPtr<nsPIDOMWindow>   mWindow;

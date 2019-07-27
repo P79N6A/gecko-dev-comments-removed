@@ -11,11 +11,6 @@
 
 namespace mozilla {
 
-class CameraPreviewFrameCallback {
-public:
-  virtual void OnNewFrame(const gfxIntSize& aIntrinsicSize, layers::Image* aImage) = 0;
-};
-
 
 
 
@@ -40,20 +35,21 @@ public:
   virtual void RemoveListener(MediaStreamListener* aListener) MOZ_OVERRIDE;
   virtual void Destroy();
 
+  void Invalidate();
+
   
   void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage);
   void ClearCurrentFrame();
-
-  void SetFrameCallback(CameraPreviewFrameCallback* aCallback) {
-    mFrameCallback = aCallback;
-  }
+  void RateLimit(bool aLimit);
 
 protected:
   
   
   
   Mutex mMutex;
-  CameraPreviewFrameCallback* mFrameCallback;
+  int32_t mInvalidatePending;
+  uint32_t mDiscardedFrames;
+  bool mRateLimit;
 };
 
 }
