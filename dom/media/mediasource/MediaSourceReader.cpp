@@ -268,7 +268,7 @@ MediaSourceReader::OnVideoNotDecoded(NotDecodedReason aReason)
   
   MOZ_ASSERT(aReason == END_OF_STREAM);
   if (mVideoReader) {
-    AdjustEndTime(&mLastVideoTime, mAudioReader);
+    AdjustEndTime(&mLastVideoTime, mVideoReader);
   }
 
   
