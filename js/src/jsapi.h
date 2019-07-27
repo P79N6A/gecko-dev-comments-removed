@@ -2258,7 +2258,6 @@ JS_IsExternalString(JSString *str);
 
 
 
-
 extern JS_PUBLIC_API(const JSStringFinalizer *)
 JS_GetExternalStringFinalizer(JSString *str);
 
