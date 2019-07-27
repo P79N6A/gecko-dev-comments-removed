@@ -7398,7 +7398,8 @@ nsHTMLEditRules::JoinNodesSmart(nsIContent& aNodeLeft, nsIContent& aNodeRight)
 {
   
   nsCOMPtr<nsINode> parent = aNodeLeft.GetParentNode();
-  int32_t parOffset = parent ? parent->IndexOf(&aNodeLeft) : -1;
+  NS_ENSURE_STATE(parent);
+  int32_t parOffset = parent->IndexOf(&aNodeLeft);
   nsCOMPtr<nsINode> rightParent = aNodeRight.GetParentNode();
 
   
