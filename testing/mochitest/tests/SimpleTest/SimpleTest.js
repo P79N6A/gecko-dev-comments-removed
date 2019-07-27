@@ -660,10 +660,17 @@ SimpleTest.requestFlakyTimeout = function (reason) {
     SimpleTest._flakyTimeoutReason = reason;
 }
 
-SimpleTest.waitForFocus_started = false;
-SimpleTest.waitForFocus_loaded = false;
-SimpleTest.waitForFocus_focused = false;
 SimpleTest._pendingWaitForFocusCount = 0;
+
+
+
+
+SimpleTest.promiseFocus = function *(targetWindow, expectBlankPage)
+{
+    return new Promise(function (resolve, reject) {
+        SimpleTest.waitForFocus(win => resolve(win), targetWindow, expectBlankPage);
+    });
+}
 
 
 
@@ -684,80 +691,175 @@ SimpleTest._pendingWaitForFocusCount = 0;
 
 
 SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
-    SimpleTest._pendingWaitForFocusCount++;
-    if (!targetWindow)
-      targetWindow = window;
+    
+    
+    
+    
+    
+    
+    function waitForFocusInner(targetWindow, isChildProcess, expectBlankPage)
+    {
+      
 
-    SimpleTest.waitForFocus_started = false;
+
+      var loaded = false, focused = false, finished = false;
+
+      function info(msg) {
+          if (!isChildProcess) {
+              SimpleTest.info(msg);
+          }
+      }
+
+      function focusedWindow() {
+          if (isChildProcess) {
+              return Components.classes["@mozilla.org/focus-manager;1"].
+                      getService(Components.interfaces.nsIFocusManager).focusedWindow;
+          }
+          return SpecialPowers.focusedWindow();
+      }
+
+      function getHref(aWindow) {
+          return isChildProcess ? aWindow.location.href :
+                                  SpecialPowers.getPrivilegedProps(aWindow, 'location.href');
+      }
+
+      
+
+      function focusedOrLoaded(event) {
+          try {
+              if (event) {
+                  if (event.type == "load") {
+                      if (expectBlankPage != (event.target.location == "about:blank")) {
+                          return;
+                      }
+
+                      loaded = true;
+                  } else if (event.type == "focus") {
+                      focused = true;
+                  }
+
+                  event.currentTarget.removeEventListener(event.type, focusedOrLoaded, true);
+              }
+
+              if (loaded && focused && !finished) {
+                  finished = true;
+                  if (isChildProcess) {
+                      sendAsyncMessage("WaitForFocus:ChildFocused", {}, null);
+                  } else {
+                      SimpleTest._pendingWaitForFocusCount--;
+                      SimpleTest.executeSoon(function() { callback(targetWindow) });
+                  }
+              }
+          } catch (e) {
+              if (!isChildProcess) {
+                  SimpleTest.ok(false, "Exception caught in focusedOrLoaded: " + e.message +
+                                ", at: " + e.fileName + " (" + e.lineNumber + ")");
+              }
+          }
+      }
+
+      function waitForLoadAndFocusOnWindow(desiredWindow) {
+          
+
+
+
+
+          loaded = expectBlankPage ?
+                     getHref(desiredWindow) == "about:blank" :
+                     getHref(desiredWindow) != "about:blank" &&
+                         desiredWindow.document.readyState == "complete";
+          if (!loaded) {
+              info("must wait for load");
+              desiredWindow.addEventListener("load", focusedOrLoaded, true);
+          }
+
+          var childDesiredWindow = { };
+          if (isChildProcess) {
+              var fm = Components.classes["@mozilla.org/focus-manager;1"].
+                         getService(Components.interfaces.nsIFocusManager);
+              fm.getFocusedElementForWindow(desiredWindow, true, childDesiredWindow);
+              childDesiredWindow = childDesiredWindow.value;
+          } else {
+              childDesiredWindow = SpecialPowers.getFocusedElementForWindow(desiredWindow, true);
+          }
+
+          
+          focused = (focusedWindow() == childDesiredWindow);
+          if (!focused) {
+              info("must wait for focus");
+              desiredWindow.addEventListener("focus", focusedOrLoaded, true);
+              if (isChildProcess) {
+                  childDesiredWindow.focus();
+              }
+              else {
+                  SpecialPowers.focus(childDesiredWindow);
+              }
+          }
+
+          focusedOrLoaded(null);
+      }
+
+      if (isChildProcess) {
+          
+          addMessageListener("WaitForFocus:FocusChild", function focusChild(msg) {
+              removeMessageListener("WaitForFocus:ChildFocused", focusChild);
+              finished = false;
+              waitForLoadAndFocusOnWindow(msg.objects.child);
+          });
+      }
+
+      waitForLoadAndFocusOnWindow(targetWindow);
+    }
+
+    SimpleTest._pendingWaitForFocusCount++;
+    if (!targetWindow) {
+        targetWindow = window;
+    }
+
     expectBlankPage = !!expectBlankPage;
 
-    var childTargetWindow = SpecialPowers.getFocusedElementForWindow(targetWindow, true);
-
-    function info(msg) {
-        SimpleTest.info(msg);
-    }
-    function getHref(aWindow) {
-      return SpecialPowers.getPrivilegedProps(aWindow, 'location.href');
-    }
-
-    function maybeRunTests() {
-        if (SimpleTest.waitForFocus_loaded &&
-            SimpleTest.waitForFocus_focused &&
-            !SimpleTest.waitForFocus_started) {
-            SimpleTest._pendingWaitForFocusCount--;
-            SimpleTest.waitForFocus_started = true;
-            SimpleTest.executeSoon(function() { callback(targetWindow) });
-        }
-    }
-
-    function waitForEvent(event) {
-        try {
-            
-            
-            if (event.type == "load" && (expectBlankPage != (event.target.location == "about:blank")))
-                return;
-
-            SimpleTest["waitForFocus_" + event.type + "ed"] = true;
-            var win = (event.type == "load") ? targetWindow : childTargetWindow;
-            win.removeEventListener(event.type, waitForEvent, true);
-            maybeRunTests();
-        } catch (e) {
-            SimpleTest.ok(false, "Exception caught in waitForEvent: " + e.message +
-                ", at: " + e.fileName + " (" + e.lineNumber + ")");
-        }
-    }
-
     
     
     
     
-    
-    SimpleTest.waitForFocus_loaded =
-        expectBlankPage ?
-            getHref(targetWindow) == "about:blank" :
-            getHref(targetWindow) != "about:blank" && targetWindow.document.readyState == "complete";
-    if (!SimpleTest.waitForFocus_loaded) {
-        info("must wait for load");
-        targetWindow.addEventListener("load", waitForEvent, true);
-    }
-
-    
-    var focusedChildWindow = null;
-    if (SpecialPowers.activeWindow()) {
-        focusedChildWindow = SpecialPowers.getFocusedElementForWindow(SpecialPowers.activeWindow(), true);
-    }
-
-    
-    SimpleTest.waitForFocus_focused = (focusedChildWindow == childTargetWindow);
-    if (SimpleTest.waitForFocus_focused) {
+    var Cu = Components.utils || SpecialPowers.Cu;
+    if (Cu.isCrossProcessWrapper(targetWindow)) {
         
-        maybeRunTests();
+        
+        var tabBrowser = document.getElementsByTagName("tabbrowser")[0] || null;
+        var remoteBrowser = tabBrowser ? tabBrowser.getBrowserForContentWindow(targetWindow.top) : null;
+        if (!remoteBrowser) {
+            SimpleTest.info("child process window cannot be focused");
+            return;
+        }
+
+        
+        
+        
+        var mustFocusSubframe = (targetWindow != targetWindow.top);
+        remoteBrowser.messageManager.addMessageListener("WaitForFocus:ChildFocused", function waitTest(msg) {
+            if (mustFocusSubframe) {
+                mustFocusSubframe = false;
+                var mm = gBrowser.selectedBrowser.messageManager;
+                mm.sendAsyncMessage("WaitForFocus:FocusChild", {}, { child: targetWindow } );
+            }
+            else {
+                remoteBrowser.messageManager.removeMessageListener("WaitForFocus:ChildFocused", waitTest);
+                setTimeout(callback, 0, targetWindow);
+            }
+        });
+
+        
+        var frameScript = "data:,(" + waitForFocusInner.toString() +
+                          ")(content, true, " + expectBlankPage + ");";
+        remoteBrowser.messageManager.loadFrameScript(frameScript, true);
+        remoteBrowser.focus();
+        return;
     }
-    else {
-        info("must wait for focus");
-        childTargetWindow.addEventListener("focus", waitForEvent, true);
-        SpecialPowers.focus(childTargetWindow);
-    }
+
+    
+    
+    waitForFocusInner(targetWindow, false, expectBlankPage);
 };
 
 SimpleTest.waitForClipboard_polls = 0;
