@@ -1211,11 +1211,9 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
     
     
     
-    loadProgress |= FLAG_ONLOAD_BLOCKED |
-                    FLAG_DECODE_STARTED |
+    loadProgress |= FLAG_DECODE_STARTED |
                     FLAG_FRAME_COMPLETE |
-                    FLAG_DECODE_COMPLETE |
-                    FLAG_ONLOAD_UNBLOCKED;
+                    FLAG_DECODE_COMPLETE;
   }
 
   
@@ -1234,7 +1232,7 @@ RasterImage::NotifyForDecodeOnlyOnDraw()
     return;
   }
 
-  NotifyProgress(FLAG_DECODE_STARTED | FLAG_ONLOAD_BLOCKED);
+  NotifyProgress(FLAG_DECODE_STARTED);
 }
 
 nsresult

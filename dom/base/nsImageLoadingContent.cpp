@@ -87,7 +87,6 @@ nsImageLoadingContent::nsImageLoadingContent()
     mBroken(true),
     mUserDisabled(false),
     mSuppressed(false),
-    mFireEventsOnDecode(false),
     mNewRequestsWillNeedAnimationReset(false),
     mStateChangerDepth(0),
     mCurrentRequestRegistered(false),
@@ -186,18 +185,6 @@ nsImageLoadingContent::Notify(imgIRequest* aRequest,
   }
 
   if (aType == imgINotificationObserver::DECODE_COMPLETE) {
-    if (mFireEventsOnDecode) {
-      mFireEventsOnDecode = false;
-
-      uint32_t reqStatus;
-      aRequest->GetImageStatus(&reqStatus);
-      if (reqStatus & imgIRequest::STATUS_ERROR) {
-        FireEvent(NS_LITERAL_STRING("error"));
-      } else {
-        FireEvent(NS_LITERAL_STRING("load"));
-      }
-    }
-
     UpdateImageState(true);
   }
 
@@ -278,22 +265,10 @@ nsImageLoadingContent::OnLoadComplete(imgIRequest* aRequest, nsresult aStatus)
   }
 
   
-  
-  
-  
-  uint32_t reqStatus;
-  aRequest->GetImageStatus(&reqStatus);
-  if (NS_SUCCEEDED(aStatus) && !(reqStatus & imgIRequest::STATUS_ERROR) &&
-      (reqStatus & imgIRequest::STATUS_DECODE_STARTED) &&
-      !(reqStatus & imgIRequest::STATUS_DECODE_COMPLETE)) {
-    mFireEventsOnDecode = true;
+  if (NS_SUCCEEDED(aStatus)) {
+    FireEvent(NS_LITERAL_STRING("load"));
   } else {
-    
-    if (NS_SUCCEEDED(aStatus)) {
-      FireEvent(NS_LITERAL_STRING("load"));
-    } else {
-      FireEvent(NS_LITERAL_STRING("error"));
-    }
+    FireEvent(NS_LITERAL_STRING("error"));
   }
 
   nsCOMPtr<nsINode> thisNode = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
