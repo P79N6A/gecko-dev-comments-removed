@@ -27,6 +27,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ResponsiveImageSelector)
 
   explicit ResponsiveImageSelector(nsIContent* aContent);
+  explicit ResponsiveImageSelector(nsIDocument* aDocument);
 
   
   
@@ -53,7 +54,13 @@ public:
 
   uint32_t NumCandidates(bool aIncludeDefault = true);
 
-  nsIContent *Content() { return mContent; }
+  
+  
+  nsIContent *Content();
+
+  
+  
+  nsIDocument *Document();
 
   
   
@@ -96,7 +103,7 @@ private:
   
   bool ComputeFinalWidthForCurrentViewport(int32_t *aWidth);
 
-  nsCOMPtr<nsIContent> mContent;
+  nsCOMPtr<nsINode> mOwnerNode;
   
   
   nsTArray<ResponsiveImageCandidate> mCandidates;
