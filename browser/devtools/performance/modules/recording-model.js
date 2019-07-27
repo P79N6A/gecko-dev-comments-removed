@@ -43,6 +43,8 @@ RecordingModel.prototype = {
   _timelineStartTime: 0,
   _memoryStartTime: 0,
   _configuration: {},
+  _originalBufferStatus: null,
+  _bufferPercent: null,
 
   
   _label: "",
@@ -90,7 +92,7 @@ RecordingModel.prototype = {
 
 
 
-  populate: function (info) {
+  _populate: function (info) {
     
     
     
@@ -100,6 +102,12 @@ RecordingModel.prototype = {
     this._profilerStartTime = info.profilerStartTime;
     this._timelineStartTime = info.timelineStartTime;
     this._memoryStartTime = info.memoryStartTime;
+    this._originalBufferStatus = {
+      position: info.position,
+      totalSize: info.totalSize,
+      generation: info.generation
+    };
+
     this._recording = true;
 
     this._markers = [];
@@ -283,7 +291,33 @@ RecordingModel.prototype = {
   
 
 
-  addTimelineData: function (eventName, ...data) {
+
+  getBufferUsage: function () {
+    return this.isRecording() ? this._bufferPercent : null;
+  },
+
+  
+
+
+  _addBufferStatusData: function (bufferStatus) {
+    
+    
+    
+    if (!bufferStatus || !this.isRecording()) {
+      return;
+    }
+    let { position: currentPosition, totalSize, generation: currentGeneration } = bufferStatus;
+    let { position: origPosition, generation: origGeneration } = this._originalBufferStatus;
+
+    let normalizedCurrent = (totalSize * (currentGeneration - origGeneration)) + currentPosition;
+    let percent = (normalizedCurrent - origPosition) / totalSize;
+    this._bufferPercent = percent > 1 ? 1 : percent;
+  },
+
+  
+
+
+  _addTimelineData: function (eventName, ...data) {
     
     
     if (!this.isRecording()) {
@@ -343,7 +377,9 @@ RecordingModel.prototype = {
         break;
       }
     }
-  }
+  },
+
+  toString: () => "[object RecordingModel]"
 };
 
 exports.RecordingModel = RecordingModel;

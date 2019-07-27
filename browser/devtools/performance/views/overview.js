@@ -155,6 +155,11 @@ let OverviewView = {
     let mapStart = () => 0;
     let mapEnd = () => recording.getDuration();
     let selection = this.graphs.getMappedSelection({ mapStart, mapEnd });
+    
+    
+    if (!selection) {
+      return { startTime: 0, endTime: recording.getDuration() };
+    }
     return { startTime: selection.min, endTime: selection.max };
   },
 

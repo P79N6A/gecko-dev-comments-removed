@@ -157,6 +157,13 @@ function actorCompatibilityBridge (method) {
     
     
     
+    if (!this._target || !this._target.client) {
+      return;
+    }
+    
+    
+    
+    
     
     
     

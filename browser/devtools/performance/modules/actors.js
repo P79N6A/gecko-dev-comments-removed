@@ -19,14 +19,17 @@ loader.lazyRequireGetter(this, "TimelineFront",
   "devtools/server/actors/timeline", true);
 loader.lazyRequireGetter(this, "MemoryFront",
   "devtools/server/actors/memory", true);
-loader.lazyRequireGetter(this, "timers",
-  "resource://gre/modules/Timer.jsm");
+loader.lazyRequireGetter(this, "Poller",
+  "devtools/shared/poller", true);
 
 
 const ALLOCATION_SITE_POLL_TIMER = 200; 
 
+
+const BUFFER_CHECK_TIMER = 5000; 
+
 const MEMORY_ACTOR_METHODS = [
-  "destroy", "attach", "detach", "getState", "getAllocationsSettings",
+  "attach", "detach", "getState", "getAllocationsSettings",
   "getAllocations", "startRecordingAllocations", "stopRecordingAllocations"
 ];
 
@@ -45,6 +48,9 @@ const PROFILER_ACTOR_METHODS = [
 function ProfilerFrontFacade (target) {
   this._target = target;
   this._onProfilerEvent = this._onProfilerEvent.bind(this);
+  this._checkBufferStatus = this._checkBufferStatus.bind(this);
+  this._BUFFER_CHECK_TIMER = this._target.TEST_MOCK_BUFFER_CHECK_TIMER || BUFFER_CHECK_TIMER;
+
   EventEmitter.decorate(this);
 }
 
@@ -72,6 +78,9 @@ ProfilerFrontFacade.prototype = {
 
 
   destroy: Task.async(function *() {
+    if (this._poller) {
+      yield this._poller.destroy();
+    }
     yield this.unregisterEventNotifications({ events: this.EVENTS });
     
     this._target.client.removeListener("eventNotification", this._onProfilerEvent);
@@ -80,15 +89,28 @@ ProfilerFrontFacade.prototype = {
   
 
 
+
+
+
   start: Task.async(function *(options={}) {
     
     
     
+    if (!this._poller) {
+      this._poller = new Poller(this._checkBufferStatus, this._BUFFER_CHECK_TIMER, false);
+    }
+    if (!this._poller.isPolling()) {
+      this._poller.on();
+    }
+
     
-    let profilerStatus = yield this.isActive();
-    if (profilerStatus.isActive) {
+    
+    
+    
+    let { isActive, currentTime, position, generation, totalSize } = yield this.isActive();
+    if (isActive) {
       this.emit("profiler-already-active");
-      return profilerStatus.currentTime;
+      return { startTime: currentTime, position, generation, totalSize };
     }
 
     
@@ -101,7 +123,16 @@ ProfilerFrontFacade.prototype = {
     yield this.startProfiler(profilerOptions);
 
     this.emit("profiler-activated");
-    return 0;
+    return { startTime: 0, position, generation, totalSize };
+  }),
+
+  
+
+
+
+
+  stop: Task.async(function *() {
+    yield this._poller.off();
   }),
 
   
@@ -135,6 +166,10 @@ ProfilerFrontFacade.prototype = {
       this.emit("profiler-stopped");
     }
   },
+
+  _checkBufferStatus: Task.async(function *() {
+    this.emit("buffer-status", (yield this.isActive()));
+  }),
 
   toString: () => "[object ProfilerFrontFacade]"
 };
@@ -200,6 +235,7 @@ exports.TimelineFront = TimelineFrontFacade;
 function MemoryFrontFacade (target) {
   this._target = target;
   this._pullAllocationSites = this._pullAllocationSites.bind(this);
+
   EventEmitter.decorate(this);
 }
 
@@ -211,6 +247,16 @@ MemoryFrontFacade.prototype = {
                   new MockMemoryFront();
 
     this.IS_MOCK = !supported;
+  }),
+
+  
+
+
+  destroy: Task.async(function *() {
+    if (this._poller) {
+      yield this._poller.destroy();
+    }
+    yield this._actor.destroy();
   }),
 
   
@@ -235,7 +281,12 @@ MemoryFrontFacade.prototype = {
 
     let startTime = yield this.startRecordingAllocations(allocationOptions);
 
-    yield this._pullAllocationSites();
+    if (!this._poller) {
+      this._poller = new Poller(this._pullAllocationSites, ALLOCATION_SITE_POLL_TIMER, false);
+    }
+    if (!this._poller.isPolling()) {
+      this._poller.on();
+    }
 
     return startTime;
   }),
@@ -253,8 +304,8 @@ MemoryFrontFacade.prototype = {
     
     
     
+    yield this._poller.off();
     yield this._lastPullAllocationSitesFinished;
-    timers.clearTimeout(this._sitesPullTimeout);
 
     let endTime = yield this.stopRecordingAllocations();
     yield this.detach();
@@ -286,8 +337,6 @@ MemoryFrontFacade.prototype = {
       frames: memoryData.frames,
       counts: memoryData.counts
     });
-
-    this._sitesPullTimeout = timers.setTimeout(this._pullAllocationSites, ALLOCATION_SITE_POLL_TIMER);
 
     resolve();
   }),

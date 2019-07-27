@@ -195,6 +195,7 @@ function initBackend(aUrl, targetOps={}) {
     
     
     
+    
     merge(target, targetOps);
 
     let connection = getPerformanceActorsConnection(target);
