@@ -369,7 +369,7 @@ function injectLoopAPI(targetWindow) {
       value: function(callback) {
         
         
-        MozLoopService.register().then(() => {
+        MozLoopService.promiseRegisteredWithServers().then(() => {
           callback(null);
         }, err => {
           callback(cloneValueInto(err, targetWindow));

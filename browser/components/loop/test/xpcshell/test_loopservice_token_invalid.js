@@ -31,7 +31,7 @@ add_test(function test_registration_invalid_token() {
     response.finish();
   });
 
-  MozLoopService.register().then(() => {
+  MozLoopService.promiseRegisteredWithServers().then(() => {
     
     
     Assert.equal(authorizationAttempts, 2);

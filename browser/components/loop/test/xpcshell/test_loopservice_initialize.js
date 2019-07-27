@@ -1,7 +1,7 @@
 
 
 
-var startTimerCalled = false;
+let startTimerCalled = false;
 
 
 
@@ -23,7 +23,7 @@ add_task(function test_initialize_no_expiry() {
 
 add_task(function test_initialize_expiry_past() {
   
-  var nowSeconds = Date.now() / 1000;
+  let nowSeconds = Date.now() / 1000;
   Services.prefs.setIntPref("loop.urlsExpiryTimeSeconds", nowSeconds - 2);
   startTimerCalled = false;
 
@@ -39,7 +39,7 @@ add_task(function test_initialize_expiry_past() {
 
 add_task(function test_initialize_starts_timer() {
   
-  var nowSeconds = Date.now() / 1000;
+  let nowSeconds = Date.now() / 1000;
   Services.prefs.setIntPref("loop.urlsExpiryTimeSeconds", nowSeconds + 60);
   startTimerCalled = false;
 
@@ -49,8 +49,7 @@ add_task(function test_initialize_starts_timer() {
     "should start the timer when expiry time is in the future");
 });
 
-function run_test()
-{
+function run_test() {
   setupFakeLoopServer();
 
   

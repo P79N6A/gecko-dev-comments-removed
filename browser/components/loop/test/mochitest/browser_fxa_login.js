@@ -253,7 +253,7 @@ add_task(function* basicAuthorizationAndRegistration() {
   mockPushHandler.registrationPushURL = "https://localhost/pushUrl/guest";
   
   let statusChangedPromise = promiseObserverNotified("loop-status-changed");
-  yield MozLoopService.register();
+  yield MozLoopService.promiseRegisteredWithServers();
   yield statusChangedPromise;
 
   
@@ -318,7 +318,7 @@ add_task(function* loginWithParams401() {
     test_error: "params_401",
   };
   yield promiseOAuthParamsSetup(BASE_URL, params);
-  yield MozLoopService.register();
+  yield MozLoopService.promiseRegisteredWithServers();
 
   let loginPromise = MozLoopService.logInToFxA();
   yield loginPromise.then(tokenData => {
