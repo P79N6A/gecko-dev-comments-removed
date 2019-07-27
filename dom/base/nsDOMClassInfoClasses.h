@@ -4,7 +4,6 @@
 
 
 
-DOMCI_CLASS(Window)
 DOMCI_CLASS(DOMPrototype)
 DOMCI_CLASS(DOMConstructor)
 
@@ -26,9 +25,6 @@ DOMCI_CLASS(TreeSelection)
 DOMCI_CLASS(TreeContentView)
 #endif
 
-
-DOMCI_CLASS(ChromeWindow)
-
 #ifdef MOZ_XUL
 DOMCI_CLASS(XULTemplateBuilder)
 DOMCI_CLASS(XULTreeBuilder)
@@ -49,9 +45,6 @@ DOMCI_CLASS(XPathNSResolver)
 
 DOMCI_CLASS(Blob)
 DOMCI_CLASS(File)
-
-
-DOMCI_CLASS(ModalContentWindow)
 
 DOMCI_CLASS(MozSmsMessage)
 DOMCI_CLASS(MozMmsMessage)
