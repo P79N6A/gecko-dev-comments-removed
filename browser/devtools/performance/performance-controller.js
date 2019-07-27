@@ -41,6 +41,11 @@ devtools.lazyImporter(this, "CanvasGraphUtils",
   "resource:///modules/devtools/Graphs.jsm");
 devtools.lazyImporter(this, "LineGraphWidget",
   "resource:///modules/devtools/Graphs.jsm");
+devtools.lazyImporter(this, "SideMenuWidget",
+  "resource:///modules/devtools/SideMenuWidget.jsm");
+
+const { RecordingModel, RECORDING_IN_PROGRESS, RECORDING_UNAVAILABLE } =
+  devtools.require("devtools/performance/recording-model");
 
 devtools.lazyImporter(this, "FlameGraphUtils",
   "resource:///modules/devtools/FlameGraph.jsm");
@@ -50,11 +55,16 @@ devtools.lazyImporter(this, "FlameGraph",
 
 const EVENTS = {
   
+  
+  RECORDING_SELECTED: "Performance:RecordingSelected",
+
+  
   UI_START_RECORDING: "Performance:UI:StartRecording",
   UI_STOP_RECORDING: "Performance:UI:StopRecording",
 
   
   UI_IMPORT_RECORDING: "Performance:UI:ImportRecording",
+  
   UI_EXPORT_RECORDING: "Performance:UI:ExportRecording",
 
   
@@ -95,11 +105,6 @@ const EVENTS = {
   
   FLAMEGRAPH_RENDERED: "Performance:UI:FlameGraphRendered"
 };
-
-
-
-const RECORDING_IN_PROGRESS = -1;
-const RECORDING_UNAVAILABLE = null;
 
 
 
@@ -150,18 +155,8 @@ let PrefObserver = {
 
 
 let PerformanceController = {
-  
-
-
-
-  _localStartTime: RECORDING_UNAVAILABLE,
-  _startTime: RECORDING_UNAVAILABLE,
-  _endTime: RECORDING_UNAVAILABLE,
-  _markers: [],
-  _frames: [],
-  _memory: [],
-  _ticks: [],
-  _profilerData: {},
+  _recordings: [],
+  _currentRecording: null,
 
   
 
@@ -173,11 +168,13 @@ let PerformanceController = {
     this.importRecording = this.importRecording.bind(this);
     this.exportRecording = this.exportRecording.bind(this);
     this._onTimelineData = this._onTimelineData.bind(this);
+    this._onRecordingSelectFromView = this._onRecordingSelectFromView.bind(this);
 
     PerformanceView.on(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.on(EVENTS.UI_STOP_RECORDING, this.stopRecording);
-    PerformanceView.on(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
     PerformanceView.on(EVENTS.UI_IMPORT_RECORDING, this.importRecording);
+    RecordingsView.on(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
+    RecordingsView.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
     gFront.on("ticks", this._onTimelineData); 
     gFront.on("markers", this._onTimelineData); 
@@ -191,8 +188,9 @@ let PerformanceController = {
   destroy: function() {
     PerformanceView.off(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.off(EVENTS.UI_STOP_RECORDING, this.stopRecording);
-    PerformanceView.off(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
     PerformanceView.off(EVENTS.UI_IMPORT_RECORDING, this.importRecording);
+    RecordingsView.off(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
+    RecordingsView.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
     gFront.off("ticks", this._onTimelineData);
     gFront.off("markers", this._onTimelineData);
@@ -205,25 +203,11 @@ let PerformanceController = {
 
 
   startRecording: Task.async(function *() {
-    
-    
-    
-    
-    this._localStartTime = performance.now();
+    let model = this.createNewRecording();
+    this.setCurrentRecording(model);
+    yield model.startRecording();
 
-    let { startTime } = yield gFront.startRecording({
-      withTicks: true,
-      withMemory: true
-    });
-
-    this._startTime = startTime;
-    this._endTime = RECORDING_IN_PROGRESS;
-    this._markers = [];
-    this._frames = [];
-    this._memory = [];
-    this._ticks = [];
-
-    this.emit(EVENTS.RECORDING_STARTED);
+    this.emit(EVENTS.RECORDING_STARTED, model);
   }),
 
   
@@ -231,18 +215,10 @@ let PerformanceController = {
 
 
   stopRecording: Task.async(function *() {
-    let results = yield gFront.stopRecording();
+    let recording = this._getLatest();
+    yield recording.stopRecording();
 
-    
-    if (!results.endTime) {
-      results.endTime = this._startTime + this.getLocalElapsedTime();
-    }
-
-    this._endTime = results.endTime;
-    this._profilerData = results.profilerData;
-    this._markers = this._markers.sort((a,b) => (a.start > b.start));
-
-    this.emit(EVENTS.RECORDING_STOPPED);
+    this.emit(EVENTS.RECORDING_STOPPED, recording);
   }),
 
   
@@ -251,8 +227,10 @@ let PerformanceController = {
 
 
 
-  exportRecording: Task.async(function*(_, file) {
-    let recordingData = this.getAllData();
+
+
+  exportRecording: Task.async(function*(_, recording, file) {
+    let recordingData = recording.getAllData();
     yield PerformanceIO.saveRecordingToFile(recordingData, file);
 
     this.emit(EVENTS.RECORDING_EXPORTED, recordingData);
@@ -264,30 +242,49 @@ let PerformanceController = {
 
 
 
-
   importRecording: Task.async(function*(_, file) {
-    let recordingData = yield PerformanceIO.loadRecordingFromFile(file);
+    let model = this.createNewRecording();
+    yield model.importRecording(file);
 
-    this._startTime = recordingData.interval.startTime;
-    this._endTime = recordingData.interval.endTime;
-    this._markers = recordingData.markers;
-    this._frames = recordingData.frames;
-    this._memory = recordingData.memory;
-    this._ticks = recordingData.ticks;
-    this._profilerData = recordingData.profilerData;
-
-    this.emit(EVENTS.RECORDING_IMPORTED, recordingData);
-
-    
-    this.emit(EVENTS.RECORDING_STARTED);
-    this.emit(EVENTS.RECORDING_STOPPED);
+    this.emit(EVENTS.RECORDING_IMPORTED, model.getAllData(), model);
   }),
 
   
 
 
-  getLocalElapsedTime: function() {
-    return performance.now() - this._localStartTime;
+
+  createNewRecording: function () {
+    let model = new RecordingModel({
+      front: gFront,
+      performance: performance
+    });
+    this._recordings.push(model);
+    this.emit(EVENTS.RECORDING_CREATED, model);
+    return model;
+  },
+
+  
+
+
+  setCurrentRecording: function (recording) {
+    if (this._currentRecording !== recording) {
+      this._currentRecording = recording;
+      this.emit(EVENTS.RECORDING_SELECTED, recording);
+    }
+  },
+
+  
+
+
+  getCurrentRecording: function () {
+    return this._currentRecording;
+  },
+
+  
+
+
+  getLocalElapsedTime: function () {
+    return this.getCurrentRecording().getLocalElapsedTime;
   },
 
   
@@ -295,17 +292,7 @@ let PerformanceController = {
 
 
   getInterval: function() {
-    let startTime = this._startTime;
-    let endTime = this._endTime;
-
-    
-    
-    
-    if (endTime == RECORDING_IN_PROGRESS) {
-      endTime = startTime + this.getLocalElapsedTime();
-    }
-
-    return { startTime, endTime };
+    return this.getCurrentRecording().getInterval();
   },
 
   
@@ -313,7 +300,7 @@ let PerformanceController = {
 
 
   getMarkers: function() {
-    return this._markers;
+    return this.getCurrentRecording().getMarkers();
   },
 
   
@@ -321,7 +308,7 @@ let PerformanceController = {
 
 
   getFrames: function() {
-    return this._frames;
+    return this.getCurrentRecording().getFrames();
   },
 
   
@@ -329,7 +316,7 @@ let PerformanceController = {
 
 
   getMemory: function() {
-    return this._memory;
+    return this.getCurrentRecording().getMemory();
   },
 
   
@@ -337,7 +324,7 @@ let PerformanceController = {
 
 
   getTicks: function() {
-    return this._ticks;
+    return this.getCurrentRecording().getTicks();
   },
 
   
@@ -345,48 +332,41 @@ let PerformanceController = {
 
 
   getProfilerData: function() {
-    return this._profilerData;
+    return this.getCurrentRecording().getProfilerData();
   },
 
   
 
 
   getAllData: function() {
-    let interval = this.getInterval();
-    let markers = this.getMarkers();
-    let frames = this.getFrames();
-    let memory = this.getMemory();
-    let ticks = this.getTicks();
-    let profilerData = this.getProfilerData();
-    return { interval, markers, frames, memory, ticks, profilerData };
+    return this.getCurrentRecording().getAllData();
   },
 
   
 
 
-  _onTimelineData: function (eventName, ...data) {
-    
-    if (eventName == "markers") {
-      let [markers] = data;
-      Array.prototype.push.apply(this._markers, markers);
-    }
-    
-    else if (eventName == "frames") {
-      let [delta, frames] = data;
-      Array.prototype.push.apply(this._frames, frames);
-    }
-    
-    else if (eventName == "memory") {
-      let [delta, measurement] = data;
-      this._memory.push({ delta, value: measurement.total / 1024 / 1024 });
-    }
-    
-    else if (eventName == "ticks") {
-      let [delta, timestamps] = data;
-      this._ticks = timestamps;
-    }
 
-    this.emit(EVENTS.TIMELINE_DATA, eventName, ...data);
+  _getLatest: function () {
+    for (let i = this._recordings.length - 1; i >= 0; i--) {
+      return this._recordings[i];
+    }
+    return null;
+  },
+
+  
+
+
+  _onTimelineData: function (...data) {
+    this._recordings.forEach(profile => profile.addTimelineData.apply(profile, data));
+    this.emit(EVENTS.TIMELINE_DATA, ...data);
+  },
+
+  
+
+
+
+  _onRecordingSelectFromView: function (_, recording) {
+    this.setCurrentRecording(recording);
   }
 };
 
