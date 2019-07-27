@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "SourceBufferResource.h"
 
@@ -32,7 +32,7 @@ SourceBufferResource::Close()
 {
   ReentrantMonitorAutoEnter mon(mMonitor);
   SBR_DEBUG("Close");
-  //MOZ_ASSERT(!mClosed);
+  
   mClosed = true;
   mon.NotifyAll();
   return NS_OK;
@@ -45,7 +45,7 @@ SourceBufferResource::Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes)
              aBuffer, aCount, aBytes);
   ReentrantMonitorAutoEnter mon(mMonitor);
 
-  return ReadInternal(aBuffer, aCount, aBytes, /* aMayBlock = */ true);
+  return ReadInternal(aBuffer, aCount, aBytes,  true);
 }
 
 nsresult
@@ -54,9 +54,9 @@ SourceBufferResource::ReadInternal(char* aBuffer, uint32_t aCount, uint32_t* aBy
   mMonitor.AssertCurrentThreadIn();
   MOZ_ASSERT_IF(!aMayBlock, aBytes);
 
-  // Cache the offset for the read in case mOffset changes while waiting on the
-  // monitor below. It's basically impossible to implement these API semantics
-  // sanely. :-(
+  
+  
+  
   uint64_t readOffset = mOffset;
 
   while (aMayBlock &&
@@ -64,8 +64,8 @@ SourceBufferResource::ReadInternal(char* aBuffer, uint32_t aCount, uint32_t* aBy
          readOffset + aCount > static_cast<uint64_t>(GetLength())) {
     SBR_DEBUGV("waiting for data");
     mMonitor.Wait();
-    // The callers of this function should have checked this, but it's
-    // possible that we had an eviction while waiting on the monitor.
+    
+    
     if (readOffset < mInputBuffer.GetOffset()) {
       return NS_ERROR_FAILURE;
     }
@@ -84,9 +84,9 @@ SourceBufferResource::ReadInternal(char* aBuffer, uint32_t aCount, uint32_t* aBy
   mInputBuffer.CopyData(readOffset, count, aBuffer);
   *aBytes = count;
 
-  // From IRC:
-  // <@cpearce>bholley: *this* is why there should only every be a ReadAt() and
-  // no Read() on a Stream abstraction! there's no good answer, they all suck.
+  
+  
+  
   mOffset = readOffset + count;
 
   return NS_OK;
@@ -98,7 +98,7 @@ SourceBufferResource::ReadAt(int64_t aOffset, char* aBuffer, uint32_t aCount, ui
   SBR_DEBUG("ReadAt(aOffset=%lld, aBuffer=%p, aCount=%u, aBytes=%p)",
             aOffset, aBytes, aCount, aBytes);
   ReentrantMonitorAutoEnter mon(mMonitor);
-  return ReadAtInternal(aOffset, aBuffer, aCount, aBytes, /* aMayBlock = */ true);
+  return ReadAtInternal(aOffset, aBuffer, aCount, aBytes,  true);
 }
 
 nsresult
@@ -165,11 +165,11 @@ SourceBufferResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCo
   ReentrantMonitorAutoEnter mon(mMonitor);
   uint32_t bytesRead;
   int64_t oldOffset = mOffset;
-  nsresult rv = ReadAtInternal(aOffset, aBuffer, aCount, &bytesRead, /* aMayBlock = */ false);
-  mOffset = oldOffset; // ReadFromCache isn't supposed to affect the seek position.
+  nsresult rv = ReadAtInternal(aOffset, aBuffer, aCount, &bytesRead,  false);
+  mOffset = oldOffset; 
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // ReadFromCache return failure if not all the data is cached.
+  
   return bytesRead == aCount ? NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -182,8 +182,8 @@ SourceBufferResource::EvictData(uint64_t aPlaybackOffset, uint32_t aThreshold,
   ReentrantMonitorAutoEnter mon(mMonitor);
   uint32_t result = mInputBuffer.Evict(aPlaybackOffset, aThreshold, aRv);
   if (result > 0) {
-    // Wake up any waiting threads in case a ReadInternal call
-    // is now invalid.
+    
+    
     mon.NotifyAll();
   }
   return result;
@@ -194,12 +194,12 @@ SourceBufferResource::EvictBefore(uint64_t aOffset, ErrorResult& aRv)
 {
   SBR_DEBUG("EvictBefore(aOffset=%llu)", aOffset);
   ReentrantMonitorAutoEnter mon(mMonitor);
-  // If aOffset is past the current playback offset we don't evict.
+  
   if (aOffset < mOffset) {
     mInputBuffer.EvictBefore(aOffset, aRv);
   }
-  // Wake up any waiting threads in case a ReadInternal call
-  // is now invalid.
+  
+  
   mon.NotifyAll();
 }
 
@@ -212,7 +212,7 @@ SourceBufferResource::EvictAll()
 }
 
 void
-SourceBufferResource::AppendData(MediaLargeByteBuffer* aData)
+SourceBufferResource::AppendData(MediaByteBuffer* aData)
 {
   SBR_DEBUG("AppendData(aData=%p, aLength=%u)",
             aData->Elements(), aData->Length());
@@ -250,4 +250,4 @@ SourceBufferResource::SourceBufferResource(const nsACString& aType)
 
 #undef SBR_DEBUG
 #undef SBR_DEBUGV
-} // namespace mozilla
+} 

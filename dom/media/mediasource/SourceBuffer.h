@@ -32,7 +32,7 @@ struct JSContext;
 namespace mozilla {
 
 class ErrorResult;
-class MediaLargeByteBuffer;
+class MediaByteBuffer;
 template <typename T> class AsyncEventRunner;
 class TrackBuffersManager;
 
@@ -159,9 +159,9 @@ private:
 
   
   
-  already_AddRefed<MediaLargeByteBuffer> PrepareAppend(const uint8_t* aData,
-                                                       uint32_t aLength,
-                                                       ErrorResult& aRv);
+  already_AddRefed<MediaByteBuffer> PrepareAppend(const uint8_t* aData,
+                                                  uint32_t aLength,
+                                                  ErrorResult& aRv);
 
   void AppendDataCompletedWithSuccess(bool aHasActiveTracks);
   void AppendDataErrored(nsresult aError);

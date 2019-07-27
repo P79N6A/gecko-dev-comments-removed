@@ -26,9 +26,9 @@ class ErrorResult;
 
 
 struct ResourceItem {
-  explicit ResourceItem(MediaLargeByteBuffer* aData);
+  explicit ResourceItem(MediaByteBuffer* aData);
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
-  nsRefPtr<MediaLargeByteBuffer> mData;
+  nsRefPtr<MediaByteBuffer> mData;
 };
 
 class ResourceQueue : private nsDeque {
@@ -45,7 +45,7 @@ public:
   
   void CopyData(uint64_t aOffset, uint32_t aCount, char* aDest);
 
-  void AppendItem(MediaLargeByteBuffer* aData);
+  void AppendItem(MediaByteBuffer* aData);
 
   
   

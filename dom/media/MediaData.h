@@ -22,7 +22,6 @@ class Image;
 class ImageContainer;
 }
 
-class MediaLargeByteBuffer;
 class MediaByteBuffer;
 
 
@@ -369,7 +368,7 @@ private:
   explicit MediaRawDataWriter(MediaRawData* aMediaRawData);
   bool EnsureSize(size_t aSize);
   MediaRawData* mTarget;
-  nsRefPtr<MediaLargeByteBuffer> mBuffer;
+  nsRefPtr<MediaByteBuffer> mBuffer;
 };
 
 class MediaRawData : public MediaData {
@@ -403,7 +402,7 @@ private:
   
   
   bool EnsureCapacity(size_t aSize);
-  nsRefPtr<MediaLargeByteBuffer> mBuffer;
+  nsRefPtr<MediaByteBuffer> mBuffer;
   CryptoSample mCryptoInternal;
   uint32_t mPadding;
   MediaRawData(const MediaRawData&); 

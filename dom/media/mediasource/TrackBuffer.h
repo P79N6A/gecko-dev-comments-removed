@@ -22,7 +22,7 @@ namespace mozilla {
 
 class ContainerParser;
 class MediaSourceDecoder;
-class MediaLargeByteBuffer;
+class MediaByteBuffer;
 
 class TrackBuffer final : public SourceBufferContentManager {
 public:
@@ -30,7 +30,7 @@ public:
 
   nsRefPtr<ShutdownPromise> Shutdown();
 
-  bool AppendData(MediaLargeByteBuffer* aData, TimeUnit aTimestampOffset) override;
+  bool AppendData(MediaByteBuffer* aData, TimeUnit aTimestampOffset) override;
 
   
   
@@ -119,7 +119,7 @@ private:
 
   
   
-  bool AppendDataToCurrentResource(MediaLargeByteBuffer* aData,
+  bool AppendDataToCurrentResource(MediaByteBuffer* aData,
                                    uint32_t aDuration );
   
   void NotifyTimeRangesChanged();
@@ -163,7 +163,7 @@ private:
                          SourceBufferDecoder* aDecoder);
 
   nsAutoPtr<ContainerParser> mParser;
-  nsRefPtr<MediaLargeByteBuffer> mInputBuffer;
+  nsRefPtr<MediaByteBuffer> mInputBuffer;
 
   
   

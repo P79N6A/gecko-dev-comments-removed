@@ -13,7 +13,7 @@
 
 namespace mozilla {
 
-class MediaLargeByteBuffer;
+class MediaByteBuffer;
 class SourceBufferResource;
 
 class ContainerParser {
@@ -24,17 +24,17 @@ public:
   
   
   
-  virtual bool IsInitSegmentPresent(MediaLargeByteBuffer* aData);
+  virtual bool IsInitSegmentPresent(MediaByteBuffer* aData);
 
   
   
   
-  virtual bool IsMediaSegmentPresent(MediaLargeByteBuffer* aData);
+  virtual bool IsMediaSegmentPresent(MediaByteBuffer* aData);
 
   
   
   
-  virtual bool ParseStartAndEndTimestamps(MediaLargeByteBuffer* aData,
+  virtual bool ParseStartAndEndTimestamps(MediaByteBuffer* aData,
                                           int64_t& aStart, int64_t& aEnd);
 
   
@@ -44,7 +44,7 @@ public:
 
   virtual int64_t GetRoundingError();
 
-  MediaLargeByteBuffer* InitData();
+  MediaByteBuffer* InitData();
 
   bool HasInitData()
   {
@@ -65,7 +65,7 @@ public:
   static ContainerParser* CreateForMIMEType(const nsACString& aType);
 
 protected:
-  nsRefPtr<MediaLargeByteBuffer> mInitData;
+  nsRefPtr<MediaByteBuffer> mInitData;
   nsRefPtr<SourceBufferResource> mResource;
   bool mHasInitData;
   MediaByteRange mCompleteInitSegmentRange;

@@ -27,7 +27,7 @@ class nsIStreamListener;
 namespace mozilla {
 
 class MediaDecoder;
-class MediaLargeByteBuffer;
+class MediaByteBuffer;
 
 namespace dom {
 
@@ -103,7 +103,7 @@ public:
   }
 
   
-  void AppendData(MediaLargeByteBuffer* aData);
+  void AppendData(MediaByteBuffer* aData);
   void Ended();
   bool IsEnded()
   {

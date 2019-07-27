@@ -33,7 +33,7 @@ public:
   
   
   virtual bool
-  AppendData(MediaLargeByteBuffer* aData, TimeUnit aTimestampOffset) = 0;
+  AppendData(MediaByteBuffer* aData, TimeUnit aTimestampOffset) = 0;
 
   
   
