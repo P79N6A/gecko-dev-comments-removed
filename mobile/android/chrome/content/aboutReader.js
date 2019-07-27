@@ -191,6 +191,7 @@ AboutReader.prototype = {
       }
 
       case "Reader:Add": {
+        
         let args = JSON.parse(aData);
         if (args.url == this._article.url) {
           if (this._isReadingListItem != 1) {
