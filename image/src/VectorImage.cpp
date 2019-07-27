@@ -599,16 +599,8 @@ VectorImage::GetType(uint16_t* aType)
 {
   NS_ENSURE_ARG_POINTER(aType);
 
-  *aType = GetType();
+  *aType = imgIContainer::TYPE_VECTOR;
   return NS_OK;
-}
-
-
-
-NS_IMETHODIMP_(uint16_t)
-VectorImage::GetType()
-{
-  return imgIContainer::TYPE_VECTOR;
 }
 
 
