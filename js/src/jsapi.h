@@ -1757,16 +1757,6 @@ extern JS_PUBLIC_API(void)
 JS_SetCTypesCallbacks(JSObject *ctypesObj, const JSCTypesCallbacks *callbacks);
 #endif
 
-typedef bool
-(* JSEnumerateDiagnosticMemoryCallback)(void *ptr, size_t length);
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_EnumerateDiagnosticMemoryRegions(JSEnumerateDiagnosticMemoryCallback callback);
-
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
 
