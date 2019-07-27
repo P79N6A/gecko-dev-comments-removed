@@ -768,9 +768,15 @@ IMEStateManager::SetIMEState(const IMEState& aState,
                       context.mActionHint);
 
     
-    if (context.mActionHint.IsEmpty() && aContent->Tag() == nsGkAtoms::input) {
+    
+    nsIContent* inputContent = aContent->FindFirstNonChromeOnlyAccessContent();
+
+    
+    
+    if (context.mActionHint.IsEmpty() &&
+        inputContent->Tag() == nsGkAtoms::input) {
       bool willSubmit = false;
-      nsCOMPtr<nsIFormControl> control(do_QueryInterface(aContent));
+      nsCOMPtr<nsIFormControl> control(do_QueryInterface(inputContent));
       mozilla::dom::Element* formElement = control->GetFormElement();
       nsCOMPtr<nsIForm> form;
       if (control) {
