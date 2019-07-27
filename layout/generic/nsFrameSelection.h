@@ -724,6 +724,7 @@ private:
 
   CaretAssociateHint mHint;   
   nsBidiLevel mCaretBidiLevel;
+  nsBidiLevel mKbdBidiLevel;
 
   nsPoint mDesiredPos;
   uint32_t mDelayedMouseEventClickCount;
