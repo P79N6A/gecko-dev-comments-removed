@@ -446,7 +446,6 @@ MarionetteServerConnection.prototype = {
 
 
 
-
   startBrowser: function MDA_startBrowser(win, newSession) {
     this.mainFrame = win;
     this.curFrame = null;
@@ -531,9 +530,6 @@ MarionetteServerConnection.prototype = {
 
 
   
-
-
-
 
 
 
@@ -1180,7 +1176,7 @@ MarionetteServerConnection.prototype = {
         this.sendResponse(this.curBrowser
                               .tab
                               .linkedBrowser
-                              .contentWindow.location.href, this.command_id);
+                              .contentWindowAsCPOW.location.href, this.command_id);
       }
     }
   },
@@ -2241,7 +2237,6 @@ MarionetteServerConnection.prototype = {
         
         Services.prefs.setBoolPref("marionette.contentListener", false);
       }
-      this.curBrowser.closeTab();
       
       for (let win in this.browsers) {
         for (let i in this.browsers[win].knownFrames) {
@@ -2660,9 +2655,9 @@ MarionetteServerConnection.prototype = {
                             Services.wm.getOuterWindowWithId(message.json.value);
 
         
-        if ((!listenerWindow || (listenerWindow.location &&
-                                listenerWindow.location.href != message.json.href)) &&
-                (this.curBrowser.frameManager.currentRemoteFrame !== null)) {
+        if (this.curBrowser.frameManager.currentRemoteFrame !== null &&
+            (!listenerWindow ||
+             this.messageManager == this.curBrowser.frameManager.currentRemoteFrame.messageManager.get())) {
           
           
           
@@ -2688,8 +2683,8 @@ MarionetteServerConnection.prototype = {
         let mainContent = (this.curBrowser.mainContentId == null);
         if (!browserType || browserType != "content") {
           
-          reg.id = this.curBrowser.register(this.generateFrameId(message.json.value),
-                                            listenerWindow);
+          let listenerId = message.json.value;
+          reg.id = this.curBrowser.register(this.generateFrameId(listenerId), listenerId);
         }
         
         mainContent = ((mainContent == true) && (this.curBrowser.mainContentId != null));
@@ -2853,36 +2848,14 @@ BrowserObj.prototype = {
   
 
 
-
-
-
-
-
-
-
-
-  startSession: function BO_startSession(newTab, win, callback) {
-    if (appName != "Firefox") {
-      callback(win, newTab);
-    }
-    else if (newTab) {
-      this.tab = this.addTab(this.startPage);
-      
-      this.browser.selectedTab = this.tab;
-      let newTabBrowser = this.browser.getBrowserForTab(this.tab);
-      
-      newTabBrowser.addEventListener("load", function onLoad() {
-        newTabBrowser.removeEventListener("load", onLoad, true);
-        callback(win, newTab);
-      }, true);
-    }
-    else {
+  startSession: function BO_startSession(newSession, win, callback) {
+    if (appName == "Firefox") {
       
       if (this.browser != undefined && this.browser.selectedTab != undefined) {
         this.tab = this.browser.selectedTab;
       }
-      callback(win, newTab);
     }
+    callback(win, newSession);
   },
 
   
@@ -2930,15 +2903,22 @@ BrowserObj.prototype = {
 
 
 
-  register: function BO_register(uid, frameWindow) {
+  register: function BO_register(uid, id) {
     if (this.curFrameId == null) {
-      
-      
-      
+      let currWinId = null;
+      if (this.browser) {
+        
+        
+        
+        let winAsCPOW = this.browser.getBrowserForTab(this.tab).contentWindowAsCPOW;
+        currWinId = winAsCPOW.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils)
+                             .outerWindowID;
+      }
       if ((!this.newSession) ||
           (this.newSession &&
             ((appName != "Firefox") ||
-             frameWindow == this.browser.getBrowserForTab(this.tab).contentWindow))) {
+             id === currWinId))) {
         this.curFrameId = uid;
         this.mainContentId = uid;
       }
