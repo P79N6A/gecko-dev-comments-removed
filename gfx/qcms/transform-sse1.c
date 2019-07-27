@@ -91,16 +91,16 @@ void qcms_transform_data_rgb_out_lut_sse1(qcms_transform *transform,
         *((__m64 *)&output[0]) = _mm_cvtps_pi32(result);
 
         
-        vec_r = _mm_load_ss(&igtbl_r[src[0]]);
-        vec_g = _mm_load_ss(&igtbl_g[src[1]]);
-        vec_b = _mm_load_ss(&igtbl_b[src[2]]);
-        src += 3;
-
-        
         dest[OUTPUT_R_INDEX] = otdata_r[output[0]];
         dest[OUTPUT_G_INDEX] = otdata_g[output[1]];
         dest[OUTPUT_B_INDEX] = otdata_b[output[2]];
         dest += RGB_OUTPUT_COMPONENTS;
+
+        
+        vec_r = _mm_load_ss(&igtbl_r[src[0]]);
+        vec_g = _mm_load_ss(&igtbl_g[src[1]]);
+        vec_b = _mm_load_ss(&igtbl_b[src[2]]);
+        src += 3;
     }
 
     
@@ -215,16 +215,16 @@ void qcms_transform_data_rgba_out_lut_sse1(qcms_transform *transform,
         *((__m64 *)&output[0]) = _mm_cvtps_pi32(result);
 
         
-        vec_r = _mm_load_ss(&igtbl_r[src[0]]);
-        vec_g = _mm_load_ss(&igtbl_g[src[1]]);
-        vec_b = _mm_load_ss(&igtbl_b[src[2]]);
-        src += 4;
-
-        
         dest[OUTPUT_R_INDEX] = otdata_r[output[0]];
         dest[OUTPUT_G_INDEX] = otdata_g[output[1]];
         dest[OUTPUT_B_INDEX] = otdata_b[output[2]];
         dest += 4;
+
+        
+        vec_r = _mm_load_ss(&igtbl_r[src[0]]);
+        vec_g = _mm_load_ss(&igtbl_g[src[1]]);
+        vec_b = _mm_load_ss(&igtbl_b[src[2]]);
+        src += 4;
     }
 
     
