@@ -51,6 +51,10 @@ public:
   void operator++(int) { value++; }
   void operator--(int) { value--; }
 
+  
+  
+  
+
   T* operator&() { return &value; }
 
   operator T&() { return value; }
@@ -66,6 +70,8 @@ public:
   DebugOnly& operator=(const T&) { return *this; }
   void operator++(int) { }
   void operator--(int) { }
+  DebugOnly& operator+=(const T&) { return *this; }
+  DebugOnly& operator-=(const T&) { return *this; }
 #endif
 
   
