@@ -453,17 +453,21 @@ nsChromeRegistryChrome::SendRegisteredChrome(
   };
   mPackagesHash.EnumerateRead(CollectPackages, &args);
 
-  nsCOMPtr<nsIIOService> io (do_GetIOService());
-  NS_ENSURE_TRUE_VOID(io);
-
-  nsCOMPtr<nsIProtocolHandler> ph;
-  nsresult rv = io->GetProtocolHandler("resource", getter_AddRefs(ph));
-  NS_ENSURE_SUCCESS_VOID(rv);
-
   
-  nsCOMPtr<nsIResProtocolHandler> irph (do_QueryInterface(ph));
-  nsResProtocolHandler* rph = static_cast<nsResProtocolHandler*>(irph.get());
-  rph->CollectSubstitutions(resources);
+  
+  
+  if (aParent) {
+    nsCOMPtr<nsIIOService> io (do_GetIOService());
+    NS_ENSURE_TRUE_VOID(io);
+
+    nsCOMPtr<nsIProtocolHandler> ph;
+    nsresult rv = io->GetProtocolHandler("resource", getter_AddRefs(ph));
+    NS_ENSURE_SUCCESS_VOID(rv);
+
+    nsCOMPtr<nsIResProtocolHandler> irph (do_QueryInterface(ph));
+    nsResProtocolHandler* rph = static_cast<nsResProtocolHandler*>(irph.get());
+    rph->CollectSubstitutions(resources);
+  }
 
   mOverrideTable.EnumerateRead(&EnumerateOverride, &overrides);
 
