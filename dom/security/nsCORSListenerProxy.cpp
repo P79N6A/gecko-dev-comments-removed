@@ -538,14 +538,8 @@ nsCORSListenerProxy::CheckRequestApproved(nsIRequest* aRequest)
   
   nsresult status;
   nsresult rv = aRequest->GetStatus(&status);
-  if (NS_FAILED(rv)) {
-    LogBlockedRequest(aRequest, "CORSRequestFailed", nullptr);
-    return rv;
-  }
-  if (NS_FAILED(status)) {
-    LogBlockedRequest(aRequest, "CORSRequestFailed", nullptr);
-    return status;
-  }
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(status, status);
 
   
   nsCOMPtr<nsIHttpChannel> http = do_QueryInterface(aRequest);
