@@ -247,8 +247,8 @@ Volume::SetState(Volume::STATE aNewState)
        mIsSharing = false;
        break;
 
-     case nsIVolume::STATE_IDLE:
-       break;
+     case nsIVolume::STATE_IDLE: 
+     case nsIVolume::STATE_CHECKMNT: 
      default:
        break;
   }
@@ -408,7 +408,15 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
         if (token.EqualsLiteral("to")) {
           nsresult errCode;
           token = aTokenizer.nextToken();
-          SetState((STATE)token.ToInteger(&errCode));
+          STATE newState = (STATE)(token.ToInteger(&errCode));
+          if (newState == nsIVolume::STATE_MOUNTED) {
+            
+            
+            
+            SetState(nsIVolume::STATE_CHECKMNT);
+          } else {
+            SetState(newState);
+          }
           break;
         }
       }

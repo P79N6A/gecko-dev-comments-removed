@@ -9,6 +9,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <sys/statfs.h>
 
 #include <arpa/inet.h>
 #include <linux/types.h>
@@ -926,6 +927,39 @@ AutoMounter::UpdateState()
     if (!vol->MediaPresent()) {
       
       continue;
+    }
+
+    if (vol->State() == nsIVolume::STATE_CHECKMNT) {
+      
+      
+      
+      
+      struct statfs fsbuf;
+      int rc = MOZ_TEMP_FAILURE_RETRY(statfs(vol->MountPoint().get(), &fsbuf));
+      if (rc == -1) {
+        
+        
+        
+        ERR("statfs failed for '%s': errno = %d (%s)", vol->NameStr(), errno, strerror(errno));
+        continue;
+      }
+      static int delay = 250;
+      if (fsbuf.f_blocks == 0) {
+        if (delay <= 4000) {
+          LOG("UpdateState: Volume '%s' is inaccessible, checking again in %d msec", vol->NameStr(), delay);
+          MessageLoopForIO::current()->
+            PostDelayedTask(FROM_HERE,
+                            NewRunnableMethod(this, &AutoMounter::UpdateState),
+                            delay);
+          delay *= 2;
+        } else {
+          LOG("UpdateState: Volume '%s' is inaccessible, giving up", vol->NameStr());
+        }
+        continue;
+      } else {
+        delay = 250;
+        vol->SetState(nsIVolume::STATE_MOUNTED);
+      }
     }
 
     if ((tryToShare && vol->IsSharingEnabled()) ||
