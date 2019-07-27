@@ -126,12 +126,6 @@ public:
 
     static int32_t FormatStrideForWidth(gfxImageFormat format, int32_t width);
 
-    
-
-
-
-    virtual int32_t GetDefaultContextFlags() const { return 0; }
-
     static gfxContentType ContentFromFormat(gfxImageFormat format);
 
     void SetSubpixelAntialiasingEnabled(bool aEnabled);
