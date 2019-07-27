@@ -454,10 +454,10 @@ KEY_MAP_WIN     (ModeChange, VK_MODECHANGE)
 KEY_MAP_ANDROID (ModeChange, AKEYCODE_SWITCH_CHARSET)
 
 
-KEY_MAP_WIN     (Nonconvert, VK_NONCONVERT)
-KEY_MAP_GTK     (Nonconvert, GDK_Muhenkan)
-KEY_MAP_QT      (Nonconvert, Qt::Key_Muhenkan)
-KEY_MAP_ANDROID (Nonconvert, AKEYCODE_MUHENKAN)
+KEY_MAP_WIN     (NonConvert, VK_NONCONVERT)
+KEY_MAP_GTK     (NonConvert, GDK_Muhenkan)
+KEY_MAP_QT      (NonConvert, Qt::Key_Muhenkan)
+KEY_MAP_ANDROID (NonConvert, AKEYCODE_MUHENKAN)
 
 
 KEY_MAP_GTK     (PreviousCandidate, GDK_PreviousCandidate) 
@@ -479,9 +479,9 @@ KEY_MAP_WIN     (JunjaMode, VK_JUNJA)
 
 
 
-KEY_MAP_WIN_JPN (HalfWidth, VK_OEM_AUTO)
-KEY_MAP_GTK     (HalfWidth, GDK_Hankaku)
-KEY_MAP_QT      (HalfWidth, Qt::Key_Hankaku)
+KEY_MAP_WIN_JPN (Hankaku, VK_OEM_AUTO)
+KEY_MAP_GTK     (Hankaku, GDK_Hankaku)
+KEY_MAP_QT      (Hankaku, Qt::Key_Hankaku)
 
 
 KEY_MAP_WIN_JPN (Hiragana, VK_OEM_COPY)
@@ -512,17 +512,17 @@ KEY_MAP_GTK     (Katakana, GDK_Katakana)
 KEY_MAP_QT      (Katakana, Qt::Key_Katakana)
 
 
-KEY_MAP_WIN_JPN (RomanCharacters, VK_OEM_BACKTAB)
-KEY_MAP_COCOA   (RomanCharacters, kVK_JIS_Eisu)
-KEY_MAP_GTK     (RomanCharacters, GDK_Romaji)
-KEY_MAP_QT      (RomanCharacters, Qt::Key_Romaji)
+KEY_MAP_WIN_JPN (Romaji, VK_OEM_BACKTAB)
+KEY_MAP_COCOA   (Romaji, kVK_JIS_Eisu) 
+KEY_MAP_GTK     (Romaji, GDK_Romaji)
+KEY_MAP_QT      (Romaji, Qt::Key_Romaji)
 
-KEY_MAP_ANDROID (RomanCharacters, AKEYCODE_EISU)
+KEY_MAP_ANDROID (Romaji, AKEYCODE_EISU) 
 
 
-KEY_MAP_WIN_JPN (FullWidth, VK_OEM_ENLW)
-KEY_MAP_GTK     (FullWidth, GDK_Zenkaku)
-KEY_MAP_QT      (FullWidth, Qt::Key_Zenkaku)
+KEY_MAP_WIN_JPN (Zenkaku, VK_OEM_ENLW)
+KEY_MAP_GTK     (Zenkaku, GDK_Zenkaku)
+KEY_MAP_QT      (Zenkaku, Qt::Key_Zenkaku)
 
 
 
