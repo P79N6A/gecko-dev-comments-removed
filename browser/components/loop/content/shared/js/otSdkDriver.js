@@ -25,6 +25,7 @@ loop.OTSdkDriver = (function() {
     this.dispatcher = options.dispatcher;
     this.sdk = options.sdk;
 
+    this._useDataChannels = !!options.useDataChannels;
     this._isDesktop = !!options.isDesktop;
 
     if (this._isDesktop) {
@@ -77,8 +78,22 @@ loop.OTSdkDriver = (function() {
 
 
 
-    _getCopyPublisherConfig: function() {
+    get _getCopyPublisherConfig() {
       return _.extend({}, this.publisherConfig);
+    },
+
+    
+
+
+    get _getDataChannelSettings() {
+      return {
+        channels: {
+          
+          
+          
+          text: {}
+        }
+      };
     },
 
     
@@ -108,7 +123,7 @@ loop.OTSdkDriver = (function() {
 
     _publishLocalStreams: function() {
       this.publisher = this.sdk.initPublisher(this.getLocalElement(),
-        this._getCopyPublisherConfig());
+        _.extend(this._getDataChannelSettings, this._getCopyPublisherConfig));
       this.publisher.on("streamCreated", this._onLocalStreamCreated.bind(this));
       this.publisher.on("streamDestroyed", this._onLocalStreamDestroyed.bind(this));
       this.publisher.on("accessAllowed", this._onPublishComplete.bind(this));
@@ -165,7 +180,7 @@ loop.OTSdkDriver = (function() {
         this._windowId = options.constraints.browserWindow;
       }
 
-      var config = _.extend(this._getCopyPublisherConfig(), options);
+      var config = _.extend(this._getCopyPublisherConfig, options);
 
       this.screenshare = this.sdk.initPublisher(this.getScreenShareElementFunc(),
         config);
@@ -241,6 +256,7 @@ loop.OTSdkDriver = (function() {
       this.session.on("streamCreated", this._onRemoteStreamCreated.bind(this));
       this.session.on("streamDestroyed", this._onRemoteStreamDestroyed.bind(this));
       this.session.on("streamPropertyChanged", this._onStreamPropertyChanged.bind(this));
+      this.session.on("signal:readyForDataChannel", this._onReadyForDataChannel.bind(this));
 
       
       this.session.connect(sessionData.apiKey, sessionData.sessionToken,
@@ -495,7 +511,7 @@ loop.OTSdkDriver = (function() {
       var remoteElement = this.getScreenShareElementFunc();
 
       this.session.subscribe(stream,
-        remoteElement, this._getCopyPublisherConfig());
+        remoteElement, this._getCopyPublisherConfig);
     },
 
     
@@ -522,14 +538,126 @@ loop.OTSdkDriver = (function() {
 
       var remoteElement = this.getRemoteElement();
 
-      this.session.subscribe(event.stream,
-        remoteElement, this._getCopyPublisherConfig());
+      this.subscriber = this.session.subscribe(event.stream,
+        remoteElement, this._getCopyPublisherConfig,
+        this._onRemoteSessionSubscribed.bind(this, event.stream.connection));
 
       this._subscribedRemoteStream = true;
       if (this._checkAllStreamsConnected()) {
         this._setTwoWayMediaStartTime(performance.now());
         this.dispatcher.dispatch(new sharedActions.MediaConnected());
       }
+    },
+
+    
+
+
+
+
+
+
+
+
+    _onRemoteSessionSubscribed: function(connection, err) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      if (this._useDataChannels) {
+        this.session.signal({
+          type: "readyForDataChannel",
+          to: connection
+        }, function(signalError) {
+          if (signalError) {
+            console.error(signalError);
+          }
+        });
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+    _onReadyForDataChannel: function(event) {
+      
+      
+      if (!this._useDataChannels) {
+        return;
+      }
+
+      
+      this.publisher._.getDataChannel("text", {}, function(err, channel) {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        this._publisherChannel = channel;
+
+        channel.on({
+          close: function(event) {
+            
+            console.log("Published data channel closed!");
+          }
+        });
+
+        this._checkDataChannelsAvailable();
+      }.bind(this));
+
+      this.subscriber._.getDataChannel("text", {}, function(err, channel) {
+        
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        channel.on({
+          message: function(event) {
+            try {
+              this.dispatcher.dispatch(
+                new sharedActions.ReceivedTextChatMessage(JSON.parse(event.data)));
+            } catch (ex) {
+              console.error("Failed to process incoming chat message", ex);
+            }
+          }.bind(this),
+
+          close: function(event) {
+            
+            console.log("Subscribed data channel closed!");
+          }
+        });
+
+        this._subscriberChannel = channel;
+        this._checkDataChannelsAvailable();
+      }.bind(this));
+    },
+
+    
+
+
+
+    _checkDataChannelsAvailable: function() {
+      if (this._publisherChannel && this._subscriberChannel) {
+        this.dispatcher.dispatch(new sharedActions.DataChannelsAvailable());
+      }
+    },
+
+    
+
+
+
+
+    sendTextChatMessage: function(message) {
+      this._publisherChannel.send(JSON.stringify(message));
     },
 
     

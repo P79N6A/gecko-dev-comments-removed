@@ -292,6 +292,30 @@ p.standalone-btn-label {
   display: none;
 }
 
+
+
+
+
+.text-chat-view {
+  height: 60px;
+  color: white;
+}
+
+.text-chat-entries {
+  
+  height: calc(100% - 2em);
+  width: 30%;
+}
+
+.text-chat-box {
+  width: 30%;
+  margin: auto;
+}
+
+.text-chat-box > form > input {
+  width: 100%;
+}
+
 @media screen and (max-width:640px) {
   .standalone .ended-conversation .feedback {
     width: 92%;

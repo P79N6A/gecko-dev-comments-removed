@@ -1040,6 +1040,10 @@ loop.webapp = (function($, _, OT, mozL10n) {
       baseServerUrl: loop.config.serverUrl
     });
     var sdkDriver = new loop.OTSdkDriver({
+      
+      
+      
+      useDataChannels: true,
       dispatcher: dispatcher,
       sdk: OT
     });
@@ -1085,12 +1089,16 @@ loop.webapp = (function($, _, OT, mozL10n) {
     var standaloneMetricsStore = new loop.store.StandaloneMetricsStore(dispatcher, {
       activeRoomStore: activeRoomStore
     });
+    var textChatStore = new loop.store.TextChatStore(dispatcher, {
+      sdkDriver: sdkDriver
+    });
 
     loop.store.StoreMixin.register({
       feedbackStore: feedbackStore,
       
       
-      standaloneMetricsStore: standaloneMetricsStore
+      standaloneMetricsStore: standaloneMetricsStore,
+      textChatStore: textChatStore
     });
 
     window.addEventListener("unload", function() {

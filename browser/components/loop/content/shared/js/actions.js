@@ -168,6 +168,28 @@ loop.shared.actions = (function() {
     
 
 
+    DataChannelsAvailable: Action.define("dataChannelsAvailable", {
+    }),
+
+    
+
+
+    SendTextChatMessage: Action.define("sendTextChatMessage", {
+      contentType: String,
+      message: String
+    }),
+
+    
+
+
+    ReceivedTextChatMessage: Action.define("receivedTextChatMessage", {
+      contentType: String,
+      message: String
+    }),
+
+    
+
+
 
     SetupStreamElements: Action.define("setupStreamElements", {
       
