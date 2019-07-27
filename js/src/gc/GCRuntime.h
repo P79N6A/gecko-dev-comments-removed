@@ -274,7 +274,8 @@ class GCRuntime
 
     bool triggerGC(JS::gcreason::Reason reason);
     bool triggerZoneGC(Zone *zone, JS::gcreason::Reason reason);
-    void maybeGC(Zone *zone);
+    bool maybeGC(Zone *zone);
+    void maybePeriodicFullGC();
     void minorGC(JS::gcreason::Reason reason);
     void minorGC(JSContext *cx, JS::gcreason::Reason reason);
     void gcIfNeeded(JSContext *cx);
@@ -487,7 +488,7 @@ class GCRuntime
     void getNextZoneGroup();
     void endMarkingZoneGroup();
     void beginSweepingZoneGroup();
-    bool releaseObservedTypes();
+    bool shouldReleaseObservedTypes();
     void endSweepingZoneGroup();
     bool sweepPhase(SliceBudget &sliceBudget);
     void endSweepPhase(JSGCInvocationKind gckind, bool lastGC);
@@ -567,7 +568,6 @@ class GCRuntime
     bool                  chunkAllocationSinceLastGC;
     int64_t               nextFullGCTime;
     int64_t               lastGCTime;
-    int64_t               jitReleaseTime;
 
     JSGCMode              mode;
 
@@ -588,6 +588,12 @@ class GCRuntime
 
 
     volatile uintptr_t    isNeeded;
+
+    
+    uint64_t              majorGCNumber;
+
+    
+    uint64_t              jitReleaseNumber;
 
     
     uint64_t              number;
@@ -623,6 +629,9 @@ class GCRuntime
 
     
     bool                  sweepOnBackgroundThread;
+
+    
+    bool                  releaseObservedTypes;
 
     
     bool                  foundBlackGrayEdges;
