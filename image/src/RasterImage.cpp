@@ -24,6 +24,7 @@
 #include "nsIThreadPool.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsIObserverService.h"
+#include "SurfaceCache.h"
 #include "FrameAnimator.h"
 
 #include "nsPNGDecoder.h"
@@ -66,6 +67,12 @@ using std::ceil;
 
 #define DECODE_FLAGS_MASK (imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA | imgIContainer::FLAG_DECODE_NO_COLORSPACE_CONVERSION)
 #define DECODE_FLAGS_DEFAULT 0
+
+static uint32_t
+DecodeFlags(uint32_t aFlags)
+{
+  return aFlags & DECODE_FLAGS_MASK;
+}
 
 
 #if defined(PR_LOGGING)
@@ -184,184 +191,141 @@ DiscardingEnabled()
   return enabled;
 }
 
-class ScaleRequest
+class ScaleRunner : public nsRunnable
 {
-public:
-  ScaleRequest(RasterImage* aImage,
-               const nsIntSize& aSize,
-               RawAccessFrameRef&& aSrcRef)
-    : weakImage(aImage)
-    , srcRef(Move(aSrcRef))
-    , srcRect(srcRef->GetRect())
-    , dstSize(aSize)
-    , done(false)
-    , stopped(false)
+  enum ScaleState
   {
-    MOZ_ASSERT(NS_IsMainThread());
-    MOZ_ASSERT(!srcRef->GetIsPaletted());
+    eNew,
+    eReady,
+    eFinish,
+    eFinishWithError
+  };
+
+public:
+  ScaleRunner(RasterImage* aImage,
+              uint32_t aImageFlags,
+              const nsIntSize& aSize,
+              RawAccessFrameRef&& aSrcRef)
+    : mImage(aImage)
+    , mSrcRef(Move(aSrcRef))
+    , mDstSize(aSize)
+    , mImageFlags(aImageFlags)
+    , mState(eNew)
+  {
+    MOZ_ASSERT(!mSrcRef->GetIsPaletted());
     MOZ_ASSERT(aSize.width > 0 && aSize.height > 0);
   }
 
-  
-  bool AcquireResources()
+  bool Init()
   {
     MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mState == eNew, "Calling Init() twice?");
 
-    nsRefPtr<RasterImage> image = weakImage.get();
-    if (!image) {
+    
+    
+    nsRefPtr<imgFrame> tentativeDstFrame = new imgFrame();
+    nsresult rv =
+      tentativeDstFrame->InitForDecoder(mDstSize, SurfaceFormat::B8G8R8A8);
+    if (NS_FAILED(rv)) {
       return false;
     }
 
-    if (!dstFrame) {
-      
-      
-      if (NS_FAILED(image->LockImage())) {
-        return false;
-      }
-
-      
-      
-      nsRefPtr<imgFrame> tentativeDstFrame = new imgFrame();
-      nsresult rv =
-        tentativeDstFrame->InitForDecoder(dstSize, SurfaceFormat::B8G8R8A8);
-      if (NS_FAILED(rv)) {
-        return false;
-      }
-
-      
-      
-      RawAccessFrameRef tentativeDstRef = tentativeDstFrame->RawAccessRef();
-      if (!tentativeDstRef) {
-        return false;
-      }
-
-      dstFrame = tentativeDstFrame.forget();
-      dstRef = Move(tentativeDstRef);
+    
+    
+    RawAccessFrameRef tentativeDstRef = tentativeDstFrame->RawAccessRef();
+    if (!tentativeDstRef) {
+      return false;
     }
+
+    
+    mDstRef = Move(tentativeDstRef);
+    mState = eReady;
+
+    
+    
+    SurfaceCache::Insert(mDstRef.get(), ImageKey(mImage.get()),
+                         RasterSurfaceKey(mDstSize.ToIntSize(), mImageFlags));
 
     return true;
   }
 
-  
-  void ReleaseResources()
+  NS_IMETHOD Run() MOZ_OVERRIDE
   {
-    MOZ_ASSERT(NS_IsMainThread());
+    if (mState == eReady) {
+      
+      uint8_t* srcData = mSrcRef->GetImageData();
+      IntSize srcSize = mSrcRef->GetSize();
+      uint32_t srcStride = mSrcRef->GetImageBytesPerRow();
+      uint8_t* dstData = mDstRef->GetImageData();
+      uint32_t dstStride = mDstRef->GetImageBytesPerRow();
+      SurfaceFormat srcFormat = mSrcRef->GetFormat();
 
-    nsRefPtr<RasterImage> image = weakImage.get();
-    if (image) {
-      image->UnlockImage();
-    }
+      
+      bool succeeded =
+        gfx::Scale(srcData, srcSize.width, srcSize.height, srcStride,
+                   dstData, mDstSize.width, mDstSize.height, dstStride,
+                   srcFormat);
 
-    if (DiscardingEnabled() && dstFrame) {
-      dstFrame->SetDiscardable();
-    }
-
-    
-    
-    srcRef.reset();
-    dstRef.reset();
-  }
-
-  
-  WeakPtr<RasterImage> weakImage;
-  nsRefPtr<imgFrame> dstFrame;
-  RawAccessFrameRef srcRef;
-  RawAccessFrameRef dstRef;
-
-  
-  nsIntRect srcRect;
-  nsIntSize dstSize;
-  bool done;
-
-  
-  
-  
-  bool stopped;
-};
-
-class DrawRunner : public nsRunnable
-{
-public:
-  explicit DrawRunner(ScaleRequest* request)
-   : mScaleRequest(request)
-  {}
-
-  NS_IMETHOD Run()
-  {
-    
-    nsRefPtr<RasterImage> image = mScaleRequest->weakImage.get();
-
-    
-    
-    mScaleRequest->ReleaseResources();
-
-    if (image) {
-      RasterImage::ScaleStatus status;
-      if (mScaleRequest->done) {
-        status = RasterImage::SCALE_DONE;
-      } else {
-        status = RasterImage::SCALE_INVALID;
+      if (succeeded) {
+        
+        mDstRef->ImageUpdated(mDstRef->GetRect());
+        MOZ_ASSERT(mDstRef->ImageComplete(),
+                   "Incomplete, but just updated the entire frame");
+        if (DiscardingEnabled()) {
+          mDstRef->SetDiscardable();
+        }
       }
 
-      image->ScalingDone(mScaleRequest, status);
-    }
-
-    return NS_OK;
-  }
-
-private: 
-  nsAutoPtr<ScaleRequest> mScaleRequest;
-};
-
-class ScaleRunner : public nsRunnable
-{
-public:
-  ScaleRunner(RasterImage* aImage,
-              const nsIntSize& aSize,
-              RawAccessFrameRef&& aSrcRef)
-  {
-    nsAutoPtr<ScaleRequest> req(new ScaleRequest(aImage, aSize, Move(aSrcRef)));
-    if (!req->AcquireResources()) {
-      return;
-    }
-
-    aImage->ScalingStart(req);
-    mScaleRequest = req;
-  }
-
-  NS_IMETHOD Run()
-  {
-    ScaleRequest* req = mScaleRequest.get();
-
-    if (!req->stopped) {
       
-      uint8_t* srcData = req->srcRef->GetImageData();
-      uint8_t* dstData = req->dstRef->GetImageData();
-      uint32_t srcStride = req->srcRef->GetImageBytesPerRow();
-      uint32_t dstStride = req->dstRef->GetImageBytesPerRow();
-      SurfaceFormat srcFormat = req->srcRef->GetFormat();
+      
+      mState = succeeded ? eFinish : eFinishWithError;
+      NS_DispatchToMainThread(this);
+    } else if (mState == eFinish) {
+      MOZ_ASSERT(NS_IsMainThread());
+      MOZ_ASSERT(mDstRef, "Should have a valid scaled frame");
 
       
-      req->done =
-        gfx::Scale(srcData, req->srcRect.width, req->srcRect.height, srcStride,
-                   dstData, req->dstSize.width, req->dstSize.height, dstStride,
-                   srcFormat);
+      nsRefPtr<RasterImage> image = mImage.get();
+      if (image) {
+        image->NotifyNewScaledFrame();
+      }
+
+      
+      mSrcRef.reset();
+      mDstRef.reset();
+    } else if (mState == eFinishWithError) {
+      MOZ_ASSERT(NS_IsMainThread());
+      NS_WARNING("HQ scaling failed");
+
+      
+      SurfaceCache::RemoveIfPresent(ImageKey(mImage.get()),
+                                    RasterSurfaceKey(mDstSize.ToIntSize(),
+                                                     mImageFlags));
+
+      
+      mSrcRef.reset();
+      mDstRef.reset();
     } else {
-      req->done = false;
+      
+      MOZ_ASSERT(false, "Need to call Init() before dispatching");
     }
-
-    
-    
-    nsRefPtr<DrawRunner> runner = new DrawRunner(mScaleRequest.forget());
-    NS_DispatchToMainThread(runner);
 
     return NS_OK;
   }
-
-  bool IsOK() const { return !!mScaleRequest; }
 
 private:
-  nsAutoPtr<ScaleRequest> mScaleRequest;
+  virtual ~ScaleRunner()
+  {
+    MOZ_ASSERT(!mSrcRef && !mDstRef,
+               "Should have released strong refs in Run()");
+  }
+
+  WeakPtr<RasterImage> mImage;
+  RawAccessFrameRef    mSrcRef;
+  RawAccessFrameRef    mDstRef;
+  const nsIntSize      mDstSize;
+  uint32_t             mImageFlags;
+  ScaleState           mState;
 };
 
  StaticRefPtr<RasterImage::DecodePool> RasterImage::DecodePool::sSingleton;
@@ -403,8 +367,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mFinishing(false),
   mInUpdateImageContainer(false),
   mWantFullDecode(false),
-  mPendingError(false),
-  mScaleRequest(nullptr)
+  mPendingError(false)
 {
   mStatusTrackerInit = new imgStatusTrackerInit(this, aStatusTracker);
 
@@ -451,6 +414,9 @@ RasterImage::~RasterImage()
       curframe->UnlockImageData();
     }
   }
+
+  
+  SurfaceCache::Discard(this);
 
   mAnim = nullptr;
 
@@ -1068,13 +1034,7 @@ size_t
 RasterImage::SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
                                                      MallocSizeOf aMallocSizeOf) const
 {
-  size_t n = mFrameBlender.SizeOfDecodedWithComputedFallbackIfHeap(aLocation, aMallocSizeOf);
-
-  if (mScaleResult.status == SCALE_DONE) {
-    n += mScaleResult.frame->SizeOfExcludingThisWithComputedFallbackIfHeap(aLocation, aMallocSizeOf);
-  }
-
-  return n;
+  return mFrameBlender.SizeOfDecodedWithComputedFallbackIfHeap(aLocation, aMallocSizeOf);
 }
 
 size_t
@@ -1946,10 +1906,6 @@ RasterImage::Discard(bool force)
   mFrameBlender.Discard();
 
   
-  mScaleResult.status = SCALE_INVALID;
-  mScaleResult.frame = nullptr;
-
-  
   mMultipartDecodedFrame = nullptr;
 
   
@@ -2521,92 +2477,76 @@ RasterImage::SyncDecode()
 }
 
 bool
-RasterImage::CanQualityScale(const gfx::Size& scale)
+RasterImage::CanScale(GraphicsFilter aFilter,
+                      const nsIntSize& aSize,
+                      uint32_t aFlags)
 {
+#ifndef MOZ_ENABLE_SKIA
   
-  if (scale.width == 1.0 && scale.height == 1.0)
-    return false;
-
-  
-  if (scale.width > 1.0 || scale.height > 1.0) {
-    uint32_t scaled_size = static_cast<uint32_t>(mSize.width * mSize.height * scale.width * scale.height);
-    if (scaled_size > gHQUpscalingMaxSize)
-      return false;
-  }
-
-  return true;
-}
-
-bool
-RasterImage::CanScale(GraphicsFilter aFilter, gfx::Size aScale, uint32_t aFlags)
-{
-
-#ifdef MOZ_ENABLE_SKIA
-  
-  
-  
-  
-  if (gHQDownscaling && aFilter == GraphicsFilter::FILTER_GOOD &&
-      !mAnim && mDecoded && !mMultipart && CanQualityScale(aScale) &&
-      (aFlags & imgIContainer::FLAG_HIGH_QUALITY_SCALING)) {
-    gfxFloat factor = gHQDownscalingMinFactor / 1000.0;
-
-    return (aScale.width < factor || aScale.height < factor);
-  }
-#endif
-
   return false;
-}
+#else
+  
+  
+  
+  
+  
+  if (!gHQDownscaling || !mDecoded ||
+      !(aFlags & imgIContainer::FLAG_HIGH_QUALITY_SCALING) ||
+      aFilter != GraphicsFilter::FILTER_GOOD) {
+    return false;
+  }
 
-void
-RasterImage::ScalingStart(ScaleRequest* request)
-{
-  MOZ_ASSERT(request);
-  mScaleResult.scaledSize = request->dstSize;
-  mScaleResult.status = SCALE_PENDING;
-  mScaleRequest = request;
-}
+  
+  
+  if (mAnim || mMultipart) {
+    return false;
+  }
 
-void
-RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
-{
-  MOZ_ASSERT(status == SCALE_DONE || status == SCALE_INVALID);
-  MOZ_ASSERT(request);
+  
+  if (aSize == mSize) {
+    return false;
+  }
 
-  if (status == SCALE_DONE) {
-    MOZ_ASSERT(request->done);
-
-    mScaleResult.status = SCALE_DONE;
-    mScaleResult.frame = request->dstFrame.forget();
-    mScaleResult.scaledSize = request->dstSize;
-
-    mScaleResult.frame->ImageUpdated(mScaleResult.frame->GetRect());
-
-    if (mStatusTracker) {
-      mStatusTracker->FrameChanged(&request->srcRect);
+  
+  if (aSize.width > mSize.width || aSize.height > mSize.height) {
+    uint32_t scaledSize = static_cast<uint32_t>(aSize.width * aSize.height);
+    if (scaledSize > gHQUpscalingMaxSize) {
+      return false;
     }
-  } else {
-    mScaleResult.status = SCALE_INVALID;
-    mScaleResult.frame = nullptr;
+  }
+
+  
+  if (!SurfaceCache::CanHold(aSize.ToIntSize())) {
+    return false;
   }
 
   
   
   
-  if (mScaleRequest == request) {
-    mScaleRequest = nullptr;
+  gfx::Size scale(double(aSize.width) / mSize.width,
+                  double(aSize.height) / mSize.height);
+  gfxFloat minFactor = gHQDownscalingMinFactor / 1000.0;
+  return (scale.width < minFactor || scale.height < minFactor);
+#endif
+}
+
+void
+RasterImage::NotifyNewScaledFrame()
+{
+  if (mStatusTracker) {
+    
+    
+    
+    nsIntRect invalidationRect(0, 0, mSize.width, mSize.height);
+    mStatusTracker->FrameChanged(&invalidationRect);
   }
 }
 
 void
-RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
+RasterImage::RequestScale(imgFrame* aFrame,
+                          uint32_t aFlags,
+                          const nsIntSize& aSize)
 {
-  
-  
-  if (mLockCount != 1) {
-    return;
-  }
-
   
   RawAccessFrameRef frameRef = aFrame->RawAccessRef();
   if (!frameRef) {
@@ -2614,12 +2554,13 @@ RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
   }
 
   
-  if (mScaleRequest) {
-    mScaleRequest->stopped = true;
+  if (aFrame->NeedsPadding()) {
+    return;
   }
 
-  nsRefPtr<ScaleRunner> runner = new ScaleRunner(this, aSize, Move(frameRef));
-  if (runner->IsOK()) {
+  nsRefPtr<ScaleRunner> runner =
+    new ScaleRunner(this, DecodeFlags(aFlags), aSize, Move(frameRef));
+  if (runner->Init()) {
     if (!sScaleWorkerThread) {
       NS_NewNamedThread("Image Scaler", getter_AddRefs(sScaleWorkerThread));
       ClearOnShutdown(&sScaleWorkerThread);
@@ -2638,24 +2579,20 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
                                           uint32_t aFlags)
 {
   DrawableFrameRef frameRef;
-  gfx::Size scale(double(aSize.width) / mSize.width,
-                  double(aSize.height) / mSize.height);
 
-  if (CanScale(aFilter, scale, aFlags) && !aFrameRef->IsSinglePixel()) {
-    
-    
-    
-    
-    
-    if (mScaleResult.status == SCALE_DONE && mScaleResult.scaledSize == aSize) {
-      frameRef = mScaleResult.frame->DrawableRef();
+  if (CanScale(aFilter, aSize, aFlags) && !aFrameRef->IsSinglePixel()) {
+    frameRef =
+      SurfaceCache::Lookup(ImageKey(this),
+                           RasterSurfaceKey(aSize.ToIntSize(),
+                                            DecodeFlags(aFlags)));
+    if (!frameRef) {
+      
+      
+      
+      RequestScale(aFrameRef.get(), aFlags, aSize);
     }
-    if (!frameRef &&
-        (mScaleResult.status != SCALE_PENDING || mScaleResult.scaledSize != aSize)) {
-      
-      
-      
-      RequestScale(aFrameRef.get(), aSize);
+    if (frameRef && !frameRef->ImageComplete()) {
+      frameRef.reset();  
     }
   }
 
@@ -2669,13 +2606,12 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
   
   nsIntRect finalFrameRect = frameRef->GetRect();
   if (finalFrameRect.Size() != aSize) {
+    gfx::Size scale(double(aSize.width) / mSize.width,
+                    double(aSize.height) / mSize.height);
     aContext->Multiply(gfxMatrix::Scaling(scale.width, scale.height));
     region.Scale(1.0 / scale.width, 1.0 / scale.height);
   }
 
-  
-  
-  
   
   
   
@@ -3678,22 +3614,22 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
   }
 
   nsIntSize destSize(ceil(aDest.width), ceil(aDest.height));
-  gfx::Size scale(double(destSize.width) / mSize.width,
-                  double(destSize.height) / mSize.height);
 
-  if (CanScale(aFilter, scale, aFlags)) {
-    if (mScaleResult.scaledSize == destSize) {
-      if (mScaleResult.status == SCALE_DONE) {
+  if (CanScale(aFilter, destSize, aFlags)) {
+    DrawableFrameRef frameRef =
+      SurfaceCache::Lookup(ImageKey(this),
+                           RasterSurfaceKey(destSize.ToIntSize(),
+                                            DecodeFlags(aFlags)));
+
+    if (frameRef && frameRef->ImageComplete()) {
         return destSize;  
-      } else if (mScaleResult.status == SCALE_PENDING) {
-        return mSize;     
-      }
     }
-
-    
-    DrawableFrameRef frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
-    if (frameRef) {
-      RequestScale(frameRef.get(), destSize);
+    if (!frameRef) {
+      
+      frameRef = GetFrame(GetRequestedFrameIndex(aWhichFrame));
+      if (frameRef) {
+        RequestScale(frameRef.get(), aFlags, destSize);
+      }
     }
   }
 
