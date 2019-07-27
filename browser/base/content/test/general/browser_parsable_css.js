@@ -24,8 +24,6 @@ const kWhitelist = [
   
   {sourceName: /highlighter\.css/i,
    errorMessage: /Unknown pseudo-class.*moz-native-anonymous/i},
-  
-  {sourceName: /pocket\/panels\/css\/.*\.css/i},
 ];
 
 let moduleLocation = gTestPath.replace(/\/[^\/]*$/i, "/parsingTestHelpers.jsm");
