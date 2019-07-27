@@ -633,6 +633,15 @@ loop.shared.views = (function(_, l10n) {
       };
     },
 
+    componentWillReceiveProps: function(nextProps) {
+      
+      
+      if (this.props.checked !== nextProps.checked &&
+          this.state.checked !== nextProps.checked) {
+        this.setState({ checked: nextProps.checked });
+      }
+    },
+
     getInitialState: function() {
       return {
         checked: this.props.checked,
