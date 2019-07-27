@@ -137,6 +137,7 @@ nsRuleNode::ChildrenHashOps = {
 
 
 
+
 void
 nsRuleNode::EnsureBlockDisplay(uint8_t& display,
                                bool aConvertListItem )
@@ -149,6 +150,7 @@ nsRuleNode::EnsureBlockDisplay(uint8_t& display,
       break;
     } 
   case NS_STYLE_DISPLAY_NONE :
+  case NS_STYLE_DISPLAY_CONTENTS :
     
   case NS_STYLE_DISPLAY_TABLE :
   case NS_STYLE_DISPLAY_BLOCK :
@@ -5559,7 +5561,22 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
     
     
 
-    if (nsCSSPseudoElements::firstLetter == aContext->GetPseudo()) {
+    nsIAtom* pseudo = aContext->GetPseudo();
+    if (pseudo && display->mDisplay == NS_STYLE_DISPLAY_CONTENTS) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      display->mOriginalDisplay = display->mDisplay = NS_STYLE_DISPLAY_INLINE;
+      canStoreInRuleTree = false;
+    }
+
+    if (nsCSSPseudoElements::firstLetter == pseudo) {
       
       
       

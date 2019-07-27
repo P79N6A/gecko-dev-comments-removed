@@ -1120,6 +1120,9 @@ KTableValue nsCSSProps::kDisplayKTable[] = {
   eCSSKeyword_ruby_base_container, NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER,
   eCSSKeyword_ruby_text,           NS_STYLE_DISPLAY_RUBY_TEXT,
   eCSSKeyword_ruby_text_container, NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER,
+  
+  
+  eCSSKeyword_contents,            NS_STYLE_DISPLAY_CONTENTS,
   eCSSKeyword_UNKNOWN,-1
 };
 
