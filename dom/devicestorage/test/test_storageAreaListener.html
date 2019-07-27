@@ -53,6 +53,9 @@
 		}
 	});
 
+	storage = navigator.getDeviceStorageByNameAndType(volName, "sdcard");
+	ok(!storage, "storage area doesn't exist");
+
 	volumeService.createFakeVolume(volName, mountPoint);
 
 </script>
