@@ -6498,10 +6498,20 @@ nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
                                   bool aIsSandboxed,
                                   bool aForceInherit)
 {
-  if (!aLoadingPrincipal) {
+  nsCOMPtr<nsIPrincipal> loadingPrincipal = aLoadingPrincipal;
+  if (!loadingPrincipal) {
+    if (!aIsSandboxed) {
+      
+      return false;
+    }
+
     
-    MOZ_ASSERT(!aIsSandboxed);
-    return false;
+    
+    
+    loadingPrincipal = do_CreateInstance(NS_NULLPRINCIPAL_CONTRACTID);
+    if (!loadingPrincipal) {
+      NS_RUNTIMEABORT("Failed to create a principal?");
+    }
   }
 
   
@@ -6541,14 +6551,14 @@ nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
       
       
       (URIIsLocalFile(aURI) &&
-       NS_SUCCEEDED(aLoadingPrincipal->CheckMayLoad(aURI, false, false)) &&
+       NS_SUCCEEDED(loadingPrincipal->CheckMayLoad(aURI, false, false)) &&
        
        
-       !IsSystemPrincipal(aLoadingPrincipal));
+       !IsSystemPrincipal(loadingPrincipal));
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo =
-    new LoadInfo(aLoadingPrincipal,
+    new LoadInfo(loadingPrincipal,
                  inherit ?
                    LoadInfo::eInheritPrincipal : LoadInfo::eDontInheritPrincipal,
                  aIsSandboxed ? LoadInfo::eSandboxed : LoadInfo::eNotSandboxed);
