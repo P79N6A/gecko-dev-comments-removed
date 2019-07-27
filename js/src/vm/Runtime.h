@@ -381,23 +381,16 @@ struct RegExpTestCache
 
 
 
-class FreeOp : public JSFreeOp {
-    bool        shouldFreeLater_;
-
+class FreeOp : public JSFreeOp
+{
   public:
     static FreeOp *get(JSFreeOp *fop) {
         return static_cast<FreeOp *>(fop);
     }
 
-    FreeOp(JSRuntime *rt, bool shouldFreeLater)
-      : JSFreeOp(rt),
-        shouldFreeLater_(shouldFreeLater)
-    {
-    }
-
-    bool shouldFreeLater() const {
-        return shouldFreeLater_;
-    }
+    FreeOp(JSRuntime *rt)
+      : JSFreeOp(rt)
+    {}
 
     inline void free_(void *p);
 
@@ -407,16 +400,6 @@ class FreeOp : public JSFreeOp {
             p->~T();
             free_(p);
         }
-    }
-
-    static void staticAsserts() {
-        
-
-
-
-
-
-        JS_STATIC_ASSERT(offsetof(FreeOp, shouldFreeLater_) == sizeof(JSFreeOp));
     }
 };
 
@@ -1459,10 +1442,6 @@ VersionIsKnown(JSVersion version)
 inline void
 FreeOp::free_(void *p)
 {
-    if (shouldFreeLater()) {
-        runtime()->gc.freeLater(p);
-        return;
-    }
     js_free(p);
 }
 

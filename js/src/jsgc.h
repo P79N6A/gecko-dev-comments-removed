@@ -1091,19 +1091,6 @@ class GCHelperState
     };
 
     
-
-
-
-
-
-
-
-
-
-    static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
-    static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
-
-    
     JSRuntime *const rt;
 
     
@@ -1126,16 +1113,9 @@ class GCHelperState
     bool              sweepFlag;
     bool              shrinkFlag;
 
-    Vector<void **, 16, js::SystemAllocPolicy> freeVector;
-    void            **freeCursor;
-    void            **freeCursorEnd;
-
     bool              backgroundAllocation;
 
     friend class js::gc::ArenaLists;
-
-    void
-    replenishAndFreeLater(void *ptr);
 
     static void freeElementsAndArray(void **array, void **end) {
         JS_ASSERT(array <= end);
@@ -1155,8 +1135,6 @@ class GCHelperState
         thread(nullptr),
         sweepFlag(false),
         shrinkFlag(false),
-        freeCursor(nullptr),
-        freeCursorEnd(nullptr),
         backgroundAllocation(true)
     { }
 
@@ -1201,14 +1179,6 @@ class GCHelperState
     bool shouldShrink() const {
         JS_ASSERT(isBackgroundSweeping());
         return shrinkFlag;
-    }
-
-    void freeLater(void *ptr) {
-        JS_ASSERT(!isBackgroundSweeping());
-        if (freeCursor != freeCursorEnd)
-            *freeCursor++ = ptr;
-        else
-            replenishAndFreeLater(ptr);
     }
 };
 
