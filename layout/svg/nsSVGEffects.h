@@ -29,6 +29,7 @@ class nsSVGClipPathFrame;
 class nsSVGPaintServerFrame;
 class nsSVGFilterFrame;
 class nsSVGMaskFrame;
+class nsSVGFilterProperty;
 
 
 
@@ -197,12 +198,19 @@ protected:
 
 
 class nsSVGFilterReference MOZ_FINAL :
-  public nsSVGRenderingObserverProperty, public nsISVGFilterReference {
+  public nsSVGIDRenderingObserver, public nsISVGFilterReference {
 public:
-  nsSVGFilterReference(nsIURI *aURI, nsIFrame *aFilteredFrame)
-    : nsSVGRenderingObserverProperty(aURI, aFilteredFrame, false) {}
+  nsSVGFilterReference(nsIURI* aURI,
+                       nsIContent* aObservingContent,
+                       nsSVGFilterProperty* aFilterChainObserver)
+    : nsSVGIDRenderingObserver(aURI, aObservingContent, false)
+    , mFilterChainObserver(aFilterChainObserver)
+  {
+  }
 
   bool ReferencesValidResource() { return GetFilterFrame(); }
+
+  void DetachFromChainObserver() { mFilterChainObserver = nullptr; }
 
   
 
@@ -218,9 +226,11 @@ public:
 protected:
   virtual ~nsSVGFilterReference() {}
 
-private:
   
   virtual void DoUpdate() MOZ_OVERRIDE;
+
+private:
+  nsSVGFilterProperty* mFilterChainObserver;
 };
 
 
@@ -240,16 +250,19 @@ public:
 
   bool ReferencesValidResources();
   bool IsInObserverLists() const;
-  void Invalidate();
+  void Invalidate() { DoUpdate(); }
 
   
   NS_DECL_ISUPPORTS
 
 protected:
-  virtual ~nsSVGFilterProperty() {}
+  virtual ~nsSVGFilterProperty();
+
+  virtual void DoUpdate();
 
 private:
   nsTArray<nsRefPtr<nsSVGFilterReference>> mReferences;
+  nsSVGFrameReferenceFromProperty mFrameReference;
 };
 
 class nsSVGMarkerProperty : public nsSVGRenderingObserverProperty {
