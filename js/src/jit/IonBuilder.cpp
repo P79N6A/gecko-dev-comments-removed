@@ -717,10 +717,6 @@ IonBuilder::build()
         return false;
 
     
-    if (info().funMaybeLazy())
-        current->getSlot(info().thisSlot())->setGuard();
-
-    
     
     
     
@@ -6027,11 +6023,6 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     if (!preheader->addPredecessor(alloc(), osrBlock))
         return nullptr;
     graph().setOsrBlock(osrBlock);
-
-    
-    
-    if (info().funMaybeLazy())
-        preheader->getSlot(info().thisSlot())->setGuard();
 
     return preheader;
 }
