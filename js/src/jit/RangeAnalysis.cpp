@@ -2517,7 +2517,10 @@ MToDouble::truncate()
 bool
 MLoadTypedArrayElementStatic::needTruncation(TruncateKind kind)
 {
-    if (kind >= IndirectTruncate)
+    
+    
+    
+    if (kind == Truncate)
         setInfallible();
 
     return false;
