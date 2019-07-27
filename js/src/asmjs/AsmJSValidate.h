@@ -57,9 +57,7 @@ const size_t AsmJSPageSize = 4096;
 
 
 
-
-
-static const size_t AsmJSMappedSize = 4 * 1024ULL * 1024ULL * 1024ULL + AsmJSPageSize;
+static const size_t AsmJSMappedSize = 4 * 1024ULL * 1024ULL * 1024ULL;
 #endif
 
 
