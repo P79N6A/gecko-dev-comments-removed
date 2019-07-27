@@ -130,8 +130,8 @@ TVSource::SetCurrentChannel(nsITVChannelData* aChannelData)
     }
   }
 
-  
-  mCurrentChannel = new TVChannel(GetOwner());
+  mCurrentChannel = TVChannel::Create(GetOwner(), this, aChannelData);
+  NS_ENSURE_TRUE(mCurrentChannel, NS_ERROR_DOM_ABORT_ERR);
 
   return DispatchCurrentChannelChangedEvent(mCurrentChannel);
 }
@@ -319,8 +319,9 @@ TVSource::GetCurrentChannel() const
 nsresult
 TVSource::NotifyChannelScanned(nsITVChannelData* aChannelData)
 {
-  
-  nsRefPtr<TVChannel> channel = new TVChannel(GetOwner());
+  nsRefPtr<TVChannel> channel = TVChannel::Create(GetOwner(), this, aChannelData);
+  NS_ENSURE_TRUE(channel, NS_ERROR_DOM_ABORT_ERR);
+
   return DispatchScanningStateChangedEvent(TVScanningState::Scanned, channel);
 }
 
@@ -343,12 +344,11 @@ TVSource::NotifyEITBroadcasted(nsITVChannelData* aChannelData,
                                nsITVProgramData** aProgramDataList,
                                uint32_t aCount)
 {
-  
-  nsRefPtr<TVChannel> channel = new TVChannel(GetOwner());
+  nsRefPtr<TVChannel> channel = TVChannel::Create(GetOwner(), this, aChannelData);
   Sequence<OwningNonNull<TVProgram>> programs;
   for (uint32_t i = 0; i < aCount; i++) {
-    
-    nsRefPtr<TVProgram> program = new TVProgram(GetOwner());
+    nsRefPtr<TVProgram> program =
+      new TVProgram(GetOwner(), channel, aProgramDataList[i]);
     *programs.AppendElement() = program;
   }
   return DispatchEITBroadcastedEvent(programs);
