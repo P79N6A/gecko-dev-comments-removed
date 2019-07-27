@@ -39,10 +39,7 @@ JSObject* GetDefaultScopeFromJSContext(JSContext *cx);
 
 
 
-
-
-
-nsresult NS_CreateJSArgv(JSContext *aContext, uint32_t aArgc, void *aArgv,
-                         nsIJSArgArray **aArray);
+nsresult NS_CreateJSArgv(JSContext *aContext, uint32_t aArgc,
+                         const JS::Value* aArgv, nsIJSArgArray **aArray);
 
 #endif 
