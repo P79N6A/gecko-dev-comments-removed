@@ -420,7 +420,7 @@ LinearScanAllocator::reifyAllocations()
                     return false;
             }
         }
-        else if (interval->start() > entryOf(insData[interval->start()].block()) &&
+        else if (interval->start() > entryOf(insData[interval->start()]->block()) &&
                  (!reg->canonicalSpill() ||
                   (reg->canonicalSpill() == interval->getAllocation() &&
                    !reg->mustSpillAtDefinition()) ||
@@ -437,15 +437,15 @@ LinearScanAllocator::reifyAllocations()
             
             LiveInterval *prevInterval = reg->getInterval(interval->index() - 1);
             CodePosition start = interval->start();
-            InstructionData *data = &insData[start];
+            LInstruction *ins = insData[start];
 
-            MOZ_ASSERT(start == inputOf(data->ins()) || start == outputOf(data->ins()));
+            MOZ_ASSERT(start == inputOf(ins) || start == outputOf(ins));
 
             if (start.subpos() == CodePosition::INPUT) {
-                if (!moveInput(inputOf(data->ins()), prevInterval, interval, reg->type()))
+                if (!moveInput(inputOf(ins), prevInterval, interval, reg->type()))
                     return false;
             } else {
-                if (!moveAfter(outputOf(data->ins()), prevInterval, interval, reg->type()))
+                if (!moveAfter(outputOf(ins), prevInterval, interval, reg->type()))
                     return false;
             }
 
@@ -789,7 +789,7 @@ LinearScanAllocator::assign(LAllocation allocation)
 
             
             
-            InstructionData *other = &insData[current->start()];
+            LInstruction *other = insData[current->start()];
             uint32_t loopDepthAtDef = reg->block()->mir()->loopDepth();
             uint32_t loopDepthAtSpill = other->block()->mir()->loopDepth();
             if (loopDepthAtSpill > loopDepthAtDef)
