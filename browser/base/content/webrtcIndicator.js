@@ -25,8 +25,9 @@ function init(event) {
     popup.addEventListener("command", onPopupMenuCommand);
   }
 
-  document.getElementById("firefoxButton")
-          .addEventListener("click", onFirefoxButtonClick);
+  let fxButton = document.getElementById("firefoxButton");
+  fxButton.addEventListener("click", onFirefoxButtonClick);
+  fxButton.addEventListener("mousedown", PositionHandler);
 
   updateIndicatorState();
 }
@@ -66,8 +67,9 @@ function updateIndicatorState() {
   }
 
   
+  
   window.sizeToContent();
-  window.moveTo((screen.availWidth - document.documentElement.clientWidth) / 2, 0);
+  PositionHandler.adjustPosition();
 }
 
 function updateWindowAttr(attr, value) {
@@ -121,3 +123,55 @@ function onFirefoxButtonClick(event) {
   let activeStreams = webrtcUI.getActiveStreams(true, true, true);
   activeStreams[0].browser.ownerDocument.defaultView.focus();
 }
+
+let PositionHandler = {
+  positionCustomized: false,
+  threshold: 10,
+  adjustPosition: function() {
+    if (!this.positionCustomized) {
+      
+      window.moveTo((screen.width - document.documentElement.clientWidth) / 2, 0);
+    } else {
+      
+      this.setXPosition(window.screenX);
+    }
+  },
+  setXPosition: function(desiredX) {
+    
+    let desiredX = Math.max(desiredX, screen.availLeft);
+    let maxX =
+      screen.availLeft + screen.availWidth - document.documentElement.clientWidth;
+    window.moveTo(Math.min(desiredX, maxX), 0);
+  },
+  handleEvent: function(aEvent) {
+    switch (aEvent.type) {
+      case "mousedown":
+        if (aEvent.button != 0 || aEvent.defaultPrevented)
+          return;
+
+        this._startMouseX = aEvent.screenX;
+        this._startWindowX = window.screenX;
+        this._deltaX = this._startMouseX - this._startWindowX;
+
+        window.addEventListener("mousemove", this);
+        window.addEventListener("mouseup", this);
+        break;
+
+      case "mousemove":
+        let moveOffset = Math.abs(aEvent.screenX - this._startMouseX);
+        if (this._dragFullyStarted || moveOffset > this.threshold) {
+          this.setXPosition(aEvent.screenX - this._deltaX);
+          this._dragFullyStarted = true;
+        }
+        break;
+
+      case "mouseup":
+        this._dragFullyStarted = false;
+        window.removeEventListener("mousemove", this);
+        window.removeEventListener("mouseup", this);
+        this.positionCustomized =
+          Math.abs(this._startWindowX - window.screenX) >= this.threshold;
+        break;
+    }
+  }
+};
