@@ -349,7 +349,6 @@ let PerformanceController = {
   
 
 
-
   _getLatest: function () {
     for (let i = this._recordings.length - 1; i >= 0; i--) {
       return this._recordings[i];
@@ -385,6 +384,7 @@ EventEmitter.decorate(PerformanceController);
 const Prefs = new ViewHelpers.Prefs("devtools.profiler", {
   flattenTreeRecursion: ["Bool", "ui.flatten-tree-recursion"],
   showPlatformData: ["Bool", "ui.show-platform-data"],
+  showIdleBlocks: ["Bool", "ui.show-idle-blocks"],
 });
 
 

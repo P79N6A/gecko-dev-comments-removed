@@ -1432,6 +1432,7 @@ pref("devtools.performance.ui.show-timeline-memory", false);
 
 pref("devtools.profiler.ui.flatten-tree-recursion", true);
 pref("devtools.profiler.ui.show-platform-data", false);
+pref("devtools.profiler.ui.show-idle-blocks", true);
 
 
 pref("devtools.cache.disabled", false);

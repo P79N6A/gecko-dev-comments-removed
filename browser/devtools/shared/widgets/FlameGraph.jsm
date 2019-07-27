@@ -838,6 +838,8 @@ let FlameGraphUtils = {
 
 
 
+
+
   createFlameGraphDataFromSamples: function(samples, options = {}, out = []) {
     
     
@@ -867,6 +869,11 @@ let FlameGraphUtils = {
       
       if (options.filterFrames) {
         frames = frames.filter(options.filterFrames);
+      }
+
+      
+      if (options.showIdleBlocks && frames.length == 0) {
+        frames = [{ location: options.showIdleBlocks || "" }];
       }
 
       for (let { location } of frames) {
