@@ -2514,16 +2514,19 @@ Debugger::removeDebuggeeGlobalUnderGC(FreeOp *fop, GlobalObject *global,
         global->compartment()->removeDebuggeeUnderGC(fop, global, invalidate, compartmentEnum);
 }
 
+static inline ScriptSourceObject *GetSourceReferent(JSObject *obj);
 
 
 
 
-class Debugger::ScriptQuery {
+
+class MOZ_STACK_CLASS Debugger::ScriptQuery
+{
   public:
     
     ScriptQuery(JSContext *cx, Debugger *dbg):
         cx(cx), debugger(dbg), compartments(cx->runtime()), url(cx), displayURLString(cx),
-        innermostForCompartment(cx->runtime())
+        source(cx), innermostForCompartment(cx->runtime())
     {}
 
     
@@ -2580,13 +2583,46 @@ class Debugger::ScriptQuery {
         }
 
         
+        RootedValue debuggerSource(cx);
+        if (!JSObject::getProperty(cx, query, query, cx->names().source, &debuggerSource))
+            return false;
+        if (!debuggerSource.isUndefined()) {
+            if (!debuggerSource.isObject() ||
+                debuggerSource.toObject().getClass() != &DebuggerSource_class) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+                                     "query object's 'source' property",
+                                     "not undefined nor a Debugger.Source object");
+                return false;
+            }
+
+            source = GetSourceReferent(&debuggerSource.toObject());
+        }
+
+        
+        RootedValue displayURL(cx);
+        if (!JSObject::getProperty(cx, query, query, cx->names().displayURL, &displayURL))
+            return false;
+        if (!displayURL.isUndefined() && !displayURL.isString()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+                                 "query object's 'displayURL' property",
+                                 "neither undefined nor a string");
+            return false;
+        }
+
+        if (displayURL.isString()) {
+            displayURLString = displayURL.toString()->ensureLinear(cx);
+            if (!displayURLString)
+                return false;
+        }
+
+        
         RootedValue lineProperty(cx);
         if (!JSObject::getProperty(cx, query, query, cx->names().line, &lineProperty))
             return false;
         if (lineProperty.isUndefined()) {
             hasLine = false;
         } else if (lineProperty.isNumber()) {
-            if (url.isUndefined()) {
+            if (displayURL.isUndefined() && url.isUndefined() && !source) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                                      JSMSG_QUERY_LINE_WITHOUT_URL);
                 return false;
@@ -2613,28 +2649,11 @@ class Debugger::ScriptQuery {
         innermost = ToBoolean(innermostProperty);
         if (innermost) {
             
-            if (url.isUndefined() || !hasLine) {
+            if ((displayURL.isUndefined() && url.isUndefined() && !source) || !hasLine) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                                      JSMSG_QUERY_INNERMOST_WITHOUT_LINE_URL);
                 return false;
             }
-        }
-
-        
-        RootedValue displayURL(cx);
-        if (!JSObject::getProperty(cx, query, query, cx->names().displayURL, &displayURL))
-            return false;
-        if (!displayURL.isUndefined() && !displayURL.isString()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
-                                 "query object's 'displayURL' property",
-                                 "neither undefined nor a string");
-            return false;
-        }
-
-        if (displayURL.isString()) {
-            displayURLString = displayURL.toString()->ensureLinear(cx);
-            if (!displayURLString)
-                return false;
         }
 
         return true;
@@ -2718,6 +2737,12 @@ class Debugger::ScriptQuery {
     
 
     RootedLinearString displayURLString;
+
+    
+
+
+
+    RootedScriptSource source;
 
     
     bool hasLine;
@@ -2841,6 +2866,8 @@ class Debugger::ScriptQuery {
             if (CompareChars(s, js_strlen(s), displayURLString) != 0)
                 return;
         }
+        if (source && source != script->sourceObject())
+            return;
 
         if (innermost) {
             
