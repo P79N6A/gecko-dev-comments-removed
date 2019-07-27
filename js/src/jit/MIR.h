@@ -6963,7 +6963,8 @@ class MRegExpExec
     bool writeRecoverData(CompactBufferWriter &writer) const MOZ_OVERRIDE;
 
     bool canRecoverOnBailout() const MOZ_OVERRIDE {
-        if (regexp()->isRegExp())
+        
+        if (false && regexp()->isRegExp())
             return !regexp()->toRegExp()->source()->needUpdateLastIndex();
         return false;
     }
@@ -7008,7 +7009,8 @@ class MRegExpTest
         
         
         
-        if (regexp()->isRegExp())
+        
+        if (false && regexp()->isRegExp())
             return !regexp()->toRegExp()->source()->needUpdateLastIndex();
         return false;
     }
@@ -7066,7 +7068,8 @@ class MRegExpReplace
     bool canRecoverOnBailout() const MOZ_OVERRIDE {
         
         
-        if (pattern()->isRegExp())
+        
+        if (false && pattern()->isRegExp())
             return !pattern()->toRegExp()->source()->global();
         return false;
     }
