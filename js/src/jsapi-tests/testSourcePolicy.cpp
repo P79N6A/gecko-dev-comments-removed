@@ -19,7 +19,7 @@ BEGIN_TEST(testBug795104)
     
     opts.setNoScriptRval(true);
     JS::RootedValue unused(cx);
-    CHECK(JS::Evaluate(cx, global, opts, s, strLen, &unused));
+    CHECK(JS::Evaluate(cx, opts, s, strLen, &unused));
     JS::RootedFunction fun(cx);
     JS::AutoObjectVector emptyScopeChain(cx);
     

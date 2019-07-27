@@ -3765,24 +3765,50 @@ CloneAndExecuteScript(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<JSScr
 
 namespace JS {
 
+
+
+
 extern JS_PUBLIC_API(bool)
-Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
+Evaluate(JSContext *cx, const ReadOnlyCompileOptions &options,
          SourceBufferHolder &srcBuf, JS::MutableHandleValue rval);
+
+
+
+
+
 
 extern JS_PUBLIC_API(bool)
 Evaluate(JSContext *cx, AutoObjectVector &scopeChain, const ReadOnlyCompileOptions &options,
          SourceBufferHolder &srcBuf, JS::MutableHandleValue rval);
 
+
+
+
 extern JS_PUBLIC_API(bool)
-Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
+Evaluate(JSContext *cx, const ReadOnlyCompileOptions &options,
          const char16_t *chars, size_t length, JS::MutableHandleValue rval);
 
-extern JS_PUBLIC_API(bool)
-Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
-         const char *bytes, size_t length, JS::MutableHandleValue rval);
+
+
+
+
 
 extern JS_PUBLIC_API(bool)
-Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
+Evaluate(JSContext *cx, AutoObjectVector &scopeChain, const ReadOnlyCompileOptions &options,
+         const char16_t *chars, size_t length, JS::MutableHandleValue rval);
+
+
+
+
+extern JS_PUBLIC_API(bool)
+Evaluate(JSContext *cx, const ReadOnlyCompileOptions &options,
+         const char *bytes, size_t length, JS::MutableHandleValue rval);
+
+
+
+
+extern JS_PUBLIC_API(bool)
+Evaluate(JSContext *cx, const ReadOnlyCompileOptions &options,
          const char *filename, JS::MutableHandleValue rval);
 
 } 
