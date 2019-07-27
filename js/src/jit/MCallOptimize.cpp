@@ -2053,6 +2053,12 @@ IonBuilder::inlineToInteger(CallInfo &callInfo)
     if (callInfo.argc() != 1 || callInfo.constructing())
         return InliningStatus_NotInlined;
 
+    MIRType type = callInfo.getArg(0)->type();
+
+    
+    if (!IsNumberType(type) && type != MIRType_Null && type != MIRType_Boolean)
+        return InliningStatus_NotInlined;
+
     
     if (getInlineReturnType() != MIRType_Int32)
         return InliningStatus_NotInlined;
