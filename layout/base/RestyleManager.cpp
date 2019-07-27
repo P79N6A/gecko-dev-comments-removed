@@ -1440,7 +1440,6 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
 #ifdef DEBUG
   mIsProcessingRestyles = true;
 #endif
-  mPresContext->SetProcessingRestyles(true);
 
   
   
@@ -1464,7 +1463,6 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
 #ifdef DEBUG
   mIsProcessingRestyles = false;
 #endif
-  mPresContext->SetProcessingRestyles(false);
 
   
   
@@ -1538,7 +1536,6 @@ RestyleManager::ProcessPendingRestyles()
 #ifdef DEBUG
   mIsProcessingRestyles = true;
 #endif
-  mPresContext->SetProcessingRestyles(true);
 
   
   
@@ -1575,15 +1572,12 @@ RestyleManager::ProcessPendingRestyles()
   
   
   
-  mPresContext->SetProcessingAnimationStyleChange(true);
   MOZ_ASSERT(!mIsProcessingAnimationStyleChange, "nesting forbidden");
   mIsProcessingAnimationStyleChange = true;
   mPendingAnimationRestyles.ProcessRestyles();
   MOZ_ASSERT(mIsProcessingAnimationStyleChange, "nesting forbidden");
   mIsProcessingAnimationStyleChange = false;
-  mPresContext->SetProcessingAnimationStyleChange(false);
 
-  mPresContext->SetProcessingRestyles(false);
 #ifdef DEBUG
   mIsProcessingRestyles = false;
 #endif
