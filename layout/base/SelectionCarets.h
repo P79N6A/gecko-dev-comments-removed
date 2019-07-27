@@ -259,7 +259,7 @@ private:
   DragMode mDragMode;
 
   
-  bool mUseAsyncPanZoom;
+  bool mAsyncPanZoomEnabled;
   
   bool mInAsyncPanZoomGesture;
 
