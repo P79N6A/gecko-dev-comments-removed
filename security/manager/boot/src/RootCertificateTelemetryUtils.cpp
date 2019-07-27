@@ -19,10 +19,8 @@
 
 namespace mozilla { namespace psm { 
 
-#if defined(PR_LOGGING)
 PRLogModuleInfo* gPublicKeyPinningTelemetryLog =
   PR_NewLogModule("PublicKeyPinningTelemetryService");
-#endif
 
 
 
