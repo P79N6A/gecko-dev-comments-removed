@@ -1161,14 +1161,19 @@ function testClasses() {
     
     assertError("class { constructor() { } }", SyntaxError);
 
-    function simpleMethod(id, kind, generator, args=[]) {
+    function simpleMethod(id, kind, generator, args=[], isStatic=false) {
         assertEq(generator && kind === "method", generator);
         let idN = ident(id);
         let methodMaker = generator ? genFunExpr : funExpr;
         let methodName = kind !== "method" ? null : idN;
         let methodFun = methodMaker(methodName, args.map(ident), blockStmt([]));
 
-        return classMethod(idN, methodFun, kind, false);
+        return classMethod(idN, methodFun, kind, isStatic);
+    }
+    function emptyCPNMethod(id, isStatic) {
+        return classMethod(computedName(lit(id)),
+                           funExpr(null, [], blockStmt([])),
+                           "method", isStatic);
     }
     function setClassMethods(class_, methods) {
         class_.template.body = methods;
@@ -1192,6 +1197,45 @@ function testClasses() {
     assertStmt("class Foo { constructor() { } set method(x) { } }", stmt);
 
     
+    setClassMethods(stmt, [simpleConstructor,
+                           simpleMethod("method", "method", false, [], true),
+                           simpleMethod("methodGen", "method", true, [], true),
+                           simpleMethod("getter", "get", false, [], true),
+                           simpleMethod("setter", "set", false, ["x"], true)]);
+    assertStmt(`class Foo {
+                  constructor() { };
+                  static method() { };
+                  static *methodGen() { };
+                  static get getter() { };
+                  static set setter(x) { }
+                }`, stmt);
+
+
+    
+    setClassMethods(stmt, [simpleConstructor, simpleMethod("static", "method", false, [], false)]);
+    assertStmt("class Foo{ constructor() { } static() { } }", stmt);
+    setClassMethods(stmt, [simpleMethod("static", "method", false, [], true), simpleConstructor]);
+    assertStmt("class Foo{ static static() { }; constructor() { } }", stmt);
+    setClassMethods(stmt, [simpleMethod("static", "get", false, [], true), simpleConstructor]);
+    assertStmt("class Foo { static get static() { }; constructor() { } }", stmt);
+    setClassMethods(stmt, [simpleConstructor, simpleMethod("static", "set", false, ["x"], true)]);
+    assertStmt("class Foo { constructor() { }; static set static(x) { } }", stmt);
+
+    
+    assertError("class Foo { constructor() { }; get static foo() { } }", SyntaxError);
+
+    
+    
+    assertError("class Foo { constructor() { } static prototype() { } }", SyntaxError);
+    assertError("class Foo { constructor() { } static *prototype() { } }", SyntaxError);
+    assertError("class Foo { static get prototype() { }; constructor() { } }", SyntaxError);
+    assertError("class Foo { static set prototype(x) { }; constructor() { } }", SyntaxError);
+
+    
+    setClassMethods(stmt, [simpleConstructor, emptyCPNMethod("prototype", true)]);
+    assertStmt("class Foo { constructor() { }; static [\"prototype\"]() { } }", stmt);
+
+    
     
     assertError("class Foo { }", TypeError);
 
@@ -1201,7 +1245,11 @@ function testClasses() {
     let methods = [["method() { }", simpleMethod("method", "method", false)],
                    ["*method() { }", simpleMethod("method", "method", true)],
                    ["get method() { }", simpleMethod("method", "get", false)],
-                   ["set method(x) { }", simpleMethod("method", "set", false, ["x"])]];
+                   ["set method(x) { }", simpleMethod("method", "set", false, ["x"])],
+                   ["static method() { }", simpleMethod("method", "method", false, [], true)],
+                   ["static *method() { }", simpleMethod("method", "method", true, [], true)],
+                   ["static get method() { }", simpleMethod("method", "get", false, [], true)],
+                   ["static set method(x) { }", simpleMethod("method", "set", false, ["x"], true)]];
     let i,j;
     for (i=0; i < methods.length; i++) {
         for (j=0; j < methods.length; j++) {
@@ -1218,12 +1266,8 @@ function testClasses() {
 
     
     
-    assertStmt("class Foo { constructor () { } [\"constructor\"] () { } }",
-               classStmt(ident("Foo"), null,
-                         [simpleConstructor,
-                          classMethod(computedName(lit("constructor")),
-                                      funExpr(null, [], blockStmt([])),
-                                      "method", false)]));
+    setClassMethods(stmt, [simpleConstructor, emptyCPNMethod("constructor", false)]);
+    assertStmt("class Foo { constructor () { } [\"constructor\"] () { } }", stmt);
 
     
     assertError("class Foo { *constructor() { } }", SyntaxError);
@@ -1283,6 +1327,13 @@ function testClasses() {
     assertError("class Foo { constructor()", SyntaxError);
     assertError("class Foo { constructor() {", SyntaxError);
     assertError("class Foo { constructor() { }", SyntaxError);
+    assertError("class Foo { static", SyntaxError);
+    assertError("class Foo { static y", SyntaxError);
+    assertError("class Foo { static *", SyntaxError);
+    assertError("class Foo { static *y", SyntaxError);
+    assertError("class Foo { static get", SyntaxError);
+    assertError("class Foo { static get y", SyntaxError);
+
 }
 
 if (classesEnabled())
