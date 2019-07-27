@@ -2107,10 +2107,21 @@ SetCrashEventsDir(nsIFile* aDir)
   nsString path;
   eventsDir->GetPath(path);
   eventsDirectory = reinterpret_cast<wchar_t*>(ToNewUnicode(path));
+
+  
+  nsAutoString eventsDirEnv(NS_LITERAL_STRING("MOZ_CRASHREPORTER_EVENTS_DIRECTORY="));
+  eventsDirEnv.Append(path);
+  _wputenv(eventsDirEnv.get());
 #else
   nsCString path;
   eventsDir->GetNativePath(path);
   eventsDirectory = ToNewCString(path);
+
+  
+  nsAutoCString eventsDirEnv("MOZ_CRASHREPORTER_EVENTS_DIRECTORY=");
+  eventsDirEnv.Append(path);
+  char* eventsEnv = ToNewCString(eventsDirEnv);
+  PR_SetEnv(eventsEnv);
 #endif
 }
 
