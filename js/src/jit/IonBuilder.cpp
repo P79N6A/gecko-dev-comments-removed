@@ -3276,42 +3276,64 @@ IonBuilder::improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test)
         return true;
     }
 
-    MOZ_ASSERT(ins->jsop() == JSOP_STRICTNE || ins->jsop() == JSOP_NE ||
-               ins->jsop() == JSOP_STRICTEQ || ins->jsop() == JSOP_EQ);
-
     
-    if (!trueBranch && (ins->jsop() == JSOP_STRICTNE || ins->jsop() == JSOP_NE))
-        return true;
+    bool altersUndefined, altersNull;
+    JSOp op = ins->jsop();
 
-    
-    if (trueBranch && (ins->jsop() == JSOP_STRICTEQ || ins->jsop() == JSOP_EQ))
-        return true;
-
-    bool filtersUndefined = false;
-    bool filtersNull = false;
-    if (ins->jsop() == JSOP_STRICTEQ || ins->jsop() == JSOP_STRICTNE) {
-        filtersUndefined = (ins->compareType() == MCompare::Compare_Undefined);
-        filtersNull = (ins->compareType() == MCompare::Compare_Null);
-    } else {
-        filtersUndefined = filtersNull = true;
+    switch(op) {
+      case JSOP_STRICTNE:
+      case JSOP_STRICTEQ:
+        altersUndefined = ins->compareType() == MCompare::Compare_Undefined;
+        altersNull = ins->compareType() == MCompare::Compare_Null;
+        break;
+      case JSOP_NE:
+      case JSOP_EQ:
+        altersUndefined = altersNull = true;
+        break;
+      default:
+        MOZ_CRASH("Relational compares not supported");
     }
+
+    MDefinition *subject = ins->lhs();
 
     MOZ_ASSERT(IsNullOrUndefined(ins->rhs()->type()));
 
-    MDefinition *subject = ins->lhs();
     if (!subject->resultTypeSet() || subject->resultTypeSet()->unknown())
         return true;
 
-    
-    if ((!filtersUndefined || !subject->mightBeType(MIRType_Undefined)) &&
-        (!filtersNull || !subject->mightBeType(MIRType_Null)))
+    if (!subject->mightBeType(MIRType_Undefined) &&
+        !subject->mightBeType(MIRType_Null))
     {
         return true;
     }
 
-    types::TemporaryTypeSet *type =
-        subject->resultTypeSet()->filter(alloc_->lifoAlloc(), filtersUndefined,
-                                                              filtersNull);
+    if (!altersUndefined && !altersNull)
+        return true;
+
+    types::TemporaryTypeSet *type;
+
+    
+    if ((op == JSOP_STRICTEQ || op == JSOP_EQ) ^ trueBranch) {
+        
+        type = subject->resultTypeSet()->filter(alloc_->lifoAlloc(), altersUndefined,
+                                                                     altersNull);
+    } else {
+        
+        uint32_t flags = 0;
+        if (altersUndefined) {
+            flags |= types::TYPE_FLAG_UNDEFINED;
+            
+            if (subject->resultTypeSet()->maybeEmulatesUndefined())
+                flags |= types::TYPE_FLAG_ANYOBJECT;
+        }
+
+        if (altersNull)
+            flags |= types::TYPE_FLAG_NULL;
+
+        types::TemporaryTypeSet base(flags, static_cast<types::TypeObjectKey**>(nullptr));
+        type = types::TypeSet::intersectSets(&base, subject->resultTypeSet(), alloc_->lifoAlloc());
+    }
+
     if (!type)
         return false;
 
