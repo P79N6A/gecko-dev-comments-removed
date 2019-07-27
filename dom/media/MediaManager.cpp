@@ -41,6 +41,7 @@
 #include "mozilla/dom/GetUserMediaRequestBinding.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Base64.h"
+#include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/media/MediaChild.h"
 #include "MediaTrackConstraints.h"
 #include "VideoUtils.h"
@@ -1514,7 +1515,7 @@ public:
       p->Then([runnable](nsCString result) mutable {
         runnable->mOriginKey = result;
         NS_DispatchToMainThread(runnable);
-      }, [](nsresult rv){});
+      });
     }
     
     MOZ_ASSERT(!mOnSuccess && !mOnFailure);
@@ -2206,7 +2207,33 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     
+    
+
+    class ShutdownTask : public Task
     {
+    public:
+      explicit ShutdownTask(nsRunnable* aReply) : mReply(aReply) {}
+    private:
+      virtual void
+      Run()
+      {
+        MOZ_ASSERT(MediaManager::IsInMediaThread());
+        mozilla::ipc::BackgroundChild::CloseForCurrentThread();
+        NS_DispatchToMainThread(mReply);
+      }
+      nsRefPtr<nsRunnable> mReply;
+    };
+
+    
+    
+    
+    
+    
+    
+
+    MediaManager::GetMessageLoop()->PostTask(FROM_HERE, new ShutdownTask(
+        media::CallbackRunnable::New([this]() mutable {
+      
       MutexAutoLock lock(mMutex);
       GetActiveWindows()->Clear();
       mActiveCallbacks.Clear();
@@ -2218,8 +2245,8 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
         mMediaThread->Stop();
       }
       mBackend = nullptr;
-    }
-
+      return NS_OK;
+    })));
     return NS_OK;
 
   } else if (!strcmp(aTopic, "getUserMedia:response:allow")) {
