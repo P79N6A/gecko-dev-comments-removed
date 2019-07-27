@@ -75,6 +75,10 @@ enum TracingMetadata {
 
 
 
+#define PROFILER_LABEL_FUNC(category) do {} while (0)
+
+
+
 
 
 #define PROFILER_LABEL_PRINTF(name_space, info, category, format, ...) do {} while (0)
