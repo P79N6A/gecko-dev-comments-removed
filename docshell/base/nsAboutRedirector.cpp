@@ -103,6 +103,10 @@ static RedirEntry kRedirMap[] = {
     "webrtc", "chrome://global/content/aboutwebrtc/aboutWebrtc.xhtml",
     nsIAboutModule::ALLOW_SCRIPT
   },
+  {
+    "serviceworkers", "chrome://global/content/aboutServiceWorkers.xhtml",
+    nsIAboutModule::ALLOW_SCRIPT
+  },
   
   
   {
