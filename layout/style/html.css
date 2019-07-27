@@ -718,7 +718,7 @@ audio:not([controls]) > xul|videocontrols {
 
 
 
-@supports(object-fit: contain) {
+@supports (object-fit: contain) {
   video {
     object-fit: contain;
   }
