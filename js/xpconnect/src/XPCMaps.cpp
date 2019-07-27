@@ -90,6 +90,9 @@ JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime *runtime)
     
     
     
+    
+    
+    
 
     nsTArray<nsXPCWrappedJS*> &dying = runtime->WrappedJSToReleaseArray();
     MOZ_ASSERT(dying.IsEmpty());
@@ -102,24 +105,29 @@ JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime *runtime)
         while (wrapper) {
 #ifdef DEBUG
             if (!wrapper->IsSubjectToFinalization()) {
+                
+                
+                
+                
                 JSObject *obj = wrapper->GetJSObjectPreserveColor();
                 JSObject *prior = obj;
-                MOZ_ASSERT(!JS_IsAboutToBeFinalizedUnbarriered(&obj));
-                
-                
-                
+                JS_UpdateWeakPointerAfterGCUnbarriered(&obj);
                 MOZ_ASSERT(obj == prior);
             }
 #endif
-            if (wrapper->IsSubjectToFinalization() && wrapper->IsObjectAboutToBeFinalized())
-                dying.AppendElement(wrapper);
+            if (wrapper->IsSubjectToFinalization()) {
+                wrapper->UpdateObjectPointerAfterGC();
+                if (!wrapper->GetJSObjectPreserveColor())
+                    dying.AppendElement(wrapper);
+            }
             wrapper = wrapper->GetNextWrapper();
         }
 
         
         JSObject *obj = e.front().key();
         JSObject *prior = obj;
-        if (JS_IsAboutToBeFinalizedUnbarriered(&obj))
+        JS_UpdateWeakPointerAfterGCUnbarriered(&obj);
+        if (!obj)
             e.removeFront();
         else if (obj != prior)
             e.rekeyFront(obj);

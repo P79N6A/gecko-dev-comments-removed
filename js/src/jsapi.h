@@ -690,7 +690,7 @@ typedef void
 (* JSFinalizeCallback)(JSFreeOp *fop, JSFinalizeStatus status, bool isCompartment, void *data);
 
 typedef void
-(* JSMovingGCCallback)(JSRuntime *rt, void *data);
+(* JSWeakPointerCallback)(JSRuntime *rt, void *data);
 
 typedef bool
 (* JSInterruptCallback)(JSContext *cx);
@@ -2039,12 +2039,6 @@ extern JS_PUBLIC_API(void)
 JS_RemoveFinalizeCallback(JSRuntime *rt, JSFinalizeCallback cb);
 
 extern JS_PUBLIC_API(bool)
-JS_AddMovingGCCallback(JSRuntime *rt, JSMovingGCCallback cb, void *data);
-
-extern JS_PUBLIC_API(void)
-JS_RemoveMovingGCCallback(JSRuntime *rt, JSMovingGCCallback cb);
-
-extern JS_PUBLIC_API(bool)
 JS_IsGCMarkingTracer(JSTracer *trc);
 
 
@@ -2069,11 +2063,26 @@ JS_IsMarkingGray(JSTracer *trc);
 
 
 
-extern JS_PUBLIC_API(bool)
-JS_IsAboutToBeFinalized(JS::Heap<JSObject *> *objp);
+
+
+
+
+
+
+
+
 
 extern JS_PUBLIC_API(bool)
-JS_IsAboutToBeFinalizedUnbarriered(JSObject **objp);
+JS_AddWeakPointerCallback(JSRuntime *rt, JSWeakPointerCallback cb, void *data);
+
+extern JS_PUBLIC_API(void)
+JS_RemoveWeakPointerCallback(JSRuntime *rt, JSWeakPointerCallback cb);
+
+extern JS_PUBLIC_API(void)
+JS_UpdateWeakPointerAfterGC(JS::Heap<JSObject *> *objp);
+
+extern JS_PUBLIC_API(void)
+JS_UpdateWeakPointerAfterGCUnbarriered(JSObject **objp);
 
 typedef enum JSGCParamKey {
     
