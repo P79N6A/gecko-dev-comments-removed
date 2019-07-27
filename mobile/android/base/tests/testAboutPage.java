@@ -28,7 +28,7 @@ public class testAboutPage extends PixelTest {
 
         
         url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        inputAndLoadUrl(url);
+        loadUrl(url);
 
         
         verifyUrlBarTitle(url);

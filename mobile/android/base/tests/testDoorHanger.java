@@ -29,7 +29,7 @@ public class testDoorHanger extends BaseTest {
         blockForGeckoReady();
 
         
-        inputAndLoadUrl(GEO_URL);
+        loadUrlAndWait(GEO_URL);
         waitForText(StringHelper.GEO_MESSAGE);
         mAsserter.is(mSolo.searchText(StringHelper.GEO_MESSAGE), true, "Geolocation doorhanger has been displayed");
 
@@ -41,7 +41,7 @@ public class testDoorHanger extends BaseTest {
         mAsserter.is(mSolo.searchText(StringHelper.GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when allowing share");
 
         
-        inputAndLoadUrl(GEO_URL);
+        loadUrlAndWait(GEO_URL);
         waitForText(StringHelper.GEO_MESSAGE);
 
         
@@ -98,7 +98,7 @@ public class testDoorHanger extends BaseTest {
         }
 
         
-        inputAndLoadUrl(OFFLINE_STORAGE_URL);
+        loadUrlAndWait(OFFLINE_STORAGE_URL);
         waitForText(StringHelper.OFFLINE_MESSAGE);
 
         
@@ -109,14 +109,14 @@ public class testDoorHanger extends BaseTest {
         mAsserter.is(mSolo.searchText(StringHelper.OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when denying storage");
 
         
-        inputAndLoadUrl(OFFLINE_STORAGE_URL);
+        loadUrlAndWait(OFFLINE_STORAGE_URL);
         waitForText(StringHelper.OFFLINE_MESSAGE);
 
         
         mSolo.clickOnButton(StringHelper.OFFLINE_ALLOW);
         waitForTextDismissed(StringHelper.OFFLINE_MESSAGE);
         mAsserter.is(mSolo.searchText(StringHelper.OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when allowing storage");
-        inputAndLoadUrl(OFFLINE_STORAGE_URL);
+        loadUrlAndWait(OFFLINE_STORAGE_URL);
         mAsserter.is(mSolo.searchText(StringHelper.OFFLINE_MESSAGE), false, "Offline storage doorhanger is no longer triggered");
 
         try {
@@ -132,7 +132,7 @@ public class testDoorHanger extends BaseTest {
 
 
         
-        inputAndLoadUrl(LOGIN_URL);
+        loadUrlAndWait(LOGIN_URL);
         waitForText(StringHelper.LOGIN_MESSAGE);
 
         
@@ -141,7 +141,7 @@ public class testDoorHanger extends BaseTest {
         mAsserter.is(mSolo.searchText(StringHelper.LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when denying saving password");
 
         
-        inputAndLoadUrl(LOGIN_URL);
+        loadUrlAndWait(LOGIN_URL);
         waitForText(StringHelper.LOGIN_MESSAGE);
 
         
@@ -166,7 +166,7 @@ public class testDoorHanger extends BaseTest {
         }
 
         
-        inputAndLoadUrl(POPUP_URL);
+        loadUrlAndWait(POPUP_URL);
         waitForText(StringHelper.POPUP_MESSAGE);
         mAsserter.is(mSolo.searchText(StringHelper.POPUP_MESSAGE), true, "Popup blocker is displayed");
 
@@ -194,7 +194,7 @@ public class testDoorHanger extends BaseTest {
         tabEventExpecter.unregisterListener();
 
         
-        inputAndLoadUrl(POPUP_URL);
+        loadUrlAndWait(POPUP_URL);
         waitForText(StringHelper.POPUP_MESSAGE);
         mAsserter.is(mSolo.searchText(StringHelper.POPUP_MESSAGE), true, "Popup blocker is displayed");
 

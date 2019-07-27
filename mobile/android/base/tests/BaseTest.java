@@ -241,12 +241,16 @@ abstract class BaseTest extends BaseRobocopTest {
 
 
 
+
+
+
     protected final void inputAndLoadUrl(String url) {
         enterUrl(url);
         hitEnterAndWait();
     }
 
     
+
 
 
 
@@ -260,6 +264,17 @@ abstract class BaseTest extends BaseRobocopTest {
             mAsserter.dumpLog("Exception in loadUrl", e);
             throw new RuntimeException(e);
         }
+    }
+
+    
+
+
+
+    protected final void loadUrlAndWait(final String url) {
+        Actions.EventExpecter contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
+        loadUrl(url);
+        contentEventExpecter.blockForEvent();
+        contentEventExpecter.unregisterListener();
     }
 
     protected final void closeTab(int tabId) {
