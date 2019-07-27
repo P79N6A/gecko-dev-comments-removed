@@ -110,6 +110,7 @@ protected:
 
 class nsIMM32Handler
 {
+  typedef mozilla::widget::IMENotification IMENotification;
   typedef mozilla::widget::MSGResult MSGResult;
 public:
   static void Initialize();
@@ -145,6 +146,11 @@ public:
 
   static nsIMEUpdatePreference GetIMEUpdatePreference();
 
+  
+  
+  static nsresult OnMouseButtonEvent(nsWindow* aWindow,
+                                     const IMENotification& aIMENotification);
+
 protected:
   static void EnsureHandlerInstance();
 
@@ -176,8 +182,6 @@ protected:
 
   
   
-  bool OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction,
-                    MSGResult& aResult);
   static bool OnKeyDownEvent(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                              MSGResult& aResult);
 

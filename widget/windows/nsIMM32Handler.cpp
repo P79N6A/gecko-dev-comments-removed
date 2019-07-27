@@ -142,7 +142,9 @@ nsIMM32Handler::GetKeyboardCodePage()
 nsIMEUpdatePreference
 nsIMM32Handler::GetIMEUpdatePreference()
 {
-  return nsIMEUpdatePreference(nsIMEUpdatePreference::NOTIFY_POSITION_CHANGE);
+  return nsIMEUpdatePreference(
+    nsIMEUpdatePreference::NOTIFY_POSITION_CHANGE |
+    nsIMEUpdatePreference::NOTIFY_MOUSE_BUTTON_EVENT_ON_CHAR);
 }
 
 
@@ -303,18 +305,6 @@ nsIMM32Handler::ProcessMessage(nsWindow* aWindow, UINT msg,
 
   aResult.mResult = 0;
   switch (msg) {
-    case WM_LBUTTONDOWN:
-    case WM_MBUTTONDOWN:
-    case WM_RBUTTONDOWN: {
-      
-      if (!gIMM32Handler) {
-        return false;
-      }
-      return gIMM32Handler->OnMouseEvent(aWindow, lParam,
-                              msg == WM_LBUTTONDOWN ? IMEMOUSE_LDOWN :
-                              msg == WM_MBUTTONDOWN ? IMEMOUSE_MDOWN :
-                                                      IMEMOUSE_RDOWN, aResult);
-    }
     case WM_INPUTLANGCHANGE:
       return ProcessInputLangChangeMessage(aWindow, wParam, lParam, aResult);
     case WM_IME_STARTCOMPOSITION:
@@ -2045,37 +2035,60 @@ nsIMM32Handler::ResolveIMECaretPos(nsIWidget* aReferenceWidget,
     aOutRect.MoveBy(-aNewOriginWidget->WidgetToScreenOffset());
 }
 
-bool
-nsIMM32Handler::OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction,
-                             MSGResult& aResult)
+ nsresult
+nsIMM32Handler::OnMouseButtonEvent(nsWindow* aWindow,
+                                   const IMENotification& aIMENotification)
 {
-  aResult.mConsumed = false; 
+  
+  if (!gIMM32Handler) {
+    return NS_OK;
+  }
 
-  if (!sWM_MSIME_MOUSE || !mIsComposing ||
+  if (!sWM_MSIME_MOUSE || !IsComposingOnOurEditor() ||
       !ShouldDrawCompositionStringOurselves()) {
-    return false;
+    return NS_OK;
   }
 
-  nsIntPoint cursor(LOWORD(lParam), HIWORD(lParam));
-  WidgetQueryContentEvent charAtPt(true, NS_QUERY_CHARACTER_AT_POINT, aWindow);
-  aWindow->InitEvent(charAtPt, &cursor);
-  aWindow->DispatchWindowEvent(&charAtPt);
-  if (!charAtPt.mSucceeded ||
-      charAtPt.mReply.mOffset == WidgetQueryContentEvent::NOT_FOUND ||
-      charAtPt.mReply.mOffset < mCompositionStart ||
-      charAtPt.mReply.mOffset >
-        mCompositionStart + mCompositionString.Length()) {
-    return false;
+  
+  if (aIMENotification.mMouseButtonEventData.mEventMessage !=
+        NS_MOUSE_BUTTON_DOWN) {
+    return NS_OK;
   }
 
   
   
+  uint32_t compositionStart = gIMM32Handler->mCompositionStart;
+  uint32_t compositionEnd =
+    compositionStart + gIMM32Handler->mCompositionString.Length();
+  if (aIMENotification.mMouseButtonEventData.mOffset < compositionStart ||
+      aIMENotification.mMouseButtonEventData.mOffset >= compositionEnd) {
+    return NS_OK;
+  }
+
+  BYTE button;
+  switch (aIMENotification.mMouseButtonEventData.mButton) {
+    case WidgetMouseEventBase::eLeftButton:
+      button = IMEMOUSE_LDOWN;
+      break;
+    case WidgetMouseEventBase::eMiddleButton:
+      button = IMEMOUSE_MDOWN;
+      break;
+    case WidgetMouseEventBase::eRightButton:
+      button = IMEMOUSE_RDOWN;
+      break;
+    default:
+      return NS_OK;
+  }
+
   
   
-  nsIntRect cursorInTopLevel, cursorRect(cursor, nsIntSize(0, 0));
-  ResolveIMECaretPos(aWindow, cursorRect,
-                     aWindow->GetTopLevelWindow(false), cursorInTopLevel);
-  int32_t cursorXInChar = cursorInTopLevel.x - charAtPt.mReply.mRect.x;
+  
+  
+  nsIntPoint cursorPos =
+    aIMENotification.mMouseButtonEventData.mCursorPos.AsIntPoint();
+  nsIntRect charRect =
+    aIMENotification.mMouseButtonEventData.mCharRect.AsIntRect();
+  int32_t cursorXInChar = cursorPos.x - charRect.x;
   
   
   
@@ -2084,26 +2097,30 @@ nsIMM32Handler::OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction,
   
   
   int positioning = 1;
-  if (charAtPt.mReply.mRect.width > 0) {
-    positioning = cursorXInChar * 4 / charAtPt.mReply.mRect.width;
+  if (charRect.width > 0) {
+    positioning = cursorXInChar * 4 / charRect.width;
     positioning = (positioning + 2) % 4;
   }
 
-  int offset = charAtPt.mReply.mOffset - mCompositionStart;
+  int offset =
+    aIMENotification.mMouseButtonEventData.mOffset - compositionStart;
   if (positioning < 2) {
     offset++;
   }
 
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
-    ("IMM32: OnMouseEvent, x,y=%ld,%ld, offset=%ld, positioning=%ld\n",
-     cursor.x, cursor.y, offset, positioning));
+    ("IMM32: OnMouseButtonEvent, x,y=%ld,%ld, offset=%ld, positioning=%ld\n",
+     cursorPos.x, cursorPos.y, offset, positioning));
 
   
   HWND imeWnd = ::ImmGetDefaultIMEWnd(aWindow->GetWindowHandle());
   nsIMEContext IMEContext(aWindow->GetWindowHandle());
-  return ::SendMessageW(imeWnd, sWM_MSIME_MOUSE,
-                        MAKELONG(MAKEWORD(aAction, positioning), offset),
-                        (LPARAM) IMEContext.get()) == 1;
+  if (::SendMessageW(imeWnd, sWM_MSIME_MOUSE,
+                     MAKELONG(MAKEWORD(button, positioning), offset),
+                     (LPARAM) IMEContext.get()) == 1) {
+    return NS_SUCCESS_EVENT_CONSUMED;
+  }
+  return NS_OK;
 }
 
  bool
