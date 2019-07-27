@@ -49,12 +49,13 @@ function test1A() {
   
   gTestBrowser.removeEventListener("load", test1A, true);
   gTestBrowser.addEventListener("load", test1B, true);
-  
-  var notification = PopupNotifications.getNotification("mixed-content-blocked", gTestBrowser);
+
+  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
   ok(notification, "OK: Mixed Content Doorhanger appeared in Test1A!");
 
   
-  notification.secondaryActions[0].callback();
+  notification.reshow();
+  PopupNotifications.panel.firstChild.disableMixedContentProtection();
 }
 
 function test1B() {
@@ -82,7 +83,7 @@ function test1D() {
 
   
   
-  var notification = PopupNotifications.getNotification("mixed-content-blocked", gTestBrowser);
+  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
   ok(!notification, "OK: Mixed Content Doorhanger did not appear again in Test1D!");
 
   var actual = content.document.getElementById('mctestdiv').innerHTML;
@@ -105,12 +106,13 @@ function test2A() {
   
   gTestBrowser.removeEventListener("load", test2A, true);
   gTestBrowser.addEventListener("load", test2B, true);
-  
-  var notification = PopupNotifications.getNotification("mixed-content-blocked", gTestBrowser);
+
+  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
   ok(notification, "OK: Mixed Content Doorhanger appeared in Test 2A!");
 
   
-  notification.secondaryActions[0].callback();
+  notification.reshow();
+  PopupNotifications.panel.firstChild.disableMixedContentProtection();
 }
 
 function test2B() {
@@ -139,7 +141,7 @@ function test2D() {
 
   
   
-  var notification = PopupNotifications.getNotification("mixed-content-blocked", gTestBrowser);
+  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
   ok(!notification, "OK: Mixed Content Doorhanger did not appear again in Test2D!");
 
   var actual = content.document.getElementById('mctestdiv').innerHTML;
@@ -161,8 +163,8 @@ function test3A() {
   
   
   gTestBrowser.removeEventListener("load", test3A, true);
-  
-  var notification = PopupNotifications.getNotification("mixed-content-blocked", gTestBrowser);
+
+  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
   ok(notification, "OK: Mixed Content Doorhanger appeared in Test 3A!");
 
   
