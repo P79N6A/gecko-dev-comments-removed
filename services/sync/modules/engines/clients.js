@@ -114,29 +114,7 @@ ClientEngine.prototype = {
     if (localName != "")
       return localName;
 
-    
-    let env = Cc["@mozilla.org/process/environment;1"]
-                .getService(Ci.nsIEnvironment);
-    let user = env.get("USER") || env.get("USERNAME") ||
-               Svc.Prefs.get("account") || Svc.Prefs.get("username");
-
-    let brandName = this.brandName;
-    let appName;
-    try {
-      let syncStrings = new StringBundle("chrome://browser/locale/sync.properties");
-      appName = syncStrings.getFormattedString("sync.defaultAccountApplication", [brandName]);
-    } catch (ex) {}
-    appName = appName || brandName;
-
-    let system =
-      
-      Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2).get("device") ||
-      
-      Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2).get("host") ||
-      
-      Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).oscpu;
-
-    return this.localName = Str.sync.get("client.name2", [user, appName, system]);
+    return this.localName = Utils.getDefaultDeviceName();
   },
   set localName(value) Svc.Prefs.set("client.name", value),
 

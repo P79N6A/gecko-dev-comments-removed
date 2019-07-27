@@ -20,6 +20,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "SQLiteStore",
   "resource:///modules/readinglist/SQLiteStore.jsm");
 
 
+
+XPCOMUtils.defineLazyGetter(this, 'SyncUtils', function() {
+  const {Utils} = Cu.import('resource://services-sync/util.js"', {});
+  return Utils;
+});
+
 { 
   let parentLog = Log.repository.getLogger("readinglist");
   parentLog.level = Preferences.get("browser.readinglist.logLevel", Log.Level.Warn);
@@ -312,12 +318,10 @@ ReadingListImpl.prototype = {
       record.addedOn = Date.now();
     }
     if (!("addedBy" in record)) {
-      let pref = "services.sync.client.name";
-      if (Services.prefs.prefHasUserValue(pref)) {
-        record.addedBy = Services.prefs.getCharPref(pref);
-      }
-      if (!record.addedBy) {
-        record.addedBy = "Firefox";
+      try {
+        record.addedBy = Services.prefs.getCharPref("services.sync.client.name");
+      } catch (ex) {
+        record.addedBy = SyncUtils.getDefaultDeviceName();
       }
     }
     if (!("syncStatus" in record)) {
