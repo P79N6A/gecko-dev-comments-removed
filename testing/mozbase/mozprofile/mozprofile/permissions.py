@@ -231,18 +231,26 @@ class Permissions(object):
         
         
         cursor.execute("""CREATE TABLE IF NOT EXISTS moz_hosts (
-           id INTEGER PRIMARY KEY,
-           host TEXT,
-           type TEXT,
-           permission INTEGER,
-           expireType INTEGER,
-           expireTime INTEGER)""")
+              id INTEGER PRIMARY KEY
+             ,origin TEXT
+             ,type TEXT
+             ,permission INTEGER
+             ,expireType INTEGER
+             ,expireTime INTEGER
+             ,modificationTime INTEGER
+           )""")
 
         rows = cursor.execute("PRAGMA table_info(moz_hosts)")
         count = len(rows.fetchall())
 
+        using_origin = False
         
-        if count == 9:
+        if count == 7:
+            statement = "INSERT INTO moz_hosts values(NULL, ?, ?, ?, 0, 0, 0)"
+            cursor.execute("PRAGMA user_version=5;")
+            using_origin = True
+        
+        elif count == 9:
             statement = "INSERT INTO moz_hosts values(NULL, ?, ?, ?, 0, 0, 0, 0, 0)"
             cursor.execute("PRAGMA user_version=4;")
         
@@ -262,8 +270,26 @@ class Permissions(object):
                 else:
                     permission_type = 2
 
-                cursor.execute(statement,
-                               (location.host, perm, permission_type))
+                if using_origin:
+                    
+                    
+                    
+                    origin = location.scheme + "://" + location.host
+                    if (location.scheme != 'http' or location.port != '80') and \
+                       (location.scheme != 'https' or location.port != '443'):
+                        origin += ':' + str(location.port)
+
+                    cursor.execute(statement,
+                                   (origin, perm, permission_type))
+                else:
+                    
+                    
+                    
+                    
+                    
+                    
+                    cursor.execute(statement,
+                                   (location.host, perm, permission_type))
 
         
         permDB.commit()
