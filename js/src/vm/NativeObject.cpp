@@ -1313,8 +1313,11 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     } else if (IsAnyTypedArray(obj)) {
         
         uint64_t index;
-        if (IsTypedArrayIndex(id, &index))
-            return result.succeed();
+        if (IsTypedArrayIndex(id, &index)) {
+            if (!cx->shouldBeJSContext())
+                return false;
+            return DefineTypedArrayElement(cx->asJSContext(), obj, index, desc_, result);
+        }
     }
 
     Rooted<PropertyDescriptor> desc(cx, desc_);
