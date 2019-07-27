@@ -12277,8 +12277,8 @@ OpenDatabaseOp::AssertMetadataConsistency(const FullDatabaseMetadata* aMetadata)
   
   
   
-  MOZ_ASSERT(thisDB->mNextObjectStoreId >= otherDB->mNextObjectStoreId);
-  MOZ_ASSERT(thisDB->mNextIndexId >= otherDB->mNextIndexId);
+  MOZ_ASSERT(thisDB->mNextObjectStoreId <= otherDB->mNextObjectStoreId);
+  MOZ_ASSERT(thisDB->mNextIndexId <= otherDB->mNextIndexId);
 
   MOZ_ASSERT(thisDB->mObjectStores.Count() == otherDB->mObjectStores.Count());
 
