@@ -297,42 +297,6 @@ private:
   GraphTime mSlice;
 };
 
-class AsyncCubebTask : public nsRunnable
-{
-public:
-  enum AsyncCubebOperation {
-    INIT,
-    SHUTDOWN,
-    SLEEP
-  };
-
-
-  AsyncCubebTask(AudioCallbackDriver* aDriver, AsyncCubebOperation aOperation)
-    : mDriver(aDriver),
-      mOperation(aOperation)
-  {}
-
-  nsresult Dispatch()
-  {
-    
-    nsresult rv = NS_NewNamedThread("CubebOperation", getter_AddRefs(mThread));
-    if (NS_SUCCEEDED(rv)) {
-      
-      rv = mThread->Dispatch(this, NS_DISPATCH_NORMAL);
-    }
-    return rv;
-  }
-
-protected:
-  virtual ~AsyncCubebTask() {};
-
-private:
-  NS_IMETHOD Run() MOZ_OVERRIDE MOZ_FINAL;
-  nsCOMPtr<nsIThread> mThread;
-  nsRefPtr<AudioCallbackDriver> mDriver;
-  AsyncCubebOperation mOperation;
-};
-
 
 
 
@@ -407,6 +371,8 @@ public:
 
   bool IsStarted();
 private:
+  
+  void StartStream();
   friend class AsyncCubebTask;
   void Init();
   
@@ -442,8 +408,6 @@ private:
 
 
   bool mStarted;
-  
-  bool mInCallback;
 
   struct AutoInCallback
   {
@@ -456,6 +420,50 @@ private:
 
   nsCOMPtr<nsIThread> mInitShutdownThread;
   dom::AudioChannel mAudioChannel;
+  
+  bool mInCallback;
+  
+
+
+  bool mPauseRequested;
+};
+
+class AsyncCubebTask : public nsRunnable
+{
+public:
+  enum AsyncCubebOperation {
+    INIT,
+    SHUTDOWN,
+    SLEEP
+  };
+
+
+  AsyncCubebTask(AudioCallbackDriver* aDriver, AsyncCubebOperation aOperation)
+    : mDriver(aDriver),
+      mOperation(aOperation)
+  {
+    MOZ_ASSERT(mDriver->mAudioStream || aOperation == INIT, "No audio stream !");
+  }
+
+  nsresult Dispatch()
+  {
+    
+    nsresult rv = NS_NewNamedThread("CubebOperation", getter_AddRefs(mThread));
+    if (NS_SUCCEEDED(rv)) {
+      
+      rv = mThread->Dispatch(this, NS_DISPATCH_NORMAL);
+    }
+    return rv;
+  }
+
+protected:
+  virtual ~AsyncCubebTask() {};
+
+private:
+  NS_IMETHOD Run() MOZ_OVERRIDE MOZ_FINAL;
+  nsCOMPtr<nsIThread> mThread;
+  nsRefPtr<AudioCallbackDriver> mDriver;
+  AsyncCubebOperation mOperation;
 };
 
 }
