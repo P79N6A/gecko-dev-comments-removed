@@ -7417,7 +7417,11 @@ IonBuilder::pushDerivedTypedObject(bool *emitted,
     
     
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    const Class *expectedClass = objTypes ? objTypes->getKnownClass() : nullptr;
+    const Class *expectedClass = nullptr;
+    if (const Class *objClass = objTypes ? objTypes->getKnownClass() : nullptr) {
+        MOZ_ASSERT(IsTypedObjectClass(objClass));
+        expectedClass = GetOutlineTypedObjectClass(IsOpaqueTypedObjectClass(objClass));
+    }
     const TypedProto *expectedProto = derivedPrediction.getKnownPrototype();
     MOZ_ASSERT_IF(expectedClass, IsTypedObjectClass(expectedClass));
 
