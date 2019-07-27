@@ -78,14 +78,20 @@ public:
   RequestContext
   Context() const
   {
-    return mContext;
+    return mRequest->Context();
   }
 
   
   void
   SetContext(RequestContext aContext)
   {
-    mContext = aContext;
+    mRequest->SetContext(aContext);
+  }
+
+  void
+  SetContentPolicyType(nsContentPolicyType aContentPolicyType)
+  {
+    mRequest->SetContentPolicyType(aContentPolicyType);
   }
 
   void
@@ -126,7 +132,6 @@ private:
   nsRefPtr<InternalRequest> mRequest;
   
   nsRefPtr<Headers> mHeaders;
-  RequestContext mContext;
 };
 
 } 

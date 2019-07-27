@@ -25,6 +25,65 @@ class nsPIDOMWindow;
 namespace mozilla {
 namespace dom {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class FetchBodyStream;
 class Request;
 
@@ -221,9 +280,18 @@ public:
   }
 
   void
-  SetContentPolicyType(nsContentPolicyType aContentPolicyType)
+  SetContentPolicyType(nsContentPolicyType aContentPolicyType);
+
+  RequestContext
+  Context() const
   {
-    mContentPolicyType = aContentPolicyType;
+    return mContext;
+  }
+
+  void
+  SetContext(RequestContext aContext)
+  {
+    mContext = aContext;
   }
 
   bool
@@ -312,9 +380,8 @@ private:
   nsRefPtr<InternalHeaders> mHeaders;
   nsCOMPtr<nsIInputStream> mBodyStream;
 
-  
-  
   nsContentPolicyType mContentPolicyType;
+  RequestContext mContext;
 
   
   
