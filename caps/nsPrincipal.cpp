@@ -161,93 +161,45 @@ nsPrincipal::GetOrigin(nsACString& aOrigin)
   return GetOriginForURI(mCodebase, aOrigin);
 }
 
-NS_IMETHODIMP
-nsPrincipal::EqualsConsideringDomain(nsIPrincipal *aOther, bool *aResult)
+bool
+nsPrincipal::SubsumesInternal(nsIPrincipal* aOther,
+                              BasePrincipal::DocumentDomainConsideration aConsideration)
 {
-  *aResult = false;
+  MOZ_ASSERT(aOther);
 
-  if (!aOther) {
-    NS_WARNING("Need a principal to compare this to!");
-    return NS_OK;
-  }
-
+  
   if (aOther == this) {
-    *aResult = true;
-    return NS_OK;
+    return true;
   }
 
   if (!nsScriptSecurityManager::AppAttributesEqual(this, aOther)) {
-      return NS_OK;
+      return false;
   }
 
   
   
   
   
+  nsresult rv;
+  if (aConsideration == ConsiderDocumentDomain) {
+    
+    nsCOMPtr<nsIURI> thisDomain, otherDomain;
+    GetDomain(getter_AddRefs(thisDomain));
+    aOther->GetDomain(getter_AddRefs(otherDomain));
 
-  nsCOMPtr<nsIURI> thisURI;
-  this->GetDomain(getter_AddRefs(thisURI));
-  bool thisSetDomain = !!thisURI;
-  if (!thisURI) {
-      this->GetURI(getter_AddRefs(thisURI));
+    
+    
+    if (thisDomain || otherDomain) {
+      return nsScriptSecurityManager::SecurityCompareURIs(thisDomain, otherDomain);
+    }
   }
 
-  nsCOMPtr<nsIURI> otherURI;
-  aOther->GetDomain(getter_AddRefs(otherURI));
-  bool otherSetDomain = !!otherURI;
-  if (!otherURI) {
-      aOther->GetURI(getter_AddRefs(otherURI));
-  }
-
-  *aResult = thisSetDomain == otherSetDomain &&
-             nsScriptSecurityManager::SecurityCompareURIs(thisURI, otherURI);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrincipal::Equals(nsIPrincipal *aOther, bool *aResult)
-{
-  *aResult = false;
-
-  if (!aOther) {
-    NS_WARNING("Need a principal to compare this to!");
-    return NS_OK;
-  }
-
-  if (aOther == this) {
-    *aResult = true;
-    return NS_OK;
-  }
-
-  if (!nsScriptSecurityManager::AppAttributesEqual(this, aOther)) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURI> otherURI;
-  nsresult rv = aOther->GetURI(getter_AddRefs(otherURI));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  NS_ASSERTION(mCodebase,
-               "shouldn't be calling this on principals from preferences");
+    nsCOMPtr<nsIURI> otherURI;
+    rv = aOther->GetURI(getter_AddRefs(otherURI));
+    NS_ENSURE_SUCCESS(rv, false);
 
   
-  *aResult = nsScriptSecurityManager::SecurityCompareURIs(mCodebase,
-                                                          otherURI);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrincipal::Subsumes(nsIPrincipal *aOther, bool *aResult)
-{
-  return Equals(aOther, aResult);
-}
-
-NS_IMETHODIMP
-nsPrincipal::SubsumesConsideringDomain(nsIPrincipal *aOther, bool *aResult)
-{
-  return EqualsConsideringDomain(aOther, aResult);
+  return nsScriptSecurityManager::SecurityCompareURIs(mCodebase, otherURI);
 }
 
 NS_IMETHODIMP
@@ -737,95 +689,33 @@ nsExpandedPrincipal::GetOrigin(nsACString& aOrigin)
   return NS_OK;
 }
 
-typedef nsresult (NS_STDCALL nsIPrincipal::*nsIPrincipalMemFn)(nsIPrincipal* aOther,
-                                                               bool* aResult);
-#define CALL_MEMBER_FUNCTION(THIS,MEM_FN)  ((THIS)->*(MEM_FN))
-
-
-
-
-
-static nsresult
-Equals(nsExpandedPrincipal* aThis, nsIPrincipalMemFn aFn, nsIPrincipal* aOther,
-       bool* aResult)
+bool
+nsExpandedPrincipal::SubsumesInternal(nsIPrincipal* aOther,
+                                      BasePrincipal::DocumentDomainConsideration aConsideration)
 {
   
   
-  *aResult = false;
-  
-  nsresult rv = CALL_MEMBER_FUNCTION(aThis, aFn)(aOther, aResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!*aResult)
-    return NS_OK;
-
-  
-  rv = CALL_MEMBER_FUNCTION(aOther, aFn)(aThis, aResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsExpandedPrincipal::Equals(nsIPrincipal* aOther, bool* aResult)
-{
-  return ::Equals(this, &nsIPrincipal::Subsumes, aOther, aResult);
-}
-
-NS_IMETHODIMP
-nsExpandedPrincipal::EqualsConsideringDomain(nsIPrincipal* aOther, bool* aResult)
-{
-  return ::Equals(this, &nsIPrincipal::SubsumesConsideringDomain, aOther, aResult);
-}
-
-
-
-
-static nsresult
-Subsumes(nsExpandedPrincipal* aThis, nsIPrincipalMemFn aFn, nsIPrincipal* aOther,
-         bool* aResult)
-{
-  nsresult rv;
   nsCOMPtr<nsIExpandedPrincipal> expanded = do_QueryInterface(aOther);
   if (expanded) {
-    
-    
     nsTArray< nsCOMPtr<nsIPrincipal> >* otherList;
     expanded->GetWhiteList(&otherList);
     for (uint32_t i = 0; i < otherList->Length(); ++i){
-      rv = CALL_MEMBER_FUNCTION(aThis, aFn)((*otherList)[i], aResult);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (!*aResult) {
-        
-        return NS_OK;
+      if (!SubsumesInternal((*otherList)[i], aConsideration)) {
+        return false;
       }
     }
-  } else {
-    
-    nsTArray< nsCOMPtr<nsIPrincipal> >* list;
-    aThis->GetWhiteList(&list);
-    for (uint32_t i = 0; i < list->Length(); ++i){
-      rv = CALL_MEMBER_FUNCTION((*list)[i], aFn)(aOther, aResult);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (*aResult) {
-        
-        return NS_OK;
-      }
+    return true;
+  }
+
+  
+  
+  for (uint32_t i = 0; i < mPrincipals.Length(); ++i) {
+    if (Cast(mPrincipals[i])->Subsumes(aOther, aConsideration)) {
+      return true;
     }
   }
-  return NS_OK;
-}
 
-#undef CALL_MEMBER_FUNCTION
-
-NS_IMETHODIMP
-nsExpandedPrincipal::Subsumes(nsIPrincipal* aOther, bool* aResult)
-{
-  return ::Subsumes(this, &nsIPrincipal::Subsumes, aOther, aResult);
-}
-
-NS_IMETHODIMP
-nsExpandedPrincipal::SubsumesConsideringDomain(nsIPrincipal* aOther, bool* aResult)
-{
-  return ::Subsumes(this, &nsIPrincipal::SubsumesConsideringDomain, aOther, aResult);
+  return false;
 }
 
 NS_IMETHODIMP

@@ -80,21 +80,6 @@ nsNullPrincipal::GetScriptLocation(nsACString &aStr)
 
 
 NS_IMETHODIMP
-nsNullPrincipal::Equals(nsIPrincipal *aOther, bool *aResult)
-{
-  
-  
-  *aResult = (aOther == this);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNullPrincipal::EqualsConsideringDomain(nsIPrincipal *aOther, bool *aResult)
-{
-  return Equals(aOther, aResult);
-}
-
-NS_IMETHODIMP
 nsNullPrincipal::GetHashValue(uint32_t *aResult)
 {
   *aResult = (NS_PTR_TO_INT32(this) >> 2);
@@ -125,22 +110,6 @@ NS_IMETHODIMP
 nsNullPrincipal::GetOrigin(nsACString& aOrigin)
 {
   return mURI->GetSpec(aOrigin);
-}
-
-NS_IMETHODIMP
-nsNullPrincipal::Subsumes(nsIPrincipal *aOther, bool *aResult)
-{
-  
-  
-  
-  *aResult = (aOther == this);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNullPrincipal::SubsumesConsideringDomain(nsIPrincipal *aOther, bool *aResult)
-{
-  return Subsumes(aOther, aResult);
 }
 
 NS_IMETHODIMP
