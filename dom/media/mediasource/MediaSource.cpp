@@ -19,10 +19,14 @@
 #include "mozilla/dom/TimeRanges.h"
 #include "mozilla/mozalloc.h"
 #include "nsContentTypeParser.h"
+#include "nsContentUtils.h"
 #include "nsDebug.h"
 #include "nsError.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsIRunnable.h"
 #include "nsIScriptObjectPrincipal.h"
+#include "nsIURI.h"
+#include "nsNetCID.h"
 #include "nsPIDOMWindow.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
@@ -309,7 +313,44 @@ MediaSource::IsTypeSupported(const GlobalObject&, const nsAString& aType)
  bool
 MediaSource::Enabled(JSContext* cx, JSObject* aGlobal)
 {
-  return Preferences::GetBool("media.mediasource.enabled");
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  JS::Rooted<JSObject*> global(cx, aGlobal);
+
+  bool enabled = Preferences::GetBool("media.mediasource.enabled");
+  if (!enabled) {
+    return false;
+  }
+
+  
+  bool restrict = Preferences::GetBool("media.mediasource.youtubeonly", false);
+  if (!restrict) {
+    return true;
+  }
+
+  
+  
+  nsIPrincipal* principal = nsContentUtils::ObjectPrincipal(global);
+  nsCOMPtr<nsIURI> uri;
+  if (NS_FAILED(principal->GetURI(getter_AddRefs(uri))) || !uri) {
+    return false;
+  }
+
+  bool isHttps = false;
+  if (NS_FAILED(uri->SchemeIs("https", &isHttps)) || !isHttps) {
+    return false;
+  }
+
+  nsCOMPtr<nsIEffectiveTLDService> tldServ =
+    do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(tldServ, false);
+
+  nsAutoCString eTLDplusOne;
+  return
+    NS_SUCCEEDED(tldServ->GetBaseDomain(uri, 0, eTLDplusOne)) &&
+    eTLDplusOne.EqualsLiteral("youtube.com");
 }
 
 bool

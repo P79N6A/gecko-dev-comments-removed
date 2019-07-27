@@ -429,11 +429,20 @@ pref("media.webvtt.regions.enabled", false);
 pref("media.track.enabled", false);
 
 
-#ifdef RELEASE_BUILD
-pref("media.mediasource.enabled", false);
-#else
+
+
+
+#if defined(XP_WIN) || !defined(RELEASE_BUILD)
 pref("media.mediasource.enabled", true);
+#else
+pref("media.mediasource.enabled", false);
 #endif
+
+#ifdef RELEASE_BUILD
+pref("media.mediasource.youtubeonly", true);
+#else
+pref("media.mediasource.youtubeonly", false);
+#endif 
 
 #ifdef MOZ_WIDGET_GONK
 pref("media.mediasource.mp4.enabled", false);
