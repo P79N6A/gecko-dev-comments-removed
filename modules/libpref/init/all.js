@@ -373,11 +373,7 @@ pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[{\"urls\": [\"stun:stun.services.mozilla.com\"]}]");
 pref("media.peerconnection.ice.loopback", false); 
 pref("media.peerconnection.use_document_iceservers", true);
-
-
-
-
-pref("media.peerconnection.identity.enabled", false);
+pref("media.peerconnection.identity.enabled", true);
 pref("media.peerconnection.identity.timeout", 10000);
 pref("media.peerconnection.ice.loopback", false); 
 
@@ -4652,10 +4648,6 @@ pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
 
 
 pref("reader.parse-on-load.enabled", true);
-
-
-
-pref("reader.parse-node-limit", 3000);
 
 
 
