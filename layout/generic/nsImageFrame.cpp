@@ -1453,9 +1453,7 @@ nsDisplayImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                 bool* aSnap)
 {
   *aSnap = true;
-  bool animated;
-  if (mImage && mImage->GetAnimated(&animated) == NS_OK && !animated &&
-      mImage->FrameIsOpaque(imgIContainer::FRAME_CURRENT)) {
+  if (mImage && mImage->IsOpaque()) {
     
     
     

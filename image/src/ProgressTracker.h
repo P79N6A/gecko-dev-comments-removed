@@ -102,6 +102,9 @@ public:
   uint32_t GetImageStatus() const;
 
   
+  Progress GetProgress() const { return mProgress; }
+ 
+  
   
   
   

@@ -654,33 +654,22 @@ RasterImage::GetFirstFrameRect()
   return nsIntRect(nsIntPoint(0,0), mSize);
 }
 
-
-
 NS_IMETHODIMP_(bool)
-RasterImage::FrameIsOpaque(uint32_t aWhichFrame)
+RasterImage::IsOpaque()
 {
-  if (aWhichFrame > FRAME_MAX_VALUE) {
-    NS_WARNING("aWhichFrame outside valid range!");
+  if (mError) {
     return false;
   }
 
-  if (mError)
+  Progress progress = mProgressTracker->GetProgress();
+
+  
+  if (!(progress & FLAG_DECODE_COMPLETE)) {
     return false;
+  }
 
   
-  nsRefPtr<imgFrame> frame =
-    LookupFrameNoDecode(GetRequestedFrameIndex(aWhichFrame));
-
-  
-  if (!frame)
-    return false;
-
-  
-  
-  
-  nsIntRect framerect = frame->GetRect();
-  return !frame->GetNeedsBackground() &&
-         framerect.IsEqualInterior(nsIntRect(0, 0, mSize.width, mSize.height));
+  return !(progress & FLAG_HAS_TRANSPARENCY);
 }
 
 nsIntRect
@@ -767,7 +756,7 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
   if (mError)
     return nullptr;
 
-  if (!ApplyDecodeFlags(aFlags, aWhichFrame))
+  if (!ApplyDecodeFlags(aFlags))
     return nullptr;
 
   
@@ -844,7 +833,7 @@ RasterImage::GetFrameInternal(uint32_t aWhichFrame,
   if (mError)
     return nullptr;
 
-  if (!ApplyDecodeFlags(aFlags, aWhichFrame))
+  if (!ApplyDecodeFlags(aFlags))
     return nullptr;
 
   
@@ -1120,7 +1109,7 @@ RasterImage::InternalAddFrame(uint32_t framenum,
 }
 
 bool
-RasterImage::ApplyDecodeFlags(uint32_t aNewFlags, uint32_t aWhichFrame)
+RasterImage::ApplyDecodeFlags(uint32_t aNewFlags)
 {
   if (mFrameDecodeFlags == (aNewFlags & DECODE_FLAGS_MASK))
     return true; 
@@ -1133,7 +1122,7 @@ RasterImage::ApplyDecodeFlags(uint32_t aNewFlags, uint32_t aWhichFrame)
       (mFrameDecodeFlags & DECODE_FLAGS_MASK) & ~FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
     uint32_t newNonAlphaFlags =
       (aNewFlags & DECODE_FLAGS_MASK) & ~FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
-    if (currentNonAlphaFlags == newNonAlphaFlags && FrameIsOpaque(aWhichFrame)) {
+    if (currentNonAlphaFlags == newNonAlphaFlags && IsOpaque()) {
       return true;
     }
 
@@ -2537,8 +2526,7 @@ RasterImage::Draw(gfxContext* aContext,
   
   bool haveDefaultFlags = (mFrameDecodeFlags == DECODE_FLAGS_DEFAULT);
   bool haveSafeAlphaFlags =
-    (mFrameDecodeFlags == FLAG_DECODE_NO_PREMULTIPLY_ALPHA) &&
-    FrameIsOpaque(FRAME_CURRENT);
+    (mFrameDecodeFlags == FLAG_DECODE_NO_PREMULTIPLY_ALPHA) && IsOpaque();
 
   if (!(haveDefaultFlags || haveSafeAlphaFlags)) {
     if (!CanForciblyDiscardAndRedecode())

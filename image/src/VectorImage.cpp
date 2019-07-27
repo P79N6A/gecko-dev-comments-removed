@@ -687,15 +687,9 @@ VectorImage::GetFirstFrameDelay()
   return 0;
 }
 
-
-
-
 NS_IMETHODIMP_(bool)
-VectorImage::FrameIsOpaque(uint32_t aWhichFrame)
+VectorImage::IsOpaque()
 {
-  if (aWhichFrame > FRAME_MAX_VALUE)
-    NS_WARNING("aWhichFrame outside valid range!");
-
   return false; 
 }
 

@@ -228,7 +228,7 @@ DynamicImage::GetFrame(uint32_t aWhichFrame,
 }
 
 NS_IMETHODIMP_(bool)
-DynamicImage::FrameIsOpaque(uint32_t aWhichFrame)
+DynamicImage::IsOpaque()
 {
   
   
