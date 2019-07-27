@@ -169,7 +169,7 @@ SourceBuffer::Abort(ErrorResult& aRv)
     
     AbortUpdating();
   }
-  
+  mTrackBuffer->ResetParserState();
   mAppendWindowStart = 0;
   mAppendWindowEnd = PositiveInfinity<double>();
 
