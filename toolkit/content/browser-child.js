@@ -416,16 +416,10 @@ addMessageListener("Browser:Thumbnail:Request", function (aMessage) {
 
 
 
-let AddonsChild;
-if (Services.appinfo.browserTabsRemoteAutostart) {
-  
-  
-  AddonsChild = RemoteAddonsChild.init(this);
-
-  addEventListener("unload", () => {
-    RemoteAddonsChild.uninit(AddonsChild);
-  });
-}
+let AddonsChild = RemoteAddonsChild.init(this);
+addEventListener("unload", () => {
+  RemoteAddonsChild.uninit(AddonsChild);
+});
 
 addMessageListener("NetworkPrioritizer:AdjustPriority", (msg) => {
   let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
