@@ -11,8 +11,6 @@
 
 
 
-
-
 const EMULATOR_ADDRESS = "56:34:12:00:54:52";
 
 
@@ -36,7 +34,7 @@ const BDADDR_ALL   = "ff:ff:ff:ff:ff:ff";
 const BDADDR_LOCAL = "ff:ff:ff:00:00:00";
 
 
-const REMOTE_DEVICE_NAME = "Remote BT Device";
+const REMOTE_DEVICE_NAME = "Remote_BT_Device";
 
 let Promise =
   SpecialPowers.Cu.import("resource://gre/modules/Promise.jsm").Promise;
@@ -44,6 +42,58 @@ let Promise =
 let bluetoothManager;
 
 let pendingEmulatorCmdCount = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ensureBluetoothManager(aPermissions) {
+  let deferred = Promise.defer();
+
+  let permissions = ["bluetooth"];
+  if (aPermissions) {
+    if (Array.isArray(aPermissions)) {
+      permissions = permissions.concat(aPermissions);
+    } else if (typeof aPermissions == "string") {
+      permissions.push(aPermissions);
+    }
+  }
+
+  let obj = [];
+  for (let perm of permissions) {
+    obj.push({
+      "type": perm,
+      "allow": 1,
+      "context": document,
+    });
+  }
+
+  SpecialPowers.pushPermissions(obj, function() {
+    ok(true, "permissions pushed: " + JSON.stringify(permissions));
+
+    bluetoothManager = window.navigator.mozBluetooth;
+    log("navigator.mozBluetooth is " +
+        (bluetoothManager ? "available" : "unavailable"));
+
+    if (bluetoothManager instanceof BluetoothManager) {
+      deferred.resolve(bluetoothManager);
+    } else {
+      deferred.reject();
+    }
+  });
+
+  return deferred.promise;
+}
 
 
 
@@ -206,71 +256,6 @@ function getEmulatorDeviceProperty(aAddress, aPropertyName) {
 
 
 
-function startDiscovery(aAdapter) {
-  let deferred = Promise.defer();
-
-  let request = aAdapter.startDiscovery();
-  request.onsuccess = function () {
-    log("  Start discovery - Success");
-    
-    
-    
-    
-    deferred.resolve();
-  }
-  request.onerror = function (aEvent) {
-    ok(false, "Start discovery - Fail");
-    deferred.reject(aEvent.target.error);
-  }
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function stopDiscovery(aAdapter) {
-  let deferred = Promise.defer();
-
-  let request = aAdapter.stopDiscovery();
-  request.onsuccess = function () {
-    log("  Stop discovery - Success");
-    
-    
-    
-    
-    deferred.resolve();
-  }
-  request.onerror = function (aEvent) {
-    ok(false, "Stop discovery - Fail");
-    deferred.reject(aEvent.target.error);
-  }
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 function getSettings(aKey) {
@@ -329,9 +314,10 @@ function setSettings(aSettings) {
 
 
 
-
 function getBluetoothEnabled() {
-  return getSettings("bluetooth.enabled");
+  log("bluetoothManager.defaultAdapter.state: " + bluetoothManager.defaultAdapter.state);
+
+  return (bluetoothManager.defaultAdapter.state == "enabled");
 }
 
 
@@ -351,58 +337,6 @@ function setBluetoothEnabled(aEnabled) {
   let obj = {};
   obj["bluetooth.enabled"] = aEnabled;
   return setSettings(obj);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function ensureBluetoothManager(aPermissions) {
-  let deferred = Promise.defer();
-
-  let permissions = ["bluetooth"];
-  if (aPermissions) {
-    if (Array.isArray(aPermissions)) {
-      permissions = permissions.concat(aPermissions);
-    } else if (typeof aPermissions == "string") {
-      permissions.push(aPermissions);
-    }
-  }
-
-  let obj = [];
-  for (let perm of permissions) {
-    obj.push({
-      "type": perm,
-      "allow": 1,
-      "context": document,
-    });
-  }
-
-  SpecialPowers.pushPermissions(obj, function() {
-    ok(true, "permissions pushed: " + JSON.stringify(permissions));
-
-    bluetoothManager = window.navigator.mozBluetooth;
-    log("navigator.mozBluetooth is " +
-        (bluetoothManager ? "available" : "unavailable"));
-
-    if (bluetoothManager instanceof BluetoothManager) {
-      deferred.resolve(bluetoothManager);
-    } else {
-      deferred.reject();
-    }
-  });
-
-  return deferred.promise;
 }
 
 
@@ -460,73 +394,6 @@ function waitForAdapterEvent(aAdapter, aEventName) {
 
 
 
-
-
-
-
-
-
-
-
-function setBluetoothEnabledAndWait(aEnabled) {
-  let promises = [];
-
-  
-  
-  
-  
-  
-  
-  
-  promises.push(waitForManagerEvent(aEnabled ? "enabled" : "disabled"));
-  promises.push(setBluetoothEnabled(aEnabled));
-
-  return Promise.all(promises);
-}
-
-
-
-
-
-
-
-
-
-
-
-function getDefaultAdapter() {
-  let deferred = Promise.defer();
-
-  let request = bluetoothManager.getDefaultAdapter();
-  request.onsuccess = function(aEvent) {
-    let adapter = aEvent.target.result;
-    if (!(adapter instanceof BluetoothAdapter)) {
-      ok(false, "no BluetoothAdapter ready yet.");
-      deferred.reject(null);
-      return;
-    }
-
-    ok(true, "BluetoothAdapter got.");
-    
-    
-    
-    
-    
-    window.setTimeout(function() {
-      deferred.resolve(adapter);
-    }, 3000);
-  };
-  request.onerror = function(aEvent) {
-    ok(false, "Failed to get default adapter.");
-    deferred.reject(aEvent.target.error);
-  };
-
-  return deferred.promise;
-}
-
-
-
-
 function cleanUp() {
   waitFor(function() {
     SpecialPowers.flushPermissions(function() {
@@ -552,36 +419,40 @@ function startBluetoothTestBase(aPermissions, aTestCaseMain) {
 function startBluetoothTest(aReenable, aTestCaseMain) {
   startBluetoothTestBase(["settings-read", "settings-write"], function() {
     let origEnabled, needEnable;
+    return Promise.resolve()
+      .then(function() {
+        origEnabled = getBluetoothEnabled();
 
-    return getBluetoothEnabled()
-      .then(function(aEnabled) {
-        origEnabled = aEnabled;
-        needEnable = !aEnabled;
-        log("Original 'bluetooth.enabled' is " + origEnabled);
+        needEnable = !origEnabled;
+        log("Original state of bluetooth is " + bluetoothManager.defaultAdapter.state);
 
-        if (aEnabled && aReenable) {
-          log("  Disable 'bluetooth.enabled' ...");
+        if (origEnabled && aReenable) {
+          log("Disable Bluetooth ...");
           needEnable = true;
-          return setBluetoothEnabledAndWait(false);
+
+          isnot(bluetoothManager.defaultAdapter, null,
+            "bluetoothManager.defaultAdapter")
+
+          return bluetoothManager.defaultAdapter.disable();
         }
       })
       .then(function() {
         if (needEnable) {
-          log("  Enable 'bluetooth.enabled' ...");
+          log("Enable Bluetooth ...");
 
-          
-          
-          let promises = [];
-          promises.push(waitForManagerEvent("adapteradded"));
-          promises.push(setBluetoothEnabledAndWait(true));
-          return Promise.all(promises);
+          isnot(bluetoothManager.defaultAdapter, null,
+            "bluetoothManager.defaultAdapter")
+
+          return bluetoothManager.defaultAdapter.enable();
         }
       })
-      .then(getDefaultAdapter)
+      .then(() => bluetoothManager.defaultAdapter)
       .then(aTestCaseMain)
       .then(function() {
         if (!origEnabled) {
-          return setBluetoothEnabledAndWait(false);
+          log("Disable Bluetooth ...");
+
+          return bluetoothManager.defaultAdapter.disable();
         }
       });
   });
