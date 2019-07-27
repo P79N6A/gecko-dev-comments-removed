@@ -297,6 +297,16 @@ Animation::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
       continue;
     }
 
+    if (!prop.mWinsInCascade) {
+      
+      
+      
+      
+      
+      
+      continue;
+    }
+
     aSetProperties.AddProperty(prop.mProperty);
 
     MOZ_ASSERT(prop.mSegments.Length() > 0,
