@@ -93,14 +93,14 @@ nsTableCellMap::~nsTableCellMap()
   }
 
   if (mBCInfo) {
-    DeleteRightBottomBorders();
+    DeleteIEndBEndBorders();
     delete mBCInfo;
   }
 }
 
 
 BCData*
-nsTableCellMap::GetRightMostBorder(int32_t aRowIndex)
+nsTableCellMap::GetIEndMostBorder(int32_t aRowIndex)
 {
   if (!mBCInfo) ABORT1(nullptr);
 
@@ -115,7 +115,7 @@ nsTableCellMap::GetRightMostBorder(int32_t aRowIndex)
 
 
 BCData*
-nsTableCellMap::GetBottomMostBorder(int32_t aColIndex)
+nsTableCellMap::GetBEndMostBorder(int32_t aColIndex)
 {
   if (!mBCInfo) ABORT1(nullptr);
 
@@ -130,7 +130,7 @@ nsTableCellMap::GetBottomMostBorder(int32_t aColIndex)
 
 
 void
-nsTableCellMap::DeleteRightBottomBorders()
+nsTableCellMap::DeleteIEndBEndBorders()
 {
   if (mBCInfo) {
     mBCInfo->mBEndBorders.Clear();
@@ -491,7 +491,7 @@ nsTableCellMap::InsertRows(nsTableRowGroupFrame*       aParent,
           }
         }
         else {
-          GetRightMostBorder(aFirstRowIndex); 
+          GetIEndMostBorder(aFirstRowIndex); 
           for (int32_t rowX = aFirstRowIndex + 1; rowX < aFirstRowIndex + numNewRows; rowX++) {
             mBCInfo->mIEndBorders.AppendElement();
           }
@@ -726,7 +726,7 @@ nsTableCellMap::Dump(char* aString) const
     cellMap = cellMap->GetNextSibling();
   }
   if (nullptr != mBCInfo) {
-    printf("***** bottom borders *****\n");
+    printf("***** block-end borders *****\n");
     nscoord       size;
     BCBorderOwner owner;
     LogicalSide side;
@@ -912,13 +912,13 @@ void nsTableCellMap::ExpandZeroColSpans()
 }
 
 void
-nsTableCellMap::ResetTopStart(LogicalSide    aSide,
-                              nsCellMap& aCellMap,
-                              uint32_t   aRowIndex,
-                              uint32_t   aColIndex,
-                              bool       aIsLowerRight)
+nsTableCellMap::ResetBStartStart(LogicalSide aSide,
+                                 nsCellMap&  aCellMap,
+                                 uint32_t    aRowIndex,
+                                 uint32_t    aColIndex,
+                                 bool        aIsBEndIEnd)
 {
-  if (!mBCInfo || aIsLowerRight) ABORT0();
+  if (!mBCInfo || aIsBEndIEnd) ABORT0();
 
   BCCellData* cellData;
   BCData* bcData = nullptr;
@@ -942,7 +942,7 @@ nsTableCellMap::ResetTopStart(LogicalSide    aSide,
           bcData = &cellData->mData;
         }
         else {
-          bcData = GetBottomMostBorder(aColIndex);
+          bcData = GetBEndMostBorder(aColIndex);
         }
       }
     }
@@ -957,7 +957,7 @@ nsTableCellMap::ResetTopStart(LogicalSide    aSide,
     }
     else {
       NS_ASSERTION(aSide == eLogicalSideIEnd, "program error");
-      bcData = GetRightMostBorder(aRowIndex);
+      bcData = GetIEndMostBorder(aRowIndex);
     }
     break;
   }
@@ -1025,7 +1025,7 @@ nsTableCellMap::SetBCBorderEdge(LogicalSide aSide,
             }
           }
           else { 
-            bcData = GetBottomMostBorder(xIndex);
+            bcData = GetBEndMostBorder(xIndex);
           }
         }
       }
@@ -1035,7 +1035,7 @@ nsTableCellMap::SetBCBorderEdge(LogicalSide aSide,
       if (bcData) {
         bcData->SetBStartEdge(aOwner, aSize, changed);
       }
-      else NS_ERROR("Cellmap: Top edge not found");
+      else NS_ERROR("Cellmap: BStart edge not found");
     }
     break;
   case eLogicalSideIEnd:
@@ -1051,11 +1051,11 @@ nsTableCellMap::SetBCBorderEdge(LogicalSide aSide,
       }
       else {
         NS_ASSERTION(aSide == eLogicalSideIEnd, "program error");
-        BCData* bcData = GetRightMostBorder(yIndex + aCellMapStart);
+        BCData* bcData = GetIEndMostBorder(yIndex + aCellMapStart);
         if (bcData) {
           bcData->SetIStartEdge(aOwner, aSize, changed);
         }
-        else NS_ERROR("Cellmap: Left edge not found");
+        else NS_ERROR("Cellmap: IStart edge not found");
       }
     }
     break;
@@ -1106,7 +1106,7 @@ nsTableCellMap::SetBCBorderCorner(Corner      aCorner,
     NS_ASSERTION(xPos == GetColCount(), "program error");
     
     NS_ASSERTION(!aIsBEndIEnd, "should be handled before");
-    bcData = GetRightMostBorder(yPos);
+    bcData = GetIEndMostBorder(yPos);
   }
   else {
     cellData = (BCCellData*)aCellMap.GetDataAt(rgYPos, xPos);
@@ -1132,7 +1132,7 @@ nsTableCellMap::SetBCBorderCorner(Corner      aCorner,
           }
         }
         else { 
-          bcData = GetBottomMostBorder(xPos);
+          bcData = GetBEndMostBorder(xPos);
         }
       }
     }

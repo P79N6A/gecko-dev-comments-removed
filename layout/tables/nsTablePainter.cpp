@@ -322,13 +322,13 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
     
 
     
-    nscoord lastLeftBorder = aTableFrame->GetContinuousIStartBCBorderWidth();
+    nscoord lastIStartBorder = aTableFrame->GetContinuousIStartBCBorderWidth();
 
     for (nsTableColGroupFrame* cgFrame : colGroupFrames) {
       
       TableBackgroundData& cgData = *mColGroups.AppendElement(TableBackgroundData(cgFrame));
       if (mIsBorderCollapse && cgData.ShouldSetBCBorder()) {
-        border.IStart(wm) = lastLeftBorder;
+        border.IStart(wm) = lastIStartBorder;
         cgFrame->GetContinuousBCBorderWidth(wm, border);
         cgData.SetBCBorder(border.GetPhysicalMargin(wm));
       }
@@ -342,8 +342,8 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
         
         colData.mCol.mRect.MoveBy(cgData.mRect.x, cgData.mRect.y);
         if (mIsBorderCollapse) {
-          border.IStart(wm) = lastLeftBorder;
-          lastLeftBorder = col->GetContinuousBCBorderWidth(wm, border);
+          border.IStart(wm) = lastIStartBorder;
+          lastIStartBorder = col->GetContinuousBCBorderWidth(wm, border);
           if (colData.mCol.ShouldSetBCBorder()) {
             colData.mCol.SetBCBorder(border.GetPhysicalMargin(wm));
           }
