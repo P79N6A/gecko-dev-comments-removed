@@ -207,7 +207,7 @@ const JITOptimizations = function (rawSites, stringTable) {
     };
   }
 
-  this.optimizationSites = sites.sort((a, b) => b.samples - a.samples);;
+  this.optimizationSites = sites.sort((a, b) => b.samples - a.samples);
 };
 
 
@@ -252,5 +252,94 @@ function maybeTypeset(typeset, stringTable) {
   });
 }
 
+
+const IMPLEMENTATION_MAP = {
+  "interpreter": 0,
+  "baseline": 1,
+  "ion": 2
+};
+const IMPLEMENTATION_NAMES = Object.keys(IMPLEMENTATION_MAP);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function createTierGraphDataFromFrameNode (frameNode, sampleTimes, { startTime, endTime, resolution }) {
+  if (!frameNode.hasOptimizations()) {
+    return;
+  }
+
+  let tierData = frameNode.getOptimizationTierData();
+  let duration = endTime - startTime;
+  let stringTable = frameNode._stringTable;
+  let output = [];
+  let implEnum;
+
+  let tierDataIndex = 0;
+  let nextOptSample = tierData[tierDataIndex];
+
+  
+  let samplesInCurrentBucket = 0;
+  let currentBucketStartTime = sampleTimes[0];
+  let bucket = [];
+  
+  let bucketSize = Math.ceil(duration / resolution);
+
+  
+  for (let i = 0; i <= sampleTimes.length; i++) {
+    let sampleTime = sampleTimes[i];
+
+    
+    
+    if (sampleTime >= (currentBucketStartTime + bucketSize) ||
+        i >= sampleTimes.length) {
+
+      let dataPoint = {};
+      dataPoint.ys = [];
+      dataPoint.x = currentBucketStartTime;
+
+      
+      
+      for (let j = 0; j < IMPLEMENTATION_NAMES.length; j++) {
+        dataPoint.ys[j] = (bucket[j] || 0) / (samplesInCurrentBucket || 1);
+      }
+      output.push(dataPoint);
+
+      
+      currentBucketStartTime += bucketSize;
+      samplesInCurrentBucket = 0;
+      bucket = [];
+    }
+
+    
+    if (nextOptSample && nextOptSample.time === sampleTime) {
+      
+      implEnum = IMPLEMENTATION_MAP[stringTable[nextOptSample.implementation] || "interpreter"];
+      bucket[implEnum] = (bucket[implEnum] || 0) + 1;
+      nextOptSample = tierData[++tierDataIndex];
+    }
+
+    samplesInCurrentBucket++;
+  }
+
+  return output;
+}
+
+exports.createTierGraphDataFromFrameNode = createTierGraphDataFromFrameNode;
 exports.OptimizationSite = OptimizationSite;
 exports.JITOptimizations = JITOptimizations;

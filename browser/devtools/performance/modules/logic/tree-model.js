@@ -35,6 +35,7 @@ function ThreadNode(thread, options = {}) {
     throw new Error("ThreadNode requires both `startTime` and `endTime`.");
   }
   this.samples = 0;
+  this.sampleTimes = [];
   this.youngestFrameSamples = 0;
   this.calls = [];
   this.duration = options.endTime - options.startTime;
@@ -132,11 +133,6 @@ ThreadNode.prototype = {
     let flattenRecursion = options.flattenRecursion;
 
     
-    
-    
-    let prevSampleTime = samplesData[0][SAMPLE_TIME_SLOT];
-
-    
     let mutableFrameKeyOptions = {
       contentOnly: options.contentOnly,
       isRoot: false,
@@ -144,9 +140,7 @@ ThreadNode.prototype = {
       isMetaCategoryOut: false
     };
 
-    
-    
-    for (let i = 1; i < samplesData.length; i++) {
+    for (let i = 0; i < samplesData.length; i++) {
       let sample = samplesData[i];
       let sampleTime = sample[SAMPLE_TIME_SLOT];
 
@@ -156,7 +150,6 @@ ThreadNode.prototype = {
       
       
       if (!sampleTime || sampleTime <= startTime || sampleTime > endTime) {
-        prevSampleTime = sampleTime;
         continue;
       }
 
@@ -235,7 +228,10 @@ ThreadNode.prototype = {
                                           leafTable);
         if (isLeaf) {
           frameNode.youngestFrameSamples++;
-          frameNode._addOptimizations(inflatedFrame.optimizations, stringTable);
+          if (inflatedFrame.optimizations) {
+            frameNode._addOptimizations(inflatedFrame.optimizations, inflatedFrame.implementation,
+                                        sampleTime, stringTable);
+          }
         }
         frameNode.samples++;
 
@@ -245,6 +241,7 @@ ThreadNode.prototype = {
       }
 
       this.samples++;
+      this.sampleTimes.push(sampleTime);
     }
   },
 
@@ -372,6 +369,7 @@ function FrameNode(frameKey, { location, line, category, allocations, isContent 
   this.calls = [];
   this.isContent = !!isContent;
   this._optimizations = null;
+  this._tierData = null;
   this._stringTable = null;
   this.isMetaCategory = !!isMetaCategory;
   this.category = category;
@@ -387,16 +385,27 @@ FrameNode.prototype = {
 
 
 
-  _addOptimizations: function (optimizationSite, stringTable) {
+
+
+
+
+
+  _addOptimizations: function (site, implementation, time, stringTable) {
     
     
-    if (optimizationSite) {
+    if (site) {
       let opts = this._optimizations;
       if (opts === null) {
         opts = this._optimizations = [];
         this._stringTable = stringTable;
       }
-      opts.push(optimizationSite);
+      opts.push(site);
+
+      if (this._tierData === null) {
+        this._tierData = [];
+      }
+      
+      this._tierData.push({ implementation, time });
     }
   },
 
@@ -475,6 +484,18 @@ FrameNode.prototype = {
     }
     return new JITOptimizations(this._optimizations, this._stringTable);
   },
+
+  
+
+
+
+
+  getOptimizationTierData: function () {
+    if (!this._tierData) {
+      return null;
+    }
+    return this._tierData;
+  }
 };
 
 exports.ThreadNode = ThreadNode;
