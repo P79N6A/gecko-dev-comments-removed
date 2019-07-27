@@ -184,10 +184,7 @@ static MOZ_CONSTEXPR_VAR Register OsrFrameReg = IntArgReg3;
 
 static MOZ_CONSTEXPR_VAR Register PreBarrierReg = rdx;
 
-
-
-static const uint32_t StackAlignment = 16;
-static const bool StackKeptAligned = false;
+static const uint32_t ABIStackAlignment = 16;
 static const uint32_t CodeAlignment = 8;
 
 
@@ -196,6 +193,8 @@ static const uint32_t CodeAlignment = 8;
 
 static const bool SupportsSimd = true;
 static const uint32_t SimdStackAlignment = 16;
+
+static const uint32_t AsmJSStackAlignment = SimdStackAlignment;
 
 static const Scale ScalePointer = TimesEight;
 

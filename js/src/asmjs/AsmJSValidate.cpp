@@ -2282,7 +2282,7 @@ class FunctionCompiler
         uint32_t parentStackBytes = call->abi_.stackBytesConsumedSoFar();
         uint32_t newStackBytes;
         if (call->childClobbers_) {
-            call->spIncrement_ = AlignBytes(call->maxChildStackBytes_, StackAlignment);
+            call->spIncrement_ = AlignBytes(call->maxChildStackBytes_, AsmJSStackAlignment);
             for (unsigned i = 0; i < call->stackArgs_.length(); i++)
                 call->stackArgs_[i]->incrementOffset(call->spIncrement_);
             newStackBytes = Max(call->prevMaxStackBytes_,
@@ -5913,16 +5913,16 @@ CheckModuleReturn(ModuleCompiler &m)
 }
 
 static void
-AssertStackAlignment(MacroAssembler &masm)
+AssertStackAlignment(MacroAssembler &masm, uint32_t alignment)
 {
-    JS_ASSERT((sizeof(AsmJSFrame) + masm.framePushed()) % StackAlignment == 0);
-    masm.assertStackAlignment();
+    JS_ASSERT((sizeof(AsmJSFrame) + masm.framePushed()) % alignment == 0);
+    masm.assertStackAlignment(alignment);
 }
 
 static unsigned
-StackDecrementForCall(MacroAssembler &masm, unsigned bytesToPush)
+StackDecrementForCall(MacroAssembler &masm, uint32_t alignment, unsigned bytesToPush)
 {
-    return StackDecrementForCall(sizeof(AsmJSFrame) + masm.framePushed(), bytesToPush);
+    return StackDecrementForCall(alignment, sizeof(AsmJSFrame) + masm.framePushed(), bytesToPush);
 }
 
 template <class VectorT>
@@ -5937,9 +5937,10 @@ StackArgBytes(const VectorT &argTypes)
 
 template <class VectorT>
 static unsigned
-StackDecrementForCall(MacroAssembler &masm, const VectorT &argTypes, unsigned extraBytes = 0)
+StackDecrementForCall(MacroAssembler &masm, uint32_t alignment, const VectorT &argTypes,
+                      unsigned extraBytes = 0)
 {
-    return StackDecrementForCall(masm, StackArgBytes(argTypes) + extraBytes);
+    return StackDecrementForCall(masm, alignment, StackArgBytes(argTypes) + extraBytes);
 }
 
 #if defined(JS_CODEGEN_ARM)
@@ -5965,6 +5966,7 @@ static const unsigned FramePushedAfterSave = NonVolatileRegs.gprs().size() * siz
 static const unsigned FramePushedAfterSave = NonVolatileRegs.gprs().size() * sizeof(intptr_t) +
                                              NonVolatileRegs.fpus().getPushSizeInBytes();
 #endif
+static const unsigned FramePushedForEntrySP = FramePushedAfterSave + sizeof(void*);
 
 static bool
 GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
@@ -5975,17 +5977,18 @@ GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
     masm.align(CodeAlignment);
     masm.bind(&begin);
 
+    
 #if defined(JS_CODEGEN_ARM)
     masm.push(lr);
 #elif defined(JS_CODEGEN_MIPS)
     masm.push(ra);
+#elif defined(JS_CODEGEN_X86)
+    static const unsigned EntryFrameSize = sizeof(void*);
 #endif
-    masm.subPtr(Imm32(AsmJSFrameBytesAfterReturnAddress), StackPointer);
-    masm.setFramePushed(0);
 
     
     
-    
+    masm.setFramePushed(0);
     masm.PushRegsInMask(NonVolatileRegs);
     JS_ASSERT(masm.framePushed() == FramePushedAfterSave);
 
@@ -6007,25 +6010,32 @@ GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
     
     
     
-    Register activation = ABIArgGenerator::NonArgReturnReg0;
-    masm.loadAsmJSActivation(activation);
-    masm.storePtr(StackPointer, Address(activation, AsmJSActivation::offsetOfErrorRejoinSP()));
-
-    
     Register argv = ABIArgGenerator::NonArgReturnReg0;
     Register scratch = ABIArgGenerator::NonArgReturnReg1;
 #if defined(JS_CODEGEN_X86)
-    masm.loadPtr(Address(StackPointer, sizeof(AsmJSFrame) + masm.framePushed()), argv);
+    masm.loadPtr(Address(StackPointer, EntryFrameSize + masm.framePushed()), argv);
 #else
     masm.movePtr(IntArgReg0, argv);
 #endif
     masm.Push(argv);
 
     
+    
+    
+    
+    JS_ASSERT(masm.framePushed() == FramePushedForEntrySP);
+    masm.loadAsmJSActivation(scratch);
+    masm.storePtr(StackPointer, Address(scratch, AsmJSActivation::offsetOfEntrySP()));
+
+    
+    
+    
+    masm.andPtr(Imm32(~(AsmJSStackAlignment - 1)), StackPointer);
+
+    
     PropertyName *funcName = m.module().exportedFunction(exportIndex).name();
     const ModuleCompiler::Func &func = *m.lookupFunction(funcName);
-    unsigned stackDec = StackDecrementForCall(masm, func.sig().args());
-    masm.reserveStack(stackDec);
+    masm.reserveStack(AlignBytes(StackArgBytes(func.sig().args()), AsmJSStackAlignment));
 
     
     
@@ -6061,12 +6071,15 @@ GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
     }
 
     
-    AssertStackAlignment(masm);
+    masm.assertStackAlignment(AsmJSStackAlignment);
     masm.call(CallSiteDesc(CallSiteDesc::Relative), &func.entry());
 
     
+    masm.loadAsmJSActivation(scratch);
+    masm.loadPtr(Address(scratch, AsmJSActivation::offsetOfEntrySP()), StackPointer);
+    masm.setFramePushed(FramePushedForEntrySP);
+
     
-    masm.freeStack(stackDec);
     masm.Pop(argv);
 
     
@@ -6090,7 +6103,6 @@ GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
     JS_ASSERT(masm.framePushed() == 0);
 
     masm.move32(Imm32(true), ReturnReg);
-    masm.addPtr(Imm32(AsmJSFrameBytesAfterReturnAddress), StackPointer);
     masm.ret();
 
     return m.finishGeneratingEntry(exportIndex, &begin) && !masm.oom();
@@ -6154,7 +6166,7 @@ GenerateFFIInterpExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &e
     
     unsigned offsetToArgv = AlignBytes(StackArgBytes(invokeArgTypes), sizeof(double));
     unsigned argvBytes = Max<size_t>(1, exit.sig().args().length()) * sizeof(Value);
-    unsigned framePushed = StackDecrementForCall(masm, offsetToArgv + argvBytes);
+    unsigned framePushed = StackDecrementForCall(masm, ABIStackAlignment, offsetToArgv + argvBytes);
 
     Label begin;
     GenerateAsmJSExitPrologue(masm, framePushed, AsmJSExit::SlowFFI, &begin);
@@ -6194,7 +6206,7 @@ GenerateFFIInterpExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &e
     JS_ASSERT(i.done());
 
     
-    AssertStackAlignment(masm);
+    AssertStackAlignment(masm, ABIStackAlignment);
     switch (exit.sig().retType().which()) {
       case RetType::Void:
         masm.call(AsmJSImmPtr(AsmJSImm_InvokeFromAsmJS_Ignore));
@@ -6256,7 +6268,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     unsigned offsetToIonArgs = MaybeRetAddr;
     unsigned ionArgBytes = 3 * sizeof(size_t) + (1 + exit.sig().args().length()) * sizeof(Value);
     unsigned totalIonBytes = offsetToIonArgs + ionArgBytes + savedRegBytes;
-    unsigned ionFrameSize = StackDecrementForCall(masm, totalIonBytes);
+    unsigned ionFrameSize = StackDecrementForCall(masm, AsmJSStackAlignment, totalIonBytes);
 
     
     
@@ -6265,7 +6277,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     coerceArgTypes.infallibleAppend(MIRType_Pointer); 
     unsigned offsetToCoerceArgv = AlignBytes(StackArgBytes(coerceArgTypes), sizeof(double));
     unsigned totalCoerceBytes = offsetToCoerceArgv + sizeof(Value) + savedRegBytes;
-    unsigned coerceFrameSize = StackDecrementForCall(masm, totalCoerceBytes);
+    unsigned coerceFrameSize = StackDecrementForCall(masm, AsmJSStackAlignment, totalCoerceBytes);
 
     unsigned framePushed = Max(ionFrameSize, coerceFrameSize);
 
@@ -6366,9 +6378,9 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     }
 
     
-    AssertStackAlignment(masm);
+    AssertStackAlignment(masm, AsmJSStackAlignment);
     masm.callIonFromAsmJS(callee);
-    AssertStackAlignment(masm);
+    AssertStackAlignment(masm, AsmJSStackAlignment);
 
     {
         
@@ -6451,7 +6463,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         JS_ASSERT(i.done());
 
         
-        AssertStackAlignment(masm);
+        AssertStackAlignment(masm, ABIStackAlignment);
         switch (exit.sig().retType().which()) {
           case RetType::Signed:
             masm.call(AsmJSImmPtr(AsmJSImm_CoerceInPlace_ToInt32));
@@ -6546,7 +6558,7 @@ GenerateBuiltinThunk(ModuleCompiler &m, AsmJSExit::BuiltinKind builtin)
         MOZ_CRASH("Bad builtin");
     }
 
-    uint32_t framePushed = StackDecrementForCall(masm, argTypes);
+    uint32_t framePushed = StackDecrementForCall(masm, ABIStackAlignment, argTypes);
 
     Label begin;
     GenerateAsmJSExitPrologue(masm, framePushed, AsmJSExit::Builtin(builtin), &begin);
@@ -6571,7 +6583,7 @@ GenerateBuiltinThunk(ModuleCompiler &m, AsmJSExit::BuiltinKind builtin)
 #endif
     }
 
-    AssertStackAlignment(masm);
+    AssertStackAlignment(masm, ABIStackAlignment);
     masm.call(BuiltinToImmKind(builtin));
 
     Label profilingReturn;
@@ -6626,11 +6638,11 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     
     
     masm.mov(StackPointer, ABIArgGenerator::NonVolatileReg);
-    masm.andPtr(Imm32(~(StackAlignment - 1)), StackPointer);
+    masm.andPtr(Imm32(~(ABIStackAlignment - 1)), StackPointer);
     if (ShadowStackSpace)
         masm.subPtr(Imm32(ShadowStackSpace), StackPointer);
 
-    masm.assertStackAlignment();
+    masm.assertStackAlignment(ABIStackAlignment);
     masm.call(AsmJSImmPtr(AsmJSImm_HandleExecutionInterrupt));
 
     masm.branchIfFalseBool(ReturnReg, throwLabel);
@@ -6653,7 +6665,7 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     
     masm.movePtr(StackPointer, s0);
     
-    masm.ma_and(StackPointer, StackPointer, Imm32(~(StackAlignment - 1)));
+    masm.ma_and(StackPointer, StackPointer, Imm32(~(ABIStackAlignment - 1)));
 
     
     masm.loadAsmJSActivation(IntArgReg0);
@@ -6663,7 +6675,7 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     
     masm.subPtr(Imm32(4 * sizeof(intptr_t)), StackPointer);
 
-    masm.assertStackAlignment();
+    masm.assertStackAlignment(ABIStackAlignment);
     masm.call(AsmJSImm_HandleExecutionInterrupt);
 
     masm.addPtr(Imm32(4 * sizeof(intptr_t)), StackPointer);
@@ -6700,7 +6712,7 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
 
     masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(0), FloatRegisterSet(FloatRegisters::AllDoubleMask)));   
 
-    masm.assertStackAlignment();
+    masm.assertStackAlignment(ABIStackAlignment);
     masm.call(AsmJSImm_HandleExecutionInterrupt);
 
     masm.branchIfFalseBool(ReturnReg, throwLabel);
@@ -6744,11 +6756,11 @@ GenerateSyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     MacroAssembler &masm = m.masm();
     masm.setFramePushed(0);
 
-    unsigned framePushed = StackDecrementForCall(masm, ShadowStackSpace);
+    unsigned framePushed = StackDecrementForCall(masm, ABIStackAlignment, ShadowStackSpace);
 
     GenerateAsmJSExitPrologue(masm, framePushed, AsmJSExit::Interrupt, &m.syncInterruptLabel());
 
-    AssertStackAlignment(masm);
+    AssertStackAlignment(masm, ABIStackAlignment);
     masm.call(AsmJSImmPtr(AsmJSImm_HandleExecutionInterrupt));
     masm.branchIfFalseBool(ReturnReg, throwLabel);
 
@@ -6772,17 +6784,17 @@ GenerateThrowStub(ModuleCompiler &m, Label *throwLabel)
     
     
     
-    Register activation = ABIArgGenerator::NonArgReturnReg0;
-    masm.loadAsmJSActivation(activation);
-    masm.storePtr(ImmWord(0), Address(activation, AsmJSActivation::offsetOfFP()));
+    Register scratch = ABIArgGenerator::NonArgReturnReg0;
+    masm.loadAsmJSActivation(scratch);
+    masm.storePtr(ImmWord(0), Address(scratch, AsmJSActivation::offsetOfFP()));
 
-    masm.setFramePushed(FramePushedAfterSave);
-    masm.loadPtr(Address(activation, AsmJSActivation::offsetOfErrorRejoinSP()), StackPointer);
+    masm.setFramePushed(FramePushedForEntrySP);
+    masm.loadPtr(Address(scratch, AsmJSActivation::offsetOfEntrySP()), StackPointer);
+    masm.Pop(scratch);
     masm.PopRegsInMask(NonVolatileRegs);
     JS_ASSERT(masm.framePushed() == 0);
 
     masm.mov(ImmWord(0), ReturnReg);
-    masm.addPtr(Imm32(AsmJSFrameBytesAfterReturnAddress), StackPointer);
     masm.ret();
 
     return m.finishGeneratingInlineStub(throwLabel) && !masm.oom();

@@ -145,9 +145,8 @@ static MOZ_CONSTEXPR_VAR FloatRegister d15 = {FloatRegisters::d15, VFPRegister::
 
 
 
-static const uint32_t StackAlignment = 8;
+static const uint32_t ABIStackAlignment = 8;
 static const uint32_t CodeAlignment = 8;
-static const bool StackKeptAligned = true;
 
 
 
@@ -155,6 +154,8 @@ static const bool StackKeptAligned = true;
 
 static const bool SupportsSimd = false;
 static const uint32_t SimdStackAlignment = 8;
+
+static const uint32_t AsmJSStackAlignment = SimdStackAlignment;
 
 static const Scale ScalePointer = TimesFour;
 
