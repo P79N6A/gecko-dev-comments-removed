@@ -1,4 +1,4 @@
 
 
 
-wrap(this)
+new Proxy(this,{})

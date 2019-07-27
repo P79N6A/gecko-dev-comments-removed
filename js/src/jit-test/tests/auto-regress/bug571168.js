@@ -3,7 +3,7 @@
 
 
 
-var x = wrap.call(x, Function);
+var x = new Proxy(Function, {});
 if (x.__proto__ = x) {
     print(x);
 }
