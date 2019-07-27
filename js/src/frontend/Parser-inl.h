@@ -31,7 +31,6 @@ ParseContext<ParseHandler>::~ParseContext()
     
     JS_ASSERT(*parserPC == this);
     *parserPC = this->oldpc;
-    js_delete(funcStmts);
 }
 
 } 

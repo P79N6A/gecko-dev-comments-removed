@@ -391,7 +391,7 @@ class LifoAlloc
     
     template <typename T>
     MOZ_ALWAYS_INLINE
-    T *newPod() {
+    T *pod_malloc() {
         return static_cast<T *>(alloc(sizeof(T)));
     }
 
