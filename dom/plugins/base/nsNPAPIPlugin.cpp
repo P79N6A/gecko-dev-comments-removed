@@ -1084,23 +1084,7 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
 void
 _status(NPP npp, const char *message)
 {
-  if (!NS_IsMainThread()) {
-    NPN_PLUGIN_LOG(PLUGIN_LOG_ALWAYS,("NPN_status called from the wrong thread\n"));
-    return;
-  }
-  NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("NPN_Status: npp=%p, message=%s\n",
-                                     (void*)npp, message));
-
-  if (!npp || !npp->ndata) {
-    NS_WARNING("_status: npp or npp->ndata == 0");
-    return;
-  }
-
-  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance*)npp->ndata;
-
-  PluginDestructionGuard guard(inst);
-
-  inst->ShowStatus(message);
+  
 }
 
 void

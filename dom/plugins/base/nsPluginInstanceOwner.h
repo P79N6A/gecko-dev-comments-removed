@@ -63,8 +63,6 @@ public:
                     nsIInputStream *aPostStream, 
                     void *aHeadersData, uint32_t aHeadersDataLen) override;
   
-  NS_IMETHOD ShowStatus(const char16_t *aStatusMsg) override;
-  
   
   NPError    ShowNativeContextMenu(NPMenu* menu, void* event) override;
   
