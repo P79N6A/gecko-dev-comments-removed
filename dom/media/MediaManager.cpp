@@ -124,8 +124,6 @@ using dom::OwningBooleanOrMediaTrackConstraints;
 using dom::SupportedAudioConstraints;
 using dom::SupportedVideoConstraints;
 
-static Atomic<bool> sInShutdown;
-
 static bool
 HostInDomain(const nsCString &aHost, const nsCString &aPattern)
 {
@@ -948,7 +946,7 @@ public:
     nsRefPtr<nsDOMUserMediaStream> trackunion =
       nsDOMUserMediaStream::CreateTrackUnionStream(window, mListener,
                                                    mAudioSource, mVideoSource);
-    if (!trackunion || sInShutdown) {
+    if (!trackunion) {
       nsCOMPtr<nsIDOMGetUserMediaErrorCallback> onFailure = mOnFailure.forget();
       LOG(("Returning error for getUserMedia() - no stream"));
 
@@ -956,8 +954,7 @@ public:
       if (window) {
         nsRefPtr<MediaStreamError> error = new MediaStreamError(window,
             NS_LITERAL_STRING("InternalError"),
-            sInShutdown ? NS_LITERAL_STRING("In shutdown") :
-                          NS_LITERAL_STRING("No stream."));
+            NS_LITERAL_STRING("No stream."));
         onFailure->OnError(error);
       }
       return NS_OK;
@@ -1012,7 +1009,7 @@ public:
     
     
     
-    MediaManager::PostTask(FROM_HERE,
+    MediaManager::GetMessageLoop()->PostTask(FROM_HERE,
       new MediaOperationTask(MEDIA_START, mListener, trackunion,
                              tracksAvailableCallback,
                              mAudioSource, mVideoSource, false, mWindowID,
@@ -1615,7 +1612,7 @@ MediaManager::Get() {
 
     nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
     if (obs) {
-      obs->AddObserver(sSingleton, "xpcom-will-shutdown", false);
+      obs->AddObserver(sSingleton, "xpcom-shutdown", false);
       obs->AddObserver(sSingleton, "getUserMedia:response:allow", false);
       obs->AddObserver(sSingleton, "getUserMedia:response:deny", false);
       obs->AddObserver(sSingleton, "getUserMedia:revoke", false);
@@ -1647,17 +1644,12 @@ MediaManager::GetInstance()
 }
 
 
-void
-MediaManager::PostTask(const tracked_objects::Location& from_here, Task* task)
+MessageLoop*
+MediaManager::GetMessageLoop()
 {
-  if (sInShutdown) {
-    
-    
-    return;
-  }
   NS_ASSERTION(Get(), "MediaManager singleton?");
   NS_ASSERTION(Get()->mMediaThread, "No thread yet");
-  Get()->mMediaThread->message_loop()->PostTask(from_here, task);
+  return Get()->mMediaThread->message_loop();
 }
 
  nsresult
@@ -1791,9 +1783,6 @@ MediaManager::GetUserMedia(
     task = new GetUserMediaTask(c, onSuccess.forget(),
       onFailure.forget(), windowID, listener, mPrefs);
   }
-  if (sInShutdown) {
-    return task->Denied(NS_LITERAL_STRING("In shutdown"));
-  }
 
   nsIURI* docURI = aWindow->GetDocumentURI();
 
@@ -1900,7 +1889,7 @@ MediaManager::GetUserMedia(
   
   if (privileged ||
       (fake && !Preferences::GetBool("media.navigator.permission.fake"))) {
-    MediaManager::PostTask(FROM_HERE, task.forget());
+    MediaManager::GetMessageLoop()->PostTask(FROM_HERE, task.forget());
   } else {
     bool isHTTPS = false;
     if (docURI) {
@@ -1985,7 +1974,6 @@ MediaManager::GetUserMediaDevices(nsPIDOMWindow* aWindow,
 
   NS_ENSURE_TRUE(aOnFailure, NS_ERROR_NULL_POINTER);
   NS_ENSURE_TRUE(aOnSuccess, NS_ERROR_NULL_POINTER);
-  NS_ENSURE_TRUE(!sInShutdown, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIGetUserMediaDevicesSuccessCallback> onSuccess(aOnSuccess);
   nsCOMPtr<nsIDOMGetUserMediaErrorCallback> onFailure(aOnFailure);
@@ -2006,7 +1994,7 @@ MediaManager::GetUserMediaDevices(nsPIDOMWindow* aWindow,
     nsCOMPtr<nsILoadContext> loadContext = doc->GetLoadContext();
     inPrivateBrowsing = loadContext && loadContext->UsePrivateBrowsing();
   }
-  MediaManager::PostTask(FROM_HERE,
+  MediaManager::GetMessageLoop()->PostTask(FROM_HERE,
     new GetUserMediaDevicesTask(
       aConstraints, onSuccess.forget(), onFailure.forget(),
       (aInnerWindowID ? aInnerWindowID : aWindow->WindowID()),
@@ -2039,7 +2027,6 @@ MediaManager::GetBackend(uint64_t aWindowId)
   
   MutexAutoLock lock(mMutex);
   if (!mBackend) {
-    MOZ_RELEASE_ASSERT(!sInShutdown);  
 #if defined(MOZ_WEBRTC)
     mBackend = new MediaEngineWebRTC(mPrefs);
 #else
@@ -2215,10 +2202,8 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
       LOG(("%s: %dx%d @%dfps (min %d)", __FUNCTION__,
            mPrefs.mWidth, mPrefs.mHeight, mPrefs.mFPS, mPrefs.mMinFPS));
     }
-  } else if (!strcmp(aTopic, "xpcom-will-shutdown")) {
-    sInShutdown = true;
-
-    obs->RemoveObserver(this, "xpcom-will-shutdown");
+  } else if (!strcmp(aTopic, "xpcom-shutdown")) {
+    obs->RemoveObserver(this, "xpcom-shutdown");
     obs->RemoveObserver(this, "getUserMedia:response:allow");
     obs->RemoveObserver(this, "getUserMedia:response:deny");
     obs->RemoveObserver(this, "getUserMedia:revoke");
@@ -2232,42 +2217,21 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     
-    GetActiveWindows()->Clear();
-    mActiveCallbacks.Clear();
-    mCallIds.Clear();
-    {
-      MutexAutoLock lock(mMutex);
-      if (mBackend) {
-        mBackend->Shutdown(); 
-      }
-    }
-
-    
     
 
     class ShutdownTask : public Task
     {
     public:
-      ShutdownTask(TemporaryRef<MediaEngine> aBackend,
-                   nsRunnable* aReply)
-        : mReply(aReply)
-        , mBackend(aBackend) {}
+      explicit ShutdownTask(nsRunnable* aReply) : mReply(aReply) {}
     private:
       virtual void
       Run()
       {
-        LOG(("MediaManager Thread Shutdown"));
         MOZ_ASSERT(MediaManager::IsInMediaThread());
         mozilla::ipc::BackgroundChild::CloseForCurrentThread();
-        
-        mBackend = nullptr; 
-
-        if (NS_FAILED(NS_DispatchToMainThread(mReply))) {
-          LOG(("Will leak thread: DispatchToMainthread of reply runnable failed in MediaManager shutdown"));
-        }
+        NS_DispatchToMainThread(mReply);
       }
       nsRefPtr<nsRunnable> mReply;
-      RefPtr<MediaEngine> mBackend;
     };
 
     
@@ -2277,25 +2241,20 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     
     
 
-    
-    nsRefPtr<MediaManager> that(sSingleton);
-    
-    RefPtr<MediaEngine> temp;
-    {
+    MediaManager::GetMessageLoop()->PostTask(FROM_HERE, new ShutdownTask(
+        media::NewRunnableFrom([this]() mutable {
+      
       MutexAutoLock lock(mMutex);
-      temp = mBackend.forget();
-    }
-    
-    mMediaThread->message_loop()->PostTask(FROM_HERE, new ShutdownTask(
-        temp.forget(),
-        media::NewRunnableFrom([this, that]() mutable {
-      LOG(("MediaManager shutdown lambda running, releasing MediaManager singleton and thread"));
+      GetActiveWindows()->Clear();
+      mActiveCallbacks.Clear();
+      mCallIds.Clear();
+      LOG(("Releasing MediaManager singleton and thread"));
+      
+      sSingleton = nullptr;
       if (mMediaThread) {
         mMediaThread->Stop();
       }
-      
-      sSingleton = nullptr;
-
+      mBackend = nullptr;
       return NS_OK;
     })));
     return NS_OK;
@@ -2340,11 +2299,8 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
       }
     }
 
-    if (sInShutdown) {
-      return task->Denied(NS_LITERAL_STRING("In shutdown"));
-    }
     
-    MediaManager::PostTask(FROM_HERE, task.forget());
+    MediaManager::GetMessageLoop()->PostTask(FROM_HERE, task.forget());
     return NS_OK;
 
   } else if (!strcmp(aTopic, "getUserMedia:response:deny")) {
@@ -2542,7 +2498,8 @@ MediaManager::SanitizeDeviceIds(int64_t aSinceWhen)
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   LOG(("%s: sinceWhen = %llu", __FUNCTION__, aSinceWhen));
 
-  MediaManager::PostTask(FROM_HERE, new SanitizeDeviceIdsTask(aSinceWhen));
+  MediaManager::GetMessageLoop()->PostTask(FROM_HERE,
+    new SanitizeDeviceIdsTask(aSinceWhen));
   return NS_OK;
 }
 
@@ -2659,10 +2616,12 @@ GetUserMediaCallbackMediaStreamListener::AudioConfig(bool aEchoOn,
 {
   if (mAudioSource) {
 #ifdef MOZ_WEBRTC
-    MediaManager::PostTask(FROM_HERE,
+    mMediaThread->message_loop()->PostTask(FROM_HERE,
       NewRunnableMethod(mAudioSource.get(), &MediaEngineSource::Config,
                         aEchoOn, aEcho, aAgcOn, aAGC, aNoiseOn,
                         aNoise, aPlayoutDelay));
+#else
+    unused << mMediaThread;
 #endif
   }
 }
@@ -2675,7 +2634,7 @@ GetUserMediaCallbackMediaStreamListener::Invalidate()
   
   
   
-  MediaManager::PostTask(FROM_HERE,
+  MediaManager::GetMessageLoop()->PostTask(FROM_HERE,
     new MediaOperationTask(MEDIA_STOP,
                            this, nullptr, nullptr,
                            mAudioSource, mVideoSource,
@@ -2693,7 +2652,7 @@ GetUserMediaCallbackMediaStreamListener::StopScreenWindowSharing()
        mVideoSource->GetMediaSource() == dom::MediaSourceEnum::Application ||
        mVideoSource->GetMediaSource() == dom::MediaSourceEnum::Window)) {
     
-    MediaManager::PostTask(FROM_HERE,
+    MediaManager::GetMessageLoop()->PostTask(FROM_HERE,
       new MediaOperationTask(mAudioSource ? MEDIA_STOP_TRACK : MEDIA_STOP,
                              this, nullptr, nullptr,
                              nullptr, mVideoSource,
@@ -2711,7 +2670,7 @@ GetUserMediaCallbackMediaStreamListener::StopTrack(TrackID aID, bool aIsAudio)
   {
     
     
-    MediaManager::PostTask(FROM_HERE,
+    MediaManager::GetMessageLoop()->PostTask(FROM_HERE,
       new MediaOperationTask(MEDIA_STOP_TRACK,
                              this, nullptr, nullptr,
                              aIsAudio  ? mAudioSource : nullptr,
@@ -2737,7 +2696,7 @@ void
 GetUserMediaCallbackMediaStreamListener::NotifyDirectListeners(MediaStreamGraph* aGraph,
                                                                bool aHasListeners)
 {
-  MediaManager::PostTask(FROM_HERE,
+  MediaManager::GetMessageLoop()->PostTask(FROM_HERE,
     new MediaOperationTask(MEDIA_DIRECT_LISTENERS,
                            this, nullptr, nullptr,
                            mAudioSource, mVideoSource,
