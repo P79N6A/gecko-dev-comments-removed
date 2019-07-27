@@ -41,6 +41,9 @@ XPCOMUtils.defineLazyGetter(this, 'gContentRestore',
                             () => { return new ContentRestore(this) });
 
 
+let gCurrentEpoch = 0;
+
+
 
 
 
@@ -90,12 +93,6 @@ let EventListener = {
 
     
     
-    let epoch = gContentRestore.getRestoreEpoch();
-    if (!epoch) {
-      return;
-    }
-
-    
     gContentRestore.restoreDocument();
   }
 };
@@ -122,6 +119,14 @@ let MessageListener = {
       return;
     }
 
+    
+    
+    
+    
+    if (data.epoch && data.epoch != gCurrentEpoch) {
+      gCurrentEpoch = data.epoch;
+    }
+
     switch (name) {
       case "SessionStore:restoreHistory":
         this.restoreHistory(data);
@@ -139,7 +144,7 @@ let MessageListener = {
   },
 
   restoreHistory({epoch, tabData, loadArguments}) {
-    gContentRestore.restoreHistory(epoch, tabData, loadArguments, {
+    gContentRestore.restoreHistory(tabData, loadArguments, {
       onReload() {
         
         
@@ -172,7 +177,7 @@ let MessageListener = {
   },
 
   restoreTabContent({loadArguments}) {
-    let epoch = gContentRestore.getRestoreEpoch();
+    let epoch = gCurrentEpoch;
 
     
     let didStartLoad = gContentRestore.restoreTabContent(loadArguments, () => {

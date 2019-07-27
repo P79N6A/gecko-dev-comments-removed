@@ -55,11 +55,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Utils",
 
 
 
-
-
-
-
-
 function ContentRestore(chromeGlobal) {
   let internal = new ContentRestoreInternal(chromeGlobal);
   let external = {};
@@ -67,8 +62,7 @@ function ContentRestore(chromeGlobal) {
   let EXPORTED_METHODS = ["restoreHistory",
                           "restoreTabContent",
                           "restoreDocument",
-                          "resetRestore",
-                          "getRestoreEpoch",
+                          "resetRestore"
                          ];
 
   for (let method of EXPORTED_METHODS) {
@@ -83,9 +77,6 @@ function ContentRestoreInternal(chromeGlobal) {
 
   
   
-
-  
-  this._epoch = 0;
 
   
   
@@ -123,9 +114,8 @@ ContentRestoreInternal.prototype = {
 
 
 
-  restoreHistory(epoch, tabData, loadArguments, callbacks) {
+  restoreHistory(tabData, loadArguments, callbacks) {
     this._tabData = tabData;
-    this._epoch = epoch;
 
     
     let webNavigation = this.docShell.QueryInterface(Ci.nsIWebNavigation);
@@ -290,8 +280,6 @@ ContentRestoreInternal.prototype = {
 
 
   restoreDocument: function () {
-    this._epoch = 0;
-
     if (!this._restoringDocument) {
       return;
     }
@@ -327,15 +315,7 @@ ContentRestoreInternal.prototype = {
       this._progressListener.uninstall();
     }
     this._progressListener = null;
-  },
-
-  
-
-
-
-  getRestoreEpoch: function () {
-    return this._epoch;
-  },
+  }
 };
 
 
