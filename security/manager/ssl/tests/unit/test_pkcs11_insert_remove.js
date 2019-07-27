@@ -2,6 +2,7 @@
 
 
 
+"use strict";
 
 
 
@@ -13,8 +14,6 @@
 do_get_profile();
 Cc["@mozilla.org/psm;1"].getService(Ci.nsISupports);
 
-let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
-
 const gExpectedTokenLabel = "Test PKCS11 TokeÃ± Label";
 
 function SmartcardObserver(type) {
@@ -24,8 +23,9 @@ function SmartcardObserver(type) {
 
 SmartcardObserver.prototype = {
   observe: function(subject, topic, data) {
-    do_check_eq(topic, this.type);
-    do_check_eq(gExpectedTokenLabel, data);
+    equal(topic, this.type, "Observed and expected types should match");
+    equal(gExpectedTokenLabel, data,
+          "Expected and observed token labels should match");
     Services.obs.removeObserver(this, this.type);
     do_test_finished();
   }
@@ -45,6 +45,6 @@ function run_test() {
   let libraryFile = Services.dirsvc.get("CurWorkD", Ci.nsILocalFile);
   libraryFile.append("pkcs11testmodule");
   libraryFile.append(libraryName);
-  ok(libraryFile.exists());
+  ok(libraryFile.exists(), "The pkcs11testmodule file should exist");
   pkcs11.addModule("PKCS11 Test Module", libraryFile.path, 0, 0);
 }

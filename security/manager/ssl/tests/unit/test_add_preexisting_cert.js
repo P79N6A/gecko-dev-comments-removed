@@ -2,6 +2,12 @@
 
 
 
+"use strict";
+
+
+
+
+
 do_get_profile();
 let certDB = Cc["@mozilla.org/security/x509certdb;1"]
                .getService(Ci.nsIX509CertDB);
@@ -34,7 +40,7 @@ function run_test() {
   
   
   let int_cert = certDB.findCertByNickname(null, "int-limited-depth");
-  ok(int_cert);
+  notEqual(int_cert, null, "Intermediate cert should be in the cert DB");
   let base64_cert = btoa(getDERString(int_cert));
   certDB.addCertFromBase64(base64_cert, "p,p,p", "ignored_argument");
   checkCertErrorGeneric(certDB, ee, SEC_ERROR_UNTRUSTED_ISSUER,

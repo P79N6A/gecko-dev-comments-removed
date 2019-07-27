@@ -106,6 +106,7 @@ function run_test() {
   });
 
   
+  
   const nsIX509Cert = Ci.nsIX509Cert;
   add_test(function() {
     let evRootCA = certdb.findCertByNickname(null, evrootnick);
@@ -113,7 +114,7 @@ function run_test() {
 
     clearOCSPCache();
     let ocspResponder = failingOCSPResponder();
-    check_cert_err("ev-valid",SEC_ERROR_UNKNOWN_ISSUER);
+    check_cert_err("ev-valid", SEC_ERROR_UNKNOWN_ISSUER);
     ocspResponder.stop(run_next_test);
   });
 
@@ -206,10 +207,11 @@ function run_test() {
 
       let error = certdb.verifyCertNow(cert, certificateUsageSSLServer, flags,
                                        null, verifiedChain, hasEVPolicy);
-      do_check_eq(hasEVPolicy.value, gEVExpected);
-      do_check_eq(error,
-                  gEVExpected ? PRErrorCodeSuccess
-                              : SEC_ERROR_POLICY_VALIDATION_FAILED);
+      equal(hasEVPolicy.value, gEVExpected,
+            "Actual and expected EV status should match for local only EV");
+      equal(error,
+            gEVExpected ? PRErrorCodeSuccess : SEC_ERROR_POLICY_VALIDATION_FAILED,
+            "Actual and expected error code should match for local only EV");
       failingOcspResponder.stop(run_next_test);
     });
   });
@@ -228,7 +230,6 @@ function run_test() {
     ocspResponder.stop(run_next_test);
   });
 
-  
   
   
   add_test(function () {
@@ -287,7 +288,9 @@ function check_no_ocsp_requests(cert_name, expected_error) {
   let error = certdb.verifyCertNow(cert, certificateUsageSSLServer, flags,
                                    null, verifiedChain, hasEVPolicy);
   
-  do_check_eq(hasEVPolicy.value, false);
-  do_check_eq(expected_error, error);
+  equal(hasEVPolicy.value, false,
+        "EV status should be false when not doing OCSP requests");
+  equal(error, expected_error,
+        "Actual and expected error should match when not doing OCSP requests");
   ocspResponder.stop(run_next_test);
 }
