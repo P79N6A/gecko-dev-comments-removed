@@ -348,7 +348,7 @@ function RilObject(aContext) {
 
   this.telephonyRequestQueue = new TelephonyRequestQueue(this);
   this.currentCalls = {};
-  this.currentConference = {state: null, participants: {}};
+  this.currentConferenceState = CALL_STATE_UNKNOWN;
   this.currentDataCalls = {};
   this._pendingSentSmsMap = {};
   this.pendingNetworkType = {};
@@ -377,7 +377,7 @@ RilObject.prototype = {
   
 
 
-  currentConference: null,
+  currentConferenceState: null,
 
   
 
@@ -3835,169 +3835,187 @@ RilObject.prototype = {
   
 
 
-  _processCalls: function(newCalls) {
-    let conferenceChanged = false;
-    let clearConferenceRequest = false;
+  _classifyCalls: function(newCalls) {
+    newCalls = newCalls || {};
 
-    
-    
-    
+    let removedCalls = [];
+    let remainedCalls = [];
+    let addedCalls = [];
+
     for each (let currentCall in this.currentCalls) {
-      let newCall;
-      if (newCalls) {
-        newCall = newCalls[currentCall.callIndex];
-        delete newCalls[currentCall.callIndex];
-      }
-
-      
-      
+      let newCall = newCalls[currentCall.callIndex];
       if (!newCall) {
-        if (this.currentConference.participants[currentCall.callIndex]) {
-          conferenceChanged = true;
-        }
-        this._removeVoiceCall(currentCall,
-                              currentCall.hangUpLocal ?
-                                GECKO_CALL_ERROR_NORMAL_CALL_CLEARING : null);
-        continue;
-      }
-
-      
-      if (newCall.state == currentCall.state &&
-          newCall.isMpty == currentCall.isMpty) {
-        continue;
-      }
-
-      
-      if (newCall.state == CALL_STATE_INCOMING &&
-          currentCall.state == CALL_STATE_WAITING) {
-        
-        
-        currentCall.state = newCall.state;
-        continue;
-      }
-
-      if (!currentCall.started && newCall.state == CALL_STATE_ACTIVE) {
-        currentCall.started = new Date().getTime();
-      }
-
-      if (currentCall.isMpty == newCall.isMpty &&
-          newCall.state != currentCall.state) {
-        currentCall.state = newCall.state;
-        if (currentCall.isConference) {
-          conferenceChanged = true;
-        }
-        this._handleChangedCallState(currentCall);
-        continue;
-      }
-
-      
-      
-      
-
-      
-      if (!currentCall.isMpty && newCall.isMpty) {
-        if (this._hasConferenceRequest) {
-          conferenceChanged = true;
-          clearConferenceRequest = true;
-          currentCall.state = newCall.state;
-          currentCall.isMpty = newCall.isMpty;
-          currentCall.isConference = true;
-          this.currentConference.participants[currentCall.callIndex] = currentCall;
-          this._handleChangedCallState(currentCall);
-        } else if (currentCall.isConference) {
-          
-          conferenceChanged = true;
-          currentCall.state = newCall.state;
-          currentCall.isMpty = newCall.isMpty;
-          this.currentConference.participants[currentCall.callIndex] = currentCall;
-          this._handleChangedCallState(currentCall);
-        } else {
-          
-          
-          currentCall.state = newCall.state;
-          this._handleChangedCallState(currentCall);
-        }
-      } else if (currentCall.isMpty && !newCall.isMpty) {
-        if (!this.currentConference.participants[newCall.callIndex]) {
-          continue;
-        }
-
-        
-        
-        
-        
-        if (newCall.state != CALL_STATE_HOLDING) {
-          delete this.currentConference.participants[newCall.callIndex];
-          currentCall.state = newCall.state;
-          currentCall.isMpty = newCall.isMpty;
-          currentCall.isConference = false;
-          conferenceChanged = true;
-          this._handleChangedCallState(currentCall);
-          continue;
-        }
-
-        if (!this.currentConference.cache) {
-          this.currentConference.cache = {};
-        }
-        this.currentConference.cache[currentCall.callIndex] = newCall;
-        currentCall.state = newCall.state;
-        currentCall.isMpty = newCall.isMpty;
-        conferenceChanged = true;
-      }
-    }
-
-    
-    
-    if (this.pendingMO) {
-      let options = this.pendingMO.options;
-      this.pendingMO = null;
-
-      
-      let callIndex = -1;
-      for (let i in newCalls) {
-        if (newCalls[i].state !== CALL_STATE_INCOMING) {
-          callIndex = newCalls[i].callIndex;
-          newCalls[i].isEmergency = options.isEmergency;
-          break;
-        }
-      }
-
-      if (callIndex === -1) {
-        
-        options.success = false;
-        options.errorMsg = GECKO_CALL_ERROR_UNSPECIFIED;
-        this.sendChromeMessage(options);
+        removedCalls.push(currentCall);
       } else {
-        options.success = true;
-        options.callIndex = callIndex;
-        this.sendChromeMessage(options);
+        remainedCalls.push(newCall);
+        delete newCalls[currentCall.callIndex];
       }
     }
 
     
     for each (let newCall in newCalls) {
-      if (!newCall.isVoice) {
-        continue;
+      if (newCall.isVoice) {
+        addedCalls.push(newCall);
       }
-
-      if (newCall.isMpty) {
-        conferenceChanged = true;
-      }
-
-      this._addNewVoiceCall(newCall);
     }
 
-    if (clearConferenceRequest) {
-      this._hasConferenceRequest = false;
-    }
-    if (conferenceChanged) {
-      this._ensureConference();
+    return [removedCalls, remainedCalls, addedCalls];
+  },
+
+  
+
+
+
+  _assignPendingMO: function(addedCalls) {
+    let options = this.pendingMO.options;
+    this.pendingMO = null;
+
+    for (let call of addedCalls) {
+      if (call.state !== CALL_STATE_INCOMING) {
+        call.isEmergency = options.isEmergency;
+        options.success = true;
+        options.callIndex = call.callIndex;
+        this.sendChromeMessage(options);
+        return;
+      }
     }
 
     
-    let message = {rilMessageType: "audioStateChanged",
-                   state: this._detectAudioState()};
-    this.sendChromeMessage(message);
+    options.success = false;
+    options.errorMsg = GECKO_CALL_ERROR_UNSPECIFIED;
+    this.sendChromeMessage(options);
+  },
+
+  
+
+
+
+  _detectConference: function() {
+    
+    
+    
+    
+
+    
+    
+    
+    let activeCalls = new Set();
+    let holdingCalls = new Set();
+
+    for each (let call in this.currentCalls) {
+      if (call.state === CALL_STATE_ACTIVE) {
+        activeCalls.add(call);
+      } else if (call.state === CALL_STATE_HOLDING) {
+        holdingCalls.add(call);
+      }
+    }
+
+    if (activeCalls.size >= 2) {
+      return [CALL_STATE_ACTIVE, activeCalls];
+    } else if (holdingCalls.size >= 2) {
+      return [CALL_STATE_HOLDING, holdingCalls];
+    }
+
+    return [CALL_STATE_UNKNOWN, new Set()];
+  },
+
+  
+
+
+  _processClassifiedCalls: function(removedCalls, remainedCalls, addedCalls,
+                                    failCause) {
+    
+    for (let call of removedCalls) {
+      this._removeVoiceCall(call, call.hangUpLocal ?
+                            GECKO_CALL_ERROR_NORMAL_CALL_CLEARING : failCause);
+    }
+
+    let changedCalls = new Set();
+
+    
+    for (let newCall of remainedCalls) {
+      let oldCall = this.currentCalls[newCall.callIndex];
+      if (oldCall.state == newCall.state) {
+        continue;
+      }
+
+      if (oldCall.state == CALL_STATE_WAITING &&
+          newCall.state == CALL_STATE_INCOMING) {
+        
+        
+        oldCall.state = newCall.state;
+        continue;
+      }
+
+      if (!oldCall.started && newCall.state == CALL_STATE_ACTIVE) {
+        oldCall.started = new Date().getTime();
+      }
+
+      oldCall.state = newCall.state;
+      changedCalls.add(oldCall);
+
+      
+      if (this._hasConferenceRequest && !oldCall.isMpty && newCall.isMpty) {
+        this._hasConferenceRequest = false;
+      }
+    }
+
+    
+    if (this.pendingMO) {
+      this._assignPendingMO(addedCalls);
+    }
+
+    
+    for (let call of addedCalls) {
+      this._addVoiceCall(call);
+      changedCalls.add(call);
+    }
+
+    
+    let [newConferenceState, conference] = this._detectConference();
+    for each (let call in this.currentCalls) {
+      let isConference = conference.has(call);
+      if (call.isConference != isConference) {
+        call.isConference = isConference;
+        changedCalls.add(call);
+      }
+    }
+
+    
+    
+    this.sendChromeMessage({
+      rilMessageType: "audioStateChanged",
+      state: this._detectAudioState()
+    });
+
+    
+    for (let call of changedCalls) {
+      this._handleChangedCallState(call);
+    }
+
+    
+    if (this.currentConferenceState != newConferenceState) {
+      this.currentConferenceState = newConferenceState;
+      let message = {rilMessageType: "conferenceCallStateChanged",
+                     state: newConferenceState};
+      this.sendChromeMessage(message);
+    }
+  },
+
+  _processCalls: function(newCalls) {
+    let [removed, remained, added] = this._classifyCalls(newCalls);
+
+    
+    
+    
+    
+    if (removed.length) {
+      this.getFailCauseCode((function(removed, remained, added, failCause) {
+        this._processClassifiedCalls(removed, remained, added, failCause);
+      }).bind(this, removed, remained, added));
+    } else {
+      this._processClassifiedCalls(removed, remained, added);
+    }
   },
 
   _detectAudioState: function() {
@@ -4015,90 +4033,23 @@ RilObject.prototype = {
     return AUDIO_STATE_IN_CALL;
   },
 
-  _addNewVoiceCall: function(newCall) {
+  _addVoiceCall: function(newCall) {
     
     if (newCall.number && newCall.toa == TOA_INTERNATIONAL &&
         newCall.number[0] != "+") {
       newCall.number = "+" + newCall.number;
     }
 
-    if (newCall.state == CALL_STATE_INCOMING) {
-      newCall.isOutgoing = false;
-    } else if (newCall.state == CALL_STATE_DIALING) {
-      newCall.isOutgoing = true;
-    }
+    newCall.isOutgoing = !(newCall.state == CALL_STATE_INCOMING);
+    newCall.isConference = false;
 
-    
-    newCall.isConference = newCall.isMpty ? true : false;
-
-    
-    if (newCall.isMpty) {
-      this.currentConference.participants[newCall.callIndex] = newCall;
-    }
-    this._handleChangedCallState(newCall);
     this.currentCalls[newCall.callIndex] = newCall;
   },
 
-  _removeVoiceCall: function(removedCall, failCause) {
-    if (this.currentConference.participants[removedCall.callIndex]) {
-      removedCall.isConference = false;
-      delete this.currentConference.participants[removedCall.callIndex];
-      delete this.currentCalls[removedCall.callIndex];
-      
-      
-      
-      this._handleDisconnectedCall(removedCall);
-    } else {
-      delete this.currentCalls[removedCall.callIndex];
-      if (failCause) {
-        removedCall.failCause = failCause;
-        this._handleDisconnectedCall(removedCall);
-      } else {
-        this.getFailCauseCode((function(call, failCause) {
-          call.failCause = failCause;
-          this._handleDisconnectedCall(call);
-        }).bind(this, removedCall));
-      }
-    }
-  },
-
-  _ensureConference: function() {
-    let oldState = this.currentConference.state;
-    let remaining = Object.keys(this.currentConference.participants);
-
-    if (remaining.length == 1) {
-      
-      let call = this.currentCalls[remaining[0]];
-      call.isConference = false;
-      this._handleChangedCallState(call);
-      delete this.currentConference.participants[call.callIndex];
-    } else if (remaining.length > 1) {
-      for each (let call in this.currentConference.cache) {
-        call.isConference = true;
-        this.currentConference.participants[call.callIndex] = call;
-        this.currentCalls[call.callIndex] = call;
-        this._handleChangedCallState(call);
-      }
-    }
-    delete this.currentConference.cache;
-
-    
-    let state = CALL_STATE_UNKNOWN;
-    for each (let call in this.currentConference.participants) {
-      if (state != CALL_STATE_UNKNOWN && state != call.state) {
-        
-        
-        state = CALL_STATE_UNKNOWN;
-        break;
-      }
-      state = call.state;
-    }
-    if (oldState != state) {
-      this.currentConference.state = state;
-      let message = {rilMessageType: "conferenceCallStateChanged",
-                     state: state};
-      this.sendChromeMessage(message);
-    }
+  _removeVoiceCall: function(call, failCause) {
+    delete this.currentCalls[call.callIndex];
+    call.failCause = failCause;
+    this._handleDisconnectedCall(call);
   },
 
   _handleChangedCallState: function(changedCall) {

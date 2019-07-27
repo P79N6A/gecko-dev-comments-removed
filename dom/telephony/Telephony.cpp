@@ -495,6 +495,11 @@ Telephony::CallStateChanged(uint32_t aServiceId, uint32_t aCallIndex,
     modifiedCall->UpdateMergeable(aIsMergeable);
 
     if (modifiedCall->CallState() != aCallState) {
+      if (aCallState == nsITelephonyService::CALL_STATE_DISCONNECTED) {
+        modifiedCall->ChangeStateInternal(aCallState, true);
+        return NS_OK;
+      }
+
       
       
       
