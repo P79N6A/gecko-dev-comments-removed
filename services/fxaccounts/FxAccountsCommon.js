@@ -80,8 +80,8 @@ exports.CERT_LIFETIME      = 1000 * 3600 * 6;
 exports.KEY_LIFETIME       = 1000 * 3600 * 12; 
 
 
-exports.POLL_SESSION       = 1000 * 60 * 5;    
-exports.POLL_STEP          = 1000 * 3;         
+
+exports.POLL_SESSION       = 1000 * 60 * 20;   
 
 
 exports.ONLOGIN_NOTIFICATION = "fxaccounts:onlogin";

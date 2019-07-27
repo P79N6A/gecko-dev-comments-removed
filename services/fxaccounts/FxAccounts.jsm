@@ -298,10 +298,7 @@ function FxAccountsInternal() {
   this.version = DATA_FORMAT_VERSION;
 
   
-  this.POLL_STEP = POLL_STEP;
   this.POLL_SESSION = POLL_SESSION;
-  
-  
 
   
   
@@ -791,7 +788,7 @@ FxAccountsInternal.prototype = {
       
       
       
-      this.pollTimeRemaining = this.POLL_SESSION;
+      this.pollStartDate = Date.now();
       if (!currentState.whenVerifiedDeferred) {
         currentState.whenVerifiedDeferred = Promise.defer();
         
@@ -808,8 +805,6 @@ FxAccountsInternal.prototype = {
       .then((response) => {
         log.debug("checkEmailStatus -> " + JSON.stringify(response));
         if (response && response.verified) {
-          
-          
           currentState.getUserAccountData()
             .then((data) => {
               data.verified = true;
@@ -829,31 +824,39 @@ FxAccountsInternal.prototype = {
           this.pollEmailStatusAgain(currentState, sessionToken);
         }
       }, error => {
+        let timeoutMs = undefined;
+        if (error && error.retryAfter) {
+          
+          timeoutMs = (error.retryAfter + 3) * 1000;
+        }
         
         
         if (!error || !error.code || error.code != 401) {
-          this.pollEmailStatusAgain(currentState, sessionToken);
+          this.pollEmailStatusAgain(currentState, sessionToken, timeoutMs);
         }
       });
   },
 
   
-  pollEmailStatusAgain: function (currentState, sessionToken) {
-    log.debug("polling with step = " + this.POLL_STEP);
-    this.pollTimeRemaining -= this.POLL_STEP;
-    log.debug("time remaining: " + this.pollTimeRemaining);
-    if (this.pollTimeRemaining > 0) {
-      this.currentTimer = setTimeout(() => {
-        this.pollEmailStatus(currentState, sessionToken, "timer");
-      }, this.POLL_STEP);
-      log.debug("started timer " + this.currentTimer);
-    } else {
+  pollEmailStatusAgain: function (currentState, sessionToken, timeoutMs) {
+    let ageMs = Date.now() - this.pollStartDate;
+    if (ageMs >= this.POLL_SESSION) {
       if (currentState.whenVerifiedDeferred) {
         let error = new Error("User email verification timed out.")
         currentState.whenVerifiedDeferred.reject(error);
         delete currentState.whenVerifiedDeferred;
       }
+      log.debug("polling session exceeded, giving up");
+      return;
     }
+    if (timeoutMs === undefined) {
+      let currentMinute = Math.ceil(ageMs / 60000);
+      timeoutMs = 1000 * (currentMinute <= 2 ? 5 : 15);
+    }
+    log.debug("polling with timeout = " + timeoutMs);
+    this.currentTimer = setTimeout(() => {
+      this.pollEmailStatus(currentState, sessionToken, "timer");
+    }, timeoutMs);
   },
 
   _requireHttps: function() {
