@@ -1503,3 +1503,66 @@ add_test(function test_read_mbdn_recovered_from_cphs_mbn() {
 
   run_next_test();
 });
+
+
+
+
+add_test(function test_pnn_with_different_coding_scheme() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let record = context.SimRecordHelper;
+  let pduHelper = context.GsmPDUHelper;
+  let ril = context.RIL;
+  let buf = context.Buf;
+  let io = context.ICCIOHelper;
+
+  let test_data = [{
+    
+    pnn: [0x43, 0x06, 0x85, 0xD4, 0xF2, 0x9C, 0x1E, 0x03],
+    expectedResult: "Test1"
+  },{
+    
+    pnn: [0x43, 0x0C, 0x90, 0x80, 0x00, 0x54, 0x00, 0x65, 0x00, 0x73, 0x00, 0x74, 0x00, 0x31],
+    expectedResult: "Test1"
+  },{
+    
+    pnn: [0x43, 0x0E, 0x90, 0x81, 0x08, 0xd2, 0x4d, 0x6f, 0x7a, 0x69, 0x6c, 0x6c, 0x61, 0xca, 0xff, 0xff],
+    expectedResult: "Mozilla\u694a"
+  },{
+    
+    pnn: [0x43, 0x0F, 0x90, 0x82, 0x08, 0x69, 0x00, 0x4d, 0x6f, 0x7a, 0x69, 0x6c, 0x6c, 0x61, 0xca, 0xff, 0xff],
+    expectedResult: "Mozilla\u694a"
+  }];
+
+  function do_test_pnn(pnn, expectedResult) {
+    io.loadLinearFixedEF = function fakeLoadLinearFixedEF(options) {
+      
+      buf.writeInt32(pnn.length * 2);
+
+      
+      for (let i = 0; i < pnn.length; i++) {
+        pduHelper.writeHexOctet(pnn[i]);
+      }
+
+      
+      buf.writeStringDelimiter(pnn.length * 2);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    record.readPNN();
+
+    do_check_eq(ril.iccInfoPrivate.PNN[0].fullName, expectedResult);
+    
+    ril.iccInfoPrivate.PNN = null;
+  }
+
+  ril.appType = CARD_APPTYPE_SIM;
+  for (let i = 0; i < test_data.length; i++) {
+    do_test_pnn(test_data[i].pnn, test_data[i].expectedResult);
+  }
+
+  run_next_test();
+});

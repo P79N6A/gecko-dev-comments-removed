@@ -8863,7 +8863,7 @@ GsmPDUHelperObject.prototype = {
       break;
     case 1:
       
-      resultString = this.readUCS2String(len - 1);
+      resultString = this.context.ICCPDUHelper.readAlphaIdentifier(len - 1);
       break;
     default:
       
