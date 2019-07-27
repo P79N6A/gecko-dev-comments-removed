@@ -1912,17 +1912,12 @@ ClampAndAlignWithPixels(nscoord aDesired,
                         nscoord aAppUnitsPerPixel, double aRes,
                         nscoord aCurrent)
 {
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
-  
-  nscoord desired = aDesired;
-#else
   
   
   nscoord destLower = clamped(aDestLower, aBoundLower, aBoundUpper);
   nscoord destUpper = clamped(aDestUpper, aBoundLower, aBoundUpper);
 
   nscoord desired = clamped(aDesired, destLower, destUpper);
-#endif
 
   double currentLayerVal = (aRes*aCurrent)/aAppUnitsPerPixel;
   double desiredLayerVal = (aRes*desired)/aAppUnitsPerPixel;
@@ -1933,10 +1928,6 @@ ClampAndAlignWithPixels(nscoord aDesired,
   
   nscoord aligned =
     NSToCoordRoundWithClamp(nearestLayerVal*aAppUnitsPerPixel/aRes);
-
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
-  return aligned;
-#else
 
   
   
@@ -1965,7 +1956,6 @@ ClampAndAlignWithPixels(nscoord aDesired,
 
   
   return desired;
-#endif
 }
 
 
