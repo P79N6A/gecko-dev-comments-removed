@@ -1329,7 +1329,73 @@ MarionetteServerConnection.prototype = {
 
 
 
+
   getWindowHandle: function MDA_getWindowHandle() {
+    this.command_id = this.getCommandId();
+    
+    if (this.curBrowser.curFrameId && appName != 'B2G') {
+      this.sendResponse(this.curBrowser.curFrameId, this.command_id);
+      return;
+    }
+    for (let i in this.browsers) {
+      if (this.curBrowser == this.browsers[i]) {
+        this.sendResponse(i, this.command_id);
+        return;
+      }
+    }
+  },
+
+
+  
+
+
+
+
+
+
+
+
+  getWindowHandles: function MDA_getWindowHandles() {
+    this.command_id = this.getCommandId();
+    let res = [];
+    let winEn = this.getWinEnumerator();
+    while (winEn.hasMoreElements()) {
+      let win = winEn.getNext();
+      if (win.gBrowser && appName != 'B2G') {
+        let tabbrowser = win.gBrowser;
+        for (let i = 0; i < tabbrowser.browsers.length; ++i) {
+          let contentWindow = tabbrowser.getBrowserAtIndex(i).contentWindowAsCPOW;
+          if (contentWindow !== null) {
+            let winId = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                     .getInterface(Ci.nsIDOMWindowUtils)
+                                     .outerWindowID;
+            winId += (appName == "B2G") ? "-b2g" : "";
+            res.push(winId);
+          }
+        }
+      } else {
+        
+        let winId = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils)
+                       .outerWindowID;
+        winId += (appName == "B2G") ? "-b2g" : "";
+        res.push(winId);
+      }
+    }
+    this.sendResponse(res, this.command_id);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getChromeWindowHandle: function MDA_getChromeWindowHandle() {
     this.command_id = this.getCommandId();
     for (let i in this.browsers) {
       if (this.curBrowser == this.browsers[i]) {
@@ -1345,21 +1411,15 @@ MarionetteServerConnection.prototype = {
 
 
 
-
-
-
-
-
-
-
-  getWindowHandles: function MDA_getWindowHandles() {
+  getChromeWindowHandles: function MDA_getChromeWindowHandles() {
     this.command_id = this.getCommandId();
     let res = [];
     let winEn = this.getWinEnumerator();
     while (winEn.hasMoreElements()) {
       let foundWin = winEn.getNext();
       let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
+                          .getInterface(Ci.nsIDOMWindowUtils)
+                          .outerWindowID;
       winId = winId + ((appName == "B2G") ? "-b2g" : "");
       res.push(winId);
     }
@@ -1414,24 +1474,56 @@ MarionetteServerConnection.prototype = {
 
   switchToWindow: function MDA_switchToWindow(aRequest) {
     let command_id = this.command_id = this.getCommandId();
-    let winEn = this.getWinEnumerator();
-    while(winEn.hasMoreElements()) {
-      let foundWin = winEn.getNext();
-      let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                          .getInterface(Ci.nsIDOMWindowUtils)
-                          .outerWindowID;
-      winId = winId + ((appName == "B2G") ? '-b2g' : '');
-      if (aRequest.parameters.name == foundWin.name || aRequest.parameters.name == winId) {
-        if (this.browsers[winId] == undefined) {
+
+    let checkWindow = function (win, outerId, contentWindowId, ind) {
+      if (aRequest.parameters.name == win.name ||
+          aRequest.parameters.name == contentWindowId ||
+          aRequest.parameters.name == outerId) {
+        if (this.browsers[outerId] === undefined) {
           
-          this.startBrowser(foundWin, false);
-        }
-        else {
-          utils.window = foundWin;
-          this.curBrowser = this.browsers[winId];
+          this.startBrowser(win, false);
+        } else {
+          utils.window = win;
+          this.curBrowser = this.browsers[outerId];
+          if (contentWindowId) {
+            
+            this.curBrowser.curFrameId = contentWindowId;
+            win.gBrowser.selectTabAtIndex(ind);
+          }
           this.sendOk(command_id);
         }
-        return;
+        return true;
+      }
+      return false;
+    }
+
+    let winEn = this.getWinEnumerator();
+    while (winEn.hasMoreElements()) {
+      let win = winEn.getNext();
+      let outerId = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils)
+                       .outerWindowID;
+      outerId += (appName == "B2G") ? "-b2g" : "";
+      if (win.gBrowser && appName != 'B2G') {
+        let tabbrowser = win.gBrowser;
+        for (let i = 0; i < tabbrowser.browsers.length; ++i) {
+          let contentWindow = tabbrowser.getBrowserAtIndex(i).contentWindowAsCPOW;
+          if (contentWindow) {
+            let contentWindowId = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                               .getInterface(Ci.nsIDOMWindowUtils)
+                                               .outerWindowID;
+            contentWindowId += (appName == "B2G") ? "-b2g" : "";
+            if (checkWindow.call(this, win, outerId, contentWindowId, i)) {
+              return;
+            }
+          }
+        }
+      } else {
+        
+        
+        if (checkWindow.call(this, win, outerId)) {
+          return;
+        }
       }
     }
     this.sendError("Unable to locate window " + aRequest.parameters.name, 23, null,
@@ -2254,8 +2346,13 @@ MarionetteServerConnection.prototype = {
       let numOpenWindows = 0;
       let winEnum = this.getWinEnumerator();
       while (winEnum.hasMoreElements()) {
-        numOpenWindows += 1;
-        winEnum.getNext();
+        let win = winEnum.getNext();
+        
+        if (win.gBrowser) {
+          numOpenWindows += win.gBrowser.browsers.length;
+        } else {
+          numOpenWindows += 1;
+        }
       }
 
       
@@ -2273,8 +2370,14 @@ MarionetteServerConnection.prototype = {
       }
 
       try {
-        this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT);
-        this.getCurrentWindow().close();
+        if (this.messageManager != this.globalMessageManager) {
+          this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT);
+        }
+        if (this.curBrowser.tab) {
+          this.curBrowser.closeTab();
+        } else {
+          this.getCurrentWindow().close();
+        }
         this.sendOk(command_id);
       }
       catch (e) {
@@ -2881,8 +2984,10 @@ MarionetteServerConnection.prototype.requestTypes = {
   "refresh":  MarionetteServerConnection.prototype.refresh,
   "getWindowHandle": MarionetteServerConnection.prototype.getWindowHandle,
   "getCurrentWindowHandle":  MarionetteServerConnection.prototype.getWindowHandle,  
+  "getChromeWindowHandle": MarionetteServerConnection.prototype.getChromeWindowHandle,
   "getWindow":  MarionetteServerConnection.prototype.getWindowHandle,  
   "getWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,
+  "getChromeWindowHandles": MarionetteServerConnection.prototype.getChromeWindowHandles,
   "getCurrentWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,  
   "getWindows":  MarionetteServerConnection.prototype.getWindowHandles,  
   "getWindowPosition": MarionetteServerConnection.prototype.getWindowPosition,
@@ -2926,7 +3031,6 @@ function BrowserObj(win, server) {
   this.DESKTOP = "desktop";
   this.B2G = "B2G";
   this.browser;
-  this.tab = null; 
   this.window = win;
   this.knownFrames = [];
   this.curFrameId = null;
@@ -2942,6 +3046,11 @@ function BrowserObj(win, server) {
 }
 
 BrowserObj.prototype = {
+  get tab () {
+    
+    return this.browser ? this.browser.selectedTab : null;
+  },
+
   
 
 
@@ -2967,12 +3076,6 @@ BrowserObj.prototype = {
 
 
   startSession: function BO_startSession(newSession, win, callback) {
-    if (appName == "Firefox") {
-      
-      if (this.browser != undefined && this.browser.selectedTab != undefined) {
-        this.tab = this.browser.selectedTab;
-      }
-    }
     callback(win, newSession);
   },
 
@@ -2984,7 +3087,6 @@ BrowserObj.prototype = {
         this.browser.removeTab &&
         this.tab != null && (appName != "B2G")) {
       this.browser.removeTab(this.tab);
-      this.tab = null;
     }
   },
 
