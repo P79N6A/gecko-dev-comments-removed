@@ -2421,4 +2421,18 @@ NS_Get32BitsOfPseudoRandom()
 #endif
 }
 
+
+
+
+
+
+
+bool NS_IsReasonableHTTPHeaderValue(const nsACString& aValue);
+
+
+
+
+
+bool NS_IsValidHTTPToken(const nsACString& aToken);
+
 #endif 

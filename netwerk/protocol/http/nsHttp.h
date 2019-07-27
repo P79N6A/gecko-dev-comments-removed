@@ -132,10 +132,14 @@ struct nsHttp
     
     static bool IsValidToken(const char *start, const char *end);
 
-    static inline bool IsValidToken(const nsCString &s) {
-        const char *start = s.get();
-        return IsValidToken(start, start + s.Length());
+    static inline bool IsValidToken(const nsACString &s) {
+        return IsValidToken(s.BeginReading(), s.EndReading());
     }
+
+    
+    
+    
+    static bool IsReasonableHeaderValue(const nsACString &s);
 
     
     

@@ -243,6 +243,24 @@ nsHttp::IsValidToken(const char *start, const char *end)
     return true;
 }
 
+
+bool
+nsHttp::IsReasonableHeaderValue(const nsACString &s)
+{
+  
+  
+  
+  
+  
+  const nsACString::char_type* end = s.EndReading();
+  for (const nsACString::char_type* i = s.BeginReading(); i != end; ++i) {
+    if (*i == '\r' || *i == '\n' || *i == '\0') {
+      return false;
+    }
+  }
+  return true;
+}
+
 const char *
 nsHttp::FindToken(const char *input, const char *token, const char *seps)
 {

@@ -1295,7 +1295,7 @@ nsXMLHttpRequest::IsSafeHeader(const nsACString& header, nsIHttpChannel* httpCha
     if (token.IsEmpty()) {
       continue;
     }
-    if (!IsValidHTTPToken(token)) {
+    if (!NS_IsValidHTTPToken(token)) {
       return false;
     }
     if (header.Equals(token, nsCaseInsensitiveCStringComparator())) {
@@ -3093,7 +3093,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
 
   
   
-  if (!IsValidHTTPToken(header)) { 
+  if (!NS_IsValidHTTPToken(header)) {
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 

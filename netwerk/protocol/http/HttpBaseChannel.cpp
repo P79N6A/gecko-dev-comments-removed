@@ -1120,17 +1120,11 @@ HttpBaseChannel::SetRequestHeader(const nsACString& aHeader,
       this, flatHeader.get(), flatValue.get(), aMerge));
 
   
-  if (!nsHttp::IsValidToken(flatHeader))
+  
+  if (!nsHttp::IsValidToken(flatHeader) ||
+      !nsHttp::IsReasonableHeaderValue(flatValue)) {
     return NS_ERROR_INVALID_ARG;
-
-  
-  
-  
-  
-  
-  if (flatValue.FindCharInSet("\r\n") != kNotFound ||
-      flatValue.Length() != strlen(flatValue.get()))
-    return NS_ERROR_INVALID_ARG;
+  }
 
   nsHttpAtom atom = nsHttp::ResolveAtom(flatHeader.get());
   if (!atom) {
