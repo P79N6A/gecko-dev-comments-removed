@@ -2524,6 +2524,41 @@ ContentChild::GetBrowserOrId(TabChild* aTabChild)
     }
 }
 
+
+
+
+static uint64_t gNextWindowID = 0;
+
+
+
+
+static const uint64_t kWindowIDTotalBits = 53;
+static const uint64_t kWindowIDProcessBits = 22;
+static const uint64_t kWindowIDWindowBits = kWindowIDTotalBits - kWindowIDProcessBits;
+
+
+
+uint64_t
+NextWindowID()
+{
+  uint64_t processID = 0;
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    ContentChild* cc = ContentChild::GetSingleton();
+    processID = cc->GetID();
+  }
+
+  MOZ_RELEASE_ASSERT(processID < (uint64_t(1) << kWindowIDProcessBits));
+  uint64_t processBits = processID & ((uint64_t(1) << kWindowIDProcessBits) - 1);
+
+  
+  uint64_t windowID = ++gNextWindowID;
+
+  MOZ_RELEASE_ASSERT(windowID < (uint64_t(1) << kWindowIDWindowBits));
+  uint64_t windowBits = windowID & ((uint64_t(1) << kWindowIDWindowBits) - 1);
+
+  return (processBits << kWindowIDWindowBits) | windowBits;
+}
+
 } 
 } 
 
