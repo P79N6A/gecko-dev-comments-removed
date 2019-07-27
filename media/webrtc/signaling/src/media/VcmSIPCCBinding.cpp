@@ -34,6 +34,7 @@
 #ifdef MOZILLA_INTERNAL_API
 #include "nsIPrincipal.h"
 #include "nsIDocument.h"
+#include "mozilla/Preferences.h"
 #endif
 
 #include <stdlib.h>
@@ -257,16 +258,22 @@ int VcmSIPCCBinding::getVideoCodecsHw()
   
   
 #ifdef MOZ_WEBRTC_OMX
-  android::sp<android::OMXCodecReservation> encode = new android::OMXCodecReservation(true);
-  android::sp<android::OMXCodecReservation> decode = new android::OMXCodecReservation(false);
+#ifdef MOZILLA_INTERNAL_API
+  if (Preferences::GetBool("media.peerconnection.video.h264_enabled")) {
+#endif
+    android::sp<android::OMXCodecReservation> encode = new android::OMXCodecReservation(true);
+    android::sp<android::OMXCodecReservation> decode = new android::OMXCodecReservation(false);
 
-  
-  
-  
-  if (encode->ReserveOMXCodec() && decode->ReserveOMXCodec()) {
-    CSFLogDebug( logTag, "%s: H264 hardware codec available", __FUNCTION__);
-    return VCM_CODEC_RESOURCE_H264;
-  }
+    
+    
+    
+    if (encode->ReserveOMXCodec() && decode->ReserveOMXCodec()) {
+      CSFLogDebug( logTag, "%s: H264 hardware codec available", __FUNCTION__);
+      return VCM_CODEC_RESOURCE_H264;
+    }
+#if defined( MOZILLA_INTERNAL_API)
+   }
+#endif
 #endif
 
   return 0;
