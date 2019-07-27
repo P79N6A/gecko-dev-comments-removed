@@ -388,6 +388,8 @@ Migrator.prototype = {
     let email = yield this._getDefaultAccountName(sentinel);
     let tail = email ? "&email=" + encodeURIComponent(email) : "";
     
+    tail += "&migration=sync11";
+    
     
     let customize = !this._allEnginesEnabled();
     tail += "&customizeSync=" + customize;
