@@ -15,6 +15,7 @@
 #include "ia2AccessibleHyperlink.h"
 #include "ia2AccessibleValue.h"
 #include "mozilla/a11y/ProxyAccessible.h"
+#include "mozilla/a11y/IDSet.h"
 
 #ifdef __GNUC__
 
@@ -33,8 +34,7 @@ class AccessibleWrap : public Accessible,
                        public ia2AccessibleValue
 {
 public: 
-  AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
-    Accessible(aContent, aDoc) { }
+  AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -152,6 +152,7 @@ public:
 
   
   virtual nsresult HandleAccEvent(AccEvent* aEvent);
+  virtual void Shutdown() override;
 
   
   static int32_t GetChildIDFor(Accessible* aAccessible);
@@ -176,7 +177,11 @@ public:
   static IDispatch* NativeAccessible(Accessible* aAccessible);
 
 protected:
-  virtual ~AccessibleWrap() { }
+  virtual ~AccessibleWrap();
+
+#ifdef _WIN64
+  uint32_t mID;
+#endif
 
   
 
@@ -185,6 +190,9 @@ protected:
 
   static ITypeInfo* gTypeInfo;
 
+#ifdef _WIN64
+  static IDSet sIDGen;
+#endif
 
   enum navRelations {
     NAVRELATION_CONTROLLED_BY = 0x1000,
