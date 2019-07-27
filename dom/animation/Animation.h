@@ -246,7 +246,6 @@ public:
 
 
 
-
   bool IsPlaying() const
   {
     

@@ -56,7 +56,7 @@ ComputedTimingFunction::GetValue(double aPortion) const
 
 
 
-const double ComputedTiming::kNullTimeFraction = PositiveInfinity<double>();
+const double ComputedTiming::kNullProgress = PositiveInfinity<double>();
 
 namespace dom {
 
@@ -125,7 +125,7 @@ KeyframeEffectReadOnly::GetComputedTimingAt(
     result.mPhase = ComputedTiming::AnimationPhase_After;
     if (!aTiming.FillsForwards()) {
       
-      result.mTimeFraction = ComputedTiming::kNullTimeFraction;
+      result.mProgress = ComputedTiming::kNullProgress;
       return result;
     }
     activeTime = result.mActiveDuration;
@@ -138,7 +138,7 @@ KeyframeEffectReadOnly::GetComputedTimingAt(
     result.mPhase = ComputedTiming::AnimationPhase_Before;
     if (!aTiming.FillsBackwards()) {
       
-      result.mTimeFraction = ComputedTiming::kNullTimeFraction;
+      result.mProgress = ComputedTiming::kNullProgress;
       return result;
     }
     
@@ -180,19 +180,18 @@ KeyframeEffectReadOnly::GetComputedTimingAt(
 
   
   if (result.mPhase == ComputedTiming::AnimationPhase_Before) {
-    result.mTimeFraction = 0.0;
+    result.mProgress = 0.0;
   } else if (result.mPhase == ComputedTiming::AnimationPhase_After) {
-    result.mTimeFraction = isEndOfFinalIteration
-                         ? 1.0
-                         : fmod(aTiming.mIterationCount, 1.0f);
+    result.mProgress = isEndOfFinalIteration
+                       ? 1.0
+                       : fmod(aTiming.mIterationCount, 1.0f);
   } else {
     
     MOZ_ASSERT(aTiming.mIterationDuration != zeroDuration,
                "In the active phase of a zero-duration animation?");
-    result.mTimeFraction =
-      aTiming.mIterationDuration == TimeDuration::Forever()
-      ? 0.0
-      : iterationTime / aTiming.mIterationDuration;
+    result.mProgress = aTiming.mIterationDuration == TimeDuration::Forever()
+                       ? 0.0
+                       : iterationTime / aTiming.mIterationDuration;
   }
 
   bool thisIterationReverse = false;
@@ -211,7 +210,7 @@ KeyframeEffectReadOnly::GetComputedTimingAt(
       break;
   }
   if (thisIterationReverse) {
-    result.mTimeFraction = 1.0 - result.mTimeFraction;
+    result.mProgress = 1.0 - result.mProgress;
   }
 
   return result;
@@ -267,7 +266,7 @@ KeyframeEffectReadOnly::IsInEffect() const
   }
 
   ComputedTiming computedTiming = GetComputedTiming();
-  return computedTiming.mTimeFraction != ComputedTiming::kNullTimeFraction;
+  return computedTiming.mProgress != ComputedTiming::kNullProgress;
 }
 
 const AnimationProperty*
@@ -308,13 +307,13 @@ KeyframeEffectReadOnly::ComposeStyle(
 
   
   
-  if (computedTiming.mTimeFraction == ComputedTiming::kNullTimeFraction) {
+  if (computedTiming.mProgress == ComputedTiming::kNullProgress) {
     return;
   }
 
-  MOZ_ASSERT(0.0 <= computedTiming.mTimeFraction &&
-             computedTiming.mTimeFraction <= 1.0,
-             "timing fraction should be in [0-1]");
+  MOZ_ASSERT(0.0 <= computedTiming.mProgress &&
+             computedTiming.mProgress <= 1.0,
+             "iteration progress should be in [0-1]");
 
   for (size_t propIdx = 0, propEnd = mProperties.Length();
        propIdx != propEnd; ++propIdx)
@@ -351,11 +350,11 @@ KeyframeEffectReadOnly::ComposeStyle(
     
     const AnimationPropertySegment *segment = prop.mSegments.Elements(),
                                 *segmentEnd = segment + prop.mSegments.Length();
-    while (segment->mToKey < computedTiming.mTimeFraction) {
+    while (segment->mToKey < computedTiming.mProgress) {
       MOZ_ASSERT(segment->mFromKey < segment->mToKey, "incorrect keys");
       ++segment;
       if (segment == segmentEnd) {
-        MOZ_ASSERT_UNREACHABLE("incorrect time fraction");
+        MOZ_ASSERT_UNREACHABLE("incorrect iteration progress");
         break; 
       }
       MOZ_ASSERT(segment->mFromKey == (segment-1)->mToKey, "incorrect keys");
@@ -375,7 +374,7 @@ KeyframeEffectReadOnly::ComposeStyle(
     }
 
     double positionInSegment =
-      (computedTiming.mTimeFraction - segment->mFromKey) /
+      (computedTiming.mProgress - segment->mFromKey) /
       (segment->mToKey - segment->mFromKey);
     double valuePosition =
       segment->mTimingFunction.GetValue(positionInSegment);

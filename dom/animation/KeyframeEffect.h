@@ -72,12 +72,12 @@ struct AnimationTiming
 struct ComputedTiming
 {
   ComputedTiming()
-    : mTimeFraction(kNullTimeFraction)
+    : mProgress(kNullProgress)
     , mCurrentIteration(0)
     , mPhase(AnimationPhase_Null)
   { }
 
-  static const double kNullTimeFraction;
+  static const double kNullProgress;
 
   
   
@@ -86,9 +86,10 @@ struct ComputedTiming
 
   
   
-  double mTimeFraction;
-
   
+  
+  double mProgress;
+
   
   uint64_t mCurrentIteration;
 
