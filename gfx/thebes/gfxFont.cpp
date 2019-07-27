@@ -3484,9 +3484,14 @@ gfxFont::CreateVerticalMetrics()
             
             gfxFloat halfExtent = 0.5 * gfxFloat(mFUnitsConvFactor) *
                 (int16_t(vhea->ascender) + std::abs(int16_t(vhea->descender)));
-            metrics->maxAscent = halfExtent;
-            metrics->maxDescent = halfExtent;
-            SET_SIGNED(externalLeading, vhea->lineGap);
+            
+            
+            
+            if (halfExtent > 0) {
+                metrics->maxAscent = halfExtent;
+                metrics->maxDescent = halfExtent;
+                SET_SIGNED(externalLeading, vhea->lineGap);
+            }
         }
     }
 
