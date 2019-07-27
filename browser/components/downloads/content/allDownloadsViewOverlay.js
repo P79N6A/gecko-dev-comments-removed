@@ -18,6 +18,7 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/DownloadUtils.jsm");
 Cu.import("resource:///modules/DownloadsCommon.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
@@ -45,6 +46,92 @@ const DOWNLOAD_VIEW_SUPPORTED_COMMANDS =
 
 
 
+function HistoryDownload(url) {
+  
+  this.source = { url };
+  this.target = { path: undefined, size: undefined };
+}
+
+HistoryDownload.prototype = {
+  
+
+
+
+  start() {
+    
+    
+    
+    let browserWin = RecentWindow.getMostRecentBrowserWindow();
+    let initiatingDoc = browserWin ? browserWin.document : document;
+
+    
+    let leafName = this.target.path ? OS.Path.basename(this.target.path) : null;
+    DownloadURL(this.source.url, leafName, initiatingDoc);
+
+    return Promise.resolve();
+  },
+};
+
+
+
+
+
+
+
+
+function DownloadsHistoryDataItem(aPlacesNode) {
+  this.download = new HistoryDownload(aPlacesNode.uri);
+
+  
+  
+  this.endTime = aPlacesNode.time / 1000;
+}
+
+DownloadsHistoryDataItem.prototype = {
+  __proto__: DownloadsDataItem.prototype,
+
+  
+
+
+  updateFromMetaData(aPlacesMetaData) {
+    try {
+      let targetFile = Cc["@mozilla.org/network/protocol;1?name=file"]
+                         .getService(Ci.nsIFileProtocolHandler)
+                         .getFileFromURLSpec(aPlacesMetaData.targetFileURISpec);
+      this.download.target.path = targetFile.path;
+    } catch (ex) {
+      this.download.target.path = undefined;
+    }
+
+    try {
+      let metaData = JSON.parse(aPlacesMetaData.jsonDetails);
+      this.state = metaData.state;
+      this.endTime = metaData.endTime;
+      this.download.target.size = metaData.fileSize;
+    } catch (ex) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      this.state = this.download.target.path ? nsIDM.DOWNLOAD_FAILED
+                                             : nsIDM.DOWNLOAD_FINISHED;
+      this.download.target.size = undefined;
+    }
+
+    
+    
+    this.maxBytes = this.download.target.size;
+
+    
+    this.percentComplete = 100;
+  },
+};
 
 
 
@@ -64,24 +151,27 @@ const DOWNLOAD_VIEW_SUPPORTED_COMMANDS =
 
 
 
-function DownloadElementShell(aDataItem, aPlacesNode, aPlacesMetaData) {
+
+
+function DownloadElementShell(aSessionDataItem, aHistoryDataItem) {
   this._element = document.createElement("richlistitem");
   this._element._shell = this;
 
   this._element.classList.add("download");
   this._element.classList.add("download-state");
 
-  if (aDataItem) {
-    this.dataItem = aDataItem;
+  if (aSessionDataItem) {
+    this.sessionDataItem = aSessionDataItem;
   }
-  if (aPlacesNode) {
-    this.placesMetaData = aPlacesMetaData;
-    this.placesNode = aPlacesNode;
+  if (aHistoryDataItem) {
+    this.historyDataItem = aHistoryDataItem;
   }
 }
 
 DownloadElementShell.prototype = {
   
+
+
   get element() this._element,
 
   
@@ -100,38 +190,46 @@ DownloadElementShell.prototype = {
   get active() !!this._active,
 
   
-  _dataItem: null,
-  get dataItem() this._dataItem,
 
-  set dataItem(aValue) {
-    if (this._dataItem != aValue) {
-      if (!aValue && !this._placesNode) {
-        throw new Error("Should always have either a dataItem or a placesNode");
+
+
+  get download() this.dataItem.download,
+
+  
+
+
+
+  get dataItem() this._sessionDataItem || this._historyDataItem,
+
+  _sessionDataItem: null,
+  get sessionDataItem() this._sessionDataItem,
+  set sessionDataItem(aValue) {
+    if (this._sessionDataItem != aValue) {
+      if (!aValue && !this._historyDataItem) {
+        throw new Error("Should always have either a dataItem or a historyDataItem");
       }
 
-      this._dataItem = aValue;
-      if (!this.active) {
-        this.ensureActive();
-      } else {
-        this._updateUI();
-      }
+      this._sessionDataItem = aValue;
+
+      this.ensureActive();
+      this._updateUI();
     }
     return aValue;
   },
 
-  _placesNode: null,
-  get placesNode() this._placesNode,
-  set placesNode(aValue) {
-    if (this._placesNode != aValue) {
-      if (!aValue && !this._dataItem) {
-        throw new Error("Should always have either a dataItem or a placesNode");
+  _historyDataItem: null,
+  get historyDataItem() this._historyDataItem,
+  set historyDataItem(aValue) {
+    if (this._historyDataItem != aValue) {
+      if (!aValue && !this._sessionDataItem) {
+        throw new Error("Should always have either a dataItem or a historyDataItem");
       }
 
-      this._placesNode = aValue;
+      this._historyDataItem = aValue;
 
       
       
-      if (!this._dataItem && this.active) {
+      if (!this._sessionDataItem) {
         this._updateUI();
       }
     }
@@ -139,98 +237,80 @@ DownloadElementShell.prototype = {
   },
 
   
-  get downloadURI() {
-    if (this._dataItem) {
-      return this._dataItem.download.source.url;
+  get _progressElement() {
+    if (!("__progressElement" in this)) {
+      this.__progressElement =
+        document.getAnonymousElementByAttribute(this._element, "anonid",
+                                                "progressmeter");
     }
-    if (this._placesNode) {
-      return this._placesNode.uri;
-    }
-    throw new Error("Unexpected download element state");
+    return this.__progressElement;
   },
 
-  get _downloadURIObj() {
-    if (!("__downloadURIObj" in this)) {
-      this.__downloadURIObj = NetUtil.newURI(this.downloadURI);
-    }
-    return this.__downloadURIObj;
-  },
-
-  _getIcon() {
-    let metaData = this.getDownloadMetaData();
-    if ("filePath" in metaData) {
-      return "moz-icon://" + metaData.filePath + "?size=32";
-    }
-
-    if (this._placesNode) {
-      return "moz-icon://.unknown?size=32";
-    }
-
+  _updateUI() {
     
-    if (this._dataItem) {
-      throw new Error("Session-download items should always have a target file uri");
-    }
-
-    throw new Error("Unexpected download element state");
-  },
-
-  _fetchTargetFileInfo(aUpdateMetaDataAndStatusUI = false) {
-    if (this._targetFileInfoFetched) {
-      throw new Error("_fetchTargetFileInfo should not be called if the information was already fetched");
-    }
     if (!this.active) {
-      throw new Error("Trying to _fetchTargetFileInfo on an inactive download shell");
-    }
-
-    let path = this.getDownloadMetaData().filePath;
-
-    
-    
-    if (path === undefined) {
-      this._targetFileInfoFetched = true;
-      this._targetFileExists = false;
-      if (aUpdateMetaDataAndStatusUI) {
-        this._metaData = null;
-        this._updateDownloadStatusUI();
-      }
-      
-      
       return;
     }
 
-    OS.File.stat(path).then(
-      fileInfo => {
-        this._targetFileInfoFetched = true;
-        this._targetFileExists = true;
-        this._targetFileSize = fileInfo.size;
-        if (aUpdateMetaDataAndStatusUI) {
-          this._metaData = null;
-          this._updateDownloadStatusUI();
-        }
-        if (this._element.selected) {
-          goUpdateDownloadCommands();
-        }
-      },
+    
+    this._targetFileChecked = false;
 
-      aReason => {
-        if (aReason instanceof OS.File.Error && aReason.becauseNoSuchFile) {
-          this._targetFileInfoFetched = true;
-          this._targetFileExists = false;
-        } else {
-          Cu.reportError("Could not fetch info for target file (reason: " +
-                         aReason + ")");
-        }
+    this._element.setAttribute("displayName", this.displayName);
+    this._element.setAttribute("image", this.image);
 
-        if (aUpdateMetaDataAndStatusUI) {
-          this._metaData = null;
-          this._updateDownloadStatusUI();
-        }
+    this._updateActiveStatusUI();
+  },
 
-        if (this._element.selected) {
-          goUpdateDownloadCommands();
-        }
-      }
-    );
+  
+  
+  
+  _updateActiveStatusUI() {
+    if (!this.active) {
+      throw new Error("_updateActiveStatusUI called for an inactive item.");
+    }
+
+    this._element.setAttribute("state", this.dataItem.state);
+    this._element.setAttribute("status", this.statusText);
+
+    
+    if (!this._sessionDataItem) {
+      return;
+    }
+
+    
+    if (this.dataItem.starting) {
+      
+      this._element.setAttribute("progressmode", "normal");
+      this._element.setAttribute("progress", "0");
+    } else if (this.dataItem.state == nsIDM.DOWNLOAD_SCANNING ||
+               this.dataItem.percentComplete == -1) {
+      
+      
+      this._element.setAttribute("progressmode", "undetermined");
+    } else {
+      
+      this._element.setAttribute("progressmode", "normal");
+      this._element.setAttribute("progress", this.dataItem.percentComplete);
+    }
+
+    
+    if (this._progressElement) {
+      let event = document.createEvent("Events");
+      event.initEvent("ValueChange", true, true);
+      this._progressElement.dispatchEvent(event);
+    }
+  },
+
+  
+
+
+  get image() {
+    if (this.download.target.path) {
+      return "moz-icon://" + this.download.target.path + "?size=32";
+    }
+
+    
+    return "moz-icon://.unknown?size=32";
   },
 
   
@@ -238,96 +318,38 @@ DownloadElementShell.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  getDownloadMetaData() {
-    if (!this._metaData) {
-      if (this._dataItem) {
-        let leafName = OS.Path.basename(this._dataItem.download.target.path);
-        this._metaData = {
-          state:       this._dataItem.state,
-          endTime:     this._dataItem.endTime,
-          fileName:    leafName,
-          displayName: leafName,
-        };
-        if (this._dataItem.done) {
-          this._metaData.fileSize = this._dataItem.maxBytes;
-        }
-        this._metaData.filePath = this._dataItem.download.target.path;
-      } else {
-        try {
-          this._metaData = JSON.parse(this.placesMetaData.jsonDetails);
-        } catch (ex) {
-          this._metaData = {};
-          if (this._targetFileInfoFetched && this._targetFileExists) {
-            
-            
-            this._metaData.state = this._targetFileSize > 0
-                                   ? nsIDM.DOWNLOAD_FINISHED
-                                   : nsIDM.DOWNLOAD_FAILED;
-            this._metaData.fileSize = this._targetFileSize;
-          }
-
-          
-          this._metaData.endTime = this._placesNode.time / 1000;
-        }
-
-        try {
-          let targetFile = Cc["@mozilla.org/network/protocol;1?name=file"]
-                             .getService(Ci.nsIFileProtocolHandler)
-                             .getFileFromURLSpec(this.placesMetaData
-                                                     .targetFileURISpec);
-          this._metaData.filePath = targetFile.path;
-          this._metaData.fileName = targetFile.leafName;
-          this._metaData.displayName = targetFile.leafName;
-        } catch (ex) {
-          this._metaData.displayName = this.downloadURI;
-        }
-      }
+  get displayName() {
+    if (!this.download.target.path) {
+      return this.download.source.url;
     }
-    return this._metaData;
+    return OS.Path.basename(this.download.target.path);
   },
 
-  _getStatusText() {
+  get statusText() {
     let s = DownloadsCommon.strings;
-    if (this._dataItem && this._dataItem.inProgress) {
-      if (this._dataItem.paused) {
+    if (this.dataItem.inProgress) {
+      if (this.dataItem.paused) {
         let transfer =
-          DownloadUtils.getTransferTotal(this._dataItem.download.currentBytes,
-                                         this._dataItem.maxBytes);
+          DownloadUtils.getTransferTotal(this.download.currentBytes,
+                                         this.dataItem.maxBytes);
 
          
          
          return s.statusSeparatorBeforeNumber(s.statePaused, transfer);
       }
-      if (this._dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
+      if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
         let [status, newEstimatedSecondsLeft] =
-          DownloadUtils.getDownloadStatus(this.dataItem.download.currentBytes,
+          DownloadUtils.getDownloadStatus(this.download.currentBytes,
                                           this.dataItem.maxBytes,
-                                          this.dataItem.download.speed,
+                                          this.download.speed,
                                           this._lastEstimatedSecondsLeft || Infinity);
         this._lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
         return status;
       }
-      if (this._dataItem.starting) {
+      if (this.dataItem.starting) {
         return s.stateStarting;
       }
-      if (this._dataItem.state == nsIDM.DOWNLOAD_SCANNING) {
+      if (this.dataItem.state == nsIDM.DOWNLOAD_SCANNING) {
         return s.stateScanning;
       }
 
@@ -336,8 +358,7 @@ DownloadElementShell.prototype = {
 
     
     let stateLabel = "";
-    let state = this.getDownloadMetaData().state;
-    switch (state) {
+    switch (this.dataItem.state) {
       case nsIDM.DOWNLOAD_FAILED:
         stateLabel = s.stateFailed;
         break;
@@ -353,27 +374,25 @@ DownloadElementShell.prototype = {
       case nsIDM.DOWNLOAD_DIRTY:
         stateLabel = s.stateDirty;
         break;
-      case nsIDM.DOWNLOAD_FINISHED:{
+      case nsIDM.DOWNLOAD_FINISHED:
         
-        let metaData = this.getDownloadMetaData();
-        if ("fileSize" in metaData) {
-          let [size, unit] = DownloadUtils.convertByteUnits(metaData.fileSize);
+        if (this.dataItem.maxBytes !== undefined) {
+          let [size, unit] =
+              DownloadUtils.convertByteUnits(this.dataItem.maxBytes);
           stateLabel = s.sizeWithUnits(size, unit);
           break;
         }
         
-      }
       default:
         stateLabel = s.sizeUnknown;
         break;
     }
 
-    
-    let referrer = this._dataItem && this._dataItem.download.source.referrer ||
-                   this.downloadURI;
+    let referrer = this.download.source.referrer ||
+                   this.download.source.url;
     let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
 
-    let date = new Date(this.getDownloadMetaData().endTime);
+    let date = new Date(this.dataItem.endTime);
     let [displayDate, fullDate] = DownloadUtils.getReadableDates(date);
 
     
@@ -382,97 +401,16 @@ DownloadElementShell.prototype = {
     return s.statusSeparator(firstPart, displayDate);
   },
 
-  
-  get _progressElement() {
-    if (!("__progressElement" in this)) {
-      this.__progressElement =
-        document.getAnonymousElementByAttribute(this._element, "anonid",
-                                                "progressmeter");
-    }
-    return this.__progressElement;
-  },
-
-  
-  
-  
-  _updateDownloadStatusUI() {
-    if (!this.active) {
-      throw new Error("_updateDownloadStatusUI called for an inactive item.");
-    }
-
-    let state = this.getDownloadMetaData().state;
-    if (state !== undefined) {
-      this._element.setAttribute("state", state);
-    }
-
-    this._element.setAttribute("status", this._getStatusText());
-
-    
-    
-    if (!this._dataItem) {
-      return;
-    }
-
-    
-    if (this._dataItem.starting) {
-      
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", "0");
-    } else if (this._dataItem.state == nsIDM.DOWNLOAD_SCANNING ||
-               this._dataItem.percentComplete == -1) {
-      
-      
-      this._element.setAttribute("progressmode", "undetermined");
-    } else {
-      
-      this._element.setAttribute("progressmode", "normal");
-      this._element.setAttribute("progress", this._dataItem.percentComplete);
-    }
-
-    
-    if (this._progressElement) {
-      let event = document.createEvent("Events");
-      event.initEvent("ValueChange", true, true);
-      this._progressElement.dispatchEvent(event);
-    }
-  },
-
-  _updateUI() {
-    if (!this.active) {
-      throw new Error("Trying to _updateUI on an inactive download shell");
-    }
-
-    this._metaData = null;
-    this._targetFileInfoFetched = false;
-
-    let metaData = this.getDownloadMetaData();
-    this._element.setAttribute("displayName", metaData.displayName);
-    this._element.setAttribute("image", this._getIcon());
-
+  onStateChanged() {
     
     
     
-    if (this._dataItem || this.getDownloadMetaData().state !== undefined) {
-      this._updateDownloadStatusUI();
-    } else {
-      this._fetchTargetFileInfo(true);
+    
+    
+    
+    if (this.dataItem.state == nsIDM.DOWNLOAD_FINISHED) {
+      this._element.setAttribute("image", this.image + "&state=normal");
     }
-  },
-
-  onStateChanged(aOldState) {
-    let metaData = this.getDownloadMetaData();
-    metaData.state = this.dataItem.state;
-    if (aOldState != nsIDM.DOWNLOAD_FINISHED && aOldState != metaData.state) {
-      
-      this._element.setAttribute("image", this._getIcon() + "&state=normal");
-      metaData.fileSize = this._dataItem.maxBytes;
-      if (this._targetFileInfoFetched) {
-        this._targetFileInfoFetched = false;
-        this._fetchTargetFileInfo();
-      }
-    }
-
-    this._updateDownloadStatusUI();
 
     if (this._element.selected) {
       goUpdateDownloadCommands();
@@ -482,7 +420,7 @@ DownloadElementShell.prototype = {
   },
 
   onChanged() {
-    this._updateDownloadStatusUI();
+    this._updateActiveStatusUI();
   },
 
   
@@ -496,114 +434,93 @@ DownloadElementShell.prototype = {
         
         
         
-        if (this._dataItem && !this._dataItem.download.succeeded) {
+        if (this._sessionDataItem && !this.download.succeeded) {
           return false;
         }
 
-        if (this._targetFileInfoFetched) {
+        if (this._targetFileChecked) {
           return this._targetFileExists;
         }
 
         
         
-        return this.getDownloadMetaData().state == nsIDM.DOWNLOAD_FINISHED;
+        return this.dataItem.state == nsIDM.DOWNLOAD_FINISHED;
       case "downloadsCmd_show":
         
-        if (this._dataItem &&
-            this._dataItem.partFile && this._dataItem.partFile.exists()) {
+        if (this._sessionDataItem &&
+            this.dataItem.partFile && this.dataItem.partFile.exists()) {
           return true;
         }
 
-        if (this._targetFileInfoFetched) {
+        if (this._targetFileChecked) {
           return this._targetFileExists;
         }
 
         
         
-        return this.getDownloadMetaData().state == nsIDM.DOWNLOAD_FINISHED;
+        return this.dataItem.state == nsIDM.DOWNLOAD_FINISHED;
       case "downloadsCmd_pauseResume":
-        return this._dataItem && this._dataItem.inProgress &&
-               this._dataItem.download.hasPartialData;
+        return this._sessionDataItem && this.dataItem.inProgress &&
+               this.dataItem.download.hasPartialData;
       case "downloadsCmd_retry":
-        
-        return !this._dataItem || this._dataItem.canRetry;
+        return this.dataItem.canRetry;
       case "downloadsCmd_openReferrer":
-        return this._dataItem && !!this._dataItem.download.source.referrer;
+        return !!this.download.source.referrer;
       case "cmd_delete":
         
-        if (this._placesNode && this._dataItem && this._dataItem.inProgress) {
-          return false;
-        }
-        return true;
+        return !this.dataItem.inProgress;
       case "downloadsCmd_cancel":
-        return this._dataItem != null;
+        return !!this._sessionDataItem;
     }
     return false;
-  },
-
-  _retryAsHistoryDownload() {
-    
-    
-    
-    let browserWin = RecentWindow.getMostRecentBrowserWindow();
-    let initiatingDoc = browserWin ? browserWin.document : document;
-    DownloadURL(this.downloadURI, this.getDownloadMetaData().fileName,
-                initiatingDoc);
   },
 
   
   doCommand(aCommand) {
     switch (aCommand) {
       case "downloadsCmd_open": {
-        let file = new FileUtils.File(this._dataItem
-                                      ? this._dataItem.download.target.path
-                                      : this.getDownloadMetaData().filePath);
-
+        let file = new FileUtils.File(this.download.target.path);
         DownloadsCommon.openDownloadedFile(file, null, window);
         break;
       }
       case "downloadsCmd_show": {
-        let file = new FileUtils.File(this._dataItem
-                                      ? this._dataItem.download.target.path
-                                      : this.getDownloadMetaData().filePath);
-
+        let file = new FileUtils.File(this.download.target.path);
         DownloadsCommon.showDownloadedFile(file);
         break;
       }
       case "downloadsCmd_openReferrer": {
-        openURL(this._dataItem.download.source.referrer);
+        openURL(this.download.source.referrer);
         break;
       }
       case "downloadsCmd_cancel": {
-        this._dataItem.download.cancel().catch(() => {});
-        this._dataItem.download.removePartialData().catch(Cu.reportError);
+        this.download.cancel().catch(() => {});
+        this.download.removePartialData().catch(Cu.reportError);
         break;
       }
       case "cmd_delete": {
-        if (this._dataItem) {
+        if (this._sessionDataItem) {
           Downloads.getList(Downloads.ALL)
-                   .then(list => list.remove(this._dataItem.download))
-                   .then(() => this._dataItem.download.finalize(true))
+                   .then(list => list.remove(this.download))
+                   .then(() => this.download.finalize(true))
                    .catch(Cu.reportError);
         }
-        if (this._placesNode) {
-          PlacesUtils.bhistory.removePage(this._downloadURIObj);
+        if (this._historyDataItem) {
+          let uri = NetUtil.newURI(this.download.source.url);
+          PlacesUtils.bhistory.removePage(uri);
         }
         break;
       }
       case "downloadsCmd_retry": {
-        if (this._dataItem) {
-          this._dataItem.download.start().catch(() => {});
-        } else {
-          this._retryAsHistoryDownload();
-        }
+        
+        this.download.start().catch(() => {});
         break;
       }
       case "downloadsCmd_pauseResume": {
-        if (this._dataItem.download.stopped) {
-          this._dataItem.download.start();
+        
+        if (this.download.stopped) {
+          this.download.start();
         } else {
-          this._dataItem.download.cancel();
+          this.download.cancel();
         }
         break;
       }
@@ -618,8 +535,8 @@ DownloadElementShell.prototype = {
       return true;
     }
     aTerm = aTerm.toLowerCase();
-    return this.getDownloadMetaData().displayName.toLowerCase().contains(aTerm) ||
-           this.downloadURI.toLowerCase().contains(aTerm);
+    return this.displayName.toLowerCase().contains(aTerm) ||
+           this.download.source.url.toLowerCase().contains(aTerm);
   },
 
   
@@ -646,7 +563,7 @@ DownloadElementShell.prototype = {
       }
       return "";
     }
-    let command = getDefaultCommandForState(this.getDownloadMetaData().state);
+    let command = getDefaultCommandForState(this.dataItem.state);
     if (command && this.isCommandEnabled(command)) {
       this.doCommand(command);
     }
@@ -658,16 +575,37 @@ DownloadElementShell.prototype = {
 
 
 
-
-
   onSelect() {
     if (!this.active) {
       return;
     }
-    if (!this._targetFileInfoFetched) {
-      this._fetchTargetFileInfo();
+
+    
+    
+    if (!this.download.target.path) {
+      return;
     }
-  }
+
+    
+    
+    if (!this._targetFileChecked) {
+      this._checkTargetFileOnSelect().catch(Cu.reportError);
+    }
+  },
+
+  _checkTargetFileOnSelect: Task.async(function* () {
+    try {
+      this._targetFileExists = yield OS.File.exists(this.download.target.path);
+    } finally {
+      
+      this._targetFileChecked = true;
+    }
+
+    
+    if (this._element.selected) {
+      goUpdateDownloadCommands();
+    }
+  }),
 };
 
 
@@ -889,9 +827,9 @@ DownloadsPlacesView.prototype = {
       
       shouldCreateShell = true;
       for (let shell of shellsForURI) {
-        if (!shell.dataItem) {
+        if (!shell.sessionDataItem) {
           shouldCreateShell = false;
-          shell.dataItem = aDataItem;
+          shell.sessionDataItem = aDataItem;
           newOrUpdatedShell = shell;
           this._viewItemsForDataItems.set(aDataItem, shell);
           break;
@@ -903,10 +841,14 @@ DownloadsPlacesView.prototype = {
       
       
       
-      let metaData = aPlacesNode
-                     ? this._getCachedPlacesMetaDataFor(aPlacesNode.uri)
-                     : null;
-      let shell = new DownloadElementShell(aDataItem, aPlacesNode, metaData);
+      let historyDataItem = null;
+      if (aPlacesNode) {
+        let metaData = this._getCachedPlacesMetaDataFor(aPlacesNode.uri);
+        historyDataItem = new DownloadsHistoryDataItem(aPlacesNode);
+        historyDataItem.updateFromMetaData(metaData);
+      }
+      let shell = new DownloadElementShell(aDataItem, historyDataItem);
+      shell.element._placesNode = aPlacesNode;
       newOrUpdatedShell = shell;
       shellsForURI.add(shell);
       if (aDataItem) {
@@ -925,9 +867,11 @@ DownloadsPlacesView.prototype = {
       
       
       for (let shell of shellsForURI) {
-        if (shell.placesNode != aPlacesNode) {
-          shell.placesNode = aPlacesNode;
+        if (!shell.historyDataItem) {
+          
+          shell.historyDataItem = new DownloadsHistoryDataItem(aPlacesNode);
         }
+        shell.element._placesNode = aPlacesNode;
       }
     }
 
@@ -992,8 +936,8 @@ DownloadsPlacesView.prototype = {
     let shellsForURI = this._downloadElementsShellsForURI.get(downloadURI);
     if (shellsForURI) {
       for (let shell of shellsForURI) {
-        if (shell.dataItem) {
-          shell.placesNode = null;
+        if (shell.sessionDataItem) {
+          shell.historyDataItem = null;
         } else {
           this._removeElement(shell.element);
           shellsForURI.delete(shell);
@@ -1020,7 +964,7 @@ DownloadsPlacesView.prototype = {
     
     
     
-    if (shells.size > 1 || !shell.placesNode) {
+    if (shells.size > 1 || !shell.historyDataItem) {
       this._removeElement(shell.element);
       shells.delete(shell);
       if (shells.size == 0) {
@@ -1032,8 +976,10 @@ DownloadsPlacesView.prototype = {
       
       
       
-      shell.placesMetaData = this._getPlacesMetaDataFor(shell.placesNode.uri);
-      shell.dataItem = null;
+      let url = shell.historyDataItem.download.source.url;
+      let metaData = this._getPlacesMetaDataFor(url);
+      shell.historyDataItem.updateFromMetaData(metaData);
+      shell.sessionDataItem = null;
       
       if (this._lastSessionDownloadElement == shell.element) {
         this._lastSessionDownloadElement = shell.element.previousSibling;
@@ -1146,14 +1092,9 @@ DownloadsPlacesView.prototype = {
   },
 
   get selectedNodes() {
-    let placesNodes = [];
-    let selectedElements = this._richlistbox.selectedItems;
-    for (let elt of selectedElements) {
-      if (elt._shell.placesNode) {
-        placesNodes.push(elt._shell.placesNode);
-      }
-    }
-    return placesNodes;
+    return [for (element of this._richlistbox.selectedItems)
+            if (element._placesNode)
+            element._placesNode];
   },
 
   get selectedNode() {
@@ -1189,8 +1130,8 @@ DownloadsPlacesView.prototype = {
       
       for (let i = this._richlistbox.childNodes.length - 1; i >= 0; --i) {
         let element = this._richlistbox.childNodes[i];
-        if (element._shell.placesNode) {
-          this._removeHistoryDownloadFromView(element._shell.placesNode);
+        if (element._placesNode) {
+          this._removeHistoryDownloadFromView(element._placesNode);
         }
       }
     } finally {
@@ -1323,8 +1264,8 @@ DownloadsPlacesView.prototype = {
   },
 
   
-  onDataItemStateChanged(aDataItem, aOldState) {
-    this._viewItemsForDataItems.get(aDataItem).onStateChanged(aOldState);
+  onDataItemStateChanged(aDataItem) {
+    this._viewItemsForDataItems.get(aDataItem).onStateChanged();
   },
 
   
@@ -1372,7 +1313,7 @@ DownloadsPlacesView.prototype = {
     
     
     for (let elt = this._richlistbox.lastChild; elt; elt = elt.previousSibling) {
-      if (elt._shell.placesNode || !elt._shell.dataItem.inProgress) {
+      if (!elt._shell.dataItem.inProgress) {
         return true;
       }
     }
@@ -1380,11 +1321,12 @@ DownloadsPlacesView.prototype = {
   },
 
   _copySelectedDownloadsToClipboard() {
-    let selectedElements = this._richlistbox.selectedItems;
-    let urls = [e._shell.downloadURI for each (e in selectedElements)];
+    let urls = [for (element of this._richlistbox.selectedItems)
+                element._shell.download.source.url];
 
-    Cc["@mozilla.org/widget/clipboardhelper;1"].
-    getService(Ci.nsIClipboardHelper).copyString(urls.join("\n"), document);
+    Cc["@mozilla.org/widget/clipboardhelper;1"]
+      .getService(Ci.nsIClipboardHelper)
+      .copyString(urls.join("\n"), document);
   },
 
   _getURLFromClipboardData() {
@@ -1468,12 +1410,8 @@ DownloadsPlacesView.prototype = {
 
     
     let contextMenu = document.getElementById("downloadsContextMenu");
-    let state = element._shell.getDownloadMetaData().state;
-    if (state !== undefined) {
-      contextMenu.setAttribute("state", state);
-    } else {
-      contextMenu.removeAttribute("state");
-    }
+    let state = element._shell.dataItem.state;
+    contextMenu.setAttribute("state", state);
 
     if (state == nsIDM.DOWNLOAD_DOWNLOADING) {
       
@@ -1545,11 +1483,13 @@ DownloadsPlacesView.prototype = {
       return;
     }
 
-    let metaData = selectedItem._shell.getDownloadMetaData();
-    if (!("filePath" in metaData)) {
+    let targetPath = selectedItem._shell.download.target.path;
+    if (!targetPath) {
       return;
     }
-    let file = new FileUtils.File(metaData.filePath);
+
+    
+    let file = new FileUtils.File(targetPath);
     if (!file.exists()) {
       return;
     }

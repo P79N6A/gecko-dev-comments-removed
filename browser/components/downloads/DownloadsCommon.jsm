@@ -8,8 +8,8 @@
 
 this.EXPORTED_SYMBOLS = [
   "DownloadsCommon",
+  "DownloadsDataItem",
 ];
-
 
 
 

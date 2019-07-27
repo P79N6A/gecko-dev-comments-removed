@@ -815,10 +815,10 @@ const DownloadsView = {
   },
 
   
-  onDataItemStateChanged(aDataItem, aOldState) {
+  onDataItemStateChanged(aDataItem) {
     let viewItem = this._visibleViewItems.get(aDataItem);
     if (viewItem) {
-      viewItem.onStateChanged(aOldState);
+      viewItem.onStateChanged();
     }
   },
 
@@ -1054,15 +1054,14 @@ DownloadsViewItem.prototype = {
 
 
 
-  onStateChanged(aOldState) {
+  onStateChanged() {
     
     
     
     
     
     
-    if (aOldState != Ci.nsIDownloadManager.DOWNLOAD_FINISHED &&
-        aOldState != this.dataItem.state) {
+    if (this.dataItem.state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED) {
       this._element.setAttribute("image", this.image + "&state=normal");
 
       
