@@ -2422,6 +2422,9 @@ bool
 Parser<FullParseHandler>::asmJS(Node list)
 {
     
+    handler.disableSyntaxParser();
+
+    
     
     
     
