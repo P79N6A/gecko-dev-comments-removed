@@ -1,0 +1,16 @@
+
+
+
+
+#devicePrivileges {
+  font-family: monospace;
+  padding-left: 6px;
+}
+
+.action {
+  display: inline;
+}
+
+.action[hidden] {
+  display: none;
+}
