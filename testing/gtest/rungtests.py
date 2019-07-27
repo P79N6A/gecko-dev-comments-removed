@@ -74,6 +74,14 @@ class GTests(object):
         env["MOZ_RUN_GTEST"] = "1"
         
         env["MOZ_TBPL_PARSER"] = "1"
+
+        if not mozinfo.has_sandbox:
+          
+          
+          
+          
+          env["MOZ_DISABLE_GMP_SANDBOX"] = "1"
+
         return env
 
     def build_environment(self):
