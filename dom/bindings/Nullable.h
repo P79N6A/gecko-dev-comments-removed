@@ -10,6 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "nsTArrayForwardDeclare.h"
 #include "mozilla/Move.h"
+#include "mozilla/Maybe.h"
 
 class nsCycleCollectionTraversalCallback;
 
@@ -21,73 +22,66 @@ template <typename T>
 struct Nullable
 {
 private:
-  
-  
-  bool mIsNull;
-  T mValue;
+  Maybe<T> mValue;
 
 public:
   Nullable()
-    : mIsNull(true)
+    : mValue()
   {}
 
   explicit Nullable(T aValue)
-    : mIsNull(false)
-    , mValue(aValue)
-  {}
+    : mValue()
+  {
+    mValue.emplace(aValue);
+  }
 
   explicit Nullable(Nullable<T>&& aOther)
-    : mIsNull(aOther.mIsNull)
-    , mValue(mozilla::Move(aOther.mValue))
+    : mValue(mozilla::Move(aOther.mValue))
   {}
 
   Nullable(const Nullable<T>& aOther)
-    : mIsNull(aOther.mIsNull)
-    , mValue(aOther.mValue)
+    : mValue(aOther.mValue)
   {}
 
   void operator=(const Nullable<T>& aOther)
   {
-    mIsNull = aOther.mIsNull;
     mValue = aOther.mValue;
   }
 
   void SetValue(T aValue) {
-    mValue = aValue;
-    mIsNull = false;
+    mValue.reset();
+    mValue.emplace(aValue);
   }
 
   
   
   
   T& SetValue() {
-    mIsNull = false;
-    return mValue;
+    if (mValue.isNothing()) {
+      mValue.emplace();
+    }
+    return mValue.ref();
   }
 
   void SetNull() {
-    mIsNull = true;
+    mValue.reset();
   }
 
   const T& Value() const {
-    MOZ_ASSERT(!mIsNull);
-    return mValue;
+    return mValue.ref();
   }
 
   T& Value() {
-    MOZ_ASSERT(!mIsNull);
-    return mValue;
+    return mValue.ref();
   }
 
   bool IsNull() const {
-    return mIsNull;
+    return mValue.isNothing();
   }
 
   bool Equals(const Nullable<T>& aOtherNullable) const
   {
-    return (mIsNull && aOtherNullable.mIsNull) ||
-           (!mIsNull && !aOtherNullable.mIsNull &&
-            mValue == aOtherNullable.mValue);
+    return mValue == aOtherNullable.mValue;
   }
 
   bool operator==(const Nullable<T>& aOtherNullable) const
@@ -98,23 +92,6 @@ public:
   bool operator!=(const Nullable<T>& aOtherNullable) const
   {
     return !Equals(aOtherNullable);
-  }
-
-  
-  
-  template<typename U>
-  operator const Nullable< nsTArray<U> >&() const {
-    
-    const nsTArray<U>& arr = mValue;
-    (void)arr;
-    return *reinterpret_cast<const Nullable< nsTArray<U> >*>(this);
-  }
-  template<typename U>
-  operator const Nullable< FallibleTArray<U> >&() const {
-    
-    const FallibleTArray<U>& arr = mValue;
-    (void)arr;
-    return *reinterpret_cast<const Nullable< FallibleTArray<U> >*>(this);
   }
 };
 
