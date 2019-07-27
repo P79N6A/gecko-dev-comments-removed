@@ -568,9 +568,14 @@ public:
 
 
 
+
+
+
+
 template <class StringTable,
           class StringAlloc,
-          class Writer>
+          class Writer,
+          class DescribeCodeAddressLock>
 class LocationService
 {
   
@@ -669,7 +674,7 @@ public:
 
   void WriteLocation(const Writer& aWriter, const void* aPc)
   {
-    MOZ_ASSERT(gStateLock->IsLocked());
+    MOZ_ASSERT(DescribeCodeAddressLock::IsLocked());
 
     uint32_t index = HashGeneric(aPc) & kMask;
     MOZ_ASSERT(index < kNumEntries);
@@ -685,8 +690,9 @@ public:
       
       nsCodeAddressDetails details;
       {
-        AutoUnlockState unlock;
+        DescribeCodeAddressLock::Unlock();
         (void)NS_DescribeCodeAddress(const_cast<void*>(aPc), &details);
+        DescribeCodeAddressLock::Lock();
       }
 
       const char* library = mLibraryStrings.Intern(details.library);
@@ -819,7 +825,14 @@ public:
   }
 };
 
-typedef LocationService<StringTable, StringAlloc, Writer> DMDLocationService;
+struct DescribeCodeAddressLock
+{
+  static void Unlock() { gStateLock->Unlock(); }
+  static void Lock() { gStateLock->Lock(); }
+  static bool IsLocked() { return gStateLock->IsLocked(); }
+};
+
+typedef LocationService<StringTable, StringAlloc, Writer, DescribeCodeAddressLock> DMDLocationService;
 
 
 
