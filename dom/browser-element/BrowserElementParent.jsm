@@ -126,7 +126,6 @@ function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
   defineNoReturnMethod('goForward', this._goForward);
   defineNoReturnMethod('reload', this._reload);
   defineNoReturnMethod('stop', this._stop);
-  defineNoReturnMethod('zoom', this._zoom);
   defineMethod('download', this._download);
   defineDOMRequestMethod('purgeHistory', 'purge-history');
   defineMethod('getScreenshot', this._getScreenshot);
@@ -159,6 +158,11 @@ function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
                                    false,
                                    false);
   }
+
+  this._frameElement.addEventListener('mozdocommand',
+                                      this._doCommandHandler.bind(this),
+                                       false,
+                                       false);
 
   this._window._browserElementParents.set(this, null);
 
@@ -248,7 +252,8 @@ BrowserElementParent.prototype = {
       "exit-fullscreen": this._exitFullscreen,
       "got-visible": this._gotDOMRequestResult,
       "visibilitychange": this._childVisibilityChange,
-      "got-set-input-method-active": this._gotDOMRequestResult
+      "got-set-input-method-active": this._gotDOMRequestResult,
+      "selectionchange": this._handleSelectionChange
     };
 
     this._mm.addMessageListener('browser-element-api:call', function(aMsg) {
@@ -450,6 +455,17 @@ BrowserElementParent.prototype = {
     }
   },
 
+  _handleSelectionChange: function(data) {
+    let evt = this._createEvent('selectionchange', data.json,
+                                 false);
+    this._frameElement.dispatchEvent(evt);
+  },
+
+  _doCommandHandler: function(e) {
+    e.stopPropagation();
+    this._sendAsyncMsg('do-command', { command: e.detail.cmd });
+  },
+
   _createEvent: function(evtName, detail, cancelable) {
     
     
@@ -590,16 +606,6 @@ BrowserElementParent.prototype = {
 
   _stop: function() {
     this._sendAsyncMsg('stop');
-  },
-
-  
-
-
-  _zoom: function(zoom) {
-    zoom *= 100;
-    zoom = Math.min(getIntPref("zoom.maxPercent", 300), zoom);
-    zoom = Math.max(getIntPref("zoom.minPercent", 50), zoom);
-    this._sendAsyncMsg('zoom', {zoom: zoom / 100.0});
   },
 
   _download: function(_url, _options) {

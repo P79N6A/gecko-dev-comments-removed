@@ -923,7 +923,7 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
     NotifyFocusStateChange(oldFocusedContent,
                            mFocusedWindow->ShouldShowFocusRing(),
                            false);
-    window->UpdateCommands(NS_LITERAL_STRING("focus"));
+    window->UpdateCommands(NS_LITERAL_STRING("focus"), nullptr, 0);
 
     if (presShell) {
       SendFocusOrBlurEvent(NS_BLUR_CONTENT, presShell,
@@ -1266,7 +1266,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, int32_t aFlags,
     
     
     if (allowFrameSwitch)
-      newWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
+      newWindow->UpdateCommands(NS_LITERAL_STRING("focus"), nullptr, 0);
 
     if (aFlags & FLAG_RAISE)
       RaiseWindow(newRootWindow);
@@ -1586,7 +1586,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     
     
     if (mActiveWindow)
-      window->UpdateCommands(NS_LITERAL_STRING("focus"));
+      window->UpdateCommands(NS_LITERAL_STRING("focus"), nullptr, 0);
 
     SendFocusOrBlurEvent(NS_BLUR_CONTENT, presShell,
                          content->GetCurrentDoc(), content, 1, false);
@@ -1807,7 +1807,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       
       
       if (!aWindowRaised)
-        aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
+        aWindow->UpdateCommands(NS_LITERAL_STRING("focus"), nullptr, 0);
 
       SendFocusOrBlurEvent(NS_FOCUS_CONTENT, presShell,
                            aContent->GetCurrentDoc(),
@@ -1817,7 +1817,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       IMEStateManager::OnChangeFocus(presContext, nullptr,
                                      GetFocusMoveActionCause(aFlags));
       if (!aWindowRaised) {
-        aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
+        aWindow->UpdateCommands(NS_LITERAL_STRING("focus"), nullptr, 0);
       }
     }
   }
@@ -1842,7 +1842,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
                                    GetFocusMoveActionCause(aFlags));
 
     if (!aWindowRaised)
-      aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
+      aWindow->UpdateCommands(NS_LITERAL_STRING("focus"), nullptr, 0);
   }
 
   

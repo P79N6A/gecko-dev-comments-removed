@@ -715,7 +715,7 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
   
   
   if (doDefault || count) {
-    piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"));
+    piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"), nullptr, 0);
   }
 
   return doDefault;
