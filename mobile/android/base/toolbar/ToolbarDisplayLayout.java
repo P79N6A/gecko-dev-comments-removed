@@ -323,7 +323,7 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         }
 
         
-        if (!mPrefs.shouldShowUrl() || url == null) {
+        if (!mPrefs.shouldShowUrl(mActivity) || url == null) {
             setTitle(tab.getDisplayTitle());
             return;
         }
