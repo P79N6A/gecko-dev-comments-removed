@@ -2237,20 +2237,15 @@ js::LookupAsmJSModuleInCache(ExclusiveContext *cx,
     uint32_t srcStart = parser.pc->maybeFunction->pn_body->pn_pos.begin;
     uint32_t srcBodyStart = parser.tokenStream.currentToken().pos.end;
     bool strict = parser.pc->sc->strict && !parser.pc->sc->hasExplicitUseStrict();
+
     
     ScopedJSDeletePtr<AsmJSModule> module(
         cx->new_<AsmJSModule>(parser.ss, srcStart, srcBodyStart, strict,
                                false));
     if (!module)
         return false;
+
     cursor = module->deserialize(cx, cursor);
-
-    
-    AutoFlushICache afc("LookupAsmJSModuleInCache",  true);
-    
-    
-    module->setAutoFlushICacheRange();
-
     if (!cursor)
         return false;
 
@@ -2259,9 +2254,17 @@ js::LookupAsmJSModuleInCache(ExclusiveContext *cx,
     if (!atEnd)
         return true;
 
-    module->staticallyLink(cx);
-
     parser.tokenStream.advance(module->srcEndBeforeCurly());
+
+    {
+        
+        
+        
+        AutoFlushICache afc("LookupAsmJSModuleInCache",  true);
+        module->setAutoFlushICacheRange();
+
+        module->staticallyLink(cx);
+    }
 
     int64_t usecAfter = PRMJ_Now();
     int ms = (usecAfter - usecBefore) / PRMJ_USEC_PER_MSEC;
