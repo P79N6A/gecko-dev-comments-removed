@@ -45,7 +45,7 @@ with open(os.path.join(topsrcdir, 'config', 'milestone.txt'), 'rt') as fh:
 
 version = re.sub(r'[ab]\d+$', '', release)
 
-exclude_patterns = ['_build', '_staging']
+exclude_patterns = ['_build', '_staging', '_venv']
 pygments_style = 'sphinx'
 
 
