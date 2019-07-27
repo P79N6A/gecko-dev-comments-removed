@@ -2938,11 +2938,28 @@ nsDisplayBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
 
   nsRect borderBox = nsRect(ToReferenceFrame(), mFrame->GetSize());
 
+#if 0
+  
+  
+  
+  
+  
   Rect rect = NSRectToSnappedRect(borderBox,
                                   mFrame->PresContext()->AppUnitsPerDevPixel(),
                                   aDrawTarget);
   ColorPattern color(ToDeviceColor(mColor));
   aDrawTarget.FillRect(rect, color);
+#else
+  gfxContext* ctx = aCtx->ThebesContext();
+
+  gfxRect bounds =
+    nsLayoutUtils::RectToGfxRect(borderBox, mFrame->PresContext()->AppUnitsPerDevPixel());
+
+  ctx->SetColor(mColor);
+  ctx->NewPath();
+  ctx->Rectangle(bounds, true);
+  ctx->Fill();
+#endif
 }
 
 nsRegion
