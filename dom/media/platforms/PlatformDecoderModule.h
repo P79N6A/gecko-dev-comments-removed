@@ -27,7 +27,6 @@ class MediaDataDecoder;
 class MediaDataDecoderCallback;
 class FlushableMediaTaskQueue;
 class CDMProxy;
-typedef int64_t Microseconds;
 
 
 

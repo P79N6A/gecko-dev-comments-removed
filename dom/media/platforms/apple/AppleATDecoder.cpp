@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "AppleUtils.h"
 #include "MP4Reader.h"
@@ -71,7 +71,7 @@ AppleATDecoder::Input(MediaRawData* aSample)
       aSample->mKeyframe ? " keyframe" : "",
       (unsigned long long)aSample->mSize);
 
-  // Queue a task to perform the actual decoding on a separate thread.
+  
   nsCOMPtr<nsIRunnable> runnable =
       NS_NewRunnableMethodWithArg<nsRefPtr<MediaRawData>>(
         this,
@@ -135,14 +135,14 @@ struct PassthroughUserData {
   AudioStreamPacketDescription mPacket;
 };
 
-// Error value we pass through the decoder to signal that nothing
-// has gone wrong during decoding and we're done processing the packet.
+
+
 const uint32_t kNoMoreDataErr = 'MOAR';
 
 static OSStatus
 _PassthroughInputDataCallback(AudioConverterRef aAudioConverter,
-                              UInt32* aNumDataPackets /* in/out */,
-                              AudioBufferList* aData /* in/out */,
+                              UInt32* aNumDataPackets ,
+                              AudioBufferList* aData ,
                               AudioStreamPacketDescription** aPacketDesc,
                               void* aUserData)
 {
@@ -163,7 +163,7 @@ _PassthroughInputDataCallback(AudioConverterRef aAudioConverter,
   aData->mBuffers[0].mDataByteSize = userData->mDataSize;
   aData->mBuffers[0].mData = const_cast<void*>(userData->mData);
 
-  // No more data to provide following this run.
+  
   userData->mDataSize = 0;
 
   return noErr;
@@ -202,24 +202,24 @@ AppleATDecoder::SubmitSample(MediaRawData* aSample)
 nsresult
 AppleATDecoder::DecodeSample(MediaRawData* aSample)
 {
-  // Array containing the queued decoded audio frames, about to be output.
+  
   nsTArray<AudioDataValue> outputData;
   UInt32 channels = mOutputFormat.mChannelsPerFrame;
-  // Pick a multiple of the frame size close to a power of two
-  // for efficient allocation.
+  
+  
   const uint32_t MAX_AUDIO_FRAMES = 128;
   const uint32_t maxDecodedSamples = MAX_AUDIO_FRAMES * channels;
 
-  // Descriptions for _decompressed_ audio packets. ignored.
+  
   nsAutoArrayPtr<AudioStreamPacketDescription>
     packets(new AudioStreamPacketDescription[MAX_AUDIO_FRAMES]);
 
-  // This API insists on having packets spoon-fed to it from a callback.
-  // This structure exists only to pass our state.
+  
+  
   PassthroughUserData userData =
     { channels, (UInt32)aSample->mSize, aSample->mData };
 
-  // Decompressed audio buffer
+  
   nsAutoArrayPtr<AudioDataValue> decoded(new AudioDataValue[maxDecodedSamples]);
 
   do {
@@ -230,14 +230,14 @@ AppleATDecoder::DecodeSample(MediaRawData* aSample)
       maxDecodedSamples * sizeof(AudioDataValue);
     decBuffer.mBuffers[0].mData = decoded.get();
 
-    // in: the max number of packets we can handle from the decoder.
-    // out: the number of packets the decoder is actually returning.
+    
+    
     UInt32 numFrames = MAX_AUDIO_FRAMES;
 
     OSStatus rv = AudioConverterFillComplexBuffer(mConverter,
                                                   _PassthroughInputDataCallback,
                                                   &userData,
-                                                  &numFrames /* in/out */,
+                                                  &numFrames ,
                                                   &decBuffer,
                                                   packets.get());
 
@@ -261,8 +261,8 @@ AppleATDecoder::DecodeSample(MediaRawData* aSample)
 
   size_t numFrames = outputData.Length() / channels;
   int rate = mOutputFormat.mSampleRate;
-  CheckedInt<Microseconds> duration = FramesToUsecs(numFrames, rate);
-  if (!duration.isValid()) {
+  media::TimeUnit duration = FramesToTimeUnit(numFrames, rate);
+  if (!duration.IsValid()) {
     NS_WARNING("Invalid count of accumulated audio samples");
     return NS_ERROR_FAILURE;
   }
@@ -270,14 +270,14 @@ AppleATDecoder::DecodeSample(MediaRawData* aSample)
 #ifdef LOG_SAMPLE_DECODE
   LOG("pushed audio at time %lfs; duration %lfs\n",
       (double)aSample->mTime / USECS_PER_S,
-      (double)duration.value() / USECS_PER_S);
+      duration.ToSeconds());
 #endif
 
   nsAutoArrayPtr<AudioDataValue> data(new AudioDataValue[outputData.Length()]);
   PodCopy(data.get(), &outputData[0], outputData.Length());
   nsRefPtr<AudioData> audio = new AudioData(aSample->mOffset,
                                             aSample->mTime,
-                                            duration.value(),
+                                            duration.ToMicroseconds(),
                                             numFrames,
                                             data.forget(),
                                             channels,
@@ -290,7 +290,7 @@ nsresult
 AppleATDecoder::GetInputAudioDescription(AudioStreamBasicDescription& aDesc,
                                          const nsTArray<uint8_t>& aExtraData)
 {
-  // Request the properties from CoreAudio using the codec magic cookie
+  
   AudioFormatInfo formatInfo;
   PodZero(&formatInfo.mASBD);
   formatInfo.mASBD.mFormatID = mFormatID;
@@ -301,10 +301,10 @@ AppleATDecoder::GetInputAudioDescription(AudioStreamBasicDescription& aDesc,
   formatInfo.mMagicCookie = aExtraData.Elements();
 
   UInt32 formatListSize;
-  // Attempt to retrieve the default format using
-  // kAudioFormatProperty_FormatInfo method.
-  // This method only retrieves the FramesPerPacket information required
-  // by the decoder, which depends on the codec type and profile.
+  
+  
+  
+  
   aDesc.mFormatID = mFormatID;
   aDesc.mChannelsPerFrame = mConfig.mChannels;
   aDesc.mSampleRate = mConfig.mRate;
@@ -318,8 +318,8 @@ AppleATDecoder::GetInputAudioDescription(AudioStreamBasicDescription& aDesc,
     return NS_ERROR_FAILURE;
   }
 
-  // If any of the methods below fail, we will return the default format as
-  // created using kAudioFormatProperty_FormatInfo above.
+  
+  
   rv = AudioFormatGetPropertyInfo(kAudioFormatProperty_FormatList,
                                   sizeof(formatInfo),
                                   &formatInfo,
@@ -341,9 +341,9 @@ AppleATDecoder::GetInputAudioDescription(AudioStreamBasicDescription& aDesc,
   }
   LOG("found %u available audio stream(s)",
       formatListSize / sizeof(AudioFormatListItem));
-  // Get the index number of the first playable format.
-  // This index number will be for the highest quality layer the platform
-  // is capable of playing.
+  
+  
+  
   UInt32 itemIndex;
   UInt32 indexSize = sizeof(itemIndex);
   rv = AudioFormatGetProperty(kAudioFormatProperty_FirstPlayableFormatFromList,
@@ -365,15 +365,15 @@ AppleATDecoder::SetupDecoder(MediaRawData* aSample)
 {
   if (mFormatID == kAudioFormatMPEG4AAC &&
       mConfig.mExtendedProfile == 2) {
-    // Check for implicit SBR signalling if stream is AAC-LC
-    // This will provide us with an updated magic cookie for use with
-    // GetInputAudioDescription.
+    
+    
+    
     if (NS_SUCCEEDED(GetImplicitAACMagicCookie(aSample)) &&
         !mMagicCookie.Length()) {
-      // nothing found yet, will try again later
+      
       return NS_ERROR_NOT_INITIALIZED;
     }
-    // An error occurred, fallback to using default stream description
+    
   }
 
   LOG("Initializing Apple AudioToolbox decoder");
@@ -387,7 +387,7 @@ AppleATDecoder::SetupDecoder(MediaRawData* aSample)
   if (NS_FAILED(rv)) {
     return rv;
   }
-  // Fill in the output format manually.
+  
   PodZero(&mOutputFormat);
   mOutputFormat.mFormatID = kAudioFormatLinearPCM;
   mOutputFormat.mSampleRate = inputFormat.mSampleRate;
@@ -400,7 +400,7 @@ AppleATDecoder::SetupDecoder(MediaRawData* aSample)
 #else
 # error Unknown audio sample type
 #endif
-  // Set up the decoder so it gives us one sample per frame
+  
   mOutputFormat.mFramesPerPacket = 1;
   mOutputFormat.mBytesPerPacket = mOutputFormat.mBytesPerFrame
         = mOutputFormat.mChannelsPerFrame * mOutputFormat.mBitsPerChannel / 8;
@@ -460,7 +460,7 @@ _SampleCallback(void* aSBR,
 nsresult
 AppleATDecoder::GetImplicitAACMagicCookie(const MediaRawData* aSample)
 {
-  // Prepend ADTS header to AAC audio.
+  
   nsRefPtr<MediaRawData> adtssample(aSample->Clone());
   if (!adtssample) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -491,18 +491,18 @@ AppleATDecoder::GetImplicitAACMagicCookie(const MediaRawData* aSample)
   OSStatus status = AudioFileStreamParseBytes(mStream,
                                               adtssample->mSize,
                                               adtssample->mData,
-                                              0 /* discontinuity */);
+                                              0 );
   if (status) {
     NS_WARNING("Couldn't parse sample");
   }
 
   if (status || mFileStreamError || mMagicCookie.Length()) {
-    // We have decoded a magic cookie or an error occurred as such
-    // we won't need the stream any longer.
+    
+    
     AudioFileStreamClose(mStream);
     mStream = nullptr;
   }
 
   return (mFileStreamError || status) ? NS_ERROR_FAILURE : NS_OK;
 }
-} // namespace mozilla
+} 

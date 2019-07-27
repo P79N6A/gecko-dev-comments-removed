@@ -13,6 +13,7 @@
 #include "ImageContainer.h"
 #include "MediaInfo.h"
 #include "MediaTaskQueue.h"
+#include "TimeUnits.h"
 
 namespace mozilla {
 
@@ -51,9 +52,10 @@ public:
     }
     NS_IMETHOD Run() override
     {
-      nsRefPtr<MediaData> data = mCreator->Create(mSample->mTime,
-                                                  mSample->mDuration,
-                                                  mSample->mOffset);
+      nsRefPtr<MediaData> data =
+        mCreator->Create(media::TimeUnit::FromMicroseconds(mSample->mTime),
+                         media::TimeUnit::FromMicroseconds(mSample->mDuration),
+                         mSample->mOffset);
       mCallback->Output(data);
       return NS_OK;
     }
@@ -103,7 +105,7 @@ public:
   }
 
   already_AddRefed<MediaData>
-  Create(Microseconds aDTS, Microseconds aDuration, int64_t aOffsetInStream)
+  Create(const media::TimeUnit& aDTS, const media::TimeUnit& aDuration, int64_t aOffsetInStream)
   {
     
     
@@ -141,11 +143,11 @@ public:
                              mImageContainer,
                              nullptr,
                              aOffsetInStream,
-                             aDTS,
-                             aDuration,
+                             aDTS.ToMicroseconds(),
+                             aDuration.ToMicroseconds(),
                              buffer,
                              true,
-                             aDTS,
+                             aDTS.ToMicroseconds(),
                              mPicture);
   }
 private:
@@ -164,13 +166,14 @@ public:
   {
   }
 
-  MediaData* Create(Microseconds aDTS,
-                    Microseconds aDuration,
+  MediaData* Create(const media::TimeUnit& aDTS,
+                    const media::TimeUnit& aDuration,
                     int64_t aOffsetInStream)
   {
     
     
-    CheckedInt64 frames = UsecsToFrames(aDuration+1, mSampleRate);
+    CheckedInt64 frames =
+      UsecsToFrames(aDuration.ToMicroseconds()+1, mSampleRate);
     if (!frames.isValid() ||
         !mChannelCount ||
         !mSampleRate ||
@@ -189,8 +192,8 @@ public:
       mFrameSum++;
     }
     return new AudioData(aOffsetInStream,
-                         aDTS,
-                         aDuration,
+                         aDTS.ToMicroseconds(),
+                         aDuration.ToMicroseconds(),
                          uint32_t(frames.value()),
                          samples,
                          mChannelCount,

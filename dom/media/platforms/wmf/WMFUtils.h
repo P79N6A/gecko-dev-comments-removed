@@ -10,6 +10,7 @@
 #include "WMF.h"
 #include "nsString.h"
 #include "nsRect.h"
+#include "TimeUnits.h"
 #include "VideoUtils.h"
 
 
@@ -48,12 +49,12 @@ GetPictureRegion(IMFMediaType* aMediaType, nsIntRect& aOutPictureRegion);
 
 
 
-int64_t
+media::TimeUnit
 GetSampleDuration(IMFSample* aSample);
 
 
 
-int64_t
+media::TimeUnit
 GetSampleTime(IMFSample* aSample);
 
 inline bool

@@ -128,9 +128,10 @@ media::TimeIntervals GetEstimatedBufferedTimeRanges(mozilla::MediaResource* aStr
 
 
 
-
-
 CheckedInt64 FramesToUsecs(int64_t aFrames, uint32_t aRate);
+
+
+media::TimeUnit FramesToTimeUnit(int64_t aFrames, uint32_t aRate);
 
 
 
