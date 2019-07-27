@@ -35,28 +35,20 @@ registerCleanupFunction(() => {
   Services.prefs.setCharPref("devtools.inspector.activeSidebar", "ruleview");
 });
 
+registerCleanupFunction(function*() {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
 
-registerCleanupFunction(() => {
   
   
   
   
-  
-  
-  
-  
-  
+  EventUtils.synthesizeMouseAtPoint(1, 1, {type: "mousemove"}, window);
+
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
 });
-
-
-
-
-function asyncTest(generator) {
-  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
-}
 
 
 
@@ -78,17 +70,6 @@ function addTab(url) {
 
   return def.promise;
 }
-
-
-
-
-
-
-let destroyToolbox = Task.async(function*(inspector) {
-  let onDestroyed = gDevTools.once("toolbox-destroyed");
-  inspector._toolbox.destroy();
-  yield onDestroyed;
-});
 
 
 
@@ -154,12 +135,24 @@ let openInspector = Task.async(function*() {
 
   
   
+  function mockHighlighter({highlighter}) {
+    highlighter.showBoxModel = function(nodeFront, options) {
+      return promise.resolve();
+    }
+    highlighter.hideBoxModel = function() {
+      return promise.resolve();
+    }
+  }
+
+  
+  
   
   toolbox = gDevTools.getToolbox(target);
   if (toolbox) {
     inspector = toolbox.getPanel("inspector");
     if (inspector) {
       info("Toolbox and inspector already open");
+      mockHighlighter(toolbox);
       return {
         toolbox: toolbox,
         inspector: inspector
@@ -175,6 +168,7 @@ let openInspector = Task.async(function*() {
   info("Waiting for the inspector to update");
   yield inspector.once("inspector-updated");
 
+  mockHighlighter(toolbox);
   return {
     toolbox: toolbox,
     inspector: inspector
@@ -233,30 +227,15 @@ let openLayoutView = Task.async(function*() {
 
 
 
+
+
+
 function waitForUpdate(inspector) {
-  return inspector.once("layoutview-updated");
-}
-
-function getHighlighter() {
-  return gBrowser.selectedBrowser.parentNode.querySelector(".highlighter-container");
-}
-
-function getBoxModelRoot() {
-  let highlighter = getHighlighter();
-  return highlighter.querySelector(".box-model-root");
-}
-
-function getGuideStatus(location) {
-  let root = getBoxModelRoot();
-  let guide = root.querySelector(".box-model-guide-" + location);
-
-  return {
-    visible: !guide.hasAttribute("hidden"),
-    x1: guide.getAttribute("x1"),
-    y1: guide.getAttribute("y1"),
-    x2: guide.getAttribute("x2"),
-    y2: guide.getAttribute("y2")
-  };
+  let onLayoutView = inspector.once("layoutview-updated");
+  let onRuleView = inspector.once("rule-view-refreshed");
+  let onComputedView = inspector.once("computed-view-refreshed");
+  let onInspector = inspector.once("inspector-updated");
+  return promise.all([onLayoutView, onRuleView, onComputedView, onInspector]);
 }
 
 

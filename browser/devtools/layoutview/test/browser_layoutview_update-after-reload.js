@@ -6,7 +6,7 @@
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab(TEST_URL_ROOT + "doc_layoutview_iframe1.html");
   let {toolbox, inspector, view} = yield openLayoutView();
 
@@ -19,8 +19,6 @@ let test = asyncTest(function*() {
 
   info("Test that the layout-view works on the reloaded page");
   yield assertLayoutView(inspector, view);
-
-  yield destroyToolbox(inspector);
 });
 
 function* assertLayoutView(inspector, view) {

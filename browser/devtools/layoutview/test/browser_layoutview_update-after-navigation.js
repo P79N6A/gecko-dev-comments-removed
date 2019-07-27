@@ -7,11 +7,10 @@
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab(TEST_URL_ROOT + "doc_layoutview_iframe1.html");
   let {toolbox, inspector, view} = yield openLayoutView();
   yield runTests(inspector, view);
-  yield destroyToolbox(inspector);
 });
 
 addTest("Test that the layout-view works on the first page",
