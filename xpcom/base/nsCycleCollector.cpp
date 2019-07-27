@@ -182,7 +182,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "mozilla/AutoTimelineMarker.h"
 #include "mozilla/Likely.h"
 #include "mozilla/PoisonIOInterposer.h"
 #include "mozilla/Telemetry.h"
@@ -2813,11 +2812,6 @@ nsCycleCollector::ForgetSkippable(bool aRemoveChildlessNodes,
 {
   CheckThreadSafety();
 
-  mozilla::Maybe<mozilla::AutoGlobalTimelineMarker> marker;
-  if (NS_IsMainThread()) {
-    marker.emplace("nsCycleCollector::ForgetSkippable");
-  }
-
   
   
   MOZ_ASSERT(mIncrementalPhase == IdlePhase);
@@ -3577,11 +3571,6 @@ nsCycleCollector::Collect(ccType aCCType,
   mActivelyCollecting = true;
 
   MOZ_ASSERT(!IsIncrementalGCInProgress());
-
-  mozilla::Maybe<mozilla::AutoGlobalTimelineMarker> marker;
-  if (NS_IsMainThread()) {
-    marker.emplace("nsCycleCollector::Collect");
-  }
 
   bool startedIdle = (mIncrementalPhase == IdlePhase);
   bool collectedAny = false;
