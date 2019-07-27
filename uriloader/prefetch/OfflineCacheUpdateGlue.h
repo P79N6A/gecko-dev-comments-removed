@@ -67,6 +67,7 @@ private:
     ~OfflineCacheUpdateGlue();
 
     nsRefPtr<nsOfflineCacheUpdate> mUpdate;
+    bool mCoalesced;
 
     
     nsCOMPtr<nsIDOMDocument> mDocument;
