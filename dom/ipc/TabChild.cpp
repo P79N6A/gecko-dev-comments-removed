@@ -978,8 +978,8 @@ TabChild::Observe(nsISupports *aSubject,
         
         if (HasValidInnerSize()) {
           InitializeRootMetrics();
-          utils->SetResolution(mLastRootMetrics.GetPresShellResolution(),
-                               mLastRootMetrics.GetPresShellResolution());
+          utils->SetResolutionAndScaleTo(mLastRootMetrics.GetPresShellResolution(),
+                                         mLastRootMetrics.GetPresShellResolution());
           HandlePossibleViewportChange(mInnerSize);
         }
       }
