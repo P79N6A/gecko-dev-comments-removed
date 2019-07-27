@@ -1061,7 +1061,7 @@ class GCHelperState
     void work();
 
     
-    void startBackgroundSweep(bool shouldShrink);
+    void startBackgroundSweep();
 
     
     void startBackgroundShrink();
