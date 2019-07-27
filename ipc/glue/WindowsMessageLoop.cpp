@@ -657,6 +657,7 @@ InitUIThread()
 } 
 } 
 
+
 MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool interrupt)
   : mInterrupt(interrupt)
   , mSpinNestedEvents(false)
@@ -666,7 +667,8 @@ MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool int
   , mStaticPrev(sStaticTopFrame)
 {
   
-  if (GetCurrentThreadId() != gUIThreadId) {
+  
+  if (!(mChannel->GetChannelFlags() & REQUIRE_DEFERRED_MESSAGE_PROTECTION)) {
     return;
   }
 
@@ -682,7 +684,7 @@ MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool int
 
 MessageChannel::SyncStackFrame::~SyncStackFrame()
 {
-  if (GetCurrentThreadId() != gUIThreadId) {
+  if (!(mChannel->GetChannelFlags() & REQUIRE_DEFERRED_MESSAGE_PROTECTION)) {
     return;
   }
 
@@ -811,9 +813,7 @@ MessageChannel::WaitForSyncNotify()
 
   
   
-  
-  
-  if (GetCurrentThreadId() != gUIThreadId) {
+  if (!(mFlags & REQUIRE_DEFERRED_MESSAGE_PROTECTION)) {
     PRIntervalTime timeout = (kNoTimeout == mTimeoutMs) ?
                              PR_INTERVAL_NO_TIMEOUT :
                              PR_MillisecondsToInterval(mTimeoutMs);
@@ -837,9 +837,8 @@ MessageChannel::WaitForSyncNotify()
                         false : IsTimeoutExpired(waitStart, timeout));
   }
 
-  NS_ASSERTION(GetCurrentThreadId() == gUIThreadId,
-               "Shouldn't be on a non-main thread in here!");
-
+  NS_ASSERTION(mFlags & REQUIRE_DEFERRED_MESSAGE_PROTECTION,
+               "Shouldn't be here for channels that don't use message deferral!");
   NS_ASSERTION(mTopFrame && !mTopFrame->mInterrupt,
                "Top frame is not a sync frame!");
 
@@ -963,19 +962,17 @@ MessageChannel::WaitForInterruptNotify()
 
   
   
-  
-  if (GetCurrentThreadId() != gUIThreadId) {
+  if (!(mFlags & REQUIRE_DEFERRED_MESSAGE_PROTECTION)) {
     return WaitForSyncNotify();
   }
-
-  NS_ASSERTION(GetCurrentThreadId() == gUIThreadId,
-               "Shouldn't be on a non-main thread in here!");
 
   if (!InterruptStackDepth()) {
     
     NS_RUNTIMEABORT("StackDepth() is 0 in call to MessageChannel::WaitForNotify!");
   }
 
+  NS_ASSERTION(mFlags & REQUIRE_DEFERRED_MESSAGE_PROTECTION,
+               "Shouldn't be here for channels that don't use message deferral!");
   NS_ASSERTION(mTopFrame && mTopFrame->mInterrupt,
                "Top frame is not a sync frame!");
 

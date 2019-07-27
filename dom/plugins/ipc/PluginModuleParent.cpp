@@ -103,6 +103,11 @@ PluginModuleParent::LoadModule(const char* aFilePath)
     parent->Open(parent->mSubprocess->GetChannel(),
                  parent->mSubprocess->GetChildProcessHandle());
 
+    
+    
+    
+    parent->GetIPCChannel()->SetChannelFlags(MessageChannel::REQUIRE_DEFERRED_MESSAGE_PROTECTION);
+
     TimeoutChanged(CHILD_TIMEOUT_PREF, parent);
 
 #ifdef MOZ_CRASHREPORTER

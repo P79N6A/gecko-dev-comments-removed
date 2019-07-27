@@ -89,6 +89,19 @@ class MessageChannel : HasResultCodes
         mAbortOnError = true;
     }
 
+    
+    enum ChannelFlags {
+      REQUIRE_DEFAULT                         = 0,
+      
+      
+      
+      
+      
+      REQUIRE_DEFERRED_MESSAGE_PROTECTION     = 1 << 0
+    };
+    void SetChannelFlags(ChannelFlags aFlags) { mFlags = aFlags; }
+    ChannelFlags GetChannelFlags() { return mFlags; }
+
     void BlockScripts();
 
     bool ShouldBlockScripts() const
@@ -649,6 +662,9 @@ class MessageChannel : HasResultCodes
 
     
     bool mBlockScripts;
+
+    
+    ChannelFlags mFlags;
 };
 
 bool

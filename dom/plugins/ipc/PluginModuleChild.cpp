@@ -143,6 +143,11 @@ PluginModuleChild::Init(const std::string& aPluginFilename,
 
     GetIPCChannel()->SetAbortOnError(true);
 
+    
+    
+    
+    GetIPCChannel()->SetChannelFlags(MessageChannel::REQUIRE_DEFERRED_MESSAGE_PROTECTION);
+
 #ifdef XP_WIN
     COMMessageFilter::Initialize(this);
 #endif
