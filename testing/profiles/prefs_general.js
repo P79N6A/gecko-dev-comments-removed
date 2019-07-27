@@ -14,6 +14,8 @@ user_pref("dom.forms.color", true);
 user_pref("dom.max_script_run_time", 0); 
 user_pref("hangmonitor.timeout", 0); 
 user_pref("dom.max_chrome_script_run_time", 0);
+user_pref("dom.max_child_script_run_time", 0);
+user_pref("dom.ipc.reportProcessHangs", false); 
 user_pref("dom.popup_maximum", -1);
 user_pref("dom.send_after_paint_to_content", true);
 user_pref("dom.successive_dialog_time_limit", 0);
