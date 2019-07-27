@@ -5,7 +5,7 @@
 
 
 Cu.import('resource://gre/modules/ContactService.jsm');
-Cu.import('resource://gre/modules/SettingsChangeNotifier.jsm');
+Cu.import('resource://gre/modules/SettingsRequestManager.jsm');
 Cu.import('resource://gre/modules/DataStoreChangeNotifier.jsm');
 Cu.import('resource://gre/modules/AlarmService.jsm');
 Cu.import('resource://gre/modules/ActivitiesService.jsm');
@@ -1198,6 +1198,7 @@ const kTransferCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
 
 
 const kTransferContractId = "@mozilla.org/transfer;1";
+
 
 
 

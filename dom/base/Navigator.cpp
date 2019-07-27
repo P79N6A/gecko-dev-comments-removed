@@ -1965,16 +1965,16 @@ Navigator::GetMozCameras(ErrorResult& aRv)
   return mCameraManager;
 }
 
-already_AddRefed<ServiceWorkerContainer>
+already_AddRefed<workers::ServiceWorkerContainer>
 Navigator::ServiceWorker()
 {
   MOZ_ASSERT(mWindow);
 
   if (!mServiceWorkerContainer) {
-    mServiceWorkerContainer = new ServiceWorkerContainer(mWindow);
+    mServiceWorkerContainer = new workers::ServiceWorkerContainer(mWindow);
   }
 
-  nsRefPtr<ServiceWorkerContainer> ref = mServiceWorkerContainer;
+  nsRefPtr<workers::ServiceWorkerContainer> ref = mServiceWorkerContainer;
   return ref.forget();
 }
 
@@ -2109,8 +2109,8 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
       }
 
       if (name.EqualsLiteral("mozSettings")) {
-        bool hasPermission = CheckPermission("settings-read") ||
-                             CheckPermission("settings-write");
+        bool hasPermission = CheckPermission("settings-api-read") ||
+          CheckPermission("settings-api-write");
         if (!hasPermission) {
           FillPropertyDescriptor(aDesc, aObject, JS::NullValue(), false);
           return true;
