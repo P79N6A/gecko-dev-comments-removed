@@ -146,41 +146,7 @@ BluetoothService::ToggleBtAck::ToggleBtAck(bool aEnabled)
 NS_METHOD
 BluetoothService::ToggleBtAck::Run()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-  
-  
-  
-  
-  
-  
-#if defined(MOZ_WIDGET_GONK)
-  if (property_set(PROP_BLUETOOTH_ENABLED, mEnabled ? "true" : "false") != 0) {
-    BT_WARNING("Failed to set bluetooth enabled property");
-  }
-#endif
-
-  NS_ENSURE_TRUE(sBluetoothService, NS_OK);
-
-  if (sInShutdown) {
-    sBluetoothService = nullptr;
-    return NS_OK;
-  }
-
-  
-  
-  sBluetoothService->SetEnabled(mEnabled);
-  sToggleInProgress = false;
-
-  nsAutoString signalName;
-  signalName = mEnabled ? NS_LITERAL_STRING("Enabled")
-                        : NS_LITERAL_STRING("Disabled");
-  BluetoothSignal signal(signalName, NS_LITERAL_STRING(KEY_MANAGER), true);
-  sBluetoothService->DistributeSignal(signal);
-
-  
-  sBluetoothService->TryFiringAdapterAdded();
+  BluetoothService::AcknowledgeToggleBt(mEnabled);
 
   return NS_OK;
 }
@@ -802,4 +768,54 @@ BluetoothService::Notify(const BluetoothSignal& aData)
   JS::Rooted<JS::Value> value(cx, JS::ObjectValue(*obj));
   systemMessenger->BroadcastMessage(type, value,
                                     JS::UndefinedHandleValue);
+}
+
+void
+BluetoothService::AcknowledgeToggleBt(bool aEnabled)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+#if defined(MOZ_WIDGET_GONK)
+  
+  
+  
+  
+  
+  
+  
+  
+  if (property_set(PROP_BLUETOOTH_ENABLED, aEnabled ? "true" : "false") != 0) {
+    BT_WARNING("Failed to set bluetooth enabled property");
+  }
+#endif
+
+  if (sInShutdown) {
+    sBluetoothService = nullptr;
+    return;
+  }
+
+  NS_ENSURE_TRUE_VOID(sBluetoothService);
+
+  sBluetoothService->CompleteToggleBt(aEnabled);
+}
+
+void
+BluetoothService::CompleteToggleBt(bool aEnabled)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  
+  SetEnabled(aEnabled);
+  sToggleInProgress = false;
+
+  nsAutoString signalName;
+  signalName = aEnabled ? NS_LITERAL_STRING("Enabled")
+                        : NS_LITERAL_STRING("Disabled");
+  BluetoothSignal signal(signalName, NS_LITERAL_STRING(KEY_MANAGER), true);
+  DistributeSignal(signal);
+
+  
+  TryFiringAdapterAdded();
 }
