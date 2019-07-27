@@ -37,6 +37,7 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 
 
+
 function SearchSuggestionUIController(inputElement, tableParent, onClick=null,
                                       idPrefix="") {
   this.input = inputElement;
@@ -234,6 +235,9 @@ SearchSuggestionUIController.prototype = {
   },
 
   _onMousedown: function (event) {
+    if (event.button == 2) {
+      return;
+    }
     let idx = this._indexOfTableRowOrDescendent(event.target);
     let suggestion = this.suggestionAtIndex(idx);
     this._stickyInputValue = suggestion;
@@ -251,7 +255,7 @@ SearchSuggestionUIController.prototype = {
     this.input.setAttribute("selection-kind", "mouse");
     this._hideSuggestions();
     if (this.onClick) {
-      this.onClick.call(null);
+      this.onClick.call(null, event);
     }
   },
 

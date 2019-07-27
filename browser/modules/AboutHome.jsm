@@ -198,7 +198,9 @@ let AboutHome = {
 #endif
           
           let submission = engine.getSubmission(data.searchTerms, null, "homepage");
-          window.loadURI(submission.uri.spec, null, submission.postData);
+          let where = data.useNewTab ? "tab" : "current";
+          window.openUILinkIn(submission.uri.spec, where, false,
+                              submission.postData);
 
           
           let mm = aMessage.target.messageManager;
