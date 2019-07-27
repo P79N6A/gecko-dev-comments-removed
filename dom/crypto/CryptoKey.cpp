@@ -63,6 +63,29 @@ StringToUsage(const nsString& aUsage, CryptoKey::KeyUsage& aUsageOut)
   return NS_OK;
 }
 
+SECKEYPrivateKey*
+PrivateKeyFromPrivateKeyTemplate(SECItem* aObjID,
+                                 CK_ATTRIBUTE* aTemplate,
+                                 CK_ULONG aTemplateSize)
+{
+  
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  if (!slot) {
+    return nullptr;
+  }
+
+  ScopedPK11GenericObject obj(PK11_CreateGenericObject(slot,
+                                                       aTemplate,
+                                                       aTemplateSize,
+                                                       PR_FALSE));
+  if (!obj) {
+    return nullptr;
+  }
+
+  
+  return PK11_FindKeyByKeyID(slot, aObjID, nullptr);
+}
+
 CryptoKey::CryptoKey(nsIGlobalObject* aGlobal)
   : mGlobal(aGlobal)
   , mAttributes(0)
@@ -223,6 +246,73 @@ CryptoKey::SetExtractable(bool aExtractable)
   }
 }
 
+
+
+
+
+nsresult
+CryptoKey::AddPublicKeyData(SECKEYPublicKey* aPublicKey)
+{
+  
+  MOZ_ASSERT(GetKeyType() == PRIVATE);
+  
+  MOZ_ASSERT(mPrivateKey && mPrivateKey->keyType == ecKey);
+  
+  MOZ_ASSERT(aPublicKey->keyType == mPrivateKey->keyType);
+
+  nsNSSShutDownPreventionLock locker;
+
+  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  if (!slot) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  
+  ScopedSECItem objID(::SECITEM_AllocItem(nullptr, nullptr, 20));
+  SECStatus rv = PK11_GenerateRandomOnSlot(slot, objID->data, objID->len);
+  if (rv != SECSuccess) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  
+  ScopedSECItem params(::SECITEM_AllocItem(nullptr, nullptr, 0));
+  rv = PK11_ReadRawAttribute(PK11_TypePrivKey, mPrivateKey, CKA_EC_PARAMS,
+                             params);
+  if (rv != SECSuccess) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  
+  ScopedSECItem value(::SECITEM_AllocItem(nullptr, nullptr, 0));
+  rv = PK11_ReadRawAttribute(PK11_TypePrivKey, mPrivateKey, CKA_VALUE, value);
+  if (rv != SECSuccess) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  SECItem* point = &aPublicKey->u.ec.publicValue;
+  CK_OBJECT_CLASS privateKeyValue = CKO_PRIVATE_KEY;
+  CK_BBOOL falseValue = CK_FALSE;
+  CK_KEY_TYPE ecValue = CKK_EC;
+
+  CK_ATTRIBUTE keyTemplate[9] = {
+    { CKA_CLASS,            &privateKeyValue,     sizeof(privateKeyValue) },
+    { CKA_KEY_TYPE,         &ecValue,             sizeof(ecValue) },
+    { CKA_TOKEN,            &falseValue,          sizeof(falseValue) },
+    { CKA_SENSITIVE,        &falseValue,          sizeof(falseValue) },
+    { CKA_PRIVATE,          &falseValue,          sizeof(falseValue) },
+    { CKA_ID,               objID->data,          objID->len },
+    { CKA_EC_PARAMS,        params->data,         params->len },
+    { CKA_EC_POINT,         point->data,          point->len },
+    { CKA_VALUE,            value->data,          value->len },
+  };
+
+  mPrivateKey = PrivateKeyFromPrivateKeyTemplate(objID, keyTemplate,
+                                                 PR_ARRAY_SIZE(keyTemplate));
+  NS_ENSURE_TRUE(mPrivateKey, NS_ERROR_DOM_OPERATION_ERR);
+
+  return NS_OK;
+}
+
 void
 CryptoKey::ClearUsages()
 {
@@ -367,6 +457,9 @@ CryptoKey::PrivateKeyFromPkcs8(CryptoBuffer& aKeyData,
 {
   SECKEYPrivateKey* privKey;
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
+  if (!slot) {
+    return nullptr;
+  }
 
   ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
   if (!arena) {
@@ -580,36 +673,6 @@ CreateECPointForCoordinates(const CryptoBuffer& aX,
   memcpy(point->data + 1 + aX.Length(), aY.Elements(), aY.Length());
 
   return point;
-}
-
-SECKEYPrivateKey*
-PrivateKeyFromPrivateKeyTemplate(SECItem* aObjID,
-                                 CK_ATTRIBUTE* aTemplate,
-                                 CK_ULONG aTemplateSize)
-{
-  
-  ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
-  if (!slot.get()) {
-    return nullptr;
-  }
-
-  ScopedPK11GenericObject obj(PK11_CreateGenericObject(slot.get(),
-                                                       aTemplate,
-                                                       aTemplateSize,
-                                                       PR_FALSE));
-  if (!obj.get()) {
-    return nullptr;
-  }
-
-  
-  
-  ScopedSECKEYPrivateKey privKey(PK11_FindKeyByKeyID(slot.get(), aObjID,
-                                                     nullptr));
-  if (!privKey.get()) {
-    return nullptr;
-  }
-
-  return SECKEY_CopyPrivateKey(privKey.get());
 }
 
 SECKEYPrivateKey*

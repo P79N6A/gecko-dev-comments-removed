@@ -2331,6 +2331,14 @@ private:
 
     mKeyPair.mPrivateKey.get()->SetPrivateKey(mPrivateKey);
     mKeyPair.mPublicKey.get()->SetPublicKey(mPublicKey);
+
+    
+    
+    if (mMechanism == CKM_EC_KEY_PAIR_GEN) {
+      nsresult rv = mKeyPair.mPrivateKey->AddPublicKeyData(mPublicKey);
+      NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_OPERATION_ERR);
+    }
+
     return NS_OK;
   }
 
