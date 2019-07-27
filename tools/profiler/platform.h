@@ -362,7 +362,10 @@ class Sampler {
   static mozilla::Mutex* sRegisteredThreadsMutex;
 
   static bool CanNotifyObservers() {
-#if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
+#ifdef MOZ_WIDGET_GONK
+    
+    return false;
+#elif defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
     
     return NS_IsMainThread();
 #else
