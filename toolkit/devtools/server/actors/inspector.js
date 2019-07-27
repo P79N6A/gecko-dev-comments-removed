@@ -3471,6 +3471,30 @@ var InspectorActor = exports.InspectorActor = protocol.ActorClass({
   }, {
     request: {url: Arg(0), maxDim: Arg(1, "nullable:number")},
     response: RetVal("imageData")
+  }),
+
+  
+
+
+
+
+
+
+
+  resolveRelativeURL: method(function(url, node) {
+    let document = isNodeDead(node)
+                   ? this.window.document
+                   : nodeDocument(node.rawNode);
+
+    if (!document) {
+      return url;
+    } else {
+      let baseURI = Services.io.newURI(document.location.href, null, null);
+      return Services.io.newURI(url, null, baseURI).spec;
+    }
+  }, {
+    request: {url: Arg(0, "string"), node: Arg(1, "nullable:domnode")},
+    response: {value: RetVal("string")}
   })
 });
 
