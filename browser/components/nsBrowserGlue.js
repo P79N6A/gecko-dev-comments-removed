@@ -2352,7 +2352,12 @@ let E10SUINotification = {
   checkStatus: function() {
     let skipE10sChecks = false;
     try {
+      
+      
+      
+      
       skipE10sChecks = (UpdateChannel.get() != "nightly") ||
+                       Services.prefs.getBoolPref("privacy.trackingprotection.enabled") ||
                        Services.prefs.getBoolPref("browser.tabs.remote.autostart.disabled-because-using-a11y");
     } catch(e) {}
 
