@@ -117,14 +117,20 @@ exports.filterPlatformData = function filterPlatformData (frames) {
 
 function nsIURL(url) {
   let cached = gNSURLStore.get(url);
-  if (cached) {
+  
+  
+  if (cached !== void 0) {
     return cached;
   }
   let uri = null;
   try {
     uri = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
+    
+    
+    uri.host;
   } catch(e) {
     
+    uri = null;
   }
   gNSURLStore.set(url, uri);
   return uri;
