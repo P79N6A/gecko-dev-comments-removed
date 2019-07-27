@@ -125,8 +125,8 @@ public:
                           int32_t aRunScript,
                           const gfxFontStyle* aStyle);
 
-    
-    virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
+    virtual gfxFontFamily* FindFamily(const nsAString& aFamily,
+                                      bool aUseSystemFonts = false);
 
     gfxFontEntry* FindFontForFamily(const nsAString& aFamily, const gfxFontStyle* aStyle, bool& aNeedsBold);
 
@@ -291,6 +291,11 @@ protected:
 
     
     nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mFontFamilies;
+
+#if defined(XP_MACOSX)
+    
+    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mSystemFontFamilies;
+#endif
 
     
     

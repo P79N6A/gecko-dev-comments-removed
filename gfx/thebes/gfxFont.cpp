@@ -5033,7 +5033,7 @@ gfxFontGroup::FindPlatformFont(const nsAString& aName,
     
     if (!family) {
         gfxPlatformFontList *fontList = gfxPlatformFontList::PlatformFontList();
-        family = fontList->FindFamily(aName);
+        family = fontList->FindFamily(aName, mStyle.systemFont);
         if (family) {
             fe = family->FindFontForStyle(mStyle, needsBold);
         }
