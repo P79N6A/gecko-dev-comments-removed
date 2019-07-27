@@ -490,14 +490,8 @@ protected:
   bool NeedToDecodeAudio();
 
   
-  void DecodeAudio();
-
-  
   
   bool NeedToDecodeVideo();
-
-  
-  void DecodeVideo();
 
   
   
