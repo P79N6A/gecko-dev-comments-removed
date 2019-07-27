@@ -620,11 +620,11 @@ public:
                        bool *bp) const MOZ_OVERRIDE;
   virtual bool enumerate(JSContext *cx, JS::Handle<JSObject*> proxy,
                          JS::AutoIdVector &props) const MOZ_OVERRIDE;
-  virtual bool isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy, bool *extensible)
-                            const MOZ_OVERRIDE;
   virtual bool preventExtensions(JSContext *cx,
                                  JS::Handle<JSObject*> proxy,
                                  bool *succeeded) const MOZ_OVERRIDE;
+  virtual bool isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy, bool *extensible)
+                            const MOZ_OVERRIDE;
   virtual bool has(JSContext *cx, JS::Handle<JSObject*> proxy,
                    JS::Handle<jsid> id, bool *bp) const MOZ_OVERRIDE;
   virtual bool get(JSContext *cx, JS::Handle<JSObject*> proxy,
@@ -706,27 +706,6 @@ const js::Class OuterWindowProxyClass =
             false,   
             nsOuterWindowProxy::ObjectMoved
         ));
-
-bool
-nsOuterWindowProxy::isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy,
-                                 bool *extensible) const
-{
-  
-  
-  
-  *extensible = true;
-  return true;
-}
-
-bool
-nsOuterWindowProxy::preventExtensions(JSContext *cx,
-                                      JS::Handle<JSObject*> proxy,
-                                      bool *succeeded) const
-{
-  
-  *succeeded = false;
-  return true;
-}
 
 const char *
 nsOuterWindowProxy::className(JSContext *cx, JS::Handle<JSObject*> proxy) const
@@ -863,6 +842,27 @@ nsOuterWindowProxy::enumerate(JSContext *cx, JS::Handle<JSObject*> proxy,
     return false;
   }
   return js::AppendUnique(cx, props, innerProps);
+}
+
+bool
+nsOuterWindowProxy::preventExtensions(JSContext *cx,
+                                      JS::Handle<JSObject*> proxy,
+                                      bool *succeeded) const
+{
+  
+  
+  
+  *succeeded = false;
+  return true;
+}
+
+bool
+nsOuterWindowProxy::isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy,
+                                 bool *extensible) const
+{
+  
+  *extensible = true;
+  return true;
 }
 
 bool

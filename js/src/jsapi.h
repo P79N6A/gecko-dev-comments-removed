@@ -2794,6 +2794,13 @@ JS_DeepFreezeObject(JSContext *cx, JS::Handle<JSObject*> obj);
 extern JS_PUBLIC_API(bool)
 JS_FreezeObject(JSContext *cx, JS::Handle<JSObject*> obj);
 
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(bool)
 JS_PreventExtensions(JSContext *cx, JS::HandleObject obj, bool *succeeded);
 

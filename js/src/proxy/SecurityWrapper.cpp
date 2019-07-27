@@ -13,27 +13,6 @@ using namespace js;
 
 template <class Base>
 bool
-SecurityWrapper<Base>::isExtensible(JSContext *cx, HandleObject wrapper, bool *extensible) const
-{
-    
-    
-    
-    *extensible = true;
-    return true;
-}
-
-template <class Base>
-bool
-SecurityWrapper<Base>::preventExtensions(JSContext *cx, HandleObject wrapper,
-                                         bool *succeeded) const
-{
-    
-    *succeeded = false;
-    return true;
-}
-
-template <class Base>
-bool
 SecurityWrapper<Base>::enter(JSContext *cx, HandleObject wrapper, HandleId id,
                              Wrapper::Action act, bool *bp) const
 {
@@ -53,6 +32,15 @@ SecurityWrapper<Base>::nativeCall(JSContext *cx, IsAcceptableThis test, NativeIm
 
 template <class Base>
 bool
+SecurityWrapper<Base>::setPrototypeOf(JSContext *cx, HandleObject wrapper,
+                                      HandleObject proto, bool *bp) const
+{
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNWRAP_DENIED);
+    return false;
+}
+
+template <class Base>
+bool
 SecurityWrapper<Base>::setImmutablePrototype(JSContext *cx, HandleObject wrapper,
                                              bool *succeeded) const
 {
@@ -62,11 +50,23 @@ SecurityWrapper<Base>::setImmutablePrototype(JSContext *cx, HandleObject wrapper
 
 template <class Base>
 bool
-SecurityWrapper<Base>::setPrototypeOf(JSContext *cx, HandleObject wrapper,
-                                      HandleObject proto, bool *bp) const
+SecurityWrapper<Base>::preventExtensions(JSContext *cx, HandleObject wrapper,
+                                         bool *succeeded) const
 {
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNWRAP_DENIED);
-    return false;
+    
+    
+    
+    *succeeded = false;
+    return true;
+}
+
+template <class Base>
+bool
+SecurityWrapper<Base>::isExtensible(JSContext *cx, HandleObject wrapper, bool *extensible) const
+{
+    
+    *extensible = true;
+    return true;
 }
 
 
