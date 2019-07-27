@@ -1880,6 +1880,9 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           psd->mBEndLeading = endLeading;
         }
         psd->mLogicalBSize += deltaLeading;
+        
+        
+        zeroEffectiveSpanBox = false;
       }
     }
 
