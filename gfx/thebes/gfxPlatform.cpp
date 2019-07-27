@@ -905,6 +905,9 @@ gfxPlatform::PurgeSkiaCache()
       return;
 
   mSkiaGlue->GetGrContext()->freeGpuResources();
+  
+  mSkiaGlue->GetGLContext()->MakeCurrent();
+  mSkiaGlue->GetGLContext()->fFlush();
 #endif
 }
 
