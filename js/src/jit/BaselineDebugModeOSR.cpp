@@ -205,21 +205,20 @@ CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &ob
                     return false;
             } else {
                 uint8_t *retAddr = iter.returnAddressToFp();
-                ICEntry *icEntry = script->baselineScript()->maybeICEntryFromReturnAddress(retAddr);
-                if (icEntry) {
+                if (iter.baselineFrame()->isDebuggerHandlingException()) {
                     
-                    if (!entries.append(DebugModeOSREntry(script, *icEntry)))
+                    
+                    
+                    
+                    
+                    
+                    jsbytecode *pc = script->baselineScript()->pcForNativeAddress(script, retAddr);
+                    if (!entries.append(DebugModeOSREntry(script, script->pcToOffset(pc))))
                         return false;
                 } else {
                     
-                    
-                    
-                    
-                    
-                    
-                    MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
-                    jsbytecode *pc = script->baselineScript()->pcForNativeAddress(script, retAddr);
-                    if (!entries.append(DebugModeOSREntry(script, script->pcToOffset(pc))))
+                    ICEntry &icEntry = script->baselineScript()->icEntryFromReturnAddress(retAddr);
+                    if (!entries.append(DebugModeOSREntry(script, icEntry)))
                         return false;
                 }
             }
