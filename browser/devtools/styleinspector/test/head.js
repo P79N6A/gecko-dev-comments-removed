@@ -648,6 +648,18 @@ function getRuleViewPropertyValue(view, selectorText, propertyName) {
 
 
 
+function getRuleViewSelector(view, selectorText) {
+  let rule = getRuleViewRule(view, selectorText);
+  return rule.querySelector(".ruleview-selector, .ruleview-selector-matched");
+}
+
+
+
+
+
+
+
+
 
 
 

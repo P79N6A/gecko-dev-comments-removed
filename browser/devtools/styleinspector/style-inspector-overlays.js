@@ -31,8 +31,10 @@ const TOOLTIP_FONTFAMILY_TYPE = "font-family";
 
 
 const HIGHLIGHTER_TRANSFORM_TYPE = "CssTransformHighlighter";
+const HIGHLIGHTER_SELECTOR_TYPE = "SelectorHighlighter";
 const HIGHLIGHTER_TYPES = [
-  HIGHLIGHTER_TRANSFORM_TYPE
+  HIGHLIGHTER_TRANSFORM_TYPE,
+  HIGHLIGHTER_SELECTOR_TYPE
 ];
 
 
@@ -121,16 +123,26 @@ HighlightersOverlay.prototype = {
     }
 
     
-    let type;
+    let type, options;
     if (this._isRuleViewTransform(nodeInfo) ||
         this._isComputedViewTransform(nodeInfo)) {
       type = HIGHLIGHTER_TRANSFORM_TYPE;
+    } else if (nodeInfo.type === VIEW_NODE_SELECTOR_TYPE) {
+      type = HIGHLIGHTER_SELECTOR_TYPE;
+      options = {
+        selector: nodeInfo.value,
+        hideInfoBar: true,
+        showOnly: "border",
+        region: "border"
+      };
     }
 
     if (type) {
       this.highlighterShown = type;
       let node = this.view.inspector.selection.nodeFront;
-      this._getHighlighter(type).then(highlighter => highlighter.show(node));
+      this._getHighlighter(type).then(highlighter => {
+        highlighter.show(node, options);
+      });
     }
   },
 
