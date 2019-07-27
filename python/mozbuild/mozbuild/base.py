@@ -28,6 +28,9 @@ from .mozconfig import (
 from .virtualenv import VirtualenvManager
 
 
+_config_guess_output = []
+
+
 def ancestors(path):
     """Emit the parent directories of a path."""
     while path:
@@ -353,6 +356,11 @@ class MozbuildObject(ProcessExecutionMixin):
         if config_guess:
             return config_guess
 
+        
+        
+        if _config_guess_output:
+            return _config_guess_output[0]
+
         p = os.path.join(topsrcdir, 'build', 'autoconf', 'config.guess')
 
         
@@ -362,7 +370,9 @@ class MozbuildObject(ProcessExecutionMixin):
         o = MozbuildObject(topsrcdir, None, None, None)
         args = o._normalize_command([p], True)
 
-        return subprocess.check_output(args, cwd=topsrcdir).strip()
+        _config_guess_output.append(
+                subprocess.check_output(args, cwd=topsrcdir).strip())
+        return _config_guess_output[0]
 
     def notify(self, msg):
         """Show a desktop notification with the supplied message
