@@ -227,38 +227,49 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
     
     
     if ((consumeResult == ConsumeOutsideClicks_ParentOnly || noRollupOnAnchor) && pos) {
-      nsCOMPtr<nsIContent> anchor = item->Frame()->GetAnchor();
+      nsMenuPopupFrame* popupFrame = item->Frame();
+      nsIntRect anchorRect;
+      if (popupFrame->IsAnchored()) {
+        
+        
+        anchorRect = popupFrame->GetScreenAnchorRect();
+        if (anchorRect.x == -1 || anchorRect.y == -1) {
+          nsCOMPtr<nsIContent> anchor = popupFrame->GetAnchor();
 
-      
-      
-      
-      
-      if (anchor) {
-        nsAutoString consumeAnchor;
-        anchor->GetAttr(kNameSpaceID_None, nsGkAtoms::consumeanchor,
-                        consumeAnchor);
-        if (!consumeAnchor.IsEmpty()) {
-          nsIDocument* doc = anchor->GetOwnerDocument();
-          nsIContent* newAnchor = doc->GetElementById(consumeAnchor);
-          if (newAnchor) {
-            anchor = newAnchor;
+          
+          
+          
+          
+          if (anchor) {
+            nsAutoString consumeAnchor;
+            anchor->GetAttr(kNameSpaceID_None, nsGkAtoms::consumeanchor,
+                            consumeAnchor);
+            if (!consumeAnchor.IsEmpty()) {
+              nsIDocument* doc = anchor->GetOwnerDocument();
+              nsIContent* newAnchor = doc->GetElementById(consumeAnchor);
+              if (newAnchor) {
+                anchor = newAnchor;
+              }
+            }
+          }
+
+          if (anchor && anchor->GetPrimaryFrame()) {
+            anchorRect = anchor->GetPrimaryFrame()->GetScreenRect();
           }
         }
       }
 
-      if (anchor && anchor->GetPrimaryFrame()) {
-        
-        
-        
-        
-        if (anchor->GetPrimaryFrame()->GetScreenRect().Contains(*pos)) {
-          if (consumeResult == ConsumeOutsideClicks_ParentOnly) {
-            consume = true;
-          }
+      
+      
+      
+      
+      if (anchorRect.Contains(*pos)) {
+        if (consumeResult == ConsumeOutsideClicks_ParentOnly) {
+          consume = true;
+        }
 
-          if (noRollupOnAnchor) {
-            rollup = false;
-          }
+        if (noRollupOnAnchor) {
+          rollup = false;
         }
       }
     }

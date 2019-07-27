@@ -392,7 +392,7 @@ public:
 
   
   
-  nsIntPoint ScreenPosition() const { return mScreenRect.TopLeft(); }
+  nsIntRect GetScreenAnchorRect() const { return mScreenRect; }
 
   nsIntPoint GetLastClientOffset() const { return mLastClientOffset; }
 
