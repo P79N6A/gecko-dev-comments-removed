@@ -2,8 +2,8 @@
 
 
 
-#ifndef mozilla_plugins_PluginWidgetParent_h
-#define mozilla_plugins_PluginWidgetParent_h
+#ifndef mozilla_plugins_PluginWidgetChild_h
+#define mozilla_plugins_PluginWidgetChild_h
 
 #include "mozilla/plugins/PPluginWidgetChild.h"
 
