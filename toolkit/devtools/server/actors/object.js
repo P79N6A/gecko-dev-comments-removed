@@ -1,0 +1,1621 @@
+
+
+
+
+
+
+"use strict";
+
+const { Cu, Ci } = require("chrome");
+const { GeneratedLocation } = require("devtools/server/actors/common");
+const { DebuggerServer } = require("devtools/server/main")
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+const { dbg_assert } = DevToolsUtils;
+const PromiseDebugging = require("PromiseDebugging");
+
+const TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
+      "Uint32Array", "Int8Array", "Int16Array", "Int32Array", "Float32Array",
+      "Float64Array"];
+
+
+
+const OBJECT_PREVIEW_MAX_ITEMS = 10;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ObjectActor(obj, {
+  createValueGrip,
+  sources,
+  createEnvironmentActor,
+  getGripDepth,
+  incrementGripDepth,
+  decrementGripDepth
+}) {
+  dbg_assert(!obj.optimizedOut,
+    "Should not create object actors for optimized out values!");
+  this.obj = obj;
+  this.hooks = {
+    createValueGrip,
+    sources,
+    createEnvironmentActor,
+    getGripDepth,
+    incrementGripDepth,
+    decrementGripDepth
+  };
+  this.iterators = new Set();
+}
+
+ObjectActor.prototype = {
+  actorPrefix: "obj",
+
+  
+
+
+  grip: function () {
+    this.hooks.incrementGripDepth();
+
+    let g = {
+      "type": "object",
+      "class": this.obj.class,
+      "actor": this.actorID,
+      "extensible": this.obj.isExtensible(),
+      "frozen": this.obj.isFrozen(),
+      "sealed": this.obj.isSealed()
+    };
+
+    if (this.obj.class != "DeadObject") {
+      
+      if (this.obj.class == "Promise") {
+        const { state, value, reason } = getPromiseState(this.obj);
+        g.promiseState = { state };
+        if (state == "fulfilled") {
+          g.promiseState.value = this.hooks.createValueGrip(value);
+        } else if (state == "rejected") {
+          g.promiseState.reason = this.hooks.createValueGrip(reason);
+        }
+      }
+
+      
+      
+      
+      try {
+        
+        if (this.obj.class != "Function") {
+          g.ownPropertyLength = this.obj.getOwnPropertyNames().length;
+        }
+      } catch(e) {}
+
+      let raw = this.obj.unsafeDereference();
+
+      
+      
+      if (Cu) {
+        raw = Cu.unwaiveXrays(raw);
+      }
+
+      if (!DevToolsUtils.isSafeJSObject(raw)) {
+        raw = null;
+      }
+
+      let previewers = DebuggerServer.ObjectActorPreviewers[this.obj.class] ||
+                       DebuggerServer.ObjectActorPreviewers.Object;
+      for (let fn of previewers) {
+        try {
+          if (fn(this, g, raw)) {
+            break;
+          }
+        } catch (e) {
+          DevToolsUtils.reportException("ObjectActor.prototype.grip previewer function", e);
+        }
+      }
+    }
+
+    this.hooks.decrementGripDepth();
+    return g;
+  },
+
+  
+
+
+  release: function () {
+    if (this.registeredPool.objectActors) {
+      this.registeredPool.objectActors.delete(this.obj);
+    }
+    this.iterators.forEach(actor => this.registeredPool.removeActor(actor));
+    this.iterators.clear();
+    this.registeredPool.removeActor(this);
+  },
+
+  
+
+
+
+
+
+
+  onDefinitionSite: function OA_onDefinitionSite(aRequest) {
+    if (this.obj.class != "Function") {
+      return {
+        from: this.actorID,
+        error: "objectNotFunction",
+        message: this.actorID + " is not a function."
+      };
+    }
+
+    if (!this.obj.script) {
+      return {
+        from: this.actorID,
+        error: "noScript",
+        message: this.actorID + " has no Debugger.Script"
+      };
+    }
+
+    return this.hooks.sources().getOriginalLocation(new GeneratedLocation(
+      this.hooks.sources().createNonSourceMappedActor(this.obj.script.source),
+      this.obj.script.startLine,
+      0 
+    )).then((originalLocation) => {
+      return {
+        source: originalLocation.originalSourceActor.form(),
+        line: originalLocation.originalLine,
+        column: originalLocation.originalColumn
+      };
+    });
+  },
+
+  
+
+
+
+
+
+
+  onOwnPropertyNames: function (aRequest) {
+    return { from: this.actorID,
+             ownPropertyNames: this.obj.getOwnPropertyNames() };
+  },
+
+  
+
+
+
+
+
+
+  onEnumProperties: function (aRequest) {
+    let actor = new PropertyIteratorActor(this, aRequest.options);
+    this.registeredPool.addActor(actor);
+    this.iterators.add(actor);
+    return { iterator: actor.grip() };
+  },
+
+  
+
+
+
+
+
+
+  onPrototypeAndProperties: function (aRequest) {
+    let ownProperties = Object.create(null);
+    let names;
+    try {
+      names = this.obj.getOwnPropertyNames();
+    } catch (ex) {
+      
+      
+      return { from: this.actorID,
+               prototype: this.hooks.createValueGrip(null),
+               ownProperties: ownProperties,
+               safeGetterValues: Object.create(null) };
+    }
+    for (let name of names) {
+      ownProperties[name] = this._propertyDescriptor(name);
+    }
+    return { from: this.actorID,
+             prototype: this.hooks.createValueGrip(this.obj.proto),
+             ownProperties: ownProperties,
+             safeGetterValues: this._findSafeGetterValues(names) };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _findSafeGetterValues: function (aOwnProperties, aLimit = 0)
+  {
+    let safeGetterValues = Object.create(null);
+    let obj = this.obj;
+    let level = 0, i = 0;
+
+    while (obj) {
+      let getters = this._findSafeGetters(obj);
+      for (let name of getters) {
+        
+        
+        
+        if (name in safeGetterValues ||
+            (obj != this.obj && aOwnProperties.indexOf(name) !== -1)) {
+          continue;
+        }
+
+        
+        if (!obj.proto && name == "__proto__") {
+          continue;
+        }
+
+        let desc = null, getter = null;
+        try {
+          desc = obj.getOwnPropertyDescriptor(name);
+          getter = desc.get;
+        } catch (ex) {
+          
+        }
+        if (!getter) {
+          obj._safeGetters = null;
+          continue;
+        }
+
+        let result = getter.call(this.obj);
+        if (result && !("throw" in result)) {
+          let getterValue = undefined;
+          if ("return" in result) {
+            getterValue = result.return;
+          } else if ("yield" in result) {
+            getterValue = result.yield;
+          }
+          
+          
+          if (getterValue !== undefined) {
+            safeGetterValues[name] = {
+              getterValue: this.hooks.createValueGrip(getterValue),
+              getterPrototypeLevel: level,
+              enumerable: desc.enumerable,
+              writable: level == 0 ? desc.writable : true,
+            };
+            if (aLimit && ++i == aLimit) {
+              break;
+            }
+          }
+        }
+      }
+      if (aLimit && i == aLimit) {
+        break;
+      }
+
+      obj = obj.proto;
+      level++;
+    }
+
+    return safeGetterValues;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _findSafeGetters: function (aObject)
+  {
+    if (aObject._safeGetters) {
+      return aObject._safeGetters;
+    }
+
+    let getters = new Set();
+    let names = [];
+    try {
+      names = aObject.getOwnPropertyNames()
+    } catch (ex) {
+      
+      
+    }
+
+    for (let name of names) {
+      let desc = null;
+      try {
+        desc = aObject.getOwnPropertyDescriptor(name);
+      } catch (e) {
+        
+        
+      }
+      if (!desc || desc.value !== undefined || !("get" in desc)) {
+        continue;
+      }
+
+      if (DevToolsUtils.hasSafeGetter(desc)) {
+        getters.add(name);
+      }
+    }
+
+    aObject._safeGetters = getters;
+    return getters;
+  },
+
+  
+
+
+
+
+
+  onPrototype: function (aRequest) {
+    return { from: this.actorID,
+             prototype: this.hooks.createValueGrip(this.obj.proto) };
+  },
+
+  
+
+
+
+
+
+
+  onProperty: function (aRequest) {
+    if (!aRequest.name) {
+      return { error: "missingParameter",
+               message: "no property name was specified" };
+    }
+
+    return { from: this.actorID,
+             descriptor: this._propertyDescriptor(aRequest.name) };
+  },
+
+  
+
+
+
+
+
+  onDisplayString: function (aRequest) {
+    const string = stringify(this.obj);
+    return { from: this.actorID,
+             displayString: this.hooks.createValueGrip(string) };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _propertyDescriptor: function (aName, aOnlyEnumerable) {
+    let desc;
+    try {
+      desc = this.obj.getOwnPropertyDescriptor(aName);
+    } catch (e) {
+      
+      
+      
+      return {
+        configurable: false,
+        writable: false,
+        enumerable: false,
+        value: e.name
+      };
+    }
+
+    if (!desc || aOnlyEnumerable && !desc.enumerable) {
+      return undefined;
+    }
+
+    let retval = {
+      configurable: desc.configurable,
+      enumerable: desc.enumerable
+    };
+
+    if ("value" in desc) {
+      retval.writable = desc.writable;
+      retval.value = this.hooks.createValueGrip(desc.value);
+    } else {
+      if ("get" in desc) {
+        retval.get = this.hooks.createValueGrip(desc.get);
+      }
+      if ("set" in desc) {
+        retval.set = this.hooks.createValueGrip(desc.set);
+      }
+    }
+    return retval;
+  },
+
+  
+
+
+
+
+
+  onDecompile: function (aRequest) {
+    if (this.obj.class !== "Function") {
+      return { error: "objectNotFunction",
+               message: "decompile request is only valid for object grips " +
+                        "with a 'Function' class." };
+    }
+
+    return { from: this.actorID,
+             decompiledCode: this.obj.decompile(!!aRequest.pretty) };
+  },
+
+  
+
+
+
+
+
+  onParameterNames: function (aRequest) {
+    if (this.obj.class !== "Function") {
+      return { error: "objectNotFunction",
+               message: "'parameterNames' request is only valid for object " +
+                        "grips with a 'Function' class." };
+    }
+
+    return { parameterNames: this.obj.parameterNames };
+  },
+
+  
+
+
+
+
+
+  onRelease: function (aRequest) {
+    this.release();
+    return {};
+  },
+
+  
+
+
+
+
+
+  onScope: function (aRequest) {
+    if (this.obj.class !== "Function") {
+      return { error: "objectNotFunction",
+               message: "scope request is only valid for object grips with a" +
+                        " 'Function' class." };
+    }
+
+    let envActor = this.hooks.createEnvironmentActor(this.obj.environment,
+                                                     this.registeredPool);
+    if (!envActor) {
+      return { error: "notDebuggee",
+               message: "cannot access the environment of this function." };
+    }
+
+    return { from: this.actorID, scope: envActor.form() };
+  }
+};
+
+ObjectActor.prototype.requestTypes = {
+  "definitionSite": ObjectActor.prototype.onDefinitionSite,
+  "parameterNames": ObjectActor.prototype.onParameterNames,
+  "prototypeAndProperties": ObjectActor.prototype.onPrototypeAndProperties,
+  "enumProperties": ObjectActor.prototype.onEnumProperties,
+  "prototype": ObjectActor.prototype.onPrototype,
+  "property": ObjectActor.prototype.onProperty,
+  "displayString": ObjectActor.prototype.onDisplayString,
+  "ownPropertyNames": ObjectActor.prototype.onOwnPropertyNames,
+  "decompile": ObjectActor.prototype.onDecompile,
+  "release": ObjectActor.prototype.onRelease,
+  "scope": ObjectActor.prototype.onScope,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PropertyIteratorActor(objectActor, options){
+  this.objectActor = objectActor;
+
+  let ownProperties = Object.create(null);
+  let names = [];
+  try {
+    names = this.objectActor.obj.getOwnPropertyNames();
+  } catch (ex) {}
+
+  let safeGetterValues = {};
+  let safeGetterNames = [];
+  if (!options.ignoreSafeGetters) {
+    
+    safeGetterValues = this.objectActor._findSafeGetterValues(names);
+    safeGetterNames = Object.keys(safeGetterValues);
+    for (let name of safeGetterNames) {
+      if (names.indexOf(name) === -1) {
+        names.push(name);
+      }
+    }
+  }
+
+  if (options.ignoreIndexedProperties || options.ignoreNonIndexedProperties) {
+    let length = DevToolsUtils.getProperty(this.objectActor.obj, "length");
+    if (typeof(length) !== "number") {
+      
+      
+      length = 0;
+      for (let key of names) {
+        if (isNaN(key) || key != length++) {
+          break;
+        }
+      }
+    }
+
+    if (options.ignoreIndexedProperties) {
+      names = names.filter(i => {
+        
+        
+        
+        i = parseFloat(i);
+        return !Number.isInteger(i) || i < 0 || i >= length;
+      });
+    }
+
+    if (options.ignoreNonIndexedProperties) {
+      names = names.filter(i => {
+        i = parseFloat(i);
+        return Number.isInteger(i) && i >= 0 && i < length;
+      });
+    }
+  }
+
+  if (options.query) {
+    let { query } = options;
+    query = query.toLowerCase();
+    names = names.filter(name => {
+      return name.toLowerCase().includes(query);
+    });
+  }
+
+  if (options.sort) {
+    names.sort();
+  }
+
+  
+  for (let name of names) {
+    let desc = this.objectActor._propertyDescriptor(name);
+    if (!desc) {
+      desc = safeGetterValues[name];
+    }
+    else if (name in safeGetterValues) {
+      
+      let { getterValue, getterPrototypeLevel } = safeGetterValues[name];
+      desc.getterValue = getterValue;
+      desc.getterPrototypeLevel = getterPrototypeLevel;
+    }
+    ownProperties[name] = desc;
+  }
+
+  this.names = names;
+  this.ownProperties = ownProperties;
+}
+
+PropertyIteratorActor.prototype = {
+  actorPrefix: "propertyIterator",
+
+  grip: function() {
+    return {
+      type: "propertyIterator",
+      actor: this.actorID,
+      count: this.names.length
+    };
+  },
+
+  names: function({ indexes }) {
+    let list = [];
+    for (let idx of indexes) {
+      list.push(this.names[idx]);
+    }
+    return {
+      names: list
+    };
+  },
+
+  slice: function({ start, count }) {
+    let names = this.names.slice(start, start + count);
+    let props = Object.create(null);
+    for (let name of names) {
+      props[name] = this.ownProperties[name];
+    }
+    return {
+      ownProperties: props
+    };
+  },
+
+  all: function() {
+    return {
+      ownProperties: this.ownProperties
+    };
+  }
+};
+
+PropertyIteratorActor.prototype.requestTypes = {
+  "names": PropertyIteratorActor.prototype.names,
+  "slice": PropertyIteratorActor.prototype.slice,
+  "all": PropertyIteratorActor.prototype.all,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DebuggerServer.ObjectActorPreviewers = {
+  String: [function({obj, hooks}, aGrip) {
+    let result = genericObjectPreviewer("String", String, obj, hooks);
+    let length = DevToolsUtils.getProperty(obj, "length");
+
+    if (!result || typeof length != "number") {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "ArrayLike",
+      length: length
+    };
+
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let items = aGrip.preview.items = [];
+
+    const max = Math.min(result.value.length, OBJECT_PREVIEW_MAX_ITEMS);
+    for (let i = 0; i < max; i++) {
+      let value = hooks.createValueGrip(result.value[i]);
+      items.push(value);
+    }
+
+    return true;
+  }],
+
+  Boolean: [function({obj, hooks}, aGrip) {
+    let result = genericObjectPreviewer("Boolean", Boolean, obj, hooks);
+    if (result) {
+      aGrip.preview = result;
+      return true;
+    }
+
+    return false;
+  }],
+
+  Number: [function({obj, hooks}, aGrip) {
+    let result = genericObjectPreviewer("Number", Number, obj, hooks);
+    if (result) {
+      aGrip.preview = result;
+      return true;
+    }
+
+    return false;
+  }],
+
+  Function: [function({obj, hooks}, aGrip) {
+    if (obj.name) {
+      aGrip.name = obj.name;
+    }
+
+    if (obj.displayName) {
+      aGrip.displayName = obj.displayName.substr(0, 500);
+    }
+
+    if (obj.parameterNames) {
+      aGrip.parameterNames = obj.parameterNames;
+    }
+
+    
+    
+    let userDisplayName;
+    try {
+      userDisplayName = obj.getOwnPropertyDescriptor("displayName");
+    } catch (e) {
+      
+      
+      dumpn(e);
+    }
+
+    if (userDisplayName && typeof userDisplayName.value == "string" &&
+        userDisplayName.value) {
+      aGrip.userDisplayName = hooks.createValueGrip(userDisplayName.value);
+    }
+
+    return true;
+  }],
+
+  RegExp: [function({obj, hooks}, aGrip) {
+    
+    if (!obj.proto || obj.proto.class != "RegExp") {
+      return false;
+    }
+
+    let str = RegExp.prototype.toString.call(obj.unsafeDereference());
+    aGrip.displayString = hooks.createValueGrip(str);
+    return true;
+  }],
+
+  Date: [function({obj, hooks}, aGrip) {
+    let time = Date.prototype.getTime.call(obj.unsafeDereference());
+
+    aGrip.preview = {
+      timestamp: hooks.createValueGrip(time),
+    };
+    return true;
+  }],
+
+  Array: [function({obj, hooks}, aGrip) {
+    let length = DevToolsUtils.getProperty(obj, "length");
+    if (typeof length != "number") {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "ArrayLike",
+      length: length,
+    };
+
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let raw = obj.unsafeDereference();
+    let items = aGrip.preview.items = [];
+
+    for (let i = 0; i < length; ++i) {
+      
+      
+      
+      
+      
+      
+      let desc = Object.getOwnPropertyDescriptor(Cu.waiveXrays(raw), i);
+      if (desc && !desc.get && !desc.set) {
+        let value = Cu.unwaiveXrays(desc.value);
+        value = makeDebuggeeValueIfNeeded(obj, value);
+        items.push(hooks.createValueGrip(value));
+      } else {
+        items.push(null);
+      }
+
+      if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
+        break;
+      }
+    }
+
+    return true;
+  }], 
+
+  Set: [function({obj, hooks}, aGrip) {
+    let size = DevToolsUtils.getProperty(obj, "size");
+    if (typeof size != "number") {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "ArrayLike",
+      length: size,
+    };
+
+    
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let raw = obj.unsafeDereference();
+    let items = aGrip.preview.items = [];
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for (let item of Cu.waiveXrays(Set.prototype.values.call(raw))) {
+      item = Cu.unwaiveXrays(item);
+      item = makeDebuggeeValueIfNeeded(obj, item);
+      items.push(hooks.createValueGrip(item));
+      if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
+        break;
+      }
+    }
+
+    return true;
+  }], 
+
+  Map: [function({obj, hooks}, aGrip) {
+    let size = DevToolsUtils.getProperty(obj, "size");
+    if (typeof size != "number") {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "MapLike",
+      size: size,
+    };
+
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let raw = obj.unsafeDereference();
+    let entries = aGrip.preview.entries = [];
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for (let keyValuePair of Cu.waiveXrays(Map.prototype.entries.call(raw))) {
+      let key = Cu.unwaiveXrays(keyValuePair[0]);
+      let value = Cu.unwaiveXrays(keyValuePair[1]);
+      key = makeDebuggeeValueIfNeeded(obj, key);
+      value = makeDebuggeeValueIfNeeded(obj, value);
+      entries.push([hooks.createValueGrip(key),
+                    hooks.createValueGrip(value)]);
+      if (entries.length == OBJECT_PREVIEW_MAX_ITEMS) {
+        break;
+      }
+    }
+
+    return true;
+  }], 
+
+  DOMStringMap: [function({obj, hooks}, aGrip, aRawObj) {
+    if (!aRawObj) {
+      return false;
+    }
+
+    let keys = obj.getOwnPropertyNames();
+    aGrip.preview = {
+      kind: "MapLike",
+      size: keys.length,
+    };
+
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let entries = aGrip.preview.entries = [];
+    for (let key of keys) {
+      let value = makeDebuggeeValueIfNeeded(obj, aRawObj[key]);
+      entries.push([key, hooks.createValueGrip(value)]);
+      if (entries.length == OBJECT_PREVIEW_MAX_ITEMS) {
+        break;
+      }
+    }
+
+    return true;
+  }], 
+
+}; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function genericObjectPreviewer(aClassName, aClass, aObj, aHooks) {
+  if (!aObj.proto || aObj.proto.class != aClassName) {
+    return null;
+  }
+
+  let raw = aObj.unsafeDereference();
+  let v = null;
+  try {
+    v = aClass.prototype.valueOf.call(raw);
+  } catch (ex) {
+    
+    return null;
+  }
+
+  if (v !== null) {
+    v = aHooks.createValueGrip(makeDebuggeeValueIfNeeded(aObj, v));
+    return { value: v };
+  }
+
+  return null;
+}
+
+
+DebuggerServer.ObjectActorPreviewers.Object = [
+  function TypedArray({obj, hooks}, aGrip) {
+    if (TYPED_ARRAY_CLASSES.indexOf(obj.class) == -1) {
+      return false;
+    }
+
+    let length = DevToolsUtils.getProperty(obj, "length");
+    if (typeof length != "number") {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "ArrayLike",
+      length: length,
+    };
+
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let raw = obj.unsafeDereference();
+    let global = Cu.getGlobalForObject(DebuggerServer);
+    let classProto = global[obj.class].prototype;
+    
+    
+    let safeView = Cu.cloneInto(classProto.subarray.call(raw, 0, OBJECT_PREVIEW_MAX_ITEMS), global);
+    let items = aGrip.preview.items = [];
+    for (let i = 0; i < safeView.length; i++) {
+      items.push(safeView[i]);
+    }
+
+    return true;
+  },
+
+  function Error({obj, hooks}, aGrip) {
+    switch (obj.class) {
+      case "Error":
+      case "EvalError":
+      case "RangeError":
+      case "ReferenceError":
+      case "SyntaxError":
+      case "TypeError":
+      case "URIError":
+        let name = DevToolsUtils.getProperty(obj, "name");
+        let msg = DevToolsUtils.getProperty(obj, "message");
+        let stack = DevToolsUtils.getProperty(obj, "stack");
+        let fileName = DevToolsUtils.getProperty(obj, "fileName");
+        let lineNumber = DevToolsUtils.getProperty(obj, "lineNumber");
+        let columnNumber = DevToolsUtils.getProperty(obj, "columnNumber");
+        aGrip.preview = {
+          kind: "Error",
+          name: hooks.createValueGrip(name),
+          message: hooks.createValueGrip(msg),
+          stack: hooks.createValueGrip(stack),
+          fileName: hooks.createValueGrip(fileName),
+          lineNumber: hooks.createValueGrip(lineNumber),
+          columnNumber: hooks.createValueGrip(columnNumber),
+        };
+        return true;
+      default:
+        return false;
+    }
+  },
+
+  function CSSMediaRule({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || !aRawObj || !(aRawObj instanceof Ci.nsIDOMCSSMediaRule)) {
+      return false;
+    }
+    aGrip.preview = {
+      kind: "ObjectWithText",
+      text: hooks.createValueGrip(aRawObj.conditionText),
+    };
+    return true;
+  },
+
+  function CSSStyleRule({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || !aRawObj || !(aRawObj instanceof Ci.nsIDOMCSSStyleRule)) {
+      return false;
+    }
+    aGrip.preview = {
+      kind: "ObjectWithText",
+      text: hooks.createValueGrip(aRawObj.selectorText),
+    };
+    return true;
+  },
+
+  function ObjectWithURL({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || !aRawObj || !(aRawObj instanceof Ci.nsIDOMCSSImportRule ||
+                                  aRawObj instanceof Ci.nsIDOMCSSStyleSheet ||
+                                  aRawObj instanceof Ci.nsIDOMLocation ||
+                                  aRawObj instanceof Ci.nsIDOMWindow)) {
+      return false;
+    }
+
+    let url;
+    if (aRawObj instanceof Ci.nsIDOMWindow && aRawObj.location) {
+      url = aRawObj.location.href;
+    } else if (aRawObj.href) {
+      url = aRawObj.href;
+    } else {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "ObjectWithURL",
+      url: hooks.createValueGrip(url),
+    };
+
+    return true;
+  },
+
+  function ArrayLike({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || !aRawObj ||
+        obj.class != "DOMStringList" &&
+        obj.class != "DOMTokenList" &&
+        !(aRawObj instanceof Ci.nsIDOMMozNamedAttrMap ||
+          aRawObj instanceof Ci.nsIDOMCSSRuleList ||
+          aRawObj instanceof Ci.nsIDOMCSSValueList ||
+          aRawObj instanceof Ci.nsIDOMFileList ||
+          aRawObj instanceof Ci.nsIDOMFontFaceList ||
+          aRawObj instanceof Ci.nsIDOMMediaList ||
+          aRawObj instanceof Ci.nsIDOMNodeList ||
+          aRawObj instanceof Ci.nsIDOMStyleSheetList)) {
+      return false;
+    }
+
+    if (typeof aRawObj.length != "number") {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "ArrayLike",
+      length: aRawObj.length,
+    };
+
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let items = aGrip.preview.items = [];
+
+    for (let i = 0; i < aRawObj.length &&
+                    items.length < OBJECT_PREVIEW_MAX_ITEMS; i++) {
+      let value = makeDebuggeeValueIfNeeded(obj, aRawObj[i]);
+      items.push(hooks.createValueGrip(value));
+    }
+
+    return true;
+  }, 
+
+  function CSSStyleDeclaration({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || !aRawObj || !(aRawObj instanceof Ci.nsIDOMCSSStyleDeclaration)) {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "MapLike",
+      size: aRawObj.length,
+    };
+
+    let entries = aGrip.preview.entries = [];
+
+    for (let i = 0; i < OBJECT_PREVIEW_MAX_ITEMS &&
+                    i < aRawObj.length; i++) {
+      let prop = aRawObj[i];
+      let value = aRawObj.getPropertyValue(prop);
+      entries.push([prop, hooks.createValueGrip(value)]);
+    }
+
+    return true;
+  },
+
+  function DOMNode({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || obj.class == "Object" || !aRawObj ||
+        !(aRawObj instanceof Ci.nsIDOMNode)) {
+      return false;
+    }
+
+    let preview = aGrip.preview = {
+      kind: "DOMNode",
+      nodeType: aRawObj.nodeType,
+      nodeName: aRawObj.nodeName,
+    };
+
+    if (aRawObj instanceof Ci.nsIDOMDocument && aRawObj.location) {
+      preview.location = hooks.createValueGrip(aRawObj.location.href);
+    } else if (aRawObj instanceof Ci.nsIDOMDocumentFragment) {
+      preview.childNodesLength = aRawObj.childNodes.length;
+
+      if (hooks.getGripDepth() < 2) {
+        preview.childNodes = [];
+        for (let node of aRawObj.childNodes) {
+          let actor = hooks.createValueGrip(obj.makeDebuggeeValue(node));
+          preview.childNodes.push(actor);
+          if (preview.childNodes.length == OBJECT_PREVIEW_MAX_ITEMS) {
+            break;
+          }
+        }
+      }
+    } else if (aRawObj instanceof Ci.nsIDOMElement) {
+      
+      if (aRawObj instanceof Ci.nsIDOMHTMLElement) {
+        preview.nodeName = preview.nodeName.toLowerCase();
+      }
+
+      let i = 0;
+      preview.attributes = {};
+      preview.attributesLength = aRawObj.attributes.length;
+      for (let attr of aRawObj.attributes) {
+        preview.attributes[attr.nodeName] = hooks.createValueGrip(attr.value);
+        if (++i == OBJECT_PREVIEW_MAX_ITEMS) {
+          break;
+        }
+      }
+    } else if (aRawObj instanceof Ci.nsIDOMAttr) {
+      preview.value = hooks.createValueGrip(aRawObj.value);
+    } else if (aRawObj instanceof Ci.nsIDOMText ||
+               aRawObj instanceof Ci.nsIDOMComment) {
+      preview.textContent = hooks.createValueGrip(aRawObj.textContent);
+    }
+
+    return true;
+  }, 
+
+  function DOMEvent({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || !aRawObj || !(aRawObj instanceof Ci.nsIDOMEvent)) {
+      return false;
+    }
+
+    let preview = aGrip.preview = {
+      kind: "DOMEvent",
+      type: aRawObj.type,
+      properties: Object.create(null),
+    };
+
+    if (hooks.getGripDepth() < 2) {
+      let target = obj.makeDebuggeeValue(aRawObj.target);
+      preview.target = hooks.createValueGrip(target);
+    }
+
+    let props = [];
+    if (aRawObj instanceof Ci.nsIDOMMouseEvent) {
+      props.push("buttons", "clientX", "clientY", "layerX", "layerY");
+    } else if (aRawObj instanceof Ci.nsIDOMKeyEvent) {
+      let modifiers = [];
+      if (aRawObj.altKey) {
+        modifiers.push("Alt");
+      }
+      if (aRawObj.ctrlKey) {
+        modifiers.push("Control");
+      }
+      if (aRawObj.metaKey) {
+        modifiers.push("Meta");
+      }
+      if (aRawObj.shiftKey) {
+        modifiers.push("Shift");
+      }
+      preview.eventKind = "key";
+      preview.modifiers = modifiers;
+
+      props.push("key", "charCode", "keyCode");
+    } else if (aRawObj instanceof Ci.nsIDOMTransitionEvent) {
+      props.push("propertyName", "pseudoElement");
+    } else if (aRawObj instanceof Ci.nsIDOMAnimationEvent) {
+      props.push("animationName", "pseudoElement");
+    } else if (aRawObj instanceof Ci.nsIDOMClipboardEvent) {
+      props.push("clipboardData");
+    }
+
+    
+    for (let prop of props) {
+      let value = aRawObj[prop];
+      if (value && (typeof value == "object" || typeof value == "function")) {
+        
+        if (hooks.getGripDepth() > 1) {
+          continue;
+        }
+        value = obj.makeDebuggeeValue(value);
+      }
+      preview.properties[prop] = hooks.createValueGrip(value);
+    }
+
+    
+    if (!props.length) {
+      let i = 0;
+      for (let prop in aRawObj) {
+        let value = aRawObj[prop];
+        if (prop == "target" || prop == "type" || value === null ||
+            typeof value == "function") {
+          continue;
+        }
+        if (value && typeof value == "object") {
+          if (hooks.getGripDepth() > 1) {
+            continue;
+          }
+          value = obj.makeDebuggeeValue(value);
+        }
+        preview.properties[prop] = hooks.createValueGrip(value);
+        if (++i == OBJECT_PREVIEW_MAX_ITEMS) {
+          break;
+        }
+      }
+    }
+
+    return true;
+  }, 
+
+  function DOMException({obj, hooks}, aGrip, aRawObj) {
+    if (isWorker || !aRawObj || !(aRawObj instanceof Ci.nsIDOMDOMException)) {
+      return false;
+    }
+
+    aGrip.preview = {
+      kind: "DOMException",
+      name: hooks.createValueGrip(aRawObj.name),
+      message: hooks.createValueGrip(aRawObj.message),
+      code: hooks.createValueGrip(aRawObj.code),
+      result: hooks.createValueGrip(aRawObj.result),
+      filename: hooks.createValueGrip(aRawObj.filename),
+      lineNumber: hooks.createValueGrip(aRawObj.lineNumber),
+      columnNumber: hooks.createValueGrip(aRawObj.columnNumber),
+    };
+
+    return true;
+  },
+
+  function PseudoArray({obj, hooks}, aGrip, aRawObj) {
+    let length = 0;
+
+    
+    let keys = obj.getOwnPropertyNames();
+    if (keys.length == 0) {
+      return false;
+    }
+    for (let key of keys) {
+      if (isNaN(key) || key != length++) {
+        return false;
+      }
+    }
+
+    aGrip.preview = {
+      kind: "ArrayLike",
+      length: length,
+    };
+
+    
+    if (hooks.getGripDepth() > 1) {
+      return true;
+    }
+
+    let items = aGrip.preview.items = [];
+
+    let i = 0;
+    for (let key of keys) {
+      if (aRawObj.hasOwnProperty(key) && i++ < OBJECT_PREVIEW_MAX_ITEMS) {
+        let value = makeDebuggeeValueIfNeeded(obj, aRawObj[key]);
+        items.push(hooks.createValueGrip(value));
+      }
+    }
+
+    return true;
+  }, 
+
+  function GenericObject(aObjectActor, aGrip) {
+    let {obj, hooks} = aObjectActor;
+    if (aGrip.preview || aGrip.displayString || hooks.getGripDepth() > 1) {
+      return false;
+    }
+
+    let i = 0, names = [];
+    let preview = aGrip.preview = {
+      kind: "Object",
+      ownProperties: Object.create(null),
+    };
+
+    try {
+      names = obj.getOwnPropertyNames();
+    } catch (ex) {
+      
+      
+    }
+
+    preview.ownPropertiesLength = names.length;
+
+    for (let name of names) {
+      let desc = aObjectActor._propertyDescriptor(name, true);
+      if (!desc) {
+        continue;
+      }
+
+      preview.ownProperties[name] = desc;
+      if (++i == OBJECT_PREVIEW_MAX_ITEMS) {
+        break;
+      }
+    }
+
+    if (i < OBJECT_PREVIEW_MAX_ITEMS) {
+      preview.safeGetterValues = aObjectActor.
+                                 _findSafeGetterValues(Object.keys(preview.ownProperties),
+                                                       OBJECT_PREVIEW_MAX_ITEMS - i);
+    }
+
+    return true;
+  }, 
+]; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getPromiseState(obj) {
+  if (obj.class != "Promise") {
+    throw new Error(
+      "Can't call `getPromiseState` on `Debugger.Object`s that don't " +
+      "refer to Promise objects.");
+  }
+
+  const state = PromiseDebugging.getState(obj.unsafeDereference());
+  return {
+    state: state.state,
+    value: obj.makeDebuggeeValue(state.value),
+    reason: obj.makeDebuggeeValue(state.reason)
+  };
+};
+
+
+
+
+
+
+
+
+
+function isObject(aValue) {
+  const type = typeof aValue;
+  return type == "object" ? aValue !== null : type == "function";
+}
+
+
+
+
+
+
+
+
+
+
+function createBuiltinStringifier(aCtor) {
+  return aObj => aCtor.prototype.toString.call(aObj.unsafeDereference());
+}
+
+
+
+
+
+
+
+
+
+function errorStringify(aObj) {
+  let name = DevToolsUtils.getProperty(aObj, "name");
+  if (name === "" || name === undefined) {
+    name = aObj.class;
+  } else if (isObject(name)) {
+    name = stringify(name);
+  }
+
+  let message = DevToolsUtils.getProperty(aObj, "message");
+  if (isObject(message)) {
+    message = stringify(message);
+  }
+
+  if (message === "" || message === undefined) {
+    return name;
+  }
+  return name + ": " + message;
+}
+
+
+
+
+
+
+
+
+
+function stringify(aObj) {
+  if (aObj.class == "DeadObject") {
+    const error = new Error("Dead object encountered.");
+    DevToolsUtils.reportException("stringify", error);
+    return "<dead object>";
+  }
+
+  const stringifier = stringifiers[aObj.class] || stringifiers.Object;
+
+  try {
+    return stringifier(aObj);
+  } catch (e) {
+    DevToolsUtils.reportException("stringify", e);
+    return "<failed to stringify object>";
+  }
+}
+
+
+let seen = null;
+
+let stringifiers = {
+  Error: errorStringify,
+  EvalError: errorStringify,
+  RangeError: errorStringify,
+  ReferenceError: errorStringify,
+  SyntaxError: errorStringify,
+  TypeError: errorStringify,
+  URIError: errorStringify,
+  Boolean: createBuiltinStringifier(Boolean),
+  Function: createBuiltinStringifier(Function),
+  Number: createBuiltinStringifier(Number),
+  RegExp: createBuiltinStringifier(RegExp),
+  String: createBuiltinStringifier(String),
+  Object: obj => "[object " + obj.class + "]",
+  Array: obj => {
+    
+    
+    const topLevel = !seen;
+    if (topLevel) {
+      seen = new Set();
+    } else if (seen.has(obj)) {
+      return "";
+    }
+
+    seen.add(obj);
+
+    const len = DevToolsUtils.getProperty(obj, "length");
+    let string = "";
+
+    
+    
+    
+    if (typeof len == "number" && len > 0) {
+      for (let i = 0; i < len; i++) {
+        const desc = obj.getOwnPropertyDescriptor(i);
+        if (desc) {
+          const { value } = desc;
+          if (value != null) {
+            string += isObject(value) ? stringify(value) : value;
+          }
+        }
+
+        if (i < len - 1) {
+          string += ",";
+        }
+      }
+    }
+
+    if (topLevel) {
+      seen = null;
+    }
+
+    return string;
+  },
+  DOMException: obj => {
+    const message = DevToolsUtils.getProperty(obj, "message") || "<no message>";
+    const result = (+DevToolsUtils.getProperty(obj, "result")).toString(16);
+    const code = DevToolsUtils.getProperty(obj, "code");
+    const name = DevToolsUtils.getProperty(obj, "name") || "<unknown>";
+
+    return '[Exception... "' + message + '" ' +
+           'code: "' + code +'" ' +
+           'nsresult: "0x' + result + ' (' + name + ')"]';
+  },
+  Promise: obj => {
+    const { state, value, reason } = getPromiseState(obj);
+    let statePreview = state;
+    if (state != "pending") {
+      const settledValue = state === "fulfilled" ? value : reason;
+      statePreview += ": " + (typeof settledValue === "object" && settledValue !== null
+                                ? stringify(settledValue)
+                                : settledValue);
+    }
+    return "Promise (" + statePreview + ")";
+  },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function makeDebuggeeValueIfNeeded(obj, value) {
+  if (value && (typeof value == "object" || typeof value == "function")) {
+    return obj.makeDebuggeeValue(value);
+  }
+  return value;
+}
+
+exports.ObjectActor = ObjectActor;
+exports.PropertyIteratorActor = PropertyIteratorActor;
+
