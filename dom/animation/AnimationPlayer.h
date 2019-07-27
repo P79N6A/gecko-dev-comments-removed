@@ -72,23 +72,17 @@ public:
   
   
   Nullable<TimeDuration> GetCurrentTimeDuration() const {
-    const TimeStamp& timelineTime = mTimeline->GetCurrentTimeStamp();
-    
-    
-    MOZ_ASSERT(timelineTime.IsNull() || !IsPaused() ||
-               timelineTime >= mHoldTime,
-               "if paused, any non-null value of aTime must be at least"
-               " mHoldTime");
-
+    Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTimeDuration();
+    Nullable<TimeDuration> holdDuration = mTimeline->ToTimelineTime(mHoldTime);
     Nullable<TimeDuration> result; 
     if (!timelineTime.IsNull() && !mStartTime.IsNull()) {
-      result.SetValue((IsPaused() ? mHoldTime : timelineTime) - mStartTime);
+      result.SetValue((IsPaused() ? holdDuration.Value() : timelineTime.Value()) - mStartTime.Value());
     }
     return result;
   }
 
   
-  TimeStamp mStartTime;
+  Nullable<TimeDuration> mStartTime;
   TimeStamp mHoldTime;
   uint8_t mPlayState;
   bool mIsRunningOnCompositor;
