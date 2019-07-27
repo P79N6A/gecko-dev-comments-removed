@@ -1399,12 +1399,6 @@ class AutoEnterOOMUnsafeRegion {};
 #endif 
 
 
-
-
-bool
-IsInsideGGCNursery(const gc::Cell* cell);
-
-
 class ZoneList
 {
     static Zone * const End;

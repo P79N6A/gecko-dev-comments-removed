@@ -240,29 +240,6 @@ NativeObject::getDenseOrTypedArrayElement(uint32_t idx)
     return getDenseElement(idx);
 }
 
-inline void
-NativeObject::initDenseElementsUnbarriered(uint32_t dstStart, const Value* src, uint32_t count) {
-    
-
-
-
-    MOZ_ASSERT(dstStart + count <= getDenseCapacity());
-    MOZ_ASSERT(!denseElementsAreCopyOnWrite());
-#ifdef DEBUG
-    
-
-
-
-    MOZ_ASSERT(!gc::IsInsideGGCNursery(this));
-    for (uint32_t index = 0; index < count; ++index) {
-        const Value& value = src[index];
-        if (value.isMarkable())
-            MOZ_ASSERT(!gc::IsInsideGGCNursery(static_cast<gc::Cell*>(value.toGCThing())));
-    }
-#endif
-    memcpy(&elements_[dstStart], src, count * sizeof(HeapSlot));
-}
-
  inline NativeObject*
 NativeObject::copy(ExclusiveContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
                    HandleNativeObject templateObject)

@@ -3087,13 +3087,7 @@ js::CloneScript(JSContext* cx, HandleObject enclosingScope, HandleFunction fun, 
                     clone = CloneFunctionAndScript(cx, enclosingScope, innerFun, polluted);
                 }
             } else {
-                
-
-
-
-
-
-                clone = CloneObjectLiteral(cx, obj);
+                clone = DeepCloneObjectLiteral(cx, obj, TenuredObject);
             }
             if (!clone || !objects.append(clone))
                 return nullptr;

@@ -296,21 +296,6 @@ IsObjectValueInCompartment(Value v, JSCompartment* comp);
 
 
 
-
-inline void
-DenseRangeWriteBarrierPost(JSRuntime* rt, NativeObject* obj, uint32_t start, uint32_t count)
-{
-    if (count > 0) {
-        JS::shadow::Runtime* shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
-        shadowRuntime->gcStoreBufferPtr()->putSlotFromAnyThread(obj, HeapSlot::Element, start, count);
-    }
-}
-
-
-
-
-
-
 enum class DenseElementResult {
     Failure,
     Success,
@@ -940,6 +925,20 @@ class NativeObject : public JSObject
     inline void ensureDenseInitializedLengthNoPackedCheck(ExclusiveContext* cx,
                                                           uint32_t index, uint32_t extra);
 
+    
+    
+    inline void elementsRangeWriteBarrierPost(uint32_t start, uint32_t count) {
+        for (size_t i = 0; i < count; i++) {
+            const Value& v = elements_[start + i];
+            if (v.isObject() && IsInsideNursery(&v.toObject())) {
+                JS::shadow::Runtime* shadowRuntime = shadowRuntimeFromMainThread();
+                shadowRuntime->gcStoreBufferPtr()->putSlotFromAnyThread(this, HeapSlot::Element,
+                                                                        start + i, count - i);
+                return;
+            }
+        }
+    }
+
   public:
     void setDenseInitializedLength(uint32_t length) {
         MOZ_ASSERT(length <= getDenseCapacity());
@@ -987,7 +986,7 @@ class NativeObject : public JSObject
                 elements_[dstStart + i].set(this, HeapSlot::Element, dstStart + i, src[i]);
         } else {
             memcpy(&elements_[dstStart], src, count * sizeof(HeapSlot));
-            DenseRangeWriteBarrierPost(runtimeFromMainThread(), this, dstStart, count);
+            elementsRangeWriteBarrierPost(dstStart, count);
         }
     }
 
@@ -995,10 +994,8 @@ class NativeObject : public JSObject
         MOZ_ASSERT(dstStart + count <= getDenseCapacity());
         MOZ_ASSERT(!denseElementsAreCopyOnWrite());
         memcpy(&elements_[dstStart], src, count * sizeof(HeapSlot));
-        DenseRangeWriteBarrierPost(runtimeFromMainThread(), this, dstStart, count);
+        elementsRangeWriteBarrierPost(dstStart, count);
     }
-
-    void initDenseElementsUnbarriered(uint32_t dstStart, const Value* src, uint32_t count);
 
     void moveDenseElements(uint32_t dstStart, uint32_t srcStart, uint32_t count) {
         MOZ_ASSERT(dstStart + count <= getDenseCapacity());
@@ -1031,7 +1028,7 @@ class NativeObject : public JSObject
             }
         } else {
             memmove(elements_ + dstStart, elements_ + srcStart, count * sizeof(HeapSlot));
-            DenseRangeWriteBarrierPost(runtimeFromMainThread(), this, dstStart, count);
+            elementsRangeWriteBarrierPost(dstStart, count);
         }
     }
 
@@ -1043,7 +1040,7 @@ class NativeObject : public JSObject
         MOZ_ASSERT(!denseElementsAreCopyOnWrite());
 
         memmove(elements_ + dstStart, elements_ + srcStart, count * sizeof(Value));
-        DenseRangeWriteBarrierPost(runtimeFromMainThread(), this, dstStart, count);
+        elementsRangeWriteBarrierPost(dstStart, count);
     }
 
     bool shouldConvertDoubleElements() {

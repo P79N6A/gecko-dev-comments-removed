@@ -586,13 +586,19 @@ class ObjectGroup : public gc::TenuredCell
 
     
 
-    
-    
-    static void fixArrayGroup(ExclusiveContext* cx, ArrayObject* obj);
+    enum class NewArrayKind {
+        Normal,       
+        CopyOnWrite,  
+        UnknownIndex  
+    };
 
     
-    static void fixRestArgumentsGroup(ExclusiveContext* cx, ArrayObject* obj);
+    
+    static JSObject* newArrayObject(ExclusiveContext* cx, const Value* vp, size_t length,
+                                    NewObjectKind newKind,
+                                    NewArrayKind arrayKind = NewArrayKind::Normal);
 
+    
     
     static JSObject* newPlainObject(ExclusiveContext* cx,
                                     IdValuePair* properties, size_t nproperties,
@@ -623,8 +629,6 @@ class ObjectGroup : public gc::TenuredCell
 
   private:
     static ObjectGroup* defaultNewGroup(JSContext* cx, JSProtoKey key);
-    static void setGroupToHomogenousArray(ExclusiveContext* cx, JSObject* obj,
-                                          TypeSet::Type type);
 };
 
 
