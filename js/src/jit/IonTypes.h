@@ -362,6 +362,7 @@ enum MIRType
     MIRType_Elements,                
     MIRType_Pointer,                 
     MIRType_Shape,                   
+    MIRType_TypeObject,              
     MIRType_ForkJoinContext,         
     MIRType_Last = MIRType_ForkJoinContext,
     MIRType_Float32x4 = MIRType_Float32 | (2 << VECTOR_SCALE_SHIFT),
