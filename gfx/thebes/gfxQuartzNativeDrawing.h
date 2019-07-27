@@ -8,12 +8,13 @@
 
 #include "mozilla/Attributes.h"
 
-#include "gfxContext.h"
-#include "gfxQuartzSurface.h"
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/BorrowedContext.h"
-#include "nsAutoPtr.h"
+#include "mozilla/RefPtr.h"
 
 class gfxQuartzNativeDrawing {
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+    typedef mozilla::gfx::Rect Rect;
 public:
 
     
@@ -41,8 +42,8 @@ public:
 
 
 
-    gfxQuartzNativeDrawing(gfxContext *ctx,
-                           const gfxRect& aNativeRect);
+    gfxQuartzNativeDrawing(DrawTarget& aDrawTarget,
+                           const Rect& aNativeRect);
 
     
 
@@ -58,8 +59,8 @@ private:
     const gfxQuartzNativeDrawing& operator=(const gfxQuartzNativeDrawing&) MOZ_DELETE;
 
     
-    nsRefPtr<gfxContext> mContext;
-    mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
+    mozilla::RefPtr<DrawTarget> mDrawTarget;
+    mozilla::RefPtr<DrawTarget> mTempDrawTarget;
     mozilla::gfx::BorrowedCGContext mBorrowedContext;
     mozilla::gfx::Rect mNativeRect;
 
