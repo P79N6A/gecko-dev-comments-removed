@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef GFX_LAYERSCOPE_H
 #define GFX_LAYERSCOPE_H
 
@@ -34,6 +35,7 @@ public:
     static void SendLayerDump(UniquePtr<layerscope::Packet> aPacket);
     static bool CheckSendable();
     static void CleanLayer();
+    static void SetHWComposed();
 
 private:
     static void Init();

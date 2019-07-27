@@ -4,6 +4,7 @@
 
 
 
+
 #include "LayerScope.h"
 
 #include "nsAppRunner.h"
@@ -366,6 +367,8 @@ StaticAutoPtr<LayerScopeWebSocketManager> WebSocketHelper::sWebSocketManager;
 
 
 
+
+
 class DebugGLData: public LinkedListElement<DebugGLData> {
 public:
     explicit DebugGLData(Packet::DataType aDataType)
@@ -565,6 +568,37 @@ public:
 protected:
     UniquePtr<Packet> mPacket;
 };
+
+class DebugGLMetaData : public DebugGLData
+{
+public:
+    DebugGLMetaData(Packet::DataType aDataType,
+                    bool aValue)
+        : DebugGLData(aDataType),
+          mComposedByHwc(aValue)
+    { }
+
+    explicit DebugGLMetaData(Packet::DataType aDataType)
+        : DebugGLData(aDataType),
+          mComposedByHwc(false)
+    { }
+
+    virtual bool Write() MOZ_OVERRIDE {
+        Packet packet;
+        packet.set_type(mDataType);
+
+        MetaPacket* mp = packet.mutable_meta();
+        mp->set_composedbyhwc(mComposedByHwc);
+
+        if (!WriteToStream(packet))
+            return false;
+        return true;
+    }
+
+protected:
+    bool mComposedByHwc;
+};
+
 
 class DebugListener : public nsIServerSocketListener
 {
@@ -1002,6 +1036,16 @@ LayerScope::CleanLayer()
 {
     if (CheckSendable()) {
         WebSocketHelper::GetSocketManager()->CleanDebugData();
+    }
+}
+
+
+void
+LayerScope::SetHWComposed()
+{
+    if (CheckSendable()) {
+        WebSocketHelper::GetSocketManager()->AppendDebugData(
+            new DebugGLMetaData(Packet::META, true));
     }
 }
 
