@@ -4,7 +4,8 @@
 
 
 
-import os
+from __future__ import absolute_import
+
 import mozinfo
 import shlex
 import subprocess

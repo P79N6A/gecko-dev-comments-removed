@@ -2,6 +2,8 @@
 
 
 
+from __future__ import absolute_import
+
 from ctypes import sizeof, windll, addressof, create_unicode_buffer
 from ctypes.wintypes import DWORD, HANDLE
 
