@@ -5,7 +5,6 @@
 
 package org.mozilla.gecko.preferences;
 
-import java.lang.reflect.Field;
 import java.util.Locale;
 
 import org.mozilla.gecko.BrowserLocaleManager;
@@ -27,7 +26,6 @@ import android.preference.PreferenceScreen;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
-import android.view.ViewConfiguration;
 
 
 
@@ -196,31 +194,6 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
         super.onDestroy();
         if (mPrefsRequestId > 0) {
             PrefsHelper.removeObserver(mPrefsRequestId);
-        }
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        showOverflowMenu(activity);
-    }
-
-    
-
-
-
-
-
-    private void showOverflowMenu(Activity activity) {
-        try {
-            ViewConfiguration config = ViewConfiguration.get(activity);
-            Field menuOverflow = ViewConfiguration.class.getDeclaredField("sHasPermanentMenuKey");
-            if (menuOverflow != null) {
-                menuOverflow.setAccessible(true);
-                menuOverflow.setBoolean(config, false);
-            }
-        } catch (Exception e) {
-            Log.d(LOGTAG, "Failed to force overflow menu, ignoring.");
         }
     }
 }
