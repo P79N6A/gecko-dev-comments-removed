@@ -102,12 +102,6 @@ var SelectionHandler = {
         break;
       }
 
-      
-      case "TextSelection:UpdateCaretPos":
-        
-        this._positionHandles();
-        break;
-
       case "Gesture:SingleTap": {
         if (this._activeType == this.TYPE_CURSOR) {
           
@@ -712,7 +706,6 @@ var SelectionHandler = {
     this._initTargetInfo(aElement, this.TYPE_CURSOR);
 
     
-    Services.obs.addObserver(this, "TextSelection:UpdateCaretPos", false);
     BrowserApp.deck.addEventListener("keyup", this, false);
     BrowserApp.deck.addEventListener("compositionupdate", this, false);
     BrowserApp.deck.addEventListener("compositionend", this, false);
@@ -1014,7 +1007,6 @@ var SelectionHandler = {
 
     
     if (this._activeType == this.TYPE_CURSOR) {
-      Services.obs.removeObserver(this, "TextSelection:UpdateCaretPos");
       BrowserApp.deck.removeEventListener("keyup", this);
       BrowserApp.deck.removeEventListener("compositionupdate", this);
       BrowserApp.deck.removeEventListener("compositionend", this);

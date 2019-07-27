@@ -1911,13 +1911,6 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
             selEvent.mExpandToClusterBoundary = false;
 
             DispatchEvent(&selEvent);
-
-            
-            
-            AndroidGeckoEvent* broadcastEvent = AndroidGeckoEvent::MakeBroadcastEvent(
-                NS_LITERAL_CSTRING("TextSelection:UpdateCaretPos"),
-                NS_LITERAL_CSTRING(""));
-            nsAppShell::gAppShell->PostEvent(broadcastEvent);
         }
         break;
     case AndroidGeckoEvent::IME_ADD_COMPOSITION_RANGE:
@@ -2011,14 +2004,6 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
 #endif 
 
             DispatchEvent(&event);
-
-            
-            
-            AndroidGeckoEvent* broadcastEvent =
-                AndroidGeckoEvent::MakeBroadcastEvent(
-                    NS_LITERAL_CSTRING("TextSelection:UpdateCaretPos"),
-                    NS_LITERAL_CSTRING(""));
-            nsAppShell::gAppShell->PostEvent(broadcastEvent);
         }
         break;
 
