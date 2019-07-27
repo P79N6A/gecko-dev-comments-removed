@@ -2383,7 +2383,7 @@ pref("dom.ipc.plugins.timeoutSecs", 45);
 pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
-pref("dom.ipc.plugins.contentTimeoutSecs", 45);
+pref("dom.ipc.plugins.contentTimeoutSecs", 10);
 
 
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
