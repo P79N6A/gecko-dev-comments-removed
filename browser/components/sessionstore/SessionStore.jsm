@@ -158,6 +158,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "TabState",
   "resource:///modules/sessionstore/TabState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabStateCache",
   "resource:///modules/sessionstore/TabStateCache.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TabStateFlusher",
+  "resource:///modules/sessionstore/TabStateFlusher.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Utils",
   "resource:///modules/sessionstore/Utils.jsm");
 
@@ -652,6 +654,19 @@ let SessionStoreInternal = {
         this.recordTelemetry(aMessage.data.telemetry);
         TabState.update(browser, aMessage.data);
         this.saveStateDelayed(win);
+
+        if (aMessage.data.isFinal) {
+          
+          
+          
+          
+          TabStateFlusher.resolveAll(browser);
+        } else if (aMessage.data.flushID) {
+          
+          
+          
+          TabStateFlusher.resolve(browser, aMessage.data.flushID);
+        }
 
         
         
@@ -1622,6 +1637,10 @@ let SessionStoreInternal = {
       let tab = aWindow.gBrowser.getTabForBrowser(aBrowser);
       this._resetLocalTabRestoringState(tab);
     }
+
+    
+    
+    TabStateFlusher.resolveAll(aBrowser);
   },
 
   

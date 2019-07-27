@@ -106,6 +106,7 @@ let MessageListener = {
     "SessionStore:restoreHistory",
     "SessionStore:restoreTabContent",
     "SessionStore:resetRestore",
+    "SessionStore:flush",
   ],
 
   init: function () {
@@ -136,6 +137,9 @@ let MessageListener = {
         break;
       case "SessionStore:resetRestore":
         gContentRestore.resetRestore();
+        break;
+      case "SessionStore:flush":
+        this.flush(data);
         break;
       default:
         debug("received unknown message '" + name + "'");
@@ -192,6 +196,11 @@ let MessageListener = {
       
       sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch});
     }
+  },
+
+  flush({id}) {
+    
+    MessageQueue.send({flushID: id});
   }
 };
 
@@ -652,6 +661,8 @@ let MessageQueue = {
 
 
 
+
+
   send: function (options = {}) {
     
     
@@ -667,6 +678,7 @@ let MessageQueue = {
 
     let sync = options && options.sync;
     let startID = (options && options.id) || this._id;
+    let flushID = (options && options.flushID) || 0;
 
     
     
@@ -702,7 +714,7 @@ let MessageQueue = {
 
     
     sendMessage("SessionStore:update", {
-      id: this._id, data, telemetry,
+      id: this._id, data, telemetry, flushID,
       isFinal: options.isFinal || false,
       epoch: gCurrentEpoch
     });
