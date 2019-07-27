@@ -537,6 +537,58 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitMinMaxF(LMinMaxF *ins)
+{
+    FloatRegister first = ToFloatRegister(ins->first());
+    FloatRegister second = ToFloatRegister(ins->second());
+#ifdef DEBUG
+    FloatRegister output = ToFloatRegister(ins->output());
+    JS_ASSERT(first == output);
+#endif
+
+    Label done, nan, minMaxInst;
+
+    
+    
+    
+    
+    
+    masm.ucomiss(first, second);
+    masm.j(Assembler::NotEqual, &minMaxInst);
+    if (!ins->mir()->range() || ins->mir()->range()->canBeNaN())
+        masm.j(Assembler::Parity, &nan);
+
+    
+    
+    
+    if (ins->mir()->isMax())
+        masm.andps(second, first);
+    else
+        masm.orps(second, first);
+    masm.jump(&done);
+
+    
+    
+    
+    if (!ins->mir()->range() || ins->mir()->range()->canBeNaN()) {
+        masm.bind(&nan);
+        masm.ucomiss(first, first);
+        masm.j(Assembler::Parity, &done);
+    }
+
+    
+    
+    masm.bind(&minMaxInst);
+    if (ins->mir()->isMax())
+        masm.maxss(second, first);
+    else
+        masm.minss(second, first);
+
+    masm.bind(&done);
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitAbsD(LAbsD *ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
