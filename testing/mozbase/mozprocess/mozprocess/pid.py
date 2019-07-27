@@ -11,12 +11,10 @@ import subprocess
 import sys
 
 
-if mozinfo.isMac:
-    psarg = '-Acj'
-elif mozinfo.isLinux:
-    psarg = 'axwww'
+if mozinfo.isWin:
+    psarg='ax'
 else:
-    psarg = 'ax'
+    psarg = 'axwww'
 
 def ps(arg=psarg):
     """
