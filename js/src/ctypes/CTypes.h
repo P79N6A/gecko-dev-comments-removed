@@ -317,9 +317,7 @@ struct FunctionInfo
 
 struct ClosureInfo
 {
-  JSContext* cx;                   
-  JSRuntime* rt;                   
-                                   
+  JSRuntime* rt;
   JS::Heap<JSObject*> closureObj;  
   JS::Heap<JSObject*> typeObj;     
   JS::Heap<JSObject*> thisObj;     
