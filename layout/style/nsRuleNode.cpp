@@ -4311,7 +4311,7 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
               text->mRubyPosition, canStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
               parentText->mRubyPosition,
-              NS_STYLE_RUBY_POSITION_INITIAL, 0, 0, 0, 0);
+              NS_STYLE_RUBY_POSITION_OVER, 0, 0, 0, 0);
 
   
   SetDiscrete(*aRuleData->ValueForTextSizeAdjust(), text->mTextSizeAdjust,
