@@ -438,6 +438,13 @@ var gPopupBlockerObserver = {
       
       if (gURLBar)
         this._reportButton.hidden = true;
+
+      
+      var notificationBox = gBrowser.getNotificationBox();
+      var notification = notificationBox.getNotificationWithValue("popup-blocked");
+      if (notification) {
+        notificationBox.removeNotification(notification, false);
+      }
       return;
     }
 
