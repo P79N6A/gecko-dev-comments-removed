@@ -190,9 +190,11 @@ private:
   
   int64_t mLastStartTimestamp;
   Maybe<int64_t> mLastEndTimestamp;
+  void AdjustDecodersTimestampOffset(int32_t aOffset);
 
   
   int64_t mLastTimestampOffset;
+  int64_t mAdjustedTimestamp;
 
   
   
