@@ -321,6 +321,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
 #endif
   mDecodingMonitor("RasterImage Decoding Monitor"),
   mDecoder(nullptr),
+  mDecodeStatus(DecodeStatus::INACTIVE),
   mInDecoder(false),
   mStatusDiff(ImageStatusDiff::NoChange()),
   mNotifying(false),
@@ -1766,7 +1767,7 @@ RasterImage::OnNewSourceData()
   mHasSourceData = false;
   mHasSize = false;
   mWantFullDecode = true;
-  mDecodeRequest = nullptr;
+  mDecodeStatus = DecodeStatus::INACTIVE;
   mDecodeStatusTracker = nullptr;
 
   if (mAnim) {
@@ -1868,7 +1869,7 @@ RasterImage::Discard(bool force)
   if (mStatusTracker)
     mStatusTracker->OnDiscard();
 
-  mDecodeRequest = nullptr;
+  mDecodeStatus = DecodeStatus::INACTIVE;
   mDecodeStatusTracker = nullptr;
 
   if (force)
@@ -1989,9 +1990,6 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   }
 
   
-  if (!mDecodeRequest) {
-    mDecodeRequest = new DecodeRequest();
-  }
   if (!mDecodeStatusTracker) {
     MOZ_ASSERT(mStatusTracker, "Should have an imgStatusTracker");
     mDecodeStatusTracker = mStatusTracker->CloneForRecording();
@@ -2233,8 +2231,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   }
 
   
-  if (mDecodeRequest &&
-      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE &&
+  if (mDecodeStatus == DecodeStatus::WORK_DONE &&
       aDecodeType == SYNCHRONOUS_NOTIFY) {
     ReentrantMonitorAutoEnter lock(mDecodingMonitor);
     nsresult rv = FinishedSomeDecoding();
@@ -2270,9 +2267,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
 
   
-  if (mDecodeRequest &&
-      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE &&
-      aDecodeType != ASYNCHRONOUS) {
+  if (mDecodeStatus == DecodeStatus::WORK_DONE && aDecodeType != ASYNCHRONOUS) {
     nsresult rv = FinishedSomeDecoding();
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2363,12 +2358,10 @@ RasterImage::SyncDecode()
   
   NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
 
-  if (mDecodeRequest) {
-    
-    if (mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-      nsresult rv = FinishedSomeDecoding();
-      CONTAINER_ENSURE_SUCCESS(rv);
-    }
+  
+  if (mDecodeStatus == DecodeStatus::WORK_DONE) {
+    nsresult rv = FinishedSomeDecoding();
+    CONTAINER_ENSURE_SUCCESS(rv);
   }
 
   nsresult rv;
@@ -3204,15 +3197,15 @@ RasterImage::DecodePool::RequestDecode(RasterImage* aImg)
   
   
   if (!aImg->mDecoder->NeedsNewFrame()) {
-    if (aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_PENDING ||
-        aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_ACTIVE) {
+    if (aImg->mDecodeStatus == DecodeStatus::PENDING ||
+        aImg->mDecodeStatus == DecodeStatus::ACTIVE) {
       
       
       return;
     }
 
-    aImg->mDecodeRequest->mRequestStatus = DecodeRequest::REQUEST_PENDING;
-    nsRefPtr<DecodeJob> job = new DecodeJob(aImg->mDecodeRequest, aImg);
+    aImg->mDecodeStatus = DecodeStatus::PENDING;
+    nsRefPtr<DecodeJob> job = new DecodeJob(aImg);
 
     MutexAutoLock threadPoolLock(mThreadPoolMutex);
     if (!gfxPrefs::ImageMTDecodingEnabled() || !mThreadPool) {
@@ -3229,11 +3222,9 @@ RasterImage::DecodePool::DecodeABitOf(RasterImage* aImg, DecodeStrategy aStrateg
   MOZ_ASSERT(NS_IsMainThread());
   aImg->mDecodingMonitor.AssertCurrentThreadIn();
 
-  if (aImg->mDecodeRequest) {
-    
-    if (aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-      aImg->FinishedSomeDecoding();
-    }
+  
+  if (aImg->mDecodeStatus == DecodeStatus::WORK_DONE) {
+    aImg->FinishedSomeDecoding();
   }
 
   DecodeSomeOfImage(aImg, aStrategy);
@@ -3263,9 +3254,7 @@ RasterImage::DecodePool::StopDecoding(RasterImage* aImg)
 
   
   
-  if (aImg->mDecodeRequest) {
-    aImg->mDecodeRequest->mRequestStatus = DecodeRequest::REQUEST_STOPPED;
-  }
+  aImg->mDecodeStatus = DecodeStatus::STOPPED;
 }
 
 NS_IMETHODIMP
@@ -3274,7 +3263,7 @@ RasterImage::DecodePool::DecodeJob::Run()
   ReentrantMonitorAutoEnter lock(mImage->mDecodingMonitor);
 
   
-  if (mRequest->mRequestStatus == DecodeRequest::REQUEST_STOPPED) {
+  if (mImage->mDecodeStatus == DecodeStatus::STOPPED) {
     DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage,
                                                  mImage->mDecodeStatusTracker);
     return NS_OK;
@@ -3294,7 +3283,7 @@ RasterImage::DecodePool::DecodeJob::Run()
     return NS_OK;
   }
 
-  mRequest->mRequestStatus = DecodeRequest::REQUEST_ACTIVE;
+  mImage->mDecodeStatus = DecodeStatus::ACTIVE;
 
   size_t oldByteCount = mImage->mDecoder->BytesDecoded();
 
@@ -3313,7 +3302,7 @@ RasterImage::DecodePool::DecodeJob::Run()
 
   size_t bytesDecoded = mImage->mDecoder->BytesDecoded() - oldByteCount;
 
-  mRequest->mRequestStatus = DecodeRequest::REQUEST_WORK_DONE;
+  mImage->mDecodeStatus = DecodeStatus::WORK_DONE;
 
   
   
@@ -3360,14 +3349,12 @@ RasterImage::DecodePool::DecodeUntilSizeAvailable(RasterImage* aImg)
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter lock(aImg->mDecodingMonitor);
 
-  if (aImg->mDecodeRequest) {
-    
-    if (aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-      nsresult rv = aImg->FinishedSomeDecoding();
-      if (NS_FAILED(rv)) {
-        aImg->DoError();
-        return rv;
-      }
+  
+  if (aImg->mDecodeStatus == DecodeStatus::WORK_DONE) {
+    nsresult rv = aImg->FinishedSomeDecoding();
+    if (NS_FAILED(rv)) {
+      aImg->DoError();
+      return rv;
     }
   }
 
