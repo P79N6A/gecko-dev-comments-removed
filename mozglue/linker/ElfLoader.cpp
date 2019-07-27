@@ -1116,8 +1116,17 @@ SEGVHandler::FinishInitialization()
 
   void *libc = dlopen("libc.so", RTLD_GLOBAL | RTLD_LAZY);
   if (libc) {
-    libc_sigaction =
-      reinterpret_cast<sigaction_func>(dlsym(libc, "sigaction"));
+    
+
+
+
+
+    libc_sigaction = reinterpret_cast<sigaction_func>(dlsym(libc, "__sigaction"));
+
+    if (!libc_sigaction) {
+      libc_sigaction =
+        reinterpret_cast<sigaction_func>(dlsym(libc, "sigaction"));
+    }
   } else
 #endif
   {
