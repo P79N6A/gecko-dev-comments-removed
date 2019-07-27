@@ -51,7 +51,7 @@ public:
 
   
   
-  virtual const GMPEncryptedBufferData* GetDecryptionData() const = 0;
+  virtual const GMPEncryptedBufferMetadata* GetDecryptionData() const = 0;
 };
 
 #endif 

@@ -25,6 +25,7 @@
 
 
 
+
 class GMPRecord {
 public:
 
@@ -40,9 +41,9 @@ public:
   
   
   
-  
   virtual GMPErr Write(const uint8_t* aData, uint32_t aDataSize) = 0;
 
+  
   
   
   virtual GMPErr Close() = 0;
@@ -61,7 +62,7 @@ class GMPRecordClient {
   
   
   
-  virtual void OnOpenComplete(GMPErr aStatus) = 0;
+  virtual void OpenComplete(GMPErr aStatus) = 0;
 
   
   
@@ -73,16 +74,18 @@ class GMPRecordClient {
   
   
   
-  virtual void OnReadComplete(GMPErr aStatus,
-                              const uint8_t* aData,
-                              uint32_t aDataSize) = 0;
+  
+  virtual void ReadComplete(GMPErr aStatus,
+                            const uint8_t* aData,
+                            uint32_t aDataSize) = 0;
 
   
   
   
   
   
-  virtual void OnWriteComplete(GMPErr aStatus) = 0;
+  
+  virtual void WriteComplete(GMPErr aStatus) = 0;
 
   virtual ~GMPRecordClient() {}
 };

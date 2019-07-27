@@ -19,7 +19,7 @@
 
 #include "gmp-platform.h"
 
-class GMPEncryptedBufferData {
+class GMPEncryptedBufferMetadata {
 public:
   
   virtual const uint8_t* KeyId() const = 0;
@@ -36,9 +36,18 @@ public:
   
   virtual uint32_t NumSubsamples() const = 0;
 
-  virtual const uint32_t* ClearBytes() const = 0;
+  virtual const uint16_t* ClearBytes() const = 0;
 
   virtual const uint32_t* CipherBytes() const = 0;
+};
+
+class GMPBuffer {
+public:
+  virtual uint32_t Id() const = 0;
+  virtual uint8_t* Data() = 0;
+  virtual uint32_t Size() const = 0;
+  virtual void Resize(uint32_t aSize) = 0;
+  virtual ~GMPBuffer() {}
 };
 
 
@@ -60,71 +69,106 @@ enum GMPDOMException {
 
 typedef int64_t GMPTimestamp;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define GMP_EME_CAP_DECRYPT_AUDIO (uint64_t(1) << 0)
+#define GMP_EME_CAP_DECRYPT_VIDEO (uint64_t(1) << 1)
+
+
+
+#define GMP_EME_CAP_DECRYPT_AND_DECODE_AUDIO (uint64_t(1) << 2)
+#define GMP_EME_CAP_DECRYPT_AND_DECODE_VIDEO (uint64_t(1) << 3)
+
 class GMPDecryptorCallback {
 public:
   
   
   
   
-  virtual void OnResolveNewSessionPromise(uint32_t aPromiseId,
-                                          const char* aSessionId,
-                                          uint32_t aSessionIdLength) = 0;
+  virtual void ResolveNewSessionPromise(uint32_t aPromiseId,
+                                        const char* aSessionId,
+                                        uint32_t aSessionIdLength) = 0;
 
   
-  virtual void OnResolvePromise(uint32_t aPromiseId) = 0;
-
-  
-  
-  
-  virtual void OnRejectPromise(uint32_t aPromiseId,
-                               GMPDOMException aException,
-                               const char* aMessage,
-                               uint32_t aMessageLength) = 0;
+  virtual void ResolvePromise(uint32_t aPromiseId) = 0;
 
   
   
   
-  virtual void OnSessionMessage(const char* aSessionId,
-                                uint32_t aSessionIdLength,
-                                const uint8_t* aMessage,
-                                uint32_t aMessageLength,
-                                const char* aDestinationURL,
-                                uint32_t aDestinationURLLength) = 0;
-
-  
-   virtual void OnExpirationChange(const char* aSessionId,
-                                   uint32_t aSessionIdLength,
-                                   GMPTimestamp aExpiryTime) = 0;
+  virtual void RejectPromise(uint32_t aPromiseId,
+                             GMPDOMException aException,
+                             const char* aMessage,
+                             uint32_t aMessageLength) = 0;
 
   
   
   
-  virtual void OnSessionClosed(const char* aSessionId,
-                               uint32_t aSessionIdLength) = 0;
-
-  
-  
-  
-  
-  virtual void OnSessionError(const char* aSessionId,
+  virtual void SessionMessage(const char* aSessionId,
                               uint32_t aSessionIdLength,
-                              GMPDOMException aException,
-                              uint32_t aSystemCode,
-                              const char* aMessage,
-                              uint32_t aMessageLength) = 0;
+                              const uint8_t* aMessage,
+                              uint32_t aMessageLength,
+                              const char* aDestinationURL,
+                              uint32_t aDestinationURLLength) = 0;
 
-  virtual void OnKeyIdUsable(const char* aSessionId,
-                             uint32_t aSessionIdLength,
-                             const uint8_t* aKeyId,
-                             uint32_t aKeyIdLength) = 0;
+  
+   virtual void ExpirationChange(const char* aSessionId,
+                                 uint32_t aSessionIdLength,
+                                 GMPTimestamp aExpiryTime) = 0;
 
   
   
-  virtual void OnKeyIdNotUsable(const char* aSessionId,
-                                uint32_t aSessionIdLength,
-                                const uint8_t* aKeyId,
-                                uint32_t aKeyIdLength) = 0;
+  
+  virtual void SessionClosed(const char* aSessionId,
+                             uint32_t aSessionIdLength) = 0;
 
+  
+  
+  
+  
+  virtual void SessionError(const char* aSessionId,
+                            uint32_t aSessionIdLength,
+                            GMPDOMException aException,
+                            uint32_t aSystemCode,
+                            const char* aMessage,
+                            uint32_t aMessageLength) = 0;
+
+  
+  
+  
+  virtual void KeyIdUsable(const char* aSessionId,
+                           uint32_t aSessionIdLength,
+                           const uint8_t* aKeyId,
+                           uint32_t aKeyIdLength) = 0;
+
+  
+  
+  virtual void KeyIdNotUsable(const char* aSessionId,
+                              uint32_t aSessionIdLength,
+                              const uint8_t* aKeyId,
+                              uint32_t aKeyIdLength) = 0;
+
+  
+  
+  
+  
+  
+  
+  virtual void SetCapabilities(uint64_t aCaps) = 0;
+
+  
+  virtual void Decrypted(GMPBuffer* aBuffer, GMPErr aResult) = 0;
 };
 
 
@@ -170,6 +214,10 @@ public:
   
   
   
+  
+  
+  
+  
   virtual void CreateSession(uint32_t aPromiseId,
                              const char* aInitDataType,
                              uint32_t aInitDataTypeSize,
@@ -203,6 +251,15 @@ public:
   virtual void SetServerCertificate(uint32_t aPromiseId,
                                     const uint8_t* aServerCert,
                                     uint32_t aServerCertSize) = 0;
+
+  
+  
+  
+  
+  
+  virtual void Decrypt(GMPBuffer* aBuffer,
+                       GMPEncryptedBufferMetadata* aMetadata) = 0;
+
 };
 
 #endif 
