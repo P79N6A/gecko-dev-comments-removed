@@ -397,6 +397,12 @@ public:
 
   virtual JSObject* WrapObject(JSContext *aCx) MOZ_OVERRIDE;
 
+  
+
+
+
+  static bool HasBoxQuadsSupport(JSContext* aCx, JSObject* );
+
 protected:
   
 
