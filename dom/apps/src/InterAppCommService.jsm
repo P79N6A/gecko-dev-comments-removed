@@ -804,13 +804,6 @@ this.InterAppCommService = {
       if (pair.publisher.target === aTarget ||
           pair.subscriber.target === aTarget) {
         messagePortIDs.push(messagePortID);
-        
-        let actor = pair.publisher.target === aTarget ? pair.subscriber
-                                                       : pair.publisher;
-        actor.target.sendAsyncMessage("InterAppMessagePort:Shutdown",
-          { manifestURL: actor.manifestURL,
-            pageURL: actor.pageURL,
-            messagePortID: messagePortID });
       }
     }
     messagePortIDs.forEach(function(aMessagePortID) {
