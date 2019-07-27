@@ -10311,8 +10311,10 @@ IonBuilder::getPropTryConstant(bool* emitted, MDefinition* obj, PropertyName* na
     }
 
     JSObject* singleton = testSingletonPropertyTypes(obj, name);
-    if (!singleton)
+    if (!singleton) {
+        trackOptimizationOutcome(TrackedOutcome::NotSingleton);
         return true;
+    }
 
     
     obj->setImplicitlyUsedUnchecked();
