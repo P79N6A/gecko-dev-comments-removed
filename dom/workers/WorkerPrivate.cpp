@@ -2613,6 +2613,37 @@ WorkerPrivateParent<Derived>::DispatchControlRunnable(
 }
 
 template <class Derived>
+nsresult
+WorkerPrivateParent<Derived>::DispatchDebuggerRunnable(
+                                              WorkerRunnable *aDebuggerRunnable)
+{
+  
+
+  MOZ_ASSERT(aDebuggerRunnable);
+
+  nsRefPtr<WorkerRunnable> runnable = aDebuggerRunnable;
+
+  WorkerPrivate* self = ParentAsWorkerPrivate();
+
+  {
+    MutexAutoLock lock(mMutex);
+
+    if (self->mStatus == Dead) {
+      NS_WARNING("A debugger runnable was posted to a worker that is already "
+                 "shutting down!");
+      return NS_ERROR_UNEXPECTED;
+    }
+
+    
+    self->mDebuggerQueue.Push(runnable.forget().take());
+
+    mCondVar.Notify();
+  }
+
+  return NS_OK;
+}
+
+template <class Derived>
 already_AddRefed<WorkerRunnable>
 WorkerPrivateParent<Derived>::MaybeWrapAsWorkerRunnable(nsIRunnable* aRunnable)
 {
@@ -4619,19 +4650,15 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
   Maybe<JSAutoCompartment> workerCompartment;
 
   for (;;) {
-    
-    
-    if (!workerCompartment && GlobalScope()) {
-      workerCompartment.emplace(aCx, GlobalScope()->GetGlobalJSObject());
-    }
-
     Status currentStatus;
+    bool debuggerRunnablesPending = false;
     bool normalRunnablesPending = false;
 
     {
       MutexAutoLock lock(mMutex);
 
       while (mControlQueue.IsEmpty() &&
+             !(debuggerRunnablesPending = !mDebuggerQueue.IsEmpty()) &&
              !(normalRunnablesPending = NS_HasPendingEvents(mThread))) {
         WaitForWorkerEvents();
       }
@@ -4693,31 +4720,52 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
       }
     }
 
-    
-    if (!normalRunnablesPending) {
-      SetGCTimerMode(IdleTimer);
-      continue;
+    if (debuggerRunnablesPending || normalRunnablesPending) {
+      
+      SetGCTimerMode(PeriodicTimer);
     }
 
-    MOZ_ASSERT(NS_HasPendingEvents(mThread));
+    if (debuggerRunnablesPending) {
+      WorkerRunnable* runnable;
 
-    
-    SetGCTimerMode(PeriodicTimer);
+      {
+        MutexAutoLock lock(mMutex);
 
-    
-    MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(mThread, false));
+        mDebuggerQueue.Pop(runnable);
+        debuggerRunnablesPending = !mDebuggerQueue.IsEmpty();
+      }
 
-    
-    
-    (void)Promise::PerformMicroTaskCheckpoint();
+      MOZ_ASSERT(runnable);
+      static_cast<nsIRunnable*>(runnable)->Run();
+      runnable->Release();
 
-    if (NS_HasPendingEvents(mThread)) {
+      if (debuggerRunnablesPending) {
+        WorkerDebuggerGlobalScope* globalScope = DebuggerGlobalScope();
+        MOZ_ASSERT(globalScope);
+
+        
+        JSAutoCompartment ac(aCx, globalScope->GetGlobalJSObject());
+        JS_MaybeGC(aCx);
+      }
+    } else if (normalRunnablesPending) {
+      MOZ_ASSERT(NS_HasPendingEvents(mThread));
+
       
-      if (workerCompartment) {
+      MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(mThread, false));
+
+      
+      
+      (void)Promise::PerformMicroTaskCheckpoint();
+
+      normalRunnablesPending = NS_HasPendingEvents(mThread);
+      if (normalRunnablesPending && GlobalScope()) {
+        
+        JSAutoCompartment ac(aCx, GlobalScope()->GetGlobalJSObject());
         JS_MaybeGC(aCx);
       }
     }
-    else {
+
+    if (!debuggerRunnablesPending && !normalRunnablesPending) {
       
       
       SetGCTimerMode(IdleTimer);

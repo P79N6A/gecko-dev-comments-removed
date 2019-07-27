@@ -101,6 +101,14 @@ protected:
 
   
   
+  virtual bool
+  IsDebuggerRunnable() const;
+
+  nsIGlobalObject*
+  DefaultGlobalObject() const;
+
+  
+  
   
   
   virtual bool
@@ -131,6 +139,38 @@ protected:
   
   
   NS_DECL_NSIRUNNABLE
+};
+
+
+class WorkerDebuggerRunnable : public WorkerRunnable
+{
+protected:
+  explicit WorkerDebuggerRunnable(WorkerPrivate* aWorkerPrivate)
+  : WorkerRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount)
+  {
+  }
+
+  virtual ~WorkerDebuggerRunnable()
+  { }
+
+private:
+  virtual bool
+  IsDebuggerRunnable() const MOZ_OVERRIDE
+  {
+    return true;
+  }
+
+  virtual bool
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    return true;
+  }
+
+  virtual void
+  PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+               bool aDispatchResult) MOZ_OVERRIDE;
 };
 
 
