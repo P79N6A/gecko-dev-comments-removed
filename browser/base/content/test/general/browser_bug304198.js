@@ -2,9 +2,7 @@
 
 
 
-function test() {
-  waitForExplicitFinish();
-
+add_task(function* () {
   let charsToDelete, deletedURLTab, fullURLTab, partialURLTab, testPartialURL, testURL;
 
   charsToDelete = 5;
@@ -13,112 +11,96 @@ function test() {
   partialURLTab = gBrowser.addTab();
   testURL = "http://example.org/browser/browser/base/content/test/general/dummy_page.html";
 
+  let loaded1 = BrowserTestUtils.browserLoaded(deletedURLTab.linkedBrowser, testURL);
+  let loaded2 = BrowserTestUtils.browserLoaded(fullURLTab.linkedBrowser, testURL);
+  let loaded3 = BrowserTestUtils.browserLoaded(partialURLTab.linkedBrowser, testURL);
+  deletedURLTab.linkedBrowser.loadURI(testURL);
+  fullURLTab.linkedBrowser.loadURI(testURL);
+  partialURLTab.linkedBrowser.loadURI(testURL);
+  yield Promise.all([loaded1, loaded2, loaded3]);
+
+  testURL = gURLBar.trimValue(testURL);
+  testPartialURL = testURL.substr(0, (testURL.length - charsToDelete));
+
   function cleanUp() {
     gBrowser.removeTab(fullURLTab);
     gBrowser.removeTab(partialURLTab);
     gBrowser.removeTab(deletedURLTab);
   }
 
-  function cycleTabs() {
-    gBrowser.selectedTab = fullURLTab;
+  function* cycleTabs() {
+    yield BrowserTestUtils.switchTab(gBrowser, fullURLTab);
     is(gURLBar.textValue, testURL, 'gURLBar.textValue should be testURL after switching back to fullURLTab');
 
-    gBrowser.selectedTab = partialURLTab;
+    yield BrowserTestUtils.switchTab(gBrowser, partialURLTab);
     is(gURLBar.textValue, testPartialURL, 'gURLBar.textValue should be testPartialURL after switching back to partialURLTab');
-    gBrowser.selectedTab = deletedURLTab;
+    yield BrowserTestUtils.switchTab(gBrowser, deletedURLTab);
     is(gURLBar.textValue, '', 'gURLBar.textValue should be "" after switching back to deletedURLTab');
 
-    gBrowser.selectedTab = fullURLTab;
+    yield BrowserTestUtils.switchTab(gBrowser, fullURLTab);
     is(gURLBar.textValue, testURL, 'gURLBar.textValue should be testURL after switching back to fullURLTab');
   }
 
-  
-  function load(tab, url, cb) {
-    tab.linkedBrowser.addEventListener("load", function (event) {
-      event.currentTarget.removeEventListener("load", arguments.callee, true);
-      cb();
-    }, true);
-    tab.linkedBrowser.loadURI(url);
-  }
-
-  function urlbarBackspace(cb) {
-    gBrowser.selectedBrowser.focus();
-    gURLBar.addEventListener("focus", function () {
-      gURLBar.removeEventListener("focus", arguments.callee, false);
+  function urlbarBackspace() {
+    return new Promise((resolve, reject) => {
+      gBrowser.selectedBrowser.focus();
       gURLBar.addEventListener("input", function () {
         gURLBar.removeEventListener("input", arguments.callee, false);
-        cb();
+        resolve();
       }, false);
-      executeSoon(function () {
-        EventUtils.synthesizeKey("VK_BACK_SPACE", {});
-      });
-    }, false);
-    gURLBar.focus();
+      gURLBar.focus();
+      EventUtils.synthesizeKey("VK_BACK_SPACE", {});
+    });
   }
 
-  function prepareDeletedURLTab(cb) {
-    gBrowser.selectedTab = deletedURLTab;
+  function* prepareDeletedURLTab() {
+    yield BrowserTestUtils.switchTab(gBrowser, deletedURLTab);
     is(gURLBar.textValue, testURL, 'gURLBar.textValue should be testURL after initial switch to deletedURLTab');
 
     
     gPrefService.setBoolPref("browser.urlbar.clickSelectsAll", true);
 
-    urlbarBackspace(function () {
-      is(gURLBar.textValue, "", 'gURLBar.textValue should be "" (just set)');
-      if (gPrefService.prefHasUserValue("browser.urlbar.clickSelectsAll"))
-        gPrefService.clearUserPref("browser.urlbar.clickSelectsAll");
-      cb();
-    });
+    yield urlbarBackspace();
+    is(gURLBar.textValue, "", 'gURLBar.textValue should be "" (just set)');
+    if (gPrefService.prefHasUserValue("browser.urlbar.clickSelectsAll")) {
+      gPrefService.clearUserPref("browser.urlbar.clickSelectsAll");
+    }
   }
 
-  function prepareFullURLTab(cb) {
-    gBrowser.selectedTab = fullURLTab;
+  function* prepareFullURLTab() {
+    yield BrowserTestUtils.switchTab(gBrowser, fullURLTab);
     is(gURLBar.textValue, testURL, 'gURLBar.textValue should be testURL after initial switch to fullURLTab');
-    cb();
   }
 
-  function preparePartialURLTab(cb) {
-    gBrowser.selectedTab = partialURLTab;
+  function* preparePartialURLTab() {
+    yield BrowserTestUtils.switchTab(gBrowser, partialURLTab);
     is(gURLBar.textValue, testURL, 'gURLBar.textValue should be testURL after initial switch to partialURLTab');
 
     
     gPrefService.setBoolPref("browser.urlbar.clickSelectsAll", false);
 
-    var deleted = 0;
-    urlbarBackspace(function () {
+    let deleted = 0;
+    while (deleted < charsToDelete) {
+      yield urlbarBackspace(arguments.callee);
       deleted++;
-      if (deleted < charsToDelete) {
-        urlbarBackspace(arguments.callee);
-      } else {
-        is(gURLBar.textValue, testPartialURL, "gURLBar.textValue should be testPartialURL (just set)");
-        if (gPrefService.prefHasUserValue("browser.urlbar.clickSelectsAll"))
-          gPrefService.clearUserPref("browser.urlbar.clickSelectsAll");
-        cb();
-      }
-    });
+    }
+
+    is(gURLBar.textValue, testPartialURL, "gURLBar.textValue should be testPartialURL (just set)");
+    if (gPrefService.prefHasUserValue("browser.urlbar.clickSelectsAll")) {
+      gPrefService.clearUserPref("browser.urlbar.clickSelectsAll");
+    }
   }
 
-  function runTests() {
-    testURL = gURLBar.trimValue(testURL);
-    testPartialURL = testURL.substr(0, (testURL.length - charsToDelete));
+  
 
-    
-    prepareFullURLTab(function () {
-      preparePartialURLTab(function () {
-        prepareDeletedURLTab(function () {
-          
-          cycleTabs();
-          cleanUp();
-          finish();
-        });
-      });
-    });
-  }
+  
+  yield* prepareFullURLTab();
+  yield* preparePartialURLTab();
+  yield* prepareDeletedURLTab();
 
-  load(deletedURLTab, testURL, function() {
-    load(fullURLTab, testURL, function() {
-      load(partialURLTab, testURL, runTests);
-    });
-  });
-}
+  
+  yield* cycleTabs();
+  cleanUp();
+});
+
 
