@@ -88,13 +88,10 @@ public:
       return rv;
     }
 
-    
-    
-    
     rv = NS_NewChannel(getter_AddRefs(mChannel),
                        uri, aPrincipal,
                        nsILoadInfo::SEC_NORMAL,
-                       nsIContentPolicy::TYPE_SCRIPT);
+                       nsIContentPolicy::TYPE_SCRIPT); 
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
