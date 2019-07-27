@@ -2605,6 +2605,13 @@ let SessionStoreInternal = {
     DirtyWindows.add(window);
 
     
+    
+    
+    for (let tab of Array.slice(tabbrowser.tabs, 0, tab._tPos)) {
+      this._windows[window.__SSi].tabs.push(TabState.collect(tab));
+    }
+
+    
     this._windows[window.__SSi].tabs[tab._tPos] = tabData;
 
     
