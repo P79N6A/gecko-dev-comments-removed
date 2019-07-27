@@ -9,6 +9,7 @@
 #include "nsIStreamLoader.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Vector.h"
 
 class nsIRequest;
 
@@ -39,11 +40,9 @@ protected:
   nsCOMPtr<nsISupports>             mContext;  
   nsCOMPtr<nsIRequest>              mRequest;
 
-  uint8_t  *mData;      
-  uint32_t  mAllocated; 
-                        
-  uint32_t  mLength;    
-                        
+  
+  
+  mozilla::Vector<uint8_t, 0> mData;
 };
 
 #endif 
