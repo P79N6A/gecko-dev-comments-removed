@@ -317,6 +317,17 @@ public:
   
 
 
+  void OnSelectionEvent(const WidgetSelectionEvent& aSelectionEvent);
+
+  
+
+
+
+  void OnEventNeedingAckReceived();
+
+  
+
+
 
 
 
@@ -347,6 +358,10 @@ private:
   
   
   uint32_t mCompositionEventsDuringRequest;
+  
+  
+  
+  uint32_t mPendingEventsNeedingAck;
 
   bool mIsComposing;
   bool mRequestedToCommitOrCancelComposition;

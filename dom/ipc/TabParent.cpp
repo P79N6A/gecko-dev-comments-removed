@@ -2092,6 +2092,7 @@ TabParent::RecvOnEventNeedingAckReceived()
 {
   
   
+  mContentCache.OnEventNeedingAckReceived();
   return true;
 }
 
@@ -2286,6 +2287,7 @@ TabParent::SendSelectionEvent(WidgetSelectionEvent& event)
   if (!widget) {
     return true;
   }
+  mContentCache.OnSelectionEvent(event);
   return PBrowserParent::SendSelectionEvent(event);
 }
 
