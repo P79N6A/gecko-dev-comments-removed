@@ -699,7 +699,6 @@ void HTMLMediaElement::NoSupportedMediaSourceError()
   mError = new MediaError(this, nsIDOMMediaError::MEDIA_ERR_SRC_NOT_SUPPORTED);
   ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_NO_SOURCE);
   DispatchAsyncEvent(NS_LITERAL_STRING("error"));
-  
   ChangeDelayLoadStatus(false);
 }
 
@@ -814,7 +813,6 @@ void HTMLMediaElement::SelectResource()
     
     
     ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_EMPTY);
-    
     ChangeDelayLoadStatus(false);
     return;
   }
@@ -822,8 +820,6 @@ void HTMLMediaElement::SelectResource()
   ChangeDelayLoadStatus(true);
 
   ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_LOADING);
-  
-  
   DispatchAsyncEvent(NS_LITERAL_STRING("loadstart"));
 
   
@@ -2133,7 +2129,6 @@ HTMLMediaElement::ResetConnectionState()
   FireTimeUpdate(false);
   DispatchAsyncEvent(NS_LITERAL_STRING("ended"));
   ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_EMPTY);
-  AddRemoveSelfReference();
   ChangeDelayLoadStatus(false);
   ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_NOTHING);
 }
@@ -2858,7 +2853,6 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
   DispatchAsyncEvent(NS_LITERAL_STRING("durationchange"));
   DispatchAsyncEvent(NS_LITERAL_STRING("loadedmetadata"));
   ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_IDLE);
-  AddRemoveSelfReference();
   
 }
 
@@ -3010,7 +3004,6 @@ void HTMLMediaElement::Error(uint16_t aErrorCode)
   } else {
     ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_IDLE);
   }
-  AddRemoveSelfReference();
   ChangeDelayLoadStatus(false);
 }
 
@@ -3084,7 +3077,6 @@ void HTMLMediaElement::DownloadSuspended()
   }
   if (mBegun) {
     ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_IDLE);
-    AddRemoveSelfReference();
   }
 }
 
@@ -3092,7 +3084,6 @@ void HTMLMediaElement::DownloadResumed(bool aForceNetworkLoading)
 {
   if (mBegun || aForceNetworkLoading) {
     ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_LOADING);
-    AddRemoveSelfReference();
   }
 }
 
@@ -3358,6 +3349,9 @@ void HTMLMediaElement::ChangeNetworkState(nsMediaNetworkState aState)
     
     DispatchAsyncEvent(NS_LITERAL_STRING("suspend"));
   }
+
+  
+  AddRemoveSelfReference();
 }
 
 bool HTMLMediaElement::CanActivateAutoplay()
