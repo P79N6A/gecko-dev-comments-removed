@@ -297,7 +297,6 @@ searchbar:not([oneoffui]) .search-go-button {
   
 
   pointer-events: auto;
-  background-color: var(--tab-background-color);
 }
 
 .tabbrowser-tab[pinned][titlechanged]:not([selected="true"]) > .tab-stack > .tab-content {
