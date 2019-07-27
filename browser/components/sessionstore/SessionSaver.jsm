@@ -94,14 +94,6 @@ this.SessionSaver = Object.freeze({
   
 
 
-
-  clearLastSaveTime: function () {
-    SessionSaverInternal.clearLastSaveTime();
-  },
-
-  
-
-
   cancel: function () {
     SessionSaverInternal.cancel();
   }
@@ -159,14 +151,6 @@ let SessionSaverInternal = {
 
   updateLastSaveTime: function () {
     this._lastSaveTime = Date.now();
-  },
-
-  
-
-
-
-  clearLastSaveTime: function () {
-    this._lastSaveTime = 0;
   },
 
   

@@ -909,10 +909,13 @@ let SessionStoreInternal = {
     
     if (RunState.isStopped) {
       RunState.setRunning();
-      SessionSaver.updateLastSaveTime();
 
       
       if (aInitialState) {
+        
+        
+        SessionSaver.updateLastSaveTime();
+
         if (isPrivateWindow) {
           
           
@@ -937,9 +940,6 @@ let SessionStoreInternal = {
       else {
         
         Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
-
-        
-        SessionSaver.clearLastSaveTime();
       }
     }
     
