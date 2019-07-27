@@ -133,4 +133,16 @@ AbstractThread::InitStatics()
   sCurrentThreadTLS.set(sMainThread);
 }
 
+void
+AbstractThread::DispatchStateChange(already_AddRefed<nsIRunnable> aRunnable)
+{
+  GetCurrent()->TailDispatcher().AddStateChangeTask(this, Move(aRunnable));
+}
+
+ void
+AbstractThread::DispatchDirectTask(already_AddRefed<nsIRunnable> aRunnable)
+{
+  GetCurrent()->TailDispatcher().AddDirectTask(Move(aRunnable));
+}
+
 } 
