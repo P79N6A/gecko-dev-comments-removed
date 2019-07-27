@@ -9,8 +9,9 @@
 }
 
 
+#TabsToolbar,
 #toolbar-menubar {
-  -moz-appearance: none;
+  -moz-appearance: none !important;
 }
 #main-menubar {
   color: var(--chrome-color);
