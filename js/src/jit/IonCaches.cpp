@@ -390,12 +390,14 @@ IonCache::attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<JitCod
     attacher.patchRejoinJump(masm, code);
 
     
-    attacher.patchNextStubJump(masm, code);
+    
+    
+    attacher.patchStubCodePointer(masm, code);
 
     
     
     
-    attacher.patchStubCodePointer(masm, code);
+    attacher.patchNextStubJump(masm, code);
 }
 
 bool
@@ -403,12 +405,14 @@ IonCache::linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &a
                             IonScript *ion, const char *attachKind)
 {
     Rooted<JitCode *> code(cx);
-    AutoFlushICache afc("IonCache");
-    LinkStatus status = linkCode(cx, masm, ion, code.address());
-    if (status != LINK_GOOD)
-        return status != LINK_ERROR;
-
-    attachStub(masm, attacher, code);
+    {
+        
+        
+        AutoFlushICache afc("IonCache");
+        LinkStatus status = linkCode(cx, masm, ion, code.address());
+        if (status != LINK_GOOD)
+            return status != LINK_ERROR;
+    }
 
     if (pc_) {
         IonSpew(IonSpew_InlineCaches, "Cache %p(%s:%d/%d) generated %s %s stub at %p",
@@ -422,6 +426,8 @@ IonCache::linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &a
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "IonCache");
 #endif
+
+    attachStub(masm, attacher, code);
 
     return true;
 }
