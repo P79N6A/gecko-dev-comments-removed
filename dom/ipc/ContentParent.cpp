@@ -587,6 +587,7 @@ static uint64_t gContentChildID = 1;
 
 static const char* sObserverTopics[] = {
     "xpcom-shutdown",
+    "profile-before-change",
     NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC,
     "child-memory-reporter-request",
     "memory-pressure",
@@ -1503,7 +1504,7 @@ ContentParent::ShutDownProcess(ShutDownMethod aMethod)
     
     
     if (aMethod == SEND_SHUTDOWN_MESSAGE) {
-        if (mIPCOpen && SendShutdown()) {
+        if (mIPCOpen && !mShutdownPending && SendShutdown()) {
             mShutdownPending = true;
         }
 
@@ -2745,10 +2746,10 @@ ContentParent::Observe(nsISupports* aSubject,
                        const char* aTopic,
                        const char16_t* aData)
 {
-    if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        if (!mShutdownPending && mIPCOpen) {
-            ShutDownProcess(SEND_SHUTDOWN_MESSAGE);
-        }
+    if (mSubprocess && (!strcmp(aTopic, "profile-before-change") ||
+                        !strcmp(aTopic, "xpcom-shutdown"))) {
+        
+        ShutDownProcess(SEND_SHUTDOWN_MESSAGE);
 
         
         
