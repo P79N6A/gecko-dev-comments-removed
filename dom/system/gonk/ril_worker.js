@@ -12267,6 +12267,8 @@ ICCIOHelperObject.prototype[ICC_COMMAND_UPDATE_RECORD] = function ICC_COMMAND_UP
 
 function ICCRecordHelperObject(aContext) {
   this.context = aContext;
+  
+  this._freeRecordIds = {};
 }
 ICCRecordHelperObject.prototype = {
   context: null,
@@ -12746,6 +12748,11 @@ ICCRecordHelperObject.prototype = {
   
 
 
+  _freeRecordIds: null,
+
+  
+
+
 
 
 
@@ -12769,8 +12776,11 @@ ICCRecordHelperObject.prototype = {
         }
       }
 
+      let nextRecord = (options.p1 % options.totalRecords) + 1;
+
       if (readLen == octetLen) {
         
+        this._freeRecordIds[fileId] = nextRecord;
         if (onsuccess) {
           onsuccess(options.p1);
         }
@@ -12781,10 +12791,12 @@ ICCRecordHelperObject.prototype = {
 
       Buf.readStringDelimiter(strLen);
 
-      if (options.p1 < options.totalRecords) {
-        ICCIOHelper.loadNextRecord(options);
+      if (nextRecord !== recordNumber) {
+        options.p1 = nextRecord;
+        this.context.RIL.iccIO(options);
       } else {
         
+        delete this._freeRecordIds[fileId];
         if (DEBUG) {
           this.context.debug(CONTACT_ERR_NO_FREE_RECORD_FOUND);
         }
@@ -12792,7 +12804,10 @@ ICCRecordHelperObject.prototype = {
       }
     }
 
+    
+    let recordNumber = this._freeRecordIds[fileId] || 1;
     ICCIOHelper.loadLinearFixedEF({fileId: fileId,
+                                   recordNumber: recordNumber,
                                    callback: callback.bind(this),
                                    onerror: onerror});
   },
@@ -14364,6 +14379,11 @@ ICCContactHelperObject.prototype = {
     }
   },
 
+  
+
+
+  _freePbrIndex: 0,
+
    
 
 
@@ -14374,8 +14394,17 @@ ICCContactHelperObject.prototype = {
   findUSimFreeADNRecordId: function(pbrs, onsuccess, onerror) {
     let ICCRecordHelper = this.context.ICCRecordHelper;
 
+    function callback(pbrIndex, recordId) {
+      
+      this._freePbrIndex = pbrIndex;
+      onsuccess(pbrIndex, recordId);
+    }
+
+    let nextPbrIndex = -1;
     (function findFreeRecordId(pbrIndex) {
-      if (pbrIndex >= pbrs.length) {
+      if (nextPbrIndex === this._freePbrIndex) {
+        
+        this._freePbrIndex = 0;
         if (DEBUG) {
           this.context.debug(CONTACT_ERR_NO_FREE_RECORD_FOUND);
         }
@@ -14384,11 +14413,12 @@ ICCContactHelperObject.prototype = {
       }
 
       let pbr = pbrs[pbrIndex];
+      nextPbrIndex = (pbrIndex + 1) % pbrs.length;
       ICCRecordHelper.findFreeRecordId(
         pbr.adn.fileId,
-        onsuccess.bind(this, pbrIndex),
-        findFreeRecordId.bind(null, pbrIndex + 1));
-    })(0);
+        callback.bind(this, pbrIndex),
+        findFreeRecordId.bind(this, nextPbrIndex));
+    }).call(this, this._freePbrIndex);
   },
 
   
