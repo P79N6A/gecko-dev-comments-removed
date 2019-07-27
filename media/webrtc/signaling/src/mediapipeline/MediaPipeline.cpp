@@ -942,6 +942,11 @@ NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
   }
 }
 
+
+#define YSIZE(x,y) ((x)*(y))
+#define CRSIZE(x,y) ((((x)+1) >> 1) * (((y)+1) >> 1))
+#define I420SIZE(x,y) (YSIZE((x),(y)) + 2 * CRSIZE((x),(y)))
+
 void MediaPipelineTransmit::PipelineListener::
 NewData(MediaStreamGraph* graph, TrackID tid,
         TrackRate rate,
@@ -1103,15 +1108,10 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     return;
   }
 
-  gfx::IntSize size = img->GetSize();
-  if ((size.width & 1) != 0 || (size.height & 1) != 0) {
-    MOZ_ASSERT(false, "Can't handle odd-sized images");
-    return;
-  }
-
   if (!enabled_ || chunk.mFrame.GetForceBlack()) {
-    uint32_t yPlaneLen = size.width*size.height;
-    uint32_t cbcrPlaneLen = yPlaneLen/2;
+    gfx::IntSize size = img->GetSize();
+    uint32_t yPlaneLen = YSIZE(size.width, size.height);
+    uint32_t cbcrPlaneLen = 2 * CRSIZE(size.width, size.height);
     uint32_t length = yPlaneLen + cbcrPlaneLen;
 
     
@@ -1119,6 +1119,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     static const fallible_t fallible = fallible_t();
     pixelData = new (fallible) uint8_t[length];
     if (pixelData) {
+      
       memset(pixelData, 0x10, yPlaneLen);
       
       memset(pixelData + yPlaneLen, 0x80, cbcrPlaneLen);
@@ -1144,10 +1145,12 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     android::sp<android::GraphicBuffer> graphicBuffer = nativeImage->GetGraphicBuffer();
     void *basePtr;
     graphicBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_MASK, &basePtr);
+    uint32_t width = graphicBuffer->getWidth();
+    uint32_t height = graphicBuffer->getHeight();
     conduit->SendVideoFrame(static_cast<unsigned char*>(basePtr),
-                            (graphicBuffer->getWidth() * graphicBuffer->getHeight() * 3) / 2,
-                            graphicBuffer->getWidth(),
-                            graphicBuffer->getHeight(),
+                            I420SIZE(width, height),
+                            width,
+                            height,
                             mozilla::kVideoNV21, 0);
     graphicBuffer->unlock();
   } else
@@ -1172,8 +1175,9 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 
     
     
-    MOZ_ASSERT(cb == (y + width*height) &&
-               cr == (cb + width*height/4));
+    MOZ_ASSERT(cb == (y + YSIZE(width, height)) &&
+               cr == (cb + CRSIZE(width, height)) &&
+               length == I420SIZE(width, height));
     
     
     
@@ -1194,12 +1198,12 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     int half_width = (size.width + 1) >> 1;
     int half_height = (size.height + 1) >> 1;
     int c_size = half_width * half_height;
-    int buffer_size = size.width * size.height + 2 * c_size;
-    uint8* yuv = (uint8*) malloc(buffer_size);
+    int buffer_size = YSIZE(size.width, size.height) + 2 * c_size;
+    uint8* yuv = (uint8*) malloc(buffer_size); 
     if (!yuv)
       return;
 
-    int cb_offset = size.width * size.height;
+    int cb_offset = YSIZE(size.width, size.height);
     int cr_offset = cb_offset + c_size;
     RefPtr<gfx::SourceSurface> tempSurf = rgb->GetAsSourceSurface();
     RefPtr<gfx::DataSourceSurface> surf = tempSurf->GetDataSurface();
