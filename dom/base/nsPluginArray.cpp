@@ -81,6 +81,13 @@ GetPluginMimeTypes(const nsTArray<nsRefPtr<nsPluginElement> >& aPlugins,
   }
 }
 
+static bool
+operator<(const nsRefPtr<nsMimeType>& lhs, const nsRefPtr<nsMimeType>& rhs)
+{
+  
+  return lhs->Type() < rhs->Type();
+}
+
 void
 nsPluginArray::GetMimeTypes(nsTArray<nsRefPtr<nsMimeType> >& aMimeTypes,
                             nsTArray<nsRefPtr<nsMimeType> >& aHiddenMimeTypes)
@@ -96,6 +103,10 @@ nsPluginArray::GetMimeTypes(nsTArray<nsRefPtr<nsMimeType> >& aMimeTypes,
 
   GetPluginMimeTypes(mPlugins, aMimeTypes);
   GetPluginMimeTypes(mHiddenPlugins, aHiddenMimeTypes);
+
+  
+  
+  aMimeTypes.Sort();
 }
 
 nsPluginElement*
@@ -297,6 +308,14 @@ IsPluginEnumerable(const nsTArray<nsCString>& enumerableNames,
   return false; 
 }
 
+static bool
+operator<(const nsRefPtr<nsPluginElement>& lhs,
+          const nsRefPtr<nsPluginElement>& rhs)
+{
+  
+  return lhs->PluginTag()->mName < rhs->PluginTag()->mName;
+}
+
 void
 nsPluginArray::EnsurePlugins()
 {
@@ -345,6 +364,10 @@ nsPluginArray::EnsurePlugins()
 
     pluginArray.AppendElement(new nsPluginElement(mWindow, pluginTag));
   }
+
+  
+  
+  mPlugins.Sort();
 }
 
 
