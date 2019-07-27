@@ -16,6 +16,8 @@
 #include "jsscript.h"
 
 #include "frontend/ParseMaps.h"
+#include "frontend/Parser.h"
+#include "frontend/SharedContext.h"
 #include "frontend/SourceNotes.h"
 
 namespace js {
@@ -326,10 +328,17 @@ struct BytecodeEmitter
     bool emitAtomOp(JSAtom *atom, JSOp op);
     bool emitAtomOp(ParseNode *pn, JSOp op);
 
+    bool emitArray(ParseNode *pn, uint32_t count);
+    bool emitArrayComp(ParseNode *pn);
+
     bool emitInternedObjectOp(uint32_t index, JSOp op);
     bool emitObjectOp(ObjectBox *objbox, JSOp op);
     bool emitObjectPairOp(ObjectBox *objbox1, ObjectBox *objbox2, JSOp op);
     bool emitRegExp(uint32_t index);
+
+    MOZ_NEVER_INLINE bool emitObject(ParseNode *pn);
+
+    bool emitPropertyList(ParseNode *pn, MutableHandlePlainObject objp, PropListType type);
 
     
     
@@ -353,11 +362,14 @@ struct BytecodeEmitter
     bool emitVariables(ParseNode *pn, VarEmitOption emitOption, bool isLetExpr = false);
 
     bool emitNewInit(JSProtoKey key);
+    bool emitSingletonInitialiser(ParseNode *pn);
 
     bool emitPrepareIteratorResult();
     bool emitFinishIteratorResult(bool done);
 
+    bool emitYield(ParseNode *pn);
     bool emitYieldOp(JSOp op);
+    bool emitYieldStar(ParseNode *iter, ParseNode *gen);
 
     bool emitPropLHS(ParseNode *pn, JSOp op);
     bool emitPropOp(ParseNode *pn, JSOp op);
@@ -372,7 +384,12 @@ struct BytecodeEmitter
     bool emitElemOp(ParseNode *pn, JSOp op);
     bool emitElemIncDec(ParseNode *pn);
 
+    bool emitCatch(ParseNode *pn);
+    bool emitIf(ParseNode *pn);
+    bool emitWith(ParseNode *pn);
+
     MOZ_NEVER_INLINE bool emitSwitch(ParseNode *pn);
+    MOZ_NEVER_INLINE bool emitTry(ParseNode *pn);
 
     
     
@@ -388,14 +405,69 @@ struct BytecodeEmitter
 
     
     
+    bool emitIterator();
+
+    
+    
     bool emitIteratorNext(ParseNode *pn);
 
     
     
     bool emitDefault(ParseNode *defaultExpr);
 
+    bool emitCallSiteObject(ParseNode *pn);
     bool emitTemplateString(ParseNode *pn);
     bool emitAssignment(ParseNode *lhs, JSOp op, ParseNode *rhs);
+
+    bool emitReturn(ParseNode *pn);
+    bool emitStatement(ParseNode *pn);
+    bool emitStatementList(ParseNode *pn, ptrdiff_t top);
+
+    bool emitDelete(ParseNode *pn);
+    bool emitLogical(ParseNode *pn);
+    bool emitUnary(ParseNode *pn);
+
+    MOZ_NEVER_INLINE bool emitIncOrDec(ParseNode *pn);
+
+    bool emitConditionalExpression(ConditionalExpression &conditional);
+
+    bool emitCallOrNew(ParseNode *pn);
+    bool emitSelfHostedCallFunction(ParseNode *pn);
+    bool emitSelfHostedResumeGenerator(ParseNode *pn);
+    bool emitSelfHostedForceInterpreter(ParseNode *pn);
+
+    bool emitDo(ParseNode *pn);
+    bool emitFor(ParseNode *pn, ptrdiff_t top);
+    bool emitForIn(ParseNode *pn, ptrdiff_t top);
+    bool emitForInOrOfVariables(ParseNode *pn, bool *letDecl);
+    bool emitNormalFor(ParseNode *pn, ptrdiff_t top);
+    bool emitWhile(ParseNode *pn, ptrdiff_t top);
+
+    bool emitBreak(PropertyName *label);
+    bool emitContinue(PropertyName *label);
+
+    bool emitDefaults(ParseNode *pn);
+    bool emitLexicalInitialization(ParseNode *pn, JSOp globalDefOp);
+
+    
+    
+    
+    
+    
+    
+    bool emitSpread();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    bool emitForOf(StmtType type, ParseNode *pn, ptrdiff_t top);
+
+    bool emitClass(ParseNode *pn);
 };
 
 
