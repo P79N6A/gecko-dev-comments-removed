@@ -464,6 +464,74 @@
                 }));
     }
 
+    
+
+
+
+
+    function EventWatcher(test, watchedNode, eventTypes)
+    {
+        if (typeof eventTypes == 'string') {
+            eventTypes = [eventTypes];
+        }
+
+        var waitingFor = null;
+
+        var eventHandler = test.step_func(function(evt) {
+            assert_true(!!waitingFor,
+                        'Not expecting event, but got ' + evt.type + ' event');
+            assert_equals(evt.type, waitingFor.types[0],
+                          'Expected ' + waitingFor.types[0] + ' event, but got ' +
+                          evt.type + ' event instead');
+            if (waitingFor.types.length > 1) {
+                
+                waitingFor.types.shift();
+                return;
+            }
+            
+            
+            
+            var resolveFunc = waitingFor.resolve;
+            waitingFor = null;
+            resolveFunc(evt);
+        });
+
+        for (var i = 0; i < eventTypes.length; i++) {
+            watchedNode.addEventListener(eventTypes[i], eventHandler);
+        }
+
+        
+
+
+
+        this.wait_for = function(types) {
+            if (waitingFor) {
+                return Promise.reject('Already waiting for an event or events');
+            }
+            if (typeof types == 'string') {
+                types = [types];
+            }
+            return new Promise(function(resolve, reject) {
+                waitingFor = {
+                    types: types,
+                    resolve: resolve,
+                    reject: reject
+                };
+            });
+        };
+
+        function stop_watching() {
+            for (var i = 0; i < eventTypes.length; i++) {
+                watchedNode.removeEventListener(eventTypes[i], eventHandler);
+            }
+        };
+
+        test.add_cleanup(stop_watching);
+
+        return this;
+    }
+    expose(EventWatcher, 'EventWatcher');
+
     function setup(func_or_properties, maybe_properties)
     {
         var func = null;
