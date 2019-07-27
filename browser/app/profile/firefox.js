@@ -1184,20 +1184,6 @@ pref("browser.tabs.remote", false);
 #endif
 pref("browser.tabs.remote.autostart", false);
 
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_WIN)
-
-
-
-
-
-
-pref("browser.tabs.remote.sandbox", "off");
-
-
-
-pref("browser.tabs.remote.sandbox.warnOnlyStackTraceDepth", 0);
-#endif
-
 
 
 
