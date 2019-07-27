@@ -1123,8 +1123,15 @@ WebGLContext::AssertCachedState()
     AssertMaskedUintParamCorrect(gl, LOCAL_GL_STENCIL_REF,      stencilRefMask, mStencilRefFront);
     AssertMaskedUintParamCorrect(gl, LOCAL_GL_STENCIL_BACK_REF, stencilRefMask, mStencilRefBack);
 
-    AssertUintParamCorrect(gl, LOCAL_GL_STENCIL_VALUE_MASK,      mStencilValueMaskFront);
-    AssertUintParamCorrect(gl, LOCAL_GL_STENCIL_BACK_VALUE_MASK, mStencilValueMaskBack);
+    
+    
+    
+    
+    const int maxStencilBits = 8;
+    const GLuint maxStencilBitsMask = (1 << maxStencilBits) - 1;
+
+    AssertMaskedUintParamCorrect(gl, LOCAL_GL_STENCIL_VALUE_MASK,      maxStencilBitsMask, mStencilValueMaskFront);
+    AssertMaskedUintParamCorrect(gl, LOCAL_GL_STENCIL_BACK_VALUE_MASK, maxStencilBitsMask, mStencilValueMaskBack);
 
     AssertUintParamCorrect(gl, LOCAL_GL_STENCIL_WRITEMASK,      mStencilWriteMaskFront);
     AssertUintParamCorrect(gl, LOCAL_GL_STENCIL_BACK_WRITEMASK, mStencilWriteMaskBack);
