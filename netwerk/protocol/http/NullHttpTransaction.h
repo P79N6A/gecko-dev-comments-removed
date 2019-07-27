@@ -49,22 +49,18 @@ protected:
 
 private:
   nsresult mStatus;
-protected:
   uint32_t mCaps;
-private:
   
   
   
   
   
   uint32_t mCapsToClear;
-  nsHttpRequestHead *mRequestHead;
-  bool mIsDone;
-
-protected:
   nsRefPtr<nsAHttpConnection> mConnection;
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsRefPtr<nsHttpConnectionInfo> mConnectionInfo;
+  nsHttpRequestHead *mRequestHead;
+  bool mIsDone;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(NullHttpTransaction, NS_NULLHTTPTRANSACTION_IID)

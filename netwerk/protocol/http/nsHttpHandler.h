@@ -37,7 +37,6 @@ class Tickler;
 class nsHttpConnection;
 class nsHttpConnectionInfo;
 class nsHttpTransaction;
-class AltSvcMapping;
 
 
 
@@ -109,8 +108,6 @@ public:
     PRIntervalTime SpdyPingThreshold() { return mSpdyPingThreshold; }
     PRIntervalTime SpdyPingTimeout() { return mSpdyPingTimeout; }
     bool           AllowPush()   { return mAllowPush; }
-    bool           AllowAltSvc() { return mEnableAltSvc; }
-    bool           AllowAltSvcOE() { return mEnableAltSvcOE; }
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
     bool           CriticalRequestPrioritization() { return mCriticalRequestPrioritization; }
@@ -220,22 +217,6 @@ public:
     {
         TickleWifi(callbacks);
         return mConnMgr->SpeculativeConnect(ci, callbacks, caps);
-    }
-
-    
-    void UpdateAltServiceMapping(AltSvcMapping *map,
-                                 nsProxyInfo *proxyInfo,
-                                 nsIInterfaceRequestor *callbacks,
-                                 uint32_t caps)
-    {
-        mConnMgr->UpdateAltServiceMapping(map, proxyInfo, callbacks, caps);
-    }
-
-    AltSvcMapping *GetAltServiceMapping(const nsACString &scheme,
-                                        const nsACString &host,
-                                        int32_t port, bool pb)
-    {
-        return mConnMgr->GetAltServiceMapping(scheme, host, port, pb);
     }
 
     
@@ -473,8 +454,6 @@ private:
     uint32_t           mCoalesceSpdy : 1;
     uint32_t           mSpdyPersistentSettings : 1;
     uint32_t           mAllowPush : 1;
-    uint32_t           mEnableAltSvc : 1;
-    uint32_t           mEnableAltSvcOE : 1;
 
     
     SpdyInformation    mSpdyInfo;
