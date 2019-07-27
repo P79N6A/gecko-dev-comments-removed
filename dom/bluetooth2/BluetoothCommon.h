@@ -188,6 +188,12 @@ extern bool gBluetoothDebugFlag;
 
 #define ERR_INTERNAL_ERROR "InternalError"
 
+
+
+
+
+#define BLUETOOTH_GATT_MAX_ATTR_LEN 600
+
 BEGIN_BLUETOOTH_NAMESPACE
 
 enum BluetoothStatus {
@@ -495,6 +501,46 @@ struct BluetoothAvrcpPlayerSettings {
   uint8_t mNumAttr;
   uint8_t mIds[256];
   uint8_t mValues[256];
+};
+
+struct BluetoothGattAdvData {
+  uint8_t mAdvData[62];
+};
+
+struct BluetoothGattId {
+  BluetoothUuid mUuid;
+  uint8_t mInstanceId;
+};
+
+struct BluetoothGattServiceId {
+  BluetoothGattId mId;
+  uint8_t mIsPrimary;
+};
+
+struct BluetoothGattReadParam {
+  BluetoothGattServiceId mServiceId;
+  BluetoothGattId mCharId;
+  BluetoothGattId mDescriptorId;
+  uint8_t mValue[BLUETOOTH_GATT_MAX_ATTR_LEN];
+  uint16_t mValueLength;
+  uint16_t mValueType;
+  uint8_t mStatus;
+};
+
+struct BluetoothGattWriteParam {
+  BluetoothGattServiceId mServiceId;
+  BluetoothGattId mCharId;
+  BluetoothGattId mDescriptorId;
+  uint8_t mStatus;
+};
+
+struct BluetoothGattNotifyParam {
+  uint8_t mValue[BLUETOOTH_GATT_MAX_ATTR_LEN];
+  nsString mBdAddr;
+  BluetoothGattServiceId mServiceId;
+  BluetoothGattId mCharId;
+  uint16_t mLength;
+  uint8_t mIsNotify;
 };
 
 END_BLUETOOTH_NAMESPACE
