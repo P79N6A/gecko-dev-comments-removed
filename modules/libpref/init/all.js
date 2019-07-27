@@ -2102,9 +2102,6 @@ pref("layout.css.isolation.enabled", true);
 pref("layout.css.filters.enabled", true);
 
 
-pref("layout.css.scroll-snap.enabled", false);
-
-
 
 pref("layout.css.scroll-snap.proximity-threshold", 200);
 
@@ -2252,6 +2249,9 @@ pref("layout.css.scroll-behavior.spring-constant", "250.0");
 
 
 pref("layout.css.scroll-behavior.damping-ratio", "1.0");
+
+
+pref("layout.css.scroll-snap.enabled", true);
 
 
 
@@ -3421,6 +3421,9 @@ pref("print.print_extra_margin", 0);
 
 pref("layout.css.scroll-behavior.enabled", false);
 pref("layout.css.scroll-behavior.property-enabled", false);
+
+
+pref("layout.css.scroll-snap.enabled", false);
 
 
 
