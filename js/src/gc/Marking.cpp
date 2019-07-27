@@ -272,33 +272,6 @@ CheckMarkedThing<jsid>(JSTracer* trc, jsid id)
                   trc->runtime()->gc.state() == NO_INCREMENTAL || \
                   trc->runtime()->gc.state() == MARK_ROOTS);
 
-
-
-
-
-
-
-
-template<typename T>
-static inline void
-SetMaybeAliveFlag(T* thing)
-{
-}
-
-template<>
-void
-SetMaybeAliveFlag(JSObject* thing)
-{
-    thing->compartment()->maybeAlive = true;
-}
-
-template<>
-void
-SetMaybeAliveFlag(JSScript* thing)
-{
-    thing->compartment()->maybeAlive = true;
-}
-
 #define FOR_EACH_GC_LAYOUT(D) \
     D(Object, JSObject) \
     D(String, JSString) \

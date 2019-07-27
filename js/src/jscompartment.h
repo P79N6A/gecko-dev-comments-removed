@@ -612,6 +612,15 @@ JSRuntime::isAtomsZone(JS::Zone* zone)
 
 namespace js {
 
+
+
+
+
+
+template<typename T> inline void SetMaybeAliveFlag(T* thing) {}
+template<> inline void SetMaybeAliveFlag(JSObject* thing) {thing->compartment()->maybeAlive = true;}
+template<> inline void SetMaybeAliveFlag(JSScript* thing) {thing->compartment()->maybeAlive = true;}
+
 inline js::Handle<js::GlobalObject*>
 ExclusiveContext::global() const
 {
