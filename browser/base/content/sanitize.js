@@ -447,26 +447,6 @@ Sanitizer.prototype = {
       }
     },
 
-    passwords: {
-      clear: function ()
-      {
-        TelemetryStopwatch.start("FX_SANITIZE_PASSWORDS");
-        var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
-                              .getService(Components.interfaces.nsILoginManager);
-        
-        pwmgr.removeAllLogins();
-        TelemetryStopwatch.finish("FX_SANITIZE_PASSWORDS");
-      },
-
-      get canClear()
-      {
-        var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
-                              .getService(Components.interfaces.nsILoginManager);
-        var count = pwmgr.countLogins("", "", ""); 
-        return (count > 0);
-      }
-    },
-
     sessions: {
       clear: function ()
       {
@@ -785,6 +765,20 @@ Sanitizer._checkAndSanitize = function()
   const prefs = Sanitizer.prefs;
   if (prefs.getBoolPref(Sanitizer.prefShutdown) &&
       !prefs.prefHasUserValue(Sanitizer.prefDidShutdown)) {
+
+    
+    if (!Services.prefs.getBoolPref("privacy.sanitize.migrateClearSavedPwdsOnExit")) {
+      let deprecatedPref = "privacy.clearOnShutdown.passwords";
+      let doUpdate = Services.prefs.prefHasUserValue(deprecatedPref) &&
+                     Services.prefs.getBoolPref(deprecatedPref);
+      if (doUpdate) {
+        Services.logins.removeAllLogins();
+        Services.prefs.setBoolPref("signon.rememberSignons", false);
+      }
+      Services.prefs.clearUserPref(deprecatedPref);
+      Services.prefs.setBoolPref("privacy.sanitize.migrateClearSavedPwdsOnExit", true);
+    }
+
     
     var s = new Sanitizer();
     s.prefDomain = "privacy.clearOnShutdown.";
