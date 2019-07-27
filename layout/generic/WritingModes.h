@@ -1731,6 +1731,17 @@ public:
                           aContainerWidth);
   }
 
+  
+
+
+
+  bool IntersectRect(const LogicalRect& aRect1, const LogicalRect& aRect2)
+  {
+    CHECK_WRITING_MODE(aRect1.mWritingMode);
+    CHECK_WRITING_MODE(aRect2.mWritingMode);
+    return mRect.IntersectRect(aRect1.mRect, aRect2.mRect);
+  }
+
 private:
   LogicalRect() = delete;
 
