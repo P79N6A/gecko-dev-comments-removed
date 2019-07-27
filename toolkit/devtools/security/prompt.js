@@ -138,3 +138,35 @@ Server.defaultAllowConnection = ({ client, server }) => {
   }
   return AuthenticationResult.DENY;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Server.defaultReceiveOOB = () => {
+  let title = bundle.GetStringFromName("serverReceiveOOBTitle");
+  let msg = bundle.GetStringFromName("serverReceiveOOBBody");
+  let input = { value: null };
+  let prompt = Services.prompt;
+  let result = prompt.prompt(null, title, msg, input, null, { value: false });
+  if (!result) {
+    return null;
+  }
+  
+  input = input.value.trim();
+  let sha256 = input.substring(0, 64);
+  sha256 = sha256.replace(/\w{2}/g, "$&:").slice(0, -1).toUpperCase();
+  let k = input.substring(64);
+  return { sha256, k };
+};

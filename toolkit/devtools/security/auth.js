@@ -576,7 +576,7 @@ OOBCert.Server.prototype = {
 
 
 
-  receiveOOB: null, 
+  receiveOOB: prompt.Server.defaultReceiveOOB,
 
 };
 
