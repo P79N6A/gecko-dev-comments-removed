@@ -397,6 +397,19 @@ public:
   bool MayHaveMouseEnterLeaveEventListener() { return mMayHaveMouseEnterLeaveEventListener; }
   bool MayHavePointerEnterLeaveEventListener() { return mMayHavePointerEnterLeaveEventListener; }
 
+  
+
+
+
+  bool MayHaveKeyEventListener() { return mMayHaveKeyEventListener; }
+
+  
+
+
+
+
+  bool MayHaveInputOrCompositionEventListener() { return mMayHaveInputOrCompositionEventListener; }
+
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
   uint32_t ListenerCount() const
@@ -546,9 +559,11 @@ protected:
   uint32_t mMayHaveTouchEventListener : 1;
   uint32_t mMayHaveMouseEnterLeaveEventListener : 1;
   uint32_t mMayHavePointerEnterLeaveEventListener : 1;
+  uint32_t mMayHaveKeyEventListener : 1;
+  uint32_t mMayHaveInputOrCompositionEventListener : 1;
   uint32_t mClearingListeners : 1;
   uint32_t mIsMainThreadELM : 1;
-  uint32_t mNoListenerForEvent : 23;
+  uint32_t mNoListenerForEvent : 21;
 
   nsAutoTObserverArray<Listener, 2> mListeners;
   dom::EventTarget* MOZ_NON_OWNING_REF mTarget;
