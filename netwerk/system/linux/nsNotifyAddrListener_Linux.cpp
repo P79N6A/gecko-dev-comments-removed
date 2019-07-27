@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set et sw=4 ts=4: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include <stdarg.h>
 #include <fcntl.h>
@@ -33,17 +33,13 @@
 #include <cutils/properties.h>
 #endif
 
-/* a shorter name that better explains what it does */
+
 #define EINTR_RETRY(x) MOZ_TEMP_FAILURE_RETRY(x)
 
 using namespace mozilla;
 
-#if defined(PR_LOGGING)
 static PRLogModuleInfo *gNotifyAddrLog = nullptr;
 #define LOG(args) PR_LOG(gNotifyAddrLog, PR_LOG_DEBUG, args)
-#else
-#define LOG(args)
-#endif
 
 #define NETWORK_NOTIFY_CHANGED_PREF "network.notify.changed"
 
@@ -53,7 +49,7 @@ NS_IMPL_ISUPPORTS(nsNotifyAddrListener,
                   nsIObserver)
 
 nsNotifyAddrListener::nsNotifyAddrListener()
-    : mLinkUp(true)  // assume true by default
+    : mLinkUp(true)  
     , mStatusKnown(false)
     , mAllowChangedEvent(true)
     , mChildThreadShutdown(false)
@@ -77,7 +73,7 @@ nsNotifyAddrListener::~nsNotifyAddrListener()
 NS_IMETHODIMP
 nsNotifyAddrListener::GetIsLinkUp(bool *aIsUp)
 {
-    // XXX This function has not yet been implemented for this platform
+    
     *aIsUp = mLinkUp;
     return NS_OK;
 }
@@ -85,7 +81,7 @@ nsNotifyAddrListener::GetIsLinkUp(bool *aIsUp)
 NS_IMETHODIMP
 nsNotifyAddrListener::GetLinkStatusKnown(bool *aIsUp)
 {
-    // XXX This function has not yet been implemented for this platform
+    
     *aIsUp = mStatusKnown;
     return NS_OK;
 }
@@ -95,18 +91,18 @@ nsNotifyAddrListener::GetLinkType(uint32_t *aLinkType)
 {
   NS_ENSURE_ARG_POINTER(aLinkType);
 
-  // XXX This function has not yet been implemented for this platform
+  
   *aLinkType = nsINetworkLinkService::LINK_TYPE_UNKNOWN;
   return NS_OK;
 }
 
-//
-// Check if there's a network interface available to do networking on.
-//
+
+
+
 void nsNotifyAddrListener::checkLink(void)
 {
 #ifdef MOZ_WIDGET_GONK
-    // b2g instead has NetworkManager.js which handles UP/DOWN
+    
 #else
     struct ifaddrs *list;
     struct ifaddrs *ifa;
@@ -116,8 +112,8 @@ void nsNotifyAddrListener::checkLink(void)
     if(getifaddrs(&list))
         return;
 
-    // Walk through the linked list, maintaining head pointer so we can free
-    // list later
+    
+    
 
     for (ifa = list; ifa != NULL; ifa = ifa->ifa_next) {
         int family;
@@ -129,7 +125,7 @@ void nsNotifyAddrListener::checkLink(void)
         if ((family == AF_INET || family == AF_INET6) &&
             (ifa->ifa_flags & IFF_UP) &&
             !(ifa->ifa_flags & IFF_LOOPBACK)) {
-            // An interface that is UP and not loopback
+            
             link = true;
             break;
         }
@@ -138,7 +134,7 @@ void nsNotifyAddrListener::checkLink(void)
     freeifaddrs(list);
 
     if (prevLinkUp != mLinkUp) {
-        // UP/DOWN status changed, send appropriate UP/DOWN event
+        
         SendEvent(mLinkUp ?
                   NS_NETWORK_LINK_DATA_UP : NS_NETWORK_LINK_DATA_DOWN);
     }
@@ -150,12 +146,12 @@ void nsNotifyAddrListener::OnNetlinkMessage(int aNetlinkSocket)
     struct  nlmsghdr *nlh;
     struct  rtmsg *route_entry;
 
-    // The buffer size below, (4095) was chosen partly based on testing and
-    // partly on existing sample source code using this size. It needs to be
-    // large enough to hold the netlink messages from the kernel.
+    
+    
+    
     char buffer[4095];
 
-    // Receiving netlink socket data
+    
     ssize_t rc = EINTR_RETRY(recv(aNetlinkSocket, buffer, sizeof(buffer), 0));
     if (rc < 0) {
         return;
@@ -176,10 +172,10 @@ void nsNotifyAddrListener::OnNetlinkMessage(int aNetlinkSocket)
         switch(nlh->nlmsg_type) {
         case RTM_DELROUTE:
         case RTM_NEWROUTE:
-            // Get the route data
+            
             route_entry = static_cast<struct rtmsg *>(NLMSG_DATA(nlh));
 
-            // We are just intrested in main routing table
+            
             if (route_entry->rtm_table != RT_TABLE_MAIN)
                 continue;
 
@@ -213,19 +209,19 @@ nsNotifyAddrListener::Run()
     }
 
     struct sockaddr_nl addr;
-    memset(&addr, 0, sizeof(addr));   // clear addr
+    memset(&addr, 0, sizeof(addr));   
 
     addr.nl_family = AF_NETLINK;
     addr.nl_groups = RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_IFADDR |
         RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_ROUTE;
 
     if (bind(netlinkSocket, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        // failure!
+        
         EINTR_RETRY(close(netlinkSocket));
         return NS_ERROR_FAILURE;
     }
 
-    // switch the socket into non-blocking
+    
     int flags = fcntl(netlinkSocket, F_GETFL, 0);
     (void)fcntl(netlinkSocket, F_SETFL, flags | O_NONBLOCK);
 
@@ -238,7 +234,7 @@ nsNotifyAddrListener::Run()
     fds[1].events = POLLIN;
     fds[1].revents = 0;
 
-    // when in b2g emulator, work around bug 1112499
+    
     int pollTimeout = -1;
 #ifdef MOZ_WIDGET_GONK
     char propQemu[PROPERTY_VALUE_MAX];
@@ -253,7 +249,7 @@ nsNotifyAddrListener::Run()
 
         if (rc > 0) {
             if (fds[0].revents & POLLIN) {
-                // shutdown, abort the loop!
+                
                 LOG(("thread shutdown received, dying...\n"));
                 shutdown = true;
             } else if (fds[1].revents & POLLIN) {
@@ -303,10 +299,8 @@ class NuwaMarkLinkMonitorThreadRunner : public nsRunnable
 nsresult
 nsNotifyAddrListener::Init(void)
 {
-#if defined(PR_LOGGING)
     if (!gNotifyAddrLog)
         gNotifyAddrLog = PR_NewLogModule("nsNotifyAddr");
-#endif
 
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
@@ -338,7 +332,7 @@ nsNotifyAddrListener::Init(void)
 nsresult
 nsNotifyAddrListener::Shutdown(void)
 {
-    // remove xpcom shutdown observer
+    
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
     if (observerService)
@@ -346,7 +340,7 @@ nsNotifyAddrListener::Shutdown(void)
 
     LOG(("write() to signal thread shutdown\n"));
 
-    // awake the thread to make it terminate
+    
     ssize_t rc = EINTR_RETRY(write(mShutdownPipe[1], "1", 1));
     LOG(("write() returned %d, errno == %d\n", (int)rc, errno));
 
@@ -354,17 +348,17 @@ nsNotifyAddrListener::Shutdown(void)
 
     nsresult rv = mThread->Shutdown();
 
-    // Have to break the cycle here, otherwise nsNotifyAddrListener holds
-    // onto the thread and the thread holds onto the nsNotifyAddrListener
-    // via its mRunnable
+    
+    
+    
     mThread = nullptr;
 
     return rv;
 }
 
-/* Sends the given event.  Assumes aEventID never goes out of scope (static
- * strings are ideal).
- */
+
+
+
 nsresult
 nsNotifyAddrListener::SendEvent(const char *aEventID)
 {

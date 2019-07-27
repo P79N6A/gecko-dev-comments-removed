@@ -1,33 +1,31 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #ifndef nsWyciwyg_h__
 #define nsWyciwyg_h__
 
 #include "mozilla/net/NeckoChild.h"
 
-// Get rid of chromium's LOG.
+
 #undef LOG
 
 #include "prlog.h"
 
-#if defined(PR_LOGGING)
-//
-// Log module for HTTP Protocol logging...
-//
-// To enable logging (see prlog.h for full details):
-//
-//    set NSPR_LOG_MODULES=nsWyciwyg:5
-//    set NSPR_LOG_FILE=wyciwyg.log
-//
-// this enables PR_LOG_ALWAYS level information and places all output in
-// the file wyciwyg.log
-//
-extern PRLogModuleInfo *gWyciwygLog;
-#endif
 
-// http logging
+
+
+
+
+
+
+
+
+
+
+extern PRLogModuleInfo *gWyciwygLog;
+
+
 #define LOG1(args) PR_LOG(gWyciwygLog, 1, args)
 #define LOG2(args) PR_LOG(gWyciwygLog, 2, args)
 #define LOG3(args) PR_LOG(gWyciwygLog, 3, args)
@@ -42,4 +40,4 @@ extern PRLogModuleInfo *gWyciwygLog;
 
 #define WYCIWYG_TYPE "text/html"
 
-#endif // nsWyciwyg_h__
+#endif 

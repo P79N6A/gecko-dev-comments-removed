@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "CacheLog.h"
 #include "CacheFileIOManager.h"
@@ -31,7 +31,7 @@
 #include "mozilla/Preferences.h"
 #include "nsNetUtil.h"
 
-// include files for ftruncate (or equivalent)
+
 #if defined(XP_UNIX)
 #include <unistd.h>
 #elif defined(XP_WIN)
@@ -39,7 +39,7 @@
 #undef CreateFile
 #undef CREATE_NEW
 #else
-// XXX add necessary include file for ftruncate (or equivalent)
+
 #endif
 
 
@@ -52,9 +52,9 @@ namespace net {
 #define kSmartSizeUpdateInterval 60000 // in milliseconds
 
 #ifdef ANDROID
-const uint32_t kMaxCacheSizeKB = 200*1024; // 200 MB
+const uint32_t kMaxCacheSizeKB = 200*1024; 
 #else
-const uint32_t kMaxCacheSizeKB = 350*1024; // 350 MB
+const uint32_t kMaxCacheSizeKB = 350*1024; 
 #endif
 
 bool
@@ -85,7 +85,7 @@ CacheFileHandle::Release()
 {
   nsrefcnt count = mRefCnt - 1;
   if (DispatchRelease()) {
-    // Redispatched to the IO thread.
+    
     return count;
   }
 
@@ -195,7 +195,7 @@ CacheFileHandle::FileSizeInK() const
   return size;
 }
 
-// Memory reporting
+
 
 size_t
 CacheFileHandle::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
@@ -219,9 +219,9 @@ CacheFileHandle::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
   return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
 }
 
-/******************************************************************************
- *  CacheFileHandles::HandleHashKey
- *****************************************************************************/
+
+
+
 
 void
 CacheFileHandles::HandleHashKey::AddHandle(CacheFileHandle* aHandle)
@@ -292,9 +292,9 @@ CacheFileHandles::HandleHashKey::SizeOfExcludingThis(mozilla::MallocSizeOf mallo
   return n;
 }
 
-/******************************************************************************
- *  CacheFileHandles
- *****************************************************************************/
+
+
+
 
 CacheFileHandles::CacheFileHandles()
 {
@@ -320,7 +320,7 @@ CacheFileHandles::GetHandle(const SHA1Sum::Hash *aHash,
        LOGSHA1(aHash)));
 #endif
 
-  // find hash entry for key
+  
   HandleHashKey *entry = mTable.GetEntry(*aHash);
   if (!entry) {
     LOG(("CacheFileHandles::GetHandle() hash=%08x%08x%08x%08x%08x "
@@ -332,7 +332,7 @@ CacheFileHandles::GetHandle(const SHA1Sum::Hash *aHash,
   Log(entry);
 #endif
 
-  // Check if the entry is doomed
+  
   nsRefPtr<CacheFileHandle> handle = entry->GetNewestHandle();
   if (!handle) {
     LOG(("CacheFileHandles::GetHandle() hash=%08x%08x%08x%08x%08x "
@@ -366,7 +366,7 @@ CacheFileHandles::NewHandle(const SHA1Sum::Hash *aHash,
   LOG(("CacheFileHandles::NewHandle() [hash=%08x%08x%08x%08x%08x]", LOGSHA1(aHash)));
 #endif
 
-  // find hash entry for key
+  
   HandleHashKey *entry = mTable.PutEntry(*aHash);
 
 #ifdef DEBUG_HANDLES
@@ -402,7 +402,7 @@ CacheFileHandles::RemoveHandle(CacheFileHandle *aHandle)
        , aHandle, LOGSHA1(aHandle->Hash())));
 #endif
 
-  // find hash entry for key
+  
   HandleHashKey *entry = mTable.GetEntry(*aHandle->Hash());
   if (!entry) {
     MOZ_ASSERT(CacheFileIOManager::IsShutdown(),
@@ -500,7 +500,7 @@ CacheFileHandles::Log(CacheFileHandlesEntry *entry)
 }
 #endif
 
-// Memory reporting
+
 
 size_t
 CacheFileHandles::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
@@ -510,7 +510,7 @@ CacheFileHandles::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
   return mTable.SizeOfExcludingThis(mallocSizeOf);
 }
 
-// Events
+
 
 class ShutdownEvent : public nsRunnable {
 public:
@@ -704,7 +704,7 @@ public:
       rv = CacheFileIOManager::gInstance->WriteInternal(
           mHandle, mOffset, mBuf, mCount, mValidate, mTruncate);
       if (NS_FAILED(rv) && !mCallback) {
-        // No listener is going to handle the error, doom the file
+        
         CacheFileIOManager::gInstance->DoomFileInternal(mHandle);
       }
     }
@@ -966,10 +966,10 @@ public:
 
     CacheIndex::InitEntry(mHandle->Hash(), mAppId, mAnonymous, mInBrowser);
 
-    // We cannot set the filesize before we init the entry. If we're opening
-    // an existing entry file, frecency and expiration time will be set after
-    // parsing the entry file, but we must set the filesize here since nobody is
-    // going to set it if there is no write to the file.
+    
+    
+    
+    
     uint32_t sizeInK = mHandle->FileSizeInK();
     CacheIndex::UpdateEntry(mHandle->Hash(), nullptr, nullptr, &sizeInK);
 
@@ -1097,7 +1097,7 @@ CacheFileIOManager::~CacheFileIOManager()
   MOZ_COUNT_DTOR(CacheFileIOManager);
 }
 
-// static
+
 nsresult
 CacheFileIOManager::Init()
 {
@@ -1134,7 +1134,7 @@ CacheFileIOManager::InitInternal()
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::Shutdown()
 {
@@ -1191,10 +1191,10 @@ CacheFileIOManager::ShutdownInternal()
 
   MOZ_ASSERT(mIOThread->IsCurrentThread());
 
-  // No new handles can be created after this flag is set
+  
   mShuttingDown = true;
 
-  // close all handles and delete all associated files
+  
   nsTArray<nsRefPtr<CacheFileHandle> > handles;
   mHandles.GetAllHandles(&handles);
   handles.AppendElements(mSpecialHandles);
@@ -1205,12 +1205,12 @@ CacheFileIOManager::ShutdownInternal()
 
     h->Log();
 
-    // Close file handle
+    
     if (h->mFD) {
       ReleaseNSPRHandleInternal(h);
     }
 
-    // Remove file if entry is doomed or invalid
+    
     if (h->mFileExists && (h->mIsDoomed || h->mInvalid)) {
       LOG(("CacheFileIOManager::ShutdownInternal() - Removing file from disk"));
       h->mFile->Remove(false);
@@ -1221,28 +1221,28 @@ CacheFileIOManager::ShutdownInternal()
       CacheIndex::RemoveEntry(h->Hash());
     }
 
-    // Remove the handle from mHandles/mSpecialHandles
+    
     if (h->IsSpecialFile()) {
       mSpecialHandles.RemoveElement(h);
     } else {
       mHandles.RemoveHandle(h);
     }
 
-    // Pointer to the hash is no longer valid once the last handle with the
-    // given hash is released. Null out the pointer so that we crash if there
-    // is a bug in this code and we dereference the pointer after this point.
+    
+    
+    
     if (!h->IsSpecialFile()) {
       h->mHash = nullptr;
     }
   }
 
-  // Assert the table is empty. When we are here, no new handles can be added
-  // and handles will no longer remove them self from this table and we don't 
-  // want to keep invalid handles here. Also, there is no lookup after this 
-  // point to happen.
+  
+  
+  
+  
   MOZ_ASSERT(mHandles.HandleCount() == 0);
 
-  // Release trash directory enumerator
+  
   if (mTrashDirEnumerator) {
     mTrashDirEnumerator->Close();
     mTrashDirEnumerator = nullptr;
@@ -1251,7 +1251,7 @@ CacheFileIOManager::ShutdownInternal()
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::OnProfile()
 {
@@ -1259,8 +1259,8 @@ CacheFileIOManager::OnProfile()
 
   nsRefPtr<CacheFileIOManager> ioMan = gInstance;
   if (!ioMan) {
-    // CacheFileIOManager::Init() failed, probably could not create the IO
-    // thread, just go with it...
+    
+    
     return NS_ERROR_NOT_INITIALIZED;
   }
 
@@ -1277,12 +1277,12 @@ CacheFileIOManager::OnProfile()
     rv = NS_NewNativeLocalFile(nsDependentCString(cachePath),
                                true, getter_AddRefs(directory));
     if (NS_SUCCEEDED(rv)) {
-      // Save this directory as the profileless path.
+      
       rv = directory->Clone(getter_AddRefs(profilelessDirectory));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      // Add profile leaf name to the directory name to distinguish
-      // multiple profiles Fennec supports.
+      
+      
       nsCOMPtr<nsIFile> profD;
       rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                                   getter_AddRefs(profD));
@@ -1316,7 +1316,7 @@ CacheFileIOManager::OnProfile()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  // All functions return a clone.
+  
   ioMan->mCacheDirectory.swap(directory);
 
 #if defined(MOZ_WIDGET_ANDROID)
@@ -1335,7 +1335,7 @@ CacheFileIOManager::OnProfile()
   return NS_OK;
 }
 
-// static
+
 already_AddRefed<nsIEventTarget>
 CacheFileIOManager::IOTarget()
 {
@@ -1347,7 +1347,7 @@ CacheFileIOManager::IOTarget()
   return target.forget();
 }
 
-// static
+
 already_AddRefed<CacheIOThread>
 CacheFileIOManager::IOThread()
 {
@@ -1359,7 +1359,7 @@ CacheFileIOManager::IOThread()
   return thread.forget();
 }
 
-// static
+
 bool
 CacheFileIOManager::IsOnIOThread()
 {
@@ -1371,7 +1371,7 @@ CacheFileIOManager::IsOnIOThread()
   return false;
 }
 
-// static
+
 bool
 CacheFileIOManager::IsOnIOThreadOrCeased()
 {
@@ -1380,11 +1380,11 @@ CacheFileIOManager::IsOnIOThreadOrCeased()
     return ioMan->mIOThread->IsCurrentThread();
   }
 
-  // Ceased...
+  
   return true;
 }
 
-// static
+
 bool
 CacheFileIOManager::IsShutdown()
 {
@@ -1394,7 +1394,7 @@ CacheFileIOManager::IsShutdown()
   return gInstance->mShuttingDown;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::ScheduleMetadataWrite(CacheFile * aFile)
 {
@@ -1436,7 +1436,7 @@ CacheFileIOManager::ScheduleMetadataWriteInternal(CacheFile * aFile)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::UnscheduleMetadataWrite(CacheFile * aFile)
 {
@@ -1468,7 +1468,7 @@ CacheFileIOManager::UnscheduleMetadataWriteInternal(CacheFile * aFile)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::ShutdownMetadataWriteScheduling()
 {
@@ -1520,7 +1520,7 @@ CacheFileIOManager::Notify(nsITimer * aTimer)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::OpenFile(const nsACString &aKey,
                              uint32_t aFlags, CacheFileIOListener *aCallback)
@@ -1760,12 +1760,12 @@ CacheFileIOManager::CloseHandleInternal(CacheFileHandle *aHandle)
 
   MOZ_ASSERT(CacheFileIOManager::IsOnIOThreadOrCeased());
 
-  // Close file handle
+  
   if (aHandle->mFD) {
     ReleaseNSPRHandleInternal(aHandle);
   }
 
-  // Delete the file if the entry was doomed or invalid
+  
   if (aHandle->mIsDoomed || aHandle->mInvalid) {
     LOG(("CacheFileIOManager::CloseHandleInternal() - Removing file from "
          "disk"));
@@ -1777,7 +1777,7 @@ CacheFileIOManager::CloseHandleInternal(CacheFileHandle *aHandle)
     CacheIndex::RemoveEntry(aHandle->Hash());
   }
 
-  // Don't remove handles after shutdown
+  
   if (!mShuttingDown) {
     if (aHandle->IsSpecialFile()) {
       mSpecialHandles.RemoveElement(aHandle);
@@ -1789,7 +1789,7 @@ CacheFileIOManager::CloseHandleInternal(CacheFileHandle *aHandle)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::Read(CacheFileHandle *aHandle, int64_t aOffset,
                          char *aBuf, int32_t aCount,
@@ -1836,7 +1836,7 @@ CacheFileIOManager::ReadInternal(CacheFileHandle *aHandle, int64_t aOffset,
     NSPRHandleUsed(aHandle);
   }
 
-  // Check again, OpenNSPRHandle could figure out the file was gone.
+  
   if (!aHandle->mFileExists) {
     NS_WARNING("Trying to read from non-existent file");
     return NS_ERROR_NOT_AVAILABLE;
@@ -1855,7 +1855,7 @@ CacheFileIOManager::ReadInternal(CacheFileHandle *aHandle, int64_t aOffset,
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::Write(CacheFileHandle *aHandle, int64_t aOffset,
                           const char *aBuf, int32_t aCount, bool aValidate,
@@ -1870,8 +1870,8 @@ CacheFileIOManager::Write(CacheFileHandle *aHandle, int64_t aOffset,
 
   if (aHandle->IsClosed() || !ioMan) {
     if (!aCallback) {
-      // When no callback is provided, CacheFileIOManager is responsible for
-      // releasing the buffer. We must release it even in case of failure.
+      
+      
       free(const_cast<char *>(aBuf));
     }
     return NS_ERROR_NOT_INITIALIZED;
@@ -1933,12 +1933,12 @@ CacheFileIOManager::WriteInternal(CacheFileHandle *aHandle, int64_t aOffset,
     NSPRHandleUsed(aHandle);
   }
 
-  // Check again, OpenNSPRHandle could figure out the file was gone.
+  
   if (!aHandle->mFileExists) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  // Check whether this write would cause critical low disk space.
+  
   if (aHandle->mFileSize < aOffset + aCount) {
     int64_t freeSpace = -1;
     rv = mCacheDirectory->GetDiskSpaceAvailable(&freeSpace);
@@ -1955,7 +1955,7 @@ CacheFileIOManager::WriteInternal(CacheFileHandle *aHandle, int64_t aOffset,
     }
   }
 
-  // Write invalidates the entry by default
+  
   aHandle->mInvalid = true;
 
   int64_t offset = PR_Seek64(aHandle->mFD, aOffset, PR_SEEK_SET);
@@ -1996,7 +1996,7 @@ CacheFileIOManager::WriteInternal(CacheFileHandle *aHandle, int64_t aOffset,
     return NS_ERROR_FAILURE;
   }
 
-  // Write was successful and this write validates the entry (i.e. metadata)
+  
   if (aValidate) {
     aHandle->mInvalid = false;
   }
@@ -2004,7 +2004,7 @@ CacheFileIOManager::WriteInternal(CacheFileHandle *aHandle, int64_t aOffset,
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::DoomFile(CacheFileHandle *aHandle,
                              CacheFileIOListener *aCallback)
@@ -2041,12 +2041,12 @@ CacheFileIOManager::DoomFileInternal(CacheFileHandle *aHandle)
   }
 
   if (aHandle->mFileExists) {
-    // we need to move the current file to the doomed directory
+    
     if (aHandle->mFD) {
       ReleaseNSPRHandleInternal(aHandle);
     }
 
-    // find unused filename
+    
     nsCOMPtr<nsIFile> file;
     rv = GetDoomedFile(getter_AddRefs(file));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -2092,7 +2092,7 @@ CacheFileIOManager::DoomFileInternal(CacheFileHandle *aHandle)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::DoomFileByKey(const nsACString &aKey,
                                   CacheFileIOListener *aCallback)
@@ -2132,7 +2132,7 @@ CacheFileIOManager::DoomFileByKeyInternal(const SHA1Sum::Hash *aHash)
     return NS_ERROR_FILE_INVALID_PATH;
   }
 
-  // Find active handle
+  
   nsRefPtr<CacheFileHandle> handle;
   mHandles.GetHandle(aHash, getter_AddRefs(handle));
 
@@ -2142,7 +2142,7 @@ CacheFileIOManager::DoomFileByKeyInternal(const SHA1Sum::Hash *aHash)
     return DoomFileInternal(handle);
   }
 
-  // There is no handle for this file, delete the file if exists
+  
   nsCOMPtr<nsIFile> file;
   rv = GetFile(aHash, getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2169,7 +2169,7 @@ CacheFileIOManager::DoomFileByKeyInternal(const SHA1Sum::Hash *aHash)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::ReleaseNSPRHandle(CacheFileHandle *aHandle)
 {
@@ -2207,7 +2207,7 @@ CacheFileIOManager::ReleaseNSPRHandleInternal(CacheFileHandle *aHandle)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::TruncateSeekSetEOF(CacheFileHandle *aHandle,
                                        int64_t aTruncatePos, int64_t aEOFPos,
@@ -2232,7 +2232,7 @@ CacheFileIOManager::TruncateSeekSetEOF(CacheFileHandle *aHandle,
   return NS_OK;
 }
 
-// static
+
 void CacheFileIOManager::GetCacheDirectory(nsIFile** result)
 {
   *result = nullptr;
@@ -2247,7 +2247,7 @@ void CacheFileIOManager::GetCacheDirectory(nsIFile** result)
 
 #if defined(MOZ_WIDGET_ANDROID)
 
-// static
+
 void CacheFileIOManager::GetProfilelessCacheDirectory(nsIFile** result)
 {
   *result = nullptr;
@@ -2262,7 +2262,7 @@ void CacheFileIOManager::GetProfilelessCacheDirectory(nsIFile** result)
 
 #endif
 
-// static
+
 nsresult
 CacheFileIOManager::GetEntryInfo(const SHA1Sum::Hash *aHash,
                                  CacheStorageService::EntryInfoCallback *aCallback)
@@ -2287,7 +2287,7 @@ CacheFileIOManager::GetEntryInfo(const SHA1Sum::Hash *aHash,
 
     MOZ_ASSERT(info);
     if (!info) {
-      return NS_OK; // ignore
+      return NS_OK; 
     }
 
     nsRefPtr<CacheStorageService> service = CacheStorageService::Self();
@@ -2295,27 +2295,27 @@ CacheFileIOManager::GetEntryInfo(const SHA1Sum::Hash *aHash,
       return NS_ERROR_NOT_INITIALIZED;
     }
 
-    // Invokes OnCacheEntryInfo when an existing entry is found
+    
     if (service->GetCacheEntryInfo(info, enhanceId, uriSpec, aCallback)) {
       return NS_OK;
     }
 
-    // When we are here, there is no existing entry and we need
-    // to synchrnously load metadata from a disk file.
+    
+    
   }
 
-  // Locate the actual file
+  
   nsCOMPtr<nsIFile> file;
   ioMan->GetFile(aHash, getter_AddRefs(file));
 
-  // Read metadata from the file synchronously
+  
   nsRefPtr<CacheFileMetadata> metadata = new CacheFileMetadata();
   rv = metadata->SyncReadMetadata(file);
   if (NS_FAILED(rv)) {
     return NS_OK;
   }
 
-  // Now get the context + enhance id + URL from the key.
+  
   nsAutoCString key;
   metadata->GetKey(key);
 
@@ -2326,7 +2326,7 @@ CacheFileIOManager::GetEntryInfo(const SHA1Sum::Hash *aHash,
     return NS_OK;
   }
 
-  // Pick all data to pass to the callback.
+  
   int64_t dataSize = metadata->Offset();
   uint32_t fetchCount;
   if (NS_FAILED(metadata->GetFetchCount(&fetchCount))) {
@@ -2341,7 +2341,7 @@ CacheFileIOManager::GetEntryInfo(const SHA1Sum::Hash *aHash,
     lastModified = 0;
   }
 
-  // Call directly on the callback.
+  
   aCallback->OnEntryInfo(uriSpec, enhanceId, dataSize, fetchCount,
                          lastModified, expirationTime);
 
@@ -2370,12 +2370,12 @@ CacheFileIOManager::TruncateSeekSetEOFInternal(CacheFileHandle *aHandle,
     NSPRHandleUsed(aHandle);
   }
 
-  // Check again, OpenNSPRHandle could figure out the file was gone.
+  
   if (!aHandle->mFileExists) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  // Check whether this operation would cause critical low disk space.
+  
   if (aHandle->mFileSize < aEOFPos) {
     int64_t freeSpace = -1;
     rv = mCacheDirectory->GetDiskSpaceAvailable(&freeSpace);
@@ -2393,7 +2393,7 @@ CacheFileIOManager::TruncateSeekSetEOFInternal(CacheFileHandle *aHandle,
     }
   }
 
-  // This operation always invalidates the entry
+  
   aHandle->mInvalid = true;
 
   rv = TruncFile(aHandle->mFD, aTruncatePos);
@@ -2420,7 +2420,7 @@ CacheFileIOManager::TruncateSeekSetEOFInternal(CacheFileHandle *aHandle,
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::RenameFile(CacheFileHandle *aHandle,
                                const nsACString &aNewName,
@@ -2463,7 +2463,7 @@ CacheFileIOManager::RenameFileInternal(CacheFileHandle *aHandle,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  // Doom old handle if it exists and is not doomed
+  
   for (uint32_t i = 0 ; i < mSpecialHandles.Length() ; i++) {
     if (!mSpecialHandles[i]->IsDoomed() &&
         mSpecialHandles[i]->Key() == aNewName) {
@@ -2509,7 +2509,7 @@ CacheFileIOManager::RenameFileInternal(CacheFileHandle *aHandle,
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::EvictIfOverLimit()
 {
@@ -2556,7 +2556,7 @@ CacheFileIOManager::EvictIfOverLimitInternal()
   if (NS_WARN_IF(NS_FAILED(rv))) {
     freeSpace = -1;
 
-    // Do not change smart size.
+    
     LOG(("CacheFileIOManager::EvictIfOverLimitInternal() - "
          "GetDiskSpaceAvailable() failed! [rv=0x%08x]", rv));
   } else {
@@ -2603,11 +2603,11 @@ CacheFileIOManager::OverLimitEvictionInternal()
 
   MOZ_ASSERT(mIOThread->IsCurrentThread());
 
-  // mOverLimitEvicting is accessed only on IO thread, so we can set it to false
-  // here and set it to true again once we dispatch another event that will
-  // continue with the eviction. The reason why we do so is that we can fail
-  // early anywhere in this method and the variable will contain a correct
-  // value. Otherwise we would need to set it to false on every failing place.
+  
+  
+  
+  
+  
   mOverLimitEvicting = false;
 
   if (mShuttingDown) {
@@ -2618,7 +2618,7 @@ CacheFileIOManager::OverLimitEvictionInternal()
     int64_t freeSpace = -1;
     rv = mCacheDirectory->GetDiskSpaceAvailable(&freeSpace);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      // Do not change smart size.
+      
       LOG(("CacheFileIOManager::EvictIfOverLimitInternal() - "
            "GetDiskSpaceAvailable() failed! [rv=0x%08x]", rv));
     } else {
@@ -2666,30 +2666,30 @@ CacheFileIOManager::OverLimitEvictionInternal()
     } else if (rv == NS_ERROR_NOT_AVAILABLE) {
       LOG(("CacheFileIOManager::OverLimitEvictionInternal() - "
            "DoomFileByKeyInternal() failed. [rv=0x%08x]", rv));
-      // TODO index is outdated, start update
+      
 
-      // Make sure index won't return the same entry again
+      
       CacheIndex::RemoveEntry(&hash);
       consecutiveFailures = 0;
     } else {
-      // This shouldn't normally happen, but the eviction must not fail
-      // completely if we ever encounter this problem.
+      
+      
       NS_WARNING("CacheFileIOManager::OverLimitEvictionInternal() - Unexpected "
                  "failure of DoomFileByKeyInternal()");
 
       LOG(("CacheFileIOManager::OverLimitEvictionInternal() - "
            "DoomFileByKeyInternal() failed. [rv=0x%08x]", rv));
 
-      // Normally, CacheIndex::UpdateEntry() is called only to update newly
-      // created/opened entries which are always fresh and UpdateEntry() expects
-      // and checks this flag. The way we use UpdateEntry() here is a kind of
-      // hack and we must make sure the flag is set by calling
-      // EnsureEntryExists().
+      
+      
+      
+      
+      
       rv = CacheIndex::EnsureEntryExists(&hash);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      // Move the entry at the end of both lists to make sure we won't end up
-      // failing on one entry forever.
+      
+      
       uint32_t frecency = 0;
       uint32_t expTime = nsICacheEntry::NO_EXPIRATION_TIME;
       rv = CacheIndex::UpdateEntry(&hash, &frecency, &expTime, nullptr);
@@ -2697,10 +2697,10 @@ CacheFileIOManager::OverLimitEvictionInternal()
 
       consecutiveFailures++;
       if (consecutiveFailures >= cnt) {
-        // This doesn't necessarily mean that we've tried to doom every entry
-        // but we've reached a sane number of tries. It is likely that another
-        // eviction will start soon. And as said earlier, this normally doesn't
-        // happen at all.
+        
+        
+        
+        
         return NS_OK;
       }
     }
@@ -2710,7 +2710,7 @@ CacheFileIOManager::OverLimitEvictionInternal()
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::EvictAll()
 {
@@ -2752,7 +2752,7 @@ EvictionNotifierRunnable::Run()
   return NS_OK;
 }
 
-} // anonymous namespace
+} 
 
 nsresult
 CacheFileIOManager::EvictAllInternal()
@@ -2766,9 +2766,9 @@ CacheFileIOManager::EvictAllInternal()
   nsRefPtr<EvictionNotifierRunnable> r = new EvictionNotifierRunnable();
 
   if (!mCacheDirectory) {
-    // This is a kind of hack. Somebody called EvictAll() without a profile.
-    // This happens in xpcshell tests that use cache without profile. We need
-    // to notify observers in this case since the tests are waiting for it.
+    
+    
+    
     NS_DispatchToMainThread(r);
     return NS_ERROR_FILE_INVALID_PATH;
   }
@@ -2784,7 +2784,7 @@ CacheFileIOManager::EvictAllInternal()
     }
   }
 
-  // Doom all active handles
+  
   nsTArray<nsRefPtr<CacheFileHandle> > handles;
   mHandles.GetActiveHandles(&handles);
 
@@ -2807,16 +2807,16 @@ CacheFileIOManager::EvictAllInternal()
     return rv;
   }
 
-  // Trash current entries directory
+  
   rv = TrashDirectory(file);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  // Files are now inaccessible in entries directory, notify observers.
+  
   NS_DispatchToMainThread(r);
 
-  // Create a new empty entries directory
+  
   rv = CheckAndCreateDir(mCacheDirectory, kEntriesDir, false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -2827,7 +2827,7 @@ CacheFileIOManager::EvictAllInternal()
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::EvictByContext(nsILoadContextInfo *aLoadContextInfo)
 {
@@ -2885,7 +2885,7 @@ CacheFileIOManager::EvictByContextInternal(nsILoadContextInfo *aLoadContextInfo)
     }
   }
 
-  // Doom all active handles that matches the load context
+  
   nsTArray<nsRefPtr<CacheFileHandle> > handles;
   mHandles.GetActiveHandles(&handles);
 
@@ -2920,7 +2920,7 @@ CacheFileIOManager::EvictByContextInternal(nsILoadContextInfo *aLoadContextInfo)
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::CacheIndexStateChanged()
 {
@@ -2928,12 +2928,12 @@ CacheFileIOManager::CacheIndexStateChanged()
 
   nsresult rv;
 
-  // CacheFileIOManager lives longer than CacheIndex so gInstance must be
-  // non-null here.
+  
+  
   MOZ_ASSERT(gInstance);
 
-  // We have to re-distatch even if we are on IO thread to prevent reentering
-  // the lock in CacheIndex
+  
+  
   nsCOMPtr<nsIRunnable> ev;
   ev = NS_NewRunnableMethod(
     gInstance, &CacheFileIOManager::CacheIndexStateChangedInternal);
@@ -2953,7 +2953,7 @@ nsresult
 CacheFileIOManager::CacheIndexStateChangedInternal()
 {
   if (mShuttingDown) {
-    // ignore notification during shutdown
+    
     return NS_OK;
   }
 
@@ -2968,10 +2968,8 @@ CacheFileIOManager::CacheIndexStateChangedInternal()
 nsresult
 CacheFileIOManager::TrashDirectory(nsIFile *aFile)
 {
-#ifdef PR_LOGGING
   nsAutoCString path;
   aFile->GetNativePath(path);
-#endif
   LOG(("CacheFileIOManager::TrashDirectory() [file=%s]", path.get()));
 
   nsresult rv;
@@ -2979,8 +2977,8 @@ CacheFileIOManager::TrashDirectory(nsIFile *aFile)
   MOZ_ASSERT(mIOThread->IsCurrentThread());
   MOZ_ASSERT(mCacheDirectory);
 
-  // When the directory is empty, it is cheaper to remove it directly instead of
-  // using the trash mechanism.
+  
+  
   bool isEmpty;
   rv = IsEmptyDirectory(aFile, &isEmpty);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3036,7 +3034,7 @@ CacheFileIOManager::TrashDirectory(nsIFile *aFile)
   return NS_OK;
 }
 
-// static
+
 void
 CacheFileIOManager::OnTrashTimer(nsITimer *aTimer, void *aClosure)
 {
@@ -3135,9 +3133,9 @@ CacheFileIOManager::RemoveTrashInternal()
     }
   }
 
-  // mRemovingTrashDirs is accessed only on IO thread, so we can drop the flag
-  // here and set it again once we dispatch a continuation event. By doing so,
-  // we don't have to drop the flag on any possible early return.
+  
+  
+  
   mRemovingTrashDirs = false;
 
   while (true) {
@@ -3148,7 +3146,7 @@ CacheFileIOManager::RemoveTrashInternal()
       return NS_OK;
     }
 
-    // Find some trash directory
+    
     if (!mTrashDir) {
       MOZ_ASSERT(!mTrashDirEnumerator);
 
@@ -3167,17 +3165,17 @@ CacheFileIOManager::RemoveTrashInternal()
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
-      continue; // check elapsed time
+      continue; 
     }
 
-    // We null out mTrashDirEnumerator once we remove all files in the
-    // directory, so remove the trash directory if we don't have enumerator.
+    
+    
     if (!mTrashDirEnumerator) {
       rv = mTrashDir->Remove(false);
       if (NS_FAILED(rv)) {
-        // There is no reason why removing an empty directory should fail, but
-        // if it does, we should continue and try to remove all other trash
-        // directories.
+        
+        
+        
         nsAutoCString leafName;
         mTrashDir->GetNativeLeafName(leafName);
         mFailedTrashDirs.AppendElement(leafName);
@@ -3186,7 +3184,7 @@ CacheFileIOManager::RemoveTrashInternal()
       }
 
       mTrashDir = nullptr;
-      continue; // check elapsed time
+      continue; 
     }
 
     nsCOMPtr<nsIFile> file;
@@ -3194,17 +3192,15 @@ CacheFileIOManager::RemoveTrashInternal()
     if (!file) {
       mTrashDirEnumerator->Close();
       mTrashDirEnumerator = nullptr;
-      continue; // check elapsed time
+      continue; 
     } else {
       bool isDir = false;
       file->IsDirectory(&isDir);
       if (isDir) {
         NS_WARNING("Found a directory in a trash directory! It will be removed "
                    "recursively, but this can block IO thread for a while!");
-#ifdef PR_LOGGING
         nsAutoCString path;
         file->GetNativePath(path);
-#endif
         LOG(("CacheFileIOManager::RemoveTrashInternal() - Found a directory in a trash "
             "directory! It will be removed recursively, but this can block IO "
             "thread for a while! [file=%s]", path.get()));
@@ -3224,8 +3220,8 @@ CacheFileIOManager::FindTrashDirToRemove()
 
   nsresult rv;
 
-  // We call this method on the main thread during shutdown when user wants to
-  // remove all cache files.
+  
+  
   MOZ_ASSERT(mIOThread->IsCurrentThread() || mShuttingDown);
 
   nsCOMPtr<nsISimpleEnumerator> iter;
@@ -3277,14 +3273,14 @@ CacheFileIOManager::FindTrashDirToRemove()
     return NS_OK;
   }
 
-  // When we're here we've tried to delete all trash directories. Clear
-  // mFailedTrashDirs so we will try to delete them again when we start removing
-  // trash directories next time.
+  
+  
+  
   mFailedTrashDirs.Clear();
   return NS_ERROR_NOT_AVAILABLE;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::InitIndexEntry(CacheFileHandle *aHandle,
                                    uint32_t         aAppId,
@@ -3313,7 +3309,7 @@ CacheFileIOManager::InitIndexEntry(CacheFileHandle *aHandle,
   return NS_OK;
 }
 
-// static
+
 nsresult
 CacheFileIOManager::UpdateIndexEntry(CacheFileHandle *aHandle,
                                      const uint32_t  *aFrecency,
@@ -3372,7 +3368,7 @@ CacheFileIOManager::CreateFile(CacheFileHandle *aHandle)
   return NS_OK;
 }
 
-// static
+
 void
 CacheFileIOManager::HashToStr(const SHA1Sum::Hash *aHash, nsACString &_retval)
 {
@@ -3385,7 +3381,7 @@ CacheFileIOManager::HashToStr(const SHA1Sum::Hash *aHash, nsACString &_retval)
   }
 }
 
-// static
+
 nsresult
 CacheFileIOManager::StrToHash(const nsACString &aHash, SHA1Sum::Hash *_retval)
 {
@@ -3483,7 +3479,7 @@ CacheFileIOManager::GetDoomedFile(nsIFile **_retval)
     leafName.Truncate();
   }
 
-//  Telemetry::Accumulate(Telemetry::DISK_CACHE_GETDOOMEDFILE_ITERATIONS, iter);
+
 
   file.swap(*_retval);
   return NS_OK;
@@ -3531,7 +3527,7 @@ CacheFileIOManager::CheckAndCreateDir(nsIFile *aFile, const char *aDir,
     bool isDirectory = false;
     rv = file->IsDirectory(&isDirectory);
     if (NS_FAILED(rv) || !isDirectory) {
-      // Try to remove the file
+      
       rv = file->Remove(false);
       if (NS_SUCCEEDED(rv)) {
         exists = false;
@@ -3576,22 +3572,22 @@ CacheFileIOManager::CreateCacheTree()
 
   nsresult rv;
 
-  // ensure parent directory exists
+  
   nsCOMPtr<nsIFile> parentDir;
   rv = mCacheDirectory->GetParent(getter_AddRefs(parentDir));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = CheckAndCreateDir(parentDir, nullptr, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // ensure cache directory exists
+  
   rv = CheckAndCreateDir(mCacheDirectory, nullptr, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // ensure entries directory exists
+  
   rv = CheckAndCreateDir(mCacheDirectory, kEntriesDir, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // ensure doomed directory exists
+  
   rv = CheckAndCreateDir(mCacheDirectory, kDoomedDir, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3601,8 +3597,8 @@ CacheFileIOManager::CreateCacheTree()
     nsRefPtr<CacheFileContextEvictor> contextEvictor;
     contextEvictor = new CacheFileContextEvictor();
 
-    // Init() method will try to load unfinished contexts from the disk. Store
-    // the evictor as a member only when there is some unfinished job.
+    
+    
     contextEvictor->Init(mCacheDirectory);
     if (contextEvictor->ContextsCount()) {
       contextEvictor.swap(mContextEvictor);
@@ -3612,7 +3608,7 @@ CacheFileIOManager::CreateCacheTree()
   StartRemovingTrash();
 
   if (!CacheObserver::CacheFSReported()) {
-    uint32_t fsType = 4; // Other OS
+    uint32_t fsType = 4; 
 
 #ifdef XP_WIN
     nsAutoString target;
@@ -3666,7 +3662,7 @@ CacheFileIOManager::OpenNSPRHandle(CacheFileHandle *aHandle, bool aCreate)
   nsresult rv;
 
   if (mHandlesByLastUsed.Length() == kOpenHandlesLimit) {
-    // close handle that hasn't been used for the longest time
+    
     rv = ReleaseNSPRHandleInternal(mHandlesByLastUsed[0]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -3674,8 +3670,8 @@ CacheFileIOManager::OpenNSPRHandle(CacheFileHandle *aHandle, bool aCreate)
   if (aCreate) {
     rv = aHandle->mFile->OpenNSPRFileDesc(
            PR_RDWR | PR_CREATE_FILE | PR_TRUNCATE, 0600, &aHandle->mFD);
-    if (rv == NS_ERROR_FILE_ALREADY_EXISTS ||  // error from nsLocalFileWin
-        rv == NS_ERROR_FILE_NO_DEVICE_SPACE) { // error from nsLocalFileUnix
+    if (rv == NS_ERROR_FILE_ALREADY_EXISTS ||  
+        rv == NS_ERROR_FILE_NO_DEVICE_SPACE) { 
       LOG(("CacheFileIOManager::OpenNSPRHandle() - Cannot create a new file, we"
            " might reached a limit on FAT32. Will evict a single entry and try "
            "again. [hash=%08x%08x%08x%08x%08x]", LOGSHA1(aHandle->Hash())));
@@ -3694,7 +3690,7 @@ CacheFileIOManager::OpenNSPRHandle(CacheFileHandle *aHandle, bool aCreate)
              " with hash %08x%08x%08x%08x%08x. %s to create the new file.",
              LOGSHA1(&hash), NS_SUCCEEDED(rv) ? "Succeeded" : "Failed"));
 
-        // Report the full size only once per session
+        
         static bool sSizeReported = false;
         if (!sSizeReported) {
           uint32_t cacheUsage;
@@ -3761,11 +3757,8 @@ CacheFileIOManager::SyncRemoveDir(nsIFile *aFile, const char *aDir)
     }
   }
 
-#ifdef PR_LOGGING
   nsAutoCString path;
   file->GetNativePath(path);
-#endif
-
   LOG(("CacheFileIOManager::SyncRemoveDir() - Removing directory %s",
        path.get()));
 
@@ -3788,12 +3781,12 @@ CacheFileIOManager::SyncRemoveAllCacheFiles()
   SyncRemoveDir(mCacheDirectory, kEntriesDir);
   SyncRemoveDir(mCacheDirectory, kDoomedDir);
 
-  // Clear any intermediate state of trash dir enumeration.
+  
   mFailedTrashDirs.Clear();
   mTrashDir = nullptr;
 
   while (true) {
-    // FindTrashDirToRemove() fills mTrashDir if there is any trash directory.
+    
     rv = FindTrashDirToRemove();
     if (rv == NS_ERROR_NOT_AVAILABLE) {
       LOG(("CacheFileIOManager::SyncRemoveAllCacheFiles() - No trash directory "
@@ -3816,48 +3809,48 @@ CacheFileIOManager::SyncRemoveAllCacheFiles()
   }
 }
 
-// Returns default ("smart") size (in KB) of cache, given available disk space
-// (also in KB)
+
+
 static uint32_t
 SmartCacheSize(const uint32_t availKB)
 {
   uint32_t maxSize = kMaxCacheSizeKB;
 
   if (availKB > 100 * 1024 * 1024) {
-    return maxSize;  // skip computing if we're over 100 GB
+    return maxSize;  
   }
 
-  // Grow/shrink in 10 MB units, deliberately, so that in the common case we
-  // don't shrink cache and evict items every time we startup (it's important
-  // that we don't slow down startup benchmarks).
+  
+  
+  
   uint32_t sz10MBs = 0;
   uint32_t avail10MBs = availKB / (1024*10);
 
-  // .5% of space above 25 GB
+  
   if (avail10MBs > 2500) {
     sz10MBs += static_cast<uint32_t>((avail10MBs - 2500)*.005);
     avail10MBs = 2500;
   }
-  // 1% of space between 7GB -> 25 GB
+  
   if (avail10MBs > 700) {
     sz10MBs += static_cast<uint32_t>((avail10MBs - 700)*.01);
     avail10MBs = 700;
   }
-  // 5% of space between 500 MB -> 7 GB
+  
   if (avail10MBs > 50) {
     sz10MBs += static_cast<uint32_t>((avail10MBs - 50)*.05);
     avail10MBs = 50;
   }
 
 #ifdef ANDROID
-  // On Android, smaller/older devices may have very little storage and
-  // device owners may be sensitive to storage footprint: Use a smaller
-  // percentage of available space and a smaller minimum.
+  
+  
+  
 
-  // 20% of space up to 500 MB (10 MB min)
+  
   sz10MBs += std::max<uint32_t>(1, static_cast<uint32_t>(avail10MBs * .2));
 #else
-  // 40% of space up to 500 MB (50 MB min)
+  
   sz10MBs += std::max<uint32_t>(5, static_cast<uint32_t>(avail10MBs * .4));
 #endif
 
@@ -3879,7 +3872,7 @@ CacheFileIOManager::UpdateSmartCacheSize(int64_t aFreeSpace)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  // Wait at least kSmartSizeUpdateInterval before recomputing smart size.
+  
   static const TimeDuration kUpdateLimit =
     TimeDuration::FromMilliseconds(kSmartSizeUpdateInterval);
   if (!mLastSmartSizeTime.IsNull() &&
@@ -3887,7 +3880,7 @@ CacheFileIOManager::UpdateSmartCacheSize(int64_t aFreeSpace)
     return NS_OK;
   }
 
-  // Do not compute smart size when cache size is not reliable.
+  
   bool isUpToDate = false;
   CacheIndex::IsUpToDate(&isUpToDate);
   if (!isUpToDate) {
@@ -3908,7 +3901,7 @@ CacheFileIOManager::UpdateSmartCacheSize(int64_t aFreeSpace)
                                       cacheUsage);
 
   if (smartSize == (CacheObserver::DiskCacheCapacity() >> 10)) {
-    // Smart size has not changed.
+    
     return NS_OK;
   }
 
@@ -3917,15 +3910,15 @@ CacheFileIOManager::UpdateSmartCacheSize(int64_t aFreeSpace)
   return NS_OK;
 }
 
-// Memory reporting
 
-namespace { // anon
 
-// A helper class that dispatches and waits for an event that gets result of
-// CacheFileIOManager->mHandles.SizeOfExcludingThis() on the I/O thread
-// to safely get handles memory report.
-// We must do this, since the handle list is only accessed and managed w/o
-// locking on the I/O thread.  That is by design.
+namespace { 
+
+
+
+
+
+
 class SizeOfHandlesRunnable : public nsRunnable
 {
 public:
@@ -3961,8 +3954,8 @@ public:
   NS_IMETHOD Run()
   {
     mozilla::MonitorAutoLock mon(mMonitor);
-    // Excluding this since the object itself is a member of CacheFileIOManager
-    // reported in CacheFileIOManager::SizeOfIncludingThis as part of |this|.
+    
+    
     mSize = mHandles.SizeOfExcludingThis(mMallocSizeOf);
     for (uint32_t i = 0; i < mSpecialHandles.Length(); ++i) {
       mSize += mSpecialHandles[i]->SizeOfIncludingThis(mMallocSizeOf);
@@ -3980,7 +3973,7 @@ private:
   size_t mSize;
 };
 
-} // anon
+} 
 
 size_t
 CacheFileIOManager::SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const
@@ -3991,14 +3984,14 @@ CacheFileIOManager::SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSize
   if (mIOThread) {
     n += mIOThread->SizeOfIncludingThis(mallocSizeOf);
 
-    // mHandles and mSpecialHandles must be accessed only on the I/O thread,
-    // must sync dispatch.
+    
+    
     nsRefPtr<SizeOfHandlesRunnable> sizeOfHandlesRunnable =
       new SizeOfHandlesRunnable(mallocSizeOf, mHandles, mSpecialHandles);
     n += sizeOfHandlesRunnable->Get(mIOThread);
   }
 
-  // mHandlesByLastUsed just refers handles reported by mHandles.
+  
 
   sizeOf = do_QueryInterface(mCacheDirectory);
   if (sizeOf)
@@ -4023,7 +4016,7 @@ CacheFileIOManager::SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSize
   return n;
 }
 
-// static
+
 size_t
 CacheFileIOManager::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
 {
@@ -4033,12 +4026,12 @@ CacheFileIOManager::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
   return gInstance->SizeOfExcludingThisInternal(mallocSizeOf);
 }
 
-// static
+
 size_t
 CacheFileIOManager::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
 {
   return mallocSizeOf(gInstance) + SizeOfExcludingThis(mallocSizeOf);
 }
 
-} // net
-} // mozilla
+} 
+} 

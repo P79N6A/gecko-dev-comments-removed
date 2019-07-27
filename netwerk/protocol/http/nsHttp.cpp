@@ -1,10 +1,10 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sw=4 sts=4 et cin: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// HttpLog.h should generally be included first
+
+
+
+
+
+
 #include "HttpLog.h"
 
 #include "nsHttp.h"
@@ -13,19 +13,17 @@
 #include "mozilla/HashFunctions.h"
 #include "nsCRT.h"
 
-#if defined(PR_LOGGING)
 PRLogModuleInfo *gHttpLog = nullptr;
-#endif
 
 namespace mozilla {
 namespace net {
 
-// define storage for all atoms
+
 #define HTTP_ATOM(_name, _value) nsHttpAtom nsHttp::_name = { _value };
 #include "nsHttpAtomList.h"
 #undef HTTP_ATOM
 
-// find out how many atoms we have
+
 #define HTTP_ATOM(_name, _value) Unused_ ## _name,
 enum {
 #include "nsHttpAtomList.h"
@@ -33,9 +31,9 @@ enum {
 };
 #undef HTTP_ATOM
 
-// we keep a linked list of atoms allocated on the heap for easy clean up when
-// the atom table is destroyed.  The structure and value string are allocated
-// as one contiguous block.
+
+
+
 
 struct HttpHeapAtom {
     struct HttpHeapAtom *next;
@@ -56,14 +54,14 @@ NewHeapAtom(const char *value) {
         return nullptr;
     memcpy(a->value, value, len + 1);
 
-    // add this heap atom to the list of all heap atoms
+    
     a->next = sHeapAtoms;
     sHeapAtoms = a;
 
     return a;
 }
 
-// Hash string ignore case, based on PL_HashString
+
 static PLDHashNumber
 StringHash(PLDHashTable *table, const void *key)
 {
@@ -92,7 +90,7 @@ static const PLDHashTableOps ops = {
     nullptr
 };
 
-// We put the atoms in a hash table for speedy lookup.. see ResolveAtom.
+
 nsresult
 nsHttp::CreateAtomTable()
 {
@@ -102,13 +100,13 @@ nsHttp::CreateAtomTable()
         sLock = new Mutex("nsHttp.sLock");
     }
 
-    // The initial length for this table is a value greater than the number of
-    // known atoms (NUM_HTTP_ATOMS) because we expect to encounter a few random
-    // headers right off the bat.
+    
+    
+    
     PL_DHashTableInit(&sAtomTable, &ops, sizeof(PLDHashEntryStub),
                       NUM_HTTP_ATOMS + 10);
 
-    // fill the table with our known atoms
+    
     const char *const atoms[] = {
 #define HTTP_ATOM(_name, _value) nsHttp::_name._val,
 #include "nsHttpAtomList.h"
@@ -154,7 +152,7 @@ nsHttp::GetLock()
     return sLock;
 }
 
-// this function may be called from multiple threads
+
 nsHttpAtom
 nsHttp::ResolveAtom(const char *str)
 {
@@ -168,57 +166,57 @@ nsHttp::ResolveAtom(const char *str)
     PLDHashEntryStub *stub = reinterpret_cast<PLDHashEntryStub *>
         (PL_DHashTableAdd(&sAtomTable, str, fallible));
     if (!stub)
-        return atom;  // out of memory
+        return atom;  
 
     if (stub->key) {
         atom._val = reinterpret_cast<const char *>(stub->key);
         return atom;
     }
 
-    // if the atom could not be found in the atom table, then we'll go
-    // and allocate a new atom on the heap.
+    
+    
     HttpHeapAtom *heapAtom = NewHeapAtom(str);
     if (!heapAtom)
-        return atom;  // out of memory
+        return atom;  
 
     stub->key = atom._val = heapAtom->value;
     return atom;
 }
 
-//
-// From section 2.2 of RFC 2616, a token is defined as:
-//
-//   token          = 1*<any CHAR except CTLs or separators>
-//   CHAR           = <any US-ASCII character (octets 0 - 127)>
-//   separators     = "(" | ")" | "<" | ">" | "@"
-//                  | "," | ";" | ":" | "\" | <">
-//                  | "/" | "[" | "]" | "?" | "="
-//                  | "{" | "}" | SP | HT
-//   CTL            = <any US-ASCII control character
-//                    (octets 0 - 31) and DEL (127)>
-//   SP             = <US-ASCII SP, space (32)>
-//   HT             = <US-ASCII HT, horizontal-tab (9)>
-//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static const char kValidTokenMap[128] = {
-    0, 0, 0, 0, 0, 0, 0, 0, //   0
-    0, 0, 0, 0, 0, 0, 0, 0, //   8
-    0, 0, 0, 0, 0, 0, 0, 0, //  16
-    0, 0, 0, 0, 0, 0, 0, 0, //  24
+    0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 
 
-    0, 1, 0, 1, 1, 1, 1, 1, //  32
-    0, 0, 1, 1, 0, 1, 1, 0, //  40
-    1, 1, 1, 1, 1, 1, 1, 1, //  48
-    1, 1, 0, 0, 0, 0, 0, 0, //  56
+    0, 1, 0, 1, 1, 1, 1, 1, 
+    0, 0, 1, 1, 0, 1, 1, 0, 
+    1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 0, 0, 0, 0, 0, 0, 
 
-    0, 1, 1, 1, 1, 1, 1, 1, //  64
-    1, 1, 1, 1, 1, 1, 1, 1, //  72
-    1, 1, 1, 1, 1, 1, 1, 1, //  80
-    1, 1, 1, 0, 0, 0, 1, 1, //  88
+    0, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 1, 0, 0, 0, 1, 1, 
 
-    1, 1, 1, 1, 1, 1, 1, 1, //  96
-    1, 1, 1, 1, 1, 1, 1, 1, // 104
-    1, 1, 1, 1, 1, 1, 1, 1, // 112
-    1, 1, 1, 0, 1, 0, 1, 0  // 120
+    1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 1, 0, 1, 0, 1, 0  
 };
 bool
 nsHttp::IsValidToken(const char *start, const char *end)
@@ -235,15 +233,15 @@ nsHttp::IsValidToken(const char *start, const char *end)
     return true;
 }
 
-// static
+
 bool
 nsHttp::IsReasonableHeaderValue(const nsACString &s)
 {
-  // Header values MUST NOT contain line-breaks.  RFC 2616 technically
-  // permits CTL characters, including CR and LF, in header values provided
-  // they are quoted.  However, this can lead to problems if servers do not
-  // interpret quoted strings properly.  Disallowing CR and LF here seems
-  // reasonable and keeps things simple.  We also disallow a null byte.
+  
+  
+  
+  
+  
   const nsACString::char_type* end = s.EndReading();
   for (const nsACString::char_type* i = s.BeginReading(); i != end; ++i) {
     if (*i == '\r' || *i == '\n' || *i == '\0') {
@@ -287,12 +285,12 @@ nsHttp::ParseInt64(const char *input, const char **next, int64_t *r)
     *r = 0;
     while (*input >= '0' && *input <= '9') {
         int64_t next = 10 * (*r) + (*input - '0');
-        if (next < *r) // overflow?
+        if (next < *r) 
             return false;
         *r = next;
         ++input;
     }
-    if (input == start) // nothing parsed?
+    if (input == start) 
         return false;
     if (next)
         *next = input;
@@ -313,9 +311,9 @@ localEnsureBuffer(nsAutoArrayPtr<T> &buf, uint32_t newSize,
   if (objSize >= newSize)
     return;
 
-  // Leave a little slop on the new allocation - add 2KB to
-  // what we need and then round the result up to a 4KB (page)
-  // boundary.
+  
+  
+  
 
   objSize = (newSize + 2048 + 4095) & ~4095;
 
@@ -338,7 +336,7 @@ void EnsureBuffer(nsAutoArrayPtr<uint8_t> &buf, uint32_t newSize,
 {
     localEnsureBuffer<uint8_t> (buf, newSize, preserve, objSize);
 }
-///
+
 
 void
 ParsedHeaderValueList::Tokenize(char *input, uint32_t inputLen, char **token,
@@ -361,7 +359,7 @@ ParsedHeaderValueList::Tokenize(char *input, uint32_t inputLen, char **token,
     *tokenLen = inputLen;
 
     for (uint32_t index = 0; !foundToken && index < inputLen; ++index) {
-        // strip leading cruft
+        
         if (!foundFirst &&
             (input[index] == ' ' || input[index] == '"' || input[index] == '\t')) {
             (*token)++;
@@ -395,7 +393,7 @@ ParsedHeaderValueList::Tokenize(char *input, uint32_t inputLen, char **token,
         *tokenLen = (input + inputLen) - *token;
     }
 
-    // strip trailing cruft
+    
     for (char *index = *token + *tokenLen - 1; index >= *token; --index) {
         if (*index != ' ' && *index != '\t' && *index != '"') {
             break;
@@ -461,5 +459,5 @@ ParsedHeaderValueListList::ParsedHeaderValueListList(const nsCString &fullHeader
     }
 }
 
-} // namespace mozilla::net
-} // namespace mozilla
+} 
+} 

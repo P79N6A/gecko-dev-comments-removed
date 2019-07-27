@@ -14,7 +14,6 @@
 
 
 
-#if defined(PR_LOGGING)
 PRLogModuleInfo * gCacheLog = nullptr;
 
 
@@ -38,8 +37,6 @@ CacheLogPrintPath(PRLogModuleLevel level, const char * format, nsIFile * item)
         PR_LOG(gCacheLog, level, ("GetNativePath failed: %x", rv));
     }
 }
-
-#endif
 
 
 uint32_t

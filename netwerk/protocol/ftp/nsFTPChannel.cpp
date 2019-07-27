@@ -1,28 +1,26 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sts=4 sw=4 et cin: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "nsFTPChannel.h"
-#include "nsFtpConnectionThread.h"  // defines nsFtpState
+#include "nsFtpConnectionThread.h"  
 
 #include "nsThreadUtils.h"
 #include "mozilla/Attributes.h"
 
-#if defined(PR_LOGGING)
 extern PRLogModuleInfo* gFTPLog;
-#endif /* PR_LOGGING */
 
-// There are two transport connections established for an 
-// ftp connection. One is used for the command channel , and
-// the other for the data channel. The command channel is the first
-// connection made and is used to negotiate the second, data, channel.
-// The data channel is driven by the command channel and is either
-// initiated by the server (PORT command) or by the client (PASV command).
-// Client initiation is the most common case and is attempted first.
 
-//-----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
 
 NS_IMPL_ISUPPORTS_INHERITED(nsFtpChannel,
                             nsBaseChannel,
@@ -32,7 +30,7 @@ NS_IMPL_ISUPPORTS_INHERITED(nsFtpChannel,
                             nsIProxiedChannel,
                             nsIForcePendingChannel)
 
-//-----------------------------------------------------------------------------
+
 
 NS_IMETHODIMP
 nsFtpChannel::SetUploadStream(nsIInputStream *stream,
@@ -43,7 +41,7 @@ nsFtpChannel::SetUploadStream(nsIInputStream *stream,
 
     mUploadStream = stream;
 
-    // NOTE: contentLength is intentionally ignored here.
+    
  
     return NS_OK;
 }
@@ -57,7 +55,7 @@ nsFtpChannel::GetUploadStream(nsIInputStream **stream)
     return NS_OK;
 }
 
-//-----------------------------------------------------------------------------
+
 
 NS_IMETHODIMP
 nsFtpChannel::ResumeAt(uint64_t aStartPos, const nsACString& aEntityID)
@@ -79,7 +77,7 @@ nsFtpChannel::GetEntityID(nsACString& entityID)
     return NS_OK;
 }
 
-//-----------------------------------------------------------------------------
+
 NS_IMETHODIMP
 nsFtpChannel::GetProxyInfo(nsIProxyInfo** aProxyInfo)
 {
@@ -88,7 +86,7 @@ nsFtpChannel::GetProxyInfo(nsIProxyInfo** aProxyInfo)
     return NS_OK;
 }
 
-//-----------------------------------------------------------------------------
+
 
 nsresult
 nsFtpChannel::OpenContentStream(bool async, nsIInputStream **result,
@@ -127,7 +125,7 @@ nsFtpChannel::OnCallbacksChanged()
     mFTPEventSink = nullptr;
 }
 
-//-----------------------------------------------------------------------------
+
 
 namespace {
 
@@ -185,7 +183,7 @@ FTPEventSinkProxy::OnFTPControlLogRunnable::Run()
     return NS_OK;
 }
 
-} // anonymous namespace
+} 
 
 void
 nsFtpChannel::GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult)
@@ -203,10 +201,10 @@ nsFtpChannel::GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult)
 NS_IMETHODIMP
 nsFtpChannel::ForcePending(bool aForcePending)
 {
-    // Set true here so IsPending will return true.
-    // Required for callback diversion from child back to parent. In such cases
-    // OnStopRequest can be called in the parent before callbacks are diverted
-    // back from the child to the listener in the parent.
+    
+    
+    
+    
     mForcePending = aForcePending;
 
     return NS_OK;

@@ -1,21 +1,21 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/FTPChannelChild.h"
@@ -32,26 +32,24 @@ using namespace mozilla::net;
 #include "nsEscape.h"
 #include "nsAlgorithm.h"
 
-//-----------------------------------------------------------------------------
 
-#if defined(PR_LOGGING)
-//
-// Log module for FTP Protocol logging...
-//
-// To enable logging (see prlog.h for full details):
-//
-//    set NSPR_LOG_MODULES=nsFtp:5
-//    set NSPR_LOG_FILE=nspr.log
-//
-// this enables PR_LOG_DEBUG level information and places all output in
-// the file nspr.log
-//
+
+
+
+
+
+
+
+
+
+
+
+
 PRLogModuleInfo* gFTPLog = nullptr;
-#endif
 #undef LOG
 #define LOG(args) PR_LOG(gFTPLog, PR_LOG_DEBUG, args)
 
-//-----------------------------------------------------------------------------
+
 
 #define IDLE_TIMEOUT_PREF     "network.ftp.idleConnectionTimeout"
 #define IDLE_CONNECTION_LIMIT 8 /* TODO pref me */
@@ -61,7 +59,7 @@ PRLogModuleInfo* gFTPLog = nullptr;
 
 nsFtpProtocolHandler *gFtpHandler = nullptr;
 
-//-----------------------------------------------------------------------------
+
 
 nsFtpProtocolHandler::nsFtpProtocolHandler()
     : mIdleTimeout(-1)
@@ -69,10 +67,9 @@ nsFtpProtocolHandler::nsFtpProtocolHandler()
     , mControlQoSBits(0x00)
     , mDataQoSBits(0x00)
 {
-#if defined(PR_LOGGING)
     if (!gFTPLog)
         gFTPLog = PR_NewLogModule("nsFtp");
-#endif
+
     LOG(("FTP:creating handler @%x\n", this));
 
     gFtpHandler = this;
@@ -106,7 +103,7 @@ nsFtpProtocolHandler::Init()
 
         rv = branch->GetIntPref(IDLE_TIMEOUT_PREF, &mIdleTimeout);
         if (NS_FAILED(rv))
-            mIdleTimeout = 5*60; // 5 minute default
+            mIdleTimeout = 5*60; 
 
         rv = branch->AddObserver(IDLE_TIMEOUT_PREF, this, true);
         if (NS_FAILED(rv)) return rv;
@@ -143,8 +140,8 @@ nsFtpProtocolHandler::Init()
 }
 
     
-//-----------------------------------------------------------------------------
-// nsIProtocolHandler methods:
+
+
 
 NS_IMETHODIMP
 nsFtpProtocolHandler::GetScheme(nsACString &result)
@@ -175,19 +172,19 @@ nsFtpProtocolHandler::NewURI(const nsACString &aSpec,
                              nsIURI **result)
 {
     nsAutoCString spec(aSpec);
-    spec.Trim(" \t\n\r"); // Match NS_IsAsciiWhitespace instead of HTML5
+    spec.Trim(" \t\n\r"); 
 
     char *fwdPtr = spec.BeginWriting();
 
-    // now unescape it... %xx reduced inline to resulting character
+    
 
     int32_t len = NS_UnescapeURL(fwdPtr);
 
-    // NS_UnescapeURL() modified spec's buffer, truncate to ensure
-    // spec knows its new length.
+    
+    
     spec.Truncate(len);
 
-    // return an error if we find a NUL, CR, or LF in the path
+    
     if (spec.FindCharInSet(CRLF) >= 0 || spec.FindChar('\0') >= 0)
         return NS_ERROR_MALFORMED_URI;
 
@@ -234,7 +231,7 @@ nsFtpProtocolHandler::NewProxiedChannel2(nsIURI* uri, nsIProxyInfo* proxyInfo,
         return rv;
     }
 
-    // set the loadInfo on the new channel
+    
     rv = channel->SetLoadInfo(aLoadInfo);
     if (NS_FAILED(rv)) {
         return rv;
@@ -251,7 +248,7 @@ nsFtpProtocolHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* proxyInfo,
                                         nsIChannel* *result)
 {
   return NewProxiedChannel2(uri, proxyInfo, proxyResolveFlags,
-                            proxyURI, nullptr /*loadinfo*/,
+                            proxyURI, nullptr ,
                             result);
 }
 
@@ -262,7 +259,7 @@ nsFtpProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
     return NS_OK;
 }
 
-// connection cache methods
+
 
 void
 nsFtpProtocolHandler::Timeout(nsITimer *aTimer, void *aClosure)
@@ -308,7 +305,7 @@ nsFtpProtocolHandler::RemoveConnection(nsIURI *aKey, nsFtpControlConnection* *_r
     if (!found)
         return NS_ERROR_FAILURE;
 
-    // swap connection ownership
+    
     *_retval = ts->conn;
     ts->conn = nullptr;
     delete ts;
@@ -357,11 +354,11 @@ nsFtpProtocolHandler::InsertConnection(nsIURI *aKey, nsFtpControlConnection *aCo
     ts->conn = aConn;
     ts->timer = timer;
 
-    //
-    // limit number of idle connections.  if limit is reached, then prune
-    // eldest connection with matching key.  if none matching, then prune
-    // eldest connection.
-    //
+    
+    
+    
+    
+    
     if (mRootConnectionList.Length() == IDLE_CONNECTION_LIMIT) {
         uint32_t i;
         for (i=0;i<mRootConnectionList.Length();++i) {
@@ -383,8 +380,8 @@ nsFtpProtocolHandler::InsertConnection(nsIURI *aKey, nsFtpControlConnection *aCo
     return NS_OK;
 }
 
-//-----------------------------------------------------------------------------
-// nsIObserver
+
+
 
 NS_IMETHODIMP
 nsFtpProtocolHandler::Observe(nsISupports *aSubject,

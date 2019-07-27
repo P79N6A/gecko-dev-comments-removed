@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set et sw=4 ts=4: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include <stdarg.h>
 #include <windef.h>
@@ -19,6 +19,7 @@
 #include <netioapi.h>
 #include <iprtrmib.h>
 #include "plstr.h"
+#include "prlog.h"
 #include "nsThreadUtils.h"
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
@@ -34,12 +35,8 @@
 
 using namespace mozilla;
 
-#if defined(PR_LOGGING)
 static PRLogModuleInfo *gNotifyAddrLog = nullptr;
 #define LOG(args) PR_LOG(gNotifyAddrLog, PR_LOG_DEBUG, args)
-#else
-#define LOG(args)
-#endif
 
 static HMODULE sNetshell;
 static decltype(NcFreeNetconProperties)* sNcFreeNetconProperties;
@@ -98,7 +95,7 @@ NS_IMPL_ISUPPORTS(nsNotifyAddrListener,
                   nsIObserver)
 
 nsNotifyAddrListener::nsNotifyAddrListener()
-    : mLinkUp(true)  // assume true by default
+    : mLinkUp(true)  
     , mStatusKnown(false)
     , mCheckAttempted(false)
     , mShutdownEvent(nullptr)
@@ -138,12 +135,12 @@ nsNotifyAddrListener::GetLinkType(uint32_t *aLinkType)
 {
   NS_ENSURE_ARG_POINTER(aLinkType);
 
-  // XXX This function has not yet been implemented for this platform
+  
   *aLinkType = nsINetworkLinkService::LINK_TYPE_UNKNOWN;
   return NS_OK;
 }
 
-// Static Callback function for NotifyIpInterfaceChange API.
+
 static void WINAPI OnInterfaceChange(PVOID callerContext,
                                      PMIB_IPINTERFACE_ROW row,
                                      MIB_NOTIFICATION_TYPE notificationType)
@@ -160,8 +157,8 @@ nsNotifyAddrListener::Run()
     mChangedTime = TimeStamp::Now();
 
     if (!sNotifyIpInterfaceChange || !sCancelMibChangeNotify2) {
-        // For Windows versions which are older than Vista which lack
-        // NotifyIpInterfaceChange. Note this means no IPv6 support.
+        
+        
         HANDLE ev = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         NS_ENSURE_TRUE(ev, NS_ERROR_OUT_OF_MEMORY);
 
@@ -187,14 +184,14 @@ nsNotifyAddrListener::Run()
         }
         CloseHandle(ev);
     } else {
-        // Windows Vista and newer versions.
+        
         HANDLE interfacechange;
-        // The callback will simply invoke CheckLinkStatus()
+        
         DWORD ret = sNotifyIpInterfaceChange(
-            AF_UNSPEC, // IPv4 and IPv6
+            AF_UNSPEC, 
             (PIPINTERFACE_CHANGE_CALLBACK)OnInterfaceChange,
-            this,  // pass to callback
-            false, // no initial notification
+            this,  
+            false, 
             &interfacechange);
 
         if (ret == NO_ERROR) {
@@ -219,10 +216,8 @@ nsNotifyAddrListener::Observe(nsISupports *subject,
 nsresult
 nsNotifyAddrListener::Init(void)
 {
-#if defined(PR_LOGGING)
     if (!gNotifyAddrLog)
         gNotifyAddrLog = PR_NewLogModule("nsNotifyAddr");
-#endif
 
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
@@ -248,7 +243,7 @@ nsNotifyAddrListener::Init(void)
 nsresult
 nsNotifyAddrListener::Shutdown(void)
 {
-    // remove xpcom shutdown observer
+    
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
     if (observerService)
@@ -261,9 +256,9 @@ nsNotifyAddrListener::Shutdown(void)
 
     nsresult rv = mThread->Shutdown();
 
-    // Have to break the cycle here, otherwise nsNotifyAddrListener holds
-    // onto the thread and the thread holds onto the nsNotifyAddrListener
-    // via its mRunnable
+    
+    
+    
     mThread = nullptr;
 
     CloseHandle(mShutdownEvent);
@@ -272,9 +267,9 @@ nsNotifyAddrListener::Shutdown(void)
     return rv;
 }
 
-/* Sends the given event.  Assumes aEventID never goes out of scope (static
- * strings are ideal).
- */
+
+
+
 nsresult
 nsNotifyAddrListener::SendEvent(const char *aEventID)
 {
@@ -303,9 +298,9 @@ nsNotifyAddrListener::ChangeEvent::Run()
 }
 
 
-// Bug 465158 features an explanation for this check. ICS being "Internet
-// Connection Sharing). The description says it is always IP address
-// 192.168.0.1 for this case.
+
+
+
 bool
 nsNotifyAddrListener::CheckICSGateway(PIP_ADAPTER_ADDRESSES aAdapter)
 {
@@ -334,9 +329,9 @@ nsNotifyAddrListener::CheckICSStatus(PWCHAR aAdapterName)
 {
     InitNetshellLibrary();
 
-    // This method enumerates all privately shared connections and checks if some
-    // of them has the same name as the one provided in aAdapterName. If such
-    // connection is found in the collection the adapter is used as ICS gateway
+    
+    
+    
     bool isICSGatewayAdapter = false;
 
     HRESULT hr;
@@ -374,11 +369,11 @@ nsNotifyAddrListener::CheckICSStatus(PWCHAR aAdapterName)
                &fetched)) &&
                fetched) {
             if (connectionVariant.vt != VT_UNKNOWN) {
-                // We should call VariantClear here but it needs to link
-                // with oleaut32.lib that produces a Ts incrase about 10ms
-                // that is undesired. As it is quit unlikely the result would
-                // be of a different type anyway, let's pass the variant
-                // unfreed here.
+                
+                
+                
+                
+                
                 NS_ERROR("Variant of unexpected type, expecting VT_UNKNOWN, we probably leak it!");
                 continue;
             }
@@ -427,12 +422,12 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void)
         return ERROR_NOT_SUPPORTED;
     }
 
-    //
-    // Since NotifyIpInterfaceChange() signals a change more often than we
-    // think is a worthy change, we checksum the entire state of all interfaces
-    // that are UP. If the checksum is the same as previous check, nothing
-    // of interest changed!
-    //
+    
+    
+    
+    
+    
+    
     ULONG sum = 0;
 
     if (ret == ERROR_SUCCESS) {
@@ -447,13 +442,13 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void)
                 continue;
             }
 
-            // Add chars from AdapterName to the checksum.
+            
             for (int i = 0; adapter->AdapterName[i]; ++i) {
                 sum <<= 2;
                 sum += adapter->AdapterName[i];
             }
 
-            // Add bytes from each socket address to the checksum.
+            
             for (PIP_ADAPTER_UNICAST_ADDRESS pip = adapter->FirstUnicastAddress;
                  pip; pip = pip->Next) {
                 SOCKET_ADDRESS *sockAddr = &pip->Address;
@@ -470,7 +465,7 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void)
     free(adapterList);
 
     if (mLinkUp) {
-        /* Store the checksum only if one or more interfaces are up */
+        
         mIPInterfaceChecksum = sum;
     }
 
@@ -479,11 +474,11 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void)
     return ret;
 }
 
-/**
- * Checks the status of all network adapters.  If one is up and has a valid IP
- * address, sets mLinkUp to true.  Sets mStatusKnown to true if the link status
- * is definitive.
- */
+
+
+
+
+
 void
 nsNotifyAddrListener::CheckLinkStatus(void)
 {
@@ -494,10 +489,10 @@ nsNotifyAddrListener::CheckLinkStatus(void)
 
     LOG(("check status of all network adapters\n"));
 
-    // The CheckAdaptersAddresses call is very expensive (~650 milliseconds),
-    // so we don't want to call it synchronously. Instead, we just start up
-    // assuming we have a network link, but we'll report that the status is
-    // unknown.
+    
+    
+    
+    
     if (NS_IsMainThread()) {
         NS_WARNING("CheckLinkStatus called on main thread! No check "
                    "performed. Assuming link is up, status is unknown.");
@@ -508,7 +503,7 @@ nsNotifyAddrListener::CheckLinkStatus(void)
         } else if (!prevLinkUp) {
             event = NS_NETWORK_LINK_DATA_UP;
         } else {
-            // Known status and it was already UP
+            
             event = nullptr;
         }
 
@@ -524,14 +519,14 @@ nsNotifyAddrListener::CheckLinkStatus(void)
         if (mLinkUp && (prevCsum != mIPInterfaceChecksum)) {
             TimeDuration since = TimeStamp::Now() - mChangedTime;
 
-            // Network is online. Topology has changed. Always send CHANGED
-            // before UP - if allowed to and having cooled down.
+            
+            
             if (mAllowChangedEvent && (since.ToMilliseconds() > 2000)) {
                 SendEvent(NS_NETWORK_LINK_DATA_CHANGED);
             }
         }
         if (prevLinkUp != mLinkUp) {
-            // UP/DOWN status changed, send appropriate UP/DOWN event
+            
             SendEvent(mLinkUp ?
                       NS_NETWORK_LINK_DATA_UP : NS_NETWORK_LINK_DATA_DOWN);
         }

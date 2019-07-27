@@ -27,7 +27,6 @@
 using namespace mozilla;
 using namespace mozilla::net;
 
-#if defined(PR_LOGGING)
 
 
 
@@ -40,7 +39,6 @@ using namespace mozilla::net;
 
 
 static PRLogModuleInfo* gLoadGroupLog = nullptr;
-#endif
 
 #undef LOG
 #define LOG(args) PR_LOG(gLoadGroupLog, PR_LOG_DEBUG, args)
@@ -123,11 +121,9 @@ nsLoadGroup::nsLoadGroup(nsISupports* outer)
 {
     NS_INIT_AGGREGATED(outer);
 
-#if defined(PR_LOGGING)
     
     if (nullptr == gLoadGroupLog)
         gLoadGroupLog = PR_NewLogModule("LoadGroup");
-#endif
 
     LOG(("LOADGROUP [%x]: Created.\n", this));
 }
@@ -261,12 +257,10 @@ nsLoadGroup::Cancel(nsresult status)
             continue;
         }
 
-#if defined(PR_LOGGING)
         nsAutoCString nameStr;
         request->GetName(nameStr);
         LOG(("LOADGROUP [%x]: Canceling request %x %s.\n",
              this, request, nameStr.get()));
-#endif
 
         
         
@@ -329,12 +323,10 @@ nsLoadGroup::Suspend()
         if (!request)
             continue;
 
-#if defined(PR_LOGGING)
         nsAutoCString nameStr;
         request->GetName(nameStr);
         LOG(("LOADGROUP [%x]: Suspending request %x %s.\n",
             this, request, nameStr.get()));
-#endif
 
         
         rv = request->Suspend();
@@ -381,12 +373,10 @@ nsLoadGroup::Resume()
         if (!request)
             continue;
 
-#if defined(PR_LOGGING)
         nsAutoCString nameStr;
         request->GetName(nameStr);
         LOG(("LOADGROUP [%x]: Resuming request %x %s.\n",
             this, request, nameStr.get()));
-#endif
 
         
         rv = request->Resume();
@@ -470,14 +460,12 @@ nsLoadGroup::AddRequest(nsIRequest *request, nsISupports* ctxt)
 {
     nsresult rv;
 
-#if defined(PR_LOGGING)
     {
         nsAutoCString nameStr;
         request->GetName(nameStr);
         LOG(("LOADGROUP [%x]: Adding request %x %s (count=%d).\n",
              this, request, nameStr.get(), mRequests.EntryCount()));
     }
-#endif 
 
     NS_ASSERTION(!PL_DHashTableSearch(&mRequests, request),
                  "Entry added to loadgroup twice, don't do that");
@@ -486,11 +474,8 @@ nsLoadGroup::AddRequest(nsIRequest *request, nsISupports* ctxt)
     
     
     if (mIsCanceling) {
-
-#if defined(PR_LOGGING)
         LOG(("LOADGROUP [%x]: AddChannel() ABORTED because LoadGroup is"
              " being canceled!!\n", this));
-#endif 
 
         return NS_BINDING_ABORTED;
     }
@@ -572,14 +557,12 @@ nsLoadGroup::RemoveRequest(nsIRequest *request, nsISupports* ctxt,
     NS_ENSURE_ARG_POINTER(request);
     nsresult rv;
 
-#if defined(PR_LOGGING)
     {
         nsAutoCString nameStr;
         request->GetName(nameStr);
         LOG(("LOADGROUP [%x]: Removing request %x %s status %x (count=%d).\n",
             this, request, nameStr.get(), aStatus, mRequests.EntryCount() - 1));
     }
-#endif
 
     
     
@@ -662,12 +645,10 @@ nsLoadGroup::RemoveRequest(nsIRequest *request, nsISupports* ctxt,
 
             rv = observer->OnStopRequest(request, ctxt, aStatus);
 
-#if defined(PR_LOGGING)
             if (NS_FAILED(rv)) {
                 LOG(("LOADGROUP [%x]: OnStopRequest for request %x FAILED.\n",
                     this, request));
             }
-#endif
         }
 
         

@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "nsWyciwyg.h"
 #include "nsWyciwygChannel.h"
@@ -19,14 +19,12 @@
 using namespace mozilla::net;
 #include "mozilla/net/WyciwygChannelChild.h"
 
-////////////////////////////////////////////////////////////////////////////////
+
 
 nsWyciwygProtocolHandler::nsWyciwygProtocolHandler() 
 {
-#if defined(PR_LOGGING)
   if (!gWyciwygLog)
     gWyciwygLog = PR_NewLogModule("nsWyciwygChannel");
-#endif
 
   LOG(("Creating nsWyciwygProtocolHandler [this=%p].\n", this));
 }
@@ -39,9 +37,9 @@ nsWyciwygProtocolHandler::~nsWyciwygProtocolHandler()
 NS_IMPL_ISUPPORTS(nsWyciwygProtocolHandler,
                   nsIProtocolHandler)
 
-////////////////////////////////////////////////////////////////////////////////
-// nsIProtocolHandler methods:
-////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 NS_IMETHODIMP
 nsWyciwygProtocolHandler::GetScheme(nsACString &result)
@@ -59,14 +57,14 @@ nsWyciwygProtocolHandler::GetDefaultPort(int32_t *result)
 NS_IMETHODIMP 
 nsWyciwygProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
 {
-  // don't override anything.  
+  
   *_retval = false;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsWyciwygProtocolHandler::NewURI(const nsACString &aSpec,
-                                 const char *aCharset, // ignored
+                                 const char *aCharset, 
                                  nsIURI *aBaseURI,
                                  nsIURI **result) 
 {
@@ -109,8 +107,8 @@ nsWyciwygProtocolHandler::NewChannel2(nsIURI* url,
       PWyciwygChannelChild::Send__delete__(wcc);
   } else
   {
-    // If original channel used https, make sure PSM is initialized
-    // (this may be first channel to load during a session restore)
+    
+    
     nsAutoCString path;
     rv = url->GetPath(path);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -130,7 +128,7 @@ nsWyciwygProtocolHandler::NewChannel2(nsIURI* url,
   if (NS_FAILED(rv))
     return rv;
 
-  // set the loadInfo on the new channel
+  
   rv = channel->SetLoadInfo(aLoadInfo);
   if (NS_FAILED(rv)) {
       return rv;
@@ -149,14 +147,14 @@ nsWyciwygProtocolHandler::NewChannel(nsIURI* url, nsIChannel* *result)
 NS_IMETHODIMP
 nsWyciwygProtocolHandler::GetProtocolFlags(uint32_t *result) 
 {
-  // Should this be an an nsINestedURI?  We don't really want random webpages
-  // loading these URIs...
+  
+  
 
-  // Note that using URI_INHERITS_SECURITY_CONTEXT here is OK -- untrusted code
-  // is not allowed to link to wyciwyg URIs and users shouldn't be able to get
-  // at them, and nsDocShell::InternalLoad forbids non-history loads of these
-  // URIs.  And when loading from history we end up using the principal from
-  // the history entry, which we put there ourselves, so all is ok.
+  
+  
+  
+  
+  
   *result = URI_NORELATIVE | URI_NOAUTH | URI_DANGEROUS_TO_LOAD |
     URI_INHERITS_SECURITY_CONTEXT;
   return NS_OK;
