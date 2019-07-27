@@ -21,6 +21,7 @@
 #include "nsFrameManager.h"
 #include "gfxPlatform.h"
 #include "nsPrintfCString.h"
+#include "mozilla/dom/AnonymousContent.h"
 
 #include "nsContentList.h"
 #include "nsContentCreatorFunctions.h"
@@ -35,6 +36,7 @@
 
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::layout;
 using namespace mozilla::gfx;
 
@@ -63,7 +65,7 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   ErrorResult er;
   
   if (PresShell::TouchCaretPrefEnabled()) {
-    nsRefPtr<dom::NodeInfo> nodeInfo;
+    nsRefPtr<NodeInfo> nodeInfo;
 
     
     nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
@@ -72,7 +74,7 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
 
     rv = NS_NewHTMLElement(getter_AddRefs(mTouchCaretElement), nodeInfo.forget(),
-                           mozilla::dom::NOT_FROM_PARSER);
+                           NOT_FROM_PARSER);
     NS_ENSURE_SUCCESS(rv, rv);
     aElements.AppendElement(mTouchCaretElement);
 
@@ -103,6 +105,23 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  
+  mCustomContentContainer = doc->CreateHTMLElement(nsGkAtoms::div);
+  aElements.AppendElement(mCustomContentContainer);
+
+  
+  rv = mCustomContentContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                                        NS_LITERAL_STRING("moz-custom-content-container"),
+                                        true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  int32_t anonymousContentCount = doc->GetAnonymousContents().Length();
+  for (int32_t i = 0; i < anonymousContentCount; ++i) {
+    nsCOMPtr<Element> node = doc->GetAnonymousContents()[i]->GetContentNode();
+    mCustomContentContainer->AppendChildTo(node->AsContent(), true);
+  }
+
   return NS_OK;
 }
 
@@ -120,6 +139,8 @@ nsCanvasFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements, uint32
   if (mSelectionCaretsEndElement) {
     aElements.AppendElement(mSelectionCaretsEndElement);
   }
+
+  aElements.AppendElement(mCustomContentContainer);
 }
 
 void
@@ -134,6 +155,22 @@ nsCanvasFrame::DestroyFrom(nsIFrame* aDestructRoot)
   nsContentUtils::DestroyAnonymousContent(&mTouchCaretElement);
   nsContentUtils::DestroyAnonymousContent(&mSelectionCaretsStartElement);
   nsContentUtils::DestroyAnonymousContent(&mSelectionCaretsEndElement);
+
+  
+  
+  
+  if (mCustomContentContainer) {
+    nsCOMPtr<nsIDocument> doc = mContent->OwnerDoc();
+    ErrorResult rv;
+
+    for (int32_t i = doc->GetAnonymousContents().Length() - 1; i >= 0; --i) {
+      AnonymousContent* content = doc->GetAnonymousContents()[i];
+      nsCOMPtr<nsINode> clonedElement = content->GetContentNode()->CloneNode(true, rv);
+      content->SetContentNode(clonedElement->AsElement());
+    }
+  }
+  nsContentUtils::DestroyAnonymousContent(&mCustomContentContainer);
+
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 

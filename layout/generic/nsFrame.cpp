@@ -6914,8 +6914,12 @@ nsIFrame::GetFrameFromDirection(nsDirection aDirection, bool aVisual,
       frameTraversal->Prev();
 
     traversedFrame = frameTraversal->CurrentItem();
-    if (!traversedFrame)
+
+    
+    if (!traversedFrame ||
+        traversedFrame->GetContent()->IsRootOfNativeAnonymousSubtree())
       return NS_ERROR_FAILURE;
+
     traversedFrame->IsSelectable(&selectable, nullptr);
   } 
 

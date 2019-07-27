@@ -87,6 +87,11 @@ public:
     return mSelectionCaretsEndElement;
   }
 
+  mozilla::dom::Element* GetCustomContentContainer() const
+  {
+    return mCustomContentContainer;
+  }
+
   
 
 
@@ -138,6 +143,7 @@ protected:
   nsCOMPtr<mozilla::dom::Element> mTouchCaretElement;
   nsCOMPtr<mozilla::dom::Element> mSelectionCaretsStartElement;
   nsCOMPtr<mozilla::dom::Element> mSelectionCaretsEndElement;
+  nsCOMPtr<mozilla::dom::Element> mCustomContentContainer;
 };
 
 
