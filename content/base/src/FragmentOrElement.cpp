@@ -1394,10 +1394,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(FragmentOrElement)
 
 
   
-  
-  tmp->UnsetFlags(NODE_IS_IN_SHADOW_TREE);
-
-  
   {
     nsDOMSlots *slots = tmp->GetExistingDOMSlots();
     if (slots) {

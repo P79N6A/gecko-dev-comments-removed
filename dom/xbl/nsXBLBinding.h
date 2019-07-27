@@ -162,7 +162,6 @@ protected:
 
   bool mMarkedForDeath;
   bool mUsingContentXBLScope;
-  bool mIsShadowRootBinding;
 
   nsXBLPrototypeBinding* mPrototypeBinding; 
   nsCOMPtr<nsIContent> mContent; 

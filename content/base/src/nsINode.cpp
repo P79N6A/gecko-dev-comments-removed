@@ -392,15 +392,7 @@ nsINode::GetComposedDocInternal() const
 
   
   ShadowRoot* containingShadow = AsContent()->GetContainingShadow();
-
-  nsIContent* poolHost = containingShadow->GetPoolHost();
-  if (!poolHost) {
-    
-    
-    return nullptr;
-  }
-
-  return poolHost->GetComposedDoc();
+  return containingShadow->GetHost()->GetCrossShadowCurrentDoc();
 }
 
 #ifdef DEBUG

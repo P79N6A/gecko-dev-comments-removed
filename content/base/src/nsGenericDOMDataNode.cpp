@@ -582,20 +582,15 @@ nsGenericDOMDataNode::UnbindFromTree(bool aDeep, bool aNullParent)
     SetParentIsContent(false);
   }
   ClearInDocument();
+  UnsetFlags(NODE_IS_IN_SHADOW_TREE);
 
-  if (aNullParent || !mParent->IsInShadowTree()) {
-    UnsetFlags(NODE_IS_IN_SHADOW_TREE);
-
-    
-    SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
-  }
+  
+  SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
 
   nsDataSlots *slots = GetExistingDataSlots();
   if (slots) {
     slots->mBindingParent = nullptr;
-    if (aNullParent || !mParent->IsInShadowTree()) {
-      slots->mContainingShadow = nullptr;
-    }
+    slots->mContainingShadow = nullptr;
   }
 
   nsNodeUtils::ParentChainChanged(this);

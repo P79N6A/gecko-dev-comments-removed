@@ -834,13 +834,6 @@ Element::CreateShadowRoot(ErrorResult& aError)
   SetShadowRoot(shadowRoot);
   if (olderShadow) {
     olderShadow->SetYoungerShadow(shadowRoot);
-
-    
-    
-    for (nsIContent* child = olderShadow->GetFirstChild(); child;
-         child = child->GetNextSibling()) {
-      child->UnbindFromTree(true, false);
-    }
   }
 
   
@@ -1392,18 +1385,6 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   
-  ShadowRoot* shadowRoot = GetShadowRoot();
-  if (shadowRoot) {
-    for (nsIContent* child = shadowRoot->GetFirstChild(); child;
-         child = child->GetNextSibling()) {
-      rv = child->BindToTree(nullptr, shadowRoot,
-                             shadowRoot->GetBindingParent(),
-                             aCompileEventHandlers);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
-
-  
   
   
   NS_POSTCONDITION(aDocument == GetCurrentDoc(), "Bound to wrong document");
@@ -1481,13 +1462,10 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
     SetParentIsContent(false);
   }
   ClearInDocument();
+  UnsetFlags(NODE_IS_IN_SHADOW_TREE);
 
-  if (aNullParent || !mParent->IsInShadowTree()) {
-    UnsetFlags(NODE_IS_IN_SHADOW_TREE);
-
-    
-    SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
-  }
+  
+  SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
 
   if (document) {
     
@@ -1536,9 +1514,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
     if (clearBindingParent) {
       slots->mBindingParent = nullptr;
     }
-    if (aNullParent || !mParent->IsInShadowTree()) {
-      slots->mContainingShadow = nullptr;
-    }
+    slots->mContainingShadow = nullptr;
   }
 
   
@@ -1563,15 +1539,6 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   }
 
   nsNodeUtils::ParentChainChanged(this);
-
-  
-  ShadowRoot* shadowRoot = GetShadowRoot();
-  if (shadowRoot) {
-    for (nsIContent* child = shadowRoot->GetFirstChild(); child;
-         child = child->GetNextSibling()) {
-      child->UnbindFromTree(true, false);
-    }
-  }
 }
 
 nsICSSDeclaration*
