@@ -1638,6 +1638,94 @@ Detecting(JSContext *cx, JSScript *script, jsbytecode *pc)
     return false;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+GetNonexistentProperty(JSContext *cx, HandleNativeObject obj, HandleId id,
+                       HandleObject receiver, MutableHandleValue vp)
+{
+    vp.setUndefined();
+
+    
+    
+    if (JSPropertyOp getProperty = obj->getClass()->getProperty) {
+        if (!CallJSPropertyOp(cx, getProperty, obj, id, vp))
+            return false;
+
+        if (!vp.isUndefined())
+            return true;
+    }
+
+    
+    jsbytecode *pc = nullptr;
+    RootedScript script(cx, cx->currentScript(&pc));
+    if (!pc)
+        return true;
+    JSOp op = (JSOp) *pc;
+    if (op == JSOP_GETXPROP) {
+        JSAutoByteString printable;
+        if (js_ValueToPrintable(cx, IdToValue(id), &printable))
+            js_ReportIsNotDefined(cx, printable.ptr());
+        return false;
+    }
+
+    
+    
+    
+    
+    
+    if (!cx->compartment()->options().extraWarnings(cx) || (op != JSOP_GETPROP && op != JSOP_GETELEM))
+        return true;
+
+    
+    if (!script || script->warnedAboutUndefinedProp())
+        return true;
+
+    
+    
+    
+    if (script->selfHosted())
+        return true;
+
+    
+    if (JSID_IS_ATOM(id, cx->names().iteratorIntrinsic))
+        return true;
+
+    
+    pc += js_CodeSpec[op].length;
+    if (Detecting(cx, script, pc))
+        return true;
+
+    unsigned flags = JSREPORT_WARNING | JSREPORT_STRICT;
+    script->setWarnedAboutUndefinedProp();
+
+    
+    RootedValue val(cx, IdToValue(id));
+    if (!js_ReportValueErrorFlags(cx, flags, JSMSG_UNDEFINED_PROP,
+                                  JSDVG_IGNORE_STACK, val, js::NullPtr(),
+                                  nullptr, nullptr))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE bool
 NativeGetPropertyInline(JSContext *cx,
@@ -1656,75 +1744,11 @@ NativeGetPropertyInline(JSContext *cx,
         if (!allowGC)
             return false;
 
-        vp.setUndefined();
-
-        if (JSPropertyOp getProperty = obj->getClass()->getProperty) {
-            if (!CallJSPropertyOp(cx, getProperty,
-                                  MaybeRooted<JSObject*, allowGC>::toHandle(obj),
-                                  MaybeRooted<jsid, allowGC>::toHandle(id),
-                                  MaybeRooted<Value, allowGC>::toMutableHandle(vp)))
-            {
-                return false;
-            }
-        }
-
-        
-
-
-
-        if (vp.isUndefined()) {
-            jsbytecode *pc = nullptr;
-            RootedScript script(cx, cx->currentScript(&pc));
-            if (!pc)
-                return true;
-            JSOp op = (JSOp) *pc;
-
-            if (op == JSOP_GETXPROP) {
-                
-                JSAutoByteString printable;
-                if (js_ValueToPrintable(cx, IdToValue(id), &printable))
-                    js_ReportIsNotDefined(cx, printable.ptr());
-                return false;
-            }
-
-            
-            if (!cx->compartment()->options().extraWarnings(cx) || (op != JSOP_GETPROP && op != JSOP_GETELEM))
-                return true;
-
-            
-            if (!script || script->warnedAboutUndefinedProp())
-                return true;
-
-            
-
-
-
-
-            if (script->selfHosted())
-                return true;
-
-            
-            if (JSID_IS_ATOM(id, cx->names().iteratorIntrinsic))
-                return true;
-
-            
-            pc += js_CodeSpec[op].length;
-            if (Detecting(cx, script, pc))
-                return true;
-
-            unsigned flags = JSREPORT_WARNING | JSREPORT_STRICT;
-            script->setWarnedAboutUndefinedProp();
-
-            
-            RootedValue val(cx, IdToValue(id));
-            if (!js_ReportValueErrorFlags(cx, flags, JSMSG_UNDEFINED_PROP,
-                                          JSDVG_IGNORE_STACK, val, js::NullPtr(),
-                                          nullptr, nullptr))
-            {
-                return false;
-            }
-        }
-        return true;
+        return GetNonexistentProperty(cx,
+                                      MaybeRooted<NativeObject*, allowGC>::toHandle(obj),
+                                      MaybeRooted<jsid, allowGC>::toHandle(id),
+                                      MaybeRooted<JSObject*, allowGC>::toHandle(receiver),
+                                      MaybeRooted<Value, allowGC>::toMutableHandle(vp));
     }
 
     if (!obj2->isNative()) {
