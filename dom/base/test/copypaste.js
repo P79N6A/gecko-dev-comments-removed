@@ -52,30 +52,33 @@ function testCopyPaste (isXHTML) {
     if (!suppressHTMLCheck)
       ok(clipboard.hasDataMatchingFlavors(["text/html"], 1,1), "check text/html");
   }
-  function copyToClipboard(node, suppressUnicodeCheck) {
+  function clear(node, suppressUnicodeCheck) {
     textarea.blur();
     clipboard.emptyClipboard(1);
     var sel = window.getSelection();
     sel.removeAllRanges();
+  }
+  function copyToClipboard(node, suppressUnicodeCheck) {
+    clear();
     var r = document.createRange();
     r.selectNode(node);
     window.getSelection().addRange(r);
     copySelectionToClipboard(suppressUnicodeCheck);
   }
-  function copyRangeToClipboard(startNode,startIndex,endNode,endIndex,suppressUnicodeCheck) {
-    textarea.blur();
-    clipboard.emptyClipboard(1);
+  function addRange(startNode,startIndex,endNode,endIndex) {
     var sel = window.getSelection();
-    sel.removeAllRanges();
     var r = document.createRange();
     r.setStart(startNode,startIndex)
     r.setEnd(endNode,endIndex)
-    window.getSelection().addRange(r);
+    sel.addRange(r);
+  }
+  function copyRangeToClipboard(startNode,startIndex,endNode,endIndex,suppressUnicodeCheck) {
+    clear();
+    addRange(startNode,startIndex,endNode,endIndex);
     copySelectionToClipboard(suppressUnicodeCheck);
   }
   function copyChildrenToClipboard(id) {
-    textarea.blur();
-    clipboard.emptyClipboard(1);
+    clear();
     window.getSelection().selectAllChildren(document.getElementById(id));
     copySelectionToClipboard();
   }
@@ -104,6 +107,12 @@ function testCopyPaste (isXHTML) {
     textarea.focus();
     textarea.editor.paste(1);
     is(textarea.value, expected, "value of the textarea after the paste");
+  }
+  function testPasteHTML(id, expected) {
+    var contentEditable = $(id);
+    contentEditable.focus();
+    synthesizeKey("v", {accelKey: 1});
+    is(contentEditable.innerHTML, expected, id+".innerHtml after the paste");
   }
   function testSelectionToString(expected) {
     is(window.getSelection().toString().replace(/\r\n/g,"\n"), expected, "Selection.toString");
@@ -221,6 +230,95 @@ if (false) {
   copyRangeToClipboard($("div10").childNodes[1],0, $("div10").childNodes[1],1,suppressUnicodeCheckIfHidden);
   testSelectionToString("");
 
+  if (!isXHTML) {
+    
+    
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    var r = document.createRange();
+    var ul = $('ul1');
+    var parent = ul.parentNode;
+    r.setStart(parent, 0);
+    r.setEnd(parent.firstChild, 15);  
+    sel.addRange(r);
+
+    r = document.createRange();
+    r.setStart(ul, 1);  
+    r.setEnd(parent, 2);  
+    sel.addRange(r);
+    copySelectionToClipboard(true);
+    testPasteHTML('contentEditable1', 'Copy1then Paste');
+
+    
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    var r = document.createRange();
+    var ul = $('ul2');
+    var parent = ul.parentNode;
+    r.setStart(parent, 0);
+    r.setEnd(ul, 1);  
+    sel.addRange(r);
+
+    r = document.createRange();
+    r.setStart(parent.childNodes[1], 0);  
+    r.setEnd(parent, 2);
+    sel.addRange(r);
+    copySelectionToClipboard(true);
+    testPasteHTML('contentEditable2', 'Copy2then Paste');
+
+    
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    var r = document.createRange();
+    var ul = $('ul3');
+    var parent = ul.parentNode;
+    r.setStart(parent, 0);
+    r.setEnd(ul, 1);  
+    sel.addRange(r);
+
+    r = document.createRange();
+    r.setStart(parent.childNodes[1], 0);  
+    r.setEnd(parent, 2);
+    sel.addRange(r);
+    copySelectionToClipboard(true);
+    testPasteHTML('contentEditable3', '<ul id="ul3"><li>\n<br></li></ul>Copy3then Paste');
+
+    
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    var r = document.createRange();
+    var div1 = $('div1s');
+    var parent = div1.parentNode;
+    r.setStart(parent, 0);
+    r.setEnd(document.getElementById('div1se1'), 1);  
+    sel.addRange(r);
+
+    r = document.createRange();
+    r.setStart(div1.childNodes[1], 0);  
+    r.setEnd(parent, 1);
+    sel.addRange(r);
+    copySelectionToClipboard(true);
+    testPasteHTML('contentEditable4', '<div id="div1s"><div id="div1se1">before</div></div><div id="div1s">after</div>');
+
+    
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    var r = document.createRange();
+    var div1 = $('div2s');
+    var parent = div1.parentNode;
+    r.setStart(parent, 0);
+    r.setEnd(document.getElementById('div2se1'), 1);  
+    sel.addRange(r);
+
+    r = document.createRange();
+    r.setStart(div1.childNodes[1], 0);  
+    r.setEnd(parent, 1);
+    sel.addRange(r);
+    copySelectionToClipboard(true);
+    testPasteHTML('contentEditable5', '<div id="div2s"><div id="div2se1">before</div></div><div id="div2s">after</div>');
+
+  }
+
   
 
   var val = "1\n 2\n  3";
@@ -245,6 +343,21 @@ if (false) {
 
   copyToClipboard($("tr1"));
   testClipboardValue("text/unicode", "foo\tbar");
+
+  
+
+  copyRangeToClipboard($("tr2"),0,$("tr3"),0);
+  testClipboardValue("text/unicode", "1\t2\n3\t4\n");
+  testClipboardValue("text/html", '<table><tbody><tr id="tr2"><tr id="tr2"><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr><tr id="tr3"></tr></tr></tbody></table>');
+
+  
+
+  clear();
+  addRange($("tr2"),0,$("tr2"),2);
+  addRange($("tr3"),0,$("tr3"),2);
+  copySelectionToClipboard();
+  testClipboardValue("text/unicode", "1\t2\n5\t6");
+  testClipboardValue("text/html", '<table><tbody><tr id="tr2"><td>1</td><td>2</td></tr><tr id="tr3"><td>5</td><td>6</td></tr></tbody></table>');
 
   
 
