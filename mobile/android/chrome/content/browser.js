@@ -4218,7 +4218,7 @@ Tab.prototype = {
           return;
 
         
-        Reader.parseDocumentFromTab(this, function (article) {
+        Reader.parseDocumentFromTab(this).then(article => {
           
           
           let uri = this.browser.currentURI;
@@ -4250,7 +4250,7 @@ Tab.prototype = {
 
           if(!this.readerEnabled)
             this.readerEnabled = true;
-        }.bind(this));
+        }, e => Cu.reportError(e));
       }
     }
   },

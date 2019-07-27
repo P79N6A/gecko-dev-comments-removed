@@ -25,7 +25,7 @@ let Reader = {
     
     Services.prefs.addObserver("reader.parse-on-load.", this, false);
 
-    return this.isEnabledForParseOnLoad = this.getStateForParseOnLoad();
+    return this.isEnabledForParseOnLoad = this._getStateForParseOnLoad();
   },
 
   pageAction: {
@@ -37,7 +37,7 @@ let Reader = {
     },
 
     readerModeActiveCallback: function(tabID) {
-      Reader._addTabToReadingList(tabID);
+      Reader._addTabToReadingList(tabID).catch(e => Cu.reportError("Error adding tab to reading list: " + e));
       UITelemetry.addEvent("save.1", "pageaction", null, "reader");
     },
   },
@@ -86,43 +86,31 @@ let Reader = {
 
       case "nsPref:changed": {
         if (aData.startsWith("reader.parse-on-load.")) {
-          this.isEnabledForParseOnLoad = this.getStateForParseOnLoad();
+          this.isEnabledForParseOnLoad = this._getStateForParseOnLoad();
         }
         break;
       }
     }
   },
 
-  _addTabToReadingList: function(tabID) {
+  _addTabToReadingList: Task.async(function* (tabID) {
     let tab = BrowserApp.getTabForId(tabID);
     if (!tab) {
-      Cu.reportError("Can't add tab to reading list because no tab found for ID: " + tabID);
-      return;
+      throw new Error("Can't add tab to reading list because no tab found for ID: " + tabID);
     }
+
     let uri = tab.browser.currentURI;
+    let urlWithoutRef = uri.specIgnoringRef;
 
-    this.getArticleFromCache(uri).then(article => {
+    let article = yield this.getArticle(urlWithoutRef, tabID);
+    if (!article) {
       
-      if (article) {
-        this.addArticleToReadingList(article);
-        return;
-      }
+      
+      article = { url: urlWithoutRef, title: tab.browser.contentDocument.title };
+    }
 
-      
-      this.getArticleForTab(tabID, uri.specIgnoringRef, article => {
-        if (article) {
-          this.addArticleToReadingList(article);
-        } else {
-          
-          
-          this.addArticleToReadingList({
-            url: urlWithoutRef,
-            title: tab.browser.contentDocument.title,
-          });
-        }
-      });
-    }, e => Cu.reportError("Error trying to get article from cache: " + e));
-  },
+    this.addArticleToReadingList(article);
+  }),
 
   addArticleToReadingList: function(article) {
     if (!article || !article.url) {
@@ -141,7 +129,7 @@ let Reader = {
     this.storeArticleInCache(article).catch(e => Cu.reportError("Error storing article in cache: " + e));
   },
 
-  getStateForParseOnLoad: function Reader_getStateForParseOnLoad() {
+  _getStateForParseOnLoad: function () {
     let isEnabled = Services.prefs.getBoolPref("reader.parse-on-load.enabled");
     let isForceEnabled = Services.prefs.getBoolPref("reader.parse-on-load.force-enabled");
     
@@ -149,85 +137,64 @@ let Reader = {
     return isForceEnabled || (isEnabled && !BrowserApp.isOnLowMemoryPlatform);
   },
 
-  parseDocumentFromURL: function Reader_parseDocumentFromURL(url, callback) {
+  
+
+
+
+
+
+
+
+
+  getArticle: Task.async(function* (url, tabId) {
     
-    
-    if (url in this._requests) {
-      let request = this._requests[url];
-      request.callbacks.push(callback);
-      return;
-    }
-
-    let request = { url: url, callbacks: [callback] };
-    this._requests[url] = request;
-
-    let uri = Services.io.newURI(url, null, null);
-
-    
-    this.getArticleFromCache(uri).then(article => {
-      if (article) {
-        this.log("Page found in cache, return article immediately");
-        this._runCallbacksAndFinish(request, article);
-        return;
-      }
-
-      if (!this._requests) {
-        this.log("Reader has been destroyed, abort");
-        return;
-      }
-
-      
-      
-      this._downloadAndParseDocument(url, request);
-    }, e => {
-      Cu.reportError("Error trying to get article from cache: " + e);
-      this._runCallbacksAndFinish(request, null);
-    });
-  },
-
-  getArticleForTab: function Reader_getArticleForTab(tabId, url, callback) {
     let tab = BrowserApp.getTabForId(tabId);
     if (tab) {
       let article = tab.savedArticle;
       if (article && article.url == url) {
         this.log("Saved article found in tab");
-        callback(article);
-        return;
+        return article;
       }
-    }
-
-    this.parseDocumentFromURL(url, callback);
-  },
-
-  parseDocumentFromTab: function (tab, callback) {
-    let uri = tab.browser.currentURI;
-    if (!this._shouldCheckUri(uri)) {
-      callback(null);
-      return;
     }
 
     
-    this.getArticleFromCache(uri).then(article => {
-      if (article) {
-        this.log("Page found in cache, return article immediately");
-        callback(article);
-        return;
-      }
+    let uri = Services.io.newURI(url, null, null);
+    let article = yield this.getArticleFromCache(uri);
+    if (article) {
+      this.log("Saved article found in cache");
+      return article;
+    }
 
-      let doc = tab.browser.contentWindow.document;
-      this._readerParse(uri, doc, article => {
-        if (!article) {
-          this.log("Failed to parse page");
-          callback(null);
-          return;
-        }
-        callback(article);
-      });
-    }, e => {
-      Cu.reportError("Error trying to get article from cache: " + e);
-      callback(null);
-    });
-  },
+    
+    
+    return yield this._downloadAndParseDocument(url);
+  }),
+
+  
+
+
+
+
+
+
+
+  parseDocumentFromTab: Task.async(function* (tab) {
+    let uri = tab.browser.currentURI;
+    if (!this._shouldCheckUri(uri)) {
+      this.log("Reader mode disabled for URI");
+      return null;
+    }
+
+    
+    let article = yield this.getArticleFromCache(uri);
+    if (article) {
+      this.log("Page found in cache, return article immediately");
+      return article;
+    }
+
+    let doc = tab.browser.contentWindow.document;
+    return yield this._readerParse(uri, doc);
+  }),
 
   
 
@@ -280,7 +247,7 @@ let Reader = {
       dump("Reader: " + msg);
   },
 
-  _shouldCheckUri: function Reader_shouldCheckUri(uri) {
+  _shouldCheckUri: function (uri) {
     if ((uri.prePath + "/") === uri.spec) {
       this.log("Not parsing home page: " + uri.spec);
       return false;
@@ -294,138 +261,108 @@ let Reader = {
     return true;
   },
 
-  _readerParse: function Reader_readerParse(uri, doc, callback) {
-    let numTags = doc.getElementsByTagName("*").length;
-    if (numTags > this.MAX_ELEMS_TO_PARSE) {
-      this.log("Aborting parse for " + uri.spec + "; " + numTags + " elements found");
-      callback(null);
-      return;
-    }
+  _readerParse: function (uri, doc) {
+    return new Promise((resolve, reject) => {
+      let numTags = doc.getElementsByTagName("*").length;
+      if (numTags > this.MAX_ELEMS_TO_PARSE) {
+        reject("Aborting parse for " + uri.spec + "; " + numTags + " elements found");
+        return;
+      }
 
-    let worker = new ChromeWorker("readerWorker.js");
-    worker.onmessage = function (evt) {
-      let article = evt.data;
+      let worker = new ChromeWorker("readerWorker.js");
+      worker.onmessage = function (evt) {
+        let article = evt.data;
 
-      
-      
-      if (article) {
+        if (!article) {
+          reject("Worker did not return an article");
+          return;
+        }
+
+        
+        
         article.url = uri.specIgnoringRef;
         let flags = Ci.nsIDocumentEncoder.OutputSelectionOnly | Ci.nsIDocumentEncoder.OutputAbsoluteLinks;
         article.title = Cc["@mozilla.org/parserutils;1"].getService(Ci.nsIParserUtils)
                                                         .convertToPlainText(article.title, flags, 0);
+        resolve(article);
+      };
+
+      try {
+        worker.postMessage({
+          uri: {
+            spec: uri.spec,
+            host: uri.host,
+            prePath: uri.prePath,
+            scheme: uri.scheme,
+            pathBase: Services.io.newURI(".", null, uri).spec
+          },
+          doc: new XMLSerializer().serializeToString(doc)
+        });
+      } catch (e) {
+        reject("Reader: could not build Readability arguments: " + e);
       }
-
-      callback(article);
-    };
-
-    try {
-      worker.postMessage({
-        uri: {
-          spec: uri.spec,
-          host: uri.host,
-          prePath: uri.prePath,
-          scheme: uri.scheme,
-          pathBase: Services.io.newURI(".", null, uri).spec
-        },
-        doc: new XMLSerializer().serializeToString(doc)
-      });
-    } catch (e) {
-      Cu.reportError("Reader: could not build Readability arguments: " + e);
-      callback(null);
-    }
-  },
-
-  _runCallbacksAndFinish: function Reader_runCallbacksAndFinish(request, result) {
-    delete this._requests[request.url];
-
-    request.callbacks.forEach(function(callback) {
-      callback(result);
     });
   },
 
-  _downloadDocument: function Reader_downloadDocument(url, callback) {
-    
-    
-    
-
-    let browser = document.createElement("browser");
-    browser.setAttribute("type", "content");
-    browser.setAttribute("collapsed", "true");
-    browser.setAttribute("disablehistory", "true");
-
-    document.documentElement.appendChild(browser);
-    browser.stop();
-
-    browser.webNavigation.allowAuth = false;
-    browser.webNavigation.allowImages = false;
-    browser.webNavigation.allowJavascript = false;
-    browser.webNavigation.allowMetaRedirects = true;
-    browser.webNavigation.allowPlugins = false;
-
-    browser.addEventListener("DOMContentLoaded", event => {
-      let doc = event.originalTarget;
-
+  _downloadDocument: function (url) {
+    return new Promise((resolve, reject) => {
       
-      if (doc != browser.contentDocument)
-        return;
+      
+      
+      let browser = document.createElement("browser");
+      browser.setAttribute("type", "content");
+      browser.setAttribute("collapsed", "true");
+      browser.setAttribute("disablehistory", "true");
 
-      this.log("Done loading: " + doc);
-      if (doc.location.href == "about:blank") {
-        callback(null);
+      document.documentElement.appendChild(browser);
+      browser.stop();
+
+      browser.webNavigation.allowAuth = false;
+      browser.webNavigation.allowImages = false;
+      browser.webNavigation.allowJavascript = false;
+      browser.webNavigation.allowMetaRedirects = true;
+      browser.webNavigation.allowPlugins = false;
+
+      browser.addEventListener("DOMContentLoaded", event => {
+        let doc = event.originalTarget;
 
         
-        browser.parentNode.removeChild(browser);
-        return;
-      }
-
-      callback(doc);
-    });
-
-    browser.loadURIWithFlags(url, Ci.nsIWebNavigation.LOAD_FLAGS_NONE,
-                             null, null, null);
-
-    return browser;
-  },
-
-  _downloadAndParseDocument: function Reader_downloadAndParseDocument(url, request) {
-    try {
-      this.log("Needs to fetch page, creating request: " + url);
-
-      request.browser = this._downloadDocument(url, doc => {
-        this.log("Finished loading page: " + doc);
-
-        if (!doc) {
-          this.log("Error loading page");
-          this._runCallbacksAndFinish(request, null);
+        if (doc != browser.contentDocument) {
           return;
         }
 
-        this.log("Parsing response with Readability");
+        this.log("Done loading: " + doc);
+        if (doc.location.href == "about:blank") {
+          reject("about:blank loaded; aborting");
 
-        let uri = Services.io.newURI(url, null, null);
-        this._readerParse(uri, doc, article => {
           
-          let browser = request.browser;
-          if (browser) {
-            browser.parentNode.removeChild(browser);
-            delete request.browser;
-          }
+          browser.parentNode.removeChild(browser);
+          return;
+        }
 
-          if (!article) {
-            this.log("Failed to parse page");
-            this._runCallbacksAndFinish(request, null);
-            return;
-          }
-
-          this.log("Parsing has been successful");
-          this._runCallbacksAndFinish(request, article);
-        });
+        resolve({ browser, doc });
       });
-    } catch (e) {
-      this.log("Error downloading and parsing document: " + e);
-      this._runCallbacksAndFinish(request, null);
-    }
+
+      browser.loadURIWithFlags(url, Ci.nsIWebNavigation.LOAD_FLAGS_NONE,
+                               null, null, null);
+    });
   },
+
+  _downloadAndParseDocument: Task.async(function* (url) {
+    this.log("Needs to fetch page, creating request: " + url);
+    let { browser, doc } = yield this._downloadDocument(url);
+    this.log("Finished loading page: " + doc);
+
+    try {
+      this.log("Parsing response with Readability");
+      let uri = Services.io.newURI(url, null, null);
+      let article = yield this._readerParse(uri, doc);
+      this.log("Document parsed successfully");
+      return article;
+    } finally {
+      browser.parentNode.removeChild(browser);
+    }
+  }),
 
   get _cryptoHash() {
     delete this._cryptoHash;
