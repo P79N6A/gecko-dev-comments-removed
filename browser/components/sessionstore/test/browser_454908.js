@@ -43,7 +43,7 @@ add_task(function* test_dont_save_passwords() {
   yield forceSaveState();
   yield promiseForEachSessionRestoreFile((state, key) =>
     
-    ok(!state.contains(PASS), "password has not been written to file " + key)
+    ok(!state.includes(PASS), "password has not been written to file " + key)
   );
 
 

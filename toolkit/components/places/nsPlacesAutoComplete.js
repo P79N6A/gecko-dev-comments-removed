@@ -1500,7 +1500,7 @@ urlInlineComplete.prototype = {
         
         
         if (untrimmedHost &&
-            !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+            !untrimmedHost.toLowerCase().includes(ac._originalSearchString.toLowerCase())) {
           untrimmedHost = null;
         }
 
@@ -1575,7 +1575,7 @@ urlInlineComplete.prototype = {
         
         let untrimmedURL = prefix + url;
         if (untrimmedURL &&
-            !untrimmedURL.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+            !untrimmedURL.toLowerCase().includes(ac._originalSearchString.toLowerCase())) {
           untrimmedURL = null;
          }
 

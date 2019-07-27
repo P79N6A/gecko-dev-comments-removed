@@ -5742,7 +5742,7 @@ var FormAssistant = {
       else if (item.text)
         label = item.text;
 
-      if (filter && !(label.toLowerCase().contains(lowerFieldValue)) )
+      if (filter && !(label.toLowerCase().includes(lowerFieldValue)) )
         continue;
       suggestions.push({ label: label, value: item.value });
     }
@@ -7355,10 +7355,8 @@ var RemoteDebugger = {
       let pathOrPort = this._getPath();
       if (!pathOrPort)
         pathOrPort = this._getPort();
-      let listener = DebuggerServer.createListener();
-      listener.portOrPath = pathOrPort;
+      let listener = DebuggerServer.openListener(pathOrPort);
       listener.allowConnection = this._showConnectionPrompt.bind(this);
-      listener.open();
       dump("Remote debugger listening at path " + pathOrPort);
     } catch(e) {
       dump("Remote debugger didn't start: " + e);

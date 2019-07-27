@@ -114,7 +114,7 @@ function test() {
         
         
         
-        if (actor.contains("framerateActor")) {
+        if (actor.includes("framerateActor")) {
           todo(false, "Front for " + actor + " still held in pool!");
           continue;
         }

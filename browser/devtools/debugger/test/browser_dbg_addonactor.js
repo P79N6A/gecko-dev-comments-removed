@@ -72,7 +72,7 @@ function testSources() {
   gThreadClient.getSources(aResponse => {
     
     
-    const matches = aResponse.sources.filter(s => s.url.contains(ADDON_MODULE_URL));
+    const matches = aResponse.sources.filter(s => s.url.includes(ADDON_MODULE_URL));
     ok(matches.length > 0,
        "the main script of the addon is present in the source list");
     deferred.resolve();

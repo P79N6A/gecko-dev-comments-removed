@@ -362,7 +362,7 @@ this.UITour = {
         
         
         if (typeof data.pageID != "string" ||
-            data.pageID.contains(BrowserUITelemetry.BUCKET_SEPARATOR)) {
+            data.pageID.includes(BrowserUITelemetry.BUCKET_SEPARATOR)) {
           log.warn("registerPageID: Invalid page ID specified");
           break;
         }
@@ -1645,7 +1645,7 @@ this.UITour = {
       let window = winEnum.getNext();
       if (window.closed)
         continue;
-
+debugger;
       let originTabs = this.originTabs.get(window);
       if (!originTabs)
         continue;

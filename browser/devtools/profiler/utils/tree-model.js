@@ -244,8 +244,8 @@ FrameNode.prototype = {
 function isContent({ category, location }) {
   
   return !category &&
-    !CHROME_SCHEMES.find(e => location.contains(e)) &&
-    CONTENT_SCHEMES.find(e => location.contains(e));
+    !CHROME_SCHEMES.find(e => location.includes(e)) &&
+    CONTENT_SCHEMES.find(e => location.includes(e));
 }
 
 

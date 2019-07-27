@@ -83,7 +83,7 @@ add_task(function* checkAllTheJS() {
 
   let uris;
   
-  if (parseValue && parseValue.contains(":")) {
+  if (parseValue && parseValue.includes(":")) {
     uris = [NetUtil.newURI(parseValue)];
   } else {
     let appDir = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
@@ -98,7 +98,7 @@ add_task(function* checkAllTheJS() {
     
     if (parseValue) {
       uris = uris.filter(uri => {
-        if (uri.spec.contains(parseValue)) {
+        if (uri.spec.includes(parseValue)) {
           return true;
         }
         info("Not checking filtered out " + uri.spec);

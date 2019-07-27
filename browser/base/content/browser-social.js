@@ -204,8 +204,8 @@ SocialUI = {
     let docElem = document.documentElement;
     
     
-    let chromeless = docElem.getAttribute("chromehidden").contains("extrachrome") ||
-                     docElem.getAttribute('chromehidden').contains("toolbar");
+    let chromeless = docElem.getAttribute("chromehidden").includes("extrachrome") ||
+                     docElem.getAttribute('chromehidden').includes("toolbar");
     
     
     delete this._chromeless;
@@ -552,7 +552,6 @@ SocialShare = {
       button.setAttribute("image", provider.iconURL);
       button.setAttribute("tooltip", "share-button-tooltip");
       button.setAttribute("origin", provider.origin);
-      button.setAttribute("label", provider.name);
       button.setAttribute("oncommand", "SocialShare.sharePage(this.getAttribute('origin'));");
       if (provider == selectedProvider) {
         this.defaultButton = button;

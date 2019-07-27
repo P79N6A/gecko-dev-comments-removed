@@ -476,7 +476,7 @@ DownloadItem.prototype = {
 
 
   matchesSearch: function(aTerms, aAttributes) {
-    return aTerms.some(term => aAttributes.some(attr => this.element.getAttribute(attr).contains(term)));
+    return aTerms.some(term => aAttributes.some(attr => this.element.getAttribute(attr).includes(term)));
   },
 
   isCommandEnabled: function(aCommand) {

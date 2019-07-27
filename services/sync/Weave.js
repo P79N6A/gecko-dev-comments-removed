@@ -107,7 +107,7 @@ WeaveService.prototype = {
       
       
       let username = Services.prefs.getCharPref(SYNC_PREFS_BRANCH + "username");
-      return !username || username.contains('@');
+      return !username || username.includes('@');
     } catch (_) {
       return true; 
     }
