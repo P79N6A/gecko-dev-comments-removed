@@ -184,7 +184,7 @@ class AbstractFramePtr
     inline bool isFunctionFrame() const;
     inline bool isGlobalFrame() const;
     inline bool isEvalFrame() const;
-    inline bool isDebuggerFrame() const;
+    inline bool isDebuggerEvalFrame() const;
 
     inline JSScript *script() const;
     inline JSFunction *fun() const;
@@ -279,7 +279,7 @@ class InterpreterFrame
 
 
 
-        DEBUGGER           =        0x8,
+        DEBUGGER_EVAL      =        0x8,
 
         CONSTRUCTING       =       0x10,  
 
@@ -811,8 +811,8 @@ class InterpreterFrame
         return flags_ & USE_NEW_TYPE;
     }
 
-    bool isDebuggerFrame() const {
-        return !!(flags_ & DEBUGGER);
+    bool isDebuggerEvalFrame() const {
+        return !!(flags_ & DEBUGGER_EVAL);
     }
 
     bool prevUpToDate() const {
