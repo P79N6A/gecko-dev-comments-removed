@@ -46,6 +46,8 @@
 # define NS_T(str) L ## str
 # define NS_SLASH NS_T('\\')
 
+#if defined(_MSC_VER) && _MSC_VER < 1900
+
 
 
 
@@ -62,6 +64,7 @@ static inline int mysnprintf(char* dest, size_t count, const char* fmt, ...)
   return result;
 }
 #define snprintf mysnprintf
+#endif
 static inline int mywcsprintf(WCHAR* dest, size_t count, const WCHAR* fmt, ...)
 {
   size_t _count = count - 1;
