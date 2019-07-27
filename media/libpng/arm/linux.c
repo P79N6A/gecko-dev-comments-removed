@@ -152,8 +152,10 @@ png_have_neon(png_structp png_ptr)
       }
    }
 
+#ifdef PNG_WARNINGS_SUPPORTED
    else
       png_warning(png_ptr, "/proc/cpuinfo open failed");
+#endif
 
    return 0;
 }

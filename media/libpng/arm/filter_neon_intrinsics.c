@@ -14,6 +14,8 @@
 
 #include "../pngpriv.h"
 
+#ifdef PNG_READ_SUPPORTED
+
 
 #if PNG_ARM_NEON_IMPLEMENTATION == 1 
 
@@ -35,7 +37,6 @@
 #define png_ldr(type,pointer)\
    (temp_pointer = png_ptr(type,pointer), *temp_pointer)
 
-#ifdef PNG_READ_SUPPORTED
 #if PNG_ARM_NEON_OPT > 0
 
 void

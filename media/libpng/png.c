@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_6_15 Your_png_h_is_not_version_1_6_15;
+typedef png_libpng_version_1_6_16 Your_png_h_is_not_version_1_6_16;
 
 
 
@@ -769,13 +769,13 @@ png_get_copyright(png_const_structrp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.6.15 - November 20, 2014" PNG_STRING_NEWLINE \
+     "libpng version 1.6.16 - December 22, 2014" PNG_STRING_NEWLINE \
      "Copyright (c) 1998-2014 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.6.15 - November 20, 2014\
+      return "libpng version 1.6.16 - December 22, 2014\
       Copyright (c) 1998-2014 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
@@ -2461,6 +2461,17 @@ png_colorspace_set_rgb_coefficients(png_structrp png_ptr)
 
 #endif 
 
+#ifdef __GNUC__
+
+static int 
+png_gt(size_t a, size_t b)
+{
+    return a > b;
+}
+#else
+#   define png_gt(a,b) ((a) > (b))
+#endif
+
 void 
 png_check_IHDR(png_const_structrp png_ptr,
    png_uint_32 width, png_uint_32 height, int bit_depth,
@@ -2478,6 +2489,28 @@ png_check_IHDR(png_const_structrp png_ptr,
    else if (width > PNG_UINT_31_MAX)
    {
       png_warning(png_ptr, "Invalid image width in IHDR");
+      error = 1;
+   }
+
+   else if (png_gt(width,
+                   (PNG_SIZE_MAX >> 3) 
+                   - 48                
+                   - 1                 
+                   - 7*8               
+                   - 8))               
+   {
+      
+
+
+
+
+
+
+
+
+
+
+      png_warning(png_ptr, "Image width is too large for this architecture");
       error = 1;
    }
    else

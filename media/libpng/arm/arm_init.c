@@ -17,6 +17,7 @@
 #include "../pngpriv.h"
 
 #ifdef PNG_READ_SUPPORTED
+
 #if PNG_ARM_NEON_OPT > 0
 #ifdef PNG_ARM_NEON_CHECK_SUPPORTED 
 
