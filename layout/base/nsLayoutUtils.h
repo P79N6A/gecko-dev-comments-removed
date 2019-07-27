@@ -130,7 +130,7 @@ public:
   typedef mozilla::CSSPoint CSSPoint;
   typedef mozilla::CSSSize CSSSize;
   typedef mozilla::LayerMargin LayerMargin;
-  typedef mozilla::LayoutDeviceIntRect LayoutDeviceIntRect;
+  typedef mozilla::LayoutDeviceIntSize LayoutDeviceIntSize;
 
   
 
@@ -2180,8 +2180,8 @@ public:
 
 
   static bool
-  GetContentViewerBounds(nsPresContext* aPresContext,
-                         LayoutDeviceIntRect& aOutRect);
+  GetContentViewerSize(nsPresContext* aPresContext,
+                       LayoutDeviceIntSize& aOutSize);
 
  
 
