@@ -127,7 +127,13 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_UpdateTextPath = 0x40000
+  nsChangeHint_UpdateTextPath = 0x40000,
+
+  
+
+
+
+  nsChangeHint_SchedulePaint = 0x80000
 
   
   
@@ -228,7 +234,8 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
 #define NS_STYLE_HINT_NONE \
   nsChangeHint(0)
 #define NS_STYLE_HINT_VISUAL \
-  nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView)
+  nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView | \
+               nsChangeHint_SchedulePaint)
 #define nsChangeHint_AllReflowHints                     \
   nsChangeHint(nsChangeHint_NeedReflow |                \
                nsChangeHint_ClearAncestorIntrinsics |   \
