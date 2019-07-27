@@ -54,8 +54,11 @@ public class StateFactory {
     }
 
     final int v = version.intValue();
-    if (v == 2) {
+    if (v == 3) {
       
+      return fromJSONObjectV3(stateLabel, o);
+    }
+    if (v == 2) {
       return fromJSONObjectV2(stateLabel, o);
     }
     if (v == 1) {
@@ -131,6 +134,23 @@ public class StateFactory {
           o.getString("certificate"));
     default:
       return fromJSONObjectV1(stateLabel, o);
+    }
+  }
+
+  
+
+
+
+  protected static State fromJSONObjectV3(StateLabel stateLabel, ExtendedJSONObject o) throws InvalidKeySpecException, NoSuchAlgorithmException, NonObjectJSONException {
+    switch (stateLabel) {
+    case MigratedFromSync11:
+      return new MigratedFromSync11(
+          o.getString("email"),
+          o.getString("uid"),
+          o.getBoolean("verified"),
+          o.getString("password"));
+    default:
+      return fromJSONObjectV2(stateLabel, o);
     }
   }
 

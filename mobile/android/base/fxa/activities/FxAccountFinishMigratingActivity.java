@@ -15,11 +15,12 @@ import android.content.Intent;
 
 
 
-public class FxAccountUpdateCredentialsActivity extends FxAccountAbstractUpdateCredentialsActivity {
-  protected static final String LOG_TAG = FxAccountUpdateCredentialsActivity.class.getSimpleName();
 
-  public FxAccountUpdateCredentialsActivity() {
-    super(R.layout.fxaccount_update_credentials);
+public class FxAccountFinishMigratingActivity extends FxAccountAbstractUpdateCredentialsActivity {
+  protected static final String LOG_TAG = FxAccountFinishMigratingActivity.class.getSimpleName();
+
+  public FxAccountFinishMigratingActivity() {
+    super(R.layout.fxaccount_finish_migrating);
   }
 
   @Override
@@ -33,8 +34,8 @@ public class FxAccountUpdateCredentialsActivity extends FxAccountAbstractUpdateC
       return;
     }
     final State state = fxAccount.getState();
-    if (state.getStateLabel() != StateLabel.Separated) {
-      Logger.warn(LOG_TAG, "Cannot update credentials from Firefox Account in state: " + state.getStateLabel());
+    if (state.getStateLabel() != StateLabel.MigratedFromSync11) {
+      Logger.warn(LOG_TAG, "Cannot finish migrating from Firefox Account in state: " + state.getStateLabel());
       setResult(RESULT_CANCELED);
       finish();
       return;
@@ -44,9 +45,10 @@ public class FxAccountUpdateCredentialsActivity extends FxAccountAbstractUpdateC
 
   @Override
   public Intent makeSuccessIntent(String email, LoginResponse result) {
+    final Intent successIntent = new Intent(this, FxAccountMigrationFinishedActivity.class);
     
     
-    
-    return null;
+    successIntent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+    return successIntent;
   }
 }
