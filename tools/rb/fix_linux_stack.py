@@ -224,7 +224,7 @@ def addressToSymbol(file, address):
     return result
 
 line_re = re.compile("^(.*) ?\[([^ ]*) \+(0x[0-9A-F]{1,8})\](.*)$")
-balance_tree_re = re.compile("^([ \|0-9-]*)")
+balance_tree_re = re.compile("^([ \|0-9-]*)(.*)$")
 
 def fixSymbols(line):
     result = line_re.match(line)
@@ -234,13 +234,18 @@ def fixSymbols(line):
         (before, file, address, after) = result.groups()
 
         if os.path.exists(file) and os.path.isfile(file):
+            
+            (before, badsymbol) = balance_tree_re.match(before).groups()
+
             (name, fileline) = addressToSymbol(file, address)
-            info = "%s (%s)" % (name, fileline)
 
             
-            before = balance_tree_re.match(before).groups()[0]
+            if name == "??":
+                name = badsymbol
+            if fileline == "??:0" or fileline == "??:?":
+                fileline = file
 
-            return before + info + after + "\n"
+            return "%s%s (%s)%s\n" % (before, name, fileline, after)
         else:
             sys.stderr.write("Warning: File \"" + file + "\" does not exist.\n")
             return line
