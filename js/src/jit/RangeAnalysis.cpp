@@ -1522,9 +1522,9 @@ MArgumentsLength::computeRange(TempAllocator &alloc)
 {
     
     
-    static_assert(SNAPSHOT_MAX_NARGS <= UINT32_MAX,
-                  "NewUInt32Range requires a uint32 value");
-    setRange(Range::NewUInt32Range(alloc, 0, SNAPSHOT_MAX_NARGS));
+    MOZ_ASSERT(js_JitOptions.maxStackArgs <= UINT32_MAX,
+               "NewUInt32Range requires a uint32 value");
+    setRange(Range::NewUInt32Range(alloc, 0, js_JitOptions.maxStackArgs));
 }
 
 void
