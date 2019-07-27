@@ -1072,10 +1072,6 @@ nsCSSBorderRenderer::CreateCornerGradient(mozilla::css::Corner aCorner,
 
   nsTArray<gfx::GradientStop> rawStops(2);
   rawStops.SetLength(2);
-  
-  
-  
-  
   rawStops[0].color = firstColor;
   rawStops[0].offset = 0.5;
   rawStops[1].color = secondColor;
