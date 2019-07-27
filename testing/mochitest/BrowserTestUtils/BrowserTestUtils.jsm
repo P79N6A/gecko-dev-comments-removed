@@ -195,6 +195,21 @@ this.BrowserTestUtils = {
 
 
 
+  waitForNewWindow: Task.async(function* (delayedStartup=true) {
+    let win = yield this.domWindowOpened();
+
+    yield TestUtils.topicObserved("browser-delayed-startup-finished",
+                                   subject => subject == win);
+    return win;
+  }),
+
+  
+
+
+
+
+
+
 
 
 
