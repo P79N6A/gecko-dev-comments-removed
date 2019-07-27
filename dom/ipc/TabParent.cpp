@@ -142,27 +142,21 @@ private:
         MOZ_ASSERT(NS_IsMainThread());
         MOZ_ASSERT(mTabParent);
         MOZ_ASSERT(mEventTarget);
+        MOZ_ASSERT(mFD);
 
         nsRefPtr<TabParent> tabParent;
         mTabParent.swap(tabParent);
 
         using mozilla::ipc::FileDescriptor;
 
-        FileDescriptor fd;
-        if (mFD) {
-            FileDescriptor::PlatformHandleType handle =
-                FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(mFD));
-            fd = FileDescriptor(handle);
-        }
+        FileDescriptor::PlatformHandleType handle =
+            FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(mFD));
 
         
         
         if (!tabParent->IsDestroyed()) {
-            mozilla::unused << tabParent->SendCacheFileDescriptor(mPath, fd);
-        }
-
-        if (!mFD) {
-            return;
+          mozilla::unused << tabParent->SendCacheFileDescriptor(mPath,
+                                                                FileDescriptor(handle));
         }
 
         nsCOMPtr<nsIEventTarget> eventTarget;
@@ -177,8 +171,7 @@ private:
         }
     }
 
-    
-    void OpenFileImpl()
+    void OpenFile()
     {
         MOZ_ASSERT(!NS_IsMainThread());
         MOZ_ASSERT(!mFD);
@@ -192,21 +185,10 @@ private:
         NS_ENSURE_SUCCESS_VOID(rv);
 
         mFD = fd;
-    }
-
-    void OpenFile()
-    {
-        MOZ_ASSERT(!NS_IsMainThread());
-
-        OpenFileImpl();
 
         if (NS_FAILED(NS_DispatchToMainThread(this))) {
             NS_WARNING("Failed to dispatch to main thread!");
 
-            
-            
-            
-            mTabParent.forget();
             CloseFile();
         }
     }
@@ -2195,7 +2177,11 @@ TabParent::MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
                                           ScrollableLayerGuid* aOutTargetGuid,
                                           uint64_t* aOutInputBlockId)
 {
-  if (aEvent.mClass == eWheelEventClass) {
+  if (aEvent.mClass == eWheelEventClass
+#ifdef MOZ_WIDGET_GONK
+      || aEvent.mClass == eTouchEventClass
+#endif
+     ) {
     
     
     
