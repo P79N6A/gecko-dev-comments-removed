@@ -1322,8 +1322,15 @@ extern bool
 NativeLookupElement(JSContext *cx, HandleNativeObject obj, uint32_t index,
                     MutableHandleObject objp, MutableHandleShape propp);
 
+
+
+
+
+
+
+
 extern bool
-NativeGetExistingProperty(JSContext *cx, HandleObject obj, HandleNativeObject pobj,
+NativeGetExistingProperty(JSContext *cx, HandleObject receiver, HandleNativeObject obj,
                           HandleShape shape, MutableHandle<Value> vp);
 
 extern bool
