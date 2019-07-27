@@ -104,6 +104,34 @@ this.Context.fromString = function(s) {
 
 
 let ListenerProxy = function(mmFn, sendAsyncFn, curBrowserFn) {
+  let sender = new ContentSender(mmFn, sendAsyncFn, curBrowserFn);
+  let handler = {
+    set: (obj, prop, val) => { obj[prop] = val; return true; },
+    get: (obj, prop) => (...args) => obj.send(prop, args),
+  };
+  return new Proxy(sender, handler);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let ContentSender = function(mmFn, sendAsyncFn, curBrowserFn) {
   this.curCmdId = null;
   this.sendAsync = sendAsyncFn;
 
@@ -111,15 +139,30 @@ let ListenerProxy = function(mmFn, sendAsyncFn, curBrowserFn) {
   this.curBrowserFn_ = curBrowserFn;
 };
 
-Object.defineProperty(ListenerProxy.prototype, "mm", {
+Object.defineProperty(ContentSender.prototype, "mm", {
   get: function() { return this.mmFn_(); }
 });
 
-Object.defineProperty(ListenerProxy.prototype, "curBrowser", {
+Object.defineProperty(ContentSender.prototype, "curBrowser", {
   get: function() { return this.curBrowserFn_(); }
 });
 
-ListenerProxy.prototype.__noSuchMethod__ = function*(name, args) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ContentSender.prototype.send = function(name, args) {
   const ok = "Marionette:ok";
   const val = "Marionette:done";
   const err = "Marionette:error";
@@ -170,11 +213,10 @@ ListenerProxy.prototype.__noSuchMethod__ = function*(name, args) {
     modal.addHandler(handleDialog);
 
     
-    let msg;
-    if (args.length == 1 && typeof args[0] == "object" && args[0] !== null) {
+    
+    let msg = args;
+    if (args.length == 1 && typeof args[0] == "object") {
       msg = args[0];
-    } else {
-      msg = Array.prototype.slice.call(args);
     }
 
     this.sendAsync(name, msg, this.curCmdId);
@@ -183,7 +225,7 @@ ListenerProxy.prototype.__noSuchMethod__ = function*(name, args) {
   return proxy;
 };
 
-ListenerProxy.prototype.isOutOfSync = function(id) {
+ContentSender.prototype.isOutOfSync = function(id) {
   return this.curCmdId !== id;
 };
 
@@ -268,7 +310,7 @@ this.GeckoDriver = function(appName, device, emulator) {
   };
 
   this.mm = globalMessageManager;
-  this.listener = new ListenerProxy(
+  this.listener = ListenerProxy(
       () => this.mm,
       this.sendAsync.bind(this),
       () => this.curBrowser);
@@ -1281,7 +1323,7 @@ GeckoDriver.prototype.get = function(cmd, resp) {
       
       
       this.curBrowser.pendingCommands.push(() => {
-        cmd.parameters.command_id = this.listener.curCmdId;
+        cmd.parameters.command_id = cmd.id;
         this.mm.broadcastAsyncMessage(
             "Marionette:pollForReadyState" + this.curBrowser.curFrameId,
             cmd.parameters);
