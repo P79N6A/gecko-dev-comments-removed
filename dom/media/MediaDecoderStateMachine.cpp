@@ -500,6 +500,12 @@ void MediaDecoderStateMachine::SendStreamData()
       endPosition = std::max(endPosition,
           mediaStream->TicksToTimeRoundDown(mInfo.mAudio.mRate,
                                             stream->mAudioFramesWritten));
+
+      CheckedInt64 playedUsecs = mStreamStartTime +
+          FramesToUsecs(stream->mAudioFramesWritten, mInfo.mAudio.mRate);
+      if (playedUsecs.isValid()) {
+        OnAudioEndTimeUpdate(playedUsecs.value());
+      }
     }
 
     if (mInfo.HasVideo()) {
@@ -588,7 +594,6 @@ void MediaDecoderStateMachine::SendStreamData()
     
     
     if (a && a->mTime <= clockTime) {
-      OnAudioEndTimeUpdate(std::max(mAudioEndTime, a->GetEndTime()));
       nsRefPtr<AudioData> releaseMe = AudioQueue().PopFront();
       continue;
     }
@@ -3477,6 +3482,9 @@ void MediaDecoderStateMachine::DispatchAudioCaptured()
       
       
       self->mStreamStartTime = self->GetMediaTime();
+      
+      
+      self->mAudioEndTime = -1;
       self->mAudioCaptured = true;
       self->ScheduleStateMachine();
     }
