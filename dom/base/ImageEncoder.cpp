@@ -21,7 +21,7 @@ namespace dom {
 
 class SurfaceHelper : public nsRunnable {
 public:
-  SurfaceHelper(TemporaryRef<layers::Image> aImage) : mImage(aImage) {}
+  explicit SurfaceHelper(TemporaryRef<layers::Image> aImage) : mImage(aImage) {}
 
   
   
