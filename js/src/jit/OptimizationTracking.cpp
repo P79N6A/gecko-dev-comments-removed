@@ -1164,85 +1164,78 @@ FunctionFromTrackedType(const IonTrackedTypeWithAddendum &tracked)
     return ty.group()->maybeInterpretedFunction();
 }
 
-
-
-class ForEachTypeInfoAdapter : public IonTrackedOptimizationsTypeInfo::ForEachOp
+void
+IonTrackedOptimizationsTypeInfo::ForEachOpAdapter::readType(const IonTrackedTypeWithAddendum &tracked)
 {
-    ForEachTrackedOptimizationTypeInfoOp &op_;
+    TypeSet::Type ty = tracked.type;
 
-  public:
-    explicit ForEachTypeInfoAdapter(ForEachTrackedOptimizationTypeInfoOp &op)
-      : op_(op)
-    { }
-
-    void readType(const IonTrackedTypeWithAddendum &tracked) MOZ_OVERRIDE {
-        TypeSet::Type ty = tracked.type;
-
-        if (ty.isPrimitive() || ty.isUnknown() || ty.isAnyObject()) {
-            op_.readType("primitive", TypeSet::NonObjectTypeString(ty), nullptr, 0);
-            return;
-        }
-
-        char buf[512];
-        const uint32_t bufsize = mozilla::ArrayLength(buf);
-
-        if (JSFunction *fun = FunctionFromTrackedType(tracked)) {
-            if (fun->isNative()) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                uintptr_t addr = JS_FUNC_TO_DATA_PTR(uintptr_t, fun->native());
-                JS_snprintf(buf, bufsize, "%llx", addr);
-                op_.readType("native", nullptr, buf, UINT32_MAX);
-                return;
-            }
-
-            PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
-            const char *filename;
-            unsigned lineno;
-            InterpretedFunctionFilenameAndLineNumber(fun, &filename, &lineno);
-            op_.readType(tracked.constructor ? "constructor" : "function", buf, filename, lineno);
-            return;
-        }
-
-        const char *className = ty.objectKey()->clasp()->name;
-        JS_snprintf(buf, bufsize, "[object %s]", className);
-
-        if (tracked.hasAllocationSite()) {
-            JSScript *script = tracked.script;
-            op_.readType("alloc site", buf,
-                         script->maybeForwardedScriptSource()->filename(),
-                         PCToLineNumber(script, script->offsetToPC(tracked.offset)));
-            return;
-        }
-
-        if (ty.isGroup()) {
-            op_.readType("prototype", buf, nullptr, UINT32_MAX);
-            return;
-        }
-
-        op_.readType("singleton", buf, nullptr, UINT32_MAX);
+    if (ty.isPrimitive() || ty.isUnknown() || ty.isAnyObject()) {
+        op_.readType("primitive", TypeSet::NonObjectTypeString(ty), nullptr, 0);
+        return;
     }
 
-    void operator()(JS::TrackedTypeSite site, MIRType mirType) MOZ_OVERRIDE {
-        op_(site, StringFromMIRType(mirType));
+    char buf[512];
+    const uint32_t bufsize = mozilla::ArrayLength(buf);
+
+    if (JSFunction *fun = FunctionFromTrackedType(tracked)) {
+        if (fun->isNative()) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            uintptr_t addr = JS_FUNC_TO_DATA_PTR(uintptr_t, fun->native());
+            JS_snprintf(buf, bufsize, "%llx", addr);
+            op_.readType("native", nullptr, buf, UINT32_MAX);
+            return;
+        }
+
+        PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
+        const char *filename;
+        unsigned lineno;
+        InterpretedFunctionFilenameAndLineNumber(fun, &filename, &lineno);
+        op_.readType(tracked.constructor ? "constructor" : "function", buf, filename, lineno);
+        return;
     }
-};
+
+    const char *className = ty.objectKey()->clasp()->name;
+    JS_snprintf(buf, bufsize, "[object %s]", className);
+
+    if (tracked.hasAllocationSite()) {
+        JSScript *script = tracked.script;
+        op_.readType("alloc site", buf,
+                     script->maybeForwardedScriptSource()->filename(),
+                     PCToLineNumber(script, script->offsetToPC(tracked.offset)));
+        return;
+    }
+
+    if (ty.isGroup()) {
+        op_.readType("prototype", buf, nullptr, UINT32_MAX);
+        return;
+    }
+
+    op_.readType("singleton", buf, nullptr, UINT32_MAX);
+}
+
+void
+IonTrackedOptimizationsTypeInfo::ForEachOpAdapter::operator()(JS::TrackedTypeSite site,
+                                                              MIRType mirType)
+{
+    op_(site, StringFromMIRType(mirType));
+}
 
 JS_PUBLIC_API(void)
 JS::ForEachTrackedOptimizationTypeInfo(JSRuntime *rt, void *addr,
@@ -1251,7 +1244,7 @@ JS::ForEachTrackedOptimizationTypeInfo(JSRuntime *rt, void *addr,
     JitcodeGlobalTable *table = rt->jitRuntime()->getJitcodeGlobalTable();
     JitcodeGlobalEntry entry;
     table->lookupInfallible(addr, &entry, rt);
-    ForEachTypeInfoAdapter adapter(op);
+    IonTrackedOptimizationsTypeInfo::ForEachOpAdapter adapter(op);
     Maybe<uint8_t> index = entry.trackedOptimizationIndexAtAddr(addr);
     entry.trackedOptimizationTypeInfo(index.value()).forEach(adapter, entry.allTrackedTypes());
 }
