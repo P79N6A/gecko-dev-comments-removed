@@ -180,6 +180,14 @@ public:
   
   virtual bool IsMediaSeekable() = 0;
 
+  MediaTaskQueue* GetTaskQueue() {
+    return mTaskQueue;
+  }
+
+  void ClearDecoder() {
+    mDecoder = nullptr;
+  }
+
 protected:
   virtual ~MediaDecoderReader();
 
@@ -204,10 +212,6 @@ protected:
   RequestSampleCallback* GetCallback() {
     MOZ_ASSERT(mSampleDecodedCallback);
     return mSampleDecodedCallback;
-  }
-
-  virtual MediaTaskQueue* GetTaskQueue() {
-    return mTaskQueue;
   }
 
   
