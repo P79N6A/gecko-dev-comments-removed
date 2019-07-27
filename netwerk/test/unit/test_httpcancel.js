@@ -5,6 +5,7 @@
 
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 var ios = Components.classes["@mozilla.org/network/io-service;1"]
                     .getService(Components.interfaces.nsIIOService);
@@ -72,7 +73,14 @@ var listener = {
 };
 
 function makeChan(url) {
-  var chan = ios.newChannel(url, null, null)
+  var chan = ios.newChannel2(url,
+                             null,
+                             null,
+                             null,      
+                             Services.scriptSecurityManager.getSystemPrincipal(),
+                             null,      
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER)
                 .QueryInterface(Components.interfaces.nsIHttpChannel);
 
   

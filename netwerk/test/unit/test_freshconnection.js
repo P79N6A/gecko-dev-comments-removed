@@ -1,6 +1,7 @@
 
 
 
+Cu.import("resource://gre/modules/Services.jsm");
 
 var listener = {
   onStartRequest: function test_onStartR(request, ctx) {
@@ -18,7 +19,14 @@ var listener = {
 function run_test() {
   var ios = Cc["@mozilla.org/network/io-service;1"].
                        getService(Ci.nsIIOService);
-  var chan = ios.newChannel("http://localhost:4444", "", null);
+  var chan = ios.newChannel2("http://localhost:4444",
+                             "",
+                             null,
+                             null,      
+                             Services.scriptSecurityManager.getSystemPrincipal(),
+                             null,      
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER);
   chan.loadFlags = Ci.nsIRequest.LOAD_FRESH_CONNECTION |
 	           Ci.nsIChannel.LOAD_INITIAL_DOCUMENT_URI;
   chan.QueryInterface(Ci.nsIHttpChannel);

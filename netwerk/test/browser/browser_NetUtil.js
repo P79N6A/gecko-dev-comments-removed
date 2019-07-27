@@ -28,12 +28,19 @@ var tests = [
 
 function test_asyncFetchBadCert() {
   
-  NetUtil.asyncFetch("https://untrusted.example.com", function (aInputStream, aStatusCode, aRequest) {
+  NetUtil.asyncFetch2("https://untrusted.example.com", function (aInputStream, aStatusCode, aRequest) {
     ok(!Components.isSuccessCode(aStatusCode), "request failed");
     ok(aRequest instanceof Ci.nsIHttpChannel, "request is an nsIHttpChannel");
 
     
-    let channel = NetUtil.newChannel("https://untrusted.example.com");
+    let channel = NetUtil.newChannel2("https://untrusted.example.com",
+                                      null,
+                                      null,
+                                      null,      
+                                      Services.scriptSecurityManager.getSystemPrincipal(),
+                                      null,      
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
     channel.notificationCallbacks = {
       QueryInterface: XPCOMUtils.generateQI([Ci.nsIProgressEventSink,
                                              Ci.nsIInterfaceRequestor]),
@@ -41,22 +48,31 @@ function test_asyncFetchBadCert() {
       onProgress: function () {},
       onStatus: function () {}
     };
-    NetUtil.asyncFetch(channel, function (aInputStream, aStatusCode, aRequest) {
+    NetUtil.asyncFetch2(channel, function (aInputStream, aStatusCode, aRequest) {
       ok(!Components.isSuccessCode(aStatusCode), "request failed");
       ok(aRequest instanceof Ci.nsIHttpChannel, "request is an nsIHttpChannel");
 
       
-      NetUtil.asyncFetch("https://example.com", function (aInputStream, aStatusCode, aRequest) {
+      NetUtil.asyncFetch2("https://example.com", function (aInputStream, aStatusCode, aRequest) {
         info("aStatusCode for valid request: " + aStatusCode);
         ok(Components.isSuccessCode(aStatusCode), "request succeeded");
         ok(aRequest instanceof Ci.nsIHttpChannel, "request is an nsIHttpChannel");
         ok(aRequest.requestSucceeded, "HTTP request succeeded");
   
         nextTest();
-      });
+      },
+      null,      
+      Services.scriptSecurityManager.getSystemPrincipal(),
+      null,      
+      Ci.nsILoadInfo.SEC_NORMAL,
+      Ci.nsIContentPolicy.TYPE_OTHER);
     });
-
-  });
+  },
+  null,      
+  Services.scriptSecurityManager.getSystemPrincipal(),
+  null,      
+  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 function WindowListener(aURL, aCallback) {

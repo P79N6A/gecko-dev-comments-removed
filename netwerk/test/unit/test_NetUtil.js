@@ -13,6 +13,7 @@ Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -260,7 +261,7 @@ function test_ioService()
 function test_asyncFetch_no_channel()
 {
   try {
-    NetUtil.asyncFetch(null, function() { });
+    NetUtil.asyncFetch2(null, function() { });
     do_throw("should throw!");
   }
   catch (e) {
@@ -273,7 +274,7 @@ function test_asyncFetch_no_channel()
 function test_asyncFetch_no_callback()
 {
   try {
-    NetUtil.asyncFetch({ });
+    NetUtil.asyncFetch2({ });
     do_throw("should throw!");
   }
   catch (e) {
@@ -298,11 +299,18 @@ function test_asyncFetch_with_nsIChannel()
 
   
   let channel = NetUtil.ioService.
-                newChannel("http://localhost:" +
-                           server.identity.primaryPort + "/test", null, null);
+                newChannel2("http://localhost:" +
+                            server.identity.primaryPort + "/test",
+                            null,
+                            null,
+                            null,      
+                            Services.scriptSecurityManager.getSystemPrincipal(),
+                            null,      
+                            Ci.nsILoadInfo.SEC_NORMAL,
+                            Ci.nsIContentPolicy.TYPE_OTHER);
 
   
-  NetUtil.asyncFetch(channel, function(aInputStream, aResult) {
+  NetUtil.asyncFetch2(channel, function(aInputStream, aResult) {
     
     do_check_true(Components.isSuccessCode(aResult));
 
@@ -336,7 +344,7 @@ function test_asyncFetch_with_nsIURI()
                            server.identity.primaryPort + "/test");
 
   
-  NetUtil.asyncFetch(uri, function(aInputStream, aResult) {
+  NetUtil.asyncFetch2(uri, function(aInputStream, aResult) {
     
     do_check_true(Components.isSuccessCode(aResult));
 
@@ -349,7 +357,12 @@ function test_asyncFetch_with_nsIURI()
     do_check_eq(TEST_DATA, result);
 
     server.stop(run_next_test);
-  });
+  },
+  null,      
+  Services.scriptSecurityManager.getSystemPrincipal(),
+  null,      
+  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 function test_asyncFetch_with_string()
@@ -366,7 +379,7 @@ function test_asyncFetch_with_string()
   server.start(-1);
 
   
-  NetUtil.asyncFetch("http://localhost:" +
+  NetUtil.asyncFetch2("http://localhost:" +
                      server.identity.primaryPort + "/test",
                      function(aInputStream, aResult) {
     
@@ -381,7 +394,12 @@ function test_asyncFetch_with_string()
     do_check_eq(TEST_DATA, result);
 
     server.stop(run_next_test);
-  });
+  },
+  null,      
+  Services.scriptSecurityManager.getSystemPrincipal(),
+  null,      
+  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 function test_asyncFetch_with_nsIFile()
@@ -405,7 +423,7 @@ function test_asyncFetch_with_nsIFile()
   do_check_eq(TEST_DATA, getFileContents(file));
 
   
-  NetUtil.asyncFetch(file, function(aInputStream, aResult) {
+  NetUtil.asyncFetch2(file, function(aInputStream, aResult) {
     
     do_check_true(Components.isSuccessCode(aResult));
 
@@ -418,7 +436,12 @@ function test_asyncFetch_with_nsIFile()
     do_check_eq(TEST_DATA, result);
 
     run_next_test();
-  });
+  },
+  null,      
+  Services.scriptSecurityManager.getSystemPrincipal(),
+  null,      
+  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 function test_asyncFetch_with_nsIInputString()
@@ -429,7 +452,7 @@ function test_asyncFetch_with_nsIInputString()
   istream.setData(TEST_DATA, TEST_DATA.length);
 
   
-  NetUtil.asyncFetch(istream, function(aInputStream, aResult) {
+  NetUtil.asyncFetch2(istream, function(aInputStream, aResult) {
     
     do_check_true(Components.isSuccessCode(aResult));
 
@@ -439,17 +462,29 @@ function test_asyncFetch_with_nsIInputString()
                 TEST_DATA);
 
     run_next_test();
-  });
+  },
+  null,      
+  Services.scriptSecurityManager.getSystemPrincipal(),
+  null,      
+  Ci.nsILoadInfo.SEC_NORMAL,
+  Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 function test_asyncFetch_does_not_block()
 {
   
   let channel = NetUtil.ioService.
-                newChannel("data:text/plain,", null, null);
+                newChannel2("data:text/plain,",
+                            null,
+                            null,
+                            null,      
+                            Services.scriptSecurityManager.getSystemPrincipal(),
+                            null,      
+                            Ci.nsILoadInfo.SEC_NORMAL,
+                            Ci.nsIContentPolicy.TYPE_OTHER);
 
   
-  NetUtil.asyncFetch(channel, function(aInputStream, aResult) {
+  NetUtil.asyncFetch2(channel, function(aInputStream, aResult) {
     
     do_check_true(Components.isSuccessCode(aResult));
 
@@ -473,7 +508,7 @@ function test_asyncFetch_does_not_block()
 function test_newChannel_no_specifier()
 {
   try {
-    NetUtil.newChannel();
+    NetUtil.newChannel2();
     do_throw("should throw!");
   }
   catch (e) {
@@ -490,8 +525,22 @@ function test_newChannel_with_string()
   
   
   let ios = NetUtil.ioService;
-  let iosChannel = ios.newChannel(TEST_SPEC, null, null);
-  let NetUtilChannel = NetUtil.newChannel(TEST_SPEC);
+  let iosChannel = ios.newChannel2(TEST_SPEC,
+                                   null,
+                                   null,
+                                   null,      
+                                   Services.scriptSecurityManager.getSystemPrincipal(),
+                                   null,      
+                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsIContentPolicy.TYPE_OTHER);
+  let NetUtilChannel = NetUtil.newChannel2(TEST_SPEC,
+                                           null,
+                                           null,
+                                           null,      
+                                           Services.scriptSecurityManager.getSystemPrincipal(),
+                                           null,      
+                                           Ci.nsILoadInfo.SEC_NORMAL,
+                                           Ci.nsIContentPolicy.TYPE_OTHER);
   do_check_true(iosChannel.URI.equals(NetUtilChannel.URI));
 
   run_next_test();
@@ -504,8 +553,20 @@ function test_newChannel_with_nsIURI()
   
   
   let uri = NetUtil.newURI(TEST_SPEC);
-  let iosChannel = NetUtil.ioService.newChannelFromURI(uri);
-  let NetUtilChannel = NetUtil.newChannel(uri);
+  let iosChannel = NetUtil.ioService.newChannelFromURI2(uri,
+                                                        null,      
+                                                        Services.scriptSecurityManager.getSystemPrincipal(),
+                                                        null,      
+                                                        Ci.nsILoadInfo.SEC_NORMAL,
+                                                        Ci.nsIContentPolicy.TYPE_OTHER);
+  let NetUtilChannel = NetUtil.newChannel2(uri,
+                                           null,
+                                           null,
+                                           null,      
+                                           Services.scriptSecurityManager.getSystemPrincipal(),
+                                           null,      
+                                           Ci.nsILoadInfo.SEC_NORMAL,
+                                           Ci.nsIContentPolicy.TYPE_OTHER);
   do_check_true(iosChannel.URI.equals(NetUtilChannel.URI));
 
   run_next_test();
@@ -521,8 +582,20 @@ function test_newChannel_with_nsIFile()
   
   
   let uri = NetUtil.newURI(file);
-  let iosChannel = NetUtil.ioService.newChannelFromURI(uri);
-  let NetUtilChannel = NetUtil.newChannel(uri);
+  let iosChannel = NetUtil.ioService.newChannelFromURI2(uri,
+                                                        null,      
+                                                        Services.scriptSecurityManager.getSystemPrincipal(),
+                                                        null,      
+                                                        Ci.nsILoadInfo.SEC_NORMAL,
+                                                        Ci.nsIContentPolicy.TYPE_OTHER);
+  let NetUtilChannel = NetUtil.newChannel2(uri,
+                                           null,
+                                           null,
+                                           null,      
+                                           Services.scriptSecurityManager.getSystemPrincipal(),
+                                           null,      
+                                           Ci.nsILoadInfo.SEC_NORMAL,
+                                           Ci.nsIContentPolicy.TYPE_OTHER);
   do_check_true(iosChannel.URI.equals(NetUtilChannel.URI));
 
   run_next_test();

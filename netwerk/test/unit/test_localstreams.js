@@ -1,4 +1,5 @@
 
+Cu.import("resource://gre/modules/Services.jsm");
 
 const PR_RDONLY = 0x1;  
 
@@ -68,7 +69,12 @@ function stream_from_channel(file) {
   var ios = Components.classes["@mozilla.org/network/io-service;1"]
                       .getService(Components.interfaces.nsIIOService);
   var uri = ios.newFileURI(file);
-  return ios.newChannelFromURI(uri).open();
+  return ios.newChannelFromURI2(uri,
+                                null,      
+                                Services.scriptSecurityManager.getSystemPrincipal(),
+                                null,      
+                                Ci.nsILoadInfo.SEC_NORMAL,
+                                Ci.nsIContentPolicy.TYPE_OTHER).open();
 }
 
 function run_test() {

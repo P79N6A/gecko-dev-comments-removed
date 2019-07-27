@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 const sentCookieVal     = "foo=bar";
 const responseBody      = "response body";
@@ -63,7 +64,14 @@ function run_test()
   
   
   
-  var chan = ioService.newChannel(preRedirectURL, "", null).
+  var chan = ioService.newChannel2(preRedirectURL,
+                                   "",
+                                   null,
+                                   null,      
+                                   Services.scriptSecurityManager.getSystemPrincipal(),
+                                   null,      
+                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsIContentPolicy.TYPE_OTHER).
              QueryInterface(Ci.nsIHttpChannel).
              QueryInterface(Ci.nsIHttpChannelInternal);
   chan.forceAllowThirdPartyCookie = true;

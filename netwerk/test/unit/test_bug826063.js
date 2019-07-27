@@ -25,7 +25,14 @@ LoadContext.prototype = {
 
 function getChannels() {
   for (let u of URIs) {
-    yield Services.io.newChannel(u, null, null);
+    yield Services.io.newChannel2(u,
+                                  null,
+                                  null,
+                                  null,      
+                                  Services.scriptSecurityManager.getSystemPrincipal(),
+                                  null,      
+                                  Ci.nsILoadInfo.SEC_NORMAL,
+                                  Ci.nsIContentPolicy.TYPE_OTHER);
   }
 }
 

@@ -13,6 +13,7 @@ load(_HTTPD_JS_PATH);
 
 DEBUG = true;
 
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -35,7 +36,14 @@ function makeChannel(url)
 {
   var ios = Cc["@mozilla.org/network/io-service;1"]
               .getService(Ci.nsIIOService);
-  var chan = ios.newChannel(url, null, null)
+  var chan = ios.newChannel2(url,
+                             null,
+                             null,
+                             null,      
+                             Services.scriptSecurityManager.getSystemPrincipal(),
+                             null,      
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER)
                 .QueryInterface(Ci.nsIHttpChannel);
 
   return chan;

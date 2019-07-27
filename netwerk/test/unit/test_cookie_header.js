@@ -58,7 +58,14 @@ var listener = {
 function makeChan() {
   var ios = Components.classes["@mozilla.org/network/io-service;1"]
                       .getService(Components.interfaces.nsIIOService);
-  var chan = ios.newChannel(URL, null, null)
+  var chan = ios.newChannel2(URL,
+                             null,
+                             null,
+                             null,      
+                             Services.scriptSecurityManager.getSystemPrincipal(),
+                             null,      
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER)
                 .QueryInterface(Components.interfaces.nsIHttpChannel);
 
   return chan;

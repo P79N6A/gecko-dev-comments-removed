@@ -2,6 +2,7 @@
 
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -47,8 +48,15 @@ function hugeContentLength(metadata, response) {
 
 function test_hugeContentLength() {
   var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var chan = ios.newChannel("http://localhost:" +
-                            httpServer.identity.primaryPort + "/", null, null)
+  var chan = ios.newChannel2("http://localhost:" +
+                             httpServer.identity.primaryPort + "/",
+                             null,
+                             null,
+                             null,      
+                             Services.scriptSecurityManager.getSystemPrincipal(),
+                             null,      
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER)
                 .QueryInterface(Ci.nsIHttpChannel);
   chan.asyncOpen(listener, null);
 }

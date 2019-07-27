@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 var server;
 const BUGID = "263127";
@@ -40,8 +41,15 @@ function run_test() {
   
   var channel = Cc["@mozilla.org/network/io-service;1"]
                   .getService(Ci.nsIIOService)
-                  .newChannel("http://localhost:" +
-                              server.identity.primaryPort + "/", null, null);
+                  .newChannel2("http://localhost:" +
+                               server.identity.primaryPort + "/",
+                               null,
+                               null,
+                               null,      
+                               Services.scriptSecurityManager.getSystemPrincipal(),
+                               null,      
+                               Ci.nsILoadInfo.SEC_NORMAL,
+                               Ci.nsIContentPolicy.TYPE_OTHER);
 
   var targetFile = Cc["@mozilla.org/file/directory_service;1"]
                      .getService(Ci.nsIProperties)
