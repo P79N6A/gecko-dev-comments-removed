@@ -1480,38 +1480,6 @@ XPCJSRuntime::SizeOfIncludingThis(MallocSizeOf mallocSizeOf)
     return n;
 }
 
-nsString*
-XPCJSRuntime::NewShortLivedString()
-{
-    for (uint32_t i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
-        if (mScratchStrings[i].empty()) {
-            mScratchStrings[i].construct();
-            return mScratchStrings[i].addr();
-        }
-    }
-
-    
-    return new nsString();
-}
-
-void
-XPCJSRuntime::DeleteShortLivedString(nsString *string)
-{
-    for (uint32_t i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
-        if (!mScratchStrings[i].empty() &&
-            mScratchStrings[i].addr() == string) {
-            
-            
-            mScratchStrings[i].destroy();
-            return;
-        }
-    }
-
-    
-    
-    delete string;
-}
-
 
 
 static PLDHashOperator
@@ -1662,12 +1630,6 @@ XPCJSRuntime::~XPCJSRuntime()
     
     if (PseudoStack *stack = mozilla_get_pseudo_stack())
         stack->sampleRuntime(nullptr);
-#endif
-
-#ifdef DEBUG
-    for (uint32_t i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i) {
-        MOZ_ASSERT(mScratchStrings[i].empty(), "Short lived string still in use");
-    }
 #endif
 
     Preferences::UnregisterCallback(ReloadPrefsCallback, JS_OPTIONS_DOT_STR, this);
