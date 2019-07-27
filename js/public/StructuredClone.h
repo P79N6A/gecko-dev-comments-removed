@@ -71,6 +71,7 @@ typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReade
 
 
 
+
 typedef bool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w,
                                        JS::HandleObject obj, void *closure);
 
@@ -121,7 +122,8 @@ typedef void (*FreeTransferStructuredCloneOp)(uint32_t tag, JS::TransferableOwne
 
 
 
-#define JS_STRUCTURED_CLONE_VERSION 4
+
+#define JS_STRUCTURED_CLONE_VERSION 5
 
 struct JSStructuredCloneCallbacks {
     ReadStructuredCloneOp read;

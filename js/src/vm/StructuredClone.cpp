@@ -55,6 +55,15 @@ using mozilla::LittleEndian;
 using mozilla::NativeEndian;
 using JS::CanonicalizeNaN;
 
+
+
+
+
+
+
+
+
+
 enum StructuredDataType MOZ_ENUM_TYPE(uint32_t) {
     
     SCTAG_FLOAT_MAX = 0xFFF00000,
@@ -77,8 +86,8 @@ enum StructuredDataType MOZ_ENUM_TYPE(uint32_t) {
     SCTAG_TYPED_ARRAY_OBJECT,
     SCTAG_MAP_OBJECT,
     SCTAG_SET_OBJECT,
-    SCTAG_SHARED_TYPED_ARRAY_OBJECT,
     SCTAG_END_OF_KEYS,
+    SCTAG_SHARED_TYPED_ARRAY_OBJECT,
 
     SCTAG_TYPED_ARRAY_V1_MIN = 0xFFFF0100,
     SCTAG_TYPED_ARRAY_V1_INT8 = SCTAG_TYPED_ARRAY_V1_MIN + Scalar::Int8,
