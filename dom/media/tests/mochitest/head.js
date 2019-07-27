@@ -364,11 +364,18 @@ CommandChain.prototype = {
   
 
 
-  indexOf: function(functionOrName) {
+
+
+  indexOf: function(functionOrName, start) {
+    start = start || 0;
     if (typeof functionOrName === 'string') {
-      return this.commands.findIndex(f => f.name === functionOrName);
+      var index = this.commands.slice(start).findIndex(f => f.name === functionOrName);
+      if (index !== -1) {
+        index += start;
+      }
+      return index;
     }
-    return this.commands.indexOf(functionOrName);
+    return this.commands.indexOf(functionOrName, start);
   },
 
   
@@ -381,18 +388,33 @@ CommandChain.prototype = {
   
 
 
-  insertBefore: function(functionOrName, commands) {
-    this._insertHelper(functionOrName, commands, 0);
+  insertAfterEach: function(functionOrName, commands) {
+    this._insertHelper(functionOrName, commands, 1, true);
   },
 
-  _insertHelper: function(functionOrName, commands, delta) {
-    var index = this.indexOf(functionOrName);
+  
 
-    if (index >= 0) {
-      this.commands = [].concat(
-        this.commands.slice(0, index + delta),
-        commands,
-        this.commands.slice(index + delta));
+
+  insertBefore: function(functionOrName, commands, all, start) {
+    this._insertHelper(functionOrName, commands, 0, all, start);
+  },
+
+  _insertHelper: function(functionOrName, commands, delta, all, start) {
+    var index = this.indexOf(functionOrName);
+    start = start || 0;
+    for (; index !== -1; index = this.indexOf(functionOrName, index)) {
+      if (!start) {
+        this.commands = [].concat(
+          this.commands.slice(0, index + delta),
+          commands,
+          this.commands.slice(index + delta));
+        if (!all) {
+          break;
+        }
+      } else {
+        start -= 1;
+      }
+      index += (commands.length + 1);
     }
   },
 
@@ -460,7 +482,7 @@ CommandChain.prototype = {
 
   filterOut: function (id_match) {
     this.commands = this.commands.filter(c => !id_match.test(c.name));
-  }
+  },
 };
 
 

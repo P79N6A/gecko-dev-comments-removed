@@ -884,7 +884,6 @@ class IceTestPeer : public sigslot::has_slots<> {
     streams_[i]->ParseAttributes(attributes);
   }
 
-  
   void ParseCandidate(size_t i, const std::string& candidate)
   {
     test_utils->sts_target()->Dispatch(
