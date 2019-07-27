@@ -270,9 +270,6 @@ public class BrowserApp extends GeckoApp
         Log.d(LOGTAG, "BrowserApp.onTabChanged: " + tab.getId() + ": " + msg);
         switch(msg) {
             case LOCATION_CHANGE:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
-                    maybeCancelFaviconLoad(tab);
-                }
                 
             case SELECTED:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
@@ -296,16 +293,7 @@ public class BrowserApp extends GeckoApp
                 }
                 break;
             case PAGE_SHOW:
-                loadFavicon(tab);
-                break;
-            case LINK_FAVICON:
-                
-                
-                
-                
-                if (tab.getState() != Tab.STATE_LOADING) {
-                    loadFavicon(tab);
-                }
+                tab.loadFavicon();
                 break;
             case BOOKMARK_ADDED:
                 showBookmarkAddedToast();
@@ -1839,41 +1827,6 @@ public class BrowserApp extends GeckoApp
     private boolean isHomePagerVisible() {
         return (mHomePager != null && mHomePager.isVisible()
             && mHomePagerContainer != null && mHomePagerContainer.getVisibility() == View.VISIBLE);
-    }
-
-    
-    private static OnFaviconLoadedListener sFaviconLoadedListener = new OnFaviconLoadedListener() {
-        @Override
-        public void onFaviconLoaded(String pageUrl, String faviconURL, Bitmap favicon) {
-            
-            Tabs.getInstance()
-                .updateFaviconForURL(pageUrl,
-                                     (favicon == null) ? Favicons.defaultFavicon : favicon);
-        }
-    };
-
-    private void loadFavicon(final Tab tab) {
-        maybeCancelFaviconLoad(tab);
-
-        final int tabFaviconSize = getResources().getDimensionPixelSize(R.dimen.browser_toolbar_favicon_size);
-
-        int flags = (tab.isPrivate() || tab.getErrorType() != Tab.ErrorType.NONE) ? 0 : LoadFaviconTask.FLAG_PERSIST;
-        int id = Favicons.getSizedFavicon(getContext(), tab.getURL(), tab.getFaviconURL(), tabFaviconSize, flags, sFaviconLoadedListener);
-
-        tab.setFaviconLoadId(id);
-    }
-
-    private void maybeCancelFaviconLoad(Tab tab) {
-        int faviconLoadId = tab.getFaviconLoadId();
-
-        if (Favicons.NOT_LOADING == faviconLoadId) {
-            return;
-        }
-
-        
-        
-        Favicons.cancelFaviconLoad(faviconLoadId);
-        tab.setFaviconLoadId(Favicons.NOT_LOADING);
     }
 
     
