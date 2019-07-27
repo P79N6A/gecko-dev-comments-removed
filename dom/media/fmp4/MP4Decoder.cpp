@@ -54,25 +54,14 @@ MP4Decoder::SetCDMProxy(CDMProxy* aProxy)
 #endif
 
 static bool
-IsSupportedAudioCodec(const nsAString& aCodec,
-                      bool& aOutContainsAAC,
-                      bool& aOutContainsMP3)
+IsSupportedAudioCodec(const nsAString& aCodec)
 {
   
-  aOutContainsAAC = aCodec.EqualsASCII("mp4a.40.2") ||
-                    aCodec.EqualsASCII("mp4a.40.5");
-  if (aOutContainsAAC) {
-    return true;
-  }
+  return aCodec.EqualsASCII("mp4a.40.2") ||
 #ifndef MOZ_GONK_MEDIACODEC 
-  aOutContainsMP3 = aCodec.EqualsASCII("mp3");
-  if (aOutContainsMP3) {
-    return true;
-  }
-#else
-  aOutContainsMP3 = false;
+         aCodec.EqualsASCII("mp3") ||
 #endif
-  return false;
+         aCodec.EqualsASCII("mp4a.40.5");
 }
 
 static bool
@@ -103,20 +92,14 @@ IsSupportedH264Codec(const nsAString& aCodec)
 
 bool
 MP4Decoder::CanHandleMediaType(const nsACString& aType,
-                               const nsAString& aCodecs,
-                               bool& aOutContainsAAC,
-                               bool& aOutContainsH264,
-                               bool& aOutContainsMP3)
+                               const nsAString& aCodecs)
 {
   if (!IsEnabled()) {
     return false;
   }
 
   if (aType.EqualsASCII("audio/mp4") || aType.EqualsASCII("audio/x-m4a")) {
-    return aCodecs.IsEmpty() ||
-           IsSupportedAudioCodec(aCodecs,
-                                 aOutContainsAAC,
-                                 aOutContainsMP3);
+    return aCodecs.IsEmpty() || IsSupportedAudioCodec(aCodecs);
   }
 
   if (!aType.EqualsASCII("video/mp4")) {
@@ -130,13 +113,7 @@ MP4Decoder::CanHandleMediaType(const nsACString& aType,
   while (tokenizer.hasMoreTokens()) {
     const nsSubstring& token = tokenizer.nextToken();
     expectMoreTokens = tokenizer.separatorAfterCurrentToken();
-    if (IsSupportedAudioCodec(token,
-                              aOutContainsAAC,
-                              aOutContainsMP3)) {
-      continue;
-    }
-    if (IsSupportedH264Codec(token)) {
-      aOutContainsH264 = true;
+    if (IsSupportedAudioCodec(token) || IsSupportedH264Codec(token)) {
       continue;
     }
     return false;
@@ -145,8 +122,8 @@ MP4Decoder::CanHandleMediaType(const nsACString& aType,
     
     return false;
   }
-
   return true;
+
 }
 
 static bool

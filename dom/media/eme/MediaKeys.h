@@ -53,8 +53,6 @@ public:
 
   MediaKeys(nsPIDOMWindow* aParentWindow, const nsAString& aKeySystem);
 
-  already_AddRefed<Promise> Init(ErrorResult& aRv);
-
   nsPIDOMWindow* GetParentObject() const;
 
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
@@ -71,6 +69,19 @@ public:
   
   already_AddRefed<Promise> SetServerCertificate(const ArrayBufferViewOrArrayBuffer& aServerCertificate,
                                                  ErrorResult& aRv);
+
+  
+  static
+  already_AddRefed<Promise> Create(const GlobalObject& aGlobal,
+                                   const nsAString& aKeySystem,
+                                   ErrorResult& aRv);
+
+  
+  static IsTypeSupportedResult IsTypeSupported(const GlobalObject& aGlobal,
+                                               const nsAString& aKeySystem,
+                                               const Optional<nsAString>& aInitDataType,
+                                               const Optional<nsAString>& aContentType,
+                                               const Optional<nsAString>& aCapability);
 
   already_AddRefed<MediaKeySession> GetSession(const nsAString& aSessionId);
 
@@ -117,7 +128,12 @@ public:
 
 private:
 
+  static bool IsTypeSupported(const nsAString& aKeySystem,
+                              const Optional<nsAString>& aInitDataType = Optional<nsAString>(),
+                              const Optional<nsAString>& aContentType = Optional<nsAString>());
+
   bool IsInPrivateBrowsing();
+  already_AddRefed<Promise> Init(ErrorResult& aRv);
 
   
   already_AddRefed<Promise> RetrievePromise(PromiseId aId);
