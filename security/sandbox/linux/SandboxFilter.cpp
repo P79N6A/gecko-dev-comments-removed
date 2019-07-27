@@ -5,7 +5,10 @@
 
 
 #include "SandboxFilter.h"
-#include "SandboxAssembler.h"
+#include "SandboxInternal.h"
+#include "SandboxFilterUtil.h"
+
+#include "mozilla/UniquePtr.h"
 
 #include <errno.h>
 #include <linux/ipc.h>
@@ -13,490 +16,497 @@
 #include <linux/prctl.h>
 #include <linux/sched.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
 
-#include "mozilla/ArrayUtils.h"
+#include "sandbox/linux/bpf_dsl/bpf_dsl.h"
 #include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
 #include "sandbox/linux/services/linux_syscalls.h"
 
+using namespace sandbox::bpf_dsl;
+#define CASES SANDBOX_BPF_DSL_CASES
+
+
+#ifndef ANDROID
+#define DESKTOP
+#endif
+
+
+
+
+
 namespace mozilla {
 
-class SandboxFilterImpl : public SandboxAssembler
+
+
+class SandboxPolicyCommon : public SandboxPolicyBase
 {
 public:
-  virtual void Build() = 0;
-  virtual ~SandboxFilterImpl() { }
-  void AllowThreadClone();
-};
+  virtual ResultExpr InvalidSyscall() const override {
+    return Trap(nullptr, nullptr);
+  }
 
+  virtual ResultExpr ClonePolicy() const {
+    
 
+    
+    
+    
+    Arg<int> flags(0);
 
+    
+    
+    
+    
+    static const int flags_common = CLONE_VM | CLONE_FS | CLONE_FILES |
+      CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
+    static const int flags_modern = flags_common | CLONE_SETTLS |
+      CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID;
 
-#define SYSCALL_EXISTS(name) (defined(__NR_##name))
-
-#define SYSCALL(name) (Condition(__NR_##name))
-#if defined(__arm__) && (defined(__thumb__) || defined(__ARM_EABI__))
-#define ARM_SYSCALL(name) (Condition(__ARM_NR_##name))
-#endif
-
-#define SYSCALL_WITH_ARG(name, arg, values...) ({ \
-  uint32_t argValues[] = { values };              \
-  Condition(__NR_##name, arg, argValues);         \
-})
-
-
-
-
-
-#if SYSCALL_EXISTS(stat64)
-#define SYSCALL_LARGEFILE(plain, versioned) SYSCALL(versioned)
-#else
-#define SYSCALL_LARGEFILE(plain, versioned) SYSCALL(plain)
-#endif
-
-
-
-#if SYSCALL_EXISTS(socketcall)
-#define SOCKETCALL(name, NAME) SYSCALL_WITH_ARG(socketcall, 0, SYS_##NAME)
-#else
-#define SOCKETCALL(name, NAME) SYSCALL(name)
-#endif
-
-
-
-#if SYSCALL_EXISTS(ipc)
-#define SYSVIPCCALL(name, NAME) SYSCALL_WITH_ARG(ipc, 0, NAME)
-#else
-#define SYSVIPCCALL(name, NAME) SYSCALL(name)
-#endif
-
-void SandboxFilterImpl::AllowThreadClone() {
-  
-  
-  
-  
-  
-  
-  
-  
-  static const int flags_common = CLONE_VM | CLONE_FS | CLONE_FILES |
-    CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
-  Allow(SYSCALL_WITH_ARG(clone, 0,
+    
+    
+    
+    return Switch(flags)
 #ifdef ANDROID
-                         flags_common | CLONE_DETACHED, 
-                         flags_common, 
+      .Case(flags_common | CLONE_DETACHED, Allow()) 
+      .Case(flags_common, Allow()) 
 #endif
-                         flags_common | CLONE_SETTLS 
-                         | CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID));
-}
+      .Case(flags_modern, Allow()) 
+      .Default(InvalidSyscall());
+  }
 
-#ifdef MOZ_CONTENT_SANDBOX
-class SandboxFilterImplContent : public SandboxFilterImpl {
-protected:
-  virtual void Build() override;
-};
+  virtual ResultExpr PrctlPolicy() const {
+    
+    
+    
+    Arg<int> op(0);
+    return Switch(op)
+      .CASES((PR_GET_SECCOMP, 
+              PR_SET_NAME,    
+              PR_SET_DUMPABLE), 
+             Allow())
+      .Default(InvalidSyscall());
+  }
 
-void
-SandboxFilterImplContent::Build() {
-  
+  virtual Maybe<ResultExpr> EvaluateSocketCall(int aCall) const override {
+    switch (aCall) {
+    case SYS_RECVMSG:
+    case SYS_SENDMSG:
+      return Some(Allow());
+    default:
+      return Nothing();
+    }
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  Allow(SYSCALL(futex));
-  Allow(SOCKETCALL(recvmsg, RECVMSG));
-  Allow(SOCKETCALL(sendmsg, SENDMSG));
-
-  
-  
-  
-#if SYSCALL_EXISTS(mmap2)
-  Allow(SYSCALL(mmap2));
-#else
-  Allow(SYSCALL(mmap));
+  virtual ResultExpr EvaluateSyscall(int sysno) const override {
+    switch (sysno) {
+      
+    case __NR_clock_gettime: {
+      Arg<clockid_t> clk_id(0);
+      return If(clk_id == CLOCK_MONOTONIC, Allow())
+        .ElseIf(clk_id == CLOCK_REALTIME, Allow())
+        .Else(InvalidSyscall());
+    }
+    case __NR_gettimeofday:
+#ifdef __NR_time
+    case __NR_time:
 #endif
+    case __NR_nanosleep:
+      return Allow();
 
-  Allow(SYSCALL(clock_gettime));
-  Allow(SYSCALL(epoll_wait));
-  Allow(SYSCALL(epoll_pwait));
-  Allow(SYSCALL(gettimeofday));
-  Allow(SYSCALL(read));
-  Allow(SYSCALL(write));
-  
-#if SYSCALL_EXISTS(_llseek)
-  Allow(SYSCALL(_llseek));
+      
+    case __NR_futex:
+      
+      return Allow();
+
+      
+    case __NR_epoll_wait:
+    case __NR_epoll_pwait:
+    case __NR_epoll_ctl:
+    case __NR_ppoll:
+    case __NR_poll:
+      return Allow();
+
+      
+    case __NR_pipe:
+      return Allow();
+
+      
+    CASES_FOR_fstat:
+      return Allow();
+
+      
+    case __NR_write:
+    case __NR_read:
+      return Allow();
+
+
+      
+    CASES_FOR_mmap:
+    case __NR_munmap:
+      return Allow();
+
+      
+#if defined(ANDROID) || defined(MOZ_ASAN)
+    case __NR_sigaltstack:
 #endif
-  Allow(SYSCALL(lseek));
-  
-  Allow(SYSCALL(ftruncate));
-#if SYSCALL_EXISTS(ftruncate64)
-  Allow(SYSCALL(ftruncate64));
+    CASES_FOR_sigreturn:
+    CASES_FOR_sigprocmask:
+    CASES_FOR_sigaction:
+      return Allow();
+
+      
+    case __NR_tgkill: {
+      Arg<pid_t> tgid(0);
+      return If(tgid == getpid(), Allow())
+        .Else(InvalidSyscall());
+    }
+
+      
+    case __NR_sched_yield:
+      return Allow();
+
+      
+    case __NR_clone:
+      return ClonePolicy();
+
+      
+#ifdef __NR_set_robust_list
+    case __NR_set_robust_list:
+      return Allow();
 #endif
-
-  
-
-
-  Allow(SYSCALL(ioctl));
-  Allow(SYSCALL(close));
-  Allow(SYSCALL(munmap));
-  Allow(SYSCALL(mprotect));
-  Allow(SYSCALL(writev));
-  Allow(SYSCALL(pread64));
-  AllowThreadClone();
-  Allow(SYSCALL(brk));
-#if SYSCALL_EXISTS(set_thread_area)
-  Allow(SYSCALL(set_thread_area));
-#endif
-
-  Allow(SYSCALL(getpid));
-  Allow(SYSCALL(gettid));
-  Allow(SYSCALL(getrusage));
-  Allow(SYSCALL(times));
-  Allow(SYSCALL(madvise));
-  Allow(SYSCALL(dup));
-  Allow(SYSCALL(nanosleep));
-  Allow(SYSCALL(poll));
-  Allow(SYSCALL(ppoll));
-  Allow(SYSCALL(openat));
-  Allow(SYSCALL(faccessat));
-  
-#if SYSCALL_EXISTS(_newselect)
-  Allow(SYSCALL(_newselect));
-#else
-  Allow(SYSCALL(select));
-#endif
-  Allow(SYSCALL(pselect6));
-  
-#if SYSCALL_EXISTS(getuid32)
-  Allow(SYSCALL(getuid32));
-  Allow(SYSCALL(geteuid32));
-  Allow(SYSCALL(getgid32));
-  Allow(SYSCALL(getegid32));
-#else
-  Allow(SYSCALL(getuid));
-  Allow(SYSCALL(geteuid));
-  Allow(SYSCALL(getgid));
-  Allow(SYSCALL(getegid));
-#endif
-  
-  
-  
-#if SYSCALL_EXISTS(sigreturn)
-  Allow(SYSCALL(sigreturn));
-#endif
-  Allow(SYSCALL(rt_sigreturn));
-  Allow(SYSCALL_LARGEFILE(fcntl, fcntl64));
-
-  
-  
-  Allow(SYSCALL_LARGEFILE(fstat, fstat64));
-  Allow(SYSCALL_LARGEFILE(stat, stat64));
-  Allow(SYSCALL_LARGEFILE(lstat, lstat64));
-  Allow(SYSCALL_LARGEFILE(newfstatat, fstatat64));
-  Allow(SOCKETCALL(socketpair, SOCKETPAIR));
-  Deny(EACCES, SOCKETCALL(socket, SOCKET));
-  Allow(SYSCALL(open));
-  Deny(EINVAL, SYSCALL(readlink)); 
-  Deny(EINVAL, SYSCALL(readlinkat)); 
-  Allow(SYSCALL(prctl));
-  Allow(SYSCALL(access));
-  Allow(SYSCALL(fsync));
-  Allow(SYSCALL(msync));
-
-#if defined(ANDROID) && !defined(MOZ_MEMORY)
-  
-  Allow(SYSCALL(mremap));
+#ifdef ANDROID
+    case __NR_set_tid_address:
+      return Allow();
 #endif
 
-  
-  Allow(SYSCALL(getpriority));
-  Allow(SYSCALL(sched_get_priority_min));
-  Allow(SYSCALL(sched_get_priority_max));
-  Allow(SYSCALL(setpriority));
-  
-  
-#if SYSCALL_EXISTS(sigprocmask)
-  Allow(SYSCALL(sigprocmask));
-#endif
-  Allow(SYSCALL(rt_sigprocmask));
+      
+    case __NR_prctl:
+      return PrctlPolicy();
 
-  
-  
-  Allow(SYSCALL_WITH_ARG(tgkill, 0, uint32_t(getpid())));
+      
+      
+    case __NR_getpriority:
+      
+      
+    case __NR_setpriority:
+      return Error(EACCES);
 
-  Allow(SOCKETCALL(sendto, SENDTO));
-  Allow(SOCKETCALL(recvfrom, RECVFROM));
-  Allow(SYSCALL_LARGEFILE(getdents, getdents64));
-  Allow(SYSCALL(epoll_ctl));
-  Allow(SYSCALL(sched_yield));
-  Allow(SYSCALL(sched_getscheduler));
-  Allow(SYSCALL(sched_setscheduler));
-  Allow(SYSCALL(sched_getparam));
-  Allow(SYSCALL(sched_setparam));
-  Allow(SYSCALL(sigaltstack));
-  Allow(SYSCALL(pipe));
-  Allow(SYSCALL(set_tid_address));
+      
+      
+    case __NR_sched_getaffinity:
+      return Error(ENOSYS);
 
-  
-  
-#if SYSCALL_EXISTS(sigaction)
-  Allow(SYSCALL(sigaction));
-#endif
-  Allow(SYSCALL(rt_sigaction));
-#ifdef ARM_SYSCALL
-  Allow(ARM_SYSCALL(breakpoint));
-  Allow(ARM_SYSCALL(cacheflush));
-  Allow(ARM_SYSCALL(usr26));
-  Allow(ARM_SYSCALL(usr32));
-  Allow(ARM_SYSCALL(set_tls));
+      
+    case __NR_getpid:
+    case __NR_gettid:
+      return Allow();
+
+      
+    case __NR_close:
+      return Allow();
+
+      
+#ifdef __arm__
+    case __ARM_NR_breakpoint:
+    case __ARM_NR_cacheflush:
+    case __ARM_NR_usr26: 
+    case __ARM_NR_usr32:
+    case __ARM_NR_set_tls:
+      return Allow();
 #endif
 
-  
-  Allow(SYSCALL(restart_syscall));
+      
+    case __NR_restart_syscall:
+      return Allow();
 
-  
-  
-#ifndef ANDROID
-  Allow(SYSCALL(stat));
-  Allow(SYSCALL(getdents));
-  Allow(SYSCALL(lstat));
-#if SYSCALL_EXISTS(mmap2)
-  Allow(SYSCALL(mmap2));
-#else
-  Allow(SYSCALL(mmap));
-#endif
-  Allow(SYSCALL(openat));
-  Allow(SYSCALL(fcntl));
-  Allow(SYSCALL(fstat));
-  Allow(SYSCALL(readlink));
-  Allow(SOCKETCALL(getsockname, GETSOCKNAME));
-  Allow(SYSCALL(getuid));
-  Allow(SYSCALL(geteuid));
-  Allow(SYSCALL(mkdir));
-  Allow(SYSCALL(getcwd));
-  Allow(SYSCALL(readahead));
-  Allow(SYSCALL(pread64));
-  Allow(SYSCALL(statfs));
-#if SYSCALL_EXISTS(ugetrlimit)
-  Allow(SYSCALL(ugetrlimit));
-#else
-  Allow(SYSCALL(getrlimit));
-#endif
-  Allow(SOCKETCALL(shutdown, SHUTDOWN));
-  Allow(SOCKETCALL(getpeername, GETPEERNAME));
-  Allow(SYSCALL(eventfd2));
-  Allow(SYSCALL(clock_getres));
-  Allow(SYSCALL(sysinfo));
-  Allow(SYSCALL(getresuid));
-  Allow(SYSCALL(umask));
-  Allow(SYSCALL(getresgid));
-  Allow(SYSCALL(poll));
-  Allow(SYSCALL(ppoll));
-  Allow(SYSCALL(openat));
-  Allow(SYSCALL(faccessat));
-  Allow(SYSCALL(inotify_init1));
-  Allow(SYSCALL(wait4));
-  Allow(SYSVIPCCALL(shmctl, SHMCTL));
-  Allow(SYSCALL(set_robust_list));
-  Allow(SYSCALL(rmdir));
-  Allow(SOCKETCALL(recvfrom, RECVFROM));
-  Allow(SYSVIPCCALL(shmdt, SHMDT));
-  Allow(SYSCALL(pipe2));
-  Allow(SOCKETCALL(setsockopt, SETSOCKOPT));
-  Allow(SYSVIPCCALL(shmat, SHMAT));
-  Allow(SYSCALL(set_tid_address));
-  Allow(SYSCALL(inotify_add_watch));
-  Allow(SYSCALL(rt_sigprocmask));
-  Allow(SYSVIPCCALL(shmget, SHMGET));
-#if SYSCALL_EXISTS(utimes)
-  Allow(SYSCALL(utimes));
-#else
-  Allow(SYSCALL(utime));
-#endif
-#if SYSCALL_EXISTS(arch_prctl)
-  Allow(SYSCALL(arch_prctl));
-#endif
-  Allow(SYSCALL(sched_getaffinity));
-  
-  Allow(SOCKETCALL(socket, SOCKET));
-  Allow(SYSCALL(chmod));
-  Allow(SYSCALL(execve));
-  Allow(SYSCALL(rename));
-  Allow(SYSCALL(symlink));
-  Allow(SOCKETCALL(connect, CONNECT));
-  Allow(SYSCALL(quotactl));
-  Allow(SYSCALL(kill));
-  Allow(SOCKETCALL(sendto, SENDTO));
-#endif
-
-  
-  
-  Allow(SYSCALL(uname));
-  Allow(SYSCALL(exit_group));
-  Allow(SYSCALL(exit));
-}
-#endif 
-
-#ifdef MOZ_GMP_SANDBOX
-class SandboxFilterImplGMP : public SandboxFilterImpl {
-protected:
-  virtual void Build() override;
-};
-
-void SandboxFilterImplGMP::Build() {
-  
-
-  Allow(SYSCALL_WITH_ARG(clock_gettime, 0, CLOCK_MONOTONIC, CLOCK_REALTIME));
-  Allow(SYSCALL(futex));
-  Allow(SYSCALL(gettimeofday));
-  Allow(SYSCALL(poll));
-  Allow(SYSCALL(write));
-  Allow(SYSCALL(read));
-  Allow(SYSCALL(epoll_wait));
-  Allow(SYSCALL(epoll_pwait));
-  Allow(SOCKETCALL(recvmsg, RECVMSG));
-  Allow(SOCKETCALL(sendmsg, SENDMSG));
-  Allow(SYSCALL(time));
-  Allow(SYSCALL(sched_yield));
-
-  
-
-#if SYSCALL_EXISTS(mmap2)
-  Allow(SYSCALL(mmap2));
-#else
-  Allow(SYSCALL(mmap));
-#endif
-  Allow(SYSCALL_LARGEFILE(fstat, fstat64));
-  Allow(SYSCALL(munmap));
-
-  Allow(SYSCALL(getpid));
-  Allow(SYSCALL(gettid));
-
-  AllowThreadClone();
-
-  Allow(SYSCALL_WITH_ARG(prctl, 0, PR_GET_SECCOMP, PR_SET_NAME));
-
-#if SYSCALL_EXISTS(set_robust_list)
-  Allow(SYSCALL(set_robust_list));
-#endif
-
-  
-  
-  Deny(EACCES, SYSCALL(getpriority));
-  
-  
-  Deny(EACCES, SYSCALL(setpriority));
-
-  
-  
-  Deny(ENOSYS, SYSCALL(sched_getaffinity));
+      
+    case __NR_exit:
+    case __NR_exit_group:
+      return Allow();
 
 #ifdef MOZ_ASAN
-  Allow(SYSCALL(sigaltstack));
-  
-  Deny(ENOTTY, SYSCALL_WITH_ARG(ioctl, 0, STDERR_FILENO));
-  
-  
-  Deny(ENOENT, SYSCALL(readlink));
-  
-  
-  Deny(ENOENT, SYSCALL_LARGEFILE(stat, stat64));
+      
+    case __NR_ioctl: {
+      Arg<int> fd(0);
+      return If(fd == STDERR_FILENO, Allow())
+        .Else(InvalidSyscall());
+    }
+
+      
+      
+    case __NR_readlink:
+    case __NR_readlinkat:
+      return Error(ENOENT);
+
+      
+      
+    CASES_FOR_stat:
+      return Error(ENOENT);
 #endif
 
-  Allow(SYSCALL(mprotect));
-  Allow(SYSCALL_WITH_ARG(madvise, 2, MADV_DONTNEED));
+    default:
+      return SandboxPolicyBase::EvaluateSyscall(sysno);
+    }
+  }
+};
 
-#if SYSCALL_EXISTS(sigreturn)
-  Allow(SYSCALL(sigreturn));
+
+
+#ifdef MOZ_CONTENT_SANDBOX
+
+
+
+
+
+class ContentSandboxPolicy : public SandboxPolicyCommon {
+public:
+  ContentSandboxPolicy() { }
+  virtual ~ContentSandboxPolicy() { }
+  virtual ResultExpr PrctlPolicy() const override {
+    
+    
+    return Allow();
+  }
+  virtual Maybe<ResultExpr> EvaluateSocketCall(int aCall) const override {
+    switch(aCall) {
+    case SYS_RECVFROM:
+    case SYS_SENDTO:
+      return Some(Allow());
+
+    case SYS_SOCKETPAIR: {
+      
+      if (!kSocketCallHasArgs) {
+        
+        return Some(Allow());
+      }
+      Arg<int> domain(0), type(1);
+      return Some(If(domain == AF_UNIX &&
+                     (type == SOCK_STREAM || type == SOCK_SEQPACKET), Allow())
+                  .Else(InvalidSyscall()));
+    }
+
+#ifdef ANDROID
+    case SYS_SOCKET:
+      return Some(Error(EACCES));
+#else 
+    case SYS_RECV:
+    case SYS_SEND:
+    case SYS_SOCKET: 
+    case SYS_CONNECT: 
+    case SYS_SETSOCKOPT:
+    case SYS_GETSOCKNAME:
+    case SYS_GETPEERNAME:
+    case SYS_SHUTDOWN:
+      return Some(Allow());
 #endif
-  Allow(SYSCALL(rt_sigreturn));
+    default:
+      return SandboxPolicyCommon::EvaluateSocketCall(aCall);
+    }
+  }
 
-  Allow(SYSCALL(restart_syscall));
-  Allow(SYSCALL(close));
-
-  
-  Allow(SYSCALL(nanosleep));
-
-  
-#if SYSCALL_EXISTS(sigprocmask)
-  Allow(SYSCALL(sigprocmask));
+#ifdef DESKTOP
+  virtual Maybe<ResultExpr> EvaluateIpcCall(int aCall) const override {
+    switch(aCall) {
+      
+      
+      
+      
+    case SHMGET:
+    case SHMCTL:
+    case SHMAT:
+    case SHMDT:
+      return Some(Allow());
+    default:
+      return SandboxPolicyCommon::EvaluateIpcCall(aCall);
+    }
+  }
 #endif
-  Allow(SYSCALL(rt_sigprocmask));
-#if SYSCALL_EXISTS(sigaction)
-  Allow(SYSCALL(sigaction));
+
+  virtual ResultExpr EvaluateSyscall(int sysno) const override {
+    switch(sysno) {
+      
+    case __NR_open:
+    case __NR_openat:
+    case __NR_access:
+    case __NR_faccessat:
+    CASES_FOR_stat:
+    CASES_FOR_lstat:
+    CASES_FOR_fstatat:
+#ifdef DESKTOP
+      
+      
+    case __NR_mkdir:
+    case __NR_rmdir:
+    case __NR_getcwd:
+    CASES_FOR_statfs:
+    case __NR_chmod:
+    case __NR_rename:
+    case __NR_symlink:
+    case __NR_quotactl:
+    case __NR_utimes:
 #endif
-  Allow(SYSCALL(rt_sigaction));
-  Allow(SYSCALL(pipe));
-  Allow(SYSCALL_WITH_ARG(tgkill, 0, uint32_t(getpid())));
-  Allow(SYSCALL_WITH_ARG(prctl, 0, PR_SET_DUMPABLE));
+      return Allow();
 
-  
-  
+    case __NR_readlink:
+    case __NR_readlinkat:
+      
+      return Error(EINVAL);
 
-  Allow(SYSCALL(epoll_ctl));
-  Allow(SYSCALL(exit));
-  Allow(SYSCALL(exit_group));
+    CASES_FOR_select:
+    case __NR_pselect6:
+      return Allow();
+
+    CASES_FOR_getdents:
+    CASES_FOR_lseek:
+    CASES_FOR_ftruncate:
+    case __NR_writev:
+    case __NR_pread64:
+#ifdef DESKTOP
+    case __NR_readahead:
+#endif
+      return Allow();
+
+    case __NR_ioctl:
+      
+      
+      
+      return Allow();
+
+    CASES_FOR_fcntl:
+      
+      
+      
+      return Allow();
+
+    case __NR_mprotect:
+    case __NR_brk:
+    case __NR_madvise:
+#if defined(ANDROID) && !defined(MOZ_MEMORY)
+      
+    case __NR_mremap:
+#endif
+      return Allow();
+
+    case __NR_sigaltstack:
+      return Allow();
+
+#ifdef __NR_set_thread_area
+    case __NR_set_thread_area:
+      return Allow();
+#endif
+
+    case __NR_getrusage:
+    case __NR_times:
+      return Allow();
+
+    case __NR_dup:
+      return Allow();
+
+    CASES_FOR_getuid:
+    CASES_FOR_getgid:
+    CASES_FOR_geteuid:
+    CASES_FOR_getegid:
+      return Allow();
+
+    case __NR_fsync:
+    case __NR_msync:
+      return Allow();
+
+    case __NR_getpriority:
+    case __NR_setpriority:
+    case __NR_sched_get_priority_min:
+    case __NR_sched_get_priority_max:
+    case __NR_sched_getscheduler:
+    case __NR_sched_setscheduler:
+    case __NR_sched_getparam:
+    case __NR_sched_setparam:
+#ifdef DESKTOP
+    case __NR_sched_getaffinity:
+#endif
+      return Allow();
+
+#ifdef DESKTOP
+    case __NR_pipe2:
+      return Allow();
+
+    CASES_FOR_getrlimit:
+    case __NR_clock_getres:
+    case __NR_getresuid:
+    case __NR_getresgid:
+      return Allow();
+
+    case __NR_umask:
+    case __NR_kill:
+    case __NR_wait4:
+#ifdef __NR_arch_prctl
+    case __NR_arch_prctl:
+#endif
+      return Allow();
+
+    case __NR_eventfd2:
+    case __NR_inotify_init1:
+    case __NR_inotify_add_watch:
+      return Allow();
+#endif
+
+
+
+    case __NR_uname:
+#ifdef DESKTOP
+    case __NR_sysinfo:
+#endif
+      return Allow();
+
+    default:
+      return SandboxPolicyCommon::EvaluateSyscall(sysno);
+    }
+  }
+};
+
+UniquePtr<sandbox::bpf_dsl::Policy>
+GetContentSandboxPolicy()
+{
+  return UniquePtr<sandbox::bpf_dsl::Policy>(new ContentSandboxPolicy());
 }
 #endif 
 
-SandboxFilter::SandboxFilter(const sock_fprog** aStored, SandboxType aType,
-                             bool aVerbose)
-  : mStored(aStored)
-{
-  MOZ_ASSERT(*mStored == nullptr);
-  std::vector<struct sock_filter> filterVec;
-  SandboxFilterImpl *impl;
 
-  switch (aType) {
-  case kSandboxContentProcess:
-#ifdef MOZ_CONTENT_SANDBOX
-    impl = new SandboxFilterImplContent();
-#else
-    MOZ_CRASH("Content process sandboxing not supported in this build!");
-#endif
-    break;
-  case kSandboxMediaPlugin:
 #ifdef MOZ_GMP_SANDBOX
-    impl = new SandboxFilterImplGMP();
-#else
-    MOZ_CRASH("Gecko Media Plugin process sandboxing not supported in this"
-              " build!");
-#endif
-    break;
-  default:
-    MOZ_CRASH("Nonexistent sandbox type!");
-  }
-  impl->Build();
-  impl->Compile(&filterVec, aVerbose);
-  delete impl;
 
-  mProg = new sock_fprog;
-  mProg->len = filterVec.size();
-  mProg->filter = mFilter = new sock_filter[mProg->len];
-  for (size_t i = 0; i < mProg->len; ++i) {
-    mFilter[i] = filterVec[i];
-  }
-  *mStored = mProg;
-}
 
-SandboxFilter::~SandboxFilter()
+
+
+
+class GMPSandboxPolicy : public SandboxPolicyCommon {
+public:
+  GMPSandboxPolicy() { }
+  virtual ~GMPSandboxPolicy() { }
+
+  virtual ResultExpr EvaluateSyscall(int sysno) const override {
+    switch (sysno) {
+      
+    case __NR_mprotect:
+      return Allow();
+    case __NR_madvise: {
+      Arg<int> advice(2);
+      return If(advice == MADV_DONTNEED, Allow())
+        .Else(InvalidSyscall());
+    }
+
+    default:
+      return SandboxPolicyCommon::EvaluateSyscall(sysno);
+    }
+  }
+};
+
+UniquePtr<sandbox::bpf_dsl::Policy>
+GetMediaSandboxPolicy()
 {
-  *mStored = nullptr;
-  delete[] mFilter;
-  delete mProg;
+  return UniquePtr<sandbox::bpf_dsl::Policy>(new GMPSandboxPolicy());
 }
+
+#endif 
 
 }

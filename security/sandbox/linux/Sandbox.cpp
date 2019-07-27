@@ -33,6 +33,10 @@
 #include "mozilla/SandboxInfo.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/unused.h"
+#include "sandbox/linux/bpf_dsl/dump_bpf.h"
+#include "sandbox/linux/bpf_dsl/policy.h"
+#include "sandbox/linux/bpf_dsl/policy_compiler.h"
+#include "sandbox/linux/bpf_dsl/trap_registry.h"
 #include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
 #if defined(ANDROID)
 #include "sandbox/linux/services/android_ucontext.h"
@@ -220,9 +224,9 @@ InstallSyscallFilter(const sock_fprog *prog)
 
 
 
-static mozilla::Atomic<int> sSetSandboxDone;
+static mozilla::Atomic<int> gSetSandboxDone;
 
-static const sock_fprog *sSetSandboxFilter;
+static sock_fprog gSetSandboxFilter;
 
 
 
@@ -252,7 +256,7 @@ static bool
 SetThreadSandbox()
 {
   if (prctl(PR_GET_SECCOMP, 0, 0, 0, 0) == 0) {
-    InstallSyscallFilter(sSetSandboxFilter);
+    InstallSyscallFilter(&gSetSandboxFilter);
     return true;
   }
   return false;
@@ -264,25 +268,30 @@ SetThreadSandboxHandler(int signum)
   
   
   if (SetThreadSandbox()) {
-    sSetSandboxDone = 2;
+    gSetSandboxDone = 2;
   } else {
-    sSetSandboxDone = 1;
+    gSetSandboxDone = 1;
   }
   
   
-  syscall(__NR_futex, reinterpret_cast<int*>(&sSetSandboxDone),
+  syscall(__NR_futex, reinterpret_cast<int*>(&gSetSandboxDone),
           FUTEX_WAKE, 1);
 }
 
 static void
-BroadcastSetThreadSandbox(SandboxType aType)
+BroadcastSetThreadSandbox(UniquePtr<sock_filter[]> aProgram, size_t aProgLen)
 {
   int signum;
   pid_t pid, tid, myTid;
   DIR *taskdp;
   struct dirent *de;
-  SandboxFilter filter(&sSetSandboxFilter, aType,
-                       SandboxInfo::Get().Test(SandboxInfo::kVerbose));
+
+  
+  
+  
+  gSetSandboxFilter.filter = aProgram.get();
+  gSetSandboxFilter.len = static_cast<unsigned short>(aProgLen);
+  MOZ_RELEASE_ASSERT(static_cast<size_t>(gSetSandboxFilter.len) == aProgLen);
 
   static_assert(sizeof(mozilla::Atomic<int>) == sizeof(int),
                 "mozilla::Atomic<int> isn't represented by an int");
@@ -332,7 +341,7 @@ BroadcastSetThreadSandbox(SandboxType aType)
         continue;
       }
       
-      sSetSandboxDone = 0;
+      gSetSandboxDone = 0;
       if (syscall(__NR_tgkill, pid, tid, signum) != 0) {
         if (errno == ESRCH) {
           SANDBOX_LOG_ERROR("Thread %d unexpectedly exited.", tid);
@@ -364,7 +373,7 @@ BroadcastSetThreadSandbox(SandboxType aType)
       while (true) {
         static const struct timespec futexTimeout = { 0, 10*1000*1000 }; 
         
-        if (syscall(__NR_futex, reinterpret_cast<int*>(&sSetSandboxDone),
+        if (syscall(__NR_futex, reinterpret_cast<int*>(&gSetSandboxDone),
                   FUTEX_WAIT, 0, &futexTimeout) != 0) {
           if (errno != EWOULDBLOCK && errno != ETIMEDOUT && errno != EINTR) {
             SANDBOX_LOG_ERROR("FUTEX_WAIT: %s\n", strerror(errno));
@@ -372,8 +381,8 @@ BroadcastSetThreadSandbox(SandboxType aType)
           }
         }
         
-        if (sSetSandboxDone > 0) {
-          if (sSetSandboxDone == 2) {
+        if (gSetSandboxDone > 0) {
+          if (gSetSandboxDone == 2) {
             sandboxProgress = true;
           }
           break;
@@ -413,13 +422,37 @@ BroadcastSetThreadSandbox(SandboxType aType)
   unused << closedir(taskdp);
   
   SetThreadSandbox();
+  gSetSandboxFilter.filter = nullptr;
 }
 
 
+class FakeTrapRegistry : public sandbox::bpf_dsl::TrapRegistry
+{
+public:
+  virtual uint16_t Add(TrapFnc fnc, const void* aux, bool safe)
+  {
+    MOZ_RELEASE_ASSERT(safe);
+    return 0;
+  }
+  virtual bool EnableUnsafeTraps() {
+    return false;
+  }
+};
+
+
 static void
-SetCurrentProcessSandbox(SandboxType aType)
+SetCurrentProcessSandbox(UniquePtr<sandbox::bpf_dsl::Policy> aPolicy)
 {
   MOZ_ASSERT(gSandboxCrashFunc);
+
+  FakeTrapRegistry registry;
+  
+  
+  sandbox::bpf_dsl::PolicyCompiler compiler(aPolicy.get(), &registry);
+  auto program = compiler.Compile();
+  if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
+    sandbox::bpf_dsl::DumpBPF::PrintProgram(*program);
+  }
 
   if (InstallSyscallReporter()) {
     SANDBOX_LOG_ERROR("install_syscall_reporter() failed\n");
@@ -433,7 +466,13 @@ SetCurrentProcessSandbox(SandboxType aType)
   __sanitizer_sandbox_on_notify(&asanArgs);
 #endif
 
-  BroadcastSetThreadSandbox(aType);
+  
+  UniquePtr<sock_filter[]> flatProgram(new sock_filter[program->size()]);
+  for (auto i = program->begin(); i != program->end(); ++i) {
+    flatProgram[i - program->begin()] = *i;
+  }
+
+  BroadcastSetThreadSandbox(Move(flatProgram), program->size());
 }
 
 void
@@ -530,7 +569,7 @@ SetContentProcessSandbox()
     return;
   }
 
-  SetCurrentProcessSandbox(kSandboxContentProcess);
+  SetCurrentProcessSandbox(GetContentSandboxPolicy());
 }
 #endif 
 
@@ -563,7 +602,7 @@ SetMediaPluginSandbox(const char *aFilePath)
     }
   }
   
-  SetCurrentProcessSandbox(kSandboxMediaPlugin);
+  SetCurrentProcessSandbox(GetMediaSandboxPolicy());
 }
 #endif 
 
