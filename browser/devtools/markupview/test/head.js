@@ -10,6 +10,8 @@ let promise = devtools.require("resource://gre/modules/Promise.jsm").Promise;
 let {getInplaceEditorForSpan: inplaceEditor} = devtools.require("devtools/shared/inplace-editor");
 let clipboard = devtools.require("sdk/clipboard");
 let {setTimeout, clearTimeout} = devtools.require("sdk/timers");
+let {promiseInvoke} = devtools.require("devtools/async-utils");
+
 
 
 waitForExplicitFinish();
@@ -111,21 +113,33 @@ function reloadPage(inspector) {
 
 
 
-function openInspector() {
+
+function openToolbox(toolId) {
   info("Opening the inspector panel");
-  let def = promise.defer();
+  let deferred = promise.defer();
 
   let target = TargetFactory.forTab(gBrowser.selectedTab);
-  gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
+  gDevTools.showToolbox(target, toolId).then(function(toolbox) {
     info("The toolbox is open");
-    let inspector = toolbox.getCurrentPanel();
-    inspector.once("inspector-updated", () => {
-      info("The inspector panel is active and ready");
-      def.resolve({toolbox: toolbox, inspector: inspector});
-    });
+    deferred.resolve({toolbox: toolbox});
   }).then(null, console.error);
 
-  return def.promise;
+  return deferred.promise;
+}
+
+
+
+
+
+function openInspector() {
+  return openToolbox("inspector").then(({toolbox}) => {
+    let inspector = toolbox.getCurrentPanel();
+    let eventId = "inspector-updated";
+    return inspector.once("inspector-updated").then(() => {
+      info("The inspector panel is active and ready");
+      return {toolbox: toolbox, inspector: inspector};
+    });
+  });
 }
 
 
@@ -698,4 +712,65 @@ function contextMenuClick(element) {
        false, false, false, button, null);
 
   element.dispatchEvent(evt);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function registerTabActor(client, options) {
+  let moduleUrl = options.moduleUrl;
+
+  
+  
+  
+  return promiseInvoke(client, client.listTabs).then(response => {
+    let config = {
+      prefix: options.prefix,
+      constructor: options.actorClass,
+      type: { tab: true },
+    };
+
+    
+    let registry = ActorRegistryFront(client, response);
+    return registry.registerActor(moduleUrl, config).then(registrar => {
+      return client.getTab().then(response => {
+        return {
+          registrar: registrar,
+          form: response.tab
+        };
+      });
+    });
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+function unregisterActor(registrar, front) {
+  return front.detach().then(() => {
+    return registrar.unregister();
+  });
 }
