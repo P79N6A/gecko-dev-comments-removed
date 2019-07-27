@@ -1404,14 +1404,6 @@ PluginModuleParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs
         }
         TimeStamp callNpInitEnd = TimeStamp::Now();
         mTimeBlocked += (callNpInitEnd - callNpInitStart);
-        
-
-
-
-        Telemetry::Accumulate(Telemetry::BLOCKED_ON_PLUGIN_MODULE_INIT_MS,
-                              GetHistogramKey(),
-                              static_cast<uint32_t>(mTimeBlocked.ToMilliseconds()));
-        mTimeBlocked = TimeDuration();
     }
 
     SetPluginFuncs(pFuncs);
@@ -1471,17 +1463,6 @@ PluginModuleChromeParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error)
 #ifdef MOZ_CRASHREPORTER_INJECTOR
     InitializeInjector();
 #endif
-
-    
-
-
-
-
-
-    Telemetry::Accumulate(Telemetry::BLOCKED_ON_PLUGIN_MODULE_INIT_MS,
-                          GetHistogramKey(),
-                          static_cast<uint32_t>(mTimeBlocked.ToMilliseconds()));
-    mTimeBlocked = TimeDuration();
 
     return NS_OK;
 }
@@ -1574,6 +1555,16 @@ PluginModuleParent::NPP_New(NPMIMEType pluginType, NPP instance,
 
     if (mPluginName.IsEmpty()) {
         GetPluginDetails(mPluginName, mPluginVersion);
+        
+
+
+
+
+
+        Telemetry::Accumulate(Telemetry::BLOCKED_ON_PLUGIN_MODULE_INIT_MS,
+                              GetHistogramKey(),
+                              static_cast<uint32_t>(mTimeBlocked.ToMilliseconds()));
+        mTimeBlocked = TimeDuration();
     }
 
     
