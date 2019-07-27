@@ -93,7 +93,7 @@ SPSProfiler::enable(bool enabled)
 
 
 
-    jit::ToggleBaselineSPS(rt, enabled);
+    jit::ToggleBaselineProfiling(rt, enabled);
 
     
 
@@ -333,7 +333,6 @@ SPSEntryMarker::SPSEntryMarker(JSRuntime *rt,
     size_before = *profiler->size_;
     
     profiler->push("js::RunScript", this, nullptr, nullptr,  false);
-    
     profiler->push("js::RunScript", nullptr, script, script->code(),  false);
 }
 

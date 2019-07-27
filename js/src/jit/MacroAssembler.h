@@ -185,27 +185,18 @@ class MacroAssembler : public MacroAssemblerSpecific
     mozilla::Maybe<JitContext> jitContext_;
     mozilla::Maybe<AutoJitContextAlloc> alloc_;
 
-    
-    mozilla::Maybe<IonInstrumentation> spsInstrumentation_;
-    jsbytecode *spsPc_;
-
   private:
     
     
     
-    
-    
-    IonInstrumentation *sps_;
+    bool emitProfilingInstrumentation_;
 
     
     NonAssertingLabel failureLabel_;
 
   public:
-    
-    
-    
     MacroAssembler()
-      : sps_(nullptr)
+      : emitProfilingInstrumentation_(false)
     {
         JitContext *jcx = GetJitContext();
         JSContext *cx = jcx->cx;
@@ -228,7 +219,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     explicit MacroAssembler(JSContext *cx, IonScript *ion = nullptr,
                             JSScript *script = nullptr, jsbytecode *pc = nullptr)
-      : sps_(nullptr)
+      : emitProfilingInstrumentation_(false)
     {
         constructRoot(cx);
         jitContext_.emplace(cx, (js::jit::TempAllocator *)nullptr);
@@ -240,21 +231,15 @@ class MacroAssembler : public MacroAssemblerSpecific
 #endif
         if (ion) {
             setFramePushed(ion->frameSize());
-            if (pc && cx->runtime()->spsProfiler.enabled()) {
-                
-                
-                spsPc_ = pc;
-                spsInstrumentation_.emplace(&cx->runtime()->spsProfiler, &spsPc_);
-                sps_ = spsInstrumentation_.ptr();
-                sps_->setPushed(script);
-            }
+            if (pc && cx->runtime()->spsProfiler.enabled())
+                emitProfilingInstrumentation_ = true;
         }
     }
 
     
     struct AsmJSToken {};
     explicit MacroAssembler(AsmJSToken)
-      : sps_(nullptr)
+      : emitProfilingInstrumentation_(false)
     {
 #ifdef JS_CODEGEN_ARM
         initWithAllocator();
@@ -262,8 +247,8 @@ class MacroAssembler : public MacroAssemblerSpecific
 #endif
     }
 
-    void setInstrumentation(IonInstrumentation *sps) {
-        sps_ = sps;
+    void enableProfilingInstrumentation() {
+        emitProfilingInstrumentation_ = true;
     }
 
     void resetForNewCodeGenerator(TempAllocator &alloc) {
@@ -875,50 +860,45 @@ class MacroAssembler : public MacroAssemblerSpecific
     
 
     template <typename T>
-    void callWithABINoProfiling(const T &fun, MoveOp::Type result = MoveOp::GENERAL) {
-        MacroAssemblerSpecific::callWithABI(fun, result);
-    }
-
-    template <typename T>
     void callWithABI(const T &fun, MoveOp::Type result = MoveOp::GENERAL) {
-        leaveSPSFrame();
-        callWithABINoProfiling(fun, result);
-        reenterSPSFrame();
+        profilerPreCall();
+        MacroAssemblerSpecific::callWithABI(fun, result);
+        profilerPostReturn();
     }
 
     
     uint32_t callJit(Register callee) {
-        leaveSPSFrame();
+        profilerPreCall();
         MacroAssemblerSpecific::callJit(callee);
         uint32_t ret = currentOffset();
-        reenterSPSFrame();
+        profilerPostReturn();
         return ret;
     }
 
     
     uint32_t callWithExitFrame(Label *target) {
-        leaveSPSFrame();
+        profilerPreCall();
         MacroAssemblerSpecific::callWithExitFrame(target);
         uint32_t ret = currentOffset();
-        reenterSPSFrame();
+        profilerPostReturn();
         return ret;
     }
 
     
     uint32_t callWithExitFrame(JitCode *target) {
-        leaveSPSFrame();
+        profilerPreCall();
         MacroAssemblerSpecific::callWithExitFrame(target);
         uint32_t ret = currentOffset();
-        reenterSPSFrame();
+        profilerPostReturn();
         return ret;
     }
 
     
     uint32_t callWithExitFrame(JitCode *target, Register dynStack) {
-        leaveSPSFrame();
+        profilerPreCall();
         MacroAssemblerSpecific::callWithExitFrame(target, dynStack);
         uint32_t ret = currentOffset();
-        reenterSPSFrame();
+        profilerPostReturn();
         return ret;
     }
 
@@ -954,165 +934,19 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     
-    void leaveSPSFrame() {
-        if (!sps_ || !sps_->enabled())
+    void profilerPreCall() {
+        if (!emitProfilingInstrumentation_)
             return;
-        
-        
-        push(CallTempReg0);
-        sps_->leave(*this, CallTempReg0);
-        pop(CallTempReg0);
+        profilerPreCallImpl();
     }
 
-    void reenterSPSFrame() {
-        if (!sps_ || !sps_->enabled())
+    void profilerPostReturn() {
+        if (!emitProfilingInstrumentation_)
             return;
-        
-        
-        
-        GeneralRegisterSet regs(Registers::TempMask & ~Registers::JSCallMask &
-                                                      ~Registers::CallMask);
-        if (regs.empty()) {
-            push(CallTempReg0);
-            sps_->reenter(*this, CallTempReg0);
-            pop(CallTempReg0);
-        } else {
-            sps_->reenter(*this, regs.getAny());
-        }
-    }
-
-    void spsProfileEntryAddress(SPSProfiler *p, int offset, Register temp,
-                                Label *full)
-    {
-        movePtr(ImmPtr(p->sizePointer()), temp);
-        load32(Address(temp, 0), temp);
-        if (offset != 0)
-            add32(Imm32(offset), temp);
-        branch32(Assembler::GreaterThanOrEqual, temp, Imm32(p->maxSize()), full);
-
-        JS_STATIC_ASSERT(sizeof(ProfileEntry) == (2 * sizeof(void *)) + 8);
-        if (sizeof(void *) == 4) {
-            lshiftPtr(Imm32(4), temp);
-        } else {
-            lshiftPtr(Imm32(3), temp);
-            mulBy3(temp, temp);
-        }
-
-        addPtr(ImmPtr(p->stack()), temp);
-    }
-
-    
-    
-    
-    
-    
-    
-    void spsProfileEntryAddressSafe(SPSProfiler *p, int offset, Register temp,
-                                    Label *full)
-    {
-        
-        loadPtr(AbsoluteAddress(p->addressOfSizePointer()), temp);
-
-        
-        load32(Address(temp, 0), temp);
-        if (offset != 0)
-            add32(Imm32(offset), temp);
-
-        
-        branch32(Assembler::LessThanOrEqual, AbsoluteAddress(p->addressOfMaxSize()), temp, full);
-
-        JS_STATIC_ASSERT(sizeof(ProfileEntry) == (2 * sizeof(void *)) + 8);
-        if (sizeof(void *) == 4) {
-            lshiftPtr(Imm32(4), temp);
-        } else {
-            lshiftPtr(Imm32(3), temp);
-            mulBy3(temp, temp);
-        }
-
-        push(temp);
-        loadPtr(AbsoluteAddress(p->addressOfStack()), temp);
-        addPtr(Address(StackPointer, 0), temp);
-        addPtr(Imm32(sizeof(size_t)), StackPointer);
+        profilerPostReturnImpl();
     }
 
   public:
-    
-    
-    
-
-    void spsUpdatePCIdx(SPSProfiler *p, int32_t idx, Register temp) {
-        Label stackFull;
-        spsProfileEntryAddress(p, -1, temp, &stackFull);
-        store32(Imm32(idx), Address(temp, ProfileEntry::offsetOfLineOrPc()));
-        bind(&stackFull);
-    }
-
-    void spsUpdatePCIdx(SPSProfiler *p, Register idx, Register temp) {
-        Label stackFull;
-        spsProfileEntryAddressSafe(p, -1, temp, &stackFull);
-        store32(idx, Address(temp, ProfileEntry::offsetOfLineOrPc()));
-        bind(&stackFull);
-    }
-
-    
-    void spsPushFrame(SPSProfiler *p, const char *str, JSScript *s, Register temp) {
-        Label stackFull;
-        spsProfileEntryAddress(p, 0, temp, &stackFull);
-
-        
-        storePtr(ImmPtr(str), Address(temp, ProfileEntry::offsetOfLabel()));
-        storePtr(ImmGCPtr(s), Address(temp, ProfileEntry::offsetOfSpOrScript()));
-        store32(Imm32(ProfileEntry::NullPCOffset), Address(temp, ProfileEntry::offsetOfLineOrPc()));
-        store32(Imm32(ProfileEntry::FRAME_LABEL_COPY), Address(temp, ProfileEntry::offsetOfFlags()));
-
-        
-        bind(&stackFull);
-        movePtr(ImmPtr(p->sizePointer()), temp);
-        add32(Imm32(1), Address(temp, 0));
-    }
-
-    
-    void spsPushFrame(SPSProfiler *p, const Address &str, const Address &script,
-                      Register temp, Register temp2)
-    {
-        Label stackFull;
-        spsProfileEntryAddressSafe(p, 0, temp, &stackFull);
-
-        
-        loadPtr(str, temp2);
-        storePtr(temp2, Address(temp, ProfileEntry::offsetOfLabel()));
-
-        loadPtr(script, temp2);
-        storePtr(temp2, Address(temp, ProfileEntry::offsetOfSpOrScript()));
-
-        
-        
-        
-        store32(Imm32(0), Address(temp, ProfileEntry::offsetOfLineOrPc()));
-        store32(Imm32(ProfileEntry::FRAME_LABEL_COPY), Address(temp, ProfileEntry::offsetOfFlags()));
-
-        
-        bind(&stackFull);
-        movePtr(ImmPtr(p->addressOfSizePointer()), temp);
-        loadPtr(Address(temp, 0), temp);
-        add32(Imm32(1), Address(temp, 0));
-    }
-
-    void spsPopFrame(SPSProfiler *p, Register temp) {
-        movePtr(ImmPtr(p->sizePointer()), temp);
-        add32(Imm32(-1), Address(temp, 0));
-    }
-
-    
-    void spsPopFrameSafe(SPSProfiler *p, Register temp) {
-        loadPtr(AbsoluteAddress(p->addressOfSizePointer()), temp);
-        add32(Imm32(-1), Address(temp, 0));
-    }
-
-    static const char enterJitLabel[];
-    void spsMarkJit(SPSProfiler *p, Register framePtr, Register temp);
-    void spsUnmarkJit(SPSProfiler *p, Register temp);
-
     void loadBaselineOrIonRaw(Register script, Register dest, Label *failure);
     void loadBaselineOrIonNoArgCheck(Register callee, Register dest, Label *failure);
 

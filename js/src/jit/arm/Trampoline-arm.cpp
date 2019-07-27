@@ -37,7 +37,7 @@ GenerateReturn(MacroAssembler &masm, int returnCode, SPSProfiler *prof)
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsLoad, StackPointer, IA);
 
     
-    masm.spsUnmarkJit(prof, r8);
+    masm.addPtr(Imm32(sizeof(void*)), sp);
 
     
     masm.ma_mov(Imm32(returnCode), r0);
@@ -69,7 +69,8 @@ struct EnterJITStack
     double d14;
     double d15;
 
-    size_t hasSPSMark;
+    
+    void *padding;
 
     
     void *r4;
@@ -130,8 +131,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.finishDataTransfer();
 
     
-    masm.movePtr(sp, r8);
-    masm.spsMarkJit(&cx->runtime()->spsProfiler, r8, r9);
+    masm.subPtr(Imm32(sizeof(void*)), sp);
 
     
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsStore, sp, DB);

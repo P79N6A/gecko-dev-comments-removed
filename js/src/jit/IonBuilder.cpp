@@ -705,8 +705,6 @@ IonBuilder::build()
 
     
     current->add(MStart::New(alloc(), MStart::StartType_Default));
-    if (instrumentedProfiling())
-        current->add(MProfilerStackOp::New(alloc(), script(), MProfilerStackOp::Enter));
 
     
     
@@ -4072,9 +4070,6 @@ IonBuilder::processReturn(JSOp op)
         MOZ_CRASH("unknown return op");
     }
 
-    if (instrumentedProfiling() && inliningDepth_ == 0) {
-        current->add(MProfilerStackOp::New(alloc(), script(), MProfilerStackOp::Exit));
-    }
     MReturn *ret = MReturn::New(alloc(), def);
     current->end(ret);
 
