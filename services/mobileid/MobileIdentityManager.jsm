@@ -69,7 +69,6 @@ let MobileIdentityManager = {
     Services.obs.addObserver(this, "xpcom-shutdown", false);
     ppmm.addMessageListener(GET_ASSERTION_IPC_MSG, this);
     this.messageManagers = {};
-    
     this.keyPairs = {};
     this.certificates = {};
   },
@@ -149,6 +148,26 @@ let MobileIdentityManager = {
     }
 
     return this._iccInfo;
+#endif
+    return null;
+  },
+
+  get iccIds() {
+#ifdef MOZ_B2G_RIL
+    if (this._iccIds) {
+      return this._iccIds;
+    }
+
+    this._iccIds = [];
+    if (!this.iccInfo) {
+      return this._iccIds;
+    }
+
+    for (let i = 0; i < this.iccInfo.length; i++) {
+      this._iccIds.push(this.iccInfo[i].iccId);
+    }
+
+    return this._iccIds;
 #endif
     return null;
   },
@@ -597,7 +616,7 @@ let MobileIdentityManager = {
           phoneInfo = new MobileIdentityUIGluePhoneInfo(
             aCreds.msisdn,
             null,           
-            null,           
+            undefined,      
             !!aCreds.iccId, 
             true            
           );
@@ -623,7 +642,7 @@ let MobileIdentityManager = {
           let creds = this.iccInfo[promptResult.serviceId].credentials;
           if (creds) {
             this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.origin,
-                               creds.sessionToken);
+                               creds.sessionToken, this.iccIds);
             return creds;
           }
         }
@@ -636,7 +655,7 @@ let MobileIdentityManager = {
           (creds) => {
             if (creds) {
               this.credStore.add(creds.iccId, creds.msisdn, aPrincipal.origin,
-                                 creds.sessionToken);
+                                 creds.sessionToken, this.iccIds);
               return creds;
             }
             
@@ -646,6 +665,35 @@ let MobileIdentityManager = {
         );
       }
     );
+  },
+
+  
+
+
+
+  checkNewCredentials: function(aOldCreds, aNewCreds, aOrigin) {
+    
+    
+    if (aNewCreds.msisdn != aOldCreds.msisdn) {
+      return this.credStore.removeOrigin(aOldCreds.msisdn,
+                                         aOrigin)
+      .then(
+        () => {
+          return aNewCreds;
+        }
+      );
+    } else {
+      
+      
+      
+      
+      return this.credStore.setDeviceIccIds(aOldCreds.msisdn, this.iccIds)
+      .then(
+        () => {
+          return aOldCreds;
+        }
+      );
+    }
   },
 
   
@@ -685,7 +733,8 @@ let MobileIdentityManager = {
               this.credStore.add(aCredentials.iccId,
                                  aCredentials.msisdn,
                                  aOrigin,
-                                 aCredentials.sessionToken)
+                                 aCredentials.sessionToken,
+                                 this.iccIds)
               .then(
                 () => {
                   deferred.resolve(assertion);
@@ -724,28 +773,57 @@ let MobileIdentityManager = {
         
         
         if (aOptions.forceSelection) {
-          return this.promptAndVerify(principal, manifestURL, creds);
-        }
-
-        
-        
-        
-        
-        
-        
-        if (this.iccInfo && creds.iccId) {
-          for (let i = 0; i < this.iccInfo.length; i++) {
-            if (this.iccInfo[i].iccId == creds.iccId) {
-              return creds;
+          return this.promptAndVerify(principal, manifestURL, creds)
+          .then(
+            (newCreds) => {
+              return this.checkNewCredentials(creds, newCreds,
+                                              principal.origin);
             }
-          }
-          
-          
-          
-          return this.promptAndVerify(principal, manifestURL, creds);
+          );
         }
 
-        return creds;
+        
+
+        
+        
+        
+        
+        log.debug("Looking for SIM changes. Credentials ICCS ${creds} " +
+                  "Device ICCS ${device}", { creds: creds.deviceIccIds,
+                                             device: this.iccIds });
+        let simChanged = (creds.deviceIccIds == null && this.iccIds != null) ||
+                         (creds.deviceIccIds != null && this.iccIds == null);
+
+        if (!simChanged &&
+            creds.deviceIccIds != null &&
+            this.IccIds != null) {
+          simChanged = creds.deviceIccIds.length != this.iccIds.length;
+        }
+
+        if (!simChanged &&
+            creds.deviceIccIds != null &&
+            this.IccIds != null) {
+          let intersection = creds.deviceIccIds.filter((n) => {
+            return this.iccIds.indexOf(n) != -1;
+          });
+          simChanged = intersection.length != creds.deviceIccIds.length ||
+                       intersection.length != this.iccIds.length;
+        }
+
+        if (!simChanged) {
+          return creds;
+        }
+
+        
+        
+        
+        return this.promptAndVerify(principal, manifestURL, creds)
+        .then(
+          (newCreds) => {
+            return this.checkNewCredentials(creds, newCreds,
+                                            principal.origin);
+          }
+        );
       }
     )
     .then(
