@@ -196,17 +196,6 @@ static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAS
 
 
 
-
-static void normalizeDriverId(nsString& driverid) {
-  ToUpperCase(driverid);
-  int32_t rev = driverid.Find(NS_LITERAL_CSTRING("&REV_"));
-  if (rev != -1) {
-    driverid.Cut(rev, driverid.Length());
-  }
-}
-
-
-
 uint32_t
 ParseIDFromDeviceID(const nsAString &key, const char *prefix, int length)
 {
