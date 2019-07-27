@@ -332,6 +332,12 @@ startTestCommon(function() {
       promises.push(waitForTargetEvent(icc, "stkcommand")
         .then((aEvent) => testSelectItem(aEvent.command, data.expect)));
       
+      promises.push(waitForSystemMessage("icc-stkcommand")
+        .then((aMessage) => {
+          is(aMessage.iccId, icc.iccInfo.iccid, "iccId");
+          testSelectItem(aMessage.command, data.expect);
+        }));
+      
       promises.push(sendEmulatorStkPdu(data.command));
 
       return Promise.all(promises);

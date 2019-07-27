@@ -302,6 +302,36 @@ function waitForTargetEvent(aEventTarget, aEventName, aMatchFun) {
 
 
 
+
+function waitForSystemMessage(aMessageName, aMatchFun) {
+  let target = workingFrame.contentWindow.navigator;
+
+  return new Promise(function(aResolve, aReject) {
+    target.mozSetMessageHandler(aMessageName, function(aMessage) {
+      if (!aMatchFun || aMatchFun(aMessage)) {
+        target.mozSetMessageHandler(aMessageName, null);
+        ok(true, "System message '" + aMessageName + "' got.");
+        aResolve(aMessage);
+      }
+    });
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function setRadioEnabledAndWait(aEnabled, aServiceId) {
   let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
   let promises = [];
