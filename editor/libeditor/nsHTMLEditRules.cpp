@@ -6014,18 +6014,23 @@ nsHTMLEditRules::GetNodesForOperation(nsTArray<nsRefPtr<nsRange>>& inArrayOfRang
     int32_t listCount = outArrayOfNodes.Count();
     for (i=listCount-1; i>=0; i--)
     {
-      nsCOMPtr<nsIDOMNode> node = outArrayOfNodes[i];
-      if (!aDontTouchContent && IsInlineNode(node) &&
+      nsCOMPtr<nsINode> node = do_QueryInterface(outArrayOfNodes[i]);
+      NS_ENSURE_STATE(node);
+      if (!aDontTouchContent && IsInlineNode(GetAsDOMNode(node)) &&
           (!mHTMLEditor || mHTMLEditor->IsContainer(node)) &&
           (!mHTMLEditor || !mHTMLEditor->IsTextNode(node)))
       {
         NS_ENSURE_STATE(mHTMLEditor);
-        nsCOMArray<nsIDOMNode> arrayOfInlines;
-        res = BustUpInlinesAtBRs(node, arrayOfInlines);
+        nsTArray<nsCOMPtr<nsINode>> arrayOfInlines;
+        res = BustUpInlinesAtBRs(*node, arrayOfInlines);
         NS_ENSURE_SUCCESS(res, res);
+        nsCOMArray<nsIDOMNode> arrayOfInlinesDOM;
+        for (auto& inlineNode : arrayOfInlines) {
+          arrayOfInlinesDOM.AppendObject(GetAsDOMNode(inlineNode));
+        }
         
         outArrayOfNodes.RemoveObjectAt(i);
-        outArrayOfNodes.InsertObjectsAt(arrayOfInlines, i);
+        outArrayOfNodes.InsertObjectsAt(arrayOfInlinesDOM, i);
       }
     }
   }
@@ -6320,76 +6325,65 @@ nsHTMLEditRules::BustUpInlinesAtRangeEndpoints(nsRangeStore &item)
 
 
 
-
-
-
-nsresult 
-nsHTMLEditRules::BustUpInlinesAtBRs(nsIDOMNode *inNode, 
-                                    nsCOMArray<nsIDOMNode>& outArrayOfNodes)
+nsresult
+nsHTMLEditRules::BustUpInlinesAtBRs(nsINode& aNode,
+                                    nsTArray<nsCOMPtr<nsINode>>& aOutArrayOfNodes)
 {
-  nsCOMPtr<nsINode> node = do_QueryInterface(inNode);
-  NS_ENSURE_TRUE(node, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_STATE(mHTMLEditor);
+  nsCOMPtr<nsIEditor> kungFuDeathGrip(mHTMLEditor);
 
   
-  
-  nsCOMArray<nsIDOMNode> arrayOfBreaks;
+  nsTArray<nsCOMPtr<nsINode>> arrayOfBreaks;
   nsBRNodeFunctor functor;
-  nsDOMIterator iter(*inNode);
+  nsDOMIterator iter(*GetAsDOMNode(&aNode));
   iter.AppendList(functor, arrayOfBreaks);
+
   
-  
-  int32_t listCount = arrayOfBreaks.Count();
-  if (!listCount)
-  {
-    if (!outArrayOfNodes.AppendObject(inNode))
-      return NS_ERROR_FAILURE;
+  if (arrayOfBreaks.IsEmpty()) {
+    aOutArrayOfNodes.AppendElement(&aNode);
+    return NS_OK;
   }
-  else
-  {
+
+  
+  nsCOMPtr<nsINode> inlineParentNode = aNode.GetParentNode();
+  nsCOMPtr<nsIDOMNode> splitDeepNode = GetAsDOMNode(&aNode);
+  nsCOMPtr<nsIDOMNode> leftDOMNode, rightDOMNode;
+
+  for (uint32_t i = 0; i < arrayOfBreaks.Length(); i++) {
+    nsCOMPtr<Element> breakNode = arrayOfBreaks[i]->AsElement();
+    NS_ENSURE_TRUE(splitDeepNode, NS_ERROR_NULL_POINTER);
+    nsCOMPtr<nsINode> splitParentNode = breakNode->GetParentNode();
+    int32_t splitOffset = splitParentNode ?
+      splitParentNode->IndexOf(breakNode) : -1;
+
+    int32_t resultOffset;
+    nsresult res = mHTMLEditor->SplitNodeDeep(splitDeepNode,
+        GetAsDOMNode(splitParentNode), splitOffset, &resultOffset, false,
+        address_of(leftDOMNode), address_of(rightDOMNode));
+    NS_ENSURE_SUCCESS(res, res);
+
     
-    nsCOMPtr<Element> breakNode;
-    nsCOMPtr<nsINode> inlineParentNode = node->GetParentNode();
-    nsCOMPtr<nsIDOMNode> leftNode;
-    nsCOMPtr<nsIDOMNode> rightNode;
-    nsCOMPtr<nsIDOMNode> splitDeepNode = inNode;
-    nsCOMPtr<nsIDOMNode> splitParentNode;
-    int32_t splitOffset, resultOffset, i;
-    
-    for (i=0; i< listCount; i++)
-    {
-      breakNode = do_QueryInterface(arrayOfBreaks[i]);
-      NS_ENSURE_TRUE(breakNode, NS_ERROR_NULL_POINTER);
-      NS_ENSURE_TRUE(splitDeepNode, NS_ERROR_NULL_POINTER);
-      splitParentNode = GetAsDOMNode(nsEditor::GetNodeLocation(breakNode,
-                                                               &splitOffset));
-      NS_ENSURE_STATE(mHTMLEditor);
-      nsresult res = mHTMLEditor->SplitNodeDeep(splitDeepNode, splitParentNode, splitOffset,
-                          &resultOffset, false, address_of(leftNode), address_of(rightNode));
-      NS_ENSURE_SUCCESS(res, res);
+    if (leftDOMNode) {
       
-      if (leftNode)
-      {
-        
-        
-        
-        if (!outArrayOfNodes.AppendObject(leftNode))
-          return NS_ERROR_FAILURE;
-      }
       
-      NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->MoveNode(breakNode, inlineParentNode, resultOffset);
-      NS_ENSURE_SUCCESS(res, res);
-      if (!outArrayOfNodes.AppendObject(GetAsDOMNode(breakNode)))
-        return  NS_ERROR_FAILURE;
       
-      splitDeepNode = rightNode;
+      nsCOMPtr<nsINode> leftNode = do_QueryInterface(leftDOMNode);
+      NS_ENSURE_STATE(leftNode);
+      aOutArrayOfNodes.AppendElement(leftNode);
     }
     
-    if (rightNode)
-    {
-      if (!outArrayOfNodes.AppendObject(rightNode))
-        return NS_ERROR_FAILURE;
-    }
+    res = mHTMLEditor->MoveNode(breakNode, inlineParentNode, resultOffset);
+    NS_ENSURE_SUCCESS(res, res);
+    aOutArrayOfNodes.AppendElement(breakNode);
+
+    
+    splitDeepNode = rightDOMNode;
+  }
+  
+  if (rightDOMNode) {
+    nsCOMPtr<nsINode> rightNode = do_QueryInterface(rightDOMNode);
+    NS_ENSURE_STATE(rightNode);
+    aOutArrayOfNodes.AppendElement(rightNode);
   }
   return NS_OK;
 }
