@@ -421,9 +421,7 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
         
         
         
-        
-        bool shouldBail = cx->compartment()->debugObservesAllExecution() ||
-                          Debugger::hasLiveOnExceptionUnwind(cx->global());
+        bool shouldBail = Debugger::hasLiveHook(cx->global(), Debugger::OnExceptionUnwind);
         if (!shouldBail) {
             JitActivation *act = cx->mainThread().activation()->asJit();
             RematerializedFrame *rematFrame =
@@ -695,7 +693,7 @@ void
 HandleException(ResumeFromException *rfe)
 {
     JSContext *cx = GetJSContextFromJitCode();
-    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+    TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
 
     rfe->kind = ResumeFromException::RESUME_ENTRY_FRAME;
 
@@ -756,8 +754,8 @@ HandleException(ResumeFromException *rfe)
                 JSScript *script = frames.script();
                 probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
                 if (!frames.more()) {
-                    TraceLogStopEvent(logger, TraceLogger::IonMonkey);
-                    TraceLogStopEvent(logger);
+                    TraceLogStopEvent(logger, TraceLogger_IonMonkey);
+                    TraceLogStopEvent(logger, TraceLogger_Scripts);
                     break;
                 }
                 ++frames;
@@ -787,8 +785,8 @@ HandleException(ResumeFromException *rfe)
             if (rfe->kind != ResumeFromException::RESUME_ENTRY_FRAME)
                 return;
 
-            TraceLogStopEvent(logger, TraceLogger::Baseline);
-            TraceLogStopEvent(logger);
+            TraceLogStopEvent(logger, TraceLogger_Baseline);
+            TraceLogStopEvent(logger, TraceLogger_Scripts);
 
             
             JSScript *script = iter.script();

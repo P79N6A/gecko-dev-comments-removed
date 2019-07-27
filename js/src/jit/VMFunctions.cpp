@@ -778,9 +778,9 @@ DebugEpilogueOnBaselineReturn(JSContext *cx, BaselineFrame *frame, jsbytecode *p
     if (!DebugEpilogue(cx, frame, pc, true)) {
         
         
-        TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
-        TraceLogStopEvent(logger, TraceLogger::Baseline);
-        TraceLogStopEvent(logger); 
+        TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
+        TraceLogStopEvent(logger, TraceLogger_Baseline);
+        TraceLogStopEvent(logger, TraceLogger_Scripts);
         return false;
     }
 
@@ -1046,9 +1046,10 @@ OnDebuggerStatement(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool *m
 }
 
 bool
-IsCompartmentDebuggee(JSContext *cx)
+GlobalHasLiveOnDebuggerStatement(JSContext *cx)
 {
-    return cx->compartment()->isDebuggee();
+    return cx->compartment()->isDebuggee() &&
+           Debugger::hasLiveHook(cx->global(), Debugger::OnDebuggerStatement);
 }
 
 bool
