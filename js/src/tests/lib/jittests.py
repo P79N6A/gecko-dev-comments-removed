@@ -373,8 +373,11 @@ def run_test_remote(test, device, prefix, options):
     
     return TestOutput(test, cmd, out, out, returncode, None, False)
 
-def check_output(out, err, rc, timed_out, test):
+def check_output(out, err, rc, timed_out, test, options):
     if timed_out:
+        if test.relpath_tests in options.ignore_timeouts:
+            return True
+
         
         
         
@@ -652,7 +655,7 @@ def process_test_results(results, num_tests, options):
             if res.test.valgrind:
                 sys.stdout.write(res.err)
 
-            ok = check_output(res.out, res.err, res.rc, res.timed_out, res.test)
+            ok = check_output(res.out, res.err, res.rc, res.timed_out, res.test, options)
             doing = 'after %s' % res.test.relpath_tests
             if not ok:
                 failures.append(res)
