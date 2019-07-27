@@ -4,6 +4,7 @@
 
 
 #include "APZCTreeManager.h"
+#include "AsyncPanZoomController.h"
 #include "Compositor.h"                 
 #include "CompositorParent.h"           
 #include "InputData.h"                  
@@ -11,7 +12,6 @@
 #include "mozilla/dom/Touch.h"          
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/AsyncCompositionManager.h" 
-#include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/layers/LayerMetricsWrapper.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/mozalloc.h"           
@@ -59,6 +59,16 @@ struct APZCTreeManager::TreeBuildingState {
   nsTArray< nsRefPtr<AsyncPanZoomController> > mApzcsToDestroy;
   std::map<ScrollableLayerGuid, AsyncPanZoomController*> mApzcMap;
 };
+
+ const LayerMargin
+APZCTreeManager::CalculatePendingDisplayPort(
+  const FrameMetrics& aFrameMetrics,
+  const ScreenPoint& aVelocity,
+  double aEstimatedPaintDuration)
+{
+  return AsyncPanZoomController::CalculatePendingDisplayPort(
+    aFrameMetrics, aVelocity, aEstimatedPaintDuration);
+}
 
 APZCTreeManager::APZCTreeManager()
     : mTreeLock("APZCTreeLock"),

@@ -9,6 +9,7 @@
 #include <sys/types.h>                  
 #include <algorithm>                    
 #include "AsyncPanZoomController.h"     
+#include "Axis.h"                       
 #include "Compositor.h"                 
 #include "CompositorParent.h"           
 #include "FrameMetrics.h"               
@@ -16,6 +17,7 @@
 #include "InputData.h"                  
 #include "InputBlockState.h"            
 #include "OverscrollHandoffState.h"     
+#include "TaskThrottler.h"              
 #include "Units.h"                      
 #include "UnitTransforms.h"             
 #include "base/message_loop.h"          
@@ -41,12 +43,10 @@
 #include "mozilla/gfx/ScaleFactor.h"    
 #include "mozilla/layers/APZCTreeManager.h"  
 #include "mozilla/layers/AsyncCompositionManager.h"  
-#include "mozilla/layers/Axis.h"        
 #include "mozilla/layers/AxisPhysicsModel.h" 
 #include "mozilla/layers/AxisPhysicsMSDModel.h" 
 #include "mozilla/layers/LayerTransactionParent.h" 
 #include "mozilla/layers/PCompositorParent.h" 
-#include "mozilla/layers/TaskThrottler.h"  
 #include "mozilla/mozalloc.h"           
 #include "mozilla/unused.h"             
 #include "mozilla/FloatingPoint.h"      

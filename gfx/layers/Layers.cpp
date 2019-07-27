@@ -7,6 +7,7 @@
 
 #include "Layers.h"
 #include <algorithm>                    
+#include "apz/src/AsyncPanZoomController.h"
 #include "CompositableHost.h"           
 #include "ImageContainer.h"             
 #include "ImageLayers.h"                
@@ -23,7 +24,6 @@
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Matrix.h"         
-#include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayerManagerComposite.h"  

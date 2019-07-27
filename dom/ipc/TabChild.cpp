@@ -21,7 +21,7 @@
 #include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/layers/ActiveElementManager.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
-#include "mozilla/layers/AsyncPanZoomController.h"
+#include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/ShadowLayers.h"
@@ -431,7 +431,7 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
 
   
   
-  metrics.SetDisplayPortMargins(AsyncPanZoomController::CalculatePendingDisplayPort(
+  metrics.SetDisplayPortMargins(APZCTreeManager::CalculatePendingDisplayPort(
     
     
     

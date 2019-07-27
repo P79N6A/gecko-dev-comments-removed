@@ -7,6 +7,7 @@
 
 #include "LayerTransactionParent.h"
 #include <vector>                       
+#include "apz/src/AsyncPanZoomController.h"
 #include "CompositableHost.h"           
 #include "ImageLayers.h"                
 #include "Layers.h"                     
@@ -41,7 +42,6 @@
 #include "GeckoProfiler.h"
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/layers/AsyncCompositionManager.h"
-#include "mozilla/layers/AsyncPanZoomController.h"
 
 typedef std::vector<mozilla::layers::EditReply> EditReplyVector;
 

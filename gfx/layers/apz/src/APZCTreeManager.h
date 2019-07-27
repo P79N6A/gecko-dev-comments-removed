@@ -240,6 +240,16 @@ public:
 
 
 
+
+  static const LayerMargin CalculatePendingDisplayPort(
+    const FrameMetrics& aFrameMetrics,
+    const ScreenPoint& aVelocity,
+    double aEstimatedPaintDuration);
+
+  
+
+
+
   static void SetDPI(float aDpiValue) { sDPI = aDpiValue; }
 
   

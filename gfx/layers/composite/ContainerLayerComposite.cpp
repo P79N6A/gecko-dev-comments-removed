@@ -5,6 +5,7 @@
 
 #include "ContainerLayerComposite.h"
 #include <algorithm>                    
+#include "apz/src/AsyncPanZoomController.h"  
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfx2DGlue.h"                  
@@ -21,7 +22,6 @@
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/TextureHost.h"  
-#include "mozilla/layers/AsyncPanZoomController.h"  
 #include "mozilla/layers/AsyncCompositionManager.h" 
 #include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "mozilla/mozalloc.h"           
