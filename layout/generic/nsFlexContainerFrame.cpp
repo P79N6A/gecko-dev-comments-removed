@@ -3766,99 +3766,98 @@ nsFlexContainerFrame::ReflowFlexItem(nsPresContext* aPresContext,
                                      LogicalPoint& aFramePos,
                                      nscoord aContainerWidth)
 {
-      
-      WritingMode outerWM = aReflowState.GetWritingMode();
-      WritingMode wm = aItem.Frame()->GetWritingMode();
-      LogicalSize availSize = aReflowState.ComputedSize(wm);
-      availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
-      nsHTMLReflowState childReflowState(aPresContext, aReflowState,
-                                         aItem.Frame(), availSize);
+  WritingMode outerWM = aReflowState.GetWritingMode();
+  WritingMode wm = aItem.Frame()->GetWritingMode();
+  LogicalSize availSize = aReflowState.ComputedSize(wm);
+  availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
+  nsHTMLReflowState childReflowState(aPresContext, aReflowState,
+                                     aItem.Frame(), availSize);
 
-      
-      
-      bool didOverrideComputedWidth = false;
-      bool didOverrideComputedHeight = false;
+  
+  
+  bool didOverrideComputedWidth = false;
+  bool didOverrideComputedHeight = false;
 
-      
-      if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
-        childReflowState.SetComputedWidth(aItem.GetMainSize());
-        didOverrideComputedWidth = true;
-      } else {
-        childReflowState.SetComputedHeight(aItem.GetMainSize());
-        didOverrideComputedHeight = true;
-      }
+  
+  if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
+    childReflowState.SetComputedWidth(aItem.GetMainSize());
+    didOverrideComputedWidth = true;
+  } else {
+    childReflowState.SetComputedHeight(aItem.GetMainSize());
+    didOverrideComputedHeight = true;
+  }
 
+  
+  if (aItem.IsStretched()) {
+    MOZ_ASSERT(aItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_STRETCH,
+               "stretched item w/o 'align-self: stretch'?");
+    if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
+      childReflowState.SetComputedWidth(aItem.GetCrossSize());
+      didOverrideComputedWidth = true;
+    } else {
       
-      if (aItem.IsStretched()) {
-        MOZ_ASSERT(aItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_STRETCH,
-                   "stretched item w/o 'align-self: stretch'?");
-        if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
-          childReflowState.SetComputedWidth(aItem.GetCrossSize());
-          didOverrideComputedWidth = true;
-        } else {
-          
-          aItem.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
-          childReflowState.SetComputedHeight(aItem.GetCrossSize());
-          didOverrideComputedHeight = true;
-        }
-      }
+      aItem.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+      childReflowState.SetComputedHeight(aItem.GetCrossSize());
+      didOverrideComputedHeight = true;
+    }
+  }
 
-      
-      
-      
+  
+  
+  
 
+  
+  
+  
+  if (aItem.HadMeasuringReflow()) {
+    if (didOverrideComputedWidth) {
       
       
       
-      if (aItem.HadMeasuringReflow()) {
-        if (didOverrideComputedWidth) {
-          
-          
-          
-          
-          childReflowState.SetHResize(true);
-        }
-        if (didOverrideComputedHeight) {
-          childReflowState.SetVResize(true);
-        }
-      }
       
-      
-      
+      childReflowState.SetHResize(true);
+    }
+    if (didOverrideComputedHeight) {
+      childReflowState.SetVResize(true);
+    }
+  }
+  
+  
+  
 
-      nsHTMLReflowMetrics childDesiredSize(childReflowState);
-      nsReflowStatus childReflowStatus;
-      ReflowChild(aItem.Frame(), aPresContext,
-                  childDesiredSize, childReflowState,
-                  outerWM, aFramePos, aContainerWidth,
-                  0, childReflowStatus);
+  nsHTMLReflowMetrics childDesiredSize(childReflowState);
+  nsReflowStatus childReflowStatus;
+  ReflowChild(aItem.Frame(), aPresContext,
+              childDesiredSize, childReflowState,
+              outerWM, aFramePos, aContainerWidth,
+              0, childReflowStatus);
 
-      
-      
-      
-      
-      MOZ_ASSERT(NS_FRAME_IS_COMPLETE(childReflowStatus),
-                 "We gave flex item unconstrained available height, so it "
-                 "should be complete");
+  
+  
+  
+  
+  MOZ_ASSERT(NS_FRAME_IS_COMPLETE(childReflowStatus),
+             "We gave flex item unconstrained available height, so it "
+             "should be complete");
 
-      childReflowState.ApplyRelativePositioning(&aFramePos, aContainerWidth);
+  childReflowState.ApplyRelativePositioning(&aFramePos, aContainerWidth);
 
-      FinishReflowChild(aItem.Frame(), aPresContext,
-                        childDesiredSize, &childReflowState,
-                        outerWM, aFramePos, aContainerWidth, 0);
+  FinishReflowChild(aItem.Frame(), aPresContext,
+                    childDesiredSize, &childReflowState,
+                    outerWM, aFramePos, aContainerWidth, 0);
 
-      
-      if (aItem.Frame() == mFrames.FirstChild()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        aItem.SetAscent(childDesiredSize.BlockStartAscent());
-      }
+  
+  if (aItem.Frame() == mFrames.FirstChild()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    aItem.SetAscent(childDesiredSize.BlockStartAscent());
+  }
 }
 
  nscoord
