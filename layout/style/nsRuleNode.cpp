@@ -114,6 +114,8 @@ nsRuleNode::ChildrenHashOps = {
   
   
   
+  PL_DHashAllocTable,
+  PL_DHashFreeTable,
   ChildrenHashHashKey,
   ChildrenHashMatchEntry,
   PL_DHashMoveEntryStub,
