@@ -1152,10 +1152,14 @@ public:
 
 
 
+
+
+
   static nsRect ComputeObjectDestRect(const nsRect& aConstraintRect,
                                       const IntrinsicSize& aIntrinsicSize,
                                       const nsSize& aIntrinsicRatio,
-                                      const nsStylePosition* aStylePos);
+                                      const nsStylePosition* aStylePos,
+                                      nsPoint* aAnchorPoint = nullptr);
 
   
 
@@ -1682,6 +1686,8 @@ public:
 
 
 
+
+
   static nsresult DrawSingleImage(gfxContext&         aContext,
                                   nsPresContext*      aPresContext,
                                   imgIContainer*      aImage,
@@ -1690,6 +1696,7 @@ public:
                                   const nsRect&       aDirty,
                                   const mozilla::SVGImageContext* aSVGContext,
                                   uint32_t            aImageFlags,
+                                  const nsPoint*      aAnchorPoint = nullptr,
                                   const nsRect*       aSourceArea = nullptr);
 
   
