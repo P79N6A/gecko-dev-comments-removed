@@ -2408,6 +2408,9 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   aDocElement->UnsetFlags(ELEMENT_ALL_RESTYLE_FLAGS);
 
   
+  
+  
+  
   nsRefPtr<nsStyleContext> styleContext;
   styleContext = mPresShell->StyleSet()->ResolveStyleFor(aDocElement,
                                                          nullptr);
@@ -2440,6 +2443,10 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     }
 
     if (resolveStyle) {
+      
+      
+      
+      
       styleContext = mPresShell->StyleSet()->ResolveStyleFor(aDocElement,
                                                              nullptr);
       display = styleContext->StyleDisplay();
