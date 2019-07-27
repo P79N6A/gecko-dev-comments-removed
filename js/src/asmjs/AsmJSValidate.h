@@ -25,6 +25,7 @@
 
 #include "jsutil.h"
 
+#include "jit/Registers.h"
 #include "js/TypeDecls.h"
 #include "vm/NativeObject.h"
 
@@ -53,13 +54,25 @@ ValidateAsmJS(ExclusiveContext *cx, AsmJSParser &parser, frontend::ParseNode *st
 
 const size_t AsmJSPageSize = 4096;
 
+
+
+
+static_assert(jit::AsmJSCheckedImmediateRange <= jit::AsmJSImmediateRange,
+              "AsmJSImmediateRange should be the size of an unconstrained "
+              "address immediate");
+
 #ifdef JS_CPU_X64
 
 
 
 
 
-static const size_t AsmJSMappedSize = 4 * 1024ULL * 1024ULL * 1024ULL + AsmJSPageSize;
+
+
+static const size_t AsmJSMappedSize = 4 * 1024ULL * 1024ULL * 1024ULL +
+                                      jit::AsmJSCheckedImmediateRange +
+                                      AsmJSPageSize;
+
 #endif
 
 

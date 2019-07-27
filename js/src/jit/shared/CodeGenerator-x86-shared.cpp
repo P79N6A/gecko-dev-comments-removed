@@ -363,6 +363,82 @@ CodeGeneratorX86Shared::visitOutOfLineLoadTypedArrayOutOfBounds(OutOfLineLoadTyp
     masm.jmp(ool->rejoin());
 }
 
+void
+CodeGeneratorX86Shared::visitOffsetBoundsCheck(OffsetBoundsCheck *oolCheck)
+{
+    
+    
+    
+    
+    MOZ_ASSERT(oolCheck->offset() != 0,
+               "An access without a constant offset doesn't need a separate OffsetBoundsCheck");
+    masm.cmp32(oolCheck->ptrReg(), Imm32(-uint32_t(oolCheck->offset())));
+    masm.j(Assembler::Below, oolCheck->outOfBounds());
+
+#ifdef JS_CODEGEN_X64
+    
+    
+    
+    masm.movslq(oolCheck->ptrReg(), oolCheck->ptrReg());
+#endif
+
+    masm.jmp(oolCheck->rejoin());
+}
+
+uint32_t
+CodeGeneratorX86Shared::emitAsmJSBoundsCheckBranch(const MAsmJSHeapAccess *access,
+                                                   const MInstruction *mir,
+                                                   Register ptr, Label *fail)
+{
+    
+
+    MOZ_ASSERT(gen->needsAsmJSBoundsCheckBranch(access));
+
+    Label *pass = nullptr;
+
+    
+    
+    
+    
+    if (access->offset() != 0) {
+        OffsetBoundsCheck *oolCheck = new(alloc()) OffsetBoundsCheck(fail, ptr, access->offset());
+        fail = oolCheck->entry();
+        pass = oolCheck->rejoin();
+        addOutOfLineCode(oolCheck, mir);
+    }
+
+    
+    
+    
+    
+    
+    uint32_t maybeCmpOffset = masm.cmp32WithPatch(ptr, Imm32(-access->endOffset())).offset();
+    masm.j(Assembler::Above, fail);
+
+    if (pass)
+        masm.bind(pass);
+
+    return maybeCmpOffset;
+}
+
+void
+CodeGeneratorX86Shared::cleanupAfterAsmJSBoundsCheckBranch(const MAsmJSHeapAccess *access,
+                                                           Register ptr)
+{
+    
+
+    MOZ_ASSERT(gen->needsAsmJSBoundsCheckBranch(access));
+
+#ifdef JS_CODEGEN_X64
+    
+    if (access->offset() != 0) {
+        
+        
+        masm.movl(ptr, ptr);
+    }
+#endif
+}
+
 bool
 CodeGeneratorX86Shared::generateOutOfLineCode()
 {

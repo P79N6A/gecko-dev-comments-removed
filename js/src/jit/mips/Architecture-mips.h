@@ -501,6 +501,12 @@ hasMultiAlias() {
     return true;
 }
 
+
+
+
+static const size_t AsmJSCheckedImmediateRange = 0;
+static const size_t AsmJSImmediateRange = 0;
+
 } 
 } 
 

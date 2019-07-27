@@ -155,12 +155,9 @@ LIRGeneratorX64::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
 
     
     
-    
-    
-    
-    LAllocation ptrAlloc = ins->needsBoundsCheck()
+    LAllocation ptrAlloc = gen->needsAsmJSBoundsCheckBranch(ins)
                            ? useRegisterAtStart(ptr)
-                           : useRegisterOrNonNegativeConstantAtStart(ptr);
+                           : useRegisterOrZeroAtStart(ptr);
 
     define(new(alloc()) LAsmJSLoadHeap(ptrAlloc), ins);
 }
@@ -173,12 +170,9 @@ LIRGeneratorX64::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
 
     
     
-    
-    
-    
-    LAllocation ptrAlloc = ins->needsBoundsCheck()
+    LAllocation ptrAlloc = gen->needsAsmJSBoundsCheckBranch(ins)
                            ? useRegisterAtStart(ptr)
-                           : useRegisterOrNonNegativeConstantAtStart(ptr);
+                           : useRegisterOrZeroAtStart(ptr);
 
     LAsmJSStoreHeap *lir = nullptr;  
     switch (ins->accessType()) {
@@ -200,7 +194,6 @@ LIRGeneratorX64::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
       case Scalar::MaxTypedArrayViewType:
         MOZ_CRASH("unexpected array type");
     }
-
     add(lir, ins);
 }
 

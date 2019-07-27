@@ -316,6 +316,9 @@ struct PatchedAbsoluteAddress
     explicit PatchedAbsoluteAddress(const void *addr)
       : addr(const_cast<void*>(addr))
     { }
+    explicit PatchedAbsoluteAddress(uintptr_t addr)
+      : addr(reinterpret_cast<void*>(addr))
+    { }
 };
 
 
@@ -764,14 +767,25 @@ static const unsigned AsmJSNaN32GlobalDataOffset = 2 * sizeof(void*) + sizeof(do
 
 class AsmJSHeapAccess
 {
+#if defined(JS_CODEGEN_X64)
+  public:
+    enum WhatToDoOnOOB {
+        CarryOn, 
+        Throw    
+    };
+#endif
+
   private:
-    uint32_t offset_;
+    uint32_t insnOffset_;
+#if defined(JS_CODEGEN_X86)
+    uint8_t opLength_;  
+#endif
+#if defined(JS_CODEGEN_X64)
+    uint8_t offsetWithinWholeSimdVector_; 
+    bool throwOnOOB_;   
+#endif
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     uint8_t cmpDelta_;  
-    uint8_t opLength_;  
-    uint8_t numSimdElems_; 
-    Scalar::Type type_;
-    AnyRegister::Code loadedReg_ : 8;
 #endif
 
     JS_STATIC_ASSERT(AnyRegister::Total < UINT8_MAX);
@@ -780,63 +794,50 @@ class AsmJSHeapAccess
     AsmJSHeapAccess() {}
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     static const uint32_t NoLengthCheck = UINT32_MAX;
+#endif
 
+#if defined(JS_CODEGEN_X86)
     
     
-    AsmJSHeapAccess(uint32_t offset, uint32_t after, Scalar::Type type, AnyRegister loadedReg,
-                    uint32_t cmp = NoLengthCheck)
-      : offset_(offset),
-        cmpDelta_(cmp == NoLengthCheck ? 0 : offset - cmp),
-        opLength_(after - offset),
-        numSimdElems_(UINT8_MAX),
-        type_(type),
-        loadedReg_(loadedReg.code())
-    {
-        MOZ_ASSERT(!Scalar::isSimdType(type));
-    }
-    AsmJSHeapAccess(uint32_t offset, uint8_t after, Scalar::Type type, uint32_t cmp = NoLengthCheck)
-      : offset_(offset),
-        cmpDelta_(cmp == NoLengthCheck ? 0 : offset - cmp),
-        opLength_(after - offset),
-        numSimdElems_(UINT8_MAX),
-        type_(type),
-        loadedReg_(UINT8_MAX)
-    {
-        MOZ_ASSERT(!Scalar::isSimdType(type));
-    }
+    AsmJSHeapAccess(uint32_t insnOffset, uint32_t after, uint32_t cmp = NoLengthCheck)
+      : insnOffset_(insnOffset),
+        opLength_(after - insnOffset),
+        cmpDelta_(cmp == NoLengthCheck ? 0 : insnOffset - cmp)
+    {}
+#elif defined(JS_CODEGEN_X64)
     
-    AsmJSHeapAccess(uint32_t offset, uint32_t after, unsigned numSimdElems, Scalar::Type type,
-                    uint32_t cmp = NoLengthCheck)
-      : offset_(offset),
-        cmpDelta_(cmp == NoLengthCheck ? 0 : offset - cmp),
-        opLength_(after - offset),
-        numSimdElems_(numSimdElems),
-        type_(type),
-        loadedReg_(UINT8_MAX)
+    
+    AsmJSHeapAccess(uint32_t insnOffset, WhatToDoOnOOB oob,
+                    uint32_t cmp = NoLengthCheck,
+                    uint32_t offsetWithinWholeSimdVector = 0)
+      : insnOffset_(insnOffset),
+        offsetWithinWholeSimdVector_(offsetWithinWholeSimdVector),
+        throwOnOOB_(oob == Throw),
+        cmpDelta_(cmp == NoLengthCheck ? 0 : insnOffset - cmp)
     {
-        MOZ_ASSERT(Scalar::isSimdType(type));
+        MOZ_ASSERT(offsetWithinWholeSimdVector_ == offsetWithinWholeSimdVector);
     }
 #elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-    explicit AsmJSHeapAccess(uint32_t offset)
-      : offset_(offset)
+    explicit AsmJSHeapAccess(uint32_t insnOffset)
+      : insnOffset_(insnOffset)
     {}
 #endif
 
-    uint32_t offset() const { return offset_; }
-    void setOffset(uint32_t offset) { offset_ = offset; }
+    uint32_t insnOffset() const { return insnOffset_; }
+    void setInsnOffset(uint32_t insnOffset) { insnOffset_ = insnOffset; }
 #if defined(JS_CODEGEN_X86)
-    void *patchOffsetAt(uint8_t *code) const { return code + (offset_ + opLength_); }
+    void *patchHeapPtrImmAt(uint8_t *code) const { return code + (insnOffset_ + opLength_); }
 #endif
 #if defined(JS_CODEGEN_X64)
-    unsigned opLength() const { MOZ_ASSERT(!Scalar::isSimdType(type_)); return opLength_; }
-    bool isLoad() const { MOZ_ASSERT(!Scalar::isSimdType(type_)); return loadedReg_ != UINT8_MAX; }
+    bool throwOnOOB() const { return throwOnOOB_; }
+    uint32_t offsetWithinWholeSimdVector() const { return offsetWithinWholeSimdVector_; }
 #endif
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     bool hasLengthCheck() const { return cmpDelta_ > 0; }
-    void *patchLengthAt(uint8_t *code) const { return code + (offset_ - cmpDelta_); }
-    unsigned numSimdElems() const { MOZ_ASSERT(Scalar::isSimdType(type_)); return numSimdElems_; }
-    Scalar::Type type() const { return type_; }
-    AnyRegister loadedReg() const { return AnyRegister::FromCode(loadedReg_); }
+    void *patchLengthAt(uint8_t *code) const {
+        MOZ_ASSERT(hasLengthCheck());
+        return code + (insnOffset_ - cmpDelta_);
+    }
 #endif
 };
 

@@ -239,6 +239,11 @@ hasMultiAlias()
     return false;
 }
 
+
+
+static const size_t AsmJSCheckedImmediateRange = 4096;
+static const size_t AsmJSImmediateRange = UINT32_C(0x80000000);
+
 } 
 } 
 

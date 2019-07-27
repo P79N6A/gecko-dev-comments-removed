@@ -653,7 +653,7 @@ CodeGenerator::getJumpLabelForBranch(MBasicBlock *block)
     
     
     
-    Label *res = GetJitContext()->temp->lifoAlloc()->new_<Label>();
+    Label *res = alloc().lifoAlloc()->new_<Label>();
     Label after;
     masm.jump(&after);
     masm.bind(res);

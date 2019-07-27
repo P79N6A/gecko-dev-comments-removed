@@ -89,6 +89,68 @@ AnalyzeLsh(TempAllocator &alloc, MLsh *lsh)
     last->block()->insertAfter(last, eaddr);
 }
 
+static bool
+IsAlignmentMask(uint32_t m)
+{
+    
+    return (-m & ~m) == 0;
+}
+
+template<typename MAsmJSHeapAccessType>
+static void
+AnalyzeAsmHeapAccess(MAsmJSHeapAccessType *ins, MIRGraph &graph)
+{
+    MDefinition *ptr = ins->ptr();
+
+    if (ptr->isConstantValue()) {
+        
+        
+        
+        
+        
+        int32_t imm = ptr->constantValue().toInt32();
+        if (imm != 0 && ins->tryAddDisplacement(imm)) {
+            MInstruction *zero = MConstant::New(graph.alloc(), Int32Value(0));
+            ins->block()->insertBefore(ins, zero);
+            ins->replacePtr(zero);
+        }
+    } else if (ptr->isAdd()) {
+        
+        MDefinition *op0 = ptr->toAdd()->getOperand(0);
+        MDefinition *op1 = ptr->toAdd()->getOperand(1);
+        if (op0->isConstantValue())
+            mozilla::Swap(op0, op1);
+        if (op1->isConstantValue()) {
+            int32_t imm = op1->constantValue().toInt32();
+            if (ins->tryAddDisplacement(imm))
+                ins->replacePtr(op0);
+        }
+    } else if (ptr->isBitAnd() && ptr->hasOneUse()) {
+        
+        
+        
+        MDefinition *lhs = ptr->toBitAnd()->getOperand(0);
+        MDefinition *rhs = ptr->toBitAnd()->getOperand(1);
+        int lhsIndex = 0;
+        if (lhs->isConstantValue()) {
+            mozilla::Swap(lhs, rhs);
+            lhsIndex = 1;
+        }
+        if (lhs->isAdd() && rhs->isConstantValue()) {
+            MDefinition *op0 = lhs->toAdd()->getOperand(0);
+            MDefinition *op1 = lhs->toAdd()->getOperand(1);
+            if (op0->isConstantValue())
+                mozilla::Swap(op0, op1);
+            if (op1->isConstantValue()) {
+                uint32_t i = op1->constantValue().toInt32();
+                uint32_t m = rhs->constantValue().toInt32();
+                if (IsAlignmentMask(m) && ((i & m) == i) && ins->tryAddDisplacement(i))
+                    ptr->toBitAnd()->replaceOperand(lhsIndex, op0);
+            }
+        }
+    }
+}
+
 
 
 
@@ -108,8 +170,15 @@ EffectiveAddressAnalysis::analyze()
 {
     for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
         for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
+            
+            
+            
             if (i->isLsh())
                 AnalyzeLsh(graph_.alloc(), i->toLsh());
+            else if (i->isAsmJSLoadHeap())
+                AnalyzeAsmHeapAccess(i->toAsmJSLoadHeap(), graph_);
+            else if (i->isAsmJSStoreHeap())
+                AnalyzeAsmHeapAccess(i->toAsmJSStoreHeap(), graph_);
         }
     }
     return true;

@@ -250,7 +250,7 @@ struct HeapAccessOffset
     const AsmJSHeapAccessVector &accesses;
     explicit HeapAccessOffset(const AsmJSHeapAccessVector &accesses) : accesses(accesses) {}
     uintptr_t operator[](size_t index) const {
-        return accesses[index].offset();
+        return accesses[index].insnOffset();
     }
 };
 
@@ -328,7 +328,7 @@ AsmJSModule::finish(ExclusiveContext *cx, TokenStream &tokenStream, MacroAssembl
     pod.functionBytes_ = masm.actualOffset(pod.functionBytes_);
     for (size_t i = 0; i < heapAccesses_.length(); i++) {
         AsmJSHeapAccess &a = heapAccesses_[i];
-        a.setOffset(masm.actualOffset(a.offset()));
+        a.setInsnOffset(masm.actualOffset(a.insnOffset()));
     }
     for (unsigned i = 0; i < numExportedFunctions(); i++) {
         if (!exportedFunction(i).isChangeHeap())
@@ -774,16 +774,6 @@ AsmJSModule::staticallyLink(ExclusiveContext *cx)
     MOZ_ASSERT(isStaticallyLinked());
 }
 
-#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
-static size_t
-ByteSizeOfHeapAccess(const jit::AsmJSHeapAccess access)
-{
-    Scalar::Type type = access.type();
-    if (Scalar::isSimdType(type))
-        return Scalar::scalarByteSize(type) * access.numSimdElems();
-    return TypedArrayElemSize(type);
-}
-#endif
 void
 AsmJSModule::initHeap(Handle<ArrayBufferObjectMaybeShared *> heap, JSContext *cx)
 {
@@ -797,18 +787,17 @@ AsmJSModule::initHeap(Handle<ArrayBufferObjectMaybeShared *> heap, JSContext *cx
 
 #if defined(JS_CODEGEN_X86)
     uint8_t *heapOffset = heap->dataPointer();
+    uint32_t heapLength = heap->byteLength();
     for (unsigned i = 0; i < heapAccesses_.length(); i++) {
         const jit::AsmJSHeapAccess &access = heapAccesses_[i];
-        if (access.hasLengthCheck()) {
-            
-            
-            
-            
-            size_t scalarByteSize = ByteSizeOfHeapAccess(access);
-            X86Encoding::SetPointer(access.patchLengthAt(code_),
-                                    (void*)(heap->byteLength() + 1 - scalarByteSize));
-        }
-        void *addr = access.patchOffsetAt(code_);
+        
+        
+        
+        
+        
+        if (access.hasLengthCheck())
+            X86Encoding::AddInt32(access.patchLengthAt(code_), heapLength);
+        void *addr = access.patchHeapPtrImmAt(code_);
         uint32_t disp = reinterpret_cast<uint32_t>(X86Encoding::GetPointer(addr));
         MOZ_ASSERT(disp <= INT32_MAX);
         X86Encoding::SetPointer(addr, (void *)(heapOffset + disp));
@@ -821,20 +810,18 @@ AsmJSModule::initHeap(Handle<ArrayBufferObjectMaybeShared *> heap, JSContext *cx
     
     
     
-    int32_t heapLength = int32_t(intptr_t(heap->byteLength()));
+    uint32_t heapLength = heap->byteLength();
     for (size_t i = 0; i < heapAccesses_.length(); i++) {
         const jit::AsmJSHeapAccess &access = heapAccesses_[i];
-        if (access.hasLengthCheck()) {
-            
-            size_t scalarByteSize = ByteSizeOfHeapAccess(access);
-            X86Encoding::SetInt32(access.patchLengthAt(code_), heapLength + 1 - scalarByteSize);
-        }
+        
+        if (access.hasLengthCheck())
+            X86Encoding::AddInt32(access.patchLengthAt(code_), heapLength);
     }
 #elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     uint32_t heapLength = heap->byteLength();
     for (unsigned i = 0; i < heapAccesses_.length(); i++) {
         jit::Assembler::UpdateBoundsCheck(heapLength,
-                                          (jit::Instruction*)(heapAccesses_[i].offset() + code_));
+                                          (jit::Instruction*)(heapAccesses_[i].insnOffset() + code_));
     }
 #endif
 }
@@ -846,12 +833,26 @@ AsmJSModule::restoreHeapToInitialState(ArrayBufferObjectMaybeShared *maybePrevBu
     if (maybePrevBuffer) {
         
         uint8_t *ptrBase = maybePrevBuffer->dataPointer();
+        uint32_t heapLength = maybePrevBuffer->byteLength();
         for (unsigned i = 0; i < heapAccesses_.length(); i++) {
             const jit::AsmJSHeapAccess &access = heapAccesses_[i];
-            void *addr = access.patchOffsetAt(code_);
+            
+            if (access.hasLengthCheck())
+                X86Encoding::AddInt32(access.patchLengthAt(code_), -heapLength);
+            void *addr = access.patchHeapPtrImmAt(code_);
             uint8_t *ptr = reinterpret_cast<uint8_t*>(X86Encoding::GetPointer(addr));
             MOZ_ASSERT(ptr >= ptrBase);
             X86Encoding::SetPointer(addr, (void *)(ptr - ptrBase));
+        }
+    }
+#elif defined(JS_CODEGEN_X64)
+    if (maybePrevBuffer) {
+        uint32_t heapLength = maybePrevBuffer->byteLength();
+        for (unsigned i = 0; i < heapAccesses_.length(); i++) {
+            const jit::AsmJSHeapAccess &access = heapAccesses_[i];
+            
+            if (access.hasLengthCheck())
+                X86Encoding::AddInt32(access.patchLengthAt(code_), -heapLength);
         }
     }
 #endif
