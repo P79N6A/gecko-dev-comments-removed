@@ -1065,12 +1065,15 @@ CycleCollectedJSRuntime::DeferredFinalize(nsISupports* aSupports)
   
   
   
+  
+  
+  
   __asm__ __volatile__("push %%rax;"
                        "push %%rdx;"
                        "movq %0, %%rax;"
                        "movq (%%rax), %%rdx;"
                        "pop %%rdx;"
-                       "pop %%rax;" : : "g" (aSupports));
+                       "pop %%rax;" : : "r" (aSupports));
 #endif
   mDeferredSupports.AppendElement(aSupports);
 }
