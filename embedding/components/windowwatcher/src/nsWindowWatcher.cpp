@@ -60,6 +60,7 @@
 #include "nsSandboxFlags.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/DOMStorage.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 #ifdef USEWEAKREFS
 #include "nsIWeakReference.h"
@@ -875,26 +876,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   }
 
   nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
-  if (uriToLoad && aNavigate) { 
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    cx = nsContentUtils::GetCurrentJSContext();
-    nsCxPusher pusher;
-    if (!cx) {
-      cx = GetJSContextFromWindow(aParent);
-      if (!cx)
-        cx = nsContentUtils::GetSafeJSContext();
-      pusher.Push(cx);
-    }
-
+  if (uriToLoad && aNavigate) {
     newDocShell->CreateLoadInfo(getter_AddRefs(loadInfo));
     NS_ENSURE_TRUE(loadInfo, NS_ERROR_FAILURE);
 
@@ -902,26 +884,22 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
       loadInfo->SetOwner(subjectPrincipal);
     }
 
-    
+    nsCOMPtr<nsPIDOMWindow> referrerWindow =
+      do_QueryInterface(dom::BrokenGetEntryGlobal());
+    if (!referrerWindow) {
+      referrerWindow = do_QueryInterface(aParent);
+    }
+    if (referrerWindow) {
+      
 
-    
-    JSContext* ccx = nsContentUtils::GetCurrentJSContext();
-    if (ccx) {
-      nsIScriptGlobalObject *sgo = nsJSUtils::GetDynamicScriptGlobal(ccx);
 
-      nsCOMPtr<nsPIDOMWindow> w(do_QueryInterface(sgo));
-      if (w) {
+
+
+
+      nsCOMPtr<nsIDocument> doc = referrerWindow->GetExtantDoc();
+      if (doc) {
         
-
-
-
-
-
-        nsCOMPtr<nsIDocument> doc = w->GetExtantDoc();
-        if (doc) {
-          
-          loadInfo->SetReferrer(doc->GetDocumentURI());
-        }
+        loadInfo->SetReferrer(doc->GetDocumentURI());
       }
     }
   }
