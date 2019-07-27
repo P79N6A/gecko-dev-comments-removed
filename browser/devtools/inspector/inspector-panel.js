@@ -451,8 +451,7 @@ InspectorPanel.prototype = {
 
     
     
-    if (reason !== "navigateaway" &&
-        this.canGetUniqueSelector &&
+    if (this.canGetUniqueSelector &&
         this.selection.isElementNode()) {
       selection.getUniqueSelector().then(selector => {
         this.selectionCssSelector = selector;

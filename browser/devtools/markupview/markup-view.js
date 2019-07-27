@@ -421,8 +421,11 @@ MarkupView.prototype = {
   
 
 
+
+
   _onNewSelection: function() {
     let selection = this._inspector.selection;
+    let reason = selection.reason;
 
     this.htmlEditor.hide();
     if (this._hoveredNode && this._hoveredNode !== selection.nodeFront) {
@@ -430,34 +433,57 @@ MarkupView.prototype = {
       this._hoveredNode = null;
     }
 
+    if (!selection.isNode()) {
+      this.unmarkSelectedNode();
+      return;
+    }
+
     let done = this._inspector.updating("markup-view");
-    if (selection.isNode()) {
-      if (this._shouldNewSelectionBeHighlighted()) {
-        this._brieflyShowBoxModel(selection.nodeFront);
+
+    
+    if (this._shouldNewSelectionBeHighlighted()) {
+      this._brieflyShowBoxModel(selection.nodeFront);
+    }
+
+    this.showNode(selection.nodeFront).then(() => {
+      
+      if (this._destroyer) {
+        return promise.reject("markupview destroyed");
       }
 
-      this.showNode(selection.nodeFront).then(() => {
-        if (this._destroyer) {
-          return promise.reject("markupview destroyed");
-        }
-        if (selection.reason !== "treepanel") {
-          this.markNodeAsSelected(selection.nodeFront);
-        }
-        done();
-      }).then(null, e => {
-        if (!this._destroyer) {
-          console.error(e);
-        } else {
-          console.warn("Could not mark node as selected, the markup-view was " +
-            "destroyed while showing the node.");
-        }
+      
+      this.markNodeAsSelected(selection.nodeFront);
 
-        done();
-      });
-    } else {
-      this.unmarkSelectedNode();
+      
+      this.maybeFocusNewSelection();
+
       done();
+    }).catch(e => {
+      if (!this._destroyer) {
+        console.error(e);
+      } else {
+        console.warn("Could not mark node as selected, the markup-view was " +
+          "destroyed while showing the node.");
+      }
+
+      done();
+    });
+  },
+
+  
+
+
+
+
+  maybeFocusNewSelection: function() {
+    let {reason, nodeFront} = this._inspector.selection;
+
+    if (reason !== "browser-context-menu" &&
+        reason !== "picker-node-picked") {
+      return;
     }
+
+    this.getContainer(nodeFront).focus();
   },
 
   
@@ -1157,20 +1183,31 @@ MarkupView.prototype = {
 
 
 
-  markNodeAsSelected: function(aNode, reason) {
-    let container = this.getContainer(aNode);
+
+
+
+  markNodeAsSelected: function(node, reason) {
+    let container = this.getContainer(node);
     if (this._selectedContainer === container) {
       return false;
     }
+
+    
     if (this._selectedContainer) {
       this._selectedContainer.selected = false;
     }
+
+    
     this._selectedContainer = container;
-    if (aNode) {
+    if (node) {
       this._selectedContainer.selected = true;
     }
 
-    this._inspector.selection.setNodeFront(aNode, reason || "nodeselected");
+    
+    if (this._inspector.selection.nodeFront !== node) {
+      this._inspector.selection.setNodeFront(node, reason || "nodeselected");
+    }
+
     return true;
   },
 
@@ -2214,7 +2251,7 @@ MarkupElementContainer.prototype = Heritage.extend(MarkupContainer.prototype, {
     
     this.node.getImageData().then(data => {
       data.data.string().then(str => {
-        clipboardHelper.copyString(str);
+        clipboardHelper.copyString(str, this.markup.doc);
       });
     });
   },
@@ -2847,7 +2884,7 @@ function truncateString(str, maxLength) {
   }
 
   return str.substring(0, Math.ceil(maxLength / 2)) +
-         "…" +
+         "â€¦" +
          str.substring(str.length - Math.floor(maxLength / 2));
 }
 
