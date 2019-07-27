@@ -1136,7 +1136,10 @@ private:
                                                    WhichServiceWorker::INSTALLING_WORKER | WhichServiceWorker::WAITING_WORKER);
 
     
-    NS_WARN_IF_FALSE(!aActivateImmediately, "Immediate activation using replace() is not supported yet");
+    if (mRegistration->mWaitingWorker->SkipWaitingFlag()) {
+      mRegistration->PurgeActiveWorker();
+    }
+
     Done(NS_OK);
     
     mRegistration->TryToActivate();
@@ -1466,7 +1469,7 @@ LifecycleEventWorkerRunnable::DispatchLifecycleEvent(JSContext* aCx, WorkerPriva
 void
 ServiceWorkerRegistrationInfo::TryToActivate()
 {
-  if (!IsControllingDocuments()) {
+  if (!IsControllingDocuments() || mWaitingWorker->SkipWaitingFlag()) {
     Activate();
   }
 }
@@ -1478,27 +1481,35 @@ ContinueActivateTask::ContinueAfterWorkerEvent(bool aSuccess, bool aActivateImme
 }
 
 void
+ServiceWorkerRegistrationInfo::PurgeActiveWorker()
+{
+  nsRefPtr<ServiceWorkerInfo> exitingWorker = mActiveWorker.forget();
+  if (!exitingWorker)
+    return;
+
+  
+  exitingWorker->UpdateState(ServiceWorkerState::Redundant);
+  nsresult rv = serviceWorkerScriptCache::PurgeCache(mPrincipal,
+                                                     exitingWorker->CacheName());
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to purge the activating cache.");
+  }
+  nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+  swm->InvalidateServiceWorkerRegistrationWorker(this, WhichServiceWorker::ACTIVE_WORKER);
+}
+
+void
 ServiceWorkerRegistrationInfo::Activate()
 {
   nsRefPtr<ServiceWorkerInfo> activatingWorker = mWaitingWorker;
-  nsRefPtr<ServiceWorkerInfo> exitingWorker = mActiveWorker;
-
-  nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-  swm->InvalidateServiceWorkerRegistrationWorker(this, WhichServiceWorker::WAITING_WORKER | WhichServiceWorker::ACTIVE_WORKER);
   if (!activatingWorker) {
     return;
   }
 
-  if (exitingWorker) {
-    
-    
-    exitingWorker->UpdateState(ServiceWorkerState::Redundant);
-    nsresult rv = serviceWorkerScriptCache::PurgeCache(mPrincipal,
-                                                       exitingWorker->CacheName());
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Failed to purge the activating cache.");
-    }
-  }
+  PurgeActiveWorker();
+
+  nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+  swm->InvalidateServiceWorkerRegistrationWorker(this, WhichServiceWorker::WAITING_WORKER);
 
   mActiveWorker = activatingWorker.forget();
   mWaitingWorker = nullptr;
@@ -3674,6 +3685,31 @@ ServiceWorkerManager::ClaimClients(nsIPrincipal* aPrincipal,
   }
 
   mAllDocuments.EnumerateEntries(ClaimMatchingClients, registration);
+
+  return NS_OK;
+}
+
+nsresult
+ServiceWorkerManager::SetSkipWaitingFlag(const nsCString& aScope,
+                                         uint64_t aServiceWorkerID)
+{
+  nsRefPtr<ServiceWorkerRegistrationInfo> registration = GetRegistration(aScope);
+  if (!registration) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (registration->mInstallingWorker &&
+      (registration->mInstallingWorker->ID() == aServiceWorkerID)) {
+    registration->mInstallingWorker->SetSkipWaitingFlag();
+  } else if (registration->mWaitingWorker &&
+             (registration->mWaitingWorker->ID() == aServiceWorkerID)) {
+    registration->mWaitingWorker->SetSkipWaitingFlag();
+    if (registration->mWaitingWorker->State() == ServiceWorkerState::Installed) {
+      registration->TryToActivate();
+    }
+  } else {
+    return NS_ERROR_FAILURE;
+  }
 
   return NS_OK;
 }
