@@ -147,9 +147,15 @@ this.PushDB.prototype = {
     );
   },
 
-
-  getByScope: function(aScope) {
-    debug("getByScope() " + aScope);
+  
+  getByIdentifiers: function(aPageRecord) {
+    debug("getByIdentifiers() { " + aPageRecord.scope + ", " +
+          JSON.stringify(aPageRecord.originAttributes) + " }");
+    if (!aPageRecord.scope || aPageRecord.originAttributes == undefined) {
+      return Promise.reject(
+               new TypeError("Scope and originAttributes are required! " +
+                             JSON.stringify(aPageRecord)));
+    }
 
     return new Promise((resolve, reject) =>
       this.newTxn(
@@ -158,16 +164,47 @@ this.PushDB.prototype = {
         function txnCb(aTxn, aStore) {
           aTxn.result = undefined;
 
-          let index = aStore.index("scope");
-          index.get(aScope).onsuccess = function setTxnResult(aEvent) {
+          let index = aStore.index("identifiers");
+          let request = index.get(IDBKeyRange.only([aPageRecord.scope, aPageRecord.originAttributes]));
+          request.onsuccess = function setTxnResult(aEvent) {
             aTxn.result = aEvent.target.result;
-            debug("Fetch successful " + aEvent.target.result);
-          };
+          }
         },
         resolve,
         reject
       )
     );
+  },
+
+  _getAllByKey: function(aKeyName, aKeyValue) {
+    return new Promise((resolve, reject) =>
+      this.newTxn(
+        "readonly",
+        this._dbStoreName,
+        function txnCb(aTxn, aStore) {
+          aTxn.result = undefined;
+
+          let index = aStore.index(aKeyName);
+          
+          
+          
+          let getAllReq = index.mozGetAll(aKeyValue);
+          getAllReq.onsuccess = function setTxnResult(aEvent) {
+            aTxn.result = aEvent.target.result;
+          }
+        },
+        resolve,
+        reject
+      )
+    );
+  },
+
+  
+  getAllByOriginAttributes: function(aOriginAttributes) {
+    if (typeof aOriginAttributes !== "string") {
+      return Promise.reject("Expected string!");
+    }
+    return this._getAllByKey("originAttributes", aOriginAttributes);
   },
 
   getAllKeyIDs: function() {
@@ -178,6 +215,7 @@ this.PushDB.prototype = {
         "readonly",
         this._dbStoreName,
         function txnCb(aTxn, aStore) {
+          aTxn.result = undefined;
           aStore.mozGetAll().onsuccess = function(event) {
             aTxn.result = event.target.result;
           };
