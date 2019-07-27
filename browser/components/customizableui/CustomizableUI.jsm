@@ -3969,8 +3969,12 @@ OverflowableToolbar.prototype = {
   },
 
   onOverflow: function(aEvent) {
+    
+    
+    
     if (!this._enabled ||
-        (aEvent && aEvent.target != this._toolbar.customizationTarget))
+        (aEvent && aEvent.target != this._toolbar.customizationTarget) ||
+        (aEvent && aEvent.rangeParent))
       return;
 
     let child = this._target.lastChild;
