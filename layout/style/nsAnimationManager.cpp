@@ -548,14 +548,10 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
                                  src.GetName());
     dest->SetEffect(destEffect);
 
-    
-    
-    
-    
-    dest->PlayFromStyle();
-
     if (src.GetPlayState() == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED) {
       dest->PauseFromStyle();
+    } else {
+      dest->PlayFromStyle();
     }
 
     
