@@ -213,11 +213,19 @@ public:
 
 
 
+  enum ScrollSnapMode { DISABLE_SNAP, ENABLE_SNAP };
+  
+
+
+
+
+
 
 
 
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr) = 0;
+                        const nsRect* aRange = nullptr,
+                        ScrollSnapMode aSnap = DISABLE_SNAP) = 0;
   
 
 
@@ -271,7 +279,27 @@ public:
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow = nullptr,
                         nsIAtom* aOrigin = nullptr,
-                        ScrollMomentum aMomentum = NOT_MOMENTUM) = 0;
+                        ScrollMomentum aMomentum = NOT_MOMENTUM,
+                        ScrollSnapMode aSnap = DISABLE_SNAP) = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual void FlingSnap(const mozilla::CSSPoint& aDestination) = 0;
+  
+
+
+
+
+
+  virtual void ScrollSnap() = 0;
+
   
 
 

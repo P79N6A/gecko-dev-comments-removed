@@ -1899,6 +1899,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   , mIgnoreMomentumScroll(false)
   , mScaleToResolution(false)
   , mTransformingByAPZ(false)
+  , mVelocityQueue(aOuter->PresContext())
 {
   if (LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars) != 0) {
     mScrollbarActivity = new ScrollbarActivity(do_QueryFrame(aOuter));
@@ -2069,8 +2070,16 @@ void
 ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
                                           nsIScrollableFrame::ScrollMode aMode,
                                           nsIAtom *aOrigin,
-                                          const nsRect* aRange)
+                                          const nsRect* aRange,
+                                          nsIScrollableFrame::ScrollSnapMode aSnap)
 {
+
+  if (aSnap == nsIScrollableFrame::ENABLE_SNAP) {
+    GetSnapPointForDestination(nsIScrollableFrame::DEVICE_PIXELS,
+                               mDestination,
+                               aScrollPosition);
+  }
+
   nsRect scrollRange = GetScrollRangeForClamping();
   mDestination = scrollRange.ClampPoint(aScrollPosition);
 
@@ -2094,6 +2103,9 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
     if (aMode == nsIScrollableFrame::SMOOTH_MSD) {
       mIgnoreMomentumScroll = true;
       if (!mAsyncSmoothMSDScroll) {
+        nsPoint sv = mVelocityQueue.GetVelocity();
+        currentVelocity.width = sv.x;
+        currentVelocity.height = sv.y;
         if (mAsyncScroll) {
           if (mAsyncScroll->mIsSmoothScroll) {
             currentVelocity = mAsyncScroll->VelocityAt(now);
@@ -3327,7 +3339,8 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
                             nsIScrollableFrame::ScrollMode aMode,
                             nsIntPoint* aOverflow,
                             nsIAtom *aOrigin,
-                            nsIScrollableFrame::ScrollMomentum aMomentum)
+                            nsIScrollableFrame::ScrollMomentum aMomentum,
+                            nsIScrollableFrame::ScrollSnapMode aSnap)
 {
   
   
@@ -3390,6 +3403,9 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
     nsPoint pos = GetScrollPosition();
     AdjustForWholeDelta(aDelta.x, &pos.x);
     AdjustForWholeDelta(aDelta.y, &pos.y);
+    if (aSnap == nsIScrollableFrame::ENABLE_SNAP) {
+      GetSnapPointForDestination(aUnit, mDestination, pos);
+    }
     ScrollTo(pos, aMode);
     
     if (aOverflow) {
@@ -3402,8 +3418,27 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
     return;
   }
 
-  nsPoint newPos = mDestination +
-    nsPoint(aDelta.x*deltaMultiplier.width, aDelta.y*deltaMultiplier.height);
+  nsPoint newPos = mDestination + nsPoint(aDelta.x*deltaMultiplier.width, aDelta.y*deltaMultiplier.height);
+
+  if (aSnap == nsIScrollableFrame::ENABLE_SNAP) {
+    ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+    if (styles.mScrollSnapTypeY != NS_STYLE_SCROLL_SNAP_TYPE_NONE ||
+        styles.mScrollSnapTypeX != NS_STYLE_SCROLL_SNAP_TYPE_NONE) {
+      nscoord appUnitsPerDevPixel = mOuter->PresContext()->AppUnitsPerDevPixel();
+      deltaMultiplier = nsSize(appUnitsPerDevPixel, appUnitsPerDevPixel);
+      negativeTolerance = 0.1f;
+      positiveTolerance = 0;
+      nsIScrollableFrame::ScrollUnit snapUnit = aUnit;
+      if (aOrigin == nsGkAtoms::mouseWheel) {
+        
+        
+        
+        snapUnit = nsIScrollableFrame::LINES;
+      }
+      GetSnapPointForDestination(snapUnit, mDestination, newPos);
+    }
+  }
+
   
   nscoord rangeLowerX, rangeUpperX, rangeLowerY, rangeUpperY;
   CalcRangeForScrollBy(aDelta.x, newPos.x, negativeTolerance, positiveTolerance,
@@ -3426,6 +3461,49 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
     *aOverflow = nsIntPoint(
         NSAppUnitsToIntPixels(clampAmount.x, appUnitsPerDevPixel),
         NSAppUnitsToIntPixels(clampAmount.y, appUnitsPerDevPixel));
+  }
+
+  if (aUnit == nsIScrollableFrame::DEVICE_PIXELS &&
+      !gfxPrefs::AsyncPanZoomEnabled()) {
+    
+    
+    mVelocityQueue.Sample(GetScrollPosition());
+  }
+}
+
+void
+ScrollFrameHelper::ScrollSnap()
+{
+  float flingSensitivity = gfxPrefs::ScrollSnapPredictionSensitivity();
+  int maxVelocity = gfxPrefs::ScrollSnapPredictionMaxVelocity();
+  maxVelocity = nsPresContext::CSSPixelsToAppUnits(maxVelocity);
+  int maxOffset = maxVelocity * flingSensitivity;
+  nsPoint velocity = mVelocityQueue.GetVelocity();
+  
+  nsPoint predictedOffset = nsPoint(velocity.x * flingSensitivity,
+                                    velocity.y * flingSensitivity);
+  predictedOffset.Clamp(maxOffset);
+  nsPoint pos = GetScrollPosition();
+  nsPoint destinationPos = pos + predictedOffset;
+  ScrollSnap(destinationPos);
+}
+
+void
+ScrollFrameHelper::FlingSnap(const mozilla::CSSPoint& aDestination)
+{
+  ScrollSnap(CSSPoint::ToAppUnits(aDestination));
+}
+
+void
+ScrollFrameHelper::ScrollSnap(const nsPoint &aDestination)
+{
+  nsRect scrollRange = GetScrollRangeForClamping();
+  nsPoint pos = GetScrollPosition();
+  nsPoint snapDestination = scrollRange.ClampPoint(aDestination);
+  if (GetSnapPointForDestination(nsIScrollableFrame::DEVICE_PIXELS,
+                                                 pos,
+                                                 snapDestination)) {
+    ScrollTo(snapDestination, nsIScrollableFrame::SMOOTH_MSD);
   }
 }
 
@@ -5195,4 +5273,344 @@ nsIScrollableFrame::GetPerceivedScrollingDirections() const
     directions |= VERTICAL;
   }
   return directions;
+}
+
+
+
+
+class SnappingEdgeCallback {
+public:
+  virtual void AddHorizontalEdge(nscoord aEdge) = 0;
+  virtual void AddVerticalEdge(nscoord aEdge) = 0;
+  virtual void AddHorizontalEdgeInterval(const nsRect &aScrollRange,
+                                         nscoord aInterval,
+                                         nscoord aOffset) = 0;
+  virtual void AddVerticalEdgeInterval(const nsRect &aScrollRange,
+                                       nscoord aInterval,
+                                       nscoord aOffset) = 0;
+};
+
+
+
+
+
+class CalcSnapPoints : public SnappingEdgeCallback {
+public:
+  CalcSnapPoints(nsIScrollableFrame::ScrollUnit aUnit,
+                 const nsPoint& aDestination,
+                 const nsPoint& aStartPos);
+  virtual void AddHorizontalEdge(nscoord aEdge) MOZ_OVERRIDE;
+  virtual void AddVerticalEdge(nscoord aEdge) MOZ_OVERRIDE;
+  virtual void AddHorizontalEdgeInterval(const nsRect &aScrollRange,
+                                         nscoord aInterval, nscoord aOffset)
+                                         MOZ_OVERRIDE;
+  virtual void AddVerticalEdgeInterval(const nsRect &aScrollRange,
+                                       nscoord aInterval, nscoord aOffset)
+                                       MOZ_OVERRIDE;
+  void AddEdge(nscoord aEdge,
+               nscoord aDestination,
+               nscoord aStartPos,
+               nscoord aScrollingDirection,
+               nscoord* aBestEdge,
+               bool* aEdgeFound);
+  void AddEdgeInterval(nscoord aInterval,
+                       nscoord aMinPos,
+                       nscoord aMaxPos,
+                       nscoord aOffset,
+                       nscoord aDestination,
+                       nscoord aStartPos,
+                       nscoord aScrollingDirection,
+                       nscoord* aBestEdge,
+                       bool* aEdgeFound);
+  nsPoint GetBestEdge() const;
+protected:
+  nsIScrollableFrame::ScrollUnit mUnit;
+  nsPoint mDestination;            
+  nsPoint mStartPos;               
+  nsIntPoint mScrollingDirection;  
+  nsPoint mBestEdge;               
+  bool mHorizontalEdgeFound;       
+  bool mVerticalEdgeFound;         
+};
+
+CalcSnapPoints::CalcSnapPoints(nsIScrollableFrame::ScrollUnit aUnit,
+                               const nsPoint& aDestination,
+                               const nsPoint& aStartPos)
+{
+  mUnit = aUnit;
+  mDestination = aDestination;
+  mStartPos = aStartPos;
+
+  nsPoint direction = aDestination - aStartPos;
+  mScrollingDirection = nsIntPoint(0,0);
+  if (direction.x < 0) {
+    mScrollingDirection.x = -1;
+  }
+  if (direction.x > 0) {
+    mScrollingDirection.x = 1;
+  }
+  if (direction.y < 0) {
+    mScrollingDirection.y = -1;
+  }
+  if (direction.y > 0) {
+    mScrollingDirection.y = 1;
+  }
+  mBestEdge = aDestination;
+  mHorizontalEdgeFound = false;
+  mVerticalEdgeFound = false;
+}
+
+nsPoint
+CalcSnapPoints::GetBestEdge() const
+{
+  return nsPoint(mVerticalEdgeFound ? mBestEdge.x : mStartPos.x,
+                 mHorizontalEdgeFound ? mBestEdge.y : mStartPos.y);
+}
+
+void
+CalcSnapPoints::AddHorizontalEdge(nscoord aEdge)
+{
+  AddEdge(aEdge, mDestination.y, mStartPos.y, mScrollingDirection.y, &mBestEdge.y,
+          &mHorizontalEdgeFound);
+}
+
+void
+CalcSnapPoints::AddVerticalEdge(nscoord aEdge)
+{
+  AddEdge(aEdge, mDestination.x, mStartPos.x, mScrollingDirection.x, &mBestEdge.x,
+          &mVerticalEdgeFound);
+}
+
+void
+CalcSnapPoints::AddHorizontalEdgeInterval(const nsRect &aScrollRange,
+                                          nscoord aInterval, nscoord aOffset)
+{
+  AddEdgeInterval(aInterval, aScrollRange.y, aScrollRange.YMost(), aOffset,
+                  mDestination.y, mStartPos.y, mScrollingDirection.y,
+                  &mBestEdge.y, &mHorizontalEdgeFound);
+}
+
+void
+CalcSnapPoints::AddVerticalEdgeInterval(const nsRect &aScrollRange,
+                                        nscoord aInterval, nscoord aOffset)
+{
+  AddEdgeInterval(aInterval, aScrollRange.x, aScrollRange.XMost(), aOffset,
+                  mDestination.x, mStartPos.x, mScrollingDirection.x,
+                  &mBestEdge.x, &mVerticalEdgeFound);
+}
+
+void
+CalcSnapPoints::AddEdge(nscoord aEdge, nscoord aDestination, nscoord aStartPos,
+                        nscoord aScrollingDirection, nscoord* aBestEdge,
+                        bool *aEdgeFound)
+{
+  
+  
+  
+  
+  
+  if (mUnit != nsIScrollableFrame::DEVICE_PIXELS) {
+    
+    
+    if (aScrollingDirection == 0) {
+      
+      return;
+    }
+    
+    
+    
+    
+    
+    if (mUnit != nsIScrollableFrame::WHOLE) {
+      
+      
+      nscoord direction = (aEdge - aStartPos) * aScrollingDirection;
+      if (direction <= 0) {
+        
+        return;
+      }
+    }
+  }
+  if (!*aEdgeFound) {
+    *aBestEdge = aEdge;
+    *aEdgeFound = true;
+    return;
+  }
+  if (mUnit == nsIScrollableFrame::DEVICE_PIXELS ||
+      mUnit == nsIScrollableFrame::LINES) {
+    if (std::abs(aEdge - aDestination) < std::abs(*aBestEdge - aDestination)) {
+      *aBestEdge = aEdge;
+    }
+  } else if (mUnit == nsIScrollableFrame::PAGES) {
+    
+    nscoord overshoot = (aEdge - aDestination) * aScrollingDirection;
+    
+    nscoord curOvershoot = (*aBestEdge - aDestination) * aScrollingDirection;
+
+    
+    
+    if (overshoot < 0 && (overshoot > curOvershoot || curOvershoot >= 0)) {
+      *aBestEdge = aEdge;
+    }
+    
+    
+    if (overshoot > 0 && overshoot < curOvershoot) {
+      *aBestEdge = aEdge;
+    }
+  } else if (mUnit == nsIScrollableFrame::WHOLE) {
+    
+    if (aScrollingDirection > 0 && aEdge > *aBestEdge) {
+      *aBestEdge = aEdge;
+    } else if (aScrollingDirection < 0 && aEdge < *aBestEdge) {
+      *aBestEdge = aEdge;
+    }
+  } else {
+    NS_ERROR("Invalid scroll mode");
+    return;
+  }
+}
+
+void
+CalcSnapPoints::AddEdgeInterval(nscoord aInterval, nscoord aMinPos,
+                                nscoord aMaxPos, nscoord aOffset,
+                                nscoord aDestination, nscoord aStartPos,
+                                nscoord aScrollingDirection,
+                                nscoord* aBestEdge, bool *aEdgeFound)
+{
+  if (aInterval == 0) {
+    
+    
+    return;
+  }
+
+  
+  
+
+  
+  
+  
+  
+  nscoord clamped = std::max(std::min(aDestination, aMaxPos), aMinPos);
+
+  
+  
+  nscoord r = (clamped + aOffset) % aInterval;
+  if (r < aMinPos) {
+    r += aInterval;
+  }
+  nscoord edge = clamped - r;
+  if (edge >= aMinPos && edge <= aMaxPos) {
+    AddEdge(edge, aDestination, aStartPos, aScrollingDirection, aBestEdge,
+            aEdgeFound);
+  }
+  edge += aInterval;
+  if (edge >= aMinPos && edge <= aMaxPos) {
+    AddEdge(edge, aDestination, aStartPos, aScrollingDirection, aBestEdge,
+            aEdgeFound);
+  }
+}
+
+static void
+ScrollSnapHelper(SnappingEdgeCallback& aCallback, nsIFrame* aFrame,
+                 nsIFrame* aScrolledFrame,
+                 const nsPoint &aScrollSnapDestination) {
+  nsIFrame::ChildListIterator childLists(aFrame);
+  for (; !childLists.IsDone(); childLists.Next()) {
+    nsFrameList::Enumerator childFrames(childLists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* f = childFrames.get();
+
+      const nsStyleDisplay* styleDisplay = f->StyleDisplay();
+      size_t coordCount = styleDisplay->mScrollSnapCoordinate.Length();
+
+      if (coordCount) {
+        nsRect frameRect = f->GetRect();
+        nsPoint offset = f->GetOffsetTo(aScrolledFrame);
+        nsRect edgesRect = nsRect(offset, frameRect.Size());
+        for (size_t coordNum = 0; coordNum < coordCount; coordNum++) {
+          const nsStyleBackground::Position &coordPosition =
+            f->StyleDisplay()->mScrollSnapCoordinate[coordNum];
+          nsPoint coordPoint = edgesRect.TopLeft() - aScrollSnapDestination;
+          coordPoint += nsPoint(coordPosition.mXPosition.mLength,
+                                coordPosition.mYPosition.mLength);
+          if (coordPosition.mXPosition.mHasPercent) {
+            coordPoint.x += NSToCoordRound(coordPosition.mXPosition.mPercent *
+                                           frameRect.width);
+          }
+          if (coordPosition.mYPosition.mHasPercent) {
+            coordPoint.y += NSToCoordRound(coordPosition.mYPosition.mPercent *
+                                           frameRect.height);
+          }
+
+          aCallback.AddVerticalEdge(coordPoint.x);
+          aCallback.AddHorizontalEdge(coordPoint.y);
+        }
+      }
+
+      ScrollSnapHelper(aCallback, f, aScrolledFrame, aScrollSnapDestination);
+    }
+  }
+}
+
+bool
+ScrollFrameHelper::GetSnapPointForDestination(nsIScrollableFrame::ScrollUnit aUnit,
+                                              nsPoint aStartPos,
+                                              nsPoint &aDestination)
+{
+  ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+  if (styles.mScrollSnapTypeY == NS_STYLE_SCROLL_SNAP_TYPE_NONE &&
+      styles.mScrollSnapTypeX == NS_STYLE_SCROLL_SNAP_TYPE_NONE) {
+    return false;
+  }
+
+  nsSize scrollPortSize = mScrollPort.Size();
+  nsRect scrollRange = GetScrollRangeForClamping();
+
+  nsPoint destPos = nsPoint(styles.mScrollSnapDestinationX.mLength,
+                            styles.mScrollSnapDestinationY.mLength);
+  if (styles.mScrollSnapDestinationX.mHasPercent) {
+    destPos.x += NSToCoordFloorClamped(styles.mScrollSnapDestinationX.mPercent
+                                       * scrollPortSize.width);
+  }
+
+  if (styles.mScrollSnapDestinationY.mHasPercent) {
+    destPos.y += NSToCoordFloorClamped(styles.mScrollSnapDestinationY.mPercent
+                                       * scrollPortSize.height);
+  }
+
+  CalcSnapPoints calcSnapPoints(aUnit, aDestination, aStartPos);
+
+  if (styles.mScrollSnapPointsX.GetUnit() != eStyleUnit_None) {
+    nscoord interval = nsRuleNode::ComputeCoordPercentCalc(styles.mScrollSnapPointsX,
+                                                           scrollPortSize.width);
+    calcSnapPoints.AddVerticalEdgeInterval(scrollRange, interval, destPos.x);
+  }
+  if (styles.mScrollSnapPointsY.GetUnit() != eStyleUnit_None) {
+    nscoord interval = nsRuleNode::ComputeCoordPercentCalc(styles.mScrollSnapPointsY,
+                                                           scrollPortSize.width);
+    calcSnapPoints.AddHorizontalEdgeInterval(scrollRange, interval, destPos.y);
+  }
+
+  ScrollSnapHelper(calcSnapPoints, mScrolledFrame, mScrolledFrame, destPos);
+  bool snapped = false;
+  nsPoint finalPos = calcSnapPoints.GetBestEdge();
+  nscoord proximityThreshold =
+    Preferences::GetInt("layout.css.scroll-snap.proximity-threshold", 0);
+  proximityThreshold = nsPresContext::CSSPixelsToAppUnits(proximityThreshold);
+  if (styles.mScrollSnapTypeY == NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY &&
+      std::abs(aDestination.y - finalPos.y) > proximityThreshold) {
+    finalPos.y = aDestination.y;
+  } else {
+    snapped = true;
+  }
+  if (styles.mScrollSnapTypeX == NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY &&
+      std::abs(aDestination.x - finalPos.x) > proximityThreshold) {
+    finalPos.x = aDestination.x;
+  } else {
+    snapped = true;
+  }
+  if (snapped) {
+    aDestination = finalPos;
+  }
+  return snapped;
 }

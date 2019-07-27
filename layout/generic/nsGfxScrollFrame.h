@@ -21,6 +21,7 @@
 #include "nsQueryFrame.h"
 #include "nsExpirationTracker.h"
 #include "TextOverflow.h"
+#include "ScrollVelocityQueue.h"
 
 class nsPresContext;
 class nsIPresShell;
@@ -179,6 +180,9 @@ public:
   gfxSize GetResolution() const;
   void SetResolution(const gfxSize& aResolution);
   void SetResolutionAndScaleTo(const gfxSize& aResolution);
+  void FlingSnap(const mozilla::CSSPoint& aDestination);
+  void ScrollSnap();
+  void ScrollSnap(const nsPoint &aDestination);
 
 protected:
   nsRect GetScrollRangeForClamping() const;
@@ -195,8 +199,10 @@ public:
 
 
   void ScrollTo(nsPoint aScrollPosition, nsIScrollableFrame::ScrollMode aMode,
-                const nsRect* aRange = nullptr) {
-    ScrollToWithOrigin(aScrollPosition, aMode, nsGkAtoms::other, aRange);
+                const nsRect* aRange = nullptr,
+                nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP) {
+    ScrollToWithOrigin(aScrollPosition, aMode, nsGkAtoms::other, aRange,
+                       aSnap);
   }
   
 
@@ -222,11 +228,23 @@ public:
   void ScrollBy(nsIntPoint aDelta, nsIScrollableFrame::ScrollUnit aUnit,
                 nsIScrollableFrame::ScrollMode aMode, nsIntPoint* aOverflow,
                 nsIAtom* aOrigin = nullptr,
-                nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM);
+                nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM,
+                nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP);
   
 
 
   void ScrollToRestoredPosition();
+  
+
+
+
+
+
+
+
+  bool GetSnapPointForDestination(nsIScrollableFrame::ScrollUnit aUnit,
+                                  nsPoint aStartPos,
+                                  nsPoint &aDestination);
 
   nsSize GetLineScrollAmount() const;
   nsSize GetPageScrollAmount() const;
@@ -492,6 +510,8 @@ public:
   
   bool mTransformingByAPZ:1;
 
+  mozilla::layout::ScrollVelocityQueue mVelocityQueue;
+
 protected:
   
 
@@ -499,7 +519,8 @@ protected:
   void ScrollToWithOrigin(nsPoint aScrollPosition,
                           nsIScrollableFrame::ScrollMode aMode,
                           nsIAtom *aOrigin, 
-                          const nsRect* aRange);
+                          const nsRect* aRange,
+                          nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP);
 
   void CompleteAsyncScroll(const nsRect &aRange, nsIAtom* aOrigin = nullptr);
 
@@ -687,8 +708,10 @@ public:
 
 
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr) MOZ_OVERRIDE {
-    mHelper.ScrollTo(aScrollPosition, aMode, aRange);
+                        const nsRect* aRange = nullptr,
+                        nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP)
+                        MOZ_OVERRIDE {
+    mHelper.ScrollTo(aScrollPosition, aMode, aRange, aSnap);
   }
   
 
@@ -713,9 +736,16 @@ public:
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom* aOrigin = nullptr,
-                        nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM)
+                        nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM,
+                        nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP)
                         MOZ_OVERRIDE {
-    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aMomentum);
+    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aMomentum, aSnap);
+  }
+  virtual void FlingSnap(const mozilla::CSSPoint& aDestination) MOZ_OVERRIDE {
+    mHelper.FlingSnap(aDestination);
+  }
+  virtual void ScrollSnap() MOZ_OVERRIDE {
+    mHelper.ScrollSnap();
   }
   
 
@@ -1059,8 +1089,9 @@ public:
 
 
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr) MOZ_OVERRIDE {
-    mHelper.ScrollTo(aScrollPosition, aMode, aRange);
+                        const nsRect* aRange = nullptr,
+                        ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP) MOZ_OVERRIDE {
+    mHelper.ScrollTo(aScrollPosition, aMode, aRange, aSnap);
   }
   
 
@@ -1082,9 +1113,16 @@ public:
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom* aOrigin = nullptr,
-                        nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM)
+                        nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM,
+                        nsIScrollableFrame::ScrollSnapMode aSnap = nsIScrollableFrame::DISABLE_SNAP)
                         MOZ_OVERRIDE {
-    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aMomentum);
+    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aMomentum, aSnap);
+  }
+  virtual void FlingSnap(const mozilla::CSSPoint& aDestination) MOZ_OVERRIDE {
+    mHelper.FlingSnap(aDestination);
+  }
+  virtual void ScrollSnap() MOZ_OVERRIDE {
+    mHelper.ScrollSnap();
   }
   
 
