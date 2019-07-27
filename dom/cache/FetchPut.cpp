@@ -160,7 +160,8 @@ FetchPut::~FetchPut()
   MOZ_ASSERT(!mListener);
   mManager->RemoveListener(this);
   mManager->ReleaseCacheId(mCacheId);
-  mResult.ClearMessage(); 
+  mResult.SuppressException(); 
+                               
 }
 
 nsresult
@@ -389,14 +390,14 @@ FetchPut::MatchInPutList(const CacheRequest& aRequest,
         nsAutoCString value;
         requestHeaders->Get(header, value, headerRv);
         if (NS_WARN_IF(headerRv.Failed())) {
-          headerRv.ClearMessage();
+          headerRv.SuppressException();
           MOZ_ASSERT(value.IsEmpty());
         }
 
         nsAutoCString cachedValue;
         cachedRequestHeaders->Get(header, value, headerRv);
         if (NS_WARN_IF(headerRv.Failed())) {
-          headerRv.ClearMessage();
+          headerRv.SuppressException();
           MOZ_ASSERT(cachedValue.IsEmpty());
         }
 

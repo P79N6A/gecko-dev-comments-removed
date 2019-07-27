@@ -195,7 +195,7 @@ CacheOpParent::OnOpComplete(ErrorResult&& aRv, const CacheOpResult& aResult,
   
   if (aRv.Failed()) {
     unused << Send__delete__(this, aRv, void_t());
-    aRv.ClearMessage(); 
+    aRv.SuppressException(); 
     return;
   }
 
