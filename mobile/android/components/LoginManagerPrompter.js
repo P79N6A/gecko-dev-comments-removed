@@ -150,10 +150,7 @@ LoginManagerPrompter.prototype = {
 
 
 
-
-
-    _showLoginNotification : function (aName, aTitle, aBody, aButtons, aActionText) {
-        this.log("Adding new " + aName + " notification bar");
+    _showLoginNotification : function (aTitle, aBody, aButtons, aActionText) {
         let notifyWin = this._window.top;
         let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
         let browser = chromeWin.BrowserApp.getBrowserForWindow(notifyWin);
@@ -176,7 +173,7 @@ LoginManagerPrompter.prototype = {
 
         var nativeWindow = this._getNativeWindow();
         if (nativeWindow)
-            nativeWindow.doorhanger.show(aBody, aName, aButtons, tabID, options, "LOGIN");
+            nativeWindow.doorhanger.show(aBody, "password", aButtons, tabID, options, "LOGIN");
     },
 
 
@@ -232,7 +229,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification("password-save", title, notificationText, buttons, actionText);
+        this._showLoginNotification(title, notificationText, buttons, actionText);
     },
 
     
@@ -289,7 +286,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification("password-change", title, notificationText, buttons);
+        this._showLoginNotification(title, notificationText, buttons);
     },
 
 
