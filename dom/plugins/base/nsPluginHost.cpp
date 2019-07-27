@@ -3122,6 +3122,7 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
       
       
       nsCOMPtr<nsIURI> referer;
+      net::ReferrerPolicy referrerPolicy = net::RP_Default;
 
       nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(element);
       if (olc)
@@ -3133,9 +3134,10 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
           return NS_ERROR_FAILURE;
         }
         referer = doc->GetDocumentURI();
+        referrerPolicy = doc->GetReferrerPolicy();
       }
 
-      rv = httpChannel->SetReferrer(referer);
+      rv = httpChannel->SetReferrerWithPolicy(referer, referrerPolicy);
       NS_ENSURE_SUCCESS(rv,rv);
     }
 

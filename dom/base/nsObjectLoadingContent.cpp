@@ -2510,7 +2510,8 @@ nsObjectLoadingContent::OpenChannel()
   
   nsCOMPtr<nsIHttpChannel> httpChan(do_QueryInterface(chan));
   if (httpChan) {
-    httpChan->SetReferrer(doc->GetDocumentURI());
+    httpChan->SetReferrerWithPolicy(doc->GetDocumentURI(),
+                                    doc->GetReferrerPolicy());
 
     
     nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(httpChan));
