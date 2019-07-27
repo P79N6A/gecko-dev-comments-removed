@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.mozilla.gecko.background.common.PrefsBranch;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.crypto.PersistedCrypto5Keys;
@@ -23,158 +24,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 
 public class SyncConfiguration {
-
-  public class EditorBranch implements Editor {
-
-    private final String prefix;
-    private Editor editor;
-
-    public EditorBranch(SyncConfiguration config, String prefix) {
-      if (!prefix.endsWith(".")) {
-        throw new IllegalArgumentException("No trailing period in prefix.");
-      }
-      this.prefix = prefix;
-      this.editor = config.getEditor();
-    }
-
-    public void apply() {
-      
-      this.editor.commit();
-    }
-
-    @Override
-    public Editor clear() {
-      this.editor = this.editor.clear();
-      return this;
-    }
-
-    @Override
-    public boolean commit() {
-      return this.editor.commit();
-    }
-
-    @Override
-    public Editor putBoolean(String key, boolean value) {
-      this.editor = this.editor.putBoolean(prefix + key, value);
-      return this;
-    }
-
-    @Override
-    public Editor putFloat(String key, float value) {
-      this.editor = this.editor.putFloat(prefix + key, value);
-      return this;
-    }
-
-    @Override
-    public Editor putInt(String key, int value) {
-      this.editor = this.editor.putInt(prefix + key, value);
-      return this;
-    }
-
-    @Override
-    public Editor putLong(String key, long value) {
-      this.editor = this.editor.putLong(prefix + key, value);
-      return this;
-    }
-
-    @Override
-    public Editor putString(String key, String value) {
-      this.editor = this.editor.putString(prefix + key, value);
-      return this;
-    }
-
-    
-    
-    public Editor putStringSet(String key, Set<String> value) {
-      throw new RuntimeException("putStringSet not available.");
-    }
-
-    @Override
-    public Editor remove(String key) {
-      this.editor = this.editor.remove(prefix + key);
-      return this;
-    }
-
-  }
-
-  
-
-
-
-
-
-  public class ConfigurationBranch implements SharedPreferences {
-
-    private final SyncConfiguration config;
-    private final String prefix;                
-
-    public ConfigurationBranch(SyncConfiguration syncConfiguration,
-        String prefix) {
-      if (!prefix.endsWith(".")) {
-        throw new IllegalArgumentException("No trailing period in prefix.");
-      }
-      this.config = syncConfiguration;
-      this.prefix = prefix;
-    }
-
-    @Override
-    public boolean contains(String key) {
-      return config.getPrefs().contains(prefix + key);
-    }
-
-    @Override
-    public Editor edit() {
-      return new EditorBranch(config, prefix);
-    }
-
-    @Override
-    public Map<String, ?> getAll() {
-      
-      return null;
-    }
-
-    @Override
-    public boolean getBoolean(String key, boolean defValue) {
-      return config.getPrefs().getBoolean(prefix + key, defValue);
-    }
-
-    @Override
-    public float getFloat(String key, float defValue) {
-      return config.getPrefs().getFloat(prefix + key, defValue);
-    }
-
-    @Override
-    public int getInt(String key, int defValue) {
-      return config.getPrefs().getInt(prefix + key, defValue);
-    }
-
-    @Override
-    public long getLong(String key, long defValue) {
-      return config.getPrefs().getLong(prefix + key, defValue);
-    }
-
-    @Override
-    public String getString(String key, String defValue) {
-      return config.getPrefs().getString(prefix + key, defValue);
-    }
-
-    
-    
-    public Set<String> getStringSet(String key, Set<String> defValue) {
-      throw new RuntimeException("getStringSet not available.");
-    }
-
-    @Override
-    public void registerOnSharedPreferenceChangeListener(OnSharedPreferenceChangeListener listener) {
-      config.getPrefs().registerOnSharedPreferenceChangeListener(listener);
-    }
-
-    @Override
-    public void unregisterOnSharedPreferenceChangeListener(OnSharedPreferenceChangeListener listener) {
-      config.getPrefs().unregisterOnSharedPreferenceChangeListener(listener);
-    }
-  }
-
   private static final String LOG_TAG = "SyncConfiguration";
 
   
@@ -302,8 +151,8 @@ public class SyncConfiguration {
 
 
 
-  public ConfigurationBranch getBranch(String prefix) {
-    return new ConfigurationBranch(this, prefix);
+  public PrefsBranch getBranch(String prefix) {
+    return new PrefsBranch(this.getPrefs(), prefix);
   }
 
   
