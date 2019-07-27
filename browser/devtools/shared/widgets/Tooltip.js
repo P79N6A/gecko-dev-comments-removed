@@ -1667,7 +1667,14 @@ SwatchFilterTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.prototy
       return;
     }
 
-    this.currentFilterValue.textContent = filters;
+    
+    
+    while (this.currentFilterValue.firstChild) {
+      this.currentFilterValue.firstChild.remove();
+    }
+    let node = this._parser.parseCssProperty("filter", filters, this._options);
+    this.currentFilterValue.appendChild(node);
+
     this.preview();
   },
 
@@ -1678,6 +1685,27 @@ SwatchFilterTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.prototy
       widget.off("updated", this._onUpdate);
       widget.destroy();
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addSwatch: function(swatchEl, callbacks, parser, options) {
+    SwatchBasedEditorTooltip.prototype.addSwatch.call(this, swatchEl,
+                                                      callbacks);
+    this._parser = parser;
+    this._options = options;
   }
 });
 

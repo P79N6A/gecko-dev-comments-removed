@@ -92,14 +92,13 @@ function testParseCssProperty(doc, parser) {
     
     makeColorTest("hellothere", "'red'", ["'red'"]),
 
-    
-    
-    
-    
-    
-    
-    
-
+    makeColorTest("filter",
+                  "blur(1px) drop-shadow(0 0 0 blue) url(red.svg#blue)",
+                  ["<span data-filters=\"blur(1px) drop-shadow(0 0 0 blue) ",
+                   "url(red.svg#blue)\"><span>",
+                   "blur(1px) drop-shadow(0 0 0 ",
+                   {name: "blue", value: "#00F"},
+                   ") url(\"red.svg#blue\")</span></span>"])
   ];
 
   let target = doc.querySelector("div");
