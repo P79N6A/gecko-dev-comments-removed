@@ -299,20 +299,27 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
 
   
   
-  nsStyleContext *bgSC;
-  while (!nsCSSRendering::FindBackground(aFrame, &bgSC)) {
-    aFrame = aFrame->GetParent();
-    NS_ASSERTION(aFrame, "root frame must paint");
-  }
-
-  
-  
-
-  
-
 #ifdef DEBUG
   gInApplyRenderingChangeToTree = true;
 #endif
+  if (aChange & nsChangeHint_RepaintFrame) {
+    
+    
+    nsStyleContext *bgSC;
+    nsIFrame* propagatedFrame = aFrame;
+    while (!nsCSSRendering::FindBackground(propagatedFrame, &bgSC)) {
+      propagatedFrame = propagatedFrame->GetParent();
+      NS_ASSERTION(aFrame, "root frame must paint");
+    }
+
+    if (propagatedFrame != aFrame) {
+      DoApplyRenderingChangeToTree(propagatedFrame, nsChangeHint_RepaintFrame);
+      aChange = NS_SubtractHint(aChange, nsChangeHint_RepaintFrame);
+      if (!aChange) {
+        return;
+      }
+    }
+  }
   DoApplyRenderingChangeToTree(aFrame, aChange);
 #ifdef DEBUG
   gInApplyRenderingChangeToTree = false;
