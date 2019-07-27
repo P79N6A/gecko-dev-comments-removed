@@ -9,11 +9,18 @@
 #include <errno.h>
 #include <utility>
 
-#include "linux_seccomp.h"
 #include "mozilla/NullPtr.h"
 #include "sandbox/linux/seccomp-bpf/codegen.h"
+#include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
+
+
+
+#include "sandbox/linux/seccomp-bpf/sandbox_bpf.h"
 
 namespace mozilla {
+
+
+using sandbox::arch_seccomp_data;
 
 class SandboxAssemblerImpl {
   typedef sandbox::Instruction* NodePtr;
