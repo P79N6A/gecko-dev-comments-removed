@@ -1030,8 +1030,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 }
 
 bool
-AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame,
-                                             TransformsToSkip aSkip)
+AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
 {
   PROFILER_LABEL("AsyncCompositionManager", "TransformShadowTree",
     js::ProfileEntry::Category::GRAPHICS);
@@ -1046,31 +1045,29 @@ AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame,
   
   bool wantNextFrame = SampleAnimations(root, aCurrentFrame);
 
-  if (!(aSkip & TransformsToSkip::APZ)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    wantNextFrame |= SampleAPZAnimations(LayerMetricsWrapper(root), aCurrentFrame);
-    if (!ApplyAsyncContentTransformToTree(root)) {
-      nsAutoTArray<Layer*,1> scrollableLayers;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  wantNextFrame |= SampleAPZAnimations(LayerMetricsWrapper(root), aCurrentFrame);
+  if (!ApplyAsyncContentTransformToTree(root)) {
+    nsAutoTArray<Layer*,1> scrollableLayers;
 #ifdef MOZ_WIDGET_ANDROID
-      mLayerManager->GetRootScrollableLayers(scrollableLayers);
+    mLayerManager->GetRootScrollableLayers(scrollableLayers);
 #else
-      mLayerManager->GetScrollableLayers(scrollableLayers);
+    mLayerManager->GetScrollableLayers(scrollableLayers);
 #endif
 
-      for (uint32_t i = 0; i < scrollableLayers.Length(); i++) {
-        if (scrollableLayers[i]) {
-          TransformScrollableLayer(scrollableLayers[i]);
-        }
+    for (uint32_t i = 0; i < scrollableLayers.Length(); i++) {
+      if (scrollableLayers[i]) {
+        TransformScrollableLayer(scrollableLayers[i]);
       }
     }
   }

@@ -1152,6 +1152,12 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
     if (mPaused) {
       DidComposite();
     }
+    
+    
+    
+    if (mIsTesting) {
+      ApplyAsyncProperties(aLayerTree);
+    }
   }
   mLayerManager->NotifyShadowTreeTransaction();
 }
@@ -1205,14 +1211,15 @@ CompositorParent::ApplyAsyncProperties(LayerTransactionParent* aLayerTree)
   
 
   
-  if (aLayerTree->GetRoot()) {
+  
+  if (aLayerTree->GetRoot() &&
+      (mCurrentCompositeTask ||
+       (mCompositorVsyncObserver &&
+        mCompositorVsyncObserver->NeedsComposite()))) {
     AutoResolveRefLayers resolve(mCompositionManager);
-    SetShadowProperties(mLayerManager->GetRoot());
-
     TimeStamp time = mIsTesting ? mTestTime : mLastCompose;
     bool requestNextFrame =
-      mCompositionManager->TransformShadowTree(time,
-        AsyncCompositionManager::TransformsToSkip::APZ);
+      mCompositionManager->TransformShadowTree(time);
     if (!requestNextFrame) {
       CancelCurrentCompositeTask();
       
