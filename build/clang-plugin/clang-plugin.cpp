@@ -72,20 +72,22 @@ bool isInIgnoredNamespace(const Decl *decl) {
     ND = cast<NamespaceDecl>(ParentDC);
   }
 
+  const auto& name = ND->getName();
+
   
-  return ND->getName() == "std" ||              
-         ND->getName() == "__gnu_cxx" ||        
-         ND->getName() == "boost" ||            
-         ND->getName() == "webrtc" ||           
-         ND->getName() == "icu_52" ||           
-         ND->getName() == "google" ||           
-         ND->getName() == "google_breakpad" ||  
-         ND->getName() == "soundtouch" ||       
-         ND->getName() == "stagefright" ||      
-         ND->getName() == "MacFileUtilities" || 
-         ND->getName() == "dwarf2reader" ||     
-         ND->getName() == "arm_ex_to_module" || 
-         ND->getName() == "testing";            
+  return name == "std" ||              
+         name == "__gnu_cxx" ||        
+         name == "boost" ||            
+         name == "webrtc" ||           
+         name == "icu_52" ||           
+         name == "google" ||           
+         name == "google_breakpad" ||  
+         name == "soundtouch" ||       
+         name == "stagefright" ||      
+         name == "MacFileUtilities" || 
+         name == "dwarf2reader" ||     
+         name == "arm_ex_to_module" || 
+         name == "testing";            
 }
 
 bool isIgnoredPath(const Decl *decl) {
@@ -175,8 +177,10 @@ public:
         
         
         if (M->getName() == (*it)->getName() &&
-            !CI.getSema().IsOverload(*M, (*it), false))
+            !CI.getSema().IsOverload(*M, (*it), false)) {
           overridden = true;
+          break;
+        }
       }
       if (!overridden) {
         unsigned overrideID = Diag.getDiagnosticIDs()->getCustomDiagID(
