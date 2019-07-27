@@ -613,7 +613,11 @@ def printDigest(args, digest):
         out('}\n')
 
     
-    out(separator)
+    
+    out(separator, end='')
+    out('# ' + ' '.join(map(os.path.basename, sys.argv)) + '\n')
+
+    
     if type(dmdEnvVar) is not tuple:
         printInvocation('', dmdEnvVar, sampleBelowSize)
     else:
