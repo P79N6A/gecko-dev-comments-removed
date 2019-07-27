@@ -17,6 +17,9 @@ const kWhitelist = [
   {sourceName: /loop\/.*sdk-content\/.*\.css$/i }
 ];
 
+let moduleLocation = gTestPath.replace(/\/[^\/]*$/i, "/parsingTestHelpers.jsm");
+let {generateURIsFromDirTree} = Cu.import(moduleLocation, {});
+
 
 
 
@@ -40,113 +43,12 @@ function ignoredError(aErrorObject) {
   return false;
 }
 
-
-
-
-
-
-
-
-function generateURIsFromDirTree(appDir) {
-  let rv = [];
-  let dirQueue = [appDir.path];
-  return Task.spawn(function*() {
-    while (dirQueue.length) {
-      let nextDir = dirQueue.shift();
-      let {subdirs, cssfiles} = yield iterateOverPath(nextDir);
-      dirQueue = dirQueue.concat(subdirs);
-      rv = rv.concat(cssfiles);
-    }
-    return rv;
-  });
-}
-
-
-let LocalFile = Components.Constructor("@mozilla.org/file/local;1", Ci.nsIFile, "initWithPath");
-
-
-
-
-
-
-
-
-
-
-function iterateOverPath(path) {
-  let iterator = new OS.File.DirectoryIterator(path);
-  let parentDir = new LocalFile(path);
-  let subdirs = [];
-  let cssfiles = [];
-  
-  let promise = iterator.forEach(
-    function onEntry(entry) {
-      if (entry.isDir) {
-        let subdir = parentDir.clone();
-        subdir.append(entry.name);
-        subdirs.push(subdir.path);
-      } else if (entry.name.endsWith(".css")) {
-        let file = parentDir.clone();
-        file.append(entry.name);
-        let uriSpec = getURLForFile(file);
-        cssfiles.push(Services.io.newURI(uriSpec, null, null));
-      } else if (entry.name.endsWith(".ja")) {
-        let file = parentDir.clone();
-        file.append(entry.name);
-        let subentries = [uri for (uri of generateEntriesFromJarFile(file))];
-        cssfiles = cssfiles.concat(subentries);
-      }
-    }
-  );
-
-  let outerPromise = Promise.defer();
-  promise.then(function() {
-    outerPromise.resolve({cssfiles: cssfiles, subdirs: subdirs});
-    iterator.close();
-  }, function(e) {
-    outerPromise.reject(e);
-    iterator.close();
-  });
-  return outerPromise.promise;
-}
-
-
-
-function getURLForFile(file) {
-  let fileHandler = Services.io.getProtocolHandler("file");
-  fileHandler = fileHandler.QueryInterface(Ci.nsIFileProtocolHandler);
-  return fileHandler.getURLSpecFromFile(file);
-}
-
-
-
-
-
-
-
-function* generateEntriesFromJarFile(jarFile) {
-  const ZipReader = new Components.Constructor("@mozilla.org/libjar/zip-reader;1", "nsIZipReader", "open");
-  let zr = new ZipReader(jarFile);
-  let entryEnumerator = zr.findEntries("*.css$");
-
-  const kURIStart = getURLForFile(jarFile);
-  while (entryEnumerator.hasMore()) {
-    let entry = entryEnumerator.getNext();
-    let entryURISpec = "jar:" + kURIStart + "!/" + entry;
-    yield Services.io.newURI(entryURISpec, null, null);
-  }
-  zr.close();
-}
-
-
-
-
 add_task(function checkAllTheCSS() {
   let appDir = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
   
   
   
-  let uris = yield generateURIsFromDirTree(appDir);
+  let uris = yield generateURIsFromDirTree(appDir, ".css");
 
   
   let hiddenWin = Services.appShell.hiddenDOMWindow;
