@@ -116,7 +116,7 @@ CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch *test)
     const LAllocation *opd = test->input();
 
     
-    masm.testl(ToRegister(opd), ToRegister(opd));
+    masm.test32(ToRegister(opd), ToRegister(opd));
     emitBranch(Assembler::NonZero, test->ifTrue(), test->ifFalse());
 }
 
@@ -136,7 +136,7 @@ CodeGeneratorX86Shared::visitTestDAndBranch(LTestDAndBranch *test)
     
     
     masm.zeroDouble(ScratchDoubleReg);
-    masm.ucomisd(ToFloatRegister(opd), ScratchDoubleReg);
+    masm.ucomisd(ScratchDoubleReg, ToFloatRegister(opd));
     emitBranch(Assembler::NotEqual, test->ifTrue(), test->ifFalse());
 }
 
@@ -146,7 +146,7 @@ CodeGeneratorX86Shared::visitTestFAndBranch(LTestFAndBranch *test)
     const LAllocation *opd = test->input();
     
     masm.zeroFloat32(ScratchFloat32Reg);
-    masm.ucomiss(ToFloatRegister(opd), ScratchFloat32Reg);
+    masm.ucomiss(ScratchFloat32Reg, ToFloatRegister(opd));
     emitBranch(Assembler::NotEqual, test->ifTrue(), test->ifFalse());
 }
 
@@ -154,9 +154,9 @@ void
 CodeGeneratorX86Shared::visitBitAndAndBranch(LBitAndAndBranch *baab)
 {
     if (baab->right()->isConstant())
-        masm.testl(ToRegister(baab->left()), Imm32(ToInt32(baab->right())));
+        masm.test32(ToRegister(baab->left()), Imm32(ToInt32(baab->right())));
     else
-        masm.testl(ToRegister(baab->left()), ToRegister(baab->right()));
+        masm.test32(ToRegister(baab->left()), ToRegister(baab->right()));
     emitBranch(Assembler::NonZero, baab->ifTrue(), baab->ifFalse());
 }
 
@@ -165,15 +165,15 @@ CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type, const LAllocatio
 {
 #ifdef JS_CODEGEN_X64
     if (type == MCompare::Compare_Object) {
-        masm.cmpq(ToRegister(left), ToOperand(right));
+        masm.cmpPtr(ToRegister(left), ToOperand(right));
         return;
     }
 #endif
 
     if (right->isConstant())
-        masm.cmpl(ToRegister(left), Imm32(ToInt32(right)));
+        masm.cmp32(ToRegister(left), Imm32(ToInt32(right)));
     else
-        masm.cmpl(ToRegister(left), ToOperand(right));
+        masm.cmp32(ToRegister(left), ToOperand(right));
 }
 
 void
@@ -228,7 +228,7 @@ CodeGeneratorX86Shared::visitCompareF(LCompareF *comp)
 void
 CodeGeneratorX86Shared::visitNotI(LNotI *ins)
 {
-    masm.cmpl(ToRegister(ins->input()), Imm32(0));
+    masm.cmp32(ToRegister(ins->input()), Imm32(0));
     masm.emitSet(Assembler::Equal, ToRegister(ins->output()));
 }
 
@@ -497,7 +497,7 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
     
     
     
-    masm.ucomisd(first, second);
+    masm.ucomisd(second, first);
     masm.j(Assembler::NotEqual, &minMaxInst);
     if (!ins->mir()->range() || ins->mir()->range()->canBeNaN())
         masm.j(Assembler::Parity, &nan);
@@ -548,7 +548,7 @@ CodeGeneratorX86Shared::visitMinMaxF(LMinMaxF *ins)
     
     
     
-    masm.ucomiss(first, second);
+    masm.ucomiss(second, first);
     masm.j(Assembler::NotEqual, &minMaxInst);
     if (!ins->mir()->range() || ins->mir()->range()->canBeNaN())
         masm.j(Assembler::Parity, &nan);
@@ -613,7 +613,7 @@ CodeGeneratorX86Shared::visitClzI(LClzI *ins)
     
     Label done, nonzero;
     if (!ins->mir()->operandIsNeverZero()) {
-        masm.testl(input, input);
+        masm.test32(input, input);
         masm.j(Assembler::NonZero, &nonzero);
         masm.move32(Imm32(32), output);
         masm.jump(&done);
@@ -796,7 +796,7 @@ CodeGeneratorX86Shared::visitMulI(LMulI *ins)
         int32_t constant = ToInt32(rhs);
         if (mul->canBeNegativeZero() && constant <= 0) {
             Assembler::Condition bailoutCond = (constant == 0) ? Assembler::Signed : Assembler::Equal;
-            masm.testl(ToRegister(lhs), ToRegister(lhs));
+            masm.test32(ToRegister(lhs), ToRegister(lhs));
             bailoutIf(bailoutCond, ins->snapshot());
         }
 
@@ -840,7 +840,7 @@ CodeGeneratorX86Shared::visitMulI(LMulI *ins)
             MulNegativeZeroCheck *ool = new(alloc()) MulNegativeZeroCheck(ins);
             addOutOfLineCode(ool, mul);
 
-            masm.testl(ToRegister(lhs), ToRegister(lhs));
+            masm.test32(ToRegister(lhs), ToRegister(lhs));
             masm.j(Assembler::Zero, ool->entry());
             masm.bind(ool->rejoin());
         }
@@ -890,7 +890,7 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
 
     
     if (ins->canBeDivideByZero()) {
-        masm.testl(rhs, rhs);
+        masm.test32(rhs, rhs);
         if (ins->mir()->isTruncated()) {
             if (!ool)
                 ool = new(alloc()) ReturnZero(output);
@@ -907,14 +907,14 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
     
     if (ins->mir()->isDiv() && !ins->mir()->toDiv()->canTruncateRemainder()) {
         Register remainder = ToRegister(ins->remainder());
-        masm.testl(remainder, remainder);
+        masm.test32(remainder, remainder);
         bailoutIf(Assembler::NonZero, ins->snapshot());
     }
 
     
     
     if (!ins->mir()->isTruncated()) {
-        masm.testl(output, output);
+        masm.test32(output, output);
         bailoutIf(Assembler::Signed, ins->snapshot());
     }
 
@@ -958,14 +958,14 @@ CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
 
     if (!mir->isTruncated() && negativeDivisor) {
         
-        masm.testl(lhs, lhs);
+        masm.test32(lhs, lhs);
         bailoutIf(Assembler::Zero, ins->snapshot());
     }
 
     if (shift != 0) {
         if (!mir->isTruncated()) {
             
-            masm.testl(lhs, Imm32(UINT32_MAX >> (32 - shift)));
+            masm.test32(lhs, Imm32(UINT32_MAX >> (32 - shift)));
             bailoutIf(Assembler::NonZero, ins->snapshot());
         }
 
@@ -1044,13 +1044,13 @@ CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
             
             
             masm.imull(Imm32(d), edx, eax);
-            masm.cmpl(lhs, eax);
+            masm.cmp32(lhs, eax);
             bailoutIf(Assembler::NotEqual, ins->snapshot());
 
             
             
             if (d < 0) {
-                masm.testl(lhs, lhs);
+                masm.test32(lhs, lhs);
                 bailoutIf(Assembler::Zero, ins->snapshot());
             }
         } else if (ins->canBeNegativeDividend()) {
@@ -1058,10 +1058,10 @@ CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
             
             Label done;
 
-            masm.cmpl(lhs, Imm32(0));
+            masm.cmp32(lhs, Imm32(0));
             masm.j(Assembler::GreaterThanOrEqual, &done);
 
-            masm.testl(eax, eax);
+            masm.test32(eax, eax);
             bailoutIf(Assembler::Zero, ins->snapshot());
 
             masm.bind(&done);
@@ -1094,7 +1094,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 
     
     if (mir->canBeDivideByZero()) {
-        masm.testl(rhs, rhs);
+        masm.test32(rhs, rhs);
         if (mir->canTruncateInfinities()) {
             
             if (!ool)
@@ -1109,9 +1109,9 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     
     if (mir->canBeNegativeOverflow()) {
         Label notmin;
-        masm.cmpl(lhs, Imm32(INT32_MIN));
+        masm.cmp32(lhs, Imm32(INT32_MIN));
         masm.j(Assembler::NotEqual, &notmin);
-        masm.cmpl(rhs, Imm32(-1));
+        masm.cmp32(rhs, Imm32(-1));
         if (mir->canTruncateOverflow()) {
             
             
@@ -1126,9 +1126,9 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     
     if (!mir->canTruncateNegativeZero() && mir->canBeNegativeZero()) {
         Label nonzero;
-        masm.testl(lhs, lhs);
+        masm.test32(lhs, lhs);
         masm.j(Assembler::NonZero, &nonzero);
-        masm.cmpl(rhs, Imm32(0));
+        masm.cmp32(rhs, Imm32(0));
         bailoutIf(Assembler::LessThan, ins->snapshot());
         masm.bind(&nonzero);
     }
@@ -1141,7 +1141,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 
     if (!mir->canTruncateRemainder()) {
         
-        masm.testl(remainder, remainder);
+        masm.test32(remainder, remainder);
         bailoutIf(Assembler::NonZero, ins->snapshot());
     }
 
@@ -1222,7 +1222,7 @@ class ModOverflowCheck : public OutOfLineCodeBase<CodeGeneratorX86Shared>
 void
 CodeGeneratorX86Shared::visitModOverflowCheck(ModOverflowCheck *ool)
 {
-    masm.cmpl(ool->rhs(), Imm32(-1));
+    masm.cmp32(ool->rhs(), Imm32(-1));
     if (ool->ins()->mir()->isTruncated()) {
         masm.j(Assembler::NotEqual, ool->rejoin());
         masm.mov(ImmWord(0), edx);
@@ -1256,7 +1256,7 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
 
     
     if (ins->mir()->canBeDivideByZero()) {
-        masm.testl(rhs, rhs);
+        masm.test32(rhs, rhs);
         if (ins->mir()->isTruncated()) {
             if (!ool)
                 ool = new(alloc()) ReturnZero(edx);
@@ -1308,7 +1308,7 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
 
         
         Label notmin;
-        masm.cmpl(lhs, Imm32(INT32_MIN));
+        masm.cmp32(lhs, Imm32(INT32_MIN));
         overflow = new(alloc()) ModOverflowCheck(ins, rhs);
         masm.j(Assembler::Equal, overflow->entry());
         masm.bind(overflow->rejoin());
@@ -1317,7 +1317,7 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
 
         if (!ins->mir()->isTruncated()) {
             
-            masm.testl(remainder, remainder);
+            masm.test32(remainder, remainder);
             bailoutIf(Assembler::Zero, ins->snapshot());
         }
     }
@@ -1396,7 +1396,7 @@ CodeGeneratorX86Shared::visitShiftI(LShiftI *ins)
                 masm.shrl(Imm32(shift), lhs);
             } else if (ins->mir()->toUrsh()->fallible()) {
                 
-                masm.testl(lhs, lhs);
+                masm.test32(lhs, lhs);
                 bailoutIf(Assembler::Signed, ins->snapshot());
             }
             break;
@@ -1416,7 +1416,7 @@ CodeGeneratorX86Shared::visitShiftI(LShiftI *ins)
             masm.shrl_cl(lhs);
             if (ins->mir()->toUrsh()->fallible()) {
                 
-                masm.testl(lhs, lhs);
+                masm.test32(lhs, lhs);
                 bailoutIf(Assembler::Signed, ins->snapshot());
             }
             break;
@@ -1514,7 +1514,7 @@ CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch *mir, Register inde
 
     
     int32_t cases = mir->numCases();
-    masm.cmpl(index, Imm32(cases));
+    masm.cmp32(index, Imm32(cases));
     masm.j(AssemblerX86Shared::AboveOrEqual, defaultcase);
 
     
@@ -1852,7 +1852,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 
         
         
-        masm.testl(output, output);
+        masm.test32(output, output);
         bailoutIf(Assembler::Zero, lir->snapshot());
     } else {
         masm.addDouble(input, temp);
@@ -1935,7 +1935,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
 
         
         
-        masm.testl(output, output);
+        masm.test32(output, output);
         bailoutIf(Assembler::Zero, lir->snapshot());
     } else {
         masm.addFloat32(input, temp);

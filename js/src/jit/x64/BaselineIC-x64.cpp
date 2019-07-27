@@ -26,7 +26,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     
     Assembler::Condition cond = JSOpToCondition(op, true);
     masm.mov(ImmWord(0), ScratchReg);
-    masm.cmpl(R0.valueReg(), R1.valueReg());
+    masm.cmp32(R0.valueReg(), R1.valueReg());
     masm.setCC(cond, ScratchReg);
 
     
@@ -166,7 +166,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.unboxInt32(R1, ecx); 
 
         masm.shrl_cl(ExtractTemp0);
-        masm.testl(ExtractTemp0, ExtractTemp0);
+        masm.test32(ExtractTemp0, ExtractTemp0);
         if (allowDouble_) {
             Label toUint;
             masm.j(Assembler::Signed, &toUint);
