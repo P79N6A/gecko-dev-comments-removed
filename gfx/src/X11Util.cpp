@@ -7,6 +7,7 @@
 
 #include "X11Util.h"
 #include "nsDebug.h"                    
+#include "MainThreadUtils.h"            
 
 namespace mozilla {
 
@@ -58,6 +59,7 @@ ScopedXErrorHandler::ErrorHandler(Display *, XErrorEvent *ev)
 
 ScopedXErrorHandler::ScopedXErrorHandler()
 {
+    MOZ_ASSERT(NS_IsMainThread());
     
     
     mOldXErrorPtr = sXErrorPtr;
