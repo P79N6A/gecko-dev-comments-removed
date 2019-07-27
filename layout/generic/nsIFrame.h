@@ -611,7 +611,7 @@ public:
   
 
 
-  mozilla::WritingMode GetWritingMode() const {
+  virtual mozilla::WritingMode GetWritingMode() const {
     return mozilla::WritingMode(StyleContext());
   }
 
