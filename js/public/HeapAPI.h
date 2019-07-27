@@ -218,18 +218,14 @@ class JS_FRIEND_API(GCCellPtr)
     }
 
     
-    void *unsafeGetUntypedPtr() const {
-        MOZ_ASSERT(asCell());
-        MOZ_ASSERT(!js::gc::IsInsideNursery(asCell()));
-        return reinterpret_cast<void *>(asCell());
-    }
-    
     uint64_t unsafeAsInteger() const {
-        return reinterpret_cast<uint64_t>(unsafeGetUntypedPtr());
+        return static_cast<uint64_t>(unsafeAsUIntPtr());
     }
     
     uintptr_t unsafeAsUIntPtr() const {
-        return reinterpret_cast<uintptr_t>(unsafeGetUntypedPtr());
+        MOZ_ASSERT(asCell());
+        MOZ_ASSERT(!js::gc::IsInsideNursery(asCell()));
+        return reinterpret_cast<uintptr_t>(asCell());
     }
 
   private:
