@@ -51,6 +51,57 @@ add_task(function* () {
 });
 
 
+
+add_task(function* () {
+  updateAllTestPlugins(Ci.nsIPluginTag.STATE_CLICKTOPLAY);
+
+  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_test.html");
+
+  
+  yield promiseUpdatePluginBindings(gTestBrowser);
+
+  yield promisePopupNotification("click-to-play-plugins");
+
+  let pluginInfo = yield promiseForPluginInfo("test");
+  ok(!pluginInfo.activated, "Plugin should not be activated");
+
+  
+  let notification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+
+  yield promiseForNotificationShown(notification);
+
+  PopupNotifications.panel.firstChild._secondaryButton.click();
+
+  pluginInfo = yield promiseForPluginInfo("test");
+  ok(pluginInfo.activated, "Plugin should be activated");
+
+  
+  yield promiseForNotificationShown(notification);
+
+  PopupNotifications.panel.firstChild._primaryButton.click();
+
+  pluginInfo = yield promiseForPluginInfo("test");
+  ok(!pluginInfo.activated, "Plugin should not be activated");
+
+  
+  yield ContentTask.spawn(gTestBrowser, {}, function* () {
+    let doc = content.document;
+    let plugin = doc.getElementById("test");
+    let bounds = doc.getAnonymousElementByAttribute(plugin, "anonid", "main").getBoundingClientRect();
+    let left = (bounds.left + bounds.right) / 2;
+    let top = (bounds.top + bounds.bottom) / 2;
+    let utils = content.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                       .getInterface(Components.interfaces.nsIDOMWindowUtils);
+    utils.sendMouseEvent("mousedown", left, top, 0, 1, 0, false, 0, 0);
+    utils.sendMouseEvent("mouseup", left, top, 0, 1, 0, false, 0, 0);
+  });
+
+  ok(!notification.dismissed, "A plugin notification should be shown.");
+
+  clearAllPluginPermissions();
+});
+
+
 add_task(function* () {
   updateAllTestPlugins(Ci.nsIPluginTag.STATE_CLICKTOPLAY);
 
