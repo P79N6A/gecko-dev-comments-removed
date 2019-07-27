@@ -50,11 +50,6 @@ var Resource = Class({
   
 
 
-  get basename() { return this.uri.path.replace(/\/+$/, '').replace(/\\/g,'/').replace( /.*\//, '' ); },
-
-  
-
-
   get hasChildren() { return this.children && this.children.size > 0; },
 
   
@@ -236,6 +231,13 @@ var FileResource = Class({
       }
     });
     return this._refreshDeferred.promise;
+  },
+
+  
+
+
+  get basename() {
+    return this.path.replace(/\/+$/, '').replace(/\\/g,'/').replace( /.*\//, '' );
   },
 
   
