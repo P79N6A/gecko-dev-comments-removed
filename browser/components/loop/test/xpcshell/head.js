@@ -26,6 +26,7 @@ var loopServer;
 
 
 Services.prefs.setBoolPref("loop.enabled", true);
+Services.prefs.setBoolPref("loop.throttled", false);
 
 function setupFakeLoopServer() {
   loopServer = new HttpServer();
