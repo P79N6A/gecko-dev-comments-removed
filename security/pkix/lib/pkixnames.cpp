@@ -34,7 +34,6 @@
 
 
 
-
 #include "pkix/bind.h"
 #include "pkixcheck.h"
 #include "pkixutil.h"
@@ -266,6 +265,12 @@ CheckNameConstraints(Input encodedNameConstraints,
 }
 
 namespace {
+
+
+
+
+
+
 
 
 
@@ -1345,6 +1350,9 @@ ReadIPv4AddressComponent(Reader& input, bool lastComponent,
 
 } 
 
+
+
+
 bool
 ParseIPv4Address(Input hostname,  uint8_t (&out)[4])
 {
@@ -1396,6 +1404,8 @@ FinishIPv6Address( uint8_t (&address)[16], int numComponents,
 }
 
 } 
+
+
 
 
 bool
