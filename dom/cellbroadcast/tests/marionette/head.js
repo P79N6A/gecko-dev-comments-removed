@@ -320,14 +320,10 @@ function sendMultipleRawCbsToEmulatorAndWait(aPdus) {
 
 
 function cleanUp() {
-  waitFor(function() {
-    SpecialPowers.flushPermissions(function() {
-      
-      ok(true, "permissions flushed");
+  
+  ok(true, ":: CLEANING UP ::");
 
-      finish();
-    });
-  }, function() {
+  waitFor(finish, function() {
     return pendingEmulatorCmdCount === 0;
   });
 }
