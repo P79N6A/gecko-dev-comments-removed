@@ -804,7 +804,10 @@ this.PushService = {
     return this._db.put(aRecord)
       .then(_ => aRecord, error => {
         
-        this._sendRequest("unregister", aRecord);
+        this._sendRequest("unregister", aRecord).catch(err => {
+          debug("_onRegisterSuccess: Error unregistering stale subscription" +
+            err);
+        });
         throw error;
       });
   },
@@ -879,7 +882,7 @@ this.PushService = {
 
 
   _unregister: function(aPageRecord) {
-    debug("unregisterWithServer()");
+    debug("_unregister()");
 
     if (!aPageRecord.scope) {
       return Promise.reject({state: 0, error: "NotFoundError"});
