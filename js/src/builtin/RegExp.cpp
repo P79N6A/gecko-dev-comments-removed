@@ -236,26 +236,17 @@ CompileRegExpObject(JSContext *cx, RegExpObjectBuilder &builder, CallArgs args)
 
 
 
+        RootedAtom sourceAtom(cx);
         RegExpFlag flags;
         {
             RegExpGuard g(cx);
             if (!RegExpToShared(cx, sourceObj, &g))
                 return false;
 
+            sourceAtom = g->getSource();
             flags = g->getFlags();
         }
 
-        
-
-
-
-        RootedValue v(cx);
-        if (!GetProperty(cx, sourceObj, sourceObj, cx->names().source, &v))
-            return false;
-
-        
-        
-        Rooted<JSAtom*> sourceAtom(cx, AtomizeString(cx, v.toString()));
         RegExpObject *reobj = builder.build(sourceAtom, flags);
         if (!reobj)
             return false;
@@ -431,8 +422,138 @@ regexp_flags(JSContext *cx, unsigned argc, JS::Value *vp)
     return true;
 }
 
+
+MOZ_ALWAYS_INLINE bool
+regexp_global_impl(JSContext *cx, CallArgs args)
+{
+    MOZ_ASSERT(IsRegExp(args.thisv()));
+    Rooted<RegExpObject*> reObj(cx, &args.thisv().toObject().as<RegExpObject>());
+
+    
+    args.rval().setBoolean(reObj->global());
+    return true;
+}
+
+static bool
+regexp_global(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+    
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return CallNonGenericMethod<IsRegExp, regexp_global_impl>(cx, args);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+regexp_ignoreCase_impl(JSContext *cx, CallArgs args)
+{
+    MOZ_ASSERT(IsRegExp(args.thisv()));
+    Rooted<RegExpObject*> reObj(cx, &args.thisv().toObject().as<RegExpObject>());
+
+    
+    args.rval().setBoolean(reObj->ignoreCase());
+    return true;
+}
+
+static bool
+regexp_ignoreCase(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+    
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return CallNonGenericMethod<IsRegExp, regexp_ignoreCase_impl>(cx, args);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+regexp_multiline_impl(JSContext *cx, CallArgs args)
+{
+    MOZ_ASSERT(IsRegExp(args.thisv()));
+    Rooted<RegExpObject*> reObj(cx, &args.thisv().toObject().as<RegExpObject>());
+
+    
+    args.rval().setBoolean(reObj->multiline());
+    return true;
+}
+
+static bool
+regexp_multiline(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+    
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return CallNonGenericMethod<IsRegExp, regexp_multiline_impl>(cx, args);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+regexp_source_impl(JSContext *cx, CallArgs args)
+{
+    MOZ_ASSERT(IsRegExp(args.thisv()));
+    Rooted<RegExpObject*> reObj(cx, &args.thisv().toObject().as<RegExpObject>());
+
+    
+    RootedAtom src(cx, reObj->getSource());
+    if (!src)
+        return false;
+
+    args.rval().setString(src);
+    return true;
+}
+
+static bool
+regexp_source(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+    
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return CallNonGenericMethod<IsRegExp, regexp_source_impl>(cx, args);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+regexp_sticky_impl(JSContext *cx, CallArgs args)
+{
+    MOZ_ASSERT(IsRegExp(args.thisv()));
+    Rooted<RegExpObject*> reObj(cx, &args.thisv().toObject().as<RegExpObject>());
+
+    
+    args.rval().setBoolean(reObj->sticky());
+    return true;
+}
+
+static bool
+regexp_sticky(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+    
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return CallNonGenericMethod<IsRegExp, regexp_sticky_impl>(cx, args);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+regexp_unicode_impl(JSContext *cx, CallArgs args)
+{
+    MOZ_ASSERT(IsRegExp(args.thisv()));
+
+    
+    
+    args.rval().setBoolean(false);
+    return true;
+}
+
+static bool
+regexp_unicode(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+    
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return CallNonGenericMethod<IsRegExp, regexp_unicode_impl>(cx, args);
+}
+
 static const JSPropertySpec regexp_properties[] = {
     JS_PSG("flags", regexp_flags, 0),
+    JS_PSG("global", regexp_global, 0),
+    JS_PSG("ignoreCase", regexp_ignoreCase, 0),
+    JS_PSG("multiline", regexp_multiline, 0),
+    JS_PSG("source", regexp_source, 0),
+    JS_PSG("sticky", regexp_sticky, 0),
+    JS_PSG("unicode", regexp_unicode, 0),
     JS_PS_END
 };
 
