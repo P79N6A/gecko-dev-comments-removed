@@ -322,6 +322,74 @@ ExtendModeToTileMode(ExtendMode aMode)
   return SkShader::kClamp_TileMode;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename T> class RefPtrSkia {
+public:
+  RefPtrSkia() : fObj(NULL) {}
+  RefPtrSkia(T* obj) : fObj(obj) { SkSafeRef(fObj); }
+  RefPtrSkia(const RefPtrSkia& o) : fObj(o.fObj) { SkSafeRef(fObj); }
+  ~RefPtrSkia() { SkSafeUnref(fObj); }
+
+  RefPtrSkia& operator=(const RefPtrSkia& rp) {
+    SkRefCnt_SafeAssign(fObj, rp.fObj);
+    return *this;
+  }
+  RefPtrSkia& operator=(T* obj) {
+    SkRefCnt_SafeAssign(fObj, obj);
+    return *this;
+  }
+
+  T* get() const { return fObj; }
+  T& operator*() const { return *fObj; }
+  T* operator->() const { return fObj; }
+
+  RefPtrSkia& adopt(T* obj) {
+    SkSafeUnref(fObj);
+    fObj = obj;
+    return *this;
+  }
+
+  typedef T* RefPtrSkia::*unspecified_bool_type;
+  operator unspecified_bool_type() const {
+    return fObj ? &RefPtrSkia::fObj : NULL;
+  }
+
+private:
+  T* fObj;
+};
+
+
+
 }
 }
 
