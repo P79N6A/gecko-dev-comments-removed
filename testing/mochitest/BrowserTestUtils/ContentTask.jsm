@@ -15,6 +15,14 @@ Cu.import("resource://gre/modules/Promise.jsm");
 
 const FRAME_SCRIPT = "chrome://mochikit/content/tests/BrowserTestUtils/content-task.js";
 
+const globalMM = Cc["@mozilla.org/globalmessagemanager;1"]
+                   .getService(Ci.nsIMessageListenerManager);
+
+
+
+
+let gFrameScriptLoaded = false;
+
 
 
 
@@ -47,12 +55,10 @@ this.ContentTask = {
 
 
   spawn: function ContentTask_spawn(browser, arg, task) {
-    let mm = browser.ownerDocument.defaultView.messageManager;
-    let scripts = mm.getDelayedFrameScripts();
-
     
-    if (!scripts.find(script => script[0] == FRAME_SCRIPT)) {
-      mm.loadFrameScript(FRAME_SCRIPT, true);
+    if (!gFrameScriptLoaded) {
+      globalMM.loadFrameScript(FRAME_SCRIPT, true);
+      gFrameScriptLoaded = true;
     }
 
     let deferred = {};
