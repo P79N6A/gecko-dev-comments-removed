@@ -30,8 +30,7 @@ function emptyPromise() {
   return promise;
 }
 
-var cService = Cc['@mozilla.org/consoleservice;1'].getService()
-               .QueryInterface(Ci.nsIConsoleService);
+var cService = Cc['@mozilla.org/consoleservice;1'].getService(Ci.nsIConsoleService);
 
 
 var testConsole;
