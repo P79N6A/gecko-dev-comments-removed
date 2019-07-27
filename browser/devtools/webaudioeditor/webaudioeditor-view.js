@@ -156,7 +156,11 @@ let WebAudioGraphView = {
 
     AudioNodes.forEach(node => {
       
-      graph.addNode(node.id, { label: node.type, id: node.id });
+      graph.addNode(node.id, {
+        type: node.type,                        
+        label: node.type.replace(/Node$/, ""),  
+        id: node.id                             
+      });
 
       
       
@@ -177,7 +181,7 @@ let WebAudioGraphView = {
       let svgNodes = oldDrawNodes(graph, root);
       svgNodes.attr("class", (n) => {
         let node = graph.node(n);
-        return "audionode type-" + node.label;
+        return "audionode type-" + node.type;
       });
       svgNodes.attr("data-id", (n) => {
         let node = graph.node(n);
