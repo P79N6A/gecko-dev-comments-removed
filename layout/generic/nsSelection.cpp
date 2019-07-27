@@ -1019,7 +1019,12 @@ nsFrameSelection::MoveCaret(nsDirection       aDirection,
         case eSelectBeginLine:
         case eSelectEndLine:
           
-          SetCaretBidiLevel(NS_GET_BASE_LEVEL(theFrame));
+          
+          
+          
+          
+          SetCaretBidiLevel(visualMovement ? NS_GET_EMBEDDING_LEVEL(theFrame) :
+                                             NS_GET_BASE_LEVEL(theFrame));
           break;
 
         default:
