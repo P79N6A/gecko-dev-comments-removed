@@ -17,7 +17,6 @@
 #include "mozilla/dom/DirectoryBinding.h"
 #include "mozilla/dom/FileSystemBase.h"
 #include "mozilla/dom/FileSystemUtils.h"
-#include "mozilla/dom/UnionTypes.h"
 
 
 
