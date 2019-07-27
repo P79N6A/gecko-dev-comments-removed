@@ -5,6 +5,7 @@
 
 
 
+
 #include "mozilla/XPTInterfaceInfoManager.h"
 
 #include "xptiprivate.h"
@@ -24,21 +25,17 @@ XPTInterfaceInfoManager::xptiWorkingSet::xptiWorkingSet()
 
     gXPTIStructArena = XPT_NewArena(XPTI_STRUCT_ARENA_BLOCK_SIZE, sizeof(double),
                                     "xptiWorkingSet structs");
-}        
-
-static PLDHashOperator
-xpti_Invalidator(const char* keyname, xptiInterfaceEntry* entry, void* arg)
-{
-    entry->LockedInvalidateInterfaceInfo();
-    return PL_DHASH_NEXT;
 }
 
-void 
+void
 XPTInterfaceInfoManager::xptiWorkingSet::InvalidateInterfaceInfos()
 {
     ReentrantMonitorAutoEnter monitor(mTableReentrantMonitor);
-    mNameTable.EnumerateRead(xpti_Invalidator, nullptr);
-}        
+    for (auto iter = mNameTable.Iter(); !iter.Done(); iter.Next()) {
+        xptiInterfaceEntry* entry = iter.GetUserData();
+        entry->LockedInvalidateInterfaceInfo();
+    }
+}
 
 XPTInterfaceInfoManager::xptiWorkingSet::~xptiWorkingSet()
 {

@@ -260,18 +260,6 @@ XPTInterfaceInfoManager::GetNameForIID(const nsIID * iid, char **_retval)
     return entry->GetName(_retval);
 }
 
-static PLDHashOperator
-xpti_ArrayAppender(const char* name, xptiInterfaceEntry* entry, void* arg)
-{
-    nsCOMArray<nsIInterfaceInfo>* array = static_cast<nsCOMArray<nsIInterfaceInfo>*>(arg);
-
-    if (entry->GetScriptableFlag()) {
-        nsCOMPtr<nsIInterfaceInfo> ii = entry->InterfaceInfo();
-        array->AppendElement(ii);
-    }
-    return PL_DHASH_NEXT;
-}
-
 
 void
 XPTInterfaceInfoManager::GetScriptableInterfaces(nsCOMArray<nsIInterfaceInfo>& aInterfaces)
@@ -283,30 +271,13 @@ XPTInterfaceInfoManager::GetScriptableInterfaces(nsCOMArray<nsIInterfaceInfo>& a
 
     ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
     aInterfaces.SetCapacity(mWorkingSet.mNameTable.Count());
-    mWorkingSet.mNameTable.EnumerateRead(xpti_ArrayAppender, &aInterfaces);
-}
-
-struct MOZ_STACK_CLASS ArrayAndPrefix
-{
-    
-    nsISupportsArray* MOZ_NON_OWNING_REF array;
-    const char*       prefix;
-    uint32_t          length;
-};
-
-static PLDHashOperator
-xpti_ArrayPrefixAppender(const char* keyname, xptiInterfaceEntry* entry, void* arg)
-{
-    ArrayAndPrefix* args = (ArrayAndPrefix*) arg;
-
-    const char* name = entry->GetTheName();
-    if (name != PL_strnstr(name, args->prefix, args->length))
-        return PL_DHASH_NEXT;
-
-    nsCOMPtr<nsIInterfaceInfo> ii;
-    if (NS_SUCCEEDED(EntryToInfo(entry, getter_AddRefs(ii))))
-        args->array->AppendElement(ii);
-    return PL_DHASH_NEXT;
+    for (auto iter = mWorkingSet.mNameTable.Iter(); !iter.Done(); iter.Next()) {
+        xptiInterfaceEntry* entry = iter.GetUserData();
+        if (entry->GetScriptableFlag()) {
+            nsCOMPtr<nsIInterfaceInfo> ii = entry->InterfaceInfo();
+            aInterfaces.AppendElement(ii);
+        }
+    }
 }
 
 
@@ -319,9 +290,18 @@ XPTInterfaceInfoManager::EnumerateInterfacesWhoseNamesStartWith(const char *pref
         return NS_ERROR_UNEXPECTED;
 
     ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    ArrayAndPrefix args = {array, prefix, static_cast<uint32_t>(strlen(prefix))};
-    mWorkingSet.mNameTable.EnumerateRead(xpti_ArrayPrefixAppender, &args);
-
+    uint32_t length = static_cast<uint32_t>(strlen(prefix));
+    for (auto iter = mWorkingSet.mNameTable.Iter(); !iter.Done(); iter.Next()) {
+        xptiInterfaceEntry* entry = iter.GetUserData();
+        const char* name = entry->GetTheName();
+        if (name != PL_strnstr(name, prefix, length)) {
+            continue;
+        }
+        nsCOMPtr<nsIInterfaceInfo> ii;
+        if (NS_SUCCEEDED(EntryToInfo(entry, getter_AddRefs(ii)))) {
+            array->AppendElement(ii);
+        }
+    }
     return array->Enumerate(_retval);
 }
 
