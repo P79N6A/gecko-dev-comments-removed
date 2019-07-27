@@ -29,9 +29,9 @@ using namespace mozilla;
 
 
 nsIFrame*
-NS_NewScrollbarFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
+NS_NewScrollbarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsScrollbarFrame (aPresShell, aContext);
+  return new (aPresShell) nsScrollbarFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsScrollbarFrame)
