@@ -347,6 +347,30 @@ exports.dbg_assert = function dbg_assert(cond, e) {
 
 
 
+
+
+
+
+exports.update = function update(aTarget, ...aArgs) {
+  for (let attrs of aArgs) {
+    for (let key in attrs) {
+      let desc = Object.getOwnPropertyDescriptor(attrs, key);
+
+      if (desc) {
+        Object.defineProperty(aTarget, key, desc);
+      }
+    }
+  }
+
+  return aTarget;
+}
+
+
+
+
+
+
+
 exports.values = function values(aObject) {
   return Object.keys(aObject).map(k => aObject[k]);
 }
