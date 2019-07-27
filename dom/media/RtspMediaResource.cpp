@@ -726,7 +726,6 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
     
     mIsLiveStream = false;
     mDecoder->SetInfinite(false);
-    mDecoder->SetNetworkDuration(TimeUnit::FromMicroseconds(durationUs));
   } else {
     
     

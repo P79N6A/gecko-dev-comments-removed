@@ -459,12 +459,6 @@ public:
   
   
   
-  void SetNetworkDuration(media::TimeUnit aDuration);
-  media::NullableTimeUnit NetworkDuration() { return mNetworkDuration; }
-
-  
-  
-  
   
   
   
@@ -987,13 +981,6 @@ private:
 #ifdef MOZ_EME
   nsRefPtr<CDMProxy> mProxy;
 #endif
-
-protected:
-  
-  Canonical<media::NullableTimeUnit> mNetworkDuration;
-public:
-  AbstractCanonical<media::NullableTimeUnit>* CanonicalNetworkDuration() { return &mNetworkDuration; }
-protected:
 
   
   

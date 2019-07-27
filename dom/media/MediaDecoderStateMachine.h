@@ -897,9 +897,6 @@ public:
   bool mDurationSet;
 
   
-  Mirror<media::NullableTimeUnit> mNetworkDuration;
-
-  
   Mirror<media::NullableTimeUnit> mEstimatedDuration;
 
   

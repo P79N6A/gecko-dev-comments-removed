@@ -238,37 +238,6 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       dataIsBounded = true;
     }
 
-    if (mOffset == 0) {
-      
-      
-      
-      
-      
-      
-      
-      
-      nsAutoCString durationText;
-      nsresult ec = NS_OK;
-      rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("Content-Duration"), durationText);
-      if (NS_FAILED(rv)) {
-        rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-AMZ-Meta-Content-Duration"), durationText);
-      }
-      if (NS_FAILED(rv)) {
-        rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-Content-Duration"), durationText);
-      }
-
-      
-      
-      if (NS_SUCCEEDED(rv)) {
-        double duration = durationText.ToDouble(&ec);
-        if (ec == NS_OK && duration >= 0) {
-          mDecoder->SetNetworkDuration(TimeUnit::FromSeconds(duration));
-          
-          dataIsBounded = true;
-        }
-      }
-    }
-
     
     
     bool boundedSeekLimit = true;
