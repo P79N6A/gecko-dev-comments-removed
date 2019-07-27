@@ -77,6 +77,18 @@ public:
   DrawableFrameRef DrawableRef();
   RawAccessFrameRef RawAccessRef();
 
+  
+
+
+
+
+
+
+
+
+
+  void SetRawAccessOnly();
+
   bool Draw(gfxContext* aContext, const ImageRegion& aRegion,
             GraphicsFilter aFilter, uint32_t aImageFlags);
 

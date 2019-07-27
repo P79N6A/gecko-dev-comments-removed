@@ -8,9 +8,11 @@
 #define mozilla_imagelib_FrameBlender_h_
 
 #include "mozilla/MemoryReporting.h"
+#include "gfx2DGlue.h"
 #include "gfxTypes.h"
 #include "imgFrame.h"
 #include "nsCOMPtr.h"
+#include "SurfaceCache.h"
 
 namespace mozilla {
 namespace image {
@@ -24,14 +26,12 @@ namespace image {
 class FrameBlender
 {
 public:
-
-  
-
-
-
-
-  FrameBlender();
-  ~FrameBlender();
+  FrameBlender(ImageKey aImageKey, gfx::IntSize aSize)
+   : mImageKey(aImageKey)
+   , mSize(aSize)
+   , mLastCompositedFrameIndex(-1)
+   , mLoopCount(-1)
+  { }
 
   bool DoBlend(nsIntRect* aDirtyRect, uint32_t aPrevFrameIndex,
                uint32_t aNextFrameIndex);
@@ -40,19 +40,13 @@ public:
 
 
 
-  already_AddRefed<imgFrame> GetFrame(uint32_t aIndex);
+
+  DrawableFrameRef GetCompositedFrame(uint32_t aFrameNum);
 
   
 
 
-  already_AddRefed<imgFrame> RawGetFrame(uint32_t aIndex);
-
-  void InsertFrame(uint32_t aFrameNum, RawAccessFrameRef&& aRef);
-  void RemoveFrame(uint32_t aFrameNum);
-  void ClearFrames();
-
-  
-  uint32_t GetNumFrames() const;
+  RawAccessFrameRef GetRawFrame(uint32_t aFrameNum);
 
   
 
@@ -66,12 +60,8 @@ public:
 
 
 
-  void SetLoopCount(int32_t aLoopCount);
-  int32_t GetLoopCount() const;
-
-  void Discard();
-
-  void SetSize(nsIntSize aSize) { mSize = aSize; }
+  void SetLoopCount(int32_t aLoopCount) { mLoopCount = aLoopCount; }
+  int32_t LoopCount() const { return mLoopCount; }
 
   size_t SizeOfDecoded(gfxMemoryLocation aLocation,
                        MallocSizeOf aMallocSizeOf) const;
@@ -107,33 +97,6 @@ public:
   };
 
 private:
-
-  struct Anim
-  {
-    
-    int32_t lastCompositedFrameIndex;
-
-    
-
-
-
-
-
-
-
-    RawAccessFrameRef compositingFrame;
-
-    
-
-
-
-
-
-    RawAccessFrameRef compositingPrevFrame;
-
-    Anim() : lastCompositedFrameIndex(-1) { }
-  };
-
   
 
 
@@ -174,10 +137,30 @@ private:
                               FrameBlendMethod aBlendMethod);
 
 private: 
+  ImageKey mImageKey;
+  gfx::IntSize mSize;
+
   
-  nsTArray<RawAccessFrameRef> mFrames;
-  nsIntSize mSize;
-  Anim* mAnim;
+  int32_t mLastCompositedFrameIndex;
+
+  
+
+
+
+
+
+
+
+  RawAccessFrameRef mCompositingFrame;
+
+  
+
+
+
+
+
+  RawAccessFrameRef mCompositingPrevFrame;
+
   int32_t mLoopCount;
 };
 

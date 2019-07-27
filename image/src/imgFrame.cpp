@@ -425,6 +425,15 @@ imgFrame::RawAccessRef()
   return RawAccessFrameRef(this);
 }
 
+void
+imgFrame::SetRawAccessOnly()
+{
+  MOZ_ASSERT(mLockCount > 0, "Must hold a RawAccessFrameRef");
+  
+  LockImageData();
+}
+
+
 imgFrame::SurfaceWithFormat
 imgFrame::SurfaceForDrawing(bool               aDoPadding,
                             bool               aDoPartialDecode,

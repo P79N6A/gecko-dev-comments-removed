@@ -11,15 +11,6 @@
 namespace mozilla {
 namespace image {
 
-FrameAnimator::FrameAnimator(FrameBlender& aFrameBlender,
-                             uint16_t aAnimationMode)
-  : mCurrentAnimationFrameIndex(0)
-  , mLoopCounter(-1)
-  , mFrameBlender(aFrameBlender)
-  , mAnimationMode(aAnimationMode)
-  , mDoneDecoding(false)
-{ }
-
 int32_t
 FrameAnimator::GetSingleLoopTime() const
 {
@@ -34,7 +25,7 @@ FrameAnimator::GetSingleLoopTime() const
   }
 
   uint32_t looptime = 0;
-  for (uint32_t i = 0; i < mFrameBlender.GetNumFrames(); ++i) {
+  for (uint32_t i = 0; i < mImage->GetNumFrames(); ++i) {
     int32_t timeout = mFrameBlender.GetTimeoutForFrame(i);
     if (timeout >= 0) {
       looptime += static_cast<uint32_t>(timeout);
@@ -85,7 +76,7 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
   int32_t timeout = 0;
 
   RefreshResult ret;
-  nsRefPtr<imgFrame> nextFrame = mFrameBlender.RawGetFrame(nextFrameIndex);
+  RawAccessFrameRef nextFrame = mFrameBlender.GetRawFrame(nextFrameIndex);
 
   
   
@@ -100,12 +91,12 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
 
   
   
-  if (mFrameBlender.GetNumFrames() == nextFrameIndex) {
+  if (mImage->GetNumFrames() == nextFrameIndex) {
     
 
     
-    if (mLoopCounter < 0 && mFrameBlender.GetLoopCount() >= 0) {
-      mLoopCounter = mFrameBlender.GetLoopCount();
+    if (mLoopCounter < 0 && mFrameBlender.LoopCount() >= 0) {
+      mLoopCounter = mFrameBlender.LoopCount();
     }
 
     
@@ -140,7 +131,7 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
   } else {
     
     if (nextFrameIndex != currentFrameIndex + 1) {
-      nextFrame = mFrameBlender.RawGetFrame(nextFrameIndex);
+      nextFrame = mFrameBlender.GetRawFrame(nextFrameIndex);
     }
 
     if (!mFrameBlender.DoBlend(&ret.dirtyRect, currentFrameIndex,

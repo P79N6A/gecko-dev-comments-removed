@@ -169,7 +169,7 @@ public:
                                       uint32_t* aWriteCount);
 
   
-  uint32_t GetNumFrames() const;
+  uint32_t GetNumFrames() const { return mFrameCount; }
 
   virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
   virtual size_t SizeOfDecoded(gfxMemoryLocation aLocation,
@@ -179,6 +179,7 @@ public:
   void Discard();
 
   
+
   
 
 
@@ -397,6 +398,9 @@ private:
   
 
   
+  uint32_t                   mFrameCount;
+
+  
   Progress                   mNotifyProgress;
   nsIntRect                  mNotifyInvalidRect;
   bool                       mNotifying:1;
@@ -410,7 +414,6 @@ private:
 
   
   bool                       mDecoded:1;
-  bool                       mHasFirstFrame:1;
   bool                       mHasBeenDecoded:1;
 
   

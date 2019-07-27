@@ -189,7 +189,7 @@ public:
     
     
     SurfaceCache::Insert(mDstRef.get(), ImageKey(mImage.get()),
-                         RasterSurfaceKey(mDstSize.ToIntSize(), mImageFlags),
+                         RasterSurfaceKey(mDstSize.ToIntSize(), mImageFlags, 0),
                          Lifetime::Transient);
 
     return true;
@@ -243,7 +243,7 @@ public:
       
       SurfaceCache::RemoveSurface(ImageKey(mImage.get()),
                                   RasterSurfaceKey(mDstSize.ToIntSize(),
-                                                   mImageFlags));
+                                                   mImageFlags, 0));
 
       
       mSrcRef.reset();
@@ -295,6 +295,7 @@ RasterImage::RasterImage(ProgressTracker* aProgressTracker,
   mDecodingMonitor("RasterImage Decoding Monitor"),
   mDecoder(nullptr),
   mDecodeStatus(DecodeStatus::INACTIVE),
+  mFrameCount(0),
   mNotifyProgress(NoProgress),
   mNotifying(false),
   mHasSize(false),
@@ -303,7 +304,6 @@ RasterImage::RasterImage(ProgressTracker* aProgressTracker,
   mDiscardable(false),
   mHasSourceData(false),
   mDecoded(false),
-  mHasFirstFrame(false),
   mHasBeenDecoded(false),
   mPendingAnimation(false),
   mAnimationFinished(false),
@@ -545,18 +545,23 @@ RasterImage::LookupFrameInternal(uint32_t aFrameNum,
                                  const nsIntSize& aSize,
                                  uint32_t aFlags)
 {
-  if (mAnim) {
-    MOZ_ASSERT(mFrameBlender, "mAnim but no mFrameBlender?");
-    nsRefPtr<imgFrame> frame = mFrameBlender->GetFrame(aFrameNum);
-    return frame->DrawableRef();
+  if (!mAnim) {
+    NS_ASSERTION(aFrameNum == 0,
+                 "Don't ask for a frame > 0 if we're not animated!");
+    aFrameNum = 0;
   }
 
-  NS_ASSERTION(aFrameNum == 0,
-               "Don't ask for a frame > 0 if we're not animated!");
+  if (mAnim && aFrameNum > 0) {
+    MOZ_ASSERT(mFrameBlender, "mAnim but no mFrameBlender?");
+    MOZ_ASSERT(DecodeFlags(aFlags) == DECODE_FLAGS_DEFAULT,
+               "Can't composite frames with non-default decode flags");
+    return mFrameBlender->GetCompositedFrame(aFrameNum);
+  }
 
   return SurfaceCache::Lookup(ImageKey(this),
                               RasterSurfaceKey(aSize.ToIntSize(),
-                                               DecodeFlags(aFlags)));
+                                               DecodeFlags(aFlags),
+                                               aFrameNum));
 }
 
 DrawableFrameRef
@@ -569,7 +574,7 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
 
   DrawableFrameRef ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
 
-  if (!ref && IsOpaque()) {
+  if (!ref && IsOpaque() && aFrameNum == 0) {
     
     
     
@@ -584,7 +589,7 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
     
     mFrameDecodeFlags = aFlags & DECODE_FLAGS_MASK;
     mDecoded = false;
-    mHasFirstFrame = false;
+    mFrameCount = 0;
     WantDecodedFrames(aFlags, aShouldSyncNotify);
 
     
@@ -596,11 +601,11 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
     }
   }
 
-  
-  
   if (ref->GetCompositingFailed()) {
     return DrawableFrameRef();
   }
+
+  MOZ_ASSERT(!ref || !ref->GetIsPaletted(), "Should not have paletted frame");
 
   return ref;
 }
@@ -656,15 +661,6 @@ RasterImage::OnSurfaceDiscarded()
   if (mProgressTracker) {
     mProgressTracker->OnDiscard();
   }
-}
-
-uint32_t
-RasterImage::GetNumFrames() const
-{
-  if (mFrameBlender) {
-    return mFrameBlender->GetNumFrames();
-  }
-  return mHasFirstFrame ? 1 : 0;
 }
 
 
@@ -976,25 +972,22 @@ RasterImage::InternalAddFrame(uint32_t aFrameNum,
     return RawAccessFrameRef();
   }
 
-  if (GetNumFrames() == 0) {
-    bool succeeded =
-      SurfaceCache::Insert(frame, ImageKey(this),
-                           RasterSurfaceKey(mSize.ToIntSize(), aDecodeFlags),
-                           Lifetime::Persistent);
-    if (!succeeded) {
-      return RawAccessFrameRef();
-    }
-    mHasFirstFrame = true;
-    return ref;
+  bool succeeded =
+    SurfaceCache::Insert(frame, ImageKey(this),
+                         RasterSurfaceKey(mSize.ToIntSize(),
+                                          aDecodeFlags,
+                                          aFrameNum),
+                         Lifetime::Persistent);
+  if (!succeeded) {
+    return RawAccessFrameRef();
   }
 
-  if (GetNumFrames() == 1) {
+  if (aFrameNum == 1) {
     
     MOZ_ASSERT(!mFrameBlender, "Already have a FrameBlender?");
     MOZ_ASSERT(!mAnim, "Already have animation state?");
-    mFrameBlender.emplace();
-    mFrameBlender->SetSize(mSize);
-    mAnim = MakeUnique<FrameAnimator>(*mFrameBlender, mAnimationMode);
+    mFrameBlender.emplace(ImageKey(this), mSize.ToIntSize());
+    mAnim = MakeUnique<FrameAnimator>(this, *mFrameBlender, mAnimationMode);
 
     
     
@@ -1006,20 +999,8 @@ RasterImage::InternalAddFrame(uint32_t aFrameNum,
     
     LockImage();
 
-    
     MOZ_ASSERT(aPreviousFrame, "Must provide a previous frame when animated");
-    RawAccessFrameRef ref = aPreviousFrame->RawAccessRef();
-    if (!ref) {
-      return RawAccessFrameRef();  
-    }
-    mFrameBlender->InsertFrame(0, Move(ref));
-
-    
-    
-    
-    SurfaceCache::RemoveSurface(ImageKey(this),
-                                RasterSurfaceKey(mSize.ToIntSize(),
-                                                 aDecodeFlags));
+    aPreviousFrame->SetRawAccessOnly();
 
     
     
@@ -1035,13 +1016,15 @@ RasterImage::InternalAddFrame(uint32_t aFrameNum,
     }
   }
 
-  
-  
-  mAnim->UnionFirstFrameRefreshArea(frame->GetRect());
+  if (aFrameNum > 0) {
+    ref->SetRawAccessOnly();
 
-  MOZ_ASSERT(mFrameBlender, "Should have a FrameBlender by now");
-  mFrameBlender->InsertFrame(aFrameNum, frame->RawAccessRef());
+    
+    
+    mAnim->UnionFirstFrameRefreshArea(frame->GetRect());
+  }
 
+  mFrameCount++;
   return ref;
 }
 
@@ -1111,7 +1094,6 @@ RasterImage::EnsureFrame(uint32_t aFrameNum,
   
   
   
-  MOZ_ASSERT(mHasFirstFrame, "Should have the first frame");
   MOZ_ASSERT(aFrameNum == 0, "Replacing a frame other than the first?");
   MOZ_ASSERT(GetNumFrames() == 1, "Should have only one frame");
   MOZ_ASSERT(aPreviousFrame, "Need the previous frame to replace");
@@ -1128,8 +1110,8 @@ RasterImage::EnsureFrame(uint32_t aFrameNum,
   
   IntSize prevFrameSize = aPreviousFrame->GetImageSize();
   SurfaceCache::RemoveSurface(ImageKey(this),
-                              RasterSurfaceKey(prevFrameSize, aDecodeFlags));
-  mHasFirstFrame = false;
+                              RasterSurfaceKey(prevFrameSize, aDecodeFlags, 0));
+  mFrameCount = 0;
 
   
   return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
@@ -1562,7 +1544,7 @@ RasterImage::Discard()
 
   
   mDecoded = false;
-  mHasFirstFrame = false;
+  mFrameCount = 0;
 
   
   if (mProgressTracker) {
@@ -2135,7 +2117,8 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
     frameRef =
       SurfaceCache::Lookup(ImageKey(this),
                            RasterSurfaceKey(aSize.ToIntSize(),
-                                            DecodeFlags(aFlags)));
+                                            DecodeFlags(aFlags),
+                                            0));
     if (!frameRef) {
       
       
@@ -2280,7 +2263,7 @@ RasterImage::UnlockImage()
   mLockCount--;
 
   
-  if (mLockCount == 0) {
+  if (mLockCount == 0 ) {
     SurfaceCache::UnlockImage(ImageKey(this));
   }
 
@@ -2664,7 +2647,8 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
     DrawableFrameRef frameRef =
       SurfaceCache::Lookup(ImageKey(this),
                            RasterSurfaceKey(destSize.ToIntSize(),
-                                            DecodeFlags(aFlags)));
+                                            DecodeFlags(aFlags),
+                                            0));
 
     if (frameRef && frameRef->ImageComplete()) {
         return destSize;  
