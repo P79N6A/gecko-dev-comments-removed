@@ -25,6 +25,12 @@ class nsIDocShellTreeItem;
 class nsPIDOMWindow;
 class nsIMessageBroadcaster;
 
+namespace mozilla {
+namespace dom {
+class TabParent;
+}
+}
+
 struct nsDelayedBlurOrFocusEvent;
 
 
@@ -387,6 +393,7 @@ protected:
                                   bool aForward,
                                   int32_t aCurrentTabIndex,
                                   bool aIgnoreTabIndex,
+                                  bool aForDocumentNavigation,
                                   nsIContent** aResultContent);
 
   
@@ -420,6 +427,12 @@ protected:
 
 
 
+  nsresult FocusFirst(nsIContent* aRootContent, nsIContent** aNextContent);
+
+  
+
+
+
 
 
 
@@ -427,53 +440,14 @@ protected:
 
   nsIContent* GetRootForFocus(nsPIDOMWindow* aWindow,
                               nsIDocument* aDocument,
-                              bool aIsForDocNavigation,
+                              bool aForDocumentNavigation,
                               bool aCheckVisibility);
 
   
 
 
-  void GetLastDocShell(nsIDocShellTreeItem* aItem,
-                       nsIDocShellTreeItem** aResult);
 
-  
-
-
-  void GetNextDocShell(nsIDocShellTreeItem* aItem,
-                       nsIDocShellTreeItem** aResult);
-
-  
-
-
-  void GetPreviousDocShell(nsIDocShellTreeItem* aItem,
-                           nsIDocShellTreeItem** aResult);
-
-  
-
-
-
-
-
-
-
-
-  nsIContent* GetNextTabbablePanel(nsIDocument* aDocument, nsIFrame* aCurrentPopup, bool aForward);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsIContent* GetNextTabbableDocument(nsIContent* aStartContent, bool aForward);
+  nsIContent* GetRootForChildDocument(nsIContent* aContent);
 
   
 
