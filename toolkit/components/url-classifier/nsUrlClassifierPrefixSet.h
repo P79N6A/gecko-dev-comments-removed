@@ -57,12 +57,12 @@ protected:
   
   bool mHasPrefixes;
   
-  FallibleTArray<uint32_t> mIndexPrefixes;
+  nsTArray<uint32_t> mIndexPrefixes;
   
   
-  FallibleTArray<uint32_t> mIndexStarts;
+  nsTArray<uint32_t> mIndexStarts;
   
-  FallibleTArray<uint16_t> mDeltas;
+  nsTArray<uint16_t> mDeltas;
 
   nsCString mMemoryReportPath;
 };
