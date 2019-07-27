@@ -86,6 +86,12 @@ add_task(function* test_parseSubmissionURL() {
 
   
   let result = Services.search.parseSubmissionURL(
+                               "http://www.google.com/search?q=+with++spaces+");
+  do_check_eq(result.engine, engine1);
+  do_check_eq(result.terms, " with  spaces ");
+
+  
+  let result = Services.search.parseSubmissionURL(
                                "http://www.google.com/search?q=");
   do_check_eq(result.engine, engine1);
   do_check_eq(result.terms, "");
