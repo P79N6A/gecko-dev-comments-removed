@@ -1558,8 +1558,10 @@ static PLDHashOperator NotifyVisitRemoval(PlaceHashKey* aEntry,
   const nsTArray<VisitData>& visits = aEntry->visits;
   nsCOMPtr<nsIURI> uri;
   (void)NS_NewURI(getter_AddRefs(uri), visits[0].spec);
-  bool removingPage = visits.Length() == aEntry->visitCount &&
-                      !aEntry->bookmarked;
+  
+  bool removingPage =
+    visits.Length() == static_cast<size_t>(aEntry->visitCount) &&
+    !aEntry->bookmarked;
   
   
   
@@ -1636,7 +1638,9 @@ static PLDHashOperator ListToBeRemovedPlaceIds(PlaceHashKey* aEntry,
 {
   const nsTArray<VisitData>& visits = aEntry->visits;
   
-  if (visits.Length() == aEntry->visitCount && !aEntry->bookmarked) {
+  
+  if (visits.Length() == static_cast<size_t>(aEntry->visitCount) &&
+      !aEntry->bookmarked) {
     nsCString* list = static_cast<nsCString*>(aIdsList);
     if (!list->IsEmpty())
       list->Append(',');
