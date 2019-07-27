@@ -958,8 +958,7 @@ TEST_F(TransportTest, TestConnect) {
   ConnectSocket();
 
   
-  
-  
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
 
   
   ASSERT_EQ(0, p1_->srtpCipher());
@@ -970,8 +969,7 @@ TEST_F(TransportTest, TestConnectSrtp) {
   SetDtlsPeer();
   ConnectSocket();
 
-  
-  
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
 
   
   ASSERT_EQ(SRTP_AES128_CM_HMAC_SHA1_80, p1_->srtpCipher());
@@ -1177,24 +1175,23 @@ static void ConfigureOneCipher(TransportTestPeer* peer, uint16_t suite) {
 
 TEST_F(TransportTest, TestCipherMismatch) {
   SetDtlsPeer();
-  ConfigureOneCipher(p1_, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256);
-  ConfigureOneCipher(p2_, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
+  ConfigureOneCipher(p1_, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256);
+  ConfigureOneCipher(p2_, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA);
   ConnectSocketExpectFail();
 }
 
-
-TEST_F(TransportTest, DISABLED_TestCipherMandatoryOnlyGcm) {
+TEST_F(TransportTest, TestCipherMandatoryOnlyGcm) {
   SetDtlsPeer();
-  ConfigureOneCipher(p1_, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256);
+  ConfigureOneCipher(p1_, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256);
   ConnectSocket();
-  ASSERT_EQ(TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
 }
 
 TEST_F(TransportTest, TestCipherMandatoryOnlyCbc) {
   SetDtlsPeer();
-  ConfigureOneCipher(p1_, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
+  ConfigureOneCipher(p1_, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA);
   ConnectSocket();
-  ASSERT_EQ(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, p1_->cipherSuite());
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, p1_->cipherSuite());
 }
 
 TEST_F(TransportTest, TestSrtpMismatch) {
