@@ -296,11 +296,12 @@ TEST_F(pkix_cert_extensions, UnknownCriticalCEExtension)
 TEST_F(pkix_cert_extensions, KnownCriticalCEExtension)
 {
   static const uint8_t criticalCEExtensionBytes[] = {
-    0x30, 0x0a, 
+    0x30, 0x0d, 
       0x06, 0x03, 
         0x55, 0x1d, 0x36, 
       0x01, 0x01, 0xff, 
-      0x04, 0x00 
+      0x04, 0x03, 
+        0x02, 0x01, 0x00, 
   };
   static const SECItem criticalCEExtension = {
     siBuffer,
