@@ -100,11 +100,7 @@ enum BailoutKind
     Bailout_NonStringInput,
     Bailout_NonSymbolInput,
 
-    
     Bailout_GuardThreadExclusive,
-
-    
-    Bailout_ParallelUnsafe,
 
     
     Bailout_InitialState,

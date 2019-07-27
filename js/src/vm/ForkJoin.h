@@ -17,7 +17,6 @@
 #include "gc/GCInternals.h"
 
 #include "jit/Ion.h"
-#include "jit/IonTypes.h"
 
 #ifdef DEBUG
   #define FORKJOIN_SPEW
@@ -290,9 +289,8 @@ bool ForkJoin(JSContext *cx, CallArgs &args);
 enum ParallelBailoutCause {
     ParallelBailoutNone = 0,
 
-    
-    
-    ParallelBailoutExecution,
+    ParallelBailoutUnsupported,
+    ParallelBailoutUnsupportedVM,
 
     
     
@@ -305,16 +303,22 @@ enum ParallelBailoutCause {
     ParallelBailoutCompilationFailure,
 
     
+    
+    ParallelBailoutPropagate,
+
+    
+    ParallelBailoutFailedIC,
+
+    
+    ParallelBailoutHeapBusy,
+
     ParallelBailoutMainScriptNotPresent,
-
-    
+    ParallelBailoutCalledToUncompiledScript,
+    ParallelBailoutIllegalWrite,
+    ParallelBailoutAccessToIntrinsic,
     ParallelBailoutOverRecursed,
-
-    
     ParallelBailoutOutOfMemory,
-
-    
-    
+    ParallelBailoutUnsupportedStringComparison,
     ParallelBailoutRequestedGC,
     ParallelBailoutRequestedZoneGC
 };
@@ -332,18 +336,11 @@ struct ParallelBailoutRecord
     
     
     Vector<jit::RematerializedFrame *> *frames_;
-
-    
     ParallelBailoutCause cause;
-
-    
-    
-    jit::BailoutKind ionBailoutKind;
 
     ParallelBailoutRecord()
       : frames_(nullptr),
-        cause(ParallelBailoutNone),
-        ionBailoutKind(jit::Bailout_Inevitable)
+        cause(ParallelBailoutNone)
     { }
 
     ~ParallelBailoutRecord();
@@ -361,11 +358,6 @@ struct ParallelBailoutRecord
         {
             this->cause = cause;
         }
-    }
-
-    void setIonBailoutKind(jit::BailoutKind kind) {
-        joinCause(ParallelBailoutExecution);
-        ionBailoutKind = kind;
     }
 
     void rematerializeFrames(ForkJoinContext *cx, jit::JitFrameIterator &frameIter);
@@ -435,9 +427,9 @@ class ForkJoinContext : public ThreadSafeContext
 
     
     
-    bool reportError(unsigned report) {
+    bool reportError(ParallelBailoutCause cause, unsigned report) {
         if (report & JSREPORT_ERROR)
-            return setPendingAbortFatal(ParallelBailoutExecution);
+            return setPendingAbortFatal(cause);
         return true;
     }
 
