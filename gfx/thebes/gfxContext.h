@@ -39,6 +39,7 @@ template <typename T> class FallibleTArray;
 class gfxContext MOZ_FINAL {
     typedef mozilla::gfx::FillRule FillRule;
     typedef mozilla::gfx::Path Path;
+    typedef mozilla::gfx::Pattern Pattern;
 
     NS_INLINE_DECL_REFCOUNTING(gfxContext)
 
@@ -107,12 +108,14 @@ public:
 
 
     void Stroke();
+    void Stroke(const Pattern& aPattern);
     
 
 
 
 
     void Fill();
+    void Fill(const Pattern& aPattern);
 
     
 
@@ -121,6 +124,7 @@ public:
 
 
     void FillWithOpacity(gfxFloat aOpacity);
+    void FillWithOpacity(const Pattern& aPattern, gfxFloat aOpacity);
 
     
 
@@ -724,7 +728,7 @@ private:
   void EnsurePath();
   
   void EnsurePathBuilder();
-  void FillAzure(mozilla::gfx::Float aOpacity);
+  void FillAzure(const Pattern& aPattern, mozilla::gfx::Float aOpacity);
   void PushClipsToDT(mozilla::gfx::DrawTarget *aDT);
   CompositionOp GetOp();
   void ChangeTransform(const mozilla::gfx::Matrix &aNewMatrix, bool aUpdatePatternTransform = true);
