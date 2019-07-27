@@ -3051,7 +3051,7 @@ EmitDestructuringDecls(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp prologOp
 }
 
 static bool
-EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn,
+EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pattern,
                            VarEmitOption emitOption);
 
 
@@ -3230,7 +3230,7 @@ EmitIteratorNext(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn=nullp
 
 
 static bool
-EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn,
+EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pattern,
                            VarEmitOption emitOption)
 {
     JS_ASSERT(emitOption != DefineVars);
@@ -3242,15 +3242,15 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
 #ifdef DEBUG
     int stackDepth = bce->stackDepth;
     JS_ASSERT(stackDepth != 0);
-    JS_ASSERT(pn->isArity(PN_LIST));
-    JS_ASSERT(pn->isKind(PNK_ARRAY) || pn->isKind(PNK_OBJECT));
+    JS_ASSERT(pattern->isArity(PN_LIST));
+    JS_ASSERT(pattern->isKind(PNK_ARRAY) || pattern->isKind(PNK_OBJECT));
 #endif
 
     
 
 
 
-    if (pn->isKind(PNK_ARRAY)) {
+    if (pattern->isKind(PNK_ARRAY)) {
         if (emitOption == InitializeVars) {
             if (Emit1(cx, bce, JSOP_DUP) < 0)                      
                 return false;
@@ -3260,13 +3260,13 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
         needToPopIterator = true;
     }
 
-    for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
+    for (pn2 = pattern->pn_head; pn2; pn2 = pn2->pn_next) {
         
 
 
 
 
-        if (pn->isKind(PNK_OBJECT)) {
+        if (pattern->isKind(PNK_OBJECT)) {
             doElemOp = true;
             JS_ASSERT(pn2->isKind(PNK_COLON) || pn2->isKind(PNK_SHORTHAND));
 
@@ -3312,7 +3312,7 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
 
             pn3 = pn2->pn_right;
         } else {
-            JS_ASSERT(pn->isKind(PNK_ARRAY));
+            JS_ASSERT(pattern->isKind(PNK_ARRAY));
 
             if (pn2->isKind(PNK_SPREAD)) {
                 
@@ -3335,7 +3335,7 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
             } else {
                 if (Emit1(cx, bce, JSOP_DUP) < 0)                          
                     return false;
-                if (!EmitIteratorNext(cx, bce, pn))                        
+                if (!EmitIteratorNext(cx, bce, pattern))                   
                     return false;
                 if (Emit1(cx, bce, JSOP_DUP) < 0)                          
                     return false;
@@ -3376,7 +3376,7 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
 
         
         if (pn3->isKind(PNK_ELISION)) {
-            JS_ASSERT(pn->isKind(PNK_ARRAY));
+            JS_ASSERT(pattern->isKind(PNK_ARRAY));
             JS_ASSERT(pn2 == pn3);
             if (Emit1(cx, bce, JSOP_POP) < 0)
                 return false;
@@ -3386,7 +3386,7 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
                 return false;
 
             if (emitOption == PushInitialValues &&
-                (pn->isKind(PNK_OBJECT) || needToPopIterator)) {
+                (pattern->isKind(PNK_OBJECT) || needToPopIterator)) {
                 
 
 
@@ -3414,7 +3414,7 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
     if (needToPopIterator && Emit1(cx, bce, JSOP_POP) < 0)
         return false;
 
-    if (emitOption == PushInitialValues && pn->isKind(PNK_OBJECT)) {
+    if (emitOption == PushInitialValues && pattern->isKind(PNK_OBJECT)) {
         
 
 
@@ -3428,14 +3428,15 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
 }
 
 static bool
-EmitDestructuringOps(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool isLet = false)
+EmitDestructuringOps(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pattern,
+                     bool isLet = false)
 {
     
 
 
 
     VarEmitOption emitOption = isLet ? PushInitialValues : InitializeVars;
-    return EmitDestructuringOpsHelper(cx, bce, pn, emitOption);
+    return EmitDestructuringOpsHelper(cx, bce, pattern, emitOption);
 }
 
 static bool
