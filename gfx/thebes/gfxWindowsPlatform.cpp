@@ -1689,7 +1689,10 @@ gfxWindowsPlatform::InitD3D11Devices()
   HRESULT hr;
 
   hr = d3d11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr,
-                         D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+                         
+                         
+                         
+                         D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
                          featureLevels.Elements(), featureLevels.Length(),
                          D3D11_SDK_VERSION, byRef(mD3D11Device), nullptr, nullptr);
 
