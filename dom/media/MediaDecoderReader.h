@@ -79,7 +79,7 @@ public:
 
   
   
-  explicit MediaDecoderReader(AbstractMediaDecoder* aDecoder);
+  explicit MediaDecoderReader(AbstractMediaDecoder* aDecoder, MediaTaskQueue* aBorrowedTaskQueue = nullptr);
 
   
   
@@ -107,18 +107,9 @@ public:
   
   virtual nsRefPtr<ShutdownPromise> Shutdown();
 
-  MediaTaskQueue* EnsureTaskQueue();
-
   virtual bool OnTaskQueue()
   {
-    return !GetTaskQueue() || GetTaskQueue()->IsCurrentThreadIn();
-  }
-
-  void SetBorrowedTaskQueue(MediaTaskQueue* aTaskQueue)
-  {
-    MOZ_ASSERT(!mTaskQueue && aTaskQueue);
-    mTaskQueue = aTaskQueue;
-    mTaskQueueIsBorrowed = true;
+    return GetTaskQueue()->IsCurrentThreadIn();
   }
 
   
@@ -321,6 +312,9 @@ protected:
   AbstractMediaDecoder* mDecoder;
 
   
+  nsRefPtr<MediaTaskQueue> mTaskQueue;
+
+  
   MediaInfo mInfo;
 
   
@@ -347,7 +341,6 @@ private:
   MediaPromiseHolder<AudioDataPromise> mBaseAudioPromise;
   MediaPromiseHolder<VideoDataPromise> mBaseVideoPromise;
 
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
   bool mTaskQueueIsBorrowed;
 
   

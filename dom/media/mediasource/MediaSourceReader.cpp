@@ -678,7 +678,8 @@ MediaSourceReader::ReleaseMediaResources()
 }
 
 MediaDecoderReader*
-CreateReaderForType(const nsACString& aType, AbstractMediaDecoder* aDecoder)
+CreateReaderForType(const nsACString& aType, AbstractMediaDecoder* aDecoder,
+                    MediaTaskQueue* aBorrowedTaskQueue)
 {
 #ifdef MOZ_FMP4
   
@@ -691,15 +692,15 @@ CreateReaderForType(const nsACString& aType, AbstractMediaDecoder* aDecoder)
     bool useFormatDecoder =
       Preferences::GetBool("media.mediasource.format-reader.mp4", true);
     MediaDecoderReader* reader = useFormatDecoder ?
-      static_cast<MediaDecoderReader*>(new MediaFormatReader(aDecoder, new MP4Demuxer(aDecoder->GetResource()))) :
-      static_cast<MediaDecoderReader*>(new MP4Reader(aDecoder));
+      static_cast<MediaDecoderReader*>(new MediaFormatReader(aDecoder, new MP4Demuxer(aDecoder->GetResource()), aBorrowedTaskQueue)) :
+      static_cast<MediaDecoderReader*>(new MP4Reader(aDecoder, aBorrowedTaskQueue));
     return reader;
   }
 #endif
 
 #ifdef MOZ_WEBM
   if (DecoderTraits::IsWebMType(aType)) {
-    return new WebMReader(aDecoder);
+    return new WebMReader(aDecoder, aBorrowedTaskQueue);
   }
 #endif
 
@@ -712,10 +713,17 @@ MediaSourceReader::CreateSubDecoder(const nsACString& aType, int64_t aTimestampO
   if (IsShutdown()) {
     return nullptr;
   }
-  MOZ_ASSERT(GetTaskQueue());
+
+  
+  
+  
+  
+  
+  
+  
   nsRefPtr<SourceBufferDecoder> decoder =
     new SourceBufferDecoder(new SourceBufferResource(aType), mDecoder, aTimestampOffset);
-  nsRefPtr<MediaDecoderReader> reader(CreateReaderForType(aType, decoder));
+  nsRefPtr<MediaDecoderReader> reader(CreateReaderForType(aType, decoder, GetTaskQueue()));
   if (!reader) {
     return nullptr;
   }
@@ -727,15 +735,6 @@ MediaSourceReader::CreateSubDecoder(const nsACString& aType, int64_t aTimestampO
     ReentrantMonitorAutoEnter mon(decoder->GetReentrantMonitor());
     reader->SetStartTime(0);
   }
-
-  
-  
-  
-  
-  
-  
-  
-  reader->SetBorrowedTaskQueue(GetTaskQueue());
 
 #ifdef MOZ_FMP4
   reader->SetSharedDecoderManager(mSharedDecoderManager);

@@ -36,7 +36,6 @@ public:
     decoder->SetResource(resource);
 
     reader->Init(nullptr);
-    reader->EnsureTaskQueue();
     {
       
       
