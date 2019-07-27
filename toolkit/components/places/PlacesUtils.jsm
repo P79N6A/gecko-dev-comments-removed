@@ -933,7 +933,13 @@ this.PlacesUtils = {
 
 
 
+
+
   getURLAndPostDataForKeyword(aKeyword) {
+    Deprecated.warning("getURLAndPostDataForKeyword() is deprecated, please " +
+                       "use PlacesUtils.keywords.fetch() instead",
+                       "https://bugzilla.mozilla.org/show_bug.cgi?id=1100294");
+
     let stmt = PlacesUtils.history.DBConnection.createStatement(
       `SELECT h.url, k.post_data
        FROM moz_keywords k
