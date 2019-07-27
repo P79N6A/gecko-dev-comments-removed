@@ -84,10 +84,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
 
-XPCOMUtils.defineLazyServiceGetter(this, "Profiler",
-                                   "@mozilla.org/tools/profiler;1",
-                                   "nsIProfiler");
-
 XPCOMUtils.defineLazyModuleGetter(this, "SimpleServiceDiscovery",
                                   "resource://gre/modules/SimpleServiceDiscovery.jsm");
 
@@ -912,37 +908,60 @@ var BrowserApp = {
     Services.obs.notifyObservers(null, "FormHistory:Init", "");
     Services.obs.notifyObservers(null, "Passwords:Init", "");
 
-    
-    
-    if (Services.prefs.prefHasUserValue("plugins.click_to_play")) {
-      Services.prefs.setIntPref("plugin.default.state", Ci.nsIPluginTag.STATE_ENABLED);
-      Services.prefs.clearUserPref("plugins.click_to_play");
+    if (this._startupStatus === "upgrade") {
+      this._migrateUI();
+    }
+  },
+
+  _migrateUI: function() {
+    const UI_VERSION = 1;
+    let currentUIVersion = 0;
+    try {
+      currentUIVersion = Services.prefs.getIntPref("browser.migration.version");
+    } catch(ex) {}
+    if (currentUIVersion >= UI_VERSION) {
+      return;
     }
 
-    
-    if (Services.prefs.prefHasUserValue("privacy.donottrackheader.value")) {
+    if (currentUIVersion < 1) {
       
       
-      
-      if (Services.prefs.getBoolPref("privacy.donottrackheader.enabled") &&
-          (Services.prefs.getIntPref("privacy.donottrackheader.value") != 1)) {
-        Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
+      if (Services.prefs.prefHasUserValue("plugins.click_to_play")) {
+        Services.prefs.setIntPref("plugin.default.state", Ci.nsIPluginTag.STATE_ENABLED);
+        Services.prefs.clearUserPref("plugins.click_to_play");
       }
 
       
-      Services.prefs.clearUserPref("privacy.donottrackheader.value");
+      if (Services.prefs.prefHasUserValue("privacy.donottrackheader.value")) {
+        
+        
+        
+        if (Services.prefs.getBoolPref("privacy.donottrackheader.enabled") &&
+            (Services.prefs.getIntPref("privacy.donottrackheader.value") != 1)) {
+          Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
+        }
+
+        
+        Services.prefs.clearUserPref("privacy.donottrackheader.value");
+      }
+
+      
+      if (!Services.prefs.prefHasUserValue("searchActivity.default.migrated")) {
+        Services.prefs.setBoolPref("searchActivity.default.migrated", true);
+        SearchEngines.migrateSearchActivityDefaultPref();
+      }
+
+      Reader.migrateCache().catch(e => Cu.reportError("Error migrating Reader cache: " + e));
+
+      
+      
+      if (Services.prefs.prefHasUserValue("nglayout.debug.paint_flashing")) {
+        Services.prefs.clearUserPref("nglayout.debug.paint_flashing");
+      }
     }
 
     
-    if (this._startupStatus === "upgrade" &&
-        !Services.prefs.prefHasUserValue("searchActivity.default.migrated")) {
-      Services.prefs.setBoolPref("searchActivity.default.migrated", true);
-      SearchEngines.migrateSearchActivityDefaultPref();
-    }
-
-    if (this._startupStatus === "upgrade") {
-      Reader.migrateCache().catch(e => Cu.reportError("Error migrating Reader cache: " + e));
-    }
+    Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
 
   
@@ -4408,12 +4427,6 @@ Tab.prototype = {
 
     
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
-      if (AppConstants.NIGHTLY_BUILD && (aStateFlags & Ci.nsIWebProgressListener.STATE_START)) {
-        Profiler.AddMarker("Load start: " + aRequest.QueryInterface(Ci.nsIChannel).originalURI.spec);
-      } else if (AppConstants.NIGHTLY_BUILD && (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) && !aWebProgress.isLoadingDocument) {
-        Profiler.AddMarker("Load stop: " + aRequest.QueryInterface(Ci.nsIChannel).originalURI.spec);
-      }
-
       if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) && aWebProgress.isLoadingDocument) {
         
         
@@ -5869,7 +5882,7 @@ var FormAssistant = {
       else if (item.text)
         label = item.text;
 
-      if (filter && !(label.toLowerCase().includes(lowerFieldValue)) )
+      if (filter && !(label.toLowerCase().contains(lowerFieldValue)) )
         continue;
       suggestions.push({ label: label, value: item.value });
     }
