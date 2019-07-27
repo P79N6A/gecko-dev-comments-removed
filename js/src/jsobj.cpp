@@ -3182,6 +3182,11 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
             return false;
     }
 
+    
+    
+    if (obj->is<UnboxedPlainObject>() && !UnboxedPlainObject::convertToNative(cx, obj))
+        return false;
+
     Rooted<TaggedProto> taggedProto(cx, TaggedProto(proto));
     *succeeded = SetClassAndProto(cx, obj, obj->getClass(), taggedProto);
     return *succeeded;
