@@ -764,7 +764,7 @@ enum AsmJSImmKind
     AsmJSImm_LogD,
     AsmJSImm_PowD,
     AsmJSImm_ATan2D,
-    AsmJSImm_Invalid
+    AsmJSImm_Limit
 };
 
 
