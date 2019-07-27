@@ -701,6 +701,8 @@ nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
 nsObjectLoadingContent::nsObjectLoadingContent()
   : mType(eType_Loading)
   , mFallbackType(eFallbackAlternate)
+  , mRunID(0)
+  , mHasRunID(false)
   , mChannelLoaded(false)
   , mInstantiating(false)
   , mNetworkCreated(true)
@@ -814,6 +816,17 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   }
 
   mInstanceOwner = newOwner;
+
+  if (mInstanceOwner) {
+    nsRefPtr<nsNPAPIPluginInstance> inst;
+    rv = mInstanceOwner->GetInstance(getter_AddRefs(inst));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    rv = inst->GetRunID(&mRunID);
+    mHasRunID = NS_SUCCEEDED(rv);
+  }
 
   
   
@@ -3142,6 +3155,24 @@ nsObjectLoadingContent::CancelPlayPreview()
     return LoadObject(true, true);
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsObjectLoadingContent::GetRunID(uint32_t* aRunID)
+{
+  if (NS_WARN_IF(!nsContentUtils::IsCallerChrome())) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  if (NS_WARN_IF(!aRunID)) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  if (!mHasRunID) {
+    
+    
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  *aRunID = mRunID;
   return NS_OK;
 }
 

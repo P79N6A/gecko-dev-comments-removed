@@ -286,6 +286,8 @@ public:
   
   double GetContentsScaleFactor();
 
+  nsresult GetRunID(uint32_t *aRunID);
+
   static bool InPluginCallUnsafeForReentry() { return gInUnsafePluginCalls > 0; }
   static void BeginPluginCall(NSPluginCallReentry aReentryState)
   {

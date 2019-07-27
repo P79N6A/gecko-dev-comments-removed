@@ -233,6 +233,18 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                     JS::MutableHandle<JS::Value> aRetval,
                     mozilla::ErrorResult& aRv);
 
+    uint32_t GetRunID(mozilla::ErrorResult& aRv)
+    {
+      uint32_t runID;
+      nsresult rv = GetRunID(&runID);
+      if (NS_FAILED(rv)) {
+        aRv.Throw(rv);
+        return 0;
+      }
+
+      return runID;
+    }
+
   protected:
     
 
@@ -578,6 +590,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     ObjectType                  mType           : 8;
     
     FallbackType                mFallbackType : 8;
+
+    uint32_t                    mRunID;
+    bool                        mHasRunID;
 
     
     
