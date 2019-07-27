@@ -1083,16 +1083,19 @@ obj_isFrozen(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+
 static bool
 obj_seal(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    RootedObject obj(cx);
-    if (!GetFirstArgumentAsObject(cx, args, "Object.seal", &obj))
-        return false;
+    args.rval().set(args.get(0));
 
-    args.rval().setObject(*obj);
+    
+    if (!args.get(0).isObject())
+        return true;
 
+    
+    RootedObject obj(cx, &args.get(0).toObject());
     return JSObject::seal(cx, obj);
 }
 
