@@ -24,6 +24,7 @@
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/layout/RenderFrameParent.h"
+#include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/Preferences.h"
@@ -989,6 +990,19 @@ TabParent::UIResolutionChanged()
     
     mDPI = -1;
     unused << SendUIResolutionChanged();
+  }
+}
+
+void
+TabParent::ThemeChanged()
+{
+  if (!mIsDestroyed) {
+    
+    
+    
+    
+    
+    unused << SendThemeChanged(LookAndFeel::GetIntCache());
   }
 }
 
