@@ -30,43 +30,6 @@ var gAdvancedPane = {
         advancedPrefs.selectedIndex = preference.value;
     }
 
-#ifdef HAVE_SHELL_SERVICE
-    this.updateSetDefaultBrowser();
-#ifdef XP_WIN
-    
-    
-    
-    
-    
-    window.setInterval(this.updateSetDefaultBrowser, 1000);
-
-#ifdef MOZ_METRO
-    
-    
-    let version = Components.classes["@mozilla.org/system-info;1"].
-                  getService(Components.interfaces.nsIPropertyBag2).
-                  getProperty("version");
-    let preWin8 = parseFloat(version) < 6.2;
-    this._showingWin8Prefs = !preWin8;
-    if (preWin8) {
-      ["autoMetro", "autoMetroIndent"].forEach(
-        function(id) document.getElementById(id).collapsed = true
-      );
-    } else {
-      let brandShortName =
-        document.getElementById("bundleBrand").getString("brandShortName");
-      let bundlePrefs = document.getElementById("bundlePreferences");
-      let autoDesktop = document.getElementById("autoDesktop");
-      autoDesktop.label =
-        bundlePrefs.getFormattedString("updateAutoDesktop.label",
-                                       [brandShortName]);
-      autoDesktop.accessKey =
-        bundlePrefs.getString("updateAutoDesktop.accessKey");
-    }
-#endif
-#endif
-#endif
-
 #ifdef MOZ_UPDATER
     this.updateReadPrefs();
 #endif
@@ -854,49 +817,4 @@ var gAdvancedPane = {
                                         "chrome://pippki/content/device_manager.xul",
                                         "", null);
   }
-#ifdef HAVE_SHELL_SERVICE
-  ,
-
-  
-
-  
-
-
-
-
-
-
-
-  
-
-
-
-  updateSetDefaultBrowser: function()
-  {
-    let shellSvc = getShellService();
-    let setDefaultPane = document.getElementById("setDefaultPane");
-    if (!shellSvc) {
-      setDefaultPane.hidden = true;
-      document.getElementById("alwaysCheckDefault").disabled = true;
-      return;
-    }
-    let selectedIndex =
-      shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
-    setDefaultPane.selectedIndex = selectedIndex;
-  },
-
-  
-
-
-  setDefaultBrowser: function()
-  {
-    let shellSvc = getShellService();
-    if (!shellSvc)
-      return;
-    shellSvc.setDefaultBrowser(true, false);
-    let selectedIndex =
-      shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
-    document.getElementById("setDefaultPane").selectedIndex = selectedIndex;
-  }
-#endif
 };

@@ -54,6 +54,12 @@ label.small {
 }
 
 
+
+#isNotDefaultLabel {
+  font-weight: bold;
+}
+
+
 #translationAttributionImage {
   width: 70px;
   cursor: pointer;

@@ -169,6 +169,12 @@ caption {
 
 
 
+#isNotDefaultLabel {
+  font-weight: bold;
+}
+
+
+
 
 
 html|a.inline-link {
