@@ -67,7 +67,9 @@ class Nursery
         heapEnd_(0),
         currentChunk_(0),
         numActiveChunks_(0),
-        numNurseryChunks_(0)
+        numNurseryChunks_(0),
+        profileThreshold_(0),
+        enableProfiling_(false)
     {}
     ~Nursery();
 
@@ -202,6 +204,10 @@ class Nursery
 
     
     int numNurseryChunks_;
+
+    
+    int64_t profileThreshold_;
+    bool enableProfiling_;
 
     
 
