@@ -197,6 +197,55 @@ LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const
   mTargetBounds = aRect;
 }
 
+void
+LayerManagerComposite::ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaqueRegion)
+{
+  nsIntRegion localOpaque;
+  Matrix transform2d;
+  bool isTranslation = false;
+  
+  
+  
+  if (aLayer->GetLocalTransform().Is2D(&transform2d)) {
+    if (transform2d.IsIntegerTranslation()) {
+      isTranslation = true;
+      localOpaque = aOpaqueRegion;
+      localOpaque.MoveBy(-transform2d._31, -transform2d._32);
+    }
+  }
+
+  
+  
+  LayerComposite *composite = aLayer->AsLayerComposite();
+  if (!localOpaque.IsEmpty()) {
+    nsIntRegion visible = composite->GetShadowVisibleRegion();
+    visible.Sub(visible, localOpaque);
+    composite->SetShadowVisibleRegion(visible);
+  }
+
+  
+  
+  for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
+    ApplyOcclusionCulling(child, localOpaque);
+  }
+
+  
+  
+  if (isTranslation &&
+      !aLayer->GetMaskLayer() &&
+      aLayer->GetLocalOpacity() == 1.0f) {
+    if (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) {
+      localOpaque.Or(localOpaque, composite->GetShadowVisibleRegion());
+    }
+    localOpaque.MoveBy(transform2d._31, transform2d._32);
+    const nsIntRect* clip = aLayer->GetEffectiveClipRect();
+    if (clip) {
+      localOpaque.And(localOpaque, *clip);
+    }
+    aOpaqueRegion.Or(aOpaqueRegion, localOpaque);
+  }
+}
+
 bool
 LayerManagerComposite::EndEmptyTransaction(EndTransactionFlags aFlags)
 {
@@ -256,6 +305,9 @@ LayerManagerComposite::EndTransaction(DrawPaintedLayerCallback aCallback,
     
     
     mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
+
+    nsIntRegion opaque;
+    ApplyOcclusionCulling(mRoot, opaque);
 
     Render();
     mGeometryChanged = false;

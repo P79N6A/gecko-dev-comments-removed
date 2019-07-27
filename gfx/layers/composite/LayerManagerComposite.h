@@ -169,6 +169,13 @@ public:
 
 
 
+
+  void ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaqueRegion);
+
+  
+
+
+
   class AutoAddMaskEffect
   {
   public:
