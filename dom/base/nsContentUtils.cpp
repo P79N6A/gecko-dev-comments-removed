@@ -639,6 +639,22 @@ nsContentUtils::InitializeModifierStrings()
   sModifierSeparator = new nsString(modifierSeparator);  
 }
 
+
+
+static bool
+ShouldAddEventToStringEventTable(const EventNameMapping& aMapping)
+{
+  switch(aMapping.mId) {
+#define ID_TO_EVENT(name_, id_, type_, struct_) \
+  case id_: return nsGkAtoms::on##name_ == aMapping.mAtom;
+#include "mozilla/EventNameList.h"
+#undef ID_TO_EVENT
+  default:
+    break;
+  }
+  return false;
+}
+
 bool
 nsContentUtils::InitializeEventTable() {
   NS_ASSERTION(!sAtomEventTable, "EventTable already initialized!");
@@ -651,6 +667,7 @@ nsContentUtils::InitializeEventTable() {
 #define NON_IDL_EVENT EVENT
 #include "mozilla/EventNameList.h"
 #undef WINDOW_ONLY_EVENT
+#undef NON_IDL_EVENT
 #undef EVENT
     { nullptr }
   };
@@ -664,8 +681,11 @@ nsContentUtils::InitializeEventTable() {
   
   for (uint32_t i = 0; i < ArrayLength(eventArray) - 1; ++i) {
     sAtomEventTable->Put(eventArray[i].mAtom, eventArray[i]);
-    sStringEventTable->Put(Substring(nsDependentAtomString(eventArray[i].mAtom), 2),
-                           eventArray[i]);
+    if (ShouldAddEventToStringEventTable(eventArray[i])) {
+      sStringEventTable->Put(
+        Substring(nsDependentAtomString(eventArray[i].mAtom), 2),
+        eventArray[i]);
+    }
   }
 
   return true;
