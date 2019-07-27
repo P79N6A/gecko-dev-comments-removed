@@ -16,7 +16,7 @@ struct PRFileDesc;
 namespace mozilla {
 
 namespace dom {
-class Blob;
+class File;
 }
 
 
@@ -41,7 +41,7 @@ public:
   
   void AppendBuffer(nsTArray<uint8_t> & aBuf);
   
-  already_AddRefed<dom::Blob> ExtractBlob(nsISupports* aParent, const nsAString &aContentType);
+  already_AddRefed<dom::File> ExtractBlob(nsISupports* aParent, const nsAString &aContentType);
 
 private:
   

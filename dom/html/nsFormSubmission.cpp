@@ -77,12 +77,11 @@ public:
   }
 
   virtual nsresult AddNameValuePair(const nsAString& aName,
-                                    const nsAString& aValue) override;
+                                    const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   File* aFile) override;
+                                   File* aBlob);
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
-                                        nsIInputStream** aPostDataStream)
-                                                                       override;
+                                        nsIInputStream** aPostDataStream);
 
   virtual bool SupportsIsindexSubmission()
   {
@@ -166,7 +165,7 @@ nsFSURLEncoded::AddIsindex(const nsAString& aValue)
 
 nsresult
 nsFSURLEncoded::AddNameFilePair(const nsAString& aName,
-                                File* aFile)
+                                File* aBlob)
 {
   if (!mWarnedFileControl) {
     SendJSWarning(mDocument, "ForgotFileEnctypeWarning", nullptr, 0);
@@ -174,8 +173,8 @@ nsFSURLEncoded::AddNameFilePair(const nsAString& aName,
   }
 
   nsAutoString filename;
-  if (aFile) {
-    aFile->GetName(filename);
+  if (aBlob && aBlob->IsFile()) {
+    aBlob->GetName(filename);
   }
 
   return AddNameValuePair(aName, filename);
@@ -440,7 +439,7 @@ nsFSMultipartFormData::AddNameValuePair(const nsAString& aName,
 
 nsresult
 nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
-                                       File* aFile)
+                                       File* aBlob)
 {
   
   nsAutoCString nameStr;
@@ -449,15 +448,18 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
 
   nsCString filename, contentType;
   nsCOMPtr<nsIInputStream> fileStream;
-  if (aFile) {
+  if (aBlob) {
+    
+    
+    MOZ_ASSERT(aBlob->IsFile());
     nsAutoString filename16;
-    rv = aFile->GetName(filename16);
+    rv = aBlob->GetName(filename16);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
 
     nsAutoString filepath16;
-    rv = aFile->GetPath(filepath16);
+    rv = aBlob->GetPath(filepath16);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -472,7 +474,7 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
 
     
     nsAutoString contentType16;
-    rv = aFile->GetType(contentType16);
+    rv = aBlob->GetType(contentType16);
     if (NS_FAILED(rv) || contentType16.IsEmpty()) {
       contentType16.AssignLiteral("application/octet-stream");
     }
@@ -482,7 +484,7 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
                                         nsLinebreakConverter::eLinebreakSpace));
 
     
-    rv = aFile->GetInternalStream(getter_AddRefs(fileStream));
+    rv = aBlob->GetInternalStream(getter_AddRefs(fileStream));
     NS_ENSURE_SUCCESS(rv, rv);
     if (fileStream) {
       
@@ -517,7 +519,7 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
   
   
   uint64_t size;
-  if (fileStream && NS_SUCCEEDED(aFile->GetSize(&size))) {
+  if (fileStream && NS_SUCCEEDED(aBlob->GetSize(&size))) {
     
     
     AddPostDataStream();
@@ -585,12 +587,11 @@ public:
   }
 
   virtual nsresult AddNameValuePair(const nsAString& aName,
-                                    const nsAString& aValue) override;
+                                    const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   File* aFile) override;
+                                   File* aBlob);
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
-                                        nsIInputStream** aPostDataStream)
-                                                                       override;
+                                        nsIInputStream** aPostDataStream);
 
 private:
   nsString mBody;
@@ -611,11 +612,11 @@ nsFSTextPlain::AddNameValuePair(const nsAString& aName,
 
 nsresult
 nsFSTextPlain::AddNameFilePair(const nsAString& aName,
-                               File* aFile)
+                               File* aBlob)
 {
   nsAutoString filename;
-  if (aFile) {
-    aFile->GetName(filename);
+  if (aBlob && aBlob->IsFile()) {
+    aBlob->GetName(filename);
   }
 
   AddNameValuePair(aName, filename);

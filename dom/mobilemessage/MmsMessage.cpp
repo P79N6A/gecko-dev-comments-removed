@@ -94,10 +94,10 @@ MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
     
     if (element.contentParent()) {
       nsRefPtr<FileImpl> impl = static_cast<BlobParent*>(element.contentParent())->GetBlobImpl();
-      att.mContent = Blob::Create(nullptr, impl);
+      att.mContent = new File(nullptr, impl);
     } else if (element.contentChild()) {
       nsRefPtr<FileImpl> impl = static_cast<BlobChild*>(element.contentChild())->GetBlobImpl();
-      att.mContent = Blob::Create(nullptr, impl);
+      att.mContent = new File(nullptr, impl);
     } else {
       NS_WARNING("MmsMessage: Unable to get attachment content.");
     }
@@ -390,13 +390,10 @@ MmsMessage::GetData(ContentParent* aParent,
     
     
     
-    nsRefPtr<FileImpl> impl = element.content->Impl();
-    if (impl && impl->IsDateUnknown()) {
-      ErrorResult rv;
-      impl->GetLastModified(rv);
-      if (rv.Failed()) {
+    if (element.content->IsDateUnknown()) {
+      int64_t date;
+      if (NS_FAILED(element.content->GetMozLastModifiedDate(&date))) {
         NS_WARNING("Failed to get last modified date!");
-        rv.SuppressException();
       }
     }
 
@@ -580,10 +577,10 @@ MmsMessage::GetAttachments(JSContext* aCx, JS::MutableHandle<JS::Value> aAttachm
     
     nsIGlobalObject *global = xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx));
     MOZ_ASSERT(global);
-    nsRefPtr<Blob> newBlob = Blob::Create(global, attachment.content->Impl());
+    nsRefPtr<File> newBlob = new File(global, attachment.content->Impl());
 
     JS::Rooted<JS::Value> val(aCx);
-    if (!ToJSValue(aCx, newBlob, &val)) {
+    if (!GetOrCreateDOMReflector(aCx, newBlob, &val)) {
       return NS_ERROR_FAILURE;
     }
 

@@ -154,7 +154,7 @@ FileSystemTaskBase::Recv__delete__(const FileSystemResponseValue& aValue)
 }
 
 BlobParent*
-FileSystemTaskBase::GetBlobParent(FileImpl* aFile) const
+FileSystemTaskBase::GetBlobParent(nsIDOMFile* aFile) const
 {
   MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
              "Only call from parent process!");
@@ -164,23 +164,13 @@ FileSystemTaskBase::GetBlobParent(FileImpl* aFile) const
   
   nsString mimeType;
   aFile->GetType(mimeType);
-
-  
-  
-  {
-    ErrorResult rv;
-    aFile->GetSize(rv);
-    rv.SuppressException();
-  }
-
-  {
-    ErrorResult rv;
-    aFile->GetLastModified(rv);
-    rv.SuppressException();
-  }
+  uint64_t fileSize;
+  aFile->GetSize(&fileSize);
+  int64_t lastModifiedDate;
+  aFile->GetMozLastModifiedDate(&lastModifiedDate);
 
   ContentParent* cp = static_cast<ContentParent*>(mRequestParent->Manager());
-  return cp->GetOrCreateActorForFileImpl(aFile);
+  return cp->GetOrCreateActorForBlob(static_cast<File*>(aFile));
 }
 
 void

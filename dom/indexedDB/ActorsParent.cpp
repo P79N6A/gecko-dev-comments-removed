@@ -7718,7 +7718,6 @@ public:
     
     
     mContentType.Truncate();
-    mIsFile = false;
   }
 
 private:
