@@ -1310,6 +1310,8 @@ UnifiedComplete.prototype = {
     if (this._currentSearch) {
       this._currentSearch.cancel();
     }
+    
+    
     this.finishSearch();
   },
 
@@ -1321,14 +1323,24 @@ UnifiedComplete.prototype = {
 
 
   finishSearch: function (notify=false) {
+    TelemetryStopwatch.cancel(TELEMETRY_1ST_RESULT);
     
-    if (notify) {
-      this._currentSearch.notifyResults(false);
-    }
+    let search = this._currentSearch;
+    delete this._currentSearch;
+
+    if (!notify)
+      return;
 
     
-    TelemetryStopwatch.cancel(TELEMETRY_1ST_RESULT);
-    delete this._currentSearch;
+    
+    
+    
+    
+    
+    
+    
+    
+    search.notifyResults(false);
   },
 
   
@@ -1355,6 +1367,7 @@ UnifiedComplete.prototype = {
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIAutoCompleteSearch,
     Ci.nsIAutoCompleteSimpleResultListener,
+    Ci.nsIAutoCompleteSearchDescriptor,
     Ci.mozIPlacesAutoComplete,
     Ci.nsIObserver,
     Ci.nsISupportsWeakReference
