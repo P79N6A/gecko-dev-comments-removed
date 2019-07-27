@@ -55,13 +55,13 @@ public:
 
 
 
-  void UpdateWithTouchAtDevicePoint(ScreenIntCoord aPos, uint32_t aTimestampMs);
+  void UpdateWithTouchAtDevicePoint(ScreenCoord aPos, uint32_t aTimestampMs);
 
   
 
 
 
-  void StartTouch(ScreenIntCoord aPos, uint32_t aTimestampMs);
+  void StartTouch(ScreenCoord aPos, uint32_t aTimestampMs);
 
   
 
@@ -129,7 +129,7 @@ public:
 
 
 
-  float PanDistance(ScreenIntCoord aPos);
+  float PanDistance(ScreenCoord aPos);
 
   
 
@@ -211,16 +211,16 @@ public:
   CSSCoord GetCompositionEnd() const;
   CSSCoord GetPageEnd() const;
 
-  ScreenIntCoord GetPos() const { return mPos; }
+  ScreenCoord GetPos() const { return mPos; }
 
   virtual CSSCoord GetPointOffset(const CSSPoint& aPoint) const = 0;
   virtual CSSCoord GetRectLength(const CSSRect& aRect) const = 0;
   virtual CSSCoord GetRectOffset(const CSSRect& aRect) const = 0;
 
 protected:
-  ScreenIntCoord mPos;
+  ScreenCoord mPos;
   uint32_t mPosTimeMs;
-  ScreenIntCoord mStartPos;
+  ScreenCoord mStartPos;
   float mVelocity;
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
