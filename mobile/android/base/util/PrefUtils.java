@@ -55,18 +55,26 @@ public class PrefUtils {
     }
 
     
-    
-    
-    public static SharedPreferences.Editor putStringSet(final SharedPreferences.Editor edit,
+
+
+
+
+
+
+
+
+
+
+    public static SharedPreferences.Editor putStringSet(final SharedPreferences.Editor editor,
                                     final String key,
                                     final Set<String> vals) {
         if (Versions.preHC) {
             final JSONArray json = new JSONArray(vals);
-            edit.putString(key, json.toString()).apply();
+            editor.putString(key, json.toString());
         } else {
-            edit.putStringSet(key, vals).apply();
+            editor.putStringSet(key, vals);
         }
 
-        return edit;
+        return editor;
     }
 }
