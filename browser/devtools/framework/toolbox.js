@@ -70,7 +70,7 @@ XPCOMUtils.defineLazyGetter(this, "is64Bit", () => {
 
 
 
-const ToolboxButtons = [
+const ToolboxButtons = exports.ToolboxButtons = [
   { id: "command-button-pick",
     isTargetSupported: target =>
       target.getTrait("highlightable")
@@ -83,7 +83,8 @@ const ToolboxButtons = [
     isTargetSupported: target => !target.isAddon },
   { id: "command-button-responsive" },
   { id: "command-button-paintflashing" },
-  { id: "command-button-tilt" },
+  { id: "command-button-tilt",
+    commands: "devtools/tilt/tilt-commands" },
   { id: "command-button-scratchpad" },
   { id: "command-button-eyedropper" },
   { id: "command-button-screenshot" },

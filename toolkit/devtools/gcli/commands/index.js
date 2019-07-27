@@ -54,7 +54,6 @@ exports.baseModules = [
 
 
 exports.devtoolsModules = [
-  "devtools/tilt/tilt-commands",
   "gcli/commands/addon",
   "gcli/commands/appcache",
   "gcli/commands/calllog",
@@ -91,10 +90,25 @@ try {
 
 
 
+
+
+try {
+  const { ToolboxButtons } = require("devtools/framework/toolbox");
+  exports.devtoolsButtonModules = ToolboxButtons.map(def => def.commands || [])
+                                     .reduce((prev, curr) => prev.concat(curr), []);
+} catch(e) {
+  
+  exports.devtoolsButtonModules = [];
+}
+
+
+
+
 exports.addAllItemsByModule = function(system) {
   system.addItemsByModule(exports.baseModules, { delayedLoad: true });
   system.addItemsByModule(exports.devtoolsModules, { delayedLoad: true });
   system.addItemsByModule(exports.devtoolsToolModules, { delayedLoad: true });
+  system.addItemsByModule(exports.devtoolsButtonModules, { delayedLoad: true });
 
   const { mozDirLoader } = require("gcli/commands/cmd");
   system.addItemsByModule("mozcmd", { delayedLoad: true, loader: mozDirLoader });
