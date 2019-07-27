@@ -272,6 +272,12 @@ SandboxBroker::SetSecurityLevelForGMPlugin()
                             L"\\??\\pipe\\chrome.*");
   ret = ret && (sandbox::SBOX_ALL_OK == result);
 
+  
+  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                            sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                            L"\\??\\pipe\\gecko-crash-server-pipe.*");
+  ret = ret && (sandbox::SBOX_ALL_OK == result);
+
 #ifdef DEBUG
   
   
