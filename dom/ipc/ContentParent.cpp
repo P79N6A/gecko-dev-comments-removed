@@ -982,18 +982,15 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         }
     }
 
+    bool reused = !!p;
+    bool tookPreallocated = false;
     if (!p) {
         p = MaybeTakePreallocatedAppProcess(manifestURL,
                                             initialPriority);
-        if (!p) {
-#ifdef MOZ_NUWA_PROCESS
-            if (Preferences::GetBool("dom.ipc.processPrelaunch.enabled",
-                                     false)) {
-                
-                
-                return nullptr;
-            }
-#endif
+        tookPreallocated = !!p;
+        if (!tookPreallocated) {
+            
+            
             NS_WARNING("Unable to use pre-allocated app process");
             p = new ContentParent(ownApp,
                                    nullptr,
@@ -1017,6 +1014,29 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         p->ChildID(),
         p->IsForApp(),
         p->IsForBrowser());
+    if (!browser) {
+        
+        
+        if (!reused) {
+            
+            p->KillHard();
+            sAppContentParents->Remove(manifestURL);
+            p = nullptr;
+        }
+
+        
+        
+        
+        
+        if (tookPreallocated) {
+          return ContentParent::CreateBrowserOrApp(aContext,
+                                                   aFrameElement,
+                                                   aOpenerContentParent);
+        }
+
+        
+        return nullptr;
+    }
 
     p->MaybeTakeCPUWakeLock(aFrameElement);
 
@@ -1904,11 +1924,11 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
             MOZ_ASSERT(opened);
 #endif
         }
-#ifdef MOZ_WIDGET_GONK
-        DebugOnly<bool> opened = PSharedBufferManager::Open(this);
-        MOZ_ASSERT(opened);
-#endif
     }
+#ifdef MOZ_WIDGET_GONK
+    DebugOnly<bool> opened = PSharedBufferManager::Open(this);
+    MOZ_ASSERT(opened);
+#endif
 
     if (aSendRegisteredChrome) {
         nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
