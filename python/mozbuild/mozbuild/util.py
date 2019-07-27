@@ -249,12 +249,16 @@ class List(list):
         return list.__setslice__(self, i, j, sequence)
 
     def __add__(self, other):
+        
+        
+        other = [] if other is None else other
         if not isinstance(other, list):
             raise ValueError('Only lists can be appended to lists.')
 
-        return list.__add__(self, other)
+        return List(list.__add__(self, other))
 
     def __iadd__(self, other):
+        other = [] if other is None else other
         if not isinstance(other, list):
             raise ValueError('Only lists can be appended to lists.')
 
