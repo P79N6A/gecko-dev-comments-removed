@@ -2971,7 +2971,7 @@ nsLineLayout::ExpandRubyBoxWithAnnotations(PerFrameData* aFrame,
     if (!computeState.mFirstParticipant) {
       continue;
     }
-    if (IsRubyAlignSpaceAround(aFrame->mFrame)) {
+    if (IsRubyAlignSpaceAround(annotation->mFrame)) {
       
       computeState.mFirstParticipant->mJustificationAssignment.mGapsAtStart = 1;
       computeState.mLastParticipant->mJustificationAssignment.mGapsAtEnd = 1;
