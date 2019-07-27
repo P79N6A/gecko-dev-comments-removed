@@ -253,18 +253,24 @@ this.BasePromiseWorker.prototype = {
 
 
 
-  post: function(fun, args, closure) {
+
+
+
+  post: function(fun, args, closure, transfers) {
     return Task.spawn(function* postMessage() {
       
       if (args) {
         args = yield Promise.resolve(Promise.all(args));
+      }
+      if (transfers) {
+        transfers = yield Promise.resolve(Promise.all(transfers));
       }
 
       let id = ++this._id;
       let message = {fun: fun, args: args, id: id};
       this.log("Posting message", message);
       try {
-        this._worker.postMessage(message);
+        this._worker.postMessage(message, ...[transfers]);
       } catch (ex if typeof ex == "number") {
         this.log("Could not post message", message, "due to xpcom error", ex);
         
