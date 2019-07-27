@@ -4108,6 +4108,8 @@ pref("browser.history.maxStateObjectSize", 655360);
 
 
 pref("xpinstall.whitelist.required", true);
+
+pref("xpinstall.signatures.required", false);
 pref("extensions.alwaysUnpack", false);
 pref("extensions.minCompatiblePlatformVersion", "2.0");
 
@@ -4470,11 +4472,11 @@ pref("dom.inter-app-communication-api.enabled", false);
 pref("dom.mapped_arraybuffer.enabled", false);
 
 
-pref("urlclassifier.malwareTable", "goog-malware-shavar,goog-unwanted-shavar,test-malware-simple,test-unwanted-simple");
+pref("urlclassifier.malwareTable", "goog-malware-shavar,test-malware-simple");
 pref("urlclassifier.phishTable", "goog-phish-shavar,test-phish-simple");
 pref("urlclassifier.downloadBlockTable", "");
 pref("urlclassifier.downloadAllowTable", "");
-pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simple,test-unwanted-simple,goog-downloadwhite-digest256,mozpub-track-digest256");
+pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simple,goog-downloadwhite-digest256,mozpub-track-digest256");
 
 
 
@@ -4688,9 +4690,11 @@ pref("media.gmp.insecure.allow", false);
 
 
 
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(XP_LINUX)
 pref("gfx.vsync.hw-vsync.enabled", true);
 pref("gfx.vsync.compositor", true);
 pref("gfx.vsync.refreshdriver", true);
+#endif
 
 
 #ifdef MOZ_SECUREELEMENT

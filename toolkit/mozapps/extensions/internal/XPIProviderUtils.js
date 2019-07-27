@@ -70,7 +70,7 @@ const PROP_JSON_FIELDS = ["id", "syncGUID", "location", "version", "type",
                           "skinnable", "size", "sourceURI", "releaseNotesURI",
                           "softDisabled", "foreignInstall", "hasBinaryComponents",
                           "strictCompatibility", "locales", "targetApplications",
-                          "targetPlatforms", "multiprocessCompatible"];
+                          "targetPlatforms", "multiprocessCompatible", "signedState"];
 
 
 const ASYNC_SAVE_DELAY_MS = 20;
