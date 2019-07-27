@@ -1348,7 +1348,6 @@ pref("devtools.errorconsole.enabled", false);
 
 pref("devtools.toolbar.enabled", true);
 pref("devtools.toolbar.visible", false);
-pref("devtools.commands.dir", "");
 
 
 pref("devtools.appmanager.enabled", true);
@@ -1521,17 +1520,6 @@ sticky_pref("devtools.theme", "light");
 #endif
 
 
-pref("devtools.gcli.hideIntro", false);
-
-
-pref("devtools.gcli.eagerHelper", 2);
-
-
-pref("devtools.gcli.jquerySrc", "https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js");
-pref("devtools.gcli.lodashSrc", "https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js");
-pref("devtools.gcli.underscoreSrc", "https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js");
-
-
 pref("devtools.webconsole.filter.network", true);
 pref("devtools.webconsole.filter.networkinfo", false);
 pref("devtools.webconsole.filter.netwarn", true);
@@ -1621,11 +1609,6 @@ pref("devtools.fontinspector.enabled", true);
 
 
 pref("devtools.telemetry.tools.opened.version", "{}");
-
-
-pref("devtools.gcli.imgurClientID", '0df414e888d7240');
-
-pref("devtools.gcli.imgurUploadURL", "https://api.imgur.com/3/image");
 
 
 
@@ -1917,7 +1900,7 @@ pref("reader.parse-node-limit", 0);
 pref("dom.serviceWorkers.enabled", true);
 #endif
 
-pref("browser.pocket.enabled", true);
+pref("browser.pocket.enabled", false);
 pref("browser.pocket.api", "api.getpocket.com");
 pref("browser.pocket.site", "getpocket.com");
 pref("browser.pocket.oAuthConsumerKey", "40249-e88c401e1b1f2242d9e441c4");
