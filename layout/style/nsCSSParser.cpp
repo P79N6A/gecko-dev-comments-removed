@@ -6039,24 +6039,22 @@ CSSParserImpl::ParseDeclarationBlock(uint32_t aFlags, nsCSSContextType aContext)
   }
   css::Declaration* declaration = new css::Declaration();
   mData.AssertInitialState();
-  if (declaration) {
-    for (;;) {
-      bool changed;
-      if (!ParseDeclaration(declaration, aFlags, true, &changed, aContext)) {
-        if (!SkipDeclaration(checkForBraces)) {
+  for (;;) {
+    bool changed;
+    if (!ParseDeclaration(declaration, aFlags, true, &changed, aContext)) {
+      if (!SkipDeclaration(checkForBraces)) {
+        break;
+      }
+      if (checkForBraces) {
+        if (ExpectSymbol('}', true)) {
           break;
         }
-        if (checkForBraces) {
-          if (ExpectSymbol('}', true)) {
-            break;
-          }
-        }
-        
-        
       }
+      
+      
     }
-    declaration->CompressFrom(&mData);
   }
+  declaration->CompressFrom(&mData);
   return declaration;
 }
 
