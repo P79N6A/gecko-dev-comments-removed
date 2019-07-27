@@ -331,3 +331,34 @@ TEST(MP4Demuxer, CENCFrag)
   }
   EXPECT_EQ(ArrayLength(audio), i);
 }
+
+TEST(MP4Demuxer, GetNextKeyframe)
+{
+  nsRefPtr<MP4DemuxerBinding> b = new MP4DemuxerBinding("gizmo-frag.mp4");
+  MonitorAutoLock mon(b->mMonitor);
+  MP4Demuxer* d = b->demuxer;
+
+  EXPECT_TRUE(d->Init());
+
+  
+  
+  auto len = b->resource->GetLength();
+  b->resource->MockAddBufferedRange(0, len);
+
+  
+  nsTArray<MediaByteRange> ranges;
+  EXPECT_TRUE(NS_SUCCEEDED(b->resource->GetCachedRanges(ranges)));
+  d->UpdateIndex(ranges);
+
+  
+  
+
+  MP4Sample* sample;
+  size_t i = 0;
+  const int64_t keyframe = 1000000;
+  while (!!(sample = d->DemuxVideoSample())) {
+    int64_t expected = (sample->decode_timestamp < keyframe) ? keyframe : -1;
+    EXPECT_EQ(d->GetNextKeyframeTime(), expected);
+    i++;
+  }
+}
