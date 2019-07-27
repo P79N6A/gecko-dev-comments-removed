@@ -35,6 +35,7 @@ import org.mozilla.gecko.overlays.service.sharemethods.SendTab;
 import org.mozilla.gecko.overlays.service.sharemethods.ShareMethod;
 import org.mozilla.gecko.LocaleAware;
 import org.mozilla.gecko.sync.setup.activities.WebURLFinder;
+import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UIAsyncTask;
 
@@ -180,7 +181,21 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
             }
         });
 
+        
+        SendTabList sendTabList = (SendTabList) findViewById(R.id.overlay_send_tab_btn);
+
+        
+        SendTabDeviceListArrayAdapter adapter = new SendTabDeviceListArrayAdapter(this, this);
+        sendTabList.setAdapter(adapter);
+        sendTabList.setSendTabTargetSelectedListener(this);
+
+        
         final OverlayDialogButton readinglistBtn = (OverlayDialogButton) findViewById(R.id.overlay_share_reading_list_btn);
+
+        if (HardwareUtils.isLowMemoryPlatform()) {
+            readinglistBtn.setVisibility(View.GONE);
+            return;
+        }
 
         final String readingListEnabledLabel = resources.getString(R.string.overlay_share_reading_list_btn_label);
         final Drawable readingListEnabledIcon = resources.getDrawable(R.drawable.overlay_readinglist_icon);
@@ -196,14 +211,6 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
                 addToReadingList();
             }
         });
-
-        
-        SendTabList sendTabList = (SendTabList) findViewById(R.id.overlay_send_tab_btn);
-
-        
-        SendTabDeviceListArrayAdapter adapter = new SendTabDeviceListArrayAdapter(this, this);
-        sendTabList.setAdapter(adapter);
-        sendTabList.setSendTabTargetSelectedListener(this);
     }
 
     @Override
