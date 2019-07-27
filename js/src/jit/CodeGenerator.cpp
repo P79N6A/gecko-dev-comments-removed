@@ -3136,7 +3136,7 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
 
     
     Register objreg = ToRegister(apply->getTempObject());
-    Register copyreg = ToRegister(apply->getTempCopy());
+    Register extraStackSpace = ToRegister(apply->getTempStackCounter());
 
     
     Register argcreg = ToRegister(apply->getArgc());
@@ -3150,14 +3150,14 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
     }
 
     
-    emitPushArguments(apply, copyreg);
+    emitPushArguments(apply, extraStackSpace);
 
     masm.checkStackAlignment();
 
     
     if (apply->hasSingleTarget() && apply->getSingleTarget()->isNative()) {
-        emitCallInvokeFunction(apply, copyreg);
-        emitPopArguments(apply, copyreg);
+        emitCallInvokeFunction(apply, extraStackSpace);
+        emitPopArguments(apply, extraStackSpace);
         return;
     }
 
@@ -3176,19 +3176,21 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
     {
         
         unsigned pushed = masm.framePushed();
-        masm.addPtr(Imm32(pushed), copyreg);
-        masm.makeFrameDescriptor(copyreg, JitFrame_IonJS);
+        Register stackSpace = extraStackSpace;
+        masm.addPtr(Imm32(pushed), stackSpace);
+        masm.makeFrameDescriptor(stackSpace, JitFrame_IonJS);
 
         masm.Push(argcreg);
         masm.Push(calleereg);
-        masm.Push(copyreg); 
+        masm.Push(stackSpace); 
 
         Label underflow, rejoin;
 
         
         if (!apply->hasSingleTarget()) {
-            masm.load16ZeroExtend(Address(calleereg, JSFunction::offsetOfNargs()), copyreg);
-            masm.branch32(Assembler::Below, argcreg, copyreg, &underflow);
+            Register nformals = extraStackSpace;
+            masm.load16ZeroExtend(Address(calleereg, JSFunction::offsetOfNargs()), nformals);
+            masm.branch32(Assembler::Below, argcreg, nformals, &underflow);
         } else {
             masm.branch32(Assembler::Below, argcreg, Imm32(apply->getSingleTarget()->nargs()),
                           &underflow);
@@ -3218,9 +3220,9 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
         markSafepointAt(callOffset, apply);
 
         
-        masm.loadPtr(Address(StackPointer, 0), copyreg);
-        masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), copyreg);
-        masm.subPtr(Imm32(pushed), copyreg);
+        masm.loadPtr(Address(StackPointer, 0), stackSpace);
+        masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), stackSpace);
+        masm.subPtr(Imm32(pushed), stackSpace);
 
         
         
@@ -3232,12 +3234,12 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
     
     {
         masm.bind(&invoke);
-        emitCallInvokeFunction(apply, copyreg);
+        emitCallInvokeFunction(apply, extraStackSpace);
     }
 
     
     masm.bind(&end);
-    emitPopArguments(apply, copyreg);
+    emitPopArguments(apply, extraStackSpace);
 }
 
 typedef bool (*ArraySpliceDenseFn)(JSContext *, HandleObject, uint32_t, uint32_t);
