@@ -620,4 +620,35 @@ public class AndroidFxAccount {
       return neverSynced;
     }
   }
+
+  
+  public void unsafeTransitionToDefaultEndpoints() {
+    unsafeTransitionToStageEndpoints(
+        FxAccountConstants.DEFAULT_AUTH_SERVER_ENDPOINT,
+        FxAccountConstants.DEFAULT_TOKEN_SERVER_ENDPOINT);
+    }
+
+  
+  public void unsafeTransitionToStageEndpoints() {
+    unsafeTransitionToStageEndpoints(
+        FxAccountConstants.STAGE_AUTH_SERVER_ENDPOINT,
+        FxAccountConstants.STAGE_TOKEN_SERVER_ENDPOINT);
+  }
+
+  protected void unsafeTransitionToStageEndpoints(String authServerEndpoint, String tokenServerEndpoint) {
+    try {
+      getReadingListPrefs().edit().clear().commit();
+    } catch (UnsupportedEncodingException | GeneralSecurityException e) {
+      
+    }
+    try {
+      getSyncPrefs().edit().clear().commit();
+    } catch (UnsupportedEncodingException | GeneralSecurityException e) {
+      
+    }
+    State state = getState();
+    setState(state.makeSeparatedState());
+    accountManager.setUserData(account, ACCOUNT_KEY_IDP_SERVER, authServerEndpoint);
+    accountManager.setUserData(account, ACCOUNT_KEY_TOKEN_SERVER, tokenServerEndpoint);
+  }
 }
