@@ -3634,7 +3634,7 @@ Checker.prototype = {
 
     var prefs = Services.prefs;
     var certs = null;
-    if (!prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE) &&
+    if (!getPref("getCharPref", PREF_APP_UPDATE_URL_OVERRIDE, null) &&
         getPref("getBoolPref", PREF_APP_UPDATE_CERT_CHECKATTRS, true)) {
       certs = gCertUtils.readCertPrefs(PREF_APP_UPDATE_CERTS_BRANCH);
     }
@@ -4568,16 +4568,13 @@ UpdatePrompt.prototype = {
 
 
   showUpdateDownloaded: function UP_showUpdateDownloaded(update, background) {
-    if (background && getPref("getBoolPref", PREF_APP_UPDATE_SILENT, false)) {
-      return;
-    }
-    
-    Services.obs.notifyObservers(null, "update-downloaded", update.state);
-
     if (this._getAltUpdateWindow())
       return;
 
     if (background) {
+      if (getPref("getBoolPref", PREF_APP_UPDATE_SILENT, false))
+        return;
+
       var stringsPrefix = "updateDownloaded_" + update.type + ".";
       var title = gUpdateBundle.formatStringFromName(stringsPrefix + "title",
                                                      [update.name], 1);
