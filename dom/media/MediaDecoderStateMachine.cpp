@@ -630,18 +630,7 @@ MediaDecoderStateMachine::DecodeVideo()
       return;
     }
 
-    
-    
-    
-    if (mIsVideoPrerolling &&
-        (static_cast<uint32_t>(VideoQueue().GetSize())
-          >= VideoPrerollFrames() * mPlaybackRate))
-    {
-      mIsVideoPrerolling = false;
-    }
-
     skipToNextKeyFrame = NeedToSkipToNextKeyframe();
-
     currentTime = mState == DECODER_STATE_SEEKING ? 0 : GetMediaTime();
 
     
@@ -689,14 +678,6 @@ MediaDecoderStateMachine::DecodeAudio()
       DispatchDecodeTasksIfNeeded();
       mon.NotifyAll();
       return;
-    }
-
-    
-    
-    
-    if (mIsAudioPrerolling &&
-        GetDecodedAudioDuration() >= AudioPrerollUsecs() * mPlaybackRate) {
-      mIsAudioPrerolling = false;
     }
   }
 
@@ -755,12 +736,19 @@ MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
       return;
     }
 
-    case DECODER_STATE_BUFFERING:
+    case DECODER_STATE_BUFFERING: {
       
       
+      Push(audio);
       ScheduleStateMachine();
+      return;
+    }
+
     case DECODER_STATE_DECODING: {
       Push(audio);
+      if (mIsAudioPrerolling && DonePrerollingAudio()) {
+        StopPrerollingAudio();
+      }
       return;
     }
 
@@ -891,7 +879,13 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
     VideoQueue().Push(mFirstVideoFrameAfterSeek);
     mFirstVideoFrameAfterSeek = nullptr;
   }
-  isAudio ? AudioQueue().Finish() : VideoQueue().Finish();
+  if (isAudio) {
+    AudioQueue().Finish();
+    StopPrerollingAudio();
+  } else {
+    VideoQueue().Finish();
+    StopPrerollingVideo();
+  }
   switch (mState) {
     case DECODER_STATE_DECODING_FIRSTFRAME: {
       MaybeFinishDecodeFirstFrame();
@@ -970,12 +964,20 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
       return;
     }
 
-    case DECODER_STATE_BUFFERING:
+    case DECODER_STATE_BUFFERING: {
       
       
+      Push(video);
       ScheduleStateMachine();
+      return;
+    }
+
     case DECODER_STATE_DECODING: {
       Push(video);
+      if (mIsVideoPrerolling && DonePrerollingVideo()) {
+        StopPrerollingVideo();
+      }
+
       
       
       
@@ -1204,9 +1206,10 @@ void MediaDecoderStateMachine::MaybeStartPlayback()
 
   bool playStatePermits = mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING;
   bool decodeStatePermits = mState == DECODER_STATE_DECODING || mState == DECODER_STATE_COMPLETED;
-  if (!playStatePermits || !decodeStatePermits) {
-    DECODER_LOG("Not starting playback [playStatePermits: %d, decodeStatePermits: %d]",
-                (int) playStatePermits, (int) decodeStatePermits);
+  if (!playStatePermits || !decodeStatePermits || mIsAudioPrerolling || mIsVideoPrerolling) {
+    DECODER_LOG("Not starting playback [playStatePermits: %d, decodeStatePermits: %d, "
+                "mIsAudioPrerolling: %d, mIsVideoPrerolling: %d]", (int) playStatePermits,
+                (int) decodeStatePermits, (int) mIsAudioPrerolling, (int) mIsVideoPrerolling);
     return;
   }
 
@@ -1468,8 +1471,8 @@ void MediaDecoderStateMachine::StartDecoding()
   }
 
   
-  mIsAudioPrerolling = true;
-  mIsVideoPrerolling = true;
+  mIsAudioPrerolling = !DonePrerollingAudio();
+  mIsVideoPrerolling = !DonePrerollingVideo();
 
   
   DispatchDecodeTasksIfNeeded();
