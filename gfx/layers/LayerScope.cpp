@@ -13,6 +13,7 @@
 #include "mozilla/Endian.h"
 #include "TexturePoolOGL.h"
 #include "mozilla/layers/CompositorOGL.h"
+#include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/TextureHostOGL.h"
 
@@ -333,7 +334,7 @@ public:
     static void CreateServerSocket()
     {
         
-        NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+        MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
         if (!sWebSocketManager) {
             sWebSocketManager = new LayerScopeWebSocketManager();
         }
@@ -652,6 +653,16 @@ protected:
 NS_IMPL_ISUPPORTS(DebugDataSender, nsIRunnable);
 
 
+class CreateServerSocketRunnable : public nsRunnable
+{
+public:
+    NS_IMETHOD Run() {
+        WebSocketHelper::CreateServerSocket();
+        return NS_OK;
+    }
+};
+
+
 
 
 
@@ -915,15 +926,19 @@ LayerScope::Init()
         return;
     }
 
-    
-    WebSocketHelper::CreateServerSocket();
-}
-
-void
-LayerScope::DeInit()
-{
-    
-    WebSocketHelper::DestroyServerSocket();
+    if (NS_IsMainThread()) {
+        WebSocketHelper::CreateServerSocket();
+    } else {
+        
+        
+        static bool dispatched = false;
+        if (dispatched) {
+            return;
+        }
+        DebugOnly<nsresult> rv = NS_DispatchToMainThread(new CreateServerSocketRunnable());
+        MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to dispatch WebSocket Creation to main thread");
+        dispatched = true;
+    }
 }
 
 void
@@ -965,7 +980,14 @@ LayerScope::SendLayerDump(UniquePtr<Packet> aPacket)
 bool
 LayerScope::CheckSendable()
 {
+    
+    MOZ_ASSERT(CompositorParent::IsInCompositorThread());
+
+    if (!gfxPrefs::LayerScopeEnabled()) {
+        return false;
+    }
     if (!WebSocketHelper::GetSocketManager()) {
+        Init();
         return false;
     }
     if (!WebSocketHelper::GetSocketManager()->IsConnected()) {
