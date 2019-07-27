@@ -721,6 +721,10 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_IMAGE_ORIENTATION_FROM_IMAGE   1
 
 
+#define NS_STYLE_ISOLATION_AUTO                 0
+#define NS_STYLE_ISOLATION_ISOLATE              1
+
+
 #define NS_STYLE_OBJECT_FIT_FILL                0
 #define NS_STYLE_OBJECT_FIT_CONTAIN             1
 #define NS_STYLE_OBJECT_FIT_COVER               2
