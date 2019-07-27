@@ -136,7 +136,7 @@ class Test1BrowserCall(MarionetteTestCase):
         
         
         
-        sleep(2)
+        sleep(5)
         button.click()
 
         

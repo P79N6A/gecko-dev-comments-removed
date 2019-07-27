@@ -5,8 +5,9 @@
 
 
 var loop = loop || {};
-loop.store = (function() {
+loop.store = loop.store || {};
 
+loop.store.ConversationStore = (function() {
   var sharedActions = loop.shared.actions;
   var CALL_TYPES = loop.shared.utils.CALL_TYPES;
 
@@ -14,7 +15,7 @@ loop.store = (function() {
 
 
 
-  var WS_STATES = {
+  var WS_STATES = loop.store.WS_STATES = {
     
     INIT: "init",
     
@@ -31,7 +32,7 @@ loop.store = (function() {
     CONNECTED: "connected"
   };
 
-  var CALL_STATES = {
+  var CALL_STATES = loop.store.CALL_STATES = {
     
     INIT: "cs-init",
     
@@ -51,7 +52,6 @@ loop.store = (function() {
     
     TERMINATED: "cs-terminated"
   };
-
 
   var ConversationStore = Backbone.Model.extend({
     defaults: {
@@ -402,9 +402,5 @@ loop.store = (function() {
     }
   });
 
-  return {
-    CALL_STATES: CALL_STATES,
-    ConversationStore: ConversationStore,
-    WS_STATES: WS_STATES
-  };
+  return ConversationStore;
 })();

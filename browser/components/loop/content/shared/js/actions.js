@@ -118,6 +118,13 @@ loop.shared.actions = (function() {
       type: String,
       
       enabled: Boolean
+    }),
+
+    
+
+
+
+    GetAllRooms: Action.define("getAllRooms", {
     })
   };
 })();
