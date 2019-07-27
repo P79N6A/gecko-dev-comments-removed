@@ -1227,7 +1227,7 @@ MPhi::foldsTernary()
     
     if (IsNumberType(testArg->type()) && c->vp()->toNumber() == 0) {
         
-        if (trueDef == c)
+        if (trueDef == c && !c->block()->dominates(block()))
             c->block()->moveBefore(pred->lastIns(), c);
         return trueDef;
     }
@@ -1239,7 +1239,7 @@ MPhi::foldsTernary()
         c->vp()->toString() == GetIonContext()->runtime->emptyString())
     {
         
-        if (trueDef == c)
+        if (trueDef == c && !c->block()->dominates(block()))
             c->block()->moveBefore(pred->lastIns(), c);
         return trueDef;
     }
