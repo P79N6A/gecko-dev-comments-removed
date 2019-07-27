@@ -18,10 +18,11 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ServiceWorkerBinding.h" 
 #include "mozilla/dom/ServiceWorkerCommon.h"
+#include "nsClassHashtable.h"
+#include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsTArrayForwardDeclare.h"
 #include "nsTObserverArray.h"
-#include "nsClassHashtable.h"
 
 class nsIScriptError;
 
@@ -84,6 +85,14 @@ public:
     if (wasEmpty) {
       aJob->Start();
     }
+  }
+
+  
+  ServiceWorkerJob*
+  Peek()
+  {
+    MOZ_ASSERT(!mJobs.IsEmpty());
+    return mJobs[0];
   }
 
 private:
@@ -310,6 +319,8 @@ public:
 
     nsClassHashtable<nsCStringHashKey, ServiceWorkerJobQueue> mJobQueues;
 
+    nsDataHashtable<nsCStringHashKey, bool> mSetOfScopesBeingUpdated;
+
     ServiceWorkerDomainInfo()
     { }
 
@@ -359,10 +370,12 @@ public:
   void
   FinishFetch(ServiceWorkerRegistrationInfo* aRegistration);
 
-  void
+  
+  
+  bool
   HandleError(JSContext* aCx,
-              const nsACString& aScope,
-              const nsAString& aWorkerURL,
+              const nsCString& aScope,
+              const nsString& aWorkerURL,
               nsString aMessage,
               nsString aFilename,
               nsString aLine,
