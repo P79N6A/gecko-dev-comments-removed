@@ -3276,7 +3276,7 @@ let SessionStoreInternal = {
 
     
     
-    let hosts = Object.keys(cookieHosts).join("|").replace("\\.", "\\.", "g");
+    let hosts = Object.keys(cookieHosts).join("|").replace(/\./g, "\\.");
     
     if (!hosts.length)
       return;
