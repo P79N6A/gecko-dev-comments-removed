@@ -793,8 +793,6 @@ nsTextInputListener::NotifySelectionChanged(nsIDOMDocument* aDoc, nsISelection* 
     }
   }
 
-  UpdateTextInputCommands(NS_LITERAL_STRING("selectionchange"), aSel, aReason);
-
   
   if (collapsed == mSelectionWasCollapsed)
     return NS_OK;
