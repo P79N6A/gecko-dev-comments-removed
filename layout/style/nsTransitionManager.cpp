@@ -615,7 +615,7 @@ nsTransitionManager::UpdateCascadeResultsWithTransitions(
 
 void
 nsTransitionManager::UpdateCascadeResultsWithAnimations(
-                       const AnimationPlayerCollection* aAnimations)
+                       AnimationPlayerCollection* aAnimations)
 {
   AnimationPlayerCollection* transitions =
     mPresContext->TransitionManager()->
@@ -641,7 +641,7 @@ nsTransitionManager::UpdateCascadeResultsWithAnimationsToBeDestroyed(
 void
 nsTransitionManager::UpdateCascadeResults(
                        AnimationPlayerCollection* aTransitions,
-                       const AnimationPlayerCollection* aAnimations)
+                       AnimationPlayerCollection* aAnimations)
 {
   if (!aTransitions) {
     
@@ -656,8 +656,15 @@ nsTransitionManager::UpdateCascadeResults(
   
   
   
-  if (aAnimations && aAnimations->mStyleRule) {
-    aAnimations->mStyleRule->AddPropertiesToSet(propertiesUsed);
+  if (aAnimations) {
+    TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
+    
+    
+    aAnimations->EnsureStyleRuleFor(now, EnsureStyleRule_IsThrottled);
+
+    if (aAnimations->mStyleRule) {
+      aAnimations->mStyleRule->AddPropertiesToSet(propertiesUsed);
+    }
   }
 
   
