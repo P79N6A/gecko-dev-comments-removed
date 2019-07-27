@@ -1010,15 +1010,12 @@ var gBrowserInit = {
 
     
     
-    if (!gMultiProcessBrowser) {
-      
-      
-      gBrowser.addEventListener("pageshow", function(event) {
-        
-        if (content && event.target == content.document)
-          setTimeout(pageShowEventHandlers, 0, event.persisted);
-      }, true);
-    }
+    let mm = window.messageManager;
+    mm.addMessageListener("PageVisibility:Show", function(message) {
+      if (message.target == gBrowser.selectedBrowser) {
+        setTimeout(pageShowEventHandlers, 0, message.data.persisted);
+      }
+    });
 
     if (uriToLoad && uriToLoad != "about:blank") {
       if (uriToLoad instanceof Ci.nsISupportsArray) {
