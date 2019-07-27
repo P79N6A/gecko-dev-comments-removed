@@ -137,8 +137,7 @@ let DirectoryLinksProvider = {
       let enhanced = true;
       try {
         
-        if (Services.prefs.getBoolPref("privacy.donottrackheader.enabled") &&
-            Services.prefs.getIntPref("privacy.donottrackheader.value") == 1) {
+        if (Services.prefs.getBoolPref("privacy.donottrackheader.enabled")) {
           enhanced = false;
         }
       }
