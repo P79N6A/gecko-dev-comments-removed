@@ -164,6 +164,10 @@ public:
   nsString mNativeCharactersIgnoringModifiers;
 #endif
 
+  
+  
+  bool ShouldCauseKeypressEvents() const;
+
   void GetDOMKeyName(nsAString& aKeyName)
   {
     if (mKeyNameIndex == KEY_NAME_INDEX_USE_STRING) {

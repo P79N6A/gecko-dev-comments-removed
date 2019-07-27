@@ -159,6 +159,42 @@ public:
 
   nsresult NotifyIME(const IMENotification& aIMENotification);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool DispatchKeyboardEvent(uint32_t aMessage,
+                             const WidgetKeyboardEvent& aKeyboardEvent,
+                             nsEventStatus& aStatus);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool MaybeDispatchKeypressEvents(const WidgetKeyboardEvent& aKeyboardEvent,
+                                   nsEventStatus& aStatus);
+
 private:
   
   
@@ -207,7 +243,7 @@ private:
 
 
 
-  void InitEvent(WidgetCompositionEvent& aEvent) const;
+  void InitEvent(WidgetGUIEvent& aEvent) const;
 
   
 
@@ -224,6 +260,32 @@ private:
 
 
   nsresult StartCompositionAutomaticallyIfNecessary(nsEventStatus& aStatus);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool DispatchKeyboardEventInternal(uint32_t aMessage,
+                                     const WidgetKeyboardEvent& aKeyboardEvent,
+                                     nsEventStatus& aStatus,
+                                     uint32_t aIndexOfKeypress = 0);
 };
 
 } 

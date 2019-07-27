@@ -289,6 +289,32 @@ WidgetInputEvent::AccelModifier()
 
 
 
+bool
+WidgetKeyboardEvent::ShouldCauseKeypressEvents() const
+{
+  
+  switch (mKeyNameIndex) {
+    case KEY_NAME_INDEX_Alt:
+    case KEY_NAME_INDEX_AltGraph:
+    case KEY_NAME_INDEX_CapsLock:
+    case KEY_NAME_INDEX_Control:
+    case KEY_NAME_INDEX_Fn:
+    
+    
+    case KEY_NAME_INDEX_Meta:
+    case KEY_NAME_INDEX_NumLock:
+    case KEY_NAME_INDEX_OS:
+    case KEY_NAME_INDEX_ScrollLock:
+    case KEY_NAME_INDEX_Shift:
+    
+    case KEY_NAME_INDEX_Symbol:
+    
+      return false;
+    default:
+      return true;
+  }
+}
+
  void
 WidgetKeyboardEvent::GetDOMKeyName(KeyNameIndex aKeyNameIndex,
                                    nsAString& aKeyName)

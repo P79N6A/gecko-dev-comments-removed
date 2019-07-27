@@ -93,9 +93,10 @@ TextEventDispatcher::GetState() const
 }
 
 void
-TextEventDispatcher::InitEvent(WidgetCompositionEvent& aEvent) const
+TextEventDispatcher::InitEvent(WidgetGUIEvent& aEvent) const
 {
   aEvent.time = PR_IntervalNow();
+  aEvent.refPoint = LayoutDeviceIntPoint(0, 0);
   aEvent.mFlags.mIsSynthesizedForTests = mForTests;
 }
 
@@ -222,6 +223,132 @@ TextEventDispatcher::NotifyIME(const IMENotification& aIMENotification)
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   return rv;
+}
+
+bool
+TextEventDispatcher::DispatchKeyboardEvent(
+                       uint32_t aMessage,
+                       const WidgetKeyboardEvent& aKeyboardEvent,
+                       nsEventStatus& aStatus)
+{
+  return DispatchKeyboardEventInternal(aMessage, aKeyboardEvent, aStatus);
+}
+
+bool
+TextEventDispatcher::DispatchKeyboardEventInternal(
+                       uint32_t aMessage,
+                       const WidgetKeyboardEvent& aKeyboardEvent,
+                       nsEventStatus& aStatus,
+                       uint32_t aIndexOfKeypress)
+{
+  MOZ_ASSERT(aMessage == NS_KEY_DOWN || aMessage == NS_KEY_UP ||
+             aMessage == NS_KEY_PRESS, "Invalid aMessage value");
+  nsresult rv = GetState();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+
+  
+  if (aMessage == NS_KEY_PRESS && !aKeyboardEvent.ShouldCauseKeypressEvents()) {
+    return false;
+  }
+
+  nsCOMPtr<nsIWidget> widget(mWidget);
+
+  WidgetKeyboardEvent keyEvent(true, aMessage, widget);
+  InitEvent(keyEvent);
+  keyEvent.AssignKeyEventData(aKeyboardEvent, false);
+
+  if (aStatus == nsEventStatus_eConsumeNoDefault) {
+    
+    
+    
+    keyEvent.mFlags.mDefaultPrevented = true;
+  }
+
+  
+  if (aMessage == NS_KEY_DOWN || aMessage == NS_KEY_UP) {
+    MOZ_ASSERT(!aIndexOfKeypress,
+      "aIndexOfKeypress must be 0 for either NS_KEY_DOWN or NS_KEY_UP");
+    
+    keyEvent.charCode = 0;
+  } else if (keyEvent.mKeyNameIndex != KEY_NAME_INDEX_USE_STRING) {
+    MOZ_ASSERT(!aIndexOfKeypress,
+      "aIndexOfKeypress must be 0 for NS_KEY_PRESS of non-printable key");
+    
+    
+    keyEvent.charCode = 0;
+  } else {
+    MOZ_RELEASE_ASSERT(
+      !aIndexOfKeypress || aIndexOfKeypress < keyEvent.mKeyValue.Length(),
+      "aIndexOfKeypress must be 0 - mKeyValue.Length() - 1");
+    keyEvent.keyCode = 0;
+    wchar_t ch =
+      keyEvent.mKeyValue.IsEmpty() ? 0 : keyEvent.mKeyValue[aIndexOfKeypress];
+    keyEvent.charCode = static_cast<uint32_t>(ch);
+    if (ch) {
+      keyEvent.mKeyValue.Assign(ch);
+    } else {
+      keyEvent.mKeyValue.Truncate();
+    }
+  }
+  if (aMessage == NS_KEY_UP) {
+    
+    keyEvent.mIsRepeat = false;
+  }
+  
+  keyEvent.mIsComposing = false;
+  
+  
+  keyEvent.mNativeKeyEvent = nullptr;
+  
+  
+  keyEvent.mPluginEvent.Clear();
+  
+
+  widget->DispatchEvent(&keyEvent, aStatus);
+  return true;
+}
+
+bool
+TextEventDispatcher::MaybeDispatchKeypressEvents(
+                       const WidgetKeyboardEvent& aKeyboardEvent,
+                       nsEventStatus& aStatus)
+{
+  
+  if (aStatus == nsEventStatus_eConsumeNoDefault) {
+    return false;
+  }
+
+  
+  
+  
+  
+  size_t keypressCount =
+    aKeyboardEvent.mKeyNameIndex != KEY_NAME_INDEX_USE_STRING ?
+      1 : std::max(static_cast<nsAString::size_type>(1),
+                   aKeyboardEvent.mKeyValue.Length());
+  bool isDispatched = false;
+  bool consumed = false;
+  for (size_t i = 0; i < keypressCount; i++) {
+    aStatus = nsEventStatus_eIgnore;
+    if (!DispatchKeyboardEventInternal(NS_KEY_PRESS, aKeyboardEvent,
+                                       aStatus, i)) {
+      
+      break;
+    }
+    isDispatched = true;
+    if (!consumed) {
+      consumed = (aStatus == nsEventStatus_eConsumeNoDefault);
+    }
+  }
+
+  
+  if (consumed) {
+    aStatus = nsEventStatus_eConsumeNoDefault;
+  }
+
+  return isDispatched;
 }
 
 
