@@ -294,23 +294,6 @@ NS_IMETHODIMP nsPrintSettings::SetNumCopies(int32_t aNumCopies)
 }
 
 
-NS_IMETHODIMP nsPrintSettings::GetPrintCommand(char16_t * *aPrintCommand)
-{
-  
-  *aPrintCommand = ToNewUnicode(mPrintCommand);
-  return NS_OK;
-}
-NS_IMETHODIMP nsPrintSettings::SetPrintCommand(const char16_t * aPrintCommand)
-{
-  if (aPrintCommand) {
-    mPrintCommand = aPrintCommand;
-  } else {
-    mPrintCommand.SetLength(0);
-  }
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP nsPrintSettings::GetPrintToFile(bool *aPrintToFile)
 {
   
@@ -1183,7 +1166,6 @@ nsPrintSettings& nsPrintSettings::operator=(const nsPrintSettings& rhs)
   mPrintReversed       = rhs.mPrintReversed;
   mPrintInColor        = rhs.mPrintInColor;
   mOrientation         = rhs.mOrientation;
-  mPrintCommand        = rhs.mPrintCommand;
   mNumCopies           = rhs.mNumCopies;
   mPrinter             = rhs.mPrinter;
   mPrintToFile         = rhs.mPrintToFile;

@@ -3513,7 +3513,6 @@ pref("helpers.global_mime_types_file", "/etc/mime.types");
 pref("helpers.global_mailcap_file", "/etc/mailcap");
 pref("helpers.private_mime_types_file", "~/.mime.types");
 pref("helpers.private_mailcap_file", "~/.mailcap");
-pref("print.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 pref("print.printer_list", ""); 
 pref("print.print_reversed", false);
 pref("print.print_color", true);
@@ -3535,7 +3534,6 @@ pref("layout.css.scroll-snap.enabled", false);
 
 pref("print.postscript.paper_size",    "letter");
 pref("print.postscript.orientation",   "portrait");
-pref("print.postscript.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 
 
 
@@ -3586,7 +3584,6 @@ pref("helpers.global_mime_types_file", "/etc/mime.types");
 pref("helpers.global_mailcap_file", "/etc/mailcap");
 pref("helpers.private_mime_types_file", "~/.mime.types");
 pref("helpers.private_mailcap_file", "~/.mailcap");
-pref("print.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 pref("print.printer_list", ""); 
 pref("print.print_reversed", false);
 pref("print.print_color", true);
@@ -3722,7 +3719,6 @@ pref("font.name.monospace.zh-TW", "monospace");
 
 pref("print.postscript.paper_size",    "letter");
 pref("print.postscript.orientation",   "portrait");
-pref("print.postscript.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 
 
 
@@ -3942,14 +3938,6 @@ pref("font.name.sans-serif.x-unicode", "dt-interface system-ucs2.cjk_japan-0");
 pref("font.name.monospace.x-unicode", "dt-interface user-ucs2.cjk_japan-0");
 
 # AIX
-#endif
-
-#ifdef SOLARIS
-
-pref("print.postscript.print_command", "lp -c -s ${MOZ_PRINTER_NAME:+-d\"$MOZ_PRINTER_NAME\"}");
-pref("print.print_command", "lp -c -s ${MOZ_PRINTER_NAME:+-d\"$MOZ_PRINTER_NAME\"}");
-
-# Solaris
 #endif
 
 
