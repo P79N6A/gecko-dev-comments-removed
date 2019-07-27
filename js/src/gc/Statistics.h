@@ -8,6 +8,7 @@
 #define gc_Statistics_h
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/IntegerRange.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/UniquePtr.h"
 
@@ -151,7 +152,11 @@ struct Statistics
 
 
 
-    static const size_t MAX_MULTIPARENT_PHASES = 6;
+    static const size_t MaxMultiparentPhases = 6;
+    static const size_t NumTimingArrays = MaxMultiparentPhases + 1;
+
+    
+    using PhaseTimeTable = int64_t[NumTimingArrays][PHASE_LIMIT];
 
     explicit Statistics(JSRuntime* rt);
     ~Statistics();
@@ -211,7 +216,7 @@ struct Statistics
             resetReason(nullptr),
             start(start), startFaults(startFaults)
         {
-            for (size_t i = 0; i < MAX_MULTIPARENT_PHASES + 1; i++)
+            for (auto i : mozilla::MakeRange(NumTimingArrays))
                 mozilla::PodArrayZero(phaseTimes[i]);
         }
 
@@ -220,7 +225,7 @@ struct Statistics
         const char* resetReason;
         int64_t start, end;
         size_t startFaults, endFaults;
-        int64_t phaseTimes[MAX_MULTIPARENT_PHASES + 1][PHASE_LIMIT];
+        PhaseTimeTable phaseTimes;
 
         int64_t duration() const { return end - start; }
     };
@@ -230,9 +235,6 @@ struct Statistics
 
     SliceRange sliceRange() const { return slices.all(); }
     size_t slicesLength() const { return slices.length(); }
-
-    
-    typedef int64_t const (*PhaseTimeTable)[PHASE_LIMIT];
 
   private:
     JSRuntime* runtime;
@@ -264,10 +266,10 @@ struct Statistics
     int64_t timedGCTime;
 
     
-    int64_t phaseTimes[MAX_MULTIPARENT_PHASES + 1][PHASE_LIMIT];
+    PhaseTimeTable phaseTimes;
 
     
-    int64_t phaseTotals[MAX_MULTIPARENT_PHASES + 1][PHASE_LIMIT];
+    PhaseTimeTable phaseTotals;
 
     
     unsigned int counts[STAT_LIMIT];
@@ -312,16 +314,16 @@ struct Statistics
     void sccDurations(int64_t* total, int64_t* maxPause);
     void printStats();
 
-    UniqueChars formatCompactSlicePhaseTimes(PhaseTimeTable phaseTimes) const;
+    UniqueChars formatCompactSlicePhaseTimes(const PhaseTimeTable phaseTimes) const;
 
     UniqueChars formatDetailedDescription();
     UniqueChars formatDetailedSliceDescription(unsigned i, const SliceData& slice);
-    UniqueChars formatDetailedPhaseTimes(PhaseTimeTable phaseTimes);
+    UniqueChars formatDetailedPhaseTimes(const PhaseTimeTable phaseTimes);
     UniqueChars formatDetailedTotals();
 
     UniqueChars formatJsonDescription(uint64_t timestamp);
     UniqueChars formatJsonSliceDescription(unsigned i, const SliceData& slice);
-    UniqueChars formatJsonPhaseTimes(PhaseTimeTable phaseTimes);
+    UniqueChars formatJsonPhaseTimes(const PhaseTimeTable phaseTimes);
 
     double computeMMU(int64_t resolution) const;
 };
