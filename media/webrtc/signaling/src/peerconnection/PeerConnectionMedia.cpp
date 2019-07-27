@@ -956,14 +956,14 @@ PeerConnectionMedia::EndOfLocalCandidates_m(const std::string& aDefaultAddr,
 }
 
 void
-PeerConnectionMedia::DtlsConnected_s(TransportLayer *layer,
+PeerConnectionMedia::DtlsConnected_s(TransportLayer *dtlsLayer,
                                      TransportLayer::State state)
 {
-  MOZ_ASSERT(layer->id() == "dtls");
-  TransportLayerDtls* dtlsLayer = static_cast<TransportLayerDtls*>(layer);
   dtlsLayer->SignalStateChange.disconnect(this);
 
-  bool privacyRequested = (dtlsLayer->GetNegotiatedAlpn() == "c-webrtc");
+  bool privacyRequested = false;
+  
+  
   GetMainThread()->Dispatch(
     WrapRunnableNM(&PeerConnectionMedia::DtlsConnected_m,
                    mParentHandle, privacyRequested),
