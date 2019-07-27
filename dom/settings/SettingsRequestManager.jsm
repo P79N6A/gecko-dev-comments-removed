@@ -53,6 +53,8 @@ const kAllSettingsWritePermission      = "settings" + kSettingsWriteSuffix;
 const kSomeSettingsReadPermission      = "settings-api" + kSettingsReadSuffix;
 const kSomeSettingsWritePermission     = "settings-api" + kSettingsWriteSuffix;
 
+const kSoftLockupDelta                 = 30;
+
 XPCOMUtils.defineLazyServiceGetter(this, "mrm",
                                    "@mozilla.org/memory-reporter-manager;1",
                                    "nsIMemoryReporterManager");
@@ -99,7 +101,7 @@ let SettingsPermissions = {
 };
 
 
-function SettingsLockInfo(aDB, aMsgMgr, aPrincipal, aLockID, aIsServiceLock, aWindowID) {
+function SettingsLockInfo(aDB, aMsgMgr, aPrincipal, aLockID, aIsServiceLock, aWindowID, aLockStack) {
   return {
     
     lockID: aLockID,
@@ -107,6 +109,8 @@ function SettingsLockInfo(aDB, aMsgMgr, aPrincipal, aLockID, aIsServiceLock, aWi
     isServiceLock: aIsServiceLock,
     
     windowID: aWindowID,
+    
+    lockStack: aLockStack,
     
     tasks: [],
     
@@ -200,6 +204,11 @@ let SettingsRequestManager = {
              "Settings:CreateLock", "Settings:RegisterForMessages"],
   
   lockInfo: {},
+  
+  softLockup: {
+    lockId: null, 
+    lockTs: null  
+  },
   
   
   
@@ -742,6 +751,7 @@ let SettingsRequestManager = {
     this.ensureConnection().then(
       function(task) {
         this.runTasks(lockID);
+        this.updateSoftLockup(lockID);
       }.bind(this), function(ret) {
         dump("-*- SettingsRequestManager: SETTINGS DATABASE ERROR: Cannot make DB connection!\n");
     });
@@ -906,20 +916,20 @@ let SettingsRequestManager = {
   removeLock: function(aLockID) {
     if (VERBOSE) debug("Removing lock " + aLockID);
     if (this.lockInfo[aLockID]) {
-    let transaction = this.lockInfo[aLockID]._transaction;
-    if (transaction) {
-      try {
-        transaction.abort();
-      } catch (e) {
-        if (e.name == "InvalidStateError") {
-          if (VERBOSE) debug("Transaction for " + aLockID + " closed already");
-        } else {
-          if (DEBUG) debug("Unexpected exception, throwing: " + e);
-          throw e;
+      let transaction = this.lockInfo[aLockID]._transaction;
+      if (transaction) {
+        try {
+          transaction.abort();
+        } catch (e) {
+          if (e.name == "InvalidStateError") {
+            if (VERBOSE) debug("Transaction for " + aLockID + " closed already");
+          } else {
+            if (DEBUG) debug("Unexpected exception, throwing: " + e);
+            throw e;
+          }
         }
       }
-    }
-    delete this.lockInfo[aLockID];
+      delete this.lockInfo[aLockID];
     }
     let index = this.settingsLockQueue.indexOf(aLockID);
     if (index > -1) {
@@ -983,6 +993,42 @@ let SettingsRequestManager = {
     }
   },
 
+  updateSoftLockup: function(aLockId) {
+    if (VERBOSE) debug("Treating lock " + aLockId + ", so updating soft lockup infos ...");
+
+    this.softLockup = {
+      lockId: aLockId,
+      lockTs: new Date()
+    };
+  },
+
+  checkSoftLockup: function() {
+    if (VERBOSE) debug("Checking for soft lockup ...");
+
+    if (this.settingsLockQueue.length === 0) {
+      if (VERBOSE) debug("Empty settings lock queue, no soft lockup ...");
+      return;
+    }
+
+    let head = this.settingsLockQueue[0];
+    if (head !== this.softLockup.lockId) {
+      if (VERBOSE) debug("Non matching head of settings lock queue, no soft lockup ...");
+      return;
+    }
+
+    let delta = (new Date() - this.softLockup.lockTs) / 1000;
+    if (delta < kSoftLockupDelta) {
+      if (VERBOSE) debug("Matching head of settings lock queue, but delta (" + delta + ") < 30 secs, no soft lockup ...");
+      return;
+    }
+
+    let msgBlocked = "Settings queue head blocked at " + head +
+                     " for " + delta + " secs, Settings API may be soft lockup. Lock from: " +
+                     this.lockInfo[head].lockStack;
+    Cu.reportError(msgBlocked);
+    if (DEBUG) debug(msgBlocked);
+  },
+
   receiveMessage: function(aMessage) {
     if (VERBOSE) debug("receiveMessage " + aMessage.name + ": " + JSON.stringify(aMessage.data));
 
@@ -1008,6 +1054,7 @@ let SettingsRequestManager = {
       case "Settings:Clear":
       case "Settings:Run":
       case "Settings:Finalize":
+        this.checkSoftLockup();
         let kill_process = false;
         if (!msg.lockID) {
           Cu.reportError("Process sending request for lock that does not exist. Killing.");
@@ -1061,13 +1108,19 @@ let SettingsRequestManager = {
           aMessage.target.assertPermission("lock-id-duplicate-kill");
           return;
         }
+
+        if (this.softLockup.lockId === null) {
+          this.updateSoftLockup(msg.lockID);
+        }
+
         this.settingsLockQueue.push(msg.lockID);
         this.lockInfo[msg.lockID] = SettingsLockInfo(this.settingsDB,
                                                      mm,
                                                      aMessage.principal,
                                                      msg.lockID,
                                                      msg.isServiceLock,
-                                                     msg.windowID);
+                                                     msg.windowID,
+                                                     msg.lockStack);
         break;
       case "Settings:Get":
         if (VERBOSE) debug("Received getRequest from " + msg.lockID);
