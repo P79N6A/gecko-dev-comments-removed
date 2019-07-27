@@ -49,5 +49,23 @@ APZThreadUtils::AssertOnCompositorThread()
   }
 }
 
+ void
+APZThreadUtils::RunOnControllerThread(Task* aTask)
+{
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  MessageLoop* loop = CompositorParent::CompositorLoop();
+  MOZ_ASSERT(MessageLoop::current() != loop);
+  loop->PostTask(FROM_HERE, aTask);
+#else
+  
+  
+  AssertOnControllerThread();
+  aTask->Run();
+  delete aTask;
+#endif
+}
+
 } 
 } 

@@ -6,6 +6,8 @@
 #ifndef mozilla_layers_APZThreadUtils_h
 #define mozilla_layers_APZThreadUtils_h
 
+class Task;
+
 namespace mozilla {
 namespace layers {
 
@@ -33,6 +35,13 @@ public:
 
 
   static void AssertOnCompositorThread();
+
+  
+
+
+
+
+  static void RunOnControllerThread(Task* aTask);
 };
 
 } 
