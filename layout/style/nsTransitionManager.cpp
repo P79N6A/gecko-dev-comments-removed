@@ -132,6 +132,64 @@ CSSTransition::TransitionProperty() const
   return effect->AsTransition()->TransitionProperty();
 }
 
+bool
+CSSTransition::HasLowerCompositeOrderThan(const Animation& aOther) const
+{
+  
+  if (&aOther == this) {
+    return false;
+  }
+
+  
+  const CSSTransition* otherTransition = aOther.AsCSSTransition();
+  if (!otherTransition) {
+    return true;
+  }
+
+  
+  
+  if (!IsUsingCustomCompositeOrder()) {
+    return !aOther.IsUsingCustomCompositeOrder() ?
+           Animation::HasLowerCompositeOrderThan(aOther) :
+           false;
+  }
+  if (!aOther.IsUsingCustomCompositeOrder()) {
+    return true;
+  }
+
+  
+  Element* ourElement;
+  nsCSSPseudoElements::Type ourPseudoType;
+  GetOwningElement(ourElement, ourPseudoType);
+
+  Element* otherElement;
+  nsCSSPseudoElements::Type otherPseudoType;
+  otherTransition->GetOwningElement(otherElement, otherPseudoType);
+  MOZ_ASSERT(ourElement && otherElement,
+             "Transitions using custom composite order should have an "
+             "owning element");
+
+  if (ourElement != otherElement) {
+    return nsContentUtils::PositionIsBefore(ourElement, otherElement);
+  }
+
+  
+  if (ourPseudoType != otherPseudoType) {
+    return ourPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+           (ourPseudoType == nsCSSPseudoElements::ePseudo_before &&
+            otherPseudoType == nsCSSPseudoElements::ePseudo_after);
+  }
+
+  
+  if (mSequenceNum != otherTransition->mSequenceNum) {
+    return mSequenceNum < otherTransition->mSequenceNum;
+  }
+
+  
+  return nsCSSProps::GetStringValue(TransitionProperty()) <
+         nsCSSProps::GetStringValue(otherTransition->TransitionProperty());
+}
+
 
 
 
