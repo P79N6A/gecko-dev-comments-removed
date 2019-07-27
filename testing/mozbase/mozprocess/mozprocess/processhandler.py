@@ -913,7 +913,12 @@ class StreamOutput(object):
         self.stream = stream
 
     def __call__(self, line):
-        self.stream.write(line + '\n')
+        try:
+            self.stream.write(line + '\n')
+        except UnicodeDecodeError as err:
+            
+            
+            self.stream.write(line.decode('iso8859-1') + '\n')
         self.stream.flush()
 
 class LogOutput(StreamOutput):
