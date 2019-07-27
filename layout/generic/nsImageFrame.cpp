@@ -109,8 +109,9 @@ static bool HaveFixedSize(const nsStylePosition* aStylePosition)
 
 
 
+
 inline bool HaveFixedSize(const nsHTMLReflowState& aReflowState)
-{ 
+{
   NS_ASSERTION(aReflowState.mStylePosition, "crappy reflowState - null stylePosition");
   
   
@@ -127,7 +128,7 @@ inline bool HaveFixedSize(const nsHTMLReflowState& aReflowState)
            (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedWidth() ||
             0 == aReflowState.ComputedWidth())))
           ? false
-          : HaveFixedSize(aReflowState.mStylePosition); 
+          : HaveFixedSize(aReflowState.mStylePosition);
 }
 
 nsIFrame*
