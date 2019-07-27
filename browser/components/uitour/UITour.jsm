@@ -1127,6 +1127,26 @@ this.UITour = {
 
 
 
+  _correctAnchor: function(aAnchor) {
+    
+    if (aAnchor.getAttribute("overflowedItem")) {
+      let doc = aAnchor.ownerDocument;
+      let placement = CustomizableUI.getPlacementOfWidget(aAnchor.id);
+      let areaNode = doc.getElementById(placement.area);
+      return areaNode.overflowable._chevron;
+    }
+
+    return aAnchor;
+  },
+
+  
+
+
+
+
+
+
+
   showHighlight: function(aChromeWindow, aTarget, aEffect = "none") {
     function showHighlightPanel() {
       if (aTarget.targetName.startsWith(TARGET_SEARCHENGINE_PREFIX)) {
@@ -1158,16 +1178,7 @@ this.UITour = {
       highlighter.parentElement.setAttribute("targetName", aTarget.targetName);
       highlighter.parentElement.hidden = false;
 
-      let highlightAnchor;
-      
-      if (aTarget.node.getAttribute("overflowedItem")) {
-        let doc = aTarget.node.ownerDocument;
-        let placement = CustomizableUI.getPlacementOfWidget(aTarget.widgetName || aTarget.node.id);
-        let areaNode = doc.getElementById(placement.area);
-        highlightAnchor = areaNode.overflowable._chevron;
-      } else {
-        highlightAnchor = aTarget.node;
-      }
+      let highlightAnchor = this._correctAnchor(aTarget.node);
       let targetRect = highlightAnchor.getBoundingClientRect();
       let highlightHeight = targetRect.height;
       let highlightWidth = targetRect.width;
@@ -1366,7 +1377,7 @@ this.UITour = {
 
     this._setAppMenuStateForAnnotation(aChromeWindow, "info",
                                        this.targetIsInAppMenu(aAnchor),
-                                       showInfoPanel.bind(this, aAnchor.node));
+                                       showInfoPanel.bind(this, this._correctAnchor(aAnchor.node)));
   },
 
   hideInfo: function(aWindow) {
