@@ -290,9 +290,12 @@ public:
   
 
 
-
-
   void CancelAnimation();
+
+  
+
+
+  void ClearOverscroll();
 
   
 
