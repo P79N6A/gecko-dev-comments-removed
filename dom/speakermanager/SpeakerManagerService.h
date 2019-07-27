@@ -46,10 +46,6 @@ public:
   {
     mRegisteredSpeakerManagers.RemoveElement(aSpeakerManager);
   }
-  
-
-
-  static void Shutdown();
 
 protected:
   SpeakerManagerService();
@@ -59,6 +55,11 @@ protected:
   virtual void Notify();
 
   void TurnOnSpeaker(bool aEnable);
+
+  
+
+
+  static void Shutdown();
 
   nsTArray<nsRefPtr<SpeakerManager> > mRegisteredSpeakerManagers;
   
