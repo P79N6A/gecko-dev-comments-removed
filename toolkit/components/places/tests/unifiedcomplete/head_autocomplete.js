@@ -127,12 +127,16 @@ function* check_autocomplete(test) {
     deferred.resolve();
   }
 
+  let expectedSearches = 1;
+  if (test.incompleteSearch) {
+    controller.startSearch(test.incompleteSearch);
+    expectedSearches++;
+  }
   do_log_info("Searching for: '" + test.search + "'");
   controller.startSearch(test.search);
   yield deferred.promise;
 
-  
-  Assert.equal(numSearchesStarted, 1, "Only one search started");
+  Assert.equal(numSearchesStarted, expectedSearches, "All searches started");
 
   
   if (test.matches) {

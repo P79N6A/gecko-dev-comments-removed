@@ -621,13 +621,13 @@ Search.prototype = {
       this._sleepDeferred.resolve();
       this._sleepDeferred = null;
     }
-    delete this._pendingQuery;
+    this.pending = false;
   },
 
   
 
 
-  get pending() !!this._pendingQuery,
+  pending: true,
 
   
 
@@ -635,7 +635,10 @@ Search.prototype = {
 
 
   execute: Task.async(function* (conn) {
-    this._pendingQuery = true;
+    
+    if (!this.pending)
+      return;
+
     TelemetryStopwatch.start(TELEMETRY_1ST_RESULT);
 
     
@@ -658,14 +661,17 @@ Search.prototype = {
                     this._switchToTabQuery,
                     this._searchQuery ];
 
+    let hasKeyword = false;
     if (this._searchTokens.length > 0 &&
         PlacesUtils.bookmarks.getURIForKeyword(this._searchTokens[0])) {
       queries.unshift(this._keywordQuery);
-    } else if (this._searchTokens.length == 1) {
-      yield this._matchSearchEngineUrl();
+      hasKeyword = true;
     }
 
     if (this._shouldAutofill) {
+      if (this._searchTokens.length == 1 && !hasKeyword)
+        yield this._matchSearchEngineUrl();
+
       
       let lastSlashIndex = this._searchString.lastIndexOf("/");
       
@@ -791,6 +797,11 @@ Search.prototype = {
   },
 
   _addMatch: function (match) {
+    
+    
+    if (!this.pending)
+      return;
+
     let notifyResults = false;
 
     if (this._frecencyMatches) {
