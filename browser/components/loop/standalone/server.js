@@ -9,7 +9,7 @@
 
 
 
-var express = require('express');
+var express = require("express");
 var app = express();
 
 var port = process.env.PORT || 3000;
@@ -27,7 +27,7 @@ if (loopServerUrl[loopServerUrl.length - 1] === "/") {
 function getConfigFile(req, res) {
   "use strict";
 
-  res.set('Content-Type', 'text/javascript');
+  res.set("Content-Type", "text/javascript");
   res.send([
     "var loop = loop || {};",
     "loop.config = loop.config || {};",
@@ -52,38 +52,38 @@ function getConfigFile(req, res) {
   ].join("\n"));
 }
 
-app.get('/content/config.js', getConfigFile);
-app.get('/content/c/config.js', getConfigFile);
+app.get("/content/config.js", getConfigFile);
+app.get("/content/c/config.js", getConfigFile);
 
 
 
 
 
 
-app.use('/ui', express.static(__dirname + '/../ui'));
+app.use("/ui", express.static(__dirname + "/../ui"));
 
 
 
-app.use('/standalone/content', express.static(__dirname + '/content'));
+app.use("/standalone/content", express.static(__dirname + "/content"));
 
 
 
 
 
-app.use('/content', express.static(__dirname + '/content'));
-app.use('/content', express.static(__dirname + '/../content'));
+app.use("/content", express.static(__dirname + "/content"));
+app.use("/content", express.static(__dirname + "/../content"));
 
-app.use('/content/c', express.static(__dirname + '/content'));
-app.use('/content/c', express.static(__dirname + '/../content'));
+app.use("/content/c", express.static(__dirname + "/content"));
+app.use("/content/c", express.static(__dirname + "/../content"));
 
 
-app.use('/test', express.static(__dirname + '/test'));
-app.use('/test', express.static(__dirname + '/../test'));
+app.use("/test", express.static(__dirname + "/test"));
+app.use("/test", express.static(__dirname + "/../test"));
 
 
 
 function serveIndex(req, res) {
-  return res.sendfile(__dirname + '/content/index.html');
+  return res.sendfile(__dirname + "/content/index.html");
 }
 
 app.get(/^\/content\/[\w\-]+$/, serveIndex);
@@ -114,4 +114,4 @@ function shutdown(cb) {
   }
 }
 
-process.on('SIGTERM', shutdown);
+process.on("SIGTERM", shutdown);
