@@ -928,7 +928,8 @@ function synthesizeComposition(aEvent, aWindow)
 
 
 
-function synthesizeText(aEvent, aWindow)
+
+function synthesizeCompositionChange(aEvent, aWindow)
 {
   var utils = _getDOMWindowUtils(aWindow);
   if (!utils) {
