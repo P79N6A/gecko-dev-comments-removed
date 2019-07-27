@@ -56,8 +56,3 @@ class TestLog(MarionetteTestCase):
         
         
         self.marionette.restart()
-
-        
-        self.assertRaisesRegexp(JavascriptException, "Error getting pref",
-                                self.marionette.execute_script,
-                                "return SpecialPowers.getBoolPref('marionette.test.restart');")
