@@ -411,67 +411,6 @@ class MinorCollectionTracer : public JS::CallbackTracer
 } 
 } 
 
-static AllocKind
-GetObjectAllocKindForCopy(const Nursery& nursery, JSObject* obj)
-{
-    if (obj->is<ArrayObject>()) {
-        ArrayObject* aobj = &obj->as<ArrayObject>();
-        MOZ_ASSERT(aobj->numFixedSlots() == 0);
-
-        
-        if (!nursery.isInside(aobj->getElementsHeader()))
-            return AllocKind::OBJECT0_BACKGROUND;
-
-        size_t nelements = aobj->getDenseCapacity();
-        return GetBackgroundAllocKind(GetGCArrayKind(nelements));
-    }
-
-    if (obj->is<JSFunction>())
-        return obj->as<JSFunction>().getAllocKind();
-
-    
-
-
-
-    if (obj->is<TypedArrayObject>() && !obj->as<TypedArrayObject>().buffer()) {
-        size_t nbytes = obj->as<TypedArrayObject>().byteLength();
-        return GetBackgroundAllocKind(TypedArrayObject::AllocKindForLazyBuffer(nbytes));
-    }
-
-    
-    MOZ_ASSERT(!IsProxy(obj));
-
-    
-    if (obj->is<UnboxedPlainObject>()) {
-        size_t nbytes = obj->as<UnboxedPlainObject>().layoutDontCheckGeneration().size();
-        return GetGCObjectKindForBytes(UnboxedPlainObject::offsetOfData() + nbytes);
-    }
-
-    
-    
-    if (obj->is<InlineTypedObject>()) {
-        
-        
-        
-        TypeDescr* descr = &obj->as<InlineTypedObject>().typeDescr();
-        MOZ_ASSERT(!IsInsideNursery(descr));
-        return InlineTypedObject::allocKindForTypeDescriptor(descr);
-    }
-
-    
-    if (obj->is<OutlineTypedObject>())
-        return AllocKind::OBJECT0;
-
-    
-    MOZ_ASSERT(obj->isNative());
-
-    AllocKind kind = GetGCObjectFixedSlotsKind(obj->as<NativeObject>().numFixedSlots());
-    MOZ_ASSERT(!IsBackgroundFinalized(kind));
-    if (!CanBeFinalizedInBackground(kind, obj->getClass()))
-        return kind;
-    return GetBackgroundAllocKind(kind);
-}
-
 MOZ_ALWAYS_INLINE TenuredCell*
 js::Nursery::allocateFromTenured(Zone* zone, AllocKind thingKind)
 {
@@ -656,7 +595,7 @@ void*
 js::Nursery::moveToTenured(MinorCollectionTracer* trc, JSObject* src)
 {
 
-    AllocKind dstKind = GetObjectAllocKindForCopy(*this, src);
+    AllocKind dstKind = src->allocKindForTenure(*this);
     Zone* zone = src->zone();
     JSObject* dst = reinterpret_cast<JSObject*>(allocateFromTenured(zone, dstKind));
     if (!dst)
