@@ -1755,7 +1755,7 @@ nsDOMConstructor::ToString(nsAString &aResult)
 static nsresult
 GetXPCProto(nsIXPConnect *aXPConnect, JSContext *cx, nsGlobalWindow *aWin,
             const nsGlobalNameStruct *aNameStruct,
-            nsIXPConnectJSObjectHolder **aProto)
+            JS::MutableHandle<JSObject*> aProto)
 {
   NS_ASSERTION(aNameStruct->mType ==
                  nsGlobalNameStruct::eTypeClassConstructor ||
@@ -1782,12 +1782,8 @@ GetXPCProto(nsIXPConnect *aXPConnect, JSContext *cx, nsGlobalWindow *aWin,
                                           getter_AddRefs(proto_holder));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  JS::Rooted<JSObject*> proto_obj(cx, proto_holder->GetJSObject());
-  if (!JS_WrapObject(cx, &proto_obj)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return aXPConnect->HoldObject(cx, proto_obj, aProto);
+  aProto.set(proto_holder->GetJSObject());
+  return JS_WrapObject(cx, aProto) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 
@@ -2220,10 +2216,12 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     
     
     
-    nsCOMPtr<nsIXPConnectJSObjectHolder> proto_holder;
+    JS::Rooted<JSObject*> dot_prototype(cx);
     rv = GetXPCProto(nsDOMClassInfo::sXPConnect, cx, aWin, name_struct,
-                     getter_AddRefs(proto_holder));
+                     &dot_prototype);
     NS_ENSURE_SUCCESS(rv, rv);
+    MOZ_ASSERT(dot_prototype);
+
     bool isXray = xpc::WrapperFactory::IsXrayWrapper(obj);
     MOZ_ASSERT_IF(obj != aWin->GetGlobalJSObject(), isXray);
     if (!isXray) {
@@ -2234,9 +2232,6 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
     
     
-    JS::Rooted<JSObject*> dot_prototype(cx, proto_holder->GetJSObject());
-    NS_ENSURE_STATE(dot_prototype);
-
     const nsDOMClassInfoData *ci_data;
     if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
       ci_data = &sClassInfoData[name_struct->mDOMClassInfoID];
@@ -2266,13 +2261,11 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     
     
     
-    nsCOMPtr<nsIXPConnectJSObjectHolder> proto_holder;
+    JS::Rooted<JSObject*> dot_prototype(cx);
     rv = GetXPCProto(nsDOMClassInfo::sXPConnect, cx, aWin, alias_struct,
-                     getter_AddRefs(proto_holder));
+                     &dot_prototype);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    JSObject* dot_prototype = proto_holder->GetJSObject();
-    NS_ENSURE_STATE(dot_prototype);
+    MOZ_ASSERT(dot_prototype);
 
     const nsDOMClassInfoData *ci_data;
     if (alias_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
