@@ -3112,7 +3112,11 @@ class MUnbox : public MUnaryInstruction, public BoxInputsPolicy
       : MUnaryInstruction(ins),
         mode_(mode)
     {
-        JS_ASSERT(ins->type() == MIRType_Value);
+        
+        
+        
+        JS_ASSERT_IF(ins->type() != MIRType_Value, type != ins->type());
+
         JS_ASSERT(type == MIRType_Boolean ||
                   type == MIRType_Int32   ||
                   type == MIRType_Double  ||
@@ -3839,7 +3843,9 @@ class MToInt32
 
 
 
-class MTruncateToInt32 : public MUnaryInstruction
+class MTruncateToInt32
+  : public MUnaryInstruction,
+    public ToInt32Policy
 {
     explicit MTruncateToInt32(MDefinition *def)
       : MUnaryInstruction(def)
@@ -3850,7 +3856,6 @@ class MTruncateToInt32 : public MUnaryInstruction
         
         
         MOZ_ASSERT(def->type() != MIRType_Object);
-        MOZ_ASSERT(def->type() != MIRType_Symbol);
         if (def->mightBeType(MIRType_Object) || def->mightBeType(MIRType_Symbol))
             setGuard();
     }
@@ -3880,6 +3885,10 @@ class MTruncateToInt32 : public MUnaryInstruction
         return true;
     }
 #endif
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
 
     ALLOW_CLONE(MTruncateToInt32)
 };
@@ -6100,6 +6109,7 @@ class MStringReplace
     bool congruentTo(const MDefinition *ins) const {
         return congruentIfOperandsEqual(ins);
     }
+
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }

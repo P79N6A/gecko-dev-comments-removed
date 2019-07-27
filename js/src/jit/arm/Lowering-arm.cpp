@@ -126,6 +126,7 @@ LIRGeneratorARM::visitUnbox(MUnbox *unbox)
     
     
     MDefinition *inner = unbox->getOperand(0);
+    JS_ASSERT(inner->type() == MIRType_Value);
 
     if (!ensureDefined(inner))
         return false;
