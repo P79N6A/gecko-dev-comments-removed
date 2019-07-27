@@ -283,6 +283,18 @@ let AnimationPlayerActor = ActorClass({
   }, {
     request: {},
     response: {}
+  }),
+
+  
+
+
+  setCurrentTime: method(function(currentTime) {
+    this.player.currentTime = currentTime;
+  }, {
+    request: {
+      currentTime: Arg(0, "number")
+    },
+    response: {}
   })
 });
 
