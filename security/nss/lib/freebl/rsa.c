@@ -97,8 +97,8 @@ static struct RSABlindingParamsListStr blindingParamsList = { 0 };
 static PRBool nssRSAUseBlinding = PR_TRUE;
 
 static SECStatus
-rsa_build_from_primes(mp_int *p, mp_int *q, 
-		mp_int *e, PRBool needPublicExponent, 
+rsa_build_from_primes(const mp_int *p, const mp_int *q,
+		mp_int *e, PRBool needPublicExponent,
 		mp_int *d, PRBool needPrivateExponent,
 		RSAPrivateKey *key, unsigned int keySizeInBits)
 {
@@ -116,6 +116,12 @@ rsa_build_from_primes(mp_int *p, mp_int *q,
     CHECK_MPI_OK( mp_init(&psub1) );
     CHECK_MPI_OK( mp_init(&qsub1) );
     CHECK_MPI_OK( mp_init(&tmp)   );
+    
+    if (mp_cmp(p, q) == 0) {
+	PORT_SetError(SEC_ERROR_NEED_RANDOM);
+	rv = SECFailure;
+	goto cleanup;
+    }
     
     CHECK_MPI_OK( mp_mul(p, q, &n) );
     
@@ -281,6 +287,10 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
 	CHECK_SEC_OK( generate_prime(&p, primeLen) );
 	CHECK_SEC_OK( generate_prime(&q, primeLen) );
 	
+	
+
+
+
 	if (mp_cmp(&p, &q) < 0)
 	    mp_exch(&p, &q);
 	
@@ -763,6 +773,10 @@ RSA_PopulatePrivateKey(RSAPrivateKey *key)
      }
 
      
+     
+
+
+
      if (mp_cmp(&p, &q) < 0)
 	mp_exch(&p, &q);
 
@@ -1093,7 +1107,7 @@ get_blinding_params(RSAPrivateKey *key, mp_int *n, unsigned int modLen,
 {
     RSABlindingParams *rsabp           = NULL;
     blindingParams    *bpUnlinked      = NULL;
-    blindingParams    *bp, *prevbp     = NULL;
+    blindingParams    *bp;
     PRCList           *el;
     SECStatus          rv              = SECSuccess;
     mp_err             err             = MP_OKAY;
@@ -1183,7 +1197,6 @@ get_blinding_params(RSAPrivateKey *key, mp_int *n, unsigned int modLen,
 	}
 	
 	
-	prevbp = NULL;
 	if ((bp = rsabp->free) != NULL) {
 	    
 	    rsabp->free  = bp->next;
@@ -1401,7 +1414,7 @@ RSA_PrivateKeyCheck(const RSAPrivateKey *key)
     SECITEM_TO_MPINT(key->exponent2,       &d_q);
     SECITEM_TO_MPINT(key->coefficient,     &qInv);
     
-    if (mp_cmp(&p, &q) <= 0) {
+    if (mp_cmp(&p, &q) == 0) {
 	rv = SECFailure;
 	goto cleanup;
     }
