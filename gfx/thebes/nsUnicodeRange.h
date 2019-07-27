@@ -8,8 +8,6 @@
 
 #include <stdint.h>
 
-class nsIAtom;
-
 
 
 
@@ -89,6 +87,5 @@ const uint8_t   kRangeTertiaryTable  = 145;
 
 
 uint32_t FindCharUnicodeRange(uint32_t ch);
-nsIAtom* LangGroupFromUnicodeRange(uint8_t unicodeRange);
 
 #endif
