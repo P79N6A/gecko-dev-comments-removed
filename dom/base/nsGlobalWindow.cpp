@@ -6121,12 +6121,6 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aFullscreenMode,
 
   
   
-  if (!DispatchCustomEvent(NS_LITERAL_STRING("fullscreen"))) {
-    return NS_OK;
-  }
-
-  
-  
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   nsCOMPtr<nsIXULWindow> xulWin(do_GetInterface(treeOwnerAsWin));
   if (aFullScreen && xulWin) {
@@ -6152,8 +6146,42 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aFullscreenMode,
         widget->PrepareForDOMFullscreenTransition();
       }
       widget->MakeFullScreen(aFullScreen, screen);
+      
+      
+      
+      return NS_OK;
     }
   }
+
+  FinishFullscreenChange(aFullScreen);
+  return NS_OK;
+}
+
+ void
+nsGlobalWindow::FinishFullscreenChange(bool aIsFullscreen)
+{
+  MOZ_ASSERT(IsOuterWindow());
+
+  if (aIsFullscreen != mFullScreen) {
+    NS_WARNING("Failed to toggle fullscreen state of the widget");
+    
+    
+    if (!aIsFullscreen) {
+      mFullScreen = false;
+      mFullscreenMode = false;
+    } else {
+      MOZ_ASSERT_UNREACHABLE("Failed to exit fullscreen?");
+      mFullScreen = true;
+      
+      
+      mFullscreenMode = false;
+    }
+    return;
+  }
+
+  
+  
+  DispatchCustomEvent(NS_LITERAL_STRING("fullscreen"));
 
   if (!mFullScreen) {
     
@@ -6166,23 +6194,20 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aFullscreenMode,
   if (!mWakeLock && mFullScreen) {
     nsRefPtr<power::PowerManagerService> pmService =
       power::PowerManagerService::GetInstance();
-    NS_ENSURE_TRUE(pmService, NS_OK);
+    if (!pmService) {
+      return;
+    }
 
     ErrorResult rv;
     mWakeLock = pmService->NewWakeLock(NS_LITERAL_STRING("DOM_Fullscreen"),
                                        this, rv);
-    if (rv.Failed()) {
-      return rv.StealNSResult();
-    }
-
+    NS_WARN_IF_FALSE(!rv.Failed(), "Failed to lock the wakelock");
   } else if (mWakeLock && !mFullScreen) {
     ErrorResult rv;
     mWakeLock->Unlock(rv);
     NS_WARN_IF_FALSE(!rv.Failed(), "Failed to unlock the wakelock.");
     mWakeLock = nullptr;
   }
-
-  return NS_OK;
 }
 
 bool

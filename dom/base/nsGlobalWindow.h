@@ -491,7 +491,8 @@ public:
 
   
   virtual nsresult SetFullScreenInternal(bool aIsFullscreen, bool aFullscreenMode,
-                                         mozilla::gfx::VRHMDInfo *aHMD = nullptr) override;
+                                         mozilla::gfx::VRHMDInfo *aHMD = nullptr) override final;
+  virtual void FinishFullscreenChange(bool aIsFullscreen) override final;
   bool FullScreen() const;
 
   

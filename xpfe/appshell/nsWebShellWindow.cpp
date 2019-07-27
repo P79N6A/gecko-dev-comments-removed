@@ -362,6 +362,16 @@ nsWebShellWindow::SizeModeChanged(nsSizeMode sizeMode)
 }
 
 void
+nsWebShellWindow::FullscreenChanged(bool aInFullscreen)
+{
+  if (mDocShell) {
+    if (nsCOMPtr<nsPIDOMWindow> ourWindow = mDocShell->GetWindow()) {
+      ourWindow->FinishFullscreenChange(aInFullscreen);
+    }
+  }
+}
+
+void
 nsWebShellWindow::OSToolbarButtonPressed()
 {
   

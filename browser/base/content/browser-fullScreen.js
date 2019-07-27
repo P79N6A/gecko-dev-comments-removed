@@ -33,12 +33,8 @@ var FullScreen = {
     this.cleanup();
   },
 
-  toggle: function (event) {
+  toggle: function () {
     var enterFS = window.fullScreen;
-
-    
-    if (event && event.type == "fullscreen")
-      enterFS = !enterFS;
 
     
     
@@ -106,7 +102,7 @@ var FullScreen = {
         }
         break;
       case "fullscreen":
-        this.toggle(event);
+        this.toggle();
         break;
       case "transitionend":
         if (event.propertyName == "opacity")
@@ -192,7 +188,7 @@ var FullScreen = {
   },
 
   cleanup: function () {
-    if (window.fullScreen) {
+    if (!window.fullScreen) {
       MousePosTracker.removeListener(this);
       document.removeEventListener("keypress", this._keyToggleCallback, false);
       document.removeEventListener("popupshown", this._setPopupOpen, false);
