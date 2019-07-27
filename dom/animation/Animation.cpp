@@ -231,6 +231,18 @@ Animation::ActiveDuration(const AnimationTiming& aTiming)
 
 
 bool
+Animation::IsInPlay(const AnimationPlayer& aPlayer) const
+{
+  if (IsFinishedTransition() ||
+      aPlayer.PlayState() == AnimationPlayState::Finished) {
+    return false;
+  }
+
+  return GetComputedTiming().mPhase == ComputedTiming::AnimationPhase_Active;
+}
+
+
+bool
 Animation::IsCurrent(const AnimationPlayer& aPlayer) const
 {
   if (IsFinishedTransition() ||
