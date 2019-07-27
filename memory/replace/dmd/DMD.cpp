@@ -1376,14 +1376,18 @@ Options::GetBool(const char* aArg, const char* aOptionName, bool* aValue)
 
 
 Options::Options(const char* aDMDEnvVar)
-  : mDMDEnvVar(InfallibleAllocPolicy::strdup_(aDMDEnvVar))
+  : mDMDEnvVar(aDMDEnvVar ? InfallibleAllocPolicy::strdup_(aDMDEnvVar)
+                          : nullptr)
   , mMode(DarkMatter)
   , mSampleBelowSize(4093, 100 * 100 * 1000)
   , mMaxFrames(StackTrace::MaxFrames, StackTrace::MaxFrames)
   , mShowDumpStats(false)
 {
+  
+  
+  
   char* e = mDMDEnvVar;
-  if (strcmp(e, "1") != 0) {
+  if (e && strcmp(e, "1") != 0) {
     bool isEnd = false;
     while (!isEnd) {
       
@@ -1485,11 +1489,11 @@ Init(const malloc_table_t* aMallocTable)
   
   const char* e = getenv("DMD");
 
-  if (!e) {
-    e = "1";
+  if (e) {
+    StatusMsg("$DMD = '%s'\n", e);
+  } else {
+    StatusMsg("$DMD is undefined\n", e);
   }
-
-  StatusMsg("$DMD = '%s'\n", e);
 
   
   gOptions = InfallibleAllocPolicy::new_<Options>(e);
@@ -1575,7 +1579,7 @@ DMDFuncs::ReportOnAlloc(const void* aPtr)
 
 
 
-static const int kOutputVersionNumber = 2;
+static const int kOutputVersionNumber = 3;
 
 
 
@@ -1735,7 +1739,13 @@ AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
 
     writer.StartObjectProperty("invocation");
     {
-      writer.StringProperty("dmdEnvVar", gOptions->DMDEnvVar());
+      const char* var = gOptions->DMDEnvVar();
+      if (var) {
+        writer.StringProperty("dmdEnvVar", var);
+      } else {
+        writer.NullProperty("dmdEnvVar");
+      }
+
       const char* mode;
       if (gOptions->IsLiveMode()) {
         mode = "live";
@@ -1748,6 +1758,7 @@ AnalyzeImpl(UniquePtr<JSONWriteFunc> aWriter)
         mode = "(unknown DMD mode)";
       }
       writer.StringProperty("mode", mode);
+
       writer.IntProperty("sampleBelowSize", gOptions->SampleBelowSize());
     }
     writer.EndObject();

@@ -20,7 +20,7 @@ import sys
 import tempfile
 
 
-outputVersion = 2
+outputVersion = 3
 
 
 
@@ -615,7 +615,10 @@ def printDigest(args, digest):
 
     def printInvocation(n, dmdEnvVar, sampleBelowSize):
         out('Invocation{:} {{'.format(n))
-        out('  $DMD = \'' + dmdEnvVar + '\'')
+        if dmdEnvVar == None:
+            out('  $DMD is undefined')
+        else:
+            out('  $DMD = \'' + dmdEnvVar + '\'')
         out('  Sample-below size = ' + str(sampleBelowSize))
         out('}\n')
 
