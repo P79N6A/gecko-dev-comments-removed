@@ -37,13 +37,9 @@ MediaStreamPlayback.prototype = {
 
 
 
-  playMedia : function MSP_playMedia(isResume, onSuccess, onError) {
-    var self = this;
-
-    this.startMedia(isResume, function() {
-      self.stopMediaElement();
-      onSuccess();
-    }, onError);
+  playMedia : function(isResume) {
+    return this.startMedia(isResume)
+      .then(() => this.stopMediaElement());
   },
 
   
@@ -52,12 +48,7 @@ MediaStreamPlayback.prototype = {
 
 
 
-
-
-
-
-  startMedia : function MSP_startMedia(isResume, onSuccess, onError) {
-    var self = this;
+  startMedia : function(isResume) {
     var canPlayThroughFired = false;
 
     
@@ -66,89 +57,84 @@ MediaStreamPlayback.prototype = {
          "Before starting the media element, currentTime = 0");
     }
 
-    
-
-
-
-
-
-    var canPlayThroughCallback = function() {
+    return new Promise((resolve, reject) => {
       
-      canPlayThroughFired = true;
-      self.mediaElement.removeEventListener('canplaythrough',
-        canPlayThroughCallback, false);
 
-      is(self.mediaElement.paused, false,
-        "Media element should be playing");
-      is(self.mediaElement.duration, Number.POSITIVE_INFINITY,
-        "Duration should be infinity");
 
-      
-      
-      
-      ok(self.mediaElement.readyState === HTMLMediaElement.HAVE_ENOUGH_DATA ||
-         self.mediaElement.readyState === HTMLMediaElement.HAVE_CURRENT_DATA,
-         "Ready state shall be HAVE_ENOUGH_DATA or HAVE_CURRENT_DATA");
 
-      is(self.mediaElement.seekable.length, 0,
-         "Seekable length shall be zero");
-      is(self.mediaElement.buffered.length, 0,
-         "Buffered length shall be zero");
 
-      is(self.mediaElement.seeking, false,
-         "MediaElement is not seekable with MediaStream");
-      ok(isNaN(self.mediaElement.startOffsetTime),
-         "Start offset time shall not be a number");
-      is(self.mediaElement.loop, false, "Loop shall be false");
-      is(self.mediaElement.preload, "", "Preload should not exist");
-      is(self.mediaElement.src, "", "No src should be defined");
-      is(self.mediaElement.currentSrc, "",
-         "Current src should still be an empty string");
 
-      var timeUpdateFired = false;
+      var canPlayThroughCallback = () => {
+        
+        canPlayThroughFired = true;
+        this.mediaElement.removeEventListener('canplaythrough',
+                                              canPlayThroughCallback, false);
 
-      var timeUpdateCallback = function() {
-        if (self.mediaStream.currentTime > 0 &&
-            self.mediaElement.currentTime > 0) {
-          timeUpdateFired = true;
-          self.mediaElement.removeEventListener('timeupdate',
-            timeUpdateCallback, false);
-          onSuccess();
-        }
+        is(this.mediaElement.paused, false,
+           "Media element should be playing");
+        is(this.mediaElement.duration, Number.POSITIVE_INFINITY,
+           "Duration should be infinity");
+
+        
+        
+        
+        ok(this.mediaElement.readyState === HTMLMediaElement.HAVE_ENOUGH_DATA ||
+           this.mediaElement.readyState === HTMLMediaElement.HAVE_CURRENT_DATA,
+           "Ready state shall be HAVE_ENOUGH_DATA or HAVE_CURRENT_DATA");
+
+        is(this.mediaElement.seekable.length, 0,
+           "Seekable length shall be zero");
+        is(this.mediaElement.buffered.length, 0,
+           "Buffered length shall be zero");
+
+        is(this.mediaElement.seeking, false,
+           "MediaElement is not seekable with MediaStream");
+        ok(isNaN(this.mediaElement.startOffsetTime),
+           "Start offset time shall not be a number");
+        is(this.mediaElement.loop, false, "Loop shall be false");
+        is(this.mediaElement.preload, "", "Preload should not exist");
+        is(this.mediaElement.src, "", "No src should be defined");
+        is(this.mediaElement.currentSrc, "",
+           "Current src should still be an empty string");
+
+        var timeUpdateCallback = () => {
+          if (this.mediaStream.currentTime > 0 &&
+              this.mediaElement.currentTime > 0) {
+            this.mediaElement.removeEventListener('timeupdate',
+                                                  timeUpdateCallback, false);
+            resolve();
+          }
+        };
+
+        
+        
+        this.mediaElement.addEventListener('timeupdate', timeUpdateCallback,
+                                           false);
+
+        
+        setTimeout(() => {
+          this.mediaElement.removeEventListener('timeupdate',
+                                                timeUpdateCallback, false);
+          reject(new Error("timeUpdate event never fired"));
+        }, TIMEUPDATE_TIMEOUT_LENGTH);
       };
 
       
       
-      self.mediaElement.addEventListener('timeupdate', timeUpdateCallback,
-        false);
+      this.mediaElement.addEventListener('canplaythrough', canPlayThroughCallback,
+                                         false);
 
       
-      setTimeout(function() {
-        if (!timeUpdateFired) {
-          self.mediaElement.removeEventListener('timeupdate',
-            timeUpdateCallback, false);
-          onError("timeUpdate event never fired");
-        }
-      }, TIMEUPDATE_TIMEOUT_LENGTH);
-    };
+      this.mediaElement.mozSrcObject = this.mediaStream;
+      this.mediaElement.play();
 
-    
-    
-    this.mediaElement.addEventListener('canplaythrough', canPlayThroughCallback,
-      false);
-
-    
-    this.mediaElement.mozSrcObject = this.mediaStream;
-    this.mediaElement.play();
-
-    
-    setTimeout(function() {
-      if (!canPlayThroughFired) {
-        self.mediaElement.removeEventListener('canplaythrough',
-          canPlayThroughCallback, false);
-        onError("canplaythrough event never fired");
-      }
-    }, CANPLAYTHROUGH_TIMEOUT_LENGTH);
+      
+      setTimeout(() => {
+        this.mediaElement.removeEventListener('canplaythrough',
+                                              canPlayThroughCallback, false);
+        reject(new Error("canplaythrough event never fired"));
+      }, CANPLAYTHROUGH_TIMEOUT_LENGTH);
+    });
   },
 
   
@@ -157,7 +143,7 @@ MediaStreamPlayback.prototype = {
 
 
 
-  stopMediaElement : function MSP_stopMediaElement() {
+  stopMediaElement : function() {
     this.mediaElement.pause();
     this.mediaElement.mozSrcObject = null;
   }
@@ -187,22 +173,11 @@ LocalMediaStreamPlayback.prototype = Object.create(MediaStreamPlayback.prototype
 
 
 
-
-
-
-
-
-
   playMediaWithStreamStop : {
-    value: function (isResume, onSuccess, onError) {
-      var self = this;
-
-      this.startMedia(isResume, function() {
-        self.stopStreamInMediaPlayback(function() {
-          self.stopMediaElement();
-          onSuccess();
-        }, onError);
-      }, onError);
+    value: function(isResume) {
+      return this.startMedia(isResume)
+        .then(() => this.stopStreamInMediaPlayback())
+        .then(() => this.stopMediaElement());
     }
   },
 
@@ -214,36 +189,27 @@ LocalMediaStreamPlayback.prototype = Object.create(MediaStreamPlayback.prototype
 
 
 
-
-
-
-
-
   stopStreamInMediaPlayback : {
-    value: function (onSuccess, onError) {
-      var endedFired = false;
-      var self = this;
-
-      
+    value: function () {
+      return new Promise((resolve, reject) => {
+        
 
 
 
-      var endedCallback = function() {
-        endedFired = true;
-        self.mediaElement.removeEventListener('ended', endedCallback, false);
-        ok(true, "ended event successfully fired");
-        onSuccess();
-      };
+        var endedCallback = () => {
+          this.mediaElement.removeEventListener('ended', endedCallback, false);
+          ok(true, "ended event successfully fired");
+          resolve();
+        };
 
-      this.mediaElement.addEventListener('ended', endedCallback, false);
-      this.mediaStream.stop();
+        this.mediaElement.addEventListener('ended', endedCallback, false);
+        this.mediaStream.stop();
 
-      
-      setTimeout(function() {
-        if (!endedFired) {
-          onError("ended event never fired");
-        }
-      }, ENDED_TIMEOUT_LENGTH);
+        
+        setTimeout(() => {
+          reject(new Error("ended event never fired"));
+        }, ENDED_TIMEOUT_LENGTH);
+      });
     }
   }
 });
