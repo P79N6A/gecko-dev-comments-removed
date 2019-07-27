@@ -23,6 +23,7 @@ using namespace android;
 
 #include "common_video/interface/texture_video_frame.h"
 #include "video_engine/include/vie_external_codec.h"
+#include "runnable_utils.h"
 
 
 #include "GonkNativeWindow.h"
@@ -104,6 +105,12 @@ struct EncodedFrame
   int64_t mRenderTimeMs;
 };
 
+static void
+ShutdownThread(nsCOMPtr<nsIThread>& aThread)
+{
+  aThread->Shutdown();
+}
+
 
 
 
@@ -137,7 +144,9 @@ public:
     if (mThread != nullptr) {
       MonitorAutoUnlock unlock(mMonitor);
       CODEC_LOGD("OMXOutputDrain thread shutdown");
-      mThread->Shutdown();
+      NS_DispatchToMainThread(
+        WrapRunnableNM<decltype(&ShutdownThread),
+                       nsCOMPtr<nsIThread> >(&ShutdownThread, mThread));
       mThread = nullptr;
     }
     CODEC_LOGD("OMXOutputDrain stopped");
