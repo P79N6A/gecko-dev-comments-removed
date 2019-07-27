@@ -1227,16 +1227,6 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
     return;
   }
 
-  MarkChanged();
-
-  CGContextSaveGState(mCg);
-
-  UnboundnessFixer fixer;
-  CGContextRef cg = fixer.Check(mCg, aDrawOptions.mCompositionOp);
-  if (MOZ2D_ERROR_IF(!cg)) {
-    return;
-  }
-
   
   
   
@@ -1248,6 +1238,16 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
     if (rect.IsEmpty()) {
       return;
     }
+  }
+
+  MarkChanged();
+
+  CGContextSaveGState(mCg);
+
+  UnboundnessFixer fixer;
+  CGContextRef cg = fixer.Check(mCg, aDrawOptions.mCompositionOp);
+  if (MOZ2D_ERROR_IF(!cg)) {
+    return;
   }
 
   CGContextSetAlpha(mCg, aDrawOptions.mAlpha);
