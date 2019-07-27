@@ -4325,6 +4325,12 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   mozilla::IOInterposerInit ioInterposerGuard;
 
 #if defined(MOZ_WIDGET_GTK)
+#if defined(MOZ_MEMORY) || defined(__FreeBSD__) || defined(__NetBSD__)
+  
+  
+  
+  g_slice_set_config(G_SLICE_CONFIG_ALWAYS_MALLOC, 1);
+#endif
   g_thread_init(nullptr);
 #endif
 
