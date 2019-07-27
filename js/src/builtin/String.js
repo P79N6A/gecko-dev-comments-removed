@@ -189,7 +189,7 @@ function String_repeat(count) {
     return T;
 }
 
-#define STRING_ITERATOR_SLOT_ITERATED_OBJECT 0
+#define STRING_ITERATOR_SLOT_ITERATED_STRING 0
 #define STRING_ITERATOR_SLOT_NEXT_INDEX 1
 
 
@@ -197,7 +197,7 @@ function String_iterator() {
     CheckObjectCoercible(this);
     var S = ToString(this);
     var iterator = NewStringIterator();
-    UnsafeSetReservedSlot(iterator, STRING_ITERATOR_SLOT_ITERATED_OBJECT, S);
+    UnsafeSetReservedSlot(iterator, STRING_ITERATOR_SLOT_ITERATED_STRING, S);
     UnsafeSetReservedSlot(iterator, STRING_ITERATOR_SLOT_NEXT_INDEX, 0);
     return iterator;
 }
@@ -212,8 +212,11 @@ function StringIteratorNext() {
                             "StringIteratorNext");
     }
 
-    var S = UnsafeGetReservedSlot(this, STRING_ITERATOR_SLOT_ITERATED_OBJECT);
-    var index = UnsafeGetReservedSlot(this, STRING_ITERATOR_SLOT_NEXT_INDEX);
+    var S = UnsafeGetStringFromReservedSlot(this, STRING_ITERATOR_SLOT_ITERATED_STRING);
+    
+    
+    
+    var index = UnsafeGetInt32FromReservedSlot(this, STRING_ITERATOR_SLOT_NEXT_INDEX);
     var size = S.length;
     var result = { value: undefined, done: false };
 
