@@ -43,6 +43,13 @@ SplitCriticalEdgesForBlock(MIRGraph &graph, MBasicBlock *block)
         graph.insertBlockAfter(block, split);
         split->end(MGoto::New(graph.alloc(), target));
 
+        
+        
+        if (MResumePoint *rp = split->entryResumePoint()) {
+            rp->discardUses();
+            split->clearEntryResumePoint();
+        }
+
         block->replaceSuccessor(i, split);
         target->replacePredecessor(block, split);
     }
@@ -383,6 +390,26 @@ jit::FoldTests(MIRGraph &graph)
     }
 }
 
+static void
+EliminateTriviallyDeadResumePointOperands(MIRGraph &graph, MResumePoint *rp)
+{
+    
+    
+    if (rp->mode() != MResumePoint::ResumeAt || *rp->pc() != JSOP_POP)
+        return;
+
+    size_t top = rp->stackDepth() - 1;
+    JS_ASSERT(!rp->isObservableOperand(top));
+
+    MDefinition *def = rp->getOperand(top);
+    if (def->isConstant())
+        return;
+
+    MConstant *constant = MConstant::New(graph.alloc(), MagicValue(JS_OPTIMIZED_OUT));
+    rp->block()->insertBefore(*(rp->block()->begin()), constant);
+    rp->replaceOperand(top, constant);
+}
+
 
 
 
@@ -406,11 +433,17 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
         if (mir->shouldCancel("Eliminate Dead Resume Point Operands (main loop)"))
             return false;
 
+        if (MResumePoint *rp = block->entryResumePoint())
+            EliminateTriviallyDeadResumePointOperands(graph, rp);
+
         
         if (block->isLoopHeader() && block->backedge() == *block)
             continue;
 
         for (MInstructionIterator ins = block->begin(); ins != block->end(); ins++) {
+            if (MResumePoint *rp = ins->resumePoint())
+                EliminateTriviallyDeadResumePointOperands(graph, rp);
+
             
             if (ins->isConstant())
                 continue;
