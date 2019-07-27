@@ -24,10 +24,6 @@ public class testHomeBanner extends UITest {
 
         
         
-        
-
-        
-        
         dismissBannerTest();
     }
 
@@ -48,51 +44,10 @@ public class testHomeBanner extends UITest {
         mAboutHome.assertBannerText(TEXT);
 
         
-        eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageClicked");
-        mAboutHome.clickOnBanner();
-        eventExpecter.blockForEvent();
-
-        
         NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_FIREFOX_URL);
-
         mAboutHome.assertBannerNotVisible();
     }
 
-
-    
-
-
-
-
-    private void removeBannerTest() {
-        removeBannerMessage();
-
-        
-        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
-        mAboutHome.assertVisible()
-                  .assertBannerNotVisible();
-    }
-
-    
-
-
-
-
-
-    private void dismissBannerTest() {
-        
-        addBannerMessage();
-
-        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
-        mAboutHome.assertVisible();
-
-        
-        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageDismissed");
-        mAboutHome.dismissBanner();
-        eventExpecter.blockForEvent();
-
-        mAboutHome.assertBannerNotVisible();
-    }
 
     private void hideOnToolbarFocusTest() {
         NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
@@ -109,18 +64,27 @@ public class testHomeBanner extends UITest {
     
 
 
-    private void addBannerMessage() {
-        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageAdded");
-        NavigationHelper.enterAndLoadUrl(TEST_URL + "#addMessage");
+
+
+
+    private void dismissBannerTest() {
+        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
+        mAboutHome.assertVisible();
+
+        
+        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageDismissed");
+        mAboutHome.dismissBanner();
         eventExpecter.blockForEvent();
+
+        mAboutHome.assertBannerNotVisible();
     }
 
     
 
 
-    private void removeBannerMessage() {
-        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageRemoved");
-        NavigationHelper.enterAndLoadUrl(TEST_URL + "#removeMessage");
+    private void addBannerMessage() {
+        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageAdded");
+        NavigationHelper.enterAndLoadUrl(TEST_URL + "#addMessage");
         eventExpecter.blockForEvent();
     }
 }
