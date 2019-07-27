@@ -31,12 +31,12 @@ if sys.version_info[0] == 3:
 else:
     str_type = basestring
 
-def hash_file(path):
+def hash_file(path, hasher=None):
     """Hashes a file specified by the path given and returns the hex digest."""
 
     
     
-    h = hashlib.sha1()
+    h = hasher or hashlib.sha1()
 
     with open(path, 'rb') as fh:
         while True:
