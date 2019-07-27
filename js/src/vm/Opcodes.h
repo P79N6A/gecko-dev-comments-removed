@@ -480,23 +480,8 @@
 
  \
     macro(JSOP_STRICTSPREADEVAL,      50, "strict-spreadeval", NULL,         1,  3,  1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET|JOF_CHECKSTRICT) \
-    
-
-
-
-
-
-
- \
-    macro(JSOP_CLASSHERITAGE,  51, "classheritage",   NULL,         1,  1,  2,  JOF_BYTE) \
-    
-
-
-
-
-
- \
-    macro(JSOP_FUNWITHPROTO,   52, "funwithproto",    NULL,         5,  1,  1,  JOF_OBJECT) \
+    macro(JSOP_UNUSED51,  51, "unused51",   NULL,         1,  0,  0,  JOF_BYTE) \
+    macro(JSOP_UNUSED52,  52, "unused52",   NULL,         1,  0,  0,  JOF_BYTE) \
     \
     
 
@@ -768,15 +753,8 @@
 
  \
     macro(JSOP_NEW,       82, js_new_str,   NULL,         3, -1,  1,  JOF_UINT16|JOF_INVOKE|JOF_TYPESET) \
-    
-
-
-
-
-
-
- \
-    macro(JSOP_OBJWITHPROTO,  83, "objwithproto",   NULL,         1,  1,  1,  JOF_BYTE) \
+    \
+    macro(JSOP_UNUSED83,  83, "unused83",   NULL,         1,  0,  0,  JOF_BYTE) \
     \
     
 

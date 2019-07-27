@@ -1,6 +1,5 @@
 
 
-
 var test = `
 class a { constructor() { Object.preventExtensions({}).prop = 0; } }
 assertThrowsInstanceOf(() => new a(), TypeError);
@@ -12,13 +11,6 @@ function shouldThrow() {
     }
 }
 assertThrowsInstanceOf(shouldThrow, TypeError);
-
-function shouldThrow2() {
-    class b extends (Object.preventExtensions({}).prop = 4) {
-        constructor() { }
-    }
-}
-assertThrowsInstanceOf(shouldThrow2, TypeError);
 `;
 
 if (classesEnabled())
