@@ -163,19 +163,11 @@ public:
   
   
   
-  
-  
-  
   nscoord
   GetMaxWidth(nsPresContext* aPresContext,
               nsRenderingContext& aRenderingContext,
               float aFontSizeInflation,
-              uint32_t aStretchHint = NS_STRETCH_NORMAL,
-              float aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
-              
-              
-              
-              bool aMaxSizeIsAbsolute = false);
+              uint32_t aStretchHint = NS_STRETCH_NORMAL);
 
   
   
