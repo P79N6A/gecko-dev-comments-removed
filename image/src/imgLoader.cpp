@@ -15,6 +15,7 @@
 
 #include "nsCOMPtr.h"
 
+#include "nsContentPolicyUtils.h"
 #include "nsContentUtils.h"
 #include "nsCORSListenerProxy.h"
 #include "nsNetUtil.h"
@@ -29,6 +30,7 @@
 #include "nsIFileURL.h"
 #include "nsCRT.h"
 #include "nsINetworkPredictor.h"
+#include "mozilla/dom/nsMixedContentBlocker.h"
 
 #include "nsIApplicationCache.h"
 #include "nsIApplicationCacheContainer.h"
@@ -589,13 +591,78 @@ static bool ShouldRevalidateEntry(imgCacheEntry *aEntry,
 }
 
 
+static bool
+ShouldLoadCachedImage(imgRequest* aImgRequest,
+                      nsISupports* aLoadingContext,
+                      nsIPrincipal* aLoadingPrincipal)
+{
+  
+
+
+
+
+
+
+
+
+  bool insecureRedirect = aImgRequest->HadInsecureRedirect();
+  nsCOMPtr<nsIURI> contentLocation;
+  aImgRequest->GetCurrentURI(getter_AddRefs(contentLocation));
+  nsresult rv;
+
+  int16_t decision = nsIContentPolicy::REJECT_REQUEST;
+  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_IMAGE,
+                                 contentLocation,
+                                 aLoadingPrincipal,
+                                 aLoadingContext,
+                                 EmptyCString(), 
+                                 nullptr, 
+                                 &decision,
+                                 nsContentUtils::GetContentPolicy(),
+                                 nsContentUtils::GetSecurityManager());
+  if (NS_FAILED(rv) || !NS_CP_ACCEPTED(decision)) {
+    return false;
+  }
+
+  
+  
+  if (insecureRedirect) {
+    if (!nsContentUtils::IsSystemPrincipal(aLoadingPrincipal)) {
+      
+      nsCOMPtr<nsIURI> requestingLocation;
+      if (aLoadingPrincipal) {
+        rv = aLoadingPrincipal->GetURI(getter_AddRefs(requestingLocation));
+        NS_ENSURE_SUCCESS(rv, false);
+      }
+
+      
+      decision = nsIContentPolicy::REJECT_REQUEST;
+      rv = nsMixedContentBlocker::ShouldLoad(insecureRedirect,
+                                             nsIContentPolicy::TYPE_IMAGE,
+                                             contentLocation,
+                                             requestingLocation,
+                                             aLoadingContext,
+                                             EmptyCString(), 
+                                             nullptr,
+                                             aLoadingPrincipal,
+                                             &decision);
+      if (NS_FAILED(rv) || !NS_CP_ACCEPTED(decision)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+
 
 
 
 static bool
 ValidateSecurityInfo(imgRequest* request, bool forcePrincipalCheck,
                      int32_t corsmode, nsIPrincipal* loadingPrincipal,
-                     ReferrerPolicy referrerPolicy)
+                     nsISupports* aCX, ReferrerPolicy referrerPolicy)
 {
   
   if (referrerPolicy != request->GetReferrerPolicy()) {
@@ -619,11 +686,14 @@ ValidateSecurityInfo(imgRequest* request, bool forcePrincipalCheck,
     if (otherprincipal && loadingPrincipal) {
       bool equals = false;
       otherprincipal->Equals(loadingPrincipal, &equals);
-      return equals;
+      if (!equals) {
+        return false;
+      }
     }
   }
 
-  return true;
+  
+  return ShouldLoadCachedImage(request, aCX, loadingPrincipal);
 }
 
 static nsresult NewImageChannel(nsIChannel **aResult,
@@ -1604,7 +1674,7 @@ bool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
 
   if (!ValidateSecurityInfo(request, aEntry->ForcePrincipalCheck(),
                             aCORSMode, aLoadingPrincipal,
-                            aReferrerPolicy))
+                            aCX, aReferrerPolicy))
     return false;
 
   

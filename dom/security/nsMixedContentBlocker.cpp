@@ -286,8 +286,42 @@ nsMixedContentBlocker::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
   return NS_OK;
 }
 
-NS_IMETHODIMP
+
+
+
+
+nsresult
 nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
+                                  nsIURI* aContentLocation,
+                                  nsIURI* aRequestingLocation,
+                                  nsISupports* aRequestingContext,
+                                  const nsACString& aMimeGuess,
+                                  nsISupports* aExtra,
+                                  nsIPrincipal* aRequestPrincipal,
+                                  int16_t* aDecision)
+{
+  
+  
+  
+  
+  nsresult rv = ShouldLoad(false,   
+                           aContentType,
+                           aContentLocation,
+                           aRequestingLocation,
+                           aRequestingContext,
+                           aMimeGuess,
+                           aExtra,
+                           aRequestPrincipal,
+                           aDecision);
+  return rv;
+}
+
+
+
+
+NS_IMETHODIMP
+nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
+                                  uint32_t aContentType,
                                   nsIURI* aContentLocation,
                                   nsIURI* aRequestingLocation,
                                   nsISupports* aRequestingContext,
@@ -442,8 +476,12 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     *aDecision = REJECT_REQUEST;
     return NS_ERROR_FAILURE;
   }
-
-  if (schemeLocal || schemeNoReturnData || schemeInherits || schemeSecure) {
+  
+  
+  
+  
+  if (!aHadInsecureImageRedirect &&
+      (schemeLocal || schemeNoReturnData || schemeInherits || schemeSecure)) {
     *aDecision = ACCEPT;
      return NS_OK;
   }
@@ -544,7 +582,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   rv = docShell->GetAllowMixedContentAndConnectionData(&rootHasSecureConnection, &allowMixedContent, &isRootDocShell);
   if (NS_FAILED(rv)) {
     *aDecision = REJECT_REQUEST;
-     return rv;
+    return rv;
   }
 
 
