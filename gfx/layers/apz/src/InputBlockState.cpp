@@ -37,6 +37,16 @@ InputBlockState::SetConfirmedTargetApzc(const nsRefPtr<AsyncPanZoomController>& 
   }
   mTargetConfirmed = true;
 
+  if (mTargetApzc == aTargetApzc) {
+    
+    return true;
+  }
+
+  
+  
+  printf_stderr("%p replacing unconfirmed target %p with real target %p\n",
+      this, mTargetApzc.get(), aTargetApzc.get());
+
   
   mTargetApzc = aTargetApzc;
   mOverscrollHandoffChain = (mTargetApzc ? mTargetApzc->BuildOverscrollHandoffChain() : nullptr);
