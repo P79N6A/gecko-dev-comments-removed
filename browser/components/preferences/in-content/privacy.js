@@ -560,6 +560,7 @@ var gPrivacyPane = {
     
     if (aClearEverything)
       ts.value = timeSpanOrig;
+    Services.obs.notifyObservers(null, "clear-private-data", null);
   },
 
   
