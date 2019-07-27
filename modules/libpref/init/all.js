@@ -3091,6 +3091,13 @@ pref("intl.imm.composition_font.japanist_2003", "MS PGothic");
 pref("intl.imm.vertical_writing.always_assume_not_supported", false);
 
 
+
+
+
+
+pref("intl.imm.japanese.assume_active_tip_name_as", "");
+
+
 pref("ui.panel.default_level_parent", false);
 
 pref("mousewheel.system_scroll_override_on_root_content.enabled", true);

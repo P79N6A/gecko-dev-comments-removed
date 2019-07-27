@@ -206,6 +206,15 @@ nsIMM32Handler::IsJapanist2003Active()
 }
 
  bool
+nsIMM32Handler::IsGoogleJapaneseInputActive()
+{
+  
+  
+  return sIMEName.Equals(L"Google \x65E5\x672C\x8A9E\x5165\x529B "
+                         L"IMM32 \x30E2\x30B8\x30E5\x30FC\x30EB");
+}
+
+ bool
 nsIMM32Handler::ShouldDrawCompositionStringOurselves()
 {
   
@@ -221,6 +230,11 @@ nsIMM32Handler::IsVerticalWritingSupported()
   
   
   if (sAssumeVerticalWritingModeNotSupported) {
+    return false;
+  }
+  
+  
+  if (IsGoogleJapaneseInputActive()) {
     return false;
   }
   return !!(sIMEUIProperty & (UI_CAP_2700 | UI_CAP_ROT90 | UI_CAP_ROTANY));
@@ -248,6 +262,15 @@ nsIMM32Handler::InitKeyboardLayout(HKL aKeyboardLayout)
                    (PWSTR)&sCodePage, sizeof(sCodePage) / sizeof(WCHAR));
   sIMEProperty = ::ImmGetProperty(aKeyboardLayout, IGP_PROPERTY);
   sIMEUIProperty = ::ImmGetProperty(aKeyboardLayout, IGP_UI);
+
+  
+  
+  
+  if (sCodePage == 932 && sIMEName.IsEmpty()) {
+    sIMEName =
+      Preferences::GetString("intl.imm.japanese.assume_active_tip_name_as");
+  }
+
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: InitKeyboardLayout, aKeyboardLayout=%08x (\"%s\"), sCodePage=%lu, "
      "sIMEProperty=%s, sIMEUIProperty=%s",
