@@ -157,6 +157,7 @@ bool EnsureNSSInitialized(EnsureNSSOperator op)
     
   case nssEnsure:
   case nssEnsureOnChromeOnly:
+  case nssEnsureChromeOrContent:
     
     if (PR_AtomicAdd(&haveLoaded, 0) || loading)
       return true;
