@@ -25,11 +25,6 @@ const SearchAutocompleteProviderInternal = {
 
   priorityMatches: null,
 
-  
-
-
-  defaultMatch: null,
-
   initialize: function () {
     return new Promise((resolve, reject) => {
       Services.search.init(status => {
@@ -65,16 +60,6 @@ const SearchAutocompleteProviderInternal = {
 
   _refresh: function () {
     this.priorityMatches = [];
-    this.defaultMatch = null;
-
-    let currentEngine = Services.search.currentEngine;
-    
-    if (currentEngine) {
-      this.defaultMatch = {
-        engineName: currentEngine.name,
-        iconUrl: currentEngine.iconURI ? currentEngine.iconURI.spec : null,
-      }
-    }
 
     
     
@@ -139,12 +124,6 @@ this.PlacesSearchAutocompleteProvider = Object.freeze({
     
     return SearchAutocompleteProviderInternal.priorityMatches
                  .find(m => m.token.startsWith(searchToken));
-  }),
-
-  getDefaultMatch: Task.async(function* () {
-    yield this.ensureInitialized();
-
-    return SearchAutocompleteProviderInternal.defaultMatch;
   }),
 
   
