@@ -44,7 +44,19 @@ this.FormAutofillIntegration = {
 
 
 
-  createRequestAutocompleteUI: Task.async(function* (aProperties) {
-    return new RequestAutocompleteUI(aProperties);
+
+
+
+
+
+
+
+
+
+
+
+
+  createRequestAutocompleteUI: Task.async(function* (aAutofillData) {
+    return new RequestAutocompleteUI(aAutofillData);
   }),
 };
