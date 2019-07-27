@@ -492,15 +492,7 @@ ProgressTracker::OnDiscard()
 void
 ProgressTracker::OnImageAvailable()
 {
-  if (!NS_IsMainThread()) {
-    
-    
-    
-    NS_DispatchToMainThread(
-      NS_NewRunnableMethod(this, &ProgressTracker::OnImageAvailable));
-    return;
-  }
-
+  MOZ_ASSERT(NS_IsMainThread());
   
   ObserverArray::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
