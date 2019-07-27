@@ -724,7 +724,7 @@ nsMemoryInfoDumper::DumpDMDToFile(FILE* aFile)
   
   DMDWriteState state(dmdWriter);
   dmd::Writer w(DMDWrite, &state);
-  dmd::Dump(w);
+  dmd::AnalyzeReports(w);
 
   rv = dmdWriter->Finish();
   NS_WARN_IF(NS_FAILED(rv));

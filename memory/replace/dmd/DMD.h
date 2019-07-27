@@ -52,7 +52,13 @@ ClearReports();
 
 
 MOZ_EXPORT void
-Dump(Writer aWriter);
+AnalyzeReports(const Writer& aWriter);
+
+
+
+
+MOZ_EXPORT void
+AnalyzeHeap(const Writer& aWriter);
 
 
 
