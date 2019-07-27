@@ -29,7 +29,7 @@ enum {
 };
 
 #define TRANSPORT_LAYER_ID(name) \
-  virtual const std::string id() const { return name; } \
+  virtual const std::string id() { return name; } \
   static std::string ID() { return name; }
 
 
@@ -81,10 +81,10 @@ class TransportLayer : public sigslot::has_slots<> {
                          SignalPacketReceived;
 
   
-  virtual const std::string id() const = 0;
+  virtual const std::string id() = 0;
 
   
-  const std::string& flow_id() const {
+  const std::string& flow_id() {
     return flow_id_;
   }
 
