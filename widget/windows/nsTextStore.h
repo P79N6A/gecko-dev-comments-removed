@@ -665,6 +665,10 @@ protected:
   Content& LockedContent();
 
   
+  
+  bool GetCurrentText(nsAString& aTextContent);
+
+  
   nsTArray<InputScope>         mInputScopes;
 
   
