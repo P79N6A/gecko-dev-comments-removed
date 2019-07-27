@@ -1653,16 +1653,116 @@ nsTextStore::RestartCompositionIfNecessary(ITfRange* aRangeNew)
     
     
     
-    
-    
-    
-    RecordCompositionEndAction();
-    RecordCompositionStartAction(pComposition, composingRange, true);
+    hr = RestartComposition(pComposition, composingRange);
+    if (FAILED(hr)) {
+      PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+             ("TSF: 0x%p   nsTextStore::RestartCompositionIfNecessary() FAILED "
+              "due to RestartComposition() failure", this));
+      return hr;
+    }
   }
 
   PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
          ("TSF: 0x%p   nsTextStore::RestartCompositionIfNecessary() succeeded",
           this));
+  return S_OK;
+}
+
+HRESULT
+nsTextStore::RestartComposition(ITfCompositionView* aCompositionView,
+                                ITfRange* aNewRange)
+{
+  Selection& currentSelection = CurrentSelection();
+
+  LONG newStart, newLength;
+  HRESULT hr = GetRangeExtent(aNewRange, &newStart, &newLength);
+  LONG newEnd = newStart + newLength;
+
+  PR_LOG(sTextStoreLog, PR_LOG_DEBUG,
+         ("TSF: 0x%p   nsTextStore::RestartComposition(aCompositionView=0x%p, "
+          "aNewRange=0x%p { newStart=%d, newLength=%d }), "
+          "mComposition={ mStart=%d, mCompositionString.Length()=%d }, "
+          "currentSelection={ IsDirty()=%s, StartOffset()=%d, Length()=%d }",
+          this, aCompositionView, aNewRange, newStart, newLength,
+          mComposition.mStart, mComposition.mString.Length(),
+          GetBoolName(currentSelection.IsDirty()),
+          currentSelection.StartOffset(), currentSelection.Length()));
+
+  if (currentSelection.IsDirty()) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::RestartComposition() FAILED "
+            "due to CurrentSelection() failure", this));
+    return E_FAIL;
+  }
+
+  if (FAILED(hr)) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::RestartComposition() FAILED "
+            "due to GetRangeExtent() failure", this));
+    return hr;
+  }
+
+  
+  
+  
+  if (newStart >= mComposition.EndOffset() || newEnd <= mComposition.mStart) {
+    RecordCompositionEndAction();
+    RecordCompositionStartAction(aCompositionView, aNewRange, true);
+    return S_OK;
+  }
+
+  
+  
+  
+  
+
+  
+  Composition oldComposition = mComposition;
+  Selection oldSelection = currentSelection;
+
+  
+  LONG keepComposingStartOffset = std::max(mComposition.mStart, newStart);
+  LONG keepComposingEndOffset = std::min(mComposition.EndOffset(), newEnd);
+  MOZ_ASSERT(keepComposingStartOffset <= keepComposingEndOffset,
+    "Why keepComposingEndOffset is smaller than keepComposingStartOffset?");
+  LONG keepComposingLength = keepComposingEndOffset - keepComposingStartOffset;
+  
+  nsAutoString commitString(mComposition.mString);
+  commitString.Cut(keepComposingStartOffset - mComposition.mStart,
+                   keepComposingLength);
+  
+  Content& lockedContent = LockedContent();
+  if (!lockedContent.IsInitialized()) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+           ("TSF: 0x%p   nsTextStore::RestartComposition() FAILED "
+            "due to LockedContent() failure", this));
+    return E_FAIL;
+  }
+  lockedContent.ReplaceTextWith(mComposition.mStart,
+                                mComposition.mString.Length(),
+                                commitString);
+  
+  PendingAction* action = LastOrNewPendingCompositionUpdate();
+  action->mData = mComposition.mString;
+  action->mRanges->Clear();
+  TextRange caretRange;
+  caretRange.mStartOffset = caretRange.mEndOffset =
+    uint32_t(oldComposition.mStart + commitString.Length());
+  caretRange.mRangeType = NS_TEXTRANGE_CARETPOSITION;
+  action->mRanges->AppendElement(caretRange);
+  action->mIncomplete = false;
+
+  
+  RecordCompositionEndAction();
+
+  
+  lockedContent.ReplaceTextWith(oldComposition.mStart,
+                                commitString.Length(),
+                                oldComposition.mString);
+  currentSelection = oldSelection;
+
+  
+  RecordCompositionStartAction(aCompositionView, aNewRange, true);
   return S_OK;
 }
 
