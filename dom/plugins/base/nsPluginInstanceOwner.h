@@ -63,9 +63,6 @@ public:
                     nsIInputStream *aPostStream, 
                     void *aHeadersData, uint32_t aHeadersDataLen) override;
   
-  
-  NPError    ShowNativeContextMenu(NPMenu* menu, void* event) override;
-  
   NPBool     ConvertPoint(double sourceX, double sourceY, NPCoordinateSpace sourceSpace,
                           double *destX, double *destY, NPCoordinateSpace destSpace) override;
   
