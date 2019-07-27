@@ -32,7 +32,6 @@ class ChangeAttributeTxn;
 class DeleteNodeTxn;
 class EditAggregateTxn;
 class IMETextTxn;
-class InsertTextTxn;
 class JoinElementTxn;
 class RemoveStyleSheetTxn;
 class SplitElementTxn;
@@ -74,6 +73,7 @@ class DataTransfer;
 class DeleteTextTxn;
 class Element;
 class EventTarget;
+class InsertTextTxn;
 class InsertNodeTxn;
 class Selection;
 class Text;
@@ -207,11 +207,7 @@ public:
                                int32_t *aInOutOffset,
                                nsIDOMDocument *aDoc);
   nsresult InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
-                                      mozilla::dom::Text* aTextNode,
-                                      int32_t aOffset,
-                                      bool aSuppressIME = false);
-  nsresult InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert, 
-                                      nsIDOMCharacterData *aTextNode, 
+                                      mozilla::dom::Text& aTextNode,
                                       int32_t aOffset,
                                       bool aSuppressIME = false);
   NS_IMETHOD DeleteSelectionImpl(EDirection aAction,
@@ -309,10 +305,9 @@ protected:
   
 
 
-  NS_IMETHOD CreateTxnForInsertText(const nsAString & aStringToInsert,
-                                    nsIDOMCharacterData *aTextNode,
-                                    int32_t aOffset,
-                                    InsertTextTxn ** aTxn);
+  already_AddRefed<mozilla::dom::InsertTextTxn>
+  CreateTxnForInsertText(const nsAString& aStringToInsert,
+                         mozilla::dom::Text& aTextNode, int32_t aOffset);
 
   NS_IMETHOD CreateTxnForIMEText(const nsAString & aStringToInsert,
                                  IMETextTxn ** aTxn);

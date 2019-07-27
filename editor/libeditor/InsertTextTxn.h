@@ -7,22 +7,24 @@
 #define InsertTextTxn_h__
 
 #include "EditTxn.h"                    
-#include "nsCOMPtr.h"                   
-#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"                  
+#include "nsCycleCollectionParticipant.h" 
 #include "nsID.h"                       
-#include "nsIDOMCharacterData.h"        
 #include "nsISupportsImpl.h"            
 #include "nsString.h"                   
 #include "nscore.h"                     
 
-class nsIEditor;
+class nsEditor;
 class nsITransaction;
 
+#define NS_INSERTTEXTTXN_IID \
+{ 0x8c9ad77f, 0x22a7, 0x4d01, \
+  { 0xb1, 0x59, 0x8a, 0x0f, 0xdb, 0x1d, 0x08, 0xe9 } }
 
-#define INSERT_TEXT_TXN_CID \
-{/* 93276f00-ab2c-11d2-8f4b-006008159b0c*/ \
-0x93276f00, 0xab2c, 0x11d2, \
-{0x8f, 0xb4, 0x0, 0x60, 0x8, 0x15, 0x9b, 0xc} }
+namespace mozilla {
+namespace dom {
+
+class Text;
 
 
 
@@ -30,41 +32,35 @@ class nsITransaction;
 class InsertTextTxn : public EditTxn
 {
 public:
-
-  static const nsIID& GetCID() { static const nsIID iid = INSERT_TEXT_TXN_CID; return iid; }
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_INSERTTEXTTXN_IID)
 
   
 
 
 
 
-
-  NS_IMETHOD Init(nsIDOMCharacterData *aElement,
-                  uint32_t aOffset,
-                  const nsAString& aString,
-                  nsIEditor *aEditor);
-
-  InsertTextTxn();
+  InsertTextTxn(Text& aTextNode, uint32_t aOffset, const nsAString& aString,
+                nsEditor& aEditor);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(InsertTextTxn, EditTxn)
 	
   NS_DECL_EDITTXN
 
-  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge);
+  NS_IMETHOD Merge(nsITransaction* aTransaction, bool* aDidMerge) MOZ_OVERRIDE;
 
   
-  NS_IMETHOD GetData(nsString& aResult);
+  void GetData(nsString& aResult);
 
-protected:
+private:
   virtual ~InsertTextTxn();
 
   
-  virtual bool IsSequentialInsert(InsertTextTxn *aOtherTxn);
+  bool IsSequentialInsert(InsertTextTxn& aOtherTxn);
+
   
-  
-  nsCOMPtr<nsIDOMCharacterData> mElement;
-  
+  nsRefPtr<Text> mTextNode;
+
   
   uint32_t mOffset;
 
@@ -72,7 +68,12 @@ protected:
   nsString mStringToInsert;
 
   
-  nsIEditor *mEditor;   
+  nsEditor& mEditor;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(InsertTextTxn, NS_INSERTTEXTTXN_IID)
+
+}
+}
 
 #endif

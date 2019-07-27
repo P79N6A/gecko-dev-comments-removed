@@ -3,20 +3,28 @@
 
 
 
-#include <stdio.h>                      
-
 #include "InsertTextTxn.h"
-#include "nsAString.h"
-#include "nsDebug.h"                    
-#include "nsError.h"                    
-#include "nsIDOMCharacterData.h"        
-#include "nsIEditor.h"                  
-#include "nsISelection.h"               
-#include "nsISupportsUtils.h"           
-#include "nsITransaction.h"             
 
-InsertTextTxn::InsertTextTxn()
+#include "mozilla/dom/Selection.h"      
+#include "mozilla/dom/Text.h"           
+#include "nsAString.h"                  
+#include "nsDebug.h"                    
+#include "nsEditor.h"                   
+#include "nsError.h"                    
+
+using namespace mozilla;
+using namespace mozilla::dom;
+
+class nsITransaction;
+
+InsertTextTxn::InsertTextTxn(Text& aTextNode, uint32_t aOffset,
+                             const nsAString& aStringToInsert,
+                             nsEditor& aEditor)
   : EditTxn()
+  , mTextNode(&aTextNode)
+  , mOffset(aOffset)
+  , mStringToInsert(aStringToInsert)
+  , mEditor(aEditor)
 {
 }
 
@@ -25,106 +33,66 @@ InsertTextTxn::~InsertTextTxn()
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(InsertTextTxn, EditTxn,
-                                   mElement)
+                                   mTextNode)
 
 NS_IMPL_ADDREF_INHERITED(InsertTextTxn, EditTxn)
 NS_IMPL_RELEASE_INHERITED(InsertTextTxn, EditTxn)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(InsertTextTxn)
-  if (aIID.Equals(InsertTextTxn::GetCID())) {
-    *aInstancePtr = (void*)(InsertTextTxn*)this;
-    NS_ADDREF_THIS();
-    return NS_OK;
-  } else
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsITransaction, InsertTextTxn)
 NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
-NS_IMETHODIMP InsertTextTxn::Init(nsIDOMCharacterData *aElement,
-                                  uint32_t             aOffset,
-                                  const nsAString     &aStringToInsert,
-                                  nsIEditor           *aEditor)
+
+NS_IMETHODIMP
+InsertTextTxn::DoTransaction()
 {
-#if 0
-      nsAutoString text;
-      aElement->GetData(text);
-      printf("InsertTextTxn: Offset to insert at = %d. Text of the node to insert into:\n", aOffset);
-      wprintf(text.get());
-      printf("\n");
-#endif
+  nsresult res = mTextNode->InsertData(mOffset, mStringToInsert);
+  NS_ENSURE_SUCCESS(res, res);
 
-  NS_ASSERTION(aElement && aEditor, "bad args");
-  NS_ENSURE_TRUE(aElement && aEditor, NS_ERROR_NULL_POINTER);
+  
+  if (mEditor.GetShouldTxnSetSelection()) {
+    nsRefPtr<Selection> selection = mEditor.GetSelection();
+    NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+    res = selection->Collapse(mTextNode,
+                              mOffset + mStringToInsert.Length());
+    NS_ASSERTION(NS_SUCCEEDED(res),
+                 "Selection could not be collapsed after insert");
+  } else {
+    
+  }
 
-  mElement = do_QueryInterface(aElement);
-  mOffset = aOffset;
-  mStringToInsert = aStringToInsert;
-  mEditor = aEditor;
   return NS_OK;
 }
 
-NS_IMETHODIMP InsertTextTxn::DoTransaction(void)
+NS_IMETHODIMP
+InsertTextTxn::UndoTransaction()
 {
-  NS_ASSERTION(mElement && mEditor, "bad state");
-  if (!mElement || !mEditor) { return NS_ERROR_NOT_INITIALIZED; }
+  return mTextNode->DeleteData(mOffset, mStringToInsert.Length());
+}
 
-  nsresult result = mElement->InsertData(mOffset, mStringToInsert);
-  NS_ENSURE_SUCCESS(result, result);
+NS_IMETHODIMP
+InsertTextTxn::Merge(nsITransaction* aTransaction, bool* aDidMerge)
+{
+  if (!aTransaction || !aDidMerge) {
+    return NS_OK;
+  }
+  
+  *aDidMerge = false;
 
   
-  bool bAdjustSelection;
-  mEditor->ShouldTxnSetSelection(&bAdjustSelection);
-  if (bAdjustSelection)
-  {
-    nsCOMPtr<nsISelection> selection;
-    result = mEditor->GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(result, result);
-    NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-    result = selection->Collapse(mElement, mOffset+mStringToInsert.Length());
-    NS_ASSERTION((NS_SUCCEEDED(result)), "selection could not be collapsed after insert.");
-  }
-  else
-  {
-    
-  }
-
-  return result;
-}
-
-NS_IMETHODIMP InsertTextTxn::UndoTransaction(void)
-{
-  NS_ASSERTION(mElement && mEditor, "bad state");
-  if (!mElement || !mEditor) { return NS_ERROR_NOT_INITIALIZED; }
-
-  uint32_t length = mStringToInsert.Length();
-  return mElement->DeleteData(mOffset, length);
-}
-
-NS_IMETHODIMP InsertTextTxn::Merge(nsITransaction *aTransaction, bool *aDidMerge)
-{
   
-  if (aDidMerge)
-    *aDidMerge = false;
-  nsresult result = NS_OK;
-  if (aDidMerge && aTransaction)
-  {
-    
-    
-    InsertTextTxn *otherInsTxn = nullptr;
-    aTransaction->QueryInterface(InsertTextTxn::GetCID(), (void **)&otherInsTxn);
-    if (otherInsTxn)
-    {
-      if (IsSequentialInsert(otherInsTxn))
-      {
-        nsAutoString otherData;
-        otherInsTxn->GetData(otherData);
-        mStringToInsert += otherData;
-        *aDidMerge = true;
-      }
-      NS_RELEASE(otherInsTxn);
-    }
+  nsRefPtr<InsertTextTxn> otherInsTxn = do_QueryObject(aTransaction);
+  if (otherInsTxn && IsSequentialInsert(*otherInsTxn)) {
+    nsAutoString otherData;
+    otherInsTxn->GetData(otherData);
+    mStringToInsert += otherData;
+    *aDidMerge = true;
   }
-  return result;
+
+  return NS_OK;
 }
 
-NS_IMETHODIMP InsertTextTxn::GetTxnDescription(nsAString& aString)
+NS_IMETHODIMP
+InsertTextTxn::GetTxnDescription(nsAString& aString)
 {
   aString.AssignLiteral("InsertTextTxn: ");
   aString += mStringToInsert;
@@ -133,21 +101,15 @@ NS_IMETHODIMP InsertTextTxn::GetTxnDescription(nsAString& aString)
 
 
 
-NS_IMETHODIMP InsertTextTxn::GetData(nsString& aResult)
+void
+InsertTextTxn::GetData(nsString& aResult)
 {
   aResult = mStringToInsert;
-  return NS_OK;
 }
 
-bool InsertTextTxn::IsSequentialInsert(InsertTextTxn *aOtherTxn)
+bool
+InsertTextTxn::IsSequentialInsert(InsertTextTxn& aOtherTxn)
 {
-  NS_ASSERTION(aOtherTxn, "null param");
-  if (aOtherTxn && aOtherTxn->mElement == mElement)
-  {
-    
-    int32_t length = mStringToInsert.Length();
-    if (aOtherTxn->mOffset == (mOffset + length))
-      return true;
-  }
-  return false;
+  return aOtherTxn.mTextNode == mTextNode &&
+         aOtherTxn.mOffset == mOffset + mStringToInsert.Length();
 }
