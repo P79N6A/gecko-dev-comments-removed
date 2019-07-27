@@ -12,6 +12,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
 
 
@@ -200,6 +202,7 @@ function safePrefGetter(aPrefBranch, aName, aDefault) {
     return aDefault;
   }
 }
+
 
 
 
@@ -1043,19 +1046,20 @@ nsPlacesAutoComplete.prototype = {
     let query = this._getSuggestionPrefQuery();
 
     
-    let params = query.params;
-    params.parent = PlacesUtils.tagsFolderId;
-    params.query_type = kQueryTypeFiltered;
-    params.matchBehavior = aMatchBehavior;
-    params.searchBehavior = this._behavior;
+    let (params = query.params) {
+      params.parent = PlacesUtils.tagsFolderId;
+      params.query_type = kQueryTypeFiltered;
+      params.matchBehavior = aMatchBehavior;
+      params.searchBehavior = this._behavior;
 
-    
-    
-    params.searchString = aTokens.join(" ");
+      
+      
+      params.searchString = aTokens.join(" ");
 
-    
-    
-    params.maxResults = this._maxRichResults;
+      
+      
+      params.maxResults = this._maxRichResults;
+    }
 
     return query;
   },
@@ -1065,15 +1069,15 @@ nsPlacesAutoComplete.prototype = {
     let query = this._openPagesQuery;
 
     
-    let params = query.params;
-    params.query_type = kQueryTypeFiltered;
-    params.matchBehavior = this._matchBehavior;
-    params.searchBehavior = this._behavior;
-
-    
-    
-    params.searchString = aTokens.join(" ");
-    params.maxResults = this._maxRichResults;
+    let (params = query.params) {
+      params.query_type = kQueryTypeFiltered;
+      params.matchBehavior = this._matchBehavior;
+      params.searchBehavior = this._behavior;
+      
+      
+      params.searchString = aTokens.join(" ");
+      params.maxResults = this._maxRichResults;
+    }
 
     return query;
   },
@@ -1102,10 +1106,11 @@ nsPlacesAutoComplete.prototype = {
     let keyword = aTokens[0];
 
     let query = this._keywordQuery;
-    let params = query.params;
-    params.keyword = keyword;
-    params.query_string = queryString;
-    params.query_type = kQueryTypeKeyword;
+    let (params = query.params) {
+      params.keyword = keyword;
+      params.query_string = queryString;
+      params.query_type = kQueryTypeKeyword;
+    }
 
     return query;
   },
@@ -1123,12 +1128,13 @@ nsPlacesAutoComplete.prototype = {
     }
 
     let query = this._adaptiveQuery;
-    let params = query.params;
-    params.parent = PlacesUtils.tagsFolderId;
-    params.search_string = this._currentSearchString;
-    params.query_type = kQueryTypeFiltered;
-    params.matchBehavior = aMatchBehavior;
-    params.searchBehavior = this._behavior;
+    let (params = query.params) {
+      params.parent = PlacesUtils.tagsFolderId;
+      params.search_string = this._currentSearchString;
+      params.query_type = kQueryTypeFiltered;
+      params.matchBehavior = aMatchBehavior;
+      params.searchBehavior = this._behavior;
+    }
 
     return query;
   },
@@ -1447,74 +1453,76 @@ urlInlineComplete.prototype = {
 
     this._listener = aListener;
 
-    
-    
-    
-    
-    if (this._currentSearchString.length == 0 || !this._db ||
-        PlacesUtils.bookmarks.getURIForKeyword(this._currentSearchString)) {
-      this._finishSearch();
-      return;
-    }
-
-    
-    
-    
-    
-    if (/\s/.test(this._currentSearchString)) {
-      this._finishSearch();
-      return;
-    }
-
-    
-    let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
-
-    
-    if (lastSlashIndex != -1) {
+    Task.spawn(function* () {
       
-      if (lastSlashIndex < this._currentSearchString.length - 1)
-        this._queryURL();
-      else
+      
+      
+      
+      if (this._currentSearchString.length == 0 || !this._db ||
+          (yield PlacesUtils.promiseHrefAndPostDataForKeyword(this._currentSearchString)).href) {
         this._finishSearch();
-      return;
-    }
-
-    
-    let query = this._hostQuery;
-    query.params.search_string = this._currentSearchString.toLowerCase();
-    
-    TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
-    let ac = this;
-    let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
-      handleResult: function (aResultSet) {
-        let row = aResultSet.getNextRow();
-        let trimmedHost = row.getResultByIndex(0);
-        let untrimmedHost = row.getResultByIndex(1);
-        
-        
-        if (untrimmedHost &&
-            !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
-          untrimmedHost = null;
-        }
-
-        ac._result.appendMatch(ac._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
-
-        
-        
-      },
-
-      handleError: function (aError) {
-        Components.utils.reportError(
-          "URL Inline Complete: An async statement encountered an " +
-          "error: " + aError.result + ", '" + aError.message + "'");
-      },
-
-      handleCompletion: function (aReason) {
-        TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
-        ac._finishSearch();
+        return;
       }
-    }, this._db);
-    this._pendingQuery = wrapper.executeAsync([query]);
+
+      
+      
+      
+      
+      if (/\s/.test(this._currentSearchString)) {
+        this._finishSearch();
+        return;
+      }
+
+      
+      let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
+
+      
+      if (lastSlashIndex != -1) {
+        
+        if (lastSlashIndex < this._currentSearchString.length - 1)
+          this._queryURL();
+        else
+          this._finishSearch();
+        return;
+      }
+
+      
+      let query = this._hostQuery;
+      query.params.search_string = this._currentSearchString.toLowerCase();
+      
+      TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
+      let ac = this;
+      let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
+        handleResult: function (aResultSet) {
+          let row = aResultSet.getNextRow();
+          let trimmedHost = row.getResultByIndex(0);
+          let untrimmedHost = row.getResultByIndex(1);
+          
+          
+          if (untrimmedHost &&
+              !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+            untrimmedHost = null;
+          }
+
+          ac._result.appendMatch(ac._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
+
+          
+          
+        },
+
+        handleError: function (aError) {
+          Components.utils.reportError(
+            "URL Inline Complete: An async statement encountered an " +
+            "error: " + aError.result + ", '" + aError.message + "'");
+        },
+
+        handleCompletion: function (aReason) {
+          TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
+          ac._finishSearch();
+        }
+      }, this._db);
+      this._pendingQuery = wrapper.executeAsync([query]);
+    }.bind(this));
   },
 
   
@@ -1535,12 +1543,13 @@ urlInlineComplete.prototype = {
     
     
     let query = this._urlQuery;
-    let params = query.params;
-    params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
-    params.searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
-                             Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED |
-                             Ci.mozIPlacesAutoComplete.BEHAVIOR_URL;
-    params.searchString = this._currentSearchString;
+    let (params = query.params) {
+      params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
+      params.searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                               Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED |
+                               Ci.mozIPlacesAutoComplete.BEHAVIOR_URL;
+      params.searchString = this._currentSearchString;
+    }
 
     
     let ac = this;
