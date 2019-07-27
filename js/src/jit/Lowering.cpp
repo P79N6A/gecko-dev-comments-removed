@@ -700,6 +700,12 @@ LIRGenerator::visitTest(MTest *test)
     
     MOZ_ASSERT(opd->type() != MIRType_String);
 
+    
+    if (opd->isConstant()) {
+        bool result = opd->toConstant()->valueToBoolean();
+        return add(new(alloc()) LGoto(result ? ifTrue : ifFalse));
+    }
+
     if (opd->type() == MIRType_Value) {
         LDefinition temp0, temp1;
         if (test->operandMightEmulateUndefined()) {
@@ -709,18 +715,17 @@ LIRGenerator::visitTest(MTest *test)
             temp0 = LDefinition::BogusTemp();
             temp1 = LDefinition::BogusTemp();
         }
-        LTestVAndBranch *lir = new(alloc()) LTestVAndBranch(ifTrue, ifFalse, tempDouble(), temp0, temp1);
+        LTestVAndBranch *lir =
+            new(alloc()) LTestVAndBranch(ifTrue, ifFalse, tempDouble(), temp0, temp1);
         if (!useBox(lir, LTestVAndBranch::Input, opd))
             return false;
         return add(lir, test);
     }
 
+    
     if (opd->type() == MIRType_Object) {
-        
         if (test->operandMightEmulateUndefined())
             return add(new(alloc()) LTestOAndBranch(useRegister(opd), ifTrue, ifFalse, temp()), test);
-
-        
         return add(new(alloc()) LGoto(ifTrue));
     }
 
@@ -732,30 +737,6 @@ LIRGenerator::visitTest(MTest *test)
     
     if (opd->type() == MIRType_Symbol)
         return add(new(alloc()) LGoto(ifTrue));
-
-    
-    if (opd->type() == MIRType_Double && opd->isConstant()) {
-        bool result = opd->toConstant()->valueToBoolean();
-        return add(new(alloc()) LGoto(result ? ifTrue : ifFalse));
-    }
-
-    
-    if (opd->type() == MIRType_Float32 && opd->isConstant()) {
-        bool result = opd->toConstant()->valueToBoolean();
-        return add(new(alloc()) LGoto(result ? ifTrue : ifFalse));
-    }
-
-    
-    if (opd->type() == MIRType_Int32 && opd->isConstant()) {
-        int32_t num = opd->toConstant()->value().toInt32();
-        return add(new(alloc()) LGoto(num ? ifTrue : ifFalse));
-    }
-
-    
-    if (opd->type() == MIRType_Boolean && opd->isConstant()) {
-        bool result = opd->toConstant()->value().toBoolean();
-        return add(new(alloc()) LGoto(result ? ifTrue : ifFalse));
-    }
 
     
     
