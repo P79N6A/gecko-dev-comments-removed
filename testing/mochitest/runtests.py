@@ -116,6 +116,7 @@ class MessageLogger(object):
     def __init__(self, logger, buffering=True):
         self.logger = logger
         self.buffering = buffering
+        self.restore_buffering = False
         self.tests_started = False
 
         
@@ -176,41 +177,42 @@ class MessageLogger(object):
             message.pop('unstructured')
 
         
-        is_error = 'expected' in message or (message['action'] == 'log' and message['message'].startswith('TEST-UNEXPECTED'))
-        if is_error:
+        
+        if ('expected' in message or
+            (message['action'] == 'log' and message['message'].startswith('TEST-UNEXPECTED'))):
+            
             self.errors.append(message)
-
-        
-        if not self.buffering or unstructured or not self.tests_started:
-            self.logger.log_raw(message)
-            return
-
-        
-        if message['action'] == 'test_end':
-            self.buffered_messages = []
-
-        
-        if not is_error and message['action'] not in self.BUFFERED_ACTIONS:
-            self.logger.log_raw(message)
-            return
-
-        
-        if is_error:
+            self.restore_buffering = self.restore_buffering or self.buffering
+            self.buffering = False
             if self.buffered_messages:
                 snipped = len(self.buffered_messages) - self.BUFFERING_THRESHOLD
                 if snipped > 0:
-                  self.logger.info("<snipped {0} output lines - "
-                                   "if you need more context, please use "
-                                   "SimpleTest.requestCompleteLog() in your test>"
-                                   .format(snipped))
+                    self.logger.info("<snipped {0} output lines - "
+                                     "if you need more context, please use "
+                                     "SimpleTest.requestCompleteLog() in your test>"
+                                     .format(snipped))
                 
                 self.dump_buffered(limit=True)
 
             
             self.logger.log_raw(message)
+        
+        
+        elif any([not self.buffering,
+                  unstructured,
+                  not self.tests_started,
+                  message['action'] not in self.BUFFERED_ACTIONS]):
+            self.logger.log_raw(message)
         else:
             
             self.buffered_messages.append(message)
+
+        
+        if message['action'] == 'test_end':
+            self.buffered_messages = []
+            if self.restore_buffering:
+                self.restore_buffering = False
+                self.buffering = True
 
     def write(self, line):
         messages = self.parse_line(line)
