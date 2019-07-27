@@ -494,6 +494,7 @@ struct NewLayerEntry {
     , mLayerContentsVisibleRect(0, 0, -1, -1)
     , mHideAllLayersBelow(false)
     , mOpaqueForAnimatedGeometryRootParent(false)
+    , mPropagateComponentAlphaFlattening(true)
   {}
   
   
@@ -518,6 +519,10 @@ struct NewLayerEntry {
   
   
   bool mOpaqueForAnimatedGeometryRootParent;
+
+  
+  
+  bool mPropagateComponentAlphaFlattening;
 };
 
 
@@ -2868,6 +2873,13 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
       newLayerEntry->mLayer = ownLayer;
       newLayerEntry->mAnimatedGeometryRoot = animatedGeometryRoot;
       newLayerEntry->mFixedPosFrameForLayerData = fixedPosFrame;
+
+      
+      
+      if (itemType == nsDisplayItem::TYPE_TRANSFORM ||
+          layerState == LAYER_ACTIVE_FORCE) {
+        newLayerEntry->mPropagateComponentAlphaFlattening = false;
+      }
       
       
       
@@ -3469,11 +3481,8 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData,
 
       
       
-      
-      
-      if ((layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA) &&
-          (layer->GetType() != Layer::TYPE_CONTAINER ||
-           layer->GetBaseTransform().IsIdentity())) {
+      if (mNewChildLayers[i].mPropagateComponentAlphaFlattening &&
+          (layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA)) {
         aHasComponentAlphaChildren = true;
       }
     }
