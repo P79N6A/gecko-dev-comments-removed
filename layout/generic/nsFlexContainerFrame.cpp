@@ -3190,12 +3190,20 @@ nsFlexContainerFrame::GetMainSizeFromReflowState(
   const nsHTMLReflowState& aReflowState,
   const FlexboxAxisTracker& aAxisTracker)
 {
-  if (aAxisTracker.IsMainAxisHorizontal()) {
+  if (aAxisTracker.IsRowOriented()) {
     
     
+    
+    
+    
+
+
+
+
     return aReflowState.ComputedISize();
   }
 
+  
   return GetEffectiveComputedBSize(aReflowState);
 }
 
@@ -3226,6 +3234,8 @@ GetLargestLineMainSize(const FlexLine* aFirstLine)
 
 
 
+
+
 static nscoord
 ResolveFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
                              const FlexboxAxisTracker& aAxisTracker,
@@ -3236,8 +3246,7 @@ ResolveFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
 {
   MOZ_ASSERT(aFirstLine, "null first line pointer");
 
-  if (aAxisTracker.IsMainAxisHorizontal()) {
-    
+  if (aAxisTracker.IsRowOriented()) {
     
     
     return aTentativeMainSize;
@@ -3276,8 +3285,8 @@ ResolveFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
   
   nscoord largestLineOuterSize = GetLargestLineMainSize(aFirstLine);
   return NS_CSS_MINMAX(largestLineOuterSize,
-                       aReflowState.ComputedMinHeight(),
-                       aReflowState.ComputedMaxHeight());
+                       aReflowState.ComputedMinBSize(),
+                       aReflowState.ComputedMaxBSize());
 }
 
 nscoord
@@ -3290,9 +3299,16 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
 {
   MOZ_ASSERT(aIsDefinite, "outparam pointer must be non-null");
 
-  if (aAxisTracker.IsCrossAxisHorizontal()) {
+  if (aAxisTracker.IsColumnOriented()) {
     
     
+    
+    
+    
+
+
+
+
     *aIsDefinite = true;
     return aReflowState.ComputedISize();
   }
@@ -3327,10 +3343,11 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
   
   
   
+  
   *aIsDefinite = false;
   return NS_CSS_MINMAX(aSumLineCrossSizes,
-                       aReflowState.ComputedMinHeight(),
-                       aReflowState.ComputedMaxHeight());
+                       aReflowState.ComputedMinBSize(),
+                       aReflowState.ComputedMaxBSize());
 }
 
 void
