@@ -242,7 +242,7 @@ Shape::fixupDictionaryShapeAfterMovingGC()
     AllocKind kind = TenuredCell::fromPointer(cell)->getAllocKind();
     MOZ_ASSERT(kind == AllocKind::SHAPE ||
                kind == AllocKind::ACCESSOR_SHAPE ||
-               kind <= AllocKind::OBJECT_LAST);
+               IsObjectAllocKind(kind));
     if (kind == AllocKind::SHAPE || kind == AllocKind::ACCESSOR_SHAPE) {
         
         Shape *next = reinterpret_cast<Shape *>(uintptr_t(listp) -

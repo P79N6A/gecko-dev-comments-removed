@@ -81,7 +81,7 @@ template <> struct MapTypeToFinalizeKind<jit::JitCode>      { static const Alloc
 static inline bool
 IsNurseryAllocable(AllocKind kind)
 {
-    MOZ_ASSERT(kind < AllocKind::LIMIT);
+    MOZ_ASSERT(IsValidAllocKind(kind));
     static const bool map[] = {
         false,     
         true,      
@@ -114,7 +114,7 @@ IsNurseryAllocable(AllocKind kind)
 static inline bool
 IsBackgroundFinalized(AllocKind kind)
 {
-    MOZ_ASSERT(kind < AllocKind::LIMIT);
+    MOZ_ASSERT(IsValidAllocKind(kind));
     static const bool map[] = {
         false,     
         true,      
@@ -147,7 +147,7 @@ IsBackgroundFinalized(AllocKind kind)
 static inline bool
 CanBeFinalizedInBackground(AllocKind kind, const Class *clasp)
 {
-    MOZ_ASSERT(kind <= AllocKind::OBJECT_LAST);
+    MOZ_ASSERT(IsObjectAllocKind(kind));
     
 
 
@@ -219,7 +219,7 @@ static inline AllocKind
 GetBackgroundAllocKind(AllocKind kind)
 {
     MOZ_ASSERT(!IsBackgroundFinalized(kind));
-    MOZ_ASSERT(kind < AllocKind::OBJECT_LAST);
+    MOZ_ASSERT(IsObjectAllocKind(kind));
     return AllocKind(size_t(kind) + 1);
 }
 
