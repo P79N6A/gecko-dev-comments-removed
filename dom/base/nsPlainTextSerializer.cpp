@@ -91,8 +91,6 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mPreFormatted = false;
   mStartedOutput = false;
 
-  mPreformattedBlockBoundary = false;
-
   
   
   
@@ -168,8 +166,6 @@ nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
 
   mLineBreakDue = false;
   mFloatingLines = -1;
-
-  mPreformattedBlockBoundary = false;
 
   if (mFlags & nsIDocumentEncoder::OutputFormatted) {
     
@@ -441,16 +437,6 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
     return NS_OK;
   }
 
-  if (mFlags & nsIDocumentEncoder::OutputForPlainTextClipboardCopy) {
-    if (mPreformattedBlockBoundary && DoOutput()) {
-      
-      if (mFloatingLines < 0)
-        mFloatingLines = 0;
-      mLineBreakDue = true;
-    }
-    mPreformattedBlockBoundary = false;
-  }
-
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
     
     
@@ -684,7 +670,7 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 
   
   
-  else if (IsElementBlock(mElement)) {
+  else if (nsContentUtils::IsHTMLBlock(aTag)) {
     EnsureVerticalSpace(0);
   }
 
@@ -779,14 +765,6 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
   if (ShouldReplaceContainerWithPlaceholder(mElement->Tag())) {
     mIgnoredChildNodeLevel--;
     return NS_OK;
-  }
-
-  if (mFlags & nsIDocumentEncoder::OutputForPlainTextClipboardCopy) {
-    if (DoOutput() && IsInPre() && IsElementBlock(mElement)) {
-      
-      
-      mPreformattedBlockBoundary = true;
-    }
   }
 
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
@@ -909,7 +887,8 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
   else if (aTag == nsGkAtoms::q) {
     Write(NS_LITERAL_STRING("\""));
   }
-  else if (IsElementBlock(mElement) && aTag != nsGkAtoms::script) {
+  else if (nsContentUtils::IsHTMLBlock(aTag)
+           && aTag != nsGkAtoms::script) {
     
     
     
@@ -1058,8 +1037,6 @@ nsPlainTextSerializer::DoAddText(bool aIsLineBreak, const nsAString& aText)
 nsresult
 nsPlainTextSerializer::DoAddLeaf(nsIAtom* aTag)
 {
-  mPreformattedBlockBoundary = false;
-
   
   if (!DoOutput()) {
     return NS_OK;
@@ -1799,20 +1776,6 @@ nsPlainTextSerializer::IsElementPreformatted(Element* aElement)
   }
   
   return GetIdForContent(aElement) == nsGkAtoms::pre;
-}
-
-bool
-nsPlainTextSerializer::IsElementBlock(Element* aElement)
-{
-  nsRefPtr<nsStyleContext> styleContext =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement, nullptr,
-                                                         nullptr);
-  if (styleContext) {
-    const nsStyleDisplay* displayStyle = styleContext->StyleDisplay();
-    return displayStyle->IsBlockOutsideStyle();
-  }
-  
-  return nsContentUtils::IsHTMLBlock(GetIdForContent(aElement));
 }
 
 

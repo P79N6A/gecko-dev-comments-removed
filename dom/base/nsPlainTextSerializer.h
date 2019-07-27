@@ -115,7 +115,6 @@ private:
   bool ShouldReplaceContainerWithPlaceholder(nsIAtom* aTag);
 
   bool IsElementPreformatted(mozilla::dom::Element* aElement);
-  bool IsElementBlock(mozilla::dom::Element* aElement);
 
 private:
   nsString         mCurrentLine;
@@ -170,9 +169,7 @@ private:
   
   
   
-  bool             mLineBreakDue;
-
-  bool             mPreformattedBlockBoundary;
+  bool             mLineBreakDue; 
 
   nsString         mURL;
   int32_t          mHeaderStrategy;    
