@@ -3490,12 +3490,12 @@ CodeGenerator::visitCallDirectEvalV(LCallDirectEvalV *lir)
     callVM(DirectEvalValueInfo, lir);
 }
 
-
-static const uint32_t EntryTempMask = Registers::TempMask & ~(1 << OsrFrameReg.code());
-
 void
 CodeGenerator::generateArgumentsChecks(bool bailout)
 {
+    
+    static const uint32_t EntryTempMask = Registers::TempMask & ~(1 << OsrFrameReg.code());
+
     
     
     
