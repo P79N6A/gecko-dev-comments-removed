@@ -51,10 +51,6 @@
 #include "Units.h"
 #include "nsComponentManagerUtils.h"
 
-#ifdef MOZ_B2G
-#include "nsIDOMWindowB2G.h"
-#endif 
-
 #ifdef MOZ_WEBSPEECH
 #include "nsISpeechSynthesisGetter.h"
 #endif 
@@ -328,9 +324,6 @@ class nsGlobalWindow : public mozilla::dom::EventTarget,
                        public nsSupportsWeakReference,
                        public nsIInterfaceRequestor,
                        public PRCListStr
-#ifdef MOZ_B2G
-                     , public nsIDOMWindowB2G
-#endif 
 #ifdef MOZ_WEBSPEECH
                      , public nsISpeechSynthesisGetter
 #endif 
@@ -381,11 +374,6 @@ public:
 
   
   NS_DECL_NSIDOMWINDOW
-
-#ifdef MOZ_B2G
-  
-  NS_DECL_NSIDOMWINDOWB2G
-#endif 
 
 #ifdef MOZ_WEBSPEECH
   
