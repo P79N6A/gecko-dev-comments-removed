@@ -299,26 +299,24 @@ nsSVGFilterInstance::GetOrCreateSourceAlphaIndex(nsTArray<FilterPrimitiveDescrip
 
   
   
-  
-  if (mSourceGraphicIndex < 0) {
-    mSourceAlphaIndex = FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha;
-    mSourceAlphaAvailable = true;
-    return mSourceAlphaIndex;
-  }
-
-  
-  
   FilterPrimitiveDescription descr(PrimitiveType::ToAlpha);
   descr.SetInputPrimitive(0, mSourceGraphicIndex);
 
-  const FilterPrimitiveDescription& sourcePrimitiveDescr =
-    aPrimitiveDescrs[mSourceGraphicIndex];
-  descr.SetPrimitiveSubregion(sourcePrimitiveDescr.PrimitiveSubregion());
-  descr.SetIsTainted(sourcePrimitiveDescr.IsTainted());
+  if (mSourceGraphicIndex >= 0) {
+    const FilterPrimitiveDescription& sourcePrimitiveDescr =
+      aPrimitiveDescrs[mSourceGraphicIndex];
+    descr.SetPrimitiveSubregion(sourcePrimitiveDescr.PrimitiveSubregion());
+    descr.SetIsTainted(sourcePrimitiveDescr.IsTainted());
 
-  ColorSpace colorSpace = sourcePrimitiveDescr.OutputColorSpace();
-  descr.SetInputColorSpace(0, colorSpace);
-  descr.SetOutputColorSpace(colorSpace);
+    ColorSpace colorSpace = sourcePrimitiveDescr.OutputColorSpace();
+    descr.SetInputColorSpace(0, colorSpace);
+    descr.SetOutputColorSpace(colorSpace);
+  } else {
+    descr.SetPrimitiveSubregion(ToIntRect(mFilterSpaceBounds));
+    descr.SetIsTainted(true);
+    descr.SetInputColorSpace(0, ColorSpace::SRGB);
+    descr.SetOutputColorSpace(ColorSpace::SRGB);
+  }
 
   aPrimitiveDescrs.AppendElement(descr);
   mSourceAlphaIndex = aPrimitiveDescrs.Length() - 1;
