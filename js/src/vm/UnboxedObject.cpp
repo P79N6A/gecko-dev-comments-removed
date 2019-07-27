@@ -517,7 +517,16 @@ UnboxedPlainObject::convertToNative(JSContext* cx, JSObject* obj)
             return false;
     }
 
+    
+    
     JSObject::writeBarrierPre(expando);
+
+    
+    
+    
+    
+    if (expando && !IsInsideNursery(expando))
+        cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(expando);
 
     obj->setGroup(layout.nativeGroup());
     obj->as<PlainObject>().setLastPropertyMakeNative(cx, layout.nativeShape());
