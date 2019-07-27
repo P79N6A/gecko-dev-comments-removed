@@ -97,16 +97,12 @@ MozMtpStorage::StorageAvailable()
   MOZ_ASSERT(!mMtpStorage);
 
   
-  
-  
 
-  
-
-  mMtpStorage.reset(new MtpStorage(mStorageID,         
-                                   mountPoint.get(),   
-                                   mVolume->NameStr(), 
-                                   1024uLL * 1024uLL,  
-                                   true,               
+  mMtpStorage.reset(new MtpStorage(mStorageID,                           
+                                   mountPoint.get(),                     
+                                   mVolume->NameStr(),                   
+                                   1024uLL * 1024uLL,                    
+                                   mVolume->IsHotSwappable(),            
                                    2uLL * 1024uLL * 1024uLL * 1024uLL)); 
   nsRefPtr<RefCountedMtpServer> server = mMozMtpServer->GetMtpServer();
 
