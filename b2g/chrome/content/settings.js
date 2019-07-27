@@ -457,6 +457,16 @@ SettingsListener.observe("theme.selected",
 
 
 let settingsToObserve = {
+  'accessibility.screenreader_quicknav_modes': {
+    prefName: 'accessibility.accessfu.quicknav_modes',
+    resetToPref: true,
+    defaultValue: ''
+  },
+  'accessibility.screenreader_quicknav_index': {
+    prefName: 'accessibility.accessfu.quicknav_index',
+    resetToPref: true,
+    defaultValue: 0
+  },
   'app.update.channel': {
     resetToPref: true
   },
