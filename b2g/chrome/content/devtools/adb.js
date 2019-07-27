@@ -8,8 +8,6 @@
 
 
 
-const { utils: Cu } = Components;
-
 const DEBUG = false;
 var debug = function(str) {
   dump("AdbController: " + str + "\n");
