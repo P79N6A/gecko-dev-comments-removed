@@ -28,6 +28,10 @@ class GeckoRuntimeRunner(BaseRunner):
         self.env['NO_EM_RESTART'] = '1'
 
         
+        self.env['GNOME_DISABLE_CRASH_DIALOG'] = '1'
+        self.env['XRE_NO_WINDOWS_CRASH_DIALOG'] = '1'
+
+        
         if sys.platform == 'linux2' and self.binary.endswith('-bin'):
             dirname = os.path.dirname(self.binary)
             if os.environ.get('LD_LIBRARY_PATH', None):
@@ -70,6 +74,5 @@ class GeckoRuntimeRunner(BaseRunner):
         else:
             self.env["MOZ_CRASHREPORTER_NO_REPORT"] = "1"
             self.env["MOZ_CRASHREPORTER"] = "1"
-
 
         BaseRunner.start(self, *args, **kwargs)
