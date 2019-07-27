@@ -355,8 +355,13 @@ Animation::TriggerOnNextTick(const Nullable<TimeDuration>& aReadyTime)
 void
 Animation::TriggerNow()
 {
-  MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
-             "Expected to start a pending animation");
+  
+  
+  
+  
+  if (PlayState() != AnimationPlayState::Pending) {
+    return;
+  }
   MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
              "Expected an active timeline");
 
