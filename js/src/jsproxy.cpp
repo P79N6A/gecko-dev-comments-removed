@@ -1540,7 +1540,6 @@ ScriptedDirectProxyHandler::getOwnPropertyDescriptor(JSContext *cx, HandleObject
     }
 
     
-    
     resultDesc.populatePropertyDescriptor(proxy, desc);
     return true;
 }
@@ -1567,7 +1566,6 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
     if (trap.isUndefined())
         return DirectProxyHandler::defineProperty(cx, proxy, id, desc);
 
-    
     
     RootedValue descObj(cx);
     if (!NewPropertyDescriptorObject(cx, desc, &descObj))
