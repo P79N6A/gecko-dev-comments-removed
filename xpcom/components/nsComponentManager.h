@@ -38,6 +38,10 @@
 #include "mozilla/Omnijar.h"
 #include "mozilla/Attributes.h"
 
+#ifdef MOZ_B2G_LOADER
+#include "mozilla/FileLocation.h"
+#endif
+
 struct nsFactoryEntry;
 class nsIServiceManager;
 struct PRThread;
@@ -315,6 +319,30 @@ public:
     nsTArray<PendingServiceInfo> mPendingServices;
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
+
+#ifdef MOZ_B2G_LOADER
+    
+    
+    static void PreloadXPT(nsIFile *aFile);
+#endif
+
+#ifdef MOZ_B2G_LOADER
+    
+    struct XPTOnlyManifestProcessingContext
+    {
+        XPTOnlyManifestProcessingContext(mozilla::FileLocation &aFile)
+            : mFile(aFile)
+        { }
+
+        ~XPTOnlyManifestProcessingContext() { }
+
+        mozilla::FileLocation mFile;
+    };
+    static void XPTOnlyManifestManifest(XPTOnlyManifestProcessingContext& aCx,
+                                        int aLineno, char * const *aArgv);
+    static void XPTOnlyManifestXPT(XPTOnlyManifestProcessingContext& aCx,
+                                   int aLineno, char * const *aArgv);
+#endif
 
 private:
     ~nsComponentManagerImpl();
