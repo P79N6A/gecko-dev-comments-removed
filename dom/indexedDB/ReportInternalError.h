@@ -41,15 +41,11 @@
   } while(0)
 
 
-namespace mozilla {
-namespace dom {
-namespace indexedDB {
+BEGIN_INDEXEDDB_NAMESPACE
 
 void
 ReportInternalError(const char* aFile, uint32_t aLine, const char* aStr);
 
-} 
-} 
-} 
+END_INDEXEDDB_NAMESPACE
 
 #endif  

@@ -9,7 +9,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/Transport.h"
 
-class nsIDOMBlob;
 class nsIIPCBackgroundChildCreateCallback;
 
 namespace mozilla {
@@ -17,7 +16,6 @@ namespace dom {
 
 class ContentChild;
 class ContentParent;
-class PBlobChild;
 
 } 
 
@@ -62,11 +60,6 @@ public:
   
   static bool
   GetOrCreateForCurrentThread(nsIIPCBackgroundChildCreateCallback* aCallback);
-
-  static mozilla::dom::PBlobChild*
-  GetOrCreateActorForBlob(PBackgroundChild* aBackgroundActor,
-                          nsIDOMBlob* aBlob,
-                          bool* aActorWasCreated = nullptr);
 
   
   static void
