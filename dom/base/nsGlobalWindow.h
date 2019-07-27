@@ -468,7 +468,8 @@ public:
   virtual void RefreshCompartmentPrincipal();
 
   
-  virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
+  virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust,
+                                         mozilla::gfx::VRHMDInfo *aHMD = nullptr);
   bool FullScreen() const;
 
   

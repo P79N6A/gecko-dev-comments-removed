@@ -27,6 +27,7 @@
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
 #include "prclist.h"
+#include "gfxVR.h"
 
 class imgIRequest;
 class nsAString;
@@ -135,6 +136,12 @@ template<typename> class Sequence;
 
 template<typename, typename> class CallbackObjectHolder;
 typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
+
+struct FullScreenOptions {
+  FullScreenOptions() { }
+  nsRefPtr<gfx::VRHMDInfo> mVRHMDDevice;
+};
+
 } 
 } 
 
@@ -164,6 +171,7 @@ already_AddRefed<nsContentList>
 NS_GetContentList(nsINode* aRootNode,
                   int32_t aMatchNameSpaceId,
                   const nsAString& aTagname);
+
 
 
 
@@ -1064,7 +1072,8 @@ public:
 
 
 
-  virtual void AsyncRequestFullScreen(Element* aElement) = 0;
+  virtual void AsyncRequestFullScreen(Element* aElement,
+                                      mozilla::dom::FullScreenOptions& aOptions) = 0;
 
   
 
