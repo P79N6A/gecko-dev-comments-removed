@@ -121,6 +121,7 @@ imgFrame::imgFrame() :
   mBlendMethod(1), 
   mSinglePixel(false),
   mCompositingFailed(false),
+  mHasNoAlpha(false),
   mNonPremult(false),
   mDiscardable(false),
   mOptimizable(false),
@@ -747,6 +748,14 @@ nsresult imgFrame::UnlockImageData()
   if (mLockCount == 1 && !mPalettedImageData) {
     
     
+    
+    if (mHasNoAlpha && mFormat == SurfaceFormat::B8G8R8A8 && mImageSurface) {
+      mFormat = SurfaceFormat::B8G8R8X8;
+      mImageSurface = CreateLockedSurface(mVBuf, mSize, mFormat);
+    }
+
+    
+    
     Optimize();
     
     
@@ -851,17 +860,10 @@ bool imgFrame::ImageComplete() const
 
 
 
-
-
-
-
 void imgFrame::SetHasNoAlpha()
 {
-  if (mFormat == SurfaceFormat::B8G8R8A8) {
-    mFormat = SurfaceFormat::B8G8R8X8;
-    MOZ_ASSERT(mImageSurface);
-    mImageSurface = CreateLockedSurface(mVBuf, mSize, mFormat);
-  }
+  MOZ_ASSERT(mLockCount, "Expected to be locked when SetHasNoAlpha is called");
+  mHasNoAlpha = true;
 }
 
 void imgFrame::SetAsNonPremult(bool aIsNonPremult)
