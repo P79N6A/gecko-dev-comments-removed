@@ -700,7 +700,7 @@ ValueNumberer::visitDefinition(MDefinition *def)
 {
     
     
-    const MDefinition *dep = def->dependency();
+    MDefinition *dep = def->dependency();
     if (dep != nullptr && (dep->isDiscarded() || dep->block()->isDead())) {
         JitSpew(JitSpew_GVN, "      AliasAnalysis invalidated");
         if (updateAliasAnalysis_ && !dependenciesBroken_) {
@@ -710,7 +710,10 @@ ValueNumberer::visitDefinition(MDefinition *def)
             dependenciesBroken_ = true;
         }
         
+        
         def->setDependency(def->toInstruction());
+    } else {
+        dep = nullptr;
     }
 
     
@@ -740,6 +743,12 @@ ValueNumberer::visitDefinition(MDefinition *def)
         }
         def = sim;
     }
+
+    
+    
+    
+    if (dep != nullptr)
+        def->setDependency(dep);
 
     
     MDefinition *rep = leader(def);
