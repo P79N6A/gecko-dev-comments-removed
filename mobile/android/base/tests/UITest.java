@@ -88,6 +88,23 @@ abstract class UITest extends BaseRobocopTest
         super.tearDown();
     }
 
+    @Override
+    protected void runTest() throws Throwable {
+        try {
+            super.runTest();
+        } catch (Throwable t) {
+            
+            
+            mSolo.takeScreenshot("robocop-screenshot");
+            if (mAsserter != null) {
+                mAsserter.dumpLog("Exception caught during test!", t);
+                mAsserter.ok(false, "Exception caught", t.toString());
+            }
+            
+            throw t;
+        }
+    }
+
     private void initComponents() {
         mAboutHome = new AboutHomeComponent(this);
         mAppMenu = new AppMenuComponent(this);
