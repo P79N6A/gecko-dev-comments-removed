@@ -6488,7 +6488,7 @@ nsBlockFrame::AccessibleType()
   }
 
   
-  if (mContent->Tag() == nsGkAtoms::hr) {
+  if (mContent->IsHTMLElement(nsGkAtoms::hr)) {
     return a11y::eHTMLHRType;
   }
 
@@ -6827,7 +6827,7 @@ nsBlockFrame::RenumberLists(nsPresContext* aPresContext)
   
   int32_t ordinal = 1;
   int32_t increment;
-  if (mContent->Tag() == nsGkAtoms::ol &&
+  if (mContent->IsHTMLElement(nsGkAtoms::ol) &&
       mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::reversed)) {
     increment = -1;
   } else {

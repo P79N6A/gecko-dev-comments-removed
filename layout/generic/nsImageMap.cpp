@@ -759,27 +759,26 @@ nsImageMap::SearchForAreas(nsIContent* aParent, bool& aFoundArea,
   for (i = 0; i < n; i++) {
     nsIContent *child = aParent->GetChildAt(i);
 
-    if (child->IsHTMLElement()) {
-      
-      
-      if (!aFoundAnchor && child->Tag() == nsGkAtoms::area) {
-        aFoundArea = true;
-        rv = AddArea(child);
-        NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    if (!aFoundAnchor && child->IsHTMLElement(nsGkAtoms::area)) {
+      aFoundArea = true;
+      rv = AddArea(child);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-        
-        
-        
-        
-        continue;
-      }
       
       
-      if (!aFoundArea && child->Tag() == nsGkAtoms::a) {
-        aFoundAnchor = true;
-        rv = AddArea(child);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
+      
+      
+      continue;
+    }
+
+    
+    
+    if (!aFoundArea && child->IsHTMLElement(nsGkAtoms::a)) {
+      aFoundAnchor = true;
+      rv = AddArea(child);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
 
     if (child->IsElement()) {

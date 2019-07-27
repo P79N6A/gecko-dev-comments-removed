@@ -859,7 +859,7 @@ nsSubDocumentFrame::AttributeChanged(int32_t aNameSpaceID,
   if (aAttribute == nsGkAtoms::noresize) {
     
     
-    if (mContent->GetParent()->Tag() == nsGkAtoms::frameset) {
+    if (mContent->GetParent()->IsHTMLElement(nsGkAtoms::frameset)) {
       nsIFrame* parentFrame = GetParent();
 
       if (parentFrame) {

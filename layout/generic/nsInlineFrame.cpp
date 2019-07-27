@@ -978,10 +978,9 @@ nsInlineFrame::AccessibleType()
 {
   
   
-  nsIAtom *tagAtom = mContent->Tag();
-  if (tagAtom == nsGkAtoms::input)  
+  if (mContent->IsHTMLElement(nsGkAtoms::input))  
     return a11y::eHTMLButtonType;
-  if (tagAtom == nsGkAtoms::img)  
+  if (mContent->IsHTMLElement(nsGkAtoms::img))  
     return a11y::eHyperTextType;
 
   return a11y::eNoType;
