@@ -5182,6 +5182,17 @@ nsCSSFrameConstructor::FindSVGData(Element* aElement,
     
     
     
+    if (aIsWithinSVGText) {
+      
+      
+      
+      
+      return &sSuppressData;
+    }
+    
+    
+    
+    
     return &sContainerData;
   }
 
