@@ -662,7 +662,12 @@ this.DownloadIntegration = {
         
         
         
-        Cu.reportError(ex);
+        
+        
+        
+        if (!(ex instanceof OS.File.Error) || ex.unixErrno != OS.Constants.libc.EPERM) {
+          Cu.reportError(ex);
+        }
       }
 
       gDownloadPlatform.downloadDone(NetUtil.newURI(aDownload.source.url),
