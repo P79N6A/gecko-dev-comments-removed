@@ -188,6 +188,10 @@ ThreadLink::ThreadLink(MessageChannel *aChan, MessageChannel *aTargetChan)
 
 ThreadLink::~ThreadLink()
 {
+    MOZ_ASSERT(mChan);
+    MOZ_ASSERT(mChan->mMonitor);
+    MonitorAutoLock lock(*mChan->mMonitor);
+
     
     
     
@@ -205,9 +209,10 @@ ThreadLink::~ThreadLink()
     
     
     if (mTargetChan) {
-        static_cast<ThreadLink*>(mTargetChan->mLink)->mTargetChan = 0;
+        MOZ_ASSERT(mTargetChan->mLink);
+        static_cast<ThreadLink*>(mTargetChan->mLink)->mTargetChan = nullptr;
     }
-    mTargetChan = 0;
+    mTargetChan = nullptr;
 }
 
 void
