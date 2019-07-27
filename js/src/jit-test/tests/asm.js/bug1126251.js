@@ -37,6 +37,7 @@ var v = asmLink(asmCompile('global', `
 assertEq(v, NaN);
 
 
+setJitCompilerOption("ion.gvn.enable", 0);
 var v = asmLink(asmCompile('global', `
     "use asm";
     var float32x4 = global.SIMD.float32x4;
