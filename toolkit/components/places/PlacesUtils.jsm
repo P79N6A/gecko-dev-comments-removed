@@ -881,6 +881,8 @@ this.PlacesUtils = {
 
 
 
+
+
   setPostDataForBookmark(aBookmarkId, aPostData) {
     if (!aPostData)
       throw new Error("Must provide valid POST data");
@@ -920,6 +922,8 @@ this.PlacesUtils = {
   },
 
   
+
+
 
 
 
