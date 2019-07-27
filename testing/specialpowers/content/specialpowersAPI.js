@@ -72,10 +72,6 @@ function wrapIfUnwrapped(x) {
   return isWrapper(x) ? x : wrapPrivileged(x);
 }
 
-function isXrayWrapper(x) {
-  return Cu.isXrayWrapper(x);
-}
-
 function isObjectOrArray(obj) {
   if (Object(obj) !== obj)
     return false;
@@ -250,6 +246,13 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   var desc;
+  function isWrappedNativeXray(o) {
+    if (!Cu.isXrayWrapper(o))
+      return false;
+    var proto = Object.getPrototypeOf(o);
+    return /XPC_WN/.test(Cu.getClassName(o,  true)) ||
+           (proto && /XPC_WN/.test(Cu.getClassName(proto,  true)));
+  }
 
   
   
@@ -264,10 +267,9 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   
-  else if (!isXrayWrapper(this.wrappedObject))
+  else if (!isWrappedNativeXray(this.wrappedObject))
     desc = crawlProtoChain(obj, function(o) {return callGetOwnPropertyDescriptor(o, name);});
 
-  
   
   
   
