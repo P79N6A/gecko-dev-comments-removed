@@ -180,6 +180,9 @@ array_unshift(JSContext* cx, unsigned argc, js::Value* vp);
 extern bool
 array_slice(JSContext* cx, unsigned argc, js::Value* vp);
 
+extern JSObject*
+array_slice_dense(JSContext* cx, HandleObject obj, int32_t begin, int32_t end, HandleObject result);
+
 
 
 
