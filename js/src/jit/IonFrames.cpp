@@ -1799,8 +1799,11 @@ SnapshotIterator::initInstructionResults(MaybeReadFallback &fallback)
         
         
         
-        if (!ionScript_->invalidate(cx,  false, "Observe recovered instruction."))
+        if (fallback.consequence == MaybeReadFallback::Fallback_Invalidate &&
+            !ionScript_->invalidate(cx,  false, "Observe recovered instruction."))
+        {
             return false;
+        }
 
         
         
@@ -1820,7 +1823,7 @@ SnapshotIterator::initInstructionResults(MaybeReadFallback &fallback)
 
             
             
-            fallback.activation->maybeTakeIonFrameRecovery(fp, &tmp);
+            fallback.activation->removeIonFrameRecovery(fp);
             return false;
         }
     }

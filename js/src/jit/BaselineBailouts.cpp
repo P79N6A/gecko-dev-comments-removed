@@ -385,26 +385,33 @@ struct BaselineStackBuilder
 
 class SnapshotIteratorForBailout : public SnapshotIterator
 {
-    RInstructionResults results_;
-  public:
+    JitActivation *activation_;
+    JitFrameIterator &iter_;
 
-    SnapshotIteratorForBailout(const JitFrameIterator &iter)
+  public:
+    SnapshotIteratorForBailout(JitActivation *activation, JitFrameIterator &iter)
       : SnapshotIterator(iter),
-        results_(iter.jsFrame())
+        activation_(activation),
+        iter_(iter)
     {
         MOZ_ASSERT(iter.isBailoutJS());
     }
 
-    
-    
-    bool init(JSContext *cx, JitActivation *activation) {
-        activation->maybeTakeIonFrameRecovery(fp_, &results_);
-        if (!results_.isInitialized() && !computeInstructionResults(cx, &results_))
-            return false;
+    ~SnapshotIteratorForBailout() {
+        
+        
+        activation_->removeIonFrameRecovery(fp_);
+    }
 
-        MOZ_ASSERT(results_.isInitialized());
-        instructionResults_ = &results_;
-        return true;
+    
+    
+    bool init(JSContext *cx) {
+
+        
+        
+        
+        MaybeReadFallback recoverBailout(cx, activation_, &iter_, MaybeReadFallback::Fallback_DoNothing);
+        return initInstructionResults(recoverBailout);
     }
 };
 
@@ -1383,8 +1390,8 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
         return BAILOUT_RETURN_FATAL_ERROR;
     JitSpew(JitSpew_BaselineBailouts, "  Incoming frame ptr = %p", builder.startFrame());
 
-    SnapshotIteratorForBailout snapIter(iter);
-    if (!snapIter.init(cx, activation))
+    SnapshotIteratorForBailout snapIter(activation, iter);
+    if (!snapIter.init(cx))
         return BAILOUT_RETURN_FATAL_ERROR;
 
 #ifdef TRACK_SNAPSHOTS
