@@ -33,6 +33,23 @@ extern PRLogModuleInfo* gMediaPromiseLog;
   MOZ_ASSERT(gMediaPromiseLog); \
   MOZ_LOG(gMediaPromiseLog, PR_LOG_DEBUG, (x, ##__VA_ARGS__))
 
+namespace detail {
+template<typename ThisType, typename Ret, typename ArgType>
+static TrueType TakesArgumentHelper(Ret (ThisType::*)(ArgType));
+template<typename ThisType, typename Ret, typename ArgType>
+static TrueType TakesArgumentHelper(Ret (ThisType::*)(ArgType) const);
+template<typename ThisType, typename Ret>
+static FalseType TakesArgumentHelper(Ret (ThisType::*)());
+template<typename ThisType, typename Ret>
+static FalseType TakesArgumentHelper(Ret (ThisType::*)() const);
+} 
+
+template<typename MethodType>
+struct TakesArgument {
+  typedef decltype(detail::TakesArgumentHelper(DeclVal<MethodType>())) Type;
+  static const bool value = Type::value;
+};
+
 
 
 
@@ -241,23 +258,16 @@ protected:
 
 
 
-  
-  
-  template <typename T>
-  struct NonDeduced
-  {
-    typedef T type;
-  };
-
-  template<typename ThisType, typename ValueType>
-  static void InvokeCallbackMethod(ThisType* aThisVal, void(ThisType::*aMethod)(ValueType),
-                                   typename NonDeduced<ValueType>::type aValue)
+  template<typename ThisType, typename MethodType, typename ValueType>
+  static typename EnableIf<TakesArgument<MethodType>::value, void>::Type
+  InvokeCallbackMethod(ThisType* aThisVal, MethodType aMethod, ValueType aValue)
   {
       ((*aThisVal).*aMethod)(aValue);
   }
 
-  template<typename ThisType, typename ValueType>
-  static void InvokeCallbackMethod(ThisType* aThisVal, void(ThisType::*aMethod)(), ValueType aValue)
+  template<typename ThisType, typename MethodType, typename ValueType>
+  static typename EnableIf<!TakesArgument<MethodType>::value, void>::Type
+  InvokeCallbackMethod(ThisType* aThisVal, MethodType aMethod, ValueType aValue)
   {
       ((*aThisVal).*aMethod)();
   }
