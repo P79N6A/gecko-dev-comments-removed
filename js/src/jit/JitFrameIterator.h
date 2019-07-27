@@ -90,7 +90,8 @@ class JitActivation;
 
 
 
-void AssertValidJitStack(JSContext *cx);
+
+void AssertJitStackInvariants(JSContext *cx);
 
 class JitFrameIterator
 {

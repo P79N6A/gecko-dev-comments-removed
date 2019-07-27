@@ -4,11 +4,33 @@ var i;
 
 
 function entryFrame_1() {
-  assertValidJitStack();
+  assertJitStackInvariants();
+}
+
+
+function rectifierFrame_verify(a, b, c, d) {
+  assertJitStackInvariants();
+}
+
+function rectifierFrame_1(i) {
+  rectifierFrame_verify();
+}
+function rectifierFrame_2(i) {
+  rectifierFrame_verify(i);
+}
+function rectifierFrame_3(i) {
+  rectifierFrame_verify(i, i);
+}
+function rectifierFrame_4(i) {
+  rectifierFrame_verify(i, i, i);
 }
 
 for (i = 0; i < 40; i++) {
   entryFrame_1();
   entryFrame_1(0);
   entryFrame_1(0, 1);
+  rectifierFrame_1(i);
+  rectifierFrame_2(i);
+  rectifierFrame_3(i);
+  rectifierFrame_4(i);
 }
