@@ -2515,28 +2515,17 @@ Matrix4x4 AsyncPanZoomController::GetOverscrollTransform() const {
 
   
   
-  if (mX.IsInUnderscroll()) {
-    scaleX = 1 / scaleX;
-  }
-  if (mY.IsInUnderscroll()) {
-    scaleY = 1 / scaleY;
-  }
-
-  
-  
   
   
   
   ParentLayerPoint translation;
-  bool overscrolledOnRight = (mX.GetOverscroll() > 0 && !mX.IsInUnderscroll())
-                          || (mX.GetOverscroll() < 0 && mX.IsInUnderscroll());
+  bool overscrolledOnRight = mX.GetOverscroll() > 0;
   if (overscrolledOnRight) {
     ParentLayerCoord overscrolledCompositionWidth = scaleX * compositionSize.width;
     ParentLayerCoord extraCompositionWidth = overscrolledCompositionWidth - compositionSize.width;
     translation.x = -extraCompositionWidth;
   }
-  bool overscrolledAtBottom = (mY.GetOverscroll() > 0 && !mY.IsInUnderscroll())
-                           || (mY.GetOverscroll() < 0 && mY.IsInUnderscroll());
+  bool overscrolledAtBottom = mY.GetOverscroll() > 0;
   if (overscrolledAtBottom) {
     ParentLayerCoord overscrolledCompositionHeight = scaleY * compositionSize.height;
     ParentLayerCoord extraCompositionHeight = overscrolledCompositionHeight - compositionSize.height;

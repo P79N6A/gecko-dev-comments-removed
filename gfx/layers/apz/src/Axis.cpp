@@ -38,7 +38,9 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
     mAxisLocked(false),
     mAsyncPanZoomController(aAsyncPanZoomController),
     mOverscroll(0),
-    mInUnderscroll(false)
+    mFirstOverscrollAnimationSample(0),
+    mOverscrollOffset(0),
+    mOverscrollScale(1.0f)
 {
 }
 
@@ -190,11 +192,12 @@ void Axis::OverscrollBy(ParentLayerCoord aOverscroll) {
 }
 
 ParentLayerCoord Axis::GetOverscroll() const {
-  return mOverscroll;
-}
+  ParentLayerCoord result = (mOverscroll - mOverscrollOffset) / mOverscrollScale;
 
-bool Axis::IsInUnderscroll() const {
-  return mInUnderscroll;
+  
+  MOZ_ASSERT((result * mOverscrollOffset) >= 0.0f);
+
+  return result;
 }
 
 void Axis::StepOverscrollAnimation(double aStepDurationMilliseconds) {
@@ -218,6 +221,7 @@ void Axis::StepOverscrollAnimation(double aStepDurationMilliseconds) {
   
   float springForce = -1 * kSpringStiffness * mOverscroll;
   
+  float oldVelocity = mVelocity;
   mVelocity += springForce * aStepDurationMilliseconds;
 
   
@@ -229,17 +233,34 @@ void Axis::StepOverscrollAnimation(double aStepDurationMilliseconds) {
   
   
   
-  float oldOverscroll = mOverscroll;
-  mOverscroll += (mVelocity * aStepDurationMilliseconds);
-  bool signChange = (oldOverscroll * mOverscroll) < 0;
-  if (signChange) {
+  bool velocitySignChange = (oldVelocity * mVelocity) < 0;
+  if (mFirstOverscrollAnimationSample == 0.0f) {
+    mFirstOverscrollAnimationSample = mOverscroll;
+
     
     
-    mInUnderscroll = !mInUnderscroll;
+    
+    if ((mOverscroll >= 0 ? oldVelocity : -oldVelocity) <= 0.0f) {
+      velocitySignChange = true;
+    }
   }
+  if (velocitySignChange) {
+    bool oddOscillation = (mOverscroll.value * mFirstOverscrollAnimationSample.value) < 0.0f;
+    mOverscrollOffset = oddOscillation ? mOverscroll : -mOverscroll;
+    mOverscrollScale = 2.0f;
+  }
+
+  
+  
+  mOverscroll += (mVelocity * aStepDurationMilliseconds);
 }
 
 bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
+  
+  if (mVelocity == 0.0f && mOverscroll == 0.0f) {
+    return false;
+  }
+
   
   
   
@@ -267,9 +288,8 @@ bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
     
     AXIS_LOG("%p|%s oscillation dropped below threshold, going to rest\n",
       mAsyncPanZoomController, Name());
-    mOverscroll = 0;
+    ClearOverscroll();
     mVelocity = 0;
-    mInUnderscroll = false;
     return false;
   }
 
@@ -283,6 +303,9 @@ bool Axis::IsOverscrolled() const {
 
 void Axis::ClearOverscroll() {
   mOverscroll = 0;
+  mFirstOverscrollAnimationSample = 0;
+  mOverscrollOffset = 0;
+  mOverscrollScale = 1.0f;
 }
 
 ParentLayerCoord Axis::PanStart() const {

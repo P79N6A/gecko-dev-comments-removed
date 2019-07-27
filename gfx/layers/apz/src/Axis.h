@@ -92,32 +92,7 @@ public:
 
 
 
-
-
   ParentLayerCoord GetOverscroll() const;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool IsInUnderscroll() const;
 
   
 
@@ -247,8 +222,23 @@ protected:
   float mVelocity;      
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
-  ParentLayerCoord mOverscroll;  
-  bool mInUnderscroll;           
+
+  
+  
+  ParentLayerCoord mOverscroll;
+  
+  ParentLayerCoord mFirstOverscrollAnimationSample;
+  
+  
+  
+  
+  
+  
+  
+  
+  ParentLayerCoord mOverscrollOffset;
+  float mOverscrollScale;
+
   
   
   
