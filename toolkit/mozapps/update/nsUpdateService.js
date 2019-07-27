@@ -495,25 +495,25 @@ function hasUpdateMutex() {
   return !!gUpdateMutexHandle;
 }
 
-XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpdates() {
+function getCanApplyUpdates() {
   let useService = false;
   if (shouldUseService()) {
     
     
-    LOG("gCanApplyUpdates - bypass the write checks because we'll use the service");
+    LOG("getCanApplyUpdates - bypass the write checks because we'll use the service");
     useService = true;
   }
 
   if (!useService) {
     try {
       let updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
-      LOG("gCanApplyUpdates - testing write access " + updateTestFile.path);
+      LOG("getCanApplyUpdates - testing write access " + updateTestFile.path);
       testWriteAccess(updateTestFile, false);
       if (AppConstants.platform == "macosx") {
         
         let appDirTestFile = getAppBaseDir();
         appDirTestFile.append(FILE_PERMS_TEST);
-        LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
+        LOG("getCanApplyUpdates - testing write access " + appDirTestFile.path);
         if (appDirTestFile.exists()) {
           appDirTestFile.remove(false);
         }
@@ -522,7 +522,7 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
       } else if (AppConstants.platform == "win") {
         
         let windowsVersion = Services.sysinfo.getProperty("version");
-        LOG("gCanApplyUpdates - windowsVersion = " + windowsVersion);
+        LOG("getCanApplyUpdates - windowsVersion = " + windowsVersion);
 
       
 
@@ -545,13 +545,13 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
             
             userCanElevate = Services.appinfo.QueryInterface(Ci.nsIWinAppHelper).
                              userCanElevate;
-            LOG("gCanApplyUpdates - on Vista, userCanElevate: " + userCanElevate);
+            LOG("getCanApplyUpdates - on Vista, userCanElevate: " + userCanElevate);
           }
           catch (ex) {
             
             
             
-            LOG("gCanApplyUpdates - on Vista, appDir is not under Program Files");
+            LOG("getCanApplyUpdates - on Vista, appDir is not under Program Files");
           }
         }
 
@@ -579,7 +579,7 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
           
           let appDirTestFile = getAppBaseDir();
           appDirTestFile.append(FILE_PERMS_TEST);
-          LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
+          LOG("getCanApplyUpdates - testing write access " + appDirTestFile.path);
           if (appDirTestFile.exists()) {
             appDirTestFile.remove(false);
           }
@@ -588,15 +588,15 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
         }
       }
     } catch (e) {
-       LOG("gCanApplyUpdates - unable to apply updates. Exception: " + e);
+       LOG("getCanApplyUpdates - unable to apply updates. Exception: " + e);
       
       return false;
     }
   } 
 
-  LOG("gCanApplyUpdates - able to apply updates");
+  LOG("getCanApplyUpdates - able to apply updates");
   return true;
-});
+}
 
 
 
@@ -2396,7 +2396,7 @@ UpdateService.prototype = {
     
     
     AUSTLMY.pingGeneric("UPDATE_UNABLE_TO_APPLY_" + this._pingSuffix,
-                        gCanApplyUpdates, true);
+                        getCanApplyUpdates(), true);
     
     
     
@@ -2646,7 +2646,7 @@ UpdateService.prototype = {
       return;
     }
 
-    if (!gCanApplyUpdates) {
+    if (!getCanApplyUpdates()) {
       LOG("UpdateService:_selectAndInstallUpdate - the user is unable to " +
           "apply updates... prompting");
       this._showPrompt(update);
@@ -2856,7 +2856,7 @@ UpdateService.prototype = {
       return;
     }
 
-    if (this._incompatibleAddons.length > 0 || !gCanApplyUpdates) {
+    if (this._incompatibleAddons.length > 0 || !getCanApplyUpdates()) {
       LOG("UpdateService:onUpdateEnded - prompting because there are " +
           "incompatible add-ons");
       if (this._incompatibleAddons.length > 0) {
@@ -2903,7 +2903,7 @@ UpdateService.prototype = {
 
 
   get canApplyUpdates() {
-    return gCanApplyUpdates && hasUpdateMutex();
+    return getCanApplyUpdates() && hasUpdateMutex();
   },
 
   

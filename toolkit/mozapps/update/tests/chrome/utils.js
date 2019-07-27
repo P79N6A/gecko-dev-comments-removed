@@ -137,7 +137,7 @@ const PAGEID_DUMMY            = "dummy";
 const PAGEID_CHECKING         = "checking";              
 const PAGEID_PLUGIN_UPDATES   = "pluginupdatesfound";
 const PAGEID_NO_UPDATES_FOUND = "noupdatesfound";        
-const PAGEID_MANUAL_UPDATE    = "manualUpdate"; 
+const PAGEID_MANUAL_UPDATE    = "manualUpdate";          
 const PAGEID_UNSUPPORTED      = "unsupported";           
 const PAGEID_INCOMPAT_CHECK   = "incompatibleCheck";     
 const PAGEID_FOUND_BASIC      = "updatesfoundbasic";     
@@ -1277,7 +1277,7 @@ function setupAddons(aCallback) {
       
       
       setupTimer(gTestTimeout);
-      aCallback();
+      SimpleTest.executeSoon(aCallback);
     });
   }
 
@@ -1389,7 +1389,7 @@ function resetAddons(aCallback) {
             aAddon.userDisabled = false;
           }
         });
-        aCallback();
+        SimpleTest.executeSoon(aCallback);
       });
     }
   }
