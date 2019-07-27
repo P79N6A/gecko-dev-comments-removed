@@ -189,10 +189,13 @@ private:
 
 
 
+
+
   bool ComputeMargin(nscoord aInlineDirPercentBasis,
                      nscoord aBlockDirPercentBasis);
   
   
+
 
 
 
