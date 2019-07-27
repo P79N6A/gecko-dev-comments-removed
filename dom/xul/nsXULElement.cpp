@@ -34,6 +34,7 @@
 #include "nsIDOMXULSelectCntrlItemEl.h"
 #include "nsIDocument.h"
 #include "nsLayoutStylesheetCache.h"
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
@@ -1600,6 +1601,10 @@ nsXULElement::LoadSrc()
         
         slots->mFrameLoader = nsFrameLoader::Create(this, false);
         NS_ENSURE_TRUE(slots->mFrameLoader, NS_OK);
+
+        (new AsyncEventDispatcher(this,
+                                  NS_LITERAL_STRING("XULFrameLoaderCreated"),
+                                   true))->RunDOMEventWhenSafe();
 
         if (AttrValueIs(kNameSpaceID_None, nsGkAtoms::prerendered,
                         NS_LITERAL_STRING("true"), eIgnoreCase)) {
