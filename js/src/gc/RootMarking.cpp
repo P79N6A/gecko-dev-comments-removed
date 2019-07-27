@@ -552,7 +552,7 @@ class BufferGrayRootsTracer : public JS::CallbackTracer
     
     bool bufferingGrayRootsFailed;
 
-    void trace(void** thingp, JS::TraceKind kind) override;
+    void onChild(const JS::GCCellPtr& thing) override;
 
   public:
     explicit BufferGrayRootsTracer(JSRuntime* rt)
@@ -605,24 +605,24 @@ struct SetMaybeAliveFunctor {
 };
 
 void
-BufferGrayRootsTracer::trace(void** thingp, JS::TraceKind kind)
+BufferGrayRootsTracer::onChild(const JS::GCCellPtr& thing)
 {
     MOZ_ASSERT(runtime()->isHeapBusy());
 
     if (bufferingGrayRootsFailed)
         return;
 
-    gc::TenuredCell* thing = gc::TenuredCell::fromPointer(*thingp);
+    gc::TenuredCell* tenured = gc::TenuredCell::fromPointer(thing.asCell());
 
-    Zone* zone = thing->zone();
+    Zone* zone = tenured->zone();
     if (zone->isCollecting()) {
         
         
         
         
-        CallTyped(SetMaybeAliveFunctor(), thing, kind);
+        CallTyped(SetMaybeAliveFunctor(), tenured, thing.kind());
 
-        if (!zone->gcGrayRoots.append(thing))
+        if (!zone->gcGrayRoots.append(tenured))
             bufferingGrayRootsFailed = true;
     }
 }

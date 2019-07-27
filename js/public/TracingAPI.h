@@ -8,9 +8,10 @@
 #define js_TracingAPI_h
 
 #include "jsalloc.h"
-#include "jspubtd.h"
 
 #include "js/HashTable.h"
+#include "js/HeapAPI.h"
+#include "js/TraceKind.h"
 
 class JS_PUBLIC_API(JSTracer);
 
@@ -20,65 +21,19 @@ template <typename T> class Heap;
 template <typename T> class TenuredHeap;
 
 
-
-
-
-
-
-
-
-
-enum class TraceKind
-{
-    
-    
-    
-    Object = 0x00,
-    String = 0x01,
-    Symbol = 0x02,
-    Script = 0x03,
-
-    
-    Shape = 0x04,
-
-    
-    ObjectGroup = 0x05,
-
-    
-    Null = 0x06,
-
-    
-    BaseShape = 0x0F,
-    JitCode = 0x1F,
-    LazyScript = 0x2F
-};
-const static uintptr_t OutOfLineTraceKindMask = 0x07;
-static_assert(uintptr_t(JS::TraceKind::BaseShape) & OutOfLineTraceKindMask, "mask bits are set");
-static_assert(uintptr_t(JS::TraceKind::JitCode) & OutOfLineTraceKindMask, "mask bits are set");
-static_assert(uintptr_t(JS::TraceKind::LazyScript) & OutOfLineTraceKindMask, "mask bits are set");
-
-
 JS_FRIEND_API(const char*)
 GCTraceKindToAscii(JS::TraceKind kind);
 
 } 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef void
-(* JSTraceCallback)(JS::CallbackTracer* trc, void** thingp, JS::TraceKind kind);
+namespace js {
+class BaseShape;
+class LazyScript;
+class ObjectGroup;
+namespace jit {
+class JitCode;
+} 
+} 
 
 enum WeakMapTraceKind {
     DoNotTraceWeakMaps = 0,
@@ -133,7 +88,33 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
     {}
 
     
-    virtual void trace(void** thing, JS::TraceKind kind) = 0;
+    
+    
+    
+    
+    virtual void onObjectEdge(JSObject** objp) { onChild(JS::GCCellPtr(*objp)); }
+    virtual void onStringEdge(JSString** strp) { onChild(JS::GCCellPtr(*strp)); }
+    virtual void onSymbolEdge(JS::Symbol** symp) { onChild(JS::GCCellPtr(*symp)); }
+    virtual void onScriptEdge(JSScript** scriptp) { onChild(JS::GCCellPtr(*scriptp)); }
+    virtual void onShapeEdge(js::Shape** shapep) {
+        onChild(JS::GCCellPtr(*shapep, JS::TraceKind::Shape));
+    }
+    virtual void onObjectGroupEdge(js::ObjectGroup** groupp) {
+        onChild(JS::GCCellPtr(*groupp, JS::TraceKind::ObjectGroup));
+    }
+    virtual void onBaseShapeEdge(js::BaseShape** basep) {
+        onChild(JS::GCCellPtr(*basep, JS::TraceKind::BaseShape));
+    }
+    virtual void onJitCodeEdge(js::jit::JitCode** codep) {
+        onChild(JS::GCCellPtr(*codep, JS::TraceKind::JitCode));
+    }
+    virtual void onLazyScriptEdge(js::LazyScript** lazyp) {
+        onChild(JS::GCCellPtr(*lazyp, JS::TraceKind::LazyScript));
+    }
+
+    
+    
+    virtual void onChild(const JS::GCCellPtr& thing) = 0;
 
     
     
@@ -184,6 +165,21 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
     enum class TracerKind { DoNotCare, Moving, GrayBuffering, VerifyTraceProtoAndIface };
     virtual TracerKind getTracerKind() const { return TracerKind::DoNotCare; }
 #endif
+
+
+
+
+
+
+    void dispatchToOnEdge(JSObject** objp) { onObjectEdge(objp); }
+    void dispatchToOnEdge(JSString** strp) { onStringEdge(strp); }
+    void dispatchToOnEdge(JS::Symbol** symp) { onSymbolEdge(symp); }
+    void dispatchToOnEdge(JSScript** scriptp) { onScriptEdge(scriptp); }
+    void dispatchToOnEdge(js::Shape** shapep) { onShapeEdge(shapep); }
+    void dispatchToOnEdge(js::ObjectGroup** groupp) { onObjectGroupEdge(groupp); }
+    void dispatchToOnEdge(js::BaseShape** basep) { onBaseShapeEdge(basep); }
+    void dispatchToOnEdge(js::jit::JitCode** codep) { onJitCodeEdge(codep); }
+    void dispatchToOnEdge(js::LazyScript** lazyp) { onLazyScriptEdge(lazyp); }
 
   private:
     friend class AutoTracingName;

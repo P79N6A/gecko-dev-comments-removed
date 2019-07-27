@@ -65,9 +65,9 @@ struct Node::ConstructFunctor : public js::BoolDefaultAdaptor<Value, false> {
     template <typename T> bool operator()(T* t, Node* node) { node->construct(t); return true; }
 };
 
-Node::Node(JS::TraceKind kind, void* ptr)
+Node::Node(const JS::GCCellPtr &thing)
 {
-    js::gc::CallTyped(ConstructFunctor(), ptr, kind, this);
+    js::gc::CallTyped(ConstructFunctor(), thing.asCell(), thing.kind(), this);
 }
 
 Node::Node(HandleValue value)
@@ -111,7 +111,7 @@ class SimpleEdgeVectorTracer : public JS::CallbackTracer {
     
     bool wantNames;
 
-    void trace(void** thingp, JS::TraceKind kind) {
+    void onChild(const JS::GCCellPtr& thing) override {
         if (!okay)
             return;
 
@@ -139,7 +139,7 @@ class SimpleEdgeVectorTracer : public JS::CallbackTracer {
         
         
         
-        if (!vec->append(mozilla::Move(SimpleEdge(name16, Node(kind, *thingp))))) {
+        if (!vec->append(mozilla::Move(SimpleEdge(name16, Node(thing))))) {
             okay = false;
             return;
         }

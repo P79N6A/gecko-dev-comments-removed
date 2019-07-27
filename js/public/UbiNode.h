@@ -331,7 +331,7 @@ class Node {
     
     
     MOZ_IMPLICIT Node(JS::HandleValue value);
-    Node(JS::TraceKind kind, void* ptr);
+    explicit Node(const JS::GCCellPtr& thing);
 
     
     
