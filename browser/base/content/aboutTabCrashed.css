@@ -1,0 +1,8 @@
+
+
+
+
+html:not(.crashDumpSubmitted) #reportSent,
+html:not(.crashDumpAvailable) #report-box {
+  display: none;
+}

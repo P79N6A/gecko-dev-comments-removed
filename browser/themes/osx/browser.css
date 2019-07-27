@@ -3092,6 +3092,14 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   opacity: .9;
 }
 
+
+
+
+
+.tab-icon-overlay {
+  opacity: 0.9999;
+}
+
 .tab-label:not([selected="true"]) {
   opacity: .7;
 }
