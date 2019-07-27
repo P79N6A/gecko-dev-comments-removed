@@ -3,16 +3,15 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["XulApp"];
+var EXPORTED_SYMBOLS = ["XulApp"];
 
 var { classes: Cc, interfaces: Ci } = Components;
 
 var exports = {};
-this.XulApp = exports;
+var XulApp = exports;
 
-var appInfo = Cc["@mozilla.org/xre/app-info;1"].
-              getService(Ci.nsIXULAppInfo);
-
+var appInfo = Cc["@mozilla.org/xre/app-info;1"]
+              .getService(Ci.nsIXULAppInfo);
 var vc = Cc["@mozilla.org/xpcom/version-comparator;1"]
          .getService(Ci.nsIVersionComparator);
 
@@ -184,51 +183,3 @@ function satisfiesVersion(version, versionRange) {
   });
 }
 exports.satisfiesVersion = satisfiesVersion;
-
-
-
-
-
-
-
-
-
-
-function incompatibility(module) {
-  let { metadata, id } = module;
-
-  
-  
-  if (!metadata || !("engines" in metadata))
-    return null;
-
-  let { engines } = metadata;
-
-  if (engines === null || typeof(engines) !== "object")
-    return new Error("Malformed engines' property in metadata");
-
-  let applications = Object.keys(engines);
-
-  let versionRange;
-  applications.forEach(function(name) {
-    if (is(name)) {
-      versionRange = engines[name];
-      
-      
-      
-    }
-  });
-
-  if (typeof(versionRange) === "string") {
-    if (satisfiesVersion(versionRange))
-      return null;
-
-    return new Error("Unsupported Application version: The module " + id +
-            " currently supports only version " + versionRange + " of " +
-            name + ".");
-  }
-
-  return new Error("Unsupported Application: The module " + id +
-            " currently supports only " + applications.join(", ") + ".")
-}
-exports.incompatibility = incompatibility;

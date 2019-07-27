@@ -3,6 +3,8 @@
 
 
 
+const Cu = Components.utils;
+Cu.import("resource://gre/modules/devtools/Loader.jsm");
 const {parseSingleValue} = devtools.require("devtools/styleinspector/css-parsing-utils");
 
 const TEST_DATA = [
