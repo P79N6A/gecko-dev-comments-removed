@@ -15,6 +15,8 @@
 
 
 
+#include <string>
+
 #include "webrtc/common_video/interface/i420_video_frame.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 #include "webrtc/modules/desktop_capture/screen_capturer.h"
@@ -218,7 +220,7 @@ protected:
                                int64_t capture_time);
 
   int32_t _id; 
-  char* _deviceUniqueId; 
+  std::string _deviceUniqueId; 
   CriticalSectionWrapper& _apiCs;
   int32_t _captureDelay; 
   VideoCaptureCapability _requestedCapability; 
