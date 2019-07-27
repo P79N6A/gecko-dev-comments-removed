@@ -9,16 +9,16 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.widget.FaviconView;
 import org.mozilla.gecko.widget.TwoWayView;
 
 import java.util.ArrayList;
@@ -28,15 +28,33 @@ public class SearchEngineBar extends TwoWayView
                              implements AdapterView.OnItemClickListener {
     private static final String LOGTAG = "Gecko" + SearchEngineBar.class.getSimpleName();
 
+    private static final float ICON_CONTAINER_MIN_WIDTH_DP = 72;
+    private static final float DIVIDER_HEIGHT_DP = 1;
+
     public interface OnSearchBarClickListener {
         public void onSearchBarClickListener(SearchEngine searchEngine);
     }
 
     private final SearchEngineAdapter adapter;
+    private final Paint dividerPaint;
+    private final float minIconContainerWidth;
+    private final float dividerHeight;
+
+    private int iconContainerWidth;
     private OnSearchBarClickListener onSearchBarClickListener;
 
     public SearchEngineBar(final Context context, final AttributeSet attrs) {
         super(context, attrs);
+
+        dividerPaint = new Paint();
+        dividerPaint.setColor(getResources().getColor(R.color.divider_light));
+        dividerPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+
+        final DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        minIconContainerWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, ICON_CONTAINER_MIN_WIDTH_DP, displayMetrics);
+        dividerHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, DIVIDER_HEIGHT_DP, displayMetrics);
+
+        iconContainerWidth =  (int) minIconContainerWidth;
 
         adapter = new SearchEngineAdapter();
         setAdapter(adapter);
@@ -61,6 +79,34 @@ public class SearchEngineBar extends TwoWayView
 
     protected void setSearchEngines(final List<SearchEngine> searchEngines) {
         adapter.setSearchEngines(searchEngines);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+        final int searchEngineCount = getCount();
+
+        if (searchEngineCount > 0) {
+            final float availableWidthPerContainer = getMeasuredWidth() / searchEngineCount;
+
+            final int desiredIconContainerSize = (int) Math.max(
+                    availableWidthPerContainer,
+                    minIconContainerWidth
+            );
+
+            if (desiredIconContainerSize != iconContainerWidth) {
+                iconContainerWidth = desiredIconContainerSize;
+                adapter.notifyDataSetChanged();
+            }
+        }
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        canvas.drawRect(0, 0, getWidth(), dividerHeight, dividerPaint);
     }
 
     public class SearchEngineAdapter extends BaseAdapter {
@@ -95,44 +141,16 @@ public class SearchEngineBar extends TwoWayView
                 view = convertView;
             }
 
+            view.setLayoutParams(new LayoutParams(iconContainerWidth, ViewGroup.LayoutParams.MATCH_PARENT));
+
             final ImageView faviconView = (ImageView) view.findViewById(R.id.search_engine_icon);
             final SearchEngine searchEngine = searchEngines.get(position);
             faviconView.setImageBitmap(searchEngine.getIcon());
 
-            final View container = view.findViewById(R.id.search_engine_icon_container);
             final String desc = getResources().getString(R.string.search_bar_item_desc, searchEngine.getEngineIdentifier());
-            container.setContentDescription(desc);
+            view.setContentDescription(desc);
 
             return view;
-        }
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    @SuppressWarnings("unused") 
-    public static class SearchEngineBarContainer extends FrameLayout {
-        private final Paint dividerPaint;
-
-        public SearchEngineBarContainer(final Context context, final AttributeSet attrs) {
-            super(context, attrs);
-
-            dividerPaint = new Paint();
-            dividerPaint.setColor(getResources().getColor(R.color.divider_light));
-        }
-
-        @Override
-        public void onDraw(final Canvas canvas) {
-            super.onDraw(canvas);
-
-            canvas.drawLine(0, 0, getWidth(), 0, dividerPaint);
         }
     }
 }
