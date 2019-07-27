@@ -492,7 +492,7 @@ public:
     uint32_t mOffset;
     nsString mString;
     
-    nsIntRect mRect;
+    mozilla::LayoutDeviceIntRect mRect;
     
     nsIWidget* mFocusedWidget;
     

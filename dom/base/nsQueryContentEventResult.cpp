@@ -149,5 +149,5 @@ nsQueryContentEventResult::SetEventResult(nsIWidget* aWidget,
   
   LayoutDeviceIntPoint offset =
     aWidget->WidgetToScreenOffset() - topWidget->WidgetToScreenOffset();
-  mRect.MoveBy(-LayoutDeviceIntPoint::ToUntyped(offset));
+  mRect.MoveBy(-offset);
 }

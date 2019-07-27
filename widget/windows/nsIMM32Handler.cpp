@@ -1805,7 +1805,7 @@ nsIMM32Handler::GetCharacterRectOfSelectedTextAt(nsWindow* aWindow,
     aWindow->InitEvent(charRect, &point);
     aWindow->DispatchWindowEvent(&charRect);
     if (charRect.mSucceeded) {
-      aCharRect = charRect.mReply.mRect;
+      aCharRect = LayoutDevicePixel::ToUntyped(charRect.mReply.mRect);
       PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
         ("IMM32: GetCharacterRectOfSelectedTextAt, aOffset=%lu, SUCCEEDED\n",
          aOffset));
@@ -1844,7 +1844,7 @@ nsIMM32Handler::GetCaretRect(nsWindow* aWindow, nsIntRect &aCaretRect)
       ("IMM32: GetCaretRect,  FAILED (NS_QUERY_CARET_RECT)\n"));
     return false;
   }
-  aCaretRect = caretRect.mReply.mRect;
+  aCaretRect = LayoutDevicePixel::ToUntyped(caretRect.mReply.mRect);
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: GetCaretRect, SUCCEEDED, aCaretRect={ x: %ld, y: %ld, width: %ld, height: %ld }\n",
      aCaretRect.x, aCaretRect.y, aCaretRect.width, aCaretRect.height));
@@ -1956,8 +1956,8 @@ nsIMM32Handler::SetIMERelatedWindowsPosOnPlugin(nsWindow* aWindow,
   
   
   nsWindow* toplevelWindow = aWindow->GetTopLevelWindow(false);
-  nsIntRect pluginRectInScreen =
-    editorRectEvent.mReply.mRect + toplevelWindow->WidgetToScreenOffsetUntyped();
+  LayoutDeviceIntRect pluginRectInScreen =
+    editorRectEvent.mReply.mRect + toplevelWindow->WidgetToScreenOffset();
   nsIntRect winRectInScreen;
   aWindow->GetClientBounds(winRectInScreen);
   
