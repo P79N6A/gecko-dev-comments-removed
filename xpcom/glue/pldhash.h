@@ -303,15 +303,6 @@ private:
 
 
 
-
-typedef void* (*PLDHashAllocTable)(PLDHashTable* aTable, uint32_t aNBytes);
-
-typedef void (*PLDHashFreeTable)(PLDHashTable* aTable, void* aPtr);
-
-
-
-
-
 typedef PLDHashNumber (*PLDHashHashKey)(PLDHashTable* aTable,
                                         const void* aKey);
 
@@ -374,13 +365,9 @@ typedef bool (*PLDHashInitEntry)(PLDHashTable* aTable, PLDHashEntryHdr* aEntry,
 
 
 
-
-
 struct PLDHashTableOps
 {
   
-  PLDHashAllocTable   allocTable;
-  PLDHashFreeTable    freeTable;
   PLDHashHashKey      hashKey;
   PLDHashMatchEntry   matchEntry;
   PLDHashMoveEntry    moveEntry;
@@ -393,9 +380,6 @@ struct PLDHashTableOps
 
 
 
-void* PL_DHashAllocTable(PLDHashTable* aTable, uint32_t aNBytes);
-
-void PL_DHashFreeTable(PLDHashTable* aTable, void* aPtr);
 
 PLDHashNumber PL_DHashStringKey(PLDHashTable* aTable, const void* aKey);
 
@@ -431,8 +415,6 @@ void PL_DHashFreeStringKey(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
 
 
 const PLDHashTableOps* PL_DHashGetStubOps(void);
-
-
 
 
 
