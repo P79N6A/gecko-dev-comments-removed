@@ -877,7 +877,6 @@ TabChild::TabChild(nsIContentChild* aManager,
   , mDefaultScale(0)
   , mIPCOpen(true)
   , mParentIsActive(false)
-  , mAudioChannelActive(false)
 {
   
   
@@ -989,39 +988,10 @@ TabChild::Observe(nsISupports *aSubject,
     }
   }
 
-  if (audioChannel != -1 && mIPCOpen) {
-    
-    
-    nsCOMPtr<nsISupportsPRUint64> wrapper = do_QueryInterface(aSubject);
-    if (!wrapper) {
-      return NS_OK;
-    }
-
-    
-    
-    nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(WebNavigation());
-    if (!window) {
-      return NS_OK;
-    }
-
-    uint64_t windowID = 0;
-    nsresult rv = wrapper->GetData(&windowID);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    
-    
-    if (window->WindowID() != windowID) {
-      return NS_OK;
-    }
-
-    nsAutoString activeStr(aData);
-    bool active = activeStr.EqualsLiteral("active");
-    if (active != mAudioChannelActive) {
-      mAudioChannelActive = active;
-      unused << SendAudioChannelActivityNotification(audioChannel, active);
-    }
+  if (audioChannel != -1) {
+    nsAutoString active(aData);
+    unused << SendAudioChannelActivityNotification(audioChannel,
+                                                   active.Equals(NS_LITERAL_STRING("active")));
   }
 
   return NS_OK;
