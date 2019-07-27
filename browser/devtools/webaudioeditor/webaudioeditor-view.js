@@ -203,7 +203,7 @@ let WebAudioGraphView = {
 
     
     
-    renderer.postRender(function (graph, root) {
+    renderer.postRender((graph, root) => {
       
       
       
@@ -227,6 +227,12 @@ let WebAudioGraphView = {
           .attr("style", "fill: " + markerColor)
           .append("svg:path")
           .attr("d", "M 0 0 L 10 5 L 0 10 z");
+      }
+
+      
+      let currentNode = WebAudioInspectorView.getCurrentAudioNode();
+      if (currentNode) {
+        this.focusNode(currentNode.id);
       }
 
       
@@ -425,7 +431,7 @@ let WebAudioInspectorView = {
   
 
 
-  getCurrentNode: function () {
+  getCurrentAudioNode: function () {
     return this._currentNode;
   },
 
