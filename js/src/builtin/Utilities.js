@@ -28,6 +28,14 @@
 
 
 
+#ifdef DEBUG
+#define assert(b, info) if (!(b)) AssertionFailed(info)
+#else
+#define assert(b, info) 
+#endif
+
+
+
 
 
 
