@@ -443,6 +443,12 @@ this.BrowserUITelemetry = {
 
     
     
+    if (item.id == "privatebrowsing-button") {
+      return;
+    }
+
+    
+    
     if (item.id == "bookmarks-menu-button" ||
         getIDBasedOnFirstIDedAncestor(item) == "bookmarks-menu-button") {
       this._bookmarksMenuButtonMouseUp(aEvent);
@@ -651,7 +657,9 @@ this.BrowserUITelemetry = {
     "navigation", "back", "forward", "reload", "stop", "bookmarkpage",
     "spell-no-suggestions", "spell-add-to-dictionary",
     "spell-undo-add-to-dictionary", "openlinkincurrent", "openlinkintab",
-    "openlink", "openlinkprivate", "bookmarklink", "sharelink", "savelink",
+    "openlink",
+    
+    "bookmarklink", "sharelink", "savelink",
     "marklinkMenu", "copyemail", "copylink", "media-play", "media-pause",
     "media-mute", "media-unmute", "media-playbackrate",
     "media-playbackrate-050x", "media-playbackrate-100x",
@@ -679,6 +687,13 @@ this.BrowserUITelemetry = {
 
   registerContextMenuInteraction: function(keys, itemID) {
     if (itemID) {
+      if (itemID == "openlinkprivate") {
+        
+        
+        
+        return;
+      }
+
       if (!this._contextMenuItemWhitelist.has(itemID)) {
         itemID = "other-item";
       }
