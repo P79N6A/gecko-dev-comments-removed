@@ -42,11 +42,7 @@ BackCert::Init()
   
   
   {
-    Input input;
-    rv = input.Init(der.data, der.len);
-    if (rv != Success) {
-      return rv;
-    }
+    Input input(der);
     Input certificate;
     rv = der::ExpectTagAndGetValue(input, der::SEQUENCE, certificate);
     if (rv != Success) {
@@ -162,8 +158,10 @@ BackCert::Init()
   return der::End(tbsCertificate);
 }
 
+
+
 Result
-BackCert::RememberExtension(Input& extnID, const SECItem& extnValue,
+BackCert::RememberExtension(Input& extnID, const InputBuffer& extnValue,
                              bool& understood)
 {
   understood = false;
@@ -205,7 +203,7 @@ BackCert::RememberExtension(Input& extnID, const SECItem& extnValue,
     0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01
   };
 
-  SECItem* out = nullptr;
+  InputBuffer* out = nullptr;
 
   
   
@@ -213,7 +211,7 @@ BackCert::RememberExtension(Input& extnID, const SECItem& extnValue,
   
   
   
-  SECItem dummyPolicyConstraints = { siBuffer, nullptr, 0 };
+  InputBuffer dummyPolicyConstraints;
 
   
   
@@ -242,14 +240,13 @@ BackCert::RememberExtension(Input& extnID, const SECItem& extnValue,
   if (out) {
     
     
-    if (extnValue.len == 0) {
+    if (extnValue.GetLength() == 0) {
       return Result::ERROR_EXTENSION_VALUE_INVALID;
     }
-    if (out->len != 0) {
+    if (out->Init(extnValue) != Success) {
       
       return Result::ERROR_EXTENSION_VALUE_INVALID;
     }
-    *out = extnValue;
     understood = true;
   }
 

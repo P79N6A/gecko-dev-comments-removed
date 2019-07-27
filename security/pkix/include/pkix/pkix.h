@@ -88,12 +88,12 @@ namespace mozilla { namespace pkix {
 
 
 
-Result BuildCertChain(TrustDomain& trustDomain, const SECItem& cert,
+Result BuildCertChain(TrustDomain& trustDomain, InputBuffer cert,
                       PRTime time, EndEntityOrCA endEntityOrCA,
                       KeyUsage requiredKeyUsageIfPresent,
                       KeyPurposeId requiredEKUIfPresent,
                       const CertPolicyId& requiredPolicy,
-                       const SECItem* stapledOCSPResponse);
+                       const InputBuffer* stapledOCSPResponse);
 
 static const size_t OCSP_REQUEST_MAX_LENGTH = 127;
 Result CreateEncodedOCSPRequest(TrustDomain& trustDomain,
@@ -116,7 +116,7 @@ Result CreateEncodedOCSPRequest(TrustDomain& trustDomain,
 Result VerifyEncodedOCSPResponse(TrustDomain& trustDomain,
                                  const CertID& certID, PRTime time,
                                  uint16_t maxLifetimeInDays,
-                                 const SECItem& encodedResponse,
+                                 InputBuffer encodedResponse,
                         bool& expired,
                PRTime* thisUpdate = nullptr,
                PRTime* validThrough = nullptr);

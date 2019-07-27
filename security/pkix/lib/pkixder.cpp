@@ -289,7 +289,7 @@ SignedData(Input& input,  Input& tbs,
     return rv;
   }
 
-  rv = input.GetSECItem(siBuffer, mark, signedData.data);
+  rv = input.GetInputBuffer(mark, signedData.data);
   if (rv != Success) {
     return rv;
   }
@@ -299,14 +299,26 @@ SignedData(Input& input,  Input& tbs,
     return rv;
   }
 
-  rv = ExpectTagAndGetValue(input, BIT_STRING, signedData.signature);
+  rv = BitStringWithNoUnusedBits(input, signedData.signature);
+  if (rv == Result::ERROR_BAD_DER) {
+    rv = Result::ERROR_BAD_SIGNATURE;
+  }
+  return rv;
+}
+
+Result
+BitStringWithNoUnusedBits(Input& input,  InputBuffer& value)
+{
+  Input valueWithUnusedBits;
+  Result rv = ExpectTagAndGetValue(input, BIT_STRING, valueWithUnusedBits);
   if (rv != Success) {
     return rv;
   }
-  if (signedData.signature.len == 0) {
-    return Result::ERROR_BAD_SIGNATURE;
+
+  uint8_t unusedBitsAtEnd;
+  if (valueWithUnusedBits.Read(unusedBitsAtEnd) != Success) {
+    return Result::ERROR_BAD_DER;
   }
-  unsigned int unusedBitsAtEnd = signedData.signature.data[0];
   
   
   
@@ -314,12 +326,11 @@ SignedData(Input& input,  Input& tbs,
   
   
   if (unusedBitsAtEnd != 0) {
-    return Result::ERROR_BAD_SIGNATURE;
+    return Result::ERROR_BAD_DER;
   }
-  ++signedData.signature.data;
-  --signedData.signature.len;
-
-  return Success;
+  Input::Mark mark(valueWithUnusedBits.GetMark());
+  valueWithUnusedBits.SkipToEnd();
+  return valueWithUnusedBits.GetInputBuffer(mark, value);
 }
 
 static inline Result

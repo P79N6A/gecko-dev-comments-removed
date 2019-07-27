@@ -37,13 +37,9 @@
 
 
 
-#include "pkix/enumclass.h"
 #include "pkix/Input.h"
 #include "pkix/pkixtypes.h"
 #include "prtime.h"
-#include "secoidt.h"
-
-typedef struct CERTSignedDataStr CERTSignedData;
 
 namespace mozilla { namespace pkix { namespace der {
 
@@ -117,7 +113,7 @@ ExpectTagAndSkipValue(Input& input, uint8_t tag)
 }
 
 inline Result
-ExpectTagAndGetValue(Input& input, uint8_t tag,  SECItem& value)
+ExpectTagAndGetValue(Input& input, uint8_t tag,  InputBuffer& value)
 {
   uint16_t length;
   Result rv = internal::ExpectTagAndGetLength(input, tag, length);
@@ -141,7 +137,7 @@ ExpectTagAndGetValue(Input& input, uint8_t tag,  Input& value)
 
 
 inline Result
-ExpectTagAndGetTLV(Input& input, uint8_t tag,  SECItem& tlv)
+ExpectTagAndGetTLV(Input& input, uint8_t tag,  InputBuffer& tlv)
 {
   Input::Mark mark(input.GetMark());
   uint16_t length;
@@ -153,7 +149,7 @@ ExpectTagAndGetTLV(Input& input, uint8_t tag,  SECItem& tlv)
   if (rv != Success) {
     return rv;
   }
-  return input.GetSECItem(siBuffer, mark, tlv);
+  return input.GetInputBuffer(mark, tlv);
 }
 
 inline Result
@@ -275,6 +271,9 @@ IntegralValue(Input& input, uint8_t tag, T& value)
 }
 
 } 
+
+Result
+BitStringWithNoUnusedBits(Input& input,  InputBuffer& value);
 
 inline Result
 Boolean(Input& input,  bool& value)
@@ -402,18 +401,21 @@ template <uint8_t Len>
 Result
 OID(Input& input, const uint8_t (&expectedOid)[Len])
 {
-  Result rv = ExpectTagAndLength(input, OIDTag, Len);
+  Input value;
+  Result rv = ExpectTagAndGetValue(input, OIDTag, value);
   if (rv != Success) {
     return rv;
   }
-
-  return input.Expect(expectedOid, Len);
+  if (!value.MatchRest(expectedOid)) {
+    return Result::ERROR_BAD_DER;
+  }
+  return Success;
 }
 
 
 
 inline Result
-CertificateSerialNumber(Input& input,  SECItem& value)
+CertificateSerialNumber(Input& input,  InputBuffer& value)
 {
   
   
@@ -431,7 +433,7 @@ CertificateSerialNumber(Input& input,  SECItem& value)
     return rv;
   }
 
-  if (value.len == 0) {
+  if (value.GetLength() == 0) {
     return Result::ERROR_BAD_DER;
   }
 
@@ -440,9 +442,20 @@ CertificateSerialNumber(Input& input,  SECItem& value)
   
   
   
-  if (value.len > 1) {
-    if ((value.data[0] == 0x00 && (value.data[1] & 0x80) == 0) ||
-        (value.data[0] == 0xff && (value.data[1] & 0x80) != 0)) {
+  if (value.GetLength() > 1) {
+    Input valueInput(value);
+    uint8_t firstByte;
+    rv = valueInput.Read(firstByte);
+    if (rv != Success) {
+      return rv;
+    }
+    uint8_t secondByte;
+    rv = valueInput.Read(secondByte);
+    if (rv != Success) {
+      return rv;
+    }
+    if ((firstByte == 0x00 && (secondByte & 0x80) == 0) ||
+        (firstByte == 0xff && (secondByte & 0x80) != 0)) {
       return Result::ERROR_BAD_DER;
     }
   }
@@ -545,7 +558,7 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
     if (rv != Success) {
       return rv;
     }
-    SECItem extnValue;
+    InputBuffer extnValue;
     rv = ExpectTagAndGetValue(extension, OCTET_STRING, extnValue);
     if (rv != Success) {
       return rv;

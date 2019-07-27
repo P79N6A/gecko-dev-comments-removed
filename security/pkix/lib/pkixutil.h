@@ -42,7 +42,7 @@ class BackCert
 {
 public:
   
-  BackCert(const SECItem& certDER, EndEntityOrCA endEntityOrCA,
+  BackCert(InputBuffer certDER, EndEntityOrCA endEntityOrCA,
            const BackCert* childCert)
     : der(certDER)
     , endEntityOrCA(endEntityOrCA)
@@ -52,45 +52,51 @@ public:
 
   Result Init();
 
-  const SECItem& GetDER() const { return der; }
+  const InputBuffer GetDER() const { return der; }
   const der::Version GetVersion() const { return version; }
   const SignedDataWithSignature& GetSignedData() const { return signedData; }
-  const SECItem& GetIssuer() const { return issuer; }
+  const InputBuffer GetIssuer() const { return issuer; }
   
   
   
-  const SECItem& GetValidity() const { return validity; }
-  const SECItem& GetSerialNumber() const { return serialNumber; }
-  const SECItem& GetSubject() const { return subject; }
-  const SECItem& GetSubjectPublicKeyInfo() const
+  const InputBuffer GetValidity() const { return validity; }
+  const InputBuffer GetSerialNumber() const { return serialNumber; }
+  const InputBuffer GetSubject() const { return subject; }
+  const InputBuffer GetSubjectPublicKeyInfo() const
   {
     return subjectPublicKeyInfo;
   }
-  const SECItem* GetAuthorityInfoAccess() const
+  const InputBuffer* GetAuthorityInfoAccess() const
   {
-    return MaybeSECItem(authorityInfoAccess);
+    return MaybeInputBuffer(authorityInfoAccess);
   }
-  const SECItem* GetBasicConstraints() const
+  const InputBuffer* GetBasicConstraints() const
   {
-    return MaybeSECItem(basicConstraints);
+    return MaybeInputBuffer(basicConstraints);
   }
-  const SECItem* GetCertificatePolicies() const
+  const InputBuffer* GetCertificatePolicies() const
   {
-    return MaybeSECItem(certificatePolicies);
+    return MaybeInputBuffer(certificatePolicies);
   }
-  const SECItem* GetExtKeyUsage() const { return MaybeSECItem(extKeyUsage); }
-  const SECItem* GetKeyUsage() const { return MaybeSECItem(keyUsage); }
-  const SECItem* GetInhibitAnyPolicy() const
+  const InputBuffer* GetExtKeyUsage() const
   {
-    return MaybeSECItem(inhibitAnyPolicy);
+    return MaybeInputBuffer(extKeyUsage);
   }
-  const SECItem* GetNameConstraints() const
+  const InputBuffer* GetKeyUsage() const
   {
-    return MaybeSECItem(nameConstraints);
+    return MaybeInputBuffer(keyUsage);
+  }
+  const InputBuffer* GetInhibitAnyPolicy() const
+  {
+    return MaybeInputBuffer(inhibitAnyPolicy);
+  }
+  const InputBuffer* GetNameConstraints() const
+  {
+    return MaybeInputBuffer(nameConstraints);
   }
 
 private:
-  const SECItem& der;
+  const InputBuffer der;
 
 public:
   const EndEntityOrCA endEntityOrCA;
@@ -105,43 +111,32 @@ private:
   
   
   
-  static inline const SECItem* MaybeSECItem(const SECItem& item)
+  static inline const InputBuffer* MaybeInputBuffer(const InputBuffer& item)
   {
-    return item.len > 0 ? &item : nullptr;
+    return item.GetLength() > 0 ? &item : nullptr;
   }
 
-  
-  
-  
-  struct NonOwningSECItem : public SECItemStr {
-    NonOwningSECItem()
-    {
-      data = nullptr;
-      len = 0;
-    }
-  };
-
   SignedDataWithSignature signedData;
-  NonOwningSECItem issuer;
+  InputBuffer issuer;
   
   
   
-  NonOwningSECItem validity;
-  NonOwningSECItem serialNumber;
-  NonOwningSECItem subject;
-  NonOwningSECItem subjectPublicKeyInfo;
+  InputBuffer validity;
+  InputBuffer serialNumber;
+  InputBuffer subject;
+  InputBuffer subjectPublicKeyInfo;
 
-  NonOwningSECItem authorityInfoAccess;
-  NonOwningSECItem basicConstraints;
-  NonOwningSECItem certificatePolicies;
-  NonOwningSECItem extKeyUsage;
-  NonOwningSECItem inhibitAnyPolicy;
-  NonOwningSECItem keyUsage;
-  NonOwningSECItem nameConstraints;
-  NonOwningSECItem subjectAltName;
+  InputBuffer authorityInfoAccess;
+  InputBuffer basicConstraints;
+  InputBuffer certificatePolicies;
+  InputBuffer extKeyUsage;
+  InputBuffer inhibitAnyPolicy;
+  InputBuffer keyUsage;
+  InputBuffer nameConstraints;
+  InputBuffer subjectAltName;
 
-  Result RememberExtension(Input& extnID, const SECItem& extnValue,
-                                 bool& understood);
+  Result RememberExtension(Input& extnID, const InputBuffer& extnValue,
+                            bool& understood);
 
   BackCert(const BackCert&) ;
   void operator=(const BackCert&); ;
@@ -159,17 +154,20 @@ public:
 
   virtual size_t GetLength() const { return numItems; }
 
-  virtual const SECItem* GetDER(size_t i) const
+  virtual const InputBuffer* GetDER(size_t i) const
   {
     return i < numItems ? &items[i] : nullptr;
   }
 
-  Result Append(const SECItem& der)
+  Result Append(InputBuffer der)
   {
     if (numItems >= MAX_LENGTH) {
       return Result::FATAL_ERROR_INVALID_ARGS;
     }
-    items[numItems] = der; 
+    Result rv = items[numItems].Init(der); 
+    if (rv != Success) {
+      return rv;
+    }
     ++numItems;
     return Success;
   }
@@ -177,7 +175,7 @@ public:
   
   static const size_t MAX_LENGTH = 8;
 private:
-  SECItem items[MAX_LENGTH]; 
+  InputBuffer items[MAX_LENGTH]; 
   size_t numItems;
 
   NonOwningDERArray(const NonOwningDERArray&) ;

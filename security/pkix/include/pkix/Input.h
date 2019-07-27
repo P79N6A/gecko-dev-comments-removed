@@ -25,15 +25,113 @@
 #ifndef mozilla_pkix__Input_h
 #define mozilla_pkix__Input_h
 
+#include <cstring>
+
 #include "pkix/nullptr.h"
 #include "pkix/Result.h"
-#include "seccomon.h"
+#include "prlog.h"
 #include "stdint.h"
 
 namespace mozilla { namespace pkix {
 
+class Input;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class InputBuffer
+{
+public:
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  template <uint16_t N>
+  explicit InputBuffer(const uint8_t (&data)[N])
+    : data(data)
+    , len(N)
+  {
+  }
+
+  
+  InputBuffer()
+    : data(nullptr)
+    , len(0u)
+  {
+  }
+
+  
+  
+  Result Init(const uint8_t* data, size_t len)
+  {
+    if (this->data) {
+      
+      return Result::FATAL_ERROR_INVALID_ARGS;
+    }
+    if (!data || len > 0xffffu) {
+      
+      return Result::ERROR_BAD_DER;
+    }
+
+    this->data = data;
+    this->len = len;
+
+    return Success;
+  }
+
+  
+  
+  
+  
+  
+  
+  Result Init(InputBuffer other)
+  {
+    return Init(other.data, other.len);
+  }
+
+  
+  
+  
+  
+  uint16_t GetLength() const { return static_cast<uint16_t>(len); }
+
+  
+  
+  const uint8_t* UnsafeGetData() const { return data; }
+
+private:
+  const uint8_t* data;
+  size_t len;
+
+  void operator=(const InputBuffer&) ; 
+};
+
+inline bool
+InputBuffersAreEqual(const InputBuffer& a, const InputBuffer& b)
+{
+  return a.GetLength() == b.GetLength() &&
+         !std::memcmp(a.UnsafeGetData(), b.UnsafeGetData(), a.GetLength());
+}
 
 
 
@@ -52,36 +150,10 @@ public:
   {
   }
 
-  Result Init(const uint8_t* data, size_t len)
+  explicit Input(InputBuffer buffer)
+    : input(buffer.UnsafeGetData())
+    , end(buffer.UnsafeGetData() + buffer.GetLength())
   {
-    if (input) {
-      
-      return Result::FATAL_ERROR_INVALID_ARGS;
-    }
-    if (!data || len > 0xffffu) {
-      
-      return Result::ERROR_BAD_DER;
-    }
-
-    
-    
-    this->input = data;
-    this->end = data + len;
-
-    return Success;
-  }
-
-  Result Expect(const uint8_t* expected, uint16_t expectedLen)
-  {
-    Result rv = EnsureLength(expectedLen);
-    if (rv != Success) {
-      return rv;
-    }
-    if (memcmp(input, expected, expectedLen)) {
-      return Result::ERROR_BAD_DER;
-    }
-    input += expectedLen;
-    return Success;
   }
 
   bool Peek(uint8_t expectedByte) const
@@ -176,15 +248,16 @@ public:
     return Success;
   }
 
-  Result Skip(uint16_t len, SECItem& skippedItem)
+  Result Skip(uint16_t len, InputBuffer& skippedItem)
   {
     Result rv = EnsureLength(len);
     if (rv != Success) {
       return rv;
     }
-    skippedItem.type = siBuffer;
-    skippedItem.data = const_cast<uint8_t*>(input);
-    skippedItem.len = len;
+    rv = skippedItem.Init(input, len);
+    if (rv != Success) {
+      return rv;
+    }
     input += len;
     return Success;
   }
@@ -216,19 +289,27 @@ public:
 
   Mark GetMark() const { return Mark(*this, input); }
 
-  Result GetSECItem(SECItemType type, const Mark& mark,  SECItem& item)
+  Result GetInputBuffer(const Mark& mark,  InputBuffer& item)
   {
     if (&mark.input != this || mark.mark > input) {
       PR_NOT_REACHED("invalid mark");
       return Result::FATAL_ERROR_INVALID_ARGS;
     }
-    item.type = type;
-    item.data = const_cast<uint8_t*>(mark.mark);
-    item.len = static_cast<decltype(item.len)>(input - mark.mark);
-    return Success;
+    return item.Init(mark.mark, static_cast<uint16_t>(input - mark.mark));
   }
 
 private:
+  Result Init(const uint8_t* data, uint16_t len)
+  {
+    if (input) {
+      
+      return Result::FATAL_ERROR_INVALID_ARGS;
+    }
+    input = data;
+    end = data + len;
+    return Success;
+  }
+
   const uint8_t* input;
   const uint8_t* end;
 

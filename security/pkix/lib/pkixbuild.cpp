@@ -27,6 +27,7 @@
 #include <limits>
 
 #include "pkixcheck.h"
+#include "pkixutil.h"
 
 namespace mozilla { namespace pkix {
 
@@ -36,7 +37,7 @@ static Result BuildForward(TrustDomain& trustDomain,
                            KeyUsage requiredKeyUsageIfPresent,
                            KeyPurposeId requiredEKUIfPresent,
                            const CertPolicyId& requiredPolicy,
-                            const SECItem* stapledOCSPResponse,
+                            const InputBuffer* stapledOCSPResponse,
                            unsigned int subCACount);
 
 TrustDomain::IssuerChecker::IssuerChecker() { }
@@ -50,7 +51,7 @@ public:
   PathBuildingStep(TrustDomain& trustDomain, const BackCert& subject,
                    PRTime time, KeyPurposeId requiredEKUIfPresent,
                    const CertPolicyId& requiredPolicy,
-                    const SECItem* stapledOCSPResponse,
+                    const InputBuffer* stapledOCSPResponse,
                    unsigned int subCACount)
     : trustDomain(trustDomain)
     , subject(subject)
@@ -64,8 +65,8 @@ public:
   {
   }
 
-  Result Check(const SECItem& potentialIssuerDER,
-                const SECItem* additionalNameConstraints,
+  Result Check(InputBuffer potentialIssuerDER,
+                const InputBuffer* additionalNameConstraints,
                 bool& keepGoing);
 
   Result CheckResult() const;
@@ -76,7 +77,7 @@ private:
   const PRTime time;
   const KeyPurposeId requiredEKUIfPresent;
   const CertPolicyId& requiredPolicy;
-   SECItem const* const stapledOCSPResponse;
+   InputBuffer const* const stapledOCSPResponse;
   const unsigned int subCACount;
 
   Result RecordResult(Result currentResult,  bool& keepGoing);
@@ -125,9 +126,9 @@ PathBuildingStep::CheckResult() const
 
 
 Result
-PathBuildingStep::Check(const SECItem& potentialIssuerDER,
-                         const SECItem* additionalNameConstraints,
-                         bool& keepGoing)
+PathBuildingStep::Check(InputBuffer potentialIssuerDER,
+            const InputBuffer* additionalNameConstraints,
+                 bool& keepGoing)
 {
   BackCert potentialIssuer(potentialIssuerDER, EndEntityOrCA::MustBeCA,
                            &subject);
@@ -145,10 +146,10 @@ PathBuildingStep::Check(const SECItem& potentialIssuerDER,
   bool loopDetected = false;
   for (const BackCert* prev = potentialIssuer.childCert;
        !loopDetected && prev != nullptr; prev = prev->childCert) {
-    if (SECITEM_ItemsAreEqual(&potentialIssuer.GetSubjectPublicKeyInfo(),
-                              &prev->GetSubjectPublicKeyInfo()) &&
-        SECITEM_ItemsAreEqual(&potentialIssuer.GetSubject(),
-                              &prev->GetSubject())) {
+    if (InputBuffersAreEqual(potentialIssuer.GetSubjectPublicKeyInfo(),
+                             prev->GetSubjectPublicKeyInfo()) &&
+        InputBuffersAreEqual(potentialIssuer.GetSubject(),
+                             prev->GetSubject())) {
       
       return RecordResult(Result::ERROR_UNKNOWN_ISSUER, keepGoing);
     }
@@ -210,7 +211,7 @@ BuildForward(TrustDomain& trustDomain,
              KeyUsage requiredKeyUsageIfPresent,
              KeyPurposeId requiredEKUIfPresent,
              const CertPolicyId& requiredPolicy,
-              const SECItem* stapledOCSPResponse,
+              const InputBuffer* stapledOCSPResponse,
              unsigned int subCACount)
 {
   Result rv;
@@ -293,12 +294,12 @@ BuildForward(TrustDomain& trustDomain,
 }
 
 Result
-BuildCertChain(TrustDomain& trustDomain, const SECItem& certDER,
+BuildCertChain(TrustDomain& trustDomain, InputBuffer certDER,
                PRTime time, EndEntityOrCA endEntityOrCA,
                KeyUsage requiredKeyUsageIfPresent,
                KeyPurposeId requiredEKUIfPresent,
                const CertPolicyId& requiredPolicy,
-                const SECItem* stapledOCSPResponse)
+                const InputBuffer* stapledOCSPResponse)
 {
   
   

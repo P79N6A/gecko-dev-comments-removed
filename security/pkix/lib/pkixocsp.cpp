@@ -27,6 +27,7 @@
 #include "pkix/bind.h"
 #include "pkix/pkix.h"
 #include "pkixcheck.h"
+#include "pkixutil.h"
 #include "pkixder.h"
 
 namespace mozilla { namespace pkix {
@@ -84,8 +85,8 @@ private:
 static Result
 CheckOCSPResponseSignerCert(TrustDomain& trustDomain,
                             BackCert& potentialSigner,
-                            const SECItem& issuerSubject,
-                            const SECItem& issuerSubjectPublicKeyInfo,
+                            InputBuffer issuerSubject,
+                            InputBuffer issuerSubjectPublicKeyInfo,
                             PRTime time)
 {
   Result rv;
@@ -128,7 +129,7 @@ CheckOCSPResponseSignerCert(TrustDomain& trustDomain,
   
   
   
-  if (!SECITEM_ItemsAreEqual(&potentialSigner.GetIssuer(), &issuerSubject)) {
+  if (!InputBuffersAreEqual(potentialSigner.GetIssuer(), issuerSubject)) {
     return Result::ERROR_OCSP_RESPONDER_CERT_INVALID;
   }
 
@@ -158,26 +159,25 @@ static inline Result ResponseData(
                        const SignedDataWithSignature& signedResponseData,
                        const DERArray& certs);
 static inline Result SingleResponse(Input& input, Context& context);
-static Result ExtensionNotUnderstood(Input& extnID,
-                                     const SECItem& extnValue,
+static Result ExtensionNotUnderstood(Input& extnID, InputBuffer extnValue,
                                       bool& understood);
 static inline Result CertID(Input& input,
                             const Context& context,
                              bool& match);
 static Result MatchKeyHash(TrustDomain& trustDomain,
-                           const SECItem& issuerKeyHash,
-                           const SECItem& issuerSubjectPublicKeyInfo,
+                           InputBuffer issuerKeyHash,
+                           InputBuffer issuerSubjectPublicKeyInfo,
                             bool& match);
 static Result KeyHash(TrustDomain& trustDomain,
-                      const SECItem& subjectPublicKeyInfo,
+                      InputBuffer subjectPublicKeyInfo,
                        uint8_t* hashBuf, size_t hashBufSize);
 
 static Result
 MatchResponderID(TrustDomain& trustDomain,
                  ResponderIDType responderIDType,
-                 const SECItem& responderIDItem,
-                 const SECItem& potentialSignerSubject,
-                 const SECItem& potentialSignerSubjectPublicKeyInfo,
+                 InputBuffer responderID,
+                 InputBuffer potentialSignerSubject,
+                 InputBuffer potentialSignerSubjectPublicKeyInfo,
                   bool& match)
 {
   match = false;
@@ -186,18 +186,14 @@ MatchResponderID(TrustDomain& trustDomain,
     case ResponderIDType::byName:
       
       
-      match = SECITEM_ItemsAreEqual(&responderIDItem, &potentialSignerSubject);
+      match = InputBuffersAreEqual(responderID, potentialSignerSubject);
       return Success;
 
     case ResponderIDType::byKey:
     {
-      Input responderID;
-      Result rv = responderID.Init(responderIDItem.data, responderIDItem.len);
-      if (rv != Success) {
-        return rv;
-      }
-      SECItem keyHash;
-      rv = der::ExpectTagAndGetValue(responderID, der::OCTET_STRING, keyHash);
+      Input input(responderID);
+      InputBuffer keyHash;
+      Result rv = der::ExpectTagAndGetValue(input, der::OCTET_STRING, keyHash);
       if (rv != Success) {
         return rv;
       }
@@ -213,7 +209,7 @@ MatchResponderID(TrustDomain& trustDomain,
 static Result
 VerifyOCSPSignedData(TrustDomain& trustDomain,
                      const SignedDataWithSignature& signedResponseData,
-                     const SECItem& spki)
+                     InputBuffer spki)
 {
   Result rv = trustDomain.VerifySignedData(signedResponseData, spki);
   if (rv == Result::ERROR_BAD_SIGNATURE) {
@@ -230,7 +226,7 @@ VerifyOCSPSignedData(TrustDomain& trustDomain,
 
 static Result
 VerifySignature(Context& context, ResponderIDType responderIDType,
-                const SECItem& responderID, const DERArray& certs,
+                InputBuffer responderID, const DERArray& certs,
                 const SignedDataWithSignature& signedResponseData)
 {
   bool match;
@@ -295,7 +291,7 @@ MapBadDERToMalformedOCSPResponse(Result rv)
 Result
 VerifyEncodedOCSPResponse(TrustDomain& trustDomain, const struct CertID& certID,
                           PRTime time, uint16_t maxOCSPLifetimeInDays,
-                          const SECItem& encodedResponse,
+                          InputBuffer encodedResponse,
                            bool& expired,
                            PRTime* thisUpdate,
                            PRTime* validThrough)
@@ -303,20 +299,15 @@ VerifyEncodedOCSPResponse(TrustDomain& trustDomain, const struct CertID& certID,
   
   expired = false;
 
-  Input input;
-  Result rv = input.Init(encodedResponse.data, encodedResponse.len);
-  if (rv != Success) {
-    return MapBadDERToMalformedOCSPResponse(rv);
-  }
-
   Context context(trustDomain, certID, time, maxOCSPLifetimeInDays,
                   thisUpdate, validThrough);
 
-  rv = der::Nested(input, der::SEQUENCE, bind(OCSPResponse, _1, ref(context)));
+  Input input(encodedResponse);
+  Result rv = der::Nested(input, der::SEQUENCE,
+                          bind(OCSPResponse, _1, ref(context)));
   if (rv != Success) {
     return MapBadDERToMalformedOCSPResponse(rv);
   }
-
   rv = der::End(input);
   if (rv != Success) {
     return MapBadDERToMalformedOCSPResponse(rv);
@@ -446,7 +437,7 @@ BasicResponse(Input& input, Context& context)
 
     
     while (!certsSequence.AtEnd()) {
-      SECItem cert;
+      InputBuffer cert;
       rv = der::ExpectTagAndGetTLV(certsSequence, der::SEQUENCE, cert);
       if (rv != Success) {
         return rv;
@@ -485,7 +476,7 @@ ResponseData(Input& input, Context& context,
   
   
   
-  SECItem responderID;
+  InputBuffer responderID;
   ResponderIDType responderIDType
     = input.Peek(static_cast<uint8_t>(ResponderIDType::byName))
     ? ResponderIDType::byName
@@ -684,25 +675,25 @@ CertID(Input& input, const Context& context,  bool& match)
     return rv;
   }
 
-  SECItem issuerNameHash;
+  InputBuffer issuerNameHash;
   rv = der::ExpectTagAndGetValue(input, der::OCTET_STRING, issuerNameHash);
   if (rv != Success) {
     return rv;
   }
 
-  SECItem issuerKeyHash;
+  InputBuffer issuerKeyHash;
   rv = der::ExpectTagAndGetValue(input, der::OCTET_STRING, issuerKeyHash);
   if (rv != Success) {
     return rv;
   }
 
-  SECItem serialNumber;
+  InputBuffer serialNumber;
   rv = der::CertificateSerialNumber(input, serialNumber);
   if (rv != Success) {
     return rv;
   }
 
-  if (!SECITEM_ItemsAreEqual(&serialNumber, &context.certID.serialNumber)) {
+  if (!InputBuffersAreEqual(serialNumber, context.certID.serialNumber)) {
     
     
     
@@ -718,7 +709,7 @@ CertID(Input& input, const Context& context,  bool& match)
     return Success;
   }
 
-  if (issuerNameHash.len != TrustDomain::DIGEST_LENGTH) {
+  if (issuerNameHash.GetLength() != TrustDomain::DIGEST_LENGTH) {
     return Result::ERROR_OCSP_MALFORMED_RESPONSE;
   }
 
@@ -731,7 +722,8 @@ CertID(Input& input, const Context& context,  bool& match)
   if (rv != Success) {
     return rv;
   }
-  if (memcmp(hashBuf, issuerNameHash.data, issuerNameHash.len)) {
+  InputBuffer computed(hashBuf);
+  if (!InputBuffersAreEqual(computed, issuerNameHash)) {
     
     input.SkipToEnd();
     return Success;
@@ -752,10 +744,10 @@ CertID(Input& input, const Context& context,  bool& match)
 
 
 static Result
-MatchKeyHash(TrustDomain& trustDomain, const SECItem& keyHash,
-             const SECItem& subjectPublicKeyInfo,  bool& match)
+MatchKeyHash(TrustDomain& trustDomain, InputBuffer keyHash,
+             const InputBuffer subjectPublicKeyInfo,  bool& match)
 {
-  if (keyHash.len != TrustDomain::DIGEST_LENGTH)  {
+  if (keyHash.GetLength() != TrustDomain::DIGEST_LENGTH)  {
     return Result::ERROR_OCSP_MALFORMED_RESPONSE;
   }
   static uint8_t hashBuf[TrustDomain::DIGEST_LENGTH];
@@ -764,13 +756,14 @@ MatchKeyHash(TrustDomain& trustDomain, const SECItem& keyHash,
   if (rv != Success) {
     return rv;
   }
-  match = !memcmp(hashBuf, keyHash.data, keyHash.len);
+  InputBuffer computed(hashBuf);
+  match = InputBuffersAreEqual(computed, keyHash);
   return Success;
 }
 
 
 Result
-KeyHash(TrustDomain& trustDomain, const SECItem& subjectPublicKeyInfo,
+KeyHash(TrustDomain& trustDomain, const InputBuffer subjectPublicKeyInfo,
          uint8_t* hashBuf, size_t hashBufSize)
 {
   if (!hashBuf || hashBufSize != TrustDomain::DIGEST_LENGTH) {
@@ -789,11 +782,7 @@ KeyHash(TrustDomain& trustDomain, const SECItem& subjectPublicKeyInfo,
   {
     
     
-    Input input;
-    rv = input.Init(subjectPublicKeyInfo.data, subjectPublicKeyInfo.len);
-    if (rv != Success) {
-      return rv;
-    }
+    Input input(subjectPublicKeyInfo);
     rv = der::ExpectTagAndGetValue(input, der::SEQUENCE, spki);
     if (rv != Success) {
       return rv;
@@ -810,29 +799,21 @@ KeyHash(TrustDomain& trustDomain, const SECItem& subjectPublicKeyInfo,
     return rv;
   }
 
-  SECItem subjectPublicKey;
-  rv = der::ExpectTagAndGetValue(spki, der::BIT_STRING, subjectPublicKey);
+  InputBuffer subjectPublicKey;
+  rv = der::BitStringWithNoUnusedBits(spki, subjectPublicKey);
   if (rv != Success) {
     return rv;
   }
-
   rv = der::End(spki);
   if (rv != Success) {
     return rv;
   }
 
-  
-  if (subjectPublicKey.len == 0 || subjectPublicKey.data[0] != 0) {
-    return Result::ERROR_BAD_DER;
-  }
-  ++subjectPublicKey.data;
-  --subjectPublicKey.len;
-
   return trustDomain.DigestBuf(subjectPublicKey, hashBuf, hashBufSize);
 }
 
 Result
-ExtensionNotUnderstood(Input& , const SECItem& ,
+ExtensionNotUnderstood(Input& , InputBuffer ,
                         bool& understood)
 {
   understood = false;
@@ -909,12 +890,12 @@ CreateEncodedOCSPRequest(TrustDomain& trustDomain, const struct CertID& certID,
   
   static_assert(totalLenWithoutSerialNumberData < OCSP_REQUEST_MAX_LENGTH,
                 "totalLenWithoutSerialNumberData too big");
-  if (certID.serialNumber.len >
+  if (certID.serialNumber.GetLength() >
         OCSP_REQUEST_MAX_LENGTH - totalLenWithoutSerialNumberData) {
     return Result::ERROR_BAD_DER;
   }
 
-  outLen = totalLenWithoutSerialNumberData + certID.serialNumber.len;
+  outLen = totalLenWithoutSerialNumberData + certID.serialNumber.GetLength();
 
   uint8_t totalLen = static_cast<uint8_t>(outLen);
 
@@ -950,10 +931,15 @@ CreateEncodedOCSPRequest(TrustDomain& trustDomain, const struct CertID& certID,
 
   
   *d++ = 0x02; 
-  *d++ = static_cast<uint8_t>(certID.serialNumber.len);
-  for (size_t i = 0; i < certID.serialNumber.len; ++i) {
-    *d++ = certID.serialNumber.data[i];
-  }
+  *d++ = static_cast<uint8_t>(certID.serialNumber.GetLength());
+  Input serialNumber(certID.serialNumber);
+  do {
+    rv = serialNumber.Read(*d);
+    if (rv != Success) {
+      return rv;
+    }
+    ++d;
+  } while (!serialNumber.AtEnd());
 
   PR_ASSERT(d == out + totalLen);
 
