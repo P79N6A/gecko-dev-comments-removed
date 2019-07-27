@@ -56,11 +56,7 @@ public:
     }
 
     Rect snapped(mBounds.x, mBounds.y, mBounds.width, mBounds.height);
-    if (UserToDevicePixelSnapped(snapped, aDT->GetTransform())) {
-      Matrix mat = aDT->GetTransform();
-      mat.Invert();
-      snapped = mat.TransformBounds(snapped);
-    }
+    MaybeSnapToDevicePixels(snapped, *aDT, true);
 
     
     aDT->PushClipRect(snapped);
