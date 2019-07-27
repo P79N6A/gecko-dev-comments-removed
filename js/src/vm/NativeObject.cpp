@@ -1433,10 +1433,7 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             return result.fail(JSMSG_CANT_REDEFINE_PROP);
 
         if (IsImplicitDenseOrTypedArrayElement(shape)) {
-            if (IsAnyTypedArray(obj)) {
-                
-                return result.succeed();
-            }
+            MOZ_ASSERT(!IsAnyTypedArray(obj));
             if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
                 return false;
             shape = obj->lookup(cx, id);
@@ -1461,12 +1458,7 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
 
             
             if (IsImplicitDenseOrTypedArrayElement(shape)) {
-                if (IsAnyTypedArray(obj)) {
-                    
-                    
-                    
-                    return result.succeed();
-                }
+                MOZ_ASSERT(!IsAnyTypedArray(obj));
                 if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
                     return false;
                 shape = obj->lookup(cx, id);
