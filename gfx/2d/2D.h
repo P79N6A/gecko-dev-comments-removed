@@ -1120,7 +1120,7 @@ public:
 
 
   static TemporaryRef<DataSourceSurface>
-    CreateDataSourceSurface(const IntSize &aSize, SurfaceFormat aFormat);
+    CreateDataSourceSurface(const IntSize &aSize, SurfaceFormat aFormat, bool aZero = false);
 
   
 
@@ -1130,7 +1130,7 @@ public:
 
 
   static TemporaryRef<DataSourceSurface>
-    CreateDataSourceSurfaceWithStride(const IntSize &aSize, SurfaceFormat aFormat, int32_t aStride);
+    CreateDataSourceSurfaceWithStride(const IntSize &aSize, SurfaceFormat aFormat, int32_t aStride, bool aZero = false);
 
   
 

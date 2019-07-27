@@ -49,6 +49,8 @@ SurfaceToPackedBGR(DataSourceSurface *aSurface);
 
 
 
+
+
 void
 ClearDataSourceSurface(DataSourceSurface *aSurface);
 
