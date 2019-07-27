@@ -322,8 +322,14 @@ protected:
 
   void GetValueInternal(nsAString& aValue, bool aIgnoreWrap) const;
 
-  nsresult SetValueInternal(const nsAString& aValue,
-                            bool aUserInput);
+  
+
+
+
+
+
+  nsresult SetValueInternal(const nsAString& aValue, uint32_t aFlags);
+
   nsresult GetSelectionRange(int32_t* aSelectionStart, int32_t* aSelectionEnd);
 
   

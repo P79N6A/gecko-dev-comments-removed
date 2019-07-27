@@ -27,6 +27,7 @@
 #include "nsAttrValueInlines.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMEventListener.h"
+#include "nsIEditorIMESupport.h"
 #include "nsIEditorObserver.h"
 #include "nsIWidget.h"
 #include "nsIDocumentEncoder.h"
@@ -1015,15 +1016,16 @@ nsTextInputListener::UpdateTextInputCommands(const nsAString& commandsToUpdate,
 
 
 nsTextEditorState::nsTextEditorState(nsITextControlElement* aOwningElement)
-  : mTextCtrlElement(aOwningElement),
-    mBoundFrame(nullptr),
-    mEverInited(false),
-    mEditorInitialized(false),
-    mInitializing(false),
-    mValueTransferInProgress(false),
-    mSelectionCached(true),
-    mSelectionRestoreEagerInit(false),
-    mPlaceholderVisibility(false)
+  : mTextCtrlElement(aOwningElement)
+  , mBoundFrame(nullptr)
+  , mEverInited(false)
+  , mEditorInitialized(false)
+  , mInitializing(false)
+  , mValueTransferInProgress(false)
+  , mSelectionCached(true)
+  , mSelectionRestoreEagerInit(false)
+  , mPlaceholderVisibility(false)
+  , mIsCommittingComposition(false)
 {
   MOZ_COUNT_CTOR(nsTextEditorState);
 }
@@ -1441,7 +1443,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     rv = newEditor->EnableUndo(false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    bool success = SetValue(defaultValue, false, false);
+    bool success = SetValue(defaultValue, eSetValue_Internal);
     NS_ENSURE_TRUE(success, NS_ERROR_OUT_OF_MEMORY);
 
     rv = newEditor->EnableUndo(true);
@@ -1705,7 +1707,7 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   
   
   if (!mValueTransferInProgress) {
-    bool success = SetValue(value, false, false);
+    bool success = SetValue(value, eSetValue_Internal);
     
     NS_ENSURE_TRUE_VOID(success);
   }
@@ -1860,6 +1862,15 @@ nsTextEditorState::GetMaxLength(int32_t* aMaxLength)
 void
 nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
 {
+  
+  
+  
+  
+  if (mIsCommittingComposition) {
+    aValue = mValueBeingSet;
+    return;
+  }
+
   if (mEditor && mBoundFrame && (mEditorInitialized || !IsSingleLineTextControl())) {
     bool canCache = aIgnoreWrap && !IsSingleLineTextControl();
     if (canCache && !mCachedValue.IsEmpty()) {
@@ -1921,9 +1932,73 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
 }
 
 bool
-nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
-                            bool aSetValueChanged)
+nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
 {
+  nsAutoString newValue(aValue);
+
+  
+  
+  
+  
+  
+  
+  
+  if (mIsCommittingComposition) {
+    mValueBeingSet = aValue;
+  }
+
+  
+  
+  
+  if (aFlags & (eSetValue_BySetUserInput | eSetValue_ByContent)) {
+    if (EditorHasComposition()) {
+      
+      if (NS_WARN_IF(mIsCommittingComposition)) {
+        
+        
+        
+        return true;
+      }
+      
+      
+      
+      
+      
+      
+      
+      if (nsContentUtils::IsSafeToRunScript()) {
+        WeakPtr<nsTextEditorState> self(this);
+        
+        
+        
+        mValueBeingSet = aValue;
+        mIsCommittingComposition = true;
+        nsCOMPtr<nsIEditorIMESupport> editorIMESupport =
+                                        do_QueryInterface(mEditor);
+        MOZ_RELEASE_ASSERT(editorIMESupport);
+        nsresult rv = editorIMESupport->ForceCompositionEnd();
+        if (!self.get()) {
+          return true;
+        }
+        mIsCommittingComposition = false;
+        
+        
+        
+        newValue = mValueBeingSet;
+        
+        
+        mValueBeingSet.Truncate();
+        if (NS_FAILED(rv)) {
+          NS_WARNING("nsTextEditorState failed to commit composition");
+          return true;
+        }
+      } else {
+        NS_WARNING("SetValue() is called when there is composition but "
+                   "it's not safe to request to commit the composition");
+      }
+    }
+  }
+
   if (mEditor && mBoundFrame) {
     
     
@@ -1945,19 +2020,13 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
     nsWeakFrame weakFrame(mBoundFrame);
 
     
-    if (!currentValue.Equals(aValue))
+    if (!currentValue.Equals(newValue))
     {
       ValueSetter valueSetter(mEditor);
 
       
       
-      
-      
-      nsString newValue;
-      if (!newValue.Assign(aValue, fallible)) {
-        return false;
-      }
-      if (aValue.FindChar(char16_t('\r')) != -1) {
+      if (newValue.FindChar(char16_t('\r')) != -1) {
         if (!nsContentUtils::PlatformToDOMLineBreaks(newValue, fallible)) {
           return false;
         }
@@ -2020,7 +2089,8 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
         mEditor->SetFlags(flags);
 
         mTextListener->SettingValue(true);
-        mTextListener->SetValueChanged(aSetValueChanged);
+        bool notifyValueChanged = !!(aFlags & eSetValue_Notify);
+        mTextListener->SetValueChanged(notifyValueChanged);
 
         
         int32_t savedMaxLength;
@@ -2043,7 +2113,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
           
           
           if (!mBoundFrame) {
-            return SetValue(newValue, false, aSetValueChanged);
+            return SetValue(newValue, aFlags & eSetValue_Notify);
           }
           return true;
         }
@@ -2065,7 +2135,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
       mValue = new nsCString;
     }
     nsString value;
-    if (!value.Assign(aValue, fallible)) {
+    if (!value.Assign(newValue, fallible)) {
       return false;
     }
     if (!nsContentUtils::PlatformToDOMLineBreaks(value, fallible)) {
@@ -2163,6 +2233,16 @@ nsTextEditorState::HideSelectionIfBlurred()
   if (!nsContentUtils::IsFocusedContent(content)) {
     mSelCon->SetDisplaySelection(nsISelectionController::SELECTION_HIDDEN);
   }
+}
+
+bool
+nsTextEditorState::EditorHasComposition()
+{
+  bool isComposing = false;
+  nsCOMPtr<nsIEditorIMESupport> editorIMESupport = do_QueryInterface(mEditor);
+  return editorIMESupport &&
+         NS_SUCCEEDED(editorIMESupport->GetComposing(&isComposing)) &&
+         isComposing;
 }
 
 NS_IMPL_ISUPPORTS(nsAnonDivObserver, nsIMutationObserver)

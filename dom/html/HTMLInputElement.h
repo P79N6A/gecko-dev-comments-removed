@@ -819,9 +819,14 @@ protected:
                                      uint32_t aLen, uint32_t* aResult);
 
   
-  nsresult SetValueInternal(const nsAString& aValue,
-                            bool aUserInput,
-                            bool aSetValueChanged);
+
+  
+
+
+
+
+
+  nsresult SetValueInternal(const nsAString& aValue, uint32_t aFlags);
 
   nsresult GetValueInternal(nsAString& aValue) const;
 

@@ -143,9 +143,20 @@ public:
   nsresult PrepareEditor(const nsAString *aValue = nullptr);
   void InitializeKeyboardEventListeners();
 
+  enum SetValueFlags
+  {
+    
+    eSetValue_Internal              = 0,
+    
+    eSetValue_BySetUserInput        = 1 << 0,
+    
+    
+    eSetValue_ByContent             = 1 << 1,
+    
+    eSetValue_Notify                = 1 << 2
+  };
   MOZ_WARN_UNUSED_RESULT bool SetValue(const nsAString& aValue,
-                                       bool aUserInput,
-                                       bool aSetValueAsChanged);
+                                       uint32_t aFlags);
   void GetValue(nsAString& aValue, bool aIgnoreWrap) const;
   void EmptyValue() { if (mValue) mValue->Truncate(); }
   bool IsEmpty() const { return mValue ? mValue->IsEmpty() : true; }
@@ -244,6 +255,8 @@ private:
 
   mozilla::dom::HTMLInputElement* GetParentNumberControl(nsFrame* aFrame) const;
 
+  bool EditorHasComposition();
+
   class InitializationGuard {
   public:
     explicit InitializationGuard(nsTextEditorState& aState) :
@@ -283,14 +296,20 @@ private:
   nsAutoPtr<nsCString> mValue;
   nsRefPtr<nsAnonDivObserver> mMutationObserver;
   mutable nsString mCachedValue; 
+  
+  
+  
+  
+  nsString mValueBeingSet;
+  SelectionProperties mSelectionProperties;
   bool mEverInited; 
   bool mEditorInitialized;
   bool mInitializing; 
   bool mValueTransferInProgress; 
   bool mSelectionCached; 
   mutable bool mSelectionRestoreEagerInit; 
-  SelectionProperties mSelectionProperties;
   bool mPlaceholderVisibility;
+  bool mIsCommittingComposition;
 };
 
 inline void
