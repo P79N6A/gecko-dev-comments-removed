@@ -578,17 +578,26 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
 
   DrawableFrameRef ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
 
+  if (!ref && IsOpaque()) {
+    
+    
+    
+    ref = LookupFrameInternal(aFrameNum, aSize,
+                              aFlags ^ FLAG_DECODE_NO_PREMULTIPLY_ALPHA);
+  }
+
   if (!ref) {
     
     MOZ_ASSERT(!mAnim, "Animated frames should be locked");
-    if (CanDiscard()) {
-      Discard( false);
-      ApplyDecodeFlags(aFlags);
-      WantDecodedFrames(aFlags, aShouldSyncNotify);
 
-      
-      ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
-    }
+    
+    mFrameDecodeFlags = aFlags & DECODE_FLAGS_MASK;
+    mDecoded = false;
+    mHasFirstFrame = false;
+    WantDecodedFrames(aFlags, aShouldSyncNotify);
+
+    
+    ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
 
     if (!ref) {
       
@@ -755,9 +764,6 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
   if (mError)
     return nullptr;
 
-  if (!ApplyDecodeFlags(aFlags))
-    return nullptr;
-
   
   
   
@@ -830,9 +836,6 @@ RasterImage::GetFrameInternal(uint32_t aWhichFrame,
     return nullptr;
 
   if (mError)
-    return nullptr;
-
-  if (!ApplyDecodeFlags(aFlags))
     return nullptr;
 
   
@@ -1083,40 +1086,6 @@ RasterImage::InternalAddFrame(uint32_t aFrameNum,
   mFrameBlender->InsertFrame(aFrameNum, frame->RawAccessRef());
 
   return ref;
-}
-
-bool
-RasterImage::ApplyDecodeFlags(uint32_t aNewFlags)
-{
-  if (mFrameDecodeFlags == (aNewFlags & DECODE_FLAGS_MASK))
-    return true; 
-
-  if (mDecoded) {
-    
-    
-    
-    uint32_t currentNonAlphaFlags =
-      (mFrameDecodeFlags & DECODE_FLAGS_MASK) & ~FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
-    uint32_t newNonAlphaFlags =
-      (aNewFlags & DECODE_FLAGS_MASK) & ~FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
-    if (currentNonAlphaFlags == newNonAlphaFlags && IsOpaque()) {
-      return true;
-    }
-
-    
-    
-    
-    if (!(aNewFlags & FLAG_SYNC_DECODE)) {
-      return false;
-    }
-    if (!CanDiscard()) {
-      return false;
-    }
-    Discard();
-  }
-
-  mFrameDecodeFlags = aNewFlags & DECODE_FLAGS_MASK;
-  return true;
 }
 
 nsresult
@@ -1713,7 +1682,7 @@ RasterImage::GetKeys(uint32_t *count, char ***keys)
 }
 
 void
-RasterImage::Discard(bool aNotify)
+RasterImage::Discard()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1741,7 +1710,7 @@ RasterImage::Discard(bool aNotify)
   mHasFirstFrame = false;
 
   
-  if (aNotify && mProgressTracker) {
+  if (mProgressTracker) {
     mProgressTracker->OnDiscard();
   }
 
@@ -2162,14 +2131,9 @@ RasterImage::SyncDecode()
     nsresult rv = FinishedSomeDecoding(ShutdownReason::NOT_NEEDED);
     CONTAINER_ENSURE_SUCCESS(rv);
 
-    if (mDecoded) {
+    if (mDecoded && mAnim) {
       
-      
-      
-      if (!CanDiscard()) {
-        return NS_ERROR_NOT_AVAILABLE;
-      }
-      Discard();
+      return NS_ERROR_NOT_AVAILABLE;
     }
   }
 
@@ -2380,23 +2344,6 @@ RasterImage::Draw(gfxContext* aContext,
 
   NS_ENSURE_ARG_POINTER(aContext);
 
-  
-  
-  
-  
-  bool haveDefaultFlags = (mFrameDecodeFlags == DECODE_FLAGS_DEFAULT);
-  bool haveSafeAlphaFlags =
-    (mFrameDecodeFlags == FLAG_DECODE_NO_PREMULTIPLY_ALPHA) && IsOpaque();
-
-  if (!(haveDefaultFlags || haveSafeAlphaFlags)) {
-    if (!CanDiscard()) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-    Discard();
-
-    mFrameDecodeFlags = DECODE_FLAGS_DEFAULT;
-  }
-
   if (IsUnlocked() && mProgressTracker) {
     mProgressTracker->OnUnlockedDraw();
   }
@@ -2486,14 +2433,12 @@ RasterImage::UnlockImage()
   
   
   
-  if (mHasBeenDecoded && mDecoder &&
-      mLockCount == 0 && CanDiscard()) {
+  if (mHasBeenDecoded && mDecoder && mLockCount == 0 && !mAnim) {
     PR_LOG(GetCompressedImageAccountingLog(), PR_LOG_DEBUG,
            ("RasterImage[0x%p] canceling decode because image "
             "is now unlocked.", this));
     ReentrantMonitorAutoEnter lock(mDecodingMonitor);
     FinishedSomeDecoding(ShutdownReason::NOT_NEEDED);
-    Discard();
     return NS_OK;
   }
 
@@ -2508,7 +2453,7 @@ RasterImage::RequestDiscard()
   if (mDiscardable &&      
       mLockCount == 0 &&   
       mDecoded &&          
-      CanDiscard()) {          
+      CanDiscard()) {
     Discard();
   }
 
