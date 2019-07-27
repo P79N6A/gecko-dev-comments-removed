@@ -1171,6 +1171,28 @@ public:
   nsDisplayAltFeedback(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
     : nsDisplayItem(aBuilder, aFrame) {}
 
+  virtual nsDisplayItemGeometry*
+  AllocateGeometry(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE
+  {
+    return new nsDisplayItemGenericImageGeometry(this, aBuilder);
+  }
+
+  virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                         const nsDisplayItemGeometry* aGeometry,
+                                         nsRegion* aInvalidRegion) MOZ_OVERRIDE
+  {
+    auto geometry =
+      static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
+
+    if (aBuilder->ShouldSyncDecodeImages() &&
+        geometry->ShouldInvalidateToSyncDecodeImages()) {
+      bool snap;
+      aInvalidRegion->Or(*aInvalidRegion, GetBounds(aBuilder, &snap));
+    }
+
+    nsDisplayItem::ComputeInvalidationRegion(aBuilder, aGeometry, aInvalidRegion);
+  }
+
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
                            bool* aSnap) MOZ_OVERRIDE
   {
@@ -1181,25 +1203,33 @@ public:
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx) MOZ_OVERRIDE
   {
+    
+    
+    uint32_t flags = imgIContainer::FLAG_SYNC_DECODE;
+
     nsImageFrame* f = static_cast<nsImageFrame*>(mFrame);
     EventStates state = f->GetContent()->AsElement()->State();
-    f->DisplayAltFeedback(*aCtx,
-                          mVisibleRect,
-                          IMAGE_OK(state, true)
-                             ? nsImageFrame::gIconLoad->mLoadingImage
-                             : nsImageFrame::gIconLoad->mBrokenImage,
-                          ToReferenceFrame());
+    DrawResult result =
+      f->DisplayAltFeedback(*aCtx,
+                            mVisibleRect,
+                            IMAGE_OK(state, true)
+                               ? nsImageFrame::gIconLoad->mLoadingImage
+                               : nsImageFrame::gIconLoad->mBrokenImage,
+                            ToReferenceFrame(),
+                            flags);
 
+    nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, result);
   }
 
   NS_DISPLAY_DECL_NAME("AltFeedback", TYPE_ALT_FEEDBACK)
 };
 
-void
+DrawResult
 nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
-                                 const nsRect&        aDirtyRect,
-                                 imgIRequest*         aRequest,
-                                 nsPoint              aPt)
+                                 const nsRect& aDirtyRect,
+                                 imgIRequest* aRequest,
+                                 nsPoint aPt,
+                                 uint32_t aFlags)
 {
   
   MOZ_ASSERT(gIconLoad, "How did we succeed in Init then?");
@@ -1219,7 +1249,7 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
   
   
   if ((inner.width < 2 * borderEdgeWidth) || (inner.height < 2 * borderEdgeWidth)) {
-    return;
+    return DrawResult::SUCCESS;
   }
 
   
@@ -1233,7 +1263,7 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
   inner.Deflate(nsPresContext::CSSPixelsToAppUnits(ICON_PADDING+ALT_BORDER_WIDTH), 
                 nsPresContext::CSSPixelsToAppUnits(ICON_PADDING+ALT_BORDER_WIDTH));
   if (inner.IsEmpty()) {
-    return;
+    return DrawResult::SUCCESS;
   }
 
   DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
@@ -1244,11 +1274,13 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
   gfx->Clip(NSRectToSnappedRect(inner, PresContext()->AppUnitsPerDevPixel(),
                                 *drawTarget));
 
-  
-  if (gIconLoad->mPrefShowPlaceholders) {
-    nscoord size = nsPresContext::CSSPixelsToAppUnits(ICON_SIZE);
+  DrawResult result = DrawResult::NOT_READY;
 
-    bool iconUsed = false;
+  
+  if (!gIconLoad->mPrefShowPlaceholders) {
+    result = DrawResult::SUCCESS;
+  } else {
+    nscoord size = nsPresContext::CSSPixelsToAppUnits(ICON_SIZE);
 
     
     
@@ -1272,15 +1304,13 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
       MOZ_ASSERT(imgCon, "Load complete, but no image container?");
       nsRect dest(flushRight ? inner.XMost() - size : inner.x,
                   inner.y, size, size);
-      nsLayoutUtils::DrawSingleImage(*gfx, PresContext(), imgCon,
+      result = nsLayoutUtils::DrawSingleImage(*gfx, PresContext(), imgCon,
         nsLayoutUtils::GetGraphicsFilterForFrame(this), dest, aDirtyRect,
-        nullptr, imgIContainer::FLAG_SYNC_DECODE);
-      iconUsed = true;
+        nullptr, aFlags);
     }
 
     
-    
-    if (!iconUsed) {
+    if (result == DrawResult::NOT_READY) {
       ColorPattern color(ToDeviceColor(Color(1.f, 0.f, 0.f, 1.f)));
 
       nscoord iconXPos = flushRight ? inner.XMost() - size : inner.x;
@@ -1331,6 +1361,8 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
   }
 
   aRenderingContext.ThebesContext()->Restore();
+
+  return result;
 }
 
 #ifdef DEBUG
