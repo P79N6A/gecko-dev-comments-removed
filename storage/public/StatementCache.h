@@ -35,7 +35,7 @@ public:
 
 
 
-  StatementCache(nsCOMPtr<mozIStorageConnection>& aConnection)
+  explicit StatementCache(nsCOMPtr<mozIStorageConnection>& aConnection)
   : mConnection(aConnection)
   {
   }

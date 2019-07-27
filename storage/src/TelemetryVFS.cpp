@@ -78,7 +78,7 @@ public:
 
 
 
-  IOThreadAutoTimer(Telemetry::ID id,
+  explicit IOThreadAutoTimer(Telemetry::ID id,
     IOInterposeObserver::Operation aOp = IOInterposeObserver::OpNone)
     : start(TimeStamp::Now()),
       id(id),
@@ -92,7 +92,7 @@ public:
 
 
 
-  IOThreadAutoTimer(IOInterposeObserver::Operation aOp)
+  explicit IOThreadAutoTimer(IOInterposeObserver::Operation aOp)
     : start(TimeStamp::Now()),
       id(Telemetry::HistogramCount),
       op(aOp)
