@@ -1225,8 +1225,12 @@ MPhi::foldsTernary()
     
     
     
-    if (IsNumberType(testArg->type()) && c->vp()->toNumber() == 0)
+    if (IsNumberType(testArg->type()) && c->vp()->toNumber() == 0) {
+        
+        if (trueDef == c)
+            c->block()->moveBefore(pred->lastIns(), c);
         return trueDef;
+    }
 
     
     
@@ -1234,6 +1238,9 @@ MPhi::foldsTernary()
     if (testArg->type() == MIRType_String &&
         c->vp()->toString() == GetIonContext()->runtime->emptyString())
     {
+        
+        if (trueDef == c)
+            c->block()->moveBefore(pred->lastIns(), c);
         return trueDef;
     }
 
