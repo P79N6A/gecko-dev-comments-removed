@@ -676,7 +676,8 @@ class TypedObject : public JSObject
     
     
     
-    static TypedObject *createZeroed(JSContext *cx, HandleTypeDescr typeObj, int32_t length);
+    static TypedObject *createZeroed(JSContext *cx, HandleTypeDescr typeObj, int32_t length,
+                                     gc::InitialHeap heap = gc::DefaultHeap);
 
     
     
@@ -753,7 +754,8 @@ class OutlineTypedObject : public TypedObject
     static OutlineTypedObject *createUnattachedWithClass(JSContext *cx,
                                                          const Class *clasp,
                                                          HandleTypeDescr type,
-                                                         int32_t length);
+                                                         int32_t length,
+                                                         gc::InitialHeap heap = gc::DefaultHeap);
 
     
     
@@ -764,7 +766,7 @@ class OutlineTypedObject : public TypedObject
     
     
     static OutlineTypedObject *createUnattached(JSContext *cx, HandleTypeDescr type,
-                                                int32_t length);
+                                                int32_t length, gc::InitialHeap heap = gc::DefaultHeap);
 
     
     
@@ -810,7 +812,8 @@ class InlineTypedObject : public TypedObject
     uint8_t data_[1];
 
   public:
-    static const size_t MaximumSize = NativeObject::MAX_FIXED_SLOTS * sizeof(Value);
+    static const size_t MaximumSize =
+        sizeof(NativeObject) - sizeof(TypedObject) + NativeObject::MAX_FIXED_SLOTS * sizeof(Value);
 
     static gc::AllocKind allocKindForTypeDescriptor(TypeDescr *descr) {
         size_t nbytes = descr->as<SizedTypeDescr>().size();
@@ -833,7 +836,10 @@ class InlineTypedObject : public TypedObject
         return offsetof(InlineTypedObject, data_);
     }
 
-    static InlineTypedObject *create(JSContext *cx, HandleTypeDescr descr);
+    static InlineTypedObject *create(JSContext *cx, HandleTypeDescr descr,
+                                     gc::InitialHeap heap = gc::DefaultHeap);
+    static InlineTypedObject *createCopy(JSContext *cx, Handle<InlineTypedObject *> templateObject,
+                                         gc::InitialHeap heap);
 };
 
 
