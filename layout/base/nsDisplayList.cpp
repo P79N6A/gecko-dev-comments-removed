@@ -2246,23 +2246,6 @@ nsDisplayBackgroundImage::IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aCo
   return false;
 }
 
-bool
-nsDisplayBackgroundImage::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
-                                                         nsIFrame* aFrame)
-{
-  if (!mBackgroundStyle)
-    return false;
-  if (!mBackgroundStyle->HasFixedBackground())
-    return false;
-
-  
-  
-  
-  return aFrame->GetParent() &&
-    (aFrame == mFrame ||
-     nsLayoutUtils::IsProperAncestorFrame(aFrame, mFrame));
-}
-
 nsRect
 nsDisplayBackgroundImage::GetPositioningArea()
 {
@@ -3117,13 +3100,6 @@ nsDisplayWrapList::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
 bool nsDisplayWrapList::IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) {
   
   return false;
-}
-
-bool nsDisplayWrapList::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
-                                                         nsIFrame* aFrame) {
-  NS_WARNING("nsDisplayWrapList::IsVaryingRelativeToMovingFrame called unexpectedly");
-  
-  return true;
 }
 
 void nsDisplayWrapList::Paint(nsDisplayListBuilder* aBuilder,

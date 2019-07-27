@@ -1088,20 +1088,6 @@ nsDisplayTableItem::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
   return mFrame->GetVisualOverflowRectRelativeToSelf() + ToReferenceFrame();
 }
 
-bool
-nsDisplayTableItem::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
-                                                   nsIFrame* aFrame)
-{
-  if (!mPartHasFixedBackground)
-    return false;
-
-  
-  
-  
-  return mFrame == aFrame ||
-    nsLayoutUtils::IsProperAncestorFrame(aFrame, mFrame);
-}
-
  void
 nsDisplayTableItem::UpdateForFrameBackground(nsIFrame* aFrame)
 {
