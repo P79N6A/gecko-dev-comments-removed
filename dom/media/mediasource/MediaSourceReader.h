@@ -70,6 +70,11 @@ public:
     return mInfo.HasAudio();
   }
 
+  
+  
+  
+  virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio) MOZ_OVERRIDE { return 0; }
+
   bool IsMediaSeekable() { return true; }
 
   nsresult ReadMetadata(MediaInfo* aInfo, MetadataTags** aTags) MOZ_OVERRIDE;

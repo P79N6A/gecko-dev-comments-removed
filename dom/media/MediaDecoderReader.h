@@ -148,6 +148,8 @@ public:
   virtual nsresult GetBuffered(dom::TimeRanges* aBuffered,
                                int64_t aStartTime);
 
+  virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio);
+
   
   
   size_t SizeOfVideoQueueInBytes() const;
