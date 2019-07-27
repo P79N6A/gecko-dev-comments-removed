@@ -140,6 +140,153 @@ typedef PLDHashOperator (*PLDHashEnumerator)(PLDHashTable* aTable,
 typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
   PLDHashEntryHdr* aHdr, mozilla::MallocSizeOf aMallocSizeOf, void* aArg);
 
+#ifdef DEBUG
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Checker
+{
+public:
+  MOZ_CONSTEXPR Checker() : mState(kIdle), mIsWritable(1) {}
+
+  Checker& operator=(Checker&& aOther) {
+    
+    mState = uint32_t(aOther.mState);
+    mIsWritable = uint32_t(aOther.mIsWritable);
+
+    aOther.mState = kIdle;
+
+    return *this;
+  }
+
+  static bool IsIdle(uint32_t aState)  { return aState == kIdle; }
+  static bool IsRead(uint32_t aState)  { return kRead1 <= aState &&
+                                                aState <= kReadMax; }
+  static bool IsRead1(uint32_t aState) { return aState == kRead1; }
+  static bool IsWrite(uint32_t aState) { return aState == kWrite; }
+
+  bool IsIdle() const { return mState == kIdle; }
+
+  bool IsWritable() const { return !!mIsWritable; }
+
+  void SetNonWritable() { mIsWritable = 0; }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  void StartReadOp()
+  {
+    uint32_t oldState = mState++;     
+    MOZ_ASSERT(IsIdle(oldState) || IsRead(oldState));
+    MOZ_ASSERT(oldState < kReadMax);  
+  }
+
+  void EndReadOp()
+  {
+    uint32_t oldState = mState--;     
+    MOZ_ASSERT(IsRead(oldState));
+  }
+
+  void StartWriteOp()
+  {
+    MOZ_ASSERT(IsWritable());
+    uint32_t oldState = mState.exchange(kWrite);
+    MOZ_ASSERT(IsIdle(oldState));
+  }
+
+  void EndWriteOp()
+  {
+    
+    
+    
+    MOZ_ASSERT(IsWritable());
+    uint32_t oldState = mState.exchange(kIdle);
+    MOZ_ASSERT(IsWrite(oldState));
+  }
+
+  void StartIteratorRemovalOp()
+  {
+    
+    
+    MOZ_ASSERT(IsWritable());
+    uint32_t oldState = mState.exchange(kWrite);
+    MOZ_ASSERT(IsRead1(oldState));
+  }
+
+  void EndIteratorRemovalOp()
+  {
+    
+    
+    
+    MOZ_ASSERT(IsWritable());
+    uint32_t oldState = mState.exchange(kRead1);
+    MOZ_ASSERT(IsWrite(oldState));
+  }
+
+  void StartDestructorOp()
+  {
+    
+    
+    uint32_t oldState = mState.exchange(kWrite);
+    MOZ_ASSERT(IsIdle(oldState));
+  }
+
+  void EndDestructorOp()
+  {
+    uint32_t oldState = mState.exchange(kIdle);
+    MOZ_ASSERT(IsWrite(oldState));
+  }
+
+private:
+  
+  
+  
+  
+  
+  static const uint32_t kIdle    = 0;
+  static const uint32_t kRead1   = 1;
+  static const uint32_t kReadMax = 9999;
+  static const uint32_t kWrite   = 10000;
+
+  mutable mozilla::Atomic<uint32_t> mState;
+  mutable mozilla::Atomic<uint32_t> mIsWritable;
+};
+#endif
+
 
 
 
@@ -167,12 +314,7 @@ private:
   char*               mEntryStore;    
 
 #ifdef DEBUG
-  
-  
-  
-  
-  
-  mutable mozilla::Atomic<uint32_t> mRecursionLevel;
+  mutable Checker mChecker;
 #endif
 
 public:
@@ -196,7 +338,7 @@ public:
       
     , mEntryStore(nullptr)
 #ifdef DEBUG
-    , mRecursionLevel(0)
+    , mChecker()
 #endif
   {
     *this = mozilla::Move(aOther);
