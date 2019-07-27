@@ -153,6 +153,15 @@ function loadAddonManager() {
   startupManager();
 }
 
+
+
+function startAddonManagerOnly() {
+  let addonManager = Cc["@mozilla.org/addons/integration;1"]
+                       .getService(Ci.nsIObserver)
+                       .QueryInterface(Ci.nsITimerCallback);
+  addonManager.observe(null, "addons-startup", null);
+}
+
 function getExperimentAddons(previous=false) {
   let deferred = Promise.defer();
 
