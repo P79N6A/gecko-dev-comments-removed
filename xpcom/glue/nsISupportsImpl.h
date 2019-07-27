@@ -31,14 +31,6 @@
 #include "mozilla/MacroForEach.h"
 #include "mozilla/TypeTraits.h"
 
-namespace mozilla {
-template <typename T>
-struct HasDangerousPublicDestructor
-{
-  static const bool value = false;
-};
-}
-
 #if defined(__clang__)
    
    
@@ -87,16 +79,9 @@ struct HasDangerousPublicDestructor
 
 #ifdef MOZ_IS_DESTRUCTIBLE
 #define MOZ_ASSERT_TYPE_OK_FOR_REFCOUNTING(X) \
-  static_assert(!MOZ_IS_DESTRUCTIBLE(X) || \
-                mozilla::HasDangerousPublicDestructor<X>::value, \
+  static_assert(!MOZ_IS_DESTRUCTIBLE(X), \
                 "Reference-counted class " #X " should not have a public destructor. " \
-                "Try to make this class's destructor non-public. If that is really " \
-                "not possible, you can whitelist this class by providing a " \
-                "HasDangerousPublicDestructor specialization for it."); \
-  static_assert(!mozilla::HasDangerousPublicDestructor<X>::value || \
-                MOZ_IS_DESTRUCTIBLE(X), \
-                "Class " #X " has no public destructor. That's good! So please " \
-                "remove the HasDangerousPublicDestructor specialization for it.");
+                "Make this class's destructor non-public");
 #else
 #define MOZ_ASSERT_TYPE_OK_FOR_REFCOUNTING(X)
 #endif
