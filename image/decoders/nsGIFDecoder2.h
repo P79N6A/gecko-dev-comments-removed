@@ -28,8 +28,8 @@ public:
 
   virtual void WriteInternal(const char* aBuffer, uint32_t aCount,
                              DecodeStrategy aStrategy) MOZ_OVERRIDE;
-  virtual void FinishInternal();
-  virtual Telemetry::ID SpeedHistogram();
+  virtual void FinishInternal() MOZ_OVERRIDE;
+  virtual Telemetry::ID SpeedHistogram() MOZ_OVERRIDE;
 
 private:
   
