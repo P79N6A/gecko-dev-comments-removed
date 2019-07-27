@@ -76,9 +76,9 @@ public:
   void AddStyleUpdatesTo(mozilla::RestyleTracker& aTracker);
 
   AnimationPlayerCollection*
-  GetAnimationPlayers(dom::Element *aElement,
-                      nsCSSPseudoElements::Type aPseudoType,
-                      bool aCreateIfNeeded);
+  GetAnimations(dom::Element *aElement,
+                nsCSSPseudoElements::Type aPseudoType,
+                bool aCreateIfNeeded);
 
   
   
