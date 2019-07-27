@@ -98,7 +98,7 @@ namespace JS {
 struct Zone;
 
 
-const uint32_t DefaultNurseryBytes = 16 * 1024 * 1024;
+const uint32_t DefaultNurseryBytes = 16 * ChunkSize;
 
 
 const uint32_t DefaultHeapMaxBytes = 32 * 1024 * 1024;
