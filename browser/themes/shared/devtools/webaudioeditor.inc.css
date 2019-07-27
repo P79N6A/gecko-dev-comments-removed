@@ -54,6 +54,34 @@ svg {
 }
 
 
+g.edgePath.param-connection {
+  stroke-dasharray: 5,5;
+}
+
+.theme-dark .edgePath.param-connection path {
+  stroke: #b6babf; 
+}
+.theme-light .edgePath.param-connection path {
+  stroke: #aaaaaa; 
+}
+
+
+
+
+.theme-dark g.edgeLabel rect {
+  fill: #14171a;
+}
+.theme-light g.edgeLabel rect {
+  fill: #fcfcfc; 
+}
+.theme-dark g.edgeLabel tspan {
+  fill: #b6babf; 
+}
+.theme-light g.edgeLabel tspan {
+  fill: #585959; 
+}
+
+
 .nodes rect {
   stroke-width: 1px;
   cursor: pointer;

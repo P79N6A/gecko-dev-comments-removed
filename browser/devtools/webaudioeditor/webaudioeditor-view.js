@@ -147,11 +147,15 @@ let WebAudioGraphView = {
 
 
 
+
   draw: function () {
     
     this.clearGraph();
 
     let graph = new dagreD3.Digraph();
+    
+    
+    
     let edges = [];
 
     AudioNodes.forEach(node => {
@@ -166,12 +170,30 @@ let WebAudioGraphView = {
       
       
       AudioNodeConnections.get(node, new Set()).forEach(dest => edges.push([node, dest]));
+      let paramConnections = AudioParamConnections.get(node, {});
+      Object.keys(paramConnections).forEach(destId => {
+        let dest = getViewNodeById(destId);
+        let connections = paramConnections[destId] || [];
+        connections.forEach(param => edges.push([node, dest, param]));
+      });
     });
 
-    edges.forEach(([node, dest]) => graph.addEdge(null, node.id, dest.id, {
-      source: node.id,
-      target: dest.id
-    }));
+    edges.forEach(([node, dest, param]) => {
+      let options = {
+        source: node.id,
+        target: dest.id
+      };
+
+      
+      
+      
+      if (param) {
+        options.label = param;
+        options.param = param;
+      }
+
+      graph.addEdge(null, node.id, dest.id, options);
+    });
 
     let renderer = new dagreD3.Renderer();
 
@@ -191,18 +213,33 @@ let WebAudioGraphView = {
     });
 
     
+    
+    
+    
     let oldDrawEdgePaths = renderer.drawEdgePaths();
     renderer.drawEdgePaths(function(graph, root) {
-      let svgNodes = oldDrawEdgePaths(graph, root);
-      svgNodes.attr("data-source", (n) => {
+      let svgEdges = oldDrawEdgePaths(graph, root);
+      svgEdges.attr("data-source", (n) => {
         let edge = graph.edge(n);
         return edge.source;
       });
-      svgNodes.attr("data-target", (n) => {
+      svgEdges.attr("data-target", (n) => {
         let edge = graph.edge(n);
         return edge.target;
       });
-      return svgNodes;
+      svgEdges.attr("data-param", (n) => {
+        let edge = graph.edge(n);
+        return edge.param ? edge.param : null;
+      });
+      
+      
+      let defaultClasses = "edgePath enter";
+      svgEdges.attr("class", (n) => {
+        let edge = graph.edge(n);
+        return defaultClasses + (edge.param ? (" param-connection " + edge.param) : "");
+      });
+
+      return svgEdges;
     });
 
     
@@ -240,7 +277,8 @@ let WebAudioGraphView = {
       }
 
       
-      window.emit(EVENTS.UI_GRAPH_RENDERED, AudioNodes.length, edges.length);
+      let paramEdgeCount = edges.filter(p => !!p[2]).length;
+      window.emit(EVENTS.UI_GRAPH_RENDERED, AudioNodes.length, edges.length - paramEdgeCount, paramEdgeCount);
     });
 
     let layout = dagreD3.layout().rankDir("LR");

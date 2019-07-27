@@ -65,6 +65,7 @@ const EVENTS = {
   
   
   
+  
   UI_GRAPH_RENDERED: "WebAudioEditor:UIGraphRendered"
 };
 
@@ -77,8 +78,8 @@ let gToolbox, gTarget, gFront;
 
 
 let AudioNodes = [];
-let AudioNodeConnections = new WeakMap();
-
+let AudioNodeConnections = new WeakMap(); 
+let AudioParamConnections = new WeakMap(); 
 
 
 function AudioNodeView (actor) {
@@ -110,8 +111,26 @@ AudioNodeView.prototype.connect = function (destination) {
 };
 
 
+
+
+
+AudioNodeView.prototype.connectParam = function (destination, param) {
+  let connections = AudioParamConnections.get(this) || {};
+  AudioParamConnections.set(this, connections);
+
+  let params = connections[destination.id] = connections[destination.id] || [];
+
+  if (!~params.indexOf(param)) {
+    params.push(param);
+    return true;
+  }
+  return false;
+};
+
+
 AudioNodeView.prototype.disconnect = function () {
   AudioNodeConnections.set(this, new Set());
+  AudioParamConnections.set(this, {});
 };
 
 
@@ -159,6 +178,7 @@ let WebAudioEditorController = {
     gFront.on("start-context", this._onStartContext);
     gFront.on("create-node", this._onCreateNode);
     gFront.on("connect-node", this._onConnectNode);
+    gFront.on("connect-param", this._onConnectParam);
     gFront.on("disconnect-node", this._onDisconnectNode);
     gFront.on("change-param", this._onChangeParam);
     gFront.on("destroy-node", this._onDestroyNode);
@@ -173,6 +193,7 @@ let WebAudioEditorController = {
     window.on(EVENTS.CONNECT_NODE, this._onUpdatedContext);
     window.on(EVENTS.DISCONNECT_NODE, this._onUpdatedContext);
     window.on(EVENTS.DESTROY_NODE, this._onUpdatedContext);
+    window.on(EVENTS.CONNECT_PARAM, this._onUpdatedContext);
   },
 
   
@@ -185,6 +206,7 @@ let WebAudioEditorController = {
     gFront.off("start-context", this._onStartContext);
     gFront.off("create-node", this._onCreateNode);
     gFront.off("connect-node", this._onConnectNode);
+    gFront.off("connect-param", this._onConnectParam);
     gFront.off("disconnect-node", this._onDisconnectNode);
     gFront.off("change-param", this._onChangeParam);
     gFront.off("destroy-node", this._onDestroyNode);
@@ -192,6 +214,7 @@ let WebAudioEditorController = {
     window.off(EVENTS.CONNECT_NODE, this._onUpdatedContext);
     window.off(EVENTS.DISCONNECT_NODE, this._onUpdatedContext);
     window.off(EVENTS.DESTROY_NODE, this._onUpdatedContext);
+    window.off(EVENTS.CONNECT_PARAM, this._onUpdatedContext);
     gDevTools.off("pref-changed", this._onThemeChange);
   },
 
@@ -291,38 +314,22 @@ let WebAudioEditorController = {
 
 
   _onConnectNode: Task.async(function* ({ source: sourceActor, dest: destActor }) {
-    
-    
-    
-    
-    
     let [source, dest] = yield waitForNodeCreation(sourceActor, destActor);
 
     
     if (source.connect(dest)) {
       window.emit(EVENTS.CONNECT_NODE, source.id, dest.id);
     }
+  }),
 
-    function waitForNodeCreation (sourceActor, destActor) {
-      let deferred = defer();
-      let source = getViewNodeByActor(sourceActor);
-      let dest = getViewNodeByActor(destActor);
+  
 
-      if (!source || !dest)
-        window.on(EVENTS.CREATE_NODE, function createNodeListener (_, id) {
-          let createdNode = getViewNodeById(id);
-          if (equalActors(sourceActor, createdNode.actor))
-            source = createdNode;
-          if (equalActors(destActor, createdNode.actor))
-            dest = createdNode;
-          if (source && dest) {
-            window.off(EVENTS.CREATE_NODE, createNodeListener);
-            deferred.resolve([source, dest]);
-          }
-        });
-      else
-        deferred.resolve([source, dest]);
-      return deferred.promise;
+
+  _onConnectParam: Task.async(function* ({ source: sourceActor, dest: destActor, param }) {
+    let [source, dest] = yield waitForNodeCreation(sourceActor, destActor);
+
+    if (source.connectParam(dest, param)) {
+      window.emit(EVENTS.CONNECT_PARAM, source.id, dest.id, param);
     }
   }),
 
@@ -378,4 +385,32 @@ function getViewNodeByActor (actor) {
 
 function getViewNodeById (id) {
   return getViewNodeByActor({ actorID: id });
+}
+
+
+
+
+
+
+function waitForNodeCreation (sourceActor, destActor) {
+  let deferred = defer();
+  let eventName = EVENTS.CREATE_NODE;
+  let source = getViewNodeByActor(sourceActor);
+  let dest = getViewNodeByActor(destActor);
+
+  if (!source || !dest)
+    window.on(eventName, function createNodeListener (_, id) {
+      let createdNode = getViewNodeById(id);
+      if (equalActors(sourceActor, createdNode.actor))
+        source = createdNode;
+      if (equalActors(destActor, createdNode.actor))
+        dest = createdNode;
+      if (source && dest) {
+        window.off(eventName, createNodeListener);
+        deferred.resolve([source, dest]);
+      }
+    });
+  else
+    deferred.resolve([source, dest]);
+  return deferred.promise;
 }
