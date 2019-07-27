@@ -403,7 +403,18 @@ GLScreenBuffer::Attach(SharedSurface* surf, const gfx::IntSize& size)
     } else {
         
         UniquePtr<DrawBuffer> draw;
-        bool drawOk = CreateDraw(size, &draw);  
+        bool drawOk = true;
+
+        
+
+
+
+
+
+
+
+        if (!mDraw || size != Size())
+            drawOk = CreateDraw(size, &draw);  
 
         UniquePtr<ReadBuffer> read = CreateRead(surf);
         bool readOk = !!read;
@@ -414,7 +425,9 @@ GLScreenBuffer::Attach(SharedSurface* surf, const gfx::IntSize& size)
             return false;
         }
 
-        mDraw = Move(draw);
+        if (draw)
+            mDraw = Move(draw);
+
         mRead = Move(read);
     }
 
@@ -426,6 +439,8 @@ GLScreenBuffer::Attach(SharedSurface* surf, const gfx::IntSize& size)
         BindFB(0);
         mRead->SetReadBuffer(mUserReadBufferMode);
     }
+
+    RequireBlit();
 
     return true;
 }
@@ -450,7 +465,8 @@ GLScreenBuffer::Swap(const gfx::IntSize& size)
 
     if (ShouldPreserveBuffer() &&
         mFront &&
-        mBack)
+        mBack &&
+        !mDraw)
     {
         auto src  = mFront->Surf();
         auto dest = mBack->Surf();
