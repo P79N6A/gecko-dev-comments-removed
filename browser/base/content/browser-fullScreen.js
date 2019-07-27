@@ -93,29 +93,34 @@ var FullScreen = {
   },
 
   receiveMessage: function(aMessage) {
-    if (aMessage.name == "MozEnteredDomFullscreen") {
-      
-      
-      
-      
-      
-      let data = aMessage.data;
-      let browser = aMessage.target;
-      if (gMultiProcessBrowser && browser.getAttribute("remote") == "true") {
-        let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIDOMWindowUtils);
-        windowUtils.remoteFrameFullscreenChanged(browser, data.origin);
+    switch (aMessage.name) {
+      case "MozEnteredDomFullscreen": {
+        
+        
+        
+        
+        
+        let data = aMessage.data;
+        let browser = aMessage.target;
+        if (gMultiProcessBrowser && browser.getAttribute("remote") == "true") {
+          let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                  .getInterface(Ci.nsIDOMWindowUtils);
+          windowUtils.remoteFrameFullscreenChanged(browser, data.origin);
+        }
+        this.enterDomFullscreen(browser, data.origin);
+        break;
       }
-      this.enterDomFullscreen(browser, data.origin);
-    } else if (aMessage.name == "MozExitedDomFullscreen") {
-      document.documentElement.removeAttribute("inDOMFullscreen");
-      this.cleanupDomFullscreen();
-      this.showNavToolbox();
-      
-      
-      if (window.fullScreen) {
-        this._shouldAnimate = true;
-        this.hideNavToolbox();
+      case "MozExitedDomFullscreen": {
+        document.documentElement.removeAttribute("inDOMFullscreen");
+        this.cleanupDomFullscreen();
+        this.showNavToolbox();
+        
+        
+        if (window.fullScreen) {
+          this._shouldAnimate = true;
+          this.hideNavToolbox();
+        }
+        break;
       }
     }
   },
@@ -537,16 +542,6 @@ var FullScreen = {
       document.documentElement.setAttribute("inFullscreen", true);
     }
 
-    ToolbarIconColor.inferFromText();
-
-    
-    
-    
-    
-    if (this.useLionFullScreen) {
-      return;
-    }
-
     var fullscreenctls = document.getElementById("window-controls");
     var navbar = document.getElementById("nav-bar");
     var ctlsOnTabbar = window.toolbar.visible;
@@ -559,6 +554,8 @@ var FullScreen = {
       navbar.appendChild(fullscreenctls);
     }
     fullscreenctls.hidden = aShow;
+
+    ToolbarIconColor.inferFromText();
   }
 };
 XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {

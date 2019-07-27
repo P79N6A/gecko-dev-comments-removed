@@ -308,7 +308,7 @@ let AboutReaderListener = {
         break;
 
       case "Reader:PushState":
-        this.updateReaderButton(!!(message.data && message.data.isArticle));
+        this.updateReaderButton();
         break;
     }
   },
@@ -353,7 +353,7 @@ let AboutReaderListener = {
 
     }
   },
-  updateReaderButton: function(forceNonArticle) {
+  updateReaderButton: function() {
     if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader ||
         !(content.document instanceof content.HTMLDocument) ||
         content.document.mozSyntheticDocument) {
@@ -363,8 +363,6 @@ let AboutReaderListener = {
     
     if (ReaderMode.isProbablyReaderable(content.document)) {
       sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
-    } else if (forceNonArticle) {
-      sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
     }
   },
 };
@@ -613,13 +611,18 @@ let DOMFullscreenHandler = {
   },
 
   handleEvent: function(aEvent) {
-    if (aEvent.type == "MozEnteredDomFullscreen") {
-      this._fullscreenDoc = aEvent.target;
-      sendAsyncMessage("MozEnteredDomFullscreen", {
-        origin: this._fullscreenDoc.nodePrincipal.origin,
-      });
-    } else if (aEvent.type == "MozExitedDomFullscreen") {
-      sendAsyncMessage("MozExitedDomFullscreen");
+    switch (aEvent.type) {
+      case "MozEnteredDomFullscreen": {
+        this._fullscreenDoc = aEvent.target;
+        sendAsyncMessage("MozEnteredDomFullscreen", {
+          origin: this._fullscreenDoc.nodePrincipal.origin,
+        });
+        break;
+      }
+      case "MozExitedDomFullscreen": {
+        sendAsyncMessage("MozExitedDomFullscreen");
+        break;
+      }
     }
   }
 };
