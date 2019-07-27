@@ -14,8 +14,10 @@
 #include "nsWeakReference.h"
 #include "Units.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/WeakPtr.h"
 
 class nsCanvasFrame;
+class nsDocShell;
 class nsFrameSelection;
 class nsIContent;
 class nsIDocument;
@@ -209,6 +211,7 @@ private:
   static void FireScrollEnd(nsITimer* aTimer, void* aSelectionCarets);
 
   nsIPresShell* mPresShell;
+  WeakPtr<nsDocShell> mDocShell;
 
   
   
