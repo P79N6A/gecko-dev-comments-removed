@@ -1210,6 +1210,10 @@ class IonBuilder
             trackInlineSuccessUnchecked(status);
     }
 
+    bool forceInlineCaches() {
+        return MOZ_UNLIKELY(js_JitOptions.forceInlineCaches);
+    }
+
     
     
     void trackTypeInfoUnchecked(JS::TrackedTypeSite site, MIRType mirType,

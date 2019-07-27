@@ -7628,17 +7628,13 @@ IonBuilder::jsop_getgname(PropertyName* name)
     if (!getStaticName(obj, name, &emitted) || emitted)
         return emitted;
 
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache;
-
-    {
+    if (!forceInlineCaches()) {
         TemporaryTypeSet* types = bytecodeTypes(pc);
         MDefinition* globalObj = constant(ObjectValue(*obj));
         if (!getPropTryCommonGetter(&emitted, globalObj, name, types) || emitted)
             return emitted;
     }
 
-  do_InlineCache:
     return jsop_getname(name);
 }
 
@@ -7762,38 +7758,37 @@ IonBuilder::jsop_getelem()
     obj = maybeUnboxForPropertyAccess(obj);
 
     bool emitted = false;
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache;
 
-    trackOptimizationAttempt(TrackedStrategy::GetElem_TypedObject);
-    if (!getElemTryTypedObject(&emitted, obj, index) || emitted)
-        return emitted;
+    if (!forceInlineCaches()) {
+        trackOptimizationAttempt(TrackedStrategy::GetElem_TypedObject);
+        if (!getElemTryTypedObject(&emitted, obj, index) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetElem_Dense);
-    if (!getElemTryDense(&emitted, obj, index) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetElem_Dense);
+        if (!getElemTryDense(&emitted, obj, index) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetElem_TypedStatic);
-    if (!getElemTryTypedStatic(&emitted, obj, index) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetElem_TypedStatic);
+        if (!getElemTryTypedStatic(&emitted, obj, index) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetElem_TypedArray);
-    if (!getElemTryTypedArray(&emitted, obj, index) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetElem_TypedArray);
+        if (!getElemTryTypedArray(&emitted, obj, index) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetElem_String);
-    if (!getElemTryString(&emitted, obj, index) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetElem_String);
+        if (!getElemTryString(&emitted, obj, index) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetElem_Arguments);
-    if (!getElemTryArguments(&emitted, obj, index) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetElem_Arguments);
+        if (!getElemTryArguments(&emitted, obj, index) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetElem_ArgumentsInlined);
-    if (!getElemTryArgumentsInlined(&emitted, obj, index) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetElem_ArgumentsInlined);
+        if (!getElemTryArgumentsInlined(&emitted, obj, index) || emitted)
+            return emitted;
+    }
 
-  do_InlineCache:
     if (script()->argumentsHasVarBinding() && obj->mightBeType(MIRType_MagicOptimizedArguments))
         return abort("Type is not definitely lazy arguments.");
 
@@ -8816,34 +8811,30 @@ IonBuilder::jsop_setelem()
         return resumeAfter(ins);
     }
 
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache;
+    if (!forceInlineCaches()) {
+        trackOptimizationAttempt(TrackedStrategy::SetElem_TypedObject);
+        if (!setElemTryTypedObject(&emitted, object, index, value) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::SetElem_TypedObject);
-    if (!setElemTryTypedObject(&emitted, object, index, value) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::SetElem_TypedStatic);
+        if (!setElemTryTypedStatic(&emitted, object, index, value) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::SetElem_TypedStatic);
-    if (!setElemTryTypedStatic(&emitted, object, index, value) || emitted)
-        return emitted;
+        trackOptimizationAttempt(TrackedStrategy::SetElem_TypedArray);
+        if (!setElemTryTypedArray(&emitted, object, index, value) || emitted)
+            return emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::SetElem_TypedArray);
-    if (!setElemTryTypedArray(&emitted, object, index, value) || emitted)
-        return emitted;
-
-    {
         trackOptimizationAttempt(TrackedStrategy::SetElem_Dense);
         SetElemICInspector icInspect(inspector->setElemICInspector(pc));
         bool writeHole = icInspect.sawOOBDenseWrite();
         if (!setElemTryDense(&emitted, object, index, value, writeHole) || emitted)
             return emitted;
+
+        trackOptimizationAttempt(TrackedStrategy::SetElem_Arguments);
+        if (!setElemTryArguments(&emitted, object, index, value) || emitted)
+            return emitted;
     }
 
-    trackOptimizationAttempt(TrackedStrategy::SetElem_Arguments);
-    if (!setElemTryArguments(&emitted, object, index, value) || emitted)
-        return emitted;
-
-  do_InlineCache:
     if (script()->argumentsHasVarBinding() &&
         object->mightBeType(MIRType_MagicOptimizedArguments) &&
         info().analysisMode() != Analysis_ArgumentsUsage)
@@ -10122,45 +10113,43 @@ IonBuilder::jsop_getprop(PropertyName* name)
     if (!getPropTryInnerize(&emitted, obj, name, types) || emitted)
         return emitted;
 
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache;
+    if (!forceInlineCaches()) {
+        
+        trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
+        if (!getPropTryConstant(&emitted, obj, name, types) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
-    if (!getPropTryConstant(&emitted, obj, name, types) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::GetProp_SimdGetter);
+        if (!getPropTrySimdGetter(&emitted, obj, name) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_SimdGetter);
-    if (!getPropTrySimdGetter(&emitted, obj, name) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::GetProp_TypedObject);
+        if (!getPropTryTypedObject(&emitted, obj, name) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_TypedObject);
-    if (!getPropTryTypedObject(&emitted, obj, name) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::GetProp_DefiniteSlot);
+        if (!getPropTryDefiniteSlot(&emitted, obj, name, barrier, types) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_DefiniteSlot);
-    if (!getPropTryDefiniteSlot(&emitted, obj, name, barrier, types) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::GetProp_Unboxed);
+        if (!getPropTryUnboxed(&emitted, obj, name, barrier, types) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_Unboxed);
-    if (!getPropTryUnboxed(&emitted, obj, name, barrier, types) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::GetProp_CommonGetter);
+        if (!getPropTryCommonGetter(&emitted, obj, name, types) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_CommonGetter);
-    if (!getPropTryCommonGetter(&emitted, obj, name, types) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::GetProp_InlineAccess);
+        if (!getPropTryInlineAccess(&emitted, obj, name, barrier, types) || emitted)
+            return emitted;
+    }
 
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_InlineAccess);
-    if (!getPropTryInlineAccess(&emitted, obj, name, barrier, types) || emitted)
-        return emitted;
-
-  do_InlineCache:
     
     trackOptimizationAttempt(TrackedStrategy::GetProp_InlineCache);
     if (!getPropTryCache(&emitted, obj, name, barrier, types) || emitted)
@@ -11152,31 +11141,29 @@ IonBuilder::getPropTryInnerize(bool* emitted, MDefinition* obj, PropertyName* na
     if (inner == obj)
         return true;
 
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache;
+    if (!forceInlineCaches()) {
+        
+        
+        
 
-    
-    
-    
+        
+        
+        
+        
 
-    
-    
-    
-    
+        trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
+        if (!getPropTryConstant(emitted, inner, name, types) || *emitted)
+            return *emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
-    if (!getPropTryConstant(emitted, inner, name, types) || *emitted)
-        return *emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetProp_StaticName);
+        if (!getStaticName(&script()->global(), name, emitted) || *emitted)
+            return *emitted;
 
-    trackOptimizationAttempt(TrackedStrategy::GetProp_StaticName);
-    if (!getStaticName(&script()->global(), name, emitted) || *emitted)
-        return *emitted;
+        trackOptimizationAttempt(TrackedStrategy::GetProp_CommonGetter);
+        if (!getPropTryCommonGetter(emitted, inner, name, types) || *emitted)
+            return *emitted;
+    }
 
-    trackOptimizationAttempt(TrackedStrategy::GetProp_CommonGetter);
-    if (!getPropTryCommonGetter(emitted, inner, name, types) || *emitted)
-        return *emitted;
-
-  do_InlineCache:
     
     
     BarrierKind barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(),
@@ -11210,52 +11197,46 @@ IonBuilder::jsop_setprop(PropertyName* name)
         return resumeAfter(ins);
     }
 
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache_step1;
+    if (!forceInlineCaches()) {
+        
+        trackOptimizationAttempt(TrackedStrategy::SetProp_CommonSetter);
+        if (!setPropTryCommonSetter(&emitted, obj, name, value) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::SetProp_CommonSetter);
-    if (!setPropTryCommonSetter(&emitted, obj, name, value) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::SetProp_TypedObject);
+        if (!setPropTryTypedObject(&emitted, obj, name, value) || emitted)
+            return emitted;
+    }
 
-    
-    trackOptimizationAttempt(TrackedStrategy::SetProp_TypedObject);
-    if (!setPropTryTypedObject(&emitted, obj, name, value) || emitted)
-        return emitted;
-
-  do_InlineCache_step1:
     TemporaryTypeSet* objTypes = obj->resultTypeSet();
     bool barrier = PropertyWriteNeedsTypeBarrier(alloc(), constraints(), current, &obj, name, &value,
                                                   true);
 
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache_step2;
+    if (!forceInlineCaches()) {
+        
+        trackOptimizationAttempt(TrackedStrategy::SetProp_Unboxed);
+        if (!setPropTryUnboxed(&emitted, obj, name, value, barrier, objTypes) || emitted)
+            return emitted;
+    }
 
-    
-    trackOptimizationAttempt(TrackedStrategy::SetProp_Unboxed);
-    if (!setPropTryUnboxed(&emitted, obj, name, value, barrier, objTypes) || emitted)
-        return emitted;
-
-  do_InlineCache_step2:
     
     
     if (NeedsPostBarrier(info(), value))
         current->add(MPostWriteBarrier::New(alloc(), obj, value));
 
-    if (MOZ_UNLIKELY(js_JitOptions.forceInlineCaches))
-        goto do_InlineCache_step3;
+    if (!forceInlineCaches()) {
+        
+        trackOptimizationAttempt(TrackedStrategy::SetProp_DefiniteSlot);
+        if (!setPropTryDefiniteSlot(&emitted, obj, name, value, barrier, objTypes) || emitted)
+            return emitted;
 
-    
-    trackOptimizationAttempt(TrackedStrategy::SetProp_DefiniteSlot);
-    if (!setPropTryDefiniteSlot(&emitted, obj, name, value, barrier, objTypes) || emitted)
-        return emitted;
+        
+        trackOptimizationAttempt(TrackedStrategy::SetProp_InlineAccess);
+        if (!setPropTryInlineAccess(&emitted, obj, name, value, barrier, objTypes) || emitted)
+            return emitted;
+    }
 
-    
-    trackOptimizationAttempt(TrackedStrategy::SetProp_InlineAccess);
-    if (!setPropTryInlineAccess(&emitted, obj, name, value, barrier, objTypes) || emitted)
-        return emitted;
-
-  do_InlineCache_step3:
     
     trackOptimizationAttempt(TrackedStrategy::SetProp_InlineCache);
     return setPropTryCache(&emitted, obj, name, value, barrier, objTypes);
