@@ -64,7 +64,7 @@ function switchToURL(groupItemOne, groupItemTwo) {
 
 
   
-  gURLBar.value = "moz-action:switchtab," + JSON.stringify({url: "about:mozilla"});
+  gURLBar.value = "moz-action:switchtab,about:mozilla";
   
   gURLBar.focus();
   

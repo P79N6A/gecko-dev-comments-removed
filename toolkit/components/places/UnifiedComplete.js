@@ -496,23 +496,6 @@ function stripHttpAndTrim(spec) {
 
 
 
-
-
-
-
-
-
-function makeActionURL(action, params) {
-  let url = "moz-action:" + action + "," + JSON.stringify(params);
-  
-  return NetUtil.newURI(url).spec;
-}
-
-
-
-
-
-
 function Search(searchString, searchParam, autocompleteListener,
                 resultListener, autocompleteSearch) {
   
@@ -951,12 +934,9 @@ Search.prototype = {
 
     
     
-    let url = escapedURL;
-    let action = null;
-    if (this._enableActions && openPageCount > 0) {
-      url = makeActionURL("switchtab", {url: escapedURL});
-      action = "switchtab";
-    }
+    let [url, action] = this._enableActions && openPageCount > 0 ?
+                        ["moz-action:switchtab," + escapedURL, "switchtab"] :
+                        [escapedURL, null];
 
     
     let title = bookmarkTitle || historyTitle;
