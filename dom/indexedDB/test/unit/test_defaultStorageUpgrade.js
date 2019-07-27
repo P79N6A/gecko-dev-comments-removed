@@ -64,6 +64,18 @@ function testSteps()
     { url: "file:///c:/", dbName: "dbQ", dbVersion: 1 },
 
     
+    { url: "file:///Users/joe/c++/index.html", dbName: "dbR", dbVersion: 1 },
+
+    
+    { url: "file:///Users/joe/c///index.html", dbName: "dbR", dbVersion: 1 },
+
+    
+    { url: "file:///+/index.html", dbName: "dbS", dbVersion: 1 },
+
+    
+    { url: "file://///index.html", dbName: "dbS", dbVersion: 1 },
+
+    
     { url: "http://localhost", dbName: "dbZ",
       dbOptions: { version: 1, storage: "temporary" } }
   ];
