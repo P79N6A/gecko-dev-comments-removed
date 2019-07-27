@@ -191,10 +191,14 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
 
     @Override
     public String cancelEdit() {
-        stopEditingNewTablet();
+        
+        
+        if (isEditing()) {
+            stopEditingNewTablet();
 
-        setButtonEnabled(backButton, backButtonWasEnabledOnStartEditing);
-        updateForwardButtonState(forwardButtonState);
+            setButtonEnabled(backButton, backButtonWasEnabledOnStartEditing);
+            updateForwardButtonState(forwardButtonState);
+        }
 
         return super.cancelEdit();
     }
