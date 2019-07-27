@@ -142,7 +142,7 @@ private:
 
 
 
-class CanvasClientShSurf : public CanvasClient
+class CanvasClientSharedSurface : public CanvasClient
 {
 private:
   RefPtr<gl::ShSurfHandle> mFront;
@@ -151,8 +151,8 @@ private:
   RefPtr<TextureClient> mFrontTex;
 
 public:
-  CanvasClientShSurf(CompositableForwarder* aLayerForwarder,
-                     TextureFlags aFlags);
+  CanvasClientSharedSurface(CompositableForwarder* aLayerForwarder,
+                            TextureFlags aFlags);
 
   virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE {
     return TextureInfo(CompositableType::IMAGE);
@@ -168,7 +168,7 @@ public:
                       ClientCanvasLayer* aLayer) MOZ_OVERRIDE;
 
   virtual void OnDetach() MOZ_OVERRIDE {
-    CanvasClientShSurf::Clear();
+    CanvasClientSharedSurface::Clear();
   }
 };
 

@@ -682,13 +682,13 @@ protected:
 
 
 
-class ShSurfTexClient : public TextureClient
+class SharedSurfaceTextureClient : public TextureClient
 {
 public:
-  explicit ShSurfTexClient(TextureFlags aFlags, gl::SharedSurface* surf);
+  SharedSurfaceTextureClient(TextureFlags aFlags, gl::SharedSurface* surf);
 
 protected:
-  ~ShSurfTexClient();
+  ~SharedSurfaceTextureClient();
 
 public:
   

@@ -3529,9 +3529,6 @@ public:
         return mScreen.get();
     }
 
-    bool PublishFrame();
-    SharedSurface* RequestFrame();
-
     
 
 
