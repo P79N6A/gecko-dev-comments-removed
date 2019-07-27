@@ -1080,8 +1080,10 @@ protected:
   double mCurrentTime;
 
   
-  
-  double mInitialVolume;
+  Canonical<double> mVolume;
+public:
+  AbstractCanonical<double>* CanonicalVolume() { return &mVolume; }
+protected:
 
   
   

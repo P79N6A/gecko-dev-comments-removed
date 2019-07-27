@@ -152,9 +152,6 @@ public:
     return mState;
   }
 
-  
-  
-  void SetVolume(double aVolume);
   void SetAudioCaptured();
 
   
@@ -447,6 +444,7 @@ protected:
   already_AddRefed<AudioData> PopAudio();
   already_AddRefed<VideoData> PopVideo();
 
+  void VolumeChanged();
 
   class WakeDecoderRunnable : public nsRunnable {
   public:
@@ -1010,9 +1008,7 @@ protected:
   int64_t mDecodedVideoEndTime;
 
   
-  
-  
-  double mVolume;
+  Mirror<double> mVolume;
 
   
   
