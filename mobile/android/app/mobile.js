@@ -814,9 +814,6 @@ pref("general.useragent.updates.interval", 604800);
 pref("general.useragent.updates.retry", 86400); 
 
 
-pref("general.useragent.override.youtube.com", "Android\\s\\d.+?;#Android;");
-
-
 pref("browser.ui.linkify.phone", false);
 
 
