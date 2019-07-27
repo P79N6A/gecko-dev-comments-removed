@@ -17,6 +17,9 @@ const LOAD_COMPLETE = 0x08;
 const DECODE_COMPLETE = 0x10;
 
 
+do_get_profile();
+
+
 
 function ImageListener(start_callback, stop_callback)
 {
