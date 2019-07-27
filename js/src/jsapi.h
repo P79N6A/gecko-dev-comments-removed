@@ -3305,22 +3305,6 @@ JS_ReleaseMappedArrayBufferContents(void *contents, size_t length);
 extern JS_PUBLIC_API(JSIdArray *)
 JS_Enumerate(JSContext *cx, JS::HandleObject obj);
 
-
-
-
-
-
-extern JS_PUBLIC_API(JSObject *)
-JS_NewPropertyIterator(JSContext *cx, JS::Handle<JSObject*> obj);
-
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_NextProperty(JSContext *cx, JS::HandleObject iterobj, JS::MutableHandleId idp);
-
 extern JS_PUBLIC_API(jsval)
 JS_GetReservedSlot(JSObject *obj, uint32_t index);
 
