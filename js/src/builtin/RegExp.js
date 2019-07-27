@@ -36,3 +36,21 @@ function RegExpFlagsGetter() {
     
     return result;
 }
+
+
+function RegExpToString()
+{
+    
+    var R = this;
+    if (!IsObject(R))
+        ThrowError(JSMSG_NOT_NONNULL_OBJECT, R === null ? "null" : typeof R);
+
+    
+    var pattern = R.source;
+
+    
+    var flags = R.flags;
+
+    
+    return '/' + pattern + '/' + flags;
+}
