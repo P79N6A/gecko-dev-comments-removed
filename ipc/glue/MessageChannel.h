@@ -641,9 +641,6 @@ class MessageChannel : HasResultCodes
     bool mAbortOnError;
 };
 
-bool
-ProcessingUrgentMessages();
-
 } 
 } 
 
