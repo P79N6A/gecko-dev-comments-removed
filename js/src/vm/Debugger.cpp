@@ -3722,35 +3722,48 @@ Debugger::findAllGlobals(JSContext *cx, unsigned argc, Value *vp)
 {
     THIS_DEBUGGER(cx, argc, vp, "findAllGlobals", args, dbg);
 
+    AutoObjectVector globals(cx);
+
+    {
+        
+        
+        
+        JS::AutoCheckCannotGC nogc;
+
+        for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
+            if (c->options().invisibleToDebugger())
+                continue;
+
+            c->scheduledForDestruction = false;
+
+            GlobalObject *global = c->maybeGlobal();
+
+            if (cx->runtime()->isSelfHostingGlobal(global))
+                continue;
+
+            if (global) {
+                
+
+
+
+
+                JS::ExposeObjectToActiveJS(global);
+                if (!globals.append(global))
+                    return false;
+            }
+        }
+    }
+
     RootedObject result(cx, NewDenseEmptyArray(cx));
     if (!result)
         return false;
 
-    for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
-        if (c->options().invisibleToDebugger())
-            continue;
-
-        c->scheduledForDestruction = false;
-
-        GlobalObject *global = c->maybeGlobal();
-
-        if (cx->runtime()->isSelfHostingGlobal(global))
-            continue;
-
-        if (global) {
-            
-
-
-
-
-            JS::ExposeObjectToActiveJS(global);
-
-            RootedValue globalValue(cx, ObjectValue(*global));
-            if (!dbg->wrapDebuggeeValue(cx, &globalValue))
-                return false;
-            if (!NewbornArrayPush(cx, result, globalValue))
-                return false;
-        }
+    for (size_t i = 0; i < globals.length(); i++) {
+        RootedValue globalValue(cx, ObjectValue(*globals[i]));
+        if (!dbg->wrapDebuggeeValue(cx, &globalValue))
+            return false;
+        if (!NewbornArrayPush(cx, result, globalValue))
+            return false;
     }
 
     args.rval().setObject(*result);
