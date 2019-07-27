@@ -332,6 +332,41 @@ NS_IMPL_ADDREF_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 NS_IMPL_RELEASE_INHERITED(nsNativeAppSupportWin, nsNativeAppSupportBase)
 
 void
+UseParentConsole()
+{
+    
+    
+    
+    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (_fileno(stdout) == -2 ||
+            _get_osfhandle(fileno(stdout)) == -2)
+            freopen("CONOUT$", "w", stdout);
+        
+        
+        if (_fileno(stderr) == -2 ||
+            _get_osfhandle(fileno(stderr)) == -2)
+            freopen("CONOUT$", "w", stderr);
+        if (_fileno(stdin) == -2 || _get_osfhandle(fileno(stdin)) == -2)
+            freopen("CONIN$", "r", stdin);
+    }
+}
+
+void
 nsNativeAppSupportWin::CheckConsole() {
     for ( int i = 1; i < gArgc; i++ ) {
         if ( strcmp( "-console", gArgv[i] ) == 0 ||
@@ -396,24 +431,7 @@ nsNativeAppSupportWin::CheckConsole() {
         } else if ( strcmp( "-attach-console", gArgv[i] ) == 0
                     ||
                     strcmp( "/attach-console", gArgv[i] ) == 0 ) {
-            
-            
-            
-            if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-                
-                
-                
-                if (_fileno(stdout) == -1 ||
-                    _get_osfhandle(fileno(stdout)) == -1)
-                    freopen("CONOUT$", "w", stdout);
-                
-                
-                if (_fileno(stderr) == -1 ||
-                    _get_osfhandle(fileno(stderr)) == -1)
-                    freopen("CONOUT$", "w", stderr);
-                if (_fileno(stdin) == -1 || _get_osfhandle(fileno(stdin)) == -1)
-                    freopen("CONIN$", "r", stdin);
-            }
+            UseParentConsole();
         }
     }
 
