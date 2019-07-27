@@ -45,6 +45,10 @@ function TCPServerSocket() {
   this.useWin = null;
 }
 
+
+
+Cu.skipCOWCallableChecks();
+
 TCPServerSocket.prototype = {
   __exposedProps__: {
     port: 'r',

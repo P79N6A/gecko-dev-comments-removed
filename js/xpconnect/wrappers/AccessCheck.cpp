@@ -346,17 +346,18 @@ ExposedPropertiesOnly::check(JSContext *cx, HandleObject wrapper, HandleId id, W
     }
 
     
+    bool skipCallableChecks = CompartmentPrivate::Get(wrappedObject)->skipCOWCallableChecks;
     if (!JS_GetPropertyDescriptorById(cx, wrappedObject, id, &desc))
         return false;
 
     
-    if (desc.hasGetterOrSetter()) {
+    if (!skipCallableChecks && desc.hasGetterOrSetter()) {
         EnterAndThrow(cx, wrapper, "Exposing privileged accessor properties is prohibited");
         return false;
     }
 
     
-    if (desc.value().isObject()) {
+    if (!skipCallableChecks && desc.value().isObject()) {
         RootedObject maybeCallable(cx, js::UncheckedUnwrap(&desc.value().toObject()));
         if (JS::IsCallable(maybeCallable) && !AccessCheck::subsumes(wrapper, maybeCallable)) {
             EnterAndThrow(cx, wrapper, "Exposing privileged or cross-origin callable is prohibited");

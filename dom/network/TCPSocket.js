@@ -69,6 +69,10 @@ function TCPSocketEvent(type, sock, data) {
   this._data = data;
 }
 
+
+
+Cu.skipCOWCallableChecks();
+
 TCPSocketEvent.prototype = {
   __exposedProps__: {
     type: 'r',

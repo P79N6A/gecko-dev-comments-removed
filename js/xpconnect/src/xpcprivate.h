@@ -3643,6 +3643,7 @@ public:
         , skipWriteToGlobalPrototype(false)
         , universalXPConnectEnabled(false)
         , forcePermissiveCOWs(false)
+        , skipCOWCallableChecks(false)
         , scriptability(c)
         , scope(nullptr)
     {
@@ -3694,6 +3695,10 @@ public:
     
     
     bool forcePermissiveCOWs;
+
+    
+    
+    bool skipCOWCallableChecks;
 
     
     
