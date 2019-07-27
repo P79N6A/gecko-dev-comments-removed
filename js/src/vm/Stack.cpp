@@ -1111,12 +1111,6 @@ FrameIter::matchCallee(JSContext *cx, HandleFunction fun) const
     
     
     
-    if (!fun->isLambda() || !currentCallee->isLambda())
-        return currentCallee == fun;
-
-    
-    
-    
     bool useSameScript = CloneFunctionObjectUseSameScript(fun->compartment(), currentCallee);
     if (useSameScript &&
         (currentCallee->hasScript() != fun->hasScript() ||
