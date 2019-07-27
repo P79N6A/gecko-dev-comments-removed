@@ -425,6 +425,12 @@ loop.store = loop.store || {};
 
 
     windowUnload: function() {
+      if (!this.getStoreState("outgoing") &&
+          this.getStoreState("callState") === CALL_STATES.ALERTING &&
+          this._websocket) {
+        this._websocket.decline();
+      }
+
       this._endSession();
     },
 

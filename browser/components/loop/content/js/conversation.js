@@ -35,7 +35,8 @@ loop.conversation = (function(mozL10n) {
 
     propTypes: {
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      roomStore: React.PropTypes.instanceOf(loop.store.RoomStore)
+      roomStore: React.PropTypes.instanceOf(loop.store.RoomStore),
+      mozLoop: React.PropTypes.object.isRequired
     },
 
     getInitialState: function() {
@@ -48,7 +49,8 @@ loop.conversation = (function(mozL10n) {
         case "incoming":
         case "outgoing": {
           return (React.createElement(CallControllerView, {
-            dispatcher: this.props.dispatcher}
+            dispatcher: this.props.dispatcher, 
+            mozLoop: this.props.mozLoop}
           ));
         }
         case "room": {
@@ -152,17 +154,13 @@ loop.conversation = (function(mozL10n) {
     }
 
     window.addEventListener("unload", function(event) {
-      
-      
-      
-      navigator.mozLoop.calls.clearCallInProgress(windowId);
-
       dispatcher.dispatch(new sharedActions.WindowUnload());
     });
 
     React.render(React.createElement(AppControllerView, {
       roomStore: roomStore, 
-      dispatcher: dispatcher}
+      dispatcher: dispatcher, 
+      mozLoop: navigator.mozLoop}
     ), document.querySelector('#main'));
 
     dispatcher.dispatch(new sharedActions.GetWindowData({
