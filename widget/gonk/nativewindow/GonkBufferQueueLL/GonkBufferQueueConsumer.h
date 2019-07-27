@@ -137,7 +137,7 @@ public:
     virtual sp<NativeHandle> getSidebandStream() const;
 
     
-    virtual void dump(String8& result, const char* prefix) const;
+    virtual void dumpToString(String8& result, const char* prefix) const;
 
     
     virtual mozilla::TemporaryRef<GonkBufferSlot::TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
