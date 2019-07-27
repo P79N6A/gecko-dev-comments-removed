@@ -7,9 +7,9 @@ package org.mozilla.search;
 import android.content.AsyncQueryHandler;
 import android.content.ContentValues;
 import android.graphics.Rect;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.text.TextUtils;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
@@ -22,9 +22,8 @@ import com.nineoldandroids.animation.ObjectAnimator;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.db.BrowserContract.SearchHistory;
-import org.mozilla.search.autocomplete.SearchFragment;
-
-
+import org.mozilla.search.autocomplete.ClearableEditText;
+import org.mozilla.search.autocomplete.SuggestionsFragment;
 
 
 
@@ -34,14 +33,28 @@ import org.mozilla.search.autocomplete.SearchFragment;
 
 public class MainActivity extends FragmentActivity implements AcceptsSearchQuery {
 
-    enum State {
-        START,
+    static enum SearchState {
         PRESEARCH,
         POSTSEARCH
     }
 
-    private State state = State.START;
+    static enum EditState {
+        WAITING,
+        EDITING
+    }
+
+    private SearchState searchState;
+    private EditState editState;
+
     private AsyncQueryHandler queryHandler;
+
+    
+    private ClearableEditText editText;
+    private View preSearch;
+    private View postSearch;
+
+    private View suggestionsContainer;
+    private SuggestionsFragment suggestionsFragment;
 
     private static final int SUGGESTION_TRANSITION_DURATION = 300;
     private static final Interpolator SUGGESTION_TRANSITION_INTERPOLATOR =
@@ -65,6 +78,47 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
 
         queryHandler = new AsyncQueryHandler(getContentResolver()) {};
 
+        editText = (ClearableEditText) findViewById(R.id.search_edit_text);
+        editText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setEditState(EditState.EDITING);
+            }
+        });
+
+        editText.setTextListener(new ClearableEditText.TextListener() {
+            @Override
+            public void onChange(String text) {
+                
+                if (editState == EditState.EDITING) {
+                    suggestionsFragment.loadSuggestions(text);
+                }
+            }
+
+            @Override
+            public void onSubmit(String text) {
+                
+                final String trimmedQuery = text.trim();
+                if (!TextUtils.isEmpty(trimmedQuery)) {
+                    onSearch(trimmedQuery);
+                }
+            }
+        });
+
+        preSearch = findViewById(R.id.presearch);
+        postSearch = findViewById(R.id.postsearch);
+
+        suggestionsContainer = findViewById(R.id.suggestions_container);
+        suggestionsFragment = (SuggestionsFragment) getSupportFragmentManager().findFragmentById(R.id.suggestions);
+
+        
+        findViewById(R.id.suggestions_container).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setEditState(EditState.WAITING);
+            }
+        });
+
         animationText = (TextView) findViewById(R.id.animation_text);
         animationCard = findViewById(R.id.animation_card);
 
@@ -77,7 +131,11 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
     protected void onDestroy() {
         super.onDestroy();
         queryHandler = null;
-
+        editText = null;
+        preSearch = null;
+        postSearch = null;
+        suggestionsFragment = null;
+        suggestionsContainer = null;
         animationText = null;
         animationCard = null;
     }
@@ -97,8 +155,14 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
     @Override
     protected void onResume() {
         super.onResume();
+
         
-        startPresearch();
+        setSearchState(SearchState.PRESEARCH);
+    }
+
+    @Override
+    public void onSuggest(String query) {
+       editText.setText(query);
     }
 
     @Override
@@ -118,7 +182,8 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
             animateSuggestion(query, suggestionAnimation);
         } else {
             
-            startPostsearch();
+            setEditState(EditState.WAITING);
+            setSearchState(SearchState.POSTSEARCH);
         }
     }
 
@@ -164,15 +229,10 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                
-                
-                suggestionAnimation.onAnimationEnd();
+                setEditState(EditState.WAITING);
+                setSearchState(SearchState.POSTSEARCH);
 
-                
-                final SearchFragment searchFragment = ((SearchFragment) getSupportFragmentManager().findFragmentById(R.id.search_fragment));
-                searchFragment.setSearchTerm(query);
-
-                startPostsearch();
+                editText.setText(query);
 
                 
                 animationText.clearAnimation();
@@ -197,26 +257,32 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
         set.start();
     }
 
-    private void startPresearch() {
-        if (state != State.PRESEARCH) {
-            state = State.PRESEARCH;
-            findViewById(R.id.postsearch).setVisibility(View.INVISIBLE);
-            findViewById(R.id.presearch).setVisibility(View.VISIBLE);
+    private void setEditState(EditState editState) {
+        if (this.editState == editState) {
+            return;
         }
+        this.editState = editState;
+
+        editText.setActive(editState == EditState.EDITING);
+        suggestionsContainer.setVisibility(editState == EditState.EDITING ? View.VISIBLE : View.INVISIBLE);
     }
 
-    private void startPostsearch() {
-        if (state != State.POSTSEARCH) {
-            state = State.POSTSEARCH;
-            findViewById(R.id.presearch).setVisibility(View.INVISIBLE);
-            findViewById(R.id.postsearch).setVisibility(View.VISIBLE);
+    private void setSearchState(SearchState searchState) {
+        if (this.searchState == searchState) {
+            return;
         }
+        this.searchState = searchState;
+
+        preSearch.setVisibility(searchState == SearchState.PRESEARCH ? View.VISIBLE : View.INVISIBLE);
+        postSearch.setVisibility(searchState == SearchState.POSTSEARCH ? View.VISIBLE : View.INVISIBLE);
     }
 
     @Override
     public void onBackPressed() {
-        if (state == State.POSTSEARCH) {
-            startPresearch();
+        if (editState == EditState.EDITING) {
+            setEditState(EditState.WAITING);
+        } else if (searchState == SearchState.POSTSEARCH) {
+            setSearchState(SearchState.PRESEARCH);
         } else {
             super.onBackPressed();
         }

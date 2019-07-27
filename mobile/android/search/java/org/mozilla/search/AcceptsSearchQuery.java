@@ -10,6 +10,13 @@ import android.graphics.Rect;
 
 
 public interface AcceptsSearchQuery {
+
+    
+
+
+
+    void onSuggest(String query);
+
     
 
 
@@ -30,6 +37,5 @@ public interface AcceptsSearchQuery {
 
     public interface SuggestionAnimation {
         public Rect getStartBounds();
-        public void onAnimationEnd();
     }
 }

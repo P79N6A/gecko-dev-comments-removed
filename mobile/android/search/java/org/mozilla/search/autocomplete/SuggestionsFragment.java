@@ -13,7 +13,6 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
 import android.text.SpannableString;
-import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,8 +35,7 @@ import java.util.List;
 
 
 
-
-public class SearchFragment extends Fragment implements AcceptsJumpTaps {
+public class SuggestionsFragment extends Fragment {
 
     private static final int LOADER_ID_SUGGESTION = 0;
     private static final String KEY_SEARCH_TERM = "search_term";
@@ -54,18 +52,9 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
 
     private AutoCompleteAdapter autoCompleteAdapter;
 
-    private View mainView;
-    private ClearableEditText editText;
     private ListView suggestionDropdown;
 
-    private State state = State.WAITING;
-
-    private static enum State {
-        WAITING,  
-        RUNNING   
-    }
-
-    public SearchFragment() {
+    public SuggestionsFragment() {
         
     }
 
@@ -86,7 +75,7 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
         suggestClient = new SuggestClient(activity, template, SUGGESTION_TIMEOUT, Constants.SUGGESTION_MAX);
         suggestionLoaderCallbacks = new SuggestionLoaderCallbacks();
 
-        autoCompleteAdapter = new AutoCompleteAdapter(activity, this);
+        autoCompleteAdapter = new AutoCompleteAdapter(activity);
     }
 
     @Override
@@ -102,51 +91,7 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        mainView = inflater.inflate(R.layout.search_auto_complete, container, false);
-
-        
-        mainView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                transitionToWaiting();
-            }
-        });
-
-        
-        
-        
-        mainView.setClickable(false);
-
-        editText = (ClearableEditText) mainView.findViewById(R.id.auto_complete_edit_text);
-        editText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                transitionToRunning();
-            }
-        });
-
-        editText.setTextListener(new ClearableEditText.TextListener() {
-            @Override
-            public void onChange(String text) {
-                if (state == State.RUNNING) {
-                    final Bundle args = new Bundle();
-                    args.putString(KEY_SEARCH_TERM, text);
-                    getLoaderManager().restartLoader(LOADER_ID_SUGGESTION, args, suggestionLoaderCallbacks);
-                }
-            }
-
-            @Override
-            public void onSubmit(String text) {
-                
-                final String trimmedQuery = text.trim();
-                if (!TextUtils.isEmpty(trimmedQuery)) {
-                    transitionToWaiting();
-                    searchListener.onSearch(trimmedQuery);
-                }
-            }
-        });
-
-        suggestionDropdown = (ListView) mainView.findViewById(R.id.auto_complete_dropdown);
+        suggestionDropdown = (ListView) inflater.inflate(R.layout.search_sugestions, container, false);
         suggestionDropdown.setAdapter(autoCompleteAdapter);
 
         
@@ -166,23 +111,16 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
                     public Rect getStartBounds() {
                         return startBounds;
                     }
-
-                    @Override
-                    public void onAnimationEnd() {
-                        transitionToWaiting();
-                    }
                 });
             }
         });
 
-        return mainView;
+        return suggestionDropdown;
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-
-        editText = null;
 
         if (null != suggestionDropdown) {
             suggestionDropdown.setOnItemClickListener(null);
@@ -191,41 +129,10 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
         }
     }
 
-    @Override
-    public void onJumpTap(String suggestion) {
-        setSearchTerm(suggestion);
-    }
-
-    
-
-
-
-
-
-    public void setSearchTerm(String searchTerm) {
-        editText.setText(searchTerm);
-    }
-
-    private void transitionToWaiting() {
-        if (state == State.WAITING) {
-            return;
-        }
-        state = State.WAITING;
-
-        mainView.setClickable(false);
-        editText.setActive(false);
-        suggestionDropdown.setVisibility(View.GONE);
-    }
-
-    private void transitionToRunning() {
-        if (state == State.RUNNING) {
-            return;
-        }
-        state = State.RUNNING;
-
-        mainView.setClickable(true);
-        editText.setActive(true);
-        suggestionDropdown.setVisibility(View.VISIBLE);
+    public void loadSuggestions(String query) {
+        final Bundle args = new Bundle();
+        args.putString(KEY_SEARCH_TERM, query);
+        getLoaderManager().restartLoader(LOADER_ID_SUGGESTION, args, suggestionLoaderCallbacks);
     }
 
     public static class Suggestion {
