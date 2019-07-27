@@ -724,6 +724,7 @@ let Links = {
 
 
 
+
   _providerLinks: new Map(),
 
   
@@ -862,6 +863,21 @@ let Links = {
            aLink1.url.localeCompare(aLink2.url);
   },
 
+  _incrementSiteMap: function(map, link) {
+    let site = NewTabUtils.extractSite(link.url);
+    map.set(site, (map.get(site) || 0) + 1);
+  },
+
+  _decrementSiteMap: function(map, link) {
+    let site = NewTabUtils.extractSite(link.url);
+    let previousURLCount = map.get(site);
+    if (previousURLCount === 1) {
+      map.delete(site);
+    } else {
+      map.set(site, previousURLCount - 1);
+    }
+  },
+
   
 
 
@@ -879,6 +895,10 @@ let Links = {
         links = links.filter((link) => !!link);
         this._providerLinks.set(aProvider, {
           sortedLinks: links,
+          siteMap: links.reduce((map, link) => {
+            this._incrementSiteMap(map, link);
+            return map;
+          }, new Map()),
           linkMap: links.reduce((map, link) => {
             map.set(link.url, link);
             return map;
@@ -938,7 +958,7 @@ let Links = {
       
       return;
 
-    let { sortedLinks, linkMap } = links;
+    let { sortedLinks, siteMap, linkMap } = links;
     let existingLink = linkMap.get(aLink.url);
     let insertionLink = null;
     let updatePages = false;
@@ -983,6 +1003,7 @@ let Links = {
         insertionLink[prop] = aLink[prop];
       }
       linkMap.set(aLink.url, insertionLink);
+      this._incrementSiteMap(siteMap, aLink);
     }
 
     if (insertionLink) {
@@ -991,6 +1012,7 @@ let Links = {
       if (sortedLinks.length > aProvider.maxNumLinks) {
         let lastLink = sortedLinks.pop();
         linkMap.delete(lastLink.url);
+        this._decrementSiteMap(siteMap, lastLink);
       }
       updatePages = true;
     }
@@ -1185,6 +1207,14 @@ this.NewTabUtils = {
       return true;
     }
     return false;
+  },
+
+  isTopSiteGivenProvider: function(aSite, aProvider) {
+    return Links._providerLinks.get(aProvider).siteMap.has(aSite);
+  },
+
+  isTopPlacesSite: function(aSite) {
+    return this.isTopSiteGivenProvider(aSite, PlacesProvider);
   },
 
   

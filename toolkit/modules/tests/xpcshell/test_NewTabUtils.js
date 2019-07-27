@@ -11,7 +11,46 @@ function run_test() {
   run_next_test();
 }
 
-add_test(function multipleProviders() {
+add_task(function isTopSiteGivenProvider() {
+  let expectedLinks = makeLinks(0, 10, 2);
+
+  
+  expectedLinks[expectedLinks.length - 2].url = expectedLinks[expectedLinks.length - 1].url + "Test";
+
+  let provider = new TestProvider(done => done(expectedLinks));
+  provider.maxNumLinks = expectedLinks.length;
+
+  NewTabUtils.initWithoutProviders();
+  NewTabUtils.links.addProvider(provider);
+  NewTabUtils.links.populateCache(function () {}, false);
+
+  do_check_eq(NewTabUtils.isTopSiteGivenProvider("example2.com", provider), true);
+  do_check_eq(NewTabUtils.isTopSiteGivenProvider("example1.com", provider), false);
+
+  
+  let newLink = makeLink(3);
+  provider.notifyLinkChanged(newLink);
+
+  
+  do_check_eq(NewTabUtils.isTopSiteGivenProvider("example3.com", provider), true);
+  do_check_eq(NewTabUtils.isTopSiteGivenProvider("example2.com", provider), true);
+
+  
+  newLink = makeLink(5);
+  provider.notifyLinkChanged(newLink);
+
+  
+  newLink = makeLink(9);
+  provider.notifyLinkChanged(newLink);
+
+  
+  do_check_eq(NewTabUtils.isTopSiteGivenProvider("example5.com", provider), true);
+  do_check_eq(NewTabUtils.isTopSiteGivenProvider("example2.com", provider), false);
+
+  NewTabUtils.links.removeProvider(provider);
+});
+
+add_task(function multipleProviders() {
   
   
   let evenLinks = makeLinks(0, 2 * NewTabUtils.links.maxNumLinks, 2);
@@ -35,10 +74,9 @@ add_test(function multipleProviders() {
 
   NewTabUtils.links.removeProvider(evenProvider);
   NewTabUtils.links.removeProvider(oddProvider);
-  run_next_test();
 });
 
-add_test(function changeLinks() {
+add_task(function changeLinks() {
   let expectedLinks = makeLinks(0, 20, 2);
   let provider = new TestProvider(done => done(expectedLinks));
 
@@ -91,7 +129,6 @@ add_test(function changeLinks() {
   do_check_links(NewTabUtils.links.getLinks(), expectedLinks);
 
   NewTabUtils.links.removeProvider(provider);
-  run_next_test();
 });
 
 add_task(function oneProviderAlreadyCached() {
