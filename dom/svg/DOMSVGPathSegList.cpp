@@ -209,8 +209,7 @@ DOMSVGPathSegList::InternalListWillChangeTo(const SVGPathData& aNewValue)
     }
 
     
-    mItems.SetLength(newLength);
-
+    mItems.TruncateLength(newLength);
   } else if (dataIndex < dataLength) {
     
 
