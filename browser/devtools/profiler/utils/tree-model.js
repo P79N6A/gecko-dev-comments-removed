@@ -82,8 +82,7 @@ ThreadNode.prototype = {
 
 
 
-  insert: function(sample, contentOnly = false, beginAt = 0, endAt = Infinity,
-                   inverted = false) {
+  insert: function(sample, contentOnly = false, beginAt = 0, endAt = Infinity, inverted = false) {
     let sampleTime = sample.time;
     if (!sampleTime || sampleTime < beginAt || sampleTime > endAt) {
       return;
@@ -94,23 +93,18 @@ ThreadNode.prototype = {
     
     
     if (contentOnly) {
+      
       sampleFrames = sampleFrames.filter(isContent);
+    } else {
+      
+      sampleFrames = sampleFrames.slice(1);
     }
-
     if (!sampleFrames.length) {
       return;
     }
-
     if (inverted) {
       sampleFrames.reverse();
-      if (!contentOnly) {
-        
-        
-        sampleFrames.pop();
-      }
     }
-
-    let startIndex = (inverted || contentOnly) ? 0 : 1;
 
     let sampleDuration = sampleTime - this._previousSampleTime;
     this._previousSampleTime = sampleTime;
@@ -118,7 +112,7 @@ ThreadNode.prototype = {
     this.duration += sampleDuration;
 
     FrameNode.prototype.insert(
-      sampleFrames, startIndex, sampleTime, sampleDuration, this.calls);
+      sampleFrames, 0, sampleTime, sampleDuration, this.calls);
   },
 
   
