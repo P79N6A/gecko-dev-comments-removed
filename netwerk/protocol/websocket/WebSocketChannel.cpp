@@ -1036,16 +1036,6 @@ WebSocketChannel::WebSocketChannel() :
     LOG(("Failed to initiate dashboard service."));
 
   mSerial = sSerialSeed++;
-
-  
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService) {
-    observerService->AddObserver(this, NS_NETWORK_LINK_TOPIC, false);
-  } else {
-    NS_WARNING("failed to get observer service");
-  }
-
 }
 
 WebSocketChannel::~WebSocketChannel()
@@ -1972,6 +1962,33 @@ WebSocketChannel::EnsureHdrOut(uint32_t size)
   mHdrOut = mDynamicOutput;
 }
 
+namespace {
+
+class RemoveObserverRunnable : public nsRunnable
+{
+  nsRefPtr<WebSocketChannel> mChannel;
+
+public:
+  RemoveObserverRunnable(WebSocketChannel* aChannel)
+    : mChannel(aChannel)
+  {}
+
+  NS_IMETHOD Run()
+  {
+    nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+    if (!observerService) {
+      NS_WARNING("failed to get observer service");
+      return NS_OK;
+    }
+
+    observerService->RemoveObserver(mChannel, NS_NETWORK_LINK_TOPIC);
+    return NS_OK;
+  }
+};
+
+} 
+
 void
 WebSocketChannel::CleanupConnection()
 {
@@ -2002,6 +2019,10 @@ WebSocketChannel::CleanupConnection()
   if (mConnectionLogService && !mPrivateBrowsing) {
     mConnectionLogService->RemoveHost(mHost, mSerial);
   }
+
+  
+  
+  NS_DispatchToMainThread(new RemoveObserverRunnable(this));
 
   DecrementSessionCount();
 }
@@ -2110,8 +2131,6 @@ WebSocketChannel::StopSession(nsresult reason)
     mTargetThread->Dispatch(new CallOnStop(this, reason),
                             NS_DISPATCH_NORMAL);
   }
-
-  return;
 }
 
 void
@@ -2920,6 +2939,19 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
     return rv;
 
   
+  nsCOMPtr<nsIObserverService> observerService =
+    mozilla::services::GetObserverService();
+  if (!observerService) {
+    NS_WARNING("failed to get observer service");
+    return NS_ERROR_FAILURE;
+  }
+
+  rv = observerService->AddObserver(this, NS_NETWORK_LINK_TOPIC, false);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  
   
   mWasOpened = 1;
   mListener = aListener;
@@ -3228,8 +3260,8 @@ WebSocketChannel::OnStartRequest(nsIRequest *aRequest,
 
 NS_IMETHODIMP
 WebSocketChannel::OnStopRequest(nsIRequest *aRequest,
-                                  nsISupports *aContext,
-                                  nsresult aStatusCode)
+                                nsISupports *aContext,
+                                nsresult aStatusCode)
 {
   LOG(("WebSocketChannel::OnStopRequest() %p [%p %p %x]\n",
        this, aRequest, aContext, aStatusCode));
