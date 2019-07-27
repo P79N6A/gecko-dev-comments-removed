@@ -908,7 +908,7 @@ GetDisplayPortFromMarginsData(nsIContent* aContent,
   
   
   
-  if (alignmentX > 0 && alignmentY > 0) {
+  if (gfxPrefs::LayersTilesEnabled() && (alignmentX > 0 && alignmentY > 0)) {
     
     
     
