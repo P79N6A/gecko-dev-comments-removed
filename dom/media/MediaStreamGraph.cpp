@@ -2242,7 +2242,6 @@ MediaStream::SetTrackEnabled(TrackID aTrackID, bool aEnabled)
 void
 MediaStream::ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment, MediaSegment* aRawSegment)
 {
-  
   if (!mDisabledTrackIDs.Contains(aTrackID)) {
     return;
   }
