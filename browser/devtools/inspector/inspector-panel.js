@@ -367,7 +367,7 @@ InspectorPanel.prototype = {
 
 
 
-  set selectionCssSelector(cssSelector) {
+  set selectionCssSelector(cssSelector = null) {
     this._selectionCssSelector = {
       selector: cssSelector,
       url: this._target.url
