@@ -421,12 +421,6 @@ GetObjectAllocKindForCopy(const Nursery &nursery, JSObject *obj)
     MOZ_ASSERT(!IsProxy(obj));
 
     
-    if (obj->is<UnboxedPlainObject>()) {
-        size_t nbytes = obj->as<UnboxedPlainObject>().layout().size();
-        return GetGCObjectKindForBytes(UnboxedPlainObject::offsetOfData() + nbytes);
-    }
-
-    
     
     if (obj->is<InlineTypedObject>()) {
         

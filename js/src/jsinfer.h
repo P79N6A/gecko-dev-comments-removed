@@ -27,7 +27,6 @@
 namespace js {
 
 class TypeDescr;
-class UnboxedLayout;
 
 class TaggedProto
 {
@@ -408,25 +407,22 @@ enum : uint32_t {
     OBJECT_FLAG_COPY_ON_WRITE         = 0x01000000,
 
     
-    OBJECT_FLAG_NEW_SCRIPT_CLEARED    = 0x02000000,
+
+
+
+    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x02000000,
 
     
-
-
-
-    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x04000000,
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x03ff0000,
 
     
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x07ff0000,
-
-    
-    OBJECT_FLAG_ADDENDUM_MASK         = 0x38000000,
-    OBJECT_FLAG_ADDENDUM_SHIFT        = 27,
+    OBJECT_FLAG_ADDENDUM_MASK         = 0x0c000000,
+    OBJECT_FLAG_ADDENDUM_SHIFT        = 26,
 
     
     
-    OBJECT_FLAG_GENERATION_MASK       = 0x40000000,
-    OBJECT_FLAG_GENERATION_SHIFT      = 30,
+    OBJECT_FLAG_GENERATION_MASK       = 0x10000000,
+    OBJECT_FLAG_GENERATION_SHIFT      = 28,
 };
 typedef uint32_t TypeObjectFlags;
 
@@ -639,6 +635,7 @@ class HeapTypeSet : public ConstraintTypeSet
   public:
     
     inline void setNonDataProperty(ExclusiveContext *cx);
+    inline void setNonDataPropertyIgnoringConstraints(); 
 
     
     inline void setNonWritableProperty(ExclusiveContext *cx);
@@ -802,38 +799,6 @@ struct Property
 
 
 
-class PreliminaryObjectArray
-{
-  public:
-    static const uint32_t COUNT = 20;
-
-  private:
-    
-    
-    JSObject *objects[COUNT];
-
-  public:
-    PreliminaryObjectArray() {
-        mozilla::PodZero(this);
-    }
-
-    void registerNewObject(JSObject *res);
-    void unregisterNewObject(JSObject *res);
-
-    JSObject *get(size_t i) const {
-        MOZ_ASSERT(i < COUNT);
-        return objects[i];
-    }
-
-    bool full() const;
-    void sweep();
-};
-
-
-
-
-
-
 
 
 
@@ -886,13 +851,16 @@ class TypeNewScript
     
     
     
-    HeapPtrFunction function_;
+    HeapPtrFunction fun;
 
     
     
-    PreliminaryObjectArray *preliminaryObjects;
-
     
+    
+    
+    static const uint32_t PRELIMINARY_OBJECT_COUNT = 20;
+    PlainObject **preliminaryObjects;
+
     
     
     
@@ -924,7 +892,7 @@ class TypeNewScript
   public:
     TypeNewScript() { mozilla::PodZero(this); }
     ~TypeNewScript() {
-        js_delete(preliminaryObjects);
+        js_free(preliminaryObjects);
         js_free(initializerList);
     }
 
@@ -938,6 +906,7 @@ class TypeNewScript
             MOZ_ASSERT(!initializedType());
             return false;
         }
+        MOZ_ASSERT(templateObject());
         return true;
     }
 
@@ -953,18 +922,15 @@ class TypeNewScript
         return initializedType_;
     }
 
-    JSFunction *function() const {
-        return function_;
-    }
-
     void trace(JSTracer *trc);
     void sweep();
+    void fixupAfterMovingGC();
 
     void registerNewObject(PlainObject *res);
     void unregisterNewObject(PlainObject *res);
     bool maybeAnalyze(JSContext *cx, TypeObject *type, bool *regenerate, bool force = false);
 
-    bool rollbackPartiallyInitializedObjects(JSContext *cx, TypeObject *type);
+    void rollbackPartiallyInitializedObjects(JSContext *cx, TypeObject *type);
 
     static void make(JSContext *cx, TypeObject *type, JSFunction *fun);
 
@@ -1015,6 +981,7 @@ struct TypeObject : public gc::TenuredCell
     }
 
     void setClasp(const Class *clasp) {
+        MOZ_ASSERT(singleton());
         clasp_ = clasp;
     }
 
@@ -1063,11 +1030,6 @@ struct TypeObject : public gc::TenuredCell
         Addendum_NewScript,
 
         
-        
-        
-        Addendum_UnboxedLayout,
-
-        
         Addendum_TypeDescr
     };
 
@@ -1075,7 +1037,7 @@ struct TypeObject : public gc::TenuredCell
     
     void *addendum_;
 
-    void setAddendum(AddendumKind kind, void *addendum, bool writeBarrier = true);
+    void setAddendum(AddendumKind kind, void *addendum);
 
     AddendumKind addendumKind() const {
         return (AddendumKind)
@@ -1083,19 +1045,10 @@ struct TypeObject : public gc::TenuredCell
     }
 
     TypeNewScript *newScriptDontCheckGeneration() const {
-        if (addendumKind() == Addendum_NewScript)
-            return reinterpret_cast<TypeNewScript *>(addendum_);
-        return nullptr;
+        return addendumKind() == Addendum_NewScript
+               ? reinterpret_cast<TypeNewScript *>(addendum_)
+               : nullptr;
     }
-
-    UnboxedLayout *maybeUnboxedLayoutDontCheckGeneration() const {
-        if (addendumKind() == Addendum_UnboxedLayout)
-            return reinterpret_cast<UnboxedLayout *>(addendum_);
-        return nullptr;
-    }
-
-    TypeNewScript *anyNewScript();
-    void detachNewScript(bool writeBarrier);
 
   public:
 
@@ -1121,20 +1074,6 @@ struct TypeObject : public gc::TenuredCell
 
     void setNewScript(TypeNewScript *newScript) {
         setAddendum(Addendum_NewScript, newScript);
-    }
-
-    UnboxedLayout *maybeUnboxedLayout() {
-        maybeSweep(nullptr);
-        return maybeUnboxedLayoutDontCheckGeneration();
-    }
-
-    UnboxedLayout &unboxedLayout() {
-        MOZ_ASSERT(addendumKind() == Addendum_UnboxedLayout);
-        return *maybeUnboxedLayout();
-    }
-
-    void setUnboxedLayout(UnboxedLayout *layout) {
-        setAddendum(Addendum_UnboxedLayout, layout);
     }
 
     TypeDescr *maybeTypeDescr() {
@@ -1168,7 +1107,6 @@ struct TypeObject : public gc::TenuredCell
 
   private:
     
-
 
 
 
@@ -1301,10 +1239,11 @@ struct TypeObject : public gc::TenuredCell
         flags_ |= generation << OBJECT_FLAG_GENERATION_SHIFT;
     }
 
+    void fixupAfterMovingGC();
+
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
     inline void finalize(FreeOp *fop);
-    void fixupAfterMovingGC() {}
 
     static inline ThingRootKind rootKind() { return THING_ROOT_TYPE_OBJECT; }
 
