@@ -48,14 +48,14 @@ public:
   
   
   
-  nsresult GetMediaBuffer(android::MediaBuffer** aBuffer);
+  nsresult GetBuffer(android::MediaBuffer** aBuffer);
 
   
   
-  nsresult SetMediaBuffer(android::MediaBuffer* aBuffer);
+  nsresult SetBuffer(android::MediaBuffer* aBuffer);
 
   
-  nsresult ClearMediaBuffer();
+  nsresult ClearBuffer();
 
   bool HasMediaBuffer();
 

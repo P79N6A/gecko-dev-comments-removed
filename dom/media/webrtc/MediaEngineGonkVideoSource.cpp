@@ -3,7 +3,6 @@
 
 #include "MediaEngineGonkVideoSource.h"
 
-#undef LOG_TAG
 #define LOG_TAG "MediaEngineGonkVideoSource"
 
 #include <utils/Log.h>
@@ -804,7 +803,7 @@ MediaEngineGonkVideoSource::OnNewMediaBufferFrame(MediaBuffer* aBuffer)
       
       
       GonkCameraImage* cameraImage = static_cast<GonkCameraImage*>(mImage.get());
-      cameraImage->SetMediaBuffer(aBuffer);
+      cameraImage->SetBuffer(aBuffer);
     } else {
       LOG(("mImage is non-GrallocImage"));
     }
@@ -825,7 +824,7 @@ MediaEngineGonkVideoSource::OnNewMediaBufferFrame(MediaBuffer* aBuffer)
       GonkCameraImage* cameraImage = static_cast<GonkCameraImage*>(mImage.get());
       
       
-      cameraImage->ClearMediaBuffer();
+      cameraImage->ClearBuffer();
     }
   }
 
