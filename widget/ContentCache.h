@@ -170,6 +170,9 @@ private:
     LayoutDeviceIntRect mAnchorCharRect;
     LayoutDeviceIntRect mFocusCharRect;
 
+    
+    LayoutDeviceIntRect mRect;
+
     Selection()
       : mAnchor(UINT32_MAX)
       , mFocus(UINT32_MAX)
@@ -182,6 +185,7 @@ private:
       mWritingMode = WritingMode();
       mAnchorCharRect.SetEmpty();
       mFocusCharRect.SetEmpty();
+      mRect.SetEmpty();
     }
 
     bool IsValid() const
