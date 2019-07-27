@@ -1523,7 +1523,8 @@ var BrowserApp = {
         let url = data.url;
         let flags;
 
-        if (/^[0-9]+$/.test(url)) {
+        if (!data.engine && /^[0-9]+$/.test(url)) {
+          
           
           url = URIFixup.keywordToURI(url).spec;
         } else {
@@ -4884,14 +4885,14 @@ var BrowserEventHandler = {
 
 
   _shouldSuppressReflowOnZoom: function(aElement) {
-    if (aElement instanceof HTMLVideoElement ||
-        aElement instanceof HTMLObjectElement ||
-        aElement instanceof HTMLEmbedElement ||
-        aElement instanceof HTMLAppletElement ||
-        aElement instanceof HTMLCanvasElement ||
-        aElement instanceof HTMLImageElement ||
-        aElement instanceof HTMLMediaElement ||
-        aElement instanceof HTMLPreElement) {
+    if (aElement instanceof Ci.nsIDOMHTMLVideoElement ||
+        aElement instanceof Ci.nsIDOMHTMLObjectElement ||
+        aElement instanceof Ci.nsIDOMHTMLEmbedElement ||
+        aElement instanceof Ci.nsIDOMHTMLAppletElement ||
+        aElement instanceof Ci.nsIDOMHTMLCanvasElement ||
+        aElement instanceof Ci.nsIDOMHTMLImageElement ||
+        aElement instanceof Ci.nsIDOMHTMLMediaElement ||
+        aElement instanceof Ci.nsIDOMHTMLPreElement) {
       return true;
     }
 
