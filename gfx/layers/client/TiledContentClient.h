@@ -32,6 +32,7 @@
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
+#include "nsExpirationTracker.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "gfxReusableSurfaceWrapper.h"
 #include "pratom.h"                     
@@ -155,6 +156,7 @@ struct TileClient
 {
   
   TileClient();
+  ~TileClient();
 
   TileClient(const TileClient& o);
 
@@ -207,6 +209,8 @@ struct TileClient
     DiscardBackBuffer();
   }
 
+  nsExpirationState *GetExpirationState() { return &mExpirationState; }
+
   TileDescriptor GetTileDescriptor();
 
   
@@ -229,7 +233,21 @@ struct TileClient
 
   void DiscardBackBuffer();
 
-  RefPtr<TextureClient> mBackBuffer;
+  
+
+
+  class PrivateProtector {
+    public:
+      void Set(TileClient * container, RefPtr<TextureClient>);
+      void Set(TileClient * container, TextureClient*);
+      
+      
+      operator TextureClient*() const { return mBuffer; }
+      RefPtr<TextureClient> operator ->() { return mBuffer; }
+    private:
+      PrivateProtector& operator=(const PrivateProtector &);
+      RefPtr<TextureClient> mBuffer;
+  } mBackBuffer;
   RefPtr<TextureClient> mFrontBuffer;
   RefPtr<gfxSharedReadLock> mBackLock;
   RefPtr<gfxSharedReadLock> mFrontLock;
@@ -240,6 +258,7 @@ struct TileClient
 #endif
   nsIntRegion mInvalidFront;
   nsIntRegion mInvalidBack;
+  nsExpirationState mExpirationState;
 
 private:
   void ValidateBackBufferFromFront(const nsIntRegion &aDirtyRegion,

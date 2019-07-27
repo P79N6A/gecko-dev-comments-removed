@@ -31,7 +31,11 @@ class Heap;
 
 class nsRegion;
 class nsIntRegion;
-
+namespace mozilla {
+namespace layers {
+struct TileClient;
+}
+}
 
 
 
@@ -645,6 +649,13 @@ struct nsTArray_CopyChooser<nsIntRegion>
 {
   typedef nsTArray_CopyWithConstructors<nsIntRegion> Type;
 };
+
+template<>
+struct nsTArray_CopyChooser<mozilla::layers::TileClient>
+{
+  typedef nsTArray_CopyWithConstructors<mozilla::layers::TileClient> Type;
+};
+
 
 
 
