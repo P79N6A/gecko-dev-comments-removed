@@ -158,10 +158,6 @@ public:
 
   bool IsValid() const { return mIsValid; }
 
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  virtual void SetReleaseFence(const android::sp<android::Fence>& aReleaseFence);
-#endif
-
   
   
   static void RecycleCallback(TextureHost* textureHost, void* aClosure);
@@ -274,18 +270,6 @@ public:
                     bool aDumpHtml=false) override;
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  
-
-
-
-  virtual void SetReleaseFence(const android::sp<android::Fence>& aReleaseFence)
-  {
-    mTiledBuffer.SetReleaseFence(aReleaseFence);
-    mLowPrecisionTiledBuffer.SetReleaseFence(aReleaseFence);
-  }
-#endif
 
 private:
 
