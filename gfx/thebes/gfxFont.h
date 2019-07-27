@@ -1529,7 +1529,8 @@ protected:
 
 
 class GlyphBufferAzure;
-struct DrawGlyphParams;
+struct TextRunDrawParams;
+struct FontDrawParams;
 
 class gfxFont {
 
@@ -1788,10 +1789,9 @@ public:
 
 
 
-    virtual void Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
-                      gfxContext *aContext, DrawMode aDrawMode, gfxPoint *aBaselineOrigin,
-                      Spacing *aSpacing, gfxTextContextPaint *aContextPaint,
-                      gfxTextRunDrawCallbacks *aCallbacks);
+
+    void Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
+              gfxPoint *aPt, TextRunDrawParams& aParams);
 
     
 
@@ -2035,11 +2035,12 @@ protected:
     
     
     
-    bool DrawGlyphs(gfxShapedText          *aShapedText,
-                    uint32_t                aOffset, 
-                    uint32_t                aCount, 
-                    gfxPoint               *aPt,
-                    const DrawGlyphParams&  aParams);
+    bool DrawGlyphs(gfxShapedText            *aShapedText,
+                    uint32_t                  aOffset, 
+                    uint32_t                  aCount, 
+                    gfxPoint                 *aPt,
+                    const TextRunDrawParams&  aRunParams,
+                    const FontDrawParams&     aFontParams);
 
     
     
@@ -3558,10 +3559,9 @@ private:
                                      PropertyProvider *aProvider);
     gfxFloat ComputePartialLigatureWidth(uint32_t aPartStart, uint32_t aPartEnd,
                                          PropertyProvider *aProvider);
-    void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx,
-                             uint32_t aStart, uint32_t aEnd, gfxPoint *aPt,
-                             PropertyProvider *aProvider,
-                             gfxTextRunDrawCallbacks *aCallbacks);
+    void DrawPartialLigature(gfxFont *aFont, uint32_t aStart, uint32_t aEnd,
+                             gfxPoint *aPt, PropertyProvider *aProvider,
+                             TextRunDrawParams& aParams);
     
     
     void ShrinkToLigatureBoundaries(uint32_t *aStart, uint32_t *aEnd);
@@ -3583,12 +3583,10 @@ private:
                                  Metrics *aMetrics);
 
     
-    void DrawGlyphs(gfxFont *aFont, gfxContext *aContext,
-                    DrawMode aDrawMode, gfxPoint *aPt,
-                    gfxTextContextPaint *aContextPaint, uint32_t aStart,
-                    uint32_t aEnd, PropertyProvider *aProvider,
+    void DrawGlyphs(gfxFont *aFont, uint32_t aStart, uint32_t aEnd,
+                    gfxPoint *aPt, PropertyProvider *aProvider,
                     uint32_t aSpacingStart, uint32_t aSpacingEnd,
-                    gfxTextRunDrawCallbacks *aCallbacks);
+                    TextRunDrawParams& aParams);
 
     
     
