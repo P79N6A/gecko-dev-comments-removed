@@ -342,15 +342,6 @@ public:
   static nsRect
   GetCoveredRegion(const nsFrameList &aFrames);
 
-  
-  
-  
-  
-  static nsPoint
-  TransformOuterSVGPointToChildFrame(nsPoint aPoint,
-                                     const gfxMatrix& aFrameToCanvasTM,
-                                     nsPresContext* aPresContext);
-
   static nsRect
   TransformFrameRectToOuterSVG(const nsRect& aRect,
                                const gfxMatrix& aMatrix,
