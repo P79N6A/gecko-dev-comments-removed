@@ -821,7 +821,6 @@ class AsmJSModule
     bool                                  dynamicallyLinked_;
     bool                                  loadedFromCache_;
     bool                                  profilingEnabled_;
-    bool                                  interrupted_;
 
     
     
@@ -1479,10 +1478,6 @@ class AsmJSModule
         return profilingEnabled_;
     }
     void setProfilingEnabled(bool enabled, JSContext *cx);
-    void setInterrupted(bool interrupted) {
-        MOZ_ASSERT(isDynamicallyLinked());
-        interrupted_ = interrupted;
-    }
 
     
     
