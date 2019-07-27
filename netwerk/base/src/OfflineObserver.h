@@ -29,7 +29,7 @@ public:
   virtual nsresult OfflineNotification(nsISupports *aSubject);
 
   
-  virtual uint32_t GetAppId();
+  virtual uint32_t GetAppId() = 0;
 
   
   
