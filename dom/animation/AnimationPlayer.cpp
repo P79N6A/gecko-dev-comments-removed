@@ -127,7 +127,7 @@ AnimationPlayer::SetCurrentTime(const TimeDuration& aSeekTime)
   }
 
   UpdateFinishedState(true);
-  UpdateSourceContent();
+  UpdateEffect();
   PostUpdate();
 }
 
@@ -171,7 +171,7 @@ AnimationPlayer::PlayState() const
     return AnimationPlayState::Paused;
   }
 
-  if ((mPlaybackRate > 0.0 && currentTime.Value() >= SourceContentEnd()) ||
+  if ((mPlaybackRate > 0.0 && currentTime.Value() >= EffectEnd()) ||
       (mPlaybackRate < 0.0 && currentTime.Value().ToMilliseconds() <= 0.0)) {
     return AnimationPlayState::Finished;
   }
@@ -367,14 +367,14 @@ AnimationPlayer::Cancel()
   mHoldTime.SetNull();
   mStartTime.SetNull();
 
-  UpdateSourceContent();
+  UpdateEffect();
 }
 
 void
 AnimationPlayer::UpdateRelevance()
 {
   bool wasRelevant = mIsRelevant;
-  mIsRelevant = HasCurrentSource() || HasInEffectSource();
+  mIsRelevant = HasCurrentEffect() || IsInEffect();
 
   
   if (wasRelevant && !mIsRelevant) {
@@ -477,7 +477,7 @@ AnimationPlayer::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
         mHoldTime.SetValue((timeToUse.Value() - mStartTime.Value())
                             .MultDouble(mPlaybackRate));
         
-        UpdateSourceContent();
+        UpdateEffect();
         updatedHoldTime = true;
       }
     }
@@ -508,14 +508,14 @@ AnimationPlayer::DoPlay(LimitBehavior aLimitBehavior)
       (currentTime.IsNull() ||
        (aLimitBehavior == LimitBehavior::AutoRewind &&
         (currentTime.Value().ToMilliseconds() < 0.0 ||
-         currentTime.Value() >= SourceContentEnd())))) {
+         currentTime.Value() >= EffectEnd())))) {
     mHoldTime.SetValue(TimeDuration(0));
   } else if (mPlaybackRate < 0.0 &&
              (currentTime.IsNull() ||
               (aLimitBehavior == LimitBehavior::AutoRewind &&
                (currentTime.Value().ToMilliseconds() <= 0.0 ||
-                currentTime.Value() > SourceContentEnd())))) {
-    mHoldTime.SetValue(TimeDuration(SourceContentEnd()));
+                currentTime.Value() > EffectEnd())))) {
+    mHoldTime.SetValue(TimeDuration(EffectEnd()));
   } else if (mPlaybackRate == 0.0 && currentTime.IsNull()) {
     mHoldTime.SetValue(TimeDuration(0));
   }
@@ -650,27 +650,26 @@ AnimationPlayer::UpdateTiming()
   
   
   UpdateFinishedState();
-  UpdateSourceContent();
+  UpdateEffect();
 }
 
 void
 AnimationPlayer::UpdateFinishedState(bool aSeekFlag)
 {
   Nullable<TimeDuration> currentTime = GetCurrentTime();
-  TimeDuration targetEffectEnd = TimeDuration(SourceContentEnd());
+  TimeDuration effectEnd = TimeDuration(EffectEnd());
 
   if (!mStartTime.IsNull() &&
       mPendingState == PendingState::NotPending) {
     if (mPlaybackRate > 0.0 &&
         !currentTime.IsNull() &&
-        currentTime.Value() >= targetEffectEnd) {
+        currentTime.Value() >= effectEnd) {
       if (aSeekFlag) {
         mHoldTime = currentTime;
       } else if (!mPreviousCurrentTime.IsNull()) {
-        mHoldTime.SetValue(std::max(mPreviousCurrentTime.Value(),
-                                    targetEffectEnd));
+        mHoldTime.SetValue(std::max(mPreviousCurrentTime.Value(), effectEnd));
       } else {
-        mHoldTime.SetValue(targetEffectEnd);
+        mHoldTime.SetValue(effectEnd);
       }
     } else if (mPlaybackRate < 0.0 &&
                !currentTime.IsNull() &&
@@ -706,7 +705,7 @@ AnimationPlayer::UpdateFinishedState(bool aSeekFlag)
 }
 
 void
-AnimationPlayer::UpdateSourceContent()
+AnimationPlayer::UpdateEffect()
 {
   if (mEffect) {
     mEffect->SetParentTime(GetCurrentTime());
@@ -764,7 +763,7 @@ AnimationPlayer::IsFinished() const
   
   Nullable<TimeDuration> currentTime = GetCurrentTime();
   return !currentTime.IsNull() &&
-      ((mPlaybackRate > 0.0 && currentTime.Value() >= SourceContentEnd()) ||
+      ((mPlaybackRate > 0.0 && currentTime.Value() >= EffectEnd()) ||
        (mPlaybackRate < 0.0 && currentTime.Value().ToMilliseconds() <= 0.0));
 }
 
@@ -823,7 +822,7 @@ AnimationPlayer::IsPossiblyOrphanedPendingPlayer() const
 }
 
 StickyTimeDuration
-AnimationPlayer::SourceContentEnd() const
+AnimationPlayer::EffectEnd() const
 {
   if (!mEffect) {
     return StickyTimeDuration(0);

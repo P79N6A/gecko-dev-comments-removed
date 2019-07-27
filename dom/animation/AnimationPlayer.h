@@ -212,15 +212,15 @@ public:
            mPendingState == PendingState::PausePending;
   }
 
-  bool HasInPlaySource() const
+  bool HasInPlayEffect() const
   {
     return GetEffect() && GetEffect()->IsInPlay(*this);
   }
-  bool HasCurrentSource() const
+  bool HasCurrentEffect() const
   {
     return GetEffect() && GetEffect()->IsCurrent(*this);
   }
-  bool HasInEffectSource() const
+  bool IsInEffect() const
   {
     return GetEffect() && GetEffect()->IsInEffect();
   }
@@ -237,7 +237,7 @@ public:
   {
     
     
-    return HasInPlaySource() &&
+    return HasInPlayEffect() &&
            (PlayState() == AnimationPlayState::Running ||
             mPendingState == PendingState::PlayPending);
   }
@@ -282,7 +282,7 @@ protected:
 
   void UpdateTiming();
   void UpdateFinishedState(bool aSeekFlag = false);
-  void UpdateSourceContent();
+  void UpdateEffect();
   void FlushStyle() const;
   void PostUpdate();
   
@@ -295,7 +295,7 @@ protected:
   bool IsFinished() const;
 
   bool IsPossiblyOrphanedPendingPlayer() const;
-  StickyTimeDuration SourceContentEnd() const;
+  StickyTimeDuration EffectEnd() const;
 
   nsIDocument* GetRenderedDocument() const;
   nsPresContext* GetPresContext() const;
