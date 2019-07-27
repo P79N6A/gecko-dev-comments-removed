@@ -728,10 +728,6 @@ class MochitestArguments(ArgumentContainer):
         if mozinfo.isWin:
             options.ignoreMissingLeaks.append("tab")
 
-        
-        if mozinfo.isMac:
-            options.leakThresholds["tab"] = 100000
-
         return options
 
 
