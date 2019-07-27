@@ -276,7 +276,26 @@ void nsCaret::SetVisible(bool inMakeVisible)
 
 bool nsCaret::IsVisible()
 {
-  return mVisible && MustDrawCaret();
+  if (!mVisible) {
+    return false;
+  }
+
+  if (!mShowDuringSelection) {
+    Selection* selection = GetSelectionInternal();
+    if (!selection) {
+      return false;
+    }
+    bool isCollapsed;
+    if (NS_FAILED(selection->GetIsCollapsed(&isCollapsed)) || !isCollapsed) {
+      return false;
+    }
+  }
+
+  if (IsMenuPopupHidingCaret()) {
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -691,7 +710,7 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*          aNode,
       (userinterface->mUserInput == NS_STYLE_USER_INPUT_DISABLED))
   {
     return false;
-  }  
+  }
 
   if (!mDrawn)
   {
@@ -891,13 +910,13 @@ nsCaret::CheckCaretDrawingState()
 {
   if (mDrawn) {
     
-    if (!mVisible || !MustDrawCaret())
+    if (!IsVisible())
       EraseCaret();
   }
   else
   {
     
-    if (mPendingDraw && (mVisible && MustDrawCaret()))
+    if (mPendingDraw && IsVisible())
       DrawCaret(true);
   }
 }
@@ -919,37 +938,6 @@ size_t nsCaret::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     total += mBlinkTimer->SizeOfIncludingThis(aMallocSizeOf);
   }
   return total;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool nsCaret::MustDrawCaret()
-{
-  nsCOMPtr<nsISelection> domSelection = do_QueryReferent(mDomSelectionWeak);
-  if (!domSelection)
-    return false;
-
-  bool isCollapsed;
-  if (NS_FAILED(domSelection->GetIsCollapsed(&isCollapsed)))
-    return false;
-
-  if (mShowDuringSelection)
-    return true;      
-
-  if (IsMenuPopupHidingCaret())
-    return false;
-
-  return isCollapsed;
 }
 
 bool nsCaret::IsMenuPopupHidingCaret()
@@ -1004,7 +992,7 @@ bool nsCaret::IsMenuPopupHidingCaret()
 void nsCaret::DrawCaret(bool aInvalidate)
 {
   
-  if (!mDrawn && !MustDrawCaret())
+  if (!mDrawn && !IsVisible())
     return;
   
   

@@ -71,6 +71,9 @@ class nsCaret : public nsISelectionListener
 
 
 
+
+
+
     bool IsVisible();
     
 
@@ -185,11 +188,6 @@ protected:
                                         int32_t   aFrameOffset,
                                         nsRect*   aRect,
                                         nscoord*  aBidiIndicatorSize);
-
-    
-    
-    
-    bool          MustDrawCaret();
 
     void          DrawCaret(bool aInvalidate);
     void          DrawCaretAfterBriefDelay();
