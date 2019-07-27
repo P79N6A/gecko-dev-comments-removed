@@ -51,7 +51,7 @@ DrawTargetTiled::Init(const TileSet& aTiles)
 TemporaryRef<SourceSurface>
 DrawTargetTiled::Snapshot()
 {
-  return new SnapshotTiled(mTiles, mRect);
+  return MakeAndAddRef<SnapshotTiled>(mTiles, mRect);
 }
 
 

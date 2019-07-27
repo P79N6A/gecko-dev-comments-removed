@@ -347,7 +347,7 @@ SurfaceFactory::NewShSurfHandle(const gfx::IntSize& size)
     
     surf->WaitForBufferOwnership();
 
-    return new ShSurfHandle(this, Move(surf));
+    return MakeAndAddRef<ShSurfHandle>(this, Move(surf));
 }
 
 
