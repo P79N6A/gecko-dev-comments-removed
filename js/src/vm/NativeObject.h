@@ -417,6 +417,12 @@ class NativeObject : public JSObject
     
     void setLastPropertyMakeNonNative(Shape *shape);
 
+    
+    
+    
+    static void setLastPropertyMakeNative(ExclusiveContext *cx, HandleNativeObject obj,
+                                          HandleShape shape);
+
   protected:
 #ifdef DEBUG
     void checkShapeConsistency();

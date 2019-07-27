@@ -1495,8 +1495,9 @@ template<> struct RootKind<BaseShape *> : SpecificRootKind<BaseShape *, THING_RO
 
 
 
+template <AllowGC allowGC>
 static inline void
-MarkNonNativePropertyFound(MutableHandleShape propp)
+MarkNonNativePropertyFound(typename MaybeRooted<Shape*, allowGC>::MutableHandleType propp)
 {
     propp.set(reinterpret_cast<Shape*>(1));
 }
