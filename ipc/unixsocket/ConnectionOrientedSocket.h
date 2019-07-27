@@ -9,6 +9,7 @@
 
 #include <sys/socket.h>
 #include "DataSocket.h"
+#include "mozilla/ipc/UnixSocketWatcher.h"
 
 class MessageLoop;
 
@@ -23,15 +24,38 @@ class UnixSocketConnector;
 
 
 
-class ConnectionOrientedSocketIO : public DataSocketIO
+class ConnectionOrientedSocketIO
+  : public DataSocketIO
+  , public UnixSocketWatcher
 {
 public:
-  ConnectionOrientedSocketIO(nsIThread* aConsumerThread);
   virtual ~ConnectionOrientedSocketIO();
 
   virtual nsresult Accept(int aFd,
                           const struct sockaddr* aAddress,
                           socklen_t aAddressLength) = 0;
+
+protected:
+  
+
+
+
+
+
+
+
+  ConnectionOrientedSocketIO(nsIThread* aConsumerThread,
+                             MessageLoop* aIOLoop,
+                             int aFd, ConnectionStatus aConnectionStatus);
+
+  
+
+
+
+
+
+  ConnectionOrientedSocketIO(nsIThread* aConsumerThread,
+                             MessageLoop* aIOLoop);
 };
 
 class ConnectionOrientedSocket : public DataSocket
