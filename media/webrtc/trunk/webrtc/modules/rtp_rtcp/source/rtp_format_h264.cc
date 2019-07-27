@@ -18,14 +18,16 @@
 namespace webrtc {
 namespace {
 
-enum Nalu {
-  kSlice = 1,
-  kIdr = 5,
-  kSei = 6,
-  kSps = 7,
-  kPps = 8,
-  kStapA = 24,
-  kFuA = 28
+enum Nalu { 
+  kSlice = 1, 
+  kIdr = 5, 
+  kSei = 6, 
+  kSeiRecPt = 6, 
+  kSps = 7, 
+  kPps = 8, 
+  kPrefix = 14, 
+  kStapA = 24, 
+  kFuA = 28 
 };
 
 static const size_t kNalHeaderSize = 1;
@@ -51,14 +53,38 @@ void ParseSingleNalu(RtpDepacketizer::ParsedPayload* parsed_payload,
   h264_header->stap_a = false;
 
   uint8_t nal_type = payload_data[0] & kTypeMask;
+  size_t offset = 0;
   if (nal_type == kStapA) {
-    nal_type = payload_data[3] & kTypeMask;
+    offset = 3;
+    if (offset >= payload_data_length) {
+      return; 
+    }
+    nal_type = payload_data[offset] & kTypeMask;
     h264_header->stap_a = true;
   }
 
+  
+  
+  
   switch (nal_type) {
+    case kSei: 
+      if (offset+1 >= payload_data_length) {
+        return; 
+      }
+      if (payload_data[offset+1] != kSeiRecPt) {
+        parsed_payload->frame_type = kVideoFrameDelta;
+        break; 
+      }
+      
     case kSps:
     case kPps:
+      
+      
+      
+      
+      
+      h264_header->single_nalu = false;
+      
     case kIdr:
       parsed_payload->frame_type = kVideoFrameKey;
       break;

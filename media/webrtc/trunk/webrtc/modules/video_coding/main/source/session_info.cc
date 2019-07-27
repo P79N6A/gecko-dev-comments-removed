@@ -464,12 +464,23 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
     return -2;
 
   if (packet.codec == kVideoCodecH264) {
-    frame_type_ = packet.frameType;
+    
+    
+    
+    
+    
+    
+    if (frame_type_ != kVideoFrameKey) {
+      frame_type_ = packet.frameType;
+    }
     if (packet.isFirstPacket &&
         (first_packet_seq_num_ == -1 ||
          IsNewerSequenceNumber(first_packet_seq_num_, packet.seqNum))) {
       first_packet_seq_num_ = packet.seqNum;
     }
+    
+    
+    
     if (packet.markerBit &&
         (last_packet_seq_num_ == -1 ||
          IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_))) {
@@ -513,6 +524,9 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
 
   int returnLength = InsertBuffer(frame_buffer, packet_list_it);
   UpdateCompleteSession();
+  
+  
+  
   if (decode_error_mode == kWithErrors)
     decodable_ = true;
   else if (decode_error_mode == kSelectiveErrors)
