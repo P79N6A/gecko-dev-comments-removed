@@ -929,6 +929,8 @@ pref("general.useragent.device_id", "");
 
 pref("media.useAudioChannelService", true);
 
+pref("media.useAudioChannelAPI", true);
+
 pref("b2g.version", @MOZ_B2G_VERSION@);
 pref("b2g.osName", @MOZ_B2G_OS_NAME@);
 
