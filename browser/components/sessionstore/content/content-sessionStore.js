@@ -60,7 +60,7 @@ function createLazy(fn) {
 
 function isSessionStorageEvent(event) {
   try {
-    return event.storageArea == content.sessionStorage;
+    return event.storageArea == event.target.sessionStorage;
   } catch (ex if ex instanceof Ci.nsIException && ex.result == Cr.NS_ERROR_NOT_AVAILABLE) {
     
     
