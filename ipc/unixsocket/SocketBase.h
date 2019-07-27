@@ -463,14 +463,14 @@ private:
 
 
 
-template <typename T>
+template<typename Tio>
 class SocketIOTask : public CancelableTask
 {
 public:
   virtual ~SocketIOTask()
   { }
 
-  T* GetIO() const
+  Tio* GetIO() const
   {
     return mIO;
   }
@@ -486,25 +486,26 @@ public:
   }
 
 protected:
-  SocketIOTask(T* aIO)
+  SocketIOTask(Tio* aIO)
   : mIO(aIO)
   {
     MOZ_ASSERT(mIO);
   }
 
 private:
-  T* mIO;
+  Tio* mIO;
 };
 
 
 
 
-template <typename T>
-class SocketIOSendTask MOZ_FINAL : public SocketIOTask<T>
+
+template<typename Tio, typename Tdata>
+class SocketIOSendTask MOZ_FINAL : public SocketIOTask<Tio>
 {
 public:
-  SocketIOSendTask(T* aIO, UnixSocketRawData* aData)
-  : SocketIOTask<T>(aIO)
+  SocketIOSendTask(Tio* aIO, Tdata* aData)
+  : SocketIOTask<Tio>(aIO)
   , mData(aData)
   {
     MOZ_ASSERT(aData);
@@ -513,34 +514,34 @@ public:
   void Run() MOZ_OVERRIDE
   {
     MOZ_ASSERT(!NS_IsMainThread());
-    MOZ_ASSERT(!SocketIOTask<T>::IsCanceled());
+    MOZ_ASSERT(!SocketIOTask<Tio>::IsCanceled());
 
-    T* io = SocketIOTask<T>::GetIO();
+    Tio* io = SocketIOTask<Tio>::GetIO();
     MOZ_ASSERT(!io->IsShutdownOnIOThread());
 
     io->Send(mData);
   }
 
 private:
-  UnixSocketRawData* mData;
+  Tdata* mData;
 };
 
 
 
 
-template <typename T>
-class SocketIOShutdownTask MOZ_FINAL : public SocketIOTask<T>
+template<typename Tio>
+class SocketIOShutdownTask MOZ_FINAL : public SocketIOTask<Tio>
 {
 public:
-  SocketIOShutdownTask(T* aIO)
-  : SocketIOTask<T>(aIO)
+  SocketIOShutdownTask(Tio* aIO)
+  : SocketIOTask<Tio>(aIO)
   { }
 
   void Run() MOZ_OVERRIDE
   {
     MOZ_ASSERT(!NS_IsMainThread());
 
-    T* io = SocketIOTask<T>::GetIO();
+    Tio* io = SocketIOTask<Tio>::GetIO();
 
     
     
@@ -549,7 +550,7 @@ public:
     
     io->ShutdownOnIOThread();
 
-    nsRefPtr<nsRunnable> r = new SocketIODeleteInstanceRunnable<T>(io);
+    nsRefPtr<nsRunnable> r = new SocketIODeleteInstanceRunnable<Tio>(io);
     nsresult rv = NS_DispatchToMainThread(r);
     NS_ENSURE_SUCCESS_VOID(rv);
   }
