@@ -41,6 +41,13 @@ static const int32_t kMoveStartTolerancePx = 5;
 
 static const int32_t kScrollEndTimerDelay = 300;
 
+
+
+
+
+
+static bool kSupportNonEditableFields = false;
+
 NS_IMPL_ISUPPORTS(SelectionCarets,
                   nsISelectionListener,
                   nsIScrollObserver,
@@ -63,6 +70,8 @@ SelectionCarets::SelectionCarets(nsIPresShell *aPresShell)
   if (!addedPref) {
     Preferences::AddIntVarCache(&sSelectionCaretsInflateSize,
                                 "selectioncaret.inflatesize.threshold");
+    Preferences::AddBoolVarCache(&kSupportNonEditableFields,
+                                 "selectioncaret.noneditable");
     addedPref = true;
   }
 
