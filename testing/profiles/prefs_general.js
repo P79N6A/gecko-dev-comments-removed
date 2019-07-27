@@ -77,8 +77,6 @@ user_pref("geo.wifi.timeToWaitBeforeSending", 2000);
 user_pref("geo.wifi.scan", false);
 user_pref("geo.wifi.logging.enabled", true);
 
-user_pref("camino.warn_when_closing", false); 
-
 
 user_pref("urlclassifier.updateinterval", 172800);
 

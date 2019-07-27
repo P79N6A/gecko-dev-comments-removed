@@ -1600,11 +1600,6 @@ nsComboboxControlFrame::RestoreState(nsPresState* aState)
 
 
 
-
-
-
-
-
 bool
 nsComboboxControlFrame::ToolkitHasNativePopup()
 {
