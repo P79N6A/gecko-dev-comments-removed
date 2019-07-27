@@ -113,7 +113,7 @@ SettingsLock.prototype = {
     if (msg.lockID != this._id) {
       return;
     }
-
+    if (DEBUG) debug("receiveMessage (" + this._id + "): " + aMessage.name);
     
     
     if (!msg.requestID) {
