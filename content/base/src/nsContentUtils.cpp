@@ -6816,7 +6816,7 @@ nsContentUtils::HasDistributedChildren(nsIContent* aContent)
   if (shadow) {
     
     
-    return shadow->GetYoungerShadow();
+    return shadow->GetYoungerShadowRoot();
   }
 
   HTMLShadowElement* shadowEl = HTMLShadowElement::FromContent(aContent);
