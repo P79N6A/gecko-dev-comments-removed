@@ -4,8 +4,6 @@
 # file, You can obtain one at http:
 
 var FullScreen = {
-  _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
-
   _MESSAGES: [
     "DOMFullscreen:Request",
     "DOMFullscreen:NewOrigin",
@@ -63,27 +61,24 @@ var FullScreen = {
     if (enterFS) {
       gNavToolbox.setAttribute("inFullscreen", true);
       document.documentElement.setAttribute("inFullscreen", true);
+      if (!document.mozFullScreen && this.useLionFullScreen)
+        document.documentElement.setAttribute("OSXLionFullscreen", true);
     } else {
       gNavToolbox.removeAttribute("inFullscreen");
       document.documentElement.removeAttribute("inFullscreen");
+      document.documentElement.removeAttribute("OSXLionFullscreen");
     }
 
-    
-    
-    
-    if (document.mozFullScreen || !this.useLionFullScreen) {
-      this.showXULChrome("toolbar", !enterFS);
-    }
+    if (!document.mozFullScreen)
+      this._updateToolbars(enterFS);
 
     if (enterFS) {
       document.addEventListener("keypress", this._keyToggleCallback, false);
       document.addEventListener("popupshown", this._setPopupOpen, false);
       document.addEventListener("popuphidden", this._setPopupOpen, false);
-      this._shouldAnimate = true;
       
-      
-      
-      this.hideNavToolbox(document.mozFullScreen);
+      if (!document.mozFullScreen)
+        this.hideNavToolbox(true);
     }
     else {
       this.showNavToolbox(false);
@@ -208,10 +203,6 @@ var FullScreen = {
     
     window.addEventListener("activate", this);
 
-    
-    
-    this.hideNavToolbox(true);
-    this._fullScrToggler.hidden = true;
     return true;
   },
 
@@ -232,13 +223,6 @@ var FullScreen = {
     window.removeEventListener("activate", this);
 
     document.documentElement.removeAttribute("inDOMFullscreen");
-    this.showNavToolbox();
-    
-    
-    if (window.fullScreen) {
-      this._shouldAnimate = true;
-      this.hideNavToolbox();
-    }
 
     window.messageManager
           .broadcastAsyncMessage("DOMFullscreen:CleanUp");
@@ -272,7 +256,7 @@ var FullScreen = {
     
     
     if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE) {
-      FullScreen.hideNavToolbox(true);
+      FullScreen.hideNavToolbox();
     }
     
     else if (aEvent.keyCode == aEvent.DOM_VK_F6)
@@ -282,30 +266,25 @@ var FullScreen = {
   
   _isPopupOpen: false,
   _isChromeCollapsed: false,
-  _safeToCollapse: function(forceHide)
-  {
+  _safeToCollapse: function () {
     if (!gPrefService.getBoolPref("browser.fullscreen.autohide"))
       return false;
 
-    if (!forceHide) {
-      
-      if (this._isPopupOpen)
-        return false;
-      
-      if (this.useLionFullScreen)
-        return false;
-    }
+    
+    if (this._isPopupOpen)
+      return false;
+
+    
+    if (this.useLionFullScreen)
+      return false;
 
     
     if (document.commandDispatcher.focusedElement &&
         document.commandDispatcher.focusedElement.ownerDocument == document &&
         document.commandDispatcher.focusedElement.localName == "input") {
-      if (forceHide)
-        
-        document.commandDispatcher.focusedElement.blur();
-      else
-        return false;
+      return false;
     }
+
     return true;
   },
 
@@ -332,9 +311,6 @@ var FullScreen = {
   {
     gPrefService.setBoolPref("browser.fullscreen.autohide", !gPrefService.getBoolPref("browser.fullscreen.autohide"));
   },
-
-  
-  _shouldAnimate: true,
 
   cancelWarning: function(event) {
     if (!this.warningBox)
@@ -514,32 +490,14 @@ var FullScreen = {
     }
   },
 
-  hideNavToolbox: function(forceHide = false) {
-    this._fullScrToggler.hidden = document.mozFullScreen;
-    if (this._isChromeCollapsed) {
-      if (forceHide) {
-        gNavToolbox.removeAttribute("fullscreenShouldAnimate");
-      }
+  hideNavToolbox: function (aAnimate = false) {
+    if (this._isChromeCollapsed || !this._safeToCollapse())
       return;
-    }
-    if (!this._safeToCollapse(forceHide)) {
-      this._fullScrToggler.hidden = true;
-      return;
-    }
 
-    
-    
-    
-    
-    let animateUp = gPrefService.getIntPref("browser.fullscreen.animateUp");
-    if (animateUp == 0) {
-      this._shouldAnimate = false;
-    } else if (animateUp == 2) {
-      this._shouldAnimate = true;
-    }
-    if (this._shouldAnimate && !forceHide) {
+    this._fullScrToggler.hidden = false;
+
+    if (aAnimate && gPrefService.getBoolPref("browser.fullscreen.animate")) {
       gNavToolbox.setAttribute("fullscreenShouldAnimate", true);
-      this._shouldAnimate = false;
       
       let listener = () => {
         gNavToolbox.removeEventListener("transitionend", listener, true);
@@ -556,40 +514,26 @@ var FullScreen = {
     MousePosTracker.removeListener(this);
   },
 
-  showXULChrome: function(aTag, aShow)
-  {
-    var els = document.getElementsByTagNameNS(this._XULNS, aTag);
-
-    for (let el of els) {
-      
-      if (el.getAttribute("fullscreentoolbar") == "true") {
-        if (!aShow) {
-          
-          
-          el.setAttribute("saved-context", el.getAttribute("context"));
-          if (el.id == "nav-bar" || el.id == "TabsToolbar")
-            el.setAttribute("context", "autohide-context");
-          else
-            el.removeAttribute("context");
-
-          
-          
-          el.setAttribute("inFullscreen", true);
-        }
-        else {
-          if (el.hasAttribute("saved-context")) {
-            el.setAttribute("context", el.getAttribute("saved-context"));
-            el.removeAttribute("saved-context");
-          }
-          el.removeAttribute("inFullscreen");
-        }
-      } else {
+  _updateToolbars: function (aEnterFS) {
+    for (let el of document.querySelectorAll("toolbar[fullscreentoolbar=true]")) {
+      if (aEnterFS) {
         
         
-        if (aShow)
-          el.removeAttribute("moz-collapsed");
+        el.setAttribute("saved-context", el.getAttribute("context"));
+        if (el.id == "nav-bar" || el.id == "TabsToolbar")
+          el.setAttribute("context", "autohide-context");
         else
-          el.setAttribute("moz-collapsed", "true");
+          el.removeAttribute("context");
+
+        
+        
+        el.setAttribute("inFullscreen", true);
+      } else {
+        if (el.hasAttribute("saved-context")) {
+          el.setAttribute("context", el.getAttribute("saved-context"));
+          el.removeAttribute("saved-context");
+        }
+        el.removeAttribute("inFullscreen");
       }
     }
 
@@ -614,7 +558,7 @@ var FullScreen = {
       fullscreenctls.setAttribute("flex", "1");
       navbar.appendChild(fullscreenctls);
     }
-    fullscreenctls.hidden = aShow;
+    fullscreenctls.hidden = !aEnterFS;
   }
 };
 XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {
