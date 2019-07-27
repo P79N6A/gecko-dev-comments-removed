@@ -22,11 +22,16 @@
 #include "Units.h"
 #include "mozilla/Mutex.h"
 #include <vector>
+#include "nsRefPtr.h"
 
 class nsIWidget;
 
 namespace mozilla {
 class WidgetMouseEvent;
+
+namespace layers {
+class CompositorVsyncObserver;
+}
 
 
 
@@ -48,6 +53,7 @@ public:
   void DispatchTouchEvent(MultiTouchInput& aMultiTouch);
   void DispatchTouchMoveEvents(TimeStamp aVsyncTime);
   static bool NotifyVsync(TimeStamp aVsyncTimestamp);
+  static void SetCompositorVsyncObserver(layers::CompositorVsyncObserver* aObserver);
 
 private:
   void ResampleTouchMoves(MultiTouchInput& aOutTouch, TimeStamp vsyncTime);
@@ -78,6 +84,8 @@ private:
 
   
   TimeDuration mOldTouchThreshold;
+
+  nsRefPtr<layers::CompositorVsyncObserver> mCompositorVsyncObserver;
 };
 
 } 

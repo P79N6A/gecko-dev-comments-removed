@@ -213,6 +213,21 @@ nsWindow::DoDraw(void)
     }
 }
 
+ void
+nsWindow::NotifyVsync(TimeStamp aVsyncTimestamp)
+{
+    if (!gFocusedWindow) {
+      return;
+    }
+
+    VsyncDispatcher* vsyncDispatcher = gFocusedWindow->GetVsyncDispatcher();
+    
+    
+    if (vsyncDispatcher) {
+      vsyncDispatcher->NotifyVsync(aVsyncTimestamp);
+    }
+}
+
 nsEventStatus
 nsWindow::DispatchInputEvent(WidgetGUIEvent& aEvent, bool* aWasCaptured)
 {

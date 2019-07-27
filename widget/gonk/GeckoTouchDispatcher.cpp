@@ -29,6 +29,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/dom/Touch.h"
+#include "mozilla/layers/CompositorParent.h"
 #include "nsAppShell.h"
 #include "nsDebug.h"
 #include "nsThreadUtils.h"
@@ -115,11 +116,23 @@ private:
   MultiTouchInput mTouch;
 };
 
+ void
+GeckoTouchDispatcher::SetCompositorVsyncObserver(mozilla::layers::CompositorVsyncObserver *aObserver)
+{
+  MOZ_ASSERT(sTouchDispatcher != nullptr);
+  MOZ_ASSERT(NS_IsMainThread());
+  
+  MOZ_ASSERT(sTouchDispatcher->mCompositorVsyncObserver == nullptr);
+  if (gfxPrefs::TouchResampling()) {
+    sTouchDispatcher->mCompositorVsyncObserver = aObserver;
+  }
+}
+
 
  bool
 GeckoTouchDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
 {
-  if (sTouchDispatcher == nullptr) {
+  if ((sTouchDispatcher == nullptr) || !gfxPrefs::TouchResampling()) {
     return false;
   }
 
@@ -141,6 +154,10 @@ GeckoTouchDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
 void
 GeckoTouchDispatcher::NotifyTouch(MultiTouchInput& aTouch, TimeStamp aEventTime)
 {
+  if (aTouch.mType == MultiTouchInput::MULTITOUCH_START && mCompositorVsyncObserver) {
+    mCompositorVsyncObserver->SetNeedsComposite(true);
+  }
+
   if (aTouch.mType == MultiTouchInput::MULTITOUCH_MOVE) {
     MutexAutoLock lock(mTouchQueueLock);
     if (mResamplingEnabled) {
