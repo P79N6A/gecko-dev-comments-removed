@@ -772,6 +772,12 @@ JitCode::finalize(FreeOp *fop)
     JS_ASSERT(fop->runtime()->currentThreadOwnsInterruptLock());
 
     
+    if (hasBytecodeMap_) {
+        JS_ASSERT(fop->runtime()->jitRuntime()->hasJitcodeGlobalTable());
+        fop->runtime()->jitRuntime()->getJitcodeGlobalTable()->removeEntry(raw());
+    }
+
+    
     
     
     if (fop->runtime()->jitRuntime() && !fop->runtime()->jitRuntime()->ionCodeProtected())
@@ -1182,17 +1188,6 @@ IonScript::Trace(JSTracer *trc, IonScript *script)
 void
 IonScript::Destroy(FreeOp *fop, IonScript *script)
 {
-    
-    
-    JSRuntime *runtime = js::TlsPerThreadData.get()->runtimeFromMainThread();
-    JS_ASSERT(runtime);
-    JS_ASSERT(runtime->hasJitRuntime());
-    JitRuntime *jitrt = runtime->jitRuntime();
-    if (jitrt->hasJitcodeGlobalTable()) {
-        JitcodeGlobalTable *table = jitrt->getJitcodeGlobalTable();
-        table->removeEntry(script->method()->raw());
-    }
-
     script->destroyCaches();
     script->unlinkFromRuntime(fop);
     fop->free_(script);

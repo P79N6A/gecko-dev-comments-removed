@@ -44,6 +44,8 @@ class JitCode : public gc::BarrieredCell<JitCode>
     uint8_t kind_ : 3;                
     bool invalidated_ : 1;            
                                       
+    bool hasBytecodeMap_ : 1;         
+                                      
 
 #if JS_BITS_PER_WORD == 32
     
@@ -66,7 +68,8 @@ class JitCode : public gc::BarrieredCell<JitCode>
         preBarrierTableBytes_(0),
         headerSize_(headerSize),
         kind_(kind),
-        invalidated_(false)
+        invalidated_(false),
+        hasBytecodeMap_(false)
     {
         MOZ_ASSERT(CodeKind(kind_) == kind);
         MOZ_ASSERT(headerSize_ == headerSize);
@@ -96,6 +99,10 @@ class JitCode : public gc::BarrieredCell<JitCode>
     void finalize(FreeOp *fop);
     void setInvalidated() {
         invalidated_ = true;
+    }
+
+    void setHasBytecodeMap() {
+        hasBytecodeMap_ = true;
     }
 
     void togglePreBarriers(bool enabled);

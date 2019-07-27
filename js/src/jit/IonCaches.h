@@ -213,6 +213,9 @@ class IonCache
         profilerLeavePc_ = pc;
     }
 
+    
+    virtual void *rejoinAddress() = 0;
+
     virtual void emitInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
     virtual void bindInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
     virtual void updateBaseAddress(JitCode *code, MacroAssembler &masm);
@@ -398,6 +401,10 @@ class RepatchIonCache : public IonCache
 
     
     void updateBaseAddress(JitCode *code, MacroAssembler &masm);
+
+    virtual void *rejoinAddress() MOZ_OVERRIDE {
+        return rejoinLabel().raw();
+    }
 };
 
 
@@ -496,6 +503,10 @@ class DispatchIonCache : public IonCache
 
     
     void updateBaseAddress(JitCode *code, MacroAssembler &masm);
+
+    virtual void *rejoinAddress() MOZ_OVERRIDE {
+        return rejoinLabel_.raw();
+    }
 };
 
 
