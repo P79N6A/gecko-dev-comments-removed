@@ -656,10 +656,6 @@ pref("devtools.discovery.log", false);
 pref("devtools.remote.wifi.scan", false);
 
 
-
-pref("devtools.remote.wifi.visible", false);
-
-
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
