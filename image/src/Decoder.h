@@ -92,6 +92,24 @@ public:
     mSizeDecode = aSizeDecode;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  void SetSendPartialInvalidations(bool aSend)
+  {
+    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
+    mSendPartialInvalidations = aSend;
+  }
+
   size_t BytesDecoded() const { return mBytesDecoded; }
 
   
@@ -262,6 +280,7 @@ protected:
 
   uint32_t mDecodeFlags;
   size_t mBytesDecoded;
+  bool mSendPartialInvalidations;
   bool mDecodeDone;
   bool mDataError;
 
