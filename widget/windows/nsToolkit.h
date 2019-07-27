@@ -24,41 +24,6 @@
 
 
 
-
- 
-
-class MouseTrailer 
-{
-public:
-    HWND                  GetMouseTrailerWindow() { return mMouseTrailerWindow; }
-    HWND                  GetCaptureWindow() { return mCaptureWindow; }
-
-    void                  SetMouseTrailerWindow(HWND aWnd);
-    void                  SetCaptureWindow(HWND aWnd);
-    void                  Disable() { mEnabled = false; DestroyTimer(); }
-    void                  Enable() { mEnabled = true; CreateTimer(); }
-    void                  DestroyTimer();
-
-                          MouseTrailer();
-                          ~MouseTrailer();
-private:
-
-    nsresult              CreateTimer();
-
-    static void           TimerProc(nsITimer* aTimer, void* aClosure);
-
-    
-    HWND                  mMouseTrailerWindow;
-    HWND                  mCaptureWindow;
-    bool                  mIsInCaptureMode;
-    bool                  mEnabled;
-    nsCOMPtr<nsITimer>    mTimer;
-};
-
-
-
-
-
  
 
 class nsToolkit
@@ -73,7 +38,6 @@ public:
     static nsToolkit* GetToolkit();
 
     static HINSTANCE mDllInstance;
-    static MouseTrailer *gMouseTrailer;
 
     static void Startup(HMODULE hModule);
     static void Shutdown();
@@ -83,7 +47,6 @@ protected:
     static nsToolkit* gToolkit;
 
     nsCOMPtr<nsITimer> mD3D9Timer;
-    MouseTrailer mMouseTrailer;
 };
 
 #endif  
