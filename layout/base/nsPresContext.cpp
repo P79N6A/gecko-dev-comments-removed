@@ -1992,7 +1992,7 @@ nsPresContext::MediaFeatureValuesChanged(nsRestyleHint aRestyleHint,
     
     
     
-    MediaQueryList::NotifyList notifyList;
+    nsTArray<MediaQueryList::HandleChangeData> notifyList;
     for (PRCList *l = PR_LIST_HEAD(mDocument->MediaQueryLists());
          l != mDocument->MediaQueryLists(); l = PR_NEXT_LINK(l)) {
       MediaQueryList *mql = static_cast<MediaQueryList*>(l);
