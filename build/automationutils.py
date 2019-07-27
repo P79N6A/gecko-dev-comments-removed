@@ -104,9 +104,12 @@ def processSingleLeakFile(leakLogFileName, processType, leakThreshold, ignoreMis
   
   
   
-  lineRe = re.compile(r"^\s*\d+\s+(?P<name>\S+)\s+"
-                      r"(?P<size>-?\d+)\s+(?P<bytesLeaked>-?\d+)\s+"
-                      r"-?\d+\s+(?P<numLeaked>-?\d+)")
+  
+  lineRe = re.compile(r"^\s*\d+ \|"
+                      r"(?P<name>[^|]+)\|"
+                      r"\s*(?P<size>-?\d+)\s+(?P<bytesLeaked>-?\d+)\s*\|"
+                      r"\s*-?\d+\s+(?P<numLeaked>-?\d+)")
+  
 
   processString = "%s process:" % processType
   crashedOnPurpose = False
@@ -125,7 +128,7 @@ def processSingleLeakFile(leakLogFileName, processType, leakThreshold, ignoreMis
         
         log.info(line.rstrip())
         continue
-      name = matches.group("name")
+      name = matches.group("name").rstrip()
       size = int(matches.group("size"))
       bytesLeaked = int(matches.group("bytesLeaked"))
       numLeaked = int(matches.group("numLeaked"))
