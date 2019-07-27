@@ -17,7 +17,6 @@
 #include "mozilla/layers/PImageBridgeChild.h"
 #include "nsDebug.h"                    
 #include "nsRegion.h"                   
-
 class MessageLoop;
 struct nsIntPoint;
 struct nsIntRect;

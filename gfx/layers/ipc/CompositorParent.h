@@ -33,7 +33,6 @@
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"
 #include "nsSize.h"                     
-#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 
 class CancelableTask;
 class MessageLoop;
@@ -64,12 +63,10 @@ private:
   uint64_t mLayersId;
 };
 
-class CompositorThreadHolder;
-
 class CompositorParent : public PCompositorParent,
                          public ShadowLayersManager
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(CompositorParent)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorParent)
 
 public:
   CompositorParent(nsIWidget* aWidget,
@@ -171,9 +168,6 @@ public:
   
 
 
-
-
-
   static void ShutDown();
 
   
@@ -245,8 +239,6 @@ protected:
   
   virtual ~CompositorParent();
 
-  void DeferredDestroy();
-
   virtual PLayerTransactionParent*
     AllocPLayerTransactionParent(const nsTArray<LayersBackend>& aBackendHints,
                                  const uint64_t& aId,
@@ -266,6 +258,36 @@ protected:
   void ResumeCompositionAndResize(int width, int height);
   void ForceComposition();
   void CancelCurrentCompositeTask();
+
+  
+
+
+
+
+
+
+  static void CreateCompositorMap();
+  static void DestroyCompositorMap();
+
+  
+
+
+
+
+
+
+
+
+  static bool CreateThread();
+
+  
+
+
+
+
+
+
+  static void DestroyThread();
 
   
 
@@ -313,8 +335,6 @@ protected:
   CancelableTask* mForceCompositionTask;
 
   nsRefPtr<APZCTreeManager> mApzcTreeManager;
-
-  nsRefPtr<CompositorThreadHolder> mCompositorThreadHolder;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };

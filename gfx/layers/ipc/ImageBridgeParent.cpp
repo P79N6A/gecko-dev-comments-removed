@@ -44,8 +44,6 @@ using namespace mozilla::gfx;
 
 std::map<base::ProcessId, ImageBridgeParent*> ImageBridgeParent::sImageBridges;
 
-MessageLoop* ImageBridgeParent::sMainLoop = nullptr;
-
 ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
                                      Transport* aTransport,
                                      ProcessId aChildProcessId)
@@ -53,12 +51,6 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
   , mTransport(aTransport)
   , mChildProcessId(aChildProcessId)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-  sMainLoop = MessageLoop::current();
-
-  
-  SetMessageLoopToPostDestructionTo(sMainLoop);
-
   
   
   CompositableMap::Create();
@@ -67,14 +59,10 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
 
 ImageBridgeParent::~ImageBridgeParent()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   if (mTransport) {
-    MOZ_ASSERT(XRE_GetIOMessageLoop());
     XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
                                      new DeleteTask<Transport>(mTransport));
   }
-
   sImageBridges.erase(mChildProcessId);
 }
 
@@ -172,25 +160,10 @@ bool ImageBridgeParent::RecvWillStop()
   return true;
 }
 
-static void
-ReleaseImageBridgeParent(ImageBridgeParent* aImageBridgeParent)
-{
-  aImageBridgeParent->Release();
-}
-
 bool ImageBridgeParent::RecvStop()
 {
   
   
-
-  
-  
-  
-  
-  AddRef();
-  MessageLoop::current()->PostTask(
-    FROM_HERE,
-    NewRunnableFunction(&ReleaseImageBridgeParent, this));
   return true;
 }
 
@@ -292,10 +265,32 @@ MessageLoop * ImageBridgeParent::GetMessageLoop() const {
   return mMessageLoop;
 }
 
+class ReleaseRunnable : public nsRunnable
+{
+public:
+  ReleaseRunnable(ImageBridgeParent* aRef)
+    : mRef(aRef)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    mRef->Release();
+    return NS_OK;
+  }
+
+private:
+  ImageBridgeParent* mRef;
+};
+
 void
 ImageBridgeParent::DeferredDestroy()
 {
-  mSelfRef = nullptr;
+  ImageBridgeParent* self;
+  mSelfRef.forget(&self);
+
+  nsCOMPtr<nsIRunnable> runnable = new ReleaseRunnable(self);
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
 }
 
 ImageBridgeParent*
