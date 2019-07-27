@@ -176,14 +176,8 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 class PLDHashTable
 {
-public:
-  
-
-
-
-  const PLDHashTableOps* ops;
-
 private:
+  const PLDHashTableOps* mOps;        
   int16_t             mHashShift;     
   
 
@@ -226,7 +220,7 @@ public:
   
   
   MOZ_CONSTEXPR PLDHashTable()
-    : ops(nullptr)
+    : mOps(nullptr)
     , mHashShift(0)
     , mRecursionLevel(0)
     , mEntrySize(0)
@@ -239,7 +233,11 @@ public:
 #endif
   {}
 
-  bool IsInitialized() const { return !!ops; }
+  bool IsInitialized() const { return !!mOps; }
+
+  
+  const PLDHashTableOps* const Ops() { return mOps; }
+  void SetOps(const PLDHashTableOps* aOps) { mOps = aOps; }
 
   
 

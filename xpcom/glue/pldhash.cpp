@@ -255,7 +255,7 @@ PLDHashTable::Init(const PLDHashTableOps* aOps,
   METER(memset(&mStats, 0, sizeof(mStats)));
 
   
-  ops = aOps;
+  mOps = aOps;
 
 #ifdef DEBUG
   mRecursionLevel = 0;
@@ -330,12 +330,12 @@ PLDHashTable::Finish()
     PLDHashEntryHdr* entry = (PLDHashEntryHdr*)entryAddr;
     if (ENTRY_IS_LIVE(entry)) {
       METER(mStats.mRemoveEnums++);
-      ops->clearEntry(this, entry);
+      mOps->clearEntry(this, entry);
     }
     entryAddr += mEntrySize;
   }
 
-  ops = nullptr;
+  mOps = nullptr;
 
   DECREMENT_RECURSION_LEVEL(this);
   MOZ_ASSERT(RECURSION_LEVEL_SAFE_TO_FINISH(this));
@@ -369,7 +369,7 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
   }
 
   
-  PLDHashMatchEntry matchEntry = ops->matchEntry;
+  PLDHashMatchEntry matchEntry = mOps->matchEntry;
   if (MATCH_ENTRY_KEYHASH(entry, aKeyHash) &&
       matchEntry(this, entry, aKey)) {
     METER(mStats.mHits++);
@@ -503,7 +503,7 @@ PLDHashTable::ChangeTable(int aDeltaLog2)
   char* oldEntryAddr;
   oldEntryAddr = oldEntryStore = mEntryStore;
   mEntryStore = newEntryStore;
-  PLDHashMoveEntry moveEntry = ops->moveEntry;
+  PLDHashMoveEntry moveEntry = mOps->moveEntry;
 #ifdef DEBUG
   mRecursionLevel = recursionLevelTmp;
 #endif
@@ -535,7 +535,7 @@ PLDHashTable::Operate(const void* aKey, PLDHashOperator aOp)
   MOZ_ASSERT(aOp == PL_DHASH_LOOKUP || mRecursionLevel == 0);
   INCREMENT_RECURSION_LEVEL(this);
 
-  PLDHashNumber keyHash = ops->hashKey(this, aKey);
+  PLDHashNumber keyHash = mOps->hashKey(this, aKey);
   keyHash *= PL_DHASH_GOLDEN_RATIO;
 
   
@@ -592,7 +592,7 @@ PLDHashTable::Operate(const void* aKey, PLDHashOperator aOp)
           mRemovedCount--;
           keyHash |= COLLISION_FLAG;
         }
-        if (ops->initEntry && !ops->initEntry(this, entry, aKey)) {
+        if (mOps->initEntry && !mOps->initEntry(this, entry, aKey)) {
           
           memset(entry + 1, 0, mEntrySize - sizeof(*entry));
           entry = nullptr;
@@ -683,7 +683,7 @@ PLDHashTable::RawRemove(PLDHashEntryHdr* aEntry)
 
   
   PLDHashNumber keyHash = aEntry->keyHash;
-  ops->clearEntry(this, aEntry);
+  mOps->clearEntry(this, aEntry);
   if (keyHash & COLLISION_FLAG) {
     MARK_ENTRY_REMOVED(aEntry);
     mRemovedCount++;
