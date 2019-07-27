@@ -230,7 +230,7 @@ public:
 
 private:
   ~Connection();
-  nsresult initializeInternal();
+  nsresult initializeInternal(nsIFile *aDatabaseFile);
 
   
 
@@ -287,12 +287,6 @@ private:
   sqlite3 *mDBConn;
   nsCOMPtr<nsIFileURL> mFileURL;
   nsCOMPtr<nsIFile> mDatabaseFile;
-
-  
-
-
-
-  nsCString mTelemetryFilename;
 
   
 
