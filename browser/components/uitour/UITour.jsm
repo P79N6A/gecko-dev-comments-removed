@@ -684,7 +684,7 @@ this.UITour = {
     }
     this.tourBrowsersByWindow.get(window).add(browser);
 
-    Services.obs.addObserver(this, "message-manager-disconnect", false);
+    Services.obs.addObserver(this, "message-manager-close", false);
 
     window.addEventListener("SSWindowClosing", this);
 
@@ -736,7 +736,7 @@ this.UITour = {
     switch (aTopic) {
       
       
-      case "message-manager-disconnect": {
+      case "message-manager-close": {
         let winEnum = Services.wm.getEnumerator("navigator:browser");
         while (winEnum.hasMoreElements()) {
           let window = winEnum.getNext();

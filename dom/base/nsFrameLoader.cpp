@@ -107,25 +107,6 @@ using namespace mozilla::layers;
 using namespace mozilla::layout;
 typedef FrameMetrics::ViewID ViewID;
 
-class nsAsyncDocShellDestroyer : public nsRunnable
-{
-public:
-  explicit nsAsyncDocShellDestroyer(nsIDocShell* aDocShell)
-    : mDocShell(aDocShell)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    nsCOMPtr<nsIBaseWindow> base_win(do_QueryInterface(mDocShell));
-    if (base_win) {
-      base_win->Destroy();
-    }
-    return NS_OK;
-  }
-  nsRefPtr<nsIDocShell> mDocShell;
-};
-
 
 
 
@@ -181,7 +162,6 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, bool aNetworkCreated)
 
 nsFrameLoader::~nsFrameLoader()
 {
-  mNeedsAsyncDestroy = true;
   if (mMessageManager) {
     mMessageManager->Disconnect();
   }
@@ -521,16 +501,6 @@ nsFrameLoader::GetDocShell(nsIDocShell **aDocShell)
   NS_IF_ADDREF(*aDocShell);
 
   return rv;
-}
-
-void
-nsFrameLoader::Finalize()
-{
-  nsCOMPtr<nsIBaseWindow> base_win(do_QueryInterface(mDocShell));
-  if (base_win) {
-    base_win->Destroy();
-  }
-  mDocShell = nullptr;
 }
 
 static void
@@ -1358,29 +1328,59 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   return NS_OK;
 }
 
-void
-nsFrameLoader::DestroyChild()
-{
-  if (mRemoteBrowser) {
-    mRemoteBrowser->SetOwnerElement(nullptr);
-    mRemoteBrowser->Destroy();
-    mRemoteBrowser = nullptr;
-  }
-}
-
 NS_IMETHODIMP
 nsFrameLoader::Destroy()
 {
+  StartDestroy();
+  return NS_OK;
+}
+
+class nsFrameLoaderDestroyRunnable : public nsRunnable
+{
+  enum DestroyPhase
+  {
+    
+    eDestroyDocShell,
+    eWaitForUnloadMessage,
+    eDestroyComplete
+  };
+
+  nsRefPtr<nsFrameLoader> mFrameLoader;
+  DestroyPhase mPhase;
+
+public:
+  explicit nsFrameLoaderDestroyRunnable(nsFrameLoader* aFrameLoader)
+   : mFrameLoader(aFrameLoader), mPhase(eDestroyDocShell) {}
+
+  NS_IMETHODIMP Run() MOZ_OVERRIDE;
+};
+
+void
+nsFrameLoader::StartDestroy()
+{
+  
+  
+  
+
   if (mDestroyCalled) {
-    return NS_OK;
+    return;
   }
   mDestroyCalled = true;
 
+  
+  
   if (mMessageManager) {
-    mMessageManager->Disconnect();
+    mMessageManager->Close();
   }
-  if (mChildMessageManager) {
-    static_cast<nsInProcessTabChildGlobal*>(mChildMessageManager.get())->Disconnect();
+
+  
+  
+  
+  if (mChildMessageManager || mRemoteBrowser) {
+    mOwnerContentStrong = mOwnerContent;
+    if (mRemoteBrowser) {
+      mRemoteBrowser->CacheFrameLoader(this);
+    }
   }
 
   nsCOMPtr<nsIDocument> doc;
@@ -1392,7 +1392,6 @@ nsFrameLoader::Destroy()
 
     SetOwnerContent(nullptr);
   }
-  DestroyChild();
 
   
   if (dynamicSubframeRemoval) {
@@ -1412,7 +1411,7 @@ nsFrameLoader::Destroy()
       }
     }
   }
-  
+
   
   if (mDocShell) {
     nsCOMPtr<nsPIDOMWindow> win_private(mDocShell->GetWindow());
@@ -1421,21 +1420,120 @@ nsFrameLoader::Destroy()
     }
   }
 
-  if ((mNeedsAsyncDestroy || !doc ||
-       NS_FAILED(doc->FinalizeFrameLoader(this))) && mDocShell) {
-    nsCOMPtr<nsIRunnable> event = new nsAsyncDocShellDestroyer(mDocShell);
-    NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
-    NS_DispatchToCurrentThread(event);
+  nsCOMPtr<nsIRunnable> destroyRunnable = new nsFrameLoaderDestroyRunnable(this);
+  if (mNeedsAsyncDestroy || !doc ||
+      NS_FAILED(doc->FinalizeFrameLoader(this, destroyRunnable))) {
+    NS_DispatchToCurrentThread(destroyRunnable);
+  }
+}
+
+nsresult
+nsFrameLoaderDestroyRunnable::Run()
+{
+  switch (mPhase) {
+  case eDestroyDocShell:
+    mFrameLoader->DestroyDocShell();
 
     
     
+    
+    
+    
+    if (mFrameLoader->mChildMessageManager) {
+      
+      
+      
+      
+      
+      mPhase = eWaitForUnloadMessage;
+      NS_DispatchToCurrentThread(this);
+    }
+    break;
 
-    mDocShell = nullptr;
+   case eWaitForUnloadMessage:
+     
+     
+     
+     
+     
+     
+     mPhase = eDestroyComplete;
+     NS_DispatchToCurrentThread(this);
+     break;
+
+   case eDestroyComplete:
+     
+     
+     
+     mFrameLoader->DestroyComplete();
+     break;
+  }
+
+  return NS_OK;
+}
+
+void
+nsFrameLoader::DestroyDocShell()
+{
+  
+  
+  
+
+  
+  
+  
+  if (mRemoteBrowser) {
+    mRemoteBrowser->Destroy();
   }
 
   
+  if (mChildMessageManager) {
+    static_cast<nsInProcessTabChildGlobal*>(mChildMessageManager.get())->FireUnloadEvent();
+  }
 
-  return NS_OK;
+  
+  nsCOMPtr<nsIBaseWindow> base_win(do_QueryInterface(mDocShell));
+  if (base_win) {
+    base_win->Destroy();
+  }
+  mDocShell = nullptr;
+
+  if (mChildMessageManager) {
+    
+    static_cast<nsInProcessTabChildGlobal*>(mChildMessageManager.get())->DisconnectEventListeners();
+  }
+}
+
+void
+nsFrameLoader::DestroyComplete()
+{
+  
+  
+  
+  
+
+  
+  if (mChildMessageManager || mRemoteBrowser) {
+    mOwnerContentStrong = nullptr;
+    if (mRemoteBrowser) {
+      mRemoteBrowser->CacheFrameLoader(nullptr);
+    }
+  }
+
+  
+  if (mRemoteBrowser) {
+    mRemoteBrowser->SetOwnerElement(nullptr);
+    mRemoteBrowser->Destroy();
+    mRemoteBrowser = nullptr;
+  }
+
+  if (mMessageManager) {
+    mMessageManager->Disconnect();
+  }
+
+  if (mChildMessageManager) {
+    static_cast<nsInProcessTabChildGlobal*>(mChildMessageManager.get())->Disconnect();
+  }
 }
 
 NS_IMETHODIMP
