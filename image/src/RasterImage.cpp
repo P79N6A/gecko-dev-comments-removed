@@ -262,7 +262,6 @@ RasterImage::RasterImage(ProgressTracker* aProgressTracker,
   mSourceBuffer(new SourceBuffer()),
   mFrameCount(0),
   mHasSize(false),
-  mBlockedOnload(false),
   mDecodeOnDraw(false),
   mTransient(false),
   mDiscardable(false),
@@ -1159,12 +1158,15 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
 
   Progress loadProgress = LoadCompleteProgress(aLastPart, mError, finalStatus);
 
-  if (mBlockedOnload) {
+  if (mDecodeOnDraw) {
     
     
     
-    MOZ_ASSERT(mDecodeOnDraw, "Blocked onload but not decode-on-draw");
-    loadProgress |= FLAG_FRAME_COMPLETE |
+    
+    
+    loadProgress |= FLAG_ONLOAD_BLOCKED |
+                    FLAG_DECODE_STARTED |
+                    FLAG_FRAME_COMPLETE |
                     FLAG_DECODE_COMPLETE |
                     FLAG_ONLOAD_UNBLOCKED;
   }
@@ -1176,16 +1178,14 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
 }
 
 void
-RasterImage::BlockOnloadForDecodeOnDraw()
+RasterImage::NotifyForDecodeOnDrawOnly()
 {
-  if (mHasSourceData) {
-    
-    
-    return;
+  if (!NS_IsMainThread()) {
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewRunnableMethod(this, &RasterImage::NotifyForDecodeOnDrawOnly);
+    NS_DispatchToMainThread(runnable);
   }
 
-  
-  mBlockedOnload = true;
   NotifyProgress(FLAG_DECODE_STARTED | FLAG_ONLOAD_BLOCKED);
 }
 
@@ -1199,9 +1199,9 @@ RasterImage::OnImageDataAvailable(nsIRequest*,
   nsresult rv;
 
   if (MOZ_UNLIKELY(mDecodeOnDraw && aOffset == 0)) {
-    nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethod(this, &RasterImage::BlockOnloadForDecodeOnDraw);
-    NS_DispatchToMainThread(runnable);
+    
+    
+    NotifyForDecodeOnDrawOnly();
   }
 
   
