@@ -123,7 +123,7 @@ ContentRestoreInternal.prototype = {
 
 
 
-  restoreHistory(epoch, tabData, callbacks) {
+  restoreHistory(epoch, tabData, loadArguments, callbacks) {
     this._tabData = tabData;
     this._epoch = epoch;
 
@@ -134,10 +134,12 @@ ContentRestoreInternal.prototype = {
     
     
     
+    
+    
     let activeIndex = tabData.index - 1;
     let activePageData = tabData.entries[activeIndex] || {};
     let uri = activePageData.url || null;
-    if (uri) {
+    if (uri && !loadArguments) {
       webNavigation.setCurrentURI(Utils.makeURI(uri));
     }
 
@@ -192,7 +194,10 @@ ContentRestoreInternal.prototype = {
     
     
     
-    webNavigation.setCurrentURI(Utils.makeURI("about:blank"));
+    
+    if (!loadArguments) {
+      webNavigation.setCurrentURI(Utils.makeURI("about:blank"));
+    }
 
     try {
       if (loadArguments) {
