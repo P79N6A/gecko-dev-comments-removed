@@ -164,12 +164,14 @@ class nsHtml5SpeculativeLoad {
       mTypeOrCharsetSource.Assign((char16_t)aCharsetSource);
     }
 
-    inline void InitPreconnect(const nsAString& aUrl)
+    inline void InitPreconnect(const nsAString& aUrl,
+                               const nsAString& aCrossOrigin)
     {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadPreconnect;
       mUrl.Assign(aUrl);
+      mCrossOrigin.Assign(aCrossOrigin);
     }
 
     void Perform(nsHtml5TreeOpExecutor* aExecutor);
