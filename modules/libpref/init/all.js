@@ -4561,6 +4561,9 @@ pref("selectioncaret.inflatesize.threshold", 40);
 pref("selectioncaret.detects.longtap", true);
 
 
+pref("selectioncaret.visibility.affectscaret", false);
+
+
 pref("layout.accessiblecaret.enabled", false);
 
 

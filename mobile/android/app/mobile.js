@@ -879,3 +879,6 @@ pref("toolkit.telemetry.unified", false);
 
 
 pref("selectioncaret.detects.longtap", false);
+
+
+pref("selectioncaret.visibility.affectscaret", true);

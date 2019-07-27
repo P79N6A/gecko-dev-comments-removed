@@ -46,6 +46,9 @@ using namespace mozilla::gfx;
 
 static const int32_t kMinBidiIndicatorPixels = 2;
 
+ bool nsCaret::sSelectionCaretEnabled = false;
+ bool nsCaret::sSelectionCaretsAffectCaret = false;
+
 
 
 
@@ -143,6 +146,15 @@ nsresult nsCaret::Init(nsIPresShell *inPresShell)
   mShowDuringSelection =
     LookAndFeel::GetInt(LookAndFeel::eIntID_ShowCaretDuringSelection,
                         mShowDuringSelection ? 1 : 0) != 0;
+
+  static bool addedCaretPref = false;
+  if (!addedCaretPref) {
+    Preferences::AddBoolVarCache(&sSelectionCaretEnabled,
+      "selectioncaret.enabled");
+    Preferences::AddBoolVarCache(&sSelectionCaretsAffectCaret,
+      "selectioncaret.visibility.affectscaret");
+    addedCaretPref = true;
+  }
 
   
   
@@ -253,7 +265,8 @@ bool nsCaret::IsVisible()
     return false;
   }
 
-  if (!mShowDuringSelection) {
+  if (!mShowDuringSelection &&
+      !(sSelectionCaretEnabled && sSelectionCaretsAffectCaret)) {
     Selection* selection = GetSelectionInternal();
     if (!selection) {
       return false;
@@ -261,6 +274,20 @@ bool nsCaret::IsVisible()
     bool isCollapsed;
     if (NS_FAILED(selection->GetIsCollapsed(&isCollapsed)) || !isCollapsed) {
       return false;
+    }
+  }
+
+  
+  
+  
+  if (sSelectionCaretEnabled && sSelectionCaretsAffectCaret) {
+    nsCOMPtr<nsISelectionController> selCon = do_QueryReferent(mPresShell);
+    if (selCon) {
+      bool visible = false;
+      selCon->GetSelectionCaretsVisibility(&visible);
+      if (visible) {
+        return false;
+      }
     }
   }
 
