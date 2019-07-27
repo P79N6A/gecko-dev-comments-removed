@@ -192,6 +192,19 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
             if (!XrayUtils::HasNativeProperty(cx, wrapper, id, &wouldShadow) ||
                 wouldShadow)
             {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                JS_ClearPendingException(cx);
                 return false;
             }
         }
