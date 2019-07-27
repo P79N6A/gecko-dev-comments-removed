@@ -11295,19 +11295,16 @@ public:
                                    const FullScreenOptions& aOptions)
     : mElement(aElement),
       mDoc(aElement->OwnerDoc()),
-      mOptions(aOptions),
-      mHadRequestPending(static_cast<nsDocument*>(mDoc.get())->
-                         mAsyncFullscreenPending)
+      mOptions(aOptions)
   {
-    static_cast<nsDocument*>(mDoc.get())->
-      mAsyncFullscreenPending = true;
+    auto doc = static_cast<nsDocument*>(mDoc.get());
+    doc->mPendingFullscreenRequests++;
   }
 
   NS_IMETHOD Run()
   {
-    static_cast<nsDocument*>(mDoc.get())->
-      mAsyncFullscreenPending = mHadRequestPending;
     nsDocument* doc = static_cast<nsDocument*>(mDoc.get());
+    doc->mPendingFullscreenRequests--;
     doc->RequestFullScreen(mElement, mOptions);
     return NS_OK;
   }
@@ -11315,7 +11312,6 @@ public:
   nsRefPtr<Element> mElement;
   nsCOMPtr<nsIDocument> mDoc;
   FullScreenOptions mOptions;
-  bool mHadRequestPending;
 };
 
 void
@@ -12011,7 +12007,7 @@ public:
 
     
     nsDocument* doc = static_cast<nsDocument*>(d.get());
-    if (doc->mAsyncFullscreenPending ||
+    if (doc->mPendingFullscreenRequests > 0 ||
         (doc->mHasFullscreenApprovedObserver && !doc->mIsApprovedForFullscreen)) {
       
       return NS_OK;
