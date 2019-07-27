@@ -383,15 +383,8 @@ private:
 
       NS_IMETHODIMP Run()
       {
-        nsRefPtr<ScriptProcessorNode> node;
-        {
-          
-          
-          
-          
-          MutexAutoLock lock(mStream->Engine()->NodeMutex());
-          node = static_cast<ScriptProcessorNode*>(mStream->Engine()->Node());
-        }
+        nsRefPtr<ScriptProcessorNode> node = static_cast<ScriptProcessorNode*>
+          (mStream->Engine()->NodeMainThread());
         if (!node || !node->Context()) {
           return NS_OK;
         }
