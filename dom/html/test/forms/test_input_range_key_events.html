@@ -26,11 +26,11 @@
 SimpleTest.waitForExplicitFinish();
 
 // Turn off Spatial Navigation because it hijacks arrow keydown events:
+SpecialPowers.setBoolPref("snav.enabled", false);
+
 SimpleTest.waitForFocus(function() {
-  SpecialPowers.pushPrefEnv({"set":[["snav.enabled", false]]}, function() {
-    test();
-    SimpleTest.finish();
-  });
+  test();
+  SimpleTest.finish();
 });
 
 const defaultMinimum = 0;
