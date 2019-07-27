@@ -19,6 +19,8 @@ class Promise;
 
 namespace workers {
 
+class ServiceWorkerInfo;
+class ServiceWorkerManager;
 class SharedWorker;
 
 bool
@@ -26,7 +28,7 @@ ServiceWorkerVisible(JSContext* aCx, JSObject* aObj);
 
 class ServiceWorker MOZ_FINAL : public DOMEventTargetHelper
 {
-  friend class RuntimeService;
+  friend class ServiceWorkerManager;
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorker, DOMEventTargetHelper)
@@ -50,16 +52,17 @@ public:
   }
 
   void
-  GetScriptURL(nsString& aURL) const
+  GetScriptURL(nsString& aURL) const;
+
+  void
+  DispatchStateChange(ServiceWorkerState aState)
   {
-    aURL = mURL;
+    SetState(aState);
+    DOMEventTargetHelper::DispatchTrustedEvent(NS_LITERAL_STRING("statechange"));
   }
 
   void
-  DispatchStateChange()
-  {
-    DOMEventTargetHelper::DispatchTrustedEvent(NS_LITERAL_STRING("statechange"));
-  }
+  QueueStateChangeEvent(ServiceWorkerState aState);
 
 #ifdef XP_WIN
 #undef PostMessage
@@ -75,13 +78,14 @@ public:
 
 private:
   
-  ServiceWorker(nsPIDOMWindow* aWindow, SharedWorker* aSharedWorker);
+  ServiceWorker(nsPIDOMWindow* aWindow, ServiceWorkerInfo* aInfo,
+                SharedWorker* aSharedWorker);
 
   
   ~ServiceWorker();
 
   ServiceWorkerState mState;
-  nsString mURL;
+  const nsRefPtr<ServiceWorkerInfo> mInfo;
 
   
   
