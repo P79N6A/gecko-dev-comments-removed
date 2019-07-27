@@ -108,6 +108,37 @@ var gFontsDialog = {
   {
     var useDocumentFonts = document.getElementById("useDocumentFonts");
     return useDocumentFonts.checked ? 1 : 0;
-  }
+  },
+
+  onBeforeAccept: function ()
+  {
+    
+    if (!window.frameElement) {
+      return true;
+    }
+
+    let preferences = document.querySelectorAll("preference[id*='font.minimum-size']");
+    
+    
+    
+    
+    preferences = Array.filter(preferences, prefEl => {
+      return prefEl.value > 24 && prefEl.value != prefEl.valueFromPreferences;
+    });
+    if (!preferences.length) {
+      return;
+    }
+
+    let strings = document.getElementById("bundlePreferences");
+    let title = strings.getString("veryLargeMinimumFontTitle");
+    let confirmLabel = strings.getString("acceptVeryLargeMinimumFont");
+    let warningMessage = strings.getString("veryLargeMinimumFontWarning");
+    let {Services} = Components.utils.import("resource://gre/modules/Services.jsm", {});
+    let flags = Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_CANCEL |
+                Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING |
+                Services.prompt.BUTTON_POS_1_DEFAULT;
+    let buttonChosen = Services.prompt.confirmEx(window, title, warningMessage, flags, confirmLabel, null, "", "", {});
+    return buttonChosen == 0;
+  },
 };
 
