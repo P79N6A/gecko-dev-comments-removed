@@ -68,6 +68,7 @@ nsresult SetMinidumpPath(const nsAString& aPath);
 
 
 nsresult AnnotateCrashReport(const nsACString& key, const nsACString& data);
+nsresult RemoveCrashReportAnnotation(const nsACString& key);
 nsresult AppendAppNotesToCrashReport(const nsACString& data);
 
 void AnnotateOOMAllocationSize(size_t size);
