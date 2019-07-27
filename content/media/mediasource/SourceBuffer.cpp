@@ -61,6 +61,17 @@ public:
     return false;
   }
 
+  virtual bool IsMediaSegmentPresent(const uint8_t* aData, uint32_t aLength)
+  {
+    MSE_DEBUG("ContainerParser(%p)::IsMediaSegmentPresent aLength=%u [%x%x%x%x]",
+              this, aLength,
+              aLength > 0 ? aData[0] : 0,
+              aLength > 1 ? aData[1] : 0,
+              aLength > 2 ? aData[2] : 0,
+              aLength > 3 ? aData[3] : 0);
+    return false;
+  }
+
   virtual bool ParseStartAndEndTimestamps(const uint8_t* aData, uint32_t aLength,
                                           double& aStart, double& aEnd)
   {
@@ -100,6 +111,26 @@ public:
     
     if (aLength >= 4 &&
         aData[0] == 0x1a && aData[1] == 0x45 && aData[2] == 0xdf && aData[3] == 0xa3) {
+      return true;
+    }
+    return false;
+  }
+
+  bool IsMediaSegmentPresent(const uint8_t* aData, uint32_t aLength)
+  {
+    ContainerParser::IsMediaSegmentPresent(aData, aLength);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (aLength >= 4 &&
+        aData[0] == 0x1f && aData[1] == 0x43 && aData[2] == 0xb6 && aData[3] == 0x75) {
       return true;
     }
     return false;
@@ -602,7 +633,8 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   }
   double start, end;
   if (mParser->ParseStartAndEndTimestamps(aData, aLength, start, end)) {
-    if (start < mLastParsedTimestamp || start - mLastParsedTimestamp > 0.1) {
+    if (mParser->IsMediaSegmentPresent(aData, aLength) &&
+        (start < mLastParsedTimestamp || start - mLastParsedTimestamp > 0.1)) {
       MSE_DEBUG("SourceBuffer(%p)::AppendData: Data (%f, %f) overlaps %f.",
                 this, start, end, mLastParsedTimestamp);
 
