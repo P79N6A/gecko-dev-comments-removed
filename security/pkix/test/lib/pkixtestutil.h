@@ -128,19 +128,16 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 
-
-
-
-SECItem* CreateEncodedCertificate(PLArenaPool* arena, long version,
-                                  Input signature,
-                                  const ByteString& serialNumber,
-                                  const ByteString& issuerNameDER,
-                                  std::time_t notBefore, std::time_t notAfter,
-                                  const ByteString& subjectNameDER,
-                      const ByteString* extensions,
-                      SECKEYPrivateKey* issuerPrivateKey,
-                                  SignatureAlgorithm signatureAlgorithm,
-                           ScopedSECKEYPrivateKey& privateKey);
+ByteString CreateEncodedCertificate(long version,
+                                    Input signature,
+                                    const ByteString& serialNumber,
+                                    const ByteString& issuerNameDER,
+                                    std::time_t notBefore, std::time_t notAfter,
+                                    const ByteString& subjectNameDER,
+                        const ByteString* extensions,
+                        SECKEYPrivateKey* issuerPrivateKey,
+                                    SignatureAlgorithm signatureAlgorithm,
+                             ScopedSECKEYPrivateKey& privateKey);
 
 ByteString CreateEncodedSerialNumber(long value);
 
@@ -202,7 +199,7 @@ public:
                                
   ScopedSECKEYPrivateKey signerPrivateKey;
   bool badSignature; 
-  SECItem const* const* certs; 
+  const ByteString* certs; 
 
   
   
