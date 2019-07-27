@@ -60,6 +60,10 @@ class TestManifestParser(unittest.TestCase):
         self.assertEqual([(test['name'], os.path.basename(test['manifest'])) for test in parser.tests],
                          [('crash-handling', 'bar.ini'), ('fleem', 'include-example.ini'), ('flowers', 'foo.ini')])
 
+        
+        self.assertTrue(all([t['ancestor-manifest'] == include_example
+                             for t in parser.tests if t['name'] != 'fleem']))
+
 
         
         self.assertEqual(len(parser.manifests()), 3)
