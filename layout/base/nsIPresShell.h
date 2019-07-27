@@ -499,6 +499,10 @@ public:
 
 
 
+
+
+
+
   enum IntrinsicDirty {
     
     eResize,     
@@ -506,8 +510,8 @@ public:
     eStyleChange 
   };
   virtual void FrameNeedsReflow(nsIFrame *aFrame,
-                                            IntrinsicDirty aIntrinsicDirty,
-                                            nsFrameState aBitToAdd) = 0;
+                                IntrinsicDirty aIntrinsicDirty,
+                                nsFrameState aBitToAdd) = 0;
 
   
 

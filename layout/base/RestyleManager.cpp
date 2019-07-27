@@ -501,11 +501,6 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
 void
 RestyleManager::StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint)
 {
-  
-  
-  if (aFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)
-    return;
-
   nsIPresShell::IntrinsicDirty dirtyType;
   if (aHint & nsChangeHint_ClearDescendantIntrinsics) {
     NS_ASSERTION(aHint & nsChangeHint_ClearAncestorIntrinsics,
@@ -518,18 +513,23 @@ RestyleManager::StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint)
   }
 
   nsFrameState dirtyBits;
-  if (aHint & nsChangeHint_NeedDirtyReflow) {
+  if (aFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
+    dirtyBits = nsFrameState(0);
+  } else if (aHint & nsChangeHint_NeedDirtyReflow) {
     dirtyBits = NS_FRAME_IS_DIRTY;
   } else {
     dirtyBits = NS_FRAME_HAS_DIRTY_CHILDREN;
   }
 
+  
+  
+  if (dirtyType == nsIPresShell::eResize && !dirtyBits)
+    return;
+
   do {
     mPresContext->PresShell()->FrameNeedsReflow(aFrame, dirtyType, dirtyBits);
     aFrame = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(aFrame);
   } while (aFrame);
-
-  return;
 }
 
 void
