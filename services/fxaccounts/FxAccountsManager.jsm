@@ -138,6 +138,15 @@ this.FxAccountsManager = {
         
         
         user.email = user.email || aEmail;
+
+        
+        
+        
+        
+        if (this._refreshing) {
+          return Promise.resolve({user: this._user});
+        }
+
         return this._fxAccounts.setSignedInUser(user).then(
           () => {
             this._activeSession = user;
