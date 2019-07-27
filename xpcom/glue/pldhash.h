@@ -338,7 +338,6 @@ typedef void (*PLDHashClearEntry)(PLDHashTable* aTable,
 
 
 
-
 typedef bool (*PLDHashInitEntry)(PLDHashTable* aTable, PLDHashEntryHdr* aEntry,
                                  const void* aKey);
 
@@ -467,39 +466,34 @@ void PL_DHashTableFinish(PLDHashTable* aTable);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PLDHashEntryHdr* PL_DHASH_FASTCALL
-PL_DHashTableOperate(PLDHashTable* aTable, const void* aKey,
-                     PLDHashOperator aOp);
-
-
 PLDHashEntryHdr* PL_DHASH_FASTCALL
 PL_DHashTableLookup(PLDHashTable* aTable, const void* aKey);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PLDHashEntryHdr* PL_DHASH_FASTCALL
 PL_DHashTableAdd(PLDHashTable* aTable, const void* aKey);
+
+
+
+
+
+
+
+
 
 
 void PL_DHASH_FASTCALL

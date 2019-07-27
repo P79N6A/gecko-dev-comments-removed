@@ -1775,7 +1775,6 @@ NPObjWrapper_ObjectMoved(JSObject *obj, const JSObject *old)
   }
 
   
-  
   JS::AutoSuppressGCAnalysis nogc;
 
   NPObjWrapperHashEntry *entry = static_cast<NPObjWrapperHashEntry *>
