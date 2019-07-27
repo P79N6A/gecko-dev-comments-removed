@@ -43,7 +43,7 @@ public:
 
   nsCSSFilterInstance(const nsStyleFilter& aFilter,
                       nscolor aShadowFallbackColor,
-                      const nsIntRect& aTargetBBoxInFilterSpace,
+                      const nsIntRect& aTargetBoundsInFilterSpace,
                       const gfxMatrix& aFrameSpaceInCSSPxToFilterSpaceTransform);
 
   
@@ -122,7 +122,7 @@ private:
 
 
 
-  nsIntRect mTargetBBoxInFilterSpace;
+  nsIntRect mTargetBoundsInFilterSpace;
 
   
 
