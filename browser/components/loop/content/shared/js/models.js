@@ -95,6 +95,13 @@ loop.shared.models = (function(l10n) {
       if (selectedCallType) {
         this.set("selectedCallType", selectedCallType);
       }
+      this.trigger("call:outgoing:get-media-privs");
+    },
+
+    
+
+
+    gotMediaPrivs: function() {
       this.trigger("call:outgoing:setup");
     },
 

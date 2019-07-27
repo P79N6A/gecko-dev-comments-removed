@@ -270,7 +270,80 @@ loop.webapp = (function($, _, OT, mozL10n) {
     }
   });
 
+  
+
+
+
   var PendingConversationView = React.createClass({displayName: 'PendingConversationView',
+    propTypes: {
+      callState: React.PropTypes.string.isRequired,
+      
+      cancelCallback: React.PropTypes.func
+    },
+
+    render: function() {
+      var cancelButtonClasses = React.addons.classSet({
+        btn: true,
+        "btn-large": true,
+        "btn-cancel": true,
+        hide: !this.props.cancelCallback
+      });
+
+      return (
+        React.DOM.div({className: "container"}, 
+          React.DOM.div({className: "container-box"}, 
+            React.DOM.header({className: "pending-header header-box"}, 
+              ConversationBranding(null)
+            ), 
+
+            React.DOM.div({id: "cameraPreview"}), 
+
+            React.DOM.div({id: "messages"}), 
+
+            React.DOM.p({className: "standalone-btn-label"}, 
+              this.props.callState
+            ), 
+
+            React.DOM.div({className: "btn-pending-cancel-group btn-group"}, 
+              React.DOM.div({className: "flex-padding-1"}), 
+              React.DOM.button({className: cancelButtonClasses, 
+                      onClick: this.props.cancelCallback}, 
+                React.DOM.span({className: "standalone-call-btn-text"}, 
+                  mozL10n.get("initiate_call_cancel_button")
+                )
+              ), 
+              React.DOM.div({className: "flex-padding-1"})
+            )
+          ), 
+          ConversationFooter(null)
+        )
+      );
+    }
+  });
+
+  
+
+
+
+  var GumPromptConversationView = React.createClass({displayName: 'GumPromptConversationView',
+    render: function() {
+      var callState = mozL10n.get("call_progress_getting_media_description", {
+        clientShortname: mozL10n.get("clientShortname2")
+      });
+      document.title = mozL10n.get("standalone_title_with_status", {
+        clientShortname: mozL10n.get("clientShortname2"),
+        currentStatus: mozL10n.get("call_progress_getting_media_title")
+      });
+
+      return PendingConversationView({callState: callState});
+    }
+  });
+
+  
+
+
+
+  var WaitingConversationView = React.createClass({displayName: 'WaitingConversationView',
     mixins: [sharedMixins.AudioMixin],
 
     getInitialState: function() {
@@ -306,33 +379,11 @@ loop.webapp = (function($, _, OT, mozL10n) {
       document.title = mozL10n.get("standalone_title_with_status",
                                    {clientShortname: mozL10n.get("clientShortname2"),
                                     currentStatus: mozL10n.get(callStateStringEntityName)});
+
       return (
-        React.DOM.div({className: "container"}, 
-          React.DOM.div({className: "container-box"}, 
-            React.DOM.header({className: "pending-header header-box"}, 
-              ConversationBranding(null)
-            ), 
-
-            React.DOM.div({id: "cameraPreview"}), 
-
-            React.DOM.div({id: "messages"}), 
-
-            React.DOM.p({className: "standalone-btn-label"}, 
-              callState
-            ), 
-
-            React.DOM.div({className: "btn-pending-cancel-group btn-group"}, 
-              React.DOM.div({className: "flex-padding-1"}), 
-              React.DOM.button({className: "btn btn-large btn-cancel", 
-                      onClick: this._cancelOutgoingCall}, 
-                React.DOM.span({className: "standalone-call-btn-text"}, 
-                  mozL10n.get("initiate_call_cancel_button")
-                )
-              ), 
-              React.DOM.div({className: "flex-padding-1"})
-            )
-          ), 
-          ConversationFooter(null)
+        PendingConversationView({
+          callState: callState, 
+          cancelCallback: this._cancelOutgoingCall}
         )
       );
     }
@@ -458,15 +509,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
     startCall: function(callType) {
       return function() {
-        multiplexGum.getPermsAndCacheMedia({audio:true, video:true},
-          function(localStream) {
-            this.props.conversation.setupOutgoingCall(callType);
-            this.setState({disableCallButton: true});
-          }.bind(this),
-          function(errorCode) {
-            multiplexGum.reset();
-          }.bind(this)
-        );
+        this.props.conversation.setupOutgoingCall(callType);
+        this.setState({disableCallButton: true});
       }.bind(this);
     },
 
@@ -627,6 +671,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
     componentDidMount: function() {
       this.props.conversation.on("call:outgoing", this.startCall, this);
+      this.props.conversation.on("call:outgoing:get-media-privs", this.getMediaPrivs, this);
       this.props.conversation.on("call:outgoing:setup", this.setupOutgoingCall, this);
       this.props.conversation.on("change:publishedStream", this._checkConnected, this);
       this.props.conversation.on("change:subscribedStream", this._checkConnected, this);
@@ -674,8 +719,11 @@ loop.webapp = (function($, _, OT, mozL10n) {
             )
           );
         }
+        case "gumPrompt": {
+          return GumPromptConversationView(null);
+        }
         case "pending": {
-          return PendingConversationView({websocket: this._websocket});
+          return WaitingConversationView({websocket: this._websocket});
         }
         case "connected": {
           document.title = mozL10n.get("standalone_title_with_status",
@@ -777,6 +825,22 @@ loop.webapp = (function($, _, OT, mozL10n) {
     
 
 
+    getMediaPrivs: function() {
+      this.setState({callStatus: "gumPrompt"});
+      multiplexGum.getPermsAndCacheMedia({audio:true, video:true},
+        function(localStream) {
+          this.props.conversation.gotMediaPrivs();
+        }.bind(this),
+        function(errorCode) {
+          multiplexGum.reset();
+          this.setState({callStatus: "failure"});
+        }.bind(this)
+      );
+    },
+
+    
+
+
     startCall: function() {
       var loopToken = this.props.conversation.get("loopToken");
       if (!loopToken) {
@@ -866,6 +930,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
 
     _endCall: function() {
+      multiplexGum.reset();
+
       if (this.state.callStatus !== "failure") {
         this.setState({callStatus: "end"});
       }
@@ -1050,6 +1116,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
   return {
     CallUrlExpiredView: CallUrlExpiredView,
     PendingConversationView: PendingConversationView,
+    GumPromptConversationView: GumPromptConversationView,
+    WaitingConversationView: WaitingConversationView,
     StartConversationView: StartConversationView,
     FailedConversationView: FailedConversationView,
     OutgoingConversationView: OutgoingConversationView,
