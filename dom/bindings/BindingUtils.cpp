@@ -34,8 +34,6 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/DOMErrorBinding.h"
-#include "mozilla/dom/DOMException.h"
-#include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
@@ -284,24 +282,14 @@ ErrorResult::ReportJSExceptionFromJSImplementation(JSContext* aCx)
   MOZ_ASSERT(!mMightHaveUnreportedJSException,
              "Why didn't you tell us you planned to handle JS exceptions?");
 
-  dom::DOMException* domException;
-  nsresult rv =
-    UNWRAP_OBJECT(DOMException, &mJSException.toObject(), domException);
-  if (NS_SUCCEEDED(rv)) {
-    ReportJSException(aCx);
-    return;
-  }
-
+  
+  
   dom::DOMError* domError;
-  rv = UNWRAP_OBJECT(DOMError, &mJSException.toObject(), domError);
+  nsresult rv = UNWRAP_OBJECT(DOMError, &mJSException.toObject(), domError);
   if (NS_FAILED(rv)) {
     
-    
-    
-    
-    
-    
-    NS_RUNTIMEABORT("We stored a non-DOMError exception!");
+    ReportJSException(aCx);
+    return;
   }
 
   nsString message;
