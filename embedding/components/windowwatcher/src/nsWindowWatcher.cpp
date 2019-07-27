@@ -32,7 +32,6 @@
 #include "nsIScreenManager.h"
 #include "nsIScriptContext.h"
 #include "nsIObserverService.h"
-#include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsXPCOM.h"
 #include "nsIURI.h"
@@ -54,7 +53,6 @@
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 #include "nsSandboxFlags.h"
@@ -451,7 +449,6 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   nsCOMPtr<nsIURI>                uriToLoad;        
   nsCOMPtr<nsIDocShellTreeOwner>  parentTreeOwner;  
   nsCOMPtr<nsIDocShellTreeItem>   newDocShellItem;  
-  nsCxPusher                      callerContextGuard;
 
   MOZ_ASSERT_IF(openedFromRemoteTab, XRE_GetProcessType() == GeckoProcessType_Default);
   NS_ENSURE_ARG_POINTER(_retval);
@@ -559,10 +556,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
   bool isCallerChrome = nsContentUtils::IsCallerChrome() && !openedFromRemoteTab;
 
-  JSContext *cx = GetJSContextFromWindow(aParent);
+  dom::AutoJSAPI jsapiChromeGuard;
 
   bool windowTypeIsChrome = chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
-  if (isCallerChrome && !hasChromeParent && !windowTypeIsChrome && cx) {
+  if (isCallerChrome && !hasChromeParent && !windowTypeIsChrome) {
     
     
     
@@ -577,7 +574,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     
 
-    callerContextGuard.Push(cx);
+    nsCOMPtr<nsIGlobalObject> parentGlobalObject = do_QueryInterface(aParent);
+    if (NS_WARN_IF(!jsapiChromeGuard.Init(parentGlobalObject))) {
+      return NS_ERROR_UNEXPECTED;
+    }
   }
 
   uint32_t activeDocsSandboxFlags = 0;
@@ -2176,25 +2176,4 @@ int32_t nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow *aParent,
   }
 
   return containerPref;
-}
-
-JSContext *
-nsWindowWatcher::GetJSContextFromWindow(nsIDOMWindow *aWindow)
-{
-  JSContext *cx = 0;
-
-  if (aWindow) {
-    nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(aWindow));
-    if (sgo) {
-      nsIScriptContext *scx = sgo->GetContext();
-      if (scx)
-        cx = scx->GetNativeContext();
-    }
-    
-
-
-
-  }
-
-  return cx;
 }
