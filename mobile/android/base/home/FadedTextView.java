@@ -11,6 +11,7 @@ import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
+import android.text.Layout;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
@@ -23,10 +24,10 @@ import org.mozilla.gecko.R;
 public class FadedTextView extends TextView {
 
     
-    private int mFadeWidth;
+    private final int mFadeWidth;
 
     
-    private int mCompoundPadding;
+    private FadedTextGradient mTextGradient;
 
     public FadedTextView(Context context) {
         this(context, null);
@@ -39,42 +40,70 @@ public class FadedTextView extends TextView {
     public FadedTextView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
 
+        setSingleLine(true);
+        setEllipsize(null);
+
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.FadedTextView);
         mFadeWidth = a.getDimensionPixelSize(R.styleable.FadedTextView_fadeWidth, 0);
         a.recycle();
-
-        mCompoundPadding = getCompoundDrawablePadding();
     }
 
-    
+    private int getAvailableWidth() {
+        return getWidth() - getCompoundPaddingLeft() - getCompoundPaddingRight();
+    }
 
+    private boolean needsEllipsis() {
+        final int width = getAvailableWidth();
+        if (width <= 0) {
+            return false;
+        }
+
+        final Layout layout = getLayout();
+        return (layout != null && layout.getLineWidth(0) > width);
+    }
+
+    private void updateGradientShader() {
+        final int color = getCurrentTextColor();
+        final int width = getAvailableWidth();
+
+        final boolean needsNewGradient = (mTextGradient == null ||
+                                          mTextGradient.getColor() != color ||
+                                          mTextGradient.getWidth() != width);
+
+        final boolean needsEllipsis = needsEllipsis();
+        if (needsEllipsis && needsNewGradient) {
+            mTextGradient = new FadedTextGradient(width, mFadeWidth, color);
+        }
+
+        getPaint().setShader(needsEllipsis ? mTextGradient : null);
+    }
 
     @Override
     public void onDraw(Canvas canvas) {
-        int width = getMeasuredWidth();
+        updateGradientShader();
+        super.onDraw(canvas);
+    }
 
-        
-        
-        if (getLayout().getLineWidth(0) > width) {
-            final Drawable leftDrawable = getCompoundDrawables()[0];
-            int drawableWidth = 0;
-            if (leftDrawable != null) {
-                drawableWidth = leftDrawable.getIntrinsicWidth() + mCompoundPadding;
-                width -= drawableWidth;
-            }
+    private static class FadedTextGradient extends LinearGradient {
+        private final int mWidth;
+        private final int mColor;
 
-            int color = getCurrentTextColor();
-            float stop = ((float) (width - mFadeWidth) / (float) width);
-            LinearGradient gradient = new LinearGradient(0, 0, width, 0,
-                                                         new int[] { color, color, 0x0 },
-                                                         new float[] { 0, stop, 1.0f - (drawableWidth / width) },
-                                                         Shader.TileMode.CLAMP);
-            getPaint().setShader(gradient);
-        } else {
-            getPaint().setShader(null);
+        public FadedTextGradient(int width, int fadeWidth, int color) {
+            super(0, 0, width, 0,
+                  new int[] { color, color, 0x0 },
+                  new float[] { 0,  ((float) (width - fadeWidth) / (float) width), 1.0f },
+                  Shader.TileMode.CLAMP);
+
+            mWidth = width;
+            mColor = color;
         }
 
-        
-        super.onDraw(canvas);
+        public int getWidth() {
+            return mWidth;
+        }
+
+        public int getColor() {
+            return mColor;
+        }
     }
 }
