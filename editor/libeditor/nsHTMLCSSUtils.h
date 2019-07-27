@@ -6,11 +6,11 @@
 #ifndef nsHTMLCSSUtils_h__
 #define nsHTMLCSSUtils_h__
 
+#include "ChangeStyleTxn.h"             
 #include "nsCOMPtr.h"                   
 #include "nsTArray.h"                   
 #include "nscore.h"                     
 
-class ChangeCSSInlineStyleTxn;
 class nsComputedDOMStyle;
 class nsIAtom;
 class nsIContent;
@@ -94,13 +94,14 @@ public:
 
 
 
-  nsresult    SetCSSProperty(nsIDOMElement * aElement, nsIAtom * aProperty,
-                             const nsAString & aValue,
-                             bool aSuppressTransaction);
-  nsresult    SetCSSPropertyPixels(nsIDOMElement *aElement, nsIAtom *aProperty,
-                                   int32_t aIntValue, bool aSuppressTxn);
-  nsresult    RemoveCSSProperty(nsIDOMElement * aElement, nsIAtom * aProperty,
-                                const nsAString & aPropertyValue, bool aSuppressTransaction);
+  nsresult SetCSSProperty(mozilla::dom::Element& aElement, nsIAtom& aProperty,
+                          const nsAString& aValue, bool aSuppressTxn = false);
+  nsresult SetCSSPropertyPixels(mozilla::dom::Element& aElement,
+                                nsIAtom& aProperty, int32_t aIntValue);
+  nsresult RemoveCSSProperty(mozilla::dom::Element& aElement,
+                             nsIAtom& aProperty,
+                             const nsAString& aPropertyValue,
+                             bool aSuppressTxn = false);
 
   
 
@@ -382,11 +383,10 @@ private:
 
 
 
-  nsresult    CreateCSSPropertyTxn(nsIDOMElement * aElement, 
-                                   nsIAtom * aProperty,
-                                   const nsAString & aValue,
-                                   ChangeCSSInlineStyleTxn ** aTxn,
-                                   bool aRemoveProperty);
+  already_AddRefed<mozilla::dom::ChangeStyleTxn>
+  CreateCSSPropertyTxn(mozilla::dom::Element& aElement,
+      nsIAtom& aProperty, const nsAString& aValue,
+      mozilla::dom::ChangeStyleTxn::EChangeType aChangeType);
 
   
 
