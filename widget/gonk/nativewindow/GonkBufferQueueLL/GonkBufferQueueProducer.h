@@ -174,6 +174,16 @@ public:
     virtual void allocateBuffers(bool async, uint32_t width, uint32_t height,
             uint32_t format, uint32_t usage);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual status_t setSynchronousMode(bool enabled);
+
 private:
     
     virtual void binderDied(const wp<IBinder>& who);
@@ -195,6 +205,9 @@ private:
     
     
     String8 mConsumerName;
+
+    
+    bool mSynchronousMode;
 
     uint32_t mStickyTransform;
 
