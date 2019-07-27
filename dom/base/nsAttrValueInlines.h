@@ -2,24 +2,18 @@
 
 
 
+
 #ifndef nsAttrValueInlines_h__
 #define nsAttrValueInlines_h__
 
 #include <stdint.h>
 
 #include "nsAttrValue.h"
+#include "mozilla/Attributes.h"
 
 struct MiscContainer;
 
-namespace mozilla {
-template<>
-struct HasDangerousPublicDestructor<MiscContainer>
-{
-  static const bool value = true;
-};
-}
-
-struct MiscContainer
+struct MiscContainer MOZ_FINAL
 {
   typedef nsAttrValue::ValueType ValueType;
 
@@ -70,6 +64,10 @@ struct MiscContainer
     mValue.mCached = 0;
   }
 
+protected:
+  
+  friend class nsAttrValue;
+
   ~MiscContainer()
   {
     if (IsRefCounted()) {
@@ -79,6 +77,7 @@ struct MiscContainer
     MOZ_COUNT_DTOR(MiscContainer);
   }
 
+public:
   bool GetString(nsAString& aString) const;
 
   inline bool IsRefCounted() const
