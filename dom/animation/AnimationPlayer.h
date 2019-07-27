@@ -47,6 +47,7 @@ protected:
 public:
   explicit AnimationPlayer(AnimationTimeline* aTimeline)
     : mTimeline(aTimeline)
+    , mIsPending(false)
     , mIsRunningOnCompositor(false)
     , mIsPreviousStateFinished(false)
   {
@@ -149,6 +150,12 @@ protected:
   
   nsRefPtr<Promise> mReady;
 
+  
+  
+  
+  
+  
+  bool mIsPending;
   bool mIsRunningOnCompositor;
   
   
