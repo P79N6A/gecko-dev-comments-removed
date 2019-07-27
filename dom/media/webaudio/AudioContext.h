@@ -27,6 +27,10 @@
 #undef CurrentTime
 #endif
 
+namespace WebCore {
+  class PeriodicWave;
+};
+
 class nsPIDOMWindow;
 
 namespace mozilla {
@@ -65,6 +69,25 @@ class StereoPannerNode;
 class WaveShaperNode;
 class PeriodicWave;
 class Promise;
+enum class OscillatorType : uint32_t;
+
+
+
+
+class BasicWaveFormCache
+{
+public:
+  BasicWaveFormCache(uint32_t aSampleRate);
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(BasicWaveFormCache)
+  WebCore::PeriodicWave* GetBasicWaveForm(OscillatorType aType);
+private:
+  ~BasicWaveFormCache();
+  nsRefPtr<WebCore::PeriodicWave> mSawtooth;
+  nsRefPtr<WebCore::PeriodicWave> mSquare;
+  nsRefPtr<WebCore::PeriodicWave> mTriangle;
+  uint32_t mSampleRate;
+};
+
 
 
 
@@ -294,6 +317,8 @@ public:
 
   void OnStateChanged(void* aPromise, AudioContextState aNewState);
 
+  BasicWaveFormCache* GetBasicWaveFormCache();
+
   IMPL_EVENT_HANDLER(mozinterruptbegin)
   IMPL_EVENT_HANDLER(mozinterruptend)
 
@@ -339,6 +364,8 @@ private:
   
   
   nsTHashtable<nsPtrHashKey<PannerNode> > mPannerNodes;
+  
+  nsRefPtr<BasicWaveFormCache> mBasicWaveFormCache;
   
   uint32_t mNumberOfChannels;
   
