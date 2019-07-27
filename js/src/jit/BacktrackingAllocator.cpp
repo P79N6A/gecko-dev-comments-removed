@@ -901,8 +901,16 @@ BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0, LiveBundle* bundle1)
     }
 
     
+    
+    static const size_t MAX_RANGES = 200;
+
+    
     LiveRange::BundleLinkIterator iter0 = bundle0->rangesBegin(), iter1 = bundle1->rangesBegin();
+    size_t count = 0;
     while (iter0 && iter1) {
+        if (++count >= MAX_RANGES)
+            return true;
+
         LiveRange* range0 = LiveRange::get(*iter0);
         LiveRange* range1 = LiveRange::get(*iter1);
 
