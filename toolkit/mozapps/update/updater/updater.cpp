@@ -116,7 +116,7 @@ static bool sUseHardLinks = true;
 # define MAYBE_USE_HARD_LINKS 0
 #endif
 
-#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN)
+#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && !defined(XP_MACOSX)
 #include "nss.h"
 #include "prerror.h"
 #endif
@@ -2285,7 +2285,7 @@ int NS_main(int argc, NS_tchar **argv)
   }
 #endif
 
-#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN)
+#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && !defined(XP_MACOSX)
   
   
   
