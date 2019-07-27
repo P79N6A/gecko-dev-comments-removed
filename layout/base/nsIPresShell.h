@@ -1253,9 +1253,10 @@ public:
     nsCOMPtr<nsIContent> mPendingContent;
     nsCOMPtr<nsIContent> mOverrideContent;
     bool                 mReleaseContent;
+    bool                 mPrimaryState;
     
-    explicit PointerCaptureInfo(nsIContent* aPendingContent) :
-      mPendingContent(aPendingContent), mReleaseContent(false)
+    explicit PointerCaptureInfo(nsIContent* aPendingContent, bool aPrimaryState) :
+      mPendingContent(aPendingContent), mReleaseContent(false), mPrimaryState(aPrimaryState)
     {
       MOZ_COUNT_CTOR(PointerCaptureInfo);
     }
@@ -1273,14 +1274,16 @@ public:
   
   
   
+  
   static nsClassHashtable<nsUint32HashKey, PointerCaptureInfo>* gPointerCaptureList;
 
   struct PointerInfo
   {
     bool      mActiveState;
     uint16_t  mPointerType;
-    PointerInfo(bool aActiveState, uint16_t aPointerType) :
-      mActiveState(aActiveState), mPointerType(aPointerType) {}
+    bool      mPrimaryState;
+    PointerInfo(bool aActiveState, uint16_t aPointerType, bool aPrimaryState) :
+      mActiveState(aActiveState), mPointerType(aPointerType), mPrimaryState(aPrimaryState) {}
   };
   
   static nsClassHashtable<nsUint32HashKey, PointerInfo>* gActivePointersIds;
@@ -1288,12 +1291,12 @@ public:
   static void DispatchGotOrLostPointerCaptureEvent(bool aIsGotCapture,
                                                    uint32_t aPointerId,
                                                    uint16_t aPointerType,
+                                                   bool aIsPrimary,
                                                    nsIContent* aCaptureTarget);
   static void SetPointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
   static void ReleasePointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
   static nsIContent* GetPointerCapturingContent(uint32_t aPointerId);
-  static uint16_t GetPointerType(uint32_t aPointerId);
-  
+
   
   
   static bool CheckPointerCaptureState(uint32_t aPointerId);
@@ -1301,6 +1304,12 @@ public:
   
   
   static bool GetPointerInfo(uint32_t aPointerId, bool& aActiveState);
+
+  
+  static uint16_t GetPointerType(uint32_t aPointerId);
+
+  
+  static bool GetPointerPrimaryState(uint32_t aPointerId);
 
   
 
