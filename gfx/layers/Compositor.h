@@ -138,17 +138,6 @@ enum SurfaceInitMode
 
 
 
-class CompositorBackendSpecificData
-{
-  NS_INLINE_DECL_REFCOUNTING(CompositorBackendSpecificData)
-
-protected:
-  virtual ~CompositorBackendSpecificData() {}
-};
-
-
-
-
 
 
 
@@ -479,10 +468,6 @@ public:
       }
     }
     return fillRatio;
-  }
-
-  virtual CompositorBackendSpecificData* GetCompositorBackendSpecificData() {
-    return nullptr;
   }
 
   ScreenRotation GetScreenRotation() const {
