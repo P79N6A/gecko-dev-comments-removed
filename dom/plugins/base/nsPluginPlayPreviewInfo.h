@@ -23,6 +23,18 @@ public:
                           const char* aWhitelist);
   explicit nsPluginPlayPreviewInfo(const nsPluginPlayPreviewInfo* aSource);
 
+  
+
+
+
+
+
+
+  static nsresult CheckWhitelist(const nsACString& aPageURI,
+                                 const nsACString& aObjectURI,
+                                 const nsACString& aWhitelist,
+                                 bool *_retval);
+
   nsCString mMimeType;
   bool      mIgnoreCTP;
   nsCString mRedirectURL;

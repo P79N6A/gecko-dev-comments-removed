@@ -7,6 +7,7 @@
 #include "mozilla/DebugOnly.h"
 #include <stdint.h> 
 
+#include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "PluginInstanceParent.h"
 #include "BrowserStreamParent.h"
@@ -21,6 +22,7 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxSharedImageSurface.h"
+#include "nsNetUtil.h"
 #include "nsNPAPIPluginInstance.h"
 #include "nsPluginInstanceOwner.h"
 #include "nsFocusManager.h"
@@ -53,6 +55,10 @@ extern const wchar_t* kFlashFullscreenClass;
 #elif defined(XP_MACOSX)
 #include <ApplicationServices/ApplicationServices.h>
 #endif 
+
+
+
+static const char kShumwayWhitelistPref[] = "shumway.swf.whitelist";
 
 using namespace mozilla::plugins;
 using namespace mozilla::layers;
@@ -104,6 +110,7 @@ PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
     , mUseSurrogate(true)
     , mNPP(npp)
     , mNPNIface(npniface)
+    , mIsWhitelistedForShumway(false)
     , mWindowType(NPWindowTypeWindow)
     , mDrawingModel(kDefaultDrawingModel)
 #if defined(OS_WIN)
@@ -143,9 +150,38 @@ PluginInstanceParent::~PluginInstanceParent()
 }
 
 bool
-PluginInstanceParent::Init()
+PluginInstanceParent::InitMetadata(const nsACString& aMimeType,
+                                   const nsACString& aSrcAttribute)
 {
-    return true;
+    if (aSrcAttribute.IsEmpty()) {
+        return false;
+    }
+    
+    nsRefPtr<nsPluginInstanceOwner> owner = GetOwner();
+    if (!owner) {
+        return false;
+    }
+    nsCOMPtr<nsIURI> baseUri(owner->GetBaseURI());
+    nsresult rv = NS_MakeAbsoluteURI(mSrcAttribute, aSrcAttribute, baseUri);
+    if (NS_FAILED(rv)) {
+        return false;
+    }
+    
+    nsAutoCString baseUrlSpec;
+    rv = baseUri->GetSpec(baseUrlSpec);
+    if (NS_FAILED(rv)) {
+        return false;
+    }
+    auto whitelist = Preferences::GetCString(kShumwayWhitelistPref);
+    
+    
+    if (whitelist.IsEmpty()) {
+        return false;
+    }
+    rv = nsPluginPlayPreviewInfo::CheckWhitelist(baseUrlSpec, mSrcAttribute,
+                                                 whitelist,
+                                                 &mIsWhitelistedForShumway);
+    return NS_SUCCEEDED(rv);
 }
 
 void
