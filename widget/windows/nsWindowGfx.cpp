@@ -17,14 +17,9 @@
 
 
 
-
-
-
-
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/plugins/PluginInstanceParent.h"
 using mozilla::plugins::PluginInstanceParent;
-#include "mozilla/plugins/PluginWidgetParent.h"
-using mozilla::plugins::PluginWidgetParent;
 
 #include "nsWindowGfx.h"
 #include "nsAppRunner.h"
@@ -55,13 +50,6 @@ using mozilla::plugins::PluginWidgetParent;
 extern "C" {
 #define PIXMAN_DONT_DEFINE_STDINT
 #include "pixman.h"
-}
-
-namespace mozilla {
-namespace plugins {
-
-extern const wchar_t* kPluginWidgetParentProperty;
-}
 }
 
 using namespace mozilla;
@@ -214,7 +202,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
 
     if (mWindowType == eWindowType_plugin_ipc_chrome) {
       
-      PluginWidgetParent::SendAsyncUpdate(this);
+      mozilla::dom::ContentParent::SendAsyncUpdate(this);
       ValidateRect(mWnd, nullptr);
       return true;
     }

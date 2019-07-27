@@ -35,6 +35,7 @@ class nsIDumpGCAndCCLogsCallback;
 class nsIMemoryReporter;
 class nsITimer;
 class ParentIdleListener;
+class nsIWidget;
 
 namespace mozilla {
 class PRemoteSpellcheckEngineParent;
@@ -143,6 +144,20 @@ public:
     static bool IgnoreIPCPrincipal();
 
     static void NotifyUpdatedDictionaries();
+
+#if defined(XP_WIN)
+    
+
+
+
+
+
+
+    static void SendAsyncUpdate(nsIWidget* aWidget);
+#endif
+
+    
+    bool IsDestroyed() { return !mIPCOpen; }
 
     virtual bool RecvCreateChildProcess(const IPCTabContext& aContext,
                                         const hal::ProcessPriority& aPriority,

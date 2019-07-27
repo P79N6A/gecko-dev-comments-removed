@@ -7,9 +7,10 @@
 #include "mozilla/dom/ContentParent.h"
 #include "nsComponentManagerUtils.h"
 #include "nsWidgetsCID.h"
+
+#include "mozilla/unused.h"
 #include "mozilla/DebugOnly.h"
 #include "nsDebug.h"
-#include "mozilla/unused.h"
 
 #if defined(MOZ_WIDGET_GTK)
 #include "nsPluginNativeWindowGtk.h"
@@ -21,14 +22,17 @@ using namespace mozilla::widget;
 #define PWLOG(...)
 
 
+#if defined(XP_WIN)
+namespace mozilla {
+namespace dom {
+
+const wchar_t* kPluginWidgetContentParentProperty =
+  L"kPluginWidgetParentProperty";
+} }
+#endif
+
 namespace mozilla {
 namespace plugins {
-
-#if defined(XP_WIN)
-
-const wchar_t* kPluginWidgetParentProperty =
-  L"kPluginWidgetParentProperty";
-#endif
 
 static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 
@@ -40,22 +44,6 @@ static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
     return true;                                              \
   }                                                           \
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 PluginWidgetParent::PluginWidgetParent()
 {
@@ -86,25 +74,6 @@ PluginWidgetParent::SetParent(nsIWidget* aParent)
     mWidget->SetParent(aParent);
   }
 }
-
-#if defined(XP_WIN)
-
-void
-PluginWidgetParent::SendAsyncUpdate(nsIWidget* aWidget)
-{
-  if (!aWidget || aWidget->Destroyed()) {
-    return;
-  }
-  
-  HWND hwnd = (HWND)aWidget->GetNativeData(NS_NATIVE_WINDOW);
-  NS_ASSERTION(hwnd, "Expected valid hwnd value.");
-  PluginWidgetParent* parent = reinterpret_cast<PluginWidgetParent*>(
-    ::GetPropW(hwnd, mozilla::plugins::kPluginWidgetParentProperty));
-  if (parent && !parent->ActorDestroyed()) {
-    parent->SendUpdateWindow((uintptr_t)hwnd);
-  }
-}
-#endif 
 
 
 
@@ -168,7 +137,8 @@ PluginWidgetParent::RecvCreate(nsresult* aResult)
 #elif defined(XP_WIN)
   DebugOnly<DWORD> winres =
     ::SetPropW((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW),
-               kPluginWidgetParentProperty, this);
+               mozilla::dom::kPluginWidgetContentParentProperty,
+               GetTabParent()->Manager()->AsContentParent());
   NS_ASSERTION(winres, "SetPropW call failure");
 #endif
 
@@ -194,25 +164,16 @@ PluginWidgetParent::KillWidget()
     mWrapper = nullptr;
 #elif defined(XP_WIN)
     ::RemovePropW((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW),
-                  kPluginWidgetParentProperty);
+                  mozilla::dom::kPluginWidgetContentParentProperty);
 #endif
     mWidget = nullptr;
   }
 }
 
 void
-PluginWidgetParent::Shutdown(ShutdownType aType)
-{
-  if (mWidget) {
-    KillWidget();
-    unused << SendParentShutdown(aType);
-  }
-}
-
-void
 PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  PWLOG("PluginWidgetParent::ActorDestroy()\n");
+  PWLOG("PluginWidgetParent::ActorDestroy(%d)\n", aWhy);
   KillWidget();
 }
 
@@ -223,17 +184,6 @@ void
 PluginWidgetParent::ParentDestroy()
 {
   PWLOG("PluginWidgetParent::ParentDestroy()\n");
-  Shutdown(TAB_CLOSURE);
-}
-
-
-
-bool
-PluginWidgetParent::RecvDestroy()
-{
-  PWLOG("PluginWidgetParent::RecvDestroy()\n");
-  Shutdown(CONTENT);
-  return true;
 }
 
 bool
@@ -249,7 +199,6 @@ bool
 PluginWidgetParent::RecvGetNativePluginPort(uintptr_t* value)
 {
   ENSURE_CHANNEL;
-  PWLOG("PluginWidgetParent::RecvGetNativeData()\n");
 #if defined(MOZ_WIDGET_GTK)
   *value = (uintptr_t)mWrapper->window;
   NS_ASSERTION(*value, "no xid??");
