@@ -109,8 +109,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SharedPreferences",
 XPCOMUtils.defineLazyModuleGetter(this, "Notifications",
                                   "resource://gre/modules/Notifications.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode",
-                                  "resource://gre/modules/ReaderMode.jsm");
+
+Services.scriptloader.loadSubScript("chrome://browser/content/Reader.js", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
                                   "resource://gre/modules/GMPInstallManager.jsm");
@@ -149,7 +149,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "GMPInstallManager",
   ["Feedback", ["Feedback:Show"], "chrome://browser/content/Feedback.js"],
   ["SelectionHandler", ["TextSelection:Get"], "chrome://browser/content/SelectionHandler.js"],
   ["EmbedRT", ["GeckoView:ImportScript"], "chrome://browser/content/EmbedRT.js"],
-  ["Reader", ["Reader:Removed"], "chrome://browser/content/Reader.js"],
 ].forEach(function (aScript) {
   let [name, notifications, script] = aScript;
   XPCOMUtils.defineLazyGetter(window, name, function() {
@@ -454,6 +453,7 @@ var BrowserApp = {
 #ifdef NIGHTLY_BUILD
     ShumwayUtils.init();
 #endif
+    Reader.init();
 
     let url = null;
     let pinned = false;
@@ -3236,7 +3236,7 @@ function Tab(aURL, aParams) {
   this.clickToPlayPluginsActivated = false;
   this.desktopMode = false;
   this.originalURI = null;
-  this.savedArticle = null;
+  this.isArticle = false;
   this.hasTouchListener = false;
   this.browserWidth = 0;
   this.browserHeight = 0;
@@ -3581,7 +3581,6 @@ Tab.prototype = {
     BrowserApp.deck.selectedPanel = selectedPanel;
 
     this.browser = null;
-    this.savedArticle = null;
   },
 
   
@@ -4281,31 +4280,6 @@ Tab.prototype = {
           xhr.send(this.tilesData);
           this.tilesData = null;
         }
-
-        
-        
-        if (!Reader.isEnabledForParseOnLoad || this.readerActive) {
-          return;
-        }
-
-        
-        this.savedArticle = null;
-        Reader.updatePageAction(this);
-
-        
-        ReaderMode.parseDocumentFromBrowser(this.browser).then(article => {
-          
-          
-          let currentURL = this.browser.currentURI.specIgnoringRef;
-
-          
-          if (article == null || (article.url != currentURL)) {
-            return;
-          }
-
-          this.savedArticle = article;
-          Reader.updatePageAction(this);
-        }).catch(e => Cu.reportError("Error parsing document from tab: " + e));
       }
     }
   },

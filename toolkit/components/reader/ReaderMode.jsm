@@ -27,6 +27,39 @@ let ReaderMode = {
   
   MAX_ELEMS_TO_PARSE: 3000,
 
+  get isEnabledForParseOnLoad() {
+    delete this.isEnabledForParseOnLoad;
+
+    
+    Services.prefs.addObserver("reader.parse-on-load.", this, false);
+
+    return this.isEnabledForParseOnLoad = this._getStateForParseOnLoad();
+  },
+
+  get isOnLowMemoryPlatform() {
+    let memory = Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory);
+    delete this.isOnLowMemoryPlatform;
+    return this.isOnLowMemoryPlatform = memory.isLowMemoryPlatform();
+  },
+
+  _getStateForParseOnLoad: function () {
+    let isEnabled = Services.prefs.getBoolPref("reader.parse-on-load.enabled");
+    let isForceEnabled = Services.prefs.getBoolPref("reader.parse-on-load.force-enabled");
+    
+    
+    return isForceEnabled || (isEnabled && !this.isOnLowMemoryPlatform);
+  },
+
+  observe: function(aMessage, aTopic, aData) {
+    switch(aTopic) {
+      case "nsPref:changed":
+        if (aData.startsWith("reader.parse-on-load.")) {
+          this.isEnabledForParseOnLoad = this._getStateForParseOnLoad();
+        }
+        break;
+    }
+  },
+
   
 
 
@@ -35,8 +68,8 @@ let ReaderMode = {
 
 
 
-  parseDocumentFromBrowser: Task.async(function* (browser) {
-    let uri = browser.currentURI;
+  parseDocument: Task.async(function* (doc) {
+    let uri = Services.io.newURI(doc.documentURI, null, null);
     if (!this._shouldCheckUri(uri)) {
       this.log("Reader mode disabled for URI");
       return null;
@@ -49,7 +82,6 @@ let ReaderMode = {
       return article;
     }
 
-    let doc = browser.contentWindow.document;
     return yield this._readerParse(uri, doc);
   }),
 
