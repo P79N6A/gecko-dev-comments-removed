@@ -4225,7 +4225,7 @@ Tab.prototype = {
           return;
 
         
-        Reader.parseDocumentFromTab(this.id, function (article) {
+        Reader.parseDocumentFromTab(this, function (article) {
           
           
           let uri = this.browser.currentURI;
@@ -4851,7 +4851,6 @@ var BrowserEventHandler = {
 
     BrowserApp.deck.addEventListener("DOMUpdatePageReport", PopupBlockerObserver.onUpdatePageReport, false);
     BrowserApp.deck.addEventListener("touchstart", this, true);
-    BrowserApp.deck.addEventListener("MozMouseHittest", this, true);
     BrowserApp.deck.addEventListener("click", InputWidgetHelper, true);
     BrowserApp.deck.addEventListener("click", SelectHelper, true);
 
@@ -4884,9 +4883,6 @@ var BrowserEventHandler = {
       case 'touchstart':
         this._handleTouchStart(aEvent);
         break;
-      case 'MozMouseHittest':
-        this._handleRetargetedTouchStart(aEvent);
-        break;
       case 'MozMagnifyGesture':
         this.observe(this, aEvent.type,
                      JSON.stringify({x: aEvent.screenX, y: aEvent.screenY,
@@ -4918,19 +4914,6 @@ var BrowserEventHandler = {
       if (this._scrollableElement != rootScrollable) {
         Messaging.sendRequest({ type: "Panning:Override" });
       }
-    }
-  },
-
-  _handleRetargetedTouchStart: function(aEvent) {
-    
-    
-    if (!BrowserApp.isBrowserContentDocumentDisplayed() || aEvent.defaultPrevented) {
-      return;
-    }
-
-    let target = aEvent.target;
-    if (!target) {
-      return;
     }
 
     let uri = this._getLinkURI(target);
