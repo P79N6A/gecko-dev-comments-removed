@@ -263,6 +263,23 @@ void Axis::StepOverscrollAnimation(double aStepDurationMilliseconds) {
   
   
   mOverscroll += (mVelocity * aStepDurationMilliseconds);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (fabs(mOverscroll) > fabs(mFirstOverscrollAnimationSample)) {
+    mOverscroll = (mOverscroll >= 0)
+                ? fabs(mFirstOverscrollAnimationSample)
+                : -fabs(mFirstOverscrollAnimationSample);
+
+  }
 }
 
 bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
