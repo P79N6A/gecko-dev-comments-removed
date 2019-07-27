@@ -25,9 +25,16 @@ InternalRequest::GetRequestConstructorCopy(nsIGlobalObject* aGlobal, ErrorResult
   copy->mURL.Assign(mURL);
   copy->SetMethod(mMethod);
   copy->mHeaders = new InternalHeaders(*mHeaders);
+  copy->SetUnsafeRequest();
 
   copy->mBodyStream = mBodyStream;
+  copy->mForceOriginHeader = true;
+  
+  
+  
+  copy->mSameOriginDataURL = true;
   copy->mPreserveContentCodings = true;
+  
 
   copy->mContext = nsIContentPolicy::TYPE_FETCH;
   copy->mMode = mMode;

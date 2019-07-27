@@ -14,6 +14,7 @@
 #include "nsIUploadChannel2.h"
 
 #include "nsContentPolicyUtils.h"
+#include "nsCORSListenerProxy.h"
 #include "nsDataHandler.h"
 #include "nsHostObjectProtocolHandler.h"
 #include "nsNetUtil.h"
@@ -96,6 +97,9 @@ FetchDriver::ContinueFetch(bool aCORSFlag)
   }
 
   
+  
+
+  
 
   nsAutoCString scheme;
   rv = requestURI->GetScheme(scheme);
@@ -125,7 +129,7 @@ FetchDriver::ContinueFetch(bool aCORSFlag)
 
   bool corsPreflight = false;
   if (mRequest->Mode() == RequestMode::Cors_with_forced_preflight ||
-      (mRequest->UnsafeRequest() && (mRequest->HasSimpleMethod() || !mRequest->Headers()->HasOnlySimpleHeaders()))) {
+      (mRequest->UnsafeRequest() && (!mRequest->HasSimpleMethod() || !mRequest->Headers()->HasOnlySimpleHeaders()))) {
     corsPreflight = true;
   }
 
@@ -274,46 +278,14 @@ FetchDriver::BasicFetch()
   return FailWithNetworkError();
 }
 
+
+
+
 nsresult
-FetchDriver::HttpFetch(bool aCORSFlag, bool aPreflightCORSFlag, bool aAuthenticationFlag)
+FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthenticationFlag)
 {
+  
   mResponse = nullptr;
-
-  
-  return ContinueHttpFetchAfterServiceWorker();
-}
-
-nsresult
-FetchDriver::ContinueHttpFetchAfterServiceWorker()
-{
-  if (!mResponse) {
-    
-    
-    
-    return ContinueHttpFetchAfterCORSPreflight();
-  }
-
-  
-  return ContinueHttpFetchAfterNetworkFetch();
-}
-
-nsresult
-FetchDriver::ContinueHttpFetchAfterCORSPreflight()
-{
-  
-  
-  if (mResponse && mResponse->IsError()) {
-    return FailWithNetworkError();
-  }
-
-  return HttpNetworkFetch();
-}
-
-nsresult
-FetchDriver::HttpNetworkFetch()
-{
-  
-  
 
   nsresult rv;
 
@@ -336,6 +308,13 @@ FetchDriver::HttpNetworkFetch()
     return rv;
   }
 
+  
+  
+  
+  
+
+  
+  
   MOZ_ASSERT(mLoadGroup);
   nsCOMPtr<nsIChannel> chan;
   rv = NS_NewChannel(getter_AddRefs(chan),
@@ -353,8 +332,39 @@ FetchDriver::HttpNetworkFetch()
     return rv;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  bool useCredentials = false;
+  if (mRequest->GetCredentialsMode() == RequestCredentials::Include ||
+      (mRequest->GetCredentialsMode() == RequestCredentials::Same_origin && !aCORSFlag)) {
+    useCredentials = true;
+  }
+
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
   nsCOMPtr<nsIHttpChannel> httpChan = do_QueryInterface(chan);
   if (httpChan) {
+    
     nsAutoCString method;
     mRequest->GetMethod(method);
     rv = httpChan->SetRequestMethod(method);
@@ -363,39 +373,53 @@ FetchDriver::HttpNetworkFetch()
       return rv;
     }
 
+    
     nsAutoTArray<InternalHeaders::Entry, 5> headers;
     mRequest->Headers()->GetEntries(headers);
     for (uint32_t i = 0; i < headers.Length(); ++i) {
       httpChan->SetRequestHeader(headers[i].mName, headers[i].mValue, false );
     }
 
+    
     MOZ_ASSERT(mRequest->ReferrerIsURL());
     nsCString referrer = mRequest->ReferrerAsURL();
     if (!referrer.IsEmpty()) {
       nsCOMPtr<nsIURI> uri;
       rv = NS_NewURI(getter_AddRefs(uri), referrer, nullptr, nullptr, ios);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        return FailWithNetworkError();
       }
       rv = httpChan->SetReferrer(uri);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        return FailWithNetworkError();
       }
     }
 
+    
     if (mRequest->ForceOriginHeader()) {
       nsAutoString origin;
       rv = nsContentUtils::GetUTFOrigin(mPrincipal, origin);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        FailWithNetworkError();
-        return rv;
+        return FailWithNetworkError();
       }
       httpChan->SetRequestHeader(NS_LITERAL_CSTRING("origin"),
                                  NS_ConvertUTF16toUTF8(origin),
                                  false );
     }
+    
+    
+    
+    
+    if (useCredentials) {
+      return FailWithNetworkError();
+    }
   }
 
+  
+  
+  
+
+  
   nsCOMPtr<nsIUploadChannel2> uploadChan = do_QueryInterface(chan);
   if (uploadChan) {
     nsAutoCString contentType;
@@ -404,7 +428,7 @@ FetchDriver::HttpNetworkFetch()
     
     
     if (result.Failed()) {
-      return result.ErrorCode();
+      return FailWithNetworkError();
     }
 
     nsCOMPtr<nsIInputStream> bodyStream;
@@ -414,11 +438,47 @@ FetchDriver::HttpNetworkFetch()
       mRequest->GetMethod(method);
       rv = uploadChan->ExplicitSetUploadStream(bodyStream, contentType, -1, method, false );
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+        return FailWithNetworkError();
       }
     }
   }
-  return chan->AsyncOpen(this, nullptr);
+
+  
+  
+  
+  
+  
+  nsRefPtr<nsCORSListenerProxy> corsListener =
+    new nsCORSListenerProxy(this, mPrincipal, useCredentials);
+  rv = corsListener->Init(chan, true );
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return FailWithNetworkError();
+  }
+
+  
+  
+  
+  
+  
+  if (aCORSPreflightFlag) {
+    nsCOMPtr<nsIChannel> preflightChannel;
+    nsAutoTArray<nsCString, 5> unsafeHeaders;
+    mRequest->Headers()->GetUnsafeHeaders(unsafeHeaders);
+
+    rv = NS_StartCORSPreflight(chan, corsListener, mPrincipal,
+                               useCredentials,
+                               unsafeHeaders,
+                               getter_AddRefs(preflightChannel));
+  } else {
+   rv = chan->AsyncOpen(corsListener, nullptr);
+  }
+
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return FailWithNetworkError();
+  }
+
+  
+  return NS_OK;
 }
 
 nsresult
@@ -457,6 +517,7 @@ FetchDriver::BeginAndGetFilteredResponse(InternalResponse* aResponse)
   }
 
   MOZ_ASSERT(filteredResponse);
+  MOZ_ASSERT(mObserver);
   mObserver->OnResponseAvailable(filteredResponse);
   mResponseAvailableCalled = true;
   return filteredResponse.forget();
@@ -472,18 +533,25 @@ FetchDriver::BeginResponse(InternalResponse* aResponse)
 nsresult
 FetchDriver::SucceedWithResponse()
 {
-  mObserver->OnResponseEnd();
+  workers::AssertIsOnMainThread();
+  if (mObserver) {
+    mObserver->OnResponseEnd();
+    mObserver = nullptr;
+  }
   return NS_OK;
 }
 
 nsresult
 FetchDriver::FailWithNetworkError()
 {
-  MOZ_ASSERT(mObserver);
+  workers::AssertIsOnMainThread();
   nsRefPtr<InternalResponse> error = InternalResponse::NetworkError();
-  mObserver->OnResponseAvailable(error);
-  mResponseAvailableCalled = true;
-  mObserver->OnResponseEnd();
+  if (mObserver) {
+    mObserver->OnResponseAvailable(error);
+    mResponseAvailableCalled = true;
+    mObserver->OnResponseEnd();
+    mObserver = nullptr;
+  }
   return NS_OK;
 }
 
@@ -517,7 +585,9 @@ NS_IMETHODIMP
 FetchDriver::OnStartRequest(nsIRequest* aRequest,
                             nsISupports* aContext)
 {
+  workers::AssertIsOnMainThread();
   MOZ_ASSERT(!mPipeOutputStream);
+  MOZ_ASSERT(mObserver);
   nsresult rv;
   aRequest->GetStatus(&rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -607,8 +677,10 @@ FetchDriver::OnStopRequest(nsIRequest* aRequest,
                            nsISupports* aContext,
                            nsresult aStatusCode)
 {
-  MOZ_ASSERT(mPipeOutputStream);
-  mPipeOutputStream->Close();
+  workers::AssertIsOnMainThread();
+  if (mPipeOutputStream) {
+    mPipeOutputStream->Close();
+  }
 
   if (NS_FAILED(aStatusCode)) {
     FailWithNetworkError();
