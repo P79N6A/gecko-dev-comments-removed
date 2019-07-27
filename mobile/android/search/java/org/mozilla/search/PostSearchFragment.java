@@ -25,6 +25,7 @@ import org.mozilla.gecko.TelemetryContract;
 public class PostSearchFragment extends Fragment {
 
     private static final String LOGTAG = "PostSearchFragment";
+    private static final String ABOUT_BLANK = "about:blank";
 
     private ProgressBar progressBar;
     private WebView webview;
@@ -69,8 +70,8 @@ public class PostSearchFragment extends Fragment {
 
 
 
-    protected boolean isSearchResultsPage(String url) {
-        return url.contains(Constants.YAHOO_WEB_SEARCH_RESULTS_FILTER);
+    private boolean shouldSendToBrowser(String url) {
+        return !(TextUtils.equals(ABOUT_BLANK, url) || url.contains(Constants.YAHOO_WEB_SEARCH_RESULTS_FILTER));
     }
 
     public void startSearch(String query) {
@@ -81,7 +82,7 @@ public class PostSearchFragment extends Fragment {
         
         
         if (!TextUtils.equals(webview.getUrl(), url)) {
-            webview.loadUrl("about:blank");
+            webview.loadUrl(ABOUT_BLANK);
             webview.loadUrl(url);
         }
     }
@@ -95,13 +96,13 @@ public class PostSearchFragment extends Fragment {
 
         @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
-            if (isSearchResultsPage(url)) {
-                super.onPageStarted(view, url, favicon);
-            } else {
+            if (shouldSendToBrowser(url)) {
+                view.stopLoading();
+
                 Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
                         TelemetryContract.Method.CONTENT, "search-result");
-                view.stopLoading();
-                Intent i = new Intent(Intent.ACTION_VIEW);
+
+                final Intent i = new Intent(Intent.ACTION_VIEW);
                 i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
                 i.setData(Uri.parse(url));
                 startActivity(i);
