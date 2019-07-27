@@ -96,9 +96,10 @@ namespace system {
 #define SYS_USB_CONFIG          "sys.usb.config"
 #define PERSIST_SYS_USB_CONFIG  "persist.sys.usb.config"
 
-#define USB_FUNC_ADB  "adb"
-#define USB_FUNC_MTP  "mtp"
-#define USB_FUNC_UMS  "mass_storage"
+#define USB_FUNC_ADB    "adb"
+#define USB_FUNC_MTP    "mtp"
+#define USB_FUNC_RNDIS  "rndis"
+#define USB_FUNC_UMS    "mass_storage"
 
 class AutoMounter;
 
@@ -420,17 +421,21 @@ private:
     
     
     STATE_UMS_CONFIGURED,
+
+    
+    STATE_RNDIS_CONFIGURED,
   };
 
   const char *StateStr(STATE aState)
   {
     switch (aState) {
-      case STATE_IDLE:            return "IDLE";
-      case STATE_MTP_CONFIGURING: return "MTP_CONFIGURING";
-      case STATE_MTP_CONNECTED:   return "MTP_CONNECTED";
-      case STATE_MTP_STARTED:     return "MTP_STARTED";
-      case STATE_UMS_CONFIGURING: return "UMS_CONFIGURING";
-      case STATE_UMS_CONFIGURED:  return "UMS_CONFIGURED";
+      case STATE_IDLE:              return "IDLE";
+      case STATE_MTP_CONFIGURING:   return "MTP_CONFIGURING";
+      case STATE_MTP_CONNECTED:     return "MTP_CONNECTED";
+      case STATE_MTP_STARTED:       return "MTP_STARTED";
+      case STATE_UMS_CONFIGURING:   return "UMS_CONFIGURING";
+      case STATE_UMS_CONFIGURED:    return "UMS_CONFIGURED";
+      case STATE_RNDIS_CONFIGURED:  return "RNDIS_CONFIGURED";
     }
     return "STATE_???";
   }
@@ -660,6 +665,7 @@ AutoMounter::UpdateState()
   bool mtpAvail = false;
   bool mtpConfigured = false;
   bool mtpEnabled = false;
+  bool rndisConfigured = false;
   bool usbCablePluggedIn = IsUsbCablePluggedIn();
 
   if (access(ICS_SYS_USB_FUNCTIONS, F_OK) == 0) {
@@ -690,6 +696,8 @@ AutoMounter::UpdateState()
       mtpConfigured = false;
       mtpEnabled = false;
     }
+
+    rndisConfigured = strstr(functionsStr, USB_FUNC_RNDIS) != nullptr;
   }
 
   bool enabled = mtpEnabled || umsEnabled;
@@ -704,9 +712,9 @@ AutoMounter::UpdateState()
     }
   }
 
-  DBG("UpdateState: ums:A%dC%dE%d mtp:A%dC%dE%d mode:%d usb:%d mState:%s",
+  DBG("UpdateState: ums:A%dC%dE%d mtp:A%dC%dE%d rndis:%d mode:%d usb:%d mState:%s",
       umsAvail, umsConfigured, umsEnabled,
-      mtpAvail, mtpConfigured, mtpEnabled,
+      mtpAvail, mtpConfigured, mtpEnabled, rndisConfigured,
       mMode, usbCablePluggedIn, StateStr(mState));
 
   switch (mState) {
@@ -715,6 +723,11 @@ AutoMounter::UpdateState()
       if (!usbCablePluggedIn) {
         
         
+        break;
+      }
+      if (rndisConfigured) {
+        
+        SetState(STATE_RNDIS_CONFIGURED);
         break;
       }
       if (mtpEnabled) {
@@ -752,6 +765,11 @@ AutoMounter::UpdateState()
         
         StartMtpServer();
         SetState(STATE_MTP_STARTED);
+        break;
+      }
+      if (rndisConfigured) {
+        SetState(STATE_RNDIS_CONFIGURED);
+        break;
       }
       break;
 
@@ -764,6 +782,10 @@ AutoMounter::UpdateState()
           "mtpConfigured = %d mtpEnabled = %d usbCablePluggedIn: %d",
           mtpConfigured, mtpEnabled, usbCablePluggedIn);
       StopMtpServer();
+      if (rndisConfigured) {
+        SetState(STATE_RNDIS_CONFIGURED);
+        break;
+      }
       if (umsAvail) {
         
         SetUsbFunction(USB_FUNC_UMS);
@@ -790,6 +812,10 @@ AutoMounter::UpdateState()
         }
         SetState(STATE_UMS_CONFIGURED);
       }
+      if (rndisConfigured) {
+        SetState(STATE_RNDIS_CONFIGURED);
+        break;
+      }
       break;
 
     case STATE_UMS_CONFIGURED:
@@ -804,6 +830,18 @@ AutoMounter::UpdateState()
           
           break;
         }
+      }
+      if (rndisConfigured) {
+        SetState(STATE_RNDIS_CONFIGURED);
+        break;
+      }
+      SetState(STATE_IDLE);
+      break;
+
+    case STATE_RNDIS_CONFIGURED:
+      if (usbCablePluggedIn && rndisConfigured) {
+        
+        break;
       }
       SetState(STATE_IDLE);
       break;
