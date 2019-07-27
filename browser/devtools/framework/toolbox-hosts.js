@@ -14,7 +14,7 @@ Cu.import("resource:///modules/devtools/DOMHelpers.jsm");
 
 
 
-const MIN_PAGE_SIZE = exports.MIN_PAGE_SIZE = 100;
+const MIN_PAGE_SIZE = 25;
 
 
 
