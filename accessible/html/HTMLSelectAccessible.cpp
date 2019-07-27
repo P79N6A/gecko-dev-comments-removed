@@ -130,9 +130,8 @@ HTMLSelectListAccessible::CacheChildren()
       continue;
     }
 
-    nsIAtom* tag = childContent->Tag();
-    if (tag == nsGkAtoms::option ||
-        tag == nsGkAtoms::optgroup) {
+    if (childContent->IsAnyOfHTMLElements(nsGkAtoms::option,
+                                          nsGkAtoms::optgroup)) {
 
       
       nsRefPtr<Accessible> accessible =

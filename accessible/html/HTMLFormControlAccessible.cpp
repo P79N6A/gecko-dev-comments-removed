@@ -250,7 +250,7 @@ HTMLButtonAccessible::NativeName(nsString& aName)
   
 
   ENameValueFlag nameFlag = Accessible::NativeName(aName);
-  if (!aName.IsEmpty() || mContent->Tag() != nsGkAtoms::input ||
+  if (!aName.IsEmpty() || !mContent->IsHTMLElement(nsGkAtoms::input) ||
       !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                              nsGkAtoms::image, eCaseMatters))
     return nameFlag;
