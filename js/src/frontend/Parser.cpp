@@ -57,13 +57,12 @@ typedef Handle<NestedScopeObject*> HandleNestedScopeObject;
 
 
 
-
-
-
 #define MUST_MATCH_TOKEN(tt, errno)                                                         \
     JS_BEGIN_MACRO                                                                          \
-        if (tokenStream.getToken() != tt) {                                                 \
-            report(ParseError, false, null(), errno);                                       \
+        TokenKind token = tokenStream.getToken();                                           \
+        if (token != tt) {                                                                  \
+            if (token != TOK_ERROR)                                                         \
+                report(ParseError, false, null(), errno);                                   \
             return null();                                                                  \
         }                                                                                   \
     JS_END_MACRO
