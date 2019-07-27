@@ -54,6 +54,8 @@ using safe_browsing::ClientDownloadRequest_SignatureInfo;
 
 #define PREF_SB_APP_REP_URL "browser.safebrowsing.appRepURL"
 #define PREF_SB_MALWARE_ENABLED "browser.safebrowsing.malware.enabled"
+#define PREF_SB_DOWNLOADS_ENABLED "browser.safebrowsing.downloads.enabled"
+#define PREF_SB_DOWNLOADS_REMOTE_ENABLED "browser.safebrowsing.downloads.remote.enabled"
 #define PREF_GENERAL_LOCALE "general.useragent.locale"
 #define PREF_DOWNLOAD_BLOCK_TABLE "urlclassifier.downloadBlockTable"
 #define PREF_DOWNLOAD_ALLOW_TABLE "urlclassifier.downloadAllowTable"
@@ -421,8 +423,23 @@ PendingLookup::LookupNext()
     nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
     return lookup->LookupSpec(spec, true);
   }
+#ifdef XP_WIN
+  
+  
+  if (!IsBinaryFile()) {
+    LOG(("Not eligible for remote lookups [this=%x]", this));
+    return OnComplete(false, NS_OK);
+  }
+  
+  nsresult rv = SendRemoteQuery();
+  if (NS_FAILED(rv)) {
+    return OnComplete(false, rv);
+  }
+  return NS_OK;
+#else
   LOG(("PendingLookup: Nothing left to check [this=%p]", this));
   return OnComplete(false, NS_OK);
+#endif
 }
 
 nsCString
@@ -781,7 +798,9 @@ PendingLookup::SendRemoteQuery()
 {
   nsresult rv = SendRemoteQueryInternal();
   if (NS_FAILED(rv)) {
-    return OnComplete(false, NS_OK);
+    LOG(("Failed sending remote query for application reputation "
+         "[this = %p]", this));
+    return OnComplete(false, rv);
   }
   
   
@@ -791,7 +810,34 @@ PendingLookup::SendRemoteQuery()
 nsresult
 PendingLookup::SendRemoteQueryInternal()
 {
-  LOG(("Sending remote query for application reputation [this = %p]", this));
+  
+  if (!Preferences::GetBool(PREF_SB_DOWNLOADS_REMOTE_ENABLED, false)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  
+  nsCString serviceUrl;
+  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
+                    NS_ERROR_NOT_AVAILABLE);
+  if (serviceUrl.EqualsLiteral("")) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+  
+  nsCString table;
+  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &table),
+                    NS_ERROR_NOT_AVAILABLE);
+  if (table.EqualsLiteral("")) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &table),
+                    NS_ERROR_NOT_AVAILABLE);
+  if (table.EqualsLiteral("")) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  LOG(("Sending remote query for application reputation [this = %p]",
+       this));
   
   
   nsCOMPtr<nsIURI> uri;
@@ -808,7 +854,8 @@ PendingLookup::SendRemoteQueryInternal()
   NS_ENSURE_SUCCESS(rv, rv);
   mRequest.set_length(fileSize);
   
-  mRequest.set_user_initiated(false);
+  
+  mRequest.set_user_initiated(true);
 
   nsCString locale;
   NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_GENERAL_LOCALE, &locale),
@@ -849,9 +896,6 @@ PendingLookup::SendRemoteQueryInternal()
 
   
   nsCOMPtr<nsIChannel> channel;
-  nsCString serviceUrl;
-  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
-                    NS_ERROR_NOT_AVAILABLE);
   nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
   rv = ios->NewChannel(serviceUrl, nullptr, nullptr, getter_AddRefs(channel));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1048,6 +1092,10 @@ nsresult ApplicationReputationService::QueryReputationInternal(
   nsresult rv;
   
   if (!Preferences::GetBool(PREF_SB_MALWARE_ENABLED, false)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  if (!Preferences::GetBool(PREF_SB_DOWNLOADS_ENABLED, false)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
