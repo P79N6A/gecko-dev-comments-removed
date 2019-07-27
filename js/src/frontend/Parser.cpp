@@ -8109,8 +8109,30 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
       case TOK_LET:
         return letBlock(LetExpression);
 
-      case TOK_LP:
-        return parenExprOrGeneratorComprehension();
+      case TOK_LP: {
+        TokenKind next;
+        if (!tokenStream.peekToken(&next, TokenStream::Operand))
+            return null();
+        if (next != TOK_RP)
+            return parenExprOrGeneratorComprehension();
+
+        
+        
+        tokenStream.consumeKnownToken(next);
+
+        if (!tokenStream.peekToken(&next))
+            return null();
+        if (next != TOK_ARROW) {
+            report(ParseError, false, null(), JSMSG_UNEXPECTED_TOKEN,
+                   "expression", TokenKindToDesc(TOK_RP));
+            return null();
+        }
+
+        
+        
+        
+        return handler.newNullLiteral(pos());
+      }
 
       case TOK_TEMPLATE_HEAD:
         return templateLiteral();
@@ -8142,24 +8164,6 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
         return handler.newThisLiteral(pos());
       case TOK_NULL:
         return handler.newNullLiteral(pos());
-
-      case TOK_RP: {
-        TokenKind next;
-        if (!tokenStream.peekToken(&next))
-            return null();
-
-        
-        
-        if (next == TOK_ARROW) {
-            tokenStream.ungetToken();  
-
-            
-            
-            
-            return handler.newNullLiteral(pos());
-        }
-        goto unexpected_token;
-      }
 
       case TOK_TRIPLEDOT: {
         TokenKind next;
@@ -8199,7 +8203,6 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
       }
 
       default:
-      unexpected_token:
         report(ParseError, false, null(), JSMSG_UNEXPECTED_TOKEN,
                "expression", TokenKindToDesc(tt));
         return null();
