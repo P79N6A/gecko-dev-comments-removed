@@ -460,6 +460,23 @@ function injectLoopAPI(targetWindow) {
 
 
 
+    setLoopBoolPref: {
+      enumerable: true,
+      writable: true,
+      value: function(prefName, value) {
+        MozLoopService.setLoopBoolPref(prefName, value);
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
 
 
 
@@ -593,6 +610,17 @@ function injectLoopAPI(targetWindow) {
       writable: true,
       value: function() {
         return MozLoopService.openFxASettings();
+      },
+    },
+
+    
+
+
+    openGettingStartedTour: {
+      enumerable: true,
+      writable: true,
+      value: function() {
+        return MozLoopService.openGettingStartedTour();
       },
     },
 

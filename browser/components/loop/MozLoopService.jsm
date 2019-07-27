@@ -1267,6 +1267,23 @@ this.MozLoopService = {
 
 
 
+  setLoopBoolPref: function(prefName, value) {
+    try {
+      Services.prefs.setBoolPref("loop." + prefName, value);
+    } catch (ex) {
+      log.error("setLoopCharPref had trouble setting " + prefName +
+        "; exception: " + ex);
+    }
+  },
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -1384,6 +1401,19 @@ this.MozLoopService = {
       win.switchToTabHavingURI(url.toString(), true);
     } catch (ex) {
       log.error("Error opening FxA settings", ex);
+    }
+  }),
+
+  
+
+
+  openGettingStartedTour: Task.async(function() {
+    try {
+      let url = Services.prefs.getCharPref("loop.gettingStarted.url");
+      let win = Services.wm.getMostRecentWindow("navigator:browser");
+      win.switchToTabHavingURI(url, true);
+    } catch (ex) {
+      log.error("Error opening Getting Started tour", ex);
     }
   }),
 
