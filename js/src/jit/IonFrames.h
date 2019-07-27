@@ -292,9 +292,9 @@ MakeFrameDescriptor(uint32_t frameSize, FrameType type)
 
 
 inline JSScript *
-GetTopIonJSScript(uint8_t *jitTop, void **returnAddrOut, ExecutionMode mode)
+GetTopIonJSScript(ThreadSafeContext *cx, void **returnAddrOut = nullptr)
 {
-    JitFrameIterator iter(jitTop, mode);
+    JitFrameIterator iter(cx);
     MOZ_ASSERT(iter.type() == JitFrame_Exit);
     ++iter;
 
