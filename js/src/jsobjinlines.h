@@ -664,7 +664,13 @@ JSObject::global() const
     while (JSObject *parent = obj->getParent())
         obj = parent;
 #endif
-    return *compartment()->maybeGlobal();
+    
+
+
+
+
+
+    return *compartment()->unsafeUnbarrieredMaybeGlobal();
 }
 
 inline bool

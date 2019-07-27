@@ -271,10 +271,6 @@ WeakMap_get_impl(JSContext *cx, CallArgs args)
 
     if (ObjectValueMap *map = args.thisv().toObject().as<WeakMapObject>().getMap()) {
         if (ObjectValueMap::Ptr ptr = map->lookup(key)) {
-            
-            
-            ExposeValueToActiveJS(ptr->value().get());
-
             args.rval().set(ptr->value());
             return true;
         }
@@ -450,6 +446,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, HandleObject objArg, MutableHan
         
         AutoSuppressGC suppress(cx);
         for (ObjectValueMap::Base::Range r = map->all(); !r.empty(); r.popFront()) {
+            JS::ExposeObjectToActiveJS(r.front().key());
             RootedObject key(cx, r.front().key());
             if (!cx->compartment()->wrap(cx, &key))
                 return false;

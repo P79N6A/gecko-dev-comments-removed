@@ -183,6 +183,9 @@ struct JSCompartment
 
     inline js::GlobalObject *maybeGlobal() const;
 
+    
+    inline js::GlobalObject *unsafeUnbarrieredMaybeGlobal() const;
+
     inline void initGlobal(js::GlobalObject &global);
 
   public:
