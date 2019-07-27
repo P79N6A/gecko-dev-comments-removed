@@ -21,13 +21,20 @@ public:
   
   nsMenuObjectTypeX MenuObjectType() { return eStandaloneNativeMenuObjectType; }
   void * NativeData() { return mMenu != nullptr ? mMenu->NativeData() : nullptr; }
+  virtual void IconUpdated() MOZ_OVERRIDE;
 
   nsMenuX * GetMenuXObject() { return mMenu; }
+
+  
+  
+  
+  void SetContainerStatusBarItem(NSStatusItem* aItem);
 
 protected:
   virtual ~nsStandaloneNativeMenu();
 
   nsMenuX * mMenu;
+  NSStatusItem* mContainerStatusBarItem;
 };
 
 #endif
