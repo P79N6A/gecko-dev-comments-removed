@@ -1071,8 +1071,12 @@ nsDOMCameraControl::NotifyRecordingStatusChange(const nsString& aMsg)
     
     mAudioChannelAgent->Init(mWindow, (int32_t)AudioChannel::Content, nullptr);
     
-    int32_t canPlay;
-    mAudioChannelAgent->StartPlaying(&canPlay);
+    float volume = 0.0;
+    bool muted = true;
+    aRv = mAudioChannelAgent->StartPlaying(&volume, &muted);
+    if (NS_WARN_IF(aRv.Failed())) {
+      return nullptr;
+    }
   }
 #endif
   return rv;
