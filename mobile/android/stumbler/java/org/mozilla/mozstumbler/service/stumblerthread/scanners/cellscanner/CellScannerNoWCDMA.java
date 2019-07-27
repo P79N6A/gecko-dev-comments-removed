@@ -31,7 +31,7 @@ import java.util.List;
 
 public class CellScannerNoWCDMA implements CellScanner.CellScannerImpl {
 
-    protected static String LOG_TAG = AppGlobals.LOG_PREFIX + CellScannerNoWCDMA.class.getSimpleName();
+    protected static String LOG_TAG = AppGlobals.makeLogTag(CellScannerNoWCDMA.class.getSimpleName());
     protected GetAllCellInfoScannerImpl mGetAllInfoCellScanner;
     protected TelephonyManager mTelephonyManager;
     protected boolean mIsStarted;

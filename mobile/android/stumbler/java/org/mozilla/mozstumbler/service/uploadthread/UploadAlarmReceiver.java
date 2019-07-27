@@ -30,7 +30,7 @@ import org.mozilla.mozstumbler.service.utils.NetworkUtils;
 
 
 public class UploadAlarmReceiver extends BroadcastReceiver {
-    private static final String LOG_TAG = AppGlobals.LOG_PREFIX + UploadAlarmReceiver.class.getSimpleName();
+    private static final String LOG_TAG = AppGlobals.makeLogTag(UploadAlarmReceiver.class.getSimpleName());
     private static final String EXTRA_IS_REPEATING = "is_repeating";
     private static boolean sIsAlreadyScheduled;
 

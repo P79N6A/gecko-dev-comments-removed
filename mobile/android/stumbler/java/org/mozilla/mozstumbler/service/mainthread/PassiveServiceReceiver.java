@@ -29,13 +29,20 @@ import org.mozilla.mozstumbler.service.stumblerthread.StumblerService;
 
 
 public class PassiveServiceReceiver extends BroadcastReceiver {
-    static final String LOG_TAG = AppGlobals.LOG_PREFIX + PassiveServiceReceiver.class.getSimpleName();
+    
+    
+    static final String LOG_TAG = "PassiveStumbler";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null) {
             return;
         }
+
+        
+        
+        
+        AppGlobals.isDebug = Log.isLoggable(LOG_TAG, Log.DEBUG);
 
         final String action = intent.getAction();
         final boolean isIntentFromHostApp = (action != null) && action.contains(".STUMBLER_PREF");
@@ -47,9 +54,6 @@ public class PassiveServiceReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (intent.hasExtra("is_debug")) {
-            AppGlobals.isDebug = intent.getBooleanExtra("is_debug", false);
-        }
         StumblerService.sFirefoxStumblingEnabled.set(intent.getBooleanExtra("enabled", false));
 
         if (!StumblerService.sFirefoxStumblingEnabled.get()) {

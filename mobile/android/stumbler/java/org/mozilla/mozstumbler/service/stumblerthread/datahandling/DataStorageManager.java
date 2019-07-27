@@ -38,7 +38,7 @@ import java.util.TimerTask;
 
 
 public class DataStorageManager {
-    private static final String LOG_TAG = AppGlobals.LOG_PREFIX + DataStorageManager.class.getSimpleName();
+    private static final String LOG_TAG = AppGlobals.makeLogTag(DataStorageManager.class.getSimpleName());
 
     
     
@@ -201,19 +201,7 @@ public class DataStorageManager {
     }
 
     private String getStorageDir(Context c) {
-        File dir = null;
-        if (AppGlobals.isDebug) {
-            
-            dir = c.getExternalFilesDir(null);
-            if (dir != null) {
-                dir = new File(dir.getAbsolutePath() + "/mozstumbler");
-            }
-        }
-
-        if (dir == null) {
-            dir = c.getFilesDir();
-        }
-
+        File dir = c.getFilesDir();
         if (!dir.exists()) {
             boolean ok = dir.mkdirs();
             if (!ok) {
@@ -414,9 +402,6 @@ public class DataStorageManager {
         }
 
         final String result = sb.append(kSuffix).toString();
-        if (AppGlobals.isDebug) {
-            Log.d(LOG_TAG, result);
-        }
         return result;
     }
 
