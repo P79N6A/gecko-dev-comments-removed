@@ -163,7 +163,46 @@ let TestUtils = {
 
     return path;
   }),
-}
+};
+
+
+
+let FormAutofillTest = {
+  
+
+
+
+  requestAutocompleteResponse: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  showUI: Task.async(function* (aFormAutofillData) {
+    Output.print("Opening UI with data: " + JSON.stringify(aFormAutofillData));
+
+    
+    let promiseUIWindow =
+        TestUtils.waitForNotification("formautofill-window-initialized");
+    let ui = yield FormAutofill.integration.createRequestAutocompleteUI({});
+    let promiseResult = ui.show();
+
+    
+    return {
+      uiWindow: (yield promiseUIWindow)[0],
+      promiseResult: promiseResult,
+    };
+  }),
+};
 
 
 
@@ -172,5 +211,29 @@ add_task(function* test_common_initialize() {
   Services.prefs.setBoolPref("dom.forms.requestAutocomplete", true);
   add_termination_task(function* () {
     Services.prefs.clearUserPref("dom.forms.requestAutocomplete");
+  });
+
+  
+  let mockIntegrationFn = base => ({
+    createRequestAutocompleteUI: Task.async(function* () {
+      
+      if (FormAutofillTest.requestAutocompleteResponse === null) {
+        return yield base.createRequestAutocompleteUI.apply(this, arguments);
+      }
+
+      
+      return {
+        show: Task.async(function* () {
+          let response = FormAutofillTest.requestAutocompleteResponse;
+          Output.print("Mock UI response: " + JSON.stringify(response));
+          return response;
+        }),
+      };
+    }),
+  });
+
+  FormAutofill.registerIntegration(mockIntegrationFn);
+  add_termination_task(function* () {
+    FormAutofill.unregisterIntegration(mockIntegrationFn);
   });
 });
