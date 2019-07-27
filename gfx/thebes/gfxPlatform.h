@@ -604,10 +604,7 @@ protected:
     
 
 
-    virtual already_AddRefed<mozilla::gfx::VsyncSource> CreateHardwareVsyncSource() {
-      NS_WARNING("Hardware vsync not supported on platform yet");
-      return nullptr;
-    }
+    virtual already_AddRefed<mozilla::gfx::VsyncSource> CreateHardwareVsyncSource();
 
     
 

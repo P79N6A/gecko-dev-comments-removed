@@ -3,6 +3,9 @@
 
 
 
+#ifndef GFX_VSYNCSOURCE_H
+#define GFX_VSYNCSOURCE_H
+
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "nsISupportsImpl.h"
@@ -27,7 +30,7 @@ public:
       void AddCompositorVsyncDispatcher(mozilla::CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
       void RemoveCompositorVsyncDispatcher(mozilla::CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
       
-      void NotifyVsync(mozilla::TimeStamp aVsyncTimestamp);
+      virtual void NotifyVsync(mozilla::TimeStamp aVsyncTimestamp);
 
       
       virtual void EnableVsync() = 0;
@@ -48,3 +51,5 @@ protected:
 }; 
 } 
 } 
+
+#endif 
