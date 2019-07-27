@@ -24,7 +24,6 @@ class TestSession(MarionetteTestCase):
 
         
         self.assertIn("device", caps)
-        self.assertIn("handlesAlerts", caps)
         self.assertIn("rotatable", caps)
         self.assertIn("takesScreenshot", caps)
         self.assertIn("version", caps)
