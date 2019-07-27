@@ -338,13 +338,14 @@ public:
     return mLayer->GetClipRect();
   }
 
-  bool GetForceDispatchToContentRegion() const {
+  EventRegionsOverride GetEventRegionsOverride() const
+  {
     MOZ_ASSERT(IsValid());
 
     if (mLayer->AsContainerLayer()) {
-      return mLayer->AsContainerLayer()->GetForceDispatchToContentRegion();
+      return mLayer->AsContainerLayer()->GetEventRegionsOverride();
     }
-    return false;
+    return EventRegionsOverride::NoOverride;
   }
 
   

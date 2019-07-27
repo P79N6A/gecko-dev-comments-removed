@@ -82,7 +82,7 @@ public:
   void SetHitTestData(const EventRegions& aRegions,
                       const gfx::Matrix4x4& aTransform,
                       const Maybe<nsIntRegion>& aClipRegion,
-                      bool aForceDispatchToContent);
+                      const EventRegionsOverride& aOverride);
   bool IsOutsideClip(const ParentLayerPoint& aPoint) const;
   
 
@@ -91,7 +91,7 @@ public:
 
   HitTestResult HitTest(const ParentLayerPoint& aPoint) const;
   
-  bool GetForceDispatchToContent() const;
+  EventRegionsOverride GetEventRegionsOverride() const;
 
   
   void Dump(const char* aPrefix = "") const;
@@ -128,8 +128,7 @@ private:
 
   
 
-
-  bool mForceDispatchToContent;
+  EventRegionsOverride mOverride;
 };
 
 }

@@ -1971,18 +1971,18 @@ public:
     mChildrenChanged = aVal;
   }
 
-  void SetForceDispatchToContentRegion(bool aVal) {
-    if (mForceDispatchToContentRegion == aVal) {
+  void SetEventRegionsOverride(EventRegionsOverride aVal) {
+    if (mEventRegionsOverride == aVal) {
       return;
     }
 
-    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ForceDispatchToContentRegion", this));
-    mForceDispatchToContentRegion = aVal;
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) EventRegionsOverride", this));
+    mEventRegionsOverride = aVal;
     Mutated();
   }
 
-  bool GetForceDispatchToContentRegion() const {
-    return mForceDispatchToContentRegion;
+  EventRegionsOverride GetEventRegionsOverride() const {
+    return mEventRegionsOverride;
   }
 
   
@@ -2041,7 +2041,7 @@ protected:
   
   
   bool mChildrenChanged;
-  bool mForceDispatchToContentRegion;
+  EventRegionsOverride mEventRegionsOverride;
   nsRefPtr<gfx::VRHMDInfo> mHMDInfo;
 };
 

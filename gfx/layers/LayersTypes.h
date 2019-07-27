@@ -219,6 +219,32 @@ struct EventRegions {
   }
 };
 
+
+
+
+
+enum EventRegionsOverride {
+  
+  NoOverride             = 0,
+  
+  ForceDispatchToContent = (1 << 0),
+  
+  ALL_BITS               = (1 << 1) - 1
+};
+
+MOZ_ALWAYS_INLINE EventRegionsOverride
+operator|(EventRegionsOverride a, EventRegionsOverride b)
+{
+  return (EventRegionsOverride)((int)a | (int)b);
+}
+
+MOZ_ALWAYS_INLINE EventRegionsOverride&
+operator|=(EventRegionsOverride& a, EventRegionsOverride b)
+{
+  a = a | b;
+  return a;
+}
+
 } 
 } 
 
