@@ -5766,17 +5766,9 @@ UpdateExistingSetPropCallStubs(ICSetProp_Fallback* fallbackStub,
             if (setPropStub->holder() == holder) {
                 
                 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
+                MOZ_ASSERT(setPropStub->holderShape() != holder->lastProperty() ||
+                           setPropStub->shape() != receiverShape,
+                           "Why didn't we end up using this stub?");
                 setPropStub->holderShape() = holder->lastProperty();
                 
                 
