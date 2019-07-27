@@ -112,7 +112,7 @@ struct nsTArrayFallibleResult
   
   MOZ_IMPLICIT nsTArrayFallibleResult(bool aResult) : mResult(aResult) {}
 
-  MOZ_IMPLICIT operator bool() { return mResult; }
+  operator bool() { return mResult; }
 
 private:
   bool mResult;
