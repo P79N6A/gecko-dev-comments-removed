@@ -6,7 +6,7 @@
 
 
 
-#include "nsObjectFrame.h"
+#include "nsPluginFrame.h"
 
 #include "gfx2DGlue.h"
 #include "gfxMatrix.h"
