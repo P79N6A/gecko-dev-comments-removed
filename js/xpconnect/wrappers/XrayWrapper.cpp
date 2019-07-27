@@ -861,6 +861,7 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, const Wrapper &jsWrapper,
 
     
     
+    
     if (!JSID_IS_STRING(id))
         return true;
     Rooted<JSFlatString*> str(cx, JSID_TO_FLAT_STRING(id));
