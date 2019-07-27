@@ -1,5 +1,315 @@
-var CameraTest = (function() {
-  'use strict';
+function isDefinedObj(obj) {
+  return typeof(obj) !== 'undefined' && obj != null;
+}
+
+function isDefined(obj) {
+  return typeof(obj) !== 'undefined';
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function CameraTestSuite() {
+  SimpleTest.waitForExplicitFinish();
+
+  this._window = window;
+  this._document = document;
+  this.viewfinder = document.getElementById('viewfinder');
+  this._tests = [];
+  this.hwType = '';
+
+  
+
+
+
+
+
+
+
+
+
+  this.setup = this._setup.bind(this);
+  this.teardown = this._teardown.bind(this);
+  this.test = this._test.bind(this);
+  this.run = this._run.bind(this);
+  this.waitPreviewStarted = this._waitPreviewStarted.bind(this);
+  this.waitParameterPush = this._waitParameterPush.bind(this);
+  this.initJsHw = this._initJsHw.bind(this);
+  this.getCamera = this._getCamera.bind(this);
+  this.setLowMemoryPlatform = this._setLowMemoryPlatform.bind(this);
+  this.logError = this._logError.bind(this);
+  this.expectedError = this._expectedError.bind(this);
+  this.expectedRejectGetCamera = this._expectedRejectGetCamera.bind(this);
+  this.expectedRejectAutoFocus = this._expectedRejectAutoFocus.bind(this);
+  this.expectedRejectTakePicture = this._expectedRejectTakePicture.bind(this);
+  this.rejectGetCamera = this._rejectGetCamera.bind(this);
+  this.rejectRelease = this._rejectRelease.bind(this);
+  this.rejectAutoFocus = this._rejectAutoFocus.bind(this);
+  this.rejectTakePicture = this._rejectTakePicture.bind(this);
+  this.rejectPreviewStarted = this._rejectPreviewStarted.bind(this);
+
+  var self = this;
+  this._window.addEventListener('beforeunload', function() {
+    if (isDefinedObj(self.viewfinder)) {
+      self.viewfinder.mozSrcObject = null;
+    }
+
+    self.hw = null;
+    if (isDefinedObj(self.camera)) {
+      ok(false, 'window unload triggered camera release instead of test completion');
+      self.camera.release();
+      self.camera = null;
+    }
+  });
+}
+
+CameraTestSuite.prototype = {
+  camera: null,
+  hw: null,
+  _lowMemSet: false,
+
+  
+
+
+
+  _setup: function(hwType) {
+    if (!isDefined(hwType)) {
+      hwType = 'hardware';
+    }
+
+    this._hwType = hwType;
+    return new Promise(function(resolve, reject) {
+      SpecialPowers.pushPrefEnv({'set': [['camera.control.test.enabled', hwType]]}, function() {
+        resolve();
+      });
+    });
+  },
+
+  
+
+
+  _teardown: function() {
+    return new Promise(function(resolve, reject) {
+      SpecialPowers.flushPrefEnv(function() {
+        resolve();
+      });
+    });
+  },
+
+  
+
+
+
+  _setLowMemoryPlatform: function(val) {
+    if (typeof(val) === 'undefined') {
+      val = true;
+    }
+
+    if (this._lowMemSet === val) {
+      return Promise.resolve();
+    }
+
+    var self = this;
+    return new Promise(function(resolve, reject) {
+      SpecialPowers.pushPrefEnv({'set': [['camera.control.test.is_low_memory', val]]}, function() {
+        self._lowMemSet = val;
+        resolve();
+      });
+    }).catch(function(e) {
+      return self.logError('set low memory ' + val + ' failed', e);
+    });
+  },
+
+  
+  _test: function(aName, aCb) {
+    this._tests.push({
+      name: aName,
+      cb: aCb
+    });
+  },
+
+  
+  _run: function() {
+    var test = this._tests.shift();
+    var self = this;
+    if (test) {
+      info(test.name + ' started');
+
+      function runNextTest() {
+        self.run();
+      }
+
+      function resetLowMem() {
+        return self.setLowMemoryPlatform(false);
+      }
+
+      function postTest(pass) {
+        ok(pass, test.name + ' finished');
+        var camera = self.camera;
+        self.viewfinder.mozSrcObject = null;
+        self.camera = null;
+
+        if (!isDefinedObj(camera)) {
+          return Promise.resolve();
+        }
+
+        function handler(e) {
+          ok(typeof(e) === 'undefined', 'camera released');
+          return Promise.resolve();
+        }
+
+        return camera.release().then(handler).catch(handler);
+      }
+
+      this.initJsHw();
+
+      var testPromise;
+      try {
+        testPromise = test.cb();
+        if (!isDefinedObj(testPromise)) {
+          testPromise = Promise.resolve();
+        }
+      } catch(e) {
+        ok(false, 'caught exception while running test: ' + e);
+        testPromise = Promise.reject(e);
+      }
+
+      testPromise
+        .then(function(p) {
+          return postTest(true);
+        }, function(e) {
+          self.logError('unhandled error', e);
+          return postTest(false);
+        })
+        .then(resetLowMem, resetLowMem)
+        .then(runNextTest, runNextTest);
+    } else {
+      ok(true, 'all tests completed');
+      var finish = SimpleTest.finish.bind(SimpleTest);
+      this.teardown().then(finish, finish);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _initJsHw: function() {
+    if (this._hwType === 'hardware') {
+      this.hw = SpecialPowers.Cc['@mozilla.org/cameratesthardware;1']
+                .getService(SpecialPowers.Ci.nsICameraTestHardware);
+      this.hw.reset(this._window);
+
+      
+      this.hw.params['preview-size'] = '320x240';
+      this.hw.params['preview-size-values'] = '320x240';
+      this.hw.params['picture-size-values'] = '320x240';
+    } else {
+      this.hw = null;
+    }
+  },
+
+  
+
+
+
+  _getCamera: function(name, config) {
+    var cameraManager = navigator.mozCameras;
+    if (!isDefined(name)) {
+      name = cameraManager.getListOfCameras()[0];
+    }
+
+    var self = this;
+    return cameraManager.getCamera(name, config).then(
+      function(p) {
+        ok(isDefinedObj(p) && isDefinedObj(p.camera), 'got camera');
+        self.camera = p.camera;
+        
+
+        return Promise.resolve(p);
+      }
+    );
+  },
+
+  
+
+
+
+  _waitPreviewStarted: function() {
+    var self = this;
+
+    return new Promise(function(resolve, reject) {
+      function onPreviewStateChange(e) {
+        try {
+          if (e.newState === 'started') {
+            ok(true, 'viewfinder is ready and playing');
+            self.camera.removeEventListener('previewstatechange', onPreviewStateChange);
+            resolve();
+          }
+        } catch(e) {
+          reject(e);
+        }
+      }
+
+      if (!isDefinedObj(self.viewfinder)) {
+        reject(new Error('no viewfinder object'));
+        return;
+      }
+
+      self.viewfinder.mozSrcObject = self.camera;
+      self.viewfinder.play();
+      self.camera.addEventListener('previewstatechange', onPreviewStateChange);
+    });
+  },
+
+  
+
+
+
+
+  _waitParameterPush: function() {
+    var self = this;
+
+    return new Promise(function(resolve, reject) {
+      self.hw.attach({
+        'pushParameters': function() {
+          self._window.setTimeout(resolve);
+        }
+      });
+    });
+  },
 
   
 
@@ -21,149 +331,66 @@ var CameraTest = (function() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-  const PREF_TEST_ENABLED = "camera.control.test.enabled";
-  const PREF_TEST_HARDWARE = "camera.control.test.hardware";
-  const PREF_TEST_EXTRA_PARAMETERS = "camera.control.test.hardware.gonk.parameters";
-  const PREF_TEST_FAKE_LOW_MEMORY = "camera.control.test.is_low_memory";
-  var oldTestEnabled;
-  var oldTestHw;
-  var testMode;
-
-  function testHardwareSetFakeParameters(parameters, callback) {
-    SpecialPowers.pushPrefEnv({'set': [[PREF_TEST_EXTRA_PARAMETERS, parameters]]}, function() {
-      var setParams = SpecialPowers.getCharPref(PREF_TEST_EXTRA_PARAMETERS);
-      ise(setParams, parameters, "Extra test parameters '" + setParams + "'");
-      if (callback) {
-        callback(setParams);
-      }
-    });
-  }
-
-  function testHardwareClearFakeParameters(callback) {
-    SpecialPowers.pushPrefEnv({'clear': [[PREF_TEST_EXTRA_PARAMETERS]]}, callback);
-  }
-
-  function testHardwareSetFakeLowMemoryPlatform(callback) {
-    SpecialPowers.pushPrefEnv({'set': [[PREF_TEST_FAKE_LOW_MEMORY, true]]}, function() {
-      var setParams = SpecialPowers.getBoolPref(PREF_TEST_FAKE_LOW_MEMORY);
-      ise(setParams, true, "Fake low memory platform");
-      if (callback) {
-        callback(setParams);
-      }
-    });
-  }
-
-  function testHardwareClearFakeLowMemoryPlatform(callback) {
-    SpecialPowers.pushPrefEnv({'clear': [[PREF_TEST_FAKE_LOW_MEMORY]]}, callback);
-  }
-
-  function testHardwareSet(test, callback) {
-    SpecialPowers.pushPrefEnv({'set': [[PREF_TEST_HARDWARE, test]]}, function() {
-      var setTest = SpecialPowers.getCharPref(PREF_TEST_HARDWARE);
-      ise(setTest, test, "Test subtype set to " + setTest);
-      if (callback) {
-        callback(setTest);
-      }
-    });
-  }
-
-  function testHardwareDone(callback) {
-    testMode = null;
-    if (oldTestHw) {
-      SpecialPowers.pushPrefEnv({'set': [[PREF_TEST_HARDWARE, oldTestHw]]}, callback);
-    } else {
-      SpecialPowers.pushPrefEnv({'clear': [[PREF_TEST_HARDWARE]]}, callback);
+  _logError: function(msg, e) {
+    if (isDefined(e)) {
+      ok(false, msg + ': ' + e);
     }
-  }
-
-  function testBegin(mode, callback) {
-    SimpleTest.waitForExplicitFinish();
-    try {
-      oldTestEnabled = SpecialPowers.getCharPref(PREF_TEST_ENABLED);
-    } catch(e) { }
-    SpecialPowers.pushPrefEnv({'set': [[PREF_TEST_ENABLED, mode]]}, function() {
-      var setMode = SpecialPowers.getCharPref(PREF_TEST_ENABLED);
-      ise(setMode, mode, "Test mode set to " + setMode);
-      if (setMode === "hardware") {
-        try {
-          oldTestHw = SpecialPowers.getCharPref(PREF_TEST_HARDWARE);
-        } catch(e) { }
-        testMode = {
-          set: testHardwareSet,
-          setFakeParameters: testHardwareSetFakeParameters,
-          clearFakeParameters: testHardwareClearFakeParameters,
-          setFakeLowMemoryPlatform: testHardwareSetFakeLowMemoryPlatform,
-          clearFakeLowMemoryPlatform: testHardwareClearFakeLowMemoryPlatform,
-          done: testHardwareDone
-        };
-        if (callback) {
-          callback(testMode);
-        }
-      }
-    });
-  }
-
-  function testEnd(callback) {
     
-    function allCleanedUp() {
-      SimpleTest.finish();
-      if (callback) {
-        callback();
-      }
-    }
+    return Promise.reject();
+  },
 
-    function cleanUpTestEnabled() {
-      var next = allCleanedUp;
-      if (oldTestEnabled) {
-        SpecialPowers.pushPrefEnv({'set': [[PREF_TEST_ENABLED, oldTestEnabled]]}, next);
-      } else {
-        SpecialPowers.pushPrefEnv({'clear': [[PREF_TEST_ENABLED]]}, next);
-      }
-    }
-    function cleanUpTest() {
-      var next = cleanUpTestEnabled;
-      if (testMode) {
-        testMode.done(next);
-        testMode = null;
-      } else {
-        next();
-      }
-    }
-    function cleanUpLowMemoryPlatform() {
-      var next = cleanUpTest;
-      if (testMode) {
-        testMode.clearFakeLowMemoryPlatform(next);
-      } else {
-        next();
-      }
-    }
-    function cleanUpExtraParameters() {
-      var next = cleanUpLowMemoryPlatform;
-      if (testMode) {
-        testMode.clearFakeParameters(next);
-      } else {
-        next();
-      }
-    }
+  
 
-    cleanUpExtraParameters();
-  }
 
-  ise(SpecialPowers.sanityCheck(), "foo", "SpecialPowers passed sanity check");
-  return {
-    begin: testBegin,
-    end: testEnd
-  };
 
-})();
+
+  _rejectGetCamera: function(e) {
+    return this.logError('get camera failed', e);
+  },
+
+  _rejectRelease: function(e) {
+    return this.logError('release camera failed', e);
+  },
+
+  _rejectAutoFocus: function(e) {
+    return this.logError('auto focus failed', e);
+  },
+
+  _rejectTakePicture: function(e) {
+    return this.logError('take picture failed', e);
+  },
+
+  _rejectPreviewStarted: function(e) {
+    return this.logError('preview start failed', e);
+  },
+
+  
+
+
+
+
+  _expectedError: function(msg) {
+    ok(false, msg);
+    
+
+
+    return Promise.reject();
+  },
+
+  _expectedRejectGetCamera: function(p) {
+    
+
+    self.camera = p.camera;
+    return this.expectedError('expected get camera to fail');
+  },
+
+  _expectedRejectAutoFocus: function(p) {
+    return this.expectedError('expected auto focus to fail');
+  },
+
+  _expectedRejectTakePicture: function(p) {
+    return this.expectedError('expected take picture to fail');
+  },
+};
+
+ise(SpecialPowers.sanityCheck(), "foo", "SpecialPowers passed sanity check");
