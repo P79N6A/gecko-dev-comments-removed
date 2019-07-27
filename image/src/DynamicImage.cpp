@@ -43,17 +43,41 @@ DynamicImage::FrameRect(uint32_t aWhichFrame)
   return nsIntRect(0, 0, size.width, size.height);
 }
 
+uint32_t
+DynamicImage::SizeOfData()
+{
+  
+  
+  return 0;
+}
+
 size_t
-DynamicImage::SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const
+DynamicImage::HeapSizeOfSourceWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   return 0;
 }
 
 size_t
-DynamicImage::SizeOfDecoded(gfxMemoryLocation aLocation,
-                            MallocSizeOf aMallocSizeOf) const
+DynamicImage::HeapSizeOfDecodedWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const
 {
-  
+  return 0;
+}
+
+size_t
+DynamicImage::NonHeapSizeOfDecoded() const
+{
+  return 0;
+}
+
+size_t
+DynamicImage::OutOfProcessSizeOfDecoded() const
+{
+  return 0;
+}
+
+size_t
+DynamicImage::HeapSizeOfVectorImageDocument(nsACString* aDocURL) const
+{
   return 0;
 }
 

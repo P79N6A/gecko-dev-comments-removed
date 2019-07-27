@@ -142,6 +142,9 @@ public:
   void ResetCacheEntry();
 
   
+  void UpdateCacheEntrySize();
+
+  
   nsresult GetURI(ImageURL **aURI);
   nsresult GetCurrentURI(nsIURI **aURI);
 
@@ -179,9 +182,6 @@ private:
 
   
   bool HasCacheEntry() const;
-
-  
-  void UpdateCacheEntrySize();
 
   
   

@@ -905,9 +905,11 @@ void imgFrame::SetCompositingFailed(bool val)
   mCompositingFailed = val;
 }
 
+
+
+
 size_t
-imgFrame::SizeOfExcludingThis(gfxMemoryLocation aLocation,
-                              MallocSizeOf aMallocSizeOf) const
+imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocation, MallocSizeOf aMallocSizeOf) const
 {
   
   
@@ -919,8 +921,13 @@ imgFrame::SizeOfExcludingThis(gfxMemoryLocation aLocation,
   size_t n = 0;
 
   if (mPalettedImageData && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
-    n += aMallocSizeOf(mPalettedImageData);
+    size_t n2 = aMallocSizeOf(mPalettedImageData);
+    if (n2 == 0) {
+      n2 = GetImageDataLength() + PaletteDataLength();
+    }
+    n += n2;
   }
+
   if (mImageSurface && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
     n += aMallocSizeOf(mImageSurface);
   }

@@ -24,6 +24,21 @@ ImageResource::ImageResource(ImageURL* aURI) :
 {
 }
 
+uint32_t
+ImageResource::SizeOfData()
+{
+  if (mError)
+    return 0;
+
+  
+  
+  
+  return uint32_t(HeapSizeOfSourceWithComputedFallback(moz_malloc_size_of) +
+                  HeapSizeOfDecodedWithComputedFallback(moz_malloc_size_of) +
+                  NonHeapSizeOfDecoded() +
+                  OutOfProcessSizeOfDecoded());
+}
+
 
 Image::eDecoderType
 Image::GetDecoderType(const char *aMimeType)
