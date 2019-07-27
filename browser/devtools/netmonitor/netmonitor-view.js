@@ -569,6 +569,16 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
+  copyUrlParams: function() {
+    let selected = this.selectedItem.attachment;
+    let params = nsIURL(selected.url).query.split("&");
+    let string = params.join(Services.appinfo.OS === "WINNT" ? "\r\n" : "\n");
+    clipboardHelper.copyString(params.join("\n"), document);
+  },
+
+  
+
+
   copyAsCurl: function() {
     let selected = this.selectedItem.attachment;
 
@@ -1829,6 +1839,9 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     let copyUrlElement = $("#request-menu-context-copy-url");
     copyUrlElement.hidden = !selectedItem;
+
+    let copyUrlParamsElement = $("#request-menu-context-copy-url-params");
+    copyUrlParamsElement.hidden = !selectedItem || !nsIURL(selectedItem.attachment.url).query;
 
     let copyAsCurlElement = $("#request-menu-context-copy-as-curl");
     copyAsCurlElement.hidden = !selectedItem || !selectedItem.attachment.responseContent;
