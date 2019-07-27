@@ -65,6 +65,7 @@ const wchar_t * kMozillaWindowClass = L"MozillaWindowClass";
 #endif
 
 namespace {
+
 PluginModuleChild* gChromeInstance = nullptr;
 nsTArray<PluginModuleChild*>* gAllInstances;
 }
@@ -191,6 +192,9 @@ PluginModuleChild::~PluginModuleChild()
 PluginModuleChild*
 PluginModuleChild::GetChrome()
 {
+    
+    
+    
     MOZ_ASSERT(gChromeInstance);
     return gChromeInstance;
 }
@@ -230,7 +234,6 @@ PluginModuleChild::InitForContent(base::ProcessHandle aParentProcessHandle,
     mTransport = aChannel;
 
     mLibrary = GetChrome()->mLibrary;
-    mQuirks = GetChrome()->mQuirks;
     mFunctions = GetChrome()->mFunctions;
 
     return true;
@@ -2062,7 +2065,13 @@ PluginModuleChild::AllocPPluginInstanceChild(const nsCString& aMimeType,
     PLUGIN_LOG_DEBUG_METHOD;
     AssertPluginThread();
 
-    InitQuirksModes(aMimeType);
+    
+    
+    
+    
+    
+    GetChrome()->InitQuirksModes(aMimeType);
+    mQuirks = GetChrome()->mQuirks;
 
 #ifdef XP_WIN
     if ((mQuirks & QUIRK_FLASH_HOOK_GETWINDOWINFO) &&

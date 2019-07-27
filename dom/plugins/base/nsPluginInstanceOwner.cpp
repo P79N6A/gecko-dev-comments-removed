@@ -662,7 +662,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   nsViewManager* vm = mPluginFrame->PresContext()->GetPresShell()->GetViewManager();
   if (!vm)
     return NS_ERROR_FAILURE;
-#if defined(XP_WIN)
   
   
   
@@ -681,7 +680,8 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   
   
   
-  if (mPluginWindow && mPluginWindow->type == NPWindowTypeDrawable) {
+  if (XRE_GetProcessType() != GeckoProcessType_Content &&
+      mPluginWindow && mPluginWindow->type == NPWindowTypeDrawable) {
     
     
     
@@ -706,12 +706,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
       }
     }
   }
-#endif
   
   nsCOMPtr<nsIWidget> widget;
   vm->GetRootWidget(getter_AddRefs(widget));
   if (widget) {
-    *pvalue = (void*)widget->GetNativeData(NS_NATIVE_WINDOW);
+    *pvalue = (void*)widget->GetNativeData(NS_NATIVE_SHAREABLE_WINDOW);
   } else {
     NS_ASSERTION(widget, "couldn't get doc's widget in getting doc's window handle");
   }
