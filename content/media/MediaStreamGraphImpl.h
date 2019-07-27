@@ -22,6 +22,7 @@ namespace mozilla {
 
 template <typename T>
 class LinkedList;
+class AudioOutputObserver;
 
 
 
@@ -601,10 +602,7 @@ public:
 
   nsRefPtr<AsyncLatencyLogger> mLatencyLog;
   AudioMixer mMixer;
-  
-
-
-  nsRefPtr<AudioStream> mMixedAudioStream;
+  nsRefPtr<AudioOutputObserver> mFarendObserverRef;
 
 private:
   virtual ~MediaStreamGraphImpl();

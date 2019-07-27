@@ -404,7 +404,6 @@ private:
 #ifdef MOZ_B2G_CAMERA
     AsyncLatencyLogger::Get()->Release();
 #endif
-    
     gFarendObserver = nullptr;
   }
 
