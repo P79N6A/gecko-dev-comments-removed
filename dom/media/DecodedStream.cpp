@@ -231,7 +231,18 @@ DecodedStream::RecreateData(int64_t aInitialTime, SourceMediaStream* aStream)
   MOZ_ASSERT(NS_IsMainThread());
   GetReentrantMonitor().AssertCurrentThreadIn();
   MOZ_ASSERT(!mData);
+
   mData.reset(new DecodedStreamData(aInitialTime, aStream));
+
+  
+  
+  
+  auto& outputStreams = OutputStreams();
+  for (int32_t i = outputStreams.Length() - 1; i >= 0; --i) {
+    OutputStreamData& os = outputStreams[i];
+    MOZ_ASSERT(!os.mStream->IsDestroyed(), "Should've been removed in DestroyData()");
+    Connect(&os);
+  }
 }
 
 nsTArray<OutputStreamData>&
