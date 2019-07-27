@@ -30,6 +30,8 @@ namespace mozilla {
 
 
 
+bool TextComposition::sHandlingSelectionEvent = false;
+
 TextComposition::TextComposition(nsPresContext* aPresContext,
                                  nsINode* aNode,
                                  TabParent* aTabParent,
@@ -389,6 +391,12 @@ TextComposition::HandleSelectionEvent(nsPresContext* aPresContext,
   }
 
   ContentEventHandler handler(aPresContext);
+  AutoRestore<bool> saveHandlingSelectionEvent(sHandlingSelectionEvent);
+  sHandlingSelectionEvent = true;
+  
+  
+  
+  
   handler.OnSelectionEvent(aSelectionEvent);
 }
 

@@ -41,6 +41,8 @@ class TextComposition final
 public:
   typedef dom::TabParent TabParent;
 
+  static bool IsHandlingSelectionEvent() { return sHandlingSelectionEvent; }
+
   TextComposition(nsPresContext* aPresContext,
                   nsINode* aNode,
                   TabParent* aTabParent,
@@ -170,6 +172,10 @@ private:
   {
     
   }
+
+  
+  
+  static bool sHandlingSelectionEvent;
 
   
   
