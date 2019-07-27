@@ -122,6 +122,10 @@ var gContentPane = {
                    element  : "defaultFontSize",
                    fonttype : null }];
     var preferences = document.getElementById("contentPreferences");
+    
+    preferences.hidden = false;
+    
+    preferences.clientHeight;
     for (var i = 0; i < prefs.length; ++i) {
       var preference = document.getElementById(prefs[i].format.replace(/%LANG%/, aLanguageGroup));
       if (!preference) {
