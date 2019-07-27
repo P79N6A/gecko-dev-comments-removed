@@ -482,7 +482,7 @@ NetworkManager.prototype = {
       return Promise.reject("Invalid network interface.");
     }
 
-    return this.resolveHostname(host)
+    return this.resolveHostname(network, host)
       .then((ipAddresses) => this._updateRoutes(true,
                                                 ipAddresses,
                                                 network.name,
@@ -494,7 +494,7 @@ NetworkManager.prototype = {
       return Promise.reject("Invalid network interface.");
     }
 
-    return this.resolveHostname(host)
+    return this.resolveHostname(network, host)
       .then((ipAddresses) => this._updateRoutes(false,
                                                 ipAddresses,
                                                 network.name,
@@ -659,7 +659,7 @@ NetworkManager.prototype = {
     }
   },
 
-  resolveHostname: function(hostname) {
+  resolveHostname: function(network, hostname) {
     
     if (!hostname) {
       return Promise.reject(new Error("hostname is empty: " + hostname));
@@ -695,7 +695,17 @@ NetworkManager.prototype = {
     };
 
     
-    gDNSService.asyncResolve(hostname, 0, onLookupComplete, Services.tm.mainThread);
+    
+    
+    
+    
+    let flags = 0;
+    if (network.type === Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
+      flags |= Ci.nsIDNSService.RESOLVE_DISABLE_IPV6;
+    }
+
+    
+    gDNSService.asyncResolve(hostname, flags, onLookupComplete, Services.tm.mainThread);
 
     return deferred.promise;
   },
