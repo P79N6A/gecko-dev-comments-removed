@@ -105,33 +105,27 @@ NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::AddRef(void)
 NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::Release(void)
 {
   MOZ_ASSERT(sMonitor);
-  {
-    ReentrantMonitorAutoEnter mon(*sMonitor);
-    nsrefcnt count = --mRefCnt;
-    NS_LOG_RELEASE(this, count, "SharedThreadPool");
-    if (count) {
-      return count;
-    }
-
-    
-
-    
-    
-    
-    RefPtr<nsIRunnable> r = NS_NewRunnableMethod(mPool, &nsIThreadPool::Shutdown);
-    NS_DispatchToMainThread(r);
-
-    
-    sPools->Remove(mName);
-    MOZ_ASSERT(!sPools->Get(mName));
-
-    
-    
-    mRefCnt = 1;
-
-    delete this;
-    return 0;
+  ReentrantMonitorAutoEnter mon(*sMonitor);
+  nsrefcnt count = --mRefCnt;
+  NS_LOG_RELEASE(this, count, "SharedThreadPool");
+  if (count) {
+    return count;
   }
+
+  
+  sPools->Remove(mName);
+  MOZ_ASSERT(!sPools->Get(mName));
+
+  
+  
+  
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableMethod(mPool, &nsIThreadPool::Shutdown);
+  AbstractThread::MainThread()->Dispatch(r.forget());
+
+  
+  mRefCnt = 1;
+  delete this;
+  return 0;
 }
 
 NS_IMPL_QUERY_INTERFACE(SharedThreadPool, nsIThreadPool, nsIEventTarget)
