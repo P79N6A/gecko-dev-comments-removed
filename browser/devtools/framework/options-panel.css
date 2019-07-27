@@ -26,6 +26,11 @@
   -moz-padding-start: 5px;
 }
 
+#devtools-theme-box {
+  margin-left: 0px;
+  padding-left: 0px;
+}
+
 
 
 
