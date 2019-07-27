@@ -77,6 +77,7 @@ function init() {
 
   
   Services.obs.addObserver(function observer(aSubject, aTopic, aData) {
+    aData = aData.substring(0, 200);
     document.getElementById("last-url").value = aData;
     
     if (aData.length != 0) {
