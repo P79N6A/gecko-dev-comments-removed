@@ -48,7 +48,7 @@ public:
   
   void EvictBefore(TimeUnit aTime) override;
 
-  bool RangeRemoval(TimeUnit aStart, TimeUnit aEnd) override;
+  nsRefPtr<RangeRemovalPromise> RangeRemoval(TimeUnit aStart, TimeUnit aEnd) override;
 
   void AbortAppendData() override;
 

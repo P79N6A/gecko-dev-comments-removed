@@ -24,6 +24,7 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SourceBufferContentManager);
 
   typedef MediaPromise<bool, nsresult,  true> AppendPromise;
+  typedef AppendPromise RangeRemovalPromise;
 
   static already_AddRefed<SourceBufferContentManager>
   CreateManager(MediaSourceDecoder* aParentDecoder, const nsACString& aType);
@@ -48,7 +49,7 @@ public:
 
   
   
-  virtual bool RangeRemoval(TimeUnit aStart, TimeUnit aEnd) = 0;
+  virtual nsRefPtr<RangeRemovalPromise> RangeRemoval(TimeUnit aStart, TimeUnit aEnd) = 0;
 
   enum class EvictDataResult : int8_t
   {
