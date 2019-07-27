@@ -112,7 +112,7 @@ protected:
 class nsSVGIDRenderingObserver : public nsSVGRenderingObserver {
 public:
   typedef mozilla::dom::Element Element;
-  nsSVGIDRenderingObserver(nsIURI* aURI, nsIFrame *aFrame,
+  nsSVGIDRenderingObserver(nsIURI* aURI, nsIContent* aObservingContent,
                          bool aReferenceImage);
   virtual ~nsSVGIDRenderingObserver();
 
@@ -142,6 +142,22 @@ protected:
   };
 
   SourceReference mElement;
+};
+
+struct nsSVGFrameReferenceFromProperty
+{
+  nsSVGFrameReferenceFromProperty(nsIFrame* aFrame)
+    : mFrame(aFrame)
+    , mFramePresShell(aFrame->PresContext()->PresShell())
+  {}
+
+  
+  void Detach();
+
+  
+  nsIFrame* Get();
+
+private:
   
   nsIFrame *mFrame;
   
@@ -149,7 +165,23 @@ protected:
   
   
   
+  
+  
   nsIPresShell *mFramePresShell;
+};
+
+class nsSVGRenderingObserverProperty : public nsSVGIDRenderingObserver {
+public:
+  nsSVGRenderingObserverProperty(nsIURI* aURI, nsIFrame *aFrame,
+                                 bool aReferenceImage)
+    : nsSVGIDRenderingObserver(aURI, aFrame->GetContent(), aReferenceImage)
+    , mFrameReference(aFrame)
+  {}
+
+protected:
+  virtual void DoUpdate() MOZ_OVERRIDE;
+
+  nsSVGFrameReferenceFromProperty mFrameReference;
 };
 
 
@@ -165,10 +197,10 @@ protected:
 
 
 class nsSVGFilterReference MOZ_FINAL :
-  public nsSVGIDRenderingObserver, public nsISVGFilterReference {
+  public nsSVGRenderingObserverProperty, public nsISVGFilterReference {
 public:
   nsSVGFilterReference(nsIURI *aURI, nsIFrame *aFilteredFrame)
-    : nsSVGIDRenderingObserver(aURI, aFilteredFrame, false) {}
+    : nsSVGRenderingObserverProperty(aURI, aFilteredFrame, false) {}
 
   bool ReferencesValidResource() { return GetFilterFrame(); }
 
@@ -220,19 +252,19 @@ private:
   nsTArray<nsRefPtr<nsSVGFilterReference>> mReferences;
 };
 
-class nsSVGMarkerProperty : public nsSVGIDRenderingObserver {
+class nsSVGMarkerProperty : public nsSVGRenderingObserverProperty {
 public:
   nsSVGMarkerProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
-    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
+    : nsSVGRenderingObserverProperty(aURI, aFrame, aReferenceImage) {}
 
 protected:
   virtual void DoUpdate() MOZ_OVERRIDE;
 };
 
-class nsSVGTextPathProperty : public nsSVGIDRenderingObserver {
+class nsSVGTextPathProperty : public nsSVGRenderingObserverProperty {
 public:
   nsSVGTextPathProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
-    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage)
+    : nsSVGRenderingObserverProperty(aURI, aFrame, aReferenceImage)
     , mValid(true) {}
 
   virtual bool ObservesReflow() MOZ_OVERRIDE { return false; }
@@ -249,10 +281,10 @@ private:
   bool mValid;
 };
 
-class nsSVGPaintingProperty : public nsSVGIDRenderingObserver {
+class nsSVGPaintingProperty : public nsSVGRenderingObserverProperty {
 public:
   nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
-    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
+    : nsSVGRenderingObserverProperty(aURI, aFrame, aReferenceImage) {}
 
 protected:
   virtual void DoUpdate() MOZ_OVERRIDE;
