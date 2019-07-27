@@ -486,6 +486,24 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "uniform_matrix_nonsquare",
+        210, 
+        300, 
+        GLContext::Extension_None,
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
+        "uniform_uint",
+        300, 
+        300, 
+        GLContext::Extension_None,
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
         "vertex_array_object",
         300, 
         300, 
