@@ -350,7 +350,23 @@ let PlacesTransactions = {
 
 
 
+
+
+
   transact: function (aToTransact) {
+    if (Array.isArray(aToTransact)) {
+      if (aToTransact.some(
+           o => !TransactionsHistory.isProxifiedTransactionObject(o))) {
+        throw new Error("aToTransact contains non-transaction element");
+      }
+      
+      return this.transact(function* () {
+        for (let t of aToTransact) {
+          yield t;
+        }
+      });
+    }
+
     let isGeneratorObj =
       o => Object.prototype.toString.call(o) ==  "[object Generator]";
 
