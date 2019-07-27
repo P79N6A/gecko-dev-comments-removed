@@ -418,6 +418,14 @@ nsRefPtr<ShutdownPromise>
 MediaSourceReader::Shutdown()
 {
   mSeekPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
+  
+  mAudioRequest.DisconnectIfExists();
+  mVideoRequest.DisconnectIfExists();
+
+  
+  
+  mAudioPromise.RejectIfExists(CANCELED, __func__);
+  mVideoPromise.RejectIfExists(CANCELED, __func__);
 
   MOZ_ASSERT(mMediaSourceShutdownPromise.IsEmpty());
   nsRefPtr<ShutdownPromise> p = mMediaSourceShutdownPromise.Ensure(__func__);

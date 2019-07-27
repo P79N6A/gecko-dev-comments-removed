@@ -836,6 +836,10 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
   } else {
     mVideoDataRequest.Complete();
   }
+  if (IsShutdown()) {
+    
+    return;
+  }
 
   
   if (aReason == MediaDecoderReader::DECODE_ERROR) {
@@ -1927,6 +1931,10 @@ MediaDecoderStateMachine::DispatchAudioDecodeTaskIfNeeded()
   MOZ_ASSERT(OnStateMachineThread());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
+  if (IsShutdown()) {
+    return NS_ERROR_FAILURE;
+  }
+
   if (NeedToDecodeAudio()) {
     return EnsureAudioDecodeTaskQueued();
   }
@@ -1972,6 +1980,10 @@ MediaDecoderStateMachine::DispatchVideoDecodeTaskIfNeeded()
 {
   MOZ_ASSERT(OnStateMachineThread());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+
+  if (IsShutdown()) {
+    return NS_ERROR_FAILURE;
+  }
 
   if (NeedToDecodeVideo()) {
     return EnsureVideoDecodeTaskQueued();
