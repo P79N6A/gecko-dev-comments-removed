@@ -2873,7 +2873,7 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
   
   
   
-  decltype(mProfileTimelineMarkers) keptMarkers;
+  nsTArray<InternalProfileTimelineMarker*> keptMarkers;
 
   for (uint32_t i = 0; i < mProfileTimelineMarkers.Length(); ++i) {
     ProfilerMarkerTracing* startPayload = static_cast<ProfilerMarkerTracing*>(
