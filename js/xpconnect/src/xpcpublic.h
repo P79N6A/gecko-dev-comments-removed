@@ -473,6 +473,13 @@ AddonWindowOrNull(JSObject *aObj);
 
 
 
+nsGlobalWindow*
+CurrentWindowOrNull(JSContext *cx);
+
+
+
+
+
 void
 SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
 
