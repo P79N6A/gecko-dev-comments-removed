@@ -14,13 +14,7 @@ this.SelectParentHelper = {
   populate: function(menulist, items, selectedIndex) {
     
     menulist.menupopup.textContent = "";
-    populateChildren(menulist.menupopup, items, selectedIndex);
-    
-    
-    
-    
-    
-    menulist.selectedIndex = selectedIndex;
+    populateChildren(menulist, items, selectedIndex);
   },
 
   open: function(browser, menulist, rect) {
@@ -71,8 +65,9 @@ this.SelectParentHelper = {
 
 };
 
-function populateChildren(element, options, selectedIndex, startIndex = 0, isGroup = false) {
+function populateChildren(menulist, options, selectedIndex, startIndex = 0, isGroup = false) {
   let index = startIndex;
+  let element = menulist.menupopup;
 
   for (let option of options) {
     let item = element.ownerDocument.createElement("menuitem");
@@ -84,8 +79,16 @@ function populateChildren(element, options, selectedIndex, startIndex = 0, isGro
     if (option.children.length > 0) {
       item.classList.add("contentSelectDropdown-optgroup");
       item.setAttribute("disabled", "true");
-      index = populateChildren(element, option.children, selectedIndex, index, true);
+      index = populateChildren(menulist, option.children, selectedIndex, index, true);
     } else {
+      if (index == selectedIndex) {
+        
+        
+        
+        
+        
+        menulist.selectedItem = item;
+      }
       item.setAttribute("value", index++);
 
       if (isGroup) {
