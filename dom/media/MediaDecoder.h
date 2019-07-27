@@ -813,10 +813,8 @@ public:
   
   void SeekingStarted(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
 
-  
-  
-  
-  virtual void PlaybackPositionChanged(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
+  void UpdateLogicalPosition(MediaDecoderEventVisibility aEventVisibility);
+  void UpdateLogicalPosition() { UpdateLogicalPosition(MediaDecoderEventVisibility::Observable); }
 
   
   
@@ -1076,7 +1074,18 @@ protected:
   
   
   
-  double mCurrentTime;
+  
+  double mLogicalPosition;
+
+  
+  
+  
+  
+  Mirror<int64_t> mCurrentPosition;
+
+  
+  
+  virtual int64_t CurrentPosition() { return mCurrentPosition; }
 
   
   Canonical<double> mVolume;

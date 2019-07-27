@@ -84,13 +84,6 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 
 
 
-#ifdef GetCurrentTime
-#undef GetCurrentTime
-#endif
-
-
-
-
 namespace detail {
 
 
@@ -223,7 +216,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
                    "MediaDecoderStateMachine::mNextFrameStatus (Canonical)"),
   mFragmentEndTime(-1),
   mReader(aReader),
-  mCurrentPosition(0),
+  mCurrentPosition(mTaskQueue, 0, "MediaDecoderStateMachine::mCurrentPosition (Canonical)"),
   mAudioStartTime(-1),
   mAudioEndTime(-1),
   mDecodedAudioEndTime(-1),
@@ -1324,16 +1317,6 @@ void MediaDecoderStateMachine::UpdatePlaybackPosition(int64_t aTime)
   UpdatePlaybackPositionInternal(aTime);
 
   bool fragmentEnded = mFragmentEndTime >= 0 && GetMediaTime() >= mFragmentEndTime;
-  if (!mPositionChangeQueued || fragmentEnded) {
-    mPositionChangeQueued = true;
-    nsCOMPtr<nsIRunnable> event =
-      NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
-        mDecoder,
-        &MediaDecoder::PlaybackPositionChanged,
-        MediaDecoderEventVisibility::Observable);
-    AbstractThread::MainThread()->Dispatch(event.forget());
-  }
-
   mMetadataManager.DispatchMetadataIfNeeded(mDecoder, aTime);
 
   if (fragmentEnded) {
@@ -1387,16 +1370,6 @@ void MediaDecoderStateMachine::VolumeChanged()
   if (mAudioSink) {
     mAudioSink->SetVolume(mVolume);
   }
-}
-
-double MediaDecoderStateMachine::GetCurrentTime() const
-{
-  return static_cast<double>(mCurrentPosition) / static_cast<double>(USECS_PER_S);
-}
-
-int64_t MediaDecoderStateMachine::GetCurrentTimeUs() const
-{
-  return mCurrentPosition;
 }
 
 bool MediaDecoderStateMachine::IsRealTime() const
@@ -1459,7 +1432,7 @@ void MediaDecoderStateMachine::SetDuration(int64_t aDuration)
 
   mEndTime = mStartTime + aDuration;
 
-  if (mDecoder && mEndTime >= 0 && mEndTime < mCurrentPosition) {
+  if (mDecoder && mEndTime >= 0 && mEndTime < mCurrentPosition.ReadOnWrongThread()) {
     
     
     
@@ -2498,7 +2471,7 @@ MediaDecoderStateMachine::SeekCompleted()
   UpdatePlaybackPositionInternal(newCurrentTime);
 
   
-  DECODER_LOG("Seek completed, mCurrentPosition=%lld", mCurrentPosition);
+  DECODER_LOG("Seek completed, mCurrentPosition=%lld", mCurrentPosition.Ref());
 
   
   
@@ -2565,6 +2538,7 @@ MediaDecoderStateMachine::FinishShutdown()
   mLogicalPlaybackRate.DisconnectIfConnected();
   mPreservesPitch.DisconnectIfConnected();
   mNextFrameStatus.DisconnectAll();
+  mCurrentPosition.DisconnectAll();
 
   
   mWatchManager.Shutdown();

@@ -102,13 +102,6 @@ class AudioSink;
 
 
 
-#ifdef GetCurrentTime
-#undef GetCurrentTime
-#endif
-
-
-
-
 
 
 
@@ -228,12 +221,6 @@ public:
   
   
   nsRefPtr<MediaDecoder::SeekPromise> Seek(SeekTarget aTarget);
-
-  
-  
-  
-  double GetCurrentTime() const;
-  int64_t GetCurrentTimeUs() const;
 
   
   
@@ -992,8 +979,10 @@ protected:
   
   
   
-  
-  int64_t mCurrentPosition;
+  Canonical<int64_t> mCurrentPosition;
+public:
+  AbstractCanonical<int64_t>* CanonicalCurrentPosition() { return &mCurrentPosition; }
+protected:
 
   
   
