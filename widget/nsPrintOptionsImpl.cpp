@@ -242,7 +242,7 @@ nsPrintOptions::SerializeToPrintData(nsIPrintSettings* aSettings,
   
   data->pagesAcross() = 1;
   data->pagesDown() = 1;
-  
+  data->printTime() = 0;
   data->detailedErrorReporting() = true;
   
   data->addHeaderAndFooter() = false;

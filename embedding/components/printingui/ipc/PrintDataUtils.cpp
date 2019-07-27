@@ -129,7 +129,23 @@ NS_IMETHODIMP
 MockWebBrowserPrint::EnumerateDocumentNames(uint32_t* aCount,
                                             char16_t*** aResult)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *aCount = 0;
+  *aResult = nullptr;
+
+  if (mData.printJobName().IsEmpty()) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  char16_t** array = (char16_t**) moz_xmalloc(sizeof(char16_t*));
+  array[0] = ToNewUnicode(mData.printJobName());
+
+  *aCount = 1;
+  *aResult = array;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
