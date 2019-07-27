@@ -2903,10 +2903,8 @@ int64_t MediaDecoderStateMachine::GetClock() const
     }
     
     
-    NS_ASSERTION(GetMediaTime() <= clock_time ||
-                 mPlaybackRate <= 0 ||
-                 (mAudioCaptured && mState == DECODER_STATE_SEEKING),
-      "Clock should go forwards.");
+    NS_ASSERTION(GetMediaTime() <= clock_time || mPlaybackRate <= 0 || mAudioCaptured,
+    "Clock should go forwards.");
   }
 
   return clock_time;
