@@ -21,6 +21,7 @@
 #include "mozilla/plugins/PluginInstanceParent.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/unused.h"
 #include "nsAutoPtr.h"
 #include "nsCRT.h"
@@ -160,12 +161,15 @@ PluginModuleChromeParent::LoadModule(const char* aFilePath, uint32_t aPluginId)
 
     
     nsAutoPtr<PluginModuleChromeParent> parent(new PluginModuleChromeParent(aFilePath, aPluginId));
+    TimeStamp launchStart = TimeStamp::Now();
     bool launched = parent->mSubprocess->Launch(prefSecs * 1000);
     if (!launched) {
         
         parent->mShutdown = true;
         return nullptr;
     }
+    TimeStamp launchEnd = TimeStamp::Now();
+    parent->mTimeBlocked = (launchEnd - launchStart);
     parent->Open(parent->mSubprocess->GetChannel(),
                  parent->mSubprocess->GetChildProcessHandle());
 
@@ -1378,6 +1382,7 @@ PluginModuleParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs
     if (IsChrome()) {
         PluginSettings settings;
         GetSettings(&settings);
+        TimeStamp callNpInitStart = TimeStamp::Now();
         if (!CallNP_Initialize(settings, error)) {
             Close();
             return NS_ERROR_FAILURE;
@@ -1386,6 +1391,16 @@ PluginModuleParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs
             Close();
             return NS_OK;
         }
+        TimeStamp callNpInitEnd = TimeStamp::Now();
+        mTimeBlocked += (callNpInitEnd - callNpInitStart);
+        
+
+
+
+        Telemetry::Accumulate(Telemetry::BLOCKED_ON_PLUGIN_MODULE_INIT_MS,
+                              GetHistogramKey(),
+                              static_cast<uint32_t>(mTimeBlocked.ToMilliseconds()));
+        mTimeBlocked = TimeDuration();
     }
 
     SetPluginFuncs(pFuncs);
@@ -1418,6 +1433,7 @@ PluginModuleChromeParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error)
 
     PluginSettings settings;
     GetSettings(&settings);
+    TimeStamp callNpInitStart = TimeStamp::Now();
     if (!CallNP_Initialize(settings, error)) {
         Close();
         return NS_ERROR_FAILURE;
@@ -1426,6 +1442,8 @@ PluginModuleChromeParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error)
         Close();
         return NS_OK;
     }
+    TimeStamp callNpInitEnd = TimeStamp::Now();
+    mTimeBlocked += (callNpInitEnd - callNpInitStart);
 
 #if defined XP_WIN
     
@@ -1442,6 +1460,17 @@ PluginModuleChromeParent::NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error)
 #ifdef MOZ_CRASHREPORTER_INJECTOR
     InitializeInjector();
 #endif
+
+    
+
+
+
+
+
+    Telemetry::Accumulate(Telemetry::BLOCKED_ON_PLUGIN_MODULE_INIT_MS,
+                          GetHistogramKey(),
+                          static_cast<uint32_t>(mTimeBlocked.ToMilliseconds()));
+    mTimeBlocked = TimeDuration();
 
     return NS_OK;
 }
@@ -1556,17 +1585,21 @@ PluginModuleParent::NPP_New(NPMIMEType pluginType, NPP instance,
 
     instance->pdata = parentInstance;
 
-    if (!CallPPluginInstanceConstructor(parentInstance,
-                                        nsDependentCString(pluginType), mode,
-                                        names, values, error)) {
-        
-        instance->pdata = nullptr;
-        
-        
-        
-        if (NPERR_NO_ERROR == *error)
-            *error = NPERR_GENERIC_ERROR;
-        return NS_ERROR_FAILURE;
+    {   
+        Telemetry::AutoTimer<Telemetry::BLOCKED_ON_PLUGIN_INSTANCE_INIT_MS>
+            timer(GetHistogramKey());
+        if (!CallPPluginInstanceConstructor(parentInstance,
+                                            nsDependentCString(pluginType), mode,
+                                            names, values, error)) {
+            
+            instance->pdata = nullptr;
+            
+            
+            
+            if (NPERR_NO_ERROR == *error)
+                *error = NPERR_GENERIC_ERROR;
+            return NS_ERROR_FAILURE;
+        }
     }
 
     if (*error != NPERR_NO_ERROR) {
@@ -1913,9 +1946,12 @@ PluginModuleChromeParent::InitializeInjector()
                           NS_LITERAL_CSTRING(FLASH_PLUGIN_PREFIX)))
         return;
 
+    TimeStamp th32Start = TimeStamp::Now();
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (INVALID_HANDLE_VALUE == snapshot)
         return;
+    TimeStamp th32End = TimeStamp::Now();
+    mTimeBlocked += (th32End - th32Start);
 
     DWORD pluginProcessPID = GetProcessId(Process()->GetChildProcessHandle());
     mFlashProcess1 = GetFlashChildOfPID(pluginProcessPID, snapshot);
