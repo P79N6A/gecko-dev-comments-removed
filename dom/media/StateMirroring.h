@@ -283,14 +283,11 @@ public:
 
   ~Mirror()
   {
-    if (mImpl->OwnerThread()->IsCurrentThreadIn()) {
-      mImpl->DisconnectIfConnected();
-    } else {
-      
-      
-      
-      MOZ_DIAGNOSTIC_ASSERT(!mImpl->IsConnected());
-    }
+    
+    
+    
+    
+    MOZ_DIAGNOSTIC_ASSERT(!mImpl->IsConnected());
   }
 
 private:
