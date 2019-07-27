@@ -597,6 +597,33 @@ class ClonedBlockObject : public BlockObject
     void copyUnaliasedValues(AbstractFramePtr frame);
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class UninitializedLexicalObject : public ScopeObject
+{
+  public:
+    static const unsigned RESERVED_SLOTS = 1;
+    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT2_BACKGROUND;
+
+    static const Class class_;
+
+    static UninitializedLexicalObject *create(JSContext *cx, HandleObject enclosing);
+};
+
 template<XDRMode mode>
 bool
 XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
@@ -910,7 +937,8 @@ template<>
 inline bool
 JSObject::is<js::ScopeObject>() const
 {
-    return is<js::CallObject>() || is<js::DeclEnvObject>() || is<js::NestedScopeObject>();
+    return is<js::CallObject>() || is<js::DeclEnvObject>() || is<js::NestedScopeObject>() ||
+           is<js::UninitializedLexicalObject>();
 }
 
 template<>
