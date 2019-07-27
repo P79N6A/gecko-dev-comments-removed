@@ -42,11 +42,12 @@ class MercurialConfig(object):
         
         
         
-        with open(infile, 'r') as f:
-            for line in f:
-                if line.startswith('%include'):
-                    raise HgIncludeException(
-                        '%include directive is not supported by MercurialConfig')
+        if os.path.exists(infile):
+            with open(infile, 'r') as f:
+                for line in f:
+                    if line.startswith('%include'):
+                        raise HgIncludeException(
+                            '%include directive is not supported by MercurialConfig')
 
         
         
