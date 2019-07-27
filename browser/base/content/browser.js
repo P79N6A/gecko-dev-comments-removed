@@ -24,8 +24,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
                                   "resource://gre/modules/BrowserUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
-                                  "resource://gre/modules/PromiseUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
                                   "resource://gre/modules/CharsetMenu.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
@@ -50,7 +48,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
                                    "nsIDNSService");
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
-
 
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
@@ -953,6 +950,7 @@ var gBrowserInit = {
     mm.loadFrameScript("chrome://browser/content/tab-content.js", true);
     mm.loadFrameScript("chrome://browser/content/content.js", true);
     mm.loadFrameScript("chrome://browser/content/content-UITour.js", true);
+    mm.loadFrameScript("chrome://global/content/manifestMessages.js", true);
 
     window.messageManager.addMessageListener("Browser:LoadURI", RedirectLoad);
 
@@ -2394,8 +2392,6 @@ function URLBarSetURI(aURI) {
 
 function losslessDecodeURI(aURI) {
   var value = aURI.spec;
-  if (aURI.schemeIs("moz-action"))
-    throw new Error("losslessDecodeURI should never get a moz-action URI");
   
   if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value))
     try {
