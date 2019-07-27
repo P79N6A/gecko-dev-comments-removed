@@ -1,6 +1,6 @@
 
 
-var m = Map();
+var m = new Map();
 m.set('a', 0);
 assertEq(m.size, 1);
 m.set('a', 0);

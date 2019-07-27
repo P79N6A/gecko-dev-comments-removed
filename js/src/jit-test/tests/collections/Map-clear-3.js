@@ -1,6 +1,6 @@
 
 
-var m = Map();
+var m = new Map();
 for (var i = 0; i < 100; i++)
     m.set(i, i);
 assertEq(m.size, i);

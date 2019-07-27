@@ -1,6 +1,6 @@
 
 
-var map = Map();
+var map = new Map();
 function force(k) {
     if (!map.has(k) && k >= 0)
         map.set(k, k - 1);

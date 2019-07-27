@@ -1,6 +1,6 @@
 
 
-var m = Map([["a", "b"], ["b", "c"]]);
+var m = new Map([["a", "b"], ["b", "c"]]);
 assertEq(m.size, 2);
 m.clear();
 assertEq(m.size, 0);

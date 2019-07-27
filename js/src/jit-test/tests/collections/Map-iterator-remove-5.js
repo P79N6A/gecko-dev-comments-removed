@@ -1,7 +1,7 @@
 
 
 
-var map = Map();
+var map = new Map();
 for (var i = 0; i < 20; i++)
     map.set(String.fromCharCode('A'.charCodeAt(0) + i), i);
 
