@@ -11,6 +11,7 @@
 
 
 #include "jit/LIR.h"
+#include "jit/MIRGenerator.h"
 
 namespace js {
 namespace jit {
@@ -58,11 +59,11 @@ class LIRGeneratorShared : public MDefinitionVisitor
     
     
     
-    inline bool emitAtUses(MInstruction *mir);
+    inline void emitAtUses(MInstruction *mir);
 
     
     
-    inline bool ensureDefined(MDefinition *mir);
+    inline void ensureDefined(MDefinition *mir);
 
     
     
@@ -115,7 +116,7 @@ class LIRGeneratorShared : public MDefinitionVisitor
     
     
     
-    inline bool fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir);
+    inline void fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir);
 #endif
 
     
@@ -129,43 +130,49 @@ class LIRGeneratorShared : public MDefinitionVisitor
     inline LDefinition tempFixed(Register reg);
 
     template <size_t Ops, size_t Temps>
-    inline bool defineFixed(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
+    inline void defineFixed(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
                             const LAllocation &output);
 
     template <size_t Ops, size_t Temps>
-    inline bool defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, MDefinition *mir,
+    inline void defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, MDefinition *mir,
                           LDefinition::Policy policy = LDefinition::REGISTER);
 
-    inline bool defineReturn(LInstruction *lir, MDefinition *mir);
+    inline void defineReturn(LInstruction *lir, MDefinition *mir);
 
     template <size_t Ops, size_t Temps>
-    inline bool define(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
+    inline void define(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
                         const LDefinition &def);
 
     template <size_t Ops, size_t Temps>
-    inline bool define(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
+    inline void define(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir,
                        LDefinition::Policy policy = LDefinition::REGISTER);
 
     template <size_t Ops, size_t Temps>
-    inline bool defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir, uint32_t operand);
+    inline void defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir, uint32_t operand);
 
     
     
-    inline bool redefine(MDefinition *ins, MDefinition *as);
+    inline void redefine(MDefinition *ins, MDefinition *as);
 
     TempAllocator &alloc() const {
         return graph.alloc();
     }
 
     uint32_t getVirtualRegister() {
-        return lirGraph_.getVirtualRegister();
+        uint32_t vreg = lirGraph_.getVirtualRegister();
+        if (vreg >= MAX_VIRTUAL_REGISTERS) {
+            
+            gen->abort("max virtual registers");
+            return 1;
+        }
+        return vreg;
     }
 
     template <typename T> void annotate(T *ins);
-    template <typename T> bool add(T *ins, MInstruction *mir = nullptr);
+    template <typename T> void add(T *ins, MInstruction *mir = nullptr);
 
     void lowerTypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock *block, size_t lirIndex);
-    bool defineTypedPhi(MPhi *phi, size_t lirIndex);
+    void defineTypedPhi(MPhi *phi, size_t lirIndex);
 
     LOsiPoint *popOsiPoint() {
         LOsiPoint *tmp = osiPoint_;
@@ -186,11 +193,11 @@ class LIRGeneratorShared : public MDefinitionVisitor
     
     
     
-    bool assignSafepoint(LInstruction *ins, MInstruction *mir,
+    void assignSafepoint(LInstruction *ins, MInstruction *mir,
                          BailoutKind kind = Bailout_DuringVMCall);
 
   public:
-    bool visitConstant(MConstant *ins);
+    void visitConstant(MConstant *ins);
 
     
     static bool allowTypedElementHoleCheck() {
