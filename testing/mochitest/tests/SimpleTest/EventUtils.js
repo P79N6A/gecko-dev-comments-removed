@@ -22,6 +22,7 @@
 
 
 
+
 window.__defineGetter__('_EU_Ci', function() {
   
   
@@ -91,6 +92,49 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
                        buttonArg, relatedTargetArg);
 
   return SpecialPowers.dispatchEvent(aWindow, aTarget, event);
+}
+
+
+
+
+
+
+
+function sendDragEvent(aEvent, aTarget, aWindow=window) {
+  if (['drag', 'dragstart', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop'].indexOf(aEvent.type) == -1) {
+    throw new Error("sendDragEvent doesn't know about event type '" + aEvent.type + "'");
+  }
+
+  if (typeof aTarget == "string") {
+    aTarget = aWindow.document.getElementById(aTarget);
+  }
+
+  var event = aWindow.document.createEvent('DragEvent');
+
+  var typeArg          = aEvent.type;
+  var canBubbleArg     = true;
+  var cancelableArg    = true;
+  var viewArg          = aWindow;
+  var detailArg        = aEvent.detail        || 0;
+  var screenXArg       = aEvent.screenX       || 0;
+  var screenYArg       = aEvent.screenY       || 0;
+  var clientXArg       = aEvent.clientX       || 0;
+  var clientYArg       = aEvent.clientY       || 0;
+  var ctrlKeyArg       = aEvent.ctrlKey       || false;
+  var altKeyArg        = aEvent.altKey        || false;
+  var shiftKeyArg      = aEvent.shiftKey      || false;
+  var metaKeyArg       = aEvent.metaKey       || false;
+  var buttonArg        = aEvent.button        || 0;
+  var relatedTargetArg = aEvent.relatedTarget || null;
+  var dataTransfer     = aEvent.dataTransfer  || null;
+
+  event.initDragEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg,
+                      screenXArg, screenYArg, clientXArg, clientYArg,
+                      ctrlKeyArg, altKeyArg, shiftKeyArg, metaKeyArg,
+                      buttonArg, relatedTargetArg, dataTransfer);
+
+  var utils = _getDOMWindowUtils(aWindow);
+  return utils.dispatchDOMEventViaPresShell(aTarget, event, true);
 }
 
 

@@ -55,7 +55,13 @@ function test() {
       
       
       
-      ChromeUtils.synthesizeDrop(newTab, newTab, [[{type: "text/plain", data: text}]], "link", window);
+      var event = {
+        clientX: 0,
+        clientY: 0,
+        screenX: 0,
+        screenY: 0,
+      };
+      ChromeUtils.synthesizeDrop(newTab, newTab, [[{type: "text/plain", data: text}]], "link", window, undefined, event);
     });
   }
 
