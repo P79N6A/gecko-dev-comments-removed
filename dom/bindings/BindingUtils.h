@@ -1661,7 +1661,7 @@ InitIds(JSContext* cx, const Prefable<Spec>* prefableSpecs, jsid* ids)
     
     Spec* spec = prefableSpecs->specs;
     do {
-      if (!JS::FunctionSpecNameIsSymbol(spec->name)) {
+      if (!JS::PropertySpecNameIsSymbol(spec->name)) {
         if (!InternJSString(cx, *ids++, spec->name)) {
           return false;
         }
