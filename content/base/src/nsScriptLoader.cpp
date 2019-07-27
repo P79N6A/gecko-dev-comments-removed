@@ -327,12 +327,19 @@ nsScriptLoader::StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsIScriptElement *script = aRequest->mElement;
-  if (aScriptFromHead &&
-      !(script && (script->GetScriptAsync() || script->GetScriptDeferred()))) {
-    nsCOMPtr<nsIHttpChannelInternal>
-      internalHttpChannel(do_QueryInterface(channel));
-    if (internalHttpChannel)
+  nsCOMPtr<nsIHttpChannelInternal>
+    internalHttpChannel(do_QueryInterface(channel));
+
+  if (internalHttpChannel) {
+    if (aScriptFromHead &&
+        !(script && (script->GetScriptAsync() || script->GetScriptDeferred()))) {
+      
+      
       internalHttpChannel->SetLoadAsBlocking(true);
+    } else if (!(script && script->GetScriptDeferred())) {
+      
+      internalHttpChannel->SetLoadUnblocked(true);
+    }
   }
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
