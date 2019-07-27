@@ -361,6 +361,13 @@ nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
 #ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
 #include <windows.h>
 
+#undef GetMessage
+#undef CreateEvent
+#undef GetClassName
+#undef GetBinaryType
+#undef RemoveDirectory
+#undef SetProp
+
 namespace {
 
 
