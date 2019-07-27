@@ -341,6 +341,7 @@ public:
 
   virtual bool IPCOpen() const override;
   virtual bool IsSameProcess() const override;
+  virtual base::ProcessId ParentPid() const override;
 
   
 
