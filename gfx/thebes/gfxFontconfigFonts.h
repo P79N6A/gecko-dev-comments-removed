@@ -3,8 +3,8 @@
 
 
 
-#ifndef GFX_PANGOFONTS_H
-#define GFX_PANGOFONTS_H
+#ifndef GFX_FONTCONFIG_FONTS_H
+#define GFX_FONTCONFIG_FONTS_H
 
 #include "cairo.h"
 #include "gfxTypes.h"
