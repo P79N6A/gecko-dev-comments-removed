@@ -324,7 +324,7 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       }
 
       
-      if (FxAccountUtils.LOG_PERSONAL_INFORMATION) {
+      if (FxAccountConstants.LOG_PERSONAL_INFORMATION) {
         fxAccount.dump();
       }
 
@@ -403,9 +403,9 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
     
     updateServersFromIntentExtras(getIntent());
 
-    if (FxAccountUtils.LOG_PERSONAL_INFORMATION) {
-      FxAccountUtils.pii(LOG_TAG, "Using auth server: " + authServerEndpoint);
-      FxAccountUtils.pii(LOG_TAG, "Using sync server: " + syncServerEndpoint);
+    if (FxAccountConstants.LOG_PERSONAL_INFORMATION) {
+      FxAccountConstants.pii(LOG_TAG, "Using auth server: " + authServerEndpoint);
+      FxAccountConstants.pii(LOG_TAG, "Using sync server: " + syncServerEndpoint);
     }
 
     updateCustomServerView();
