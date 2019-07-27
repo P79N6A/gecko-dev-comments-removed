@@ -569,6 +569,12 @@ PKT_SAVED_OVERLAY.prototype = {
         }
 
         
+        if (this.locale)
+        {
+            $('body').addClass('pkt_ext_saved_' + this.locale);
+        }
+
+        
         $('body').append(Handlebars.templates.saved_shell(this.dictJSON));
 
         

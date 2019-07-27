@@ -196,6 +196,12 @@ PKT_SIGNUP_OVERLAY.prototype = {
         }
 
         
+        if (this.locale)
+        {
+            $('body').addClass('pkt_ext_signup_' + this.locale);
+        }
+
+        
         if (this.variant == 'storyboard')
         {
             $('body').append(Handlebars.templates.signupstoryboard_shell(this.dictJSON));
