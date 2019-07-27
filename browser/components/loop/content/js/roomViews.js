@@ -162,15 +162,20 @@ loop.roomViews = (function(mozL10n) {
 
       window.addEventListener('orientationchange', this.updateVideoContainer);
       window.addEventListener('resize', this.updateVideoContainer);
+    },
 
+    componentWillUpdate: function(nextProps, nextState) {
       
       
       
-      this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
-        publisherConfig: this._getPublisherConfig(),
-        getLocalElementFunc: this._getElement.bind(this, ".local"),
-        getRemoteElementFunc: this._getElement.bind(this, ".remote")
-      }));
+      if (this.state.roomState !== ROOM_STATES.MEDIA_WAIT &&
+          nextState.roomState === ROOM_STATES.MEDIA_WAIT) {
+        this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
+          publisherConfig: this._getPublisherConfig(),
+          getLocalElementFunc: this._getElement.bind(this, ".local"),
+          getRemoteElementFunc: this._getElement.bind(this, ".remote")
+        }));
+      }
     },
 
     _getPublisherConfig: function() {
