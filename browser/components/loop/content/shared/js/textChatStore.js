@@ -70,9 +70,14 @@ loop.store.TextChatStore = (function() {
 
 
 
-    dataChannelsAvailable: function() {
-      this.setStoreState({ textChatEnabled: true });
-      window.dispatchEvent(new CustomEvent("LoopChatEnabled"));
+
+
+    dataChannelsAvailable: function(actionData) {
+      this.setStoreState({ textChatEnabled: actionData.available });
+
+      if (actionData.available) {
+        window.dispatchEvent(new CustomEvent("LoopChatEnabled"));
+      }
     },
 
     
@@ -145,7 +150,7 @@ loop.store.TextChatStore = (function() {
       }
 
       
-      if ("urls" in actionData && actionData.urls.length) {
+      if (("urls" in actionData) && actionData.urls && actionData.urls.length) {
         
         var urlData = actionData.urls[0];
 

@@ -169,6 +169,7 @@ loop.shared.actions = (function() {
 
 
     DataChannelsAvailable: Action.define("dataChannelsAvailable", {
+      available: Boolean
     }),
 
     
