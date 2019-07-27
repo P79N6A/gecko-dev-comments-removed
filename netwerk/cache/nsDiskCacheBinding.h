@@ -97,7 +97,7 @@ public:
     nsDiskCacheBindery();
     ~nsDiskCacheBindery();
 
-    nsresult                Init();
+    void                    Init();
     void                    Reset();
 
     nsDiskCacheBinding *    CreateBinding(nsCacheEntry *       entry,
@@ -114,8 +114,10 @@ private:
 
     
     static const PLDHashTableOps ops;
-    PLDHashTable           table;
+    PLDHashTable2          table;
     bool                   initialized;
+
+    static const uint32_t kInitialTableLength = 0;
 };
 
 #endif 
