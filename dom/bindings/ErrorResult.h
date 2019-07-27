@@ -108,9 +108,6 @@ public:
   
   void ThrowJSException(JSContext* cx, JS::Handle<JS::Value> exn);
   void ReportJSException(JSContext* cx);
-  
-  
-  void ReportJSExceptionFromJSImplementation(JSContext* aCx);
   bool IsJSException() const { return ErrorCode() == NS_ERROR_DOM_JS_EXCEPTION; }
 
   void ThrowNotEnoughArgsError() { mResult = NS_ERROR_XPC_NOT_ENOUGH_ARGS; }
