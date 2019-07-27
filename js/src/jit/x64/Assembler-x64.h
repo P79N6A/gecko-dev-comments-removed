@@ -634,6 +634,10 @@ class Assembler : public AssemblerX86Shared
         CodeOffsetLabel label = loadRipRelativeInt64(dest);
         append(AsmJSGlobalAccess(label, AsmJSActivationGlobalDataOffset));
     }
+    void loadAsmJSHeapRegisterFromGlobalData() {
+        CodeOffsetLabel label = loadRipRelativeInt64(HeapReg);
+        append(AsmJSGlobalAccess(label, AsmJSHeapGlobalDataOffset));
+    }
 
     
     
