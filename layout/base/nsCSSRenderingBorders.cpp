@@ -124,7 +124,8 @@ nsCSSBorderRenderer::nsCSSBorderRenderer(gfxContext* aDestContext,
                                          const nscolor* aBorderColors,
                                          nsBorderColors* const* aCompositeColors,
                                          nscolor aBackgroundColor)
-  : mContext(aDestContext),
+  : mDrawTarget(aDestContext->GetDrawTarget()),
+    mContext(aDestContext),
     mOuterRect(aOuterRect),
     mBorderStyles(aBorderStyles),
     mBorderWidths(aBorderWidths),
@@ -334,8 +335,8 @@ nsCSSBorderRenderer::BorderColorStyleForSolidCorner(uint8_t aStyle, mozilla::css
   return BorderColorStyleNone;
 }
 
-void
-nsCSSBorderRenderer::DoCornerSubPath(mozilla::css::Corner aCorner)
+Rect
+nsCSSBorderRenderer::GetCornerRect(mozilla::css::Corner aCorner)
 {
   Point offset(0.f, 0.f);
 
@@ -344,12 +345,12 @@ nsCSSBorderRenderer::DoCornerSubPath(mozilla::css::Corner aCorner)
   if (aCorner == C_BR || aCorner == C_BL)
     offset.y = mOuterRect.Height() - mBorderCornerDimensions[aCorner].height;
 
-  mContext->Rectangle(ThebesRect(Rect(mOuterRect.TopLeft() + offset,
-                                      mBorderCornerDimensions[aCorner])));
+  return Rect(mOuterRect.TopLeft() + offset,
+              mBorderCornerDimensions[aCorner]);
 }
 
-void
-nsCSSBorderRenderer::DoSideClipWithoutCornersSubPath(mozilla::css::Side aSide)
+Rect
+nsCSSBorderRenderer::GetSideClipWithoutCornersRect(mozilla::css::Side aSide)
 {
   Point offset(0.f, 0.f);
 
@@ -384,7 +385,7 @@ nsCSSBorderRenderer::DoSideClipWithoutCornersSubPath(mozilla::css::Side aSide)
   else
     rect.width = mBorderWidths[aSide];
 
-  mContext->Rectangle(ThebesRect(rect));
+  return rect;
 }
 
 
@@ -441,8 +442,8 @@ MaybeMoveToMidPoint(Point& aP0, Point& aP1, const Point& aMidPoint)
   }
 }
 
-void
-nsCSSBorderRenderer::DoSideClipSubPath(mozilla::css::Side aSide)
+TemporaryRef<Path>
+nsCSSBorderRenderer::GetSideClipSubPath(mozilla::css::Side aSide)
 {
   
   
@@ -502,11 +503,13 @@ nsCSSBorderRenderer::DoSideClipSubPath(mozilla::css::Side aSide)
       end[0] = Point(mOuterRect.CWCorner(aSide).x, mInnerRect.CWCorner(aSide).y);
   }
 
-  mContext->MoveTo(ThebesPoint(start[0]));
-  mContext->LineTo(ThebesPoint(end[0]));
-  mContext->LineTo(ThebesPoint(end[1]));
-  mContext->LineTo(ThebesPoint(start[1]));
-  mContext->ClosePath();
+  RefPtr<PathBuilder> builder = mDrawTarget->CreatePathBuilder();
+  builder->MoveTo(start[0]);
+  builder->LineTo(end[0]);
+  builder->LineTo(end[1]);
+  builder->LineTo(start[1]);
+  builder->Close();
+  return builder->Finish();
 }
 
 void
@@ -517,8 +520,6 @@ nsCSSBorderRenderer::FillSolidBorder(const Rect& aOuterRect,
                                      int aSides,
                                      const ColorPattern& aColor)
 {
-  DrawTarget* drawTarget = mContext->GetDrawTarget();
-
   
   
 
@@ -526,7 +527,7 @@ nsCSSBorderRenderer::FillSolidBorder(const Rect& aOuterRect,
   
   if (!AllCornersZeroSize(aBorderRadii)) {
     RefPtr<PathBuilder> builder =
-      drawTarget->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
+      mDrawTarget->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
 
     RectCornerRadii innerRadii;
     ComputeInnerRadii(aBorderRadii, aBorderSizes, &innerRadii);
@@ -539,7 +540,7 @@ nsCSSBorderRenderer::FillSolidBorder(const Rect& aOuterRect,
 
     RefPtr<Path> path = builder->Finish();
 
-    drawTarget->Fill(path, aColor);
+    mDrawTarget->Fill(path, aColor);
     return;
   }
 
@@ -555,7 +556,7 @@ nsCSSBorderRenderer::FillSolidBorder(const Rect& aOuterRect,
     Float strokeWidth = aBorderSizes[0];
     Rect r(aOuterRect);
     r.Deflate(strokeWidth / 2.f);
-    drawTarget->StrokeRect(r, aColor, StrokeOptions(strokeWidth));
+    mDrawTarget->StrokeRect(r, aColor, StrokeOptions(strokeWidth));
     return;
   }
 
@@ -620,8 +621,8 @@ nsCSSBorderRenderer::FillSolidBorder(const Rect& aOuterRect,
   
   for (uint32_t i = 0; i < 4; i++) {
     if (aSides & (1 << i)) {
-      MaybeSnapToDevicePixels(r[i], *drawTarget, true);
-      drawTarget->FillRect(r[i], aColor);
+      MaybeSnapToDevicePixels(r[i], *mDrawTarget, true);
+      mDrawTarget->FillRect(r[i], aColor);
     }
   }
 }
@@ -1139,8 +1140,6 @@ nsCSSBorderRenderer::DrawSingleWidthSolidBorder()
 void
 nsCSSBorderRenderer::DrawNoCompositeColorSolidBorder()
 {
-  DrawTarget *dt = mContext->GetDrawTarget();
-
   const Float alpha = 0.55191497064665766025f;
 
   const twoFloats cornerMults[4] = { { -1,  0 },
@@ -1192,7 +1191,7 @@ nsCSSBorderRenderer::DrawNoCompositeColorSolidBorder()
       secondColor = mBorderColors[i1];
     }
 
-    RefPtr<PathBuilder> builder = dt->CreatePathBuilder();
+    RefPtr<PathBuilder> builder = mDrawTarget->CreatePathBuilder();
 
     Point strokeStart, strokeEnd;
 
@@ -1212,21 +1211,24 @@ nsCSSBorderRenderer::DrawNoCompositeColorSolidBorder()
     builder->MoveTo(strokeStart);
     builder->LineTo(strokeEnd);
     RefPtr<Path> path = builder->Finish();
-    dt->Stroke(path, ColorPattern(ToDeviceColor(mBorderColors[i])), StrokeOptions(mBorderWidths[i]));
+    mDrawTarget->Stroke(path, ColorPattern(ToDeviceColor(mBorderColors[i])),
+                        StrokeOptions(mBorderWidths[i]));
     builder = nullptr;
     path = nullptr;
 
     Pattern *pattern;
 
     if (firstColor != secondColor) {
-      gradPat.mStops = CreateCornerGradient(c, firstColor, secondColor, dt, gradPat.mBegin, gradPat.mEnd);
+      gradPat.mStops = CreateCornerGradient(c, firstColor, secondColor,
+                                            mDrawTarget, gradPat.mBegin,
+                                            gradPat.mEnd);
       pattern = &gradPat;
     } else {
       colorPat.mColor = ToDeviceColor(firstColor);
       pattern = &colorPat;
     }
 
-    builder = dt->CreatePathBuilder();
+    builder = mDrawTarget->CreatePathBuilder();
 
     if (mBorderRadii[c].width > 0 && mBorderRadii[c].height > 0) {
       p0.x = pc.x + cornerMults[i].a * mBorderRadii[c].width;
@@ -1271,7 +1273,7 @@ nsCSSBorderRenderer::DrawNoCompositeColorSolidBorder()
       builder->BezierTo(p2, p1, p0);
       builder->Close();
       path = builder->Finish();
-      dt->Fill(path, *pattern);
+      mDrawTarget->Fill(path, *pattern);
     } else {
       Point c1, c2, c3, c4;
 
@@ -1289,7 +1291,7 @@ nsCSSBorderRenderer::DrawNoCompositeColorSolidBorder()
 
       path = builder->Finish();
 
-      dt->Fill(path, *pattern);
+      mDrawTarget->Fill(path, *pattern);
     }
   }
 }
@@ -1329,11 +1331,9 @@ nsCSSBorderRenderer::DrawRectangularCompositeColors()
       mContext->LineTo(ThebesPoint(secondCorner));
       mContext->Stroke();
 
-      mContext->NewPath();
       Point cornerTopLeft = rect.CWCorner(side);
       cornerTopLeft.x -= 0.5;
       cornerTopLeft.y -= 0.5;
-      mContext->Rectangle(ThebesRect(Rect(cornerTopLeft, Size(1, 1))));
       Color nextColor = Color::FromABGR(
         currentColors[sideNext] ? currentColors[sideNext]->mColor
                                 : mBorderColors[sideNext]);
@@ -1342,8 +1342,8 @@ nsCSSBorderRenderer::DrawRectangularCompositeColors()
                         (currentColor.g + nextColor.g) / 2.f,
                         (currentColor.b + nextColor.b) / 2.f,
                         (currentColor.a + nextColor.a) / 2.f);
-      mContext->SetColor(ThebesColor(cornerColor));
-      mContext->Fill();
+      mDrawTarget->FillRect(Rect(cornerTopLeft, Size(1, 1)),
+                            ColorPattern(ToDeviceColor(cornerColor)));
 
       if (side != 0) {
         
@@ -1363,8 +1363,6 @@ nsCSSBorderRenderer::DrawRectangularCompositeColors()
 void
 nsCSSBorderRenderer::DrawBorders()
 {
-  DrawTarget* drawTarget = mContext->GetDrawTarget();
-
   bool forceSeparateCorners = false;
 
   
@@ -1495,11 +1493,11 @@ nsCSSBorderRenderer::DrawBorders()
     
     
     RefPtr<PathBuilder> builder =
-      drawTarget->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
+      mDrawTarget->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
     AppendRoundedRectToPath(builder, mOuterRect, mBorderRadii, true);
     AppendRoundedRectToPath(builder, ToRect(borderInnerRect.rect), borderInnerRect.corners, false);
     RefPtr<Path> path = builder->Finish();
-    drawTarget->Fill(path, color);
+    mDrawTarget->Fill(path, color);
   }
 
   bool hasCompositeColors;
@@ -1628,22 +1626,18 @@ nsCSSBorderRenderer::DrawBorders()
           IsZeroSize(mBorderRadii[corner]) &&
           IsSolidCornerStyle(mBorderStyles[sides[0]], corner))
       {
-        mContext->NewPath();
-        DoCornerSubPath(corner);
         Color color = MakeBorderColor(mBorderColors[sides[0]],
                                       mBackgroundColor,
                                       BorderColorStyleForSolidCorner(mBorderStyles[sides[0]], corner));
-        mContext->SetColor(ThebesColor(color));
-        mContext->Fill();
+        mDrawTarget->FillRect(GetCornerRect(corner),
+                              ColorPattern(ToDeviceColor(color)));
         continue;
       }
 
       mContext->Save();
 
       
-      mContext->NewPath();
-      DoCornerSubPath(corner);
-      mContext->Clip();
+      mContext->Clip(GetCornerRect(corner));
 
       if (simpleCornerStyle) {
         
@@ -1669,9 +1663,8 @@ nsCSSBorderRenderer::DrawBorders()
 
           mContext->Save();
 
-          mContext->NewPath();
-          DoSideClipSubPath(side);
-          mContext->Clip();
+          RefPtr<Path> path = GetSideClipSubPath(side);
+          mContext->Clip(path);
 
           DrawBorderSides(1 << side);
 
@@ -1738,9 +1731,7 @@ nsCSSBorderRenderer::DrawBorders()
       
       
       mContext->Save();
-      mContext->NewPath();
-      DoSideClipWithoutCornersSubPath(side);
-      mContext->Clip();
+      mContext->Clip(GetSideClipWithoutCornersRect(side));
 
       DrawBorderSides(1 << side);
 

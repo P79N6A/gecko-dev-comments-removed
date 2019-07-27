@@ -77,7 +77,9 @@ typedef enum {
 
 struct nsCSSBorderRenderer {
   typedef mozilla::gfx::ColorPattern ColorPattern;
+  typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Float Float;
+  typedef mozilla::gfx::Path Path;
   typedef mozilla::gfx::Rect Rect;
   typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
 
@@ -93,6 +95,7 @@ struct nsCSSBorderRenderer {
   RectCornerRadii mBorderCornerDimensions;
 
   
+  DrawTarget* mDrawTarget;
   gfxContext* mContext;
 
   
@@ -131,9 +134,9 @@ struct nsCSSBorderRenderer {
   
 
   
-  void DoCornerSubPath(mozilla::css::Corner aCorner);
+  Rect GetCornerRect(mozilla::css::Corner aCorner);
   
-  void DoSideClipWithoutCornersSubPath(mozilla::css::Side aSide);
+  Rect GetSideClipWithoutCornersRect(mozilla::css::Side aSide);
 
   
   
@@ -143,7 +146,7 @@ struct nsCSSBorderRenderer {
   
   
   
-  void DoSideClipSubPath(mozilla::css::Side aSide);
+  mozilla::TemporaryRef<Path> GetSideClipSubPath(mozilla::css::Side aSide);
 
   
   
