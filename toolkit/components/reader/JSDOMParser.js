@@ -624,6 +624,14 @@
 
   let JSDOMParser = function () {
     this.currentChar = 0;
+
+    
+    
+    
+    
+    
+    
+    this.strBuf = [];
   };
 
   JSDOMParser.prototype = {
@@ -708,13 +716,15 @@
       let c = this.nextChar();
 
       
-      let tag = "";
+      let strBuf = this.strBuf;
+      strBuf.length = 0;
       while (c !== " " && c !== ">" && c !== "/") {
         if (c === undefined)
           return null;
-        tag += c;
+        strBuf.push(c);
         c = this.nextChar();
       }
+      let tag = strBuf.join('');
 
       if (!tag)
         return null;
