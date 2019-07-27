@@ -935,7 +935,12 @@ let Links = {
   _getMergedProviderLinks: function Links__getMergedProviderLinks() {
     
     let linkLists = [];
-    for (let links of this._providers.values()) {
+    for (let provider of this._providers.keys()) {
+      if (!AllPages.enhanced && provider != PlacesProvider) {
+        
+        continue;
+      }
+      let links = this._providers.get(provider);
       if (links && links.sortedLinks) {
         linkLists.push(links.sortedLinks.slice());
       }
