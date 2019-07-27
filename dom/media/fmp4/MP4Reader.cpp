@@ -294,12 +294,10 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
                         MetadataTags** aTags)
 {
   if (!mDemuxerInitialized) {
-    {
-      MonitorAutoLock mon(mDemuxerMonitor);
-      bool ok = mDemuxer->Init();
-      NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
-      mIndexReady = true;
-    }
+    MonitorAutoLock mon(mDemuxerMonitor);
+    bool ok = mDemuxer->Init();
+    NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
+    mIndexReady = true;
 
     
     mInfo.mVideo.mHasVideo = mVideo.mActive = mDemuxer->HasValidVideo() &&
@@ -308,6 +306,7 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     mInfo.mAudio.mHasAudio = mAudio.mActive = mDemuxer->HasValidAudio();
 
     {
+      MonitorAutoUnlock unlock(mDemuxerMonitor);
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
       mIsEncrypted = mDemuxer->Crypto().valid;
     }
@@ -411,7 +410,11 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
   }
 
   
-  Microseconds duration = mDemuxer->Duration();
+  Microseconds duration;
+  {
+    MonitorAutoLock lock(mDemuxerMonitor);
+    duration = mDemuxer->Duration();
+  }
   if (duration != -1) {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     mDecoder->SetMediaDuration(duration);
@@ -437,6 +440,7 @@ MP4Reader::IsMediaSeekable()
 {
   
   
+  MonitorAutoLock mon(mDemuxerMonitor);
   return mDecoder->GetResource()->IsTransportSeekable() && mDemuxer->CanSeek();
 }
 
