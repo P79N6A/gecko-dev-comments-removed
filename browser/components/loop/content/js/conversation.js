@@ -86,57 +86,33 @@ loop.conversation = (function(OT, mozL10n) {
         "visually-hidden": !this.state.showDeclineMenu
       });
       return (
-        React.DOM.div({className: conversationPanelClass}, 
-          React.DOM.h2(null, __("incoming_call")), 
-          React.DOM.div({className: "button-group incoming-call-action-group"}, 
-            React.DOM.div({className: "button-chevron-menu-group"}, 
-              React.DOM.div({className: "button-group-chevron"}, 
-                React.DOM.div({className: "button-group"}, 
-                  React.DOM.button({className: btnClassDecline, onClick: this._handleDecline}, 
+        React.DOM.div( {className:conversationPanelClass}, 
+          React.DOM.h2(null, __("incoming_call")),
+          React.DOM.div( {className:"button-group incoming-call-action-group"}, 
+            React.DOM.div( {className:"button-chevron-menu-group"}, 
+              React.DOM.div( {className:"button-group-chevron"}, 
+                React.DOM.div( {className:"button-group"}, 
+                  React.DOM.button( {className:btnClassDecline, onClick:this._handleDecline}, 
                     __("incoming_call_decline_button")
-                  ), 
-                  React.DOM.div({className: "btn-chevron", 
-                    onClick: this._toggleDeclineMenu}
+                  ),
+                  React.DOM.div( {className:"btn-chevron",
+                    onClick:this._toggleDeclineMenu}
                   )
-                ), 
-                React.DOM.ul({className: declineDropdownMenuClasses}, 
-                  React.DOM.li({className: "btn-block", onClick: this._handleDeclineBlock}, 
+                ),
+                React.DOM.ul( {className:declineDropdownMenuClasses}, 
+                  React.DOM.li( {className:"btn-block", onClick:this._handleDeclineBlock}, 
                     __("incoming_call_decline_and_block_button")
                   )
                 )
               )
-            ), 
-            React.DOM.button({className: btnClassAccept, onClick: this._handleAccept}, 
+            ),
+            React.DOM.button( {className:btnClassAccept, onClick:this._handleAccept}, 
               __("incoming_call_answer_button")
             )
           )
         )
       );
       
-    }
-  });
-
-  
-
-
-
-  var EndedCallView = sharedViews.BaseView.extend({
-    template: _.template([
-      '<p>',
-      '  <button class="btn btn-info" data-l10n-id="close_window"></button>',
-      '</p>'
-    ].join("")),
-
-    className: "call-ended",
-
-    events: {
-      "click button": "closeWindow"
-    },
-
-    closeWindow: function(event) {
-      event.preventDefault();
-      
-      window.close();
     }
   });
 
@@ -156,7 +132,8 @@ loop.conversation = (function(OT, mozL10n) {
       "call/decline": "decline",
       "call/ongoing": "conversation",
       "call/ended": "ended",
-      "call/declineAndBlock": "declineAndBlock"
+      "call/declineAndBlock": "declineAndBlock",
+      "call/feedback": "feedback"
     },
 
     
@@ -170,7 +147,7 @@ loop.conversation = (function(OT, mozL10n) {
 
 
     endCall: function() {
-      this.navigate("call/ended", {trigger: true});
+      this.navigate("call/feedback", {trigger: true});
     },
 
     
@@ -256,8 +233,15 @@ loop.conversation = (function(OT, mozL10n) {
     
 
 
-    ended: function() {
-      this.loadView(new EndedCallView());
+    feedback: function() {
+      this.loadReactComponent(sharedViews.FeedbackView({
+        
+        feedbackApiClient: {
+          send: function(fields, cb) {
+            cb();
+          }
+        }
+      }));
     }
   });
 
@@ -280,7 +264,6 @@ loop.conversation = (function(OT, mozL10n) {
 
   return {
     ConversationRouter: ConversationRouter,
-    EndedCallView: EndedCallView,
     IncomingCallView: IncomingCallView,
     init: init
   };
