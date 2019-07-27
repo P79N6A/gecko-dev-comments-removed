@@ -110,9 +110,8 @@ PrefStore.prototype = {
   },
 
   _setAllPrefs: function PrefStore__setAllPrefs(values) {
-    let enabledPref = "lightweightThemes.isThemeSelected";
-    let enabledBefore = this._prefs.get(enabledPref, false);
-    let prevTheme = LightweightThemeManager.currentTheme;
+    let selectedThemeIDPref = "lightweightThemes.selectedThemeID";
+    let selectedThemeIDBefore = this._prefs.get(selectedThemeIDPref, null);
 
     for (let [pref, value] in Iterator(values)) {
       if (!this._isSynced(pref))
@@ -132,12 +131,13 @@ PrefStore.prototype = {
     }
 
     
-    let enabledNow = this._prefs.get(enabledPref, false);
-    if (enabledBefore && !enabledNow) {
+    let selectedThemeIDAfter = this._prefs.get(selectedThemeIDPref, null);
+    if (selectedThemeIDBefore != selectedThemeIDAfter) {
+      
+      
+      let currentTheme = LightweightThemeManager.currentTheme;
       LightweightThemeManager.currentTheme = null;
-    } else if (enabledNow && LightweightThemeManager.usedThemes[0] != prevTheme) {
-      LightweightThemeManager.currentTheme = null;
-      LightweightThemeManager.currentTheme = LightweightThemeManager.usedThemes[0];
+      LightweightThemeManager.currentTheme = currentTheme;
     }
   },
 
