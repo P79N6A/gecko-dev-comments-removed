@@ -115,14 +115,14 @@ private:
   nsSize mIntrinsicSize;
   nsSize mImageSize;
 
-  
-  
-  bool mRequestRegistered;
-
   nsRefPtr<imgRequestProxy> mImageRequest;
   nsCOMPtr<imgINotificationObserver> mListener;
 
   int32_t mLoadFlags;
+
+  
+  
+  bool mRequestRegistered;
 
   bool mUseSrcAttr; 
   bool mSuppressStyleCheck;
