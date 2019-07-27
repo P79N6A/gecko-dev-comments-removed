@@ -25,7 +25,7 @@ import android.util.Log;
 public class RestrictedProfiles {
     private static final String LOGTAG = "GeckoRestrictedProfiles";
 
-    private static Boolean inGuest = null;
+    private static volatile Boolean inGuest = null;
 
     @SuppressWarnings("serial")
     private static final List<String> BANNED_SCHEMES = new ArrayList<String>() {{
@@ -35,6 +35,16 @@ public class RestrictedProfiles {
         add("jar");
         add("wyciwyg");
     }};
+
+    
+
+
+
+
+
+    public static void initWithProfile(GeckoProfile profile) {
+        inGuest = profile.inGuestMode();
+    }
 
     private static boolean getInGuest() {
         if (inGuest == null) {
@@ -86,9 +96,8 @@ public class RestrictedProfiles {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
-    @RobocopTarget
-    private static Bundle getRestrictions() {
-        final UserManager mgr = (UserManager) GeckoAppShell.getContext().getSystemService(Context.USER_SERVICE);
+    private static Bundle getRestrictions(final Context context) {
+        final UserManager mgr = (UserManager) context.getSystemService(Context.USER_SERVICE);
         return mgr.getUserRestrictions();
     }
 
@@ -101,17 +110,17 @@ public class RestrictedProfiles {
 
 
 
-    private static boolean getRestriction(final String name) {
+    private static boolean getRestriction(final Context context, final String name) {
         
         
         if (Versions.preJBMR2) {
             return false;
         }
 
-        return getRestrictions().getBoolean(name, false);
+        return getRestrictions(context).getBoolean(name, false);
     }
 
-    private static boolean canLoadUrl(final String url) {
+    private static boolean canLoadUrl(final Context context, final String url) {
         
         if (url == null) {
             return true;
@@ -120,7 +129,7 @@ public class RestrictedProfiles {
         try {
             
             if (!getInGuest() &&
-                !getRestriction(Restriction.DISALLOW_BROWSE_FILES.name)) {
+                !getRestriction(context, Restriction.DISALLOW_BROWSE_FILES.name)) {
                 return true;
             }
         } catch (IllegalArgumentException ex) {
@@ -145,6 +154,10 @@ public class RestrictedProfiles {
 
     @WrapElementForJNI
     public static boolean isUserRestricted() {
+        return isUserRestricted(GeckoAppShell.getContext());
+    }
+
+    private static boolean isUserRestricted(final Context context) {
         
         if (getInGuest()) {
             return true;
@@ -154,15 +167,19 @@ public class RestrictedProfiles {
             return false;
         }
 
-        return !getRestrictions().isEmpty();
+        return !getRestrictions(context).isEmpty();
     }
 
-    public static boolean isAllowed(Restriction action) {
-        return isAllowed(action.id, null);
+    public static boolean isAllowed(final Context context, final Restriction action) {
+        return isAllowed(context, action.id, null);
     }
 
     @WrapElementForJNI
     public static boolean isAllowed(int action, String url) {
+        return isAllowed(GeckoAppShell.getContext(), action, url);
+    }
+
+    private static boolean isAllowed(final Context context, int action, String url) {
         final Restriction restriction;
         try {
             restriction = geckoActionToRestriction(action);
@@ -175,7 +192,7 @@ public class RestrictedProfiles {
 
         if (getInGuest()) {
             if (Restriction.DISALLOW_BROWSE_FILES == restriction) {
-                return canLoadUrl(url);
+                return canLoadUrl(context, url);
             }
 
             
@@ -183,11 +200,15 @@ public class RestrictedProfiles {
         }
 
         
-        return !getRestriction(restriction.name);
+        return !getRestriction(context, restriction.name);
     }
 
     @WrapElementForJNI
     public static String getUserRestrictions() {
+        return getUserRestrictions(GeckoAppShell.getContext());
+    }
+
+    private static String getUserRestrictions(final Context context) {
         
         if (getInGuest()) {
             StringBuilder builder = new StringBuilder("{ ");
@@ -205,7 +226,7 @@ public class RestrictedProfiles {
         }
 
         final JSONObject json = new JSONObject();
-        final Bundle restrictions = getRestrictions();
+        final Bundle restrictions = getRestrictions(context);
         final Set<String> keys = restrictions.keySet();
 
         for (String key : keys) {
