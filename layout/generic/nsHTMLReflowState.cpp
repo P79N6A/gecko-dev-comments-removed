@@ -1268,15 +1268,9 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   nsSize containerSize = containingBlock->GetStateBits() & NS_FRAME_IN_REFLOW
     ? cbrs->ComputedSizeAsContainerIfConstrained()
     : containingBlock->GetSize();
-  LogicalPoint placeholderOffset(wm, aPlaceholderFrame->GetOffsetTo(containingBlock),
-                                 containerSize);
-
-  
-  if (wm.IsVertical() && !wm.IsBidiLTR()) {
-    placeholderOffset.I(wm) = cbrs->ComputedHeight() +
-      cbrs->ComputedLogicalBorderPadding().TopBottom(cbwm) -
-      placeholderOffset.I(wm);
-  }
+  LogicalPoint
+    placeholderOffset(wm, aPlaceholderFrame->GetOffsetTo(containingBlock),
+                      containerSize);
 
   
   
