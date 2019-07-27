@@ -45,13 +45,13 @@ public:
 
   virtual Class GetNativeType ();
 
-  virtual void Shutdown ();
-  virtual void InvalidateChildren();
+  virtual void Shutdown () MOZ_OVERRIDE;
+  virtual void InvalidateChildren() MOZ_OVERRIDE;
 
   virtual bool InsertChildAt(uint32_t aIdx, Accessible* aChild) MOZ_OVERRIDE;
-  virtual bool RemoveChild(Accessible* aAccessible);
+  virtual bool RemoveChild(Accessible* aAccessible) MOZ_OVERRIDE;
 
-  virtual nsresult HandleAccEvent(AccEvent* aEvent);
+  virtual nsresult HandleAccEvent(AccEvent* aEvent) MOZ_OVERRIDE;
 
   
 

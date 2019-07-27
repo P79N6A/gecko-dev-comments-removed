@@ -23,8 +23,8 @@ public:
   
   virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
   virtual void AppendTextTo(nsAString& aText, uint32_t aStartOffset = 0,
-                            uint32_t aLength = UINT32_MAX);
-  virtual ENameValueFlag Name(nsString& aName);
+                            uint32_t aLength = UINT32_MAX) MOZ_OVERRIDE;
+  virtual ENameValueFlag Name(nsString& aName) MOZ_OVERRIDE;
 
   
   void SetText(const nsAString& aText) { mText = aText; }
@@ -32,7 +32,7 @@ public:
 
 protected:
   
-  virtual void CacheChildren();
+  virtual void CacheChildren() MOZ_OVERRIDE;
 
 protected:
   nsString mText;
