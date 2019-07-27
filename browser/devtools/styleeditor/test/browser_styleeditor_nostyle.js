@@ -1,41 +1,28 @@
 
 
 
+"use strict";
+
+
+
 
 const TESTCASE_URI = TEST_BASE_HTTP + "nostyle.html";
 
+add_task(function* () {
+  let { panel } = yield openStyleEditorForURL(TESTCASE_URI);
+  let { panelWindow } = panel;
 
-function test()
-{
-  waitForExplicitFinish();
-
-  
-  
-  
-  
-
-  addTabAndCheckOnStyleEditorAdded(function(panel) {
-    panel.UI.once("stylesheets-reset", testDocumentLoad);
-
-    content.location = TESTCASE_URI;
-  }, () => {});
-}
-
-function testDocumentLoad(event)
-{
-  let root = gPanelWindow.document.querySelector(".splitview-root");
+  let root = panelWindow.document.querySelector(".splitview-root");
   ok(!root.classList.contains("loading"),
      "style editor root element does not have 'loading' class name anymore");
 
   ok(root.querySelector(".empty.placeholder"), "showing 'no style' indicator");
 
-  let button = gPanelWindow.document.querySelector(".style-editor-newButton");
+  let button = panelWindow.document.querySelector(".style-editor-newButton");
   ok(!button.hasAttribute("disabled"),
      "new style sheet button is enabled");
 
-  button = gPanelWindow.document.querySelector(".style-editor-importButton");
+  button = panelWindow.document.querySelector(".style-editor-importButton");
   ok(!button.hasAttribute("disabled"),
      "import button is enabled");
-
-  finish();
-}
+});
