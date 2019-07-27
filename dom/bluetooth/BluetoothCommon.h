@@ -172,10 +172,10 @@ enum BluetoothBondState {
   BOND_STATE_BONDED
 };
 
-enum BluetoothDeviceType {
-  DEVICE_TYPE_BREDR,
-  DEVICE_TYPE_BLE,
-  DEVICE_TYPE_DUAL
+enum BluetoothTypeOfDevice {
+  TYPE_OF_DEVICE_BREDR,
+  TYPE_OF_DEVICE_BLE,
+  TYPE_OF_DEVICE_DUAL
 };
 
 enum BluetoothPropertyType {
@@ -243,7 +243,7 @@ struct BluetoothProperty {
   int32_t mInt32;
 
   
-  BluetoothDeviceType mDeviceType;
+  BluetoothTypeOfDevice mTypeOfDevice;
 
   
   BluetoothServiceRecord mServiceRecord;
