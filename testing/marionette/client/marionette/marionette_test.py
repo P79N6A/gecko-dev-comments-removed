@@ -655,6 +655,20 @@ class MarionetteTestCase(CommonTestCase):
 
     @classmethod
     def add_tests_to_suite(cls, mod_name, filepath, suite, testloader, marionette, testvars, **kwargs):
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if mod_name in sys.modules:
+            del sys.modules[mod_name]
+
         test_mod = imp.load_source(mod_name, filepath)
 
         for name in dir(test_mod):
