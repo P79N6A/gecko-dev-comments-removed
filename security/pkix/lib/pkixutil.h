@@ -91,16 +91,11 @@ class BackCert
 {
 public:
   
-  
-  
-  MOZILLA_PKIX_ENUM_CLASS IncludeCN { No = 0, Yes = 1 };
-
-  
-  BackCert(const SECItem& certDER, const BackCert* childCert,
-           IncludeCN includeCN)
+  BackCert(const SECItem& certDER, EndEntityOrCA endEntityOrCA,
+           const BackCert* childCert)
     : der(certDER)
+    , endEntityOrCA(endEntityOrCA)
     , childCert(childCert)
-    , includeCN(includeCN)
   {
   }
 
@@ -147,8 +142,8 @@ private:
   const SECItem& der;
 
 public:
+  const EndEntityOrCA endEntityOrCA;
   BackCert const* const childCert;
-  const IncludeCN includeCN;
 
 private:
   der::Version version;
@@ -240,4 +235,4 @@ private:
 
 } } 
 
-#endif
+#endif 

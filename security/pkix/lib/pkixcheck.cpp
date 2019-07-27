@@ -412,7 +412,7 @@ PORT_FreeArena_false(PLArenaPool* arena) {
 }
 
 Result
-CheckNameConstraints(const BackCert& cert)
+CheckNameConstraints(const BackCert& cert, KeyPurposeId requiredEKUIfPresent)
 {
   
   
@@ -510,7 +510,8 @@ CheckNameConstraints(const BackCert& cert)
       return MapSECStatus(SECFailure);
     }
 
-    bool includeCN = child->includeCN == BackCert::IncludeCN::Yes;
+    bool includeCN = child->endEntityOrCA == EndEntityOrCA::MustBeEndEntity &&
+                     requiredEKUIfPresent == KeyPurposeId::id_kp_serverAuth;
     
     const CERTGeneralName*
       names(CERT_GetConstrainedCertificateNames(nssCert.get(), arena.get(),
@@ -697,7 +698,6 @@ Result
 CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                                  const BackCert& cert,
                                  PRTime time,
-                                 EndEntityOrCA endEntityOrCA,
                                  KeyUsage requiredKeyUsageIfPresent,
                                  KeyPurposeId requiredEKUIfPresent,
                                  const CertPolicyId& requiredPolicy,
@@ -705,6 +705,8 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                  TrustLevel* trustLevelOut)
 {
   Result rv;
+
+  const EndEntityOrCA endEntityOrCA = cert.endEntityOrCA;
 
   TrustLevel trustLevel;
   rv = MapSECStatus(trustDomain.GetCertTrust(endEntityOrCA, requiredPolicy,
