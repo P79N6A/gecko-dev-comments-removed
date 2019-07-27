@@ -401,9 +401,6 @@ this.BrowserIDManager.prototype = {
 
 
 
-
-
-
   get currentAuthState() {
     if (this._authFailureReason) {
       this._log.info("currentAuthState returning " + this._authFailureReason +
@@ -420,50 +417,11 @@ this.BrowserIDManager.prototype = {
     
     
     
-    
-    if (this._shouldHaveSyncKeyBundle && !this.syncKeyBundle && !Utils.mpLocked()) {
-      
-      return LOGIN_FAILED_LOGIN_REJECTED;
+    if (this._shouldHaveSyncKeyBundle && !this.syncKeyBundle) {
+      return LOGIN_FAILED_NO_PASSPHRASE;
     }
 
     return STATUS_OK;
-  },
-
-  
-  
-  _canFetchKeys: function() {
-    let userData = this._signedInUser;
-    
-    
-    return userData && (userData.keyFetchToken || (userData.kA && userData.kB));
-  },
-
-  
-
-
-
-
-
-  unlockAndVerifyAuthState: function() {
-    if (this._canFetchKeys()) {
-      return Promise.resolve(STATUS_OK);
-    }
-    
-    if (!Utils.ensureMPUnlocked()) {
-      
-      return Promise.resolve(MASTER_PASSWORD_LOCKED);
-    }
-    
-    
-    return this._fxaService.getSignedInUser().then(
-      accountData => {
-        this._updateSignedInUser(accountData);
-        
-        
-        
-        return this._canFetchKeys() ? STATUS_OK : LOGIN_FAILED_LOGIN_REJECTED;
-      }
-    );
   },
 
   
@@ -490,14 +448,6 @@ this.BrowserIDManager.prototype = {
     let client = this._tokenServerClient;
     let fxa = this._fxaService;
     let userData = this._signedInUser;
-
-    
-    
-    
-    if (!this._canFetchKeys()) {
-      log.info("_fetchTokenForUser has no keys to use.");
-      return null;
-    }
 
     log.info("Fetching assertion and token from: " + tokenServerURI);
 
@@ -574,8 +524,7 @@ this.BrowserIDManager.prototype = {
           
           this._authFailureReason = LOGIN_FAILED_LOGIN_REJECTED;
         } else {
-          this._log.error("Non-authentication error in _fetchTokenForUser: "
-                          + (err.message || err));
+          this._log.error("Non-authentication error in _fetchTokenForUser: " + err.message);
           
           this._authFailureReason = LOGIN_FAILED_NETWORK_ERROR;
         }

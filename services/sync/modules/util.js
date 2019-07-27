@@ -20,13 +20,6 @@ Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 
 
-XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function() {
-  let FxAccountsCommon = {};
-  Cu.import("resource://gre/modules/FxAccountsCommon.js", FxAccountsCommon);
-  return FxAccountsCommon;
-});
-
-
 
 
 
@@ -603,9 +596,6 @@ this.Utils = {
     let result = new Set();
     
     result.add(PWDMGR_HOST);
-    
-    result.add(FxAccountsCommon.FXA_PWDMGR_HOST);
-    
     
     
     for (let prefName of ["identity.fxaccounts.remote.force_auth.uri",
