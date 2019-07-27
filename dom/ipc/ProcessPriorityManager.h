@@ -74,18 +74,6 @@ public:
 
   static bool AnyProcessHasHighPriority();
 
-  
-
-
-
-  static void RemoveFromBackgroundLRUPool(dom::ContentParent* aContentParent);
-
-  
-
-
-
-  static void AddIntoBackgroundLRUPool(dom::ContentParent* aContentParent);
-
 private:
   ProcessPriorityManager();
   DISALLOW_EVIL_CONSTRUCTORS(ProcessPriorityManager);

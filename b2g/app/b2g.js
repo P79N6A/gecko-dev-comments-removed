@@ -706,7 +706,8 @@ pref("dom.ipc.processPriorityManager.temporaryPriorityLockMS", 5000);
 
 
 
-pref("dom.ipc.processPriorityManager.backgroundLRUPoolLevels", 5);
+pref("dom.ipc.processPriorityManager.BACKGROUND.LRUPoolLevels", 5);
+pref("dom.ipc.processPriorityManager.FOREGROUND.LRUPoolLevels", 3);
 
 
 

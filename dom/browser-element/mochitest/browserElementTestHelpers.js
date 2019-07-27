@@ -50,9 +50,9 @@ const browserElementTestHelpers = {
 
   enableProcessPriorityManager: function() {
     this._setPrefs(
+      ['dom.ipc.processPriorityManager.BACKGROUND.LRUPoolLevels', 2],
       ['dom.ipc.processPriorityManager.testMode', true],
-      ['dom.ipc.processPriorityManager.enabled', true],
-      ['dom.ipc.processPriorityManager.backgroundLRUPoolLevels', 2]
+      ['dom.ipc.processPriorityManager.enabled', true]
     );
   },
 
@@ -191,24 +191,24 @@ function expectPriorityChange(childID, expectedPriority) {
 
 
 
-function expectPriorityWithBackgroundLRUSet(childID, expectedBackgroundLRU) {
+function expectPriorityWithLRUSet(childID, expectedLRU) {
   return new Promise(function(resolve, reject) {
 
     browserElementTestHelpers.addProcessPriorityObserver(
-      'process-priority-with-background-LRU-set',
+      'process-priority-with-LRU-set',
       function(subject, topic, data) {
 
-        var [id, priority, backgroundLRU] = data.split(":");
+        var [id, priority, lru] = data.split(":");
         if (id != childID) {
           return;
         }
 
-        is(backgroundLRU, expectedBackgroundLRU,
-           'Expected backgroundLRU ' + backgroundLRU +
+        is(lru, expectedLRU,
+           'Expected LRU ' + lru +
            ' of childID ' + childID +
-           ' to change to ' + expectedBackgroundLRU);
+           ' to change to ' + expectedLRU);
 
-        if (backgroundLRU == expectedBackgroundLRU) {
+        if (lru == expectedLRU) {
           resolve();
         } else {
           reject();
