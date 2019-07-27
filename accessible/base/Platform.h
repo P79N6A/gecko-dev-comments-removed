@@ -4,6 +4,8 @@
 
 
 
+#include <stdint.h>
+
 namespace mozilla {
 namespace a11y {
 
@@ -60,6 +62,11 @@ void ProxyCreated(ProxyAccessible*);
 
 
 void ProxyDestroyed(ProxyAccessible*);
+
+
+
+
+void ProxyEvent(ProxyAccessible* aTarget, uint32_t aEventType);
 } 
 } 
 
