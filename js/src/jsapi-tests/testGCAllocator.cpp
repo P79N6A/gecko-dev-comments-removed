@@ -30,14 +30,19 @@
 
 BEGIN_TEST(testGCAllocator)
 {
+    size_t PageSize = 0;
 #if defined(XP_WIN)
+#  if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    const size_t PageSize = sysinfo.dwPageSize;
+    PageSize = sysinfo.dwPageSize;
+#  else 
+    return true;
+#  endif
 #elif defined(SOLARIS)
     return true;
 #elif defined(XP_UNIX)
-    const size_t PageSize = size_t(sysconf(_SC_PAGESIZE));
+    PageSize = size_t(sysconf(_SC_PAGESIZE));
 #else
     return true;
 #endif
@@ -269,6 +274,7 @@ positionIsCorrect(const char *str, void *base, void **chunkPool, int tempChunks,
 }
 
 #if defined(XP_WIN)
+#  if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 
 void *
 mapMemoryAt(void *desired, size_t length)
@@ -288,7 +294,18 @@ unmapPages(void *p, size_t size)
     MOZ_ALWAYS_TRUE(VirtualFree(p, 0, MEM_RELEASE));
 }
 
-#elif defined(SOLARIS)
+#  else 
+
+void *mapMemoryAt(void *desired, size_t length) { return nullptr; }
+void *mapMemory(size_t length) { return nullptr; }
+void unmapPages(void *p, size_t size) { }
+
+#  endif
+#elif defined(SOLARIS) 
+
+void *mapMemoryAt(void *desired, size_t length) { return nullptr; }
+void *mapMemory(size_t length) { return nullptr; }
+void unmapPages(void *p, size_t size) { }
 
 #elif defined(XP_UNIX)
 
