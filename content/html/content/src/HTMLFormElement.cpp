@@ -446,7 +446,7 @@ CollectOrphans(nsINode* aRemovalRoot,
 void
 HTMLFormElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  nsCOMPtr<nsIHTMLDocument> oldDocument = do_QueryInterface(GetCurrentDoc());
+  nsCOMPtr<nsIHTMLDocument> oldDocument = do_QueryInterface(GetUncomposedDoc());
 
   
   MarkOrphans(mControls->mElements);
@@ -583,7 +583,7 @@ HTMLFormElement::DoSubmitOrReset(WidgetEvent* aEvent,
                                  int32_t aMessage)
 {
   
-  nsIDocument* doc = GetCurrentDoc();
+  nsIDocument* doc = GetComposedDoc();
   if (doc) {
     doc->FlushPendingNotifications(Flush_ContentAndNotify);
   }
@@ -633,7 +633,7 @@ HTMLFormElement::DoReset()
 nsresult
 HTMLFormElement::DoSubmit(WidgetEvent* aEvent)
 {
-  NS_ASSERTION(GetCurrentDoc(), "Should never get here without a current doc");
+  NS_ASSERTION(GetComposedDoc(), "Should never get here without a current doc");
 
   if (mIsSubmitting) {
     NS_WARNING("Preventing double form submission");
@@ -741,7 +741,7 @@ HTMLFormElement::SubmitSubmission(nsFormSubmission* aFormSubmission)
   }
 
   
-  nsIDocument* doc = GetCurrentDoc();
+  nsIDocument* doc = GetComposedDoc();
   nsCOMPtr<nsISupports> container = doc ? doc->GetContainer() : nullptr;
   nsCOMPtr<nsILinkHandler> linkHandler(do_QueryInterface(container));
   if (!linkHandler || IsEditable()) {
@@ -1801,7 +1801,7 @@ HTMLFormElement::CheckValidFormSubmission()
   
   
   
-  nsIDocument* doc = GetCurrentDoc();
+  nsIDocument* doc = GetComposedDoc();
   if (doc && (doc->GetSandboxFlags() & SANDBOXED_FORMS)) {
     return true;
   }

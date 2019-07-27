@@ -177,18 +177,15 @@ HTMLLinkElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   Link::ResetLinkState(false, Link::ElementHasHref());
 
-  
-  
-  nsCOMPtr<nsIDocument> oldDoc = GetCurrentDoc();
+  nsCOMPtr<nsIDocument> oldDoc = GetUncomposedDoc();
 
   
   
   ShadowRoot* oldShadowRoot = GetBindingParent() ?
     GetBindingParent()->GetShadowRoot() : nullptr;
 
-  if (oldDoc && !oldShadowRoot) {
-    oldDoc->UnregisterPendingLinkUpdate(this);
-  }
+  OwnerDoc()->UnregisterPendingLinkUpdate(this);
+
   CreateAndDispatchEvent(oldDoc, NS_LITERAL_STRING("DOMLinkRemoved"));
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 
@@ -251,7 +248,7 @@ void
 HTMLLinkElement::UpdateImport()
 {
   
-  nsCOMPtr<nsIDocument> doc = GetCurrentDoc();
+  nsCOMPtr<nsIDocument> doc = GetUncomposedDoc();
   if (!doc) {
     
     

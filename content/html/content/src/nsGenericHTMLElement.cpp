@@ -580,7 +580,8 @@ nsGenericHTMLElement::UnbindFromTree(bool aDeep, bool aNullParent)
   RemoveFromNameTable();
 
   if (GetContentEditableValue() == eTrue) {
-    nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(GetCurrentDoc());
+    
+    nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(GetUncomposedDoc());
     if (htmlDocument) {
       htmlDocument->ChangeContentEditableCount(this, -1);
     }
@@ -1772,7 +1773,8 @@ nsGenericHTMLElement::GetContextMenu() const
   nsAutoString value;
   GetHTMLAttr(nsGkAtoms::contextmenu, value);
   if (!value.IsEmpty()) {
-    nsIDocument* doc = GetCurrentDoc();
+    
+    nsIDocument* doc = GetUncomposedDoc();
     if (doc) {
       return HTMLMenuElement::FromContentOrNull(doc->GetElementById(value));
     }
@@ -2030,7 +2032,7 @@ nsGenericHTMLFormElement::BindToTree(nsIDocument* aDocument,
   
   
   
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::form) ? !!GetCurrentDoc()
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::form) ? !!GetUncomposedDoc()
                                                   : !!aParent) {
     UpdateFormOwner(true, nullptr);
   }
@@ -2182,7 +2184,8 @@ nsGenericHTMLFormElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
     if (aName == nsGkAtoms::form) {
       
-      nsIDocument* doc = GetCurrentDoc();
+      
+      nsIDocument* doc = GetUncomposedDoc();
       if (doc) {
         Element* formIdElement = nullptr;
         if (aValue && !aValue->IsEmptyString()) {
@@ -2348,8 +2351,8 @@ nsGenericHTMLFormElement::FocusState()
 Element*
 nsGenericHTMLFormElement::AddFormIdObserver()
 {
-  NS_ASSERTION(GetCurrentDoc(), "When adding a form id observer, "
-                                "we should be in a document!");
+  NS_ASSERTION(GetUncomposedDoc(), "When adding a form id observer, "
+                                   "we should be in a document!");
 
   nsAutoString formId;
   nsIDocument* doc = OwnerDoc();
@@ -2449,10 +2452,10 @@ nsGenericHTMLFormElement::UpdateFormOwner(bool aBindToTree,
           element = aFormIdElement;
         }
 
-        NS_ASSERTION(GetCurrentDoc(), "The element should be in a document "
-                                      "when UpdateFormOwner is called!");
-        NS_ASSERTION(!GetCurrentDoc() ||
-                     element == GetCurrentDoc()->GetElementById(formId),
+        NS_ASSERTION(GetUncomposedDoc(), "The element should be in a document "
+                                         "when UpdateFormOwner is called!");
+        NS_ASSERTION(!GetUncomposedDoc() ||
+                     element == GetUncomposedDoc()->GetElementById(formId),
                      "element should be equals to the current element "
                      "associated with the id in @form!");
 
@@ -2765,7 +2768,7 @@ nsGenericHTMLElement::IsCurrentBodyElement()
   }
 
   nsCOMPtr<nsIDOMHTMLDocument> htmlDocument =
-    do_QueryInterface(GetCurrentDoc());
+    do_QueryInterface(GetUncomposedDoc());
   if (!htmlDocument) {
     return false;
   }
@@ -2822,7 +2825,7 @@ nsGenericHTMLElement::RecompileScriptEventListeners()
 bool
 nsGenericHTMLElement::IsEditableRoot() const
 {
-  nsIDocument *document = GetCurrentDoc();
+  nsIDocument *document = GetComposedDoc();
   if (!document) {
     return false;
   }
@@ -2868,7 +2871,8 @@ MakeContentDescendantsEditable(nsIContent *aContent, nsIDocument *aDocument)
 void
 nsGenericHTMLElement::ChangeEditableState(int32_t aChange)
 {
-  nsIDocument* document = GetCurrentDoc();
+  
+  nsIDocument* document = GetUncomposedDoc();
   if (!document) {
     return;
   }

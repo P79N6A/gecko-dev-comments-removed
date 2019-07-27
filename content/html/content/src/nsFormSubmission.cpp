@@ -820,7 +820,7 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
                       nsFormSubmission** aFormSubmission)
 {
   
-  NS_ASSERTION(aForm->GetCurrentDoc(),
+  NS_ASSERTION(aForm->GetComposedDoc(),
                "Should have doc if we're building submission!");
 
   

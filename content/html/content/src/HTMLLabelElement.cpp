@@ -246,7 +246,10 @@ HTMLLabelElement::GetLabeledElement() const
 
   
   
-  nsIDocument* doc = GetCurrentDoc();
+  
+  
+  
+  nsIDocument* doc = GetUncomposedDoc();
   if (!doc) {
     return nullptr;
   }

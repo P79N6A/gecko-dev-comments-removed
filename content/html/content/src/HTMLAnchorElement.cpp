@@ -150,8 +150,9 @@ HTMLAnchorElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (aDocument) {
-    aDocument->RegisterPendingLinkUpdate(this);
+  nsIDocument* doc = GetComposedDoc();
+  if (doc) {
+    doc->RegisterPendingLinkUpdate(this);
     if (nsHTMLDNSPrefetch::IsAllowed(OwnerDoc())) {
       nsHTMLDNSPrefetch::PrefetchLow(this);
     }
@@ -181,8 +182,10 @@ HTMLAnchorElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   Link::ResetLinkState(false, Link::ElementHasHref());
+
   
-  nsIDocument* doc = GetCurrentDoc();
+  
+  nsIDocument* doc = OwnerDoc();
   if (doc) {
     doc->UnregisterPendingLinkUpdate(this);
   }
