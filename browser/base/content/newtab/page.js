@@ -33,6 +33,9 @@ let gPage = {
 
     
     gCustomize.init();
+
+    
+    gIntro.init();
   },
 
   
@@ -211,5 +214,8 @@ let gPage = {
     }
 
     DirectoryLinksProvider.reportSitesAction(gGrid.sites, "view", lastIndex);
+
+    
+    gIntro.showIfNecessary();
   }
 };

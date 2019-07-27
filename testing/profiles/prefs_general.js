@@ -177,6 +177,10 @@ user_pref("browser.download.panel.shown", true);
 
 
 
+user_pref("browser.newtabpage.introShown", true);
+
+
+
 user_pref("browser.firstrun.count", 0);
 
 
