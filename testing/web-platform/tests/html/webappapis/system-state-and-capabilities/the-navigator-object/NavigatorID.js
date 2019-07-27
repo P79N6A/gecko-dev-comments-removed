@@ -23,6 +23,23 @@ function run_test() {
   }, "product");
 
   test(function() {
+    
+    if ("window" in self) {
+      
+      if (navigator.userAgent.indexOf("WebKit") != -1) {
+        assert_false("taintEnabled" in navigator);
+      }
+      
+      else {
+        assert_false(navigator.taintEnabled());
+      }
+    } else {
+      
+      assert_false("taintEnabled" in navigator);
+    }
+  }, "taintEnabled");
+
+  test(function() {
     assert_equals(typeof navigator.userAgent, "string",
                   "navigator.userAgent should be a string");
   }, "userAgent type");
