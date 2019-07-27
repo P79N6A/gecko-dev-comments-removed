@@ -4613,7 +4613,7 @@ mozilla::BrowserTabsRemoteAutostart()
   }
 #endif
 
-#if defined(XP_WIN) || defined(XP_MACOSX)
+#if defined(XP_MACOSX)
   
   
   if (gBrowserTabsRemoteAutostart) {
@@ -4621,34 +4621,16 @@ mozilla::BrowserTabsRemoteAutostart()
     bool accelDisabled = Preferences::GetBool("layers.acceleration.disabled", false) &&
                          !Preferences::GetBool("layers.acceleration.force-enabled", false);
 
-#if defined(XP_MACOSX)
     accelDisabled = accelDisabled || !nsCocoaFeatures::AccelerateByDefault();
-#endif
 
     
     if (!accelDisabled) {
       nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
       if (gfxInfo) {
         int32_t status;
-#if defined(XP_WIN)
-        long flagsToCheck[4] = {
-          nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS,
-          nsIGfxInfo::FEATURE_DIRECT3D_10_LAYERS,
-          nsIGfxInfo::FEATURE_DIRECT3D_10_1_LAYERS,
-          nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS
-        };
-#elif defined(XP_MACOSX)
-        long flagsToCheck[1] = {
-          nsIGfxInfo::FEATURE_OPENGL_LAYERS
-        };
-#endif
-        for (unsigned int idx = 0; idx < ArrayLength(flagsToCheck); idx++) {
-          if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(flagsToCheck[idx], &status))) {
-            if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
-              accelDisabled = true;
-              break;
-            }
-          }
+        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_OPENGL_LAYERS, &status)) &&
+            status != nsIGfxInfo::FEATURE_STATUS_OK) {
+          accelDisabled = true;
         }
       }
     }
@@ -4666,7 +4648,7 @@ mozilla::BrowserTabsRemoteAutostart()
       LogE10sBlockedReason("Hardware acceleration is disabled");
     }
   }
-#endif
+#endif 
 
   mozilla::Telemetry::Accumulate(mozilla::Telemetry::E10S_AUTOSTART, gBrowserTabsRemoteAutostart);
   if (Preferences::GetBool("browser.enabledE10SFromPrompt", false)) {
