@@ -185,7 +185,6 @@ let DebuggerController = {
     if (this._target.isTabActor) {
       this.Workers.disconnect();
     }
-    this.Tracer.disconnect();
     this.disconnect();
 
     this._shutdown = true;
@@ -204,7 +203,7 @@ let DebuggerController = {
     }
 
     let target = this._target;
-    let { client, form: { chromeDebugger, traceActor, actor } } = target;
+    let { client, form: { chromeDebugger, actor } } = target;
     target.on("close", this._onTabDetached);
     target.on("navigate", this._onTabNavigated);
     target.on("will-navigate", this._onTabNavigated);
@@ -218,10 +217,6 @@ let DebuggerController = {
       yield this._startChromeDebugging(chromeDebugger);
     } else {
       yield this._startDebuggingTab();
-
-      if (Prefs.tracerEnabled && traceActor) {
-        yield this._startTracingTab(traceActor);
-      }
     }
 
     this._hideUnsupportedFeatures();
@@ -386,31 +381,6 @@ let DebuggerController = {
 
       deferred.resolve();
     }, threadOptions);
-
-    return deferred.promise;
-  },
-
-  
-
-
-
-
-
-
-
-  _startTracingTab: function(aTraceActor) {
-    let deferred = promise.defer();
-
-    this.client.attachTracer(aTraceActor, (response, traceClient) => {
-      if (!traceClient) {
-        deferred.reject(new Error("Failed to attach to tracing actor."));
-        return;
-      }
-      this.traceClient = traceClient;
-      this.Tracer.connect();
-
-      deferred.resolve();
-    });
 
     return deferred.promise;
   },
@@ -1301,7 +1271,6 @@ SourceScripts.prototype = {
     
     DebuggerController.Breakpoints.updatePaneBreakpoints();
     DebuggerController.Breakpoints.updateEditorBreakpoints();
-    DebuggerController.HitCounts.updateEditorHitCounts();
 
     
     if (DebuggerView.instrumentsPaneTab == "events-tab") {
@@ -1354,7 +1323,6 @@ SourceScripts.prototype = {
     
     DebuggerController.Breakpoints.updatePaneBreakpoints();
     DebuggerController.Breakpoints.updateEditorBreakpoints();
-    DebuggerController.HitCounts.updateEditorHitCounts();
 
     
     window.emit(EVENTS.SOURCES_ADDED);
@@ -1563,237 +1531,6 @@ SourceScripts.prototype = {
     }
 
     return deferred.promise;
-  }
-};
-
-
-
-
-
-function Tracer() {
-  this._trace = null;
-  this._idCounter = 0;
-  this.onTraces = this.onTraces.bind(this);
-}
-
-Tracer.prototype = {
-  get client() {
-    return DebuggerController.client;
-  },
-
-  get traceClient() {
-    return DebuggerController.traceClient;
-  },
-
-  get tracing() {
-    return !!this._trace;
-  },
-
-  
-
-
-  connect: function() {
-    this._stack = [];
-    this.client.addListener("traces", this.onTraces);
-  },
-
-  
-
-
-
-  disconnect: function() {
-    this._stack = null;
-    this.client.removeListener("traces", this.onTraces);
-  },
-
-  
-
-
-  startTracing: function(aCallback = () => {}) {
-    if (this.tracing) {
-      return;
-    }
-
-    DebuggerView.Tracer.selectTab();
-
-    let id = this._trace = "dbg.trace" + Math.random();
-    let fields = [
-      "name",
-      "location",
-      "hitCount",
-      "parameterNames",
-      "depth",
-      "arguments",
-      "return",
-      "throw",
-      "yield"
-    ];
-
-    this.traceClient.startTrace(fields, id, aResponse => {
-      const { error } = aResponse;
-      if (error) {
-        DevToolsUtils.reportException("Tracer.prototype.startTracing", error);
-        this._trace = null;
-      }
-
-      aCallback(aResponse);
-    });
-  },
-
-  
-
-
-  stopTracing: function(aCallback = () => {}) {
-    if (!this.tracing) {
-      return;
-    }
-    this.traceClient.stopTrace(this._trace, aResponse => {
-      const { error } = aResponse;
-      if (error) {
-        DevToolsUtils.reportException("Tracer.prototype.stopTracing", error);
-      }
-
-      this._trace = null;
-      DebuggerController.HitCounts.clear();
-      aCallback(aResponse);
-    });
-  },
-
-  onTraces: function (aEvent, { traces }) {
-    const tracesLength = traces.length;
-    let tracesToShow;
-
-    
-    for (let t of traces) {
-      if (t.type == "enteredFrame") {
-        DebuggerController.HitCounts.set(t.location, t.hitCount);
-      }
-    }
-    DebuggerController.HitCounts.updateEditorHitCounts();
-
-    
-    if (tracesLength > TracerView.MAX_TRACES) {
-      tracesToShow = traces.slice(tracesLength - TracerView.MAX_TRACES, tracesLength);
-      this._stack.splice(0, this._stack.length);
-      DebuggerView.Tracer.empty();
-    } else {
-      tracesToShow = traces;
-    }
-
-    
-    for (let t of tracesToShow) {
-      if (t.type == "enteredFrame") {
-        this._onCall(t);
-      } else {
-        this._onReturn(t);
-      }
-    }
-    DebuggerView.Tracer.commit();
-  },
-
-  
-
-
-  _onCall: function({ name, location, blackBoxed, parameterNames, depth, arguments: args }) {
-    const item = {
-      name: name,
-      location: location,
-      id: this._idCounter++,
-      blackBoxed
-    };
-
-    this._stack.push(item);
-    DebuggerView.Tracer.addTrace({
-      type: "call",
-      name: name,
-      location: location,
-      depth: depth,
-      parameterNames: parameterNames,
-      arguments: args,
-      frameId: item.id,
-      blackBoxed
-    });
-  },
-
-  
-
-
-  _onReturn: function(aPacket) {
-    if (!this._stack.length) {
-      return;
-    }
-
-    const { name, id, location, blackBoxed } = this._stack.pop();
-    DebuggerView.Tracer.addTrace({
-      type: aPacket.why,
-      name: name,
-      location: location,
-      depth: aPacket.depth,
-      frameId: id,
-      returnVal: aPacket.return || aPacket.throw || aPacket.yield,
-      blackBoxed
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  syncGripClient: function(aObject) {
-    return {
-      get isFrozen() { return aObject.frozen; },
-      get isSealed() { return aObject.sealed; },
-      get isExtensible() { return aObject.extensible; },
-
-      get ownProperties() { return aObject.ownProperties; },
-      get prototype() { return null; },
-
-      getParameterNames: callback => callback(aObject),
-      getPrototypeAndProperties: callback => callback(aObject),
-      getPrototype: callback => callback(aObject),
-
-      getOwnPropertyNames: (callback) => {
-        callback({
-          ownPropertyNames: aObject.ownProperties
-            ? Object.keys(aObject.ownProperties)
-            : []
-        });
-      },
-
-      getProperty: (property, callback) => {
-        callback({
-          descriptor: aObject.ownProperties
-            ? aObject.ownProperties[property]
-            : null
-        });
-      },
-
-      getDisplayString: callback => callback("[object " + aObject.class + "]"),
-
-      getScope: callback => callback({
-        error: "scopeNotAvailable",
-        message: "Cannot get scopes for traced objects"
-      })
-    };
-  },
-
-  
-
-
-
-
-
-
-
-  WrappedObject: function(aObject) {
-    this.object = aObject;
   }
 };
 
@@ -2430,87 +2167,6 @@ Object.defineProperty(Breakpoints.prototype, "_addedOrDisabled", {
 
 
 
-function HitCounts() {
-  
-
-
-
-  this._hitCounts = Object.create(null);
-}
-
-HitCounts.prototype = {
-  set: function({url, line, column}, aHitCount) {
-    if (url) {
-      if (!this._hitCounts[url]) {
-        this._hitCounts[url] = Object.create(null);
-      }
-      if (!this._hitCounts[url][line]) {
-        this._hitCounts[url][line] = Object.create(null);
-      }
-      this._hitCounts[url][line][column] = aHitCount;
-    }
-  },
-
-  
-
-
-
-
-  updateEditorHitCounts: function() {
-    
-    DebuggerView.editor.removeAllMarkers("hit-counts");
-
-    
-    for (let url in this._hitCounts) {
-      for (let line in this._hitCounts[url]) {
-        for (let column in this._hitCounts[url][line]) {
-          this._updateEditorHitCount({url, line, column});
-        }
-      }
-    }
-  },
-
-  
-
-
-  _updateEditorHitCount: function({url, line, column}) {
-    
-    if (!DebuggerView.editor) {
-      return;
-    }
-
-    
-    
-    if (url &&
-        DebuggerView.Sources.selectedItem.attachment.source.url != url) {
-      return;
-    }
-
-    
-    
-    let content = Object.keys(this._hitCounts[url][line])
-                    .sort() 
-                    .map(a => this._hitCounts[url][line][a]) 
-                    .map(a => a + "\u00D7") 
-                    .join("|");
-
-    
-    DebuggerView.editor.addContentMarker(line - 1, "hit-counts", "hit-count",
-                                         content);
-  },
-
-  
-
-
-  clear: function() {
-    DebuggerView.editor.removeAllMarkers("hit-counts");
-    this._hitCounts = Object.create(null);
-  }
-}
-
-
-
-
 let L10N = new ViewHelpers.L10N(DBG_STRINGS_URI);
 
 
@@ -2528,7 +2184,6 @@ let Prefs = new ViewHelpers.Prefs("devtools", {
   sourceMapsEnabled: ["Bool", "debugger.source-maps-enabled"],
   prettyPrintEnabled: ["Bool", "debugger.pretty-print-enabled"],
   autoPrettyPrint: ["Bool", "debugger.auto-pretty-print"],
-  tracerEnabled: ["Bool", "debugger.tracer"],
   workersEnabled: ["Bool", "debugger.workers"],
   editorTabSize: ["Int", "editor.tabsize"],
   autoBlackBox: ["Bool", "debugger.auto-black-box"]
@@ -2550,8 +2205,6 @@ DebuggerController.StackFrames = new StackFrames();
 DebuggerController.SourceScripts = new SourceScripts();
 DebuggerController.Breakpoints = new Breakpoints();
 DebuggerController.Breakpoints.DOM = new EventListeners();
-DebuggerController.Tracer = new Tracer();
-DebuggerController.HitCounts = new HitCounts();
 
 
 
