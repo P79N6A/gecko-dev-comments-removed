@@ -551,7 +551,7 @@ NS_IMETHODIMP
 nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aDomSel,
                                 int16_t aReason)
 {
-  if (aReason & nsISelectionListener::MOUSEUP_REASON)
+  if ((aReason & nsISelectionListener::MOUSEUP_REASON) || !IsVisible())
     return NS_OK;
 
   nsCOMPtr<nsISelection> domSel(do_QueryReferent(mDomSelectionWeak));
