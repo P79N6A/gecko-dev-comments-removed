@@ -5262,7 +5262,10 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
                       
 
 
-                      if (SDP_MEDIA_APPLICATION != media_type) {
+                      if (SDP_MEDIA_APPLICATION != media_type &&
+                          
+                          (media->direction == SDP_DIRECTION_SENDRECV ||
+                           media->direction == SDP_DIRECTION_RECVONLY)) {
                           int pc_stream_id = -1;
 
                           
