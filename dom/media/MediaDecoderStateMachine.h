@@ -175,6 +175,13 @@ public:
   
   
   
+  int64_t GetEndTime();
+
+  
+  
+  
+  
+  
   
   void SetDuration(int64_t aDuration);
 
@@ -832,7 +839,13 @@ protected:
   
   
   
+  
   int64_t mEndTime;
+
+  
+  
+  
+  bool mDurationSet;
 
   
   
