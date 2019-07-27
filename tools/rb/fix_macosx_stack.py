@@ -8,13 +8,6 @@
 
 
 
-
-
-
-
-
-
-
 import subprocess
 import sys
 import re
@@ -99,16 +92,14 @@ def cxxfilt(sym):
     cxxfilt_proc.stdin.write(sym + "\n")
     return cxxfilt_proc.stdout.readline().rstrip("\n")
 
-line_re = re.compile("^(.*) ?\[([^ ]*) \+(0x[0-9a-fA-F]{1,8})\](.*)$")
-balance_tree_re = re.compile("^([ \|0-9-]*)")
+
+line_re = re.compile("^(.*#\d+: )(.+)\[(.+) \+(0x[0-9A-Fa-f]+)\](.*)$")
 atos_name_re = re.compile("^(.+) \(in ([^)]+)\) \((.+)\)$")
 
 def fixSymbols(line):
     result = line_re.match(line)
     if result is not None:
-        
-        
-        (before, file, address, after) = result.groups()
+        (before, fn, file, address, after) = result.groups()
         address = int(address, 16)
 
         if os.path.exists(file) and os.path.isfile(file):
@@ -128,9 +119,6 @@ def fixSymbols(line):
                 if (name.startswith("_Z")):
                     name = cxxfilt(name)
                 info = "%s (%s, in %s)" % (name, fileline, library)
-
-            
-            before = balance_tree_re.match(before).groups()[0]
 
             nl = '\n' if line[-1] == '\n' else ''
             return before + info + after + nl

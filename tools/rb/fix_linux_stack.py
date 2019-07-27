@@ -8,15 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 import subprocess
 import sys
 import re
@@ -296,25 +287,20 @@ def addressToSymbol(file, address):
     cache[address] = result
     return result
 
-line_re = re.compile("^(.*) ?\[([^ ]*) \+(0x[0-9A-F]{1,8})\](.*)$")
-balance_tree_re = re.compile("^([ \|0-9-]*)(.*)$")
+
+line_re = re.compile("^(.*#\d+: )(.+)\[(.+) \+(0x[0-9A-Fa-f]+)\](.*)$")
 
 def fixSymbols(line):
     result = line_re.match(line)
     if result is not None:
-        
-        
-        (before, file, address, after) = result.groups()
+        (before, fn, file, address, after) = result.groups()
 
         if os.path.exists(file) and os.path.isfile(file):
-            
-            (before, badsymbol) = balance_tree_re.match(before).groups()
-
             (name, fileline) = addressToSymbol(file, address)
 
             
             if name == "??":
-                name = badsymbol
+                name = fn
             if fileline == "??:0" or fileline == "??:?":
                 fileline = file
 
