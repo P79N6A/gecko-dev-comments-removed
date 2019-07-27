@@ -151,23 +151,35 @@ Request::Constructor(const GlobalObject& aGlobal,
     request->SetCredentialsMode(credentials);
   }
 
+  
   if (aInit.mMethod.WasPassed()) {
-    nsCString method = aInit.mMethod.Value();
-    ToLowerCase(method);
+    nsAutoCString method(aInit.mMethod.Value());
+    nsAutoCString upperCaseMethod = method;
+    ToUpperCase(upperCaseMethod);
 
-    if (!method.EqualsASCII("options") &&
-        !method.EqualsASCII("get") &&
-        !method.EqualsASCII("head") &&
-        !method.EqualsASCII("post") &&
-        !method.EqualsASCII("put") &&
-        !method.EqualsASCII("delete")) {
+    
+    
+    
+    if (upperCaseMethod.EqualsLiteral("CONNECT") ||
+        upperCaseMethod.EqualsLiteral("TRACE") ||
+        upperCaseMethod.EqualsLiteral("TRACK") ||
+        !NS_IsValidHTTPToken(method)) {
       NS_ConvertUTF8toUTF16 label(method);
       aRv.ThrowTypeError(MSG_INVALID_REQUEST_METHOD, &label);
       return nullptr;
     }
 
-    ToUpperCase(method);
-    request->SetMethod(method);
+    
+    if (upperCaseMethod.EqualsLiteral("DELETE") ||
+        upperCaseMethod.EqualsLiteral("GET") ||
+        upperCaseMethod.EqualsLiteral("HEAD") ||
+        upperCaseMethod.EqualsLiteral("POST") ||
+        upperCaseMethod.EqualsLiteral("PUT") ||
+        upperCaseMethod.EqualsLiteral("OPTIONS")) {
+      request->SetMethod(upperCaseMethod);
+    } else {
+      request->SetMethod(method);
+    }
   }
 
   nsRefPtr<InternalHeaders> requestHeaders = request->Headers();
