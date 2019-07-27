@@ -21,11 +21,11 @@ public:
 
   
   virtual already_AddRefed<MediaDataDecoder>
-  CreateH264Decoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
-                    mozilla::layers::LayersBackend aLayersBackend,
-                    mozilla::layers::ImageContainer* aImageContainer,
-                    MediaTaskQueue* aVideoTaskQueue,
-                    MediaDataDecoderCallback* aCallback) MOZ_OVERRIDE;
+  CreateVideoDecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
+                     mozilla::layers::LayersBackend aLayersBackend,
+                     mozilla::layers::ImageContainer* aImageContainer,
+                     MediaTaskQueue* aVideoTaskQueue,
+                     MediaDataDecoderCallback* aCallback) MOZ_OVERRIDE;
 
   
   virtual already_AddRefed<MediaDataDecoder>

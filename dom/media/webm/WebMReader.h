@@ -16,6 +16,8 @@
 #define VPX_DONT_DEFINE_STDINT_TYPES
 #include "vpx/vpx_codec.h"
 
+#include "mozilla/layers/LayersTypes.h"
+
 #ifdef MOZ_TREMOR
 #include "tremor/ivorbiscodec.h"
 #else
@@ -25,10 +27,6 @@
 #ifdef MOZ_OPUS
 #include "OpusParser.h"
 #endif
-
-namespace mozilla {
-
-class WebMBufferedState;
 
 
 
@@ -54,6 +52,18 @@ private:
   NesteggPacketHolder(const NesteggPacketHolder &aOther);
   NesteggPacketHolder& operator= (NesteggPacketHolder const& aOther);
 };
+
+template <>
+class nsAutoRefTraits<NesteggPacketHolder> : public nsPointerRefTraits<NesteggPacketHolder>
+{
+public:
+  static void Release(NesteggPacketHolder* aHolder) { delete aHolder; }
+};
+
+namespace mozilla {
+class WebMBufferedState;
+static const unsigned NS_PER_USEC = 1000;
+static const double NS_PER_S = 1e9;
 
 
 class PacketQueueDeallocator : public nsDequeFunctor {
@@ -101,6 +111,21 @@ class WebMPacketQueue : private nsDeque {
   }
 };
 
+class WebMReader;
+
+
+class WebMVideoDecoder
+{
+public:
+  virtual nsresult Init(unsigned int aWidth = 0, unsigned int aHeight = 0) = 0;
+  virtual nsresult Flush() { return NS_OK; }
+  virtual void Shutdown() = 0;
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
+                                int64_t aTimeThreshold) = 0;
+  WebMVideoDecoder() {}
+  virtual ~WebMVideoDecoder() {}
+};
+
 class WebMReader : public MediaDecoderReader
 {
 public:
@@ -110,15 +135,13 @@ protected:
   ~WebMReader();
 
 public:
+  virtual void Shutdown() MOZ_OVERRIDE;
   virtual nsresult Init(MediaDecoderReader* aCloneDonor);
   virtual nsresult ResetDecode();
   virtual bool DecodeAudioData();
 
-  
-  
-  
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  int64_t aTimeThreshold);
+                                int64_t aTimeThreshold);
 
   virtual bool HasAudio()
   {
@@ -143,7 +166,6 @@ public:
 
   virtual bool IsMediaSeekable() MOZ_OVERRIDE;
 
-protected:
   
   
   enum TrackType {
@@ -159,6 +181,15 @@ protected:
   
   virtual void PushVideoPacket(NesteggPacketHolder* aItem);
 
+  int GetVideoCodec();
+  nsIntRect GetPicture();
+  nsIntSize GetInitialFrame();
+  uint64_t GetLastVideoFrameTime();
+  void SetLastVideoFrameTime(uint64_t aFrameTime);
+  layers::LayersBackend GetLayersBackendType() { return mLayersBackendType; }
+  MediaTaskQueue* GetTaskQueue() { return mTaskQueue; }
+
+protected:
 #ifdef MOZ_OPUS
   
   bool InitOpusDecoder();
@@ -186,13 +217,16 @@ protected:
 
   virtual nsresult SeekInternal(int64_t aTime, int64_t aStartTime);
 
+  
+  void InitLayersBackendType();
+
 private:
   
   
   nestegg* mContext;
 
   
-  vpx_codec_ctx_t mVPX;
+  nsAutoPtr<WebMVideoDecoder> mVideoDecoder;
 
   
   vorbis_info mVorbisInfo;
@@ -246,6 +280,9 @@ private:
   int mAudioCodec;
   
   int mVideoCodec;
+
+  layers::LayersBackend mLayersBackendType;
+  nsRefPtr<MediaTaskQueue> mTaskQueue;
 
   
   bool mHasVideo;
