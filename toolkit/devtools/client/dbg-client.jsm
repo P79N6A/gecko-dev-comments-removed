@@ -93,6 +93,8 @@ loader.loadSubScript("resource://gre/modules/devtools/transport/transport.js", t
 
 
 
+
+
 function eventSource(aProto) {
   
 
@@ -175,7 +177,7 @@ function eventSource(aProto) {
 
 
 
-  aProto.notify = function () {
+  aProto.emit = function () {
     if (!this._listeners) {
       return;
     }
@@ -277,7 +279,7 @@ this.DebuggerClient = function (aTransport)
   this.mainRoot = null;
   this.expectReply("root", (aPacket) => {
     this.mainRoot = new RootClient(this, aPacket);
-    this.notify("connected", aPacket.applicationType, aPacket.traits);
+    this.emit("connected", aPacket.applicationType, aPacket.traits);
   });
 }
 
@@ -918,7 +920,7 @@ DebuggerClient.prototype = {
       
       
       if (aPacket.type) {
-        this.notify(aPacket.type, aPacket);
+        this.emit(aPacket.type, aPacket);
       }
 
       if (activeRequest) {
@@ -991,7 +993,7 @@ DebuggerClient.prototype = {
 
 
   onClosed: function (aStatus) {
-    this.notify("closed");
+    this.emit("closed");
   },
 
   registerClient: function (client) {
@@ -1853,7 +1855,7 @@ ThreadClient.prototype = {
   _clearScripts: function () {
     if (Object.keys(this._scriptCache).length > 0) {
       this._scriptCache = {}
-      this.notify("scriptscleared");
+      this.emit("scriptscleared");
     }
   },
 
@@ -1923,7 +1925,7 @@ ThreadClient.prototype = {
 
       
       
-      this.notify("framesadded");
+      this.emit("framesadded");
 
       aCallback(aResponse);
     });
@@ -1938,7 +1940,7 @@ ThreadClient.prototype = {
   _clearFrames: function () {
     if (this._frameCache.length > 0) {
       this._frameCache = [];
-      this.notify("framescleared");
+      this.emit("framescleared");
     }
   },
 
@@ -2038,7 +2040,7 @@ ThreadClient.prototype = {
     this._clearFrames();
     this._clearPauseGrips();
     aPacket.type === ThreadStateTypes.detached && this._clearThreadGrips();
-    this.client._eventsEnabled && this.notify(aPacket.type, aPacket);
+    this.client._eventsEnabled && this.emit(aPacket.type, aPacket);
   },
 
   
@@ -2389,7 +2391,7 @@ SourceClient.prototype = {
       if (!aResponse.error) {
         this._isBlackBoxed = true;
         if (this._activeThread) {
-          this._activeThread.notify("blackboxchange", this);
+          this._activeThread.emit("blackboxchange", this);
         }
       }
       return aResponse;
@@ -2410,7 +2412,7 @@ SourceClient.prototype = {
       if (!aResponse.error) {
         this._isBlackBoxed = false;
         if (this._activeThread) {
-          this._activeThread.notify("blackboxchange", this);
+          this._activeThread.emit("blackboxchange", this);
         }
       }
       return aResponse;
@@ -2443,7 +2445,7 @@ SourceClient.prototype = {
       if (!aResponse.error) {
         this._isPrettyPrinted = true;
         this._activeThread._clearFrames();
-        this._activeThread.notify("prettyprintchange", this);
+        this._activeThread.emit("prettyprintchange", this);
       }
       this._onSourceResponse(aResponse, aCallback);
     });
@@ -2461,7 +2463,7 @@ SourceClient.prototype = {
       if (!aResponse.error) {
         this._isPrettyPrinted = false;
         this._activeThread._clearFrames();
-        this._activeThread.notify("prettyprintchange", this);
+        this._activeThread.emit("prettyprintchange", this);
       }
       this._onSourceResponse(aResponse, aCallback);
     });
