@@ -125,8 +125,9 @@ function run(options) {
       
       
       
-      if (options.main !== 'test-harness/run-tests')
+      if (options.main !== 'sdk/test/runner') {
         require('../l10n/html').enable();
+      }
     }
     catch(error) {
       console.exception(error);

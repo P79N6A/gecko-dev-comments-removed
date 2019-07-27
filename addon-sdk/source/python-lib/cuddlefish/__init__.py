@@ -791,7 +791,6 @@ def run(arguments=sys.argv[1:], target_cfg=None, pkg_cfg=None,
     extra_environment = {}
     if command == "test":
         
-        
         harness_options['main'] = 'sdk/test/runner'
         harness_options['mainPath'] = 'sdk/test/runner'
     else:

@@ -3573,6 +3573,48 @@ exports.testPredicateContextTargetLinkNotSet = function (assert, done) {
 };
 
 
+exports.testPredicateContextTargetLinkSetNestedImage = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.linkURL, TEST_DOC_URL + "#nested-image");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("predicate-test-nested-image"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTargetLinkSetNestedStructure = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.linkURL, TEST_DOC_URL + "#nested-structure");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("predicate-test-nested-structure"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
 exports.testPredicateContextTargetValueSet = function (assert, done) {
   let test = new TestHelper(assert, done);
   let loader = test.newLoader();

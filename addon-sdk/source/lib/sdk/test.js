@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -13,18 +12,9 @@ const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 const { defer } = require("sdk/core/promise");
 const BaseAssert = require("sdk/test/assert").Assert;
 const { isFunction, isObject } = require("sdk/lang/type");
+const { extend } = require("sdk/util/object");
 
 exports.Assert = BaseAssert;
-
-function extend(target) {
-  let descriptor = {}
-  Array.slice(arguments, 1).forEach(function(source) {
-    Object.getOwnPropertyNames(source).forEach(function onEach(name) {
-      descriptor[name] = Object.getOwnPropertyDescriptor(source, name);
-    });
-  });
-  return Object.create(target, descriptor);
-}
 
 
 
@@ -110,7 +100,6 @@ function defineTestSuite(target, suite, prefix) {
 
 
 exports.run = function run(exports) {
-
   
   
   let suite = {};
