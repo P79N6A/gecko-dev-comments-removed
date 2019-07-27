@@ -184,12 +184,45 @@ struct Callback {
 template<typename F>
 class CallbackVector : public Vector<Callback<F>, 4, SystemAllocPolicy> {};
 
+template <typename T, typename Iter0, typename Iter1>
+class ChainedIter
+{
+    Iter0 iter0_;
+    Iter1 iter1_;
+
+  public:
+    ChainedIter(const Iter0 &iter0, const Iter1 &iter1)
+      : iter0_(iter0), iter1_(iter1)
+    {}
+
+    bool done() const { return iter0_.done() && iter1_.done(); }
+    void next() {
+        MOZ_ASSERT(!done());
+        if (!iter0_.done()) {
+            iter0_.next();
+        } else {
+            MOZ_ASSERT(!iter1_.done());
+            iter1_.next();
+        }
+    }
+    T get() const {
+        MOZ_ASSERT(!done());
+        if (!iter0_.done())
+            return iter0_.get();
+        MOZ_ASSERT(!iter1_.done());
+        return iter1_.get();
+    }
+
+    operator T() const { return get(); }
+    T operator->() const { return get(); }
+};
+
 class GCRuntime
 {
   public:
     explicit GCRuntime(JSRuntime *rt);
+    ~GCRuntime();
     bool init(uint32_t maxbytes, uint32_t maxNurseryBytes);
-    void finish();
 
     inline int zeal();
     inline bool upcomingZealousGC();
@@ -399,11 +432,13 @@ class GCRuntime
     inline void updateOnFreeArenaAlloc(const ChunkInfo &info);
     inline void updateOnArenaFree(const ChunkInfo &info);
 
-    GCChunkSet::Range allChunks() { return chunkSet.all(); }
-    ChunkPool &availableChunks() { return availableChunks_; }
     ChunkPool &emptyChunks() { return emptyChunks_; }
-    void moveChunkToFreePool(Chunk *chunk);
-    bool hasChunk(Chunk *chunk) { return chunkSet.has(chunk); }
+    ChunkPool &availableChunks() { return availableChunks_; }
+    ChunkPool &fullChunks() { return fullChunks_; }
+    typedef ChainedIter<Chunk *, ChunkPool::Iter, ChunkPool::Iter> NonEmptyChunksIter;
+    NonEmptyChunksIter allNonEmptyChunks() {
+        return NonEmptyChunksIter(ChunkPool::Iter(availableChunks_), ChunkPool::Iter(fullChunks_));
+    }
 
 #ifdef JS_GC_ZEAL
     void startVerifyPreBarriers();
@@ -432,14 +467,9 @@ class GCRuntime
     static void *refillFreeListPJS(ForkJoinContext *cx, AllocKind thingKind);
 
     
-
-
-
-    ChunkPool expireEmptyChunks(bool shrinkBuffers, bool releaseAll);
-    void expireAndFreeEmptyChunks(bool releaseAll);
+    ChunkPool expireEmptyChunks(bool shrinkBuffers, const AutoLockGC &lock);
     void freeChunks(ChunkPool pool);
     void prepareToFreeChunk(ChunkInfo &info);
-    void releaseChunk(Chunk *chunk);
 
     inline bool wantBackgroundAllocation() const;
 
@@ -477,8 +507,8 @@ class GCRuntime
     bool sweepPhase(SliceBudget &sliceBudget);
     void endSweepPhase(bool lastGC);
     void sweepZones(FreeOp *fop, bool lastGC);
-    void decommitArenas();
-    void expireChunksAndArenas(bool shouldShrink);
+    void decommitArenas(const AutoLockGC &lock);
+    void expireChunksAndArenas(bool shouldShrink, const AutoLockGC &lock);
     void sweepBackgroundThings();
     void assertBackgroundSweepingFinished();
     bool shouldCompact();
@@ -533,13 +563,6 @@ class GCRuntime
     
 
     
-
-
-
-
-    js::GCChunkSet        chunkSet;
-
-    
     
     
     
@@ -552,6 +575,10 @@ class GCRuntime
     
     
     ChunkPool             availableChunks_;
+
+    
+    
+    ChunkPool             fullChunks_;
 
     js::RootedValueMap    rootsHash;
 
