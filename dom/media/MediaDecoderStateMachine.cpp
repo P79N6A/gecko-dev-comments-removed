@@ -223,6 +223,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mSentFirstFrameLoadedEvent(false),
   mSentPlaybackEndedEvent(false),
   mDecodedStream(new DecodedStream(mAudioQueue, mVideoQueue)),
+  mResource(aDecoder->GetResource()),
   mBuffered(mTaskQueue, TimeIntervals(),
             "MediaDecoderStateMachine::mBuffered (Mirror)"),
   mEstimatedDuration(mTaskQueue, NullableTimeUnit(),
@@ -1883,6 +1884,8 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   mMetadataRequest.Complete();
 
+  
+  mResource->SetReadMode(MediaCacheStream::MODE_PLAYBACK);
   mDecoder->SetMediaSeekable(mReader->IsMediaSeekable());
   mInfo = aMetadata->mInfo;
   mMetadataTags = aMetadata->mTags.forget();
@@ -2152,7 +2155,7 @@ MediaDecoderStateMachine::SeekCompleted()
   
   
 
-  bool isLiveStream = mDecoder->GetResource()->IsLiveStream();
+  bool isLiveStream = mResource->IsLiveStream();
   if (mPendingSeek.Exists()) {
     
     
@@ -2279,7 +2282,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
   mDelayedScheduler.Reset(); 
   mDispatchedStateMachine = false;
 
-  MediaResource* resource = mDecoder->GetResource();
+  MediaResource* resource = mResource;
   NS_ENSURE_TRUE(resource, NS_ERROR_NULL_POINTER);
 
   switch (mState) {
@@ -2299,6 +2302,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
     case DECODER_STATE_DECODING_METADATA: {
       if (!mMetadataRequest.Exists()) {
         DECODER_LOG("Dispatching AsyncReadMetadata");
+        
+        mResource->SetReadMode(MediaCacheStream::MODE_METADATA);
         mMetadataRequest.Begin(ProxyMediaCall(DecodeTaskQueue(), mReader.get(), __func__,
                                               &MediaDecoderReader::AsyncReadMetadata)
           ->Then(OwnerThread(), __func__, this,

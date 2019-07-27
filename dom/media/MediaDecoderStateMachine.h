@@ -316,6 +316,7 @@ public:
       mReader->BreakCycles();
     }
     mDecodedStream->DestroyData();
+    mResource = nullptr;
     mDecoder = nullptr;
   }
 
@@ -1306,6 +1307,9 @@ private:
   
   
   nsRefPtr<DecodedStream> mDecodedStream;
+
+  
+  nsRefPtr<MediaResource> mResource;
 
 private:
   

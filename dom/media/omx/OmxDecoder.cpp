@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -46,10 +46,8 @@ using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using namespace android;
 
-OmxDecoder::OmxDecoder(MediaResource *aResource,
-                       AbstractMediaDecoder *aDecoder) :
+OmxDecoder::OmxDecoder(AbstractMediaDecoder *aDecoder) :
   mDecoder(aDecoder),
-  mResource(aResource),
   mDisplayWidth(0),
   mDisplayHeight(0),
   mVideoWidth(0),
@@ -73,9 +71,9 @@ OmxDecoder::OmxDecoder(MediaResource *aResource,
   mLooper->setName("OmxDecoder");
 
   mReflector = new AHandlerReflector<OmxDecoder>(this);
-  // Register AMessage handler to ALooper.
+  
   mLooper->registerHandler(mReflector);
-  // Start ALooper thread.
+  
   mLooper->start();
 }
 
@@ -85,9 +83,9 @@ OmxDecoder::~OmxDecoder()
 
   ReleaseMediaResources();
 
-  // unregister AMessage handler from ALooper.
+  
   mLooper->unregisterHandler(mReflector->id());
-  // Stop ALooper thread.
+  
   mLooper->stop();
 }
 
@@ -143,8 +141,6 @@ bool OmxDecoder::Init(sp<MediaExtractor>& extractor) {
     return false;
   }
 
-  mResource->SetReadMode(MediaCacheStream::MODE_PLAYBACK);
-
   if (videoTrackIndex != -1 && mDecoder->GetImageContainer()) {
     mVideoTrack = extractor->getTrack(videoTrackIndex);
   }
@@ -153,8 +149,8 @@ bool OmxDecoder::Init(sp<MediaExtractor>& extractor) {
     mAudioTrack = extractor->getTrack(audioTrackIndex);
 
 #ifdef MOZ_AUDIO_OFFLOAD
-    // mAudioTrack is be used by OMXCodec. For offloaded audio track, using same
-    // object gives undetermined behavior. So get a new track
+    
+    
     mAudioOffloadTrack = extractor->getTrack(audioTrackIndex);
 #endif
   }
@@ -162,7 +158,7 @@ bool OmxDecoder::Init(sp<MediaExtractor>& extractor) {
 }
 
 bool OmxDecoder::EnsureMetadata() {
-  // calculate duration
+  
   int64_t totalDurationUs = 0;
   int64_t durationUs = 0;
   if (mVideoTrack.get() && mVideoTrack->getFormat()->findInt64(kKeyDuration, &durationUs)) {
@@ -181,16 +177,16 @@ bool OmxDecoder::EnsureMetadata() {
   }
   mDurationUs = totalDurationUs;
 
-  // read video metadata
+  
   if (mVideoSource.get() && !SetVideoFormat()) {
     NS_WARNING("Couldn't set OMX video format");
     return false;
   }
 
-  // read audio metadata
+  
   if (mAudioSource.get()) {
-    // To reliably get the channel and sample rate data we need to read from the
-    // audio source until we get a INFO_FORMAT_CHANGE status
+    
+    
     status_t err = mAudioSource->read(&mAudioBuffer);
     if (err != INFO_FORMAT_CHANGED) {
       if (err != OK) {
@@ -226,8 +222,8 @@ nsRefPtr<mozilla::MediaOmxCommonReader::MediaResourcePromise> OmxDecoder::Alloca
   nsRefPtr<MediaResourcePromise> p = mMediaResourcePromise.Ensure(__func__);
 
   if ((mVideoTrack != nullptr) && (mVideoSource == nullptr)) {
-    // OMXClient::connect() always returns OK and abort's fatally if
-    // it can't connect.
+    
+    
     OMXClient client;
     DebugOnly<status_t> err = client.connect();
     NS_ASSERTION(err == OK, "Failed to connect to OMX in mediaserver.");
@@ -250,25 +246,25 @@ nsRefPtr<mozilla::MediaOmxCommonReader::MediaResourcePromise> OmxDecoder::Alloca
     mNativeWindowClient = new GonkNativeWindowClient(mNativeWindow);
 #endif
 
-    // Experience with OMX codecs is that only the HW decoders are
-    // worth bothering with, at least on the platforms where this code
-    // is currently used, and for formats this code is currently used
-    // for (h.264).  So if we don't get a hardware decoder, just give
-    // up.
+    
+    
+    
+    
+    
 #ifdef MOZ_OMX_WEBM_DECODER
-    int flags = 0;//fallback to omx sw decoder if there is no hw decoder
+    int flags = 0;
 #else
     int flags = kHardwareCodecsOnly;
-#endif//MOZ_OMX_WEBM_DECODER
+#endif
 
     if (isInEmulator()) {
-      // If we are in emulator, allow to fall back to software.
+      
       flags = 0;
     }
     mVideoSource =
           OMXCodecProxy::Create(omx,
                                 mVideoTrack->getFormat(),
-                                false, // decoder
+                                false, 
                                 mVideoTrack,
                                 nullptr,
                                 flags,
@@ -285,8 +281,8 @@ nsRefPtr<mozilla::MediaOmxCommonReader::MediaResourcePromise> OmxDecoder::Alloca
   }
 
   if ((mAudioTrack != nullptr) && (mAudioSource == nullptr)) {
-    // OMXClient::connect() always returns OK and abort's fatally if
-    // it can't connect.
+    
+    
     OMXClient client;
     DebugOnly<status_t> err = client.connect();
     NS_ASSERTION(err == OK, "Failed to connect to OMX in mediaserver.");
@@ -301,22 +297,22 @@ nsRefPtr<mozilla::MediaOmxCommonReader::MediaResourcePromise> OmxDecoder::Alloca
     if (!strcasecmp(audioMime, "audio/raw")) {
       mAudioSource = mAudioTrack;
     } else {
-      // try to load hardware codec in mediaserver process.
+      
       int flags = kHardwareCodecsOnly;
       mAudioSource = OMXCodec::Create(omx,
                                      mAudioTrack->getFormat(),
-                                     false, // decoder
+                                     false, 
                                      mAudioTrack,
                                      nullptr,
                                      flags);
     }
 
     if (mAudioSource == nullptr) {
-      // try to load software codec in this process.
+      
       int flags = kSoftwareCodecsOnly;
       mAudioSource = OMXCodec::Create(GetOMX(),
                                      mAudioTrack->getFormat(),
-                                     false, // decoder
+                                     false, 
                                      mAudioTrack,
                                      nullptr,
                                      flags);
@@ -334,7 +330,7 @@ nsRefPtr<mozilla::MediaOmxCommonReader::MediaResourcePromise> OmxDecoder::Alloca
     }
   }
   if (!mVideoSource.get()) {
-    // No resource allocation wait.
+    
     mMediaResourcePromise.Resolve(true, __func__);
   }
   return p;
@@ -350,8 +346,8 @@ void OmxDecoder::ReleaseMediaResources() {
   {
     Mutex::Autolock autoLock(mPendingVideoBuffersLock);
     MOZ_ASSERT(mPendingRecycleTexutreClients.empty());
-    // Release all pending recycle TextureClients, if they are not recycled yet.
-    // This should not happen. See Bug 1042308.
+    
+    
     if (!mPendingRecycleTexutreClients.empty()) {
       printf_stderr("OmxDecoder::ReleaseMediaResources -- TextureClients are not recycled yet\n");
       for (std::set<TextureClient*>::iterator it=mPendingRecycleTexutreClients.begin();
@@ -368,7 +364,7 @@ void OmxDecoder::ReleaseMediaResources() {
   }
 
   {
-    // Free all pending video buffers.
+    
     Mutex::Autolock autoLock(mSeekLock);
     ReleaseAllPendingVideoBuffersLocked();
   }
@@ -386,8 +382,8 @@ void OmxDecoder::ReleaseMediaResources() {
   mNativeWindowClient.clear();
   mNativeWindow.clear();
 
-  // Reset this variable to make the first seek go to the previous keyframe
-  // when resuming
+  
+  
   mLastSeekTime = -1;
 }
 
@@ -421,10 +417,10 @@ bool OmxDecoder::SetVideoFormat() {
     NS_WARNING("slice height not available, assuming height");
   }
 
-  // Since ICS, valid video side is caluculated from kKeyCropRect.
-  // kKeyWidth means decoded video buffer width.
-  // kKeyHeight means decoded video buffer height.
-  // On some hardwares, decoded video buffer and valid video size are different.
+  
+  
+  
+  
   int32_t crop_left, crop_top, crop_right, crop_bottom;
   if (mVideoSource->getFormat()->findRect(kKeyCropRect,
                                           &crop_left,
@@ -448,7 +444,7 @@ bool OmxDecoder::SetVideoFormat() {
 }
 
 bool OmxDecoder::SetAudioFormat() {
-  // If the format changed, update our cached info.
+  
   if (!mAudioSource->getFormat()->findInt32(kKeyChannelCount, &mAudioChannels) ||
       !mAudioSource->getFormat()->findInt32(kKeySampleRate, &mAudioSampleRate)) {
     return false;
@@ -565,8 +561,8 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
     }
     MediaSource::ReadOptions options;
     MediaSource::ReadOptions::SeekMode seekMode;
-    // If the last timestamp of decoded frame is smaller than seekTime,
-    // seek to next key frame. Otherwise seek to the previos one.
+    
+    
     OD_LOG("SeekTime: %lld, mLastSeekTime:%lld", aTimeUs, mLastSeekTime);
     if (mLastSeekTime == -1 || mLastSeekTime > aTimeUs) {
       seekMode = MediaSource::ReadOptions::SEEK_PREVIOUS_SYNC;
@@ -588,7 +584,7 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
 	err = mVideoSource->read(&mVideoBuffer);
       }
 
-      // If there is no next Keyframe, jump to the previous key frame.
+      
       if (err == ERROR_END_OF_STREAM && seekMode == MediaSource::ReadOptions::SEEK_NEXT_SYNC) {
         seekMode = MediaSource::ReadOptions::SEEK_PREVIOUS_SYNC;
         findNextBuffer = true;
@@ -601,8 +597,8 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
         OD_LOG("Unexpected error when seeking to %lld", aTimeUs);
         break;
       }
-      // For some codecs, the length of first decoded frame after seek is 0.
-      // Need to ignore it and continue to find the next one
+      
+      
       if (mVideoBuffer->range_length() == 0) {
         PostReleaseVideoBuffer(mVideoBuffer, FenceHandle());
         findNextBuffer = true;
@@ -641,16 +637,16 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
     }
 
     if (textureClient) {
-      // Manually increment reference count to keep MediaBuffer alive
-      // during TextureClient is in use.
+      
+      
       mVideoBuffer->add_ref();
       GrallocTextureClientOGL* grallocClient = static_cast<GrallocTextureClientOGL*>(textureClient.get());
       grallocClient->SetMediaBuffer(mVideoBuffer);
-      // Set recycle callback for TextureClient
+      
       textureClient->SetRecycleCallback(OmxDecoder::RecycleCallback, this);
       {
         Mutex::Autolock autoLock(mPendingVideoBuffersLock);
-        // Store pending recycle TextureClient.
+        
         MOZ_ASSERT(mPendingRecycleTexutreClients.find(textureClient) == mPendingRecycleTexutreClients.end());
         mPendingRecycleTexutreClients.insert(textureClient);
       }
@@ -661,8 +657,8 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
       aFrame->mKeyFrame = keyFrame;
       aFrame->Y.mWidth = mVideoWidth;
       aFrame->Y.mHeight = mVideoHeight;
-      // Release to hold video buffer in OmxDecoder more.
-      // MediaBuffer's ref count is changed from 2 to 1.
+      
+      
       ReleaseVideoBuffer();
     } else if (length > 0) {
       char *data = static_cast<char *>(mVideoBuffer->data()) + mVideoBuffer->range_offset();
@@ -675,13 +671,13 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
         return false;
       }
     }
-    // Check if this frame is valid or not. If not, skip it.
+    
     if ((aKeyframeSkip && timeUs < aTimeUs) || length == 0) {
       aFrame->mShouldSkip = true;
     }
   }
   else if (err == INFO_FORMAT_CHANGED) {
-    // If the format changed, update our cached info.
+    
     if (!SetVideoFormat()) {
       return false;
     } else {
@@ -696,8 +692,8 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
     return true;
   }
   else {
-    // UNKNOWN_ERROR is sometimes is used to mean "out of memory", but
-    // regardless, don't keep trying to decode if the decoder doesn't want to.
+    
+    
     LOG(LogLevel::Debug, "OmxDecoder::ReadVideo failed, err=%d", err);
     return false;
   }
@@ -710,7 +706,7 @@ bool OmxDecoder::ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs)
   status_t err;
 
   if (mAudioMetadataRead && aSeekTimeUs == -1) {
-    // Use the data read into the buffer during metadata time
+    
     err = OK;
   }
   else {
@@ -740,7 +736,7 @@ bool OmxDecoder::ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs)
                         mAudioChannels, mAudioSampleRate);
   }
   else if (err == INFO_FORMAT_CHANGED) {
-    // If the format changed, update our cached info.
+    
     if (!SetAudioFormat()) {
       return false;
     } else {
@@ -783,22 +779,22 @@ nsresult OmxDecoder::Play()
   return NS_OK;
 }
 
-// AOSP didn't give implementation on OMXCodec::Pause() and not define
-// OMXCodec::Start() should be called for resuming the decoding. Currently
-// it is customized by a specific open source repository only.
-// ToDo The one not supported OMXCodec::Pause() should return error code here,
-// so OMXCodec::Start() doesn't be called again for resuming. But if someone
-// implement the OMXCodec::Pause() and need a following OMXCodec::Read() with
-// seek option (define in MediaSource.h) then it is still not supported here.
-// We need to fix it until it is really happened.
+
+
+
+
+
+
+
+
 void OmxDecoder::Pause()
 {
-  /* The implementation of OMXCodec::pause is flawed.
-   * OMXCodec::start will not restore from the paused state and result in
-   * buffer timeout which causes timeouts in mochitests.
-   * Since there is not power consumption problem in emulator, we will just
-   * return when running in emulator to fix timeouts in mochitests.
-   */
+  
+
+
+
+
+
   if (isInEmulator()) {
     return;
   }
@@ -816,15 +812,15 @@ void OmxDecoder::Pause()
   }
 }
 
-// Called on ALooper thread.
+
 void OmxDecoder::onMessageReceived(const sp<AMessage> &msg)
 {
   switch (msg->what()) {
     case kNotifyPostReleaseVideoBuffer:
     {
       Mutex::Autolock autoLock(mSeekLock);
-      // Free pending video buffers when OmxDecoder is not seeking video.
-      // If OmxDecoder is seeking video, the buffers are freed on seek exit.
+      
+      
       if (!mIsVideoSeeking) {
         ReleaseAllPendingVideoBuffersLocked();
       }
@@ -847,7 +843,7 @@ void OmxDecoder::PostReleaseVideoBuffer(MediaBuffer *aBuffer, const FenceHandle&
 
   sp<AMessage> notify =
             new AMessage(kNotifyPostReleaseVideoBuffer, mReflector->id());
-  // post AMessage to OmxDecoder via ALooper.
+  
   notify->post();
 }
 
@@ -863,7 +859,7 @@ void OmxDecoder::ReleaseAllPendingVideoBuffersLocked()
     }
     mPendingVideoBuffers.clear();
   }
-  // Free all pending video buffers without holding mPendingVideoBuffersLock.
+  
   int size = releasingVideoBuffers.size();
   for (int i = 0; i < size; i++) {
     MediaBuffer *buffer;
@@ -873,19 +869,19 @@ void OmxDecoder::ReleaseAllPendingVideoBuffersLocked()
     int fenceFd = fdObj->GetAndResetFd();
 
     MOZ_ASSERT(buffer->refcount() == 1);
-    // This code expect MediaBuffer's ref count is 1.
-    // Return gralloc buffer to ANativeWindow
+    
+    
     ANativeWindow* window = static_cast<ANativeWindow*>(mNativeWindowClient.get());
     window->cancelBuffer(window,
                          buffer->graphicBuffer().get(),
                          fenceFd);
-    // Mark MediaBuffer as rendered.
-    // When gralloc buffer is directly returned to ANativeWindow,
-    // this mark is necesary.
+    
+    
+    
     sp<MetaData> metaData = buffer->meta_data();
     metaData->setInt32(kKeyRendered, 1);
 #endif
-    // Return MediaBuffer to OMXCodec.
+    
     buffer->release();
   }
   releasingVideoBuffers.clear();
@@ -908,11 +904,11 @@ void OmxDecoder::RecycleCallbackImp(TextureClient* aClient)
   }
   sp<AMessage> notify =
             new AMessage(kNotifyPostReleaseVideoBuffer, mReflector->id());
-  // post AMessage to OmxDecoder via ALooper.
+  
   notify->post();
 }
 
-/* static */ void
+ void
 OmxDecoder::RecycleCallback(TextureClient* aClient, void* aClosure)
 {
   MOZ_ASSERT(aClient && !aClient->IsDead());
