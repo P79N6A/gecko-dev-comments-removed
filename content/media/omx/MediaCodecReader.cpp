@@ -123,7 +123,7 @@ bool MediaCodecReader::TrackInputCopier::Copy(MediaBuffer* aSourceBuffer, sp<ABu
 MediaCodecReader::Track::Track()
   : mDurationUs(INT64_C(0))
   , mInputIndex(sInvalidInputIndex)
-  , mEndOfStream(false)
+  , mInputEndOfStream(false)
   , mSeekTimeUs(sInvalidTimestampUs)
   , mFlushed(false)
 {
@@ -229,13 +229,14 @@ MediaCodecReader::DecodeAudioData()
 
   
   CodecBufferInfo bufferInfo;
+  status_t status;
   TimeStamp timeout = TimeStamp::Now() + TimeDuration::FromSeconds(sMaxAudioDecodeDurationS);
   while (true) {
     if (timeout < TimeStamp::Now()) {
       return true; 
     }
-    status_t status = GetCodecOutputData(mAudioTrack, bufferInfo, sInvalidTimestampUs, timeout);
-    if (status == OK) {
+    status = GetCodecOutputData(mAudioTrack, bufferInfo, sInvalidTimestampUs, timeout);
+    if (status == OK || status == ERROR_END_OF_STREAM) {
       break;
     } else if (status == -EAGAIN) {
       return true; 
@@ -272,6 +273,10 @@ MediaCodecReader::DecodeAudioData()
 
   mAudioTrack.mCodec->releaseOutputBuffer(bufferInfo.mIndex);
 
+  if (status == ERROR_END_OF_STREAM) {
+    return false;
+  }
+
   return result;
 }
 
@@ -291,13 +296,14 @@ MediaCodecReader::DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold)
 
   
   CodecBufferInfo bufferInfo;
+  status_t status;
   TimeStamp timeout = TimeStamp::Now() + TimeDuration::FromSeconds(sMaxVideoDecodeDurationS);
   while (true) {
     if (timeout < TimeStamp::Now()) {
       return true; 
     }
-    status_t status = GetCodecOutputData(mVideoTrack, bufferInfo, threshold, timeout);
-    if (status == OK) {
+    status = GetCodecOutputData(mVideoTrack, bufferInfo, threshold, timeout);
+    if (status == OK || status == ERROR_END_OF_STREAM) {
       break;
     } else if (status == -EAGAIN) {
       return true; 
@@ -392,6 +398,10 @@ MediaCodecReader::DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold)
 
   mVideoTrack.mCodec->releaseOutputBuffer(bufferInfo.mIndex);
 
+  if (status == ERROR_END_OF_STREAM) {
+    return false;
+  }
+
   return result;
 }
 
@@ -475,8 +485,8 @@ MediaCodecReader::Seek(int64_t aTime,
     }
   }
 
-  mAudioTrack.mEndOfStream = false;
-  mVideoTrack.mEndOfStream = false;
+  mAudioTrack.mInputEndOfStream = false;
+  mVideoTrack.mInputEndOfStream = false;
 
   mAudioTrack.mSeekTimeUs = aTime;
   mVideoTrack.mSeekTimeUs = aTime;
@@ -995,7 +1005,7 @@ MediaCodecReader::FillCodecInputData(Track &aTrack)
     return UNKNOWN_ERROR;
   }
 
-  if (aTrack.mEndOfStream) {
+  if (aTrack.mInputEndOfStream) {
     return ERROR_END_OF_STREAM;
   }
 
@@ -1024,8 +1034,10 @@ MediaCodecReader::FillCodecInputData(Track &aTrack)
     if (status == INFO_FORMAT_CHANGED) {
       return INFO_FORMAT_CHANGED;
     } else if (status == ERROR_END_OF_STREAM) {
-      aTrack.mEndOfStream = true;
-      aTrack.mCodec->signalEndOfInputStream();
+      aTrack.mInputEndOfStream = true;
+      status = aTrack.mCodec->queueInputBuffer(aTrack.mInputIndex.value(),
+                                               0, 0, 0,
+                                               MediaCodec::BUFFER_FLAG_EOS);
       return ERROR_END_OF_STREAM;
     } else if (status == -ETIMEDOUT) {
       return OK; 
@@ -1036,7 +1048,7 @@ MediaCodecReader::FillCodecInputData(Track &aTrack)
     }
 
     
-    aTrack.mEndOfStream = false;
+    aTrack.mInputEndOfStream = false;
     aTrack.mSeekTimeUs = sInvalidTimestampUs;
 
     sp<ABuffer> input_buffer = nullptr;
@@ -1079,17 +1091,28 @@ MediaCodecReader::GetCodecOutputData(Track &aTrack,
 
   
   
-  status_t status = FillCodecInputData(aTrack);
-  int64_t duration = (int64_t)(aTimeout - TimeStamp::Now()).ToMicroseconds();
-  if (!IsValidDurationUs(duration)) {
-    return -EAGAIN;
-  }
-  if (status == OK) {
-    status = aTrack.mCodec->dequeueOutputBuffer(
-        &info.mIndex, &info.mOffset, &info.mSize, &info.mTimeUs, &info.mFlags, duration);
-  }
+  status_t status = OK;
 
-  while (status == OK || status == INFO_OUTPUT_BUFFERS_CHANGED || status == -EAGAIN) {
+  while (status == OK || status == INFO_OUTPUT_BUFFERS_CHANGED ||
+         status == -EAGAIN || status == ERROR_END_OF_STREAM) {
+    
+    
+    status = FillCodecInputData(aTrack);
+    int64_t duration = (int64_t)(aTimeout - TimeStamp::Now()).ToMicroseconds();
+    if (!IsValidDurationUs(duration)) {
+      return -EAGAIN;
+    }
+
+    if (status == OK || status == ERROR_END_OF_STREAM) {
+      status = aTrack.mCodec->dequeueOutputBuffer(
+          &info.mIndex, &info.mOffset, &info.mSize, &info.mTimeUs, &info.mFlags, duration);
+      if (info.mFlags & MediaCodec::BUFFER_FLAG_EOS) {
+        aBuffer = info;
+        aBuffer.mBuffer = aTrack.mOutputBuffers[info.mIndex];
+        return ERROR_END_OF_STREAM;
+      }
+    }
+
     if (status == OK) {
       if (!IsValidTimestampUs(aThreshold) || info.mTimeUs >= aThreshold) {
         
@@ -1110,21 +1133,6 @@ MediaCodecReader::GetCodecOutputData(Track &aTrack,
       
       return -EAGAIN;
     }
-
-    
-    status = FillCodecInputData(aTrack);
-    if (status == INFO_OUTPUT_BUFFERS_CHANGED) {
-      continue;
-    } else if (status != OK) {
-      return status;
-    }
-
-    duration = (int64_t)(aTimeout - TimeStamp::Now()).ToMicroseconds();
-    if (!IsValidDurationUs(duration)) {
-      return -EAGAIN;
-    }
-    status = aTrack.mCodec->dequeueOutputBuffer(
-        &info.mIndex, &info.mOffset, &info.mSize, &info.mTimeUs, &info.mFlags, duration);
   }
 
   if (status != OK) {

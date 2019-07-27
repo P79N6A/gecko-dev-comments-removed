@@ -109,7 +109,7 @@ protected:
 
     
     CheckedUint32 mInputIndex;
-    bool mEndOfStream;
+    bool mInputEndOfStream;
     int64_t mSeekTimeUs;
     bool mFlushed; 
   };
