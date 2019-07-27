@@ -289,6 +289,10 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
         }
 
         final File[] files = (new File(pluginsDir, "common")).listFiles();
+        if (files == null) {
+            Log.e(LOG_TAG, "Could not find search plugin files in distribution directory");
+            return null;
+        }
         return createEngineFromFileList(files, name);
     }
 
@@ -353,6 +357,10 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
         }
 
         final File[] files = pluginsDir.listFiles();
+        if (files == null) {
+            Log.e(LOG_TAG, "Could not find search plugin files in profile directory");
+            return null;
+        }
         return createEngineFromFileList(files, name);
     }
 
