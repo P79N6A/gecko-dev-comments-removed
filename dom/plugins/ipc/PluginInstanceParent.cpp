@@ -1684,6 +1684,11 @@ PluginInstanceParent::PluginWindowHookProc(HWND hWnd,
 void
 PluginInstanceParent::SubclassPluginWindow(HWND aWnd)
 {
+    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      mPluginHWND = aWnd; 
+      mPluginWndProc = nullptr;
+      return;
+    }
     NS_ASSERTION(!(mPluginHWND && aWnd != mPluginHWND),
       "PluginInstanceParent::SubclassPluginWindow hwnd is not our window!");
 
@@ -1849,7 +1854,10 @@ PluginInstanceParent::AnswerPluginFocusChange(const bool& gotFocus)
     
     
 #if defined(OS_WIN)
-    ::SendMessage(mPluginHWND, gOOPPPluginFocusEvent, gotFocus ? 1 : 0, 0);
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      ::SendMessage(mPluginHWND, gOOPPPluginFocusEvent, gotFocus ? 1 : 0, 0);
+    }
     return true;
 #else
     NS_NOTREACHED("PluginInstanceParent::AnswerPluginFocusChange not implemented!");
