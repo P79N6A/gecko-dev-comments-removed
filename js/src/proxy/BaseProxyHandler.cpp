@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsproxy.h"
 
@@ -34,8 +34,8 @@ BaseProxyHandler::has(JSContext *cx, HandleObject proxy, HandleId id, bool *bp) 
 bool
 BaseProxyHandler::hasOwn(JSContext *cx, HandleObject proxy, HandleId id, bool *bp) const
 {
-    
-    
+    // Note: Proxy::set needs to invoke hasOwn to determine where the setter
+    // lives, so we allow SET operations to invoke us.
     assertEnteredPolicy(cx, proxy, id, GET | SET);
     Rooted<PropertyDescriptor> desc(cx);
     if (!getOwnPropertyDescriptor(cx, proxy, id, &desc))
@@ -80,9 +80,9 @@ BaseProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject receiver,
 {
     assertEnteredPolicy(cx, proxy, id, SET);
 
-    
-    
-    
+    // Find an own or inherited property. The code here is strange for maximum
+    // backward compatibility with earlier code written before ES6 and before
+    // SetPropertyIgnoringNamedGetter.
     Rooted<PropertyDescriptor> desc(cx);
     if (!getOwnPropertyDescriptor(cx, proxy, id, &desc))
         return false;
@@ -102,16 +102,16 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, const BaseProxyHandler *handle
                                    HandleId id, MutableHandle<PropertyDescriptor> desc,
                                    bool descIsOwn, bool strict, MutableHandleValue vp)
 {
-    
+    /* The control-flow here differs from ::get() because of the fall-through case below. */
     if (descIsOwn) {
         MOZ_ASSERT(desc.object());
 
-        
+        // Check for read-only properties.
         if (desc.isReadonly())
             return strict ? Throw(cx, id, JSMSG_READ_ONLY) : true;
         if (!desc.setter()) {
-            
-            
+            // Be wary of the odd explicit undefined setter case possible through
+            // Object.defineProperty.
             if (!desc.hasSetterObject())
                 desc.setSetter(JS_StrictPropertyStub);
         } else if (desc.hasSetterObject() || desc.setter() != JS_StrictPropertyStub) {
@@ -123,7 +123,7 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, const BaseProxyHandler *handle
                 return true;
         }
         if (!desc.getter()) {
-            
+            // Same as above for the null setter case.
             if (!desc.hasGetterObject())
                 desc.setGetter(JS_PropertyStub);
         }
@@ -131,12 +131,12 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, const BaseProxyHandler *handle
         return handler->defineProperty(cx, receiver, id, desc);
     }
     if (desc.object()) {
-        
+        // Check for read-only properties.
         if (desc.isReadonly())
             return strict ? Throw(cx, id, JSMSG_CANT_REDEFINE_PROP) : true;
         if (!desc.setter()) {
-            
-            
+            // Be wary of the odd explicit undefined setter case possible through
+            // Object.defineProperty.
             if (!desc.hasSetterObject())
                 desc.setSetter(JS_StrictPropertyStub);
         } else if (desc.hasSetterObject() || desc.setter() != JS_StrictPropertyStub) {
@@ -148,7 +148,7 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, const BaseProxyHandler *handle
                 return true;
         }
         if (!desc.getter()) {
-            
+            // Same as above for the null setter case.
             if (!desc.hasGetterObject())
                 desc.setGetter(JS_PropertyStub);
         }
@@ -160,7 +160,7 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, const BaseProxyHandler *handle
     desc.value().set(vp.get());
     desc.setAttributes(JSPROP_ENUMERATE);
     desc.setGetter(nullptr);
-    desc.setSetter(nullptr); 
+    desc.setSetter(nullptr); // Pick up the class getter/setter.
     return handler->defineProperty(cx, receiver, id, desc);
 }
 
@@ -174,7 +174,7 @@ BaseProxyHandler::getOwnEnumerablePropertyKeys(JSContext *cx, HandleObject proxy
     if (!ownPropertyKeys(cx, proxy, props))
         return false;
 
-    
+    /* Select only the enumerable properties through in-place iteration. */
     RootedId id(cx);
     size_t i = 0;
     for (size_t j = 0, len = props.length(); j < len; j++) {
@@ -312,12 +312,19 @@ BaseProxyHandler::getPrototypeOf(JSContext *cx, HandleObject proxy, MutableHandl
 bool
 BaseProxyHandler::setPrototypeOf(JSContext *cx, HandleObject, HandleObject, bool *) const
 {
-    
-    
-    
+    // Disallow sets of protos on proxies with lazy protos, but no hook.
+    // This keeps us away from the footgun of having the first proto set opt
+    // you out of having dynamic protos altogether.
     JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
                          "incompatible Proxy");
     return false;
+}
+
+bool
+BaseProxyHandler::setImmutablePrototype(JSContext *cx, HandleObject proxy, bool *succeeded) const
+{
+    *succeeded = false;
+    return true;
 }
 
 bool

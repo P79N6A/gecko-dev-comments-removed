@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jswrapper_h
 #define jswrapper_h
@@ -15,12 +15,12 @@ namespace js {
 
 class DummyFrameGuard;
 
-
-
-
-
-
-
+/*
+ * Helper for Wrapper::New default options.
+ *
+ * Callers of Wrapper::New() who wish to specify a prototype for the created
+ * Wrapper, *MUST* construct a WrapperOptions with a JSContext.
+ */
 class MOZ_STACK_CLASS WrapperOptions : public ProxyOptions {
   public:
     WrapperOptions() : ProxyOptions(false),
@@ -44,16 +44,16 @@ class MOZ_STACK_CLASS WrapperOptions : public ProxyOptions {
     mozilla::Maybe<JS::RootedObject> proto_;
 };
 
-
-
-
-
-
-
-
-
-
-
+/*
+ * A wrapper is a proxy with a target object to which it generally forwards
+ * operations, but may restrict access to certain operations or instrument the
+ * methods in various ways. A wrapper is distinct from a Direct Proxy Handler
+ * in the sense that it can be "unwrapped" in C++, exposing the underlying
+ * object (Direct Proxy Handlers have an underlying target object, but don't
+ * expect to expose this object via any kind of unwrapping operation). Callers
+ * should be careful to avoid unwrapping security wrappers in the wrong
+ * context.
+ */
 class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
 {
     unsigned mFlags;
@@ -104,7 +104,7 @@ WrapperOptions::proto() const
     return proto_ ? *proto_ : Wrapper::defaultProto;
 }
 
-
+/* Base class for all cross compartment wrapper handlers. */
 class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
 {
   public:
@@ -113,7 +113,7 @@ class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
       : Wrapper(CROSS_COMPARTMENT | aFlags, aHasPrototype, aHasSecurityPolicy)
     { }
 
-    
+    /* Standard internal methods. */
     virtual bool getOwnPropertyDescriptor(JSContext *cx, HandleObject wrapper, HandleId id,
                                           MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
     virtual bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
@@ -128,6 +128,8 @@ class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
                                 MutableHandleObject protop) const MOZ_OVERRIDE;
     virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto,
                                 bool *bp) const MOZ_OVERRIDE;
+    virtual bool setImmutablePrototype(JSContext *cx, HandleObject proxy,
+                                       bool *succeeded) const MOZ_OVERRIDE;
     virtual bool has(JSContext *cx, HandleObject wrapper, HandleId id, bool *bp) const MOZ_OVERRIDE;
     virtual bool get(JSContext *cx, HandleObject wrapper, HandleObject receiver,
                      HandleId id, MutableHandleValue vp) const MOZ_OVERRIDE;
@@ -136,7 +138,7 @@ class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
     virtual bool call(JSContext *cx, HandleObject wrapper, const CallArgs &args) const MOZ_OVERRIDE;
     virtual bool construct(JSContext *cx, HandleObject wrapper, const CallArgs &args) const MOZ_OVERRIDE;
 
-    
+    /* SpiderMonkey extensions. */
     virtual bool getPropertyDescriptor(JSContext *cx, HandleObject wrapper, HandleId id,
                                        MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
     virtual bool hasOwn(JSContext *cx, HandleObject wrapper, HandleId id, bool *bp) const MOZ_OVERRIDE;
@@ -160,21 +162,21 @@ class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
     static const CrossCompartmentWrapper singletonWithPrototype;
 };
 
-
-
-
-
-
-
-
-
-
+/*
+ * Base class for security wrappers. A security wrapper is potentially hiding
+ * all or part of some wrapped object thus SecurityWrapper defaults to denying
+ * access to the wrappee. This is the opposite of Wrapper which tries to be
+ * completely transparent.
+ *
+ * NB: Currently, only a few ProxyHandler operations are overridden to deny
+ * access, relying on derived SecurityWrapper to block access when necessary.
+ */
 template <class Base>
 class JS_FRIEND_API(SecurityWrapper) : public Base
 {
   public:
     explicit MOZ_CONSTEXPR SecurityWrapper(unsigned flags, bool hasPrototype = false)
-      : Base(flags, hasPrototype,  true)
+      : Base(flags, hasPrototype, /* hasSecurityPolicy = */ true)
     { }
 
     virtual bool enter(JSContext *cx, HandleObject wrapper, HandleId id, Wrapper::Action act,
@@ -186,6 +188,7 @@ class JS_FRIEND_API(SecurityWrapper) : public Base
     virtual bool preventExtensions(JSContext *cx, HandleObject wrapper) const MOZ_OVERRIDE;
     virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto,
                                 bool *bp) const MOZ_OVERRIDE;
+    virtual bool setImmutablePrototype(JSContext *cx, HandleObject proxy, bool *succeeded) const MOZ_OVERRIDE;
 
     virtual bool nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
                             CallArgs args) const MOZ_OVERRIDE;
@@ -196,17 +199,17 @@ class JS_FRIEND_API(SecurityWrapper) : public Base
     virtual bool defaultValue(JSContext *cx, HandleObject wrapper, JSType hint,
                               MutableHandleValue vp) const MOZ_OVERRIDE;
 
-    
-    
+    // Allow isCallable and isConstructor. They used to be class-level, and so could not be guarded
+    // against.
 
     virtual bool watch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
                        JS::HandleObject callable) const MOZ_OVERRIDE;
     virtual bool unwatch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id) const MOZ_OVERRIDE;
 
-    
-
-
-
+    /*
+     * Allow our subclasses to select the superclass behavior they want without
+     * needing to specify an exact superclass.
+     */
     typedef Base Permissive;
     typedef SecurityWrapper<Base> Restrictive;
 };
@@ -224,22 +227,22 @@ IsWrapper(JSObject *obj)
     return IsProxy(obj) && GetProxyHandler(obj)->family() == &Wrapper::family;
 }
 
-
-
-
-
+// Given a JSObject, returns that object stripped of wrappers. If
+// stopAtOuter is true, then this returns the outer window if it was
+// previously wrapped. Otherwise, this returns the first object for
+// which JSObject::isWrapper returns false.
 JS_FRIEND_API(JSObject *)
 UncheckedUnwrap(JSObject *obj, bool stopAtOuter = true, unsigned *flagsp = nullptr);
 
-
-
-
-
+// Given a JSObject, returns that object stripped of wrappers. At each stage,
+// the security wrapper has the opportunity to veto the unwrap. Since checked
+// code should never be unwrapping outer window wrappers, we always stop at
+// outer windows.
 JS_FRIEND_API(JSObject *)
 CheckedUnwrap(JSObject *obj, bool stopAtOuter = true);
 
-
-
+// Unwrap only the outermost security wrapper, with the same semantics as
+// above. This is the checked version of Wrapper::wrappedObject.
 JS_FRIEND_API(JSObject *)
 UnwrapOneChecked(JSObject *obj, bool stopAtOuter = true);
 
@@ -256,12 +259,12 @@ JS_FRIEND_API(bool)
 RemapAllWrappersForObject(JSContext *cx, JSObject *oldTarget,
                           JSObject *newTarget);
 
-
-
+// API to recompute all cross-compartment wrappers whose source and target
+// match the given filters.
 JS_FRIEND_API(bool)
 RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
                   const CompartmentFilter &targetFilter);
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* jswrapper_h */

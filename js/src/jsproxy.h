@@ -269,6 +269,9 @@ class JS_FRIEND_API(BaseProxyHandler)
     virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto, bool *bp) const;
 
     
+    virtual bool setImmutablePrototype(JSContext *cx, HandleObject proxy, bool *succeeded) const;
+
+    
 
 
 
@@ -371,6 +374,8 @@ class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler
                                 MutableHandleObject protop) const MOZ_OVERRIDE;
     virtual bool setPrototypeOf(JSContext *cx, HandleObject proxy, HandleObject proto,
                                 bool *bp) const MOZ_OVERRIDE;
+    virtual bool setImmutablePrototype(JSContext *cx, HandleObject proxy,
+                                       bool *succeeded) const MOZ_OVERRIDE;
     virtual bool has(JSContext *cx, HandleObject proxy, HandleId id,
                      bool *bp) const MOZ_OVERRIDE;
     virtual bool get(JSContext *cx, HandleObject proxy, HandleObject receiver,

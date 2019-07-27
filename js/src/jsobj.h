@@ -352,13 +352,53 @@ class JSObject : public js::gc::Cell
     js::TaggedProto getTaggedProto() const {
         return type_->proto();
     }
+
     bool hasTenuredProto() const;
 
     bool uninlinedIsProxy() const;
+
     JSObject *getProto() const {
         MOZ_ASSERT(!uninlinedIsProxy());
         return getTaggedProto().toObjectOrNull();
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool hasLazyPrototype() const {
+        bool lazy = getTaggedProto().isLazy();
+        MOZ_ASSERT_IF(lazy, uninlinedIsProxy());
+        return lazy;
+    }
+
+    
+    
+    bool nonLazyPrototypeIsImmutable() const {
+        MOZ_ASSERT(!hasLazyPrototype());
+        return lastProperty()->hasObjectFlag(js::BaseShape::IMMUTABLE_PROTOTYPE);
+    }
+
+    
+    
+    
+    
+    static bool
+    setImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool *succeeded);
+
     static inline bool getProto(JSContext *cx, js::HandleObject obj,
                                 js::MutableHandleObject protop);
     

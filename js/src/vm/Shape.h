@@ -335,6 +335,7 @@ class BaseShape : public gc::TenuredCell
         ITERATED_SINGLETON  =  0x200,
         NEW_TYPE_UNKNOWN    =  0x400,
         UNCACHEABLE_PROTO   =  0x800,
+        IMMUTABLE_PROTOTYPE = 0x1000,
 
         
         
@@ -344,10 +345,10 @@ class BaseShape : public gc::TenuredCell
         
         
         
-        QUALIFIED_VAROBJ    = 0x1000,
-        UNQUALIFIED_VAROBJ  = 0x2000,
+        QUALIFIED_VAROBJ    = 0x2000,
+        UNQUALIFIED_VAROBJ  = 0x4000,
 
-        OBJECT_FLAG_MASK    = 0x3ff8
+        OBJECT_FLAG_MASK    = 0x7ff8
     };
 
   private:
