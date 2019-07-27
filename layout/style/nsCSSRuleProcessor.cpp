@@ -1087,14 +1087,9 @@ RuleCascadeData::AttributeListFor(nsIAtom* aAttribute)
 
 nsCSSRuleProcessor::nsCSSRuleProcessor(const sheet_array_type& aSheets,
                                        uint8_t aSheetType,
-                                       Element* aScopeElement,
-                                       nsCSSRuleProcessor*
-                                         aPreviousCSSRuleProcessor)
+                                       Element* aScopeElement)
   : mSheets(aSheets)
   , mRuleCascades(nullptr)
-  , mPreviousCacheKey(aPreviousCSSRuleProcessor
-                       ? aPreviousCSSRuleProcessor->CloneMQCacheKey()
-                       : nullptr)
   , mLastPresContext(nullptr)
   , mScopeElement(aScopeElement)
   , mSheetType(aSheetType)
@@ -2917,50 +2912,17 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
  bool
 nsCSSRuleProcessor::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
-  
-  
-  
-  
-  
-  
-  
-  MOZ_ASSERT(!(mRuleCascades && mPreviousCacheKey));
   RuleCascadeData *old = mRuleCascades;
+  
+  
+  
+  
+  
+  
   if (old) {
     RefreshRuleCascade(aPresContext);
-    return (old != mRuleCascades);
   }
-
-  if (mPreviousCacheKey) {
-    
-    
-    
-    
-    UniquePtr<nsMediaQueryResultCacheKey> previousCacheKey(
-      Move(mPreviousCacheKey));
-    RefreshRuleCascade(aPresContext);
-
-    
-    
-    
-    
-    
-    return !mRuleCascades || 
-           mRuleCascades->mCacheKey != *previousCacheKey;
-  }
-
-  return false;
-}
-
-UniquePtr<nsMediaQueryResultCacheKey>
-nsCSSRuleProcessor::CloneMQCacheKey()
-{
-  RuleCascadeData* c = mRuleCascades;
-  if (!c || !c->mCacheKey.HasFeatureConditions()) {
-    return nullptr;
-  }
-
-  return MakeUnique<nsMediaQueryResultCacheKey>(c->mCacheKey);
+  return (old != mRuleCascades);
 }
 
  size_t
@@ -3061,10 +3023,6 @@ nsCSSRuleProcessor::AppendFontFeatureValuesRules(
 nsresult
 nsCSSRuleProcessor::ClearRuleCascades()
 {
-  if (!mPreviousCacheKey) {
-    mPreviousCacheKey = CloneMQCacheKey();
-  }
-
   
   
   
@@ -3589,11 +3547,6 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
       return;
     }
   }
-
-  
-  
-  
-  mPreviousCacheKey = nullptr;
 
   if (mSheets.Length() != 0) {
     nsAutoPtr<RuleCascadeData> newCascade(

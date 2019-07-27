@@ -78,6 +78,7 @@ nsXBLPrototypeResources::FlushSkinSheets()
   
   
   
+  mRuleProcessor = nullptr;
 
   nsTArray<nsRefPtr<CSSStyleSheet>> oldSheets;
 
@@ -143,8 +144,7 @@ nsXBLPrototypeResources::GatherRuleProcessor()
 {
   mRuleProcessor = new nsCSSRuleProcessor(mStyleSheetList,
                                           nsStyleSet::eDocSheet,
-                                          nullptr,
-                                          mRuleProcessor);
+                                          nullptr);
 }
 
 void

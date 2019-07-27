@@ -4728,9 +4728,6 @@ nsIPresShell::ReconstructStyleDataExternal()
 void
 PresShell::RecordStyleSheetChange(nsIStyleSheet* aStyleSheet)
 {
-  
-  NS_ASSERTION(mUpdateCount != 0, "must be in an update");
-
   if (mStylesHaveChanged)
     return;
 

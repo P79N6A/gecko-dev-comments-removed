@@ -19,7 +19,6 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 #include "nsRuleWalker.h"
-#include "mozilla/UniquePtr.h"
 
 struct CascadeEnumData;
 struct nsCSSSelector;
@@ -52,12 +51,9 @@ public:
 
   
   
-  
-  
   nsCSSRuleProcessor(const sheet_array_type& aSheets,
                      uint8_t aSheetType,
-                     mozilla::dom::Element* aScopeElement,
-                     nsCSSRuleProcessor* aPreviousCSSRuleProcessor);
+                     mozilla::dom::Element* aScopeElement);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(nsCSSRuleProcessor)
@@ -123,12 +119,6 @@ public:
     HasAttributeDependentStyle(AttributeRuleProcessorData* aData) MOZ_OVERRIDE;
 
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext) MOZ_OVERRIDE;
-
-  
-
-
-
-  mozilla::UniquePtr<nsMediaQueryResultCacheKey> CloneMQCacheKey();
 
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
     const MOZ_MUST_OVERRIDE MOZ_OVERRIDE;
@@ -206,11 +196,6 @@ private:
 
   
   RuleCascadeData* mRuleCascades;
-
-  
-  
-  
-  mozilla::UniquePtr<nsMediaQueryResultCacheKey> mPreviousCacheKey;
 
   
   nsPresContext *mLastPresContext;
