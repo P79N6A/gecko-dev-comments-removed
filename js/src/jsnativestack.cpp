@@ -126,7 +126,15 @@ js::GetNativeStackBaseImpl()
         
         
         rc = -1;
-        FILE* fs = fopen("/proc/self/maps", "r");
+
+        
+        
+        
+        
+        
+        volatile char path[] = "/proc/self/maps";
+        FILE* fs = fopen((const char*)path, "r");
+
         if (fs) {
             char line[100];
             unsigned long stackAddr = (unsigned long)&sattr;
