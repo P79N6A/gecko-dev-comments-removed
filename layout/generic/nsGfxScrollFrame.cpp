@@ -3045,14 +3045,27 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
                                        Maybe<nsRect>* aClipRect,
                                        nsTArray<FrameMetrics>* aOutput) const
 {
+  if (!mShouldBuildScrollableLayer || mIsScrollableLayerInRootContainer) {
+    return;
+  }
+
+  bool needsParentLayerClip = true;
+  if (gfxPrefs::LayoutUseContainersForRootFrames() && !mAddClipRectToLayer) {
+    
+    needsParentLayerClip = false;
+  }
+
+  
+  
+  
+  if (aOutput->Length() > 0) {
+    needsParentLayerClip = false;
+  }
+
   nsPoint toReferenceFrame = mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
   bool isRoot = mIsRoot && mOuter->PresContext()->IsRootContentDocument();
-  
-  
-  
-  
-  bool omitClip = gfxPrefs::AsyncPanZoomEnabled() && aOutput->Length() > 0;
-  if (!omitClip && (!gfxPrefs::LayoutUseContainersForRootFrames() || mAddClipRectToLayer)) {
+
+  if (needsParentLayerClip) {
     nsRect clip = nsRect(mScrollPort.TopLeft() + toReferenceFrame,
                          nsLayoutUtils::CalculateCompositionSizeForFrame(mOuter));
     if (isRoot) {
@@ -3060,13 +3073,10 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
       clip.width = NSToCoordRound(clip.width / res);
       clip.height = NSToCoordRound(clip.height / res);
     }
+
     
     
     *aClipRect = Some(clip);
-  }
-
-  if (!mShouldBuildScrollableLayer || mIsScrollableLayerInRootContainer) {
-    return;
   }
 
   MOZ_ASSERT(mScrolledFrame->GetContent());
