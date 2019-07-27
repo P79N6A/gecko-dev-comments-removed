@@ -46,6 +46,7 @@ void PlatformThread::Sleep(int duration_ms) {
 
 
 void PlatformThread::SetName(const char* name) {
+#ifdef HAVE_SEH_EXCEPTIONS
   
   
   if (!::IsDebuggerPresent())
@@ -62,6 +63,7 @@ void PlatformThread::SetName(const char* name) {
                    reinterpret_cast<DWORD_PTR*>(&info));
   } MOZ_SEH_EXCEPT(EXCEPTION_CONTINUE_EXECUTION) {
   }
+#endif
 }
 
 
