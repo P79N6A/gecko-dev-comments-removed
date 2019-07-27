@@ -86,6 +86,8 @@ let gErrors = new Map();
 
 
 let MozLoopServiceInternal = {
+  callsData: {data: undefined},
+
   
   get loopServerUri() Services.prefs.getCharPref("loop.server"),
 
@@ -373,9 +375,22 @@ let MozLoopServiceInternal = {
     
     Services.prefs.setCharPref("loop.seenToS", "seen");
 
-    this.openChatWindow(null,
-                        this.localizedStrings["incoming_call_title2"].textContent,
-                        "about:loopconversation#incoming/" + version);
+    
+    this.hawkRequest("/calls?version=" + version, "GET").then(response => {
+      try {
+        let respData = JSON.parse(response.body);
+        if (respData.calls && respData.calls[0]) {
+          this.callsData.data = respData.calls[0];
+          this.openChatWindow(null,
+            this.localizedStrings["incoming_call_title2"].textContent,
+            "about:loopconversation#incoming/" + version);
+        } else {
+          console.warn("Error: missing calls[] in response");
+        }
+      } catch (err) {
+        console.warn("Error parsing calls info", err);
+      }
+    });
   },
 
   
@@ -875,6 +890,19 @@ this.MozLoopService = {
     } catch (ex) {
       return "en-US";
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+  getCallData: function(loopCallId) {
+    return MozLoopServiceInternal.callsData.data;
   },
 
   

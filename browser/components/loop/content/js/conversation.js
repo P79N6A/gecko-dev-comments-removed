@@ -157,7 +157,7 @@ loop.conversation = (function(OT, mozL10n) {
 
   var ConversationRouter = loop.desktopRouter.DesktopConversationRouter.extend({
     routes: {
-      "incoming/:version": "incoming",
+      "incoming/:callId": "incoming",
       "call/accept": "accept",
       "call/decline": "decline",
       "call/ongoing": "conversation",
@@ -185,9 +185,8 @@ loop.conversation = (function(OT, mozL10n) {
 
 
 
-    incoming: function(loopVersion) {
+    incoming: function(callId) {
       navigator.mozLoop.startAlerting();
-      this._conversation.set({loopVersion: loopVersion});
       this._conversation.once("accept", function() {
         this.navigate("call/accept", {trigger: true});
       }.bind(this));
@@ -201,24 +200,16 @@ loop.conversation = (function(OT, mozL10n) {
       this._conversation.once("change:publishedStream", this._checkConnected, this);
       this._conversation.once("change:subscribedStream", this._checkConnected, this);
 
-      this._client.requestCallsInfo(loopVersion, function(err, sessionData) {
-        if (err) {
-          console.error("Failed to get the sessionData", err);
-          
-          
-          this._notifications.errorL10n("cannot_start_call_session_not_ready");
-          return;
-        }
-
+      var callData = navigator.mozLoop.getCallData(callId);
+      if (!callData) {
+        console.error("Failed to get the call data");
         
         
-        
-        
-        
-        this._conversation.setIncomingSessionData(sessionData[0]);
-
-        this._setupWebSocketAndCallView();
-      }.bind(this));
+        this._notifications.errorL10n("cannot_start_call_session_not_ready");
+        return;
+      }
+      this._conversation.setIncomingSessionData(callData);
+      this._setupWebSocketAndCallView();
     },
 
     

@@ -187,39 +187,6 @@ loop.Client = (function($) {
         this._requestCallUrlInternal(nickname, cb);
       }.bind(this));
     },
-
-    
-
-
-
-
-
-
-
-    requestCallsInfo: function(version, cb) {
-      
-      
-      if (!version) {
-        throw new Error("missing required parameter version");
-      }
-
-      this.mozLoop.hawkRequest("/calls?version=" + version, "GET", null,
-                               function (error, responseText) {
-        if (error) {
-          this._failureHandler(cb, error);
-          return;
-        }
-
-        try {
-          var callsData = JSON.parse(responseText);
-
-          cb(null, this._validate(callsData, expectedCallProperties));
-        } catch (err) {
-          console.log("Error requesting calls info", err);
-          cb(err);
-        }
-      }.bind(this));
-    }
   };
 
   return Client;

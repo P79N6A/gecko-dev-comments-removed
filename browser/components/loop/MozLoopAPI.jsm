@@ -126,6 +126,23 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
+
+
+
+    getCallData: {
+      enumerable: true,
+      writable: true,
+      value: function(loopCallId) {
+        return Cu.cloneInto(MozLoopService.getCallData(loopCallId), targetWindow);
+      }
+    },
+
+    
+
+
+
+
     contacts: {
       enumerable: true,
       get: function() {
