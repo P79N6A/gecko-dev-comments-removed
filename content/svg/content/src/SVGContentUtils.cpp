@@ -159,7 +159,8 @@ void
 SVGContentUtils::GetStrokeOptions(AutoStrokeOptions* aStrokeOptions,
                                   nsSVGElement* aElement,
                                   nsStyleContext* aStyleContext,
-                                  gfxTextContextPaint *aContextPaint)
+                                  gfxTextContextPaint *aContextPaint,
+                                  StrokeOptionFlags aFlags)
 {
   nsRefPtr<nsStyleContext> styleContext;
   if (aStyleContext) {
@@ -176,17 +177,19 @@ SVGContentUtils::GetStrokeOptions(AutoStrokeOptions* aStrokeOptions,
 
   const nsStyleSVG* styleSVG = styleContext->StyleSVG();
 
-  DashState dashState =
-    GetStrokeDashData(aStrokeOptions, aElement, styleSVG, aContextPaint);
+  if (aFlags != eIgnoreStrokeDashing) {
+    DashState dashState =
+      GetStrokeDashData(aStrokeOptions, aElement, styleSVG, aContextPaint);
 
-  if (dashState == eNoStroke) {
-    
-    aStrokeOptions->mLineWidth = 0;
-    return;
-  }
-  if (dashState == eContinuousStroke && aStrokeOptions->mDashPattern) {
-    
-    aStrokeOptions->DiscardDashPattern();
+    if (dashState == eNoStroke) {
+      
+      aStrokeOptions->mLineWidth = 0;
+      return;
+    }
+    if (dashState == eContinuousStroke && aStrokeOptions->mDashPattern) {
+      
+      aStrokeOptions->DiscardDashPattern();
+    }
   }
 
   aStrokeOptions->mLineWidth =

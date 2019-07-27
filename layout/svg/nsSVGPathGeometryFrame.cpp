@@ -454,6 +454,9 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
     return bbox;
   }
 
+  nsSVGPathGeometryElement* element =
+    static_cast<nsSVGPathGeometryElement*>(mContent);
+
   RefPtr<DrawTarget> tmpDT;
 #ifdef XP_WIN
   
@@ -468,10 +471,25 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
 #else
   tmpDT = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
 #endif
-  nsRefPtr<gfxContext> tmpCtx = new gfxContext(tmpDT);
 
-  GeneratePath(tmpCtx, aToBBoxUserspace);
-  tmpCtx->SetMatrix(gfxMatrix());
+  FillRule fillRule = StyleSVG()->mFillRule == NS_STYLE_FILL_RULE_NONZERO
+                        ? FillRule::FILL_WINDING : FillRule::FILL_EVEN_ODD;
+  RefPtr<PathBuilder> builder = tmpDT->CreatePathBuilder(fillRule);
+  RefPtr<Path> pathInUserSpace = element->BuildPath(builder);
+  if (!pathInUserSpace) {
+    return bbox;
+  }
+  RefPtr<Path> pathInBBoxSpace;
+  if (aToBBoxUserspace.IsIdentity()) {
+    pathInBBoxSpace = pathInUserSpace;
+  } else {
+    builder =
+      pathInUserSpace->TransformedCopyToBuilder(aToBBoxUserspace, fillRule);
+    pathInBBoxSpace = builder->Finish();
+    if (!pathInBBoxSpace) {
+      return bbox;
+    }
+  }
 
   
   
@@ -485,35 +503,69 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
   
   
 
-  gfxRect pathExtents = tmpCtx->GetUserPathExtent();
+  Rect pathBBoxExtents = pathInBBoxSpace->GetBounds();
+  if (!pathBBoxExtents.IsFinite()) {
+    
+    
+    return bbox;
+  }
 
   
   if ((aFlags & nsSVGUtils::eBBoxIncludeFillGeometry) ||
       ((aFlags & nsSVGUtils::eBBoxIncludeFill) &&
        StyleSVG()->mFill.mType != eStyleSVGPaintType_None)) {
-    bbox = pathExtents;
+    bbox = pathBBoxExtents;
   }
 
   
   if ((aFlags & nsSVGUtils::eBBoxIncludeStrokeGeometry) ||
       ((aFlags & nsSVGUtils::eBBoxIncludeStroke) &&
        nsSVGUtils::HasStroke(this))) {
+#if 0
     
     
     
-    if (pathExtents.Width() <= 0 && pathExtents.Height() <= 0) {
-      
-      
-      
-      
-      
-      
-      pathExtents.MoveTo(tmpCtx->GetUserStrokeExtent().Center());
-      pathExtents.SizeTo(0, 0);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    SVGContentUtils::AutoStrokeOptions strokeOptions;
+    SVGContentUtils::GetStrokeOptions(&strokeOptions, element, StyleContext(),
+                                      nullptr, SVGContentUtils::eIgnoreStrokeDashing);
+    Rect strokeBBoxExtents;
+    gfxMatrix userToOuterSVG;
+    if (nsSVGUtils::GetNonScalingStrokeTransform(this, &userToOuterSVG)) {
+      Matrix outerSVGToUser = ToMatrix(userToOuterSVG);
+      outerSVGToUser.Invert();
+      Matrix outerSVGToBBox = aToBBoxUserspace * outerSVGToUser;
+      RefPtr<PathBuilder> builder =
+        pathInUserSpace->TransformedCopyToBuilder(ToMatrix(userToOuterSVG));
+      RefPtr<Path> pathInOuterSVGSpace = builder->Finish();
+      strokeBBoxExtents =
+        pathInOuterSVGSpace->GetStrokedBounds(strokeOptions, outerSVGToBBox);
+    } else {
+      strokeBBoxExtents =
+        pathInUserSpace->GetStrokedBounds(strokeOptions, aToBBoxUserspace);
     }
-    bbox.UnionEdges(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,
-                                                              this,
-                                                              ThebesMatrix(aToBBoxUserspace)));
+    MOZ_ASSERT(strokeBBoxExtents.IsFinite(), "bbox is about to go bad");
+    bbox.UnionEdges(strokeBBoxExtents);
+#else
+    
+    gfxRect strokeBBoxExtents =
+      nsSVGUtils::PathExtentsToMaxStrokeExtents(ThebesRect(pathBBoxExtents),
+                                                this,
+                                                ThebesMatrix(aToBBoxUserspace));
+    MOZ_ASSERT(ToRect(strokeBBoxExtents).IsFinite(), "bbox is about to go bad");
+    bbox.UnionEdges(strokeBBoxExtents);
+#endif
   }
 
   
@@ -543,6 +595,7 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
           SVGBBox mbbox =
             frame->GetMarkBBoxContribution(aToBBoxUserspace, aFlags, this,
                                            &marks[i], strokeWidth);
+          MOZ_ASSERT(mbbox.IsFinite(), "bbox is about to go bad");
           bbox.UnionEdges(mbbox);
         }
       }
