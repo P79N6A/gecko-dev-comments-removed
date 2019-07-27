@@ -252,7 +252,7 @@ this.ContentSearch = {
     controller.maxLocalResults = ok ? 2 : 6;
     controller.maxRemoteResults = ok ? 6 : 0;
     controller.remoteTimeout = data.remoteTimeout || undefined;
-    let priv = PrivateBrowsingUtils.isWindowPrivate(msg.target.contentWindow);
+    let priv = PrivateBrowsingUtils.isBrowserPrivate(msg.target);
     
     
     let suggestions = yield controller.fetch(data.searchString, priv, engine);
