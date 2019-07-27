@@ -1237,6 +1237,32 @@ function getTestDirFile(aRelPath) {
 }
 
 #ifdef XP_WIN
+function getSpecialFolderDir(aCSIDL) {
+  AUS_Cu.import("resource://gre/modules/ctypes.jsm");
+  let lib = ctypes.open("shell32");
+  let SHGetSpecialFolderPath = lib.declare("SHGetSpecialFolderPathW",
+                                           ctypes.winapi_abi,
+                                           ctypes.bool, 
+                                           ctypes.int32_t, 
+                                           ctypes.char16_t.ptr, 
+                                           ctypes.int32_t, 
+                                           ctypes.bool );
+
+  let aryPath = ctypes.char16_t.array()(260);
+  let rv = SHGetSpecialFolderPath(0, aryPath, aCSIDL, false);
+  lib.close();
+
+  let path = aryPath.readString(); 
+  if (!path) {
+    return null;
+  }
+  logTestInfo("SHGetSpecialFolderPath returned path: " + path);
+  let dir = AUS_Cc["@mozilla.org/file/local;1"].
+            createInstance(AUS_Ci.nsILocalFile);
+  dir.initWithPath(path);
+  return dir;
+}
+
 XPCOMUtils.defineLazyGetter(this, "gInstallDirPathHash",
                             function test_gInstallDirPathHash() {
   
@@ -1274,51 +1300,13 @@ XPCOMUtils.defineLazyGetter(this, "gInstallDirPathHash",
 XPCOMUtils.defineLazyGetter(this, "gLocalAppDataDir",
                             function test_gLocalAppDataDir() {
   const CSIDL_LOCAL_APPDATA = 0x1c;
-
-  AUS_Cu.import("resource://gre/modules/ctypes.jsm");
-  let lib = ctypes.open("shell32");
-  let SHGetSpecialFolderPath = lib.declare("SHGetSpecialFolderPathW",
-                                           ctypes.winapi_abi,
-                                           ctypes.bool, 
-                                           ctypes.int32_t, 
-                                           ctypes.char16_t.ptr, 
-                                           ctypes.int32_t, 
-                                           ctypes.bool );
-
-  let aryPathLocalAppData = ctypes.char16_t.array()(260);
-  let rv = SHGetSpecialFolderPath(0, aryPathLocalAppData, CSIDL_LOCAL_APPDATA, false);
-  lib.close();
-
-  let pathLocalAppData = aryPathLocalAppData.readString(); 
-  let updatesDir = AUS_Cc["@mozilla.org/file/local;1"].
-                   createInstance(AUS_Ci.nsILocalFile);
-  updatesDir.initWithPath(pathLocalAppData);
-  return updatesDir;
+  return getSpecialFolderDir(CSIDL_LOCAL_APPDATA);
 });
 
 XPCOMUtils.defineLazyGetter(this, "gProgFilesDir",
                             function test_gProgFilesDir() {
   const CSIDL_PROGRAM_FILES = 0x26;
-
-  AUS_Cu.import("resource://gre/modules/ctypes.jsm");
-  let lib = ctypes.open("shell32");
-  let SHGetSpecialFolderPath = lib.declare("SHGetSpecialFolderPathW",
-                                           ctypes.winapi_abi,
-                                           ctypes.bool, 
-                                           ctypes.int32_t, 
-                                           ctypes.char16_t.ptr, 
-                                           ctypes.int32_t, 
-                                           ctypes.bool );
-
-  let aryPathProgFiles = ctypes.char16_t.array()(260);
-  let rv = SHGetSpecialFolderPath(0, aryPathProgFiles, CSIDL_PROGRAM_FILES, false);
-  lib.close();
-
-  let pathProgFiles = aryPathProgFiles.readString(); 
-  let progFilesDir = AUS_Cc["@mozilla.org/file/local;1"].
-                     createInstance(AUS_Ci.nsILocalFile);
-  progFilesDir.initWithPath(pathProgFiles);
-  return progFilesDir;
+  return getSpecialFolderDir(CSIDL_PROGRAM_FILES);
 });
 
 
@@ -1339,7 +1327,7 @@ function getMockUpdRootD() {
                       "\\" + DIR_UPDATES + "\\" + gInstallDirPathHash;
   }
 
-  if (!relPathUpdates) {
+  if (!relPathUpdates && progFilesDir) {
     if (appDirPath.length > progFilesDir.path.length) {
       if (appDirPath.substr(0, progFilesDir.path.length) == progFilesDir.path) {
         if (MOZ_APP_VENDOR && MOZ_APP_BASENAME) {
@@ -1593,12 +1581,13 @@ function stageUpdate() {
 
 
 
-function shouldRunServiceTest(aFirstTest) {
-  
-  
-  
-  attemptServiceInstall();
 
+
+
+
+
+
+function shouldRunServiceTest(aFirstTest, aSkipTest) {
   let binDir = getGREDir();
   let updaterBin = binDir.clone();
   updaterBin.append(FILE_UPDATER_BIN);
@@ -1664,7 +1653,11 @@ function shouldRunServiceTest(aFirstTest) {
     do_throw("this test can only run on builds with signed binaries.");
   }
 #endif
-  return true;
+
+  
+  
+  
+  return attemptServiceInstall(aSkipTest);
 }
 
 
@@ -1865,26 +1858,85 @@ function copyFileToTestAppDir(aFileRelPath, aDestFileRelPath) {
 
 
 
-function attemptServiceInstall() {
-  var version = AUS_Cc["@mozilla.org/system-info;1"]
-                .getService(AUS_Ci.nsIPropertyBag2)
-                .getProperty("version");
-  var isVistaOrHigher = (parseFloat(version) >= 6.0);
-  if (isVistaOrHigher) {
-    return;
+
+
+
+
+
+
+
+function attemptServiceInstall(aSkipTest) {
+  const CSIDL_PROGRAM_FILES = 0x26;
+  const CSIDL_PROGRAM_FILESX86 = 0x2A;
+  
+  let maintSvcDir = getSpecialFolderDir(CSIDL_PROGRAM_FILESX86);
+  if (maintSvcDir) {
+    maintSvcDir.append("Mozilla Maintenance Service");
+    logTestInfo("using CSIDL_PROGRAM_FILESX86 - maintenance service install " +
+                "directory path: " + maintSvcDir.path);
+  }
+  if (!maintSvcDir || !maintSvcDir.exists()) {
+    maintSvcDir = getSpecialFolderDir(CSIDL_PROGRAM_FILES);
+    if (maintSvcDir) {
+      maintSvcDir.append("Mozilla Maintenance Service");
+      logTestInfo("using CSIDL_PROGRAM_FILES - maintenance service install " +
+                  "directory path: " + maintSvcDir.path);
+    }
+  }
+  if (!maintSvcDir || !maintSvcDir.exists()) {
+    do_throw("maintenance service install directory doesn't exist!");
+  }
+  let oldMaintSvcBin = maintSvcDir.clone();
+  oldMaintSvcBin.append(FILE_MAINTENANCE_SERVICE_BIN);
+  if (!oldMaintSvcBin.exists()) {
+    do_throw("maintenance service install directory binary doesn't exist! " +
+             "Path: " + oldMaintSvcBin.path);
+  }
+  let buildMaintSvcBin = getGREDir();
+  buildMaintSvcBin.append(FILE_MAINTENANCE_SERVICE_BIN);
+  if (readFileBytes(oldMaintSvcBin) == readFileBytes(buildMaintSvcBin)) {
+    logTestInfo("installed maintenance service binary is the same as the " +
+                "build's maintenance service binary");
+    return true;
+  }
+  let backupMaintSvcBin = maintSvcDir.clone();
+  backupMaintSvcBin.append(FILE_MAINTENANCE_SERVICE_BIN + ".backup");
+  try {
+    if (backupMaintSvcBin.exists()) {
+      backupMaintSvcBin.remove(false);
+    }
+    oldMaintSvcBin.moveTo(maintSvcDir, FILE_MAINTENANCE_SERVICE_BIN + ".backup");
+    buildMaintSvcBin.copyTo(maintSvcDir, FILE_MAINTENANCE_SERVICE_BIN);
+    backupMaintSvcBin.remove(false);
+    return true;
+  } catch (e) {
+    
+    if (backupMaintSvcBin.exists()) {
+      oldMaintSvcBin = maintSvcDir.clone();
+      oldMaintSvcBin.append(FILE_MAINTENANCE_SERVICE_BIN);
+      if (!oldMaintSvcBin.exists()) {
+        backupMaintSvcBin.moveTo(maintSvcDir, FILE_MAINTENANCE_SERVICE_BIN);
+      }
+    }
+    logTestInfo("unable to copy new maintenance service into the " +
+                "maintenance service directory: " + maintSvcDir.path + ", " +
+                "Exception: " + e);
   }
 
-  let binDir = getGREDir();
-  let installerFile = binDir.clone();
-  installerFile.append(FILE_MAINTENANCE_SERVICE_INSTALLER_BIN);
-  if (!installerFile.exists()) {
-    do_throw(FILE_MAINTENANCE_SERVICE_INSTALLER_BIN + " not found.");
+  let version = AUS_Cc["@mozilla.org/system-info;1"].
+                getService(AUS_Ci.nsIPropertyBag2).
+                getProperty("version");
+  var isWin7OrBelow = (parseFloat(version) <= 6.1);
+  
+  
+  
+  
+  if (isWin7OrBelow) {
+    do_throw("The account running the tests on Win 7 and below build systems " +
+             "should have write access to the maintenance service directory!");
   }
-  let installerProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                         createInstance(AUS_Ci.nsIProcess);
-  installerProcess.init(installerFile);
-  logTestInfo("starting installer process...");
-  installerProcess.run(true, [], 0);
+
+  return aSkipTest ? false : true;
 }
 
 
