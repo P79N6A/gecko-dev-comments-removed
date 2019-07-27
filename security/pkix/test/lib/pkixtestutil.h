@@ -66,6 +66,8 @@ public:
   }
 };
 
+bool InputEqualsByteString(Input input, const ByteString& bs);
+
 
 static const uint8_t tlv_id_kp_OCSPSigning[] = {
   0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x09
@@ -104,8 +106,111 @@ const ByteString md2WithRSAEncryption(alg_md2WithRSAEncryption,
 mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
                            int16_t hour, int16_t minutes, int16_t seconds);
 
-ByteString CNToDERName(const char* cn);
-bool InputEqualsByteString(Input input, const ByteString& bs);
+
+mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
+                           int16_t hour, int16_t minutes, int16_t seconds);
+
+ByteString TLV(uint8_t tag, const ByteString& value);
+
+ByteString CN(const ByteString&);
+
+inline ByteString
+CN(const char* value)
+{
+  return CN(ByteString(reinterpret_cast<const uint8_t*>(value),
+                       std::strlen(value)));
+}
+
+ByteString OU(const ByteString&);
+
+inline ByteString
+OU(const char* value)
+{
+  return OU(ByteString(reinterpret_cast<const uint8_t*>(value),
+                       std::strlen(value)));
+}
+
+
+
+
+ByteString RDN(const ByteString& avas);
+
+
+
+
+
+
+ByteString Name(const ByteString& rdns);
+
+inline ByteString
+CNToDERName(const ByteString& cn)
+{
+  return Name(RDN(CN(cn)));
+}
+
+inline ByteString
+CNToDERName(const char* cn)
+{
+  return Name(RDN(CN(cn)));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+inline ByteString
+RFC822Name(const ByteString& name)
+{
+  
+  return TLV((2 << 6) | 1, name);
+}
+
+template <size_t L>
+inline ByteString
+RFC822Name(const char (&bytes)[L])
+{
+  return RFC822Name(ByteString(reinterpret_cast<const uint8_t (&)[L]>(bytes),
+                               L - 1));
+}
+
+inline ByteString
+DNSName(const ByteString& name)
+{
+  
+  return TLV((2 << 6) | 2, name);
+}
+
+template <size_t L>
+inline ByteString
+DNSName(const char (&bytes)[L])
+{
+  return DNSName(ByteString(reinterpret_cast<const uint8_t (&)[L]>(bytes),
+                            L - 1));
+}
+
+template <size_t L>
+inline ByteString
+IPAddress(const uint8_t (&bytes)[L])
+{
+  
+  return TLV((2 << 6) | 7, ByteString(bytes, L));
+}
+
+
+
+
+
+
+
+ByteString CreateEncodedSubjectAltName(const ByteString& names);
+ByteString CreateEncodedEmptySubjectAltName();
 
 class TestKeyPair
 {

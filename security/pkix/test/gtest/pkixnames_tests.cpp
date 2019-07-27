@@ -21,10 +21,7 @@
 
 
 
-
-#include <cstring>
-
-#include "pkix/Input.h"
+#include "pkix/pkix.h"
 #include "pkixgtest.h"
 #include "pkixtestutil.h"
 
@@ -943,3 +940,531 @@ TEST_P(pkixnames_ParseIPv6Address, ParseIPv6Address)
 INSTANTIATE_TEST_CASE_P(pkixnames_ParseIPv6Address,
                         pkixnames_ParseIPv6Address,
                         testing::ValuesIn(IPV6_ADDRESSES));
+
+
+
+
+
+
+static const ByteString
+  NO_SAN(reinterpret_cast<const uint8_t*>("I'm a bad, bad, certificate"));
+
+struct CheckCertHostnameParams
+{
+  ByteString hostname;
+  ByteString subject;
+  ByteString subjectAltName;
+  Result result;
+};
+
+class pkixnames_CheckCertHostname
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<CheckCertHostnameParams>
+{
+};
+
+#define WITH_SAN(r, ps, psan, result) \
+  { \
+    ByteString(reinterpret_cast<const uint8_t*>(r), sizeof(r) - 1), \
+    ps, \
+    psan, \
+    result \
+  }
+
+#define WITHOUT_SAN(r, ps, result) \
+  { \
+    ByteString(reinterpret_cast<const uint8_t*>(r), sizeof(r) - 1), \
+    ps, \
+    NO_SAN, \
+    result \
+  }
+
+static const uint8_t example_com[] = {
+  'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm'
+};
+
+
+
+static const uint8_t ipv4_addr_bytes[] = {
+  1, 2, 3, 4
+};
+static const uint8_t ipv4_addr_bytes_as_str[] = "\0x01\x02\0x03\0x04";
+static const uint8_t ipv4_addr_str[] = "1.2.3.4";
+
+static const uint8_t ipv4_compatible_ipv6_addr_bytes[] = {
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+  1, 2, 3, 4
+};
+static const uint8_t ipv4_compatible_ipv6_addr_str[] = "::1.2.3.4";
+
+static const uint8_t ipv4_mapped_ipv6_addr_bytes[] = {
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+  0, 0, 0xFF, 0xFF,
+  1, 2, 3, 4
+};
+static const uint8_t ipv4_mapped_ipv6_addr_str[] = "::FFFF:1.2.3.4";
+
+static const uint8_t ipv6_addr_bytes[] = {
+  0x11, 0x22, 0x33, 0x44,
+  0x55, 0x66, 0x77, 0x88,
+  0x99, 0xaa, 0xbb, 0xcc,
+  0xdd, 0xee, 0xff, 0x11
+};
+static const uint8_t ipv6_addr_bytes_as_str[] =
+  "\0x11\0x22\0x33\0x44"
+  "\0x55\0x66\0x77\0x88"
+  "\0x99\0xaa\0xbb\0xcc"
+  "\0xdd\0xee\0xff\0x11";
+
+static const uint8_t ipv6_addr_str[] =
+  "1122:3344:5566:7788:99aa:bbcc:ddee:ff11";
+
+
+
+
+
+
+
+
+
+
+static const CheckCertHostnameParams CHECK_CERT_HOSTNAME_PARAMS[] =
+{
+  
+  WITH_SAN("a", RDN(CN("a")), DNSName("a"), Success),
+  
+  WITH_SAN("b", RDN(CN("a")), DNSName("b"), Success),
+  
+  WITH_SAN("a", RDN(CN("a")), DNSName("b"), Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITH_SAN("a", RDN(CN("a")), DNSName("!"), Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITH_SAN("a", RDN(CN("a")), IPAddress(ipv4_addr_bytes),
+           Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITH_SAN("a", RDN(CN("a")), IPAddress(example_com),
+           Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITH_SAN("a", RDN(CN("a")), RFC822Name("foo@example.com"), Success),
+  
+  WITHOUT_SAN("a", RDN(CN("a")), Success),
+  
+  WITHOUT_SAN("a", RDN(CN("b")), Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  WITH_SAN("a", RDN(CN("foo")), DNSName("a") + DNSName("b"), Success),
+  
+  WITH_SAN("b", RDN(CN("foo")), DNSName("a") + DNSName("b"), Success),
+  
+  WITH_SAN("b", RDN(CN("foo")),
+           DNSName("a") + DNSName("b") + DNSName("c"), Success),
+  
+  WITH_SAN("b", RDN(CN("foo")),
+           IPAddress(ipv4_addr_bytes) + DNSName("b"), Success),
+  
+  WITH_SAN("a", RDN(CN("foo")),
+           DNSName("a") + IPAddress(ipv4_addr_bytes), Success),
+  
+  WITH_SAN("b", RDN(CN("foo")),
+           RFC822Name("foo@example.com") + DNSName("b") +
+                                           IPAddress(ipv4_addr_bytes),
+           Success),
+  
+  WITH_SAN("a", RDN(CN("foo")), DNSName("a") + DNSName("a"), Success),
+  
+  WITH_SAN("b", RDN(CN("foo")), DNSName("!") + DNSName("b"), Success),
+
+  
+  
+  WITH_SAN("a", RDN(CN("a")), ByteString(), Result::ERROR_BAD_DER),
+
+  
+  
+  
+  
+  
+  
+  WITH_SAN("a", ByteString(), DNSName("a"), Success),
+  
+  WITHOUT_SAN("a", ByteString(), Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  WITHOUT_SAN("a", RDN(CN("a") + CN("a")), Success),
+  
+  WITHOUT_SAN("a", RDN(CN("a") + CN("b")),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITHOUT_SAN("b", RDN(CN("a") + CN("b")), Success),
+  
+  WITHOUT_SAN("a", RDN(CN("a") + CN("Not a DNSName")),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITHOUT_SAN("b", RDN(CN("Not a DNSName") + CN("b")), Success),
+
+  
+  WITHOUT_SAN("a", RDN(CN("a")) + RDN(CN("a")), Success),
+  
+  WITHOUT_SAN("a", RDN(CN("a")) + RDN(CN("b")),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITHOUT_SAN("b", RDN(CN("a")) + RDN(CN("b")), Success),
+  
+  WITHOUT_SAN("a", RDN(CN("a")) + RDN(CN("Not a DNSName")),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITHOUT_SAN("b", RDN(CN("Not a DNSName")) + RDN(CN("b")), Success),
+
+  
+  WITHOUT_SAN("a", RDN(CN("a") + OU("b")), Success),
+  
+  WITHOUT_SAN("b", RDN(CN("a") + OU("b")),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITHOUT_SAN("b", RDN(OU("a") + CN("b")), Success),
+  
+  WITHOUT_SAN("a", RDN(OU("a") + CN("b")),
+              Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  WITHOUT_SAN("a", RDN(CN("a")) + RDN(OU("b")), Success),
+  
+  WITHOUT_SAN("b", RDN(CN("a")) + RDN(OU("b")), Result::ERROR_BAD_CERT_DOMAIN),
+  
+  WITHOUT_SAN("b", RDN(OU("a")) + RDN(CN("b")), Success),
+  
+  WITHOUT_SAN("a", RDN(OU("a")) + RDN(CN("b")), Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  WITHOUT_SAN("b", RDN(OU("a") + CN("b") + OU("c")), Success),
+  
+  WITHOUT_SAN("b", RDN(OU("a")) + RDN(CN("b")) + RDN(OU("c")), Success),
+
+  
+  WITHOUT_SAN("example.com", RDN(CN("")), Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  WITH_SAN("example.com", RDN(CN("foo")), IPAddress(example_com),
+           Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  
+  
+  WITH_SAN("example.org", RDN(CN("foo")),
+           IPAddress(example_com) + DNSName("example.org"), Success),
+
+  
+  WITH_SAN("example.com", RDN(CN("foo")),
+           DNSName("!") + DNSName("example.com"), Success),
+
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN("foo")), IPAddress(ipv4_addr_bytes),
+           Success),
+  
+  WITHOUT_SAN(ipv4_addr_str, RDN(CN(ipv4_addr_str)), Success),
+  
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN(ipv4_addr_str)),
+           DNSName("example.com"), Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN(ipv4_addr_str)),
+           IPAddress(ipv6_addr_bytes), Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN(ipv4_addr_str)),
+           RFC822Name("foo@example.com"), Success),
+  
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN(ipv4_addr_str)),
+           IPAddress(example_com), Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN(ipv4_addr_str)),
+           DNSName("!"), Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  
+  WITHOUT_SAN(ipv6_addr_str, RDN(CN(ipv6_addr_str)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  WITH_SAN(ipv6_addr_str, RDN(CN(ipv6_addr_str)),
+           DNSName("example.com"), Result::ERROR_BAD_CERT_DOMAIN),
+  WITH_SAN(ipv6_addr_str, RDN(CN(ipv6_addr_str)),
+                          IPAddress(ipv6_addr_bytes), Success),
+  WITH_SAN(ipv6_addr_str, RDN(CN("foo")), IPAddress(ipv6_addr_bytes),
+           Success),
+
+  
+  
+  WITHOUT_SAN(ipv4_addr_str, RDN(CN(ipv4_addr_bytes_as_str)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  WITHOUT_SAN(ipv6_addr_str, RDN(CN(ipv6_addr_bytes_as_str)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN("foo")),
+           DNSName(ipv4_addr_bytes_as_str), Result::ERROR_BAD_CERT_DOMAIN),
+  WITH_SAN(ipv4_addr_str, RDN(CN("foo")), DNSName(ipv4_addr_str),
+           Result::ERROR_BAD_CERT_DOMAIN),
+  WITH_SAN(ipv6_addr_str, RDN(CN("foo")),
+           DNSName(ipv6_addr_bytes_as_str), Result::ERROR_BAD_CERT_DOMAIN),
+  WITH_SAN(ipv6_addr_str, RDN(CN("foo")), DNSName(ipv6_addr_str),
+           Result::ERROR_BAD_CERT_DOMAIN),
+
+  
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN("foo")),
+           IPAddress(ipv4_compatible_ipv6_addr_bytes),
+           Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITH_SAN(ipv4_addr_str, RDN(CN("foo")),
+           IPAddress(ipv4_mapped_ipv6_addr_bytes),
+           Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITH_SAN(ipv4_compatible_ipv6_addr_str, RDN(CN("foo")),
+           IPAddress(ipv4_addr_bytes), Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITH_SAN(ipv4_mapped_ipv6_addr_str, RDN(CN("foo")),
+           IPAddress(ipv4_addr_bytes),
+           Result::ERROR_BAD_CERT_DOMAIN),
+};
+
+ByteString
+CreateCert(const ByteString& subject, const ByteString& subjectAltName)
+{
+  ByteString serialNumber(CreateEncodedSerialNumber(1));
+  EXPECT_FALSE(ENCODING_FAILED(serialNumber));
+
+  ByteString issuerDER(Name(RDN(CN("issuer"))));
+  EXPECT_FALSE(ENCODING_FAILED(issuerDER));
+
+  ByteString extensions[2];
+  if (subjectAltName != NO_SAN) {
+    extensions[0] = CreateEncodedSubjectAltName(subjectAltName);
+    EXPECT_FALSE(ENCODING_FAILED(extensions[0]));
+  }
+
+  ScopedTestKeyPair keyPair(CloneReusedKeyPair());
+  return CreateEncodedCertificate(
+                    v3, sha256WithRSAEncryption, serialNumber, issuerDER,
+                    oneDayBeforeNow, oneDayAfterNow, Name(subject), *keyPair,
+                    extensions, *keyPair, sha256WithRSAEncryption);
+}
+
+TEST_P(pkixnames_CheckCertHostname, CheckCertHostname)
+{
+  const CheckCertHostnameParams& param(GetParam());
+
+  ByteString cert(CreateCert(param.subject, param.subjectAltName));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+
+  Input hostnameInput;
+  ASSERT_EQ(Success, hostnameInput.Init(param.hostname.data(),
+                                        param.hostname.length()));
+
+  ASSERT_EQ(param.result, CheckCertHostname(certInput, hostnameInput));
+}
+
+INSTANTIATE_TEST_CASE_P(pkixnames_CheckCertHostname,
+                        pkixnames_CheckCertHostname,
+                        testing::ValuesIn(CHECK_CERT_HOSTNAME_PARAMS));
+
+TEST_F(pkixnames_CheckCertHostname, SANWithoutSequence)
+{
+  
+  
+  
+
+  ByteString serialNumber(CreateEncodedSerialNumber(1));
+  EXPECT_FALSE(ENCODING_FAILED(serialNumber));
+
+  ByteString extensions[2];
+  extensions[0] = CreateEncodedEmptySubjectAltName();
+  ASSERT_FALSE(ENCODING_FAILED(extensions[0]));
+
+  ScopedTestKeyPair keyPair(CloneReusedKeyPair());
+  ByteString certDER(CreateEncodedCertificate(
+                       v3, sha256WithRSAEncryption, serialNumber,
+                       Name(RDN(CN("issuer"))), oneDayBeforeNow, oneDayAfterNow,
+                       Name(RDN(CN("a"))), *keyPair, extensions,
+                       *keyPair, sha256WithRSAEncryption));
+  ASSERT_FALSE(ENCODING_FAILED(certDER));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(certDER.data(), certDER.length()));
+
+  static const uint8_t a[] = { 'a' };
+  ASSERT_EQ(Result::ERROR_EXTENSION_VALUE_INVALID,
+            CheckCertHostname(certInput, Input(a)));
+}
+
+class pkixnames_CheckCertHostname_PresentedMatchesReference
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<PresentedMatchesReference>
+{
+};
+
+TEST_P(pkixnames_CheckCertHostname_PresentedMatchesReference, CN_NoSAN)
+{
+  
+  
+
+  const PresentedMatchesReference& param(GetParam());
+
+  ByteString cert(CreateCert(RDN(CN(param.presentedDNSID)), NO_SAN));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+
+  Input hostnameInput;
+  ASSERT_EQ(Success, hostnameInput.Init(param.referenceDNSID.data(),
+                                        param.referenceDNSID.length()));
+
+  ASSERT_EQ(param.matches ? Success : Result::ERROR_BAD_CERT_DOMAIN,
+            CheckCertHostname(certInput, hostnameInput));
+}
+
+TEST_P(pkixnames_CheckCertHostname_PresentedMatchesReference,
+       SubjectAltName_CNNotDNSName)
+{
+  
+  
+
+  const PresentedMatchesReference& param(GetParam());
+
+  ByteString cert(CreateCert(RDN(CN("Common Name")),
+                             DNSName(param.presentedDNSID)));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+
+  Input hostnameInput;
+  ASSERT_EQ(Success, hostnameInput.Init(param.referenceDNSID.data(),
+                                        param.referenceDNSID.length()));
+
+  ASSERT_EQ(param.matches ? Success : Result::ERROR_BAD_CERT_DOMAIN,
+            CheckCertHostname(certInput, hostnameInput));
+}
+
+INSTANTIATE_TEST_CASE_P(pkixnames_CheckCertHostname_DNSID_MATCH_PARAMS,
+                        pkixnames_CheckCertHostname_PresentedMatchesReference,
+                        testing::ValuesIn(DNSID_MATCH_PARAMS));
+
+TEST_P(pkixnames_Turkish_I_Comparison, CheckCertHostname_CN_NoSAN)
+{
+  
+  
+  
+
+  const InputValidity& param(GetParam());
+  SCOPED_TRACE(param.input.c_str());
+
+  Input input;
+  ASSERT_EQ(Success, input.Init(param.input.data(), param.input.length()));
+
+  ByteString cert(CreateCert(RDN(CN(param.input)), NO_SAN));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+
+  Result expectedResult = (InputsAreEqual(LOWERCASE_I, input) ||
+                           InputsAreEqual(UPPERCASE_I, input))
+                        ? Success
+                        : Result::ERROR_BAD_CERT_DOMAIN;
+
+  ASSERT_EQ(expectedResult, CheckCertHostname(certInput, UPPERCASE_I));
+  ASSERT_EQ(expectedResult, CheckCertHostname(certInput, LOWERCASE_I));
+}
+
+TEST_P(pkixnames_Turkish_I_Comparison, CheckCertHostname_SAN)
+{
+  
+  
+  
+
+  const InputValidity& param(GetParam());
+  SCOPED_TRACE(param.input.c_str());
+
+  Input input;
+  ASSERT_EQ(Success, input.Init(param.input.data(), param.input.length()));
+
+  ByteString cert(CreateCert(RDN(CN("Common Name")), DNSName(param.input)));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+
+  Result expectedResult = (InputsAreEqual(LOWERCASE_I, input) ||
+                           InputsAreEqual(UPPERCASE_I, input))
+                        ? Success
+                        : Result::ERROR_BAD_CERT_DOMAIN;
+
+  ASSERT_EQ(expectedResult, CheckCertHostname(certInput, UPPERCASE_I));
+  ASSERT_EQ(expectedResult, CheckCertHostname(certInput, LOWERCASE_I));
+}
+
+class pkixnames_CheckCertHostname_IPV4_Addresses
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<IPAddressParams<4>>
+{
+};
+
+TEST_P(pkixnames_CheckCertHostname_IPV4_Addresses,
+       ValidIPv4AddressInIPAddressSAN)
+{
+  
+  
+
+  const IPAddressParams<4>& param(GetParam());
+
+  ByteString cert(CreateCert(RDN(CN("Common Name")),
+                             IPAddress(param.expectedValueIfValid)));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+
+  Input hostnameInput;
+  ASSERT_EQ(Success, hostnameInput.Init(param.input.data(),
+                                        param.input.length()));
+
+  ASSERT_EQ(param.isValid ? Success : Result::ERROR_BAD_CERT_DOMAIN,
+            CheckCertHostname(certInput, hostnameInput));
+}
+
+TEST_P(pkixnames_CheckCertHostname_IPV4_Addresses,
+       ValidIPv4AddressInCN_NoSAN)
+{
+  
+  
+
+  const IPAddressParams<4>& param(GetParam());
+
+  SCOPED_TRACE(param.input.c_str());
+
+  ByteString cert(CreateCert(RDN(CN(param.input)), NO_SAN));
+  ASSERT_FALSE(ENCODING_FAILED(cert));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
+
+  Input hostnameInput;
+  ASSERT_EQ(Success, hostnameInput.Init(param.input.data(),
+                                        param.input.length()));
+
+  
+  Result expectedResult = (param.isValid || IsValidDNSName(hostnameInput))
+                        ? Success
+                        : Result::ERROR_BAD_CERT_DOMAIN;
+
+  ASSERT_EQ(expectedResult, CheckCertHostname(certInput, hostnameInput));
+}
+
+INSTANTIATE_TEST_CASE_P(pkixnames_CheckCertHostname_IPV4_ADDRESSES,
+                        pkixnames_CheckCertHostname_IPV4_Addresses,
+                        testing::ValuesIn(IPV4_ADDRESSES));
+
