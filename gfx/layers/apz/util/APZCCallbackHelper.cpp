@@ -163,18 +163,35 @@ SetDisplayPortMargins(nsIPresShell* aPresShell,
   nsLayoutUtils::SetDisplayPortBaseIfNotSet(aContent, base);
 }
 
-void
-APZCCallbackHelper::UpdateRootFrame(nsIPresShell* aPresShell,
-                                    FrameMetrics& aMetrics)
+static already_AddRefed<nsIPresShell>
+GetPresShell(const nsIContent* aContent)
 {
-  
-  MOZ_ASSERT(aPresShell);
-  MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
+  nsCOMPtr<nsIPresShell> result;
+  if (nsIDocument* doc = aContent->GetComposedDoc()) {
+    result = doc->GetShell();
+  }
+  return result.forget();
+}
+
+void
+APZCCallbackHelper::UpdateRootFrame(FrameMetrics& aMetrics)
+{
   if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
     return;
   }
+  nsIContent* content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
+  if (!content) {
+    return;
+  }
 
-  float presShellResolution = nsLayoutUtils::GetResolution(aPresShell);
+  nsCOMPtr<nsIPresShell> shell = GetPresShell(content);
+  if (!shell) {
+    return;
+  }
+
+  MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
+
+  float presShellResolution = nsLayoutUtils::GetResolution(shell);
 
   
   
@@ -194,30 +211,19 @@ APZCCallbackHelper::UpdateRootFrame(nsIPresShell* aPresShell,
   
   
   CSSSize scrollPort = aMetrics.CalculateCompositedSizeInCssPixels();
-  nsLayoutUtils::SetScrollPositionClampingScrollPortSize(aPresShell, scrollPort);
+  nsLayoutUtils::SetScrollPositionClampingScrollPortSize(shell, scrollPort);
 
   
   
   presShellResolution = aMetrics.GetPresShellResolution()
                       * aMetrics.GetAsyncZoom().scale;
-  nsLayoutUtils::SetResolutionAndScaleTo(aPresShell, presShellResolution);
+  nsLayoutUtils::SetResolutionAndScaleTo(shell, presShellResolution);
 
   
   
-  nsIContent* content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
   ScrollFrame(content, aMetrics);
 
-  SetDisplayPortMargins(aPresShell, content, aMetrics);
-}
-
-static already_AddRefed<nsIPresShell>
-GetPresShell(const nsIContent* aContent)
-{
-  nsCOMPtr<nsIPresShell> result;
-  if (nsIDocument* doc = aContent->GetComposedDoc()) {
-    result = doc->GetShell();
-  }
-  return result.forget();
+  SetDisplayPortMargins(shell, content, aMetrics);
 }
 
 void
