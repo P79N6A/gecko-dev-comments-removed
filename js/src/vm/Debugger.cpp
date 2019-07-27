@@ -604,7 +604,7 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool frame
     
     
     
-    if (!cx->isThrowingOverRecursed()) {
+    if (!cx->isThrowingOverRecursed() && !cx->isThrowingOutOfMemory()) {
         
         AutoObjectVector frames(cx);
         for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
@@ -731,7 +731,7 @@ Debugger::slowPathOnExceptionUnwind(JSContext *cx, AbstractFramePtr frame)
 {
     
     
-    if (cx->isThrowingOverRecursed())
+    if (cx->isThrowingOverRecursed() || cx->isThrowingOutOfMemory())
         return JSTRAP_CONTINUE;
 
     RootedValue rval(cx);
