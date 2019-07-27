@@ -641,12 +641,13 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
 
     public static final String MEASUREMENT_NAME_SEARCH_COUNTS = "org.mozilla.searches.counts";
-    public static final int MEASUREMENT_VERSION_SEARCH_COUNTS = 5;
+    public static final int MEASUREMENT_VERSION_SEARCH_COUNTS = 6;
 
     public static final Set<String> SEARCH_LOCATIONS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(new String[] {
-        "barkeyword",
-        "barsuggest",
-        "bartext",
+        "barkeyword",    
+        "barsuggest",    
+        "bartext",       
+        "activity",      
     })));
 
     void initializeSearchProvider() {
