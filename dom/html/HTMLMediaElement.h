@@ -550,6 +550,7 @@ public:
   
   already_AddRefed<nsIPrincipal> GetTopLevelPrincipal();
 
+  bool ContainsRestrictedContent();
 #endif 
 
   bool MozAutoplayEnabled() const
