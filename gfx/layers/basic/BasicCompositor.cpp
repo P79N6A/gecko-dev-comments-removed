@@ -391,13 +391,18 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
                             gfx::Rect *aClipRectOut ,
                             gfx::Rect *aRenderBoundsOut )
 {
-  mWidgetSize = mWidget->GetClientSize();
-  IntRect intRect = gfx::IntRect(IntPoint(), mWidgetSize);
+  nsIntRect intRect;
+  mWidget->GetClientBounds(intRect);
+  mWidgetSize = gfx::ToIntSize(intRect.Size());
+
+  
+  
+  intRect.MoveTo(0, 0);
   Rect rect = Rect(0, 0, intRect.width, intRect.height);
 
   
   nsIntRegion invalidRegionSafe;
-  invalidRegionSafe.And(aInvalidRegion, gfx::ThebesIntRect(intRect));
+  invalidRegionSafe.And(aInvalidRegion, intRect);
 
   nsIntRect invalidRect = invalidRegionSafe.GetBounds();
   mInvalidRect = IntRect(invalidRect.x, invalidRect.y, invalidRect.width, invalidRect.height);
