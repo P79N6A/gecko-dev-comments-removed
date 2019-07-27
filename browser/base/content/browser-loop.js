@@ -369,7 +369,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       this._maybeShowBrowserSharingInfoBar();
 
       
-      listener(null, gBrowser.selectedTab.linkedBrowser.outerWindowID);
+      listener(null, gBrowser.selectedBrowser.outerWindowID);
     },
 
     
@@ -463,7 +463,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
 
     _hideBrowserSharingInfoBar: function(permanently = false, browser) {
-      browser = browser || gBrowser.selectedTab.linkedBrowser;
+      browser = browser || gBrowser.selectedBrowser;
       let box = gBrowser.getNotificationBox(browser);
       let notification = box.getNotificationWithValue(kBrowserSharingNotificationId);
       let removed = false;
@@ -497,7 +497,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       
       for (let listener of this._tabChangeListeners) {
         try {
-          listener(null, gBrowser.selectedTab.linkedBrowser.outerWindowID);
+          listener(null, gBrowser.selectedBrowser.outerWindowID);
         } catch (ex) {
           Cu.reportError("Tab switch caused an error: " + ex.message);
         }
