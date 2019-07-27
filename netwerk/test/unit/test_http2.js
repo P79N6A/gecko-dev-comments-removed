@@ -508,6 +508,12 @@ function test_http2_retry_rst() {
   chan.asyncOpen(listener, null);
 }
 
+function test_complete() {
+  resetPrefs();
+  do_test_finished();
+  do_timeout(0,run_next_test);
+}
+
 
 
 
@@ -533,6 +539,9 @@ var tests = [ test_http2_post_big
             , test_http2_h11required_stream
             , test_http2_h11required_session
             , test_http2_retry_rst
+
+            
+            , test_complete
             ];
 var current_test = 0;
 
@@ -621,7 +630,7 @@ function resetPrefs() {
 function run_test() {
   
   do_get_profile();
-  var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+  prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
   var oldPref = prefs.getIntPref("network.http.speculative-parallel-limit");
   prefs.setIntPref("network.http.speculative-parallel-limit", 0);
 
