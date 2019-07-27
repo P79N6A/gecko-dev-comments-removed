@@ -136,12 +136,6 @@ pref("dom.workers.sharedWorkers.enabled", true);
 pref("dom.serviceWorkers.enabled", false);
 
 
-pref("dom.serviceWorkers.interception.enabled", false);
-
-
-pref("dom.serviceWorkers.interception.opaque.enabled", false);
-
-
 pref("dom.enable_performance", true);
 
 
