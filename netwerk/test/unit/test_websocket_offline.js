@@ -35,6 +35,12 @@ function run_test() {
   try {
     chan = Cc["@mozilla.org/network/protocol;1?name=ws"].
       createInstance(Components.interfaces.nsIWebSocketChannel);
+    chan.initLoadInfo(null, 
+                      Services.scriptSecurityManager.getSystemPrincipal(),
+                      null, 
+                      Ci.nsILoadInfo.SEC_NORMAL,
+                      Ci.nsIContentPolicy.TYPE_WEBSOCKET);
+
     var uri = Services.io.newURI(url, null, null);
     chan.asyncOpen(uri, url, listener, null);
     do_test_pending();

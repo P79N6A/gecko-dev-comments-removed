@@ -2,6 +2,8 @@
 
 
 
+Cu.import("resource://gre/modules/Services.jsm");
+
 var ioService = Cc["@mozilla.org/network/io-service;1"].
   getService(Ci.nsIIOService);
 
@@ -61,6 +63,13 @@ function run_test() {
   prefs.setBoolPref("network.proxy.socks_remote_dns", true);
   var chan = Cc["@mozilla.org/network/protocol;1?name=ws"].
     createInstance(Components.interfaces.nsIWebSocketChannel);
+
+  chan.initLoadInfo(null, 
+                    Services.scriptSecurityManager.getSystemPrincipal(),
+                    null, 
+                    Ci.nsILoadInfo.SEC_NORMAL,
+                    Ci.nsIContentPolicy.TYPE_WEBSOCKET);
+
   var uri = ioService.newURI(url, null, null);
   chan.asyncOpen(uri, url, listener, null);
   do_test_pending();
