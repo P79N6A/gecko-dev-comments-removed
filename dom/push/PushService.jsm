@@ -217,8 +217,8 @@ this.PushDB.prototype = {
       function txnCb(aTxn, aStore) {
         aStore.clear();
       },
-      aSuccessCb(),
-      aErrorCb()
+      aSuccessCb,
+      aErrorCb
     );
   }
 };
@@ -495,7 +495,7 @@ this.PushService = {
     this._ws.sendMsg(msg);
   },
 
-  init: function() {
+  init: function(options = {}) {
     debug("init()");
     if (this._started) {
       return;
@@ -503,12 +503,35 @@ this.PushService = {
     if (!prefs.get("enabled"))
         return null;
 
+    
+    this._db = options.db;
+    if (!this._db) {
+      this._db = new PushDB();
+    }
+
+    
+    
+    
+    if (options.makeWebSocket) {
+      this._makeWebSocket = options.makeWebSocket;
+    }
+
+    
+    
+    
+    if (options.makeUDPSocket) {
+      this._makeUDPSocket = options.makeUDPSocket;
+    }
+
+    this._networkInfo = options.networkInfo;
+    if (!this._networkInfo) {
+      this._networkInfo = PushNetworkInfo;
+    }
+
     var globalMM = Cc["@mozilla.org/globalmessagemanager;1"]
                .getService(Ci.nsIFrameScriptLoader);
 
     globalMM.loadFrameScript("chrome://global/content/PushServiceChildPreload.js", true);
-
-    this._db = new PushDB();
 
     let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
                  .getService(Ci.nsIMessageBroadcaster);
@@ -546,7 +569,8 @@ this.PushService = {
     
     
     
-    Services.obs.addObserver(this, this._getNetworkStateChangeEventName(), false);
+    this._networkStateChangeEventName = this._networkInfo.getNetworkStateChangeEventName();
+    Services.obs.addObserver(this, this._networkStateChangeEventName, false);
 
     
     
@@ -585,7 +609,7 @@ this.PushService = {
     prefs.ignore("debug", this);
     prefs.ignore("connection.enabled", this);
     prefs.ignore("serverURL", this);
-    Services.obs.removeObserver(this, this._getNetworkStateChangeEventName());
+    Services.obs.removeObserver(this, this._networkStateChangeEventName);
     Services.obs.removeObserver(this, "webapps-clear-data", false);
     Services.obs.removeObserver(this, "xpcom-shutdown", false);
 
@@ -699,7 +723,7 @@ this.PushService = {
     }
 
     
-    let ns = this._getNetworkInformation();
+    let ns = this._networkInfo.getNetworkInformation();
 
     if (ns.ip) {
       
@@ -817,27 +841,7 @@ this.PushService = {
     }
   },
 
-  _beginWSSetup: function() {
-    debug("beginWSSetup()");
-    if (this._currentState != STATE_SHUT_DOWN) {
-      debug("_beginWSSetup: Not in shutdown state! Current state " +
-            this._currentState);
-      return;
-    }
-
-    if (!prefs.get("connection.enabled")) {
-      debug("_beginWSSetup: connection.enabled is not set to true. Aborting.");
-      return;
-    }
-
-    
-    this._stopAlarm();
-
-    if (Services.io.offline) {
-      debug("Network is offline.");
-      return;
-    }
-
+  _getServerURI: function() {
     let serverURL = prefs.get("serverURL");
     if (!serverURL) {
       debug("No dom.push.serverURL found!");
@@ -852,25 +856,60 @@ this.PushService = {
             serverURL + ")");
       return;
     }
+    return uri;
+  },
 
+  _makeWebSocket: function(uri) {
+    if (!prefs.get("connection.enabled")) {
+      debug("_makeWebSocket: connection.enabled is not set to true. Aborting.");
+      return;
+    }
+
+    if (Services.io.offline) {
+      debug("Network is offline.");
+      return;
+    }
+
+    let socket;
     if (uri.scheme === "wss") {
-      this._ws = Cc["@mozilla.org/network/protocol;1?name=wss"]
-                   .createInstance(Ci.nsIWebSocketChannel);
+      socket = Cc["@mozilla.org/network/protocol;1?name=wss"]
+                 .createInstance(Ci.nsIWebSocketChannel);
 
-      this._ws.initLoadInfo(null, 
-                            Services.scriptSecurityManager.getSystemPrincipal(),
-                            null, 
-                            Ci.nsILoadInfo.SEC_NORMAL,
-                            Ci.nsIContentPolicy.TYPE_WEBSOCKET);
+      socket.initLoadInfo(null, 
+                          Services.scriptSecurityManager.getSystemPrincipal(),
+                          null, 
+                          Ci.nsILoadInfo.SEC_NORMAL,
+                          Ci.nsIContentPolicy.TYPE_WEBSOCKET);
     }
     else if (uri.scheme === "ws") {
       debug("Push over an insecure connection (ws://) is not allowed!");
-      return;
     }
     else {
       debug("Unsupported websocket scheme " + uri.scheme);
+    }
+    return socket;
+  },
+
+  _beginWSSetup: function() {
+    debug("beginWSSetup()");
+    if (this._currentState != STATE_SHUT_DOWN) {
+      debug("_beginWSSetup: Not in shutdown state! Current state " +
+            this._currentState);
       return;
     }
+
+    
+    this._stopAlarm();
+
+    let uri = this._getServerURI();
+    if (!uri) {
+      return;
+    }
+    let socket = this._makeWebSocket(uri);
+    if (!socket) {
+      return;
+    }
+    this._ws = socket.QueryInterface(Ci.nsIWebSocketChannel);
 
     debug("serverURL: " + uri.spec);
     this._wsListener = new PushWebSocketListener(this);
@@ -879,7 +918,7 @@ this.PushService = {
     try {
       
       
-      this._ws.asyncOpen(uri, serverURL, this._wsListener, null);
+      this._ws.asyncOpen(uri, uri.spec, this._wsListener, null);
       this._acquireWakeLock();
       this._currentState = STATE_WAITING_FOR_WS_START;
     } catch(e) {
@@ -1031,7 +1070,7 @@ this.PushService = {
                         
                         
                         this._requestTimeout + 1000,
-                        Ci.nsITimer.ONE_SHOT);
+                        Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   _releaseWakeLock: function() {
@@ -1654,7 +1693,7 @@ this.PushService = {
       this._currentState = STATE_WAITING_FOR_HELLO;
     }
 
-    this._getNetworkState((networkState) => {
+    this._networkInfo.getNetworkState((networkState) => {
       if (networkState.ip) {
         
         this._listenForUDPWakeup();
@@ -1796,6 +1835,11 @@ this.PushService = {
     }
   },
 
+  _makeUDPSocket: function() {
+    return Cc["@mozilla.org/network/udp-socket;1"]
+             .createInstance(Ci.nsIUDPSocket);
+  },
+
   
 
 
@@ -1812,9 +1856,12 @@ this.PushService = {
       return;
     }
 
-    this._udpServer = Cc["@mozilla.org/network/udp-socket;1"]
-                        .createInstance(Ci.nsIUDPSocket);
-    this._udpServer.init(-1, false);
+    let socket = this._makeUDPSocket();
+    if (!socket) {
+      return;
+    }
+    this._udpServer = socket.QueryInterface(Ci.nsIUDPSocket);
+    this._udpServer.init(-1, false, Services.scriptSecurityManager.getSystemPrincipal());
     this._udpServer.asyncListen(this);
     debug("listenForUDPWakeup listening on " + this._udpServer.port);
 
@@ -1840,12 +1887,14 @@ this.PushService = {
     debug("UDP Server socket was shutdown. Status: " + aStatus);
     this._udpServer = undefined;
     this._beginWSSetup();
-  },
+  }
+};
 
+let PushNetworkInfo = {
   
 
 
-  _getNetworkInformation: function() {
+  getNetworkInformation: function() {
     debug("getNetworkInformation()");
 
     try {
@@ -1896,14 +1945,14 @@ this.PushService = {
 
 
 
-  _getNetworkState: function(callback) {
+  getNetworkState: function(callback) {
     debug("getNetworkState()");
 
     if (typeof callback !== 'function') {
       throw new Error("No callback method. Aborting push agent !");
     }
 
-    var networkInfo = this._getNetworkInformation();
+    var networkInfo = this.getNetworkInformation();
 
     if (networkInfo.ip) {
       this._getMobileNetworkId(networkInfo, function(netid) {
@@ -1921,7 +1970,7 @@ this.PushService = {
   },
 
   
-  _getNetworkStateChangeEventName: function() {
+  getNetworkStateChangeEventName: function() {
     try {
       Cc["@mozilla.org/network/manager;1"].getService(Ci.nsINetworkManager);
       return "network-active-changed";
