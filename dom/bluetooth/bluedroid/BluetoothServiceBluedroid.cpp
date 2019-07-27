@@ -2287,6 +2287,11 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
     };
 
     
+    if (sAdapterDiscoverable) {
+      sAdapterDiscoverable = false;
+    }
+
+    
     nsRefPtr<ProfileDeinitResultHandler> res =
       new ProfileDeinitResultHandler(MOZ_ARRAY_LENGTH(sDeinitManager));
 
@@ -2369,11 +2374,16 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
       BT_APPEND_NAMED_VALUE(propertiesArray, "Name", sAdapterBdName);
 
     } else if (p.mType == PROPERTY_ADAPTER_SCAN_MODE) {
-      sAdapterDiscoverable =
-        (p.mScanMode == SCAN_MODE_CONNECTABLE_DISCOVERABLE);
-      BT_APPEND_NAMED_VALUE(propertiesArray, "Discoverable",
-                            sAdapterDiscoverable);
 
+      
+      
+      
+      if (IsEnabled()) {
+        sAdapterDiscoverable =
+          (p.mScanMode == SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+        BT_APPEND_NAMED_VALUE(propertiesArray, "Discoverable",
+                              sAdapterDiscoverable);
+      }
     } else if (p.mType == PROPERTY_ADAPTER_BONDED_DEVICES) {
       
       
@@ -2429,7 +2439,10 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
     } else if (p.mType == PROPERTY_ADAPTER_SCAN_MODE) {
       BluetoothScanMode newMode = p.mScanMode;
 
-      if (newMode == SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+      
+      
+      
+      if (newMode == SCAN_MODE_CONNECTABLE_DISCOVERABLE && IsEnabled()) {
         propertyValue = sAdapterDiscoverable = true;
       } else {
         propertyValue = sAdapterDiscoverable = false;
@@ -2477,7 +2490,6 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
                                    BluetoothValue(props)));
 
   
-
   if (!sSetPropertyRunnableArray.IsEmpty()) {
     DispatchBluetoothReply(sSetPropertyRunnableArray[0],
                            BluetoothValue(true), EmptyString());
