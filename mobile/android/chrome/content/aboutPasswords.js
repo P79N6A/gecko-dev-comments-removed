@@ -17,10 +17,7 @@ XPCOMUtils.defineLazyGetter(window, "gChromeWin", function()
     .getInterface(Ci.nsIDOMWindow)
     .QueryInterface(Ci.nsIDOMChromeWindow));
 
-XPCOMUtils.defineLazyModuleGetter(this, "Prompt",
-                                  "resource:
-
-let debug = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog.d.bind(null, "AboutPasswords");
+let debug = Cu.import("resource:
 
 let gStringBundle = Services.strings.createBundle("chrome://browser/locale/aboutPasswords.properties");
 
@@ -128,33 +125,9 @@ let Passwords = {
 
     loginItem.setAttribute("loginID", login.guid);
     loginItem.className = "login-item list-item";
-
     loginItem.addEventListener("click", () => {
-      let prompt = new Prompt({
-        window: window,
-      });
-      let menuItems = [
-        { label: gStringBundle.GetStringFromName("passwordsMenu.copyPassword") },
-        { label: gStringBundle.GetStringFromName("passwordsMenu.copyUsername") },
-        { label: gStringBundle.GetStringFromName("passwordsMenu.details") } ];
-
-      prompt.setSingleChoiceItems(menuItems);
-      prompt.show((data) => {
-        
-        switch (data.button) {
-          case 0:
-            copyStringAndToast(login.password, gStringBundle.GetStringFromName("passwordsDetails.passwordCopied"));
-            break;
-          case 1:
-            copyStringAndToast(login.username, gStringBundle.GetStringFromName("passwordsDetails.usernameCopied"));
-            break;
-          case 2:
-            this._showDetails(loginItem);
-            history.pushState({ id: login.guid }, document.title);
-            break;
-        }
-      });
-
+      this._showDetails(loginItem);
+      history.pushState({ id: login.guid }, document.title);
     }, true);
 
     
