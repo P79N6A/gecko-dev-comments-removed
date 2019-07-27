@@ -12,21 +12,20 @@
 #include "DecodePool.h"
 #include "ImageMetadata.h"
 #include "Orientation.h"
+#include "SourceBuffer.h"
 #include "mozilla/Telemetry.h"
 
 namespace mozilla {
 
 namespace image {
 
-class Decoder
+class Decoder : public IResumable
 {
 public:
 
   explicit Decoder(RasterImage* aImage);
 
   
-
-
 
 
   void Init();
@@ -38,17 +37,19 @@ public:
 
 
 
-
-
-
-  void Write(const char* aBuffer, uint32_t aCount);
+  nsresult Decode();
 
   
 
 
 
+  void Finish();
 
-  void Finish(ShutdownReason aReason);
+  
+
+
+
+  bool ShouldSyncDecode(size_t aByteLimit);
 
   
 
@@ -76,7 +77,18 @@ public:
   }
 
   
+
+
+  bool HasProgress() const
+  {
+    return mProgress != NoProgress || !mInvalidRect.IsEmpty();
+  }
+
+  
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder)
+
+  
+  virtual void Resume() MOZ_OVERRIDE;
 
   
 
@@ -88,7 +100,7 @@ public:
   bool IsSizeDecode() { return mSizeDecode; }
   void SetSizeDecode(bool aSizeDecode)
   {
-    NS_ABORT_IF_FALSE(!mInitialized, "Can't set size decode after Init()!");
+    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
     mSizeDecode = aSizeDecode;
   }
 
@@ -110,6 +122,32 @@ public:
     mSendPartialInvalidations = aSend;
   }
 
+  
+
+
+
+
+
+
+
+
+  void SetIterator(SourceBufferIterator&& aIterator)
+  {
+    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
+    mIterator.emplace(Move(aIterator));
+  }
+
+  
+
+
+
+
+  void SetImageIsTransient(bool aIsTransient)
+  {
+    MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
+    mImageIsTransient = aIsTransient;
+  }
+
   size_t BytesDecoded() const { return mBytesDecoded; }
 
   
@@ -126,14 +164,27 @@ public:
   uint32_t GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
 
   
-  bool HasError() { return HasDataError() || HasDecoderError(); }
-  bool HasDataError() { return mDataError; }
-  bool HasDecoderError() { return NS_FAILED(mFailCode); }
-  nsresult GetDecoderError() { return mFailCode; }
+  bool HasError() const { return HasDataError() || HasDecoderError(); }
+  bool HasDataError() const { return mDataError; }
+  bool HasDecoderError() const { return NS_FAILED(mFailCode); }
+  nsresult GetDecoderError() const { return mFailCode; }
   void PostResizeError() { PostDataError(); }
-  bool GetDecodeDone() const {
-    return mDecodeDone;
+
+  bool GetDecodeDone() const
+  {
+    return mDecodeDone || (mSizeDecode && HasSize()) || HasError() || mDataDone;
   }
+
+  
+
+
+
+
+
+
+
+
+  bool WasAborted() const { return mDecodeAborted; }
 
   
   
@@ -268,7 +319,18 @@ protected:
 
 
 
+
+
+
+
+  void Write(const char* aBuffer, uint32_t aCount);
+
+  
+
+
+
   nsRefPtr<RasterImage> mImage;
+  Maybe<SourceBufferIterator> mIterator;
   RawAccessFrameRef mCurrentFrame;
   ImageMetadata mImageMetadata;
   nsIntRect mInvalidRect; 
@@ -286,8 +348,11 @@ protected:
   uint32_t mDecodeFlags;
   size_t mBytesDecoded;
   bool mSendPartialInvalidations;
+  bool mDataDone;
   bool mDecodeDone;
   bool mDataError;
+  bool mDecodeAborted;
+  bool mImageIsTransient;
 
 private:
   uint32_t mFrameCount; 

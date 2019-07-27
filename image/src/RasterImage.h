@@ -29,7 +29,6 @@
 #include "nsIObserver.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TypedEnum.h"
 #include "mozilla/WeakPtr.h"
@@ -132,6 +131,13 @@ namespace image {
 
 class Decoder;
 class FrameAnimator;
+class SourceBuffer;
+
+MOZ_BEGIN_ENUM_CLASS(DecodeStrategy, uint8_t)
+  ASYNC,
+  SYNC_FOR_SMALL_IMAGES,
+  SYNC_IF_POSSIBLE
+MOZ_END_ENUM_CLASS(DecodeStrategy)
 
 class RasterImage MOZ_FINAL : public ImageResource
                             , public nsIProperties
@@ -162,10 +168,10 @@ public:
   virtual void OnSurfaceDiscarded() MOZ_OVERRIDE;
 
   
-  static NS_METHOD WriteToRasterImage(nsIInputStream* aIn, void* aClosure,
-                                      const char* aFromRawSegment,
-                                      uint32_t aToOffset, uint32_t aCount,
-                                      uint32_t* aWriteCount);
+  static NS_METHOD WriteToSourceBuffer(nsIInputStream* aIn, void* aClosure,
+                                       const char* aFromRawSegment,
+                                       uint32_t aToOffset, uint32_t aCount,
+                                       uint32_t* aWriteCount);
 
   
   uint32_t GetNumFrames() const { return mFrameCount; }
@@ -197,13 +203,7 @@ public:
   void     SetLoopCount(int32_t aLoopCount);
 
   
-  void DecodingComplete(imgFrame* aFinalFrame, bool aIsAnimated);
-  void MarkAnimationDecoded();
-
-
-  
-  
-  
+  void OnDecodingComplete();
 
   
 
@@ -213,7 +213,24 @@ public:
 
 
 
-  nsresult AddSourceData(const char *aBuffer, uint32_t aCount);
+
+
+
+  void NotifyProgress(Progress aProgress,
+                      const nsIntRect& aInvalidRect = nsIntRect(),
+                      uint32_t aFlags = 0);
+
+  
+
+
+
+
+  void FinalizeDecoder(Decoder* aDecoder);
+
+
+  
+  
+  
 
   virtual nsresult OnImageDataAvailable(nsIRequest* aRequest,
                                         nsISupports* aContext,
@@ -238,7 +255,7 @@ public:
 
 
 
-  nsresult SetSourceSizeHint(uint32_t sizeHint);
+  nsresult SetSourceSizeHint(uint32_t aSizeHint);
 
   
   void SetRequestedResolution(const nsIntSize requestedResolution) {
@@ -268,14 +285,6 @@ public:
   static void Initialize();
 
 private:
-  friend class DecodePool;
-  friend class DecodeWorker;
-  friend class FrameNeededWorker;
-  friend class NotifyProgressWorker;
-
-  nsresult FinishedSomeDecoding(ShutdownReason aReason = ShutdownReason::DONE,
-                                Progress aProgress = NoProgress);
-
   void DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
                                     gfxContext* aContext,
                                     const nsIntSize& aSize,
@@ -305,17 +314,8 @@ private:
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
                                                  MallocSizeOf aMallocSizeOf) const;
 
-  nsresult DoImageDataComplete();
-
   already_AddRefed<layers::Image> GetCurrentImage();
   void UpdateImageContainer();
-
-  enum RequestDecodeType {
-      ASYNCHRONOUS,
-      SYNCHRONOUS_NOTIFY,
-      SYNCHRONOUS_NOTIFY_AND_SOME_DECODE
-  };
-  NS_IMETHOD RequestDecodeCore(RequestDecodeType aDecodeType);
 
   
   
@@ -323,25 +323,24 @@ private:
   
   bool IsUnlocked() { return (mLockCount == 0 || (mAnim && mAnimationConsumers == 0)); }
 
+
+  
+  
+  
+
+  already_AddRefed<Decoder> CreateDecoder(bool aDoSizeDecode, uint32_t aFlags);
+
+  void WantDecodedFrames(uint32_t aFlags, bool aShouldSyncNotify);
+
+  NS_IMETHOD Decode(DecodeStrategy aStrategy, uint32_t aFlags,
+                    bool aDoSizeDecode = false);
+
 private: 
   nsIntSize                  mSize;
   Orientation                mOrientation;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  uint32_t                   mFrameDecodeFlags;
-
   nsCOMPtr<nsIProperties>   mProperties;
 
-  
-  
-  
   
   UniquePtr<FrameAnimator> mAnim;
 
@@ -372,17 +371,7 @@ private:
 #endif
 
   
-  
-
-  
-  ReentrantMonitor           mDecodingMonitor;
-
-  FallibleTArray<char>       mSourceData;
-
-  
-  nsRefPtr<Decoder>          mDecoder;
-  DecodeStatus               mDecodeStatus;
-  
+  nsRefPtr<SourceBuffer>     mSourceBuffer;
 
   
   uint32_t                   mFrameCount;
@@ -398,10 +387,7 @@ private:
   bool                       mTransient:1;     
   bool                       mDiscardable:1;   
   bool                       mHasSourceData:1; 
-
-  
-  bool                       mDecoded:1;
-  bool                       mHasBeenDecoded:1;
+  bool                       mHasBeenDecoded:1; 
 
   
   
@@ -416,26 +402,10 @@ private:
   
   bool                       mWantFullDecode:1;
 
-  
-  
-  
-  bool                       mPendingError:1;
-
-  
-  nsresult RequestDecodeIfNeeded(nsresult aStatus, ShutdownReason aReason,
-                                 bool aDone, bool aWasSize);
-  nsresult WantDecodedFrames(uint32_t aFlags, bool aShouldSyncNotify);
-  nsresult SyncDecode();
-  nsresult InitDecoder(bool aDoSizeDecode);
-  nsresult WriteToDecoder(const char *aBuffer, uint32_t aCount);
-  nsresult DecodeSomeData(size_t aMaxBytes);
-  bool     IsDecodeFinished();
   TimeStamp mDrawStartTime;
 
   
   nsAutoPtr<ProgressTrackerInit> mProgressTrackerInit;
-
-  nsresult ShutdownDecoder(ShutdownReason aReason);
 
 
   
@@ -477,7 +447,6 @@ private:
 
   
   bool CanDiscard();
-  bool StoringSourceData() const;
 
 protected:
   explicit RasterImage(ProgressTracker* aProgressTracker = nullptr,

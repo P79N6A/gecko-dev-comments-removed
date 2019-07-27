@@ -7,10 +7,12 @@
 #include "Decoder.h"
 
 #include "mozilla/gfx/2D.h"
+#include "DecodePool.h"
+#include "GeckoProfiler.h"
 #include "imgIContainer.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
-#include "GeckoProfiler.h"
+#include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 
@@ -29,8 +31,11 @@ Decoder::Decoder(RasterImage* aImage)
   , mDecodeFlags(0)
   , mBytesDecoded(0)
   , mSendPartialInvalidations(false)
+  , mDataDone(false)
   , mDecodeDone(false)
   , mDataError(false)
+  , mDecodeAborted(false)
+  , mImageIsTransient(false)
   , mFrameCount(0)
   , mFailCode(NS_OK)
   , mInitialized(false)
@@ -71,7 +76,7 @@ void
 Decoder::Init()
 {
   
-  NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
+  MOZ_ASSERT(!mInitialized, "Can't re-initialize a decoder!");
 
   
   if (!IsSizeDecode()) {
@@ -82,6 +87,69 @@ Decoder::Init()
   InitInternal();
 
   mInitialized = true;
+}
+
+nsresult
+Decoder::Decode()
+{
+  MOZ_ASSERT(mInitialized, "Should be initialized here");
+  MOZ_ASSERT(mIterator, "Should have a SourceBufferIterator");
+
+  
+  
+  while (!GetDecodeDone() && !HasError()) {
+    auto newState = mIterator->AdvanceOrScheduleResume(this);
+
+    if (newState == SourceBufferIterator::WAITING) {
+      
+      
+      
+      
+      return NS_OK;
+    }
+
+    if (newState == SourceBufferIterator::COMPLETE) {
+      mDataDone = true;
+
+      nsresult finalStatus = mIterator->CompletionStatus();
+      if (NS_FAILED(finalStatus)) {
+        PostDataError();
+      }
+
+      return finalStatus;
+    }
+
+    MOZ_ASSERT(newState == SourceBufferIterator::READY);
+
+    Write(mIterator->Data(), mIterator->Length());
+  }
+
+  return HasError() ? NS_ERROR_FAILURE : NS_OK;
+}
+
+void
+Decoder::Resume()
+{
+  DecodePool* decodePool = DecodePool::Singleton();
+  MOZ_ASSERT(decodePool);
+
+  nsCOMPtr<nsIEventTarget> target = decodePool->GetEventTarget();
+  if (MOZ_UNLIKELY(!target)) {
+    
+    return;
+  }
+
+  nsCOMPtr<nsIRunnable> worker = decodePool->CreateDecodeWorker(this);
+  target->Dispatch(worker, nsIEventTarget::DISPATCH_NORMAL);
+}
+
+bool
+Decoder::ShouldSyncDecode(size_t aByteLimit)
+{
+  MOZ_ASSERT(aByteLimit > 0);
+  MOZ_ASSERT(mIterator, "Should have a SourceBufferIterator");
+
+  return mIterator->RemainingBytesIsNoMoreThan(aByteLimit);
 }
 
 void
@@ -121,7 +189,7 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
 }
 
 void
-Decoder::Finish(ShutdownReason aReason)
+Decoder::Finish()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -135,7 +203,8 @@ Decoder::Finish(ShutdownReason aReason)
 
   
   
-  if (!IsSizeDecode() && !mDecodeDone) {
+  
+  if (!IsSizeDecode() && !mDecodeDone && !WasAborted()) {
 
     
     nsCOMPtr<nsIConsoleService> consoleService =
@@ -157,22 +226,17 @@ Decoder::Finish(ShutdownReason aReason)
       }
     }
 
-    bool usable = !HasDecoderError();
-    if (aReason != ShutdownReason::NOT_NEEDED && !HasDecoderError()) {
+    
+    
+    if (!HasDecoderError() && GetCompleteFrameCount() > 0) {
       
-      if (GetCompleteFrameCount() == 0) {
-        usable = false;
-      }
-    }
-
-    
-    
-    if (usable) {
+      
       if (mInFrame) {
         PostFrameStop();
       }
       PostDecodeDone();
     } else {
+      
       if (!IsSizeDecode()) {
         mProgress |= FLAG_DECODE_COMPLETE | FLAG_ONLOAD_UNBLOCKED;
       }
@@ -184,9 +248,21 @@ Decoder::Finish(ShutdownReason aReason)
   
   mImageMetadata.SetOnImage(mImage);
 
-  if (mDecodeDone) {
+  if (HasSize()) {
+    SetSizeOnImage();
+  }
+
+  if (mDecodeDone && !IsSizeDecode()) {
     MOZ_ASSERT(HasError() || mCurrentFrame, "Should have an error or a frame");
-    mImage->DecodingComplete(mCurrentFrame.get(), mIsAnimated);
+
+    
+    
+    
+    if (!mIsAnimated && !mImageIsTransient && mCurrentFrame) {
+      mCurrentFrame->SetOptimizable();
+    }
+
+    mImage->OnDecodingComplete();
   }
 }
 
@@ -267,6 +343,12 @@ Decoder::AllocateFrameInternal(uint32_t aFrameNum,
                                           aFrameNum),
                          Lifetime::Persistent);
   if (outcome != InsertOutcome::SUCCESS) {
+    
+    
+    
+    
+    
+    mDecodeAborted = true;
     ref->Abort();
     return RawAccessFrameRef();
   }
@@ -308,9 +390,12 @@ Decoder::SetSizeOnImage()
   MOZ_ASSERT(mImageMetadata.HasSize(), "Should have size");
   MOZ_ASSERT(mImageMetadata.HasOrientation(), "Should have orientation");
 
-  mImage->SetSize(mImageMetadata.GetWidth(),
-                  mImageMetadata.GetHeight(),
-                  mImageMetadata.GetOrientation());
+  nsresult rv = mImage->SetSize(mImageMetadata.GetWidth(),
+                                mImageMetadata.GetHeight(),
+                                mImageMetadata.GetOrientation());
+  if (NS_FAILED(rv)) {
+    PostResizeError();
+  }
 }
 
 

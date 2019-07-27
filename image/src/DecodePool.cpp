@@ -12,7 +12,6 @@
 #include "nsCOMPtr.h"
 #include "nsIObserverService.h"
 #include "nsIThreadPool.h"
-#include "nsProxyRelease.h"
 #include "nsXPCOMCIDInternal.h"
 #include "prsystem.h"
 
@@ -42,102 +41,88 @@ public:
 
 
 
-  static void Dispatch(RasterImage* aImage)
+  static void Dispatch(RasterImage* aImage,
+                       Progress aProgress,
+                       const nsIntRect& aInvalidRect,
+                       uint32_t aFlags)
   {
-    nsCOMPtr<nsIRunnable> worker = new NotifyProgressWorker(aImage);
+    MOZ_ASSERT(aImage);
+
+    nsCOMPtr<nsIRunnable> worker =
+      new NotifyProgressWorker(aImage, aProgress, aInvalidRect, aFlags);
     NS_DispatchToMainThread(worker);
   }
 
   NS_IMETHOD Run() MOZ_OVERRIDE
   {
     MOZ_ASSERT(NS_IsMainThread());
-    ReentrantMonitorAutoEnter lock(mImage->mDecodingMonitor);
-
-    mImage->FinishedSomeDecoding(ShutdownReason::DONE);
-
+    mImage->NotifyProgress(mProgress, mInvalidRect, mFlags);
     return NS_OK;
   }
 
 private:
-  explicit NotifyProgressWorker(RasterImage* aImage)
+  NotifyProgressWorker(RasterImage* aImage, Progress aProgress,
+                       const nsIntRect& aInvalidRect, uint32_t aFlags)
     : mImage(aImage)
+    , mProgress(aProgress)
+    , mInvalidRect(aInvalidRect)
+    , mFlags(aFlags)
   { }
 
   nsRefPtr<RasterImage> mImage;
+  const Progress mProgress;
+  const nsIntRect mInvalidRect;
+  const uint32_t mFlags;
+};
+
+class NotifyDecodeCompleteWorker : public nsRunnable
+{
+public:
+  
+
+
+
+  static void Dispatch(Decoder* aDecoder)
+  {
+    MOZ_ASSERT(aDecoder);
+
+    nsCOMPtr<nsIRunnable> worker = new NotifyDecodeCompleteWorker(aDecoder);
+    NS_DispatchToMainThread(worker);
+  }
+
+  NS_IMETHOD Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    DecodePool::Singleton()->NotifyDecodeComplete(mDecoder);
+    return NS_OK;
+  }
+
+private:
+  explicit NotifyDecodeCompleteWorker(Decoder* aDecoder)
+    : mDecoder(aDecoder)
+  { }
+
+  nsRefPtr<Decoder> mDecoder;
 };
 
 class DecodeWorker : public nsRunnable
 {
 public:
-  explicit DecodeWorker(RasterImage* aImage)
-    : mImage(aImage)
-  { }
+  explicit DecodeWorker(Decoder* aDecoder)
+    : mDecoder(aDecoder)
+  {
+    MOZ_ASSERT(mDecoder);
+  }
 
   NS_IMETHOD Run() MOZ_OVERRIDE
   {
     MOZ_ASSERT(!NS_IsMainThread());
-
-    ReentrantMonitorAutoEnter lock(mImage->mDecodingMonitor);
-
-    
-    if (mImage->mDecodeStatus == DecodeStatus::STOPPED) {
-      NotifyProgressWorker::Dispatch(mImage);
-      return NS_OK;
-    }
-
-    
-    if (!mImage->mDecoder || mImage->IsDecodeFinished()) {
-      NotifyProgressWorker::Dispatch(mImage);
-      return NS_OK;
-    }
-
-    mImage->mDecodeStatus = DecodeStatus::ACTIVE;
-
-    size_t oldByteCount = mImage->mDecoder->BytesDecoded();
-
-    size_t maxBytes = mImage->mSourceData.Length() -
-                      mImage->mDecoder->BytesDecoded();
-    DecodePool::Singleton()->DecodeSomeOfImage(mImage, DecodeUntil::DONE_BYTES,
-                                               maxBytes);
-
-    size_t bytesDecoded = mImage->mDecoder->BytesDecoded() - oldByteCount;
-
-    mImage->mDecodeStatus = DecodeStatus::WORK_DONE;
-
-    if (mImage->mDecoder &&
-        !mImage->mError &&
-        !mImage->mPendingError &&
-        !mImage->IsDecodeFinished() &&
-        bytesDecoded < maxBytes &&
-        bytesDecoded > 0) {
-      
-      
-      DecodePool::Singleton()->RequestDecode(mImage);
-    } else {
-      
-      NotifyProgressWorker::Dispatch(mImage);
-    }
-
+    DecodePool::Singleton()->Decode(mDecoder);
     return NS_OK;
   }
 
-protected:
-  virtual ~DecodeWorker()
-  {
-    
-    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-    NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
-    if (mainThread) {
-      
-      RasterImage* rawImg = nullptr;
-      mImage.swap(rawImg);
-      DebugOnly<nsresult> rv = NS_ProxyRelease(mainThread, NS_ISUPPORTS_CAST(ImageResource*, rawImg));
-      MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to proxy release to main thread");
-    }
-  }
-
 private:
-  nsRefPtr<RasterImage> mImage;
+  nsRefPtr<Decoder> mDecoder;
 };
 
 #ifdef MOZ_NUWA_PROCESS
@@ -192,13 +177,6 @@ DecodePool::Singleton()
   }
 
   return sSingleton;
-}
-
-already_AddRefed<nsIEventTarget>
-DecodePool::GetEventTarget()
-{
-  nsCOMPtr<nsIEventTarget> target = do_QueryInterface(mThreadPool);
-  return target.forget();
 }
 
 DecodePool::DecodePool()
@@ -258,20 +236,11 @@ DecodePool::Observe(nsISupports*, const char* aTopic, const char16_t*)
 }
 
 void
-DecodePool::RequestDecode(RasterImage* aImage)
+DecodePool::AsyncDecode(Decoder* aDecoder)
 {
-  MOZ_ASSERT(aImage->mDecoder);
-  aImage->mDecodingMonitor.AssertCurrentThreadIn();
+  MOZ_ASSERT(aDecoder);
 
-  if (aImage->mDecodeStatus == DecodeStatus::PENDING ||
-      aImage->mDecodeStatus == DecodeStatus::ACTIVE) {
-    
-    
-    return;
-  }
-
-  aImage->mDecodeStatus = DecodeStatus::PENDING;
-  nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aImage);
+  nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aDecoder);
 
   
   
@@ -282,136 +251,90 @@ DecodePool::RequestDecode(RasterImage* aImage)
 }
 
 void
-DecodePool::DecodeABitOf(RasterImage* aImage)
+DecodePool::SyncDecodeIfSmall(Decoder* aDecoder)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  aImage->mDecodingMonitor.AssertCurrentThreadIn();
+  MOZ_ASSERT(aDecoder);
 
-  
-  if (aImage->mDecodeStatus == DecodeStatus::WORK_DONE) {
-    aImage->FinishedSomeDecoding();
+  if (aDecoder->ShouldSyncDecode(gfxPrefs::ImageMemDecodeBytesAtATime())) {
+    Decode(aDecoder);
+    return;
   }
 
-  DecodeSomeOfImage(aImage);
-
-  aImage->FinishedSomeDecoding();
-
-  
-  
-  if (aImage->mDecoder &&
-      !aImage->mError &&
-      !aImage->IsDecodeFinished() &&
-      aImage->mSourceData.Length() > aImage->mDecoder->BytesDecoded()) {
-    RequestDecode(aImage);
-  }
+  AsyncDecode(aDecoder);
 }
 
- void
-DecodePool::StopDecoding(RasterImage* aImage)
-{
-  aImage->mDecodingMonitor.AssertCurrentThreadIn();
-
-  
-  
-  aImage->mDecodeStatus = DecodeStatus::STOPPED;
-}
-
-nsresult
-DecodePool::DecodeUntilSizeAvailable(RasterImage* aImage)
+void
+DecodePool::SyncDecodeIfPossible(Decoder* aDecoder)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  ReentrantMonitorAutoEnter lock(aImage->mDecodingMonitor);
+  Decode(aDecoder);
+}
 
-  
-  if (aImage->mDecodeStatus == DecodeStatus::WORK_DONE) {
-    nsresult rv = aImage->FinishedSomeDecoding();
-    if (NS_FAILED(rv)) {
-      aImage->DoError();
-      return rv;
+already_AddRefed<nsIEventTarget>
+DecodePool::GetEventTarget()
+{
+  MutexAutoLock threadPoolLock(mThreadPoolMutex);
+  nsCOMPtr<nsIEventTarget> target = do_QueryInterface(mThreadPool);
+  return target.forget();
+}
+
+already_AddRefed<nsIRunnable>
+DecodePool::CreateDecodeWorker(Decoder* aDecoder)
+{
+  MOZ_ASSERT(aDecoder);
+  nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aDecoder);
+  return worker.forget();
+}
+
+void
+DecodePool::Decode(Decoder* aDecoder)
+{
+  MOZ_ASSERT(aDecoder);
+
+  nsresult rv = aDecoder->Decode();
+
+  if (NS_SUCCEEDED(rv) && !aDecoder->GetDecodeDone()) {
+    if (aDecoder->HasProgress()) {
+      NotifyProgress(aDecoder);
     }
-  }
-
-  nsresult rv = DecodeSomeOfImage(aImage, DecodeUntil::SIZE);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  return aImage->FinishedSomeDecoding();
-}
-
-nsresult
-DecodePool::DecodeSomeOfImage(RasterImage* aImage,
-                              DecodeUntil aDecodeUntil ,
-                              uint32_t bytesToDecode )
-{
-  MOZ_ASSERT(aImage->mInitialized, "Worker active for uninitialized container");
-  aImage->mDecodingMonitor.AssertCurrentThreadIn();
-
-  
-  
-  if (aImage->mError) {
-    return NS_OK;
-  }
-
-  
-  
-  if (aImage->mPendingError) {
-    return NS_OK;
-  }
-
-  
-  
-  if (!aImage->mDecoder || aImage->mDecoded) {
-    return NS_OK;
-  }
-
-  nsRefPtr<Decoder> decoderKungFuDeathGrip = aImage->mDecoder;
-
-  uint32_t maxBytes;
-  if (aImage->mDecoder->IsSizeDecode()) {
     
     
-    maxBytes = aImage->mSourceData.Length();
   } else {
-    
-    
-    
-    maxBytes = gfxPrefs::ImageMemDecodeBytesAtATime();
+    NotifyDecodeComplete(aDecoder);
+  }
+}
+
+void
+DecodePool::NotifyProgress(Decoder* aDecoder)
+{
+  MOZ_ASSERT(aDecoder);
+
+  if (!NS_IsMainThread()) {
+    NotifyProgressWorker::Dispatch(aDecoder->GetImage(),
+                                   aDecoder->TakeProgress(),
+                                   aDecoder->TakeInvalidRect(),
+                                   aDecoder->GetDecodeFlags());
+    return;
   }
 
-  if (bytesToDecode == 0) {
-    bytesToDecode = aImage->mSourceData.Length() - aImage->mDecoder->BytesDecoded();
+  aDecoder->GetImage()->NotifyProgress(aDecoder->TakeProgress(),
+                                       aDecoder->TakeInvalidRect(),
+                                       aDecoder->GetDecodeFlags());
+}
+
+void
+DecodePool::NotifyDecodeComplete(Decoder* aDecoder)
+{
+  MOZ_ASSERT(aDecoder);
+
+  if (!NS_IsMainThread()) {
+    NotifyDecodeCompleteWorker::Dispatch(aDecoder);
+    return;
   }
 
-  TimeStamp deadline = TimeStamp::Now() +
-                       TimeDuration::FromMilliseconds(gfxPrefs::ImageMemMaxMSBeforeYield());
-
-  
-  
-  
-  
-  
-  while (aImage->mSourceData.Length() > aImage->mDecoder->BytesDecoded() &&
-         bytesToDecode > 0 &&
-         !aImage->IsDecodeFinished() &&
-         !(aDecodeUntil == DecodeUntil::SIZE && aImage->mHasSize)) {
-    uint32_t chunkSize = min(bytesToDecode, maxBytes);
-    nsresult rv = aImage->DecodeSomeData(chunkSize);
-    if (NS_FAILED(rv)) {
-      aImage->DoError();
-      return rv;
-    }
-
-    bytesToDecode -= chunkSize;
-
-    
-    
-    if (aDecodeUntil == DecodeUntil::TIME && TimeStamp::Now() >= deadline) {
-      break;
-    }
-  }
-
-  return NS_OK;
+  aDecoder->Finish();
+  aDecoder->GetImage()->FinalizeDecoder(aDecoder);
 }
 
 } 
