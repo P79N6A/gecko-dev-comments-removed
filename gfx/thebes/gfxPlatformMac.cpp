@@ -17,6 +17,7 @@
 
 #include "nsTArray.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/VsyncDispatcher.h"
 #include "qcms.h"
 #include "gfx2DGlue.h"
 #include "gfxPrefs.h"
@@ -25,7 +26,6 @@
 #include <CoreVideo/CoreVideo.h>
 
 #include "nsCocoaFeatures.h"
-#include "mozilla/layers/CompositorParent.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -38,7 +38,7 @@ typedef uint32_t AutoActivationSetting;
 
 
 
-static void
+static void 
 DisableFontActivation()
 {
     
@@ -429,21 +429,21 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
                               CVOptionFlags* aFlagsOut,
                               void* aDisplayLinkContext)
 {
-  mozilla::layers::VsyncSource* vsyncSource = (mozilla::layers::VsyncSource*) aDisplayLinkContext;
+  mozilla::VsyncSource* vsyncSource = (mozilla::VsyncSource*) aDisplayLinkContext;
   if (vsyncSource->IsVsyncEnabled()) {
     
     
     
     int64_t timestamp = aOutputTime->hostTime;
     mozilla::TimeStamp vsyncTime = mozilla::TimeStamp::FromSystemTime(timestamp);
-    mozilla::layers::VsyncDispatcher::NotifyVsync(vsyncTime);
+    mozilla::VsyncDispatcher::GetInstance()->NotifyVsync(vsyncTime);
     return kCVReturnSuccess;
   } else {
     return kCVReturnDisplayLinkNotRunning;
   }
 }
 
-class OSXVsyncSource MOZ_FINAL : public mozilla::layers::VsyncSource
+class OSXVsyncSource MOZ_FINAL : public mozilla::VsyncSource
 {
 public:
   OSXVsyncSource()
@@ -499,11 +499,11 @@ private:
   CVDisplayLinkRef   mDisplayLink;
 }; 
 
-already_AddRefed<mozilla::layers::VsyncSource>
-gfxPlatformMac::GetVsyncSource()
+void
+gfxPlatformMac::InitHardwareVsync()
 {
-  nsRefPtr<mozilla::layers::VsyncSource> osxVsyncSource = new OSXVsyncSource();
-  return osxVsyncSource.forget();
+  nsRefPtr<VsyncSource> osxVsyncSource = new OSXVsyncSource();
+  mozilla::VsyncDispatcher::GetInstance()->SetVsyncSource(osxVsyncSource);
 }
 
 void
