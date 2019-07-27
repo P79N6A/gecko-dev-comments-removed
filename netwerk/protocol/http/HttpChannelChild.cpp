@@ -24,6 +24,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "mozilla/ipc/URIUtils.h"
+#include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/net/ChannelDiverterChild.h"
 #include "mozilla/net/DNS.h"
 #include "SerializedLoadContext.h"
@@ -1144,6 +1145,30 @@ HttpChannelChild::Resume()
 
 
 
+
+void
+propagateLoadInfo(nsILoadInfo *aLoadInfo,
+                  HttpChannelOpenArgs& openArgs)
+{
+  mozilla::ipc::PrincipalInfo principalInfo;
+
+  if (aLoadInfo) {
+    mozilla::ipc::PrincipalToPrincipalInfo(aLoadInfo->LoadingPrincipal(),
+                                           &principalInfo);
+    openArgs.requestingPrincipalInfo() = principalInfo;
+    openArgs.securityFlags() = aLoadInfo->GetSecurityFlags();
+    openArgs.contentPolicyType() = aLoadInfo->GetContentPolicyType();
+    return;
+  }
+
+  
+  mozilla::ipc::PrincipalToPrincipalInfo(nsContentUtils::GetSystemPrincipal(),
+                                         &principalInfo);
+  openArgs.requestingPrincipalInfo() = principalInfo;
+  openArgs.securityFlags() = nsILoadInfo::SEC_NORMAL;
+  openArgs.contentPolicyType() = nsIContentPolicy::TYPE_OTHER;
+}
+
 NS_IMETHODIMP
 HttpChannelChild::GetSecurityInfo(nsISupports **aSecurityInfo)
 {
@@ -1285,6 +1310,8 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   openArgs.chooseApplicationCache() = mChooseApplicationCache;
   openArgs.appCacheClientID() = appCacheClientId;
   openArgs.allowSpdy() = mAllowSpdy;
+
+  propagateLoadInfo(mLoadInfo, openArgs);
 
   
   
