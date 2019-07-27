@@ -622,13 +622,24 @@ WinUtils::GetMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
 
 
 void
-WinUtils::WaitForMessage()
+WinUtils::WaitForMessage(DWORD aTimeoutMs)
 {
+  const DWORD waitStart = ::GetTickCount();
+  DWORD elapsed = 0;
   while (true) {
-    DWORD result = ::MsgWaitForMultipleObjectsEx(0, NULL, INFINITE,
+    if (aTimeoutMs != INFINITE) {
+      elapsed = ::GetTickCount() - waitStart;
+    }
+    if (elapsed >= aTimeoutMs) {
+      break;
+    }
+    DWORD result = ::MsgWaitForMultipleObjectsEx(0, NULL, aTimeoutMs - elapsed,
                                                  MOZ_QS_ALLEVENT,
                                                  MWMO_INPUTAVAILABLE);
     NS_WARN_IF_FALSE(result != WAIT_FAILED, "Wait failed");
+    if (result == WAIT_TIMEOUT) {
+      break;
+    }
 
     
     

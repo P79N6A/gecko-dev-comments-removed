@@ -154,7 +154,8 @@ public:
 
 
 
-  static void WaitForMessage();
+
+  static void WaitForMessage(DWORD aTimeoutMs = INFINITE);
 
   
 

@@ -9,6 +9,7 @@
 #include "base/message_loop.h"
 #include "base/histogram.h"
 #include "base/win_util.h"
+#include "WinUtils.h"
 
 using base::Time;
 
@@ -263,31 +264,7 @@ void MessagePumpForUI::WaitForWork() {
   if (delay < 0)  
     delay = INFINITE;
 
-  DWORD result;
-  result = MsgWaitForMultipleObjectsEx(0, NULL, delay, QS_ALLINPUT,
-                                       MWMO_INPUTAVAILABLE);
-
-  if (WAIT_OBJECT_0 == result) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    MSG msg = {0};
-    DWORD queue_status = GetQueueStatus(QS_MOUSE);
-    if (HIWORD(queue_status) & QS_MOUSE &&
-       !PeekMessage(&msg, NULL, WM_MOUSEFIRST, WM_MOUSELAST, PM_NOREMOVE)) {
-      WaitMessage();
-    }
-    return;
-  }
-
-  DCHECK_NE(WAIT_FAILED, result) << GetLastError();
+  mozilla::widget::WinUtils::WaitForMessage(delay);
 }
 
 void MessagePumpForUI::HandleWorkMessage() {
