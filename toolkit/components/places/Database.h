@@ -16,7 +16,7 @@
 
 
 
-#define DATABASE_SCHEMA_VERSION 24
+#define DATABASE_SCHEMA_VERSION 25
 
 
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
@@ -260,11 +260,6 @@ protected:
   
 
 
-  nsresult MigrateV7Up();
-  nsresult MigrateV8Up();
-  nsresult MigrateV9Up();
-  nsresult MigrateV10Up();
-  nsresult MigrateV11Up();
   nsresult MigrateV13Up();
   nsresult MigrateV14Up();
   nsresult MigrateV15Up();
@@ -277,9 +272,9 @@ protected:
   nsresult MigrateV22Up();
   nsresult MigrateV23Up();
   nsresult MigrateV24Up();
+  nsresult MigrateV25Up();
 
   nsresult UpdateBookmarkRootTitles();
-  nsresult CheckAndUpdateGUIDs();
 
 private:
   ~Database();
