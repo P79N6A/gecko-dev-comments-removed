@@ -9,6 +9,7 @@ Cu.import("resource://gre/modules/Http.jsm");
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource:///modules/loop/MozLoopService.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource:///modules/loop/LoopCalls.jsm");
 const { MozLoopServiceInternal } = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
 
 XPCOMUtils.defineLazyModuleGetter(this, "MozLoopPushHandler",
@@ -18,6 +19,7 @@ const kMockWebSocketChannelName = "Mock WebSocket Channel";
 const kWebSocketChannelContractID = "@mozilla.org/network/protocol;1?name=wss";
 
 const kServerPushUrl = "http://localhost:3456";
+const kLoopServerUrl = "http://localhost:3465";
 const kEndPointUrl = "http://example.com/fake";
 const kUAID = "f47ac11b-58ca-4372-9567-0e02b2c3d479";
 
@@ -75,21 +77,30 @@ let mockPushHandler = {
   
   
   registrationResult: null,
-  registrationPushURL: undefined,
+  registrationPushURL: null,
+  notificationCallback: {},
+  registeredChannels: {},
 
   
 
 
-  initialize: function(registerCallback, notificationCallback) {
-    registerCallback(this.registrationResult, this.registrationPushURL);
-    this._notificationCallback = notificationCallback;
+  initialize: function(options = {}) {
+    if ("mockWebSocket" in options) {
+      this._mockWebSocket = options.mockWebSocket;
+    }
+  },
+
+  register: function(channelId, registerCallback, notificationCallback) {
+    this.notificationCallback[channelId] = notificationCallback;
+    this.registeredChannels[channelId] = this.registrationPushURL;
+    registerCallback(this.registrationResult, this.registrationPushURL, channelId);
   },
 
   
 
 
-  notify: function(version) {
-    this._notificationCallback(version);
+  notify: function(version, chanId) {
+    this.notificationCallback[chanId](version, chanId);
   }
 };
 
@@ -98,9 +109,8 @@ let mockPushHandler = {
 
 
 
-let MockWebSocketChannel = function(options) {
-  let _options = options || {};
-  this.defaultMsgHandler = _options.defaultMsgHandler;
+let MockWebSocketChannel = function(options = {}) {
+  this.defaultMsgHandler = options.defaultMsgHandler;
 };
 
 MockWebSocketChannel.prototype = {
