@@ -122,6 +122,10 @@ public:
   
   nsresult CheckPrincipals();
 
+  
+  
+  nsIDocument* GetOwnerDoc() const;
+
 private:
 
   static bool IsTypeSupported(const nsAString& aKeySystem,

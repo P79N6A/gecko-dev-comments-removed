@@ -162,6 +162,9 @@ public:
 
   CDMCaps& Capabilites();
 
+  
+  void OnKeysChange(const nsAString& aSessionId);
+
 #ifdef DEBUG
   bool IsOnGMPThread();
 #endif
