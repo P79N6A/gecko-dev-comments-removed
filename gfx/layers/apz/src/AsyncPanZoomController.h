@@ -92,8 +92,7 @@ public:
 
 
 
-
-  static ScreenCoord GetTouchStartTolerance();
+  static float GetTouchStartTolerance();
 
   AsyncPanZoomController(uint64_t aLayersId,
                          APZCTreeManager* aTreeManager,
@@ -163,7 +162,7 @@ public:
 
 
   void SampleContentTransformForFrame(ViewTransform* aOutTransform,
-                                      ParentLayerPoint& aScrollOffset);
+                                      ScreenPoint& aScrollOffset);
 
   
 
@@ -248,7 +247,7 @@ public:
 
   static const ScreenMargin CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
-    const ParentLayerPoint& aVelocity,
+    const ScreenPoint& aVelocity,
     double aEstimatedPaintDuration);
 
   
@@ -342,8 +341,8 @@ public:
 
 
 
-  ScreenPoint ToScreenCoordinates(const ParentLayerPoint& aVector,
-                                  const ParentLayerPoint& aAnchor) const;
+  void ToGlobalScreenCoordinates(ScreenPoint* aVector,
+                                 const ScreenPoint& aAnchor) const;
 
   
 
@@ -353,8 +352,8 @@ public:
 
 
 
-  ParentLayerPoint ToParentLayerCoordinates(const ScreenPoint& aVector,
-                                            const ScreenPoint& aAnchor) const;
+  void ToLocalScreenCoordinates(ScreenPoint* aVector,
+                                const ScreenPoint& aAnchor) const;
 
 protected:
   
@@ -475,7 +474,7 @@ protected:
 
 
 
-  ScreenCoord PanDistance() const;
+  float PanDistance() const;
 
   
 
@@ -483,18 +482,20 @@ protected:
 
 
 
-  ParentLayerPoint PanStart() const;
+
+
+  ScreenPoint PanStart() const;
 
   
 
 
-  const ParentLayerPoint GetVelocityVector() const;
+  const ScreenPoint GetVelocityVector() const;
 
   
 
 
 
-  ParentLayerPoint GetFirstTouchPoint(const MultiTouchInput& aEvent);
+  ScreenPoint GetFirstTouchScreenPoint(const MultiTouchInput& aEvent);
 
   
 
@@ -507,6 +508,7 @@ protected:
   void HandlePanning(double angle);
 
   
+
 
 
   void HandlePanningUpdate(const ScreenPoint& aDelta);
@@ -584,7 +586,7 @@ protected:
 
 
 
-  bool ConvertToGecko(const ParentLayerPoint& aPoint, CSSPoint* aOut);
+  bool ConvertToGecko(const ScreenPoint& aPoint, CSSPoint* aOut);
 
   enum AxisLockMode {
     FREE,     
@@ -595,7 +597,17 @@ protected:
   static AxisLockMode GetAxisLockMode();
 
   
-  nsEventStatus GenerateSingleTap(const ParentLayerPoint& aPoint, mozilla::Modifiers aModifiers);
+  
+  
+  ParentLayerPoint ToParentLayerCoords(const ScreenPoint& aPoint);
+
+  
+  
+  
+  void UpdateTransformScale();
+
+  
+  nsEventStatus GenerateSingleTap(const ScreenIntPoint& aPoint, mozilla::Modifiers aModifiers);
 
   
   void OnTouchEndOrCancel();
@@ -812,7 +824,7 @@ public:
 
 
 
-  bool AttemptFling(ParentLayerPoint aVelocity,
+  bool AttemptFling(ScreenPoint aVelocity,
                     const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
                     bool aHandoff);
 
@@ -821,7 +833,7 @@ private:
   friend class OverscrollAnimation;
   friend class SmoothScrollAnimation;
   
-  ParentLayerPoint mLastFlingVelocity;
+  ScreenPoint mLastFlingVelocity;
   
   TimeStamp mLastFlingTime;
 
@@ -830,18 +842,18 @@ private:
   
   
   
-  void HandleFlingOverscroll(const ParentLayerPoint& aVelocity,
+  void HandleFlingOverscroll(const ScreenPoint& aVelocity,
                              const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain);
 
-  void HandleSmoothScrollOverscroll(const ParentLayerPoint& aVelocity);
+  void HandleSmoothScrollOverscroll(const ScreenPoint& aVelocity);
 
   
-  void AcceptFling(const ParentLayerPoint& aVelocity,
+  void AcceptFling(const ScreenPoint& aVelocity,
                    const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
                    bool aHandoff);
 
   
-  void StartOverscrollAnimation(const ParentLayerPoint& aVelocity);
+  void StartOverscrollAnimation(const ScreenPoint& aVelocity);
 
   void StartSmoothScroll();
 
@@ -932,7 +944,7 @@ public:
 
 
 
-  bool AttemptScroll(const ParentLayerPoint& aStartPoint, const ParentLayerPoint& aEndPoint,
+  bool AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                      OverscrollHandoffState& aOverscrollHandoffState);
 
   void FlushRepaintForOverscrollHandoff();
@@ -970,8 +982,8 @@ private:
 
 
 
-  bool CallDispatchScroll(const ParentLayerPoint& aStartPoint,
-                          const ParentLayerPoint& aEndPoint,
+  bool CallDispatchScroll(const ScreenPoint& aStartPoint,
+                          const ScreenPoint& aEndPoint,
                           OverscrollHandoffState& aOverscrollHandoffState);
 
   
@@ -979,7 +991,7 @@ private:
 
 
 
-  bool OverscrollForPanning(ParentLayerPoint aOverscroll,
+  bool OverscrollForPanning(ScreenPoint aOverscroll,
                             const ScreenPoint& aPanDistance);
 
   
@@ -988,7 +1000,7 @@ private:
 
 
 
-  bool OverscrollBy(const ParentLayerPoint& aOverscroll);
+  bool OverscrollBy(const ScreenPoint& aOverscroll);
 
 
   

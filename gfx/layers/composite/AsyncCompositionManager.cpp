@@ -588,7 +588,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     hasAsyncTransform = true;
 
     ViewTransform asyncTransformWithoutOverscroll;
-    ParentLayerPoint scrollOffset;
+    ScreenPoint scrollOffset;
     controller->SampleContentTransformForFrame(&asyncTransformWithoutOverscroll,
                                                scrollOffset);
     Matrix4x4 overscrollTransform = controller->GetOverscrollTransform();
@@ -718,7 +718,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
       
       
       
-      scale *= metrics.mPresShellResolution;
+      scale *= metrics.mPresShellResolution.scale;
     }
     scrollbarTransform.PostScale(1.f, 1.f / transientTransform._22, 1.f);
     scrollbarTransform.PostTranslate(0, -transientTransform._42 * scale, 0);
@@ -726,7 +726,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   if (aScrollbar->GetScrollbarDirection() == Layer::HORIZONTAL) {
     float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.mScrollableRect.width;
     if (aScrollbarIsDescendant) {
-      scale *= metrics.mPresShellResolution;
+      scale *= metrics.mPresShellResolution.scale;
     }
     scrollbarTransform.PostScale(1.f / transientTransform._11, 1.f, 1.f);
     scrollbarTransform.PostTranslate(-transientTransform._41 * scale, 0, 0);
@@ -868,8 +868,8 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   
-  CSSToParentLayerScale userZoom(metrics.mDevPixelsPerCSSPixel * metrics.mCumulativeResolution * LayerToParentLayerScale(1));
-  ParentLayerPoint userScroll = metrics.GetScrollOffset() * userZoom;
+  CSSToScreenScale userZoom(metrics.mDevPixelsPerCSSPixel * metrics.mCumulativeResolution * LayerToScreenScale(1));
+  ScreenPoint userScroll = metrics.GetScrollOffset() * userZoom;
   SyncViewportInfo(displayPort, geckoZoom, mLayersUpdated,
                    userScroll, userZoom, fixedLayerMargins,
                    offset);
@@ -884,15 +884,15 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   
-  ParentLayerPoint geckoScroll(0, 0);
+  ScreenPoint geckoScroll(0, 0);
   if (metrics.IsScrollable()) {
     geckoScroll = metrics.GetScrollOffset() * userZoom;
   }
 
-  LayerToParentLayerScale asyncZoom = userZoom / metrics.LayersPixelsPerCSSPixel();
-  LayerToParentLayerScale scale(metrics.mPresShellResolution
-                                * asyncZoom.scale);
-  ParentLayerPoint translation = userScroll - geckoScroll;
+  LayerToScreenScale asyncZoom = userZoom / metrics.LayersPixelsPerCSSPixel();
+  ParentLayerToScreenScale scale = metrics.mPresShellResolution
+                                 * asyncZoom;
+  ScreenPoint translation = userScroll - geckoScroll;
   Matrix4x4 treeTransform = ViewTransform(scale, -translation);
 
   SetShadowTransform(aLayer, oldTransform * treeTransform);
@@ -901,14 +901,14 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 
   
   
-  oldTransform.PreScale(metrics.mPresShellResolution, metrics.mPresShellResolution, 1);
+  oldTransform.PreScale(metrics.mPresShellResolution.scale, metrics.mPresShellResolution.scale, 1);
 
   
   
   
   
   
-  ParentLayerRect contentScreenRect = mContentRect * userZoom;
+  ScreenRect contentScreenRect = mContentRect * userZoom;
   Point3D overscrollTranslation;
   if (userScroll.x < contentScreenRect.x) {
     overscrollTranslation.x = contentScreenRect.x - userScroll.x;
@@ -1018,8 +1018,8 @@ void
 AsyncCompositionManager::SyncViewportInfo(const LayerIntRect& aDisplayPort,
                                           const CSSToLayerScale& aDisplayResolution,
                                           bool aLayersUpdated,
-                                          ParentLayerPoint& aScrollOffset,
-                                          CSSToParentLayerScale& aScale,
+                                          ScreenPoint& aScrollOffset,
+                                          CSSToScreenScale& aScale,
                                           LayerMargin& aFixedLayerMargins,
                                           ScreenPoint& aOffset)
 {
@@ -1035,7 +1035,7 @@ AsyncCompositionManager::SyncViewportInfo(const LayerIntRect& aDisplayPort,
 }
 
 void
-AsyncCompositionManager::SyncFrameMetrics(const ParentLayerPoint& aScrollOffset,
+AsyncCompositionManager::SyncFrameMetrics(const ScreenPoint& aScrollOffset,
                                           float aZoom,
                                           const CSSRect& aCssPageRect,
                                           bool aLayersUpdated,

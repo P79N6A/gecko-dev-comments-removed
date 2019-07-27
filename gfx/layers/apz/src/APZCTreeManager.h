@@ -247,7 +247,7 @@ public:
 
   static const ScreenMargin CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
-    const ParentLayerPoint& aVelocity,
+    const ScreenPoint& aVelocity,
     double aEstimatedPaintDuration);
 
   
@@ -327,8 +327,8 @@ public:
 
 
   bool DispatchScroll(AsyncPanZoomController* aApzc,
-                      ParentLayerPoint aStartPoint,
-                      ParentLayerPoint aEndPoint,
+                      ScreenPoint aStartPoint,
+                      ScreenPoint aEndPoint,
                       OverscrollHandoffState& aOverscrollHandoffState);
 
   
@@ -353,7 +353,7 @@ public:
 
 
   bool DispatchFling(AsyncPanZoomController* aApzc,
-                     ParentLayerPoint aVelocity,
+                     ScreenPoint aVelocity,
                      nsRefPtr<const OverscrollHandoffChain> aOverscrollHandoffChain,
                      bool aHandoff);
 

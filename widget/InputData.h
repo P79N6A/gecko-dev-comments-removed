@@ -108,8 +108,6 @@ protected:
 class SingleTouchData
 {
 public:
-  
-  
   SingleTouchData(int32_t aIdentifier,
                   ScreenIntPoint aScreenPoint,
                   ScreenSize aRadius,
@@ -117,23 +115,6 @@ public:
                   float aForce)
     : mIdentifier(aIdentifier),
       mScreenPoint(aScreenPoint),
-      mRadius(aRadius),
-      mRotationAngle(aRotationAngle),
-      mForce(aForce)
-  {
-  }
-
-  
-  
-  
-  
-  SingleTouchData(int32_t aIdentifier,
-                  ParentLayerPoint aLocalScreenPoint,
-                  ScreenSize aRadius,
-                  float aRotationAngle,
-                  float aForce)
-    : mIdentifier(aIdentifier),
-      mLocalScreenPoint(aLocalScreenPoint),
       mRadius(aRadius),
       mRotationAngle(aRotationAngle),
       mForce(aForce)
@@ -153,10 +134,6 @@ public:
   
   
   ScreenIntPoint mScreenPoint;
-
-  
-  
-  ParentLayerPoint mLocalScreenPoint;
 
   
   
@@ -297,11 +274,6 @@ public:
 
   
   ScreenPoint mPanDisplacement;
-
-  
-  
-  ParentLayerPoint mLocalPanStartPoint;
-  ParentLayerPoint mLocalPanDisplacement;
 };
 
 
@@ -319,8 +291,6 @@ public:
     PINCHGESTURE_END
   };
 
-  
-  
   PinchGestureInput(PinchGestureType aType,
                     uint32_t aTime,
                     TimeStamp aTimeStamp,
@@ -334,23 +304,8 @@ public:
       mCurrentSpan(aCurrentSpan),
       mPreviousSpan(aPreviousSpan)
   {
-  }
 
-  
-  
-  PinchGestureInput(PinchGestureType aType,
-                    uint32_t aTime,
-                    TimeStamp aTimeStamp,
-                    const ParentLayerPoint& aLocalFocusPoint,
-                    float aCurrentSpan,
-                    float aPreviousSpan,
-                    Modifiers aModifiers)
-    : InputData(PINCHGESTURE_INPUT, aTime, aTimeStamp, aModifiers),
-      mType(aType),
-      mLocalFocusPoint(aLocalFocusPoint),
-      mCurrentSpan(aCurrentSpan),
-      mPreviousSpan(aPreviousSpan)
-  {
+
   }
 
   PinchGestureType mType;
@@ -361,10 +316,6 @@ public:
   
   
   ScreenPoint mFocusPoint;
-
-  
-  
-  ParentLayerPoint mLocalFocusPoint;
 
   
   
@@ -395,8 +346,6 @@ public:
     TAPGESTURE_CANCEL
   };
 
-  
-  
   TapGestureInput(TapGestureType aType,
                   uint32_t aTime,
                   TimeStamp aTimeStamp,
@@ -406,29 +355,12 @@ public:
       mType(aType),
       mPoint(aPoint)
   {
-  }
 
-  
-  
-  TapGestureInput(TapGestureType aType,
-                  uint32_t aTime,
-                  TimeStamp aTimeStamp,
-                  const ParentLayerPoint& aLocalPoint,
-                  Modifiers aModifiers)
-    : InputData(TAPGESTURE_INPUT, aTime, aTimeStamp, aModifiers),
-      mType(aType),
-      mLocalPoint(aLocalPoint)
-  {
+
   }
 
   TapGestureType mType;
-
-  
   ScreenIntPoint mPoint;
-
-  
-  
-  ParentLayerPoint mLocalPoint;
 };
 
 }

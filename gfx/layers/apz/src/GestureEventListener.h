@@ -8,7 +8,7 @@
 #define mozilla_layers_GestureEventListener_h
 
 #include "InputData.h"                  
-#include "Units.h"
+#include "Units.h"                      
 #include "mozilla/EventForwards.h"      
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"
@@ -193,7 +193,7 @@ private:
 
 
 
-  ParentLayerPoint mTouchStartPosition;
+  ScreenIntPoint mTouchStartPosition;
 
   
 

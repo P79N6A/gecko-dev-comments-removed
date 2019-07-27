@@ -21,6 +21,38 @@ template <typename T> struct ParamTraits;
 
 namespace mozilla {
 
+
+
+
+
+
+
+
+
+
+
+struct ParentLayerPixel {};
+
+template<> struct IsPixel<ParentLayerPixel> : TrueType {};
+
+typedef gfx::MarginTyped<ParentLayerPixel> ParentLayerMargin;
+typedef gfx::PointTyped<ParentLayerPixel> ParentLayerPoint;
+typedef gfx::RectTyped<ParentLayerPixel> ParentLayerRect;
+typedef gfx::SizeTyped<ParentLayerPixel> ParentLayerSize;
+
+typedef gfx::IntMarginTyped<ParentLayerPixel> ParentLayerIntMargin;
+typedef gfx::IntPointTyped<ParentLayerPixel> ParentLayerIntPoint;
+typedef gfx::IntRectTyped<ParentLayerPixel> ParentLayerIntRect;
+typedef gfx::IntSizeTyped<ParentLayerPixel> ParentLayerIntSize;
+
+typedef gfx::ScaleFactor<CSSPixel, ParentLayerPixel> CSSToParentLayerScale;
+typedef gfx::ScaleFactor<LayoutDevicePixel, ParentLayerPixel> LayoutDeviceToParentLayerScale;
+typedef gfx::ScaleFactor<ScreenPixel, ParentLayerPixel> ScreenToParentLayerScale;
+
+typedef gfx::ScaleFactor<ParentLayerPixel, LayerPixel> ParentLayerToLayerScale;
+typedef gfx::ScaleFactor<ParentLayerPixel, ScreenPixel> ParentLayerToScreenScale;
+
+
 namespace layers {
 
 
@@ -46,6 +78,7 @@ public:
     , mScrollableRect(0, 0, 0, 0)
     , mPresShellResolution(1)
     , mCumulativeResolution(1)
+    , mTransformScale(1)
     , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
     , mMayHaveTouchCaret(false)
@@ -130,7 +163,7 @@ public:
     
     
     
-    return mZoom * ParentLayerToLayerScale(1.0f) / mExtraResolution;
+    return mZoom * ScreenToLayerScale(1.0f) / mExtraResolution;
   }
 
   CSSToLayerScale LayersPixelsPerCSSPixel() const
@@ -139,7 +172,7 @@ public:
   }
 
   
-  LayerToParentLayerScale GetAsyncZoom() const
+  LayerToScreenScale GetAsyncZoom() const
   {
     return mZoom / LayersPixelsPerCSSPixel();
   }
@@ -171,21 +204,31 @@ public:
 
   
   
-  CSSToParentLayerScale CalculateIntrinsicScale() const
+  CSSToScreenScale CalculateIntrinsicScale() const
   {
-    return CSSToParentLayerScale(
+    return CSSToScreenScale(
         std::max(mCompositionBounds.width / mViewport.width,
                  mCompositionBounds.height / mViewport.height));
   }
 
+  
+  
+  
+  
+  
+  CSSToParentLayerScale GetZoomToParent() const
+  {
+    return mZoom * mTransformScale;
+  }
+
   CSSSize CalculateCompositedSizeInCssPixels() const
   {
-    return mCompositionBounds.Size() / GetZoom();
+    return mCompositionBounds.Size() / GetZoomToParent();
   }
 
   CSSRect CalculateCompositedRectInCssPixels() const
   {
-    return mCompositionBounds / GetZoom();
+    return mCompositionBounds / GetZoomToParent();
   }
 
   CSSSize CalculateBoundedCompositedSizeInCssPixels() const
@@ -301,15 +344,16 @@ public:
   
   
   
-  
-  
-  float mPresShellResolution;
+  ParentLayerToLayerScale mPresShellResolution;
 
   
   
   
   
   LayoutDeviceToLayerScale mCumulativeResolution;
+
+  
+  ScreenToParentLayerScale mTransformScale;
 
   
   
@@ -358,12 +402,12 @@ public:
     return mSmoothScrollOffset;
   }
 
-  void SetZoom(const CSSToParentLayerScale& aZoom)
+  void SetZoom(const CSSToScreenScale& aZoom)
   {
     mZoom = aZoom;
   }
 
-  CSSToParentLayerScale GetZoom() const
+  CSSToScreenScale GetZoom() const
   {
     return mZoom;
   }
@@ -558,7 +602,7 @@ private:
   
   
   
-  CSSToParentLayerScale mZoom;
+  CSSToScreenScale mZoom;
 
   
   
@@ -696,8 +740,8 @@ gfx::Log<LogLevel>& operator<<(gfx::Log<LogLevel>& log, const ScrollableLayerGui
 struct ZoomConstraints {
   bool mAllowZoom;
   bool mAllowDoubleTapZoom;
-  CSSToParentLayerScale mMinZoom;
-  CSSToParentLayerScale mMaxZoom;
+  CSSToScreenScale mMinZoom;
+  CSSToScreenScale mMaxZoom;
 
   ZoomConstraints()
     : mAllowZoom(true)
@@ -708,8 +752,8 @@ struct ZoomConstraints {
 
   ZoomConstraints(bool aAllowZoom,
                   bool aAllowDoubleTapZoom,
-                  const CSSToParentLayerScale& aMinZoom,
-                  const CSSToParentLayerScale& aMaxZoom)
+                  const CSSToScreenScale& aMinZoom,
+                  const CSSToScreenScale& aMaxZoom)
     : mAllowZoom(aAllowZoom)
     , mAllowDoubleTapZoom(aAllowDoubleTapZoom)
     , mMinZoom(aMinZoom)
