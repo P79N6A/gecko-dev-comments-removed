@@ -1184,11 +1184,6 @@ pref("network.http.connection-timeout", 90);
 
 
 
-
-pref("network.http.network-changed.timeout", 5);
-
-
-
 pref("network.http.speculative-parallel-limit", 6);
 
 
