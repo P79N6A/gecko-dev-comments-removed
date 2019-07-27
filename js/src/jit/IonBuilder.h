@@ -10,6 +10,8 @@
 
 
 
+#include "mozilla/LinkedList.h"
+
 #include "jit/BytecodeAnalysis.h"
 #include "jit/IonOptimizationLevels.h"
 #include "jit/MIR.h"
@@ -29,7 +31,9 @@ class BaselineFrameInspector;
 BaselineFrameInspector *
 NewBaselineFrameInspector(TempAllocator *temp, BaselineFrame *frame, CompileInfo *info);
 
-class IonBuilder : public MIRGenerator
+class IonBuilder
+  : public MIRGenerator,
+    public mozilla::LinkedListElement<IonBuilder>
 {
     enum ControlStatus {
         ControlStatus_Error,

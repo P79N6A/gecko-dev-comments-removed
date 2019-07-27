@@ -28,6 +28,7 @@ namespace jit {
 class MacroAssembler;
 class CodeOffsetLabel;
 class PatchableBackedge;
+class IonBuilder;
 
 class JitCode : public gc::BarrieredCell<JitCode>
 {
@@ -299,6 +300,8 @@ struct IonScript
     
     Vector<DependentAsmJSModuleExit> *dependentAsmJSModules;
 
+    IonBuilder *pendingBuilder_;
+
   private:
     inline uint8_t *bottomBuffer() {
         return reinterpret_cast<uint8_t *>(this);
@@ -308,6 +311,15 @@ struct IonScript
     }
 
   public:
+
+    
+    void setPendingBuilderPrivate(IonBuilder *builder) {
+        pendingBuilder_ = builder;
+    }
+    IonBuilder *pendingBuilder() const {
+        return pendingBuilder_;
+    }
+
     SnapshotOffset *bailoutTable() {
         return (SnapshotOffset *) &bottomBuffer()[bailoutTable_];
     }

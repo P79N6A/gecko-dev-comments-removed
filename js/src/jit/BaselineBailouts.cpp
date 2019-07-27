@@ -1335,7 +1335,7 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
 
     if (!excInfo)
         iter.ionScript()->incNumBailouts();
-    iter.script()->updateBaselineOrIonRaw();
+    iter.script()->updateBaselineOrIonRaw(cx);
 
     
     BaselineStackBuilder builder(iter, 1024);
