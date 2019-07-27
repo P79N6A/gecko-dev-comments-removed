@@ -129,7 +129,7 @@ function display(panel, options, anchor) {
 
     let viewportRect = document.defaultView.gBrowser.getBoundingClientRect();
 
-    ({x, y, width, height}) = calculateRegion(options, viewportRect);
+    ({x, y, width, height} = calculateRegion(options, viewportRect));
   }
   else {
     
@@ -145,7 +145,7 @@ function display(panel, options, anchor) {
     
     if (CustomizableUI) {
       let node = anchor;
-      ({anchor}) = CustomizableUI.getWidget(anchor.id).forWindow(window);
+      ({anchor} = CustomizableUI.getWidget(anchor.id).forWindow(window));
 
       
       
