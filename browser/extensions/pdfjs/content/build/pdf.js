@@ -21,8 +21,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.0.370';
-PDFJS.build = '13efe84';
+PDFJS.version = '1.0.473';
+PDFJS.build = '1694cd8';
 
 (function pdfjsWrapper() {
   
@@ -72,6 +72,39 @@ var ImageKind = {
   GRAYSCALE_1BPP: 1,
   RGB_24BPP: 2,
   RGBA_32BPP: 3
+};
+
+var AnnotationType = {
+  WIDGET: 1,
+  TEXT: 2,
+  LINK: 3
+};
+
+var StreamType = {
+  UNKNOWN: 0,
+  FLATE: 1,
+  LZW: 2,
+  DCT: 3,
+  JPX: 4,
+  JBIG: 5,
+  A85: 6,
+  AHX: 7,
+  CCF: 8,
+  RL: 9
+};
+
+var FontType = {
+  UNKNOWN: 0,
+  TYPE1: 1,
+  TYPE1C: 2,
+  CIDFONTTYPE0: 3,
+  CIDFONTTYPE0C: 4,
+  TRUETYPE: 5,
+  CIDFONTTYPE2: 6,
+  TYPE3: 7,
+  OPENTYPE: 8,
+  TYPE0: 9,
+  MMTYPE1: 10
 };
 
 
@@ -499,8 +532,15 @@ var IDENTITY_MATRIX = [1, 0, 0, 1, 0, 0];
 var Util = PDFJS.Util = (function UtilClosure() {
   function Util() {}
 
+  var rgbBuf = ['rgb(', 0, ',', 0, ',', 0, ')'];
+
+  
+  
   Util.makeCssRgb = function Util_makeCssRgb(rgb) {
-    return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+    rgbBuf[1] = rgb[0];
+    rgbBuf[3] = rgb[1];
+    rgbBuf[5] = rgb[2];
+    return rgbBuf.join('');
   };
 
   
@@ -650,12 +690,11 @@ var Util = PDFJS.Util = (function UtilClosure() {
     return num < 0 ? -1 : 1;
   };
 
-  
-  Util.concatenateToArray = function concatenateToArray(arr1, arr2) {
+  Util.appendToArray = function Util_appendToArray(arr1, arr2) {
     Array.prototype.push.apply(arr1, arr2);
   };
 
-  Util.prependToArray = function concatenateToArray(arr1, arr2) {
+  Util.prependToArray = function Util_prependToArray(arr1, arr2) {
     Array.prototype.unshift.apply(arr1, arr2);
   };
 
@@ -1240,815 +1279,12 @@ function loadJpegStream(id, imageUrl, objs) {
   img.onload = (function loadJpegStream_onloadClosure() {
     objs.resolve(id, img);
   });
+  img.onerror = (function loadJpegStream_onerrorClosure() {
+    objs.resolve(id, null);
+    warn('Error during JPEG image loading');
+  });
   img.src = imageUrl;
 }
-
-
-var DEFAULT_ICON_SIZE = 22; 
-var HIGHLIGHT_OFFSET = 4; 
-var SUPPORTED_TYPES = ['Link', 'Text', 'Widget'];
-
-var Annotation = (function AnnotationClosure() {
-  
-  function getTransformMatrix(rect, bbox, matrix) {
-    var bounds = Util.getAxialAlignedBoundingBox(bbox, matrix);
-    var minX = bounds[0];
-    var minY = bounds[1];
-    var maxX = bounds[2];
-    var maxY = bounds[3];
-
-    if (minX === maxX || minY === maxY) {
-      
-      
-      return [1, 0, 0, 1, rect[0], rect[1]];
-    }
-
-    var xRatio = (rect[2] - rect[0]) / (maxX - minX);
-    var yRatio = (rect[3] - rect[1]) / (maxY - minY);
-    return [
-      xRatio,
-      0,
-      0,
-      yRatio,
-      rect[0] - minX * xRatio,
-      rect[1] - minY * yRatio
-    ];
-  }
-
-  function getDefaultAppearance(dict) {
-    var appearanceState = dict.get('AP');
-    if (!isDict(appearanceState)) {
-      return;
-    }
-
-    var appearance;
-    var appearances = appearanceState.get('N');
-    if (isDict(appearances)) {
-      var as = dict.get('AS');
-      if (as && appearances.has(as.name)) {
-        appearance = appearances.get(as.name);
-      }
-    } else {
-      appearance = appearances;
-    }
-    return appearance;
-  }
-
-  function Annotation(params) {
-    if (params.data) {
-      this.data = params.data;
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data = {};
-
-    data.subtype = dict.get('Subtype').name;
-    var rect = dict.get('Rect') || [0, 0, 0, 0];
-    data.rect = Util.normalizeRect(rect);
-    data.annotationFlags = dict.get('F');
-
-    var color = dict.get('C');
-    if (isArray(color) && color.length === 3) {
-      
-      
-      data.color = color;
-    } else {
-      data.color = [0, 0, 0];
-    }
-
-    
-    
-    if (dict.has('BS')) {
-      var borderStyle = dict.get('BS');
-      data.borderWidth = borderStyle.has('W') ? borderStyle.get('W') : 1;
-    } else {
-      var borderArray = dict.get('Border') || [0, 0, 1];
-      data.borderWidth = borderArray[2] || 0;
-
-      
-      var dashArray = borderArray[3];
-      if (data.borderWidth > 0 && dashArray) {
-        if (!isArray(dashArray)) {
-          
-          
-          data.borderWidth = 0;
-        } else {
-          var dashArrayLength = dashArray.length;
-          if (dashArrayLength > 0) {
-            
-            
-            var isInvalid = false;
-            var numPositive = 0;
-            for (var i = 0; i < dashArrayLength; i++) {
-              var validNumber = (+dashArray[i] >= 0);
-              if (!validNumber) {
-                isInvalid = true;
-                break;
-              } else if (dashArray[i] > 0) {
-                numPositive++;
-              }
-            }
-            if (isInvalid || numPositive === 0) {
-              data.borderWidth = 0;
-            }
-          }
-        }
-      }
-    }
-
-    this.appearance = getDefaultAppearance(dict);
-    data.hasAppearance = !!this.appearance;
-    data.id = params.ref.num;
-  }
-
-  Annotation.prototype = {
-
-    getData: function Annotation_getData() {
-      return this.data;
-    },
-
-    hasHtml: function Annotation_hasHtml() {
-      return false;
-    },
-
-    getHtmlElement: function Annotation_getHtmlElement(commonObjs) {
-      throw new NotImplementedException(
-        'getHtmlElement() should be implemented in subclass');
-    },
-
-    
-    getEmptyContainer: function Annotation_getEmptyContainer(tagName, rect,
-                                                             borderWidth) {
-      assert(!isWorker,
-        'getEmptyContainer() should be called from main thread');
-
-      var bWidth = borderWidth || 0;
-
-      rect = rect || this.data.rect;
-      var element = document.createElement(tagName);
-      element.style.borderWidth = bWidth + 'px';
-      var width = rect[2] - rect[0] - 2 * bWidth;
-      var height = rect[3] - rect[1] - 2 * bWidth;
-      element.style.width = width + 'px';
-      element.style.height = height + 'px';
-      return element;
-    },
-
-    isInvisible: function Annotation_isInvisible() {
-      var data = this.data;
-      if (data && SUPPORTED_TYPES.indexOf(data.subtype) !== -1) {
-        return false;
-      } else {
-        return !!(data &&
-                  data.annotationFlags &&            
-                  data.annotationFlags & 0x1);       
-      }
-    },
-
-    isViewable: function Annotation_isViewable() {
-      var data = this.data;
-      return !!(!this.isInvisible() &&
-                data &&
-                (!data.annotationFlags ||
-                 !(data.annotationFlags & 0x22)) &&  
-                data.rect);                          
-    },
-
-    isPrintable: function Annotation_isPrintable() {
-      var data = this.data;
-      return !!(!this.isInvisible() &&
-                data &&
-                data.annotationFlags &&              
-                data.annotationFlags & 0x4 &&        
-                !(data.annotationFlags & 0x2) &&     
-                data.rect);                          
-    },
-
-    loadResources: function Annotation_loadResources(keys) {
-      return new Promise(function (resolve, reject) {
-        this.appearance.dict.getAsync('Resources').then(function (resources) {
-          if (!resources) {
-            resolve();
-            return;
-          }
-          var objectLoader = new ObjectLoader(resources.map,
-                                              keys,
-                                              resources.xref);
-          objectLoader.load().then(function() {
-            resolve(resources);
-          }, reject);
-        }, reject);
-      }.bind(this));
-    },
-
-    getOperatorList: function Annotation_getOperatorList(evaluator) {
-
-      if (!this.appearance) {
-        return Promise.resolve(new OperatorList());
-      }
-
-      var data = this.data;
-
-      var appearanceDict = this.appearance.dict;
-      var resourcesPromise = this.loadResources([
-        'ExtGState',
-        'ColorSpace',
-        'Pattern',
-        'Shading',
-        'XObject',
-        'Font'
-        
-        
-      ]);
-      var bbox = appearanceDict.get('BBox') || [0, 0, 1, 1];
-      var matrix = appearanceDict.get('Matrix') || [1, 0, 0, 1, 0 ,0];
-      var transform = getTransformMatrix(data.rect, bbox, matrix);
-      var self = this;
-
-      return resourcesPromise.then(function(resources) {
-          var opList = new OperatorList();
-          opList.addOp(OPS.beginAnnotation, [data.rect, transform, matrix]);
-          return evaluator.getOperatorList(self.appearance, resources, opList).
-            then(function () {
-              opList.addOp(OPS.endAnnotation, []);
-              self.appearance.reset();
-              return opList;
-            });
-        });
-    }
-  };
-
-  Annotation.getConstructor =
-      function Annotation_getConstructor(subtype, fieldType) {
-
-    if (!subtype) {
-      return;
-    }
-
-    
-    if (subtype === 'Link') {
-      return LinkAnnotation;
-    } else if (subtype === 'Text') {
-      return TextAnnotation;
-    } else if (subtype === 'Widget') {
-      if (!fieldType) {
-        return;
-      }
-
-      if (fieldType === 'Tx') {
-        return TextWidgetAnnotation;
-      } else {
-        return WidgetAnnotation;
-      }
-    } else {
-      return Annotation;
-    }
-  };
-
-  
-  Annotation.fromData = function Annotation_fromData(data) {
-    var subtype = data.subtype;
-    var fieldType = data.fieldType;
-    var Constructor = Annotation.getConstructor(subtype, fieldType);
-    if (Constructor) {
-      return new Constructor({ data: data });
-    }
-  };
-
-  Annotation.fromRef = function Annotation_fromRef(xref, ref) {
-
-    var dict = xref.fetchIfRef(ref);
-    if (!isDict(dict)) {
-      return;
-    }
-
-    var subtype = dict.get('Subtype');
-    subtype = isName(subtype) ? subtype.name : '';
-    if (!subtype) {
-      return;
-    }
-
-    var fieldType = Util.getInheritableProperty(dict, 'FT');
-    fieldType = isName(fieldType) ? fieldType.name : '';
-
-    var Constructor = Annotation.getConstructor(subtype, fieldType);
-    if (!Constructor) {
-      return;
-    }
-
-    var params = {
-      dict: dict,
-      ref: ref,
-    };
-
-    var annotation = new Constructor(params);
-
-    if (annotation.isViewable() || annotation.isPrintable()) {
-      return annotation;
-    } else {
-      if (SUPPORTED_TYPES.indexOf(subtype) === -1) {
-        warn('unimplemented annotation type: ' + subtype);
-      }
-    }
-  };
-
-  Annotation.appendToOperatorList = function Annotation_appendToOperatorList(
-      annotations, opList, pdfManager, partialEvaluator, intent) {
-
-    function reject(e) {
-      annotationsReadyCapability.reject(e);
-    }
-
-    var annotationsReadyCapability = createPromiseCapability();
-
-    var annotationPromises = [];
-    for (var i = 0, n = annotations.length; i < n; ++i) {
-      if (intent === 'display' && annotations[i].isViewable() ||
-          intent === 'print' && annotations[i].isPrintable()) {
-        annotationPromises.push(
-          annotations[i].getOperatorList(partialEvaluator));
-      }
-    }
-    Promise.all(annotationPromises).then(function(datas) {
-      opList.addOp(OPS.beginAnnotations, []);
-      for (var i = 0, n = datas.length; i < n; ++i) {
-        var annotOpList = datas[i];
-        opList.addOpList(annotOpList);
-      }
-      opList.addOp(OPS.endAnnotations, []);
-      annotationsReadyCapability.resolve();
-    }, reject);
-
-    return annotationsReadyCapability.promise;
-  };
-
-  return Annotation;
-})();
-PDFJS.Annotation = Annotation;
-
-
-var WidgetAnnotation = (function WidgetAnnotationClosure() {
-
-  function WidgetAnnotation(params) {
-    Annotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data;
-
-    data.fieldValue = stringToPDFString(
-      Util.getInheritableProperty(dict, 'V') || '');
-    data.alternativeText = stringToPDFString(dict.get('TU') || '');
-    data.defaultAppearance = Util.getInheritableProperty(dict, 'DA') || '';
-    var fieldType = Util.getInheritableProperty(dict, 'FT');
-    data.fieldType = isName(fieldType) ? fieldType.name : '';
-    data.fieldFlags = Util.getInheritableProperty(dict, 'Ff') || 0;
-    this.fieldResources = Util.getInheritableProperty(dict, 'DR') || Dict.empty;
-
-    
-    
-    var fieldName = [];
-    var namedItem = dict;
-    var ref = params.ref;
-    while (namedItem) {
-      var parent = namedItem.get('Parent');
-      var parentRef = namedItem.getRaw('Parent');
-      var name = namedItem.get('T');
-      if (name) {
-        fieldName.unshift(stringToPDFString(name));
-      } else {
-        
-        
-        
-        
-        
-        var kids = parent.get('Kids');
-        var j, jj;
-        for (j = 0, jj = kids.length; j < jj; j++) {
-          var kidRef = kids[j];
-          if (kidRef.num == ref.num && kidRef.gen == ref.gen) {
-            break;
-          }
-        }
-        fieldName.unshift('`' + j);
-      }
-      namedItem = parent;
-      ref = parentRef;
-    }
-    data.fullName = fieldName.join('.');
-  }
-
-  var parent = Annotation.prototype;
-  Util.inherit(WidgetAnnotation, Annotation, {
-    isViewable: function WidgetAnnotation_isViewable() {
-      if (this.data.fieldType === 'Sig') {
-        warn('unimplemented annotation type: Widget signature');
-        return false;
-      }
-
-      return parent.isViewable.call(this);
-    }
-  });
-
-  return WidgetAnnotation;
-})();
-
-var TextWidgetAnnotation = (function TextWidgetAnnotationClosure() {
-  function TextWidgetAnnotation(params) {
-    WidgetAnnotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    this.data.textAlignment = Util.getInheritableProperty(params.dict, 'Q');
-  }
-
-  
-  function setTextStyles(element, item, fontObj) {
-
-    var style = element.style;
-    style.fontSize = item.fontSize + 'px';
-    style.direction = item.fontDirection < 0 ? 'rtl': 'ltr';
-
-    if (!fontObj) {
-      return;
-    }
-
-    style.fontWeight = fontObj.black ?
-                            (fontObj.bold ? 'bolder' : 'bold') :
-                            (fontObj.bold ? 'bold' : 'normal');
-    style.fontStyle = fontObj.italic ? 'italic' : 'normal';
-
-    var fontName = fontObj.loadedName;
-    var fontFamily = fontName ? '"' + fontName + '", ' : '';
-    
-    var fallbackName = fontObj.fallbackName || 'Helvetica, sans-serif';
-    style.fontFamily = fontFamily + fallbackName;
-  }
-
-
-  Util.inherit(TextWidgetAnnotation, WidgetAnnotation, {
-    hasHtml: function TextWidgetAnnotation_hasHtml() {
-      return !this.data.hasAppearance && !!this.data.fieldValue;
-    },
-
-    getHtmlElement: function TextWidgetAnnotation_getHtmlElement(commonObjs) {
-      assert(!isWorker, 'getHtmlElement() shall be called from main thread');
-
-      var item = this.data;
-
-      var element = this.getEmptyContainer('div');
-      element.style.display = 'table';
-
-      var content = document.createElement('div');
-      content.textContent = item.fieldValue;
-      var textAlignment = item.textAlignment;
-      content.style.textAlign = ['left', 'center', 'right'][textAlignment];
-      content.style.verticalAlign = 'middle';
-      content.style.display = 'table-cell';
-
-      var fontObj = item.fontRefName ?
-                    commonObjs.getData(item.fontRefName) : null;
-      setTextStyles(content, item, fontObj);
-
-      element.appendChild(content);
-
-      return element;
-    },
-
-    getOperatorList: function TextWidgetAnnotation_getOperatorList(evaluator) {
-      if (this.appearance) {
-        return Annotation.prototype.getOperatorList.call(this, evaluator);
-      }
-
-      var opList = new OperatorList();
-      var data = this.data;
-
-      
-      
-      if (!data.defaultAppearance) {
-        return Promise.resolve(opList);
-      }
-
-      var stream = new Stream(stringToBytes(data.defaultAppearance));
-      return evaluator.getOperatorList(stream, this.fieldResources, opList).
-        then(function () {
-          return opList;
-        });
-    }
-  });
-
-  return TextWidgetAnnotation;
-})();
-
-var InteractiveAnnotation = (function InteractiveAnnotationClosure() {
-  function InteractiveAnnotation(params) {
-    Annotation.call(this, params);
-  }
-
-  Util.inherit(InteractiveAnnotation, Annotation, {
-    hasHtml: function InteractiveAnnotation_hasHtml() {
-      return true;
-    },
-
-    highlight: function InteractiveAnnotation_highlight() {
-      if (this.highlightElement &&
-         this.highlightElement.hasAttribute('hidden')) {
-        this.highlightElement.removeAttribute('hidden');
-      }
-    },
-
-    unhighlight: function InteractiveAnnotation_unhighlight() {
-      if (this.highlightElement &&
-         !this.highlightElement.hasAttribute('hidden')) {
-        this.highlightElement.setAttribute('hidden', true);
-      }
-    },
-
-    initContainer: function InteractiveAnnotation_initContainer() {
-
-      var item = this.data;
-      var rect = item.rect;
-
-      var container = this.getEmptyContainer('section', rect, item.borderWidth);
-      container.style.backgroundColor = item.color;
-
-      var color = item.color;
-      var rgb = [];
-      for (var i = 0; i < 3; ++i) {
-        rgb[i] = Math.round(color[i] * 255);
-      }
-      item.colorCssRgb = Util.makeCssRgb(rgb);
-
-      var highlight = document.createElement('div');
-      highlight.className = 'annotationHighlight';
-      highlight.style.left = highlight.style.top = -HIGHLIGHT_OFFSET + 'px';
-      highlight.style.right = highlight.style.bottom = -HIGHLIGHT_OFFSET + 'px';
-      highlight.setAttribute('hidden', true);
-
-      this.highlightElement = highlight;
-      container.appendChild(this.highlightElement);
-
-      return container;
-    }
-  });
-
-  return InteractiveAnnotation;
-})();
-
-var TextAnnotation = (function TextAnnotationClosure() {
-  function TextAnnotation(params) {
-    InteractiveAnnotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data;
-
-    var content = dict.get('Contents');
-    var title = dict.get('T');
-    data.content = stringToPDFString(content || '');
-    data.title = stringToPDFString(title || '');
-
-    if (data.hasAppearance) {
-      data.name = 'NoIcon';
-    } else {
-      data.rect[1] = data.rect[3] - DEFAULT_ICON_SIZE;
-      data.rect[2] = data.rect[0] + DEFAULT_ICON_SIZE;
-      data.name = dict.has('Name') ? dict.get('Name').name : 'Note';
-    }
-
-    if (dict.has('C')) {
-      data.hasBgColor = true;
-    }
-  }
-
-  var ANNOT_MIN_SIZE = 10;
-
-  Util.inherit(TextAnnotation, InteractiveAnnotation, {
-
-    getHtmlElement: function TextAnnotation_getHtmlElement(commonObjs) {
-      assert(!isWorker, 'getHtmlElement() shall be called from main thread');
-
-      var item = this.data;
-      var rect = item.rect;
-
-      
-      if ((rect[3] - rect[1]) < ANNOT_MIN_SIZE) {
-        rect[3] = rect[1] + ANNOT_MIN_SIZE;
-      }
-      if ((rect[2] - rect[0]) < ANNOT_MIN_SIZE) {
-        rect[2] = rect[0] + (rect[3] - rect[1]); 
-      }
-
-      var container = this.initContainer();
-      container.className = 'annotText';
-
-      var image  = document.createElement('img');
-      image.style.height = container.style.height;
-      image.style.width = container.style.width;
-      var iconName = item.name;
-      image.src = PDFJS.imageResourcesPath + 'annotation-' +
-        iconName.toLowerCase() + '.svg';
-      image.alt = '[{{type}} Annotation]';
-      image.dataset.l10nId = 'text_annotation_type';
-      image.dataset.l10nArgs = JSON.stringify({type: iconName});
-
-      var contentWrapper = document.createElement('div');
-      contentWrapper.className = 'annotTextContentWrapper';
-      contentWrapper.style.left = Math.floor(rect[2] - rect[0] + 5) + 'px';
-      contentWrapper.style.top = '-10px';
-
-      var content = document.createElement('div');
-      content.className = 'annotTextContent';
-      content.setAttribute('hidden', true);
-
-      var i, ii;
-      if (item.hasBgColor) {
-        var color = item.color;
-        var rgb = [];
-        for (i = 0; i < 3; ++i) {
-          
-          var c = Math.round(color[i] * 255);
-          rgb[i] = Math.round((255 - c) * 0.7) + c;
-        }
-        content.style.backgroundColor = Util.makeCssRgb(rgb);
-      }
-
-      var title = document.createElement('h1');
-      var text = document.createElement('p');
-      title.textContent = item.title;
-
-      if (!item.content && !item.title) {
-        content.setAttribute('hidden', true);
-      } else {
-        var e = document.createElement('span');
-        var lines = item.content.split(/(?:\r\n?|\n)/);
-        for (i = 0, ii = lines.length; i < ii; ++i) {
-          var line = lines[i];
-          e.appendChild(document.createTextNode(line));
-          if (i < (ii - 1)) {
-            e.appendChild(document.createElement('br'));
-          }
-        }
-        text.appendChild(e);
-
-        var pinned = false;
-
-        var showAnnotation = function showAnnotation(pin) {
-          if (pin) {
-            pinned = true;
-          }
-          if (content.hasAttribute('hidden')) {
-            container.style.zIndex += 1;
-            content.removeAttribute('hidden');
-          }
-        };
-
-        var hideAnnotation = function hideAnnotation(unpin) {
-          if (unpin) {
-            pinned = false;
-          }
-          if (!content.hasAttribute('hidden') && !pinned) {
-            container.style.zIndex -= 1;
-            content.setAttribute('hidden', true);
-          }
-        };
-
-        var toggleAnnotation = function toggleAnnotation() {
-          if (pinned) {
-            hideAnnotation(true);
-          } else {
-            showAnnotation(true);
-          }
-        };
-
-        image.addEventListener('click', function image_clickHandler() {
-          toggleAnnotation();
-        }, false);
-        image.addEventListener('mouseover', function image_mouseOverHandler() {
-          showAnnotation();
-        }, false);
-        image.addEventListener('mouseout', function image_mouseOutHandler() {
-          hideAnnotation();
-        }, false);
-
-        content.addEventListener('click', function content_clickHandler() {
-          hideAnnotation(true);
-        }, false);
-      }
-
-      content.appendChild(title);
-      content.appendChild(text);
-      contentWrapper.appendChild(content);
-      container.appendChild(image);
-      container.appendChild(contentWrapper);
-
-      return container;
-    }
-  });
-
-  return TextAnnotation;
-})();
-
-var LinkAnnotation = (function LinkAnnotationClosure() {
-  function LinkAnnotation(params) {
-    InteractiveAnnotation.call(this, params);
-
-    if (params.data) {
-      return;
-    }
-
-    var dict = params.dict;
-    var data = this.data;
-
-    var action = dict.get('A');
-    if (action) {
-      var linkType = action.get('S').name;
-      if (linkType === 'URI') {
-        var url = action.get('URI');
-        if (isName(url)) {
-          
-          url = '/' + url.name;
-        } else if (url) {
-          url = addDefaultProtocolToUrl(url);
-        }
-        
-        
-        if (!isValidUrl(url, false)) {
-          url = '';
-        }
-        data.url = url;
-      } else if (linkType === 'GoTo') {
-        data.dest = action.get('D');
-      } else if (linkType === 'GoToR') {
-        var urlDict = action.get('F');
-        if (isDict(urlDict)) {
-          
-          
-          url = urlDict.get('F') || '';
-        }
-
-        
-        
-        if (!isValidUrl(url, false)) {
-          url = '';
-        }
-        data.url = url;
-        data.dest = action.get('D');
-      } else if (linkType === 'Named') {
-        data.action = action.get('N').name;
-      } else {
-        warn('unrecognized link type: ' + linkType);
-      }
-    } else if (dict.has('Dest')) {
-      
-      var dest = dict.get('Dest');
-      data.dest = isName(dest) ? dest.name : dest;
-    }
-  }
-
-  
-  function addDefaultProtocolToUrl(url) {
-    if (url && url.indexOf('www.') === 0) {
-      return ('http://' + url);
-    }
-    return url;
-  }
-
-  Util.inherit(LinkAnnotation, InteractiveAnnotation, {
-    hasOperatorList: function LinkAnnotation_hasOperatorList() {
-      return false;
-    },
-
-    getHtmlElement: function LinkAnnotation_getHtmlElement(commonObjs) {
-
-      var container = this.initContainer();
-      container.className = 'annotLink';
-
-      var item = this.data;
-
-      container.style.borderColor = item.colorCssRgb;
-      container.style.borderStyle = 'solid';
-
-      var link = document.createElement('a');
-      link.href = link.title = this.data.url || '';
-
-      container.appendChild(link);
-
-      return container;
-    }
-  });
-
-  return LinkAnnotation;
-})();
 
 
 
@@ -2176,6 +1412,14 @@ PDFJS.verbosity = (PDFJS.verbosity === undefined ?
 
 PDFJS.maxCanvasPixels = (PDFJS.maxCanvasPixels === undefined ?
                          16777216 : PDFJS.maxCanvasPixels);
+
+
+
+
+
+
+
+
 
 
 
@@ -2363,6 +1607,13 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
     
 
 
+
+    getStats: function PDFDocumentProxy_getStats() {
+      return this.transport.getStats();
+    },
+    
+
+
     cleanup: function PDFDocumentProxy_cleanup() {
       this.transport.startCleanup();
     },
@@ -2415,6 +1666,15 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
 
 
 
+
+
+
+
+
+
+
+
+ 
 
 
 
@@ -2583,6 +1843,45 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
 
       return renderTask;
     },
+
+    
+
+
+
+    getOperatorList: function PDFPageProxy_getOperatorList() {
+      function operatorListChanged() {
+        if (intentState.operatorList.lastChunk) {
+          intentState.opListReadCapability.resolve(intentState.operatorList);
+        }
+      }
+
+      var renderingIntent = 'oplist';
+      if (!this.intentStates[renderingIntent]) {
+        this.intentStates[renderingIntent] = {};
+      }
+      var intentState = this.intentStates[renderingIntent];
+
+      if (!intentState.opListReadCapability) {
+        var opListTask = {};
+        opListTask.operatorListChanged = operatorListChanged;
+        intentState.receivingOperatorList = true;
+        intentState.opListReadCapability = createPromiseCapability();
+        intentState.renderTasks = [];
+        intentState.renderTasks.push(opListTask);
+        intentState.operatorList = {
+          fnArray: [],
+          argsArray: [],
+          lastChunk: false
+        };
+
+        this.transport.messageHandler.send('RenderPageRequest', {
+          pageIndex: this.pageIndex,
+          intent: renderingIntent
+        });
+      }
+      return intentState.opListReadCapability.promise;
+    },
+
     
 
 
@@ -2628,7 +1927,11 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
     _startRenderPage: function PDFPageProxy_startRenderPage(transparency,
                                                             intent) {
       var intentState = this.intentStates[intent];
-      intentState.displayReadyCapability.resolve(transparency);
+      
+      
+      if (intentState.displayReadyCapability) {
+        intentState.displayReadyCapability.resolve(transparency);
+      }
     },
     
 
@@ -2669,6 +1972,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
                            pdfDataRangeTransport, progressCallback) {
     this.pdfDataRangeTransport = pdfDataRangeTransport;
 
+    this.workerInitializedCapability = workerInitializedCapability;
     this.workerReadyCapability = workerReadyCapability;
     this.progressCallback = progressCallback;
     this.commonObjs = new PDFObjects();
@@ -2706,11 +2010,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
             this.setupMessageHandler(messageHandler);
             workerInitializedCapability.resolve();
           } else {
-            globalScope.PDFJS.disableWorker = true;
-            this.loadFakeWorkerFiles().then(function() {
-              this.setupFakeWorker();
-              workerInitializedCapability.resolve();
-            }.bind(this));
+            this.setupFakeWorker();
           }
         }.bind(this));
 
@@ -2731,11 +2031,7 @@ var WorkerTransport = (function WorkerTransportClosure() {
     }
     
     
-    globalScope.PDFJS.disableWorker = true;
-    this.loadFakeWorkerFiles().then(function() {
-      this.setupFakeWorker();
-      workerInitializedCapability.resolve();
-    }.bind(this));
+    this.setupFakeWorker();
   }
   WorkerTransport.prototype = {
     destroy: function WorkerTransport_destroy() {
@@ -2750,7 +2046,9 @@ var WorkerTransport = (function WorkerTransportClosure() {
       });
     },
 
-    loadFakeWorkerFiles: function WorkerTransport_loadFakeWorkerFiles() {
+    setupFakeWorker: function WorkerTransport_setupFakeWorker() {
+      globalScope.PDFJS.disableWorker = true;
+
       if (!PDFJS.fakeWorkerFilesLoadedCapability) {
         PDFJS.fakeWorkerFilesLoadedCapability = createPromiseCapability();
         
@@ -2760,25 +2058,25 @@ var WorkerTransport = (function WorkerTransportClosure() {
           PDFJS.fakeWorkerFilesLoadedCapability.resolve();
         });
       }
-      return PDFJS.fakeWorkerFilesLoadedCapability.promise;
-    },
+      PDFJS.fakeWorkerFilesLoadedCapability.promise.then(function () {
+        warn('Setting up fake worker.');
+        
+        var fakeWorker = {
+          postMessage: function WorkerTransport_postMessage(obj) {
+            fakeWorker.onmessage({data: obj});
+          },
+          terminate: function WorkerTransport_terminate() {}
+        };
 
-    setupFakeWorker: function WorkerTransport_setupFakeWorker() {
-      warn('Setting up fake worker.');
-      
-      var fakeWorker = {
-        postMessage: function WorkerTransport_postMessage(obj) {
-          fakeWorker.onmessage({data: obj});
-        },
-        terminate: function WorkerTransport_terminate() {}
-      };
+        var messageHandler = new MessageHandler('main', fakeWorker);
+        this.setupMessageHandler(messageHandler);
 
-      var messageHandler = new MessageHandler('main', fakeWorker);
-      this.setupMessageHandler(messageHandler);
+        
+        
+        PDFJS.WorkerMessageHandler.setup(messageHandler);
 
-      
-      
-      PDFJS.WorkerMessageHandler.setup(messageHandler);
+        this.workerInitializedCapability.resolve();
+      }.bind(this));
     },
 
     setupMessageHandler:
@@ -3073,6 +2371,10 @@ var WorkerTransport = (function WorkerTransportClosure() {
           metadata: (results[1] ? new PDFJS.Metadata(results[1]) : null)
         };
       });
+    },
+
+    getStats: function WorkerTransport_getStats() {
+      return this.messageHandler.sendWithPromise('GetStats', null);
     },
 
     startCleanup: function WorkerTransport_startCleanup() {
@@ -3594,7 +2896,14 @@ var CachedCanvases = (function CachedCanvasesClosure() {
       return canvasEntry;
     },
     clear: function () {
-      cache = {};
+      for (var id in cache) {
+        var canvasEntry = cache[id];
+        
+        
+        canvasEntry.canvas.width = 0;
+        canvasEntry.canvas.height = 0;
+        delete cache[id];
+      }
     }
   };
 })();
@@ -4385,6 +3694,26 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       var x = current.x, y = current.y;
       for (var i = 0, j = 0, ii = ops.length; i < ii; i++) {
         switch (ops[i] | 0) {
+          case OPS.rectangle:
+            x = args[j++];
+            y = args[j++];
+            var width = args[j++];
+            var height = args[j++];
+            if (width === 0) {
+              width = this.getSinglePixelWidth();
+            }
+            if (height === 0) {
+              height = this.getSinglePixelWidth();
+            }
+            var xw = x + width;
+            var yh = y + height;
+            this.ctx.moveTo(x, y);
+            this.ctx.lineTo(xw, y);
+            this.ctx.lineTo(xw, yh);
+            this.ctx.lineTo(x, yh);
+            this.ctx.lineTo(x, y);
+            this.ctx.closePath();
+            break;
           case OPS.moveTo:
             x = args[j++];
             y = args[j++];
@@ -4424,16 +3753,6 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     },
     closePath: function CanvasGraphics_closePath() {
       this.ctx.closePath();
-    },
-    rectangle: function CanvasGraphics_rectangle(x, y, width, height) {
-      if (width === 0) {
-        width = this.getSinglePixelWidth();
-      }
-      if (height === 0) {
-        height = this.getSinglePixelWidth();
-      }
-
-      this.ctx.rect(x, y, width, height);
     },
     stroke: function CanvasGraphics_stroke(consumePath) {
       consumePath = typeof consumePath !== 'undefined' ? consumePath : true;
@@ -4918,7 +4237,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
                                                                         ury) {
       
       
-      this.rectangle(llx, lly, urx - llx, ury - lly);
+      this.ctx.rect(llx, lly, urx - llx, ury - lly);
       this.clip();
       this.endPath();
     },
@@ -5011,7 +4330,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       if (isArray(bbox) && 4 === bbox.length) {
         var width = bbox[2] - bbox[0];
         var height = bbox[3] - bbox[1];
-        this.rectangle(bbox[0], bbox[1], width, height);
+        this.ctx.rect(bbox[0], bbox[1], width, height);
         this.clip();
         this.endPath();
       }
@@ -5163,7 +4482,7 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       if (isArray(rect) && 4 === rect.length) {
         var width = rect[2] - rect[0];
         var height = rect[3] - rect[1];
-        this.rectangle(rect[0], rect[1], width, height);
+        this.ctx.rect(rect[0], rect[1], width, height);
         this.clip();
         this.endPath();
       }
@@ -5910,6 +5229,14 @@ var WebGLUtils = (function WebGLUtilsClosure() {
   }
 
   function cleanup() {
+    if (smaskCache && smaskCache.canvas) {
+      smaskCache.canvas.width = 0;
+      smaskCache.canvas.height = 0;
+    }
+    if (figuresCache && figuresCache.canvas) {
+      figuresCache.canvas.width = 0;
+      figuresCache.canvas.height = 0;
+    }
     smaskCache = null;
     figuresCache = null;
   }
@@ -6140,24 +5467,24 @@ ShadingIRs.Mesh = {
     return {
       type: 'Pattern',
       getPattern: function Mesh_getPattern(ctx, owner, shadingFill) {
-        var combinedScale;
-        
+        var scale;
         if (shadingFill) {
-          combinedScale = Util.singularValueDecompose2dScale(
-            ctx.mozCurrentTransform);
+          scale = Util.singularValueDecompose2dScale(ctx.mozCurrentTransform);
         } else {
-          var matrixScale = Util.singularValueDecompose2dScale(matrix);
-          var curMatrixScale = Util.singularValueDecompose2dScale(
-            owner.baseTransform);
-          combinedScale = [matrixScale[0] * curMatrixScale[0],
-            matrixScale[1] * curMatrixScale[1]];
+          
+          scale = Util.singularValueDecompose2dScale(owner.baseTransform);
+          if (matrix) {
+            var matrixScale = Util.singularValueDecompose2dScale(matrix);
+            scale = [scale[0] * matrixScale[0],
+                     scale[1] * matrixScale[1]];
+          }
         }
 
 
         
         
-        var temporaryPatternCanvas = createMeshCanvas(bounds, combinedScale,
-          coords, colors, figures, shadingFill ? null : background);
+        var temporaryPatternCanvas = createMeshCanvas(bounds, scale, coords,
+          colors, figures, shadingFill ? null : background);
 
         if (!shadingFill) {
           ctx.setTransform.apply(ctx, owner.baseTransform);
@@ -6299,7 +5626,7 @@ var TilingPattern = (function TilingPatternClosure() {
       if (bbox && isArray(bbox) && 4 == bbox.length) {
         var bboxWidth = x1 - x0;
         var bboxHeight = y1 - y0;
-        graphics.rectangle(x0, y0, bboxWidth, bboxHeight);
+        graphics.ctx.rect(x0, y0, bboxWidth, bboxHeight);
         graphics.clip();
         graphics.endPath();
       }
@@ -6429,6 +5756,241 @@ var FontFace = (function FontFaceClosure() {
   };
   return FontFace;
 })();
+
+
+var HIGHLIGHT_OFFSET = 4; 
+var ANNOT_MIN_SIZE = 10; 
+
+var AnnotationUtils = (function AnnotationUtilsClosure() {
+  
+  function setTextStyles(element, item, fontObj) {
+
+    var style = element.style;
+    style.fontSize = item.fontSize + 'px';
+    style.direction = item.fontDirection < 0 ? 'rtl': 'ltr';
+
+    if (!fontObj) {
+      return;
+    }
+
+    style.fontWeight = fontObj.black ?
+      (fontObj.bold ? 'bolder' : 'bold') :
+      (fontObj.bold ? 'bold' : 'normal');
+    style.fontStyle = fontObj.italic ? 'italic' : 'normal';
+
+    var fontName = fontObj.loadedName;
+    var fontFamily = fontName ? '"' + fontName + '", ' : '';
+    
+    var fallbackName = fontObj.fallbackName || 'Helvetica, sans-serif';
+    style.fontFamily = fontFamily + fallbackName;
+  }
+
+  
+  function getEmptyContainer(tagName, rect, borderWidth) {
+    var bWidth = borderWidth || 0;
+    var element = document.createElement(tagName);
+    element.style.borderWidth = bWidth + 'px';
+    var width = rect[2] - rect[0] - 2 * bWidth;
+    var height = rect[3] - rect[1] - 2 * bWidth;
+    element.style.width = width + 'px';
+    element.style.height = height + 'px';
+    return element;
+  }
+
+  function initContainer(item) {
+    var container = getEmptyContainer('section', item.rect, item.borderWidth);
+    container.style.backgroundColor = item.color;
+
+    var color = item.color;
+    var rgb = [];
+    for (var i = 0; i < 3; ++i) {
+      rgb[i] = Math.round(color[i] * 255);
+    }
+    item.colorCssRgb = Util.makeCssRgb(rgb);
+
+    var highlight = document.createElement('div');
+    highlight.className = 'annotationHighlight';
+    highlight.style.left = highlight.style.top = -HIGHLIGHT_OFFSET + 'px';
+    highlight.style.right = highlight.style.bottom = -HIGHLIGHT_OFFSET + 'px';
+    highlight.setAttribute('hidden', true);
+
+    item.highlightElement = highlight;
+    container.appendChild(item.highlightElement);
+
+    return container;
+  }
+
+  function getHtmlElementForTextWidgetAnnotation(item, commonObjs) {
+    var element = getEmptyContainer('div', item.rect, 0);
+    element.style.display = 'table';
+
+    var content = document.createElement('div');
+    content.textContent = item.fieldValue;
+    var textAlignment = item.textAlignment;
+    content.style.textAlign = ['left', 'center', 'right'][textAlignment];
+    content.style.verticalAlign = 'middle';
+    content.style.display = 'table-cell';
+
+    var fontObj = item.fontRefName ?
+      commonObjs.getData(item.fontRefName) : null;
+    setTextStyles(content, item, fontObj);
+
+    element.appendChild(content);
+
+    return element;
+  }
+
+  function getHtmlElementForTextAnnotation(item, commonObjs) {
+    var rect = item.rect;
+
+    
+    if ((rect[3] - rect[1]) < ANNOT_MIN_SIZE) {
+      rect[3] = rect[1] + ANNOT_MIN_SIZE;
+    }
+    if ((rect[2] - rect[0]) < ANNOT_MIN_SIZE) {
+      rect[2] = rect[0] + (rect[3] - rect[1]); 
+    }
+
+    var container = initContainer(item);
+    container.className = 'annotText';
+
+    var image  = document.createElement('img');
+    image.style.height = container.style.height;
+    image.style.width = container.style.width;
+    var iconName = item.name;
+    image.src = PDFJS.imageResourcesPath + 'annotation-' +
+      iconName.toLowerCase() + '.svg';
+    image.alt = '[{{type}} Annotation]';
+    image.dataset.l10nId = 'text_annotation_type';
+    image.dataset.l10nArgs = JSON.stringify({type: iconName});
+
+    var contentWrapper = document.createElement('div');
+    contentWrapper.className = 'annotTextContentWrapper';
+    contentWrapper.style.left = Math.floor(rect[2] - rect[0] + 5) + 'px';
+    contentWrapper.style.top = '-10px';
+
+    var content = document.createElement('div');
+    content.className = 'annotTextContent';
+    content.setAttribute('hidden', true);
+
+    var i, ii;
+    if (item.hasBgColor) {
+      var color = item.color;
+      var rgb = [];
+      for (i = 0; i < 3; ++i) {
+        
+        var c = Math.round(color[i] * 255);
+        rgb[i] = Math.round((255 - c) * 0.7) + c;
+      }
+      content.style.backgroundColor = Util.makeCssRgb(rgb);
+    }
+
+    var title = document.createElement('h1');
+    var text = document.createElement('p');
+    title.textContent = item.title;
+
+    if (!item.content && !item.title) {
+      content.setAttribute('hidden', true);
+    } else {
+      var e = document.createElement('span');
+      var lines = item.content.split(/(?:\r\n?|\n)/);
+      for (i = 0, ii = lines.length; i < ii; ++i) {
+        var line = lines[i];
+        e.appendChild(document.createTextNode(line));
+        if (i < (ii - 1)) {
+          e.appendChild(document.createElement('br'));
+        }
+      }
+      text.appendChild(e);
+
+      var pinned = false;
+
+      var showAnnotation = function showAnnotation(pin) {
+        if (pin) {
+          pinned = true;
+        }
+        if (content.hasAttribute('hidden')) {
+          container.style.zIndex += 1;
+          content.removeAttribute('hidden');
+        }
+      };
+
+      var hideAnnotation = function hideAnnotation(unpin) {
+        if (unpin) {
+          pinned = false;
+        }
+        if (!content.hasAttribute('hidden') && !pinned) {
+          container.style.zIndex -= 1;
+          content.setAttribute('hidden', true);
+        }
+      };
+
+      var toggleAnnotation = function toggleAnnotation() {
+        if (pinned) {
+          hideAnnotation(true);
+        } else {
+          showAnnotation(true);
+        }
+      };
+
+      image.addEventListener('click', function image_clickHandler() {
+        toggleAnnotation();
+      }, false);
+      image.addEventListener('mouseover', function image_mouseOverHandler() {
+        showAnnotation();
+      }, false);
+      image.addEventListener('mouseout', function image_mouseOutHandler() {
+        hideAnnotation();
+      }, false);
+
+      content.addEventListener('click', function content_clickHandler() {
+        hideAnnotation(true);
+      }, false);
+    }
+
+    content.appendChild(title);
+    content.appendChild(text);
+    contentWrapper.appendChild(content);
+    container.appendChild(image);
+    container.appendChild(contentWrapper);
+
+    return container;
+  }
+
+  function getHtmlElementForLinkAnnotation(item, commonObjs) {
+
+    var container = initContainer(item);
+    container.className = 'annotLink';
+
+    container.style.borderColor = item.colorCssRgb;
+    container.style.borderStyle = 'solid';
+
+    var link = document.createElement('a');
+    link.href = link.title = item.url || '';
+
+    container.appendChild(link);
+
+    return container;
+  }
+
+  function getHtmlElement(data, objs) {
+    switch (data.annotationType) {
+      case AnnotationType.WIDGET:
+        return getHtmlElementForTextWidgetAnnotation(data, objs);
+      case AnnotationType.TEXT:
+        return getHtmlElementForTextAnnotation(data, objs);
+      case AnnotationType.LINK:
+        return getHtmlElementForLinkAnnotation(data, objs);
+      default:
+        throw new Error('Unsupported annotationType: ' + data.annotationType);
+    }
+  }
+
+  return {
+    getHtmlElement: getHtmlElement
+  };
+})();
+PDFJS.AnnotationUtils = AnnotationUtils;
 
 
 }).call((typeof window === 'undefined') ? this : window);

@@ -1,20 +1,20 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
-/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
-/* Copyright 2013 Mozilla Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-/* jshint esnext:true */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 'use strict';
 
@@ -44,9 +44,21 @@ this.PdfJsTelemetry = {
     let histogram = Services.telemetry.getHistogramById("PDF_VIEWER_DOCUMENT_GENERATOR");
     histogram.add(generatorId);
   },
+  onEmbed: function (isObject) {
+    let histogram = Services.telemetry.getHistogramById("PDF_VIEWER_EMBED");
+    histogram.add(isObject);
+  },
+  onFontType: function (fontTypeId) {
+    let histogram = Services.telemetry.getHistogramById("PDF_VIEWER_FONT_TYPES");
+    histogram.add(fontTypeId);
+  },
   onForm: function (isAcroform) {
     let histogram = Services.telemetry.getHistogramById("PDF_VIEWER_FORM");
     histogram.add(isAcroform);
+  },
+  onPrint: function () {
+    let histogram = Services.telemetry.getHistogramById("PDF_VIEWER_PRINT");
+    histogram.add(true);
   },
   onStreamType: function (streamTypeId) {
     let histogram = Services.telemetry.getHistogramById("PDF_VIEWER_STREAM_TYPES");
