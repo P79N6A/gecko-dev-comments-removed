@@ -28,6 +28,17 @@ public:
   static void DemangleSymbol(const char* aSymbol, char* aBuffer, int aBufLen);
 
   static void WalkTheStack(FILE* aStream);
+
+  
+
+
+
+
+
+
+
+  static void WalkTheStackCached(FILE* aStream);
+
   
 
 
