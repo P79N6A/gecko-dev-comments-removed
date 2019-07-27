@@ -154,6 +154,15 @@ class Range : public TempObject {
     static const int64_t NoInt32UpperBound = int64_t(JSVAL_INT_MAX) + 1;
     static const int64_t NoInt32LowerBound = int64_t(JSVAL_INT_MIN) - 1;
 
+    enum FractionalPartFlag {
+        ExcludesFractionalParts = false,
+        IncludesFractionalParts = true
+    };
+    enum NegativeZeroFlag {
+        ExcludesNegativeZero = false,
+        IncludesNegativeZero = true
+    };
+
   private:
     
     
@@ -186,12 +195,13 @@ class Range : public TempObject {
     
 
     int32_t lower_;
-    bool hasInt32LowerBound_;
-
     int32_t upper_;
+
+    bool hasInt32LowerBound_;
     bool hasInt32UpperBound_;
 
-    bool canHaveFractionalPart_;
+    FractionalPartFlag canHaveFractionalPart_ : 1;
+    NegativeZeroFlag canBeNegativeZero_ : 1;
     uint16_t max_exponent_;
 
     
@@ -223,12 +233,12 @@ class Range : public TempObject {
         
         
         
+        
+        uint32_t adjustedExponent = max_exponent_ + (canHaveFractionalPart_ ? 1 : 0);
         MOZ_ASSERT_IF(!hasInt32LowerBound_ || !hasInt32UpperBound_,
-                      max_exponent_ + canHaveFractionalPart_ >= MaxInt32Exponent);
-        MOZ_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
-                   mozilla::FloorLog2(mozilla::Abs(upper_)));
-        MOZ_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
-                   mozilla::FloorLog2(mozilla::Abs(lower_)));
+                      adjustedExponent >= MaxInt32Exponent);
+        MOZ_ASSERT(adjustedExponent >= mozilla::FloorLog2(mozilla::Abs(upper_)));
+        MOZ_ASSERT(adjustedExponent >= mozilla::FloorLog2(mozilla::Abs(lower_)));
 
         
         
@@ -321,29 +331,43 @@ class Range : public TempObject {
             
             
             if (canHaveFractionalPart_ && lower_ == upper_) {
-                canHaveFractionalPart_ = false;
+                canHaveFractionalPart_ = ExcludesFractionalParts;
                 assertInvariants();
             }
+        }
+
+        
+        if (canBeNegativeZero_ && !canBeZero()) {
+            canBeNegativeZero_ = ExcludesNegativeZero;
+            assertInvariants();
         }
     }
 
     
-    void rawInitialize(int32_t l, bool lb, int32_t h, bool hb, bool f, uint16_t e) {
+    void rawInitialize(int32_t l, bool lb, int32_t h, bool hb,
+                       FractionalPartFlag canHaveFractionalPart,
+                       NegativeZeroFlag canBeNegativeZero,
+                       uint16_t e)
+    {
         lower_ = l;
-        hasInt32LowerBound_ = lb;
         upper_ = h;
+        hasInt32LowerBound_ = lb;
         hasInt32UpperBound_ = hb;
-        canHaveFractionalPart_ = f;
+        canHaveFractionalPart_ = canHaveFractionalPart;
+        canBeNegativeZero_ = canBeNegativeZero;
         max_exponent_ = e;
         optimize();
     }
 
     
-    Range(int32_t l, bool lb, int32_t h, bool hb, bool f, uint16_t e)
+    Range(int32_t l, bool lb, int32_t h, bool hb,
+          FractionalPartFlag canHaveFractionalPart,
+          NegativeZeroFlag canBeNegativeZero,
+          uint16_t e)
       : symbolicLower_(nullptr),
         symbolicUpper_(nullptr)
      {
-        rawInitialize(l, lb, h, hb, f, e);
+        rawInitialize(l, lb, h, hb, canHaveFractionalPart, canBeNegativeZero, e);
      }
 
   public:
@@ -354,19 +378,23 @@ class Range : public TempObject {
         setUnknown();
     }
 
-    Range(int64_t l, int64_t h, bool f = false, uint16_t e = MaxInt32Exponent)
+    Range(int64_t l, int64_t h,
+          FractionalPartFlag canHaveFractionalPart,
+          NegativeZeroFlag canBeNegativeZero,
+          uint16_t e)
       : symbolicLower_(nullptr),
         symbolicUpper_(nullptr)
     {
-        set(l, h, f, e);
+        set(l, h, canHaveFractionalPart, canBeNegativeZero, e);
     }
 
     Range(const Range &other)
       : lower_(other.lower_),
-        hasInt32LowerBound_(other.hasInt32LowerBound_),
         upper_(other.upper_),
+        hasInt32LowerBound_(other.hasInt32LowerBound_),
         hasInt32UpperBound_(other.hasInt32UpperBound_),
         canHaveFractionalPart_(other.canHaveFractionalPart_),
+        canBeNegativeZero_(other.canBeNegativeZero_),
         max_exponent_(other.max_exponent_),
         symbolicLower_(nullptr),
         symbolicUpper_(nullptr)
@@ -380,21 +408,37 @@ class Range : public TempObject {
     explicit Range(const MDefinition *def);
 
     static Range *NewInt32Range(TempAllocator &alloc, int32_t l, int32_t h) {
-        return new(alloc) Range(l, h, false, MaxInt32Exponent);
+        return new(alloc) Range(l, h, ExcludesFractionalParts, ExcludesNegativeZero, MaxInt32Exponent);
     }
 
     static Range *NewUInt32Range(TempAllocator &alloc, uint32_t l, uint32_t h) {
         
         
-        return new(alloc) Range(l, h, false, MaxUInt32Exponent);
+        return new(alloc) Range(l, h, ExcludesFractionalParts, ExcludesNegativeZero, MaxUInt32Exponent);
     }
 
+    
+    
+    
     static Range *NewDoubleRange(TempAllocator &alloc, double l, double h) {
         if (mozilla::IsNaN(l) && mozilla::IsNaN(h))
             return nullptr;
 
         Range *r = new(alloc) Range();
         r->setDouble(l, h);
+        return r;
+    }
+
+    
+    
+    
+    
+    static Range *NewDoubleSingletonRange(TempAllocator &alloc, double d) {
+        if (mozilla::IsNaN(d))
+            return nullptr;
+
+        Range *r = new(alloc) Range();
+        r->setDoubleSingleton(d);
         return r;
     }
 
@@ -439,6 +483,7 @@ class Range : public TempObject {
         return !hasInt32LowerBound_ &&
                !hasInt32UpperBound_ &&
                canHaveFractionalPart_ &&
+               canBeNegativeZero_ &&
                max_exponent_ == IncludesInfinityAndNaN;
     }
 
@@ -457,16 +502,22 @@ class Range : public TempObject {
 
     
     bool isInt32() const {
-        return hasInt32Bounds() && !canHaveFractionalPart();
+        return hasInt32Bounds() &&
+               !canHaveFractionalPart_ &&
+               !canBeNegativeZero_;
     }
 
     
     bool isBoolean() const {
-        return lower() >= 0 && upper() <= 1 && !canHaveFractionalPart();
+        return lower() >= 0 && upper() <= 1 &&
+               !canHaveFractionalPart_ &&
+               !canBeNegativeZero_;
     }
 
     bool canHaveRoundingErrors() const {
-        return canHaveFractionalPart() || max_exponent_ >= MaxTruncatableExponent;
+        return canHaveFractionalPart_ ||
+               canBeNegativeZero_ ||
+               max_exponent_ >= MaxTruncatableExponent;
     }
 
     
@@ -489,8 +540,12 @@ class Range : public TempObject {
         return max_exponent_ >= IncludesInfinity;
     }
 
-    bool canHaveFractionalPart() const {
+    FractionalPartFlag canHaveFractionalPart() const {
         return canHaveFractionalPart_;
+    }
+
+    NegativeZeroFlag canBeNegativeZero() const {
+        return canBeNegativeZero_;
     }
 
     uint16_t exponent() const {
@@ -537,6 +592,12 @@ class Range : public TempObject {
     }
 
     
+    
+    bool canHaveSignBitSet() const {
+        return !hasInt32LowerBound() || canBeFiniteNegative() || canBeNegativeZero();
+    }
+
+    
     void refineLower(int32_t x) {
         assertInvariants();
         hasInt32LowerBound_ = true;
@@ -552,26 +613,51 @@ class Range : public TempObject {
         optimize();
     }
 
+    
+    void refineToExcludeNegativeZero() {
+        assertInvariants();
+        canBeNegativeZero_ = ExcludesNegativeZero;
+        optimize();
+    }
+
     void setInt32(int32_t l, int32_t h) {
         hasInt32LowerBound_ = true;
         hasInt32UpperBound_ = true;
         lower_ = l;
         upper_ = h;
-        canHaveFractionalPart_ = false;
+        canHaveFractionalPart_ = ExcludesFractionalParts;
+        canBeNegativeZero_ = ExcludesNegativeZero;
         max_exponent_ = exponentImpliedByInt32Bounds();
         assertInvariants();
     }
 
+    
+    
+    
     void setDouble(double l, double h);
 
+    
+    
+    
+    
+    void setDoubleSingleton(double d);
+
     void setUnknown() {
-        set(NoInt32LowerBound, NoInt32UpperBound, true, IncludesInfinityAndNaN);
+        set(NoInt32LowerBound, NoInt32UpperBound,
+            IncludesFractionalParts,
+            IncludesNegativeZero,
+            IncludesInfinityAndNaN);
         MOZ_ASSERT(isUnknown());
     }
 
-    void set(int64_t l, int64_t h, bool f, uint16_t e) {
+    void set(int64_t l, int64_t h,
+             FractionalPartFlag canHaveFractionalPart,
+             NegativeZeroFlag canBeNegativeZero,
+             uint16_t e)
+    {
         max_exponent_ = e;
-        canHaveFractionalPart_ = f;
+        canHaveFractionalPart_ = canHaveFractionalPart;
+        canBeNegativeZero_ = canBeNegativeZero;
         setLowerInit(l);
         setUpperInit(h);
         optimize();

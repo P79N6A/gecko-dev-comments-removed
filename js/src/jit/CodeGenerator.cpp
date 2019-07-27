@@ -9645,6 +9645,7 @@ CodeGenerator::emitAssertRangeI(const Range *r, Register input)
     
     
     
+    
 
     return true;
 }
@@ -9675,6 +9676,24 @@ CodeGenerator::emitAssertRangeD(const Range *r, FloatRegister input, FloatRegist
 
     
     
+
+    if (!r->canBeNegativeZero()) {
+        Label success;
+
+        
+        masm.loadConstantDouble(0.0, temp);
+        masm.branchDouble(Assembler::DoubleNotEqualOrUnordered, input, temp, &success);
+
+        
+        
+        masm.loadConstantDouble(1.0, temp);
+        masm.divDouble(input, temp);
+        masm.branchDouble(Assembler::DoubleGreaterThan, temp, input, &success);
+
+        masm.assumeUnreachable("Input shouldn't be negative zero.");
+
+        masm.bind(&success);
+    }
 
     if (!r->hasInt32Bounds() && !r->canBeInfiniteOrNaN() &&
         r->exponent() < FloatingPoint<double>::kExponentBias)
