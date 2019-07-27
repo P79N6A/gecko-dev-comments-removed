@@ -145,8 +145,7 @@ private:
 imgStatusTracker::imgStatusTracker(Image* aImage)
   : mImage(aImage),
     mState(0),
-    mImageStatus(imgIRequest::STATUS_NONE),
-    mHasBeenDecoded(false)
+    mImageStatus(imgIRequest::STATUS_NONE)
 {
   mTrackerObserver = new imgStatusTrackerObserver(this);
 }
@@ -155,8 +154,7 @@ imgStatusTracker::imgStatusTracker(Image* aImage)
 imgStatusTracker::imgStatusTracker(const imgStatusTracker& aOther)
   : mImage(aOther.mImage),
     mState(aOther.mState),
-    mImageStatus(aOther.mImageStatus),
-    mHasBeenDecoded(aOther.mHasBeenDecoded)
+    mImageStatus(aOther.mImageStatus)
     
     
     
@@ -424,15 +422,13 @@ imgStatusTracker::Difference(imgStatusTracker* aOther) const
   diff.diffState = ~mState & aOther->mState & ~FLAG_REQUEST_STARTED;
   diff.diffImageStatus = ~mImageStatus & aOther->mImageStatus;
 
-  diff.gotDecoded = !mHasBeenDecoded && aOther->mHasBeenDecoded;
-
   
   
   
   const uint32_t combinedStatus = mImageStatus | aOther->mImageStatus;
-  const bool doInvalidations  = !(mHasBeenDecoded || aOther->mHasBeenDecoded)
-                             || combinedStatus & imgIRequest::STATUS_ERROR
-                             || combinedStatus & imgIRequest::STATUS_DECODE_COMPLETE;
+  const bool doInvalidations  = !(mImageStatus & imgIRequest::STATUS_DECODE_COMPLETE)
+                             || aOther->mImageStatus & imgIRequest::STATUS_DECODE_COMPLETE
+                             || combinedStatus & imgIRequest::STATUS_ERROR;
 
   
   
@@ -466,8 +462,6 @@ imgStatusTracker::ApplyDifference(const ImageStatusDiff& aDiff)
 
   
   mState |= aDiff.diffState | loadState;
-
-  mHasBeenDecoded = mHasBeenDecoded || aDiff.gotDecoded;
 
   
   mImageStatus |= aDiff.diffImageStatus;
@@ -687,9 +681,7 @@ imgStatusTracker::RecordStopDecode(nsresult aStatus)
   mState |= FLAG_DECODE_STOPPED;
   mImageStatus |= imgIRequest::STATUS_DECODE_COMPLETE;
 
-  if (NS_SUCCEEDED(aStatus) && !(mImageStatus & imgIRequest::STATUS_ERROR)) {
-    mHasBeenDecoded = true;
-  } else {
+  if (NS_FAILED(aStatus)) {
     mImageStatus |= imgIRequest::STATUS_ERROR;
   }
 }
