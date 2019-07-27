@@ -2,8 +2,19 @@
 
 
 
+%include ../shared.inc
 %include ../../shared/controlcenter/panel.inc.css
 
 #identity-popup {
   margin-top: 1px;
+}
+
+.identity-popup-expander:-moz-focusring,
+#identity-popup-more-info-button {
+  padding: 2px;
+}
+
+.identity-popup-expander:-moz-focusring > .button-box,
+#identity-popup-more-info-button:-moz-focusring > .button-box {
+  @hudButtonFocused@
 }
