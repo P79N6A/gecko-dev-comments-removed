@@ -258,6 +258,13 @@ WebappsActor.prototype = {
 
         
         
+        if (aApp.kind == undefined) {
+          aApp.kind = manifest.appcache_path ? reg.kHostedAppcache
+                                             : reg.kHosted;
+        }
+
+        
+        
         
         reg.broadcastMessage("Webapps:UpdateState", {
           app: aApp,
@@ -284,7 +291,7 @@ WebappsActor.prototype = {
         
         if (!aApp.origin.startsWith("app://")) {
           reg.startOfflineCacheDownload(
-            new ManifestHelper(manifest, aApp.origin, aApp.manifestURL));
+            new ManifestHelper(manifest, aApp.origin, aApp.manifestURL), aApp);
         }
       });
       
@@ -532,6 +539,7 @@ WebappsActor.prototype = {
             manifestURL: manifestURL,
             appStatus: appType,
             receipts: aReceipts,
+            kind: DOMApplicationRegistry.kPackaged,
           }
 
           self._registerApp(deferred, app, id, aDir);
