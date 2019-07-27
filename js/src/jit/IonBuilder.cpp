@@ -11321,9 +11321,6 @@ IonBuilder::storeReferenceTypedObjectValue(MDefinition *typedObj,
                                            ReferenceTypeDescr::Type type,
                                            MDefinition *value)
 {
-    if (NeedsPostBarrier(info(), value))
-        current->add(MPostWriteBarrier::New(alloc(), typedObj, value));
-
     
     MDefinition *elements, *scaledOffset;
     size_t alignment = ReferenceTypeDescr::alignment(type);
@@ -11332,12 +11329,20 @@ IonBuilder::storeReferenceTypedObjectValue(MDefinition *typedObj,
     MInstruction *store;
     switch (type) {
       case ReferenceTypeDescr::TYPE_ANY:
+        if (NeedsPostBarrier(info(), value))
+            current->add(MPostWriteBarrier::New(alloc(), typedObj, value));
         store = MStoreElement::New(alloc(), elements, scaledOffset, value, false);
         break;
       case ReferenceTypeDescr::TYPE_OBJECT:
-        store = MStoreUnboxedObjectOrNull::New(alloc(), elements, scaledOffset, value);
+        
+        
+        
+        
+        store = MStoreUnboxedObjectOrNull::New(alloc(), elements, scaledOffset, value, typedObj);
         break;
       case ReferenceTypeDescr::TYPE_STRING:
+        
+        
         store = MStoreUnboxedString::New(alloc(), elements, scaledOffset, value);
         break;
     }
