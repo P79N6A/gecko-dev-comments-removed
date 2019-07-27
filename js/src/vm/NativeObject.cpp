@@ -2223,6 +2223,53 @@ js::NativeSetElement(JSContext *cx, HandleNativeObject obj, HandleObject receive
 
 
 bool
+js::NativeDeleteProperty(JSContext *cx, HandleNativeObject obj, HandleId id, bool *succeeded)
+{
+    
+    RootedShape shape(cx);
+    if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &shape))
+        return false;
+
+    
+    if (!shape) {
+        
+        
+        return CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, succeeded);
+    }
+
+    cx->runtime()->gc.poke();
+
+    
+    if (GetShapeAttributes(obj, shape) & JSPROP_PERMANENT) {
+        *succeeded = false;
+        return true;
+    }
+
+    if (!CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, succeeded))
+        return false;
+    if (!*succeeded)
+        return true;
+
+    
+    if (IsImplicitDenseOrTypedArrayElement(shape)) {
+        
+        MOZ_ASSERT(!IsAnyTypedArray(obj));
+
+        if (!obj->maybeCopyElementsForWrite(cx))
+            return false;
+
+        obj->setDenseElementHole(cx, JSID_TO_INT(id));
+    } else {
+        if (!obj->removeProperty(cx, id))
+            return false;
+    }
+
+    return SuppressDeletedProperty(cx, obj, id);
+}
+
+
+
+bool
 js::NativeSetPropertyAttributes(JSContext *cx, HandleNativeObject obj, HandleId id,
                                 unsigned *attrsp)
 {
@@ -2252,55 +2299,4 @@ js::NativeSetPropertyAttributes(JSContext *cx, HandleNativeObject obj, HandleId 
     } else {
         return SetPropertyAttributes(cx, nobj, id, attrsp);
     }
-}
-
-bool
-js::NativeDeleteProperty(JSContext *cx, HandleNativeObject obj, HandleId id, bool *succeeded)
-{
-    RootedObject proto(cx);
-    RootedShape shape(cx);
-    if (!NativeLookupProperty<CanGC>(cx, obj, id, &proto, &shape))
-        return false;
-    if (!shape || proto != obj) {
-        
-
-
-
-        return CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, succeeded);
-    }
-
-    cx->runtime()->gc.poke();
-
-    if (IsImplicitDenseOrTypedArrayElement(shape)) {
-        if (IsAnyTypedArray(obj)) {
-            
-            *succeeded = false;
-            return true;
-        }
-
-        if (!CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, id, succeeded))
-            return false;
-        if (!*succeeded)
-            return true;
-
-        NativeObject *nobj = &obj->as<NativeObject>();
-        if (!nobj->maybeCopyElementsForWrite(cx))
-            return false;
-
-        nobj->setDenseElementHole(cx, JSID_TO_INT(id));
-        return SuppressDeletedProperty(cx, obj, id);
-    }
-
-    if (!shape->configurable()) {
-        *succeeded = false;
-        return true;
-    }
-
-    RootedId propid(cx, shape->propid());
-    if (!CallJSDeletePropertyOp(cx, obj->getClass()->delProperty, obj, propid, succeeded))
-        return false;
-    if (!*succeeded)
-        return true;
-
-    return obj->removeProperty(cx, id) && SuppressDeletedProperty(cx, obj, id);
 }
