@@ -240,10 +240,12 @@ public:
   NS_DECL_ISUPPORTS
 
   SurfaceCacheImpl(uint32_t aSurfaceCacheExpirationTimeMS,
+                   uint32_t aSurfaceCacheDiscardFactor,
                    uint32_t aSurfaceCacheSize)
     : mExpirationTracker(MOZ_THIS_IN_INITIALIZER_LIST(),
                          aSurfaceCacheExpirationTimeMS)
     , mMemoryPressureObserver(new MemoryPressureObserver)
+    , mDiscardFactor(aSurfaceCacheDiscardFactor)
     , mMaxCost(aSurfaceCacheSize)
     , mAvailableCost(aSurfaceCacheSize)
     , mLockedCost(0)
@@ -474,6 +476,32 @@ public:
     }
   }
 
+  void DiscardForMemoryPressure()
+  {
+    
+    
+    const Cost discardableCost = (mMaxCost - mAvailableCost) - mLockedCost;
+    MOZ_ASSERT(discardableCost <= mMaxCost, "Discardable cost doesn't add up");
+
+    
+    
+    
+    
+    const Cost targetCost = mAvailableCost + (discardableCost / mDiscardFactor);
+
+    if (targetCost > mMaxCost - mLockedCost) {
+      MOZ_ASSERT_UNREACHABLE("Target cost is more than we can discard");
+      DiscardAll();
+      return;
+    }
+
+    
+    while (mAvailableCost < targetCost) {
+      MOZ_ASSERT(!mCosts.IsEmpty(), "Removed everything and still not done");
+      Remove(mCosts.LastElement().GetSurface());
+    }
+  }
+
   static PLDHashOperator DoStopTracking(const SurfaceKey&,
                                         CachedSurface*    aSurface,
                                         void*             aCache)
@@ -600,7 +628,7 @@ private:
     NS_IMETHOD Observe(nsISupports*, const char* aTopic, const char16_t*)
     {
       if (sInstance && strcmp(aTopic, "memory-pressure") == 0) {
-        sInstance->DiscardAll();
+        sInstance->DiscardForMemoryPressure();
       }
       return NS_OK;
     }
@@ -614,6 +642,7 @@ private:
   nsRefPtrHashtable<nsPtrHashKey<Image>, ImageSurfaceCache> mImageCaches;
   SurfaceTracker                                            mExpirationTracker;
   nsRefPtr<MemoryPressureObserver>                          mMemoryPressureObserver;
+  const uint32_t                                            mDiscardFactor;
   const Cost                                                mMaxCost;
   Cost                                                      mAvailableCost;
   Cost                                                      mLockedCost;
@@ -640,6 +669,13 @@ SurfaceCache::Initialize()
     gfxPrefs::ImageMemSurfaceCacheMinExpirationMS();
 
   
+  
+  
+  
+  uint32_t surfaceCacheDiscardFactor =
+    max(gfxPrefs::ImageMemSurfaceCacheDiscardFactor(), 1u);
+
+  
   uint64_t surfaceCacheMaxSizeKB = gfxPrefs::ImageMemSurfaceCacheMaxSizeKB();
 
   
@@ -649,10 +685,9 @@ SurfaceCache::Initialize()
   
   
   
-  uint32_t surfaceCacheSizeFactor = gfxPrefs::ImageMemSurfaceCacheSizeFactor();
-
   
-  surfaceCacheSizeFactor = max(surfaceCacheSizeFactor, 1u);
+  uint32_t surfaceCacheSizeFactor =
+    max(gfxPrefs::ImageMemSurfaceCacheSizeFactor(), 1u);
 
   
   uint64_t proposedSize = PR_GetPhysicalMemorySize() / surfaceCacheSizeFactor;
@@ -664,6 +699,7 @@ SurfaceCache::Initialize()
   
   
   sInstance = new SurfaceCacheImpl(surfaceCacheExpirationTimeMS,
+                                   surfaceCacheDiscardFactor,
                                    finalSurfaceCacheSizeBytes);
   sInstance->InitMemoryReporter();
 }
