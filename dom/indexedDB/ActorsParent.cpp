@@ -3640,9 +3640,11 @@ SetDefaultPragmas(mozIStorageConnection* aConnection)
 
 #ifndef IDB_MOBILE
   if (kSQLiteGrowthIncrement) {
+    
+    
     rv = aConnection->SetGrowthIncrement(kSQLiteGrowthIncrement,
                                          EmptyCString());
-    if (NS_WARN_IF(NS_FAILED(rv))) {
+    if (rv != NS_ERROR_FILE_TOO_BIG && NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
   }
