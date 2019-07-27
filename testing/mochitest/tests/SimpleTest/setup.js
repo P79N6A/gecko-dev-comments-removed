@@ -4,14 +4,17 @@
 
 
 
+"use strict";
+
 TestRunner.logEnabled = true;
 TestRunner.logger = LogController;
 
 
-parseQueryString = function(encodedString, useArrays) {
+function parseQueryString(encodedString, useArrays) {
   
-  var qstr = (encodedString[0] == "?") ? encodedString.substring(1) :
-                                         encodedString;
+  var qstr = (encodedString.length > 0 && encodedString[0] == "?")
+             ? encodedString.substring(1)
+             : encodedString;
   var pairs = qstr.replace(/\+/g, "%20").split(/(\&amp\;|\&\#38\;|\&#x26;|\&)/);
   var o = {};
   var decode;
