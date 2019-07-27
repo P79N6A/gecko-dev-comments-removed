@@ -733,13 +733,6 @@ SpdySession31::GenerateRstStream(uint32_t aStatusCode, uint32_t aID)
   aStatusCode = PR_htonl(aStatusCode);
   memcpy(packet + 12, &aStatusCode, 4);
 
-  
-  
-  
-  if (gHttpHandler->Debug1102923()) {
-    MOZ_CRASH("Debug 1102923");
-  }
-
   LogIO(this, nullptr, "Generate Reset", packet, 16);
   FlushOutputQueue();
 }
