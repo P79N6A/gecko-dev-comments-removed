@@ -44,18 +44,25 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   
+  
+  enum UpdateFlags {
+    eNoUpdate,
+    eUpdateStyle
+  };
+
+  
   Animation* GetSource() const { return mSource; }
   AnimationTimeline* Timeline() const { return mTimeline; }
   Nullable<double> GetStartTime() const;
   Nullable<double> GetCurrentTime() const;
-  void Play();
-  void Pause();
+  void Play(UpdateFlags aUpdateFlags);
+  void Pause(UpdateFlags aUpdateFlags);
   bool IsRunningOnCompositor() const { return mIsRunningOnCompositor; }
 
   
   
-  void PauseFromJS();
   void PlayFromJS();
+  void PauseFromJS();
 
   void SetSource(Animation* aSource);
   void Tick();
@@ -80,13 +87,17 @@ public:
   Nullable<TimeDuration> GetCurrentTimeDuration() const;
 
   
-  Nullable<TimeDuration> mStartTime;
-  Nullable<TimeDuration> mHoldTime;
+  Nullable<TimeDuration> mStartTime; 
+  Nullable<TimeDuration> mHoldTime;  
   bool mIsPaused;
   bool mIsRunningOnCompositor;
 
   nsRefPtr<AnimationTimeline> mTimeline;
   nsRefPtr<Animation> mSource;
+
+protected:
+  void FlushStyle() const;
+  void MaybePostRestyle() const;
 };
 
 } 

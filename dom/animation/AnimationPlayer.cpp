@@ -6,6 +6,7 @@
 #include "AnimationPlayer.h"
 #include "AnimationUtils.h"
 #include "mozilla/dom/AnimationPlayerBinding.h"
+#include "nsLayoutUtils.h" 
 
 namespace mozilla {
 namespace dom {
@@ -34,15 +35,48 @@ AnimationPlayer::GetCurrentTime() const
 }
 
 void
-AnimationPlayer::Play()
+AnimationPlayer::Play(UpdateFlags aFlags)
 {
   
+  
+  if (!mIsPaused) {
+    return;
+  }
+  mIsPaused = false;
+
+  Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTimeDuration();
+  if (timelineTime.IsNull()) {
+    
+    
+    return;
+  }
+
+  
+  MOZ_ASSERT(!mHoldTime.IsNull(), "Hold time should not be null when paused");
+  mStartTime.SetValue(timelineTime.Value() - mHoldTime.Value());
+  mHoldTime.SetNull();
+
+  if (aFlags == eUpdateStyle) {
+    MaybePostRestyle();
+  }
 }
 
 void
-AnimationPlayer::Pause()
+AnimationPlayer::Pause(UpdateFlags aFlags)
 {
+  if (mIsPaused) {
+    return;
+  }
+  mIsPaused = true;
+  mIsRunningOnCompositor = false;
+
   
+  mHoldTime = GetCurrentTimeDuration();
+  mStartTime.SetNull();
+
+  if (aFlags == eUpdateStyle) {
+    MaybePostRestyle();
+  }
 }
 
 void
@@ -50,15 +84,13 @@ AnimationPlayer::PlayFromJS()
 {
   
 
-  Play();
+  Play(eUpdateStyle);
 }
 
 void
 AnimationPlayer::PauseFromJS()
 {
-  Pause();
-
-  
+  Pause(eUpdateStyle);
 }
 
 void
@@ -105,6 +137,30 @@ AnimationPlayer::GetCurrentTimeDuration() const
     }
   }
   return result;
+}
+
+void
+AnimationPlayer::FlushStyle() const
+{
+  if (mSource && mSource->GetTarget()) {
+    nsIDocument* doc = mSource->GetTarget()->GetComposedDoc();
+    if (doc) {
+      doc->FlushPendingNotifications(Flush_Style);
+    }
+  }
+}
+
+void
+AnimationPlayer::MaybePostRestyle() const
+{
+  if (!mSource || !mSource->GetTarget())
+    return;
+
+  
+  
+  nsLayoutUtils::PostRestyleEvent(mSource->GetTarget(),
+                                  eRestyle_Self,
+                                  nsChangeHint_AllReflowHints);
 }
 
 } 
