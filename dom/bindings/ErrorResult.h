@@ -179,6 +179,7 @@ private:
   
   
   ErrorResult(const ErrorResult&) = delete;
+  void operator=(const ErrorResult&) = delete;
   void ThrowErrorWithMessage(va_list ap, const dom::ErrNum errorNumber,
                              nsresult errorType);
 };
