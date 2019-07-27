@@ -78,19 +78,19 @@ protected:
 
   nscoord CalculateMaxSpanISize(nsRenderingContext* aRenderingContext);
 
-  nscoord ReflowPairs(nsPresContext* aPresContext,
-                      bool aAllowLineBreak,
-                      const nsHTMLReflowState& aReflowState,
-                      nsTArray<nsHTMLReflowState*>& aReflowStates,
-                      nsReflowStatus& aStatus);
-
-  nscoord ReflowOnePair(nsPresContext* aPresContext,
+  nscoord ReflowColumns(nsPresContext* aPresContext,
                         bool aAllowLineBreak,
                         const nsHTMLReflowState& aReflowState,
                         nsTArray<nsHTMLReflowState*>& aReflowStates,
-                        nsIFrame* aBaseFrame,
-                        const nsTArray<nsIFrame*>& aTextFrames,
                         nsReflowStatus& aStatus);
+
+  nscoord ReflowOneColumn(nsPresContext* aPresContext,
+                          bool aAllowLineBreak,
+                          const nsHTMLReflowState& aReflowState,
+                          nsTArray<nsHTMLReflowState*>& aReflowStates,
+                          nsIFrame* aBaseFrame,
+                          const nsTArray<nsIFrame*>& aTextFrames,
+                          nsReflowStatus& aStatus);
 
   nscoord ReflowSpans(nsPresContext* aPresContext,
                       const nsHTMLReflowState& aReflowState,
@@ -100,11 +100,11 @@ protected:
 
   
   
-  void PullOnePair(nsLineLayout* aLineLayout,
-                   PullFrameState& aPullFrameState,
-                   nsIFrame*& aBaseFrame,
-                   nsTArray<nsIFrame*>& aTextFrames,
-                   bool& aIsComplete);
+  void PullOneColumn(nsLineLayout* aLineLayout,
+                     PullFrameState& aPullFrameState,
+                     nsIFrame*& aBaseFrame,
+                     nsTArray<nsIFrame*>& aTextFrames,
+                     bool& aIsComplete);
 
   
 
@@ -119,7 +119,7 @@ protected:
   nsTArray<nsRubyTextContainerFrame*> mTextContainers;
 
   nscoord mBaseline;
-  uint32_t mPairCount;
+  uint32_t mColumnCount;
 };
 
 #endif 
