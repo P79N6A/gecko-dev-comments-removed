@@ -12,7 +12,7 @@
 class nsIInterfaceRequestor;
 class nsIEventTarget;
 class nsITransport;
-class nsISchedulingContext;
+class nsILoadGroupConnectionInfo;
 
 namespace mozilla { namespace net {
 
@@ -146,7 +146,7 @@ public:
     virtual SpdyConnectTransaction *QuerySpdyConnectTransaction() { return nullptr; }
 
     
-    virtual nsISchedulingContext *SchedulingContext() { return nullptr; }
+    virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return nullptr; }
 
     
     virtual nsHttpConnectionInfo *ConnectionInfo() = 0;

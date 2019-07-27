@@ -316,10 +316,10 @@ SpdyStream31::ParseHttpRequestHeaders(const char *buf,
   
   if (mTransaction->RequestHead()->IsGet()) {
     
-    nsISchedulingContext *schedulingContext = mTransaction->SchedulingContext();
+    nsILoadGroupConnectionInfo *loadGroupCI = mTransaction->LoadGroupConnectionInfo();
     SpdyPushCache *cache = nullptr;
-    if (schedulingContext)
-      schedulingContext->GetSpdyPushCache(&cache);
+    if (loadGroupCI)
+      loadGroupCI->GetSpdyPushCache(&cache);
 
     SpdyPushedStream31 *pushedStream = nullptr;
     

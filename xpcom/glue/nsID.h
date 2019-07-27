@@ -38,11 +38,6 @@ struct nsID
   
 
 
-  void Clear();
-
-  
-
-
 
 
   inline bool Equals(const nsID& aOther) const

@@ -1634,11 +1634,6 @@ HttpChannelChild::ContinueAsyncOpen()
 
   propagateLoadInfo(mLoadInfo, openArgs);
 
-  EnsureSchedulingContextID();
-  char scid[NSID_LENGTH];
-  mSchedulingContextID.ToProvidedString(scid);
-  openArgs.schedulingContextID().AssignASCII(scid);
-
   
   
   AddIPDLReference();
