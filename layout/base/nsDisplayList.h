@@ -1171,16 +1171,6 @@ public:
 
 
 
-  void AddInvalidRegionForSyncDecodeBackgroundImages(
-    nsDisplayListBuilder* aBuilder,
-    const nsDisplayItemGeometry* aGeometry,
-    nsRegion* aInvalidRegion);
-
-  
-
-
-
-
 
 
 
