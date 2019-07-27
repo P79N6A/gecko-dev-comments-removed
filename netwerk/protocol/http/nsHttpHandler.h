@@ -450,7 +450,6 @@ private:
 
     
     bool           mDoNotTrackEnabled;
-    uint8_t        mDoNotTrackValue;
 
     
     bool           mSafeHintEnabled;
