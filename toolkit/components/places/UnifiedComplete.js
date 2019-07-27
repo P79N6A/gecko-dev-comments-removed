@@ -1055,15 +1055,24 @@ Search.prototype = {
     let title = bookmarkTitle || historyTitle;
 
     if (queryType == QUERYTYPE_KEYWORD) {
-      
-      
-      
-      
-      if (!historyTitle) {
+      if (this._enableActions) {
         match.style = "keyword";
-      }
-      else {
-        title = historyTitle;
+        url = makeActionURL("keyword", {
+          url: escapedURL,
+          input: this._originalSearchString,
+        });
+        action = "keyword";
+      } else {
+        
+        
+        
+        
+        if (!historyTitle) {
+          match.style = "keyword"
+        }
+        else {
+          title = historyTitle;
+        }
       }
     }
 
