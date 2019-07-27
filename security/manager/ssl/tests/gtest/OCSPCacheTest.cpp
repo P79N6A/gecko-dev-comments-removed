@@ -22,29 +22,33 @@ const int MaxCacheEntries = 1024;
 
 class OCSPCacheTest : public ::testing::Test
 {
-  protected:
-    static void SetUpTestCase()
-    {
-      NSS_NoDB_Init(nullptr);
-      mozilla::psm::InitCertVerifierLog();
-    }
+protected:
+  OCSPCacheTest() : now(Now()) { }
 
-    mozilla::psm::OCSPCache cache;
+  static void SetUpTestCase()
+  {
+    NSS_NoDB_Init(nullptr);
+    mozilla::psm::InitCertVerifierLog();
+  }
+
+  const Time now;
+  mozilla::psm::OCSPCache cache;
 };
 
 static void
 PutAndGet(OCSPCache& cache, const CertID& certID, Result result,
-          PRTime time)
+          Time time)
 {
   
   
   
   
-  ASSERT_TRUE(time >= 10);
-  Result rv = cache.Put(certID, result, time - 10, time);
+  Time thisUpdate(time);
+  ASSERT_EQ(Success, thisUpdate.SubtractSeconds(10));
+  Result rv = cache.Put(certID, result, thisUpdate, time);
   ASSERT_TRUE(rv == Success);
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_TRUE(cache.Get(certID, resultOut, timeOut));
   ASSERT_EQ(result, resultOut);
   ASSERT_EQ(time, timeOut);
@@ -62,9 +66,9 @@ TEST_F(OCSPCacheTest, TestPutAndGet)
 
   SCOPED_TRACE("");
   PutAndGet(cache, CertID(fakeIssuer1, fakeKey000, fakeSerial001),
-            Success, PR_Now());
+            Success, now);
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_FALSE(cache.Get(CertID(fakeIssuer1, fakeKey001, fakeSerial000),
                          resultOut, timeOut));
 }
@@ -72,18 +76,20 @@ TEST_F(OCSPCacheTest, TestPutAndGet)
 TEST_F(OCSPCacheTest, TestVariousGets)
 {
   SCOPED_TRACE("");
-  PRTime timeIn = PR_Now();
   for (int i = 0; i < MaxCacheEntries; i++) {
     uint8_t serialBuf[8];
     PR_snprintf(reinterpret_cast<char*>(serialBuf), sizeof(serialBuf), "%04d", i);
     Input fakeSerial;
     ASSERT_EQ(Success, fakeSerial.Init(serialBuf, 4));
+    Time timeIn(now);
+    ASSERT_EQ(Success, timeIn.AddSeconds(i));
     PutAndGet(cache, CertID(fakeIssuer1, fakeKey000, fakeSerial),
-              Success, timeIn + i);
+              Success, timeIn);
   }
 
+  Time timeIn(now);
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
 
   
   CertID cert0000(fakeIssuer1, fakeKey000, fakeSerial0000);
@@ -96,14 +102,17 @@ TEST_F(OCSPCacheTest, TestVariousGets)
   ASSERT_EQ(timeIn, timeOut);
 
   
+  Time timeInPlus512(now);
+  ASSERT_EQ(Success, timeInPlus512.AddSeconds(512));
+
   static const TestInput fakeSerial0512("0512");
   CertID cert0512(fakeIssuer1, fakeKey000, fakeSerial0512);
   ASSERT_TRUE(cache.Get(cert0512, resultOut, timeOut));
   ASSERT_EQ(Success, resultOut);
-  ASSERT_EQ(timeIn + 512, timeOut);
+  ASSERT_EQ(timeInPlus512, timeOut);
   ASSERT_TRUE(cache.Get(cert0512, resultOut, timeOut));
   ASSERT_EQ(Success, resultOut);
-  ASSERT_EQ(timeIn + 512, timeOut);
+  ASSERT_EQ(timeInPlus512, timeOut);
 
   
   static const TestInput fakeSerial1111("1111");
@@ -114,8 +123,6 @@ TEST_F(OCSPCacheTest, TestVariousGets)
 TEST_F(OCSPCacheTest, TestEviction)
 {
   SCOPED_TRACE("");
-  PRTime timeIn = PR_Now();
-
   
   
   for (int i = 0; i < MaxCacheEntries + 1; i++) {
@@ -123,12 +130,14 @@ TEST_F(OCSPCacheTest, TestEviction)
     PR_snprintf(reinterpret_cast<char*>(serialBuf), sizeof(serialBuf), "%04d", i);
     Input fakeSerial;
     ASSERT_EQ(Success, fakeSerial.Init(serialBuf, 4));
+    Time timeIn(now);
+    ASSERT_EQ(Success, timeIn.AddSeconds(i));
     PutAndGet(cache, CertID(fakeIssuer1, fakeKey000, fakeSerial),
-              Success, timeIn + i);
+              Success, timeIn);
   }
 
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_FALSE(cache.Get(CertID(fakeIssuer1, fakeKey001, fakeSerial0000),
                          resultOut, timeOut));
 }
@@ -136,8 +145,8 @@ TEST_F(OCSPCacheTest, TestEviction)
 TEST_F(OCSPCacheTest, TestNoEvictionForRevokedResponses)
 {
   SCOPED_TRACE("");
-  PRTime timeIn = PR_Now();
   CertID notEvicted(fakeIssuer1, fakeKey000, fakeSerial0000);
+  Time timeIn(now);
   PutAndGet(cache, notEvicted, Result::ERROR_REVOKED_CERTIFICATE, timeIn);
   
   
@@ -146,11 +155,13 @@ TEST_F(OCSPCacheTest, TestNoEvictionForRevokedResponses)
     PR_snprintf(reinterpret_cast<char*>(serialBuf), sizeof(serialBuf), "%04d", i);
     Input fakeSerial;
     ASSERT_EQ(Success, fakeSerial.Init(serialBuf, 4));
+    Time timeIn(now);
+    ASSERT_EQ(Success, timeIn.AddSeconds(i));
     PutAndGet(cache, CertID(fakeIssuer1, fakeKey000, fakeSerial),
-              Success, timeIn + i);
+              Success, timeIn);
   }
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_TRUE(cache.Get(notEvicted, resultOut, timeOut));
   ASSERT_EQ(Result::ERROR_REVOKED_CERTIFICATE, resultOut);
   ASSERT_EQ(timeIn, timeOut);
@@ -163,44 +174,55 @@ TEST_F(OCSPCacheTest, TestNoEvictionForRevokedResponses)
 TEST_F(OCSPCacheTest, TestEverythingIsRevoked)
 {
   SCOPED_TRACE("");
-  PRTime timeIn = PR_Now();
+  Time timeIn(now);
   
   for (int i = 0; i < MaxCacheEntries; i++) {
     uint8_t serialBuf[8];
     PR_snprintf(reinterpret_cast<char*>(serialBuf), sizeof(serialBuf), "%04d", i);
     Input fakeSerial;
     ASSERT_EQ(Success, fakeSerial.Init(serialBuf, 4));
+    Time timeIn(now);
+    ASSERT_EQ(Success, timeIn.AddSeconds(i));
     PutAndGet(cache, CertID(fakeIssuer1, fakeKey000, fakeSerial),
-              Result::ERROR_REVOKED_CERTIFICATE, timeIn + i);
+              Result::ERROR_REVOKED_CERTIFICATE, timeIn);
   }
   static const TestInput fakeSerial1025("1025");
   CertID good(fakeIssuer1, fakeKey000, fakeSerial1025);
   
   
-  Result result = cache.Put(good, Success, timeIn + 1025 - 50, timeIn + 1025);
+  Time timeInPlus1025(timeIn);
+  ASSERT_EQ(Success, timeInPlus1025.AddSeconds(1025));
+  Time timeInPlus1025Minus50(timeInPlus1025);
+  ASSERT_EQ(Success, timeInPlus1025Minus50.SubtractSeconds(50));
+  Result result = cache.Put(good, Success, timeInPlus1025Minus50,
+                            timeInPlus1025);
   ASSERT_EQ(Success, result);
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_FALSE(cache.Get(good, resultOut, timeOut));
 
   static const TestInput fakeSerial1026("1026");
   CertID revoked(fakeIssuer1, fakeKey000, fakeSerial1026);
   
+  Time timeInPlus1026(timeIn);
+  ASSERT_EQ(Success, timeInPlus1026.AddSeconds(1026));
+  Time timeInPlus1026Minus50(timeInPlus1026);
+  ASSERT_EQ(Success, timeInPlus1026Minus50.SubtractSeconds(50));
   result = cache.Put(revoked, Result::ERROR_REVOKED_CERTIFICATE,
-                     timeIn + 1026 - 50, timeIn + 1026);
+                     timeInPlus1026Minus50, timeInPlus1026);
   ASSERT_EQ(Result::ERROR_REVOKED_CERTIFICATE, result);
 }
 
 TEST_F(OCSPCacheTest, VariousIssuers)
 {
   SCOPED_TRACE("");
+  Time timeIn(now);
   static const TestInput fakeIssuer2("CN=issuer2");
   static const TestInput fakeSerial001("001");
-  PRTime timeIn = PR_Now();
   CertID subject(fakeIssuer1, fakeKey000, fakeSerial001);
-  PutAndGet(cache, subject, Success, timeIn);
+  PutAndGet(cache, subject, Success, now);
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_TRUE(cache.Get(subject, resultOut, timeOut));
   ASSERT_EQ(Success, resultOut);
   ASSERT_EQ(timeIn, timeOut);
@@ -216,50 +238,63 @@ TEST_F(OCSPCacheTest, Times)
 {
   SCOPED_TRACE("");
   CertID certID(fakeIssuer1, fakeKey000, fakeSerial0000);
-  PutAndGet(cache, certID, Result::ERROR_OCSP_UNKNOWN_CERT, 100);
-  PutAndGet(cache, certID, Success, 200);
+  PutAndGet(cache, certID, Result::ERROR_OCSP_UNKNOWN_CERT,
+            TimeFromElapsedSecondsAD(100));
+  PutAndGet(cache, certID, Success, TimeFromElapsedSecondsAD(200));
   
   ASSERT_EQ(Success,
-            cache.Put(certID, Result::ERROR_OCSP_UNKNOWN_CERT, 100, 100));
+            cache.Put(certID, Result::ERROR_OCSP_UNKNOWN_CERT,
+                      TimeFromElapsedSecondsAD(100),
+                      TimeFromElapsedSecondsAD(100)));
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_TRUE(cache.Get(certID, resultOut, timeOut));
   
   ASSERT_EQ(Success, resultOut);
-  ASSERT_EQ(200, timeOut);
+  ASSERT_EQ(TimeFromElapsedSecondsAD(200), timeOut);
 
   
-  PutAndGet(cache, certID, Result::ERROR_REVOKED_CERTIFICATE, 50);
+  PutAndGet(cache, certID, Result::ERROR_REVOKED_CERTIFICATE,
+            TimeFromElapsedSecondsAD(50));
 }
 
 TEST_F(OCSPCacheTest, NetworkFailure)
 {
   SCOPED_TRACE("");
   CertID certID(fakeIssuer1, fakeKey000, fakeSerial0000);
-  PutAndGet(cache, certID, Result::ERROR_CONNECT_REFUSED, 100);
-  PutAndGet(cache, certID, Success, 200);
+  PutAndGet(cache, certID, Result::ERROR_CONNECT_REFUSED,
+            TimeFromElapsedSecondsAD(100));
+  PutAndGet(cache, certID, Success, TimeFromElapsedSecondsAD(200));
   
   ASSERT_EQ(Success,
-            cache.Put(certID, Result::ERROR_CONNECT_REFUSED, 300, 350));
+            cache.Put(certID, Result::ERROR_CONNECT_REFUSED,
+                      TimeFromElapsedSecondsAD(300),
+                      TimeFromElapsedSecondsAD(350)));
   Result resultOut;
-  PRTime timeOut;
+  Time timeOut(Time::uninitialized);
   ASSERT_TRUE(cache.Get(certID, resultOut, timeOut));
   ASSERT_EQ(Success, resultOut);
-  ASSERT_EQ(200, timeOut);
+  ASSERT_EQ(TimeFromElapsedSecondsAD(200), timeOut);
 
-  PutAndGet(cache, certID, Result::ERROR_OCSP_UNKNOWN_CERT, 400);
+  PutAndGet(cache, certID, Result::ERROR_OCSP_UNKNOWN_CERT,
+            TimeFromElapsedSecondsAD(400));
   
   ASSERT_EQ(Success,
-            cache.Put(certID, Result::ERROR_CONNECT_REFUSED, 500, 550));
+            cache.Put(certID, Result::ERROR_CONNECT_REFUSED,
+                      TimeFromElapsedSecondsAD(500),
+                      TimeFromElapsedSecondsAD(550)));
   ASSERT_TRUE(cache.Get(certID, resultOut, timeOut));
   ASSERT_EQ(Result::ERROR_OCSP_UNKNOWN_CERT, resultOut);
-  ASSERT_EQ(400, timeOut);
+  ASSERT_EQ(TimeFromElapsedSecondsAD(400), timeOut);
 
-  PutAndGet(cache, certID, Result::ERROR_REVOKED_CERTIFICATE, 600);
+  PutAndGet(cache, certID, Result::ERROR_REVOKED_CERTIFICATE,
+            TimeFromElapsedSecondsAD(600));
   
   ASSERT_EQ(Success,
-            cache.Put(certID, Result::ERROR_CONNECT_REFUSED, 700, 750));
+            cache.Put(certID, Result::ERROR_CONNECT_REFUSED,
+                      TimeFromElapsedSecondsAD(700),
+                      TimeFromElapsedSecondsAD(750)));
   ASSERT_TRUE(cache.Get(certID, resultOut, timeOut));
   ASSERT_EQ(Result::ERROR_REVOKED_CERTIFICATE, resultOut);
-  ASSERT_EQ(600, timeOut);
+  ASSERT_EQ(TimeFromElapsedSecondsAD(600), timeOut);
 }

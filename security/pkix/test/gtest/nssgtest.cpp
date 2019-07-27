@@ -85,9 +85,10 @@ NSSTest::SetUpTestCase()
     PR_Abort();
   }
 
-  now = PR_Now();
-  oneDayBeforeNow = now - ONE_DAY;
-  oneDayAfterNow = now + ONE_DAY;
+  now = Now();
+  pr_now = PR_Now();
+  pr_oneDayBeforeNow = pr_now - ONE_DAY;
+  pr_oneDayAfterNow = pr_now + ONE_DAY;
 }
 
 NSSTest::NSSTest()
@@ -98,8 +99,9 @@ NSSTest::NSSTest()
   }
 }
 
- PRTime NSSTest::now;
- PRTime NSSTest::oneDayBeforeNow;
- PRTime NSSTest::oneDayAfterNow;
+ mozilla::pkix::Time NSSTest::now(Now());
+ PRTime NSSTest::pr_now;
+ PRTime NSSTest::pr_oneDayBeforeNow;
+ PRTime NSSTest::pr_oneDayAfterNow;
 
 } } } 

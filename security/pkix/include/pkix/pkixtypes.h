@@ -26,7 +26,7 @@
 #define mozilla_pkix__pkixtypes_h
 
 #include "pkix/Input.h"
-#include "prtime.h"
+#include "pkix/Time.h"
 #include "stdint.h"
 
 namespace mozilla { namespace pkix {
@@ -259,7 +259,7 @@ public:
   
   
   virtual Result FindIssuer(Input encodedIssuerName,
-                            IssuerChecker& checker, PRTime time) = 0;
+                            IssuerChecker& checker, Time time) = 0;
 
   
   
@@ -287,7 +287,7 @@ public:
   
   
   virtual Result CheckRevocation(EndEntityOrCA endEntityOrCA,
-                                 const CertID& certID, PRTime time,
+                                 const CertID& certID, Time time,
                      const Input* stapledOCSPresponse,
                      const Input* aiaExtension) = 0;
 

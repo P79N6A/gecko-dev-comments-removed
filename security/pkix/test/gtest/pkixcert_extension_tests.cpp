@@ -82,13 +82,13 @@ private:
   }
 
   virtual Result FindIssuer(Input ,
-                            IssuerChecker& , PRTime )
+                            IssuerChecker& , Time )
   {
     ADD_FAILURE();
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  virtual Result CheckRevocation(EndEntityOrCA, const CertID&, PRTime,
+  virtual Result CheckRevocation(EndEntityOrCA, const CertID&, Time,
                                   const Input*,
                                   const Input*)
   {

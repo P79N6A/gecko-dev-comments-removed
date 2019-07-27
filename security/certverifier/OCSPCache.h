@@ -29,8 +29,8 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/Vector.h"
 #include "pkix/Result.h"
+#include "pkix/Time.h"
 #include "prerror.h"
-#include "prtime.h"
 #include "seccomon.h"
 
 namespace mozilla { namespace pkix {
@@ -60,7 +60,7 @@ public:
   
   bool Get(const mozilla::pkix::CertID& aCertID,
             mozilla::pkix::Result& aResult,
-            PRTime& aValidThrough);
+            mozilla::pkix::Time& aValidThrough);
 
   
   
@@ -72,8 +72,9 @@ public:
   
   
   mozilla::pkix::Result Put(const mozilla::pkix::CertID& aCertID,
-                            mozilla::pkix::Result aResult, PRTime aThisUpdate,
-                            PRTime aValidThrough);
+                            mozilla::pkix::Result aResult,
+                            mozilla::pkix::Time aThisUpdate,
+                            mozilla::pkix::Time aValidThrough);
 
   
   void Clear();
@@ -82,13 +83,19 @@ private:
   class Entry
   {
   public:
-    mozilla::pkix::Result Init(const mozilla::pkix::CertID& aCertID,
-                               mozilla::pkix::Result aResult,
-                               PRTime aThisUpdate, PRTime aValidThrough);
+    Entry(mozilla::pkix::Result aResult,
+          mozilla::pkix::Time aThisUpdate,
+          mozilla::pkix::Time aValidThrough)
+      : mResult(aResult)
+      , mThisUpdate(aThisUpdate)
+      , mValidThrough(aValidThrough)
+    {
+    }
+    mozilla::pkix::Result Init(const mozilla::pkix::CertID& aCertID);
 
     mozilla::pkix::Result mResult;
-    PRTime mThisUpdate;
-    PRTime mValidThrough;
+    mozilla::pkix::Time mThisUpdate;
+    mozilla::pkix::Time mValidThrough;
     
     
     

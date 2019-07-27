@@ -39,7 +39,6 @@
 
 #include "pkix/Input.h"
 #include "pkix/pkixtypes.h"
-#include "prtime.h"
 
 namespace mozilla { namespace pkix { namespace der {
 
@@ -333,7 +332,7 @@ namespace internal {
 
 
 
-Result TimeChoice(Reader& input, uint8_t tag,  PRTime& time);
+Result TimeChoice(Reader& input, uint8_t tag,  Time& time);
 
 } 
 
@@ -341,7 +340,7 @@ Result TimeChoice(Reader& input, uint8_t tag,  PRTime& time);
 
 
 inline Result
-GeneralizedTime(Reader& input,  PRTime& time)
+GeneralizedTime(Reader& input,  Time& time)
 {
   return internal::TimeChoice(input, GENERALIZED_TIME, time);
 }
@@ -350,7 +349,7 @@ GeneralizedTime(Reader& input,  PRTime& time)
 
 
 inline Result
-TimeChoice(Reader& input,  PRTime& time)
+TimeChoice(Reader& input,  Time& time)
 {
   uint8_t expectedTag = input.Peek(UTCTime) ? UTCTime : GENERALIZED_TIME;
   return internal::TimeChoice(input, expectedTag, time);

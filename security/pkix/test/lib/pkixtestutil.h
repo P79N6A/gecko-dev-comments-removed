@@ -76,8 +76,8 @@ FILE* OpenFile(const char* dir, const char* filename, const char* mode);
 extern const PRTime ONE_DAY;
 
 
-PRTime YMDHMS(int16_t year, int16_t month, int16_t day,
-              int16_t hour, int16_t minutes, int16_t seconds);
+mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
+                           int16_t hour, int16_t minutes, int16_t seconds);
 
 SECStatus GenerateKeyPair( ScopedSECKEYPublicKey& publicKey,
                            ScopedSECKEYPrivateKey& privateKey);

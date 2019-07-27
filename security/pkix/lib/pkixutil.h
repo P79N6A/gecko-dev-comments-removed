@@ -182,6 +182,17 @@ private:
   void operator=(const NonOwningDERArray&) ;
 };
 
+inline unsigned int
+DaysBeforeYear(unsigned int year)
+{
+  PR_ASSERT(year >= 1);
+  PR_ASSERT(year <= 9999);
+  return ((year - 1u) * 365u)
+       + ((year - 1u) / 4u)    
+       - ((year - 1u) / 100u)  
+       + ((year - 1u) / 400u); 
+}
+
 } } 
 
 #endif 
