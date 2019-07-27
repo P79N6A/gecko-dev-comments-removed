@@ -51,7 +51,8 @@ const kSubviewEvents = [
 
 
 
-const kVersion = 0;
+
+let kVersion = 0;
 
 
 
@@ -272,8 +273,6 @@ let CustomizableUIInternal = {
   },
 
   _defineBuiltInWidgets: function() {
-    
-    
     for (let widgetDefinition of CustomizableWidgets) {
       this.createBuiltinWidget(widgetDefinition);
     }
