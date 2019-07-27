@@ -57,24 +57,24 @@ using namespace mozilla;
 
 class nsSiteWindow : public nsIEmbeddingSiteWindow
 {
+  
+  
+  
+  
+  
+  
+  friend class nsContentTreeOwner;
+
 public:
   explicit nsSiteWindow(nsContentTreeOwner *aAggregator);
-  virtual ~nsSiteWindow();
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIEMBEDDINGSITEWINDOW
 
 private:
+  virtual ~nsSiteWindow();
   nsContentTreeOwner *mAggregator;
 };
-
-namespace mozilla {
-template<>
-struct HasDangerousPublicDestructor<nsSiteWindow>
-{
-  static const bool value = true;
-};
-}
 
 
 
