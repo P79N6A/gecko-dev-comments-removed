@@ -471,6 +471,9 @@ public:
     static eFontPrefLang GetFontPrefLangFor(nsIAtom *aLang);
 
     
+    static nsIAtom* GetLangGroupForPrefLang(eFontPrefLang aLang);
+
+    
     static const char* GetPrefLangName(eFontPrefLang aLang);
    
     
