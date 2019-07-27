@@ -213,8 +213,7 @@ public:
   
   virtual media::TimeIntervals GetBuffered();
 
-  
-  virtual bool ForceZeroStartTime() const { return false; }
+  virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio);
 
   
   
@@ -323,12 +322,6 @@ protected:
   
   bool mIgnoreAudioOutputFormat;
 
-  
-  
-  
-  
-  
-  
   
   
   
