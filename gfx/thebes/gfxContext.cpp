@@ -926,37 +926,15 @@ gfxContext::GetPattern()
 
 
 void
-gfxContext::Mask(gfxPattern *pattern)
+gfxContext::Mask(SourceSurface* aSurface, const Matrix& aTransform)
 {
-  if (pattern->Extend() == gfxPattern::EXTEND_NONE) {
-    
-    
-    
-    Point offset;
-    if (pattern->IsAzure()) {
-      
-      
-      
-      
-      
-      offset = Point(0.f, 0.f);
-    }
+  Matrix old = mTransform;
+  Matrix mat = aTransform * mTransform;
 
-    if (pattern->IsAzure()) {
-      RefPtr<SourceSurface> mask = pattern->GetAzureSurface();
-      Matrix mat = ToMatrix(pattern->GetInverseMatrix());
-      Matrix old = mTransform;
-      
-      
-      mat = mat * mTransform;
-
-      ChangeTransform(mat);
-      mDT->MaskSurface(GeneralPattern(this), mask, offset, DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
-      ChangeTransform(old);
-      return;
-    }
-  }
-  mDT->Mask(GeneralPattern(this), *pattern->GetPattern(mDT), DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
+  ChangeTransform(mat);
+  mDT->MaskSurface(GeneralPattern(this), aSurface, Point(),
+                   DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
+  ChangeTransform(old);
 }
 
 void
@@ -1118,6 +1096,24 @@ gfxContext::PopGroup()
   nsRefPtr<gfxPattern> pat = new gfxPattern(src, mat);
 
   return pat.forget();
+}
+
+TemporaryRef<SourceSurface>
+gfxContext::PopGroupToSurface(Matrix* aTransform)
+{
+  RefPtr<SourceSurface> src = mDT->Snapshot();
+  Point deviceOffset = CurrentState().deviceOffset;
+
+  Restore();
+
+  Matrix mat = mTransform;
+  mat.Invert();
+
+  Matrix deviceOffsetTranslation;
+  deviceOffsetTranslation.PreTranslate(deviceOffset.x, deviceOffset.y);
+
+  *aTransform = deviceOffsetTranslation * mat;
+  return src;
 }
 
 void

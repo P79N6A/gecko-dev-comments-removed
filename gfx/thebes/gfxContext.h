@@ -388,7 +388,7 @@ public:
 
 
 
-    void Mask(gfxPattern *pattern);
+    void Mask(mozilla::gfx::SourceSurface *aSurface, const mozilla::gfx::Matrix& aTransform);
 
     
 
@@ -600,6 +600,9 @@ public:
     void PushGroupAndCopyBackground(gfxContentType content = gfxContentType::COLOR);
     already_AddRefed<gfxPattern> PopGroup();
     void PopGroupToSource();
+
+    mozilla::TemporaryRef<mozilla::gfx::SourceSurface>
+    PopGroupToSurface(mozilla::gfx::Matrix* aMatrix);
 
     
 
