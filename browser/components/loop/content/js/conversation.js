@@ -180,15 +180,14 @@ loop.conversation = (function(mozL10n) {
       client: React.PropTypes.instanceOf(loop.Client).isRequired,
       conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
                          .isRequired,
-      notifications: React.PropTypes.instanceOf(sharedModels.NotificationCollection)
-                          .isRequired,
       sdk: React.PropTypes.object.isRequired
     },
 
     getInitialState: function() {
       return {
+        callFailed: false, 
         callStatus: "start"
-      }
+      };
     },
 
     componentDidMount: function() {
@@ -245,7 +244,12 @@ loop.conversation = (function(mozL10n) {
           );
         }
         case "end": {
-          document.title = mozL10n.get("conversation_has_ended");
+          
+          if (this.state.callFailed) {
+            document.title = mozL10n.get("generic_failure_title");
+          } else {
+            document.title = mozL10n.get("conversation_has_ended");
+          }
 
           var feebackAPIBaseUrl = navigator.mozLoop.getLoopCharPref(
             "feedback.baseUrl");
@@ -278,9 +282,10 @@ loop.conversation = (function(mozL10n) {
 
 
     _notifyError: function(error) {
+      
+      
       console.error(error);
-      this.props.notifications.errorL10n("connection_error_see_console_notification");
-      this.setState({callStatus: "end"});
+      this.setState({callFailed: true, callStatus: "end"});
     },
 
     
@@ -290,16 +295,16 @@ loop.conversation = (function(mozL10n) {
 
 
     _onPeerHungup: function() {
-      this.props.notifications.warnL10n("peer_ended_conversation2");
-      this.setState({callStatus: "end"});
+      this.setState({callFailed: false, callStatus: "end"});
     },
 
     
 
 
     _onNetworkDisconnected: function() {
-      this.props.notifications.warnL10n("network_disconnected");
-      this.setState({callStatus: "end"});
+      
+      
+      this.setState({callFailed: true, callStatus: "end"});
     },
 
     
@@ -310,10 +315,9 @@ loop.conversation = (function(mozL10n) {
 
       var callData = navigator.mozLoop.getCallData(this.props.conversation.get("callId"));
       if (!callData) {
+        
+        
         console.error("Failed to get the call data");
-        
-        
-        this.props.notifications.errorL10n("cannot_start_call_session_not_ready");
         return;
       }
       this.props.conversation.setIncomingSessionData(callData);
@@ -462,7 +466,7 @@ loop.conversation = (function(mozL10n) {
     _handleSessionError: function() {
       
       
-      this.props.notifications.errorL10n("cannot_start_call_session_not_ready");
+      console.error("Failed initiating the call session.");
     },
   });
 
@@ -476,8 +480,6 @@ loop.conversation = (function(mozL10n) {
       client: React.PropTypes.instanceOf(loop.Client).isRequired,
       conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
                          .isRequired,
-      notifications: React.PropTypes.instanceOf(sharedModels.NotificationCollection)
-                          .isRequired,
       sdk: React.PropTypes.object.isRequired,
 
       
@@ -509,7 +511,6 @@ loop.conversation = (function(mozL10n) {
       return (IncomingConversationView({
         client: this.props.client, 
         conversation: this.props.conversation, 
-        notifications: this.props.notifications, 
         sdk: this.props.sdk}
       ));
     }
@@ -552,7 +553,6 @@ loop.conversation = (function(mozL10n) {
       {},                
       {sdk: window.OT}   
     );
-    var notifications = new sharedModels.NotificationCollection();
 
     
     var helper = new loop.shared.utils.Helper();
@@ -574,7 +574,6 @@ loop.conversation = (function(mozL10n) {
       store: conversationStore, 
       client: client, 
       conversation: conversation, 
-      notifications: notifications, 
       sdk: window.OT}
     ), document.querySelector('#main'));
 
