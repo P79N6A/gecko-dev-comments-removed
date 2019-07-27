@@ -12,8 +12,5 @@ var p = new Proxy(t, {
 });
 with (p)
     x += " x";
-
-
-
 assertEq(hits, 2);
 assertEq(t.x, "undefined x");

@@ -174,7 +174,7 @@ struct BytecodeEmitter
     bool            insideEval:1;       
 
 
-    const bool      insideNonGlobalEval:1;  
+    const bool      hasGlobalScope:1;   
 
 
     enum EmitterMode {
@@ -205,7 +205,7 @@ struct BytecodeEmitter
     BytecodeEmitter(BytecodeEmitter *parent, Parser<FullParseHandler> *parser, SharedContext *sc,
                     HandleScript script, Handle<LazyScript *> lazyScript,
                     bool insideEval, HandleScript evalCaller,
-                    Handle<StaticEvalObject *> evalStaticScope, bool insideNonGlobalEval,
+                    Handle<StaticEvalObject *> evalStaticScope, bool hasGlobalScope,
                     uint32_t lineNum, EmitterMode emitterMode = Normal);
     bool init();
     bool updateLocalsToFrameSlots();

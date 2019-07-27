@@ -654,8 +654,7 @@ XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope,
                        HandleScript enclosingScript, MutableHandleFunction objp);
 
 extern JSObject *
-CloneFunctionAndScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun,
-                       PollutedGlobalScopeOption polluted);
+CloneFunctionAndScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun);
 
 
 
