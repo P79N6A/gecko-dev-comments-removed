@@ -547,16 +547,38 @@ NetworkStatsDB.prototype = {
         if (!cursor) {
           
 
-          
-          
-          
-          
-          if (isAccumulative) {
-            stats.rxBytes = stats.rxTotalBytes;
-            stats.txBytes = stats.txTotalBytes;
+          if (!isAccumulative) {
+            this._saveStats(aTxn, aStore, stats);
+            return;
           }
 
-          this._saveStats(aTxn, aStore, stats);
+          
+          
+          
+          
+          stats.rxBytes = stats.rxTotalBytes;
+          stats.txBytes = stats.txTotalBytes;
+
+          
+          
+          let req = aStore.index("network").openKeyCursor(null, "nextunique");
+          req.onsuccess = function onsuccess(event) {
+            let cursor = event.target.result;
+            if (cursor) {
+              if (cursor.key[1] == stats.network[1]) {
+                stats.rxBytes = 0;
+                stats.txBytes = 0;
+                this._saveStats(aTxn, aStore, stats);
+                return;
+              }
+
+              cursor.continue();
+              return;
+            }
+
+            this._saveStats(aTxn, aStore, stats);
+          }.bind(this);
+
           return;
         }
 
