@@ -272,8 +272,10 @@ class GlobalHelperThreadState
 static inline GlobalHelperThreadState &
 HelperThreadState()
 {
-    extern GlobalHelperThreadState gHelperThreadState;
-    return gHelperThreadState;
+    extern GlobalHelperThreadState *gHelperThreadState;
+
+    MOZ_ASSERT(gHelperThreadState);
+    return *gHelperThreadState;
 }
 
 
@@ -344,8 +346,16 @@ struct HelperThread
 
 
 
+bool
+CreateHelperThreadsState();
+
+
 void
-EnsureHelperThreadsInitialized(ExclusiveContext *cx);
+DestroyHelperThreadsState();
+
+
+void
+EnsureHelperThreadsInitialized();
 
 
 

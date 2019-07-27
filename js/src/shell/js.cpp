@@ -5902,14 +5902,14 @@ main(int argc, char **argv, char **envp)
         js::DisableExtraThreads();
 
     
+    if (!JS_Init())
+        return 1;
+
+    
     
     int32_t threadCount = op.getIntOption("thread-count");
     if (threadCount >= 0)
         SetFakeCPUCount(threadCount);
-
-    
-    if (!JS_Init())
-        return 1;
 
     size_t nurseryBytes = JS::DefaultNurseryBytes;
     nurseryBytes = op.getIntOption("nursery-size") * 1024L * 1024L;

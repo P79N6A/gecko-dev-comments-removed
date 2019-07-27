@@ -28,19 +28,32 @@ using mozilla::DebugOnly;
 
 namespace js {
 
-GlobalHelperThreadState gHelperThreadState;
+GlobalHelperThreadState *gHelperThreadState = nullptr;
 
 } 
 
-void
-js::EnsureHelperThreadsInitialized(ExclusiveContext *cx)
+bool
+js::CreateHelperThreadsState()
 {
-    
-    
-    if (!cx->isJSContext())
-        return;
+    MOZ_ASSERT(!gHelperThreadState);
+    gHelperThreadState = js_new<GlobalHelperThreadState>();
+    return gHelperThreadState != nullptr;
+}
 
-    HelperThreadState().ensureInitialized();
+void
+js::DestroyHelperThreadsState()
+{
+    MOZ_ASSERT(gHelperThreadState);
+    gHelperThreadState->finish();
+    js_delete(gHelperThreadState);
+    gHelperThreadState = nullptr;
+}
+
+void
+js::EnsureHelperThreadsInitialized()
+{
+    MOZ_ASSERT(gHelperThreadState);
+    gHelperThreadState->ensureInitialized();
 }
 
 static size_t
@@ -85,8 +98,6 @@ js::StartOffThreadAsmJSCompile(ExclusiveContext *cx, AsmJSParallelTask *asmData)
 bool
 js::StartOffThreadIonCompile(JSContext *cx, jit::IonBuilder *builder)
 {
-    EnsureHelperThreadsInitialized(cx);
-
     AutoLockHelperThreadState lock;
 
     if (!HelperThreadState().ionWorklist().append(builder))
@@ -308,8 +319,6 @@ js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &optio
     
     
     gc::AutoSuppressGC suppress(cx);
-
-    EnsureHelperThreadsInitialized(cx);
 
     JS::CompartmentOptions compartmentOptions(cx->compartment()->options());
     compartmentOptions.setZone(JS::FreshZone);
@@ -1216,8 +1225,6 @@ HelperThread::handleCompressionWorkload()
 bool
 js::StartOffThreadCompression(ExclusiveContext *cx, SourceCompressionTask *task)
 {
-    EnsureHelperThreadsInitialized(cx);
-
     AutoLockHelperThreadState lock;
 
     if (!HelperThreadState().compressionWorklist().append(task)) {
