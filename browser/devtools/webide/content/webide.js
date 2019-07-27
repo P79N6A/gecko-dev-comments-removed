@@ -736,6 +736,14 @@ let Cmds = {
       }
 
       
+      location = location.trim();
+      try { 
+        Services.io.extractScheme(location);
+      } catch(e) {
+        location = "http://" + location;
+      }
+
+      
       let project = yield AppProjects.addHosted(location)
 
       
