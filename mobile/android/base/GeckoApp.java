@@ -191,6 +191,7 @@ public abstract class GeckoApp
     private Telemetry.Timer mGeckoReadyStartupTimer;
 
     private String mPrivateBrowsingSession;
+    private volatile boolean mIsPaused = true;
 
     private volatile HealthRecorder mHealthRecorder;
     private volatile Locale mLastLocale;
@@ -246,7 +247,13 @@ public abstract class GeckoApp
     }
 
     public void addAppStateListener(GeckoAppShell.AppStateListener listener) {
+        ThreadUtils.assertOnUiThread();
         mAppStateListeners.add(listener);
+
+        
+        if (!mIsPaused) {
+            listener.onResume();
+        }
     }
 
     public void removeAppStateListener(GeckoAppShell.AppStateListener listener) {
@@ -1885,6 +1892,8 @@ public abstract class GeckoApp
                 listener.onResume();
             }
         }
+        
+        mIsPaused = false;
 
         
         
@@ -1961,6 +1970,9 @@ public abstract class GeckoApp
             }
         });
 
+        
+        
+        mIsPaused = true;
         if (mAppStateListeners != null) {
             for(GeckoAppShell.AppStateListener listener: mAppStateListeners) {
                 listener.onPause();
