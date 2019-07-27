@@ -1003,6 +1003,25 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
+  
+  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
+      aPresContext->IsPaginated() &&
+      GetNextInFlow()) {
+    nsIFrame* nif = GetNextInFlow();
+    bool oc = nif->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER;
+    NS_MergeReflowStatusInto(&aStatus,
+        oc ? NS_FRAME_OVERFLOW_INCOMPLETE : NS_FRAME_NOT_COMPLETE);
+    nsMargin innerMargin = innerRS->ComputedPhysicalMargin();
+    nsMargin captionMargin;
+    if (mCaptionFrames.NotEmpty()) {
+      captionMargin = captionRS->ComputedPhysicalMargin();
+    }
+    UpdateReflowMetrics(captionSide, aDesiredSize, innerMargin, captionMargin);
+    FinishAndStoreOverflow(&aDesiredSize);
+    return;
+  }
+
+  
   nsHTMLReflowMetrics captionMet(captionRS->GetWritingMode());
   nsSize captionSize;
   nsMargin captionMargin;
