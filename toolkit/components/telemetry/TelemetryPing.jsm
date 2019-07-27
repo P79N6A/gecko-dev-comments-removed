@@ -9,7 +9,6 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
-const myScope = this;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/debug.js", this);
@@ -317,11 +316,6 @@ let Impl = {
   assemblePing: function assemblePing(aType, aPayload, aOptions = {}) {
     this._log.trace("assemblePing - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
-
-    
-    
-    
-    let payload = Cu.cloneInto(aPayload, myScope);
 
     
     let pingData = {
