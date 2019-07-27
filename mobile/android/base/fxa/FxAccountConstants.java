@@ -24,7 +24,7 @@ public class FxAccountConstants {
   public static final String STAGE_PROFILE_SERVER_ENDPOINT = "https://latest.dev.lcip.org/profile/v1";
 
   
-  public static final String ACCOUNT_PROFILE_AVATAR_UPDATED_ACTION = "org.mozilla.gecko.fxa.profile.cached";
+  public static final String ACCOUNT_PROFILE_JSON_UPDATED_ACTION = "org.mozilla.gecko.fxa.profile.JSON.updated";
 
   
   public static final int MINIMUM_AGE_TO_CREATE_AN_ACCOUNT = 13;
