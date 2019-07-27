@@ -844,6 +844,11 @@ this.AddonRepository = {
         if (idIndex == -1)
           continue;
 
+        
+        if (!(result.addon.type in AddonManager.addonTypes)) {
+          continue;
+        }
+
         results.push(result);
         
         ids.splice(idIndex, 1);
@@ -1089,10 +1094,8 @@ this.AddonRepository = {
               addon.type = "search";
               break;
             case 5:
-              addon.type = "langpack";
-              break;
             case 6:
-              addon.type = "langpack-addon";
+              addon.type = "locale";
               break;
             case 7:
               addon.type = "plugin";
@@ -1301,6 +1304,10 @@ this.AddonRepository = {
       
       let requiredAttributes = ["id", "name", "version", "type", "creator"];
       if (requiredAttributes.some(function parseAddons_attributeFilter(aAttribute) !result.addon[aAttribute]))
+        continue;
+
+      
+      if (!(result.addon.type in AddonManager.addonTypes))
         continue;
 
       
