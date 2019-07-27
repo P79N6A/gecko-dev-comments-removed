@@ -101,6 +101,10 @@ let blocklist_contents =
     
     
     
+    "<certItem issuerName='MBgxFjAUBgNVBAMTDU90aGVyIHRlc3QgQ0E='>" +
+    "<serialNumber>AKEIivg=</serialNumber></certItem>" +
+    
+    
     
     
     
@@ -154,6 +158,7 @@ function run_test() {
   
   load_cert("test-ca", "CTu,CTu,CTu");
   load_cert("test-int", ",,");
+  load_cert("other-test-ca", "CTu,CTu,CTu");
 
   let certList = Cc["@mozilla.org/security/certblocklist;1"]
                    .getService(Ci.nsICertBlocklist);
@@ -184,6 +189,11 @@ function run_test() {
   
   
   let file = "tlsserver/test-int-ee.der";
+  verify_cert(file, Cr.NS_OK);
+
+  
+  
+  file = "tlsserver/default-ee.der";
   verify_cert(file, Cr.NS_OK);
 
   
@@ -235,6 +245,8 @@ function run_test() {
       contents = contents + (contents.length == 0 ? "" : "\n") + line.value;
     } while (hasmore);
     let expected = "# Auto generated contents. Do not edit.\n" +
+                  "MBgxFjAUBgNVBAMTDU90aGVyIHRlc3QgQ0E=\n" +
+                  " AKEIivg=\n" +
                   "MBIxEDAOBgNVBAMTB1Rlc3QgQ0E=\n" +
                   " X1o=\n" +
                   "YW5vdGhlciBpbWFnaW5hcnkgaXNzdWVy\n" +
@@ -244,6 +256,10 @@ function run_test() {
 
     
     let file = "tlsserver/test-int-ee.der";
+    verify_cert(file, SEC_ERROR_REVOKED_CERTIFICATE);
+
+    
+    file = "tlsserver/other-issuer-ee.der";
     verify_cert(file, SEC_ERROR_REVOKED_CERTIFICATE);
 
     
