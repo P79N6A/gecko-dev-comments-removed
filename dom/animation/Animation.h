@@ -125,9 +125,12 @@ class AnimationEffect;
 class Animation : public nsWrapperCache
 {
 public:
-  Animation(nsIDocument* aDocument, const AnimationTiming &aTiming)
+  Animation(nsIDocument* aDocument,
+            const AnimationTiming &aTiming,
+            const nsSubstring& aName)
     : mDocument(aDocument)
     , mTiming(aTiming)
+    , mName(aName)
     , mIsFinishedTransition(false)
     , mLastNotification(LAST_NOTIFICATION_NONE)
   {
@@ -160,6 +163,10 @@ public:
   }
   AnimationTiming& Timing() {
     return mTiming;
+  }
+
+  const nsString& Name() const {
+    return mName;
   }
 
   
@@ -250,6 +257,7 @@ protected:
   Nullable<TimeDuration> mParentTime;
 
   AnimationTiming mTiming;
+  nsString mName;
   
   
   bool mIsFinishedTransition;
