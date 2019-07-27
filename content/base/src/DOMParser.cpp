@@ -17,6 +17,7 @@
 #include "nsPIDOMWindow.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -315,7 +316,7 @@ DOMParser::ParseFromStream(nsIInputStream *stream,
 
 NS_IMETHODIMP
 DOMParser::Init(nsIPrincipal* principal, nsIURI* documentURI,
-                nsIURI* baseURI, nsIScriptGlobalObject* aScriptObject)
+                nsIURI* baseURI, nsIGlobalObject* aScriptObject)
 {
   NS_ENSURE_STATE(!mAttemptedInit);
   mAttemptedInit = true;
@@ -432,7 +433,7 @@ DOMParser::InitInternal(nsISupports* aOwner, nsIPrincipal* prin,
     }
   }
 
-  nsCOMPtr<nsIScriptGlobalObject> scriptglobal = do_QueryInterface(aOwner);
+  nsCOMPtr<nsIGlobalObject> scriptglobal = do_QueryInterface(aOwner);
   return Init(prin, documentURI, baseURI, scriptglobal);
 }
 
@@ -442,26 +443,22 @@ DOMParser::Init(nsIPrincipal* aPrincipal, nsIURI* aDocumentURI,
 {
   AttemptedInitMarker marker(&mAttemptedInit);
 
-  JSContext *cx = nsContentUtils::GetCurrentJSContext();
-  if (!cx) {
-    rv.Throw(NS_ERROR_UNEXPECTED);
-    return;
-  }
-
-  nsIScriptContext* scriptContext = GetScriptContextFromJSContext(cx);
-
   nsCOMPtr<nsIPrincipal> principal = aPrincipal;
   if (!principal && !aDocumentURI) {
     principal = nsContentUtils::SubjectPrincipal();
   }
 
-  rv = Init(principal, aDocumentURI, aBaseURI,
-            scriptContext ? scriptContext->GetGlobalObject() : nullptr);
+  rv = Init(principal, aDocumentURI, aBaseURI, GetEntryGlobal());
 }
 
 nsresult
 DOMParser::SetUpDocument(DocumentFlavor aFlavor, nsIDOMDocument** aResult)
 {
+  
+  
+  
+  
+  
   nsCOMPtr<nsIScriptGlobalObject> scriptHandlingObject =
     do_QueryReferent(mScriptHandlingObject);
   nsresult rv;

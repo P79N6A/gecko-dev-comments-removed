@@ -27,7 +27,6 @@
 #include "nsNodeInfoManager.h"
 #include "nsContentUtils.h"
 #include "nsCCUncollectableMarker.h"
-#include "nsDOMJSUtils.h" 
 #include "xpcpublic.h"
 #include "mozilla/dom/BindingUtils.h"
 
