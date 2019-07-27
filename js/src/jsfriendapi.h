@@ -481,15 +481,6 @@ IsAtomsCompartment(JSCompartment* comp);
 extern JS_FRIEND_API(bool)
 IsAtomsZone(JS::Zone* zone);
 
-
-
-
-
-
-
-extern JS_FRIEND_API(bool)
-IsInNonStrictPropertySet(JSContext* cx);
-
 struct WeakMapTracer
 {
     JSRuntime* runtime;
