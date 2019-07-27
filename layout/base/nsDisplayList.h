@@ -795,6 +795,15 @@ public:
 
   bool IsInWillChangeBudget(nsIFrame* aFrame) const;
 
+  
+
+
+
+
+  bool GetCachedAnimatedGeometryRoot(const nsIFrame* aFrame,
+                                     const nsIFrame* aStopAtAncestor,
+                                     nsIFrame** aOutResult);
+
 private:
   void MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame, nsIFrame* aFrame,
                                     const nsRect& aDirtyRect);
@@ -840,6 +849,28 @@ private:
   nsPoint                        mCurrentOffsetToReferenceFrame;
   
   nsIFrame*                      mCurrentAnimatedGeometryRoot;
+
+  struct AnimatedGeometryRootLookup {
+    const nsIFrame* mFrame;
+    const nsIFrame* mStopAtFrame;
+
+    AnimatedGeometryRootLookup(const nsIFrame* aFrame, const nsIFrame* aStopAtFrame)
+      : mFrame(aFrame)
+      , mStopAtFrame(aStopAtFrame)
+    {
+    }
+
+    PLDHashNumber Hash() const {
+      return mozilla::HashBytes(this, sizeof(this));
+    }
+
+    bool operator==(const AnimatedGeometryRootLookup& aOther) const {
+      return mFrame == aOther.mFrame && mStopAtFrame == aOther.mStopAtFrame;
+    }
+  };
+  
+  nsDataHashtable<nsGenericHashKey<AnimatedGeometryRootLookup>, nsIFrame*>
+                                 mAnimatedGeometryRootCache;
   
   nsDataHashtable<nsPtrHashKey<nsPresContext>, DocumentWillChangeBudget>
                                  mWillChangeBudget;
