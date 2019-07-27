@@ -3341,6 +3341,8 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
 
   
   if (!mLayerManager && ShouldUseOffMainThreadCompositing()) {
+    gfxWindowsPlatform::GetPlatform()->UpdateRenderMode();
+
     
     
     NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");

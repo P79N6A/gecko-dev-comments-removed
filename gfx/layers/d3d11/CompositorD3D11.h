@@ -159,7 +159,7 @@ private:
 
   
   void EnsureSize();
-  void VerifyBufferSize();
+  bool VerifyBufferSize();
   void UpdateRenderTarget();
   bool CreateShaders();
   bool UpdateConstantBuffers();
