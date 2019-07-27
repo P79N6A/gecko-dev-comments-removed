@@ -75,6 +75,7 @@ private:
   friend class dom::PBrowserParent;
   friend class dom::PBrowserChild;
 
+protected:
   WidgetKeyboardEvent()
   {
   }
@@ -82,8 +83,9 @@ private:
 public:
   virtual WidgetKeyboardEvent* AsKeyboardEvent() MOZ_OVERRIDE { return this; }
 
-  WidgetKeyboardEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
-    : WidgetInputEvent(aIsTrusted, aMessage, aWidget, eKeyboardEventClass)
+  WidgetKeyboardEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
+                      EventClassID aEventClassID = eKeyboardEventClass)
+    : WidgetInputEvent(aIsTrusted, aMessage, aWidget, aEventClassID)
     , keyCode(0)
     , charCode(0)
     , location(nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD)
@@ -191,6 +193,72 @@ public:
     
     mNativeKeyEvent = nullptr;
     mUniqueId = aEvent.mUniqueId;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+class InternalBeforeAfterKeyboardEvent : public WidgetKeyboardEvent
+{
+private:
+  friend class dom::PBrowserParent;
+  friend class dom::PBrowserChild;
+
+  InternalBeforeAfterKeyboardEvent()
+  {
+  }
+
+public:
+  
+  
+  Nullable<bool> mEmbeddedCancelled;
+
+  virtual InternalBeforeAfterKeyboardEvent* AsBeforeAfterKeyboardEvent() MOZ_OVERRIDE
+  {
+    return this;
+  }
+
+  InternalBeforeAfterKeyboardEvent(bool aIsTrusted, uint32_t aMessage,
+                                   nsIWidget* aWidget)
+    : WidgetKeyboardEvent(aIsTrusted, aMessage, aWidget, eBeforeAfterKeyboardEventClass)
+  {
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(mClass == eBeforeAfterKeyboardEventClass,
+               "Duplicate() must be overridden by sub class");
+    
+    InternalBeforeAfterKeyboardEvent* result =
+      new InternalBeforeAfterKeyboardEvent(false, message, nullptr);
+    result->AssignBeforeAfterKeyEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
+  void AssignBeforeAfterKeyEventData(
+         const InternalBeforeAfterKeyboardEvent& aEvent,
+         bool aCopyTargets)
+  {
+    AssignKeyEventData(aEvent, aCopyTargets);
+    mEmbeddedCancelled = aEvent.mEmbeddedCancelled;
+  }
+
+  void AssignBeforeAfterKeyEventData(
+         const WidgetKeyboardEvent& aEvent,
+         bool aCopyTargets)
+  {
+    AssignKeyEventData(aEvent, aCopyTargets);
   }
 };
 
