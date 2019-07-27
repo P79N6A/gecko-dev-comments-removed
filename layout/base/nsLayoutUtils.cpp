@@ -7989,6 +7989,16 @@ nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(nsIPresShell* aShell)
   return false;
 }
 
+ float
+nsLayoutUtils::GetResolution(nsIPresShell* aPresShell)
+{
+  nsIScrollableFrame* sf = aPresShell->GetRootScrollFrameAsScrollable();
+  if (sf) {
+    return sf->GetResolution();
+  }
+  return aPresShell->GetResolution();
+}
+
  uint32_t
 nsLayoutUtils::GetTouchActionFromFrame(nsIFrame* aFrame)
 {

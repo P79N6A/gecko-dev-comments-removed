@@ -2577,6 +2577,12 @@ public:
   static bool HasApzAwareListeners(mozilla::EventListenerManager* aElm);
   static bool HasDocumentLevelListenersForApzAwareEvents(nsIPresShell* aShell);
 
+  
+
+
+
+  static float GetResolution(nsIPresShell* aPresShell);
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
