@@ -90,6 +90,7 @@ nsBaseChannel::Redirect(nsIChannel *newChannel, uint32_t redirectFlags,
   newChannel->SetLoadGroup(mLoadGroup);
   newChannel->SetNotificationCallbacks(mCallbacks);
   newChannel->SetLoadFlags(mLoadFlags | LOAD_REPLACE);
+  newChannel->SetLoadInfo(mLoadInfo);
 
   
   if (mPrivateBrowsingOverriden) {
