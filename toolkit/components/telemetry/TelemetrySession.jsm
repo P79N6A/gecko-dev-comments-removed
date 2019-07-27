@@ -543,14 +543,12 @@ let Impl = {
     let ret = {
       reason: reason,
       OS: ai.OS,
-      appID: ai.ID,
-      appVersion: ai.version,
-      appName: ai.name,
-      appBuildID: ai.appBuildID,
-      appUpdateChannel: UpdateChannel.get(),
+      appVersion: ai.version, 
+      appName: ai.name, 
+      appBuildID: ai.appBuildID, 
+      appUpdateChannel: UpdateChannel.get(), 
       platformBuildID: ai.platformBuildID,
       revision: HISTOGRAMS_FILE_VERSION,
-      locale: getLocale(),
       asyncPluginInit: Preferences.get(PREF_ASYNC_PLUGIN_INIT, false)
     };
 
@@ -563,58 +561,6 @@ let Impl = {
 
     if (this._previousBuildID) {
       ret.previousBuildID = this._previousBuildID;
-    }
-
-    
-    let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-    let fields = ["cpucount", "memsize", "arch", "version", "kernel_version",
-                  "device", "manufacturer", "hardware", "tablet",
-                  "hasMMX", "hasSSE", "hasSSE2", "hasSSE3",
-                  "hasSSSE3", "hasSSE4A", "hasSSE4_1", "hasSSE4_2",
-                  "hasEDSP", "hasARMv6", "hasARMv7", "hasNEON", "isWow64",
-                  "profileHDDModel", "profileHDDRevision", "binHDDModel",
-                  "binHDDRevision", "winHDDModel", "winHDDRevision"];
-    for each (let field in fields) {
-      let value;
-      try {
-        value = sysInfo.getProperty(field);
-      } catch (e) {
-        continue;
-      }
-      if (field == "memsize") {
-        
-        
-        value = Math.round(value / 1024 / 1024);
-      }
-      ret[field] = value;
-    }
-
-    
-    let gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
-    let gfxfields = ["adapterDescription", "adapterVendorID", "adapterDeviceID",
-                     "adapterSubsysID", "adapterRAM", "adapterDriver",
-                     "adapterDriverVersion", "adapterDriverDate",
-                     "adapterDescription2", "adapterVendorID2",
-                     "adapterDeviceID2", "adapterSubsysID2", "adapterRAM2",
-                     "adapterDriver2", "adapterDriverVersion2",
-                     "adapterDriverDate2", "isGPU2Active", "D2DEnabled",
-                     "DWriteEnabled", "DWriteVersion"
-                    ];
-
-    if (gfxInfo) {
-      for each (let field in gfxfields) {
-        try {
-          let value = gfxInfo[field];
-          
-          
-          
-          if (value !== "") {
-            ret[field] = value;
-          }
-        } catch (e) {
-          continue
-        }
-      }
     }
 
 #ifndef MOZ_WIDGET_GONK
