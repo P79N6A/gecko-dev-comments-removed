@@ -135,7 +135,6 @@ public:
 class gfxProxyFontEntry;
 
 class gfxUserFontSet {
-    friend class gfxProxyFontEntry;
 
 public:
 
@@ -156,6 +155,14 @@ public:
 
         
         FLAG_FORMAT_NOT_USED       = ~((1 << 7)-1)
+    };
+
+    enum LoadStatus {
+        STATUS_LOADING = 0,
+        STATUS_LOADED,
+        STATUS_FORMAT_NOT_SUPPORTED,
+        STATUS_ERROR,
+        STATUS_END_OF_LIST
     };
 
 
@@ -407,6 +414,19 @@ protected:
     virtual bool GetPrivateBrowsing() = 0;
 
     
+    
+    LoadStatus LoadNext(gfxMixedFontFamily *aFamily,
+                        gfxProxyFontEntry *aProxyEntry);
+
+    
+    
+    
+    
+    gfxFontEntry* LoadFont(gfxMixedFontFamily *aFamily,
+                           gfxProxyFontEntry *aProxy,
+                           const uint8_t *aFontData, uint32_t &aLength);
+
+    
     virtual nsresult SyncLoadFontData(gfxProxyFontEntry *aFontToLoad,
                                       const gfxFontFaceSrc *aFontFaceSrc,
                                       uint8_t* &aBuffer,
@@ -418,6 +438,15 @@ protected:
                                 const char *aMessage,
                                 uint32_t aFlags = nsIScriptError::errorFlag,
                                 nsresult aStatus = NS_OK) = 0;
+
+    const uint8_t* SanitizeOpenTypeData(gfxMixedFontFamily *aFamily,
+                                        gfxProxyFontEntry *aProxy,
+                                        const uint8_t* aData,
+                                        uint32_t aLength,
+                                        uint32_t& aSaneLength,
+                                        bool aIsCompressed);
+
+    static bool OTSMessage(void *aUserData, const char *format, ...);
 
     
     virtual void DoRebuildUserFontSet() = 0;
@@ -431,26 +460,21 @@ protected:
     bool mLocalRulesUsed;
 
     static PRLogModuleInfo* GetUserFontsLog();
+
+private:
+    static void CopyWOFFMetadata(const uint8_t* aFontData,
+                                 uint32_t aLength,
+                                 FallibleTArray<uint8_t>* aMetadata,
+                                 uint32_t* aMetaOrigLen);
 };
 
 
 
 class gfxProxyFontEntry : public gfxFontEntry {
     friend class gfxUserFontSet;
-    friend class nsUserFontSet;
-    friend class nsFontFaceLoader;
 
 public:
-    enum LoadStatus {
-        STATUS_LOADING = 0,
-        STATUS_LOADED,
-        STATUS_FORMAT_NOT_SUPPORTED,
-        STATUS_ERROR,
-        STATUS_END_OF_LIST
-    };
-
-    gfxProxyFontEntry(gfxUserFontSet *aFontSet,
-                      const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
+    gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                       uint32_t aWeight,
                       int32_t aStretch,
                       uint32_t aItalicStyle,
@@ -471,35 +495,6 @@ public:
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold);
 
-protected:
-    const uint8_t* SanitizeOpenTypeData(gfxMixedFontFamily *aFamily,
-                                        const uint8_t* aData,
-                                        uint32_t aLength,
-                                        uint32_t& aSaneLength,
-                                        bool aIsCompressed);
-
-    
-    
-    
-    LoadStatus LoadNext(gfxMixedFontFamily *aFamily,
-                        bool& aLocalRulesUsed);
-
-    
-    
-    
-    
-    gfxFontEntry* LoadFont(gfxMixedFontFamily *aFamily,
-                           const uint8_t *aFontData, uint32_t &aLength);
-
-    
-    void StoreUserFontData(gfxFontEntry*      aFontEntry,
-                           bool               aPrivate,
-                           const nsAString&   aOriginalName,
-                           FallibleTArray<uint8_t>* aMetadata,
-                           uint32_t           aMetaOrigLen);
-
-    static bool OTSMessage(void *aUserData, const char *format, ...);
-
     
     enum LoadingState {
         NOT_LOADING = 0,     
@@ -516,9 +511,8 @@ protected:
     nsTArray<gfxFontFaceSrc> mSrcList;
     uint32_t                 mSrcIndex; 
     nsFontFaceLoader        *mLoader; 
-    gfxUserFontSet          *mFontSet; 
     nsCOMPtr<nsIPrincipal>   mPrincipal;
 };
 
 
-#endif
+#endif 
