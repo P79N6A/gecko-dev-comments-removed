@@ -106,8 +106,8 @@ public:
 
 
 
-    int32_t UnscaledAppUnitsPerDevPixel() const
-    { return mAppUnitsPerDevNotScaledPixel; }
+    int32_t AppUnitsPerDevPixelAtUnitFullZoom() const
+    { return mAppUnitsPerDevPixelAtUnitFullZoom; }
 
     
 
@@ -265,7 +265,7 @@ private:
     nscoord  mHeight;
     uint32_t mDepth;
     int32_t  mAppUnitsPerDevPixel;
-    int32_t  mAppUnitsPerDevNotScaledPixel;
+    int32_t  mAppUnitsPerDevPixelAtUnitFullZoom;
     int32_t  mAppUnitsPerPhysicalInch;
     float    mPixelScale;
     float    mPrintingScale;

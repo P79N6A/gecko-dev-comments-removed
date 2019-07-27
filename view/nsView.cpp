@@ -341,10 +341,10 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   
   
   CSSToLayoutDeviceScale scale = widget->GetDefaultScale();
-  if (NSToIntRound(60.0 / scale.scale) == dx->UnscaledAppUnitsPerDevPixel()) {
+  if (NSToIntRound(60.0 / scale.scale) == dx->AppUnitsPerDevPixelAtUnitFullZoom()) {
     invScale = 1.0 / scale.scale;
   } else {
-    invScale = dx->UnscaledAppUnitsPerDevPixel() / 60.0;
+    invScale = dx->AppUnitsPerDevPixelAtUnitFullZoom() / 60.0;
   }
 
   if (changedPos) {
