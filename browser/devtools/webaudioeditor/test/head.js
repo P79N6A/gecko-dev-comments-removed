@@ -110,6 +110,7 @@ function once(aTarget, aEventName, aUseCapture = false) {
     if ((add in aTarget) && (remove in aTarget)) {
       aTarget[add](aEventName, function onEvent(...aArgs) {
         aTarget[remove](aEventName, onEvent, aUseCapture);
+        info("Got event: '" + aEventName + "' on " + aTarget + ".");
         deferred.resolve(...aArgs);
       }, aUseCapture);
       break;
@@ -358,7 +359,9 @@ function wait (n) {
 function clickGraphNode (panelWin, el, waitForToggle = false) {
   let { promise, resolve } = Promise.defer();
   let promises = [
-   once(panelWin, panelWin.EVENTS.UI_INSPECTOR_NODE_SET)
+   once(panelWin, panelWin.EVENTS.UI_INSPECTOR_NODE_SET),
+   once(panelWin, panelWin.EVENTS.UI_PROPERTIES_TAB_RENDERED),
+   once(panelWin, panelWin.EVENTS.UI_AUTOMATION_TAB_RENDERED)
   ];
 
   if (waitForToggle) {
