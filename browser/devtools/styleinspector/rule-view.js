@@ -1511,7 +1511,7 @@ CssRuleView.prototype = {
         text = text.replace(rx, "");
       }
 
-      clipboardHelper.copyString(text);
+      clipboardHelper.copyString(text, this.doc);
       event.preventDefault();
     } catch(e) {
       console.error(e);
@@ -1522,7 +1522,7 @@ CssRuleView.prototype = {
 
 
   _onCopyColor: function() {
-    clipboardHelper.copyString(this._colorToCopy);
+    clipboardHelper.copyString(this._colorToCopy, this.styleDocument);
   },
 
   
@@ -2126,8 +2126,9 @@ CssRuleView.prototype = {
       
       for (let computed of textProp.computed) {
         if (computed.element) {
-          let computedName = computed.name;
-          let computedValue = computed.value;
+          
+          let computedValue = computed.parsedValue.toLowerCase();
+          let computedName = computed.name.toLowerCase();
 
           isComputedHighlighted = this._highlightMatches(computed.element, {
             searchName: name,
@@ -3011,6 +3012,9 @@ TextPropertyEditor.prototype = {
           baseURI: this.sheetURI
         }
       );
+
+      
+      computed.parsedValue = frag.textContent;
 
       createChild(li, "span", {
         class: "ruleview-propertyvalue theme-fg-color1",
