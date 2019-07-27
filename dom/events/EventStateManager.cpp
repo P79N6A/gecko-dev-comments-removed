@@ -4434,6 +4434,14 @@ EventStateManager::CheckForAndDispatchClick(nsPresContext* aPresContext,
     nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
     if (presShell) {
       nsCOMPtr<nsIContent> mouseContent = GetEventTargetContent(aEvent);
+      
+      
+      
+      
+      while (mouseContent && !mouseContent->IsElement()) {
+        mouseContent = mouseContent->GetParent();
+      }
+
       if (!mouseContent && !mCurrentTarget) {
         return NS_OK;
       }
