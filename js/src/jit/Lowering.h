@@ -1,14 +1,14 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jit_Lowering_h
 #define jit_Lowering_h
 
-// This file declares the structures that are used for attaching LIR to a
-// MIRGraph.
+
+
 
 #include "jit/LIR.h"
 #if defined(JS_CODEGEN_X86)
@@ -33,7 +33,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     void updateResumeState(MInstruction *ins);
     void updateResumeState(MBasicBlock *block);
 
-    // The maximum depth, for framesizeclass determination.
+    
     uint32_t maxargslots_;
 
   public:
@@ -62,8 +62,8 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitInstruction(MInstruction *ins);
     bool visitBlock(MBasicBlock *block);
 
-    // Visitor hooks are explicit, to give CPU-specific versions a chance to
-    // intercept without a bunch of explicit gunk in the .cpp.
+    
+    
     bool visitCloneLiteral(MCloneLiteral *ins);
     bool visitParameter(MParameter *param);
     bool visitCallee(MCallee *callee);
@@ -269,6 +269,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitGetDOMMember(MGetDOMMember *ins);
     bool visitRecompileCheck(MRecompileCheck *ins);
     bool visitSimdExtractElement(MSimdExtractElement *ins);
+    bool visitSimdInsertElement(MSimdInsertElement *ins);
     bool visitSimdSignMask(MSimdSignMask *ins);
     bool visitSimdBinaryComp(MSimdBinaryComp *ins);
     bool visitSimdBinaryArith(MSimdBinaryArith *ins);
@@ -283,7 +284,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitThrowUninitializedLexical(MThrowUninitializedLexical *ins);
 };
 
-} // namespace jit
-} // namespace js
+} 
+} 
 
-#endif /* jit_Lowering_h */
+#endif 

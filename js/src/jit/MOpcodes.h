@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jit_MOpcodes_h
 #define jit_MOpcodes_h
@@ -16,6 +16,7 @@ namespace jit {
     _(SimdSplatX4)                                                          \
     _(SimdConstant)                                                         \
     _(SimdExtractElement)                                                   \
+    _(SimdInsertElement)                                                    \
     _(SimdSignMask)                                                         \
     _(SimdBinaryComp)                                                       \
     _(SimdBinaryArith)                                                      \
@@ -247,12 +248,12 @@ namespace jit {
     _(LexicalCheck)                                                         \
     _(ThrowUninitializedLexical)
 
-// Forward declarations of MIR types.
+
 #define FORWARD_DECLARE(op) class M##op;
  MIR_OPCODE_LIST(FORWARD_DECLARE)
 #undef FORWARD_DECLARE
 
-class MDefinitionVisitor // interface i.e. pure abstract class
+class MDefinitionVisitor 
 {
   public:
 #define VISIT_INS(op) virtual bool visit##op(M##op *) = 0;
@@ -260,8 +261,8 @@ class MDefinitionVisitor // interface i.e. pure abstract class
 #undef VISIT_INS
 };
 
-// MDefinition visitor which raises a Not Yet Implemented error for
-// non-overloaded visit functions.
+
+
 class MDefinitionVisitorDefaultNYI : public MDefinitionVisitor
 {
   public:
@@ -270,7 +271,7 @@ class MDefinitionVisitorDefaultNYI : public MDefinitionVisitor
 #undef VISIT_INS
 };
 
-// MDefinition visitor which ignores non-overloaded visit functions.
+
 class MDefinitionVisitorDefaultNoop : public MDefinitionVisitor
 {
   public:
@@ -279,7 +280,7 @@ class MDefinitionVisitorDefaultNoop : public MDefinitionVisitor
 #undef VISIT_INS
 };
 
-} // namespace jit
-} // namespace js
+} 
+} 
 
-#endif /* jit_MOpcodes_h */
+#endif 

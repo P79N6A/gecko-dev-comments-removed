@@ -540,6 +540,10 @@ class AssemblerX86Shared : public AssemblerShared
     void movsd(FloatRegister src, const BaseIndex &dest) {
         masm.movsd_rm(src.code(), dest.offset, dest.base.code(), dest.index.code(), dest.scale);
     }
+    
+    
+    
+    
     void movss(const Address &src, FloatRegister dest) {
         masm.movss_mr(src.offset, src.base.code(), dest.code());
     }
@@ -551,6 +555,9 @@ class AssemblerX86Shared : public AssemblerShared
     }
     void movss(FloatRegister src, const BaseIndex &dest) {
         masm.movss_rm(src.code(), dest.offset, dest.base.code(), dest.index.code(), dest.scale);
+    }
+    void movss(FloatRegister src, const FloatRegister &dest) {
+        masm.movss_rr(src.code(), dest.code());
     }
     void movdqu(const Operand &src, FloatRegister dest) {
         JS_ASSERT(HasSSE2());
