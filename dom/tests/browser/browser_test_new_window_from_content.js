@@ -49,6 +49,8 @@ const kSameTab = "same tab";
 const kNewWin = "new window";
 const kNewTab = "new tab";
 
+requestLongerTimeout(2);
+
 
 
 
