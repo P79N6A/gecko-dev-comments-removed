@@ -1492,22 +1492,9 @@ struct JSRuntime : public JS::shadow::Runtime,
 
         js::PerformanceData performance;
 
-        
-
-
-
-
-
-
-
-
-
-        JSCurrentPerfGroupCallback currentPerfGroupCallback;
-
         Stopwatch()
           : iteration(0)
           , isEmpty(true)
-          , currentPerfGroupCallback(nullptr)
           , isActive_(false)
         { }
 

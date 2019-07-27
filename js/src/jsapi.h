@@ -722,18 +722,6 @@ typedef void
 
 
 
-
-
-
-
-
-
-
-typedef void*
-(* JSCurrentPerfGroupCallback)(JSContext*);
-
-
-
 static MOZ_ALWAYS_INLINE jsval
 JS_NumberValue(double d)
 {
@@ -5458,10 +5446,9 @@ struct PerformanceGroup {
         stopwatch_ = nullptr;
     }
 
-    explicit PerformanceGroup(void* key)
+    PerformanceGroup()
       : stopwatch_(nullptr)
       , iteration_(0)
-      , key_(key)
       , refCount_(0)
     { }
     ~PerformanceGroup()
@@ -5481,9 +5468,6 @@ struct PerformanceGroup {
     uint64_t iteration_;
 
     
-    void* const key_;
-
-    
     uint64_t incRefCount() {
         MOZ_ASSERT(refCount_ + 1 > 0);
         return ++refCount_;
@@ -5494,7 +5478,7 @@ struct PerformanceGroup {
     }
     friend struct PerformanceGroupHolder;
 
-private:
+  private:
     
     uint64_t refCount_;
 };
@@ -5507,7 +5491,7 @@ struct PerformanceGroupHolder {
     
     
     
-    js::PerformanceGroup* getGroup(JSContext*);
+    js::PerformanceGroup* getGroup();
 
     
     
@@ -5522,8 +5506,9 @@ struct PerformanceGroupHolder {
     
     void unlink();
 
-    explicit PerformanceGroupHolder(JSRuntime* runtime)
+    PerformanceGroupHolder(JSRuntime* runtime, JSCompartment* compartment)
       : runtime_(runtime)
+      , compartment_(compartment)
       , group_(nullptr)
     {   }
     ~PerformanceGroupHolder();
@@ -5531,9 +5516,10 @@ private:
     
     
     
-    void* getHashKey(JSContext* cx);
+    void* getHashKey();
 
-    JSRuntime *runtime_;
+    JSRuntime* runtime_;
+    JSCompartment* compartment_;
 
     
     
@@ -5566,8 +5552,46 @@ IsStopwatchActive(JSRuntime*);
 extern JS_PUBLIC_API(PerformanceData*)
 GetPerformanceData(JSRuntime*);
 
-typedef bool
-(PerformanceStatsWalker)(JSContext* cx, const PerformanceData& stats, void* closure);
+
+
+
+
+struct PerformanceStats {
+    
+
+
+
+    JSAddonId* addonId;
+
+    
+
+
+
+    char name[1024];
+
+    
+
+
+
+
+    bool isSystem;
+
+    
+
+
+    js::PerformanceData performance;
+
+    PerformanceStats()
+      : addonId(nullptr)
+      , isSystem(false)
+    {
+        name[0] = '\0';
+    }
+};
+
+typedef js::Vector<PerformanceStats, 0, js::SystemAllocPolicy> PerformanceStatsVector;
+
+    
 
 
 
@@ -5575,21 +5599,9 @@ typedef bool
 
 
 extern JS_PUBLIC_API(bool)
-IterPerformanceStats(JSContext* cx, PerformanceStatsWalker* walker, js::PerformanceData* process, void* closure);
+GetPerformanceStats(JSRuntime* rt, js::PerformanceStatsVector& stats, js::PerformanceStats& global);
 
 } 
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetCurrentPerfGroupCallback(JSRuntime *rt, JSCurrentPerfGroupCallback cb);
 
 
 #endif

@@ -25,18 +25,8 @@ let performanceStatsService =
 
 
 const PROPERTIES_NUMBERED = ["totalUserTime", "totalSystemTime", "totalCPOWTime", "ticks"];
-const PROPERTIES_META_IMMUTABLE = ["name", "addonId", "isSystem"];
-const PROPERTIES_META = [...PROPERTIES_META_IMMUTABLE, "windowId", "title"];
+const PROPERTIES_META = ["name", "addonId", "isSystem"];
 const PROPERTIES_FLAT = [...PROPERTIES_NUMBERED, ...PROPERTIES_META];
-
-
-
-
-
-
-
-
-
 
 
 
