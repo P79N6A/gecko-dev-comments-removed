@@ -1311,15 +1311,17 @@ this.NewTabUtils = {
 
 
   extractSite: function Links_extractSite(url) {
-    let uri;
+    let host;
     try {
-      uri = Services.io.newURI(url, null, null);
+      
+      
+      host = Services.io.newURI(url, null, null).asciiHost;
     } catch (ex) {
       return null;
     }
 
     
-    return uri.asciiHost.replace(/^(m|mobile|www\d*)\./, "");
+    return host.replace(/^(m|mobile|www\d*)\./, "");
   },
 
   init: function NewTabUtils_init() {
