@@ -127,6 +127,11 @@ public:
 
   
   
+  void Invalidate();
+  bool IsValid() const;
+
+  
+  
   
   
   
@@ -214,8 +219,8 @@ private:
   struct ListenerEntry
   {
     ListenerEntry()
-      : mId(UINT64_MAX),
-      mListener(nullptr)
+      : mId(UINT64_MAX)
+      , mListener(nullptr)
     {
     }
 
@@ -255,6 +260,7 @@ private:
   nsTArray<StreamList*> mStreamLists;
 
   bool mShuttingDown;
+  bool mValid;
 
   struct CacheIdRefCounter
   {
