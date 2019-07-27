@@ -247,8 +247,8 @@ protected:
   {
   }
 
-  TestKeyPair(const TestKeyPair&) = delete;
-  void operator=(const TestKeyPair&) = delete;
+  TestKeyPair(const TestKeyPair&) ;
+  void operator=(const TestKeyPair&) ;
 };
 
 TestKeyPair* CloneReusedKeyPair();

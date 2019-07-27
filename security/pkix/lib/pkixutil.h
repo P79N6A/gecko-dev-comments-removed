@@ -143,8 +143,8 @@ private:
   Result RememberExtension(Reader& extnID, const Input& extnValue,
                            bool critical,  bool& understood);
 
-  BackCert(const BackCert&) = delete;
-  void operator=(const BackCert&) = delete;
+  BackCert(const BackCert&) ;
+  void operator=(const BackCert&); ;
 };
 
 class NonOwningDERArray : public DERArray
@@ -183,8 +183,8 @@ private:
   Input items[MAX_LENGTH]; 
   size_t numItems;
 
-  NonOwningDERArray(const NonOwningDERArray&) = delete;
-  void operator=(const NonOwningDERArray&) = delete;
+  NonOwningDERArray(const NonOwningDERArray&) ;
+  void operator=(const NonOwningDERArray&) ;
 };
 
 inline unsigned int
