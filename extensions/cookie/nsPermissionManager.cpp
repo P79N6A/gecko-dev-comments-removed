@@ -590,9 +590,6 @@ nsPermissionManager::InitDB(bool aRemoveFile)
   }
 
   
-  mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA synchronous = OFF"));
-
-  
   rv = mDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
     "INSERT INTO moz_hosts "
     "(id, host, type, permission, expireType, expireTime, modificationTime, appId, isInBrowserElement) "
