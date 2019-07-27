@@ -126,9 +126,14 @@ public:
   
   NS_IMETHOD SetTitle(const nsAString& aTitle) override
   { return NS_ERROR_UNEXPECTED; }
-  
+
   virtual mozilla::LayoutDeviceIntPoint WidgetToScreenOffset() override
   { return LayoutDeviceIntPoint::FromUntyped(GetWindowPosition() + GetChromeDimensions()); }
+
+  
+  
+  
+  virtual nsresult SynthesizeNativeMouseMove(mozilla::LayoutDeviceIntPoint aPoint) override;
 
   void InitEvent(WidgetGUIEvent& aEvent, nsIntPoint* aPoint = nullptr);
 
