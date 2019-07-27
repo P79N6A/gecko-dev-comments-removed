@@ -4,14 +4,13 @@
 package org.mozilla.gecko.tests;
 
 import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.mozstumbler.service.AppGlobals;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 
-import com.jayway.android.robotium.solo.Condition;
+import com.robotium.solo.Condition;
 
 
 

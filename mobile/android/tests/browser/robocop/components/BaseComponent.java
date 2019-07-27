@@ -10,7 +10,7 @@ import org.mozilla.gecko.tests.UITestContext;
 
 import android.app.Activity;
 
-import com.jayway.android.robotium.solo.Solo;
+import com.robotium.solo.Solo;
 
 
 
