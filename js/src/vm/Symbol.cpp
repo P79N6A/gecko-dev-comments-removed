@@ -26,7 +26,7 @@ Symbol::newInternal(ExclusiveContext *cx, JS::SymbolCode code, JSAtom *descripti
     MOZ_ASSERT(cx->atomsCompartment()->runtimeFromAnyThread()->currentThreadHasExclusiveAccess());
 
     
-    Symbol *p = NewGCSymbol<NoGC>(cx);
+    Symbol *p = Allocate<JS::Symbol, NoGC>(cx);
     if (!p) {
         ReportOutOfMemory(cx);
         return nullptr;

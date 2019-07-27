@@ -262,7 +262,7 @@ JSObject::create(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::Initi
     size_t nDynamicSlots =
         js::NativeObject::dynamicSlotsCount(shape->numFixedSlots(), shape->slotSpan(), clasp);
 
-    JSObject *obj = js::NewGCObject<js::CanGC>(cx, kind, nDynamicSlots, heap, clasp);
+    JSObject *obj = js::Allocate<JSObject>(cx, kind, nDynamicSlots, heap, clasp);
     if (!obj)
         return nullptr;
 
