@@ -266,11 +266,12 @@ class MediaEngineWebRTCAudioSource : public MediaEngineAudioSource,
                                      public webrtc::VoEMediaProcess
 {
 public:
-  MediaEngineWebRTCAudioSource(webrtc::VoiceEngine* aVoiceEnginePtr, int aIndex,
-    const char* name, const char* uuid)
+  MediaEngineWebRTCAudioSource(nsIThread *aThread, webrtc::VoiceEngine* aVoiceEnginePtr,
+                               int aIndex, const char* name, const char* uuid)
     : mSamples(0)
     , mVoiceEngine(aVoiceEnginePtr)
     , mMonitor("WebRTCMic.Monitor")
+    , mThread(aThread)
     , mCapIndex(aIndex)
     , mChannel(-1)
     , mInitDone(false)
@@ -347,7 +348,7 @@ private:
   
   Monitor mMonitor;
   nsTArray<SourceMediaStream *> mSources; 
-
+  nsCOMPtr<nsIThread> mThread;
   int mCapIndex;
   int mChannel;
   TrackID mTrackID;
@@ -387,6 +388,8 @@ private:
     
     gFarendObserver = nullptr;
   }
+
+  nsCOMPtr<nsIThread> mThread;
 
   Mutex mMutex;
   
