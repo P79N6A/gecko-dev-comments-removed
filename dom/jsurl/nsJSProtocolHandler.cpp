@@ -1219,6 +1219,7 @@ nsJSProtocolHandler::NewChannel2(nsIURI* uri,
     }
 
     rv = channel->Init(uri);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = channel->SetLoadInfo(aLoadInfo);
