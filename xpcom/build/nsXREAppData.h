@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXREAppData_h
 #define nsXREAppData_h
 

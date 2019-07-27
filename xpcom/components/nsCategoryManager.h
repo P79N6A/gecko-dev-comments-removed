@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef NSCATEGORYMANAGER_H
 #define NSCATEGORYMANAGER_H
 

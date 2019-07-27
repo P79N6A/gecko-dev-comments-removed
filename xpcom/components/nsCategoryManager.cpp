@@ -3,6 +3,7 @@
 
 
 
+
 #define PL_ARENA_CONST_ALIGN_MASK 7
 
 #include "nsICategoryManager.h"

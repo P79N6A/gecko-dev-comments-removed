@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsCategoryManagerUtils_h__
 #define nsCategoryManagerUtils_h__
 

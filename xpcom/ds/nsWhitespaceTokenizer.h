@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef __nsWhitespaceTokenizer_h
 #define __nsWhitespaceTokenizer_h
 

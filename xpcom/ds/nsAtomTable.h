@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsAtomTable_h__
 #define nsAtomTable_h__
 
