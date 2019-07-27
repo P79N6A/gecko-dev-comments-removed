@@ -167,7 +167,12 @@ TextInputProcessor::BeginInputTransactionInternal(
   }
 
   
-  if (mDispatcher && mDispatcher->IsComposing()) {
+  
+  
+  
+  
+  if (mDispatcher &&
+      (mDispatcher->IsComposing() || mDispatcher->IsDispatchingEvent())) {
     return NS_ERROR_ALREADY_INITIALIZED;
   }
 
