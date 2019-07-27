@@ -1907,6 +1907,11 @@ pref("browser.reader.detectedFirstArticle", false);
 
 pref("reader.parse-node-limit", 0);
 
+
+#ifndef RELEASE_BUILD
+pref("dom.serviceWorkers.enabled", true);
+#endif
+
 pref("browser.pocket.enabled", true);
 pref("browser.pocket.api", "api.getpocket.com");
 pref("browser.pocket.site", "getpocket.com");
