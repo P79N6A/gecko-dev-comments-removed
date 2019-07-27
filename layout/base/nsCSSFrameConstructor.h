@@ -247,6 +247,17 @@ public:
   void WillDestroyFrameTree();
 
   
+
+
+
+
+
+
+
+  void DestroyFramesFor(nsIContent*  aContent,
+                        nsIContent** aDestroyedFramesFor);
+
+  
   nsIFrame* CreateContinuingFrame(nsPresContext*    aPresContext,
                                   nsIFrame*         aFrame,
                                   nsContainerFrame* aParentFrame,
@@ -281,6 +292,15 @@ public:
   
   nsContainerFrame* GetDocElementContainingBlock()
     { return mDocElementContainingBlock; }
+
+  
+
+
+
+  nsILayoutHistoryState* GetLastCapturedLayoutHistoryState()
+  {
+    return mTempFrameTreeState;
+  }
 
 private:
   struct FrameConstructionItem;

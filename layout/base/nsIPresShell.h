@@ -138,9 +138,10 @@ typedef struct CapturingContentInfo {
   nsIContent* mContent;
 } CapturingContentInfo;
 
+
 #define NS_IPRESSHELL_IID \
-		{ 0x42e9a352, 0x76f3, 0x4ba3, \
-		  { 0x94, 0x0b, 0x78, 0x9e, 0x58, 0x38, 0x73, 0x4f } }
+  { 0x79c0f49f, 0x77f1, 0x4cc5, \
+    { 0x80, 0xd1, 0x65, 0x52, 0xe8, 0x5c, 0xcb, 0x0c } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -535,6 +536,22 @@ public:
   virtual void CancelAllPendingReflows() = 0;
 
   virtual void NotifyCounterStylesAreDirty() = 0;
+
+  
+
+
+
+
+
+
+  virtual void DestroyFramesFor(nsIContent*  aContent,
+                                nsIContent** aDestroyedFramesFor) = 0;
+  
+
+
+
+
+  virtual void CreateFramesFor(nsIContent* aContent) = 0;
 
   
 
