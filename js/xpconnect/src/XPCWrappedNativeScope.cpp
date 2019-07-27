@@ -511,7 +511,11 @@ XPCWrappedNativeScope::UpdateWeakPointersAfterGC(XPCJSRuntime* rt)
 
         XPCWrappedNativeScope* next = cur->mNext;
 
-        
+        if (cur->mContentXBLScope)
+            cur->mContentXBLScope.updateWeakPointerAfterGC();
+        for (size_t i = 0; i < cur->mAddonScopes.Length(); i++)
+            cur->mAddonScopes[i].updateWeakPointerAfterGC();
+
         
         
         if (cur->mGlobalJSObject) {

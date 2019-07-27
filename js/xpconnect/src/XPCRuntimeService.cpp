@@ -4,6 +4,8 @@
 
 
 
+#include "xpcprivate.h"
+
 #include "nsContentUtils.h"
 #include "BackstagePass.h"
 #include "nsIProgrammingLanguage.h"
@@ -42,6 +44,23 @@ NS_IMPL_RELEASE(BackstagePass)
                             nsIXPCScriptable::IS_GLOBAL_OBJECT             |  \
                             nsIXPCScriptable::DONT_REFLECT_INTERFACE_NAMES
 #include "xpc_map_end.h" 
+
+
+JSObject *
+BackstagePass::GetGlobalJSObject()
+{
+    if (mWrapper)
+        return mWrapper->GetFlatJSObject();
+    return nullptr;
+}
+
+void
+BackstagePass::SetGlobalObject(JSObject* global)
+{
+    nsISupports* p = XPCWrappedNative::Get(global);
+    MOZ_ASSERT(p);
+    mWrapper = static_cast<XPCWrappedNative*>(p);
+}
 
 
 NS_IMETHODIMP
