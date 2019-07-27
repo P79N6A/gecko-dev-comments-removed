@@ -1501,7 +1501,7 @@ BrowserGlue.prototype = {
       if (!importBookmarks) {
         
         
-        this._distributionCustomizer.applyBookmarks();
+        yield this._distributionCustomizer.applyBookmarks();
         yield this.ensurePlacesDefaultQueriesInitialized();
       }
       else {
@@ -1534,7 +1534,7 @@ BrowserGlue.prototype = {
           try {
             
             
-            this._distributionCustomizer.applyBookmarks();
+            yield this._distributionCustomizer.applyBookmarks();
             
             
             yield this.ensurePlacesDefaultQueriesInitialized();
