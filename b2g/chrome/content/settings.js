@@ -259,22 +259,10 @@ SettingsListener.observe('app.reportCrashes', 'ask', function(value) {
 
 function setUpdateTrackingId() {
   try {
-    
-    if (Services.prefs.prefHasUserValue("privacy.donottrackheader.value")) {
-      
-      
-      
-      if (Services.prefs.getBoolPref("privacy.donottrackheader.enabled") &&
-          (Services.prefs.getIntPref("privacy.donottrackheader.value") != 1)) {
-        Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
-      }
-      
-      Services.prefs.clearUserPref("privacy.donottrackheader.value");
-    }
-
     let dntEnabled = Services.prefs.getBoolPref('privacy.donottrackheader.enabled');
-
-    if (dntEnabled) {
+    let dntValue =  Services.prefs.getIntPref('privacy.donottrackheader.value');
+    
+    if (dntEnabled && (dntValue == 1)) {
       return;
     }
 
