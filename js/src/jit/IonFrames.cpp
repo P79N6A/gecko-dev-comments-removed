@@ -761,7 +761,12 @@ HandleParallelFailure(ResumeFromException *rfe)
     ForkJoinContext *cx = ForkJoinContext::current();
     JitFrameIterator frameIter(cx);
 
-    cx->bailoutRecord->joinCause(ParallelBailoutUnsupportedVM);
+    
+    while (!frameIter.isIonJS())
+        ++frameIter;
+    SnapshotIterator snapIter(frameIter);
+
+    cx->bailoutRecord->setIonBailoutKind(snapIter.bailoutKind());
     cx->bailoutRecord->rematerializeFrames(cx, frameIter);
 
     rfe->kind = ResumeFromException::RESUME_ENTRY_FRAME;
