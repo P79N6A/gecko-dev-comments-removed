@@ -83,6 +83,25 @@ public:
 
   virtual nsresult GetMargin(nsMargin& aMargin) MOZ_OVERRIDE;
 
+  
+
+
+
+  void SetIncrementToLine(int32_t aDirection);
+  void SetIncrementToPage(int32_t aDirection);
+  void SetIncrementToWhole(int32_t aDirection);
+  
+
+
+
+
+  int32_t MoveToNewPosition();
+  int32_t GetIncrement() { return mIncrement; }
+
+protected:
+  int32_t mIncrement; 
+  bool mSmoothScroll;
+
 private:
   nsCOMPtr<nsIContent> mScrollbarMediator;
 }; 

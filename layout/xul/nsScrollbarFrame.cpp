@@ -11,6 +11,7 @@
 
 
 #include "nsScrollbarFrame.h"
+#include "nsSliderFrame.h"
 #include "nsScrollbarButtonFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIScrollableFrame.h"
@@ -19,6 +20,7 @@
 #include "nsThemeConstants.h"
 #include "nsRenderingContext.h"
 #include "nsIContent.h"
+#include "nsIDOMMutationEvent.h"
 
 using namespace mozilla;
 
@@ -185,4 +187,104 @@ nsScrollbarFrame::GetMargin(nsMargin& aMargin)
   }
 
   return nsBox::GetMargin(aMargin);
+}
+
+void
+nsScrollbarFrame::SetIncrementToLine(int32_t aDirection)
+{
+  
+  nsIContent* content = GetContent();
+  mSmoothScroll = true;
+  mIncrement = aDirection * nsSliderFrame::GetIncrement(content);
+}
+
+void
+nsScrollbarFrame::SetIncrementToPage(int32_t aDirection)
+{
+  
+  nsIContent* content = GetContent();
+  mSmoothScroll = true;
+  mIncrement = aDirection * nsSliderFrame::GetPageIncrement(content);
+}
+
+void
+nsScrollbarFrame::SetIncrementToWhole(int32_t aDirection)
+{
+  
+  nsIContent* content = GetContent();
+  if (aDirection == -1)
+    mIncrement = -nsSliderFrame::GetCurrentPosition(content);
+  else
+    mIncrement = nsSliderFrame::GetMaxPosition(content) -
+                 nsSliderFrame::GetCurrentPosition(content);
+  
+  
+  mSmoothScroll = false;
+}
+
+int32_t
+nsScrollbarFrame::MoveToNewPosition()
+{
+  
+  nsCOMPtr<nsIContent> content = GetContent();
+
+  
+  int32_t curpos = nsSliderFrame::GetCurrentPosition(content);
+
+  
+  int32_t maxpos = nsSliderFrame::GetMaxPosition(content);
+
+  
+  if (mIncrement) {
+    curpos += mIncrement;
+  }
+
+  
+  if (curpos < 0) {
+    curpos = 0;
+  } else if (curpos > maxpos) {
+    curpos = maxpos;
+  }
+
+  
+  nsAutoString curposStr;
+  curposStr.AppendInt(curpos);
+
+  nsWeakFrame weakFrame(this);
+  if (mSmoothScroll) {
+    content->SetAttr(kNameSpaceID_None, nsGkAtoms::smooth, NS_LITERAL_STRING("true"), false);
+  }
+  content->SetAttr(kNameSpaceID_None, nsGkAtoms::curpos, curposStr, false);
+  
+  AttributeChanged(kNameSpaceID_None, nsGkAtoms::curpos, nsIDOMMutationEvent::MODIFICATION);
+  if (!weakFrame.IsAlive()) {
+    return curpos;
+  }
+  
+  nsIFrame::ChildListIterator childLists(this);
+  for (; !childLists.IsDone(); childLists.Next()) {
+    nsFrameList::Enumerator childFrames(childLists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* f = childFrames.get();
+      nsSliderFrame* sliderFrame = do_QueryFrame(f);
+      if (sliderFrame) {
+        sliderFrame->AttributeChanged(kNameSpaceID_None, nsGkAtoms::curpos, nsIDOMMutationEvent::MODIFICATION);
+        if (!weakFrame.IsAlive()) {
+          return curpos;
+        }
+      }
+    }
+  }
+  
+  const nsStyleDisplay* disp = StyleDisplay();
+  nsPresContext* presContext = PresContext();
+  if (disp->mAppearance) {
+    nsITheme *theme = presContext->GetTheme();
+    if (theme && theme->ThemeSupportsWidget(presContext, this, disp->mAppearance)) {
+      bool repaint;
+      theme->WidgetStateChanged(this, disp->mAppearance, nsGkAtoms::curpos, &repaint);
+    }
+  }
+  content->UnsetAttr(kNameSpaceID_None, nsGkAtoms::smooth, false);
+  return curpos;
 }

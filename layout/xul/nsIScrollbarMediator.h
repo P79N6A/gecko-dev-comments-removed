@@ -7,6 +7,7 @@
 #define nsIScrollbarMediator_h___
 
 #include "nsQueryFrame.h"
+#include "nsCoord.h"
 
 class nsScrollbarFrame;
 
@@ -16,10 +17,34 @@ public:
   NS_DECL_QUERYFRAME_TARGET(nsIScrollbarMediator)
 
   
-  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t& aNewIndex) = 0;
-  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aOldIndex, int32_t aNewIndex) = 0;
 
-  NS_IMETHOD VisibilityChanged(bool aVisible) = 0;
+
+
+
+
+  
+
+
+
+
+  virtual void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection) = 0;
+  virtual void ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection) = 0;
+  virtual void ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection) = 0;
+  
+
+
+
+
+
+  virtual void RepeatButtonScroll(nsScrollbarFrame* aScrollbar) = 0;
+  
+
+
+
+  virtual void ThumbMoved(nsScrollbarFrame* aScrollbar,
+                          nscoord aOldPos,
+                          nscoord aNewPos) = 0;
+  virtual void VisibilityChanged(bool aVisible) = 0;
 };
 
 #endif
