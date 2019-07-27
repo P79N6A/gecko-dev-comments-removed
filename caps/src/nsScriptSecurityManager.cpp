@@ -64,6 +64,7 @@
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
 #include "nsJSUtils.h"
+#include "nsILoadInfo.h"
 
 
 #define WEBAPPS_PERM_NAME "webapps-manage"
@@ -261,6 +262,20 @@ nsScriptSecurityManager::GetChannelPrincipal(nsIChannel* aChannel,
     if (owner) {
         CallQueryInterface(owner, aPrincipal);
         if (*aPrincipal) {
+            return NS_OK;
+        }
+    }
+
+    
+    nsCOMPtr<nsILoadInfo> loadInfo;
+    aChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+    if (loadInfo) {
+        if (loadInfo->GetLoadingSandboxed()) {
+            return CallCreateInstance(NS_NULLPRINCIPAL_CONTRACTID, aPrincipal);
+        }
+
+        if (loadInfo->GetForceInheritPrincipal()) {
+            NS_ADDREF(*aPrincipal = loadInfo->LoadingPrincipal());
             return NS_OK;
         }
     }
