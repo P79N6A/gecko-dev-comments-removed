@@ -383,17 +383,46 @@ BrowserElementAuthPrompt.prototype = {
       host:             hostname,
       realm:            httpRealm,
       username:         authInfo.username,
+      isProxy:          !!(authInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY),
       isOnlyPassword:   !!(authInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD)
     };
   },
 
+  
+  
   _getAuthTarget : function (channel, authInfo) {
-    let hostname = this._getFormattedHostname(channel.URI);
+    let hostname, realm;
+
+    
+    
+    if (authInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY) {
+      if (!(channel instanceof Ci.nsIProxiedChannel))
+        throw new Error("proxy auth needs nsIProxiedChannel");
+
+      let info = channel.proxyInfo;
+      if (!info)
+        throw new Error("proxy auth needs nsIProxyInfo");
+
+      
+      
+      var idnService = Cc["@mozilla.org/network/idn-service;1"].
+                       getService(Ci.nsIIDNService);
+      hostname = "moz-proxy://" +
+                  idnService.convertUTF8toACE(info.host) +
+                  ":" + info.port;
+      realm = authInfo.realm;
+      if (!realm)
+        realm = hostname;
+
+      return [hostname, realm];
+    }
+
+    hostname = this._getFormattedHostname(channel.URI);
 
     
     
     
-    let realm = authInfo.realm;
+    realm = authInfo.realm;
     if (!realm)
       realm = hostname;
 
