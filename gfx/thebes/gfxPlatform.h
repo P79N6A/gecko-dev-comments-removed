@@ -247,6 +247,8 @@ public:
       return false;
     }
 
+    virtual void FenceContentDrawing() {}
+    virtual void WaitContentDrawing() {}
     
 
 
