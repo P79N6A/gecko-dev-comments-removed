@@ -52,7 +52,7 @@ public:
 
 
 
-class MOZ_STACK_CLASS AutoTaskDispatcher : public TaskDispatcher
+class AutoTaskDispatcher : public TaskDispatcher
 {
 public:
   explicit AutoTaskDispatcher(bool aIsTailDispatcher = false) : mIsTailDispatcher(aIsTailDispatcher) {}
