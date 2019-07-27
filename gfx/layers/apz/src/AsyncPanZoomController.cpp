@@ -2290,6 +2290,10 @@ bool AsyncPanZoomController::AdvanceAnimations(const TimeStamp& aSampleTime)
 
   
   
+  requestAnimationFrame |= (mAnimation != nullptr);
+
+  
+  
   if (mAsyncScrollTimeoutTask) {
     mAsyncScrollTimeoutTask->Cancel();
     mAsyncScrollTimeoutTask = nullptr;
