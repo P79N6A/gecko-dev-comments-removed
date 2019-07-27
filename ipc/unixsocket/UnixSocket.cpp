@@ -9,6 +9,11 @@
 #include "nsXULAppAPI.h"
 #include <fcntl.h>
 
+#ifdef MOZ_TASK_TRACER
+#include "GeckoTaskTracer.h"
+using namespace mozilla::tasktracer;
+#endif
+
 static const size_t MAX_READ_SIZE = 1 << 16;
 
 namespace mozilla {
@@ -19,14 +24,12 @@ namespace ipc {
 
 
 class UnixSocketImpl : public UnixSocketWatcher
-                     , protected SocketIOBase
 {
 public:
   UnixSocketImpl(MessageLoop* mIOLoop,
                  UnixSocketConsumer* aConsumer, UnixSocketConnector* aConnector,
                  const nsACString& aAddress)
     : UnixSocketWatcher(mIOLoop)
-    , SocketIOBase(MAX_READ_SIZE)
     , mConsumer(aConsumer)
     , mConnector(aConnector)
     , mShuttingDownOnIOThread(false)
@@ -41,9 +44,9 @@ public:
     MOZ_ASSERT(IsShutdownOnMainThread());
   }
 
-  void Send(UnixSocketRawData* aData)
+  void QueueWriteData(UnixSocketRawData* aData)
   {
-    EnqueueData(aData);
+    mOutgoingQ.AppendElement(aData);
     AddWatchers(WRITE_WATCHER, false);
   }
 
@@ -145,6 +148,12 @@ private:
   
 
 
+  typedef nsTArray<UnixSocketRawData* > UnixSocketRawDataQueue;
+  UnixSocketRawDataQueue mOutgoingQ;
+
+  
+
+
   nsAutoPtr<UnixSocketConnector> mConnector;
 
   
@@ -219,7 +228,7 @@ public:
     UnixSocketImpl* impl = GetImpl();
     MOZ_ASSERT(!impl->IsShutdownOnIOThread());
 
-    impl->Send(mData);
+    impl->QueueWriteData(mData);
   }
 private:
   nsRefPtr<UnixSocketConsumer> mConsumer;
@@ -454,7 +463,7 @@ UnixSocketImpl::OnAccepted(int aFd,
   NS_DispatchToMainThread(r);
 
   AddWatchers(READ_WATCHER, true);
-  if (HasPendingData()) {
+  if (!mOutgoingQ.IsEmpty()) {
     AddWatchers(WRITE_WATCHER, false);
   }
 }
@@ -483,7 +492,7 @@ UnixSocketImpl::OnConnected()
   NS_DispatchToMainThread(r);
 
   AddWatchers(READ_WATCHER, true);
-  if (HasPendingData()) {
+  if (!mOutgoingQ.IsEmpty()) {
     AddWatchers(WRITE_WATCHER, false);
   }
 }
@@ -518,10 +527,51 @@ UnixSocketImpl::OnSocketCanReceiveWithoutBlocking()
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
   MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); 
 
-  nsresult rv = ReceiveData(GetFd(), this);
-  if (NS_FAILED(rv)) {
-    RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
-    return;
+  
+  while (true) {
+    nsAutoPtr<UnixSocketRawData> incoming(new UnixSocketRawData(MAX_READ_SIZE));
+
+    ssize_t ret = read(GetFd(), incoming->mData, incoming->mSize);
+    if (ret <= 0) {
+      if (ret == -1) {
+        if (errno == EINTR) {
+          continue; 
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          return; 
+        }
+
+#ifdef DEBUG
+        NS_WARNING("Cannot read from network");
+#endif
+        
+      }
+
+      
+      
+      RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
+      nsRefPtr<nsRunnable> r =
+        new SocketIORequestClosingRunnable<UnixSocketImpl>(this);
+      NS_DispatchToMainThread(r);
+      return;
+    }
+
+#ifdef MOZ_TASK_TRACER
+    
+    
+    AutoSourceEvent taskTracerEvent(SourceEventType::UNIXSOCKET);
+#endif
+
+    incoming->mSize = ret;
+    nsRefPtr<nsRunnable> r =
+      new SocketIOReceiveRunnable<UnixSocketImpl>(this, incoming.forget());
+    NS_DispatchToMainThread(r);
+
+    
+    
+    if (ret < ssize_t(MAX_READ_SIZE)) {
+      return;
+    }
   }
 }
 
@@ -531,13 +581,40 @@ UnixSocketImpl::OnSocketCanSendWithoutBlocking()
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
   MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); 
 
-  nsresult rv = SendPendingData(GetFd(), this);
-  if (NS_FAILED(rv)) {
-    return;
-  }
+  
+  
+  
+  
+  
+  
+  while (true) {
+    UnixSocketRawData* data;
+    if (mOutgoingQ.IsEmpty()) {
+      return;
+    }
+    data = mOutgoingQ.ElementAt(0);
+    const uint8_t *toWrite;
+    toWrite = data->mData;
 
-  if (HasPendingData()) {
-    AddWatchers(WRITE_WATCHER, false);
+    while (data->mCurrentWriteOffset < data->mSize) {
+      ssize_t write_amount = data->mSize - data->mCurrentWriteOffset;
+      ssize_t written;
+      written = write (GetFd(), toWrite + data->mCurrentWriteOffset,
+                         write_amount);
+      if (written > 0) {
+        data->mCurrentWriteOffset += written;
+      }
+      if (written != write_amount) {
+        break;
+      }
+    }
+
+    if (data->mCurrentWriteOffset != data->mSize) {
+      AddWatchers(WRITE_WATCHER, false);
+      return;
+    }
+    mOutgoingQ.RemoveElementAt(0);
+    delete data;
   }
 }
 
