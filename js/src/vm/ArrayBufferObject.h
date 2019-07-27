@@ -105,10 +105,12 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
   public:
 
     enum BufferKind {
-        PLAIN_BUFFER        =   0, 
-        ASMJS_BUFFER        = 0x1,
-        MAPPED_BUFFER       = 0x2,
-        KIND_MASK           = ASMJS_BUFFER | MAPPED_BUFFER
+        PLAIN               = 0, 
+        ASMJS_MALLOCED      = 1,
+        ASMJS_MAPPED        = 2,
+        MAPPED              = 3,
+
+        KIND_MASK           = 0x3
     };
 
   protected:
@@ -117,7 +119,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
         
         BUFFER_KIND_MASK    = BufferKind::KIND_MASK,
 
-        NEUTERED_BUFFER     = 0x4,
+        NEUTERED            = 0x4,
 
         
         
@@ -151,7 +153,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
 
         static BufferContents createUnowned(void *data)
         {
-            return BufferContents(static_cast<uint8_t*>(data), PLAIN_BUFFER);
+            return BufferContents(static_cast<uint8_t*>(data), PLAIN);
         }
 
         uint8_t *data() const { return data_; }
@@ -205,7 +207,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
 
         
         
-        if (isAsmJSArrayBuffer())
+        if (isAsmJS())
             return false;
 
         
@@ -271,9 +273,12 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
     }
 
     BufferKind bufferKind() const { return BufferKind(flags() & BUFFER_KIND_MASK); }
-    bool isAsmJSArrayBuffer() const { return flags() & ASMJS_BUFFER; }
-    bool isMappedArrayBuffer() const { return flags() & MAPPED_BUFFER; }
-    bool isNeutered() const { return flags() & NEUTERED_BUFFER; }
+    bool isPlain() const { return bufferKind() == PLAIN; }
+    bool isAsmJSMapped() const { return bufferKind() == ASMJS_MAPPED; }
+    bool isAsmJSMalloced() const { return bufferKind() == ASMJS_MALLOCED; }
+    bool isAsmJS() const { return isAsmJSMapped() || isAsmJSMalloced(); }
+    bool isMapped() const { return bufferKind() == MAPPED; }
+    bool isNeutered() const { return flags() & NEUTERED; }
 
     static bool prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer,
                                 bool usesSignalHandlers);
@@ -290,7 +295,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
         return getFixedSlotOffset(DATA_SLOT);
     }
 
-    static uint32_t neuteredFlag() { return NEUTERED_BUFFER; }
+    static uint32_t neuteredFlag() { return NEUTERED; }
 
   protected:
     enum OwnsState {
@@ -309,9 +314,8 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
         setFlags(owns ? (flags() | OWNS_DATA) : (flags() & ~OWNS_DATA));
     }
 
-    void setIsAsmJSArrayBuffer() { setFlags(flags() | ASMJS_BUFFER); }
-    void setIsMappedArrayBuffer() { setFlags(flags() | MAPPED_BUFFER); }
-    void setIsNeutered() { setFlags(flags() | NEUTERED_BUFFER); }
+    void setIsAsmJSMalloced() { setFlags((flags() & ~KIND_MASK) | ASMJS_MALLOCED); }
+    void setIsNeutered() { setFlags(flags() | NEUTERED); }
 
     void initialize(size_t byteLength, BufferContents contents, OwnsState ownsState) {
         setByteLength(byteLength);
@@ -319,10 +323,6 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
         setFirstView(nullptr);
         setDataPointer(contents, ownsState);
     }
-
-    void releaseAsmJSArray(FreeOp *fop);
-    void releaseAsmJSArrayNoSignals(FreeOp *fop);
-    void releaseMappedArray();
 };
 
 
