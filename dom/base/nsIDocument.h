@@ -311,6 +311,18 @@ public:
   
 
 
+
+
+
+
+  bool GetUpgradeInsecureRequests() const
+  {
+    return mUpgradeInsecureRequests;
+  }
+
+  
+
+
   virtual void SetPrincipal(nsIPrincipal *aPrincipal) = 0;
 
   
@@ -2630,6 +2642,8 @@ protected:
 
   bool mReferrerPolicySet;
   ReferrerPolicyEnum mReferrerPolicy;
+
+  bool mUpgradeInsecureRequests;
 
   mozilla::WeakPtr<nsDocShell> mDocumentContainer;
 
