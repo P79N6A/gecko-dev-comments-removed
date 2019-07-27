@@ -4635,7 +4635,8 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     
     
     
-    transform.NudgeToIntegersFixedEpsilon();
+    
+    transform.NudgeTo2D();
   }
   Matrix transform2d;
   if (aContainerFrame &&
