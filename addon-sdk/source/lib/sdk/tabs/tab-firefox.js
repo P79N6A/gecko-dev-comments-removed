@@ -22,9 +22,7 @@ const { getURL } = require('../url/utils');
 const { viewFor } = require('../view/core');
 const { observer } = require('./observer');
 
-
-const FRAMESCRIPT_MANAGER = '../../framescript/FrameScriptManager.jsm';
-require(FRAMESCRIPT_MANAGER).enableTabEvents();
+require('../../framescript/FrameScriptManager.jsm').enableTabEvents();
 
 
 const TABS = [];
@@ -62,7 +60,7 @@ const TabTrait = Trait.compose(EventEmitter, {
     this.on(EVENTS.close.name, this.destroy.bind(this));
 
     this._onContentEvent = this._onContentEvent.bind(this);
-    this._browser.messageManager.addMessageListener('sdk/tab/event', this._onContentEvent);
+    this._window.messageManager.addMessageListener('sdk/tab/event', this._onContentEvent);
 
     
     
@@ -86,11 +84,7 @@ const TabTrait = Trait.compose(EventEmitter, {
   destroy: function destroy() {
     this._removeAllListeners();
     if (this._tab) {
-      let browser = this._browser;
-      
-      if (browser) {
-        browser.messageManager.removeMessageListener('sdk/tab/event', this._onContentEvent);
-      }
+      this._window.messageManager.removeMessageListener('sdk/tab/event', this._onContentEvent);
       this._tab = null;
       TABS.splice(TABS.indexOf(this), 1);
     }
@@ -100,7 +94,10 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
 
-  _onContentEvent: function({ data }) {
+  _onContentEvent: function({ target, data }) {
+    if (target !== this._browser)
+      return;
+
     
     if (this._skipBlankEvents && this.window.tabs.length === 1 && this.url === 'about:blank')
       return;

@@ -1,7 +1,7 @@
 
 
 
-"use strict";
+'use strict';
 
 const { id } = require("sdk/self");
 const { getAddonByID } = require("sdk/addon/manager");
@@ -11,4 +11,4 @@ exports["test getAddonByID"] = function*(assert) {
   assert.equal(addon.id, id, "getAddonByID works");
 }
 
-require("sdk/test").run(exports);
+require('sdk/test/runner').runTestsFromModule(module);

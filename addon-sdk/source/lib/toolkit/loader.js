@@ -397,49 +397,6 @@ const resolve = iced(function resolve(id, base) {
 });
 exports.resolve = resolve;
 
-function fileExists(uri) {
-  let url = NetUtil.newURI(uri);
-
-  switch (url.scheme) {
-    case "jar":
-      let jarfile = url.QueryInterface(Ci.nsIJARURI).JARFile;
-
-      
-      if (!(jarfile instanceof Ci.nsIFileURL))
-        return false;
-
-      let zipcache = Cc["@mozilla.org/libjar/zip-reader-cache;1"].
-                     getService(Ci.nsIZipReaderCache);
-      let zipreader = zipcache.getZip(jarfile.file);
-      return zipreader.hasEntry(jarfile.JAREntry);
-
-    case "file":
-      return url.QueryInterface(Ci.nsIFileURL).file.exists();
-
-    case "chrome":
-      let registry = Cc["@mozilla.org/chrome/chrome-registry;1"].
-                     getService(Ci.nsIChromeRegistry)
-      return fileExists(ChromeRegistry.convertChromeURL(url).spec);
-
-    case "resource":
-      let handler = Cc["@mozilla.org/network/protocol;1?name=resource"].
-                    getService(Ci.nsIResProtocolHandler);
-      let resolved;
-      try {
-        resolved = handler.resolveURI(url);
-      }
-      catch (e) {
-        
-        return false;
-      }
-      return fileExists(resolved);
-
-    default:
-      
-      return false;
-  }
-}
-
 
 
 
@@ -454,7 +411,7 @@ const nodeResolve = iced(function nodeResolve(id, requirer, { rootURI }) {
   let fullId = join(rootURI, id);
   let resolvedPath;
 
-  if ((resolvedPath = findFile(fullId)))
+  if ((resolvedPath = loadAsFile(fullId)))
     return stripBase(rootURI, resolvedPath);
 
   if ((resolvedPath = loadAsDirectory(fullId)))
@@ -464,7 +421,7 @@ const nodeResolve = iced(function nodeResolve(id, requirer, { rootURI }) {
   
   let dirs = getNodeModulePaths(dirname(join(rootURI, requirer))).map(dir => join(dir, id));
   for (let i = 0; i < dirs.length; i++) {
-    if ((resolvedPath = findFile(dirs[i])))
+    if ((resolvedPath = loadAsFile(dirs[i])))
       return stripBase(rootURI, resolvedPath);
 
     if ((resolvedPath = loadAsDirectory(dirs[i])))
@@ -480,18 +437,21 @@ exports.nodeResolve = nodeResolve;
 
 
 
-function findFile (path) {
-  
-  
-  
-  
+function loadAsFile (path) {
+  let found;
 
   
-  path = normalizeExt(path);
-  if (fileExists(path))
-    return path;
+  
+  
+  
+  try {
+    
+    path = normalizeExt(path);
+    readURI(path);
+    found = path;
+  } catch (e) {}
 
-  return null;
+  return found;
 }
 
 
@@ -500,21 +460,25 @@ function loadAsDirectory (path) {
   try {
     
     
-    if (fileExists(path + '/package.json')) {
-      let main = getManifestMain(JSON.parse(readURI(path + '/package.json')));
-      if (main != null) {
-        let tmpPath = join(path, main);
-        let found = findFile(tmpPath);
-        if (found)
-          return found
-      }
+    let main = getManifestMain(JSON.parse(readURI(path + '/package.json')));
+    if (main != null) {
+      let tmpPath = join(path, main);
+      let found = loadAsFile(tmpPath);
+      if (found)
+        return found
     }
-  } catch (e) { }
-
-  let tmpPath = path + '/index.js';
-  if (fileExists(tmpPath))
-    return tmpPath;
-
+    try {
+      let tmpPath = path + '/index.js';
+      readURI(tmpPath);
+      return tmpPath;
+    } catch (e) {}
+  } catch (e) {
+    try {
+      let tmpPath = path + '/index.js';
+      readURI(tmpPath);
+      return tmpPath;
+    } catch (e) {}
+  }
   return void 0;
 }
 

@@ -142,6 +142,7 @@ const PageMod = Class({
     }
 
     pagemods.add(this);
+    model.seenDocuments = new WeakMap();
 
     
     
@@ -231,6 +232,12 @@ function onContent (mod, window) {
   
   if (!isTopDocument && !has(mod.attachTo, "frame"))
     return;
+
+  
+  let seen = modelFor(mod).seenDocuments;
+  if (seen.has(window.document))
+    return;
+  seen.set(window.document, true);
 
   let style = styleFor(mod);
   if (style)

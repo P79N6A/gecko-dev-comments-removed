@@ -17,7 +17,7 @@ const file = require('sdk/io/file');
 const tabs = require('sdk/tabs');
 const { decode } = require('sdk/base64');
 
-const httpd = require('sdk/test/httpd');
+const httpd = require('./lib/httpd');
 const port = 8099;
 
 const defaultLocation = '{\'scheme\':\'about\',\'userPass\':null,\'host\':null,\'hostname\':null,\'port\':null,\'path\':\'addons\',\'pathname\':\'addons\',\'hash\':\'\',\'href\':\'about:addons\',\'origin\':\'about:\',\'protocol\':\'about:\',\'search\':\'\'}'.replace(/'/g, '"');
@@ -220,8 +220,12 @@ exports.testStringInterface = function(assert) {
     'enumerable key list check for URL.');
   assert.equal(
       JSON.stringify(a),
-      defaultLocation,
-      'JSON.stringify should return a object with correct props and vals.');
+      JSON.stringify(EM),
+      'JSON.stringify on url should return the url as a flat string');
+      
+      
+      
+      
 
   
   assert.equal(a.indexOf(':'), EM.indexOf(':'), 'indexOf on URL works');
