@@ -640,7 +640,9 @@ let UI = {
     }
 
     Task.spawn(function() {
-      if (project.type == "runtimeApp") {
+      
+      
+      if (project.type == "runtimeApp" && !AppManager.isProjectRunning()) {
         yield UI.busyUntil(AppManager.launchRuntimeApp(), "running app");
       }
       yield UI.createToolbox();
