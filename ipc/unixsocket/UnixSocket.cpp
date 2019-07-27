@@ -227,6 +227,34 @@ public:
   }
 };
 
+class ShutdownSocketTask : public SocketIOTask<UnixSocketImpl>
+{
+public:
+  ShutdownSocketTask(UnixSocketImpl* aImpl)
+  : SocketIOTask<UnixSocketImpl>(aImpl)
+  { }
+
+  void Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(!IsCanceled());
+
+    UnixSocketImpl* impl = GetIO();
+
+    
+    
+    
+    
+    
+    impl->ShutdownOnIOThread();
+
+    nsRefPtr<nsIRunnable> r =
+      new SocketIODeleteInstanceRunnable<UnixSocketImpl>(impl);
+    nsresult rv = NS_DispatchToMainThread(r);
+    NS_ENSURE_SUCCESS_VOID(rv);
+  }
+};
+
 void
 UnixSocketImpl::FireSocketError()
 {
@@ -523,8 +551,8 @@ UnixSocketConsumer::CloseSocket()
   
   mImpl->ShutdownOnMainThread();
 
-  XRE_GetIOMessageLoop()->PostTask(
-    FROM_HERE, new SocketIOShutdownTask<UnixSocketImpl>(mImpl));
+  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
+                                   new ShutdownSocketTask(mImpl));
 
   mImpl = nullptr;
 
