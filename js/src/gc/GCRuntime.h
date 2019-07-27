@@ -1037,6 +1037,7 @@ class GCRuntime
     };
     GrayBufferState grayBufferState;
     bool hasBufferedGrayRoots() const { return grayBufferState == GrayBufferState::Okay; }
+    void resetBufferedGrayRoots() const;
 
     
 

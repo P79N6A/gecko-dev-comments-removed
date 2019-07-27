@@ -574,9 +574,12 @@ js::gc::GCRuntime::bufferGrayRoots()
         (*op)(&marker, grayRootTracer.data);
 
     
-    grayBufferState = marker.bufferingGrayRootsFailed
-                      ? GrayBufferState::Failed
-                      : GrayBufferState::Okay;
+    if (marker.bufferingGrayRootsFailed) {
+      grayBufferState = GrayBufferState::Failed;
+      resetBufferedGrayRoots();
+    } else {
+      grayBufferState = GrayBufferState::Okay;
+    }
 
     
     MOZ_ASSERT(IsMarkingGray(&marker));
