@@ -249,7 +249,9 @@ protected:
 
     
     
-    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mLocalNames;
+    nsBaseHashtable<nsStringHashKey,
+                    nsCountedRef<FcPattern>,
+                    FcPattern*> mLocalNames;
 
     
     nsRefPtrHashtable<nsCStringHashKey, gfxFontFamily> mGenericMappings;

@@ -822,7 +822,6 @@ gfxFontconfigFontFamily::FindStyleVariations(FontInfoData *aFontInfoData)
     }
 
     
-    gfxPlatformFontList *fp = gfxPlatformFontList::PlatformFontList();
     uint32_t numFonts = mFontPatterns.Length();
     NS_ASSERTION(numFonts, "font family containing no faces!!");
     for (uint32_t i = 0; i < numFonts; i++) {
@@ -836,15 +835,6 @@ gfxFontconfigFontFamily::FindStyleVariations(FontInfoData *aFontInfoData)
         gfxFontconfigFontEntry *fontEntry =
             new gfxFontconfigFontEntry(faceName, face);
         AddFontEntry(fontEntry);
-
-        
-        if (!psname.IsEmpty()) {
-            fp->AddPostscriptName(fontEntry, psname);
-        }
-        NS_ASSERTION(!fullname.IsEmpty(), "empty font fullname");
-        if (!fullname.IsEmpty()) {
-            fp->AddFullname(fontEntry, fullname);
-        }
 
         if (LOG_FONTLIST_ENABLED()) {
             LOG_FONTLIST(("(fontlist) added (%s) to family (%s)"
@@ -1025,11 +1015,11 @@ gfxFcPlatformFontList::AddFontSetFamilies(FcFontSet* aFontSet)
         GetFaceNames(font, familyName, psname, fullname);
         if (!psname.IsEmpty()) {
             ToLowerCase(psname);
-            mLocalNames.Put(psname, fontFamily);
+            mLocalNames.Put(psname, font);
         }
         if (!fullname.IsEmpty()) {
             ToLowerCase(fullname);
-            mLocalNames.Put(fullname, fontFamily);
+            mLocalNames.Put(fullname, font);
         }
     }
 }
@@ -1164,37 +1154,17 @@ gfxFcPlatformFontList::LookupLocalFont(const nsAString& aFontName,
                                        int16_t aStretch,
                                        bool aItalic)
 {
-    gfxFontEntry* lookup;
+    nsAutoString keyName(aFontName);
+    ToLowerCase(keyName);
 
     
-    lookup = FindFaceName(aFontName);
-    if (!lookup) {
-        
-        nsAutoString keyName(aFontName);
-        ToLowerCase(keyName);
-        gfxFontFamily* fontFamily = mLocalNames.GetWeak(keyName);
-
-        
-        if (!fontFamily) {
-            return nullptr;
-        }
-
-        
-        fontFamily->FindStyleVariations();
-
-        
-        lookup = FindFaceName(aFontName);
-        NS_ASSERTION(lookup, "facename to family mapping failure");
-        if (!lookup) {
-            return nullptr;
-        }
+    FcPattern* fontPattern = mLocalNames.Get(keyName);
+    if (!fontPattern) {
+        return nullptr;
     }
 
-    gfxFontconfigFontEntry* fcFontEntry =
-        static_cast<gfxFontconfigFontEntry*>(lookup);
-
-    return new gfxFontconfigFontEntry(fcFontEntry->Name(),
-                                      fcFontEntry->GetPattern(),
+    return new gfxFontconfigFontEntry(aFontName,
+                                      fontPattern,
                                       aWeight, aStretch, aItalic);
 }
 
