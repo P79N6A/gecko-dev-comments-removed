@@ -48,17 +48,15 @@ class BlobParent MOZ_FINAL
   class OpenStreamRunnable;
   friend class OpenStreamRunnable;
 
-  class RemoteBlobImplBase;
-  friend class RemoteBlobImplBase;
-
   class RemoteBlobImpl;
-  class ForwardingRemoteBlobImpl;
+
+  struct CreateBlobImplMetadata;
 
   static StaticAutoPtr<IDTable> sIDTable;
   static StaticAutoPtr<Mutex> sIDTableMutex;
 
   FileImpl* mBlobImpl;
-  RemoteBlobImplBase* mRemoteBlobImpl;
+  RemoteBlobImpl* mRemoteBlobImpl;
 
   
   PBackgroundParent* mBackgroundManager;
@@ -148,11 +146,11 @@ private:
 
   
   BlobParent(nsIContentParent* aManager,
-             const ParentBlobConstructorParams& aParams,
+             FileImpl* aBlobImpl,
              IDTableEntry* aIDTableEntry);
 
   BlobParent(PBackgroundParent* aManager,
-             const ParentBlobConstructorParams& aParams,
+             FileImpl* aBlobImpl,
              IDTableEntry* aIDTableEntry);
 
   
@@ -162,8 +160,7 @@ private:
   CommonInit(IDTableEntry* aIDTableEntry);
 
   void
-  CommonInit(const ParentBlobConstructorParams& aParams,
-             IDTableEntry* aIDTableEntry);
+  CommonInit(FileImpl* aBlobImpl, IDTableEntry* aIDTableEntry);
 
   template <class ParentManagerType>
   static BlobParent*
@@ -209,10 +206,13 @@ private:
   ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 
   virtual PBlobStreamParent*
-  AllocPBlobStreamParent() MOZ_OVERRIDE;
+  AllocPBlobStreamParent(const uint64_t& aStart,
+                         const uint64_t& aLength) MOZ_OVERRIDE;
 
   virtual bool
-  RecvPBlobStreamConstructor(PBlobStreamParent* aActor) MOZ_OVERRIDE;
+  RecvPBlobStreamConstructor(PBlobStreamParent* aActor,
+                             const uint64_t& aStart,
+                             const uint64_t& aLength) MOZ_OVERRIDE;
 
   virtual bool
   DeallocPBlobStreamParent(PBlobStreamParent* aActor) MOZ_OVERRIDE;
