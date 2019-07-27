@@ -2592,8 +2592,8 @@ ContentParent::RecvAddNewProcess(const uint32_t& aPid,
     size_t numNuwaPrefUpdates = sNuwaPrefUpdates ?
                                 sNuwaPrefUpdates->Length() : 0;
     
-    for (int i = 0; i < numNuwaPrefUpdates; i++) {
-        content->SendPreferenceUpdate(sNuwaPrefUpdates->ElementAt(i));
+    for (size_t i = 0; i < numNuwaPrefUpdates; i++) {
+        mozilla::unused << content->SendPreferenceUpdate(sNuwaPrefUpdates->ElementAt(i));
     }
 
     
@@ -2602,7 +2602,7 @@ ContentParent::RecvAddNewProcess(const uint32_t& aPid,
     ClipboardCapabilities clipboardCaps;
     RecvGetXPCOMProcessAttributes(&isOffline, &unusedDictionaries,
                                   &clipboardCaps);
-    content->SendSetOffline(isOffline);
+    mozilla::unused << content->SendSetOffline(isOffline);
     MOZ_ASSERT(!clipboardCaps.supportsSelectionClipboard() &&
                !clipboardCaps.supportsFindClipboard(),
                "Unexpected values");

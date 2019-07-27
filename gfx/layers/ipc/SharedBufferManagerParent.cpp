@@ -15,6 +15,7 @@
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/ipc/Transport.h"      
 #include "mozilla/UniquePtr.h"          
+#include "mozilla/unused.h"
 #include "nsIMemoryReporter.h"
 #ifdef MOZ_WIDGET_GONK
 #include "mozilla/LinuxUtils.h"
@@ -319,7 +320,7 @@ void SharedBufferManagerParent::DropGrallocBufferImpl(mozilla::layers::SurfaceDe
   NS_ASSERTION(key != -1, "Invalid buffer key");
   NS_ASSERTION(mBuffers.count(key) == 1, "No such buffer");
   mBuffers.erase(key);
-  SendDropGrallocBuffer(handle);
+  mozilla::unused << SendDropGrallocBuffer(handle);
 #endif
 }
 
