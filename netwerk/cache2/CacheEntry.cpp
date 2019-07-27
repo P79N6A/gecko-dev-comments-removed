@@ -251,7 +251,7 @@ nsresult CacheEntry::HashingKey(nsCSubstring const& aStorageID,
 
 
 
-  aResult.Append(aStorageID);
+  aResult.Assign(aStorageID);
 
   if (!aEnhanceID.IsEmpty()) {
     CacheFileUtils::AppendTagWithValue(aResult, '~', aEnhanceID);
