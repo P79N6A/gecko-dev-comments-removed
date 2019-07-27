@@ -18,7 +18,6 @@ static constexpr ARMRegister BaselineFrameReg64 = { BaselineFrameReg, 64 };
 
 
 
-static constexpr Register BaselineStackReg = PseudoStackPointer;
 
 
 
