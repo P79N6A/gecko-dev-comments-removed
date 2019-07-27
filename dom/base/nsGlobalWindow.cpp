@@ -2709,11 +2709,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   
   
   if (createdInnerWindow) {
-    
-    
-    AutoEntryScript aes(newInnerWindow, "nsGlobalWindow report new global");
-    JS::Rooted<JSObject*> global(aes.cx(), newInnerWindow->GetWrapper());
-    JS_FireOnNewGlobalObject(aes.cx(), global);
+    nsContentUtils::AddScriptRunner(
+      NS_NewRunnableMethod(newInnerWindow,
+                           &nsGlobalWindow::FireOnNewGlobalObject));
   }
 
   if (newInnerWindow && !newInnerWindow->mHasNotifiedGlobalCreated && mDoc) {
@@ -14165,6 +14163,18 @@ nsGlobalWindow::SetReplaceableWindowCoord(JSContext* aCx,
   }
 
   (this->*aSetter)(value, aError);
+}
+
+void
+nsGlobalWindow::FireOnNewGlobalObject()
+{
+  MOZ_ASSERT(IsInnerWindow());
+
+  
+  
+  AutoEntryScript aes(this, "nsGlobalWindow report new global");
+  JS::Rooted<JSObject*> global(aes.cx(), GetWrapper());
+  JS_FireOnNewGlobalObject(aes.cx(), global);
 }
 
 #ifdef _WINDOWS_

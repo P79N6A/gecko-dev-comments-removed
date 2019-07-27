@@ -1538,6 +1538,11 @@ protected:
   
   bool ConfirmDialogIfNeeded();
 
+private:
+  
+  void FireOnNewGlobalObject();
+
+protected:
   
   
   
