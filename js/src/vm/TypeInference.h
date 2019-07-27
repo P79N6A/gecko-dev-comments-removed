@@ -445,7 +445,7 @@ class TypeSet
 
     
     typedef Vector<Type, 1, SystemAllocPolicy> TypeList;
-    bool enumerateTypes(TypeList *list) const;
+    template <class TypeListT> bool enumerateTypes(TypeListT *list) const;
 
     
 
