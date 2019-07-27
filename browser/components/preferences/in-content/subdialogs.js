@@ -111,6 +111,9 @@ let gSubDialog = {
     }
 
     
+    this._frame.contentDocument.documentElement.setAttribute("subdialog", "true");
+
+    
     let oldClose = this._frame.contentWindow.close;
     this._frame.contentWindow.close = function() {
       var closingEvent = new CustomEvent("dialogclosing", {
