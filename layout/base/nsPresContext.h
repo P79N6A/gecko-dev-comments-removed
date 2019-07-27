@@ -1026,6 +1026,14 @@ public:
     mUsesRootEMUnits = aValue;
   }
 
+  bool UsesExChUnits() const {
+    return mUsesExChUnits;
+  }
+
+  void SetUsesExChUnits(bool aValue) {
+    mUsesExChUnits = aValue;
+  }
+
   bool UsesViewportUnits() const {
     return mUsesViewportUnits;
   }
@@ -1348,6 +1356,8 @@ protected:
 
   
   unsigned              mUsesRootEMUnits : 1;
+  
+  unsigned              mUsesExChUnits : 1;
   
   unsigned              mUsesViewportUnits : 1;
 
