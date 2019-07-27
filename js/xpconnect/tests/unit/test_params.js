@@ -134,6 +134,15 @@ function test_component(contractid) {
   doTest("testJsval", {aprop: 12, bprop: "str"}, 4.22);
 
   
+  
+  let outAString = {};
+  o.testOutAString(outAString);
+  do_check_eq(outAString.value, "out");
+  try { o.testOutAString(undefined); } catch (e) {} 
+  try { o.testOutAString(null); } catch (e) {} 
+  try { o.testOutAString("string"); } catch (e) {} 
+
+  
   var numAsMade = 0;
   function makeA() {
     var a = Cc["@mozilla.org/js/xpc/test/js/InterfaceA;1"].createInstance(Ci['nsIXPCTestInterfaceA']);

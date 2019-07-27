@@ -339,3 +339,10 @@ NS_IMETHODIMP nsXPCTestParams::TestInterfaceIsArray(uint32_t aLength, const nsII
     
     BUFFER_METHOD_IMPL(void*, 0, TAKE_OWNERSHIP_INTERFACE);
 }
+
+
+NS_IMETHODIMP nsXPCTestParams::TestOutAString(nsAString & o)
+{
+    o.AssignLiteral("out");
+    return NS_OK;
+}
