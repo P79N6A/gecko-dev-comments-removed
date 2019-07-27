@@ -165,6 +165,8 @@ public:
   void ShutdownReader();
   void FinishShutdown();
 
+  bool IsRealTime() const;
+
   
   
   int64_t GetDuration();
