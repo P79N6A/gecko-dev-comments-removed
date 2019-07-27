@@ -285,9 +285,6 @@ private:
                               void* aCallbackData,
                               EndTransactionFlags);
 
-  
-  nsIntRect mTargetBounds;
-
   LayerRefArray mKeepAlive;
 
   nsIWidget* mWidget;

@@ -1393,11 +1393,7 @@ public:
 
 
 
-
-
-
-  RenderTargetIntRect CalculateScissorRect(const RenderTargetIntRect& aCurrentScissorRect,
-                                           const gfx::Matrix* aWorldTransform);
+  RenderTargetIntRect CalculateScissorRect(const RenderTargetIntRect& aCurrentScissorRect);
 
   virtual const char* Name() const =0;
   virtual LayerType GetType() const =0;

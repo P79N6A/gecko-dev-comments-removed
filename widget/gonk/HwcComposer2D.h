@@ -82,7 +82,7 @@ public:
     
     
     
-    bool TryRender(layers::Layer* aRoot, const gfx::Matrix& aGLWorldTransform,
+    bool TryRender(layers::Layer* aRoot,
                    bool aGeometryChanged) MOZ_OVERRIDE;
 
     bool Render(EGLDisplay dpy, EGLSurface sur);
@@ -100,7 +100,7 @@ private:
     bool TryHwComposition();
     bool ReallocLayerList();
     bool PrepareLayerList(layers::Layer* aContainer, const nsIntRect& aClip,
-          const gfx::Matrix& aParentTransform, const gfx::Matrix& aGLWorldTransform);
+          const gfx::Matrix& aParentTransform);
     void setCrop(HwcLayer* layer, hwc_rect_t srcCrop);
     void setHwcGeometry(bool aGeometryChanged);
     void SendtoLayerScope();

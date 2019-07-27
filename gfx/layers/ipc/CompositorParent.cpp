@@ -801,7 +801,7 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
   
   
   
-  mLayerManager->UpdateRenderBounds(aTargetConfig.clientBounds());
+  mLayerManager->UpdateRenderBounds(aTargetConfig.naturalBounds());
   mLayerManager->SetRegionToClear(aTargetConfig.clearRegion());
 
   mCompositionManager->Updated(aIsFirstPaint, aTargetConfig);
