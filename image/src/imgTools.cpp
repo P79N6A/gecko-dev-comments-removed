@@ -92,7 +92,7 @@ NS_IMETHODIMP imgTools::DecodeImage(nsIInputStream* aInStr,
 
   
   rv = image->OnImageDataComplete(nullptr, nullptr, NS_OK, true);
-  tracker->SyncNotifyProgress(FLAG_REQUEST_STOPPED);
+  tracker->SyncNotifyProgress(FLAG_LOAD_COMPLETE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

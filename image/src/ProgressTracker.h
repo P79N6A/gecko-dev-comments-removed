@@ -27,17 +27,17 @@ class Image;
 
 
 enum {
-  FLAG_HAS_SIZE           = 1u << 0,  
+  FLAG_SIZE_AVAILABLE     = 1u << 0,  
   FLAG_DECODE_STARTED     = 1u << 1,  
-  FLAG_DECODE_STOPPED     = 1u << 2,  
-  FLAG_FRAME_STOPPED      = 1u << 3,  
-  FLAG_REQUEST_STOPPED    = 1u << 4,  
+  FLAG_DECODE_COMPLETE    = 1u << 2,  
+  FLAG_FRAME_COMPLETE     = 1u << 3,  
+  FLAG_LOAD_COMPLETE      = 1u << 4,  
   FLAG_ONLOAD_BLOCKED     = 1u << 5,
   FLAG_ONLOAD_UNBLOCKED   = 1u << 6,
   FLAG_IS_ANIMATED        = 1u << 7,
   FLAG_HAS_TRANSPARENCY   = 1u << 8,
   FLAG_IS_MULTIPART       = 1u << 9,
-  FLAG_MULTIPART_STOPPED  = 1u << 10,
+  FLAG_LAST_PART_COMPLETE = 1u << 10,
   FLAG_HAS_ERROR          = 1u << 11  
 };
 
@@ -45,13 +45,13 @@ typedef uint32_t Progress;
 
 const uint32_t NoProgress = 0;
 
-inline Progress OnStopRequestProgress(bool aLastPart,
-                                      bool aError,
-                                      nsresult aStatus)
+inline Progress LoadCompleteProgress(bool aLastPart,
+                                     bool aError,
+                                     nsresult aStatus)
 {
-  Progress progress = FLAG_REQUEST_STOPPED;
+  Progress progress = FLAG_LOAD_COMPLETE;
   if (aLastPart) {
-    progress |= FLAG_MULTIPART_STOPPED;
+    progress |= FLAG_LAST_PART_COMPLETE;
   }
   if (NS_FAILED(aStatus) || aError) {
     progress |= FLAG_HAS_ERROR;

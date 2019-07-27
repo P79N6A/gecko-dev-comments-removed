@@ -792,7 +792,7 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
     
     
     Progress progress =
-      OnStopRequestProgress(lastPart,  false, status);
+      LoadCompleteProgress(lastPart,  false, status);
 
     nsRefPtr<ProgressTracker> progressTracker = GetProgressTracker();
     progressTracker->SyncNotifyProgress(progress);
