@@ -78,9 +78,12 @@ private:
       , mPromise(new MediaTimerPromise::Private(aCallSite))
     {}
 
+    
+    
+    
     bool operator<(const Entry& aOther) const
     {
-      return mTimeStamp < aOther.mTimeStamp;
+      return mTimeStamp > aOther.mTimeStamp;
     }
   };
 
