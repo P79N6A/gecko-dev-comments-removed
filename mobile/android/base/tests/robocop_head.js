@@ -32,8 +32,9 @@ function _dump(str) {
 
 
 
-let (ios = Components.classes["@mozilla.org/network/io-service;1"]
-           .getService(Components.interfaces.nsIIOService2)) {
+{
+  let ios = Components.classes["@mozilla.org/network/io-service;1"]
+             .getService(Components.interfaces.nsIIOService2);
   ios.manageOfflineStatus = false;
   ios.offline = false;
 }
@@ -74,12 +75,11 @@ try {
       "@mozilla.org/toolkit/crash-reporter;1" in Components.classes) {
     
     
-    let (crashReporter =
+    let crashReporter =
           Components.classes["@mozilla.org/toolkit/crash-reporter;1"]
-          .getService(Components.interfaces.nsICrashReporter)) {
-      crashReporter.enabled = true;
-      crashReporter.minidumpPath = do_get_cwd();
-    }
+          .getService(Components.interfaces.nsICrashReporter);
+    crashReporter.enabled = true;
+    crashReporter.minidumpPath = do_get_cwd();
   }
 }
 catch (e) { }
@@ -280,33 +280,32 @@ function do_get_idle() {
 
 
 function _register_protocol_handlers() {
-  let (ios = Components.classes["@mozilla.org/network/io-service;1"]
-             .getService(Components.interfaces.nsIIOService)) {
-    let protocolHandler =
-      ios.getProtocolHandler("resource")
-         .QueryInterface(Components.interfaces.nsIResProtocolHandler);
-    let curDirURI = ios.newFileURI(do_get_cwd());
-    protocolHandler.setSubstitution("test", curDirURI);
+  let ios = Components.classes["@mozilla.org/network/io-service;1"]
+             .getService(Components.interfaces.nsIIOService);
+  let protocolHandler =
+    ios.getProtocolHandler("resource")
+       .QueryInterface(Components.interfaces.nsIResProtocolHandler);
+  let curDirURI = ios.newFileURI(do_get_cwd());
+  protocolHandler.setSubstitution("test", curDirURI);
 
-    if (this._TESTING_MODULES_DIR) {
-      let modulesFile = Components.classes["@mozilla.org/file/local;1"].
-                        createInstance(Components.interfaces.nsILocalFile);
-      modulesFile.initWithPath(_TESTING_MODULES_DIR);
+  if (this._TESTING_MODULES_DIR) {
+    let modulesFile = Components.classes["@mozilla.org/file/local;1"].
+                      createInstance(Components.interfaces.nsILocalFile);
+    modulesFile.initWithPath(_TESTING_MODULES_DIR);
 
-      if (!modulesFile.exists()) {
-        throw new Error("Specified modules directory does not exist: " +
-                        _TESTING_MODULES_DIR);
-      }
-
-      if (!modulesFile.isDirectory()) {
-        throw new Error("Specified modules directory is not a directory: " +
-                        _TESTING_MODULES_DIR);
-      }
-
-      let modulesURI = ios.newFileURI(modulesFile);
-
-      protocolHandler.setSubstitution("testing-common", modulesURI);
+    if (!modulesFile.exists()) {
+      throw new Error("Specified modules directory does not exist: " +
+                      _TESTING_MODULES_DIR);
     }
+
+    if (!modulesFile.isDirectory()) {
+      throw new Error("Specified modules directory is not a directory: " +
+                      _TESTING_MODULES_DIR);
+    }
+
+    let modulesURI = ios.newFileURI(modulesFile);
+
+    protocolHandler.setSubstitution("testing-common", modulesURI);
   }
 }
 
