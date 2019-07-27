@@ -65,7 +65,8 @@ class FilePickerResultHandler implements ActivityResultHandler {
         }
 
         
-        if (intent == null) {
+        
+        if (intent == null || (intent.getAction() == null && intent.getData() == null)) {
             if (mImageName != null) {
                 File file = new File(Environment.getExternalStorageDirectory(), mImageName);
                 sendResult(file.getAbsolutePath());
