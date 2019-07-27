@@ -129,11 +129,6 @@ public:
   already_AddRefed<DOMFileImpl>
   GetBlobImpl();
 
-  
-  
-  already_AddRefed<nsIDOMBlob>
-  GetBlob();
-
   void
   AssertIsOnOwningThread() const
 #ifdef DEBUG

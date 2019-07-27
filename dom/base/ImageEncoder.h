@@ -51,6 +51,8 @@ public:
   
   
   
+  
+  
   static nsresult ExtractDataAsync(nsAString& aType,
                                    const nsAString& aOptions,
                                    bool aUsingCustomOptions,
@@ -59,6 +61,8 @@ public:
                                    const nsIntSize aSize,
                                    EncodeCompleteCallback* aEncodeCallback);
 
+  
+  
   
   
   

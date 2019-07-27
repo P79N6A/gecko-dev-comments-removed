@@ -2,6 +2,8 @@
 
 
 
+Components.utils.importGlobalProperties(['File']);
+
 const Ci = Components.interfaces;
 
 function run_test() {
@@ -14,28 +16,19 @@ function run_test() {
   file.append("xpcshell.ini");
 
   
-  var f1 = File(file.path);
+  var f1 = new File(file.path);
   
-  var f2 = new File(file.path);
-  
-  var f3 = File(file);
-  var f4 = new File(file);
+  var f2 = new File(file);
 
   
   do_check_true(f1 instanceof Ci.nsIDOMFile, "Should be a DOM File");
   do_check_true(f2 instanceof Ci.nsIDOMFile, "Should be a DOM File");
-  do_check_true(f3 instanceof Ci.nsIDOMFile, "Should be a DOM File");
-  do_check_true(f4 instanceof Ci.nsIDOMFile, "Should be a DOM File");
 
   do_check_true(f1.name == "xpcshell.ini", "Should be the right file");
   do_check_true(f2.name == "xpcshell.ini", "Should be the right file");
-  do_check_true(f3.name == "xpcshell.ini", "Should be the right file");
-  do_check_true(f4.name == "xpcshell.ini", "Should be the right file");
 
   do_check_true(f1.type == "", "Should be the right type");
   do_check_true(f2.type == "", "Should be the right type");
-  do_check_true(f3.type == "", "Should be the right type");
-  do_check_true(f4.type == "", "Should be the right type");
 
   var threw = false;
   try {

@@ -106,10 +106,6 @@ public:
   GetBlobImpl();
 
   
-  already_AddRefed<nsIDOMBlob>
-  GetBlob();
-
-  
   bool
   SetMysteryBlobInfo(const nsString& aName,
                      const nsString& aContentType,

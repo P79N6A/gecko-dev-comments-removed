@@ -16,6 +16,10 @@ class nsIDOMBlob;
 
 namespace mozilla {
 
+namespace dom {
+class DOMFile;
+}
+
 class ReentrantMonitor;
 
 
@@ -39,7 +43,7 @@ public:
   
   void AppendBuffer(nsTArray<uint8_t> & aBuf);
   
-  already_AddRefed<nsIDOMBlob> ExtractBlob(const nsAString &aContentType);
+  already_AddRefed<dom::DOMFile> ExtractBlob(nsISupports* aParent, const nsAString &aContentType);
 
 private:
   

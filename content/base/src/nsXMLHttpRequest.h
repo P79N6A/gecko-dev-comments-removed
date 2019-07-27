@@ -350,9 +350,9 @@ private:
     {
       mValue.mArrayBufferView = aArrayBufferView;
     }
-    explicit RequestBody(nsIDOMBlob* aBlob) : mType(Blob)
+    explicit RequestBody(mozilla::dom::DOMFile& aBlob) : mType(Blob)
     {
-      mValue.mBlob = aBlob;
+      mValue.mBlob = &aBlob;
     }
     explicit RequestBody(nsIDocument* aDocument) : mType(Document)
     {
@@ -384,7 +384,7 @@ private:
     union Value {
       const mozilla::dom::ArrayBuffer* mArrayBuffer;
       const mozilla::dom::ArrayBufferView* mArrayBufferView;
-      nsIDOMBlob* mBlob;
+      mozilla::dom::DOMFile* mBlob;
       nsIDocument* mDocument;
       const nsAString* mString;
       nsFormData* mFormData;
@@ -440,9 +440,8 @@ public:
   {
     aRv = Send(RequestBody(&aArrayBufferView));
   }
-  void Send(nsIDOMBlob* aBlob, ErrorResult& aRv)
+  void Send(mozilla::dom::DOMFile& aBlob, ErrorResult& aRv)
   {
-    NS_ASSERTION(aBlob, "Null should go to string version");
     aRv = Send(RequestBody(aBlob));
   }
   void Send(nsIDocument& aDoc, ErrorResult& aRv)
@@ -672,7 +671,7 @@ protected:
 
   
   
-  nsCOMPtr<nsIDOMBlob> mResponseBlob;
+  nsRefPtr<mozilla::dom::DOMFile> mResponseBlob;
   
   
   nsRefPtr<mozilla::dom::DOMFile> mDOMFile;
