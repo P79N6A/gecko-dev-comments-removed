@@ -80,8 +80,7 @@ AnimationPlayer::GetReady(ErrorResult& aRv)
     nsIGlobalObject* global = mTimeline->GetParentObject();
     if (global) {
       mReady = Promise::Create(global, aRv);
-      
-      if (mReady) {
+      if (mReady && PlayState() != AnimationPlayState::Pending) {
         mReady->MaybeResolve(this);
       }
     }
@@ -233,11 +232,7 @@ AnimationPlayer::DoPlay()
   }
 
   
-  nsIGlobalObject* global = mTimeline->GetParentObject();
-  if (global) {
-    ErrorResult rv;
-    mReady = Promise::Create(global, rv);
-  }
+  mReady = nullptr;
 
   ResolveStartTime();
 }
