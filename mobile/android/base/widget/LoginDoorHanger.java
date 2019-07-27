@@ -31,8 +31,9 @@ public class LoginDoorHanger extends DoorHanger {
     private static final String LOGTAG = "LoginDoorHanger";
     private enum ActionType { EDIT };
 
-    final TextView mTitle;
-    final TextView mLogin;
+    private final TextView mTitle;
+    private final TextView mLogin;
+    private int mCallbackID;
 
     public LoginDoorHanger(Context context, DoorhangerConfig config) {
         super(context, config, Type.LOGIN);
@@ -84,6 +85,9 @@ public class LoginDoorHanger extends DoorHanger {
 
     @Override
     protected Button createButtonInstance(final String text, final int id) {
+        
+        mCallbackID = id;
+
         final Button button = (Button) LayoutInflater.from(getContext()).inflate(R.layout.doorhanger_button, null);
         button.setText(text);
 
@@ -156,8 +160,19 @@ public class LoginDoorHanger extends DoorHanger {
                     builder.setPositiveButton(R.string.button_remember, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            
-                            
+                            JSONObject response = new JSONObject();
+                            try {
+                                response.put("callback", mCallbackID);
+                                final JSONObject inputs = new JSONObject();
+                                inputs.put("username", username.getText());
+                                inputs.put("password", password.getText());
+                                response.put("inputs", inputs);
+                            } catch (JSONException e) {
+                                Log.e(LOGTAG, "Error creating doorhanger reply message");
+                                response = null;
+                                
+                            }
+                            mOnButtonClickListener.onButtonClick(response, LoginDoorHanger.this);
                         }
                     });
                     builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
@@ -175,6 +190,7 @@ public class LoginDoorHanger extends DoorHanger {
                     dialog.show();
                 }
             });
+
         } catch (JSONException e) {
             
             Log.e(LOGTAG, "Error fetching actionText from JSON", e);
