@@ -72,8 +72,6 @@ public:
   }
 
 #ifdef MOZ_NUWA_PROCESS
-  void SetIgnoreThreadStatus();
-
   
   
   
