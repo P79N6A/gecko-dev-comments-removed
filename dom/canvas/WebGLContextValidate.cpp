@@ -1100,7 +1100,7 @@ WebGLContext::ValidateCopyTexImage(GLenum format,
     MOZ_ASSERT(IsCopyFunc(func));
 
     
-    GLenum fboFormat = bool(gl->GetPixelFormat().alpha > 0) ? LOCAL_GL_RGBA : LOCAL_GL_RGB;
+    GLenum fboFormat = mOptions.alpha ? LOCAL_GL_RGBA : LOCAL_GL_RGB;
 
     if (mBoundFramebuffer) {
         if (!mBoundFramebuffer->CheckAndInitializeAttachments()) {
