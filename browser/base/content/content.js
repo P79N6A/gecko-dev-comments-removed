@@ -105,6 +105,17 @@ let handleContentContextMenu = function (event) {
                                           .getInterface(Ci.nsIDOMWindowUtils)
                                           .outerWindowID;
 
+  
+  
+  
+  if (Services.prefs.getBoolPref("network.http.enablePerElementReferrer")) {
+    let referrerAttrValue = Services.netUtils.parseAttributePolicyString(event.target.
+                            getAttribute("referrer"));
+    if (referrerAttrValue !== Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT) {
+      referrerPolicy = referrerAttrValue;
+    }
+  }
+
   let disableSetDesktopBg = null;
   
   let contentType = null;
@@ -351,10 +362,23 @@ let ClickEventHandler = {
 
     let [href, node] = this._hrefAndLinkNodeForClickEvent(event);
 
+    
+    
+    
+    let referrerPolicy = ownerDoc.referrerPolicy;
+    if (Services.prefs.getBoolPref("network.http.enablePerElementReferrer") &&
+        node) {
+      let referrerAttrValue = Services.netUtils.parseAttributePolicyString(node.
+                              getAttribute("referrer"));
+      if (referrerAttrValue !== Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT) {
+        referrerPolicy = referrerAttrValue;
+      }
+    }
+
     let json = { button: event.button, shiftKey: event.shiftKey,
                  ctrlKey: event.ctrlKey, metaKey: event.metaKey,
                  altKey: event.altKey, href: null, title: null,
-                 bookmark: false, referrerPolicy: ownerDoc.referrerPolicy };
+                 bookmark: false, referrerPolicy: referrerPolicy };
 
     if (href) {
       try {

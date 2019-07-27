@@ -13517,6 +13517,22 @@ nsDocShell::OnLinkClickSync(nsIContent* aContent,
 
   
   
+  
+  if (IsElementAnchor(aContent)) {
+    MOZ_ASSERT(aContent->IsHTMLElement());
+    if (Preferences::GetBool("network.http.enablePerElementReferrer", false)) {
+      nsAutoString referrerPolicy;
+      if (aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::referrer, referrerPolicy)) {
+        uint32_t refPolEnum = mozilla::net::ReferrerPolicyFromString(referrerPolicy);
+        if (refPolEnum != mozilla::net::RP_Unset) {
+          refererPolicy = refPolEnum;
+        }
+      }
+    }
+  }
+
+  
+  
 
   nsAutoString target(aTargetSpec);
 
