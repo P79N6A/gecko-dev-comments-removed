@@ -268,6 +268,7 @@ public:
 
 
     static void PreloadSlowThings();
+    static void PostForkPreload();
 
     
     static already_AddRefed<TabChild>
@@ -572,10 +573,6 @@ private:
 
     void SendPendingTouchPreventedResponse(bool aPreventDefault,
                                            const ScrollableLayerGuid& aGuid);
-
-    void SendSetTargetAPZCNotification(const WidgetTouchEvent& aEvent,
-                                       const mozilla::layers::ScrollableLayerGuid& aGuid,
-                                       const uint64_t& aInputBlockId);
 
     void SetTabId(const TabId& aTabId)
     {

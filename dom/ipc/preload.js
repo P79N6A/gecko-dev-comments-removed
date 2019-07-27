@@ -7,6 +7,7 @@
 
 
 
+
 const BrowserElementIsPreloaded = true;
 
 (function (global) {
@@ -53,7 +54,6 @@ const BrowserElementIsPreloaded = true;
   Cc["@mozilla.org/network/idn-service;1"].getService(Ci["nsIIDNService"]);
   Cc["@mozilla.org/network/io-service;1"].getService(Ci["nsIIOService2"]);
   Cc["@mozilla.org/network/mime-hdrparam;1"].getService(Ci["nsIMIMEHeaderParam"]);
-  Cc["@mozilla.org/network/protocol-proxy-service;1"].getService(Ci["nsIProtocolProxyService"]);
   Cc["@mozilla.org/network/socket-transport-service;1"].getService(Ci["nsISocketTransportService"]);
   Cc["@mozilla.org/network/stream-transport-service;1"].getService(Ci["nsIStreamTransportService"]);
   Cc["@mozilla.org/network/url-parser;1?auth=maybe"].getService(Ci["nsIURLParser"]);
