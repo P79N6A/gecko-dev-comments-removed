@@ -1749,7 +1749,7 @@ CrossProcessCompositorParent::ShadowLayersUpdated(
 
   
   state->mPluginData = aPlugins;
-  state->mUpdatedPluginDataAvailable = !!state->mPluginData.Length();
+  state->mUpdatedPluginDataAvailable = true;
 
   state->mParent->NotifyShadowTreeTransaction(id, aIsFirstPaint, aScheduleComposite,
       aPaintSequenceNumber, aIsRepeatTransaction);
@@ -1763,12 +1763,13 @@ CrossProcessCompositorParent::ShadowLayersUpdated(
   aLayerTree->SetPendingTransactionId(aTransactionId);
 }
 
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
 
 static void
 UpdatePluginWindowState(uint64_t aId)
 {
   CompositorParent::LayerTreeState& lts = sIndirectLayerTrees[aId];
-  if (!lts.mPluginData.Length()) {
+  if (!lts.mPluginData.Length() && !lts.mUpdatedPluginDataAvailable) {
     return;
   }
 
@@ -1779,8 +1780,17 @@ UpdatePluginWindowState(uint64_t aId)
   bool shouldHidePlugin = (!lts.mRoot ||
                            !lts.mRoot->GetParent()) &&
                           !lts.mUpdatedPluginDataAvailable;
-
   if (shouldComposePlugin) {
+    if (!lts.mPluginData.Length()) {
+      
+      
+      
+      
+      nsTArray<uintptr_t> aVisibleIdList;
+      unused << lts.mParent->SendUpdatePluginVisibility(aVisibleIdList);
+      return;
+    }
+
     
     
     
@@ -1818,6 +1828,7 @@ UpdatePluginWindowState(uint64_t aId)
     lts.mPluginData.Clear();
   }
 }
+#endif 
 
 void
 CrossProcessCompositorParent::DidComposite(uint64_t aId)
@@ -1828,7 +1839,9 @@ CrossProcessCompositorParent::DidComposite(uint64_t aId)
     unused << SendDidComposite(aId, layerTree->GetPendingTransactionId());
     layerTree->SetPendingTransactionId(0);
   }
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
   UpdatePluginWindowState(aId);
+#endif
 }
 
 void

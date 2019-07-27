@@ -80,6 +80,9 @@ public:
                                  const nsIntRegion& aVisibleRegion,
                                  nsTArray<PluginWindowData>&& aPlugins) MOZ_OVERRIDE;
 
+  virtual bool
+  RecvUpdatePluginVisibility(nsTArray<uintptr_t>&& aWindowList) MOZ_OVERRIDE;
+
   
 
 
