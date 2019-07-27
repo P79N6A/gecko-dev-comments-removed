@@ -28,7 +28,7 @@ function checkLoginInvalid(aLoginInfo, aExpectedError)
 {
   
   Assert.throws(() => Services.logins.addLogin(aLoginInfo), aExpectedError);
-  LoginTest.checkLogins([]);
+  LoginTestUtils.checkLogins([]);
 
   
   let testLogin = TestData.formLogin({ hostname: "http://modify.example.com" });
@@ -48,7 +48,7 @@ function checkLoginInvalid(aLoginInfo, aExpectedError)
   })), aExpectedError);
 
   
-  LoginTest.checkLogins([testLogin]);
+  LoginTestUtils.checkLogins([testLogin]);
   Services.logins.removeLogin(testLogin);
 }
 
@@ -64,7 +64,7 @@ add_task(function test_addLogin_removeLogin()
   for (let loginInfo of TestData.loginList()) {
     Services.logins.addLogin(loginInfo);
   }
-  LoginTest.checkLogins(TestData.loginList());
+  LoginTestUtils.checkLogins(TestData.loginList());
 
   
   for (let loginInfo of TestData.loginList()) {
@@ -76,7 +76,7 @@ add_task(function test_addLogin_removeLogin()
     Services.logins.removeLogin(loginInfo);
   }
 
-  LoginTest.checkLogins([]);
+  LoginTestUtils.checkLogins([]);
 });
 
 
@@ -179,7 +179,7 @@ add_task(function test_removeAllLogins()
     Services.logins.addLogin(loginInfo);
   }
   Services.logins.removeAllLogins();
-  LoginTest.checkLogins([]);
+  LoginTestUtils.checkLogins([]);
 
   
   Services.logins.removeAllLogins();
@@ -208,25 +208,25 @@ add_task(function test_modifyLogin_nsILoginInfo()
   Services.logins.modifyLogin(loginInfo, updatedLoginInfo);
 
   
-  LoginTest.checkLogins([updatedLoginInfo]);
+  LoginTestUtils.checkLogins([updatedLoginInfo]);
   Assert.throws(() => Services.logins.modifyLogin(loginInfo, updatedLoginInfo),
                 /No matching logins/);
 
   
   Services.logins.modifyLogin(updatedLoginInfo, differentLoginInfo);
-  LoginTest.checkLogins([differentLoginInfo]);
+  LoginTestUtils.checkLogins([differentLoginInfo]);
 
   
   Services.logins.addLogin(loginInfo);
-  LoginTest.checkLogins([loginInfo, differentLoginInfo]);
+  LoginTestUtils.checkLogins([loginInfo, differentLoginInfo]);
 
   
   Assert.throws(
          () => Services.logins.modifyLogin(loginInfo, differentLoginInfo),
          /already exists/);
-  LoginTest.checkLogins([loginInfo, differentLoginInfo]);
+  LoginTestUtils.checkLogins([loginInfo, differentLoginInfo]);
 
-  LoginTest.clearData();
+  LoginTestUtils.clearData();
 });
 
 
@@ -267,7 +267,7 @@ add_task(function test_modifyLogin_nsIProperyBag()
   }));
 
   
-  LoginTest.checkLogins([updatedLoginInfo]);
+  LoginTestUtils.checkLogins([updatedLoginInfo]);
   Assert.throws(() => Services.logins.modifyLogin(loginInfo, newPropertyBag()),
                 /No matching logins/);
 
@@ -281,17 +281,17 @@ add_task(function test_modifyLogin_nsIProperyBag()
 
   
   Services.logins.modifyLogin(updatedLoginInfo, differentLoginProperties);
-  LoginTest.checkLogins([differentLoginInfo]);
+  LoginTestUtils.checkLogins([differentLoginInfo]);
 
   
   Services.logins.addLogin(loginInfo);
-  LoginTest.checkLogins([loginInfo, differentLoginInfo]);
+  LoginTestUtils.checkLogins([loginInfo, differentLoginInfo]);
 
   
   Assert.throws(
          () => Services.logins.modifyLogin(loginInfo, differentLoginProperties),
          /already exists/);
-  LoginTest.checkLogins([loginInfo, differentLoginInfo]);
+  LoginTestUtils.checkLogins([loginInfo, differentLoginInfo]);
 
-  LoginTest.clearData();
+  LoginTestUtils.clearData();
 });

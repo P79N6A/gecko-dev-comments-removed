@@ -32,11 +32,10 @@ const LoginInfo =
                              "nsILoginInfo", "init");
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "LoginTest",
-                                  "resource://testing-common/LoginTestUtils.jsm",
-                                  "LoginTestUtils");
-LoginTest.Assert = Assert;
-const TestData = LoginTest.testData;
+XPCOMUtils.defineLazyModuleGetter(this, "LoginTestUtils",
+                                  "resource://testing-common/LoginTestUtils.jsm");
+LoginTestUtils.Assert = Assert;
+const TestData = LoginTestUtils.testData;
 
 
 
@@ -172,8 +171,8 @@ add_task(function test_common_initialize()
   yield Services.logins.initializationPromise;
 
   
-  LoginTest.clearData();
+  LoginTestUtils.clearData();
 
   
-  do_register_cleanup(() => LoginTest.clearData());
+  do_register_cleanup(() => LoginTestUtils.clearData());
 });

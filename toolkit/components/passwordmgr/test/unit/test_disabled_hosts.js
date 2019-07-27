@@ -26,23 +26,24 @@ add_task(function test_setLoginSavingEnabled_getAllDisabledHosts()
   Services.logins.setLoginSavingEnabled(hostname2, false);
   Services.logins.setLoginSavingEnabled(hostname3, false);
 
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1, hostname2, hostname3]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1, hostname2, hostname3]);
 
   
   Services.logins.setLoginSavingEnabled(hostname2, false);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1, hostname2, hostname3]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1, hostname2, hostname3]);
 
   
   Services.logins.setLoginSavingEnabled(hostname2, true);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1, hostname3]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1, hostname3]);
 
   
   Services.logins.setLoginSavingEnabled(hostname1, true);
   Services.logins.setLoginSavingEnabled(hostname3, true);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), []);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          []);
 });
 
 
@@ -83,7 +84,8 @@ add_task(function test_setLoginSavingEnabled_invalid_characters()
                 /Invalid hostname/);
 
   
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), []);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          []);
 });
 
 
@@ -112,8 +114,8 @@ add_task(function test_rememberSignons()
   do_check_false(Services.logins.getLoginSavingEnabled(hostname2));
 
   
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname1]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname1]);
 
   
   Services.logins.setLoginSavingEnabled(hostname1, true);
@@ -124,8 +126,8 @@ add_task(function test_rememberSignons()
   do_check_false(Services.logins.getLoginSavingEnabled(hostname2));
 
   
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname2]);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname2]);
 
   
   Services.prefs.setBoolPref("signon.rememberSignons", true);
@@ -136,7 +138,8 @@ add_task(function test_rememberSignons()
 
   
   Services.logins.setLoginSavingEnabled(hostname2, true);
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(), []);
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          []);
 });
 
 
@@ -147,8 +150,8 @@ add_task(function test_storage_setLoginSavingEnabled_nonascii()
   let hostname = "http://" + String.fromCharCode(355) + ".example.com";
   Services.logins.setLoginSavingEnabled(hostname, false);
 
-  yield LoginTest.reloadData();
-  LoginTest.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
-                                     [hostname]);
-  LoginTest.clearData();
+  yield LoginTestUtils.reloadData();
+  LoginTestUtils.assertDisabledHostsEqual(Services.logins.getAllDisabledHosts(),
+                                          [hostname]);
+  LoginTestUtils.clearData();
 });
