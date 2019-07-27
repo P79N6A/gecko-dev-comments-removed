@@ -9593,7 +9593,22 @@ nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr,
   
   
   if (NS_SUCCEEDED(rv)) {
-    mPreloadingImages.AppendObject(request);
+    mPreloadingImages.Put(uri, request.forget());
+  }
+}
+
+void
+nsDocument::ForgetImagePreload(nsIURI* aURI)
+{
+  
+  
+  if (mPreloadingImages.Count() != 0) {
+    nsCOMPtr<imgIRequest> req;
+    mPreloadingImages.Remove(aURI, getter_AddRefs(req));
+    if (req) {
+      
+      req->CancelAndForgetObserver(NS_BINDING_ABORTED);
+    }
   }
 }
 

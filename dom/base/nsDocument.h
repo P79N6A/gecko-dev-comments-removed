@@ -1094,6 +1094,7 @@ public:
   virtual void MaybePreLoadImage(nsIURI* uri,
                                  const nsAString &aCrossOriginAttr,
                                  ReferrerPolicy aReferrerPolicy) MOZ_OVERRIDE;
+  virtual void ForgetImagePreload(nsIURI* aURI) MOZ_OVERRIDE;
 
   virtual void PreloadStyle(nsIURI* uri, const nsAString& charset,
                             const nsAString& aCrossOriginAttr,
@@ -1743,7 +1744,10 @@ private:
   nsExternalResourceMap mExternalResourceMap;
 
   
-  nsCOMArray<imgIRequest> mPreloadingImages;
+  
+  
+  
+  nsRefPtrHashtable<nsURIHashKey, imgIRequest> mPreloadingImages;
 
   nsRefPtr<mozilla::dom::DOMImplementation> mDOMImplementation;
 

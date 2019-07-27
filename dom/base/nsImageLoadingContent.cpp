@@ -893,6 +893,11 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
                                  getter_AddRefs(req),
                                  policyType);
 
+  
+  
+  
+  aDocument->ForgetImagePreload(aNewURI);
+
   if (NS_SUCCEEDED(rv)) {
     TrackImage(req);
     ResetAnimationIfNeeded();
