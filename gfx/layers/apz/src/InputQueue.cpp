@@ -39,6 +39,11 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget,
       return ReceiveTouchInput(aTarget, aTargetConfirmed, event, aOutInputBlockId);
     }
 
+    case SCROLLWHEEL_INPUT: {
+      const ScrollWheelInput& event = aEvent.AsScrollWheelInput();
+      return ReceiveScrollWheelInput(aTarget, aTargetConfirmed, event, aOutInputBlockId);
+    }
+
     default:
       
       
@@ -113,6 +118,46 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
     block->AddEvent(aEvent.AsMultiTouchInput());
   }
   return result;
+}
+
+nsEventStatus
+InputQueue::ReceiveScrollWheelInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                    bool aTargetConfirmed,
+                                    const ScrollWheelInput& aEvent,
+                                    uint64_t* aOutInputBlockId) {
+  WheelBlockState* block = nullptr;
+  if (!mInputBlockQueue.IsEmpty()) {
+    block = mInputBlockQueue.LastElement().get()->AsWheelBlock();
+  }
+
+  if (!block) {
+    block = new WheelBlockState(aTarget, aTargetConfirmed);
+    INPQ_LOG("started new scroll wheel block %p for target %p\n", block, aTarget.get());
+
+    SweepDepletedBlocks();
+    mInputBlockQueue.AppendElement(block);
+
+    CancelAnimationsForNewBlock(block);
+    MaybeRequestContentResponse(aTarget, block);
+  } else {
+    INPQ_LOG("received new event in block %p\n", block);
+  }
+
+  if (aOutInputBlockId) {
+    *aOutInputBlockId = block->GetBlockId();
+  }
+
+  
+  
+  
+  
+  nsRefPtr<AsyncPanZoomController> target = block->GetTargetApzc();
+
+  if (!MaybeHandleCurrentBlock(target, block, aEvent)) {
+    block->AddEvent(aEvent.AsScrollWheelInput());
+  }
+
+  return nsEventStatus_eIgnore;
 }
 
 void
