@@ -28,7 +28,7 @@ public:
     virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
                                  bool aComputingSize) override;
     virtual void MarkIntrinsicISizesDirty() override;
-    virtual void ComputeColumnWidths(const nsHTMLReflowState& aReflowState) override;
+    virtual void ComputeColumnISizes(const nsHTMLReflowState& aReflowState) override;
 
 private:
     

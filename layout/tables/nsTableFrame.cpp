@@ -2028,7 +2028,7 @@ nsTableFrame::ReflowTable(nsHTMLReflowMetrics&     aDesiredSize,
   aLastChildReflowed = nullptr;
 
   if (!GetPrevInFlow()) {
-    mTableLayoutStrategy->ComputeColumnWidths(aReflowState);
+    mTableLayoutStrategy->ComputeColumnISizes(aReflowState);
   }
   
   

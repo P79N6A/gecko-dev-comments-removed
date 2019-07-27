@@ -37,7 +37,7 @@ public:
 
 
 
-    virtual void ComputeColumnWidths(const nsHTMLReflowState& aReflowState) = 0;
+    virtual void ComputeColumnISizes(const nsHTMLReflowState& aReflowState) = 0;
 
     
 

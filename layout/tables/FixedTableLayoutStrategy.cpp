@@ -151,7 +151,7 @@ AllocateUnassigned(nscoord aUnassignedSpace, float aShare)
 }
 
  void
-FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowState)
+FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowState)
 {
     nscoord tableWidth = aReflowState.ComputedWidth();
 
