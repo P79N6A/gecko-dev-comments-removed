@@ -17,10 +17,12 @@
 #include "nsIUrlClassifierDBService.h"
 #include "nsIURIClassifier.h"
 #include "nsToolkitCompsCID.h"
-#include "nsICryptoHash.h"
 #include "nsICryptoHMAC.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Mutex.h"
+#include "mozilla/TimeStamp.h"
 
+#include "Entries.h"
 #include "LookupCache.h"
 
 
@@ -32,10 +34,19 @@
 
 #define COMPLETE_LENGTH 32
 
+using namespace mozilla::safebrowsing;
+
 class nsUrlClassifierDBServiceWorker;
-class nsICryptoHash;
 class nsIThread;
 class nsIURI;
+class UrlClassifierDBServiceWorkerProxy;
+namespace mozilla {
+namespace safebrowsing {
+class Classifier;
+class ProtocolParser;
+class TableUpdate;
+}
+}
 
 
 
@@ -91,7 +102,7 @@ private:
   void BuildTables(bool trackingProtectionEnabled, nsCString& tables);
 
   nsRefPtr<nsUrlClassifierDBServiceWorker> mWorker;
-  nsCOMPtr<nsIUrlClassifierDBServiceWorker> mWorkerProxy;
+  nsRefPtr<UrlClassifierDBServiceWorkerProxy> mWorkerProxy;
 
   nsInterfaceHashtable<nsCStringHashKey, nsIUrlClassifierHashCompleter> mCompleters;
 
@@ -121,10 +132,105 @@ private:
 
   
   static nsIThread* gDbBackgroundThread;
+};
+
+class nsUrlClassifierDBServiceWorker MOZ_FINAL :
+  public nsIUrlClassifierDBServiceWorker
+{
+public:
+  nsUrlClassifierDBServiceWorker();
+
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIURLCLASSIFIERDBSERVICE
+  NS_DECL_NSIURLCLASSIFIERDBSERVICEWORKER
+
+  nsresult Init(uint32_t aGethashNoise, nsCOMPtr<nsIFile> aCacheDir);
 
   
   
-  nsCOMPtr<nsICryptoHash> mCryptoHashMain;
+  nsresult QueueLookup(const nsACString& lookupKey,
+                       const nsACString& tables,
+                       nsIUrlClassifierLookupCallback* callback);
+
+  
+  
+  nsresult HandlePendingLookups();
+
+  
+  
+  nsresult DoLocalLookup(const nsACString& spec,
+                         const nsACString& tables,
+                         LookupResultArray* results);
+
+private:
+  
+  ~nsUrlClassifierDBServiceWorker();
+
+  
+  nsUrlClassifierDBServiceWorker(nsUrlClassifierDBServiceWorker&);
+
+  
+  nsresult ApplyUpdate();
+
+  
+  void ResetStream();
+
+  
+  void ResetUpdate();
+
+  
+  nsresult DoLookup(const nsACString& spec,
+                    const nsACString& tables,
+                    nsIUrlClassifierLookupCallback* c);
+
+  nsresult AddNoise(const Prefix aPrefix,
+                    const nsCString tableName,
+                    uint32_t aCount,
+                    LookupResultArray& results);
+
+  
+  nsCOMPtr<nsICryptoHash> mCryptoHash;
+
+  nsAutoPtr<mozilla::safebrowsing::Classifier> mClassifier;
+  
+  nsAutoPtr<ProtocolParser> mProtocolParser;
+
+  
+  nsCOMPtr<nsIFile> mCacheDir;
+
+  
+  
+  nsTArray<mozilla::safebrowsing::TableUpdate*> mTableUpdates;
+
+  int32_t mUpdateWait;
+
+  
+  
+  PrefixArray mMissCache;
+
+  nsresult mUpdateStatus;
+  nsTArray<nsCString> mUpdateTables;
+
+  nsCOMPtr<nsIUrlClassifierUpdateObserver> mUpdateObserver;
+  bool mInStream;
+
+  
+  uint32_t mGethashNoise;
+
+  
+  
+  mozilla::Mutex mPendingLookupLock;
+
+  class PendingLookup {
+  public:
+    mozilla::TimeStamp mStartTime;
+    nsCString mKey;
+    nsCString mTables;
+    nsCOMPtr<nsIUrlClassifierLookupCallback> mCallback;
+  };
+
+  
+  nsTArray<PendingLookup> mPendingLookups;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)

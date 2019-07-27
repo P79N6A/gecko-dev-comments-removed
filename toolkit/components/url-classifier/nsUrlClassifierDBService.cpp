@@ -41,6 +41,9 @@
 #include "prprf.h"
 #include "prnetdb.h"
 #include "Entries.h"
+#include "HashStore.h"
+#include "Classifier.h"
+#include "ProtocolParser.h"
 #include "mozilla/Attributes.h"
 #include "nsIPrincipal.h"
 #include "Classifier.h"
@@ -97,108 +100,6 @@ static bool gShuttingDownThread = false;
 
 static mozilla::Atomic<int32_t> gFreshnessGuarantee(CONFIRM_AGE_DEFAULT_SEC);
 
-
-
-class nsUrlClassifierDBServiceWorker MOZ_FINAL :
-  public nsIUrlClassifierDBServiceWorker
-{
-public:
-  nsUrlClassifierDBServiceWorker();
-
-  NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIURLCLASSIFIERDBSERVICE
-  NS_DECL_NSIURLCLASSIFIERDBSERVICEWORKER
-
-  nsresult Init(uint32_t aGethashNoise, nsCOMPtr<nsIFile> aCacheDir);
-
-  
-  
-  nsresult QueueLookup(const nsACString& lookupKey,
-                       const nsACString& tables,
-                       nsIUrlClassifierLookupCallback* callback);
-
-  
-  
-  nsresult HandlePendingLookups();
-
-  
-  
-  nsresult DoLocalLookup(const nsACString& spec,
-                         const nsACString& tables,
-                         nsICryptoHash* cryptoHash,
-                         LookupResultArray* results);
-
-private:
-  
-  ~nsUrlClassifierDBServiceWorker();
-
-  
-  nsUrlClassifierDBServiceWorker(nsUrlClassifierDBServiceWorker&);
-
-  
-  nsresult ApplyUpdate();
-
-  
-  void ResetStream();
-
-  
-  void ResetUpdate();
-
-  
-  nsresult DoLookup(const nsACString& spec,
-                    const nsACString& tables,
-                    nsIUrlClassifierLookupCallback* c);
-
-  nsresult AddNoise(const Prefix aPrefix,
-                    const nsCString tableName,
-                    uint32_t aCount,
-                    LookupResultArray& results);
-
-  
-  nsCOMPtr<nsICryptoHash> mCryptoHash;
-
-  nsAutoPtr<Classifier> mClassifier;
-  
-  nsAutoPtr<ProtocolParser> mProtocolParser;
-
-  
-  nsCOMPtr<nsIFile> mCacheDir;
-
-  
-  
-  nsTArray<TableUpdate*> mTableUpdates;
-
-  int32_t mUpdateWait;
-
-  
-  
-  PrefixArray mMissCache;
-
-  nsresult mUpdateStatus;
-  nsTArray<nsCString> mUpdateTables;
-
-  nsCOMPtr<nsIUrlClassifierUpdateObserver> mUpdateObserver;
-  bool mInStream;
-
-  
-  uint32_t mGethashNoise;
-
-  
-  
-  Mutex mPendingLookupLock;
-
-  class PendingLookup {
-  public:
-    TimeStamp mStartTime;
-    nsCString mKey;
-    nsCString mTables;
-    nsCOMPtr<nsIUrlClassifierLookupCallback> mCallback;
-  };
-
-  
-  nsTArray<PendingLookup> mPendingLookups;
-};
-
 NS_IMPL_ISUPPORTS(nsUrlClassifierDBServiceWorker,
                   nsIUrlClassifierDBServiceWorker,
                   nsIUrlClassifierDBService)
@@ -250,11 +151,9 @@ nsUrlClassifierDBServiceWorker::QueueLookup(const nsACString& spec,
 nsresult
 nsUrlClassifierDBServiceWorker::DoLocalLookup(const nsACString& spec,
                                               const nsACString& tables,
-                                              nsICryptoHash* cryptoHash,
                                               LookupResultArray* results)
 {
-  LOG(("nsUrlClassifierDBServiceWorker::DoLocalLookup %s (main=%s) %p",
-       spec.Data(), NS_IsMainThread() ? "true" : "false", this));
+  MOZ_ASSERT(!NS_IsMainThread(), "DoLocalLookup must be on background thread");
   if (!results) {
     return NS_ERROR_FAILURE;
   }
@@ -265,7 +164,7 @@ nsUrlClassifierDBServiceWorker::DoLocalLookup(const nsACString& spec,
 
   
   
-  mClassifier->Check(spec, tables, gFreshnessGuarantee, cryptoHash, *results);
+  mClassifier->Check(spec, tables, gFreshnessGuarantee, *results);
 
   LOG(("Found %d results.", results->Length()));
   return NS_OK;
@@ -351,7 +250,7 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  nsresult rv = DoLocalLookup(spec, tables, nullptr, results);
+  nsresult rv = DoLocalLookup(spec, tables, results);
   if (NS_FAILED(rv)) {
     c->LookupComplete(nullptr);
     return rv;
@@ -1223,7 +1122,7 @@ nsUrlClassifierDBService::Init()
 
   
   nsresult rv;
-  mCryptoHashMain = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+  nsCOMPtr<nsICryptoHash> dummy = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1358,8 +1257,7 @@ nsUrlClassifierDBService::ClassifyLocal(nsIPrincipal* aPrincipal,
   }
 
   
-  
-  rv = mWorker->DoLocalLookup(key, tables, mCryptoHashMain, results);
+  rv = mWorkerProxy->DoLocalLookup(key, tables, results);
   if (NS_SUCCEEDED(rv)) {
     rv = ProcessLookupResults(results, mCheckMalware, mCheckPhishing,
                               mCheckTracking);

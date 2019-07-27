@@ -144,9 +144,6 @@ Classifier::Open(nsIFile& aCacheDirectory)
   rv = CreateStoreDirectory();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
   mCryptoHash = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -220,14 +217,8 @@ nsresult
 Classifier::Check(const nsACString& aSpec,
                   const nsACString& aTables,
                   uint32_t aFreshnessGuarantee,
-                  nsICryptoHash* aCryptoHash,
                   LookupResultArray& aResults)
 {
-  nsCOMPtr<nsICryptoHash> cryptoHash = aCryptoHash;
-  if (!aCryptoHash) {
-    MOZ_ASSERT(!NS_IsMainThread(), "mCryptoHash must be used on worker thread");
-    cryptoHash = mCryptoHash;
-  }
   Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_CL_CHECK_TIME> timer;
 
   
@@ -254,11 +245,11 @@ Classifier::Check(const nsACString& aSpec,
   
   for (uint32_t i = 0; i < fragments.Length(); i++) {
     Completion lookupHash;
-    lookupHash.FromPlaintext(fragments[i], cryptoHash);
+    lookupHash.FromPlaintext(fragments[i], mCryptoHash);
 
     
     Completion hostKey;
-    rv = LookupCache::GetKey(fragments[i], &hostKey, cryptoHash);
+    rv = LookupCache::GetKey(fragments[i], &hostKey, mCryptoHash);
     if (NS_FAILED(rv)) {
       
       continue;
