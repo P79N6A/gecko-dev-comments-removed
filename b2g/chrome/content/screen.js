@@ -62,8 +62,8 @@ window.addEventListener('ContentStart', function() {
   
   let args;
   try {
-    
-    args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
+    let service = Cc["@mozilla.org/commandlinehandler/general-startup;1?type=b2gcmds"].getService(Ci.nsISupports);
+    args = service.wrappedJSObject.cmdLine;
   } catch(e) {}
 
   let screenarg = null;

@@ -55,12 +55,16 @@ function checkDebuggerPort() {
   
   
 
-  if (!window.arguments) {
+  
+  let args;
+  try {
+    let service = Cc["@mozilla.org/commandlinehandler/general-startup;1?type=b2gcmds"].getService(Ci.nsISupports);
+    args = service.wrappedJSObject.cmdLine;
+  } catch(e) {}
+
+  if (!args) {
     return;
   }
-
-  
-  let args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
 
   let dbgport;
   try {
