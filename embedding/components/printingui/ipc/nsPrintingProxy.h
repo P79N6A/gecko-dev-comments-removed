@@ -3,19 +3,19 @@
 
 
 
-#ifndef __nsPrintingPromptServiceProxy_h
-#define __nsPrintingPromptServiceProxy_h
+#ifndef __nsPrintingProxy_h
+#define __nsPrintingProxy_h
 
 #include "nsIPrintingPromptService.h"
 #include "mozilla/embedding/PPrintingChild.h"
 
-class nsPrintingPromptServiceProxy: public nsIPrintingPromptService,
-                                    public mozilla::embedding::PPrintingChild
+class nsPrintingProxy: public nsIPrintingPromptService,
+                       public mozilla::embedding::PPrintingChild
 {
-    virtual ~nsPrintingPromptServiceProxy();
+    virtual ~nsPrintingProxy();
 
 public:
-    nsPrintingPromptServiceProxy();
+    nsPrintingProxy();
 
     nsresult Init();
 
