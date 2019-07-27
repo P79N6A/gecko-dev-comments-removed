@@ -84,7 +84,9 @@ struct DeserializedNode {
 
   
   
-  virtual DeserializedNode& getEdgeReferent(const DeserializedEdge& edge);
+  virtual JS::ubi::Node getEdgeReferent(const DeserializedEdge& edge);
+
+  struct HashPolicy;
 
 protected:
   
@@ -98,6 +100,25 @@ private:
 
   DeserializedNode(const DeserializedNode&) = delete;
   DeserializedNode& operator=(const DeserializedNode&) = delete;
+};
+
+struct DeserializedNode::HashPolicy
+{
+  using Lookup = NodeId;
+
+  static js::HashNumber hash(const Lookup& lookup) {
+    
+    
+    
+    
+    
+    uint64_t id = lookup >> 3;
+    return js::HashNumber((id >> 32) ^ id);
+  }
+
+  static bool match(const DeserializedNode& existing, const Lookup& lookup) {
+    return existing.id == lookup;
+  }
 };
 
 } 

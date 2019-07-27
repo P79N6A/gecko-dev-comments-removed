@@ -122,13 +122,20 @@ DeserializedNode::DeserializedNode(NodeId id, const char16_t* typeName, uint64_t
   , owner(nullptr)
 { }
 
-DeserializedNode&
+JS::ubi::Node
 DeserializedNode::getEdgeReferent(const DeserializedEdge& edge)
 {
   assertInitialized();
   auto ptr = owner->nodes.lookup(edge.referent);
   MOZ_ASSERT(ptr);
-  return ptr->value();
+
+  
+  
+  
+  
+  
+  
+  return JS::ubi::Node(const_cast<DeserializedNode*>(&*ptr));
 }
 
 } 
@@ -187,8 +194,8 @@ public:
           return false;
       }
 
-      DeserializedNode& referent = node.getEdgeReferent(*edgep);
-      edges.infallibleAppend(mozilla::Move(SimpleEdge(name, Node(&referent))));
+      auto referent = node.getEdgeReferent(*edgep);
+      edges.infallibleAppend(mozilla::Move(SimpleEdge(name, referent)));
     }
 
     settle();
