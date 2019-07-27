@@ -91,11 +91,14 @@ GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAn
 
 void
 ClientTiledPaintedLayer::GetAncestorLayers(LayerMetricsWrapper* aOutScrollAncestor,
-                                          LayerMetricsWrapper* aOutDisplayPortAncestor)
+                                           LayerMetricsWrapper* aOutDisplayPortAncestor,
+                                           bool* aOutHasTransformAnimation)
 {
   LayerMetricsWrapper scrollAncestor;
   LayerMetricsWrapper displayPortAncestor;
+  bool hasTransformAnimation = false;
   for (LayerMetricsWrapper ancestor(this, LayerMetricsWrapper::StartAt::BOTTOM); ancestor; ancestor = ancestor.GetParent()) {
+    hasTransformAnimation |= ancestor.HasTransformAnimation();
     const FrameMetrics& metrics = ancestor.Metrics();
     if (!scrollAncestor && metrics.GetScrollId() != FrameMetrics::NULL_SCROLL_ID) {
       scrollAncestor = ancestor;
@@ -112,6 +115,9 @@ ClientTiledPaintedLayer::GetAncestorLayers(LayerMetricsWrapper* aOutScrollAncest
   }
   if (aOutDisplayPortAncestor) {
     *aOutDisplayPortAncestor = displayPortAncestor;
+  }
+  if (aOutHasTransformAnimation) {
+    *aOutHasTransformAnimation = hasTransformAnimation;
   }
 }
 
@@ -134,7 +140,8 @@ ClientTiledPaintedLayer::BeginPaint()
   
   LayerMetricsWrapper scrollAncestor;
   LayerMetricsWrapper displayPortAncestor;
-  GetAncestorLayers(&scrollAncestor, &displayPortAncestor);
+  bool hasTransformAnimation;
+  GetAncestorLayers(&scrollAncestor, &displayPortAncestor, &hasTransformAnimation);
 
   if (!displayPortAncestor || !scrollAncestor) {
     
@@ -146,8 +153,8 @@ ClientTiledPaintedLayer::BeginPaint()
     return;
   }
 
-  TILING_LOG("TILING %p: Found scrollAncestor %p and displayPortAncestor %p\n", this,
-    scrollAncestor.GetLayer(), displayPortAncestor.GetLayer());
+  TILING_LOG("TILING %p: Found scrollAncestor %p, displayPortAncestor %p, transform %d\n", this,
+    scrollAncestor.GetLayer(), displayPortAncestor.GetLayer(), hasTransformAnimation);
 
   const FrameMetrics& scrollMetrics = scrollAncestor.Metrics();
   const FrameMetrics& displayportMetrics = displayPortAncestor.Metrics();
@@ -160,11 +167,16 @@ ClientTiledPaintedLayer::BeginPaint()
 
   
   
-  ParentLayerRect criticalDisplayPort =
-    (displayportMetrics.GetCriticalDisplayPort() * displayportMetrics.GetZoom())
-    + displayportMetrics.mCompositionBounds.TopLeft();
-  mPaintData.mCriticalDisplayPort = RoundedOut(
-    ApplyParentLayerToLayerTransform(transformDisplayPortToLayer, criticalDisplayPort));
+  
+  
+  
+  if (!hasTransformAnimation) {
+    ParentLayerRect criticalDisplayPort =
+      (displayportMetrics.GetCriticalDisplayPort() * displayportMetrics.GetZoom())
+      + displayportMetrics.mCompositionBounds.TopLeft();
+    mPaintData.mCriticalDisplayPort = RoundedOut(
+      ApplyParentLayerToLayerTransform(transformDisplayPortToLayer, criticalDisplayPort));
+  }
   TILING_LOG("TILING %p: Critical displayport %s\n", this, Stringify(mPaintData.mCriticalDisplayPort).c_str());
 
   
@@ -219,17 +231,24 @@ ClientTiledPaintedLayer::IsScrollingOnCompositor(const FrameMetrics& aParentMetr
 bool
 ClientTiledPaintedLayer::UseFastPath()
 {
+  LayerMetricsWrapper scrollAncestor;
+  bool hasTransformAnimation;
+  GetAncestorLayers(&scrollAncestor, nullptr, &hasTransformAnimation);
+  
+  
+  
+  
+  
+  if (!scrollAncestor || hasTransformAnimation) {
+    return true;
+  }
+
   
   
   if (gfxPrefs::UseLowPrecisionBuffer()) {
     return false;
   }
 
-  LayerMetricsWrapper scrollAncestor;
-  GetAncestorLayers(&scrollAncestor, nullptr);
-  if (!scrollAncestor) {
-    return true;
-  }
   const FrameMetrics& parentMetrics = scrollAncestor.Metrics();
 
   bool multipleTransactionsNeeded = gfxPlatform::GetPlatform()->UseProgressivePaint()
