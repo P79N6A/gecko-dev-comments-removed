@@ -17,6 +17,7 @@
 #include "GeneratedJNIWrappers.h"
 #include "SurfaceTexture.h"
 #include "GLContext.h"
+#include "mozilla/Preferences.h"
 
 using namespace mozilla;
 using namespace mozilla::jni;
@@ -131,9 +132,12 @@ AndroidSurfaceTexture::UpdateCanDetach()
   
   
   
+  bool canDetach = Preferences::GetBool("gfx.SurfaceTexture.detach.enabled", true);
+
   mCanDetach = AndroidBridge::Bridge()->GetAPIVersion() >= 16 &&
     (!mAttachedContext || mAttachedContext->Vendor() != GLVendor::Imagination) &&
-    (!mAttachedContext || mAttachedContext->Vendor() != GLVendor::ARM );
+    (!mAttachedContext || mAttachedContext->Vendor() != GLVendor::ARM ) &&
+    canDetach;
 }
 
 bool
