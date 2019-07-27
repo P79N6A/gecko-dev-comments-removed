@@ -407,26 +407,25 @@ SearchWithinAVA(Reader& rdn,
     return Success;
   }
 
-  switch (referenceIDType)
-  {
-    case GeneralNameType::dNSName:
-      foundMatch = PresentedDNSIDMatchesReferenceDNSID(presentedID,
-                                                       referenceID);
-      break;
-    case GeneralNameType::iPAddress:
-    {
-      
-      
-      assert(referenceID.GetLength() == 4);
-      uint8_t ipv4[4];
-      foundMatch = ParseIPv4Address(presentedID, ipv4) &&
-                   InputsAreEqual(Input(ipv4), referenceID);
-      break;
-    }
-    default:
-      return NotReached("unexpected referenceIDType in SearchWithinAVA",
-                        Result::FATAL_ERROR_INVALID_ARGS);
+  if (referenceIDType == GeneralNameType::dNSName) {
+    return MatchPresentedIDWithReferenceID(GeneralNameType::dNSName,
+                                           presentedID, referenceID,
+                                           foundMatch);
   }
+
+  
+  
+  
+  if (referenceIDType == GeneralNameType::iPAddress) {
+    uint8_t ipv4[4];
+    if (ParseIPv4Address(presentedID, ipv4)) {
+      return MatchPresentedIDWithReferenceID(GeneralNameType::iPAddress,
+                                             Input(ipv4), referenceID,
+                                             foundMatch);
+    }
+  }
+
+  
 
   return Success;
 }
