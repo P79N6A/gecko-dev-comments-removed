@@ -2,9 +2,14 @@
 
 
 
+
+#include "nsTableCellFrame.h"
+
+#include "gfxUtils.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Helpers.h"
 #include "nsTableFrame.h"
 #include "nsTableColFrame.h"
-#include "nsTableCellFrame.h"
 #include "nsTableRowFrame.h"
 #include "nsTableRowGroupFrame.h"
 #include "nsTablePainter.h"
@@ -34,7 +39,7 @@
 #include "mozilla/LookAndFeel.h"
 
 using namespace mozilla;
-
+using namespace mozilla::gfx;
 
 nsTableCellFrame::nsTableCellFrame(nsStyleContext* aContext) :
   nsContainerFrame(aContext)
@@ -318,14 +323,15 @@ nsTableCellFrame::DecorateForSelection(nsRenderingContext& aRenderingContext,
         bordercolor = EnsureDifferentColors(bordercolor,
                                             StyleBackground()->mBackgroundColor);
 
-        gfxContext* ctx = aRenderingContext.ThebesContext();
+        int32_t appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
+        Point devPixelOffset = NSPointToPoint(aPt, appUnitsPerDevPixel);
 
-        gfxPoint devPixelOffset =
-          nsLayoutUtils::PointToGfxPoint(aPt,
-                                         PresContext()->AppUnitsPerDevPixel());
+        DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+        AutoRestoreTransform autoRestoreTransform(drawTarget);
+        drawTarget->SetTransform(
+          drawTarget->GetTransform().PreTranslate(devPixelOffset));
 
-        gfxContextMatrixAutoSaveRestore autoSR(ctx);
-        ctx->SetMatrix(ctx->CurrentMatrix().Translate(devPixelOffset));
+        ColorPattern color(ToDeviceColor(bordercolor));
 
         nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
 
@@ -335,8 +341,9 @@ nsTableCellFrame::DecorateForSelection(nsRenderingContext& aRenderingContext,
         aRenderingContext.DrawLine(onePixel, mRect.height, mRect.width, mRect.height);
         aRenderingContext.DrawLine(mRect.width, onePixel, mRect.width, mRect.height);
         
-        aRenderingContext.DrawRect(onePixel, onePixel, mRect.width-onePixel,
-                                   mRect.height-onePixel);
+        nsRect r(onePixel, onePixel,
+                 mRect.width - onePixel, mRect.height - onePixel);
+        drawTarget->StrokeRect(NSRectToRect(r, appUnitsPerDevPixel), color);
         
         aRenderingContext.DrawLine(2*onePixel, mRect.height-2*onePixel,
                                    mRect.width-onePixel, mRect.height- (2*onePixel));
