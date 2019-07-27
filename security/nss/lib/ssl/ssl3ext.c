@@ -625,8 +625,8 @@ ssl3_SelectAppProtocol(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 
     rv = ssl3_ValidateNextProtoNego(data->data, data->len);
     if (rv != SECSuccess) {
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         return rv;
     }
 
@@ -653,8 +653,8 @@ ssl3_SelectAppProtocol(sslSocket *ss, PRUint16 ex_type, SECItem *data)
         ss->ssl3.nextProtoState != SSL_NEXT_PROTO_NEGOTIATED) {
         
 
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_NO_PROTOCOL);
         (void)SSL3_SendAlert(ss, alert_fatal, no_application_protocol);
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_NO_PROTOCOL);
         return SECFailure;
     }
 
@@ -673,8 +673,8 @@ ssl3_ServerHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 
     if (ss->firstHsDone || data->len == 0) {
         
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         return SECFailure;
     }
 
@@ -701,8 +701,8 @@ ssl3_ServerHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
         rv = ssl3_RegisterServerHelloExtensionSender(
             ss, ex_type, ssl3_ServerSendAppProtoXtn);
         if (rv != SECSuccess) {
-            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             return rv;
         }
     }
@@ -722,8 +722,8 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
 
 
 
-        PORT_SetError(SSL_ERROR_BAD_SERVER);
         (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_BAD_SERVER);
         return SECFailure;
     }
 
@@ -733,8 +733,8 @@ ssl3_ClientHandleNextProtoNegoXtn(sslSocket *ss, PRUint16 ex_type,
 
     if (!ss->nextProtoCallback) {
         PORT_Assert(0);
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_NO_CALLBACK);
         (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_NO_CALLBACK);
         return SECFailure;
     }
 
@@ -758,16 +758,16 @@ ssl3_ClientHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 
 
     if (data->len < 4 || data->len > 2 + 1 + 255) {
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         return SECFailure;
     }
 
     list_len = ssl3_ConsumeHandshakeNumber(ss, 2, &data->data, &data->len);
     
     if (list_len != data->len) {
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         return SECFailure;
     }
 
@@ -775,8 +775,8 @@ ssl3_ClientHandleAppProtoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
                                        &data->data, &data->len);
     
     if (rv != SECSuccess || data->len != 0) {
-        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_NEXT_PROTOCOL_DATA_INVALID);
         return SECFailure;
     }
 
@@ -2063,8 +2063,8 @@ ssl3_HandleRenegotiationInfoXtn(sslSocket *ss, PRUint16 ex_type, SECItem *data)
     }
     if (len && NSS_SecureMemcmp(ss->ssl3.hs.finishedMsgs.data,
                                 data->data + 1, len)) {
-        PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
         (void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
+        PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
         return SECFailure;
     }
     
@@ -2188,8 +2188,8 @@ ssl3_ClientHandleUseSRTPXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
     }
 
     if (!found) {
-        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
         (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
         return SECFailure;
     }
 
@@ -2202,8 +2202,8 @@ ssl3_ClientHandleUseSRTPXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 
     
     if (litem.len != 0) {
-        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
         (void)SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_SERVER_HELLO);
         return SECFailure;
     }
 
@@ -2313,8 +2313,8 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
     }
     
     if (data->len != 0 || algorithms.len == 0 || (algorithms.len & 1) != 0) {
-        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
         (void)SSL3_SendAlert(ss, alert_fatal, decode_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
         return SECFailure;
     }
 
@@ -2328,8 +2328,8 @@ ssl3_ServerHandleSigAlgsXtn(sslSocket * ss, PRUint16 ex_type, SECItem *data)
     ss->ssl3.hs.clientSigAndHash =
             PORT_NewArray(SSL3SignatureAndHashAlgorithm, numAlgorithms);
     if (!ss->ssl3.hs.clientSigAndHash) {
-        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
         (void)SSL3_SendAlert(ss, alert_fatal, internal_error);
+        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
         return SECFailure;
     }
     ss->ssl3.hs.numClientSigAndHash = 0;

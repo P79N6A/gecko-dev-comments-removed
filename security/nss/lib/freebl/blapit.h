@@ -138,10 +138,13 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
 
 
 
-#define RSA_MIN_MODULUS_BITS   128
+#define RSA_MIN_MODULUS_BITS   512
 #define RSA_MAX_MODULUS_BITS 16384
 #define RSA_MAX_EXPONENT_BITS   64
-#define DH_MIN_P_BITS	       128
+
+
+
+#define DH_MIN_P_BITS	      1023
 #define DH_MAX_P_BITS        16384
 
 
@@ -181,7 +184,7 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
 
 #define DSA1_Q_BITS      160
 #define DSA_MAX_P_BITS	3072
-#define DSA_MIN_P_BITS	 512
+#define DSA_MIN_P_BITS  1023
 #define DSA_MAX_Q_BITS   256
 #define DSA_MIN_Q_BITS   160
 

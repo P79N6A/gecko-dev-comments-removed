@@ -178,8 +178,8 @@ SECKEY_CreateDHPrivateKey(SECKEYDHParams *param, SECKEYPublicKey **pubk, void *c
     PK11SlotInfo *slot;
 
     if (!param || !param->base.data || !param->prime.data ||
-        param->prime.len < 512/8 || param->base.len == 0 || 
-        param->base.len > param->prime.len + 1 || 
+        SECKEY_BigIntegerBitLength(&param->prime) < DH_MIN_P_BITS ||
+        param->base.len == 0 || param->base.len > param->prime.len + 1 ||
 	(param->base.len == 1 && param->base.data[0] == 0)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return NULL;
@@ -943,59 +943,74 @@ SECKEY_ECParamsToBasePointOrderLen(const SECItem *encodedParams)
 
 
 unsigned
+SECKEY_BigIntegerBitLength(const SECItem *number)
+{
+    const unsigned char *p;
+    unsigned octets;
+    unsigned bits;
+
+    if (!number || !number->data) {
+        PORT_SetError(SEC_ERROR_INVALID_KEY);
+        return 0;
+    }
+
+    p = number->data;
+    octets = number->len;
+    while (octets > 0 && !*p) {
+        ++p;
+        --octets;
+    }
+    if (octets == 0) {
+        return 0;
+    }
+    
+    
+
+    for (bits = 7; bits > 0; --bits) {
+        if (*p & (1 << bits)) {
+            break;
+        }
+    }
+    return octets * 8 + bits - 7;
+}
+
+
+unsigned
 SECKEY_PublicKeyStrength(const SECKEYPublicKey *pubk)
 {
-    unsigned char b0;
-    unsigned size;
-
-    
-    if (!pubk)
-    	goto loser;
-    switch (pubk->keyType) {
-    case rsaKey:
-	if (!pubk->u.rsa.modulus.data) break;
-    	b0 = pubk->u.rsa.modulus.data[0];
-    	return b0 ? pubk->u.rsa.modulus.len : pubk->u.rsa.modulus.len - 1;
-    case dsaKey:
-	if (!pubk->u.dsa.publicValue.data) break;
-    	b0 = pubk->u.dsa.publicValue.data[0];
-    	return b0 ? pubk->u.dsa.publicValue.len :
-	    pubk->u.dsa.publicValue.len - 1;
-    case dhKey:
-	if (!pubk->u.dh.publicValue.data) break;
-    	b0 = pubk->u.dh.publicValue.data[0];
-    	return b0 ? pubk->u.dh.publicValue.len :
-	    pubk->u.dh.publicValue.len - 1;
-    case ecKey:
-	
-	size =	SECKEY_ECParamsToKeySize(&pubk->u.ec.DEREncodedParams);
-	return (size + 7)/8;
-    default:
-	break;
-    }
-loser:
-    PORT_SetError(SEC_ERROR_INVALID_KEY);
-    return 0;
+    return (SECKEY_PublicKeyStrengthInBits(pubk) + 7) / 8;
 }
 
 
 unsigned
 SECKEY_PublicKeyStrengthInBits(const SECKEYPublicKey *pubk)
 {
-    unsigned size;
+    unsigned bitSize = 0;
+
+    if (!pubk) {
+        PORT_SetError(SEC_ERROR_INVALID_KEY);
+        return 0;
+    }
+
+    
     switch (pubk->keyType) {
     case rsaKey:
+        bitSize = SECKEY_BigIntegerBitLength(&pubk->u.rsa.modulus);
+        break;
     case dsaKey:
+        bitSize = SECKEY_BigIntegerBitLength(&pubk->u.dsa.publicValue);
+        break;
     case dhKey:
-	return SECKEY_PublicKeyStrength(pubk) * 8; 
+        bitSize = SECKEY_BigIntegerBitLength(&pubk->u.dh.publicValue);
+        break;
     case ecKey:
-	size = SECKEY_ECParamsToKeySize(&pubk->u.ec.DEREncodedParams);
-	return size;
+        bitSize = SECKEY_ECParamsToKeySize(&pubk->u.ec.DEREncodedParams);
+        break;
     default:
-	break;
+        PORT_SetError(SEC_ERROR_INVALID_KEY);
+        break;
     }
-    PORT_SetError(SEC_ERROR_INVALID_KEY);
-    return 0;
+    return bitSize;
 }
 
 
