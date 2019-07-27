@@ -104,39 +104,6 @@ nsNSSDialogs::SetPassword(nsIInterfaceRequestor *ctx,
   return rv;
 }
 
-nsresult
-nsNSSDialogs::GetPassword(nsIInterfaceRequestor *ctx,
-                          const char16_t *tokenName, 
-                          char16_t **_password,
-                          bool* _canceled)
-{
-  nsresult rv;
-  *_canceled = false;
-  
-  nsCOMPtr<nsIDOMWindow> parent = do_GetInterface(ctx);
-  nsCOMPtr<nsIDialogParamBlock> block = 
-           do_CreateInstance(NS_DIALOGPARAMBLOCK_CONTRACTID);
-  if (!block) return NS_ERROR_FAILURE;
-  
-  rv = block->SetString(1, tokenName);
-  if (NS_FAILED(rv)) return rv;
-  
-  rv = nsNSSDialogHelper::openDialog(parent,
-                                     "chrome://pippki/content/getpassword.xul",
-                                     block);
-  if (NS_FAILED(rv)) return rv;
-  
-  int32_t status;
-  rv = block->GetInt(1, &status);
-  if (NS_FAILED(rv)) return rv;
-  *_canceled = (status == 0) ? true : false;
-  if (!*_canceled) {
-    
-    rv = block->GetString(2, _password);
-  }
-  return rv;
-}
-
 NS_IMETHODIMP 
 nsNSSDialogs::ConfirmDownloadCACert(nsIInterfaceRequestor *ctx, 
                                     nsIX509Cert *cert,
