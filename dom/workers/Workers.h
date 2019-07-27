@@ -213,7 +213,7 @@ class WorkerCrossThreadDispatcher
 
 private:
   
-  WorkerCrossThreadDispatcher(WorkerPrivate* aWorkerPrivate);
+  explicit WorkerCrossThreadDispatcher(WorkerPrivate* aWorkerPrivate);
 
   
   void

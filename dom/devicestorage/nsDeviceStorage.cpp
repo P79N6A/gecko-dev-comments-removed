@@ -1081,8 +1081,8 @@ DeviceStorageFile::CreateFileDescriptor(FileDescriptor& aFileDescriptor)
   
   
   
-  aFileDescriptor =
-    FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(fd));
+  aFileDescriptor = FileDescriptor(
+    FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(fd)));
   return NS_OK;
 }
 

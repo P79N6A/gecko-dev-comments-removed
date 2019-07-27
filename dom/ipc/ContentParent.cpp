@@ -3745,7 +3745,7 @@ ContentParent::RecvOpenAnonymousTemporaryFile(FileDescriptor *aFD)
     if (NS_WARN_IF(NS_FAILED(rv))) {
         return false;
     }
-    *aFD = FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(prfd));
+    *aFD = FileDescriptor(FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(prfd)));
     
     
     PR_Close(prfd);
