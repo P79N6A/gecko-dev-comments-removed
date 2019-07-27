@@ -944,6 +944,7 @@ var gBrowserInit = {
     DevEdition.init();
 
     let mm = window.getGroupMessageManager("browsers");
+    mm.loadFrameScript("chrome://browser/content/tab-content.js", true);
     mm.loadFrameScript("chrome://browser/content/content.js", true);
     mm.loadFrameScript("chrome://browser/content/content-UITour.js", true);
 
@@ -6161,13 +6162,20 @@ var IndexedDBPromptHelper = {
 
     var requestor = subject.QueryInterface(Ci.nsIInterfaceRequestor);
 
-    var browser = requestor.getInterface(Ci.nsIDOMNode);
-    if (browser.ownerDocument.defaultView != window) {
+    var contentWindow = requestor.getInterface(Ci.nsIDOMWindow);
+    var contentDocument = contentWindow.document;
+    var browserWindow =
+      OfflineApps._getBrowserWindowForContentWindow(contentWindow);
+
+    if (browserWindow != window) {
       
       return;
     }
 
-    var host = browser.currentURI.asciiHost;
+    var browser =
+      OfflineApps._getBrowserForContentWindow(browserWindow, contentWindow);
+
+    var host = contentDocument.documentURIObject.asciiHost;
 
     var message;
     var responseTopic;
@@ -7294,14 +7302,6 @@ let gRemoteTabsUI = {
       
       return;
     }
-
-#ifdef XP_MACOSX
-    if (Services.prefs.getBoolPref("layers.acceleration.disabled")) {
-      
-      
-      return;
-    }
-#endif
 
     let newRemoteWindow = document.getElementById("menu_newRemoteWindow");
     let newNonRemoteWindow = document.getElementById("menu_newNonRemoteWindow");
