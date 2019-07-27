@@ -10,6 +10,8 @@
 
 
 
+
+
 namespace TestPLDHash {
 
 static bool test_pldhash_Init_capacity_ok()
@@ -24,18 +26,10 @@ static bool test_pldhash_Init_capacity_ok()
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
-                    PL_DHASH_MAX_INITIAL_LENGTH);
+  if (!PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
+                         mozilla::fallible, PL_DHASH_MAX_INITIAL_LENGTH)) {
+    return false;
+  }
 
   
   if (!t.IsInitialized()) {
@@ -51,63 +45,63 @@ static bool test_pldhash_Init_capacity_ok()
   return true;
 }
 
-static bool test_pldhash_lazy_storage()
+static bool test_pldhash_Init_capacity_too_large()
 {
   PLDHashTable t;
-  PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(PLDHashEntryStub));
 
   
+  if (t.IsInitialized()) {
+    return false;
+  }
+
   
-  
-
-  if (!t.IsInitialized()) {
-    return false;
-  }
-
-  if (t.Capacity() != 0) {
-    return false;
-  }
-
-  if (t.EntrySize() != sizeof(PLDHashEntryStub)) {
-    return false;
-  }
-
-  if (t.EntryCount() != 0) {
-    return false;
-  }
-
-  if (t.Generation() != 0) {
-    return false;
-  }
-
-  if (PL_DHashTableSearch(&t, (const void*)1)) {
+  if (PL_DHashTableInit(&t, PL_DHashGetStubOps(),
+                        sizeof(PLDHashEntryStub),
+                        mozilla::fallible,
+                        PL_DHASH_MAX_INITIAL_LENGTH + 1)) {
     return false;   
   }
+  
 
   
-  PL_DHashTableRemove(&t, (const void*)2);
+  if (t.IsInitialized()) {
+    return false;
+  }
+
+  return true;
+}
+
+static bool test_pldhash_Init_overflow()
+{
+  PLDHashTable t;
+
+  
+  if (t.IsInitialized()) {
+    return false;
+  }
 
   
   
-  PLDHashEnumerator enumerator = nullptr;
-  if (PL_DHashTableEnumerate(&t, enumerator, nullptr) != 0) {
+  
+  
+  
+  
+
+  struct OneKBEntry {
+      PLDHashEntryHdr hdr;
+      char buf[1024 - sizeof(PLDHashEntryHdr)];
+  };
+
+  if (PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(OneKBEntry),
+                        mozilla::fallible, PL_DHASH_MAX_INITIAL_LENGTH)) {
     return false;   
   }
-
-  for (PLDHashTable::Iterator iter = t.Iterate();
-       iter.HasMoreEntries();
-       iter.NextEntry()) {
-    return false; 
-  }
+  
 
   
-  
-  mozilla::MallocSizeOf mallocSizeOf = nullptr;
-  if (PL_DHashTableSizeOfExcludingThis(&t, nullptr, mallocSizeOf) != 0) {
-    return false;   
+  if (t.IsInitialized()) {
+    return false;
   }
-
-  PL_DHashTableFinish(&t);
 
   return true;
 }
@@ -133,13 +127,18 @@ static bool test_pldhash_grow_to_max_capacity()
     nullptr
   };
 
-  PLDHashTable t;
-  PL_DHashTableInit(&t, &ops, sizeof(PLDHashEntryStub), 128);
+  
+  PLDHashTable* t = PL_NewDHashTable(&ops, sizeof(PLDHashEntryStub), 128);
+
+  
+  if (!t->IsInitialized()) {
+    return false;
+  }
 
   
   size_t numInserted = 0;
   while (true) {
-    if (!PL_DHashTableAdd(&t, (const void*)numInserted, mozilla::fallible)) {
+    if (!PL_DHashTableAdd(t, (const void*)numInserted)) {
       break;
     }
     numInserted++;
@@ -151,7 +150,7 @@ static bool test_pldhash_grow_to_max_capacity()
     return false;
   }
 
-  PL_DHashTableFinish(&t);
+  PL_DHashTableDestroy(t);
 
   return true;
 }
@@ -167,7 +166,8 @@ static const struct Test {
   TestFunc    func;
 } tests[] = {
   DECL_TEST(test_pldhash_Init_capacity_ok),
-  DECL_TEST(test_pldhash_lazy_storage),
+  DECL_TEST(test_pldhash_Init_capacity_too_large),
+  DECL_TEST(test_pldhash_Init_overflow),
 
 #ifndef MOZ_WIDGET_ANDROID
   DECL_TEST(test_pldhash_grow_to_max_capacity),

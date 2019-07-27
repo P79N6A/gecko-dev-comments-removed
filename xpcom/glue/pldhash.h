@@ -156,9 +156,6 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 
 
-
-
-
 class PLDHashTable
 {
 private:
@@ -179,6 +176,7 @@ private:
   uint32_t            mRemovedCount;  
   uint32_t            mGeneration;    
   char*               mEntryStore;    
+
 #ifdef PL_DHASHMETER
   struct PLDHashStats
   {
@@ -233,19 +231,20 @@ public:
 
   uint32_t Capacity() const
   {
-    return mEntryStore ? CapacityFromHashShift() : 0;
+    return ((uint32_t)1 << (PL_DHASH_BITS - mHashShift));
   }
 
   uint32_t EntrySize()  const { return mEntrySize; }
   uint32_t EntryCount() const { return mEntryCount; }
   uint32_t Generation() const { return mGeneration; }
 
-  void Init(const PLDHashTableOps* aOps, uint32_t aEntrySize, uint32_t aLength);
+  bool Init(const PLDHashTableOps* aOps, uint32_t aEntrySize,
+            const mozilla::fallible_t&, uint32_t aLength);
 
   void Finish();
 
   PLDHashEntryHdr* Search(const void* aKey);
-  PLDHashEntryHdr* Add(const void* aKey, const mozilla::fallible_t&);
+  PLDHashEntryHdr* Add(const void* aKey);
   void Remove(const void* aKey);
 
   void RawRemove(PLDHashEntryHdr* aEntry);
@@ -297,13 +296,6 @@ public:
 
 private:
   static bool EntryIsFree(PLDHashEntryHdr* aEntry);
-
-  
-  
-  uint32_t CapacityFromHashShift() const
-  {
-    return ((uint32_t)1 << (PL_DHASH_BITS - mHashShift));
-  }
 
   PLDHashNumber ComputeKeyHash(const void* aKey);
 
@@ -437,6 +429,19 @@ const PLDHashTableOps* PL_DHashGetStubOps(void);
 
 
 
+PLDHashTable* PL_NewDHashTable(
+  const PLDHashTableOps* aOps, uint32_t aEntrySize,
+  uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+
+
+
+
+
+
+void PL_DHashTableDestroy(PLDHashTable* aTable);
+
+
+
 
 
 
@@ -446,6 +451,16 @@ const PLDHashTableOps* PL_DHashGetStubOps(void);
 void PL_DHashTableInit(
   PLDHashTable* aTable, const PLDHashTableOps* aOps,
   uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+
+
+
+
+
+MOZ_WARN_UNUSED_RESULT bool PL_DHashTableInit(
+  PLDHashTable* aTable, const PLDHashTableOps* aOps,
+  uint32_t aEntrySize, const mozilla::fallible_t&,
+  uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+
 
 
 
@@ -475,14 +490,6 @@ PL_DHashTableSearch(PLDHashTable* aTable, const void* aKey);
 
 
 
-
-
-
-
-
-PLDHashEntryHdr* PL_DHASH_FASTCALL
-PL_DHashTableAdd(PLDHashTable* aTable, const void* aKey,
-                 const mozilla::fallible_t&);
 
 
 
