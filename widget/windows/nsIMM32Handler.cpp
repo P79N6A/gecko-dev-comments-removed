@@ -2001,7 +2001,8 @@ nsIMM32Handler::SetIMERelatedWindowsPos(nsWindow* aWindow,
   nsIntRect r;
   
   
-  bool ret = GetCharacterRectOfSelectedTextAt(aWindow, 0, r);
+  WritingMode writingMode;
+  bool ret = GetCharacterRectOfSelectedTextAt(aWindow, 0, r, &writingMode);
   NS_ENSURE_TRUE(ret, false);
   nsWindow* toplevelWindow = aWindow->GetTopLevelWindow(false);
   nsIntRect firstSelectedCharRect;
@@ -2032,37 +2033,93 @@ nsIMM32Handler::SetIMERelatedWindowsPos(nsWindow* aWindow,
       ("IMM32: SetIMERelatedWindowsPos, Set candidate window\n"));
 
     
+    nsIntRect firstTargetCharRect, lastTargetCharRect;
     if (mIsComposing && !mCompositionString.IsEmpty()) {
       
       
-      uint32_t offset;
-      if (!GetTargetClauseRange(&offset)) {
+      uint32_t offset, length;
+      if (!GetTargetClauseRange(&offset, &length)) {
         PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
           ("IMM32: SetIMERelatedWindowsPos, FAILED, by GetTargetClauseRange\n"));
         return false;
       }
       ret = GetCharacterRectOfSelectedTextAt(aWindow,
-                                             offset - mCompositionStart, r);
+                                             offset - mCompositionStart,
+                                             firstTargetCharRect, &writingMode);
       NS_ENSURE_TRUE(ret, false);
+      if (length) {
+        ret = GetCharacterRectOfSelectedTextAt(aWindow,
+                offset + length - 1 - mCompositionStart, lastTargetCharRect);
+        NS_ENSURE_TRUE(ret, false);
+      } else {
+        lastTargetCharRect = firstTargetCharRect;
+      }
     } else {
       
       
-      ret = GetCharacterRectOfSelectedTextAt(aWindow, 0, r);
+      ret = GetCharacterRectOfSelectedTextAt(aWindow, 0,
+                                             firstTargetCharRect, &writingMode);
       NS_ENSURE_TRUE(ret, false);
+      lastTargetCharRect = firstTargetCharRect;
     }
-    nsIntRect firstTargetCharRect;
-    ResolveIMECaretPos(toplevelWindow, r, aWindow, firstTargetCharRect);
+    ResolveIMECaretPos(toplevelWindow, firstTargetCharRect,
+                       aWindow, firstTargetCharRect);
+    ResolveIMECaretPos(toplevelWindow, lastTargetCharRect,
+                       aWindow, lastTargetCharRect);
+    nsIntRect targetClauseRect;
+    targetClauseRect.UnionRect(firstTargetCharRect, lastTargetCharRect);
 
+    
     
     CANDIDATEFORM candForm;
     candForm.dwIndex = 0;
-    candForm.dwStyle = CFS_EXCLUDE;
-    candForm.ptCurrentPos.x = firstTargetCharRect.x;
-    candForm.ptCurrentPos.y = firstTargetCharRect.y;
-    candForm.rcArea.right = candForm.rcArea.left = candForm.ptCurrentPos.x;
-    candForm.rcArea.top = candForm.ptCurrentPos.y;
-    candForm.rcArea.bottom = candForm.ptCurrentPos.y +
-                               firstTargetCharRect.height;
+    if (!writingMode.IsVertical() || IsVerticalWritingSupported()) {
+      candForm.dwStyle = CFS_EXCLUDE;
+      
+      
+      candForm.rcArea.left = targetClauseRect.x;
+      candForm.rcArea.right = targetClauseRect.XMost();
+      candForm.rcArea.top = targetClauseRect.y;
+      candForm.rcArea.bottom = targetClauseRect.YMost();
+      if (!writingMode.IsVertical()) {
+        
+        
+        candForm.ptCurrentPos.x = firstTargetCharRect.x;
+        candForm.ptCurrentPos.y = firstTargetCharRect.y;
+      } else if (writingMode.IsVerticalRL()) {
+        
+        
+        
+        
+        candForm.ptCurrentPos.x = targetClauseRect.x;
+        candForm.ptCurrentPos.y = targetClauseRect.y;
+      } else {
+        MOZ_ASSERT(writingMode.IsVerticalLR(), "Did we miss some causes?");
+        
+        
+        
+        
+        candForm.ptCurrentPos.x = targetClauseRect.XMost();
+        candForm.ptCurrentPos.y = targetClauseRect.y;
+      }
+    } else {
+      
+      
+      
+      
+      candForm.dwStyle = CFS_CANDIDATEPOS;
+      candForm.ptCurrentPos.x = targetClauseRect.x;
+      candForm.ptCurrentPos.y = targetClauseRect.YMost();
+    }
+    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+      ("IMM32: SetIMERelatedWindowsPos, Calling ImmSetCandidateWindow()... "
+       "ptCurrentPos={ x=%d, y=%d }, "
+       "rcArea={ left=%d, top=%d, right=%d, bottom=%d }, "
+       "writingMode=%s",
+       candForm.ptCurrentPos.x, candForm.ptCurrentPos.y,
+       candForm.rcArea.left, candForm.rcArea.top,
+       candForm.rcArea.right, candForm.rcArea.bottom,
+       GetWritingModeName(writingMode).get()));
     ::ImmSetCandidateWindow(aIMEContext.get(), &candForm);
   } else {
     PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
@@ -2074,7 +2131,9 @@ nsIMM32Handler::SetIMERelatedWindowsPos(nsWindow* aWindow,
     
     COMPOSITIONFORM compForm;
     compForm.dwStyle = CFS_POINT;
-    compForm.ptCurrentPos.x = firstSelectedCharRect.x;
+    compForm.ptCurrentPos.x =
+      !writingMode.IsVerticalLR() ? firstSelectedCharRect.x :
+                                    firstSelectedCharRect.XMost();
     compForm.ptCurrentPos.y = firstSelectedCharRect.y;
     ::ImmSetCompositionWindow(aIMEContext.get(), &compForm);
   }
