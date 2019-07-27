@@ -456,9 +456,6 @@ public:
     
     
     bool mHaveBlockedForStateMachineNotPlaying;
-    
-    
-    bool mEOSVideoCompensation;
   };
 
   class DecodedStreamGraphListener : public MediaStreamListener {
