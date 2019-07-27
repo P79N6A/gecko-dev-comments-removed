@@ -57,7 +57,7 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  int64_t aTimeThreshold) override;
+                                int64_t aTimeThreshold) override;
 
   virtual bool HasAudio() override {
     return (mVorbisState != 0 && mVorbisState->mActive) ||
