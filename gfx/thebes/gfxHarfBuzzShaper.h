@@ -76,6 +76,11 @@ public:
     hb_bool_t GetGlyphExtents(hb_codepoint_t aGlyph,
                               hb_glyph_extents_t *aExtents) const;
 
+    bool UseVerticalPresentationForms() const
+    {
+        return mUseVerticalPresentationForms;
+    }
+
     static hb_script_t
     GetHBScriptUsedForShaping(int32_t aScript) {
         
@@ -175,6 +180,10 @@ protected:
 
     bool mInitialized;
     bool mVerticalInitialized;
+
+    
+    
+    bool mUseVerticalPresentationForms;
 
     
     mutable bool mLoadedLocaGlyf;

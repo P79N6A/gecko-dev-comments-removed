@@ -184,6 +184,61 @@ gfxHarfBuzzShaper::GetGlyph(hb_codepoint_t unicode,
     return gid;
 }
 
+static int
+VertFormsGlyphCompare(const void* aKey, const void* aElem)
+{
+    return int(*((hb_codepoint_t*)(aKey))) - int(*((uint16_t*)(aElem)));
+}
+
+
+
+static hb_codepoint_t
+GetVerticalPresentationForm(hb_codepoint_t unicode)
+{
+    static const uint16_t sVerticalForms[][2] = {
+        { 0x2013, 0xfe32 }, 
+        { 0x2014, 0xfe31 }, 
+        { 0x2025, 0xfe30 }, 
+        { 0x2026, 0xfe19 }, 
+        { 0x3001, 0xfe11 }, 
+        { 0x3002, 0xfe12 }, 
+        { 0x3008, 0xfe3f }, 
+        { 0x3009, 0xfe40 }, 
+        { 0x300a, 0xfe3d }, 
+        { 0x300b, 0xfe3e }, 
+        { 0x300c, 0xfe41 }, 
+        { 0x300d, 0xfe42 }, 
+        { 0x300e, 0xfe43 }, 
+        { 0x300f, 0xfe44 }, 
+        { 0x3010, 0xfe3b }, 
+        { 0x3011, 0xfe3c }, 
+        { 0x3014, 0xfe39 }, 
+        { 0x3015, 0xfe3a }, 
+        { 0x3016, 0xfe17 }, 
+        { 0x3017, 0xfe18 }, 
+        { 0xfe4f, 0xfe34 }, 
+        { 0xff01, 0xfe15 }, 
+        { 0xff08, 0xfe35 }, 
+        { 0xff09, 0xfe36 }, 
+        { 0xff0c, 0xfe10 }, 
+        { 0xff1a, 0xfe13 }, 
+        { 0xff1b, 0xfe14 }, 
+        { 0xff1f, 0xfe16 }, 
+        { 0xff3b, 0xfe47 }, 
+        { 0xff3d, 0xfe48 }, 
+        { 0xff3f, 0xfe33 }, 
+        { 0xff5b, 0xfe37 }, 
+        { 0xff5d, 0xfe38 }  
+    };
+    const uint16_t* charPair =
+        static_cast<const uint16_t*>(bsearch(&unicode,
+                                             sVerticalForms,
+                                             ArrayLength(sVerticalForms),
+                                             sizeof(sVerticalForms[0]),
+                                             VertFormsGlyphCompare));
+    return charPair ? charPair[1] : 0;
+}
+
 static hb_bool_t
 HBGetGlyph(hb_font_t *font, void *font_data,
            hb_codepoint_t unicode, hb_codepoint_t variation_selector,
@@ -192,6 +247,18 @@ HBGetGlyph(hb_font_t *font, void *font_data,
 {
     const gfxHarfBuzzShaper::FontCallbackData *fcd =
         static_cast<const gfxHarfBuzzShaper::FontCallbackData*>(font_data);
+
+    if (fcd->mShaper->UseVerticalPresentationForms()) {
+        hb_codepoint_t verticalForm = GetVerticalPresentationForm(unicode);
+        if (verticalForm) {
+            *glyph = fcd->mShaper->GetGlyph(verticalForm, variation_selector);
+            if (*glyph != 0) {
+                return true;
+            }
+        }
+        
+    }
+
     *glyph = fcd->mShaper->GetGlyph(unicode, variation_selector);
     return *glyph != 0;
 }
@@ -1419,6 +1486,7 @@ gfxHarfBuzzShaper::ShapeText(gfxContext      *aContext,
     }
 
     mCallbackData.mContext = aContext;
+    mUseVerticalPresentationForms = false;
 
     if (!Initialize()) {
         return false;
@@ -1427,6 +1495,10 @@ gfxHarfBuzzShaper::ShapeText(gfxContext      *aContext,
     if (aVertical) {
         if (!InitializeVertical()) {
             return false;
+        }
+        if (!mFont->GetFontEntry()->
+            SupportsOpenTypeFeature(aScript, HB_TAG('v','e','r','t'))) {
+            mUseVerticalPresentationForms = true;
         }
     }
 
