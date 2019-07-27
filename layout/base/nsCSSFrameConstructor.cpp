@@ -1858,6 +1858,24 @@ IsTablePseudo(nsIFrame* aFrame)
          nsCSSAnonBoxes::inlineTable)));
 }
 
+static bool
+IsRubyPseudo(nsIFrame* aFrame)
+{
+  nsIAtom* pseudoType = aFrame->StyleContext()->GetPseudo();
+  return pseudoType &&
+    (pseudoType == nsCSSAnonBoxes::ruby ||
+     pseudoType == nsCSSAnonBoxes::rubyBase ||
+     pseudoType == nsCSSAnonBoxes::rubyText ||
+     pseudoType == nsCSSAnonBoxes::rubyBaseContainer ||
+     pseudoType == nsCSSAnonBoxes::rubyTextContainer);
+}
+
+static bool
+IsTableOrRubyPseudo(nsIFrame* aFrame)
+{
+  return IsTablePseudo(aFrame) || IsRubyPseudo(aFrame);
+}
+
 
 nsCSSFrameConstructor::ParentType
 nsCSSFrameConstructor::GetParentType(nsIAtom* aFrameType)
@@ -8966,12 +8984,19 @@ nsCSSFrameConstructor::MaybeRecreateFramesForElement(Element* aElement)
   return nullptr;
 }
 
+static bool
+IsWhitespaceFrame(nsIFrame* aFrame)
+{
+  NS_ABORT_IF_FALSE(aFrame, "invalid argument");
+  return aFrame->GetType() == nsGkAtoms::textFrame &&
+    aFrame->GetContent()->TextIsOnlyWhitespace();
+}
+
 static nsIFrame*
 FindFirstNonWhitespaceChild(nsIFrame* aParentFrame)
 {
   nsIFrame* f = aParentFrame->GetFirstPrincipalChild();
-  while (f && f->GetType() == nsGkAtoms::textFrame &&
-         f->GetContent()->TextIsOnlyWhitespace()) {
+  while (f && IsWhitespaceFrame(f)) {
     f = f->GetNextSibling();
   }
   return f;
@@ -8983,8 +9008,7 @@ FindNextNonWhitespaceSibling(nsIFrame* aFrame)
   nsIFrame* f = aFrame;
   do {
     f = f->GetNextSibling();
-  } while (f && f->GetType() == nsGkAtoms::textFrame &&
-           f->GetContent()->TextIsOnlyWhitespace());
+  } while (f && IsWhitespaceFrame(f));
   return f;
 }
 
@@ -8994,8 +9018,7 @@ FindPreviousNonWhitespaceSibling(nsIFrame* aFrame)
   nsIFrame* f = aFrame;
   do {
     f = f->GetPrevSibling();
-  } while (f && f->GetType() == nsGkAtoms::textFrame &&
-           f->GetContent()->TextIsOnlyWhitespace());
+  } while (f && IsWhitespaceFrame(f));
   return f;
 }
 
@@ -9047,9 +9070,16 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   MOZ_ASSERT(inFlowFrame == inFlowFrame->FirstContinuation(),
              "placeholder for primary frame has previous continuations?");
   nsIFrame* parent = inFlowFrame->GetParent();
-  if (IsTablePseudo(parent)) {
+  
+  
+  
+  if (IsTableOrRubyPseudo(parent)) {
     if (FindFirstNonWhitespaceChild(parent) == inFlowFrame ||
         !FindNextNonWhitespaceSibling(inFlowFrame->LastContinuation()) ||
+        
+        
+        (IsWhitespaceFrame(aFrame) &&
+         parent->PrincipalChildList().OnlyChild()) ||
         
         
         (inFlowFrame->GetType() == nsGkAtoms::tableColGroupFrame &&
@@ -9068,19 +9098,23 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   
   
   
+  
   nsIFrame* nextSibling =
     FindNextNonWhitespaceSibling(inFlowFrame->LastContinuation());
-  NS_ASSERTION(!IsTablePseudo(inFlowFrame), "Shouldn't happen here");
-  if (nextSibling && IsTablePseudo(nextSibling)) {
+  NS_ASSERTION(!IsTableOrRubyPseudo(inFlowFrame), "Shouldn't happen here");
+  
+  
+  
+  if (nextSibling && IsTableOrRubyPseudo(nextSibling)) {
     nsIFrame* prevSibling = FindPreviousNonWhitespaceSibling(inFlowFrame);
-    if (prevSibling && IsTablePseudo(prevSibling)) {
+    if (prevSibling && IsTableOrRubyPseudo(prevSibling)) {
 #ifdef DEBUG
       if (gNoisyContentUpdates) {
         printf("nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval: "
-                 "frame=");
+               "frame=");
         nsFrame::ListTag(stdout, aFrame);
         printf(" has a table pseudo next sibling of different type and a "
-                 "table pseudo prevsibling\n");
+               "table pseudo prevsibling\n");
       }
 #endif
       
@@ -9089,6 +9123,23 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                           aDestroyedFramesFor);
       return true;
     }
+  }
+
+  
+  nsIAtom* parentType = parent->GetType();
+  if (parentType == nsGkAtoms::rubyFrame ||
+      parentType == nsGkAtoms::rubyBaseContainerFrame ||
+      parentType == nsGkAtoms::rubyTextContainerFrame) {
+    
+    
+    
+    
+    
+    
+    
+    *aResult = RecreateFramesForContent(parent->GetContent(), true, aFlags,
+                                        aDestroyedFramesFor);
+    return true;
   }
 
   
