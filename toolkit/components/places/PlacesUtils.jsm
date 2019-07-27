@@ -393,6 +393,18 @@ this.PlacesUtils = {
 
 
 
+  getReversedHost(url)
+    url.host.split("").reverse().join("") + ".",
+
+  
+
+
+
+
+
+
+
+
 
 
 
