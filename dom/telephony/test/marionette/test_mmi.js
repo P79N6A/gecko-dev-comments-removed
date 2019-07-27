@@ -21,8 +21,6 @@ function testGettingIMEI() {
 
 startTest(function() {
   testGettingIMEI()
-    .then(null, cause => {
-      ok(false, 'promise rejects during test: ' + cause);
-    })
+    .catch(error => ok(false, "Promise reject: " + error))
     .then(finish);
 });

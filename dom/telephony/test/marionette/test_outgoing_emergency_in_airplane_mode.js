@@ -36,8 +36,6 @@ startTestWithPermissions(['mobileconnection'], function() {
     .then(() => gRemoteAnswer(outCall))
     .then(() => gDelay(1000))  
     .then(() => gRemoteHangUp(outCall))
-    .then(null, () => {
-      ok(false, "promise rejects during test.");
-    })
+    .catch(error => ok(false, "Promise reject: " + error))
     .then(finish);
 });
