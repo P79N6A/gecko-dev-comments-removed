@@ -55,11 +55,15 @@ public class PassiveServiceReceiver extends BroadcastReceiver {
         if (!StumblerService.sFirefoxStumblingEnabled.get()) {
             
             context.stopService(new Intent(context, StumblerService.class));
+            
+            context.sendBroadcast(new Intent(AppGlobals.ACTION_TEST_SETTING_DISABLED));
             return;
         }
 
-        Log.d(LOG_TAG, "Stumbler: Sending passive start message | isDebug:" + AppGlobals.isDebug);
+        
+        context.sendBroadcast(new Intent(AppGlobals.ACTION_TEST_SETTING_ENABLED));
 
+        Log.d(LOG_TAG, "Stumbler: Sending passive start message | isDebug:" + AppGlobals.isDebug);
 
         final Intent startServiceIntent = new Intent(context, StumblerService.class);
         startServiceIntent.putExtra(StumblerService.ACTION_START_PASSIVE, true);
