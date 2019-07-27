@@ -304,6 +304,11 @@ private:
   
   
   JS::Heap<JSObject*> mRejectionStack;
+  
+  
+  
+  
+  JS::Heap<JSObject*> mFullfillmentStack;
   PromiseState mState;
   bool mTaskPending;
   bool mHadRejectCallback;
