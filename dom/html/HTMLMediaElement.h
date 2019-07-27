@@ -338,8 +338,8 @@ public:
 
   MediaStream* GetSrcMediaStream() const
   {
-    NS_ASSERTION(mSrcStream, "Don't call this when not playing a stream");
-    return mSrcStream->GetStream();
+    NS_ASSERTION(mPlaybackStream, "Don't call this when not playing a stream");
+    return mPlaybackStream->GetStream();
   }
 
   
@@ -996,6 +996,14 @@ protected:
   
   
   nsRefPtr<DOMMediaStream> mSrcStream;
+
+  
+  nsRefPtr<MediaInputPort> mPlaybackStreamInputPort;
+
+  
+  
+  
+  nsRefPtr<DOMMediaStream> mPlaybackStream;
 
   
   
