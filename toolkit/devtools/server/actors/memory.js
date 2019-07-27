@@ -27,11 +27,13 @@ loader.lazyRequireGetter(this, "StackFrameCache",
 
 
 
-function expectState(expectedState, method) {
+
+function expectState(expectedState, method, activity) {
   return function(...args) {
     if (this.state !== expectedState) {
-      const msg = "Wrong State: Expected '" + expectedState + "', but current "
-                + "state is '" + this.state + "'";
+      const msg = `Wrong state while ${activity}:` +
+                  `Expected '${expectedState}',` +
+                  `but current state is '${this.state}'.`;
       return Promise.reject(new Error(msg));
     }
 
@@ -96,7 +98,8 @@ let MemoryActor = protocol.ActorClass({
   attach: method(expectState("detached", function() {
     this.dbg.addDebuggees();
     this.state = "attached";
-  }), {
+  },
+  `attaching to the debugger`), {
     request: {},
     response: {
       type: "attached"
@@ -111,10 +114,22 @@ let MemoryActor = protocol.ActorClass({
     this.dbg.enabled = false;
     this._dbg = null;
     this.state = "detached";
-  }), {
+  },
+  `detaching from the debugger`), {
     request: {},
     response: {
       type: "detached"
+    }
+  }),
+
+  
+
+
+  getState: method(function() {
+    return this.state;
+  }, {
+    response: {
+      state: RetVal(0, "string")
     }
   }),
 
@@ -153,7 +168,8 @@ let MemoryActor = protocol.ActorClass({
 
   takeCensus: method(expectState("attached", function() {
     return this.dbg.memory.takeCensus();
-  }), {
+  },
+  `taking census`), {
     request: {},
     response: RetVal("json")
   }),
@@ -175,7 +191,8 @@ let MemoryActor = protocol.ActorClass({
     this.dbg.memory.trackingAllocationSites = true;
 
     return Date.now();
-  }), {
+  },
+  `starting recording allocations`), {
     request: {
       options: Arg(0, "nullable:AllocationsRecordingOptions")
     },
@@ -193,7 +210,8 @@ let MemoryActor = protocol.ActorClass({
     this._clearFrames();
 
     return Date.now();
-  }), {
+  },
+  `stopping recording allocations`), {
     request: {},
     response: {
       
@@ -295,7 +313,8 @@ let MemoryActor = protocol.ActorClass({
     }
 
     return this._frameCache.updateFramePacket(packet);
-  }), {
+  },
+  `getting allocations`), {
     request: {},
     response: RetVal("json")
   }),
