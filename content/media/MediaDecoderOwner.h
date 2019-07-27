@@ -115,9 +115,6 @@ public:
     
     NEXT_FRAME_UNAVAILABLE,
     
-    
-    NEXT_FRAME_WAIT_FOR_MSE_DATA,
-    
     NEXT_FRAME_UNINITIALIZED
   };
 
