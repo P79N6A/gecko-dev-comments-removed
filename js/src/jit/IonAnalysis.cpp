@@ -2420,13 +2420,8 @@ ArgumentsUseCanBeLazy(JSContext *cx, JSScript *script, MInstruction *ins, size_t
         return true;
 
     
-    
-    if (ins->isCallGetProperty() && index == 0 &&
-        (ins->toCallGetProperty()->name() == cx->names().length ||
-         ins->toCallGetProperty()->name() == cx->names().callee))
-    {
+    if (ins->isCallGetProperty() && index == 0 && ins->toCallGetProperty()->name() == cx->names().length)
         return true;
-    }
 
     return false;
 }
