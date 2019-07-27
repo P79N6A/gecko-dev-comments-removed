@@ -3039,11 +3039,6 @@ AnalyzePoppedThis(JSContext *cx, ObjectGroup *group,
         }
 
         
-        
-        if (GetGCKindSlots(gc::GetGCObjectKind(baseobj->slotSpan() + 1)) <= baseobj->slotSpan())
-            return true;
-
-        
         if (!definitelyExecuted)
             return true;
 
