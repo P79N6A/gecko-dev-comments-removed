@@ -112,7 +112,7 @@ public class GeckoMenu extends ListView
     private MenuItemsAdapter mAdapter;
 
     
-    private boolean mShowIcons;
+     boolean mShowIcons;
 
     public GeckoMenu(Context context) {
         this(context, null);
@@ -550,7 +550,7 @@ public class GeckoMenu extends ListView
         handleMenuItemClick(item);
     }
 
-    private void handleMenuItemClick(GeckoMenuItem item) {
+     void handleMenuItemClick(GeckoMenuItem item) {
         if (!item.isEnabled())
             return;
 
@@ -575,7 +575,7 @@ public class GeckoMenu extends ListView
         }
     }
 
-    private void handleMenuItemLongClick(GeckoMenuItem item) {
+     void handleMenuItemLongClick(GeckoMenuItem item) {
         if(!item.isEnabled()) {
             return;
         }
