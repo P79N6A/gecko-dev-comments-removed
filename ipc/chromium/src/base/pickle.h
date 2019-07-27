@@ -49,8 +49,12 @@ class Pickle {
   
   Pickle(const Pickle& other);
 
+  Pickle(Pickle&& other);
+
   
   Pickle& operator=(const Pickle& other);
+
+  Pickle& operator=(Pickle&& other);
 
   
   int size() const { return static_cast<int>(header_size_ +
