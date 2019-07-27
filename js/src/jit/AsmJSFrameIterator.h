@@ -26,7 +26,11 @@ class AsmJSFrameIterator
     const jit::CallSite *callsite_;
     uint8_t *fp_;
 
-    void settle(uint8_t *returnAddress);
+    
+    
+    const void *codeRange_;
+
+    void settle(void *returnAddress);
 
   public:
     explicit AsmJSFrameIterator() : module_(nullptr) {}
