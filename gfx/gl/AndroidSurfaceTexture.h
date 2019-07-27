@@ -12,6 +12,8 @@
 #include "nsIRunnable.h"
 #include "gfxPlatform.h"
 #include "GLDefs.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/Monitor.h"
 
 #include "AndroidNativeWindow.h"
 
@@ -26,6 +28,8 @@ class Matrix4x4;
 namespace mozilla {
 namespace gl {
 
+class GLContext;
+
 
 
 
@@ -35,12 +39,35 @@ class AndroidSurfaceTexture {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AndroidSurfaceTexture)
 
 public:
-  static AndroidSurfaceTexture* Create(GLuint aTexture);
+
+  
+  
+  static AndroidSurfaceTexture* Create(GLContext* aGLContext, GLuint aTexture);
+
+  
+  
+  
+  
+  static AndroidSurfaceTexture* Create();
+
   static AndroidSurfaceTexture* Find(int id);
 
   
   
   static bool Check();
+
+  
+  
+  
+  
+  
+  
+  bool Attach(GLContext* aContext, PRIntervalTime aTiemout = PR_INTERVAL_NO_TIMEOUT);
+
+  
+  bool Detach();
+
+  GLContext* GetAttachedContext() { return mAttachedContext; }
 
   AndroidNativeWindow* NativeWindow() {
     return mNativeWindow;
@@ -68,17 +95,20 @@ private:
   AndroidSurfaceTexture();
   ~AndroidSurfaceTexture();
 
-  bool Init(GLuint aTexture);
+  bool Init(GLContext* aContext, GLuint aTexture);
 
   GLuint mTexture;
   jobject mSurfaceTexture;
   jobject mSurface;
 
+  Monitor mMonitor;
+  GLContext* mAttachedContext;
+
   RefPtr<AndroidNativeWindow> mNativeWindow;
   int mID;
   nsRefPtr<nsIRunnable> mFrameAvailableCallback;
 };
-  
+
 }
 }
 
