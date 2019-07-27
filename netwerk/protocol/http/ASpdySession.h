@@ -74,7 +74,7 @@ public:
   SpdyInformation();
   ~SpdyInformation() {}
 
-  static const uint32_t kCount = 4;
+  static const uint32_t kCount = 5;
 
   
   
