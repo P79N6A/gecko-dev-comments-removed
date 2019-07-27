@@ -437,12 +437,17 @@ bool HasIDIV();
 
 
 
-inline bool hasUnaliasedDouble() {
+inline bool
+hasUnaliasedDouble()
+{
     return Has32DP();
 }
 
 
-inline bool hasMultiAlias() {
+
+inline bool
+hasMultiAlias()
+{
     return true;
 }
 
