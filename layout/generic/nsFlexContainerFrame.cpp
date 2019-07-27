@@ -3848,14 +3848,6 @@ nsFlexContainerFrame::ReflowFlexItem(nsPresContext* aPresContext,
 
   
   if (aItem.Frame() == mFrames.FirstChild()) {
-    
-    
-    
-    
-    
-    
-    
-    
     aItem.SetAscent(childDesiredSize.BlockStartAscent());
   }
 }
