@@ -551,6 +551,21 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
         if (this.actors.find(a => a.player === player)) {
           continue;
         }
+        
+        
+        
+        let index = this.actors.findIndex(a => {
+          return a.player.effect.name === player.effect.name &&
+                 a.player.effect.target === player.effect.target;
+        });
+        if (index !== -1) {
+          eventData.push({
+            type: "removed",
+            player: this.actors[index]
+          });
+          this.actors.splice(index, 1);
+        }
+
         let actor = AnimationPlayerActor(
           this, player, player.effect.target.getAnimations().indexOf(player));
         this.actors.push(actor);
