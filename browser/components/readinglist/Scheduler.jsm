@@ -8,6 +8,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import('resource://gre/modules/Task.jsm');
 
 
 XPCOMUtils.defineLazyModuleGetter(this, 'LogManager',
@@ -24,7 +25,14 @@ XPCOMUtils.defineLazyModuleGetter(this, 'setTimeout',
 XPCOMUtils.defineLazyModuleGetter(this, 'clearTimeout',
   'resource://gre/modules/Timer.jsm');
 
-Cu.import('resource://gre/modules/Task.jsm');
+
+XPCOMUtils.defineLazyModuleGetter(this, 'ReadingList',
+  'resource:///modules/readinglist/ReadingList.jsm');
+
+
+XPCOMUtils.defineLazyModuleGetter(this, 'Sync',
+  'resource:///modules/readinglist/Sync.jsm');
+
 
 this.EXPORTED_SYMBOLS = ["ReadingListScheduler"];
 
@@ -36,20 +44,11 @@ const OBSERVERS = [
   
   "fxaccounts:onverified",
   
-  "readinglist:item-changed",
-  
   "readinglist:backoff-requested",
   
   "readinglist:user-sync",
 
 ];
-
-
-let engine = {
-  ERROR_AUTHENTICATION: "authentication error",
-  sync: Task.async(function* () {
-  }),
-}
 
 let prefs = new Preferences("readinglist.scheduler.");
 
@@ -62,17 +61,15 @@ let intervals = {
   },
 
   
-  get initial() this._fixupIntervalPref("initial", 20), 
+  get initial() this._fixupIntervalPref("initial", 10), 
   
   get schedule() this._fixupIntervalPref("schedule", 2 * 60 * 60), 
-  
-  get dirty() this._fixupIntervalPref("dirty", 2 * 60), 
   
   get retry() this._fixupIntervalPref("retry", 2 * 60), 
 };
 
 
-function InternalScheduler() {
+function InternalScheduler(readingList = null) {
   
   let logs = [
     "browserwindow.syncui",
@@ -86,6 +83,7 @@ function InternalScheduler() {
   this.log = Log.repository.getLogger("readinglist.scheduler");
   this.log.info("readinglist scheduler created.")
   this.state = this.STATE_OK;
+  this.readingList = readingList || ReadingList; 
 
   
   
@@ -105,7 +103,7 @@ InternalScheduler.prototype = {
   
   _timerRunning: false,
   
-  _engine: engine,
+  _engine: Sync,
 
   
   state: null,
@@ -115,12 +113,33 @@ InternalScheduler.prototype = {
 
   init() {
     this.log.info("scheduler initialzing");
+    this._setupRLListener();
     this._observe = this.observe.bind(this);
     for (let notification of OBSERVERS) {
       Services.obs.addObserver(this._observe, notification, false);
     }
     this._nextScheduledSync = Date.now() + intervals.initial;
     this._setupTimer();
+  },
+
+  _setupRLListener() {
+    let maybeSync = () => {
+      if (this._timerRunning) {
+        
+        
+        
+        this._maybeReschedule(1);
+      } else {
+        
+        this._syncNow();
+      }
+    };
+    let listener = {
+      onItemAdded: maybeSync,
+      onItemUpdated: maybeSync,
+      onItemDeleted: maybeSync,
+    }
+    this.readingList.addListener(listener);
   },
 
   
@@ -148,9 +167,6 @@ InternalScheduler.prototype = {
         this._maybeReschedule(0);
         break;
       }
-      case "readinglist:local:dirty":
-        this._maybeReschedule(intervals.dirty);
-        break;
       case "readinglist:user-sync":
         this._syncNow();
         break;
@@ -259,7 +275,7 @@ InternalScheduler.prototype = {
     
     this._nextScheduledSync = 0;
     Services.obs.notifyObservers(null, "readinglist:sync:start", null);
-    this._engine.sync().then(() => {
+    this._engine.start().then(() => {
       this.log.info("Sync completed successfully");
       
       
@@ -299,6 +315,11 @@ InternalScheduler.prototype = {
   
   
   _syncNow() {
+    if (!prefs.get("enabled")) {
+      this.log.info("syncNow() but syncing is disabled - ignoring");
+      return;
+    }
+
     if (this._timerRunning) {
       this.log.info("syncNow() but a sync is already in progress - ignoring");
       return;
@@ -333,14 +354,14 @@ let ReadingListScheduler = {
 
 
 
-function createTestableScheduler() {
+function createTestableScheduler(readingList) {
   
   if (internalScheduler) {
     internalScheduler.finalize();
     internalScheduler = null;
   }
   
-  return new InternalScheduler();
+  return new InternalScheduler(readingList);
 }
 
 
