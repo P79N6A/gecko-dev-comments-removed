@@ -55,7 +55,7 @@ public:
 
   
   
-  NS_IMETHOD GetNext(nsAString& aResult);
+  NS_IMETHOD GetNext(nsAString& aResult) MOZ_OVERRIDE;
   NS_DECL_NSISIMPLEENUMERATOR
 
 private:

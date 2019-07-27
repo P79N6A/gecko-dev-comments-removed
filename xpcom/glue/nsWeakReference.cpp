@@ -19,7 +19,7 @@ public:
 
   
   NS_DECL_NSIWEAKREFERENCE
-  virtual size_t SizeOfOnlyThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+  virtual size_t SizeOfOnlyThis(mozilla::MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
 
 private:
   friend class nsSupportsWeakReference;

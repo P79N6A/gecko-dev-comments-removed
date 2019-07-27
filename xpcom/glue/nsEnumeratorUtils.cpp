@@ -29,7 +29,7 @@ public:
   NS_DECL_NSIUTF8STRINGENUMERATOR
   
   
-  NS_IMETHOD GetNext(nsAString& aResult);
+  NS_IMETHOD GetNext(nsAString& aResult) MOZ_OVERRIDE;
 
   static EmptyEnumeratorImpl* GetInstance()
   {
@@ -102,8 +102,8 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD HasMoreElements(bool* aResult);
-  NS_IMETHOD GetNext(nsISupports** aResult);
+  NS_IMETHOD HasMoreElements(bool* aResult) MOZ_OVERRIDE;
+  NS_IMETHOD GetNext(nsISupports** aResult) MOZ_OVERRIDE;
 
   explicit nsSingletonEnumerator(nsISupports* aValue);
 
@@ -180,8 +180,8 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD HasMoreElements(bool* aResult);
-  NS_IMETHOD GetNext(nsISupports** aResult);
+  NS_IMETHOD HasMoreElements(bool* aResult) MOZ_OVERRIDE;
+  NS_IMETHOD GetNext(nsISupports** aResult) MOZ_OVERRIDE;
 
   nsUnionEnumerator(nsISimpleEnumerator* aFirstEnumerator,
                     nsISimpleEnumerator* aSecondEnumerator);

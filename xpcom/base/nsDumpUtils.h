@@ -62,8 +62,8 @@ public:
 
 
 
-  virtual void OnFileCanReadWithoutBlocking(int aFd) = 0;
-  virtual void OnFileCanWriteWithoutBlocking(int aFd) {};
+  virtual void OnFileCanReadWithoutBlocking(int aFd) MOZ_OVERRIDE = 0;
+  virtual void OnFileCanWriteWithoutBlocking(int aFd) MOZ_OVERRIDE {};
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -84,7 +84,7 @@ public:
   virtual void StopWatching();
 
   NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
-                     const char16_t* aData)
+                     const char16_t* aData) MOZ_OVERRIDE
   {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(!strcmp(aTopic, "xpcom-shutdown"));
