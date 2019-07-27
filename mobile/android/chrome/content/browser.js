@@ -1630,7 +1630,9 @@ var BrowserApp = {
         break;
 
       case "Browser:Quit":
-        this.quit(aData ? JSON.parse(aData) : null);
+        
+        
+        this.quit(aData ? JSON.parse(aData) : undefined);
         break;
 
       case "SaveAs:PDF":
