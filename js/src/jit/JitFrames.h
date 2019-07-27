@@ -13,7 +13,6 @@
 #include "jsfun.h"
 
 #include "jit/JitFrameIterator.h"
-#include "jit/Safepoints.h"
 
 namespace js {
 namespace jit {
@@ -403,8 +402,9 @@ class JitFrameLayout : public CommonFrameLayout
 
     
     
-    
-    uintptr_t *slotRef(SafepointSlotEntry where);
+    uintptr_t *slotRef(uint32_t slot) {
+        return (uintptr_t *)((uint8_t *)this - slot);
+    }
 
     static inline size_t Size() {
         return sizeof(JitFrameLayout);

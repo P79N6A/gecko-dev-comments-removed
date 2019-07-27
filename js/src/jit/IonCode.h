@@ -226,9 +226,6 @@ struct IonScript
     uint32_t frameSlots_;
 
     
-    uint32_t argumentSlots_;
-
-    
     
     uint32_t frameSize_;
 
@@ -329,7 +326,7 @@ struct IonScript
     IonScript();
 
     static IonScript *New(JSContext *cx, types::RecompileInfo recompileInfo,
-                          uint32_t frameSlots, uint32_t argumentSlots, uint32_t frameSize,
+                          uint32_t frameLocals, uint32_t frameSize,
                           size_t snapshotsListSize, size_t snapshotsRVATableSize,
                           size_t recoversSize, size_t bailoutEntries,
                           size_t constants, size_t safepointIndexEntries,
@@ -464,9 +461,6 @@ struct IonScript
     }
     uint32_t frameSlots() const {
         return frameSlots_;
-    }
-    uint32_t argumentSlots() const {
-        return argumentSlots_;
     }
     uint32_t frameSize() const {
         return frameSize_;

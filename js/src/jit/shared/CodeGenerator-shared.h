@@ -86,6 +86,9 @@ class CodeGeneratorShared : public LElementVisitor
     js::Vector<uint32_t, 0, SystemAllocPolicy> cacheList_;
 
     
+    js::Vector<uint32_t, 0, SystemAllocPolicy> pushedArgumentSlots_;
+
+    
     Vector<PatchableBackedgeInfo, 0, SystemAllocPolicy> patchableBackedges_;
 
 #ifdef JS_TRACE_LOGGING
@@ -144,6 +147,9 @@ class CodeGeneratorShared : public LElementVisitor
     }
 
     typedef js::Vector<SafepointIndex, 8, SystemAllocPolicy> SafepointIndices;
+
+    bool markArgumentSlots(LSafepoint *safepoint);
+    void dropArguments(unsigned argc);
 
   protected:
 #ifdef CHECK_OSIPOINT_REGISTERS
