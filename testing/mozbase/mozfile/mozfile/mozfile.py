@@ -186,46 +186,41 @@ def remove(path):
                 
                 break
 
-    def _update_permissions(path, st):
+    def _update_permissions(path):
         """Sets specified pemissions depending on filetype"""
         if os.path.islink(path):
             
             
             return
 
-        if stat.S_ISREG(st.st_mode):
-            mode = st.st_mode | stat.S_IWUSR
-        elif stat.S_ISDIR(st.st_mode):
-            mode = st.st_mode | stat.S_IWUSR | stat.S_IXUSR
+        stats = os.stat(path)
+
+        if os.path.isfile(path):
+            mode = stats.st_mode | stat.S_IWUSR
+        elif os.path.isdir(path):
+            mode = stats.st_mode | stat.S_IWUSR | stat.S_IXUSR
         else:
             
             return
 
         _call_with_windows_retry(os.chmod, (path, mode))
 
-    try:
-        st = os.stat(path)
-    except os.error:
+    if not os.path.exists(path):
         return
 
-    is_link = os.path.islink(path)
-
-    if stat.S_ISREG(st.st_mode) or is_link:
+    if os.path.isfile(path) or os.path.islink(path):
         
-        if not is_link:
-            _update_permissions(path, st)
-
+        _update_permissions(path)
         _call_with_windows_retry(os.remove, (path,))
 
-    elif stat.S_ISDIR(st.st_mode):
+    elif os.path.isdir(path):
         
-        _update_permissions(path, st)
+        _update_permissions(path)
 
         
         for root, dirs, files in os.walk(path):
             for entry in dirs + files:
-                fpath = os.path.join(root, entry)
-                _update_permissions(fpath, os.stat(fpath))
+                _update_permissions(os.path.join(root, entry))
         _call_with_windows_retry(shutil.rmtree, (path,))
 
 
