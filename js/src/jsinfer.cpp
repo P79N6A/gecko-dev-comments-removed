@@ -1752,18 +1752,19 @@ HeapTypeSetKey::constant(CompilerConstraintList *constraints, Value *valOut)
     if (nonData(constraints))
         return false;
 
-    
-    if (!object()->singleton())
+    if (!maybeTypes())
         return false;
 
-    if (maybeTypes() && maybeTypes()->nonConstantProperty())
+    if (maybeTypes()->nonConstantProperty())
         return false;
+
+    
+    JS_ASSERT(object()->singleton());
 
     
     Shape *shape = object()->singleton()->nativeLookupPure(id());
-    if (!shape || !shape->hasDefaultGetter() || !shape->hasSlot() || shape->hadOverwrite())
+    if (!shape)
         return false;
-
     Value val = object()->singleton()->nativeGetSlot(shape->slot());
 
     
