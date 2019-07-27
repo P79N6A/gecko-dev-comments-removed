@@ -156,14 +156,19 @@ const WorkerSandbox = Class({
       
       get window() content,
       get top() top,
-      get parent() parent,
-      
-      
-      
-      
-      
-      get unsafeWindow() window.wrappedJSObject
+      get parent() parent
     });
+    
+    
+    
+    
+    
+    
+    
+    
+    var unsafeWindowGetter =
+      new content.Function('return window.wrappedJSObject || window;');
+    Object.defineProperty(content, 'unsafeWindow', {get: unsafeWindowGetter});
 
     
     let ContentWorker = load(content, CONTENT_WORKER_URL);
