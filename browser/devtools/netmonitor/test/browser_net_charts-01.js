@@ -6,7 +6,7 @@
 
 
 
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: aValue.content is undefined");
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: can't convert undefined to object");
 
 
 

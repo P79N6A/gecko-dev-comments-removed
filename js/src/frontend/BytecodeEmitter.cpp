@@ -3726,7 +3726,10 @@ BytecodeEmitter::emitDestructuringOpsObjectHelper(ParseNode* pattern, VarEmitOpt
     MOZ_ASSERT(pattern->isKind(PNK_OBJECT));
     MOZ_ASSERT(pattern->isArity(PN_LIST));
 
-    MOZ_ASSERT(this->stackDepth != 0);                            
+    MOZ_ASSERT(this->stackDepth > 0);                             
+
+    if (!emitRequireObjectCoercible())                            
+        return false;
 
     for (ParseNode* member = pattern->pn_head; member; member = member->pn_next) {
         
@@ -4949,6 +4952,42 @@ BytecodeEmitter::emitWith(ParseNode* pn)
         return false;
     if (!leaveNestedScope(&stmtInfo))
         return false;
+    return true;
+}
+
+bool
+BytecodeEmitter::emitRequireObjectCoercible()
+{
+    
+    
+    
+
+#ifdef DEBUG
+    auto depth = this->stackDepth;
+#endif
+    MOZ_ASSERT(depth > 0);                 
+    if (!emit1(JSOP_DUP))                  
+        return false;
+
+    
+    
+    if (!emitAtomOp(cx->names().RequireObjectCoercible,
+                    JSOP_GETINTRINSIC))    
+    {
+        return false;
+    }
+    if (!emit1(JSOP_UNDEFINED))            
+        return false;
+    if (!emit2(JSOP_PICK, jsbytecode(2)))  
+        return false;
+    if (!emitCall(JSOP_CALL, 1))           
+        return false;
+    checkTypeSet(JSOP_CALL);
+
+    if (!emit1(JSOP_POP))                  
+        return false;
+
+    MOZ_ASSERT(depth == this->stackDepth);
     return true;
 }
 

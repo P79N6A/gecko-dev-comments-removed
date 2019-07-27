@@ -99,7 +99,7 @@ function ToNumber(v) {
 
 
 
-function CheckObjectCoercible(v) {
+function RequireObjectCoercible(v) {
     if (v === undefined || v === null)
         ThrowTypeError(JSMSG_CANT_CONVERT_TO, ToString(v), "object");
 }

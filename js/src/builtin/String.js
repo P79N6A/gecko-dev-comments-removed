@@ -7,7 +7,7 @@
 
 function String_substring(start, end) {
     
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var str = ToString(this);
 
     
@@ -51,7 +51,7 @@ function String_static_substring(string, start, end) {
 
 function String_substr(start, length) {
     
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var str = ToString(this);
 
     
@@ -90,7 +90,7 @@ function String_static_substr(string, start, length) {
 
 function String_slice(start, end) {
     
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var str = ToString(this);
 
     
@@ -127,7 +127,7 @@ function String_static_slice(string, start, end) {
 
 function String_codePointAt(pos) {
     
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
 
     
@@ -159,7 +159,7 @@ var collatorCache = new Record();
 
 function String_repeat(count) {
     
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
 
     
@@ -194,7 +194,7 @@ function String_repeat(count) {
 
 
 function String_iterator() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
     var iterator = NewStringIterator();
     UnsafeSetReservedSlot(iterator, STRING_ITERATOR_SLOT_ITERATED_STRING, S);
@@ -248,7 +248,7 @@ function StringIteratorNext() {
 
 function String_localeCompare(that) {
     
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
     var That = ToString(that);
 
@@ -381,55 +381,55 @@ function String_static_localeCompare(str1, str2) {
 
 
 function String_big() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<big>" + ToString(this) + "</big>";
 }
 
 
 function String_blink() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<blink>" + ToString(this) + "</blink>";
 }
 
 
 function String_bold() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<b>" + ToString(this) + "</b>";
 }
 
 
 function String_fixed() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<tt>" + ToString(this) + "</tt>";
 }
 
 
 function String_italics() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<i>" + ToString(this) + "</i>";
 }
 
 
 function String_small() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<small>" + ToString(this) + "</small>";
 }
 
 
 function String_strike() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<strike>" + ToString(this) + "</strike>";
 }
 
 
 function String_sub() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<sub>" + ToString(this) + "</sub>";
 }
 
 
 function String_sup() {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     return "<sup>" + ToString(this) + "</sup>";
 }
 
@@ -453,28 +453,28 @@ function EscapeAttributeValue(v) {
 
 
 function String_anchor(name) {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
     return '<a name="' + EscapeAttributeValue(name) + '">' + S + "</a>";
 }
 
 
 function String_fontcolor(color) {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
     return '<font color="' + EscapeAttributeValue(color) + '">' + S + "</font>";
 }
 
 
 function String_fontsize(size) {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
     return '<font size="' + EscapeAttributeValue(size) + '">' + S + "</font>";
 }
 
 
 function String_link(url) {
-    CheckObjectCoercible(this);
+    RequireObjectCoercible(this);
     var S = ToString(this);
     return '<a href="' + EscapeAttributeValue(url) + '">' + S + "</a>";
 }

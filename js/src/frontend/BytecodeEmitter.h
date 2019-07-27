@@ -526,6 +526,10 @@ struct BytecodeEmitter
 
     
     
+    bool emitRequireObjectCoercible();
+
+    
+    
     bool emitIterator();
 
     
