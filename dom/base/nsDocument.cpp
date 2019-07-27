@@ -7895,6 +7895,15 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
 
   CSSToScreenScale defaultScale = layoutDeviceScale
                                 * LayoutDeviceToScreenScale(1.0);
+  
+  nsPIDOMWindow* win = GetWindow();
+  if (win && win->IsDesktopModeViewport())
+  {
+    return nsViewportInfo(aDisplaySize,
+                          defaultScale,
+                          false,
+                           true);
+  }
 
   if (!Preferences::GetBool("dom.meta-viewport.enabled", false)) {
     return nsViewportInfo(aDisplaySize,

@@ -96,6 +96,17 @@ public:
   }
 
   
+  void SetDesktopModeViewport(bool aDesktopModeViewport)
+  {
+    MOZ_ASSERT(IsOuterWindow());
+    mDesktopModeViewport = aDesktopModeViewport;
+  }
+  bool IsDesktopModeViewport() const
+  {
+    MOZ_ASSERT(IsOuterWindow());
+    return mDesktopModeViewport;
+  }
+
   virtual void SetIsBackground(bool aIsBackground)
   {
     MOZ_ASSERT(IsOuterWindow());
@@ -782,6 +793,9 @@ protected:
 
   bool                   mAudioMuted;
   float                  mAudioVolume;
+
+  
+  bool                   mDesktopModeViewport;
 
   
   nsPIDOMWindow* MOZ_NON_OWNING_REF mInnerWindow;

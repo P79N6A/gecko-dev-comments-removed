@@ -3571,6 +3571,11 @@ Tab.prototype = {
 
   reloadWithMode: function (aDesktopMode) {
     
+    let win = this.browser.contentWindow;
+    let dwi = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    dwi.setDesktopModeViewport(aDesktopMode);
+
+    
     if (this.desktopMode != aDesktopMode) {
       this.desktopMode = aDesktopMode;
       Messaging.sendRequest({
@@ -6323,6 +6328,19 @@ var ViewportHandler = {
 
 
   getViewportMetadata: function getViewportMetadata(aWindow) {
+    let tab = BrowserApp.getTabForWindow(aWindow);
+    if (tab.desktopMode) {
+      return new ViewportMetadata({
+        minZoom: kViewportMinScale,
+        maxZoom: kViewportMaxScale,
+        width: kDefaultCSSViewportWidth,
+        height: kDefaultCSSViewportHeight,
+        allowZoom: true,
+        allowDoubleTapZoom: true,
+        isSpecified: false
+      });
+    }
+
     let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
 
     

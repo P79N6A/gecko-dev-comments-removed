@@ -580,7 +580,8 @@ nsPIDOMWindow::nsPIDOMWindow(nsPIDOMWindow *aOuterWindow)
   mIsModalContentWindow(false),
   mIsActive(false), mIsBackground(false),
   mAudioMuted(false), mAudioVolume(1.0),
-  mInnerWindow(nullptr), mOuterWindow(aOuterWindow),
+  mDesktopModeViewport(false), mInnerWindow(nullptr),
+  mOuterWindow(aOuterWindow),
   
   mWindowID(NextWindowID()), mHasNotifiedGlobalCreated(false),
   mMarkedCCGeneration(0)
