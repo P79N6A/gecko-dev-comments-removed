@@ -6,11 +6,8 @@
 
 #include <stdint.h>
 #include <algorithm>
-#include "mozilla/Atomics.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/StaticMutex.h"
 #include "CubebUtils.h"
-#include "nsAutoRef.h"
 #include "prdtoa.h"
 
 #define PREF_VOLUME_SCALE "media.volume_scale"
@@ -18,28 +15,18 @@
 
 namespace mozilla {
 
-namespace {
-
-
-
-Atomic<uint32_t> sPreferredSampleRate;
-
-
-StaticMutex sMutex;
-cubeb* sCubebContext;
-double sVolumeScale;
-uint32_t sCubebLatency;
-bool sCubebLatencyPrefSet;
-
-} 
-
 extern PRLogModuleInfo* gAudioStreamLog;
 
 static const uint32_t CUBEB_NORMAL_LATENCY_MS = 100;
 
-namespace CubebUtils {
+StaticMutex CubebUtils::sMutex;
+cubeb* CubebUtils::sCubebContext;
+uint32_t CubebUtils::sPreferredSampleRate;
+double CubebUtils::sVolumeScale;
+uint32_t CubebUtils::sCubebLatency;
+bool CubebUtils::sCubebLatencyPrefSet;
 
-void PrefChanged(const char* aPref, void* aClosure)
+ void CubebUtils::PrefChanged(const char* aPref, void* aClosure)
 {
   if (strcmp(aPref, PREF_VOLUME_SCALE) == 0) {
     nsAdoptingString value = Preferences::GetString(aPref);
@@ -61,7 +48,7 @@ void PrefChanged(const char* aPref, void* aClosure)
   }
 }
 
-bool GetFirstStream()
+ bool CubebUtils::GetFirstStream()
 {
   static bool sFirstStream = true;
 
@@ -71,36 +58,29 @@ bool GetFirstStream()
   return result;
 }
 
-double GetVolumeScale()
+ double CubebUtils::GetVolumeScale()
 {
   StaticMutexAutoLock lock(sMutex);
   return sVolumeScale;
 }
 
-cubeb* GetCubebContext()
+ cubeb* CubebUtils::GetCubebContext()
 {
   StaticMutexAutoLock lock(sMutex);
   return GetCubebContextUnlocked();
 }
 
-void InitPreferredSampleRate()
+ void CubebUtils::InitPreferredSampleRate()
 {
-  
-  
-  
   StaticMutexAutoLock lock(sMutex);
-  uint32_t preferredSampleRate = 0;
   if (sPreferredSampleRate == 0 &&
       cubeb_get_preferred_sample_rate(GetCubebContextUnlocked(),
-                                      &preferredSampleRate) == CUBEB_OK) {
-    sPreferredSampleRate = preferredSampleRate;
-  } else {
-    
+                                      &sPreferredSampleRate) != CUBEB_OK) {
     sPreferredSampleRate = 44100;
   }
 }
 
-cubeb* GetCubebContextUnlocked()
+ cubeb* CubebUtils::GetCubebContextUnlocked()
 {
   sMutex.AssertCurrentThreadOwns();
   if (sCubebContext ||
@@ -111,19 +91,19 @@ cubeb* GetCubebContextUnlocked()
   return nullptr;
 }
 
-uint32_t GetCubebLatency()
+ uint32_t CubebUtils::GetCubebLatency()
 {
   StaticMutexAutoLock lock(sMutex);
   return sCubebLatency;
 }
 
-bool CubebLatencyPrefSet()
+ bool CubebUtils::CubebLatencyPrefSet()
 {
   StaticMutexAutoLock lock(sMutex);
   return sCubebLatencyPrefSet;
 }
 
-void InitLibrary()
+ void CubebUtils::InitLibrary()
 {
 #ifdef PR_LOGGING
   gAudioStreamLog = PR_NewLogModule("AudioStream");
@@ -134,7 +114,7 @@ void InitLibrary()
   Preferences::RegisterCallback(PrefChanged, PREF_CUBEB_LATENCY);
 }
 
-void ShutdownLibrary()
+ void CubebUtils::ShutdownLibrary()
 {
   Preferences::UnregisterCallback(PrefChanged, PREF_VOLUME_SCALE);
   Preferences::UnregisterCallback(PrefChanged, PREF_CUBEB_LATENCY);
@@ -146,20 +126,20 @@ void ShutdownLibrary()
   }
 }
 
-uint32_t MaxNumberOfChannels()
+ int CubebUtils::MaxNumberOfChannels()
 {
-  cubeb* cubebContext = GetCubebContext();
+  cubeb* cubebContext = CubebUtils::GetCubebContext();
   uint32_t maxNumberOfChannels;
   if (cubebContext &&
       cubeb_get_max_channel_count(cubebContext,
                                   &maxNumberOfChannels) == CUBEB_OK) {
-    return maxNumberOfChannels;
+    return static_cast<int>(maxNumberOfChannels);
   }
 
   return 0;
 }
 
-uint32_t PreferredSampleRate()
+ int CubebUtils::PreferredSampleRate()
 {
   MOZ_ASSERT(sPreferredSampleRate,
              "sPreferredSampleRate has not been initialized!");
@@ -167,7 +147,7 @@ uint32_t PreferredSampleRate()
 }
 
 #if defined(__ANDROID__) && defined(MOZ_B2G)
-cubeb_stream_type ConvertChannelToCubebType(dom::AudioChannel aChannel)
+ cubeb_stream_type CubebUtils::ConvertChannelToCubebType(dom::AudioChannel aChannel)
 {
   switch(aChannel) {
     case dom::AudioChannel::Normal:
@@ -191,5 +171,4 @@ cubeb_stream_type ConvertChannelToCubebType(dom::AudioChannel aChannel)
 }
 #endif
 
-} 
-} 
+}

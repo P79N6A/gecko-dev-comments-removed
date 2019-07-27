@@ -14,14 +14,8 @@
 
 struct cubeb_stream;
 
-template <>
-class nsAutoRefTraits<cubeb_stream> : public nsPointerRefTraits<cubeb_stream>
-{
-public:
-  static void Release(cubeb_stream* aStream) { cubeb_stream_destroy(aStream); }
-};
-
 namespace mozilla {
+
 
 
 
