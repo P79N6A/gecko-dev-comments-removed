@@ -382,17 +382,6 @@ protected:
 
   virtual JSObject* WrapNode(JSContext *aCx) = 0;
 
-  
-  
-  
-  mozilla::dom::ParentObject GetParentObjectInternal(nsINode* aNativeParent) const {
-    mozilla::dom::ParentObject p(aNativeParent);
-    
-    
-    p.mUseXBLScope = IsInAnonymousSubtree() && !IsAnonymousContentInSVGUseSubtree();
-    return p;
-  }
-
 public:
   mozilla::dom::ParentObject GetParentObject() const; 
 
