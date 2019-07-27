@@ -309,6 +309,8 @@ function openLinkIn(url, where, params) {
   
   w.focus();
 
+  let newTab;
+
   switch (where) {
   case "current":
     let flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
@@ -331,23 +333,30 @@ function openLinkIn(url, where, params) {
     loadInBackground = !loadInBackground;
     
   case "tab":
-    let browser = w.gBrowser;
-    browser.loadOneTab(url, {
-                       referrerURI: aReferrerURI,
-                       charset: aCharset,
-                       postData: aPostData,
-                       inBackground: loadInBackground,
-                       allowThirdPartyFixup: aAllowThirdPartyFixup,
-                       relatedToCurrent: aRelatedToCurrent,
-                       skipAnimation: aSkipTabAnimation,
-                       allowMixedContent: aAllowMixedContent });
+    newTab = w.gBrowser.loadOneTab(url, {
+      referrerURI: aReferrerURI,
+      charset: aCharset,
+      postData: aPostData,
+      inBackground: loadInBackground,
+      allowThirdPartyFixup: aAllowThirdPartyFixup,
+      relatedToCurrent: aRelatedToCurrent,
+      skipAnimation: aSkipTabAnimation,
+      allowMixedContent: aAllowMixedContent
+    });
     break;
   }
 
   w.gBrowser.selectedBrowser.focus();
 
-  if (!loadInBackground && w.isBlankPageURL(url))
+  if (!loadInBackground && w.isBlankPageURL(url)) {
+    if (newTab && gMultiProcessBrowser) {
+      
+      
+      
+      newTab._skipContentFocus = true;
+    }
     w.focusAndSelectUrlBar();
+  }
 }
 
 
