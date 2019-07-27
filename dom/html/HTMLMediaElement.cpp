@@ -878,7 +878,8 @@ void HTMLMediaElement::SelectResource()
 
       mLoadingSrc = uri;
       UpdatePreloadAction();
-      if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE) {
+      if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE &&
+          !IsMediaStreamURI(mLoadingSrc)) {
         
         
         SuspendLoad();
@@ -1016,7 +1017,8 @@ void HTMLMediaElement::LoadFromSourceChildren()
     NS_ASSERTION(mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING,
                  "Network state should be loading");
 
-    if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE) {
+    if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE &&
+        !IsMediaStreamURI(mLoadingSrc)) {
       
       
       SuspendLoad();
