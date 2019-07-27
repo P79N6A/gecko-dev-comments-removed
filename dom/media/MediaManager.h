@@ -554,6 +554,7 @@ public:
   
   
   static MediaManager* Get();
+  static MediaManager* GetIfExists();
   static MessageLoop* GetMessageLoop();
 
   static bool Exists()

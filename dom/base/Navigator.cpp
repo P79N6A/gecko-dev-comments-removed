@@ -1983,7 +1983,7 @@ Navigator::OnNavigation()
 
 #ifdef MOZ_MEDIA_NAVIGATOR
   
-  MediaManager *manager = MediaManager::Get();
+  MediaManager *manager = MediaManager::GetIfExists();
   if (manager) {
     manager->OnNavigation(mWindow->WindowID());
   }
