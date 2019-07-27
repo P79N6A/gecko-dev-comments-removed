@@ -887,11 +887,7 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
           if (nsContentUtils::IsJavascriptMIMEType(mimeType)) {
               langID = nsIProgrammingLanguage::JAVASCRIPT;
               version = JSVERSION_LATEST;
-          } else {
-              langID = nsIProgrammingLanguage::UNKNOWN;
-          }
 
-          if (langID != nsIProgrammingLanguage::UNKNOWN) {
               
               nsAutoString versionName;
               rv = parser.GetParameter("version", versionName);
@@ -901,6 +897,8 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
               } else if (rv != NS_ERROR_INVALID_ARG) {
                   return rv;
               }
+          } else {
+              langID = nsIProgrammingLanguage::UNKNOWN;
           }
       } else if (key.EqualsLiteral("language")) {
           
