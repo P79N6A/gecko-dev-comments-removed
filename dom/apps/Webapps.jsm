@@ -990,7 +990,8 @@ this.DOMApplicationRegistry = {
 
   
   
-  _createActivitiesToRegister: function(aManifest, aApp, aEntryPoint, aRunUpdate) {
+  _createActivitiesToRegister: function(aManifest, aApp, aEntryPoint,
+                                        aRunUpdate, aUninstall) {
     let activitiesToRegister = [];
     let root = aManifest;
     if (aEntryPoint && aManifest.entry_points[aEntryPoint]) {
@@ -1003,46 +1004,56 @@ this.DOMApplicationRegistry = {
 
     let manifest = new ManifestHelper(aManifest, aApp.origin, aApp.manifestURL);
     for (let activity in root.activities) {
-      let description = root.activities[activity];
-      let href = description.href;
-      if (!href) {
-        href = manifest.launch_path;
+      let entry = root.activities[activity];
+      if (!Array.isArray(entry)) {
+        entry = [entry];
       }
+      for (let i = 0; i < entry.length; i++) {
+        let description = entry[i];
+        let href = description.href;
+        if (!href) {
+          href = manifest.launch_path;
+        }
 
-      try {
-        href = manifest.resolveURL(href);
-      } catch (e) {
-        debug("Activity href (" + href + ") is invalid, skipping. " +
-              "Error is: " + e);
-        continue;
-      }
+        try {
+          href = manifest.resolveURL(href);
+        } catch (e) {
+          debug("Activity href (" + href + ") is invalid, skipping. " +
+                "Error is: " + e);
+          continue;
+        }
 
-      
-      
-      let newDesc = {};
-      for (let prop in description) {
-        newDesc[prop] = description[prop];
-      }
-      newDesc.href = href;
+        
+        
+        let newDesc = {};
+        for (let prop in description) {
+          newDesc[prop] = description[prop];
+        }
+        newDesc.href = href;
 
-      debug('_createActivitiesToRegister: ' + aApp.manifestURL + ', activity ' +
-          activity + ', description.href is ' + newDesc.href);
+        debug('_createActivitiesToRegister: ' + aApp.manifestURL + ', activity ' +
+            activity + ', description.href is ' + newDesc.href);
 
-      if (aRunUpdate) {
-        activitiesToRegister.push({ "manifest": aApp.manifestURL,
-                                    "name": activity,
-                                    "icon": manifest.iconURLForSize(128),
-                                    "description": newDesc });
-      }
+        if (aRunUpdate || aUninstall) {
+          activitiesToRegister.push({ "manifest": aApp.manifestURL,
+                                      "name": activity,
+                                      "icon": manifest.iconURLForSize(128),
+                                      "description": newDesc });
+        }
 
-      let launchPathURI = Services.io.newURI(href, null, null);
-      let manifestURI = Services.io.newURI(aApp.manifestURL, null, null);
+        if (aUninstall) {
+          continue;
+        }
 
-      if (SystemMessagePermissionsChecker
-            .isSystemMessagePermittedToRegister("activity",
-                                                aApp.manifestURL,
-                                                aManifest)) {
-        msgmgr.registerPage("activity", launchPathURI, manifestURI);
+        let launchPathURI = Services.io.newURI(href, null, null);
+        let manifestURI = Services.io.newURI(aApp.manifestURL, null, null);
+
+        if (SystemMessagePermissionsChecker
+              .isSystemMessagePermittedToRegister("activity",
+                                                  aApp.manifestURL,
+                                                  aManifest)) {
+          msgmgr.registerPage("activity", launchPathURI, manifestURI);
+        }
       }
     }
     return activitiesToRegister;
@@ -1090,28 +1101,6 @@ this.DOMApplicationRegistry = {
 
   
   
-  _createActivitiesToUnregister: function(aManifest, aApp, aEntryPoint) {
-    let activitiesToUnregister = [];
-    let root = aManifest;
-    if (aEntryPoint && aManifest.entry_points[aEntryPoint]) {
-      root = aManifest.entry_points[aEntryPoint];
-    }
-
-    if (!root.activities) {
-      return activitiesToUnregister;
-    }
-
-    for (let activity in root.activities) {
-      let description = root.activities[activity];
-      activitiesToUnregister.push({ "manifest": aApp.manifestURL,
-                                    "name": activity,
-                                    "description": description });
-    }
-    return activitiesToUnregister;
-  },
-
-  
-  
   _unregisterActivitiesForApps: function(aAppsToUnregister) {
     
     let activitiesToUnregister = [];
@@ -1119,7 +1108,7 @@ this.DOMApplicationRegistry = {
       let manifest = aApp.manifest;
       let app = aApp.app;
       activitiesToUnregister.push.apply(activitiesToUnregister,
-        this._createActivitiesToUnregister(manifest, app, null));
+        this._createActivitiesToRegister(manifest, app, null, false, true));
 
       if (!manifest.entry_points) {
         return;
@@ -1127,7 +1116,7 @@ this.DOMApplicationRegistry = {
 
       for (let entryPoint in manifest.entry_points) {
         activitiesToUnregister.push.apply(activitiesToUnregister,
-          this._createActivitiesToUnregister(manifest, app, entryPoint));
+          this._createActivitiesToRegister(manifest, app, entryPoint, false, true));
       }
     }, this);
 
