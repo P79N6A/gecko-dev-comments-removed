@@ -127,15 +127,14 @@ class Test1BrowserCall(MarionetteTestCase):
 
     
     def check_remote_video(self):
-        
-        
-        
+        video_wrapper = self.wait_for_element_displayed(
+            By.CSS_SELECTOR,
+            ".media .OT_subscriber .OT_video-container", 20)
+        video = self.wait_for_subelement_displayed(
+            video_wrapper, By.TAG_NAME, "video")
 
-        
-        
-
-        
-        sleep(15)
+        self.wait_for_element_attribute_to_be_false(video, "paused")
+        self.assertEqual(video.get_attribute("ended"), "false")
 
     def standalone_check_remote_video(self):
         self.switch_to_standalone()
