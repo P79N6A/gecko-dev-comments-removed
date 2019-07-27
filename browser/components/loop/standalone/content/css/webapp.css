@@ -371,7 +371,6 @@ p.standalone-btn-label {
 .text-chat-entries {
   
   height: calc(100% - 2em);
-  width: 30%;
 }
 
 .text-chat-box {

@@ -151,3 +151,8 @@ body {
   margin-left: .5rem;
   border: 0;
 }
+
+
+.standalone.text-chat-example .text-chat-view {
+  height: 400px;
+}

@@ -5,18 +5,20 @@
 var loop = loop || {};
 loop.store = loop.store || {};
 
-loop.store.TextChatStore = (function() {
+loop.store.TextChatStore = (function(mozL10n) {
   "use strict";
 
   var sharedActions = loop.shared.actions;
 
   var CHAT_MESSAGE_TYPES = loop.store.CHAT_MESSAGE_TYPES = {
     RECEIVED: "recv",
-    SENT: "sent"
+    SENT: "sent",
+    SPECIAL: "special"
   };
 
   var CHAT_CONTENT_TYPES = loop.store.CHAT_CONTENT_TYPES = {
-    TEXT: "chat-text"
+    TEXT: "chat-text",
+    ROOM_NAME: "room-name"
   };
 
   
@@ -27,7 +29,8 @@ loop.store.TextChatStore = (function() {
     actions: [
       "dataChannelsAvailable",
       "receivedTextChatMessage",
-      "sendTextChatMessage"
+      "sendTextChatMessage",
+      "updateRoomInfo"
     ],
 
     
@@ -88,7 +91,11 @@ loop.store.TextChatStore = (function() {
       var newList = this._storeState.messageList.concat(message);
       this.setStoreState({ messageList: newList });
 
-      window.dispatchEvent(new CustomEvent("LoopChatMessageAppended"));
+      
+      
+      if (type != CHAT_MESSAGE_TYPES.SPECIAL) {
+        window.dispatchEvent(new CustomEvent("LoopChatMessageAppended"));
+      }
     },
 
     
@@ -114,8 +121,23 @@ loop.store.TextChatStore = (function() {
     sendTextChatMessage: function(actionData) {
       this._appendTextChatMessage(CHAT_MESSAGE_TYPES.SENT, actionData);
       this._sdkDriver.sendTextChatMessage(actionData);
+    },
+
+    
+
+
+
+
+
+    updateRoomInfo: function(actionData) {
+      
+      
+      this._appendTextChatMessage(CHAT_MESSAGE_TYPES.SPECIAL, {
+        contentType: CHAT_CONTENT_TYPES.ROOM_NAME,
+        message: mozL10n.get("rooms_welcome_title", {conversationName: actionData.roomName})
+      });
     }
   });
 
   return TextChatStore;
-})();
+})(navigator.mozL10n || window.mozL10n);
