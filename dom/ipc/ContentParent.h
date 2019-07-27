@@ -169,6 +169,8 @@ public:
     
 
 
+    virtual bool DoLoadMessageManagerScript(const nsAString& aURL,
+                                            bool aRunInGlobalScope) MOZ_OVERRIDE;
     virtual bool DoSendAsyncMessage(JSContext* aCx,
                                     const nsAString& aMessage,
                                     const mozilla::dom::StructuredCloneData& aData,
