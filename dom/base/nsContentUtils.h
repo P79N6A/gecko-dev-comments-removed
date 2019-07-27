@@ -85,7 +85,6 @@ class nsIStringBundleService;
 class nsISupportsArray;
 class nsISupportsHashKey;
 class nsIURI;
-class nsIUUIDGenerator;
 class nsIWidget;
 class nsIWordBreaker;
 class nsIXPConnect;
@@ -853,11 +852,6 @@ public:
 
 
   static uint32_t ParseSandboxAttributeToFlags(const nsAttrValue* sandboxAttr);
-
-  
-
-
-  static nsresult GenerateUUIDInPlace(nsID& aUUID);
 
 
   
@@ -2444,7 +2438,6 @@ private:
   static nsNameSpaceManager *sNameSpaceManager;
 
   static nsIIOService *sIOService;
-  static nsIUUIDGenerator *sUUIDGenerator;
 
   static bool sImgLoaderInitialized;
   static void InitImgLoader();
