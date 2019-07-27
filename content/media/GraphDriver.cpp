@@ -767,7 +767,12 @@ AudioCallbackDriver::DataCallback(AudioDataValue* aBuffer, long aFrames)
     return aFrames;
   }
 
-  DebugOnly<AutoInCallback> aic(AutoInCallback(this));
+#ifdef DEBUG
+  
+  
+  
+  AutoInCallback aic(this);
+#endif
 
   if (mStateComputedTime == 0) {
     MonitorAutoLock mon(mGraphImpl->GetMonitor());
