@@ -422,8 +422,11 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   const nsMargin& ComputedPhysicalOffsets() const { return mComputedOffsets; }
   nsMargin& ComputedPhysicalOffsets() { return mComputedOffsets; }
 
-  LogicalMargin ComputedLogicalOffsets() const
+  const LogicalMargin ComputedLogicalOffsets() const
     { return LogicalMargin(mWritingMode, mComputedOffsets); }
+
+  void SetComputedLogicalOffsets(const LogicalMargin& aOffsets)
+    { mComputedOffsets = aOffsets.GetPhysicalMargin(mWritingMode); }
 
 private:
   
@@ -881,9 +884,6 @@ protected:
 
   void CalculateHypotheticalBox(nsPresContext*    aPresContext,
                                 nsIFrame*         aPlaceholderFrame,
-                                nsIFrame*         aContainingBlock,
-                                nscoord           aBlockIStartContentEdge,
-                                nscoord           aBlockContentISize,
                                 const nsHTMLReflowState* cbrs,
                                 nsHypotheticalBox& aHypotheticalBox,
                                 nsIAtom*          aFrameType);
