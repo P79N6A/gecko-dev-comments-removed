@@ -299,7 +299,7 @@ RasterImage::RasterImage(ProgressTracker* aProgressTracker,
   mNotifying(false),
   mHasSize(false),
   mDecodeOnDraw(false),
-  mMultipart(false),
+  mTransient(false),
   mDiscardable(false),
   mHasSourceData(false),
   mDecoded(false),
@@ -379,16 +379,16 @@ RasterImage::Init(const char* aMimeType,
 
   
   
-  NS_ABORT_IF_FALSE(!(aFlags & INIT_FLAG_MULTIPART) ||
-                    (!(aFlags & INIT_FLAG_DISCARDABLE) &&
-                     !(aFlags & INIT_FLAG_DECODE_ON_DRAW)),
-                    "Can't be discardable or decode-on-draw for multipart");
+  MOZ_ASSERT(!(aFlags & INIT_FLAG_TRANSIENT) ||
+               (!(aFlags & INIT_FLAG_DISCARDABLE) &&
+                !(aFlags & INIT_FLAG_DECODE_ON_DRAW)),
+             "Transient images can't be discardable or decode-on-draw");
 
   
   mSourceDataMimeType.Assign(aMimeType);
   mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
   mDecodeOnDraw = !!(aFlags & INIT_FLAG_DECODE_ON_DRAW);
-  mMultipart = !!(aFlags & INIT_FLAG_MULTIPART);
+  mTransient = !!(aFlags & INIT_FLAG_TRANSIENT);
 
   
   if (mDiscardable) {
@@ -566,15 +566,6 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
                          bool aShouldSyncNotify )
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  if (mMultipart &&
-      aFrameNum == GetCurrentFrameIndex() &&
-      mMultipartDecodedFrame) {
-    
-    
-    
-    return mMultipartDecodedFrame->DrawableRef();
-  }
 
   DrawableFrameRef ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
 
@@ -1103,7 +1094,7 @@ RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
     return NS_ERROR_INVALID_ARG;
 
   
-  if (!mMultipart && mHasSize &&
+  if (mHasSize &&
       ((aWidth != mSize.width) ||
        (aHeight != mSize.height) ||
        (aOrientation != mOrientation))) {
@@ -1194,30 +1185,10 @@ RasterImage::DecodingComplete(imgFrame* aFinalFrame)
   mDecoded = true;
   mHasBeenDecoded = true;
 
-  bool singleFrame = GetNumFrames() == 1;
-
   
   
-  
-  
-  
-  if (singleFrame && !mMultipart && aFinalFrame) {
+  if (GetNumFrames() == 1 && !mTransient && aFinalFrame) {
     aFinalFrame->SetOptimizable();
-  }
-
-  
-  
-  if (mMultipart) {
-    if (singleFrame && aFinalFrame) {
-      
-      mMultipartDecodedFrame = aFinalFrame->DrawableRef();
-    } else {
-      
-      
-      
-      
-      mMultipartDecodedFrame.reset();
-    }
   }
 
   if (mAnim) {
@@ -1395,32 +1366,6 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   
   
   
-  if (mMultipart && (!mDecoder || mDecoder->BytesDecoded() == 0)) {
-    
-    if (mAnimating) {
-      StopAnimation();
-    }
-    mAnimationFinished = false;
-    mPendingAnimation = false;
-    if (mAnim) {
-      mAnim = nullptr;
-    }
-
-    
-    
-    if (mFrameBlender) {
-      nsRefPtr<imgFrame> firstFrame = mFrameBlender->RawGetFrame(0);
-      mMultipartDecodedFrame = firstFrame->DrawableRef();
-      mFrameBlender.reset();
-    }
-
-    
-    SurfaceCache::RemoveImage(ImageKey(this));
-  }
-
-  
-  
-  
   if (!StoringSourceData() && mHasSize) {
     rv = WriteToDecoder(aBuffer, aCount, DecodeStrategy::SYNC);
     CONTAINER_ENSURE_SUCCESS(rv);
@@ -1568,54 +1513,9 @@ RasterImage::OnImageDataAvailable(nsIRequest*,
 nsresult
 RasterImage::OnNewSourceData()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsresult rv;
-
-  if (mError)
-    return NS_ERROR_FAILURE;
-
   
-  NS_ABORT_IF_FALSE(mHasSourceData,
-                    "Calling NewSourceData before SourceDataComplete!");
-  if (!mHasSourceData)
-    return NS_ERROR_ILLEGAL_VALUE;
-
-  
-  
-  
-  NS_ABORT_IF_FALSE(mMultipart, "NewSourceData only supported for multipart");
-  if (!mMultipart)
-    return NS_ERROR_ILLEGAL_VALUE;
-
-  
-  NS_ABORT_IF_FALSE(!StoringSourceData(),
-                    "Shouldn't be storing source data for multipart");
-
-  
-  
-  NS_ABORT_IF_FALSE(!mDecoder, "Shouldn't have a decoder in NewSourceData");
-
-  
-  NS_ABORT_IF_FALSE(mDecoded, "Should be decoded in NewSourceData");
-
-  
-  mDecoded = false;
-  mHasSourceData = false;
-  mHasSize = false;
-  mHasFirstFrame = false;
-  mWantFullDecode = true;
-  mDecodeStatus = DecodeStatus::INACTIVE;
-
-  if (mAnim) {
-    mAnim->SetDoneDecoding(false);
-  }
-
-  
-  rv = InitDecoder( true);
-  CONTAINER_ENSURE_SUCCESS(rv);
-
-  return NS_OK;
+  MOZ_ASSERT_UNREACHABLE();
+  return NS_ERROR_ILLEGAL_VALUE;
 }
 
  already_AddRefed<nsIEventTarget>
@@ -1703,9 +1603,6 @@ RasterImage::Discard()
   SurfaceCache::RemoveImage(ImageKey(this));
 
   
-  mMultipartDecodedFrame.reset();
-
-  
   mDecoded = false;
   mHasFirstFrame = false;
 
@@ -1743,7 +1640,7 @@ RasterImage::CanDiscard() {
 
 bool
 RasterImage::StoringSourceData() const {
-  return !mMultipart;
+  return !mTransient;
 }
 
 
@@ -2189,7 +2086,7 @@ RasterImage::CanScale(GraphicsFilter aFilter,
 
   
   
-  if (mAnim || mMultipart) {
+  if (mAnim || mTransient) {
     return false;
   }
 

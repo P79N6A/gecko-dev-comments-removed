@@ -351,9 +351,6 @@ private:
   
   Maybe<FrameBlender>       mFrameBlender;
 
-  
-  DrawableFrameRef          mMultipartDecodedFrame;
-
   nsCOMPtr<nsIProperties>   mProperties;
 
   
@@ -408,7 +405,7 @@ private:
   
   bool                       mHasSize:1;       
   bool                       mDecodeOnDraw:1;  
-  bool                       mMultipart:1;     
+  bool                       mTransient:1;     
   bool                       mDiscardable:1;   
   bool                       mHasSourceData:1; 
 
