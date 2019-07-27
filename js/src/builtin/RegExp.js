@@ -7,7 +7,7 @@ function RegExpFlagsGetter() {
     
     var R = this;
     if (!IsObject(R))
-        ThrowError(JSMSG_NOT_NONNULL_OBJECT, R === null ? "null" : typeof R);
+        ThrowTypeError(JSMSG_NOT_NONNULL_OBJECT, R === null ? "null" : typeof R);
 
     
     var result = "";
@@ -43,7 +43,7 @@ function RegExpToString()
     
     var R = this;
     if (!IsObject(R))
-        ThrowError(JSMSG_NOT_NONNULL_OBJECT, R === null ? "null" : typeof R);
+        ThrowTypeError(JSMSG_NOT_NONNULL_OBJECT, R === null ? "null" : typeof R);
 
     
     var pattern = R.source;
