@@ -49,7 +49,7 @@ already_AddRefed<nsGeolocationSettings>
 nsGeolocationSettings::GetGeolocationSettings()
 {
   
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     return nullptr;
   }
 

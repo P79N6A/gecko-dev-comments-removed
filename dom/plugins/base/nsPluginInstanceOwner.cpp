@@ -652,7 +652,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   
   
   
-  if (XRE_GetProcessType() != GeckoProcessType_Content &&
+  if (!XRE_IsContentProcess() &&
       mPluginWindow && mPluginWindow->type == NPWindowTypeDrawable) {
     
     
@@ -2840,7 +2840,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
       parentWidget = nsContentUtils::WidgetForDocument(doc);
 #ifndef XP_MACOSX
       
-      if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      if (XRE_IsContentProcess()) {
         nsCOMPtr<nsIDOMWindow> window = doc->GetWindow();
         if (window) {
           nsCOMPtr<nsIDOMWindow> topWindow;
@@ -2962,7 +2962,7 @@ void nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
     mPluginWindow->clipRect.bottom = mPluginWindow->clipRect.top;
     mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left;
   }
-  else if (XRE_GetProcessType() != GeckoProcessType_Default)
+  else if (!XRE_IsParentProcess())
   {
     
     
@@ -3156,7 +3156,7 @@ nsPluginInstanceOwner::UpdateDocumentActiveState(bool aIsActive)
   
   
   
-  if (mWidget && XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (mWidget && XRE_IsContentProcess()) {
     mWidget->Show(aIsActive);
     mWidget->Enable(aIsActive);
   }

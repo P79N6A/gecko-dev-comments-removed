@@ -392,7 +392,7 @@ gfxAndroidPlatform::RequiresLinearZoom()
     
     
     
-    return XRE_GetProcessType() == GeckoProcessType_Content &&
+    return XRE_IsContentProcess() &&
            ContentChild::GetSingleton()->IsForBrowser();
 #endif
 

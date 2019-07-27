@@ -2946,7 +2946,7 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
         if (scheme.LowerCaseEqualsLiteral("app") ||
             scheme.LowerCaseEqualsLiteral("jar")) {
           mIsMappedArrayBuffer = true;
-          if (XRE_GetProcessType() != GeckoProcessType_Default) {
+          if (!XRE_IsParentProcess()) {
             nsCOMPtr<nsIJARChannel> jarChannel = do_QueryInterface(mChannel);
             
             

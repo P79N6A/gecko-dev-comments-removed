@@ -123,7 +123,7 @@ InitLoggingIfRequired()
 #if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_STACKWALKING)
     
     
-    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    if (XRE_IsContentProcess()) {
       Preferences::AddUintVarCache(&sStackTraceDepth,
         "security.sandbox.windows.log.stackTraceDepth");
     }

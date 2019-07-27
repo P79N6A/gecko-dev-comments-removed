@@ -193,10 +193,10 @@ AudioSession::Start()
     mState = FAILED;
 
     
-    if (XRE_GetProcessType() == GeckoProcessType_Content)
+    if (XRE_IsContentProcess())
       return NS_ERROR_FAILURE;
 
-    MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
+    MOZ_ASSERT(XRE_IsParentProcess(),
                "Should only get here in a chrome process!");
 
     nsCOMPtr<nsIStringBundleService> bundleService = 
@@ -315,7 +315,7 @@ AudioSession::Stop()
   nsRefPtr<AudioSession> kungFuDeathGrip;
   kungFuDeathGrip.swap(sService);
 
-  if (XRE_GetProcessType() != GeckoProcessType_Content)
+  if (!XRE_IsContentProcess())
     StopInternal();
 
   
@@ -362,7 +362,7 @@ AudioSession::SetSessionData(const nsID& aID,
 {
   MOZ_ASSERT(mState == UNINITIALIZED,
              "State invariants violated");
-  MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Default,
+  MOZ_ASSERT(!XRE_IsParentProcess(),
              "Should never get here in a chrome process!");
   mState = CLONED;
 
