@@ -8,6 +8,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 do_get_profile();
 
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/PromiseUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -1041,14 +1042,19 @@ add_task(function* test_forget_witness_on_close() {
 
 add_task(function* test_close_database_on_gc() {
   failTestsOnAutoClose(false);
-  let deferred = Promise.defer();
+  let finalPromise;
 
-  for (let i = 0; i < 100; ++i) {
-    let c = yield getDummyDatabase("gc_" + i);
-    c._connectionData._deferredClose.promise.then(deferred.resolve);
+  {
+    let collectedPromises = [];
+    for (let i = 0; i < 100; ++i) {
+      let deferred = PromiseUtils.defer();
+      let c = yield getDummyDatabase("gc_" + i);
+      c._connectionData._deferredClose.promise.then(deferred.resolve);
+      collectedPromises.push(deferred.promise);
+    }
+    finalPromise = Promise.all(collectedPromises);
   }
 
-  
   
   
   
@@ -1058,6 +1064,6 @@ add_task(function* test_close_database_on_gc() {
   yield last.close();
 
   Components.utils.forceGC();
-  yield deferred.promise;
+  yield finalPromise;
   failTestsOnAutoClose(true);
 });
