@@ -174,6 +174,9 @@ namespace jit {
     _(JSOP_ISNOITER)           \
     _(JSOP_ENDITER)            \
     _(JSOP_GENERATOR)          \
+    _(JSOP_INITIALYIELD)       \
+    _(JSOP_YIELD)              \
+    _(JSOP_FINALYIELDRVAL)     \
     _(JSOP_CALLEE)             \
     _(JSOP_SETRVAL)            \
     _(JSOP_RETRVAL)            \
@@ -197,6 +200,10 @@ class BaselineCompiler : public BaselineCompilerSpecific
     
     
     CodeOffsetLabel postDebugPrologueOffset_;
+
+    
+    
+    Vector<uint32_t>            yieldOffsets_;
 
     
     bool modifiesArguments_;
@@ -278,6 +285,8 @@ class BaselineCompiler : public BaselineCompilerSpecific
     bool emitUninitializedLexicalCheck(const ValueOperand &val);
 
     bool addPCMappingEntry(bool addIndexEntry);
+
+    bool addYieldOffset();
 
     void getScopeCoordinateObject(Register reg);
     Address getScopeCoordinateAddressFromObject(Register objReg, Register reg);

@@ -836,6 +836,51 @@ CreateGenerator(JSContext *cx, BaselineFrame *frame)
 }
 
 bool
+InitialSuspend(JSContext *cx, HandleObject obj, BaselineFrame *frame, jsbytecode *pc)
+{
+    MOZ_ASSERT(*pc == JSOP_INITIALYIELD);
+    return GeneratorObject::initialSuspend(cx, obj, frame, pc);
+}
+
+bool
+NormalSuspend(JSContext *cx, HandleObject obj, BaselineFrame *frame, jsbytecode *pc,
+              uint32_t stackDepth)
+{
+    MOZ_ASSERT(*pc == JSOP_YIELD);
+
+    
+    MOZ_ASSERT(stackDepth >= 1);
+
+    
+    
+    
+    AutoValueVector exprStack(cx);
+    if (!exprStack.reserve(stackDepth - 1))
+        return false;
+
+    size_t firstSlot = frame->numValueSlots() - stackDepth;
+    for (size_t i = 0; i < stackDepth - 1; i++)
+        exprStack.infallibleAppend(*frame->valueSlot(firstSlot + i));
+
+    MOZ_ASSERT(exprStack.length() == stackDepth - 1);
+
+    return GeneratorObject::normalSuspend(cx, obj, frame, pc, exprStack.begin(), stackDepth - 1);
+}
+
+bool
+FinalSuspend(JSContext *cx, HandleObject obj, BaselineFrame *frame, jsbytecode *pc)
+{
+    MOZ_ASSERT(*pc == JSOP_FINALYIELDRVAL);
+
+    if (!GeneratorObject::finalSuspend(cx, obj)) {
+        
+        return DebugEpilogue(cx, frame, pc,  false);
+    }
+
+    return true;
+}
+
+bool
 StrictEvalPrologue(JSContext *cx, BaselineFrame *frame)
 {
     return frame->strictEvalPrologue(cx);
