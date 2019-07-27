@@ -1450,18 +1450,29 @@ nsIOService::SetAppOffline(uint32_t aAppId, int32_t aState)
     return NS_OK;
 }
 
+
+
+
+
+
+
+
 void
 nsIOService::SetAppOfflineInternal(uint32_t aAppId, int32_t aState)
 {
     MOZ_ASSERT(NS_IsMainThread());
     NS_ENSURE_TRUE_VOID(NS_IsMainThread());
 
-    int32_t state;
-    if (mAppsOfflineStatus.Get(aAppId, &state) && state == aState) {
+    int32_t state = nsIAppOfflineInfo::ONLINE;
+    mAppsOfflineStatus.Get(aAppId, &state);
+    if (state == aState) {
         
         return;
     }
 
+    
+    
+    
     bool wifiActive = IsWifiActive();
     bool offline = (state == nsIAppOfflineInfo::OFFLINE) ||
                    (state == nsIAppOfflineInfo::WIFI_ONLY && !wifiActive);
