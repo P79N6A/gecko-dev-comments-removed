@@ -190,7 +190,7 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
     if (!gotInit) {
       
       nsRefPtr<SourceBufferDecoder> decoder =
-        NewDecoder(aTimestampOffset - mAdjustedTimestamp);
+        NewDecoder(aTimestampOffset);
       
       
       if (!decoder) {
@@ -198,7 +198,7 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
         return p;
       }
     } else {
-      if (!decoders.NewDecoder(aTimestampOffset - mAdjustedTimestamp)) {
+      if (!decoders.NewDecoder(aTimestampOffset)) {
         mInitializationPromise.Reject(NS_ERROR_FAILURE, __func__);
         return p;
       }
@@ -224,7 +224,7 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
         
         
         if (!hadCompleteInitData ||
-            !decoders.NewDecoder(aTimestampOffset - mAdjustedTimestamp)) {
+            !decoders.NewDecoder(aTimestampOffset)) {
           mInitializationPromise.Reject(NS_ERROR_FAILURE, __func__);
           return p;
         }
@@ -455,7 +455,8 @@ TrackBuffer::NewDecoder(int64_t aTimestampOffset)
 
   DiscardCurrentDecoder();
 
-  nsRefPtr<SourceBufferDecoder> decoder = mParentDecoder->CreateSubDecoder(mType, aTimestampOffset);
+  nsRefPtr<SourceBufferDecoder> decoder =
+    mParentDecoder->CreateSubDecoder(mType, aTimestampOffset - mAdjustedTimestamp);
   if (!decoder) {
     return nullptr;
   }
