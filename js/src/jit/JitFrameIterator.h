@@ -266,6 +266,32 @@ class JitFrameIterator
 #endif
 };
 
+class RInstructionResults
+{
+    
+    typedef mozilla::Vector<RelocatableValue, 1, SystemAllocPolicy> Values;
+    mozilla::UniquePtr<Values, JS::DeletePolicy<Values> > results_;
+
+    
+    
+    IonJSFrameLayout *fp_;
+
+  public:
+    RInstructionResults();
+    RInstructionResults(RInstructionResults&& src);
+
+    RInstructionResults& operator=(RInstructionResults&& rhs);
+
+    ~RInstructionResults();
+
+    bool init(JSContext *cx, uint32_t numResults, IonJSFrameLayout *fp);
+    bool isInitialized() const;
+
+    IonJSFrameLayout *frame() const;
+
+    RelocatableValue& operator[](size_t index);
+};
+
 class RResumePoint;
 
 
@@ -277,7 +303,7 @@ class SnapshotIterator
     IonJSFrameLayout *fp_;
     MachineState machine_;
     IonScript *ionScript_;
-    AutoValueVector *instructionResults_;
+    RInstructionResults *instructionResults_;
 
   private:
     
@@ -369,7 +395,7 @@ class SnapshotIterator
     
     
     
-    bool initIntructionResults(AutoValueVector &results);
+    bool initInstructionResults(JSContext *cx, RInstructionResults *results);
 
     void storeInstructionResult(Value v);
 
