@@ -297,4 +297,47 @@ function run_test() {
     expected: "foo",
     operator: "="
   }).message, "[object Object] = \"foo\"");
+
+  run_next_test();
 }
+
+add_task(function* test_rejects() {
+  let ns = {};
+  Components.utils.import("resource://testing-common/Assert.jsm", ns);
+  let assert = new ns.Assert();
+
+  
+  function* checkRejectsFails(err, expected) {
+    try {
+      yield assert.rejects(Promise.reject(err), expected);
+      ok(false, "should have thrown");
+    } catch(ex) {
+      deepEqual(ex, err, "Assert.rejects threw the original unexpected error");
+    }
+  }
+
+  
+  let SomeErrorLikeThing = function() {};
+
+  
+  
+  yield assert.rejects(Promise.reject(new Error("oh no")));
+  yield assert.rejects(Promise.reject("oh no"));
+
+  
+  
+  yield assert.rejects(Promise.reject(new Error("oh no")), Error, "rejected");
+  
+  yield assert.rejects(Promise.reject(new Error("oh no")), /oh no/, "rejected");
+
+  
+  
+  yield checkRejectsFails(new Error("something else"), SomeErrorLikeThing);
+  
+  yield checkRejectsFails(new Error("something else"), /oh no/);
+
+  
+  yield assert.rejects(Promise.reject("oh no"), /oh no/, "rejected");
+  
+  yield checkRejectsFails("something else", /oh no/);
+});

@@ -16,6 +16,10 @@ this.EXPORTED_SYMBOLS = [
   "Assert"
 ];
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
 
 
 
@@ -441,4 +445,35 @@ proto.throws = function(block, expected, message) {
   }
 
   this.report(false, expected, expected, message);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+proto.rejects = function(promise, expected, message) {
+  return new Promise((resolve, reject) => {
+    if (typeof expected === "string") {
+      message = expected;
+      expected = null;
+    }
+    return promise.then(
+      () => this.report(true, null, expected, "Missing expected exception " + message),
+      err => {
+        if (expected && !expectedException(err, expected)) {
+          reject(err);
+          return;
+        }
+        this.report(false, err, expected, message);
+        resolve();
+      }
+    ).then(null, reject);
+  });
 };
