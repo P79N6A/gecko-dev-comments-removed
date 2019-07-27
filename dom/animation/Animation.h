@@ -295,11 +295,21 @@ protected:
     }
   }
 
-  void UpdateTiming();
-  void UpdateFinishedState(bool aSeekFlag = false);
+  
+
+
+
+  enum class SeekFlag {
+    NoSeek,
+    DidSeek
+  };
+
+  void UpdateTiming(SeekFlag aSeekFlag);
+  void UpdateFinishedState(SeekFlag aSeekFlag);
   void UpdateEffect();
   void FlushStyle() const;
   void PostUpdate();
+
   
 
 
