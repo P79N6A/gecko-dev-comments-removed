@@ -113,6 +113,8 @@ private:
   
   
   friend class mozilla::MediaSourceDecoder;
+  
+  friend class mozilla::dom::SourceBuffer;
 
   ~MediaSource();
 
@@ -125,6 +127,9 @@ private:
   void DurationChange(double aOldDuration, double aNewDuration);
 
   void InitializationEvent();
+
+  
+  void SetDuration(double aDuration);
 
   nsRefPtr<SourceBufferList> mSourceBuffers;
   nsRefPtr<SourceBufferList> mActiveSourceBuffers;

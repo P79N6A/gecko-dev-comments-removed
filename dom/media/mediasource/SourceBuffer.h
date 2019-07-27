@@ -128,6 +128,11 @@ private:
   void AbortUpdating();
 
   
+  
+  
+  void CheckEndTime();
+
+  
   void AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv);
 
   
