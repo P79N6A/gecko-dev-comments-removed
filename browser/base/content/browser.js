@@ -403,6 +403,33 @@ const gSessionHistoryObserver = {
   }
 };
 
+const gGatherTelemetryObserver = {
+  observe: function(subject, topic, data) {
+    if (topic != "gather-telemetry") {
+      return;
+    }
+
+    let engine;
+    try {
+      engine = Services.search.defaultEngine;
+    } catch (e) {}
+    let name;
+
+    if (!engine) {
+      name = "NONE";
+    } else if (engine.identifier) {
+      name = engine.identifier;
+    } else if (engine.name) {
+      name = "other-" + engine.name;
+    } else {
+      name = "UNDEFINED";
+    }
+
+    let engines = Services.telemetry.getKeyedHistogramById("SEARCH_DEFAULT_ENGINE");
+    engines.add(name, true)
+  },
+};
+
 
 
 
@@ -1186,6 +1213,7 @@ var gBrowserInit = {
     Services.obs.addObserver(gXPInstallObserver, "addon-install-blocked", false);
     Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
     Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
+    Services.obs.addObserver(gGatherTelemetryObserver, "gather-telemetry", false);
     window.messageManager.addMessageListener("Browser:URIFixup", gKeywordURIFixup);
     window.messageManager.addMessageListener("Browser:LoadURI", RedirectLoad);
 
@@ -1506,6 +1534,7 @@ var gBrowserInit = {
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-blocked");
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
+      Services.obs.removeObserver(gGatherTelemetryObserver, "gather-telemetry");
       window.messageManager.removeMessageListener("Browser:URIFixup", gKeywordURIFixup);
       window.messageManager.removeMessageListener("Browser:LoadURI", RedirectLoad);
 
@@ -7468,6 +7497,8 @@ let gRemoteTabsUI = {
 
 
 
+
+
 function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   
   
@@ -7476,11 +7507,13 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   ]);
 
   let ignoreFragment = aOpenParams.ignoreFragment;
+  let ignoreQueryString = aOpenParams.ignoreQueryString;
   let replaceQueryString = aOpenParams.replaceQueryString;
 
   
   
   delete aOpenParams.ignoreFragment;
+  delete aOpenParams.ignoreQueryString;
 
   
   function switchIfURIInWindow(aWindow) {
@@ -7509,12 +7542,14 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
         }
         return true;
       }
-      if (replaceQueryString) {
+      if (ignoreQueryString || replaceQueryString) {
         if (browser.currentURI.spec.split("?")[0] == aURI.spec.split("?")[0]) {
           
           aWindow.focus();
           aWindow.gBrowser.tabContainer.selectedIndex = i;
-          browser.loadURI(aURI.spec);
+          if (replaceQueryString) {
+            browser.loadURI(aURI.spec);
+          }
           return true;
         }
       }
