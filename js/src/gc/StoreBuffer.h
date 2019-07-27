@@ -78,7 +78,18 @@ class StoreBuffer
     friend class mozilla::ReentrancyGuard;
 
     
-    static const size_t MinAvailableSize = (size_t)(LifoAllocBlockSize * 1.0 / 8.0);
+    static const size_t LowAvailableThreshold = (size_t)(LifoAllocBlockSize * 1.0 / 16.0);
+
+    
+
+
+
+
+
+
+
+
+    static const size_t HighAvailableThreshold = (size_t)(LifoAllocBlockSize * 1.0 / 4.0);
 
     
 
@@ -110,7 +121,11 @@ class StoreBuffer
         }
 
         bool isAboutToOverflow() const {
-            return !storage_->isEmpty() && storage_->availableInCurrentChunk() < MinAvailableSize;
+            return !storage_->isEmpty() && storage_->availableInCurrentChunk() < LowAvailableThreshold;
+        }
+
+        bool isLowOnSpace() const {
+            return !storage_->isEmpty() && storage_->availableInCurrentChunk() < HighAvailableThreshold;
         }
 
         void handleOverflow(StoreBuffer *owner);
@@ -189,7 +204,7 @@ class StoreBuffer
         }
 
         bool isAboutToOverflow() const {
-            return !storage_->isEmpty() && storage_->availableInCurrentChunk() < MinAvailableSize;
+            return !storage_->isEmpty() && storage_->availableInCurrentChunk() < LowAvailableThreshold;
         }
 
         

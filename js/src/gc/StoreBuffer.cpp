@@ -97,7 +97,7 @@ StoreBuffer::MonoTypeBuffer<T>::handleOverflow(StoreBuffer *owner)
 
 
         compact(owner);
-        if (isAboutToOverflow())
+        if (isLowOnSpace())
             owner->setAboutToOverflow();
     } else {
          
