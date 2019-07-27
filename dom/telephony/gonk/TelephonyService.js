@@ -484,14 +484,14 @@ TelephonyService.prototype = {
   
 
 
-  _getOneActiveCall: function(aClientId) {
+  _isActive: function(aClientId) {
     for (let index in this._currentCalls[aClientId]) {
       let call = this._currentCalls[aClientId][index];
       if (call.state === nsITelephonyService.CALL_STATE_CONNECTED) {
-        return call;
+        return true;
       }
     }
-    return null;
+    return false;
   },
 
   
@@ -653,8 +653,7 @@ TelephonyService.prototype = {
     };
 
     
-    let activeCall = this._getOneActiveCall(aClientId);
-    if (!activeCall) {
+    if (!this._isActive(aClientId)) {
       this._sendDialCallRequest(aClientId, options, aCallback);
       return;
     }
@@ -1366,7 +1365,7 @@ TelephonyService.prototype = {
     }
 
     
-    if (this._cachedDialRequest && !this._getOneActiveCall(aClientId)) {
+    if (this._cachedDialRequest && !this._isActive(aClientId)) {
       if (DEBUG) debug("All calls held. Perform the cached dial request.");
 
       let request = this._cachedDialRequest;
