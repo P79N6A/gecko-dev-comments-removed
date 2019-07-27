@@ -482,6 +482,7 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
   RefPtr<IMFSample> sample;
   HRESULT hr;
   aOutData = nullptr;
+  bool alreadyDidTypeChange = false;
 
   
   
@@ -497,7 +498,9 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
       MOZ_ASSERT(!sample);
       hr = ConfigureVideoFrameGeometry();
       NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+      NS_ENSURE_FALSE(alreadyDidTypeChange, MF_E_TRANSFORM_STREAM_CHANGE);
       
+      alreadyDidTypeChange = true;
       continue;
     }
     if (SUCCEEDED(hr)) {
