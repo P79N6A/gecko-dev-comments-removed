@@ -205,25 +205,10 @@ NetworkResponseListener.prototype = {
   onStartRequest: function NRL_onStartRequest(aRequest)
   {
     this.request = aRequest;
-    this._getSecurityInfo();
     this._findOpenResponse();
     
     this.setAsyncListener(this.sink.inputStream, this);
   },
-
-  
-
-
-  _getSecurityInfo: DevToolsUtils.makeInfallible(function NRL_getSecurityInfo() {
-    
-    
-    
-    
-    let secinfo = this.httpActivity.channel.securityInfo;
-    let info = NetworkHelper.parseSecurityInfo(secinfo, this.request);
-
-    this.httpActivity.owner.addSecurityInfo(info);
-  }),
 
   
 
@@ -1239,8 +1224,8 @@ NetworkEventActorProxy.prototype = {
 (function() {
   
   let methods = ["addRequestHeaders", "addRequestCookies", "addRequestPostData",
-                 "addResponseStart", "addSecurityInfo", "addResponseHeaders",
-                 "addResponseCookies", "addResponseContent", "addEventTimings"];
+                 "addResponseStart", "addResponseHeaders", "addResponseCookies",
+                 "addResponseContent", "addEventTimings"];
   let factory = NetworkEventActorProxy.methodFactory;
   for (let method of methods) {
     NetworkEventActorProxy.prototype[method] = factory(method);
