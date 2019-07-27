@@ -119,8 +119,7 @@ RunTests()
   
 
   
-  JSONWriter writer1(Move(f1));
-  AnalyzeReports(writer1);
+  AnalyzeReports(Move(f1));
 
   
 
@@ -246,8 +245,7 @@ RunTests()
 
 
   
-  JSONWriter writer2(Move(f2));
-  AnalyzeReports(writer2);
+  AnalyzeReports(Move(f2));
 
   
 
@@ -263,8 +261,7 @@ RunTests()
 
 
   
-  JSONWriter writer3(Move(f3));
-  AnalyzeReports(writer3);
+  AnalyzeReports(Move(f3));
 
   
 
@@ -323,8 +320,7 @@ RunTests()
   
 
   
-  JSONWriter writer4(Move(f4));
-  AnalyzeReports(writer4);
+  AnalyzeReports(Move(f4));
 }
 
 int main()

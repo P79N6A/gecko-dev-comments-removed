@@ -811,8 +811,7 @@ nsMemoryInfoDumper::DumpDMDToFile(FILE* aFile)
   }
 
   
-  JSONWriter jsonWriter(MakeUnique<GZWriterWrapper>(gzWriter));
-  dmd::AnalyzeReports(jsonWriter);
+  dmd::AnalyzeReports(MakeUnique<GZWriterWrapper>(gzWriter));
 
   rv = gzWriter->Finish();
   NS_WARN_IF(NS_FAILED(rv));
