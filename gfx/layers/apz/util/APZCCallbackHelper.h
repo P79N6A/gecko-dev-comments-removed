@@ -7,10 +7,12 @@
 #define mozilla_layers_APZCCallbackHelper_h
 
 #include "FrameMetrics.h"
+#include "mozilla/EventForwards.h"
 #include "nsIDOMWindowUtils.h"
 
 class nsIContent;
 class nsIDocument;
+class nsIWidget;
 template<class T> struct already_AddRefed;
 
 namespace mozilla {
@@ -104,6 +106,23 @@ public:
                                              const ScrollableLayerGuid& aGuid,
                                              const CSSToLayoutDeviceScale& aScale,
                                              float aPresShellResolution);
+
+    
+
+
+    static nsEventStatus DispatchWidgetEvent(WidgetGUIEvent& aEvent);
+
+    
+
+    static nsEventStatus DispatchSynthesizedMouseEvent(uint32_t aMsg,
+                                                       uint64_t aTime,
+                                                       const LayoutDevicePoint& aRefPoint,
+                                                       nsIWidget* aWidget);
+
+    
+
+    static void FireSingleTapEvent(const LayoutDevicePoint& aPoint,
+                                   nsIWidget* aWidget);
 };
 
 }

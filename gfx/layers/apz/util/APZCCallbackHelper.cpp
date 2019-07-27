@@ -4,7 +4,9 @@
 
 
 #include "APZCCallbackHelper.h"
+
 #include "gfxPlatform.h" 
+#include "mozilla/dom/TabParent.h"
 #include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsIDOMElement.h"
@@ -13,8 +15,13 @@
 #include "nsIDocument.h"
 #include "nsIDOMWindow.h"
 
+#define APZCCH_LOG(...)
+
+
 namespace mozilla {
 namespace layers {
+
+using dom::TabParent;
 
 bool
 APZCCallbackHelper::HasValidPresShellId(nsIDOMWindowUtils* aUtils,
@@ -358,6 +365,68 @@ APZCCallbackHelper::ApplyCallbackTransform(const nsIntPoint& aPoint,
     point = ApplyCallbackTransform(point / aScale, aGuid, aPresShellResolution) * aScale;
     LayoutDeviceIntPoint ret = gfx::RoundedToInt(point);
     return nsIntPoint(ret.x, ret.y);
+}
+
+nsEventStatus
+APZCCallbackHelper::DispatchWidgetEvent(WidgetGUIEvent& aEvent)
+{
+  if (!aEvent.widget)
+    return nsEventStatus_eConsumeNoDefault;
+
+  
+  if (TabParent* capturer = TabParent::GetEventCapturer()) {
+    if (capturer->TryCapture(aEvent)) {
+      
+      
+      
+      MOZ_ASSERT(!XRE_IsParentProcess());
+
+      return nsEventStatus_eConsumeNoDefault;
+    }
+  }
+  nsEventStatus status;
+  NS_ENSURE_SUCCESS(aEvent.widget->DispatchEvent(&aEvent, status),
+                    nsEventStatus_eConsumeNoDefault);
+  return status;
+}
+
+nsEventStatus
+APZCCallbackHelper::DispatchSynthesizedMouseEvent(uint32_t aMsg,
+                                                  uint64_t aTime,
+                                                  const LayoutDevicePoint& aRefPoint,
+                                                  nsIWidget* aWidget)
+{
+  MOZ_ASSERT(aMsg == NS_MOUSE_MOVE || aMsg == NS_MOUSE_BUTTON_DOWN ||
+             aMsg == NS_MOUSE_BUTTON_UP || aMsg == NS_MOUSE_MOZLONGTAP);
+
+  WidgetMouseEvent event(true, aMsg, nullptr,
+                         WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
+  event.refPoint = LayoutDeviceIntPoint(aRefPoint.x, aRefPoint.y);
+  event.time = aTime;
+  event.button = WidgetMouseEvent::eLeftButton;
+  event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
+  event.ignoreRootScrollFrame = true;
+  if (aMsg != NS_MOUSE_MOVE) {
+    event.clickCount = 1;
+  }
+  event.widget = aWidget;
+
+  return DispatchWidgetEvent(event);
+}
+
+void
+APZCCallbackHelper::FireSingleTapEvent(const LayoutDevicePoint& aPoint,
+                                       nsIWidget* aWidget)
+{
+  if (aWidget->Destroyed()) {
+    return;
+  }
+  APZCCH_LOG("Dispatching single-tap component events to %s\n",
+    Stringify(aPoint).c_str());
+  int time = 0;
+  DispatchSynthesizedMouseEvent(NS_MOUSE_MOVE, time, aPoint, aWidget);
+  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_DOWN, time, aPoint, aWidget);
+  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_UP, time, aPoint, aWidget);
 }
 
 }
