@@ -4646,7 +4646,7 @@ EventStateManager::UpdateAncestorState(nsIContent* aStartNode,
                                        bool aAddState)
 {
   for (; aStartNode && aStartNode != aStopBefore;
-       aStartNode = aStartNode->GetParent()) {
+       aStartNode = aStartNode->GetParentElementCrossingShadowRoot()) {
     
     
     
@@ -4674,7 +4674,7 @@ EventStateManager::UpdateAncestorState(nsIContent* aStartNode,
     
     
     
-    for ( ; aStartNode; aStartNode = aStartNode->GetParent()) {
+    for ( ; aStartNode; aStartNode = aStartNode->GetParentElementCrossingShadowRoot()) {
       if (!aStartNode->IsElement()) {
         continue;
       }
