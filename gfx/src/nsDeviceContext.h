@@ -106,8 +106,8 @@ public:
 
 
 
-    int32_t AppUnitsPerDevPixelAtUnitFullZoom() const
-    { return mAppUnitsPerDevPixelAtUnitFullZoom; }
+    int32_t UnscaledAppUnitsPerDevPixel() const
+    { return mAppUnitsPerDevNotScaledPixel; }
 
     
 
@@ -238,12 +238,12 @@ public:
 
 
 
-    bool SetFullZoom(float aScale);
+    bool SetPixelScale(float aScale);
 
     
 
 
-    float GetFullZoom() const { return mFullZoom; }
+    float GetPixelScale() const { return mPixelScale; }
 
     
 
@@ -259,15 +259,15 @@ private:
     void ComputeFullAreaUsingScreen(nsRect *outRect);
     void FindScreen(nsIScreen **outScreen);
     void CalcPrintingSize();
-    void UpdateAppUnitsForFullZoom();
+    void UpdateScaledAppUnits();
 
     nscoord  mWidth;
     nscoord  mHeight;
     uint32_t mDepth;
     int32_t  mAppUnitsPerDevPixel;
-    int32_t  mAppUnitsPerDevPixelAtUnitFullZoom;
+    int32_t  mAppUnitsPerDevNotScaledPixel;
     int32_t  mAppUnitsPerPhysicalInch;
-    float    mFullZoom;
+    float    mPixelScale;
     float    mPrintingScale;
 
     nsFontCache*                   mFontCache;
