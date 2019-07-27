@@ -1147,6 +1147,8 @@ class Assembler : public AssemblerShared
     uint32_t actualIndex(uint32_t) const;
     static uint8_t *PatchableJumpAddress(JitCode *code, uint32_t index);
     BufferOffset actualOffset(BufferOffset) const;
+    static uint32_t NopFill;
+    static uint32_t GetNopFill();
   protected:
 
     
@@ -1173,7 +1175,6 @@ class Assembler : public AssemblerShared
     CompactBufferWriter relocations_;
     CompactBufferWriter preBarriers_;
 
-    
     ARMBuffer m_buffer;
 
     
@@ -1191,8 +1192,9 @@ class Assembler : public AssemblerShared
     Pool *doublePool;
 
   public:
+    
     Assembler()
-      : m_buffer(4, 4, 0, &pools_[0], 8),
+      : m_buffer(4, 4, 0, &pools_[0], 8, 0xeaffffff, GetNopFill()),
         int32Pool(m_buffer.getPool(1)),
         doublePool(m_buffer.getPool(0)),
         isFinished(false),
@@ -1301,6 +1303,10 @@ class Assembler : public AssemblerShared
     
     
     BufferOffset writeInst(uint32_t x, uint32_t *dest = nullptr);
+
+    
+    BufferOffset writeBranchInst(uint32_t x);
+
     
     
     static void writeInstStatic(uint32_t x, uint32_t *dest);
@@ -1717,6 +1723,9 @@ class Assembler : public AssemblerShared
     static void ToggleToJmp(CodeLocationLabel inst_);
     static void ToggleToCmp(CodeLocationLabel inst_);
 
+    static uint8_t *BailoutTableStart(uint8_t *code);
+
+    static size_t ToggledCallSize(uint8_t *code);
     static void ToggleCall(CodeLocationLabel inst_, bool enabled);
 
     static void updateBoundsCheck(uint32_t logHeapSize, Instruction *inst);
@@ -1776,6 +1785,9 @@ class Instruction
     Instruction *next();
 
     
+    Instruction *skipPool();
+
+    
     
     const uint32_t *raw() const { return &data; }
     uint32_t size() const { return 4; }
@@ -1820,9 +1832,9 @@ JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(InstLDR));
 
 class InstNOP : public Instruction
 {
+  public:
     static const uint32_t NopInst = 0x0320f000;
 
-  public:
     InstNOP()
       : Instruction(NopInst, Assembler::Always)
     { }

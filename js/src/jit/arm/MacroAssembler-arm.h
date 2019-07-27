@@ -679,14 +679,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     CodeOffsetLabel toggledCall(JitCode *target, bool enabled);
 
-    static size_t ToggledCallSize() {
-        if (HasMOVWT())
-            
-            return 12;
-        
-        return 8;
-    }
-
     CodeOffsetLabel pushWithPatch(ImmWord imm) {
         CodeOffsetLabel label = movWithPatch(imm, ScratchRegister);
         ma_push(ScratchRegister);

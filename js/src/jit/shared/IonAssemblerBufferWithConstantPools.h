@@ -347,6 +347,16 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
     int canNotPlacePool;
     
     bool inBackref;
+
+    
+    
+    
+    const uint32_t nopFillInst;
+    const uint32_t nopFill;
+    
+    
+    bool inhibitNops;
+
     
     BufferOffset perforation;
     BufferSlice *perforatedNode;
@@ -371,13 +381,16 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         return tmp;
     }
   public:
-    AssemblerBufferWithConstantPool(int guardSize_, int headerSize_, int footerSize_, Pool *pools_, int instBufferAlign_)
+    AssemblerBufferWithConstantPool(int guardSize_, int headerSize_, int footerSize_,
+                                    Pool *pools_, int instBufferAlign_,
+                                    uint32_t nopFillInst_, uint32_t nopFill_ = 0)
         : guardSize(guardSize_), headerSize(headerSize_),
           footerSize(footerSize_),
           pools(pools_),
           instBufferAlign(instBufferAlign_), numDumps(0),
           poolInfo(nullptr),
           poolSize(0), canNotPlacePool(0), inBackref(false),
+          nopFillInst(nopFillInst_), nopFill(nopFill_), inhibitNops(false),
           perforatedNode(nullptr), id(-1)
     {
         for (int idx = 0; idx < numPoolKinds; idx++) {
@@ -454,9 +467,26 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         }
     }
 
-    BufferOffset insertEntry(uint32_t instSize, uint8_t *inst, Pool *p, uint8_t *data, PoolEntry *pe = nullptr) {
+    void insertNopFill() {
+        
+        if (nopFill > 0 && !inhibitNops && !canNotPlacePool) {
+            inhibitNops = true;
+
+            
+            
+            for (int i = 0; i < nopFill; i++)
+                putInt(nopFillInst);
+
+            inhibitNops = false;
+        }
+    }
+
+    BufferOffset insertEntry(uint32_t instSize, uint8_t *inst, Pool *p, uint8_t *data,
+                             PoolEntry *pe = nullptr, bool markAsBranch = false) {
         if (this->oom() && !this->bail())
             return BufferOffset();
+        insertNopFill();
+
         int token;
         if (p != nullptr) {
             int poolId = p - pools;
@@ -489,6 +519,8 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         
         if (pe != nullptr)
             *pe = retPE;
+        if (markAsBranch)
+            this->markNextAsBranch();
         return this->putBlob(instSize, inst);
     }
 
@@ -592,8 +624,9 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         }
         return p->insertEntry(data, this->nextOffset(), this->LifoAlloc_);
     }
-    BufferOffset putInt(uint32_t value) {
-        return insertEntry(sizeof(uint32_t) / sizeof(uint8_t), (uint8_t*)&value, nullptr, nullptr);
+    BufferOffset putInt(uint32_t value, bool markAsBranch = false) {
+        return insertEntry(sizeof(uint32_t) / sizeof(uint8_t), (uint8_t*)&value,
+                           nullptr, nullptr, nullptr, markAsBranch);
     }
     
     
@@ -872,6 +905,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
 
         IonSpew(IonSpew_Pools, "[%d] Dumping %d bytes", id, newPoolInfo.size);
         if (!perforation.assigned()) {
+            JS_ASSERT(!canNotPlacePool);
             IonSpew(IonSpew_Pools, "[%d] No Perforation point selected, generating a new one", id);
             
             BufferOffset branch = this->nextOffset();
@@ -996,6 +1030,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         perforate();
     }
     void enterNoPool() {
+        insertNopFill();
         if (!canNotPlacePool && !perforation.assigned()) {
             
             
