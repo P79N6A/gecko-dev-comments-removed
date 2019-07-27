@@ -7,12 +7,10 @@
 #include "Decoder.h"
 
 #include "mozilla/gfx/2D.h"
-#include "DecodePool.h"
-#include "GeckoProfiler.h"
 #include "imgIContainer.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
-#include "nsProxyRelease.h"
+#include "GeckoProfiler.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 
@@ -22,7 +20,7 @@ using mozilla::gfx::SurfaceFormat;
 namespace mozilla {
 namespace image {
 
-Decoder::Decoder(RasterImage* aImage)
+Decoder::Decoder(RasterImage &aImage)
   : mImage(aImage)
   , mProgress(NoProgress)
   , mImageData(nullptr)
@@ -31,11 +29,8 @@ Decoder::Decoder(RasterImage* aImage)
   , mDecodeFlags(0)
   , mBytesDecoded(0)
   , mSendPartialInvalidations(false)
-  , mDataDone(false)
   , mDecodeDone(false)
   , mDataError(false)
-  , mDecodeAborted(false)
-  , mImageIsTransient(false)
   , mFrameCount(0)
   , mFailCode(NS_OK)
   , mNeedsNewFrame(false)
@@ -53,21 +48,6 @@ Decoder::~Decoder()
   MOZ_ASSERT(mInvalidRect.IsEmpty(),
              "Destroying Decoder without taking all its invalidations");
   mInitialized = false;
-
-  if (!NS_IsMainThread()) {
-    
-    
-    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-    NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
-    if (mainThread) {
-      
-      RasterImage* rawImg = nullptr;
-      mImage.swap(rawImg);
-      DebugOnly<nsresult> rv =
-        NS_ProxyRelease(mainThread, NS_ISUPPORTS_CAST(ImageResource*, rawImg));
-      MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to proxy release to main thread");
-    }
-  }
 }
 
 
@@ -78,7 +58,7 @@ void
 Decoder::Init()
 {
   
-  MOZ_ASSERT(!mInitialized, "Can't re-initialize a decoder!");
+  NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
 
   
   if (!IsSizeDecode()) {
@@ -116,69 +96,6 @@ Decoder::InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
   
   InitInternal();
   mInitialized = true;
-}
-
-nsresult
-Decoder::Decode()
-{
-  MOZ_ASSERT(mInitialized, "Should be initialized here");
-  MOZ_ASSERT(mIterator, "Should have a SourceBufferIterator");
-
-  
-  
-  while (!GetDecodeDone() && !HasError()) {
-    auto newState = mIterator->AdvanceOrScheduleResume(this);
-
-    if (newState == SourceBufferIterator::WAITING) {
-      
-      
-      
-      
-      return NS_OK;
-    }
-
-    if (newState == SourceBufferIterator::COMPLETE) {
-      mDataDone = true;
-
-      nsresult finalStatus = mIterator->CompletionStatus();
-      if (NS_FAILED(finalStatus)) {
-        PostDataError();
-      }
-
-      return finalStatus;
-    }
-
-    MOZ_ASSERT(newState == SourceBufferIterator::READY);
-
-    Write(mIterator->Data(), mIterator->Length());
-  }
-
-  return HasError() ? NS_ERROR_FAILURE : NS_OK;
-}
-
-void
-Decoder::Resume()
-{
-  DecodePool* decodePool = DecodePool::Singleton();
-  MOZ_ASSERT(decodePool);
-
-  nsCOMPtr<nsIEventTarget> target = decodePool->GetEventTarget();
-  if (MOZ_UNLIKELY(!target)) {
-    
-    return;
-  }
-
-  nsCOMPtr<nsIRunnable> worker = decodePool->CreateDecodeWorker(this);
-  target->Dispatch(worker, nsIEventTarget::DISPATCH_NORMAL);
-}
-
-bool
-Decoder::ShouldSyncDecode(size_t aByteLimit)
-{
-  MOZ_ASSERT(aByteLimit > 0);
-  MOZ_ASSERT(mIterator, "Should have a SourceBufferIterator");
-
-  return mIterator->RemainingBytesIsNoMoreThan(aByteLimit);
 }
 
 void
@@ -240,7 +157,7 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
 }
 
 void
-Decoder::Finish()
+Decoder::Finish(ShutdownReason aReason)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -254,8 +171,7 @@ Decoder::Finish()
 
   
   
-  
-  if (!IsSizeDecode() && !mDecodeDone && !WasAborted()) {
+  if (!IsSizeDecode() && !mDecodeDone) {
 
     
     nsCOMPtr<nsIConsoleService> consoleService =
@@ -265,29 +181,34 @@ Decoder::Finish()
 
     if (consoleService && errorObject && !HasDecoderError()) {
       nsAutoString msg(NS_LITERAL_STRING("Image corrupt or truncated: ") +
-                       NS_ConvertUTF8toUTF16(mImage->GetURIString()));
+                       NS_ConvertUTF8toUTF16(mImage.GetURIString()));
 
       if (NS_SUCCEEDED(errorObject->InitWithWindowID(
                          msg,
-                         NS_ConvertUTF8toUTF16(mImage->GetURIString()),
+                         NS_ConvertUTF8toUTF16(mImage.GetURIString()),
                          EmptyString(), 0, 0, nsIScriptError::errorFlag,
-                         "Image", mImage->InnerWindowID()
+                         "Image", mImage.InnerWindowID()
                        ))) {
         consoleService->LogMessage(errorObject);
       }
     }
 
+    bool usable = !HasDecoderError();
+    if (aReason != ShutdownReason::NOT_NEEDED && !HasDecoderError()) {
+      
+      if (GetCompleteFrameCount() == 0) {
+        usable = false;
+      }
+    }
+
     
     
-    if (!HasDecoderError() && GetCompleteFrameCount() > 0) {
-      
-      
+    if (usable) {
       if (mInFrame) {
         PostFrameStop();
       }
       PostDecodeDone();
     } else {
-      
       if (!IsSizeDecode()) {
         mProgress |= FLAG_DECODE_COMPLETE | FLAG_ONLOAD_UNBLOCKED;
       }
@@ -297,23 +218,11 @@ Decoder::Finish()
 
   
   
-  mImageMetadata.SetOnImage(mImage);
+  mImageMetadata.SetOnImage(&mImage);
 
-  if (HasSize()) {
-    SetSizeOnImage();
-  }
-
-  if (mDecodeDone && !IsSizeDecode()) {
+  if (mDecodeDone) {
     MOZ_ASSERT(HasError() || mCurrentFrame, "Should have an error or a frame");
-
-    
-    
-    
-    if (!mIsAnimated && !mImageIsTransient && mCurrentFrame) {
-      mCurrentFrame->SetOptimizable();
-    }
-
-    mImage->OnDecodingComplete();
+    mImage.DecodingComplete(mCurrentFrame.get());
   }
 }
 
@@ -405,24 +314,17 @@ Decoder::EnsureFrame(uint32_t aFrameNum,
              "Replacing first frame with the same kind of frame?");
 
   
+  IntSize prevFrameSize = aPreviousFrame->GetImageSize();
+  SurfaceCache::RemoveSurface(ImageKey(&mImage),
+                              RasterSurfaceKey(prevFrameSize, aDecodeFlags, 0));
+  mFrameCount = 0;
   mInFrame = false;
-  RawAccessFrameRef ref = Move(mCurrentFrame);
-
-  MOZ_ASSERT(ref, "No ref to current frame?");
+  mCurrentFrame->Abort();
+  mCurrentFrame = RawAccessFrameRef();
 
   
-  nsIntSize oldSize = ThebesIntSize(aPreviousFrame->GetImageSize());
-  bool nonPremult =
-    aDecodeFlags & imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
-  if (NS_FAILED(aPreviousFrame->ReinitForDecoder(oldSize, aFrameRect, aFormat,
-                                               aPaletteDepth, nonPremult))) {
-    NS_WARNING("imgFrame::ReinitForDecoder should succeed");
-    mFrameCount = 0;
-    aPreviousFrame->Abort();
-    return RawAccessFrameRef();
-  }
-
-  return ref;
+  return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
+                          aPaletteDepth, nullptr);
 }
 
 RawAccessFrameRef
@@ -467,18 +369,12 @@ Decoder::InternalAddFrame(uint32_t aFrameNum,
   }
 
   InsertOutcome outcome =
-    SurfaceCache::Insert(frame, ImageKey(mImage.get()),
+    SurfaceCache::Insert(frame, ImageKey(&mImage),
                          RasterSurfaceKey(imageSize.ToIntSize(),
                                           aDecodeFlags,
                                           aFrameNum),
                          Lifetime::Persistent);
   if (outcome != InsertOutcome::SUCCESS) {
-    
-    
-    
-    
-    
-    mDecodeAborted = true;
     ref->Abort();
     return RawAccessFrameRef();
   }
@@ -509,7 +405,7 @@ Decoder::InternalAddFrame(uint32_t aFrameNum,
   }
 
   mFrameCount++;
-  mImage->OnAddedFrame(mFrameCount, refreshArea);
+  mImage.OnAddedFrame(mFrameCount, refreshArea);
 
   return ref;
 }
@@ -520,12 +416,9 @@ Decoder::SetSizeOnImage()
   MOZ_ASSERT(mImageMetadata.HasSize(), "Should have size");
   MOZ_ASSERT(mImageMetadata.HasOrientation(), "Should have orientation");
 
-  nsresult rv = mImage->SetSize(mImageMetadata.GetWidth(),
-                                mImageMetadata.GetHeight(),
-                                mImageMetadata.GetOrientation());
-  if (NS_FAILED(rv)) {
-    PostResizeError();
-  }
+  mImage.SetSize(mImageMetadata.GetWidth(),
+                 mImageMetadata.GetHeight(),
+                 mImageMetadata.GetOrientation());
 }
 
 

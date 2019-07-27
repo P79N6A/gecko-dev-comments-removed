@@ -68,7 +68,7 @@ namespace image {
 
 
 
-nsGIFDecoder2::nsGIFDecoder2(RasterImage* aImage)
+nsGIFDecoder2::nsGIFDecoder2(RasterImage& aImage)
   : Decoder(aImage)
   , mCurrentRow(-1)
   , mLastFlushedRow(-1)

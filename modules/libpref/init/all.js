@@ -3792,6 +3792,9 @@ pref("image.mem.allow_locking_in_content_processes", true);
 pref("image.mem.decode_bytes_at_a_time", 16384);
 
 
+pref("image.mem.max_ms_before_yield", 5);
+
+
 
 pref("image.mem.surfacecache.min_expiration_ms", 60000); 
 

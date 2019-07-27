@@ -236,7 +236,6 @@ struct SurfaceCache
 
 
   static bool CanHold(const IntSize& aSize);
-  static bool CanHold(size_t aSize);
 
   
 

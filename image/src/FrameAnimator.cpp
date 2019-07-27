@@ -290,11 +290,6 @@ int32_t
 FrameAnimator::GetTimeoutForFrame(uint32_t aFrameNum) const
 {
   RawAccessFrameRef frame = GetRawFrame(aFrameNum);
-  if (!frame) {
-    NS_WARNING("No frame; called GetTimeoutForFrame too early?");
-    return 100;
-  }
-
   AnimationData data = frame->GetAnimationData();
 
   
