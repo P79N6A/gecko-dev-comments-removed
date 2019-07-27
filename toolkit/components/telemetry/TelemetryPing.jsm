@@ -18,7 +18,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/PromiseUtils.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 
@@ -271,12 +270,7 @@ let Impl = {
   
   _delayedInitTaskDeferred: null,
 
-  
-  
-  
   _shutdownBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for clients."),
-  
-  _connectionsBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for pending ping activity"),
 
   
 
@@ -383,14 +377,6 @@ let Impl = {
 
 
 
-  _trackPendingPingTask: function (aPromise) {
-    this._connectionsBarrier.client.addBlocker("Waiting for ping task", aPromise);
-  },
-
-  
-
-
-
 
 
 
@@ -424,7 +410,7 @@ let Impl = {
     this._log.trace("send - Type " + aType + ", Server " + this._server +
                     ", aOptions " + JSON.stringify(aOptions));
 
-    let promise = this.assemblePing(aType, aPayload, aOptions)
+    return this.assemblePing(aType, aPayload, aOptions)
         .then(pingData => {
           
           let p = [
@@ -436,27 +422,16 @@ let Impl = {
           return Promise.all(p);
         },
         error => this._log.error("send - Rejection", error));
-
-    this._trackPendingPingTask(promise);
-    return promise;
   },
 
   
 
 
-
-
   sendPersistedPings: function sendPersistedPings() {
     this._log.trace("sendPersistedPings");
-
     let pingsIterator = Iterator(this.popPayloads());
-    let p = [for (data of pingsIterator) this.doPing(data, true).catch((e) => {
-      this._log.error("sendPersistedPings - doPing rejected", e);
-    })];
-
-    let promise = Promise.all(p);
-    this._trackPendingPingTask(promise);
-    return promise;
+    let p = [data for (data in pingsIterator)].map(data => this.doPing(data, true));
+    return Promise.all(p);
   },
 
   
@@ -813,33 +788,20 @@ let Impl = {
     return this._delayedInitTaskDeferred.promise;
   },
 
-  
-  _cleanupOnShutdown: Task.async(function*() {
-    if (!this._initialized) {
-      return;
-    }
-
-    try {
-      
-      yield this._shutdownBarrier.wait();
-      
-      yield this._connectionsBarrier.wait();
-
-      
-      try {
-        yield TelemetryEnvironment.shutdown();
-      } catch (e) {
-        this._log.error("shutdown - environment shutdown failure", e);
-      }
-    } finally {
-      
-      this._initialized = false;
-      this._initStarted = false;
-    }
-  }),
-
   shutdown: function() {
     this._log.trace("shutdown");
+
+    let cleanup = () => {
+      if (!this._initialized) {
+        return;
+      }
+      let reset = () => {
+        this._initialized = false;
+        this._initStarted = false;
+      };
+      return this._shutdownBarrier.wait().then(
+               () => TelemetryEnvironment.shutdown().then(reset, reset));
+    };
 
     
     
@@ -856,11 +818,11 @@ let Impl = {
     
     if (!this._delayedInitTask) {
       
-      return this._cleanupOnShutdown();
+      return cleanup();
     }
 
     
-    return this._delayedInitTask.finalize().then(() => this._cleanupOnShutdown());
+    return this._delayedInitTask.finalize().then(cleanup);
   },
 
   
@@ -905,8 +867,6 @@ let Impl = {
       initialized: this._initialized,
       initStarted: this._initStarted,
       haveDelayedInitTask: !!this._delayedInitTask,
-      shutdownBarrier: this._shutdownBarrier.state,
-      connectionsBarrier: this._connectionsBarrier.state,
     };
   },
 };
