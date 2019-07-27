@@ -76,6 +76,7 @@ ContainsHoistedDeclaration(ExclusiveContext *cx, ParseNode *node, bool *result)
       
       case PNK_LET:
       case PNK_CONST:
+        MOZ_ASSERT(node->isArity(PN_LIST));
         *result = false;
         return true;
 
@@ -86,23 +87,30 @@ ContainsHoistedDeclaration(ExclusiveContext *cx, ParseNode *node, bool *result)
       
       
       case PNK_FUNCTION:
+        MOZ_ASSERT(node->isArity(PN_CODE));
         *result = false;
         return true;
 
       
       case PNK_NOP: 
       case PNK_DEBUGGER:
+        MOZ_ASSERT(node->isArity(PN_NULLARY));
         *result = false;
         return true;
 
       
       case PNK_SEMI:
-      case PNK_RETURN:
       case PNK_THROW:
+        MOZ_ASSERT(node->isArity(PN_UNARY));
+        *result = false;
+        return true;
+
+      case PNK_RETURN:
       
       
       case PNK_YIELD_STAR:
       case PNK_YIELD:
+        MOZ_ASSERT(node->isArity(PN_BINARY));
         *result = false;
         return true;
 
@@ -298,6 +306,7 @@ ContainsHoistedDeclaration(ExclusiveContext *cx, ParseNode *node, bool *result)
       }
 
       case PNK_LEXICALSCOPE: {
+        MOZ_ASSERT(node->isArity(PN_NAME));
         ParseNode *expr = node->pn_expr;
 
         if (expr->isKind(PNK_FOR))
