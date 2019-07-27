@@ -109,6 +109,21 @@ Client.defaultSendOOB = ({ authResult, oob }) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Server.defaultAllowConnection = ({ client, server }) => {
   let title = bundle.GetStringFromName("remoteIncomingPromptTitle");
   let header = bundle.GetStringFromName("remoteIncomingPromptHeader");

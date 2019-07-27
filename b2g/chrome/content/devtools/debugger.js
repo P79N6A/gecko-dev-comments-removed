@@ -24,27 +24,55 @@ XPCOMUtils.defineLazyGetter(this, "B2GTabList", function() {
 });
 
 let RemoteDebugger = {
-  _promptDone: false,
-  _promptAnswer: false,
   _listening: false,
 
-  prompt: function() {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  allowConnection(session) {
+    if (this._promptingForAllow) {
+      
+      return DebuggerServer.AuthenticationResult.DENY;
+    }
     this._listen();
 
-    this._promptDone = false;
+    this._promptingForAllow = new Promise(resolve => {
+      this._handleAllowResult = allowed => {
+        this._handleAllowResult = null;
+        this._promptingForAllow = null;
+        if (allowed) {
+          resolve(DebuggerServer.AuthenticationResult.ALLOW);
+        } else {
+          resolve(DebuggerServer.AuthenticationResult.DENY);
+        }
+      };
 
-    shell.sendChromeEvent({
-      "type": "remote-debugger-prompt"
+      shell.sendChromeEvent({
+        type: "remote-debugger-prompt",
+        session
+      });
     });
 
-    while(!this._promptDone) {
-      Services.tm.currentThread.processNextEvent(true);
-    }
-
-    if (this._promptAnswer) {
-      return DebuggerServer.AuthenticationResult.ALLOW;
-    }
-    return DebuggerServer.AuthenticationResult.DENY;
+    return this._promptingForAllow;
   },
 
   _listen: function() {
@@ -63,8 +91,9 @@ let RemoteDebugger = {
     if (detail.type !== "remote-debugger-prompt") {
       return;
     }
-    this._promptAnswer = detail.value;
-    this._promptDone = true;
+    if (this._handleAllowResult) {
+      this._handleAllowResult(detail.value);
+    }
   },
 
   initServer: function() {
@@ -94,7 +123,6 @@ let RemoteDebugger = {
 
     DebuggerServer.createRootActor = function createRootActor(connection)
     {
-      let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
       let parameters = {
         tabList: new B2GTabList(connection),
         
@@ -118,7 +146,8 @@ let RemoteDebugger = {
   }
 };
 
-RemoteDebugger.prompt = RemoteDebugger.prompt.bind(RemoteDebugger);
+RemoteDebugger.allowConnection =
+  RemoteDebugger.allowConnection.bind(RemoteDebugger);
 
 let USBRemoteDebugger = {
 
@@ -146,7 +175,7 @@ let USBRemoteDebugger = {
       debug("Starting USB debugger on " + portOrPath);
       let AuthenticatorType = DebuggerServer.Authenticators.get("PROMPT");
       let authenticator = new AuthenticatorType.Server();
-      authenticator.allowConnection = RemoteDebugger.prompt;
+      authenticator.allowConnection = RemoteDebugger.allowConnection;
       this._listener = DebuggerServer.createListener();
       this._listener.portOrPath = portOrPath;
       this._listener.authenticator = authenticator;
@@ -187,7 +216,7 @@ let WiFiRemoteDebugger = {
       debug("Starting WiFi debugger");
       let AuthenticatorType = DebuggerServer.Authenticators.get("OOB_CERT");
       let authenticator = new AuthenticatorType.Server();
-      authenticator.allowConnection = RemoteDebugger.prompt;
+      authenticator.allowConnection = RemoteDebugger.allowConnection;
       this._listener = DebuggerServer.createListener();
       this._listener.portOrPath = -1 ;
       this._listener.authenticator = authenticator;
