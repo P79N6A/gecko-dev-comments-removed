@@ -2921,10 +2921,22 @@ nsBlockFrame::AttributeChanged(int32_t         aNameSpaceID,
 }
 
 static inline bool
-IsNonAutoNonZeroHeight(const nsStyleCoord& aCoord)
+IsNonAutoNonZeroBSize(const nsStyleCoord& aCoord)
 {
-  if (aCoord.GetUnit() == eStyleUnit_Auto)
+  nsStyleUnit unit = aCoord.GetUnit();
+  if (unit == eStyleUnit_Auto ||
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      unit == eStyleUnit_Enumerated) {
     return false;
+  }
   if (aCoord.IsCoordPercentCalcUnit()) {
     
     
@@ -2951,13 +2963,13 @@ nsBlockFrame::IsSelfEmpty()
   bool vertical = GetWritingMode().IsVertical();
 
   if (vertical) {
-    if (IsNonAutoNonZeroHeight(position->mMinWidth) ||
-        IsNonAutoNonZeroHeight(position->mWidth)) {
+    if (IsNonAutoNonZeroBSize(position->mMinWidth) ||
+        IsNonAutoNonZeroBSize(position->mWidth)) {
       return false;
     }
   } else {
-    if (IsNonAutoNonZeroHeight(position->mMinHeight) ||
-        IsNonAutoNonZeroHeight(position->mHeight)) {
+    if (IsNonAutoNonZeroBSize(position->mMinHeight) ||
+        IsNonAutoNonZeroBSize(position->mHeight)) {
       return false;
     }
   }
