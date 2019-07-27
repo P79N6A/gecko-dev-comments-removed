@@ -3904,6 +3904,9 @@ nsDocument::DeleteShell()
   if (IsEventHandlingEnabled()) {
     RevokeAnimationFrameNotifications();
   }
+  if (nsPresContext* presContext = mPresShell->GetPresContext()) {
+    presContext->RefreshDriver()->CancelPendingEvents(this);
+  }
 
   
   

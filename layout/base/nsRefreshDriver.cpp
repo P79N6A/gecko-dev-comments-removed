@@ -27,6 +27,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/IntegerRange.h"
 #include "nsHostObjectProtocolHandler.h"
 #include "nsRefreshDriver.h"
 #include "nsITimer.h"
@@ -1341,6 +1342,7 @@ nsRefreshDriver::ObserverCount() const
   
   sum += mStyleFlushObservers.Length();
   sum += mLayoutFlushObservers.Length();
+  sum += mPendingEvents.Length();
   sum += mFrameRequestCallbackDocs.Length();
   sum += mThrottledFrameRequestCallbackDocs.Length();
   sum += mViewManagerFlushIsPending;
@@ -1474,6 +1476,17 @@ TakeFrameRequestCallbacksFrom(nsIDocument* aDocument,
 {
   aTarget.AppendElement(aDocument);
   aDocument->TakeFrameRequestCallbacks(aTarget.LastElement().mCallbacks);
+}
+
+void
+nsRefreshDriver::DispatchPendingEvents()
+{
+  
+  nsTArray<PendingEvent> pendingEvents(Move(mPendingEvents));
+  for (PendingEvent& event : pendingEvents) {
+    bool dummy;
+    event.mTarget->DispatchEvent(event.mEvent, &dummy);
+  }
 }
 
 void
@@ -1657,6 +1670,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
     if (i == 0) {
       
 
+      DispatchPendingEvents();
       RunFrameRequestCallbacks(aNowEpoch, aNowTime);
 
       if (mPresContext && mPresContext->GetPresShell()) {
@@ -2129,6 +2143,24 @@ nsRefreshDriver::RevokeFrameRequestCallbacks(nsIDocument* aDocument)
   ConfigureHighPrecision();
   
   
+}
+
+void
+nsRefreshDriver::ScheduleEventDispatch(nsINode* aTarget, nsIDOMEvent* aEvent)
+{
+  mPendingEvents.AppendElement(PendingEvent{aTarget, aEvent});
+  
+  EnsureTimerStarted();
+}
+
+void
+nsRefreshDriver::CancelPendingEvents(nsIDocument* aDocument)
+{
+  for (auto i : Reversed(MakeRange(mPendingEvents.Length()))) {
+    if (mPendingEvents[i].mTarget->OwnerDoc() == aDocument) {
+      mPendingEvents.RemoveElementAt(i);
+    }
+  }
 }
 
 #undef LOG

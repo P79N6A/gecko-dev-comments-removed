@@ -29,6 +29,8 @@ class nsPresContext;
 class nsIPresShell;
 class nsIDocument;
 class imgIRequest;
+class nsIDOMEvent;
+class nsINode;
 
 namespace mozilla {
 class RefreshDriverTimer;
@@ -225,6 +227,17 @@ public:
   
 
 
+  void ScheduleEventDispatch(nsINode* aTarget, nsIDOMEvent* aEvent);
+
+  
+
+
+
+  void CancelPendingEvents(nsIDocument* aDocument);
+
+  
+
+
 
 
   void Disconnect() {
@@ -308,6 +321,7 @@ private:
   };
   typedef nsClassHashtable<nsUint32HashKey, ImageStartData> ImageStartTable;
 
+  void DispatchPendingEvents();
   void RunFrameRequestCallbacks(int64_t aNowEpoch, mozilla::TimeStamp aNowTime);
 
   void Tick(int64_t aNowEpoch, mozilla::TimeStamp aNowTime);
@@ -403,6 +417,11 @@ private:
   RequestTable mRequests;
   ImageStartTable mStartTable;
 
+  struct PendingEvent {
+    nsCOMPtr<nsINode> mTarget;
+    nsCOMPtr<nsIDOMEvent> mEvent;
+  };
+
   nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mPresShellsToInvalidateIfHidden;
@@ -410,6 +429,7 @@ private:
   nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
   nsTArray<nsIDocument*> mThrottledFrameRequestCallbackDocs;
   nsTObserverArray<nsAPostRefreshObserver*> mPostRefreshObservers;
+  nsTArray<PendingEvent> mPendingEvents;
 
   
   struct ImageRequestParameters {
