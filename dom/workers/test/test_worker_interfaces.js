@@ -151,7 +151,7 @@ var interfaceNamesInGlobalScope =
 
     "Response",
 
-    { name: "ServiceWorkerRegistration", nightly: true, b2g: false },
+    { name: "ServiceWorkerRegistration", disabled: true, b2g: false },
 
     "TextDecoder",
 
