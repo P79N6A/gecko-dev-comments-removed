@@ -5,8 +5,6 @@
 
 
 import os
-import re
-import sys
 
 import mozpack.path as mozpath
 
