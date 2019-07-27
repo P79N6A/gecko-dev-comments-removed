@@ -3115,6 +3115,17 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
         }
       }
     }
+#if !defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ANDROID_APZ)
+    else if (presShell->GetDocument() && presShell->GetDocument()->IsRootDisplayDocument()) {
+      
+      
+      
+      if (dom::Element* element = presShell->GetDocument()->GetDocumentElement()) {
+        id = nsLayoutUtils::FindOrCreateIDFor(element);
+      }
+    }
+#endif
+
     nsDisplayListBuilder::AutoCurrentScrollParentIdSetter idSetter(&builder, id);
 
     PROFILER_LABEL("nsLayoutUtils", "PaintFrame::BuildDisplayList",
