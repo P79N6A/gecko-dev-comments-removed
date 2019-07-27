@@ -1240,6 +1240,15 @@ nsEventStatus AsyncPanZoomController::OnScaleEnd(const PinchGestureInput& aEvent
 
   {
     ReentrantMonitorAutoEnter lock(mMonitor);
+
+    
+    
+    
+    
+    
+    mX.ClearOverscroll();
+    mY.ClearOverscroll();
+
     ScheduleComposite();
     RequestContentRepaint();
     UpdateSharedCompositorFrameMetrics();
