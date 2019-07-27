@@ -603,15 +603,10 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     }
 
     const FrameMetrics& metrics = aLayer->GetFrameMetrics(i);
-    CSSToLayerScale paintScale = metrics.LayersPixelsPerCSSPixel();
-    CSSRect displayPort(metrics.GetCriticalDisplayPort().IsEmpty() ?
-                        metrics.GetDisplayPort() : metrics.GetCriticalDisplayPort());
     ScreenPoint offset(0, 0);
     
     
-    SyncFrameMetrics(scrollOffset, asyncTransformWithoutOverscroll.mScale.scale,
-                     metrics.GetScrollableRect(), mLayersUpdated, displayPort,
-                     paintScale, mIsFirstPaint, fixedLayerMargins, offset);
+    
 
     mIsFirstPaint = false;
     mLayersUpdated = false;
@@ -730,7 +725,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     
     
     
-    const CSSToParentLayerScale effectiveZoom(metrics.GetZoom().scale * asyncZoomY);
+    const CSSToParentLayerScale effectiveZoom(metrics.GetZoom().yScale * asyncZoomY);
     const CSSCoord compositedHeight = (metrics.mCompositionBounds / effectiveZoom).height;
     const CSSCoord scrollableHeight = metrics.GetScrollableRect().height;
 
@@ -782,7 +777,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
 
     const float xScale = 1.f / asyncZoomX;
 
-    const CSSToParentLayerScale effectiveZoom(metrics.GetZoom().scale * asyncZoomX);
+    const CSSToParentLayerScale effectiveZoom(metrics.GetZoom().xScale * asyncZoomX);
     const CSSCoord compositedWidth = (metrics.mCompositionBounds / effectiveZoom).width;
     const CSSCoord scrollableWidth = metrics.GetScrollableRect().width;
 
@@ -922,7 +917,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   Matrix4x4 oldTransform = aLayer->GetTransform();
 
-  CSSToLayerScale geckoZoom = metrics.LayersPixelsPerCSSPixel();
+  CSSToLayerScale geckoZoom = metrics.LayersPixelsPerCSSPixel().ToScaleFactor();
 
   LayerIntPoint scrollOffsetLayerPixels = RoundedToInt(metrics.GetScrollOffset() * geckoZoom);
 
@@ -955,7 +950,11 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   
-  CSSToParentLayerScale userZoom(metrics.GetDevPixelsPerCSSPixel() * metrics.GetCumulativeResolution() * LayerToParentLayerScale(1));
+  CSSToParentLayerScale userZoom(metrics.GetDevPixelsPerCSSPixel()
+                                 
+                                 
+                               * metrics.GetCumulativeResolution().ToScaleFactor()
+                               * LayerToParentLayerScale(1));
   ParentLayerPoint userScroll = metrics.GetScrollOffset() * userZoom;
   SyncViewportInfo(displayPort, geckoZoom, mLayersUpdated,
                    userScroll, userZoom, fixedLayerMargins,
@@ -976,7 +975,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
     geckoScroll = metrics.GetScrollOffset() * userZoom;
   }
 
-  LayerToParentLayerScale asyncZoom = userZoom / metrics.LayersPixelsPerCSSPixel();
+  LayerToParentLayerScale asyncZoom = userZoom / metrics.LayersPixelsPerCSSPixel().ToScaleFactor();
   ParentLayerPoint translation = userScroll - geckoScroll;
   Matrix4x4 treeTransform = ViewTransform(asyncZoom, -translation);
 

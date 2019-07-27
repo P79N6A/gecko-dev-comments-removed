@@ -809,14 +809,12 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   
   
   
-  
-  
-  
-  metrics.SetCumulativeResolution(LayoutDeviceToLayerScale(aContainerParameters.mXScale));
+  metrics.SetCumulativeResolution(LayoutDeviceToLayerScale2D(aContainerParameters.mXScale,
+                                                             aContainerParameters.mYScale));
 
-  LayoutDeviceToScreenScale resolutionToScreen(
-      presShell->GetCumulativeResolution().width
-    * nsLayoutUtils::GetTransformToAncestorScale(aScrollFrame ? aScrollFrame : aForFrame).width);
+  LayoutDeviceToScreenScale2D resolutionToScreen(
+      presShell->GetCumulativeResolution()
+    * nsLayoutUtils::GetTransformToAncestorScale(aScrollFrame ? aScrollFrame : aForFrame));
   metrics.SetExtraResolution(metrics.GetCumulativeResolution() / resolutionToScreen);
 
   metrics.SetDevPixelsPerCSSPixel(CSSToLayoutDeviceScale(
@@ -888,10 +886,10 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
       } else {
         LayoutDeviceIntSize contentSize;
         if (nsLayoutUtils::GetContentViewerSize(presContext, contentSize)) {
-          LayoutDeviceToParentLayerScale scale(1.0f);
+          LayoutDeviceToParentLayerScale2D scale;
           if (presContext->GetParentPresContext()) {
             gfxSize res = presContext->GetParentPresContext()->PresShell()->GetCumulativeResolution();
-            scale = LayoutDeviceToParentLayerScale(res.width, res.height);
+            scale = LayoutDeviceToParentLayerScale2D(res.width, res.height);
           }
           metrics.mCompositionBounds.SizeTo(contentSize * scale);
         }
