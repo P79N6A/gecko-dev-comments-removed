@@ -111,13 +111,15 @@ HTMLShadowElement::BindToTree(nsIDocument* aDocument,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers)
 {
+  nsRefPtr<ShadowRoot> oldContainingShadow = GetContainingShadow();
+
   nsresult rv = nsGenericHTMLElement::BindToTree(aDocument, aParent,
                                                  aBindingParent,
                                                  aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   ShadowRoot* containingShadow = GetContainingShadow();
-  if (containingShadow) {
+  if (containingShadow && !oldContainingShadow) {
     
     
     
@@ -141,35 +143,58 @@ HTMLShadowElement::BindToTree(nsIDocument* aDocument,
     containingShadow->SetInsertionPointChanged();
   }
 
+  if (mIsInsertionPoint && containingShadow) {
+    
+    ShadowRoot* projectedShadow = containingShadow->GetOlderShadow();
+    if (projectedShadow) {
+      for (nsIContent* child = projectedShadow->GetFirstChild(); child;
+           child = child->GetNextSibling()) {
+        rv = child->BindToTree(nullptr, projectedShadow,
+                               projectedShadow->GetBindingParent(),
+                               aCompileEventHandlers);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
+  }
+
   return NS_OK;
 }
 
 void
 HTMLShadowElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  if (mIsInsertionPoint) {
-    ShadowRoot* containingShadow = GetContainingShadow();
-    
-    
-    if (containingShadow) {
-      nsTArray<HTMLShadowElement*>& shadowDescendants =
-        containingShadow->ShadowDescendants();
-      shadowDescendants.RemoveElement(this);
-      containingShadow->SetShadowElement(nullptr);
+  nsRefPtr<ShadowRoot> oldContainingShadow = GetContainingShadow();
 
-      
-      if (shadowDescendants.Length() > 0 &&
-          !IsInFallbackContent(shadowDescendants[0])) {
-        containingShadow->SetShadowElement(shadowDescendants[0]);
+  if (mIsInsertionPoint && oldContainingShadow) {
+    
+    
+    ShadowRoot* projectedShadow = oldContainingShadow->GetOlderShadow();
+    if (projectedShadow) {
+      for (nsIContent* child = projectedShadow->GetFirstChild(); child;
+           child = child->GetNextSibling()) {
+        child->UnbindFromTree(true, false);
       }
-
-      containingShadow->SetInsertionPointChanged();
     }
-
-    mIsInsertionPoint = false;
   }
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
+
+  if (oldContainingShadow && !GetContainingShadow() && mIsInsertionPoint) {
+    nsTArray<HTMLShadowElement*>& shadowDescendants =
+      oldContainingShadow->ShadowDescendants();
+    shadowDescendants.RemoveElement(this);
+    oldContainingShadow->SetShadowElement(nullptr);
+
+    
+    if (shadowDescendants.Length() > 0 &&
+        !IsInFallbackContent(shadowDescendants[0])) {
+      oldContainingShadow->SetShadowElement(shadowDescendants[0]);
+    }
+
+    oldContainingShadow->SetInsertionPointChanged();
+
+    mIsInsertionPoint = false;
+  }
 }
 
 void
