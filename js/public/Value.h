@@ -244,7 +244,8 @@ typedef enum JSWhyMagic
     JS_OPTIMIZED_OUT,            
     JS_UNINITIALIZED_LEXICAL,    
 
-    JS_GENERIC_MAGIC             
+    JS_GENERIC_MAGIC,            
+    JS_WHY_MAGIC_COUNT
 } JSWhyMagic;
 
 #if defined(IS_LITTLE_ENDIAN)

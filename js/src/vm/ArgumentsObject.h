@@ -270,6 +270,25 @@ class ArgumentsObject : public NativeObject
         return getFixedSlotOffset(INITIAL_LENGTH_SLOT);
     }
 
+    static Value MagicScopeSlotValue(uint32_t slot) {
+        
+        
+        
+        
+        
+        
+        
+        JS_STATIC_ASSERT(UINT32_MAX - JS_WHY_MAGIC_COUNT > ARGS_LENGTH_MAX);
+        return JS::MagicValueUint32(slot + JS_WHY_MAGIC_COUNT);
+    }
+    static uint32_t SlotFromMagicScopeSlotValue(const Value &v) {
+        JS_STATIC_ASSERT(UINT32_MAX - JS_WHY_MAGIC_COUNT > ARGS_LENGTH_MAX);
+        return v.magicUint32() - JS_WHY_MAGIC_COUNT;
+    }
+    static bool IsMagicScopeSlotValue(const Value &v) {
+        return v.isMagic() && v.magicUint32() > JS_WHY_MAGIC_COUNT;
+    }
+
     static void MaybeForwardToCallObject(AbstractFramePtr frame, ArgumentsObject *obj,
                                          ArgumentsData *data);
     static void MaybeForwardToCallObject(jit::IonJSFrameLayout *frame, HandleObject callObj,
