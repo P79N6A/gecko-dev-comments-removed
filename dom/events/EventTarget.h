@@ -12,6 +12,7 @@
 #include "nsIAtom.h"
 
 class nsIDOMWindow;
+class nsIGlobalObject;
 
 namespace mozilla {
 
@@ -27,8 +28,8 @@ template <class T> struct Nullable;
 
 
 #define NS_EVENTTARGET_IID \
-{ 0xce3817d0, 0x177b, 0x402f, \
- { 0xae, 0x75, 0xf8, 0x4e, 0xbe, 0x5a, 0x07, 0xc3 } }
+{ 0x605158a9, 0xe229, 0x45b1, \
+ { 0xbc, 0x12, 0x02, 0x9f, 0xa3, 0xa9, 0x3f, 0xcb } }
 
 class EventTarget : public nsIDOMEventTarget,
                     public nsWrapperCache
@@ -69,7 +70,12 @@ public:
   
   
   
-  virtual nsIDOMWindow* GetOwnerGlobal() = 0;
+  virtual nsIDOMWindow* GetOwnerGlobalForBindings() = 0;
+
+  
+  
+  
+  virtual nsIGlobalObject* GetOwnerGlobal() const = 0;
 
   
 

@@ -139,18 +139,13 @@ Touch::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 
 
 
-EventTarget*
+nsIGlobalObject*
 Touch::GetParentObject()
 {
   if (!mTarget) {
     return nullptr;
   }
-  nsCOMPtr<nsPIDOMWindow> outer = do_QueryInterface(mTarget->GetOwnerGlobal());
-  if (!outer) {
-    return nullptr;
-  }
-  MOZ_ASSERT(outer->IsOuterWindow());
-  return static_cast<nsGlobalWindow*>(outer->GetCurrentInnerWindow());
+  return mTarget->GetOwnerGlobal();
 }
 
 } 

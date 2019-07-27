@@ -188,9 +188,18 @@ nsWindowRoot::PostHandleEvent(EventChainPostVisitor& aVisitor)
 }
 
 nsIDOMWindow*
-nsWindowRoot::GetOwnerGlobal()
+nsWindowRoot::GetOwnerGlobalForBindings()
 {
   return GetWindow();
+}
+
+nsIGlobalObject*
+nsWindowRoot::GetOwnerGlobal() const
+{
+  nsCOMPtr<nsIGlobalObject> global =
+    do_QueryInterface(mWindow->GetCurrentInnerWindow());
+  
+  return global;
 }
 
 nsPIDOMWindow*
