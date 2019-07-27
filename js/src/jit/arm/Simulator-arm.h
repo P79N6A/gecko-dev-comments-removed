@@ -265,6 +265,9 @@ class Simulator
     void decodeVCVTBetweenFloatingPointAndIntegerFrac(SimInstruction *instr);
 
     
+    void decodeType7CoprocessorIns(SimInstruction *instr);
+
+    
     void instructionDecode(SimInstruction *instr);
 
   public:

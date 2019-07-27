@@ -3241,8 +3241,40 @@ Simulator::decodeType7(SimInstruction *instr)
 {
     if (instr->bit(24) == 1)
         softwareInterrupt(instr);
+    else if (instr->bit(4) == 1 && instr->bits(11,9) != 5)
+        decodeType7CoprocessorIns(instr);
     else
         decodeTypeVFP(instr);
+}
+
+void
+Simulator::decodeType7CoprocessorIns(SimInstruction *instr)
+{
+    if (instr->bit(20) == 0) {
+        
+        if (instr->coprocessorValue() == 15) {
+            int opc1 = instr->bits(23,21);
+            int opc2 = instr->bits(7,5);
+            int CRn = instr->bits(19,16);
+            int CRm = instr->bits(3,0);
+            if (opc1 == 0 && opc2 == 4 && CRn == 7 && CRm == 10) {
+                
+            } else if (opc1 == 0 && opc2 == 5 && CRn == 7 && CRm == 10) {
+                
+            }
+            else if (opc1 == 0 && opc2 == 4 && CRn == 7 && CRm == 5) {
+                
+            }
+            else {
+                MOZ_CRASH();
+            }
+        } else {
+            MOZ_CRASH();
+        }
+    } else {
+        
+        MOZ_CRASH();
+    }
 }
 
 void
@@ -4073,6 +4105,15 @@ Simulator::decodeSpecialCondition(SimInstruction *instr)
       case 0xB:
         if (instr->bits(22, 20) == 5 && instr->bits(15, 12) == 0xf) {
             
+        } else {
+            MOZ_CRASH();
+        }
+        break;
+      case 0x1C:
+      case 0x1D:
+        if (instr->bit(4) == 1 && instr->bits(11,9) != 5) {
+            
+            decodeType7CoprocessorIns(instr);
         } else {
             MOZ_CRASH();
         }
