@@ -516,14 +516,13 @@ TokenStream::TokenBuf::findEOLMax(const char16_t *p, size_t max)
 void
 TokenStream::advance(size_t position)
 {
-    MOZ_ASSERT(position <= mozilla::PointerRangeSize(userbuf.base(), userbuf.limit()));
     const char16_t *end = userbuf.base() + position;
     while (userbuf.addressOfNextRawChar() < end)
         getChar();
 
     Token *cur = &tokens[cursor];
     cur->pos.begin = userbuf.addressOfNextRawChar() - userbuf.base();
-    MOZ_MAKE_MEM_UNDEFINED(&cur->type, sizeof(cur->type));
+    cur->type = TOK_ERROR;
     lookahead = 0;
 }
 
@@ -944,7 +943,7 @@ IsTokenSane(Token *tp)
 {
     
     
-    if (tp->type < 0 || tp->type >= TOK_LIMIT || tp->type == TOK_EOL)
+    if (tp->type < TOK_ERROR || tp->type >= TOK_LIMIT || tp->type == TOK_EOL)
         return false;
 
     if (tp->pos.end < tp->pos.begin)
@@ -1632,16 +1631,19 @@ TokenStream::getTokenInternal(TokenKind *ttp, Modifier modifier)
   error:
     flags.isDirtyLine = true;
     tp->pos.end = userbuf.addressOfNextRawChar() - userbuf.base();
-    MOZ_MAKE_MEM_UNDEFINED(&tp->type, sizeof(tp->type));
+    tp->type = TOK_ERROR;
     flags.hadError = true;
 #ifdef DEBUG
     
     
     
     
+    
+    
+    
     userbuf.poison();
 #endif
-    MOZ_MAKE_MEM_UNDEFINED(ttp, sizeof(*ttp));
+    *ttp = TOK_ERROR;
     return false;
 }
 
@@ -1807,6 +1809,9 @@ frontend::TokenKindToDesc(TokenKind tt)
 #define EMIT_CASE(name, desc) case TOK_##name: return desc;
       FOR_EACH_TOKEN_KIND(EMIT_CASE)
 #undef EMIT_CASE
+      case TOK_ERROR:
+        MOZ_ASSERT_UNREACHABLE("TOK_ERROR should not be passed.");
+        break;
       case TOK_LIMIT:
         MOZ_ASSERT_UNREACHABLE("TOK_LIMIT should not be passed.");
         break;
@@ -1823,6 +1828,7 @@ TokenKindToString(TokenKind tt)
 #define EMIT_CASE(name, desc) case TOK_##name: return "TOK_" #name;
       FOR_EACH_TOKEN_KIND(EMIT_CASE)
 #undef EMIT_CASE
+      case TOK_ERROR: return "TOK_ERROR";
       case TOK_LIMIT: break;
     }
 

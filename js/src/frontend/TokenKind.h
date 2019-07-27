@@ -196,6 +196,7 @@ namespace frontend {
 
 
 enum TokenKind {
+    TOK_ERROR = 0,
 #define EMIT_ENUM(name, desc) TOK_##name,
 #define EMIT_ENUM_RANGE(name, value) TOK_##name = TOK_##value,
     FOR_EACH_TOKEN_KIND_WITH_RANGE(EMIT_ENUM, EMIT_ENUM_RANGE)
