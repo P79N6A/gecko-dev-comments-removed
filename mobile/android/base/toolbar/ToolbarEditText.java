@@ -32,6 +32,8 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputMethodManager;
+import android.view.ViewParent;
+import android.view.accessibility.AccessibilityEvent;
 import android.widget.TextView;
 
 
@@ -116,6 +118,21 @@ public class ToolbarEditText extends CustomEditText
 
         
         resetAutocompleteState();
+    }
+
+    @Override
+    public void sendAccessibilityEventUnchecked(AccessibilityEvent event) {
+        
+        
+        
+        if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED &&
+            getParent() != null && !isShown()) {
+            onInitializeAccessibilityEvent(event);
+            dispatchPopulateAccessibilityEvent(event);
+            getParent().requestSendAccessibilityEvent(this, event);
+        } else {
+            super.sendAccessibilityEventUnchecked(event);
+        }
     }
 
     void setToolbarPrefs(final ToolbarPrefs prefs) {
