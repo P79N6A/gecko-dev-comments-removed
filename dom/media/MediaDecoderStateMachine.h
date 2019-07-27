@@ -163,7 +163,7 @@ public:
   void SetDormant(bool aDormant);
   void Shutdown();
   void ShutdownReader();
-  void FinishShutdown();
+  void FinishShutdown(bool aSuccess);
 
   
   

@@ -160,7 +160,7 @@ private:
   
   MediaInfo mInfo;
 
-  void ContinueShutdown();
+  void ContinueShutdown(bool aSuccess);
   MediaPromiseHolder<ShutdownPromise> mShutdownPromise;
 };
 
