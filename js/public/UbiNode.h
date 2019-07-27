@@ -192,7 +192,7 @@ class Base {
 
     
     
-    virtual size_t size() const = 0;
+    virtual size_t size() const { return 0; }
 
     
     
@@ -205,13 +205,13 @@ class Base {
 
     
     
-    virtual JS::Zone *zone() const = 0;
+    virtual JS::Zone *zone() const { return nullptr; }
 
     
     
     
     
-    virtual JSCompartment *compartment() const = 0;
+    virtual JSCompartment *compartment() const { return nullptr; }
 
   private:
     Base(const Base &rhs) MOZ_DELETE;
@@ -433,10 +433,8 @@ class EdgeRange {
 template<typename Referent>
 class TracerConcrete : public Base {
     const char16_t *typeName() const MOZ_OVERRIDE { return concreteTypeName; }
-    size_t size() const MOZ_OVERRIDE { return 0; } 
     EdgeRange *edges(JSContext *, bool wantNames) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE { return get().zone(); }
-    JSCompartment *compartment() const MOZ_OVERRIDE { return nullptr; }
 
   protected:
     explicit TracerConcrete(Referent *ptr) : Base(ptr) { }
