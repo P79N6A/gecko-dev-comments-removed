@@ -333,6 +333,22 @@ public:
 
   
   
+  
+  TaskDispatcher& TailDispatcher()
+  {
+    MOZ_ASSERT(OnTaskQueue());
+    return TaskQueue()->TailDispatcher();
+  }
+
+  
+  void TailDispatch(AbstractThread* aThread,
+                    already_AddRefed<nsIRunnable> aTask)
+  {
+    TailDispatcher().AddTask(aThread, Move(aTask));
+  }
+
+  
+  
   void ScheduleStateMachineWithLockAndWakeDecoder();
 
   
@@ -811,7 +827,7 @@ public:
       mRequest.Begin(mMediaTimer->WaitUntil(mTarget, __func__)->RefableThen(
         mSelf->TaskQueue(), __func__, mSelf,
         &MediaDecoderStateMachine::OnDelayedSchedule,
-        &MediaDecoderStateMachine::NotReached));
+        &MediaDecoderStateMachine::NotReached, mSelf->TailDispatcher()));
     }
 
     void CompleteRequest()
@@ -901,17 +917,17 @@ public:
       return mTarget.IsValid();
     }
 
-    void Resolve(bool aAtEnd, const char* aCallSite)
+    void Resolve(bool aAtEnd, const char* aCallSite, TaskDispatcher& aDispatcher)
     {
       mTarget.Reset();
       MediaDecoder::SeekResolveValue val(aAtEnd, mTarget.mEventVisibility);
-      mPromise.Resolve(val, aCallSite);
+      mPromise.Resolve(val, aCallSite, aDispatcher);
     }
 
-    void RejectIfExists(const char* aCallSite)
+    void RejectIfExists(const char* aCallSite, TaskDispatcher& aDispatcher)
     {
       mTarget.Reset();
-      mPromise.RejectIfExists(true, aCallSite);
+      mPromise.RejectIfExists(true, aCallSite, aDispatcher);
     }
 
     ~SeekJob()

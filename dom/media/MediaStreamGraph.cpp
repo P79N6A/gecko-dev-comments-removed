@@ -278,7 +278,11 @@ MediaStreamGraphImpl::UpdateBufferSufficiencyState(SourceMediaStream* aStream)
   }
 
   for (uint32_t i = 0; i < runnables.Length(); ++i) {
-    runnables[i].mTarget->Dispatch(runnables[i].mRunnable);
+    
+    
+    
+    nsCOMPtr<nsIRunnable> r = runnables[i].mRunnable;
+    runnables[i].mTarget->MaybeTailDispatch(r.forget(),  false);
   }
 }
 
@@ -2501,7 +2505,8 @@ SourceMediaStream::DispatchWhenNotEnoughBuffered(TrackID aID,
   MutexAutoLock lock(mMutex);
   TrackData* data = FindDataForTrack(aID);
   if (!data) {
-    aSignalQueue->Dispatch(aSignalRunnable);
+    nsCOMPtr<nsIRunnable> r = aSignalRunnable;
+    aSignalQueue->MaybeTailDispatch(r.forget());
     return;
   }
 
@@ -2510,7 +2515,8 @@ SourceMediaStream::DispatchWhenNotEnoughBuffered(TrackID aID,
       data->mDispatchWhenNotEnough.AppendElement()->Init(aSignalQueue, aSignalRunnable);
     }
   } else {
-    aSignalQueue->Dispatch(aSignalRunnable);
+    nsCOMPtr<nsIRunnable> r = aSignalRunnable;
+    aSignalQueue->MaybeTailDispatch(r.forget());
   }
 }
 

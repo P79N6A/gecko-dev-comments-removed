@@ -35,6 +35,11 @@ public:
   virtual nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable) = 0;
   virtual bool IsCurrentThreadIn() = 0;
 
+  
+  
+  void MaybeTailDispatch(already_AddRefed<nsIRunnable> aRunnable,
+                         bool aAssertDispatchSuccess = true);
+
   template<typename TargetType> static AbstractThread* Create(TargetType* aTarget);
 
   
