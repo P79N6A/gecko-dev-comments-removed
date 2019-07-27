@@ -31,8 +31,6 @@ public:
   }
 
   
-  virtual nsresult Init(const char* aMimeType, uint32_t aFlags) override;
-
   virtual already_AddRefed<ProgressTracker> GetProgressTracker() override;
   virtual size_t SizeOfSourceWithComputedFallback(
                                  MallocSizeOf aMallocSizeOf) const override;

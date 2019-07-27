@@ -24,12 +24,6 @@ namespace image {
 
 
 
-nsresult
-DynamicImage::Init(const char* aMimeType, uint32_t aFlags)
-{
-  return NS_OK;
-}
-
 already_AddRefed<ProgressTracker>
 DynamicImage::GetProgressTracker()
 {
