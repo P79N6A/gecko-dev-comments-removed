@@ -5424,15 +5424,22 @@ nsIDocument::CreateElement(const nsAString& aTagName, ErrorResult& rv)
 }
 
 void
-nsDocument::SwizzleCustomElement(Element* aElement,
-                                 const nsAString& aTypeExtension,
-                                 uint32_t aNamespaceID,
-                                 ErrorResult& rv)
+nsDocument::SetupCustomElement(Element* aElement,
+                               uint32_t aNamespaceID,
+                               const nsAString* aTypeExtension)
 {
-  nsCOMPtr<nsIAtom> typeAtom(do_GetAtom(aTypeExtension));
-  nsCOMPtr<nsIAtom> tagAtom = aElement->Tag();
-  if (!mRegistry || tagAtom == typeAtom) {
+  if (!mRegistry) {
     return;
+  }
+
+  nsCOMPtr<nsIAtom> tagAtom = aElement->Tag();
+  nsCOMPtr<nsIAtom> typeAtom = aTypeExtension ?
+    do_GetAtom(*aTypeExtension) : tagAtom;
+
+  if (aTypeExtension && !aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::is)) {
+    
+    
+    aElement->SetAttr(kNameSpaceID_None, nsGkAtoms::is, *aTypeExtension, true);
   }
 
   CustomElementDefinition* data;
@@ -5452,11 +5459,6 @@ nsDocument::SwizzleCustomElement(Element* aElement,
     return;
   }
 
-  if (!aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::is)) {
-    
-    aElement->SetAttr(kNameSpaceID_None, nsGkAtoms::is, aTypeExtension, true);
-  }
-
   
   
   EnqueueLifecycleCallback(nsIDocument::eCreated, aElement, nullptr, data);
@@ -5472,10 +5474,9 @@ nsDocument::CreateElement(const nsAString& aTagName,
     return nullptr;
   }
 
-  SwizzleCustomElement(elem, aTypeExtension,
-                       GetDefaultNamespaceID(), rv);
-  if (rv.Failed()) {
-    return nullptr;
+  if (!aTagName.Equals(aTypeExtension)) {
+    
+    SetupCustomElement(elem, GetDefaultNamespaceID(), &aTypeExtension);
   }
 
   return elem.forget();
@@ -5540,9 +5541,9 @@ nsDocument::CreateElementNS(const nsAString& aNamespaceURI,
     }
   }
 
-  SwizzleCustomElement(elem, aTypeExtension, nameSpaceId, rv);
-  if (rv.Failed()) {
-    return nullptr;
+  if (!aQualifiedName.Equals(aTypeExtension)) {
+    
+    SetupCustomElement(elem, nameSpaceId, &aTypeExtension);
   }
 
   return elem.forget();
@@ -5769,12 +5770,12 @@ nsDocument::CustomElementConstructor(JSContext* aCx, unsigned aArgc, JS::Value* 
                                      getter_AddRefs(newElement));
   NS_ENSURE_SUCCESS(rv, true);
 
-  ErrorResult errorResult;
   nsCOMPtr<Element> element = do_QueryInterface(newElement);
-  document->SwizzleCustomElement(element, elemName, definition->mNamespaceID,
-                                 errorResult);
-  if (errorResult.Failed()) {
-    return true;
+  if (definition->mLocalName != typeAtom) {
+    
+    
+    
+    document->SetupCustomElement(element, definition->mNamespaceID, &elemName);
   }
 
   rv = nsContentUtils::WrapNative(aCx, newElement, newElement, args.rval());
@@ -6095,7 +6096,7 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
   }
 
   JS::Rooted<JSObject*> global(aCx, sgo->GetGlobalJSObject());
-  nsCOMPtr<nsIAtom> nameAtom;;
+  nsCOMPtr<nsIAtom> nameAtom;
   int32_t namespaceID = kNameSpaceID_XHTML;
   JS::Rooted<JSObject*> protoObject(aCx);
   {

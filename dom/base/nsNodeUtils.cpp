@@ -363,6 +363,24 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
     rv = aNode->Clone(nodeInfo, getter_AddRefs(clone));
     NS_ENSURE_SUCCESS(rv, rv);
 
+    if (clone->IsElement()) {
+      
+      
+      Element* elem = clone->AsElement();
+      if (nsContentUtils::IsCustomElementName(nodeInfo->NameAtom())) {
+        elem->OwnerDoc()->SetupCustomElement(elem, nodeInfo->NamespaceID());
+      } else {
+        
+        
+        nsAutoString extension;
+        if (elem->GetAttr(kNameSpaceID_None, nsGkAtoms::is, extension) &&
+            !extension.IsEmpty()) {
+          elem->OwnerDoc()->SetupCustomElement(elem, nodeInfo->NamespaceID(),
+                                               &extension);
+        }
+      }
+    }
+
     if (aParent) {
       
       

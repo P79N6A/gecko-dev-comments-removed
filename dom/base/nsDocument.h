@@ -1558,10 +1558,11 @@ public:
   static void ProcessBaseElementQueue();
 
   
-  virtual void SwizzleCustomElement(Element* aElement,
-                                    const nsAString& aTypeExtension,
-                                    uint32_t aNamespaceID,
-                                    mozilla::ErrorResult& rv);
+  
+  
+  virtual void SetupCustomElement(Element* aElement,
+                                  uint32_t aNamespaceID,
+                                  const nsAString* aTypeExtension);
 
   static bool IsWebComponentsEnabled(JSContext* aCx, JSObject* aObject);
 

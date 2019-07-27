@@ -440,13 +440,10 @@ nsHtml5TreeOperation::CreateElement(int32_t aNs,
                           false);
 
       
-      
       if (kNameSpaceID_None == nsuri && !prefix && nsGkAtoms::is == localName) {
-        ErrorResult errorResult;
-        newContent->OwnerDoc()->SwizzleCustomElement(newContent,
-                                                     value,
-                                                     newContent->GetNameSpaceID(),
-                                                     errorResult);
+        newContent->OwnerDoc()->SetupCustomElement(newContent,
+                                                   newContent->GetNameSpaceID(),
+                                                   &value);
       }
     }
   }
