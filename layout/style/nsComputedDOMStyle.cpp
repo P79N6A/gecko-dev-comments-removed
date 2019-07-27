@@ -58,30 +58,14 @@ using namespace mozilla::dom;
 
 
 
-static nsComputedDOMStyle *sCachedComputedDOMStyle;
-
 already_AddRefed<nsComputedDOMStyle>
 NS_NewComputedDOMStyle(dom::Element* aElement, const nsAString& aPseudoElt,
                        nsIPresShell* aPresShell,
                        nsComputedDOMStyle::StyleType aStyleType)
 {
   nsRefPtr<nsComputedDOMStyle> computedStyle;
-  if (sCachedComputedDOMStyle) {
-    
-    
-
-    
-    computedStyle = new (sCachedComputedDOMStyle)
-      nsComputedDOMStyle(aElement, aPseudoElt, aPresShell, aStyleType);
-
-    sCachedComputedDOMStyle = nullptr;
-  } else {
-    
-
-    computedStyle = new nsComputedDOMStyle(aElement, aPseudoElt, aPresShell,
-                                           aStyleType);
-  }
-
+  computedStyle = new nsComputedDOMStyle(aElement, aPseudoElt, aPresShell,
+                                         aStyleType);
   return computedStyle.forget();
 }
 
@@ -277,18 +261,6 @@ nsComputedDOMStyle::~nsComputedDOMStyle()
 {
 }
 
-void
-nsComputedDOMStyle::Shutdown()
-{
-  
-  
-  
-  
-  delete reinterpret_cast<char*>(sCachedComputedDOMStyle);
-  sCachedComputedDOMStyle = nullptr;
-}
-
-
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsComputedDOMStyle, mContent)
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsComputedDOMStyle)
@@ -309,24 +281,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsComputedDOMStyle)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMCSSDeclaration)
 
 
-static void doDestroyComputedDOMStyle(nsComputedDOMStyle *aComputedStyle)
-{
-  if (!sCachedComputedDOMStyle) {
-    
-
-    sCachedComputedDOMStyle = aComputedStyle;
-    sCachedComputedDOMStyle->~nsComputedDOMStyle();
-  } else {
-    
-
-    delete aComputedStyle;
-  }
-}
-
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsComputedDOMStyle)
-NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_DESTROY(nsComputedDOMStyle,
-                                              doDestroyComputedDOMStyle(this))
-
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsComputedDOMStyle)
 
 NS_IMETHODIMP
 nsComputedDOMStyle::GetPropertyValue(const nsCSSProperty aPropID,
