@@ -64,6 +64,11 @@ public:
 
   IntSize Size() const { return mSize; }
 
+  SurfaceKey WithNewFlags(uint32_t aFlags) const
+  {
+    return SurfaceKey(mSize, mSVGContext, mAnimationTime, aFlags);
+  }
+
 private:
   SurfaceKey(const IntSize& aSize,
              const Maybe<SVGImageContext>& aSVGContext,
@@ -175,8 +180,15 @@ struct SurfaceCache
 
 
 
+
+
+
+
+
   static DrawableFrameRef Lookup(const ImageKey    aImageKey,
-                                 const SurfaceKey& aSurfaceKey);
+                                 const SurfaceKey& aSurfaceKey,
+                                 const Maybe<uint32_t>& aAlternateFlags
+                                   = Nothing());
 
   
 

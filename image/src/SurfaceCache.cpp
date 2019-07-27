@@ -787,15 +787,23 @@ SurfaceCache::Shutdown()
 }
 
  DrawableFrameRef
-SurfaceCache::Lookup(const ImageKey    aImageKey,
-                     const SurfaceKey& aSurfaceKey)
+SurfaceCache::Lookup(const ImageKey         aImageKey,
+                     const SurfaceKey&      aSurfaceKey,
+                     const Maybe<uint32_t>& aAlternateFlags )
 {
   if (!sInstance) {
     return DrawableFrameRef();
   }
 
   MutexAutoLock lock(sInstance->GetMutex());
-  return sInstance->Lookup(aImageKey, aSurfaceKey);
+
+  DrawableFrameRef ref = sInstance->Lookup(aImageKey, aSurfaceKey);
+  if (!ref && aAlternateFlags) {
+    ref = sInstance->Lookup(aImageKey,
+                            aSurfaceKey.WithNewFlags(*aAlternateFlags));
+  }
+
+  return ref;
 }
 
  InsertOutcome
