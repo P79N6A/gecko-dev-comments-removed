@@ -231,7 +231,7 @@ add_task(function test_revived_history_from_remote() {
   
   
   browser.loadURI(PAGE_2);
-  yield promiseBrowserLoaded(browser);
+  yield promiseTabRestored(newTab);
   ok(browser.isRemoteBrowser, "Should be a remote browser");
   TabState.flush(browser);
 
