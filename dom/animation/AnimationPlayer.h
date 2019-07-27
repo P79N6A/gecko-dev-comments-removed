@@ -29,6 +29,7 @@ class AnimValuesStyleRule;
 } 
 
 class CSSAnimationPlayer;
+class CSSTransitionPlayer;
 
 namespace dom {
 
@@ -53,6 +54,7 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   virtual CSSAnimationPlayer* AsCSSAnimationPlayer() { return nullptr; }
+  virtual CSSTransitionPlayer* AsCSSTransitionPlayer() { return nullptr; }
 
   
   
