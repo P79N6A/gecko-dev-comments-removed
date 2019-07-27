@@ -11,3 +11,7 @@ function parseQueryString() {
 }
 
 document.title = parseQueryString();
+
+
+var event = new CustomEvent("AboutTabCrashedLoad", {bubbles:true});
+document.dispatchEvent(event);
