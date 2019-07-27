@@ -88,8 +88,11 @@ this.SelectContentHelper.prototype = {
 
 function buildOptionListForChildren(node) {
   let result = [];
+  let win = node.ownerDocument.defaultView;
+
   for (let child of node.children) {
     let tagName = child.tagName.toUpperCase();
+
     if (tagName == 'OPTION' || tagName == 'OPTGROUP') {
       let textContent =
         tagName == 'OPTGROUP' ? child.getAttribute("label")
@@ -104,6 +107,9 @@ function buildOptionListForChildren(node) {
       let info = {
         tagName: child.tagName,
         textContent: textContent,
+        
+        
+        textDirection: win.getComputedStyle(child).getPropertyValue("direction"),
         
         
         
