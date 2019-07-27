@@ -393,13 +393,13 @@ public:
 
 
      eIntID_PhysicalHomeButton,
- 
+
      
 
 
 
      eIntID_ScrollbarDisplayOnMouseMove,
- 
+
      
 
 
@@ -430,6 +430,7 @@ public:
     eOperatingSystemVersion_WindowsVista,
     eOperatingSystemVersion_Windows7,
     eOperatingSystemVersion_Windows8,
+    eOperatingSystemVersion_Windows10,
     eOperatingSystemVersion_Unknown
   };
 
@@ -444,7 +445,7 @@ public:
   enum {
     
     eScrollArrowStyle_Single =
-      eScrollArrow_StartBackward | eScrollArrow_EndForward, 
+      eScrollArrow_StartBackward | eScrollArrow_EndForward,
     
     eScrollArrowStyle_BothAtBottom =
       eScrollArrow_EndBackward | eScrollArrow_EndForward,
