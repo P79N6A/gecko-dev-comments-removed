@@ -15,6 +15,8 @@ loader.lazyRequireGetter(this, "prompt",
   "devtools/toolkit/security/prompt");
 loader.lazyRequireGetter(this, "cert",
   "devtools/toolkit/security/cert");
+DevToolsUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
 
 
 
@@ -469,7 +471,7 @@ OOBCert.Server.prototype = {
 
 
 
-  authenticate({ client, server, transport }) {
+  authenticate: Task.async(function*({ client, server, transport }) {
     
     
     
@@ -483,12 +485,56 @@ OOBCert.Server.prototype = {
     
     
     
-    return this.allowConnection({
+    let result = yield this.allowConnection({
       authentication: this.mode,
       client,
       server
     });
-  },
+
+    switch (result) {
+      case AuthenticationResult.ALLOW_PERSIST:
+        
+      case AuthenticationResult.ALLOW:
+        break; 
+      default:
+        return result; 
+    }
+
+    
+    let oob = yield this.receiveOOB();
+    if (!oob) {
+      dumpn("Invalid OOB data received");
+      return AuthenticationResult.DENY;
+    }
+
+    let { sha256, k } = oob;
+    
+    
+    
+    if (!sha256 || !k) {
+      dumpn("Invalid OOB data received");
+      return AuthenticationResult.DENY;
+    }
+
+    
+    
+    
+    if (client.cert.sha256 != sha256) {
+      dumpn("Client cert hash doesn't match OOB data");
+      return AuthenticationResult.DENY;
+    }
+
+    
+    
+    transport.send({ authResult: result, k });
+
+    
+    
+
+    
+    
+    return result;
+  }),
 
   
 
@@ -520,6 +566,17 @@ OOBCert.Server.prototype = {
 
 
   allowConnection: prompt.Server.defaultAllowConnection,
+
+  
+
+
+
+
+
+
+
+
+  receiveOOB: null, 
 
 };
 
