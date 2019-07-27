@@ -14,11 +14,9 @@
 #include "mozilla/dom/PromiseBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/MediaStreamError.h"
-#include "mozilla/Atomics.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/Preferences.h"
 #include "PromiseCallback.h"
-#include "PromiseDebugging.h"
 #include "PromiseNativeHandler.h"
 #include "PromiseWorkerProxy.h"
 #include "nsContentUtils.h"
@@ -34,12 +32,6 @@
 
 namespace mozilla {
 namespace dom {
-
-namespace {
-
-Atomic<uintptr_t> gIDGenerator(0);
-}
-
 
 using namespace workers;
 
@@ -253,11 +245,7 @@ private:
 NS_IMPL_CYCLE_COLLECTION_CLASS(Promise)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Promise)
-#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   tmp->MaybeReportRejectedOnce();
-#else
-  tmp->mResult = JS::UndefinedValue();
-#endif 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mResolveCallbacks)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRejectCallbacks)
@@ -294,14 +282,8 @@ Promise::Promise(nsIGlobalObject* aGlobal)
   , mRejectionStack(nullptr)
   , mFullfillmentStack(nullptr)
   , mState(Pending)
-#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   , mHadRejectCallback(false)
-#endif 
-  , mTaskPending(false)
   , mResolvePending(false)
-  , mIsLastInChain(true)
-  , mWasNotifiedAsUncaught(false)
-  , mID(0)
 {
   MOZ_ASSERT(mGlobal);
 
@@ -312,9 +294,7 @@ Promise::Promise(nsIGlobalObject* aGlobal)
 
 Promise::~Promise()
 {
-#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   MaybeReportRejectedOnce();
-#endif 
   mozilla::DropJSObjects(this);
 }
 
@@ -955,26 +935,17 @@ void
 Promise::AppendCallbacks(PromiseCallback* aResolveCallback,
                          PromiseCallback* aRejectCallback)
 {
-  MOZ_ASSERT(aResolveCallback);
-  MOZ_ASSERT(aRejectCallback);
-
-  if (mIsLastInChain && mState == PromiseState::Rejected) {
-    
-    PromiseDebugging::AddConsumedRejection(*this);
-    
-    
-    
+  if (aResolveCallback) {
+    mResolveCallbacks.AppendElement(aResolveCallback);
   }
-  mIsLastInChain = false;
 
-#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
-  
-  mHadRejectCallback = true;
-  RemoveFeature();
-#endif 
+  if (aRejectCallback) {
+    mHadRejectCallback = true;
+    mRejectCallbacks.AppendElement(aRejectCallback);
 
-  mResolveCallbacks.AppendElement(aResolveCallback);
-  mRejectCallbacks.AppendElement(aRejectCallback);
+    
+    RemoveFeature();
+  }
 
   
   
@@ -1027,7 +998,6 @@ Promise::DispatchToMicroTask(nsIRunnable* aRunnable)
   microtaskQueue.AppendElement(aRunnable);
 }
 
-#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
 void
 Promise::MaybeReportRejected()
 {
@@ -1072,7 +1042,6 @@ Promise::MaybeReportRejected()
     new AsyncErrorReporter(CycleCollectedJSRuntime::Get()->Runtime(), xpcReport);
   NS_DispatchToMainThread(r);
 }
-#endif 
 
 void
 Promise::MaybeResolveInternal(JSContext* aCx,
@@ -1162,16 +1131,6 @@ Promise::Settle(JS::Handle<JS::Value> aValue, PromiseState aState)
   JSAutoCompartment ac(cx, wrapper);
   JS::dbg::onPromiseSettled(cx, wrapper);
 
-  if (aState == PromiseState::Rejected &&
-      mIsLastInChain) {
-    
-    
-    
-    
-    PromiseDebugging::AddUncaughtRejection(*this);
-  }
-
-#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   
   
   if (aState == PromiseState::Rejected &&
@@ -1190,7 +1149,6 @@ Promise::Settle(JS::Handle<JS::Value> aValue, PromiseState aState)
       MaybeReportRejectedOnce();
     }
   }
-#endif 
 
   EnqueueCallbackTasks();
 }
@@ -1225,7 +1183,6 @@ Promise::EnqueueCallbackTasks()
   }
 }
 
-#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
 void
 Promise::RemoveFeature()
 {
@@ -1245,7 +1202,6 @@ PromiseReportRejectFeature::Notify(JSContext* aCx, workers::Status aStatus)
   
   return true;
 }
-#endif 
 
 bool
 Promise::CaptureStack(JSContext* aCx, JS::Heap<JSObject*>& aTarget)
@@ -1486,14 +1442,6 @@ void Promise::MaybeRejectBrokenly(const nsRefPtr<DOMError>& aArg) {
 template<>
 void Promise::MaybeRejectBrokenly(const nsAString& aArg) {
   MaybeSomething(aArg, &Promise::MaybeReject);
-}
-
-uint64_t
-Promise::GetID() {
-  if (mID != 0) {
-    return mID;
-  }
-  return mID = ++gIDGenerator;
 }
 
 } 

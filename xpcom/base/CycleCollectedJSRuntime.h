@@ -16,10 +16,6 @@
 #include "nsHashKeys.h"
 #include "nsTArray.h"
 
-#include "mozilla/dom/PromiseDebugging.h"
-#include "mozilla/dom/Promise.h"
-#include "mozilla/dom/PromiseDebuggingBinding.h"
-
 class nsCycleCollectionNoteRootCallback;
 class nsIException;
 class nsIRunnable;
@@ -294,12 +290,6 @@ public:
   
   
   static CycleCollectedJSRuntime* Get();
-
-  
-  
-  nsTArray<nsRefPtr<dom::Promise>> mUncaughtRejections;
-  nsTArray<nsRefPtr<dom::Promise>> mConsumedRejections;
-  nsTArray<nsRefPtr<dom::UncaughtRejectionObserver>> mUncaughtRejectionObservers;
 
 private:
   JSGCThingParticipant mGCThingCycleCollectorGlobal;
