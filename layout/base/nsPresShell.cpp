@@ -6753,8 +6753,7 @@ PresShell::RecordMouseLocation(WidgetGUIEvent* aEvent)
     if (!rootFrame) {
       nsView* rootView = mViewManager->GetRootView();
       mMouseLocation = nsLayoutUtils::TranslateWidgetToView(mPresContext,
-        aEvent->widget, LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint),
-        rootView);
+        aEvent->widget, aEvent->refPoint, rootView);
     } else {
       mMouseLocation =
         nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, rootFrame);
@@ -8518,12 +8517,12 @@ PresShell::AdjustContextMenuKeyEvent(WidgetMouseEvent* aEvent)
   }
 
   
-  nsIntPoint caretPoint;
+  LayoutDeviceIntPoint caretPoint;
   
   
   if (PrepareToUseCaretPosition(aEvent->widget, caretPoint)) {
     
-    aEvent->refPoint = LayoutDeviceIntPoint::FromUntyped(caretPoint);
+    aEvent->refPoint = caretPoint;
     return true;
   }
 
@@ -8564,7 +8563,8 @@ PresShell::AdjustContextMenuKeyEvent(WidgetMouseEvent* aEvent)
 
 
 bool
-PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTargetPt)
+PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget,
+                                     LayoutDeviceIntPoint& aTargetPt)
 {
   nsresult rv;
 

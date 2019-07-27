@@ -690,7 +690,8 @@ protected:
   bool AdjustContextMenuKeyEvent(mozilla::WidgetMouseEvent* aEvent);
 
   
-  bool PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTargetPt);
+  bool PrepareToUseCaretPosition(nsIWidget* aEventWidget,
+                                 mozilla::LayoutDeviceIntPoint& aTargetPt);
 
   
   

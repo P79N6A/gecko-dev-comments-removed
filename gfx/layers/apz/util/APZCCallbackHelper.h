@@ -102,10 +102,11 @@ public:
     
 
 
-    static nsIntPoint ApplyCallbackTransform(const nsIntPoint& aPoint,
-                                             const ScrollableLayerGuid& aGuid,
-                                             const CSSToLayoutDeviceScale& aScale,
-                                             float aPresShellResolution);
+    static mozilla::LayoutDeviceIntPoint
+    ApplyCallbackTransform(const LayoutDeviceIntPoint& aPoint,
+                           const ScrollableLayerGuid& aGuid,
+                           const CSSToLayoutDeviceScale& aScale,
+                           float aPresShellResolution);
 
     
 
