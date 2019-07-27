@@ -14,6 +14,8 @@
 #include "nsStyleStructInlines.h"
 #include "WritingModes.h"
 #include "RubyUtils.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/DebugOnly.h"
 
 using namespace mozilla;
 
@@ -64,7 +66,8 @@ struct MOZ_STACK_CLASS mozilla::RubyColumn
 {
   nsRubyBaseFrame* mBaseFrame;
   nsAutoTArray<nsRubyTextFrame*, RTC_ARRAY_SIZE> mTextFrames;
-  RubyColumn() : mBaseFrame(nullptr) { }
+  bool mIsIntraLevelWhitespace;
+  RubyColumn() : mBaseFrame(nullptr), mIsIntraLevelWhitespace(false) { }
 };
 
 class MOZ_STACK_CLASS RubyColumnEnumerator
@@ -193,6 +196,7 @@ RubyColumnEnumerator::GetColumn(RubyColumn& aColumn) const
     MOZ_ASSERT(!rtFrame || rtFrame->GetType() == nsGkAtoms::rubyTextFrame);
     aColumn.mTextFrames.AppendElement(static_cast<nsRubyTextFrame*>(rtFrame));
   }
+  aColumn.mIsIntraLevelWhitespace = mAtIntraLevelWhitespace;
 }
 
 static nscoord
@@ -581,11 +585,30 @@ nsRubyBaseContainerFrame::ReflowColumns(const ReflowState& aReflowState,
     aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
     MOZ_ASSERT(NS_FRAME_IS_COMPLETE(aStatus) || aReflowState.mAllowLineBreak);
 
-    if (column.mBaseFrame) {
-      PushChildren(column.mBaseFrame, column.mBaseFrame->GetPrevSibling());
+    
+    
+    
+    
+    
+    
+    Maybe<RubyColumn> nextColumn;
+    if (column.mIsIntraLevelWhitespace && !e.AtEnd()) {
+      e.Next();
+      nextColumn.emplace();
+      e.GetColumn(nextColumn.ref());
+    }
+    nsIFrame* baseFrame = column.mBaseFrame;
+    if (!baseFrame & nextColumn.isSome()) {
+      baseFrame = nextColumn->mBaseFrame;
+    }
+    if (baseFrame) {
+      PushChildren(baseFrame, baseFrame->GetPrevSibling());
     }
     for (uint32_t i = 0; i < rtcCount; i++) {
       nsRubyTextFrame* textFrame = column.mTextFrames[i];
+      if (!textFrame && nextColumn.isSome()) {
+        textFrame = nextColumn->mTextFrames[i];
+      }
       if (textFrame) {
         aReflowState.mTextContainers[i]->PushChildren(
           textFrame, textFrame->GetPrevSibling());
@@ -740,20 +763,55 @@ nsRubyBaseContainerFrame::PullOneColumn(nsLineLayout* aLineLayout,
   const TextContainerArray& textContainers = aPullFrameState.mTextContainers;
   const uint32_t rtcCount = textContainers.Length();
 
-  nsIFrame* nextBase = PullNextInFlowChild(aPullFrameState.mBase);
+  nsIFrame* nextBase = GetNextInFlowChild(aPullFrameState.mBase);
   MOZ_ASSERT(!nextBase || nextBase->GetType() == nsGkAtoms::rubyBaseFrame);
   aColumn.mBaseFrame = static_cast<nsRubyBaseFrame*>(nextBase);
   aIsComplete = !aColumn.mBaseFrame;
+  bool pullingIntraLevelWhitespace =
+    aColumn.mBaseFrame && aColumn.mBaseFrame->IsIntraLevelWhitespace();
 
   aColumn.mTextFrames.ClearAndRetainStorage();
   for (uint32_t i = 0; i < rtcCount; i++) {
     nsIFrame* nextText =
-      textContainers[i]->PullNextInFlowChild(aPullFrameState.mTexts[i]);
+      textContainers[i]->GetNextInFlowChild(aPullFrameState.mTexts[i]);
     MOZ_ASSERT(!nextText || nextText->GetType() == nsGkAtoms::rubyTextFrame);
-    aColumn.mTextFrames.AppendElement(static_cast<nsRubyTextFrame*>(nextText));
+    nsRubyTextFrame* textFrame = static_cast<nsRubyTextFrame*>(nextText);
+    aColumn.mTextFrames.AppendElement(textFrame);
     
     
     aIsComplete = aIsComplete && !nextText;
+    if (nextText && !pullingIntraLevelWhitespace) {
+      pullingIntraLevelWhitespace = textFrame->IsIntraLevelWhitespace();
+    }
+  }
+
+  aColumn.mIsIntraLevelWhitespace = pullingIntraLevelWhitespace;
+  if (pullingIntraLevelWhitespace) {
+    
+    
+    
+    if (aColumn.mBaseFrame && !aColumn.mBaseFrame->IsIntraLevelWhitespace()) {
+      aColumn.mBaseFrame = nullptr;
+    }
+    for (uint32_t i = 0; i < rtcCount; i++) {
+      nsRubyTextFrame*& textFrame = aColumn.mTextFrames[i];
+      if (textFrame && !textFrame->IsIntraLevelWhitespace()) {
+        textFrame = nullptr;
+      }
+    }
+  }
+
+  
+  if (aColumn.mBaseFrame) {
+    DebugOnly<nsIFrame*> pulled = PullNextInFlowChild(aPullFrameState.mBase);
+    MOZ_ASSERT(pulled == aColumn.mBaseFrame, "pulled a wrong frame?");
+  }
+  for (uint32_t i = 0; i < rtcCount; i++) {
+    if (aColumn.mTextFrames[i]) {
+      DebugOnly<nsIFrame*> pulled =
+        textContainers[i]->PullNextInFlowChild(aPullFrameState.mTexts[i]);
+      MOZ_ASSERT(pulled == aColumn.mTextFrames[i], "pulled a wrong frame?");
+    }
   }
 
   if (!aIsComplete) {
