@@ -49,6 +49,7 @@
 #include "mozilla/layers/APZThreadUtils.h"
 #include "mozilla/layers/ChromeProcessController.h"
 #include "mozilla/layers/InputAPZContext.h"
+#include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/dom/TabParent.h"
 #include "nsRefPtrHashtable.h"
 #ifdef ACCESSIBILITY
@@ -936,6 +937,17 @@ nsBaseWidget::DispatchEventForAPZ(WidgetGUIEvent* aEvent,
 {
   MOZ_ASSERT(NS_IsMainThread());
   InputAPZContext context(aGuid, aInputBlockId);
+
+  
+  
+  
+  
+  
+  
+  if (aEvent->AsTouchEvent() && aGuid.mLayersId == mCompositorParent->RootLayerTreeId()) {
+    APZCCallbackHelper::ApplyCallbackTransform(*aEvent->AsTouchEvent(), aGuid,
+        GetDefaultScale(), 1.0f);
+  }
 
   nsEventStatus status;
   DispatchEvent(aEvent, status);
