@@ -52,6 +52,7 @@
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/dom/TabParent.h"
+#include "mozilla/Services.h"
 #include "mozilla/Snprintf.h"
 #include "nsRefPtrHashtable.h"
 #include "TouchEvents.h"
@@ -859,7 +860,7 @@ nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
   
   bool whitelisted = false;
 
-  nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
+  nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
   if (gfxInfo) {
     
     
