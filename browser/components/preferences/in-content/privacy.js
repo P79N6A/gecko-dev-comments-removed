@@ -35,25 +35,6 @@ var gPrivacyPane = {
   
 
 
-  _initAutocomplete: function () {
-    let unifiedCompletePref = false;
-    try {
-      unifiedCompletePref =
-        Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete");
-    } catch (ex) {}
-
-    if (unifiedCompletePref) {
-      Components.classes["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"]
-                .getService(Components.interfaces.mozIPlacesAutoComplete);
-    } else {
-      Components.classes["@mozilla.org/autocomplete/search;1?name=history"]
-                .getService(Components.interfaces.mozIPlacesAutoComplete);
-    }
-  },
-
-  
-
-
 
   init: function ()
   {
@@ -71,8 +52,11 @@ var gPrivacyPane = {
 #ifdef NIGHTLY_BUILD
     this._initTrackingProtection();
 #endif
-    this._initAutocomplete();
 
+    setEventListener("browser.urlbar.default.behavior", "change",
+      document.getElementById('browser.urlbar.autocomplete.enabled')
+              .updateElements
+    );
     setEventListener("privacy.sanitize.sanitizeOnShutdown", "change",
                      gPrivacyPane._updateSanitizeSettingsButton);
     setEventListener("browser.privatebrowsing.autostart", "change",
@@ -219,13 +203,8 @@ var gPrivacyPane = {
       
       document.getElementById("browser.formfill.enable").value = true;
 
-#ifdef RELEASE_BUILD
       
       document.getElementById("network.cookie.cookieBehavior").value = 0;
-#else
-      
-      document.getElementById("network.cookie.cookieBehavior").value = 3;
-#endif
       
       document.getElementById("network.cookie.lifetimePolicy").value = 0;
 
@@ -352,13 +331,37 @@ var gPrivacyPane = {
 
 
 
-  writeSuggestionPref: function () {
-    let getVal = (aPref) => {
-      return document.getElementById("browser.urlbar.suggest." + aPref).value;
-    }
+  readSuggestionPref: function PPP_readSuggestionPref()
+  {
+    let getVal = function(aPref)
+      document.getElementById("browser.urlbar." + aPref).value;
+
     
-    let enabled = ["history", "bookmark", "openpage"].map(getVal).some(v => v);
-    Services.prefs.setBoolPref("browser.urlbar.autocomplete.enabled", enabled);
+    if (!getVal("autocomplete.enabled"))
+      return -1;
+
+    
+    return getVal("default.behavior") & 3;
+  },
+
+  
+
+
+
+  writeSuggestionPref: function PPP_writeSuggestionPref()
+  {
+    let menuVal = document.getElementById("locationBarSuggestion").value;
+    let enabled = menuVal != -1;
+
+    
+    if (enabled) {
+      
+      let behavior = document.getElementById("browser.urlbar.default.behavior");
+      behavior.value = behavior.value >> 2 << 2 | menuVal;
+    }
+
+    
+    return enabled;
   },
 
   
@@ -421,19 +424,11 @@ var gPrivacyPane = {
     var accept = document.getElementById("acceptCookies");
     var acceptThirdPartyMenu = document.getElementById("acceptThirdPartyMenu");
 
-#ifdef RELEASE_BUILD
     
     if (accept.checked)
       acceptThirdPartyMenu.selectedIndex = 0;
 
     return accept.checked ? 0 : 2;
-#else
-    
-    if (accept.checked)
-      acceptThirdPartyMenu.selectedIndex = 1;
-
-    return accept.checked ? 3 : 2;
-#endif
   },
   
   
