@@ -17,6 +17,8 @@ def parse_test_opts(input_str):
         tests.insert(0, cur_test)
 
     def add_platform(value):
+        
+        cur_test['platforms'] = cur_test.get('platforms', [])
         cur_test['platforms'].insert(0, value.strip())
 
     
@@ -45,7 +47,6 @@ def parse_test_opts(input_str):
         elif char == ']':
             
             in_platforms = True
-            cur_test['platforms'] = []
         else:
             
             token = char + token
