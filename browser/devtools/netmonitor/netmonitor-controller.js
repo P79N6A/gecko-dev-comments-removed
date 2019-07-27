@@ -404,6 +404,16 @@ let NetMonitorController = {
 
 
 
+
+  get supportsTransferredResponseSize() {
+    return this.webConsoleClient &&
+           this.webConsoleClient.traits.transferredResponseSize;
+  },
+
+  
+
+
+
   get supportsPerfStats() {
     return this.tabClient &&
            (this.tabClient.traits.reconfigure || !this._target.isApp);
@@ -606,6 +616,7 @@ NetworkEventsHandler.prototype = {
       case "responseContent":
         NetMonitorView.RequestsMenu.updateRequest(aPacket.from, {
           contentSize: aPacket.contentSize,
+          transferredSize: aPacket.transferredSize,
           mimeType: aPacket.mimeType
         });
         this.webConsoleClient.getResponseContent(actor, this._onResponseContent);
