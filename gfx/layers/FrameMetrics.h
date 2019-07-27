@@ -7,7 +7,6 @@
 #define GFX_FRAMEMETRICS_H
 
 #include <stdint.h>                     
-#include <string>                       
 #include "Units.h"                      
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/Rect.h"           
@@ -92,7 +91,6 @@ public:
     , mZoom(1)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
-    , mContentDescription()
     , mRootCompositionSize(0, 0)
     , mDisplayPortMargins(0, 0, 0, 0)
     , mUseDisplayPortMargins(false)
@@ -103,8 +101,6 @@ public:
 
   bool operator==(const FrameMetrics& aOther) const
   {
-    
-    
     return mCompositionBounds.IsEqualEdges(aOther.mCompositionBounds) &&
            mRootCompositionSize == aOther.mRootCompositionSize &&
            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
@@ -402,18 +398,6 @@ public:
     return mScrollGeneration;
   }
 
-  std::string GetContentDescription() const
-  {
-    return std::string(mContentDescription);
-  }
-
-  void SetContentDescription(const std::string& aContentDescription)
-  {
-    strncpy(mContentDescription, aContentDescription.c_str(), sizeof(mContentDescription));
-    
-    mContentDescription[sizeof(mContentDescription) - 1] = '\0';
-  }
-
   ViewID GetScrollId() const
   {
     return mScrollId;
@@ -502,10 +486,6 @@ private:
   bool mUpdateScrollOffset;
   
   uint32_t mScrollGeneration;
-
-  
-  
-  char mContentDescription[20];
 
   
   CSSSize mRootCompositionSize;
