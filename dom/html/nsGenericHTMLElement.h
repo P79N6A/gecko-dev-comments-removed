@@ -233,17 +233,6 @@ public:
     mScrollgrab = aValue;
   }
 
-  mozilla::net::ReferrerPolicy
-  GetReferrerPolicy()
-  {
-    nsAutoString aPolicyString;
-    GetEnumAttr(nsGkAtoms::referrer, nullptr, aPolicyString);
-    if (aPolicyString.IsEmpty()) {
-      return mozilla::net::RP_Unset;
-    }
-    return mozilla::net::ReferrerPolicyFromString(aPolicyString);
-  }
-
   
 
 
@@ -722,10 +711,6 @@ public:
   static bool ParseImageAttribute(nsIAtom* aAttribute,
                                     const nsAString& aString,
                                     nsAttrValue& aResult);
-
-  static bool ParseReferrerAttribute(const nsAString& aString,
-                                     nsAttrValue& aResult);
-
   
 
 

@@ -943,25 +943,13 @@ void
 nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL,
                                     const nsAString& aCrossOrigin,
                                     const nsAString& aSrcset,
-                                    const nsAString& aSizes,
-                                    const nsAString& aImageReferrerPolicy)
+                                    const nsAString& aSizes)
 {
   nsCOMPtr<nsIURI> baseURI = BaseURIForPreload();
   nsCOMPtr<nsIURI> uri = mDocument->ResolvePreloadImage(baseURI, aURL, aSrcset,
                                                         aSizes);
   if (uri && ShouldPreloadURI(uri)) {
-    
-    mozilla::net::ReferrerPolicy referrerPolicy = mSpeculationReferrerPolicy;
-    
-    bool referrerAttributeEnabled = Preferences::GetBool("network.http.enablePerElementReferrer", false);
-    if (referrerAttributeEnabled) {
-      mozilla::net::ReferrerPolicy imageReferrerPolicy = mozilla::net::ReferrerPolicyFromString(aImageReferrerPolicy);
-      if (imageReferrerPolicy != mozilla::net::RP_Unset) {
-        referrerPolicy = imageReferrerPolicy;
-      }
-    }
-
-    mDocument->MaybePreLoadImage(uri, aCrossOrigin, referrerPolicy);
+    mDocument->MaybePreLoadImage(uri, aCrossOrigin, mSpeculationReferrerPolicy);
   }
 }
 
