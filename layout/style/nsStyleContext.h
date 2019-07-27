@@ -205,6 +205,10 @@ public:
     { return !!(mBits & NS_STYLE_IS_SHARED); }
 
   
+  
+  bool HasChildThatUsesGrandancestorStyle() const;
+
+  
   void SetStyle(nsStyleStructID aSID, void* aStruct);
 
   
@@ -343,6 +347,10 @@ private:
   void RemoveChild(nsStyleContext* aChild);
 
   void ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup);
+
+  
+  static bool ListContainsStyleContextThatUsesGrandancestorStyle(
+                                                   const nsStyleContext* aHead);
 
   
   
