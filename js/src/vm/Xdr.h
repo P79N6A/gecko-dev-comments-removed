@@ -28,7 +28,7 @@ namespace js {
 
 
 
-static const uint32_t XDR_BYTECODE_VERSION = uint32_t(0xb973c0de - 181);
+static const uint32_t XDR_BYTECODE_VERSION = uint32_t(0xb973c0de - 182);
 
 class XDRBuffer {
   public:
