@@ -108,6 +108,9 @@ private:
   ~Cache();
 
   
+  void DisconnectFromActor();
+
+  
   RequestId AddRequestPromise(Promise* aPromise, ErrorResult& aRv);
   already_AddRefed<Promise> RemoveRequestPromise(RequestId aRequestId);
 
