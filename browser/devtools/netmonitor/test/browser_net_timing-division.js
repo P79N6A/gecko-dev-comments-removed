@@ -52,13 +52,7 @@ function test() {
       teardown(aMonitor).then(finish);
     });
 
-    aDebuggee.get(Math.random(), () => {
       
-      setTimeout(() => {
-        aDebuggee.get(Math.random(), () => {
-          
-        });
-      }, 3000);
-    });
+    aDebuggee.performRequests(2, null, 3000);
   });
 }
