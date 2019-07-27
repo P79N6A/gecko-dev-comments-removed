@@ -4299,6 +4299,9 @@ pref("beacon.enabled", true);
 
 pref("camera.control.autofocus_moving_callback.enabled", true);
 pref("camera.control.face_detection.enabled", true);
+
+
+pref("dom.fetch.enabled", false);
 #ifdef MOZ_WIDGET_GONK
 
 
