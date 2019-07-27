@@ -3,6 +3,7 @@
 
 
 
+import cgi
 import datetime
 import os
 
@@ -96,7 +97,9 @@ class HTMLFormatter(base.BaseFormatter):
                     pass
 
             log = html.div(class_='log')
-            for line in debug.get("stdout", "").splitlines():
+            output = data.get('stack', '').splitlines()
+            output.extend(data.get('message', '').splitlines())
+            for line in output:
                 separator = line.startswith(' ' * 10)
                 if separator:
                     log.append(line[:80])
