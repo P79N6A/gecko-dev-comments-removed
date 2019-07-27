@@ -430,6 +430,8 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
 
     aBuilder->EnterPresShell(subdocRootFrame, dirty);
+  } else {
+    dirty = aDirtyRect;
   }
 
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
@@ -492,10 +494,15 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         
         
         
+        nsIFrame* frame = subdocRootFrame ? subdocRootFrame : this;
+        nsDisplayListBuilder::AutoBuildingDisplayList
+          building(aBuilder, frame, dirty, true);
+        
+        
+        
         uint32_t flags = nsIPresShell::FORCE_DRAW;
         presShell->AddCanvasBackgroundColorItem(
-          *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
-          bounds, NS_RGBA(0,0,0,0), flags);
+          *aBuilder, childItems, frame, bounds, NS_RGBA(0,0,0,0), flags);
       }
     }
   }
