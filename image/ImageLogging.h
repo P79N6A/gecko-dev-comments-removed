@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_image_public_ImageLogging_h
-#define mozilla_image_public_ImageLogging_h
+#ifndef mozilla_image_ImageLogging_h
+#define mozilla_image_ImageLogging_h
 
 #include "prlog.h"
 #include "prinrval.h"
