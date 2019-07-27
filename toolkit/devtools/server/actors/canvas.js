@@ -23,6 +23,10 @@ const ANIMATION_GENERATORS = [
   "mozRequestAnimationFrame"
 ];
 
+const LOOP_GENERATORS = [
+  "setTimeout"
+];
+
 const DRAW_CALLS = [
   
   "fill",
@@ -208,7 +212,8 @@ let FrameSnapshotFront = protocol.FrontClass(FrameSnapshotActor, {
 
 
   generateScreenshotFor: custom(function(functionCall) {
-    if (CanvasFront.ANIMATION_GENERATORS.has(functionCall.name)) {
+    if (CanvasFront.ANIMATION_GENERATORS.has(functionCall.name) ||
+        CanvasFront.LOOP_GENERATORS.has(functionCall.name)) {
       return promise.resolve(this._animationFrameEndScreenshot);
     }
     let cachedScreenshot = this._cachedScreenshots.get(functionCall);
@@ -257,7 +262,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     this._callWatcher.onCall = this._onContentFunctionCall;
     this._callWatcher.setup({
       tracedGlobals: CANVAS_CONTEXTS,
-      tracedFunctions: ANIMATION_GENERATORS,
+      tracedFunctions: [...ANIMATION_GENERATORS, ...LOOP_GENERATORS],
       performReload: reload,
       storeCalls: true
     });
@@ -305,10 +310,6 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
 
 
 
-
-
-
-
   recordAnimationFrame: method(function() {
     if (this._callWatcher.isRecording()) {
       return this._currentAnimationFrameSnapshot.promise;
@@ -339,7 +340,15 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     
     inplaceShallowCloneArrays(args, window);
 
+    
     if (CanvasFront.ANIMATION_GENERATORS.has(name)) {
+      this._handleAnimationFrame(functionCall);
+      return;
+    }
+    
+    
+    
+    if (CanvasFront.LOOP_GENERATORS.has(name)) {
       this._handleAnimationFrame(functionCall);
       return;
     }
@@ -812,6 +821,7 @@ let CanvasFront = exports.CanvasFront = protocol.FrontClass(CanvasActor, {
 
 CanvasFront.CANVAS_CONTEXTS = new Set(CANVAS_CONTEXTS);
 CanvasFront.ANIMATION_GENERATORS = new Set(ANIMATION_GENERATORS);
+CanvasFront.LOOP_GENERATORS = new Set(LOOP_GENERATORS);
 CanvasFront.DRAW_CALLS = new Set(DRAW_CALLS);
 CanvasFront.INTERESTING_CALLS = new Set(INTERESTING_CALLS);
 CanvasFront.THUMBNAIL_SIZE = 50; 
