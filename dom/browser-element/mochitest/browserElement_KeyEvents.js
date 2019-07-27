@@ -82,6 +82,11 @@ function eventHandler(e) {
   }
 
   if (nbEvents == 0) {
+    
+    
+    removeEventListener('keydown', eventHandler);
+    removeEventListener('keypress', eventHandler);
+    removeEventListener('keyup', eventHandler);
     SimpleTest.finish();
     return;
   }

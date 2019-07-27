@@ -28,6 +28,8 @@ function runTest() {
 
 var numMsgReceived = 0;
 function outerIframeLoaded() {
+  
+  
   var injectedScript =
     "data:,function is(a, b, desc) {                                     \
       if (a == b) {                                                      \
@@ -63,7 +65,8 @@ function outerIframeLoaded() {
 
   mm.loadFrameScript(injectedScript,  false);
 
-  waitForMessages(6);
+  
+  waitForMessages(8);
 }
 
 function waitForMessages(num) {
