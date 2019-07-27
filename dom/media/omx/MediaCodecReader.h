@@ -68,7 +68,7 @@ public:
   
   
   
-  virtual nsRefPtr<ShutdownPromise> Shutdown();
+  virtual void Shutdown();
 
   
   

@@ -12,15 +12,12 @@
 #include "mozilla/Monitor.h"
 #include "SharedThreadPool.h"
 #include "nsThreadUtils.h"
-#include "MediaPromise.h"
 
 class nsIRunnable;
 
 namespace mozilla {
 
 class SharedThreadPool;
-
-typedef MediaPromise<bool, bool> ShutdownPromise;
 
 
 
@@ -53,9 +50,7 @@ public:
   
   
   
-  
-  
-  nsRefPtr<ShutdownPromise> BeginShutdown();
+  void BeginShutdown();
 
   
   void AwaitIdle();
@@ -110,7 +105,6 @@ private:
 
   
   bool mIsShutdown;
-  MediaPromiseHolder<ShutdownPromise> mShutdownPromise;
 
   class MOZ_STACK_CLASS AutoSetFlushing
   {

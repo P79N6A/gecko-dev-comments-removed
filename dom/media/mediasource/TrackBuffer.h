@@ -8,7 +8,6 @@
 #define MOZILLA_TRACKBUFFER_H_
 
 #include "SourceBufferDecoder.h"
-#include "MediaPromise.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/mozalloc.h"
@@ -34,7 +33,7 @@ public:
 
   TrackBuffer(MediaSourceDecoder* aParentDecoder, const nsACString& aType);
 
-  nsRefPtr<ShutdownPromise> Shutdown();
+  void Shutdown();
 
   
   
@@ -134,11 +133,6 @@ private:
 
   
   
-  
-  nsTArray<nsRefPtr<SourceBufferDecoder>> mShutdownDecoders;
-
-  
-  
   nsTArray<nsRefPtr<SourceBufferDecoder>> mInitializedDecoders;
 
   
@@ -159,9 +153,6 @@ private:
   
   
   MediaInfo mInfo;
-
-  void ContinueShutdown(bool aSuccess);
-  MediaPromiseHolder<ShutdownPromise> mShutdownPromise;
 };
 
 } 

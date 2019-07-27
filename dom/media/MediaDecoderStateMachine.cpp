@@ -2470,53 +2470,6 @@ private:
   nsRefPtr<MediaDecoderStateMachine> mStateMachine;
 };
 
-void
-MediaDecoderStateMachine::ShutdownReader()
-{
-  MOZ_ASSERT(OnDecodeThread());
-  mReader->Shutdown()->Then(GetStateMachineThread(), __func__, this,
-                            &MediaDecoderStateMachine::FinishShutdown,
-                            &MediaDecoderStateMachine::FinishShutdown);
-}
-
-void
-MediaDecoderStateMachine::FinishShutdown(bool aSuccess)
-{
-  MOZ_ASSERT(OnStateMachineThread());
-  MOZ_ASSERT(aSuccess);
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-
-  
-  
-  
-  AudioQueue().ClearListeners();
-  VideoQueue().ClearListeners();
-
-  
-  
-  mPendingWakeDecoder = nullptr;
-
-  MOZ_ASSERT(mState == DECODER_STATE_SHUTDOWN,
-             "How did we escape from the shutdown state?");
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  GetStateMachineThread()->Dispatch(
-    new nsDispatchDisposeEvent(mDecoder, this), NS_DISPATCH_NORMAL);
-
-  DECODER_LOG("Dispose Event Dispatched");
-}
-
 nsresult MediaDecoderStateMachine::RunStateMachine()
 {
   AssertCurrentThreadInMonitor();
@@ -2535,12 +2488,45 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 
       
       
-      RefPtr<nsIRunnable> task;
-      task = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::ShutdownReader);
-      DebugOnly<nsresult> rv = DecodeTaskQueue()->Dispatch(task);
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      {
+        RefPtr<nsIRunnable> task;
+        task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::Shutdown);
+        nsRefPtr<MediaTaskQueue> queue = DecodeTaskQueue();
+        DebugOnly<nsresult> rv = queue->Dispatch(task);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+        ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+        queue->AwaitShutdownAndIdle();
+      }
 
-      DECODER_LOG("Shutdown started");
+      
+      
+      
+      AudioQueue().ClearListeners();
+      VideoQueue().ClearListeners();
+
+      
+      
+      mPendingWakeDecoder = nullptr;
+
+      MOZ_ASSERT(mState == DECODER_STATE_SHUTDOWN,
+                 "How did we escape from the shutdown state?");
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      GetStateMachineThread()->Dispatch(
+        new nsDispatchDisposeEvent(mDecoder, this), NS_DISPATCH_NORMAL);
+
+      DECODER_LOG("SHUTDOWN OK");
       return NS_OK;
     }
 

@@ -162,8 +162,6 @@ public:
   
   void SetDormant(bool aDormant);
   void Shutdown();
-  void ShutdownReader();
-  void FinishShutdown(bool aSuccess);
 
   
   
