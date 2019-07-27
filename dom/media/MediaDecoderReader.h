@@ -19,7 +19,6 @@ namespace dom {
 class TimeRanges;
 }
 
-class RequestSampleCallback;
 class MediaDecoderReader;
 class SharedDecoderManager;
 
@@ -72,7 +71,6 @@ public:
   
   virtual nsRefPtr<ShutdownPromise> Shutdown();
 
-  virtual void SetCallback(RequestSampleCallback* aDecodedSampleCallback);
   MediaTaskQueue* EnsureTaskQueue();
 
   virtual bool OnDecodeThread()
@@ -242,11 +240,6 @@ protected:
     return false;
   }
 
-  RequestSampleCallback* GetCallback() {
-    MOZ_ASSERT(mSampleDecodedCallback);
-    return mSampleDecodedCallback;
-  }
-
   
   
   MediaQueue<AudioData> mAudioQueue;
@@ -285,8 +278,6 @@ protected:
   bool mHitAudioDecodeError;
 
 private:
-  nsRefPtr<RequestSampleCallback> mSampleDecodedCallback;
-
   
   
   MediaPromiseHolder<AudioDataPromise> mBaseAudioPromise;
@@ -300,21 +291,6 @@ private:
   bool mAudioDiscontinuity;
   bool mVideoDiscontinuity;
   bool mShutdown;
-};
-
-
-
-
-
-class RequestSampleCallback {
-public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RequestSampleCallback)
-
-  
-  virtual void BreakCycles() = 0;
-
-protected:
-  virtual ~RequestSampleCallback() {}
 };
 
 } 
