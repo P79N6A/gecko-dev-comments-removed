@@ -2983,20 +2983,20 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
             return NS_OK;
           }
 
+          
+          
+          
+          
+          
+          TabParent* remote = TabParent::GetFrom(currentContent);
+          if (remote) {
+            remote->NavigateByKey(aForward, aForDocumentNavigation);
+            return NS_SUCCESS_DOM_NO_OPERATION;
+          }
+
+          
           bool checkSubDocument = true;
           if (aForDocumentNavigation) {
-            
-            
-            
-            
-            
-            TabParent* remote = TabParent::GetFrom(currentContent);
-            if (remote) {
-              remote->NavigateDocument(aForward);
-              return NS_SUCCESS_DOM_NO_OPERATION;
-            }
-
-            
             nsIContent* docRoot = GetRootForChildDocument(currentContent);
             if (docRoot) {
               
