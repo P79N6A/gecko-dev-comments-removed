@@ -661,48 +661,9 @@ already_AddRefed<nsINodeList>
 FragmentOrElement::GetChildren(uint32_t aFilter)
 {
   nsRefPtr<nsSimpleContentList> list = new nsSimpleContentList(this);
-  if (!list) {
-    return nullptr;
-  }
-
-  nsIFrame *frame = GetPrimaryFrame();
-
-  
-  if (frame) {
-    nsIFrame *beforeFrame = nsLayoutUtils::GetBeforeFrame(frame);
-    if (beforeFrame) {
-      list->AppendElement(beforeFrame->GetContent());
-    }
-  }
-
-  
-  
-  
-  
-  if (!(aFilter & eAllButXBL)) {
-    FlattenedChildIterator iter(this);
-    for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
-      list->AppendElement(child);
-    }
-  } else {
-    ExplicitChildIterator iter(this);
-    for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
-      list->AppendElement(child);
-    }
-  }
-
-  if (frame) {
-    
-    nsIAnonymousContentCreator* creator = do_QueryFrame(frame);
-    if (creator) {
-      creator->AppendAnonymousContentTo(*list, aFilter);
-    }
-
-    
-    nsIFrame *afterFrame = nsLayoutUtils::GetAfterFrame(frame);
-    if (afterFrame) {
-      list->AppendElement(afterFrame->GetContent());
-    }
+  AllChildrenIterator iter(this, aFilter);
+  while (nsIContent* kid = iter.GetNextChild()) {
+    list->AppendElement(kid);
   }
 
   return list.forget();

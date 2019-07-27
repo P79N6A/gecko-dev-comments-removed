@@ -7,6 +7,8 @@
 #ifndef ChildIterator_h
 #define ChildIterator_h
 
+#include "nsIContent.h"
+
 
 
 
@@ -107,14 +109,71 @@ protected:
 class FlattenedChildIterator : public ExplicitChildIterator
 {
 public:
-  FlattenedChildIterator(nsIContent* aParent);
+  FlattenedChildIterator(nsIContent* aParent)
+    : ExplicitChildIterator(aParent), mXBLInvolved(false)
+  {
+    Init(false);
+  }
 
   bool XBLInvolved() { return mXBLInvolved; }
 
-private:
+protected:
+  
+
+
+
+  FlattenedChildIterator(nsIContent* aParent, bool aIgnoreXBL)
+  : ExplicitChildIterator(aParent), mXBLInvolved(false)
+  {
+    Init(aIgnoreXBL);
+  }
+
+  void Init(bool aIgnoreXBL);
+
   
   
   bool mXBLInvolved;
+};
+
+
+
+
+
+
+
+class AllChildrenIterator : private FlattenedChildIterator
+{
+public:
+  AllChildrenIterator(nsIContent* aNode, uint32_t aFlags) :
+    FlattenedChildIterator(aNode, (aFlags & nsIContent::eAllButXBL)),
+    mOriginalContent(aNode), mFlags(aFlags),
+    mPhase(eNeedBeforeKid) {}
+
+#ifdef DEBUG
+  ~AllChildrenIterator() { MOZ_ASSERT(!mMutationGuard.Mutated(0)); }
+#endif
+
+  nsIContent* GetNextChild();
+
+private:
+  enum IteratorPhase
+  {
+    eNeedBeforeKid,
+    eNeedExplicitKids,
+    eNeedAnonKids,
+    eNeedAfterKid,
+    eDone
+  };
+
+  nsIContent* mOriginalContent;
+  nsTArray<nsIContent*> mAnonKids;
+  uint32_t mFlags;
+  IteratorPhase mPhase;
+#ifdef DEBUG
+  
+  
+  nsMutationGuard mMutationGuard;
+#endif
 };
 
 } 
