@@ -528,6 +528,8 @@ for (let name of FORM_HELPERS) {
   this[name] = (browser, data) => sendMessage(browser, msg, data);
 }
 
+
+
 function promiseRemoveTab(tab) {
   return BrowserTestUtils.removeTab(tab);
 }
