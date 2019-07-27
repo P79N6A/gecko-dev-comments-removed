@@ -129,11 +129,4 @@ function do_get_webappsdir() {
   Services.dirsvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(provider);
 }
 
-do_register_cleanup(function tail_apps() {
-  if (gClient) {
-    
-    gClient.close(function tail_apps_close() {
-      run_next_test();
-    });
-  }
-});
+

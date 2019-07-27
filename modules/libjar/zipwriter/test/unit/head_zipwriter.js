@@ -44,13 +44,3 @@ if (tmpFile.exists())
   tmpFile.remove(true);
 
 var zipW = new ZipWriter();
-
-do_register_cleanup(function tail_zipwriter() {
-  try {
-    zipW.close();
-  } catch (e) {
-    
-  }
-  if (tmpFile.exists())
-    tmpFile.remove(true);
-});
