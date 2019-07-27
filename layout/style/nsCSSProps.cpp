@@ -561,22 +561,7 @@ nsCSSProps::GetStringValue(nsCSSCounterDesc aCounterDesc)
 nsCSSProperty
 nsCSSProps::OtherNameFor(nsCSSProperty aProperty)
 {
-  switch (aProperty) {
-    case eCSSProperty_border_left_color_value:
-      return eCSSProperty_border_left_color;
-    case eCSSProperty_border_left_style_value:
-      return eCSSProperty_border_left_style;
-    case eCSSProperty_border_left_width_value:
-      return eCSSProperty_border_left_width;
-    case eCSSProperty_border_right_color_value:
-      return eCSSProperty_border_right_color;
-    case eCSSProperty_border_right_style_value:
-      return eCSSProperty_border_right_style;
-    case eCSSProperty_border_right_width_value:
-      return eCSSProperty_border_right_width;
-    default:
-      NS_ABORT_IF_FALSE(false, "bad caller");
-  }
+  NS_ABORT_IF_FALSE(false, "bad caller");
   return eCSSProperty_UNKNOWN;
 }
 
@@ -2268,29 +2253,17 @@ static const nsCSSProperty gBackgroundSubpropTable[] = {
 
 static const nsCSSProperty gBorderSubpropTable[] = {
   eCSSProperty_border_top_width,
-  eCSSProperty_border_right_width_value,
-  eCSSProperty_border_right_width_ltr_source,
-  eCSSProperty_border_right_width_rtl_source,
+  eCSSProperty_border_right_width,
   eCSSProperty_border_bottom_width,
-  eCSSProperty_border_left_width_value,
-  eCSSProperty_border_left_width_ltr_source,
-  eCSSProperty_border_left_width_rtl_source,
+  eCSSProperty_border_left_width,
   eCSSProperty_border_top_style,
-  eCSSProperty_border_right_style_value,
-  eCSSProperty_border_right_style_ltr_source,
-  eCSSProperty_border_right_style_rtl_source,
+  eCSSProperty_border_right_style,
   eCSSProperty_border_bottom_style,
-  eCSSProperty_border_left_style_value,
-  eCSSProperty_border_left_style_ltr_source,
-  eCSSProperty_border_left_style_rtl_source,
+  eCSSProperty_border_left_style,
   eCSSProperty_border_top_color,
-  eCSSProperty_border_right_color_value,
-  eCSSProperty_border_right_color_ltr_source,
-  eCSSProperty_border_right_color_rtl_source,
+  eCSSProperty_border_right_color,
   eCSSProperty_border_bottom_color,
-  eCSSProperty_border_left_color_value,
-  eCSSProperty_border_left_color_ltr_source,
-  eCSSProperty_border_left_color_rtl_source,
+  eCSSProperty_border_left_color,
   eCSSProperty_border_top_colors,
   eCSSProperty_border_right_colors,
   eCSSProperty_border_bottom_colors,
@@ -2319,156 +2292,54 @@ static const nsCSSProperty gBorderColorSubpropTable[] = {
   
   
   eCSSProperty_border_top_color,
-  eCSSProperty_border_right_color_value,
+  eCSSProperty_border_right_color,
   eCSSProperty_border_bottom_color,
-  eCSSProperty_border_left_color_value,
-  
-  eCSSProperty_border_left_color_ltr_source,
-  eCSSProperty_border_left_color_rtl_source,
-  eCSSProperty_border_right_color_ltr_source,
-  eCSSProperty_border_right_color_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderEndColorSubpropTable[] = {
-  
-  eCSSProperty_border_end_color_value,
-  eCSSProperty_border_right_color_ltr_source,
-  eCSSProperty_border_left_color_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderLeftColorSubpropTable[] = {
-  
-  eCSSProperty_border_left_color_value,
-  eCSSProperty_border_left_color_ltr_source,
-  eCSSProperty_border_left_color_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderRightColorSubpropTable[] = {
-  
-  eCSSProperty_border_right_color_value,
-  eCSSProperty_border_right_color_ltr_source,
-  eCSSProperty_border_right_color_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderStartColorSubpropTable[] = {
-  
-  eCSSProperty_border_start_color_value,
-  eCSSProperty_border_left_color_ltr_source,
-  eCSSProperty_border_right_color_rtl_source,
+  eCSSProperty_border_left_color,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderEndSubpropTable[] = {
   
   
-  eCSSProperty_border_end_width_value,
-  eCSSProperty_border_end_style_value,
-  eCSSProperty_border_end_color_value,
-  
-  eCSSProperty_border_right_width_ltr_source,
-  eCSSProperty_border_left_width_rtl_source,
-  eCSSProperty_border_right_style_ltr_source,
-  eCSSProperty_border_left_style_rtl_source,
-  eCSSProperty_border_right_color_ltr_source,
-  eCSSProperty_border_left_color_rtl_source,
+  eCSSProperty_border_end_width,
+  eCSSProperty_border_end_style,
+  eCSSProperty_border_end_color,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderLeftSubpropTable[] = {
   
   
-  eCSSProperty_border_left_width_value,
-  eCSSProperty_border_left_style_value,
-  eCSSProperty_border_left_color_value,
-  
-  eCSSProperty_border_left_width_ltr_source,
-  eCSSProperty_border_left_width_rtl_source,
-  eCSSProperty_border_left_style_ltr_source,
-  eCSSProperty_border_left_style_rtl_source,
-  eCSSProperty_border_left_color_ltr_source,
-  eCSSProperty_border_left_color_rtl_source,
+  eCSSProperty_border_left_width,
+  eCSSProperty_border_left_style,
+  eCSSProperty_border_left_color,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderRightSubpropTable[] = {
   
   
-  eCSSProperty_border_right_width_value,
-  eCSSProperty_border_right_style_value,
-  eCSSProperty_border_right_color_value,
-  
-  eCSSProperty_border_right_width_ltr_source,
-  eCSSProperty_border_right_width_rtl_source,
-  eCSSProperty_border_right_style_ltr_source,
-  eCSSProperty_border_right_style_rtl_source,
-  eCSSProperty_border_right_color_ltr_source,
-  eCSSProperty_border_right_color_rtl_source,
+  eCSSProperty_border_right_width,
+  eCSSProperty_border_right_style,
+  eCSSProperty_border_right_color,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderStartSubpropTable[] = {
   
   
-  eCSSProperty_border_start_width_value,
-  eCSSProperty_border_start_style_value,
-  eCSSProperty_border_start_color_value,
-  
-  eCSSProperty_border_left_width_ltr_source,
-  eCSSProperty_border_right_width_rtl_source,
-  eCSSProperty_border_left_style_ltr_source,
-  eCSSProperty_border_right_style_rtl_source,
-  eCSSProperty_border_left_color_ltr_source,
-  eCSSProperty_border_right_color_rtl_source,
+  eCSSProperty_border_start_width,
+  eCSSProperty_border_start_style,
+  eCSSProperty_border_start_color,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderStyleSubpropTable[] = {
   
   eCSSProperty_border_top_style,
-  eCSSProperty_border_right_style_value,
+  eCSSProperty_border_right_style,
   eCSSProperty_border_bottom_style,
-  eCSSProperty_border_left_style_value,
-  
-  eCSSProperty_border_left_style_ltr_source,
-  eCSSProperty_border_left_style_rtl_source,
-  eCSSProperty_border_right_style_ltr_source,
-  eCSSProperty_border_right_style_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderLeftStyleSubpropTable[] = {
-  
-  eCSSProperty_border_left_style_value,
-  eCSSProperty_border_left_style_ltr_source,
-  eCSSProperty_border_left_style_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderRightStyleSubpropTable[] = {
-  
-  eCSSProperty_border_right_style_value,
-  eCSSProperty_border_right_style_ltr_source,
-  eCSSProperty_border_right_style_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderStartStyleSubpropTable[] = {
-  
-  eCSSProperty_border_start_style_value,
-  eCSSProperty_border_left_style_ltr_source,
-  eCSSProperty_border_right_style_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderEndStyleSubpropTable[] = {
-  
-  eCSSProperty_border_end_style_value,
-  eCSSProperty_border_right_style_ltr_source,
-  eCSSProperty_border_left_style_rtl_source,
+  eCSSProperty_border_left_style,
   eCSSProperty_UNKNOWN
 };
 
@@ -2484,46 +2355,9 @@ static const nsCSSProperty gBorderTopSubpropTable[] = {
 static const nsCSSProperty gBorderWidthSubpropTable[] = {
   
   eCSSProperty_border_top_width,
-  eCSSProperty_border_right_width_value,
+  eCSSProperty_border_right_width,
   eCSSProperty_border_bottom_width,
-  eCSSProperty_border_left_width_value,
-  
-  eCSSProperty_border_left_width_ltr_source,
-  eCSSProperty_border_left_width_rtl_source,
-  eCSSProperty_border_right_width_ltr_source,
-  eCSSProperty_border_right_width_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderLeftWidthSubpropTable[] = {
-  
-  eCSSProperty_border_left_width_value,
-  eCSSProperty_border_left_width_ltr_source,
-  eCSSProperty_border_left_width_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderRightWidthSubpropTable[] = {
-  
-  eCSSProperty_border_right_width_value,
-  eCSSProperty_border_right_width_ltr_source,
-  eCSSProperty_border_right_width_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderStartWidthSubpropTable[] = {
-  
-  eCSSProperty_border_start_width_value,
-  eCSSProperty_border_left_width_ltr_source,
-  eCSSProperty_border_right_width_rtl_source,
-  eCSSProperty_UNKNOWN
-};
-
-static const nsCSSProperty gBorderEndWidthSubpropTable[] = {
-  
-  eCSSProperty_border_end_width_value,
-  eCSSProperty_border_right_width_ltr_source,
-  eCSSProperty_border_left_width_rtl_source,
+  eCSSProperty_border_left_width,
   eCSSProperty_UNKNOWN
 };
 
