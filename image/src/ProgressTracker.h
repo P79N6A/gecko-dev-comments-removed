@@ -27,19 +27,18 @@ class Image;
 
 
 enum {
-  FLAG_REQUEST_STARTED    = 1u << 0,
-  FLAG_HAS_SIZE           = 1u << 1,  
-  FLAG_DECODE_STARTED     = 1u << 2,  
-  FLAG_DECODE_STOPPED     = 1u << 3,  
-  FLAG_FRAME_STOPPED      = 1u << 4,  
-  FLAG_REQUEST_STOPPED    = 1u << 5,  
-  FLAG_ONLOAD_BLOCKED     = 1u << 6,
-  FLAG_ONLOAD_UNBLOCKED   = 1u << 7,
-  FLAG_IS_ANIMATED        = 1u << 8,
-  FLAG_HAS_TRANSPARENCY   = 1u << 9,
-  FLAG_IS_MULTIPART       = 1u << 10,
-  FLAG_MULTIPART_STOPPED  = 1u << 11,
-  FLAG_HAS_ERROR          = 1u << 12  
+  FLAG_HAS_SIZE           = 1u << 0,  
+  FLAG_DECODE_STARTED     = 1u << 1,  
+  FLAG_DECODE_STOPPED     = 1u << 2,  
+  FLAG_FRAME_STOPPED      = 1u << 3,  
+  FLAG_REQUEST_STOPPED    = 1u << 4,  
+  FLAG_ONLOAD_BLOCKED     = 1u << 5,
+  FLAG_ONLOAD_UNBLOCKED   = 1u << 6,
+  FLAG_IS_ANIMATED        = 1u << 7,
+  FLAG_HAS_TRANSPARENCY   = 1u << 8,
+  FLAG_IS_MULTIPART       = 1u << 9,
+  FLAG_MULTIPART_STOPPED  = 1u << 10,
+  FLAG_HAS_ERROR          = 1u << 11  
 };
 
 typedef uint32_t Progress;

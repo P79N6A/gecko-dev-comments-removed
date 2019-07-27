@@ -160,7 +160,6 @@ protected:
   void OnImageIsAnimated();
 
   
-  void OnStartRequest();
   void OnStopRequest(bool aLastPart);
 
   

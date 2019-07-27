@@ -673,7 +673,6 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   
   progressTracker = GetProgressTracker();
   progressTracker->ResetForNewRequest();
-  progressTracker->SyncNotifyProgress(FLAG_REQUEST_STARTED);
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   if (channel)
@@ -895,7 +894,6 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
         
         nsRefPtr<ProgressTracker> freshTracker = new ProgressTracker(nullptr);
         freshTracker->SetIsMultipart();
-        freshTracker->SyncNotifyProgress(FLAG_REQUEST_STARTED);
 
         
         nsRefPtr<ProgressTracker> oldProgressTracker = GetProgressTracker();
