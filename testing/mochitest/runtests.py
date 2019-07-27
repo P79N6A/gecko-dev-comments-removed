@@ -1402,7 +1402,7 @@ class Mochitest(MochitestUtilsMixin):
       if options.bisectChunk:
         testsToRun = bisect.pre_test(options, testsToRun, status)
 
-      self.doTests(options, onLaunch, testsToRun)
+      result = self.doTests(options, onLaunch, testsToRun)
       if options.bisectChunk:
         status = bisect.post_test(options, self.expectedError, self.result)
       else:
@@ -1415,9 +1415,8 @@ class Mochitest(MochitestUtilsMixin):
     
     if options.bisectChunk and options.bisectChunk in self.result:
       bisect.print_summary()
-      return -1
 
-    return 0
+    return result
 
   def runTests(self, options, onLaunch=None):
     """ Prepare, configure, run tests and cleanup """
@@ -1425,8 +1424,7 @@ class Mochitest(MochitestUtilsMixin):
     self.setTestRoot(options)
 
     if not options.runByDir:
-      self.runMochitests(options, onLaunch)
-      return 0
+      return self.runMochitests(options, onLaunch)
 
     
     dirs = self.getDirectories(options)
@@ -1451,9 +1449,7 @@ class Mochitest(MochitestUtilsMixin):
       
       
       
-      runResult = self.runMochitests(options, onLaunch)
-      if runResult == -1:
-        return 0
+      result = self.runMochitests(options, onLaunch)
 
     
     if options.browserChrome:
@@ -1469,6 +1465,8 @@ class Mochitest(MochitestUtilsMixin):
       print "2 INFO Failed:  %s" % self.countfail
       print "3 INFO Todo:    %s" % self.counttodo
       print "4 INFO SimpleTest FINISHED"
+
+    return result
 
   def doTests(self, options, onLaunch=None, testsToFilter = None):
     
