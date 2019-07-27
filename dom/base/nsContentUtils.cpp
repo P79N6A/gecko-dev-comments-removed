@@ -339,7 +339,7 @@ public:
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData, bool aAnonymize) MOZ_OVERRIDE
+                            nsISupports* aData, bool aAnonymize)
   {
     
     
@@ -411,7 +411,7 @@ class CharsetDetectionObserver MOZ_FINAL : public nsICharsetDetectionObserver
 public:
   NS_DECL_ISUPPORTS
 
-  NS_IMETHOD Notify(const char *aCharset, nsDetectionConfident aConf) MOZ_OVERRIDE
+  NS_IMETHOD Notify(const char *aCharset, nsDetectionConfident aConf)
   {
     mCharset = aCharset;
     return NS_OK;
