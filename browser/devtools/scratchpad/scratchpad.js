@@ -572,20 +572,11 @@ var Scratchpad = {
       return;
     }
 
-    let browser = this.gBrowser.selectedBrowser;
-
-    this._reloadAndRunEvent = evt => {
-      if (evt.target !== browser.contentDocument) {
-        return;
-      }
-
-      browser.removeEventListener("load", this._reloadAndRunEvent, true);
-
-      this.run().then(aResults => deferred.resolve(aResults));
-    };
-
-    browser.addEventListener("load", this._reloadAndRunEvent, true);
-    browser.contentWindow.location.reload();
+    let target = TargetFactory.forTab(this.gBrowser.selectedTab);
+    target.once("navigate", () => {
+      this.run().then(results => deferred.resolve(results));
+    });
+    target.makeRemote().then(() => target.activeTab.reload());
 
     return deferred.promise;
   },
