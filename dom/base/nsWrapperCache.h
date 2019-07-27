@@ -9,7 +9,6 @@
 
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Assertions.h"
-#include "js/Class.h"
 #include "js/Id.h"          
 #include "js/Value.h"       
 #include "js/RootingAPI.h"
@@ -28,6 +27,7 @@ class nsWindowRoot;
 #define NS_WRAPPERCACHE_IID \
 { 0x6f3179a1, 0x36f7, 0x4a5c, \
   { 0x8c, 0xf1, 0xad, 0xc8, 0x7c, 0xde, 0x3e, 0x87 } }
+
 
 
 
@@ -103,11 +103,18 @@ public:
     return GetWrapperJSObject();
   }
 
+#ifdef DEBUG
+private:
+  static bool HasJSObjectMovedOp(JSObject* aWrapper);
+
+public:
+#endif
+
   void SetWrapper(JSObject* aWrapper)
   {
     MOZ_ASSERT(!PreservingWrapper(), "Clearing a preserved wrapper!");
     MOZ_ASSERT(aWrapper, "Use ClearWrapper!");
-    MOZ_ASSERT(js::HasObjectMovedOp(aWrapper),
+    MOZ_ASSERT(HasJSObjectMovedOp(aWrapper),
                "Object has not provided the hook to update the wrapper if it is moved");
 
     SetWrapperJSObject(aWrapper);
