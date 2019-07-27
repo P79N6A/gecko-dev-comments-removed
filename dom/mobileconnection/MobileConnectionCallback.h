@@ -32,42 +32,14 @@ public:
 
   MobileConnectionCallback(nsPIDOMWindow* aWindow, DOMRequest* aRequest);
 
-  
-
-
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             JS::Handle<JS::Value> aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             uint16_t aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             const nsTArray<nsString>& aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             const nsTArray<IPC::MozCallForwardingOptions>& aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const MozMMIResult& aResult);
-
-  
-
-
-  nsresult
-  NotifyGetCallForwardingSuccess(const nsTArray<IPC::MozCallForwardingOptions>& aResults);
-
 private:
   ~MobileConnectionCallback() {}
 
   nsresult
   NotifySuccess(JS::Handle<JS::Value> aResult);
+
+  nsresult
+  NotifySendCancelMmiSuccess(const MozMMIResult& aResult);
 
   nsCOMPtr<nsPIDOMWindow> mWindow;
   nsRefPtr<DOMRequest> mRequest;
