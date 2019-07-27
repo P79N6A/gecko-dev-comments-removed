@@ -101,7 +101,7 @@ protected:
   void DestroyMembers();
 
 public:
-  nsCString mClassName; 
+  nsString mClassName; 
 
 protected:
   JSObject* mPrecompiledMemberHolder; 

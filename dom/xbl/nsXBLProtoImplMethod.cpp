@@ -132,7 +132,7 @@ nsXBLProtoImplMethod::InstallMember(JSContext* aCx,
 }
 
 nsresult
-nsXBLProtoImplMethod::CompileMember(AutoJSAPI& jsapi, const nsCString& aClassStr,
+nsXBLProtoImplMethod::CompileMember(AutoJSAPI& jsapi, const nsString& aClassStr,
                                     JS::Handle<JSObject*> aClassObject)
 {
   AssertInCompilationScope();
@@ -189,7 +189,7 @@ nsXBLProtoImplMethod::CompileMember(AutoJSAPI& jsapi, const nsCString& aClassStr
   
   
   NS_ConvertUTF16toUTF8 cname(mName);
-  nsAutoCString functionUri(aClassStr);
+  NS_ConvertUTF16toUTF8 functionUri(aClassStr);
   int32_t hash = functionUri.RFindChar('#');
   if (hash != kNotFound) {
     functionUri.Truncate(hash);
