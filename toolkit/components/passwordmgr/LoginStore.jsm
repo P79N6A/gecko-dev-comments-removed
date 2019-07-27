@@ -190,6 +190,14 @@ LoginStore.prototype = {
         }
 
         
+        
+        
+        
+        if (this.dataReady) {
+          return;
+        }
+
+        
         this.data = {
           nextId: 1,
         };
