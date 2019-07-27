@@ -6,6 +6,10 @@
 
 #include "ServiceWorkerPeriodicUpdater.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/unused.h"
+#include "mozilla/Services.h"
+#include "mozilla/dom/ContentParent.h"
+#include "nsIServiceWorkerManager.h"
 
 #define OBSERVER_TOPIC_IDLE_DAILY "idle-daily"
 
@@ -46,6 +50,18 @@ ServiceWorkerPeriodicUpdater::Observe(nsISupports* aSubject,
 {
   if (strcmp(aTopic, OBSERVER_TOPIC_IDLE_DAILY) == 0) {
     
+    nsCOMPtr<nsIServiceWorkerManager> swm =
+      mozilla::services::GetServiceWorkerManager();
+    if (swm) {
+        swm->UpdateAllRegistrations();
+    }
+
+    
+    nsTArray<ContentParent*> children;
+    ContentParent::GetAll(children);
+    for (uint32_t i = 0; i < children.Length(); i++) {
+      unused << children[i]->SendUpdateServiceWorkerRegistrations();
+    }
   }
 
   return NS_OK;

@@ -78,6 +78,7 @@
 #include "nsIMutable.h"
 #include "nsIObserverService.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsIServiceWorkerManager.h"
 #include "nsScreenManagerProxy.h"
 #include "nsMemoryInfoDumper.h"
 #include "nsServiceManagerUtils.h"
@@ -1239,6 +1240,16 @@ ContentChild::RecvBidiKeyboardNotify(const bool& aIsLangRTL)
     return true;
 }
 
+bool
+ContentChild::RecvUpdateServiceWorkerRegistrations()
+{
+    nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
+    if (swm) {
+        swm->UpdateAllRegistrations();
+    }
+    return true;
+}
+
 static CancelableTask* sFirstIdleTask;
 
 static void FirstIdle(void)
@@ -2251,13 +2262,6 @@ ContentChild::RecvFilePathUpdate(const nsString& aStorageType,
                                  const nsString& aPath,
                                  const nsCString& aReason)
 {
-    if (nsDOMDeviceStorage::InstanceCount() == 0) {
-        
-        
-
-        return true;
-    }
-
     nsRefPtr<DeviceStorageFile> dsf = new DeviceStorageFile(aStorageType, aStorageName, aPath);
 
     nsString reason;

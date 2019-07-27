@@ -15,6 +15,14 @@ namespace mozilla {
 namespace dom {
 namespace workers {
 
+
+
+
+
+
+
+
+
 class ServiceWorkerPeriodicUpdater final : public nsIObserver
 {
 public:
