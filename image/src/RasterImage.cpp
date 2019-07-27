@@ -326,6 +326,7 @@ RasterImage::Init(const char* aMimeType,
 
   
   if (!mDiscardable) {
+    mLockCount++;
     SurfaceCache::LockImage(ImageKey(this));
   }
 
