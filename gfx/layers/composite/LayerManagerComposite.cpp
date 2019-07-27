@@ -661,16 +661,12 @@ LayerManagerComposite::Render()
 
   
   nsRefPtr<Composer2D> composer2D;
+  composer2D = mCompositor->GetWidget()->GetComposer2D();
 
   
-  
-  if (!haveLayerEffects) {
-    composer2D = mCompositor->GetWidget()->GetComposer2D();
-  }
-
-  if (!mTarget &&
+  if (!mTarget && !haveLayerEffects &&
       gfxPrefs::Composer2DCompositionEnabled() &&
-      composer2D && composer2D->TryRender(mRoot, mGeometryChanged))
+      composer2D && composer2D->HasHwc() && composer2D->TryRenderWithHwc(mRoot, mGeometryChanged))
   {
     LayerScope::SetHWComposed();
     if (mFPS) {
@@ -684,7 +680,7 @@ LayerManagerComposite::Render()
     mInvalidRegion.SetEmpty();
     mLastFrameMissedHWC = false;
     return;
-  } else if (!mTarget) {
+  } else if (!mTarget && !haveLayerEffects) {
     mLastFrameMissedHWC = !!composer2D;
   }
 
@@ -773,6 +769,10 @@ LayerManagerComposite::Render()
 
     mCompositor->EndFrame();
     mCompositor->SetFBAcquireFence(mRoot);
+  }
+
+  if (composer2D) {
+    composer2D->Render();
   }
 
   mCompositor->GetWidget()->PostRender(this);
