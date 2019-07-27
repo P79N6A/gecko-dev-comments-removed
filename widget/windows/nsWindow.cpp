@@ -3768,6 +3768,14 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
     return result;
   }
 
+  if (WinUtils::GetIsMouseFromTouch(aEventType) && mTouchWindow) {
+    
+    
+    
+    MOZ_ASSERT(mAPZC);
+    return result;
+  }
+
   switch (aEventType) {
     case NS_MOUSE_BUTTON_DOWN:
       CaptureMouse(true);
@@ -3806,9 +3814,8 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
   event.button    = aButton;
   event.inputSource = aInputSource;
   
-  event.convertToPointer =
-    aInputSource == nsIDOMMouseEvent::MOZ_SOURCE_PEN ||
-    !(WinUtils::GetIsMouseFromTouch(aEventType) && mTouchWindow);
+  
+  event.convertToPointer = true;
 
   nsIntPoint mpScreen = eventPoint + WidgetToScreenOffsetUntyped();
 
