@@ -9,21 +9,24 @@
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIDOMNode.h"
 #include "nsISupportsImpl.h"
-#include "nsString.h"
-#include "nscore.h"
 
 class nsEditor;
+class nsIAtom;
+class nsIContent;
+class nsINode;
 
 
 
+
+namespace mozilla {
+namespace dom {
+
+class Element;
 
 class CreateElementTxn : public EditTxn
 {
 public:
-  enum { eAppend=-1 };
-
   
 
 
@@ -31,12 +34,10 @@ public:
 
 
 
-  NS_IMETHOD Init(nsEditor *aEditor,
-                  const nsAString& aTag,
-                  nsIDOMNode *aParent,
-                  uint32_t aOffsetInParent);
-
-  CreateElementTxn();
+  CreateElementTxn(nsEditor& aEditor,
+                   nsIAtom& aTag,
+                   nsINode& aParent,
+                   int32_t aOffsetInParent);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(CreateElementTxn, EditTxn)
@@ -45,28 +46,31 @@ public:
 
   NS_IMETHOD RedoTransaction();
 
-  NS_IMETHOD GetNewNode(nsIDOMNode **aNewNode);
+  already_AddRefed<Element> GetNewNode();
 
 protected:
   virtual ~CreateElementTxn();
 
   
   nsEditor* mEditor;
-  
-  
-  nsString mTag;
 
   
-  nsCOMPtr<nsIDOMNode> mParent;
+  nsCOMPtr<nsIAtom> mTag;
 
   
-  uint32_t mOffsetInParent;
+  nsCOMPtr<nsINode> mParent;
 
   
-  nsCOMPtr<nsIDOMNode> mNewNode;  
+  int32_t mOffsetInParent;
 
   
-  nsCOMPtr<nsIDOMNode> mRefNode;
+  nsCOMPtr<Element> mNewNode;
+
+  
+  nsCOMPtr<nsIContent> mRefNode;
 };
+
+}
+}
 
 #endif
