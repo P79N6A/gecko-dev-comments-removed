@@ -95,6 +95,6 @@ function* assertNodeFlashing(nodeFront, inspector) {
 
   
   let markup = inspector.markup;
-  markup._frame.contentWindow.clearTimeout(container._flashMutationTimer);
+  clearTimeout(container._flashMutationTimer);
   container._flashMutationTimer = null;
 }
