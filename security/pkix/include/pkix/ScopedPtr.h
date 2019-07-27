@@ -22,8 +22,8 @@
 
 
 
-#ifndef mozilla_pkix__ScopedPtr_h
-#define mozilla_pkix__ScopedPtr_h
+#ifndef mozilla_pkix_ScopedPtr_h
+#define mozilla_pkix_ScopedPtr_h
 
 #include "pkix/stdkeywords.h"
 

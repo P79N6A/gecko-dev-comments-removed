@@ -21,8 +21,8 @@
 
 
 
-#ifndef mozilla_pkix__pkixgtest_h
-#define mozilla_pkix__pkixgtest_h
+#ifndef mozilla_pkix_pkixgtest_h
+#define mozilla_pkix_pkixgtest_h
 
 #include <ostream>
 

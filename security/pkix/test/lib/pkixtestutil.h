@@ -22,8 +22,8 @@
 
 
 
-#ifndef mozilla_pkix_test__pkixtestutils_h
-#define mozilla_pkix_test__pkixtestutils_h
+#ifndef mozilla_pkix_test_pkixtestutils_h
+#define mozilla_pkix_test_pkixtestutils_h
 
 #include <ctime>
 #include <stdint.h> 

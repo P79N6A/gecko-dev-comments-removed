@@ -22,8 +22,8 @@
 
 
 
-#ifndef mozilla_pkix__pkixtypes_h
-#define mozilla_pkix__pkixtypes_h
+#ifndef mozilla_pkix_pkixtypes_h
+#define mozilla_pkix_pkixtypes_h
 
 #include "pkix/Input.h"
 #include "pkix/Time.h"

@@ -22,8 +22,8 @@
 
 
 
-#ifndef mozilla_pkix__pkixcheck_h
-#define mozilla_pkix__pkixcheck_h
+#ifndef mozilla_pkix_pkixcheck_h
+#define mozilla_pkix_pkixcheck_h
 
 #include "pkix/pkixtypes.h"
 

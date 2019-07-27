@@ -22,8 +22,8 @@
 
 
 
-#ifndef mozilla_pkix__pkixder_h
-#define mozilla_pkix__pkixder_h
+#ifndef mozilla_pkix_pkixder_h
+#define mozilla_pkix_pkixder_h
 
 
 

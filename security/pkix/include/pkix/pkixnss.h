@@ -22,8 +22,8 @@
 
 
 
-#ifndef mozilla_pkix__pkixnss_h
-#define mozilla_pkix__pkixnss_h
+#ifndef mozilla_pkix_pkixnss_h
+#define mozilla_pkix_pkixnss_h
 
 #include "pkixtypes.h"
 #include "prerror.h"

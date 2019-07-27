@@ -22,8 +22,8 @@
 
 
 
-#ifndef mozilla_pkix__Input_h
-#define mozilla_pkix__Input_h
+#ifndef mozilla_pkix_Input_h
+#define mozilla_pkix_Input_h
 
 #include <cstring>
 
