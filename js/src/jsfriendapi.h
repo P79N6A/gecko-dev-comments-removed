@@ -10,6 +10,7 @@
 #include "mozilla/Casting.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TypedEnum.h"
+#include "mozilla/UniquePtr.h"
 
 #include "jsbytecode.h"
 #include "jspubtd.h"
@@ -410,10 +411,10 @@ class SourceHook {
 
 
 extern JS_FRIEND_API(void)
-SetSourceHook(JSRuntime *rt, SourceHook *hook);
+SetSourceHook(JSRuntime *rt, mozilla::UniquePtr<SourceHook> hook);
 
 
-extern JS_FRIEND_API(SourceHook *)
+extern JS_FRIEND_API(mozilla::UniquePtr<SourceHook>)
 ForgetSourceHook(JSRuntime *rt);
 
 extern JS_FRIEND_API(JS::Zone *)
