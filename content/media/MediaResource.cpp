@@ -936,6 +936,7 @@ ChannelMediaResource::RecreateChannel()
                               loadGroup,
                               nullptr,
                               loadFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -1034,8 +1035,7 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
   }
 
   nsresult rv = RecreateChannel();
-  if (NS_FAILED(rv))
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return OpenChannel(nullptr);
 }
