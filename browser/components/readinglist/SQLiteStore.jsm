@@ -90,14 +90,9 @@ this.SQLiteStore.prototype = {
       paramNames.push(`:${propName}`);
     }
     let conn = yield this._connectionPromise;
-    try {
-      yield conn.executeCached(`
-        INSERT INTO items (${colNames}) VALUES (${paramNames});
-      `, item);
-    }
-    catch (err) {
-      throwExistsError(err);
-    }
+    yield conn.executeCached(`
+      INSERT INTO items (${colNames}) VALUES (${paramNames});
+    `, item);
   }),
 
   
@@ -212,16 +207,11 @@ this.SQLiteStore.prototype = {
     }
     let conn = yield this._connectionPromise;
     if (!item[keyProp]) {
-      throw new ReadingList.Error.Error("Item must have " + keyProp);
+      throw new Error("Item must have " + keyProp);
     }
-    try {
-      yield conn.executeCached(`
-        UPDATE items SET ${assignments} WHERE ${keyProp} = :${keyProp};
-      `, item);
-    }
-    catch (err) {
-      throwExistsError(err);
-    }
+    yield conn.executeCached(`
+      UPDATE items SET ${assignments} WHERE ${keyProp} = :${keyProp};
+    `, item);
   }),
 
   
@@ -296,26 +286,6 @@ function itemFromRow(row) {
     item[name] = row.getResultByName(name);
   }
   return item;
-}
-
-
-
-
-
-
-
-
-function throwExistsError(err) {
-  let match =
-    /UNIQUE constraint failed: items\.([a-zA-Z0-9_]+)/.exec(err.message);
-  if (match) {
-    let newErr = new ReadingList.Error.Exists(
-      "An item with the following property already exists: " + match[1]
-    );
-    newErr.originalError = err;
-    err = newErr;
-  }
-  throw err;
 }
 
 
