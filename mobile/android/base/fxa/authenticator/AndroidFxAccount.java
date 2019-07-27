@@ -11,11 +11,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
 import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.background.ReadingListConstants;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountUtils;
@@ -72,6 +74,19 @@ public class AndroidFxAccount {
   public static final String BUNDLE_KEY_BUNDLE_VERSION = "version";
   public static final String BUNDLE_KEY_STATE_LABEL = "stateLabel";
   public static final String BUNDLE_KEY_STATE = "state";
+
+  
+  
+  
+  
+  private static final List<String> KNOWN_OAUTH_TOKEN_TYPES;
+  static {
+    final List<String> list = new ArrayList<>();
+    if (AppConstants.MOZ_ANDROID_READING_LIST_SERVICE) {
+      list.add(ReadingListConstants.AUTH_TOKEN_TYPE);
+    }
+    KNOWN_OAUTH_TOKEN_TYPES = Collections.unmodifiableList(list);
+  }
 
   public static final Map<String, Boolean> DEFAULT_AUTHORITIES_TO_SYNC_AUTOMATICALLY_MAP;
   static {
@@ -279,6 +294,15 @@ public class AndroidFxAccount {
 
   public String getTokenServerURI() {
     return accountManager.getUserData(account, ACCOUNT_KEY_TOKEN_SERVER);
+  }
+
+  public String getOAuthServerURI() {
+    
+    if (FxAccountConstants.STAGE_AUTH_SERVER_ENDPOINT.equals(getAccountServerURI())) {
+      return FxAccountConstants.STAGE_OAUTH_SERVER_ENDPOINT;
+    } else {
+      return FxAccountConstants.DEFAULT_OAUTH_SERVER_ENDPOINT;
+    }
   }
 
   private String constructPrefsPath(String product, long version, String extra) throws GeneralSecurityException, UnsupportedEncodingException {
@@ -601,16 +625,27 @@ public class AndroidFxAccount {
 
 
 
-
-
-
-
-  public static Intent makeDeletedAccountIntent(final Context context, final Account account) {
+  public Intent makeDeletedAccountIntent() {
     final Intent intent = new Intent(FxAccountConstants.ACCOUNT_DELETED_ACTION);
+    final List<String> tokens = new ArrayList<>();
 
     intent.putExtra(FxAccountConstants.ACCOUNT_DELETED_INTENT_VERSION_KEY,
         Long.valueOf(FxAccountConstants.ACCOUNT_DELETED_INTENT_VERSION));
     intent.putExtra(FxAccountConstants.ACCOUNT_DELETED_INTENT_ACCOUNT_KEY, account.name);
+
+    
+    
+    for (String tokenKey : KNOWN_OAUTH_TOKEN_TYPES) {
+      final String authToken = accountManager.peekAuthToken(account, tokenKey);
+      if (authToken != null) {
+        tokens.add(authToken);
+      }
+    }
+
+    
+    intent.putExtra(FxAccountConstants.ACCOUNT_OAUTH_SERVICE_ENDPOINT_KEY, getOAuthServerURI());
+    
+    intent.putExtra(FxAccountConstants.ACCOUNT_DELETED_INTENT_ACCOUNT_AUTH_TOKENS, tokens.toArray(new String[tokens.size()]));
     return intent;
   }
 

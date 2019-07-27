@@ -66,6 +66,8 @@ public class FxAccountConstants {
 
   public static final String ACCOUNT_DELETED_INTENT_VERSION_KEY = "account_deleted_intent_version";
   public static final String ACCOUNT_DELETED_INTENT_ACCOUNT_KEY = "account_deleted_intent_account";
+  public static final String ACCOUNT_OAUTH_SERVICE_ENDPOINT_KEY = "account_oauth_service_endpoint";
+  public static final String ACCOUNT_DELETED_INTENT_ACCOUNT_AUTH_TOKENS = "account_deleted_intent_auth_tokens";
 
   
 
