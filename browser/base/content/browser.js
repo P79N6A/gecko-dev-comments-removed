@@ -6561,23 +6561,6 @@ var gIdentityHandler = {
   _mode : "unknownIdentity",
 
   
-  get _encryptionLabel () {
-    delete this._encryptionLabel;
-    this._encryptionLabel = {};
-    this._encryptionLabel[this.IDENTITY_MODE_DOMAIN_VERIFIED] =
-      gNavigatorBundle.getString("identity.encrypted2");
-    this._encryptionLabel[this.IDENTITY_MODE_IDENTIFIED] =
-      gNavigatorBundle.getString("identity.encrypted2");
-    this._encryptionLabel[this.IDENTITY_MODE_UNKNOWN] =
-      gNavigatorBundle.getString("identity.unencrypted");
-    this._encryptionLabel[this.IDENTITY_MODE_MIXED_DISPLAY_LOADED] =
-      gNavigatorBundle.getString("identity.broken_loaded");
-    this._encryptionLabel[this.IDENTITY_MODE_MIXED_ACTIVE_LOADED] =
-      gNavigatorBundle.getString("identity.mixed_active_loaded2");
-    this._encryptionLabel[this.IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED] =
-      gNavigatorBundle.getString("identity.broken_loaded");
-    return this._encryptionLabel;
-  },
   get _identityPopup () {
     delete this._identityPopup;
     return this._identityPopup = document.getElementById("identity-popup");
@@ -6590,11 +6573,6 @@ var gIdentityHandler = {
     delete this._identityPopupContentBox;
     return this._identityPopupContentBox =
       document.getElementById("identity-popup-content-box");
-  },
-  get _identityPopupChromeLabel () {
-    delete this._identityPopupChromeLabel;
-    return this._identityPopupChromeLabel =
-      document.getElementById("identity-popup-chromeLabel");
   },
   get _identityPopupContentHost () {
     delete this._identityPopupContentHost;
@@ -6615,11 +6593,6 @@ var gIdentityHandler = {
     delete this._identityPopupContentVerif;
     return this._identityPopupContentVerif =
       document.getElementById("identity-popup-content-verifier");
-  },
-  get _identityPopupEncLabel () {
-    delete this._identityPopupEncLabel;
-    return this._identityPopupEncLabel =
-      document.getElementById("identity-popup-encryption-label");
   },
   get _identityIconLabel () {
     delete this._identityIconLabel;
@@ -6939,24 +6912,31 @@ var gIdentityHandler = {
     this._identityPopupContentBox.className = newMode;
 
     
-    this._identityPopupEncLabel.textContent = this._encryptionLabel[newMode];
-
-    
     let supplemental = "";
     let verifier = "";
     let host = "";
     let owner = "";
 
+    if (newMode == this.IDENTITY_MODE_CHROMEUI) {
+      let brandBundle = document.getElementById("bundle_brand");
+      host = brandBundle.getString("brandFullName");
+    } else {
+      try {
+        host = this.getEffectiveHost();
+      } catch (e) {
+        
+        host = this._lastUri.specIgnoringRef;
+      }
+    }
+
     switch (newMode) {
     case this.IDENTITY_MODE_DOMAIN_VERIFIED:
-      host = this.getEffectiveHost();
       verifier = this._identityBox.tooltipText;
       break;
     case this.IDENTITY_MODE_IDENTIFIED: {
       
       let iData = this.getIdentityData();
-      host = this.getEffectiveHost();
-      owner = iData.subjectOrg;
+      host = owner = iData.subjectOrg;
       verifier = this._identityBox.tooltipText;
 
       
@@ -6969,17 +6949,21 @@ var gIdentityHandler = {
         supplemental += iData.state;
       else if (iData.country) 
         supplemental += iData.country;
-      break; }
-    case this.IDENTITY_MODE_CHROMEUI: {
-      let brandBundle = document.getElementById("bundle_brand");
-      let brandShortName = brandBundle.getString("brandShortName");
-      this._identityPopupChromeLabel.textContent = gNavigatorBundle.getFormattedString("identity.chrome",
-                                                                                       [brandShortName]);
-      break; }
+      break;
+    }
+    case this.IDENTITY_MODE_MIXED_DISPLAY_LOADED:
+    case this.IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED:
+      supplemental = gNavigatorBundle.getString("identity.broken_loaded");
+      break;
+    case this.IDENTITY_MODE_MIXED_ACTIVE_LOADED:
+      supplemental = gNavigatorBundle.getString("identity.mixed_active_loaded2");
+      break;
     }
 
     
-    this._identityPopupContentHost.textContent = host;
+    
+    
+    this._identityPopupContentHost.value = host;
     this._identityPopupContentOwner.textContent = owner;
     this._identityPopupContentSupp.textContent = supplemental;
     this._identityPopupContentVerif.textContent = verifier;
