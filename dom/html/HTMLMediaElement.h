@@ -150,7 +150,12 @@ public:
 
 
 
-  virtual void NotifyOwnerDocumentActivityChanged();
+  void NotifyOwnerDocumentActivityChanged();
+
+  
+  
+  
+  virtual bool NotifyOwnerDocumentActivityChangedInternal();
 
   
   
@@ -1030,6 +1035,9 @@ protected:
 
   
   void UpdateReadyStateInternal();
+
+  
+  void NotifyAudioChannelAgent(bool aPlaying);
 
   class nsAsyncEventRunner;
   using nsGenericHTMLElement::DispatchEvent;
