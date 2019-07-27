@@ -221,6 +221,13 @@ nsresult RtspTrackBuffer::ReadBuffer(uint8_t* aToBuffer, uint32_t aToBufferSize,
   
   while (1) {
     
+    
+    if (!mIsStarted) {
+      RTSPMLOG("ReadBuffer: mIsStarted is false");
+      return NS_ERROR_FAILURE;
+    }
+
+    
     if (mDuringPlayoutDelay) {
       monitor.Wait();
       continue;
@@ -261,10 +268,6 @@ nsresult RtspTrackBuffer::ReadBuffer(uint8_t* aToBuffer, uint32_t aToBufferSize,
       mConsumerIdx = (mConsumerIdx + 1) % BUFFER_SLOT_NUM;
       RTSPMLOG("BUFFER_SLOT_INVALID move forward");
     } else {
-      
-      if (!mIsStarted) {
-        return NS_ERROR_FAILURE;
-      }
       
       
       
@@ -616,6 +619,11 @@ RtspMediaResource::ReadFrameFromTrack(uint8_t* aBuffer, uint32_t aBufferSize,
                "ReadTrack index > mTrackBuffer");
   MOZ_ASSERT(aBuffer);
 
+  if (!mIsConnected) {
+    RTSPMLOG("ReadFrameFromTrack: RTSP not connected");
+    return NS_ERROR_FAILURE;
+  }
+
   return mTrackBuffer[aTrackIdx]->ReadBuffer(aBuffer, aBufferSize, aBytes,
                                              aTime, aFrameSize);
 }
@@ -769,6 +777,7 @@ RtspMediaResource::OnDisconnected(uint8_t aTrackIdx, nsresult aReason)
         aReason == NS_ERROR_NET_TIMEOUT) {
       
       RTSPMLOG("Error in OnDisconnected 0x%x", aReason);
+      mIsConnected = false;
       mDecoder->NetworkError();
     } else {
       
