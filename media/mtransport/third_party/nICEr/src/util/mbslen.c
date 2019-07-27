@@ -43,7 +43,7 @@
 #include <locale.h>
 #include <stdlib.h>
 #include <wchar.h>
-#ifdef DARWIN
+#if defined(DARWIN)
 #define HAVE_XLOCALE
 #endif
 
