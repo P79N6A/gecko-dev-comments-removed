@@ -288,6 +288,9 @@ public:
   Matrix mMatrix;                 
 };
 
+class StoredPattern;
+class DrawTargetCaptureImpl;
+
 
 
 
@@ -331,6 +334,15 @@ public:
   }
 
 protected:
+  friend class DrawTargetCaptureImpl;
+  friend class StoredPattern;
+
+  
+  
+  
+  
+  virtual void GuaranteePersistance() {}
+
   UserData mUserData;
 };
 
@@ -395,6 +407,7 @@ public:
 
   virtual TemporaryRef<DataSourceSurface> GetDataSurface();
 
+protected:
   bool mIsMapped;
 };
 
@@ -608,6 +621,8 @@ protected:
   GlyphRenderingOptions() {}
 };
 
+class DrawTargetCapture;
+
 
 
 
@@ -645,6 +660,15 @@ public:
 
 
   virtual void Flush() = 0;
+
+  
+
+
+
+
+
+  virtual void DrawCapturedDT(DrawTargetCapture *aCaptureDT,
+                              const Matrix& aTransform);
 
   
 
@@ -887,6 +911,14 @@ public:
 
 
 
+  virtual TemporaryRef<DrawTargetCapture> CreateCaptureDT(const IntSize& aSize);
+
+  
+
+
+
+
+
 
 
   virtual TemporaryRef<DrawTarget>
@@ -991,6 +1023,10 @@ protected:
   bool mPermitSubpixelAA : 1;
 
   SurfaceFormat mFormat;
+};
+
+class DrawTargetCapture : public DrawTarget
+{
 };
 
 class DrawEventRecorder : public RefCounted<DrawEventRecorder>
