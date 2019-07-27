@@ -142,7 +142,7 @@ public:
   
   
   
-  bool CheckAllowedOrigin(nsIHttpChannel* aResourceChannel);
+  bool CheckAllowedOrigin(nsIHttpChannel* aResourceChannel, nsITimedChannel* aChannel);
   
   
   bool TimingAllowed() const;
@@ -222,15 +222,31 @@ public:
 private:
   ~nsPerformanceTiming();
   bool IsInitialized() const;
+  void InitializeTimingInfo(nsITimedChannel* aChannel);
   nsRefPtr<nsPerformance> mPerformance;
-  nsCOMPtr<nsITimedChannel> mChannel;
   DOMHighResTimeStamp mFetchStart;
   
   
   
   
   DOMHighResTimeStamp mZeroTime;
+
+  TimeStamp mAsyncOpen;
+  TimeStamp mRedirectStart;
+  TimeStamp mRedirectEnd;
+  TimeStamp mDomainLookupStart;
+  TimeStamp mDomainLookupEnd;
+  TimeStamp mConnectStart;
+  TimeStamp mConnectEnd;
+  TimeStamp mRequestStart;
+  TimeStamp mResponseStart;
+  TimeStamp mCacheReadStart;
+  TimeStamp mResponseEnd;
+  TimeStamp mCacheReadEnd;
+  uint16_t mRedirectCount;
   bool mTimingAllowed;
+  bool mAllRedirectsSameOrigin;
+  bool mInitialized;
 
   
   
