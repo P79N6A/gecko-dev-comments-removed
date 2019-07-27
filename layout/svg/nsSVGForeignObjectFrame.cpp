@@ -91,7 +91,9 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsLayoutUtils::PostRestyleEvent(
+        mContent->AsElement(), nsRestyleHint(0),
+        nsChangeHint_InvalidateRenderingObservers);
       nsSVGUtils::ScheduleReflowSVG(this);
       
       RequestReflow(nsIPresShell::eStyleChange);
@@ -99,7 +101,9 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
                aAttribute == nsGkAtoms::y) {
       
       mCanvasTM = nullptr;
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsLayoutUtils::PostRestyleEvent(
+        mContent->AsElement(), nsRestyleHint(0),
+        nsChangeHint_InvalidateRenderingObservers);
       nsSVGUtils::ScheduleReflowSVG(this);
     } else if (aAttribute == nsGkAtoms::transform) {
       
@@ -109,7 +113,9 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
       mCanvasTM = nullptr;
     } else if (aAttribute == nsGkAtoms::viewBox ||
                aAttribute == nsGkAtoms::preserveAspectRatio) {
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsLayoutUtils::PostRestyleEvent(
+        mContent->AsElement(), nsRestyleHint(0),
+        nsChangeHint_InvalidateRenderingObservers);
     }
   }
 

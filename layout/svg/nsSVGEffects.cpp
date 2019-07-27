@@ -228,7 +228,9 @@ nsSVGRenderingObserverProperty::DoUpdate()
   if (frame && frame->IsFrameOfType(nsIFrame::eSVG)) {
     
     
-    nsSVGEffects::InvalidateRenderingObservers(frame);
+    nsLayoutUtils::PostRestyleEvent(
+      frame->GetContent()->AsElement(), nsRestyleHint(0),
+      nsChangeHint_InvalidateRenderingObservers);
   }
 }
 
@@ -316,15 +318,15 @@ nsSVGFilterProperty::DoUpdate()
   if (!frame)
     return;
 
-  if (frame && frame->IsFrameOfType(nsIFrame::eSVG)) {
-    
-    
-    nsSVGEffects::InvalidateRenderingObservers(frame);
-  }
-
   
   nsChangeHint changeHint =
     nsChangeHint(nsChangeHint_RepaintFrame);
+
+  if (frame && frame->IsFrameOfType(nsIFrame::eSVG)) {
+    
+    
+    NS_UpdateHint(changeHint, nsChangeHint_InvalidateRenderingObservers);
+  }
 
   
   if (!(frame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
@@ -351,9 +353,9 @@ nsSVGMarkerProperty::DoUpdate()
 
   
   if (!(frame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
+    NS_UpdateHint(changeHint, nsChangeHint_InvalidateRenderingObservers);
     
     
-    nsSVGEffects::InvalidateRenderingObservers(frame);
     
     nsSVGUtils::ScheduleReflowSVG(frame);
   }
@@ -423,7 +425,9 @@ nsSVGPaintingProperty::DoUpdate()
     return;
 
   if (frame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
-    nsSVGEffects::InvalidateRenderingObservers(frame);
+    nsLayoutUtils::PostRestyleEvent(
+      frame->GetContent()->AsElement(), nsRestyleHint(0),
+      nsChangeHint_InvalidateRenderingObservers);
     frame->InvalidateFrameSubtree();
   } else {
     InvalidateAllContinuations(frame);

@@ -3324,7 +3324,9 @@ SVGTextFrame::ReflowSVGNonDisplayText()
   
   
   
-  nsSVGEffects::InvalidateRenderingObservers(this);
+  nsLayoutUtils::PostRestyleEvent(
+    mContent->AsElement(), nsRestyleHint(0),
+    nsChangeHint_InvalidateRenderingObservers);
 
   
   
@@ -5195,7 +5197,9 @@ void
 SVGTextFrame::NotifyGlyphMetricsChange()
 {
   AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
-  nsSVGEffects::InvalidateRenderingObservers(this);
+  nsLayoutUtils::PostRestyleEvent(
+    mContent->AsElement(), nsRestyleHint(0),
+    nsChangeHint_InvalidateRenderingObservers);
   ScheduleReflowSVG();
 }
 
