@@ -87,7 +87,9 @@ AVCCMediaDataDecoder::Init()
 nsresult
 AVCCMediaDataDecoder::Input(mp4_demuxer::MP4Sample* aSample)
 {
-  mp4_demuxer::AnnexB::ConvertSampleToAVCC(aSample);
+  if (!mp4_demuxer::AnnexB::ConvertSampleToAVCC(aSample)) {
+    return NS_ERROR_FAILURE;
+  }
   if (!mDecoder) {
     
     

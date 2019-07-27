@@ -311,14 +311,17 @@ MP4Sample::Prepend(const uint8_t* aData, size_t aSize)
   return true;
 }
 
-void
+bool
 MP4Sample::Replace(const uint8_t* aData, size_t aSize)
 {
   
   
   uint8_t* newData = mMediaBuffer && aSize <= mMediaBuffer->size()
                        ? data
-                       : new uint8_t[aSize];
+                       : new (fallible) uint8_t[aSize];
+  if (!newData) {
+    return false;
+  }
 
   memcpy(newData, aData, aSize);
   size = aSize;
@@ -330,5 +333,7 @@ MP4Sample::Replace(const uint8_t* aData, size_t aSize)
       mMediaBuffer = nullptr;
     }
   }
+
+  return true;
 }
 }
