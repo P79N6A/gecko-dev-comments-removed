@@ -96,6 +96,9 @@ private:
 
   
   bool mMFTProvidesOutputSamples;
+
+  
+  bool mDiscontinuity;
 };
 
 } 
