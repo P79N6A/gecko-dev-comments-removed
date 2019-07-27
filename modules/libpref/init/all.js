@@ -308,6 +308,11 @@ pref("media.navigator.video.h264.max_br", 700);
 pref("media.navigator.video.h264.max_mbps", 11880); 
 pref("media.peerconnection.video.h264_enabled", false);
 pref("media.getusermedia.aec", 4);
+
+
+pref("media.peerconnection.video.min_bitrate", 100);
+pref("media.peerconnection.video.start_bitrate", 220);
+pref("media.peerconnection.video.max_bitrate", 1000);
 #else
 pref("media.navigator.video.default_width",0);  
 pref("media.navigator.video.default_height",0); 
@@ -321,10 +326,12 @@ pref("media.navigator.video.h264.max_mbps", 0);
 pref("media.peerconnection.video.h264_enabled", false);
 pref("media.getusermedia.aec", 1);
 pref("media.getusermedia.browser.enabled", true);
-#endif
+
+
 pref("media.peerconnection.video.min_bitrate", 200);
 pref("media.peerconnection.video.start_bitrate", 300);
 pref("media.peerconnection.video.max_bitrate", 2000);
+#endif
 pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:stun.services.mozilla.com\"}]");
 pref("media.peerconnection.trickle_ice", true);
