@@ -126,10 +126,6 @@ def separate_debug_file_for(file):
         
         note_header = buildid[0:16]
         buildid = buildid[16:]
-        
-        
-        
-        
         if word32(note_header[0:4]) != 4 or \
            word32(note_header[4:8]) != len(buildid) or \
            word32(note_header[8:12]) != 3 or \
@@ -236,10 +232,8 @@ def fixSymbols(line):
         
         
         (before, file, address, after) = result.groups()
-        
 
         if os.path.exists(file) and os.path.isfile(file):
-            
             (name, fileline) = addressToSymbol(file, address)
             info = "%s (%s)" % (name, fileline)
 
