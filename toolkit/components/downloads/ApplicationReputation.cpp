@@ -984,11 +984,8 @@ PendingLookup::OnStopRequestInternal(nsIRequest *aRequest,
   
   Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_SERVER,
     SERVER_RESPONSE_VALID);
-  switch(response.verdict()) {
-    case safe_browsing::ClientDownloadResponse::DANGEROUS:
-    case safe_browsing::ClientDownloadResponse::DANGEROUS_HOST:
-      *aShouldBlock = true;
-      break;
+  if (response.verdict() == safe_browsing::ClientDownloadResponse::DANGEROUS) {
+    *aShouldBlock = true;
   }
 
   return NS_OK;
