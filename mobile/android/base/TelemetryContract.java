@@ -169,6 +169,9 @@ public interface TelemetryContract {
         TOAST("toast"),
 
         
+        WIDGET("widget"),
+
+        
         _TEST1("_test_method_1"),
         _TEST2("_test_method_2"),
         ;
