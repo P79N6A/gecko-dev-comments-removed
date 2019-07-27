@@ -543,7 +543,8 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
 
 #ifdef USE_NS_STACKWALK
 static
-void StackWalkCallback(void* aPC, void* aSP, void* aClosure)
+void StackWalkCallback(uint32_t aFrameNumber, void* aPC, void* aSP,
+                       void* aClosure)
 {
   NativeStack* nativeStack = static_cast<NativeStack*>(aClosure);
   MOZ_ASSERT(nativeStack->count < nativeStack->size);
@@ -568,7 +569,10 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
   };
 
   
-  StackWalkCallback(aSample->pc, aSample->sp, &nativeStack);
+  
+  
+  
+  StackWalkCallback( 0, aSample->pc, aSample->sp, &nativeStack);
 
   uint32_t maxFrames = uint32_t(nativeStack.size - nativeStack.count);
 #ifdef XP_MACOSX
