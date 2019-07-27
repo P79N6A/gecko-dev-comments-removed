@@ -351,7 +351,7 @@ TouchCaret::NotifySelectionChanged(nsIDOMDocument* aDoc, nsISelection* aSel,
   
   
   
-  if (aSel != caret->GetCaretDOMSelection()) {
+  if (aSel != caret->GetSelection()) {
     TOUCHCARET_LOG("Return for selection mismatch!");
     return NS_OK;
   }

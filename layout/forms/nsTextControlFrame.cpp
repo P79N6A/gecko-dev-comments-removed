@@ -632,7 +632,7 @@ void nsTextControlFrame::SetFocus(bool aOn, bool aRepaint)
   if (!caret) return;
 
   
-  nsISelection *caretSelection = caret->GetCaretDOMSelection();
+  nsISelection *caretSelection = caret->GetSelection();
   const bool isFocusedRightNow = ourSel == caretSelection;
   if (!isFocusedRightNow) {
     
@@ -654,7 +654,7 @@ void nsTextControlFrame::SetFocus(bool aOn, bool aRepaint)
   }
 
   
-  caret->SetCaretDOMSelection(ourSel);
+  caret->SetSelection(ourSel);
 
   
   

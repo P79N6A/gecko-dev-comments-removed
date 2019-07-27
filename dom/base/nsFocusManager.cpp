@@ -2176,7 +2176,7 @@ nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
       
       caret->SetIgnoreUserModify(true);
       
-      caret->SetCaretDOMSelection(domSelection);
+      caret->SetSelection(domSelection);
 
       
       
