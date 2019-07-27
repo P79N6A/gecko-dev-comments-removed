@@ -11,6 +11,11 @@ namespace mozilla {
 
 bool IsSingleThreaded();
 
+
+
+
+bool UnshareUserNamespace();
+
 } 
 
 #endif 

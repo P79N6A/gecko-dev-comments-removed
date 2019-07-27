@@ -5,6 +5,10 @@
 
 
 #include "Sandbox.h"
+
+#include "LinuxCapabilities.h"
+#include "LinuxSched.h"
+#include "SandboxChroot.h"
 #include "SandboxFilter.h"
 #include "SandboxInternal.h"
 #include "SandboxLogging.h"
@@ -27,11 +31,13 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/SandboxInfo.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/unused.h"
 #include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
 #if defined(ANDROID)
 #include "sandbox/linux/services/android_ucontext.h"
 #endif
+#include "sandbox/linux/services/linux_syscalls.h"
 
 #ifdef MOZ_ASAN
 
@@ -66,6 +72,8 @@ SandboxCrashFunc gSandboxCrashFunc;
 static int gMediaPluginFileDesc = -1;
 static const char *gMediaPluginFilePath;
 #endif
+
+static UniquePtr<SandboxChroot> gChrootHelper;
 
 
 
@@ -285,6 +293,12 @@ BroadcastSetThreadSandbox(SandboxType aType)
     SANDBOX_LOG_ERROR("opendir /proc/self/task: %s\n", strerror(errno));
     MOZ_CRASH();
   }
+
+  if (gChrootHelper) {
+    gChrootHelper->Invoke();
+    gChrootHelper = nullptr;
+  }
+
   signum = FindFreeSignalNumber();
   if (signum == 0) {
     SANDBOX_LOG_ERROR("No available signal numbers!");
@@ -426,6 +440,80 @@ void
 SandboxEarlyInit(GeckoProcessType aType, bool aIsNuwa)
 {
   MOZ_RELEASE_ASSERT(IsSingleThreaded());
+
+  
+  
+  bool canChroot = false;
+  bool canUnshareNet = false;
+  bool canUnshareIPC = false;
+
+  switch (aType) {
+  case GeckoProcessType_Default:
+    MOZ_ASSERT(false, "SandboxEarlyInit in parent process");
+    return;
+#ifdef MOZ_GMP_SANDBOX
+  case GeckoProcessType_GMPlugin:
+    canUnshareNet = true;
+    canUnshareIPC = true;
+    canChroot = true;
+    break;
+#endif
+    
+    
+  default:
+    
+    break;
+  }
+
+  
+  if (!canChroot && !canUnshareNet && !canUnshareIPC) {
+    return;
+  }
+
+  
+  const SandboxInfo info = SandboxInfo::Get();
+  if (!info.Test(SandboxInfo::kHasUserNamespaces)) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  if (!UnshareUserNamespace()) {
+    SANDBOX_LOG_ERROR("unshare(CLONE_NEWUSER): %s", strerror(errno));
+    
+    
+    MOZ_CRASH("unshare(CLONE_NEWUSER)");
+  }
+  
+  
+
+  if (canUnshareIPC && syscall(__NR_unshare, CLONE_NEWIPC) != 0) {
+    SANDBOX_LOG_ERROR("unshare(CLONE_NEWIPC): %s", strerror(errno));
+    MOZ_CRASH("unshare(CLONE_NEWIPC)");
+  }
+
+  if (canUnshareNet && syscall(__NR_unshare, CLONE_NEWNET) != 0) {
+    SANDBOX_LOG_ERROR("unshare(CLONE_NEWNET): %s", strerror(errno));
+    MOZ_CRASH("unshare(CLONE_NEWNET)");
+  }
+
+  if (canChroot) {
+    gChrootHelper = MakeUnique<SandboxChroot>();
+    if (!gChrootHelper->Prepare()) {
+      SANDBOX_LOG_ERROR("failed to set up chroot helper");
+      MOZ_CRASH("SandboxChroot::Prepare");
+    }
+  }
+
+  if (!LinuxCapabilities().SetCurrent()) {
+    SANDBOX_LOG_ERROR("dropping capabilities: %s", strerror(errno));
+    MOZ_CRASH("can't drop capabilities");
+  }
 }
 
 #ifdef MOZ_CONTENT_SANDBOX
