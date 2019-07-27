@@ -40,6 +40,9 @@ class IMEContentObserver final : public nsISelectionListener
                                , public nsIEditorObserver
 {
 public:
+  typedef widget::IMENotification::TextChangeData TextChangeData;
+  typedef widget::IMENotification::TextChangeDataBase TextChangeDataBase;
+
   IMEContentObserver();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -102,53 +105,6 @@ public:
   nsresult GetSelectionAndRoot(nsISelection** aSelection,
                                nsIContent** aRoot) const;
 
-  struct TextChangeData
-  {
-    
-    
-    uint32_t mStartOffset;
-    
-    
-    
-    uint32_t mRemovedEndOffset;
-    
-    
-    uint32_t mAddedEndOffset;
-
-    bool mCausedOnlyByComposition;
-    bool mStored;
-
-    TextChangeData()
-      : mStartOffset(0)
-      , mRemovedEndOffset(0)
-      , mAddedEndOffset(0)
-      , mCausedOnlyByComposition(false)
-      , mStored(false)
-    {
-    }
-
-    TextChangeData(uint32_t aStartOffset,
-                   uint32_t aRemovedEndOffset,
-                   uint32_t aAddedEndOffset,
-                   bool aCausedByComposition)
-      : mStartOffset(aStartOffset)
-      , mRemovedEndOffset(aRemovedEndOffset)
-      , mAddedEndOffset(aAddedEndOffset)
-      , mCausedOnlyByComposition(aCausedByComposition)
-      , mStored(true)
-    {
-      MOZ_ASSERT(aRemovedEndOffset >= aStartOffset,
-                 "removed end offset must not be smaller than start offset");
-      MOZ_ASSERT(aAddedEndOffset >= aStartOffset,
-                 "added end offset must not be smaller than start offset");
-    }
-    
-    int64_t Difference() const 
-    {
-      return mAddedEndOffset - mRemovedEndOffset;
-    }
-  };
-
 private:
   ~IMEContentObserver() {}
 
@@ -170,8 +126,8 @@ private:
     PostFocusSetNotification();
     FlushMergeableNotifications();
   }
-  void PostTextChangeNotification(const TextChangeData& aTextChangeData);
-  void MaybeNotifyIMEOfTextChange(const TextChangeData& aTextChangeData)
+  void PostTextChangeNotification(const TextChangeDataBase& aTextChangeData);
+  void MaybeNotifyIMEOfTextChange(const TextChangeDataBase& aTextChangeData)
   {
     PostTextChangeNotification(aTextChangeData);
     FlushMergeableNotifications();
@@ -199,14 +155,14 @@ private:
 
 
   void UnregisterObservers();
-  void StoreTextChangeData(const TextChangeData& aTextChangeData);
+  void StoreTextChangeData(const TextChangeDataBase& aTextChangeData);
   void FlushMergeableNotifications();
   void ClearPendingNotifications()
   {
     mIsFocusEventPending = false;
     mIsSelectionChangeEventPending = false;
     mIsPositionChangeEventPending = false;
-    mTextChangeData.mStored = false;
+    mTextChangeData.Clear();
   }
 
 #ifdef DEBUG
@@ -359,18 +315,18 @@ private:
   {
   public:
     TextChangeEvent(IMEContentObserver* aIMEContentObserver,
-                    TextChangeData& aData)
+                    TextChangeDataBase& aTextChangeData)
       : AChangeEvent(eChangeEventType_Text, aIMEContentObserver)
-      , mData(aData)
+      , mTextChangeData(aTextChangeData)
     {
-      MOZ_ASSERT(mData.mStored);
+      MOZ_ASSERT(mTextChangeData.IsValid());
       
-      aData.mStored = false;
+      aTextChangeData.Clear();
     }
     NS_IMETHOD Run() override;
 
   private:
-    TextChangeData mData;
+    TextChangeDataBase mTextChangeData;
   };
 
   class PositionChangeEvent final : public AChangeEvent
