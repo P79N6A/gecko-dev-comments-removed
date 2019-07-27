@@ -79,7 +79,7 @@ private:
   int32_t mCurLine;   
   uint32_t mRowBytes; 
   int32_t mOldLine;   
-  nsAutoPtr<Decoder> mContainedDecoder; 
+  nsRefPtr<Decoder> mContainedDecoder; 
 
   char mDirEntryArray[ICODIRENTRYSIZE]; 
   IconDirEntry mDirEntry; 
