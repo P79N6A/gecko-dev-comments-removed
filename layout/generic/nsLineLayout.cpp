@@ -2173,7 +2173,14 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       
       nscoord revisedBaselineBCoord = baselineBCoord - offset *
         lineWM.FlowRelativeToLineRelativeFactor();
-      pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
+      if (lineWM.IsVertical() && !lineWM.IsSideways()) {
+        
+        
+        pfd->mBounds.BStart(lineWM) =
+          revisedBaselineBCoord - pfd->mBounds.BSize(lineWM)/2;
+      } else {
+        pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
+      }
       pfd->mBlockDirAlign = VALIGN_OTHER;
     }
 
