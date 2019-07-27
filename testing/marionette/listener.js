@@ -35,9 +35,10 @@ let isB2G = false;
 
 let marionetteTestName;
 let winUtil = content.QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIDOMWindowUtils);
+    .getInterface(Ci.nsIDOMWindowUtils);
 let listenerId = null; 
 let curFrame = content;
+let isRemoteBrowser = () => curFrame.contentWindow !== null;
 let previousFrame = null;
 let elementManager = new ElementManager([]);
 let accessibility = new Accessibility();
@@ -1548,11 +1549,39 @@ function isElementSelected(msg) {
 
 function sendKeysToElement(msg) {
   let command_id = msg.json.command_id;
+  let val = msg.json.value;
 
   let el = elementManager.getKnownElement(msg.json.id, curFrame);
-  let keysToSend = msg.json.value;
+  if (el.type == "file") {
+    let p = val.join("");
 
-  utils.sendKeysToElement(curFrame, el, keysToSend, sendOk, sendError, command_id);
+    
+    
+    
+    
+    
+    if (isRemoteBrowser()) {
+      let fs = Array.prototype.slice.call(el.files);
+      let file;
+      try {
+        file = new File(p);
+      } catch (e) {
+        let err = new IllegalArgumentError(`File not found: ${val}`);
+        sendError(err.message, err.code, err.stack, command_id);
+        return;
+      }
+      fs.push(file);
+
+      let wel = new SpecialPowers(utils.window).wrap(el);
+      wel.mozSetFileArray(fs);
+    } else {
+      sendSyncMessage("Marionette:setElementValue", {value: p}, {element: el});
+    }
+
+    sendOk(command_id);
+  } else {
+    utils.sendKeysToElement(curFrame, el, val, sendOk, sendError, command_id);
+  }
 }
 
 
@@ -1582,10 +1611,13 @@ function clearElement(msg) {
   let command_id = msg.json.command_id;
   try {
     let el = elementManager.getKnownElement(msg.json.id, curFrame);
-    utils.clearElement(el);
+    if (el.type == "file") {
+      el.value = null;
+    } else {
+      utils.clearElement(el);
+    }
     sendOk(command_id);
-  }
-  catch (e) {
+  } catch (e) {
     sendError(e.message, e.code, e.stack, command_id);
   }
 }
