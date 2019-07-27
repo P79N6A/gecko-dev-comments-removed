@@ -41,6 +41,14 @@ public:
   virtual void Error(GMPErr aError) = 0;
 };
 
+#define GMP_API_AUDIO_DECODER "decode-audio"
+
+
+
+
+
+
+
 
 class GMPAudioDecoder
 {

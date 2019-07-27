@@ -63,6 +63,14 @@ public:
   virtual void Error(GMPErr aError) = 0;
 };
 
+#define GMP_API_VIDEO_DECODER "decode-video"
+
+
+
+
+
+
+
 
 class GMPVideoDecoder
 {

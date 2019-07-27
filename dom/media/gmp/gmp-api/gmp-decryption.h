@@ -201,6 +201,8 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 
 };
 
+#define GMP_API_DECRYPTOR "eme-decrypt"
+
 
 
 

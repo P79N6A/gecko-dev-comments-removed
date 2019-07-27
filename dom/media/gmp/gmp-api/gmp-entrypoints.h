@@ -56,6 +56,9 @@ typedef GMPErr (*GMPInitFunc)(const GMPPlatformAPI* aPlatformAPI);
 
 
 
+
+
+
 typedef GMPErr (*GMPGetAPIFunc)(const char* aAPIName, void* aHostAPI, void** aPluginAPI);
 
 
