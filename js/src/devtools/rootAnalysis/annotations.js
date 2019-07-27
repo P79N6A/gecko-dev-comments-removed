@@ -189,6 +189,8 @@ var ignoreFunctions = {
     
     
     "void test::RingbufferDumper::OnTestPartResult(testing::TestPartResult*)" : true,
+
+    "float64 JS_GetCurrentEmbedderTime()" : true,
 };
 
 function isProtobuf(name)
