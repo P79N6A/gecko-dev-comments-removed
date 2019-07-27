@@ -30,15 +30,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 const TOOLS_OPENED_PREF = "devtools.telemetry.tools.opened.version";
 
 this.Telemetry = function() {
@@ -301,6 +292,10 @@ Telemetry.prototype = {
       Services.prefs.setCharPref(TOOLS_OPENED_PREF, latest);
       this.log(perUserHistogram, value);
     }
+  },
+
+  clearToolsOpenedPref: function() {
+    Services.prefs.clearUserPref(TOOLS_OPENED_PREF);
   },
 
   destroy: function() {
