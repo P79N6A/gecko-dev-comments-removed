@@ -795,6 +795,13 @@ function gKeywordURIFixup(fixupInfo, topic, data) {
   let hostName = alternativeURI.host;
   
   let asciiHost = alternativeURI.asciiHost;
+  
+  
+  
+  
+  if (asciiHost.indexOf('.') == asciiHost.length - 1) {
+    asciiHost = asciiHost.slice(0, -1);
+  }
 
   let onLookupComplete = (request, record, status) => {
     let browser = weakBrowser.get();
