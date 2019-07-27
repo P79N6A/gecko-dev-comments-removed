@@ -1054,14 +1054,25 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
                 return NS_ERROR_XPC_UNEXPECTED;
 
             
-            JSObject* unwrappedProto = js::CheckedUnwrap(options.proto, false);
-            if (!unwrappedProto) {
-                JS_ReportError(cx, "Sandbox must subsume sandboxPrototype");
-                return NS_ERROR_INVALID_ARG;
+            
+            
+            
+            
+            
+            
+            bool useSandboxProxy = !!WindowOrNull(js::UncheckedUnwrap(options.proto, false));
+            if (!useSandboxProxy) {
+                JSObject* unwrappedProto = js::CheckedUnwrap(options.proto, false);
+                if (!unwrappedProto) {
+                    JS_ReportError(cx, "Sandbox must subsume sandboxPrototype");
+                    return NS_ERROR_INVALID_ARG;
+                }
+                const js::Class* unwrappedClass = js::GetObjectClass(unwrappedProto);
+                useSandboxProxy = IS_WN_CLASS(unwrappedClass) ||
+                                  mozilla::dom::IsDOMClass(Jsvalify(unwrappedClass));
             }
-            const js::Class* unwrappedClass = js::GetObjectClass(unwrappedProto);
-            if (IS_WN_CLASS(unwrappedClass) ||
-                mozilla::dom::IsDOMClass(Jsvalify(unwrappedClass))) {
+
+            if (useSandboxProxy) {
                 
                 
                 RootedValue priv(cx, ObjectValue(*options.proto));
