@@ -633,6 +633,7 @@ static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sGetDeviceRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sBondingRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sUnbondingRunnableArray;
 static bool sAdapterDiscoverable(false);
+static bool sAdapterDiscovering(false);
 static bool sIsRestart(false);
 static bool sIsFirstTimeToggleOffBt(false);
 static uint32_t sAdapterDiscoverableTimeout(0);
@@ -2493,6 +2494,7 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
 
 
 
+
 void
 BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
   BluetoothStatus aStatus, const nsAString& aBdAddr,
@@ -2669,11 +2671,13 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
 
 
 
-
-
-    DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("DeviceFound"),
-                                     NS_LITERAL_STRING(KEY_ADAPTER),
-                                     BluetoothValue(props)));
+    if (sAdapterDiscovering) {
+      
+      
+      DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("DeviceFound"),
+                                       NS_LITERAL_STRING(KEY_ADAPTER),
+                                       BluetoothValue(props)));
+    }
     return;
   }
 
@@ -2812,16 +2816,17 @@ BluetoothServiceBluedroid::DiscoveryStateChangedNotification(bool aState)
 #else
   MOZ_ASSERT(NS_IsMainThread());
 
-  bool isDiscovering = (aState == true);
+  sAdapterDiscovering = aState;
 
   DistributeSignal(
     BluetoothSignal(NS_LITERAL_STRING(DISCOVERY_STATE_CHANGED_ID),
-                    NS_LITERAL_STRING(KEY_ADAPTER), isDiscovering));
+                    NS_LITERAL_STRING(KEY_ADAPTER), sAdapterDiscovering));
 
   
   
   InfallibleTArray<BluetoothNamedValue> props;
-  BT_APPEND_NAMED_VALUE(props, "Discovering", BluetoothValue(isDiscovering));
+  BT_APPEND_NAMED_VALUE(props, "Discovering",
+                        BluetoothValue(sAdapterDiscovering));
   DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("PropertyChanged"),
                                    NS_LITERAL_STRING(KEY_ADAPTER),
                                    BluetoothValue(props)));
