@@ -311,8 +311,6 @@ public:
   
   
   virtual nsresult Seek(int32_t aWhence, int64_t aOffset) = 0;
-  virtual void StartSeekingForMetadata() = 0;
-  virtual void EndSeekingForMetadata() = 0;
   
   virtual int64_t Tell() = 0;
   
@@ -588,8 +586,6 @@ public:
   virtual nsresult ReadAt(int64_t offset, char* aBuffer,
                           uint32_t aCount, uint32_t* aBytes);
   virtual nsresult Seek(int32_t aWhence, int64_t aOffset);
-  virtual void     StartSeekingForMetadata();
-  virtual void     EndSeekingForMetadata();
   virtual int64_t  Tell();
 
   
@@ -713,9 +709,6 @@ protected:
   
   
   bool mIgnoreResume;
-
-  
-  bool mSeekingForMetadata;
 
   
   MediaByteRange mByteRange;

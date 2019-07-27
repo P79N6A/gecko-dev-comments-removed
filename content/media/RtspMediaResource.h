@@ -131,10 +131,6 @@ public:
     return NS_OK;
   }
   
-  virtual void     StartSeekingForMetadata() MOZ_OVERRIDE {}
-  
-  virtual void     EndSeekingForMetadata() MOZ_OVERRIDE {}
-  
   virtual int64_t  Tell() MOZ_OVERRIDE { return 0; }
 
   
