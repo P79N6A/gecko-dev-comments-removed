@@ -35,7 +35,7 @@ public:
 
     
     
-    nsSimpleNestedURI(nsIURI* innerURI);
+    explicit nsSimpleNestedURI(nsIURI* innerURI);
 
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSINESTEDURI

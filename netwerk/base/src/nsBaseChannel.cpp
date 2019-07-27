@@ -27,7 +27,7 @@ CopyProperties(const nsAString &key, nsIVariant *data, void *closure)
 
 class ScopedRequestSuspender {
 public:
-  ScopedRequestSuspender(nsIRequest *request)
+  explicit ScopedRequestSuspender(nsIRequest *request)
     : mRequest(request) {
     if (mRequest && NS_FAILED(mRequest->Suspend())) {
       NS_WARNING("Couldn't suspend pump");

@@ -32,7 +32,7 @@ public:
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
 
-  HttpChannelParentListener(HttpChannelParent* aInitialChannel);
+  explicit HttpChannelParentListener(HttpChannelParent* aInitialChannel);
 
   
   nsresult DivertTo(nsIStreamListener *aListener);

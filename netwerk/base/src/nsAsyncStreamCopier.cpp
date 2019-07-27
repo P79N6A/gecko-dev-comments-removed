@@ -31,7 +31,7 @@ public:
 
 
 
-    AsyncApplyBufferingPolicyEvent(nsAsyncStreamCopier* aCopier)
+    explicit AsyncApplyBufferingPolicyEvent(nsAsyncStreamCopier* aCopier)
         : mCopier(aCopier)
       , mTarget(NS_GetCurrentThread())
       { }

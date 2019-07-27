@@ -33,10 +33,10 @@ class nsMediaFragmentURIParser
 {
 public:
   
-  nsMediaFragmentURIParser(nsIURI* aURI);
+  explicit nsMediaFragmentURIParser(nsIURI* aURI);
 
   
-  nsMediaFragmentURIParser(nsCString& aRef);
+  explicit nsMediaFragmentURIParser(nsCString& aRef);
 
   
   bool HasStartTime() const { return !mStart.empty(); }

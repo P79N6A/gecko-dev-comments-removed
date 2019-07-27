@@ -61,7 +61,7 @@ public:
     virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
     virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-    nsStandardURL(bool aSupportsFileURL = false);
+    explicit nsStandardURL(bool aSupportsFileURL = false);
 
     static void InitGlobalObjects();
     static void ShutdownGlobalObjects();
@@ -111,7 +111,7 @@ public:
     class nsSegmentEncoder
     {
     public:
-        nsSegmentEncoder(const char *charset);
+        explicit nsSegmentEncoder(const char *charset);
 
         
         
