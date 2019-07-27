@@ -359,9 +359,6 @@ public:
   
   bool mMayHaveTouchListeners;
 
-  
-  bool mMayHaveTouchCaret;
-
 public:
   void SetIsRoot(bool aIsRoot)
   {
@@ -530,9 +527,22 @@ public:
     mContentDescription = aContentDescription;
   }
 
+  bool GetMayHaveTouchCaret() const
+  {
+    return mMayHaveTouchCaret;
+  }
+
+  void SetMayHaveTouchCaret(bool aMayHaveTouchCaret)
+  {
+    mMayHaveTouchCaret = aMayHaveTouchCaret;
+  }
+
 private:
   
   
+
+  
+  bool mMayHaveTouchCaret;
 
   
   bool mIsRoot;
