@@ -5,7 +5,6 @@
 
 
 #include <CoreFoundation/CFString.h>
-#include "VideoToolbox/Videotoolbox.h"
 
 #include "AppleUtils.h"
 #include "mozilla/SHA1.h"
@@ -376,12 +375,11 @@ AppleVTDecoder::InitializeSession()
                               &kCFTypeDictionaryKeyCallBacks,
                               &kCFTypeDictionaryValueCallBacks);
   
-#if MAC_OS_X_VERSION_MAX_ALLOWED < 1090
   AutoCFRelease<CFStringRef>
         kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder =
         CFStringCreateWithCString(NULL, "EnableHardwareAcceleratedVideoDecoder",
             kCFStringEncodingUTF8);
-#endif
+
   CFDictionarySetValue(spec,
       kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder,
       kCFBooleanTrue);
