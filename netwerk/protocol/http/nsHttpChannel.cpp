@@ -2997,7 +2997,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
                 
                 
                 MOZ_ASSERT(mLoadFlags & LOAD_ONLY_IF_MODIFIED);
-            } else {
+            } else if (mInterceptCache != INTERCEPTED) {
                 return rv;
             }
         }

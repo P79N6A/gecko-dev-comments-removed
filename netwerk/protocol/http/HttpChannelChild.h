@@ -159,12 +159,13 @@ private:
 
   
   
-  void OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>& aResponseHead, nsInputStreamPump* aPump);
+  void OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>& aResponseHead, nsInputStreamPump* aPump, int64_t aStreamLength);
 
   RequestHeaderTuples mClientSetRequestHeaders;
   nsCOMPtr<nsIChildChannel> mRedirectChannelChild;
   nsRefPtr<InterceptStreamListener> mInterceptListener;
   nsRefPtr<nsInputStreamPump> mSynthesizedResponsePump;
+  int64_t mSynthesizedStreamLength;
 
   bool mIsFromCache;
   bool mCacheEntryAvailable;

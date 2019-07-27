@@ -66,6 +66,12 @@ class InterceptedChannelChrome : public InterceptedChannelBase
 
   
   nsCOMPtr<nsICacheEntry> mSynthesizedCacheEntry;
+
+  
+  
+  
+  
+  bool mOldApplyConversion;
 public:
   InterceptedChannelChrome(nsHttpChannel* aChannel,
                            nsINetworkInterceptController* aController,

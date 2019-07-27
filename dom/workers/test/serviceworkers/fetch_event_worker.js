@@ -96,4 +96,23 @@ onfetch = function(ev) {
       new Response("check_intercepted_script();", {})
     ));
   }
+
+  else if (ev.request.url.contains("deliver-gzip")) {
+    
+    
+    
+    return;
+  }
+
+  else if (ev.request.url.contains("hello.gz")) {
+    ev.respondWith(fetch("fetch/deliver-gzip.sjs"));
+  }
+
+  else if (ev.request.url.contains("hello-after-extracting.gz")) {
+    ev.respondWith(fetch("fetch/deliver-gzip.sjs").then(function(res) {
+      return res.text().then(function(body) {
+        return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
+      });
+    }));
+  }
 }
