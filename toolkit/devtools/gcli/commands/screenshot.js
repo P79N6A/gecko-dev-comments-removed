@@ -124,6 +124,8 @@ exports.items = [
             height = rect.height;
           }
         } else {
+          
+          
           window.scrollTo(0,0);
           width = window.innerWidth + window.scrollMaxX;
           height = window.innerHeight + window.scrollMaxY;
