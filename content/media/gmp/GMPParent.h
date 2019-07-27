@@ -170,6 +170,8 @@ private:
   virtual bool RecvAsyncShutdownComplete() MOZ_OVERRIDE;
   virtual bool RecvAsyncShutdownRequired() MOZ_OVERRIDE;
 
+  nsresult EnsureAsyncShutdownTimeoutSet();
+
   GMPState mState;
   nsCOMPtr<nsIFile> mDirectory; 
   nsString mName; 
@@ -188,6 +190,7 @@ private:
   nsTArray<nsRefPtr<GMPTimerParent>> mTimers;
   nsTArray<nsRefPtr<GMPStorageParent>> mStorage;
   nsCOMPtr<nsIThread> mGMPThread;
+  nsCOMPtr<nsITimer> mAsyncShutdownTimeout; 
   
   
   nsAutoCString mNodeId;
