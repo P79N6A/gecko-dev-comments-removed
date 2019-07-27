@@ -247,6 +247,13 @@ MozNFCPeerImpl.prototype = {
 };
 
 
+let RFState = {
+  IDLE: "idle",
+  LISTEN: "listen",
+  DISCOVERY: "discovery"
+};
+
+
 
 
 function MozNFCImpl() {
@@ -269,13 +276,6 @@ MozNFCImpl.prototype = {
   nfcPeer: null,
   nfcTag: null,
   eventService: null,
-
-  
-  rfState: {
-    IDLE: "idle",
-    LISTEN: "listen",
-    DISCOVERY: "discovery"
-  },
 
   init: function init(aWindow) {
     debug("MozNFCImpl init called");
@@ -316,20 +316,24 @@ MozNFCImpl.prototype = {
 
   startPoll: function startPoll() {
     let callback = new NfcCallback(this._window);
-    this._nfcContentHelper.changeRFState(this.rfState.DISCOVERY, callback);
+    this._nfcContentHelper.changeRFState(RFState.DISCOVERY, callback);
     return callback.promise;
   },
 
   stopPoll: function stopPoll() {
     let callback = new NfcCallback(this._window);
-    this._nfcContentHelper.changeRFState(this.rfState.LISTEN, callback);
+    this._nfcContentHelper.changeRFState(RFState.LISTEN, callback);
     return callback.promise;
   },
 
   powerOff: function powerOff() {
     let callback = new NfcCallback(this._window);
-    this._nfcContentHelper.changeRFState(this.rfState.IDLE, callback);
+    this._nfcContentHelper.changeRFState(RFState.IDLE, callback);
     return callback.promise;
+  },
+
+  get enabled() {
+    return this._rfState != RFState.IDLE;
   },
 
   defineEventHandlerGetterSetter: function defineEventHandlerGetterSetter(name) {
