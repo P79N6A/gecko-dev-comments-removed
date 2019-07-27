@@ -334,9 +334,16 @@ FloatRegister::GetPushSizeInBytes(const FloatRegisterSet &s)
     SetType set32b = singleSet & ~set64b  & ~set128b;
 
     static_assert(Codes::AllPhysMask <= 0xffff, "We can safely use CountPopulation32");
+    uint32_t count32b = mozilla::CountPopulation32(set32b);
+
+    
+    
+    
+    count32b += count32b & 1;
+
     return mozilla::CountPopulation32(set128b) * (4 * sizeof(int32_t))
         + mozilla::CountPopulation32(set64b) * sizeof(double)
-        + mozilla::CountPopulation32(set32b) * sizeof(float);
+        + count32b * sizeof(float);
 }
 uint32_t
 FloatRegister::getRegisterDumpOffsetInBytes()

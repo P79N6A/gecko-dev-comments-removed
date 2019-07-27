@@ -56,6 +56,9 @@ MacroAssembler::PushRegsInMask(RegisterSet set, FloatRegisterSet simdSet)
         storeUnalignedInt32x4(*iter, Address(StackPointer, diffF));
     }
     MOZ_ASSERT(numSimd == 0);
+    
+    
+    diffF -= diffF % sizeof(uintptr_t);
     MOZ_ASSERT(diffF == 0);
 }
 
@@ -101,6 +104,9 @@ MacroAssembler::PopRegsInMaskIgnore(RegisterSet set, RegisterSet ignore, FloatRe
     }
     freeStack(reservedF);
     MOZ_ASSERT(numDouble == 0);
+    
+    
+    diffF -= diffF % sizeof(uintptr_t);
     MOZ_ASSERT(diffF == 0);
 
     
