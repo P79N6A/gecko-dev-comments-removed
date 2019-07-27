@@ -74,6 +74,19 @@ enum DOM4ErrorTypeCodeMap {
 
   
   OperationError           = 0,
+
+  
+  BtFailError              = 0,
+  BtNotReadyError          = 0,
+  BtNoMemError             = 0,
+  BtBusyError              = 0,
+  BtDoneError              = 0,
+  BtUnsupportedError       = 0,
+  BtParmInvalidError       = 0,
+  BtUnhandledError         = 0,
+  BtAuthFailureError       = 0,
+  BtRmtDevDownError        = 0,
+  BtAuthRejectedError      = 0,
 };
 
 #define DOM4_MSG_DEF(name, message, nsresult) {(nsresult), name, #name, message},
