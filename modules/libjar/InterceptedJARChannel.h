@@ -42,6 +42,9 @@ class InterceptedJARChannel : public nsIInterceptedChannel
   nsCOMPtr<nsIOutputStream> mResponseBody;
 
   
+  nsCString mContentType;
+
+  
   bool mIsNavigation;
 
   virtual ~InterceptedJARChannel() {};

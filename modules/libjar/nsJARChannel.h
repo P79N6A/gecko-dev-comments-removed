@@ -91,7 +91,8 @@ private:
     void ResetInterception();
     
     
-    void OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput);
+    void OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput,
+                                         const nsACString& aContentType);
 
     nsCString                       mSpec;
 

@@ -896,7 +896,8 @@ void nsJARChannel::ResetInterception()
 }
 
 void
-nsJARChannel::OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput)
+nsJARChannel::OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput,
+                                              const nsACString& aContentType)
 {
     
     
@@ -916,6 +917,8 @@ nsJARChannel::OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput)
       aSynthesizedInput->Close();
       return;
     }
+
+    SetContentType(aContentType);
 
     FinishAsyncOpen();
 
