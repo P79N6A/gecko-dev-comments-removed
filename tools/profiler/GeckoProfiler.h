@@ -67,6 +67,7 @@ enum TracingMetadata {
 #ifndef MOZ_ENABLE_PROFILER_SPS
 
 #include <stdint.h>
+#include <stdarg.h>
 
 
 
