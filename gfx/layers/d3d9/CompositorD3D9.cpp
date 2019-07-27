@@ -27,7 +27,7 @@ CompositorD3D9::CompositorD3D9(PCompositorParent* aParent, nsIWidget *aWidget)
   : Compositor(aParent)
   , mWidget(aWidget)
   , mDeviceResetCount(0)
-  , mFailedResetAttemps(0)
+  , mFailedResetAttempts(0)
 {
   Compositor::SetBackend(LayersBackend::LAYERS_D3D9);
 }
@@ -559,7 +559,7 @@ CompositorD3D9::EnsureSwapChain()
   
   DeviceManagerState state = mSwapChain->PrepareForRendering();
   if (state == DeviceOK) {
-    mFailedResetAttemps = 0;
+    mFailedResetAttempts = 0;
     return true;
   }
   
@@ -613,13 +613,13 @@ CompositorD3D9::Ready()
 
 void
 CompositorD3D9::FailedToResetDevice() {
-  mFailedResetAttemps += 1;
+  mFailedResetAttempts += 1;
   auto withoutAssertion = CriticalLog::DefaultOptions(false);
   gfxCriticalError(withoutAssertion) << "[D3D9] Failed to re-create a D3D9 device, attempt "
-                                     << mFailedResetAttemps;
+                                     << mFailedResetAttempts;
   
   
-  if (mFailedResetAttemps > 10) {
+  if (mFailedResetAttempts > 10) {
     MOZ_CRASH("Unable to get a working D3D9 Compositor");
   }
 }
