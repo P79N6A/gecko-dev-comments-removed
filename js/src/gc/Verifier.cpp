@@ -198,6 +198,8 @@ gc::GCRuntime::startVerifyPreBarriers()
     if (!trc)
         return;
 
+    gcstats::AutoPhase ap(stats, gcstats::PHASE_TRACE_HEAP);
+
     
 
 
@@ -495,10 +497,7 @@ js::gc::GCRuntime::endVerifyPostBarriers()
     if (!edges.init())
         goto oom;
     trc->edges = &edges;
-    {
-        gcstats::AutoPhase ap(stats, gcstats::PHASE_MINOR_GC);
-        storeBuffer.markAll(trc);
-    }
+    storeBuffer.markAll(trc);
 
     
     trc->setTraceCallback(PostVerifierVisitEdge);

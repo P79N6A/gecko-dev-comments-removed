@@ -118,10 +118,22 @@ class AutoStopVerifyingBarriers
     }
 
     ~AutoStopVerifyingBarriers() {
+        
+        
+        
+        
+        gcstats::Phase outer = gc->stats.currentPhase();
+        if (outer != gcstats::PHASE_NONE)
+            gc->stats.endPhase(outer);
+        MOZ_ASSERT(gc->stats.currentPhase() == gcstats::PHASE_NONE);
+
         if (restartPreVerifier)
             gc->startVerifyPreBarriers();
         if (restartPostVerifier)
             gc->startVerifyPostBarriers();
+
+        if (outer != gcstats::PHASE_NONE)
+            gc->stats.beginPhase(outer);
     }
 };
 #else
