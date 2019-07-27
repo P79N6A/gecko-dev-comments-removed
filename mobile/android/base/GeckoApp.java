@@ -27,7 +27,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.GeckoProfileDirectories.NoMozillaDirectoryException;
-import org.mozilla.gecko.background.announcements.AnnouncementsBroadcastService;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.gfx.BitmapUtils;
@@ -1564,14 +1563,8 @@ public abstract class GeckoApp
 
                 
                 
-                final Context context = GeckoApp.this;
-                AnnouncementsBroadcastService.recordLastLaunch(context);
-
                 
-                
-                
-                GeckoPreferences.broadcastAnnouncementsPref(context);
-                GeckoPreferences.broadcastHealthReportUploadPref(context);
+                GeckoPreferences.broadcastHealthReportUploadPref(GeckoApp.this);
                 if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.Launched)) {
                     return;
                 }
