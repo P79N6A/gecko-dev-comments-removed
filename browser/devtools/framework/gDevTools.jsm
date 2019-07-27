@@ -278,8 +278,9 @@ DevTools.prototype = {
 
       
       
+      
       if (toolId != null) {
-        toolbox.once(toolId + "-ready", (event, panel) => {
+        toolbox.once(toolId + "-selected", (event, panel) => {
           this.emit("toolbox-ready", toolbox);
           deferred.resolve(toolbox);
         });
