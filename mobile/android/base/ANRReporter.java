@@ -472,8 +472,11 @@ public final class ANRReporter extends BroadcastReceiver
     private static void processTraces(Reader traces, File pingFile) {
 
         
-        boolean haveNativeStack = requestNativeStack(
-             SysInfo.getMemSize() >= 640);
+        
+        final boolean haveNativeStack =
+            GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning) ?
+            requestNativeStack( SysInfo.getMemSize() >= 640) : false;
+
         try {
             OutputStream ping = new BufferedOutputStream(
                 new FileOutputStream(pingFile), TRACES_BLOCK_SIZE);
