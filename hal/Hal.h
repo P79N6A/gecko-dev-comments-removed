@@ -527,17 +527,12 @@ void DisableFMRadio();
 
 
 
-
-
 void FMRadioSeek(const hal::FMRadioSeekDirection& aDirection);
 
 
 
 
 void GetFMRadioSettings(hal::FMRadioSettings* aInfo);
-
-
-
 
 
 
