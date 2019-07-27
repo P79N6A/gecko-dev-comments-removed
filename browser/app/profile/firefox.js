@@ -1887,10 +1887,8 @@ pref("dom.ipc.reportProcessHangs", false);
 pref("dom.ipc.reportProcessHangs", true);
 #endif
 
-#ifndef NIGHTLY_BUILD
 
 pref("reader.parse-on-load.enabled", false);
-#endif
 
 
 pref("browser.readinglist.enabled", false);
