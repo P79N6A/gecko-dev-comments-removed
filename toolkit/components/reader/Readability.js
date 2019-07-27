@@ -26,14 +26,27 @@
 
 
 var root = this;
-var Readability = function(uri, doc) {
-  var ENABLE_LOGGING = false;
+
+
+
+
+
+
+
+var Readability = function(uri, doc, options) {
+  options = options || {};
 
   this._uri = uri;
   this._doc = doc;
   this._biggestFrame = false;
   this._articleByline = null;
   this._articleDir = null;
+
+  
+  this._debug = !!options.debug;
+  this._maxElemsToParse = options.maxElemsToParse || this.DEFAULT_MAX_ELEMS_TO_PARSE;
+  this._nbTopCandidates = options.nbTopCandidates || this.DEFAULT_N_TOP_CANDIDATES;
+  this._maxPages = options.maxPages || this.DEFAULT_MAX_PAGES;
 
   
   this._flags = this.FLAG_STRIP_UNLIKELYS |
@@ -52,7 +65,7 @@ var Readability = function(uri, doc) {
   this._curPageNum = 1;
 
   
-  if (ENABLE_LOGGING) {
+  if (this._debug) {
     function logEl(e) {
       var rv = e.nodeName + " ";
       if (e.nodeType == e.TEXT_NODE) {
@@ -85,20 +98,23 @@ Readability.prototype = {
   FLAG_CLEAN_CONDITIONALLY: 0x4,
 
   
-  
-  N_TOP_CANDIDATES: 5,
+  DEFAULT_MAX_ELEMS_TO_PARSE: 0,
 
   
   
-  MAX_PAGES: 5,
+  DEFAULT_N_TOP_CANDIDATES: 5,
+
+  
+  
+  DEFAULT_MAX_PAGES: 5,
 
   
   
   REGEXPS: {
-    unlikelyCandidates: /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup/i,
+    unlikelyCandidates: /banner|combx|comment|community|disqus|extra|foot|header|menu|remark|rss|share|shoutbox|sidebar|skyscraper|sponsor|ad-break|agegate|pagination|pager|popup/i,
     okMaybeItsACandidate: /and|article|body|column|main|shadow/i,
     positive: /article|body|content|entry|hentry|main|page|pagination|post|text|blog|story/i,
-    negative: /hidden|combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget/i,
+    negative: /hidden|banner|combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|share|shoutbox|sidebar|skyscraper|sponsor|shopping|tags|tool|widget/i,
     extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single|utility/i,
     byline: /byline|author|dateline|writtenby/i,
     replaceFonts: /<(\/?)font[^>]*>/gi,
@@ -336,10 +352,25 @@ Readability.prototype = {
   },
 
   _setNodeTag: function (node, tag) {
-    
-    
-    node.localName = tag.toLowerCase();
-    node.tagName = tag.toUpperCase();
+    this.log("_setNodeTag", node, tag);
+    if (node.__JSDOMParser__) {
+      node.localName = tag.toLowerCase();
+      node.tagName = tag.toUpperCase();
+      return node;
+    }
+
+    var replacement = node.ownerDocument.createElement(tag);
+    while (node.firstChild) {
+      replacement.appendChild(node.firstChild);
+    }
+    node.parentNode.replaceChild(replacement, node);
+    if (node.readability)
+      replacement.readability = node.readability;
+
+    for (var i = 0; i < node.attributes.length; i++) {
+      replacement.setAttribute(node.attributes[i].name, node.attributes[i].value);
+    }
+    return replacement;
   },
 
   
@@ -469,6 +500,37 @@ Readability.prototype = {
     return node && node.nextElementSibling;
   },
 
+  
+
+
+
+  _getNextNodeNoElementProperties: function(node, ignoreSelfAndKids) {
+    function nextSiblingEl(n) {
+      do {
+        n = n.nextSibling;
+      } while (n && n.nodeType !== n.ELEMENT_NODE);
+      return n;
+    }
+    
+    if (!ignoreSelfAndKids && node.children[0]) {
+      return node.children[0];
+    }
+    
+    var next = nextSiblingEl(node);
+    if (next) {
+      return next;
+    }
+    
+    
+    
+    do {
+      node = node.parentNode;
+      if (node)
+        next = nextSiblingEl(node);
+    } while (node && !next);
+    return node && next;
+  },
+
   _checkByline: function(node, matchString) {
     if (this._articleByline) {
       return false;
@@ -494,6 +556,7 @@ Readability.prototype = {
 
 
   _grabArticle: function (page) {
+    this.log("**** grabArticle ****");
     var doc = this._doc;
     var isPaging = (page !== null ? true: false);
     page = page ? page : this._doc.body;
@@ -548,11 +611,11 @@ Readability.prototype = {
           
           
           if (this._hasSinglePInsideElement(node)) {
-            var newNode = node.firstElementChild;
+            var newNode = node.children[0];
             node.parentNode.replaceChild(newNode, node);
             node = newNode;
           } else if (!this._hasChildBlockElement(node)) {
-            this._setNodeTag(node, "P");
+            node = this._setNodeTag(node, "P");
             elementsToScore.push(node);
           } else {
             
@@ -635,12 +698,12 @@ Readability.prototype = {
 
         this.log('Candidate:', candidate, "with score " + candidateScore);
 
-        for (var t = 0; t < this.N_TOP_CANDIDATES; t++) {
+        for (var t = 0; t < this._nbTopCandidates; t++) {
           var aTopCandidate = topCandidates[t];
 
           if (!aTopCandidate || candidateScore > aTopCandidate.readability.contentScore) {
             topCandidates.splice(t, 0, candidate);
-            if (topCandidates.length > this.N_TOP_CANDIDATES)
+            if (topCandidates.length > this._nbTopCandidates)
               topCandidates.pop();
             break;
           }
@@ -743,7 +806,7 @@ Readability.prototype = {
             
             this.log("Altering sibling:", sibling, 'to div.');
 
-            this._setNodeTag(sibling, "DIV");
+            sibling = this._setNodeTag(sibling, "DIV");
           }
 
           
@@ -760,11 +823,11 @@ Readability.prototype = {
         }
       }
 
-      if (this.ENABLE_LOGGING)
+      if (this._debug)
         this.log("Article content pre-prep: " + articleContent.innerHTML);
       
       this._prepArticle(articleContent);
-      if (this.ENABLE_LOGGING)
+      if (this._debug)
         this.log("Article content post-prep: " + articleContent.innerHTML);
 
       if (this._curPageNum === 1) {
@@ -787,7 +850,7 @@ Readability.prototype = {
         }
       }
 
-      if (this.ENABLE_LOGGING)
+      if (this._debug)
         this.log("Article content after paging: " + articleContent.innerHTML);
 
       
@@ -900,6 +963,10 @@ Readability.prototype = {
       if (scriptNode.parentNode)
         scriptNode.parentNode.removeChild(scriptNode);
     });
+    this._forEachNode(doc.getElementsByTagName('noscript'), function(noscriptNode) {
+      if (noscriptNode.parentNode)
+        noscriptNode.parentNode.removeChild(noscriptNode);
+    });
   },
 
   
@@ -911,7 +978,7 @@ Readability.prototype = {
 
   _hasSinglePInsideElement: function(element) {
     
-    if (element.children.length != 1 || element.firstElementChild.tagName !== "P") {
+    if (element.children.length != 1 || element.children[0].tagName !== "P") {
       return false;
     }
 
@@ -1290,7 +1357,7 @@ Readability.prototype = {
 
     doc.getElementById("readability-content").appendChild(articlePage);
 
-    if (this._curPageNum > this.MAX_PAGES) {
+    if (this._curPageNum > this._maxPages) {
       var nextPageMarkup = "<div style='text-align: center'><a href='" + nextPageLink + "'>View Next Page</a></div>";
       articlePage.innerHTML = articlePage.innerHTML + nextPageMarkup;
       return;
@@ -1613,6 +1680,17 @@ Readability.prototype = {
 
 
   parse: function () {
+    
+    if (this._maxElemsToParse > 0) {
+      var numTags = this._doc.getElementsByTagName("*").length;
+      if (numTags > this._maxElemsToParse) {
+        throw new Error("Aborting parsing document; " + numTags + " elements found");
+      }
+    }
+
+    if (typeof this._doc.documentElement.firstElementChild === "undefined") {
+      this._getNextNode = this._getNextNodeNoElementProperties;
+    }
     
     this._removeScripts(this._doc);
 
