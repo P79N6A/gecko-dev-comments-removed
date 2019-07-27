@@ -80,6 +80,9 @@ public interface TelemetryContract {
         SHARE("share.1"),
 
         
+        SHOW("show.1"),
+
+        
         
         UNDO("undo.1"),
 
@@ -160,6 +163,9 @@ public interface TelemetryContract {
 
         
         SETTINGS("settings"),
+
+        
+        SHARE_OVERLAY("shareoverlay"),
 
         
         SUGGESTION("suggestion"),
