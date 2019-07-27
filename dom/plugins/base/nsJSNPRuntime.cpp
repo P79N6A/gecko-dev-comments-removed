@@ -360,10 +360,11 @@ UnregisterGCCallbacks()
   JS_RemoveExtraGCRootsTracer(jsRuntime, TraceJSObjWrappers, nullptr);
 
   
-  sCallbackRuntime->UnregisterGCCallback(DelayedReleaseGCCallback);
-
-  
-  sCallbackRuntime = nullptr;
+  if (sCallbackRuntime) {
+    sCallbackRuntime->UnregisterGCCallback(DelayedReleaseGCCallback);
+    
+    sCallbackRuntime = nullptr;
+  }
 }
 
 static bool
