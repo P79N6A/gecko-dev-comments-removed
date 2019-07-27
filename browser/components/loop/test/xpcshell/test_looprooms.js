@@ -291,15 +291,6 @@ add_task(function* test_createRoom() {
 });
 
 
-add_task(function* test_deleteRoom() {
-  let roomToken = "QzBbvGmIZWU";
-  let deletedRoom = yield LoopRooms.promise("delete", roomToken);
-  Assert.equal(deletedRoom.roomToken, roomToken);
-  let rooms = yield LoopRooms.promise("getAll");
-  Assert.ok(!rooms.some((room) => room.roomToken == roomToken));
-});
-
-
 add_task(function* test_openRoom() {
   let openedUrl;
   Chat.open = function(contentWindow, origin, title, url) {
@@ -401,6 +392,16 @@ add_task(function* test_roomDeleteNotifications() {
   gExpectedDeletes.push("_nxD4V4FflQ");
   roomsPushNotification("5");
   yield waitForCondition(() => gExpectedDeletes.length === 0);
+});
+
+
+add_task(function* test_deleteRoom() {
+  let roomToken = "QzBbvGmIZWU";
+  gExpectedDeletes.push(roomToken);
+  let deletedRoom = yield LoopRooms.promise("delete", roomToken);
+  Assert.equal(deletedRoom.roomToken, roomToken);
+  let rooms = yield LoopRooms.promise("getAll");
+  Assert.ok(!rooms.some((room) => room.roomToken == roomToken));
 });
 
 

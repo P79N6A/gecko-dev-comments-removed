@@ -345,8 +345,8 @@ let LoopRoomsInternal = {
     MozLoopService.hawkRequest(this.sessionType, url, "DELETE")
       .then(response => {
         this.rooms.delete(roomToken);
+        eventEmitter.emit("delete", room);
         callback(null, room);
-        
       }, error => callback(error)).catch(error => callback(error));
   },
 
