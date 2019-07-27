@@ -272,9 +272,35 @@ abstract class HomeFragment extends Fragment {
         loadIfVisible();
     }
 
+    
+
+
+
+
+
+
+
+
+
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (isVisible()) {
+            getFragmentManager().beginTransaction()
+                                .detach(this)
+                                .attach(this)
+                                .commitAllowingStateLoss();
+        }
     }
 
     void setCanLoadHint(boolean canLoadHint) {

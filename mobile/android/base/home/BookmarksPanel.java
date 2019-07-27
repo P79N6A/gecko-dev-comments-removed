@@ -140,23 +140,10 @@ public class BookmarksPanel extends HomeFragment {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
-        
-        
-        
-        
-        
-        
-        
-        
         if (isVisible()) {
             
             
             mSavedParentStack = mListAdapter.getParentStack();
-
-            getFragmentManager().beginTransaction()
-                                .detach(this)
-                                .attach(this)
-                                .commitAllowingStateLoss();
         }
     }
 
