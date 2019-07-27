@@ -241,6 +241,9 @@ public:
   void ProcessPendingRestyles();
 
   
+  bool HasPendingRestyles() { return mPendingRestyles.Count() != 0; }
+
+  
   
   
   void BeginProcessingRestyles();

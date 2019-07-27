@@ -778,12 +778,6 @@ protected:
   
   nsCOMPtr<nsITimer>        mPaintSuppressionTimer;
 
-  
-  
-  
-  
-  nsCOMPtr<nsITimer>        mReflowContinueTimer;
-
   nsCOMPtr<nsITimer>        mDelayedPaintTimer;
 
   

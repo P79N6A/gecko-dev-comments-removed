@@ -6,11 +6,12 @@
 #ifndef mozilla_dom_FontFaceSet_h
 #define mozilla_dom_FontFaceSet_h
 
-#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/FontFace.h"
 #include "mozilla/dom/FontFaceSetBinding.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "gfxUserFontSet.h"
 #include "nsCSSRules.h"
+#include "nsICSSLoaderObserver.h"
 #include "nsPIDOMWindow.h"
 
 struct gfxFontFaceSrc;
@@ -30,6 +31,8 @@ namespace mozilla {
 namespace dom {
 
 class FontFaceSet MOZ_FINAL : public DOMEventTargetHelper
+                            , public nsIDOMEventListener
+                            , public nsICSSLoaderObserver
 {
   friend class UserFontSet;
 
@@ -88,6 +91,7 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(FontFaceSet, DOMEventTargetHelper)
+  NS_DECL_NSIDOMEVENTLISTENER
 
   FontFaceSet(nsPIDOMWindow* aWindow, nsPresContext* aPresContext);
 
@@ -142,6 +146,24 @@ public:
 
   
 
+
+
+  void OnFontFaceStatusChanged(FontFace* aFontFace);
+
+  
+
+
+
+
+  void DidRefresh();
+
+  
+  NS_IMETHOD StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
+                              bool aWasAlternate,
+                              nsresult aStatus);
+
+  
+
   IMPL_EVENT_HANDLER(loading)
   IMPL_EVENT_HANDLER(loadingdone)
   IMPL_EVENT_HANDLER(loadingerror)
@@ -168,6 +190,36 @@ private:
 
 
   bool HasAvailableFontFace(FontFace* aFontFace);
+
+  
+
+
+  void Disconnect();
+
+  
+
+
+
+  bool MightHavePendingFontLoads();
+
+  
+
+
+
+  void CheckLoadingStarted();
+
+  
+
+
+
+  void CheckLoadingFinished();
+
+  
+
+
+  void DispatchLoadingFinishedEvent(
+                                const nsAString& aType,
+                                const nsTArray<FontFace*>& aFontFaces);
 
   
   
@@ -215,9 +267,26 @@ private:
   bool HasConnectedFontFace(FontFace* aFontFace);
 #endif
 
+  
+
+
+  bool HasLoadingFontFaces();
+
+  
+  void UpdateHasLoadingFontFaces();
+
   nsRefPtr<UserFontSet> mUserFontSet;
   nsPresContext* mPresContext;
 
+  
+  nsCOMPtr<nsIDocument> mDocument;
+
+  
+  
+  
+  
+  
+  
   nsRefPtr<mozilla::dom::Promise> mReady;
 
   
@@ -237,7 +306,25 @@ private:
   nsTArray<FontFace*> mUnavailableFaces;
 
   
+  mozilla::dom::FontFaceSetLoadStatus mStatus;
+
+  
   bool mOtherFacesDirty;
+
+  
+  bool mReadyIsResolved;
+
+  
+  
+  bool mDispatchedLoadingEvent;
+
+  
+  
+  
+  bool mHasLoadingFontFaces;
+
+  
+  bool mHasLoadingFontFacesIsDirty;
 };
 
 } 

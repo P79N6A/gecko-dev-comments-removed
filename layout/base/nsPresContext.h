@@ -925,6 +925,17 @@ public:
   
 
 
+  bool HasPendingRestyleOrReflow();
+
+  
+
+
+
+  void NotifyFontFaceSetOnRefresh();
+
+  
+
+
 
 
 
