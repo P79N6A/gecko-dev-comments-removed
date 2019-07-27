@@ -28,7 +28,6 @@ using namespace mozilla;
 
 
 bool CSPService::sCSPEnabled = true;
-bool CSPService::sNewBackendEnabled = true;
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gCspPRLog;
@@ -37,7 +36,6 @@ static PRLogModuleInfo* gCspPRLog;
 CSPService::CSPService()
 {
   Preferences::AddBoolVarCache(&sCSPEnabled, "security.csp.enable");
-  Preferences::AddBoolVarCache(&sNewBackendEnabled, "security.csp.newbackend.enable");
 
 #ifdef PR_LOGGING
   if (!gCspPRLog)
@@ -99,6 +97,7 @@ CSPService::ShouldLoad(uint32_t aContentType,
     return NS_OK;
 
 
+  
   
   
   

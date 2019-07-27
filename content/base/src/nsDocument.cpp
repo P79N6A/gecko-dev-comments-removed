@@ -2764,17 +2764,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
   }
 
-  
-  
-  
-  
-
-  if (CSPService::sNewBackendEnabled) {
-    csp = do_CreateInstance("@mozilla.org/cspcontext;1", &rv);
-  }
-  else {
-    csp = do_CreateInstance("@mozilla.org/contentsecuritypolicy;1", &rv);
-  }
+  csp = do_CreateInstance("@mozilla.org/cspcontext;1", &rv);
 
   if (NS_FAILED(rv)) {
 #ifdef PR_LOGGING
