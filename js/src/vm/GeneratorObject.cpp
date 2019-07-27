@@ -135,12 +135,9 @@ GeneratorObject::resume(JSContext *cx, InterpreterActivation &activation,
     
     
     
-    
-    if (!genObj->isNewborn()) {
-        activation.regs().sp++;
-        MOZ_ASSERT(activation.regs().spForStackDepth(activation.regs().stackDepth()));
-        activation.regs().sp[-1] = arg;
-    }
+    activation.regs().sp++;
+    MOZ_ASSERT(activation.regs().spForStackDepth(activation.regs().stackDepth()));
+    activation.regs().sp[-1] = arg;
 
     switch (resumeKind) {
       case NEXT:
