@@ -871,6 +871,11 @@ cleanup:
 
 
 
+
+
+
+
+
 SECStatus 
 ECDSA_VerifyDigest(ECPublicKey *key, const SECItem *signature, 
                  const SECItem *digest)
