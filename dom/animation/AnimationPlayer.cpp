@@ -7,6 +7,7 @@
 #include "AnimationUtils.h"
 #include "mozilla/dom/AnimationPlayerBinding.h"
 #include "nsIDocument.h" 
+#include "nsIPresShell.h" 
 #include "nsLayoutUtils.h" 
 
 namespace mozilla {
@@ -259,6 +260,20 @@ AnimationPlayer::GetRenderedDocument() const
   }
 
   return targetElement->GetComposedDoc();
+}
+
+nsPresContext*
+AnimationPlayer::GetPresContext() const
+{
+  nsIDocument* doc = GetRenderedDocument();
+  if (!doc) {
+    return nullptr;
+  }
+  nsIPresShell* shell = doc->GetShell();
+  if (!shell) {
+    return nullptr;
+  }
+  return shell->GetPresContext();
 }
 
 } 
