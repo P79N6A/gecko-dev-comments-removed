@@ -153,13 +153,6 @@ def update_from_logs(manifests, *log_filenames, **kwargs):
 
     return expected_map
 
-def directory_manifests(metadata_path):
-    rv = []
-    for dirpath, dirname, filenames in os.walk(metadata_path):
-        if "__dir__.ini" in filenames:
-            rel_path = os.path.relpath(dirpath, metadata_path)
-            rv.append(os.path.join(rel_path, "__dir__.ini"))
-    return rv
 
 def write_changes(metadata_path, expected_map):
     
@@ -168,17 +161,9 @@ def write_changes(metadata_path, expected_map):
 
     
     
-    keep_files = directory_manifests(metadata_path)
-
-    
-    
-    keep_files.extend(item for item in os.listdir(metadata_path) if
-                      not os.path.isdir(os.path.join(metadata_path, item)))
-
+    keep_files = [item for item in os.listdir(metadata_path) if
+                  not os.path.isdir(os.path.join(metadata_path, item))]
     for item in keep_files:
-        dest_dir = os.path.dirname(os.path.join(temp_path, item))
-        if not os.path.exists(dest_dir):
-            os.makedirs(dest_dir)
         shutil.copyfile(os.path.join(metadata_path, item),
                         os.path.join(temp_path, item))
 
