@@ -778,7 +778,7 @@ DebugEpilogueOnBaselineReturn(JSContext *cx, BaselineFrame *frame, jsbytecode *p
     if (!DebugEpilogue(cx, frame, pc, true)) {
         
         
-        TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+        TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
         TraceLogStopEvent(logger, TraceLogger_Baseline);
         TraceLogStopEvent(logger, TraceLogger_Scripts);
         return false;
