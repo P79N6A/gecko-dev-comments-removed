@@ -173,6 +173,20 @@ var stacks = disableSingleStepProfiling();
 assertStackContainsSeq(stacks, ">,f,>,<,f,>,inline stub,f,>,<,f,>,inline stub,f,>");
 
 
+if (isSimdAvailable() && typeof SIMD !== 'undefined') {
+    
+    var buf = new ArrayBuffer(0x10000);
+    var f = asmLink(asmCompile('g','ffi','buf', USE_ASM + 'var f4=g.SIMD.float32x4; var f4l=f4.load; var u8=new g.Uint8Array(buf); function f(i) { i=i|0; return f4l(u8, 0xFFFF + i | 0); } return f'), this, {}, buf);
+    enableSingleStepProfiling();
+    assertThrowsInstanceOf(() => f(4), RangeError);
+    var stacks = disableSingleStepProfiling();
+    
+    
+    assertStackContainsSeq(stacks, ">,f,>,inline stub,f,>");
+}
+
+
+
 
 
 

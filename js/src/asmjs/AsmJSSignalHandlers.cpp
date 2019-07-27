@@ -350,20 +350,9 @@ SetXMMRegToNaN(Scalar::Type viewType, T *xmm_reg)
         dbls[1] = 0;
         break;
       }
-      case Scalar::Float32x4: {
-        JS_STATIC_ASSERT(sizeof(T) == 4 * sizeof(float));
-        float *floats = reinterpret_cast<float*>(xmm_reg);
-        for (unsigned i = 0; i < 4; i++)
-            floats[i] = GenericNaN();
-        break;
-      }
-      case Scalar::Int32x4: {
-        JS_STATIC_ASSERT(sizeof(T) == 4 * sizeof(int32_t));
-        int32_t *ints = reinterpret_cast<int32_t*>(xmm_reg);
-        for (unsigned i = 0; i < 4; i++)
-            ints[i] = 0;
-        break;
-      }
+      
+      case Scalar::Float32x4:
+      case Scalar::Int32x4:
       case Scalar::Int8:
       case Scalar::Uint8:
       case Scalar::Int16:
@@ -423,6 +412,13 @@ SetRegisterToCoercedUndefined(CONTEXT *context, Scalar::Type viewType, AnyRegist
     }
 }
 # endif  
+
+static void
+RedirectToOutOfBoundsLabel(uint8_t **ppc, const AsmJSModule &module)
+{
+    MOZ_ASSERT(module.containsFunctionPC(*ppc));
+    *ppc = module.outOfBoundsExit();
+}
 #endif 
 
 #if defined(XP_WIN)
@@ -494,6 +490,13 @@ HandleFault(PEXCEPTION_POINTERS exception)
 
     
     
+
+    
+    if (Scalar::isSimdType(heapAccess->type())) {
+        RedirectToOutOfBoundsLabel(ppc, module);
+        return true;
+    }
+
     
     
     
@@ -672,15 +675,21 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
 
     
     
-    
-    
-    
-    
-    if (heapAccess->isLoad()) {
-        if (!SetRegisterToCoercedUndefined(rtThread, state.uts.ts64, *heapAccess))
-            return false;
+
+    if (Scalar::isSimdType(heapAccess->type())) {
+        
+        RedirectToOutOfBoundsLabel(ppc, module);
+    } else {
+        
+        
+        
+        
+        if (heapAccess->isLoad()) {
+            if (!SetRegisterToCoercedUndefined(rtThread, state.uts.ts64, *heapAccess))
+                return false;
+        }
+        *ppc += heapAccess->opLength();
     }
-    *ppc += heapAccess->opLength();
 
     
     kret = thread_set_state(rtThread, x86_THREAD_STATE, (thread_state_t)&state, x86_THREAD_STATE_COUNT);
@@ -886,6 +895,13 @@ HandleFault(int signum, siginfo_t *info, void *ctx)
 
     
     
+
+    
+    if (Scalar::isSimdType(heapAccess->type())) {
+        RedirectToOutOfBoundsLabel(ppc, module);
+        return true;
+    }
+
     
     
     
