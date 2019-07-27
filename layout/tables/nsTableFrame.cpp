@@ -1951,14 +1951,21 @@ nsTableFrame::FixupPositionedTableParts(nsPresContext*           aPresContext,
     
     
     
-    overflowTracker.AddFrame(positionedPart,
-      OverflowChangedTracker::CHILDREN_AND_PARENT_CHANGED);
     nsFrame* positionedFrame = static_cast<nsFrame*>(positionedPart);
     positionedFrame->FinishReflowWithAbsoluteFrames(PresContext(),
                                                     desiredSize,
                                                     reflowState,
                                                     reflowStatus,
                                                     true);
+
+    
+    
+    
+    nsIFrame* positionedFrameParent = positionedPart->GetParent();
+    if (positionedFrameParent != this) {
+      overflowTracker.AddFrame(positionedFrameParent,
+        OverflowChangedTracker::CHILDREN_CHANGED);
+    }
   }
 
   
