@@ -3070,23 +3070,35 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
   if (NS_FAILED(rv))
     return rv;
 
-  if (!principal) {
-    principal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
   
   
   
   
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannelInternal(getter_AddRefs(channel),
-                             url,
-                             doc,
-                             principal,
-                             nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
-                             nsIContentPolicy::TYPE_OBJECT_SUBREQUEST,
-                             nullptr,  
-                             listenerPeer);
+  nsCOMPtr<nsINode> requestingNode(do_QueryInterface(element));
+  if (requestingNode) {
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       url,
+                       requestingNode,
+                       nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                       nsIContentPolicy::TYPE_OBJECT_SUBREQUEST,
+                       nullptr,  
+                       listenerPeer);
+  }
+  else {
+    
+    
+    
+    principal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       url,
+                       principal,
+                       nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                       nsIContentPolicy::TYPE_OBJECT_SUBREQUEST,
+                       nullptr,  
+                       listenerPeer);
+  }
 
   if (NS_FAILED(rv))
     return rv;

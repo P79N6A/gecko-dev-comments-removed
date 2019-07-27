@@ -1424,8 +1424,8 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
   }
 
   bool inherit = false;
-  nsIPrincipal* requestingPrincipal = aLoadData->mLoaderPrincipal;
-  if (requestingPrincipal) {
+  nsIPrincipal* triggeringPrincipal = aLoadData->mLoaderPrincipal;
+  if (triggeringPrincipal) {
     rv = NS_URIChainHasFlags(aLoadData->mURI,
                              nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
                              &inherit);
@@ -1436,7 +1436,7 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
                      CheckMayLoad(aLoadData->mURI, false, false))));
   }
   else {
-    requestingPrincipal = nsContentUtils::GetSystemPrincipal();
+    triggeringPrincipal = nsContentUtils::GetSystemPrincipal();
   }
 
   if (aLoadData->mSyncLoad) {
@@ -1469,17 +1469,36 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
     
     
     
-    rv = NS_OpenURIInternal(getter_AddRefs(stream),
-                            aLoadData->mURI,
-                            aLoadData->mRequestingNode,
-                            requestingPrincipal,
-                            nsILoadInfo::SEC_NORMAL,
-                            nsIContentPolicy::TYPE_OTHER,
-                            nullptr,   
-                            nullptr,   
-                            nsIRequest::LOAD_NORMAL,
-                            nullptr,   
-                            getter_AddRefs(channel));
+    if (aLoadData->mRequestingNode) {
+      rv = NS_OpenURIWithTriggeringPrincipal(getter_AddRefs(stream),
+                                             aLoadData->mURI,
+                                             aLoadData->mRequestingNode,
+                                             triggeringPrincipal,
+                                             nsILoadInfo::SEC_NORMAL,
+                                             nsIContentPolicy::TYPE_OTHER,
+                                             nullptr,   
+                                             nullptr,   
+                                             nsIRequest::LOAD_NORMAL,
+                                             nullptr,   
+                                             getter_AddRefs(channel));
+    }
+    else {
+      
+      
+      
+      
+      MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(triggeringPrincipal));
+      rv = NS_OpenURI(getter_AddRefs(stream),
+                      aLoadData->mURI,
+                      triggeringPrincipal,
+                      nsILoadInfo::SEC_NORMAL,
+                      nsIContentPolicy::TYPE_OTHER,
+                      nullptr,   
+                      nullptr,   
+                      nsIRequest::LOAD_NORMAL,
+                      nullptr,   
+                      getter_AddRefs(channel));
+    }
 
     if (NS_FAILED(rv)) {
       LOG_ERROR(("  Failed to open URI synchronously"));
@@ -1564,16 +1583,34 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
   
   
   
-  rv = NS_NewChannelInternal(getter_AddRefs(channel),
-                             aLoadData->mURI,
-                             aLoadData->mRequestingNode,
-                             requestingPrincipal,
-                             securityFlags,
-                             nsIContentPolicy::TYPE_STYLESHEET,
-                             loadGroup,
-                             nullptr,   
-                             nsIChannel::LOAD_NORMAL |
-                             nsIChannel::LOAD_CLASSIFY_URI);
+  if (aLoadData->mRequestingNode) {
+    rv = NS_NewChannelWithTriggeringPrincipal(getter_AddRefs(channel),
+                                              aLoadData->mURI,
+                                              aLoadData->mRequestingNode,
+                                              triggeringPrincipal,
+                                              securityFlags,
+                                              nsIContentPolicy::TYPE_STYLESHEET,
+                                              loadGroup,
+                                              nullptr,   
+                                              nsIChannel::LOAD_NORMAL |
+                                              nsIChannel::LOAD_CLASSIFY_URI);
+  }
+  else {
+    
+    
+    
+    
+    MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(triggeringPrincipal));
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       aLoadData->mURI,
+                       triggeringPrincipal,
+                       securityFlags,
+                       nsIContentPolicy::TYPE_STYLESHEET,
+                       loadGroup,
+                       nullptr,   
+                       nsIChannel::LOAD_NORMAL |
+                       nsIChannel::LOAD_CLASSIFY_URI);
+  }
 
   if (NS_FAILED(rv)) {
 #ifdef DEBUG

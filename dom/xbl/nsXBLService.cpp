@@ -1073,18 +1073,27 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   
   
   
-  nsCOMPtr<nsIPrincipal> requestingPrincipal = aOriginPrincipal ? aOriginPrincipal
-                                                                : nsContentUtils::GetSystemPrincipal();
   nsCOMPtr<nsIChannel> channel;
-  
-  
-  rv = NS_NewChannelInternal(getter_AddRefs(channel),
-                             aDocumentURI,
-                             aBoundDocument,
-                             requestingPrincipal,
-                             nsILoadInfo::SEC_NORMAL,
-                             nsIContentPolicy::TYPE_OTHER,
-                             loadGroup);
+
+  if (aOriginPrincipal) {
+    
+    NS_ASSERTION(aBoundDocument, "can not create a channel without aBoundDocument");
+    rv = NS_NewChannelWithTriggeringPrincipal(getter_AddRefs(channel),
+                                              aDocumentURI,
+                                              aBoundDocument,
+                                              aOriginPrincipal,
+                                              nsILoadInfo::SEC_NORMAL,
+                                              nsIContentPolicy::TYPE_OTHER,
+                                              loadGroup);
+  }
+  else {
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       aDocumentURI,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER,
+                       loadGroup);
+  }
 
   NS_ENSURE_SUCCESS(rv, rv);
 

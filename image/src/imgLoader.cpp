@@ -663,18 +663,18 @@ static nsresult NewImageChannel(nsIChannel **aResult,
   
   aLoadFlags |= nsIChannel::LOAD_CLASSIFY_URI;
 
-  nsCOMPtr<nsIPrincipal> requestingPrincipal = aLoadingPrincipal;
+  nsCOMPtr<nsIPrincipal> triggeringPrincipal = aLoadingPrincipal;
   bool isSandBoxed = false;
   
   bool inherit = false;
-  if (requestingPrincipal) {
-    inherit = nsContentUtils::ChannelShouldInheritPrincipal(requestingPrincipal,
+  if (triggeringPrincipal) {
+    inherit = nsContentUtils::ChannelShouldInheritPrincipal(triggeringPrincipal,
                                                             aURI,
                                                             false,  
                                                             false); 
   }
   else {
-    requestingPrincipal = nsContentUtils::GetSystemPrincipal();
+    triggeringPrincipal = nsContentUtils::GetSystemPrincipal();
   }
   nsCOMPtr<nsINode> requestingNode = do_QueryInterface(aRequestingContext);
   nsSecurityFlags securityFlags = nsILoadInfo::SEC_NORMAL;
@@ -686,15 +686,32 @@ static nsresult NewImageChannel(nsIChannel **aResult,
   
   
   
-  rv = NS_NewChannelInternal(aResult,
-                             aURI,
-                             requestingNode,
-                             requestingPrincipal,
-                             securityFlags,
-                             aPolicyType,
-                             nullptr,   
-                             callbacks,
-                             aLoadFlags);
+  if (requestingNode) {
+    rv = NS_NewChannelWithTriggeringPrincipal(aResult,
+                                              aURI,
+                                              requestingNode,
+                                              triggeringPrincipal,
+                                              securityFlags,
+                                              nsIContentPolicy::TYPE_IMAGE,
+                                              nullptr,   
+                                              callbacks,
+                                              aLoadFlags);
+  }
+  else {
+    
+    
+    
+    
+    MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(triggeringPrincipal));
+    rv = NS_NewChannel(aResult,
+                       aURI,
+                       triggeringPrincipal,
+                       securityFlags,
+                       nsIContentPolicy::TYPE_IMAGE,
+                       nullptr,   
+                       callbacks,
+                       aLoadFlags);
+  }
 
   if (NS_FAILED(rv))
     return rv;

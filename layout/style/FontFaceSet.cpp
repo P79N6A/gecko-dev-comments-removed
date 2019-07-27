@@ -393,13 +393,13 @@ FontFaceSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
   
   
   
-  rv = NS_NewChannelInternal(getter_AddRefs(channel),
-                             aFontFaceSrc->mURI,
-                             ps->GetDocument(),
-                             aUserFontEntry->GetPrincipal(),
-                             nsILoadInfo::SEC_NORMAL,
-                             nsIContentPolicy::TYPE_FONT,
-                             loadGroup);
+  rv = NS_NewChannelWithTriggeringPrincipal(getter_AddRefs(channel),
+                                            aFontFaceSrc->mURI,
+                                            ps->GetDocument(),
+                                            aUserFontEntry->GetPrincipal(),
+                                            nsILoadInfo::SEC_NORMAL,
+                                            nsIContentPolicy::TYPE_FONT,
+                                            loadGroup);
 
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1189,12 +1189,12 @@ FontFaceSet::SyncLoadFontData(gfxUserFontEntry* aFontToLoad,
   
   
   
-  rv = NS_NewChannelInternal(getter_AddRefs(channel),
-                             aFontFaceSrc->mURI,
-                             ps->GetDocument(),
-                             aFontToLoad->GetPrincipal(),
-                             nsILoadInfo::SEC_NORMAL,
-                             nsIContentPolicy::TYPE_FONT);
+  rv = NS_NewChannelWithTriggeringPrincipal(getter_AddRefs(channel),
+                                            aFontFaceSrc->mURI,
+                                            ps->GetDocument(),
+                                            aFontToLoad->GetPrincipal(),
+                                            nsILoadInfo::SEC_NORMAL,
+                                            nsIContentPolicy::TYPE_FONT);
 
   NS_ENSURE_SUCCESS(rv, rv);
 
