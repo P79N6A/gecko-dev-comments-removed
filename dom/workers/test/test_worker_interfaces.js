@@ -85,6 +85,10 @@ var interfaceNamesInGlobalScope =
 
     { name: "BroadcastChannel", pref: "dom.broadcastChannel.enabled" },
 
+    { name: "Cache", pref: "dom.caches.enabled" },
+
+    { name: "CacheStorage", pref: "dom.caches.enabled" },
+
     "DedicatedWorkerGlobalScope",
 
     { name: "DataStore", b2g: true },
