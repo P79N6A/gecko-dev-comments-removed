@@ -704,15 +704,6 @@ nsXPCWrappedJSClass::CleanupPointerTypeObject(const nsXPTType& type,
     }
 }
 
-class AutoClearPendingException
-{
-public:
-  explicit AutoClearPendingException(JSContext *cx) : mCx(cx) { }
-  ~AutoClearPendingException() { JS_ClearPendingException(mCx); }
-private:
-  JSContext* mCx;
-};
-
 nsresult
 nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
                                        const char * aPropertyName,
@@ -748,7 +739,10 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
         }
     }
 
-    AutoClearPendingException acpe(cx);
+    
+    
+    
+    JS_ClearPendingException(cx);
 
     if (xpc_exception) {
         nsresult e_result;
@@ -793,6 +787,10 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
             
             if (reportable && is_js_exception)
             {
+                
+                
+                
+                JS_SetPendingException(cx, js_exception);
                 reportable = !JS_ReportPendingException(cx);
             }
 
