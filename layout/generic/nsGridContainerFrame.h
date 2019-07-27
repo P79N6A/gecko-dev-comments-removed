@@ -64,6 +64,7 @@ protected:
   typedef mozilla::LogicalRect LogicalRect;
   typedef mozilla::WritingMode WritingMode;
   typedef mozilla::css::GridNamedArea GridNamedArea;
+  class GridItemCSSOrderIterator;
   friend nsContainerFrame* NS_NewGridContainerFrame(nsIPresShell* aPresShell,
                                                     nsStyleContext* aContext);
   explicit nsGridContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
@@ -305,7 +306,9 @@ protected:
 
 
 
-  void PlaceGridItems(const nsStylePosition* aStyle);
+
+  void PlaceGridItems(GridItemCSSOrderIterator& aIter,
+                      const nsStylePosition* aStyle);
 
   
 
@@ -405,7 +408,8 @@ protected:
   
 
 
-  void ReflowChildren(const LogicalRect&          aContentArea,
+  void ReflowChildren(GridItemCSSOrderIterator&   aIter,
+                      const LogicalRect&          aContentArea,
                       const nsTArray<TrackSize>&  aColSizes,
                       const nsTArray<TrackSize>&  aRowSizes,
                       nsHTMLReflowMetrics&        aDesiredSize,
@@ -435,6 +439,11 @@ private:
   
   uint32_t mGridColEnd; 
   uint32_t mGridRowEnd; 
+  
+
+
+
+  bool mIsNormalFlowInCSSOrder : 1;
 };
 
 #endif 
