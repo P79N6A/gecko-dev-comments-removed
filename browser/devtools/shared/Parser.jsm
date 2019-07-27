@@ -376,7 +376,7 @@ SyntaxTree.prototype = {
 
 
 
-      onArrowExpression: function(aNode) {
+      onArrowFunctionExpression: function(aNode) {
         
         let inferredInfo = ParserHelpers.inferFunctionExpressionInfo(aNode);
         let inferredName = inferredInfo.name;
@@ -1632,7 +1632,7 @@ let SyntaxTreeVisitor = {
 
 
 
-  ArrowExpression: function(aNode, aParent, aCallbacks) {
+  ArrowFunctionExpression: function(aNode, aParent, aCallbacks) {
     aNode._parent = aParent;
 
     if (this.break) {
@@ -1643,8 +1643,8 @@ let SyntaxTreeVisitor = {
         return;
       }
     }
-    if (aCallbacks.onArrowExpression) {
-      aCallbacks.onArrowExpression(aNode);
+    if (aCallbacks.onArrowFunctionExpression) {
+      aCallbacks.onArrowFunctionExpression(aNode);
     }
     for (let param of aNode.params) {
       this[param.type](param, aNode, aCallbacks);
