@@ -10,6 +10,8 @@ import os
 import sys
 sys.path.insert(1, os.path.dirname(os.path.abspath(__file__)))
 
+import pyperclip
+
 from serversetup import LoopTestServers
 from config import *
 
@@ -39,12 +41,28 @@ class Test1BrowserCall(MarionetteTestCase):
             .until(lambda m: m.find_element(by, locator).is_displayed())
         return self.marionette.find_element(by, locator)
 
+    def wait_for_subelement_displayed(self, parent, by, locator, timeout=None):
+        Wait(self.marionette, timeout,
+             ignored_exceptions=[NoSuchElementException, StaleElementException])\
+            .until(lambda m: parent.find_element(by, locator).is_displayed())
+        return parent.find_element(by, locator)
+
     
     def wait_for_element_exists(self, by, locator, timeout=None):
         Wait(self.marionette, timeout,
              ignored_exceptions=[NoSuchElementException, StaleElementException]) \
             .until(lambda m: m.find_element(by, locator))
         return self.marionette.find_element(by, locator)
+
+    def wait_for_element_enabled(self, element, timeout=10):
+        Wait(self.marionette, timeout) \
+            .until(lambda e: element.is_enabled(),
+                   message="Timed out waiting for element to be enabled")
+
+    def wait_for_element_attribute_to_be_false(self, element, attribute, timeout=10):
+        Wait(self.marionette, timeout) \
+            .until(lambda e: element.get_attribute(attribute) == "false",
+                   message="Timeout out waiting for " + attribute + " to be false")
 
     def switch_to_panel(self):
         button = self.marionette.find_element(By.ID, "loop-button")
@@ -56,41 +74,7 @@ class Test1BrowserCall(MarionetteTestCase):
         frame = self.marionette.find_element(By.ID, "loop-panel-iframe")
         self.marionette.switch_to_frame(frame)
 
-    def load_and_verify_standalone_ui(self, url):
-        self.marionette.set_context("content")
-        self.marionette.navigate(url)
-
-    def start_a_conversation(self):
-        
-        sleep(2)
-        button = self.marionette.find_element(By.CSS_SELECTOR, ".rooms .btn-info")
-
-        
-        button.click()
-
-    def get_and_verify_call_url(self):
-        
-        self.start_a_conversation()
-
-        
-        sleep(2)
-        call_url = self.marionette.find_element(By.CLASS_NAME, \
-                                                "room-url-link").text
-
-        self.assertIn(urlparse.urlparse(call_url).scheme, ['http', 'https'],
-                      "call URL returned by server " + call_url +
-                      " has invalid scheme")
-        return call_url
-
-    def start_and_verify_outgoing_call(self):
-        
-        sleep(2)
-        
-        call_button = self.marionette.find_element(By.CLASS_NAME,
-                                                   "btn-join")
-        call_button.click()
-
-    def accept_and_verify_incoming_call(self):
+    def switch_to_chatbox(self):
         self.marionette.set_context("chrome")
         self.marionette.switch_to_frame()
 
@@ -102,20 +86,68 @@ class Test1BrowserCall(MarionetteTestCase):
         frame = self.marionette.execute_script(script, [chatbox])
         self.marionette.switch_to_frame(frame)
 
-        
-        video = self.wait_for_element_displayed(By.CLASS_NAME, "media")
-        self.assertEqual(video.tag_name, "div", "expect a video container")
+    def switch_to_standalone(self):
+        self.marionette.set_context("content")
 
-    def hangup_call_and_verify_feedback(self):
-        self.marionette.set_context("chrome")
+    def local_start_a_conversation(self):
+        button = self.marionette.find_element(By.CSS_SELECTOR, ".rooms .btn-info")
+
+        self.wait_for_element_enabled(button, 120)
+
+        button.click()
+
+    def local_check_room_self_video(self):
+        self.switch_to_chatbox()
+
+        
+        media_container = self.wait_for_element_displayed(By.CLASS_NAME, "media")
+        self.assertEqual(media_container.tag_name, "div", "expect a video container")
+
+    def local_get_and_verify_room_url(self):
+        button = self.wait_for_element_displayed(By.CLASS_NAME, "btn-copy")
+
+        button.click()
+
+        
+        room_url = pyperclip.paste()
+
+        self.assertIn(urlparse.urlparse(room_url).scheme, ['http', 'https'],
+                      "room URL returned by server " + room_url +
+                      " has invalid scheme")
+        return room_url
+
+    def standalone_load_and_join_room(self, url):
+        self.switch_to_standalone()
+        self.marionette.navigate(url)
+
+        
+        join_button = self.wait_for_element_displayed(By.CLASS_NAME,
+                                                      "btn-join")
+        join_button.click()
+
+    
+    def check_remote_video(self):
+        
+        
+        
+
+        
+        
+
+        
+        sleep(15)
+
+    def standalone_check_remote_video(self):
+        self.switch_to_standalone()
+        self.check_remote_video()
+
+    def local_check_remote_video(self):
+        self.switch_to_chatbox()
+        self.check_remote_video()
+
+    def local_leave_room_and_verify_feedback(self):
         button = self.marionette.find_element(By.CLASS_NAME, "btn-hangup")
 
-        
-        
-        
-        
-        
-        sleep(5)
         button.click()
 
         
@@ -125,22 +157,22 @@ class Test1BrowserCall(MarionetteTestCase):
     def test_1_browser_call(self):
         self.switch_to_panel()
 
-        call_url = self.get_and_verify_call_url()
+        self.local_start_a_conversation()
 
         
-        self.load_and_verify_standalone_ui(call_url)
+        self.local_check_room_self_video()
 
-        self.start_and_verify_outgoing_call()
-
-        
-        self.accept_and_verify_incoming_call()
+        room_url = self.local_get_and_verify_room_url()
 
         
-        
-        sleep(5)
+        self.standalone_load_and_join_room(room_url)
 
         
-        self.hangup_call_and_verify_feedback()
+        self.standalone_check_remote_video()
+        self.local_check_remote_video()
+
+        
+        self.local_leave_room_and_verify_feedback()
 
     def tearDown(self):
         self.loop_test_servers.shutdown()

@@ -7,7 +7,7 @@ FIREFOX_PREFERENCES = {
     
     "media.peerconnection.default_iceservers": "[]",
     "media.peerconnection.use_document_iceservers": False,
-    "stun.allow_loopback": True,
+    "media.peerconnection.ice.loopback": True,
     "devtools.chrome.enabled": True,
     "devtools.debugger.prompt-connection": False,
     "devtools.debugger.remote-enabled": True,
