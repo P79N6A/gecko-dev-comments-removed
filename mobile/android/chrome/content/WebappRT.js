@@ -64,7 +64,7 @@ let WebappRT = {
     }
 
     
-    sendMessageToJava({ type: "NativeApp:IsDebuggable" }, (response) => {
+    Messaging.sendRequestForResult({ type: "NativeApp:IsDebuggable" }).then((response) => {
       if (response.isDebuggable) {
         this._enableRemoteDebugger(aUrl);
       }
