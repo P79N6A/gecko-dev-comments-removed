@@ -2403,7 +2403,9 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
           
           nsTArray<OwningNonNull<nsINode>> arrayOfNodes;
           nsTrivialFunctor functor;
-          nsDOMSubtreeIterator iter(*range);
+          nsDOMSubtreeIterator iter;
+          nsresult res = iter.Init(*range);
+          NS_ENSURE_SUCCESS(res, res);
           iter.AppendList(functor, arrayOfNodes);
 
           
@@ -5783,7 +5785,9 @@ nsHTMLEditRules::GetNodesForOperation(nsTArray<nsRefPtr<nsRange>>& aArrayOfRange
   }
   
   for (auto& range : aArrayOfRanges) {
-    nsDOMSubtreeIterator iter(*range);
+    nsDOMSubtreeIterator iter;
+    nsresult res = iter.Init(*range);
+    NS_ENSURE_SUCCESS(res, res);
     if (aOutArrayOfNodes.Length() == 0) {
       iter.AppendList(nsTrivialFunctor(), aOutArrayOfNodes);
     } else {
@@ -7291,7 +7295,9 @@ nsHTMLEditRules::AdjustSpecialBreaks()
   
   nsTArray<OwningNonNull<nsINode>> nodeArray;
   nsEmptyEditableFunctor functor(mHTMLEditor);
-  nsDOMIterator iter(*mDocChangeRange);
+  nsDOMIterator iter;
+  nsresult res = iter.Init(*mDocChangeRange);
+  NS_ENSURE_SUCCESS(res, );
   iter.AppendList(functor, nodeArray);
 
   
