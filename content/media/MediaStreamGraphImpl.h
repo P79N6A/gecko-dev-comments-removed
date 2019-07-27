@@ -128,7 +128,7 @@ public:
 
 
 
-  explicit MediaStreamGraphImpl(bool aRealtime, TrackRate aSampleRate);
+  explicit MediaStreamGraphImpl(bool aRealtime, TrackRate aSampleRate, DOMMediaStream::TrackTypeHints aHint);
 
   
 

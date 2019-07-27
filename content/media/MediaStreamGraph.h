@@ -20,6 +20,7 @@
 #include "GraphDriver.h"
 #include <speex/speex_resampler.h>
 #include "mozilla/dom/AudioChannelBinding.h"
+#include "DOMMediaStream.h"
 
 class nsIRunnable;
 
@@ -31,8 +32,6 @@ class nsAutoRefTraits<SpeexResamplerState> : public nsPointerRefTraits<SpeexResa
 };
 
 namespace mozilla {
-
-class DOMMediaStream;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaStreamGraphLog;
@@ -1127,9 +1126,10 @@ public:
   
   
   
+  
 
   
-  static MediaStreamGraph* GetInstance();
+  static MediaStreamGraph* GetInstance(DOMMediaStream::TrackTypeHints aHint = DOMMediaStream::HINT_CONTENTS_UNKNOWN);
   static MediaStreamGraph* CreateNonRealtimeInstance(TrackRate aSampleRate);
   
   static void DestroyNonRealtimeInstance(MediaStreamGraph* aGraph);

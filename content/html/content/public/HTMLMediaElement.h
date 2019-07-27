@@ -32,6 +32,11 @@
 #undef None
 #endif
 
+
+#ifdef CurrentTime
+#undef CurrentTime
+#endif
+
 #include "mozilla/dom/HTMLMediaElementBinding.h"
 
 
