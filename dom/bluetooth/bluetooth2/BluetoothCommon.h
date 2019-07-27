@@ -247,6 +247,13 @@ enum BluetoothBondState {
   BOND_STATE_BONDED
 };
 
+
+enum BluetoothTransport {
+  TRANSPORT_AUTO,   
+  TRANSPORT_BREDR,  
+  TRANSPORT_LE      
+};
+
 enum BluetoothTypeOfDevice {
   TYPE_OF_DEVICE_BREDR,
   TYPE_OF_DEVICE_BLE,
@@ -281,6 +288,15 @@ enum BluetoothSspVariant {
   SSP_VARIANT_PASSKEY_ENTRY,
   SSP_VARIANT_CONSENT,
   SSP_VARIANT_PASSKEY_NOTIFICATION
+};
+
+struct BluetoothActivityEnergyInfo {
+  uint8_t mStatus;
+  uint8_t mStackState;  
+  uint64_t mTxTime;     
+  uint64_t mRxTime;     
+  uint64_t mIdleTime;   
+  uint64_t mEnergyUsed; 
 };
 
 struct BluetoothUuid {
@@ -436,6 +452,12 @@ enum BluetoothHandsfreeVoiceRecognitionState {
 enum BluetoothHandsfreeVolumeType {
   HFP_VOLUME_TYPE_SPEAKER,
   HFP_VOLUME_TYPE_MICROPHONE
+};
+
+enum BluetoothHandsfreeWbsConfig {
+  HFP_WBS_NONE, 
+  HFP_WBS_NO,   
+  HFP_WBS_YES   
 };
 
 class BluetoothSignal;
