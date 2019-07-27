@@ -176,6 +176,21 @@ template <> struct GCMethods<jsid>
     static void relocate(jsid* idp) {}
 };
 
+
+
+template <typename F, typename... Args>
+auto
+DispatchIdTyped(F f, jsid& id, Args&&... args)
+  -> decltype(f(static_cast<JSString*>(nullptr), mozilla::Forward<Args>(args)...))
+{
+    if (JSID_IS_STRING(id))
+        return f(JSID_TO_STRING(id), mozilla::Forward<Args>(args)...);
+    if (JSID_IS_SYMBOL(id))
+        return f(JSID_TO_SYMBOL(id), mozilla::Forward<Args>(args)...);
+    MOZ_ASSERT(!JSID_IS_GCTHING(id));
+    return F::defaultValue(id);
+}
+
 #undef id
 
 }
