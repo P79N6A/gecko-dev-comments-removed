@@ -127,8 +127,10 @@ protected:
   
   void LoadExtensionBundleDirectories();
 
+#ifdef MOZ_B2G
   
   void LoadAppBundleDirs();
+#endif
 
   void Append(nsIFile* aDirectory);
 
