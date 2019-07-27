@@ -111,11 +111,15 @@ const SUCCESSFUL_OUTCOMES = [
 
 
 
-const OptimizationSite = exports.OptimizationSite = function (optimizations, optsIndex) {
-  this.id = optsIndex;
-  this.data = optimizations[optsIndex];
-  this.samples = 0;
+
+
+
+const OptimizationSite = exports.OptimizationSite = function (id, opts) {
+  this.id = id;
+  this.data = opts;
+  this.samples = 1;
 };
+
 
 
 
@@ -159,38 +163,51 @@ OptimizationSite.prototype.getIonTypes = function () {
 
 
 
-const JITOptimizations = exports.JITOptimizations = function (optimizations) {
-  this._opts = optimizations;
+
+
+
+const JITOptimizations = exports.JITOptimizations = function (rawSites, stringTable) {
   
-  this._optSites = {};
-};
+  let sites = [];
 
-
-
-
-
-
-
-
-
-
-JITOptimizations.prototype.addOptimizationSite = function (optsIndex) {
-  let op = this._optSites[optsIndex] || (this._optSites[optsIndex] = new OptimizationSite(this._opts, optsIndex));
-  op.samples++;
-};
-
-
-
-
-
-
-
-JITOptimizations.prototype.getOptimizationSites = function () {
-  let opts = [];
-  for (let opt of Object.keys(this._optSites)) {
-    opts.push(this._optSites[opt]);
+  for (let rawSite of rawSites) {
+    let existingSite = sites.find((site) => site.data === rawSite);
+    if (existingSite) {
+      existingSite.samples++;
+    } else {
+      sites.push(new OptimizationSite(sites.length, rawSite));
+    }
   }
-  return opts.sort((a, b) => b.samples - a.samples);
+
+  
+  for (let site of sites) {
+    let data = site.data;
+    let STRATEGY_SLOT = data.attempts.schema.strategy;
+    let OUTCOME_SLOT = data.attempts.schema.outcome;
+
+    site.data = {
+      attempts: data.attempts.data.map((a) => {
+        return {
+          strategy: stringTable[a[STRATEGY_SLOT]],
+          outcome: stringTable[a[OUTCOME_SLOT]]
+        }
+      }),
+
+      types: data.types.map((t) => {
+        return {
+          typeset: maybeTypeset(t.typeset, stringTable),
+          site: stringTable[t.site],
+          mirType: stringTable[t.mirType]
+        };
+      }),
+
+      propertyName: maybeString(stringTable, data.propertyName),
+      line: data.line,
+      column: data.column
+    };
+  }
+
+  this.optimizationSites = sites.sort((a, b) => b.samples - a.samples);;
 };
 
 
@@ -203,3 +220,21 @@ JITOptimizations.prototype.getOptimizationSites = function () {
 OptimizationSite.isSuccessfulOutcome = JITOptimizations.isSuccessfulOutcome = function (outcome) {
   return !!~SUCCESSFUL_OUTCOMES.indexOf(outcome);
 };
+
+function maybeString(stringTable, index) {
+  return index ? stringTable[index] : undefined;
+}
+
+function maybeTypeset(typeset, stringTable) {
+  if (!typeset) {
+    return undefined;
+  }
+  return typeset.map((ty) => {
+    return {
+      keyedBy: maybeString(stringTable, ty.keyedBy),
+      name: maybeString(stringTable, ty.name),
+      location: maybeString(stringTable, ty.location),
+      line: ty.line
+    };
+  });
+}

@@ -11,6 +11,9 @@ const { getColor } = require("devtools/shared/theme");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const FrameUtils = require("devtools/shared/profiler/frame-utils");
 
+loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
+  "devtools/shared/profiler/global", true);
+
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
 const L10N = new ViewHelpers.L10N();
@@ -1006,18 +1009,8 @@ let FlameGraphUtils = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-  createFlameGraphDataFromSamples: function(samples, options = {}, out = []) {
-    let cached = this._cache.get(samples);
+  createFlameGraphDataFromThread: function(thread, options = {}, out = []) {
+    let cached = this._cache.get(thread);
     if (cached) {
       return cached;
     }
@@ -1025,86 +1018,173 @@ let FlameGraphUtils = {
     
     
 
-    let buckets = new Map();
-
-    for (let color of COLOR_PALLETTE) {
-      buckets.set(color, []);
-    }
+    let buckets = Array.from({ length: PALLETTE_SIZE }, () => []);
 
     
 
-    let prevTime = 0;
+    let { samples, stackTable, frameTable, stringTable } = thread;
+
+    const SAMPLE_STACK_SLOT = samples.schema.stack;
+    const SAMPLE_TIME_SLOT = samples.schema.time;
+
+    const STACK_PREFIX_SLOT = stackTable.schema.prefix;
+    const STACK_FRAME_SLOT = stackTable.schema.frame;
+
+    const getOrAddInflatedFrame = FrameUtils.getOrAddInflatedFrame;
+
+    let inflatedFrameCache = FrameUtils.getInflatedFrameCache(frameTable);
+    let labelCache = Object.create(null);
+
+    let samplesData = samples.data;
+    let stacksData = stackTable.data;
+
+    let flattenRecursion = options.flattenRecursion;
+
+    
+    let mutableFrameKeyOptions = {
+      contentOnly: options.contentOnly,
+      isRoot: false,
+      isLeaf: false,
+      isMetaCategoryOut: false
+    };
+
+    
+    
+    
+    let prevTime = samplesData.length > 0 ? samplesData[0][SAMPLE_TIME_SLOT] : 0;
     let prevFrames = [];
+    let sampleFrames = [];
+    let sampleFrameKeys = [];
 
-    for (let { frames, time } of samples) {
-      let frameIndex = 0;
+    for (let i = 1; i < samplesData.length; i++) {
+      let sample = samplesData[i];
+      let time = sample[SAMPLE_TIME_SLOT];
+
+      let stackIndex = sample[SAMPLE_STACK_SLOT];
+      let prevFrameKey;
+
+      let stackDepth = 0;
 
       
       
-      if (options.flattenRecursion) {
-        frames = frames.filter(this._isConsecutiveDuplicate);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      while (stackIndex !== null) {
+        let stackEntry = stacksData[stackIndex];
+        let frameIndex = stackEntry[STACK_FRAME_SLOT];
+
+        
+        stackIndex = stackEntry[STACK_PREFIX_SLOT];
+
+        
+        let inflatedFrame = getOrAddInflatedFrame(inflatedFrameCache, frameIndex,
+                                                  frameTable, stringTable);
+
+        mutableFrameKeyOptions.isRoot = stackIndex === null;
+        mutableFrameKeyOptions.isLeaf = stackDepth === 0;
+        let frameKey = inflatedFrame.getFrameKey(mutableFrameKeyOptions);
+
+        
+        
+        if (frameKey !== "" && frameKey !== "(root)") {
+          
+          if (mutableFrameKeyOptions.isMetaCategoryOut) {
+            frameKey = CATEGORY_MAPPINGS[frameKey].label;
+          }
+
+          sampleFrames[stackDepth] = inflatedFrame;
+          sampleFrameKeys[stackDepth] = frameKey;
+
+          
+          
+          if (!flattenRecursion || frameKey !== prevFrameKey) {
+            stackDepth++;
+          }
+
+          prevFrameKey = frameKey;
+        }
       }
 
       
-      
-      
-      if (options.filterFrames) {
-        frames = frames.filter(options.filterFrames);
+      if (!options.invertTree) {
+        sampleFrames.length = stackDepth;
+        sampleFrames.reverse();
+        sampleFrameKeys.length = stackDepth;
+        sampleFrameKeys.reverse();
       }
 
       
-      if (options.invertStack) {
-        frames.reverse();
+      let isIdleFrame = false;
+      if (options.showIdleBlocks && stackDepth === 0) {
+        sampleFrames[0] = null;
+        sampleFrameKeys[0] = options.showIdleBlocks;
+        stackDepth = 1;
+        isIdleFrame = true;
       }
 
       
-      if (options.showIdleBlocks && frames.length == 0) {
-        frames = [{ location: options.showIdleBlocks || "", idle: true }];
-      }
-
-      for (let frame of frames) {
-        let { location } = frame;
+      for (let frameIndex = 0; frameIndex < stackDepth; frameIndex++) {
+        let key = sampleFrameKeys[frameIndex];
         let prevFrame = prevFrames[frameIndex];
 
         
         
-        if (prevFrame && prevFrame.srcData.rawLocation == location) {
-          prevFrame.width = (time - prevFrame.srcData.startTime);
+        if (prevFrame && prevFrame.frameKey === key) {
+          prevFrame.width = (time - prevFrame.startTime);
         }
         
         
         else {
-          let hash = this._getStringHash(location);
-          let color = COLOR_PALLETTE[hash % PALLETTE_SIZE];
-          let bucket = buckets.get(color);
+          let hash = this._getStringHash(key);
+          let bucket = buckets[hash % PALLETTE_SIZE];
+
+          let label;
+          if (isIdleFrame) {
+            label = key;
+          } else {
+            label = labelCache[key];
+            if (!label) {
+              label = labelCache[key] = this._formatLabel(key, sampleFrames[frameIndex]);
+            }
+          }
 
           bucket.push(prevFrames[frameIndex] = {
-            srcData: { startTime: prevTime, rawLocation: location },
+            startTime: prevTime,
+            frameKey: key,
             x: prevTime,
             y: frameIndex * FLAME_GRAPH_BLOCK_HEIGHT,
             width: time - prevTime,
             height: FLAME_GRAPH_BLOCK_HEIGHT,
-            text: this._formatLabel(frame)
+            text: label
           });
         }
-
-        frameIndex++;
       }
 
       
       
-      prevFrames.length = frameIndex;
+      prevFrames.length = stackDepth;
       prevTime = time;
     }
 
     
     
 
-    for (let [color, blocks] of buckets) {
-      out.push({ color, blocks });
+    for (let i = 0; i < buckets.length; i++) {
+      out.push({ color: COLOR_PALLETTE[i], blocks: buckets[i] });
     }
 
-    this._cache.set(samples, out);
+    this._cache.set(thread, out);
     return out;
   },
 
@@ -1114,22 +1194,6 @@ let FlameGraphUtils = {
 
   removeFromCache: function(source) {
     this._cache.delete(source);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _isConsecutiveDuplicate: function(e, index, array) {
-    return index < array.length - 1 && e.location != array[index + 1].location;
   },
 
   
@@ -1163,14 +1227,9 @@ let FlameGraphUtils = {
 
 
 
-  _formatLabel: function (frame) {
-    
-    
-    if (frame.idle) {
-      return frame.location;
-    }
 
-    let { functionName, fileName, line } = FrameUtils.parseLocation(frame);
+  _formatLabel: function (key, frame) {
+    let { functionName, fileName, line } = FrameUtils.parseLocation(key, frame.line);
     let label = functionName;
 
     if (fileName) {

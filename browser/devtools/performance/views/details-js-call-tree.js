@@ -10,7 +10,8 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
 
   rerenderPrefs: [
     "invert-call-tree",
-    "show-platform-data"
+    "show-platform-data",
+    "flatten-tree-recursion"
   ],
 
   rangeChangeDebounceTime: 75, 
@@ -47,7 +48,8 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
   render: function (interval={}) {
     let options = {
       contentOnly: !PerformanceController.getOption("show-platform-data"),
-      invertTree: PerformanceController.getOption("invert-call-tree")
+      invertTree: PerformanceController.getOption("invert-call-tree"),
+      flattenRecursion: PerformanceController.getOption("flatten-tree-recursion")
     };
     let recording = PerformanceController.getCurrentRecording();
     let profile = recording.getProfile();
@@ -75,12 +77,17 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
 
 
   _prepareCallTree: function (profile, { startTime, endTime }, options) {
-    let threadSamples = profile.threads[0].samples;
-    let optimizations = profile.threads[0].optimizations;
-    let { contentOnly, invertTree } = options;
+    let thread = profile.threads[0];
+    let { contentOnly, invertTree, flattenRecursion } = options;
+    let threadNode = new ThreadNode(thread, { startTime, endTime, contentOnly, invertTree, flattenRecursion });
 
-    let threadNode = new ThreadNode(threadSamples,
-      { startTime, endTime, contentOnly, invertTree, optimizations });
+    
+    
+    
+    
+    if (!invertTree) {
+      threadNode.calls = threadNode.calls[0].calls;
+    }
 
     return threadNode;
   },

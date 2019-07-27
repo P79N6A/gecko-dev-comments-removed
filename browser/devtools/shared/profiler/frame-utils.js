@@ -36,6 +36,9 @@ const CHAR_CODE_SLASH = "/".charCodeAt(0);
 const gNSURLStore = new Map();
 
 
+const gInflatedFrameStore = new WeakMap();
+
+
 
 
 
@@ -98,10 +101,17 @@ exports.parseLocation = function parseLocation(location, fallbackLine, fallbackC
 
         if (!line) {
           line = location.substr(start, length);
-        } else if (!column) {
-          column = location.substr(start, length);
+
+          
+          --i;
+
+          
+          continue;
         }
 
+        column = location.substr(start, length);
+
+        
         break;
       }
     }
@@ -133,8 +143,8 @@ exports.parseLocation = function parseLocation(location, fallbackLine, fallbackC
     fileName: fileName,
     hostName: hostName,
     url: url,
-    line: line,
-    column: column
+    line: line || fallbackLine,
+    column: column || fallbackColumn
   };
 };
 
@@ -176,42 +186,97 @@ exports.isContent = isContent;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-exports.filterPlatformData = function filterPlatformData (frames) {
-  let result = [];
-  let last = frames.length - 1;
-  let frame;
-
-  for (let i = 0; i < frames.length; i++) {
-    frame = frames[i];
-    if (exports.isContent(frame)) {
-      result.push(frame);
-    } else if (last === i) {
-      
-      
-      
-      
-      result.push(extend({ isMetaCategory: true, category: CATEGORY_OTHER }, frame));
-    }
+exports.getInflatedFrameCache = function getInflatedFrameCache(frameTable) {
+  let inflatedCache = gInflatedFrameStore.get(frameTable);
+  if (inflatedCache !== undefined) {
+    return inflatedCache;
   }
 
-  return result;
-}
+  
+  inflatedCache = Array.from({ length: frameTable.data.length }, () => null);
+  gInflatedFrameStore.set(frameTable, inflatedCache);
+  return inflatedCache;
+};
+
+
+
+
+
+
+
+
+
+exports.getOrAddInflatedFrame = function getOrAddInflatedFrame(cache, index, frameTable, stringTable) {
+  let inflatedFrame = cache[index];
+  if (inflatedFrame === null) {
+    inflatedFrame = cache[index] = new InflatedFrame(index, frameTable, stringTable);
+  }
+  return inflatedFrame;
+};
+
+
+
+
+
+
+
+
+function InflatedFrame(index, frameTable, stringTable) {
+  const LOCATION_SLOT = frameTable.schema.location;
+  const OPTIMIZATIONS_SLOT = frameTable.schema.optimizations;
+  const LINE_SLOT = frameTable.schema.line;
+  const CATEGORY_SLOT = frameTable.schema.category;
+
+  let frame = frameTable.data[index];
+  let category = frame[CATEGORY_SLOT];
+  this.location = stringTable[frame[LOCATION_SLOT]];
+  this.optimizations = frame[OPTIMIZATIONS_SLOT];
+  this.line = frame[LINE_SLOT];
+  this.column = undefined;
+  this.category = category;
+  this.metaCategory = category || CATEGORY_OTHER;
+  this.isContent = isContent(this);
+};
+
+
+
+
+
+
+
+
+
+
+InflatedFrame.prototype.getFrameKey = function getFrameKey(options) {
+  if (this.isContent || !options.contentOnly || options.isRoot) {
+    options.isMetaCategoryOut = false;
+    return this.location;
+  }
+
+  if (options.isLeaf) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    options.isMetaCategoryOut = true;
+    return this.metaCategory;
+  }
+
+  
+  return "";
+};
+
+exports.InflatedFrame = InflatedFrame;
 
 
 
@@ -242,7 +307,7 @@ function nsIURL(url) {
 
 
 function getHost (url, hostName) {
-  return isChromeScheme(url) ? null : hostName;
+  return isChromeScheme(url, 0) ? null : hostName;
 }
 
 
@@ -265,7 +330,7 @@ function isContentScheme(location, i) {
     if (location.charCodeAt(++i) === CHAR_CODE_T &&
         location.charCodeAt(++i) === CHAR_CODE_T &&
         location.charCodeAt(++i) === CHAR_CODE_P) {
-      if (location.charCodeAt(i) === CHAR_CODE_S) {
+      if (location.charCodeAt(i + 1) === CHAR_CODE_S) {
         ++i;
       }
       return isColonSlashSlash(location, i);
