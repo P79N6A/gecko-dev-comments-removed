@@ -463,9 +463,7 @@ int nr_ice_candidate_initialize(nr_ice_candidate *cand, NR_async_cb ready_cb, vo
         if(r=nr_socket_getaddr(cand->isock->sock,&cand->addr))
           ABORT(r);
         cand->osock=cand->isock->sock;
-        
-        
-        cand->state=NR_ICE_CAND_STATE_INITIALIZING;
+        cand->state=NR_ICE_CAND_STATE_INITIALIZED;
         
         cand->ready_cb = ready_cb;
         cand->ready_cb_arg = cb_arg;

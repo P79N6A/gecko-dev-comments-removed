@@ -22,7 +22,6 @@
 #include "MediaSegment.h"
 #endif
 
-#include "signaling/src/jsep/JsepSession.h"
 #include "AudioSegment.h"
 
 #ifdef MOZILLA_INTERNAL_API
@@ -37,7 +36,6 @@ class nsIPrincipal;
 namespace mozilla {
 class DataChannel;
 class PeerIdentity;
-class MediaPipelineFactory;
 namespace dom {
 struct RTCInboundRTPStreamStats;
 struct RTCOutboundRTPStreamStats;
@@ -49,15 +47,16 @@ struct RTCOutboundRTPStreamStats;
 #include "nricemediastream.h"
 #include "MediaPipeline.h"
 
-namespace mozilla {
+namespace sipcc {
 
 class PeerConnectionImpl;
 class PeerConnectionMedia;
-class PCUuidGenerator;
 
 
 class Fake_AudioGenerator {
  public:
+  typedef mozilla::DOMMediaStream DOMMediaStream;
+
   explicit Fake_AudioGenerator(DOMMediaStream* aStream) : mStream(aStream), mCount(0) {
     mTimer = do_CreateInstance("@mozilla.org/timer;1");
     MOZ_ASSERT(mTimer);
@@ -97,6 +96,7 @@ class Fake_AudioGenerator {
 #ifdef MOZILLA_INTERNAL_API
 class Fake_VideoGenerator {
  public:
+  typedef mozilla::DOMMediaStream DOMMediaStream;
   typedef mozilla::gfx::IntSize IntSize;
 
   explicit Fake_VideoGenerator(DOMMediaStream* aStream) {
@@ -174,21 +174,19 @@ class Fake_VideoGenerator {
 
 class SourceStreamInfo {
 public:
+  typedef mozilla::DOMMediaStream DOMMediaStream;
+
   SourceStreamInfo(DOMMediaStream* aMediaStream,
-                   PeerConnectionMedia *aParent,
-                   const std::string& aId)
+                   PeerConnectionMedia *aParent)
       : mMediaStream(aMediaStream),
-        mParent(aParent),
-        mId(aId) {
+        mParent(aParent) {
     MOZ_ASSERT(mMediaStream);
   }
 
   SourceStreamInfo(already_AddRefed<DOMMediaStream>& aMediaStream,
-                   PeerConnectionMedia *aParent,
-                   const std::string& aId)
+                   PeerConnectionMedia *aParent)
       : mMediaStream(aMediaStream),
-        mParent(aParent),
-        mId(aId) {
+        mParent(aParent) {
     MOZ_ASSERT(mMediaStream);
   }
 
@@ -200,14 +198,12 @@ public:
   
   const std::map<mozilla::TrackID, mozilla::RefPtr<mozilla::MediaPipeline>>&
   GetPipelines() const { return mPipelines; }
-  mozilla::RefPtr<mozilla::MediaPipeline> GetPipelineByLevel_m(int aMLine);
-  const std::string& GetId() const { return mId; }
+  mozilla::RefPtr<mozilla::MediaPipeline> GetPipelineByLevel_m(int level);
 
 protected:
   std::map<mozilla::TrackID, mozilla::RefPtr<mozilla::MediaPipeline>> mPipelines;
   nsRefPtr<DOMMediaStream> mMediaStream;
   PeerConnectionMedia *mParent;
-  const std::string mId;
 };
 
 
@@ -217,28 +213,28 @@ class LocalSourceStreamInfo : public SourceStreamInfo {
     mMediaStream = nullptr;
   }
 public:
+  typedef mozilla::DOMMediaStream DOMMediaStream;
+
   LocalSourceStreamInfo(DOMMediaStream *aMediaStream,
-                        PeerConnectionMedia *aParent,
-                        const std::string& aId)
-     : SourceStreamInfo(aMediaStream, aParent, aId) {}
+                        PeerConnectionMedia *aParent)
+      : SourceStreamInfo(aMediaStream, aParent) {}
 
   
 #if 0
-  int HasTrack(DOMMediaStream* aStream, mozilla::TrackID aMLine);
+  int HasTrack(DOMMediaStream* aStream, mozilla::TrackID aTrack);
 #endif
   int HasTrackType(DOMMediaStream* aStream, bool aIsVideo);
   
   
   
   
-  nsresult ReplaceTrack(int aMLine, DOMMediaStream* aNewStream, mozilla::TrackID aNewTrack);
+  nsresult ReplaceTrack(int aIndex, DOMMediaStream* aNewStream, mozilla::TrackID aNewTrack);
 
-  void StorePipeline(int aMLine,
+  void StorePipeline(int aTrack,
                      mozilla::RefPtr<mozilla::MediaPipelineTransmit> aPipeline);
 
 #ifdef MOZILLA_INTERNAL_API
-  void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal,
-                            const mozilla::PeerIdentity* aSinkIdentity);
+  void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal, const PeerIdentity* aSinkIdentity);
 #endif
 
   void ExpectAudio(const mozilla::TrackID);
@@ -261,17 +257,17 @@ private:
 class RemoteSourceStreamInfo : public SourceStreamInfo {
   ~RemoteSourceStreamInfo() {}
  public:
-  RemoteSourceStreamInfo(already_AddRefed<DOMMediaStream> aMediaStream,
-                         PeerConnectionMedia *aParent,
-                         const std::string& aId)
-    : SourceStreamInfo(aMediaStream, aParent, aId),
-      mTrackTypeHints(0) {
-  }
+  typedef mozilla::DOMMediaStream DOMMediaStream;
 
-  void StorePipeline(int aMLine, bool aIsVideo,
+  RemoteSourceStreamInfo(already_AddRefed<DOMMediaStream> aMediaStream,
+                         PeerConnectionMedia *aParent)
+    : SourceStreamInfo(aMediaStream, aParent),
+      mTrackTypeHints(0) {}
+
+  void StorePipeline(int aTrack, bool aIsVideo,
                      mozilla::RefPtr<mozilla::MediaPipelineReceive> aPipeline);
 
-  bool SetUsingBundle_m(int aMLine, bool decision);
+  bool SetUsingBundle_m(int aLevel, bool decision);
 
   void DetachTransport_s();
   void DetachMedia_m();
@@ -296,7 +292,6 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
  public:
   explicit PeerConnectionMedia(PeerConnectionImpl *parent);
 
-  PeerConnectionImpl* GetPC() { return mParent; }
   nsresult Init(const std::vector<mozilla::NrIceStunServer>& stun_servers,
                 const std::vector<mozilla::NrIceTurnServer>& turn_servers);
   
@@ -321,21 +316,8 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   }
 
   
-  void UpdateTransports(const mozilla::JsepSession& session);
-
-  
-  void StartIceChecks(const mozilla::JsepSession& session);
-
-  
-  void AddIceCandidate(const std::string& candidate, const std::string& mid,
-                       uint32_t aMLine);
-
-  
-  nsresult UpdateMediaPipelines(const mozilla::JsepSession& session);
-
-  
   nsresult AddStream(DOMMediaStream* aMediaStream, uint32_t hints,
-                     std::string* stream_id);
+                     uint32_t *stream_id);
 
   
   nsresult RemoveStream(DOMMediaStream* aMediaStream,
@@ -347,33 +329,29 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   {
     return mLocalSourceStreams.Length();
   }
-  LocalSourceStreamInfo* GetLocalStreamByIndex(int index);
-  LocalSourceStreamInfo* GetLocalStreamById(const std::string& id);
+  LocalSourceStreamInfo* GetLocalStream(int index);
 
   
   uint32_t RemoteStreamsLength()
   {
     return mRemoteSourceStreams.Length();
   }
+  RemoteSourceStreamInfo* GetRemoteStream(int index);
 
-  RemoteSourceStreamInfo* GetRemoteStreamByIndex(size_t index);
-  RemoteSourceStreamInfo* GetRemoteStreamById(const std::string& id);
-
-  bool SetUsingBundle_m(int aMLine, bool decision);
+  bool SetUsingBundle_m(int level, bool decision);
   bool UpdateFilterFromRemoteDescription_m(
-      int aMLine,
+      int level,
       nsAutoPtr<mozilla::MediaPipelineFilter> filter);
 
   
-  nsresult AddRemoteStream(nsRefPtr<RemoteSourceStreamInfo> aInfo);
+  nsresult AddRemoteStream(nsRefPtr<RemoteSourceStreamInfo> aInfo, int *aIndex);
   nsresult AddRemoteStreamHint(int aIndex, bool aIsVideo);
 
 #ifdef MOZILLA_INTERNAL_API
   
   
   
-  void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal,
-                            const mozilla::PeerIdentity* aSinkIdentity);
+  void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal, const PeerIdentity* aSinkIdentity);
   
   bool AnyLocalStreamHasPeerIdentity() const;
   
@@ -430,11 +408,7 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
       SignalIceGatheringStateChange;
   sigslot::signal2<mozilla::NrIceCtx*, mozilla::NrIceCtx::ConnectionState>
       SignalIceConnectionStateChange;
-  
   sigslot::signal2<const std::string&, uint16_t> SignalCandidate;
-  
-  sigslot::signal3<const std::string&, uint16_t, uint16_t>
-      SignalEndOfLocalCandidates;
 
  private:
   
@@ -445,49 +419,25 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   void SelfDestruct_m();
 
   
-  void UpdateIceMediaStream_s(size_t aMLine, size_t aComponentCount,
-                              bool aHasAttrs,
-                              const std::string& aUfrag,
-                              const std::string& aPassword,
-                              const std::vector<std::string>& aCandidateList);
-  void EnsureIceGathering_s();
-  void StartIceChecks_s(bool aIsControlling,
-                        bool aIsIceLite,
-                        const std::vector<std::string>& aIceOptionsList,
-                        const std::vector<size_t>& aComponentCountByLevel);
-
-  
-  void AddIceCandidate_s(const std::string& aCandidate, const std::string& aMid,
-                         uint32_t aMLine);
-
-
-  
   void IceGatheringStateChange_s(mozilla::NrIceCtx* ctx,
                                mozilla::NrIceCtx::GatheringState state);
   void IceConnectionStateChange_s(mozilla::NrIceCtx* ctx,
                                 mozilla::NrIceCtx::ConnectionState state);
-  void IceStreamReady_s(mozilla::NrIceMediaStream *aStream);
+  void IceStreamReady(mozilla::NrIceMediaStream *aStream);
   void OnCandidateFound_s(mozilla::NrIceMediaStream *aStream,
                         const std::string &candidate);
-  void EndOfLocalCandidates(const std::string& aDefaultAddr,
-                            uint16_t aDefaultPort,
-                            uint16_t aMLine);
 
   void IceGatheringStateChange_m(mozilla::NrIceCtx* ctx,
                                  mozilla::NrIceCtx::GatheringState state);
   void IceConnectionStateChange_m(mozilla::NrIceCtx* ctx,
                                   mozilla::NrIceCtx::ConnectionState state);
-  void OnCandidateFound_m(const std::string &candidate, uint16_t aMLine);
-  void EndOfLocalCandidates_m(const std::string& aDefaultAddr,
-                              uint16_t aDefaultPort,
-                              uint16_t aMLine);
+  void OnCandidateFound_m(const std::string &candidate, uint16_t level);
 
 
   
   PeerConnectionImpl *mParent;
   
   std::string mParentHandle;
-  std::string mParentName;
 
   
   
@@ -513,9 +463,6 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   
   std::map<int, mozilla::RefPtr<mozilla::MediaSessionConduit> > mConduits;
-
-  
-  mozilla::UniquePtr<PCUuidGenerator> mUuidGen;
 
   
   nsCOMPtr<nsIThread> mMainThread;

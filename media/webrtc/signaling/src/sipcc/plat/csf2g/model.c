@@ -1,0 +1,14 @@
+
+
+
+
+
+
+
+
+char *
+platGetModel()
+{
+    return "CSF";
+}
+
