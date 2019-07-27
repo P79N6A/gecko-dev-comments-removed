@@ -11,6 +11,7 @@
 #include "nsAutoPtr.h"
 #include "gfxPoint.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 
 class gfxContext;
 struct gfxRect;
@@ -149,7 +150,7 @@ protected:
      
 
 
-    mozilla::gfx::AlphaBoxBlur *mBlur;
+    mozilla::UniquePtr<mozilla::gfx::AlphaBoxBlur> mBlur;
 };
 
 #endif 
