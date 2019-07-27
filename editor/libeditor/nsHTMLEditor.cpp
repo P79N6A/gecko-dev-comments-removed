@@ -1622,6 +1622,13 @@ nsHTMLEditor::InsertNodeAtPoint(nsIDOMNode *aNode,
     
     parent->GetParentNode(getter_AddRefs(tmp));
     NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
+    if (!IsEditable(tmp)) {
+      
+      
+      
+      parent = topChild = *ioParent;
+      break;
+    }
     topChild = parent;
     parent = tmp;
   }
