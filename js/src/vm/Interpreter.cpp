@@ -3866,6 +3866,13 @@ js::DeleteNameOperation(JSContext *cx, HandlePropertyName name, HandleObject sco
         return true;
     }
 
+    
+    
+    if (pobj == scope && IsUninitializedLexicalSlot(scope, shape)) {
+        ReportUninitializedLexical(cx, name);
+        return false;
+    }
+
     bool succeeded;
     RootedId id(cx, NameToId(name));
     if (!JSObject::deleteGeneric(cx, scope, id, &succeeded))
