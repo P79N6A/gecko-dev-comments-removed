@@ -579,18 +579,6 @@ imgRequest::CacheChanged(nsIRequest* aNewRequest)
 }
 
 nsresult
-imgRequest::LockImage()
-{
-  return mImage->LockImage();
-}
-
-nsresult
-imgRequest::UnlockImage()
-{
-  return mImage->UnlockImage();
-}
-
-nsresult
 imgRequest::RequestDecode()
 {
   

@@ -89,8 +89,6 @@ public:
 
   
   
-  nsresult LockImage();
-  nsresult UnlockImage();
   nsresult StartDecoding();
   nsresult RequestDecode();
 
