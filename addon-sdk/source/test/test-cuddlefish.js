@@ -1,10 +1,10 @@
 
 
 
+
 'use strict';
 
 const { Loader, Require, unload, override } = require('sdk/loader/cuddlefish');
-const app = require('sdk/system/xul-app');
 const packaging = require('@loader/options');
 
 exports['test loader'] = function(assert) {
@@ -44,19 +44,4 @@ exports['test loader'] = function(assert) {
                'loader.unload() must call listeners in LIFO order.');
 };
 
-exports['test loader on unsupported modules'] = function(assert) {
-  let loader = Loader({});
-  let err = "";
-  assert.throws(() => {
-    if (!app.is('Firefox')) {
-      require('./fixtures/loader/unsupported/firefox');
-    }
-    else {
-      require('./fixtures/loader/unsupported/fennec');
-    }
-  }, /^Unsupported Application/, "throws Unsupported Application");
-
-  unload(loader);
-};
-
-require('sdk/test').run(exports);
+require('test').run(exports);

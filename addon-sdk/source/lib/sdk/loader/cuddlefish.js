@@ -16,22 +16,71 @@ module.metadata = {
 
 
 
-const { classes: Cc, Constructor: CC, interfaces: Ci, utils: Cu } = Components;
 
-const {
-  incompatibility
-} = Cu.import("resource://gre/modules/sdk/system/XulApp.js", {}).XulApp;
+const { classes: Cc, Constructor: CC, interfaces: Ci, utils: Cu } = Components;
 
 
 const loaderURI = module.uri.replace("sdk/loader/cuddlefish.js",
                                      "toolkit/loader.js");
+const xulappURI = module.uri.replace("loader/cuddlefish.js",
+                                     "system/xul-app.js");
 
 
 
 const loaderSandbox = loadSandbox(loaderURI);
 const loaderModule = loaderSandbox.exports;
 
+const xulappSandbox = loadSandbox(xulappURI);
+const xulappModule = xulappSandbox.exports;
+
 const { override, load } = loaderModule;
+
+
+
+
+
+
+
+
+
+
+function incompatibility(module) {
+  let { metadata, id } = module;
+
+  
+  
+  if (!metadata || !("engines" in metadata))
+    return null;
+
+  let { engines } = metadata;
+
+  if (engines === null || typeof(engines) !== "object")
+    return new Error("Malformed engines' property in metadata");
+
+  let applications = Object.keys(engines);
+
+  let versionRange;
+  applications.forEach(function(name) {
+    if (xulappModule.is(name)) {
+      versionRange = engines[name];
+      
+      
+      
+    }
+  });
+
+  if (typeof(versionRange) === "string") {
+    if (xulappModule.satisfiesVersion(versionRange))
+      return null;
+
+    return new Error("Unsupported Application version: The module " + id +
+            " currently supports only version " + versionRange + " of " +
+            xulappModule.name + ".");
+  }
+
+  return new Error("Unsupported Application: The module " + id +
+            " currently supports only " + applications.join(", ") + ".")
+}
 
 function CuddlefishLoader(options) {
   let { manifest } = options;
@@ -41,7 +90,8 @@ function CuddlefishLoader(options) {
     
     modules: override({
       'toolkit/loader': loaderModule,
-      'sdk/loader/cuddlefish': exports
+      'sdk/loader/cuddlefish': exports,
+      'sdk/system/xul-app': xulappModule
     }, options.modules),
     resolve: function resolve(id, requirer) {
       let entry = requirer && requirer in manifest && manifest[requirer];
