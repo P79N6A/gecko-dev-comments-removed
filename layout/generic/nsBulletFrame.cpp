@@ -12,6 +12,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/MathAlgorithms.h"
+#include "mozilla/Move.h"
 #include "nsCOMPtr.h"
 #include "nsFontMetrics.h"
 #include "nsGkAtoms.h"
@@ -51,20 +52,14 @@ NS_QUERYFRAME_TAIL_INHERITING(nsFrame)
 
 nsBulletFrame::~nsBulletFrame()
 {
+  NS_ASSERTION(!mBlockingOnload, "Still blocking onload in destructor?");
 }
 
 void
 nsBulletFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
-  if (mImageRequest) {
-    
-    nsLayoutUtils::DeregisterImageRequest(PresContext(),
-                                          mImageRequest,
-                                          &mRequestRegistered);
-    mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-    mImageRequest = nullptr;
-  }
+  DeregisterAndCancelImageRequest();
 
   if (mListener) {
     mListener->SetFrame(nullptr);
@@ -132,35 +127,21 @@ nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     }
 
     if (needNewRequest) {
-      nsRefPtr<imgRequestProxy> oldRequest = mImageRequest;
-      newRequest->Clone(mListener, getter_AddRefs(mImageRequest));
+      nsRefPtr<imgRequestProxy> newRequestClone;
+      newRequest->Clone(mListener, getter_AddRefs(newRequestClone));
 
       
       
       
-      if (oldRequest) {
-        nsLayoutUtils::DeregisterImageRequest(PresContext(), oldRequest,
-                                              &mRequestRegistered);
-        oldRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-        oldRequest = nullptr;
-      }
+      DeregisterAndCancelImageRequest();
 
       
-      if (mImageRequest) {
-        nsLayoutUtils::RegisterImageRequestIfAnimated(PresContext(),
-                                                      mImageRequest,
-                                                      &mRequestRegistered);
-      }
+      mImageRequest = Move(newRequestClone);
+      RegisterImageRequest( false);
     }
   } else {
     
-    if (mImageRequest) {
-      nsLayoutUtils::DeregisterImageRequest(PresContext(), mImageRequest,
-                                            &mRequestRegistered);
-
-      mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-      mImageRequest = nullptr;
-    }
+    DeregisterAndCancelImageRequest();
   }
 
 #ifdef ACCESSIBILITY
@@ -692,12 +673,65 @@ nsBulletFrame::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aDa
     
     
     if (aRequest == mImageRequest) {
-      nsLayoutUtils::RegisterImageRequest(PresContext(), mImageRequest,
-                                          &mRequestRegistered);
+      RegisterImageRequest( true);
     }
   }
 
+  if (aType == imgINotificationObserver::LOAD_COMPLETE) {
+    
+    
+    
+    if (aRequest == mImageRequest) {
+      mImageRequest->RequestDecode();
+    }
+    InvalidateFrame();
+  }
+
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBulletFrame::BlockOnload(imgIRequest* aRequest)
+{
+  if (aRequest != mImageRequest) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!mBlockingOnload, "Double BlockOnload for an nsBulletFrame?");
+
+  nsIDocument* doc = GetOurCurrentDoc();
+  if (doc) {
+    mBlockingOnload = true;
+    doc->BlockOnload();
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBulletFrame::UnblockOnload(imgIRequest* aRequest)
+{
+  if (aRequest != mImageRequest) {
+    return NS_OK;
+  }
+
+  NS_ASSERTION(!mBlockingOnload, "Double UnblockOnload for an nsBulletFrame?");
+
+  nsIDocument* doc = GetOurCurrentDoc();
+  if (doc) {
+    doc->UnblockOnload(false);
+  }
+  mBlockingOnload = false;
+
+  return NS_OK;
+}
+
+nsIDocument*
+nsBulletFrame::GetOurCurrentDoc() const
+{
+  nsIContent* parentContent = GetParent()->GetContent();
+  return parentContent ? parentContent->GetComposedDoc()
+                       : nullptr;
 }
 
 nsresult nsBulletFrame::OnStartContainer(imgIRequest *aRequest,
@@ -873,7 +907,57 @@ nsBulletFrame::GetSpokenText(nsAString& aText)
   }
 }
 
+void
+nsBulletFrame::RegisterImageRequest(bool aKnownToBeAnimated)
+{
+  if (mImageRequest) {
+    
+    
+    bool isRequestRegistered = mRequestRegistered;
 
+    if (aKnownToBeAnimated) {
+      nsLayoutUtils::RegisterImageRequest(PresContext(), mImageRequest,
+                                          &isRequestRegistered);
+    } else {
+      nsLayoutUtils::RegisterImageRequestIfAnimated(PresContext(),
+                                                    mImageRequest,
+                                                    &isRequestRegistered);
+    }
+
+    isRequestRegistered = mRequestRegistered;
+  }
+}
+
+
+void
+nsBulletFrame::DeregisterAndCancelImageRequest()
+{
+  if (mImageRequest) {
+    
+    
+    bool isRequestRegistered = mRequestRegistered;
+
+    
+    nsLayoutUtils::DeregisterImageRequest(PresContext(),
+                                          mImageRequest,
+                                          &isRequestRegistered);
+
+    isRequestRegistered = mRequestRegistered;
+
+    
+    if (mBlockingOnload) {
+      nsIDocument* doc = GetOurCurrentDoc();
+      if (doc) {
+        doc->UnblockOnload(false);
+      }
+      mBlockingOnload = false;
+    }
+
+    
+    mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
+    mImageRequest = nullptr;
+  }
+}
 
 
 
@@ -894,7 +978,26 @@ nsBulletListener::~nsBulletListener()
 NS_IMETHODIMP
 nsBulletListener::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aData)
 {
-  if (!mFrame)
+  if (!mFrame) {
     return NS_ERROR_FAILURE;
+  }
   return mFrame->Notify(aRequest, aType, aData);
+}
+
+NS_IMETHODIMP
+nsBulletListener::BlockOnload(imgIRequest* aRequest)
+{
+  if (!mFrame) {
+    return NS_ERROR_FAILURE;
+  }
+  return mFrame->BlockOnload(aRequest);
+}
+
+NS_IMETHODIMP
+nsBulletListener::UnblockOnload(imgIRequest* aRequest)
+{
+  if (!mFrame) {
+    return NS_ERROR_FAILURE;
+  }
+  return mFrame->UnblockOnload(aRequest);
 }
