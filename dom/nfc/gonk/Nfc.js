@@ -81,9 +81,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
 XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
                                    "@mozilla.org/system-message-internal;1",
                                    "nsISystemMessagesInternal");
-XPCOMUtils.defineLazyServiceGetter(this, "gSystemWorkerManager",
-                                   "@mozilla.org/telephony/system-worker-manager;1",
-                                   "nsISystemWorkerManager");
 XPCOMUtils.defineLazyServiceGetter(this, "UUIDGenerator",
                                     "@mozilla.org/uuid-generator;1",
                                     "nsIUUIDGenerator");
@@ -93,11 +90,6 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
                                            Ci.nsIObserver]),
 
     nfc: null,
-
-    
-    
-    targetsBySessionTokens: {},
-    sessionTokens: [],
 
     
     peerTargetsMap: {},
@@ -158,70 +150,6 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
       }
 
       ppmm = null;
-    },
-
-    _registerMessageTarget: function _registerMessageTarget(sessionToken, target) {
-      let targets = this.targetsBySessionTokens[sessionToken];
-      if (!targets) {
-        targets = this.targetsBySessionTokens[sessionToken] = [];
-        let list = this.sessionTokens;
-        if (list.indexOf(sessionToken) == -1) {
-          list.push(sessionToken);
-        }
-      }
-
-      if (targets.indexOf(target) != -1) {
-        debug("Already registered this target!");
-        return;
-      }
-
-      targets.push(target);
-      debug("Registered :" + sessionToken + " target: " + target);
-    },
-
-    _unregisterMessageTarget: function _unregisterMessageTarget(sessionToken, target) {
-      if (sessionToken == null) {
-        
-        for (let session of this.sessionTokens) {
-          this._unregisterMessageTarget(session, target);
-        }
-        return;
-      }
-
-      
-      let targets = this.targetsBySessionTokens[sessionToken];
-      if (!targets) {
-        return;
-      }
-
-      if (target == null) {
-        debug("Unregistered all targets for the " + sessionToken + " targets: " + targets);
-        targets = [];
-        let list = this.sessionTokens;
-        if (sessionToken !== null) {
-          let index = list.indexOf(sessionToken);
-          if (index > -1) {
-            list.splice(index, 1);
-          }
-        }
-        return;
-      }
-
-      let index = targets.indexOf(target);
-      if (index != -1) {
-        targets.splice(index, 1);
-      }
-    },
-
-    _sendTargetMessage: function _sendTargetMessage(sessionToken, message, options) {
-      let targets = this.targetsBySessionTokens[sessionToken];
-      if (!targets) {
-        return;
-      }
-
-      for (let target of targets) {
-        target.sendAsyncMessage(message, options);
-      }
     },
 
     registerPeerReadyTarget: function registerPeerReadyTarget(msg) {
@@ -311,10 +239,6 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
     receiveMessage: function receiveMessage(msg) {
       debug("Received '" + msg.name + "' message from content process");
       if (msg.name == "child-process-shutdown") {
-        
-        
-        
-        this._unregisterMessageTarget(null, msg.target);
         this.removePeerTarget(msg.target);
         return null;
       }
@@ -350,9 +274,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
             debug("Received invalid Session Token: " + msg.json.sessionToken + " - Do not register this target");
             return NFC.NFC_ERROR_BAD_SESSION_ID;
           }
-          this._registerMessageTarget(this.nfc.sessionTokenMap[this.nfc._currentSessionId], msg.target);
-          debug("Registering target for this SessionToken : " +
-                this.nfc.sessionTokenMap[this.nfc._currentSessionId]);
+          debug("Registering target for this SessionToken : " + msg.json.sessionToken);
           return NFC.NFC_SUCCESS;
         case "NFC:RegisterPeerReadyTarget":
           this.registerPeerReadyTarget(msg);
@@ -378,7 +300,12 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
         case "NFC:NotifySendFileStatus":
           
           
-          this.sendNfcResponseMessage(msg.name + "Response", msg.json);
+          msg.json.type = "NotifySendFileStatus";
+          if (msg.json.status !== NFC.NFC_SUCCESS) {
+            msg.json.errorMsg =
+              this.nfc.getErrorMessage(NFC.NFC_GECKO_ERROR_SEND_FILE_FAILED);
+          }
+          this.nfc.sendNfcResponse(msg.json);
           return null;
         default:
           return this.nfc.receiveMessage(msg);
@@ -395,10 +322,6 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
           this._shutdown();
           break;
       }
-    },
-
-    sendNfcResponseMessage: function sendNfcResponseMessage(message, data) {
-      this._sendTargetMessage(this.nfc.sessionTokenMap[this.nfc._currentSessionId], message, data);
     },
   };
 });
@@ -447,6 +370,17 @@ Nfc.prototype = {
     message = message || {};
     message.type = nfcMessageType;
     this.nfcService.sendCommand(message);
+  },
+
+  sendNfcResponse: function sendNfcResponse(message) {
+    let target = this.targetsByRequestId[message.requestId];
+    if (!target) {
+      debug("No target for requestId: " + message.requestId);
+      return;
+    }
+    delete this.targetsByRequestId[message.requestId];
+
+    target.sendAsyncMessage("NFC:" + message.type, message);
   },
 
   
@@ -506,7 +440,6 @@ Nfc.prototype = {
         break;
       case "TechLostNotification":
         message.type = "techLost";
-        gMessageManager._unregisterMessageTarget(this.sessionTokenMap[this._currentSessionId], null);
 
         
         message.sessionToken = this.sessionTokenMap[this._currentSessionId];
@@ -521,18 +454,11 @@ Nfc.prototype = {
 
         break;
      case "ConfigResponse":
-        let target = this.targetsByRequestId[message.requestId];
-        if (!target) {
-          debug("No target for requestId: " + message.requestId);
-          return;
-        }
-        delete this.targetsByRequestId[message.requestId];
-
         if (message.status === NFC.NFC_SUCCESS) {
           this.powerLevel = message.powerLevel;
         }
 
-        target.sendAsyncMessage("NFC:ConfigResponse", message);
+        this.sendNfcResponse(message);
         break;
       case "ConnectResponse": 
       case "CloseResponse":
@@ -540,10 +466,7 @@ Nfc.prototype = {
       case "ReadNDEFResponse":
       case "MakeReadOnlyNDEFResponse":
       case "WriteNDEFResponse":
-        message.sessionToken = this.sessionTokenMap[this._currentSessionId];
-        
-        delete message.sessionId;
-        gMessageManager.sendNfcResponseMessage("NFC:" + message.type, message);
+        this.sendNfcResponse(message);
         break;
       default:
         throw new Error("Don't know about this message type: " + message.type);
@@ -599,21 +522,27 @@ Nfc.prototype = {
 
     switch (message.name) {
       case "NFC:GetDetailsNDEF":
+        this.targetsByRequestId[message.json.requestId] = message.target;
         this.sendToNfcService("getDetailsNDEF", message.json);
         break;
       case "NFC:ReadNDEF":
+        this.targetsByRequestId[message.json.requestId] = message.target;
         this.sendToNfcService("readNDEF", message.json);
         break;
       case "NFC:WriteNDEF":
+        this.targetsByRequestId[message.json.requestId] = message.target;
         this.sendToNfcService("writeNDEF", message.json);
         break;
       case "NFC:MakeReadOnlyNDEF":
+        this.targetsByRequestId[message.json.requestId] = message.target;
         this.sendToNfcService("makeReadOnlyNDEF", message.json);
         break;
       case "NFC:Connect":
+        this.targetsByRequestId[message.json.requestId] = message.target;
         this.sendToNfcService("connect", message.json);
         break;
       case "NFC:Close":
+        this.targetsByRequestId[message.json.requestId] = message.target;
         this.sendToNfcService("close", message.json);
         break;
       case "NFC:SendFile":
@@ -622,6 +551,7 @@ Nfc.prototype = {
         
         
         
+        this.targetsByRequestId[message.json.requestId] = message.target;
 
         
         gSystemMessenger.broadcastMessage("nfc-manager-send-file",
