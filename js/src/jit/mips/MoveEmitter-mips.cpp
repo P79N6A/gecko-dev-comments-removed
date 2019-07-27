@@ -271,16 +271,23 @@ MoveEmitterMIPS::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
         MOZ_ASSERT(from.isMemory());
         masm.loadDouble(getAdjustedAddress(from), to.floatReg());
     } else if (to.isGeneralReg()) {
-        MOZ_ASSERT(from.isMemory());
         
         
         
-        if(to.reg() == a2)
-            masm.loadPtr(getAdjustedAddress(from), a2);
-        else if(to.reg() == a3)
-            masm.loadPtr(Address(from.base(), getAdjustedOffset(from) + sizeof(uint32_t)), a3);
-        else
-            MOZ_CRASH("Invalid emitDoubleMove arguments.");
+        if (from.isMemory()) {
+            if(to.reg() == a2)
+                masm.loadPtr(getAdjustedAddress(from), a2);
+            else if(to.reg() == a3)
+                masm.loadPtr(Address(from.base(), getAdjustedOffset(from) + sizeof(uint32_t)), a3);
+            else
+                MOZ_CRASH("Invalid emitDoubleMove arguments.");
+        } else {
+            
+            if(to.reg() == a2 || to.reg() == a3)
+                masm.ma_move(to.reg(), from.reg());
+            else
+                MOZ_CRASH("Invalid emitDoubleMove arguments.");
+        }
     } else {
         MOZ_ASSERT(from.isMemory());
         MOZ_ASSERT(to.isMemory());
