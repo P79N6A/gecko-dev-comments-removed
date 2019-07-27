@@ -61,7 +61,7 @@ private:
    ScopedCERTCertList& mCertChain;
   void* mPinArg; 
   ScopedCERTCertificate mTrustedRoot;
-  unsigned int mMinimumNonECCBits;
+  unsigned int mMinRSABits;
 };
 
 } } 

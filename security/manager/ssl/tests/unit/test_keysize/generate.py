@@ -245,9 +245,6 @@ def generate_combination_chains():
 
 CertUtils.init_nss_db(srcdir)
 
-
-
-
 generate_rsa_chains('1016', '1024', False)
 generate_rsa_chains('2040', '2048', True)
 generate_ecc_chains()
