@@ -503,7 +503,10 @@ js::gc::GCRuntime::endVerifyPostBarriers()
     if (!edges.init())
         goto oom;
     trc->edges = &edges;
-    storeBuffer.markAll(trc);
+    {
+        gcstats::AutoPhase ap(stats, gcstats::PHASE_MINOR_GC);
+        storeBuffer.markAll(trc);
+    }
 
     
     trc->setTraceCallback(PostVerifierVisitEdge);
