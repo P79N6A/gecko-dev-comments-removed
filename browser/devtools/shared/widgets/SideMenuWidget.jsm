@@ -10,8 +10,11 @@ const Cu = Components.utils;
 
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
+const {DeferredTask} = Cu.import("resource://gre/modules/DeferredTask.jsm", {});
 
 this.EXPORTED_SYMBOLS = ["SideMenuWidget"];
+
+const SCROLL_FREQUENCY = 16;
 
 
 
@@ -114,17 +117,71 @@ SideMenuWidget.prototype = {
       
       (aIndex < 0 || aIndex >= this._orderedMenuElementsArray.length) &&
       
-      (this._list.scrollTop + this._list.clientHeight >= this._list.scrollHeight);
+      (!this._scrollToBottomTask || !this._scrollToBottomTask.isArmed) &&
+      
+      this.isScrolledToBottom();
 
     let group = this._getMenuGroupForName(aAttachment.group);
     let item = this._getMenuItemForGroup(group, aContents, aAttachment);
     let element = item.insertSelfAt(aIndex);
 
     if (maintainScrollAtBottom) {
-      this._list.scrollTop = this._list.scrollHeight;
+      this.scrollToBottom();
     }
 
     return element;
+  },
+
+  
+
+
+
+
+
+
+  isScrolledToBottom: function() {
+    if (this._list.lastElementChild) {
+      let utils = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+      let childRect = utils.getBoundsWithoutFlushing(this._list.lastElementChild);
+      let listRect = utils.getBoundsWithoutFlushing(this._list);
+
+      
+      return (childRect.height + childRect.top) <= listRect.bottom;
+    }
+
+    return false;
+  },
+
+  
+
+
+
+  scrollToBottom: function() {
+    
+    
+    if (!this._scrollToBottomTask) {
+      
+      
+      let ignoreNextScroll = false;
+
+      this._scrollToBottomTask = new DeferredTask(() => {
+        ignoreNextScroll = true;
+        this._list.scrollTop = this._list.scrollHeight;
+        this.emit("scroll-to-bottom");
+      }, SCROLL_FREQUENCY);
+
+      
+      this._list.addEventListener("scroll", () => {
+        if (!ignoreNextScroll && this._scrollToBottomTask.isArmed &&
+            !this.isScrolledToBottom()) {
+          this._scrollToBottomTask.disarm();
+        }
+        ignoreNextScroll = false;
+      }, true);
+    }
+
+    this._scrollToBottomTask.arm();
   },
 
   
