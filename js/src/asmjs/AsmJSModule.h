@@ -1538,7 +1538,7 @@ class AsmJSModule
 };
 
 
-extern bool
+extern JS::AsmJSCacheResult
 StoreAsmJSModuleInCache(AsmJSParser &parser,
                         const AsmJSModule &module,
                         ExclusiveContext *cx);

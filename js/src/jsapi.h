@@ -5238,6 +5238,19 @@ typedef void
 (* CloseAsmJSCacheEntryForReadOp)(size_t size, const uint8_t *memory, intptr_t handle);
 
 
+enum AsmJSCacheResult
+{
+    AsmJSCache_MIN,
+    AsmJSCache_Success = AsmJSCache_MIN,
+    AsmJSCache_ModuleTooSmall,
+    AsmJSCache_SynchronousScript,
+    AsmJSCache_QuotaExceeded,
+    AsmJSCache_Disabled_Internal,
+    AsmJSCache_Disabled_ShellFlags,
+    AsmJSCache_Disabled_JitInspector,
+    AsmJSCache_InternalError,
+    AsmJSCache_LIMIT
+};
 
 
 
@@ -5252,7 +5265,9 @@ typedef void
 
 
 
-typedef bool
+
+
+typedef AsmJSCacheResult
 (* OpenAsmJSCacheEntryForWriteOp)(HandleObject global, bool installed,
                                   const char16_t *begin, const char16_t *end,
                                   size_t size, uint8_t **memory, intptr_t *handle);
