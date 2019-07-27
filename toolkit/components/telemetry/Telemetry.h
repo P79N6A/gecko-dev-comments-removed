@@ -237,7 +237,7 @@ class ProcessedStack;
 
 
 
-#if defined(MOZ_ENABLE_PROFILER_SPS)
+#if defined(MOZ_ENABLE_PROFILER_SPS) && !defined(MOZILLA_XPCOMRT_API)
 void RecordChromeHang(uint32_t aDuration,
                       ProcessedStack &aStack,
                       int32_t aSystemUptime,

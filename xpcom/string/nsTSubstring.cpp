@@ -18,9 +18,7 @@ nsTSubstring_CharT::nsTSubstring_CharT(char_type* aData, size_type aLength,
 {
   if (aFlags & F_OWNED) {
     STRING_STAT_INCREMENT(Adopt);
-#ifdef NS_BUILD_REFCNT_LOGGING
-    NS_LogCtor(mData, "StringAdopt", 1);
-#endif
+    MOZ_LOG_CTOR(mData, "StringAdopt", 1);
   }
 }
 #endif 
@@ -460,11 +458,9 @@ nsTSubstring_CharT::Adopt(char_type* aData, size_type aLength)
     SetDataFlags(F_TERMINATED | F_OWNED);
 
     STRING_STAT_INCREMENT(Adopt);
-#ifdef NS_BUILD_REFCNT_LOGGING
     
     
-    NS_LogCtor(mData, "StringAdopt", 1);
-#endif 
+    MOZ_LOG_CTOR(mData, "StringAdopt", 1);
   } else {
     SetIsVoid(true);
   }

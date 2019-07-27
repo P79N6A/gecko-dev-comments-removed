@@ -3,6 +3,7 @@
 
 
 
+#if !defined(MOZILLA_XPCOMRT_API)
 #ifdef ACCESSIBILITY
 MOZ_SERVICE(AccessibilityService, nsIAccessibilityService,
             "@mozilla.org/accessibilityService;1")
@@ -17,8 +18,10 @@ MOZ_SERVICE(XULOverlayProviderService, nsIXULOverlayProvider,
             "@mozilla.org/chrome/chrome-registry;1")
 MOZ_SERVICE(IOService, nsIIOService,
             "@mozilla.org/network/io-service;1")
+#endif 
 MOZ_SERVICE(ObserverService, nsIObserverService,
             "@mozilla.org/observer-service;1")
+#if !defined(MOZILLA_XPCOMRT_API)
 MOZ_SERVICE(StringBundleService, nsIStringBundleService,
             "@mozilla.org/intl/stringbundle;1")
 MOZ_SERVICE(XPConnect, nsIXPConnect,
@@ -43,4 +46,5 @@ MOZ_SERVICE(HistoryService, IHistory,
 
 #ifdef MOZ_USE_NAMESPACE
 }
+#endif
 #endif
