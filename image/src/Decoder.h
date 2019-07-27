@@ -50,6 +50,11 @@ public:
 
 
 
+
+
+
+
+
   void Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
 
   
@@ -174,6 +179,11 @@ public:
 
   
   
+  
+  bool NeedsToFlushData() const { return mNeedsToFlushData; }
+
+  
+  
   virtual nsresult AllocateFrame();
 
   already_AddRefed<imgFrame> GetCurrentFrame() const
@@ -294,6 +304,7 @@ private:
   };
   NewFrameData mNewFrameData;
   bool mNeedsNewFrame;
+  bool mNeedsToFlushData;
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;

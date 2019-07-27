@@ -2331,10 +2331,8 @@ RasterImage::SyncDecode()
   }
 
   
-  
   if (mDecoder && mDecoder->NeedsNewFrame()) {
     mDecoder->AllocateFrame();
-    mDecodeRequest->mAllocatedNewFrame = true;
   }
 
   
@@ -2700,8 +2698,7 @@ RasterImage::DecodeSomeData(size_t aMaxBytes, DecodeStrategy aStrategy)
   
   
   
-  if (mDecodeRequest->mAllocatedNewFrame) {
-    mDecodeRequest->mAllocatedNewFrame = false;
+  if (mDecoder->NeedsToFlushData()) {
     nsresult rv = WriteToDecoder(nullptr, 0, aStrategy);
     if (NS_FAILED(rv) || mDecoder->NeedsNewFrame()) {
       return rv;
@@ -2747,8 +2744,7 @@ RasterImage::IsDecodeFinished()
   
   
   
-  if (mDecoder->NeedsNewFrame() ||
-      (mDecodeRequest && mDecodeRequest->mAllocatedNewFrame)) {
+  if (mDecoder->NeedsNewFrame() || mDecoder->NeedsToFlushData()) {
     return false;
   }
 
@@ -3355,9 +3351,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
   
   if (aStrategy == DECODE_SYNC && aImg->mDecoder->NeedsNewFrame()) {
     MOZ_ASSERT(NS_IsMainThread());
-
     aImg->mDecoder->AllocateFrame();
-    aImg->mDecodeRequest->mAllocatedNewFrame = true;
   }
 
   
@@ -3398,7 +3392,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
           !aImg->IsDecodeFinished() &&
           !(aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize) &&
           !aImg->mDecoder->NeedsNewFrame()) ||
-         (aImg->mDecodeRequest && aImg->mDecodeRequest->mAllocatedNewFrame)) {
+         aImg->mDecoder->NeedsToFlushData()) {
     uint32_t chunkSize = std::min(bytesToDecode, maxBytes);
     nsresult rv = aImg->DecodeSomeData(chunkSize, aStrategy);
     if (NS_FAILED(rv)) {
@@ -3464,7 +3458,6 @@ RasterImage::FrameNeededWorker::Run()
   
   if (mImage->mDecoder && mImage->mDecoder->NeedsNewFrame()) {
     rv = mImage->mDecoder->AllocateFrame();
-    mImage->mDecodeRequest->mAllocatedNewFrame = true;
   }
 
   if (NS_SUCCEEDED(rv) && mImage->mDecoder) {

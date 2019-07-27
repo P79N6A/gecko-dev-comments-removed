@@ -182,19 +182,10 @@ void
 nsJPEGDecoder::FinishInternal()
 {
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
   if ((mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) &&
       (mState != JPEG_ERROR) &&
       !IsSizeDecode()) {
-    this->Write(nullptr, 0, DECODE_SYNC);
+    mState = JPEG_DONE;
   }
 }
 
