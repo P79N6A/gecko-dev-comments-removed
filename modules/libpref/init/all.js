@@ -133,6 +133,9 @@ pref("dom.workers.maxPerDomain", 20);
 pref("dom.workers.sharedWorkers.enabled", true);
 
 
+
+
+
 pref("dom.workers.websocket.enabled", true);
 
 
@@ -247,6 +250,9 @@ pref("browser.triple_click_selects_paragraph", true);
 
 
 pref("print.shrink-to-fit.scale-limit-percent", 20);
+
+
+pref("mathml.scale_stretchy_operators.enabled", true);
 
 
 pref("media.cache_size", 512000);
@@ -438,7 +444,7 @@ pref("media.track.enabled", false);
 
 
 
-#if defined(XP_WIN) || defined(XP_MACOSX)
+#if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_GONK)
 pref("media.mediasource.enabled", true);
 #else
 pref("media.mediasource.enabled", false);
@@ -2387,7 +2393,7 @@ pref("dom.ipc.plugins.timeoutSecs", 45);
 pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
-pref("dom.ipc.plugins.contentTimeoutSecs", 45);
+pref("dom.ipc.plugins.contentTimeoutSecs", 10);
 
 
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
