@@ -9,6 +9,13 @@
 #include "JSStreamWriter.h"
 #include "mozilla/TimeStamp.h"
 #include "nsAutoPtr.h"
+#include "Units.h"    
+
+namespace mozilla {
+namespace layers {
+class Layer;
+} 
+} 
 
 
 
@@ -120,6 +127,45 @@ private:
 
   const char* mSource;
   char* mFilename;
+};
+
+
+
+
+
+class LayerTranslationPayload : public ProfilerMarkerPayload
+{
+public:
+  LayerTranslationPayload(mozilla::layers::Layer* aLayer,
+                          mozilla::gfx::Point aPoint);
+
+protected:
+  virtual void
+  streamPayload(JSStreamWriter& b) { return streamPayloadImpl(b); }
+
+private:
+  void streamPayloadImpl(JSStreamWriter& b);
+  mozilla::layers::Layer* mLayer;
+  mozilla::gfx::Point mPoint;
+};
+
+
+
+
+
+class TouchDataPayload : public ProfilerMarkerPayload
+{
+public:
+  TouchDataPayload(const mozilla::ScreenIntPoint& aPoint);
+  virtual ~TouchDataPayload() {}
+
+protected:
+  virtual void
+  streamPayload(JSStreamWriter& b) { return streamPayloadImpl(b); }
+
+private:
+  void streamPayloadImpl(JSStreamWriter& b);
+  mozilla::ScreenIntPoint mPoint;
 };
 
 #endif 
