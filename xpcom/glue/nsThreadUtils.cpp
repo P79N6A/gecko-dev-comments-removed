@@ -139,9 +139,13 @@ NS_IsMainThread()
 }
 #endif
 
+
+
+
 NS_METHOD
 NS_DispatchToCurrentThread(nsIRunnable* aEvent)
 {
+  nsCOMPtr<nsIRunnable> deathGrip = aEvent;
 #ifdef MOZILLA_INTERNAL_API
   nsIThread* thread = NS_GetCurrentThread();
   if (!thread) {
@@ -156,6 +160,11 @@ NS_DispatchToCurrentThread(nsIRunnable* aEvent)
 #endif
   return thread->Dispatch(aEvent, NS_DISPATCH_NORMAL);
 }
+
+
+
+
+
 
 NS_METHOD
 NS_DispatchToMainThread(nsIRunnable* aEvent, uint32_t aDispatchFlags)
