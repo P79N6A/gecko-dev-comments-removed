@@ -26,8 +26,8 @@ class TrackUnionStream : public ProcessedMediaStream {
 public:
   TrackUnionStream(DOMMediaStream* aWrapper) :
     ProcessedMediaStream(aWrapper),
-    mFilterCallback(nullptr),
-    mMaxTrackID(0) {}
+    mFilterCallback(nullptr)
+  {}
 
   virtual void RemoveInput(MediaInputPort* aPort) MOZ_OVERRIDE
   {
@@ -165,8 +165,19 @@ protected:
   {
     
     
-    TrackID id = std::max(mMaxTrackID + 1, aTrack->GetID());
-    mMaxTrackID = id;
+    TrackID id = aTrack->GetID();
+    TrackID maxTrackID = 0;
+    bool found = false;
+    for (uint32_t i = 0; i < mTrackMap.Length(); ++i) {
+      TrackID outID = mTrackMap[i].mOutputTrackID;
+      if (outID == id) {
+        found = true;
+      }
+      maxTrackID = std::max(maxTrackID, outID);
+    }
+    if (found) {
+      id = maxTrackID + 1;
+    }
 
     TrackRate rate = aTrack->GetRate();
     
@@ -343,7 +354,6 @@ protected:
   }
 
   nsTArray<TrackMapEntry> mTrackMap;
-  TrackID mMaxTrackID;
 };
 
 }
