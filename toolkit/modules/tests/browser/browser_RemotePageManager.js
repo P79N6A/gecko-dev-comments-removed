@@ -49,6 +49,16 @@ function waitForPage(pages) {
   });
 }
 
+function swapDocShells(browser1, browser2) {
+  
+  browser1.swapDocShells(browser2);
+
+  
+  let tmp = browser1.permanentKey;
+  browser1.permanentKey = browser2.permanentKey;
+  browser2.permanentKey = tmp;
+}
+
 
 
 
@@ -193,7 +203,7 @@ add_task(function* browser_switch() {
   port1.removeMessageListener("Cookie", failOnMessage);
   is(message.data.value, "om nom nom", "Should have the right cookie");
 
-  browser1.swapDocShells(browser2);
+  swapDocShells(browser1, browser2);
   is(port1.browser, browser2, "Should have noticed the swap");
   is(port2.browser, browser1, "Should have noticed the swap");
 
@@ -210,7 +220,7 @@ add_task(function* browser_switch() {
   port1.removeMessageListener("Cookie", failOnMessage);
   is(message.data.value, "om nom nom", "Should have the right cookie");
 
-  browser1.swapDocShells(browser2);
+  swapDocShells(browser1, browser2);
   is(port1.browser, browser1, "Should have noticed the swap");
   is(port2.browser, browser2, "Should have noticed the swap");
 
