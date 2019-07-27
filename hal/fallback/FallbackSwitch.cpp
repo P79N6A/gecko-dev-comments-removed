@@ -30,5 +30,10 @@ NotifySwitchStateFromInputDevice(SwitchDevice aDevice, SwitchState aState)
 {
 }
 
+bool IsHeadphoneEventFromInputDev()
+{
+  return false;
+}
+
 } 
 } 
