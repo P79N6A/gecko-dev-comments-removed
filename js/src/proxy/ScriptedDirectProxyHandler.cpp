@@ -1175,6 +1175,14 @@ ScriptedDirectProxyHandler::isConstructor(JSObject* obj) const
 const char ScriptedDirectProxyHandler::family = 0;
 const ScriptedDirectProxyHandler ScriptedDirectProxyHandler::singleton;
 
+bool
+IsRevokedScriptedProxy(JSObject* obj)
+{
+    obj = CheckedUnwrap(obj);
+    return obj && IsScriptedProxy(obj) && !obj->as<ProxyObject>().target();
+}
+
+
 static bool
 NewScriptedProxy(JSContext* cx, CallArgs& args, const char* callerName)
 {
@@ -1183,18 +1191,38 @@ NewScriptedProxy(JSContext* cx, CallArgs& args, const char* callerName)
                              callerName, "1", "s");
         return false;
     }
+
+    
     RootedObject target(cx, NonNullObject(cx, args[0]));
     if (!target)
         return false;
+
+    
+    if (IsRevokedScriptedProxy(target)) {
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_PROXY_ARG_REVOKED, "1");
+        return false;
+    }
+
+    
     RootedObject handler(cx, NonNullObject(cx, args[1]));
     if (!handler)
         return false;
+
+    
+    if (IsRevokedScriptedProxy(handler)) {
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_PROXY_ARG_REVOKED, "2");
+        return false;
+    }
+
+    
     RootedValue priv(cx, ObjectValue(*target));
     JSObject* proxy_ =
         NewProxyObject(cx, &ScriptedDirectProxyHandler::singleton,
                        priv, TaggedProto::LazyProto);
     if (!proxy_)
         return false;
+
+    
     Rooted<ProxyObject*> proxy(cx, &proxy_->as<ProxyObject>());
     proxy->setExtra(ScriptedDirectProxyHandler::HANDLER_EXTRA, ObjectValue(*handler));
 
@@ -1203,6 +1231,8 @@ NewScriptedProxy(JSContext* cx, CallArgs& args, const char* callerName)
     uint32_t constructor = target->isConstructor() ? ScriptedDirectProxyHandler::IS_CONSTRUCTOR : 0;
     proxy->as<ProxyObject>().setExtra(ScriptedDirectProxyHandler::IS_CALLCONSTRUCT_EXTRA,
                                       PrivateUint32Value(callable | constructor));
+
+    
     args.rval().setObject(*proxy);
     return true;
 }
