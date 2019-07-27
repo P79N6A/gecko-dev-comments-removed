@@ -16,8 +16,8 @@
 #include "nsCycleCollectionParticipant.h"
 
 #include "nsAutoPtr.h"
+#include "nsDOMFile.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/File.h"
 
 class nsINode;
 class nsITransferable;
@@ -143,7 +143,7 @@ public:
                ErrorResult& aRv);
   void ClearData(const mozilla::dom::Optional<nsAString>& aFormat,
                  mozilla::ErrorResult& aRv);
-  FileList* GetFiles(mozilla::ErrorResult& aRv);
+  nsDOMFileList* GetFiles(mozilla::ErrorResult& aRv);
   void AddElement(Element& aElement, mozilla::ErrorResult& aRv);
   uint32_t MozItemCount()
   {
@@ -278,7 +278,7 @@ protected:
   nsTArray<nsTArray<TransferItem> > mItems;
 
   
-  nsRefPtr<FileList> mFiles;
+  nsRefPtr<nsDOMFileList> mFiles;
 
   
   nsCOMPtr<mozilla::dom::Element> mDragTarget;

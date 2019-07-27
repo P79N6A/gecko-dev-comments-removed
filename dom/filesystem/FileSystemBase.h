@@ -16,7 +16,7 @@ namespace mozilla {
 namespace dom {
 
 class Directory;
-class FileImpl;
+class DOMFileImpl;
 
 class FileSystemBase
 {
@@ -73,7 +73,7 @@ public:
 
 
   virtual bool
-  GetRealPath(FileImpl* aFile, nsAString& aRealPath) const = 0;
+  GetRealPath(DOMFileImpl* aFile, nsAString& aRealPath) const = 0;
 
   
 

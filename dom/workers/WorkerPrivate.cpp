@@ -12,6 +12,7 @@
 #include "nsIConsoleService.h"
 #include "nsIDOMDOMException.h"
 #include "nsIDOMEvent.h"
+#include "nsIDOMFile.h"
 #include "nsIDOMMessageEvent.h"
 #include "nsIDocument.h"
 #include "nsIDocShell.h"
@@ -39,7 +40,6 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/ErrorEventBinding.h"
 #include "mozilla/dom/Exceptions.h"
@@ -74,6 +74,7 @@
 #include "nsThreadManager.h"
 #endif
 
+#include "File.h"
 #include "MessagePort.h"
 #include "Navigator.h"
 #include "Principal.h"
@@ -299,10 +300,36 @@ struct WorkerStructuredCloneCallbacks
     JS::Rooted<JSObject*> result(aCx);
 
     
-    if (aTag == DOMWORKER_SCTAG_BLOB) {
+    if (aTag == DOMWORKER_SCTAG_FILE) {
       MOZ_ASSERT(!aData);
 
-      FileImpl* blobImpl;
+      DOMFileImpl* fileImpl;
+      if (JS_ReadBytes(aReader, &fileImpl, sizeof(fileImpl))) {
+        MOZ_ASSERT(fileImpl);
+
+#ifdef DEBUG
+        {
+          
+          bool isMutable;
+          NS_ASSERTION(NS_SUCCEEDED(fileImpl->GetMutable(&isMutable)) &&
+                       !isMutable,
+                       "Only immutable file should be passed to worker");
+        }
+#endif
+
+        {
+          
+          nsRefPtr<DOMFile> file = new DOMFile(fileImpl);
+          result = file::CreateFile(aCx, file);
+        }
+        return result;
+      }
+    }
+    
+    else if (aTag == DOMWORKER_SCTAG_BLOB) {
+      MOZ_ASSERT(!aData);
+
+      DOMFileImpl* blobImpl;
       if (JS_ReadBytes(aReader, &blobImpl, sizeof(blobImpl))) {
         MOZ_ASSERT(blobImpl);
 
@@ -318,13 +345,9 @@ struct WorkerStructuredCloneCallbacks
 
         {
           
-          nsRefPtr<File> blob = new File(nullptr, blobImpl);
-          JS::Rooted<JS::Value> val(aCx);
-          if (WrapNewBindingObject(aCx, blob, &val)) {
-            result = val.toObjectOrNull();
-          }
+          nsRefPtr<DOMFile> blob = new DOMFile(blobImpl);
+          result = file::CreateBlob(aCx, blob);
         }
-
         return result;
       }
     }
@@ -350,9 +373,22 @@ struct WorkerStructuredCloneCallbacks
 
     
     {
-      File* blob = nullptr;
-      if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, aObj, blob))) {
-        FileImpl* blobImpl = blob->Impl();
+      nsIDOMFile* file = file::GetDOMFileFromJSObject(aObj);
+      if (file) {
+        DOMFileImpl* fileImpl = static_cast<DOMFile*>(file)->Impl();
+        if (JS_WriteUint32Pair(aWriter, DOMWORKER_SCTAG_FILE, 0) &&
+            JS_WriteBytes(aWriter, &fileImpl, sizeof(fileImpl))) {
+          clonedObjects->AppendElement(fileImpl);
+          return true;
+        }
+      }
+    }
+
+    
+    {
+      nsIDOMBlob* blob = file::GetDOMBlobFromJSObject(aObj);
+      if (blob) {
+        DOMFileImpl* blobImpl = static_cast<DOMFile*>(blob)->Impl();
         if (blobImpl && NS_SUCCEEDED(blobImpl->SetMutable(false)) &&
             JS_WriteUint32Pair(aWriter, DOMWORKER_SCTAG_BLOB, 0) &&
             JS_WriteBytes(aWriter, &blobImpl, sizeof(blobImpl))) {
@@ -399,10 +435,44 @@ struct MainThreadWorkerStructuredCloneCallbacks
     AssertIsOnMainThread();
 
     
-    if (aTag == DOMWORKER_SCTAG_BLOB) {
+    if (aTag == DOMWORKER_SCTAG_FILE) {
       MOZ_ASSERT(!aData);
 
-      FileImpl* blobImpl;
+      DOMFileImpl* fileImpl;
+      if (JS_ReadBytes(aReader, &fileImpl, sizeof(fileImpl))) {
+        MOZ_ASSERT(fileImpl);
+
+#ifdef DEBUG
+        {
+          
+          bool isMutable;
+          NS_ASSERTION(NS_SUCCEEDED(fileImpl->GetMutable(&isMutable)) &&
+                       !isMutable,
+                       "Only immutable file should be passed to worker");
+        }
+#endif
+
+        nsCOMPtr<nsIDOMFile> file = new DOMFile(fileImpl);
+
+        
+        
+        JS::Rooted<JS::Value> wrappedFile(aCx);
+        nsresult rv = nsContentUtils::WrapNative(aCx, file,
+                                                 &NS_GET_IID(nsIDOMFile),
+                                                 &wrappedFile);
+        if (NS_FAILED(rv)) {
+          Error(aCx, nsIDOMDOMException::DATA_CLONE_ERR);
+          return nullptr;
+        }
+
+        return &wrappedFile.toObject();
+      }
+    }
+    
+    else if (aTag == DOMWORKER_SCTAG_BLOB) {
+      MOZ_ASSERT(!aData);
+
+      DOMFileImpl* blobImpl;
       if (JS_ReadBytes(aReader, &blobImpl, sizeof(blobImpl))) {
         MOZ_ASSERT(blobImpl);
 
@@ -416,20 +486,20 @@ struct MainThreadWorkerStructuredCloneCallbacks
         }
 #endif
 
+        nsCOMPtr<nsIDOMBlob> blob = new DOMFile(blobImpl);
+
         
         
-        
-        
-        
-        JS::Rooted<JS::Value> val(aCx);
-        {
-          nsRefPtr<File> blob = new File(nullptr, blobImpl);
-          if (!WrapNewBindingObject(aCx, blob, &val)) {
-            return nullptr;
-          }
+        JS::Rooted<JS::Value> wrappedBlob(aCx);
+        nsresult rv = nsContentUtils::WrapNative(aCx, blob,
+                                                 &NS_GET_IID(nsIDOMBlob),
+                                                 &wrappedBlob);
+        if (NS_FAILED(rv)) {
+          Error(aCx, nsIDOMDOMException::DATA_CLONE_ERR);
+          return nullptr;
         }
 
-        return &val.toObject();
+        return &wrappedBlob.toObject();
       }
     }
 
@@ -450,17 +520,52 @@ struct MainThreadWorkerStructuredCloneCallbacks
       static_cast<nsTArray<nsCOMPtr<nsISupports> >*>(aClosure);
 
     
-    {
-      File* blob = nullptr;
-      if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, aObj, blob))) {
-        FileImpl* blobImpl = blob->Impl();
+    nsCOMPtr<nsIXPConnectWrappedNative> wrappedNative;
+    nsContentUtils::XPConnect()->
+      GetWrappedNativeOfJSObject(aCx, aObj, getter_AddRefs(wrappedNative));
+
+    if (wrappedNative) {
+      
+      nsISupports* wrappedObject = wrappedNative->Native();
+      NS_ASSERTION(wrappedObject, "Null pointer?!");
+
+      
+      nsCOMPtr<nsIDOMFile> file = do_QueryInterface(wrappedObject);
+      if (file) {
+        nsRefPtr<DOMFileImpl> fileImpl =
+          static_cast<DOMFile*>(file.get())->Impl();
+
+        if (fileImpl->IsCCed()) {
+          NS_WARNING("Cycle collected file objects are not supported!");
+        } else {
+          if (NS_SUCCEEDED(fileImpl->SetMutable(false))) {
+            DOMFileImpl* fileImplPtr = fileImpl;
+            if (JS_WriteUint32Pair(aWriter, DOMWORKER_SCTAG_FILE, 0) &&
+                JS_WriteBytes(aWriter, &fileImplPtr, sizeof(fileImplPtr))) {
+              clonedObjects->AppendElement(fileImpl);
+              return true;
+            }
+          }
+        }
+      }
+
+      
+      nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(wrappedObject);
+      if (blob) {
+        nsRefPtr<DOMFileImpl> blobImpl =
+          static_cast<DOMFile*>(blob.get())->Impl();
+
         if (blobImpl->IsCCed()) {
           NS_WARNING("Cycle collected blob objects are not supported!");
-        } else if (NS_SUCCEEDED(blobImpl->SetMutable(false)) &&
-                   JS_WriteUint32Pair(aWriter, DOMWORKER_SCTAG_BLOB, 0) &&
-                   JS_WriteBytes(aWriter, &blobImpl, sizeof(blobImpl))) {
-          clonedObjects->AppendElement(blobImpl);
-          return true;
+        } else {
+          if (NS_SUCCEEDED(blobImpl->SetMutable(false))) {
+            DOMFileImpl* blobImplPtr = blobImpl;
+            if (JS_WriteUint32Pair(aWriter, DOMWORKER_SCTAG_BLOB, 0) &&
+                JS_WriteBytes(aWriter, &blobImplPtr, sizeof(blobImplPtr))) {
+              clonedObjects->AppendElement(blobImpl);
+              return true;
+            }
+          }
         }
       }
     }

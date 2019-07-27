@@ -16,7 +16,6 @@
 
 class nsIWidget;
 class nsIFile;
-class nsPIDOMWindow;
 
 
 
@@ -59,7 +58,6 @@ private:
     ~nsFilePickerProxy();
     void InitNative(nsIWidget*, const nsAString&);
 
-    nsCOMPtr<nsPIDOMWindow> mParent;
     nsCOMArray<nsIDOMFile> mDomfiles;
     nsCOMPtr<nsIFilePickerShownCallback> mCallback;
 

@@ -9,9 +9,9 @@
 
 #include "ArchiveReader.h"
 
-#include "mozilla/dom/File.h"
 #include "nsISeekableStream.h"
 #include "nsIMIMEService.h"
+#include "nsDOMFile.h"
 
 #include "ArchiveReaderCommon.h"
 

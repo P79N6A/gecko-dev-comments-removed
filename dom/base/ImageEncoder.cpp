@@ -88,10 +88,8 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
 
     if (!mFailed) {
-      
-      nsRefPtr<File> blob =
-        File::CreateMemoryFile(nullptr, mImgData, mImgSize, mType);
-      MOZ_ASSERT(blob);
+      nsRefPtr<DOMFile> blob =
+        DOMFile::CreateMemoryFile(mImgData, mImgSize, mType);
 
       rv = mEncodeCompleteCallback->ReceiveBlob(blob.forget());
     }

@@ -25,7 +25,6 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "mozilla/dom/DOMStringListBinding.h"
-#include "mozilla/dom/File.h"
 #include "mozilla/dom/IDBDatabaseBinding.h"
 #include "mozilla/dom/IDBObjectStoreBinding.h"
 #include "mozilla/dom/indexedDB/PBackgroundIDBDatabaseFileChild.h"
@@ -39,7 +38,9 @@
 #include "mozilla/ipc/InputStreamParams.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "nsCOMPtr.h"
+#include "nsDOMFile.h"
 #include "nsIDocument.h"
+#include "nsIDOMFile.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsISupportsPrimitives.h"
@@ -802,7 +803,7 @@ IDBDatabase::AbortTransactions()
 }
 
 PBackgroundIDBDatabaseFileChild*
-IDBDatabase::GetOrCreateFileActorForBlob(File* aBlob)
+IDBDatabase::GetOrCreateFileActorForBlob(nsIDOMBlob* aBlob)
 {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aBlob);
@@ -812,14 +813,13 @@ IDBDatabase::GetOrCreateFileActorForBlob(File* aBlob)
   
   
   
-  nsCOMPtr<nsIDOMBlob> blob = aBlob;
-  nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(blob);
+  nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(aBlob);
   MOZ_ASSERT(weakRef);
 
   PBackgroundIDBDatabaseFileChild* actor = nullptr;
 
   if (!mFileActors.Get(weakRef, &actor)) {
-    FileImpl* blobImpl = aBlob->Impl();
+    DOMFileImpl* blobImpl = static_cast<DOMFile*>(aBlob)->Impl();
     MOZ_ASSERT(blobImpl);
 
     if (mReceivedBlobs.GetEntry(weakRef)) {
@@ -911,7 +911,7 @@ IDBDatabase::NoteFinishedFileActor(PBackgroundIDBDatabaseFileChild* aFileActor)
 }
 
 void
-IDBDatabase::NoteReceivedBlob(File* aBlob)
+IDBDatabase::NoteReceivedBlob(nsIDOMBlob* aBlob)
 {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aBlob);
@@ -919,7 +919,7 @@ IDBDatabase::NoteReceivedBlob(File* aBlob)
 
 #ifdef DEBUG
   {
-    nsRefPtr<FileImpl> blobImpl = aBlob->Impl();
+    nsRefPtr<DOMFileImpl> blobImpl = static_cast<DOMFile*>(aBlob)->Impl();
     MOZ_ASSERT(blobImpl);
 
     nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryObject(blobImpl);
@@ -938,8 +938,7 @@ IDBDatabase::NoteReceivedBlob(File* aBlob)
   }
 #endif
 
-  nsCOMPtr<nsIDOMBlob> blob = aBlob;
-  nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(blob);
+  nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(aBlob);
   MOZ_ASSERT(weakRef);
 
   

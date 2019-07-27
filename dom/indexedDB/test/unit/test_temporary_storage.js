@@ -3,8 +3,6 @@
 
 
 
-Components.utils.importGlobalProperties(['Blob']);
-
 var testGenerator = testSteps();
 
 function testSteps()

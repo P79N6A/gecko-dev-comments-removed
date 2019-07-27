@@ -13,8 +13,8 @@
 namespace mozilla {
 
 namespace dom {
-class File;
 class ImageCapture;
+class DOMFile;
 }
 
 
@@ -51,7 +51,7 @@ public:
   
   
   
-  nsresult TaskComplete(already_AddRefed<dom::File> aBlob, nsresult aRv);
+  nsresult TaskComplete(already_AddRefed<dom::DOMFile> aBlob, nsresult aRv);
 
   
   

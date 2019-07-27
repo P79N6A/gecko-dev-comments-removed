@@ -41,6 +41,8 @@
 #endif
 
 class AsyncVerifyRedirectCallbackForwarder;
+class BlobSet;
+class nsDOMFile;
 class nsFormData;
 class nsIJARChannel;
 class nsILoadGroup;
@@ -50,8 +52,7 @@ class nsIJSID;
 namespace mozilla {
 
 namespace dom {
-class BlobSet;
-class File;
+class DOMFile;
 }
 
 
@@ -349,9 +350,9 @@ private:
     {
       mValue.mArrayBufferView = aArrayBufferView;
     }
-    explicit RequestBody(mozilla::dom::File& aBlob) : mType(Blob)
+    explicit RequestBody(nsIDOMBlob* aBlob) : mType(Blob)
     {
-      mValue.mBlob = &aBlob;
+      mValue.mBlob = aBlob;
     }
     explicit RequestBody(nsIDocument* aDocument) : mType(Document)
     {
@@ -383,7 +384,7 @@ private:
     union Value {
       const mozilla::dom::ArrayBuffer* mArrayBuffer;
       const mozilla::dom::ArrayBufferView* mArrayBufferView;
-      mozilla::dom::File* mBlob;
+      nsIDOMBlob* mBlob;
       nsIDocument* mDocument;
       const nsAString* mString;
       nsFormData* mFormData;
@@ -439,8 +440,9 @@ public:
   {
     aRv = Send(RequestBody(&aArrayBufferView));
   }
-  void Send(mozilla::dom::File& aBlob, ErrorResult& aRv)
+  void Send(nsIDOMBlob* aBlob, ErrorResult& aRv)
   {
+    NS_ASSERTION(aBlob, "Null should go to string version");
     aRv = Send(RequestBody(aBlob));
   }
   void Send(nsIDocument& aDoc, ErrorResult& aRv)
@@ -670,13 +672,13 @@ protected:
 
   
   
-  nsRefPtr<mozilla::dom::File> mResponseBlob;
+  nsCOMPtr<nsIDOMBlob> mResponseBlob;
   
   
-  nsRefPtr<mozilla::dom::File> mDOMFile;
+  nsRefPtr<mozilla::dom::DOMFile> mDOMFile;
   
   
-  nsAutoPtr<mozilla::dom::BlobSet> mBlobSet;
+  nsAutoPtr<BlobSet> mBlobSet;
 
   nsString mOverrideMimeType;
 

@@ -14,7 +14,7 @@
 namespace mozilla {
 namespace dom {
 
-class FileImpl;
+class DOMFileImpl;
 
 class GetFileOrDirectoryTask MOZ_FINAL
   : public FileSystemTaskBase
@@ -61,7 +61,7 @@ private:
 
   
   
-  nsRefPtr<FileImpl> mTargetFileImpl;
+  nsRefPtr<DOMFileImpl> mTargetFileImpl;
 };
 
 } 

@@ -33,7 +33,7 @@ class PBackgroundParent;
 namespace dom {
 
 class ContentParent;
-class FileImpl;
+class DOMFileImpl;
 class nsIContentParent;
 class PBlobStreamParent;
 
@@ -57,7 +57,7 @@ class BlobParent MOZ_FINAL
   static StaticAutoPtr<IDTable> sIDTable;
   static StaticAutoPtr<Mutex> sIDTableMutex;
 
-  FileImpl* mBlobImpl;
+  DOMFileImpl* mBlobImpl;
   RemoteBlobImplBase* mRemoteBlobImpl;
 
   
@@ -87,10 +87,10 @@ public:
 
   
   static BlobParent*
-  GetOrCreate(nsIContentParent* aManager, FileImpl* aBlobImpl);
+  GetOrCreate(nsIContentParent* aManager, DOMFileImpl* aBlobImpl);
 
   static BlobParent*
-  GetOrCreate(PBackgroundParent* aManager, FileImpl* aBlobImpl);
+  GetOrCreate(PBackgroundParent* aManager, DOMFileImpl* aBlobImpl);
 
   
   static BlobParent*
@@ -126,8 +126,13 @@ public:
   }
 
   
-  already_AddRefed<FileImpl>
+  already_AddRefed<DOMFileImpl>
   GetBlobImpl();
+
+  
+  
+  already_AddRefed<nsIDOMBlob>
+  GetBlob();
 
   void
   AssertIsOnOwningThread() const
@@ -165,7 +170,7 @@ private:
   template <class ParentManagerType>
   static BlobParent*
   GetOrCreateFromImpl(ParentManagerType* aManager,
-                      FileImpl* aBlobImpl);
+                      DOMFileImpl* aBlobImpl);
 
   template <class ParentManagerType>
   static BlobParent*

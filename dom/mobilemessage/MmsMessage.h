@@ -16,8 +16,6 @@
 namespace mozilla {
 namespace dom {
 
-class File;
-
 namespace mobilemessage {
 class MmsMessageData;
 } 
@@ -33,7 +31,7 @@ public:
   
   struct Attachment MOZ_FINAL
   {
-    nsRefPtr<File> content;
+    nsCOMPtr<nsIDOMBlob> content;
     nsString id;
     nsString location;
 

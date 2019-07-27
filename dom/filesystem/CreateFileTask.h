@@ -11,13 +11,13 @@
 #include "nsAutoPtr.h"
 #include "mozilla/ErrorResult.h"
 
+class nsIDOMBlob;
 class nsIInputStream;
 
 namespace mozilla {
 namespace dom {
 
-class File;
-class FileImpl;
+class DOMFileImpl;
 class Promise;
 
 class CreateFileTask MOZ_FINAL
@@ -26,7 +26,7 @@ class CreateFileTask MOZ_FINAL
 public:
   CreateFileTask(FileSystemBase* aFileSystem,
                  const nsAString& aPath,
-                 File* aBlobData,
+                 nsIDOMBlob* aBlobData,
                  InfallibleTArray<uint8_t>& aArrayData,
                  bool replace,
                  ErrorResult& aRv);
@@ -68,7 +68,7 @@ private:
   nsString mTargetRealPath;
 
   
-  nsRefPtr<File> mBlobData;
+  nsCOMPtr<nsIDOMBlob> mBlobData;
 
   nsCOMPtr<nsIInputStream> mBlobStream;
   InfallibleTArray<uint8_t> mArrayData;
@@ -76,7 +76,7 @@ private:
 
   
   
-  nsRefPtr<FileImpl> mTargetFileImpl;
+  nsRefPtr<DOMFileImpl> mTargetFileImpl;
 };
 
 } 

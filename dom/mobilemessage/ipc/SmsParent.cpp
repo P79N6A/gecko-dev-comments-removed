@@ -15,9 +15,9 @@
 #include "MmsMessage.h"
 #include "nsIMobileMessageDatabaseService.h"
 #include "MobileMessageThread.h"
+#include "nsIDOMFile.h"
 #include "mozilla/dom/ipc/BlobParent.h"
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/dom/File.h"
 #include "mozilla/dom/mobilemessage/Constants.h" 
 #include "nsContentUtils.h"
 #include "nsTArrayHelpers.h"
@@ -53,24 +53,13 @@ MmsAttachmentDataToJSObject(JSContext* aContext,
     return nullptr;
   }
 
-  nsRefPtr<FileImpl> blobImpl = static_cast<BlobParent*>(aAttachment.contentParent())->GetBlobImpl();
-
-  
-  
-  
-  
-  
+  nsCOMPtr<nsIDOMBlob> blob = static_cast<BlobParent*>(aAttachment.contentParent())->GetBlob();
   JS::Rooted<JS::Value> content(aContext);
-  {
-    nsIGlobalObject *global = xpc::NativeGlobal(JS::CurrentGlobalOrNull(aContext));
-    MOZ_ASSERT(global);
-
-    nsRefPtr<File> blob = new File(global, blobImpl);
-    if (!WrapNewBindingObject(aContext, blob, &content)) {
-      return nullptr;
-    }
-  }
-
+  nsresult rv = nsContentUtils::WrapNative(aContext,
+                                           blob,
+                                           &NS_GET_IID(nsIDOMBlob),
+                                           &content);
+  NS_ENSURE_SUCCESS(rv, nullptr);
   if (!JS_DefineProperty(aContext, obj, "content", content, 0)) {
     return nullptr;
   }
