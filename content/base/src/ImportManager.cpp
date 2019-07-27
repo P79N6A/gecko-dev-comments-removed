@@ -91,6 +91,10 @@ ImportLoader::Updater::GetReferrerChain(nsINode* aNode,
 bool
 ImportLoader::Updater::ShouldUpdate(nsTArray<nsINode*>& aNewPath)
 {
+  if (mLoader->Manager()->GetNearestPredecessor(mLoader->GetMainReferrer()) !=
+      mLoader->mBlockingPredecessor) {
+    return true;
+  }
   
   
   
