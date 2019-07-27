@@ -3,42 +3,31 @@
 
 "use strict";
 
-const CALLTREE_UPDATE_DEBOUNCE = 50; 
 
 
 
+let CallTreeView = Heritage.extend(DetailsSubview, {
+  rangeChangeDebounceTime: 50, 
 
-let CallTreeView = {
   
 
 
   initialize: function () {
-    this._onRecordingStoppedOrSelected = this._onRecordingStoppedOrSelected.bind(this);
-    this._onRangeChange = this._onRangeChange.bind(this);
-    this._onDetailsViewSelected = this._onDetailsViewSelected.bind(this);
+    DetailsSubview.initialize.call(this);
+
     this._onPrefChanged = this._onPrefChanged.bind(this);
     this._onLink = this._onLink.bind(this);
 
-    PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
-    PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingStoppedOrSelected);
     PerformanceController.on(EVENTS.PREF_CHANGED, this._onPrefChanged);
-    OverviewView.on(EVENTS.OVERVIEW_RANGE_SELECTED, this._onRangeChange);
-    OverviewView.on(EVENTS.OVERVIEW_RANGE_CLEARED, this._onRangeChange);
-    DetailsView.on(EVENTS.DETAILS_VIEW_SELECTED, this._onDetailsViewSelected);
   },
 
   
 
 
   destroy: function () {
-    clearNamedTimeout("calltree-update");
+    DetailsSubview.destroy.call(this);
 
-    PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
-    PerformanceController.off(EVENTS.RECORDING_SELECTED, this._onRecordingStoppedOrSelected);
     PerformanceController.off(EVENTS.PREF_CHANGED, this._onPrefChanged);
-    OverviewView.off(EVENTS.OVERVIEW_RANGE_SELECTED, this._onRangeChange);
-    OverviewView.off(EVENTS.OVERVIEW_RANGE_CLEARED, this._onRangeChange);
-    DetailsView.off(EVENTS.DETAILS_VIEW_SELECTED, this._onDetailsViewSelected);
   },
 
   
@@ -55,38 +44,6 @@ let CallTreeView = {
     let threadNode = this._prepareCallTree(profile, interval, options);
     this._populateCallTree(threadNode, options);
     this.emit(EVENTS.CALL_TREE_RENDERED);
-  },
-
-  
-
-
-  _onRecordingStoppedOrSelected: function (_, recording) {
-    if (!recording.isRecording()) {
-      this.render();
-    }
-  },
-
-  
-
-
-  _onRangeChange: function (_, interval) {
-    if (DetailsView.isViewSelected(this)) {
-      let debounced = () => this.render(interval);
-      setNamedTimeout("calltree-update", CALLTREE_UPDATE_DEBOUNCE, debounced);
-    } else {
-      this._dirty = true;
-      this._interval = interval;
-    }
-  },
-
-  
-
-
-  _onDetailsViewSelected: function() {
-    if (DetailsView.isViewSelected(this) && this._dirty) {
-      this.render(this._interval);
-      this._dirty = false;
-    }
   },
 
   
@@ -155,12 +112,7 @@ let CallTreeView = {
       this.render(OverviewView.getTimeInterval());
     }
   }
-};
-
-
-
-
-EventEmitter.decorate(CallTreeView);
+});
 
 
 
