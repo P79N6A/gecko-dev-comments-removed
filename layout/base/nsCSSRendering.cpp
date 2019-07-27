@@ -2528,34 +2528,23 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   bool isRepeat = aGradient->mRepeating || forceRepeatToCoverTiles;
 
   
-  if (!ctx->IsCairo()) {
-    
-    
-    
-    
-    
-    
-    nsTArray<gfx::GradientStop> rawStops(stops.Length());
-    rawStops.SetLength(stops.Length());
-    for(uint32_t i = 0; i < stops.Length(); i++) {
-      rawStops[i].color = gfx::Color(stops[i].mColor.r, stops[i].mColor.g, stops[i].mColor.b, stops[i].mColor.a);
-      rawStops[i].offset = stopScale * (stops[i].mPosition - stopOrigin);
-    }
-    mozilla::RefPtr<mozilla::gfx::GradientStops> gs =
-      gfxGradientCache::GetOrCreateGradientStops(ctx->GetDrawTarget(),
-                                                 rawStops,
-                                                 isRepeat ? gfx::ExtendMode::REPEAT : gfx::ExtendMode::CLAMP);
-    gradientPattern->SetColorStops(gs);
-  } else {
-    for (uint32_t i = 0; i < stops.Length(); i++) {
-      double pos = stopScale*(stops[i].mPosition - stopOrigin);
-      gradientPattern->AddColorStop(pos, stops[i].mColor);
-    }
-    
-    if (isRepeat) {
-      gradientPattern->SetExtend(gfxPattern::EXTEND_REPEAT);
-    }
+  
+  
+  
+  
+  
+  
+  nsTArray<gfx::GradientStop> rawStops(stops.Length());
+  rawStops.SetLength(stops.Length());
+  for(uint32_t i = 0; i < stops.Length(); i++) {
+    rawStops[i].color = gfx::Color(stops[i].mColor.r, stops[i].mColor.g, stops[i].mColor.b, stops[i].mColor.a);
+    rawStops[i].offset = stopScale * (stops[i].mPosition - stopOrigin);
   }
+  mozilla::RefPtr<mozilla::gfx::GradientStops> gs =
+    gfxGradientCache::GetOrCreateGradientStops(ctx->GetDrawTarget(),
+                                               rawStops,
+                                               isRepeat ? gfx::ExtendMode::REPEAT : gfx::ExtendMode::CLAMP);
+  gradientPattern->SetColorStops(gs);
 
   
   

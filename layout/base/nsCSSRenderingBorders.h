@@ -203,9 +203,6 @@ struct nsCSSBorderRenderer {
   
   
   void DrawNoCompositeColorSolidBorder();
-  
-  
-  void DrawNoCompositeColorSolidBorderAzure();
 
   
   
