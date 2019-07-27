@@ -1872,9 +1872,9 @@ AutoDisableCompactingGC::~AutoDisableCompactingGC()
 }
 
 static bool
-CanRelocateZone(JSRuntime* rt, Zone* zone)
+CanRelocateZone(Zone* zone)
 {
-    return !rt->isAtomsZone(zone) && !rt->isSelfHostingZone(zone);
+    return !zone->isAtomsZone() && !zone->isSelfHostingZone();
 }
 
 static bool
@@ -2182,7 +2182,7 @@ GCRuntime::relocateArenas(Zone* zone, JS::gcreason::Reason reason, SliceBudget& 
     gcstats::AutoPhase ap(stats, gcstats::PHASE_COMPACT_MOVE);
 
     MOZ_ASSERT(!zone->isPreservingCode());
-    MOZ_ASSERT(CanRelocateZone(rt, zone));
+    MOZ_ASSERT(CanRelocateZone(zone));
 
     jit::StopAllOffThreadCompilations(zone);
 
@@ -3104,7 +3104,7 @@ GCRuntime::triggerZoneGC(Zone* zone, JS::gcreason::Reason reason)
 {
     
     if (!CurrentThreadCanAccessRuntime(rt)) {
-        MOZ_ASSERT(zone->usedByExclusiveThread || rt->isAtomsZone(zone));
+        MOZ_ASSERT(zone->usedByExclusiveThread || zone->isAtomsZone());
         return false;
     }
 
@@ -3119,7 +3119,7 @@ GCRuntime::triggerZoneGC(Zone* zone, JS::gcreason::Reason reason)
     }
 #endif
 
-    if (rt->isAtomsZone(zone)) {
+    if (zone->isAtomsZone()) {
         
         if (rt->keepAtoms()) {
             
@@ -3610,7 +3610,7 @@ GCRuntime::sweepZones(FreeOp* fop, bool destroyingRuntime)
     Zone** end = zones.end();
     Zone** write = read;
     MOZ_ASSERT(zones.length() >= 1);
-    MOZ_ASSERT(rt->isAtomsZone(zones[0]));
+    MOZ_ASSERT(zones[0]->isAtomsZone());
 
     while (read < end) {
         Zone* zone = *read++;
@@ -3747,12 +3747,10 @@ CheckCompartmentCallback(JS::CallbackTracer* trcArg, void** thingp, JSGCTraceKin
     TenuredCell* thing = TenuredCell::fromPointer(*thingp);
 
     JSCompartment* comp = CompartmentOfCell(thing, kind);
-    if (comp && trc->compartment) {
+    if (comp && trc->compartment)
         CheckCompartment(trc, comp, thing, kind);
-    } else {
-        MOZ_ASSERT(thing->zone() == trc->zone ||
-                   trc->runtime()->isAtomsZone(thing->zone()));
-    }
+    else
+        MOZ_ASSERT(thing->zone() == trc->zone || thing->zone()->isAtomsZone());
 }
 
 void
@@ -3816,7 +3814,7 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason)
 
         
         if (zone->isGCScheduled()) {
-            if (!rt->isAtomsZone(zone)) {
+            if (!zone->isAtomsZone()) {
                 any = true;
                 zone->setGCState(Zone::Mark);
             }
@@ -4893,7 +4891,7 @@ GCRuntime::beginSweepingZoneGroup()
         
         zone->arenas.purge();
 
-        if (rt->isAtomsZone(zone))
+        if (zone->isAtomsZone())
             sweepingAtoms = true;
 
         if (rt->sweepZoneCallback)
@@ -5431,7 +5429,7 @@ GCRuntime::beginCompactPhase()
 
     MOZ_ASSERT(zonesToMaybeCompact.isEmpty());
     for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
-        if (CanRelocateZone(rt, zone))
+        if (CanRelocateZone(zone))
             zonesToMaybeCompact.append(zone);
     }
 

@@ -429,7 +429,7 @@ js::ExclusiveContext::setCompartment(JSCompartment* comp)
 
     
     MOZ_ASSERT_IF(comp && !runtime_->isAtomsCompartment(comp),
-                  !runtime_->isAtomsZone(comp->zone()));
+                  !comp->zone()->isAtomsZone());
 
     
     
