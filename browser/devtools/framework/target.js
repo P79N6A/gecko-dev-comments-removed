@@ -593,7 +593,10 @@ TabTarget.prototype = {
         
         
         if (this.activeTab) {
-          this.activeTab.detach(cleanupAndResolve);
+          
+          
+          this.activeTab.detach();
+          cleanupAndResolve();
         } else {
           cleanupAndResolve();
         }
