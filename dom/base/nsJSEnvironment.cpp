@@ -70,9 +70,6 @@
 #endif
 #include "AccessCheck.h"
 
-#ifdef MOZ_JSDEBUGGER
-#include "jsdIDebuggerService.h"
-#endif
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG 1

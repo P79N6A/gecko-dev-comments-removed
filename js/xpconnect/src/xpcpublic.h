@@ -208,11 +208,6 @@ extern void
 xpc_UnmarkSkippableJSHolders();
 
 
-
-void
-xpc_ActivateDebugMode();
-
-
 class XPCStringConvert
 {
     
