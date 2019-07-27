@@ -163,6 +163,7 @@ extern "C" {
     VPX_CODEC_PSNR_PKT,        
 #if CONFIG_SPATIAL_SVC
     VPX_CODEC_SPATIAL_SVC_LAYER_SIZES, 
+    VPX_CODEC_SPATIAL_SVC_LAYER_PSNR, 
 #endif
     VPX_CODEC_CUSTOM_PKT = 256 
   };
@@ -202,6 +203,7 @@ extern "C" {
       vpx_fixed_buf_t raw;     
 #if CONFIG_SPATIAL_SVC
       size_t layer_sizes[VPX_SS_MAX_LAYERS];
+      struct vpx_psnr_pkt layer_psnr[VPX_SS_MAX_LAYERS];
 #endif
 
       
@@ -708,6 +710,18 @@ extern "C" {
 
     unsigned int           ts_layer_id[VPX_TS_MAX_PERIODICITY];
   } vpx_codec_enc_cfg_t; 
+
+  
+
+
+
+
+  typedef struct vpx_svc_parameters {
+    int max_quantizers[VPX_SS_MAX_LAYERS];
+    int min_quantizers[VPX_SS_MAX_LAYERS];
+    int scaling_factor_num[VPX_SS_MAX_LAYERS];
+    int scaling_factor_den[VPX_SS_MAX_LAYERS];
+  } vpx_svc_extra_cfg_t;
 
 
   

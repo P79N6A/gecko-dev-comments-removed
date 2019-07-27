@@ -40,7 +40,7 @@ void vp9_foreach_transformed_block_in_plane(
     const MACROBLOCKD *const xd, BLOCK_SIZE bsize, int plane,
     foreach_transformed_block_visitor visit, void *arg) {
   const struct macroblockd_plane *const pd = &xd->plane[plane];
-  const MB_MODE_INFO* mbmi = &xd->mi[0]->mbmi;
+  const MB_MODE_INFO* mbmi = &xd->mi[0].src_mi->mbmi;
   
   
   

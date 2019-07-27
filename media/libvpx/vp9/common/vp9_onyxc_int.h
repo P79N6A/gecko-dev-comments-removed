@@ -150,11 +150,6 @@ typedef struct VP9Common {
   MODE_INFO *prev_mip; 
   MODE_INFO *prev_mi;  
 
-  MODE_INFO **mi_grid_base;
-  MODE_INFO **mi_grid_visible;
-  MODE_INFO **prev_mi_grid_base;
-  MODE_INFO **prev_mi_grid_visible;
-
   
   unsigned char *last_frame_seg_map;
 

@@ -90,8 +90,8 @@ static VP9_DENOISER_DECISION denoiser_filter(const uint8_t *sig, int sig_stride,
   int shift_inc = 1;
 
   
-
-
+  
+  
   if (motion_magnitude <= MOTION_MAGNITUDE_THRESHOLD) {
     if (increase_denoising) {
       shift_inc = 2;
@@ -213,7 +213,7 @@ static VP9_DENOISER_DECISION perform_motion_compensation(VP9_DENOISER *denoiser,
   int sse_diff = ctx->zeromv_sse - ctx->newmv_sse;
   MV_REFERENCE_FRAME frame;
   MACROBLOCKD *filter_mbd = &mb->e_mbd;
-  MB_MODE_INFO *mbmi = &filter_mbd->mi[0]->mbmi;
+  MB_MODE_INFO *mbmi = &filter_mbd->mi[0].src_mi->mbmi;
 
   MB_MODE_INFO saved_mbmi;
   int i, j;

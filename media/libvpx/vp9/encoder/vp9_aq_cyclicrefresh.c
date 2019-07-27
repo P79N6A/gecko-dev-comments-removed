@@ -200,7 +200,7 @@ void vp9_cyclic_refresh_setup(VP9_COMP *const cpi) {
 
     
     const float rate_ratio_qdelta = 2.0;
-    const double q = vp9_convert_qindex_to_q(cm->base_qindex);
+    const double q = vp9_convert_qindex_to_q(cm->base_qindex, cm->bit_depth);
     vp9_clear_system_state();
     
     cr->max_sbs_perframe = 10;
@@ -242,7 +242,8 @@ void vp9_cyclic_refresh_setup(VP9_COMP *const cpi) {
     
     qindex_delta = vp9_compute_qdelta_by_rate(rc, cm->frame_type,
                                               cm->base_qindex,
-                                              rate_ratio_qdelta);
+                                              rate_ratio_qdelta,
+                                              cm->bit_depth);
     
     
     if (-qindex_delta > cr->max_qdelta_perc * cm->base_qindex / 100)

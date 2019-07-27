@@ -24,18 +24,22 @@ typedef struct {
   int target_bandwidth;
   double framerate;
   int avg_frame_size;
+  int max_q;
+  int min_q;
+  int scaling_factor_num;
+  int scaling_factor_den;
   TWO_PASS twopass;
   vpx_fixed_buf_t rc_twopass_stats_in;
   unsigned int current_video_frame_in_layer;
   int is_key_frame;
   int frames_from_key_frame;
   FRAME_TYPE last_frame_type;
-  vpx_svc_parameters_t svc_params_received;
   struct lookahead_entry  *alt_ref_source;
   int alt_ref_idx;
   int gold_ref_idx;
   int has_alt_frame;
   size_t layer_size;
+  struct vpx_psnr_pkt psnr_pkt;
 } LAYER_CONTEXT;
 
 typedef struct {
@@ -43,6 +47,8 @@ typedef struct {
   int temporal_layer_id;
   int number_spatial_layers;
   int number_temporal_layers;
+
+  int spatial_layer_to_encode;
 
   
   
@@ -88,21 +94,12 @@ void vp9_inc_frame_in_layer(struct VP9_COMP *const cpi);
 int vp9_is_upper_layer_key_frame(const struct VP9_COMP *const cpi);
 
 
-
-int vp9_svc_lookahead_push(const struct VP9_COMP *const cpi,
-                           struct lookahead_ctx *ctx, YV12_BUFFER_CONFIG *src,
-                           int64_t ts_start, int64_t ts_end,
-                           unsigned int flags);
-
-
 struct lookahead_entry *vp9_svc_lookahead_pop(struct VP9_COMP *const cpi,
                                               struct lookahead_ctx *ctx,
                                               int drain);
 
 
-struct lookahead_entry *vp9_svc_lookahead_peek(struct VP9_COMP *const cpi,
-                                               struct lookahead_ctx *ctx,
-                                               int index, int copy_params);
+int vp9_svc_start_frame(struct VP9_COMP *const cpi);
 
 #ifdef __cplusplus
 }  

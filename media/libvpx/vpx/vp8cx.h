@@ -148,7 +148,12 @@ enum vp8e_enc_control_id {
 
   VP8E_SET_CPUUSED           = 13,
   VP8E_SET_ENABLEAUTOALTREF,       
-  VP8E_SET_NOISE_SENSITIVITY,      
+  
+
+
+
+
+  VP8E_SET_NOISE_SENSITIVITY,
   VP8E_SET_SHARPNESS,              
   VP8E_SET_STATIC_THRESHOLD,       
   VP8E_SET_TOKEN_PARTITIONS,       
@@ -197,6 +202,11 @@ enum vp8e_enc_control_id {
   VP9E_SET_FRAME_PARALLEL_DECODING,
   VP9E_SET_AQ_MODE,
   VP9E_SET_FRAME_PERIODIC_BOOST,
+  
+
+
+
+  VP9E_SET_NOISE_SENSITIVITY,
 
   VP9E_SET_SVC,
   VP9E_SET_SVC_PARAMETERS,
@@ -300,24 +310,6 @@ typedef enum {
 
 
 
-typedef struct vpx_svc_parameters {
-  unsigned int width;         
-  unsigned int height;        
-  int spatial_layer;          
-  int temporal_layer;         
-  int max_quantizer;          
-  int min_quantizer;          
-  int distance_from_i_frame;  
-  int lst_fb_idx;             
-  int gld_fb_idx;             
-  int alt_fb_idx;             
-} vpx_svc_parameters_t;
-
-
-
-
-
-
 
 
 typedef struct vpx_svc_layer_id {
@@ -345,7 +337,7 @@ VPX_CTRL_USE_TYPE(VP8E_SET_ACTIVEMAP,          vpx_active_map_t *)
 VPX_CTRL_USE_TYPE(VP8E_SET_SCALEMODE,          vpx_scaling_mode_t *)
 
 VPX_CTRL_USE_TYPE(VP9E_SET_SVC,                int)
-VPX_CTRL_USE_TYPE(VP9E_SET_SVC_PARAMETERS,     vpx_svc_parameters_t *)
+VPX_CTRL_USE_TYPE(VP9E_SET_SVC_PARAMETERS,     void *)
 VPX_CTRL_USE_TYPE(VP9E_SET_SVC_LAYER_ID,       vpx_svc_layer_id_t *)
 
 VPX_CTRL_USE_TYPE(VP8E_SET_CPUUSED,            int)
@@ -376,6 +368,8 @@ VPX_CTRL_USE_TYPE(VP9E_SET_FRAME_PARALLEL_DECODING, unsigned int)
 VPX_CTRL_USE_TYPE(VP9E_SET_AQ_MODE, unsigned int)
 
 VPX_CTRL_USE_TYPE(VP9E_SET_FRAME_PERIODIC_BOOST, unsigned int)
+
+VPX_CTRL_USE_TYPE(VP9E_SET_NOISE_SENSITIVITY,  unsigned int)
 
 VPX_CTRL_USE_TYPE(VP9E_SET_TUNE_CONTENT, int) 
 

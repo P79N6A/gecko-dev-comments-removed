@@ -54,22 +54,6 @@ vpx_codec_err_t vpx_svc_set_options(SvcContext *svc_ctx, const char *options);
 
 
 
-
-
-vpx_codec_err_t vpx_svc_set_quantizers(SvcContext *svc_ctx,
-                                       const char *quantizer_values);
-
-
-
-
-
-
-vpx_codec_err_t vpx_svc_set_scale_factors(SvcContext *svc_ctx,
-                                          const char *scale_factors);
-
-
-
-
 vpx_codec_err_t vpx_svc_init(SvcContext *svc_ctx, vpx_codec_ctx_t *codec_ctx,
                              vpx_codec_iface_t *iface,
                              vpx_codec_enc_cfg_t *cfg);
@@ -94,51 +78,6 @@ const char *vpx_svc_dump_statistics(SvcContext *svc_ctx);
 
 
 const char *vpx_svc_get_message(const SvcContext *svc_ctx);
-
-
-
-
-
-size_t vpx_svc_get_frame_size(const SvcContext *svc_ctx);
-
-
-
-
-
-void *vpx_svc_get_buffer(SvcContext *svc_ctx);
-
-
-
-
-
-size_t vpx_svc_get_rc_stats_buffer_size(const SvcContext *svc_ctx);
-
-
-
-
-char *vpx_svc_get_rc_stats_buffer(const SvcContext *svc_ctx);
-
-
-
-
-vpx_codec_err_t vpx_svc_get_layer_resolution(const SvcContext *svc_ctx,
-                                             int layer,
-                                             unsigned int *width,
-                                             unsigned int *height);
-
-
-
-int vpx_svc_get_encode_frame_count(const SvcContext *svc_ctx);
-
-
-
-
-int vpx_svc_is_keyframe(const SvcContext *svc_ctx);
-
-
-
-
-void vpx_svc_set_keyframe(SvcContext *svc_ctx);
 
 #ifdef __cplusplus
 }  

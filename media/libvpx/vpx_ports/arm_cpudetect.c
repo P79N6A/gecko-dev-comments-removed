@@ -10,7 +10,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "arm.h"
+#include "vpx_ports/arm.h"
+#include "./vpx_config.h"
 
 #ifdef WINAPI_FAMILY
 #include <winapifamily.h>
@@ -54,7 +55,7 @@ int arm_cpu_caps(void) {
 #if HAVE_MEDIA
   flags |= HAS_MEDIA;
 #endif 
-#if HAVE_NEON
+#if HAVE_NEON || HAVE_NEON_ASM
   flags |= HAS_NEON;
 #endif 
   return flags & mask;
@@ -87,6 +88,7 @@ int arm_cpu_caps(void) {
       
     }
   }
+#endif 
 #if HAVE_MEDIA
   if (mask & HAS_MEDIA)
     __try {
@@ -97,7 +99,8 @@ int arm_cpu_caps(void) {
     
   }
 }
-#if HAVE_NEON
+#endif 
+#if HAVE_NEON || HAVE_NEON_ASM
 if (mask &HAS_NEON) {
   __try {
     
@@ -107,8 +110,6 @@ if (mask &HAS_NEON) {
     
   }
 }
-#endif 
-#endif 
 #endif 
 return flags & mask;
 }
@@ -132,7 +133,7 @@ int arm_cpu_caps(void) {
 #if HAVE_MEDIA
   flags |= HAS_MEDIA;
 #endif 
-#if HAVE_NEON
+#if HAVE_NEON || HAVE_NEON_ASM
   if (features & ANDROID_CPU_ARM_FEATURE_NEON)
     flags |= HAS_NEON;
 #endif 
@@ -162,7 +163,7 @@ int arm_cpu_caps(void) {
 
     char buf[512];
     while (fgets(buf, 511, fin) != NULL) {
-#if HAVE_EDSP || HAVE_NEON
+#if HAVE_EDSP || HAVE_NEON || HAVE_NEON_ASM
       if (memcmp(buf, "Features", 8) == 0) {
         char *p;
 #if HAVE_EDSP
@@ -170,12 +171,12 @@ int arm_cpu_caps(void) {
         if (p != NULL && (p[5] == ' ' || p[5] == '\n')) {
           flags |= HAS_EDSP;
         }
-#if HAVE_NEON
+#endif 
+#if HAVE_NEON || HAVE_NEON_ASM
         p = strstr(buf, " neon");
         if (p != NULL && (p[5] == ' ' || p[5] == '\n')) {
           flags |= HAS_NEON;
         }
-#endif 
 #endif 
       }
 #endif 

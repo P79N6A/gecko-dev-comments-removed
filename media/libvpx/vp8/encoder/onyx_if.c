@@ -3370,13 +3370,17 @@ static void process_denoiser_mode_change(VP8_COMP *cpi) {
   if (total > 0 &&
       (num_blocks > (tot_num_blocks >> 4))) {
     
-    if (cpi->denoiser.nmse_source_diff_count == 0)
+    if (cpi->denoiser.nmse_source_diff_count == 0) {
       
       cpi->denoiser.nmse_source_diff = total;
-    else
+      cpi->denoiser.qp_avg = cm->base_qindex;
+    } else {
       
       cpi->denoiser.nmse_source_diff = (int)((total >> 2) +
           3 * (cpi->denoiser.nmse_source_diff >> 2));
+      cpi->denoiser.qp_avg = (int)((cm->base_qindex >> 2) +
+          3 * (cpi->denoiser.qp_avg >> 2));
+    }
     cpi->denoiser.nmse_source_diff_count++;
   }
   
@@ -3385,18 +3389,24 @@ static void process_denoiser_mode_change(VP8_COMP *cpi) {
     
     if ((cpi->denoiser.denoiser_mode == kDenoiserOnYUV) &&
         (cpi->denoiser.nmse_source_diff >
-        cpi->denoiser.threshold_aggressive_mode)) {
+        cpi->denoiser.threshold_aggressive_mode) &&
+        (cpi->denoiser.qp_avg < cpi->denoiser.qp_threshold_up &&
+         cpi->target_bandwidth > cpi->denoiser.bitrate_threshold)) {
       vp8_denoiser_set_parameters(&cpi->denoiser, kDenoiserOnYUVAggressive);
     } else {
       
-      if ((cpi->denoiser.denoiser_mode == kDenoiserOnYUVAggressive) &&
+      if (((cpi->denoiser.denoiser_mode == kDenoiserOnYUVAggressive) &&
           (cpi->denoiser.nmse_source_diff <
-          cpi->denoiser.threshold_aggressive_mode)) {
+          cpi->denoiser.threshold_aggressive_mode)) ||
+          ((cpi->denoiser.denoiser_mode == kDenoiserOnYUVAggressive) &&
+          (cpi->denoiser.qp_avg > cpi->denoiser.qp_threshold_down ||
+           cpi->target_bandwidth < cpi->denoiser.bitrate_threshold))) {
         vp8_denoiser_set_parameters(&cpi->denoiser, kDenoiserOnYUV);
       }
     }
     
     cpi->denoiser.nmse_source_diff = 0;
+    cpi->denoiser.qp_avg = 0;
     cpi->denoiser.nmse_source_diff_count = 0;
   }
 }
@@ -4013,6 +4023,17 @@ static void encode_frame_to_data_rate
 
     scale_and_extend_source(cpi->un_scaled_source, cpi);
 
+#if CONFIG_TEMPORAL_DENOISING && CONFIG_POSTPROC
+    
+    
+    if (cpi->oxcf.noise_sensitivity >= 3) {
+      if (cpi->denoiser.denoise_pars.spatial_blur != 0) {
+        vp8_de_noise(cm, cpi->Source, cpi->Source,
+            cpi->denoiser.denoise_pars.spatial_blur, 1, 0, 0);
+      }
+    }
+#endif
+
 #if !(CONFIG_REALTIME_ONLY) && CONFIG_POSTPROC && !(CONFIG_TEMPORAL_DENOISING)
 
     if (cpi->oxcf.noise_sensitivity > 0)
@@ -4045,11 +4066,11 @@ static void encode_frame_to_data_rate
 
         if (cm->frame_type == KEY_FRAME)
         {
-            vp8_de_noise(cm, cpi->Source, cpi->Source, l , 1,  0);
+            vp8_de_noise(cm, cpi->Source, cpi->Source, l , 1,  0, 1);
         }
         else
         {
-            vp8_de_noise(cm, cpi->Source, cpi->Source, l , 1,  0);
+            vp8_de_noise(cm, cpi->Source, cpi->Source, l , 1,  0, 1);
 
             src = cpi->Source->y_buffer;
 
