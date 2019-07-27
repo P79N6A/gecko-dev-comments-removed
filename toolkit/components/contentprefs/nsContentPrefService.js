@@ -10,8 +10,14 @@ const Cu = Components.utils;
 const CACHE_MAX_GROUP_ENTRIES = 100;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 function ContentPrefService() {
+  if (Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_CONTENT) {
+    return Cu.import("resource://gre/modules/ContentPrefServiceChild.jsm")
+             .ContentPrefServiceChild;
+  }
+
   
   
   
