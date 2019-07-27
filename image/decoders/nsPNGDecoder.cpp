@@ -155,9 +155,17 @@ void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
   
   nsIntRect neededRect(x_offset, y_offset, width, height);
   nsRefPtr<imgFrame> currentFrame = GetCurrentFrame();
-  if (mNumFrames != 0 || !currentFrame->GetRect().IsEqualEdges(neededRect)) {
+  if (!currentFrame->GetRect().IsEqualEdges(neededRect)) {
+    if (mNumFrames == 0) {
+      
+      
+      PostHasTransparency();
+    }
+
     NeedNewFrame(mNumFrames, x_offset, y_offset, width, height, format);
-  } else if (mNumFrames == 0) {
+  } else if (mNumFrames != 0) {
+    NeedNewFrame(mNumFrames, x_offset, y_offset, width, height, format);
+  } else {
     
     if (format == gfx::SurfaceFormat::B8G8R8X8) {
       currentFrame->SetHasNoAlpha();
