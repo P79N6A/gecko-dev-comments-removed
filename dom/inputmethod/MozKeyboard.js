@@ -452,6 +452,11 @@ MozInputContext.prototype = {
       return;
     }
 
+    
+    if (json.selectioninfo) {
+      this.updateSelectionContext(json.selectioninfo);
+    }
+
     switch (msg.name) {
       case "Keyboard:SendKey:Result:OK":
         resolver.resolve();
