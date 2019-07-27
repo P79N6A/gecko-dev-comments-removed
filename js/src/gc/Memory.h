@@ -14,70 +14,36 @@ struct JSRuntime;
 namespace js {
 namespace gc {
 
-class SystemPageAllocator
-{
-  public:
-    
-    
-    SystemPageAllocator();
 
-    size_t systemPageSize() { return pageSize; }
-    size_t systemAllocGranularity() { return allocGranularity; }
 
-    
-    void *mapAlignedPages(size_t size, size_t alignment);
-    void unmapPages(void *p, size_t size);
+void InitMemorySubsystem();
 
-    
-    
-    bool markPagesUnused(void *p, size_t size);
+size_t SystemPageSize();
 
-    
-    
-    
-    bool markPagesInUse(void *p, size_t size);
 
-    
-    static size_t GetPageFaultCount();
+void *MapAlignedPages(size_t size, size_t alignment);
+void UnmapPages(void *p, size_t size);
 
-    
-    
-    static void *AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
 
-    
-    static void DeallocateMappedContent(void *p, size_t length);
 
-  private:
-    bool decommitEnabled();
-    void *mapAlignedPagesSlow(size_t size, size_t alignment);
-    void *mapAlignedPagesLastDitch(size_t size, size_t alignment);
-    void getNewChunk(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize,
-                     size_t size, size_t alignment);
-    bool getNewChunkInner(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize,
-                          size_t size, size_t alignment, bool addrsGrowDown);
+bool MarkPagesUnused(void *p, size_t size);
 
-    
-    
-    size_t              pageSize;
 
-    
-    size_t              allocGranularity;
 
-#if defined(XP_UNIX)
-    
-    int                 growthDirection;
-#endif
 
-    
-    
-    
-    static const int    MaxLastDitchAttempts = 8;
+bool MarkPagesInUse(void *p, size_t size);
 
-public:
-    void *testMapAlignedPagesLastDitch(size_t size, size_t alignment) {
-        return mapAlignedPagesLastDitch(size, alignment);
-    }
-};
+
+size_t GetPageFaultCount();
+
+
+
+void *AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
+
+
+void DeallocateMappedContent(void *p, size_t length);
+
+void *TestMapAlignedPagesLastDitch(size_t size, size_t alignment);
 
 } 
 } 

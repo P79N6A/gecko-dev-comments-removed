@@ -93,19 +93,17 @@ testGCAllocatorUp(const size_t PageSize)
     
     unmapPages(stagingArea, StagingSize);
     
-    js::gc::SystemPageAllocator GCAlloc;
+    CHECK(positionIsCorrect("xxooxxx---------", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("xxooxxx---------", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("x-ooxxx---------", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("x-ooxxx---------", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("x--xooxxx-------", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("x--xooxxx-------", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("x--xx--xoo--xxx-", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("x--xx--xoo--xxx-", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("x--xx---x-oo--x-", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("x--xx---x-oo--x-", stagingArea, chunkPool, tempChunks, GCAlloc));
-    
-    CHECK(positionIsCorrect("x--xx--xx-oox---", stagingArea, chunkPool, tempChunks, GCAlloc,
+    CHECK(positionIsCorrect("x--xx--xx-oox---", stagingArea, chunkPool, tempChunks,
                             UseLastDitchAllocator));
 
     
@@ -139,19 +137,17 @@ testGCAllocatorDown(const size_t PageSize)
     
     unmapPages(stagingArea, StagingSize);
     
-    js::gc::SystemPageAllocator GCAlloc;
+    CHECK(positionIsCorrect("---------xxxooxx", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("---------xxxooxx", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("---------xxxoo-x", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("---------xxxoo-x", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("-------xxxoox--x", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("-------xxxoox--x", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("-xxx--oox--xx--x", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("-xxx--oox--xx--x", stagingArea, chunkPool, tempChunks, GCAlloc));
+    CHECK(positionIsCorrect("-x--oo-x---xx--x", stagingArea, chunkPool, tempChunks));
     
-    CHECK(positionIsCorrect("-x--oo-x---xx--x", stagingArea, chunkPool, tempChunks, GCAlloc));
-    
-    CHECK(positionIsCorrect("---xoo-xx--xx--x", stagingArea, chunkPool, tempChunks, GCAlloc,
+    CHECK(positionIsCorrect("---xoo-xx--xx--x", stagingArea, chunkPool, tempChunks,
                             UseLastDitchAllocator));
 
     
@@ -194,7 +190,7 @@ fillSpaceBeforeStagingArea(int &tempChunks, void *stagingArea,
 
 bool
 positionIsCorrect(const char *str, void *base, void **chunkPool, int tempChunks,
-                  js::gc::SystemPageAllocator& GCAlloc, AllocType allocator = UseNormalAllocator)
+                  AllocType allocator = UseNormalAllocator)
 {
     
     
@@ -216,20 +212,20 @@ positionIsCorrect(const char *str, void *base, void **chunkPool, int tempChunks,
     
     void *result;
     if (allocator == UseNormalAllocator)
-        result = GCAlloc.mapAlignedPages(2 * Chunk, Alignment);
+        result = js::gc::MapAlignedPages(2 * Chunk, Alignment);
     else
-        result = GCAlloc.testMapAlignedPagesLastDitch(2 * Chunk, Alignment);
+        result = js::gc::TestMapAlignedPagesLastDitch(2 * Chunk, Alignment);
     
     if (result)
-        GCAlloc.unmapPages(result, 2 * Chunk);
+        js::gc::UnmapPages(result, 2 * Chunk);
     for (--i; i >= 0; --i) {
         if (str[i] == 'x')
-            unmapPages((void *)(uintptr_t(base) +  i * Chunk), Chunk);
+            js::gc::UnmapPages((void *)(uintptr_t(base) +  i * Chunk), Chunk);
     }
     
     if (result != desired) {
         while (--tempChunks >= 0)
-            unmapPages(chunkPool[tempChunks], 2 * Chunk);
+            js::gc::UnmapPages(chunkPool[tempChunks], 2 * Chunk);
     }
     return result == desired;
 }

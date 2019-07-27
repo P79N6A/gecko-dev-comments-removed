@@ -524,7 +524,7 @@ ThreadPool::getChunk()
     }
     gc::ForkJoinNurseryChunk *c =
         reinterpret_cast<gc::ForkJoinNurseryChunk *>(
-            runtime_->gc.pageAllocator.mapAlignedPages(gc::ChunkSize, gc::ChunkSize));
+            gc::MapAlignedPages(gc::ChunkSize, gc::ChunkSize));
     if (!c)
         return c;
     poisonChunk(c);
@@ -580,7 +580,7 @@ ThreadPool::clearChunkCache()
     while (p) {
         ChunkFreeList *victim = p;
         p = p->next;
-        runtime_->gc.pageAllocator.unmapPages(victim, gc::ChunkSize);
+        gc::UnmapPages(victim, gc::ChunkSize);
     }
 #endif
 }
