@@ -41,7 +41,6 @@ public:
   virtual MediaDecoderStateMachine* CreateStateMachine() override;
   virtual nsresult Load(nsIStreamListener**, MediaDecoder*) override;
   virtual media::TimeIntervals GetSeekable() override;
-  media::TimeIntervals GetBuffered() override;
 
   virtual void Shutdown() override;
 
@@ -91,6 +90,12 @@ public:
   
   
   bool IsActiveReader(MediaDecoderReader* aReader);
+
+  
+  
+  already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget ,
+                                                      int64_t aTolerance ,
+                                                      const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
 
   
   

@@ -74,16 +74,10 @@ public:
 
   virtual AbstractCanonical<media::NullableTimeUnit>* CanonicalDurationOrNull() { return nullptr; };
 
-protected:
-  virtual void UpdateEstimatedMediaDuration(int64_t aDuration) {};
-public:
-  void DispatchUpdateEstimatedMediaDuration(int64_t aDuration)
-  {
-    nsCOMPtr<nsIRunnable> r =
-      NS_NewRunnableMethodWithArg<int64_t>(this, &AbstractMediaDecoder::UpdateEstimatedMediaDuration,
-                                           aDuration);
-    NS_DispatchToMainThread(r);
-  }
+  
+  
+  
+  virtual void UpdateEstimatedMediaDuration(int64_t aDuration) = 0;
 
   
   virtual void SetMediaSeekable(bool aMediaSeekable) = 0;
@@ -117,8 +111,7 @@ public:
 
   
   
-  virtual void NotifyDataArrived(uint32_t aLength, int64_t aOffset,
-                                 bool aThrottleUpdates) = 0;
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) = 0;
 
   
   virtual void SetPlatformCanOffloadAudio(bool aCanOffloadAudio) {}

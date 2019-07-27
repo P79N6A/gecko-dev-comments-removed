@@ -36,9 +36,12 @@ public:
     decoder->SetResource(resource);
 
     reader->Init(nullptr);
-    
-    
-    reader->DispatchSetStartTime(0);
+    {
+      
+      
+      ReentrantMonitorAutoEnter mon(decoder->GetReentrantMonitor());
+      reader->SetStartTime(0);
+    }
   }
 
   void Init() {

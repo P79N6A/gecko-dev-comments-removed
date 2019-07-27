@@ -434,8 +434,7 @@ public:
 
   
   
-  virtual void NotifyDataArrived(uint32_t aLength, int64_t aOffset,
-                                 bool aThrottleUpdates) override;
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) override;
 
   
   
@@ -455,7 +454,6 @@ public:
   
   virtual bool IsEndedOrShutdown() const;
 
-protected:
   
   
   
@@ -465,7 +463,6 @@ protected:
   
   
   void UpdateEstimatedMediaDuration(int64_t aDuration) override;
-public:
 
   
   virtual void SetMediaSeekable(bool aMediaSeekable) override;
@@ -892,9 +889,6 @@ protected:
 
   
   WatchManager<MediaDecoder> mWatchManager;
-
-  
-  Mirror<media::TimeIntervals> mBuffered;
 
   
   Mirror<MediaDecoderOwner::NextFrameStatus> mNextFrameStatus;

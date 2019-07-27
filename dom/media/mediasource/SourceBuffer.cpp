@@ -147,12 +147,6 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
   return tr.forget();
 }
 
-media::TimeIntervals
-SourceBuffer::GetTimeIntervals()
-{
-  return mContentManager->Buffered();
-}
-
 void
 SourceBuffer::SetAppendWindowStart(double aAppendWindowStart, ErrorResult& aRv)
 {
@@ -303,7 +297,7 @@ SourceBuffer::Ended()
   mContentManager->Ended();
   
   
-  mMediaSource->GetDecoder()->NotifyDataArrived(1, mReportedOffset++,  false);
+  mMediaSource->GetDecoder()->NotifyDataArrived(nullptr, 1, mReportedOffset++);
 }
 
 SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
@@ -498,7 +492,7 @@ SourceBuffer::AppendDataCompletedWithSuccess(bool aHasActiveTracks)
     
     
     
-    mMediaSource->GetDecoder()->NotifyDataArrived(1, mReportedOffset++,  false);
+    mMediaSource->GetDecoder()->NotifyDataArrived(nullptr, 1, mReportedOffset++);
     
     mMediaSource->GetDecoder()->NotifyBytesDownloaded();
   }

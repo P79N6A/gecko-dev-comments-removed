@@ -17,7 +17,6 @@
 #include "nsString.h"
 #include "nscore.h"
 #include "TimeUnits.h"
-#include <map>
 
 namespace mozilla {
 
@@ -98,9 +97,6 @@ public:
   
   bool HasOnlyIncompleteMedia();
 
-  
-  media::TimeIntervals GetBuffered(SourceBufferDecoder* aDecoder);
-
 #ifdef MOZ_EME
   nsresult SetCDMProxy(CDMProxy* aProxy);
 #endif
@@ -108,8 +104,6 @@ public:
 #if defined(DEBUG)
   void Dump(const char* aPath) override;
 #endif
-
-  typedef std::map<SourceBufferDecoder*, media::TimeIntervals> DecoderBufferedMap;
 
 private:
   friend class DecodersToInitialize;
@@ -121,19 +115,14 @@ private:
   
   
   
-  already_AddRefed<SourceBufferDecoder> NewDecoder(media::TimeUnit aTimestampOffset);
+  already_AddRefed<SourceBufferDecoder> NewDecoder(TimeUnit aTimestampOffset);
 
   
   
-  int64_t AppendDataToCurrentResource(MediaByteBuffer* aData,
+  bool AppendDataToCurrentResource(MediaByteBuffer* aData,
                                    uint32_t aDuration );
   
   void NotifyTimeRangesChanged();
-  
-  void NotifyReaderDataRemoved(MediaDecoderReader* aReader);
-
-  typedef MediaPromise<bool, nsresult,  true> BufferedRangesUpdatedPromise;
-  nsRefPtr<BufferedRangesUpdatedPromise> UpdateBufferedRanges(Interval<int64_t> aByteRange, bool aNotifyParent);
 
   
   bool QueueInitializeDecoder(SourceBufferDecoder* aDecoder);
@@ -164,7 +153,7 @@ private:
   void RemoveDecoder(SourceBufferDecoder* aDecoder);
 
   
-  void RemoveEmptyDecoders(const nsTArray<nsRefPtr<SourceBufferDecoder>>& aDecoders);
+  void RemoveEmptyDecoders(nsTArray<SourceBufferDecoder*>& aDecoders);
 
   void OnMetadataRead(MetadataHolder* aMetadata,
                       SourceBufferDecoder* aDecoder,
@@ -208,9 +197,9 @@ private:
   void AdjustDecodersTimestampOffset(TimeUnit aOffset);
 
   
-  media::TimeUnit mLastTimestampOffset;
-  media::TimeUnit mTimestampOffset;
-  media::TimeUnit mAdjustedTimestamp;
+  TimeUnit mLastTimestampOffset;
+  TimeUnit mTimestampOffset;
+  TimeUnit mAdjustedTimestamp;
 
   
   bool mIsWaitingOnCDM;
@@ -227,15 +216,6 @@ private:
   MediaPromiseHolder<AppendPromise> mInitializationPromise;
   
   MediaPromiseRequestHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
-
-  MediaPromiseHolder<RangeRemovalPromise> mRangeRemovalPromise;
-
-  Interval<int64_t> mLastAppendRange;
-
-  
-  media::TimeIntervals mBufferedRanges;
-
-  DecoderBufferedMap mReadersBuffered;
 };
 
 } 

@@ -179,6 +179,12 @@ SourceBufferDecoder::Trim(int64_t aDuration)
 }
 
 void
+SourceBufferDecoder::UpdateEstimatedMediaDuration(int64_t aDuration)
+{
+  MSE_DEBUG("UNIMPLEMENTED");
+}
+
+void
 SourceBufferDecoder::SetMediaSeekable(bool aMediaSeekable)
 {
   MSE_DEBUG("UNIMPLEMENTED");
@@ -197,8 +203,15 @@ SourceBufferDecoder::GetOwner()
 }
 
 void
-SourceBufferDecoder::NotifyDataArrived(uint32_t aLength, int64_t aOffset, bool aThrottleUpdates)
+SourceBufferDecoder::NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset)
 {
+  mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
+
+  
+  
+  
+  
+  mParentDecoder->NotifyDataArrived(nullptr, 0, 0);
 }
 
 media::TimeIntervals

@@ -11,9 +11,7 @@
 #include "MediaData.h"
 #include "MediaPromise.h"
 #include "MediaQueue.h"
-#include "MediaTimer.h"
 #include "AudioCompactor.h"
-#include "Intervals.h"
 #include "TimeUnits.h"
 
 namespace mozilla {
@@ -219,12 +217,7 @@ public:
   
   
   
-  
-  
   virtual media::TimeIntervals GetBuffered();
-
-  
-  virtual void UpdateBuffered();
 
   
   virtual bool ForceZeroStartTime() const { return false; }
@@ -246,38 +239,9 @@ public:
   virtual size_t SizeOfVideoQueueInFrames();
   virtual size_t SizeOfAudioQueueInFrames();
 
-protected:
-  friend class TrackBuffer;
-  virtual void NotifyDataArrivedInternal(uint32_t aLength, int64_t aOffset) { }
-
-  void NotifyDataArrived(const media::Interval<int64_t>& aInfo)
-  {
-    MOZ_ASSERT(OnTaskQueue());
-    NS_ENSURE_TRUE_VOID(!mShutdown);
-    NotifyDataArrivedInternal(aInfo.Length(), aInfo.mStart);
-    UpdateBuffered();
-  }
-
-  
-  void ThrottledNotifyDataArrived(const media::Interval<int64_t>& aInterval);
-  void DoThrottledNotify();
-
-public:
   
   
-  
-  
-  
-  
-  void DispatchNotifyDataArrived(uint32_t aLength, int64_t aOffset, bool aThrottleUpdates)
-  {
-    RefPtr<nsRunnable> r =
-      NS_NewRunnableMethodWithArg<media::Interval<int64_t>>(this, aThrottleUpdates ? &MediaDecoderReader::ThrottledNotifyDataArrived
-                                                                                   : &MediaDecoderReader::NotifyDataArrived,
-                                                            media::Interval<int64_t>(aOffset, aOffset + aLength));
-    TaskQueue()->Dispatch(r.forget(), AbstractThread::DontAssertDispatchSuccess);
-  }
-
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {}
   
   virtual void NotifyDataRemoved() {}
   virtual int64_t GetEvictionOffset(double aTime) { return -1; }
@@ -298,20 +262,7 @@ public:
   
   
   virtual bool IsMediaSeekable() = 0;
-
-  void DispatchSetStartTime(int64_t aStartTime)
-  {
-    nsRefPtr<MediaDecoderReader> self = this;
-    nsCOMPtr<nsIRunnable> r =
-      NS_NewRunnableFunction([self, aStartTime] () -> void
-    {
-      MOZ_ASSERT(self->OnTaskQueue());
-      MOZ_ASSERT(self->mStartTime == -1);
-      self->mStartTime = aStartTime;
-      self->UpdateBuffered();
-    });
-    TaskQueue()->Dispatch(r.forget());
-  }
+  void SetStartTime(int64_t aStartTime);
 
   MediaTaskQueue* TaskQueue() {
     return mTaskQueue;
@@ -371,28 +322,10 @@ protected:
   nsRefPtr<MediaTaskQueue> mTaskQueue;
 
   
-  WatchManager<MediaDecoderReader> mWatchManager;
-
-  
-  nsRefPtr<MediaTimer> mTimer;
-
-  
-  Canonical<media::TimeIntervals> mBuffered;
-public:
-  AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() { return &mBuffered; }
-protected:
-
-  
   MediaInfo mInfo;
 
   
   Mirror<media::NullableTimeUnit> mDuration;
-
-  
-  MediaPromiseRequestHolder<MediaTimerPromise> mThrottledNotify;
-  const TimeDuration mThrottleDuration;
-  TimeStamp mLastThrottledNotify;
-  Maybe<media::Interval<int64_t>> mThrottledInterval;
 
   
   
