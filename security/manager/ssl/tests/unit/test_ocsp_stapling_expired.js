@@ -12,7 +12,8 @@
 let gCurrentOCSPResponse = null;
 let gOCSPRequestCount = 0;
 
-function add_ocsp_test(aHost, aExpectedResult, aOCSPResponseToServe) {
+function add_ocsp_test(aHost, aExpectedResult, aOCSPResponseToServe,
+                       aExpectedRequestCount) {
   add_connection_test(aHost, aExpectedResult,
     function() {
       clearOCSPCache();
@@ -21,7 +22,9 @@ function add_ocsp_test(aHost, aExpectedResult, aOCSPResponseToServe) {
       gOCSPRequestCount = 0;
     },
     function() {
-      equal(gOCSPRequestCount, 1, "Should have made 1 fallback OCSP request");
+      equal(gOCSPRequestCount, aExpectedRequestCount,
+            "Should have made " + aExpectedRequestCount +
+            " fallback OCSP request" + aExpectedRequestCount == 1 ? "" : "s");
     });
 }
 
@@ -45,6 +48,14 @@ let oldValidityPeriodOCSPResponseGood = ocspResponses[2];
 let ocspResponseRevoked = ocspResponses[3];
 
 let ocspResponseUnknown = ocspResponses[4];
+
+
+let willNotRetry = 1;
+
+
+
+
+let willRetry = 4;
 
 function run_test() {
   let ocspResponder = new HttpServer();
@@ -72,81 +83,81 @@ function run_test() {
   
   
   add_ocsp_test("ocsp-stapling-expired.example.com", PRErrorCodeSuccess,
-                ocspResponseGood);
+                ocspResponseGood, willNotRetry);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", PRErrorCodeSuccess,
-                ocspResponseGood);
+                ocspResponseGood, willNotRetry);
   
   
   add_ocsp_test("ocsp-stapling-expired.example.com",
                 SEC_ERROR_OCSP_OLD_RESPONSE,
-                expiredOCSPResponseGood);
+                expiredOCSPResponseGood, willRetry);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
                 SEC_ERROR_OCSP_OLD_RESPONSE,
-                expiredOCSPResponseGood);
+                expiredOCSPResponseGood, willRetry);
   add_ocsp_test("ocsp-stapling-expired.example.com",
                 SEC_ERROR_OCSP_OLD_RESPONSE,
-                oldValidityPeriodOCSPResponseGood);
+                oldValidityPeriodOCSPResponseGood, willRetry);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
                 SEC_ERROR_OCSP_OLD_RESPONSE,
-                oldValidityPeriodOCSPResponseGood);
+                oldValidityPeriodOCSPResponseGood, willRetry);
   add_ocsp_test("ocsp-stapling-expired.example.com",
                 SEC_ERROR_OCSP_OLD_RESPONSE,
-                null);
+                null, willNotRetry);
   add_ocsp_test("ocsp-stapling-expired.example.com",
                 SEC_ERROR_OCSP_OLD_RESPONSE,
-                null);
+                null, willNotRetry);
   
   
   add_ocsp_test("ocsp-stapling-expired.example.com",
                 SEC_ERROR_REVOKED_CERTIFICATE,
-                ocspResponseRevoked);
+                ocspResponseRevoked, willNotRetry);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
                 SEC_ERROR_REVOKED_CERTIFICATE,
-                ocspResponseRevoked);
+                ocspResponseRevoked, willNotRetry);
   add_ocsp_test("ocsp-stapling-expired.example.com",
                 SEC_ERROR_OCSP_UNKNOWN_CERT,
-                ocspResponseUnknown);
+                ocspResponseUnknown, willRetry);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
                 SEC_ERROR_OCSP_UNKNOWN_CERT,
-                ocspResponseUnknown);
+                ocspResponseUnknown, willRetry);
 
   
   
   
   add_ocsp_test("ocsp-stapling-revoked-old.example.com",
                 SEC_ERROR_REVOKED_CERTIFICATE,
-                null);
+                null, willNotRetry);
   add_ocsp_test("ocsp-stapling-unknown-old.example.com",
                 SEC_ERROR_OCSP_UNKNOWN_CERT,
-                null);
+                null, willNotRetry);
   
   
   
   add_ocsp_test("ocsp-stapling-revoked-old.example.com", PRErrorCodeSuccess,
-                ocspResponseGood);
+                ocspResponseGood, willNotRetry);
   add_ocsp_test("ocsp-stapling-unknown-old.example.com", PRErrorCodeSuccess,
-                ocspResponseGood);
+                ocspResponseGood, willNotRetry);
   
   
   
   add_ocsp_test("ocsp-stapling-revoked-old.example.com",
                 SEC_ERROR_REVOKED_CERTIFICATE,
-                expiredOCSPResponseGood);
+                expiredOCSPResponseGood, willRetry);
   add_ocsp_test("ocsp-stapling-unknown-old.example.com",
                 SEC_ERROR_OCSP_UNKNOWN_CERT,
-                expiredOCSPResponseGood);
+                expiredOCSPResponseGood, willRetry);
 
   
   
   
   add_ocsp_test("ocsp-stapling-ancient-valid.example.com", PRErrorCodeSuccess,
-                ocspResponseGood);
+                ocspResponseGood, willNotRetry);
   add_ocsp_test("ocsp-stapling-ancient-valid.example.com",
                 SEC_ERROR_REVOKED_CERTIFICATE,
-                ocspResponseRevoked);
+                ocspResponseRevoked, willNotRetry);
   add_ocsp_test("ocsp-stapling-ancient-valid.example.com",
                 SEC_ERROR_OCSP_UNKNOWN_CERT,
-                ocspResponseUnknown);
+                ocspResponseUnknown, willRetry);
 
   add_test(function () { ocspResponder.stop(run_next_test); });
   add_test(check_ocsp_stapling_telemetry);

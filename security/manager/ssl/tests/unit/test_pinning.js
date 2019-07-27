@@ -214,11 +214,11 @@ function check_pinning_telemetry() {
                          .snapshot();
   
   
-  equal(prod_histogram.counts[0], 4,
+  equal(prod_histogram.counts[0], 16,
         "Actual and expected prod (non-Mozilla) failure count should match");
   equal(prod_histogram.counts[1], 4,
         "Actual and expected prod (non-Mozilla) success count should match");
-  equal(test_histogram.counts[0], 2,
+  equal(test_histogram.counts[0], 5,
         "Actual and expected test (non-Mozilla) failure count should match");
   equal(test_histogram.counts[1], 0,
         "Actual and expected test (non-Mozilla) success count should match");
