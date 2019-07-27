@@ -33,10 +33,6 @@ MediaStreamPlayback.prototype = {
 
 
 
-
-
-
-
   playMedia : function(isResume) {
     return this.startMedia(isResume)
       .then(() => this.stopMediaElement());

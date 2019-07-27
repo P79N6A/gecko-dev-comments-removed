@@ -199,9 +199,6 @@ function timerGuard(p, time, message) {
 
 
 
-
-
-
 PeerConnectionTest.prototype.closePC = function() {
   info("Closing peer connections");
 
@@ -988,9 +985,6 @@ PeerConnectionWrapper.prototype = {
   },
 
   
-
-
-
 
 
   createOffer : function() {
