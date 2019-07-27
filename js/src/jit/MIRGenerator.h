@@ -87,6 +87,10 @@ class MIRGenerator
         return !compilingAsmJS() && instrumentedProfiling();
     }
 
+    bool isOptimizationTrackingEnabled() {
+        return isProfilerInstrumentationEnabled() && !info().isAnalysis();
+    }
+
     
     bool shouldCancel(const char *why) {
         maybePause();

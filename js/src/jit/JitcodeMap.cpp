@@ -109,6 +109,19 @@ JitcodeGlobalEntry::IonEntry::destroy()
     
     js_free(scriptList_);
     scriptList_ = nullptr;
+
+    
+    
+    
+    if (optsRegionTable_) {
+        MOZ_ASSERT(optsAttemptsTable_);
+        js_free((void *) optsRegionTable_->payloadStart());
+    }
+    optsRegionTable_ = nullptr;
+    optsTypesTable_ = nullptr;
+    optsAttemptsTable_ = nullptr;
+    js_delete(optsAllTypes_);
+    optsAllTypes_ = nullptr;
 }
 
 bool

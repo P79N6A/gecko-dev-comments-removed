@@ -420,7 +420,7 @@ TypeSet::isSubset(const TypeSet *other) const
 }
 
 bool
-TypeSet::enumerateTypes(TypeList *list)
+TypeSet::enumerateTypes(TypeList *list) const
 {
     
     if (flags & TYPE_FLAG_UNKNOWN)
