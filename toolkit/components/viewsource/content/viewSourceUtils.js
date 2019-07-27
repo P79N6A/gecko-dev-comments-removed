@@ -110,27 +110,6 @@ var gViewSourceUtils = {
   },
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  viewSourceFromFragmentInBrowser: function(aNode, aContext,
-                                            aViewSourceInBrowser) {
-    let viewSourceBrowser = new ViewSourceBrowser(aViewSourceInBrowser);
-    viewSourceBrowser.loadViewSourceFromFragment(aNode, aContext);
-  },
-
-  
   _openInInternalViewer: function(aArgsOrURL, aPageDescriptor, aDocument, aLineNumber)
   {
     
