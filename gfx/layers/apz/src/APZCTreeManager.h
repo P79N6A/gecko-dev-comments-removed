@@ -91,6 +91,7 @@ class HitTestingTreeNode;
 
 
 
+
 class APZCTreeManager {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(APZCTreeManager)
 
@@ -420,7 +421,7 @@ private:
                                      const ScrollableLayerGuid& aGuid,
                                      GuidComparator aComparator);
   AsyncPanZoomController* GetAPZCAtPoint(HitTestingTreeNode* aNode,
-                                         const gfx::Point& aHitTestPoint,
+                                         const ParentLayerPoint& aHitTestPoint,
                                          HitTestResult* aOutHitResult);
   already_AddRefed<AsyncPanZoomController> GetMultitouchTarget(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2) const;
   already_AddRefed<AsyncPanZoomController> CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2) const;
@@ -440,11 +441,12 @@ private:
                                         const ZoomConstraints& aConstraints);
   void FlushRepaintsRecursively(HitTestingTreeNode* aNode);
 
+  already_AddRefed<HitTestingTreeNode> RecycleOrCreateNode(TreeBuildingState& aState,
+                                                           AsyncPanZoomController* aApzc);
   HitTestingTreeNode* PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
                                           const FrameMetrics& aMetrics,
                                           uint64_t aLayersId,
                                           const gfx::Matrix4x4& aAncestorTransform,
-                                          const nsIntRegion& aObscured,
                                           HitTestingTreeNode* aParent,
                                           HitTestingTreeNode* aNextSibling,
                                           TreeBuildingState& aState);
@@ -470,20 +472,12 @@ private:
 
 
 
-
-
-
-
-
-
-
   HitTestingTreeNode* UpdateHitTestingTree(TreeBuildingState& aState,
                                            const LayerMetricsWrapper& aLayer,
                                            uint64_t aLayersId,
                                            const gfx::Matrix4x4& aAncestorTransform,
                                            HitTestingTreeNode* aParent,
-                                           HitTestingTreeNode* aNextSibling,
-                                           const nsIntRegion& aObscured);
+                                           HitTestingTreeNode* aNextSibling);
 
   void PrintAPZCInfo(const LayerMetricsWrapper& aLayer,
                      const AsyncPanZoomController* apzc);

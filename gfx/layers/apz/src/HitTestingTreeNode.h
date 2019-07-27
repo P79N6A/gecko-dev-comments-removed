@@ -11,12 +11,18 @@
 #include "FrameMetrics.h"                   
 #include "mozilla/gfx/Matrix.h"             
 #include "mozilla/layers/LayersTypes.h"     
+#include "mozilla/Maybe.h"                  
 #include "nsRefPtr.h"                       
 
 namespace mozilla {
 namespace layers {
 
 class AsyncPanZoomController;
+
+
+
+
+
 
 
 
@@ -48,14 +54,17 @@ private:
   ~HitTestingTreeNode();
 public:
   HitTestingTreeNode(AsyncPanZoomController* aApzc, bool aIsPrimaryHolder);
+  void RecycleWith(AsyncPanZoomController* aApzc);
   void Destroy();
 
   
+
   void SetLastChild(HitTestingTreeNode* aChild);
   void SetPrevSibling(HitTestingTreeNode* aSibling);
   void MakeRoot();
 
   
+
 
   HitTestingTreeNode* GetFirstChild() const;
   HitTestingTreeNode* GetLastChild() const;
@@ -63,14 +72,22 @@ public:
   HitTestingTreeNode* GetParent() const;
 
   
+
   AsyncPanZoomController* GetApzc() const;
   AsyncPanZoomController* GetNearestContainingApzc() const;
   bool IsPrimaryHolder() const;
 
   
+
   void SetHitTestData(const EventRegions& aRegions,
                       const gfx::Matrix4x4& aTransform,
-                      const nsIntRegion& aClipRegion);
+                      const Maybe<nsIntRegion>& aClipRegion);
+  bool IsOutsideClip(const ParentLayerPoint& aPoint) const;
+  
+
+  Maybe<LayerPoint> Untransform(const ParentLayerPoint& aPoint) const;
+  
+
   HitTestResult HitTest(const ParentLayerPoint& aPoint) const;
 
   
@@ -93,16 +110,9 @@ private:
 
 
 
-
-
-
-
-
   EventRegions mEventRegions;
 
   
-
-
 
   gfx::Matrix4x4 mTransform;
 
@@ -110,7 +120,8 @@ private:
 
 
 
-  nsIntRegion mClipRegion;
+
+  Maybe<nsIntRegion> mClipRegion;
 };
 
 }

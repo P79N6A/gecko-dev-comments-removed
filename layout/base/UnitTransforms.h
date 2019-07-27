@@ -26,6 +26,9 @@ MOZ_BEGIN_ENUM_CLASS(PixelCastJustification, uint8_t)
   ParentLayerToLayerForRootComposition,
   
   
+  MovingDownToChildren,
+  
+  
   
   TransformNotAvailable
 MOZ_END_ENUM_CLASS(PixelCastJustification)

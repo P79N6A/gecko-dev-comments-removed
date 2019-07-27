@@ -28,8 +28,14 @@
 #include "OverscrollHandoffState.h"     
 #include "LayersLogging.h"              
 
-#define APZCTM_LOG(...)
+#define ENABLE_APZCTM_LOGGING 0
 
+
+#if ENABLE_APZCTM_LOGGING
+#  define APZCTM_LOG(...) printf_stderr("APZCTM: " __VA_ARGS__)
+#else
+#  define APZCTM_LOG(...)
+#endif
 
 namespace mozilla {
 namespace layers {
@@ -68,13 +74,6 @@ struct APZCTreeManager::TreeBuildingState {
   
   
   std::map<ScrollableLayerGuid, AsyncPanZoomController*> mApzcMap;
-
-  
-  
-  
-  
-  
-  nsTArray<EventRegions> mEventRegions;
 };
 
  const ScreenMargin
@@ -199,10 +198,9 @@ APZCTreeManager::UpdateHitTestingTree(CompositorParent* aCompositor,
     UpdateHitTestingTree(state, root,
                          
                          aCompositor ? aCompositor->RootLayerTreeId() : 0,
-                         Matrix4x4(), nullptr, nullptr, nsIntRegion());
+                         Matrix4x4(), nullptr, nullptr);
     mApzcTreeLog << "[end]\n";
   }
-  MOZ_ASSERT(state.mEventRegions.Length() == 0);
 
   for (size_t i = 0; i < state.mNodesToDestroy.Length(); i++) {
     APZCTM_LOG("Destroying node at %p with APZC %p\n",
@@ -210,20 +208,34 @@ APZCTreeManager::UpdateHitTestingTree(CompositorParent* aCompositor,
         state.mNodesToDestroy[i]->GetApzc());
     state.mNodesToDestroy[i]->Destroy();
   }
+
+#if ENABLE_APZCTM_LOGGING
+  
+  printf_stderr("APZCTreeManager (%p)\n", this);
+  mRootNode->Dump("  ");
+#endif
 }
 
 
 
 static nsIntRegion
-ComputeTouchSensitiveRegion(GeckoContentController* aController,
-                            const FrameMetrics& aMetrics,
-                            const nsIntRegion& aObscured)
+ComputeClipRegion(GeckoContentController* aController,
+                  const LayerMetricsWrapper& aLayer)
 {
+  nsIntRegion clipRegion;
+  if (aLayer.GetClipRect()) {
+    clipRegion = nsIntRegion(*aLayer.GetClipRect());
+  } else {
+    
+    
+    
+    clipRegion = nsIntRegion(ParentLayerIntRect::ToUntyped(
+        RoundedToInt(aLayer.Metrics().mCompositionBounds)));
+  }
+
   
   
   
-  
-  ParentLayerRect visible(aMetrics.mCompositionBounds);
   CSSRect touchSensitiveRegion;
   if (aController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
     
@@ -233,19 +245,19 @@ ComputeTouchSensitiveRegion(GeckoContentController* aController,
     
     
     LayoutDeviceToParentLayerScale parentCumulativeResolution =
-          aMetrics.GetCumulativeResolution()
-        / ParentLayerToLayerScale(aMetrics.mPresShellResolution);
-    visible = visible.Intersect(touchSensitiveRegion
-                                * aMetrics.GetDevPixelsPerCSSPixel()
-                                * parentCumulativeResolution);
+          aLayer.Metrics().GetCumulativeResolution()
+        / ParentLayerToLayerScale(aLayer.Metrics().mPresShellResolution);
+    
+    
+    
+    nsIntRect extraClip = ParentLayerIntRect::ToUntyped(RoundedIn(
+        touchSensitiveRegion
+        * aLayer.Metrics().GetDevPixelsPerCSSPixel()
+        * parentCumulativeResolution));
+    clipRegion.AndWith(extraClip);
   }
 
-  
-  
-  
-  nsIntRegion unobscured;
-  unobscured.Sub(ParentLayerIntRect::ToUntyped(RoundedIn(visible)), aObscured);
-  return unobscured;
+  return clipRegion;
 }
 
 void
@@ -276,26 +288,63 @@ APZCTreeManager::AttachNodeToTree(HitTestingTreeNode* aNode,
   }
 }
 
+static EventRegions
+GetEventRegions(const LayerMetricsWrapper& aLayer)
+{
+  if (gfxPrefs::LayoutEventRegionsEnabled()) {
+    return aLayer.GetEventRegions();
+  }
+  return EventRegions(aLayer.GetVisibleRegion());
+}
+
+already_AddRefed<HitTestingTreeNode>
+APZCTreeManager::RecycleOrCreateNode(TreeBuildingState& aState,
+                                     AsyncPanZoomController* aApzc)
+{
+  
+  
+  
+  for (size_t i = 0; i < aState.mNodesToDestroy.Length(); i++) {
+    nsRefPtr<HitTestingTreeNode> node = aState.mNodesToDestroy[i];
+    if (!node->IsPrimaryHolder()) {
+      aState.mNodesToDestroy.RemoveElement(node);
+      node->RecycleWith(aApzc);
+      return node.forget();
+    }
+  }
+  nsRefPtr<HitTestingTreeNode> node = new HitTestingTreeNode(aApzc, false);
+  return node.forget();
+}
+
 HitTestingTreeNode*
 APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
                                      const FrameMetrics& aMetrics,
                                      uint64_t aLayersId,
                                      const gfx::Matrix4x4& aAncestorTransform,
-                                     const nsIntRegion& aObscured,
                                      HitTestingTreeNode* aParent,
                                      HitTestingTreeNode* aNextSibling,
                                      TreeBuildingState& aState)
 {
+  bool needsApzc = true;
   if (!aMetrics.IsScrollable()) {
-    return nullptr;
+    needsApzc = false;
   }
   if (gfxPrefs::LayoutEventRegionsEnabled() && aLayer.IsScrollInfoLayer()) {
-    return nullptr;
+    needsApzc = false;
   }
 
   const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
   if (!(state && state->mController.get())) {
-    return nullptr;
+    needsApzc = false;
+  }
+
+  nsRefPtr<HitTestingTreeNode> node = nullptr;
+  if (!needsApzc) {
+    node = RecycleOrCreateNode(aState, nullptr);
+    AttachNodeToTree(node, aParent, aNextSibling);
+    node->SetHitTestData(GetEventRegions(aLayer), aLayer.GetTransform(),
+        aLayer.GetClipRect() ? Some(nsIntRegion(*aLayer.GetClipRect())) : Nothing());
+    return node;
   }
 
   AsyncPanZoomController* apzc = nullptr;
@@ -318,7 +367,6 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
   
   
   
-  nsRefPtr<HitTestingTreeNode> node = nullptr;
   if (apzc == nullptr) {
     apzc = aLayer.GetApzc();
 
@@ -390,12 +438,8 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     
     MOZ_ASSERT(node->IsPrimaryHolder() && node->GetApzc() && node->GetApzc()->Matches(guid));
 
-    if (!gfxPrefs::LayoutEventRegionsEnabled()) {
-      nsIntRegion unobscured = ComputeTouchSensitiveRegion(state->mController, aMetrics, aObscured);
-      node->SetHitTestData(EventRegions(), Matrix4x4(), unobscured);
-      APZCTM_LOG("Setting region %s as visible region for APZC %p (node %p)\n",
-        Stringify(unobscured).c_str(), apzc, node.get());
-    }
+    nsIntRegion clipRegion = ComputeClipRegion(state->mController, aLayer);
+    node->SetHitTestData(GetEventRegions(aLayer), aLayer.GetTransform(), Some(clipRegion));
     apzc->SetAncestorTransform(aAncestorTransform);
 
     PrintAPZCInfo(aLayer, apzc);
@@ -439,10 +483,7 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     
     
 
-    
-    
-    
-    node = new HitTestingTreeNode(apzc, false);
+    node = RecycleOrCreateNode(aState, apzc);
     AttachNodeToTree(node, aParent, aNextSibling);
 
     
@@ -451,12 +492,8 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     
     MOZ_ASSERT(aAncestorTransform == apzc->GetAncestorTransform());
 
-    if (!gfxPrefs::LayoutEventRegionsEnabled()) {
-      nsIntRegion unobscured = ComputeTouchSensitiveRegion(state->mController, aMetrics, aObscured);
-      node->SetHitTestData(EventRegions(), Matrix4x4(), unobscured);
-      APZCTM_LOG("Adding region %s to visible region of APZC %p (via node %p)\n",
-        Stringify(unobscured).c_str(), apzc, node.get());
-    }
+    nsIntRegion clipRegion = ComputeClipRegion(state->mController, aLayer);
+    node->SetHitTestData(GetEventRegions(aLayer), aLayer.GetTransform(), Some(clipRegion));
   }
 
   return node;
@@ -468,8 +505,7 @@ APZCTreeManager::UpdateHitTestingTree(TreeBuildingState& aState,
                                       uint64_t aLayersId,
                                       const gfx::Matrix4x4& aAncestorTransform,
                                       HitTestingTreeNode* aParent,
-                                      HitTestingTreeNode* aNextSibling,
-                                      const nsIntRegion& aObscured)
+                                      HitTestingTreeNode* aNextSibling)
 {
   mTreeLock.AssertCurrentThreadOwns();
 
@@ -477,8 +513,9 @@ APZCTreeManager::UpdateHitTestingTree(TreeBuildingState& aState,
 
   HitTestingTreeNode* node = PrepareNodeForLayer(aLayer,
         aLayer.Metrics(), aLayersId, aAncestorTransform,
-        aObscured, aParent, aNextSibling, aState);
-  AsyncPanZoomController* apzc = (node ? node->GetApzc() : nullptr);
+        aParent, aNextSibling, aState);
+  MOZ_ASSERT(node);
+  AsyncPanZoomController* apzc = node->GetApzc();
   aLayer.SetApzc(apzc);
 
   mApzcTreeLog << '\n';
@@ -496,167 +533,20 @@ APZCTreeManager::UpdateHitTestingTree(TreeBuildingState& aState,
     ancestorTransform = ancestorTransform * aAncestorTransform;
   }
 
+  
+  
+  MOZ_ASSERT(!node->GetFirstChild());
+  aParent = node;
+  HitTestingTreeNode* next = nullptr;
+
   uint64_t childLayersId = (aLayer.AsRefLayer() ? aLayer.AsRefLayer()->GetReferentId() : aLayersId);
-
-  nsIntRegion obscuredByUncles;
-  if (aLayersId == childLayersId) {
-    
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    obscuredByUncles = aObscured;
-  }
-
-  
-  
-  HitTestingTreeNode* next = aNextSibling;
-  if (node) {
-    
-    
-    
-    
-    MOZ_ASSERT(!node->GetFirstChild());
-    aParent = node;
-    next = nullptr;
-  }
-
-  
-  
-  
-  
-  
-  
-  if (gfxPrefs::LayoutEventRegionsEnabled() && (apzc || aState.mEventRegions.Length() > 0)) {
-    aState.mEventRegions.AppendElement(EventRegions());
-  }
-
-  
-  nsIntRegion obscured = obscuredByUncles;
-  obscured.Transform(To3DMatrix(transform).Inverse());
   for (LayerMetricsWrapper child = aLayer.GetLastChild(); child; child = child.GetPrevSibling()) {
     gfx::TreeAutoIndent indent(mApzcTreeLog);
     next = UpdateHitTestingTree(aState, child, childLayersId,
-                                ancestorTransform, aParent, next,
-                                obscured);
-
-    
-    
-    nsIntRegion childRegion;
-    if (gfxPrefs::LayoutEventRegionsEnabled()) {
-      childRegion = child.GetEventRegions().mHitRegion;
-    } else {
-      childRegion = child.GetVisibleRegion();
-    }
-    childRegion.Transform(gfx::To3DMatrix(child.GetTransform()));
-    if (child.GetClipRect()) {
-      childRegion.AndWith(*child.GetClipRect());
-    }
-
-    obscured.OrWith(childRegion);
+                                ancestorTransform, aParent, next);
   }
 
-  if (gfxPrefs::LayoutEventRegionsEnabled() && aState.mEventRegions.Length() > 0) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    EventRegions subtreeEventRegions = aState.mEventRegions.LastElement();
-    aState.mEventRegions.RemoveElementAt(aState.mEventRegions.Length() - 1);
-    
-    subtreeEventRegions.OrWith(aLayer.GetEventRegions());
-
-    
-    
-    if (node) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      nsIntRegion clipRegion;
-      if (aLayer.GetClipRect()) {
-        clipRegion = nsIntRegion(*aLayer.GetClipRect());
-      } else {
-        
-        
-        
-        clipRegion = nsIntRegion(ParentLayerIntRect::ToUntyped(RoundedToInt(aLayer.Metrics().mCompositionBounds)));
-      }
-      clipRegion.SubOut(obscuredByUncles);
-
-      const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
-      MOZ_ASSERT(state);
-      MOZ_ASSERT(state->mController.get());
-      CSSRect touchSensitiveRegion;
-      if (state->mController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
-        
-        
-        
-        
-        
-        
-        LayoutDeviceToParentLayerScale parentCumulativeResolution =
-            aLayer.Metrics().GetCumulativeResolution()
-            / ParentLayerToLayerScale(aLayer.Metrics().mPresShellResolution);
-        clipRegion.AndWith(ParentLayerIntRect::ToUntyped(
-            RoundedIn(touchSensitiveRegion
-                    * aLayer.Metrics().GetDevPixelsPerCSSPixel()
-                    * parentCumulativeResolution)));
-      }
-
-      node->SetHitTestData(subtreeEventRegions, aLayer.GetTransform(), clipRegion);
-      APZCTM_LOG("After processing layer %p the event regions for %p is %s\n",
-        aLayer.GetLayer(), node, Stringify(subtreeEventRegions).c_str());
-    } else {
-      
-      
-      MOZ_ASSERT(aState.mEventRegions.Length() > 0);
-      
-      subtreeEventRegions.Transform(To3DMatrix(aLayer.GetTransform()));
-      if (aLayer.GetClipRect()) {
-        subtreeEventRegions.AndWith(*aLayer.GetClipRect());
-      }
-      aState.mEventRegions.LastElement().OrWith(subtreeEventRegions);
-    }
-  }
-
-  
-  
-  
-  
-  if (node) {
-    return node;
-  }
-  if (next) {
-    return next;
-  }
-  return aNextSibling;
+  return node;
 }
 
 nsEventStatus
@@ -1326,7 +1216,9 @@ APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint, HitTestResult* aOutHit
 {
   MonitorAutoLock lock(mTreeLock);
   HitTestResult hitResult = NoApzcHit;
-  nsRefPtr<AsyncPanZoomController> target = GetAPZCAtPoint(mRootNode, aPoint.ToUnknownPoint(), &hitResult);
+  ParentLayerPoint point = ViewAs<ParentLayerPixel>(aPoint,
+    PixelCastJustification::ScreenIsParentLayerForRoot);
+  nsRefPtr<AsyncPanZoomController> target = GetAPZCAtPoint(mRootNode, point, &hitResult);
 
   
   MOZ_ASSERT(!(target && (hitResult == OverscrolledApzc)));
@@ -1446,7 +1338,7 @@ APZCTreeManager::FindTargetNode(HitTestingTreeNode* aNode,
 
 AsyncPanZoomController*
 APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
-                                const Point& aHitTestPoint,
+                                const ParentLayerPoint& aHitTestPoint,
                                 HitTestResult* aOutHitResult)
 {
   mTreeLock.AssertCurrentThreadOwns();
@@ -1456,59 +1348,41 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
   for (HitTestingTreeNode* node = aNode; node; node = node->GetPrevSibling()) {
     AsyncPanZoomController* apzc = node->GetApzc();
 
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    Matrix4x4 ancestorUntransform;
-    if (apzc) {
-      ancestorUntransform = apzc->GetAncestorTransform().Inverse();
+    if (node->IsOutsideClip(aHitTestPoint)) {
+      
+      
+      
+      APZCTM_LOG("Point %f %f outside clip for node %p\n",
+        aHitTestPoint.x, aHitTestPoint.y, node);
+      continue;
     }
-
-    
-    
-    
-    Point4D hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
-    APZCTM_LOG("Untransformed %f %f to parentlayer coordinates %f %f for hit-testing APZC %p\n",
-        aHitTestPoint.x, aHitTestPoint.y,
-        hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, apzc);
-
-    
-    
-    
-    
-    Matrix4x4 asyncUntransform;
-    if (apzc) {
-      asyncUntransform = Matrix4x4(apzc->GetCurrentAsyncTransform()).Inverse();
-    }
-    Matrix4x4 childUntransform = ancestorUntransform * asyncUntransform;
-    Point4D hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
-    APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
-        aHitTestPoint.x, aHitTestPoint.y,
-        hitTestPointForChildLayers.x, hitTestPointForChildLayers.y, apzc);
 
     AsyncPanZoomController* result = nullptr;
-    if (hitTestPointForChildLayers.HasPositiveWCoord()) {
-      result = GetAPZCAtPoint(node->GetLastChild(), hitTestPointForChildLayers.As2DPoint(), aOutHitResult);
+
+    
+    
+    Maybe<LayerPoint> hitTestPointForChildLayers = node->Untransform(aHitTestPoint);
+    if (hitTestPointForChildLayers) {
+      ParentLayerPoint childPoint = ViewAs<ParentLayerPixel>(hitTestPointForChildLayers.ref(),
+        PixelCastJustification::MovingDownToChildren);
+      result = GetAPZCAtPoint(node->GetLastChild(), childPoint, aOutHitResult);
       if (*aOutHitResult == OverscrolledApzc) {
         
         return nullptr;
       }
     }
-    if (!result && hitTestPointForThisLayer.HasPositiveWCoord()) {
-      ParentLayerPoint point = ParentLayerPoint::FromUnknownPoint(hitTestPointForThisLayer.As2DPoint());
-      HitTestResult hitResult = node->HitTest(point);
+
+    
+    if (!result) {
+      APZCTM_LOG("Testing ParentLayer point %f %f (Layer %f %f) against node %p\n",
+          aHitTestPoint.x, aHitTestPoint.y,
+          hitTestPointForChildLayers.x, hitTestPointForChildLayers.y,
+          node);
+      HitTestResult hitResult = node->HitTest(aHitTestPoint);
       if (hitResult != HitTestResult::NoApzcHit) {
-        APZCTM_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p via node %p\n",
-             hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, apzc, node);
-        result = apzc;
+        result = node->GetNearestContainingApzc();
+        APZCTM_LOG("Successfully matched APZC %p via node %p (hit result %d)\n",
+             result, node, hitResult);
         MOZ_ASSERT(hitResult == ApzcHitRegion || hitResult == ApzcContentRegion);
         
         *aOutHitResult = hitResult;
@@ -1519,12 +1393,14 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
     
     
     if (result && apzc && apzc->IsOverscrolled()) {
+      APZCTM_LOG("Result is inside overscrolled APZC %p\n", apzc);
       *aOutHitResult = OverscrolledApzc;
       return nullptr;
     }
 
     if (result) {
       if (!gfxPrefs::LayoutEventRegionsEnabled()) {
+        
         
         
         
@@ -1543,6 +1419,7 @@ APZCTreeManager::GetAPZCAtPoint(HitTestingTreeNode* aNode,
           }
         }
         if (result == prevSiblingApzc) {
+          APZCTM_LOG("Continuing search past probable scrollinfo info layer\n");
           continue;
         }
       }

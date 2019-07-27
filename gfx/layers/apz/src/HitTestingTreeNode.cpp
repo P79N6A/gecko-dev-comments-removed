@@ -26,6 +26,16 @@ HitTestingTreeNode::HitTestingTreeNode(AsyncPanZoomController* aApzc,
   }
 }
 
+void
+HitTestingTreeNode::RecycleWith(AsyncPanZoomController* aApzc)
+{
+  MOZ_ASSERT(!mIsPrimaryApzcHolder);
+  Destroy(); 
+  mApzc = aApzc;
+  
+  
+}
+
 HitTestingTreeNode::~HitTestingTreeNode()
 {
 }
@@ -144,11 +154,32 @@ HitTestingTreeNode::IsPrimaryHolder() const
 void
 HitTestingTreeNode::SetHitTestData(const EventRegions& aRegions,
                                    const gfx::Matrix4x4& aTransform,
-                                   const nsIntRegion& aClipRegion)
+                                   const Maybe<nsIntRegion>& aClipRegion)
 {
   mEventRegions = aRegions;
   mTransform = aTransform;
   mClipRegion = aClipRegion;
+}
+
+bool
+HitTestingTreeNode::IsOutsideClip(const ParentLayerPoint& aPoint) const
+{
+  
+  return (mClipRegion.isSome() && !mClipRegion->Contains(aPoint.x, aPoint.y));
+}
+
+Maybe<LayerPoint>
+HitTestingTreeNode::Untransform(const ParentLayerPoint& aPoint) const
+{
+  
+  gfx::Matrix4x4 localTransform = mTransform;
+  if (mApzc) {
+    localTransform = localTransform * gfx::Matrix4x4(mApzc->GetCurrentAsyncTransform());
+  }
+  gfx::Point4D point = localTransform.Inverse().ProjectPoint(aPoint.ToUnknownPoint());
+  return point.HasPositiveWCoord()
+        ? Some(ViewAs<LayerPixel>(point.As2DPoint()))
+        : Nothing();
 }
 
 HitTestResult
@@ -156,30 +187,23 @@ HitTestingTreeNode::HitTest(const ParentLayerPoint& aPoint) const
 {
   
   
+  MOZ_ASSERT(!IsOutsideClip(aPoint));
+
   
-  if (!gfxPrefs::LayoutEventRegionsEnabled()) {
-    MOZ_ASSERT(mEventRegions == EventRegions());
-    MOZ_ASSERT(mTransform == gfx::Matrix4x4());
-    return mClipRegion.Contains(aPoint.x, aPoint.y)
-        ? HitTestResult::ApzcHitRegion
-        : HitTestResult::NoApzcHit;
+  
+  
+  
+  
+  if (!gfxPrefs::LayoutEventRegionsEnabled() && GetApzc()) {
+    return HitTestResult::ApzcHitRegion;
   }
 
   
-  if (!mClipRegion.Contains(aPoint.x, aPoint.y)) {
+  Maybe<LayerPoint> pointInLayerPixels = Untransform(aPoint);
+  if (!pointInLayerPixels) {
     return HitTestResult::NoApzcHit;
   }
-
-  
-  gfx::Matrix4x4 localTransform = mTransform;
-  if (mApzc) {
-    localTransform = localTransform * gfx::Matrix4x4(mApzc->GetCurrentAsyncTransform());
-  }
-  gfx::Point4D pointInLayerPixels = localTransform.Inverse().ProjectPoint(aPoint.ToUnknownPoint());
-  if (!pointInLayerPixels.HasPositiveWCoord()) {
-    return HitTestResult::NoApzcHit;
-  }
-  LayerIntPoint point = RoundedToInt(ViewAs<LayerPixel>(pointInLayerPixels.As2DPoint()));
+  LayerIntPoint point = RoundedToInt(pointInLayerPixels.ref());
 
   
   if (!mEventRegions.mHitRegion.Contains(point.x, point.y)) {
@@ -200,7 +224,7 @@ HitTestingTreeNode::Dump(const char* aPrefix) const
   printf_stderr("%sHitTestingTreeNode (%p) APZC (%p) g=(%s) r=(%s) t=(%s) c=(%s)\n",
     aPrefix, this, mApzc.get(), mApzc ? Stringify(mApzc->GetGuid()).c_str() : "",
     Stringify(mEventRegions).c_str(), Stringify(mTransform).c_str(),
-    Stringify(mClipRegion).c_str());
+    mClipRegion ? Stringify(mClipRegion.ref()).c_str() : "none");
   if (mLastChild) {
     mLastChild->Dump(nsPrintfCString("%s  ", aPrefix).get());
   }
