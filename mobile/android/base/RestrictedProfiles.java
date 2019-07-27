@@ -163,11 +163,6 @@ public class RestrictedProfiles {
 
     @WrapElementForJNI
     public static boolean isAllowed(int action, String url) {
-        
-        if (getInGuest()) {
-            return false;
-        }
-
         final Restriction restriction;
         try {
             restriction = geckoActionToRestriction(action);
@@ -178,8 +173,13 @@ public class RestrictedProfiles {
             return false;
         }
 
-        if (Restriction.DISALLOW_BROWSE_FILES == restriction) {
-            return canLoadUrl(url);
+        if (getInGuest()) {
+            if (Restriction.DISALLOW_BROWSE_FILES == restriction) {
+                return canLoadUrl(url);
+            }
+
+            
+            return false;
         }
 
         
