@@ -358,7 +358,7 @@ MacroAssemblerX86::callWithABI(Register fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerX86::handleFailureWithHandler(void *handler)
+MacroAssemblerX86::handleFailureWithHandlerTail(void *handler)
 {
     
     subl(Imm32(sizeof(ResumeFromException)), esp);
@@ -369,13 +369,6 @@ MacroAssemblerX86::handleFailureWithHandler(void *handler)
     passABIArg(eax);
     callWithABI(handler);
 
-    JitCode *excTail = GetJitContext()->runtime->jitRuntime()->getExceptionTail();
-    jmp(excTail);
-}
-
-void
-MacroAssemblerX86::handleFailureWithHandlerTail()
-{
     Label entryFrame;
     Label catch_;
     Label finally;

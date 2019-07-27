@@ -3526,7 +3526,7 @@ MacroAssemblerMIPSCompat::callWithABI(Register fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerMIPSCompat::handleFailureWithHandler(void *handler)
+MacroAssemblerMIPSCompat::handleFailureWithHandlerTail(void *handler)
 {
     
     int size = (sizeof(ResumeFromException) + ABIStackAlignment) & ~(ABIStackAlignment - 1);
@@ -3538,13 +3538,6 @@ MacroAssemblerMIPSCompat::handleFailureWithHandler(void *handler)
     passABIArg(a0);
     callWithABI(handler);
 
-    JitCode *excTail = GetJitContext()->runtime->jitRuntime()->getExceptionTail();
-    branch(excTail);
-}
-
-void
-MacroAssemblerMIPSCompat::handleFailureWithHandlerTail()
-{
     Label entryFrame;
     Label catch_;
     Label finally;

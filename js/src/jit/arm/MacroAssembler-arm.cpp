@@ -4205,7 +4205,7 @@ MacroAssemblerARMCompat::callWithABI(Register fun, MoveOp::Type result)
 }
 
 void
-MacroAssemblerARMCompat::handleFailureWithHandler(void *handler)
+MacroAssemblerARMCompat::handleFailureWithHandlerTail(void *handler)
 {
     
     int size = (sizeof(ResumeFromException) + 7) & ~7;
@@ -4218,13 +4218,6 @@ MacroAssemblerARMCompat::handleFailureWithHandler(void *handler)
     passABIArg(r0);
     callWithABI(handler);
 
-    JitCode *excTail = GetJitContext()->runtime->jitRuntime()->getExceptionTail();
-    branch(excTail);
-}
-
-void
-MacroAssemblerARMCompat::handleFailureWithHandlerTail()
-{
     Label entryFrame;
     Label catch_;
     Label finally;

@@ -154,6 +154,7 @@ class JitRuntime
 
     
     JitCode *exceptionTail_;
+    JitCode *exceptionTailParallel_;
 
     
     JitCode *bailoutTail_;
@@ -243,7 +244,7 @@ class JitRuntime
 
   private:
     JitCode *generateLazyLinkStub(JSContext *cx);
-    JitCode *generateExceptionTailStub(JSContext *cx);
+    JitCode *generateExceptionTailStub(JSContext *cx, void *handler);
     JitCode *generateBailoutTailStub(JSContext *cx);
     JitCode *generateEnterJIT(JSContext *cx, EnterJitType type);
     JitCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void **returnAddrOut);
@@ -331,6 +332,9 @@ class JitRuntime
 
     JitCode *getExceptionTail() const {
         return exceptionTail_;
+    }
+    JitCode *getExceptionTailParallel() const {
+        return exceptionTailParallel_;
     }
 
     JitCode *getBailoutTail() const {
