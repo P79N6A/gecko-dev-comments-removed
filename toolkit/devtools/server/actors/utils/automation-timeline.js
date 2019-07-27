@@ -68,6 +68,8 @@ exports.fuzzyEqual = function (lhs, rhs) {
   return Math.abs(lhs - rhs) < EPSILON;
 };
 
+exports.EPSILON = EPSILON;
+
 },{}],4:[function(require,module,exports){
 var TimelineEvent = require("./event").TimelineEvent;
 var F = require("./formulas");
@@ -78,11 +80,6 @@ function Timeline (defaultValue) {
   this.events = [];
 
   this._value = defaultValue || 0;
-
-  
-  this._computedValue = defaultValue || 0;
-  
-  this._lastComputedValue = defaultValue || 0;
 }
 
 Timeline.prototype.getEventCount = function () {
@@ -95,7 +92,7 @@ Timeline.prototype.value = function () {
 
 Timeline.prototype.setValue = function (value) {
   if (this.events.length === 0) {
-    this._computedValue = this._lastComputedValue = this._value = value;
+    this._value = value;
   }
 };
 
@@ -108,21 +105,19 @@ Timeline.prototype.getValue = function () {
 };
 
 Timeline.prototype.getValueAtTime = function (time) {
-  this._computedValue = this._getValueAtTimeHelper(time);
-  return this._computedValue;
+  return this._getValueAtTimeHelper(time);
 };
 
 Timeline.prototype._getValueAtTimeHelper = function (time) {
   var bailOut = false;
   var previous = null;
   var next = null;
+  var lastComputedValue = null; 
   var events = this.events;
   var e;
 
   for (var i = 0; !bailOut && i < events.length; i++) {
     if (F.fuzzyEqual(time, events[i].time)) {
-      this._lastComputedValue = this._computedValue;
-
       
       do {
         ++i;
@@ -132,7 +127,8 @@ Timeline.prototype._getValueAtTimeHelper = function (time) {
 
       
       if (e.type === "setTargetAtTime") {
-        return e.exponentialApproach(this._lastComputedValue, time);
+        lastComputedValue = this._lastComputedValue(e);
+        return e.exponentialApproach(lastComputedValue, time);
       }
 
       
@@ -170,7 +166,8 @@ Timeline.prototype._getValueAtTimeHelper = function (time) {
 
   
   if (previous.type === "setTargetAtTime") {
-    return previous.exponentialApproach(this._lastComputedValue, time);
+    lastComputedValue = this._lastComputedValue(previous);
+    return previous.exponentialApproach(lastComputedValue, time);
   }
 
   
@@ -314,6 +311,29 @@ Timeline.prototype._getPreviousEvent = function (time) {
   }
 
   return previous;
+};
+
+
+
+
+
+
+
+Timeline.prototype._lastComputedValue = function (event) {
+  
+  
+  var lastEvent = this._getPreviousEvent(event.time - F.EPSILON);
+
+  
+  
+  if (!lastEvent) {
+    return this._value;
+  }
+  
+  
+  else {
+    return lastEvent.value;
+  }
 };
 
 Timeline.prototype.setValueAtTime = function (value, startTime) {
