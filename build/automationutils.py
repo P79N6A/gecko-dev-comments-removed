@@ -23,8 +23,6 @@ __all__ = [
   "dumpLeakLog",
   "isURL",
   "processLeakLog",
-  "getDebuggerInfo",
-  "DEBUGGER_INFO",
   "replaceBackSlashes",
   'KeyValueParseError',
   'parseKeyValue',
@@ -47,54 +45,6 @@ resetGlobalLog()
 def setAutomationLog(alt_logger):
   global log
   log = alt_logger
-
-
-
-DEBUGGER_INFO = {
-  
-  
-  "gdb": {
-    "interactive": True,
-    "args": "-q --args"
-  },
-
-  "cgdb": {
-    "interactive": True,
-    "args": "-q --args"
-  },
-
-  "lldb": {
-    "interactive": True,
-    "args": "--",
-    "requiresEscapedArgs": True
-  },
-
-  
-  "devenv.exe": {
-    "interactive": True,
-    "args": "-debugexe"
-  },
-
-  
-  "wdexpress.exe": {
-    "interactive": True,
-    "args": "-debugexe"
-  },
-
-  
-  
-  
-  
-  
-  
-  "valgrind": {
-    "interactive": False,
-    "args": " ".join(["--leak-check=full",
-                      "--show-possibly-lost=no",
-                      "--smc-check=all-non-file",
-                      "--vex-iropt-register-updates=allregs-at-mem-access"])
-  }
-}
 
 class ZipFileReader(object):
   """
@@ -223,58 +173,6 @@ def addCommonOptions(parser, defaults={}):
                     action = "store_true", dest = "debuggerInteractive",
                     help = "prevents the test harness from redirecting "
                         "stdout and stderr for interactive debuggers")
-
-def getFullPath(directory, path):
-  "Get an absolute path relative to 'directory'."
-  return os.path.normpath(os.path.join(directory, os.path.expanduser(path)))
-
-def searchPath(directory, path):
-  "Go one step beyond getFullPath and try the various folders in PATH"
-  
-  newpath = getFullPath(directory, path)
-  if os.path.isfile(newpath):
-    return newpath
-
-  
-  
-  if not os.path.dirname(path):
-    for dir in os.environ['PATH'].split(os.pathsep):
-      newpath = os.path.join(dir, path)
-      if os.path.isfile(newpath):
-        return newpath
-  return None
-
-def getDebuggerInfo(directory, debugger, debuggerArgs, debuggerInteractive = False):
-
-  debuggerInfo = None
-
-  if debugger:
-    debuggerPath = searchPath(directory, debugger)
-    if not debuggerPath:
-      print "Error: Path %s doesn't exist." % debugger
-      sys.exit(1)
-
-    debuggerName = os.path.basename(debuggerPath).lower()
-
-    def getDebuggerInfo(type, default):
-      if debuggerName in DEBUGGER_INFO and type in DEBUGGER_INFO[debuggerName]:
-        return DEBUGGER_INFO[debuggerName][type]
-      return default
-
-    debuggerInfo = {
-      "path": debuggerPath,
-      "interactive" : getDebuggerInfo("interactive", False),
-      "args": getDebuggerInfo("args", "").split(),
-      "requiresEscapedArgs": getDebuggerInfo("requiresEscapedArgs", False)
-    }
-
-    if debuggerArgs:
-      debuggerInfo["args"] = debuggerArgs.split()
-    if debuggerInteractive:
-      debuggerInfo["interactive"] = debuggerInteractive
-
-  return debuggerInfo
-
 
 def dumpLeakLog(leakLogFile, filter = False):
   """Process the leak log, without parsing it.
