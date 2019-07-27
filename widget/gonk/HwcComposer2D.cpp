@@ -397,17 +397,21 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
     
     int current = mList ? mList->numHwLayers : 0;
 
-    
-    
     bool isOpaque = (opacity == 0xFF) && (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE);
     if (current && isOpaque) {
-        nsIntRect displayRect = nsIntRect(displayFrame.left, displayFrame.top,
-            displayFrame.right - displayFrame.left, displayFrame.bottom - displayFrame.top);
+        nsIntRect displayRect = HwcUtils::HwcToIntRect(displayFrame);
         if (displayRect.Contains(mScreenRect)) {
             
             
             mList->numHwLayers = current = 0;
             mHwcLayerMap.Clear();
+        } else {
+            nsIntRect rect = HwcUtils::HwcToIntRect(mList->hwLayers[current-1].displayFrame);
+            if (displayRect.Contains(rect)) {
+                
+                mHwcLayerMap.RemoveElementAt(current-1);
+                current = --mList->numHwLayers;
+            }
         }
     }
 
