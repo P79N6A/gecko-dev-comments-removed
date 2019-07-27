@@ -565,7 +565,7 @@ template <typename ParseHandler>
 ObjectBox *
 Parser<ParseHandler>::newObjectBox(JSObject *obj)
 {
-    MOZ_ASSERT(obj && !IsPoisonedPtr(obj));
+    MOZ_ASSERT(obj);
 
     
 
@@ -660,7 +660,7 @@ FunctionBox *
 Parser<ParseHandler>::newFunctionBox(Node fn, JSFunction *fun, ParseContext<ParseHandler> *outerpc,
                                      Directives inheritedDirectives, GeneratorKind generatorKind)
 {
-    MOZ_ASSERT(fun && !IsPoisonedPtr(fun));
+    MOZ_ASSERT(fun);
 
     
 

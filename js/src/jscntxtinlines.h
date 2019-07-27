@@ -378,7 +378,6 @@ ExclusiveContext::typeLifoAlloc()
 inline void
 JSContext::setPendingException(js::Value v)
 {
-    MOZ_ASSERT(!IsPoisonedValue(v));
     
     this->overRecursed_ = false;
     this->throwing = true;

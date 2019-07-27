@@ -395,40 +395,6 @@ ScrambleHashCode(HashNumber h)
 
 } 
 
-namespace JS {
-
-
-
-
-
-
-
-
-
-
-
-
-inline void PoisonPtr(void *v)
-{
-#if defined(JSGC_ROOT_ANALYSIS) && defined(JS_DEBUG)
-    uint8_t *ptr = (uint8_t *) v + 3;
-    *ptr = JS_FREE_PATTERN;
-#endif
-}
-
-template <typename T>
-inline bool IsPoisonedPtr(T *v)
-{
-#if defined(JSGC_ROOT_ANALYSIS) && defined(JS_DEBUG)
-    uint32_t mask = uintptr_t(v) & 0xff000000;
-    return mask == uint32_t(JS_FREE_PATTERN << 24);
-#else
-    return false;
-#endif
-}
-
-}
-
 
 #ifndef HAVE_STATIC_ANNOTATIONS
 # define HAVE_STATIC_ANNOTATIONS
