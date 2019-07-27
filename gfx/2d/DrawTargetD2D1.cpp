@@ -50,7 +50,12 @@ DrawTargetD2D1::~DrawTargetD2D1()
     
   }
 
-  mDC->EndDraw();
+  if (mDC) {
+    
+    
+    
+    mDC->EndDraw();
+  }
 
   
   
