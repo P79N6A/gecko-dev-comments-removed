@@ -694,6 +694,7 @@ void VCMQmResolution::UpdateDownsamplingState(UpDownAction up_down) {
     
     assert(false);
   }
+
   UpdateCodecResolution();
   state_dec_factor_spatial_ = state_dec_factor_spatial_ *
       qm_->spatial_width_fact * qm_->spatial_height_fact;
@@ -705,17 +706,35 @@ void  VCMQmResolution::UpdateCodecResolution() {
     qm_->change_resolution_spatial = true;
     int old_width = qm_->codec_width;
     int old_height = qm_->codec_height;
-    qm_->codec_width = static_cast<uint16_t>(width_ /
-                                             qm_->spatial_width_fact + 0.5f);
-    qm_->codec_height = static_cast<uint16_t>(height_ /
-                                              qm_->spatial_height_fact + 0.5f);
+    qm_->codec_width = static_cast<uint16_t>((width_ /
+                                              qm_->spatial_width_fact) + 0.5f);
+    qm_->codec_height = static_cast<uint16_t>((height_ /
+                                               qm_->spatial_height_fact) + 0.5f);
     
-    assert(qm_->codec_width <= native_width_);
-    assert(qm_->codec_height <= native_height_);
-    
-    
-    assert(qm_->codec_width % 2 == 0);
-    assert(qm_->codec_height % 2 == 0);
+    if (qm_->codec_width > native_width_) {
+      WEBRTC_TRACE(webrtc::kTraceError,
+                   webrtc::kTraceVideoCoding,
+                   -1,
+                   "UpdateCodecResolution: *** Exceeds native width: [%d %d] %d %d (%f) => %d %d",
+                   native_width_, native_height_,
+                   old_width, old_height,
+                   qm_->spatial_width_fact,
+                   qm_->codec_width, qm_->codec_height
+                   );
+      qm_->codec_width = native_width_;
+    }
+    if (qm_->codec_height > native_height_) {
+      WEBRTC_TRACE(webrtc::kTraceError,
+                   webrtc::kTraceVideoCoding,
+                   -1,
+                   "UpdateCodecResolution: *** Exceeds native height: [%d %d] %d %d  (%f) => %d %d",
+                   native_width_, native_height_,
+                   old_width, old_height,
+                   qm_->spatial_height_fact,
+                   qm_->codec_width, qm_->codec_height
+                   );
+      qm_->codec_height = native_height_;
+    }
     WEBRTC_TRACE(webrtc::kTraceDebug,
                  webrtc::kTraceVideoCoding,
                  -1,
@@ -805,15 +824,6 @@ void VCMQmResolution::AdjustAction() {
     }
     action_.temporal = kNoChangeTemporal;
   }
-  
-  
-  if (action_.spatial != kNoChangeSpatial &&
-      !EvenFrameSize()) {
-    action_.spatial = kNoChangeSpatial;
-    
-    
-    action_.temporal = kTwoThirdsTemporal;
-  }
 }
 
 void VCMQmResolution::ConvertSpatialFractionalToWhole() {
@@ -855,21 +865,6 @@ void VCMQmResolution::ConvertSpatialFractionalToWhole() {
        }
     }
   }
-}
-
-
-
-bool VCMQmResolution::EvenFrameSize() {
-  if (action_.spatial == kOneHalfSpatialUniform) {
-    if ((width_ * 3 / 4) % 2 != 0 || (height_ * 3 / 4) % 2 != 0) {
-      return false;
-    }
-  } else if (action_.spatial == kOneQuarterSpatialUniform) {
-    if ((width_ * 1 / 2) % 2 != 0 || (height_ * 1 / 2) % 2 != 0) {
-      return false;
-    }
-  }
-  return true;
 }
 
 void VCMQmResolution::InsertLatestDownAction() {

@@ -287,10 +287,6 @@ class VCMQmResolution : public VCMQmMethod {
   void ConvertSpatialFractionalToWhole();
 
   
-  
-  bool EvenFrameSize();
-
-  
   void InsertLatestDownAction();
 
   
