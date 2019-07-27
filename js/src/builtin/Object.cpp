@@ -1084,7 +1084,7 @@ CreateObjectConstructor(JSContext *cx, JSProtoKey key)
         return nullptr;
 
     
-    return NewFunction(cx, NullPtr(), obj_construct, 1, JSFunction::NATIVE_CTOR,
+    return NewFunction(cx, obj_construct, 1, JSFunction::NATIVE_CTOR,
                        self, HandlePropertyName(cx->names().Object),
                        JSFunction::FinalizeKind, SingletonObject);
 }
