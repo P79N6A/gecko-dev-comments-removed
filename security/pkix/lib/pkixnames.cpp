@@ -391,8 +391,19 @@ SearchWithinAVA(Reader& rdn,
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if (valueEncodingTag != der::PrintableString &&
-      valueEncodingTag != der::UTF8String) {
+      valueEncodingTag != der::UTF8String &&
+      valueEncodingTag != der::TeletexString) {
     return Success;
   }
 

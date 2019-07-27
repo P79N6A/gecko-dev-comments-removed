@@ -22,6 +22,7 @@
 
 
 #include "pkix/pkix.h"
+#include "pkixder.h"
 #include "pkixgtest.h"
 #include "pkixtestutil.h"
 
@@ -1072,6 +1073,44 @@ static const uint8_t ipv6_addr_str[] =
 
 static const CheckCertHostnameParams CHECK_CERT_HOSTNAME_PARAMS[] =
 {
+  
+  
+  
+  WITHOUT_SAN("foo.example.com", RDN(CN("*.example.com", der::PrintableString)),
+              Success),
+  WITHOUT_SAN("foo.example.com", RDN(CN("*.example.com", der::UTF8String)),
+              Success),
+
+  
+  
+  
+  
+  
+  
+  
+  
+  WITHOUT_SAN("foo.example.com", RDN(CN("*.example.com", der::TeletexString)),
+              Success),
+  
+  
+  WITHOUT_SAN("foo.example.com",
+              RDN(CN("\x1B(B*.example.com", der::TeletexString)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  WITHOUT_SAN("foo.example.com",
+              RDN(CN("*.example\x1B(B.com", der::TeletexString)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  WITHOUT_SAN("foo.example.com",
+              RDN(CN("*.example.com\x1B(B", der::TeletexString)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  
+  
+  WITHOUT_SAN("foo.example.com",
+              RDN(CN("\x1B$B*.example.com", der::TeletexString)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+  WITHOUT_SAN("foo.example.com",
+              RDN(CN("*.example.com\x1B$B", der::TeletexString)),
+              Result::ERROR_BAD_CERT_DOMAIN),
+
   
   WITH_SAN("a", RDN(CN("a")), DNSName("a"), Success),
   
