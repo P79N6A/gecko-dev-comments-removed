@@ -1940,15 +1940,10 @@ nsBlockFrame::PropagateFloatDamage(nsBlockReflowState& aState,
     nscoord lineBCoordCombinedAfter = lineBCoordCombinedBefore +
                                       overflow.BSize(wm);
 
-    
-    
-    LogicalPoint oPt(wm);
-    WritingMode oldWM = floatManager->Translate(wm, oPt, containerWidth);
     bool isDirty = floatManager->IntersectsDamage(wm, lineBCoordBefore,
                                                   lineBCoordAfter) ||
                    floatManager->IntersectsDamage(wm, lineBCoordCombinedBefore,
                                                   lineBCoordCombinedAfter);
-    floatManager->Untranslate(oldWM, oPt, containerWidth);
     if (isDirty) {
       aLine->MarkDirty();
       return;
@@ -3346,8 +3341,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
                   availSpace.Size(wm).ConvertTo(frame->GetWritingMode(), wm));
     blockHtmlRS.mFlags.mHasClearance = aLine->HasClearance();
 
-    nsFloatManager::SavedState
-      floatManagerState(aState.mReflowState.GetWritingMode());
+    nsFloatManager::SavedState floatManagerState;
     if (mayNeedRetry) {
       blockHtmlRS.mDiscoveredClearance = &clearanceFrame;
       aState.mFloatManager->PushState(&floatManagerState);
@@ -3612,8 +3606,7 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
       int32_t forceBreakOffset = -1;
       gfxBreakPriority forceBreakPriority = gfxBreakPriority::eNoBreak;
       do {
-        nsFloatManager::SavedState
-          floatManagerState(aState.mReflowState.GetWritingMode());
+        nsFloatManager::SavedState floatManagerState;
         aState.mReflowState.mFloatManager->PushState(&floatManagerState);
 
         
@@ -6210,10 +6203,13 @@ nsBlockFrame::RecoverFloatsFor(nsIFrame*       aFrame,
     
     
     
-    LogicalPoint pos = block->GetLogicalNormalPosition(aWM, aContainerWidth);
-    WritingMode oldWM = aFloatManager.Translate(aWM, pos, aContainerWidth);
+
+    LogicalRect rect(aWM, block->GetNormalRect(), aContainerWidth);
+    nscoord lineLeft = rect.LineLeft(aWM, aContainerWidth);
+    nscoord blockStart = rect.BStart(aWM);
+    aFloatManager.Translate(lineLeft, blockStart);
     block->RecoverFloats(aFloatManager, aWM, aContainerWidth);
-    aFloatManager.Untranslate(oldWM, pos, aContainerWidth);
+    aFloatManager.Translate(-lineLeft, -blockStart);
   }
 }
 

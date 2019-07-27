@@ -159,8 +159,7 @@ public:
   
   
   
-  mozilla::WritingMode mFloatManagerWM;
-  mozilla::LogicalPoint mFloatManagerOrigin;
+  nscoord mFloatManagerI, mFloatManagerB;
 
   
   nsReflowStatus mReflowStatus;
