@@ -46,10 +46,10 @@
 #include "nsIScriptContext.h"
 #include "xpcpublic.h"
 #include "jswrapper.h"
-#include "nsCxPusher.h"
 
 #include "nsThreadUtils.h"
 #include "mozilla/dom/NodeListBinding.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -638,28 +638,15 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
 
       
       
-
-      nsIDocument* doc = aContent->OwnerDoc();
-
-      nsCOMPtr<nsIScriptGlobalObject> global =
-        do_QueryInterface(doc->GetWindow());
-      if (!global)
-        return NS_NOINTERFACE;
-
-      nsIScriptContext *context = global->GetContext();
-      if (!context)
-        return NS_NOINTERFACE;
-
-      AutoPushJSContext cx(context->GetNativeContext());
-      if (!cx)
-        return NS_NOINTERFACE;
+      AutoJSAPI jsapi;
+      jsapi.Init();
+      JSContext* cx = jsapi.cx();
 
       nsIXPConnect *xpConnect = nsContentUtils::XPConnect();
 
       JS::Rooted<JSObject*> jsobj(cx, aContent->GetWrapper());
       NS_ENSURE_TRUE(jsobj, NS_NOINTERFACE);
 
-      
       
       
       
