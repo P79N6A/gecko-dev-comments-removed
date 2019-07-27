@@ -494,7 +494,7 @@ namespace {
 class ClearCacheEnumeratorData
 {
 public:
-  ClearCacheEnumeratorData(uint32_t aFlags)
+  explicit ClearCacheEnumeratorData(uint32_t aFlags)
     : mUnloadFlags(aFlags)
   {}
 

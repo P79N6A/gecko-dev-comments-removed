@@ -33,7 +33,7 @@ public:
     return mElement;
   }
 
-  nsDOMStringMap(nsGenericHTMLElement* aElement);
+  explicit nsDOMStringMap(nsGenericHTMLElement* aElement);
 
   
   virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;

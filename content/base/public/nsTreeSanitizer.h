@@ -24,7 +24,7 @@ class MOZ_STACK_CLASS nsTreeSanitizer {
 
 
 
-    nsTreeSanitizer(uint32_t aFlags = 0);
+    explicit nsTreeSanitizer(uint32_t aFlags = 0);
 
     static void InitializeStatics();
     static void ReleaseStatics();

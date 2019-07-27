@@ -20,7 +20,7 @@ public:
     
 
 
-    txNodeSet(txResultRecycler* aRecycler);
+    explicit txNodeSet(txResultRecycler* aRecycler);
 
     
 

@@ -51,7 +51,7 @@ public:
 
 
 
-	nsPluginFile(nsIFile* spec);
+	explicit nsPluginFile(nsIFile* spec);
 	virtual ~nsPluginFile();
 
 	
