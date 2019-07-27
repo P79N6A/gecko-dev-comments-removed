@@ -17,47 +17,13 @@ class nsIPrincipal;
 
 class nsIGlobalObject : public nsISupports
 {
-  bool mIsDying;
-
-protected:
-  nsIGlobalObject()
-   : mIsDying(false)
-  {}
-
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IGLOBALOBJECT_IID)
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool
-  IsDying() const
-  {
-    return mIsDying;
-  }
 
   virtual JSObject* GetGlobalJSObject() = 0;
 
   
   nsIPrincipal* PrincipalOrNull();
-
-protected:
-  void
-  StartDying()
-  {
-    mIsDying = true;
-  }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIGlobalObject,
