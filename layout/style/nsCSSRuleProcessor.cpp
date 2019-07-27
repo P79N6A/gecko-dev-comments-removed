@@ -3521,9 +3521,6 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
                            newCascade->mCounterStyleRules,
                            newCascade->mCacheKey,
                            mSheetType);
-      if (!data.mRulesByWeight.IsInitialized())
-        return; 
-
       for (uint32_t i = 0; i < mSheets.Length(); ++i) {
         if (!CascadeSheet(mSheets.ElementAt(i), &data))
           return; 

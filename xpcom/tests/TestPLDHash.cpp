@@ -30,11 +30,6 @@ static bool test_pldhash_Init_capacity_ok()
   PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
                  PL_DHASH_MAX_INITIAL_LENGTH);
 
-  
-  if (!t.IsInitialized()) {
-    return false;
-  }
-
   return true;
 }
 
@@ -45,10 +40,6 @@ static bool test_pldhash_lazy_storage()
   
   
   
-
-  if (!t.IsInitialized()) {
-    return false;
-  }
 
   if (t.Capacity() != 0) {
     return false;
@@ -196,12 +187,6 @@ static bool test_pldhash_grow_to_max_capacity()
   
   PLDHashTable* t =
     new PLDHashTable(&trivialOps, sizeof(PLDHashEntryStub), 128);
-
-  
-  if (!t->IsInitialized()) {
-    delete t;
-    return false;
-  }
 
   
   size_t numInserted = 0;
