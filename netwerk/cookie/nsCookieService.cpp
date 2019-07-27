@@ -183,7 +183,7 @@ struct nsListIter
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #endif
 
 

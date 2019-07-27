@@ -5,7 +5,7 @@
 
 
 #include <stdlib.h>
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "mozilla/Mutex.h"
 #include "mozilla/Attributes.h"

@@ -3,7 +3,7 @@
 
 
 #include "nsSecurityHeaderParser.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 
 

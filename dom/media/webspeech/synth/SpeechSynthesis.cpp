@@ -5,7 +5,7 @@
 
 
 #include "nsSpeechTask.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Element.h"

@@ -355,7 +355,7 @@ nsStringBuffer::SizeOfIncludingThisEvenIfShared(mozilla::MallocSizeOf aMallocSiz
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsXPCOMStrings.h"
 
 static_assert(sizeof(nsStringContainer_base) == sizeof(nsSubstring),

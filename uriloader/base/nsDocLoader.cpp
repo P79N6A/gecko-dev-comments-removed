@@ -4,7 +4,7 @@
 
 
 #include "nspr.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "nsDocLoader.h"
 #include "nsCURILoader.h"

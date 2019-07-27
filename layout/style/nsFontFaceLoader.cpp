@@ -6,7 +6,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "nsFontFaceLoader.h"
 

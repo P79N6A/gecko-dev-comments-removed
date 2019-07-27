@@ -8,7 +8,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "nsISupports.h"
 #include "nsXPCOM.h"

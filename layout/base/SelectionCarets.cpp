@@ -4,7 +4,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "SelectionCarets.h"
 
 #include "gfxPrefs.h"

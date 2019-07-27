@@ -5,7 +5,7 @@
 
 
 #include "pk11pub.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "ScopedNSSTypes.h"
 #include "secoidt.h"
 

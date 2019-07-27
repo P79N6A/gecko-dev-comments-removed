@@ -27,7 +27,7 @@
 #include "nsID.h"
 #include "nsIDOMEvent.h"
 #include "nsString.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 
 #include "ActorsChild.h"

@@ -4,7 +4,7 @@
 
 
 #include "GMPParent.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsComponentManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIInputStream.h"

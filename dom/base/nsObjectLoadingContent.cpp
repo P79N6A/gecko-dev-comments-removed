@@ -44,7 +44,7 @@
 
 
 #include "prenv.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "nsAutoPtr.h"
 #include "nsCURILoader.h"

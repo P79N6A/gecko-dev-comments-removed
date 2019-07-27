@@ -7,7 +7,7 @@
 #include "HashStore.h"
 #include "nsISeekableStream.h"
 #include "mozilla/Telemetry.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prprf.h"
 
 

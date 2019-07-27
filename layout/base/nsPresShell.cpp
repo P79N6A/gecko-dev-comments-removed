@@ -18,7 +18,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/CSSStyleSheet.h"

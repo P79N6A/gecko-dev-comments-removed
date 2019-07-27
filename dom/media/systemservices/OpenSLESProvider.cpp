@@ -4,7 +4,7 @@
 
 
 #include "OpenSLESProvider.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsDebug.h"
 
 #include <dlfcn.h>

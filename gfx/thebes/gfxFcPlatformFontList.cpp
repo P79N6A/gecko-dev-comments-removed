@@ -3,7 +3,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "gfxFcPlatformFontList.h"
 #include "gfxFont.h"

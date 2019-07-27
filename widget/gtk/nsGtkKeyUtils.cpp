@@ -5,7 +5,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "nsGtkKeyUtils.h"
 

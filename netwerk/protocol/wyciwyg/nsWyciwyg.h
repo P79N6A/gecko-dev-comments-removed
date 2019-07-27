@@ -10,7 +10,7 @@
 
 #undef LOG
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 
 

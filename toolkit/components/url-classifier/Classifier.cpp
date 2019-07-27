@@ -13,7 +13,7 @@
 #include "nsIFile.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 
 extern PRLogModuleInfo *gUrlClassifierDbServiceLog;

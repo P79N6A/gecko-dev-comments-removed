@@ -4,7 +4,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsAutoPtr.h"
 #include "nsIObserverService.h"
 #include "nsIObserver.h"

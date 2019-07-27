@@ -5,7 +5,7 @@
 
 #include "MediaSourceUtils.h"
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsPrintfCString.h"
 
 namespace mozilla {

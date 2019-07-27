@@ -3,7 +3,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "nsThreadUtils.h"
 #include "nsNetUtil.h"

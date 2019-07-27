@@ -4,7 +4,7 @@
 
 
 #include "StreamBuffer.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include <algorithm>
 
 namespace mozilla {

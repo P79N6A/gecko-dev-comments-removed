@@ -3,7 +3,7 @@
 
 
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsEntropyCollector.h"
 #include "nsAlgorithm.h"
 #include <algorithm>

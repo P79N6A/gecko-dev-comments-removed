@@ -44,7 +44,7 @@
 #include "nsTArray.h"                   
 #include "nsTArrayForwardDeclare.h"     
 #include "nscore.h"                     
-#include "prlog.h"                      
+#include "mozilla/Logging.h"                      
 #include "nsIWidget.h"                  
 #include "gfxVR.h"
 
