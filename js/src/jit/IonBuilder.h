@@ -946,6 +946,39 @@ class IonBuilder
 
     
     const CallInfo *inlineCallInfo_;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    void replaceMaybeFallbackFunctionGetter(MGetPropertyCache *cache);
+
+    
+    void keepFallbackFunctionGetter(MGetPropertyCache *cache) {
+        if (cache == maybeFallbackFunctionGetter_)
+            maybeFallbackFunctionGetter_ = nullptr;
+    }
+
+    MGetPropertyCache *maybeFallbackFunctionGetter_;
 };
 
 class CallInfo
@@ -1081,4 +1114,4 @@ bool NeedsPostBarrier(CompileInfo &info, MDefinition *value);
 } 
 } 
 
-#endif
+#endif 
