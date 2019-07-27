@@ -24,7 +24,7 @@ EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt);
 
 
 extern void
-RequestInterruptForAsmJSCode(JSRuntime *rt);
+RequestInterruptForAsmJSCode(JSRuntime *rt, int interruptMode);
 
 
 

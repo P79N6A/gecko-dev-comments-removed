@@ -8,6 +8,7 @@
 
 #include "assembler/assembler/MacroAssembler.h"
 #include "jit/AsmJSModule.h"
+#include "vm/Runtime.h"
 
 using namespace js;
 using namespace js::jit;
@@ -1030,14 +1031,25 @@ js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 
 
 void
-js::RequestInterruptForAsmJSCode(JSRuntime *rt)
+js::RequestInterruptForAsmJSCode(JSRuntime *rt, int interruptModeRaw)
 {
-    JS_ASSERT(rt->currentThreadOwnsInterruptLock());
+    switch (JSRuntime::InterruptMode(interruptModeRaw)) {
+      case JSRuntime::RequestInterruptMainThread:
+      case JSRuntime::RequestInterruptAnyThread:
+        break;
+      case JSRuntime::RequestInterruptAnyThreadDontStopIon:
+      case JSRuntime::RequestInterruptAnyThreadForkJoin:
+        
+        
+        
+        return;
+    }
 
     AsmJSActivation *activation = rt->mainThread.asmJSActivationStackFromAnyThread();
     if (!activation)
         return;
 
+    JS_ASSERT(rt->currentThreadOwnsInterruptLock());
     activation->module().protectCode(rt);
 }
 

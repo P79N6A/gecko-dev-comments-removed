@@ -578,7 +578,7 @@ JSRuntime::requestInterrupt(InterruptMode mode)
 
 
     if (!SignalBasedTriggersDisabled()) {
-        RequestInterruptForAsmJSCode(this);
+        RequestInterruptForAsmJSCode(this, mode);
         jit::RequestInterruptForIonCode(this, mode);
     }
 #endif
