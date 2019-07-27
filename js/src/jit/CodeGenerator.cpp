@@ -2098,11 +2098,9 @@ CodeGenerator::visitOsrEntry(LOsrEntry *lir)
 #endif
 
     
-    
-    
-    MOZ_ASSERT(masm.framePushed() == frameSize());
-    masm.setFramePushed(0);
-    masm.reserveStack(frameSize());
+    uint32_t size = frameSize();
+    if (size != 0)
+        masm.subPtr(Imm32(size), StackPointer);
     return true;
 }
 
@@ -3596,6 +3594,23 @@ CodeGenerator::generateArgumentsChecks(bool bailout)
     MResumePoint *rp = mir.entryResumePoint();
 
     
+    
+    
+
+    
+    
+    
+    
+    
+    uint32_t frameSizeLeft = frameSize();
+    while (frameSizeLeft > 4096) {
+        masm.reserveStack(4096);
+        masm.store32(Imm32(0), Address(StackPointer, 0));
+        frameSizeLeft -= 4096;
+    }
+    masm.reserveStack(frameSizeLeft);
+
+    
     Register temp = GeneralRegisterSet(EntryTempMask).getAny();
 
     CompileInfo &info = gen->info();
@@ -3628,6 +3643,8 @@ CodeGenerator::generateArgumentsChecks(bool bailout)
             masm.bind(&success);
         }
     }
+
+    masm.freeStack(frameSize());
 
     return true;
 }
@@ -7424,8 +7441,14 @@ CodeGenerator::generate()
     if (!safepoints_.init(gen->alloc(), graph.totalSlotCount()))
         return false;
 
-    if (!generatePrologue())
-        return false;
+#ifdef JS_TRACE_LOGGING
+    if (!gen->compilingAsmJS() && gen->info().executionMode() == SequentialExecution) {
+        if (!emitTracelogScriptStart())
+            return false;
+        if (!emitTracelogStartEvent(TraceLogger::IonMonkey))
+            return false;
+    }
+#endif
 
     
     
@@ -7439,19 +7462,14 @@ CodeGenerator::generate()
             return false;
     }
 
-    
-    Label skipPrologue;
-    masm.jump(&skipPrologue);
+#ifdef JS_TRACE_LOGGING
+    Label skip;
+    masm.jump(&skip);
+#endif
 
-    
     
     masm.flushBuffer();
     setSkipArgCheckEntryOffset(masm.size());
-    masm.setFramePushed(0);
-    if (!generatePrologue())
-        return false;
-
-    masm.bind(&skipPrologue);
 
 #ifdef JS_TRACE_LOGGING
     if (!gen->compilingAsmJS() && gen->info().executionMode() == SequentialExecution) {
@@ -7460,6 +7478,7 @@ CodeGenerator::generate()
         if (!emitTracelogStartEvent(TraceLogger::IonMonkey))
             return false;
     }
+    masm.bind(&skip);
 #endif
 
 #ifdef DEBUG
@@ -7467,6 +7486,9 @@ CodeGenerator::generate()
     if (!generateArgumentsChecks( false))
         return false;
 #endif
+
+    if (!generatePrologue())
+        return false;
 
     
     if (!addNativeToBytecodeEntry(startSite))
