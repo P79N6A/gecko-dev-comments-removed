@@ -87,11 +87,6 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 
 
 
-static const uint32_t BUFFERING_WAIT_S = 30;
-
-
-
-
 
 static const uint32_t LOW_AUDIO_USECS = 300000;
 
@@ -224,7 +219,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mAmpleVideoFrames =
     std::max<uint32_t>(Preferences::GetUint("media.video-queue.default-size", 10), 3);
 
-  mBufferingWait = mScheduler->IsRealTime() ? 0 : BUFFERING_WAIT_S;
+  mBufferingWait = mScheduler->IsRealTime() ? 0 : mReader->GetBufferingWait();
   mLowDataThresholdUsecs = mScheduler->IsRealTime() ? 0 : LOW_DATA_THRESHOLD_USECS;
 
   mVideoPrerollFrames = mScheduler->IsRealTime() ? 0 : mAmpleVideoFrames / 2;
