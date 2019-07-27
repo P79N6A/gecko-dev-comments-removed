@@ -550,10 +550,10 @@ public:
   }
 
   
-  bool CanContain(nsIDOMNode* aParent, nsIDOMNode* aChild);
-  bool CanContainTag(nsIDOMNode* aParent, nsIAtom* aTag);
-  bool TagCanContain(nsIAtom* aParentTag, nsIDOMNode* aChild);
-  virtual bool TagCanContainTag(nsIAtom* aParentTag, nsIAtom* aChildTag);
+  bool CanContain(nsINode& aParent, nsIContent& aChild);
+  bool CanContainTag(nsINode& aParent, nsIAtom& aTag);
+  bool TagCanContain(nsIAtom& aParentTag, nsIContent& aChild);
+  virtual bool TagCanContainTag(nsIAtom& aParentTag, nsIAtom& aChildTag);
 
   
   bool IsRoot(nsIDOMNode* inNode);

@@ -1602,46 +1602,50 @@ nsHTMLEditor::InsertNodeAtPoint(nsIDOMNode *aNode,
                                 int32_t *ioOffset, 
                                 bool aNoEmptyNodes)
 {
-  NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsIContent> node = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(node, NS_ERROR_NULL_POINTER);
   NS_ENSURE_TRUE(ioParent, NS_ERROR_NULL_POINTER);
   NS_ENSURE_TRUE(*ioParent, NS_ERROR_NULL_POINTER);
   NS_ENSURE_TRUE(ioOffset, NS_ERROR_NULL_POINTER);
   
   nsresult res = NS_OK;
-  nsCOMPtr<nsIDOMNode> parent = *ioParent;
-  nsCOMPtr<nsIDOMNode> topChild = *ioParent;
-  nsCOMPtr<nsIDOMNode> tmp;
+  nsCOMPtr<nsINode> parent = do_QueryInterface(*ioParent);
+  NS_ENSURE_TRUE(parent, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsINode> topChild = parent;
   int32_t offsetOfInsert = *ioOffset;
    
   
-  while (!CanContain(parent, aNode)) {
+  while (!CanContain(*parent, *node)) {
     
     
-    if (nsTextEditUtils::IsBody(parent) || nsHTMLEditUtils::IsTableElement(parent))
+    if (parent->Tag() == nsGkAtoms::body ||
+        nsHTMLEditUtils::IsTableElement(parent)) {
       return NS_ERROR_FAILURE;
+    }
     
-    parent->GetParentNode(getter_AddRefs(tmp));
-    NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
-    if (!IsEditable(tmp)) {
+    NS_ENSURE_TRUE(parent->GetParentNode(), NS_ERROR_FAILURE);
+    if (!IsEditable(parent->GetParentNode())) {
       
       
       
-      parent = topChild = *ioParent;
+      parent = topChild = do_QueryInterface(*ioParent);
+      NS_ENSURE_STATE(parent);
       break;
     }
     topChild = parent;
-    parent = tmp;
+    parent = parent->GetParentNode();
   }
   if (parent != topChild)
   {
     
-    res = SplitNodeDeep(topChild, *ioParent, *ioOffset, &offsetOfInsert, aNoEmptyNodes);
+    res = SplitNodeDeep(GetAsDOMNode(topChild), *ioParent, *ioOffset,
+                        &offsetOfInsert, aNoEmptyNodes);
     NS_ENSURE_SUCCESS(res, res);
-    *ioParent = parent;
+    *ioParent = GetAsDOMNode(parent);
     *ioOffset = offsetOfInsert;
   }
   
-  res = InsertNode(aNode, parent, offsetOfInsert);
+  res = InsertNode(*node, *parent, offsetOfInsert);
   return res;
 }
 
@@ -1970,7 +1974,7 @@ nsHTMLEditor::MakeOrChangeList(const nsAString& aListType, bool entireList, cons
     
     bool isCollapsed = selection->Collapsed();
 
-    nsCOMPtr<nsIDOMNode> node;
+    nsCOMPtr<nsINode> node;
     int32_t offset;
     res = GetStartNodeAndOffset(selection, getter_AddRefs(node), &offset);
     if (!node) res = NS_ERROR_FAILURE;
@@ -1979,33 +1983,29 @@ nsHTMLEditor::MakeOrChangeList(const nsAString& aListType, bool entireList, cons
     if (isCollapsed)
     {
       
-      nsCOMPtr<nsIDOMNode> parent = node;
-      nsCOMPtr<nsIDOMNode> topChild = node;
-      nsCOMPtr<nsIDOMNode> tmp;
+      nsCOMPtr<nsINode> parent = node;
+      nsCOMPtr<nsINode> topChild = node;
     
       nsCOMPtr<nsIAtom> listAtom = do_GetAtom(aListType);
-      while (!CanContainTag(parent, listAtom)) {
-        parent->GetParentNode(getter_AddRefs(tmp));
-        NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
+      while (!CanContainTag(*parent, *listAtom)) {
         topChild = parent;
-        parent = tmp;
+        parent = parent->GetParentNode();
       }
     
       if (parent != node)
       {
         
-        res = SplitNodeDeep(topChild, node, offset, &offset);
+        res = SplitNodeDeep(GetAsDOMNode(topChild), GetAsDOMNode(node), offset,
+                            &offset);
         NS_ENSURE_SUCCESS(res, res);
       }
 
       
-      nsCOMPtr<nsIDOMNode> newList;
-      res = CreateNode(aListType, parent, offset, getter_AddRefs(newList));
-      NS_ENSURE_SUCCESS(res, res);
+      nsCOMPtr<Element> newList = CreateNode(listAtom, parent, offset);
+      NS_ENSURE_STATE(newList);
       
-      nsCOMPtr<nsIDOMNode> newItem;
-      res = CreateNode(NS_LITERAL_STRING("li"), newList, 0, getter_AddRefs(newItem));
-      NS_ENSURE_SUCCESS(res, res);
+      nsCOMPtr<Element> newItem = CreateNode(nsGkAtoms::li, newList, 0);
+      NS_ENSURE_STATE(newItem);
       res = selection->Collapse(newItem,0);
       NS_ENSURE_SUCCESS(res, res);
     }
@@ -2105,7 +2105,7 @@ nsHTMLEditor::InsertBasicBlock(const nsAString& aBlockType)
     
     bool isCollapsed = selection->Collapsed();
 
-    nsCOMPtr<nsIDOMNode> node;
+    nsCOMPtr<nsINode> node;
     int32_t offset;
     res = GetStartNodeAndOffset(selection, getter_AddRefs(node), &offset);
     if (!node) res = NS_ERROR_FAILURE;
@@ -2114,29 +2114,27 @@ nsHTMLEditor::InsertBasicBlock(const nsAString& aBlockType)
     if (isCollapsed)
     {
       
-      nsCOMPtr<nsIDOMNode> parent = node;
-      nsCOMPtr<nsIDOMNode> topChild = node;
-      nsCOMPtr<nsIDOMNode> tmp;
+      nsCOMPtr<nsINode> parent = node;
+      nsCOMPtr<nsINode> topChild = node;
     
       nsCOMPtr<nsIAtom> blockAtom = do_GetAtom(aBlockType);
-      while (!CanContainTag(parent, blockAtom)) {
-        parent->GetParentNode(getter_AddRefs(tmp));
-        NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
+      while (!CanContainTag(*parent, *blockAtom)) {
+        NS_ENSURE_TRUE(parent->GetParentNode(), NS_ERROR_FAILURE);
         topChild = parent;
-        parent = tmp;
+        parent = parent->GetParentNode();
       }
     
       if (parent != node)
       {
         
-        res = SplitNodeDeep(topChild, node, offset, &offset);
+        res = SplitNodeDeep(GetAsDOMNode(topChild), GetAsDOMNode(node), offset,
+                            &offset);
         NS_ENSURE_SUCCESS(res, res);
       }
 
       
-      nsCOMPtr<nsIDOMNode> newBlock;
-      res = CreateNode(aBlockType, parent, offset, getter_AddRefs(newBlock));
-      NS_ENSURE_SUCCESS(res, res);
+      nsCOMPtr<Element> newBlock = CreateNode(blockAtom, parent, offset);
+      NS_ENSURE_STATE(newBlock);
     
       
       res = selection->Collapse(newBlock,0);
@@ -2177,7 +2175,7 @@ nsHTMLEditor::Indent(const nsAString& aIndent)
   if (!handled)
   {
     
-    nsCOMPtr<nsIDOMNode> node;
+    nsCOMPtr<nsINode> node;
     int32_t offset;
     bool isCollapsed = selection->Collapsed();
 
@@ -2190,28 +2188,25 @@ nsHTMLEditor::Indent(const nsAString& aIndent)
       if (isCollapsed)
       {
         
-        nsCOMPtr<nsIDOMNode> parent = node;
-        nsCOMPtr<nsIDOMNode> topChild = node;
-        nsCOMPtr<nsIDOMNode> tmp;
-        while (!CanContainTag(parent, nsGkAtoms::blockquote)) {
-          parent->GetParentNode(getter_AddRefs(tmp));
-          NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
+        nsCOMPtr<nsINode> parent = node;
+        nsCOMPtr<nsINode> topChild = node;
+        while (!CanContainTag(*parent, *nsGkAtoms::blockquote)) {
+          NS_ENSURE_TRUE(parent->GetParentNode(), NS_ERROR_FAILURE);
           topChild = parent;
-          parent = tmp;
+          parent = parent->GetParentNode();
         }
     
         if (parent != node)
         {
           
-          res = SplitNodeDeep(topChild, node, offset, &offset);
+          res = SplitNodeDeep(GetAsDOMNode(topChild), GetAsDOMNode(node),
+                              offset, &offset);
           NS_ENSURE_SUCCESS(res, res);
         }
 
         
-        nsCOMPtr<nsIDOMNode> newBQ;
-        res = CreateNode(NS_LITERAL_STRING("blockquote"), parent, offset,
-                         getter_AddRefs(newBQ));
-        NS_ENSURE_SUCCESS(res, res);
+        nsCOMPtr<Element> newBQ = CreateNode(nsGkAtoms::blockquote, parent, offset);
+        NS_ENSURE_STATE(newBQ);
         
         res = selection->Collapse(newBQ,0);
         NS_ENSURE_SUCCESS(res, res);
@@ -3489,21 +3484,19 @@ nsHTMLEditor::EndOperation()
 }  
 
 bool 
-nsHTMLEditor::TagCanContainTag(nsIAtom* aParentTag, nsIAtom* aChildTag)
+nsHTMLEditor::TagCanContainTag(nsIAtom& aParentTag, nsIAtom& aChildTag)
 {
-  MOZ_ASSERT(aParentTag && aChildTag);
-
   nsIParserService* parserService = nsContentUtils::GetParserService();
 
   int32_t childTagEnum;
   
-  if (aChildTag == nsGkAtoms::textTagName) {
+  if (&aChildTag == nsGkAtoms::textTagName) {
     childTagEnum = eHTMLTag_text;
   } else {
-    childTagEnum = parserService->HTMLAtomTagToId(aChildTag);
+    childTagEnum = parserService->HTMLAtomTagToId(&aChildTag);
   }
 
-  int32_t parentTagEnum = parserService->HTMLAtomTagToId(aParentTag);
+  int32_t parentTagEnum = parserService->HTMLAtomTagToId(&aParentTag);
   return nsHTMLEditUtils::CanContain(parentTagEnum, childTagEnum);
 }
 

@@ -355,6 +355,12 @@ nsHTMLEditUtils::IsPre(nsIDOMNode* aNode)
 
 
 
+bool
+nsHTMLEditUtils::IsImage(nsINode* aNode)
+{
+  return aNode && aNode->Tag() == nsGkAtoms::img;
+}
+
 bool 
 nsHTMLEditUtils::IsImage(nsIDOMNode* aNode)
 {
