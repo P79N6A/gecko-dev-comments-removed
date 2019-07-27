@@ -176,6 +176,20 @@ exports.setValueSummaryLength = function(val) {
 
 
 
+
+
+
+var gInspectingNode = null;
+
+
+
+exports.setInspectingNode = function(val) {
+  gInspectingNode = val;
+};
+
+
+
+
 var NodeActor = exports.NodeActor = protocol.ActorClass({
   typeName: "domnode",
 
@@ -1664,6 +1678,25 @@ var WalkerActor = protocol.ActorClass({
 
 
 
+  findInspectingNode: method(function() {
+    let node = gInspectingNode;
+    if (!node) {
+      return {}
+    };
+
+    return this.attachElement(node);
+  }, {
+    request: {},
+    response: RetVal("disconnectedNode")
+  }),
+
+  
+
+
+
+
+
+
   querySelector: method(function(baseNode, selector) {
     if (!baseNode) {
       return {}
@@ -2575,6 +2608,14 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     return this._releaseNode({ actorID: actorID });
   }, {
     impl: "_releaseNode"
+  }),
+
+  findInspectingNode: protocol.custom(function() {
+    return this._findInspectingNode().then(response => {
+      return response.node;
+    });
+  }, {
+    impl: "_findInspectingNode"
   }),
 
   querySelector: protocol.custom(function(queryNode, selector) {
