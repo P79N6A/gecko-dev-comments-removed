@@ -108,19 +108,17 @@ public:
   
   
   
-  
-  
 
   
-  void SetNodeId(const nsACString& aNodeId);
+  void SetOrigin(const nsAString& aOrigin);
 
   
-  bool CanBeSharedCrossNodeIds() const;
+  bool CanBeSharedCrossOrigin() const;
 
   
   
   
-  bool CanBeUsedFrom(const nsACString& aNodeId) const;
+  bool CanBeUsedFrom(const nsAString& aOrigin) const;
 
   already_AddRefed<nsIFile> GetDirectory() {
     return nsCOMPtr<nsIFile>(mDirectory).forget();
@@ -188,7 +186,7 @@ private:
   nsCOMPtr<nsIThread> mGMPThread;
   
   
-  nsAutoCString mNodeId;
+  nsAutoString mOrigin;
 
   bool mAsyncShutdownRequired;
   bool mAsyncShutdownInProgress;

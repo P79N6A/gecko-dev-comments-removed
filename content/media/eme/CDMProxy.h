@@ -102,7 +102,7 @@ public:
   void Shutdown();
 
   
-  const nsCString& GetNodeId() const;
+  const nsAString& GetOrigin() const;
 
   
   void OnResolveNewSessionPromise(uint32_t aPromiseId,
@@ -286,7 +286,7 @@ private:
   
   nsRefPtr<nsIThread> mGMPThread;
 
-  nsCString mNodeId;
+  nsAutoString mOrigin;
 
   GMPDecryptorProxy* mCDM;
   CDMCaps mCapabilites;
