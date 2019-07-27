@@ -93,6 +93,14 @@ public:
   uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
 
   
+  
+  
+  
+  
+  
+  void IncrementAnimationGeneration() { ++mAnimationGeneration; }
+
+  
   bool SkipAnimationRules() const {
     MOZ_ASSERT(mSkipAnimationRules || !mPostAnimationRestyles,
                "inconsistent state");
