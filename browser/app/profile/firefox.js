@@ -271,7 +271,6 @@ pref("general.autoScroll", true);
 pref("browser.shell.checkDefaultBrowser", true);
 pref("browser.shell.shortcutFavicons",true);
 pref("browser.shell.mostRecentDateSetAsDefault", "");
-pref("browser.shell.windows10DefaultBrowserABTest", -1);
 
 
 
@@ -297,7 +296,7 @@ pref("browser.warnOnQuit", true);
 
 pref("browser.showQuitWarning", false);
 pref("browser.fullscreen.autohide", true);
-pref("browser.fullscreen.animate", true);
+pref("browser.fullscreen.animateUp", 1);
 pref("browser.overlink-delay", 80);
 
 #ifdef UNIX_BUT_NOT_MAC
@@ -629,7 +628,7 @@ pref("browser.xul.error_pages.enabled", true);
 pref("browser.xul.error_pages.expert_bad_cert", false);
 
 
-pref("network.manage-offline-status", false);
+pref("network.manage-offline-status", true);
 
 
 pref("network.protocol-handler.external.mailto", true); 
