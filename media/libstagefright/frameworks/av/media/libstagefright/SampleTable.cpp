@@ -592,7 +592,7 @@ SampleTable::setSampleAuxiliaryInformationOffsetParams(
 
 status_t
 SampleTable::parseSampleCencInfo() {
-    if (!mCencDefaultSize && !mCencInfoCount || mCencOffsets.isEmpty()) {
+    if ((!mCencDefaultSize && !mCencInfoCount) || mCencOffsets.isEmpty()) {
         
         
         ALOGV("Got half of cenc saio/saiz pair. Deferring parse until we get the other half.");
