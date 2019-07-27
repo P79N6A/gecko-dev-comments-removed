@@ -498,7 +498,8 @@ class TestRunnerManager(threading.Thread):
                                     result.name,
                                     result.status,
                                     message=result.message,
-                                    expected=expected)
+                                    expected=expected,
+                                    stack=result.stack)
 
         
 
