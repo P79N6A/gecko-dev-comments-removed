@@ -133,8 +133,8 @@ public:
 
   
   
-  void NoteClosing();
-  bool IsClosing() const;
+  void Invalidate();
+  bool IsValid() const;
 
   
   
@@ -185,7 +185,6 @@ private:
 
   Manager(ManagerId* aManagerId, nsIThread* aIOThread);
   ~Manager();
-  void Init();
   void Shutdown();
   already_AddRefed<Context> CurrentContext();
 
@@ -249,7 +248,7 @@ private:
   nsTArray<StreamList*> mStreamLists;
 
   bool mShuttingDown;
-  bool mClosing;
+  bool mValid;
 
   struct CacheIdRefCounter
   {

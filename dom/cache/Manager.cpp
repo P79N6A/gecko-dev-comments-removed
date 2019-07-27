@@ -157,7 +157,6 @@ public:
       if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
       ref = new Manager(aManagerId, ioThread);
-      ref->Init();
 
       MOZ_ASSERT(!sFactory->mManagerList.Contains(ref));
       sFactory->mManagerList.AppendElement(ref);
@@ -182,7 +181,7 @@ public:
       
       
       
-      if (!manager->IsClosing() && *manager->mManagerId == *aManagerId) {
+      if (manager->IsValid() && *manager->mManagerId == *aManagerId) {
         return manager.forget();
       }
     }
@@ -1293,15 +1292,11 @@ public:
       if (!mManager->SetCacheIdOrphanedIfRefed(mCacheId)) {
 
         
-        nsRefPtr<Context> context = mManager->mContext;
-
-        
-        if (!context->IsCanceled()) {
-          context->CancelForCacheId(mCacheId);
-          nsRefPtr<Action> action =
-            new DeleteOrphanedCacheAction(mManager, mCacheId);
-          context->Dispatch(mManager->mIOThread, action);
-        }
+        nsRefPtr<Context> context = mManager->CurrentContext();
+        context->CancelForCacheId(mCacheId);
+        nsRefPtr<Action> action =
+          new DeleteOrphanedCacheAction(mManager, mCacheId);
+        context->Dispatch(mManager->mIOThread, action);
       }
     }
 
@@ -1450,29 +1445,30 @@ Manager::RemoveContext(Context* aContext)
   
   
   
-  MOZ_ASSERT(mClosing);
+  MOZ_ASSERT(!mValid);
 
   mContext = nullptr;
 
   
   
-  
-  Factory::Remove(this);
+  if (mShuttingDown) {
+    Factory::Remove(this);
+  }
 }
 
 void
-Manager::NoteClosing()
+Manager::Invalidate()
 {
   NS_ASSERT_OWNINGTHREAD(Manager);
   
-  mClosing = true;
+  mValid = false;
 }
 
 bool
-Manager::IsClosing() const
+Manager::IsValid() const
 {
   NS_ASSERT_OWNINGTHREAD(Manager);
-  return mClosing;
+  return mValid;
 }
 
 void
@@ -1504,8 +1500,8 @@ Manager::ReleaseCacheId(CacheId aCacheId)
         bool orphaned = mCacheIdRefs[i].mOrphaned;
         mCacheIdRefs.RemoveElementAt(i);
         
-        nsRefPtr<Context> context = mContext;
-        if (orphaned && context && !context->IsCanceled()) {
+        if (orphaned && !mShuttingDown && mValid) {
+          nsRefPtr<Context> context = CurrentContext();
           context->CancelForCacheId(aCacheId);
           nsRefPtr<Action> action = new DeleteOrphanedCacheAction(this,
                                                                   aCacheId);
@@ -1548,9 +1544,9 @@ Manager::ReleaseBodyId(const nsID& aBodyId)
         bool orphaned = mBodyIdRefs[i].mOrphaned;
         mBodyIdRefs.RemoveElementAt(i);
         
-        nsRefPtr<Context> context = mContext;
-        if (orphaned && context && !context->IsCanceled()) {
+        if (orphaned && !mShuttingDown && mValid) {
           nsRefPtr<Action> action = new DeleteOrphanedBodyAction(aBodyId);
+          nsRefPtr<Context> context = CurrentContext();
           context->Dispatch(mIOThread, action);
         }
       }
@@ -1593,14 +1589,12 @@ Manager::ExecuteCacheOp(Listener* aListener, CacheId aCacheId,
   MOZ_ASSERT(aOpArgs.type() != CacheOpArgs::TCacheAddAllArgs);
   MOZ_ASSERT(aOpArgs.type() != CacheOpArgs::TCachePutAllArgs);
 
-  if (mClosing) {
+  if (mShuttingDown || !mValid) {
     aListener->OnOpComplete(NS_ERROR_FAILURE, void_t());
     return;
   }
 
-  nsRefPtr<Context> context = mContext;
-  MOZ_ASSERT(!context->IsCanceled());
-
+  nsRefPtr<Context> context = CurrentContext();
   nsRefPtr<StreamList> streamList = new StreamList(this, context);
   ListenerId listenerId = SaveListener(aListener);
 
@@ -1637,14 +1631,12 @@ Manager::ExecuteStorageOp(Listener* aListener, Namespace aNamespace,
   NS_ASSERT_OWNINGTHREAD(Manager);
   MOZ_ASSERT(aListener);
 
-  if (mClosing) {
+  if (mShuttingDown || !mValid) {
     aListener->OnOpComplete(NS_ERROR_FAILURE, void_t());
     return;
   }
 
-  nsRefPtr<Context> context = mContext;
-  MOZ_ASSERT(!context->IsCanceled());
-
+  nsRefPtr<Context> context = CurrentContext();
   nsRefPtr<StreamList> streamList = new StreamList(this, context);
   ListenerId listenerId = SaveListener(aListener);
 
@@ -1686,14 +1678,12 @@ Manager::ExecutePutAll(Listener* aListener, CacheId aCacheId,
   NS_ASSERT_OWNINGTHREAD(Manager);
   MOZ_ASSERT(aListener);
 
-  if (mClosing) {
+  if (mShuttingDown || !mValid) {
     aListener->OnOpComplete(NS_ERROR_FAILURE, CachePutAllResult());
     return;
   }
 
-  nsRefPtr<Context> context = mContext;
-  MOZ_ASSERT(!context->IsCanceled());
-
+  nsRefPtr<Context> context = CurrentContext();
   ListenerId listenerId = SaveListener(aListener);
 
   nsRefPtr<Action> action = new CachePutAllAction(this, listenerId, aCacheId,
@@ -1708,7 +1698,7 @@ Manager::Manager(ManagerId* aManagerId, nsIThread* aIOThread)
   , mIOThread(aIOThread)
   , mContext(nullptr)
   , mShuttingDown(false)
-  , mClosing(false)
+  , mValid(true)
 {
   MOZ_ASSERT(mManagerId);
   MOZ_ASSERT(mIOThread);
@@ -1717,8 +1707,8 @@ Manager::Manager(ManagerId* aManagerId, nsIThread* aIOThread)
 Manager::~Manager()
 {
   NS_ASSERT_OWNINGTHREAD(Manager);
-  MOZ_ASSERT(mClosing);
   MOZ_ASSERT(!mContext);
+  Shutdown();
 
   nsCOMPtr<nsIThread> ioThread;
   mIOThread.swap(ioThread);
@@ -1728,19 +1718,6 @@ Manager::~Manager()
   nsCOMPtr<nsIRunnable> runnable =
     NS_NewRunnableMethod(ioThread, &nsIThread::Shutdown);
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
-}
-
-void
-Manager::Init()
-{
-  NS_ASSERT_OWNINGTHREAD(Manager);
-
-  
-  
-  
-  nsRefPtr<Action> setupAction = new SetupAction();
-  nsRefPtr<Context> ref = Context::Create(this, setupAction);
-  mContext = ref;
 }
 
 void
@@ -1754,12 +1731,11 @@ Manager::Shutdown()
   if (mShuttingDown) {
     return;
   }
-  mShuttingDown = true;
 
   
   
   
-  NoteClosing();
+  mShuttingDown = true;
 
   
   
@@ -1768,6 +1744,24 @@ Manager::Shutdown()
     context->CancelAll();
     return;
   }
+
+  
+  Factory::Remove(this);
+}
+
+already_AddRefed<Context>
+Manager::CurrentContext()
+{
+  NS_ASSERT_OWNINGTHREAD(Manager);
+  nsRefPtr<Context> ref = mContext;
+  if (!ref) {
+    MOZ_ASSERT(!mShuttingDown);
+    MOZ_ASSERT(mValid);
+    nsRefPtr<Action> setupAction = new SetupAction();
+    ref = Context::Create(this, setupAction);
+    mContext = ref;
+  }
+  return ref.forget();
 }
 
 Manager::ListenerId
@@ -1852,10 +1846,9 @@ Manager::NoteOrphanedBodyIdList(const nsTArray<nsID>& aDeletedBodyIdList)
     }
   }
 
-  
-  nsRefPtr<Context> context = mContext;
-  if (!deleteNowList.IsEmpty() && context && !context->IsCanceled()) {
+  if (!deleteNowList.IsEmpty()) {
     nsRefPtr<Action> action = new DeleteOrphanedBodyAction(deleteNowList);
+    nsRefPtr<Context> context = CurrentContext();
     context->Dispatch(mIOThread, action);
   }
 }
@@ -1870,17 +1863,16 @@ Manager::MaybeAllowContextToClose()
   
   
   
-  nsRefPtr<Context> context = mContext;
-  if (context && mListeners.IsEmpty()
-              && mCacheIdRefs.IsEmpty()
-              && mBodyIdRefs.IsEmpty()) {
+  if (mContext && mListeners.IsEmpty()
+               && mCacheIdRefs.IsEmpty()
+               && mBodyIdRefs.IsEmpty()) {
 
     
     
     
-    NoteClosing();
+    mValid = false;
 
-    context->AllowToClose();
+    mContext->AllowToClose();
   }
 }
 

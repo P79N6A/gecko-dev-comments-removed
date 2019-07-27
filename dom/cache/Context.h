@@ -127,9 +127,6 @@ public:
   void CancelAll();
 
   
-  bool IsCanceled() const;
-
-  
   void Invalidate();
 
   
