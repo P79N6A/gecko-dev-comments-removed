@@ -258,6 +258,9 @@ NS_NewFileURI(nsIURI* *result,
 
 
 
+
+
+
 inline nsresult
 NS_NewChannelInternal(nsIChannel**           outChannel,
                       nsIURI*                aUri,

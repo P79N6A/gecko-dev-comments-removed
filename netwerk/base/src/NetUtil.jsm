@@ -401,6 +401,9 @@ this.NetUtil = {
 
 
 
+
+
+
     newChannel2: function NetUtil_newChannel2(aWhatToLoad,
                                               aOriginCharset,
                                               aBaseURI,
