@@ -838,6 +838,9 @@ pref("devtools.remote.wifi.visible", false);
 pref("devtools.remote.tls-handshake-timeout", 10000);
 
 
+pref("devtools.devices.url", "https://code.cdn.mozilla.net/devices/devices.json");
+
+
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
