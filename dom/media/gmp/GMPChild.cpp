@@ -4,6 +4,8 @@
 
 
 #include "GMPChild.h"
+#include "GMPProcessChild.h"
+#include "GMPLoader.h"
 #include "GMPVideoDecoderChild.h"
 #include "GMPVideoEncoderChild.h"
 #include "GMPAudioDecoderChild.h"
@@ -29,21 +31,6 @@ using mozilla::dom::CrashReporterChild;
 #include <unistd.h> 
 #endif
 
-#if defined(XP_WIN)
-
-
-
-
-
-
-
-
-#define HASH_NODE_ID_WITH_DEVICE_ID 1
-#include "rlz/lib/machine_id.h"
-#include "rlz/lib/string_utils.h"
-#include "mozilla/SHA1.h"
-#endif
-
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #define TARGET_SANDBOX_EXPORTS
 #include "mozilla/sandboxTarget.h"
@@ -58,9 +45,8 @@ namespace gmp {
 
 GMPChild::GMPChild()
   : mAsyncShutdown(nullptr)
-  , mLib(nullptr)
-  , mGetAPIFunc(nullptr)
   , mGMPMessageLoop(MessageLoop::current())
+  , mGMPLoader(nullptr)
 {
   nsDebugImpl::SetMultiprocessMode("GMP");
 }
@@ -283,53 +269,20 @@ GMPChild::Init(const std::string& aPluginPath,
 bool
 GMPChild::RecvSetNodeId(const nsCString& aNodeId)
 {
-#ifdef HASH_NODE_ID_WITH_DEVICE_ID
-  if (!aNodeId.IsEmpty() && !aNodeId.EqualsLiteral("null")) {
-    string16 deviceId;
-    int volumeId;
-    if (!rlz_lib::GetRawMachineId(&deviceId, &volumeId)) {
-      return false;
-    }
-
-    
-    mozilla::SHA1Sum hash;
-    hash.update(deviceId.c_str(), deviceId.size() * sizeof(string16::value_type));
-    hash.update(aNodeId.get(), aNodeId.Length());
-    hash.update(&volumeId, sizeof(int));
-    uint8_t digest[mozilla::SHA1Sum::kHashSize];
-    hash.finish(digest);
-    if (!rlz_lib::BytesToString(digest, mozilla::SHA1Sum::kHashSize, &mNodeId)) {
-      return false;
-    }
-
-    
-    
-    volumeId = 0;
-    memset(&deviceId.front(), '*', sizeof(string16::value_type) * deviceId.size());
-    deviceId = L"";
-  } else {
-    mNodeId = "null";
-  }
-#else
+  
+  
+  
   mNodeId = std::string(aNodeId.BeginReading(), aNodeId.EndReading());
-#endif
   return true;
 }
 
-bool
-GMPChild::RecvStartPlugin()
+GMPErr
+GMPChild::GetAPI(const char* aAPIName, void* aHostAPI, void** aPluginAPI)
 {
-#ifdef XP_WIN
-  PreLoadLibraries(mPluginPath);
-#endif
-
-#if defined(MOZ_SANDBOX) && defined(XP_WIN)
-  mozilla::SandboxTarget::Instance()->StartSandbox();
-#elif defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
-  StartMacSandbox();
-#endif
-
-  return LoadPluginLibrary(mPluginPath);
+  if (!mGMPLoader) {
+    return GMPGenericErr;
+  }
+  return mGMPLoader->GetAPI(aAPIName, aHostAPI, aPluginAPI);
 }
 
 #ifdef XP_WIN
@@ -392,64 +345,106 @@ GMPChild::PreLoadLibraries(const std::string& aPluginPath)
 }
 #endif
 
+#if defined(MOZ_GMP_SANDBOX)
+
+#if defined(XP_LINUX)
+class LinuxSandboxStarter : public SandboxStarter {
+public:
+  LinuxSandboxStarter(const std::string& aLibPath)
+    : mLibPath(aLibPath)
+  {}
+  virtual void Start() MOZ_OVERRIDE {
+    if (mozilla::MediaPluginSandboxStatus() != mozilla::kSandboxingWouldFail) {
+      mozilla::SetMediaPluginSandbox(mLibPath.c_str());
+    } else {
+      printf_stderr("GMPChild::LoadPluginLibrary: Loading media plugin %s unsandboxed.\n",
+                    mLibPath.c_str());
+    }
+  }
+private:
+  std::string mLibPath;
+};
+#endif
+
+#if defined(XP_MACOSX)
+class MacOSXSandboxStarter : public SandboxStarter {
+public:
+  MacOSXSandboxStarter(GMPChild* aGMPChild)
+    : mGMPChild(aGMPChild)
+  {}
+  virtual void Start() MOZ_OVERRIDE {
+    mGMPChild->StartMacSandbox();
+  }
+private:
+  GMPChild* mGMPChild;
+};
+#endif
+
+#endif 
+
 bool
-GMPChild::LoadPluginLibrary(const std::string& aPluginPath)
+GMPChild::GetLibPath(nsACString& aOutLibPath)
 {
 #if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
-  nsAutoCString nativePath;
-  nativePath.Assign(mPluginBinaryPath);
-
-  mLib = PR_LoadLibrary(nativePath.get());
+  nsAutoCString pluginDirectoryPath, pluginFilePath;
+  if (!GetPluginPaths(mPluginPath, pluginDirectoryPath, pluginFilePath)) {
+    MOZ_CRASH("Error scanning plugin path");
+  }
+  aOutLibPath.Assign(pluginFilePath);
+  return true;
 #else
   nsCOMPtr<nsIFile> libFile;
-  if (!GetPluginFile(aPluginPath, libFile)) {
+  if (!GetPluginFile(mPluginPath, libFile)) {
     return false;
   }
-#if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
-  nsAutoCString nativePath;
-  libFile->GetNativePath(nativePath);
+  return NS_SUCCEEDED(libFile->GetNativePath(aOutLibPath));
+#endif
+}
 
-  
-  
-  if (mozilla::MediaPluginSandboxStatus() != mozilla::kSandboxingWouldFail) {
-    mozilla::SetMediaPluginSandbox(nativePath.get());
-  } else {
-    printf_stderr("GMPChild::LoadPluginLibrary: Loading media plugin %s unsandboxed.\n",
-                  nativePath.get());
-  }
-#endif 
+bool
+GMPChild::RecvStartPlugin()
+{
+#if defined(XP_WIN)
+  PreLoadLibraries(mPluginPath);
+#endif
 
-  libFile->Load(&mLib);
-#endif 
-
-  if (!mLib) {
-    NS_WARNING("Failed to link Gecko Media Plugin library.");
-    return false;
-  }
-
-  GMPInitFunc initFunc = reinterpret_cast<GMPInitFunc>(PR_FindFunctionSymbol(mLib, "GMPInit"));
-  if (!initFunc) {
-    NS_WARNING("Failed to link Gecko Media Plugin Init function.");
+  nsCString libPath;
+  if (!GetLibPath(libPath)) {
     return false;
   }
 
   auto platformAPI = new GMPPlatformAPI();
   InitPlatformAPI(*platformAPI, this);
 
-  if (initFunc(platformAPI) != GMPNoErr) {
-    NS_WARNING("Gecko Media Plugin failed to initialize.");
+  mGMPLoader = GMPProcessChild::GetGMPLoader();
+  if (!mGMPLoader) {
+    NS_WARNING("Failed to get GMPLoader");
     return false;
   }
 
-  mGetAPIFunc = reinterpret_cast<GMPGetAPIFunc>(PR_FindFunctionSymbol(mLib, "GMPGetAPI"));
-  if (!mGetAPIFunc) {
-    NS_WARNING("Failed to link Gecko Media Plugin GetAPI function.");
+#if defined(MOZ_GMP_SANDBOX)
+#if defined(XP_MACOSX)
+  nsAutoPtr<SandboxStarter> starter(new MacOSXSandboxStarter(this));
+  mGMPLoader->SetStartSandboxStarter(starter);
+#elif defined(XP_LINUX)
+  nsAutoPtr<SandboxStarter> starter(new
+    LinuxSandboxStarter(std::string(libPath.get(), libPath.get()+libPath.Length())));
+  mGMPLoader->SetStartSandboxStarter(starter);
+#endif
+#endif 
+
+  if (!mGMPLoader->Load(libPath.get(),
+                        libPath.Length(),
+                        &mNodeId[0],
+                        mNodeId.size(),
+                        platformAPI)) {
+    NS_WARNING("Failed to load GMP");
     return false;
   }
 
   void* sh = nullptr;
   GMPAsyncShutdownHost* host = static_cast<GMPAsyncShutdownHost*>(this);
-  GMPErr err = mGetAPIFunc("async-shutdown", host, &sh);
+  GMPErr err = GetAPI("async-shutdown", host, &sh);
   if (err == GMPNoErr && sh) {
     mAsyncShutdown = reinterpret_cast<GMPAsyncShutdown*>(sh);
     SendAsyncShutdownRequired();
@@ -467,13 +462,9 @@ GMPChild::GMPMessageLoop()
 void
 GMPChild::ActorDestroy(ActorDestroyReason aWhy)
 {
-  if (mLib) {
-    GMPShutdownFunc shutdownFunc = reinterpret_cast<GMPShutdownFunc>(PR_FindFunctionSymbol(mLib, "GMPShutdown"));
-    if (shutdownFunc) {
-      shutdownFunc();
-    }
+  if (mGMPLoader) {
+    mGMPLoader->Shutdown();
   }
-
   if (AbnormalShutdown == aWhy) {
     NS_WARNING("Abnormal shutdown of GMP process!");
     _exit(0);
@@ -565,7 +556,7 @@ GMPChild::RecvPGMPAudioDecoderConstructor(PGMPAudioDecoderChild* aActor)
   auto vdc = static_cast<GMPAudioDecoderChild*>(aActor);
 
   void* vd = nullptr;
-  GMPErr err = mGetAPIFunc("decode-audio", &vdc->Host(), &vd);
+  GMPErr err = GetAPI("decode-audio", &vdc->Host(), &vd);
   if (err != GMPNoErr || !vd) {
     return false;
   }
@@ -594,7 +585,7 @@ GMPChild::RecvPGMPVideoDecoderConstructor(PGMPVideoDecoderChild* aActor)
   auto vdc = static_cast<GMPVideoDecoderChild*>(aActor);
 
   void* vd = nullptr;
-  GMPErr err = mGetAPIFunc("decode-video", &vdc->Host(), &vd);
+  GMPErr err = GetAPI("decode-video", &vdc->Host(), &vd);
   if (err != GMPNoErr || !vd) {
     NS_WARNING("GMPGetAPI call failed trying to construct decoder.");
     return false;
@@ -611,7 +602,7 @@ GMPChild::RecvPGMPVideoEncoderConstructor(PGMPVideoEncoderChild* aActor)
   auto vec = static_cast<GMPVideoEncoderChild*>(aActor);
 
   void* ve = nullptr;
-  GMPErr err = mGetAPIFunc("encode-video", &vec->Host(), &ve);
+  GMPErr err = GetAPI("encode-video", &vec->Host(), &ve);
   if (err != GMPNoErr || !ve) {
     NS_WARNING("GMPGetAPI call failed trying to construct encoder.");
     return false;
@@ -629,7 +620,7 @@ GMPChild::RecvPGMPDecryptorConstructor(PGMPDecryptorChild* aActor)
   GMPDecryptorHost* host = static_cast<GMPDecryptorHost*>(child);
 
   void* session = nullptr;
-  GMPErr err = mGetAPIFunc("eme-decrypt", host, &session);
+  GMPErr err = GetAPI("eme-decrypt", host, &session);
   if (err != GMPNoErr || !session) {
     return false;
   }
