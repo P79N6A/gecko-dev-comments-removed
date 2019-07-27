@@ -198,6 +198,7 @@
 #include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/dom/NodeFilterBinding.h"
 #include "mozilla/dom/OwningNonNull.h"
+#include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/UndoManager.h"
 #include "mozilla/dom/WebComponentsBinding.h"
 #include "nsFrame.h"
@@ -10545,6 +10546,7 @@ nsIDocument::ExitFullscreen(nsIDocument* aDoc, bool aRunAsync)
 
 
 
+
 static bool
 HasCrossProcessParent(nsIDocument* aDocument)
 {
@@ -10562,7 +10564,12 @@ HasCrossProcessParent(nsIDocument* aDocument)
   if (!docShell) {
     return false;
   }
-  return docShell->GetIsBrowserOrApp();
+  TabChild* tabChild(TabChild::GetFrom(docShell));
+  if (!tabChild) {
+    return false;
+  }
+
+  return true;
 }
 
 static bool

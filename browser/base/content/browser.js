@@ -438,13 +438,6 @@ var gPopupBlockerObserver = {
       
       if (gURLBar)
         this._reportButton.hidden = true;
-
-      
-      var notificationBox = gBrowser.getNotificationBox();
-      var notification = notificationBox.getNotificationWithValue("popup-blocked");
-      if (notification) {
-        notificationBox.removeNotification(notification, false);
-      }
       return;
     }
 
@@ -1294,17 +1287,7 @@ var gBrowserInit = {
     if (Win7Features)
       Win7Features.onOpenWindow();
 
-   
-    window.addEventListener("fullscreen", onFullScreen, true);
-
-    
-    
-    window.addEventListener("MozEnteredDomFullscreen", onMozEnteredDomFullscreen, true);
-
-    if (window.fullScreen)
-      onFullScreen();
-    if (document.mozFullScreen)
-      onMozEnteredDomFullscreen();
+    FullScreen.init();
 
 #ifdef MOZ_SERVICES_SYNC
     
@@ -1435,7 +1418,7 @@ var gBrowserInit = {
 
     gHistorySwipeAnimation.uninit();
 
-    FullScreen.cleanup();
+    FullScreen.uninit();
 
 #ifdef MOZ_SERVICES_SYNC
     gFxAccounts.uninit();
@@ -2760,14 +2743,6 @@ function SwitchToMetro() {
 #endif
 #endif
 #endif
-}
-
-function onFullScreen(event) {
-  FullScreen.toggle(event);
-}
-
-function onMozEnteredDomFullscreen(event) {
-  FullScreen.enterDomFullscreen(event);
 }
 
 function getWebNavigation()

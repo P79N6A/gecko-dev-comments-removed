@@ -9,6 +9,21 @@ var FullScreen = {
     delete this._fullScrToggler;
     return this._fullScrToggler = document.getElementById("fullscr-toggler");
   },
+
+  init: function() {
+    
+    window.addEventListener("fullscreen", this, true);
+    window.messageManager.addMessageListener("MozEnteredDomFullscreen", this);
+
+    if (window.fullScreen)
+      this.toggle();
+  },
+
+  uninit: function() {
+    window.messageManager.removeMessageListener("MozEnteredDomFullscreen", this);
+    this.cleanup();
+  },
+
   toggle: function (event) {
     var enterFS = window.fullScreen;
 
@@ -95,8 +110,11 @@ var FullScreen = {
     switch (event.type) {
       case "activate":
         if (document.mozFullScreen) {
-          this.showWarning(this.fullscreenDoc);
+          this.showWarning(this.fullscreenOrigin);
         }
+        break;
+      case "fullscreen":
+        this.toggle(event);
         break;
       case "transitionend":
         if (event.propertyName == "opacity")
@@ -105,7 +123,25 @@ var FullScreen = {
     }
   },
 
-  enterDomFullscreen : function(event) {
+  receiveMessage: function(aMessage) {
+    if (aMessage.name == "MozEnteredDomFullscreen") {
+      
+      
+      
+      
+      
+      let data = aMessage.data;
+      let browser = aMessage.target;
+      if (gMultiProcessBrowser && browser.getAttribute("remote") == "true") {
+        let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindowUtils);
+        windowUtils.remoteFrameFullscreenChanged(browser, data.origin);
+      }
+      this.enterDomFullscreen(browser, data.origin);
+    }
+  },
+
+  enterDomFullscreen : function(aBrowser, aOrigin) {
     if (!document.mozFullScreen)
       return;
 
@@ -113,10 +149,7 @@ var FullScreen = {
     
     
     
-    
-    if (!event.target.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                 .getInterface(Ci.nsIWebNavigation)
-                                 .QueryInterface(Ci.nsIDocShell).isActive) {
+    if (gBrowser.selectedBrowser != aBrowser) {
       document.mozCancelFullScreen();
       return;
     }
@@ -136,7 +169,7 @@ var FullScreen = {
     if (gFindBarInitialized)
       gFindBar.close();
 
-    this.showWarning(event.target);
+    this.showWarning(aOrigin);
 
     
     gBrowser.tabContainer.addEventListener("TabOpen", this.exitDomFullScreen);
@@ -178,7 +211,9 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
       if (!this.useLionFullScreen)
         window.removeEventListener("activate", this);
-      this.fullscreenDoc = null;
+
+      window.messageManager
+            .broadcastAsyncMessage("DOMFullscreen:Cleanup");
     }
   },
 
@@ -337,7 +372,7 @@ var FullScreen = {
     
     
     let rememberCheckbox = document.getElementById("full-screen-remember-decision");
-    let uri = this.fullscreenDoc.nodePrincipal.URI;
+    let uri = BrowserUtils.makeURI(this.fullscreenOrigin);
     if (!rememberCheckbox.hidden) {
       if (rememberCheckbox.checked)
         Services.perms.add(uri,
@@ -370,27 +405,29 @@ var FullScreen = {
     
     
     
-    if (isApproved)
-      Services.obs.notifyObservers(this.fullscreenDoc, "fullscreen-approved", "");
-    else
+    if (isApproved) {
+      gBrowser.selectedBrowser
+              .messageManager
+              .sendAsyncMessage("DOMFullscreen:Approved");
+    } else {
       document.mozCancelFullScreen();
+    }
   },
 
   warningBox: null,
   warningFadeOutTimeout: null,
-  fullscreenDoc: null,
 
   
   
   
-  showWarning: function(targetDoc) {
+  showWarning: function(aOrigin) {
     if (!document.mozFullScreen ||
         !gPrefService.getBoolPref("full-screen-api.approval-required"))
       return;
 
     
-    this.fullscreenDoc = targetDoc;
-    let uri = this.fullscreenDoc.nodePrincipal.URI;
+    this.fullscreenOrigin = aOrigin;
+    let uri = BrowserUtils.makeURI(aOrigin);
     let host = null;
     try {
       host = uri.host;
