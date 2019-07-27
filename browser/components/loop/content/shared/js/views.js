@@ -253,6 +253,25 @@ loop.shared.views = (function(_, OT, l10n) {
                                        this.stopPublishing);
 
       this.props.model.startSession();
+
+      
+
+
+
+
+      window.addEventListener('orientationchange', this.updateVideoContainer);
+      window.addEventListener('resize', this.updateVideoContainer);
+    },
+
+    updateVideoContainer: function() {
+      var localStreamParent = document.querySelector('.local .OT_publisher');
+      var remoteStreamParent = document.querySelector('.remote .OT_subscriber');
+      if (localStreamParent) {
+        localStreamParent.style.width = "100%";
+      }
+      if (remoteStreamParent) {
+        remoteStreamParent.style.height = "100%";
+      }
     },
 
     componentWillUnmount: function() {
@@ -345,20 +364,25 @@ loop.shared.views = (function(_, OT, l10n) {
     },
 
     render: function() {
+      var localStreamClasses = React.addons.classSet({
+        local: true,
+        "local-stream": true,
+        "local-stream-audio": !this.state.video.enabled
+      });
       
       return (
         React.DOM.div({className: "video-layout-wrapper"}, 
           React.DOM.div({className: "conversation"}, 
-            ConversationToolbar({video: this.state.video, 
-                                 audio: this.state.audio, 
-                                 publishStream: this.publishStream, 
-                                 hangup: this.hangup}), 
             React.DOM.div({className: "media nested"}, 
               React.DOM.div({className: "video_wrapper remote_wrapper"}, 
                 React.DOM.div({className: "video_inner remote"})
               ), 
-              React.DOM.div({className: "local"})
-            )
+              React.DOM.div({className: localStreamClasses})
+            ), 
+            ConversationToolbar({video: this.state.video, 
+                                 audio: this.state.audio, 
+                                 publishStream: this.publishStream, 
+                                 hangup: this.hangup})
           )
         )
       );

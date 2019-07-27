@@ -18,19 +18,11 @@ body {
   background: #fbfbfb;
 }
 
-button {
-  
-
-  font-family: "Lucida Grande", sans-serif;
-  font-size: 1em;
-}
-
 img {
   border: none;
 }
 
 h1, h2, h3 {
-  font-family: "Open Sans", sans-serif;
   color: #666;
 }
 
@@ -220,8 +212,9 @@ p {
   justify-content: center;
 }
 
-.btn-group .btn {
+.btn-chevron-menu-group .btn {
   flex: 1;
+  border-radius: 2px;
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
 }
@@ -250,8 +243,8 @@ p {
 
 .alert .close {
   position: relative;
-  top: -.2em;
-  right: -1em;
+  top: -.1rem;
+  right: -1rem;
 }
 
 
@@ -269,22 +262,23 @@ p {
 
 .close {
   float: right;
-  font-size: 20px;
+  font-size: 1rem;
   font-weight: bold;
-  line-height: 1em;
+  line-height: 1rem;
   color: #000;
-  opacity: .2;
+  opacity: .4;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
+
+  .close:hover {
+    opacity: .6;
+  }
 
 .close:before {
   
   content: '\2716';
-}
-
-.btn.close {
-  background: none;
-  border: none;
-  cursor: pointer;
 }
 
 
@@ -346,15 +340,19 @@ p {
   line-height: 16px;
 }
 
-.windows {
+
+
+
+
+.windows * {
   font-family: 'Segoe';
 }
 
-.mac {
+.mac * {
   font-family: 'Lucida Grande';
 }
 
-.linux {
+.linux * {
   
   font-family: 'Ubuntu', sans-serif;
 }
