@@ -297,4 +297,19 @@ MediaTaskQueue::Runner::Run()
   return NS_OK;
 }
 
+#ifdef DEBUG
+void
+TaskDispatcher::AssertIsTailDispatcherIfRequired()
+{
+  MediaTaskQueue* currentQueue = MediaTaskQueue::GetCurrentQueue();
+
+  
+  
+  
+  
+  MOZ_ASSERT_IF(currentQueue && currentQueue->RequiresTailDispatch(),
+                this == currentQueue->mTailDispatcher);
+}
+#endif
+
 } 

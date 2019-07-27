@@ -169,6 +169,7 @@ protected:
   MediaTaskQueue* mQueue;
   };
 
+  friend class TaskDispatcher;
   TaskDispatcher* mTailDispatcher;
 
   
