@@ -1627,15 +1627,15 @@ FetchBody<Response>::ConsumeBody(ConsumeType aType, ErrorResult& aRv);
 
 template <class Derived>
 void
-FetchBody<Derived>::SetMimeType(ErrorResult& aRv)
+FetchBody<Derived>::SetMimeType()
 {
   
+  ErrorResult result;
   nsTArray<nsCString> contentTypeValues;
   MOZ_ASSERT(DerivedClass()->GetInternalHeaders());
-  DerivedClass()->GetInternalHeaders()->GetAll(NS_LITERAL_CSTRING("Content-Type"), contentTypeValues, aRv);
-  if (NS_WARN_IF(aRv.Failed())) {
-    return;
-  }
+  DerivedClass()->GetInternalHeaders()->GetAll(NS_LITERAL_CSTRING("Content-Type"),
+                                               contentTypeValues, result);
+  MOZ_ALWAYS_TRUE(!result.Failed());
 
   
   
@@ -1647,10 +1647,10 @@ FetchBody<Derived>::SetMimeType(ErrorResult& aRv)
 
 template
 void
-FetchBody<Request>::SetMimeType(ErrorResult& aRv);
+FetchBody<Request>::SetMimeType();
 
 template
 void
-FetchBody<Response>::SetMimeType(ErrorResult& aRv);
+FetchBody<Response>::SetMimeType();
 } 
 } 
