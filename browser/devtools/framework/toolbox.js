@@ -1578,9 +1578,12 @@ Toolbox.prototype = {
 
 
   destroyHost: function() {
-    this.doc.removeEventListener("keypress",
-      this._splitConsoleOnKeypress, false);
-    this.doc.removeEventListener("focus", this._onFocus, true);
+    
+    if (this.doc) {
+      this.doc.removeEventListener("keypress",
+        this._splitConsoleOnKeypress, false);
+      this.doc.removeEventListener("focus", this._onFocus, true);
+    }
     return this._host.destroy();
   },
 
@@ -1645,9 +1648,6 @@ Toolbox.prototype = {
     
     let win = this.frame.ownerGlobal;
 
-    
-    outstanding.push(this.destroyHost());
-
     if (this._requisition) {
       this._requisition.destroy();
     }
@@ -1656,7 +1656,9 @@ Toolbox.prototype = {
 
     
     
-    this._destroyer = promise.all(outstanding).then(null, console.error).then(() => {
+    
+    this._destroyer = promise.all(outstanding)
+      .then(() => this.destroyHost()).then(null, console.error).then(() => {
       
       
       
