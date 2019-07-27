@@ -82,10 +82,6 @@ public:
   
   const nsTArray<nsRefPtr<SourceBufferDecoder>>& Decoders();
 
-#if defined(DEBUG)
-  void Dump(const char* aPath);
-#endif
-
 private:
   ~TrackBuffer();
 

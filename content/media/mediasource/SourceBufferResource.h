@@ -120,12 +120,6 @@ public:
   
   void EvictBefore(uint64_t aOffset);
 
-#if defined(DEBUG)
-  void Dump(const char* aPath) {
-    mInputBuffer.Dump(aPath);
-  }
-#endif
-
 private:
   ~SourceBufferResource();
   nsresult SeekInternal(int64_t aOffset);
