@@ -320,12 +320,32 @@ public:
   
   nsString mData;
 
+  nsRefPtr<TextRangeArray> mRanges;
+
   void AssignCompositionEventData(const WidgetCompositionEvent& aEvent,
                                   bool aCopyTargets)
   {
     AssignGUIEventData(aEvent, aCopyTargets);
 
     mData = aEvent.mData;
+
+    
+    
+  }
+
+  bool IsComposing() const
+  {
+    return mRanges && mRanges->IsComposing();
+  }
+
+  uint32_t TargetClauseOffset() const
+  {
+    return mRanges ? mRanges->TargetClauseOffset() : 0;
+  }
+
+  uint32_t RangeCount() const
+  {
+    return mRanges ? mRanges->Length() : 0;
   }
 };
 
