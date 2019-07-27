@@ -23,6 +23,7 @@ import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.INIParser;
 import org.mozilla.gecko.util.INISection;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -90,9 +91,19 @@ public final class GeckoProfile {
             }
         }
 
-        
-        if (GuestSession.shouldUse(context, "")) {
-            return GeckoProfile.getGuestProfile(context);
+        final String args;
+        if (context instanceof Activity) {
+            args = ((Activity) context).getIntent().getStringExtra("args");
+        } else {
+            args = null;
+        }
+
+        if (GuestSession.shouldUse(context, args)) {
+            GeckoProfile p = GeckoProfile.getOrCreateGuestProfile(context);
+            if (isGeckoApp) {
+                ((GeckoApp) context).mProfile = p;
+            }
+            return p;
         }
 
         if (isGeckoApp) {
@@ -191,6 +202,7 @@ public final class GeckoProfile {
         return success;
     }
 
+    
     public static GeckoProfile createGuestProfile(Context context) {
         try {
             
@@ -230,6 +242,18 @@ public final class GeckoProfile {
             sGuestDir = context.getFileStreamPath("guest");
         }
         return sGuestDir;
+    }
+
+    
+
+
+    public static GeckoProfile getOrCreateGuestProfile(Context context) {
+        GeckoProfile p = getGuestProfile(context);
+        if (p == null) {
+            return createGuestProfile(context);
+        }
+
+        return p;
     }
 
     public static GeckoProfile getGuestProfile(Context context) {

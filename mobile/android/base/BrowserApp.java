@@ -520,11 +520,12 @@ public class BrowserApp extends GeckoApp
         mAboutHomeStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_ABOUTHOME");
 
         final Intent intent = getIntent();
-        final String args = intent.getStringExtra("args");
-
-        if (GuestSession.shouldUse(this, args)) {
-            mProfile = GeckoProfile.createGuestProfile(this);
-        } else {
+        final GeckoProfile p = GeckoProfile.get(this);
+        if (p != null && !p.inGuestMode()) {
+            
+            
+            
+            
             GeckoProfile.maybeCleanupGuestProfile(this);
         }
 
