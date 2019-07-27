@@ -18,7 +18,7 @@
 namespace mozilla {
 
 class EMEAudioDecoder : public MediaDataDecoder
-                      , public GMPAudioDecoderProxyCallback
+                      , public GMPAudioDecoderCallbackProxy
 {
   typedef mp4_demuxer::MP4Sample MP4Sample;
   typedef mp4_demuxer::AudioDecoderConfig AudioDecoderConfig;
