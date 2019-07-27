@@ -163,31 +163,18 @@ SetDisplayPortMargins(nsIPresShell* aPresShell,
   nsLayoutUtils::SetDisplayPortBaseIfNotSet(aContent, base);
 }
 
-static already_AddRefed<nsIPresShell>
-GetPresShell(const nsIContent* aContent)
-{
-  nsCOMPtr<nsIPresShell> result;
-  if (nsIDocument* doc = aContent->GetComposedDoc()) {
-    result = doc->GetShell();
-  }
-  return result.forget();
-}
-
 void
-APZCCallbackHelper::UpdateRootFrame(nsIContent* aContent,
+APZCCallbackHelper::UpdateRootFrame(nsIPresShell* aPresShell,
                                     FrameMetrics& aMetrics)
 {
   
-  MOZ_ASSERT(aContent);
+  MOZ_ASSERT(aPresShell);
   MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
-  nsCOMPtr<nsIPresShell> shell = GetPresShell(aContent);
-  MOZ_ASSERT(shell);
-
   if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
     return;
   }
 
-  float presShellResolution = nsLayoutUtils::GetResolution(shell);
+  float presShellResolution = nsLayoutUtils::GetResolution(aPresShell);
 
   
   
@@ -207,19 +194,30 @@ APZCCallbackHelper::UpdateRootFrame(nsIContent* aContent,
   
   
   CSSSize scrollPort = aMetrics.CalculateCompositedSizeInCssPixels();
-  nsLayoutUtils::SetScrollPositionClampingScrollPortSize(shell, scrollPort);
+  nsLayoutUtils::SetScrollPositionClampingScrollPortSize(aPresShell, scrollPort);
 
   
   
   presShellResolution = aMetrics.GetPresShellResolution()
                       * aMetrics.GetAsyncZoom().scale;
-  nsLayoutUtils::SetResolutionAndScaleTo(shell, presShellResolution);
+  nsLayoutUtils::SetResolutionAndScaleTo(aPresShell, presShellResolution);
 
   
   
-  ScrollFrame(aContent, aMetrics);
+  nsIContent* content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
+  ScrollFrame(content, aMetrics);
 
-  SetDisplayPortMargins(shell, aContent, aMetrics);
+  SetDisplayPortMargins(aPresShell, content, aMetrics);
+}
+
+static already_AddRefed<nsIPresShell>
+GetPresShell(const nsIContent* aContent)
+{
+  nsCOMPtr<nsIPresShell> result;
+  if (nsIDocument* doc = aContent->GetComposedDoc()) {
+    result = doc->GetShell();
+  }
+  return result.forget();
 }
 
 void
