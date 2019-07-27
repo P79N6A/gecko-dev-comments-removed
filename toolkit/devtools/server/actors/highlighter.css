@@ -35,6 +35,12 @@
   opacity: 0.6;
 }
 
+
+
+:-moz-native-anonymous .box-model-regions [faded] {
+  display: none;
+}
+
 :-moz-native-anonymous .box-model-content {
   fill: #87ceeb;
 }
