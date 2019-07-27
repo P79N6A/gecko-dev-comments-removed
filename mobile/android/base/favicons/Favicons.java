@@ -450,15 +450,9 @@ public class Favicons {
             return;
         }
 
-        final boolean isNewTabletEnabled = NewTabletUI.isEnabled(context);
         final Resources res = context.getResources();
 
-        
-        
-        
-        final int defaultFaviconDrawableID =
-                isNewTabletEnabled ? R.drawable.new_tablet_default_favicon : R.drawable.favicon;
-        defaultFavicon = BitmapFactory.decodeResource(res, defaultFaviconDrawableID);
+        defaultFavicon = BitmapFactory.decodeResource(res, R.drawable.toolbar_favicon_default);
         if (defaultFavicon == null) {
             throw new IllegalStateException("Null default favicon was returned from the resources system!");
         }
