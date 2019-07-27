@@ -200,7 +200,6 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     }
 
     private void showSplash() {
-
         
         int dominantColor = Allocator.getInstance().getColor(getIndex());
 
@@ -405,5 +404,10 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         
         
         return false;
+    }
+
+    @Override
+    protected StartupAction getStartupAction(final String passedURL) {
+        return StartupAction.WEBAPP;
     }
 }
