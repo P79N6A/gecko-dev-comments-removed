@@ -184,7 +184,7 @@ AndroidBridge::Init(JNIEnv *jEnv, Object::Param clsLoader)
             "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
 
     mJNIEnv = nullptr;
-    mThread = -1;
+    mThread = pthread_t();
     mGLControllerObj = nullptr;
     mOpenedGraphicsLibraries = false;
     mHasNativeBitmapAccess = false;
@@ -256,7 +256,16 @@ AndroidBridge::SetMainThread(pthread_t thr)
     }
 
     mJNIEnv = nullptr;
-    mThread = -1;
+    mThread = pthread_t();
+
+    
+    
+    if (sBridge) {
+        delete sBridge;
+        
+        
+        sBridge = nullptr;
+    }
     return true;
 }
 
