@@ -425,23 +425,28 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
     }
 
     
-    
-    
-    else if (originIsChrome && !targetIsChrome &&
-             (IdentifyStandardInstance(obj) == JSProto_Function ||
-              (jsipc::IsCPOW(obj) && JS::IsCallable(obj) &&
-               XRE_GetProcessType() == GeckoProcessType_Content)))
-    {
-        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
-    }
+    else if (originIsChrome && !targetIsChrome) {
+        
+        
+        
+        if ((IdentifyStandardInstance(obj) == JSProto_Function ||
+            (jsipc::IsCPOW(obj) && JS::IsCallable(obj) &&
+             XRE_GetProcessType() == GeckoProcessType_Content)))
+        {
+            wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
+        }
 
-    
-    
-    
-    else if (originIsChrome && !targetIsChrome &&
-             IdentifyStandardInstance(obj) == JSProto_Object)
-    {
-        wrapper = &ChromeObjectWrapper::singleton;
+        
+        
+        
+        else if (IdentifyStandardInstance(obj) == JSProto_Object) {
+            wrapper = &ChromeObjectWrapper::singleton;
+        }
+
+        
+        else {
+            wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
+        }
     }
 
     
