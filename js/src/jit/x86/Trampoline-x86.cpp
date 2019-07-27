@@ -530,9 +530,9 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.pop(ecx); 
 
     
-    const uint32_t BailoutDataSize = sizeof(void *) + 
-                                   sizeof(double) * FloatRegisters::Total +
-                                   sizeof(void *) * Registers::Total;
+    static const uint32_t BailoutDataSize = 0
+        + sizeof(void *) 
+        + sizeof(RegisterDump);
 
     
     if (frameClass == NO_FRAME_SIZE_CLASS_ID) {
