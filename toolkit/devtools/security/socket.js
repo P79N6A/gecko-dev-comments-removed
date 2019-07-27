@@ -25,6 +25,8 @@ loader.lazyRequireGetter(this, "cert",
   "devtools/toolkit/security/cert");
 loader.lazyRequireGetter(this, "Authenticators",
   "devtools/toolkit/security/auth", true);
+loader.lazyRequireGetter(this, "prompt",
+  "devtools/toolkit/security/prompt");
 loader.lazyRequireGetter(this, "setTimeout", "Timer", true);
 loader.lazyRequireGetter(this, "clearTimeout", "Timer", true);
 
@@ -49,8 +51,6 @@ DevToolsUtils.defineLazyGetter(this, "nssErrorsService", () => {
 
 DevToolsUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
-
-const DBG_STRINGS_URI = "chrome://global/locale/devtools/debugger.properties";
 
 let DebuggerSocket = {};
 
@@ -214,36 +214,6 @@ function _storeCertOverride(s, host, port) {
 
 function SocketListener() {}
 
-
-
-
-
-
-
-
-
-SocketListener.defaultAllowConnection = () => {
-  let bundle = Services.strings.createBundle(DBG_STRINGS_URI);
-  let title = bundle.GetStringFromName("remoteIncomingPromptTitle");
-  let msg = bundle.GetStringFromName("remoteIncomingPromptMessage");
-  let disableButton = bundle.GetStringFromName("remoteIncomingPromptDisable");
-  let prompt = Services.prompt;
-  let flags = prompt.BUTTON_POS_0 * prompt.BUTTON_TITLE_OK +
-              prompt.BUTTON_POS_1 * prompt.BUTTON_TITLE_CANCEL +
-              prompt.BUTTON_POS_2 * prompt.BUTTON_TITLE_IS_STRING +
-              prompt.BUTTON_POS_1_DEFAULT;
-  let result = prompt.confirmEx(null, title, msg, flags, null, null,
-                                disableButton, null, { value: false });
-  if (result === 0) {
-    return true;
-  }
-  if (result === 2) {
-    DebuggerServer.closeAllListeners();
-    Services.prefs.setBoolPref("devtools.debugger.remote-enabled", false);
-  }
-  return false;
-};
-
 SocketListener.prototype = {
 
   
@@ -263,7 +233,7 @@ SocketListener.prototype = {
 
 
 
-  allowConnection: SocketListener.defaultAllowConnection,
+  allowConnection: prompt.Server.defaultAllowConnection,
 
   
 
