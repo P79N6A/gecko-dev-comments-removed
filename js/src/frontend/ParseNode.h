@@ -526,7 +526,21 @@ class ParseNode
     TokenPos            pn_pos;         
     int32_t             pn_offset;      
     ParseNode           *pn_next;       
-    ParseNode           *pn_link;       
+
+    
+
+
+
+
+
+
+
+
+
+    union {
+        ParseNode       *dn_uses;
+        ParseNode       *pn_link;
+    };
 
     union {
         struct {                        
@@ -1392,8 +1406,6 @@ void DumpParseTree(ParseNode *pn, int indent = 0);
 
 
 
-
-#define dn_uses         pn_link
 
 struct Definition : public ParseNode
 {
