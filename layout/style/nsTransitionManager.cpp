@@ -120,6 +120,18 @@ CSSTransition::GetAnimationManager() const
   return context->TransitionManager();
 }
 
+nsCSSProperty
+CSSTransition::TransitionProperty() const
+{
+  
+  
+  
+  dom::KeyframeEffectReadOnly* effect = GetEffect();
+  MOZ_ASSERT(effect && effect->AsTransition(),
+             "Transition should have a transition effect");
+  return effect->AsTransition()->TransitionProperty();
+}
+
 
 
 
