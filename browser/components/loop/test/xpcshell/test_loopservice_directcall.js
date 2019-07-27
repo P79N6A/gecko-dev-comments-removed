@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 XPCOMUtils.defineLazyModuleGetter(this, "Chat",
                                   "resource:///modules/Chat.jsm");
 let openChatOrig = Chat.open;

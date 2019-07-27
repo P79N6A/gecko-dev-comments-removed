@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 const {CardDavImporter} = Cu.import("resource:///modules/loop/CardDavImporter.jsm", {});
 
 const kAuth = {

@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 const { LoopCallsInternal } = Cu.import("resource:///modules/loop/LoopCalls.jsm", {});
 
 XPCOMUtils.defineLazyModuleGetter(this, "Chat",

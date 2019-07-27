@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 const kGuestKeyPref = "loop.key";
 const kFxAKeyPref = "loop.key.fxa";
 

@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 XPCOMUtils.defineLazyModuleGetter(this, "Chat",
                                   "resource:///modules/Chat.jsm");
 
@@ -20,7 +22,7 @@ add_test(function test_openChatWindow_on_notification() {
 
     mockPushHandler.notify(1, MozLoopService.channelIDs.callsFxA);
 
-    waitForCondition(function() opened).then(() => {
+    waitForCondition(() => opened).then(() => {
       do_check_true(opened, "should open a chat window");
 
       do_check_eq(Services.prefs.getCharPref("loop.seenToS"), "seen",

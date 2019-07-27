@@ -6,6 +6,8 @@
 
 
 
+"use strict";
+
 Cu.import("resource://gre/modules/Promise.jsm");
 const {SocialService} = Cu.import("resource://gre/modules/SocialService.jsm", {});
 

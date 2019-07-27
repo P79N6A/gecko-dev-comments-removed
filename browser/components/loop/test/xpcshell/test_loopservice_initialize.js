@@ -1,13 +1,15 @@
 
 
 
+"use strict";
+
 let startTimerCalled = false;
 
 
 
 
 
-add_task(function test_initialize_no_expiry() {
+add_task(function* test_initialize_no_expiry() {
   startTimerCalled = false;
 
   let initializedPromise = yield MozLoopService.initialize();

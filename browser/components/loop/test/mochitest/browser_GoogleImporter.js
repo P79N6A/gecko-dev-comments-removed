@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 const {GoogleImporter} = Cu.import("resource:///modules/loop/GoogleImporter.jsm", {});
 
 let importer = new GoogleImporter();

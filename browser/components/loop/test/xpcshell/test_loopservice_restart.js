@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 const FAKE_FXA_TOKEN_DATA = JSON.stringify({
   "token_type": "bearer",
   "access_token": "1bad3e44b12f77a88fe09f016f6a37c42e40f974bc7a8b432bb0d2f0e37e1752",
@@ -20,7 +22,7 @@ const LOOP_INITIAL_DELAY_PREF = "loop.initialDelay";
 
 
 
-add_task(function test_initialize_with_no_guest_rooms_and_no_auth_token() {
+add_task(function* test_initialize_with_no_guest_rooms_and_no_auth_token() {
   
   var nowSeconds = Date.now() / 1000;
   Services.prefs.setBoolPref(LOOP_CREATED_ROOM_PREF, false);
@@ -34,7 +36,7 @@ add_task(function test_initialize_with_no_guest_rooms_and_no_auth_token() {
   });
 });
 
-add_task(function test_initialize_with_created_room_and_no_auth_token() {
+add_task(function* test_initialize_with_created_room_and_no_auth_token() {
   Services.prefs.setBoolPref(LOOP_CREATED_ROOM_PREF, true);
   Services.prefs.clearUserPref(LOOP_FXA_TOKEN_PREF);
 
@@ -50,7 +52,7 @@ add_task(function test_initialize_with_created_room_and_no_auth_token() {
   });
 });
 
-add_task(function test_initialize_with_invalid_fxa_token() {
+add_task(function* test_initialize_with_invalid_fxa_token() {
   Services.prefs.setCharPref(LOOP_FXA_PROFILE_PREF, FAKE_FXA_PROFILE);
   Services.prefs.setCharPref(LOOP_FXA_TOKEN_PREF, FAKE_FXA_TOKEN_DATA);
 
@@ -83,7 +85,7 @@ add_task(function test_initialize_with_invalid_fxa_token() {
   });
 });
 
-add_task(function test_initialize_with_fxa_token() {
+add_task(function* test_initialize_with_fxa_token() {
   Services.prefs.setCharPref(LOOP_FXA_PROFILE_PREF, FAKE_FXA_PROFILE);
   Services.prefs.setCharPref(LOOP_FXA_TOKEN_PREF, FAKE_FXA_TOKEN_DATA);
 

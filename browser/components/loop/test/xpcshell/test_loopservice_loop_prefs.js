@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 var fakeCharPrefName = "color";
 var fakeBoolPrefName = "boolean";
 var fakePrefValue = "green";

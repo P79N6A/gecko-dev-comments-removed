@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 XPCOMUtils.defineLazyModuleGetter(this, "Chat",
                                   "resource:///modules/Chat.jsm");
 let openChatOrig = Chat.open;
@@ -41,7 +43,7 @@ add_test(function test_do_not_disturb_disabled_should_open_chat_window() {
 
     mockPushHandler.notify(1, MozLoopService.channelIDs.callsFxA);
 
-    waitForCondition(function() opened).then(() => {
+    waitForCondition(() => opened).then(() => {
       run_next_test();
     }, () => {
       do_throw("should have opened a chat window");

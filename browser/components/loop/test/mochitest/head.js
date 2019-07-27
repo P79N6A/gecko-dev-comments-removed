@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 const HAWK_TOKEN_LENGTH = 64;
 const {
   LOOP_SESSION_TYPE,
@@ -124,7 +126,7 @@ function loadLoopPanel(aOverrideOptions = {}) {
   loopPanel.setAttribute("animate", "false");
 
   
-  yield promiseGetMozLoopAPI();
+  return promiseGetMozLoopAPI();
 }
 
 function promiseOAuthParamsSetup(baseURL, params) {
@@ -319,7 +321,7 @@ const mockDb = {
     callback(null, details);
   },
   remove: function(guid, callback) {
-    if (!guid in this._store) {
+    if (!(guid in this._store)) {
       callback(new Error("Could not find _guid '" + guid + "' in database"));
       return;
     }
