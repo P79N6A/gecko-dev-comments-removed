@@ -15,6 +15,7 @@
 #include "mozilla/Pair.h"
 #include "nsProxyRelease.h"
 #include "nsTArray.h"
+#include "StateMirroring.h"
 
 namespace mozilla {
 
@@ -262,6 +263,9 @@ private:
   
   nsMainThreadPtrHandle<dom::SourceBuffer> mParent;
   nsMainThreadPtrHandle<MediaSourceDecoder> mParentDecoder;
+
+  
+  Mirror<Maybe<double>> mMediaSourceDuration;
 
   
   Atomic<bool> mAbort;
