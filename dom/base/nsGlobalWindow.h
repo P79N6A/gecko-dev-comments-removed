@@ -129,12 +129,6 @@ class VRHMDInfo;
 } 
 } 
 
-extern nsresult
-NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow,
-                          bool *aIsInterval,
-                          int32_t *aInterval,
-                          nsIScriptTimeoutHandler **aRet);
-
 extern already_AddRefed<nsIScriptTimeoutHandler>
 NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow,
                           mozilla::dom::Function& aFunction,
@@ -1335,7 +1329,6 @@ public:
   }
 
   
-  nsresult SetTimeoutOrInterval(bool aIsInterval, int32_t* aReturn);
   nsresult ResetTimersForNonBackgroundWindow();
 
   
