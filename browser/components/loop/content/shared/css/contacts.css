@@ -2,6 +2,16 @@
 
 
 
+.contact-import-spinner {
+  display: none;
+}
+
+.contact-import-spinner.busy {
+  display: inline-block;
+  vertical-align: middle;
+  -moz-margin-start: 10px;
+}
+
 .content-area input.contact-filter {
   margin-top: 14px;
   border-radius: 10000px;
