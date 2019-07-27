@@ -262,7 +262,8 @@ public:
 
 
 
-  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
+  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
+                                    nsRestyleHint aRestyleHint);
 
   void MediaFeatureValuesChanged(StyleRebuildType aShouldRebuild,
                                  nsChangeHint aChangeHint = nsChangeHint(0));

@@ -1871,14 +1871,14 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint,
 }
 
 void
-nsPresContext::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
+nsPresContext::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
+                                            nsRestyleHint aRestyleHint)
 {
   if (!mShell) {
     
     return;
   }
-  
-  RestyleManager()->PostRebuildAllStyleDataEvent(aExtraHint, eRestyle_Subtree);
+  RestyleManager()->PostRebuildAllStyleDataEvent(aExtraHint, aRestyleHint);
 }
 
 void
@@ -2182,7 +2182,7 @@ nsPresContext::UserFontSetUpdated()
   
   
 
-  PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW);
+  PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_Subtree);
 }
 
 FontFaceSet*
@@ -2210,7 +2210,7 @@ nsPresContext::FlushCounterStyles()
     bool changed = mCounterStyleManager->NotifyRuleChanged();
     if (changed) {
       PresShell()->NotifyCounterStylesAreDirty();
-      PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW);
+      PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_Subtree);
     }
     mCounterStylesDirty = false;
   }
