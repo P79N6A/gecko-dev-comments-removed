@@ -62,7 +62,7 @@ public:
 
 
 
-    nsresult Draw(gfxContext* ctx, nsIntSize size,
+    nsresult Draw(gfxContext* ctx, mozilla::gfx::IntSize size,
                   uint32_t flags, Screen* screen, Visual* visual);
 };
 

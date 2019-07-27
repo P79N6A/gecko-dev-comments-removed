@@ -90,7 +90,7 @@ public:
 
 
     virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
-                                                               const nsIntSize& aSize);
+                                                               const mozilla::gfx::IntSize& aSize);
 
     
 
@@ -118,7 +118,7 @@ public:
 
 
 
-    static bool CheckSurfaceSize(const nsIntSize& sz, int32_t limit = 0);
+    static bool CheckSurfaceSize(const mozilla::gfx::IntSize& sz, int32_t limit = 0);
 
     
 
@@ -167,7 +167,7 @@ public:
 
     static int32_t BytePerPixelFromFormat(gfxImageFormat format);
 
-    virtual const nsIntSize GetSize() const;
+    virtual const mozilla::gfx::IntSize GetSize() const;
 
     void SetOpaqueRect(const gfxRect& aRect);
 
@@ -228,10 +228,10 @@ public:
     }
 
     virtual ~gfxUnknownSurface() { }
-    virtual const nsIntSize GetSize() const override { return mSize; }
+    virtual const mozilla::gfx::IntSize GetSize() const override { return mSize; }
 
 private:
-    nsIntSize mSize;
+    mozilla::gfx::IntSize mSize;
 };
 
 #endif 
