@@ -123,26 +123,61 @@ RefreshTimerVsyncDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
 void
 RefreshTimerVsyncDispatcher::SetParentRefreshTimer(VsyncObserver* aVsyncObserver)
 {
-  MutexAutoLock lock(mRefreshTimersLock);
-  mParentRefreshTimer = aVsyncObserver;
+  MOZ_ASSERT(NS_IsMainThread());
+  { 
+    MutexAutoLock lock(mRefreshTimersLock);
+    mParentRefreshTimer = aVsyncObserver;
+  }
+
+  UpdateVsyncStatus();
 }
 
 void
 RefreshTimerVsyncDispatcher::AddChildRefreshTimer(VsyncObserver* aVsyncObserver)
 {
-  MutexAutoLock lock(mRefreshTimersLock);
-  MOZ_ASSERT(aVsyncObserver);
-  if (!mChildRefreshTimers.Contains(aVsyncObserver)) {
-    mChildRefreshTimers.AppendElement(aVsyncObserver);
+  { 
+    MutexAutoLock lock(mRefreshTimersLock);
+    MOZ_ASSERT(aVsyncObserver);
+    if (!mChildRefreshTimers.Contains(aVsyncObserver)) {
+      mChildRefreshTimers.AppendElement(aVsyncObserver);
+    }
   }
+
+  UpdateVsyncStatus();
 }
 
 void
 RefreshTimerVsyncDispatcher::RemoveChildRefreshTimer(VsyncObserver* aVsyncObserver)
 {
+  { 
+    MutexAutoLock lock(mRefreshTimersLock);
+    MOZ_ASSERT(aVsyncObserver);
+    mChildRefreshTimers.RemoveElement(aVsyncObserver);
+  }
+
+  UpdateVsyncStatus();
+}
+
+void
+RefreshTimerVsyncDispatcher::UpdateVsyncStatus()
+{
+  if (!NS_IsMainThread()) {
+    nsCOMPtr<nsIRunnable> vsyncControl = NS_NewRunnableMethod(this,
+                                           &RefreshTimerVsyncDispatcher::UpdateVsyncStatus);
+    NS_DispatchToMainThread(vsyncControl);
+    return;
+  }
+
+  gfx::VsyncSource::Display& display = gfxPlatform::GetPlatform()->GetHardwareVsync()->GetGlobalDisplay();
+  display.NotifyRefreshTimerVsyncStatus(NeedsVsync());
+}
+
+bool
+RefreshTimerVsyncDispatcher::NeedsVsync()
+{
+  MOZ_ASSERT(NS_IsMainThread());
   MutexAutoLock lock(mRefreshTimersLock);
-  MOZ_ASSERT(aVsyncObserver);
-  mChildRefreshTimers.RemoveElement(aVsyncObserver);
+  return (mParentRefreshTimer != nullptr) || !mChildRefreshTimers.IsEmpty();
 }
 
 } 
