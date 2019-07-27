@@ -12,6 +12,7 @@
 #include <limits.h>
 #include <stdio.h>
 
+#include "./vpx_dsp_rtcd.h"
 #include "./vpx_scale_rtcd.h"
 #include "block.h"
 #include "onyx_int.h"
@@ -34,8 +35,6 @@
 
 
 extern void vp8cx_frame_init_quantizer(VP8_COMP *cpi);
-extern void vp8_set_mbmode_and_mvs(MACROBLOCK *x, MB_PREDICTION_MODE mb, int_mv *mv);
-extern void vp8_alloc_compressor_data(VP8_COMP *cpi);
 
 #define GFQ_ADJUSTMENT vp8_gf_boost_qadjustment[Q]
 extern int vp8_kf_boost_qadjustment[QINDEX_RANGE];
@@ -424,14 +423,14 @@ static void zz_motion_search( VP8_COMP *cpi, MACROBLOCK * x,
     
     raw_ptr = (unsigned char *)(raw_buffer->y_buffer + recon_yoffset
                                 + d->offset);
-    vp8_mse16x16 ( src_ptr, src_stride, raw_ptr, raw_stride,
-                   (unsigned int *)(raw_motion_err));
+    vpx_mse16x16(src_ptr, src_stride, raw_ptr, raw_stride,
+                 (unsigned int *)(raw_motion_err));
 
     
     xd->pre.y_buffer = recon_buffer->y_buffer + recon_yoffset;
     ref_ptr = (unsigned char *)(xd->pre.y_buffer + d->offset );
-    vp8_mse16x16 ( src_ptr, src_stride, ref_ptr, ref_stride,
-                   (unsigned int *)(best_motion_err));
+    vpx_mse16x16(src_ptr, src_stride, ref_ptr, ref_stride,
+                 (unsigned int *)(best_motion_err));
 }
 
 static void first_pass_motion_search(VP8_COMP *cpi, MACROBLOCK *x,
@@ -455,7 +454,7 @@ static void first_pass_motion_search(VP8_COMP *cpi, MACROBLOCK *x,
     int new_mv_mode_penalty = 256;
 
     
-    v_fn_ptr.vf    = vp8_mse16x16;
+    v_fn_ptr.vf    = vpx_mse16x16;
 
     
     xd->pre.y_buffer = recon_buffer->y_buffer + recon_yoffset;
@@ -573,7 +572,7 @@ void vp8_first_pass(VP8_COMP *cpi)
     {
         int flag[2] = {1, 1};
         vp8_initialize_rd_consts(cpi, x, vp8_dc_quant(cm->base_qindex, cm->y1dc_delta_q));
-        vpx_memcpy(cm->fc.mvc, vp8_default_mv_context, sizeof(vp8_default_mv_context));
+        memcpy(cm->fc.mvc, vp8_default_mv_context, sizeof(vp8_default_mv_context));
         vp8_build_component_cost_table(cpi->mb.mvcost, (const MV_CONTEXT *) cm->fc.mvc, flag);
     }
 
@@ -1329,8 +1328,6 @@ static int estimate_kf_group_q(VP8_COMP *cpi, double section_err, int section_ta
     return Q;
 }
 
-extern void vp8_new_framerate(VP8_COMP *cpi, double framerate);
-
 void vp8_init_second_pass(VP8_COMP *cpi)
 {
     FIRSTPASS_STATS this_frame;
@@ -1779,7 +1776,7 @@ static void define_gf_group(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
 
     start_pos = cpi->twopass.stats_in;
 
-    vpx_memset(&next_frame, 0, sizeof(next_frame)); 
+    memset(&next_frame, 0, sizeof(next_frame)); 
 
     
     mod_frame_err = calculate_modified_err(cpi, this_frame);
@@ -1875,7 +1872,7 @@ static void define_gf_group(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
             break;
         }
 
-        vpx_memcpy(this_frame, &next_frame, sizeof(*this_frame));
+        memcpy(this_frame, &next_frame, sizeof(*this_frame));
 
         old_boost_score = boost_score;
     }
@@ -2445,7 +2442,7 @@ void vp8_second_pass(VP8_COMP *cpi)
     if (cpi->twopass.frames_to_key == 0)
     {
         
-        vpx_memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
+        memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
         find_next_key_frame(cpi, &this_frame_copy);
 
         
@@ -2471,7 +2468,7 @@ void vp8_second_pass(VP8_COMP *cpi)
     if (cpi->frames_till_gf_update_due == 0)
     {
         
-        vpx_memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
+        memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
         define_gf_group(cpi, &this_frame_copy);
 
         
@@ -2487,7 +2484,7 @@ void vp8_second_pass(VP8_COMP *cpi)
 
 
             int bak = cpi->per_frame_bandwidth;
-            vpx_memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
+            memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
             assign_std_frame_bits(cpi, &this_frame_copy);
             cpi->per_frame_bandwidth = bak;
         }
@@ -2510,14 +2507,14 @@ void vp8_second_pass(VP8_COMP *cpi)
             if (cpi->common.frame_type != KEY_FRAME)
             {
                 
-                vpx_memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
+                memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
                 assign_std_frame_bits(cpi, &this_frame_copy);
             }
         }
         else
         {
             
-            vpx_memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
+            memcpy(&this_frame_copy, &this_frame, sizeof(this_frame));
             assign_std_frame_bits(cpi, &this_frame_copy);
         }
     }
@@ -2658,7 +2655,7 @@ static int test_candidate_kf(VP8_COMP *cpi,  FIRSTPASS_STATS *last_frame, FIRSTP
         double decay_accumulator = 1.0;
         double next_iiratio;
 
-        vpx_memcpy(&local_next_frame, next_frame, sizeof(*next_frame));
+        memcpy(&local_next_frame, next_frame, sizeof(*next_frame));
 
         
         start_pos = cpi->twopass.stats_in;
@@ -2735,7 +2732,7 @@ static void find_next_key_frame(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
     double kf_group_coded_err = 0.0;
     double recent_loop_decay[8] = {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 
-    vpx_memset(&next_frame, 0, sizeof(next_frame));
+    memset(&next_frame, 0, sizeof(next_frame));
 
     vp8_clear_system_state();
     start_position = cpi->twopass.stats_in;
@@ -2756,7 +2753,7 @@ static void find_next_key_frame(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
     cpi->twopass.frames_to_key = 1;
 
     
-    vpx_memcpy(&first_frame, this_frame, sizeof(*this_frame));
+    memcpy(&first_frame, this_frame, sizeof(*this_frame));
 
     cpi->twopass.kf_group_bits = 0;
     cpi->twopass.kf_group_error_left = 0;
@@ -2779,7 +2776,7 @@ static void find_next_key_frame(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
         kf_group_coded_err += this_frame->coded_error;
 
         
-        vpx_memcpy(&last_frame, this_frame, sizeof(*this_frame));
+        memcpy(&last_frame, this_frame, sizeof(*this_frame));
         input_stats(cpi, this_frame);
 
         
@@ -2847,7 +2844,7 @@ static void find_next_key_frame(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
         cpi->twopass.frames_to_key /= 2;
 
         
-        vpx_memcpy(&tmp_frame, &first_frame, sizeof(first_frame));
+        memcpy(&tmp_frame, &first_frame, sizeof(first_frame));
 
         
         reset_fpf_position(cpi, start_position);
@@ -2969,7 +2966,6 @@ static void find_next_key_frame(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
 
     decay_accumulator = 1.0;
     boost_score = 0.0;
-    loop_decay_rate = 1.00;       
 
     for (i = 0 ; i < cpi->twopass.frames_to_key ; i++)
     {
@@ -3213,7 +3209,7 @@ static void find_next_key_frame(VP8_COMP *cpi, FIRSTPASS_STATS *this_frame)
         int new_width = cpi->oxcf.Width;
         int new_height = cpi->oxcf.Height;
 
-        int projected_buffer_level = (int)cpi->buffer_level;
+        int projected_buffer_level;
         int tmp_q;
 
         double projected_bits_perframe;

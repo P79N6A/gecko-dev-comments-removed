@@ -40,7 +40,7 @@ void vp9_foreach_transformed_block_in_plane(
     const MACROBLOCKD *const xd, BLOCK_SIZE bsize, int plane,
     foreach_transformed_block_visitor visit, void *arg) {
   const struct macroblockd_plane *const pd = &xd->plane[plane];
-  const MB_MODE_INFO* mbmi = &xd->mi[0].src_mi->mbmi;
+  const MB_MODE_INFO* mbmi = &xd->mi[0]->mbmi;
   
   
   
@@ -103,7 +103,7 @@ void vp9_set_contexts(const MACROBLOCKD *xd, struct macroblockd_plane *pd,
     for (i = above_contexts; i < tx_size_in_blocks; ++i)
       a[i] = 0;
   } else {
-    vpx_memset(a, has_eob, sizeof(ENTROPY_CONTEXT) * tx_size_in_blocks);
+    memset(a, has_eob, sizeof(ENTROPY_CONTEXT) * tx_size_in_blocks);
   }
 
   
@@ -120,7 +120,7 @@ void vp9_set_contexts(const MACROBLOCKD *xd, struct macroblockd_plane *pd,
     for (i = left_contexts; i < tx_size_in_blocks; ++i)
       l[i] = 0;
   } else {
-    vpx_memset(l, has_eob, sizeof(ENTROPY_CONTEXT) * tx_size_in_blocks);
+    memset(l, has_eob, sizeof(ENTROPY_CONTEXT) * tx_size_in_blocks);
   }
 }
 

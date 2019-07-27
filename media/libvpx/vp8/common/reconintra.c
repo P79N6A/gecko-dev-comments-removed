@@ -73,7 +73,7 @@ void vp8_build_intra_predictors_mby_s_c(MACROBLOCKD *x,
         
         for (r = 0; r < 16; r++)
         {
-            vpx_memset(ypred_ptr, expected_dc, 16);
+            memset(ypred_ptr, expected_dc, 16);
             ypred_ptr += y_stride;
         }
     }
@@ -98,7 +98,7 @@ void vp8_build_intra_predictors_mby_s_c(MACROBLOCKD *x,
         for (r = 0; r < 16; r++)
         {
 
-            vpx_memset(ypred_ptr, yleft_col[r], 16);
+            memset(ypred_ptr, yleft_col[r], 16);
             ypred_ptr += y_stride;
         }
 
@@ -206,8 +206,8 @@ void vp8_build_intra_predictors_mbuv_s_c(MACROBLOCKD *x,
         
         for (i = 0; i < 8; i++)
         {
-            vpx_memset(upred_ptr, expected_udc, 8);
-            vpx_memset(vpred_ptr, expected_vdc, 8);
+            memset(upred_ptr, expected_udc, 8);
+            memset(vpred_ptr, expected_vdc, 8);
             upred_ptr += pred_stride;
             vpred_ptr += pred_stride;
         }
@@ -217,8 +217,8 @@ void vp8_build_intra_predictors_mbuv_s_c(MACROBLOCKD *x,
     {
         for (i = 0; i < 8; i++)
         {
-            vpx_memcpy(upred_ptr, uabove_row, 8);
-            vpx_memcpy(vpred_ptr, vabove_row, 8);
+            memcpy(upred_ptr, uabove_row, 8);
+            memcpy(vpred_ptr, vabove_row, 8);
             upred_ptr += pred_stride;
             vpred_ptr += pred_stride;
         }
@@ -229,8 +229,8 @@ void vp8_build_intra_predictors_mbuv_s_c(MACROBLOCKD *x,
     {
         for (i = 0; i < 8; i++)
         {
-            vpx_memset(upred_ptr, uleft_col[i], 8);
-            vpx_memset(vpred_ptr, vleft_col[i], 8);
+            memset(upred_ptr, uleft_col[i], 8);
+            memset(vpred_ptr, vleft_col[i], 8);
             upred_ptr += pred_stride;
             vpred_ptr += pred_stride;
         }

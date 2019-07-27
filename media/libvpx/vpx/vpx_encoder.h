@@ -42,8 +42,11 @@ extern "C" {
   
 #define MAX_PERIODICITY VPX_TS_MAX_PERIODICITY
 
-  
-#define MAX_LAYERS      VPX_TS_MAX_LAYERS
+
+#define VPX_MAX_LAYERS  12  // 3 temporal + 4 spatial layers are allowed.
+
+
+#define MAX_LAYERS    VPX_MAX_LAYERS  // 3 temporal + 4 spatial layers allowed.
 
 
 #define VPX_SS_MAX_LAYERS       5
@@ -59,7 +62,7 @@ extern "C" {
 
 
 
-#define VPX_ENCODER_ABI_VERSION (4 + VPX_CODEC_ABI_VERSION) /**<\hideinitializer*/
+#define VPX_ENCODER_ABI_VERSION (5 + VPX_CODEC_ABI_VERSION) /**<\hideinitializer*/
 
 
   
@@ -163,7 +166,7 @@ extern "C" {
     VPX_CODEC_PSNR_PKT,        
     
     
-#if VPX_ENCODER_ABI_VERSION > (4 + VPX_CODEC_ABI_VERSION)
+#if VPX_ENCODER_ABI_VERSION > (5 + VPX_CODEC_ABI_VERSION)
     VPX_CODEC_SPATIAL_SVC_LAYER_SIZES, 
     VPX_CODEC_SPATIAL_SVC_LAYER_PSNR, 
 #endif
@@ -205,7 +208,7 @@ extern "C" {
       vpx_fixed_buf_t raw;     
       
       
-#if VPX_ENCODER_ABI_VERSION > (4 + VPX_CODEC_ABI_VERSION)
+#if VPX_ENCODER_ABI_VERSION > (5 + VPX_CODEC_ABI_VERSION)
       size_t layer_sizes[VPX_SS_MAX_LAYERS];
       struct vpx_psnr_pkt layer_psnr[VPX_SS_MAX_LAYERS];
 #endif
@@ -729,6 +732,22 @@ extern "C" {
 
 
     unsigned int           ts_layer_id[VPX_TS_MAX_PERIODICITY];
+
+    
+
+
+
+
+
+    unsigned int           layer_target_bitrate[VPX_MAX_LAYERS];
+
+    
+
+
+
+
+
+    int                    temporal_layering_mode;
   } vpx_codec_enc_cfg_t; 
 
   
@@ -737,10 +756,11 @@ extern "C" {
 
 
   typedef struct vpx_svc_parameters {
-    int max_quantizers[VPX_SS_MAX_LAYERS]; 
-    int min_quantizers[VPX_SS_MAX_LAYERS]; 
-    int scaling_factor_num[VPX_SS_MAX_LAYERS]; 
-    int scaling_factor_den[VPX_SS_MAX_LAYERS]; 
+    int max_quantizers[VPX_MAX_LAYERS]; 
+    int min_quantizers[VPX_MAX_LAYERS]; 
+    int scaling_factor_num[VPX_MAX_LAYERS]; 
+    int scaling_factor_den[VPX_MAX_LAYERS]; 
+    int temporal_layering_mode; 
   } vpx_svc_extra_cfg_t;
 
 

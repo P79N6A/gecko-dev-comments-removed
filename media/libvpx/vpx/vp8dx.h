@@ -106,6 +106,13 @@ enum vp8_dec_control_id {
 
   VP9_INVERT_TILE_DECODE_ORDER,
 
+  
+
+
+
+
+  VP9_SET_SKIP_LOOP_FILTER,
+
   VP8_DECODER_CTRL_ID_MAX
 };
 

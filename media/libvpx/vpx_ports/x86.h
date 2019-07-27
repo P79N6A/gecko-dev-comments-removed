@@ -152,7 +152,7 @@ static INLINE int
 x86_simd_caps(void) {
   unsigned int flags = 0;
   unsigned int mask = ~0;
-  unsigned int reg_eax, reg_ebx, reg_ecx, reg_edx;
+  unsigned int max_cpuid_val, reg_eax, reg_ebx, reg_ecx, reg_edx;
   char *env;
   (void)reg_ebx;
 
@@ -168,9 +168,9 @@ x86_simd_caps(void) {
     mask = strtol(env, NULL, 0);
 
   
-  cpuid(0, 0, reg_eax, reg_ebx, reg_ecx, reg_edx);
+  cpuid(0, 0, max_cpuid_val, reg_ebx, reg_ecx, reg_edx);
 
-  if (reg_eax < 1)
+  if (max_cpuid_val < 1)
     return 0;
 
   
@@ -193,10 +193,12 @@ x86_simd_caps(void) {
     if ((xgetbv() & 0x6) == 0x6) {
       flags |= HAS_AVX;
 
-      
-      cpuid(7, 0, reg_eax, reg_ebx, reg_ecx, reg_edx);
+      if (max_cpuid_val >= 7) {
+        
+        cpuid(7, 0, reg_eax, reg_ebx, reg_ecx, reg_edx);
 
-      if (reg_ebx & BIT(5)) flags |= HAS_AVX2;
+        if (reg_ebx & BIT(5)) flags |= HAS_AVX2;
+      }
     }
   }
 

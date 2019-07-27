@@ -329,6 +329,8 @@ enum vp8e_enc_control_id {
 
 
 
+
+
   VP8E_SET_SCREEN_CONTENT_MODE,
 
   
@@ -448,7 +450,6 @@ enum vp8e_enc_control_id {
 
   VP9E_SET_SVC,
 
-#if VPX_ENCODER_ABI_VERSION > (4 + VPX_CODEC_ABI_VERSION)
   
 
 
@@ -456,7 +457,6 @@ enum vp8e_enc_control_id {
 
 
   VP9E_SET_SVC_PARAMETERS,
-#endif
 
   
 
@@ -476,7 +476,6 @@ enum vp8e_enc_control_id {
 
   VP9E_SET_TUNE_CONTENT,
 
-#if VPX_ENCODER_ABI_VERSION > (4 + VPX_CODEC_ABI_VERSION)
   
 
 
@@ -492,7 +491,6 @@ enum vp8e_enc_control_id {
 
 
   VP9E_REGISTER_CX_CALLBACK,
-#endif
 
   
 
@@ -508,6 +506,23 @@ enum vp8e_enc_control_id {
 
 
   VP9E_SET_COLOR_SPACE,
+
+  
+
+
+
+
+
+
+
+
+  VP9E_SET_TEMPORAL_LAYERING_MODE,
+
+  
+
+
+
+  VP9E_GET_ACTIVEMAP,
 };
 
 
@@ -521,6 +536,32 @@ typedef enum vpx_scaling_mode_1d {
   VP8E_ONETWO      = 3
 } VPX_SCALING_MODE;
 
+
+
+
+
+
+
+typedef enum vp9e_temporal_layering_mode {
+  
+
+
+  VP9E_TEMPORAL_LAYERING_MODE_NOLAYERING   = 0,
+
+  
+
+
+
+  VP9E_TEMPORAL_LAYERING_MODE_BYPASS       = 1,
+
+  
+
+  VP9E_TEMPORAL_LAYERING_MODE_0101         = 2,
+
+  
+
+  VP9E_TEMPORAL_LAYERING_MODE_0212         = 3
+} VP9E_TEMPORAL_LAYERING_MODE;
 
 
 
@@ -596,7 +637,6 @@ typedef enum {
   VP8_TUNE_SSIM
 } vp8e_tuning;
 
-#if VPX_ENCODER_ABI_VERSION > (4 + VPX_CODEC_ABI_VERSION)
 
 
 
@@ -608,18 +648,6 @@ typedef struct vpx_svc_layer_id {
   int spatial_layer_id;       
   int temporal_layer_id;      
 } vpx_svc_layer_id_t;
-#else
-
-
-
-
-
-
-
-typedef struct vpx_svc_layer_id {
-  int temporal_layer_id;      
-} vpx_svc_layer_id_t;
-#endif
 
 
 
@@ -643,10 +671,8 @@ VPX_CTRL_USE_TYPE(VP8E_SET_ACTIVEMAP,          vpx_active_map_t *)
 VPX_CTRL_USE_TYPE(VP8E_SET_SCALEMODE,          vpx_scaling_mode_t *)
 
 VPX_CTRL_USE_TYPE(VP9E_SET_SVC,                int)
-#if VPX_ENCODER_ABI_VERSION > (4 + VPX_CODEC_ABI_VERSION)
 VPX_CTRL_USE_TYPE(VP9E_SET_SVC_PARAMETERS,     void *)
 VPX_CTRL_USE_TYPE(VP9E_REGISTER_CX_CALLBACK,   void *)
-#endif
 VPX_CTRL_USE_TYPE(VP9E_SET_SVC_LAYER_ID,       vpx_svc_layer_id_t *)
 
 VPX_CTRL_USE_TYPE(VP8E_SET_CPUUSED,            int)
@@ -667,9 +693,7 @@ VPX_CTRL_USE_TYPE(VP9E_SET_TILE_ROWS,  int)
 
 VPX_CTRL_USE_TYPE(VP8E_GET_LAST_QUANTIZER,     int *)
 VPX_CTRL_USE_TYPE(VP8E_GET_LAST_QUANTIZER_64,  int *)
-#if VPX_ENCODER_ABI_VERSION > (4 + VPX_CODEC_ABI_VERSION)
 VPX_CTRL_USE_TYPE(VP9E_GET_SVC_LAYER_ID,  vpx_svc_layer_id_t *)
-#endif
 
 VPX_CTRL_USE_TYPE(VP8E_SET_MAX_INTRA_BITRATE_PCT, unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_MAX_INTER_BITRATE_PCT, unsigned int)
@@ -691,6 +715,8 @@ VPX_CTRL_USE_TYPE(VP9E_SET_NOISE_SENSITIVITY,  unsigned int)
 VPX_CTRL_USE_TYPE(VP9E_SET_TUNE_CONTENT, int) 
 
 VPX_CTRL_USE_TYPE(VP9E_SET_COLOR_SPACE, int)
+
+VPX_CTRL_USE_TYPE(VP9E_GET_ACTIVEMAP, vpx_active_map_t *)
 
 #ifdef __cplusplus
 }  

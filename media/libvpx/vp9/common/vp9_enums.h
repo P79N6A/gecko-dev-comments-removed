@@ -104,6 +104,44 @@ typedef enum {
   VP9_ALT_FLAG = 1 << 2,
 } VP9_REFFRAME;
 
+typedef enum {
+  PLANE_TYPE_Y  = 0,
+  PLANE_TYPE_UV = 1,
+  PLANE_TYPES
+} PLANE_TYPE;
+
+typedef enum {
+  DC_PRED,         
+  V_PRED,          
+  H_PRED,          
+  D45_PRED,        
+  D135_PRED,       
+  D117_PRED,       
+  D153_PRED,       
+  D207_PRED,       
+  D63_PRED,        
+  TM_PRED,         
+  NEARESTMV,
+  NEARMV,
+  ZEROMV,
+  NEWMV,
+  MB_MODE_COUNT
+} PREDICTION_MODE;
+
+#define INTRA_MODES (TM_PRED + 1)
+
+#define INTER_MODES (1 + NEWMV - NEARESTMV)
+
+#define SKIP_CONTEXTS 3
+#define INTER_MODE_CONTEXTS 7
+
+
+#define MAX_MV_REF_CANDIDATES 2
+
+#define INTRA_INTER_CONTEXTS 4
+#define COMP_INTER_CONTEXTS 5
+#define REF_CONTEXTS 5
+
 #ifdef __cplusplus
 }  
 #endif

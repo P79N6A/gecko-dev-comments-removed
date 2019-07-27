@@ -33,10 +33,13 @@ typedef struct {
   
   int spatial_layers;               
   int temporal_layers;               
+  int temporal_layering_mode;
   SVC_LOG_LEVEL log_level;  
   int log_print;  
                   
-
+  int output_rc_stat;  
+  int speed;  
+  int threads;
   
   void *internal;
 } SvcContext;

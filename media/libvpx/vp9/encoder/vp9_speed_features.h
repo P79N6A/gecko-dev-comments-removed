@@ -101,8 +101,7 @@ typedef enum {
 typedef enum {
   NOT_IN_USE = 0,
   RELAXED_NEIGHBORING_MIN_MAX = 1,
-  CONSTRAIN_NEIGHBORING_MIN_MAX = 2,
-  STRICT_NEIGHBORING_MIN_MAX = 3
+  STRICT_NEIGHBORING_MIN_MAX = 2
 } AUTO_MIN_MAX_MODE;
 
 typedef enum {
@@ -272,6 +271,9 @@ typedef struct SPEED_FEATURES {
   
   
   AUTO_MIN_MAX_MODE auto_min_max_partition_size;
+  
+  
+  BLOCK_SIZE rd_auto_partition_min_limit;
 
   
   
@@ -339,6 +341,10 @@ typedef struct SPEED_FEATURES {
   
   int intra_y_mode_mask[TX_SIZES];
   int intra_uv_mode_mask[TX_SIZES];
+
+  
+  
+  int intra_y_mode_bsize_mask[BLOCK_SIZES];
 
   
   

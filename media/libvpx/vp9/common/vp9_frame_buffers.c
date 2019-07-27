@@ -64,7 +64,7 @@ int vp9_get_frame_buffer(void *cb_priv, size_t min_size,
     
     
     
-    vpx_memset(int_fb_list->int_fb[i].data, 0, min_size);
+    memset(int_fb_list->int_fb[i].data, 0, min_size);
     int_fb_list->int_fb[i].size = min_size;
   }
 
