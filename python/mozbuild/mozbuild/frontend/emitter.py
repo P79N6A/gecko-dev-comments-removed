@@ -1018,9 +1018,4 @@ class TreeMetadataEmitter(LoggingMixin):
         
         self._external_paths -= { o.relobjdir }
 
-        if 'TIERS' in context:
-            for tier in context['TIERS']:
-                o.tier_dirs[tier] = context['TIERS'][tier]['regular'] + \
-                    context['TIERS'][tier]['external']
-
         yield o
