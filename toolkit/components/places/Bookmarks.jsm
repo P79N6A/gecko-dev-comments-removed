@@ -58,6 +58,8 @@
 
 
 
+
+
 this.EXPORTED_SYMBOLS = [ "Bookmarks" ];
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
@@ -74,7 +76,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
                                   "resource://gre/modules/Sqlite.jsm");
 
-const URI_LENGTH_MAX = 65536;
+const URL_LENGTH_MAX = 65536;
 const TITLE_LENGTH_MAX = 4096;
 
 let Bookmarks = Object.freeze({
@@ -90,6 +92,14 @@ let Bookmarks = Object.freeze({
 
 
 
+  DEFAULT_INDEX: -1,
+
+  
+
+
+
+
+
 
 
 
@@ -133,9 +143,9 @@ let Bookmarks = Object.freeze({
   
   
   
-  update: Task.async(function* (info) {
+  update: function (info, onResult=null) {
     throw new Error("Not yet implemented");
-  }),
+  },
 
   
 
@@ -158,12 +168,17 @@ let Bookmarks = Object.freeze({
 
 
 
+
+
+
+
+
   
   
   
-  remove: Task.async(function* (guidOrInfo) {
+  remove: function (guidOrInfo, onResult=null) {
     throw new Error("Not yet implemented");
-  }),
+  },
 
   
 
@@ -191,6 +206,7 @@ let Bookmarks = Object.freeze({
 
 
 
+
   
   
   
@@ -205,9 +221,9 @@ let Bookmarks = Object.freeze({
   
   
   
-  fetch: Task.async(function* (guidOrInfo) {
+  fetch: function (guidOrInfo) {
     throw new Error("Not yet implemented");
-  }),
+  },
 
   
 
@@ -267,11 +283,12 @@ let Bookmarks = Object.freeze({
 
 
 
+
   
   
-  fetchTree: Task.async(function* (guid = "", options = {}) {
+  fetchTree: function (guid = "", options = {}) {
     throw new Error("Not yet implemented");
-  }),
+  },
 
   
 
@@ -287,9 +304,10 @@ let Bookmarks = Object.freeze({
 
 
 
+
   
   
-  reorder: Task.async(function* (parentGuid, orderedChildrenGuids) {
+  reorder: function (parentGuid, orderedChildrenGuids) {
     throw new Error("Not yet implemented");
-  })
+  }
 });
