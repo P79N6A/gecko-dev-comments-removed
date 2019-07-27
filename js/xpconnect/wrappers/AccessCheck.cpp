@@ -8,6 +8,7 @@
 
 #include "nsJSPrincipals.h"
 #include "nsGlobalWindow.h"
+#include "JavaScriptParent.h"
 
 #include "XPCWrapper.h"
 #include "XrayWrapper.h"
@@ -211,6 +212,63 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, HandleObject wrapper, H
         return IsFrameId(cx, obj, id);
     }
     return false;
+}
+
+bool
+AccessCheck::checkPassToPrivilegedCode(JSContext *cx, HandleObject wrapper, HandleValue v)
+{
+    
+    if (!v.isObject())
+        return true;
+    RootedObject obj(cx, &v.toObject());
+
+    
+    if (!js::IsWrapper(obj))
+        return true;
+
+    
+    
+    
+    if (mozilla::jsipc::IsWrappedCPOW(obj) &&
+        js::GetObjectCompartment(wrapper) == js::GetObjectCompartment(xpc::UnprivilegedJunkScope()) &&
+        XRE_GetProcessType() == GeckoProcessType_Default)
+    {
+        return true;
+    }
+
+    
+    
+    
+    if (AccessCheck::isChrome(js::UncheckedUnwrap(wrapper)) && WrapperFactory::IsCOW(obj)) {
+        RootedObject target(cx, js::UncheckedUnwrap(obj));
+        JSAutoCompartment ac(cx, target);
+        RootedId id(cx, GetRTIdByIndex(cx, XPCJSRuntime::IDX_EXPOSEDPROPS));
+        bool found = false;
+        if (!JS_HasPropertyById(cx, target, id, &found))
+            return false;
+        if (found)
+            return true;
+    }
+
+    
+    if (AccessCheck::wrapperSubsumes(obj))
+        return true;
+
+    
+    JS_ReportError(cx, "Permission denied to pass object to privileged code");
+    return false;
+}
+
+bool
+AccessCheck::checkPassToPrivilegedCode(JSContext *cx, HandleObject wrapper, const CallArgs &args)
+{
+    if (!checkPassToPrivilegedCode(cx, wrapper, args.thisv()))
+        return false;
+    for (size_t i = 0; i < args.length(); ++i) {
+        if (!checkPassToPrivilegedCode(cx, wrapper, args[i]))
+            return false;
+    }
+    return true;
 }
 
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };
