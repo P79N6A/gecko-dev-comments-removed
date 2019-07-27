@@ -246,8 +246,7 @@ ParseNodeAllocator::allocNode()
 
 ParseNode *
 ParseNode::appendOrCreateList(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
-                              FullParseHandler *handler, ParseContext<FullParseHandler> *pc,
-                              bool foldConstants)
+                              FullParseHandler *handler, ParseContext<FullParseHandler> *pc)
 {
     
     
