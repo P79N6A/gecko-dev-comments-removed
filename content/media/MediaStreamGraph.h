@@ -1188,7 +1188,7 @@ public:
 
 
 
-  void DispatchToMainThreadAfterStreamStateUpdate(already_AddRefed<nsIRunnable> aRunnable)
+  virtual void DispatchToMainThreadAfterStreamStateUpdate(already_AddRefed<nsIRunnable> aRunnable)
   {
     *mPendingUpdateRunnables.AppendElement() = aRunnable;
   }
