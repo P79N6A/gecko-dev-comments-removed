@@ -107,11 +107,9 @@ function bindToolboxHandlers() {
   updateBadgeText(false);
 
   
-  if (gToolbox.getPanel("jsdebugger")) {
-    setupThreadListeners(gToolbox.getPanel("jsdebugger"));
-  } else {
-    gToolbox.once("jsdebugger-ready", (e, panel) => setupThreadListeners(panel));
-  }
+  gToolbox.getPanelWhenReady("jsdebugger").then(panel => {
+    setupThreadListeners(panel);
+  });
 #endif
 }
 
