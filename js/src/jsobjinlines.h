@@ -643,21 +643,6 @@ NewObjectWithGivenProto(ExclusiveContext* cx, HandleObject proto,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 JSObject*
 NewObjectWithClassProtoCommon(ExclusiveContext* cx, const Class* clasp, HandleObject proto,
                               gc::AllocKind allocKind, NewObjectKind newKind);
