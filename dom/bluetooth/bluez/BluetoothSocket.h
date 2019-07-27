@@ -37,11 +37,6 @@ public:
               const BluetoothUuid& aServiceUuid,
               int aChannel);
 
-  inline void GetAddress(nsAString& aDeviceAddress)
-  {
-    GetSocketAddr(aDeviceAddress);
-  }
-
   
 
 
@@ -88,7 +83,9 @@ public:
   
 
 
-  void GetSocketAddr(nsAString& aAddrStr);
+
+
+  void GetAddress(nsAString& aDeviceAddress);
 
   
   
