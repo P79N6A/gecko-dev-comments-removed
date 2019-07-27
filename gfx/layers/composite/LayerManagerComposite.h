@@ -169,13 +169,6 @@ public:
 
 
 
-
-  void ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaqueRegion);
-
-  
-
-
-
   class AutoAddMaskEffect
   {
   public:
@@ -358,6 +351,8 @@ public:
   virtual void Destroy();
 
   virtual Layer* GetLayer() = 0;
+
+  virtual void SetLayerManager(LayerManagerComposite* aManager);
 
   
 

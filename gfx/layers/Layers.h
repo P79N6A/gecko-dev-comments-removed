@@ -2226,7 +2226,15 @@ public:
   {
     MOZ_ASSERT(!mFirstChild && !mLastChild);
     MOZ_ASSERT(!aLayer->GetParent());
-    MOZ_ASSERT(aLayer->Manager() == Manager());
+    if (aLayer->Manager() != Manager()) {
+      
+      
+      
+      
+      
+      NS_WARNING("ConnectReferentLayer failed - Incorrect LayerManager");
+      return;
+    }
 
     mFirstChild = mLastChild = aLayer;
     aLayer->SetParent(this);
@@ -2238,9 +2246,6 @@ public:
 
   void DetachReferentLayer(Layer* aLayer)
   {
-    MOZ_ASSERT(aLayer == mFirstChild && mFirstChild == mLastChild);
-    MOZ_ASSERT(aLayer->GetParent() == this);
-
     mFirstChild = mLastChild = nullptr;
     aLayer->SetParent(nullptr);
   }
