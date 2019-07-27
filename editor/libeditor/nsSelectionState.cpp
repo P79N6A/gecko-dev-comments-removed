@@ -3,6 +3,8 @@
 
 
 
+#include "nsSelectionState.h"
+
 #include "mozilla/Assertions.h"         
 #include "mozilla/dom/Selection.h"      
 #include "nsAString.h"                  
@@ -17,7 +19,6 @@
 #include "nsIDOMNode.h"                 
 #include "nsISupportsImpl.h"            
 #include "nsRange.h"                    
-#include "nsSelectionState.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;

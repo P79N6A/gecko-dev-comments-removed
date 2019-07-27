@@ -3,6 +3,8 @@
 
 
 
+#include "nsHTMLCSSUtils.h"
+
 #include "ChangeStyleTxn.h"
 #include "EditTxn.h"
 #include "mozilla/Assertions.h"
@@ -20,7 +22,6 @@
 #include "nsDependentSubstring.h"
 #include "nsError.h"
 #include "nsGkAtoms.h"
-#include "nsHTMLCSSUtils.h"
 #include "nsHTMLEditor.h"
 #include "nsIAtom.h"
 #include "nsIContent.h"

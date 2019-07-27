@@ -65,11 +65,12 @@
 
 
 
+#include "nsHTMLURIRefObject.h"
+
 #include "mozilla/mozalloc.h"
 #include "nsAString.h"
 #include "nsDebug.h"
 #include "nsError.h"
-#include "nsHTMLURIRefObject.h"
 #include "nsID.h"
 #include "nsIDOMAttr.h"
 #include "nsIDOMElement.h"

@@ -3,13 +3,14 @@
 
 
 
+#include "nsEditorCommands.h"
+
 #include "mozFlushType.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
 #include "nsDebug.h"
-#include "nsEditorCommands.h"
 #include "nsError.h"
 #include "nsIClipboard.h"
 #include "nsICommandParams.h"

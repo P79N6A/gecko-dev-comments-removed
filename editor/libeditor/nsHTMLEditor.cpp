@@ -3,6 +3,8 @@
 
 
 
+#include "nsHTMLEditor.h"
+
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/TextEvents.h"
@@ -11,7 +13,6 @@
 
 #include "nsUnicharUtils.h"
 
-#include "nsHTMLEditor.h"
 #include "nsHTMLEditRules.h"
 #include "nsTextEditUtils.h"
 #include "nsHTMLEditUtils.h"

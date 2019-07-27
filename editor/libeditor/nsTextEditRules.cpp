@@ -3,6 +3,8 @@
 
 
 
+#include "nsTextEditRules.h"
+
 #include "mozilla/Assertions.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
@@ -36,7 +38,6 @@
 #include "nsISupportsBase.h"
 #include "nsLiteralString.h"
 #include "mozilla/dom/NodeIterator.h"
-#include "nsTextEditRules.h"
 #include "nsTextEditUtils.h"
 #include "nsUnicharUtils.h"
 

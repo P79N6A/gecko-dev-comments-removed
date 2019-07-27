@@ -3,10 +3,11 @@
 
 
 
+#include "nsEditorController.h"
+
 #include "mozilla/mozalloc.h"
 #include "nsDebug.h"
 #include "nsEditorCommands.h"
-#include "nsEditorController.h"
 #include "nsError.h"
 #include "nsIControllerCommandTable.h"
 

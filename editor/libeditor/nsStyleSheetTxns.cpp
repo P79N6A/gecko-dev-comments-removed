@@ -3,6 +3,7 @@
 
 
 
+#include "nsStyleSheetTxns.h"
 
 #include <stddef.h>                     
 
@@ -15,7 +16,6 @@
 #include "nsIDocument.h"                
 #include "nsIDocumentObserver.h"        
 #include "nsIEditor.h"                  
-#include "nsStyleSheetTxns.h"
 
 using namespace mozilla;
 

@@ -3,6 +3,8 @@
 
 
 
+#include "nsTextEditUtils.h"
+
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/Element.h"
 #include "nsAString.h"
@@ -18,7 +20,6 @@
 #include "nsLiteralString.h"
 #include "nsPlaintextEditor.h"
 #include "nsString.h"
-#include "nsTextEditUtils.h"
 
 using namespace mozilla;
 

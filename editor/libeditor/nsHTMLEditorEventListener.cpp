@@ -2,6 +2,9 @@
 
 
 
+
+#include "nsHTMLEditorEventListener.h"
+
 #include "mozilla/dom/Selection.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -10,7 +13,6 @@
 #include "nsError.h"
 #include "nsHTMLEditUtils.h"
 #include "nsHTMLEditor.h"
-#include "nsHTMLEditorEventListener.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMEventTarget.h"

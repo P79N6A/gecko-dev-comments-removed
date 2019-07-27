@@ -3,6 +3,8 @@
 
 
 
+#include "nsHTMLEditUtils.h"
+
 #include "mozilla/ArrayUtils.h"         
 #include "mozilla/Assertions.h"         
 #include "mozilla/dom/Element.h"        
@@ -13,7 +15,6 @@
 #include "nsEditor.h"                   
 #include "nsError.h"                    
 #include "nsGkAtoms.h"                  
-#include "nsHTMLEditUtils.h"
 #include "nsHTMLTags.h"
 #include "nsIAtom.h"                    
 #include "nsIDOMHTMLAnchorElement.h"    

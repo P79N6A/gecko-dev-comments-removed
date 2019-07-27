@@ -3,8 +3,9 @@
 
 
 
-#include "DeleteNodeTxn.h"
 #include "DeleteRangeTxn.h"
+
+#include "DeleteNodeTxn.h"
 #include "DeleteTextTxn.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/Selection.h"

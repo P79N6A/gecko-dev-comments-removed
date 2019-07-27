@@ -3,6 +3,8 @@
 
 
 
+#include "nsWSRunObject.h"
+
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
 #include "mozilla/mozalloc.h"
@@ -24,7 +26,6 @@
 #include "nsString.h"
 #include "nsTextEditUtils.h"
 #include "nsTextFragment.h"
-#include "nsWSRunObject.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;

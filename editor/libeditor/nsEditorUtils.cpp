@@ -3,10 +3,11 @@
 
 
 
+#include "nsEditorUtils.h"
+
 #include "mozilla/dom/Selection.h"
 #include "nsCOMArray.h"
 #include "nsComponentManagerUtils.h"
-#include "nsEditorUtils.h"
 #include "nsError.h"
 #include "nsIClipboardDragDropHookList.h"
 

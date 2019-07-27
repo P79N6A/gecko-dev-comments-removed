@@ -3,6 +3,8 @@
 
 
 
+#include "nsHTMLObjectResizer.h"
+
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Preferences.h"
@@ -19,7 +21,6 @@
 #include "nsHTMLCSSUtils.h"
 #include "nsHTMLEditUtils.h"
 #include "nsHTMLEditor.h"
-#include "nsHTMLObjectResizer.h"
 #include "nsIAtom.h"
 #include "nsIContent.h"
 #include "nsID.h"

@@ -3,10 +3,10 @@
 
 
 
+#include "TypeInState.h"
 
 #include <stddef.h>
 
-#include "TypeInState.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/mozalloc.h"
 #include "nsAString.h"

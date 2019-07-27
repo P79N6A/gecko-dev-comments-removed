@@ -3,6 +3,9 @@
 
 
 
+
+#include "nsEditorEventListener.h"
+
 #include "mozilla/Assertions.h"         
 #include "mozilla/EventListenerManager.h" 
 #include "mozilla/IMEStateManager.h"    
@@ -15,7 +18,6 @@
 #include "nsCaret.h"                    
 #include "nsDebug.h"                    
 #include "nsEditor.h"                   
-#include "nsEditorEventListener.h"
 #include "nsFocusManager.h"             
 #include "nsGkAtoms.h"                  
 #include "nsIClipboard.h"               

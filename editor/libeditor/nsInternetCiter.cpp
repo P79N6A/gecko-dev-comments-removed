@@ -3,6 +3,7 @@
 
 
 
+#include "nsInternetCiter.h"
 
 #include "nsAString.h"
 #include "nsCOMPtr.h"
@@ -11,7 +12,6 @@
 #include "nsDependentSubstring.h"
 #include "nsError.h"
 #include "nsILineBreaker.h"
-#include "nsInternetCiter.h"
 #include "nsLWBrkCIID.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"

@@ -3,9 +3,10 @@
 
 
 
+#include "InsertNodeTxn.h"
+
 #include "mozilla/dom/Selection.h"      
 
-#include "InsertNodeTxn.h"
 #include "nsAString.h"
 #include "nsDebug.h"                    
 #include "nsEditor.h"                   

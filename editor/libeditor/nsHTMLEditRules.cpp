@@ -4,6 +4,8 @@
 
 
 
+#include "nsHTMLEditRules.h"
+
 #include <stdlib.h>
 
 #include "mozilla/Assertions.h"
@@ -25,7 +27,6 @@
 #include "nsError.h"
 #include "nsGkAtoms.h"
 #include "nsHTMLCSSUtils.h"
-#include "nsHTMLEditRules.h"
 #include "nsHTMLEditUtils.h"
 #include "nsHTMLEditor.h"
 #include "nsIAtom.h"

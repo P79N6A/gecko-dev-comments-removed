@@ -3,6 +3,8 @@
 
 
 
+#include "nsEditor.h"
+
 #include "mozilla/DebugOnly.h"          
 
 #include <stdio.h>                      
@@ -43,7 +45,6 @@
 #include "nsContentUtils.h"             
 #include "nsDOMString.h"                
 #include "nsDebug.h"                    
-#include "nsEditor.h"
 #include "nsEditorEventListener.h"      
 #include "nsEditorUtils.h"              
 #include "nsError.h"                    
