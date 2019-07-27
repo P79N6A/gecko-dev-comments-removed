@@ -445,13 +445,27 @@ CustomElementCallback::Call()
   ErrorResult rv;
   switch (mType) {
     case nsIDocument::eCreated:
+    {
       
       
       mOwnerData->mElementIsBeingCreated = true;
+
+      
+      
+      
       mOwnerData->mCreatedCallbackInvoked = true;
+
+      
+      
+      nsIDocument* document = mThisObject->GetUncomposedDoc();
+      if (document && document->GetDocShell()) {
+        document->EnqueueLifecycleCallback(nsIDocument::eAttached, mThisObject);
+      }
+
       static_cast<LifecycleCreatedCallback *>(mCallback.get())->Call(mThisObject, rv);
       mOwnerData->mElementIsBeingCreated = false;
       break;
+    }
     case nsIDocument::eAttached:
       static_cast<LifecycleAttachedCallback *>(mCallback.get())->Call(mThisObject, rv);
       break;
@@ -6274,16 +6288,6 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
       }
 
       EnqueueLifecycleCallback(nsIDocument::eCreated, elem, nullptr, definition);
-      
-      if (elem->GetUncomposedDoc()) {
-        
-        
-        
-        
-        elem->GetCustomElementData()->mCreatedCallbackInvoked = true;
-
-        EnqueueLifecycleCallback(nsIDocument::eAttached, elem, nullptr, definition);
-      }
     }
   }
 
