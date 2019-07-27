@@ -91,7 +91,15 @@ const DIRECTORY_FRECENCY = 1000;
 const SUGGESTED_FRECENCY = Infinity;
 
 
-const DEFAULT_FREQUENCY_CAP = 5;
+const FREQUENCY_CAP_FILE = "frequencyCap.json";
+
+
+const DEFAULT_DAILY_FREQUENCY_CAP = 3;
+const DEFAULT_TOTAL_FREQUENCY_CAP = 10;
+
+
+
+const DEFAULT_PRUNE_TIME_DELTA = 10*24*60*60*1000;
 
 
 const MIN_VISIBLE_HISTORY_TILES = 8;
@@ -127,12 +135,12 @@ let DirectoryLinksProvider = {
   
 
 
-  _frequencyCaps: new Map(),
+  _suggestedLinks: new Map(),
 
   
 
 
-  _suggestedLinks: new Map(),
+  _frequencyCaps: {},
 
   
 
@@ -470,7 +478,7 @@ let DirectoryLinksProvider = {
       sites.slice(0, triggeringSiteIndex + 1).forEach(site => {
         let {targetedSite, url} = site.link;
         if (targetedSite) {
-          this._decreaseFrequencyCap(url, 1);
+          this._addFrequencyCapView(url);
         }
       });
     }
@@ -478,7 +486,7 @@ let DirectoryLinksProvider = {
     else if (action == "click") {
       let {targetedSite, url} = sites[triggeringSiteIndex].link;
       if (targetedSite) {
-        this._decreaseFrequencyCap(url, DEFAULT_FREQUENCY_CAP);
+        this._setFrequencyCapClick(url);
       }
     }
 
@@ -533,8 +541,12 @@ let DirectoryLinksProvider = {
     ping.open("POST", pingEndPoint + (action == "view" ? "view" : "click"));
     ping.send(JSON.stringify(data));
 
-    
-    return this._fetchAndCacheLinksIfNecessary();
+    return Task.spawn(function* () {
+      
+      yield this._writeFrequencyCapFile();
+      
+      yield this._fetchAndCacheLinksIfNecessary();
+    }.bind(this));
   },
 
   
@@ -580,7 +592,6 @@ let DirectoryLinksProvider = {
     this._readDirectoryLinksFile().then(rawLinks => {
       
       this._enhancedLinks.clear();
-      this._frequencyCaps.clear();
       this._suggestedLinks.clear();
       this._clearCampaignTimeout();
 
@@ -604,7 +615,7 @@ let DirectoryLinksProvider = {
         
         
         this._cacheSuggestedLinks(link);
-        this._frequencyCaps.set(link.url, DEFAULT_FREQUENCY_CAP);
+        this._updateFrequencyCapSettings(link);
       });
 
       rawLinks.enhanced.filter(validityFilter).forEach((link, position) => {
@@ -625,6 +636,11 @@ let DirectoryLinksProvider = {
       
       this.maxNumLinks = links.length + 1;
 
+      
+      this._pruneFrequencyCapUrls();
+      
+      this._writeFrequencyCapFile();
+
       return links;
     }).catch(ex => {
       Cu.reportError(ex);
@@ -642,6 +658,9 @@ let DirectoryLinksProvider = {
     this._directoryFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, DIRECTORY_LINKS_FILE);
     this._lastDownloadMS = 0;
 
+    
+    this._frequencyCapFilePath = OS.Path.join(OS.Constants.Path.localProfileDir, FREQUENCY_CAP_FILE);
+
     NewTabUtils.placesProvider.addObserver(this);
     NewTabUtils.links.addObserver(this);
 
@@ -652,6 +671,8 @@ let DirectoryLinksProvider = {
         let fileInfo = yield OS.File.stat(this._directoryFilePath);
         this._lastDownloadMS = Date.parse(fileInfo.lastModificationDate);
       }
+      
+      yield this._readFrequencyCapFile();
       
       yield this._fetchAndCacheLinksIfNecessary();
     }.bind(this));
@@ -695,6 +716,22 @@ let DirectoryLinksProvider = {
     });
   },
 
+  onDeleteURI: function(aProvider, aLink) {
+    let {url} = aLink;
+    
+    
+    this._removeTileClick(url).then(() => {
+      this._callObservers("onDeleteURI", url);
+    });
+  },
+
+  onClearHistory: function() {
+    
+    this._removeAllTileClicks().then(() => {
+      this._callObservers("onClearHistory");
+    });
+  },
+
   onLinkChanged: function (aProvider, aLink) {
     
     setTimeout(() => {
@@ -709,21 +746,6 @@ let DirectoryLinksProvider = {
     setTimeout(() => {
       this._handleManyLinksChanged();
     }, 0);
-  },
-
-  
-
-
-
-
-  _decreaseFrequencyCap(url, amount) {
-    let remainingViews = this._frequencyCaps.get(url) - amount;
-    this._frequencyCaps.set(url, remainingViews);
-
-    
-    if (remainingViews <= 0) {
-      this._updateSuggestedTile();
-    }
   },
 
   _getCurrentTopSiteCount: function() {
@@ -805,7 +827,7 @@ let DirectoryLinksProvider = {
       let suggestedLinksMap = this._suggestedLinks.get(topSiteWithSuggestedLink);
       suggestedLinksMap.forEach((suggestedLink, url) => {
         
-        if (this._frequencyCaps.get(url) <= 0) {
+        if (!this._testFrequencyCapLimits(url)) {
           return;
         }
 
@@ -861,6 +883,209 @@ let DirectoryLinksProvider = {
     }, chosenSuggestedLink));
     return chosenSuggestedLink;
    },
+
+  
+
+
+
+
+
+  _readJsonFile: Task.async(function* (filePath, nullObject) {
+    let jsonObj;
+    try {
+      let binaryData = yield OS.File.read(filePath);
+      let json = gTextDecoder.decode(binaryData);
+      jsonObj = JSON.parse(json);
+    }
+    catch (e) {}
+    return jsonObj || nullObject;
+  }),
+
+  
+
+
+
+
+  _readFrequencyCapFile: Task.async(function* () {
+    
+    this._frequencyCaps = yield this._readJsonFile(this._frequencyCapFilePath, {});
+  }),
+
+  
+
+
+
+  _writeFrequencyCapFile: function DirectoryLinksProvider_writeFrequencyCapFile() {
+    let json = JSON.stringify(this._frequencyCaps || {});
+    return OS.File.writeAtomic(this._frequencyCapFilePath, json, {tmpPath: this._frequencyCapFilePath + ".tmp"});
+  },
+
+  
+
+
+
+  _clearFrequencyCap: function DirectoryLinksProvider_clearFrequencyCap() {
+    this._frequencyCaps = {};
+    return this._writeFrequencyCapFile();
+  },
+
+  
+
+
+  _updateFrequencyCapSettings: function DirectoryLinksProvider_updateFrequencyCapSettings(link) {
+    let capsObject = this._frequencyCaps[link.url];
+    if (!capsObject) {
+      
+      capsObject = {
+        dailyViews: 0,
+        totalViews: 0,
+        lastShownDate: 0,
+      };
+      this._frequencyCaps[link.url] = capsObject;
+    }
+    
+    capsObject.lastUpdated = Date.now();
+    
+    if (link.frequency_caps) {
+      capsObject.dailyCap = link.frequency_caps.daily || DEFAULT_DAILY_FREQUENCY_CAP;
+      capsObject.totalCap = link.frequency_caps.total || DEFAULT_TOTAL_FREQUENCY_CAP;
+    }
+    else {
+      
+      capsObject.dailyCap = DEFAULT_DAILY_FREQUENCY_CAP;
+      capsObject.totalCap = DEFAULT_TOTAL_FREQUENCY_CAP;
+    }
+  },
+
+  
+
+
+
+
+
+
+  _pruneFrequencyCapUrls: function DirectoryLinksProvider_pruneFrequencyCapUrls(timeDelta = DEFAULT_PRUNE_TIME_DELTA) {
+    let timeThreshold = Date.now() - timeDelta;
+    Object.keys(this._frequencyCaps).forEach(url => {
+      if (this._frequencyCaps[url].lastUpdated <= timeThreshold) {
+        delete this._frequencyCaps[url];
+      }
+    });
+  },
+
+  
+
+
+
+
+  _wasToday: function DirectoryLinksProvider_wasToday(timestamp) {
+    let showOn = new Date(timestamp);
+    let today = new Date();
+    
+    return showOn.getDate() == today.getDate() &&
+           showOn.getMonth() == today.getMonth() &&
+           showOn.getYear() == today.getYear();
+  },
+
+  
+
+
+
+  _addFrequencyCapView: function DirectoryLinksProvider_addFrequencyCapView(url) {
+    let capObject = this._frequencyCaps[url];
+    
+    if (!capObject) {
+      return;
+    }
+
+    
+    if (!this._wasToday(capObject.lastShownDate)) {
+      capObject.dailyViews = 0;
+      
+      capObject.lastShownDate = Date.now();
+    }
+
+    
+    capObject.totalViews++;
+    capObject.dailyViews++;
+
+    
+    if (capObject.totalViews >= capObject.totalCap ||
+        capObject.dailyViews >= capObject.dailyCap) {
+      this._updateSuggestedTile();
+    }
+  },
+
+  
+
+
+
+  _setFrequencyCapClick: function DirectoryLinksProvider_reportFrequencyCapClick(url) {
+    let capObject = this._frequencyCaps[url];
+    
+    if (!capObject) {
+      return;
+    }
+    capObject.clicked = true;
+    
+    this._updateSuggestedTile();
+  },
+
+  
+
+
+
+
+  _testFrequencyCapLimits: function DirectoryLinksProvider_testFrequencyCapLimits(url) {
+    let capObject = this._frequencyCaps[url];
+    
+    if (!capObject) {
+      return false;
+    }
+
+    
+    if (capObject.clicked || capObject.totalViews >= capObject.totalCap) {
+      return false;
+    }
+
+    
+    if (this._wasToday(capObject.lastShownDate) &&
+        capObject.dailyViews >= capObject.dailyCap) {
+      return false;
+    }
+
+    
+    return true;
+  },
+
+  
+
+
+
+
+  _removeTileClick: function DirectoryLinksProvider_removeTileClick(url = "") {
+    
+    let noTrailingSlashUrl = url.replace(/\/$/,"");
+    let capObject = this._frequencyCaps[url] || this._frequencyCaps[noTrailingSlashUrl];
+    
+    if (!capObject) {
+      return Promise.resolve();;
+    }
+    
+    delete capObject.clicked;
+    return this._writeFrequencyCapFile();
+  },
+
+  
+
+
+
+  _removeAllTileClicks: function DirectoryLinksProvider_removeAllTileClicks() {
+    Object.keys(this._frequencyCaps).forEach(url => {
+      delete this._frequencyCaps[url].clicked;
+    });
+    return this._writeFrequencyCapFile();
+  },
 
   
 
