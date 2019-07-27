@@ -790,12 +790,14 @@ typedef HashSet<GlobalObject *, DefaultHasher<GlobalObject *>, SystemAllocPolicy
 
 
 
-template<JSNative ctor, size_t atomOffset, unsigned length>
+template<JSNative ctor, unsigned length, gc::AllocKind kind>
 JSObject *
 GenericCreateConstructor(JSContext *cx, JSProtoKey key)
 {
-    JSAtom *atom = AtomStateOffsetToName(cx->names(), atomOffset);
-    return cx->global()->createConstructor(cx, ctor, atom, length);
+    
+    
+    PropertyName *name = (&cx->names().Null)[key];
+    return cx->global()->createConstructor(cx, ctor, name, length, kind);
 }
 
 template<const Class *clasp>
