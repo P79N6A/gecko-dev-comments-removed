@@ -4577,10 +4577,10 @@ mozilla::BrowserTabsRemoteAutostart()
   gBrowserTabsRemoteAutostartInitialized = true;
   bool optInPref = Preferences::GetBool("browser.tabs.remote.autostart", false);
   bool trialPref = Preferences::GetBool("browser.tabs.remote.autostart.1", false);
-  bool testPref = Preferences::GetBool("layers.offmainthreadcomposition.testing.enabled", false);
 #if !defined(NIGHTLY_BUILD)
   
   
+  bool testPref = Preferences::GetBool("layers.offmainthreadcomposition.testing.enabled", false);
   if (testPref && optInPref) {
     gBrowserTabsRemoteAutostart = true;
   }
