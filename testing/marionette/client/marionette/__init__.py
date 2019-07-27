@@ -2,8 +2,8 @@
 
 
 
-from marionette_test import MarionetteTestCase, MarionetteJSTestCase, CommonTestCase, expectedFailure, skip, SkipTest
-from runner import (
+from .marionette_test import MarionetteTestCase, MarionetteJSTestCase, CommonTestCase, expectedFailure, skip, SkipTest
+from .runner import (
         B2GTestCaseMixin,
         B2GTestResultMixin,
         BaseMarionetteOptions,
