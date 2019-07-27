@@ -206,6 +206,16 @@ IsDominatorRefined(MBasicBlock *block)
 
     
     
+    
+    MControlInstruction *control = block->lastIns();
+    if (*block->begin() == control && block->phisEmpty() && control->isGoto() &&
+        !block->dominates(control->toGoto()->target()))
+    {
+        return false;
+    }
+
+    
+    
     MOZ_ASSERT(old->dominates(now), "Refined dominator not dominated by old dominator");
     for (MBasicBlock *i = now; i != old; i = i->immediateDominator()) {
         if (!i->phisEmpty() || *i->begin() != i->lastIns())
