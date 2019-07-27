@@ -15,6 +15,8 @@
 namespace mozilla {
 namespace a11y {
 
+class XULTreeGridCellAccessible;
+
 
 
 
@@ -88,7 +90,8 @@ public:
   virtual uint32_t ChildCount() const MOZ_OVERRIDE;
 
   
-  virtual Accessible* GetCellAccessible(nsITreeColumn* aColumn) const MOZ_OVERRIDE;
+  virtual XULTreeGridCellAccessible* GetCellAccessible(nsITreeColumn* aColumn)
+    const MOZ_OVERRIDE MOZ_FINAL;
   virtual void RowInvalidated(int32_t aStartColIdx, int32_t aEndColIdx);
 
 protected:
@@ -98,7 +101,8 @@ protected:
   virtual void CacheChildren();
 
   
-  mutable AccessibleHashtable mAccessibleCache;
+  mutable nsRefPtrHashtable<nsPtrHashKey<const void>, XULTreeGridCellAccessible>
+    mAccessibleCache;
 };
 
 
@@ -106,14 +110,6 @@ protected:
 
 
 
-
-#define XULTREEGRIDCELLACCESSIBLE_IMPL_CID            \
-{  /* 84588ad4-549c-4196-a932-4c5ca5de5dff */         \
-  0x84588ad4,                                         \
-  0x549c,                                             \
-  0x4196,                                             \
-  { 0xa9, 0x32, 0x4c, 0x5c, 0xa5, 0xde, 0x5d, 0xff }  \
-}
 
 class XULTreeGridCellAccessible : public LeafAccessible,
                                   public TableCellAccessible
@@ -156,9 +152,6 @@ public:
   virtual bool Selected() MOZ_OVERRIDE;
 
   
-  NS_DECLARE_STATIC_IID_ACCESSOR(XULTREEGRIDCELLACCESSIBLE_IMPL_CID)
-
-  
 
 
 
@@ -190,9 +183,6 @@ protected:
 
   nsString mCachedTextEquiv;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(XULTreeGridCellAccessible,
-                              XULTREEGRIDCELLACCESSIBLE_IMPL_CID)
 
 } 
 } 

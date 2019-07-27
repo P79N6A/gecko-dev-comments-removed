@@ -16,6 +16,8 @@ class nsTreeBodyFrame;
 namespace mozilla {
 namespace a11y {
 
+class XULTreeGridCellAccessible;
+
 
 
 
@@ -174,7 +176,7 @@ public:
 
 
 
-  virtual Accessible* GetCellAccessible(nsITreeColumn* aColumn) const
+  virtual XULTreeGridCellAccessible* GetCellAccessible(nsITreeColumn* aColumn) const
     { return nullptr; }
 
   
