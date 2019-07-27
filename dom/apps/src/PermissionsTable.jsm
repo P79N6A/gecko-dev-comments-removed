@@ -152,6 +152,15 @@ this.PermissionsTable =  { geolocation: {
                              access: ["read", "write"],
                              additional: ["indexedDB-chrome-settings", "settings-api"]
                            },
+                           
+                           
+                           
+                           "settings-clear": {
+                             app: DENY_ACTION,
+                             privileged: DENY_ACTION,
+                             certified: DENY_ACTION,
+                             additional: ["indexedDB-chrome-settings", "settings-api"]
+                           },
                            permissions: {
                              app: DENY_ACTION,
                              privileged: DENY_ACTION,
