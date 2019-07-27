@@ -7,6 +7,8 @@
 namespace mozilla {
 namespace a11y {
 
+class ProxyAccessible;
+
 enum EPlatformDisabledState {
   ePlatformIsForceEnabled = -1,
   ePlatformIsEnabled = 0,
@@ -47,6 +49,17 @@ void PlatformInit();
 
 void PlatformShutdown();
 
+
+
+
+
+void ProxyCreated(ProxyAccessible*);
+
+
+
+
+
+void ProxyDestroyed(ProxyAccessible*);
 } 
 } 
 

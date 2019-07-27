@@ -783,7 +783,9 @@ enum Role {
   
 
 
-  KEY = 129
+  KEY = 129,
+
+  LAST_ROLE = KEY
 };
 
 } 
