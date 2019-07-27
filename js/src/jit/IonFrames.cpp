@@ -708,7 +708,13 @@ HandleException(ResumeFromException *rfe)
     if (cx->runtime()->jitRuntime()->hasIonReturnOverride())
         cx->runtime()->jitRuntime()->takeIonReturnOverride();
 
-    JitFrameIterator iter(cx);
+    
+    
+    
+    
+    
+    
+    DebugModeOSRVolatileJitFrameIterator iter(cx);
     while (!iter.isEntry()) {
         bool overrecursed = false;
         if (iter.isIonJS()) {

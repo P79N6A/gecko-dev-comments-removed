@@ -35,6 +35,7 @@ namespace js {
 namespace jit {
 class IonContext;
 class CompileCompartment;
+class DebugModeOSRVolatileJitFrameIterator;
 }
 
 struct CallsiteCloneKey {
@@ -421,6 +422,7 @@ struct JSContext : public js::ExclusiveContext,
 
     friend class js::ExclusiveContext;
     friend class JS::AutoSaveExceptionState;
+    friend class js::jit::DebugModeOSRVolatileJitFrameIterator;
 
   private:
     
@@ -433,6 +435,10 @@ struct JSContext : public js::ExclusiveContext,
     
     
     bool                propagatingForcedReturn_;
+
+    
+    
+    js::jit::DebugModeOSRVolatileJitFrameIterator *liveVolatileJitFrameIterators_;
 
   public:
     int32_t             reportGranularity;  
