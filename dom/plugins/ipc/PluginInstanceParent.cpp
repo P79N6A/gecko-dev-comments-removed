@@ -10,6 +10,7 @@
 #include "mozilla/Telemetry.h"
 #include "PluginInstanceParent.h"
 #include "BrowserStreamParent.h"
+#include "PluginAsyncSurrogate.h"
 #include "PluginBackgroundDestroyer.h"
 #include "PluginModuleParent.h"
 #include "PluginStreamParent.h"
@@ -21,6 +22,7 @@
 #include "gfxPlatform.h"
 #include "gfxSharedImageSurface.h"
 #include "nsNPAPIPluginInstance.h"
+#include "nsPluginInstanceOwner.h"
 #ifdef MOZ_X11
 #include "gfxXlibSurface.h"
 #endif
@@ -75,7 +77,9 @@ PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
                                            NPP npp,
                                            const nsCString& aMimeType,
                                            const NPNetscapeFuncs* npniface)
-  : mParent(parent)
+    : mParent(parent)
+    , mSurrogate(PluginAsyncSurrogate::Cast(npp))
+    , mUseSurrogate(true)
     , mNPP(npp)
     , mNPNIface(npniface)
     , mWindowType(NPWindowTypeWindow)
@@ -779,6 +783,12 @@ PluginInstanceParent::EndUpdateBackground(gfxContext* aCtx,
     return NS_OK;
 }
 
+PluginAsyncSurrogate*
+PluginInstanceParent::GetAsyncSurrogate()
+{
+    return mSurrogate;
+}
+
 bool
 PluginInstanceParent::CreateBackground(const nsIntSize& aSize)
 {
@@ -1305,24 +1315,36 @@ PluginInstanceParent::NPP_NewStream(NPMIMEType type, NPStream* stream,
 
     BrowserStreamParent* bs = new BrowserStreamParent(this, stream);
 
-    NPError err;
-    {   
-        Telemetry::AutoTimer<Telemetry::BLOCKED_ON_PLUGIN_STREAM_INIT_MS>
-            timer(Module()->GetHistogramKey());
-        if (!CallPBrowserStreamConstructor(bs,
-                                           NullableString(stream->url),
-                                           stream->end,
-                                           stream->lastmodified,
-                                           static_cast<PStreamNotifyParent*>(stream->notifyData),
-                                           NullableString(stream->headers),
-                                           NullableString(type), seekable,
-                                           &err, stype)) {
-            return NPERR_GENERIC_ERROR;
-        }
+    if (!SendPBrowserStreamConstructor(bs,
+                                       NullableString(stream->url),
+                                       stream->end,
+                                       stream->lastmodified,
+                                       static_cast<PStreamNotifyParent*>(stream->notifyData),
+                                       NullableString(stream->headers))) {
+        return NPERR_GENERIC_ERROR;
     }
 
-    if (NPERR_NO_ERROR != err)
-        unused << PBrowserStreamParent::Send__delete__(bs);
+    Telemetry::AutoTimer<Telemetry::BLOCKED_ON_PLUGIN_STREAM_INIT_MS>
+        timer(Module()->GetHistogramKey());
+
+    NPError err = NPERR_NO_ERROR;
+    if (mParent->IsStartingAsync()) {
+        MOZ_ASSERT(mSurrogate);
+        mSurrogate->AsyncCallDeparting();
+        if (SendAsyncNPP_NewStream(bs, NullableString(type), seekable)) {
+            *stype = UINT16_MAX;
+        } else {
+            err = NPERR_GENERIC_ERROR;
+        }
+    } else {
+        bs->SetAlive();
+        if (!CallNPP_NewStream(bs, NullableString(type), seekable, &err, stype)) {
+            err = NPERR_GENERIC_ERROR;
+        }
+        if (NPERR_NO_ERROR != err) {
+            unused << PBrowserStreamParent::Send__delete__(bs);
+        }
+    }
 
     return err;
 }
@@ -1632,6 +1654,49 @@ PluginInstanceParent::RecvNegotiatedCarbon()
     return true;
 }
 
+nsPluginInstanceOwner*
+PluginInstanceParent::GetOwner()
+{
+    nsNPAPIPluginInstance* inst = static_cast<nsNPAPIPluginInstance*>(mNPP->ndata);
+    if (!inst) {
+        return nullptr;
+    }
+    return inst->GetOwner();
+}
+
+bool
+PluginInstanceParent::RecvAsyncNPP_NewResult(const NPError& aResult)
+{
+    
+    
+    mUseSurrogate = false;
+
+    mSurrogate->AsyncCallArriving();
+    if (aResult == NPERR_NO_ERROR) {
+        mSurrogate->SetAcceptingCalls(true);
+    }
+
+    nsPluginInstanceOwner* owner = GetOwner();
+    if (!owner) {
+        
+        
+        return true;
+    }
+
+    if (aResult != NPERR_NO_ERROR) {
+        owner->NotifyHostAsyncInitFailed();
+        return true;
+    }
+
+    
+    owner->NotifyHostCreateWidget();
+
+    MOZ_ASSERT(mSurrogate);
+    mSurrogate->OnInstanceCreated(this);
+
+    return true;
+}
+
 #if defined(OS_WIN)
 
 
@@ -1871,3 +1936,29 @@ PluginInstanceParent::AnswerPluginFocusChange(const bool& gotFocus)
     return false;
 #endif
 }
+
+PluginInstanceParent*
+PluginInstanceParent::Cast(NPP aInstance, PluginAsyncSurrogate** aSurrogate)
+{
+    PluginDataResolver* resolver =
+        static_cast<PluginDataResolver*>(aInstance->pdata);
+
+    
+    
+    if (!resolver) {
+        return nullptr;
+    }
+
+    PluginInstanceParent* instancePtr = resolver->GetInstance();
+
+    if (instancePtr && aInstance != instancePtr->mNPP) {
+        NS_RUNTIMEABORT("Corrupted plugin data.");
+    }
+
+    if (aSurrogate) {
+        *aSurrogate = resolver->GetAsyncSurrogate();
+    }
+
+    return instancePtr;
+}
+
