@@ -12,10 +12,8 @@
 #include "nsIUnicodeDecoder.h"
 #include "nsIUnicodeEncoder.h"
 
-#include "nsCharSeparatedTokenizer.h"
 #include "nsDOMString.h"
 #include "nsNetUtil.h"
-#include "nsReadableUtils.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
 
@@ -517,383 +515,6 @@ ExtractFromURLSearchParams(const URLSearchParams& aParams,
   aContentType = NS_LITERAL_CSTRING("application/x-www-form-urlencoded;charset=UTF-8");
   return NS_NewStringInputStream(aStream, serialized);
 }
-
-void
-FillFormData(const nsString& aName, const nsString& aValue, void* aFormData)
-{
-  MOZ_ASSERT(aFormData);
-  nsFormData* fd = static_cast<nsFormData*>(aFormData);
-  fd->Append(aName, aValue);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class MOZ_STACK_CLASS FormDataParser
-{
-private:
-  nsRefPtr<nsFormData> mFormData;
-  nsCString mMimeType;
-  nsCString mData;
-
-  
-  nsCString mName;
-  nsCString mFilename;
-  nsCString mContentType;
-
-  enum
-  {
-    START_PART,
-    PARSE_HEADER,
-    PARSE_BODY,
-  } mState;
-
-  nsIGlobalObject* mParentObject;
-
-  
-  
-  bool
-  PushOverBoundary(const nsACString& aBoundaryString,
-                   nsACString::const_iterator& aStart,
-                   nsACString::const_iterator& aEnd)
-  {
-    
-    
-    nsACString::const_iterator end(aEnd);
-    const char* beginning = aStart.get();
-    if (FindInReadable(aBoundaryString, aStart, end)) {
-      MOZ_ASSERT(aStart.size_forward() >= aBoundaryString.Length());
-      
-      
-      if ((aStart.get() - beginning) == 0) {
-        aStart.advance(aBoundaryString.Length());
-        return true;
-      }
-
-      if ((aStart.get() - beginning) == 2) {
-        if (*(--aStart) == '-' && *(--aStart) == '-') {
-          aStart.advance(aBoundaryString.Length() + 2);
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  
-  bool
-  PushOverLine(nsACString::const_iterator& aStart)
-  {
-    if (*aStart == nsCRT::CR && (aStart.size_forward() > 1) && *(++aStart) == nsCRT::LF) {
-      ++aStart; 
-      return true;
-    }
-
-    return false;
-  }
-
-  bool
-  FindCRLF(nsACString::const_iterator& aStart,
-           nsACString::const_iterator& aEnd)
-  {
-    nsACString::const_iterator end(aEnd);
-    return FindInReadable(NS_LITERAL_CSTRING("\r\n"), aStart, end);
-  }
-
-  bool
-  ParseHeader(nsACString::const_iterator& aStart,
-              nsACString::const_iterator& aEnd,
-              bool* aWasEmptyHeader)
-  {
-    MOZ_ASSERT(aWasEmptyHeader);
-    
-    *aWasEmptyHeader = false;
-
-    const char* beginning = aStart.get();
-    nsACString::const_iterator end(aEnd);
-    if (!FindCRLF(aStart, end)) {
-      return false;
-    }
-
-    if (aStart.get() == beginning) {
-      *aWasEmptyHeader = true;
-      return true;
-    }
-
-    nsAutoCString header(beginning, aStart.get() - beginning);
-
-    nsACString::const_iterator headerStart, headerEnd;
-    header.BeginReading(headerStart);
-    header.EndReading(headerEnd);
-    if (!FindCharInReadable(':', headerStart, headerEnd)) {
-      return false;
-    }
-
-    nsAutoCString headerName(StringHead(header, headerStart.size_backward()));
-    headerName.CompressWhitespace();
-    if (!NS_IsValidHTTPToken(headerName)) {
-      return false;
-    }
-
-    nsAutoCString headerValue(Substring(++headerStart, headerEnd));
-    if (!NS_IsReasonableHTTPHeaderValue(headerValue)) {
-      return false;
-    }
-    headerValue.CompressWhitespace();
-
-    if (headerName.LowerCaseEqualsLiteral("content-disposition")) {
-      nsCCharSeparatedTokenizer tokenizer(headerValue, ';');
-      bool seenFormData = false;
-      while (tokenizer.hasMoreTokens()) {
-        const nsDependentCSubstring& token = tokenizer.nextToken();
-        if (token.IsEmpty()) {
-          continue;
-        }
-
-        if (token.EqualsLiteral("form-data")) {
-          seenFormData = true;
-          continue;
-        }
-
-        if (seenFormData &&
-            StringBeginsWith(token, NS_LITERAL_CSTRING("name="))) {
-          mName = StringTail(token, token.Length() - 5);
-          mName.Trim(" \"");
-          continue;
-        }
-
-        if (seenFormData &&
-            StringBeginsWith(token, NS_LITERAL_CSTRING("filename="))) {
-          mFilename = StringTail(token, token.Length() - 9);
-          mFilename.Trim(" \"");
-          continue;
-        }
-      }
-
-      if (mName.IsVoid()) {
-        
-        return false;
-      }
-    } else if (headerName.LowerCaseEqualsLiteral("content-type")) {
-      mContentType = headerValue;
-    }
-
-    return true;
-  }
-
-  
-  
-  
-  
-  bool
-  ParseBody(const nsACString& aBoundaryString,
-            nsACString::const_iterator& aStart,
-            nsACString::const_iterator& aEnd)
-  {
-    const char* beginning = aStart.get();
-
-    
-    nsACString::const_iterator end(aEnd);
-    if (!FindInReadable(aBoundaryString, aStart, end)) {
-      return false;
-    }
-
-    
-    
-    if (aStart.get() - beginning < 2) {
-      
-      
-      
-      return false;
-    }
-
-    
-    aStart.advance(-2);
-
-    
-    if (*aStart == '-' && *(aStart.get()+1) == '-') {
-      if (aStart.get() - beginning < 2) {
-        return false;
-      }
-
-      aStart.advance(-2);
-    }
-
-    if (*aStart != nsCRT::CR || *(aStart.get()+1) != nsCRT::LF) {
-      return false;
-    }
-
-    nsAutoCString body(beginning, aStart.get() - beginning);
-
-    
-    
-    
-    aStart.advance(2);
-
-    if (!mFormData) {
-      mFormData = new nsFormData();
-    }
-
-    NS_ConvertUTF8toUTF16 name(mName);
-
-    if (mFilename.IsVoid()) {
-      mFormData->Append(name, NS_ConvertUTF8toUTF16(body));
-    } else {
-      
-      
-      
-      char* copy = static_cast<char*>(NS_Alloc(body.Length()));
-      if (!copy) {
-        NS_WARNING("Failed to copy File entry body.");
-        return false;
-      }
-      nsCString::const_iterator bodyIter, bodyEnd;
-      body.BeginReading(bodyIter);
-      body.EndReading(bodyEnd);
-      char *p = copy;
-      while (bodyIter != bodyEnd) {
-        *p++ = *bodyIter++;
-      }
-      p = nullptr;
-
-      nsRefPtr<File> file =
-        File::CreateMemoryFile(mParentObject,
-                               reinterpret_cast<void *>(copy), body.Length(),
-                               NS_ConvertUTF8toUTF16(mFilename),
-                               NS_ConvertUTF8toUTF16(mContentType),  0);
-      Optional<nsAString> dummy;
-      mFormData->Append(name, *file, dummy);
-    }
-
-    return true;
-  }
-
-public:
-  FormDataParser(const nsACString& aMimeType, const nsACString& aData, nsIGlobalObject* aParent)
-    : mMimeType(aMimeType), mData(aData), mState(START_PART), mParentObject(aParent)
-  {
-  }
-
-  bool
-  Parse()
-  {
-    
-    const char* boundaryId = nullptr;
-    boundaryId = strstr(mMimeType.BeginWriting(), "boundary");
-    if (!boundaryId) {
-      return false;
-    }
-
-    boundaryId = strchr(boundaryId, '=');
-    if (!boundaryId) {
-      return false;
-    }
-
-    
-    boundaryId++;
-
-    char *attrib = (char *) strchr(boundaryId, ';');
-    if (attrib) *attrib = '\0';
-
-    nsAutoCString boundaryString(boundaryId);
-    if (attrib) *attrib = ';';
-
-    boundaryString.Trim(" \"");
-
-    if (boundaryString.Length() == 0) {
-      return false;
-    }
-
-    nsACString::const_iterator start, end;
-    mData.BeginReading(start);
-    
-    
-    mData.EndReading(end);
-
-    while (start != end) {
-      switch(mState) {
-        case START_PART:
-          mName.SetIsVoid(true);
-          mFilename.SetIsVoid(true);
-          mContentType = NS_LITERAL_CSTRING("text/plain");
-
-          
-          if (!PushOverBoundary(boundaryString, start, end)) {
-            return false;
-          }
-
-          if (start != end && *start == '-') {
-            
-            if (!mFormData) {
-              mFormData = new nsFormData();
-            }
-            return true;
-          }
-
-          if (!PushOverLine(start)) {
-            return false;
-          }
-          mState = PARSE_HEADER;
-          break;
-
-        case PARSE_HEADER:
-          bool emptyHeader;
-          if (!ParseHeader(start, end, &emptyHeader)) {
-            return false;
-          }
-
-          if (!PushOverLine(start)) {
-            return false;
-          }
-
-          mState = emptyHeader ? PARSE_BODY : PARSE_HEADER;
-          break;
-
-        case PARSE_BODY:
-          if (mName.IsVoid()) {
-            NS_WARNING("No content-disposition header with a valid name was "
-                       "found. Failing at body parse.");
-            return false;
-          }
-
-          if (!ParseBody(boundaryString, start, end)) {
-            return false;
-          }
-
-          mState = START_PART;
-          break;
-
-        default:
-          MOZ_CRASH("Invalid case");
-      }
-    }
-
-    NS_NOTREACHED("Should never reach here.");
-    return false;
-  }
-
-  already_AddRefed<nsFormData> FormData()
-  {
-    return mFormData.forget();
-  }
-};
 } 
 
 nsresult
@@ -1521,38 +1142,6 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
       autoFree.Reset();
       return;
     }
-    case CONSUME_FORMDATA: {
-      
-      nsAutoCString data(reinterpret_cast<char*>(aResult), aResultLength);
-      autoFree.Reset();
-
-      if (StringBeginsWith(mMimeType, NS_LITERAL_CSTRING("multipart/form-data"))) {
-        FormDataParser parser(mMimeType, data, DerivedClass()->GetParentObject());
-        if (!parser.Parse()) {
-          ErrorResult result;
-          result.ThrowTypeError(MSG_BAD_FORMDATA);
-          localPromise->MaybeReject(result);
-          return;
-        }
-
-        nsRefPtr<nsFormData> fd = parser.FormData();
-        MOZ_ASSERT(fd);
-        localPromise->MaybeResolve(fd);
-      } else if (StringBeginsWith(mMimeType,
-                                  NS_LITERAL_CSTRING("application/x-www-form-urlencoded"))) {
-        nsRefPtr<URLSearchParams> params = new URLSearchParams();
-        params->ParseInput(data,  nullptr);
-
-        nsRefPtr<nsFormData> fd = new nsFormData(DerivedClass()->GetParentObject());
-        params->ForEach(FillFormData, static_cast<void*>(fd));
-        localPromise->MaybeResolve(fd);
-      } else {
-        ErrorResult result;
-        result.ThrowTypeError(MSG_BAD_FORMDATA);
-        localPromise->MaybeReject(result);
-      }
-      return;
-    }
     case CONSUME_TEXT:
       
     case CONSUME_JSON: {
@@ -1627,15 +1216,15 @@ FetchBody<Response>::ConsumeBody(ConsumeType aType, ErrorResult& aRv);
 
 template <class Derived>
 void
-FetchBody<Derived>::SetMimeType()
+FetchBody<Derived>::SetMimeType(ErrorResult& aRv)
 {
   
-  ErrorResult result;
   nsTArray<nsCString> contentTypeValues;
   MOZ_ASSERT(DerivedClass()->GetInternalHeaders());
-  DerivedClass()->GetInternalHeaders()->GetAll(NS_LITERAL_CSTRING("Content-Type"),
-                                               contentTypeValues, result);
-  MOZ_ALWAYS_TRUE(!result.Failed());
+  DerivedClass()->GetInternalHeaders()->GetAll(NS_LITERAL_CSTRING("Content-Type"), contentTypeValues, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
 
   
   
@@ -1647,10 +1236,10 @@ FetchBody<Derived>::SetMimeType()
 
 template
 void
-FetchBody<Request>::SetMimeType();
+FetchBody<Request>::SetMimeType(ErrorResult& aRv);
 
 template
 void
-FetchBody<Response>::SetMimeType();
+FetchBody<Response>::SetMimeType(ErrorResult& aRv);
 } 
 } 
