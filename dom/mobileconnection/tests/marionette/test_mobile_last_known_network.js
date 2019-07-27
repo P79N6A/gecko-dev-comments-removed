@@ -9,5 +9,5 @@ startTestCommon(function() {
   
   is(mobileConnection.lastKnownNetwork, "310-260");
   
-  is(mobileConnection.lastKnownHomeNetwork, "310-260");
+  is(mobileConnection.lastKnownHomeNetwork, "310-260-Android");
 });
