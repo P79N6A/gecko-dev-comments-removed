@@ -167,6 +167,11 @@ loop.panel = (function(_, mozL10n) {
     },
 
     _onCallUrlReceived: function(err, callUrlData) {
+      
+      
+      
+      
+      
       var callUrl = false;
 
       this.props.notifier.clear();
