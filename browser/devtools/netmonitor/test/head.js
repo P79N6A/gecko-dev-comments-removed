@@ -60,6 +60,9 @@ const gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Services.prefs.setBoolPref("devtools.debugger.log", false);
 
 
+
+
+
 const gDefaultFilters = Services.prefs.getCharPref("devtools.netmonitor.filters");
 
 registerCleanupFunction(() => {
@@ -67,6 +70,8 @@ registerCleanupFunction(() => {
 
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
   Services.prefs.setCharPref("devtools.netmonitor.filters", gDefaultFilters);
+  Services.prefs.clearUserPref("devtools.cache.disabled");
+  Services.prefs.clearUserPref("devtools.dump.emit");
 });
 
 function addTab(aUrl, aWindow) {
@@ -113,9 +118,13 @@ function reconfigureTab(aTarget, aOptions) {
   return deferred.promise;
 };
 
-function toggleCache(aTarget, aEnabled) {
-  let options = { cacheEnabled: aEnabled, performReload: true };
+function toggleCache(aTarget, aDisabled) {
+  let options = { cacheDisabled: aDisabled, performReload: true };
   let navigationFinished = waitForNavigation(aTarget);
+
+  
+  Services.prefs.setBoolPref("devtools.cache.disabled", aDisabled);
+
   return reconfigureTab(aTarget, options).then(() => navigationFinished);
 }
 
@@ -132,8 +141,8 @@ function initNetMonitor(aUrl, aWindow) {
     yield target.makeRemote();
     info("Target remoted.");
 
-    yield toggleCache(target, false);
-    info("Network cache disabled");
+    yield toggleCache(target, true);
+    info("Cache disabled when the current and all future toolboxes are open.");
 
     let toolbox = yield gDevTools.showToolbox(target, "netmonitor");
     info("Netork monitor pane shown successfully.");

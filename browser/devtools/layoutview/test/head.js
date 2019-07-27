@@ -21,6 +21,7 @@ const TEST_URL_ROOT = "http://example.com/browser/browser/devtools/layoutview/te
 
 
 
+
 gDevTools.testing = true;
 registerCleanupFunction(() => gDevTools.testing = false);
 

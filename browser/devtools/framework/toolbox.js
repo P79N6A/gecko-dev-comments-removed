@@ -67,11 +67,12 @@ function Toolbox(target, selectedTool, hostType, hostOptions) {
   this._toolRegistered = this._toolRegistered.bind(this);
   this._toolUnregistered = this._toolUnregistered.bind(this);
   this._refreshHostTitle = this._refreshHostTitle.bind(this);
-  this._splitConsoleOnKeypress = this._splitConsoleOnKeypress.bind(this)
+  this._splitConsoleOnKeypress = this._splitConsoleOnKeypress.bind(this);
   this.destroy = this.destroy.bind(this);
   this.highlighterUtils = getHighlighterUtils(this);
   this._highlighterReady = this._highlighterReady.bind(this);
   this._highlighterHidden = this._highlighterHidden.bind(this);
+  this._prefChanged = this._prefChanged.bind(this);
 
   this._target.on("close", this.destroy);
 
@@ -241,10 +242,13 @@ Toolbox.prototype = {
         let closeButton = this.doc.getElementById("toolbox-close");
         closeButton.addEventListener("command", this.destroy, true);
 
+        gDevTools.on("pref-changed", this._prefChanged);
+
         this._buildDockButtons();
         this._buildOptions();
         this._buildTabs();
         let buttonsPromise = this._buildButtons();
+        this._applyCacheSettings();
         this._addKeysToWindow();
         this._addReloadKeys();
         this._addToolSwitchingKeys();
@@ -271,6 +275,24 @@ Toolbox.prototype = {
 
       return deferred.promise;
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _prefChanged: function(event, data) {
+    if (data.pref === "devtools.cache.disabled") {
+      this._applyCacheSettings();
+    }
   },
 
   _buildOptions: function() {
@@ -585,6 +607,19 @@ Toolbox.prototype = {
 
     this._togglePicker = this.highlighterUtils.togglePicker.bind(this.highlighterUtils);
     this._pickerButton.addEventListener("command", this._togglePicker, false);
+  },
+
+  
+
+
+
+  _applyCacheSettings: function() {
+    let pref = "devtools.cache.disabled";
+    let cacheDisabled = Services.prefs.getBoolPref(pref);
+
+    if (this.target.activeTab) {
+      this.target.activeTab.reconfigure({"cacheDisabled": cacheDisabled});
+    }
   },
 
   
@@ -1262,6 +1297,8 @@ Toolbox.prototype = {
     gDevTools.off("tool-registered", this._toolRegistered);
     gDevTools.off("tool-unregistered", this._toolUnregistered);
 
+    gDevTools.off("pref-changed", this._prefChanged);
+
     let outstanding = [];
     for (let [id, panel] of this._toolPanels) {
       try {
@@ -1270,6 +1307,12 @@ Toolbox.prototype = {
         
         console.error("Panel " + id + ":", e);
       }
+    }
+
+    
+    
+    if (this.target.activeTab) {
+      this.target.activeTab.reconfigure({"cacheDisabled": false});
     }
 
     
