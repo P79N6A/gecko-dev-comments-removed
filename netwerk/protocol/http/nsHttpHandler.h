@@ -18,7 +18,6 @@
 #include "nsIHttpProtocolHandler.h"
 #include "nsIObserver.h"
 #include "nsISpeculativeConnect.h"
-#include "nsICache.h"
 
 class nsIHttpChannel;
 class nsIPrefBranch;
@@ -110,7 +109,6 @@ public:
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
     bool           CriticalRequestPrioritization() { return mCriticalRequestPrioritization; }
-    double         BypassCacheLockThreshold() { return mBypassCacheLockThreshold; }
 
     uint32_t       MaxConnectionsPerOrigin() { return mMaxPersistentConnectionsPerServer; }
     bool           UseRequestTokenBucket() { return mRequestTokenBucketEnabled; }
@@ -300,13 +298,6 @@ public:
     
     bool Active() { return mHandlerActive; }
 
-    static void GetCacheSessionNameForStoragePolicy(
-            nsCacheStoragePolicy storagePolicy,
-            bool isPrivate,
-            uint32_t appId,
-            bool inBrowser,
-            nsACString& sessionName);
-
     
     
     TimeStamp GetCacheSkippedUntil() { return mCacheSkippedUntil; }
@@ -473,10 +464,6 @@ private:
     
     
     uint32_t       mConnectTimeout;
-
-    
-    
-    double         mBypassCacheLockThreshold;
 
     
     
