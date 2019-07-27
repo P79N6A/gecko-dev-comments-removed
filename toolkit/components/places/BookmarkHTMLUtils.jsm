@@ -664,13 +664,14 @@ BookmarkImporter.prototype = {
       if (frame.previousFeed) {
         
         
-        PlacesUtils.livemarks.addLivemark({
+        let lmPromise = PlacesUtils.livemarks.addLivemark({
           "title": frame.previousText,
           "parentId": frame.containerId,
           "index": PlacesUtils.bookmarks.DEFAULT_INDEX,
           "feedURI": frame.previousFeed,
           "siteURI": frame.previousLink,
-        }).then(null, Cu.reportError);
+        });
+        this._importPromises.push(lmPromise);
       } else if (frame.previousLink) {
         
         PlacesUtils.bookmarks.setItemTitle(frame.previousId,
