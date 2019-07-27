@@ -158,6 +158,9 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
   
   mChannels = aChannels > MAX_CHANNELS ? MAX_CHANNELS : aChannels;
 
+  MOZ_ASSERT(aSamplingRate >= 8000 && aSamplingRate <= 192000,
+             "Unreasonable sample rate for audio data.");
+
   
   
   
