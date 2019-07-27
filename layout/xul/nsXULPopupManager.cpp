@@ -16,6 +16,7 @@
 #include "nsIXULDocument.h"
 #include "nsIXULTemplateBuilder.h"
 #include "nsCSSFrameConstructor.h"
+#include "nsGlobalWindow.h"
 #include "nsLayoutUtils.h"
 #include "nsViewManager.h"
 #include "nsIComponentManager.h"
@@ -1594,18 +1595,18 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   if (!baseWin)
     return false;
 
+  nsCOMPtr<nsIDocShellTreeItem> root;
+  dsti->GetRootTreeItem(getter_AddRefs(root));
+  if (!root) {
+    return false;
+  }
+
+  nsCOMPtr<nsIDOMWindow> rootWin = root->GetWindow();
+
   
   
   if (dsti->ItemType() != nsIDocShellTreeItem::typeChrome) {
     
-    nsCOMPtr<nsIDocShellTreeItem> root;
-    dsti->GetRootTreeItem(getter_AddRefs(root));
-    if (!root) {
-      return false;
-    }
-
-    nsCOMPtr<nsIDOMWindow> rootWin = root->GetWindow();
-
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
     if (!fm || !rootWin)
       return false;
@@ -1629,6 +1630,15 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   if (mainWidget && mainWidget->SizeMode() == nsSizeMode_Minimized) {
     return false;
   }
+
+#ifdef XP_MACOSX
+  if (rootWin) {
+    nsGlobalWindow *globalWin = static_cast<nsGlobalWindow *>(rootWin.get());
+    if (globalWin->IsInModalState()) {
+      return false;
+    }
+  }
+#endif
 
   
   nsMenuFrame* menuFrame = do_QueryFrame(aPopup->GetParent());
