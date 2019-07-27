@@ -672,7 +672,10 @@ class TemporaryTypeSet : public TypeSet
                                bool (*func)(const Class *clasp));
 
     
-    JSObject *getCommonPrototype(CompilerConstraintList *constraints);
+
+
+
+    bool getCommonPrototype(CompilerConstraintList *constraints, JSObject **proto);
 
     
     Scalar::Type getTypedArrayType(CompilerConstraintList *constraints);

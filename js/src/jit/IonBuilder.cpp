@@ -7765,7 +7765,6 @@ IonBuilder::pushDerivedTypedObject(bool *emitted,
     
     TemporaryTypeSet *observedTypes = bytecodeTypes(pc);
     const Class *observedClass = observedTypes->getKnownClass(constraints());
-    JSObject *observedProto = observedTypes->getCommonPrototype(constraints());
 
     
     
@@ -7784,7 +7783,9 @@ IonBuilder::pushDerivedTypedObject(bool *emitted,
     
     
     
-    if (observedClass && observedProto && observedClass == expectedClass &&
+    JSObject *observedProto;
+    if (observedTypes->getCommonPrototype(constraints(), &observedProto) &&
+        observedClass && observedProto && observedClass == expectedClass &&
         observedProto == expectedProto)
     {
         derivedTypedObj->setResultTypeSet(observedTypes);
