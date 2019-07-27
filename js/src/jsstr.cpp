@@ -118,7 +118,7 @@ str_encodeURI_Component(JSContext *cx, unsigned argc, Value *vp);
 
 
 template <typename CharT>
-static jschar *
+static Latin1Char *
 Escape(JSContext *cx, const CharT *chars, uint32_t length, uint32_t *newLengthOut)
 {
     static const uint8_t shouldPassThrough[128] = {
@@ -150,7 +150,7 @@ Escape(JSContext *cx, const CharT *chars, uint32_t length, uint32_t *newLengthOu
                       "newlength must not overflow");
     }
 
-    jschar *newChars = cx->pod_malloc<jschar>(newLength + 1);
+    Latin1Char *newChars = cx->pod_malloc<Latin1Char>(newLength + 1);
     if (!newChars)
         return nullptr;
 
@@ -190,8 +190,7 @@ str_escape(JSContext *cx, unsigned argc, Value *vp)
     if (!str)
         return false;
 
-    
-    ScopedJSFreePtr<jschar> newChars;
+    ScopedJSFreePtr<Latin1Char> newChars;
     uint32_t newLength;
     if (str->hasLatin1Chars()) {
         AutoCheckCannotGC nogc;
