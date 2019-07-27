@@ -475,6 +475,17 @@ pref("services.push.adaptive.upperLimit", 1740000);
 pref("services.push.udp.wakeupEnabled", true);
 
 
+
+
+
+
+
+
+
+
+pref("services.push.udp.well-known_netidAddress", "_wakeup_.");
+
+
 #ifdef MOZ_WIDGET_GONK
 pref("dom.mozNetworkStats.enabled", true);
 pref("dom.webapps.firstRunWithSIM", true);
@@ -1005,4 +1016,6 @@ pref("identity.fxaccounts.enabled", true);
 pref("services.mobileid.server.uri", "https://msisdn.services.mozilla.com");
 
 
+#ifndef XP_WIN
 pref("dom.mapped_arraybuffer.enabled", true);
+#endif

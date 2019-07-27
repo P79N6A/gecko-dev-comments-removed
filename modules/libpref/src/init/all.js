@@ -4236,6 +4236,9 @@ pref("dom.voicemail.defaultServiceId", 0);
 pref("dom.inter-app-communication-api.enabled", false);
 
 
+pref("dom.mapped_arraybuffer.enabled", false);
+
+
 pref("urlclassifier.malwareTable", "goog-malware-shavar,test-malware-simple");
 pref("urlclassifier.phishTable", "goog-phish-shavar,test-phish-simple");
 pref("urlclassifier.downloadBlockTable", "");
