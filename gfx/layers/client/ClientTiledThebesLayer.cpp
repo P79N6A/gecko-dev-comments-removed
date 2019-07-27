@@ -335,23 +335,8 @@ ClientTiledThebesLayer::RenderLayer()
   TILING_LOG("TILING %p: Initial valid region %s\n", this, Stringify(mValidRegion).c_str());
   TILING_LOG("TILING %p: Initial low-precision valid region %s\n", this, Stringify(mLowPrecisionValidRegion).c_str());
 
-  nsIntRegion neededRegion = mVisibleRegion;
-  if (MayResample()) {
-    
-    
-    
-    
-    nsIntRect bounds = neededRegion.GetBounds();
-    nsIntRect wholeTiles = bounds;
-    wholeTiles.Inflate(nsIntSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight()));
-    nsIntRect padded = bounds;
-    padded.Inflate(1);
-    padded.IntersectRect(padded, wholeTiles);
-    neededRegion = padded;
-  }
-
   nsIntRegion invalidRegion;
-  invalidRegion.Sub(neededRegion, mValidRegion);
+  invalidRegion.Sub(mVisibleRegion, mValidRegion);
   if (invalidRegion.IsEmpty()) {
     EndPaint();
     return;
@@ -366,7 +351,7 @@ ClientTiledThebesLayer::RenderLayer()
     
     if (UseFastPath()) {
       TILING_LOG("TILING %p: Taking fast-path\n", this);
-      mValidRegion = neededRegion;
+      mValidRegion = mVisibleRegion;
       mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
       ClientManager()->Hold(this);
       mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
@@ -383,7 +368,7 @@ ClientTiledThebesLayer::RenderLayer()
     
     
     
-    mValidRegion.And(mValidRegion, neededRegion);
+    mValidRegion.And(mValidRegion, mVisibleRegion);
     if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
       mValidRegion.And(mValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
       invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
@@ -402,7 +387,7 @@ ClientTiledThebesLayer::RenderLayer()
   if (gfxPrefs::UseLowPrecisionBuffer()) {
     
     
-    lowPrecisionInvalidRegion.Sub(neededRegion, mLowPrecisionValidRegion);
+    lowPrecisionInvalidRegion.Sub(mVisibleRegion, mLowPrecisionValidRegion);
     lowPrecisionInvalidRegion.Sub(lowPrecisionInvalidRegion, mValidRegion);
   }
   TILING_LOG("TILING %p: Low-precision invalid region %s\n", this, Stringify(lowPrecisionInvalidRegion).c_str());

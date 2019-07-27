@@ -1434,14 +1434,6 @@ public:
 
   virtual int32_t GetMaxLayerSize() { return Manager()->GetMaxTextureSize(); }
 
-  
-
-
-
-
-
-  bool MayResample();
-
 protected:
   Layer(LayerManager* aManager, void* aImplData);
 
@@ -1489,6 +1481,14 @@ protected:
   gfx::Matrix4x4 SnapTransform(const gfx::Matrix4x4& aTransform,
                                const gfxRect& aSnapRect,
                                gfx::Matrix* aResidualTransform);
+
+  
+
+
+
+
+
+  bool MayResample();
 
   LayerManager* mManager;
   ContainerLayer* mParent;

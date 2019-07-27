@@ -241,6 +241,7 @@ TiledContentHost::Attach(Layer* aLayer,
                          AttachFlags aFlags )
 {
   CompositableHost::Attach(aLayer, aCompositor, aFlags);
+  static_cast<ThebesLayerComposite*>(aLayer)->EnsureTiled();
 }
 
 void
@@ -323,8 +324,11 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
                             const gfx::Matrix4x4& aTransform,
                             const gfx::Filter& aFilter,
                             const gfx::Rect& aClipRect,
-                            const nsIntRegion* aVisibleRegion )
+                            const nsIntRegion* aVisibleRegion ,
+                            TiledLayerProperties* aLayerProperties )
 {
+  MOZ_ASSERT(aLayerProperties, "aLayerProperties required for TiledContentHost");
+
   if (mPendingUpload) {
     mTiledBuffer.SetCompositor(mCompositor);
     mTiledBuffer.Upload();
@@ -370,25 +374,13 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
         (aOpacity == 1.0f && backgroundColor.a == 1.0f)
         ? gfxPrefs::LowPrecisionOpacity() : 1.0f;
 
-  nsIntRegion tmpRegion;
-  const nsIntRegion* renderRegion;
-  if (PaintWillResample()) {
-    
-    
-    
-    tmpRegion = aVisibleRegion->GetBounds();
-    renderRegion = &tmpRegion;
-  } else {
-    renderRegion = aVisibleRegion;
-  }
-
   
   RenderLayerBuffer(mLowPrecisionTiledBuffer,
                     lowPrecisionOpacityReduction < 1.0f ? &backgroundColor : nullptr,
                     aEffectChain, lowPrecisionOpacityReduction * aOpacity,
-                    aFilter, aClipRect, *renderRegion, aTransform);
+                    aFilter, aClipRect, aLayerProperties->mVisibleRegion, aTransform);
   RenderLayerBuffer(mTiledBuffer, nullptr, aEffectChain, aOpacity, aFilter,
-                    aClipRect, *renderRegion, aTransform);
+                    aClipRect, aLayerProperties->mVisibleRegion, aTransform);
 
   
   
