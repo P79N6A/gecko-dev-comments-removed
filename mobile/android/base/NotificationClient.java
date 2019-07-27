@@ -20,7 +20,7 @@ public abstract class NotificationClient {
     private static final String LOGTAG = "GeckoNotificationClient";
 
     private volatile NotificationHandler mHandler;
-    private boolean mReady;
+    private boolean mReady = false;
     private final LinkedList<Runnable> mTaskQueue = new LinkedList<Runnable>();
     private final ConcurrentHashMap<Integer, UpdateRunnable> mUpdatesMap =
             new ConcurrentHashMap<Integer, UpdateRunnable>();
@@ -142,10 +142,6 @@ public abstract class NotificationClient {
 
 
     public synchronized void remove(final int notificationID) {
-        if (!mReady) {
-            return;
-        }
-
         mTaskQueue.add(new Runnable() {
             @Override
             public void run() {
@@ -153,6 +149,13 @@ public abstract class NotificationClient {
                 mUpdatesMap.remove(notificationID);
             }
         });
+
+        
+        
+        if (!mReady) {
+            bind();
+        }
+
         notify();
     }
 

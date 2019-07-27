@@ -122,6 +122,8 @@ public class GeckoApplication extends Application
         FilePicker.init(getApplicationContext());
         GeckoLoader.loadMozGlue();
         HomePanelsManager.getInstance().init(getApplicationContext());
+        
+        NotificationHelper.getInstance(getApplicationContext()).init();
         super.onCreate();
     }
 
