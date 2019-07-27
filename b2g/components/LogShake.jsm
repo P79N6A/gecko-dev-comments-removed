@@ -60,22 +60,6 @@ const CAPTURE_LOGS_START_EVENT = 'capture-logs-start';
 const CAPTURE_LOGS_ERROR_EVENT = 'capture-logs-error';
 const CAPTURE_LOGS_SUCCESS_EVENT = 'capture-logs-success';
 
-
-const LOGS_WITH_PARSERS = {
-  '/dev/__properties__': LogParser.prettyPrintPropertiesArray,
-  '/dev/log/main': LogParser.prettyPrintLogArray,
-  '/dev/log/system': LogParser.prettyPrintLogArray,
-  '/dev/log/radio': LogParser.prettyPrintLogArray,
-  '/dev/log/events': LogParser.prettyPrintLogArray,
-  '/proc/cmdline': LogParser.prettyPrintArray,
-  '/proc/kmsg': LogParser.prettyPrintArray,
-  '/proc/meminfo': LogParser.prettyPrintArray,
-  '/proc/uptime': LogParser.prettyPrintArray,
-  '/proc/version': LogParser.prettyPrintArray,
-  '/proc/vmallocinfo': LogParser.prettyPrintArray,
-  '/proc/vmstat': LogParser.prettyPrintArray
-};
-
 let LogShake = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
   
@@ -90,6 +74,24 @@ let LogShake = {
 
 
   captureRequested: false,
+
+  
+
+
+  LOGS_WITH_PARSERS: {
+    '/dev/__properties__': LogParser.prettyPrintPropertiesArray,
+    '/dev/log/main': LogParser.prettyPrintLogArray,
+    '/dev/log/system': LogParser.prettyPrintLogArray,
+    '/dev/log/radio': LogParser.prettyPrintLogArray,
+    '/dev/log/events': LogParser.prettyPrintLogArray,
+    '/proc/cmdline': LogParser.prettyPrintArray,
+    '/proc/kmsg': LogParser.prettyPrintArray,
+    '/proc/meminfo': LogParser.prettyPrintArray,
+    '/proc/uptime': LogParser.prettyPrintArray,
+    '/proc/version': LogParser.prettyPrintArray,
+    '/proc/vmallocinfo': LogParser.prettyPrintArray,
+    '/proc/vmstat': LogParser.prettyPrintArray
+  },
 
   
 
@@ -169,7 +171,7 @@ let LogShake = {
       if (!this.captureRequested) {
         this.captureRequested = true;
         SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_START_EVENT, {});
-        captureLogs().then(logResults => {
+        this.captureLogs().then(logResults => {
           
           SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_SUCCESS_EVENT, {
             logFilenames: logResults.logFilenames,
@@ -192,6 +194,42 @@ let LogShake = {
     } else {
       this.stopDeviceMotionListener();
     }
+  },
+
+  
+
+
+
+  captureLogs: function() {
+    let logArrays = this.readLogs();
+    return saveLogs(logArrays);
+  },
+
+  
+
+
+  readLogs: function() {
+    let logArrays = {};
+    for (let loc in this.LOGS_WITH_PARSERS) {
+      let logArray;
+      try {
+        logArray = LogCapture.readLogFile(loc);
+        if (!logArray) {
+          continue;
+        }
+      } catch (ex) {
+        Cu.reportError("Unable to LogCapture.readLogFile('" + loc + "'): " + ex);
+        continue;
+      }
+
+      try {
+        logArrays[loc] = this.LOGS_WITH_PARSERS[loc](logArray);
+      } catch (ex) {
+        Cu.reportError("Unable to parse content of '" + loc + "': " + ex);
+        continue;
+      }
+    }
+    return logArrays;
   },
 
   
@@ -223,32 +261,6 @@ function getLogDirectory() {
   let timestamp = d.toISOString().slice(0, -5).replace(/[:T]/g, '-');
   
   return OS.Path.join('logs', timestamp);
-}
-
-
-
-
-
-function captureLogs() {
-  let logArrays = readLogs();
-  return saveLogs(logArrays);
-}
-
-
-
-
-function readLogs() {
-  let logArrays = {};
-  for (let loc in LOGS_WITH_PARSERS) {
-    let logArray = LogCapture.readLogFile(loc);
-    if (!logArray) {
-      continue;
-    }
-    let prettyLogArray = LOGS_WITH_PARSERS[loc](logArray);
-
-    logArrays[loc] = prettyLogArray;
-  }
-  return logArrays;
 }
 
 
