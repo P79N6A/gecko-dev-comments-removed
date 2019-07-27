@@ -2223,8 +2223,6 @@ BytecodeEmitter::emitNewInit(JSProtoKey key)
 static bool
 IteratorResultShape(ExclusiveContext *cx, BytecodeEmitter *bce, unsigned *shape)
 {
-    MOZ_ASSERT(bce->script->compileAndGo());
-
     RootedPlainObject obj(cx);
     
     
@@ -2258,14 +2256,10 @@ IteratorResultShape(ExclusiveContext *cx, BytecodeEmitter *bce, unsigned *shape)
 bool
 BytecodeEmitter::emitPrepareIteratorResult()
 {
-    if (script->compileAndGo()) {
-        unsigned shape;
-        if (!IteratorResultShape(cx, this, &shape))
-            return false;
-        return emitIndex32(JSOP_NEWOBJECT, shape);
-    }
-
-    return emitNewInit(JSProto_Object);
+    unsigned shape;
+    if (!IteratorResultShape(cx, this, &shape))
+        return false;
+    return emitIndex32(JSOP_NEWOBJECT, shape);
 }
 
 bool
@@ -6587,14 +6581,12 @@ BytecodeEmitter::emitObject(ParseNode *pn)
 
 
     RootedPlainObject obj(cx);
-    if (script->compileAndGo()) {
-        
-        
-        gc::AllocKind kind = gc::GetGCObjectKind(pn->pn_count);
-        obj = NewBuiltinClassInstance<PlainObject>(cx, kind, TenuredObject);
-        if (!obj)
-            return false;
-    }
+    
+    
+    gc::AllocKind kind = gc::GetGCObjectKind(pn->pn_count);
+    obj = NewBuiltinClassInstance<PlainObject>(cx, kind, TenuredObject);
+    if (!obj)
+        return false;
 
     if (!emitPropertyList(pn, &obj, ObjectLiteral))
         return false;
