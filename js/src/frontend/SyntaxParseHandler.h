@@ -46,6 +46,9 @@ class SyntaxParseHandler
         NodeBreak,
         NodeThrow,
 
+        NodeSuperProperty,
+        NodeSuperElement,
+
         
         
         
@@ -54,24 +57,47 @@ class SyntaxParseHandler
         NodeFunctionCall,
 
         
-        NodeArgumentsName,
-        NodeEvalName,
-        NodeName,
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        NodeParenthesizedArgumentsName,
+        NodeParenthesizedEvalName,
+        NodeParenthesizedName,
 
         NodeDottedProperty,
         NodeElement,
-        NodeSuperProperty,
-        NodeSuperElement,
-
-        
-        NodeArray,
-        NodeObject,
 
         
         
         
         
+        NodeParenthesizedArray,
+        NodeParenthesizedObject,
+
         
+        
+        
+        
+        
+
+        
+        NodeUnparenthesizedArgumentsName,
+        NodeUnparenthesizedEvalName,
+        NodeUnparenthesizedName,
+
+        
+        NodeUnparenthesizedArray,
+        NodeUnparenthesizedObject,
 
         
         
@@ -119,18 +145,22 @@ class SyntaxParseHandler
         return node == NodeFunctionCall;
     }
 
-    bool isDestructuringTarget(Node node) {
-        return node == NodeArray || node == NodeObject;
+    static bool isUnparenthesizedDestructuringPattern(Node node) {
+        return node == NodeUnparenthesizedArray || node == NodeUnparenthesizedObject;
     }
 
-  private:
-    static bool meaningMightChangeIfParenthesized(Node node) {
-        return node == NodeUnparenthesizedString ||
-               node == NodeUnparenthesizedCommaExpr ||
-               node == NodeUnparenthesizedYieldExpr ||
-               node == NodeUnparenthesizedAssignment;
+    static bool isParenthesizedDestructuringPattern(Node node) {
+        
+        
+        
+        
+        return node == NodeParenthesizedArray || node == NodeParenthesizedObject;
     }
 
+    static bool isDestructuringPatternAnyParentheses(Node node) {
+        return isUnparenthesizedDestructuringPattern(node) ||
+                isParenthesizedDestructuringPattern(node);
+    }
 
   public:
     SyntaxParseHandler(ExclusiveContext* cx, LifoAlloc& alloc,
@@ -147,14 +177,14 @@ class SyntaxParseHandler
     Node newName(PropertyName* name, uint32_t blockid, const TokenPos& pos, ExclusiveContext* cx) {
         lastAtom = name;
         if (name == cx->names().arguments)
-            return NodeArgumentsName;
+            return NodeUnparenthesizedArgumentsName;
         if (name == cx->names().eval)
-            return NodeEvalName;
-        return NodeName;
+            return NodeUnparenthesizedEvalName;
+        return NodeUnparenthesizedName;
     }
 
     Node newComputedName(Node expr, uint32_t start, uint32_t end) {
-        return NodeName;
+        return NodeGeneric;
     }
 
     DefinitionNode newPlaceholder(JSAtom* atom, uint32_t blockid, const TokenPos& pos) {
@@ -162,7 +192,7 @@ class SyntaxParseHandler
     }
 
     Node newObjectLiteralPropertyName(JSAtom* atom, const TokenPos& pos) {
-        return NodeName;
+        return NodeUnparenthesizedName;
     }
 
     Node newNumber(double value, DecimalPoint decimalPoint, const TokenPos& pos) { return NodeGeneric; }
@@ -231,7 +261,7 @@ class SyntaxParseHandler
     Node newArrayComprehension(Node body, unsigned blockid, const TokenPos& pos) {
         return NodeGeneric;
     }
-    Node newArrayLiteral(uint32_t begin, unsigned blockid) { return NodeArray; }
+    Node newArrayLiteral(uint32_t begin, unsigned blockid) { return NodeUnparenthesizedArray; }
     bool addElision(Node literal, const TokenPos& pos) { return true; }
     bool addSpreadElement(Node literal, uint32_t begin, Node inner) { return true; }
     void addArrayElement(Node literal, Node element) { }
@@ -239,7 +269,7 @@ class SyntaxParseHandler
     Node newCall() { return NodeFunctionCall; }
     Node newTaggedTemplate() { return NodeGeneric; }
 
-    Node newObjectLiteral(uint32_t begin) { return NodeObject; }
+    Node newObjectLiteral(uint32_t begin) { return NodeUnparenthesizedObject; }
     Node newClassMethodList(uint32_t begin) { return NodeGeneric; }
 
     Node newSuperProperty(PropertyName* prop, const TokenPos& pos) {
@@ -368,8 +398,8 @@ class SyntaxParseHandler
 
     void addList(Node list, Node kid) {
         MOZ_ASSERT(list == NodeGeneric ||
-                   list == NodeArray ||
-                   list == NodeObject ||
+                   list == NodeUnparenthesizedArray ||
+                   list == NodeUnparenthesizedObject ||
                    list == NodeUnparenthesizedCommaExpr ||
                    list == NodeHoistableDeclaration ||
                    list == NodeFunctionCall);
@@ -408,8 +438,30 @@ class SyntaxParseHandler
     void setFlag(Node pn, unsigned flag) {}
     void setListFlag(Node pn, unsigned flag) {}
     MOZ_WARN_UNUSED_RESULT Node parenthesize(Node node) {
-        if (meaningMightChangeIfParenthesized(node))
+        
+        
+        
+        if (node == NodeUnparenthesizedArgumentsName)
+            return NodeParenthesizedArgumentsName;
+        if (node == NodeUnparenthesizedEvalName)
+            return NodeParenthesizedEvalName;
+        if (node == NodeUnparenthesizedName)
+            return NodeParenthesizedName;
+
+        if (node == NodeUnparenthesizedArray)
+            return NodeParenthesizedArray;
+        if (node == NodeUnparenthesizedObject)
+            return NodeParenthesizedObject;
+
+        
+        
+        if (node == NodeUnparenthesizedString ||
+            node == NodeUnparenthesizedCommaExpr ||
+            node == NodeUnparenthesizedYieldExpr ||
+            node == NodeUnparenthesizedAssignment)
+        {
             return NodeGeneric;
+        }
 
         
         
@@ -421,10 +473,31 @@ class SyntaxParseHandler
     void setPrologue(Node pn) {}
 
     bool isConstant(Node pn) { return false; }
-    PropertyName* maybeName(Node pn) {
-        if (pn == NodeName || pn == NodeArgumentsName || pn == NodeEvalName)
+
+    PropertyName* maybeUnparenthesizedName(Node node) {
+        if (node == NodeUnparenthesizedName ||
+            node == NodeUnparenthesizedArgumentsName ||
+            node == NodeUnparenthesizedEvalName)
+        {
             return lastAtom->asPropertyName();
+        }
         return nullptr;
+    }
+
+    PropertyName* maybeParenthesizedName(Node node) {
+        if (node == NodeParenthesizedName ||
+            node == NodeParenthesizedArgumentsName ||
+            node == NodeParenthesizedEvalName)
+        {
+            return lastAtom->asPropertyName();
+        }
+        return nullptr;
+    }
+
+    PropertyName* maybeNameAnyParentheses(Node node) {
+        if (PropertyName* name = maybeUnparenthesizedName(node))
+            return name;
+        return maybeParenthesizedName(node);
     }
 
     PropertyName* maybeDottedProperty(Node node) {
