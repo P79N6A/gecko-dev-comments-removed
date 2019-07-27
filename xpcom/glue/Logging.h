@@ -14,6 +14,8 @@
 
 
 
+#define PR_LOG_INFO PR_LOG_DEBUG
+
 #define MOZ_LOG PR_LOG
 
 
