@@ -3555,6 +3555,25 @@ JSObject::CopyElementsForWrite(ThreadSafeContext *cx, JSObject *obj)
     return true;
 }
 
+void
+JSObject::fixupAfterMovingGC()
+{
+    
+
+
+
+
+    if (hasDynamicElements()) {
+        ObjectElements *header = getElementsHeader();
+        if (header->isCopyOnWrite()) {
+            HeapPtrObject &owner = header->ownerObject();
+            if (IsForwarded(owner.get()))
+                owner = Forwarded(owner.get());
+            elements = owner->getElementsHeader()->elements();
+        }
+    }
+}
+
 bool
 js::SetClassAndProto(JSContext *cx, HandleObject obj,
                      const Class *clasp, Handle<js::TaggedProto> proto,

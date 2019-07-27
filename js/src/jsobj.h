@@ -253,11 +253,20 @@ class JSObject : public js::ObjectImpl
                                                js::HandleTypeObject type,
                                                js::HeapSlot *elements);
 
+    
+    static inline js::ArrayObject *createCopyOnWriteArray(js::ExclusiveContext *cx,
+                                                          js::gc::InitialHeap heap,
+                                                          js::HandleShape shape,
+                                                          js::HandleObject sharedElementsOwner);
+
   private:
     
     static inline JSObject *
     createArrayInternal(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::InitialHeap heap,
                         js::HandleShape shape, js::HandleTypeObject type);
+
+    static inline js::ArrayObject *finishCreateArray(JSObject *obj,
+                                                     js::HandleShape shape);
   public:
 
     
@@ -772,6 +781,8 @@ class JSObject : public js::ObjectImpl
         JS_ASSERT(isNative());
         return getElementsHeader()->isCopyOnWrite();
     }
+
+    void fixupAfterMovingGC();
 
     
     inline bool writeToIndexWouldMarkNotPacked(uint32_t index);
