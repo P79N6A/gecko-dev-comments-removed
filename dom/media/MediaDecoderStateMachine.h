@@ -573,6 +573,9 @@ protected:
   
   
   nsresult EnsureAudioDecodeTaskQueued();
+  
+  
+  void RequestAudioData();
 
   nsresult DispatchVideoDecodeTaskIfNeeded();
 
@@ -581,6 +584,9 @@ protected:
   
   
   nsresult EnsureVideoDecodeTaskQueued();
+  
+  
+  void RequestVideoData();
 
   
   
