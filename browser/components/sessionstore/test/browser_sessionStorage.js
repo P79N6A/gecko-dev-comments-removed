@@ -165,6 +165,13 @@ add_task(function respect_privacy_level() {
   ok(!storage, "sessionStorage data has *not* been saved");
 
   
+  
+  
+  while (ss.getClosedTabCount(window) > 0) {
+    ss.forgetClosedTab(window, 0);
+  }
+
+  
   Services.prefs.clearUserPref("browser.sessionstore.privacy_level");
   yield promiseRemoveTab(tab2);
 
