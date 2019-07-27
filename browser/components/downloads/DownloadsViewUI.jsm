@@ -7,12 +7,13 @@
 
 
 
-
-
-
 "use strict";
 
-let { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+this.EXPORTED_SYMBOLS = [
+  "DownloadsViewUI",
+];
+
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -20,22 +21,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
                                   "resource://gre/modules/DownloadUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
                                   "resource:///modules/DownloadsCommon.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Services",
-                                  "resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
+
+this.DownloadsViewUI = {};
 
 
 
@@ -50,9 +39,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 
 
-function DownloadElementShell() {}
+this.DownloadsViewUI.DownloadElementShell = function () {}
 
-DownloadElementShell.prototype = {
+this.DownloadsViewUI.DownloadElementShell.prototype = {
   
 
 
@@ -96,8 +85,10 @@ DownloadElementShell.prototype = {
   get _progressElement() {
     if (!this.__progressElement) {
       
-      this.__progressElement = document.getAnonymousElementByAttribute(
-                               this.element, "anonid", "progressmeter");
+      this.__progressElement =
+           this.element.ownerDocument.getAnonymousElementByAttribute(
+                                         this.element, "anonid",
+                                         "progressmeter");
     }
     return this.__progressElement;
   },
@@ -143,7 +134,7 @@ DownloadElementShell.prototype = {
 
     
     if (this._progressElement) {
-      let event = document.createEvent("Events");
+      let event = this.element.ownerDocument.createEvent("Events");
       event.initEvent("ValueChange", true, true);
       this._progressElement.dispatchEvent(event);
     }
@@ -173,26 +164,28 @@ DownloadElementShell.prototype = {
     let tip = "";
 
     if (!this.download.stopped) {
-      let total = this.download.hasProgress ? this.download.totalBytes : -1;
+      let totalBytes = this.download.hasProgress ? this.download.totalBytes
+                                                 : -1;
       
       
       
       [text] = DownloadUtils.getDownloadStatusNoRate(
                                           this.download.currentBytes,
-                                          total,
+                                          totalBytes,
                                           this.download.speed,
                                           this.lastEstimatedSecondsLeft);
       let newEstimatedSecondsLeft;
       [tip, newEstimatedSecondsLeft] = DownloadUtils.getDownloadStatus(
                                           this.download.currentBytes,
-                                          total,
+                                          totalBytes,
                                           this.download.speed,
                                           this.lastEstimatedSecondsLeft);
       this.lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
     } else if (this.download.canceled && this.download.hasPartialData) {
-      let total = this.download.hasProgress ? this.download.totalBytes : -1;
+      let totalBytes = this.download.hasProgress ? this.download.totalBytes
+                                                 : -1;
       let transfer = DownloadUtils.getTransferTotal(this.download.currentBytes,
-                                                    total);
+                                                    totalBytes);
 
       
       
@@ -206,8 +199,8 @@ DownloadElementShell.prototype = {
       if (this.download.succeeded) {
         
         if (this.download.target.size !== undefined) {
-          let [size, unit] = DownloadUtils.convertByteUnits(
-                                                  this.download.target.size);
+          let [size, unit] =
+            DownloadUtils.convertByteUnits(this.download.target.size);
           stateLabel = s.sizeWithUnits(size, unit);
         } else {
           

@@ -327,6 +327,16 @@ this.DownloadsCommon = {
 
 
 
+  removeAndFinalizeDownload(download) {
+    Downloads.getList(Downloads.ALL)
+             .then(list => list.remove(download))
+             .then(() => download.finalize(true))
+             .catch(Cu.reportError);
+  },
+
+  
+
+
 
 
 
@@ -348,7 +358,6 @@ this.DownloadsCommon = {
     let summary = {
       numActive: 0,
       numPaused: 0,
-      numScanning: 0,
       numDownloading: 0,
       totalSize: 0,
       totalTransferred: 0,
@@ -658,7 +667,7 @@ DownloadsDataCtor.prototype = {
 
 
   get canRemoveFinished() {
-    for (let download of this.oldDownloadStates.keys()) {
+    for (let download of this.downloads) {
       
       if (download.stopped && !(download.canceled && download.hasPartialData)) {
         return true;
@@ -805,7 +814,7 @@ DownloadsDataCtor.prototype = {
 
     
     
-    let downloadsArray = [...this.oldDownloadStates.keys()];
+    let downloadsArray = [...this.downloads];
     downloadsArray.sort((a, b) => b.startTime - a.startTime);
     downloadsArray.forEach(download => aView.onDownloadAdded(download, false));
 
@@ -1208,7 +1217,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  _activeDownloads() {
+  * _activeDownloads() {
     let downloads = this._isPrivate ? PrivateDownloadsData.downloads
                                     : DownloadsData.downloads;
     for (let download of downloads) {
@@ -1404,7 +1413,7 @@ DownloadsSummaryData.prototype = {
 
 
 
-  _downloadsForSummary() {
+  * _downloadsForSummary() {
     if (this._downloads.length > 0) {
       for (let i = this._numToExclude; i < this._downloads.length; ++i) {
         yield this._downloads[i];

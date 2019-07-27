@@ -2,8 +2,30 @@
 
 
 
+let { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
+                                  "resource://gre/modules/DownloadUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
+                                  "resource:///modules/DownloadsCommon.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadsViewUI",
+                                  "resource:///modules/DownloadsViewUI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -15,9 +37,6 @@ const DOWNLOAD_VIEW_SUPPORTED_COMMANDS =
   "downloadsCmd_pauseResume", "downloadsCmd_cancel",
   "downloadsCmd_open", "downloadsCmd_show", "downloadsCmd_retry",
   "downloadsCmd_openReferrer", "downloadsCmd_clearDownloads"];
-
-
-
 
 
 
@@ -116,10 +135,13 @@ HistoryDownload.prototype = {
 
 
 
+
+
+
+
+
+
   start() {
-    
-    
-    
     let browserWin = RecentWindow.getMostRecentBrowserWindow();
     let initiatingDoc = browserWin ? browserWin.document : document;
 
@@ -181,7 +203,7 @@ function HistoryDownloadElementShell(aSessionDownload, aHistoryDownload) {
 }
 
 HistoryDownloadElementShell.prototype = {
-  __proto__: DownloadElementShell.prototype,
+  __proto__: DownloadsViewUI.DownloadElementShell.prototype,
 
   
 
@@ -340,10 +362,7 @@ HistoryDownloadElementShell.prototype = {
       }
       case "cmd_delete": {
         if (this._sessionDownload) {
-          Downloads.getList(Downloads.ALL)
-                   .then(list => list.remove(this.download))
-                   .then(() => this.download.finalize(true))
-                   .catch(Cu.reportError);
+          DownloadsCommon.removeAndFinalizeDownload(this.download);
         }
         if (this._historyDownload) {
           let uri = NetUtil.newURI(this.download.source.url);
@@ -404,8 +423,8 @@ HistoryDownloadElementShell.prototype = {
       }
       return "";
     }
-    let command = getDefaultCommandForState(
-                            DownloadsCommon.stateOfDownload(this.download));
+    let state = DownloadsCommon.stateOfDownload(this.download);
+    let command = getDefaultCommandForState(state);
     if (command && this.isCommandEnabled(command)) {
       this.doCommand(command);
     }
