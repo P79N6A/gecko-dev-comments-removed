@@ -274,6 +274,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   
   
+  
+  
   if (collection) {
     bool checkProperties =
       disp->mTransitions[0].GetProperty() != eCSSPropertyExtra_all_properties;
@@ -324,13 +326,18 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
            !allTransitionProperties.HasProperty(prop.mProperty)) ||
           
           
+          
+          
+          
           !ExtractComputedValueForTransition(prop.mProperty, afterChangeStyle,
                                              currentValue) ||
           currentValue != segment.mToValue) {
         
-        player->Cancel();
+        if (!player->GetSource()->IsFinishedTransition()) {
+          player->Cancel();
+          collection->UpdateAnimationGeneration(mPresContext);
+        }
         players.RemoveElementAt(i);
-        collection->UpdateAnimationGeneration(mPresContext);
       }
     } while (i != 0);
 
@@ -440,6 +447,11 @@ nsTransitionManager::ConsiderStartingTransition(
   
   
   
+  
+  
+  
+  
+  
   MOZ_ASSERT(!oldPT || oldPT->Properties()[0].mSegments.Length() == 1,
              "Should have one animation property segment for a transition");
   if (haveCurrentTransition && haveValues &&
@@ -449,7 +461,7 @@ nsTransitionManager::ConsiderStartingTransition(
   }
 
   if (!shouldAnimate) {
-    if (haveCurrentTransition) {
+    if (haveCurrentTransition && !oldPT->IsFinishedTransition()) {
       
       
       
@@ -686,16 +698,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
       do {
         --i;
         AnimationPlayer* player = collection->mPlayers[i];
-        if (player->GetSource()->IsFinishedTransition()) {
-          
-          
-          
-          
-          
-          if (aFlags == Can_Throttle) {
-            collection->mPlayers.RemoveElementAt(i);
-          }
-        } else {
+        if (!player->GetSource()->IsFinishedTransition()) {
           MOZ_ASSERT(player->GetSource(),
                      "Transitions should have source content");
           ComputedTiming computedTiming =
