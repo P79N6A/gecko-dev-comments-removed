@@ -218,9 +218,9 @@ IsDominatorRefined(MBasicBlock *block)
 
 
 bool
-ValueNumberer::deleteDefsRecursively(MDefinition *def)
+ValueNumberer::discardDefsRecursively(MDefinition *def)
 {
-    return deleteDef(def) && processDeadDefs();
+    return discardDef(def) && processDeadDefs();
 }
 
 
@@ -265,12 +265,12 @@ ValueNumberer::releaseInsOperands(MInstruction *ins,
 }
 
 bool
-ValueNumberer::deleteDef(MDefinition *def,
+ValueNumberer::discardDef(MDefinition *def,
                          UseRemovedOption useRemovedOption)
 {
-    JitSpew(JitSpew_GVN, "    Deleting %s%u", def->opName(), def->id());
-    MOZ_ASSERT(IsDead(def), "Deleting non-dead definition");
-    MOZ_ASSERT(!values_.has(def), "Deleting an instruction still in the set");
+    JitSpew(JitSpew_GVN, "    Discarding %s%u", def->opName(), def->id());
+    MOZ_ASSERT(IsDead(def), "Discarding non-dead definition");
+    MOZ_ASSERT(!values_.has(def), "Discarding an instruction still in the set");
 
     if (def->isPhi()) {
         MPhi *phi = def->toPhi();
@@ -296,7 +296,7 @@ ValueNumberer::processDeadDefs()
         MDefinition *def = deadDefs_.popCopy();
 
         values_.forget(def);
-        if (!deleteDef(def))
+        if (!discardDef(def))
             return false;
     }
     return true;
@@ -363,21 +363,21 @@ ValueNumberer::removeBlocksRecursively(MBasicBlock *start, const MBasicBlock *do
         }
 
 #ifdef DEBUG
-        JitSpew(JitSpew_GVN, "    Deleting block%u%s%s%s", block->id(),
+        JitSpew(JitSpew_GVN, "    Discarding block%u%s%s%s", block->id(),
                 block->isLoopHeader() ? " (loop header)" : "",
                 block->isSplitEdge() ? " (split edge)" : "",
                 block->immediateDominator() == block ? " (dominator root)" : "");
         for (MDefinitionIterator iter(block); iter; iter++) {
             MDefinition *def = *iter;
-            JitSpew(JitSpew_GVN, "      Deleting %s%u", def->opName(), def->id());
+            JitSpew(JitSpew_GVN, "      Discarding %s%u", def->opName(), def->id());
         }
         MControlInstruction *control = block->lastIns();
-        JitSpew(JitSpew_GVN, "      Deleting %s%u", control->opName(), control->id());
+        JitSpew(JitSpew_GVN, "      Discarding %s%u", control->opName(), control->id());
 #endif
 
         
         if (dominatorRoot->dominates(block))
-            ++numBlocksDeleted_;
+            ++numBlocksDiscarded_;
 
         
         
@@ -484,7 +484,7 @@ ValueNumberer::visitDefinition(MDefinition *def)
         def->setNotGuardUnchecked();
 
         if (DeadIfUnused(def)) {
-            if (!deleteDefsRecursively(def))
+            if (!discardDefsRecursively(def))
                 return false;
         }
         def = sim;
@@ -509,11 +509,11 @@ ValueNumberer::visitDefinition(MDefinition *def)
             if (DeadIfUnused(def)) {
                 
                 
-                mozilla::DebugOnly<bool> r = deleteDef(def, DontSetUseRemoved);
-                MOZ_ASSERT(r, "deleteDef shouldn't have tried to add anything to the worklist, "
+                mozilla::DebugOnly<bool> r = discardDef(def, DontSetUseRemoved);
+                MOZ_ASSERT(r, "discardDef shouldn't have tried to add anything to the worklist, "
                               "so it shouldn't have failed");
                 MOZ_ASSERT(deadDefs_.empty(),
-                           "deleteDef shouldn't have added anything to the worklist");
+                           "discardDef shouldn't have added anything to the worklist");
             }
             def = rep;
         }
@@ -591,7 +591,7 @@ ValueNumberer::visitBlock(MBasicBlock *block, const MBasicBlock *dominatorRoot)
 
         
         if (IsDead(def)) {
-            if (!deleteDefsRecursively(def))
+            if (!discardDefsRecursively(def))
                 return false;
             continue;
         }
@@ -612,7 +612,7 @@ ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot, size_t *totalNumVi
             dominatorRoot == graph_.entryBlock() ? " (normal entry block)" :
             dominatorRoot == graph_.osrBlock() ? " (OSR entry block)" :
             " (normal entry and OSR entry merge point)");
-    MOZ_ASSERT(numBlocksDeleted_ == 0, "numBlocksDeleted_ wasn't reset");
+    MOZ_ASSERT(numBlocksDiscarded_ == 0, "numBlocksDiscarded_ wasn't reset");
     MOZ_ASSERT(dominatorRoot->immediateDominator() == dominatorRoot,
             "root is not a dominator tree root");
 
@@ -637,15 +637,15 @@ ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot, size_t *totalNumVi
             remainingBlocks_.clear();
         }
         ++numVisited;
-        MOZ_ASSERT(numVisited <= dominatorRoot->numDominated() - numBlocksDeleted_,
+        MOZ_ASSERT(numVisited <= dominatorRoot->numDominated() - numBlocksDiscarded_,
                    "Visited blocks too many times");
-        if (numVisited >= dominatorRoot->numDominated() - numBlocksDeleted_)
+        if (numVisited >= dominatorRoot->numDominated() - numBlocksDiscarded_)
             break;
     }
 
     *totalNumVisited += numVisited;
     values_.clear();
-    numBlocksDeleted_ = 0;
+    numBlocksDiscarded_ = 0;
     return true;
 }
 
@@ -679,7 +679,7 @@ ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph)
     deadDefs_(graph.alloc()),
     unreachableBlocks_(graph.alloc()),
     remainingBlocks_(graph.alloc()),
-    numBlocksDeleted_(0),
+    numBlocksDiscarded_(0),
     rerun_(false),
     blocksRemoved_(false),
     updateAliasAnalysis_(false),
@@ -703,6 +703,7 @@ ValueNumberer::run(UpdateAliasAnalysisFlag updateAliasAnalysis)
     JitSpew(JitSpew_GVN, "Running GVN on graph (with %llu blocks)",
             uint64_t(graph_.numBlocks()));
 
+    
     
     
     

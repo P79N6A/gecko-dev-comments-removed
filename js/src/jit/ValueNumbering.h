@@ -66,7 +66,7 @@ class ValueNumberer
     DefWorklist deadDefs_;            
     BlockWorklist unreachableBlocks_; 
     BlockWorklist remainingBlocks_;   
-    size_t numBlocksDeleted_;         
+    size_t numBlocksDiscarded_;       
     bool rerun_;                      
     bool blocksRemoved_;              
     bool updateAliasAnalysis_;        
@@ -77,13 +77,13 @@ class ValueNumberer
         SetUseRemoved
     };
 
-    bool deleteDefsRecursively(MDefinition *def);
+    bool discardDefsRecursively(MDefinition *def);
     bool releasePhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
                             UseRemovedOption useRemovedOption = SetUseRemoved);
     bool releaseInsOperands(MInstruction *ins,
                             UseRemovedOption useRemovedOption = SetUseRemoved);
-    bool deleteDef(MDefinition *def,
-                   UseRemovedOption useRemovedOption = SetUseRemoved);
+    bool discardDef(MDefinition *def,
+                    UseRemovedOption useRemovedOption = SetUseRemoved);
     bool processDeadDefs();
 
     bool removePredecessor(MBasicBlock *block, MBasicBlock *pred);
