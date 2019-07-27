@@ -89,6 +89,7 @@ public:
 
 
 
+
   static float GetTouchStartTolerance();
 
   AsyncPanZoomController(uint64_t aLayersId,
@@ -486,6 +487,8 @@ protected:
 
 
 
+
+
   float PanDistance() const;
 
   
@@ -520,6 +523,7 @@ protected:
   void HandlePanning(double angle);
 
   
+
 
 
   void HandlePanningUpdate(const ScreenPoint& aDelta);
