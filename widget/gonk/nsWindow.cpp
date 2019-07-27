@@ -68,14 +68,10 @@ static uint32_t sScreenRotation;
 static uint32_t sPhysicalScreenRotation;
 static nsIntRect sVirtualBounds;
 
-static nsRefPtr<GLContext> sGLContext;
 static nsTArray<nsWindow *> sTopWindows;
 static nsWindow *gFocusedWindow = nullptr;
-static bool sFramebufferOpen;
-static bool sUsingOMTC;
 static bool sUsingHwc;
 static bool sScreenInitialized;
-static nsRefPtr<gfxASurface> sOMTCSurface;
 
 namespace {
 
@@ -160,15 +156,11 @@ nsWindow::nsWindow()
         
         
         gfxPlatform::GetPlatform();
-        sUsingOMTC = ShouldUseOffMainThreadCompositing();
-
+        if (!ShouldUseOffMainThreadCompositing()) {
+            MOZ_CRASH("How can we render apps, then?");
+        }
         
         Preferences::AddBoolVarCache(&sUsingHwc, "layers.composer2d.enabled");
-
-        if (sUsingOMTC) {
-          sOMTCSurface = new gfxImageSurface(gfxIntSize(1, 1),
-                                             gfxImageFormat::RGB24);
-        }
     }
 }
 
@@ -201,35 +193,6 @@ nsWindow::DoDraw(void)
     LayerManager* lm = targetWindow->GetLayerManager();
     if (mozilla::layers::LayersBackend::LAYERS_CLIENT == lm->GetBackendType()) {
       
-    } else if (mozilla::layers::LayersBackend::LAYERS_BASIC == lm->GetBackendType()) {
-        MOZ_ASSERT(sFramebufferOpen || sUsingOMTC);
-        nsRefPtr<gfxASurface> targetSurface;
-
-        if(sUsingOMTC)
-            targetSurface = sOMTCSurface;
-        else
-            targetSurface = Framebuffer::BackBuffer();
-
-        {
-            nsRefPtr<gfxContext> ctx = new gfxContext(targetSurface);
-            gfxUtils::PathFromRegion(ctx, sVirtualBounds);
-            ctx->Clip();
-
-            
-            AutoLayerManagerSetup setupLayerManager(
-                targetWindow, ctx, mozilla::layers::BufferMode::BUFFER_NONE,
-                ScreenRotation(EffectiveScreenRotation()));
-
-            listener = targetWindow->GetWidgetListener();
-            if (listener) {
-                listener->PaintWindow(targetWindow, sVirtualBounds);
-            }
-        }
-
-        if (!sUsingOMTC) {
-            targetSurface->Flush();
-            Framebuffer::Present(sVirtualBounds);
-        }
     } else {
         NS_RUNTIMEABORT("Unexpected layer manager type");
     }
@@ -537,12 +500,7 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     if (mLayerManager) {
         
         
-        if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC) {
-            BasicLayerManager* manager =
-                static_cast<BasicLayerManager*>(mLayerManager.get());
-            manager->SetDefaultTargetConfiguration(mozilla::layers::BufferMode::BUFFER_NONE,
-                                                   ScreenRotation(EffectiveScreenRotation()));
-        } else if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
+        if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
             ClientLayerManager* manager =
                 static_cast<ClientLayerManager*>(mLayerManager.get());
             manager->SetDefaultTargetConfiguration(mozilla::layers::BufferMode::BUFFER_NONE,
@@ -561,38 +519,13 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
         return nullptr;
     }
 
-    if (sUsingOMTC) {
-        CreateCompositor();
-        if (mCompositorParent) {
-            uint64_t rootLayerTreeId = mCompositorParent->RootLayerTreeId();
-            CompositorParent::SetControllerForLayerTree(rootLayerTreeId, new ParentProcessController());
-            CompositorParent::GetAPZCTreeManager(rootLayerTreeId)->SetDPI(GetDPI());
-        }
-        if (mLayerManager)
-            return mLayerManager;
+    CreateCompositor();
+    if (mCompositorParent) {
+        uint64_t rootLayerTreeId = mCompositorParent->RootLayerTreeId();
+        CompositorParent::SetControllerForLayerTree(rootLayerTreeId, new ParentProcessController());
+        CompositorParent::GetAPZCTreeManager(rootLayerTreeId)->SetDPI(GetDPI());
     }
-
-    if (mUseLayersAcceleration) {
-        DebugOnly<nsIntRect> fbBounds = gScreenBounds;
-        if (!sGLContext) {
-            sGLContext = GLContextProvider::CreateForWindow(this);
-        }
-
-        MOZ_ASSERT(fbBounds.value == gScreenBounds);
-    }
-
-    
-    sFramebufferOpen = Framebuffer::Open();
-    if (sFramebufferOpen) {
-        LOG("Falling back to framebuffer software rendering");
-    } else {
-        LOGE("Failed to mmap fb(?!?), aborting ...");
-        NS_RUNTIMEABORT("Can't open GL context and can't fall back on /dev/graphics/fb0 ...");
-    }
-
-    mLayerManager = new ClientLayerManager(this);
-    mUseLayersAcceleration = false;
-
+    MOZ_ASSERT(mLayerManager);
     return mLayerManager;
 }
 
