@@ -152,6 +152,56 @@ private:
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIEditor> mEditor;
 
+  
+
+
+
+  struct FlatTextCache
+  {
+    
+    
+    nsCOMPtr<nsINode> mContainerNode;
+    int32_t mNodeOffset;
+    
+    
+    uint32_t mFlatTextLength;
+
+    FlatTextCache()
+      : mNodeOffset(0)
+      , mFlatTextLength(0)
+    {
+    }
+
+    void Clear()
+    {
+      mContainerNode = nullptr;
+      mNodeOffset = 0;
+      mFlatTextLength = 0;
+    }
+
+    void Cache(nsINode* aContainer, int32_t aNodeOffset,
+               uint32_t aFlatTextLength)
+    {
+      MOZ_ASSERT(aContainer, "aContainer must not be null");
+      MOZ_ASSERT(
+        aNodeOffset <= static_cast<int32_t>(aContainer->GetChildCount()),
+        "aNodeOffset must be same as or less than the count of children");
+      mContainerNode = aContainer;
+      mNodeOffset = aNodeOffset;
+      mFlatTextLength = aFlatTextLength;
+    }
+
+    bool Match(nsINode* aContainer, int32_t aNodeOffset) const
+    {
+      return aContainer == mContainerNode && aNodeOffset == mNodeOffset;
+    }
+  };
+  
+  
+  
+  
+  FlatTextCache mEndOfAddedTextCache;
+
   TextChangeData mTextChangeData;
 
   EventStateManager* mESM;
