@@ -86,117 +86,43 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     this.notificationManager = new FxAccountNotificationManager(NOTIFICATION_ID);
   }
 
-  protected static class SyncDelegate {
-    protected final CountDownLatch latch;
-    protected final SyncResult syncResult;
-    protected final AndroidFxAccount fxAccount;
+  protected static class SyncDelegate extends FxAccountSyncDelegate {
+    @Override
+    public void handleSuccess() {
+      Logger.info(LOG_TAG, "Sync succeeded.");
+      super.handleSuccess();
+    }
+
+    @Override
+    public void handleError(Exception e) {
+      Logger.error(LOG_TAG, "Got exception syncing.", e);
+      super.handleError(e);
+    }
+
+    @Override
+    public void handleCannotSync(State finalState) {
+      Logger.warn(LOG_TAG, "Cannot sync from state: " + finalState.getStateLabel());
+      super.handleCannotSync(finalState);
+    }
+
+    @Override
+    public void postponeSync(long millis) {
+      if (millis <= 0) {
+        Logger.debug(LOG_TAG, "Asked to postpone sync, but zero delay.");
+      }
+      super.postponeSync(millis);
+    }
+
+    @Override
+    public void rejectSync() {
+      super.rejectSync();
+    }
+
     protected final Collection<String> stageNamesToSync;
 
     public SyncDelegate(CountDownLatch latch, SyncResult syncResult, AndroidFxAccount fxAccount, Collection<String> stageNamesToSync) {
-      if (latch == null) {
-        throw new IllegalArgumentException("latch must not be null");
-      }
-      if (syncResult == null) {
-        throw new IllegalArgumentException("syncResult must not be null");
-      }
-      if (fxAccount == null) {
-        throw new IllegalArgumentException("fxAccount must not be null");
-      }
-      this.latch = latch;
-      this.syncResult = syncResult;
-      this.fxAccount = fxAccount;
+      super(latch, syncResult, fxAccount);
       this.stageNamesToSync = Collections.unmodifiableCollection(stageNamesToSync);
-    }
-
-    
-
-
-    protected void setSyncResultSuccess() {
-      syncResult.stats.numUpdates += 1;
-    }
-
-    
-
-
-
-    protected void setSyncResultSoftError() {
-      syncResult.stats.numUpdates += 1;
-      syncResult.stats.numIoExceptions += 1;
-    }
-
-    
-
-
-
-    protected void setSyncResultHardError() {
-      syncResult.stats.numAuthExceptions += 1;
-    }
-
-    public void handleSuccess() {
-      Logger.info(LOG_TAG, "Sync succeeded.");
-      setSyncResultSuccess();
-      latch.countDown();
-    }
-
-    public void handleError(Exception e) {
-      Logger.error(LOG_TAG, "Got exception syncing.", e);
-      setSyncResultSoftError();
-      
-      
-      if (e instanceof TokenServerException) {
-        
-        State state = fxAccount.getState();
-        if (state.getStateLabel() == StateLabel.Married) {
-          Married married = (Married) state;
-          fxAccount.setState(married.makeCohabitingState());
-        }
-      }
-      latch.countDown();
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public void handleCannotSync(State finalState) {
-      Logger.warn(LOG_TAG, "Cannot sync from state: " + finalState.getStateLabel());
-      setSyncResultSoftError();
-      latch.countDown();
-    }
-
-    public void postponeSync(long millis) {
-      if (millis <= 0) {
-        Logger.debug(LOG_TAG, "Asked to postpone sync, but zero delay. Short-circuiting.");
-      } else {
-        
-        
-        
-        
-
-
-
-      }
-      setSyncResultSoftError();
-      latch.countDown();
-    }
-
-    
-
-
-
-
-    public void rejectSync() {
-      latch.countDown();
     }
 
     public Collection<String> getStageNamesToSync() {
