@@ -1069,16 +1069,27 @@ GCRuntime::moveChunkToFreePool(Chunk *chunk)
 }
 
 inline bool
-GCRuntime::wantBackgroundAllocation() const
+GCRuntime::wantBackgroundAllocation(const AutoLockGC &lock) const
 {
     
-
-
-
-
-    return helperState.canBackgroundAllocate() &&
+    
+    
+    return allocTask.enabled() &&
            emptyChunks.count() < tunables.minEmptyChunkCount() &&
            chunkSet.count() >= 4;
+}
+
+void
+GCRuntime::startBackgroundAllocTaskIfIdle()
+{
+    AutoLockHelperThreadState helperLock;
+    if (allocTask.isRunning())
+        return;
+
+    
+    
+    allocTask.joinWithLockHeld();
+    allocTask.startWithLockHeld();
 }
 
 class js::gc::AutoMaybeStartBackgroundAllocation
@@ -1099,17 +1110,14 @@ class js::gc::AutoMaybeStartBackgroundAllocation
     }
 
     ~AutoMaybeStartBackgroundAllocation() {
-        if (runtime && !runtime->currentThreadOwnsInterruptLock()) {
-            AutoLockHelperThreadState helperLock;
-            AutoLockGC lock(runtime);
-            runtime->gc.startBackgroundAllocationIfIdle();
-        }
+        if (runtime && !runtime->currentThreadOwnsInterruptLock())
+            runtime->gc.startBackgroundAllocTaskIfIdle();
     }
 };
 
-
 Chunk *
-GCRuntime::pickChunk(Zone *zone, AutoMaybeStartBackgroundAllocation &maybeStartBackgroundAllocation)
+GCRuntime::pickChunk(const AutoLockGC &lock, Zone *zone,
+                     AutoMaybeStartBackgroundAllocation &maybeStartBackgroundAllocation)
 {
     Chunk **listHeadp = getAvailableChunkList(zone);
     Chunk *chunk = *listHeadp;
@@ -1127,7 +1135,7 @@ GCRuntime::pickChunk(Zone *zone, AutoMaybeStartBackgroundAllocation &maybeStartB
     MOZ_ASSERT(chunk->unused());
     MOZ_ASSERT(!chunkSet.has(chunk));
 
-    if (wantBackgroundAllocation())
+    if (wantBackgroundAllocation(lock))
         maybeStartBackgroundAllocation.tryToStartBackgroundAllocation(rt);
 
     chunkAllocationSinceLastGC = true;
@@ -1229,6 +1237,7 @@ GCRuntime::GCRuntime(JSRuntime *rt) :
 #endif
     lock(nullptr),
     lockOwner(nullptr),
+    allocTask(rt, emptyChunks),
     helperState(rt)
 {
     setGCMode(JSGC_MODE_GLOBAL);
@@ -1970,7 +1979,7 @@ ArenaLists::allocateFromArena(JS::Zone *zone, AllocKind thingKind,
     if (maybeLock.isNothing())
         maybeLock.emplace(rt);
 
-    Chunk *chunk = rt->gc.pickChunk(zone, maybeStartBGAlloc);
+    Chunk *chunk = rt->gc.pickChunk(maybeLock.ref(), zone, maybeStartBGAlloc);
     if (!chunk)
         return nullptr;
 
@@ -3269,12 +3278,8 @@ GCHelperState::init()
     if (!(done = PR_NewCondVar(rt->gc.lock)))
         return false;
 
-    if (CanUseExtraThreads()) {
-        backgroundAllocation = (GetCPUCount() >= 2);
+    if (CanUseExtraThreads())
         HelperThreadState().ensureInitialized();
-    } else {
-        backgroundAllocation = false;
-    }
 
     return true;
 }
@@ -3358,34 +3363,38 @@ GCHelperState::work()
         break;
       }
 
-      case ALLOCATING: {
-        AutoTraceLog logAllocation(logger, TraceLogger::GCAllocation);
-        do {
-            Chunk *chunk;
-            {
-                AutoUnlockGC unlock(rt);
-                chunk = Chunk::allocate(rt);
-            }
-
-            
-            if (!chunk)
-                break;
-            MOZ_ASSERT(chunk->info.numArenasFreeCommitted == 0);
-            rt->gc.emptyChunks.put(chunk);
-        } while (state() == ALLOCATING && rt->gc.wantBackgroundAllocation());
-
-        MOZ_ASSERT(state() == ALLOCATING || state() == CANCEL_ALLOCATION);
-        break;
-      }
-
-      case CANCEL_ALLOCATION:
-        break;
     }
 
     setState(IDLE);
     thread = nullptr;
 
     PR_NotifyAllCondVar(done);
+}
+
+BackgroundAllocTask::BackgroundAllocTask(JSRuntime *rt, ChunkPool &pool)
+  : runtime(rt),
+    chunkPool_(pool),
+    enabled_(CanUseExtraThreads() && GetCPUCount() >= 2)
+{
+}
+
+ void
+BackgroundAllocTask::run()
+{
+    TraceLogger *logger = TraceLoggerForCurrentThread();
+    AutoTraceLog logAllocation(logger, TraceLogger::GCAllocation);
+
+    AutoLockGC lock(runtime);
+    while (!cancel_ && runtime->gc.wantBackgroundAllocation(lock)) {
+        Chunk *chunk;
+        {
+            AutoUnlockGC unlock(runtime);
+            chunk = Chunk::allocate(runtime);
+            if (!chunk)
+                break;
+        }
+        chunkPool_.put(chunk);
+    }
 }
 
 void
@@ -3416,13 +3425,8 @@ GCHelperState::startBackgroundShrink()
       case SWEEPING:
         shrinkFlag = true;
         break;
-      case ALLOCATING:
-      case CANCEL_ALLOCATION:
-        
-
-
-
-        break;
+      default:
+        MOZ_CRASH("Invalid GC helper thread state.");
     }
 }
 
@@ -3434,26 +3438,6 @@ GCHelperState::waitBackgroundSweepEnd()
         waitForBackgroundThread();
     if (rt->gc.incrementalState == NO_INCREMENTAL)
         rt->gc.assertBackgroundSweepingFinished();
-}
-
-void
-GCHelperState::waitBackgroundSweepOrAllocEnd()
-{
-    AutoLockGC lock(rt);
-    if (state() == ALLOCATING)
-        setState(CANCEL_ALLOCATION);
-    while (state() == SWEEPING || state() == CANCEL_ALLOCATION)
-        waitForBackgroundThread();
-    if (rt->gc.incrementalState == NO_INCREMENTAL)
-        rt->gc.assertBackgroundSweepingFinished();
-}
-
-
-inline void
-GCHelperState::startBackgroundAllocationIfIdle()
-{
-    if (state_ == IDLE)
-        startBackgroundThread(ALLOCATING);
 }
 
 
@@ -5828,15 +5812,20 @@ GCRuntime::gcCycle(bool incremental, int64_t budget, JSGCInvocationKind gckind,
     
     JS::AutoAssertOnGC::VerifyIsSafeToGC(rt);
 
-    
-
-
-
-
-
     {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_WAIT_BACKGROUND_THREAD);
-        waitBackgroundSweepOrAllocEnd();
+
+        
+        
+        
+        if (incrementalState == NO_INCREMENTAL)
+            waitBackgroundSweepEnd();
+
+        
+        
+        
+        
+        allocTask.cancel(GCParallelTask::CancelAndWait);
     }
 
     State prevState = incrementalState;

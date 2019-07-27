@@ -1005,9 +1005,7 @@ class GCHelperState
 {
     enum State {
         IDLE,
-        SWEEPING,
-        ALLOCATING,
-        CANCEL_ALLOCATION
+        SWEEPING
     };
 
     
@@ -1033,8 +1031,6 @@ class GCHelperState
     bool              sweepFlag;
     bool              shrinkFlag;
 
-    bool              backgroundAllocation;
-
     friend class js::gc::ArenaLists;
 
     static void freeElementsAndArray(void **array, void **end) {
@@ -1054,8 +1050,7 @@ class GCHelperState
         state_(IDLE),
         thread(nullptr),
         sweepFlag(false),
-        shrinkFlag(false),
-        backgroundAllocation(true)
+        shrinkFlag(false)
     { }
 
     bool init();
@@ -1071,20 +1066,6 @@ class GCHelperState
 
     
     void waitBackgroundSweepEnd();
-
-    
-    void waitBackgroundSweepOrAllocEnd();
-
-    
-    void startBackgroundAllocationIfIdle();
-
-    bool canBackgroundAllocate() const {
-        return backgroundAllocation;
-    }
-
-    void disableBackgroundAllocation() {
-        backgroundAllocation = false;
-    }
 
     bool onBackgroundThread();
 
@@ -1118,11 +1099,15 @@ class GCParallelTask
     uint64_t duration_;
 
   protected:
+    
+    mozilla::Atomic<bool> cancel_;
+
     virtual void run() = 0;
 
   public:
     GCParallelTask() : state(NotStarted), duration_(0) {}
 
+    
     int64_t duration() const { return duration_; }
 
     
@@ -1136,6 +1121,17 @@ class GCParallelTask
 
     
     void runFromMainThread(JSRuntime *rt);
+
+    
+    enum CancelMode { CancelNoWait, CancelAndWait};
+    void cancel(CancelMode mode = CancelNoWait) {
+        cancel_ = true;
+        if (mode == CancelAndWait)
+            join();
+    }
+
+    
+    bool isRunning() const;
 
     
     
