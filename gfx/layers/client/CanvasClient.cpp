@@ -409,13 +409,7 @@ CanvasClientSharedSurface::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 void
 CanvasClientSharedSurface::ClearSurfaces()
 {
-  if (mFrontTex && (mFront || mPrevFront)) {
-    
-    
-    
-    mFrontTex->ForceRemove(true );
-    mFrontTex = nullptr;
-  }
+  mFrontTex = nullptr;
   
   mFront = nullptr;
   mPrevFront = nullptr;
