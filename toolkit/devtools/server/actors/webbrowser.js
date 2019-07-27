@@ -1581,6 +1581,13 @@ Object.defineProperty(BrowserTabActor.prototype, "docShell", {
 
 Object.defineProperty(BrowserTabActor.prototype, "title", {
   get: function() {
+    
+    if (this._browser.__SS_restore) {
+      let sessionStore = this._browser.__SS_data;
+      
+      let entry = sessionStore.entries[sessionStore.index - 1];
+      return entry.title;
+    }
     let title = this.contentDocument.title || this._browser.contentTitle;
     
     
@@ -1595,6 +1602,24 @@ Object.defineProperty(BrowserTabActor.prototype, "title", {
   },
   enumerable: true,
   configurable: false
+});
+
+Object.defineProperty(BrowserTabActor.prototype, "url", {
+  get: function() {
+    
+    if (this._browser.__SS_restore) {
+      let sessionStore = this._browser.__SS_data;
+      
+      let entry = sessionStore.entries[sessionStore.index - 1];
+      return entry.url;
+    }
+    if (this.webNavigation.currentURI) {
+      return this.webNavigation.currentURI.spec;
+    }
+    return null;
+  },
+  enumerable: true,
+  configurable: true
 });
 
 Object.defineProperty(BrowserTabActor.prototype, "browser", {
