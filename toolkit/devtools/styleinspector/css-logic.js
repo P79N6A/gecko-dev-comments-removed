@@ -130,6 +130,9 @@ CssLogic.prototype = {
   _matchedSelectors: null,
 
   
+  _keyframesRules: null,
+
+  
 
 
   reset: function CssLogic_reset()
@@ -141,6 +144,7 @@ CssLogic.prototype = {
     this._sheetsCached = false;
     this._matchedRules = null;
     this._matchedSelectors = null;
+    this._keyframesRules = [];
   },
 
   
@@ -177,6 +181,15 @@ CssLogic.prototype = {
     this._matchedSelectors = null;
     let win = this.viewedDocument.defaultView;
     this._computedStyle = win.getComputedStyle(this.viewedElement, "");
+  },
+
+  
+
+
+
+
+  get computedStyle() {
+    return this._computedStyle;
   },
 
   
@@ -292,12 +305,14 @@ CssLogic.prototype = {
       cssSheet._passId = this._passId;
 
       
-      Array.prototype.forEach.call(aDomSheet.cssRules, function(aDomRule) {
+      for (let aDomRule of aDomSheet.cssRules) {
         if (aDomRule.type == Ci.nsIDOMCSSRule.IMPORT_RULE && aDomRule.styleSheet &&
             this.mediaMatches(aDomRule)) {
           this._cacheSheet(aDomRule.styleSheet);
+        } else if (aDomRule.type == Ci.nsIDOMCSSRule.KEYFRAMES_RULE) {
+          this._keyframesRules.push(aDomRule);
         }
-      }, this);
+      }
     }
   },
 
@@ -320,6 +335,19 @@ CssLogic.prototype = {
     }, this);
 
     return sheets;
+  },
+
+  
+
+
+
+
+  get keyframesRules()
+  {
+    if (!this._sheetsCached) {
+      this._cacheSheets();
+    }
+    return this._keyframesRules;
   },
 
   
@@ -620,7 +648,6 @@ CssLogic.prototype = {
         this._matchedRules.push([rule, status]);
       }
 
-
       
       if (element.style && element.style.length > 0) {
         let rule = new CssRule(null, { style: element.style }, element);
@@ -644,7 +671,7 @@ CssLogic.prototype = {
     let mediaText = aDomObject.media.mediaText;
     return !mediaText || this.viewedDocument.defaultView.
                          matchMedia(mediaText).matches;
-   },
+  },
 };
 
 
@@ -1535,9 +1562,9 @@ CssPropertyInfo.prototype = {
 
   get value()
   {
-    if (!this._value && this._cssLogic._computedStyle) {
+    if (!this._value && this._cssLogic.computedStyle) {
       try {
-        this._value = this._cssLogic._computedStyle.getPropertyValue(this.property);
+        this._value = this._cssLogic.computedStyle.getPropertyValue(this.property);
       } catch (ex) {
         Services.console.logStringMessage('Error reading computed style for ' +
           this.property);
