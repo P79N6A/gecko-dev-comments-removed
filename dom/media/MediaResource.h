@@ -318,7 +318,7 @@ public:
   
   
   
-  virtual void MoveLoadsToBackground() {}
+  virtual void SetLoadInBackground(bool aLoadInBackground) {}
   
   
   virtual void EnsureCacheUpToDate() {}
@@ -431,7 +431,7 @@ private:
 class BaseMediaResource : public MediaResource {
 public:
   virtual nsIURI* URI() const { return mURI; }
-  virtual void MoveLoadsToBackground();
+  virtual void SetLoadInBackground(bool aLoadInBackground) MOZ_OVERRIDE;
 
   virtual size_t SizeOfExcludingThis(
                   MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
@@ -504,6 +504,8 @@ protected:
   
   const nsAutoCString mContentType;
 
+  
+  
   
   
   bool mLoadInBackground;

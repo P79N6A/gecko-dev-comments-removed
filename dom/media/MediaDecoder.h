@@ -652,7 +652,7 @@ public:
   
   
   
-  virtual void MoveLoadsToBackground();
+  void SetLoadInBackground(bool aLoadInBackground);
 
   
   MediaDecoderOwner* GetMediaOwner() const;
