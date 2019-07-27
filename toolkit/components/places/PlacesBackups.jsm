@@ -233,7 +233,7 @@ this.PlacesBackups = {
     let dateObj = aDateObj || new Date();
     
     
-      return "bookmarks-" + dateObj.toLocaleFormat("%Y-%m-%d") + ".json" +
+      return "bookmarks-" + dateObj.toISOString().substr(0, 10) + ".json" +
                             (aCompress ? "lz4" : "");
   },
 
