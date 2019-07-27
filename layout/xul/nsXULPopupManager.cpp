@@ -2178,6 +2178,7 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
     if (keyCode == nsIDOMKeyEvent::DOM_VK_ESCAPE) {
       HidePopup(aTopVisibleMenuItem->Content(), false, false, false, true);
       aKeyEvent->StopPropagation();
+      aKeyEvent->StopCrossProcessForwarding();
       aKeyEvent->PreventDefault();
     }
     return true;
@@ -2249,6 +2250,7 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
 
   if (consume) {
     aKeyEvent->StopPropagation();
+    aKeyEvent->StopCrossProcessForwarding();
     aKeyEvent->PreventDefault();
   }
   return true;
@@ -2449,6 +2451,7 @@ nsXULPopupManager::KeyUp(nsIDOMKeyEvent* aKeyEvent)
   }
 
   aKeyEvent->StopPropagation();
+  aKeyEvent->StopCrossProcessForwarding();
   aKeyEvent->PreventDefault();
 
   return NS_OK; 
@@ -2507,6 +2510,7 @@ nsXULPopupManager::KeyDown(nsIDOMKeyEvent* aKeyEvent)
   
   
   aKeyEvent->StopPropagation();
+  aKeyEvent->StopCrossProcessForwarding();
   return NS_OK;
 }
 
@@ -2528,6 +2532,7 @@ nsXULPopupManager::KeyPress(nsIDOMKeyEvent* aKeyEvent)
   HandleShortcutNavigation(keyEvent, nullptr);
   if (consume) {
     aKeyEvent->StopPropagation();
+    aKeyEvent->StopCrossProcessForwarding();
     aKeyEvent->PreventDefault();
   }
 
