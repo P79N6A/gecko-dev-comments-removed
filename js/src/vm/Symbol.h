@@ -83,7 +83,7 @@ struct HashSymbolsByDescription
 
 
 
-typedef HashSet<JS::Symbol *, HashSymbolsByDescription, SystemAllocPolicy> SymbolHashSet;
+typedef HashSet<ReadBarrieredSymbol, HashSymbolsByDescription, SystemAllocPolicy> SymbolHashSet;
 
 
 
