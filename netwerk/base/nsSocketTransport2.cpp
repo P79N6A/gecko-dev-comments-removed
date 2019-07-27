@@ -2918,7 +2918,7 @@ nsSocketTransport::PRFileDescAutoLock::SetKeepaliveVals(bool aEnabled,
     }
     return NS_OK;
 
-#elif defined(XP_MACOSX)
+#elif defined(XP_DARWIN)
     
     int err = setsockopt(sock, IPPROTO_TCP, TCP_KEEPALIVE,
                          &aIdleTime, sizeof(aIdleTime));
