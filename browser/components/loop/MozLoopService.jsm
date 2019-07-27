@@ -81,6 +81,159 @@ let gFxAOAuthTokenData = null;
 let gFxAOAuthProfile = null;
 let gErrors = new Map();
 
+ 
+
+
+
+
+
+
+
+function CallProgressSocket(progressUrl, callId, token) {
+  if (!progressUrl || !callId || !token) {
+    throw new Error("missing required arguments");
+  }
+
+  this._progressUrl = progressUrl;
+  this._callId = callId;
+  this._token = token;
+}
+
+CallProgressSocket.prototype = {
+  
+
+
+
+
+
+
+
+  connect: function(onSuccess, onError) {
+    this._onSuccess = onSuccess;
+    this._onError = onError ||
+      (reason => {console.warn("MozLoopService::callProgessSocket - ", reason);});
+
+    if (!onSuccess) {
+      this._onError("missing onSuccess argument");
+      return;
+    }
+
+    let uri = Services.io.newURI(this._progressUrl, null, null);
+
+    
+    if (!this._websocket && !Services.io.offline) {
+      this._websocket = Cc["@mozilla.org/network/protocol;1?name=" + uri.scheme]
+        .createInstance(Ci.nsIWebSocketChannel);
+    } else {
+      this._onError("IO offline");
+      return;
+    }
+
+    this._websocket.asyncOpen(uri, this._progressUrl, this, null);
+  },
+
+  
+
+
+
+
+
+  onStart: function() {
+    let helloMsg = {
+      messageType: "hello",
+      callId: this._callId,
+      auth: this._token,
+    };
+    try { 
+      this._websocket.sendMsg(JSON.stringify(helloMsg));
+    }
+    catch (error) {
+      this._onError(error);
+    }
+  },
+
+  
+
+
+
+
+
+  onStop: function(aContext, aStatusCode) {
+    if (!this._handshakeComplete) {
+      this._onError("[" + aStatusCode + "]");
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  onServerClose: function(aContext, aCode, aReason) {
+    if (!this._handshakeComplete) {
+      this._onError("[" + aCode + "]" + aReason);
+    }
+  },
+
+  
+
+
+
+
+
+  onMessageAvailable: function(aContext, aMsg) {
+    let msg = {};
+    try {
+      msg = JSON.parse(aMsg);
+    }
+    catch (error) {
+      console.error("MozLoopService: error parsing progress message - ", error);
+      return;
+    }
+
+    if (msg.messageType && msg.messageType === 'hello') {
+      this._handshakeComplete = true;
+      this._onSuccess();
+    }
+  },
+
+
+  
+
+
+
+
+  _send: function(aMsg) {
+    if (!this._handshakeComplete) {
+      console.warn("MozLoopService::_send error - handshake not complete");
+      return;
+    }
+
+    try {
+      this._websocket.sendMsg(JSON.stringify(aMsg));
+    }
+    catch (error) {
+      this._onError(error);
+    }
+  },
+
+  
+
+
+
+  sendBusy: function() {
+    this._send({
+      messageType: "action",
+      event: "terminate",
+      reason: "busy"
+    });
+  },
+};
+
 
 
 
@@ -89,7 +242,7 @@ let gErrors = new Map();
 
 
 let MozLoopServiceInternal = {
-  callsData: {data: undefined},
+  callsData: {inUse: false},
 
   
   get loopServerUri() Services.prefs.getCharPref("loop.server"),
@@ -427,11 +580,19 @@ let MozLoopServiceInternal = {
       "/calls?version=" + version, "GET").then(response => {
       try {
         let respData = JSON.parse(response.body);
-        if (respData.calls && respData.calls[0]) {
-          this.callsData.data = respData.calls[0];
-          this.openChatWindow(null,
-            this.localizedStrings["incoming_call_title2"].textContent,
-            "about:loopconversation#incoming/" + version);
+        if (respData.calls && Array.isArray(respData.calls)) {
+          respData.calls.forEach((callData) => {
+            if (!this.callsData.inUse) {
+              this.callsData.inUse = true;
+              this.callsData.data = callData;
+              this.openChatWindow(
+                null,
+                this.localizedStrings["incoming_call_title2"].textContent,
+                "about:loopconversation#incoming/" + callData.callId);
+            } else {
+              this._returnBusy(callData);
+            }
+          });
         } else {
           console.warn("Error: missing calls[] in response");
         }
@@ -439,6 +600,23 @@ let MozLoopServiceInternal = {
         console.warn("Error parsing calls info", err);
       }
     });
+  },
+
+   
+
+
+
+
+
+
+  _returnBusy: function(callData) {
+    let callProgress = new CallProgressSocket(
+      callData.progressURL,
+      callData.callId,
+      callData.websocketToken);
+    
+    
+      callProgress.connect(() => {callProgress.sendBusy();});
   },
 
   
@@ -968,7 +1146,27 @@ this.MozLoopService = {
 
 
   getCallData: function(loopCallId) {
-    return MozLoopServiceInternal.callsData.data;
+    if (MozLoopServiceInternal.callsData.data &&
+        MozLoopServiceInternal.callsData.data.callId == loopCallId) {
+      return MozLoopServiceInternal.callsData.data;
+    } else {
+      return undefined;
+    }
+  },
+
+  
+
+
+
+
+
+
+  releaseCallData: function(loopCallId) {
+    if (MozLoopServiceInternal.callsData.data &&
+        MozLoopServiceInternal.callsData.data.callId == loopCallId) {
+      MozLoopServiceInternal.callsData.data = undefined;
+      MozLoopServiceInternal.callsData.inUse = false;
+    }
   },
 
   

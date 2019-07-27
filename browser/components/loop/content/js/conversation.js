@@ -215,6 +215,7 @@ loop.conversation = (function(OT, mozL10n) {
       "call/decline": "decline",
       "call/ongoing": "conversation",
       "call/declineAndBlock": "declineAndBlock",
+      "call/shutdown": "shutdown",
       "call/feedback": "feedback"
     },
 
@@ -229,7 +230,12 @@ loop.conversation = (function(OT, mozL10n) {
 
 
     endCall: function() {
+      navigator.mozLoop.releaseCallData(this._conversation.get("callId"));
       this.navigate("call/feedback", {trigger: true});
+    },
+
+    shutdown: function() {
+      navigator.mozLoop.releaseCallData(this._conversation.get("callId"));
     },
 
     
@@ -348,6 +354,7 @@ loop.conversation = (function(OT, mozL10n) {
 
     _declineCall: function() {
       this._websocket.decline();
+      navigator.mozLoop.releaseCallData(this._conversation.get("callId"));
       
       
       
@@ -458,6 +465,12 @@ loop.conversation = (function(OT, mozL10n) {
         {sdk: OT}), 
       notifications: new loop.shared.models.NotificationCollection()
     });
+
+    window.addEventListener("unload", (event) => {
+      
+      navigator.mozLoop.releaseCallData(router._conversation.get("callId"));
+    });
+
     Backbone.history.start();
   }
 

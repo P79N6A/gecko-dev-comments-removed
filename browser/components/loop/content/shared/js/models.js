@@ -18,7 +18,6 @@ loop.shared.models = (function(l10n) {
       ongoing:      false,         
       callerId:     undefined,     
       loopToken:    undefined,     
-      loopCallId:   undefined,     
       sessionId:    undefined,     
       sessionToken: undefined,     
       apiKey:       undefined,     

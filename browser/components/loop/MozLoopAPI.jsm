@@ -187,6 +187,21 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
+
+    releaseCallData: {
+      enumerable: true,
+      writable: true,
+      value: function(loopCallId) {
+        MozLoopService.releaseCallData(loopCallId);
+      }
+    },
+
+    
+
+
+
+
     contacts: {
       enumerable: true,
       get: function() {
