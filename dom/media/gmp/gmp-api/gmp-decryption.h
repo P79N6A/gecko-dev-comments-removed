@@ -72,7 +72,8 @@ enum GMPSessionMessageType {
   kGMPLicenseRequest = 0,
   kGMPLicenseRenewal = 1,
   kGMPLicenseRelease = 2,
-  kGMPMessageInvalid = 3 
+  kGMPIndividualizationRequest = 3,
+  kGMPMessageInvalid = 4 
 };
 
 
@@ -219,7 +220,7 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 
 };
 
-#define GMP_API_DECRYPTOR "eme-decrypt-v3"
+#define GMP_API_DECRYPTOR "eme-decrypt-v4"
 
 
 
