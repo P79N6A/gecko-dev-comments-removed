@@ -73,6 +73,11 @@ DevToolsUtils.defineLazyModuleGetter(this, "Task",
 
 
 
+
+
+
+
+
 let ConnectionManager = {
   _connections: new Set(),
   createConnection: function(host, port) {
@@ -179,9 +184,60 @@ Connection.prototype = {
     this.emit(Connection.Events.PORT_CHANGED);
   },
 
+  get authentication() {
+    return this._authentication;
+  },
+
+  set authentication(value) {
+    this._authentication = value;
+    
+    if (!value) {
+      this.authenticator = null;
+      return;
+    }
+    let AuthenticatorType = DebuggerClient.Authenticators.get(value);
+    this.authenticator = new AuthenticatorType.Client();
+  },
+
+  get advertisement() {
+    return this._advertisement;
+  },
+
+  set advertisement(advertisement) {
+    
+    
+    this._advertisement = advertisement;
+    if (advertisement) {
+      ["host", "port", "encryption", "authentication"].forEach(key => {
+        this[key] = advertisement[key];
+      });
+    }
+  },
+
+  
+
+
+  get socketSettings() {
+    let settings = {};
+    if (this.advertisement) {
+      
+      
+      Object.assign(settings, this.advertisement);
+    }
+    Object.assign(settings, {
+      host: this.host,
+      port: this.port,
+      encryption: this.encryption,
+      authenticator: this.authenticator
+    });
+    return settings;
+  },
+
   resetOptions() {
     this.keepConnecting = false;
     this.encryption = false;
+    this.authentication = null;
+    this.advertisement = null;
   },
 
   disconnect: function(force) {
@@ -238,11 +294,8 @@ Connection.prototype = {
     if (!this.host) {
       return DebuggerServer.connectPipe();
     }
-    let transport = yield DebuggerClient.socketConnect({
-      host: this.host,
-      port: this.port,
-      encryption: this.encryption
-    });
+    let settings = this.socketSettings;
+    let transport = yield DebuggerClient.socketConnect(settings);
     return transport;
   }),
 

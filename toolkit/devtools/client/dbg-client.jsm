@@ -83,6 +83,9 @@ DevToolsUtils.defineLazyGetter(this, "DebuggerSocket", () => {
   let { DebuggerSocket } = devtools.require("devtools/toolkit/security/socket");
   return DebuggerSocket;
 });
+DevToolsUtils.defineLazyGetter(this, "Authentication", () => {
+  return devtools.require("devtools/toolkit/security/auth");
+});
 
 
 
@@ -377,6 +380,12 @@ DebuggerClient.socketConnect = function(options) {
   
   return DebuggerSocket.connect(options);
 };
+DevToolsUtils.defineLazyGetter(DebuggerClient, "Authenticators", () => {
+  return Authentication.Authenticators;
+});
+DevToolsUtils.defineLazyGetter(DebuggerClient, "AuthenticationResult", () => {
+  return Authentication.AuthenticationResult;
+});
 
 DebuggerClient.prototype = {
   
