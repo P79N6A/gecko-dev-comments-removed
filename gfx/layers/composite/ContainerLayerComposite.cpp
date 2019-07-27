@@ -257,42 +257,6 @@ RenderLayers(ContainerT* aContainer,
 {
   Compositor* compositor = aManager->GetCompositor();
 
-  float opacity = aContainer->GetEffectiveOpacity();
-
-  
-  
-  
-  
-  
-  
-  
-  if (aContainer->HasScrollableFrameMetrics() && !aContainer->IsScrollInfoLayer()) {
-    bool overscrolled = false;
-    gfxRGBA color;
-    for (uint32_t i = 0; i < aContainer->GetFrameMetricsCount(); i++) {
-      AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController(i);
-      if (apzc && apzc->IsOverscrolled()) {
-        overscrolled = true;
-        color = aContainer->GetFrameMetrics(i).GetBackgroundColor();
-        break;
-      }
-    }
-    if (overscrolled) {
-      
-      
-      
-      if (color.a != 0.0) {
-        EffectChain effectChain(aContainer);
-        effectChain.mPrimaryEffect = new EffectSolidColor(ToColor(color));
-        gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
-        compositor->DrawQuad(
-          RenderTargetPixel::ToUnknown(
-            compositor->ClipRectInLayersCoordinates(aContainer, aClipRect)),
-          clipRect, effectChain, opacity, Matrix4x4());
-      }
-    }
-  }
-
   for (size_t i = 0u; i < aContainer->mPrepared->mLayers.Length(); i++) {
     PreparedLayer& preparedData = aContainer->mPrepared->mLayers[i];
     LayerComposite* layerToRender = preparedData.mLayer;
