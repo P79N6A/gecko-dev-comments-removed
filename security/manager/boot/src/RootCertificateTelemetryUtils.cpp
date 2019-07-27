@@ -9,6 +9,7 @@
 #include "prlog.h"
 #include "RootHashes.inc" 
 #include "ScopedNSSTypes.h"
+#include "mozilla/ArrayUtils.h"
 
 
 
