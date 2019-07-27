@@ -2041,11 +2041,7 @@ ThreadActor.prototype = {
       
       if (bpActor.location.line >= aScript.startLine
           && bpActor.location.line <= endLine) {
-        source.setBreakpointForActor(bpActor, {
-          sourceActor: source,
-          line: bpActor.location.line,
-          column: bpActor.location.column
-        });
+        source.setBreakpointForActor(bpActor);
       }
     }
 
@@ -2729,10 +2725,9 @@ SourceActor.prototype = {
   },
 
   _createBreakpoint: function(loc, originalLoc, condition) {
-    return this.setBreakpoint({
-      line: originalLoc.line,
-      column: originalLoc.column,
-    }, condition).then(response => {
+    return this.setBreakpoint(originalLoc.line, originalLoc.column, condition)
+               .then(response =>
+    {
       var actual = response.actualLocation;
       if (actual) {
         if (loc.sourceActor.source) {
@@ -2901,28 +2896,46 @@ SourceActor.prototype = {
 
 
 
-  setBreakpoint: function (originalLocation, condition) {
+
+
+
+
+  setBreakpoint: function (originalLine, originalColumn, condition) {
     return this.threadActor.sources.getGeneratedLocation({
       sourceActor: this,
-      line: originalLocation.line,
-      column: originalLocation.column
+      line: originalLine,
+      column: originalColumn
     }).then(generatedLocation => {
       let actor = this._getOrCreateBreakpointActor(generatedLocation, condition);
 
-      return this.setBreakpointForActor(actor, generatedLocation);
+      return generatedLocation.sourceActor.setBreakpointForActor(actor);
     });
   },
 
-  setBreakpointForActor: function (actor, generatedLocation) {
-    let { sourceActor, line } = generatedLocation;
+  
+
+
+
+
+
+
+
+  setBreakpointForActor: function (actor) {
+    let generatedLocation = {
+      sourceActor: this,
+      line: actor.location.line,
+      column: actor.location.column
+    };
+
+    let { line: generatedLine, column: generatedColumn } = generatedLocation;
 
     
     
     
     
-    let scripts = sourceActor.source
-      ? this.scripts.getScriptsBySourceAndLine(sourceActor.source, line)
-      : this.scripts.getScriptsByURLAndLine(sourceActor._originalUrl, line);
+    let scripts = this.source
+      ? this.scripts.getScriptsBySourceAndLine(this.source, generatedLine)
+      : this.scripts.getScriptsByURLAndLine(this._originalUrl, generatedLine);
 
     if (scripts.length === 0) {
       
@@ -2940,7 +2953,7 @@ SourceActor.prototype = {
     
     scripts = scripts.filter((script) => !actor.hasScript(script));
 
-    if (generatedLocation.column) {
+    if (generatedColumn) {
       return this._setBreakpointAtColumn(scripts, generatedLocation, actor);
     }
 
@@ -2950,15 +2963,15 @@ SourceActor.prototype = {
       
       
       
-      result = this._findNextLineWithOffsets(scripts, line);
+      result = this._findNextLineWithOffsets(scripts, generatedLine);
     } else {
       
       
       
-      let entryPoints = findEntryPointsForLine(scripts, line)
+      let entryPoints = findEntryPointsForLine(scripts, generatedLine)
       if (entryPoints) {
         result = {
-          line: line,
+          line: generatedLine,
           entryPoints: entryPoints
         };
       }
@@ -2973,8 +2986,8 @@ SourceActor.prototype = {
 
     const { line: actualLine, entryPoints } = result;
 
-    const actualLocation = actualLine !== line
-                         ? { sourceActor: sourceActor, line: actualLine }
+    const actualLocation = actualLine !== generatedLine
+                         ? { sourceActor: this, line: actualLine }
       : undefined;
 
     if (actualLocation) {
