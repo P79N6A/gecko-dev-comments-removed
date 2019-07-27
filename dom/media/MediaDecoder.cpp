@@ -421,10 +421,8 @@ void MediaDecoder::DestroyDecodedStream()
   MOZ_ASSERT(NS_IsMainThread());
   GetReentrantMonitor().AssertCurrentThreadIn();
 
-  if (GetDecodedStream()) {
-    GetStateMachine()->ResyncMediaStreamClock();
-  } else {
-    
+  
+  if (!GetDecodedStream()) {
     return;
   }
 
@@ -456,9 +454,6 @@ void MediaDecoder::UpdateStreamBlockingForStateMachinePlaying()
   GetReentrantMonitor().AssertCurrentThreadIn();
   if (!mDecodedStream) {
     return;
-  }
-  if (mDecoderStateMachine) {
-    mDecoderStateMachine->SetSyncPointForMediaStream();
   }
   bool blockForStateMachineNotPlaying =
     mDecoderStateMachine && !mDecoderStateMachine->IsPlaying() &&
@@ -629,11 +624,6 @@ void MediaDecoder::Shutdown()
 
   mShuttingDown = true;
 
-  {
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    DestroyDecodedStream();
-  }
-
   
   
   
@@ -659,6 +649,12 @@ void MediaDecoder::Shutdown()
 MediaDecoder::~MediaDecoder()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  {
+    
+    
+    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+    DestroyDecodedStream();
+  }
   MediaMemoryTracker::RemoveMediaDecoder(this);
   UnpinForSeek();
   MOZ_COUNT_DTOR(MediaDecoder);
@@ -1353,12 +1349,7 @@ void MediaDecoder::PlaybackPositionChanged()
         
         
         
-        if (GetDecodedStream()) {
-          mCurrentTime = mDecoderStateMachine->GetCurrentTimeViaMediaStreamSync()/
-            static_cast<double>(USECS_PER_S);
-        } else {
-          mCurrentTime = mDecoderStateMachine->GetCurrentTime();
-        }
+        mCurrentTime = mDecoderStateMachine->GetCurrentTime();
       }
       mDecoderStateMachine->ClearPositionChangeFlag();
     }

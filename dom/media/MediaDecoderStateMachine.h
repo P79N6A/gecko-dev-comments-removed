@@ -352,19 +352,6 @@ public:
 
   
   
-  
-  
-  
-  void SetSyncPointForMediaStream();
-
-  
-  
-  
-  void ResyncMediaStreamClock();
-  int64_t GetCurrentTimeViaMediaStreamSync() const;
-
-  
-  
   void SendStreamData();
   void FinishStreamData();
   bool HaveEnoughDecodedAudio(int64_t aAmpleAudioUSecs);
@@ -803,12 +790,6 @@ protected:
   
   
   TimeStamp mPlayStartTime;
-
-  
-  
-  
-  int64_t mSyncPointInMediaStream; 
-  int64_t mSyncPointInDecodedStream; 
 
   
   

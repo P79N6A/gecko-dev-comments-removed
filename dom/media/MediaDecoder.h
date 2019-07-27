@@ -392,8 +392,13 @@ public:
     ~DecodedStreamData();
 
     
-    int64_t GetLastOutputTime() { return mListener->GetLastOutputTime(); }
-    bool IsFinished() { return mListener->IsFinishedOnMainThread(); }
+    bool IsFinished() const {
+      return mListener->IsFinishedOnMainThread();
+    }
+
+    int64_t GetClock() const {
+      return mInitialTime + mListener->GetLastOutputTime();
+    }
 
     
     
@@ -401,7 +406,7 @@ public:
     int64_t mAudioFramesWritten;
     
     
-    int64_t mInitialTime; 
+    const int64_t mInitialTime; 
     
     
     
@@ -453,13 +458,6 @@ public:
 
       MutexAutoLock lock(mMutex);
       mStream = nullptr;
-    }
-    bool SetFinishedOnMainThread(bool aFinished)
-    {
-      MutexAutoLock lock(mMutex);
-      bool result = !mStreamFinishedOnMainThread;
-      mStreamFinishedOnMainThread = aFinished;
-      return result;
     }
     bool IsFinishedOnMainThread()
     {
