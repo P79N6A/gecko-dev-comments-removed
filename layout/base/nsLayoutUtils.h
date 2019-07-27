@@ -798,6 +798,13 @@ public:
 
 
 
+  static nsIFrame* FindNearestCommonAncestorFrame(nsIFrame* aFrame1,
+                                                  nsIFrame* aFrame2);
+
+  
+
+
+
 
 
 
