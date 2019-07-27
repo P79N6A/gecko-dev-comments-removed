@@ -819,6 +819,8 @@ class AsmJSModule
     uint8_t *                             interruptExit_;
     StaticLinkData                        staticLinkData_;
     HeapPtrArrayBufferObjectMaybeShared   maybeHeap_;
+    AsmJSModule **                        prevLinked_;
+    AsmJSModule *                         nextLinked_;
     bool                                  dynamicallyLinked_;
     bool                                  loadedFromCache_;
     bool                                  profilingEnabled_;
@@ -1450,11 +1452,19 @@ class AsmJSModule
     
     
     
-    void setIsDynamicallyLinked() {
+    
+    
+    void setIsDynamicallyLinked(JSRuntime *rt) {
         MOZ_ASSERT(!isDynamicallyLinked());
         dynamicallyLinked_ = true;
+        nextLinked_ = rt->linkedAsmJSModules;
+        prevLinked_ = &rt->linkedAsmJSModules;
+        if (nextLinked_)
+            nextLinked_->prevLinked_ = &nextLinked_;
+        rt->linkedAsmJSModules = this;
         MOZ_ASSERT(isDynamicallyLinked());
     }
+
     void initHeap(Handle<ArrayBufferObjectMaybeShared*> heap, JSContext *cx);
     void restoreHeapToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer);
     void restoreToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer,
@@ -1466,6 +1476,10 @@ class AsmJSModule
     
     
 
+    AsmJSModule *nextLinked() const {
+        MOZ_ASSERT(isDynamicallyLinked());
+        return nextLinked_;
+    }
     CodePtr entryTrampoline(const ExportedFunction &func) const {
         MOZ_ASSERT(isDynamicallyLinked());
         MOZ_ASSERT(!func.isChangeHeap());
