@@ -297,36 +297,43 @@ PodSet(T* aDst, T aSrc, size_t aNElem)
 static inline void*
 Poison(void* ptr, uint8_t value, size_t num)
 {
-    static bool poison = !bool(getenv("JSGC_DISABLE_POISONING"));
-    if (poison) {
-        
-        
-        
-        uintptr_t obj;
-        memset(&obj, value, sizeof(obj));
-#if defined(JS_PUNBOX64)
-        obj = obj & ((uintptr_t(1) << JSVAL_TAG_SHIFT) - 1);
-#endif
-        const jsval_layout layout = OBJECT_TO_JSVAL_IMPL((JSObject*)obj);
-
-        size_t value_count = num / sizeof(jsval_layout);
-        size_t byte_count = num % sizeof(jsval_layout);
-        mozilla::PodSet((jsval_layout*)ptr, layout, value_count);
-        if (byte_count) {
-            uint8_t* bytes = static_cast<uint8_t*>(ptr);
-            uint8_t* end = bytes + num;
-            mozilla::PodSet(end - byte_count, value, byte_count);
-        }
+    static bool disablePoison = bool(getenv("JSGC_DISABLE_POISONING"));
+    if (disablePoison)
         return ptr;
-    }
 
-    return nullptr;
+    
+    
+    
+    
+    
+#if defined(DEBUG)
+    uintptr_t obj;
+    memset(&obj, value, sizeof(obj));
+# if defined(JS_PUNBOX64)
+    obj = obj & ((uintptr_t(1) << JSVAL_TAG_SHIFT) - 1);
+# endif
+    const jsval_layout layout = OBJECT_TO_JSVAL_IMPL((JSObject*)obj);
+
+    size_t value_count = num / sizeof(jsval_layout);
+    size_t byte_count = num % sizeof(jsval_layout);
+    mozilla::PodSet((jsval_layout*)ptr, layout, value_count);
+    if (byte_count) {
+        uint8_t* bytes = static_cast<uint8_t*>(ptr);
+        uint8_t* end = bytes + num;
+        mozilla::PodSet(end - byte_count, value, byte_count);
+    }
+#else 
+    memset(ptr, value, num);
+#endif 
+    return ptr;
 }
 
 
-#if defined(DEBUG) && !defined(MOZ_ASAN)
+#if (defined(DEBUG) || defined(NIGHTLY_BUILD)) && !defined(MOZ_ASAN)
 # define JS_CRASH_DIAGNOSTICS 1
 #endif
+
+
 #if defined(JS_CRASH_DIAGNOSTICS) || defined(JS_GC_ZEAL)
 # define JS_POISON(p, val, size) Poison(p, val, size)
 #else
@@ -334,7 +341,11 @@ Poison(void* ptr, uint8_t value, size_t num)
 #endif
 
 
-#define JS_EXTRA_POISON(p, val, size) ((void) 0)
+#if defined(DEBUG)
+# define JS_EXTRA_POISON(p, val, size) Poison(p, val, size)
+#else
+# define JS_EXTRA_POISON(p, val, size) ((void) 0)
+#endif
 
 
 #ifdef DEBUG
