@@ -1808,7 +1808,7 @@ gfxFontGroup::MakeSpaceTextRun(const Parameters *aParams, uint32_t aFlags)
         orientation = TEXT_ORIENT_VERTICAL_UPRIGHT;
     }
 
-    gfxFont *font = GetFontAt(0);
+    gfxFont *font = GetFirstValidFont();
     if (MOZ_UNLIKELY(GetStyle()->size == 0)) {
         
         
@@ -1854,7 +1854,7 @@ gfxFontGroup::MakeBlankTextRun(uint32_t aLength,
     if (orientation == TEXT_ORIENT_VERTICAL_MIXED) {
         orientation = TEXT_ORIENT_VERTICAL_UPRIGHT;
     }
-    textRun->AddGlyphRun(GetFontAt(0), gfxTextRange::kFontGroup, 0, false,
+    textRun->AddGlyphRun(GetFirstValidFont(), gfxTextRange::kFontGroup, 0, false,
                          orientation);
     return textRun;
 }
@@ -1866,8 +1866,8 @@ gfxFontGroup::MakeHyphenTextRun(gfxContext *aCtx, uint32_t aAppUnitsPerDevUnit)
     
     
     static const char16_t hyphen = 0x2010;
-    gfxFont *font = GetFontAt(0);
-    if (font && font->HasCharacter(hyphen)) {
+    gfxFont *font = GetFirstValidFont();
+    if (font->HasCharacter(hyphen)) {
         return MakeTextRun(&hyphen, 1, aCtx, aAppUnitsPerDevUnit,
                            gfxFontGroup::TEXT_IS_PERSISTENT);
     }
@@ -2137,7 +2137,7 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
     NS_ASSERTION(aTextRun->GetShapingState() != gfxTextRun::eShapingState_Aborted,
                  "don't call InitScriptRun with aborted shaping state");
 
-    gfxFont *mainFont = GetFontAt(0);
+    gfxFont *mainFont = GetFirstValidFont();
 
     uint32_t runStart = 0;
     nsAutoTArray<gfxTextRange,3> fontRanges;
@@ -2343,7 +2343,7 @@ gfxFontGroup::GetEllipsisTextRun(int32_t aAppUnitsPerDevPixel,
 
     
     
-    gfxFont* firstFont = GetFontAt(0);
+    gfxFont* firstFont = GetFirstValidFont();
     nsString ellipsis = firstFont->HasCharacter(kEllipsisChar[0])
         ? nsDependentString(kEllipsisChar,
                             ArrayLength(kEllipsisChar) - 1)
@@ -2403,7 +2403,7 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     bool isVarSelector = gfxFontUtils::IsVarSelector(aCh);
 
     if (!isJoinControl && !wasJoinCauser && !isVarSelector) {
-        nsRefPtr<gfxFont> firstFont = GetFontAt(0);
+        nsRefPtr<gfxFont> firstFont = GetFirstValidFont();
         if (firstFont->HasCharacter(aCh)) {
             *aMatchType = gfxTextRange::kFontGroup;
             return firstFont.forget();
@@ -2515,7 +2515,7 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     
     if (GetGeneralCategory(aCh) ==
             HB_UNICODE_GENERAL_CATEGORY_SPACE_SEPARATOR &&
-        GetFontAt(0)->SynthesizeSpaceWidth(aCh) >= 0.0)
+        GetFirstValidFont()->SynthesizeSpaceWidth(aCh) >= 0.0)
     {
         return nullptr;
     }
@@ -2540,7 +2540,7 @@ void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges,
     
     
     
-    gfxFont *prevFont = GetFontAt(0);
+    gfxFont *prevFont = GetFirstValidFont();
 
     
     
