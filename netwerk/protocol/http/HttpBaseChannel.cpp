@@ -2023,7 +2023,8 @@ void
 HttpBaseChannel::DoNotifyListener()
 {
   if (mListener) {
-    mListener->OnStartRequest(this, mListenerContext);
+    nsCOMPtr<nsIStreamListener> listener = mListener;
+    listener->OnStartRequest(this, mListenerContext);
   }
 
   
@@ -2032,7 +2033,8 @@ HttpBaseChannel::DoNotifyListener()
   mIsPending = false;
 
   if (mListener) {
-    mListener->OnStopRequest(this, mListenerContext, mStatus);
+    nsCOMPtr<nsIStreamListener> listener = mListener;
+    listener->OnStopRequest(this, mListenerContext, mStatus);
   }
 
   
