@@ -8861,7 +8861,7 @@ PresShell::DidPaintWindow()
 bool
 PresShell::IsVisible()
 {
-  if (!mViewManager)
+  if (!mIsActive || !mViewManager)
     return false;
 
   nsView* view = mViewManager->GetRootView();
@@ -8871,7 +8871,7 @@ PresShell::IsVisible()
   
   view = view->GetParent();
   if (!view)
-    return mIsActive;
+    return true;
 
   
   view = view->GetParent();
