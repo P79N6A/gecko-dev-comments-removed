@@ -933,8 +933,10 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
             return NS_ERROR_XPC_UNEXPECTED;
     }
 
+    
+    
     vp.setObject(*sandbox);
-    if (!JS_WrapValue(cx, vp))
+    if (js::GetContextCompartment(cx) && !JS_WrapValue(cx, vp))
         return NS_ERROR_UNEXPECTED;
 
     
