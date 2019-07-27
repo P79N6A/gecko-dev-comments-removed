@@ -1177,7 +1177,7 @@ nsContentSink::StartLayout(bool aIgnorePendingSheets)
   
   
 
-  mDocument->SetScrollToRef(mDocumentURI);
+  mDocument->SetScrollToRef(mDocument->GetDocumentURI());
 }
 
 void
