@@ -230,6 +230,91 @@ add_test(function test_stk_terminal_response_get_input_empty_string() {
 
 
 
+
+
+
+add_test(function test_stk_terminal_response_get_input_160_unpacked_characters() {
+  let worker = newUint8SupportOutgoingIndexWorker();
+  let context = worker.ContextPool._contexts[0];
+  let buf = context.Buf;
+  let pduHelper = context.GsmPDUHelper;
+  let iccPduHelper = context.ICCPDUHelper;
+  let TEST_TEXT_STRING = "***1111111111###" +
+                         "***2222222222###" +
+                         "***3333333333###" +
+                         "***4444444444###" +
+                         "***5555555555###" +
+                         "***6666666666###" +
+                         "***7777777777###" +
+                         "***8888888888###" +
+                         "***9999999999###" +
+                         "***0000000000###";
+
+  buf.sendParcel = function() {
+    
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_TERMINAL_RESPONSE);
+
+    
+    this.readInt32();
+
+    
+    
+    
+    
+    do_check_eq(this.readInt32(), 352);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_COMMAND_DETAILS |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 3);
+    do_check_eq(pduHelper.readHexOctet(), 0x01);
+    do_check_eq(pduHelper.readHexOctet(), STK_CMD_GET_INPUT);
+    do_check_eq(pduHelper.readHexOctet(), 0x00);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID);
+    do_check_eq(pduHelper.readHexOctet(), 2);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_RESULT |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_RESULT_OK);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_TEXT_STRING |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    
+    do_check_eq(pduHelper.readHexOctet(), 0x81);
+    do_check_eq(pduHelper.readHexOctet(), 0xA1);
+    do_check_eq(pduHelper.readHexOctet(), STK_TEXT_CODING_GSM_8BIT);
+    do_check_eq(iccPduHelper.read8BitUnpackedToString(160), TEST_TEXT_STRING);
+
+    run_next_test();
+  };
+
+  let response = {
+    command: {
+      commandNumber: 0x01,
+      typeOfCommand: STK_CMD_GET_INPUT,
+      commandQualifier: 0x00,
+      options: {
+        minLength: 160,
+        maxLength: 160,
+        text: TEST_TEXT_STRING
+      }
+    },
+    input: TEST_TEXT_STRING,
+    resultCode: STK_RESULT_OK
+  };
+  context.RIL.sendStkTerminalResponse(response);
+});
+
+
+
+
 add_test(function test_stk_terminal_response_get_inkey() {
   function do_test(isYesNo) {
     let worker = newUint8SupportOutgoingIndexWorker();
