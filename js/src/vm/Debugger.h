@@ -70,8 +70,19 @@ class DebuggerWeakMap : private WeakMap<PreBarriered<UnbarrieredKey>, Relocatabl
 
   public:
     typedef WeakMap<Key, Value, DefaultHasher<Key> > Base;
+
     explicit DebuggerWeakMap(JSContext *cx)
         : Base(cx), zoneCounts(cx->runtime()) { }
+
+    ~DebuggerWeakMap() {
+        
+        
+        
+        
+        
+        if (WeakMapBase::isInList())
+            WeakMapBase::removeWeakMapFromList(this);
+    }
 
   public:
     
