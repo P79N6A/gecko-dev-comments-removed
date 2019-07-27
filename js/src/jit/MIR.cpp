@@ -1304,6 +1304,23 @@ MPhi::foldsTernary()
     
     
     
+    
+    
+    
+    
+    
+    
+    MBasicBlock *truePred = block()->getPredecessor(firstIsTrueBranch ? 0 : 1);
+    MBasicBlock *falsePred = block()->getPredecessor(firstIsTrueBranch ? 1 : 0);
+    if (!trueDef->block()->dominates(truePred) ||
+        !falseDef->block()->dominates(falsePred))
+    {
+        return nullptr;
+    }
+
+    
+    
+    
     if (testArg->type() == MIRType_Int32 && c->vp()->toNumber() == 0) {
         
         if (trueDef == c && !c->block()->dominates(block()))
