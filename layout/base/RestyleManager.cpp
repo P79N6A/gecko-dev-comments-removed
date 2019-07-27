@@ -1530,6 +1530,8 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
 void
 RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
 {
+  BeginProcessingRestyles();
+
   mInRebuildAllStyleData = true;
 
   
@@ -1578,7 +1580,8 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
   
   ComputeAndProcessStyleChange(mPresContext->PresShell()->GetRootFrame(),
                                changeHint, aRestyleTracker, restyleHint);
-  FlushOverflowChangedTracker();
+
+  EndProcessingRestyles();
 
   if (mInRebuildAllStyleData) {
     
