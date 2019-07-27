@@ -1110,6 +1110,36 @@ RemoteSourceStreamInfo::SyncPipeline(
   }
 }
 
+void
+RemoteSourceStreamInfo::TrackQueued(const std::string& trackId)
+{
+  
+  mPipelinesCreated = true;
+
+  MOZ_ASSERT(mTracksToQueue.count(trackId) > 0);
+  mTracksToQueue.erase(trackId);
+
+  CSFLogDebug(logTag, "Queued adding of track id %d to MediaStream %p. "
+                      "%zu more tracks to queue.",
+                      GetNumericTrackId(trackId),
+                      GetMediaStream()->GetStream(),
+                      mTracksToQueue.size());
+
+  
+  if (mTracksToQueue.empty()) {
+    SourceMediaStream* source = GetMediaStream()->GetStream()->AsSourceStream();
+    source->FinishAddTracks();
+    source->SetPullEnabled(true);
+    
+    
+    
+    
+    
+    source->AdvanceKnownTracksTime(STREAM_TIME_MAX);
+    CSFLogDebug(logTag, "Finished adding tracks to MediaStream %p", source);
+  }
+}
+
 RefPtr<MediaPipeline> SourceStreamInfo::GetPipelineByTrackId_m(
     const std::string& trackId) {
   ASSERT_ON_THREAD(mParent->GetMainThread());

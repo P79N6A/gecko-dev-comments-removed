@@ -147,7 +147,8 @@ class RemoteSourceStreamInfo : public SourceStreamInfo {
   RemoteSourceStreamInfo(already_AddRefed<DOMMediaStream> aMediaStream,
                          PeerConnectionMedia *aParent,
                          const std::string& aId)
-    : SourceStreamInfo(aMediaStream, aParent, aId)
+    : SourceStreamInfo(aMediaStream, aParent, aId),
+      mPipelinesCreated(false)
   {
   }
 
@@ -162,6 +163,11 @@ class RemoteSourceStreamInfo : public SourceStreamInfo {
   virtual void AddTrack(const std::string& track) MOZ_OVERRIDE
   {
     mTrackIdMap.push_back(track);
+    MOZ_ASSERT(!mPipelinesCreated || mTracksToQueue.empty(),
+               "Track added while waiting for existing tracks to be queued.");
+    if (!mPipelinesCreated) {
+      mTracksToQueue.insert(track);
+    }
     SourceStreamInfo::AddTrack(track);
   }
 
@@ -186,6 +192,17 @@ class RemoteSourceStreamInfo : public SourceStreamInfo {
     return NS_OK;
   }
 
+  
+
+
+
+  bool QueueTracks() const
+  {
+    return !mPipelinesCreated || !mTracksToQueue.empty();
+  }
+
+  void TrackQueued(const std::string& trackId);
+
  private:
   
   
@@ -195,6 +212,14 @@ class RemoteSourceStreamInfo : public SourceStreamInfo {
   
   
   std::vector<std::string> mTrackIdMap;
+
+  
+  
+  
+  std::set<std::string> mTracksToQueue;
+
+  
+  bool mPipelinesCreated;
 };
 
 class PeerConnectionMedia : public sigslot::has_slots<> {
