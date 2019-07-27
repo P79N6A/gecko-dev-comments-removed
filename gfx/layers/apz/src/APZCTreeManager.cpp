@@ -1196,7 +1196,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
   
   gfx3DMatrix childUntransform = ancestorUntransform
                                * aApzc->GetCSSTransform().Inverse()
-                               * gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
+                               * gfx::To3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
   gfxPointH3D hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
   APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
@@ -1344,7 +1344,7 @@ APZCTreeManager::GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& 
   
   gfx3DMatrix ancestorUntransform = aApzc->GetAncestorTransform().Inverse();
   
-  gfx3DMatrix asyncUntransform = gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
+  gfx3DMatrix asyncUntransform = gfx::To3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
   
   gfx3DMatrix nontransientAsyncTransform = aApzc->GetNontransientAsyncTransform();
   
@@ -1359,7 +1359,7 @@ APZCTreeManager::GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& 
     
     ancestorUntransform = parent->GetAncestorTransform().Inverse();
     
-    asyncUntransform = gfx3DMatrix(parent->GetCurrentAsyncTransform()).Inverse();
+    asyncUntransform = gfx::To3DMatrix(parent->GetCurrentAsyncTransform()).Inverse();
     
     gfx3DMatrix untransformSinceLastApzc = ancestorUntransform * parent->GetCSSTransform().Inverse() * asyncUntransform;
 
