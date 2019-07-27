@@ -1072,7 +1072,7 @@ bool MP4Reader::IsDormantNeeded()
 
 void MP4Reader::ReleaseMediaResources()
 {
-#if defined(MOZ_GONK_MEDIACODEC) || defined(XP_WIN)
+#if !defined(MOZ_WIDGET_ANDROID)
   
   
   VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
@@ -1087,7 +1087,7 @@ void MP4Reader::ReleaseMediaResources()
 
 void MP4Reader::NotifyResourcesStatusChanged()
 {
-#if defined(MOZ_GONK_MEDIACODEC) || defined(XP_WIN)
+#if !defined(MOZ_WIDGET_ANDROID)
   if (mDecoder) {
     mDecoder->NotifyWaitingForResourcesStatusChanged();
   }
@@ -1108,7 +1108,7 @@ MP4Reader::SetIdle()
 void
 MP4Reader::SetSharedDecoderManager(SharedDecoderManager* aManager)
 {
-#if defined(MOZ_GONK_MEDIACODEC) || defined(XP_WIN)
+#if !defined(MOZ_WIDGET_ANDROID)
   mSharedDecoderManager = aManager;
 #endif
 }

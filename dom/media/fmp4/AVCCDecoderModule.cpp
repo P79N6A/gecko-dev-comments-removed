@@ -162,25 +162,22 @@ AVCCMediaDataDecoder::IsDormantNeeded()
 void
 AVCCMediaDataDecoder::AllocateMediaResources()
 {
-  if (mDecoder) {
-    mDecoder->AllocateMediaResources();
-  }
+  
 }
 
 void
 AVCCMediaDataDecoder::ReleaseMediaResources()
 {
   if (mDecoder) {
-    mDecoder->ReleaseMediaResources();
+    mDecoder->Shutdown();
+    mDecoder = nullptr;
   }
 }
 
 void
 AVCCMediaDataDecoder::ReleaseDecoder()
 {
-  if (mDecoder) {
-    mDecoder->ReleaseDecoder();
-  }
+  ReleaseMediaResources();
 }
 
 nsresult
@@ -247,7 +244,7 @@ AVCCMediaDataDecoder::CheckForSPSChange(mp4_demuxer::MP4Sample* aSample)
   
   
   mDecoder->Flush();
-  mDecoder->Shutdown();
+  ReleaseMediaResources();
   return CreateDecoderAndInit(aSample);
 }
 
