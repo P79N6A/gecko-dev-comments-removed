@@ -2153,6 +2153,7 @@ public:
 
 
 
+
   static gfxSize ComputeSuitableScaleForAnimation(nsIContent* aContent);
 
   
