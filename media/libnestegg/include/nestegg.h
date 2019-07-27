@@ -7,6 +7,7 @@
 #if !defined(NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79)
 #define NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79
 
+#include <limits.h>
 #include <nestegg/nestegg-stdint.h>
 
 #if defined(__cplusplus)
@@ -62,13 +63,15 @@ extern "C" {
 
 
 
-#define NESTEGG_TRACK_VIDEO 0 /**< Track is of type video. */
-#define NESTEGG_TRACK_AUDIO 1 /**< Track is of type audio. */
+#define NESTEGG_TRACK_VIDEO   0       /**< Track is of type video. */
+#define NESTEGG_TRACK_AUDIO   1       /**< Track is of type audio. */
+#define NESTEGG_TRACK_UNKNOWN INT_MAX /**< Track is of type unknown. */
 
-#define NESTEGG_CODEC_VP8    0 /**< Track uses Google On2 VP8 codec. */
-#define NESTEGG_CODEC_VORBIS 1 /**< Track uses Xiph Vorbis codec. */
-#define NESTEGG_CODEC_VP9    2 /**< Track uses Google On2 VP9 codec. */
-#define NESTEGG_CODEC_OPUS   3 /**< Track uses Xiph Opus codec. */
+#define NESTEGG_CODEC_VP8     0       /**< Track uses Google On2 VP8 codec. */
+#define NESTEGG_CODEC_VORBIS  1       /**< Track uses Xiph Vorbis codec. */
+#define NESTEGG_CODEC_VP9     2       /**< Track uses Google On2 VP9 codec. */
+#define NESTEGG_CODEC_OPUS    3       /**< Track uses Xiph Opus codec. */
+#define NESTEGG_CODEC_UNKNOWN INT_MAX /**< Track uses unknown codec. */
 
 #define NESTEGG_VIDEO_MONO              0 /**< Track is mono video. */
 #define NESTEGG_VIDEO_STEREO_LEFT_RIGHT 1 /**< Track is side-by-side stereo video.  Left first. */
@@ -225,7 +228,11 @@ int nestegg_track_seek(nestegg * context, unsigned int track, uint64_t tstamp);
 
 
 
+
 int nestegg_track_type(nestegg * context, unsigned int track);
+
+
+
 
 
 
