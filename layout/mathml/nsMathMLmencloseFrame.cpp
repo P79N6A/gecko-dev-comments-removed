@@ -212,7 +212,7 @@ nsMathMLmencloseFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     nsRect rect;
     mMathMLChar[mRadicalCharIndex].GetRect(rect);
     rect.MoveBy(StyleVisibility()->mDirection ? -mContentWidth : rect.width, 0);
-    rect.SizeTo(mContentWidth, mRuleThickness);
+    rect.SizeTo(mContentWidth, mRadicalRuleThickness);
     DisplayBar(aBuilder, this, rect, aLists);
   }
 
@@ -329,17 +329,19 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   nscoord radicalAscent = 0, radicalDescent = 0;
   nscoord longdivAscent = 0, longdivDescent = 0;
   nscoord psi = 0;
+  nscoord leading = 0;
 
   
   
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
 
-  nscoord mEmHeight;
   nsRefPtr<nsFontMetrics> fm;
   nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
   aRenderingContext.SetFont(fm);
   GetRuleThickness(aRenderingContext, fm, mRuleThickness);
-  GetEmHeight(fm, mEmHeight);
+  if (mRuleThickness < onePixel) {
+    mRuleThickness = onePixel;
+  }
 
   char16_t one = '1';
   nsBoundingMetrics bmOne = aRenderingContext.GetBoundingMetrics(&one, 1);
@@ -355,23 +357,23 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     padding += onePixel - delta; 
 
   if (IsToDraw(NOTATION_LONGDIV) || IsToDraw(NOTATION_RADICAL)) {
-      nscoord phi;
-      
-      
-      if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK)
-        phi = fm->XHeight();
-      else
-        phi = mRuleThickness;
-      psi = mRuleThickness + phi / 4;
+    GetRadicalParameters(fm, StyleFont()->mMathDisplay ==
+                         NS_MATHML_DISPLAYSTYLE_BLOCK,
+                         mRadicalRuleThickness, leading, psi);
 
-      delta = psi % onePixel;
-      if (delta)
-        psi += onePixel - delta; 
+    
+    if (mRadicalRuleThickness < onePixel) {
+      mRadicalRuleThickness = onePixel;
     }
 
-  if (mRuleThickness < onePixel)
-    mRuleThickness = onePixel;
- 
+    
+    
+    delta = psi % onePixel;
+    if (delta) {
+      psi += onePixel - delta; 
+    }
+  }
+
   
   if (IsToDraw(NOTATION_ROUNDEDBOX) ||
       IsToDraw(NOTATION_TOP) ||
@@ -521,7 +523,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       
       
       nsBoundingMetrics contSize = bmBase;
-      contSize.ascent = mRuleThickness;
+      contSize.ascent = mRadicalRuleThickness;
       contSize.descent = bmBase.ascent + bmBase.descent + psi;
 
       
@@ -536,7 +538,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       *dx_leading = std::max(*dx_leading, bmRadicalChar.width);
 
       
-      radicalAscent = bmBase.ascent + psi + mRuleThickness;
+      radicalAscent = bmBase.ascent + psi + mRadicalRuleThickness;
       radicalDescent = std::max(bmBase.descent,
                               (bmRadicalChar.ascent + bmRadicalChar.descent -
                                radicalAscent));
@@ -574,10 +576,6 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
              baseSize.Height() - baseSize.BlockStartAscent());
 
   if (IsToDraw(NOTATION_LONGDIV) || IsToDraw(NOTATION_RADICAL)) {
-    
-    
-    
-    nscoord leading = nscoord(0.2f * mEmHeight);
     nscoord desiredSizeAscent = aDesiredSize.BlockStartAscent();
     nscoord desiredSizeDescent = aDesiredSize.Height() -
                                  aDesiredSize.BlockStartAscent();
@@ -593,7 +591,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       desiredSizeAscent = std::max(desiredSizeAscent,
                                  radicalAscent + leading);
       desiredSizeDescent = std::max(desiredSizeDescent,
-                                  radicalDescent + mRuleThickness);
+                                    radicalDescent + mRadicalRuleThickness);
     }
 
     aDesiredSize.SetBlockStartAscent(desiredSizeAscent);

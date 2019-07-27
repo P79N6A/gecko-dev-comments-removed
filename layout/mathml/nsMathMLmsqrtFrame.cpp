@@ -10,15 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 nsIFrame*
 NS_NewMathMLmsqrtFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {

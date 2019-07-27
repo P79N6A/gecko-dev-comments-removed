@@ -359,3 +359,49 @@ nsMathMLFrame::DisplayBar(nsDisplayListBuilder* aBuilder,
   aLists.Content()->AppendNewToTop(new (aBuilder)
     nsDisplayMathMLBar(aBuilder, aFrame, aRect));
 }
+
+void
+nsMathMLFrame::GetRadicalParameters(nsFontMetrics* aFontMetrics,
+                                    bool aDisplayStyle,
+                                    nscoord& aRadicalRuleThickness,
+                                    nscoord& aRadicalExtraAscender,
+                                    nscoord& aRadicalVerticalGap)
+{
+  nscoord oneDevPixel = aFontMetrics->AppUnitsPerDevPixel();
+  gfxFont* mathFont = aFontMetrics->GetThebesFontGroup()->GetFirstMathFont();
+
+  
+  if (mathFont) {
+    aRadicalRuleThickness =
+      mathFont->GetMathConstant(gfxFontEntry::RadicalRuleThickness,
+                                oneDevPixel);
+  } else {
+    GetRuleThickness(aFontMetrics, aRadicalRuleThickness);
+  }
+
+  
+  if (mathFont) {
+    aRadicalExtraAscender =
+      mathFont->GetMathConstant(gfxFontEntry::RadicalExtraAscender,
+                                oneDevPixel);
+  } else {
+    
+    
+    nscoord em;
+    GetEmHeight(aFontMetrics, em);
+    aRadicalExtraAscender = nscoord(0.2f * em);
+  }
+
+  
+  if (mathFont) {
+    aRadicalVerticalGap =
+      mathFont->GetMathConstant(aDisplayStyle ?
+                                gfxFontEntry::RadicalDisplayStyleVerticalGap :
+                                gfxFontEntry::RadicalVerticalGap,
+                                oneDevPixel);
+  } else {
+    
+    aRadicalVerticalGap = aRadicalRuleThickness +
+      (aDisplayStyle ? aFontMetrics->XHeight() : aRadicalRuleThickness) / 4;
+  }
+}
