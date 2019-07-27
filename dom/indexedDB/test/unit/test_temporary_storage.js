@@ -3,6 +3,8 @@
 
 
 
+Components.utils.importGlobalProperties(['Blob']);
+
 var testGenerator = testSteps();
 
 function testSteps()
@@ -35,11 +37,6 @@ function testSteps()
   const lastIndex = urls.length - 1;
   const lastUrl = urls[lastIndex].url;
 
-  const openDBOptions = [
-    { version: 1, storage: "temporary" },
-    { version: 1 }
-  ];
-
   let quotaManager =
     Components.classes["@mozilla.org/dom/quota/manager;1"]
               .getService(Components.interfaces.nsIQuotaManager);
@@ -48,6 +45,8 @@ function testSteps()
                             .getService(Components.interfaces.nsIIOService);
 
   let dbSize = 0;
+
+  let databases = [];
 
   function setLimit(limit) {
     if (limit) {
@@ -113,66 +112,18 @@ function testSteps()
   getUsageForUrl(lastUrl, grabUsageAndContinueHandler);
   dbSize = yield undefined;
 
-  for (let options of openDBOptions) {
-    setLimit(lastIndex * dbSize / 1024);
-    quotaManager.clear();
+  setLimit(lastIndex * dbSize / 1024);
+  quotaManager.clear();
 
-    info("Stage 1");
+  info("Stage 1");
 
-    let databases = [];
-    for (let i = 0; i < lastIndex; i++) {
-      let data = urls[i];
+  for (let i = 0; i < lastIndex; i++) {
+    let data = urls[i];
 
-      info("Opening database for " + data.url);
+    info("Opening database for " + data.url);
 
-      request = indexedDB.openForPrincipal(getPrincipal(data.url), name,
-                                           options);
-      request.onerror = errorHandler;
-      request.onupgradeneeded = grabEventAndContinueHandler;
-      request.onsuccess = grabEventAndContinueHandler;
-      event = yield undefined;
-
-      is(event.type, "upgradeneeded", "Got correct event type");
-
-      let db = event.target.result;
-      db.createObjectStore("foo", { });
-
-      event = yield undefined;
-
-      is(event.type, "success", "Got correct event type");
-
-      databases.push(event.target.result);
-    }
-
-    request = indexedDB.openForPrincipal(getPrincipal(lastUrl), name, options);
-    request.addEventListener("error", new ExpectError("QuotaExceededError"));
-    request.onsuccess = unexpectedSuccessHandler;
-    event = yield undefined;
-
-    checkUsage(1);
-    yield undefined;
-
-    info("Stage 2");
-
-    for (let i = 1; i < urls.length; i++) {
-      databases[i] = null;
-
-      scheduleGC();
-      yield undefined;
-
-      
-      
-      
-      
-      
-      
-      
-      
-      setTimeout(function() { testGenerator.next(); }, 20);
-      yield undefined;
-    }
-
-    request = indexedDB.openForPrincipal(getPrincipal(lastUrl), name, options);
+    request = indexedDB.openForPrincipal(getPrincipal(data.url), name,
+                                         { storage: "temporary" });
     request.onerror = errorHandler;
     request.onupgradeneeded = grabEventAndContinueHandler;
     request.onsuccess = grabEventAndContinueHandler;
@@ -187,42 +138,90 @@ function testSteps()
 
     is(event.type, "success", "Got correct event type");
 
-    checkUsage(2);
+    databases.push(event.target.result);
+  }
+
+  request = indexedDB.openForPrincipal(getPrincipal(lastUrl), name,
+                                       { storage: "temporary" });
+  request.addEventListener("error", new ExpectError("QuotaExceededError"));
+  request.onsuccess = unexpectedSuccessHandler;
+  event = yield undefined;
+
+  checkUsage(1);
+  yield undefined;
+
+  info("Stage 2");
+
+  for (let i = 1; i < urls.length; i++) {
+    databases[i] = null;
+
+    scheduleGC();
     yield undefined;
 
-    info("Stage 3");
-
-    setLimit(14 * dbSize / 1024);
-    quotaManager.reset();
-
-    request = indexedDB.openForPrincipal(getPrincipal(lastUrl), name, options);
-    request.onerror = errorHandler;
-    request.onsuccess = grabEventAndContinueHandler;
-    event = yield undefined;
-
-    is(event.type, "success", "Got correct event type");
-
-    db = event.target.result;
-
-    checkUsage(3);
-    yield undefined;
-
-    info("Stage 4");
-
-    let trans = db.transaction(["foo"], "readwrite");
-
-    let blob = new Blob(["bar"]);
-    request = trans.objectStore("foo").add(blob, 42);
-    request.onerror = errorHandler;
-    request.onsuccess = grabEventAndContinueHandler;
-    event = yield undefined;
-
-    trans.oncomplete = grabEventAndContinueHandler;
-    event = yield undefined;
-
-    checkUsage(4);
+    
+    
+    
+    
+    
+    
+    
+    
+    setTimeout(function() { testGenerator.next(); }, 20);
     yield undefined;
   }
+
+  request = indexedDB.openForPrincipal(getPrincipal(lastUrl), name,
+                                       { storage: "temporary" });
+  request.onerror = errorHandler;
+  request.onupgradeneeded = grabEventAndContinueHandler;
+  request.onsuccess = grabEventAndContinueHandler;
+  event = yield undefined;
+
+  is(event.type, "upgradeneeded", "Got correct event type");
+
+  let db = event.target.result;
+  db.createObjectStore("foo", { });
+
+  event = yield undefined;
+
+  is(event.type, "success", "Got correct event type");
+
+  checkUsage(2);
+  yield undefined;
+
+  info("Stage 3");
+
+  setLimit(14 * dbSize / 1024);
+  quotaManager.reset();
+
+  request = indexedDB.openForPrincipal(getPrincipal(lastUrl), name,
+                                       { storage: "temporary" });
+  request.onerror = errorHandler;
+  request.onsuccess = grabEventAndContinueHandler;
+  event = yield undefined;
+
+  is(event.type, "success", "Got correct event type");
+
+  db = event.target.result;
+
+  checkUsage(3);
+  yield undefined;
+
+  info("Stage 4");
+
+  let trans = db.transaction(["foo"], "readwrite");
+
+  let blob = new Blob(["bar"]);
+  request = trans.objectStore("foo").add(blob, 42);
+  request.onerror = errorHandler;
+  request.onsuccess = grabEventAndContinueHandler;
+  event = yield undefined;
+
+  trans.oncomplete = grabEventAndContinueHandler;
+  event = yield undefined;
+
+  checkUsage(4);
+  yield undefined;
 
   info("Cleanup");
 
