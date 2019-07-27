@@ -24,6 +24,11 @@ Cu.import("resource://gre/modules/FxAccountsCommon.js");
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsProfileClient",
   "resource://gre/modules/FxAccountsProfileClient.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsProfileChannel",
+  "resource://gre/modules/FxAccountsProfileChannel.jsm");
+
+let fxAccountProfileChannel = null;
+
 
 function deepEqual(actual, expected) {
   if (actual === expected) {
@@ -127,9 +132,24 @@ this.FxAccountsProfile.prototype = {
   },
 
   
+  _listenForProfileChanges: function () {
+    if (! fxAccountProfileChannel) {
+      let contentUri = Services.urlFormatter.formatURLPref("identity.fxaccounts.settings.uri");
+
+      fxAccountProfileChannel = new FxAccountsProfileChannel({
+        content_uri: contentUri
+      });
+    }
+
+    return fxAccountProfileChannel;
+  },
+
+  
   
   
   getProfile: function () {
+    this._listenForProfileChanges();
+
     return this._getCachedProfile()
       .then(cachedProfile => {
         if (cachedProfile) {

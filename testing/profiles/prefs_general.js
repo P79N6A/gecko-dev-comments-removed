@@ -246,7 +246,6 @@ user_pref("identity.fxaccounts.remote.signup.uri", "https://%(server)s/fxa-signu
 user_pref("identity.fxaccounts.remote.force_auth.uri", "https://%(server)s/fxa-force-auth");
 user_pref("identity.fxaccounts.remote.signin.uri", "https://%(server)s/fxa-signin");
 user_pref("identity.fxaccounts.settings.uri", "https://%(server)s/fxa-settings");
-user_pref('identity.fxaccounts.remote.webchannel.uri', 'https://%(server)s/');
 
 
 user_pref('apz.test.logging_enabled', true);
