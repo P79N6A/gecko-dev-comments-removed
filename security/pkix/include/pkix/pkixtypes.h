@@ -39,9 +39,17 @@ enum class DigestAlgorithm
   sha1 = 4,
 };
 
+enum class NamedCurve
+{
+  
+  secp521r1 = 1,
 
+  
+  secp384r1 = 2,
 
-
+  
+  secp256r1 = 3,
+};
 
 enum class SignatureAlgorithm
 {

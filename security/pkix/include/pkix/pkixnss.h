@@ -53,6 +53,7 @@ Result DigestBufNSS(Input item,  uint8_t* digestBuf,
 
 
 
+
 Result CheckPublicKeyNSS(Input subjectPublicKeyInfo,
                          unsigned int minimumNonECCBits);
 
