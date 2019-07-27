@@ -91,6 +91,15 @@ public:
     return img ? img->mFrameID : -1;
   }
 
+  enum Bias {
+    
+    BIAS_NONE,
+    
+    BIAS_NEGATIVE,
+    
+    BIAS_POSITIVE,
+  };
+
 protected:
   struct TimedImage {
     CompositableTextureHostRef mFrontBuffer;
@@ -106,6 +115,7 @@ protected:
 
 
 
+
   const TimedImage* ChooseImage() const;
   TimedImage* ChooseImage();
   int ChooseImageIndex() const;
@@ -115,6 +125,10 @@ protected:
   ImageContainerParent* mImageContainer;
   int32_t mLastFrameID;
   int32_t mLastProducerID;
+  
+
+
+  Bias mBias;
 
   bool mLocked;
 };

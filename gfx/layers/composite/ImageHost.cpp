@@ -35,6 +35,7 @@ ImageHost::ImageHost(const TextureInfo& aTextureInfo)
   , mImageContainer(nullptr)
   , mLastFrameID(-1)
   , mLastProducerID(-1)
+  , mBias(BIAS_NONE)
   , mLocked(false)
 {}
 
@@ -115,6 +116,60 @@ ImageHost::RemoveTextureHost(TextureHost* aTexture)
   }
 }
 
+static TimeStamp
+GetBiasedTime(const TimeStamp& aInput, ImageHost::Bias aBias)
+{
+  switch (aBias) {
+  case ImageHost::BIAS_NEGATIVE:
+    return aInput - TimeDuration::FromMilliseconds(1.0);
+  case ImageHost::BIAS_POSITIVE:
+    return aInput + TimeDuration::FromMilliseconds(1.0);
+  default:
+    return aInput;
+  }
+}
+
+static ImageHost::Bias
+UpdateBias(const TimeStamp& aCompositionTime,
+           const TimeStamp& aCompositedImageTime,
+           const TimeStamp& aNextImageTime, 
+           ImageHost::Bias aBias)
+{
+  if (aCompositedImageTime.IsNull()) {
+    return ImageHost::BIAS_NONE;
+  }
+  TimeDuration threshold = TimeDuration::FromMilliseconds(1.0);
+  if (aCompositionTime - aCompositedImageTime < threshold &&
+      aCompositionTime - aCompositedImageTime > -threshold) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return ImageHost::BIAS_NEGATIVE;
+  }
+  if (!aNextImageTime.IsNull() &&
+      aNextImageTime - aCompositionTime < threshold &&
+      aNextImageTime - aCompositionTime > -threshold) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return ImageHost::BIAS_POSITIVE;
+  }
+  return ImageHost::BIAS_NONE;
+}
+
 int ImageHost::ChooseImageIndex() const
 {
   if (!GetCompositor() || mImages.IsEmpty()) {
@@ -136,7 +191,7 @@ int ImageHost::ChooseImageIndex() const
 
   uint32_t result = 0;
   while (result + 1 < mImages.Length() &&
-      mImages[result + 1].mTimeStamp <= now) {
+      GetBiasedTime(mImages[result + 1].mTimeStamp, mBias) <= now) {
     ++result;
   }
   return result;
@@ -206,104 +261,117 @@ ImageHost::Composite(LayerComposite* aLayer,
   
   img->mFrontBuffer->SetCompositor(GetCompositor());
 
-  AutoLockCompositableHost autoLock(this);
-  if (autoLock.Failed()) {
-    NS_WARNING("failed to lock front buffer");
-    return;
-  }
-
-  if (!img->mFrontBuffer->BindTextureSource(img->mTextureSource)) {
-    return;
-  }
-
-  if (!img->mTextureSource) {
-    
-    MOZ_ASSERT(false);
-    return;
-  }
-
-  bool isAlphaPremultiplied =
-      !(img->mFrontBuffer->GetFlags() & TextureFlags::NON_PREMULTIPLIED);
-  RefPtr<TexturedEffect> effect =
-      CreateTexturedEffect(img->mFrontBuffer->GetFormat(),
-          img->mTextureSource.get(), aFilter, isAlphaPremultiplied,
-          GetRenderState());
-  if (!effect) {
-    return;
-  }
-
-  if (mLastFrameID != img->mFrameID || mLastProducerID != img->mProducerID) {
-    if (mImageContainer) {
-      aLayer->GetLayerManager()->
-          AppendImageCompositeNotification(ImageCompositeNotification(
-              mImageContainer, nullptr,
-              img->mTimeStamp, GetCompositor()->GetCompositionTime(),
-              img->mFrameID, img->mProducerID));
+  {
+    AutoLockCompositableHost autoLock(this);
+    if (autoLock.Failed()) {
+      NS_WARNING("failed to lock front buffer");
+      return;
     }
-    mLastFrameID = img->mFrameID;
-    mLastProducerID = img->mProducerID;
-  }
-  aEffectChain.mPrimaryEffect = effect;
-  gfx::Rect pictureRect(0, 0, img->mPictureRect.width, img->mPictureRect.height);
-  BigImageIterator* it = img->mTextureSource->AsBigImageIterator();
-  if (it) {
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    MOZ_ASSERT(it->GetTileCount() == 1 || !img->mTextureSource->GetNextSibling(),
-               "Can't handle multi-plane BigImages");
+    if (!img->mFrontBuffer->BindTextureSource(img->mTextureSource)) {
+      return;
+    }
 
-    it->BeginBigImageIteration();
-    do {
-      IntRect tileRect = it->GetTileRect();
-      gfx::Rect rect(tileRect.x, tileRect.y, tileRect.width, tileRect.height);
-      rect = rect.Intersect(pictureRect);
-      effect->mTextureCoords = Rect(Float(rect.x - tileRect.x) / tileRect.width,
-                                    Float(rect.y - tileRect.y) / tileRect.height,
-                                    Float(rect.width) / tileRect.width,
-                                    Float(rect.height) / tileRect.height);
+    if (!img->mTextureSource) {
+      
+      MOZ_ASSERT(false);
+      return;
+    }
+
+    bool isAlphaPremultiplied =
+        !(img->mFrontBuffer->GetFlags() & TextureFlags::NON_PREMULTIPLIED);
+    RefPtr<TexturedEffect> effect =
+        CreateTexturedEffect(img->mFrontBuffer->GetFormat(),
+            img->mTextureSource.get(), aFilter, isAlphaPremultiplied,
+            GetRenderState());
+    if (!effect) {
+      return;
+    }
+
+    if (mLastFrameID != img->mFrameID || mLastProducerID != img->mProducerID) {
+      if (mImageContainer) {
+        aLayer->GetLayerManager()->
+            AppendImageCompositeNotification(ImageCompositeNotification(
+                mImageContainer, nullptr,
+                img->mTimeStamp, GetCompositor()->GetCompositionTime(),
+                img->mFrameID, img->mProducerID));
+      }
+      mLastFrameID = img->mFrameID;
+      mLastProducerID = img->mProducerID;
+    }
+    aEffectChain.mPrimaryEffect = effect;
+    gfx::Rect pictureRect(0, 0, img->mPictureRect.width, img->mPictureRect.height);
+    BigImageIterator* it = img->mTextureSource->AsBigImageIterator();
+    if (it) {
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      MOZ_ASSERT(it->GetTileCount() == 1 || !img->mTextureSource->GetNextSibling(),
+                 "Can't handle multi-plane BigImages");
+
+      it->BeginBigImageIteration();
+      do {
+        IntRect tileRect = it->GetTileRect();
+        gfx::Rect rect(tileRect.x, tileRect.y, tileRect.width, tileRect.height);
+        rect = rect.Intersect(pictureRect);
+        effect->mTextureCoords = Rect(Float(rect.x - tileRect.x) / tileRect.width,
+                                      Float(rect.y - tileRect.y) / tileRect.height,
+                                      Float(rect.width) / tileRect.width,
+                                      Float(rect.height) / tileRect.height);
+        if (img->mFrontBuffer->GetFlags() & TextureFlags::ORIGIN_BOTTOM_LEFT) {
+          effect->mTextureCoords.y = effect->mTextureCoords.YMost();
+          effect->mTextureCoords.height = -effect->mTextureCoords.height;
+        }
+        GetCompositor()->DrawQuad(rect, aClipRect, aEffectChain,
+                                  aOpacity, aTransform);
+        GetCompositor()->DrawDiagnostics(DiagnosticFlags::IMAGE | DiagnosticFlags::BIGIMAGE,
+                                         rect, aClipRect, aTransform, mFlashCounter);
+      } while (it->NextTile());
+      it->EndBigImageIteration();
+      
+      GetCompositor()->DrawDiagnostics(DiagnosticFlags::IMAGE, pictureRect,
+                                       aClipRect, aTransform, mFlashCounter);
+    } else {
+      IntSize textureSize = img->mTextureSource->GetSize();
+      effect->mTextureCoords = Rect(Float(img->mPictureRect.x) / textureSize.width,
+                                    Float(img->mPictureRect.y) / textureSize.height,
+                                    Float(img->mPictureRect.width) / textureSize.width,
+                                    Float(img->mPictureRect.height) / textureSize.height);
+
       if (img->mFrontBuffer->GetFlags() & TextureFlags::ORIGIN_BOTTOM_LEFT) {
         effect->mTextureCoords.y = effect->mTextureCoords.YMost();
         effect->mTextureCoords.height = -effect->mTextureCoords.height;
       }
-      GetCompositor()->DrawQuad(rect, aClipRect, aEffectChain,
+
+      GetCompositor()->DrawQuad(pictureRect, aClipRect, aEffectChain,
                                 aOpacity, aTransform);
-      GetCompositor()->DrawDiagnostics(DiagnosticFlags::IMAGE | DiagnosticFlags::BIGIMAGE,
-                                       rect, aClipRect, aTransform, mFlashCounter);
-    } while (it->NextTile());
-    it->EndBigImageIteration();
-    
-    GetCompositor()->DrawDiagnostics(DiagnosticFlags::IMAGE, pictureRect,
-                                     aClipRect, aTransform, mFlashCounter);
-  } else {
-    IntSize textureSize = img->mTextureSource->GetSize();
-    effect->mTextureCoords = Rect(Float(img->mPictureRect.x) / textureSize.width,
-                                  Float(img->mPictureRect.y) / textureSize.height,
-                                  Float(img->mPictureRect.width) / textureSize.width,
-                                  Float(img->mPictureRect.height) / textureSize.height);
-
-    if (img->mFrontBuffer->GetFlags() & TextureFlags::ORIGIN_BOTTOM_LEFT) {
-      effect->mTextureCoords.y = effect->mTextureCoords.YMost();
-      effect->mTextureCoords.height = -effect->mTextureCoords.height;
+      GetCompositor()->DrawDiagnostics(DiagnosticFlags::IMAGE,
+                                       pictureRect, aClipRect,
+                                       aTransform, mFlashCounter);
     }
-
-    GetCompositor()->DrawQuad(pictureRect, aClipRect, aEffectChain,
-                              aOpacity, aTransform);
-    GetCompositor()->DrawDiagnostics(DiagnosticFlags::IMAGE,
-                                     pictureRect, aClipRect,
-                                     aTransform, mFlashCounter);
   }
+
+  
+  
+  
+  
+  
+  mBias = UpdateBias(
+      GetCompositor()->GetCompositionTime(), mImages[imageIndex].mTimeStamp,
+      uint32_t(imageIndex + 1) < mImages.Length() ?
+          mImages[imageIndex + 1].mTimeStamp : TimeStamp(),
+      mBias);
 }
 
 void
