@@ -5,6 +5,8 @@
 loadRelativeToScript('utility.js');
 loadRelativeToScript('annotations.js');
 
+var annotatedGCPointers = [];
+
 function processCSU(csu, body)
 {
     if (!("DataField" in body))
@@ -25,6 +27,8 @@ function processCSU(csu, body)
             addNestedStructure(csu, type.Name, fieldName);
         }
     }
+    if (isGCPointer(csu))
+        annotatedGCPointers.push(csu);
 }
 
 var structureParents = {}; 
@@ -63,6 +67,8 @@ for (var csuIndex = minStream; csuIndex <= maxStream; csuIndex++) {
 
 var gcTypes = {}; 
 var gcPointers = {}; 
+var nonGCTypes = {}; 
+var nonGCPointers = {}; 
 var gcFields = {};
 
 
@@ -77,7 +83,6 @@ function markGCType(typeName, child, why, depth, ptrdness)
     
     
     if (!ptrdness && isUnsafeStorage(typeName)) {
-        printErr("Unsafe! " + typeName);
         
         
         
@@ -96,10 +101,14 @@ function markGCType(typeName, child, why, depth, ptrdness)
         return;
 
     if (depth == 0) {
+        if (typeName in nonGCTypes)
+            return;
         if (!(typeName in gcTypes))
             gcTypes[typeName] = new Set();
         gcTypes[typeName].add(why);
     } else if (depth == 1) {
+        if (typeName in nonGCPointers)
+            return;
         if (!(typeName in gcPointers))
             gcPointers[typeName] = new Set();
         gcPointers[typeName].add(why);
@@ -133,18 +142,17 @@ function addGCPointer(typeName)
     markGCType(typeName, 'annotation', '<pointer-annotation>', 1, 0);
 }
 
-addGCType('JSObject');
-addGCType('JSString');
-addGCType('js::Shape');
-addGCType('js::BaseShape');
-addGCType('JSScript');
-addGCType('js::LazyScript');
-addGCType('js::ion::IonCode');
-addGCPointer('JS::Value');
-addGCPointer('jsid');
+for (var type of listNonGCTypes())
+    nonGCTypes[type] = true;
+for (var type of listNonGCPointers())
+    nonGCPointers[type] = true;
+for (var type of listGCTypes())
+    addGCType(type);
+for (var type of listGCPointers())
+    addGCPointer(type);
 
-
-addGCPointer('JS::AutoCheckCannotGC');
+for (var typeName of annotatedGCPointers)
+    addGCPointer(typeName);
 
 function explain(csu, indent, seen) {
     if (!seen)

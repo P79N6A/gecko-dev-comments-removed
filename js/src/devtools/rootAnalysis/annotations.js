@@ -284,3 +284,43 @@ function isOverridableField(initialCSU, csu, field)
 
     return true;
 }
+
+function listGCTypes() {
+    return [
+        'JSObject',
+        'JSString',
+        'js::Shape',
+        'js::BaseShape',
+        'JSScript',
+        'js::LazyScript',
+        'js::ion::IonCode',
+    ];
+}
+
+function listGCPointers() {
+    return [
+        'JS::Value',
+        'jsid',
+
+        
+        'JS::AutoCheckCannotGC',
+    ];
+}
+
+function listNonGCTypes() {
+    return [
+    ];
+}
+
+function listNonGCPointers() {
+    return [
+    ];
+}
+
+
+
+
+function isGCPointer(typeName)
+{
+    return false;
+}
