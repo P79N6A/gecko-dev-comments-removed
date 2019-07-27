@@ -849,7 +849,6 @@ public:
     
     
     mDecoder->GetReader()->Shutdown();
-    mDecoder->GetReader()->ClearDecoder();
     RefPtr<nsIRunnable> task = new ReleaseDecoderTask(mDecoder);
     mDecoder = nullptr;
     

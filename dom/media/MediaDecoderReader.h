@@ -61,6 +61,8 @@ public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
+  
+  
   explicit MediaDecoderReader(AbstractMediaDecoder* aDecoder);
 
   
@@ -249,10 +251,6 @@ public:
 
   MediaTaskQueue* GetTaskQueue() {
     return mTaskQueue;
-  }
-
-  void ClearDecoder() {
-    mDecoder = nullptr;
   }
 
   
