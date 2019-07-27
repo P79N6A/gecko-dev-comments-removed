@@ -80,7 +80,8 @@ function test() {
         controller.startSearch(testURL);
 
         
-        promisePopupShown(aDestWindow.gURLBar.popup).then(() => {
+        let popup = aDestWindow.gURLBar.popup;
+        promisePopupShown(popup).then(() => {
           function searchIsComplete() {
             return controller.searchStatus ==
               Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH;
@@ -107,7 +108,7 @@ function test() {
             }
 
             
-            if (controller.matchCount > 1) {
+            while (popup.selectedIndex < controller.matchCount - 1) {
               controller.handleKeyNavigation(KeyEvent.DOM_VK_DOWN);
             }
 
