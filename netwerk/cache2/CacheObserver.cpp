@@ -33,8 +33,8 @@ static int32_t sAutoDeleteCacheVersion = kAutoDeleteCacheVersion;
 static int32_t const kDefaultHalfLifeExperiment = -1; 
 int32_t CacheObserver::sHalfLifeExperiment = kDefaultHalfLifeExperiment;
 
-static uint32_t const kDefaultHalfLifeHours = 6; 
-uint32_t CacheObserver::sHalfLifeHours = kDefaultHalfLifeHours;
+static float const kDefaultHalfLifeHours = 1.0F; 
+float CacheObserver::sHalfLifeHours = kDefaultHalfLifeHours;
 
 static bool const kDefaultUseDiskCache = true;
 bool CacheObserver::sUseDiskCache = kDefaultUseDiskCache;
@@ -211,22 +211,22 @@ CacheObserver::AttachToPreferences()
 
   switch (sHalfLifeExperiment) {
   case 1: 
-    sHalfLifeHours = 6;
+    sHalfLifeHours = 0.083F; 
     break;
   case 2:
-    sHalfLifeHours = 24;
+    sHalfLifeHours = 0.25F; 
     break;
   case 3:
-    sHalfLifeHours = 7 * 24;
+    sHalfLifeHours = 1.0F;
     break;
   case 4:
-    sHalfLifeHours = 50 * 24;
+    sHalfLifeHours = 6.0F;
     break;
 
   case -1:
   default: 
     sHalfLifeExperiment = -1;
-    sHalfLifeHours = std::max(1U, std::min(1440U, mozilla::Preferences::GetUint(
+    sHalfLifeHours = std::max(0.01F, std::min(1440.0F, mozilla::Preferences::GetFloat(
       "browser.cache.frecency_half_life_hours", kDefaultHalfLifeHours)));
     break;
   }
