@@ -88,7 +88,7 @@ public:
   
   virtual bool RecvStop() MOZ_OVERRIDE;
 
-  MessageLoop * GetMessageLoop();
+  virtual MessageLoop* GetMessageLoop() const MOZ_OVERRIDE;
 
 
   

@@ -170,7 +170,7 @@ public:
 
 
 
-  MessageLoop * GetMessageLoop() const;
+  virtual MessageLoop * GetMessageLoop() const MOZ_OVERRIDE;
 
   PCompositableChild* AllocPCompositableChild(const TextureInfo& aInfo, uint64_t* aID) MOZ_OVERRIDE;
   bool DeallocPCompositableChild(PCompositableChild* aActor) MOZ_OVERRIDE;
