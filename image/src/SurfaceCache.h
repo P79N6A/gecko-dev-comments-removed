@@ -8,8 +8,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_SURFACECACHE_H_
-#define MOZILLA_IMAGELIB_SURFACECACHE_H_
+#ifndef mozilla_image_src_SurfaceCache_h
+#define mozilla_image_src_SurfaceCache_h
 
 #include "mozilla/Maybe.h"           
 #include "mozilla/MemoryReporting.h" 
@@ -188,6 +188,11 @@ struct SurfaceCache
 
 
 
+
+
+
+
+
   static DrawableFrameRef Lookup(const ImageKey    aImageKey,
                                  const SurfaceKey& aSurfaceKey,
                                  const Maybe<uint32_t>& aAlternateFlags
@@ -219,6 +224,8 @@ struct SurfaceCache
                                             = Nothing());
 
   
+
+
 
 
 
@@ -348,6 +355,8 @@ struct SurfaceCache
   static void UnlockSurfaces(const ImageKey aImageKey);
 
   
+
+
 
 
 
