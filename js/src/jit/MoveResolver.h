@@ -142,7 +142,8 @@ class MoveOp
         INT32,
         FLOAT32,
         DOUBLE,
-        INT32X4
+        INT32X4,
+        FLOAT32X4
     };
 
   protected:
@@ -275,4 +276,4 @@ class MoveResolver
 } 
 } 
 
-#endif
+#endif 
