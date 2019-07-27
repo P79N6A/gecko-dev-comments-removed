@@ -1,7 +1,7 @@
 
 
 
-Cu.import("resource://testing-common/services-common/utils.js");
+Cu.import("resource://testing-common/services/common/utils.js");
 
 function run_test() {
   let thing = {o: {foo: "foo", bar: ["bar"]}, a: ["foo", {bar: "bar"}]};
