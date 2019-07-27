@@ -43,11 +43,10 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
   public:
     struct RegisterState
     {
+        RegisterState() : pc(nullptr), sp(nullptr), lr(nullptr) {}
         void *pc;
         void *sp;
-#if defined(JS_CODEGEN_ARM)
         void *lr;
-#endif
     };
 
     ProfilingFrameIterator(JSRuntime *rt, const RegisterState &state);
@@ -62,19 +61,9 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     
     void *stackAddress() const;
 
-    enum Kind {
-        Function,
-        AsmJSTrampoline,
-        CppFunction
-    };
-    Kind kind() const;
-
     
-    JSAtom *functionDisplayAtom() const;
-    const char *functionFilename() const;
-
     
-    const char *nonFunctionDescription() const;
+    const char *label() const;
 };
 
 } 
