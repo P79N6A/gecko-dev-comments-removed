@@ -194,9 +194,13 @@ CheckMarkedThing(JSTracer *trc, T **thingp)
     MOZ_ASSERT(thing->isAligned());
     MOZ_ASSERT(MapTypeToTraceKind<T>::kind == GetGCThingTraceKind(thing));
 
-    bool isGcMarkingTracer = IsMarkingGray(trc) || IsMarkingTracer(trc);
+    
 
-    MOZ_ASSERT_IF(zone->requireGCTracer(), isGcMarkingTracer);
+
+
+    bool isGcMarkingTracer = (trc->callback == nullptr);
+
+    MOZ_ASSERT_IF(zone->requireGCTracer(), isGcMarkingTracer || IsBufferingGrayRoots(trc));
 
     if (isGcMarkingTracer) {
         GCMarker *gcMarker = static_cast<GCMarker *>(trc);

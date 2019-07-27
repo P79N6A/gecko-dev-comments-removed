@@ -201,11 +201,6 @@ class GCMarker : public JSTracer
 
     bool drainMarkStack(SliceBudget &budget);
 
-    
-    bool bufferingGrayRootsFailed;
-
-    static void GrayCallback(JSTracer *trc, void **thing, JSGCTraceKind kind);
-
     void setGCMode(JSGCMode mode) { stack.setGCMode(mode); }
 
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
@@ -330,15 +325,36 @@ class GCMarker : public JSTracer
     mozilla::DebugOnly<bool> strictCompartmentChecking;
 };
 
+
+
+class BufferGrayRootsTracer : public JSTracer
+{
+    
+    bool bufferingGrayRootsFailed;
+
+    void appendGrayRoot(void *thing, JSGCTraceKind kind);
+
+  public:
+    explicit BufferGrayRootsTracer(JSRuntime *rt)
+      : JSTracer(rt, grayTraceCallback), bufferingGrayRootsFailed(false)
+    {}
+
+    static void grayTraceCallback(JSTracer *trc, void **thingp, JSGCTraceKind kind) {
+        static_cast<BufferGrayRootsTracer *>(trc)->appendGrayRoot(*thingp, kind);
+    }
+
+    bool failed() const { return bufferingGrayRootsFailed; }
+};
+
 void
 SetMarkStackLimit(JSRuntime *rt, size_t limit);
 
 
 
 inline bool
-IsMarkingGray(JSTracer *trc)
+IsBufferingGrayRoots(JSTracer *trc)
 {
-    return trc->callback == js::GCMarker::GrayCallback;
+    return trc->callback == BufferGrayRootsTracer::grayTraceCallback;
 }
 
 
@@ -348,7 +364,7 @@ IsMarkingTracer(JSTracer *trc)
     
     
     
-    MOZ_ASSERT(!IsMarkingGray(trc));
+    MOZ_ASSERT(!IsBufferingGrayRoots(trc));
     return trc->callback == nullptr;
 }
 
