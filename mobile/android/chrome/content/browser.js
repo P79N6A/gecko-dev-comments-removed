@@ -1124,7 +1124,7 @@ var BrowserApp = {
     aTab.browser.dispatchEvent(evt);
   },
 
-  quit: function quit(aClear = {}) {
+  quit: function quit(aClear = { sanitize: {}, dontSaveSession: false }) {
     
     let lastBrowser = true;
     let e = Services.wm.getEnumerator("navigator:browser");
@@ -1144,7 +1144,13 @@ var BrowserApp = {
       Services.obs.notifyObservers(null, "browser-lastwindow-close-granted", null);
     }
 
-    BrowserApp.sanitize(aClear, function() {
+    
+    if (aClear.dontSaveSession) {
+      let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+      ss.removeWindow(window);
+    }
+
+    BrowserApp.sanitize(aClear.sanitize, function() {
       window.QueryInterface(Ci.nsIDOMChromeWindow).minimize();
       window.close();
     });
@@ -3028,6 +3034,10 @@ nsBrowserAccess.prototype = {
   isTabContentWindow: function(aWindow) {
     return BrowserApp.getBrowserForWindow(aWindow) != null;
   },
+
+  get contentWindow() {
+    return BrowserApp.selectedBrowser.contentWindow;
+  }
 };
 
 
