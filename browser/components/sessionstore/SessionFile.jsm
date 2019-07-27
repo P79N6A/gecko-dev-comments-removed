@@ -265,7 +265,6 @@ let SessionFileInternal = {
     if (this._isClosed) {
       return Promise.reject(new Error("SessionFile is closed"));
     }
-    let refObj = {};
 
     let isFinalWrite = false;
     if (Services.startup.shuttingDown) {
@@ -274,50 +273,62 @@ let SessionFileInternal = {
       isFinalWrite = this._isClosed = true;
     }
 
-    let deferredWritten = Promise.defer();
-    return Task.spawn(function* task() {
-      TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
+    let refObj = {};
+    let name = "FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS";
 
+    let promise = new Promise(resolve => {
       
-      
-      AsyncShutdown.profileBeforeChange.addBlocker(
-        "SessionFile: Finish writing Session Restore data",
-        deferredWritten.promise
-      );
+      TelemetryStopwatch.start(name, refObj);
+
+      let performShutdownCleanup = isFinalWrite &&
+        !sessionStartup.isAutomaticRestoreEnabled();
+
+      let options = {isFinalWrite, performShutdownCleanup};
 
       try {
-        let performShutdownCleanup = isFinalWrite &&
-          !sessionStartup.isAutomaticRestoreEnabled();
-        let options = {
-          isFinalWrite: isFinalWrite,
-          performShutdownCleanup: performShutdownCleanup
-        };
-        let promise = SessionWorker.post("write", [aData, options]);
-        
-        TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
-
-        
-        let msg = yield promise;
-        this._recordTelemetry(msg.telemetry);
-
-        if (msg.result.upgradeBackup) {
-          
-          
-          Services.prefs.setCharPref(PREF_UPGRADE_BACKUP, Services.appinfo.platformBuildID);
-        }
-        deferredWritten.resolve();
-      } catch (ex) {
-        TelemetryStopwatch.cancel("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
-        console.error("Could not write session state file ", ex, ex.stack);
-        deferredWritten.reject(ex);
+        resolve(SessionWorker.post("write", [aData, options]));
       } finally {
-        AsyncShutdown.profileBeforeChange.removeBlocker(deferredWritten.promise);
+        
+        TelemetryStopwatch.finish(name, refObj);
       }
+    });
+
+    
+    promise = promise.then(msg => {
+      
+      this._recordTelemetry(msg.telemetry);
+
+      if (msg.result.upgradeBackup) {
+        
+        
+        Services.prefs.setCharPref(PREF_UPGRADE_BACKUP,
+          Services.appinfo.platformBuildID);
+      }
+    }, err => {
+      
+      TelemetryStopwatch.cancel(name, refObj);
+      console.error("Could not write session state file ", err, err.stack);
+      
+      
+      
+    });
+
+    
+    
+    AsyncShutdown.profileBeforeChange.addBlocker(
+      "SessionFile: Finish writing Session Restore data", promise);
+
+    
+    
+    
+    return promise.then(() => {
+      
+      AsyncShutdown.profileBeforeChange.removeBlocker(promise);
 
       if (isFinalWrite) {
         Services.obs.notifyObservers(null, "sessionstore-final-state-write-complete", "");
       }
-    }.bind(this));
+    });
   },
 
   wipe: function () {
