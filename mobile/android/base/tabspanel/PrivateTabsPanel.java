@@ -17,6 +17,7 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ScrollView;
 
 
 
@@ -24,7 +25,7 @@ import android.widget.FrameLayout;
 
 
 
-class PrivateTabsPanel extends FrameLayout implements CloseAllPanelView {
+class PrivateTabsPanel extends ScrollView implements CloseAllPanelView {
     private TabsPanel tabsPanel;
     private TabsTray tabsTray;
 
