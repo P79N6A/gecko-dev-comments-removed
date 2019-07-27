@@ -398,7 +398,7 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
 
     
     if (xrayType == XrayForDOMObject)
-        return &FilteringWrapper<SecurityXrayDOM,
+        return &FilteringWrapper<CrossOriginXrayWrapper,
                                  CrossOriginAccessiblePropertiesOnly>::singleton;
 
     
