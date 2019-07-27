@@ -1213,7 +1213,7 @@ RDFContentSinkImpl::OpenMember(const char16_t* aName,
 
     if (!nameSpaceURI.EqualsLiteral(RDF_NAMESPACE_URI) ||
         localName != kLiAtom) {
-        MOZ_LOG(gLog, PR_LOG_ALWAYS,
+        MOZ_LOG(gLog, PR_LOG_ERROR,
                ("rdfxml: expected RDF:li at line %d",
                 -1)); 
 
