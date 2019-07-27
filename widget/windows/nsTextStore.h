@@ -24,6 +24,9 @@
 #ifdef INPUTSCOPE_INIT_GUID
 #include <initguid.h>
 #endif
+#ifdef TEXTATTRS_INIT_GUID
+#include <tsattrs.h>
+#endif
 #include <inputscope.h>
 
 
@@ -284,9 +287,9 @@ protected:
   void     FlushPendingActions();
 
   nsresult OnLayoutChangeInternal();
-  HRESULT  ProcessScopeRequest(DWORD dwFlags,
-                               ULONG cFilterAttrs,
-                               const TS_ATTRID *paFilterAttrs);
+  HRESULT  HandleRequestAttrs(DWORD aFlags,
+                              ULONG aFilterCount,
+                              const TS_ATTRID* aFilterAttrs);
   void     SetInputScope(const nsString& aHTMLInputType);
 
   
@@ -663,8 +666,28 @@ protected:
 
   
   nsTArray<InputScope>         mInputScopes;
-  bool                         mInputScopeDetected;
-  bool                         mInputScopeRequested;
+
+  
+  
+  enum
+  {
+    
+    eNotSupported = -1,
+
+    
+    eInputScope = 0,
+    eTextVerticalWriting,
+
+    
+    NUM_OF_SUPPORTED_ATTRS
+  };
+  bool mRequestedAttrs[NUM_OF_SUPPORTED_ATTRS];
+
+  int32_t GetRequestedAttrIndex(const TS_ATTRID& aAttrID);
+  TS_ATTRID GetAttrID(int32_t aIndex);
+
+  bool mRequestedAttrValues;
+
   
   
   bool                         mIsRecordingActionsWithoutLock;
