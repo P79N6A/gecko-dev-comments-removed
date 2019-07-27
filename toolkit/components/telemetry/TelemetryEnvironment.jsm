@@ -1019,7 +1019,9 @@ EnvironmentCache.prototype = {
     let gfxData = {
       D2DEnabled: getGfxField("D2DEnabled", null),
       DWriteEnabled: getGfxField("DWriteEnabled", null),
-      DWriteVersion: getGfxField("DWriteVersion", null),
+      
+      
+      
       adapters: [],
     };
 

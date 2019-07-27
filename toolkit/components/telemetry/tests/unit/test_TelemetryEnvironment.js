@@ -392,11 +392,14 @@ function checkSystemSection(data) {
   let gfxData = data.system.gfx;
   Assert.ok("D2DEnabled" in gfxData);
   Assert.ok("DWriteEnabled" in gfxData);
-  Assert.ok("DWriteVersion" in gfxData);
+  
+  
+  
   if (gIsWindows) {
     Assert.equal(typeof gfxData.D2DEnabled, "boolean");
     Assert.equal(typeof gfxData.DWriteEnabled, "boolean");
-    Assert.ok(checkString(gfxData.DWriteVersion));
+    
+    
   }
 
   Assert.ok("adapters" in gfxData);
