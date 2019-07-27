@@ -2,11 +2,7 @@
 
 
 
-from marionette.marionette_test import (
-    MarionetteTestCase,
-    skip_if_b2g,
-    skip_if_e10s
-)
+from marionette.marionette_test import MarionetteTestCase, skip_if_b2g
 from marionette_driver.errors import MarionetteException, TimeoutException
 
 class TestNavigate(MarionetteTestCase):
@@ -81,7 +77,6 @@ class TestNavigate(MarionetteTestCase):
         self.assertTrue('test_iframe.html' in self.marionette.get_url())
     '''
 
-    @skip_if_e10s 
     def test_shouldnt_error_if_nonexistent_url_used(self):
         try:
             self.marionette.navigate("thisprotocoldoesnotexist://")
@@ -95,7 +90,6 @@ class TestNavigate(MarionetteTestCase):
             print traceback.format_exc()
             self.fail("Should have thrown a MarionetteException instead of %s" % type(inst))
 
-    @skip_if_e10s 
     @skip_if_b2g 
     def test_should_navigate_to_requested_about_page(self):
         self.marionette.navigate("about:neterror")
