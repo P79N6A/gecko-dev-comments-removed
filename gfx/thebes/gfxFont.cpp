@@ -3232,12 +3232,12 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
     if (os2Table) {
         const OS2Table *os2 =
             reinterpret_cast<const OS2Table*>(hb_blob_get_data(os2Table, &len));
+        
+        
         if (len >= offsetof(OS2Table, sxHeight) + sizeof(int16_t) &&
-            uint16_t(os2->version) >= 2) {
+            uint16_t(os2->version) >= 2 && int16_t(os2->sxHeight) > 0) {
             
             SET_SIGNED(xHeight, os2->sxHeight);
-            
-            aMetrics.xHeight = Abs(aMetrics.xHeight);
         }
         
         if (len >= offsetof(OS2Table, sTypoLineGap) + sizeof(int16_t)) {
