@@ -29,12 +29,26 @@ namespace dom {
 namespace cache {
 namespace db {
 
-const int32_t kMaxWipeSchemaVersion = 9;
+const int32_t kMaxWipeSchemaVersion = 10;
 
 namespace {
 
-const int32_t kLatestSchemaVersion = 9;
+const int32_t kLatestSchemaVersion = 10;
 const int32_t kMaxEntriesPerStatement = 255;
+
+const uint32_t kPageSize = 4 * 1024;
+
+
+const uint32_t kGrowthSize = 64 * 1024;
+const uint32_t kGrowthPages = kGrowthSize / kPageSize;
+static_assert(kGrowthSize % kPageSize == 0,
+              "Growth size must be multiple of page size");
+
+
+const uint32_t kWalAutoCheckpointSize = 512 * 1024;
+const uint32_t kWalAutoCheckpointPages = kWalAutoCheckpointSize / kPageSize;
+static_assert(kWalAutoCheckpointSize % kPageSize == 0,
+              "WAL checkpoint size must be multiple of page size");
 
 } 
 
@@ -380,22 +394,35 @@ InitializeConnection(mozIStorageConnection* aConn)
   
   
 
-  nsAutoCString pragmas(
+  nsPrintfCString pragmas(
+    
+    "PRAGMA page_size = %u; "
+    
+    "PRAGMA wal_autocheckpoint = %u; "
+    
+    "PRAGMA journal_size_limit = %u; "
+    
     "PRAGMA journal_mode = WAL; "
-    
-    
-    "PRAGMA wal_autocheckpoint = 16; "
-    
-    "PRAGMA journal_size_limit = 524288; "
-    "PRAGMA foreign_keys = ON; "
-
-    
-    
-    
-    
+    "PRAGMA foreign_keys = ON; ",
+    kPageSize,
+    kWalAutoCheckpointPages,
+    kWalAutoCheckpointSize
   );
 
+  
+  
+  
+  
+
   nsresult rv = aConn->ExecuteSimpleSQL(pragmas);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  
+  rv = aConn->SetGrowthIncrement(kGrowthSize, EmptyCString());
+  if (rv == NS_ERROR_FILE_TOO_BIG) {
+    NS_WARNING("Not enough disk space to set sqlite growth increment.");
+    rv = NS_OK;
+  }
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   return NS_OK;
