@@ -5210,6 +5210,20 @@ TileNearRect(const nsRect& aAnyTile, const nsRect& aTargetRect)
                             distance.y / aAnyTile.height * aAnyTile.height);
 }
 
+static gfxFloat
+StableRound(gfxFloat aValue)
+{
+  
+  
+  return floor(aValue + 0.5001);
+}
+
+static gfxPoint
+StableRound(const gfxPoint& aPoint)
+{
+  return gfxPoint(StableRound(aPoint.x), StableRound(aPoint.y));
+}
+
 
 
 
@@ -5316,11 +5330,11 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
       MapToFloatImagePixels(imageSize, devPixelDest, anchorPoint);
 
     if (didSnap) {
-      imageSpaceAnchorPoint.Round();
+      imageSpaceAnchorPoint = StableRound(imageSpaceAnchorPoint);
       anchorPoint = imageSpaceAnchorPoint;
       anchorPoint = MapToFloatUserPixels(imageSize, devPixelDest, anchorPoint);
       anchorPoint = currentMatrix.Transform(anchorPoint);
-      anchorPoint.Round();
+      anchorPoint = StableRound(anchorPoint);
     }
 
     gfxRect anchoredDestRect(anchorPoint, scaledDest);
