@@ -86,12 +86,14 @@ public final class BitmapUtils {
                 public Drawable doInBackground() {
                     try {
                         if (data.startsWith("jar:jar")) {
-                            return GeckoJarReader.getBitmapDrawable(context.getResources(), data);
+                            return GeckoJarReader.getBitmapDrawable(
+                                    context, context.getResources(), data);
                         }
 
                         
                         if (data.startsWith("jar:file")) {
-                            return GeckoJarReader.getBitmapDrawable(context.getResources(), Uri.decode(data));
+                            return GeckoJarReader.getBitmapDrawable(
+                                    context, context.getResources(), Uri.decode(data));
                         }
 
                         final URL url = new URL(data);
