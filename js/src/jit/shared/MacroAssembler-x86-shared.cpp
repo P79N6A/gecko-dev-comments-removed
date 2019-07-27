@@ -223,7 +223,7 @@ MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
         branchDouble(DoubleNotEqual, reg, ScratchDoubleReg, &nonZero);
     }
     
-    movmskpd(reg, scratch);
+    vmovmskpd(reg, scratch);
 
     
     
