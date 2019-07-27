@@ -12,7 +12,6 @@
 #include "nsAutoRef.h"
 #include "GMPParent.h"
 #include "mozilla/gmp/GMPTypes.h"
-#include "nsThread.h"
 #include "nsThreadUtils.h"
 #include "runnable_utils.h"
 
@@ -73,9 +72,7 @@ GMPVideoEncoderParent::GMPVideoEncoderParent(GMPParent *aPlugin)
 
 GMPVideoEncoderParent::~GMPVideoEncoderParent()
 {
-  if (mEncodedThread) {
-    mEncodedThread->Shutdown();
-  }
+  mEncodedThread->Shutdown();
 }
 
 GMPVideoHostImpl&
@@ -241,12 +238,6 @@ GMPVideoEncoderParent::Shutdown()
   }
 }
 
-static void
-ShutdownEncodedThread(nsCOMPtr<nsIThread>& aThread)
-{
-  aThread->Shutdown();
-}
-
 
 void
 GMPVideoEncoderParent::ActorDestroy(ActorDestroyReason aWhy)
@@ -257,15 +248,6 @@ GMPVideoEncoderParent::ActorDestroy(ActorDestroyReason aWhy)
     
     mCallback->Terminated();
     mCallback = nullptr;
-  }
-  
-  
-  if (mEncodedThread) {
-    
-    NS_DispatchToMainThread(
-      WrapRunnableNM<typeof &ShutdownEncodedThread,
-                     nsCOMPtr<nsIThread> >(&ShutdownEncodedThread, mEncodedThread));
-    mEncodedThread = nullptr;
   }
   if (mPlugin) {
     
