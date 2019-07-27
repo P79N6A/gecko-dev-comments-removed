@@ -18,6 +18,7 @@
 #include "nsIDocument.h"
 #include "nsIDOMWindow.h"
 #include "nsRefreshDriver.h"
+#include "nsView.h"
 
 #define APZCCH_LOG(...)
 
@@ -500,6 +501,21 @@ GetDisplayportElementFor(nsIScrollableFrame* aScrollableFrame)
 }
 
 
+static dom::Element*
+GetRootDocumentElementFor(nsIWidget* aWidget)
+{
+  
+  
+  if (nsView* view = nsView::GetViewFor(aWidget)) {
+    if (nsIPresShell* shell = view->GetPresShell()) {
+      MOZ_ASSERT(shell->GetDocument());
+      return shell->GetDocument()->GetDocumentElement();
+    }
+  }
+  return nullptr;
+}
+
+
 
 
 static bool
@@ -515,7 +531,11 @@ PrepareForSetTargetAPZCNotification(nsIWidget* aWidget,
   nsIFrame* target =
     nsLayoutUtils::GetFrameForPoint(aRootFrame, point, nsLayoutUtils::IGNORE_ROOT_SCROLL_FRAME);
   nsIScrollableFrame* scrollAncestor = GetScrollableAncestorFrame(target);
-  nsCOMPtr<dom::Element> dpElement = GetDisplayportElementFor(scrollAncestor);
+
+  
+  nsCOMPtr<dom::Element> dpElement = scrollAncestor
+    ? GetDisplayportElementFor(scrollAncestor)
+    : GetRootDocumentElementFor(aWidget);
 
   nsAutoString dpElementDesc;
   if (dpElement) {
@@ -534,6 +554,7 @@ PrepareForSetTargetAPZCNotification(nsIWidget* aWidget,
   }
 
   APZCCH_LOG("%p didn't have a displayport, so setting one...\n", dpElement.get());
+  MOZ_ASSERT(scrollAncestor);
   return nsLayoutUtils::CalculateAndSetDisplayPortMargins(
       scrollAncestor, nsLayoutUtils::RepaintMode::Repaint);
 }
