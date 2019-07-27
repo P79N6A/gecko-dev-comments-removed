@@ -939,6 +939,18 @@ MacroAssemblerMIPS::branchWithCode(InstImm code, Label *label, JumpKind jumpKind
     if (label->bound()) {
         int32_t offset = label->offset() - m_buffer.nextOffset().getOffset();
 
+        
+        
+        if (code.encode() == inst_bgezal.encode()) {
+            MOZ_ASSERT(jumpKind != ShortJump);
+            
+            addLongJump(nextOffset());
+            ma_liPatchable(ScratchRegister, Imm32(label->offset()));
+            as_jalr(ScratchRegister);
+            as_nop();
+            return;
+        }
+
         if (BOffImm16::IsInRange(offset))
             jumpKind = ShortJump;
 
@@ -950,15 +962,6 @@ MacroAssemblerMIPS::branchWithCode(InstImm code, Label *label, JumpKind jumpKind
             return;
         }
 
-        
-        if (code.encode() == inst_bgezal.encode()) {
-            
-            addLongJump(nextOffset());
-            ma_liPatchable(ScratchRegister, Imm32(label->offset()));
-            as_jalr(ScratchRegister);
-            as_nop();
-            return;
-        }
         if (code.encode() == inst_beq.encode()) {
             
             addLongJump(nextOffset());
