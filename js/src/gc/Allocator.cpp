@@ -72,7 +72,10 @@ GCRuntime::checkAllocatorState(JSContext* cx, AllocKind kind)
 
     
     if (js::oom::ShouldFailWithOOM()) {
-        ReportOutOfMemory(cx);
+        
+        
+        if (allowGC)
+            ReportOutOfMemory(cx);
         return false;
     }
 
