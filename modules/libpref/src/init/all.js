@@ -357,6 +357,10 @@ pref("media.navigator.enabled", true);
 #endif
 #endif
 
+pref("media.tabstreaming.width", 320);
+pref("media.tabstreaming.height", 240);
+pref("media.tabstreaming.time_per_frame", 40);
+
 
 pref("media.webvtt.enabled", true);
 pref("media.webvtt.regions.enabled", false);
@@ -3967,9 +3971,6 @@ pref("dom.sms.defaultServiceId", 0);
 pref("dom.mozContacts.enabled", false);
 pref("dom.navigator-property.disable.mozContacts", true);
 pref("dom.global-constructor.disable.mozContact", true);
-
-
-pref("dom.mozAlarms.enabled", false);
 
 
 pref("services.push.enabled", false);
