@@ -50,6 +50,8 @@ add_task(function test_initialize_starts_timer() {
 
 function run_test()
 {
+  setupFakeLoopServer();
+
   
   
   MozLoopService.initializeTimerFunc = function() {

@@ -21,7 +21,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
 
 let MozLoopPushHandler = {
   
-  pushServerUri: Services.prefs.getCharPref("services.push.serverURL"),
+  pushServerUri: undefined,
   
   channelID: "8b1081ce-9b35-42b5-b8f5-3ff8cb813a50",
   
@@ -211,8 +211,51 @@ let MozLoopPushHandler = {
     }
 
     this._websocket.protocol = "push-notification";
-    let uri = Services.io.newURI(this.pushServerUri, null, null);
-    this._websocket.asyncOpen(uri, this.pushServerUri, this, null);
+
+    let performOpen = () => {
+      let uri = Services.io.newURI(this.pushServerUri, null, null);
+      this._websocket.asyncOpen(uri, this.pushServerUri, this, null);
+    }
+
+    let pushServerURLFetchError = () => {
+      console.warn("MozLoopPushHandler - Could not retrieve push server URL from Loop server; using default");
+      this.pushServerUri = Services.prefs.getCharPref("services.push.serverURL");
+      performOpen();
+    }
+
+    if (!this.pushServerUri) {
+      
+      let pushUrlEndpoint = Services.prefs.getCharPref("loop.server") + "/push-server-config";
+      let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
+                createInstance(Ci.nsIXMLHttpRequest);
+      req.open("GET", pushUrlEndpoint);
+      req.onload = () => {
+        if (req.status >= 200 && req.status < 300) {
+          let pushServerConfig;
+          try {
+            pushServerConfig = JSON.parse(req.responseText);
+          } catch (e) {
+            console.warn("MozLoopPushHandler - Error parsing JSON response for push server URL");
+            pushServerURLFetchError();
+          }
+          if (pushServerConfig.pushServerURI) {
+            this.pushServerUri = pushServerConfig.pushServerURI;
+            performOpen();
+          } else {
+            console.warn("MozLoopPushHandler - push server URL config lacks pushServerURI parameter");
+            pushServerURLFetchError();
+          }
+        } else {
+          console.warn("MozLoopPushHandler - push server URL retrieve error: " + req.status);
+          pushServerURLFetchError();
+        }
+      };
+      req.onerror = pushServerURLFetchError;
+      req.send();
+    } else {
+      
+      performOpen();
+    }
   },
 
   
