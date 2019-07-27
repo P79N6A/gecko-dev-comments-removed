@@ -42,6 +42,49 @@ static const unsigned int FATAL_ERROR_FLAG = 0x800;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define MOZILLA_PKIX_MAP_LIST \
     MOZILLA_PKIX_MAP(Success, 0, 0) \
     MOZILLA_PKIX_MAP(ERROR_BAD_DER, 1, \
