@@ -10446,7 +10446,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                     
                     
                     
-                    decls = "bool result;\n"
+                    decls = ""
                     if foundVar is None:
                         foundVar = "found"
                         decls += "bool found = false;\n"
