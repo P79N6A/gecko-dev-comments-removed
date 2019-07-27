@@ -18,6 +18,10 @@
 
 
 
+
+
+
+
 var ecmaGlobals =
   [
     "Array",
@@ -83,11 +87,11 @@ var interfaceNamesInGlobalScope =
 
     "Blob",
 
-    { name: "BroadcastChannel", pref: "dom.broadcastChannel.enabled" },
+    "BroadcastChannel",
 
-    { name: "Cache", pref: "dom.caches.enabled" },
+    { name: "Cache", release: false},
 
-    { name: "CacheStorage", pref: "dom.caches.enabled" },
+    { name: "CacheStorage", release: false},
 
     "DedicatedWorkerGlobalScope",
 
@@ -147,7 +151,7 @@ var interfaceNamesInGlobalScope =
 
     "Response",
 
-    { name: "ServiceWorkerRegistration", pref: "dom.serviceWorkers.enabled" },
+    { name: "ServiceWorkerRegistration", nightly: true, b2g: false },
 
     "TextDecoder",
 
@@ -163,7 +167,7 @@ var interfaceNamesInGlobalScope =
 
     "URLSearchParams",
 
-   { name: "WebSocket", pref: "dom.workers.websocket.enabled" },
+    "WebSocket",
 
     "Worker",
 
@@ -195,7 +199,8 @@ function createInterfaceMap(prefMap, permissionMap, version, userAgent, isB2G) {
                  (entry.b2g === !isB2G) ||
                  (entry.release === !isRelease) ||
                  (entry.pref && !prefMap[entry.pref])  ||
-                 (entry.permission && !permissionMap[entry.permission])) {
+                 (entry.permission && !permissionMap[entry.permission]) ||
+                 entry.disabled) {
         interfaceMap[entry.name] = false;
       } else {
         interfaceMap[entry.name] = true;
