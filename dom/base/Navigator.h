@@ -268,17 +268,12 @@ public:
 
   
   static bool HasWakeLockSupport(JSContext* , JSObject* );
-  static bool HasMobileMessageSupport(JSContext* ,
-                                      JSObject* aGlobal);
   static bool HasCameraSupport(JSContext* ,
                                JSObject* aGlobal);
   static bool HasWifiManagerSupport(JSContext* ,
                                   JSObject* aGlobal);
 #ifdef MOZ_NFC
   static bool HasNFCSupport(JSContext* , JSObject* aGlobal);
-#endif 
-#ifdef MOZ_TIME_MANAGER
-  static bool HasTimeSupport(JSContext* , JSObject* aGlobal);
 #endif 
 #ifdef MOZ_MEDIA_NAVIGATOR
   static bool HasUserMediaSupport(JSContext* ,
@@ -290,10 +285,6 @@ public:
   static bool HasDataStoreSupport(nsIPrincipal* aPrincipal);
 
   static bool HasDataStoreSupport(JSContext* cx, JSObject* aGlobal);
-
-  static bool HasNetworkStatsSupport(JSContext* aCx, JSObject* aGlobal);
-
-  static bool HasFeatureDetectionSupport(JSContext* aCx, JSObject* aGlobal);
 
 #ifdef MOZ_B2G
   static bool HasMobileIdSupport(JSContext* aCx, JSObject* aGlobal);

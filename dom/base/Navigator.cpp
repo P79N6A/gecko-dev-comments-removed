@@ -106,8 +106,6 @@
 #endif
 #include "mozilla/dom/ContentChild.h"
 
-#include "mozilla/dom/FeatureList.h"
-
 namespace mozilla {
 namespace dom {
 
@@ -1536,17 +1534,6 @@ Navigator::GetFeature(const nsAString& aName)
     }
   }
 
-  NS_NAMED_LITERAL_STRING(apiWindowPrefix, "api.window.");
-  if (StringBeginsWith(aName, apiWindowPrefix)) {
-    const nsAString& featureName = Substring(aName, apiWindowPrefix.Length(), aName.Length()-apiWindowPrefix.Length());
-    if (IsFeatureDetectible(featureName)) {
-      p->MaybeResolve(true);
-    } else {
-      p->MaybeResolve(JS::UndefinedHandleValue);
-    }
-    return p.forget();
-  }
-
   
   p->MaybeResolve(JS::UndefinedHandleValue);
 
@@ -2198,33 +2185,6 @@ Navigator::HasWakeLockSupport(JSContext* , JSObject* )
 
 
 bool
-Navigator::HasMobileMessageSupport(JSContext* , JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-
-#ifndef MOZ_WEBSMS_BACKEND
-  return false;
-#endif
-
-  
-  bool enabled = false;
-  Preferences::GetBool("dom.sms.enabled", &enabled);
-  if (!enabled) {
-    return false;
-  }
-
-  NS_ENSURE_TRUE(win, false);
-  NS_ENSURE_TRUE(win->GetDocShell(), false);
-
-  if (!CheckPermission(win, "sms")) {
-    return false;
-  }
-
-  return true;
-}
-
-
-bool
 Navigator::HasCameraSupport(JSContext* , JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
@@ -2265,16 +2225,6 @@ Navigator::HasNFCSupport(JSContext* , JSObject* aGlobal)
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && (CheckPermission(win, "nfc-read") ||
                  CheckPermission(win, "nfc-write"));
-}
-#endif 
-
-#ifdef MOZ_TIME_MANAGER
-
-bool
-Navigator::HasTimeSupport(JSContext* , JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && CheckPermission(win, "time");
 }
 #endif 
 
@@ -2377,22 +2327,6 @@ Navigator::HasDataStoreSupport(JSContext* aCx, JSObject* aGlobal)
   }
 
   return HasDataStoreSupport(doc->NodePrincipal());
-}
-
-
-bool
-Navigator::HasNetworkStatsSupport(JSContext* , JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return CheckPermission(win, "networkstats-manage");
-}
-
-
-bool
-Navigator::HasFeatureDetectionSupport(JSContext* , JSObject* aGlobal)
-{
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return CheckPermission(win, "feature-detection");
 }
 
 #ifdef MOZ_B2G
