@@ -17,7 +17,6 @@ taskHelper.push(function testPinChangeFailed() {
 
   request.onerror = function onerror() {
     is(request.error.name, "IncorrectPassword");
-    is(request.error.lockType, "pin");
     
     is(request.error.retryCount, 2);
 
