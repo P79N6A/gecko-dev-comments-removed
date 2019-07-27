@@ -3569,6 +3569,12 @@ HTMLMediaElement::UpdateReadyStateInternal()
     
     
     MediaInfo mediaInfo = mMediaInfo;
+    if (hasAudio) {
+      mediaInfo.EnableAudio();
+    }
+    if (hasVideo) {
+      mediaInfo.EnableVideo();
+    }
     MetadataLoaded(&mediaInfo, nsAutoPtr<const MetadataTags>(nullptr));
   }
 
