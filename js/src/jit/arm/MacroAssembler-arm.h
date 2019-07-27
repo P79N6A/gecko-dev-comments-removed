@@ -105,17 +105,17 @@ class MacroAssemblerARM : public Assembler
     
   private:
     bool alu_dbl(Register src1, Imm32 imm, Register dest, ALUOp op,
-                 SetCond_ sc, Condition c);
+                 SBit s, Condition c);
 
   public:
     void ma_alu(Register src1, Operand2 op2, Register dest, ALUOp op,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
     void ma_alu(Register src1, Imm32 imm, Register dest,
                 ALUOp op,
-                SetCond_ sc =  NoSetCond, Condition c = Always);
+                SBit s =  LeaveCC, Condition c = Always);
 
     void ma_alu(Register src1, Operand op2, Register dest, ALUOp op,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
     void ma_nop();
 
     void ma_movPatchable(Imm32 imm, Register dest, Assembler::Condition c,
@@ -135,12 +135,12 @@ class MacroAssemblerARM : public Assembler
     
     
     void ma_mov(Register src, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_mov(Imm32 imm, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
     void ma_mov(ImmWord imm, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_mov(ImmGCPtr ptr, Register dest);
 
@@ -159,98 +159,98 @@ class MacroAssemblerARM : public Assembler
 
     
     void ma_mvn(Imm32 imm, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
 
     void ma_mvn(Register src1, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     
     void ma_neg(Register src, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     
     void ma_and(Register src, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_and(Register src1, Register src2, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_and(Imm32 imm, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_and(Imm32 imm, Register src1, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
 
 
     
     void ma_bic(Imm32 imm, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     
     void ma_eor(Register src, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_eor(Register src1, Register src2, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_eor(Imm32 imm, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_eor(Imm32 imm, Register src1, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
 
     
     void ma_orr(Register src, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_orr(Register src1, Register src2, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_orr(Imm32 imm, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
     void ma_orr(Imm32 imm, Register src1, Register dest,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                SBit s = LeaveCC, Condition c = Always);
 
 
     
     
-    void ma_adc(Imm32 imm, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_adc(Register src, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_adc(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
+    void ma_adc(Imm32 imm, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_adc(Register src, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_adc(Register src1, Register src2, Register dest, SBit s = LeaveCC, Condition c = Always);
 
     
-    void ma_add(Imm32 imm, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_add(Register src1, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_add(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_add(Register src1, Operand op, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_add(Register src1, Imm32 op, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
+    void ma_add(Imm32 imm, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_add(Register src1, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_add(Register src1, Register src2, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_add(Register src1, Operand op, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_add(Register src1, Imm32 op, Register dest, SBit s = LeaveCC, Condition c = Always);
 
     
-    void ma_sbc(Imm32 imm, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_sbc(Register src1, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_sbc(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
+    void ma_sbc(Imm32 imm, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_sbc(Register src1, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_sbc(Register src1, Register src2, Register dest, SBit s = LeaveCC, Condition c = Always);
 
     
-    void ma_sub(Imm32 imm, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_sub(Register src1, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_sub(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_sub(Register src1, Operand op, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_sub(Register src1, Imm32 op, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
+    void ma_sub(Imm32 imm, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_sub(Register src1, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_sub(Register src1, Register src2, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_sub(Register src1, Operand op, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_sub(Register src1, Imm32 op, Register dest, SBit s = LeaveCC, Condition c = Always);
 
     
-    void ma_rsb(Imm32 imm, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_rsb(Register src1, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_rsb(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_rsb(Register src1, Imm32 op2, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
+    void ma_rsb(Imm32 imm, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_rsb(Register src1, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_rsb(Register src1, Register src2, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_rsb(Register src1, Imm32 op2, Register dest, SBit s = LeaveCC, Condition c = Always);
 
     
-    void ma_rsc(Imm32 imm, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_rsc(Register src1, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
-    void ma_rsc(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond, Condition c = Always);
+    void ma_rsc(Imm32 imm, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_rsc(Register src1, Register dest, SBit s = LeaveCC, Condition c = Always);
+    void ma_rsc(Register src1, Register src2, Register dest, SBit s = LeaveCC, Condition c = Always);
 
     
     
@@ -734,10 +734,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
 
     void neg32(Register reg) {
-        ma_neg(reg, reg, SetCond);
+        ma_neg(reg, reg, SetCC);
     }
     void negl(Register reg) {
-        ma_neg(reg, reg, SetCond);
+        ma_neg(reg, reg, SetCC);
     }
     void test32(Register lhs, Register rhs) {
         ma_tst(lhs, rhs);
@@ -1698,9 +1698,9 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void clampIntToUint8(Register reg) {
         
         
-        as_mov(ScratchRegister, asr(reg, 8), SetCond);
-        ma_mov(Imm32(0xff), reg, NoSetCond, NotEqual);
-        ma_mov(Imm32(0), reg, NoSetCond, Signed);
+        as_mov(ScratchRegister, asr(reg, 8), SetCC);
+        ma_mov(Imm32(0xff), reg, LeaveCC, NotEqual);
+        ma_mov(Imm32(0), reg, LeaveCC, Signed);
     }
 
     void incrementInt32Value(const Address& addr) {
@@ -1778,7 +1778,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     emitSet(Assembler::Condition cond, Register dest)
     {
         ma_mov(Imm32(0), dest);
-        ma_mov(Imm32(1), dest, NoSetCond, cond);
+        ma_mov(Imm32(1), dest, LeaveCC, cond);
     }
 
     template <typename T1, typename T2>
@@ -1855,12 +1855,12 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
 
     void computeEffectiveAddress(const Address& address, Register dest) {
-        ma_add(address.base, Imm32(address.offset), dest, NoSetCond);
+        ma_add(address.base, Imm32(address.offset), dest, LeaveCC);
     }
     void computeEffectiveAddress(const BaseIndex& address, Register dest) {
-        ma_alu(address.base, lsl(address.index, address.scale), dest, OpAdd, NoSetCond);
+        ma_alu(address.base, lsl(address.index, address.scale), dest, OpAdd, LeaveCC);
         if (address.offset)
-            ma_add(dest, Imm32(address.offset), dest, NoSetCond);
+            ma_add(dest, Imm32(address.offset), dest, LeaveCC);
     }
     void floor(FloatRegister input, Register output, Label* handleNotAnInt);
     void floorf(FloatRegister input, Register output, Label* handleNotAnInt);
