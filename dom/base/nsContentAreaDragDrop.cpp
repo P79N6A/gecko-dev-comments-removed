@@ -32,7 +32,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsNetUtil.h"
 #include "nsIFile.h"
-#include "nsFrameLoader.h"
 #include "nsIWebNavigation.h"
 #include "nsIDocShell.h"
 #include "nsIContent.h"
@@ -53,7 +52,6 @@
 #include "mozilla/dom/DataTransfer.h"
 #include "nsIMIMEInfo.h"
 #include "nsRange.h"
-#include "TabParent.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLAreaElement.h"
 
@@ -416,21 +414,8 @@ DragDataProducer::Produce(DataTransfer* aDataTransfer,
     dsti && dsti->ItemType() == nsIDocShellTreeItem::typeChrome;
 
   
-  if (isChromeShell && !editingElement) {
-    nsCOMPtr<nsIFrameLoaderOwner> flo = do_QueryInterface(mTarget);
-    if (flo) {
-      nsRefPtr<nsFrameLoader> fl = flo->GetFrameLoader();
-      if (fl) {
-        TabParent* tp = static_cast<TabParent*>(fl->GetRemoteBrowser());
-        if (tp) {
-          
-          
-          tp->AddInitialDnDDataTo(aDataTransfer);
-        }
-      }
-    }
+  if (isChromeShell && !editingElement)
     return NS_OK;
-  }
 
   if (isChromeShell && textControl) {
     

@@ -75,8 +75,6 @@ public:
     NS_IMETHOD IsDataFlavorSupported (const char *aDataFlavor,
                                       bool *_retval) override;
 
-     NS_IMETHOD UpdateDragEffect() override;
-
     
     
 
@@ -163,9 +161,6 @@ private:
     
     nsCountedRef<GtkWidget> mTargetWidget;
     nsCountedRef<GdkDragContext> mTargetDragContext;
-    
-    
-    nsCountedRef<GdkDragContext> mTargetDragContextForRemote;
     guint           mTargetTime;
 
     
@@ -213,7 +208,7 @@ private:
     gboolean RunScheduledTask();
     void UpdateDragAction();
     void DispatchMotionEvents();
-    void ReplyToDragMotion(GdkDragContext* aDragContext);
+    void ReplyToDragMotion();
     gboolean DispatchDropEvent();
 };
 

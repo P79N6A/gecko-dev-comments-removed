@@ -185,7 +185,6 @@ public:
   
   
   already_AddRefed<nsISupportsArray> GetTransferables(nsIDOMNode* aDragTarget);
-  already_AddRefed<nsISupportsArray> GetTransferables(nsILoadContext* aLoadContext);
 
   
   already_AddRefed<nsITransferable> GetTransferable(uint32_t aIndex,
@@ -239,9 +238,6 @@ protected:
   
   
   void FillInExternalData(TransferItem& aItem, uint32_t aIndex);
-
-  friend class ContentParent;
-  void FillAllExternalData();
 
   void MozClearDataAtHelper(const nsAString& aFormat, uint32_t aIndex,
                             mozilla::ErrorResult& aRv);

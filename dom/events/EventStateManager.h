@@ -755,9 +755,6 @@ protected:
   void BeginTrackingDragGesture(nsPresContext* aPresContext,
                                 WidgetMouseEvent* aDownEvent,
                                 nsIFrame* aDownFrame);
-
-  friend class mozilla::dom::TabParent;
-  void BeginTrackingRemoteDragGesture(nsIContent* aContent);
   void StopTrackingDragGesture();
   void GenerateDragGesture(nsPresContext* aPresContext,
                            WidgetMouseEvent* aEvent);
@@ -772,11 +769,11 @@ protected:
 
 
 
-  void DetermineDragTargetAndDefaultData(nsPIDOMWindow* aWindow,
-                                         nsIContent* aSelectionTarget,
-                                         dom::DataTransfer* aDataTransfer,
-                                         nsISelection** aSelection,
-                                         nsIContent** aTargetNode);
+  void DetermineDragTarget(nsPIDOMWindow* aWindow,
+                           nsIContent* aSelectionTarget,
+                           dom::DataTransfer* aDataTransfer,
+                           nsISelection** aSelection,
+                           nsIContent** aTargetNode);
 
   
 

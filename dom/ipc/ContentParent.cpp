@@ -38,7 +38,6 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/docshell/OfflineCacheUpdateParent.h"
 #include "mozilla/dom/DataStoreService.h"
-#include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/DOMStorageIPC.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/File.h"
@@ -104,7 +103,6 @@
 #include "nsIDocument.h"
 #include "nsIDOMGeoGeolocation.h"
 #include "nsIDOMGeoPositionError.h"
-#include "nsIDragService.h"
 #include "mozilla/dom/WakeLock.h"
 #include "nsIDOMWindow.h"
 #include "nsIExternalProtocolService.h"
@@ -4807,62 +4805,6 @@ ContentParent::RecvSetOfflinePermission(const Principal& aPrincipal)
     nsIPrincipal* principal = aPrincipal;
     nsContentUtils::MaybeAllowOfflineAppByDefault(principal, nullptr);
     return true;
-}
-
-void
-ContentParent::MaybeInvokeDragSession(TabParent* aParent)
-{
-  nsCOMPtr<nsIDragService> dragService =
-    do_GetService("@mozilla.org/widget/dragservice;1");
-  if (dragService && dragService->MaybeAddChildProcess(this)) {
-    
-    nsCOMPtr<nsIDragSession> session;
-    dragService->GetCurrentSession(getter_AddRefs(session));
-    if (session) {
-      nsTArray<IPCDataTransfer> dataTransfers;
-      nsCOMPtr<nsIDOMDataTransfer> domTransfer;
-      session->GetDataTransfer(getter_AddRefs(domTransfer));
-      nsCOMPtr<DataTransfer> transfer = do_QueryInterface(domTransfer);
-      if (!transfer) {
-        
-        
-        transfer = new DataTransfer(nullptr, NS_DRAGDROP_DROP, true, -1);
-        session->SetDataTransfer(transfer);
-      }
-      
-      
-      
-      transfer->FillAllExternalData();
-      nsCOMPtr<nsILoadContext> lc = aParent ?
-                                     aParent->GetLoadContext() : nullptr;
-      nsCOMPtr<nsISupportsArray> transferables =
-        transfer->GetTransferables(lc);
-      nsContentUtils::TransferablesToIPCTransferables(transferables,
-                                                      dataTransfers,
-                                                      nullptr,
-                                                      this);
-      uint32_t action;
-      session->GetDragAction(&action);
-      mozilla::unused << SendInvokeDragSession(dataTransfers, action);
-    }
-  }
-}
-
-bool
-ContentParent::RecvUpdateDropEffect(const uint32_t& aDragAction,
-                                    const uint32_t& aDropEffect)
-{
-  nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
-  if (dragSession) {
-    dragSession->SetDragAction(aDragAction);
-    nsCOMPtr<nsIDOMDataTransfer> dt;
-    dragSession->GetDataTransfer(getter_AddRefs(dt));
-    if (dt) {
-      dt->SetDropEffectInt(aDropEffect);
-    }
-    dragSession->UpdateDragEffect();
-  }
-  return true;
 }
 
 } 

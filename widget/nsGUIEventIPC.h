@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsGUIEventIPC_h__
 #define nsGUIEventIPC_h__
@@ -215,29 +215,6 @@ struct ParamTraits<mozilla::WidgetMouseEvent>
   }
 };
 
-
-template<>
-struct ParamTraits<mozilla::WidgetDragEvent>
-{
-  typedef mozilla::WidgetDragEvent paramType;
-
-  static void Write(Message* aMsg, const paramType& aParam)
-  {
-    WriteParam(aMsg, static_cast<mozilla::WidgetMouseEvent>(aParam));
-    WriteParam(aMsg, aParam.userCancelled);
-    WriteParam(aMsg, aParam.mDefaultPreventedOnContent);
-  }
-
-  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
-  {
-    bool rv =
-      ReadParam(aMsg, aIter, static_cast<mozilla::WidgetMouseEvent*>(aResult)) &&
-      ReadParam(aMsg, aIter, &aResult->userCancelled) &&
-      ReadParam(aMsg, aIter, &aResult->mDefaultPreventedOnContent);
-    return rv;
-  }
-};
-
 template<>
 struct ParamTraits<mozilla::WidgetPointerEvent>
 {
@@ -276,8 +253,8 @@ struct ParamTraits<mozilla::WidgetTouchEvent>
   static void Write(Message* aMsg, const paramType& aParam)
   {
     WriteParam(aMsg, static_cast<const mozilla::WidgetInputEvent&>(aParam));
-    
-    
+    // Sigh, Touch bites us again!  We want to be able to do
+    //   WriteParam(aMsg, aParam.touches);
     const paramType::TouchArray& touches = aParam.touches;
     WriteParam(aMsg, touches.Length());
     for (uint32_t i = 0; i < touches.Length(); ++i) {
@@ -364,8 +341,8 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
     WriteParam(aMsg, aParam.mNativeCharactersIgnoringModifiers);
     WriteParam(aMsg, aParam.mPluginTextEventString);
 #endif
-    
-    
+    // An OS-specific native event might be attached in |mNativeKeyEvent|,  but
+    // that cannot be copied across process boundaries.
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
@@ -783,7 +760,7 @@ struct ParamTraits<mozilla::WritingMode>
   }
 };
 
-} 
+} // namespace IPC
 
-#endif 
+#endif // nsGUIEventIPC_h__
 
