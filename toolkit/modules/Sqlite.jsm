@@ -219,6 +219,9 @@ function ConnectionData(connection, identifier, options={}) {
   
   this._statementCounter = 0;
 
+  
+  this._operationsCounter = 0;
+
   this._hasInProgressTransaction = false;
   
   
@@ -236,6 +239,10 @@ function ConnectionData(connection, identifier, options={}) {
   
   this._deferredClose = PromiseUtils.defer();
   this._closeRequested = false;
+
+  
+  
+  this._barrier = new AsyncShutdown.Barrier(`${this._identifier}: waiting for clients`);
 
   Barriers.connections.client.addBlocker(
     this._identifier + ": waiting for shutdown",
@@ -264,6 +271,112 @@ function ConnectionData(connection, identifier, options={}) {
 ConnectionData.byId = new Map();
 
 ConnectionData.prototype = Object.freeze({
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  executeBeforeShutdown: function(parent, name, task) {
+    if (!name) {
+      throw new TypeError("Expected a human-readable name as first argument");
+    }
+    if (typeof task != "function") {
+      throw new TypeError("Expected a function as second argument");
+    }
+    if (this._closeRequested) {
+      throw new Error(`${this._identifier}: cannot execute operation ${name}, the connection is already closing`);
+    }
+
+    
+    let status = {
+      
+      
+      command: "<not started>",
+
+      
+      isPending: false,
+    };
+
+    
+    
+    
+    
+    let loggedDb = Object.create(parent, {
+      execute: {
+        value: Task.async(function*(sql, ...rest) {
+          status.isPending = true;
+          status.command = sql;
+          try {
+            return (yield this.execute(sql, ...rest));
+          } finally {
+            status.isPending = false;
+          }
+        }.bind(this))
+      },
+      close: {
+        value: Task.async(function*() {
+          status.isPending = false;
+          status.command = "<close>";
+          try {
+            return (yield this.close());
+          } finally {
+            status.isPending = false;
+          }
+        }.bind(this))
+      },
+      executeCached: {
+        value: Task.async(function*(sql, ...rest) {
+          status.isPending = false;
+          status.command = sql;
+          try {
+            return (yield this.executeCached(sql, ...rest));
+          } finally {
+            status.isPending = false;
+          }
+        }.bind(this))
+      },
+    });
+
+    let promiseResult = task(loggedDb);
+    if (!promiseResult || typeof promiseResult != "object" || !("then" in promiseResult)) {
+      throw new TypeError("Expected a Promise");
+    }
+    let key = `${this._identifier}: ${name} (${this._getOperationId()})`;
+    let promiseComplete = promiseResult.catch(() => {});
+    this._barrier.client.addBlocker(key, promiseComplete, {
+      fetchState: () => status
+    });
+
+    return Task.spawn(function*() {
+      try {
+        return (yield promiseResult);
+      } finally {
+        this._barrier.client.removeBlocker(key, promiseComplete)
+      }
+    }.bind(this));
+  },
   close: function () {
     this._closeRequested = true;
 
@@ -274,20 +387,12 @@ ConnectionData.prototype = Object.freeze({
     this._log.debug("Request to close connection.");
     this._clearIdleShrinkTimer();
 
-    
-    
-    
-    
-    if (!this._hasInProgressTransaction) {
+    return this._barrier.wait().then(() => {
+      if (!this._dbConn) {
+        return;
+      }
       return this._finalize();
-    }
-
-    
-    
-    
-    this._log.warn("Transaction in progress at time of close. Rolling back.");
-
-    return this._transactionQueue.then(() => this._finalize());
+    });
   },
 
   clone: function (readOnly=false) {
@@ -304,7 +409,9 @@ ConnectionData.prototype = Object.freeze({
 
     return cloneStorageConnection(options);
   },
-
+  _getOperationId: function() {
+    return this._operationsCounter++;
+  },
   _finalize: function () {
     this._log.debug("Finalizing connection.");
     
@@ -428,6 +535,9 @@ ConnectionData.prototype = Object.freeze({
   },
 
   executeTransaction: function (func, type) {
+    if (typeof type == "undefined") {
+      throw new Error("Internal error: expected a type");
+    }
     this.ensureOpen();
 
     this._log.debug("Beginning transaction");
@@ -529,6 +639,10 @@ ConnectionData.prototype = Object.freeze({
     
     
     this._transactionQueue = promise.catch(ex => { console.error(ex) });
+
+    
+    this._barrier.client.addBlocker(`Transaction (${this._getOperationId()})`,
+      this._transactionQueue);
     return promise;
   },
 
@@ -801,8 +915,8 @@ function openConnection(options) {
     }
     Services.storage.openAsyncDatabase(file, dbOptions, (status, connection) => {
       if (!connection) {
-        log.warn("Could not open connection: " + status);
-        reject(new Error("Could not open connection: " + status));
+        log.warn(`Could not open connection to ${path}: ${status}`);
+        reject(new Error(`Could not open connection to ${path}: ${status}`));
         return;
       }
       log.info("Connection opened");
@@ -1093,6 +1207,10 @@ OpenedConnection.prototype = Object.freeze({
 
   clone: function (readOnly=false) {
     return this._connectionData.clone(readOnly);
+  },
+
+  executeBeforeShutdown: function(name, task) {
+    return this._connectionData.executeBeforeShutdown(this, name, task);
   },
 
   
