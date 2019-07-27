@@ -9,10 +9,7 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
 const TOPIC_SHUTDOWN = "places-shutdown";
 const TOPIC_PREFCHANGED = "nsPref:changed";
@@ -56,6 +53,7 @@ const QUERYTYPE_KEYWORD       = 0;
 const QUERYTYPE_FILTERED      = 1;
 const QUERYTYPE_AUTOFILL_HOST = 2;
 const QUERYTYPE_AUTOFILL_URL  = 3;
+const QUERYTYPE_AUTOFILL_PREDICTURL  = 4;
 
 
 
@@ -747,12 +745,6 @@ Search.prototype = {
           return;
       }
     }
-
-    
-    
-    if (this._frecencyMatches) {
-      this._frecencyMatches.forEach(this._addMatch, this);
-    }
   }),
 
   _matchKnownUrl: function* (conn, queries) {
@@ -830,7 +822,7 @@ Search.prototype = {
     }
 
     this._result.setDefaultIndex(0);
-    this._addFrecencyMatch({
+    this._addMatch({
       value: value,
       comment: match.engineName,
       icon: match.iconUrl,
@@ -875,6 +867,8 @@ Search.prototype = {
     switch (queryType) {
       case QUERYTYPE_AUTOFILL_HOST:
         this._result.setDefaultIndex(0);
+        
+      case QUERYTYPE_AUTOFILL_PREDICTURL:
         match = this._processHostRow(row);
         break;
       case QUERYTYPE_AUTOFILL_URL:
@@ -887,19 +881,6 @@ Search.prototype = {
         break;
     }
     this._addMatch(match);
-  },
-
-  
-
-
-  _addFrecencyMatch: function (match) {
-    if (!this._frecencyMatches)
-      this._frecencyMatches = [];
-    this._frecencyMatches.push(match);
-    
-    
-    
-    this._frecencyMatches.sort((a, b) => a.frecency - b.frecency);
   },
 
   _maybeRestyleSearchMatch: function (match) {
@@ -933,14 +914,6 @@ Search.prototype = {
       return;
 
     let notifyResults = false;
-
-    if (this._frecencyMatches) {
-      for (let i = this._frecencyMatches.length - 1;  i >= 0 ; i--) {
-        if (this._frecencyMatches[i].frecency > match.frecency) {
-          this._addMatch(this._frecencyMatches.splice(i, 1)[0]);
-        }
-      }
-    }
 
     
     let urlMapKey = stripHttpAndTrim(match.value);
@@ -1336,7 +1309,7 @@ Search.prototype = {
     return [
       SQL_HOST_QUERY,
       {
-        query_type: QUERYTYPE_AUTOFILL_HOST,
+        query_type: QUERYTYPE_AUTOFILL_PREDICTURL,
         searchString: host
       }
     ];
