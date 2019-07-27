@@ -181,7 +181,7 @@ private:
   uint32_t mOutgoingBufferedAmount;
 
   
-  nsString mOriginalURL;
+  nsString mURI;
   nsString mEffectiveURL;   
   nsCString mEstablishedExtensions;
   nsCString mEstablishedProtocol;
