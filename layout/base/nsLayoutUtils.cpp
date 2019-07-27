@@ -5539,6 +5539,11 @@ struct SnappedImageDrawingParameters {
   
   ImageRegion region;
   
+  
+  
+  
+  nsIntSize svgViewportSize;
+  
   bool shouldDraw;
 
   SnappedImageDrawingParameters()
@@ -5548,10 +5553,12 @@ struct SnappedImageDrawingParameters {
 
   SnappedImageDrawingParameters(const gfxMatrix&   aImageSpaceToDeviceSpace,
                                 const nsIntSize&   aSize,
-                                const ImageRegion& aRegion)
+                                const ImageRegion& aRegion,
+                                const nsIntSize&   aSVGViewportSize)
    : imageSpaceToDeviceSpace(aImageSpaceToDeviceSpace)
    , size(aSize)
    , region(aRegion)
+   , svgViewportSize(aSVGViewportSize)
    , shouldDraw(true)
   {}
 };
@@ -5666,6 +5673,11 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
                                     aGraphicsFilter, aImageFlags);
   gfxSize imageSize(intImageSize.width, intImageSize.height);
 
+  nsIntSize svgViewportSize = currentMatrix.IsIdentity()
+      ? intImageSize
+      : nsIntSize(NSAppUnitsToIntPixels(dest.width, aAppUnitsPerDevPixel),
+                  NSAppUnitsToIntPixels(dest.height, aAppUnitsPerDevPixel));
+
   
   gfxPoint subimageTopLeft =
     MapToFloatImagePixels(imageSize, devPixelDest, devPixelFill.TopLeft());
@@ -5743,7 +5755,9 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
 
   ImageRegion region =
     ImageRegion::CreateWithSamplingRestriction(imageSpaceFill, subimage);
-  return SnappedImageDrawingParameters(transform, intImageSize, region);
+
+  return SnappedImageDrawingParameters(transform, intImageSize,
+                                       region, svgViewportSize);
 }
 
 
@@ -5781,8 +5795,14 @@ DrawImageInternal(gfxContext&            aContext,
   gfxContextMatrixAutoSaveRestore contextMatrixRestorer(&aContext);
   aContext.SetMatrix(params.imageSpaceToDeviceSpace);
 
+  Maybe<SVGImageContext> svgContext = ToMaybe(aSVGContext);
+  if (!svgContext) {
+    
+    svgContext = Some(SVGImageContext(params.svgViewportSize, Nothing()));
+  }
+
   aImage->Draw(&aContext, params.size, params.region, imgIContainer::FRAME_CURRENT,
-               aGraphicsFilter, ToMaybe(aSVGContext), aImageFlags);
+               aGraphicsFilter, svgContext, aImageFlags);
 
   return NS_OK;
 }
