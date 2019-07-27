@@ -61,18 +61,21 @@ AlarmsManager.prototype = {
         break;
     }
 
-    
-    
-    
-    let sandbox = new Cu.Sandbox(Cu.getWebIDLCallerPrincipal());
-    sandbox.data = aData;
-    let data = Cu.evalInSandbox("JSON.stringify(data)", sandbox);
+    let data = aData;
+    if (aData) {
+      
+      
+      
+      let sandbox = new Cu.Sandbox(Cu.getWebIDLCallerPrincipal());
+      sandbox.data = aData;
+      data = JSON.parse(Cu.evalInSandbox("JSON.stringify(data)", sandbox));
+    }
     let request = this.createRequest();
     this._cpmm.sendAsyncMessage("AlarmsManager:Add",
                                 { requestId: this.getRequestId(request),
                                   date: aDate,
                                   ignoreTimezone: isIgnoreTimezone,
-                                  data: JSON.parse(data),
+                                  data: data,
                                   pageURL: this._pageURL,
                                   manifestURL: this._manifestURL });
     return request;
