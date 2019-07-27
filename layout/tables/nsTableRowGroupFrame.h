@@ -23,18 +23,20 @@ struct nsRowGroupReflowState {
   nsTableFrame* tableFrame;
 
   
-  nsSize availSize;
+  mozilla::LogicalSize availSize;
 
   
-  nscoord y;
+  nscoord bCoord;
 
   nsRowGroupReflowState(const nsHTMLReflowState& aReflowState,
                         nsTableFrame*            aTableFrame)
-      :reflowState(aReflowState), tableFrame(aTableFrame)
+      : reflowState(aReflowState)
+      , tableFrame(aTableFrame)
+      , availSize(aReflowState.GetWritingMode(),
+                  aReflowState.AvailableISize(),
+                  aReflowState.AvailableBSize())
+      , bCoord(0)
   {
-    availSize.width  = reflowState.AvailableWidth();
-    availSize.height = reflowState.AvailableHeight();
-    y = 0;
   }
 
   ~nsRowGroupReflowState() {}
@@ -160,7 +162,7 @@ public:
   
 
 
-  nscoord GetHeightBasis(const nsHTMLReflowState& aReflowState);
+  nscoord GetBSizeBasis(const nsHTMLReflowState& aReflowState);
 
   mozilla::LogicalMargin GetBCBorderWidth(mozilla::WritingMode aWM);
 
@@ -170,12 +172,14 @@ public:
 
 
 
-  void GetContinuousBCBorderWidth(nsMargin& aBorder);
+  void GetContinuousBCBorderWidth(mozilla::WritingMode aWM,
+                                  mozilla::LogicalMargin& aBorder);
+
   
 
 
 
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(mozilla::LogicalSide aForSide,
                                   BCPixelSize aPixelValue);
   
 
@@ -186,8 +190,8 @@ public:
 
 
 
-  nscoord CollapseRowGroupIfNecessary(nscoord aYTotalOffset,
-                                      nscoord aWidth);
+  nscoord CollapseRowGroupIfNecessary(nscoord aBTotalOffset,
+                                      nscoord aISize);
 
 
 public:
@@ -347,14 +351,16 @@ protected:
   void PlaceChild(nsPresContext*         aPresContext,
                   nsRowGroupReflowState& aReflowState,
                   nsIFrame*              aKidFrame,
-                  nsPoint                aKidPosition,
+                  mozilla::WritingMode   aWM,
+                  const mozilla::LogicalPoint& aKidPosition,
+                  nscoord                aContainerWidth,
                   nsHTMLReflowMetrics&   aDesiredSize,
                   const nsRect&          aOriginalKidRect,
                   const nsRect&          aOriginalKidVisualOverflow);
 
-  void CalculateRowHeights(nsPresContext*           aPresContext,
-                           nsHTMLReflowMetrics&     aDesiredSize,
-                           const nsHTMLReflowState& aReflowState);
+  void CalculateRowBSizes(nsPresContext*           aPresContext,
+                          nsHTMLReflowMetrics&     aDesiredSize,
+                          const nsHTMLReflowState& aReflowState);
 
   void DidResizeRows(nsHTMLReflowMetrics& aDesiredSize);
 
@@ -405,15 +411,15 @@ protected:
 
 private:
   
-  BCPixelSize mRightContBorderWidth;
-  BCPixelSize mBottomContBorderWidth;
-  BCPixelSize mLeftContBorderWidth;
+  BCPixelSize mIEndContBorderWidth;
+  BCPixelSize mBEndContBorderWidth;
+  BCPixelSize mIStartContBorderWidth;
 
 public:
   bool IsRepeatable() const;
-  void   SetRepeatable(bool aRepeatable);
-  bool HasStyleHeight() const;
-  void   SetHasStyleHeight(bool aValue);
+  void SetRepeatable(bool aRepeatable);
+  bool HasStyleBSize() const;
+  void SetHasStyleBSize(bool aValue);
   bool HasInternalBreakBefore() const;
   bool HasInternalBreakAfter() const;
 };
@@ -433,12 +439,12 @@ inline void nsTableRowGroupFrame::SetRepeatable(bool aRepeatable)
   }
 }
 
-inline bool nsTableRowGroupFrame::HasStyleHeight() const
+inline bool nsTableRowGroupFrame::HasStyleBSize() const
 {
   return (mState & NS_ROWGROUP_HAS_STYLE_HEIGHT) == NS_ROWGROUP_HAS_STYLE_HEIGHT;
 }
 
-inline void nsTableRowGroupFrame::SetHasStyleHeight(bool aValue)
+inline void nsTableRowGroupFrame::SetHasStyleBSize(bool aValue)
 {
   if (aValue) {
     mState |= NS_ROWGROUP_HAS_STYLE_HEIGHT;
@@ -448,15 +454,15 @@ inline void nsTableRowGroupFrame::SetHasStyleHeight(bool aValue)
 }
 
 inline void
-nsTableRowGroupFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
+nsTableRowGroupFrame::GetContinuousBCBorderWidth(mozilla::WritingMode aWM,
+                                                 mozilla::LogicalMargin& aBorder)
 {
   int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  aBorder.right = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
-                                             mRightContBorderWidth);
-  aBorder.bottom = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
-                                              mBottomContBorderWidth);
-  aBorder.left = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
-                                          mLeftContBorderWidth);
-  return;
+  aBorder.IEnd(aWM) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                                 mIEndContBorderWidth);
+  aBorder.BEnd(aWM) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                                 mBEndContBorderWidth);
+  aBorder.IStart(aWM) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
+                                                 mIStartContBorderWidth);
 }
 #endif
