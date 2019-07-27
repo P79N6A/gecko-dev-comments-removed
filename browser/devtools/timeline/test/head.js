@@ -85,13 +85,12 @@ function* initTimelinePanel(url) {
 
   let tab = yield addTab(url);
   let target = TargetFactory.forTab(tab);
-  let debuggee = target.window.wrappedJSObject;
 
   yield target.makeRemote();
 
   let toolbox = yield gDevTools.showToolbox(target, "timeline");
   let panel = toolbox.getCurrentPanel();
-  return [target, debuggee, panel];
+  return { target, panel };
 }
 
 
