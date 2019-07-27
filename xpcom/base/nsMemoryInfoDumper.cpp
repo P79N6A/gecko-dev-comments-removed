@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/JSONWriter.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/nsMemoryInfoDumper.h"
 #include "nsDumpUtils.h"
 
@@ -418,100 +420,6 @@ nsMemoryInfoDumper::DumpGCAndCCLogsToSink(bool aDumpAllTraces,
   return NS_OK;
 }
 
-namespace mozilla {
-
-#define DUMP(o, s) \
-  do { \
-    nsresult rv = (o)->Write(s); \
-    if (NS_WARN_IF(NS_FAILED(rv))) \
-      return rv; \
-  } while (0)
-
-class DumpReportCallback MOZ_FINAL : public nsIHandleReportCallback
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  explicit DumpReportCallback(nsGZFileWriter* aWriter)
-    : mIsFirst(true)
-    , mWriter(aWriter)
-  {
-  }
-
-  NS_IMETHOD Callback(const nsACString& aProcess, const nsACString& aPath,
-                      int32_t aKind, int32_t aUnits, int64_t aAmount,
-                      const nsACString& aDescription,
-                      nsISupports* aData)
-  {
-    if (mIsFirst) {
-      DUMP(mWriter, "[");
-      mIsFirst = false;
-    } else {
-      DUMP(mWriter, ",");
-    }
-
-    nsAutoCString process;
-    if (aProcess.IsEmpty()) {
-      
-      
-      
-      
-      
-      if (XRE_GetProcessType() == GeckoProcessType_Default) {
-        
-        process.AssignLiteral("Main Process");
-      } else if (ContentChild* cc = ContentChild::GetSingleton()) {
-        
-        cc->GetProcessName(process);
-      }
-      ContentChild::AppendProcessId(process);
-
-    } else {
-      
-      
-      process = aProcess;
-    }
-
-    DUMP(mWriter, "\n    {\"process\": \"");
-    DUMP(mWriter, process);
-
-    DUMP(mWriter, "\", \"path\": \"");
-    nsCString path(aPath);
-    path.ReplaceSubstring("\\", "\\\\");    
-    path.ReplaceSubstring("\"", "\\\"");    
-    DUMP(mWriter, path);
-
-    DUMP(mWriter, "\", \"kind\": ");
-    DUMP(mWriter, nsPrintfCString("%d", aKind));
-
-    DUMP(mWriter, ", \"units\": ");
-    DUMP(mWriter, nsPrintfCString("%d", aUnits));
-
-    DUMP(mWriter, ", \"amount\": ");
-    DUMP(mWriter, nsPrintfCString("%lld", aAmount));
-
-    nsCString description(aDescription);
-    description.ReplaceSubstring("\\", "\\\\");    
-    description.ReplaceSubstring("\"", "\\\"");    
-    description.ReplaceSubstring("\n", "\\n");     
-    DUMP(mWriter, ", \"description\": \"");
-    DUMP(mWriter, description);
-    DUMP(mWriter, "\"}");
-
-    return NS_OK;
-  }
-
-private:
-  ~DumpReportCallback() {}
-
-  bool mIsFirst;
-  nsRefPtr<nsGZFileWriter> mWriter;
-};
-
-NS_IMPL_ISUPPORTS(DumpReportCallback, nsIHandleReportCallback)
-
-} 
-
 static void
 MakeFilename(const char* aPrefix, const nsAString& aIdentifier,
              int aPid, const char* aSuffix, nsACString& aResult)
@@ -544,66 +452,101 @@ DMDWrite(void* aState, const char* aFmt, va_list ap)
 }
 #endif
 
-static nsresult
-DumpHeader(nsIGZFileWriter* aWriter)
+
+
+
+
+class GZWriterWrapper : public JSONWriteFunc
 {
-  
-  
-  
-  
-  
-  DUMP(aWriter, "{\n  \"version\": 1,\n");
+public:
+  explicit GZWriterWrapper(nsGZFileWriter* aGZWriter)
+    : mGZWriter(aGZWriter)
+  {}
 
-  DUMP(aWriter, "  \"hasMozMallocUsableSize\": ");
-
-  nsCOMPtr<nsIMemoryReporterManager> mgr =
-    do_GetService("@mozilla.org/memory-reporter-manager;1");
-  if (NS_WARN_IF(!mgr)) {
-    return NS_ERROR_UNEXPECTED;
+  void Write(const char* aStr)
+  {
+    (void)mGZWriter->Write(aStr);
   }
 
-  DUMP(aWriter, mgr->GetHasMozMallocUsableSize() ? "true" : "false");
-  DUMP(aWriter, ",\n");
-  DUMP(aWriter, "  \"reports\": ");
+  nsresult Finish() { return mGZWriter->Finish(); }
 
-  return NS_OK;
-}
-
-static nsresult
-DumpFooter(nsIGZFileWriter* aWriter)
-{
-  DUMP(aWriter, "\n  ]\n}\n");
-
-  return NS_OK;
-}
+private:
+  nsRefPtr<nsGZFileWriter> mGZWriter;
+};
 
 
 
-class FinishReportingCallback MOZ_FINAL : public nsIFinishReportingCallback
+
+class HandleReportAndFinishReportingCallbacks MOZ_FINAL
+  : public nsIHandleReportCallback, public nsIFinishReportingCallback
 {
 public:
   NS_DECL_ISUPPORTS
 
-  FinishReportingCallback(nsGZFileWriter* aReportsWriter,
-                          nsIFinishDumpingCallback* aFinishDumping,
-                          nsISupports* aFinishDumpingData)
-    : mReportsWriter(aReportsWriter)
+  HandleReportAndFinishReportingCallbacks(UniquePtr<JSONWriter> aWriter,
+                                          nsIFinishDumpingCallback* aFinishDumping,
+                                          nsISupports* aFinishDumpingData)
+    : mWriter(Move(aWriter))
     , mFinishDumping(aFinishDumping)
     , mFinishDumpingData(aFinishDumpingData)
   {
   }
 
+  
+  NS_IMETHOD Callback(const nsACString& aProcess, const nsACString& aPath,
+                      int32_t aKind, int32_t aUnits, int64_t aAmount,
+                      const nsACString& aDescription,
+                      nsISupports* aData)
+  {
+    nsAutoCString process;
+    if (aProcess.IsEmpty()) {
+      
+      
+      
+      
+      
+      if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        
+        process.AssignLiteral("Main Process");
+      } else if (ContentChild* cc = ContentChild::GetSingleton()) {
+        
+        cc->GetProcessName(process);
+      }
+      ContentChild::AppendProcessId(process);
+
+    } else {
+      
+      
+      process = aProcess;
+    }
+
+    mWriter->StartObjectElement();
+    {
+      mWriter->StringProperty("process", process.get());
+      mWriter->StringProperty("path", PromiseFlatCString(aPath).get());
+      mWriter->IntProperty("kind", aKind);
+      mWriter->IntProperty("units", aUnits);
+      mWriter->IntProperty("amount", aAmount);
+      mWriter->StringProperty("description",
+                              PromiseFlatCString(aDescription).get());
+    }
+    mWriter->EndObject();
+
+    return NS_OK;
+  }
+
+  
   NS_IMETHOD Callback(nsISupports* aData)
   {
-    nsresult rv = DumpFooter(mReportsWriter);
-    NS_ENSURE_SUCCESS(rv, rv);
+    mWriter->EndArray();  
+    mWriter->End();
 
     
     
     
     
     
-    rv = mReportsWriter->Finish();
+    nsresult rv = static_cast<GZWriterWrapper*>(mWriter->WriteFunc())->Finish();
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!mFinishDumping) {
@@ -614,14 +557,15 @@ public:
   }
 
 private:
-  ~FinishReportingCallback() {}
+  ~HandleReportAndFinishReportingCallbacks() {}
 
-  nsRefPtr<nsGZFileWriter> mReportsWriter;
+  UniquePtr<JSONWriter> mWriter;
   nsCOMPtr<nsIFinishDumpingCallback> mFinishDumping;
   nsCOMPtr<nsISupports> mFinishDumpingData;
 };
 
-NS_IMPL_ISUPPORTS(FinishReportingCallback, nsIFinishReportingCallback)
+NS_IMPL_ISUPPORTS(HandleReportAndFinishReportingCallbacks,
+                  nsIHandleReportCallback, nsIFinishReportingCallback)
 
 class TempDirFinishCallback MOZ_FINAL : public nsIFinishDumpingCallback
 {
@@ -713,28 +657,35 @@ DumpMemoryInfoToFile(
   bool aMinimizeMemoryUsage,
   nsAString& aDMDIdentifier)
 {
-  nsRefPtr<nsGZFileWriter> reportsWriter = new nsGZFileWriter();
-  nsresult rv = reportsWriter->Init(aReportsFile);
+  nsRefPtr<nsGZFileWriter> gzWriter = new nsGZFileWriter();
+  nsresult rv = gzWriter->Init(aReportsFile);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+  auto jsonWriter =
+    MakeUnique<JSONWriter>(MakeUnique<GZWriterWrapper>(gzWriter));
 
-  
-  rv = DumpHeader(reportsWriter);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  
   nsCOMPtr<nsIMemoryReporterManager> mgr =
     do_GetService("@mozilla.org/memory-reporter-manager;1");
-  nsRefPtr<DumpReportCallback> dumpReport =
-    new DumpReportCallback(reportsWriter);
-  nsRefPtr<FinishReportingCallback> finishReporting =
-    new FinishReportingCallback(reportsWriter, aFinishDumping,
-                                aFinishDumpingData);
-  rv = mgr->GetReportsExtended(dumpReport, nullptr,
-                               finishReporting, nullptr,
+
+  
+  
+  jsonWriter->Start();
+  {
+    
+    jsonWriter->IntProperty("version", 1);
+    jsonWriter->BoolProperty("hasMozMallocUsableSize",
+                             mgr->GetHasMozMallocUsableSize());
+    jsonWriter->StartArrayProperty("reports");
+  }
+
+  nsRefPtr<HandleReportAndFinishReportingCallbacks>
+    handleReportAndFinishReporting =
+      new HandleReportAndFinishReportingCallbacks(Move(jsonWriter),
+                                                  aFinishDumping,
+                                                  aFinishDumpingData);
+  rv = mgr->GetReportsExtended(handleReportAndFinishReporting, nullptr,
+                               handleReportAndFinishReporting, nullptr,
                                aAnonymize,
                                aMinimizeMemoryUsage,
                                aDMDIdentifier);
@@ -801,12 +752,12 @@ nsMemoryInfoDumper::DumpMemoryInfoToTempDir(const nsAString& aIdentifier,
   
   
 
+  
+  
+  
+  
+  
   nsCString reportsFinalFilename;
-  
-  
-  
-  
-  
   MakeFilename("unified-memory-report", identifier, getpid(), "json.gz",
                reportsFinalFilename);
 
@@ -892,4 +843,3 @@ nsMemoryInfoDumper::DumpDMDToFile(FILE* aFile)
 }
 #endif  
 
-#undef DUMP
