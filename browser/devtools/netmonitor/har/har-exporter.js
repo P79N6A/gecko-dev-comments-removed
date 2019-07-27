@@ -117,6 +117,12 @@ const HarExporter = {
 
     
     return this.buildHarData(options).then(har => {
+      
+      
+      if (!har.log.entries.length && !options.forceExport) {
+        return resolve();
+      }
+
       let jsonString = this.stringify(har);
       if (!jsonString) {
         return resolve();
@@ -143,22 +149,9 @@ const HarExporter = {
 
 
   buildHarData: function(options) {
-    let deferred = defer();
-
-    try {
-      
-      let builder = new HarBuilder(options);
-      builder.build().then(har => {
-        if (!har.log.entries.length && !options.forceExport) {
-          deferred.resolve();
-        }
-        deferred.resolve(har);
-      });
-    } catch (err) {
-      deferred.reject(err);
-    }
-
-    return deferred.promise;
+    
+    let builder = new HarBuilder(options);
+    return builder.build();
   },
 
   
