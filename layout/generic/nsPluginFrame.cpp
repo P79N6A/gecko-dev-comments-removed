@@ -1783,7 +1783,7 @@ nsPluginFrame::HandleEvent(nsPresContext* aPresContext,
 
 #ifdef XP_MACOSX
   
-  if ((anEvent->message == NS_MOUSE_ENTER ||
+  if ((anEvent->message == NS_MOUSE_ENTER_WIDGET ||
        anEvent->message == NS_WHEEL_WHEEL) &&
       mInstanceOwner->GetEventModel() == NPEventModelCocoa) {
     *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);

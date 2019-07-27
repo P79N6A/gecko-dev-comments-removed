@@ -462,7 +462,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     *aEventStatus = nsEventStatus_eConsumeNoDefault;
     Execute(aEvent);
   }
-  else if (aEvent->message == NS_MOUSE_EXIT_SYNTH) {
+  else if (aEvent->message == NS_MOUSE_OUT) {
     
     if (mOpenTimer) {
       mOpenTimer->Cancel();

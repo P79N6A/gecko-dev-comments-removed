@@ -1220,16 +1220,16 @@ bool TabParent::SendRealMouseEvent(WidgetMouseEvent& event)
   if (widget) {
     
     
-    if (event.message == NS_MOUSE_ENTER ||
-        event.message == NS_MOUSE_ENTER_SYNTH) {
+    if (event.message == NS_MOUSE_ENTER_WIDGET ||
+        event.message == NS_MOUSE_OVER) {
       mTabSetsCursor = true;
       if (mCursor != nsCursor(-1)) {
         widget->SetCursor(mCursor);
       }
       
       return true;
-    } else if (event.message == NS_MOUSE_EXIT ||
-               event.message == NS_MOUSE_EXIT_SYNTH) {
+    } else if (event.message == NS_MOUSE_EXIT_WIDGET ||
+               event.message == NS_MOUSE_OUT) {
       mTabSetsCursor = false;
     }
   }

@@ -2769,9 +2769,9 @@ Element::PreHandleEventForLinks(EventChainPreVisitor& aVisitor)
   
   
   switch (aVisitor.mEvent->message) {
-  case NS_MOUSE_ENTER_SYNTH:
+  case NS_MOUSE_OVER:
   case NS_FOCUS_CONTENT:
-  case NS_MOUSE_EXIT_SYNTH:
+  case NS_MOUSE_OUT:
   case NS_BLUR_CONTENT:
     break;
   default:
@@ -2790,7 +2790,7 @@ Element::PreHandleEventForLinks(EventChainPreVisitor& aVisitor)
   
   switch (aVisitor.mEvent->message) {
   
-  case NS_MOUSE_ENTER_SYNTH:
+  case NS_MOUSE_OVER:
     aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
     
   case NS_FOCUS_CONTENT: {
@@ -2805,7 +2805,7 @@ Element::PreHandleEventForLinks(EventChainPreVisitor& aVisitor)
     }
     break;
   }
-  case NS_MOUSE_EXIT_SYNTH:
+  case NS_MOUSE_OUT:
     aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
     
   case NS_BLUR_CONTENT:

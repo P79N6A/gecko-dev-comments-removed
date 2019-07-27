@@ -195,7 +195,7 @@ MultiTouchInput::MultiTouchInput(const WidgetMouseEvent& aMouseEvent)
   
   
   
-  case NS_MOUSE_EXIT:
+  case NS_MOUSE_EXIT_WIDGET:
     mType = MULTITOUCH_CANCEL;
     break;
   default:

@@ -88,16 +88,16 @@ nsAutoRepeatBoxFrame::HandleEvent(nsPresContext* aPresContext,
     
     
     
-    case NS_MOUSE_ENTER:
-    case NS_MOUSE_ENTER_SYNTH:
+    case NS_MOUSE_ENTER_WIDGET:
+    case NS_MOUSE_OVER:
       if (IsActivatedOnHover()) {
         StartRepeat();
         mTrustedEvent = aEvent->mFlags.mIsTrusted;
       }
       break;
 
-    case NS_MOUSE_EXIT:
-    case NS_MOUSE_EXIT_SYNTH:
+    case NS_MOUSE_EXIT_WIDGET:
+    case NS_MOUSE_OUT:
       
       StopRepeat();
       
