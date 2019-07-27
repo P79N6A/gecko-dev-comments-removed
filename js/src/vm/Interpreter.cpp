@@ -408,7 +408,7 @@ struct AutoStopwatch final
     
     
     
-    explicit inline AutoStopwatch(JSContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit inline AutoStopwatch(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : compartment_(nullptr)
       , runtime_(nullptr)
       , iteration_(0)
@@ -428,7 +428,7 @@ struct AutoStopwatch final
             return;
         iteration_ = runtime_->stopwatch.iteration;
 
-        PerformanceGroup *group = compartment_->performanceMonitoring.getGroup();
+        PerformanceGroup* group = compartment_->performanceMonitoring.getGroup();
         MOZ_ASSERT(group);
 
         if (group->hasStopwatch(iteration_)) {
@@ -477,7 +477,7 @@ struct AutoStopwatch final
             return;
         }
 
-        PerformanceGroup *group = compartment_->performanceMonitoring.getGroup();
+        PerformanceGroup* group = compartment_->performanceMonitoring.getGroup();
         MOZ_ASSERT(group);
 
         
@@ -606,11 +606,11 @@ struct AutoStopwatch final
   private:
     
     
-    JSCompartment *compartment_;
+    JSCompartment* compartment_;
 
     
     
-    JSRuntime *runtime_;
+    JSRuntime* runtime_;
 
     
     

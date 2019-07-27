@@ -283,7 +283,7 @@ class JSObject : public js::gc::Cell
     static MOZ_ALWAYS_INLINE void writeBarrierPostRemove(JSObject* obj, void* cellp);
 
     
-    js::gc::AllocKind allocKindForTenure(const js::Nursery &nursery) const;
+    js::gc::AllocKind allocKindForTenure(const js::Nursery& nursery) const;
 
     size_t tenuredSizeOfThis() const {
         MOZ_ASSERT(isTenured());

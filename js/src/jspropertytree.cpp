@@ -310,7 +310,7 @@ Shape::fixupAfterMovingGC()
 }
 
 void
-Shape::fixupGetterSetterForBarrier(JSTracer *trc)
+Shape::fixupGetterSetterForBarrier(JSTracer* trc)
 {
     
     

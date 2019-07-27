@@ -984,7 +984,7 @@ extern JS_PUBLIC_API(JSString*)
 JS_ValueToSource(JSContext* cx, JS::Handle<JS::Value> v);
 
 extern JS_PUBLIC_API(bool)
-JS_DoubleIsInt32(double d, int32_t *ip);
+JS_DoubleIsInt32(double d, int32_t* ip);
 
 extern JS_PUBLIC_API(JSType)
 JS_TypeOfValue(JSContext* cx, JS::Handle<JS::Value> v);
@@ -5430,14 +5430,14 @@ struct PerformanceGroup {
 
     
     
-    void acquireStopwatch(uint64_t iteration, const AutoStopwatch *stopwatch) {
+    void acquireStopwatch(uint64_t iteration, const AutoStopwatch* stopwatch) {
         iteration_ = iteration;
         stopwatch_ = stopwatch;
     }
 
     
     
-    void releaseStopwatch(uint64_t iteration, const AutoStopwatch *stopwatch) {
+    void releaseStopwatch(uint64_t iteration, const AutoStopwatch* stopwatch) {
         if (iteration_ != iteration)
             return;
 
@@ -5460,7 +5460,7 @@ struct PerformanceGroup {
 
     
     
-    const AutoStopwatch *stopwatch_;
+    const AutoStopwatch* stopwatch_;
 
     
     
@@ -5490,7 +5490,7 @@ struct PerformanceGroupHolder {
     
     
     
-    js::PerformanceGroup *getGroup();
+    js::PerformanceGroup* getGroup();
 
     
     
@@ -5505,7 +5505,7 @@ struct PerformanceGroupHolder {
     
     void unlink();
 
-    PerformanceGroupHolder(JSRuntime *runtime, JSCompartment *compartment)
+    PerformanceGroupHolder(JSRuntime* runtime, JSCompartment* compartment)
       : runtime_(runtime)
       , compartment_(compartment)
       , group_(nullptr)
@@ -5517,13 +5517,13 @@ private:
     
     void* getHashKey();
 
-    JSRuntime *runtime_;
-    JSCompartment *compartment_;
+    JSRuntime* runtime_;
+    JSCompartment* compartment_;
 
     
     
     
-    js::PerformanceGroup *group_;
+    js::PerformanceGroup* group_;
 };
 
 
@@ -5560,7 +5560,7 @@ struct PerformanceStats {
 
 
 
-    JSAddonId *addonId;
+    JSAddonId* addonId;
 
     
 
@@ -5598,7 +5598,7 @@ typedef js::Vector<PerformanceStats, 0, js::SystemAllocPolicy> PerformanceStatsV
 
 
 extern JS_PUBLIC_API(bool)
-GetPerformanceStats(JSRuntime *rt, js::PerformanceStatsVector &stats, js::PerformanceStats &global);
+GetPerformanceStats(JSRuntime* rt, js::PerformanceStatsVector& stats, js::PerformanceStats& global);
 
 } 
 

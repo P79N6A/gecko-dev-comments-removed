@@ -970,15 +970,15 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     template <typename T>
-    void branchTestStackPtr(Condition cond, T t, Label *label) {
+    void branchTestStackPtr(Condition cond, T t, Label* label) {
         branchTestPtr(cond, getStackPointer(), t, label);
     }
     template <typename T>
-    void branchStackPtr(Condition cond, T rhs, Label *label) {
+    void branchStackPtr(Condition cond, T rhs, Label* label) {
         branchPtr(cond, getStackPointer(), rhs, label);
     }
     template <typename T>
-    void branchStackPtrRhs(Condition cond, T lhs, Label *label) {
+    void branchStackPtrRhs(Condition cond, T lhs, Label* label) {
         branchPtr(cond, lhs, getStackPointer(), label);
     }
 #endif 

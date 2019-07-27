@@ -102,7 +102,7 @@ AnalyzeLsh(TempAllocator& alloc, MLsh* lsh)
 
 template<typename MAsmJSHeapAccessType>
 bool
-EffectiveAddressAnalysis::tryAddDisplacement(MAsmJSHeapAccessType *ins, int32_t o)
+EffectiveAddressAnalysis::tryAddDisplacement(MAsmJSHeapAccessType* ins, int32_t o)
 {
     
     
