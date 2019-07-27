@@ -1201,18 +1201,7 @@ class Assembler : public AssemblerShared
 
     ARMBuffer m_buffer;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
   public:
-    static Assembler *Dummy;
-
     
     
     Assembler()
@@ -1304,10 +1293,7 @@ class Assembler : public AssemblerShared
 
     
     
-    
-    
-    
-    BufferOffset writeInst(uint32_t x, uint32_t *dest = nullptr);
+    BufferOffset writeInst(uint32_t x);
 
     
     BufferOffset writeBranchInst(uint32_t x);
@@ -1322,12 +1308,17 @@ class Assembler : public AssemblerShared
     void align(int alignment);
     BufferOffset as_nop();
     BufferOffset as_alu(Register dest, Register src1, Operand2 op2,
-                ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = nullptr);
-
+                        ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always);
     BufferOffset as_mov(Register dest,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = nullptr);
+                        Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
     BufferOffset as_mvn(Register dest, Operand2 op2,
-                SetCond_ sc = NoSetCond, Condition c = Always);
+                        SetCond_ sc = NoSetCond, Condition c = Always);
+
+    static void as_alu_patch(Register dest, Register src1, Operand2 op2,
+                             ALUOp op, SetCond_ sc, Condition c, uint32_t *pos);
+    static void as_mov_patch(Register dest,
+                             Operand2 op2, SetCond_ sc, Condition c, uint32_t *pos);
+
     
     BufferOffset as_and(Register dest, Register src1,
                 Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always);
@@ -1368,8 +1359,11 @@ class Assembler : public AssemblerShared
     
     
     
-    BufferOffset as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = nullptr);
-    BufferOffset as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = nullptr);
+    BufferOffset as_movw(Register dest, Imm16 imm, Condition c = Always);
+    BufferOffset as_movt(Register dest, Imm16 imm, Condition c = Always);
+
+    static void as_movw_patch(Register dest, Imm16 imm, Condition c, Instruction *pos);
+    static void as_movt_patch(Register dest, Imm16 imm, Condition c, Instruction *pos);
 
     BufferOffset as_genmul(Register d1, Register d2, Register rm, Register rn,
                    MULOp op, SetCond_ sc, Condition c = Always);
@@ -1392,21 +1386,27 @@ class Assembler : public AssemblerShared
 
     BufferOffset as_sdiv(Register dest, Register num, Register div, Condition c = Always);
     BufferOffset as_udiv(Register dest, Register num, Register div, Condition c = Always);
-    BufferOffset as_clz(Register dest, Register src, Condition c = Always, Instruction *instdest = nullptr);
+    BufferOffset as_clz(Register dest, Register src, Condition c = Always);
 
     
     
     BufferOffset as_dtr(LoadStore ls, int size, Index mode,
-                Register rt, DTRAddr addr, Condition c = Always, uint32_t *dest = nullptr);
+                        Register rt, DTRAddr addr, Condition c = Always);
+
+    static void as_dtr_patch(LoadStore ls, int size, Index mode,
+                             Register rt, DTRAddr addr, Condition c, uint32_t *dest);
+
     
     
     BufferOffset as_extdtr(LoadStore ls, int size, bool IsSigned, Index mode,
-                   Register rt, EDtrAddr addr, Condition c = Always, uint32_t *dest = nullptr);
+                           Register rt, EDtrAddr addr, Condition c = Always);
 
     BufferOffset as_dtm(LoadStore ls, Register rn, uint32_t mask,
                 DTMMode mode, DTMWriteBack wb, Condition c = Always);
+
     
-    void as_WritePoolEntry(Instruction *addr, Condition c, uint32_t data);
+    static void WritePoolEntry(Instruction *addr, Condition c, uint32_t data);
+
     
     BufferOffset as_Imm32Pool(Register dest, uint32_t value, Condition c = Always);
     
@@ -1485,11 +1485,14 @@ class Assembler : public AssemblerShared
         IsSingle = 0 << 8
     };
 
-    BufferOffset writeVFPInst(vfp_size sz, uint32_t blob, uint32_t *dest=nullptr);
+    BufferOffset writeVFPInst(vfp_size sz, uint32_t blob);
+
+    static void WriteVFPInstStatic(vfp_size sz, uint32_t blob, uint32_t *dest);
+
     
     
     BufferOffset as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
-                      VFPOp op, Condition c = Always);
+                              VFPOp op, Condition c = Always);
 
   public:
     BufferOffset as_vadd(VFPRegister vd, VFPRegister vn, VFPRegister vm,
@@ -1556,8 +1559,10 @@ class Assembler : public AssemblerShared
 
     
     BufferOffset as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
-                 Condition c = Always ,
-                 uint32_t *dest = nullptr);
+                         Condition c = Always );
+
+    static void as_vdtr_patch(LoadStore ls, VFPRegister vd, VFPAddr addr,
+                              Condition c  , uint32_t *dest);
 
     
     
@@ -1742,10 +1747,11 @@ class Assembler : public AssemblerShared
     
     
     static void InsertIndexIntoTag(uint8_t *load, uint32_t index);
+
     
     
     
-    static bool PatchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
+    static void PatchConstantPoolLoad(void *loadAddr, void *constPoolAddr);
     
 
     
