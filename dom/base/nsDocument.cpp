@@ -2987,6 +2987,33 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
   }
 
+  
+  bool hasReferrerPolicy = false;
+  uint32_t referrerPolicy = mozilla::net::RP_Default;
+  rv = csp->GetReferrerPolicy(&referrerPolicy, &hasReferrerPolicy);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (hasReferrerPolicy) {
+    
+    
+    if (!mReferrerPolicySet) {
+      mReferrerPolicy = static_cast<ReferrerPolicy>(referrerPolicy);
+      mReferrerPolicySet = true;
+    } else if (mReferrerPolicy != referrerPolicy) {
+      mReferrerPolicy = mozilla::net::RP_No_Referrer;
+#ifdef PR_LOGGING
+      {
+        PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("%s %s",
+                "CSP wants to set referrer, but nsDocument"
+                "already has it set. No referrers will be sent"));
+      }
+#endif
+    }
+
+    
+    
+    
+  }
+
   rv = principal->SetCsp(csp);
   NS_ENSURE_SUCCESS(rv, rv);
 #ifdef PR_LOGGING

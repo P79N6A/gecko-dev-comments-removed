@@ -960,9 +960,14 @@ void
 nsHtml5TreeOpExecutor::SetSpeculationReferrerPolicy(const nsAString& aReferrerPolicy)
 {
   ReferrerPolicy policy = mozilla::net::ReferrerPolicyFromString(aReferrerPolicy);
+  return SetSpeculationReferrerPolicy(policy);
+}
 
+void
+nsHtml5TreeOpExecutor::SetSpeculationReferrerPolicy(ReferrerPolicy aReferrerPolicy)
+{
   if (mSpeculationReferrerPolicyWasSet &&
-      policy != mSpeculationReferrerPolicy) {
+      aReferrerPolicy != mSpeculationReferrerPolicy) {
     
     
     
@@ -973,7 +978,7 @@ nsHtml5TreeOpExecutor::SetSpeculationReferrerPolicy(const nsAString& aReferrerPo
     
     
     mSpeculationReferrerPolicyWasSet = true;
-    mSpeculationReferrerPolicy = policy;
+    mSpeculationReferrerPolicy = aReferrerPolicy;
   }
 }
 

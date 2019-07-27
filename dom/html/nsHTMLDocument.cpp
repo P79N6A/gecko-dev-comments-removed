@@ -677,6 +677,11 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   nsHtml5TreeOpExecutor* executor = nullptr;
   if (loadAsHtml5) {
     executor = static_cast<nsHtml5TreeOpExecutor*> (mParser->GetContentSink());
+    if (mReferrerPolicySet) {
+      
+      
+      executor->SetSpeculationReferrerPolicy(static_cast<ReferrerPolicy>(mReferrerPolicy));
+    }
   }
 
   if (!IsHTML() || !docShell) { 
@@ -1641,6 +1646,15 @@ nsHTMLDocument::Open(JSContext* cx,
   mParserAborted = false;
   mParser = nsHtml5Module::NewHtml5Parser();
   nsHtml5Module::Initialize(mParser, this, uri, shell, channel);
+  if (mReferrerPolicySet) {
+    
+    
+    nsHtml5TreeOpExecutor* executor = nullptr;
+    executor = static_cast<nsHtml5TreeOpExecutor*> (mParser->GetContentSink());
+    if (executor && mReferrerPolicySet) {
+      executor->SetSpeculationReferrerPolicy(static_cast<ReferrerPolicy>(mReferrerPolicy));
+    }
+  }
 
   
   SetContentTypeInternal(contentType);
