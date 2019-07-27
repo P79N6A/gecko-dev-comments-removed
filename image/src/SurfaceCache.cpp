@@ -12,6 +12,7 @@
 #include <algorithm>
 #include "mozilla/Attributes.h"  
 #include "mozilla/DebugOnly.h"
+#include "mozilla/Likely.h"
 #include "mozilla/Move.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
@@ -385,6 +386,8 @@ public:
       MOZ_ASSERT(mLockedCost <= mMaxCost, "Locked more than we can hold?");
     } else {
       mCosts.InsertElementSorted(costEntry);
+      
+      
       mExpirationTracker.AddObject(aSurface);
     }
   }
@@ -401,7 +404,14 @@ public:
       MOZ_ASSERT(!mCosts.Contains(costEntry),
                  "Shouldn't have a cost entry for a locked surface");
     } else {
-      mExpirationTracker.RemoveObject(aSurface);
+      if (MOZ_LIKELY(aSurface->GetExpirationState()->IsTracked())) {
+        mExpirationTracker.RemoveObject(aSurface);
+      } else {
+        
+        
+        NS_WARNING("Not expiration-tracking an unlocked surface!");
+      }
+
       DebugOnly<bool> foundInCosts = mCosts.RemoveElementSorted(costEntry);
       MOZ_ASSERT(foundInCosts, "Lost track of costs for this surface");
     }
