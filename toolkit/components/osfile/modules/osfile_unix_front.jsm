@@ -193,7 +193,6 @@
 
 
 
-
      File.prototype.setPermissions = function setPermissions(options = {}) {
        throw_on_negative("setPermissions",
                          UnixFile.fchmod(this.fd, unixMode(options)),
@@ -292,6 +291,7 @@
 
 
      File.open = function Unix_open(path, mode, options = {}) {
+       
        let omode = options.unixMode !== undefined ?
                      options.unixMode : DEFAULT_UNIX_MODE;
        let flags;
@@ -957,7 +957,6 @@
 
 
 
-
      File.setPermissions = function setPermissions(path, options = {}) {
        throw_on_negative("setPermissions",
                          UnixFile.chmod(path, unixMode(options)),
@@ -1170,12 +1169,9 @@
 
 
      function unixMode(options) {
-       let mode = 438; 
+       let mode = options.unixMode !== undefined ?
+                    options.unixMode : DEFAULT_UNIX_MODE;
        let unixHonorUmask = true;
-       if ("unixMode" in options) {
-         unixHonorUmask = false;
-         mode = options.unixMode;
-       }
        if ("unixHonorUmask" in options) {
          unixHonorUmask = options.unixHonorUmask;
        }

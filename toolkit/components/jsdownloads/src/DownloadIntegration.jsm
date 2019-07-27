@@ -614,11 +614,12 @@ this.DownloadIntegration = {
       
       
       
-      
-      
       try {
-        yield OS.File.setPermissions(aDownload.target.path);
+        yield OS.File.setPermissions(aDownload.target.path,
+                                     { unixMode: 0o666 });
       } catch (ex) {
+        
+        
         Cu.reportError(ex);
       }
 

@@ -170,6 +170,26 @@ add_task(function test_basic_tryToKeepPartialData()
 
 
 
+add_task(function test_basic_unix_permissions()
+{
+  
+  if (Services.appinfo.OS != "Darwin" && Services.appinfo.OS != "Linux") {
+    do_print("Skipping test_basic_unix_permissions");
+    return;
+  }
+
+  let download = yield promiseStartDownload(httpUrl("source.txt"));
+  yield promiseDownloadStopped(download);
+
+  
+  
+  do_check_eq((yield OS.File.stat(download.target.path)).unixMode,
+              0o666 & ~OS.Constants.Sys.umask);
+});
+
+
+
+
 add_task(function test_referrer()
 {
   let sourcePath = "/test_referrer.txt";

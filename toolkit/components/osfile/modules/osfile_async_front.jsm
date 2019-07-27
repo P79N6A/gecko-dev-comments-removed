@@ -775,8 +775,6 @@ File.prototype = {
 
 
 
-
-
   setPermissions: function setPermissions(options = {}) {
     return Scheduler.post("File_prototype_setPermissions",
                           [this._fdmsg, options]);
@@ -879,9 +877,6 @@ File.setDates = function setDates(path, accessDate, modificationDate) {
                         [Type.path.toMsg(path), accessDate, modificationDate],
                         this);
 };
-
-
-
 
 
 
