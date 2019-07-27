@@ -59,7 +59,7 @@ png_set_cHRM_fixed(png_const_structrp png_ptr, png_inforp info_ptr,
    xy.whitey = white_y;
 
    if (png_colorspace_set_chromaticities(png_ptr, &info_ptr->colorspace, &xy,
-      2))
+       2) != 0)
       info_ptr->colorspace.flags |= PNG_COLORSPACE_FROM_cHRM;
 
    png_colorspace_sync_info(png_ptr, info_ptr);
@@ -90,7 +90,8 @@ png_set_cHRM_XYZ_fixed(png_const_structrp png_ptr, png_inforp info_ptr,
    XYZ.blue_Y = int_blue_Y;
    XYZ.blue_Z = int_blue_Z;
 
-   if (png_colorspace_set_endpoints(png_ptr, &info_ptr->colorspace, &XYZ, 2))
+   if (png_colorspace_set_endpoints(png_ptr, &info_ptr->colorspace,
+       &XYZ, 2) != 0)
       info_ptr->colorspace.flags |= PNG_COLORSPACE_FROM_cHRM;
 
    png_colorspace_sync_info(png_ptr, info_ptr);
@@ -227,13 +228,13 @@ png_set_IHDR(png_const_structrp png_ptr, png_inforp info_ptr,
    if (info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
       info_ptr->channels = 1;
 
-   else if (info_ptr->color_type & PNG_COLOR_MASK_COLOR)
+   else if ((info_ptr->color_type & PNG_COLOR_MASK_COLOR) != 0)
       info_ptr->channels = 3;
 
    else
       info_ptr->channels = 1;
 
-   if (info_ptr->color_type & PNG_COLOR_MASK_ALPHA)
+   if ((info_ptr->color_type & PNG_COLOR_MASK_ALPHA) != 0)
       info_ptr->channels++;
 
    info_ptr->pixel_depth = (png_byte)(info_ptr->channels * info_ptr->bit_depth);
@@ -293,12 +294,14 @@ png_set_pCAL(png_const_structrp png_ptr, png_inforp info_ptr,
 
    
    for (i=0; i<nparams; ++i)
+   {
       if (params[i] == NULL ||
-         !png_check_fp_string(params[i], strlen(params[i])))
+          !png_check_fp_string(params[i], strlen(params[i])))
          png_error(png_ptr, "Invalid format for pCAL parameter");
+   }
 
    info_ptr->pcal_purpose = png_voidcast(png_charp,
-      png_malloc_warn(png_ptr, length));
+       png_malloc_warn(png_ptr, length));
 
    if (info_ptr->pcal_purpose == NULL)
    {
@@ -599,7 +602,8 @@ png_set_sRGB_gAMA_and_cHRM(png_const_structrp png_ptr, png_inforp info_ptr,
    if (png_ptr == NULL || info_ptr == NULL)
       return;
 
-   if (png_colorspace_set_sRGB(png_ptr, &info_ptr->colorspace, srgb_intent))
+   if (png_colorspace_set_sRGB(png_ptr, &info_ptr->colorspace,
+       srgb_intent) != 0)
    {
       
       info_ptr->colorspace.flags |=
@@ -666,6 +670,7 @@ png_set_iCCP(png_const_structrp png_ptr, png_inforp info_ptr,
    if (new_iccp_profile == NULL)
    {
       png_free(png_ptr, new_iccp_name);
+      new_iccp_name = NULL;
       png_benign_error(png_ptr,
           "Insufficient memory to process iCCP profile");
       return;
@@ -895,7 +900,7 @@ png_set_tIME(png_const_structrp png_ptr, png_inforp info_ptr,
    png_debug1(1, "in %s storage function", "tIME");
 
    if (png_ptr == NULL || info_ptr == NULL || mod_time == NULL ||
-       (png_ptr->mode & PNG_WROTE_tIME))
+       (png_ptr->mode & PNG_WROTE_tIME) != 0)
       return;
 
    if (mod_time->month == 0   || mod_time->month > 12  ||
@@ -1046,6 +1051,7 @@ png_set_sPLT(png_const_structrp png_ptr,
       if (np->entries == NULL)
       {
          png_free(png_ptr, np->name);
+         np->name = NULL;
          break;
       }
 
@@ -1135,8 +1141,8 @@ png_set_next_frame_fcTL(png_structp png_ptr, png_infop info_ptr,
 
     if (blend_op == PNG_BLEND_OP_OVER)
     {
-        if (!(png_ptr->color_type & PNG_COLOR_MASK_ALPHA) &&
-            !(png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)))
+        if ((png_ptr->color_type & PNG_COLOR_MASK_ALPHA) == 0 &&
+            png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) == 0)
         {
           png_warning(png_ptr, "PNG_BLEND_OP_OVER is meaningless "
                                "and wasteful for opaque images, ignored");
@@ -1200,7 +1206,7 @@ png_set_first_frame_is_hidden(png_structp png_ptr, png_infop info_ptr,
     if (png_ptr == NULL)
         return 0;
 
-    if (is_hidden)
+    if (is_hidden != 0)
         png_ptr->apng_flags |= PNG_FIRST_FRAME_HIDDEN;
     else
         png_ptr->apng_flags &= ~PNG_FIRST_FRAME_HIDDEN;
@@ -1221,7 +1227,7 @@ check_location(png_const_structrp png_ptr, int location)
 
 
 
-   if (location == 0 && !(png_ptr->mode & PNG_IS_READ_STRUCT))
+   if (location == 0 && (png_ptr->mode & PNG_IS_READ_STRUCT) == 0)
    {
       
       png_app_warning(png_ptr,
@@ -1267,7 +1273,7 @@ png_set_unknown_chunks(png_const_structrp png_ptr,
 
 #  if !defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED) && \
       defined(PNG_READ_SUPPORTED)
-      if (png_ptr->mode & PNG_IS_READ_STRUCT)
+      if ((png_ptr->mode & PNG_IS_READ_STRUCT) != 0)
       {
          png_app_error(png_ptr, "no unknown chunk support on read");
          return;
@@ -1275,7 +1281,7 @@ png_set_unknown_chunks(png_const_structrp png_ptr,
 #  endif
 #  if !defined(PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED) && \
       defined(PNG_WRITE_SUPPORTED)
-      if (!(png_ptr->mode & PNG_IS_READ_STRUCT))
+      if ((png_ptr->mode & PNG_IS_READ_STRUCT) == 0)
       {
          png_app_error(png_ptr, "no unknown chunk support on write");
          return;
@@ -1361,7 +1367,7 @@ png_set_unknown_chunk_location(png_const_structrp png_ptr, png_inforp info_ptr,
       {
          png_app_error(png_ptr, "invalid unknown chunk location");
          
-         if ((location & PNG_HAVE_IDAT)) 
+         if ((location & PNG_HAVE_IDAT) != 0) 
             location = PNG_AFTER_IDAT;
 
          else
@@ -1399,10 +1405,13 @@ add_one_chunk(png_bytep list, unsigned int count, png_const_bytep add, int keep)
    
 
 
-   for (i=0; i<count; ++i, list += 5) if (memcmp(list, add, 4) == 0)
+   for (i=0; i<count; ++i, list += 5)
    {
-      list[4] = (png_byte)keep;
-      return count;
+      if (memcmp(list, add, 4) == 0)
+      {
+         list[4] = (png_byte)keep;
+         return count;
+      }
    }
 
    if (keep != PNG_HANDLE_CHUNK_AS_DEFAULT)
@@ -1466,7 +1475,7 @@ png_set_keep_unknown_chunks(png_structrp png_ptr, int keep,
       };
 
       chunk_list = chunks_to_ignore;
-      num_chunks = (sizeof chunks_to_ignore)/5;
+      num_chunks = (unsigned int)(sizeof chunks_to_ignore)/5U;
    }
 
    else 
@@ -1526,12 +1535,15 @@ png_set_keep_unknown_chunks(png_structrp png_ptr, int keep,
       unsigned int i;
 
       for (i=0; i<num_chunks; ++i)
+      {
          old_num_chunks = add_one_chunk(new_list, old_num_chunks,
             chunk_list+5*i, keep);
+      }
 
       
       num_chunks = 0;
       for (i=0, inlist=outlist=new_list; i<old_num_chunks; ++i, inlist += 5)
+      {
          if (inlist[4])
          {
             if (outlist != inlist)
@@ -1539,6 +1551,7 @@ png_set_keep_unknown_chunks(png_structrp png_ptr, int keep,
             outlist += 5;
             ++num_chunks;
          }
+      }
 
       
       if (num_chunks == 0)
@@ -1590,7 +1603,8 @@ png_set_rows(png_const_structrp png_ptr, png_inforp info_ptr,
    if (png_ptr == NULL || info_ptr == NULL)
       return;
 
-   if (info_ptr->row_pointers && (info_ptr->row_pointers != row_pointers))
+   if (info_ptr->row_pointers != NULL &&
+       (info_ptr->row_pointers != row_pointers))
       png_free_data(png_ptr, info_ptr, PNG_FREE_ROWS, 0);
 
    info_ptr->row_pointers = row_pointers;
@@ -1610,7 +1624,7 @@ png_set_compression_buffer_size(png_structrp png_ptr, png_size_t size)
        png_error(png_ptr, "invalid compression buffer size");
 
 #  ifdef PNG_SEQUENTIAL_READ_SUPPORTED
-      if (png_ptr->mode & PNG_IS_READ_STRUCT)
+      if ((png_ptr->mode & PNG_IS_READ_STRUCT) != 0)
       {
          png_ptr->IDAT_read_size = (png_uint_32)size; 
          return;
@@ -1618,7 +1632,7 @@ png_set_compression_buffer_size(png_structrp png_ptr, png_size_t size)
 #  endif
 
 #  ifdef PNG_WRITE_SUPPORTED
-      if (!(png_ptr->mode & PNG_IS_READ_STRUCT))
+      if ((png_ptr->mode & PNG_IS_READ_STRUCT) == 0)
       {
          if (png_ptr->zowner != 0)
          {
@@ -1656,7 +1670,7 @@ png_set_compression_buffer_size(png_structrp png_ptr, png_size_t size)
 void PNGAPI
 png_set_invalid(png_const_structrp png_ptr, png_inforp info_ptr, int mask)
 {
-   if (png_ptr && info_ptr)
+   if (png_ptr != NULL && info_ptr != NULL)
       info_ptr->valid &= ~mask;
 }
 

@@ -211,7 +211,7 @@ png_image_size(png_structrp png_ptr)
 
    if (png_ptr->rowbytes < 32768 && h < 32768)
    {
-      if (png_ptr->interlaced)
+      if (png_ptr->interlaced != 0)
       {
          
 
@@ -286,8 +286,6 @@ optimize_cmf(png_bytep data, png_alloc_size_t data_size)
       }
    }
 }
-#else
-#  define optimize_cmf(dp,dl) ((void)0)
 #endif 
 
 
@@ -297,7 +295,7 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
 {
    if (png_ptr->zowner != 0)
    {
-#     if defined(PNG_WARNINGS_SUPPORTED) || defined(PNG_ERROR_TEXT_SUPPORTED)
+#if defined(PNG_WARNINGS_SUPPORTED) || defined(PNG_ERROR_TEXT_SUPPORTED)
       char msg[64];
 
       PNG_STRING_FROM_CHUNK(msg, owner);
@@ -309,8 +307,8 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
 
 
       (void)png_safecat(msg, (sizeof msg), 10, " using zstream");
-#     endif
-#     if PNG_LIBPNG_BUILD_BASE_TYPE >= PNG_LIBPNG_BUILD_RC
+#endif
+#if PNG_LIBPNG_BUILD_BASE_TYPE >= PNG_LIBPNG_BUILD_RC
          png_warning(png_ptr, msg);
 
          
@@ -321,9 +319,9 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
          }
 
          png_ptr->zowner = 0;
-#     else
+#else
          png_error(png_ptr, msg);
-#     endif
+#endif
    }
 
    {
@@ -336,7 +334,7 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
 
       if (owner == png_IDAT)
       {
-         if (png_ptr->flags & PNG_FLAG_ZLIB_CUSTOM_STRATEGY)
+         if ((png_ptr->flags & PNG_FLAG_ZLIB_CUSTOM_STRATEGY) != 0)
             strategy = png_ptr->zlib_strategy;
 
          else if (png_ptr->do_filter != PNG_FILTER_NONE)
@@ -348,20 +346,20 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
 
       else
       {
-#        ifdef PNG_WRITE_CUSTOMIZE_ZTXT_COMPRESSION_SUPPORTED
+#ifdef PNG_WRITE_CUSTOMIZE_ZTXT_COMPRESSION_SUPPORTED
             level = png_ptr->zlib_text_level;
             method = png_ptr->zlib_text_method;
             windowBits = png_ptr->zlib_text_window_bits;
             memLevel = png_ptr->zlib_text_mem_level;
             strategy = png_ptr->zlib_text_strategy;
-#        else
+#else
             
 
 
 
 
             strategy = Z_DEFAULT_STRATEGY;
-#        endif
+#endif
       }
 
       
@@ -388,7 +386,7 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
       }
 
       
-      if ((png_ptr->flags & PNG_FLAG_ZSTREAM_INITIALIZED) &&
+      if ((png_ptr->flags & PNG_FLAG_ZSTREAM_INITIALIZED) != 0 &&
          (png_ptr->zlib_set_level != level ||
          png_ptr->zlib_set_method != method ||
          png_ptr->zlib_set_window_bits != windowBits ||
@@ -412,7 +410,7 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
       
 
 
-      if (png_ptr->flags & PNG_FLAG_ZSTREAM_INITIALIZED)
+      if ((png_ptr->flags & PNG_FLAG_ZSTREAM_INITIALIZED) != 0)
          ret = deflateReset(&png_ptr->zstream);
 
       else
@@ -619,9 +617,10 @@ png_text_compress(png_structrp png_ptr, png_uint_32 chunk_name,
 
       if (ret == Z_STREAM_END && input_len == 0)
       {
+#ifdef PNG_WRITE_OPTIMIZE_CMF_SUPPORTED
          
          optimize_cmf(comp->output, comp->input_len);
-
+#endif
          
 
 
@@ -717,7 +716,7 @@ png_check_keyword(png_structrp png_ptr, png_const_charp key, png_bytep new_key)
          bad_character = ch; 
    }
 
-   if (key_len > 0 && space) 
+   if (key_len > 0 && space != 0) 
    {
       --key_len, --new_key;
       if (bad_character == 0)
@@ -732,7 +731,7 @@ png_check_keyword(png_structrp png_ptr, png_const_charp key, png_bytep new_key)
 
 #ifdef PNG_WARNINGS_SUPPORTED
    
-   if (*key) 
+   if (*key != 0) 
       png_warning(png_ptr, "keyword truncated");
 
    else if (bad_character != 0)
@@ -748,7 +747,7 @@ png_check_keyword(png_structrp png_ptr, png_const_charp key, png_bytep new_key)
 
    return key_len;
 }
-#endif
+#endif 
 
 
 
@@ -849,8 +848,8 @@ png_write_IHDR(png_structrp png_ptr, png_uint_32 width, png_uint_32 height,
 
    if (
 #ifdef PNG_MNG_FEATURES_SUPPORTED
-       !((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) &&
-       ((png_ptr->mode&PNG_HAVE_PNG_SIGNATURE) == 0) &&
+       !((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) != 0 &&
+       ((png_ptr->mode & PNG_HAVE_PNG_SIGNATURE) == 0) &&
        (color_type == PNG_COLOR_TYPE_RGB ||
         color_type == PNG_COLOR_TYPE_RGB_ALPHA) &&
        (filter_type == PNG_INTRAPIXEL_DIFFERENCING)) &&
@@ -936,7 +935,7 @@ png_write_PLTE(png_structrp png_ptr, png_const_colorp palette,
 
    if ((
 #ifdef PNG_MNG_FEATURES_SUPPORTED
-       !(png_ptr->mng_features_permitted & PNG_FLAG_MNG_EMPTY_PLTE) &&
+       (png_ptr->mng_features_permitted & PNG_FLAG_MNG_EMPTY_PLTE) == 0 &&
 #endif
        num_pal == 0) || num_pal > 256)
    {
@@ -952,7 +951,7 @@ png_write_PLTE(png_structrp png_ptr, png_const_colorp palette,
       }
    }
 
-   if (!(png_ptr->color_type&PNG_COLOR_MASK_COLOR))
+   if ((png_ptr->color_type & PNG_COLOR_MASK_COLOR) == 0)
    {
       png_warning(png_ptr,
           "Ignoring request to write a PLTE chunk in grayscale PNG");
@@ -1079,20 +1078,20 @@ png_compress_IDAT(png_structrp png_ptr, png_const_bytep input,
          
 
 
-#        ifdef PNG_WRITE_OPTIMIZE_CMF_SUPPORTED
-            if (!(png_ptr->mode & PNG_HAVE_IDAT) &&
-               png_ptr->compression_type == PNG_COMPRESSION_TYPE_BASE)
+#ifdef PNG_WRITE_OPTIMIZE_CMF_SUPPORTED
+            if ((png_ptr->mode & PNG_HAVE_IDAT) == 0 &&
+                png_ptr->compression_type == PNG_COMPRESSION_TYPE_BASE)
                optimize_cmf(data, png_image_size(png_ptr));
-#        endif
+#endif
 
-#        ifdef PNG_WRITE_APNG_SUPPORTED
+#ifdef PNG_WRITE_APNG_SUPPORTED
          if (png_ptr->num_frames_written == 0)
-#        endif
+#endif
          png_write_complete_chunk(png_ptr, png_IDAT, data, size);
-#        ifdef PNG_WRITE_APNG_SUPPORTED
+#ifdef PNG_WRITE_APNG_SUPPORTED
          else
             png_write_fdAT(png_ptr, data, size);
-#        endif 
+#endif 
 
          png_ptr->mode |= PNG_HAVE_IDAT;
 
@@ -1133,20 +1132,20 @@ png_compress_IDAT(png_structrp png_ptr, png_const_bytep input,
          png_bytep data = png_ptr->zbuffer_list->output;
          uInt size = png_ptr->zbuffer_size - png_ptr->zstream.avail_out;
 
-#        ifdef PNG_WRITE_OPTIMIZE_CMF_SUPPORTED
-            if (!(png_ptr->mode & PNG_HAVE_IDAT) &&
-               png_ptr->compression_type == PNG_COMPRESSION_TYPE_BASE)
-               optimize_cmf(data, png_image_size(png_ptr));
-#        endif
+#ifdef PNG_WRITE_OPTIMIZE_CMF_SUPPORTED
+         if ((png_ptr->mode & PNG_HAVE_IDAT) == 0 &&
+             png_ptr->compression_type == PNG_COMPRESSION_TYPE_BASE)
+            optimize_cmf(data, png_image_size(png_ptr));
+#endif
 
-#        ifdef PNG_WRITE_APNG_SUPPORTED
+#ifdef PNG_WRITE_APNG_SUPPORTED
          if (png_ptr->num_frames_written == 0)
-#        endif
+#endif
          png_write_complete_chunk(png_ptr, png_IDAT, data, size);
-#        ifdef PNG_WRITE_APNG_SUPPORTED
+#ifdef PNG_WRITE_APNG_SUPPORTED
          else
             png_write_fdAT(png_ptr, data, size);
-#        endif 
+#endif 
 
          png_ptr->zstream.avail_out = 0;
          png_ptr->zstream.next_out = NULL;
@@ -1366,7 +1365,7 @@ png_write_sBIT(png_structrp png_ptr, png_const_color_8p sbit, int color_type)
    png_debug(1, "in png_write_sBIT");
 
    
-   if (color_type & PNG_COLOR_MASK_COLOR)
+   if ((color_type & PNG_COLOR_MASK_COLOR) != 0)
    {
       png_byte maxbits;
 
@@ -1399,7 +1398,7 @@ png_write_sBIT(png_structrp png_ptr, png_const_color_8p sbit, int color_type)
       size = 1;
    }
 
-   if (color_type & PNG_COLOR_MASK_ALPHA)
+   if ((color_type & PNG_COLOR_MASK_ALPHA) != 0)
    {
       if (sbit->alpha == 0 || sbit->alpha > png_ptr->usr_bit_depth)
       {
@@ -1486,9 +1485,9 @@ png_write_tRNS(png_structrp png_ptr, png_const_bytep trans_alpha,
       png_save_uint_16(buf + 2, tran->green);
       png_save_uint_16(buf + 4, tran->blue);
 #ifdef PNG_WRITE_16BIT_SUPPORTED
-      if (png_ptr->bit_depth == 8 && (buf[0] | buf[2] | buf[4]))
+      if (png_ptr->bit_depth == 8 && (buf[0] | buf[2] | buf[4]) != 0)
 #else
-      if (buf[0] | buf[2] | buf[4])
+      if ((buf[0] | buf[2] | buf[4]) != 0)
 #endif
       {
          png_app_warning(png_ptr,
@@ -1519,8 +1518,8 @@ png_write_bKGD(png_structrp png_ptr, png_const_color_16p back, int color_type)
    {
       if (
 #ifdef PNG_MNG_FEATURES_SUPPORTED
-          (png_ptr->num_palette ||
-          (!(png_ptr->mng_features_permitted & PNG_FLAG_MNG_EMPTY_PLTE))) &&
+          (png_ptr->num_palette != 0 ||
+          (png_ptr->mng_features_permitted & PNG_FLAG_MNG_EMPTY_PLTE) == 0) &&
 #endif
          back->index >= png_ptr->num_palette)
       {
@@ -1532,15 +1531,15 @@ png_write_bKGD(png_structrp png_ptr, png_const_color_16p back, int color_type)
       png_write_complete_chunk(png_ptr, png_bKGD, buf, (png_size_t)1);
    }
 
-   else if (color_type & PNG_COLOR_MASK_COLOR)
+   else if ((color_type & PNG_COLOR_MASK_COLOR) != 0)
    {
       png_save_uint_16(buf, back->red);
       png_save_uint_16(buf + 2, back->green);
       png_save_uint_16(buf + 4, back->blue);
 #ifdef PNG_WRITE_16BIT_SUPPORTED
-      if (png_ptr->bit_depth == 8 && (buf[0] | buf[2] | buf[4]))
+      if (png_ptr->bit_depth == 8 && (buf[0] | buf[2] | buf[4]) != 0)
 #else
-      if (buf[0] | buf[2] | buf[4])
+      if ((buf[0] | buf[2] | buf[4]) != 0)
 #endif
       {
          png_warning(png_ptr,
@@ -1971,7 +1970,7 @@ png_write_acTL(png_structp png_ptr,
 
     png_ptr->num_frames_to_write = num_frames;
 
-    if (png_ptr->apng_flags & PNG_FIRST_FRAME_HIDDEN)
+    if ((png_ptr->apng_flags & PNG_FIRST_FRAME_HIDDEN) != 0)
         num_frames--;
 
     png_save_uint_32(buf, num_frames);
@@ -2083,12 +2082,13 @@ png_write_start_row(png_structrp png_ptr)
    }
 
    
-   if (png_ptr->do_filter & (PNG_FILTER_AVG | PNG_FILTER_UP | PNG_FILTER_PAETH))
+   if ((png_ptr->do_filter &
+      (PNG_FILTER_AVG | PNG_FILTER_UP | PNG_FILTER_PAETH)) != 0)
    {
       
       png_ptr->prev_row = (png_bytep)png_calloc(png_ptr, buf_size);
 
-      if (png_ptr->do_filter & PNG_FILTER_UP)
+      if ((png_ptr->do_filter & PNG_FILTER_UP) != 0)
       {
          png_ptr->up_row = (png_bytep)png_malloc(png_ptr,
             png_ptr->rowbytes + 1);
@@ -2096,7 +2096,7 @@ png_write_start_row(png_structrp png_ptr)
          png_ptr->up_row[0] = PNG_FILTER_VALUE_UP;
       }
 
-      if (png_ptr->do_filter & PNG_FILTER_AVG)
+      if ((png_ptr->do_filter & PNG_FILTER_AVG) != 0)
       {
          png_ptr->avg_row = (png_bytep)png_malloc(png_ptr,
              png_ptr->rowbytes + 1);
@@ -2104,7 +2104,7 @@ png_write_start_row(png_structrp png_ptr)
          png_ptr->avg_row[0] = PNG_FILTER_VALUE_AVG;
       }
 
-      if (png_ptr->do_filter & PNG_FILTER_PAETH)
+      if ((png_ptr->do_filter & PNG_FILTER_PAETH) != 0)
       {
          png_ptr->paeth_row = (png_bytep)png_malloc(png_ptr,
              png_ptr->rowbytes + 1);
@@ -2116,9 +2116,9 @@ png_write_start_row(png_structrp png_ptr)
 
 #ifdef PNG_WRITE_INTERLACING_SUPPORTED
    
-   if (png_ptr->interlaced)
+   if (png_ptr->interlaced != 0)
    {
-      if (!(png_ptr->transformations & PNG_INTERLACE))
+      if ((png_ptr->transformations & PNG_INTERLACE) == 0)
       {
          png_ptr->num_rows = (png_ptr->height + png_pass_yinc[0] - 1 -
              png_pass_ystart[0]) / png_pass_yinc[0];
@@ -2173,10 +2173,10 @@ png_write_finish_row(png_structrp png_ptr)
 
 #ifdef PNG_WRITE_INTERLACING_SUPPORTED
    
-   if (png_ptr->interlaced)
+   if (png_ptr->interlaced != 0)
    {
       png_ptr->row_number = 0;
-      if (png_ptr->transformations & PNG_INTERLACE)
+      if ((png_ptr->transformations & PNG_INTERLACE) != 0)
       {
          png_ptr->pass++;
       }
@@ -2201,7 +2201,7 @@ png_write_finish_row(png_structrp png_ptr)
                 png_pass_ystart[png_ptr->pass]) /
                 png_pass_yinc[png_ptr->pass];
 
-            if (png_ptr->transformations & PNG_INTERLACE)
+            if ((png_ptr->transformations & PNG_INTERLACE) != 0)
                break;
 
          } while (png_ptr->usr_width == 0 || png_ptr->num_rows == 0);
@@ -2480,7 +2480,7 @@ png_write_find_filter(png_structrp png_ptr, png_row_infop row_info)
    
 
 
-   if ((filter_to_do & PNG_FILTER_NONE) && filter_to_do != PNG_FILTER_NONE)
+   if ((filter_to_do & PNG_FILTER_NONE) != 0 && filter_to_do != PNG_FILTER_NONE)
    {
       png_bytep rp;
       png_uint_32 sum = 0;
@@ -2556,7 +2556,7 @@ png_write_find_filter(png_structrp png_ptr, png_row_infop row_info)
       best_row = png_ptr->sub_row;
    }
 
-   else if (filter_to_do & PNG_FILTER_SUB)
+   else if ((filter_to_do & PNG_FILTER_SUB) != 0)
    {
       png_bytep rp, dp, lp;
       png_uint_32 sum = 0, lmins = mins;
@@ -2677,7 +2677,7 @@ png_write_find_filter(png_structrp png_ptr, png_row_infop row_info)
       best_row = png_ptr->up_row;
    }
 
-   else if (filter_to_do & PNG_FILTER_UP)
+   else if ((filter_to_do & PNG_FILTER_UP) != 0)
    {
       png_bytep rp, dp, pp;
       png_uint_32 sum = 0, lmins = mins;
@@ -2791,7 +2791,7 @@ png_write_find_filter(png_structrp png_ptr, png_row_infop row_info)
       best_row = png_ptr->avg_row;
    }
 
-   else if (filter_to_do & PNG_FILTER_AVG)
+   else if ((filter_to_do & PNG_FILTER_AVG) != 0)
    {
       png_bytep rp, dp, pp, lp;
       png_uint_32 sum = 0, lmins = mins;
@@ -2893,7 +2893,7 @@ png_write_find_filter(png_structrp png_ptr, png_row_infop row_info)
    }
 
    
-   if (filter_to_do == PNG_FILTER_PAETH)
+   if ((filter_to_do == PNG_FILTER_PAETH) != 0)
    {
       png_bytep rp, dp, pp, cp, lp;
       png_size_t i;
@@ -2932,7 +2932,7 @@ png_write_find_filter(png_structrp png_ptr, png_row_infop row_info)
       best_row = png_ptr->paeth_row;
    }
 
-   else if (filter_to_do & PNG_FILTER_PAETH)
+   else if ((filter_to_do & PNG_FILTER_PAETH) != 0)
    {
       png_bytep rp, dp, pp, cp, lp;
       png_uint_32 sum = 0, lmins = mins;
@@ -3121,7 +3121,7 @@ png_write_filtered_row(png_structrp png_ptr, png_bytep filtered_row,
    {
       png_write_flush(png_ptr);
    }
-#endif
+#endif 
 }
 
 #ifdef PNG_WRITE_APNG_SUPPORTED

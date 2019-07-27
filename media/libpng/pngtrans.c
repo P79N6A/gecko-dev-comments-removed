@@ -100,7 +100,7 @@ png_set_interlace_handling(png_structrp png_ptr)
 {
    png_debug(1, "in png_set_interlace handling");
 
-   if (png_ptr && png_ptr->interlaced)
+   if (png_ptr != 0 && png_ptr->interlaced != 0)
    {
       png_ptr->transformations |= PNG_INTERLACE;
       return (7);
@@ -127,7 +127,7 @@ png_set_filler(png_structrp png_ptr, png_uint_32 filler, int filler_loc)
    
 
 
-   if (png_ptr->mode & PNG_IS_READ_STRUCT)
+   if ((png_ptr->mode & PNG_IS_READ_STRUCT) != 0)
    {
 #     ifdef PNG_READ_FILLER_SUPPORTED
          
@@ -210,7 +210,7 @@ png_set_add_alpha(png_structrp png_ptr, png_uint_32 filler, int filler_loc)
 
    png_set_filler(png_ptr, filler, filler_loc);
    
-   if (png_ptr->transformations & PNG_FILLER)
+   if ((png_ptr->transformations & PNG_FILLER) != 0)
       png_ptr->transformations |= PNG_ADD_ALPHA;
 }
 
@@ -605,7 +605,7 @@ png_do_bgr(png_row_infop row_info, png_bytep row)
 {
    png_debug(1, "in png_do_bgr");
 
-   if ((row_info->color_type & PNG_COLOR_MASK_COLOR))
+   if ((row_info->color_type & PNG_COLOR_MASK_COLOR) != 0)
    {
       png_uint_32 row_width = row_info->width;
       if (row_info->bit_depth == 8)
@@ -846,5 +846,4 @@ png_get_current_pass_number(png_const_structrp png_ptr)
 }
 #endif 
 #endif 
-
 #endif 
