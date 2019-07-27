@@ -13,7 +13,6 @@
 #include "AudioSegment.h"
 #include "SelfRef.h"
 #include "mozilla/Atomics.h"
-#include "AudioContext.h"
 
 struct cubeb_stream;
 
@@ -322,21 +321,6 @@ private:
   GraphTime mSlice;
 };
 
-struct StreamAndPromiseForOperation
-{
-  StreamAndPromiseForOperation(MediaStream* aStream,
-                               void* aPromise,
-                               dom::AudioContextOperation aOperation);
-  nsRefPtr<MediaStream> mStream;
-  void* mPromise;
-  dom::AudioContextOperation mOperation;
-};
-
-enum AsyncCubebOperation {
-  INIT,
-  SHUTDOWN
-};
-
 
 
 
@@ -408,12 +392,6 @@ public:
     return this;
   }
 
-  
-
-  void EnqueueStreamAndPromiseForOperation(MediaStream* aStream,
-                                         void* aPromise,
-                                         dom::AudioContextOperation aOperation);
-
   bool IsSwitchingDevice() {
 #ifdef XP_MACOSX
     return mSelfReference;
@@ -436,8 +414,6 @@ public:
   
 
   void SetMicrophoneActive(bool aActive);
-
-  void CompleteAudioContextOperations(AsyncCubebOperation aOperation);
 private:
   
 
@@ -495,7 +471,6 @@ private:
   
 
   nsCOMPtr<nsIThread> mInitShutdownThread;
-  nsAutoTArray<StreamAndPromiseForOperation, 1> mPromisesForOperation;
   dom::AudioChannel mAudioChannel;
   Atomic<bool> mInCallback;
   
@@ -523,6 +498,12 @@ private:
 class AsyncCubebTask : public nsRunnable
 {
 public:
+  enum AsyncCubebOperation {
+    INIT,
+    SHUTDOWN,
+    SLEEP
+  };
+
 
   AsyncCubebTask(AudioCallbackDriver* aDriver, AsyncCubebOperation aOperation);
 
@@ -550,4 +531,4 @@ private:
 
 }
 
-#endif 
+#endif
