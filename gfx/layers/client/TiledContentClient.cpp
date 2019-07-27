@@ -719,7 +719,8 @@ TileClient::GetBackBuffer(const nsIntRegion& aDirtyRegion,
   
   if (mFrontBuffer &&
       mFrontBuffer->HasInternalBuffer() &&
-      mFrontLock->GetReadCount() == 1) {
+      mFrontLock->GetReadCount() == 1 &&
+      !(aMode == SurfaceMode::SURFACE_COMPONENT_ALPHA && !mFrontBufferOnWhite)) {
     
     
     DiscardBackBuffer();
