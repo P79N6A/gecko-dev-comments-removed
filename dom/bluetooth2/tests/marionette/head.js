@@ -506,6 +506,64 @@ function waitForAdapterStateChanged(aAdapter, aStateChangesInOrder) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForAdapterAttributeChanged(aAdapter, aAttrName, aExpectedValue) {
+  let deferred = Promise.defer();
+
+  aAdapter.onattributechanged = function(aEvent) {
+    let i = aEvent.attrs.indexOf(aAttrName);
+    if (i >= 0) {
+      switch (aEvent.attrs[i]) {
+        case "state":
+          log("  'state' changed to " + aAdapter.state);
+          is(aAdapter.state, aExpectedValue, "adapter.state");
+          break;
+        case "name":
+          log("  'name' changed to " + aAdapter.name);
+          is(aAdapter.name, aExpectedValue, "adapter.name");
+          break;
+        case "address":
+          log("  'address' changed to " + aAdapter.address);
+          is(aAdapter.address, aExpectedValue, "adapter.address");
+          break;
+        case "discoverable":
+          log("  'discoverable' changed to " + aAdapter.discoverable);
+          is(aAdapter.discoverable, aExpectedValue, "adapter.discoverable");
+          break;
+        case "discovering":
+          log("  'discovering' changed to " + aAdapter.discovering);
+          is(aAdapter.discovering, aExpectedValue, "adapter.discovering");
+          break;
+        case "unknown":
+        default:
+          ok(false, "Unknown attribute '" + aAttrName + "' changed." );
+          break;
+      }
+      aAdapter.onattributechanged = null;
+      deferred.resolve(aEvent);
+    }
+  };
+
+  return deferred.promise;
+}
+
+
+
+
 function cleanUp() {
   waitFor(function() {
     SpecialPowers.flushPermissions(function() {
