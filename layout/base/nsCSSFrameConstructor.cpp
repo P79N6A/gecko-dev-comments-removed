@@ -9579,7 +9579,7 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
   FCItemIterator iter(aItems);
   do {
     
-    if (iter.SkipItemsThatDontNeedAnonFlexOrGridItem(aState)) {
+    if (iter.SkipItemsThatDontNeedAnonFlexOrGridItem(aState, containerType)) {
       
       
       return;
@@ -9601,7 +9601,8 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
       FCItemIterator afterWhitespaceIter(iter);
       bool hitEnd = afterWhitespaceIter.SkipWhitespace(aState);
       bool nextChildNeedsAnonItem =
-        !hitEnd && afterWhitespaceIter.item().NeedsAnonFlexOrGridItem(aState);
+        !hitEnd && afterWhitespaceIter.item().NeedsAnonFlexOrGridItem(aState,
+                                                containerType);
 
       if (!nextChildNeedsAnonItem) {
         
@@ -9615,7 +9616,7 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
         
         
         MOZ_ASSERT(!iter.IsDone() &&
-                   !iter.item().NeedsAnonFlexOrGridItem(aState),
+                   !iter.item().NeedsAnonFlexOrGridItem(aState, containerType),
                    "hitEnd and/or nextChildNeedsAnonItem lied");
         continue;
       }
@@ -9625,7 +9626,7 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
     
     
     FCItemIterator endIter(iter); 
-    endIter.SkipItemsThatNeedAnonFlexOrGridItem(aState);
+    endIter.SkipItemsThatNeedAnonFlexOrGridItem(aState, containerType);
 
     NS_ASSERTION(iter != endIter,
                  "Should've had at least one wrappable child to seek past");
@@ -11831,8 +11832,9 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
 
     
     
+    nsIAtom* containerType = aFrame->GetType();
     if (aPrevSibling && IsAnonymousFlexOrGridItem(aPrevSibling) &&
-        iter.item().NeedsAnonFlexOrGridItem(aState)) {
+        iter.item().NeedsAnonFlexOrGridItem(aState, containerType)) {
       RecreateFramesForContent(aFrame->GetContent(), true,
                                REMOVE_FOR_RECONSTRUCTION, nullptr);
       return true;
@@ -11844,7 +11846,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
       
       iter.SetToEnd();
       iter.Prev();
-      if (iter.item().NeedsAnonFlexOrGridItem(aState)) {
+      if (iter.item().NeedsAnonFlexOrGridItem(aState, containerType)) {
         RecreateFramesForContent(aFrame->GetContent(), true,
                                  REMOVE_FOR_RECONSTRUCTION, nullptr);
         return true;
@@ -11869,10 +11871,11 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     FCItemIterator iter(aItems);
     
     
-    if (!iter.SkipItemsThatNeedAnonFlexOrGridItem(aState)) {
+    nsIFrame* containerFrame = aFrame->GetParent();
+    if (!iter.SkipItemsThatNeedAnonFlexOrGridItem(aState,
+                                                  containerFrame->GetType())) {
       
       
-      nsIFrame* containerFrame = aFrame->GetParent();
       RecreateFramesForContent(containerFrame->GetContent(), true,
                                REMOVE_FOR_RECONSTRUCTION, nullptr);
       return true;
@@ -12324,14 +12327,17 @@ Iterator::SkipItemsNotWantingParentType(ParentType aParentType)
 
 bool
 nsCSSFrameConstructor::FrameConstructionItem::
-  NeedsAnonFlexOrGridItem(const nsFrameConstructorState& aState)
+  NeedsAnonFlexOrGridItem(const nsFrameConstructorState& aState,
+                          nsIAtom* aContainerType)
 {
   if (mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) {
     
     return true;
   }
 
-  if (!(mFCData->mBits & FCDATA_DISALLOW_OUT_OF_FLOW) &&
+  
+  if (aContainerType == nsGkAtoms::flexContainerFrame &&
+      !(mFCData->mBits & FCDATA_DISALLOW_OUT_OF_FLOW) &&
       aState.GetGeometricParent(mStyleContext->StyleDisplay(), nullptr)) {
     
     
@@ -12346,10 +12352,11 @@ nsCSSFrameConstructor::FrameConstructionItem::
 inline bool
 nsCSSFrameConstructor::FrameConstructionItemList::
 Iterator::SkipItemsThatNeedAnonFlexOrGridItem(
-  const nsFrameConstructorState& aState)
+  const nsFrameConstructorState& aState,
+  nsIAtom* aContainerType)
 {
   NS_PRECONDITION(!IsDone(), "Shouldn't be done yet");
-  while (item().NeedsAnonFlexOrGridItem(aState)) {
+  while (item().NeedsAnonFlexOrGridItem(aState, aContainerType)) {
     Next();
     if (IsDone()) {
       return true;
@@ -12361,10 +12368,11 @@ Iterator::SkipItemsThatNeedAnonFlexOrGridItem(
 inline bool
 nsCSSFrameConstructor::FrameConstructionItemList::
 Iterator::SkipItemsThatDontNeedAnonFlexOrGridItem(
-  const nsFrameConstructorState& aState)
+  const nsFrameConstructorState& aState,
+  nsIAtom* aContainerType)
 {
   NS_PRECONDITION(!IsDone(), "Shouldn't be done yet");
-  while (!(item().NeedsAnonFlexOrGridItem(aState))) {
+  while (!(item().NeedsAnonFlexOrGridItem(aState, aContainerType))) {
     Next();
     if (IsDone()) {
       return true;
