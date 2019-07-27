@@ -38,6 +38,13 @@ public:
 
   static bool ChainMatchesPinset(const CERTCertList* certList,
                                  const nsTArray<nsCString>& aSHA256keys);
+
+  
+
+
+
+
+  static nsAutoCString CanonicalizeHostname(const char* hostname);
 };
 
 }} 

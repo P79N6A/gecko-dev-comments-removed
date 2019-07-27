@@ -48,6 +48,13 @@ function test_strict() {
     getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
 
   
+  add_connection_test("bad.include-subdomains.pinning.example.com.",
+    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+  
+  add_connection_test("bad.include-subdomains.pinning.example.com..",
+    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+
+  
   add_connection_test("include-subdomains.pinning.example.com", Cr.NS_OK);
   add_connection_test("good.include-subdomains.pinning.example.com", Cr.NS_OK);
   add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
@@ -143,7 +150,7 @@ function check_pinning_telemetry() {
                          .snapshot();
   
   
-  do_check_eq(prod_histogram.counts[0], 4); 
+  do_check_eq(prod_histogram.counts[0], 6); 
   do_check_eq(prod_histogram.counts[1], 4); 
   do_check_eq(test_histogram.counts[0], 2); 
   do_check_eq(test_histogram.counts[1], 0); 
