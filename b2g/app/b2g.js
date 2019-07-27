@@ -730,20 +730,28 @@ pref("hal.processPriorityManager.gonk.BACKGROUND.cgroup", "apps/bg_non_interacti
 
 
 
+
+
+
+
 pref("hal.processPriorityManager.gonk.cgroups.apps.cpu_shares", 1024);
 pref("hal.processPriorityManager.gonk.cgroups.apps.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps.memory_swappiness", 10);
 
 
 pref("hal.processPriorityManager.gonk.cgroups.apps/critical.cpu_shares", 16384);
 pref("hal.processPriorityManager.gonk.cgroups.apps/critical.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps/critical.memory_swappiness", 0);
 
 
 pref("hal.processPriorityManager.gonk.cgroups.apps/bg_perceivable.cpu_shares", 103);
 pref("hal.processPriorityManager.gonk.cgroups.apps/bg_perceivable.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_perceivable.memory_swappiness", 60);
 
 
 pref("hal.processPriorityManager.gonk.cgroups.apps/bg_non_interactive.cpu_shares", 52);
 pref("hal.processPriorityManager.gonk.cgroups.apps/bg_non_interactive.cpu_notify_on_migrate", 0);
+pref("hal.processPriorityManager.gonk.cgroups.apps/bg_non_interactive.memory_swappiness", 100);
 
 
 
