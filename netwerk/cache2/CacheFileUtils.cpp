@@ -424,6 +424,116 @@ ValidityMap::operator[](uint32_t aIdx)
   return mMap.ElementAt(aIdx);
 }
 
+StaticMutex DetailedCacheHitTelemetry::sLock;
+uint32_t DetailedCacheHitTelemetry::sRecordCnt = 0;
+DetailedCacheHitTelemetry::HitRate DetailedCacheHitTelemetry::sHRStats[kNumOfRanges];
+
+DetailedCacheHitTelemetry::HitRate::HitRate()
+{
+  Reset();
+}
+
+void
+DetailedCacheHitTelemetry::HitRate::AddRecord(ERecType aType)
+{
+  if (aType == HIT) {
+    ++mHitCnt;
+  } else {
+    ++mMissCnt;
+  }
+}
+
+uint32_t
+DetailedCacheHitTelemetry::HitRate::GetHitRateBucket(uint32_t aNumOfBuckets) const
+{
+  uint32_t bucketIdx = (aNumOfBuckets * mHitCnt) / (mHitCnt + mMissCnt);
+  if (bucketIdx == aNumOfBuckets) { 
+    --bucketIdx;
+  }
+
+  return bucketIdx;
+}
+
+uint32_t
+DetailedCacheHitTelemetry::HitRate::Count()
+{
+  return mHitCnt + mMissCnt;
+}
+
+void
+DetailedCacheHitTelemetry::HitRate::Reset()
+{
+  mHitCnt = 0;
+  mMissCnt = 0;
+}
+
+
+void
+DetailedCacheHitTelemetry::AddRecord(ERecType aType, TimeStamp aLoadStart)
+{
+  bool isUpToDate = false;
+  CacheIndex::IsUpToDate(&isUpToDate);
+  if (!isUpToDate) {
+    
+    return;
+  }
+
+  uint32_t entryCount;
+  nsresult rv = CacheIndex::GetEntryFileCount(&entryCount);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  uint32_t rangeIdx = entryCount / kRangeSize;
+  if (rangeIdx >= kNumOfRanges) { 
+    rangeIdx = kNumOfRanges - 1;
+  }
+
+  uint32_t hitMissValue = 2 * rangeIdx; 
+  if (aType == MISS) { 
+    ++hitMissValue;
+  }
+
+  StaticMutexAutoLock lock(sLock);
+
+  if (aType == MISS) {
+    mozilla::Telemetry::AccumulateTimeDelta(
+      mozilla::Telemetry::NETWORK_CACHE_V2_MISS_TIME_MS,
+      aLoadStart);
+  } else {
+    mozilla::Telemetry::AccumulateTimeDelta(
+      mozilla::Telemetry::NETWORK_CACHE_V2_HIT_TIME_MS,
+      aLoadStart);
+  }
+
+  Telemetry::Accumulate(Telemetry::NETWORK_CACHE_HIT_MISS_STAT_PER_CACHE_SIZE,
+                        hitMissValue);
+
+  sHRStats[rangeIdx].AddRecord(aType);
+  ++sRecordCnt;
+
+  if (sRecordCnt < kTotalSamplesReportLimit) {
+    return;
+  }
+
+  sRecordCnt = 0;
+
+  for (uint32_t i = 0; i < kNumOfRanges; ++i) {
+    if (sHRStats[i].Count() >= kHitRateSamplesReportLimit) {
+      
+      
+      
+      
+      uint32_t bucketOffset = sHRStats[i].GetHitRateBucket(kHitRateBuckets) *
+                              kNumOfRanges;
+
+      Telemetry::Accumulate(Telemetry::NETWORK_CACHE_HIT_RATE_PER_CACHE_SIZE,
+                            bucketOffset + i);
+      sHRStats[i].Reset();
+    }
+  }
+}
+
 } 
 } 
 } 

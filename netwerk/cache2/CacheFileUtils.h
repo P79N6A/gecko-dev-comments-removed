@@ -9,6 +9,8 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "mozilla/StaticMutex.h"
+#include "mozilla/TimeStamp.h"
 
 class nsILoadContextInfo;
 class nsACString;
@@ -84,6 +86,64 @@ public:
 
 private:
   nsTArray<ValidityPair> mMap;
+};
+
+
+class DetailedCacheHitTelemetry {
+public:
+  enum ERecType {
+    HIT  = 0,
+    MISS = 1
+  };
+
+  static void AddRecord(ERecType aType, TimeStamp aLoadStart);
+
+private:
+  class HitRate {
+  public:
+    HitRate();
+
+    void     AddRecord(ERecType aType);
+    
+    
+    uint32_t GetHitRateBucket(uint32_t aNumOfBuckets) const;
+    uint32_t Count();
+    void     Reset();
+
+  private:
+    uint32_t mHitCnt;
+    uint32_t mMissCnt;
+  };
+
+  
+  
+  static const uint32_t kRangeSize = 5000;
+  static const uint32_t kNumOfRanges = 20;
+
+  
+  
+  static const uint32_t kTotalSamplesReportLimit = 1000;
+
+  
+  
+  
+  static const uint32_t kHitRateSamplesReportLimit = 500;
+
+  
+  
+  
+  
+  
+  static const uint32_t kHitRateBuckets = 20;
+
+  
+  static StaticMutex sLock;
+
+  
+  static uint32_t sRecordCnt;
+ 
+  
+  static HitRate sHRStats[kNumOfRanges];
 };
 
 } 

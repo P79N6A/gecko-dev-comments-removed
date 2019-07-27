@@ -652,6 +652,9 @@ public:
   static nsresult GetCacheSize(uint32_t *_retval);
 
   
+  static nsresult GetEntryFileCount(uint32_t *_retval);
+
+  
   
   static nsresult GetCacheStats(nsILoadContextInfo *aInfo, uint32_t *aSize, uint32_t *aCount);
 
