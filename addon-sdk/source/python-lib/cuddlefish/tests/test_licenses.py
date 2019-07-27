@@ -27,6 +27,9 @@ skip = [
     "packages/api-utils/tests/test-querystring.js", 
     "packages/api-utils/lib/promise.js", 
     "packages/api-utils/tests/test-promise.js", 
+    "examples/actor-repl/README.md", 
+    "examples/actor-repl/data/codemirror-compressed.js", 
+    "examples/actor-repl/data/codemirror.css", 
     ]
 absskip = [from_sdk_top(os.path.join(*fn.split("/"))) for fn in skip]
 

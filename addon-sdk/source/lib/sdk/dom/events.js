@@ -137,3 +137,33 @@ function emit(element, type, { category, initializer, settings }) {
   element.dispatchEvent(event);
 };
 exports.emit = emit;
+
+
+
+const removed = element => {
+  return new Promise(resolve => {
+    const { MutationObserver } = element.ownerDocument.defaultView;
+    const observer = new MutationObserver(mutations => {
+      for (let mutation of mutations) {
+        for (let node of mutation.removedNodes || []) {
+          if (node === element) {
+            observer.disconnect();
+            resolve(element);
+          }
+        }
+      }
+    });
+    observer.observe(element.parentNode, {childList: true});
+  });
+};
+exports.removed = removed;
+
+const when = (element, eventName, capture=false) => new Promise(resolve => {
+  const listener = event => {
+    element.removeEventListener(eventName, listener, capture);
+    resolve(event);
+  };
+
+  element.addEventListener(eventName, listener, capture);
+});
+exports.when = when;

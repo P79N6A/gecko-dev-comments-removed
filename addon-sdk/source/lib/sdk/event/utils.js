@@ -273,3 +273,8 @@ function stripListeners (object) {
   }, {});
 }
 exports.stripListeners = stripListeners;
+
+const when = (target, type) => new Promise(resolve => {
+  once(target, type, resolve);
+});
+exports.when = when;

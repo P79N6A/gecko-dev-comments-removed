@@ -1,6 +1,7 @@
 
 
 
+ "use strict";
 
 const { getRulesForLocale } = require("sdk/l10n/plural-rules");
 
