@@ -392,7 +392,8 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
             
             
             
-            if (BaselineDebugModeOSRInfo *info = iter.baselineFrame()->getDebugModeOSRInfo()) {
+            BaselineDebugModeOSRInfo *info = iter.baselineFrame()->getDebugModeOSRInfo();
+            if (info) {
                 MOZ_ASSERT(info->pc == pc);
                 MOZ_ASSERT(info->frameKind == kind);
 

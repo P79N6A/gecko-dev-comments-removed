@@ -234,7 +234,8 @@ class Range : public TempObject {
         
         
         
-        uint32_t adjustedExponent = max_exponent_ + (canHaveFractionalPart_ ? 1 : 0);
+        mozilla::DebugOnly<uint32_t> adjustedExponent = max_exponent_ +
+            (canHaveFractionalPart_ ? 1 : 0);
         MOZ_ASSERT_IF(!hasInt32LowerBound_ || !hasInt32UpperBound_,
                       adjustedExponent >= MaxInt32Exponent);
         MOZ_ASSERT(adjustedExponent >= mozilla::FloorLog2(mozilla::Abs(upper_)));
