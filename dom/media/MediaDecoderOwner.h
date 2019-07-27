@@ -114,13 +114,6 @@ public:
   };
 
   
-  
-  
-  
-  
-  virtual void UpdateReadyStateForData(NextFrameStatus aNextFrame) = 0;
-
-  
   virtual bool IsActive() = 0;
 
   

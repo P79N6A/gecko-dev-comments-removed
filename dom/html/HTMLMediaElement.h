@@ -221,13 +221,6 @@ public:
   nsresult DispatchPendingMediaEvents();
 
   
-  
-  
-  
-  
-  virtual void UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatus aNextFrame) final override;
-
-  
   bool CanActivateAutoplay();
 
   
@@ -647,6 +640,8 @@ protected:
   class MediaStreamTracksAvailableCallback;
   class StreamListener;
   class StreamSizeListener;
+
+  MediaDecoderOwner::NextFrameStatus NextFrameStatus();
 
   void SetDecoder(MediaDecoder* aDecoder)
   {
@@ -1108,9 +1103,6 @@ protected:
   Watchable<nsMediaReadyState> mReadyState;
 
   WatcherHolder mReadyStateUpdater;
-
-  
-  Watchable<NextFrameStatus> mNextFrameStatus;
 
   enum LoadAlgorithmState {
     

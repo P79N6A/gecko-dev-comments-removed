@@ -194,8 +194,10 @@
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "MediaDecoderOwner.h"
 #include "MediaStreamGraph.h"
 #include "AbstractMediaDecoder.h"
+#include "StateMirroring.h"
 #include "StateWatching.h"
 #include "necko-config.h"
 #ifdef MOZ_EME
@@ -218,7 +220,6 @@ class Image;
 
 class VideoFrameContainer;
 class MediaDecoderStateMachine;
-class MediaDecoderOwner;
 
 
 
@@ -829,10 +830,6 @@ public:
 
   
   
-  virtual void UpdateReadyStateForData();
-
-  
-  
   int64_t GetDownloadPosition();
 
   
@@ -1049,6 +1046,8 @@ public:
 
   WatchTarget& ReadyStateWatchTarget() { return *mReadyStateWatchTarget; }
 
+  virtual MediaDecoderOwner::NextFrameStatus NextFrameStatus() { return mNextFrameStatus; }
+
 protected:
   virtual ~MediaDecoder();
   void SetStateMachineParameters();
@@ -1065,6 +1064,9 @@ protected:
   bool IsEnded() const;
 
   WatcherHolder mReadyStateWatchTarget;
+
+  
+  Mirror<MediaDecoderOwner::NextFrameStatus>::Holder mNextFrameStatus;
 
   
 

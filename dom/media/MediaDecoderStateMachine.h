@@ -91,6 +91,7 @@
 #include "MediaMetadataManager.h"
 #include "mozilla/RollingMean.h"
 #include "MediaTimer.h"
+#include "StateMirroring.h"
 
 namespace mozilla {
 
@@ -122,6 +123,7 @@ class MediaDecoderStateMachine
   friend class AudioSink;
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderStateMachine)
 public:
+  typedef MediaDecoderOwner::NextFrameStatus NextFrameStatus;
   typedef MediaDecoder::DecodedStreamData DecodedStreamData;
   MediaDecoderStateMachine(MediaDecoder* aDecoder,
                                MediaDecoderReader* aReader,
@@ -208,8 +210,6 @@ public:
   
   bool OnDecodeTaskQueue() const;
   bool OnTaskQueue() const;
-
-  MediaDecoderOwner::NextFrameStatus GetNextFrameStatus();
 
   
   
@@ -432,6 +432,16 @@ protected:
   
   void Push(AudioData* aSample);
   void Push(VideoData* aSample);
+  void PushFront(AudioData* aSample);
+  void PushFront(VideoData* aSample);
+
+  
+  
+  
+  
+  already_AddRefed<AudioData> PopAudio();
+  already_AddRefed<VideoData> PopVideo();
+
 
   class WakeDecoderRunnable : public nsRunnable {
   public:
@@ -518,7 +528,8 @@ protected:
   bool JustExitedQuickBuffering();
 
   
-  void UpdateReadyState();
+  
+  void UpdateNextFrameStatus();
 
   
   
@@ -713,9 +724,16 @@ protected:
   
   void SetPlayStartTime(const TimeStamp& aTimeStamp);
 
-public:
+private:
   
   void OnAudioEndTimeUpdate(int64_t aAudioEndTime);
+public:
+  void DispatchOnAudioEndTimeUpdate(int64_t aAudioEndTime)
+  {
+    RefPtr<nsRunnable> r =
+      NS_NewRunnableMethodWithArg<int64_t>(this, &MediaDecoderStateMachine::OnAudioEndTimeUpdate, aAudioEndTime);
+    TaskQueue()->Dispatch(r.forget());
+  }
 
 private:
   
@@ -873,6 +891,13 @@ public:
   
   
   bool mDurationSet;
+
+  
+  
+  Canonical<NextFrameStatus>::Holder mNextFrameStatus;
+public:
+  AbstractCanonical<NextFrameStatus>* CanonicalNextFrameStatus() { return &mNextFrameStatus; }
+protected:
 
   struct SeekJob {
     void Steal(SeekJob& aOther)
@@ -1205,8 +1230,6 @@ public:
   nsAutoPtr<MetadataTags> mMetadataTags;
 
   mozilla::MediaMetadataManager mMetadataManager;
-
-  MediaDecoderOwner::NextFrameStatus mLastFrameStatus;
 
   mozilla::RollingMean<uint32_t, uint32_t> mCorruptFrames;
 

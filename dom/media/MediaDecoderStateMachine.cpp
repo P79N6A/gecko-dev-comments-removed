@@ -239,7 +239,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mDropVideoUntilNextDiscontinuity(false),
   mDecodeToSeekTarget(false),
   mCurrentTimeBeforeSeek(0),
-  mLastFrameStatus(MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED),
   mCorruptFrames(30),
   mDisabledHardwareAcceleration(false),
   mDecodingFrozenAtStateDecoding(false),
@@ -254,6 +253,9 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   RefPtr<SharedThreadPool> pool(GetMediaThreadPool());
   MOZ_DIAGNOSTIC_ASSERT(pool);
   mTaskQueue = new MediaTaskQueue(pool.forget(),  true);
+
+  mNextFrameStatus.Init(mTaskQueue, MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED,
+                        "MediaDecoderStateMachine::mNextFrameStatus (Canonical)");
 
   static bool sPrefCacheInit = false;
   if (!sPrefCacheInit) {
@@ -556,7 +558,7 @@ void MediaDecoderStateMachine::SendStreamData()
     
     if (a && a->mTime <= clockTime) {
       OnAudioEndTimeUpdate(std::max(mAudioEndTime, a->GetEndTime()));
-      nsRefPtr<AudioData> releaseMe = AudioQueue().PopFront();
+      nsRefPtr<AudioData> releaseMe = PopAudio();
       continue;
     }
     break;
@@ -566,7 +568,7 @@ void MediaDecoderStateMachine::SendStreamData()
   
   if (finished && AudioQueue().GetSize() == 0) {
     mAudioCompleted = true;
-    UpdateReadyState();
+    UpdateNextFrameStatus();
   }
 }
 
@@ -801,7 +803,7 @@ MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
         }
         if (mCurrentSeek.mTarget.mType == SeekTarget::PrevSyncPoint) {
           
-          AudioQueue().Push(audio);
+          Push(audio);
         } else {
           
           
@@ -830,13 +832,21 @@ MediaDecoderStateMachine::Push(AudioData* aSample)
   
   
   AudioQueue().Push(aSample);
-  if (mState > DECODER_STATE_DECODING_FIRSTFRAME) {
-    
-    
-    UpdateReadyState();
-    DispatchDecodeTasksIfNeeded();
-    mDecoder->GetReentrantMonitor().NotifyAll();
-  }
+  UpdateNextFrameStatus();
+  DispatchDecodeTasksIfNeeded();
+
+  
+  mDecoder->GetReentrantMonitor().NotifyAll();
+}
+
+void
+MediaDecoderStateMachine::PushFront(AudioData* aSample)
+{
+  MOZ_ASSERT(OnTaskQueue());
+  MOZ_ASSERT(aSample);
+
+  AudioQueue().PushFront(aSample);
+  UpdateNextFrameStatus();
 }
 
 void
@@ -848,13 +858,39 @@ MediaDecoderStateMachine::Push(VideoData* aSample)
   
   
   VideoQueue().Push(aSample);
-  if (mState > DECODER_STATE_DECODING_FIRSTFRAME) {
-    
-    
-    UpdateReadyState();
-    DispatchDecodeTasksIfNeeded();
-    mDecoder->GetReentrantMonitor().NotifyAll();
-  }
+  UpdateNextFrameStatus();
+  DispatchDecodeTasksIfNeeded();
+
+  
+  mDecoder->GetReentrantMonitor().NotifyAll();
+}
+
+void
+MediaDecoderStateMachine::PushFront(VideoData* aSample)
+{
+  MOZ_ASSERT(OnTaskQueue());
+  MOZ_ASSERT(aSample);
+
+  VideoQueue().PushFront(aSample);
+  UpdateNextFrameStatus();
+}
+
+already_AddRefed<AudioData>
+MediaDecoderStateMachine::PopAudio()
+{
+  MOZ_ASSERT(OnTaskQueue());
+  nsRefPtr<AudioData> sample = AudioQueue().PopFront();
+  UpdateNextFrameStatus();
+  return sample.forget();
+}
+
+already_AddRefed<VideoData>
+MediaDecoderStateMachine::PopVideo()
+{
+  MOZ_ASSERT(OnTaskQueue());
+  nsRefPtr<VideoData> sample = VideoQueue().PopFront();
+  UpdateNextFrameStatus();
+  return sample.forget();
 }
 
 void
@@ -910,7 +946,7 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
     
     
     
-    VideoQueue().Push(mFirstVideoFrameAfterSeek);
+    Push(mFirstVideoFrameAfterSeek);
     mFirstVideoFrameAfterSeek = nullptr;
   }
   if (isAudio) {
@@ -931,7 +967,7 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
       CheckIfDecodeComplete();
       
       
-      UpdateReadyState();
+      UpdateNextFrameStatus();
       mDecoder->GetReentrantMonitor().NotifyAll();
       
       if (mAudioCaptured) {
@@ -1061,7 +1097,7 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
         }
         if (mCurrentSeek.mTarget.mType == SeekTarget::PrevSyncPoint) {
           
-          VideoQueue().Push(video);
+          Push(video);
         } else {
           
           
@@ -1285,19 +1321,6 @@ void MediaDecoderStateMachine::ClearPositionChangeFlag()
   AssertCurrentThreadInMonitor();
 
   mPositionChangeQueued = false;
-}
-
-MediaDecoderOwner::NextFrameStatus MediaDecoderStateMachine::GetNextFrameStatus()
-{
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  if (IsBuffering()) {
-    return MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_BUFFERING;
-  } else if (IsSeeking()) {
-    return MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING;
-  } else if (HaveNextFrameData()) {
-    return MediaDecoderOwner::NEXT_FRAME_AVAILABLE;
-  }
-  return MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
 }
 
 static const char* const gMachineStateStr[] = {
@@ -1869,9 +1892,11 @@ MediaDecoderStateMachine::InitiateSeek()
   StopPlayback();
   UpdatePlaybackPositionInternal(mCurrentSeek.mTarget.mTime);
 
+
   
   
   
+  UpdateNextFrameStatus();
   nsCOMPtr<nsIRunnable> startEvent =
       NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
         mDecoder,
@@ -2515,6 +2540,9 @@ MediaDecoderStateMachine::FinishShutdown()
   
   mPendingWakeDecoder = nullptr;
 
+  
+  mNextFrameStatus.DisconnectAll();
+
   MOZ_ASSERT(mState == DECODER_STATE_SHUTDOWN,
              "How did we escape from the shutdown state?");
   
@@ -2674,7 +2702,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 
       
       mDecoder->GetReentrantMonitor().NotifyAll();
-      UpdateReadyState();
+      UpdateNextFrameStatus();
       MaybeStartPlayback();
       NS_ASSERTION(IsStateMachineScheduled(), "Must have timer scheduled");
       return NS_OK;
@@ -2932,7 +2960,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
 #endif
       }
       currentFrame = frame;
-      nsRefPtr<VideoData> releaseMe = VideoQueue().PopFront();
+      nsRefPtr<VideoData> releaseMe = PopVideo();
       
       
       mDecoder->GetReentrantMonitor().NotifyAll();
@@ -2966,7 +2994,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
     }
     if (shouldBuffer) {
       if (currentFrame) {
-        VideoQueue().PushFront(currentFrame);
+        PushFront(currentFrame);
       }
       StartBuffering();
       
@@ -3032,7 +3060,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
   
   
   
-  UpdateReadyState();
+  UpdateNextFrameStatus();
 
   int64_t delay = remainingTime / mPlaybackRate;
   if (delay > 0) {
@@ -3087,7 +3115,7 @@ MediaDecoderStateMachine::DropVideoUpToSeekTarget(VideoData* aSample)
     DECODER_LOG("DropVideoUpToSeekTarget() found video frame [%lld, %lld] containing target=%lld",
                 video->mTime, video->GetEndTime(), target);
 
-    VideoQueue().PushFront(video);
+    PushFront(video);
   }
 
   return NS_OK;
@@ -3122,7 +3150,7 @@ MediaDecoderStateMachine::DropAudioUpToSeekTarget(AudioData* aSample)
     
     
     DECODER_WARN("Audio not synced after seek, maybe a poorly muxed file?");
-    AudioQueue().Push(audio);
+    Push(audio);
     return NS_OK;
   }
 
@@ -3158,7 +3186,7 @@ MediaDecoderStateMachine::DropAudioUpToSeekTarget(AudioData* aSample)
                                          audioData.forget(),
                                          channels,
                                          audio->mRate));
-  AudioQueue().PushFront(data);
+  PushFront(data);
 
   return NS_OK;
 }
@@ -3191,30 +3219,31 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
   DECODER_LOG("Set media start time to %lld", mStartTime);
 }
 
-void MediaDecoderStateMachine::UpdateReadyState() {
+void MediaDecoderStateMachine::UpdateNextFrameStatus() {
+  MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
 
-  MediaDecoderOwner::NextFrameStatus nextFrameStatus = GetNextFrameStatus();
-  
-  
-  
-  
-  if (nextFrameStatus == mLastFrameStatus) {
-    return;
+  MediaDecoderOwner::NextFrameStatus status;
+  const char* statusString;
+  if (IsBuffering()) {
+    status = MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_BUFFERING;
+    statusString = "NEXT_FRAME_UNAVAILABLE_BUFFERING";
+  } else if (IsSeeking()) {
+    status = MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING;
+    statusString = "NEXT_FRAME_UNAVAILABLE_SEEKING";
+  } else if (HaveNextFrameData()) {
+    status = MediaDecoderOwner::NEXT_FRAME_AVAILABLE;
+    statusString = "NEXT_FRAME_AVAILABLE";
+  } else {
+    status = MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
+    statusString = "NEXT_FRAME_UNAVAILABLE";
   }
-  mLastFrameStatus = nextFrameStatus;
 
-  
+  if (status != mNextFrameStatus) {
+    DECODER_LOG("Changed mNextFrameStatus to %s", statusString);
+  }
 
-
-
-
-
-
-
-  nsCOMPtr<nsIRunnable> event;
-  event = NS_NewRunnableMethod(mDecoder, &MediaDecoder::UpdateReadyStateForData);
-  AbstractThread::MainThread()->Dispatch(event.forget());
+  mNextFrameStatus = status;
 }
 
 bool MediaDecoderStateMachine::JustExitedQuickBuffering()
@@ -3251,17 +3280,8 @@ void MediaDecoderStateMachine::StartBuffering()
     decodeDuration < UsecsToDuration(QUICK_BUFFER_THRESHOLD_USECS);
   mBufferingStart = TimeStamp::Now();
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
   SetState(DECODER_STATE_BUFFERING);
-  UpdateReadyState();
+  UpdateNextFrameStatus();
   DECODER_LOG("Changed state from DECODING to BUFFERING, decoded for %.3lfs",
               decodeDuration.ToSeconds());
 #ifdef PR_LOGGING
@@ -3444,7 +3464,7 @@ void MediaDecoderStateMachine::OnAudioSinkComplete()
   }
   ResyncAudioClock();
   mAudioCompleted = true;
-  UpdateReadyState();
+  UpdateNextFrameStatus();
   
   mDecoder->GetReentrantMonitor().NotifyAll();
 }
