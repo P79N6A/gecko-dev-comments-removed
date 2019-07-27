@@ -38,32 +38,7 @@ ChromeProcessController::ChromeProcessController(nsIWidget* aWidget,
 void
 ChromeProcessController::InitializeRoot()
 {
-  
-  
-  
-  
-  
-  
-  
-  nsIPresShell* presShell = GetPresShell();
-  if (!presShell) {
-    return;
-  }
-
-  MOZ_ASSERT(presShell->GetDocument());
-  nsIContent* content = presShell->GetDocument()->GetDocumentElement();
-  if (!content) {
-    return;
-  }
-
-  uint32_t presShellId;
-  FrameMetrics::ViewID viewId;
-  if (APZCCallbackHelper::GetOrCreateScrollIdentifiers(content, &presShellId, &viewId)) {
-    
-    
-    nsLayoutUtils::SetDisplayPortMargins(content, presShell, ScreenMargin(), 0,
-        nsLayoutUtils::RepaintMode::DoNotRepaint);
-  }
+  APZCCallbackHelper::InitializeRootDisplayport(GetPresShell());
 }
 
 void
