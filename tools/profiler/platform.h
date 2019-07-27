@@ -420,6 +420,9 @@ class ThreadInfo {
   void SetPendingDelete();
   bool IsPendingDelete() const { return mPendingDelete; }
 
+#ifdef MOZ_NUWA_PROCESS
+  void SetThreadId(int aThreadId) { mThreadId = aThreadId; }
+#endif
 
   
 

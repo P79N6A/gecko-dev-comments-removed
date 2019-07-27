@@ -441,6 +441,18 @@ void Sampler::Stop() {
   }
 }
 
+#ifdef MOZ_NUWA_PROCESS
+static void
+UpdateThreadId(void* aThreadInfo) {
+  ThreadInfo* info = static_cast<ThreadInfo*>(aThreadInfo);
+  
+  
+  
+  
+  info->SetThreadId(gettid());
+}
+#endif
+
 bool Sampler::RegisterCurrentThread(const char* aName,
                                     PseudoStack* aPseudoStack,
                                     bool aIsMainThread, void* stackTop)
@@ -471,6 +483,20 @@ bool Sampler::RegisterCurrentThread(const char* aName,
   }
 
   sRegisteredThreads->push_back(info);
+
+#ifdef MOZ_NUWA_PROCESS
+  if (IsNuwaProcess()) {
+    if (info->IsMainThread()) {
+      
+      
+      
+      NuwaAddConstructor(UpdateThreadId, info);
+    } else {
+      
+      NuwaAddThreadConstructor(UpdateThreadId, info);
+    }
+  }
+#endif
 
   uwt__register_thread_for_profiling(stackTop);
   return true;
