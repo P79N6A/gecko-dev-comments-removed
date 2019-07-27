@@ -19,7 +19,7 @@ const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const ProjectEditor = require("projecteditor/projecteditor");
 const {Devices} = Cu.import("resource://gre/modules/devtools/Devices.jsm");
 const {GetAvailableAddons} = require("devtools/webide/addons");
-const {GetTemplatesJSON, GetAddonsJSON} = require("devtools/webide/remote-resources");
+const {getJSON} = require("devtools/shared/getjson");
 const utils = require("devtools/webide/utils");
 const Telemetry = require("devtools/shared/telemetry");
 const {RuntimeScanners, WiFiScanner} = require("devtools/webide/runtimes");
@@ -35,7 +35,8 @@ const MAX_ZOOM = 1.4;
 const MIN_ZOOM = 0.6;
 
 
-GetTemplatesJSON(true);
+getJSON("devtools.webide.addonsURL", true);
+getJSON("devtools.webide.templatesURL", true);
 
 
 console.log = console.log.bind(console);
