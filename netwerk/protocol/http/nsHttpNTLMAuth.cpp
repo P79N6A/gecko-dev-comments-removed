@@ -344,7 +344,10 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
             
             
 
-            if (AllowGenericNTLM() || AllowGenericNTLMforHTTPS(channel)) {
+            
+            
+            
+            if (AllowGenericNTLM() || (!isProxyAuth && AllowGenericNTLMforHTTPS(channel))) {
                 LOG(("Trying to fall back on internal ntlm auth.\n"));
                 module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
             }
