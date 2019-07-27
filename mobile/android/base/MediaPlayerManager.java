@@ -111,7 +111,13 @@ class MediaPlayerManager implements NativeEventListener,
             final JSONObject result = new JSONObject();
             final JSONArray disps = new JSONArray();
             for (GeckoMediaPlayer disp : displays.values()) {
-                disps.put(disp.toJSON());
+                try {
+                    disps.put(disp.toJSON());
+                } catch(Exception ex) {
+                    
+                    
+                    Log.e(LOGTAG, "Couldn't create JSON for display", ex);
+                }
             }
 
             try {
@@ -193,6 +199,14 @@ class MediaPlayerManager implements NativeEventListener,
     };
 
     private GeckoMediaPlayer getMediaPlayerForRoute(MediaRouter.RouteInfo route) {
+        try {
+            if (route.supportsControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)) {
+                return new ChromeCast(context, route);
+            }
+        } catch(Exception ex) {
+            debug("Error handling presentation", ex);
+        }
+
         return null;
     }
 
