@@ -70,6 +70,7 @@ public:
         
         return true;
     }
+    virtual bool PollSync() MOZ_OVERRIDE { return true; }
 
     virtual GLuint ProdTexture() MOZ_OVERRIDE {
         return mTex;
@@ -146,10 +147,9 @@ public:
     virtual void LockProdImpl() MOZ_OVERRIDE {}
     virtual void UnlockProdImpl() MOZ_OVERRIDE {}
 
-
     virtual void Fence() MOZ_OVERRIDE;
     virtual bool WaitSync() MOZ_OVERRIDE;
-
+    virtual bool PollSync() MOZ_OVERRIDE;
 
     virtual GLuint ProdTexture() MOZ_OVERRIDE {
         return mTex;

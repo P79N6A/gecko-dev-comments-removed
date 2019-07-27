@@ -80,6 +80,7 @@ protected:
 public:
     virtual void Fence() = 0;
     virtual bool WaitSync() = 0;
+    virtual bool PollSync() = 0;
 
     
     
