@@ -226,8 +226,7 @@ protected:
   nsresult OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
   nsresult OnFrameUpdate(imgIRequest* aRequest, const nsIntRect* aRect);
   nsresult OnLoadComplete(imgIRequest* aRequest, nsresult aStatus);
-  nsresult FrameChanged(imgIRequest *aRequest,
-                        imgIContainer *aContainer);
+
   
 
 
@@ -277,13 +276,24 @@ private:
 
 
   bool IsPendingLoad(imgIRequest* aRequest) const;
-  bool IsPendingLoad(imgIContainer* aContainer) const;
 
   
 
 
 
   nsRect SourceRectToDest(const nsIntRect & aRect);
+
+  
+
+
+
+
+
+
+
+
+  void InvalidateSelf(const nsIntRect* aLayerInvalidRect,
+                      const nsRect* aFrameInvalidRect);
 
   nsImageMap*         mImageMap;
 
