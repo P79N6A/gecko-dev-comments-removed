@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsXULAppAPI.h"
 
@@ -48,8 +48,8 @@ StaticRefPtr<nsGeolocationSettings> nsGeolocationSettings::sSettings;
 already_AddRefed<nsGeolocationSettings>
 nsGeolocationSettings::GetGeolocationSettings()
 {
-  
-  if (XRE_IsContentProcess()) {
+  // this singleton is only needed in the parent process...
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     return nullptr;
   }
 
@@ -70,13 +70,13 @@ nsGeolocationSettings::GetGeolocationSettings()
 
 nsresult nsGeolocationSettings::Init()
 {
-  
+  // query for the current settings...
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (!obs) {
     return NS_ERROR_FAILURE;
   }
 
-  
+  // hook up observers
   obs->AddObserver(this, "quit-application", false);
   obs->AddObserver(this, "mozsettings-changed", false);
   return NS_OK;
@@ -87,7 +87,7 @@ nsGeolocationSettings::Observe(nsISupports* aSubject,
                                const char* aTopic,
                                const char16_t* aData)
 {
-  
+  // remove observers
   if (!strcmp("quit-application", aTopic)) {
     nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
     if (obs) {
@@ -114,12 +114,12 @@ nsGeolocationSettings::LookupGeolocationSetting(int32_t aWatchID)
     return mGlobalSetting;
   }
 
-  
-  
+  // if there is no per-app setting for the given origin, this will
+  // set gb == nullptr
   GeolocationSetting const * const gb =
     mPerOriginSettings.Get(NS_ConvertUTF8toUTF16(*origin));
 
-  
+  // return a copy of the per-app or global settings
   return gb ? *gb : mGlobalSetting;
 }
 
@@ -157,7 +157,7 @@ nsGeolocationSettings::HandleMozsettingsChanged(nsISupports* aSubject)
 
   GPSLOG("mozsettings changed: %s", NS_ConvertUTF16toUTF8(setting.mKey).get());
 
-  
+  // and handle the geolocation settings change...
   HandleGeolocationSettingsChange(setting.mKey, setting.mValue);
 }
 
@@ -231,33 +231,33 @@ nsGeolocationSettings::HandleGeolocationPerOriginSettingsChange(const JS::Value&
     return;
   }
 
-  
+  // clear the hash table
   mPerOriginSettings.Clear();
 
-  
+  // root the object and get the global
   JS::Rooted<JSObject*> obj(nsContentUtils::RootingCx(), &aVal.toObject());
   MOZ_ASSERT(obj);
   nsIGlobalObject* global = xpc::NativeGlobal(obj);
   NS_ENSURE_TRUE_VOID(global && global->GetGlobalJSObject());
 
-  
-  
+  // because the spec requires calling getters when enumerating the key of a
+  // dictionary
   AutoEntryScript aes(global, "geolocation.app_settings enumeration");
   aes.TakeOwnershipOfErrorReporting();
   JSContext *cx = aes.cx();
   JS::AutoIdArray ids(cx, JS_Enumerate(cx, obj));
 
-  
+  // if we get no ids then the exception list is empty and we can return here.
   if (!ids) {
       return;
   }
 
-  
+  // go through all of the objects in the exceptions dictionary
   for (size_t i = 0; i < ids.length(); i++) {
     JS::RootedId id(cx);
     id = ids[i];
 
-    
+    // if it is an app that is always precise, skip it
     nsAutoJSString origin;
     if (!origin.init(cx, id)) {
       continue;
@@ -266,7 +266,7 @@ nsGeolocationSettings::HandleGeolocationPerOriginSettingsChange(const JS::Value&
       continue;
     }
 
-    
+    // get the app setting object
     JS::RootedValue propertyValue(cx);
     if (!JS_GetPropertyById(cx, obj, id, &propertyValue) || !propertyValue.isObject()) {
       continue;
@@ -276,27 +276,27 @@ nsGeolocationSettings::HandleGeolocationPerOriginSettingsChange(const JS::Value&
     GeolocationSetting *settings = new GeolocationSetting(origin);
     GPSLOG("adding exception for %s", NS_ConvertUTF16toUTF8(origin).get());
 
-    
+    // get the geolocation type
     JS::RootedValue fm(cx);
     if (JS_GetProperty(cx, settingObj, "type", &fm)) {
       settings->HandleTypeChange(fm);
     }
 
 #ifdef MOZ_APPROX_LOCATION
-    
+    // get the approximate distance if there is one
     JS::RootedValue distance(cx);
     if (JS_GetProperty(cx, settingObj, "distance", &distance)) {
       settings->HandleApproxDistanceChange(distance);
     }
 #endif
 
-    
+    // get and parse the coords, if any
     JS::RootedValue coords(cx);
     if (JS_GetProperty(cx, settingObj, "coords", &coords)) {
       settings->HandleFixedCoordsChange(coords);
     }
 
-    
+    // add the per-app setting object to the hashtable
     mPerOriginSettings.Put(origin, settings);
   }
 }
@@ -308,16 +308,16 @@ nsGeolocationSettings::HandleGeolocationAlwaysPreciseChange(const JS::Value& aVa
     return;
   }
 
-  
+  // clear the list of apps that are always precise
   mAlwaysPreciseApps.Clear();
 
-  
+  // root the object and get the global
   JS::Rooted<JSObject*> obj(nsContentUtils::RootingCx(), &aVal.toObject());
   MOZ_ASSERT(obj);
   nsIGlobalObject* global = xpc::NativeGlobal(obj);
   NS_ENSURE_TRUE_VOID(global && global->GetGlobalJSObject());
 
-  
+  // the spec requires calling getters when accessing array by index
   AutoEntryScript aes(global, "geolocation.always_precise indexing");
   aes.TakeOwnershipOfErrorReporting();
   JSContext *cx = aes.cx();
@@ -331,7 +331,7 @@ nsGeolocationSettings::HandleGeolocationAlwaysPreciseChange(const JS::Value& aVa
     return;
   }
 
-  
+  // process the list of apps...
   for (uint32_t i = 0; i < length; ++i) {
     JS::RootedValue value(cx);
 
@@ -346,8 +346,8 @@ nsGeolocationSettings::HandleGeolocationAlwaysPreciseChange(const JS::Value& aVa
 
     GPSLOG("adding always precise for %s", NS_ConvertUTF16toUTF8(origin).get());
 
-    
-    
+    // add the origin to the list of apps that will always receive
+    // precise location information
     mAlwaysPreciseApps.AppendElement(origin);
   }
 }
@@ -368,8 +368,8 @@ GeolocationSetting::HandleTypeChange(const JS::Value& aVal)
 #ifdef MOZ_APPROX_LOCATION
     fm = GEO_ALA_TYPE_APPROX;
 #else
-    
-    
+    // we are loading a profile from a build with MOZ_APPROX_LOCATION
+    // enabled, then we need to force the type to a sane value
     fm = GEO_ALA_TYPE_NONE;
 #endif
   } else if (str.EqualsASCII(GEO_ALA_TYPE_VALUE_FIXED)) {
@@ -386,7 +386,7 @@ GeolocationSetting::HandleTypeChange(const JS::Value& aVal)
     mFuzzMethod = fm;
   }
 
-  
+  // based on the new type, we need to clean up the other settings
   switch (mFuzzMethod) {
     case GEO_ALA_TYPE_PRECISE:
     case GEO_ALA_TYPE_NONE:
@@ -422,7 +422,7 @@ GeolocationSetting::HandleApproxDistanceChange(const JS::Value& aVal)
        (mOrigin.IsEmpty() ? "global" : NS_ConvertUTF16toUTF8(mOrigin).get()),
        aVal.toInt32());
 
-  
+  // set the approximate distance
   mDistance = aVal.toInt32();
 }
 #endif
@@ -436,15 +436,15 @@ GeolocationSetting::HandleFixedCoordsChange(const JS::Value& aVal)
       return;
   }
 
-  
-  
-  
+  // parse the string and store the global lat/lon
+  // the string is in the form of @1.2345,6.7890
+  // check for leading '@' and a comma in the middle
   int32_t const comma = str.Find(",");
   if ( (str.CharAt(0) != '@') || (comma == -1) ) {
     return;
   }
 
-  
+  // pull the lat and lon out of the string and convert to doubles
   nsresult rv;
   nsString slat(Substring(str, 1, comma - 1));
   nsString slon(Substring(str, comma + 1));
@@ -453,7 +453,7 @@ GeolocationSetting::HandleFixedCoordsChange(const JS::Value& aVal)
   double lon = slon.ToDouble(&rv);
   NS_ENSURE_SUCCESS(rv,);
 
-  
+  // store the values
   mLatitude = lat;
   mLongitude = lon;
 

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "IccManager.h"
 #include "mozilla/dom/MozIccManagerBinding.h"
@@ -12,12 +12,12 @@
 #include "mozilla/dom/IccChangeEvent.h"
 #include "mozilla/Preferences.h"
 #include "nsIIccInfo.h"
-
+// Service instantiation
 #include "ipc/IccIPCService.h"
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
 #include "nsIGonkIccService.h"
 #endif
-#include "nsXULAppAPI.h" 
+#include "nsXULAppAPI.h" // For XRE_GetProcessType()
 
 using namespace mozilla::dom;
 
@@ -31,7 +31,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(IccManager,
                                                 DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-
+// QueryInterface implementation for IccManager
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(IccManager)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
@@ -111,7 +111,7 @@ IccManager::NotifyIccRemove(const nsAString& aIccId)
   return asyncDispatcher->PostDOMEvent();
 }
 
-
+// MozIccManager
 
 void
 IccManager::GetIccIds(nsTArray<nsString>& aIccIds)
@@ -143,7 +143,7 @@ NS_CreateIccService()
 {
   nsCOMPtr<nsIIccService> service;
 
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     service = new mozilla::dom::icc::IccIPCService();
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
   } else {

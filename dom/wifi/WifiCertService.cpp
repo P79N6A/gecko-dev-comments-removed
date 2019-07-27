@@ -1,11 +1,11 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
+// XXX: This must be done prior to including cert.h (directly or indirectly).
+// CERT_AddTempCertToPerm is exposed as __CERT_AddTempCertToPerm.
 #define CERT_AddTempCertToPerm __CERT_AddTempCertToPerm
 
 #include "WifiCertService.h"
@@ -34,7 +34,7 @@ using namespace mozilla::dom;
 
 namespace mozilla {
 
-
+// The singleton Wifi Cert service, to be used on the main thread.
 StaticRefPtr<WifiCertService> gWifiCertService;
 
 class ImportCertTask final: public CryptoTask
@@ -61,7 +61,7 @@ private:
   {
     MOZ_ASSERT(!NS_IsMainThread());
 
-    
+    // read data from blob.
     nsCString blobBuf;
     nsresult rv = ReadBlob(blobBuf);
     if (NS_FAILED(rv)) {
@@ -74,13 +74,13 @@ private:
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    
+    // Try import as DER format first.
     rv = ImportDERBlob(buf, size);
     if (NS_SUCCEEDED(rv)) {
       return rv;
     }
 
-    
+    // Try import as PKCS#12 format.
     return ImportPKCS12Blob(buf, size, mPassword);
   }
 
@@ -94,13 +94,13 @@ private:
 
   nsresult ImportDERBlob(char* buf, uint32_t size)
   {
-    
+    // Create certificate object.
     ScopedCERTCertificate cert(CERT_DecodeCertFromPackage(buf, size));
     if (!cert) {
       return MapSECStatus(SECFailure);
     }
 
-    
+    // Import certificate.
     return ImportCert(cert);
   }
 
@@ -115,7 +115,7 @@ private:
     }
 
     newNick->type = siAsciiString;
-    
+    // Dummy name, will be renamed later.
     memcpy(newNick->data, dummyName, dummyNameLen + 1);
     newNick->len = dummyNameLen;
 
@@ -135,12 +135,12 @@ private:
 
     nsCString fullNickname;
     if (aCert->isRoot && (aCert->nsCertType & NS_CERT_TYPE_SSL_CA)) {
-      
+      // Accept self-signed SSL CA as server certificate.
       fullNickname.AssignLiteral("WIFI_SERVERCERT_");
       fullNickname += userNickname;
       result->mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_SERVER;
     } else if (aCert->nsCertType & NS_CERT_TYPE_SSL_CLIENT) {
-      
+      // User Certificate
       fullNickname.AssignLiteral("WIFI_USERCERT_");
       fullNickname += userNickname;
       result->mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_USER;
@@ -165,9 +165,9 @@ private:
   {
     nsString password(aPassword);
 
-    
-    
-    
+    // password is null-terminated wide-char string.
+    // passwordItem is required to be big-endian form of password, stored in char
+    // array, including the null-termination.
     uint32_t length = password.Length() + 1;
     ScopedSECItem passwordItem(
       ::SECITEM_AllocItem(nullptr, nullptr, length * sizeof(nsString::char_type)));
@@ -179,7 +179,7 @@ private:
     mozilla::NativeEndian::copyAndSwapToBigEndian(passwordItem->data,
                                                   password.BeginReading(),
                                                   length);
-    
+    // Create a decoder.
     ScopedSEC_PKCS12DecoderContext p12dcx(SEC_PKCS12DecoderStart(
                                             passwordItem, nullptr, nullptr,
                                             nullptr, nullptr, nullptr, nullptr,
@@ -189,7 +189,7 @@ private:
       return NS_ERROR_FAILURE;
     }
 
-    
+    // Assign data to decorder.
     SECStatus srv = SEC_PKCS12DecoderUpdate(p12dcx,
                                             reinterpret_cast<unsigned char*>(buf),
                                             size);
@@ -197,23 +197,23 @@ private:
       return MapSECStatus(srv);
     }
 
-    
+    // Verify certificates.
     srv = SEC_PKCS12DecoderVerify(p12dcx);
     if (srv != SECSuccess) {
       return MapSECStatus(srv);
     }
 
-    
+    // Set certificate nickname and usage flag.
     srv = SEC_PKCS12DecoderRenameCertNicknames(p12dcx, HandleNicknameUpdate,
                                                &mResult);
 
-    
+    // Validate certificates.
     srv = SEC_PKCS12DecoderValidateBags(p12dcx, HandleNicknameCollision);
     if (srv != SECSuccess) {
       return MapSECStatus(srv);
     }
 
-    
+    // Initialize slot.
     ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
     if (!slot) {
       return NS_ERROR_FAILURE;
@@ -225,18 +225,18 @@ private:
       }
     }
 
-    
+    // Import cert and key.
     srv = SEC_PKCS12DecoderImportBags(p12dcx);
     if (srv != SECSuccess) {
       return MapSECStatus(srv);
     }
 
-    
+    // User certificate must be imported from PKCS#12.
     return (mResult.mUsageFlag & nsIWifiCertService::WIFI_CERT_USAGE_FLAG_USER)
             ? NS_OK : NS_ERROR_FAILURE;
   }
 
-  nsresult ReadBlob( nsCString& aBuf)
+  nsresult ReadBlob(/*out*/ nsCString& aBuf)
   {
     NS_ENSURE_ARG_POINTER(mBlob);
 
@@ -271,14 +271,14 @@ private:
     nsCString userNickname, fullNickname;
 
     CopyUTF16toUTF8(mResult.mNickname, userNickname);
-    
+    // Determine certificate nickname by adding prefix according to its type.
     if (aCert->isRoot && (aCert->nsCertType & NS_CERT_TYPE_SSL_CA)) {
-      
+      // Accept self-signed SSL CA as server certificate.
       fullNickname.AssignLiteral("WIFI_SERVERCERT_");
       fullNickname += userNickname;
       mResult.mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_SERVER;
     } else if (aCert->nsCertType & NS_CERT_TYPE_SSL_CLIENT) {
-      
+      // User Certificate
       fullNickname.AssignLiteral("WIFI_USERCERT_");
       fullNickname += userNickname;
       mResult.mUsageFlag |= nsIWifiCertService::WIFI_CERT_USAGE_FLAG_USER;
@@ -293,7 +293,7 @@ private:
       return NS_ERROR_UNEXPECTED;
     }
 
-    
+    // Import certificate, duplicated nickname will cause error.
     SECStatus srv = CERT_AddTempCertToPerm(aCert, nickname, nullptr);
     if (srv != SECSuccess) {
       return MapSECStatus(srv);
@@ -330,7 +330,7 @@ private:
     nsCString userNickname;
     CopyUTF16toUTF8(mResult.mNickname, userNickname);
 
-    
+    // Delete server certificate.
     nsCString serverCertName("WIFI_SERVERCERT_", 16);
     serverCertName += userNickname;
     nsresult rv = deleteCert(serverCertName);
@@ -338,7 +338,7 @@ private:
       return rv;
     }
 
-    
+    // Delete user certificate and private key.
     nsCString userCertName("WIFI_USERCERT_", 14);
     userCertName += userNickname;
     rv = deleteCert(userCertName);
@@ -354,8 +354,8 @@ private:
     ScopedCERTCertificate cert(
       CERT_FindCertByNickname(CERT_GetDefaultCertDB(), aCertNickname.get())
     );
-    
-    
+    // Because we delete certificates in blind, so it's acceptable to delete
+    // a non-exist certificate.
     if (!cert) {
       return NS_OK;
     }
@@ -366,7 +366,7 @@ private:
 
     SECStatus srv;
     if (slot) {
-      
+      // Delete private key along with certificate.
       srv = PK11_DeleteTokenCertAndKey(cert, nullptr);
     } else {
       srv = SEC_DeletePermCertificate(cert);
@@ -425,7 +425,7 @@ WifiCertService::DispatchResult(const WifiCertServiceResultOptions& aOptions)
     return;
   }
 
-  
+  // Certll the listener with a JS value.
   mListener->OnCommand(val, dummyInterface);
 }
 
@@ -443,7 +443,7 @@ WifiCertService::~WifiCertService()
 already_AddRefed<WifiCertService>
 WifiCertService::FactoryCreate()
 {
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     return nullptr;
   }
 
@@ -528,6 +528,6 @@ static const mozilla::Module kWifiCertServiceModule = {
   nullptr
 };
 
-} 
+} // namespace mozilla
 
 NSMODULE_DEFN(WifiCertServiceModule) = &kWifiCertServiceModule;

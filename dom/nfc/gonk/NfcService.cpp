@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "NfcService.h"
 #include <binder/Parcel.h>
@@ -42,7 +42,7 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
 
     if (!mSocket || mSocket->GetConnectionStatus() != SOCKET_CONNECTED) {
-      
+      // Probably shutting down.
       return NS_OK;
     }
 
@@ -55,7 +55,7 @@ private:
   nsAutoPtr<UnixSocketRawData> mRawData;
 };
 
-} 
+} // anonymous namespace
 
 namespace mozilla {
 
@@ -70,7 +70,7 @@ assertIsNfcServiceThread()
   MOZ_ASSERT(thread == gNfcService->GetThread());
 }
 
-
+// Runnable used to call Marshall on the NFC thread.
 class NfcCommandRunnable final : public nsRunnable
 {
 public:
@@ -89,7 +89,7 @@ public:
     assertIsNfcServiceThread();
 
     Parcel parcel;
-    parcel.writeInt32(0); 
+    parcel.writeInt32(0); // Parcel Size.
     mHandler->Marshall(parcel, mOptions);
     parcel.setDataPosition(0);
     uint32_t sizeBE = htonl(parcel.dataSize() - sizeof(int));
@@ -104,7 +104,7 @@ private:
    CommandOptions mOptions;
 };
 
-
+// Runnable used dispatch the NfcEventOptions on the main thread.
 class NfcEventDispatcher : public nsRunnable
 {
 public:
@@ -121,7 +121,7 @@ public:
     mozilla::AutoSafeJSContext cx;
     RootedDictionary<NfcEventOptions> event(cx);
 
-    
+    // the copy constructor is private.
 #define COPY_FIELD(prop) event.prop = mEvent.prop;
 
 #define COPY_OPT_FIELD(prop, defaultValue)           \
@@ -133,7 +133,7 @@ public:
     COPY_OPT_FIELD(mRspType, NfcResponseType::EndGuard_)
     COPY_OPT_FIELD(mNtfType, NfcNotificationType::EndGuard_)
 
-    
+    // Only one of rspType and ntfType should be used.
     MOZ_ASSERT(((mEvent.mRspType != NfcResponseType::EndGuard_) ||
                 (mEvent.mNtfType != NfcNotificationType::EndGuard_)) &&
                ((mEvent.mRspType == NfcResponseType::EndGuard_) ||
@@ -168,7 +168,7 @@ public:
       for (int i = 0; i < length; i++) {
         NFCTechType tech = static_cast<NFCTechType>(mEvent.mTechList[i]);
         MOZ_ASSERT(tech < NFCTechType::EndGuard_);
-        
+        // FIXME: Make this infallible after bug 968520 is done.
         *event.mTechList.Value().AppendElement(fallible) = tech;
       }
     }
@@ -187,7 +187,7 @@ public:
 
       for (int i = 0; i < length; i++) {
         NDEFRecordStruct& recordStruct = mEvent.mRecords[i];
-        
+        // FIXME: Make this infallible after bug 968520 is done.
         MozNDEFRecordOptions& record =
           *event.mRecords.Value().AppendElement(fallible);
 
@@ -222,13 +222,13 @@ public:
     COPY_OPT_FIELD(mIsReadOnly, -1)
     COPY_OPT_FIELD(mIsFormatable, -1)
 
-    
+    // HCI Event Transaction parameters.
     if (mEvent.mOriginType != -1) {
       MOZ_ASSERT(static_cast<HCIEventOrigin>(mEvent.mOriginType) < HCIEventOrigin::EndGuard_);
 
       event.mOrigin.Construct();
       event.mOrigin.Value().AssignASCII(HCIEventOriginValues::strings[mEvent.mOriginType].value);
-      event.mOrigin.Value().AppendInt(mEvent.mOriginIndex, 16 );
+      event.mOrigin.Value().AppendInt(mEvent.mOriginIndex, 16 /* radix */);
     }
 
     if (mEvent.mAid.Length() > 0) {
@@ -258,7 +258,7 @@ private:
   EventOptions mEvent;
 };
 
-
+// Runnable used to call Unmarshall on the NFC thread.
 class NfcEventRunnable : public nsRunnable
 {
 public:
@@ -312,7 +312,7 @@ NfcService::~NfcService()
 already_AddRefed<NfcService>
 NfcService::FactoryCreate()
 {
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     return nullptr;
   }
 
@@ -337,9 +337,9 @@ NfcService::Start(nsINfcGonkEventListener* aListener)
   MOZ_ASSERT(!mThread);
   MOZ_ASSERT(!mListenSocket);
 
-  
-  
-  
+  // If we could not cleanup properly before and an old
+  // instance of the daemon is still running, we kill it
+  // here.
   unused << NS_WARN_IF(property_set("ctl.stop", "nfcd") < 0);
 
   mListener = aListener;
@@ -411,7 +411,7 @@ NfcService::SendCommand(JS::HandleValue aOptions, JSContext* aCx)
     return NS_ERROR_FAILURE;
   }
 
-  
+  // Dispatch the command to the NFC thread.
   CommandOptions commandOptions(options);
   nsCOMPtr<nsIRunnable> runnable = new NfcCommandRunnable(mHandler, this,
                                                           commandOptions);
@@ -434,7 +434,7 @@ NfcService::DispatchNfcEvent(const mozilla::dom::NfcEventOptions& aOptions)
   mListener->OnEvent(val);
 }
 
-
+// |StreamSocketConsumer|, |ListenSocketConsumer|
 
 void
 NfcService::ReceiveSocketData(
@@ -461,7 +461,7 @@ NfcService::OnConnectSuccess(int aIndex)
       }
       break;
     case STREAM_SOCKET:
-      
+      /* nothing to do */
       break;
   }
 }
@@ -502,6 +502,6 @@ static const mozilla::Module kNfcServiceModule = {
   nullptr
 };
 
-} 
+} // namespace mozilla
 
 NSMODULE_DEFN(NfcServiceModule) = &mozilla::kNfcServiceModule;

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsILocaleService.h"
 #include "nsISpeechService.h"
@@ -61,12 +61,12 @@ GetAllSpeechSynthActors(InfallibleTArray<mozilla::dom::SpeechSynthesisParent*>& 
 namespace mozilla {
 namespace dom {
 
-
+// VoiceData
 
 class VoiceData final
 {
 private:
-  
+  // Private destructor, to discourage deletion outside of Release():
   ~VoiceData() {}
 
 public:
@@ -91,7 +91,7 @@ public:
   bool mIsLocal;
 };
 
-
+// nsSynthVoiceRegistry
 
 static StaticRefPtr<nsSynthVoiceRegistry> gSynthVoiceRegistry;
 
@@ -100,7 +100,7 @@ NS_IMPL_ISUPPORTS(nsSynthVoiceRegistry, nsISynthVoiceRegistry)
 nsSynthVoiceRegistry::nsSynthVoiceRegistry()
   : mSpeechSynthChild(nullptr)
 {
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
 
     mSpeechSynthChild = new SpeechSynthesisChild();
     ContentChild::GetSingleton()->SendPSpeechSynthesisConstructor(mSpeechSynthChild);
@@ -127,7 +127,7 @@ nsSynthVoiceRegistry::~nsSynthVoiceRegistry()
 {
   LOG(LogLevel::Debug, ("~nsSynthVoiceRegistry"));
 
-  
+  // mSpeechSynthChild's lifecycle is managed by the Content protocol.
   mSpeechSynthChild = nullptr;
 
   if (mStream) {
@@ -165,7 +165,7 @@ void
 nsSynthVoiceRegistry::Shutdown()
 {
   LOG(LogLevel::Debug, ("[%s] nsSynthVoiceRegistry::Shutdown()",
-                     (XRE_IsContentProcess()) ? "Content" : "Default"));
+                     (XRE_GetProcessType() == GeckoProcessType_Content) ? "Content" : "Default"));
   gSynthVoiceRegistry = nullptr;
 }
 
@@ -188,8 +188,8 @@ nsSynthVoiceRegistry::SendVoices(InfallibleTArray<RemoteVoice>* aVoices,
 void
 nsSynthVoiceRegistry::RecvRemoveVoice(const nsAString& aUri)
 {
-  
-  
+  // If we dont have a local instance of the registry yet, we will recieve current
+  // voices at contruction time.
   if(!gSynthVoiceRegistry) {
     return;
   }
@@ -200,8 +200,8 @@ nsSynthVoiceRegistry::RecvRemoveVoice(const nsAString& aUri)
 void
 nsSynthVoiceRegistry::RecvAddVoice(const RemoteVoice& aVoice)
 {
-  
-  
+  // If we dont have a local instance of the registry yet, we will recieve current
+  // voices at contruction time.
   if(!gSynthVoiceRegistry) {
     return;
   }
@@ -214,8 +214,8 @@ nsSynthVoiceRegistry::RecvAddVoice(const RemoteVoice& aVoice)
 void
 nsSynthVoiceRegistry::RecvSetDefaultVoice(const nsAString& aUri, bool aIsDefault)
 {
-  
-  
+  // If we dont have a local instance of the registry yet, we will recieve current
+  // voices at contruction time.
   if(!gSynthVoiceRegistry) {
     return;
   }
@@ -236,7 +236,7 @@ nsSynthVoiceRegistry::AddVoice(nsISpeechService* aService,
        NS_ConvertUTF16toUTF8(aLang).get(),
        aLocalService ? "true" : "false"));
 
-  NS_ENSURE_FALSE(XRE_IsContentProcess(),
+  NS_ENSURE_FALSE(XRE_GetProcessType() == GeckoProcessType_Content,
                   NS_ERROR_NOT_AVAILABLE);
 
   return AddVoiceImpl(aService, aUri, aName, aLang,
@@ -250,7 +250,7 @@ nsSynthVoiceRegistry::RemoveVoice(nsISpeechService* aService,
   LOG(LogLevel::Debug,
       ("nsSynthVoiceRegistry::RemoveVoice uri='%s' (%s)",
        NS_ConvertUTF16toUTF8(aUri).get(),
-       (XRE_IsContentProcess()) ? "child" : "parent"));
+       (XRE_GetProcessType() == GeckoProcessType_Content) ? "child" : "parent"));
 
   bool found = false;
   VoiceData* retval = mUriVoiceMap.GetWeak(aUri, &found);
@@ -289,7 +289,7 @@ nsSynthVoiceRegistry::SetDefaultVoice(const nsAString& aUri,
     mDefaultVoices.AppendElement(retval);
   }
 
-  if (XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     nsTArray<SpeechSynthesisParent*> ssplist;
     GetAllSpeechSynthActors(ssplist);
 
@@ -462,7 +462,7 @@ nsSynthVoiceRegistry::FindBestMatch(const nsAString& aUri,
     return retval;
   }
 
-  
+  // Try finding a match for given voice.
   if (!aLang.IsVoid() && !aLang.IsEmpty()) {
     if (FindVoiceByLang(aLang, &retval)) {
       LOG(LogLevel::Debug,
@@ -474,7 +474,7 @@ nsSynthVoiceRegistry::FindBestMatch(const nsAString& aUri,
     }
   }
 
-  
+  // Try UI language.
   nsresult rv;
   nsCOMPtr<nsILocaleService> localeService = do_GetService(NS_LOCALESERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, nullptr);
@@ -492,7 +492,7 @@ nsSynthVoiceRegistry::FindBestMatch(const nsAString& aUri,
     return retval;
   }
 
-  
+  // Try en-US, the language of locale "C"
   if (FindVoiceByLang(NS_LITERAL_STRING("en-US"), &retval)) {
     LOG(LogLevel::Debug,
         ("nsSynthVoiceRegistry::FindBestMatch - Matched C locale language (en-US ~= %s)",
@@ -501,7 +501,7 @@ nsSynthVoiceRegistry::FindBestMatch(const nsAString& aUri,
     return retval;
   }
 
-  
+  // The top default voice is better than nothing...
   if (!mDefaultVoices.IsEmpty()) {
     return mDefaultVoices.LastElement();
   }
@@ -521,7 +521,7 @@ nsSynthVoiceRegistry::SpeakUtterance(SpeechSynthesisUtterance& aUtterance,
   }
 
   nsRefPtr<nsSpeechTask> task;
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     task = new SpeechTaskChild(&aUtterance);
     SpeechSynthesisRequestChild* actor =
       new SpeechSynthesisRequestChild(static_cast<SpeechTaskChild*>(task.get()));
@@ -585,5 +585,5 @@ nsSynthVoiceRegistry::Speak(const nsAString& aText,
   voice->mService->Speak(aText, voice->mUri, aVolume, aRate, aPitch, aTask);
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

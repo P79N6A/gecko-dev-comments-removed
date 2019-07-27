@@ -67,7 +67,7 @@ ScopedXREEmbed::Start()
   NS_ENSURE_TRUE_VOID(localFile);
 
 #ifdef OS_MACOSX
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     
     
     rv = localFile->GetParent(getter_AddRefs(parent));

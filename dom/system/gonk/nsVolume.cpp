@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsVolume.h"
 
@@ -43,11 +43,11 @@ NS_VolumeStateStr(int32_t aState)
   return "???";
 }
 
-
-
-
-
-
+// While nsVolumes can only be used on the main thread, in the
+// UpdateVolumeRunnable constructor (which is called from IOThread) we
+// allocate an nsVolume which is then passed to MainThread. Since we
+// have a situation where we allocate on one thread and free on another
+// we use a thread safe AddRef implementation.
 NS_IMPL_ISUPPORTS(nsVolume, nsIVolume)
 
 nsVolume::nsVolume(const Volume* aVolume)
@@ -246,7 +246,7 @@ NS_IMETHODIMP nsVolume::GetIsHotSwappable(bool *aIsHotSwappable)
 
 NS_IMETHODIMP nsVolume::Format()
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   XRE_GetIOMessageLoop()->PostTask(
       FROM_HERE,
@@ -255,10 +255,10 @@ NS_IMETHODIMP nsVolume::Format()
   return NS_OK;
 }
 
-
+/* static */
 void nsVolume::FormatVolumeIOThread(const nsCString& aVolume)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   if (VolumeManager::State() != VolumeManager::VOLUMES_READY) {
@@ -270,7 +270,7 @@ void nsVolume::FormatVolumeIOThread(const nsCString& aVolume)
 
 NS_IMETHODIMP nsVolume::Mount()
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   XRE_GetIOMessageLoop()->PostTask(
       FROM_HERE,
@@ -279,10 +279,10 @@ NS_IMETHODIMP nsVolume::Mount()
   return NS_OK;
 }
 
-
+/* static */
 void nsVolume::MountVolumeIOThread(const nsCString& aVolume)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   if (VolumeManager::State() != VolumeManager::VOLUMES_READY) {
@@ -294,7 +294,7 @@ void nsVolume::MountVolumeIOThread(const nsCString& aVolume)
 
 NS_IMETHODIMP nsVolume::Unmount()
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   XRE_GetIOMessageLoop()->PostTask(
       FROM_HERE,
@@ -303,10 +303,10 @@ NS_IMETHODIMP nsVolume::Unmount()
   return NS_OK;
 }
 
-
+/* static */
 void nsVolume::UnmountVolumeIOThread(const nsCString& aVolume)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   if (VolumeManager::State() != VolumeManager::VOLUMES_READY) {
@@ -352,25 +352,25 @@ void nsVolume::Set(nsIVolume* aVolume)
   aVolume->GetMountGeneration(&volMountGeneration);
 
   if (mState != nsIVolume::STATE_MOUNTED) {
-    
-    
+    // Since we're not in the mounted state, we need to
+    // forgot whatever mount generation we may have had.
     mMountGeneration = -1;
     return;
   }
   if (mMountGeneration == volMountGeneration) {
-    
+    // No change in mount generation, nothing else to do
     return;
   }
 
   mMountGeneration = volMountGeneration;
 
-  if (!XRE_IsParentProcess()) {
-    
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    // Child processes just track the state, not maintain it.
     aVolume->GetIsMountLocked(&mMountLocked);
     return;
   }
 
-  
+  // Notify the Volume on IOThread whether the volume is locked or not.
   nsCOMPtr<nsIPowerManagerService> pmService =
     do_GetService(POWERMANAGERSERVICE_CONTRACTID);
   if (!pmService) {
@@ -386,24 +386,24 @@ void nsVolume::Set(nsIVolume* aVolume)
 void
 nsVolume::UpdateMountLock(const nsAString& aMountLockState)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(NS_IsMainThread());
 
-  
-  
+  // There are 3 states, unlocked, locked-background, and locked-foreground
+  // I figured it was easier to use negtive logic and compare for unlocked.
   UpdateMountLock(!aMountLockState.EqualsLiteral("unlocked"));
 }
 
 void
 nsVolume::UpdateMountLock(bool aMountLocked)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aMountLocked == mMountLocked) {
     return;
   }
-  
+  // The locked/unlocked state changed. Tell IOThread about it.
   mMountLocked = aMountLocked;
   LogState();
   XRE_GetIOMessageLoop()->PostTask(
@@ -418,7 +418,7 @@ nsVolume::SetIsFake(bool aIsFake)
 {
   mIsFake = aIsFake;
   if (mIsFake) {
-    
+    // The media is always present for fake volumes.
     mIsMediaPresent = true;
     MOZ_ASSERT(!mIsSharing);
   }
@@ -447,7 +447,7 @@ nsVolume::SetState(int32_t aState)
 {
   static int32_t sMountGeneration = 0;
 
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(IsFake());
 
@@ -462,5 +462,5 @@ nsVolume::SetState(int32_t aState)
   mState = aState;
 }
 
-} 
-} 
+} // system
+} // mozilla

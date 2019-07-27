@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set sw=2 sts=2 ts=2 et tw=80:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PSMContentListener.h"
 
@@ -42,19 +42,19 @@ enum {
   X509_SERVER_CERT = 4
 };
 
+/* other mime types that we should handle sometime:
 
+   application/x-pkcs7-mime
+   application/pkcs7-signature
+   application/pre-encrypted
 
-
-
-
-
-
+*/
 
 uint32_t
 getPSMContentType(const char* aContentType)
 {
-  
-  
+  // Don't forget to update the registration of content listeners in nsNSSModule.cpp
+  // for every supported content type.
 
   if (!nsCRT::strcasecmp(aContentType, "application/x-x509-ca-cert"))
     return X509_CA_CERT;
@@ -89,11 +89,11 @@ ComputeContentLength(nsIRequest* request)
   return contentLength;
 }
 
-} 
+} // unnamed namespace
 
-
-
-
+/* ------------------------
+ * PSMContentStreamListener
+ * ------------------------ */
 
 PSMContentStreamListener::PSMContentStreamListener(uint32_t type)
   : mType(type)
@@ -146,8 +146,8 @@ PSMContentStreamListener::OnStopRequest(nsIRequest* request,
 {
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("CertDownloader::OnStopRequest\n"));
 
-  
-  
+  // Because importing the cert can spin the event loop (via alerts), we can't
+  // do it here. Do it off the event loop instead.
   nsCOMPtr<nsIRunnable> r =
     NS_NewRunnableMethod(this, &PSMContentStreamListener::ImportCertificate);
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(r)));
@@ -198,9 +198,9 @@ PSMContentStreamListener::ImportCertificate()
   }
 }
 
-
-
-
+/* ------------------------
+ * PSMContentDownloaderParent
+ * ------------------------ */
 
 PSMContentDownloaderParent::PSMContentDownloaderParent(uint32_t type)
   : PSMContentStreamListener(type)
@@ -232,10 +232,10 @@ bool
 PSMContentDownloaderParent::RecvOnStopRequest(const nsresult& code)
 {
   if (NS_SUCCEEDED(code)) {
-    
-    
-    
-    
+    // See also PSMContentStreamListener::OnStopRequest. In this case, we don't
+    // have to dispatch ImportCertificate off of an event because we don't have
+    // to worry about Necko sending "clean up" events and destroying us if
+    // ImportCertificate spins the event loop.
     ImportCertificate();
   }
 
@@ -272,9 +272,9 @@ PSMContentDownloaderParent::ActorDestroy(ActorDestroyReason why)
   mIPCOpen = false;
 }
 
-
-
-
+/* ------------------------
+ * PSMContentDownloaderChild
+ * ------------------------ */
 
 NS_IMPL_ISUPPORTS(PSMContentDownloaderChild, nsIStreamListener)
 
@@ -336,9 +336,9 @@ PSMContentDownloaderChild::OnStopRequest(nsIRequest* request,
   return NS_OK;
 }
 
-
-
-
+/* ------------------------
+ * PSMContentListener
+ * ------------------------ */
 
 NS_IMPL_ISUPPORTS(PSMContentListener,
                   nsIURIContentListener,
@@ -363,8 +363,8 @@ PSMContentListener::init()
 NS_IMETHODIMP
 PSMContentListener::OnStartURIOpen(nsIURI* aURI, bool* aAbortOpen)
 {
-  
-  
+  //if we don't want to handle the URI, return true in
+  //*aAbortOpen
   return NS_OK;
 }
 
@@ -402,7 +402,7 @@ PSMContentListener::DoContent(const nsACString& aContentType,
   }
   if (type != UNKNOWN_TYPE) {
     nsCOMPtr<nsIStreamListener> downloader;
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
       downloader = new PSMContentStreamListener(type);
     } else {
       downloader = static_cast<PSMContentDownloaderChild*>(
@@ -445,4 +445,4 @@ PSMContentListener::SetParentContentListener(nsIURIContentListener* aContentList
   return NS_OK;
 }
 
-} } 
+} } // namespace mozilla::psm

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ActorsChild.h"
 
@@ -56,7 +56,7 @@
 
 #define BUILD_GC_ON_IPC_MESSAGES
 
-#endif 
+#endif // DEBUG || GC_ON_IPC_MESSAGES
 
 namespace mozilla {
 
@@ -68,9 +68,9 @@ using namespace workers;
 
 namespace indexedDB {
 
-
-
-
+/*******************************************************************************
+ * ThreadLocal
+ ******************************************************************************/
 
 ThreadLocal::ThreadLocal(const nsID& aBackgroundChildLoggingId)
   : mLoggingInfo(aBackgroundChildLoggingId, 1, -1, 1)
@@ -83,7 +83,7 @@ ThreadLocal::ThreadLocal(const nsID& aBackgroundChildLoggingId)
 
   MOZ_COUNT_CTOR(mozilla::dom::indexedDB::ThreadLocal);
 
-  
+  // NSID_LENGTH counts the null terminator, SetLength() does not.
   mLoggingIdString.SetLength(NSID_LENGTH - 1);
 
   aBackgroundChildLoggingId.ToProvidedString(
@@ -103,11 +103,11 @@ ThreadLocal::AssertIsOnOwningThread() const
   MOZ_ASSERT(PR_GetCurrentThread() == mOwningThread);
 }
 
-#endif 
+#endif // DEBUG
 
-
-
-
+/*******************************************************************************
+ * Helpers
+ ******************************************************************************/
 
 namespace {
 
@@ -120,7 +120,7 @@ MaybeCollectGarbageOnIPCMessage()
     true;
 #else
     false;
-#endif 
+#endif // GC_ON_IPC_MESSAGES
 
   if (!kCollectGarbageOnIPCMessages) {
     return;
@@ -144,7 +144,7 @@ MaybeCollectGarbageOnIPCMessage()
 
   nsJSContext::GarbageCollectNow(JS::gcreason::DOM_IPC);
   nsJSContext::CycleCollectNow();
-#endif
+#endif // BUILD_GC_ON_IPC_MESSAGES
 }
 
 class MOZ_STACK_CLASS AutoSetCurrentTransaction final
@@ -166,14 +166,14 @@ public:
         BackgroundChildImpl::GetThreadLocalForCurrentThread();
       MOZ_ASSERT(threadLocal);
 
-      
+      // Hang onto this for resetting later.
       mThreadLocal = threadLocal->mIndexedDBThreadLocal;
       MOZ_ASSERT(mThreadLocal);
 
-      
+      // Save the current value.
       mPreviousTransaction = mThreadLocal->GetCurrentTransaction();
 
-      
+      // Set the new value.
       mThreadLocal->SetCurrentTransaction(aTransaction);
     }
   }
@@ -185,7 +185,7 @@ public:
                   mThreadLocal->GetCurrentTransaction() == mTransaction);
 
     if (mThreadLocal) {
-      
+      // Reset old value.
       mThreadLocal->SetCurrentTransaction(mPreviousTransaction);
     }
   }
@@ -659,7 +659,7 @@ DispatchErrorEvent(IDBRequest* aRequest,
 
   nsCOMPtr<nsIDOMEvent> errorEvent;
   if (!aEvent) {
-    
+    // Make an error event and fire it at the target.
     errorEvent = CreateGenericEvent(request,
                                     nsDependentString(kErrorEventType),
                                     eDoesBubble,
@@ -787,8 +787,8 @@ DispatchSuccessEvent(ResultHelper* aResultHelper,
 
 class WorkerPermissionChallenge;
 
-
-
+// This class calles WorkerPermissionChallenge::OperationCompleted() in the
+// worker thread.
 class WorkerPermissionOperationCompleted final : public WorkerRunnable
 {
   nsRefPtr<WorkerPermissionChallenge> mChallenge;
@@ -806,7 +806,7 @@ public:
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 };
 
-
+// This class used to do prompting in the main thread and main process.
 class WorkerPermissionRequest final : public PermissionRequestBase
 {
   nsRefPtr<WorkerPermissionChallenge> mChallenge;
@@ -818,7 +818,7 @@ public:
     : PermissionRequestBase(aElement, aPrincipal)
     , mChallenge(aChallenge)
   {
-    MOZ_ASSERT(XRE_IsParentProcess());
+    MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aChallenge);
   }
@@ -833,7 +833,7 @@ private:
   OnPromptComplete(PermissionValue aPermissionValue) override;
 };
 
-
+// This class is used in the main thread of all child processes.
 class WorkerPermissionRequestChildProcessActor final
   : public PIndexedDBPermissionRequestChild
 {
@@ -844,7 +844,7 @@ public:
                                           WorkerPermissionChallenge* aChallenge)
     : mChallenge(aChallenge)
   {
-    MOZ_ASSERT(!XRE_IsParentProcess());
+    MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Default);
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aChallenge);
   }
@@ -890,8 +890,8 @@ public:
   virtual bool
   Notify(JSContext* aCx, workers::Status aStatus) override
   {
-    
-    
+    // We don't care about the notification. We just want to keep the
+    // mWorkerPrivate alive.
     return true;
   }
 
@@ -932,7 +932,7 @@ private:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
-    
+    // Walk up to our containing page
     WorkerPrivate* wp = mWorkerPrivate;
     while (wp->GetParent()) {
       wp = wp->GetParent();
@@ -950,7 +950,7 @@ private:
       return true;
     }
 
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
       nsCOMPtr<Element> ownerElement =
         do_QueryInterface(window->GetChromeEventHandler());
       if (NS_WARN_IF(!ownerElement)) {
@@ -1007,18 +1007,18 @@ WorkerPermissionOperationCompleted::WorkerRun(JSContext* aCx,
 
 bool
 WorkerPermissionRequestChildProcessActor::Recv__delete__(
-                                              const uint32_t& )
+                                              const uint32_t& /* aPermission */)
 {
   MOZ_ASSERT(NS_IsMainThread());
   mChallenge->OperationCompleted();
   return true;
 }
 
-} 
+} // anonymous namespace
 
-
-
-
+/*******************************************************************************
+ * Local class implementations
+ ******************************************************************************/
 
 void
 PermissionRequestMainProcessHelper::OnPromptComplete(
@@ -1037,7 +1037,7 @@ PermissionRequestMainProcessHelper::OnPromptComplete(
 
 bool
 PermissionRequestChildProcessActor::Recv__delete__(
-                                              const uint32_t& )
+                                              const uint32_t& /* aPermission */)
 {
   MOZ_ASSERT(mActor);
   mActor->AssertIsOnOwningThread();
@@ -1054,9 +1054,9 @@ PermissionRequestChildProcessActor::Recv__delete__(
   return true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundRequestChildBase
+ ******************************************************************************/
 
 BackgroundRequestChildBase::BackgroundRequestChildBase(IDBRequest* aRequest)
   : mRequest(aRequest)
@@ -1084,7 +1084,7 @@ BackgroundRequestChildBase::AssertIsOnOwningThread() const
   mRequest->AssertIsOnOwningThread();
 }
 
-#endif 
+#endif // DEBUG
 
 void
 BackgroundRequestChildBase::NoteActorDestroyed()
@@ -1095,9 +1095,9 @@ BackgroundRequestChildBase::NoteActorDestroyed()
   mActorDestroyed = true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundFactoryChild
+ ******************************************************************************/
 
 BackgroundFactoryChild::BackgroundFactoryChild(IDBFactory* aFactory)
   : mFactory(aFactory)
@@ -1129,7 +1129,7 @@ BackgroundFactoryChild::AssertIsOnOwningThread() const
   MOZ_ASSERT(current);
 }
 
-#endif 
+#endif // DEBUG
 
 void
 BackgroundFactoryChild::SendDeleteMeInternal()
@@ -1200,9 +1200,9 @@ BackgroundFactoryChild::DeallocPBackgroundIDBDatabaseChild(
   return true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundFactoryRequestChild
+ ******************************************************************************/
 
 BackgroundFactoryRequestChild::BackgroundFactoryRequestChild(
                                                IDBFactory* aFactory,
@@ -1214,7 +1214,7 @@ BackgroundFactoryRequestChild::BackgroundFactoryRequestChild(
   , mRequestedVersion(aRequestedVersion)
   , mIsDeleteOp(aIsDeleteOp)
 {
-  
+  // Can't assert owning thread here because IPDL has not yet set our manager!
   MOZ_ASSERT(aFactory);
   aFactory->AssertIsOnOwningThread();
   MOZ_ASSERT(aOpenRequest);
@@ -1273,9 +1273,9 @@ BackgroundFactoryRequestChild::HandleResponse(
   }
 
   if (database->IsClosed()) {
-    
-    
-    
+    // If the database was closed already, which is only possible if we fired an
+    // "upgradeneeded" event, then we shouldn't fire a "success" event here.
+    // Instead we fire an error event with AbortErr.
     DispatchErrorEvent(mRequest, NS_ERROR_DOM_INDEXEDDB_ABORT_ERR);
   } else {
     ResultHelper helper(mRequest, nullptr, database);
@@ -1399,7 +1399,7 @@ BackgroundFactoryRequestChild::RecvPermissionChallenge(
     return false;
   }
 
-  if (XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     nsCOMPtr<nsPIDOMWindow> window = mFactory->GetParentObject();
     MOZ_ASSERT(window);
 
@@ -1478,9 +1478,9 @@ BackgroundFactoryRequestChild::RecvBlocked(const uint64_t& aCurrentVersion)
   return true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundDatabaseChild
+ ******************************************************************************/
 
 BackgroundDatabaseChild::BackgroundDatabaseChild(
                                const DatabaseSpec& aSpec,
@@ -1489,7 +1489,7 @@ BackgroundDatabaseChild::BackgroundDatabaseChild(
   , mOpenRequestActor(aOpenRequestActor)
   , mDatabase(nullptr)
 {
-  
+  // Can't assert owning thread here because IPDL has not yet set our manager!
   MOZ_ASSERT(aOpenRequestActor);
 
   MOZ_COUNT_CTOR(indexedDB::BackgroundDatabaseChild);
@@ -1556,9 +1556,9 @@ BackgroundDatabaseChild::ReleaseDOMObject()
 
   mOpenRequestActor = nullptr;
 
-  
-  
-  
+  // This may be the final reference to the IDBDatabase object so we may end up
+  // calling SendDeleteMeInternal() here. Make sure everything is cleaned up
+  // properly before proceeding.
   mTemporaryStrongDatabase = nullptr;
 }
 
@@ -1657,11 +1657,11 @@ BackgroundDatabaseChild::RecvPBackgroundIDBVersionChangeTransactionConstructor(
                                         aNextObjectStoreId,
                                         aNextIndexId);
   if (NS_WARN_IF(!transaction)) {
-    
-    
+    // This can happen if we receive events after a worker has begun its
+    // shutdown process.
     MOZ_ASSERT(!NS_IsMainThread());
 
-    
+    // Report this to the console.
     IDB_REPORT_INTERNAL_ERR();
 
     MOZ_ALWAYS_TRUE(aActor->SendDeleteMe());
@@ -1714,13 +1714,13 @@ BackgroundDatabaseChild::RecvVersionChange(const uint64_t& aOldVersion,
 
   nsRefPtr<IDBDatabase> kungFuDeathGrip = mDatabase;
 
-  
+  // Handle bfcache'd windows.
   if (nsPIDOMWindow* owner = mDatabase->GetOwner()) {
-    
+    // The database must be closed if the window is already frozen.
     bool shouldAbortAndClose = owner->IsFrozen();
 
-    
-    
+    // Anything in the bfcache has to be evicted and then we have to close the
+    // database also.
     if (nsCOMPtr<nsIDocument> doc = owner->GetExtantDoc()) {
       if (nsCOMPtr<nsIBFCacheEntry> bfCacheEntry = doc->GetBFCacheEntry()) {
         bfCacheEntry->RemoveFromBFCacheSync();
@@ -1729,15 +1729,15 @@ BackgroundDatabaseChild::RecvVersionChange(const uint64_t& aOldVersion,
     }
 
     if (shouldAbortAndClose) {
-      
-      
-      mDatabase->AbortTransactions( false);
+      // Invalidate() doesn't close the database in the parent, so we have
+      // to call Close() and AbortTransactions() manually.
+      mDatabase->AbortTransactions(/* aShouldWarn */ false);
       mDatabase->Close();
       return true;
     }
   }
 
-  
+  // Otherwise fire a versionchange event.
   const nsDependentString type(kVersionChangeEventType);
 
   nsCOMPtr<nsIDOMEvent> versionChangeEvent;
@@ -1792,9 +1792,9 @@ BackgroundDatabaseChild::RecvInvalidate()
   return true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundTransactionBase
+ ******************************************************************************/
 
 BackgroundTransactionBase::BackgroundTransactionBase()
 : mTransaction(nullptr)
@@ -1827,7 +1827,7 @@ BackgroundTransactionBase::AssertIsOnOwningThread() const
   mTransaction->AssertIsOnOwningThread();
 }
 
-#endif 
+#endif // DEBUG
 
 void
 BackgroundTransactionBase::NoteActorDestroyed()
@@ -1838,9 +1838,9 @@ BackgroundTransactionBase::NoteActorDestroyed()
   if (mTransaction) {
     mTransaction->ClearBackgroundActor();
 
-    
-    
-    
+    // Normally this would be DEBUG-only but NoteActorDestroyed is also called
+    // from SendDeleteMeInternal. In that case we're going to receive an actual
+    // ActorDestroy call later and we don't want to touch a dead object.
     mTemporaryStrongTransaction = nullptr;
     mTransaction = nullptr;
   }
@@ -1868,9 +1868,9 @@ BackgroundTransactionBase::NoteComplete()
   mTemporaryStrongTransaction = nullptr;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundTransactionChild
+ ******************************************************************************/
 
 BackgroundTransactionChild::BackgroundTransactionChild(
                                                    IDBTransaction* aTransaction)
@@ -1895,7 +1895,7 @@ BackgroundTransactionChild::AssertIsOnOwningThread() const
   static_cast<BackgroundDatabaseChild*>(Manager())->AssertIsOnOwningThread();
 }
 
-#endif 
+#endif // DEBUG
 
 void
 BackgroundTransactionChild::SendDeleteMeInternal()
@@ -1970,9 +1970,9 @@ BackgroundTransactionChild::DeallocPBackgroundIDBCursorChild(
   return true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundVersionChangeTransactionChild
+ ******************************************************************************/
 
 BackgroundVersionChangeTransactionChild::
 BackgroundVersionChangeTransactionChild(IDBOpenDBRequest* aOpenDBRequest)
@@ -2000,7 +2000,7 @@ BackgroundVersionChangeTransactionChild::AssertIsOnOwningThread() const
   static_cast<BackgroundDatabaseChild*>(Manager())->AssertIsOnOwningThread();
 }
 
-#endif 
+#endif // DEBUG
 
 void
 BackgroundVersionChangeTransactionChild::SendDeleteMeInternal(
@@ -2096,9 +2096,9 @@ BackgroundVersionChangeTransactionChild::DeallocPBackgroundIDBCursorChild(
   return true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundRequestChild
+ ******************************************************************************/
 
 BackgroundRequestChild::BackgroundRequestChild(IDBRequest* aRequest)
   : BackgroundRequestChildBase(aRequest)
@@ -2165,7 +2165,7 @@ BackgroundRequestChild::HandleResponse(
 {
   AssertIsOnOwningThread();
 
-  
+  // XXX Fix this somehow...
   auto& serializedCloneInfo =
     const_cast<SerializedStructuredCloneReadInfo&>(aResponse);
 
@@ -2197,7 +2197,7 @@ BackgroundRequestChild::HandleResponse(
     IDBDatabase* database = mTransaction->Database();
 
     for (uint32_t index = 0; index < count; index++) {
-      
+      // XXX Fix this somehow...
       auto& serializedCloneInfo =
         const_cast<SerializedStructuredCloneReadInfo&>(aResponse[index]);
 
@@ -2252,7 +2252,7 @@ BackgroundRequestChild::ActorDestroy(ActorDestroyReason aWhy)
   if (mTransaction) {
     mTransaction->AssertIsOnOwningThread();
 
-    mTransaction->OnRequestFinished(
+    mTransaction->OnRequestFinished(/* aActorDestroyedNormally */
                                     aWhy == Deletion);
 #ifdef DEBUG
     mTransaction = nullptr;
@@ -2270,8 +2270,8 @@ BackgroundRequestChild::Recv__delete__(const RequestResponse& aResponse)
   MaybeCollectGarbageOnIPCMessage();
 
   if (mTransaction->IsAborted()) {
-    
-    
+    // Always fire an "error" event with ABORT_ERR if the transaction was
+    // aborted, even if the request succeeded or failed with another error.
     HandleResponse(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR);
   } else {
     switch (aResponse.type()) {
@@ -2336,18 +2336,18 @@ BackgroundRequestChild::Recv__delete__(const RequestResponse& aResponse)
     }
   }
 
-  mTransaction->OnRequestFinished( true);
+  mTransaction->OnRequestFinished(/* aActorDestroyedNormally */ true);
 
-  
-  
+  // Null this out so that we don't try to call OnRequestFinished() again in
+  // ActorDestroy.
   mTransaction = nullptr;
 
   return true;
 }
 
-
-
-
+/*******************************************************************************
+ * BackgroundCursorChild
+ ******************************************************************************/
 
 class BackgroundCursorChild::DelayedDeleteRunnable final
   : public nsICancelableRunnable
@@ -2366,7 +2366,7 @@ public:
     MOZ_ASSERT(mRequest);
   }
 
-  
+  // Does not need to be threadsafe since this only runs on one thread.
   NS_DECL_ISUPPORTS
 
 private:
@@ -2436,7 +2436,7 @@ BackgroundCursorChild::AssertIsOnOwningThread() const
   MOZ_ASSERT(mOwningThread == PR_GetCurrentThread());
 }
 
-#endif 
+#endif // DEBUG
 
 void
 BackgroundCursorChild::SendContinueInternal(const CursorRequestParams& aParams)
@@ -2448,7 +2448,7 @@ BackgroundCursorChild::SendContinueInternal(const CursorRequestParams& aParams)
   MOZ_ASSERT(!mStrongRequest);
   MOZ_ASSERT(!mStrongCursor);
 
-  
+  // Make sure all our DOM objects stay alive.
   mStrongCursor = mCursor;
 
   MOZ_ASSERT(mRequest->ReadyState() == IDBRequestReadyState::Done);
@@ -2526,7 +2526,7 @@ BackgroundCursorChild::HandleResponse(
   MOZ_ASSERT(!mStrongRequest);
   MOZ_ASSERT(!mStrongCursor);
 
-  
+  // XXX Fix this somehow...
   auto& response = const_cast<ObjectStoreCursorResponse&>(aResponse);
 
   StructuredCloneReadInfo cloneReadInfo(Move(response.cloneInfo()));
@@ -2562,7 +2562,7 @@ BackgroundCursorChild::HandleResponse(
   MOZ_ASSERT(!mStrongRequest);
   MOZ_ASSERT(!mStrongCursor);
 
-  
+  // XXX Fix this somehow...
   auto& response = const_cast<ObjectStoreKeyCursorResponse&>(aResponse);
 
   nsRefPtr<IDBCursor> newCursor;
@@ -2588,7 +2588,7 @@ BackgroundCursorChild::HandleResponse(const IndexCursorResponse& aResponse)
   MOZ_ASSERT(!mStrongRequest);
   MOZ_ASSERT(!mStrongCursor);
 
-  
+  // XXX Fix this somehow...
   auto& response = const_cast<IndexCursorResponse&>(aResponse);
 
   StructuredCloneReadInfo cloneReadInfo(Move(response.cloneInfo()));
@@ -2626,7 +2626,7 @@ BackgroundCursorChild::HandleResponse(const IndexKeyCursorResponse& aResponse)
   MOZ_ASSERT(!mStrongRequest);
   MOZ_ASSERT(!mStrongCursor);
 
-  
+  // XXX Fix this somehow...
   auto& response = const_cast<IndexKeyCursorResponse&>(aResponse);
 
   nsRefPtr<IDBCursor> newCursor;
@@ -2654,7 +2654,7 @@ BackgroundCursorChild::ActorDestroy(ActorDestroyReason aWhy)
   MaybeCollectGarbageOnIPCMessage();
 
   if (mStrongRequest && !mStrongCursor && mTransaction) {
-    mTransaction->OnRequestFinished(
+    mTransaction->OnRequestFinished(/* aActorDestroyedNormally */
                                     aWhy == Deletion);
   }
 
@@ -2720,13 +2720,13 @@ BackgroundCursorChild::RecvResponse(const CursorResponse& aResponse)
       MOZ_CRASH("Should never get here!");
   }
 
-  mTransaction->OnRequestFinished( true);
+  mTransaction->OnRequestFinished(/* aActorDestroyedNormally */ true);
 
   return true;
 }
 
-
-
+// XXX This doesn't belong here. However, we're not yet porting MutableFile
+//     stuff to PBackground so this is necessary for the time being.
 void
 DispatchMutableFileResult(IDBRequest* aRequest,
                           nsresult aResultCode,
@@ -2773,12 +2773,12 @@ DelayedDeleteRunnable::Cancel()
     return NS_ERROR_UNEXPECTED;
   }
 
-  
+  // This must always run to clean up our state.
   Run();
 
   return NS_OK;
 }
 
-} 
-} 
-} 
+} // namespace indexedDB
+} // namespace dom
+} // namespace mozilla

@@ -651,7 +651,7 @@ gfxWindowsPlatform::CreateDevice(nsRefPtr<IDXGIAdapter1> &adapter1,
     mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
 
     
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
       Preferences::SetInt(kFeatureLevelPref, featureLevelIndex);
     }
   }

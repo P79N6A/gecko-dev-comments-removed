@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <stdlib.h>
 #include "mozilla/dom/ContentChild.h"
@@ -40,7 +40,7 @@ CallRemoteGetIconForExtension(const nsACString& aFileExt, uint32_t aIconSize,
 {
   NS_ENSURE_TRUE(aBuf != nullptr, NS_ERROR_NULL_POINTER);
 
-  
+  // An array has to be used to get data from remote process
   InfallibleTArray<uint8_t> bits;
   uint32_t bufSize = aIconSize * aIconSize * 4;
 
@@ -68,8 +68,8 @@ moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
   int width = aIconSize;
   int height = aIconSize;
 
-  
-  
+  // moz-icon data should have two bytes for the size,
+  // then the ARGB pixel values with pre-multiplied Alpha
   const int channels = 4;
   long int buf_size = 2 + channels * height * width;
   uint8_t* const buf = (uint8_t*)moz_xmalloc(buf_size);
@@ -80,14 +80,14 @@ moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
   *(out++) = height;
 
   nsresult rv;
-  if (XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     rv = GetIconForExtension(aFileExt, aIconSize, out);
   } else {
     rv = CallRemoteGetIconForExtension(aFileExt, aIconSize, out);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Encode the RGBA data
   const uint8_t* in = out;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {

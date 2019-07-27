@@ -262,7 +262,7 @@ FifoWatcher::MaybeCreate()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     
     
     return false;

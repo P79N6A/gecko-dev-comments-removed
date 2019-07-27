@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SpeakerManagerService.h"
 #include "SpeakerManagerServiceChild.h"
@@ -24,22 +24,22 @@ using namespace mozilla::dom;
 
 StaticRefPtr<SpeakerManagerService> gSpeakerManagerService;
 
-
+// static
 SpeakerManagerService*
 SpeakerManagerService::GetOrCreateSpeakerManagerService()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     return SpeakerManagerServiceChild::GetOrCreateSpeakerManagerService();
   }
 
-  
+  // If we already exist, exit early
   if (gSpeakerManagerService) {
     return gSpeakerManagerService;
   }
 
-  
+  // Create new instance, register, return
   nsRefPtr<SpeakerManagerService> service = new SpeakerManagerService();
 
   gSpeakerManagerService = service;
@@ -52,7 +52,7 @@ SpeakerManagerService::GetSpeakerManagerService()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     return SpeakerManagerServiceChild::GetSpeakerManagerService();
   }
 
@@ -62,7 +62,7 @@ SpeakerManagerService::GetSpeakerManagerService()
 void
 SpeakerManagerService::Shutdown()
 {
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     return SpeakerManagerServiceChild::Shutdown();
   }
 
@@ -87,7 +87,7 @@ SpeakerManagerService::ForceSpeaker(bool aEnable, uint64_t aChildId)
 void
 SpeakerManagerService::ForceSpeaker(bool aEnable, bool aVisible)
 {
-  
+  // b2g main process without oop
   TurnOnSpeaker(aEnable && aVisible);
   mVisible = aVisible;
   mOrgSpeakerStatus = aEnable;
@@ -129,7 +129,7 @@ SpeakerManagerService::GetSpeakerStatus()
 void
 SpeakerManagerService::Notify()
 {
-  
+  // Parent Notify to all the child processes.
   nsTArray<ContentParent*> children;
   ContentParent::GetAll(children);
   for (uint32_t i = 0; i < children.Length(); i++) {
@@ -166,8 +166,8 @@ SpeakerManagerService::Observe(nsISupports* aSubject,
     nsresult rv = props->GetPropertyAsUint64(NS_LITERAL_STRING("childID"),
                                              &childID);
     if (NS_SUCCEEDED(rv)) {
-        
-        
+        // If the audio has paused by audiochannel,
+        // the enable flag should be false and don't need to handle.
         if (mSpeakerStatusSet.Contains(childID)) {
           TurnOnSpeaker(false);
           mSpeakerStatusSet.Remove(childID);
@@ -188,7 +188,7 @@ SpeakerManagerService::SpeakerManagerService()
     mVisible(false)
 {
   MOZ_COUNT_CTOR(SpeakerManagerService);
-  if (XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
       obs->AddObserver(this, "ipc:content-shutdown", false);

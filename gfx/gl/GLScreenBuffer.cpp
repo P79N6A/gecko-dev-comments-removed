@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40; -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GLScreenBuffer.h"
 
@@ -39,6 +39,7 @@ GLScreenBuffer::Create(GLContext* gl,
     {
         return Move(ret);
     }
+
 
     layers::TextureFlags flags = layers::TextureFlags::ORIGIN_BOTTOM_LEFT;
     if (!caps.premultAlpha) {
@@ -217,10 +218,10 @@ GLScreenBuffer::GetDrawFB() const
     MOZ_ASSERT(mGL->IsCurrent());
     MOZ_ASSERT(!mInInternalMode_DrawFB);
 
-    
-    
-    
-    
+    // Don't need a branch here, because:
+    // LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT == LOCAL_GL_FRAMEBUFFER_BINDING == 0x8CA6
+    // We use raw_ here because this is debug code and we need to see what
+    // the driver thinks.
     GLuint actual = 0;
     mGL->raw_fGetIntegerv(LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT, (GLint*)&actual);
 
@@ -242,8 +243,8 @@ GLScreenBuffer::GetReadFB() const
     MOZ_ASSERT(mGL->IsCurrent());
     MOZ_ASSERT(!mInInternalMode_ReadFB);
 
-    
-    
+    // We use raw_ here because this is debug code and we need to see what
+    // the driver thinks.
     GLuint actual = 0;
     if (mGL->IsSupported(GLFeature::framebuffer_blit))
         mGL->raw_fGetIntegerv(LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT, (GLint*)&actual);
@@ -324,11 +325,11 @@ GLScreenBuffer::ReadPixels(GLint x, GLint y,
                            GLenum format, GLenum type,
                            GLvoid* pixels)
 {
-    
-    
-    
-    
-    
+    // If the currently bound framebuffer is backed by a SharedSurface
+    // then it might want to override how we read pixel data from it.
+    // This is normally only the default framebuffer, but we can also
+    // have SharedSurfaces bound to other framebuffers when doing
+    // readback for BasicLayers.
     SharedSurface* surf;
     if (GetReadFB() == 0) {
         surf = SharedSurf();
@@ -376,7 +377,7 @@ GLScreenBuffer::AssureBlitted()
                                   0, 0, destSize.width, destSize.height,
                                   LOCAL_GL_COLOR_BUFFER_BIT,
                                   LOCAL_GL_NEAREST);
-        
+        // Done!
     }
 
     mNeedsBlit = false;
@@ -403,23 +404,23 @@ GLScreenBuffer::Attach(SharedSurface* surf, const gfx::IntSize& size)
         surf->mAttachType == SharedSurf()->mAttachType &&
         size == Size())
     {
-        
+        // Same size, same type, ready for reuse!
         mRead->Attach(surf);
     } else {
-        
+        // Else something changed, so resize:
         UniquePtr<DrawBuffer> draw;
         bool drawOk = true;
 
-        
-
-
-
-
-
-
-
+        /* Don't change out the draw buffer unless we resize. In the
+         * preserveDrawingBuffer:true case, prior contents of the buffer must
+         * be retained. If we're using a draw buffer, it's an MSAA buffer, so
+         * even if we copy the previous frame into the (single-sampled) read
+         * buffer, if we need to re-resolve from draw to read (as triggered by
+         * drawing), we'll need the old MSAA content to still be in the draw
+         * buffer.
+         */
         if (!mDraw || size != Size())
-            drawOk = CreateDraw(size, &draw);  
+            drawOk = CreateDraw(size, &draw);  // Can be null.
 
         UniquePtr<ReadBuffer> read = CreateRead(surf);
         bool readOk = !!read;
@@ -436,10 +437,10 @@ GLScreenBuffer::Attach(SharedSurface* surf, const gfx::IntSize& size)
         mRead = Move(read);
     }
 
-    
+    // Check that we're all set up.
     MOZ_ASSERT(SharedSurf() == surf);
 
-    
+    // Update the ReadBuffer mode.
     if (mGL->IsSupported(gl::GLFeature::read_buffer)) {
         BindFB(0);
         mRead->SetReadBuffer(mUserReadBufferMode);
@@ -459,7 +460,7 @@ GLScreenBuffer::Swap(const gfx::IntSize& size)
 
     if (!Attach(newBack->Surf(), size))
         return false;
-    
+    // Attach was successful.
 
     mFront = mBack;
     mBack = newBack;
@@ -476,21 +477,21 @@ GLScreenBuffer::Swap(const gfx::IntSize& size)
         auto src  = mFront->Surf();
         auto dest = mBack->Surf();
 
-        
-        
-        
+        //uint32_t srcPixel = ReadPixel(src);
+        //uint32_t destPixel = ReadPixel(dest);
+        //printf_stderr("Before: src: 0x%08x, dest: 0x%08x\n", srcPixel, destPixel);
 
         SharedSurface::ProdCopy(src, dest, mFactory.get());
 
-        
-        
-        
+        //srcPixel = ReadPixel(src);
+        //destPixel = ReadPixel(dest);
+        //printf_stderr("After: src: 0x%08x, dest: 0x%08x\n", srcPixel, destPixel);
     }
 
-    
-    
-    
-    
+    // XXX: We would prefer to fence earlier on platforms that don't need
+    // the full ProducerAcquire/ProducerRelease semantics, so that the fence
+    // doesn't include the copy operation. Unfortunately, the current API
+    // doesn't expose a good way to do that.
     if (mFront) {
         mFront->Surf()->ProducerRelease();
     }
@@ -572,8 +573,8 @@ GLScreenBuffer::IsReadFramebufferDefault() const
     return SharedSurf()->mAttachType == AttachmentType::Screen;
 }
 
-
-
+////////////////////////////////////////////////////////////////////////
+// DrawBuffer
 
 bool
 DrawBuffer::Create(GLContext* const gl,
@@ -588,13 +589,13 @@ DrawBuffer::Create(GLContext* const gl,
     if (!caps.color) {
         MOZ_ASSERT(!caps.alpha && !caps.depth && !caps.stencil);
 
-        
+        // Nothing is needed.
         return true;
     }
 
     if (caps.antialias) {
         if (formats.samples == 0)
-            return false; 
+            return false; // Can't create it.
 
         MOZ_ASSERT(formats.samples <= gl->MaxSamples());
     }
@@ -664,8 +665,8 @@ DrawBuffer::~DrawBuffer()
     mGL->fDeleteRenderbuffers(3, rbs);
 }
 
-
-
+////////////////////////////////////////////////////////////////////////
+// ReadBuffer
 
 UniquePtr<ReadBuffer>
 ReadBuffer::Create(GLContext* gl,
@@ -676,7 +677,7 @@ ReadBuffer::Create(GLContext* gl,
     MOZ_ASSERT(surf);
 
     if (surf->mAttachType == AttachmentType::Screen) {
-        
+        // Don't need anything. Our read buffer will be the 'screen'.
         return UniquePtr<ReadBuffer>( new ReadBuffer(gl, 0, 0, 0,
                                                      surf) );
     }
@@ -748,7 +749,7 @@ ReadBuffer::Attach(SharedSurface* surf)
     MOZ_ASSERT(surf->mAttachType == mSurf->mAttachType);
     MOZ_ASSERT(surf->mSize == mSurf->mSize);
 
-    
+    // Nothing else is needed for AttachType Screen.
     if (surf->mAttachType != AttachmentType::Screen) {
         GLuint colorTex = 0;
         GLuint colorRB = 0;
@@ -806,5 +807,5 @@ ReadBuffer::SetReadBuffer(GLenum userMode) const
     mGL->fReadBuffer(internalMode);
 }
 
-} 
-} 
+} /* namespace gl */
+} /* namespace mozilla */

@@ -1,20 +1,20 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/MobileConnectionArray.h"
 #include "mozilla/dom/MozMobileConnectionArrayBinding.h"
 #include "mozilla/Preferences.h"
 #include "nsServiceManagerUtils.h"
 
-
+// Service instantiation
 #include "ipc/MobileConnectionIPCService.h"
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
 #include "nsIGonkMobileConnectionService.h"
 #endif
-#include "nsXULAppAPI.h" 
+#include "nsXULAppAPI.h" // For XRE_GetProcessType()
 
 using namespace mozilla::dom;
 
@@ -101,7 +101,7 @@ NS_CreateMobileConnectionService()
 {
   nsCOMPtr<nsIMobileConnectionService> service;
 
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     service = new mozilla::dom::mobileconnection::MobileConnectionIPCService();
   } else {
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)

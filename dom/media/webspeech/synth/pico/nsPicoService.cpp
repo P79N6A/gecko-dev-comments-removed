@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.h"
 #include "nsPicoService.h"
@@ -21,38 +21,38 @@
 #include "mozilla/DebugOnly.h"
 #include <dlfcn.h>
 
+// Pico API constants
 
-
-
-
-
+// Size of memory allocated for pico engine and voice resources.
+// We only have one voice and its resources loaded at once, so this
+// should always be enough.
 #define PICO_MEM_SIZE 2500000
 
-
-
+// Max length of returned strings. Pico will never return longer strings,
+// so this amount should be good enough for preallocating.
 #define PICO_RETSTRINGSIZE 200
 
-
+// Max amount we want from a single call of pico_getData
 #define PICO_MAX_CHUNK_SIZE 128
 
-
+// Arbitrary name for loaded voice, it doesn't mean anything outside of Pico
 #define PICO_VOICE_NAME "pico"
 
-
-
+// Return status from pico_getData meaning there is more data in the pipeline
+// to get from more calls to pico_getData
 #define PICO_STEP_BUSY 201
 
-
-
+// For performing a "soft" reset between utterances. This is used when one
+// utterance is interrupted by a new one.
 #define PICO_RESET_SOFT 0x10
 
-
+// Currently, Pico only provides mono output.
 #define PICO_CHANNELS_NUM 1
 
-
+// Pico's sample rate is always 16000
 #define PICO_SAMPLE_RATE 16000
 
-
+// The path to the language files in Gonk
 #define GONK_PICO_LANG_PATH "/system/tts/lang_pico"
 
 namespace mozilla {
@@ -197,13 +197,13 @@ public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PicoVoice)
 
-  
+  // Voice language, in BCB-47 syntax
   nsString mLanguage;
 
-  
+  // Language resource file
   nsCString mTaFile;
 
-  
+  // Speaker resource file
   nsCString mSgFile;
 
 private:
@@ -248,22 +248,22 @@ private:
 
   bool mFirstData;
 
-  
-  
+  // We use this pointer to compare it with the current service task.
+  // If they differ, this runnable should stop.
   nsISpeechTask* mTask;
 
-  
-  
+  // We hold a strong reference to the service, which in turn holds
+  // a strong reference to this voice.
   PicoVoice* mVoice;
 
-  
-  
+  // By holding a strong reference to the service we guarantee that it won't be
+  // destroyed before this runnable.
   nsRefPtr<nsPicoService> mService;
 };
 
 NS_IMPL_ISUPPORTS_INHERITED(PicoCallbackRunnable, nsRunnable, nsISpeechTaskCallback)
 
-
+// nsRunnable
 
 NS_IMETHODIMP
 PicoCallbackRunnable::Run()
@@ -278,8 +278,8 @@ PicoCallbackRunnable::Run()
     PICO_ENSURE_SUCCESS("pico_unloadResource", status, NS_ERROR_FAILURE);
   }
 
-  
-  
+  // Add SSML markup for pitch and rate. Pico uses a minimal parser,
+  // so no namespace is needed.
   nsPrintfCString markedUpText(
     "<pitch level=\"%0.0f\"><speed level=\"%0.0f\">%s</speed></pitch>",
     std::min(std::max(50.0f, mPitch * 100), 200.0f),
@@ -292,35 +292,35 @@ PicoCallbackRunnable::Run()
   int16_t text_offset = 0, bytes_recv = 0, bytes_sent = 0, out_data_type = 0;
   int16_t text_remaining = markedUpText.Length() + 1;
 
-  
+  // Run this loop while this is the current task
   while (IsCurrentTask()) {
     if (text_remaining) {
       status = sPicoApi.pico_putTextUtf8(mService->mPicoEngine,
                                          text + text_offset, text_remaining,
                                          &bytes_sent);
       PICO_ENSURE_SUCCESS("pico_putTextUtf8", status, NS_ERROR_FAILURE);
-      
+      // XXX: End speech task on error
       text_remaining -= bytes_sent;
       text_offset += bytes_sent;
     } else {
-      
-      
+      // If we already fed all the text to the engine, send a zero length buffer
+      // and quit.
       DispatchSynthDataRunnable(already_AddRefed<SharedBuffer>(), 0);
       break;
     }
 
     do {
-      
-      
-      
+      // Run this loop while the result of getData is STEP_BUSY, when it finishes
+      // synthesizing audio for the given text, it returns STEP_IDLE. We then
+      // break to the outer loop and feed more text, if there is any left.
       if (!IsCurrentTask()) {
-        
+        // If the task has changed, quit.
         break;
       }
 
       if (buffer_size - buffer_offset < PICO_MAX_CHUNK_SIZE) {
-        
-        
+        // The next audio chunk retrieved may be bigger than our buffer,
+        // so send the data and flush the buffer.
         DispatchSynthDataRunnable(buffer.forget(), buffer_offset);
         buffer_offset = 0;
         buffer = SharedBuffer::Create(buffer_size);
@@ -388,7 +388,7 @@ PicoCallbackRunnable::DispatchSynthDataRunnable(
   mFirstData = false;
 }
 
-
+// nsISpeechTaskCallback
 
 NS_IMETHODIMP
 PicoCallbackRunnable::OnPause()
@@ -432,8 +432,8 @@ nsPicoService::nsPicoService()
 
 nsPicoService::~nsPicoService()
 {
-  
-  
+  // We don't worry about removing the voices because this gets
+  // destructed at shutdown along with the voice registry.
   MonitorAutoLock autoLock(mVoicesMonitor);
   mVoices.Clear();
 
@@ -444,7 +444,7 @@ nsPicoService::~nsPicoService()
   UnloadEngine();
 }
 
-
+// nsIObserver
 
 NS_IMETHODIMP
 nsPicoService::Observe(nsISupports* aSubject, const char* aTopic,
@@ -463,7 +463,7 @@ nsPicoService::Observe(nsISupports* aSubject, const char* aTopic,
   return mThread->Dispatch(
     NS_NewRunnableMethod(this, &nsPicoService::Init), NS_DISPATCH_NORMAL);
 }
-
+// nsISpeechService
 
 NS_IMETHODIMP
 nsPicoService::Speak(const nsAString& aText, const nsAString& aUri,
@@ -495,14 +495,14 @@ struct VoiceTraverserData
   nsSynthVoiceRegistry* mRegistry;
 };
 
-
+// private methods
 
 static PLDHashOperator
 PicoAddVoiceTraverser(const nsAString& aUri,
                       nsRefPtr<PicoVoice>& aVoice,
                       void* aUserArg)
 {
-  
+  // If we are missing either a language or a voice resource, it is invalid.
   if (aVoice->mTaFile.IsEmpty() || aVoice->mSgFile.IsEmpty()) {
     return PL_DHASH_REMOVE;
   }
@@ -532,7 +532,7 @@ nsPicoService::Init()
     return;
   }
 
-  
+  // Use environment variable, or default android/b2g path
   nsAutoCString langPath(PR_GetEnv("PICO_LANG_PATH"));
 
   if (langPath.IsEmpty()) {
@@ -582,9 +582,9 @@ nsPicoService::Init()
         mVoices.Put(uri, voice);
       }
 
-      
-      
-      
+      // Each voice consists of two lingware files: A language resource file,
+      // suffixed by _ta.bin, and a speaker resource file, suffixed by _sb.bin.
+      // We currently assume that there is a pair of files for each language.
       if (StringEndsWith(leafName, NS_LITERAL_CSTRING("_ta.bin"))) {
         rv = voiceFile->GetPersistentDescriptor(voice->mTaFile);
         MOZ_ASSERT(NS_SUCCEEDED(rv));
@@ -616,8 +616,8 @@ nsPicoService::GetVoiceFileLanguage(const nsACString& aFileName, nsAString& aLan
   aFileName.BeginReading(start);
   aFileName.EndReading(end);
 
-  
-  
+  // The lingware filename syntax is language_(ta/sg).bin,
+  // we extract the language prefix here.
   if (FindInReadable(NS_LITERAL_CSTRING("_"), start, end)) {
     end = start;
     aFileName.BeginReading(start);
@@ -717,13 +717,13 @@ nsPicoService::CurrentVoice()
   return mCurrentVoice;
 }
 
-
+// static methods
 
 nsPicoService*
 nsPicoService::GetInstance()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     MOZ_ASSERT(false, "nsPicoService can only be started on main gecko process");
     return nullptr;
   }
@@ -754,5 +754,5 @@ nsPicoService::Shutdown()
   sSingleton = nullptr;
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

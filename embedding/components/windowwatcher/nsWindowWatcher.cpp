@@ -1,10 +1,10 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
+//#define USEWEAKREFS // (haven't quite figured that out yet)
 
 #include "nsWindowWatcher.h"
 #include "nsAutoWindowStateHelper.h"
@@ -67,9 +67,9 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-
-
-
+/****************************************************************
+ ******************** nsWatcherWindowEntry **********************
+ ****************************************************************/
 
 class nsWindowWatcher;
 
@@ -100,13 +100,13 @@ struct nsWatcherWindowEntry
 
 #ifdef USEWEAKREFS
   nsCOMPtr<nsIWeakReference> mWindow;
-#else 
+#else // still not an owning ref
   nsIDOMWindow* mWindow;
 #endif
   nsIWebBrowserChrome* mChrome;
   nsWeakPtr mChromeWeak;
-  
-  nsWatcherWindowEntry* mYounger; 
+  // each struct is in a circular, doubly-linked list
+  nsWatcherWindowEntry* mYounger; // next younger in sequence
   nsWatcherWindowEntry* mOlder;
 };
 
@@ -143,9 +143,9 @@ nsWatcherWindowEntry::ReferenceSelf()
   mOlder = this;
 }
 
-
-
-
+/****************************************************************
+ ****************** nsWatcherWindowEnumerator *******************
+ ****************************************************************/
 
 class nsWatcherWindowEnumerator : public nsISimpleEnumerator
 {
@@ -214,7 +214,7 @@ nsWatcherWindowEnumerator::GetNext(nsISupports** aResult)
     if (*aResult) {
       mCurrentPosition = FindNext();
       break;
-    } else { 
+    } else { // window is gone!
       mWindowWatcher->RemoveWindow(mCurrentPosition);
     }
   }
@@ -241,7 +241,7 @@ nsWatcherWindowEnumerator::FindNext()
   return info == mWindowWatcher->mOldestWindow ? 0 : info;
 }
 
-
+// if a window is being removed adjust the iterator's current position
 void
 nsWatcherWindowEnumerator::WindowRemoved(nsWatcherWindowEntry* aInfo)
 {
@@ -252,9 +252,9 @@ nsWatcherWindowEnumerator::WindowRemoved(nsWatcherWindowEntry* aInfo)
   }
 }
 
-
-
-
+/****************************************************************
+ *********************** nsWindowWatcher ************************
+ ****************************************************************/
 
 NS_IMPL_ADDREF(nsWindowWatcher)
 NS_IMPL_RELEASE(nsWindowWatcher)
@@ -272,7 +272,7 @@ nsWindowWatcher::nsWindowWatcher()
 
 nsWindowWatcher::~nsWindowWatcher()
 {
-  
+  // delete data
   while (mOldestWindow) {
     RemoveWindow(mOldestWindow);
   }
@@ -284,16 +284,16 @@ nsWindowWatcher::Init()
   return NS_OK;
 }
 
-
-
-
-
-
-
-
-
-
-
+/**
+ * Convert aArguments into either an nsIArray or nullptr.
+ *
+ *  - If aArguments is nullptr, return nullptr.
+ *  - If aArguments is an nsArray, return nullptr if it's empty, or otherwise
+ *    return the array.
+ *  - If aArguments is an nsISupportsArray, return nullptr if it's empty, or
+ *    otherwise add its elements to an nsArray and return the new array.
+ *  - Otherwise, return an nsIArray with one element: aArguments.
+ */
 static already_AddRefed<nsIArray>
 ConvertArgsToArray(nsISupports* aArguments)
 {
@@ -327,7 +327,7 @@ ConvertArgsToArray(nsISupports* aArguments)
     for (uint32_t i = 0; i < argc; i++) {
       nsCOMPtr<nsISupports> elt;
       supArray->GetElementAt(i, getter_AddRefs(elt));
-      nsresult rv = mutableArray->AppendElement(elt,  false);
+      nsresult rv = mutableArray->AppendElement(elt, /* aWeak = */ false);
       NS_ENSURE_SUCCESS(rv, nullptr);
     }
 
@@ -338,7 +338,7 @@ ConvertArgsToArray(nsISupports* aArguments)
     do_CreateInstance(NS_ARRAY_CONTRACTID);
   NS_ENSURE_TRUE(singletonArray, nullptr);
 
-  nsresult rv = singletonArray->AppendElement(aArguments,  false);
+  nsresult rv = singletonArray->AppendElement(aArguments, /* aWeak = */ false);
   NS_ENSURE_SUCCESS(rv, nullptr);
 
   return singletonArray.forget();
@@ -361,8 +361,8 @@ nsWindowWatcher::OpenWindow(nsIDOMWindow* aParent,
   bool dialog = (argc != 0);
 
   return OpenWindowInternal(aParent, aUrl, aName, aFeatures,
-                             false, dialog,
-                             true, nullptr, argv, aResult);
+                            /* calledFromJS = */ false, dialog,
+                            /* navigate = */ true, nullptr, argv, aResult);
 }
 
 struct SizeSpec
@@ -381,10 +381,10 @@ struct SizeSpec
 
   int32_t mLeft;
   int32_t mTop;
-  int32_t mOuterWidth;  
-  int32_t mOuterHeight; 
-  int32_t mInnerWidth;  
-  int32_t mInnerHeight; 
+  int32_t mOuterWidth;  // Total window width
+  int32_t mOuterHeight; // Total window height
+  int32_t mInnerWidth;  // Content area width
+  int32_t mInnerHeight; // Content area height
 
   bool mLeftSpecified;
   bool mTopSpecified;
@@ -393,8 +393,8 @@ struct SizeSpec
   bool mInnerWidthSpecified;
   bool mInnerHeightSpecified;
 
-  
-  
+  // If these booleans are true, don't look at the corresponding width values
+  // even if they're specified -- they'll be bogus
   bool mUseDefaultWidth;
   bool mUseDefaultHeight;
 
@@ -429,9 +429,9 @@ nsWindowWatcher::OpenWindow2(nsIDOMWindow* aParent,
     argv->GetLength(&argc);
   }
 
-  
-  
-  
+  // This is extremely messed up, but this behavior is necessary because
+  // callers lie about whether they're a dialog window and whether they're
+  // called from script.  Fixing this is bug 779939.
   bool dialog = aDialog;
   if (!aCalledFromScript) {
     dialog = argc > 0;
@@ -462,16 +462,16 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   bool uriToLoadIsChrome = false;
   bool windowIsModalContentDialog = false;
 
-  
-  
+  // Opening tabs are only ever passed to OpenWindowInternal if we're opening
+  // a window from a remote tab.
   bool openedFromRemoteTab = !!aOpeningTab;
 
   uint32_t chromeFlags;
-  nsAutoString name;          
-  nsAutoCString features;     
-  nsCOMPtr<nsIURI> uriToLoad; 
-  nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner; 
-  nsCOMPtr<nsIDocShellTreeItem> newDocShellItem; 
+  nsAutoString name;          // string version of aName
+  nsAutoCString features;     // string version of aFeatures
+  nsCOMPtr<nsIURI> uriToLoad; // from aUrl, if any
+  nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner; // from the parent window, if any
+  nsCOMPtr<nsIDocShellTreeItem> newDocShellItem; // from the new window
 
   nsCOMPtr<nsPIDOMWindow> parent = do_QueryInterface(aParent);
   if (parent && parent->IsInnerWindow()) {
@@ -480,7 +480,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   }
 
   MOZ_ASSERT_IF(openedFromRemoteTab,
-                XRE_IsParentProcess());
+                XRE_GetProcessType() == GeckoProcessType_Default);
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = 0;
 
@@ -512,21 +512,21 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     features.StripWhitespace();
   }
 
-  
-  
-  
-  
-  
-  
+  // We only want to check for existing named windows if:
+  // a) We're the child process
+  // b) We're the parent process, and aOpeningTab wasn't passed
+  //    in.
+  // This is because when using child processes, the parent process shouldn't
+  // know or care about names - unless we're opening named windows from chrome.
   if (!aOpeningTab) {
-    
+    // try to find an extant window with the given name
     nsCOMPtr<nsIDOMWindow> foundWindow = SafeGetWindowByName(name, aParent);
     GetWindowTreeItem(foundWindow, getter_AddRefs(newDocShellItem));
   }
 
-  
-  
-  
+  // Do sandbox checks here, instead of waiting until nsIDocShell::LoadURI.
+  // The state of the window can change before this call and if we are blocked
+  // because of sandboxing, we wouldn't want that to happen.
   nsCOMPtr<nsPIDOMWindow> parentWindow = do_QueryInterface(aParent);
   nsCOMPtr<nsIDocShell> parentDocShell;
   if (parentWindow) {
@@ -539,12 +539,12 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     }
   }
 
-  
+  // no extant window? make a new one.
 
-  
+  // If no parent, consider it chrome.
   bool hasChromeParent = true;
   if (aParent) {
-    
+    // Check if the parent document has chrome privileges.
     nsCOMPtr<nsIDOMDocument> domdoc;
     aParent->GetDocument(getter_AddRefs(domdoc));
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
@@ -552,31 +552,31 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
       doc && nsContentUtils::IsChromeDoc(doc) && !openedFromRemoteTab;
   }
 
-  
-  
-  
-  
+  // Make sure we call CalculateChromeFlags() *before* we push the
+  // callee context onto the context stack so that
+  // CalculateChromeFlags() sees the actual caller when doing its
+  // security checks.
   chromeFlags = CalculateChromeFlags(aParent, features.get(), featuresSpecified,
                                      aDialog, uriToLoadIsChrome,
                                      hasChromeParent, openedFromRemoteTab);
 
-  
-  
+  // If we are opening a window from a remote browser, the resulting window
+  // should also be remote.
   MOZ_ASSERT_IF(openedFromRemoteTab,
                 chromeFlags & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW);
 
-  
-  
-  
+  // If we're not called through our JS version of the API, and we got
+  // our internal modal option, treat the window we're opening as a
+  // modal content window (and set the modal chrome flag).
   if (!aCalledFromJS && aArgv &&
       WinHasOption(features.get(), "-moz-internal-modal", 0, nullptr)) {
     windowIsModalContentDialog = true;
 
-    
-    
-    
-    
-    
+    // CHROME_MODAL gets inherited by dependent windows, which affects various
+    // platform-specific window state (especially on OSX). So we need some way
+    // to determine that this window was actually opened by nsGlobalWindow::
+    // ShowModalDialog(), and that somebody is actually going to be watching
+    // for return values and all that.
     chromeFlags |= nsIWebBrowserChrome::CHROME_MODAL_CONTENT_WINDOW;
     chromeFlags |= nsIWebBrowserChrome::CHROME_MODAL;
   }
@@ -595,19 +595,19 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   bool windowTypeIsChrome =
     chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
   if (isCallerChrome && !hasChromeParent && !windowTypeIsChrome) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // open() is called from chrome on a non-chrome window, initialize an
+    // AutoJSAPI with the callee to prevent the caller's privileges from leaking
+    // into code that runs while opening the new window.
+    //
+    // The reasoning for this is in bug 289204. Basically, chrome sometimes does
+    // someContentWindow.open(untrustedURL), and wants to be insulated from nasty
+    // javascript: URLs and such. But there are also cases where we create a
+    // window parented to a content window (such as a download dialog), usually
+    // directly with nsIWindowWatcher. In those cases, we want the principal of
+    // the initial about:blank document to be system, so that the subsequent XUL
+    // load can reuse the inner window and avoid blowing away expandos. As such,
+    // we decide whether to load with the principal of the caller or of the parent
+    // based on whether the docshell type is chrome or content.
 
     nsCOMPtr<nsIGlobalObject> parentGlobalObject = do_QueryInterface(aParent);
     if (NS_WARN_IF(!jsapiChromeGuard.Init(parentGlobalObject))) {
@@ -617,20 +617,20 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
 
   uint32_t activeDocsSandboxFlags = 0;
   if (!newDocShellItem) {
-    
-    
-    
+    // We're going to either open up a new window ourselves or ask a
+    // nsIWindowProvider for one.  In either case, we'll want to set the right
+    // name on it.
     windowNeedsName = true;
 
-    
-    
+    // If the parent trying to open a new window is sandboxed
+    // without 'allow-popups', this is not allowed and we fail here.
     if (aParent) {
       nsCOMPtr<nsIDOMDocument> domdoc;
       aParent->GetDocument(getter_AddRefs(domdoc));
       nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
 
       if (doc) {
-        
+        // Save sandbox flags for copying to new browsing context (docShell).
         activeDocsSandboxFlags = doc->GetSandboxFlags();
         if (activeDocsSandboxFlags & SANDBOXED_AUXILIARY_NAVIGATION) {
           return NS_ERROR_DOM_INVALID_ACCESS_ERR;
@@ -638,9 +638,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
       }
     }
 
-    
-    
-    
+    // Now check whether it's ok to ask a window provider for a window.  Don't
+    // do it if we're opening a dialog or if our parent is a chrome window or
+    // if we're opening something that has modal, dialog, or chrome flags set.
     nsCOMPtr<nsIDOMChromeWindow> chromeWin = do_QueryInterface(aParent);
     if (!aDialog && !chromeWin &&
         !(chromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
@@ -660,20 +660,20 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
         if (NS_SUCCEEDED(rv)) {
           GetWindowTreeItem(newWindow, getter_AddRefs(newDocShellItem));
           if (windowIsNew && newDocShellItem) {
-            
-            
-            
-            
+            // Make sure to stop any loads happening in this window that the
+            // window provider might have started.  Otherwise if our caller
+            // manipulates the window it just opened and then the load
+            // completes their stuff will get blown away.
             nsCOMPtr<nsIWebNavigation> webNav =
               do_QueryInterface(newDocShellItem);
             webNav->Stop(nsIWebNavigation::STOP_NETWORK);
           }
         } else if (rv == NS_ERROR_ABORT) {
-          
-          
-          
-          
-          
+          // NS_ERROR_ABORT means the window provider has flat-out rejected
+          // the open-window call and we should bail.  Don't return an error
+          // here, because our caller may propagate that error, which might
+          // cause e.g. window.open to throw!  Just return null for our out
+          // param.
           return NS_OK;
         }
       }
@@ -688,7 +688,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
 
     nsCOMPtr<nsIWebBrowserChrome> parentChrome(do_GetInterface(parentTreeOwner));
 
-    
+    // is the parent (if any) modal? if so, we must be, too.
     bool weAreModal = (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL) != 0;
     newWindowShouldBeModal = weAreModal;
     if (!weAreModal && parentChrome) {
@@ -698,25 +698,25 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
 
     if (weAreModal) {
       windowIsModal = true;
-      
+      // in case we added this because weAreModal
       chromeFlags |= nsIWebBrowserChrome::CHROME_MODAL |
                      nsIWebBrowserChrome::CHROME_DEPENDENT;
     }
 
-    
-    
-    
-    
+    // Make sure to not create modal windows if our parent is invisible and
+    // isn't a chrome window.  Otherwise we can end up in a bizarre situation
+    // where we can't shut down because an invisible window is open.  If
+    // someone tries to do this, throw.
     if (!hasChromeParent && (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL)) {
       nsCOMPtr<nsIBaseWindow> parentWindow(do_GetInterface(parentTreeOwner));
       nsCOMPtr<nsIWidget> parentWidget;
       if (parentWindow) {
         parentWindow->GetMainWidget(getter_AddRefs(parentWidget));
       }
-      
-      
-      
-      
+      // NOTE: the logic for this visibility check is duplicated in
+      // nsIDOMWindowUtils::isParentWindowMainWidgetVisible - if we change
+      // how a window is determined "visible" in this context then we should
+      // also adjust that attribute and/or any consumers of it...
       if (parentWidget && !parentWidget->IsVisible()) {
         return NS_ERROR_NOT_AVAILABLE;
       }
@@ -728,25 +728,25 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     if (mWindowCreator) {
       nsCOMPtr<nsIWebBrowserChrome> newChrome;
 
-      
-
-
-
-
-
-
+      /* If the window creator is an nsIWindowCreator2, we can give it
+         some hints. The only hint at this time is whether the opening window
+         is in a situation that's likely to mean this is an unrequested
+         popup window we're creating. However we're not completely honest:
+         we clear that indicator if the opener is chrome, so that the
+         downstream consumer can treat the indicator to mean simply
+         that the new window is subject to popup control. */
       nsCOMPtr<nsIWindowCreator2> windowCreator2(
         do_QueryInterface(mWindowCreator));
       if (windowCreator2) {
         uint32_t contextFlags = 0;
         bool popupConditions = false;
 
-        
+        // is the parent under popup conditions?
         if (parentWindow) {
           popupConditions = parentWindow->IsLoadingOrRunningTimeout();
         }
 
-        
+        // chrome is always allowed, so clear the flag if the opener is chrome
         if (popupConditions) {
           popupConditions = !isCallerChrome;
         }
@@ -756,8 +756,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
             nsIWindowCreator2::PARENT_IS_LOADING_OR_RUNNING_TIMEOUT;
         }
 
-        
-        
+        // B2G multi-screen support. mozDisplayId is returned from the
+        // "display-changed" event, it is also platform-dependent.
 #ifdef MOZ_WIDGET_GONK
         int retval = WinHasOption(features.get(), "mozDisplayId", 0, nullptr);
         windowCreator2->SetScreenId(retval);
@@ -770,7 +770,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
                                                  aOpeningTab, &cancel,
                                                  getter_AddRefs(newChrome));
         if (NS_SUCCEEDED(rv) && cancel) {
-          newChrome = 0; 
+          newChrome = 0; // just in case
           rv = NS_ERROR_ABORT;
         }
       } else {
@@ -779,9 +779,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
       }
 
       if (newChrome) {
-        
-
-
+        /* It might be a chrome nsXULWindow, in which case it won't have
+            an nsIDOMWindow (primary content shell). But in that case, it'll
+            be able to hand over an nsIDocShellTreeItem directly. */
         nsCOMPtr<nsIDOMWindow> newWindow(do_GetInterface(newChrome));
         if (newWindow) {
           GetWindowTreeItem(newWindow, getter_AddRefs(newDocShellItem));
@@ -796,7 +796,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     }
   }
 
-  
+  // better have a window to use by this point
   if (!newDocShellItem) {
     return rv;
   }
@@ -804,8 +804,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   nsCOMPtr<nsIDocShell> newDocShell(do_QueryInterface(newDocShellItem));
   NS_ENSURE_TRUE(newDocShell, NS_ERROR_UNEXPECTED);
 
-  
-  
+  // Set up sandboxing attributes if the window is new.
+  // The flags can only be non-zero for new windows.
   if (activeDocsSandboxFlags != 0) {
     newDocShell->SetSandboxFlags(activeDocsSandboxFlags);
     if (parentWindow) {
@@ -819,15 +819,15 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     return rv;
   }
 
-  
-
-
-
-
-
+  /* disable persistence of size/position in popups (determined by
+     determining whether the features parameter specifies width or height
+     in any way). We consider any overriding of the window's size or position
+     in the open call as disabling persistence of those attributes.
+     Popup windows (which should not persist size or position) generally set
+     the size. */
   if (isNewToplevelWindow) {
-    
-
+    /* at the moment, the strings "height=" or "width=" never happen
+       outside a size specification, so we can do this the Q&D way. */
 
     if (PL_strcasestr(features.get(), "width=") ||
         PL_strcasestr(features.get(), "height=")) {
@@ -841,7 +841,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   }
 
   if ((aDialog || windowIsModalContentDialog) && aArgv) {
-    
+    // Set the args on the new window.
     nsCOMPtr<nsPIDOMWindow> piwin(do_QueryInterface(*aResult));
     NS_ENSURE_TRUE(piwin, NS_ERROR_UNEXPECTED);
 
@@ -849,9 +849,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
-
-
+  /* allow a window that we found by name to keep its name (important for cases
+     like _self where the given name is different (and invalid)).  Also, _blank
+     is not a window name. */
   if (windowNeedsName) {
     if (nameSpecified && !name.LowerCaseEqualsLiteral("_blank")) {
       newDocShellItem->SetName(name);
@@ -860,45 +860,45 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
+  // Now we have to set the right opener principal on the new window.  Note
+  // that we have to do this _before_ starting any URI loads, thanks to the
+  // sync nature of javascript: loads.
+  //
+  // Note: The check for the current JSContext isn't necessarily sensical.
+  // It's just designed to preserve old semantics during a mass-conversion
+  // patch.
   nsCOMPtr<nsIPrincipal> subjectPrincipal =
     nsContentUtils::GetCurrentJSContext() ? nsContentUtils::SubjectPrincipal() :
                                             nullptr;
 
   if (windowIsNew) {
-    
-    
-    
-    
-    
+    // Now set the opener principal on the new window.  Note that we need to do
+    // this no matter whether we were opened from JS; if there is nothing on
+    // the JS stack, just use the principal of our parent window.  In those
+    // cases we do _not_ set the parent window principal as the owner of the
+    // load--since we really don't know who the owner is, just leave it null.
     nsCOMPtr<nsPIDOMWindow> newWindow = do_QueryInterface(*aResult);
     NS_ASSERTION(newWindow == newDocShell->GetWindow(), "Different windows??");
 
-    
-    
-    
-    
+    // The principal of the initial about:blank document gets set up in
+    // nsWindowWatcher::AddWindow. Make sure to call it. In the common case
+    // this call already happened when the window was created, but
+    // SetInitialPrincipalToSubject is safe to call multiple times.
     if (newWindow) {
       newWindow->SetInitialPrincipalToSubject();
     }
   }
 
-  
-  
-  
+  // If all windows should be private, make sure the new window is also
+  // private.  Otherwise, see if the caller has explicitly requested a
+  // private or non-private window.
   bool isPrivateBrowsingWindow =
     Preferences::GetBool("browser.privatebrowsing.autostart") ||
     (!!(chromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) &&
      !(chromeFlags & nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW));
 
-  
-  
+  // Otherwise, propagate the privacy status of the parent window, if
+  // available, to the child.
   if (!isPrivateBrowsingWindow &&
       !(chromeFlags & nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW)) {
     nsCOMPtr<nsIDocShellTreeItem> parentItem;
@@ -909,8 +909,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     }
   }
 
-  
-  
+  // We rely on CalculateChromeFlags to decide whether remote (out-of-process)
+  // tabs should be used.
   bool isRemoteWindow =
     !!(chromeFlags & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW);
 
@@ -945,15 +945,15 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
       referrerWindow = do_QueryInterface(aParent);
     }
     if (referrerWindow) {
-      
-
-
-
-
-
+      /* use the URL from the *extant* document, if any. The usual accessor
+         GetDocument will synchronously create an about:blank document if
+         it has no better answer, and we only care about a real document.
+         Also using GetDocument to force document creation seems to
+         screw up focus in the hidden window; see bug 36016.
+      */
       nsCOMPtr<nsIDocument> doc = referrerWindow->GetExtantDoc();
       if (doc) {
-        
+        // Set the referrer
         loadInfo->SetReferrer(doc->GetDocumentURI());
         loadInfo->SetReferrerPolicy(doc->GetReferrerPolicy());
       }
@@ -961,8 +961,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   }
 
   if (isNewToplevelWindow) {
-    
-    
+    // Notify observers that the window is open and ready.
+    // The window has not yet started to load a document.
     nsCOMPtr<nsIObserverService> obsSvc =
       mozilla::services::GetObserverService();
     if (obsSvc) {
@@ -980,7 +980,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
       true);
   }
 
-  
+  // Copy the current session storage for the current domain.
   if (subjectPrincipal && parentDocShell) {
     nsCOMPtr<nsIDOMStorageManager> parentStorageManager =
       do_QueryInterface(parentDocShell);
@@ -1006,28 +1006,28 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
     SizeOpenedDocShellItem(newDocShellItem, aParent, isCallerChrome, sizeSpec);
   }
 
-  
+  // XXXbz isn't windowIsModal always true when windowIsModalContentDialog?
   if (windowIsModal || windowIsModalContentDialog) {
     nsCOMPtr<nsIDocShellTreeOwner> newTreeOwner;
     newDocShellItem->GetTreeOwner(getter_AddRefs(newTreeOwner));
     nsCOMPtr<nsIWebBrowserChrome> newChrome(do_GetInterface(newTreeOwner));
 
-    
-    
+    // Throw an exception here if no web browser chrome is available,
+    // we need that to show a modal window.
     NS_ENSURE_TRUE(newChrome, NS_ERROR_NOT_AVAILABLE);
 
-    
-    
-    
-    
-    
-    
-    
+    // Dispatch dialog events etc, but we only want to do that if
+    // we're opening a modal content window (the helper classes are
+    // no-ops if given no window), for chrome dialogs we don't want to
+    // do any of that (it's done elsewhere for us).
+    // Make sure we maintain the state on an outer window, because
+    // that's where it lives; inner windows assert if you try to
+    // maintain the state on them.
     nsAutoWindowStateHelper windowStateHelper(
       parentWindow ? parentWindow->GetOuterWindow() : nullptr);
 
     if (!windowStateHelper.DefaultEnabled()) {
-      
+      // Default to cancel not opening the modal window.
       NS_RELEASE(*aResult);
 
       return NS_OK;
@@ -1043,9 +1043,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
         }
       }
     } else {
-      
-      
-      
+      // Reset popup state while opening a modal dialog, and firing
+      // events about the dialog, to prevent the current state from
+      // being active the whole time a modal dialog is open.
       nsAutoPopupStatePusher popupStatePusher(openAbused);
 
       newChrome->ShowAsModal();
@@ -1058,7 +1058,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
 NS_IMETHODIMP
 nsWindowWatcher::RegisterNotification(nsIObserver* aObserver)
 {
-  
+  // just a convenience method; it delegates to nsIObserverService
 
   if (!aObserver) {
     return NS_ERROR_INVALID_ARG;
@@ -1080,7 +1080,7 @@ nsWindowWatcher::RegisterNotification(nsIObserver* aObserver)
 NS_IMETHODIMP
 nsWindowWatcher::UnregisterNotification(nsIObserver* aObserver)
 {
-  
+  // just a convenience method; it delegates to nsIObserverService
 
   if (!aObserver) {
     return NS_ERROR_INVALID_ARG;
@@ -1116,8 +1116,8 @@ nsWindowWatcher::GetWindowEnumerator(nsISimpleEnumerator** aResult)
 NS_IMETHODIMP
 nsWindowWatcher::GetNewPrompter(nsIDOMWindow* aParent, nsIPrompt** aResult)
 {
-  
-  
+  // This is for backwards compat only. Callers should just use the prompt
+  // service directly.
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> factory =
     do_GetService("@mozilla.org/prompter;1", &rv);
@@ -1130,8 +1130,8 @@ NS_IMETHODIMP
 nsWindowWatcher::GetNewAuthPrompter(nsIDOMWindow* aParent,
                                     nsIAuthPrompt** aResult)
 {
-  
-  
+  // This is for backwards compat only. Callers should just use the prompt
+  // service directly.
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> factory =
     do_GetService("@mozilla.org/prompter;1", &rv);
@@ -1144,15 +1144,15 @@ NS_IMETHODIMP
 nsWindowWatcher::GetPrompt(nsIDOMWindow* aParent, const nsIID& aIID,
                            void** aResult)
 {
-  
-  
+  // This is for backwards compat only. Callers should just use the prompt
+  // service directly.
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> factory =
     do_GetService("@mozilla.org/prompter;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = factory->GetPrompt(aParent, aIID, aResult);
 
-  
+  // Allow for an embedding implementation to not support nsIAuthPrompt2.
   if (rv == NS_NOINTERFACE && aIID.Equals(NS_GET_IID(nsIAuthPrompt2))) {
     nsCOMPtr<nsIAuthPrompt> oldPrompt;
     rv = factory->GetPrompt(
@@ -1222,8 +1222,8 @@ nsWindowWatcher::AddWindow(nsIDOMWindow* aWindow, nsIWebBrowserChrome* aChrome)
     nsWatcherWindowEntry* info;
     MutexAutoLock lock(mListLock);
 
-    
-    
+    // if we already have an entry for this window, adjust
+    // its chrome mapping and return
     info = FindWindowEntry(aWindow);
     if (info) {
       nsCOMPtr<nsISupportsWeakReference> supportsweak(
@@ -1237,7 +1237,7 @@ nsWindowWatcher::AddWindow(nsIDOMWindow* aWindow, nsIWebBrowserChrome* aChrome)
       return NS_OK;
     }
 
-    
+    // create a window info struct and add it to the list of windows
     info = new nsWatcherWindowEntry(aWindow, aChrome);
     if (!info) {
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1248,10 +1248,10 @@ nsWindowWatcher::AddWindow(nsIDOMWindow* aWindow, nsIWebBrowserChrome* aChrome)
     } else {
       mOldestWindow = info;
     }
-  } 
+  } // leave the mListLock
 
-  
-  
+  // a window being added to us signifies a newly opened window.
+  // send notifications.
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (!os) {
     return NS_ERROR_FAILURE;
@@ -1264,7 +1264,7 @@ nsWindowWatcher::AddWindow(nsIDOMWindow* aWindow, nsIWebBrowserChrome* aChrome)
 NS_IMETHODIMP
 nsWindowWatcher::RemoveWindow(nsIDOMWindow* aWindow)
 {
-  
+  // find the corresponding nsWatcherWindowEntry, remove it
 
   if (!aWindow) {
     return NS_ERROR_INVALID_ARG;
@@ -1282,7 +1282,7 @@ nsWindowWatcher::RemoveWindow(nsIDOMWindow* aWindow)
 nsWatcherWindowEntry*
 nsWindowWatcher::FindWindowEntry(nsIDOMWindow* aWindow)
 {
-  
+  // find the corresponding nsWatcherWindowEntry
   nsWatcherWindowEntry* info;
   nsWatcherWindowEntry* listEnd;
 #ifdef USEWEAKREFS
@@ -1297,7 +1297,7 @@ nsWindowWatcher::FindWindowEntry(nsIDOMWindow* aWindow)
   found = false;
   while (info != listEnd && NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIDOMWindow> infoWindow(do_QueryReferent(info->mWindow));
-    if (!infoWindow) { 
+    if (!infoWindow) { // clean up dangling reference, while we're here
       rv = RemoveWindow(info);
     } else if (infoWindow.get() == aWindow) {
       return info;
@@ -1325,21 +1325,21 @@ nsWindowWatcher::RemoveWindow(nsWatcherWindowEntry* aInfo)
   uint32_t count = mEnumeratorList.Length();
 
   {
-    
+    // notify the enumerators
     MutexAutoLock lock(mListLock);
     for (uint32_t ctr = 0; ctr < count; ++ctr) {
       mEnumeratorList[ctr]->WindowRemoved(aInfo);
     }
 
-    
+    // remove the element from the list
     if (aInfo == mOldestWindow) {
       mOldestWindow = aInfo->mYounger == mOldestWindow ? 0 : aInfo->mYounger;
     }
     aInfo->Unlink();
   }
 
-  
-  
+  // a window being removed from us signifies a newly closed window.
+  // send notifications.
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os) {
 #ifdef USEWEAKREFS
@@ -1347,7 +1347,7 @@ nsWindowWatcher::RemoveWindow(nsWatcherWindowEntry* aInfo)
     if (domwin) {
       os->NotifyObservers(domwin, "domwindowclosed", 0);
     }
-    
+    // else bummer. since the window is gone, there's nothing to notify with.
 #else
     nsCOMPtr<nsISupports> domwin(do_QueryInterface(aInfo->mWindow));
     os->NotifyObservers(domwin, "domwindowclosed", 0);
@@ -1396,11 +1396,11 @@ nsWindowWatcher::GetWindowByName(const char16_t* aTargetName,
   nsCOMPtr<nsIDocShellTreeItem> startItem;
   GetWindowTreeItem(aCurrentWindow, getter_AddRefs(startItem));
   if (startItem) {
-    
+    // Note: original requestor is null here, per idl comments
     startItem->FindItemWithName(aTargetName, nullptr, nullptr,
                                 getter_AddRefs(treeItem));
   } else {
-    
+    // Note: original requestor is null here, per idl comments
     FindItemWithName(aTargetName, nullptr, nullptr, getter_AddRefs(treeItem));
   }
 
@@ -1415,14 +1415,14 @@ nsWindowWatcher::GetWindowByName(const char16_t* aTargetName,
 bool
 nsWindowWatcher::AddEnumerator(nsWatcherWindowEnumerator* aEnumerator)
 {
-  
+  // (requires a lock; assumes it's called by someone holding the lock)
   return mEnumeratorList.AppendElement(aEnumerator) != nullptr;
 }
 
 bool
 nsWindowWatcher::RemoveEnumerator(nsWatcherWindowEnumerator* aEnumerator)
 {
-  
+  // (requires a lock; assumes it's called by someone holding the lock)
   return mEnumeratorList.RemoveElement(aEnumerator);
 }
 
@@ -1431,19 +1431,19 @@ nsWindowWatcher::URIfromURL(const char* aURL,
                             nsIDOMWindow* aParent,
                             nsIURI** aURI)
 {
-  
+  // Build the URI relative to the entry global.
   nsCOMPtr<nsIDOMWindow> baseWindow = do_QueryInterface(GetEntryGlobal());
 
-  
+  // failing that, build it relative to the parent window, if possible
   if (!baseWindow) {
     baseWindow = aParent;
   }
 
-  
+  // failing that, use the given URL unmodified. It had better not be relative.
 
   nsIURI* baseURI = nullptr;
 
-  
+  // get baseWindow's document URI
   if (baseWindow) {
     nsCOMPtr<nsIDOMDocument> domDoc;
     baseWindow->GetDocument(getter_AddRefs(domDoc));
@@ -1456,7 +1456,7 @@ nsWindowWatcher::URIfromURL(const char* aURL,
     }
   }
 
-  
+  // build and return the absolute URI
   return NS_NewURI(aURI, aURL, baseURI);
 }
 
@@ -1470,16 +1470,16 @@ nsWindowWatcher::URIfromURL(const char* aURL,
       WinHasOption(aFeatures, feature, 0, &presenceFlag) ? flag : 0;           \
   }
 
-
-
-
-
-
-
-
-
-
-
+/**
+ * Calculate the chrome bitmask from a string list of features.
+ * @param aParent the opener window
+ * @param aFeatures a string containing a list of named chrome features
+ * @param aNullFeatures true if aFeatures was a null pointer (which fact
+ *                      is lost by its conversion to a string in the caller)
+ * @param aDialog affects the assumptions made about unnamed features
+ * @return the chrome bitmask
+ */
+// static
 uint32_t
 nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
                                       const char* aFeatures,
@@ -1507,13 +1507,13 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
     return chromeFlags;
   }
 
-  
-
-
-
-
-
-
+  /* This function has become complicated since browser windows and
+     dialogs diverged. The difference is, browser windows assume all
+     chrome not explicitly mentioned is off, if the features string
+     is not null. Exceptions are some OS border chrome new with Mozilla.
+     Dialogs interpret a (mostly) empty features string to mean
+     "OS's choice," and also support an "all" flag explicitly disallowed
+     in the standards-compliant window.(normal)open. */
 
   bool presenceFlag = false;
 
@@ -1522,9 +1522,9 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
     chromeFlags = nsIWebBrowserChrome::CHROME_ALL;
   }
 
-  
+  /* Next, allow explicitly named options to override the initial settings */
 
-  
+  // Determine whether the window is a private browsing window
   if (isCallerChrome) {
     chromeFlags |= WinHasOption(aFeatures, "private", 0, &presenceFlag) ?
       nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW : 0;
@@ -1532,7 +1532,7 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
       nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW : 0;
   }
 
-  
+  // Determine whether the window should have remote tabs.
   if (isCallerChrome || aOpenedFromRemoteTab) {
     bool remote;
     if (BrowserTabsRemoteAutostart()) {
@@ -1582,14 +1582,14 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
   chromeFlags |= WinHasOption(aFeatures, "popup", 0, &presenceFlag) ?
     nsIWebBrowserChrome::CHROME_WINDOW_POPUP : 0;
 
-  
+  /* OK.
+     Normal browser windows, in spite of a stated pattern of turning off
+     all chrome not mentioned explicitly, will want the new OS chrome (window
+     borders, titlebars, closebox) on, unless explicitly turned off.
+     Dialogs, on the other hand, take the absence of any explicit settings
+     to mean "OS' choice." */
 
-
-
-
-
-
-  
+  // default titlebar and closebox to "on," if not mentioned at all
   if (!(chromeFlags & nsIWebBrowserChrome::CHROME_WINDOW_POPUP)) {
     if (!PL_strcasestr(aFeatures, "titlebar")) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_TITLEBAR;
@@ -1603,9 +1603,9 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
     chromeFlags = nsIWebBrowserChrome::CHROME_DEFAULT;
   }
 
-  
-
-
+  /* Finally, once all the above normal chrome has been divined, deal
+     with the features that are more operating hints than appearance
+     instructions. (Note modality implies dependence.) */
 
   if (WinHasOption(aFeatures, "alwaysLowered", 0, nullptr) ||
       WinHasOption(aFeatures, "z-lock", 0, nullptr)) {
@@ -1628,9 +1628,9 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
   chromeFlags |= WinHasOption(aFeatures, "modal", 0, nullptr) ?
     (nsIWebBrowserChrome::CHROME_MODAL | nsIWebBrowserChrome::CHROME_DEPENDENT) : 0;
 
-  
-
-
+  /* On mobile we want to ignore the dialog window feature, since the mobile UI
+     does not provide any affordance for dialog windows. This does not interfere
+     with dialog windows created through openDialog. */
   bool disableDialogFeature = false;
   nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(prefs);
   branch->GetBoolPref("dom.disable_window_open_dialog_feature",
@@ -1641,8 +1641,8 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
     aParent->GetFullScreen(&isFullScreen);
   }
   if (isFullScreen && !isCallerChrome) {
-    
-    
+    // If the parent window is in fullscreen & the caller context is content,
+    // dialog feature is disabled. (see bug 803675)
     disableDialogFeature = true;
   }
 
@@ -1651,8 +1651,8 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
       nsIWebBrowserChrome::CHROME_OPENAS_DIALOG : 0;
   }
 
-  
-
+  /* and dialogs need to have the last word. assume dialogs are dialogs,
+     and opened as chrome, unless explicitly told otherwise. */
   if (aDialog) {
     if (!PL_strcasestr(aFeatures, "dialog")) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_OPENAS_DIALOG;
@@ -1662,36 +1662,36 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
     }
   }
 
-  
+  /* missing
+     chromeFlags->copy_history
+   */
 
-
-
-  
+  // Check security state for use in determing window dimensions
   if (!isCallerChrome || !aHasChromeParent) {
-    
-    
-    
+    // If priv check fails (or if we're called from chrome, but the
+    // parent is not a chrome window), set all elements to minimum
+    // reqs., else leave them alone.
     chromeFlags |= nsIWebBrowserChrome::CHROME_TITLEBAR;
     chromeFlags |= nsIWebBrowserChrome::CHROME_WINDOW_CLOSE;
     chromeFlags &= ~nsIWebBrowserChrome::CHROME_WINDOW_LOWERED;
     chromeFlags &= ~nsIWebBrowserChrome::CHROME_WINDOW_RAISED;
     chromeFlags &= ~nsIWebBrowserChrome::CHROME_WINDOW_POPUP;
-    
-
-
-
+    /* Untrusted script is allowed to pose modal windows with a chrome
+       scheme. This check could stand to be better. But it effectively
+       prevents untrusted script from opening modal windows in general
+       while still allowing alerts and the like. */
     if (!aChromeURL)
       chromeFlags &= ~(nsIWebBrowserChrome::CHROME_MODAL |
                        nsIWebBrowserChrome::CHROME_OPENAS_CHROME);
   }
 
   if (!(chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)) {
-    
+    // Remove the dependent flag if we're not opening as chrome
     chromeFlags &= ~nsIWebBrowserChrome::CHROME_DEPENDENT;
   }
 
-  
-  
+  // Disable CHROME_OPENAS_DIALOG if the window is inside <iframe mozbrowser>.
+  // It's up to the embedder to interpret what dialog=1 means.
   nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
   if (docshell && docshell->GetIsInBrowserOrApp()) {
     chromeFlags &= ~nsIWebBrowserChrome::CHROME_OPENAS_DIALOG;
@@ -1700,7 +1700,7 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
   return chromeFlags;
 }
 
-
+// static
 int32_t
 nsWindowWatcher::WinHasOption(const char* aOptions, const char* aName,
                               int32_t aDefault, bool* aPresenceFlag)
@@ -1758,10 +1758,10 @@ nsWindowWatcher::WinHasOption(const char* aOptions, const char* aName,
   return found;
 }
 
-
-
-
-
+/* try to find an nsIDocShellTreeItem with the given name in any
+   known open window. a failure to find the item will not
+   necessarily return a failure method value. check aFoundItem.
+*/
 NS_IMETHODIMP
 nsWindowWatcher::FindItemWithName(const char16_t* aName,
                                   nsIDocShellTreeItem* aRequestor,
@@ -1770,7 +1770,7 @@ nsWindowWatcher::FindItemWithName(const char16_t* aName,
 {
   *aFoundItem = 0;
 
-  
+  /* special cases */
   if (!aName || !*aName) {
     return NS_OK;
   }
@@ -1798,22 +1798,22 @@ nsWindowWatcher::FindItemWithName(const char16_t* aName,
       nsCOMPtr<nsIDocShellTreeItem> treeItem;
       GetWindowTreeItem(nextWindow, getter_AddRefs(treeItem));
       if (treeItem) {
-        
-        
+        // Get the root tree item of same type, since roots are the only
+        // things that call into the treeowner to look for named items.
         nsCOMPtr<nsIDocShellTreeItem> root;
         treeItem->GetSameTypeRootTreeItem(getter_AddRefs(root));
         NS_ASSERTION(root, "Must have root tree item of same type");
-        
+        // Make sure not to call back into aRequestor
         if (root != aRequestor) {
-          
-          
-          
+          // Get the tree owner so we can pass it in as the requestor so
+          // the child knows not to call back up, since we're walking
+          // all windows already.
           nsCOMPtr<nsIDocShellTreeOwner> rootOwner;
-          
-          
-          
-          
-          
+          // Note: if we have no aRequestor, then we want to also look for
+          // "special" window names, so pass a null requestor.  This will mean
+          // that the treeitem calls back up to us, effectively (with a
+          // non-null aRequestor), so break the loop immediately after the
+          // call in that case.
           if (aRequestor) {
             root->GetTreeOwner(getter_AddRefs(rootOwner));
           }
@@ -1865,11 +1865,11 @@ nsWindowWatcher::SafeGetWindowByName(const nsAString& aName,
   return foundItem ? foundItem->GetWindow() : nullptr;
 }
 
-
-
-
-
-
+/* Fetch the nsIDOMWindow corresponding to the given nsIDocShellTreeItem.
+   This forces the creation of a script context, if one has not already
+   been created. Note it also sets the window's opener to the parent,
+   if applicable -- because it's just convenient, that's all. null aParent
+   is acceptable. */
 nsresult
 nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem* aOpenedItem,
                                          nsIDOMWindow* aParent,
@@ -1884,13 +1884,13 @@ nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem* aOpenedItem,
   nsCOMPtr<nsPIDOMWindow> piOpenedWindow = aOpenedItem->GetWindow();
   if (piOpenedWindow) {
     if (aParent) {
-      piOpenedWindow->SetOpenerWindow(aParent, aWindowIsNew); 
+      piOpenedWindow->SetOpenerWindow(aParent, aWindowIsNew); // damnit
 
       if (aWindowIsNew) {
 #ifdef DEBUG
-        
-        
-        
+        // Assert that we're not loading things right now.  If we are, when
+        // that load completes it will clobber whatever principals we set up
+        // on this new window!
         nsCOMPtr<nsIDocumentLoader> docloader = do_QueryInterface(aOpenedItem);
         NS_ASSERTION(docloader, "How can we not have a docloader here?");
 
@@ -1910,11 +1910,11 @@ nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem* aOpenedItem,
   return rv;
 }
 
-
+// static
 void
 nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
 {
-  
+  // Parse position spec, if any, from aFeatures
   bool present;
   int32_t temp;
 
@@ -1936,7 +1936,7 @@ nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
   }
   aResult.mTopSpecified = present;
 
-  
+  // Parse size spec, if any. Chrome size overrides content size.
   if ((temp = WinHasOption(aFeatures, "outerWidth", INT32_MIN, nullptr))) {
     if (temp == INT32_MIN) {
       aResult.mUseDefaultWidth = true;
@@ -1975,29 +1975,29 @@ nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
   }
 }
 
-
-
-
-
-
+/* Size and position the new window according to aSizeSpec. This method
+   is assumed to be called after the window has already been given
+   a default position and size; thus its current position and size are
+   accurate defaults. The new window is made visible at method end.
+*/
 void
 nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
                                         nsIDOMWindow* aParent,
                                         bool aIsCallerChrome,
                                         const SizeSpec& aSizeSpec)
 {
-  
+  // position and size of window
   int32_t left = 0, top = 0, width = 100, height = 100;
-  
+  // difference between chrome and content size
   int32_t chromeWidth = 0, chromeHeight = 0;
-  
+  // whether the window size spec refers to chrome or content
   bool sizeChromeWidth = true, sizeChromeHeight = true;
 
-  
+  // get various interfaces for aDocShellItem, used throughout this method
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
   aDocShellItem->GetTreeOwner(getter_AddRefs(treeOwner));
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_QueryInterface(treeOwner));
-  if (!treeOwnerAsWin) { 
+  if (!treeOwnerAsWin) { // we'll need this to actually size the docshell
     return;
   }
 
@@ -2020,12 +2020,12 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
   double scale;
   treeOwnerAsWin->GetUnscaledDevicePixelsPerCSSPixel(&scale);
 
-  
-
-
-
-
-
+  /* The current position and size will be unchanged if not specified
+     (and they fit entirely onscreen). Also, calculate the difference
+     between chrome and content sizes on aDocShellItem's window.
+     This latter point becomes important if chrome and content
+     specifications are mixed in aFeatures, and when bringing the window
+     back from too far off the right or bottom edges of the screen. */
 
   treeOwnerAsWin->GetPositionAndSize(&left, &top, &width, &height);
   left = NSToIntRound(left / scale);
@@ -2033,7 +2033,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
   width = NSToIntRound(width / scale);
   height = NSToIntRound(height / scale);
   {
-    
+    // scope shellWindow why not
     nsCOMPtr<nsIBaseWindow> shellWindow(do_QueryInterface(aDocShellItem));
     if (shellWindow) {
       int32_t cox, coy;
@@ -2045,7 +2045,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
     }
   }
 
-  
+  // Set up left/top
   if (aSizeSpec.mLeftSpecified) {
     left = NSToIntRound(aSizeSpec.mLeft * openerZoom);
   }
@@ -2054,11 +2054,11 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
     top = NSToIntRound(aSizeSpec.mTop * openerZoom);
   }
 
-  
+  // Set up width
   if (aSizeSpec.mOuterWidthSpecified) {
     if (!aSizeSpec.mUseDefaultWidth) {
       width = NSToIntRound(aSizeSpec.mOuterWidth * openerZoom);
-    } 
+    } // Else specified to default; just use our existing width
   } else if (aSizeSpec.mInnerWidthSpecified) {
     sizeChromeWidth = false;
     if (aSizeSpec.mUseDefaultWidth) {
@@ -2068,11 +2068,11 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
     }
   }
 
-  
+  // Set up height
   if (aSizeSpec.mOuterHeightSpecified) {
     if (!aSizeSpec.mUseDefaultHeight) {
       height = NSToIntRound(aSizeSpec.mOuterHeight * openerZoom);
-    } 
+    } // Else specified to default; just use our existing height
   } else if (aSizeSpec.mInnerHeightSpecified) {
     sizeChromeHeight = false;
     if (aSizeSpec.mUseDefaultHeight) {
@@ -2084,22 +2084,22 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
 
   bool positionSpecified = aSizeSpec.PositionSpecified();
 
-  
+  // Check security state for use in determing window dimensions
   bool enabled = false;
   if (aIsCallerChrome) {
-    
-    
+    // Only enable special priveleges for chrome when chrome calls
+    // open() on a chrome window
     nsCOMPtr<nsIDOMChromeWindow> chromeWin(do_QueryInterface(aParent));
     enabled = !aParent || chromeWin;
   }
 
   if (!enabled) {
 
-    
+    // Security check failed.  Ensure all args meet minimum reqs.
 
     int32_t oldTop = top, oldLeft = left;
 
-    
+    // We'll also need the screen dimensions
     nsCOMPtr<nsIScreen> screen;
     nsCOMPtr<nsIScreenManager> screenMgr(
       do_GetService("@mozilla.org/gfx/screenmanager;1"));
@@ -2115,9 +2115,9 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
                                      &screenHeight);
 
       if (aSizeSpec.SizeSpecified()) {
-        
-
-
+        /* Unlike position, force size out-of-bounds check only if
+           size actually was specified. Otherwise, intrinsically sized
+           windows are broken. */
         if (height < 100) {
           height = 100;
           winHeight = height + (sizeChromeHeight ? 0 : chromeHeight);
@@ -2153,17 +2153,17 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
     }
   }
 
-  
+  // size and position the window
 
   if (positionSpecified) {
     treeOwnerAsWin->SetPosition(left * scale, top * scale);
-    
+    // moving the window may have changed its scale factor
     treeOwnerAsWin->GetUnscaledDevicePixelsPerCSSPixel(&scale);
   }
   if (aSizeSpec.SizeSpecified()) {
-    
-
-
+    /* Prefer to trust the interfaces, which think in terms of pure
+       chrome or content sizes. If we have a mix, use the chrome size
+       adjusted by the chrome/content differences calculated earlier. */
     if (!sizeChromeWidth && !sizeChromeHeight) {
       treeOwner->SizeShellTo(aDocShellItem, width * scale, height * scale);
     } else {
@@ -2207,7 +2207,7 @@ nsWindowWatcher::GetWindowTreeOwner(nsIDOMWindow* aWindow,
   }
 }
 
-
+/* static */
 int32_t
 nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow* aParent,
                                        uint32_t aChromeFlags,
@@ -2220,11 +2220,11 @@ nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow* aParent,
     aParent->GetFullScreen(&isFullScreen);
   }
 
-  
+  // Where should we open this?
   int32_t containerPref;
   if (NS_FAILED(Preferences::GetInt("browser.link.open_newwindow",
                                     &containerPref))) {
-    
+    // We couldn't read the user preference, so fall back on the default.
     return nsIBrowserDOMWindow::OPEN_NEWTAB;
   }
 
@@ -2239,26 +2239,26 @@ nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow* aParent,
 
   if (containerPref != nsIBrowserDOMWindow::OPEN_NEWTAB &&
       containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW) {
-    
+    // Just open a window normally
     return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
   }
 
   if (aCalledFromJS) {
-    
-
-
-
-
-
+    /* Now check our restriction pref.  The restriction pref is a power-user's
+       fine-tuning pref. values:
+       0: no restrictions - divert everything
+       1: don't divert window.open at all
+       2: don't divert window.open with features
+    */
     int32_t restrictionPref =
       Preferences::GetInt("browser.link.open_newwindow.restriction", 2);
     if (restrictionPref < 0 || restrictionPref > 2) {
-      restrictionPref = 2; 
+      restrictionPref = 2; // Sane default behavior
     }
 
     if (isDisabledOpenNewWindow) {
-      
-      
+      // In browser fullscreen, the window should be opened
+      // in the current window with no features (see bug 803675)
       restrictionPref = 0;
     }
 
@@ -2267,8 +2267,8 @@ nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow* aParent,
     }
 
     if (restrictionPref == 2 &&
-        
-        
+        // Only continue if there are no size/position features and no special
+        // chrome flags.
         (aChromeFlags != nsIWebBrowserChrome::CHROME_ALL ||
          aPositionSpecified || aSizeSpecified)) {
       return nsIBrowserDOMWindow::OPEN_NEWWINDOW;

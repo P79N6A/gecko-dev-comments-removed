@@ -622,7 +622,7 @@ nsFileInputStream::Deserialize(const InputStreamParams& aParams,
 
     mBehaviorFlags = params.behaviorFlags();
 
-    if (!XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
         
         
         mBehaviorFlags &= ~nsIFileInputStream::CLOSE_ON_EOF;

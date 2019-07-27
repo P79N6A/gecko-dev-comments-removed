@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MobileMessageManager.h"
 
@@ -11,7 +11,7 @@
 #include "DOMRequest.h"
 #include "MobileMessageCallback.h"
 #include "MobileMessageCursorCallback.h"
-#include "mozilla/dom/mobilemessage/Constants.h" 
+#include "mozilla/dom/mobilemessage/Constants.h" // For kSms*ObserverTopic
 #include "mozilla/dom/MozMessageDeletedEvent.h"
 #include "mozilla/dom/MozMmsEvent.h"
 #include "mozilla/dom/MozMobileMessageManagerBinding.h"
@@ -28,9 +28,9 @@
 #include "nsIMobileMessageService.h"
 #include "nsIObserverService.h"
 #include "nsISmsService.h"
-#include "nsServiceManagerUtils.h" 
+#include "nsServiceManagerUtils.h" // For do_GetService()
 
-
+// Service instantiation
 #include "ipc/SmsIPCService.h"
 #include "MobileMessageService.h"
 #ifdef MOZ_WIDGET_ANDROID
@@ -40,7 +40,7 @@
 #include "nsIGonkMobileMessageDatabaseService.h"
 #include "nsIGonkSmsService.h"
 #endif
-#include "nsXULAppAPI.h" 
+#include "nsXULAppAPI.h" // For XRE_GetProcessType()
 
 #define RECEIVED_EVENT_NAME         NS_LITERAL_STRING("received")
 #define RETRIEVING_EVENT_NAME       NS_LITERAL_STRING("retrieving")
@@ -74,7 +74,7 @@ void
 MobileMessageManager::Init()
 {
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  
+  // GetObserverService() can return null is some situations like shutdown.
   if (!obs) {
     return;
   }
@@ -95,7 +95,7 @@ void
 MobileMessageManager::Shutdown()
 {
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  
+  // GetObserverService() can return null is some situations like shutdown.
   if (!obs) {
     return;
   }
@@ -163,7 +163,7 @@ MobileMessageManager::Send(nsISmsService* aSmsService,
   nsCOMPtr<nsIMobileMessageCallback> msgCallback =
     new MobileMessageCallback(request);
 
-  
+  // By default, we don't send silent messages via MobileMessageManager.
   nsresult rv = aSmsService->Send(aServiceId, aNumber, aText,
                                   false, msgCallback);
   if (NS_FAILED(rv)) {
@@ -186,7 +186,7 @@ MobileMessageManager::Send(const nsAString& aNumber,
     return nullptr;
   }
 
-  
+  // Use the default one unless |aSendParams.serviceId| is available.
   uint32_t serviceId;
   if (aSendParams.mServiceId.WasPassed()) {
     serviceId = aSendParams.mServiceId.Value();
@@ -214,7 +214,7 @@ MobileMessageManager::Send(const Sequence<nsString>& aNumbers,
     return;
   }
 
-  
+  // Use the default one unless |aSendParams.serviceId| is available.
   uint32_t serviceId;
   if (aSendParams.mServiceId.WasPassed()) {
     serviceId = aSendParams.mServiceId.Value();
@@ -247,7 +247,7 @@ MobileMessageManager::SendMMS(const MmsParameters& aParams,
     return nullptr;
   }
 
-  
+  // Use the default one unless |aSendParams.serviceId| is available.
   uint32_t serviceId;
   nsresult rv;
   if (aSendParams.mServiceId.WasPassed()) {
@@ -401,7 +401,7 @@ MobileMessageManager::Delete(const Sequence<OwningLongOrMozSmsMessageOrMozMmsMes
     } else if (element.IsMozMmsMessage()) {
       rv = element.GetAsMozMmsMessage()->GetId(&id);
       MOZ_ASSERT(NS_SUCCEEDED(rv));
-    } else  {
+    } else /*if (element.IsMozSmsMessage())*/ {
       rv = element.GetAsMozSmsMessage()->GetId(&id);
       MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
@@ -735,7 +735,7 @@ MobileMessageManager::GetSmscAddress(const Optional<uint32_t>& aServiceId,
     return nullptr;
   }
 
-  
+  // Use the default one unless |aSendParams.serviceId| is available.
   uint32_t serviceId;
   nsresult rv;
   if (aServiceId.WasPassed()) {
@@ -776,7 +776,7 @@ MobileMessageManager::SetSmscAddress(const SmscAddress& aSmscAddress,
     return nullptr;
   }
 
-  
+  // Use the default one unless |serviceId| is available.
   uint32_t serviceId;
   nsresult rv;
   if (aServiceId.WasPassed()) {
@@ -817,8 +817,8 @@ MobileMessageManager::SetSmscAddress(const SmscAddress& aSmscAddress,
   NumberPlanIdentification npi =
     aSmscAddress.mTypeOfAddress.mNumberPlanIdentification;
 
-  
-  
+  // If the address begins with +, set TON to international no matter what has
+  // passed in.
   if (!address.IsEmpty() && address[0] == '+') {
     ton = TypeOfNumber::International;
   }
@@ -837,15 +837,15 @@ MobileMessageManager::SetSmscAddress(const SmscAddress& aSmscAddress,
 }
 
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 already_AddRefed<nsISmsService>
 NS_CreateSmsService()
 {
   nsCOMPtr<nsISmsService> smsService;
 
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     smsService = SmsIPCService::GetSingleton();
   } else {
 #ifdef MOZ_WIDGET_ANDROID
@@ -862,7 +862,7 @@ already_AddRefed<nsIMobileMessageDatabaseService>
 NS_CreateMobileMessageDatabaseService()
 {
   nsCOMPtr<nsIMobileMessageDatabaseService> mobileMessageDBService;
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     mobileMessageDBService = SmsIPCService::GetSingleton();
   } else {
 #ifdef MOZ_WIDGET_ANDROID
@@ -881,7 +881,7 @@ NS_CreateMmsService()
 {
   nsCOMPtr<nsIMmsService> mmsService;
 
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     mmsService = SmsIPCService::GetSingleton();
   } else {
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)

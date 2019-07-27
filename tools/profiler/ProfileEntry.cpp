@@ -1013,7 +1013,7 @@ void ThreadProfile::StreamSamplesAndMarkers(SpliceableJSONWriter& aWriter, doubl
   if (XRE_GetProcessType() == GeckoProcessType_Plugin) {
     
     aWriter.StringProperty("name", "Plugin");
-  } else if (XRE_IsContentProcess()) {
+  } else if (XRE_GetProcessType() == GeckoProcessType_Content) {
     
     
     aWriter.StringProperty("name", "Content");

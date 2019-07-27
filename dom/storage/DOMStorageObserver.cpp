@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DOMStorageObserver.h"
 
@@ -40,7 +40,7 @@ DOMStorageObserver* DOMStorageObserver::sSelf = nullptr;
 extern nsresult
 CreateReversedDomain(const nsACString& aAsciiDomain, nsACString& aKey);
 
-
+// static
 nsresult
 DOMStorageObserver::Init()
 {
@@ -56,7 +56,7 @@ DOMStorageObserver::Init()
   sSelf = new DOMStorageObserver();
   NS_ADDREF(sSelf);
 
-  
+  // Chrome clear operations.
   obs->AddObserver(sSelf, kStartupTopic, true);
   obs->AddObserver(sSelf, "cookie-changed", true);
   obs->AddObserver(sSelf, "perm-changed", true);
@@ -64,19 +64,19 @@ DOMStorageObserver::Init()
   obs->AddObserver(sSelf, "last-pb-context-exited", true);
   obs->AddObserver(sSelf, "webapps-clear-data", true);
 
-  
+  // Shutdown
   obs->AddObserver(sSelf, "profile-after-change", true);
   obs->AddObserver(sSelf, "profile-before-change", true);
   obs->AddObserver(sSelf, "xpcom-shutdown", true);
 
-  
+  // Observe low device storage notifications.
   obs->AddObserver(sSelf, "disk-space-watcher", true);
 
 #ifdef DOM_STORAGE_TESTS
-  
+  // Testing
   obs->AddObserver(sSelf, "domstorage-test-flush-force", true);
-  if (XRE_IsParentProcess()) {
-    
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    // Only to forward to child process.
     obs->AddObserver(sSelf, "domstorage-test-flushed", true);
   }
 
@@ -86,7 +86,7 @@ DOMStorageObserver::Init()
   return NS_OK;
 }
 
-
+// static
 nsresult
 DOMStorageObserver::Shutdown()
 {
@@ -126,7 +126,7 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
 {
   nsresult rv;
 
-  
+  // Start the thread that opens the database.
   if (!strcmp(aTopic, kStartupTopic)) {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     obs->RemoveObserver(this, kStartupTopic);
@@ -141,7 +141,7 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
-  
+  // Timer callback used to start the database a short timer after startup
   if (!strcmp(aTopic, NS_TIMER_CALLBACK_TOPIC)) {
     nsCOMPtr<nsITimer> timer = do_QueryInterface(aSubject);
     if (!timer) {
@@ -158,7 +158,7 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
-  
+  // Clear everything, caches + database
   if (!strcmp(aTopic, "cookie-changed")) {
     if (!NS_LITERAL_STRING("cleared").Equals(aData)) {
       return NS_OK;
@@ -174,10 +174,10 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
-  
-  
+  // Clear from caches everything that has been stored
+  // while in session-only mode
   if (!strcmp(aTopic, "perm-changed")) {
-    
+    // Check for cookie permission change
     nsCOMPtr<nsIPermission> perm(do_QueryInterface(aSubject));
     if (!perm) {
       return NS_OK;
@@ -211,17 +211,17 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
-  
-  
+  // Clear everything (including so and pb data) from caches and database
+  // for the gived domain and subdomains.
   if (!strcmp(aTopic, "browser:purge-domain-data")) {
-    
+    // Convert the domain name to the ACE format
     nsAutoCString aceDomain;
     nsCOMPtr<nsIIDNService> converter = do_GetService(NS_IDNSERVICE_CONTRACTID);
     if (converter) {
       rv = converter->ConvertUTF8toACE(NS_ConvertUTF16toUTF8(aData), aceDomain);
       NS_ENSURE_SUCCESS(rv, rv);
     } else {
-      
+      // In case the IDN service is not available, this is the best we can come up with!
       NS_EscapeURL(NS_ConvertUTF16toUTF8(aData),
                    esc_OnlyNonASCII | esc_AlwaysCopy,
                    aceDomain);
@@ -241,14 +241,14 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
-  
+  // Clear all private-browsing caches
   if (!strcmp(aTopic, "last-pb-context-exited")) {
     Notify("private-browsing-data-cleared");
 
     return NS_OK;
   }
 
-  
+  // Clear data beloging to an app.
   if (!strcmp(aTopic, "webapps-clear-data")) {
     nsCOMPtr<mozIApplicationClearPrivateDataParams> params =
       do_QueryInterface(aSubject);
@@ -325,7 +325,7 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
   }
 
   if (!strcmp(aTopic, "domstorage-test-flushed")) {
-    
+    // Only used to propagate to IPC children
     Notify("test-flushed");
 
     return NS_OK;
@@ -342,5 +342,5 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
   return NS_ERROR_UNEXPECTED;
 }
 
-} 
-} 
+} // ::dom
+} // ::mozilla

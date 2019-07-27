@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/GamepadService.h"
 #include "mozilla/dom/ContentChild.h"
@@ -36,15 +36,15 @@ namespace {
 const char* kGamepadEnabledPref = "dom.gamepad.enabled";
 const char* kGamepadEventsEnabledPref =
   "dom.gamepad.non_standard_events.enabled";
-
-
+// Amount of time to wait before cleaning up gamepad resources
+// when no pages are listening for events.
 const int kCleanupDelayMS = 2000;
 const nsTArray<nsRefPtr<nsGlobalWindow> >::index_type NoIndex =
     nsTArray<nsRefPtr<nsGlobalWindow> >::NoIndex;
 
 StaticRefPtr<GamepadService> gGamepadServiceSingleton;
 
-} 
+} // namespace
 
 bool GamepadService::sShutdown = false;
 
@@ -85,14 +85,14 @@ GamepadService::BeginShutdown()
     mTimer->Cancel();
   }
   if (mStarted) {
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
       MaybeStopGamepadMonitoring();
     } else {
       ContentChild::GetSingleton()->SendGamepadListenerRemoved();
     }
     mStarted = false;
   }
-  
+  // Don't let windows call back to unregister during shutdown
   for (uint32_t i = 0; i < mListeners.Length(); i++) {
     mListeners[i]->SetHasGamepadEventListener(false);
   }
@@ -111,11 +111,11 @@ GamepadService::AddListener(nsGlobalWindow* aWindow)
   }
 
   if (mListeners.IndexOf(aWindow) != NoIndex) {
-    return; 
+    return; // already exists
   }
 
   if (!mStarted && mEnabled) {
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
       StartGamepadMonitoring();
     } else {
       ContentChild::GetSingleton()->SendGamepadListenerAdded();
@@ -132,13 +132,13 @@ GamepadService::RemoveListener(nsGlobalWindow* aWindow)
   MOZ_ASSERT(aWindow->IsInnerWindow());
 
   if (mShuttingDown) {
-    
-    
+    // Doesn't matter at this point. It's possible we're being called
+    // as a result of our own destructor here, so just bail out.
     return;
   }
 
   if (mListeners.IndexOf(aWindow) == NoIndex) {
-    return; 
+    return; // doesn't exist
   }
 
   mListeners.RemoveElement(aWindow);
@@ -166,16 +166,16 @@ GamepadService::AddGamepad(uint32_t aIndex,
                            uint32_t aNumButtons,
                            uint32_t aNumAxes)
 {
-  
+  //TODO: bug 852258: get initial button/axis state
   nsRefPtr<Gamepad> gamepad =
     new Gamepad(nullptr,
                 aId,
-                0, 
+                0, // index is set by global window
                 aMapping,
                 aNumButtons,
                 aNumAxes);
 
-  
+  // We store the gamepad related to its index given by the parent process.
   mGamepads.Put(aIndex, gamepad);
   NewConnectionEvent(aIndex, true);
 }
@@ -204,14 +204,14 @@ GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
 
   gamepad->SetButton(aButton, aPressed, aValue);
 
-  
-  
+  // Hold on to listeners in a separate array because firing events
+  // can mutate the mListeners array.
   nsTArray<nsRefPtr<nsGlobalWindow> > listeners(mListeners);
 
   for (uint32_t i = listeners.Length(); i > 0 ; ) {
     --i;
 
-    
+    // Only send events to non-background windows
     if (!listeners[i]->IsCurrentInnerWindow() ||
         listeners[i]->GetOuterWindow()->IsBackground()) {
       continue;
@@ -219,8 +219,8 @@ GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
 
     bool first_time = false;
     if (!WindowHasSeenGamepad(listeners[i], aIndex)) {
-      
-      
+      // This window hasn't seen this gamepad before, so
+      // send a connection event first.
       SetWindowHasSeenGamepad(listeners[i], aIndex);
       first_time = true;
     }
@@ -232,7 +232,7 @@ GamepadService::NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
         FireConnectionEvent(listeners[i], listenerGamepad, true);
       }
       if (mNonstandardEventsEnabled) {
-        
+        // Fire event
         FireButtonEvent(listeners[i], listenerGamepad, aButton, aValue);
       }
     }
@@ -270,14 +270,14 @@ GamepadService::NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis, double aValue)
   }
   gamepad->SetAxis(aAxis, aValue);
 
-  
-  
+  // Hold on to listeners in a separate array because firing events
+  // can mutate the mListeners array.
   nsTArray<nsRefPtr<nsGlobalWindow> > listeners(mListeners);
 
   for (uint32_t i = listeners.Length(); i > 0 ; ) {
     --i;
 
-    
+    // Only send events to non-background windows
     if (!listeners[i]->IsCurrentInnerWindow() ||
         listeners[i]->GetOuterWindow()->IsBackground()) {
       continue;
@@ -285,8 +285,8 @@ GamepadService::NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis, double aValue)
 
     bool first_time = false;
     if (!WindowHasSeenGamepad(listeners[i], aIndex)) {
-      
-      
+      // This window hasn't seen this gamepad before, so
+      // send a connection event first.
       SetWindowHasSeenGamepad(listeners[i], aIndex);
       first_time = true;
     }
@@ -298,7 +298,7 @@ GamepadService::NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis, double aValue)
         FireConnectionEvent(listeners[i], listenerGamepad, true);
       }
       if (mNonstandardEventsEnabled) {
-        
+        // Fire event
         FireAxisMoveEvent(listeners[i], listenerGamepad, aAxis, aValue);
       }
     }
@@ -337,22 +337,22 @@ GamepadService::NewConnectionEvent(uint32_t aIndex, bool aConnected)
     return;
   }
 
-  
-  
+  // Hold on to listeners in a separate array because firing events
+  // can mutate the mListeners array.
   nsTArray<nsRefPtr<nsGlobalWindow> > listeners(mListeners);
 
   if (aConnected) {
     for (uint32_t i = listeners.Length(); i > 0 ; ) {
       --i;
 
-      
+      // Only send events to non-background windows
       if (!listeners[i]->IsCurrentInnerWindow() ||
           listeners[i]->GetOuterWindow()->IsBackground()) {
         continue;
       }
 
-      
-      
+      // We don't fire a connected event here unless the window
+      // has seen input from at least one device.
       if (!listeners[i]->HasSeenGamepadInput()) {
         continue;
       }
@@ -361,24 +361,24 @@ GamepadService::NewConnectionEvent(uint32_t aIndex, bool aConnected)
 
       nsRefPtr<Gamepad> listenerGamepad = listeners[i]->GetGamepad(aIndex);
       if (listenerGamepad) {
-        
+        // Fire event
         FireConnectionEvent(listeners[i], listenerGamepad, aConnected);
       }
     }
   } else {
-    
-    
+    // For disconnection events, fire one at every window that has received
+    // data from this gamepad.
     for (uint32_t i = listeners.Length(); i > 0 ; ) {
       --i;
 
-      
-      
+      // Even background windows get these events, so we don't have to
+      // deal with the hassle of syncing the state of removed gamepads.
 
       if (WindowHasSeenGamepad(listeners[i], aIndex)) {
         nsRefPtr<Gamepad> listenerGamepad = listeners[i]->GetGamepad(aIndex);
         if (listenerGamepad) {
           listenerGamepad->SetConnected(false);
-          
+          // Fire event
           FireConnectionEvent(listeners[i], listenerGamepad, false);
           listeners[i]->RemoveGamepad(aIndex);
         }
@@ -418,14 +418,14 @@ GamepadService::SyncGamepadState(uint32_t aIndex, Gamepad* aGamepad)
   aGamepad->SyncState(gamepad);
 }
 
-
+// static
 bool
 GamepadService::IsServiceRunning()
 {
   return !!gGamepadServiceSingleton;
 }
 
-
+// static
 already_AddRefed<GamepadService>
 GamepadService::GetService()
 {
@@ -441,7 +441,7 @@ GamepadService::GetService()
   return service.forget();
 }
 
-
+// static
 bool
 GamepadService::IsAPIEnabled() {
   return Preferences::GetBool(kGamepadEnabledPref, false);
@@ -463,7 +463,7 @@ GamepadService::SetWindowHasSeenGamepad(nsGlobalWindow* aWindow,
   MOZ_ASSERT(aWindow->IsInnerWindow());
 
   if (mListeners.IndexOf(aWindow) == NoIndex) {
-    
+    // This window isn't even listening for gamepad events.
     return;
   }
 
@@ -482,13 +482,13 @@ GamepadService::SetWindowHasSeenGamepad(nsGlobalWindow* aWindow,
   }
 }
 
-
+// static
 void
 GamepadService::TimeoutHandler(nsITimer* aTimer, void* aClosure)
 {
-  
-  
-  
+  // the reason that we use self, instead of just using nsITimerCallback or nsIObserver
+  // is so that subclasses are free to use timers without worry about the base classes's
+  // usage.
   GamepadService* self = reinterpret_cast<GamepadService*>(aClosure);
   if (!self) {
     NS_ERROR("no self");
@@ -500,7 +500,7 @@ GamepadService::TimeoutHandler(nsITimer* aTimer, void* aClosure)
   }
 
   if (self->mListeners.Length() == 0) {
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
       MaybeStopGamepadMonitoring();
     } else {
       ContentChild::GetSingleton()->SendGamepadListenerRemoved();
@@ -549,5 +549,5 @@ GamepadService::Update(const GamepadChangeEvent& aEvent)
   }
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/Voicemail.h"
 
@@ -15,12 +15,12 @@
 #include "nsContentUtils.h"
 #include "nsServiceManagerUtils.h"
 
-
+// Service instantiation
 #include "ipc/VoicemailIPCService.h"
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
 #include "nsIGonkVoicemailService.h"
 #endif
-#include "nsXULAppAPI.h" 
+#include "nsXULAppAPI.h" // For XRE_GetProcessType()
 
 using namespace mozilla::dom;
 using mozilla::ErrorResult;
@@ -63,7 +63,7 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 NS_IMPL_ADDREF_INHERITED(Voicemail, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(Voicemail, DOMEventTargetHelper)
 
- already_AddRefed<Voicemail>
+/* static */ already_AddRefed<Voicemail>
 Voicemail::Create(nsPIDOMWindow* aWindow,
                   ErrorResult& aRv)
 {
@@ -142,8 +142,8 @@ Voicemail::GetItemByServiceId(const Optional<uint32_t>& aOptionalServiceId,
     }
   }
 
-  
-  
+  // For all retrieved providers, they should have service id
+  // < mStatuses.Length().
   MOZ_ASSERT(!provider || aActualServiceId < mStatuses.Length());
   return provider.forget();
 }
@@ -163,7 +163,7 @@ Voicemail::GetOrCreateStatus(uint32_t aServiceId,
   return res.forget();
 }
 
-
+// MozVoicemail WebIDL
 
 already_AddRefed<VoicemailStatus>
 Voicemail::GetStatus(const Optional<uint32_t>& aServiceId,
@@ -216,12 +216,12 @@ Voicemail::GetDisplayName(const Optional<uint32_t>& aServiceId,
   aRv = provider->GetDisplayName(aDisplayName);
 }
 
-
+// nsIVoicemailListener
 
 NS_IMETHODIMP
 Voicemail::NotifyInfoChanged(nsIVoicemailProvider* aProvider)
 {
-  
+  // Ignored.
   return NS_OK;
 }
 
@@ -250,14 +250,14 @@ NS_CreateVoicemailService()
 {
   nsCOMPtr<nsIVoicemailService> service;
 
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     service = new mozilla::dom::voicemail::VoicemailIPCService();
   } else {
 #if defined(MOZ_B2G_RIL)
 #if defined(MOZ_WIDGET_GONK)
     service = do_GetService(GONK_VOICEMAIL_SERVICE_CONTRACTID);
-#endif 
-#endif 
+#endif // MOZ_WIDGET_GONK
+#endif // MOZ_B2G_RIL
   }
 
   return service.forget();

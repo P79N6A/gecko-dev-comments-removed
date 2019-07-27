@@ -535,7 +535,7 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
     sMessageLoop->set_hang_timeouts(128, 8192);
   }
 
-  if (XRE_IsParentProcess() &&
+  if (XRE_GetProcessType() == GeckoProcessType_Default &&
       !BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO)) {
     UniquePtr<BrowserProcessSubThread> ioThread = MakeUnique<BrowserProcessSubThread>(BrowserProcessSubThread::IO);
 
@@ -733,7 +733,7 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
   
   
   
-  if (XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     mozilla::SystemMemoryReporter::Init();
   }
 
@@ -964,7 +964,7 @@ ShutdownXPCOM(nsIServiceManager* aServMgr)
   
   
   
-  if (XRE_IsContentProcess() && !IsVistaOrLater()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content && !IsVistaOrLater()) {
       NS_WARNING("Exiting child process early!");
       exit(0);
   }
@@ -1048,7 +1048,7 @@ ShutdownXPCOM(nsIServiceManager* aServMgr)
   
   
   
-  if (XRE_IsContentProcess()) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
       NS_WARNING("Exiting child process early!");
       exit(0);
   }

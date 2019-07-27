@@ -91,7 +91,7 @@ Crypto::GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
 
   uint8_t* data = aArray.Data();
 
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     InfallibleTArray<uint8_t> randomValues;
     
     ContentChild* cc = ContentChild::GetSingleton();

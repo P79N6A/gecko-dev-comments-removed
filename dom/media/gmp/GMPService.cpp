@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GMPService.h"
 #include "GMPServiceParent.h"
@@ -109,7 +109,7 @@ private:
     MOZ_ASSERT(NS_IsMainThread());
 
     if (!sSingletonService) {
-      if (XRE_IsParentProcess()) {
+      if (XRE_GetProcessType() == GeckoProcessType_Default) {
         nsRefPtr<GeckoMediaPluginServiceParent> service =
           new GeckoMediaPluginServiceParent();
         service->Init();
@@ -193,10 +193,10 @@ GeckoMediaPluginService::GMPCrashCallback::Run(const nsACString& aPluginName)
   CopyUTF8toUTF16(aPluginName, init.mPluginName);
   init.mSubmittedCrashReport = false;
 
-  
-  
-  
-  
+  // The following PluginCrashedEvent fields stay empty:
+  // init.mBrowserDumpID
+  // init.mPluginFilename
+  // TODO: Can/should we fill them?
 
   nsCOMPtr<nsPIDOMWindow> parentWindow;
   nsCOMPtr<nsIDocument> document;
@@ -256,8 +256,8 @@ GeckoMediaPluginService::AddPluginCrashedEventTarget(const uint32_t aPluginId,
   nsRefPtr<GMPCrashCallback> callback(new GMPCrashCallback(aPluginId, aParentWindow, doc));
   RemoveObsoletePluginCrashCallbacks();
 
-  
-  
+  // If the plugin with that ID has already crashed without being handled,
+  // just run the handler now.
   for (size_t i = mPluginCrashes.Length(); i != 0; --i) {
     size_t index = i - 1;
     const PluginCrash& crash = mPluginCrashes[index];
@@ -269,8 +269,8 @@ GeckoMediaPluginService::AddPluginCrashedEventTarget(const uint32_t aPluginId,
     }
   }
 
-  
-  
+  // Remember crash, so if a handler is added for it later, we report the
+  // crash to that window too.
   mPluginCrashCallbacks.AppendElement(callback);
 }
 
@@ -306,7 +306,7 @@ GeckoMediaPluginService::Init()
   MOZ_ASSERT(obsService);
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(obsService->AddObserver(this, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID, false)));
 
-  
+  // Kick off scanning for plugins
   nsCOMPtr<nsIThread> thread;
   return GetThread(getter_AddRefs(thread));
 }
@@ -339,17 +339,17 @@ GeckoMediaPluginService::GMPDispatch(nsIRunnable* event, uint32_t flags)
   return thread->Dispatch(r, flags);
 }
 
-
+// always call with getter_AddRefs, because it does
 NS_IMETHODIMP
 GeckoMediaPluginService::GetThread(nsIThread** aThread)
 {
   MOZ_ASSERT(aThread);
 
-  
+  // This can be called from any thread.
   MutexAutoLock lock(mMutex);
 
   if (!mGMPThread) {
-    
+    // Don't allow the thread to be created after shutdown has started.
     if (mGMPThreadShutdown) {
       return NS_ERROR_FAILURE;
     }
@@ -359,7 +359,7 @@ GeckoMediaPluginService::GetThread(nsIThread** aThread)
       return rv;
     }
 
-    
+    // Tell the thread to initialize plugins
     InitializePlugins();
   }
 
@@ -564,5 +564,5 @@ GeckoMediaPluginService::HasPluginForAPI(const nsACString& aAPI,
   return GetPluginVersionForAPI(aAPI, aTags, aOutHavePlugin, unused);
 }
 
-} 
-} 
+} // namespace gmp
+} // namespace mozilla

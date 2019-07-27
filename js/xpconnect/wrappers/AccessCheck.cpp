@@ -228,7 +228,7 @@ AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper, Hand
     
     if (mozilla::jsipc::IsWrappedCPOW(obj) &&
         js::GetObjectCompartment(wrapper) == js::GetObjectCompartment(xpc::UnprivilegedJunkScope()) &&
-        XRE_IsParentProcess())
+        XRE_GetProcessType() == GeckoProcessType_Default)
     {
         return true;
     }

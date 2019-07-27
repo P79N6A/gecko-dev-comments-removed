@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GMPServiceChild.h"
 #include "mozilla/dom/ContentChild.h"
@@ -33,7 +33,7 @@ namespace gmp {
 already_AddRefed<GeckoMediaPluginServiceChild>
 GeckoMediaPluginServiceChild::GetSingleton()
 {
-  MOZ_ASSERT(!XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Default);
   nsRefPtr<GeckoMediaPluginService> service(
     GeckoMediaPluginService::GetGeckoMediaPluginService());
 #ifdef DEBUG
@@ -339,7 +339,7 @@ private:
   base::ProcessId mOtherPid;
 };
 
-
+/* static */
 PGMPServiceChild*
 GMPServiceChild::Create(Transport* aTransport, ProcessId aOtherPid)
 {
@@ -365,5 +365,5 @@ GMPServiceChild::Create(Transport* aTransport, ProcessId aOtherPid)
   return result;
 }
 
-} 
-} 
+} // namespace gmp
+} // namespace mozilla

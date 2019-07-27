@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/BasicEvents.h"
 #include "mozilla/DebugOnly.h"
@@ -9,9 +9,9 @@
 #include "windows.h"
 #include "windowsx.h"
 
-
-
-
+// XXXbz windowsx.h defines GetFirstChild, GetNextSibling,
+// GetPrevSibling are macros, apparently... Eeevil.  We have functions
+// called that on some classes, so undef them.
 #undef GetFirstChild
 #undef GetNextSibling
 #undef GetPrevSibling
@@ -43,9 +43,9 @@ static UINT sWM_FLASHBOUNCEMSG = 0;
 
 typedef nsTWeakRef<class nsPluginNativeWindowWin> PluginWindowWeakRef;
 
-
-
-
+/**
+ *  PLEvent handling code
+ */
 class PluginWindowEvent : public nsRunnable {
 public:
   PluginWindowEvent();
@@ -93,9 +93,9 @@ void PluginWindowEvent::Init(const PluginWindowWeakRef &ref, HWND aWnd,
   mLParam = aLParam;
 }
 
-
-
-
+/**
+ *  nsPluginNativeWindow Windows specific class declaration
+ */
 
 class nsPluginNativeWindowWin : public nsPluginNativeWindow {
 public:
@@ -109,7 +109,7 @@ private:
   nsresult UndoSubclassAndAssociateWindow();
 
 public:
-  
+  // locals
   WNDPROC GetPrevWindowProc();
   void SetPrevWindowProc(WNDPROC proc) { mPluginWinProc = proc; }
   WNDPROC GetWindowProc();
@@ -141,16 +141,16 @@ static bool ProcessFlashMessageDelayed(nsPluginNativeWindowWin * aWin, nsNPAPIPl
   NS_ENSURE_TRUE(aInst, false);
 
   if (msg == sWM_FLASHBOUNCEMSG) {
-    
+    // See PluginWindowEvent::Run() below.
     NS_ASSERTION((sWM_FLASHBOUNCEMSG != 0), "RegisterWindowMessage failed in flash plugin WM_USER message handling!");
     ::CallWindowProc((WNDPROC)aWin->GetWindowProc(), hWnd, WM_USER_FLASH, wParam, lParam);
     return true;
   }
 
   if (msg != WM_USER_FLASH)
-    return false; 
+    return false; // no need to delay
 
-  
+  // do stuff
   nsCOMPtr<nsIRunnable> pwe = aWin->GetPluginWindowEvent(hWnd, msg, wParam, lParam);
   if (pwe) {
     NS_DispatchToCurrentThread(pwe);
@@ -180,45 +180,45 @@ NS_IMETHODIMP nsDelayedPopupsEnabledEvent::Run()
 
 static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-
-
-
-
-
-
-
-
-
-
+/**
+ * New plugin window procedure
+ *
+ * e10s note - this subclass, and the hooks we set below using WindowsDllInterceptor
+ * are currently not in use when running with e10s. (Utility calls like CallSetWindow
+ * are still in use in the content process.) We would like to keep things this away,
+ * essentially making all the hacks here obsolete. Some of the mitigation work here has
+ * already been supplanted by code in PluginInstanceChild. The rest we eventually want
+ * to rip out.
+ */
 static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   nsPluginNativeWindowWin * win = (nsPluginNativeWindowWin *)::GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
   if (!win)
     return TRUE;
 
-  
-  
-  
+  // The DispatchEvent(NS_PLUGIN_ACTIVATE) below can trigger a reentrant focus
+  // event which might destroy us.  Hold a strong ref on the plugin instance
+  // to prevent that, bug 374229.
   nsRefPtr<nsNPAPIPluginInstance> inst;
   win->GetPluginInstance(inst);
 
-  
-  
-  
+  // Real may go into a state where it recursivly dispatches the same event
+  // when subclassed. If this is Real, lets examine the event and drop it
+  // on the floor if we get into this recursive situation. See bug 192914.
   if (win->mPluginType == nsPluginHost::eSpecialType_RealPlayer) {
     if (sInMessageDispatch && msg == sLastMsg)
       return true;
-    
+    // Cache the last message sent
     sLastMsg = msg;
   }
 
   bool enablePopups = false;
 
-  
-  
-  
-  
-  
+  // Activate/deactivate mouse capture on the plugin widget
+  // here, before we pass the Windows event to the plugin
+  // because its possible our widget won't get paired events
+  // (see bug 131007) and we'll look frozen. Note that this
+  // is also done in ChildWindow::DispatchMouseEvent.
   switch (msg) {
     case WM_LBUTTONDOWN:
     case WM_MBUTTONDOWN:
@@ -232,7 +232,7 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
     case WM_LBUTTONUP:
       enablePopups = true;
 
-      
+      // fall through
     case WM_MBUTTONUP:
     case WM_RBUTTONUP: {
       nsCOMPtr<nsIWidget> widget;
@@ -242,32 +242,32 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
       break;
     }
     case WM_KEYDOWN:
-      
+      // Ignore repeating keydown messages...
       if ((lParam & 0x40000000) != 0) {
         break;
       }
 
-      
+      // fall through
     case WM_KEYUP:
       enablePopups = true;
 
       break;
 
     case WM_MOUSEACTIVATE: {
-      
-      
-      
-      
+      // If a child window of this plug-in is already focused,
+      // don't focus the parent to avoid focus dance. We'll
+      // receive a follow up WM_SETFOCUS which will notify
+      // the appropriate window anyway.
       HWND focusedWnd = ::GetFocus();
       if (!::IsChild((HWND)win->window, focusedWnd)) {
-        
-        
-        
-        
-        
-        
-        
-        
+        // Notify the dom / focus manager the plugin has focus when one of
+        // it's child windows receives it. OOPP specific - this code is
+        // critical in notifying the dom of focus changes when the plugin
+        // window in the child process receives focus via a mouse click.
+        // WM_MOUSEACTIVATE is sent by nsWindow via a custom window event
+        // sent from PluginInstanceParent in response to focus events sent
+        // from the child. (bug 540052) Note, this gui event could also be
+        // sent directly from widget.
         nsCOMPtr<nsIWidget> widget;
         win->GetPluginWidget(getter_AddRefs(widget));
         if (widget) {
@@ -281,13 +281,13 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
 
     case WM_SETFOCUS:
     case WM_KILLFOCUS: {
-      
-      
+      // RealPlayer can crash, don't process the message for those,
+      // see bug 328675.
       if (win->mPluginType == nsPluginHost::eSpecialType_RealPlayer && msg == sLastMsg)
         return TRUE;
-      
-      
-      
+      // Make sure setfocus and killfocus get through to the widget procedure
+      // even if they are eaten by the plugin. Also make sure we aren't calling
+      // recursively.
       WNDPROC prevWndProc = win->GetPrevWindowProc();
       if (prevWndProc && !sInPreviousMessageDispatch) {
         sInPreviousMessageDispatch = true;
@@ -298,9 +298,9 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
     }
   }
 
-  
-  
-  
+  // Macromedia Flash plugin may flood the message queue with some special messages
+  // (WM_USER+1) causing 100% CPU consumption and GUI freeze, see mozilla bug 132759;
+  // we can prevent this from happening by delaying the processing such messages;
   if (win->mPluginType == nsPluginHost::eSpecialType_Flash) {
     if (ProcessFlashMessageDelayed(win, inst, hWnd, msg, wParam, lParam))
       return TRUE;
@@ -327,19 +327,19 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   sInMessageDispatch = false;
 
   if (inst) {
-    
-    
-    
-    
-    
-    
-    
-    
+    // Popups are enabled (were enabled before the call to
+    // CallWindowProc()). Some plugins (at least the flash player)
+    // post messages from their key handlers etc that delay the actual
+    // processing, so we need to delay the disabling of popups so that
+    // popups remain enabled when the flash player ends up processing
+    // the actual key handlers. We do this by posting an event that
+    // does the disabling, this way our disabling will happen after
+    // the handlers in the plugin are done.
 
-    
-    
-    
-    
+    // Note that it's not fatal if any of this fails (which won't
+    // happen unless we're out of memory anyways) since the plugin
+    // code will pop any popup state pushed by this plugin on
+    // destruction.
 
     nsCOMPtr<nsIRunnable> event = new nsDelayedPopupsEnabledEvent(inst);
     if (event)
@@ -354,15 +354,15 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
   return mozilla::CallWindowProcCrashProtected(PluginWndProcInternal, hWnd, msg, wParam, lParam);
 }
 
-
-
-
-
-
-
-
-
-
+/*
+ * Flash will reset the subclass of our widget at various times.
+ * (Notably when entering and exiting full screen mode.) This
+ * occurs independent of the main plugin window event procedure.
+ * We trap these subclass calls to prevent our subclass hook from
+ * getting dropped.
+ * Note, ascii versions can be nixed once flash versions < 10.1
+ * are considered obsolete.
+ */
 static WindowsDllInterceptor sUser32Intercept;
 
 #ifdef _WIN64
@@ -417,14 +417,14 @@ SetWindowLongAHook(HWND hWnd,
   if (SetWindowLongHookCheck(hWnd, nIndex, newLong))
       return sUser32SetWindowLongAHookStub(hWnd, nIndex, newLong);
 
-  
+  // Set flash's new subclass to get the result.
   LONG_PTR proc = sUser32SetWindowLongAHookStub(hWnd, nIndex, newLong);
 
-  
+  // We already checked this in SetWindowLongHookCheck
   nsPluginNativeWindowWin * win =
     (nsPluginNativeWindowWin *)GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
 
-  
+  // Hook our subclass back up, just like we do on setwindow.
   win->SetPrevWindowProc(
     reinterpret_cast<WNDPROC>(sUser32SetWindowLongWHookStub(hWnd, nIndex,
       reinterpret_cast<LONG_PTR>(PluginWndProc))));
@@ -446,14 +446,14 @@ SetWindowLongWHook(HWND hWnd,
   if (SetWindowLongHookCheck(hWnd, nIndex, newLong))
       return sUser32SetWindowLongWHookStub(hWnd, nIndex, newLong);
 
-  
+  // Set flash's new subclass to get the result.
   LONG_PTR proc = sUser32SetWindowLongWHookStub(hWnd, nIndex, newLong);
 
-  
+  // We already checked this in SetWindowLongHookCheck
   nsPluginNativeWindowWin * win =
     (nsPluginNativeWindowWin *)GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
 
-  
+  // Hook our subclass back up, just like we do on setwindow.
   win->SetPrevWindowProc(
     reinterpret_cast<WNDPROC>(sUser32SetWindowLongWHookStub(hWnd, nIndex,
       reinterpret_cast<LONG_PTR>(PluginWndProc))));
@@ -485,12 +485,12 @@ HookSetWindowLongPtr()
 #endif
 }
 
-
-
-
+/**
+ *   nsPluginNativeWindowWin implementation
+ */
 nsPluginNativeWindowWin::nsPluginNativeWindowWin() : nsPluginNativeWindow()
 {
-  
+  // initialize the struct fields
   window = nullptr;
   x = 0;
   y = 0;
@@ -511,8 +511,8 @@ nsPluginNativeWindowWin::nsPluginNativeWindowWin() : nsPluginNativeWindow()
 
 nsPluginNativeWindowWin::~nsPluginNativeWindowWin()
 {
-  
-  
+  // clear weak reference to self to prevent any pending events from
+  // dereferencing this.
   mWeakRef.forget();
 }
 
@@ -540,13 +540,13 @@ NS_IMETHODIMP PluginWindowEvent::Run()
   win->GetPluginInstance(inst);
 
   if (GetMsg() == WM_USER_FLASH) {
-    
-    
+    // XXX Unwind issues related to runnable event callback depth for this
+    // event and destruction of the plugin. (Bug 493601)
     ::PostMessage(hWnd, sWM_FLASHBOUNCEMSG, GetWParam(), GetLParam());
   }
   else {
-    
-    
+    // Currently not used, but added so that processing events here
+    // is more generic.
     ::CallWindowProc(win->GetWindowProc(),
                      hWnd,
                      GetMsg(),
@@ -569,9 +569,9 @@ nsPluginNativeWindowWin::GetPluginWindowEvent(HWND aWnd, UINT aMsg, WPARAM aWPar
 
   PluginWindowEvent *event;
 
-  
-  
-  
+  // We have the ability to alloc if needed in case in the future some plugin
+  // should post multiple PostMessages. However, this could lead to many
+  // alloc's per second which could become a performance issue. See bug 169247.
   if (!mCachedPluginWindowEvent)
   {
     event = new PluginWindowEvent();
@@ -594,19 +594,19 @@ nsPluginNativeWindowWin::GetPluginWindowEvent(HWND aWnd, UINT aMsg, WPARAM aWPar
 
 nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> &aPluginInstance)
 {
-  
+  // Note, 'window' can be null
 
-  
-  
+  // check the incoming instance, null indicates that window is going away and we are
+  // not interested in subclassing business any more, undo and don't subclass
   if (!aPluginInstance) {
     UndoSubclassAndAssociateWindow();
-    
+    // release plugin instance
     SetPluginInstance(nullptr);
     nsPluginNativeWindow::CallSetWindow(aPluginInstance);
     return NS_OK;
   }
 
-  
+  // check plugin mime type and cache it if it will need special treatment later
   if (mPluginType == nsPluginHost::eSpecialType_None) {
     const char* mimetype = nullptr;
     if (NS_SUCCEEDED(aPluginInstance->GetMIMEType(&mimetype)) && mimetype) {
@@ -614,25 +614,25 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
     }
   }
 
-  
-  
-  
-  if (!XRE_IsParentProcess()) {
+  // With e10s we execute in the content process and as such we don't
+  // have access to native widgets. CallSetWindow and skip native widget
+  // subclassing.
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     nsPluginNativeWindow::CallSetWindow(aPluginInstance);
     return NS_OK;
   }
 
   if (window) {
-    
-    
-    
+    // grab the widget procedure before the plug-in does a subclass in
+    // setwindow. We'll use this in PluginWndProc for forwarding focus
+    // events to the widget.
     WNDPROC currentWndProc =
       (WNDPROC)::GetWindowLongPtr((HWND)window, GWLP_WNDPROC);
     if (!mPrevWinProc && currentWndProc != PluginWndProc)
       mPrevWinProc = currentWndProc;
 
-    
-    
+    // PDF plugin v7.0.9, v8.1.3, and v9.0 subclass parent window, bug 531551
+    // V8.2.2 and V9.1 don't have such problem.
     if (mPluginType == nsPluginHost::eSpecialType_PDF) {
       HWND parent = ::GetParent((HWND)window);
       if (mParentWnd != parent) {
@@ -662,12 +662,12 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
 
   HWND hWnd = (HWND)window;
 
-  
+  // check if we need to subclass
   WNDPROC currentWndProc = (WNDPROC)::GetWindowLongPtr(hWnd, GWLP_WNDPROC);
   if (currentWndProc == PluginWndProc)
     return NS_OK;
 
-  
+  // If the plugin reset the subclass, set it back.
   if (mPluginWinProc) {
 #ifdef DEBUG
     NS_WARNING("A plugin cleared our subclass - resetting.");
@@ -683,9 +683,9 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
   }
 
   LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
-  
-  
-  
+  // Out of process plugins must not have the WS_CLIPCHILDREN style set on their
+  // parent windows or else synchronous paints (via UpdateWindow() and others)
+  // will cause deadlocks.
   if (::GetPropW(hWnd, L"PluginInstanceParentProperty"))
     style &= ~WS_CLIPCHILDREN;
   else
@@ -707,13 +707,13 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
 
 nsresult nsPluginNativeWindowWin::UndoSubclassAndAssociateWindow()
 {
-  
+  // remove window property
   HWND hWnd = (HWND)window;
   if (IsWindow(hWnd))
     ::RemoveProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
 
-  
-  
+  // restore the original win proc
+  // but only do this if this were us last time
   if (mPluginWinProc) {
     WNDPROC currentWndProc = (WNDPROC)::GetWindowLongPtr(hWnd, GWLP_WNDPROC);
     if (currentWndProc == PluginWndProc)

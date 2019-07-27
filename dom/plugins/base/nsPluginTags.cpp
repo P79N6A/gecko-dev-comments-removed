@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsPluginTags.h"
 
@@ -25,18 +25,18 @@
 using mozilla::dom::EncodingUtils;
 using namespace mozilla;
 
-
-
+// These legacy flags are used in the plugin registry. The states are now
+// stored in prefs, but we still need to be able to import them.
 #define NS_PLUGIN_FLAG_ENABLED      0x0001    // is this plugin enabled?
-
+// no longer used                   0x0002    // reuse only if regenerating pluginreg.dat
 #define NS_PLUGIN_FLAG_FROMCACHE    0x0004    // this plugintag info was loaded from cache
-
+// no longer used                   0x0008    // reuse only if regenerating pluginreg.dat
 #define NS_PLUGIN_FLAG_CLICKTOPLAY  0x0020    // this is a click-to-play plugin
 
 static const char kPrefDefaultEnabledState[] = "plugin.default.state";
 static const char kPrefDefaultEnabledStateXpi[] = "plugin.defaultXpi.state";
 
-
+// check comma delimited extensions
 static bool ExtensionInList(const nsCString& aExtensionList,
                             const nsACString& aExtension)
 {
@@ -50,8 +50,8 @@ static bool ExtensionInList(const nsCString& aExtensionList,
   return false;
 }
 
-
-
+// Search for an extension in an extensions array, and return its
+// matching mime type
 static bool SearchExtensions(const nsTArray<nsCString> & aExtensions,
                              const nsTArray<nsCString> & aMimeTypes,
                              const nsACString & aFindExtension,
@@ -87,8 +87,8 @@ MakeNiceFileName(const nsCString & aFileName)
       break;
   }
 
-  
-  
+  // If it turns out that niceNameLength <= 0, we'll fall back and use the
+  // entire aFileName (which we've already taken care of, a few lines back).
   if (niceNameLength > 0) {
     niceName.Truncate(niceNameLength);
   }
@@ -139,7 +139,7 @@ GetStatePrefNameForPlugin(nsPluginTag* aTag)
   return MakePrefNameForPlugin("state", aTag);
 }
 
-
+/* nsPluginTag */
 
 uint32_t nsPluginTag::sNextId;
 
@@ -260,15 +260,15 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
 
     nsAutoCString mimeType(aMimeTypes[i]);
 
-    
-    
+    // Convert the MIME type, which is case insensitive, to lowercase in order
+    // to properly handle a mixed-case type.
     ToLowerCase(mimeType);
 
     if (!nsPluginHost::IsTypeWhitelisted(mimeType.get())) {
       continue;
     }
 
-    
+    // Look for certain special plugins.
     switch (nsPluginHost::GetSpecialType(mimeType)) {
       case nsPluginHost::eSpecialType_Java:
         mIsJavaPlugin = true;
@@ -281,15 +281,15 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
         break;
     }
 
-    
+    // Fill in our MIME type array.
     mMimeTypes.AppendElement(mimeType);
 
-    
+    // Now fill in the MIME descriptions.
     if (aMimeDescriptions && aMimeDescriptions[i]) {
-      
-      
-      
-      
+      // we should cut off the list of suffixes which the mime
+      // description string may have, see bug 53895
+      // it is usually in form "some description (*.sf1, *.sf2)"
+      // so we can search for the opening round bracket
       char cur = '\0';
       char pre = '\0';
       char * p = PL_strrchr(aMimeDescriptions[i], '(');
@@ -303,7 +303,7 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
         }
       }
       mMimeDescriptions.AppendElement(nsCString(aMimeDescriptions[i]));
-      
+      // restore the original string
       if (cur != '\0') {
         *p = cur;
       }
@@ -314,7 +314,7 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
       mMimeDescriptions.AppendElement(nsCString());
     }
 
-    
+    // Now fill in the extensions.
     if (aExtensions && aExtensions[i]) {
       mExtensions.AppendElement(nsCString(aExtensions[i]));
     } else {
@@ -366,9 +366,9 @@ nsresult nsPluginTag::EnsureMembersAreUTF8()
     ConvertToUTF8(decoder, mFullPath);
   }
   
-  
-  
-  
+  // The description of the plug-in and the various MIME type descriptions
+  // should be encoded in the standard plain text file encoding for this system.
+  // XXX should we add kPlatformCharsetSel_PluginResource?
   rv = pcs->GetCharset(kPlatformCharsetSel_PlainTextInFile, charset);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!charset.LowerCaseEqualsLiteral("utf-8")) {
@@ -595,8 +595,8 @@ nsPluginTag::HasSameNameAndMimes(const nsPluginTag *aPluginTag) const
 
 void nsPluginTag::TryUnloadPlugin(bool inShutdown)
 {
-  
-  
+  // We never want to send NPP_Shutdown to an in-process plugin unless
+  // this process is shutting down.
   if (!mPlugin) {
     return;
   }
@@ -651,7 +651,7 @@ nsPluginTag::GetBlocklistState(uint32_t *aResult)
     return NS_OK;
   }
 
-  if (!XRE_IsParentProcess()) {
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
     *aResult = nsIBlocklistService::STATE_BLOCKED;
     dom::ContentChild* cp = dom::ContentChild::GetSingleton();
     if (!cp->SendGetBlocklistState(mId, aResult)) {
@@ -666,8 +666,8 @@ nsPluginTag::GetBlocklistState(uint32_t *aResult)
       return NS_OK;
     }
 
-    
-    
+    // The EmptyString()s are so we use the currently running application
+    // and toolkit versions
     if (NS_FAILED(blocklist->GetPluginBlocklistState(this, EmptyString(),
                                                      EmptyString(), aResult))) {
       *aResult = nsIBlocklistService::STATE_NOT_BLOCKED;
@@ -679,7 +679,7 @@ nsPluginTag::GetBlocklistState(uint32_t *aResult)
   mCachedBlocklistState = (uint16_t) *aResult;
   mCachedBlocklistStateValid = true;
   return NS_OK;
-#endif 
+#endif // defined(MOZ_WIDGET_ANDROID)
 }
 
 bool

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "QuotaManager.h"
 
@@ -58,27 +58,27 @@
 #include "UsageInfo.h"
 #include "Utilities.h"
 
-
-
+// The amount of time, in milliseconds, that our IO thread will stay alive
+// after the last event it processes.
 #define DEFAULT_THREAD_TIMEOUT_MS 30000
 
-
-
+// The amount of time, in milliseconds, that we will wait for active storage
+// transactions on shutdown before aborting them.
 #define DEFAULT_SHUTDOWN_TIMER_MS 30000
 
-
-
+// Preference that users can set to override temporary storage smart limit
+// calculation.
 #define PREF_FIXED_LIMIT "dom.quotaManager.temporaryStorage.fixedLimit"
 #define PREF_CHUNK_SIZE "dom.quotaManager.temporaryStorage.chunkSize"
 
-
+// Preference that is used to enable testing features
 #define PREF_TESTING_FEATURES "dom.quotaManager.testing"
 
-
+// profile-before-change, when we need to shut down quota manager
 #define PROFILE_BEFORE_CHANGE_OBSERVER_ID "profile-before-change"
 
-
-
+// The name of the file that we use to load/save the last access time of an
+// origin.
 #define METADATA_FILE_NAME ".metadata"
 
 #define PERMISSION_DEFAUT_PERSISTENT_STORAGE "default-persistent-storage"
@@ -124,13 +124,13 @@ enum AppId {
   kUnknownAppId = nsIScriptSecurityManager::UNKNOWN_APP_ID
 };
 
-} 
+} // anonymous namespace
 
 BEGIN_QUOTA_NAMESPACE
 
-
-
-
+// A struct that contains the information corresponding to a pending or
+// running operation that requires synchronization (e.g. opening a db,
+// clearing dbs for an origin, etc).
 struct SynchronizedOp
 {
   SynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
@@ -139,7 +139,7 @@ struct SynchronizedOp
 
   ~SynchronizedOp();
 
-  
+  // Test whether this SynchronizedOp needs to wait for the given op.
   bool
   MustWaitFor(const SynchronizedOp& aOp);
 
@@ -164,8 +164,8 @@ public:
   NS_IMETHOD
   Run();
 
-  
-  
+  // Blocks the current thread until origins are collected on the main thread.
+  // The returned value contains an aggregate size of those origins.
   int64_t
   BlockAndReturnOriginsForEviction(nsTArray<OriginInfo*>& aOriginInfos);
 
@@ -178,33 +178,33 @@ private:
   mozilla::Mutex& mMutex;
   mozilla::CondVar mCondVar;
 
-  
+  // The members below are protected by mMutex.
   nsTArray<OriginInfo*> mOriginInfos;
   uint64_t mSizeToBeFreed;
   bool mWaiting;
 };
 
-
-
-
-
-
-
-
-
+// Responsible for clearing the storage files for a particular origin on the
+// IO thread. Created when nsIQuotaManager::ClearStoragesForURI is called.
+// Runs three times, first on the main thread, next on the IO thread, and then
+// finally again on the main thread. While on the IO thread the runnable will
+// actually remove the origin's storage files and the directory that contains
+// them before dispatching itself back to the main thread. When back on the main
+// thread the runnable will notify the QuotaManager that the job has been
+// completed.
 class OriginClearRunnable final : public nsRunnable
 {
   enum CallbackState {
-    
+    // Not yet run.
     Pending = 0,
 
-    
+    // Running on the main thread in the callback for OpenAllowed.
     OpenAllowed,
 
-    
+    // Running on the IO thread.
     IO,
 
-    
+    // Running on the main thread after all work is done.
     Complete
   };
 
@@ -251,32 +251,32 @@ private:
   CallbackState mCallbackState;
 };
 
-
-
-
-
-
-
-
-
+// Responsible for calculating the amount of space taken up by storages of a
+// certain origin. Created when nsIQuotaManager::GetUsageForURI is called.
+// May be canceled with nsIQuotaRequest::Cancel. Runs three times, first
+// on the main thread, next on the IO thread, and then finally again on the main
+// thread. While on the IO thread the runnable will calculate the size of all
+// files in the origin's directory before dispatching itself back to the main
+// thread. When on the main thread the runnable will call the callback and then
+// notify the QuotaManager that the job has been completed.
 class AsyncUsageRunnable final : public UsageInfo,
                                  public nsRunnable,
                                  public nsIQuotaRequest
 {
   enum CallbackState {
-    
+    // Not yet run.
     Pending = 0,
 
-    
+    // Running on the main thread in the callback for OpenAllowed.
     OpenAllowed,
 
-    
+    // Running on the IO thread.
     IO,
 
-    
+    // Running on the main thread after all work is done.
     Complete,
 
-    
+    // Running on the main thread after skipping the work
     Shortcut
   };
 
@@ -319,8 +319,8 @@ public:
 private:
   ~AsyncUsageRunnable() {}
 
-  
-  
+  // Run calls the RunInternal method and makes sure that we always dispatch
+  // to the main thread in case of an error.
   inline nsresult
   RunInternal();
 
@@ -341,16 +341,16 @@ private:
 class ResetOrClearRunnable final : public nsRunnable
 {
   enum CallbackState {
-    
+    // Not yet run.
     Pending = 0,
 
-    
+    // Running on the main thread in the callback for OpenAllowed.
     OpenAllowed,
 
-    
+    // Running on the IO thread.
     IO,
 
-    
+    // Running on the main thread after all work is done.
     Complete
   };
 
@@ -393,28 +393,28 @@ private:
   bool mClear;
 };
 
-
-
-
-
-
-
-
-
-
+// Responsible for finalizing eviction of certian origins (storage files have
+// been already cleared, we just need to release IO thread only objects and
+// allow next synchronized ops for evicted origins). Created when
+// QuotaManager::FinalizeOriginEviction is called. Runs three times, first
+// on the main thread, next on the IO thread, and then finally again on the main
+// thread. While on the IO thread the runnable will release IO thread only
+// objects before dispatching itself back to the main thread. When back on the
+// main thread the runnable will call QuotaManager::AllowNextSynchronizedOp.
+// The runnable can also run in a shortened mode (runs only twice).
 class FinalizeOriginEvictionRunnable final : public nsRunnable
 {
   enum CallbackState {
-    
+    // Not yet run.
     Pending = 0,
 
-    
+    // Running on the main thread in the callback for OpenAllowed.
     OpenAllowed,
 
-    
+    // Running on the IO thread.
     IO,
 
-    
+    // Running on the main thread after IO work is done.
     Complete
   };
 
@@ -488,7 +488,7 @@ AssertCurrentThreadOwnsQuotaMutex()
 void
 ReportInternalError(const char* aFile, uint32_t aLine, const char* aStr)
 {
-  
+  // Get leaf of file path
   for (const char* p = aFile; *p; ++p) {
     if (*p == '/' && *(p + 1)) {
       aFile = p + 1;
@@ -508,7 +508,7 @@ namespace {
 QuotaManager* gInstance = nullptr;
 mozilla::Atomic<bool> gShutdown(false);
 
-
+// Constants for temporary storage limit computing.
 static const int32_t kDefaultFixedLimitKB = -1;
 static const uint32_t kDefaultChunkSizeKB = 10 * 1024;
 int32_t gFixedLimitKB = kDefaultFixedLimitKB;
@@ -516,8 +516,8 @@ uint32_t gChunkSizeKB = kDefaultChunkSizeKB;
 
 bool gTestingEnabled = false;
 
-
-
+// A callback runnable used by the TransactionPool when it's safe to proceed
+// with a SetVersion/DeleteDatabase/etc.
 class WaitForTransactionsToFinishRunnable final : public nsRunnable
 {
 public:
@@ -540,7 +540,7 @@ public:
   }
 
 private:
-  
+  // The QuotaManager holds this alive.
   SynchronizedOp* mOp;
   uint32_t mCountdown;
 };
@@ -647,7 +647,7 @@ public:
 class MOZ_STACK_CLASS OriginParser final
 {
   static bool
-  IgnoreWhitespace(char16_t )
+  IgnoreWhitespace(char16_t /* aChar */)
   {
     return false;
   }
@@ -756,14 +756,19 @@ struct MOZ_STACK_CLASS InactiveOriginsInfo
   nsTArray<OriginInfo*>& origins;
 };
 
+bool
+IsMainProcess()
+{
+  return XRE_GetProcessType() == GeckoProcessType_Default;
+}
 
 void
 SanitizeOriginString(nsCString& aOrigin)
 {
-  
-  
-  
-  
+  // We want profiles to be platform-independent so we always need to replace
+  // the same characters on every platform. Windows has the most extensive set
+  // of illegal characters so we use its FILE_ILLEGAL_CHARACTERS and
+  // FILE_PATH_SEPARATOR.
   static const char kReplaceChars[] = CONTROL_CHARACTERS "/:*?\"<>|\\";
 
 #ifdef XP_WIN
@@ -861,7 +866,7 @@ GetLastModifiedTime(nsIFile* aFile, int64_t* aTimestamp)
           return rv;
         }
 
-        
+        // Need to convert from milliseconds to microseconds.
         MOZ_ASSERT((INT64_MAX / PR_USEC_PER_MSEC) > timestamp);
         timestamp *= int64_t(PR_USEC_PER_MSEC);
 
@@ -1198,8 +1203,8 @@ MaybeUpgradeOriginDirectory(nsIFile* aDirectory)
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!exists) {
-    
-    
+    // Directory structure upgrade needed.
+    // Move all files to IDB specific directory.
 
     nsString idbDirectoryName;
     rv = Client::TypeToText(Client::IDB, idbDirectoryName);
@@ -1255,14 +1260,14 @@ MaybeUpgradeOriginDirectory(nsIFile* aDirectory)
   return NS_OK;
 }
 
-
-
-
+// This method computes and returns our best guess for the temporary storage
+// limit (in bytes), based on the amount of space users have free on their hard
+// drive and on given temporary storage usage (also in bytes).
 nsresult
 GetTemporaryStorageLimit(nsIFile* aDirectory, uint64_t aCurrentUsage,
                          uint64_t* aLimit)
 {
-  
+  // Check for free space on device where temporary storage directory lives.
   int64_t bytesAvailable;
   nsresult rv = aDirectory->GetDiskSpaceAvailable(&bytesAvailable);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1272,19 +1277,19 @@ GetTemporaryStorageLimit(nsIFile* aDirectory, uint64_t aCurrentUsage,
   uint64_t availableKB =
     static_cast<uint64_t>((bytesAvailable + aCurrentUsage) / 1024);
 
-  
-  
-  
+  // Grow/shrink in gChunkSizeKB units, deliberately, so that in the common case
+  // we don't shrink temporary storage and evict origin data every time we
+  // initialize.
   availableKB = (availableKB / gChunkSizeKB) * gChunkSizeKB;
 
-  
+  // Allow temporary storage to consume up to half the available space.
   uint64_t resultKB = availableKB * .50;
 
   *aLimit = resultKB * 1024;
   return NS_OK;
 }
 
-} 
+} // anonymous namespace
 
 QuotaManager::QuotaManager()
 : mQuotaMutex("QuotaManager.mQuotaMutex"),
@@ -1304,7 +1309,7 @@ QuotaManager::~QuotaManager()
   gInstance = nullptr;
 }
 
-
+// static
 QuotaManager*
 QuotaManager::GetOrCreate()
 {
@@ -1324,37 +1329,37 @@ QuotaManager::GetOrCreate()
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     NS_ENSURE_TRUE(obs, nullptr);
 
-    
+    // We need this callback to know when to shut down all our threads.
     rv = obs->AddObserver(instance, PROFILE_BEFORE_CHANGE_OBSERVER_ID, false);
     NS_ENSURE_SUCCESS(rv, nullptr);
 
-    
+    // The observer service will hold our last reference, don't AddRef here.
     gInstance = instance;
   }
 
   return gInstance;
 }
 
-
+// static
 QuotaManager*
 QuotaManager::Get()
 {
-  
+  // Does not return an owning reference.
   return gInstance;
 }
 
-
+// static
 QuotaManager*
 QuotaManager::FactoryCreate()
 {
-  
-  
+  // Returns a raw pointer that carries an owning reference! Lame, but the
+  // singleton factory macros force this.
   QuotaManager* quotaManager = GetOrCreate();
   NS_IF_ADDREF(quotaManager);
   return quotaManager;
 }
 
-
+// static
 bool
 QuotaManager::IsShuttingDown()
 {
@@ -1365,7 +1370,7 @@ nsresult
 QuotaManager::Init()
 {
   nsresult rv;
-  if (XRE_IsParentProcess()) {
+  if (IsMainProcess()) {
     nsCOMPtr<nsIFile> baseDir;
     rv = NS_GetSpecialDirectory(NS_APP_INDEXEDDB_PARENT_DIR,
                                 getter_AddRefs(baseDir));
@@ -1401,14 +1406,14 @@ QuotaManager::Init()
                           mDefaultStoragePath);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
+    // Make a lazy thread for any IO we need (like clearing or enumerating the
+    // contents of storage directories).
     mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
                                    NS_LITERAL_CSTRING("Storage I/O"),
                                    LazyIdleThread::ManualShutdown);
 
-    
-    
+    // Make a timer here to avoid potential failures later. We don't actually
+    // initialize the timer until shutdown.
     mShutdownTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
     NS_ENSURE_TRUE(mShutdownTimer, NS_ERROR_FAILURE);
   }
@@ -1432,7 +1437,7 @@ QuotaManager::Init()
   NS_ASSERTION(mClients.Capacity() == Client::TYPE_MAX,
                "Should be using an auto array with correct capacity!");
 
-  
+  // Register clients.
   mClients.AppendElement(indexedDB::CreateQuotaClient());
   mClients.AppendElement(asmjscache::CreateClient());
   mClients.AppendElement(cache::CreateQuotaClient());
@@ -1457,7 +1462,7 @@ QuotaManager::InitQuotaForOrigin(PersistenceType aPersistenceType,
   if (!mGroupInfoPairs.Get(aGroup, &pair)) {
     pair = new GroupInfoPair();
     mGroupInfoPairs.Put(aGroup, pair);
-    
+    // The hashtable is now responsible to delete the GroupInfoPair.
   }
 
   nsRefPtr<GroupInfo> groupInfo = pair->LockedGetGroupInfo(aPersistenceType);
@@ -1529,7 +1534,7 @@ QuotaManager::UpdateOriginAccessTime(PersistenceType aPersistenceType,
   }
 }
 
-
+// static
 PLDHashOperator
 QuotaManager::RemoveQuotaCallback(const nsACString& aKey,
                                   nsAutoPtr<GroupInfoPair>& aValue,
@@ -1592,7 +1597,7 @@ QuotaManager::GetQuotaObject(PersistenceType aPersistenceType,
     fileSize = 0;
   }
 
-  
+  // Re-escape our parameters above to make sure we get the right quota group.
   nsAutoCString tempStorage1;
   const nsCSubstring& group = NS_EscapeURL(aGroup, esc_Query, tempStorage1);
 
@@ -1621,26 +1626,26 @@ QuotaManager::GetQuotaObject(PersistenceType aPersistenceType,
       return nullptr;
     }
 
-    
-    
-    
+    // We need this extra raw pointer because we can't assign to the smart
+    // pointer directly since QuotaObject::AddRef would try to acquire the same
+    // mutex.
     QuotaObject* quotaObject;
     if (!originInfo->mQuotaObjects.Get(path, &quotaObject)) {
-      
+      // Create a new QuotaObject.
       quotaObject = new QuotaObject(originInfo, path, fileSize);
 
-      
-      
+      // Put it to the hashtable. The hashtable is not responsible to delete
+      // the QuotaObject.
       originInfo->mQuotaObjects.Put(path, quotaObject);
     }
 
-    
-    
+    // Addref the QuotaObject and move the ownership to the result. This must
+    // happen before we unlock!
     result = quotaObject->LockedAddRef();
   }
 
-  
-  
+  // The caller becomes the owner of the QuotaObject, that is, the caller is
+  // is responsible to delete it when the last reference is removed.
   return result.forget();
 }
 
@@ -1666,12 +1671,12 @@ QuotaManager::RegisterStorage(nsIOfflineStorage* aStorage)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aStorage, "Null pointer!");
 
-  
+  // Don't allow any new storages to be created after shutdown.
   if (IsShuttingDown()) {
     return false;
   }
 
-  
+  // Add this storage to its origin info if it exists, create it otherwise.
   const nsACString& origin = aStorage->Origin();
   ArrayCluster<nsIOfflineStorage*>* cluster;
   if (!mLiveStorages.Get(origin, &cluster)) {
@@ -1702,8 +1707,8 @@ QuotaManager::UnregisterStorage(nsIOfflineStorage* aStorage)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aStorage, "Null pointer!");
 
-  
-  
+  // Remove this storage from its origin array, maybe remove the array if it
+  // is then empty.
   const nsACString& origin = aStorage->Origin();
 
   ArrayCluster<nsIOfflineStorage*>* cluster;
@@ -1736,8 +1741,8 @@ QuotaManager::AbortCloseStoragesForProcess(ContentParent* aContentParent)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aContentParent);
 
-  
-  
+  // FileHandle API is not yet supported in child processes, so we don't have
+  // to worry about aborting file handles for given child process.
 
   StorageMatcher<ArrayCluster<nsIOfflineStorage*>> liveStorages;
   liveStorages.Find(mLiveStorages);
@@ -1769,7 +1774,7 @@ QuotaManager::WaitForOpenAllowed(const OriginOrPatternString& aOriginOrPattern,
   nsAutoPtr<SynchronizedOp> op(new SynchronizedOp(aOriginOrPattern,
                                                   aPersistenceType, aId));
 
-  
+  // See if this runnable needs to wait.
   bool delayed = false;
   for (uint32_t index = mSynchronizedOps.Length(); index > 0; index--) {
     nsAutoPtr<SynchronizedOp>& existingOp = mSynchronizedOps[index - 1];
@@ -1780,14 +1785,14 @@ QuotaManager::WaitForOpenAllowed(const OriginOrPatternString& aOriginOrPattern,
     }
   }
 
-  
+  // Otherwise, dispatch it immediately.
   if (!delayed) {
     nsresult rv = NS_DispatchToCurrentThread(aRunnable);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
-  
+  // Adding this to the synchronized ops list will block any additional
+  // ops from proceeding until this one is done.
   mSynchronizedOps.AppendElement(op.forget());
 
   return NS_OK;
@@ -1834,8 +1839,8 @@ QuotaManager::AllowNextSynchronizedOp(
         return;
       }
 
-      
-      
+      // If one or the other is for an origin clear, we should have matched
+      // solely on origin.
       NS_ASSERTION(!op->mId.IsEmpty() && !aId.IsEmpty(),
                    "Why didn't we match earlier?");
     }
@@ -1937,7 +1942,7 @@ QuotaManager::InitializeRepository(PersistenceType aPersistenceType)
     nsCString origin;
     bool isApp;
     rv = GetDirectoryMetadataWithRestore(childDirectory,
-                                          false,
+                                         /* aPersistent */ false,
                                          &timestamp,
                                          group,
                                          origin,
@@ -1965,10 +1970,10 @@ QuotaManager::InitializeRepository(PersistenceType aPersistenceType)
 
 namespace {
 
-
-
-
-
+// The Cache API was creating top level morgue directories by accident for
+// a short time in nightly.  This unfortunately prevents all storage from
+// working.  So recover these profiles by removing these corrupt directories.
+// This should be removed at some point in the future.
 bool
 MaybeRemoveCorruptDirectory(const nsAString& aLeafName, nsIFile* aDir)
 {
@@ -1981,7 +1986,7 @@ MaybeRemoveCorruptDirectory(const nsAString& aLeafName, nsIFile* aDir)
 
   NS_WARNING("QuotaManager removing corrupt morgue directory!");
 
-  nsresult rv = aDir->Remove(true );
+  nsresult rv = aDir->Remove(true /* recursive */);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
@@ -1989,10 +1994,10 @@ MaybeRemoveCorruptDirectory(const nsAString& aLeafName, nsIFile* aDir)
   return true;
 #else
   return false;
-#endif 
+#endif // NIGHTLY_BUILD
 }
 
-} 
+} // anonymous namespace
 
 nsresult
 QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
@@ -2013,8 +2018,8 @@ QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
 
   bool trackQuota = IsQuotaEnforced(aPersistenceType, aOrigin, aIsApp);
 
-  
-  
+  // We need to initialize directories of all clients if they exists and also
+  // get the total usage to initialize the quota.
   nsAutoPtr<UsageInfo> usageInfo;
   if (trackQuota) {
     usageInfo = new UsageInfo();
@@ -2094,7 +2099,7 @@ QuotaManager::MaybeUpgradeIndexedDBDirectory()
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!exists) {
-    
+    // Nothing to upgrade.
     return NS_OK;
   }
 
@@ -2129,12 +2134,12 @@ QuotaManager::MaybeUpgradeIndexedDBDirectory()
   rv = persistentStorageDir->GetParent(getter_AddRefs(storageDir));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-  
-  
-  
+  // MoveTo() is atomic if the move happens on the same volume which should
+  // be our case, so even if we crash in the middle of the operation nothing
+  // breaks next time we try to initialize.
+  // However there's a theoretical possibility that the indexedDB directory
+  // is on different volume, but it should be rare enough that we don't have
+  // to worry about it.
   rv = indexedDBDir->MoveTo(storageDir, NS_LITERAL_STRING(PERSISTENT_DIRECTORY_NAME));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2171,7 +2176,7 @@ QuotaManager::MaybeUpgradePersistentStorageDirectory()
   }
 
   if (!exists) {
-    
+    // Nothing to upgrade.
     return NS_OK;
   }
 
@@ -2207,16 +2212,16 @@ QuotaManager::MaybeUpgradePersistentStorageDirectory()
     return NS_OK;
   }
 
-  
+  // Create real metadata files for origin directories in persistent storage.
   nsRefPtr<StorageDirectoryHelper> helper =
-    new StorageDirectoryHelper(persistentStorageDir,  true);
+    new StorageDirectoryHelper(persistentStorageDir, /* aPersistent */ true);
 
-  rv = helper->CreateOrUpgradeMetadataFiles( true);
+  rv = helper->CreateOrUpgradeMetadataFiles(/* aCreate */ true);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  
+  // Upgrade metadata files for origin directories in temporary storage.
   nsCOMPtr<nsIFile> temporaryStorageDir =
     do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -2245,15 +2250,15 @@ QuotaManager::MaybeUpgradePersistentStorageDirectory()
     }
 
     helper = new StorageDirectoryHelper(temporaryStorageDir,
-                                         false);
+                                        /* aPersistent */ false);
 
-    rv = helper->CreateOrUpgradeMetadataFiles( false);
+    rv = helper->CreateOrUpgradeMetadataFiles(/* aCreate */ false);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
   }
 
-  
+  // And finally rename persistent to default.
   rv = persistentStorageDir->RenameTo(nullptr, NS_LITERAL_STRING(DEFAULT_DIRECTORY_NAME));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -2298,7 +2303,7 @@ QuotaManager::EnsureOriginIsInitialized(PersistenceType aPersistenceType,
   nsresult rv = MaybeUpgradeStorageArea();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Get directory for this origin and persistence type.
   nsCOMPtr<nsIFile> directory;
   rv = GetDirectoryForOrigin(aPersistenceType, aOrigin,
                              getter_AddRefs(directory));
@@ -2312,7 +2317,7 @@ QuotaManager::EnsureOriginIsInitialized(PersistenceType aPersistenceType,
   } else if (!mTemporaryStorageInitialized) {
     rv = InitializeRepository(aPersistenceType);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      
+      // We have to cleanup partially initialized quota.
       RemoveQuota();
 
       return rv;
@@ -2320,7 +2325,7 @@ QuotaManager::EnsureOriginIsInitialized(PersistenceType aPersistenceType,
 
     rv = InitializeRepository(ComplementaryPersistenceType(aPersistenceType));
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      
+      // We have to cleanup partially initialized quota.
       RemoveQuota();
 
       return rv;
@@ -2437,18 +2442,18 @@ QuotaManager::GetGroupLimit() const
 {
   MOZ_ASSERT(mTemporaryStorageInitialized);
 
-  
-  
-  
+  // To avoid one group evicting all the rest, limit the amount any one group
+  // can use to 20%. To prevent individual sites from using exorbitant amounts
+  // of storage where there is a lot of free space, cap the group limit to 2GB.
   uint64_t x = std::min<uint64_t>(mTemporaryStorageLimit * .20, 2 GB);
 
-  
-  
+  // In low-storage situations, make an exception (while not exceeding the total
+  // storage limit).
   return std::min<uint64_t>(mTemporaryStorageLimit,
                             std::max<uint64_t>(x, 10 MB));
 }
 
-
+// static
 void
 QuotaManager::GetStorageId(PersistenceType aPersistenceType,
                            const nsACString& aOrigin,
@@ -2468,7 +2473,7 @@ QuotaManager::GetStorageId(PersistenceType aPersistenceType,
   aDatabaseId = str;
 }
 
-
+// static
 nsresult
 QuotaManager::GetInfoFromURI(nsIURI* aURI,
                              uint32_t aAppId,
@@ -2551,7 +2556,7 @@ TryGetInfoForAboutURI(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-
+// static
 nsresult
 QuotaManager::GetInfoFromPrincipal(nsIPrincipal* aPrincipal,
                                    nsACString* aGroup,
@@ -2602,7 +2607,7 @@ QuotaManager::GetInfoFromPrincipal(nsIPrincipal* aPrincipal,
     nsCString baseDomain;
     rv = aPrincipal->GetBaseDomain(baseDomain);
     if (NS_FAILED(rv)) {
-      
+      // A hack for JetPack.
 
       nsCOMPtr<nsIURI> uri;
       rv = aPrincipal->GetURI(getter_AddRefs(uri));
@@ -2638,7 +2643,7 @@ QuotaManager::GetInfoFromPrincipal(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-
+// static
 nsresult
 QuotaManager::GetInfoFromWindow(nsPIDOMWindow* aWindow,
                                 nsACString* aGroup,
@@ -2660,7 +2665,7 @@ QuotaManager::GetInfoFromWindow(nsPIDOMWindow* aWindow,
   return NS_OK;
 }
 
-
+// static
 void
 QuotaManager::GetInfoForChrome(nsACString* aGroup,
                                nsACString* aOrigin,
@@ -2680,12 +2685,12 @@ QuotaManager::GetInfoForChrome(nsACString* aGroup,
   }
 }
 
-
+// static
 bool
 QuotaManager::IsOriginWhitelistedForPersistentStorage(const nsACString& aOrigin)
 {
-  
-  
+  // The first prompt and quota tracking is not required for these origins in
+  // persistent storage.
   if (aOrigin.EqualsLiteral(kChromeOrigin) ||
       aOrigin.EqualsLiteral(kAboutHomeOrigin) ||
       StringBeginsWith(aOrigin, nsDependentCString(kIndexedDBOriginPrefix))) {
@@ -2695,7 +2700,7 @@ QuotaManager::IsOriginWhitelistedForPersistentStorage(const nsACString& aOrigin)
   return false;
 }
 
-
+// static
 bool
 QuotaManager::IsFirstPromptRequired(PersistenceType aPersistenceType,
                                     const nsACString& aOrigin,
@@ -2708,7 +2713,7 @@ QuotaManager::IsFirstPromptRequired(PersistenceType aPersistenceType,
   return !IsOriginWhitelistedForPersistentStorage(aOrigin);
 }
 
-
+// static
 bool
 QuotaManager::IsQuotaEnforced(PersistenceType aPersistenceType,
                               const nsACString& aOrigin,
@@ -2717,14 +2722,14 @@ QuotaManager::IsQuotaEnforced(PersistenceType aPersistenceType,
   return IsTreatedAsTemporary(aPersistenceType, aIsApp);
 }
 
-
+// static
 void
 QuotaManager::ChromeOrigin(nsACString& aOrigin)
 {
   aOrigin.AssignLiteral(kChromeOrigin);
 }
 
-
+// static
 nsresult
 QuotaManager::GetDirectoryMetadata(nsIFile* aDirectory,
                                    int64_t* aTimestamp,
@@ -2785,14 +2790,14 @@ QuotaManager::GetUsageForURI(nsIURI* aURI,
   NS_ENSURE_ARG_POINTER(aURI);
   NS_ENSURE_ARG_POINTER(aCallback);
 
-  
-  NS_ENSURE_TRUE(XRE_IsParentProcess(), NS_ERROR_NOT_AVAILABLE);
+  // This only works from the main process.
+  NS_ENSURE_TRUE(IsMainProcess(), NS_ERROR_NOT_AVAILABLE);
 
   if (!aOptionalArgCount) {
     aAppId = nsIScriptSecurityManager::NO_APP_ID;
   }
 
-  
+  // Figure out which origin we're dealing with.
   nsCString group;
   nsCString origin;
   bool isApp;
@@ -2806,7 +2811,7 @@ QuotaManager::GetUsageForURI(nsIURI* aURI,
     new AsyncUsageRunnable(aAppId, aInMozBrowserOnly, group, oops, isApp, aURI,
                            aCallback);
 
-  
+  // Put the computation runnable in the queue.
   rv = WaitForOpenAllowed(oops, Nullable<PersistenceType>(), EmptyCString(),
                           runnable);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2831,7 +2836,7 @@ QuotaManager::Clear()
 
   nsRefPtr<ResetOrClearRunnable> runnable = new ResetOrClearRunnable(true);
 
-  
+  // Put the clear runnable in the queue.
   nsresult rv =
     WaitForOpenAllowed(oops, Nullable<PersistenceType>(), EmptyCString(),
                        runnable);
@@ -2839,19 +2844,19 @@ QuotaManager::Clear()
 
   runnable->AdvanceState();
 
-  
+  // Give the runnable some help by invalidating any storages in the way.
   StorageMatcher<nsAutoTArray<nsIOfflineStorage*, 20> > matches;
   matches.Find(mLiveStorages);
 
   for (uint32_t index = 0; index < matches.Length(); index++) {
-    
-    
+    // We need to grab references to any live storages here to prevent them
+    // from dying while we invalidate them.
     nsCOMPtr<nsIOfflineStorage> storage = matches[index];
     storage->Invalidate();
   }
 
-  
-  
+  // After everything has been invalidated the helper should be dispatched to
+  // the end of the event queue.
   return NS_OK;
 }
 
@@ -2873,14 +2878,14 @@ QuotaManager::ClearStoragesForURI(nsIURI* aURI,
     return NS_ERROR_INVALID_ARG;
   }
 
-  
-  NS_ENSURE_TRUE(XRE_IsParentProcess(), NS_ERROR_NOT_AVAILABLE);
+  // This only works from the main process.
+  NS_ENSURE_TRUE(IsMainProcess(), NS_ERROR_NOT_AVAILABLE);
 
   if (!aOptionalArgCount) {
     aAppId = nsIScriptSecurityManager::NO_APP_ID;
   }
 
-  
+  // Figure out which origin we're dealing with.
   nsCString origin;
   rv = GetInfoFromURI(aURI, aAppId, aInMozBrowserOnly, nullptr, &origin,
                       nullptr);
@@ -2889,15 +2894,15 @@ QuotaManager::ClearStoragesForURI(nsIURI* aURI,
   nsAutoCString pattern;
   GetOriginPatternString(aAppId, aInMozBrowserOnly, origin, pattern);
 
-  
-  
+  // If there is a pending or running clear operation for this origin, return
+  // immediately.
   if (IsClearOriginPending(pattern, persistenceType)) {
     return NS_OK;
   }
 
   OriginOrPatternString oops = OriginOrPatternString::FromPattern(pattern);
 
-  
+  // Queue up the origin clear runnable.
   nsRefPtr<OriginClearRunnable> runnable =
     new OriginClearRunnable(oops, persistenceType);
 
@@ -2906,22 +2911,22 @@ QuotaManager::ClearStoragesForURI(nsIURI* aURI,
 
   runnable->AdvanceState();
 
-  
+  // Give the runnable some help by invalidating any storages in the way.
   StorageMatcher<nsAutoTArray<nsIOfflineStorage*, 20> > matches;
   matches.Find(mLiveStorages, pattern);
 
   for (uint32_t index = 0; index < matches.Length(); index++) {
     if (persistenceType.IsNull() ||
         matches[index]->Type() == persistenceType.Value()) {
-      
-      
+      // We need to grab references to any live storages here to prevent them
+      // from dying while we invalidate them.
       nsCOMPtr<nsIOfflineStorage> storage = matches[index];
       storage->Invalidate();
     }
   }
 
-  
-  
+  // After everything has been invalidated the helper should be dispatched to
+  // the end of the event queue.
   return NS_OK;
 }
 
@@ -2939,7 +2944,7 @@ QuotaManager::Reset()
 
   nsRefPtr<ResetOrClearRunnable> runnable = new ResetOrClearRunnable(false);
 
-  
+  // Put the reset runnable in the queue.
   nsresult rv =
     WaitForOpenAllowed(oops, Nullable<PersistenceType>(), EmptyCString(),
                        runnable);
@@ -2947,19 +2952,19 @@ QuotaManager::Reset()
 
   runnable->AdvanceState();
 
-  
+  // Give the runnable some help by invalidating any storages in the way.
   StorageMatcher<nsAutoTArray<nsIOfflineStorage*, 20> > matches;
   matches.Find(mLiveStorages);
 
   for (uint32_t index = 0; index < matches.Length(); index++) {
-    
-    
+    // We need to grab references to any live storages here to prevent them
+    // from dying while we invalidate them.
     nsCOMPtr<nsIOfflineStorage> storage = matches[index];
     storage->Invalidate();
   }
 
-  
-  
+  // After everything has been invalidated the helper should be dispatched to
+  // the end of the event queue.
   return NS_OK;
 }
 
@@ -2971,31 +2976,31 @@ QuotaManager::Observe(nsISupports* aSubject,
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
   if (!strcmp(aTopic, PROFILE_BEFORE_CHANGE_OBSERVER_ID)) {
-    
-    
+    // Setting this flag prevents the service from being recreated and prevents
+    // further storagess from being created.
     if (gShutdown.exchange(true)) {
       NS_ERROR("Shutdown more than once?!");
     }
 
-    if (XRE_IsParentProcess()) {
-      
+    if (IsMainProcess()) {
+      // Kick off the shutdown timer.
       if (NS_FAILED(mShutdownTimer->Init(this, DEFAULT_SHUTDOWN_TIMER_MS,
                                          nsITimer::TYPE_ONE_SHOT))) {
         NS_WARNING("Failed to initialize shutdown timer!");
       }
 
-      
-      
+      // Each client will spin the event loop while we wait on all the threads
+      // to close. Our timer may fire during that loop.
       for (uint32_t index = 0; index < Client::TYPE_MAX; index++) {
         mClients[index]->ShutdownWorkThreads();
       }
 
-      
+      // Cancel the timer regardless of whether it actually fired.
       if (NS_FAILED(mShutdownTimer->Cancel())) {
         NS_WARNING("Failed to cancel shutdown timer!");
       }
 
-      
+      // Give clients a chance to cleanup IO thread only objects.
       nsCOMPtr<nsIRunnable> runnable =
         NS_NewRunnableMethod(this, &QuotaManager::ReleaseIOThreadObjects);
       if (!runnable) {
@@ -3006,7 +3011,7 @@ QuotaManager::Observe(nsISupports* aSubject,
         NS_WARNING("Failed to dispatch runnable!");
       }
 
-      
+      // Make sure to join with our IO thread.
       if (NS_FAILED(mIOThread->Shutdown())) {
         NS_WARNING("Failed to shutdown IO thread!");
       }
@@ -3016,16 +3021,16 @@ QuotaManager::Observe(nsISupports* aSubject,
   }
 
   if (!strcmp(aTopic, NS_TIMER_CALLBACK_TOPIC)) {
-    NS_ASSERTION(XRE_IsParentProcess(), "Should only happen in the main process!");
+    NS_ASSERTION(IsMainProcess(), "Should only happen in the main process!");
 
     NS_WARNING("Some storage operations are taking longer than expected "
                "during shutdown and will be aborted!");
 
-    
+    // Grab all live storages, for all origins.
     StorageMatcher<nsAutoTArray<nsIOfflineStorage*, 50> > liveStorages;
     liveStorages.Find(mLiveStorages);
 
-    
+    // Invalidate them all.
     if (!liveStorages.IsEmpty()) {
       uint32_t count = liveStorages.Length();
       for (uint32_t index = 0; index < count; index++) {
@@ -3076,10 +3081,10 @@ QuotaManager::LockedCollectOriginsForEviction(
   nsRefPtr<CollectOriginsHelper> helper =
     new CollectOriginsHelper(mQuotaMutex, aMinSizeToBeFreed);
 
-  
-  
-  
-  
+  // Unlock while calling out to XPCOM (code behind the dispatch method needs
+  // to acquire its own lock which can potentially lead to a deadlock and it
+  // also calls an observer that can do various stuff like IO, so it's better
+  // to not hold our mutex while that happens).
   {
     MutexAutoUnlock autoUnlock(mQuotaMutex);
 
@@ -3128,7 +3133,7 @@ QuotaManager::AcquireExclusiveAccess(const nsACString& aPattern,
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aRunnable, "Need a runnable!");
 
-  
+  // Find the right SynchronizedOp.
   SynchronizedOp* op =
     FindSynchronizedOp(aPattern, aPersistenceType, EmptyCString());
 
@@ -3145,8 +3150,8 @@ QuotaManager::AcquireExclusiveAccess(const nsACString& aPattern,
     matches.Find(mLiveStorages, aPattern);
   }
 
-  
-  
+  // We want *all* storages that match the given persistence type, even those
+  // that are closed, when we're going to clear the origin.
   if (!matches.IsEmpty()) {
     for (uint32_t i = 0; i < Client::TYPE_MAX; i++) {
       nsTArray<nsIOfflineStorage*>& storages = matches.ArrayAt(i);
@@ -3167,8 +3172,8 @@ QuotaManager::AcquireExclusiveAccess(const nsACString& aPattern,
     new WaitForTransactionsToFinishRunnable(op);
 
   if (!liveStorages.IsEmpty()) {
-    
-    
+    // Ask each transaction service to call us back when they're done with this
+    // storage.
     for (uint32_t index = 0; index < Client::TYPE_MAX; index++)  {
       nsRefPtr<Client>& client = mClients[index];
       if (!liveStorages[index].IsEmpty()) {
@@ -3209,24 +3214,24 @@ QuotaManager::ClearStoragesForApp(uint32_t aAppId, bool aBrowserOnly)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aAppId != kUnknownAppId, "Bad appId!");
 
-  
-  NS_ENSURE_TRUE(XRE_IsParentProcess(), NS_ERROR_NOT_AVAILABLE);
+  // This only works from the main process.
+  NS_ENSURE_TRUE(IsMainProcess(), NS_ERROR_NOT_AVAILABLE);
 
   nsAutoCString pattern;
   GetOriginPatternStringMaybeIgnoreBrowser(aAppId, aBrowserOnly, pattern);
 
-  
+  // Clear both temporary and persistent storages.
   Nullable<PersistenceType> persistenceType;
 
-  
-  
+  // If there is a pending or running clear operation for this app, return
+  // immediately.
   if (IsClearOriginPending(pattern, persistenceType)) {
     return NS_OK;
   }
 
   OriginOrPatternString oops = OriginOrPatternString::FromPattern(pattern);
 
-  
+  // Queue up the origin clear runnable.
   nsRefPtr<OriginClearRunnable> runnable =
     new OriginClearRunnable(oops, persistenceType);
 
@@ -3236,13 +3241,13 @@ QuotaManager::ClearStoragesForApp(uint32_t aAppId, bool aBrowserOnly)
 
   runnable->AdvanceState();
 
-  
+  // Give the runnable some help by invalidating any storages in the way.
   StorageMatcher<nsAutoTArray<nsIOfflineStorage*, 20> > matches;
   matches.Find(mLiveStorages, pattern);
 
   for (uint32_t index = 0; index < matches.Length(); index++) {
-    
-    
+    // We need to grab references here to prevent the storage from dying while
+    // we invalidate it.
     nsCOMPtr<nsIOfflineStorage> storage = matches[index];
     storage->Invalidate();
   }
@@ -3250,7 +3255,7 @@ QuotaManager::ClearStoragesForApp(uint32_t aAppId, bool aBrowserOnly)
   return NS_OK;
 }
 
-
+// static
 PLDHashOperator
 QuotaManager::GetOriginsExceedingGroupLimit(const nsACString& aKey,
                                             GroupInfoPair* aValue,
@@ -3306,7 +3311,7 @@ QuotaManager::GetOriginsExceedingGroupLimit(const nsACString& aKey,
   return PL_DHASH_NEXT;
 }
 
-
+// static
 PLDHashOperator
 QuotaManager::GetAllTemporaryStorageOrigins(const nsACString& aKey,
                                             GroupInfoPair* aValue,
@@ -3415,7 +3420,7 @@ QuotaManager::CheckTemporaryStorageLimits()
   }
 }
 
-
+// static
 PLDHashOperator
 QuotaManager::AddLiveStorageOrigins(const nsACString& aKey,
                                     nsTArray<nsIOfflineStorage*>* aValue,
@@ -3435,7 +3440,7 @@ QuotaManager::AddLiveStorageOrigins(const nsACString& aKey,
   return PL_DHASH_NEXT;
 }
 
-
+// static
 PLDHashOperator
 QuotaManager::GetInactiveTemporaryStorageOrigins(const nsACString& aKey,
                                                  GroupInfoPair* aValue,
@@ -3493,12 +3498,12 @@ QuotaManager::CollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  
+  // Collect active origins first.
   OriginCollection temporaryOriginCollection;
   OriginCollection defaultOriginCollection;
 
-  
-  
+  // Add patterns and origins that have running or pending synchronized ops.
+  // (add patterns first to reduce redundancy in the origin collection).
   uint32_t index;
   for (index = 0; index < mSynchronizedOps.Length(); index++) {
     nsAutoPtr<SynchronizedOp>& op = mSynchronizedOps[index];
@@ -3542,15 +3547,15 @@ QuotaManager::CollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
     }
   }
 
-  
+  // Add origins that have live temporary storages.
   mTemporaryLiveStorageTable.EnumerateRead(AddLiveStorageOrigins,
                                            &temporaryOriginCollection);
 
-  
+  // Add origins that have live persistent storages.
   mDefaultLiveStorageTable.EnumerateRead(AddLiveStorageOrigins,
                                          &defaultOriginCollection);
 
-  
+  // Enumerate inactive origins. This must be protected by the mutex.
   nsTArray<OriginInfo*> inactiveOrigins;
   {
     InactiveOriginsInfo info(temporaryOriginCollection,
@@ -3560,14 +3565,14 @@ QuotaManager::CollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
     mGroupInfoPairs.EnumerateRead(GetInactiveTemporaryStorageOrigins, &info);
   }
 
-  
-  
+  // We now have a list of all inactive origins. So it's safe to sort the list
+  // and calculate available size without holding the lock.
 
-  
+  // Sort by the origin access time.
   inactiveOrigins.Sort(OriginInfoLRUComparator());
 
-  
-  
+  // Create a list of inactive and the least recently used origins
+  // whose aggregate size is greater or equals the minimal size to be freed.
   uint64_t sizeToBeFreed = 0;
   for(index = 0; index < inactiveOrigins.Length(); index++) {
     if (sizeToBeFreed >= aMinSizeToBeFreed) {
@@ -3579,8 +3584,8 @@ QuotaManager::CollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
   }
 
   if (sizeToBeFreed >= aMinSizeToBeFreed) {
-    
-    
+    // Success, add synchronized ops for these origins, so any other
+    // operations for them will be delayed (until origin eviction is finalized).
 
     for(index = 0; index < inactiveOrigins.Length(); index++) {
       OriginInfo* inactiveOrigin = inactiveOrigins[index];
@@ -3613,8 +3618,8 @@ QuotaManager::DeleteFilesForOrigin(PersistenceType aPersistenceType,
   rv = directory->Remove(true);
   if (rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
       rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
-    
-    
+    // This should never fail if we've closed all storage connections
+    // correctly...
     NS_ERROR("Failed to remove directory!");
   }
 }
@@ -3753,31 +3758,31 @@ SynchronizedOp::MustWaitFor(const SynchronizedOp& aExistingOp)
             PatternMatchesOrigin(aExistingOp.mOriginOrPattern, mOriginOrPattern);
   }
 
-  
+  // If the origins don't match, the second can proceed.
   if (!match) {
     return false;
   }
 
-  
-  
+  // If the origins match but the persistence types are different, the second
+  // can proceed.
   if (!aExistingOp.mPersistenceType.IsNull() && !mPersistenceType.IsNull() &&
       aExistingOp.mPersistenceType.Value() != mPersistenceType.Value()) {
     return false;
   }
 
-  
+  // If the origins and the ids match, the second must wait.
   if (aExistingOp.mId == mId) {
     return true;
   }
 
-  
-  
+  // Waiting is required if either one corresponds to an origin clearing
+  // (an empty Id).
   if (aExistingOp.mId.IsEmpty() || mId.IsEmpty()) {
     return true;
   }
 
-  
-  
+  // Otherwise, things for the same origin but different storages can proceed
+  // independently.
   return false;
 }
 
@@ -3840,8 +3845,8 @@ CollectOriginsHelper::Run()
   QuotaManager* quotaManager = QuotaManager::Get();
   NS_ASSERTION(quotaManager, "Shouldn't be null!");
 
-  
-  
+  // We use extra stack vars here to avoid race detector warnings (the same
+  // memory accessed with and without the lock held).
   nsTArray<OriginInfo*> originInfos;
   uint64_t sizeToBeFreed =
     quotaManager->CollectOriginsForEviction(mMinSizeToBeFreed, originInfos);
@@ -3907,7 +3912,7 @@ OriginClearRunnable::DeleteFiles(QuotaManager* aQuotaManager,
       continue;
     }
 
-    
+    // Skip storages for other apps.
     if (!PatternMatchesOrigin(originSanitized,
                               NS_ConvertUTF16toUTF8(leafName))) {
       continue;
@@ -3930,7 +3935,7 @@ OriginClearRunnable::DeleteFiles(QuotaManager* aQuotaManager,
     }
 
     for (uint32_t index = 0; index < 10; index++) {
-      
+      // We can't guarantee that this will always succeed on Windows...
       if (NS_SUCCEEDED((rv = file->Remove(true)))) {
         break;
       }
@@ -3974,8 +3979,8 @@ OriginClearRunnable::Run()
 
       AdvanceState();
 
-      
-      
+      // Now we have to wait until the thread pool is done with all of the
+      // storages we care about.
       nsresult rv =
         quotaManager->AcquireExclusiveAccess(mOriginOrPattern, mPersistenceType,
                                              this);
@@ -3997,7 +4002,7 @@ OriginClearRunnable::Run()
         DeleteFiles(quotaManager, mPersistenceType.Value());
       }
 
-      
+      // Now dispatch back to the main thread.
       if (NS_FAILED(NS_DispatchToMainThread(this))) {
         NS_WARNING("Failed to dispatch to main thread!");
         return NS_ERROR_FAILURE;
@@ -4009,7 +4014,7 @@ OriginClearRunnable::Run()
     case Complete: {
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-      
+      // Tell the QuotaManager that we're done.
       quotaManager->AllowNextSynchronizedOp(mOriginOrPattern, mPersistenceType,
                                             EmptyCString());
 
@@ -4093,37 +4098,37 @@ AsyncUsageRunnable::RunInternal()
 
       AdvanceState();
 
-      
+      // Add all the persistent storage files we care about.
       rv = AddToUsage(quotaManager, PERSISTENCE_TYPE_PERSISTENT);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      
+      // Add all the temporary storage files we care about.
       rv = AddToUsage(quotaManager, PERSISTENCE_TYPE_TEMPORARY);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      
+      // Add all the default storage files we care about.
       rv = AddToUsage(quotaManager, PERSISTENCE_TYPE_DEFAULT);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      
+      // Run dispatches us back to the main thread.
       return NS_OK;
     }
 
-    case Complete: 
+    case Complete: // Fall through
     case Shortcut: {
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-      
+      // Call the callback unless we were canceled.
       if (!mCanceled) {
         mCallback->OnUsageResult(mURI, TotalUsage(), FileUsage(), mAppId,
                                  mInMozBrowserOnly);
       }
 
-      
+      // Clean up.
       mURI = nullptr;
       mCallback = nullptr;
 
-      
+      // And tell the QuotaManager that we're done.
       if (mCallbackState == Complete) {
         quotaManager->AllowNextSynchronizedOp(mOrigin,
                                               Nullable<PersistenceType>(),
@@ -4157,8 +4162,8 @@ AsyncUsageRunnable::AddToUsage(QuotaManager* aQuotaManager,
   rv = directory->Exists(&exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
+  // If the directory exists then enumerate all the files inside, adding up
+  // the sizes to get the final usage statistic.
   if (exists && !mCanceled) {
     bool initialized;
 
@@ -4290,8 +4295,8 @@ ResetOrClearRunnable::DeleteFiles(QuotaManager* aQuotaManager)
   rv = directory->Remove(true);
   if (rv != NS_ERROR_FILE_TARGET_DOES_NOT_EXIST &&
       rv != NS_ERROR_FILE_NOT_FOUND && NS_FAILED(rv)) {
-    
-    
+    // This should never fail if we've closed all storage connections
+    // correctly...
     NS_ERROR("Failed to remove directory!");
   }
 }
@@ -4315,8 +4320,8 @@ ResetOrClearRunnable::Run()
 
       AdvanceState();
 
-      
-      
+      // Now we have to wait until the thread pool is done with all of the
+      // storages we care about.
       nsresult rv =
         quotaManager->AcquireExclusiveAccess(NullCString(),
                                              Nullable<PersistenceType>(), this);
@@ -4337,7 +4342,7 @@ ResetOrClearRunnable::Run()
       quotaManager->RemoveQuota();
       quotaManager->ResetOrClearCompleted();
 
-      
+      // Now dispatch back to the main thread.
       if (NS_FAILED(NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL))) {
         NS_WARNING("Failed to dispatch to main thread!");
         return NS_ERROR_FAILURE;
@@ -4349,7 +4354,7 @@ ResetOrClearRunnable::Run()
     case Complete: {
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-      
+      // Tell the QuotaManager that we're done.
       quotaManager->AllowNextSynchronizedOp(OriginOrPatternString::FromNull(),
                                             Nullable<PersistenceType>(),
                                             EmptyCString());
@@ -4471,7 +4476,7 @@ WaitForTransactionsToFinishRunnable::Run()
     return NS_OK;
   }
 
-  
+  // Don't hold the runnable alive longer than necessary.
   nsCOMPtr<nsIRunnable> runnable;
   runnable.swap(mOp->mRunnable);
 
@@ -4484,8 +4489,8 @@ WaitForTransactionsToFinishRunnable::Run()
     quotaManager->IOThread()->Dispatch(runnable, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
+  // The listener is responsible for calling
+  // QuotaManager::AllowNextSynchronizedOp.
   return NS_OK;
 }
 
@@ -4508,7 +4513,7 @@ SaveOriginAccessTimeRunnable::Run()
                                         getter_AddRefs(stream));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // The origin directory may not exist anymore.
   if (stream) {
     rv = stream->Write64(mTimestamp);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -4556,12 +4561,12 @@ StorageDirectoryHelper::CreateOrUpgradeMetadataFiles(bool aCreate)
 
     if (isDirectory) {
       if (leafName.EqualsLiteral("moz-safe-about+++home")) {
-        
-        
+        // This directory was accidentally created by a buggy nightly and can
+        // be safely removed.
 
         QM_WARNING("Deleting accidental moz-safe-about+++home directory!");
 
-        rv = originDir->Remove( true);
+        rv = originDir->Remove(/* aRecursive */ true);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }
@@ -4587,7 +4592,7 @@ StorageDirectoryHelper::CreateOrUpgradeMetadataFiles(bool aCreate)
     return NS_OK;
   }
 
-  rv = ProcessOriginDirectories( true);
+  rv = ProcessOriginDirectories(/* aMove */ true);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -4606,7 +4611,7 @@ StorageDirectoryHelper::RestoreMetadataFile()
     return rv;
   }
 
-  rv = ProcessOriginDirectories( false);
+  rv = ProcessOriginDirectories(/* aMove */ false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -4688,8 +4693,8 @@ StorageDirectoryHelper::ProcessOriginDirectories(bool aMove)
     return mMainThreadResultCode;
   }
 
-  
-  
+  // Verify that the bounce to the main thread didn't start the shutdown
+  // sequence.
   if (NS_WARN_IF(QuotaManager::IsShuttingDown())) {
     return NS_ERROR_FAILURE;
   }
@@ -4713,7 +4718,7 @@ StorageDirectoryHelper::ProcessOriginDirectories(bool aMove)
         return rv;
       }
 
-      
+      // Move whitelisted origins to new persistent storage.
       if (mPersistent &&
           aMove &&
           QuotaManager::IsOriginWhitelistedForPersistentStorage(
@@ -4856,7 +4861,7 @@ StorageDirectoryHelper::Run()
   return NS_OK;
 }
 
-
+// static
 bool
 OriginParser::ParseOrigin(const nsACString& aOrigin,
                           uint32_t* aAppId,
@@ -5013,7 +5018,7 @@ OriginParser::HandleToken(const nsDependentCSubstring& aToken)
       }
 
       if (NS_IsAsciiDigit(aToken.First())) {
-        
+        // nsDependentCSubstring doesn't provice ToInteger()
         nsCString token(aToken);
 
         nsresult rv;
@@ -5141,7 +5146,7 @@ OriginParser::HandleToken(const nsDependentCSubstring& aToken)
         return;
       }
 
-      
+      // nsDependentCSubstring doesn't provice ToInteger()
       nsCString token(aToken);
 
       nsresult rv;

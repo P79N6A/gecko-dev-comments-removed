@@ -1354,7 +1354,7 @@ XPCJSRuntime::InterruptCallback(JSContext* cx)
     if (!nsContentUtils::IsInitialized())
         return true;
 
-    bool contentProcess = XRE_IsContentProcess();
+    bool contentProcess = XRE_GetProcessType() == GeckoProcessType_Content;
 
     
     
@@ -2581,7 +2581,7 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats& rtStats,
                                  size_t* rtTotalOut)
 {
     nsCOMPtr<amIAddonManager> am;
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
         
         am = do_GetService("@mozilla.org/addons/integration;1");
     }
@@ -2837,7 +2837,7 @@ JSReporter::CollectReports(WindowPaths* windowPaths,
     
 
     nsCOMPtr<amIAddonManager> addonManager;
-    if (XRE_IsParentProcess()) {
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
         
         addonManager = do_GetService("@mozilla.org/addons/integration;1");
     }

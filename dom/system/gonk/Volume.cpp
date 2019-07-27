@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Volume.h"
 #include "VolumeCommand.h"
@@ -29,50 +29,50 @@ VolumeObserverList::Broadcast(Volume* const& aVolume)
 
 VolumeObserverList Volume::sEventObserverList;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// We have a feature where volumes can be locked when mounted. This
+// is used to prevent a volume from being shared with the PC while
+// it is actively being used (say for storing an update image)
+//
+// We use WakeLocks (a poor choice of name, but it does what we want)
+// from the PowerManagerService to determine when we're locked.
+// In particular we'll create a wakelock called volume-NAME-GENERATION
+// (where NAME is the volume name, and GENERATION is its generation
+// number), and if this wakelock is locked, then we'll prevent a volume
+// from being shared.
+//
+// Implementation Details:
+//
+// Since the AutoMounter can only control when something gets mounted
+// and not when it gets unmounted (for example: a user pulls the SDCard)
+// and because Volume and nsVolume data structures are maintained on
+// separate threads, we have the potential for some race conditions.
+// We eliminate the race conditions by introducing the concept of a
+// generation number. Every time a volume transitions to the Mounted
+// state, it gets assigned a new generation number. Whenever the state
+// of a Volume changes, we send the updated state and current generation
+// number to the main thread where it gets updated in the nsVolume.
+//
+// Since WakeLocks can only be queried from the main-thread, the
+// nsVolumeService looks for WakeLock status changes, and forwards
+// the results to the IOThread.
+//
+// If the Volume (IOThread) recieves a volume update where the generation
+// number mismatches, then the update is simply ignored.
+//
+// When a Volume (IOThread) initially becomes mounted, we assume it to
+// be locked until we get our first update from nsVolume (MainThread).
 static int32_t sMountGeneration = 0;
 
 static uint32_t sNextId = 1;
 
-
-
+// We don't get media inserted/removed events at startup. So we
+// assume it's present, and we'll be told that it's missing.
 Volume::Volume(const nsCSubstring& aName)
   : mMediaPresent(true),
     mState(nsIVolume::STATE_INIT),
     mName(aName),
     mMountGeneration(-1),
-    mMountLocked(true),  
+    mMountLocked(true),  // Needs to agree with nsVolume::nsVolume
     mSharingEnabled(false),
     mFormatRequested(false),
     mMountRequested(false),
@@ -233,31 +233,31 @@ Volume::SetConfig(const nsCString& aConfigName, const nsCString& aConfigValue)
 void
 Volume::SetMediaPresent(bool aMediaPresent)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // mMediaPresent is slightly redunant to the state, however
+  // when media is removed (while Idle), we get the following:
+  //    631 Volume sdcard /mnt/sdcard disk removed (179:0)
+  //    605 Volume sdcard /mnt/sdcard state changed from 1 (Idle-Unmounted) to 0 (No-Media)
+  //
+  // And on media insertion, we get:
+  //    630 Volume sdcard /mnt/sdcard disk inserted (179:0)
+  //    605 Volume sdcard /mnt/sdcard state changed from 0 (No-Media) to 2 (Pending)
+  //    605 Volume sdcard /mnt/sdcard state changed from 2 (Pending) to 1 (Idle-Unmounted)
+  //
+  // On media removal while the media is mounted:
+  //    632 Volume sdcard /mnt/sdcard bad removal (179:1)
+  //    605 Volume sdcard /mnt/sdcard state changed from 4 (Mounted) to 5 (Unmounting)
+  //    605 Volume sdcard /mnt/sdcard state changed from 5 (Unmounting) to 1 (Idle-Unmounted)
+  //    631 Volume sdcard /mnt/sdcard disk removed (179:0)
+  //    605 Volume sdcard /mnt/sdcard state changed from 1 (Idle-Unmounted) to 0 (No-Media)
+  //
+  // When sharing with a PC, it goes Mounted -> Idle -> Shared
+  // When unsharing with a PC, it goes Shared -> Idle -> Mounted
+  //
+  // The AutoMounter needs to know whether the media is present or not when
+  // processing the Idle state.
 
   if (mMediaPresent == aMediaPresent) {
     return;
@@ -308,7 +308,7 @@ Volume::SetUnmountRequested(bool aUnmountRequested)
 void
 Volume::SetState(Volume::STATE aNewState)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   if (aNewState == mState) {
     return;
@@ -328,7 +328,7 @@ Volume::SetState(Volume::STATE aNewState)
 
   switch (aNewState) {
      case nsIVolume::STATE_NOMEDIA:
-       
+       // Cover the startup case where we don't get insertion/removal events
        mMediaPresent = false;
        mIsSharing = false;
        mUnmountRequested = false;
@@ -353,10 +353,10 @@ Volume::SetState(Volume::STATE aNewState)
 
      case nsIVolume::STATE_SHARED:
      case nsIVolume::STATE_SHAREDMNT:
-       
-       
-       
-       
+       // Covers startup cases. Normally, mIsSharing would be set to true
+       // when we issue the command to initiate the sharing process, but
+       // it's conceivable that a volume could already be in a shared state
+       // when b2g starts.
        mIsSharing = true;
        mIsUnmounting = false;
        mIsFormatting = false;
@@ -368,8 +368,8 @@ Volume::SetState(Volume::STATE aNewState)
        mIsSharing = false;
        break;
 
-     case nsIVolume::STATE_IDLE: 
-     case nsIVolume::STATE_CHECKMNT: 
+     case nsIVolume::STATE_IDLE: // Fall through
+     case nsIVolume::STATE_CHECKMNT: // Fall through
      default:
        break;
   }
@@ -380,7 +380,7 @@ Volume::SetState(Volume::STATE aNewState)
 void
 Volume::SetMountPoint(const nsCSubstring& aMountPoint)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   if (mMountPoint.Equals(aMountPoint)) {
@@ -393,7 +393,7 @@ Volume::SetMountPoint(const nsCSubstring& aMountPoint)
 void
 Volume::StartMount(VolumeResponseCallback* aCallback)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   StartCommand(new VolumeActionCommand(this, "mount", "", aCallback));
@@ -402,7 +402,7 @@ Volume::StartMount(VolumeResponseCallback* aCallback)
 void
 Volume::StartUnmount(VolumeResponseCallback* aCallback)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   StartCommand(new VolumeActionCommand(this, "unmount", "force", aCallback));
@@ -411,7 +411,7 @@ Volume::StartUnmount(VolumeResponseCallback* aCallback)
 void
 Volume::StartFormat(VolumeResponseCallback* aCallback)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   StartCommand(new VolumeActionCommand(this, "format", "", aCallback));
@@ -420,7 +420,7 @@ Volume::StartFormat(VolumeResponseCallback* aCallback)
 void
 Volume::StartShare(VolumeResponseCallback* aCallback)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   StartCommand(new VolumeActionCommand(this, "share", "ums", aCallback));
@@ -429,7 +429,7 @@ Volume::StartShare(VolumeResponseCallback* aCallback)
 void
 Volume::StartUnshare(VolumeResponseCallback* aCallback)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   StartCommand(new VolumeActionCommand(this, "unshare", "ums", aCallback));
@@ -438,17 +438,17 @@ Volume::StartUnshare(VolumeResponseCallback* aCallback)
 void
 Volume::StartCommand(VolumeCommand* aCommand)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   VolumeManager::PostCommand(aCommand);
 }
 
-
+//static
 void
 Volume::RegisterVolumeObserver(Volume::EventObserver* aObserver, const char* aName)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   sEventObserverList.AddObserver(aObserver);
@@ -456,7 +456,7 @@ Volume::RegisterVolumeObserver(Volume::EventObserver* aObserver, const char* aNa
   DBG("Added Volume Observer '%s' @%p, length = %u",
       aName, aObserver, sEventObserverList.Length());
 
-  
+  // Send an initial event to the observer (for each volume)
   size_t numVolumes = VolumeManager::NumVolumes();
   for (size_t volIndex = 0; volIndex < numVolumes; volIndex++) {
     RefPtr<Volume> vol = VolumeManager::GetVolume(volIndex);
@@ -464,11 +464,11 @@ Volume::RegisterVolumeObserver(Volume::EventObserver* aObserver, const char* aNa
   }
 }
 
-
+//static
 void
 Volume::UnregisterVolumeObserver(Volume::EventObserver* aObserver, const char* aName)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   sEventObserverList.RemoveObserver(aObserver);
@@ -477,13 +477,13 @@ Volume::UnregisterVolumeObserver(Volume::EventObserver* aObserver, const char* a
       aName, aObserver, sEventObserverList.Length());
 }
 
-
+//static
 void
 Volume::UpdateMountLock(const nsACString& aVolumeName,
                         const int32_t& aMountGeneration,
                         const bool& aMountLocked)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   RefPtr<Volume> vol = VolumeManager::FindVolumeByName(aVolumeName);
@@ -500,23 +500,23 @@ Volume::UpdateMountLock(const nsACString& aVolumeName,
 void
 Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
-  
-  
+  // The volume name will have already been parsed, and the tokenizer will point
+  // to the token after the volume name
   switch (aResponseCode) {
     case ::ResponseCode::VolumeListResult: {
-      
-      
-      
-      
+      // Each line will look something like:
+      //
+      //  sdcard /mnt/sdcard 1
+      //
       nsDependentCSubstring mntPoint(aTokenizer.nextToken());
       SetMountPoint(mntPoint);
       nsresult errCode;
       nsCString state(aTokenizer.nextToken());
       if (state.EqualsLiteral("X")) {
-        
+        // Special state for creating fake volumes which can't be shared.
         mCanBeShared = false;
         SetState(nsIVolume::STATE_MOUNTED);
       } else {
@@ -526,11 +526,11 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
     }
 
     case ::ResponseCode::VolumeStateChange: {
-      
-      
-      
-      
-      
+      // Format of the line looks something like:
+      //
+      //  Volume sdcard /mnt/sdcard state changed from 7 (Shared-Unmounted) to 1 (Idle-Unmounted)
+      //
+      // So we parse out the state after the string " to "
       while (aTokenizer.hasMoreTokens()) {
         nsAutoCString token(aTokenizer.nextToken());
         if (token.EqualsLiteral("to")) {
@@ -538,9 +538,9 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
           token = aTokenizer.nextToken();
           STATE newState = (STATE)(token.ToInteger(&errCode));
           if (newState == nsIVolume::STATE_MOUNTED) {
-            
-            
-            
+            // We set the state to STATE_CHECKMNT here, and the once the
+            // AutoMounter detects that the volume is actually accessible
+            // then the AutoMounter will set the volume as STATE_MOUNTED.
             SetState(nsIVolume::STATE_CHECKMNT);
           } else {
             if (State() == nsIVolume::STATE_CHECKING && newState == nsIVolume::STATE_IDLE) {
@@ -560,7 +560,7 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
       SetMediaPresent(true);
       break;
 
-    case ::ResponseCode::VolumeDiskRemoved: 
+    case ::ResponseCode::VolumeDiskRemoved: // fall-thru
     case ::ResponseCode::VolumeBadRemoval:
       SetMediaPresent(false);
       break;
@@ -571,5 +571,5 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
   }
 }
 
-} 
-} 
+} // namespace system
+} // namespace mozilla
