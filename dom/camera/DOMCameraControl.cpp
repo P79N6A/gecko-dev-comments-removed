@@ -18,6 +18,7 @@
 #include "mozilla/unused.h"
 #include "nsIAppsService.h"
 #include "nsIObserverService.h"
+#include "nsIDOMDeviceStorage.h"
 #include "nsIDOMEventListener.h"
 #include "nsIScriptSecurityManager.h"
 #include "Navigator.h"
@@ -762,10 +763,10 @@ nsDOMCameraControl::StartRecording(const CameraStartRecordingOptions& aOptions,
   }
 #endif
 
+  nsCOMPtr<nsIDOMDOMRequest> request;
   mDSFileDescriptor = new DeviceStorageFileDescriptor();
-  nsRefPtr<DOMRequest> request = aStorageArea.CreateFileDescriptor(aFilename,
-                                                                   mDSFileDescriptor.get(),
-                                                                   aRv);
+  aRv = aStorageArea.CreateFileDescriptor(aFilename, mDSFileDescriptor.get(),
+                                          getter_AddRefs(request));
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -773,15 +774,9 @@ nsDOMCameraControl::StartRecording(const CameraStartRecordingOptions& aOptions,
   mStartRecordingPromise = promise;
   mOptions = aOptions;
 
-  EventListenerManager* elm = request->GetOrCreateListenerManager();
-  if (!elm) {
-    aRv.Throw(NS_ERROR_UNEXPECTED);
-    return nullptr;
-  }
-
   nsCOMPtr<nsIDOMEventListener> listener = new StartRecordingHelper(this);
-  elm->AddEventListener(NS_LITERAL_STRING("success"), listener, false, false);
-  elm->AddEventListener(NS_LITERAL_STRING("error"), listener, false, false);
+  request->AddEventListener(NS_LITERAL_STRING("success"), listener, false);
+  request->AddEventListener(NS_LITERAL_STRING("error"), listener, false);
   return promise.forget();
 }
 
@@ -1381,7 +1376,7 @@ nsDOMCameraControl::OnFacesDetected(const nsTArray<ICameraControl::Face>& aFaces
 
   if (faces.SetCapacity(len, fallible)) {
     for (uint32_t i = 0; i < len; ++i) {
-      *faces.AppendElement() =
+      *faces.AppendElement(fallible) =
         new DOMCameraDetectedFace(static_cast<DOMMediaStream*>(this), aFaces[i]);
     }
   }

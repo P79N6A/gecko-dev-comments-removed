@@ -174,7 +174,7 @@ SVGMotionSMILAnimationFunction::
     if (HasAttr(nsGkAtoms::from)) {
       const nsAString& fromStr = GetAttr(nsGkAtoms::from)->GetStringValue();
       success = pathGenerator.MoveToAbsolute(fromStr);
-      mPathVertices.AppendElement(0.0);
+      mPathVertices.AppendElement(0.0, fallible);
     } else {
       
       
@@ -182,7 +182,7 @@ SVGMotionSMILAnimationFunction::
       
       pathGenerator.MoveToOrigin();
       if (!HasAttr(nsGkAtoms::to)) {
-        mPathVertices.AppendElement(0.0);
+        mPathVertices.AppendElement(0.0, fallible);
       }
       success = true;
     }
@@ -200,7 +200,7 @@ SVGMotionSMILAnimationFunction::
         success = pathGenerator.LineToRelative(byStr, dist);
       }
       if (success) {
-        mPathVertices.AppendElement(dist);
+        mPathVertices.AppendElement(dist, fallible);
       }
     }
   }
@@ -308,7 +308,8 @@ SVGMotionSMILAnimationFunction::
     double curDist = aPointDistances[i] * distanceMultiplier;
     if (!aResult.AppendElement(
           SVGMotionSMILType::ConstructSMILValue(aPath, curDist,
-                                                mRotateType, mRotateAngle))) {
+                                                mRotateType, mRotateAngle),
+          fallible)) {
       return false;
     }
   }

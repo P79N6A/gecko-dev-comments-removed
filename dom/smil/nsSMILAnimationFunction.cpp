@@ -787,20 +787,20 @@ nsSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
     
     if (!to.IsNull()) {
       if (!from.IsNull()) {
-        MOZ_ALWAYS_TRUE(result.AppendElement(from));
-        MOZ_ALWAYS_TRUE(result.AppendElement(to));
+        MOZ_ALWAYS_TRUE(result.AppendElement(from, mozilla::fallible));
+        MOZ_ALWAYS_TRUE(result.AppendElement(to, mozilla::fallible));
       } else {
-        MOZ_ALWAYS_TRUE(result.AppendElement(to));
+        MOZ_ALWAYS_TRUE(result.AppendElement(to, mozilla::fallible));
       }
     } else if (!by.IsNull()) {
       nsSMILValue effectiveFrom(by.mType);
       if (!from.IsNull())
         effectiveFrom = from;
       
-      MOZ_ALWAYS_TRUE(result.AppendElement(effectiveFrom));
+      MOZ_ALWAYS_TRUE(result.AppendElement(effectiveFrom, mozilla::fallible));
       nsSMILValue effectiveTo(effectiveFrom);
       if (!effectiveTo.IsNull() && NS_SUCCEEDED(effectiveTo.Add(by))) {
-        MOZ_ALWAYS_TRUE(result.AppendElement(effectiveTo));
+        MOZ_ALWAYS_TRUE(result.AppendElement(effectiveTo, mozilla::fallible));
       } else {
         
         return NS_ERROR_FAILURE;

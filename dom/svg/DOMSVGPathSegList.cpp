@@ -221,7 +221,7 @@ DOMSVGPathSegList::InternalListWillChangeTo(const SVGPathData& aNewValue)
         
         return;
       }
-      if (!mItems.AppendElement(ItemProxy(nullptr, dataIndex))) {
+      if (!mItems.AppendElement(ItemProxy(nullptr, dataIndex), fallible)) {
         
         ErrorResult rv;
         Clear(rv);
