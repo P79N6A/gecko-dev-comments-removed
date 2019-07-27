@@ -204,7 +204,6 @@ MediaKeySession::OnClosed()
     return;
   }
   mIsClosed = true;
-  
   mKeys->OnSessionClosed(this);
   mKeys = nullptr;
   mClosed->MaybeResolve(JS::UndefinedHandleValue);
