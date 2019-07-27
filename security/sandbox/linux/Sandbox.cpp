@@ -36,8 +36,8 @@
 #include "sandbox/linux/bpf_dsl/dump_bpf.h"
 #include "sandbox/linux/bpf_dsl/policy.h"
 #include "sandbox/linux/bpf_dsl/policy_compiler.h"
-#include "sandbox/linux/bpf_dsl/trap_registry.h"
 #include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
+#include "sandbox/linux/seccomp-bpf/trap.h"
 #if defined(ANDROID)
 #include "sandbox/linux/services/android_ucontext.h"
 #endif
@@ -78,6 +78,27 @@ static const char *gMediaPluginFilePath;
 #endif
 
 static UniquePtr<SandboxChroot> gChrootHelper;
+static void (*gChromiumSigSysHandler)(int, siginfo_t*, void*);
+
+
+
+static bool
+ContextIsError(const ucontext_t *aContext, int aError)
+{
+  
+  
+  typedef decltype(+SECCOMP_RESULT(aContext)) reg_t;
+
+#ifdef __mips__
+  return SECCOMP_PARM4(aContext) != 0
+    && SECCOMP_RESULT(aContext) == static_cast<reg_t>(aError);
+#else
+  return SECCOMP_RESULT(aContext) == static_cast<reg_t>(-aError);
+#endif
+}
+
+
+
 
 
 
@@ -89,29 +110,37 @@ static UniquePtr<SandboxChroot> gChrootHelper;
 
 
 static void
-Reporter(int nr, siginfo_t *info, void *void_context)
+SigSysHandler(int nr, siginfo_t *info, void *void_context)
 {
   ucontext_t *ctx = static_cast<ucontext_t*>(void_context);
-  unsigned long syscall_nr, args[6];
-  pid_t pid = getpid();
-
-  if (nr != SIGSYS) {
-    return;
-  }
-  if (info->si_code != SYS_SECCOMP) {
-    return;
-  }
+  
+  
+  MOZ_DIAGNOSTIC_ASSERT(ctx);
   if (!ctx) {
     return;
   }
 
-  syscall_nr = SECCOMP_SYSCALL(ctx);
-  args[0] = SECCOMP_PARM1(ctx);
-  args[1] = SECCOMP_PARM2(ctx);
-  args[2] = SECCOMP_PARM3(ctx);
-  args[3] = SECCOMP_PARM4(ctx);
-  args[4] = SECCOMP_PARM5(ctx);
-  args[5] = SECCOMP_PARM6(ctx);
+  
+  
+  ucontext_t savedCtx = *ctx;
+
+  gChromiumSigSysHandler(nr, info, ctx);
+  if (!ContextIsError(ctx, ENOSYS)) {
+    return;
+  }
+
+  pid_t pid = getpid();
+  unsigned long syscall_nr = SECCOMP_SYSCALL(&savedCtx);
+  unsigned long args[6];
+  args[0] = SECCOMP_PARM1(&savedCtx);
+  args[1] = SECCOMP_PARM2(&savedCtx);
+  args[2] = SECCOMP_PARM3(&savedCtx);
+  args[3] = SECCOMP_PARM4(&savedCtx);
+  args[4] = SECCOMP_PARM5(&savedCtx);
+  args[5] = SECCOMP_PARM6(&savedCtx);
+
+  
+  
 
 #if defined(ANDROID) && ANDROID_VERSION < 16
   
@@ -147,6 +176,8 @@ Reporter(int nr, siginfo_t *info, void *void_context)
   }
 #endif
 
+  
+  
   SANDBOX_LOG_ERROR("seccomp sandbox violation: pid %d, syscall %lu,"
                     " args %lu %lu %lu %lu %lu %lu.  Killing process.",
                     pid, syscall_nr,
@@ -155,7 +186,7 @@ Reporter(int nr, siginfo_t *info, void *void_context)
   
   info->si_addr = reinterpret_cast<void*>(syscall_nr);
 
-  gSandboxCrashFunc(nr, info, void_context);
+  gSandboxCrashFunc(nr, info, &savedCtx);
   _exit(127);
 }
 
@@ -167,32 +198,33 @@ Reporter(int nr, siginfo_t *info, void *void_context)
 
 
 
-
-
-
-
-
-
-static int
-InstallSyscallReporter(void)
+static void
+InstallSigSysHandler(void)
 {
   struct sigaction act;
-  sigset_t mask;
-  memset(&act, 0, sizeof(act));
-  sigemptyset(&mask);
-  sigaddset(&mask, SIGSYS);
 
-  act.sa_sigaction = &Reporter;
-  act.sa_flags = SA_SIGINFO | SA_NODEFER;
+  
+  unused << sandbox::Trap::Registry();
+
+  
+  
+
+  if (sigaction(SIGSYS, nullptr, &act) != 0) {
+    MOZ_CRASH("Couldn't read old SIGSYS disposition");
+  }
+  if ((act.sa_flags & SA_SIGINFO) != SA_SIGINFO) {
+    MOZ_CRASH("SIGSYS not already set to a siginfo handler?");
+  }
+  MOZ_RELEASE_ASSERT(act.sa_sigaction);
+  gChromiumSigSysHandler = act.sa_sigaction;
+  act.sa_sigaction = SigSysHandler;
+  
+  
+  MOZ_ASSERT(act.sa_flags & SA_NODEFER);
+  act.sa_flags |= SA_NODEFER;
   if (sigaction(SIGSYS, &act, nullptr) < 0) {
-    return -1;
+    MOZ_CRASH("Couldn't change SIGSYS disposition");
   }
-  if (sigemptyset(&mask) ||
-    sigaddset(&mask, SIGSYS) ||
-    sigprocmask(SIG_UNBLOCK, &mask, nullptr)) {
-      return -1;
-  }
-  return 0;
 }
 
 
@@ -426,37 +458,21 @@ BroadcastSetThreadSandbox(UniquePtr<sock_filter[]> aProgram, size_t aProgLen)
 }
 
 
-class FakeTrapRegistry : public sandbox::bpf_dsl::TrapRegistry
-{
-public:
-  virtual uint16_t Add(TrapFnc fnc, const void* aux, bool safe)
-  {
-    MOZ_RELEASE_ASSERT(safe);
-    return 0;
-  }
-  virtual bool EnableUnsafeTraps() {
-    return false;
-  }
-};
-
-
 static void
 SetCurrentProcessSandbox(UniquePtr<sandbox::bpf_dsl::Policy> aPolicy)
 {
   MOZ_ASSERT(gSandboxCrashFunc);
 
-  FakeTrapRegistry registry;
   
   
-  sandbox::bpf_dsl::PolicyCompiler compiler(aPolicy.get(), &registry);
+  sandbox::bpf_dsl::PolicyCompiler compiler(aPolicy.get(),
+                                            sandbox::Trap::Registry());
   auto program = compiler.Compile();
   if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
     sandbox::bpf_dsl::DumpBPF::PrintProgram(*program);
   }
 
-  if (InstallSyscallReporter()) {
-    SANDBOX_LOG_ERROR("install_syscall_reporter() failed\n");
-  }
+  InstallSigSysHandler();
 
 #ifdef MOZ_ASAN
   __sanitizer_sandbox_arguments asanArgs;

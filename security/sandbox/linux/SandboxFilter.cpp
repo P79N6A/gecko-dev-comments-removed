@@ -36,15 +36,29 @@ using namespace sandbox::bpf_dsl;
 
 
 
+
+
+
+
+
+
+
 namespace mozilla {
 
 
 
 class SandboxPolicyCommon : public SandboxPolicyBase
 {
+  static intptr_t BlockedSyscallTrap(const sandbox::arch_seccomp_data& aArgs,
+                                     void *aux)
+  {
+    MOZ_ASSERT(!aux);
+    return -ENOSYS;
+  }
+
 public:
   virtual ResultExpr InvalidSyscall() const override {
-    return Trap(nullptr, nullptr);
+    return Trap(BlockedSyscallTrap, nullptr);
   }
 
   virtual ResultExpr ClonePolicy() const {
