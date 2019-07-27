@@ -158,18 +158,6 @@ CommonAnimationManager::GetAnimationsForCompositor(nsIContent* aContent,
   }
 
   
-  
-  nsIFrame* frame = nsLayoutUtils::GetStyleFrame(collection->mElement);
-  if (frame) {
-    const auto& info = sLayerAnimationInfo;
-    for (size_t i = 0; i < ArrayLength(info); i++) {
-      if (aProperty == info[i].mProperty) {
-        ActiveLayerTracker::NotifyAnimated(frame, aProperty);
-        break;
-      }
-    }
-  }
-
   return collection;
 }
 
