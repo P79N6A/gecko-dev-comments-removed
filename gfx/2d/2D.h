@@ -598,20 +598,6 @@ protected:
   UserData mUserData;
 };
 
-#ifdef MOZ_ENABLE_FREETYPE
-
-
-
-
-
-struct FontOptions
-{
-  std::string mName;
-  FontStyle mStyle;
-};
-#endif
-
-
 
 
 

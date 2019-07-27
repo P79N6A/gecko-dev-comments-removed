@@ -34,18 +34,12 @@ public:
 
     virtual FontType GetType() const MOZ_OVERRIDE { return FONT_TYPE_FT2; }
 
-    mozilla::gfx::FontOptions* GetFontOptions() { return &mFontOptions; }
-
 protected:
     virtual const Metrics& GetHorizontalMetrics() MOZ_OVERRIDE;
 
     uint32_t mSpaceGlyph;
     bool mHasMetrics;
     Metrics mMetrics;
-
-    
-    mozilla::gfx::FontOptions  mFontOptions;
-    void ConstructFontOptions();
 };
 
 #endif 
