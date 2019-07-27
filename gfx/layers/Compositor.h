@@ -478,9 +478,15 @@ public:
   ScreenRotation GetScreenRotation() const {
     return mScreenRotation;
   }
-
   void SetScreenRotation(ScreenRotation aRotation) {
     mScreenRotation = aRotation;
+  }
+
+  TimeStamp GetCompositionTime() const {
+    return mCompositionTime;
+  }
+  void SetCompositionTime(TimeStamp aTimeStamp) {
+    mCompositionTime = aTimeStamp;
   }
 
 protected:
@@ -496,6 +502,11 @@ protected:
 
 
   static void SetBackend(LayersBackend backend);
+
+  
+
+
+  TimeStamp mCompositionTime;
 
   uint32_t mCompositorID;
   DiagnosticTypes mDiagnosticTypes;
