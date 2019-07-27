@@ -875,18 +875,49 @@ Toolbox.prototype = {
     iframe.tooltip = "aHTMLTooltip";
     iframe.style.visibility = "hidden";
 
-    let vbox = this.doc.getElementById("toolbox-panel-" + id);
-    vbox.appendChild(iframe);
+    gDevTools.emit(id + "-init", this, iframe);
+    this.emit(id + "-init", iframe);
+
+    
+    if (!iframe.parentNode) {
+      let vbox = this.doc.getElementById("toolbox-panel-" + id);
+      vbox.appendChild(iframe);
+    }
 
     let onLoad = () => {
       
       iframe.style.visibility = "visible";
 
+      
+      
+      
+      
       let built = definition.build(iframe.contentWindow, this);
+      if (!(built instanceof Promise)) {
+        let panel = built;
+        iframe.panel = panel;
+
+        gDevTools.emit(id + "-build", this, panel);
+        this.emit(id + "-build", panel);
+
+        
+        
+        if (typeof panel.open == "function") {
+          built = panel.open();
+        } else {
+          let deferred = promise.defer();
+          deferred.resolve(panel);
+          built = deferred.promise;
+        }
+      }
+
+      
       promise.resolve(built).then((panel) => {
         this._toolPanels.set(id, panel);
-        this.emit(id + "-ready", panel);
+
         gDevTools.emit(id + "-ready", this, panel);
+        this.emit(id + "-ready", panel);
+
         deferred.resolve(panel);
       }, console.error);
     };
