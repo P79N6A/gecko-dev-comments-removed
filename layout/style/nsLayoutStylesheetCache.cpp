@@ -292,6 +292,13 @@ nsLayoutStylesheetCache::EnsureGlobal()
 
   Preferences::AddBoolVarCache(&sNumberControlEnabled, NUMBER_CONTROL_PREF,
                                true);
+
+  
+  
+  
+  
+  
+  
 }
 
 void
@@ -388,6 +395,29 @@ nsLayoutStylesheetCache::LoadSheet(nsIURI* aURI,
     ErrorLoadingBuiltinSheet(aURI,
       nsPrintfCString("LoadSheetSync failed with error %x", rv).get());
   }
+}
+
+ void
+nsLayoutStylesheetCache::InvalidateSheet(nsRefPtr<CSSStyleSheet>& aSheet)
+{
+  MOZ_ASSERT(gCSSLoader, "pref changed before we loaded a sheet?");
+
+  if (aSheet) {
+    gCSSLoader->ObsoleteSheet(aSheet->GetSheetURI());
+    aSheet = nullptr;
+  }
+}
+
+ void
+nsLayoutStylesheetCache::DependentPrefChanged(const char* aPref, void* aData)
+{
+  MOZ_ASSERT(gStyleCache, "pref changed after shutdown?");
+
+  
+  
+  
+  
+  
 }
 
 mozilla::StaticRefPtr<nsLayoutStylesheetCache>
