@@ -327,6 +327,12 @@ public:
 
 
 
+
+
+
+
+
+
   void SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker);
 
   
