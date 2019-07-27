@@ -22,10 +22,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "WebappOSUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
 
-XPCOMUtils.defineLazyServiceGetter(this, "appsService",
-                                   "@mozilla.org/AppsService;1",
-                                   "nsIAppsService");
-
 
 
 
@@ -492,17 +488,9 @@ this.AppsUtils = {
 
 
 
-
   checkAppRole: function(aRole, aStatus) {
     if (aRole == "theme" && aStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
       return false;
-    }
-    if (aRole == "langpack" && aStatus !== Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
-      let allow = false;
-      try  {
-        allow = Services.prefs.getBoolPref("dom.apps.allow_unsigned_langpacks");
-      } catch(e) {}
-      return allow;
     }
     if (!this.allowUnsignedAddons &&
         (aRole == "addon" &&
@@ -744,16 +732,7 @@ this.AppsUtils = {
   
   computeObjectHash: function(aObject) {
     return this.computeHash(JSON.stringify(aObject));
-  },
-
-  getAppManifestURLFromWindow: function(aWindow) {
-    let appId = aWindow.document.nodePrincipal.appId;
-    if (appId === Ci.nsIScriptSecurityManager.NO_APP_ID) {
-      return null;
-    }
-
-    return appsService.getManifestURLByLocalId(appId);
-  },
+  }
 }
 
 
