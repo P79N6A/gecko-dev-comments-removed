@@ -664,6 +664,8 @@ public:
   void SettingValue(bool aValue) { mSettingValue = aValue; }
   void SetValueChanged(bool aSetValueChanged) { mSetValueChanged = aSetValueChanged; }
 
+  bool IsInEditAction() const { return mInEditAction; }
+
   NS_DECL_ISUPPORTS
 
   NS_DECL_NSISELECTIONLISTENER
@@ -708,6 +710,10 @@ protected:
 
 
   bool mSetValueChanged;
+  
+
+
+  bool mInEditAction;
 };
 
 
@@ -723,6 +729,7 @@ nsTextInputListener::nsTextInputListener(nsITextControlElement* aTxtCtrlElement)
 , mHadRedoItems(false)
 , mSettingValue(false)
 , mSetValueChanged(true)
+, mInEditAction(false)
 {
 }
 
@@ -889,6 +896,8 @@ nsTextInputListener::HandleEvent(nsIDOMEvent* aEvent)
 NS_IMETHODIMP
 nsTextInputListener::EditAction()
 {
+  mInEditAction = false;
+
   nsWeakFrame weakFrame = mFrame;
 
   nsITextControlFrame* frameBase = do_QueryFrame(mFrame);
@@ -934,12 +943,14 @@ nsTextInputListener::EditAction()
 NS_IMETHODIMP
 nsTextInputListener::BeforeEditAction()
 {
+  mInEditAction = true;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsTextInputListener::CancelEditAction()
 {
+  mInEditAction = false;
   return NS_OK;
 }
 
@@ -1517,6 +1528,13 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   
   NS_ASSERTION(!aFrame || aFrame == mBoundFrame, "Unbinding from the wrong frame");
   NS_ENSURE_TRUE_VOID(!aFrame || aFrame == mBoundFrame);
+
+  
+  
+  
+  if (mTextListener && mTextListener->IsInEditAction()) {
+    mTextListener->EditAction();
+  }
 
   
   
