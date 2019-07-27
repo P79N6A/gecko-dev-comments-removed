@@ -73,11 +73,6 @@
 
 
 
-
-
-
-
-
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_)
 #define DEFINED_CSS_PROP_SHORTHAND
@@ -87,26 +82,6 @@
   CSS_PROP_PUBLIC_OR_PRIVATE(Moz ## name_, name_)
 
 #define CSS_PROP_NO_OFFSET (-1)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -159,35 +134,11 @@
 #define DEFINED_CSS_PROP_BACKENDONLY
 #endif
 
-
-
-
-
-#if defined(CSS_PROP_LOGICAL) && defined(CSS_PROP_LIST_EXCLUDE_LOGICAL) || defined(CSS_PROP_LOGICAL) && defined(CSS_PROP_LIST_INCLUDE_LOGICAL) || defined(CSS_PROP_LIST_EXCLUDE_LOGICAL) && defined(CSS_PROP_LIST_INCLUDE_LOGICAL)
-#error Do not define more than one of CSS_PROP_LOGICAL, CSS_PROP_LIST_EXCLUDE_LOGICAL and CSS_PROP_LIST_INCLUDE_LOGICAL when capturing properties using CSS_PROP.
-#endif
-
-#ifndef CSS_PROP_LOGICAL
-#ifdef CSS_PROP_LIST_INCLUDE_LOGICAL
-#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_) CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
-#else
-#ifndef CSS_PROP_LIST_EXCLUDE_LOGICAL
-#error Must define exactly one of CSS_PROP_LOGICAL, CSS_PROP_LIST_EXCLUDE_LOGICAL and CSS_PROP_LIST_INCLUDE_LOGICAL when capturing properties using CSS_PROP.
-#endif
-#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
-#endif
-#define DEFINED_CSS_PROP_LOGICAL
-#endif
-
 #else 
 
 
 
 
-
-#if defined(CSS_PROP_LIST_EXCLUDE_LOGICAL) || defined(CSS_PROP_LIST_INCLUDE_LOGICAL)
-#error Do not define CSS_PROP_LIST_EXCLUDE_LOGICAL or CSS_PROP_LIST_INCLUDE_LOGICAL when not capturing properties using CSS_PROP.
-#endif
 
 #ifndef CSS_PROP_FONT
 #define CSS_PROP_FONT(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, stylestructoffset_, animtype_)
@@ -289,10 +240,6 @@
 #ifndef CSS_PROP_BACKENDONLY
 #define CSS_PROP_BACKENDONLY(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_)
 #define DEFINED_CSS_PROP_BACKENDONLY
-#endif
-#ifndef CSS_PROP_LOGICAL
-#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
-#define DEFINED_CSS_PROP_LOGICAL
 #endif
 
 #endif 
@@ -744,6 +691,70 @@ CSS_PROP_SHORTHAND(
         CSS_PROPERTY_HASHLESS_COLOR_QUIRK,
     "")
 CSS_PROP_SHORTHAND(
+    -moz-border-end,
+    border_end,
+    CSS_PROP_DOMPROP_PREFIXED(BorderEnd),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+CSS_PROP_SHORTHAND(
+    -moz-border-end-color,
+    border_end_color,
+    CSS_PROP_DOMPROP_PREFIXED(BorderEndColor),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-end-color-value,
+    border_end_color_value,
+    BorderEndColorValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    "",
+    VARIANT_HCK, 
+    kBorderColorKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
+    -moz-border-end-style,
+    border_end_style,
+    CSS_PROP_DOMPROP_PREFIXED(BorderEndStyle),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-end-style-value,
+    border_end_style_value,
+    BorderEndStyleValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    "",
+    VARIANT_HK, 
+    kBorderStyleKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
+    -moz-border-end-width,
+    border_end_width,
+    CSS_PROP_DOMPROP_PREFIXED(BorderEndWidth),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-end-width-value,
+    border_end_width_value,
+    BorderEndWidthValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    "",
+    VARIANT_HKL | VARIANT_CALC,
+    kBorderWidthKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
     border-image,
     border_image,
     BorderImage,
@@ -806,116 +817,59 @@ CSS_PROP_BORDER(
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 CSS_PROP_SHORTHAND(
-    -moz-border-end,
-    border_end,
-    CSS_PROP_DOMPROP_PREFIXED(BorderEnd),
-    CSS_PROPERTY_PARSE_FUNCTION,
-    "")
-CSS_PROP_LOGICAL(
-    -moz-border-end-color,
-    border_end_color,
-    CSS_PROP_DOMPROP_PREFIXED(BorderEndColor),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HCK,
-    kBorderColorKTable,
-    Border,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_LOGICAL(
-    -moz-border-end-style,
-    border_end_style,
-    CSS_PROP_DOMPROP_PREFIXED(BorderEndStyle),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HK,
-    kBorderStyleKTable,
-    Border,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_LOGICAL(
-    -moz-border-end-width,
-    border_end_width,
-    CSS_PROP_DOMPROP_PREFIXED(BorderEndWidth),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_NONNEGATIVE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HKL | VARIANT_CALC,
-    kBorderWidthKTable,
-    Border,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_SHORTHAND(
-    -moz-border-start,
-    border_start,
-    CSS_PROP_DOMPROP_PREFIXED(BorderStart),
-    CSS_PROPERTY_PARSE_FUNCTION,
-    "")
-CSS_PROP_LOGICAL(
-    -moz-border-start-color,
-    border_start_color,
-    CSS_PROP_DOMPROP_PREFIXED(BorderStartColor),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HCK,
-    kBorderColorKTable,
-    Border,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_LOGICAL(
-    -moz-border-start-style,
-    border_start_style,
-    CSS_PROP_DOMPROP_PREFIXED(BorderStartStyle),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HK,
-    kBorderStyleKTable,
-    Border,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_LOGICAL(
-    -moz-border-start-width,
-    border_start_width,
-    CSS_PROP_DOMPROP_PREFIXED(BorderStartWidth),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_NONNEGATIVE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HKL | VARIANT_CALC,
-    kBorderWidthKTable,
-    Border,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_SHORTHAND(
     border-left,
     border_left,
     BorderLeft,
     CSS_PROPERTY_PARSE_FUNCTION,
     "")
-CSS_PROP_BORDER(
+CSS_PROP_SHORTHAND(
     border-left-color,
     border_left_color,
     BorderLeftColor,
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_HASHLESS_COLOR_QUIRK |
+    CSS_PROPERTY_PARSE_FUNCTION |
+        CSS_PROPERTY_HASHLESS_COLOR_QUIRK,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-left-color-value,
+    border_left_color_value,
+    BorderLeftColorValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED,
+        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED |
+        CSS_PROPERTY_REPORT_OTHER_NAME,
     "",
-    VARIANT_HCK,
+    VARIANT_HCK, 
     kBorderColorKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_Custom)
+CSS_PROP_BORDER(
+    border-left-color-ltr-source,
+    border_left_color_ltr_source,
+    BorderLeftColorLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_BORDER(
+    border-left-color-rtl-source,
+    border_left_color_rtl_source,
+    BorderLeftColorRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
 CSS_PROP_BORDER(
     -moz-border-left-colors,
     border_left_colors,
@@ -928,50 +882,151 @@ CSS_PROP_BORDER(
     nullptr,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
-CSS_PROP_BORDER(
+CSS_PROP_SHORTHAND(
     border-left-style,
     border_left_style,
     BorderLeftStyle,
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "") 
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-left-style-value,
+    border_left_style_value,
+    BorderLeftStyleValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_REPORT_OTHER_NAME,
     "",
-    VARIANT_HK,
+    VARIANT_HK, 
     kBorderStyleKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 CSS_PROP_BORDER(
+    border-left-style-ltr-source,
+    border_left_style_ltr_source,
+    BorderLeftStyleLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_BORDER(
+    border-left-style-rtl-source,
+    border_left_style_rtl_source,
+    BorderLeftStyleRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
     border-left-width,
     border_left_width,
     BorderLeftWidth,
-    CSS_PROPERTY_PARSE_VALUE |
+    CSS_PROPERTY_PARSE_FUNCTION |
         CSS_PROPERTY_UNITLESS_LENGTH_QUIRK |
+        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-left-width-value,
+    border_left_width_value,
+    BorderLeftWidthValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
         CSS_PROPERTY_VALUE_NONNEGATIVE |
-        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_REPORT_OTHER_NAME,
     "",
     VARIANT_HKL | VARIANT_CALC,
     kBorderWidthKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_Custom)
+CSS_PROP_BORDER(
+    border-left-width-ltr-source,
+    border_left_width_ltr_source,
+    BorderLeftWidthLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_BORDER(
+    border-left-width-rtl-source,
+    border_left_width_rtl_source,
+    BorderLeftWidthRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
 CSS_PROP_SHORTHAND(
     border-right,
     border_right,
     BorderRight,
     CSS_PROPERTY_PARSE_FUNCTION,
     "")
-CSS_PROP_BORDER(
+CSS_PROP_SHORTHAND(
     border-right-color,
     border_right_color,
     BorderRightColor,
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_HASHLESS_COLOR_QUIRK |
+    CSS_PROPERTY_PARSE_FUNCTION |
+        CSS_PROPERTY_HASHLESS_COLOR_QUIRK,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-right-color-value,
+    border_right_color_value,
+    BorderRightColorValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED,
+        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED |
+        CSS_PROPERTY_REPORT_OTHER_NAME,
     "",
-    VARIANT_HCK,
+    VARIANT_HCK, 
     kBorderColorKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_Custom)
+CSS_PROP_BORDER(
+    border-right-color-ltr-source,
+    border_right_color_ltr_source,
+    BorderRightColorLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_BORDER(
+    border-right-color-rtl-source,
+    border_right_color_rtl_source,
+    BorderRightColorRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
 CSS_PROP_BORDER(
     -moz-border-right-colors,
     border_right_colors,
@@ -984,31 +1039,97 @@ CSS_PROP_BORDER(
     nullptr,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
-CSS_PROP_BORDER(
+CSS_PROP_SHORTHAND(
     border-right-style,
     border_right_style,
     BorderRightStyle,
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "") 
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-right-style-value,
+    border_right_style_value,
+    BorderRightStyleValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_REPORT_OTHER_NAME,
     "",
-    VARIANT_HK,
+    VARIANT_HK, 
     kBorderStyleKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 CSS_PROP_BORDER(
+    border-right-style-ltr-source,
+    border_right_style_ltr_source,
+    BorderRightStyleLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_BORDER(
+    border-right-style-rtl-source,
+    border_right_style_rtl_source,
+    BorderRightStyleRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
     border-right-width,
     border_right_width,
     BorderRightWidth,
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_NONNEGATIVE |
+    CSS_PROPERTY_PARSE_FUNCTION |
         CSS_PROPERTY_UNITLESS_LENGTH_QUIRK |
-        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-right-width-value,
+    border_right_width_value,
+    BorderRightWidthValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_REPORT_OTHER_NAME,
     "",
     VARIANT_HKL | VARIANT_CALC,
     kBorderWidthKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_Custom)
+CSS_PROP_BORDER(
+    border-right-width-ltr-source,
+    border_right_width_ltr_source,
+    BorderRightWidthLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_BORDER(
+    border-right-width-rtl-source,
+    border_right_width_rtl_source,
+    BorderRightWidthRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
 CSS_PROP_TABLEBORDER(
     border-spacing,
     border_spacing,
@@ -1020,6 +1141,70 @@ CSS_PROP_TABLEBORDER(
     nullptr,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_Custom)
+CSS_PROP_SHORTHAND(
+    -moz-border-start,
+    border_start,
+    CSS_PROP_DOMPROP_PREFIXED(BorderStart),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+CSS_PROP_SHORTHAND(
+    -moz-border-start-color,
+    border_start_color,
+    CSS_PROP_DOMPROP_PREFIXED(BorderStartColor),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-start-color-value,
+    border_start_color_value,
+    BorderStartColorValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    "",
+    VARIANT_HCK, 
+    kBorderColorKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
+    -moz-border-start-style,
+    border_start_style,
+    CSS_PROP_DOMPROP_PREFIXED(BorderStartStyle),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-start-style-value,
+    border_start_style_value,
+    BorderStartStyleValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    "",
+    VARIANT_HK, 
+    kBorderStyleKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
+    -moz-border-start-width,
+    border_start_width,
+    CSS_PROP_DOMPROP_PREFIXED(BorderStartWidth),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_BORDER(
+    border-start-width-value,
+    border_start_width_value,
+    BorderStartWidthValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER,
+    "",
+    VARIANT_HKL | VARIANT_CALC,
+    kBorderWidthKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
 CSS_PROP_SHORTHAND(
     border-style,
     border_style,
@@ -2093,66 +2278,152 @@ CSS_PROP_MARGIN(
     nullptr,
     offsetof(nsStyleMargin, mMargin),
     eStyleAnimType_Sides_Bottom)
-CSS_PROP_LOGICAL(
+CSS_PROP_SHORTHAND(
     -moz-margin-end,
     margin_end,
     CSS_PROP_DOMPROP_PREFIXED(MarginEnd),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_STORES_CALC |
-        CSS_PROPERTY_APPLIES_TO_PAGE_RULE |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_AHLP | VARIANT_CALC,
-    nullptr,
-    Margin,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_LOGICAL(
-    -moz-margin-start,
-    margin_start,
-    CSS_PROP_DOMPROP_PREFIXED(MarginStart),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_STORES_CALC |
-        CSS_PROPERTY_APPLIES_TO_PAGE_RULE |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_AHLP | VARIANT_CALC,
-    nullptr,
-    Margin,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
+    CSS_PROPERTY_PARSE_FUNCTION |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 CSS_PROP_MARGIN(
+    margin-end-value,
+    margin_end_value,
+    MarginEndValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_STORES_CALC |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "",
+    VARIANT_AHLP | VARIANT_CALC, 
+    nullptr,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
     margin-left,
     margin_left,
     MarginLeft,
-    CSS_PROPERTY_PARSE_VALUE |
+    CSS_PROPERTY_PARSE_FUNCTION |
         CSS_PROPERTY_UNITLESS_LENGTH_QUIRK |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_STORES_CALC |
         CSS_PROPERTY_APPLIES_TO_PAGE_RULE |
         CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_MARGIN(
+    margin-left-value,
+    margin_left_value,
+    MarginLeftValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_REPORT_OTHER_NAME |
+        CSS_PROPERTY_STORES_CALC |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
     "",
-    VARIANT_AHLP | VARIANT_CALC,
+    VARIANT_AHLP | VARIANT_CALC, 
     nullptr,
     offsetof(nsStyleMargin, mMargin),
     eStyleAnimType_Sides_Left)
 CSS_PROP_MARGIN(
+    margin-left-ltr-source,
+    margin_left_ltr_source,
+    MarginLeftLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_MARGIN(
+    margin-left-rtl-source,
+    margin_left_rtl_source,
+    MarginLeftRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
     margin-right,
     margin_right,
     MarginRight,
-    CSS_PROPERTY_PARSE_VALUE |
+    CSS_PROPERTY_PARSE_FUNCTION |
         CSS_PROPERTY_UNITLESS_LENGTH_QUIRK |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        CSS_PROPERTY_STORES_CALC |
         CSS_PROPERTY_APPLIES_TO_PAGE_RULE |
         CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_MARGIN(
+    margin-right-value,
+    margin_right_value,
+    MarginRightValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_REPORT_OTHER_NAME |
+        CSS_PROPERTY_STORES_CALC |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
     "",
-    VARIANT_AHLP | VARIANT_CALC,
+    VARIANT_AHLP | VARIANT_CALC, 
     nullptr,
     offsetof(nsStyleMargin, mMargin),
     eStyleAnimType_Sides_Right)
+CSS_PROP_MARGIN(
+    margin-right-ltr-source,
+    margin_right_ltr_source,
+    MarginRightLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_MARGIN(
+    margin-right-rtl-source,
+    margin_right_rtl_source,
+    MarginRightRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
+    -moz-margin-start,
+    margin_start,
+    CSS_PROP_DOMPROP_PREFIXED(MarginStart),
+    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_MARGIN(
+    margin-start-value,
+    margin_start_value,
+    MarginStartValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_STORES_CALC |
+        CSS_PROPERTY_APPLIES_TO_PAGE_RULE,
+    "",
+    VARIANT_AHLP | VARIANT_CALC, 
+    nullptr,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
 CSS_PROP_MARGIN(
     margin-top,
     margin_top,
@@ -2428,76 +2699,158 @@ CSS_PROP_PADDING(
     nullptr,
     offsetof(nsStylePadding, mPadding),
     eStyleAnimType_Sides_Bottom)
-CSS_PROP_LOGICAL(
+CSS_PROP_SHORTHAND(
     -moz-padding-end,
     padding_end,
     CSS_PROP_DOMPROP_PREFIXED(PaddingEnd),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_NONNEGATIVE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        
-        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
-        CSS_PROPERTY_STORES_CALC |
-        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HLP | VARIANT_CALC,
-    nullptr,
-    Padding,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
-CSS_PROP_LOGICAL(
-    -moz-padding-start,
-    padding_start,
-    CSS_PROP_DOMPROP_PREFIXED(PaddingStart),
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_NONNEGATIVE |
-        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
-        
-        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
-        CSS_PROPERTY_STORES_CALC |
-        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH |
-        CSS_PROPERTY_LOGICAL,
-    "",
-    VARIANT_HLP | VARIANT_CALC,
-    nullptr,
-    Padding,
-    CSS_PROP_NO_OFFSET,
-    eStyleAnimType_None)
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 CSS_PROP_PADDING(
+    padding-end-value,
+    padding_end_value,
+    PaddingEndValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        
+        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
+        CSS_PROPERTY_STORES_CALC,
+    "",
+    VARIANT_HLP | VARIANT_CALC, 
+    nullptr,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
     padding-left,
     padding_left,
     PaddingLeft,
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_NONNEGATIVE |
+    CSS_PROPERTY_PARSE_FUNCTION |
         CSS_PROPERTY_UNITLESS_LENGTH_QUIRK |
+        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_PADDING(
+    padding-left-value,
+    padding_left_value,
+    PaddingLeftValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
         
         CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
-        CSS_PROPERTY_STORES_CALC |
-        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+        CSS_PROPERTY_REPORT_OTHER_NAME |
+        CSS_PROPERTY_STORES_CALC,
     "",
-    VARIANT_HLP | VARIANT_CALC,
+    VARIANT_HLP | VARIANT_CALC, 
     nullptr,
     offsetof(nsStylePadding, mPadding),
     eStyleAnimType_Sides_Left)
 CSS_PROP_PADDING(
-    padding-right,
-    padding_right,
-    PaddingRight,
-    CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_NONNEGATIVE |
-        CSS_PROPERTY_UNITLESS_LENGTH_QUIRK |
+    padding-left-ltr-source,
+    padding_left_ltr_source,
+    PaddingLeftLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
         
         CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
-        CSS_PROPERTY_STORES_CALC |
-        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
     "",
-    VARIANT_HLP | VARIANT_CALC,
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_PADDING(
+    padding-left-rtl-source,
+    padding_left_rtl_source,
+    PaddingLeftRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        
+        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
+    padding-right,
+    padding_right,
+    PaddingRight,
+    CSS_PROPERTY_PARSE_FUNCTION |
+        CSS_PROPERTY_UNITLESS_LENGTH_QUIRK |
+        CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_PADDING(
+    padding-right-value,
+    padding_right_value,
+    PaddingRightValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        
+        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
+        CSS_PROPERTY_REPORT_OTHER_NAME |
+        CSS_PROPERTY_STORES_CALC,
+    "",
+    VARIANT_HLP | VARIANT_CALC, 
     nullptr,
     offsetof(nsStylePadding, mPadding),
     eStyleAnimType_Sides_Right)
+CSS_PROP_PADDING(
+    padding-right-ltr-source,
+    padding_right_ltr_source,
+    PaddingRightLTRSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        
+        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_PADDING(
+    padding-right-rtl-source,
+    padding_right_rtl_source,
+    PaddingRightRTLSource,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        CSS_PROPERTY_DIRECTIONAL_SOURCE,
+    "",
+    0,
+    kBoxPropSourceKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
+CSS_PROP_SHORTHAND(
+    -moz-padding-start,
+    padding_start,
+    CSS_PROP_DOMPROP_PREFIXED(PaddingStart),
+    CSS_PROPERTY_PARSE_FUNCTION,
+    "")
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
+CSS_PROP_PADDING(
+    padding-start-value,
+    padding_start_value,
+    PaddingStartValue,
+    CSS_PROPERTY_PARSE_INACCESSIBLE |
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
+        CSS_PROPERTY_APPLIES_TO_FIRST_LETTER |
+        
+        CSS_PROPERTY_APPLIES_TO_PLACEHOLDER |
+        CSS_PROPERTY_STORES_CALC,
+    "",
+    VARIANT_HLP | VARIANT_CALC, 
+    nullptr,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+#endif
 CSS_PROP_PADDING(
     padding-top,
     padding_top,
@@ -3835,10 +4188,6 @@ CSS_PROP_FONT(
 #ifdef DEFINED_CSS_PROP_SHORTHAND
 #undef CSS_PROP_SHORTHAND
 #undef DEFINED_CSS_PROP_SHORTHAND
-#endif
-#ifdef DEFINED_CSS_PROP_LOGICAL
-#undef CSS_PROP_LOGICAL
-#undef DEFINED_CSS_PROP_LOGICAL
 #endif
 
 #undef CSS_PROP_DOMPROP_PREFIXED

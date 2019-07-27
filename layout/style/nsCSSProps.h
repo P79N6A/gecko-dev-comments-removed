@@ -104,7 +104,8 @@
 
 
 
-#define CSS_PROPERTY_LOGICAL                      (1<<0)
+
+#define CSS_PROPERTY_DIRECTIONAL_SOURCE           (1<<0)
 
 #define CSS_PROPERTY_VALUE_LIST_USES_COMMAS       (1<<1) /* otherwise spaces */
 
@@ -131,6 +132,11 @@
 #define CSS_PROPERTY_IMAGE_IS_IN_ARRAY_0          (1<<6)
 
 
+
+
+
+
+#define CSS_PROPERTY_REPORT_OTHER_NAME            (1<<7)
 
 
 
@@ -319,6 +325,11 @@ public:
   static const nsAFlatCString& GetStringValue(nsCSSProperty aProperty);
   static const nsAFlatCString& GetStringValue(nsCSSFontDesc aFontDesc);
   static const nsAFlatCString& GetStringValue(nsCSSCounterDesc aCounterDesc);
+
+  
+  
+  
+  static nsCSSProperty OtherNameFor(nsCSSProperty aProperty);
 
   
   

@@ -174,11 +174,17 @@ LayoutView.prototype = {
       marginBottom: {selector: ".margin.bottom > span",
                   property: "margin-bottom",
                   value: undefined},
+      
+      
+      
       marginLeft: {selector: ".margin.left > span",
                   property: "margin-left",
+                  realProperty: "margin-left-value",
                   value: undefined},
+      
       marginRight: {selector: ".margin.right > span",
                   property: "margin-right",
+                  realProperty: "margin-right-value",
                   value: undefined},
       paddingTop: {selector: ".padding.top > span",
                   property: "padding-top",
@@ -186,11 +192,15 @@ LayoutView.prototype = {
       paddingBottom: {selector: ".padding.bottom > span",
                   property: "padding-bottom",
                   value: undefined},
+      
       paddingLeft: {selector: ".padding.left > span",
                   property: "padding-left",
+                  realProperty: "padding-left-value",
                   value: undefined},
+      
       paddingRight: {selector: ".padding.right > span",
                   property: "padding-right",
+                  realProperty: "padding-right-value",
                   value: undefined},
       borderTop: {selector: ".border.top > span",
                   property: "border-top-width",
@@ -255,9 +265,11 @@ LayoutView.prototype = {
 
 
   initEditor: function(element, event, dimension) {
-    let { property } = dimension;
+    let { property, realProperty } = dimension;
+    if (!realProperty)
+      realProperty = property;
     let session = new EditingSession(document, this.elementRules);
-    let initialValue = session.getProperty(property);
+    let initialValue = session.getProperty(realProperty);
 
     let editor = new InplaceEditor({
       element: element,

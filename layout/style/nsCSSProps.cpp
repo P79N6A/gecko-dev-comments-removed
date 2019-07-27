@@ -36,9 +36,7 @@ const char* const kCSSRawProperties[eCSSProperty_COUNT_with_aliases] = {
 #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, \
                  stylestruct_, stylestructoffset_, animtype_)                 \
   #name_,
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
 #include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
 #undef CSS_PROP
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_) #name_,
 #include "nsCSSPropList.h"
@@ -171,9 +169,7 @@ nsCSSProps::AddRefTable(void)
       #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,     \
                        kwtable_, stylestruct_, stylestructoffset_, animtype_) \
         OBSERVE_PROP(pref_, eCSSProperty_##id_)
-      #define CSS_PROP_LIST_INCLUDE_LOGICAL
       #include "nsCSSPropList.h"
-      #undef CSS_PROP_LIST_INCLUDE_LOGICAL
       #undef CSS_PROP
 
       #define  CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_) \
@@ -558,6 +554,36 @@ nsCSSProps::GetStringValue(nsCSSCounterDesc aCounterDesc)
   }
 }
 
+nsCSSProperty
+nsCSSProps::OtherNameFor(nsCSSProperty aProperty)
+{
+  switch (aProperty) {
+    case eCSSProperty_border_left_color_value:
+      return eCSSProperty_border_left_color;
+    case eCSSProperty_border_left_style_value:
+      return eCSSProperty_border_left_style;
+    case eCSSProperty_border_left_width_value:
+      return eCSSProperty_border_left_width;
+    case eCSSProperty_border_right_color_value:
+      return eCSSProperty_border_right_color;
+    case eCSSProperty_border_right_style_value:
+      return eCSSProperty_border_right_style;
+    case eCSSProperty_border_right_width_value:
+      return eCSSProperty_border_right_width;
+    case eCSSProperty_margin_left_value:
+      return eCSSProperty_margin_left;
+    case eCSSProperty_margin_right_value:
+      return eCSSProperty_margin_right;
+    case eCSSProperty_padding_left_value:
+      return eCSSProperty_padding_left;
+    case eCSSProperty_padding_right_value:
+      return eCSSProperty_padding_right;
+    default:
+      NS_ABORT_IF_FALSE(false, "bad caller");
+  }
+  return eCSSProperty_UNKNOWN;
+}
+
 
 
 const KTableValue nsCSSProps::kAnimationDirectionKTable[] = {
@@ -832,6 +858,12 @@ const KTableValue nsCSSProps::kBorderWidthKTable[] = {
   eCSSKeyword_thin, NS_STYLE_BORDER_WIDTH_THIN,
   eCSSKeyword_medium, NS_STYLE_BORDER_WIDTH_MEDIUM,
   eCSSKeyword_thick, NS_STYLE_BORDER_WIDTH_THICK,
+  eCSSKeyword_UNKNOWN,-1
+};
+
+const KTableValue nsCSSProps::kBoxPropSourceKTable[] = {
+  eCSSKeyword_physical,     NS_BOXPROP_SOURCE_PHYSICAL,
+  eCSSKeyword_logical,      NS_BOXPROP_SOURCE_LOGICAL,
   eCSSKeyword_UNKNOWN,-1
 };
 
@@ -2087,9 +2119,7 @@ nsCSSProps::kKeywordTableTable[eCSSProperty_COUNT_no_shorthands] = {
   #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,     \
                    kwtable_, stylestruct_, stylestructoffset_, animtype_) \
     kwtable_,
-  #define CSS_PROP_LIST_INCLUDE_LOGICAL
   #include "nsCSSPropList.h"
-  #undef CSS_PROP_LIST_INCLUDE_LOGICAL
   #undef CSS_PROP
 };
 
@@ -2135,11 +2165,9 @@ const nsStyleStructID nsCSSProps::kSIDTable[eCSSProperty_COUNT_no_shorthands] = 
     #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,     \
                      kwtable_, stylestruct_, stylestructoffset_, animtype_) \
         eStyleStruct_##stylestruct_,
-    #define CSS_PROP_LIST_INCLUDE_LOGICAL
 
     #include "nsCSSPropList.h"
 
-    #undef CSS_PROP_LIST_INCLUDE_LOGICAL
     #undef CSS_PROP
 };
 
@@ -2148,9 +2176,7 @@ nsCSSProps::kAnimTypeTable[eCSSProperty_COUNT_no_shorthands] = {
 #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, \
                  stylestruct_, stylestructoffset_, animtype_)                 \
   animtype_,
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
 #include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
 #undef CSS_PROP
 };
 
@@ -2159,9 +2185,7 @@ nsCSSProps::kStyleStructOffsetTable[eCSSProperty_COUNT_no_shorthands] = {
 #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, \
                  stylestruct_, stylestructoffset_, animtype_)                 \
   stylestructoffset_,
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
 #include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
 #undef CSS_PROP
 };
 
@@ -2169,9 +2193,7 @@ const uint32_t nsCSSProps::kFlagsTable[eCSSProperty_COUNT] = {
 #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, \
                  stylestruct_, stylestructoffset_, animtype_)                 \
   flags_,
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
 #include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
 #undef CSS_PROP
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_) flags_,
 #include "nsCSSPropList.h"
@@ -2180,13 +2202,11 @@ const uint32_t nsCSSProps::kFlagsTable[eCSSProperty_COUNT] = {
 
 static const nsCSSProperty gAllSubpropTable[] = {
 #define CSS_PROP_LIST_ONLY_COMPONENTS_OF_ALL_SHORTHAND
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
 #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, \
                  stylestruct_, stylestructoffset_, animtype_)                 \
   eCSSProperty_##id_,
 #include "nsCSSPropList.h"
 #undef CSS_PROP
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
 #undef CSS_PROP_LIST_ONLY_COMPONENTS_OF_ALL_SHORTHAND
   eCSSProperty_UNKNOWN
 };
@@ -2240,17 +2260,29 @@ static const nsCSSProperty gBackgroundSubpropTable[] = {
 
 static const nsCSSProperty gBorderSubpropTable[] = {
   eCSSProperty_border_top_width,
-  eCSSProperty_border_right_width,
+  eCSSProperty_border_right_width_value,
+  eCSSProperty_border_right_width_ltr_source,
+  eCSSProperty_border_right_width_rtl_source,
   eCSSProperty_border_bottom_width,
-  eCSSProperty_border_left_width,
+  eCSSProperty_border_left_width_value,
+  eCSSProperty_border_left_width_ltr_source,
+  eCSSProperty_border_left_width_rtl_source,
   eCSSProperty_border_top_style,
-  eCSSProperty_border_right_style,
+  eCSSProperty_border_right_style_value,
+  eCSSProperty_border_right_style_ltr_source,
+  eCSSProperty_border_right_style_rtl_source,
   eCSSProperty_border_bottom_style,
-  eCSSProperty_border_left_style,
+  eCSSProperty_border_left_style_value,
+  eCSSProperty_border_left_style_ltr_source,
+  eCSSProperty_border_left_style_rtl_source,
   eCSSProperty_border_top_color,
-  eCSSProperty_border_right_color,
+  eCSSProperty_border_right_color_value,
+  eCSSProperty_border_right_color_ltr_source,
+  eCSSProperty_border_right_color_rtl_source,
   eCSSProperty_border_bottom_color,
-  eCSSProperty_border_left_color,
+  eCSSProperty_border_left_color_value,
+  eCSSProperty_border_left_color_ltr_source,
+  eCSSProperty_border_left_color_rtl_source,
   eCSSProperty_border_top_colors,
   eCSSProperty_border_right_colors,
   eCSSProperty_border_bottom_colors,
@@ -2279,54 +2311,156 @@ static const nsCSSProperty gBorderColorSubpropTable[] = {
   
   
   eCSSProperty_border_top_color,
-  eCSSProperty_border_right_color,
+  eCSSProperty_border_right_color_value,
   eCSSProperty_border_bottom_color,
-  eCSSProperty_border_left_color,
+  eCSSProperty_border_left_color_value,
+  
+  eCSSProperty_border_left_color_ltr_source,
+  eCSSProperty_border_left_color_rtl_source,
+  eCSSProperty_border_right_color_ltr_source,
+  eCSSProperty_border_right_color_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderEndColorSubpropTable[] = {
+  
+  eCSSProperty_border_end_color_value,
+  eCSSProperty_border_right_color_ltr_source,
+  eCSSProperty_border_left_color_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderLeftColorSubpropTable[] = {
+  
+  eCSSProperty_border_left_color_value,
+  eCSSProperty_border_left_color_ltr_source,
+  eCSSProperty_border_left_color_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderRightColorSubpropTable[] = {
+  
+  eCSSProperty_border_right_color_value,
+  eCSSProperty_border_right_color_ltr_source,
+  eCSSProperty_border_right_color_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderStartColorSubpropTable[] = {
+  
+  eCSSProperty_border_start_color_value,
+  eCSSProperty_border_left_color_ltr_source,
+  eCSSProperty_border_right_color_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderEndSubpropTable[] = {
   
   
-  eCSSProperty_border_end_width,
-  eCSSProperty_border_end_style,
-  eCSSProperty_border_end_color,
+  eCSSProperty_border_end_width_value,
+  eCSSProperty_border_end_style_value,
+  eCSSProperty_border_end_color_value,
+  
+  eCSSProperty_border_right_width_ltr_source,
+  eCSSProperty_border_left_width_rtl_source,
+  eCSSProperty_border_right_style_ltr_source,
+  eCSSProperty_border_left_style_rtl_source,
+  eCSSProperty_border_right_color_ltr_source,
+  eCSSProperty_border_left_color_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderLeftSubpropTable[] = {
   
   
-  eCSSProperty_border_left_width,
-  eCSSProperty_border_left_style,
-  eCSSProperty_border_left_color,
+  eCSSProperty_border_left_width_value,
+  eCSSProperty_border_left_style_value,
+  eCSSProperty_border_left_color_value,
+  
+  eCSSProperty_border_left_width_ltr_source,
+  eCSSProperty_border_left_width_rtl_source,
+  eCSSProperty_border_left_style_ltr_source,
+  eCSSProperty_border_left_style_rtl_source,
+  eCSSProperty_border_left_color_ltr_source,
+  eCSSProperty_border_left_color_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderRightSubpropTable[] = {
   
   
-  eCSSProperty_border_right_width,
-  eCSSProperty_border_right_style,
-  eCSSProperty_border_right_color,
+  eCSSProperty_border_right_width_value,
+  eCSSProperty_border_right_style_value,
+  eCSSProperty_border_right_color_value,
+  
+  eCSSProperty_border_right_width_ltr_source,
+  eCSSProperty_border_right_width_rtl_source,
+  eCSSProperty_border_right_style_ltr_source,
+  eCSSProperty_border_right_style_rtl_source,
+  eCSSProperty_border_right_color_ltr_source,
+  eCSSProperty_border_right_color_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderStartSubpropTable[] = {
   
   
-  eCSSProperty_border_start_width,
-  eCSSProperty_border_start_style,
-  eCSSProperty_border_start_color,
+  eCSSProperty_border_start_width_value,
+  eCSSProperty_border_start_style_value,
+  eCSSProperty_border_start_color_value,
+  
+  eCSSProperty_border_left_width_ltr_source,
+  eCSSProperty_border_right_width_rtl_source,
+  eCSSProperty_border_left_style_ltr_source,
+  eCSSProperty_border_right_style_rtl_source,
+  eCSSProperty_border_left_color_ltr_source,
+  eCSSProperty_border_right_color_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
 static const nsCSSProperty gBorderStyleSubpropTable[] = {
   
   eCSSProperty_border_top_style,
-  eCSSProperty_border_right_style,
+  eCSSProperty_border_right_style_value,
   eCSSProperty_border_bottom_style,
-  eCSSProperty_border_left_style,
+  eCSSProperty_border_left_style_value,
+  
+  eCSSProperty_border_left_style_ltr_source,
+  eCSSProperty_border_left_style_rtl_source,
+  eCSSProperty_border_right_style_ltr_source,
+  eCSSProperty_border_right_style_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderLeftStyleSubpropTable[] = {
+  
+  eCSSProperty_border_left_style_value,
+  eCSSProperty_border_left_style_ltr_source,
+  eCSSProperty_border_left_style_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderRightStyleSubpropTable[] = {
+  
+  eCSSProperty_border_right_style_value,
+  eCSSProperty_border_right_style_ltr_source,
+  eCSSProperty_border_right_style_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderStartStyleSubpropTable[] = {
+  
+  eCSSProperty_border_start_style_value,
+  eCSSProperty_border_left_style_ltr_source,
+  eCSSProperty_border_right_style_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderEndStyleSubpropTable[] = {
+  
+  eCSSProperty_border_end_style_value,
+  eCSSProperty_border_right_style_ltr_source,
+  eCSSProperty_border_left_style_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
@@ -2342,9 +2476,46 @@ static const nsCSSProperty gBorderTopSubpropTable[] = {
 static const nsCSSProperty gBorderWidthSubpropTable[] = {
   
   eCSSProperty_border_top_width,
-  eCSSProperty_border_right_width,
+  eCSSProperty_border_right_width_value,
   eCSSProperty_border_bottom_width,
-  eCSSProperty_border_left_width,
+  eCSSProperty_border_left_width_value,
+  
+  eCSSProperty_border_left_width_ltr_source,
+  eCSSProperty_border_left_width_rtl_source,
+  eCSSProperty_border_right_width_ltr_source,
+  eCSSProperty_border_right_width_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderLeftWidthSubpropTable[] = {
+  
+  eCSSProperty_border_left_width_value,
+  eCSSProperty_border_left_width_ltr_source,
+  eCSSProperty_border_left_width_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderRightWidthSubpropTable[] = {
+  
+  eCSSProperty_border_right_width_value,
+  eCSSProperty_border_right_width_ltr_source,
+  eCSSProperty_border_right_width_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderStartWidthSubpropTable[] = {
+  
+  eCSSProperty_border_start_width_value,
+  eCSSProperty_border_left_width_ltr_source,
+  eCSSProperty_border_right_width_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderEndWidthSubpropTable[] = {
+  
+  eCSSProperty_border_end_width_value,
+  eCSSProperty_border_right_width_ltr_source,
+  eCSSProperty_border_left_width_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
@@ -2390,9 +2561,46 @@ static const nsCSSProperty gListStyleSubpropTable[] = {
 static const nsCSSProperty gMarginSubpropTable[] = {
   
   eCSSProperty_margin_top,
-  eCSSProperty_margin_right,
+  eCSSProperty_margin_right_value,
   eCSSProperty_margin_bottom,
-  eCSSProperty_margin_left,
+  eCSSProperty_margin_left_value,
+  
+  eCSSProperty_margin_left_ltr_source,
+  eCSSProperty_margin_left_rtl_source,
+  eCSSProperty_margin_right_ltr_source,
+  eCSSProperty_margin_right_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gMarginLeftSubpropTable[] = {
+  
+  eCSSProperty_margin_left_value,
+  eCSSProperty_margin_left_ltr_source,
+  eCSSProperty_margin_left_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gMarginRightSubpropTable[] = {
+  
+  eCSSProperty_margin_right_value,
+  eCSSProperty_margin_right_ltr_source,
+  eCSSProperty_margin_right_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gMarginStartSubpropTable[] = {
+  
+  eCSSProperty_margin_start_value,
+  eCSSProperty_margin_left_ltr_source,
+  eCSSProperty_margin_right_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gMarginEndSubpropTable[] = {
+  
+  eCSSProperty_margin_end_value,
+  eCSSProperty_margin_right_ltr_source,
+  eCSSProperty_margin_left_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
@@ -2480,9 +2688,46 @@ static const nsCSSProperty gOverflowSubpropTable[] = {
 static const nsCSSProperty gPaddingSubpropTable[] = {
   
   eCSSProperty_padding_top,
-  eCSSProperty_padding_right,
+  eCSSProperty_padding_right_value,
   eCSSProperty_padding_bottom,
-  eCSSProperty_padding_left,
+  eCSSProperty_padding_left_value,
+  
+  eCSSProperty_padding_left_ltr_source,
+  eCSSProperty_padding_left_rtl_source,
+  eCSSProperty_padding_right_ltr_source,
+  eCSSProperty_padding_right_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gPaddingLeftSubpropTable[] = {
+  
+  eCSSProperty_padding_left_value,
+  eCSSProperty_padding_left_ltr_source,
+  eCSSProperty_padding_left_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gPaddingRightSubpropTable[] = {
+  
+  eCSSProperty_padding_right_value,
+  eCSSProperty_padding_right_ltr_source,
+  eCSSProperty_padding_right_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gPaddingStartSubpropTable[] = {
+  
+  eCSSProperty_padding_start_value,
+  eCSSProperty_padding_left_ltr_source,
+  eCSSProperty_padding_right_rtl_source,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gPaddingEndSubpropTable[] = {
+  
+  eCSSProperty_padding_end_value,
+  eCSSProperty_padding_right_ltr_source,
+  eCSSProperty_padding_left_rtl_source,
   eCSSProperty_UNKNOWN
 };
 
@@ -2730,16 +2975,11 @@ nsCSSProps::gPropertyIndexInStruct[eCSSProperty_COUNT_no_shorthands] = {
   #define CSS_PROP_BACKENDONLY(name_, id_, method_, flags_, pref_, \
                                parsevariant_, kwtable_)            \
       size_t(-1),
-  #define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, \
-                           kwtable_, stylestruct_, stylestructoffset_,        \
-                           animtype_)                                         \
-      size_t(-1),
   #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,     \
                    kwtable_, stylestruct_, stylestructoffset_, animtype_) \
     ePropertyIndex_for_##id_,
   #include "nsCSSPropList.h"
   #undef CSS_PROP
-  #undef CSS_PROP_LOGICAL
   #undef CSS_PROP_BACKENDONLY
 
 };
@@ -2749,9 +2989,7 @@ nsCSSProps::gPropertyEnabled[eCSSProperty_COUNT_with_aliases] = {
   #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,     \
                    kwtable_, stylestruct_, stylestructoffset_, animtype_) \
     true,
-  #define CSS_PROP_LIST_INCLUDE_LOGICAL
   #include "nsCSSPropList.h"
-  #undef CSS_PROP_LIST_INCLUDE_LOGICAL
   #undef CSS_PROP
 
   #define  CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_) \
@@ -2764,20 +3002,3 @@ nsCSSProps::gPropertyEnabled[eCSSProperty_COUNT_with_aliases] = {
   #include "nsCSSPropAliasList.h"
   #undef CSS_PROP_ALIAS
 };
-
-
-
-#define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,         \
-                 kwtable_, stylestruct_, stylestructoffset_, animtype_)     \
-  static_assert(!((flags_) & CSS_PROPERTY_LOGICAL),                         \
-                "only properties defined with CSS_PROP_LOGICAL can use "    \
-                "the CSS_PROPERTY_LOGICAL flag");
-#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, \
-                         kwtable_, stylestruct_, stylestructoffset_,        \
-                         animtype_)                                         \
-  static_assert((flags_) & CSS_PROPERTY_LOGICAL,                            \
-                "properties defined with CSS_PROP_LOGICAL must also use "   \
-                "the CSS_PROPERTY_LOGICAL flag");
-#include "nsCSSPropList.h"
-#undef CSS_PROP_LOGICAL
-#undef CSS_PROP
