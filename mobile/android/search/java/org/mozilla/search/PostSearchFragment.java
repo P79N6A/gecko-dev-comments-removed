@@ -96,7 +96,17 @@ public class PostSearchFragment extends Fragment {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             
-            if (TextUtils.equals(url, Constants.ABOUT_BLANK) || engine.isSearchResultsPage(url)) {
+            if (TextUtils.equals(url, Constants.ABOUT_BLANK)) {
+                return false;
+            }
+
+            
+            
+            if (engine.isSearchResultsPage(url)) {
+                final String query = engine.queryForResultsUrl(url);
+                if (!TextUtils.isEmpty(query)) {
+                    ((AcceptsSearchQuery) getActivity()).onQueryChange(query);
+                }
                 return false;
             }
 

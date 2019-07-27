@@ -14,6 +14,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
+import java.util.Set;
 
 
 
@@ -200,6 +201,22 @@ public class SearchEngine {
 
     public boolean isSearchResultsPage(String url) {
         return resultsUri.getAuthority().equalsIgnoreCase(Uri.parse(url).getAuthority());
+    }
+
+    
+
+
+
+
+
+    public String queryForResultsUrl(String url) {
+        final Set<String> names = resultsUri.getQueryParameterNames();
+        for (String name : names) {
+            if (resultsUri.getQueryParameter(name).matches(OS_PARAM_USER_DEFINED)) {
+                return Uri.parse(url).getQueryParameter(name);
+            }
+        }
+        return "";
     }
 
     

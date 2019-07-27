@@ -35,6 +35,13 @@ public interface AcceptsSearchQuery {
     
 
 
+
+
+    void onQueryChange(String query);
+
+    
+
+
     public interface SuggestionAnimation {
         public Rect getStartBounds();
     }
