@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
 
@@ -11,9 +11,9 @@
 #include "gfxPrefs.h"
 #ifdef MOZ_ENABLE_D3D9_LAYER
 # include "LayerManagerD3D9.h"
-#endif 
+#endif //MOZ_ENABLE_D3D9_LAYER
 #include "mozilla/BrowserElementParent.h"
-#include "mozilla/EventForwards.h"  
+#include "mozilla/EventForwards.h"  // for Modifiers
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/layers/APZCTreeManager.h"
@@ -43,30 +43,30 @@ namespace layout {
 
 typedef FrameMetrics::ViewID ViewID;
 
-
-
-
-
-
+/**
+ * Gets the layer-pixel offset of aContainerFrame's content rect top-left
+ * from the nearest display item reference frame (which we assume will be inducing
+ * a ContainerLayer).
+ */
 static nsIntPoint
 GetContentRectLayerOffset(nsIFrame* aContainerFrame, nsDisplayListBuilder* aBuilder)
 {
   nscoord auPerDevPixel = aContainerFrame->PresContext()->AppUnitsPerDevPixel();
 
-  
-  
-  
-  
+  // Offset to the content rect in case we have borders or padding
+  // Note that aContainerFrame could be a reference frame itself, so
+  // we need to be careful here to ensure that we call ToReferenceFrame
+  // on aContainerFrame and not its parent.
   nsPoint frameOffset = aBuilder->ToReferenceFrame(aContainerFrame) +
     aContainerFrame->GetContentRectRelativeToSelf().TopLeft();
 
   return frameOffset.ToNearestPixels(auPerDevPixel);
 }
 
-
-
-
-
+// Return true iff |aManager| is a "temporary layer manager".  They're
+// used for small software rendering tasks, like drawWindow.  That's
+// currently implemented by a BasicLayerManager without a backing
+// widget, and hence in non-retained mode.
 inline static bool
 IsTempLayerManager(LayerManager* aManager)
 {
@@ -105,8 +105,8 @@ public:
                                 const mozilla::CSSPoint& aDestination) override
   {
     if (MessageLoop::current() != mUILoop) {
-      
-      
+      // We have to send this message from the "UI thread" (main
+      // thread).
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::RequestFlingSnap,
@@ -123,8 +123,8 @@ public:
                                        const uint32_t& aScrollGeneration) override
   {
     if (MessageLoop::current() != mUILoop) {
-      
-      
+      // We have to send this message from the "UI thread" (main
+      // thread).
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::AcknowledgeScrollUpdate,
@@ -142,8 +142,8 @@ public:
                                const ScrollableLayerGuid& aGuid) override
   {
     if (MessageLoop::current() != mUILoop) {
-      
-      
+      // We have to send this message from the "UI thread" (main
+      // thread).
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleDoubleTap,
@@ -161,8 +161,8 @@ public:
                                const ScrollableLayerGuid& aGuid) override
   {
     if (MessageLoop::current() != mUILoop) {
-      
-      
+      // We have to send this message from the "UI thread" (main
+      // thread).
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleSingleTap,
@@ -182,8 +182,8 @@ public:
                              uint64_t aInputBlockId) override
   {
     if (MessageLoop::current() != mUILoop) {
-      
-      
+      // We have to send this message from the "UI thread" (main
+      // thread).
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleLongTap,
@@ -270,7 +270,7 @@ public:
     }
   }
 
-  
+  // Methods used by RenderFrameParent to set fields stored here.
 
   void SaveZoomConstraints(const ZoomConstraints& aConstraints)
   {
@@ -299,7 +299,6 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
   , mFrameLoader(aFrameLoader)
   , mFrameLoaderDestroyed(false)
   , mBackgroundColor(gfxRGBA(1, 1, 1))
-  , mAsyncPanZoomEnabled(false)
 {
   *aSuccess = false;
   if (!mFrameLoader) {
@@ -309,10 +308,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
   *aId = 0;
 
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
-
-  mAsyncPanZoomEnabled = lm && lm->AsyncPanZoomEnabled();
-
-  
+  // Perhaps the document containing this frame currently has no presentation?
   if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
     *aTextureFactoryIdentifier =
       static_cast<ClientLayerManager*>(lm.get())->GetTextureFactoryIdentifier();
@@ -321,15 +317,15 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
   }
 
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
-    
-    
+    // Our remote frame will push layers updates to the compositor,
+    // and we'll keep an indirect reference to that tree.
     *aId = mLayersId = CompositorParent::AllocateLayerTreeId();
     if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
       ClientLayerManager *clientManager =
         static_cast<ClientLayerManager*>(lm.get());
       clientManager->GetRemoteRenderer()->SendNotifyChildCreated(mLayersId);
     }
-    if (mAsyncPanZoomEnabled) {
+    if (gfxPrefs::AsyncPanZoomEnabled()) {
       mContentController = new RemoteContentController(this);
       CompositorParent::SetControllerForLayerTree(mLayersId, mContentController);
     }
@@ -338,7 +334,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
     mLayersId = *aId;
     CompositorChild::Get()->SendNotifyChildCreated(mLayersId);
   }
-  
+  // Set a default RenderFrameParent
   mFrameLoader->SetCurrentRemoteFrame(this);
   *aSuccess = true;
 }
@@ -346,11 +342,11 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
 APZCTreeManager*
 RenderFrameParent::GetApzcTreeManager()
 {
-  
-  
-  
-  
-  if (!mApzcTreeManager && mAsyncPanZoomEnabled) {
+  // We can't get a ref to the APZCTreeManager until after the child is
+  // created and the static getter knows which CompositorParent is
+  // instantiated with this layers ID. That's why try to fetch it when
+  // we first need it and cache the result.
+  if (!mApzcTreeManager && gfxPrefs::AsyncPanZoomEnabled()) {
     mApzcTreeManager = CompositorParent::GetAPZCTreeManager(mLayersId);
   }
   return mApzcTreeManager.get();
@@ -382,12 +378,12 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   if (IsTempLayerManager(aManager) ||
       (mContainer && mContainer->Manager() != aManager)) {
-    
-    
-    
-    
-    
-    
+    // This can happen if aManager is a "temporary" manager, or if the
+    // widget's layer manager changed out from under us.  We need to
+    // FIXME handle the former case somehow, probably with an API to
+    // draw a manager's subtree.  The latter is bad bad bad, but the the
+    // MOZ_ASSERT() above will flag it.  Returning nullptr here will just
+    // cause the shadow subtree not to be rendered.
     NS_WARNING("Remote iframe not rendered");
     return nullptr;
   }
@@ -403,19 +399,19 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     layer = aManager->CreateRefLayer();
   }
   if (!layer) {
-    
-    
+    // Probably a temporary layer manager that doesn't know how to
+    // use ref layers.
     return nullptr;
   }
   static_cast<RefLayer*>(layer.get())->SetReferentId(id);
   nsIntPoint offset = GetContentRectLayerOffset(aFrame, aBuilder);
-  
-  
-  
+  // We can only have an offset if we're a child of an inactive
+  // container, but our display item is LAYER_ACTIVE_FORCE which
+  // forces all layers above to be active.
   MOZ_ASSERT(aContainerParameters.mOffset == nsIntPoint());
   gfx::Matrix4x4 m = gfx::Matrix4x4::Translation(offset.x, offset.y, 0.0);
-  
-  
+  // Remote content can't be repainted by us, so we multiply down
+  // the resolution that our container expects onto our container.
   m.PreScale(aContainerParameters.mXScale, aContainerParameters.mYScale, 1.0);
   layer->SetBaseTransform(m);
 
@@ -429,7 +425,7 @@ RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
              "Don't build new map if owner is same!");
 
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
-  
+  // Perhaps the document containing this frame currently has no presentation?
   if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
     ClientLayerManager *clientManager =
       static_cast<ClientLayerManager*>(lm.get());
@@ -447,20 +443,20 @@ RenderFrameParent::ActorDestroy(ActorDestroyReason why)
       CompositorParent::DeallocateLayerTreeId(mLayersId);
     }
     if (mContentController) {
-      
-      
+      // Stop our content controller from requesting repaints of our
+      // content.
       mContentController->ClearRenderFrame();
-      
+      // TODO: notify the compositor?
     }
   }
 
   if (mFrameLoader && mFrameLoader->GetCurrentRemoteFrame() == this) {
-    
-    
-    
-    
-    
-    
+    // XXX this might cause some weird issues ... we'll just not
+    // redraw the part of the window covered by this until the "next"
+    // remote frame has a layer-tree transaction.  For
+    // why==NormalShutdown, we'll definitely want to do something
+    // better, especially as nothing guarantees another Update() from
+    // the "next" remote layer tree.
     mFrameLoader->SetCurrentRemoteFrame(nullptr);
   }
   mFrameLoader = nullptr;
@@ -478,10 +474,10 @@ RenderFrameParent::RecvUpdateHitRegion(const nsRegion& aRegion)
 {
   mTouchRegion = aRegion;
   if (mContentController) {
-    
-    
-    
-    
+    // Tell the content controller about the touch-sensitive region, so
+    // that it can provide it to APZ. This is required for APZ to do
+    // correct hit testing for a remote 'mozpasspointerevents' iframe
+    // until bug 928833 is fixed.
     mContentController->SetTouchSensitiveRegion(aRegion);
   }
   return true;
@@ -494,11 +490,11 @@ RenderFrameParent::TriggerRepaint()
 
   nsIFrame* docFrame = mFrameLoader->GetPrimaryFrameOfOwningContent();
   if (!docFrame) {
-    
-    
-    
-    
-    
+    // Bad, but nothing we can do about it (XXX/cjones: or is there?
+    // maybe bug 589337?).  When the new frame is created, we'll
+    // probably still be the current render frame and will get to draw
+    // our content then.  Or, we're shutting down and this update goes
+    // to /dev/null.
     return;
   }
 
@@ -517,8 +513,8 @@ RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                     const nsRect& aDirtyRect,
                                     const nsDisplayListSet& aLists)
 {
-  
-  
+  // We're the subdoc for <browser remote="true"> and it has
+  // painted content.  Display its shadow layer tree.
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
   nsPoint offset = aBuilder->ToReferenceFrame(aFrame);
@@ -545,7 +541,7 @@ RenderFrameParent::ContentReceivedInputBlock(const ScrollableLayerGuid& aGuid,
                                              bool aPreventDefault)
 {
   if (aGuid.mLayersId != mLayersId) {
-    
+    // Guard against bad data from hijacked child processes
     NS_ERROR("Unexpected layers id in ContentReceivedInputBlock; dropping message...");
     return;
   }
@@ -562,13 +558,13 @@ RenderFrameParent::SetTargetAPZC(uint64_t aInputBlockId,
 {
   for (size_t i = 0; i < aTargets.Length(); i++) {
     if (aTargets[i].mLayersId != mLayersId) {
-      
+      // Guard against bad data from hijacked child processes
       NS_ERROR("Unexpected layers id in SetTargetAPZC; dropping message...");
       return;
     }
   }
   if (GetApzcTreeManager()) {
-    
+    // need a local var to disambiguate between the SetTargetAPZC overloads.
     void (APZCTreeManager::*setTargetApzcFunc)(uint64_t, const nsTArray<ScrollableLayerGuid>&)
         = &APZCTreeManager::SetTargetAPZC;
     APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
@@ -613,7 +609,7 @@ void
 RenderFrameParent::GetTextureFactoryIdentifier(TextureFactoryIdentifier* aTextureFactoryIdentifier)
 {
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
-  
+  // Perhaps the document containing this frame currently has no presentation?
   if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
     *aTextureFactoryIdentifier =
       static_cast<ClientLayerManager*>(lm.get())->GetTextureFactoryIdentifier();
@@ -641,8 +637,8 @@ RenderFrameParent::TakeFocusForClick()
                         nsIFocusManager::FLAG_NOSCROLL);
 }
 
-}  
-}  
+}  // namespace layout
+}  // namespace mozilla
 
 nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
                                  nsSubDocumentFrame* aFrame,

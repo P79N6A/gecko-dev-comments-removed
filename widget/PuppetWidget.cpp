@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
 
@@ -37,7 +37,7 @@ InvalidateRegion(nsIWidget* aWidget, const nsIntRegion& aRegion)
   }
 }
 
- already_AddRefed<nsIWidget>
+/*static*/ already_AddRefed<nsIWidget>
 nsIWidget::CreatePuppetWidget(TabChild* aTabChild)
 {
   MOZ_ASSERT(!aTabChild || nsIWidget::UsePuppetWidgets(),
@@ -59,8 +59,8 @@ IsPopup(const nsWidgetInitData* aInitData)
 static bool
 MightNeedIMEFocus(const nsWidgetInitData* aInitData)
 {
-  
-  
+  // In the puppet-widget world, popup widgets are just dummies and
+  // shouldn't try to mess with IME state.
 #ifdef MOZ_CROSS_PROCESS_IME
   return !IsPopup(aInitData);
 #else
@@ -68,7 +68,7 @@ MightNeedIMEFocus(const nsWidgetInitData* aInitData)
 #endif
 }
 
-
+// Arbitrary, fungible.
 const size_t PuppetWidget::kMaxDimension = 4000;
 
 NS_IMPL_ISUPPORTS_INHERITED0(PuppetWidget, nsBaseWidget)
@@ -199,8 +199,8 @@ PuppetWidget::Resize(double aWidth,
     return mChild->Resize(aWidth, aHeight, aRepaint);
   }
 
-  
-  
+  // XXX: roc says that |aRepaint| dictates whether or not to
+  // invalidate the expanded area
   if (oldBounds.Size() < mBounds.Size() && aRepaint) {
     nsIntRegion dirty(mBounds);
     dirty.Sub(dirty,  oldBounds);
@@ -240,8 +240,8 @@ PuppetWidget::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 NS_IMETHODIMP
 PuppetWidget::SetFocus(bool aRaise)
 {
-  
-  
+  // XXX/cjones: someone who knows about event handling needs to
+  // decide how this should work.
   return NS_OK;
 }
 
@@ -275,7 +275,7 @@ PuppetWidget::InitEvent(WidgetGUIEvent& event, nsIntPoint* aPoint)
     event.refPoint.y = 0;
   }
   else {
-    
+    // use the point override if provided
     event.refPoint.x = aPoint->x;
     event.refPoint.y = aPoint->y;
   }
@@ -354,7 +354,7 @@ PuppetWidget::DispatchInputEvent(WidgetInputEvent* aEvent)
 nsEventStatus
 PuppetWidget::DispatchAPZAwareEvent(WidgetInputEvent* aEvent)
 {
-  if (!AsyncPanZoomEnabled()) {
+  if (!gfxPrefs::AsyncPanZoomEnabled()) {
     nsEventStatus status = nsEventStatus_eIgnore;
     DispatchEvent(aEvent, status);
     return status;
@@ -493,22 +493,16 @@ PuppetWidget::SetConfirmedTargetAPZC(uint64_t aInputBlockId,
   }
 }
 
-bool
-PuppetWidget::AsyncPanZoomEnabled() const
-{
-  return mTabChild && mTabChild->AsyncPanZoomEnabled();
-}
-
 NS_IMETHODIMP_(bool)
 PuppetWidget::ExecuteNativeKeyBinding(NativeKeyBindingsType aType,
                                       const mozilla::WidgetKeyboardEvent& aEvent,
                                       DoCommandCallback aCallback,
                                       void* aCallbackData)
 {
-  
+  // B2G doesn't have native key bindings.
 #ifdef MOZ_WIDGET_GONK
   return false;
-#else 
+#else // #ifdef MOZ_WIDGET_GONK
   MOZ_ASSERT(mNativeKeyCommandsValid);
 
   nsTArray<mozilla::CommandInt>& commands = mSingleLineCommands;
@@ -566,8 +560,8 @@ PuppetWidget::IMEEndComposition(bool aCancel)
   WidgetCompositionEvent compositionCommitEvent(true, NS_COMPOSITION_COMMIT,
                                                 this);
   InitEvent(compositionCommitEvent, nullptr);
-  
-  
+  // SendEndIMEComposition is always called since ResetInputState
+  // should always be called even if we aren't composing something.
   if (!mTabChild ||
       !mTabChild->SendEndIMEComposition(aCancel, &noCompositionEvent,
                                         &compositionCommitEvent.mData)) {
@@ -686,7 +680,7 @@ PuppetWidget::NotifyIMEOfFocusChange(bool aFocus)
     nsEventStatus status;
     WidgetQueryContentEvent queryEvent(true, NS_QUERY_TEXT_CONTENT, this);
     InitEvent(queryEvent, nullptr);
-    
+    // Query entire content
     queryEvent.InitForQueryTextContent(0, UINT32_MAX);
     DispatchEvent(&queryEvent, status);
 
@@ -705,7 +699,7 @@ PuppetWidget::NotifyIMEOfFocusChange(bool aFocus)
   if (aFocus) {
     IMENotification notification(NOTIFY_IME_OF_SELECTION_CHANGE);
     notification.mSelectionChangeData.mCausedByComposition = false;
-    NotifyIMEOfSelectionChange(notification); 
+    NotifyIMEOfSelectionChange(notification); // Update selection
     NotifyIMEOfEditorRect();
   } else {
     mIMELastBlurSeqno = chromeSeqno;
@@ -830,13 +824,13 @@ nsIMEUpdatePreference
 PuppetWidget::GetIMEUpdatePreference()
 {
 #ifdef MOZ_CROSS_PROCESS_IME
-  
+  // e10s requires IME information cache into TabParent
   return nsIMEUpdatePreference(mIMEPreferenceOfParent.mWantUpdates |
                                nsIMEUpdatePreference::NOTIFY_SELECTION_CHANGE |
                                nsIMEUpdatePreference::NOTIFY_TEXT_CHANGE |
                                nsIMEUpdatePreference::NOTIFY_POSITION_CHANGE );
 #else
-  
+  // B2G doesn't handle IME as widget-level.
   return nsIMEUpdatePreference();
 #endif
 }
@@ -864,8 +858,8 @@ PuppetWidget::NotifyIMEOfTextChange(const IMENotification& aIMENotification)
     mTabChild->SendNotifyIMETextHint(queryEvent.mReply.mString);
   }
 
-  
-  
+  // TabParent doesn't this this to cache.  we don't send the notification
+  // if parent process doesn't request NOTIFY_TEXT_CHANGE.
   if (mIMEPreferenceOfParent.WantTextChange() &&
       (mIMEPreferenceOfParent.WantChangesCausedByComposition() ||
        !aIMENotification.mTextChangeData.mCausedByComposition)) {
@@ -939,7 +933,7 @@ PuppetWidget::NotifyIMEOfPositionChange()
   if (!GetCompositionRects(startOffset,
                            textRectArray,
                            targetCauseOffset)) {
-    
+    // no composition string, get caret offset by NS_QUERY_SELECTED_TEXT
     targetCauseOffset = GetCaretOffset();
   }
 
@@ -980,7 +974,7 @@ PuppetWidget::Paint()
 
   nsIntRegion region = mDirtyRegion;
 
-  
+  // reset repaint tracking
   mDirtyRegion.SetEmpty();
   mPaintTask.Revoke();
 
@@ -993,7 +987,7 @@ PuppetWidget::Paint()
 #endif
 
     if (mozilla::layers::LayersBackend::LAYERS_CLIENT == mLayerManager->GetBackendType()) {
-      
+      // Do nothing, the compositor will handle drawing
       if (mTabChild) {
         mTabChild->NotifyPainted();
       }
@@ -1039,7 +1033,7 @@ PuppetWidget::PaintTask::Run()
 bool
 PuppetWidget::NeedsPaint()
 {
-  
+  // e10s popups are handled by the parent process, so never should be painted here
   if (XRE_GetProcessType() == GeckoProcessType_Content &&
       Preferences::GetBool("browser.tabs.remote.desktopbehavior", false) &&
       mWindowType == eWindowType_popup) {
@@ -1282,5 +1276,5 @@ PuppetScreenManager::GetSystemDefaultScale(float *aDefaultScale)
   return NS_OK;
 }
 
-}  
-}  
+}  // namespace widget
+}  // namespace mozilla
