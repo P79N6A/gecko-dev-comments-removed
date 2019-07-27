@@ -392,14 +392,14 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     reflowState->mLineLayout = lineLayout;
 
     LogicalMargin borderPadding = reflowState->ComputedLogicalBorderPadding();
-    nscoord containerWidth =
-      reflowState->ComputedWidth() + borderPadding.LeftRight(lineWM);
-
+    
+    
+    
     lineLayout->BeginLineReflow(borderPadding.IStart(lineWM),
                                 borderPadding.BStart(lineWM),
                                 reflowState->ComputedISize(),
                                 NS_UNCONSTRAINEDSIZE,
-                                false, false, lineWM, containerWidth);
+                                false, false, lineWM, 0);
     lineLayout->AttachRootFrameToBaseLineLayout();
   }
 
