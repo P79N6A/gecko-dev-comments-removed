@@ -94,52 +94,8 @@ function getReferrerTestDescription(aTestNumber) {
 
 
 function clickTheLink(aWindow, aLinkId, aOptions) {
-  ContentTask.spawn(aWindow.gBrowser.selectedBrowser,
-                    {id: aLinkId, options: aOptions},
-                    function(data) {
-    let element = content.document.getElementById(data.id);
-    let options = data.options;
-
-    
-    
-    function doClick() {
-      var domWindowUtils =
-          content.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-          .getInterface(Components.interfaces.nsIDOMWindowUtils);
-      var rect = element.getBoundingClientRect();
-      var left = rect.left + rect.width / 2;
-      var top = rect.top + rect.height / 2;
-      var button = options.button || 0;
-      function sendMouseEvent(type) {
-        domWindowUtils.sendMouseEvent(type, left, top, button,
-                                      1, 0, false, 0, 0, true);
-      }
-      if ("type" in options) {
-        sendMouseEvent(options.type);  
-      } else {
-        sendMouseEvent("mousedown");
-        sendMouseEvent("mouseup");
-      }
-    }
-
-    
-    let focusManager = Components.classes["@mozilla.org/focus-manager;1"].
-                       getService(Components.interfaces.nsIFocusManager);
-    let desiredWindow = {};
-    focusManager.getFocusedElementForWindow(content, true, desiredWindow);
-    desiredWindow = desiredWindow.value;
-    if (desiredWindow == focusManager.focusedWindow) {
-      
-      doClick();
-    } else {
-      
-      desiredWindow.addEventListener("focus", function onFocus() {
-        desiredWindow.removeEventListener("focus", onFocus, true);
-        setTimeout(doClick, 0);
-      }, true);
-      desiredWindow.focus();
-    }
-  });
+  return BrowserTestUtils.synthesizeMouseAtCenter(
+    "#" + aLinkId, aOptions, aWindow.gBrowser.selectedBrowser);
 }
 
 
