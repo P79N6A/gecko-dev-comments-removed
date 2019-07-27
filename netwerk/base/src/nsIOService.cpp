@@ -595,7 +595,8 @@ nsIOService::NewChannelFromURIWithProxyFlags(nsIURI *aURI,
         rv = pph->NewProxiedChannel(aURI, nullptr, aProxyFlags, aProxyURI, result);
     else
         rv = handler->NewChannel(aURI, result);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv))
+        return rv;
 
     
     
