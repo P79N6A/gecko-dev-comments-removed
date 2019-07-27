@@ -703,6 +703,38 @@ ValueNumberer::visitDefinition(MDefinition *def)
 {
     
     
+    
+    
+    if (def->isNop()) {
+        MNop *nop = def->toNop();
+        MBasicBlock *block = nop->block();
+
+        
+        
+        MInstructionReverseIterator iter = ++block->rbegin(nop);
+
+        
+        
+        if (iter == block->rend()) {
+            JitSpew(JitSpew_GVN, "      Removing Nop%u", nop->id());
+            nop->moveResumePointAsEntry();
+            block->discard(nop);
+            return true;
+        }
+
+        
+        MInstruction *prev = *iter;
+        if (prev->isNop()) {
+            JitSpew(JitSpew_GVN, "      Removing Nop%u", prev->id());
+            block->discard(prev);
+            return true;
+        }
+
+        return true;
+    }
+
+    
+    
     MInstruction *dep = def->dependency();
     if (dep != nullptr && (dep->isDiscarded() || dep->block()->isDead())) {
         JitSpew(JitSpew_GVN, "      AliasAnalysis invalidated");

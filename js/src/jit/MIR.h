@@ -867,6 +867,7 @@ class MInstruction
 
     
     void stealResumePoint(MInstruction *ins);
+    void moveResumePointAsEntry();
     MResumePoint *resumePoint() const {
         return resumePoint_;
     }
@@ -11284,6 +11285,10 @@ class MResumePoint MOZ_FINAL :
     void replaceInstruction(MInstruction *ins) {
         MOZ_ASSERT(instruction_);
         instruction_ = ins;
+    }
+    void resetInstruction() {
+        MOZ_ASSERT(instruction_);
+        instruction_ = nullptr;
     }
     Mode mode() const {
         return mode_;
