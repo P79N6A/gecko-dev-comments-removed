@@ -45,6 +45,9 @@ function* spawnTest() {
   ok(recording.getDuration() >= 0,
     "The profilerEndTime is after profilerStartTime.");
 
+  
+  
+  yield front.destroy();
   yield removeTab(target.tab);
   finish();
 }

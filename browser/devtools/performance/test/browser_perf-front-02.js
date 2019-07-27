@@ -30,6 +30,9 @@ function* spawnTest() {
   ok(timelineStart1 < timelineStart2, "can start timeline actor twice and get different start times");
   ok(memoryStart1 < memoryStart2, "can start memory actor twice and get different start times");
 
+  
+  
+  yield front.destroy();
   yield removeTab(target.tab);
   finish();
 }

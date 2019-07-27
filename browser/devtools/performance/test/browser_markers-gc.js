@@ -35,6 +35,9 @@ function* spawnTest () {
   ok(markers.every(({causeName}) => typeof causeName === "string"),
     "All markers have a causeName.");
 
+  
+  
+  yield front.destroy();
   yield removeTab(target.tab);
   finish();
 

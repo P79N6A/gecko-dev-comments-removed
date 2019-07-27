@@ -27,6 +27,9 @@ function* spawnTest() {
   yield front.stopRecording(model);
   is(model.getBufferUsage(), null, "after recording, model should still have `null` for its buffer usage");
 
+  
+  
+  yield front.destroy();
   yield removeTab(target.tab);
   finish();
 }

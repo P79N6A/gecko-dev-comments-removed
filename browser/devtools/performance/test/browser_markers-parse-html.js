@@ -25,6 +25,9 @@ function* spawnTest () {
 
   ok(markers.every(({name}) => name === "Parse HTML"), "All markers found are Parse HTML markers");
 
+  
+  
+  yield front.destroy();
   yield removeTab(target.tab);
   finish();
 

@@ -45,6 +45,10 @@ function* spawnTest () {
   ok(true, "Got expected cycle collection events");
 
   yield front.stopRecording();
+
+  
+  
+  yield front.destroy();
   yield removeTab(target.tab);
   finish();
 }

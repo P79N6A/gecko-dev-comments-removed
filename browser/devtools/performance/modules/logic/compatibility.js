@@ -104,48 +104,7 @@ function timelineActorSupported(target) {
 
 
 
-
-
-
-function getProfiler (target) {
-  let deferred = promise.defer();
-  
-  
-  if (target.form && target.form.profilerActor) {
-    deferred.resolve(target.form.profilerActor);
-  }
-  
-  
-  else if (target.root && target.root.profilerActor) {
-    deferred.resolve(target.root.profilerActor);
-  }
-  
-  else {
-    target.client.listTabs(({ profilerActor }) => deferred.resolve(profilerActor));
-  }
-  return deferred.promise;
-}
-
-
-
-
-
-function legacyRequest (target, actor, method, args) {
-  let deferred = promise.defer();
-  let data = args[0] || {};
-  data.to = actor;
-  data.type = method;
-  target.client.request(data, deferred.resolve);
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-function actorCompatibilityBridge (method) {
+function callFrontMethod (method) {
   return function () {
     
     
@@ -154,19 +113,7 @@ function actorCompatibilityBridge (method) {
     if (!this._target || !this._target.client) {
       return;
     }
-    
-    
-    
-    
-    
-    
-    
-    if (this.IS_MOCK || this._actor.request) {
-      return this._actor[method].apply(this._actor, arguments);
-    }
-    else {
-      return legacyRequest(this._target, this._actor, method, arguments);
-    }
+    return this._front[method].apply(this._front, arguments);
   };
 }
 
@@ -174,5 +121,4 @@ exports.MockMemoryFront = MockMemoryFront;
 exports.MockTimelineFront = MockTimelineFront;
 exports.memoryActorSupported = memoryActorSupported;
 exports.timelineActorSupported = timelineActorSupported;
-exports.getProfiler = getProfiler;
-exports.actorCompatibilityBridge = actorCompatibilityBridge;
+exports.callFrontMethod = callFrontMethod;

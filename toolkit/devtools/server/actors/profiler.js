@@ -1,355 +1,222 @@
 
 
 
+
 "use strict";
 
-const {Cc, Ci, Cu, Cr} = require("chrome");
-const Services = require("Services");
-const DevToolsUtils = require("devtools/toolkit/DevToolsUtils.js");
+const { Cu } = require("chrome");
+const protocol = require("devtools/server/protocol");
+const { custom, method, RetVal, Arg, Option, types } = protocol;
+const { Profiler } = require("devtools/toolkit/shared/profiler");
+const { actorBridge } = require("devtools/server/actors/common");
 
-let DEFAULT_PROFILER_OPTIONS = {
+loader.lazyRequireGetter(this, "events", "sdk/event/core");
+loader.lazyRequireGetter(this, "extend", "sdk/util/object", true);
+
+types.addType("profiler-data", {
   
   
-  entries: Math.pow(10, 7),
   
-  
-  interval: 1,
-  features: ["js"],
-  threadFilters: ["GeckoMain"]
-};
-
-
-
-
-
-
-let gProfilerConsumers = 0;
-
-loader.lazyGetter(this, "nsIProfilerModule", () => {
-  return Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
+  read: (v) => {
+    if (typeof v.profile === "string") {
+      
+      let newValue = Object.create(null);
+      newValue.profile = JSON.parse(v.profile);
+      newValue.currentTime = v.currentTime;
+      return newValue;
+    }
+    return v;
+  }
 });
 
 
 
 
-function ProfilerActor() {
-  gProfilerConsumers++;
-  this._observedEvents = new Set();
-}
 
-ProfilerActor.prototype = {
-  actorPrefix: "profiler",
+
+
+let ProfilerActor = exports.ProfilerActor = protocol.ActorClass({
+  typeName: "profiler",
+
+  
+
+
+  events: {
+    "console-api-profiler": {
+      data: Arg(0, "json"),
+    },
+    "profiler-started": {
+      data: Arg(0, "json"),
+    },
+    "profiler-stopped": {
+      data: Arg(0, "json"),
+    },
+
+    
+    
+    
+    "eventNotification": {
+      subject: Option(0, "json"),
+      topic: Option(0, "string"),
+      details: Option(0, "json")
+    }
+  },
+
+  initialize: function (conn) {
+    protocol.Actor.prototype.initialize.call(this, conn);
+    this._onProfilerEvent = this._onProfilerEvent.bind(this);
+
+    this.bridge = new Profiler();
+    events.on(this.bridge, "*", this._onProfilerEvent);
+  },
+
+  
+
+
+
   disconnect: function() {
-    for (let event of this._observedEvents) {
-      Services.obs.removeObserver(this, event);
+    this.destroy();
+  },
+
+  destroy: function() {
+    events.off(this.bridge, "*", this._onProfilerEvent);
+    this.bridge.destroy();
+    protocol.Actor.prototype.destroy.call(this);
+  },
+
+  startProfiler: actorBridge("start", {
+    
+    
+    
+    request: {
+      entries: Option(0, "nullable:number"),
+      interval: Option(0, "nullable:number"),
+      features: Option(0, "nullable:array:string"),
+      threadFilters: Option(0, "nullable:array:string"),
+    },
+    response: RetVal("json"),
+  }),
+
+  stopProfiler: actorBridge("stop", {
+    response: RetVal("json"),
+  }),
+
+  getProfile: actorBridge("getProfile", {
+    request: {
+      startTime: Option(0, "nullable:number"),
+      stringify: Option(0, "nullable:boolean")
+    },
+    response: RetVal("profiler-data")
+  }),
+
+  getFeatures: actorBridge("getFeatures", {
+    response: RetVal("json")
+  }),
+
+  getBufferInfo: actorBridge("getBufferInfo", {
+    response: RetVal("json")
+  }),
+
+  getStartOptions: actorBridge("getStartOptions", {
+    response: RetVal("json")
+  }),
+
+  isActive: actorBridge("isActive", {
+    response: RetVal("json")
+  }),
+
+  getSharedLibraryInformation: actorBridge("getSharedLibraryInformation", {
+    response: RetVal("json")
+  }),
+
+  registerEventNotifications: actorBridge("registerEventNotifications", {
+    
+    
+    request: {
+      events: Option(0, "nullable:array:string"),
+    },
+    response: RetVal("json")
+  }),
+
+  unregisterEventNotifications: actorBridge("unregisterEventNotifications", {
+    
+    
+    request: {
+      events: Option(0, "nullable:array:string"),
+    },
+    response: RetVal("json")
+  }),
+
+  
+
+
+  _onProfilerEvent: function (eventName, ...data) {
+    events.emit(this, eventName, ...data);
+  },
+});
+
+
+
+
+
+exports.ProfilerFront = protocol.FrontClass(ProfilerActor, {
+  initialize: function(client, form) {
+    protocol.Front.prototype.initialize.call(this, client, form);
+    this.actorID = form.profilerActor;
+    this.manage(this);
+
+    this._onProfilerEvent = this._onProfilerEvent.bind(this);
+    events.on(this, "*", this._onProfilerEvent);
+  },
+
+  destroy: function () {
+    events.off(this, "*", this._onProfilerEvent);
+    protocol.Front.prototype.destroy.call(this);
+  },
+
+  
+
+
+
+
+
+  getProfile: custom(function (options) {
+    return this._getProfile(extend({ stringify: true }, options));
+  }, {
+    impl: "_getProfile"
+  }),
+
+  
+
+
+  _onProfilerEvent: function (eventName, data) {
+    
+    if (data.relayed) {
+      return;
     }
-    this._observedEvents = null;
-    this.onStopProfiler();
+    data.relayed = true;
 
-    gProfilerConsumers--;
-    checkProfilerConsumers();
-  },
-
-  
-
-
-
-
-  onGetFeatures: function() {
-    return { features: nsIProfilerModule.GetFeatures([]) };
-  },
-
-  
-
-
-
-
-  onGetBufferInfo: function() {
-    let position = {}, totalSize = {}, generation = {};
-    nsIProfilerModule.GetBufferInfo(position, totalSize, generation);
-    return {
-      position: position.value,
-      totalSize: totalSize.value,
-      generation: generation.value
+    
+    
+    
+    if (eventName === "eventNotification") {
+      events.emit(this, data.topic, data);
     }
-  },
-
-  
-
-
-
-  onGetStartOptions: function() {
-    return this._profilerStartOptions || {};
-  },
-
-  
-
-
-
-
-
-
-
-
-  onStartProfiler: function(request = {}) {
-    let options = this._profilerStartOptions = {
-      entries: request.entries || DEFAULT_PROFILER_OPTIONS.entries,
-      interval: request.interval || DEFAULT_PROFILER_OPTIONS.interval,
-      features: request.features || DEFAULT_PROFILER_OPTIONS.features,
-      threadFilters: request.threadFilters || DEFAULT_PROFILER_OPTIONS.threadFilters,
-    };
-
-    
-    
-    let currentTime = nsIProfilerModule.getElapsedTime();
-
-    nsIProfilerModule.StartProfiler(
-      options.entries,
-      options.interval,
-      options.features,
-      options.features.length,
-      options.threadFilters,
-      options.threadFilters.length
-    );
-    let { position, totalSize, generation } = this.onGetBufferInfo();
-
-    return { started: true, position, totalSize, generation, currentTime };
-  },
-
-  
-
-
-  onStopProfiler: function() {
     
     
     
-    
-    if (gProfilerConsumers == 1) {
-      nsIProfilerModule.StopProfiler();
-    }
-    return { started: false };
-  },
-
-  
-
-
-
-  onIsActive: function() {
-    let isActive = nsIProfilerModule.IsActive();
-    let elapsedTime = isActive ? nsIProfilerModule.getElapsedTime() : undefined;
-    let { position, totalSize, generation } = this.onGetBufferInfo();
-    return { isActive: isActive, currentTime: elapsedTime, position, totalSize, generation };
-  },
-
-  
-
-
-
-
-  onGetSharedLibraryInformation: function() {
-    return { sharedLibraryInformation: nsIProfilerModule.getSharedLibraryInformation() };
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  onGetProfile: function(request) {
-    let startTime = request.startTime || 0;
-    let profile = nsIProfilerModule.getProfileData(startTime);
-    return { profile: profile, currentTime: nsIProfilerModule.getElapsedTime() };
-  },
-
-  
-
-
-
-
-
-
-  onRegisterEventNotifications: function(request) {
-    let response = [];
-    for (let event of request.events) {
-      if (this._observedEvents.has(event)) {
-        continue;
-      }
-      Services.obs.addObserver(this, event, false);
-      this._observedEvents.add(event);
-      response.push(event);
-    }
-    return { registered: response };
-  },
-
-  
-
-
-
-
-
-
-  onUnregisterEventNotifications: function(request) {
-    let response = [];
-    for (let event of request.events) {
-      if (!this._observedEvents.has(event)) {
-        continue;
-      }
-      Services.obs.removeObserver(this, event);
-      this._observedEvents.delete(event);
-      response.push(event);
-    }
-    return { unregistered: response };
-  },
-
-  
-
-
-
-
-
-  observe: DevToolsUtils.makeInfallible(function(subject, topic, data) {
-    
-    
-    
-    
-    
-    subject = (subject && !Cu.isXrayWrapper(subject) && subject.wrappedJSObject) || subject;
-    subject = JSON.parse(JSON.stringify(subject, cycleBreaker));
-    data = (data && !Cu.isXrayWrapper(data) && data.wrappedJSObject) || data;
-    data = JSON.parse(JSON.stringify(data, cycleBreaker));
-
-    
-    
-    let reply = details => {
-      this.conn.send({
-        from: this.actorID,
-        type: "eventNotification",
-        subject: subject,
-        topic: topic,
-        data: data,
-        details: details
+    else {
+      this.conn.emit("eventNotification", {
+        subject: data.subject,
+        topic: data.topic,
+        data: data.data,
+        details: data.details
       });
-    };
-
-    switch (topic) {
-      case "console-api-profiler":
-        return void reply(this._handleConsoleEvent(subject, data));
-      case "profiler-started":
-      case "profiler-stopped":
-      default:
-        return void reply();
-    }
-  }, "ProfilerActor.prototype.observe"),
-
-  
-
-
-
-
-
-
-  _handleConsoleEvent: function(subject, data) {
-    
-    
-    let { action, arguments: args } = subject;
-    let profileLabel = args.length > 0 ? args[0] + "" : undefined;
-
-    
-    
-    
-
-    if (action === "profile" || action === "profileEnd") {
-      let { isActive, currentTime } = this.onIsActive();
-
-      
-      
-      if (!isActive && action === "profile") {
-        this.onStartProfiler();
-        return {
-          profileLabel: profileLabel,
-          currentTime: 0
-        };
+      if (this.conn._getListeners("eventNotification").length) {
+        Cu.reportError(`
+          ProfilerActor's "eventNotification" on the DebuggerClient has been deprecated.
+          Use the ProfilerFront found in "devtools/server/actors/profiler".`);
       }
-      
-      
-      else if (!isActive) {
-        return {};
-      }
-
-      
-      
-      
-      return {
-        profileLabel: profileLabel,
-        currentTime: currentTime
-      };
     }
-  }
-};
-
-exports.ProfilerActor = ProfilerActor;
-
-
-
-
-function cycleBreaker(key, value) {
-  if (key == "wrappedJSObject") {
-    return undefined;
-  }
-  return value;
-}
-
-
-
-
-function checkProfilerConsumers() {
-  if (gProfilerConsumers < 0) {
-    let msg = "Somehow the number of started profilers is now negative.";
-    DevToolsUtils.reportException("ProfilerActor", msg);
-  }
-}
-
-
-
-
-
-
-
-ProfilerActor.prototype.requestTypes = {
-  "getBufferInfo": ProfilerActor.prototype.onGetBufferInfo,
-  "getFeatures": ProfilerActor.prototype.onGetFeatures,
-  "startProfiler": ProfilerActor.prototype.onStartProfiler,
-  "stopProfiler": ProfilerActor.prototype.onStopProfiler,
-  "isActive": ProfilerActor.prototype.onIsActive,
-  "getSharedLibraryInformation": ProfilerActor.prototype.onGetSharedLibraryInformation,
-  "getProfile": ProfilerActor.prototype.onGetProfile,
-  "registerEventNotifications": ProfilerActor.prototype.onRegisterEventNotifications,
-  "unregisterEventNotifications": ProfilerActor.prototype.onUnregisterEventNotifications,
-  "getStartOptions": ProfilerActor.prototype.onGetStartOptions
-};
+  },
+});

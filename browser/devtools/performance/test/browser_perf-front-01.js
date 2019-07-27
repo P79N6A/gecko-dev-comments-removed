@@ -47,6 +47,9 @@ function* spawnTest() {
   is((yield front._request("memory", "getState")), "detached",
     "Memory actor is detached when stopping recording with allocations.");
 
+  
+  
+  yield front.destroy();
   yield removeTab(target.tab);
   finish();
 }

@@ -19,6 +19,8 @@ loader.lazyRequireGetter(this, "TimelineFront",
   "devtools/server/actors/timeline", true);
 loader.lazyRequireGetter(this, "MemoryFront",
   "devtools/server/actors/memory", true);
+loader.lazyRequireGetter(this, "ProfilerFront",
+  "devtools/server/actors/profiler", true);
 
 
 const ALLOCATION_SITE_POLL_TIMER = 200; 
@@ -58,7 +60,7 @@ ProfilerFrontFacade.prototype = {
   
   connect: Task.async(function*() {
     let target = this._target;
-    this._actor = yield CompatUtils.getProfiler(target);
+    this._front = new ProfilerFront(target.client, target.form);
 
     
     
@@ -68,8 +70,7 @@ ProfilerFrontFacade.prototype = {
     
     
     yield this.registerEventNotifications({ events: this.EVENTS });
-    
-    target.client.addListener("eventNotification", this._onProfilerEvent);
+    this.EVENTS.forEach(e => this._front.on(e, this._onProfilerEvent));
   }),
 
   
@@ -79,9 +80,10 @@ ProfilerFrontFacade.prototype = {
     if (this._poller) {
       yield this._poller.destroy();
     }
+
+    this.EVENTS.forEach(e => this._front.off(e, this._onProfilerEvent));
     yield this.unregisterEventNotifications({ events: this.EVENTS });
-    
-    this._target.client.removeListener("eventNotification", this._onProfilerEvent);
+    yield this._front.destroy();
   }),
 
   
@@ -105,7 +107,14 @@ ProfilerFrontFacade.prototype = {
     
     
     
-    let { isActive, currentTime, position, generation, totalSize } = yield this.getStatus();
+    let status = yield this.getStatus();
+
+    
+    if (!status) {
+      return;
+    }
+
+    let { isActive, currentTime, position, generation, totalSize } = status;
 
     if (isActive) {
       this.emit("profiler-already-active");
@@ -121,7 +130,7 @@ ProfilerFrontFacade.prototype = {
 
     let startInfo = yield this.startProfiler(profilerOptions);
     let startTime = 0;
-    if ('currentTime' in startInfo) {
+    if ("currentTime" in startInfo) {
       startTime = startInfo.currentTime;
     }
 
@@ -142,7 +151,7 @@ ProfilerFrontFacade.prototype = {
 
 
   getStatus: Task.async(function *() {
-    let data = yield (CompatUtils.actorCompatibilityBridge("isActive").call(this));
+    let data = yield CompatUtils.callFrontMethod("isActive").call(this);
     
     
     if (!data) {
@@ -169,7 +178,7 @@ ProfilerFrontFacade.prototype = {
 
 
   getProfile: Task.async(function *(options) {
-    let profilerData = yield (CompatUtils.actorCompatibilityBridge("getProfile").call(this, options));
+    let profilerData = yield CompatUtils.callFrontMethod("getProfile").call(this, options);
     
     
     if (profilerData.profile.meta.version === 2) {
@@ -191,7 +200,9 @@ ProfilerFrontFacade.prototype = {
 
 
 
-  _onProfilerEvent: function (_, { topic, subject, details }) {
+  _onProfilerEvent: function (data) {
+    let { subject, topic, details } = data;
+
     if (topic === "console-api-profiler") {
       if (subject.action === "profile") {
         this.emit("console-profile-start", details);
@@ -224,7 +235,7 @@ TimelineFrontFacade.prototype = {
 
   connect: Task.async(function*() {
     let supported = yield CompatUtils.timelineActorSupported(this._target);
-    this._actor = supported ?
+    this._front = supported ?
                   new TimelineFront(this._target.client, this._target.form) :
                   new CompatUtils.MockTimelineFront();
 
@@ -234,7 +245,7 @@ TimelineFrontFacade.prototype = {
     
     this.EVENTS.forEach(type => {
       let handler = this[`_on${type}`] = this._onTimelineData.bind(this, type);
-      this._actor.on(type, handler);
+      this._front.on(type, handler);
     });
   }),
 
@@ -243,8 +254,8 @@ TimelineFrontFacade.prototype = {
 
 
   destroy: Task.async(function *() {
-    this.EVENTS.forEach(type => this._actor.off(type, this[`_on${type}`]));
-    yield this._actor.destroy();
+    this.EVENTS.forEach(type => this._front.off(type, this[`_on${type}`]));
+    yield this._front.destroy();
   }),
 
   
@@ -271,7 +282,7 @@ function MemoryFrontFacade (target) {
 MemoryFrontFacade.prototype = {
   connect: Task.async(function*() {
     let supported = yield CompatUtils.memoryActorSupported(this._target);
-    this._actor = supported ?
+    this._front = supported ?
                   new MemoryFront(this._target.client, this._target.form) :
                   new CompatUtils.MockMemoryFront();
 
@@ -285,7 +296,7 @@ MemoryFrontFacade.prototype = {
     if (this._poller) {
       yield this._poller.destroy();
     }
-    yield this._actor.destroy();
+    yield this._front.destroy();
   }),
 
   
@@ -374,9 +385,9 @@ MemoryFrontFacade.prototype = {
 };
 
 
-PROFILER_ACTOR_METHODS.forEach(m => ProfilerFrontFacade.prototype[m] = CompatUtils.actorCompatibilityBridge(m));
-TIMELINE_ACTOR_METHODS.forEach(m => TimelineFrontFacade.prototype[m] = CompatUtils.actorCompatibilityBridge(m));
-MEMORY_ACTOR_METHODS.forEach(m => MemoryFrontFacade.prototype[m] = CompatUtils.actorCompatibilityBridge(m));
+PROFILER_ACTOR_METHODS.forEach(m => ProfilerFrontFacade.prototype[m] = CompatUtils.callFrontMethod(m));
+TIMELINE_ACTOR_METHODS.forEach(m => TimelineFrontFacade.prototype[m] = CompatUtils.callFrontMethod(m));
+MEMORY_ACTOR_METHODS.forEach(m => MemoryFrontFacade.prototype[m] = CompatUtils.callFrontMethod(m));
 
 exports.ProfilerFront = ProfilerFrontFacade;
 exports.TimelineFront = TimelineFrontFacade;

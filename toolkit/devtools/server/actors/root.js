@@ -171,7 +171,7 @@ RootActor.prototype = {
     },
     
     
-    profilerDataFilterable: true
+    profilerDataFilterable: true,
   },
 
   
