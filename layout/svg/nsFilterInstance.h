@@ -135,7 +135,7 @@ public:
 
 
 
-  nsresult ComputePostFilterDirtyRegion(nsRegion* aPostFilterDirtyRegion);
+  nsRegion ComputePostFilterDirtyRegion();
 
   
 
@@ -144,7 +144,7 @@ public:
 
 
 
-  nsresult ComputePostFilterExtents(nsRect* aPostFilterExtents);
+  nsRect ComputePostFilterExtents();
 
   
 
@@ -153,7 +153,7 @@ public:
 
 
 
-  nsresult ComputeSourceNeededRect(nsRect* aDirty);
+  nsRect ComputeSourceNeededRect();
 
 
   
