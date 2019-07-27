@@ -12438,7 +12438,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   dummy_timeout->mFiringDepth = firingDepth;
   dummy_timeout->mWhen = now;
   last_expired_timeout->setNext(dummy_timeout);
-  dummy_timeout->AddRef();
+  nsRefPtr<nsTimeout> timeoutExtraRef(dummy_timeout);
 
   last_insertion_point = mTimeoutInsertionPoint;
   
@@ -12489,6 +12489,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       
       
       MOZ_ASSERT(dummy_timeout->HasRefCntOne(), "dummy_timeout may leak");
+      unused << timeoutExtraRef.forget().take();
 
       mTimeoutInsertionPoint = last_insertion_point;
 
@@ -12517,7 +12518,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
   
   dummy_timeout->remove();
-  dummy_timeout->Release();
+  timeoutExtraRef = nullptr;
   MOZ_ASSERT(dummy_timeout->HasRefCntOne(), "dummy_timeout may leak");
 
   mTimeoutInsertionPoint = last_insertion_point;

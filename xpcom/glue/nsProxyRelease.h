@@ -219,7 +219,7 @@ public:
   }
 
   operator T*() { return get(); }
-  T* operator->() { return get(); }
+  T* operator->() MOZ_NO_ADDREF_RELEASE_ON_RETURN { return get(); }
 
   
   bool operator==(const nsMainThreadPtrHandle<T>& aOther) const

@@ -791,7 +791,7 @@ TileClient::GetTileDescriptor()
     
     
     
-    mFrontLock->AddRef();
+    mFrontLock.get()->AddRef();
   }
 
   if (mFrontLock->GetType() == gfxSharedReadLock::TYPE_MEMORY) {

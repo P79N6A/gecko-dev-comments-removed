@@ -14,6 +14,7 @@
 #include "mozilla/Preferences.h"
 #include "nsString.h"
 #include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::dom::mobilemessage;
@@ -70,7 +71,8 @@ SendCursorRequest(const IPCMobileMessageCursor& aRequest,
 
   
   
-  actor->AddRef();
+  nsRefPtr<MobileMessageCursorChild> actorCopy(actor);
+  mozilla::unused << actorCopy.forget().take();
 
   smsChild->SendPMobileMessageCursorConstructor(actor, aRequest);
 
