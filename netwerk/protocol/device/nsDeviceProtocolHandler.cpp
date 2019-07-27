@@ -62,6 +62,10 @@ nsDeviceProtocolHandler::NewChannel2(nsIURI* aURI,
   nsresult rv = channel->Init(aURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  rv = channel->SetLoadInfo(aLoadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return CallQueryInterface(channel, aResult);
 }
 

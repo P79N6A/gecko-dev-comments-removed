@@ -131,6 +131,12 @@ nsWyciwygProtocolHandler::NewChannel2(nsIURI* url,
   if (NS_FAILED(rv))
     return rv;
 
+  
+  rv = channel->SetLoadInfo(aLoadInfo);
+  if (NS_FAILED(rv)) {
+      return rv;
+  }
+
   channel.forget(result);
   return NS_OK;
 }
