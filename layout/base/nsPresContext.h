@@ -67,9 +67,6 @@ namespace mozilla {
 class EventStateManager;
 class RestyleManager;
 class CounterStyleManager;
-namespace dom {
-class FontFaceSet;
-}
 namespace layers {
 class ContainerLayer;
 class LayerManager;
@@ -878,16 +875,7 @@ public:
 
   bool             SuppressingResizeReflow() const { return mSuppressResizeReflow; }
 
-  virtual gfxUserFontSet* GetUserFontSetExternal();
-  gfxUserFontSet* GetUserFontSetInternal();
-#ifdef MOZILLA_INTERNAL_API
-  gfxUserFontSet* GetUserFontSet() { return GetUserFontSetInternal(); }
-#else
-  gfxUserFontSet* GetUserFontSet() { return GetUserFontSetExternal(); }
-#endif
-
-  void FlushUserFontSet();
-  void RebuildUserFontSet(); 
+  gfxUserFontSet* GetUserFontSet();
 
   
   
@@ -896,8 +884,6 @@ public:
 
   gfxMissingFontRecorder *MissingFontRecorder() { return mMissingFonts; }
   void NotifyMissingFonts();
-
-  mozilla::dom::FontFaceSet* Fonts();
 
   void FlushCounterStyles();
   void RebuildCounterStyles(); 
@@ -1195,11 +1181,6 @@ protected:
 
   void AppUnitsPerDevPixelChanged();
 
-  void HandleRebuildUserFontSet() {
-    mPostedFlushUserFontSet = false;
-    FlushUserFontSet();
-  }
-
   void HandleRebuildCounterStyles() {
     mPostedFlushCounterStyles = false;
     FlushCounterStyles();
@@ -1277,9 +1258,6 @@ protected:
 
   nsInvalidateRequestList mInvalidateRequestsSinceLastPaint;
   nsInvalidateRequestList mUndeliveredInvalidateRequestsBeforeLastPaint;
-
-  
-  nsRefPtr<mozilla::dom::FontFaceSet> mFontFaceSet;
 
   
   nsAutoPtr<gfxTextPerfMetrics>   mTextPerf;
@@ -1368,13 +1346,6 @@ protected:
 
   
   unsigned              mPendingViewportChange : 1;
-
-  
-  unsigned              mFontFaceSetDirty : 1;
-  
-  unsigned              mGetUserFontSetCalled : 1;
-  
-  unsigned              mPostedFlushUserFontSet : 1;
 
   
   unsigned              mCounterStylesDirty : 1;

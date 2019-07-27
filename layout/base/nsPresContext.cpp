@@ -248,7 +248,6 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
     mNeverAnimate = false;
   }
   NS_ASSERTION(mDocument, "Null document");
-  mFontFaceSetDirty = true;
 
   mCounterStylesDirty = true;
 
@@ -1117,11 +1116,6 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
 void
 nsPresContext::SetShell(nsIPresShell* aShell)
 {
-  if (mFontFaceSet) {
-    
-    mFontFaceSet->DestroyUserFontSet();
-    mFontFaceSet = nullptr;
-  }
   if (mCounterStyleManager) {
     mCounterStyleManager->Disconnect();
     mCounterStyleManager = nullptr;
@@ -1686,7 +1680,7 @@ nsPresContext::SetBidi(uint32_t aSource, bool aForceRestyle)
   if (aForceRestyle && mShell) {
     
     
-    RebuildUserFontSet();
+    mDocument->RebuildUserFontSet();
     mShell->ReconstructFrames();
   }
 }
@@ -1930,7 +1924,7 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint,
   mUsesRootEMUnits = false;
   mUsesExChUnits = false;
   mUsesViewportUnits = false;
-  RebuildUserFontSet();
+  mDocument->RebuildUserFontSet();
   RebuildCounterStyles();
 
   RestyleManager()->RebuildAllStyleData(aExtraHint, aRestyleHint);
@@ -2114,115 +2108,9 @@ nsPresContext::HasAuthorSpecifiedRules(nsIFrame *aFrame, uint32_t ruleTypeMask) 
 }
 
 gfxUserFontSet*
-nsPresContext::GetUserFontSetInternal()
+nsPresContext::GetUserFontSet()
 {
-  
-  
-  
-  
-  
-  
-  
-#ifdef DEBUG
-  bool userFontSetGottenBefore = mGetUserFontSetCalled;
-#endif
-  
-  
-  mGetUserFontSetCalled = true;
-  if (mFontFaceSetDirty) {
-    
-    
-    
-    
-    
-    
-    NS_ASSERTION(!userFontSetGottenBefore || !mShell->IsReflowLocked(),
-                 "FlushUserFontSet should have been called first");
-    FlushUserFontSet();
-  }
-
-  if (!mFontFaceSet) {
-    return nullptr;
-  }
-
-  return mFontFaceSet->GetUserFontSet();
-}
-
-gfxUserFontSet*
-nsPresContext::GetUserFontSetExternal()
-{
-  return GetUserFontSetInternal();
-}
-
-void
-nsPresContext::FlushUserFontSet()
-{
-  if (!mShell) {
-    return; 
-  }
-
-  if (!mGetUserFontSetCalled) {
-    return; 
-            
-            
-  }
-
-  if (mFontFaceSetDirty) {
-    if (gfxPlatform::GetPlatform()->DownloadableFontsEnabled()) {
-      nsTArray<nsFontFaceRuleContainer> rules;
-      if (!mShell->StyleSet()->AppendFontFaceRules(rules)) {
-        return;
-      }
-
-      bool changed = false;
-
-      if (!mFontFaceSet && !rules.IsEmpty()) {
-        mFontFaceSet = new FontFaceSet(mDocument->GetInnerWindow(), mDocument);
-      }
-      if (mFontFaceSet) {
-        changed = mFontFaceSet->UpdateRules(rules);
-      }
-
-      
-      
-      
-      
-      if (changed) {
-        UserFontSetUpdated();
-      }
-    }
-
-    mFontFaceSetDirty = false;
-  }
-}
-
-void
-nsPresContext::RebuildUserFontSet()
-{
-  if (!mGetUserFontSetCalled) {
-    
-    
-    
-    return;
-  }
-
-  mFontFaceSetDirty = true;
-  mDocument->SetNeedStyleFlush();
-
-  
-  
-  
-  
-  
-  
-  
-  if (!mPostedFlushUserFontSet) {
-    nsCOMPtr<nsIRunnable> ev =
-      NS_NewRunnableMethod(this, &nsPresContext::HandleRebuildUserFontSet);
-    if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
-      mPostedFlushUserFontSet = true;
-    }
-  }
+  return mDocument->GetUserFontSet();
 }
 
 void
@@ -2268,16 +2156,6 @@ nsPresContext::UserFontSetUpdated(gfxUserFontEntry* aUpdatedFont)
   if (root) {
     nsFontFaceUtils::MarkDirtyForFontChange(root, aUpdatedFont);
   }
-}
-
-FontFaceSet*
-nsPresContext::Fonts()
-{
-  if (!mFontFaceSet) {
-    mFontFaceSet = new FontFaceSet(mDocument->GetInnerWindow(), mDocument);
-    GetUserFontSet();  
-  }
-  return mFontFaceSet;
 }
 
 void
@@ -2749,8 +2627,9 @@ nsPresContext::HavePendingInputEvent()
 void
 nsPresContext::NotifyFontFaceSetOnRefresh()
 {
-  if (mFontFaceSet) {
-    mFontFaceSet->DidRefresh();
+  FontFaceSet* set = mDocument->GetFonts();
+  if (set) {
+    set->DidRefresh();
   }
 }
 

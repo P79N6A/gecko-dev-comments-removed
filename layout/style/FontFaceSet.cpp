@@ -1568,24 +1568,17 @@ FontFaceSet::StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
 void
 FontFaceSet::FlushUserFontSet()
 {
-  nsPresContext* presContext = GetPresContext();
-  if (presContext) {
-    presContext->FlushUserFontSet();
+  if (mDocument) {
+    mDocument->FlushUserFontSet();
   }
 }
 
 void
 FontFaceSet::RebuildUserFontSet()
 {
-  nsPresContext* presContext = GetPresContext();
-  if (!presContext) {
-    
-    
-    
-    return;
+  if (mDocument) {
+    mDocument->RebuildUserFontSet();
   }
-
-  presContext->RebuildUserFontSet();
 }
 
 nsPresContext*

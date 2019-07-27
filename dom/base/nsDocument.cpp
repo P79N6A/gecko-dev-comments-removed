@@ -1562,6 +1562,9 @@ nsIDocument::nsIDocument()
     mAllowDNSPrefetch(true),
     mIsBeingUsedAsImage(false),
     mHasLinksToUpdate(false),
+    mFontFaceSetDirty(true),
+    mGetUserFontSetCalled(false),
+    mPostedFlushUserFontSet(false),
     mPartID(0),
     mDidFireDOMContentLoaded(true)
 {
@@ -1948,6 +1951,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsDocument)
   
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSecurityInfo)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDisplayDocument)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFontFaceSet)
 
   
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParser)
@@ -2077,6 +2081,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mMasterDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mImportManager)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSubImportLinks)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mFontFaceSet)
 
   tmp->mParentDocument = nullptr;
 
@@ -3815,6 +3820,9 @@ nsDocument::doCreateShell(nsPresContext* aContext,
 
   MaybeRescheduleAnimationFrameNotifications();
 
+  
+  RebuildUserFontSet();
+
   return shell.forget();
 }
 
@@ -3900,6 +3908,10 @@ nsDocument::DeleteShell()
   
   
   mImageTracker.EnumerateRead(RequestDiscardEnumerator, nullptr);
+
+  
+  
+  RebuildUserFontSet();
 
   mPresShell = nullptr;
 }
@@ -12956,20 +12968,122 @@ nsAutoSyncOperation::~nsAutoSyncOperation()
   nsContentUtils::SetMicroTaskLevel(mMicroTaskLevel);
 }
 
-FontFaceSet*
-nsIDocument::GetFonts(ErrorResult& aRv)
+gfxUserFontSet*
+nsIDocument::GetUserFontSet()
 {
-  nsIPresShell* shell = GetShell();
-  if (!shell) {
-    aRv.Throw(NS_ERROR_FAILURE);
+  
+  
+  
+  
+  
+  
+  
+#ifdef DEBUG
+  bool userFontSetGottenBefore = mGetUserFontSetCalled;
+#endif
+  
+  
+  mGetUserFontSetCalled = true;
+  if (mFontFaceSetDirty) {
+    
+    
+    
+    
+    
+    
+    NS_ASSERTION(!userFontSetGottenBefore ||
+                 !GetShell() ||
+                 !GetShell()->IsReflowLocked(),
+                 "FlushUserFontSet should have been called first");
+    FlushUserFontSet();
+  }
+
+  if (!mFontFaceSet) {
     return nullptr;
   }
 
-  nsPresContext* presContext = shell->GetPresContext();
-  if (!presContext) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
+  return mFontFaceSet->GetUserFontSet();
+}
+
+void
+nsIDocument::FlushUserFontSet()
+{
+  if (!mGetUserFontSetCalled) {
+    return; 
+            
+            
   }
 
-  return presContext->Fonts();
+  if (mFontFaceSetDirty) {
+    if (gfxPlatform::GetPlatform()->DownloadableFontsEnabled()) {
+      nsTArray<nsFontFaceRuleContainer> rules;
+      nsIPresShell* shell = GetShell();
+      if (shell && !shell->StyleSet()->AppendFontFaceRules(rules)) {
+        return;
+      }
+
+      bool changed = false;
+
+      if (!mFontFaceSet && !rules.IsEmpty()) {
+        nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(GetScopeObject());
+        mFontFaceSet = new FontFaceSet(window, this);
+      }
+      if (mFontFaceSet) {
+        changed = mFontFaceSet->UpdateRules(rules);
+      }
+
+      
+      
+      
+      
+      if (changed && shell) {
+        nsPresContext* presContext = shell->GetPresContext();
+        if (presContext) {
+          presContext->UserFontSetUpdated();
+        }
+      }
+    }
+
+    mFontFaceSetDirty = false;
+  }
+}
+
+void
+nsIDocument::RebuildUserFontSet()
+{
+  if (!mGetUserFontSetCalled) {
+    
+    
+    
+    return;
+  }
+
+  mFontFaceSetDirty = true;
+  SetNeedStyleFlush();
+
+  
+  
+  
+  
+  
+  
+  
+  if (!mPostedFlushUserFontSet) {
+    nsCOMPtr<nsIRunnable> ev =
+      NS_NewRunnableMethod(this, &nsIDocument::HandleRebuildUserFontSet);
+    if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
+      mPostedFlushUserFontSet = true;
+    }
+  }
+}
+
+FontFaceSet*
+nsIDocument::Fonts()
+{
+  if (!mFontFaceSet) {
+    nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(GetScopeObject());
+    mFontFaceSet = new FontFaceSet(window, this);
+    GetUserFontSet();  
+  }
+  return mFontFaceSet;
 }
