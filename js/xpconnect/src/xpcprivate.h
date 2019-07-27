@@ -1165,9 +1165,6 @@ public:
                         js::PointerHasher<JSAddonId*, 3>,
                         js::SystemAllocPolicy> InterpositionMap;
 
-    static bool SetAddonInterposition(JSAddonId* addonId,
-                                      nsIAddonInterposition* interp);
-
     
     
     
@@ -1187,6 +1184,12 @@ public:
 
     bool HasInterposition() { return mInterposition; }
     nsCOMPtr<nsIAddonInterposition> GetInterposition();
+
+    static bool SetAddonInterposition(JSAddonId* addonId,
+                                      nsIAddonInterposition* interp);
+
+    void SetAddonCallInterposition() { mHasCallInterpositions = true; }
+    bool HasCallInterposition() { return mHasCallInterpositions; };
 
 protected:
     virtual ~XPCWrappedNativeScope();
@@ -1229,6 +1232,10 @@ private:
     
     
     nsCOMPtr<nsIAddonInterposition>  mInterposition;
+
+    
+    
+    bool mHasCallInterpositions;
 
     nsAutoPtr<DOMExpandoSet> mDOMExpandoSet;
 
