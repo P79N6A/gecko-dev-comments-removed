@@ -4243,7 +4243,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
     
     
-    Promise::PerformMicroTaskCheckpoint();
+    (void)Promise::PerformMicroTaskCheckpoint();
 
     if (NS_HasPendingEvents(mThread)) {
       

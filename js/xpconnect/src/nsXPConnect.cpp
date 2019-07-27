@@ -1008,15 +1008,33 @@ nsXPConnect::JSToVariant(JSContext* ctx, HandleValue value, nsIVariant** _retval
     return NS_OK;
 }
 
+namespace {
+
+class DummyRunnable : public nsRunnable {
+public:
+    NS_IMETHOD Run() { return NS_OK; }
+};
+
+} 
+
 NS_IMETHODIMP
 nsXPConnect::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
                                 uint32_t aRecursionDepth)
 {
+    MOZ_ASSERT(NS_IsMainThread());
+
     
     
     
     if (aMayWait) {
-        Promise::PerformMicroTaskCheckpoint();
+        if (Promise::PerformMicroTaskCheckpoint()) {
+            
+            
+            
+            
+            
+            NS_DispatchToMainThread(new DummyRunnable());
+        }
     }
 
     
@@ -1024,7 +1042,6 @@ nsXPConnect::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
 
     
     
-    MOZ_ASSERT(NS_IsMainThread());
     bool ok = PushJSContextNoScriptContext(nullptr);
     NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
     return NS_OK;

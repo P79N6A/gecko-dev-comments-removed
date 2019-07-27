@@ -121,7 +121,8 @@ public:
                                            
 
   
-  static void PerformMicroTaskCheckpoint();
+  
+  static bool PerformMicroTaskCheckpoint();
 
   
 
