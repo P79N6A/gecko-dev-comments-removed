@@ -24,8 +24,18 @@ public:
 namespace mozilla {
 namespace gmp {
 
+
+
+
+
+
+
+
+
+
+
 GMPVideoDecoderParent::GMPVideoDecoderParent(GMPParent* aPlugin)
-  : mCanSendMessages(true)
+  : mIsOpen(false)
   , mPlugin(aPlugin)
   , mCallback(nullptr)
   , mVideoHost(MOZ_THIS_IN_INITIALIZER_LIST())
@@ -43,14 +53,30 @@ GMPVideoDecoderParent::Host()
   return mVideoHost;
 }
 
+
+void
+GMPVideoDecoderParent::Close()
+{
+  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
+  
+  
+  mCallback = nullptr;
+  
+
+  
+  nsRefPtr<GMPVideoDecoderParent> kungfudeathgrip(this);
+  NS_RELEASE(kungfudeathgrip);
+  Shutdown();
+}
+
 nsresult
 GMPVideoDecoderParent::InitDecode(const GMPVideoCodec& aCodecSettings,
                                   const nsTArray<uint8_t>& aCodecSpecific,
-                                  GMPVideoDecoderCallback* aCallback,
+                                  GMPVideoDecoderCallbackProxy* aCallback,
                                   int32_t aCoreCount)
 {
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video decoder!");
+  if (mIsOpen) {
+    NS_WARNING("Trying to re-init an in-use GMP video decoder!");
     return NS_ERROR_FAILURE;
   }
 
@@ -64,6 +90,7 @@ GMPVideoDecoderParent::InitDecode(const GMPVideoCodec& aCodecSettings,
   if (!SendInitDecode(aCodecSettings, aCodecSpecific, aCoreCount)) {
     return NS_ERROR_FAILURE;
   }
+  mIsOpen = true;
 
   
   return NS_OK;
@@ -77,17 +104,14 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame* aInputFrame,
 {
   nsAutoRef<GMPVideoEncodedFrame> autoDestroy(aInputFrame);
 
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video decoder!");
+  if (!mIsOpen) {
+    NS_WARNING("Trying to use an dead GMP video decoder");
     return NS_ERROR_FAILURE;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
   auto inputFrameImpl = static_cast<GMPVideoEncodedFrameImpl*>(aInputFrame);
-
-  GMPVideoEncodedFrameData frameData;
-  inputFrameImpl->RelinquishFrameData(frameData);
 
   
   
@@ -96,6 +120,9 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame* aInputFrame,
       NumInUse(kGMPEncodedData) > GMPSharedMemManager::kGMPBufLimit) {
     return NS_ERROR_FAILURE;
   }
+
+  GMPVideoEncodedFrameData frameData;
+  inputFrameImpl->RelinquishFrameData(frameData);
 
   if (!SendDecode(frameData,
                   aMissingFrames,
@@ -111,8 +138,8 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame* aInputFrame,
 nsresult
 GMPVideoDecoderParent::Reset()
 {
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video decoder!");
+  if (!mIsOpen) {
+    NS_WARNING("Trying to use an dead GMP video decoder");
     return NS_ERROR_FAILURE;
   }
 
@@ -129,8 +156,8 @@ GMPVideoDecoderParent::Reset()
 nsresult
 GMPVideoDecoderParent::Drain()
 {
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video decoder!");
+  if (!mIsOpen) {
+    NS_WARNING("Trying to use an dead GMP video decoder");
     return NS_ERROR_FAILURE;
   }
 
@@ -146,22 +173,22 @@ GMPVideoDecoderParent::Drain()
 
 
 nsresult
-GMPVideoDecoderParent::DecodingComplete()
+GMPVideoDecoderParent::Shutdown()
 {
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video decoder!");
-    return NS_ERROR_FAILURE;
-  }
-
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
-  mCanSendMessages = false;
-
-  mCallback = nullptr;
-
+  
+  if (mCallback) {
+    mCallback->Terminated();
+    mCallback = nullptr;
+  }
   mVideoHost.DoneWithAPI();
 
-  unused << SendDecodingComplete();
+  if (mIsOpen) {
+    
+    mIsOpen = false;
+    unused << SendDecodingComplete();
+  }
 
   return NS_OK;
 }
@@ -170,13 +197,17 @@ GMPVideoDecoderParent::DecodingComplete()
 void
 GMPVideoDecoderParent::ActorDestroy(ActorDestroyReason aWhy)
 {
+  mIsOpen = false;
+  if (mCallback) {
+    
+    mCallback->Terminated();
+    mCallback = nullptr;
+  }
   if (mPlugin) {
     
     mPlugin->VideoDecoderDestroyed(this);
     mPlugin = nullptr;
   }
-  mCanSendMessages = false;
-  mCallback = nullptr;
   mVideoHost.ActorDestroyed();
 }
 

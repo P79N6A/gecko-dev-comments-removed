@@ -11,12 +11,22 @@
 #include "gmp-video-frame-i420.h"
 #include "gmp-video-frame-encoded.h"
 
-class GMPVideoEncoderCallbackProxy {
+#include "GMPCallbackBase.h"
+
+class GMPVideoEncoderCallbackProxy : public GMPCallbackBase {
 public:
+  virtual ~GMPVideoEncoderCallbackProxy() {}
   virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                        const nsTArray<uint8_t>& aCodecSpecificInfo) = 0;
   virtual void Error(GMPErr aError) = 0;
 };
+
+
+
+
+
+
+
 
 
 
@@ -35,8 +45,11 @@ public:
   virtual GMPErr SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT) = 0;
   virtual GMPErr SetRates(uint32_t aNewBitRate, uint32_t aFrameRate) = 0;
   virtual GMPErr SetPeriodicKeyFrames(bool aEnable) = 0;
-  virtual void EncodingComplete() = 0;
   virtual const uint64_t ParentID() = 0;
+
+  
+  
+  virtual void Close() = 0;
 };
 
 #endif 

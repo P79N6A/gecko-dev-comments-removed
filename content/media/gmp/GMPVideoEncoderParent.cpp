@@ -24,8 +24,18 @@ public:
 namespace mozilla {
 namespace gmp {
 
+
+
+
+
+
+
+
+
+
+
 GMPVideoEncoderParent::GMPVideoEncoderParent(GMPParent *aPlugin)
-: mCanSendMessages(true),
+: mIsOpen(false),
   mPlugin(aPlugin),
   mCallback(nullptr),
   mVideoHost(MOZ_THIS_IN_INITIALIZER_LIST())
@@ -43,6 +53,22 @@ GMPVideoEncoderParent::Host()
   return mVideoHost;
 }
 
+
+void
+GMPVideoEncoderParent::Close()
+{
+  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
+  
+  
+  mCallback = nullptr;
+  
+
+  
+  nsRefPtr<GMPVideoEncoderParent> kungfudeathgrip(this);
+  NS_RELEASE(kungfudeathgrip);
+  Shutdown();
+}
+
 GMPErr
 GMPVideoEncoderParent::InitEncode(const GMPVideoCodec& aCodecSettings,
                                   const nsTArray<uint8_t>& aCodecSpecific,
@@ -50,9 +76,9 @@ GMPVideoEncoderParent::InitEncode(const GMPVideoCodec& aCodecSettings,
                                   int32_t aNumberOfCores,
                                   uint32_t aMaxPayloadSize)
 {
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video encoder!");
-    return GMPGenericErr;
+  if (mIsOpen) {
+    NS_WARNING("Trying to re-init an in-use GMP video encoder!");
+    return GMPGenericErr;;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
@@ -65,6 +91,7 @@ GMPVideoEncoderParent::InitEncode(const GMPVideoCodec& aCodecSettings,
   if (!SendInitEncode(aCodecSettings, aCodecSpecific, aNumberOfCores, aMaxPayloadSize)) {
     return GMPGenericErr;
   }
+  mIsOpen = true;
 
   
   return GMPNoErr;
@@ -77,17 +104,14 @@ GMPVideoEncoderParent::Encode(GMPVideoi420Frame* aInputFrame,
 {
   nsAutoRef<GMPVideoi420Frame> frameRef(aInputFrame);
 
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video encoder!");
+  if (!mIsOpen) {
+    NS_WARNING("Trying to use an dead GMP video encoder");
     return GMPGenericErr;
   }
 
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
   auto inputFrameImpl = static_cast<GMPVideoi420FrameImpl*>(aInputFrame);
-
-  GMPVideoi420FrameData frameData;
-  inputFrameImpl->InitFrameData(frameData);
 
   
   
@@ -96,6 +120,9 @@ GMPVideoEncoderParent::Encode(GMPVideoi420Frame* aInputFrame,
       NumInUse(kGMPEncodedData) > GMPSharedMemManager::kGMPBufLimit) {
     return GMPGenericErr;
   }
+
+  GMPVideoi420FrameData frameData;
+  inputFrameImpl->InitFrameData(frameData);
 
   if (!SendEncode(frameData,
                   aCodecSpecificInfo,
@@ -110,7 +137,7 @@ GMPVideoEncoderParent::Encode(GMPVideoi420Frame* aInputFrame,
 GMPErr
 GMPVideoEncoderParent::SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT)
 {
-  if (!mCanSendMessages) {
+  if (!mIsOpen) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return GMPGenericErr;
   }
@@ -128,8 +155,8 @@ GMPVideoEncoderParent::SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT)
 GMPErr
 GMPVideoEncoderParent::SetRates(uint32_t aNewBitRate, uint32_t aFrameRate)
 {
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video encoder!");
+  if (!mIsOpen) {
+    NS_WARNING("Trying to use an dead GMP video decoder");
     return GMPGenericErr;
   }
 
@@ -146,7 +173,7 @@ GMPVideoEncoderParent::SetRates(uint32_t aNewBitRate, uint32_t aFrameRate)
 GMPErr
 GMPVideoEncoderParent::SetPeriodicKeyFrames(bool aEnable)
 {
-  if (!mCanSendMessages) {
+  if (!mIsOpen) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return GMPGenericErr;
   }
@@ -163,35 +190,38 @@ GMPVideoEncoderParent::SetPeriodicKeyFrames(bool aEnable)
 
 
 void
-GMPVideoEncoderParent::EncodingComplete()
+GMPVideoEncoderParent::Shutdown()
 {
-  if (!mCanSendMessages) {
-    NS_WARNING("Trying to use an invalid GMP video encoder!");
-    return;
-  }
-
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
-  mCanSendMessages = false;
-
-  mCallback = nullptr;
-
+  
+  if (mCallback) {
+    mCallback->Terminated();
+    mCallback = nullptr;
+  }
   mVideoHost.DoneWithAPI();
-
-  unused << SendEncodingComplete();
+  if (mIsOpen) {
+    
+    mIsOpen = false;
+    unused << SendEncodingComplete();
+  }
 }
 
 
 void
 GMPVideoEncoderParent::ActorDestroy(ActorDestroyReason aWhy)
 {
+  mIsOpen = false;
+  if (mCallback) {
+    
+    mCallback->Terminated();
+    mCallback = nullptr;
+  }
   if (mPlugin) {
     
     mPlugin->VideoEncoderDestroyed(this);
     mPlugin = nullptr;
   }
-  mCanSendMessages = false;
-  mCallback = nullptr;
   mVideoHost.ActorDestroyed();
 }
 

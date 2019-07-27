@@ -111,12 +111,12 @@ GMPParent::CloseActive()
 
   
   for (uint32_t i = mVideoDecoders.Length(); i > 0; i--) {
-    mVideoDecoders[i - 1]->DecodingComplete();
+    mVideoDecoders[i - 1]->Shutdown();
   }
 
   
   for (uint32_t i = mVideoEncoders.Length(); i > 0; i--) {
-    mVideoEncoders[i - 1]->EncodingComplete();
+    mVideoEncoders[i - 1]->Shutdown();
   }
 
   
@@ -261,6 +261,9 @@ GMPParent::GetGMPVideoDecoder(GMPVideoDecoderParent** aGMPVD)
     return NS_ERROR_FAILURE;
   }
   GMPVideoDecoderParent *vdp = static_cast<GMPVideoDecoderParent*>(pvdp);
+  
+  
+  NS_ADDREF(vdp);
   *aGMPVD = vdp;
   mVideoDecoders.AppendElement(vdp);
 
@@ -282,6 +285,9 @@ GMPParent::GetGMPVideoEncoder(GMPVideoEncoderParent** aGMPVE)
     return NS_ERROR_FAILURE;
   }
   GMPVideoEncoderParent *vep = static_cast<GMPVideoEncoderParent*>(pvep);
+  
+  
+  NS_ADDREF(vep);
   *aGMPVE = vep;
   mVideoEncoders.AppendElement(vep);
 
