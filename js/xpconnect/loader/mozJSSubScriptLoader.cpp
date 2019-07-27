@@ -90,6 +90,22 @@ ReportError(JSContext *cx, const char *msg)
     return NS_OK;
 }
 
+
+
+
+static bool
+BuildScopeChainForObject(JSContext *cx, HandleObject obj,
+                         AutoObjectVector &scopeChain)
+{
+    RootedObject cur(cx, obj);
+    for ( ; cur && !JS_IsGlobalObject(cur); cur = JS_GetParent(cur)) {
+        if (!scopeChain.append(cur)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 nsresult
 mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObjArg,
                                  const nsAString &charset, const char *uriStr,
@@ -161,10 +177,13 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
         if (!reuseGlobal) {
             JS::Compile(cx, target_obj, options, srcBuf, script);
         } else {
-            JS::CompileFunction(cx, target_obj, options,
-                                nullptr, 0, nullptr,
-                                srcBuf,
-                                function);
+            AutoObjectVector scopeChain(cx);
+            if (!BuildScopeChainForObject(cx, target_obj, scopeChain)) {
+                return NS_ERROR_OUT_OF_MEMORY;
+            }
+            
+            JS::CompileFunction(cx, scopeChain, options, nullptr, 0, nullptr,
+                                srcBuf, function);
         }
     } else {
         
@@ -173,9 +192,13 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
             options.setSourceIsLazy(true);
             JS::Compile(cx, target_obj, options, buf.get(), len, script);
         } else {
-            JS::CompileFunction(cx, target_obj, options,
-                                nullptr, 0, nullptr, buf.get(),
-                                len, function);
+            AutoObjectVector scopeChain(cx);
+            if (!BuildScopeChainForObject(cx, target_obj, scopeChain)) {
+                return NS_ERROR_OUT_OF_MEMORY;
+            }
+            
+            JS::CompileFunction(cx, scopeChain, options, nullptr, 0, nullptr,
+                                buf.get(), len, function);
         }
     }
 
