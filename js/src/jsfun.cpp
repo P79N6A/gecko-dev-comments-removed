@@ -2050,7 +2050,14 @@ js::NewFunctionWithProto(ExclusiveContext *cx, Native native,
         newKind = SingletonObject;
 #ifdef DEBUG
     RootedObject nonScopeParent(cx, SkipScopeParent(enclosingDynamicScope));
-    MOZ_ASSERT(!nonScopeParent || nonScopeParent == cx->global());
+    
+    
+    
+    
+    
+    MOZ_ASSERT(!nonScopeParent || nonScopeParent == cx->global() ||
+               nonScopeParent->is<DebugScopeObject>() ||
+               nonScopeParent->isUnqualifiedVarObj());
 #endif
     funobj = NewObjectWithClassProto(cx, &JSFunction::class_, proto, allocKind,
                                      newKind);
@@ -2144,7 +2151,9 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
     
     
     
+    
     MOZ_ASSERT(!realParent || realParent == cx->global() ||
+               realParent->is<DebugScopeObject>() ||
                realParent->isUnqualifiedVarObj());
 #endif
     JSObject *cloneobj = NewObjectWithClassProto(cx, &JSFunction::class_, cloneProto,
