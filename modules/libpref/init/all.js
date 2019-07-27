@@ -2422,7 +2422,7 @@ pref("dom.ipc.plugins.reportCrashURL", true);
 
 pref("dom.ipc.plugins.unloadTimeoutSecs", 30);
 
-pref("dom.ipc.plugins.asyncInit", true);
+pref("dom.ipc.plugins.asyncInit", false);
 
 pref("dom.ipc.processCount", 1);
 
