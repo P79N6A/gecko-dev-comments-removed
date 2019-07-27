@@ -20,7 +20,10 @@ nsBidiKeyboard::nsBidiKeyboard()
 NS_IMETHODIMP
 nsBidiKeyboard::Reset()
 {
-    mHaveBidiKeyboards = gdk_keymap_have_bidi_layouts(gdk_keymap_get_default());
+    
+    
+    GdkKeymap *keymap = gdk_keymap_get_default();
+    mHaveBidiKeyboards = keymap && gdk_keymap_have_bidi_layouts(keymap);
     return NS_OK;
 }
 
