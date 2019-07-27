@@ -809,8 +809,8 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool ok)
 {
     
     ScopeIter si(frame, pc, cx);
+    UnwindAllScopes(cx, si);
     jsbytecode *unwindPc = frame->script()->main();
-    UnwindScope(cx, si, unwindPc);
     frame->setUnwoundScopeOverridePc(unwindPc);
 
     

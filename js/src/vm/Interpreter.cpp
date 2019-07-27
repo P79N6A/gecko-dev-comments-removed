@@ -866,6 +866,25 @@ js::EnterWithOperation(JSContext *cx, AbstractFramePtr frame, HandleValue val,
     return true;
 }
 
+static void
+PopScope(JSContext *cx, ScopeIter &si)
+{
+    switch (si.type()) {
+      case ScopeIter::Block:
+        if (cx->compartment()->debugMode())
+            DebugScopes::onPopBlock(cx, si);
+        if (si.staticBlock().needsClone())
+            si.frame().popBlock(cx);
+        break;
+      case ScopeIter::With:
+        si.frame().popWith(cx);
+        break;
+      case ScopeIter::Call:
+      case ScopeIter::StrictEvalScope:
+        break;
+    }
+}
+
 
 
 void
@@ -876,28 +895,42 @@ js::UnwindScope(JSContext *cx, ScopeIter &si, jsbytecode *pc)
 
     Rooted<NestedScopeObject *> staticScope(cx, si.frame().script()->getStaticScope(pc));
 
-    for (; si.staticScope() != staticScope; ++si) {
-        switch (si.type()) {
-          case ScopeIter::Block:
-            if (cx->compartment()->debugMode())
-                DebugScopes::onPopBlock(cx, si);
-            if (si.staticBlock().needsClone())
-                si.frame().popBlock(cx);
-            break;
-          case ScopeIter::With:
-            si.frame().popWith(cx);
-            break;
-          case ScopeIter::Call:
-          case ScopeIter::StrictEvalScope:
-            break;
-        }
-    }
+    for (; si.staticScope() != staticScope; ++si)
+        PopScope(cx, si);
+}
+
+
+
+
+
+
+
+
+void
+js::UnwindAllScopes(JSContext *cx, ScopeIter &si)
+{
+    for (; !si.done(); ++si)
+        PopScope(cx, si);
+}
+
+
+
+
+
+
+
+
+
+jsbytecode *
+js::UnwindScopeToTryPc(JSScript *script, JSTryNote *tn)
+{
+    return script->main() + tn->start - js_CodeSpec[JSOP_TRY].length;
 }
 
 static void
 ForcedReturn(JSContext *cx, ScopeIter &si, InterpreterRegs &regs)
 {
-    UnwindScope(cx, si, regs.fp()->script()->main());
+    UnwindAllScopes(cx, si);
     regs.setToEndOfScript();
 }
 
@@ -1023,23 +1056,7 @@ HandleError(JSContext *cx, InterpreterRegs &regs)
             JSTryNote *tn = *tni;
 
             
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            UnwindScope(cx, si, (regs.fp()->script()->main() + tn->start -
-                                 js_CodeSpec[JSOP_TRY].length));
+            UnwindScope(cx, si, UnwindScopeToTryPc(regs.fp()->script(), tn));
 
             
 

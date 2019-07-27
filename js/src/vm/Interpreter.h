@@ -326,6 +326,15 @@ extern void
 UnwindScope(JSContext *cx, ScopeIter &si, jsbytecode *pc);
 
 
+extern void
+UnwindAllScopes(JSContext *cx, ScopeIter &si);
+
+
+
+extern jsbytecode *
+UnwindScopeToTryPc(JSScript *script, JSTryNote *tn);
+
+
 
 
 
