@@ -2,8 +2,6 @@
 
 
 
-
-
 function returnObjectFor1(k, v)
 {
   if (k == "1")

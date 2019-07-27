@@ -1,6 +1,3 @@
-
-
-
 testJSON('"Unterminated string literal', true);
 testJSON('["Unclosed array"', true);
 testJSON('{unquoted_key: "keys must be quoted"}', true);

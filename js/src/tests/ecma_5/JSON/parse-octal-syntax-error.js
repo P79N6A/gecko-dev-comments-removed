@@ -1,6 +1,3 @@
-
-
-
 testJSON('{"Numbers cannot have leading zeroes": 013}', true);
 
 

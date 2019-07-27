@@ -1,6 +1,3 @@
-
-
-
 function assertIsObject(x)
 {
   assertEq(typeof x, "object");

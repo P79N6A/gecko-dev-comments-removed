@@ -1,5 +1,3 @@
-
-
 function doubler(k, v)
 {
   assertEq(typeof k, "string");

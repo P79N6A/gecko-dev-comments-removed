@@ -1,5 +1,3 @@
-
-
 assertEq(JSON.stringify({foo: 123}),
          '{"foo":123}');
 assertEq(JSON.stringify({foo: 123, bar: function () {}}),

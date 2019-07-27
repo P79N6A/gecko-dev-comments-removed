@@ -1,5 +1,3 @@
-
-
 var str =
   '[\n' +
   '    "JSON Test Pattern pass1",\n' +

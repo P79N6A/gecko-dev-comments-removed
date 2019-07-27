@@ -1,6 +1,4 @@
 
-
-
 var x = JSON.stringify({});
 assertEq(x, "{}");
 

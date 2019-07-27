@@ -1,5 +1,3 @@
-
-
 function assertStringify(v, expect)
 {
   assertEq(JSON.stringify(v), expect);

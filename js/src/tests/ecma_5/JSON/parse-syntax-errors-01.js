@@ -1,5 +1,3 @@
-
-
 testJSON("{}...", true);
 testJSON('{"foo": truBBBB}', true);
 testJSON('{foo: truBBBB}', true);
