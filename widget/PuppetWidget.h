@@ -280,6 +280,18 @@ private:
     PuppetWidget* mWidget;
   };
 
+  class MemoryPressureObserver : public nsIObserver {
+  public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+    explicit MemoryPressureObserver(PuppetWidget* aWidget) : mWidget(aWidget) {}
+    void Remove();
+  private:
+    virtual ~MemoryPressureObserver() {}
+    PuppetWidget* mWidget;
+  };
+  friend class MemoryPressureObserver;
+
   
   
   
@@ -292,6 +304,7 @@ private:
   nsRefPtr<PuppetWidget> mChild;
   nsIntRegion mDirtyRegion;
   nsRevocableEventPtr<PaintTask> mPaintTask;
+  nsRefPtr<MemoryPressureObserver> mMemoryPressureObserver;
   
   
   mozilla::RefPtr<DrawTarget> mDrawTarget;
