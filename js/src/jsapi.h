@@ -3249,8 +3249,7 @@ JS_CompileScript(JSContext *cx, const char *ascii, size_t length,
 
 
 extern JS_PUBLIC_API(bool)
-JS_CompileUCScript(JSContext *cx, JS::HandleObject obj,
-                   const char16_t *chars, size_t length,
+JS_CompileUCScript(JSContext *cx, const char16_t *chars, size_t length,
                    const JS::CompileOptions &options,
                    JS::MutableHandleScript script);
 
