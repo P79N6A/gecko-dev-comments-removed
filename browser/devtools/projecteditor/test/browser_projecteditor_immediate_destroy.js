@@ -7,6 +7,13 @@
 
 
 
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("destroy");
+
+
+
+
 let test = asyncTest(function* () {
 
   info ("Testing tab closure when projecteditor is in various states");
