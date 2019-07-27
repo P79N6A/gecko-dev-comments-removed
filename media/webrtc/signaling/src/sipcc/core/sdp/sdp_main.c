@@ -1004,7 +1004,12 @@ sdp_result_e sdp_parse (sdp_t *sdp_p, char **bufp, u16 len)
 
         ptr = next_ptr;
         line_end = sdp_findchar(ptr, "\n");
-        if (line_end >= (*bufp + len)) {
+        if ((line_end >= (*bufp + len)) ||
+           (*line_end == '\0')) {
+            
+
+
+
             sdp_parse_error(sdp_p->peerconnection,
                 "%s End of line beyond end of buffer.",
                 sdp_p->debug_str);
