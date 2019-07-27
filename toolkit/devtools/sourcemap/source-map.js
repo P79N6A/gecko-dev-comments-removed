@@ -922,14 +922,29 @@ define('source-map/util', ['require', 'exports', 'module' , ], function(require,
     aRoot = aRoot.replace(/\/$/, '');
 
     
-    var url = urlParse(aRoot);
-    if (aPath.charAt(0) == "/" && url && url.path == "/") {
-      return aPath.slice(1);
+    
+    
+    
+    var level = 0;
+    while (aPath.indexOf(aRoot + '/') !== 0) {
+      var index = aRoot.lastIndexOf("/");
+      if (index < 0) {
+        return aPath;
+      }
+
+      
+      
+      
+      aRoot = aRoot.slice(0, index);
+      if (aRoot.match(/^([^\/]+:\/)\/*$/)) {
+        return aPath;
+      }
+
+      ++level;
     }
 
-    return aPath.indexOf(aRoot + '/') === 0
-      ? aPath.substr(aRoot.length + 1)
-      : aPath;
+    
+    return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
   }
   exports.relative = relative;
 
@@ -1395,15 +1410,19 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
 
 
+
+
   SourceMapConsumer.prototype.allGeneratedPositionsFor =
     function SourceMapConsumer_allGeneratedPositionsFor(aArgs) {
+      var line = util.getArg(aArgs, 'line');
+
       
       
       
       
       var needle = {
         source: util.getArg(aArgs, 'source'),
-        originalLine: util.getArg(aArgs, 'line'),
+        originalLine: line,
         originalColumn: util.getArg(aArgs, 'column', 0)
       };
 
@@ -1421,22 +1440,41 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
                                     binarySearch.LEAST_UPPER_BOUND);
       if (index >= 0) {
         var mapping = this._originalMappings[index];
-        var originalLine = mapping.originalLine;
-        var originalColumn = mapping.originalColumn;
 
-        
-        
-        
-        while (mapping && mapping.originalLine === originalLine &&
-               (aArgs.column === undefined ||
-                mapping.originalColumn === originalColumn)) {
-          mappings.push({
-            line: util.getArg(mapping, 'generatedLine', null),
-            column: util.getArg(mapping, 'generatedColumn', null),
-            lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
-          });
+        if (aArgs.column === undefined) {
+          var originalLine = mapping.originalLine;
 
-          mapping = this._originalMappings[++index];
+          
+          
+          
+          
+          while (mapping && mapping.originalLine === originalLine) {
+            mappings.push({
+              line: util.getArg(mapping, 'generatedLine', null),
+              column: util.getArg(mapping, 'generatedColumn', null),
+              lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
+            });
+
+            mapping = this._originalMappings[++index];
+          }
+        } else {
+          var originalColumn = mapping.originalColumn;
+
+          
+          
+          
+          
+          while (mapping &&
+                 mapping.originalLine === line &&
+                 mapping.originalColumn == originalColumn) {
+            mappings.push({
+              line: util.getArg(mapping, 'generatedLine', null),
+              column: util.getArg(mapping, 'generatedColumn', null),
+              lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
+            });
+
+            mapping = this._originalMappings[++index];
+          }
         }
       }
 

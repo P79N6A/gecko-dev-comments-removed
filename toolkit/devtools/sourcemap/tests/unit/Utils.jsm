@@ -568,14 +568,29 @@ define('lib/source-map/util', ['require', 'exports', 'module' , ], function(requ
     aRoot = aRoot.replace(/\/$/, '');
 
     
-    var url = urlParse(aRoot);
-    if (aPath.charAt(0) == "/" && url && url.path == "/") {
-      return aPath.slice(1);
+    
+    
+    
+    var level = 0;
+    while (aPath.indexOf(aRoot + '/') !== 0) {
+      var index = aRoot.lastIndexOf("/");
+      if (index < 0) {
+        return aPath;
+      }
+
+      
+      
+      
+      aRoot = aRoot.slice(0, index);
+      if (aRoot.match(/^([^\/]+:\/)\/*$/)) {
+        return aPath;
+      }
+
+      ++level;
     }
 
-    return aPath.indexOf(aRoot + '/') === 0
-      ? aPath.substr(aRoot.length + 1)
-      : aPath;
+    
+    return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
   }
   exports.relative = relative;
 
