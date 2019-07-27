@@ -429,6 +429,8 @@ AnimationPlayer::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
 void
 AnimationPlayer::DoPlay(LimitBehavior aLimitBehavior)
 {
+  bool abortedPause = mPendingState == PendingState::PausePending;
+
   bool reuseReadyPromise = false;
   if (mPendingState != PendingState::NotPending) {
     CancelPendingTasks();
@@ -452,12 +454,20 @@ AnimationPlayer::DoPlay(LimitBehavior aLimitBehavior)
     mHoldTime.SetValue(TimeDuration(0));
   }
 
-  if (mHoldTime.IsNull()) {
+  
+  
+  
+  
+  if (mHoldTime.IsNull() && !abortedPause) {
     return;
   }
 
   
-  mStartTime.SetNull();
+  
+  
+  if (!abortedPause) {
+    mStartTime.SetNull();
+  }
 
   if (!reuseReadyPromise) {
     
@@ -513,15 +523,19 @@ AnimationPlayer::ResumeAt(const TimeDuration& aReadyTime)
   
   MOZ_ASSERT(mPendingState == PendingState::PlayPending,
              "Expected to resume a play-pending player");
-  MOZ_ASSERT(!mHoldTime.IsNull(),
-             "A player in the play-pending state should have a resolved"
-             " hold time");
+  MOZ_ASSERT(mHoldTime.IsNull() != mStartTime.IsNull(),
+             "A player in the play-pending state should have either a"
+             " resolved hold time or resolved start time (but not both)");
 
-  if (mPlaybackRate != 0) {
-    mStartTime.SetValue(aReadyTime - (mHoldTime.Value() / mPlaybackRate));
-    mHoldTime.SetNull();
-  } else {
-    mStartTime.SetValue(aReadyTime);
+  
+  
+  if (mStartTime.IsNull()) {
+    if (mPlaybackRate != 0) {
+      mStartTime.SetValue(aReadyTime - (mHoldTime.Value() / mPlaybackRate));
+      mHoldTime.SetNull();
+    } else {
+      mStartTime.SetValue(aReadyTime);
+    }
   }
   mPendingState = PendingState::NotPending;
 
