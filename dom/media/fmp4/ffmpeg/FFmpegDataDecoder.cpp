@@ -96,9 +96,9 @@ FFmpegDataDecoder<LIBAV_VER>::Init()
 
   if (mExtraData) {
     mCodecContext->extradata_size = mExtraData->Length();
-    for (int i = 0; i < FF_INPUT_BUFFER_PADDING_SIZE; i++) {
-      mExtraData->AppendElement(0);
-    }
+    
+    
+    mExtraData->AppendElements(FF_INPUT_BUFFER_PADDING_SIZE);
     mCodecContext->extradata = mExtraData->Elements();
   } else {
     mCodecContext->extradata_size = 0;
