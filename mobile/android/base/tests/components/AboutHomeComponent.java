@@ -7,10 +7,15 @@ package org.mozilla.gecko.tests.components;
 import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertEquals;
 import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertTrue;
 
+import java.util.Arrays;
+
+import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.home.HomeConfig.PanelType;
 import org.mozilla.gecko.tests.UITestContext;
-import org.mozilla.gecko.tests.helpers.DeviceHelper;
 import org.mozilla.gecko.tests.helpers.WaitHelper;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import android.support.v4.view.ViewPager;
 import android.view.View;
@@ -18,25 +23,12 @@ import android.widget.TextView;
 
 import com.jayway.android.robotium.solo.Condition;
 import com.jayway.android.robotium.solo.Solo;
-import org.mozilla.gecko.util.HardwareUtils;
-
-import java.util.Arrays;
-import java.util.Enumeration;
 
 
 
 
 public class AboutHomeComponent extends BaseComponent {
     private static final String LOGTAG = AboutHomeComponent.class.getSimpleName();
-
-    
-    public enum PanelType {
-        HISTORY,
-        TOP_SITES,
-        BOOKMARKS,
-        READING_LIST,
-        RECENT_TABS
-    }
 
     
     

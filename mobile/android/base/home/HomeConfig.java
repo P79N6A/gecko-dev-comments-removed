@@ -20,6 +20,7 @@ import org.json.JSONObject;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
@@ -34,6 +35,7 @@ public final class HomeConfig {
 
 
 
+    @RobocopTarget
     public static enum PanelType implements Parcelable {
         TOP_SITES("top_sites", TopSitesPanel.class),
         BOOKMARKS("bookmarks", BookmarksPanel.class),
