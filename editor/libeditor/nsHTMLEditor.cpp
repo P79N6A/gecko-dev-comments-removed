@@ -5211,6 +5211,13 @@ nsHTMLEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
     return false;
   }
 
+  
+  
+  
+  if (mComposition && aEvent->GetInternalNSEvent()->AsCompositionEvent()) {
+    return true;
+  }
+
   NS_ENSURE_TRUE(mDocWeak, false);
 
   nsCOMPtr<nsIDOMEventTarget> target;
