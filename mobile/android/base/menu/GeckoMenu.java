@@ -786,7 +786,9 @@ public class GeckoMenu extends ListView
 
         @Override
         public boolean isEnabled(int position) {
-            return getItem(position).isEnabled();
+            
+            
+            return true;
         }
 
         public void addMenuItem(GeckoMenuItem menuItem) {
