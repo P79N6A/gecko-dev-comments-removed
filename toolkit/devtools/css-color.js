@@ -10,8 +10,6 @@ const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 const COLOR_UNIT_PREF = "devtools.defaultColorUnit";
 
 const REGEX_JUST_QUOTES  = /^""$/;
-const REGEX_RGB_3_TUPLE  = /^rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)$/i;
-const REGEX_RGBA_4_TUPLE = /^rgba\(([\d.]+),\s*([\d.]+),\s*([\d.]+),\s*([\d.]+|1|0)\)$/i;
 const REGEX_HSL_3_TUPLE  = /^\bhsl\(([\d.]+),\s*([\d.]+%),\s*([\d.]+%)\)$/i;
 
 
@@ -106,7 +104,7 @@ CssColor.prototype = {
   },
 
   get valid() {
-    return this._validateColor(this.authored);
+    return DOMUtils.isValidCSSColor(this.authored);
   },
 
   
@@ -126,11 +124,9 @@ CssColor.prototype = {
   },
 
   get name() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
 
     try {
@@ -147,11 +143,9 @@ CssColor.prototype = {
   },
 
   get hex() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.hasAlpha) {
       return this.rgba;
@@ -167,11 +161,9 @@ CssColor.prototype = {
   },
 
   get longHex() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.hasAlpha) {
       return this.rgba;
@@ -182,11 +174,9 @@ CssColor.prototype = {
   },
 
   get rgb() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (!this.hasAlpha) {
       if (this.authored.startsWith("rgb(")) {
@@ -200,11 +190,9 @@ CssColor.prototype = {
   },
 
   get rgba() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.authored.startsWith("rgba(")) {
       
@@ -218,11 +206,9 @@ CssColor.prototype = {
   },
 
   get hsl() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.authored.startsWith("hsl(")) {
       
@@ -235,11 +221,9 @@ CssColor.prototype = {
   },
 
   get hsla() {
-    if (!this.valid) {
-      return "";
-    }
-    if (this.specialValue) {
-      return this.specialValue;
+    let invalidOrSpecialValue = this._getInvalidOrSpecialValue();
+    if (invalidOrSpecialValue !== false) {
+      return invalidOrSpecialValue;
     }
     if (this.authored.startsWith("hsla(")) {
       
@@ -250,6 +234,27 @@ CssColor.prototype = {
       return this._hslNoAlpha().replace("hsl", "hsla").replace(")", ", " + a + ")");
     }
     return this._hslNoAlpha().replace("hsl", "hsla").replace(")", ", 1)");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _getInvalidOrSpecialValue: function() {
+    if (this.specialValue) {
+      return this.specialValue;
+    }
+    if (!this.valid) {
+      return "";
+    }
+    return false;
   },
 
   
@@ -298,27 +303,11 @@ CssColor.prototype = {
 
 
   _getRGBATuple: function() {
-    let win = Services.appShell.hiddenDOMWindow;
-    let doc = win.document;
-    let span = doc.createElement("span");
-    span.style.color = this.authored;
-    let computed = win.getComputedStyle(span).color;
+    let tuple = DOMUtils.colorToRGBA(this.authored);
 
-    if (computed === "transparent") {
-      return {r: 0, g: 0, b: 0, a: 0};
-    }
+    tuple.a = parseFloat(tuple.a.toFixed(1));
 
-    let rgba = computed.match(REGEX_RGBA_4_TUPLE);
-
-    if (rgba) {
-      let [, r, g, b, a] = rgba;
-      return {r: r, g: g, b: b, a: a};
-    } else {
-      let rgb = computed.match(REGEX_RGB_3_TUPLE);
-      let [, r, g, b] = rgb;
-
-      return {r: r, g: g, b: b, a: 1};
-    }
+    return tuple;
   },
 
   _hslNoAlpha: function() {
@@ -341,33 +330,6 @@ CssColor.prototype = {
 
   valueOf: function() {
     return this.rgba;
-  },
-
-  _validateColor: function(color) {
-    if (typeof color !== "string" || color === "") {
-      return false;
-    }
-
-    let win = Services.appShell.hiddenDOMWindow;
-    let doc = win.document;
-
-    
-    let span = doc.createElement("span");
-    span.style.color = "rgb(0, 0, 0)";
-
-    
-    
-    span.style.color = color;
-    if (span.style.color !== "rgb(0, 0, 0)") {
-      return true;
-    }
-
-    
-    
-    
-    span.style.color = "rgb(255, 255, 255)";
-    span.style.color = color;
-    return span.style.color !== "rgb(255, 255, 255)";
   },
 };
 

@@ -2824,30 +2824,8 @@ TextPropertyEditor.prototype = {
 
 
 
-
-
-
-
-  isValid: function(aValue) {
-    let name = this.prop.name;
-    let value = typeof aValue == "undefined" ? this.prop.value : aValue;
-    let val = parseSingleValue(value);
-
-    let style = this.doc.createElementNS(HTML_NS, "div").style;
-    let prefs = Services.prefs;
-
-    
-    let prefVal = prefs.getBoolPref("layout.css.report_errors");
-    prefs.setBoolPref("layout.css.report_errors", false);
-
-    let validValue = false;
-    try {
-      style.setProperty(name, val.value, val.priority);
-      validValue = style.getPropertyValue(name) !== "" || val.value === "";
-    } finally {
-      prefs.setBoolPref("layout.css.report_errors", prefVal);
-    }
-    return validValue;
+  isValid: function() {
+    return domUtils.cssPropertyIsValid(this.prop.name, this.prop.value);
   }
 };
 
