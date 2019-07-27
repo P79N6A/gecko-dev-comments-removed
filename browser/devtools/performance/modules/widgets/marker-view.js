@@ -174,12 +174,7 @@ MarkerView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
 
   _buildMarkerCells: function(doc, targetNode, arrowNode) {
-    
     let marker = this.marker;
-    if (marker.name == "(root)") {
-      return;
-    }
-
     let style = this.root._blueprint[marker.name];
     let startTime = this.root._interval.startTime;
     let endTime = this.root._interval.endTime;
