@@ -118,13 +118,21 @@ RecordingModel.prototype = {
     
     
     
-    RecordingUtils.filterSamples(this._profile, this._profilerStartTime);
+    
     RecordingUtils.offsetSampleTimes(this._profile, this._profilerStartTime);
 
     
     
     this._markers = this._markers.sort((a, b) => (a.start > b.start));
   }),
+
+  
+
+
+
+  getProfilerStartTime: function () {
+    return this._profilerStartTime;
+  },
 
   
 

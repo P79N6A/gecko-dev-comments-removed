@@ -166,6 +166,9 @@ RootActor.prototype = {
     get allowChromeProcess() {
       return DebuggerServer.allowChromeProcess;
     },
+    
+    
+    profilerDataFilterable: true,
   },
 
   

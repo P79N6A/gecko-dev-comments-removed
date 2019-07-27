@@ -144,7 +144,9 @@ PerformanceActorsConnection.prototype = {
 
   destroy: Task.async(function*() {
     if (this._connecting && !this._connected) {
-      console.warn("Attempting to destroy SharedPerformanceActorsConnection before initialization completion. If testing, ensure `gDevTools.testing` is set.");
+      yield this._connecting.promise;
+    } else if (!this._connected) {
+      return;
     }
 
     yield this._unregisterListeners();
@@ -152,26 +154,16 @@ PerformanceActorsConnection.prototype = {
 
     this._memory = this._timeline = this._profiler = this._target = this._client = null;
     this._connected = false;
+    this._connecting = null;
   }),
 
   
 
 
+
   _connectProfilerActor: Task.async(function*() {
-    
-    
-    if (this._target.form && this._target.form.profilerActor) {
-      this._profiler = this._target.form.profilerActor;
-    }
-    
-    
-    else if (this._target.root && this._target.root.profilerActor) {
-      this._profiler = this._target.root.profilerActor;
-    }
-    
-    else {
-      this._profiler = (yield listTabs(this._client)).profilerActor;
-    }
+    this._profiler = new compatibility.ProfilerFront(this._target);
+    yield this._profiler.connect();
   }),
 
   
@@ -253,12 +245,7 @@ PerformanceActorsConnection.prototype = {
   _request: function(actor, method, ...args) {
     
     if (actor == "profiler") {
-      let deferred = promise.defer();
-      let data = args[0] || {};
-      data.to = this._profiler;
-      data.type = method;
-      this._client.request(data, deferred.resolve);
-      return deferred.promise;
+      return this._profiler._request(method, ...args);
     }
 
     
@@ -334,7 +321,17 @@ PerformanceActorsConnection.prototype = {
 
 
 
-  _onConsoleProfileEnd: Task.async(function *(profilerData) {
+
+
+
+  _onConsoleProfileEnd: Task.async(function *(data) {
+    
+    
+    if (!data) {
+      return;
+    }
+    let { profileLabel, currentTime: endTime } = data;
+
     let pending = this._recordings.filter(r => r.isConsole() && r.isRecording());
     if (pending.length === 0) {
       return;
@@ -343,8 +340,8 @@ PerformanceActorsConnection.prototype = {
     let model;
     
     
-    if (profilerData.profileLabel) {
-      model = pending.find(e => e.getLabel() === profilerData.profileLabel);
+    if (profileLabel) {
+      model = pending.find(e => e.getLabel() === profileLabel);
     }
     
     else {
@@ -445,7 +442,8 @@ PerformanceActorsConnection.prototype = {
     this._recordings.splice(this._recordings.indexOf(model), 1);
 
     let config = model.getConfiguration();
-    let profilerData = yield this._request("profiler", "getProfile");
+    let startTime = model.getProfilerStartTime();
+    let profilerData = yield this._request("profiler", "getProfile", { startTime });
     let memoryEndTime = Date.now();
     let timelineEndTime = Date.now();
 
@@ -669,16 +667,6 @@ PerformanceFront.prototype = {
     };
   }
 };
-
-
-
-
-
-function listTabs(client) {
-  let deferred = promise.defer();
-  client.listTabs(deferred.resolve);
-  return deferred.promise;
-}
 
 
 
