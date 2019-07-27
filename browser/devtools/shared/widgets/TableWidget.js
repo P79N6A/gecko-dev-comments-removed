@@ -55,7 +55,7 @@ function TableWidget(node, options={}) {
   this.uniqueId = uniqueId || "name";
   this.firstColumn = firstColumn || "";
   this.highlightUpdated = highlightUpdated || false;
-  this.removableColumns = removableColumns || false;
+  this.removableColumns = removableColumns !== false;
 
   this.tbody = this.document.createElementNS(XUL_NS, "hbox");
   this.tbody.className = "table-widget-body theme-body";
@@ -276,7 +276,7 @@ TableWidget.prototype = {
       item = item[this.uniqueId];
     }
 
-    return item == this.selectedRow[this.uniqueId];
+    return this.selectedRow && item == this.selectedRow[this.uniqueId];
   },
 
   
@@ -695,7 +695,14 @@ Column.prototype = {
 
 
 
+
+
   toggleColumn: function(event, id, checked) {
+    if (arguments.length == 0) {
+      
+      id = this.id;
+      checked = this.wrapper.hasAttribute("hidden");
+    }
     if (id != this.id) {
       return;
     }
@@ -960,6 +967,8 @@ Cell.prototype = {
 
   flash: function() {
     this.label.classList.remove("flash-out");
+    
+    let a = this.label.parentNode.offsetWidth;
     this.label.classList.add("flash-out");
   },
 
