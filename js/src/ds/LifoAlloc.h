@@ -194,14 +194,14 @@ class LifoAlloc
 
     
     
-    void appendUsed(BumpChunk *start, BumpChunk *latest, BumpChunk *end) {
-        MOZ_ASSERT(start && latest &&  end);
+    void appendUsed(BumpChunk *otherFirst, BumpChunk *otherLatest, BumpChunk *otherLast) {
+        MOZ_ASSERT(otherFirst && otherLatest && otherLast);
         if (last)
-            last->setNext(start);
+            last->setNext(otherFirst);
         else
-            first = latest = start;
-        last = end;
-        this->latest = latest;
+            first = otherFirst;
+        latest = otherLatest;
+        last = otherLast;
     }
 
     void incrementCurSize(size_t size) {
