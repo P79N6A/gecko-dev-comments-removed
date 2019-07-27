@@ -86,7 +86,7 @@ public:
   
   
   struct SavedState {
-    SavedState(mozilla::WritingMode aWM)
+    explicit SavedState(mozilla::WritingMode aWM)
       : mWritingMode(aWM)
       , mOrigin(aWM)
     {}
