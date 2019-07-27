@@ -6066,22 +6066,6 @@ nsContentUtils::AllocClassMatchingInfo(nsINode* aRootNode,
 }
 
 
-void
-nsContentUtils::DeferredFinalize(nsISupports* aSupports)
-{
-  cyclecollector::DeferredFinalize(aSupports);
-}
-
-
-void
-nsContentUtils::DeferredFinalize(mozilla::DeferredFinalizeAppendFunction aAppendFunc,
-                                 mozilla::DeferredFinalizeFunction aFunc,
-                                 void* aThing)
-{
-  cyclecollector::DeferredFinalize(aAppendFunc, aFunc, aThing);
-}
-
-
 bool
 nsContentUtils::IsFocusedContent(const nsIContent* aContent)
 {

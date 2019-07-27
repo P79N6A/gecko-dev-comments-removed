@@ -121,16 +121,6 @@ namespace layers {
 class LayerManager;
 } 
 
-
-
-
-typedef void* (*DeferredFinalizeAppendFunction)(void* pointers, void* thing);
-
-
-
-
-typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
-
 } 
 
 class nsIBidiKeyboard;
@@ -1279,11 +1269,6 @@ public:
 
   static void DestroyAnonymousContent(nsCOMPtr<nsIContent>* aContent);
   static void DestroyAnonymousContent(nsCOMPtr<Element>* aElement);
-
-  static void DeferredFinalize(nsISupports* aSupports);
-  static void DeferredFinalize(mozilla::DeferredFinalizeAppendFunction aAppendFunc,
-                               mozilla::DeferredFinalizeFunction aFunc,
-                               void* aThing);
 
   
 

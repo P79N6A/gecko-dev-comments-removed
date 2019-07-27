@@ -19,7 +19,13 @@ namespace mozilla {
 class CycleCollectedJSRuntime;
 
 
+
+
 typedef void* (*DeferredFinalizeAppendFunction)(void* aPointers, void* aThing);
+
+
+
+
 typedef bool (*DeferredFinalizeFunction)(uint32_t aSlice, void* aData);
 
 }
