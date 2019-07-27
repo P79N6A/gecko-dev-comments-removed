@@ -42,6 +42,13 @@ let connectionCounters = new Map();
 
 let isClosed = false;
 
+this.Debugging = {
+  
+  
+  
+  failTestsOnAutoClose: true
+};
+
 
 function logScriptError(message) {
   let consoleMessage = Cc["@mozilla.org/scripterror;1"].
@@ -52,7 +59,11 @@ function logScriptError(message) {
   Services.console.logMessage(consoleMessage);
 
   
-  dump("*** " + message + "\n");
+  
+  
+  if (Debugging.failTestsOnAutoClose) {
+    Promise.reject(new Error(message));
+  }
 }
 
 
