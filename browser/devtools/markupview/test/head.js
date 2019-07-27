@@ -383,16 +383,19 @@ let addNewAttributes = Task.async(function*(selector, text, inspector) {
 
 
 
-function assertAttributes(selector, attrs) {
-  let node = getNode(selector);
+let assertAttributes = Task.async(function*(selector, expected) {
+  let {attributes: actual} = yield getNodeInfo(selector);
 
-  is(node.attributes.length, Object.keys(attrs).length,
-    "Node has the correct number of attributes.");
-  for (let attr in attrs) {
-    is(node.getAttribute(attr), attrs[attr],
-      "Node has the correct " + attr + " attribute.");
+  is(actual.length, Object.keys(expected).length,
+    "The node " + selector + " has the expected number of attributes.");
+  for (let attr in expected) {
+    let foundAttr = actual.find(({name, value}) => name === attr);
+    let foundValue = foundAttr ? foundAttr.value : undefined;
+    ok(foundAttr, "The node " + selector + " has the attribute " + attr);
+    is(foundValue, expected[attr],
+      "The node " + selector + " has the correct " + attr + " attribute value");
   }
-}
+});
 
 
 
