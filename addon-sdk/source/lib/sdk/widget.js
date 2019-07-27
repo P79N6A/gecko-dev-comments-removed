@@ -322,7 +322,7 @@ const WidgetTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
 
 
   _onWindowClosed: function _onWindowClosed(window) {
-    for each (let view in this._views) {
+    for (let view of this._views) {
       if (view._isInChromeWindow(window)) {
         view.destroy();
         break;
@@ -336,7 +336,7 @@ const WidgetTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
 
 
   getView: function getView(window) {
-    for each (let view in this._views) {
+    for (let view of this._views) {
       if (view._isInWindow(window)) {
         return view._public;
       }

@@ -65,7 +65,7 @@ const WindowTabTracker = Trait.compose({
     this._onTabPinned = this._onTabEvent.bind(this, "pinned");
     this._onTabUnpinned = this._onTabEvent.bind(this, "unpinned");
 
-    for each (let tab in getTabs(this._window)) {
+    for (let tab of getTabs(this._window)) {
       
       
       
@@ -86,7 +86,7 @@ const WindowTabTracker = Trait.compose({
   _destroyWindowTabTracker: function _destroyWindowTabTracker() {
     
     
-    for each (let tab in this.tabs)
+    for (let tab of this.tabs)
       this._emitEvent("close", tab);
 
     this._tabs._clear();

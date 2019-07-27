@@ -54,7 +54,7 @@ function getPreferedLocales(caseSensitve) {
   if (contentLocales) {
     
     
-    for each(let locale in contentLocales.split(","))
+    for (let locale of contentLocales.split(","))
       addLocale(locale.replace(/(^\s+)|(\s+$)/g, ""));
   }
 
@@ -88,9 +88,9 @@ exports.findClosestLocale = function findClosestLocale(aLocales, aMatchLocales) 
   
   let bestpartcount = 0;
 
-  for each (let locale in aMatchLocales) {
+  for (let locale of aMatchLocales) {
     let lparts = locale.split("-");
-    for each (let localized in aLocales) {
+    for (let localized of aLocales) {
       let found = localized.toLowerCase();
       
       if (locale == found)

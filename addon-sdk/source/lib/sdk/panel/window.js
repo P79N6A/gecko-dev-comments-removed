@@ -28,7 +28,7 @@ function getWindow(anchor) {
     let anchorDocument = anchorWindow.document;
 
     
-    for each(let enumWindow in windows) {
+    for (let enumWindow of windows) {
       
       if (enumWindow == anchorWindow) {
         window = anchorWindow;

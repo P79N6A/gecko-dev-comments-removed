@@ -113,13 +113,13 @@ exports.getOwnerWindow = getOwnerWindow;
 
 
 function getWindowHoldingTab(rawTab) {
-  for each (let window in getWindows()) {
+  for (let window of getWindows()) {
     
     
     if (!window.BrowserApp)
       continue;
 
-    for each (let tab in window.BrowserApp.tabs) {
+    for (let tab of window.BrowserApp.tabs) {
       if (tab === rawTab)
         return window;
     }
@@ -285,12 +285,12 @@ exports.getSelectedTab = getSelectedTab;
 
 
 function getTabForBrowser(browser) {
-  for each (let window in getWindows()) {
+  for (let window of getWindows()) {
     
     if (!window.BrowserApp)
       continue;
 
-    for each (let tab in window.BrowserApp.tabs) {
+    for  (let tab of window.BrowserApp.tabs) {
       if (tab.browser === browser)
         return tab;
     }

@@ -28,4 +28,9 @@ exports.testTabIsRemote = function(assert, done) {
   mm.loadFrameScript('data:,sendAsyncMessage("7")', true);
 }
 
+
+if (getPref('app.update.channel') !== 'nightly') {
+  module.exports = {};
+}
+
 require('sdk/test/runner').runTestsFromModule(module);

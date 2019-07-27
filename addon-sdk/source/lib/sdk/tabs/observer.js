@@ -93,6 +93,6 @@ windowObserver.on("activate", function onWindowActivate(chromeWindow) {
 
 
 
-for each (let window in browserWindowIterator()) onWindowOpen(window);
+for (let window of browserWindowIterator()) onWindowOpen(window);
 
 exports.observer = observer;

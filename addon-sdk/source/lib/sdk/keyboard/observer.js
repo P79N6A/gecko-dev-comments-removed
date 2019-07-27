@@ -51,7 +51,7 @@ windowObserver.on("close", function onClose(window) {
 });
 
 
-for each (let window in browserWindowIterator())
+for (let window of browserWindowIterator())
   observer.observe(window);
 
 exports.observer = observer;

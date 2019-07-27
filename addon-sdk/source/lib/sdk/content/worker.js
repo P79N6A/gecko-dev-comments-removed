@@ -139,12 +139,12 @@ attach.define(Worker, function (worker, window) {
   events.on("inner-window-destroyed", model.documentUnload);
 
   
+  model.contentWorker = WorkerSandbox(worker, model.window);
+
+  
   
   model.window.addEventListener("pageshow", model.pageShow, true);
   model.window.addEventListener("pagehide", model.pageHide, true);
-
-  
-  model.contentWorker = WorkerSandbox(worker, model.window);
 
   
   model.inited = true;
