@@ -243,16 +243,6 @@ void mozPersonalDictionary::SyncLoadInternal()
 }
 
 
-
-
-static PLDHashOperator
-AddHostToStringArray(nsUnicharPtrHashKey *aEntry, void *aArg)
-{
-  static_cast<nsTArray<nsString>*>(aArg)->AppendElement(nsDependentString(aEntry->GetKey()));
-  return PL_DHASH_NEXT;
-}
-
-
 NS_IMETHODIMP mozPersonalDictionary::Save()
 {
   nsCOMPtr<nsIFile> theFile;
@@ -277,7 +267,9 @@ NS_IMETHODIMP mozPersonalDictionary::Save()
   if (NS_FAILED(res)) return res;
 
   nsTArray<nsString> array(mDictionaryTable.Count());
-  mDictionaryTable.EnumerateEntries(AddHostToStringArray, &array);
+  for (auto iter = mDictionaryTable.Iter(); !iter.Done(); iter.Next()) {
+    array.AppendElement(nsDependentString(iter.Get()->GetKey()));
+  }
 
   uint32_t bytesWritten;
   nsAutoCString utf8Key;
@@ -307,10 +299,9 @@ NS_IMETHODIMP mozPersonalDictionary::GetWordList(nsIStringEnumerator **aWords)
   WaitForLoad();
 
   nsTArray<nsString> *array = new nsTArray<nsString>(mDictionaryTable.Count());
-  if (!array)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  mDictionaryTable.EnumerateEntries(AddHostToStringArray, array);
+  for (auto iter = mDictionaryTable.Iter(); !iter.Done(); iter.Next()) {
+    array->AppendElement(nsDependentString(iter.Get()->GetKey()));
+  }
 
   array->Sort();
 
