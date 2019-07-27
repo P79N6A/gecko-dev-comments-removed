@@ -222,13 +222,6 @@ private:
   uint32_t mRecycledBufferSize;
 };
 
-class CompositionNotifySink
-{
-public:
-  virtual void DidComposite() = 0;
-  virtual ~CompositionNotifySink() {}
-};
-
 
 
 
@@ -505,14 +498,6 @@ public:
       mPaintCount++;
       mPreviousImagePainted = true;
     }
-
-    if (mCompositionNotifySink) {
-      mCompositionNotifySink->DidComposite();
-    }
-  }
-
-  void SetCompositionNotifySink(CompositionNotifySink *aSink) {
-    mCompositionNotifySink = aSink;
   }
 
 private:
@@ -564,8 +549,6 @@ private:
   gfx::IntSize mScaleHint;
 
   nsRefPtr<BufferRecycleBin> mRecycleBin;
-
-  CompositionNotifySink *mCompositionNotifySink;
 
   
   
