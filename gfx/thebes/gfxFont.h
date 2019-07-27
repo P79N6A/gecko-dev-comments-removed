@@ -1658,8 +1658,6 @@ public:
     
     struct Metrics {
         gfxFloat xHeight;
-        gfxFloat superscriptOffset;
-        gfxFloat subscriptOffset;
         gfxFloat strikeoutSize;
         gfxFloat strikeoutOffset;
         gfxFloat underlineSize;
