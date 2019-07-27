@@ -3325,7 +3325,7 @@ Parser<ParseHandler>::noteNameUse(HandlePropertyName name, Node pn)
 
 template <>
 bool
-Parser<FullParseHandler>::bindDestructuringVar(BindData<FullParseHandler> *data, ParseNode *pn)
+Parser<FullParseHandler>::bindInitialized(BindData<FullParseHandler> *data, ParseNode *pn)
 {
     MOZ_ASSERT(pn->isKind(PNK_NAME));
 
@@ -3385,7 +3385,7 @@ Parser<FullParseHandler>::checkDestructuringObject(BindData<FullParseHandler> *d
                 report(ParseError, false, expr, JSMSG_NO_VARIABLE_NAME);
                 return false;
             }
-            ok = bindDestructuringVar(data, expr);
+            ok = bindInitialized(data, expr);
         } else {
             ok = checkAndMarkAsAssignmentLhs(expr, KeyedDestructuringAssignment);
         }
@@ -3433,7 +3433,7 @@ Parser<FullParseHandler>::checkDestructuringArray(BindData<FullParseHandler> *da
                     report(ParseError, false, target, JSMSG_NO_VARIABLE_NAME);
                     return false;
                 }
-                ok = bindDestructuringVar(data, target);
+                ok = bindInitialized(data, target);
             } else {
                 ok = checkAndMarkAsAssignmentLhs(target, KeyedDestructuringAssignment);
             }
@@ -3954,135 +3954,168 @@ Parser<ParseHandler>::variables(ParseNodeKind kind, bool *psimple,
 }
 
 template <>
-ParseNode *
-Parser<FullParseHandler>::lexicalDeclaration(bool isConst)
+bool
+Parser<FullParseHandler>::checkAndPrepareLexical(bool isConst, const TokenPos &errorPos)
 {
-    handler.disableSyntaxParser();
+    
 
-    ParseNode *pn;
 
-    do {
+
+
+
+
+
+
+
+
+    StmtInfoPC *stmt = pc->topStmt;
+    if (stmt && (!stmt->maybeScope() || stmt->isForLetBlock)) {
+        reportWithOffset(ParseError, false, errorPos.begin, JSMSG_LEXICAL_DECL_NOT_IN_BLOCK,
+                         isConst ? "const" : "lexical");
+        return false;
+    }
+
+    if (stmt && stmt->isBlockScope) {
+        MOZ_ASSERT(pc->staticScope == stmt->staticScope);
+    } else {
+        if (pc->atBodyLevel()) {
+            
+
+
+
+
+
+
+
+
+
+
+            bool isGlobal = !pc->sc->isFunctionBox() && stmt == pc->topScopeStmt;
+            if (options().selfHostingMode && isGlobal) {
+                report(ParseError, false, null(), JSMSG_SELFHOSTED_TOP_LEVEL_LEXICAL,
+                        isConst ? "'const'" : "'let'");
+                return false;
+            }
+            return true;
+        }
+
+        
+
+
+
+
+        MOZ_ASSERT(!stmt->isBlockScope);
+        MOZ_ASSERT(stmt != pc->topScopeStmt);
+        MOZ_ASSERT(stmt->type == STMT_BLOCK ||
+                    stmt->type == STMT_SWITCH ||
+                    stmt->type == STMT_TRY ||
+                    stmt->type == STMT_FINALLY);
+        MOZ_ASSERT(!stmt->downScope);
+
+        
+        StaticBlockObject *blockObj = StaticBlockObject::create(context);
+        if (!blockObj)
+            return false;
+
+        ObjectBox *blockbox = newObjectBox(blockObj);
+        if (!blockbox)
+            return false;
+
         
 
 
 
 
 
+        stmt->isBlockScope = stmt->isNestedScope = true;
+        stmt->downScope = pc->topScopeStmt;
+        pc->topScopeStmt = stmt;
 
-
-
-
-
-        StmtInfoPC *stmt = pc->topStmt;
-        if (stmt && (!stmt->maybeScope() || stmt->isForLetBlock)) {
-            report(ParseError, false, null(), JSMSG_LEXICAL_DECL_NOT_IN_BLOCK,
-                   isConst ? "const" : "let");
-            return null();
-        }
-
-        if (stmt && stmt->isBlockScope) {
-            MOZ_ASSERT(pc->staticScope == stmt->staticScope);
-        } else {
-            if (pc->atBodyLevel()) {
-                
-
-
-
-
-
-
-
-
-
-
-                bool isGlobal = !pc->sc->isFunctionBox() && stmt == pc->topScopeStmt;
-                if (options().selfHostingMode && isGlobal) {
-                    report(ParseError, false, null(), JSMSG_SELFHOSTED_TOP_LEVEL_LEXICAL,
-                           isConst ? "'const'" : "'let'");
-                    return null();
-                }
-
-                
-
-
-
-
-
-
-
-
-
-
-
-
-
-                ParseNodeKind kind = PNK_LET;
-                if (isGlobal)
-                    kind = isConst ? PNK_GLOBALCONST : PNK_VAR;
-                else if (isConst)
-                    kind = PNK_CONST;
-                pn = variables(kind);
-                if (!pn)
-                    return null();
-                pn->pn_xflags |= PNX_POPVAR;
-                break;
-            }
-
-            
-
-
-
-
-            MOZ_ASSERT(!stmt->isBlockScope);
-            MOZ_ASSERT(stmt != pc->topScopeStmt);
-            MOZ_ASSERT(stmt->type == STMT_BLOCK ||
-                       stmt->type == STMT_SWITCH ||
-                       stmt->type == STMT_TRY ||
-                       stmt->type == STMT_FINALLY);
-            MOZ_ASSERT(!stmt->downScope);
-
-            
-            StaticBlockObject *blockObj = StaticBlockObject::create(context);
-            if (!blockObj)
-                return null();
-
-            ObjectBox *blockbox = newObjectBox(blockObj);
-            if (!blockbox)
-                return null();
-
-            
-
-
-
-
-
-            stmt->isBlockScope = stmt->isNestedScope = true;
-            stmt->downScope = pc->topScopeStmt;
-            pc->topScopeStmt = stmt;
-
-            blockObj->initEnclosingNestedScopeFromParser(pc->staticScope);
-            pc->staticScope = blockObj;
-            stmt->staticScope = blockObj;
+        blockObj->initEnclosingNestedScopeFromParser(pc->staticScope);
+        pc->staticScope = blockObj;
+        stmt->staticScope = blockObj;
 
 #ifdef DEBUG
-            ParseNode *tmp = pc->blockNode;
-            MOZ_ASSERT(!tmp || !tmp->isKind(PNK_LEXICALSCOPE));
+        ParseNode *tmp = pc->blockNode;
+        MOZ_ASSERT(!tmp || !tmp->isKind(PNK_LEXICALSCOPE));
 #endif
 
-            
-            ParseNode *pn1 = handler.new_<LexicalScopeNode>(blockbox, pc->blockNode);
-            if (!pn1)
-                return null();
-            pc->blockNode = pn1;
-        }
+        
+        ParseNode *pn1 = handler.new_<LexicalScopeNode>(blockbox, pc->blockNode);
+        if (!pn1)
+            return false;;
+        pc->blockNode = pn1;
+    }
+    return true;
+}
 
-        pn = variables(isConst ? PNK_CONST : PNK_LET, nullptr,
-                       &pc->staticScope->as<StaticBlockObject>(), HoistVars);
-        if (!pn)
+static StaticBlockObject *
+CurrentLexicalStaticBlock(ParseContext<FullParseHandler> *pc)
+{
+    return pc->atBodyLevel() ? nullptr :
+           &pc->staticScope->as<StaticBlockObject>();
+}
+
+template <>
+ParseNode *
+Parser<FullParseHandler>::makeInitializedLexicalBinding(HandlePropertyName name, bool isConst,
+                                                        const TokenPos &pos)
+{
+    
+    BindData<FullParseHandler> data(context);
+    if (pc->atGlobalLevel()) {
+        data.initVarOrGlobalConst(isConst ? JSOP_DEFCONST : JSOP_DEFVAR);
+    } else {
+        if (!checkAndPrepareLexical(isConst, pos))
             return null();
-        pn->pn_xflags = PNX_POPVAR;
-    } while (0);
+        data.initLexical(HoistVars, CurrentLexicalStaticBlock(pc), JSMSG_TOO_MANY_LOCALS, isConst);
+    }
+    ParseNode *dn = newBindingNode(name, pc->atGlobalLevel());
+    if (!dn)
+        return null();
+    handler.setPosition(dn, pos);
 
+    if (!bindInitialized(&data, dn))
+        return null();
+
+    return dn;
+}
+
+template <>
+ParseNode *
+Parser<FullParseHandler>::lexicalDeclaration(bool isConst)
+{
+    handler.disableSyntaxParser();
+
+    if (!checkAndPrepareLexical(isConst, pos()))
+        return null();
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ParseNodeKind kind = PNK_LET;
+    if (pc->atGlobalLevel())
+        kind = isConst ? PNK_GLOBALCONST : PNK_VAR;
+    else if (isConst)
+        kind = PNK_CONST;
+
+    ParseNode *pn = variables(kind, nullptr,
+                              CurrentLexicalStaticBlock(pc),
+                              HoistVars);
+    if (!pn)
+        return null();
+    pn->pn_xflags = PNX_POPVAR;
     return MatchOrInsertSemicolon(tokenStream) ? pn : nullptr;
 }
 

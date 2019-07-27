@@ -301,6 +301,7 @@ struct ParseContext : public GenericParseContext
     
     
     bool atBodyLevel() { return !topStmt; }
+    bool atGlobalLevel() { return atBodyLevel() && !sc->isFunctionBox() && (topStmt == topScopeStmt); }
 
     
     
@@ -660,11 +661,14 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     Node arrayInitializer();
     Node newRegExp();
 
+    bool checkAndPrepareLexical(bool isConst, const TokenPos &errorPos);
+    Node makeInitializedLexicalBinding(HandlePropertyName name, bool isConst, const TokenPos &pos);
+
     Node newBindingNode(PropertyName *name, bool functionScope, VarContext varContext = HoistVars);
     bool checkDestructuring(BindData<ParseHandler> *data, Node left);
     bool checkDestructuringObject(BindData<ParseHandler> *data, Node objectPattern);
     bool checkDestructuringArray(BindData<ParseHandler> *data, Node arrayPattern);
-    bool bindDestructuringVar(BindData<ParseHandler> *data, Node pn);
+    bool bindInitialized(BindData<ParseHandler> *data, Node pn);
     bool bindDestructuringLHS(Node pn);
     bool makeSetCall(Node pn, unsigned msg);
     Node cloneDestructuringDefault(Node opn);
