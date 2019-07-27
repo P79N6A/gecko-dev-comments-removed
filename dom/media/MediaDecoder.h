@@ -347,14 +347,6 @@ public:
   virtual nsresult Seek(double aTime, SeekTarget::Type aSeekType);
 
   
-  
-  
-  virtual nsresult GetByteRangeForSeek(int64_t const aOffset,
-                                       MediaByteRange &aByteRange) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  
   nsresult InitializeStateMachine(MediaDecoder* aCloneDonor);
 
   
@@ -1082,40 +1074,11 @@ protected:
   
   nsRefPtr<MediaResource> mResource;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 private:
-  class RestrictedAccessMonitor
-  {
-  public:
-    explicit RestrictedAccessMonitor(const char* aName) :
-      mReentrantMonitor(aName)
-    {
-      MOZ_COUNT_CTOR(RestrictedAccessMonitor);
-    }
-    ~RestrictedAccessMonitor()
-    {
-      MOZ_COUNT_DTOR(RestrictedAccessMonitor);
-    }
-
-    
-    ReentrantMonitor& GetReentrantMonitor() {
-      return mReentrantMonitor;
-    }
-  private:
-    ReentrantMonitor mReentrantMonitor;
-  };
-
   
-  RestrictedAccessMonitor mReentrantMonitor;
+  
+  
+  ReentrantMonitor mReentrantMonitor;
 
 #ifdef MOZ_EME
   nsRefPtr<CDMProxy> mProxy;
