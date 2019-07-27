@@ -247,8 +247,8 @@ BaselineCompiler::compile()
 
     baselineScript->copyYieldEntries(script, yieldOffsets_);
 
-    if (script->compartment()->debugMode())
-        baselineScript->setDebugMode();
+    if (compileDebugInstrumentation_)
+        baselineScript->setHasDebugInstrumentation();
 
     
     if (cx->runtime()->jitRuntime()->isNativeToBytecodeMapEnabled(cx->runtime())) {
@@ -557,7 +557,7 @@ static const VMFunction DebugPrologueInfo = FunctionInfo<DebugPrologueFn>(jit::D
 bool
 BaselineCompiler::emitDebugPrologue()
 {
-    if (debugMode_) {
+    if (compileDebugInstrumentation_) {
         
         masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
 
@@ -740,7 +740,7 @@ BaselineCompiler::emitArgumentTypeChecks()
 bool
 BaselineCompiler::emitDebugTrap()
 {
-    MOZ_ASSERT(debugMode_);
+    MOZ_ASSERT(compileDebugInstrumentation_);
     MOZ_ASSERT(frame.numUnsyncedSlots() == 0);
 
     bool enabled = script->stepModeEnabled() || script->hasBreakpointsAt(pc);
@@ -828,7 +828,7 @@ BaselineCompiler::emitBody()
         }
 
         
-        if (debugMode_)
+        if (compileDebugInstrumentation_)
             frame.syncStack(0);
 
         
@@ -850,7 +850,7 @@ BaselineCompiler::emitBody()
             return Method_Error;
 
         
-        if (debugMode_ && !emitDebugTrap())
+        if (compileDebugInstrumentation_ && !emitDebugTrap())
             return Method_Error;
 
         switch (op) {
@@ -2906,7 +2906,7 @@ static const VMFunction DebugLeaveBlockInfo = FunctionInfo<DebugLeaveBlockFn>(ji
 bool
 BaselineCompiler::emit_JSOP_DEBUGLEAVEBLOCK()
 {
-    if (!debugMode_)
+    if (!compileDebugInstrumentation_)
         return true;
 
     prepareVMCall();
@@ -2977,7 +2977,7 @@ static const VMFunction OnDebuggerStatementInfo =
 bool
 BaselineCompiler::emit_JSOP_DEBUGGER()
 {
-    if (!debugMode_)
+    if (!compileDebugInstrumentation_)
         return true;
 
     prepareVMCall();
@@ -3007,7 +3007,7 @@ static const VMFunction DebugEpilogueInfo =
 bool
 BaselineCompiler::emitReturn()
 {
-    if (debugMode_) {
+    if (compileDebugInstrumentation_) {
         
         masm.storeValue(JSReturnOperand, frame.addressOfReturnValue());
         masm.or32(Imm32(BaselineFrame::HAS_RVAL), frame.addressOfFlags());

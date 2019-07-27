@@ -194,7 +194,7 @@ BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
     for (uint32_t i = 0; i < numStackValues; i++)
         *valueSlot(i) = fp->slots()[i];
 
-    if (cx->compartment()->debugMode()) {
+    if (fp->isDebuggee()) {
         
         
 
@@ -209,6 +209,8 @@ BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
 
         if (!Debugger::handleBaselineOsr(cx, fp, this))
             return false;
+
+        setIsDebuggee();
     }
 
     return true;

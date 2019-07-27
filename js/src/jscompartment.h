@@ -130,7 +130,6 @@ struct TypeInferenceSizes;
 }
 
 namespace js {
-class AutoDebugModeInvalidation;
 class DebugScopes;
 class LazyArrayBufferTable;
 class WeakMapBase;
@@ -321,8 +320,13 @@ struct JSCompartment
 
     enum {
         DebugMode = 1 << 0,
-        DebugNeedDelazification = 1 << 1
+        DebugObservesAllExecution = 1 << 1,
+        DebugNeedDelazification = 1 << 2
     };
+
+    
+    
+    static const unsigned DebugExecutionMask = DebugMode | DebugObservesAllExecution;
 
     unsigned                     debugModeBits;
 
@@ -416,32 +420,66 @@ struct JSCompartment
   private:
     JSCompartment *thisForCtor() { return this; }
 
-    
-    bool updateJITForDebugMode(JSContext *maybecx, js::AutoDebugModeInvalidation &invalidate);
-
   public:
     
     
-    bool debugMode() const {
-        return !!(debugModeBits & DebugMode);
-    }
-
-    bool enterDebugMode(JSContext *cx);
-    bool enterDebugMode(JSContext *cx, js::AutoDebugModeInvalidation &invalidate);
-    bool leaveDebugMode(JSContext *cx);
-    bool leaveDebugMode(JSContext *cx, js::AutoDebugModeInvalidation &invalidate);
-    void leaveDebugModeUnderGC();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
-    bool hasScriptsOnStack();
+    
+    bool isDebuggee() const { return !!(debugModeBits & DebugMode); }
+    void setIsDebuggee() { debugModeBits |= DebugMode; }
+    void unsetIsDebuggee();
+
+    
+    
+    
+    bool debugObservesAllExecution() const {
+        return (debugModeBits & DebugExecutionMask) == DebugExecutionMask;
+    }
+    void setDebugObservesAllExecution() {
+        MOZ_ASSERT(isDebuggee());
+        debugModeBits |= DebugObservesAllExecution;
+    }
+    void unsetDebugObservesAllExecution() {
+        MOZ_ASSERT(isDebuggee());
+        debugModeBits &= ~DebugObservesAllExecution;
+    }
 
     
 
 
 
-    void scheduleDelazificationForDebugMode() {
-        debugModeBits |= DebugNeedDelazification;
-    }
+    void scheduleDelazificationForDebugMode() { debugModeBits |= DebugNeedDelazification; }
 
     
 
@@ -493,60 +531,6 @@ JSRuntime::isAtomsZone(JS::Zone *zone)
 {
     return zone == atomsCompartment_->zone();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class js::AutoDebugModeInvalidation
-{
-    JSCompartment *comp_;
-    JS::Zone *zone_;
-
-    enum {
-        NoNeed = 0,
-        ToggledOn = 1,
-        ToggledOff = 2
-    } needInvalidation_;
-
-  public:
-    explicit AutoDebugModeInvalidation(JSCompartment *comp)
-      : comp_(comp), zone_(nullptr), needInvalidation_(NoNeed)
-    { }
-
-    explicit AutoDebugModeInvalidation(JS::Zone *zone)
-      : comp_(nullptr), zone_(zone), needInvalidation_(NoNeed)
-    { }
-
-    ~AutoDebugModeInvalidation();
-
-    bool isFor(JSCompartment *comp) {
-        if (comp_)
-            return comp == comp_;
-        return comp->zone() == zone_;
-    }
-
-    void scheduleInvalidation(bool debugMode) {
-        
-        
-        
-        MOZ_ASSERT_IF(needInvalidation_ != NoNeed,
-                      needInvalidation_ == (debugMode ? ToggledOn : ToggledOff));
-        needInvalidation_ = debugMode ? ToggledOn : ToggledOff;
-    }
-};
 
 namespace js {
 

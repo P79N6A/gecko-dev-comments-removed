@@ -1244,6 +1244,14 @@ types::FinishCompilation(JSContext *cx, HandleScript script, ExecutionMode execu
             break;
         }
 
+        
+        
+        
+        if (entry.script->isDebuggee()) {
+            succeeded = false;
+            break;
+        }
+
         if (!CheckFrozenTypeSet(cx, entry.thisTypes, types::TypeScript::ThisTypes(entry.script)))
             succeeded = false;
         unsigned nargs = entry.script->functionNonDelazifying()

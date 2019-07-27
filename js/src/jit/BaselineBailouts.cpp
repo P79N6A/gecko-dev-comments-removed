@@ -608,6 +608,12 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     }
 
     
+    
+    
+    if (script->isDebuggee())
+        flags |= BaselineFrame::DEBUGGEE;
+
+    
     JSObject *scopeChain = nullptr;
     Value returnValue;
     ArgumentsObject *argsObj = nullptr;
@@ -843,7 +849,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             
-            MOZ_ASSERT(cx->compartment()->debugMode());
+            MOZ_ASSERT(cx->compartment()->isDebuggee());
             if (iter.moreFrames())
                 v = iter.read();
             else
@@ -1594,8 +1600,14 @@ CopyFromRematerializedFrame(JSContext *cx, JitActivation *act, uint8_t *fp, size
             "  Copied from rematerialized frame at (%p,%u)",
             fp, inlineDepth);
 
-    if (cx->compartment()->debugMode())
+    
+    
+    
+    
+    if (rematFrame->isDebuggee()) {
+        frame->setIsDebuggee();
         return Debugger::handleIonBailout(cx, rematFrame, frame);
+    }
 
     return true;
 }

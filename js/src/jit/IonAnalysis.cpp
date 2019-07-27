@@ -3096,7 +3096,7 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
     
     
     
-    if (cx->compartment()->debugMode() || script->isGenerator())
+    if (scriptArg->isDebuggee() || script->isGenerator())
         return true;
 
     

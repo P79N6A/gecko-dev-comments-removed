@@ -48,7 +48,13 @@ class BaselineFrame
         PREV_UP_TO_DATE  = 1 << 5,
 
         
-        EVAL             = 1 << 6,
+        
+        
+        
+        DEBUGGEE         = 1 << 6,
+
+        
+        EVAL             = 1 << 7,
 
         
         HAS_PUSHED_SPS_FRAME = 1 << 8,
@@ -266,6 +272,17 @@ class BaselineFrame
     }
     void setPrevUpToDate() {
         flags_ |= PREV_UP_TO_DATE;
+    }
+
+    bool isDebuggee() const {
+        return flags_ & DEBUGGEE;
+    }
+    void setIsDebuggee() {
+        flags_ |= DEBUGGEE;
+    }
+    void unsetIsDebuggee() {
+        MOZ_ASSERT(!script()->isDebuggee());
+        flags_ &= ~DEBUGGEE;
     }
 
     JSScript *evalScript() const {

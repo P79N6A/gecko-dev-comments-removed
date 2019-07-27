@@ -545,7 +545,7 @@ InvokeInterruptCallback(JSContext *cx)
     if (cb(cx)) {
         
         
-        if (cx->compartment()->debugMode()) {
+        if (cx->compartment()->isDebuggee()) {
             ScriptFrameIter iter(cx);
             if (iter.script()->stepModeEnabled()) {
                 RootedValue rval(cx);

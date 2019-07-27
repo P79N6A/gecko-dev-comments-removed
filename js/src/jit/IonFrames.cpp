@@ -36,6 +36,7 @@
 #include "jsscriptinlines.h"
 #include "gc/Nursery-inl.h"
 #include "jit/JitFrameIterator-inl.h"
+#include "vm/Debugger-inl.h"
 #include "vm/Probes-inl.h"
 
 namespace js {
@@ -420,23 +421,37 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
     jsbytecode *pc = frame.pc();
 
     bool bailedOutForDebugMode = false;
-    if (cx->compartment()->debugMode()) {
+    if (cx->compartment()->isDebuggee()) {
         
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        ExceptionBailoutInfo propagateInfo;
-        uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed);
-        bailedOutForDebugMode = retval == BAILOUT_RETURN_OK;
+        bool shouldBail = cx->compartment()->debugObservesAllExecution();
+        if (!shouldBail) {
+            JitActivation *act = cx->mainThread().activation()->asJit();
+            RematerializedFrame *rematFrame =
+                act->lookupRematerializedFrame(frame.frame().fp(), frame.frameNo());
+            shouldBail = rematFrame && rematFrame->isDebuggee();
+        }
+
+        if (shouldBail) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            ExceptionBailoutInfo propagateInfo;
+            uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed);
+            bailedOutForDebugMode = retval == BAILOUT_RETURN_OK;
+        }
     }
 
     if (!script->hasTrynotes())
@@ -554,10 +569,10 @@ HandleExceptionBaseline(JSContext *cx, const JitFrameIterator &frame, ResumeFrom
     }
 
     RootedValue exception(cx);
-    if (cx->isExceptionPending() && cx->compartment()->debugMode() &&
+    BaselineFrame *baselineFrame = frame.baselineFrame();
+    if (cx->isExceptionPending() && baselineFrame->isDebuggee() &&
         cx->getPendingException(&exception) && !exception.isMagic(JS_GENERATOR_CLOSING))
     {
-        BaselineFrame *baselineFrame = frame.baselineFrame();
         switch (Debugger::onExceptionUnwind(cx, baselineFrame)) {
           case JSTRAP_ERROR:
             
@@ -778,7 +793,7 @@ HandleException(ResumeFromException *rfe)
             
             iter.baselineFrame()->unsetPushedSPSFrame();
 
-            if (cx->compartment()->debugMode() && !calledDebugEpilogue) {
+            if (iter.baselineFrame()->isDebuggee() && !calledDebugEpilogue) {
                 
                 
                 

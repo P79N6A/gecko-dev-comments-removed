@@ -107,6 +107,7 @@ struct DebugModeOSREntry
     }
 
     bool allocateRecompileInfo(JSContext *cx) {
+        MOZ_ASSERT(script);
         MOZ_ASSERT(needsRecompileInfo());
 
         
@@ -122,6 +123,7 @@ struct DebugModeOSREntry
     }
 
     ICFallbackStub *fallbackStub() const {
+        MOZ_ASSERT(script);
         MOZ_ASSERT(oldStub);
         return script->baselineScript()->icEntryFromPCOffset(pcOffset).fallbackStub();
     }
@@ -167,8 +169,8 @@ class UniqueScriptOSREntryIter
 };
 
 static bool
-CollectOnStackScripts(JSContext *cx, const JitActivationIterator &activation,
-                      DebugModeOSREntryVector &entries)
+CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &obs,
+                       const ActivationIterator &activation, DebugModeOSREntryVector &entries)
 {
     ICStub *prevFrameStubPtr = nullptr;
     bool needsRecompileHandler = false;
@@ -176,6 +178,11 @@ CollectOnStackScripts(JSContext *cx, const JitActivationIterator &activation,
         switch (iter.type()) {
           case JitFrame_BaselineJS: {
             JSScript *script = iter.script();
+
+            if (!obs.shouldRecompileOrInvalidate(script)) {
+                prevFrameStubPtr = nullptr;
+                break;
+            }
 
             if (BaselineDebugModeOSRInfo *info = iter.baselineFrame()->getDebugModeOSRInfo()) {
                 
@@ -201,7 +208,6 @@ CollectOnStackScripts(JSContext *cx, const JitActivationIterator &activation,
 
                 needsRecompileHandler |= true;
             }
-
             entries.back().oldStub = prevFrameStubPtr;
             prevFrameStubPtr = nullptr;
             break;
@@ -213,12 +219,15 @@ CollectOnStackScripts(JSContext *cx, const JitActivationIterator &activation,
             break;
 
           case JitFrame_IonJS: {
-            JSScript *script = iter.script();
-            if (!entries.append(DebugModeOSREntry(script)))
-                return false;
-            for (InlineFrameIterator inlineIter(cx, &iter); inlineIter.more(); ++inlineIter) {
-                if (!entries.append(DebugModeOSREntry(inlineIter.script())))
-                    return false;
+            InlineFrameIterator inlineIter(cx, &iter);
+            while (true) {
+                if (obs.shouldRecompileOrInvalidate(inlineIter.script())) {
+                    if (!entries.append(DebugModeOSREntry(inlineIter.script())))
+                        return false;
+                }
+                if (!inlineIter.more())
+                    break;
+                ++inlineIter;
             }
             break;
           }
@@ -235,6 +244,25 @@ CollectOnStackScripts(JSContext *cx, const JitActivationIterator &activation,
             return false;
     }
 
+    return true;
+}
+
+static bool
+CollectInterpreterStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &obs,
+                               const ActivationIterator &activation,
+                               DebugModeOSREntryVector &entries)
+{
+    
+    
+    
+    InterpreterActivation *act = activation.activation()->asInterpreter();
+    for (InterpreterFrameIterator iter(act); !iter.done(); ++iter) {
+        JSScript *script = iter.frame()->script();
+        if (obs.shouldRecompileOrInvalidate(script)) {
+            if (!entries.append(DebugModeOSREntry(iter.frame()->script())))
+                return false;
+        }
+    }
     return true;
 }
 
@@ -278,7 +306,8 @@ SpewPatchStubFrame(ICStub *oldStub, ICStub *newStub)
 }
 
 static void
-PatchBaselineFramesForDebugMode(JSContext *cx, const JitActivationIterator &activation,
+PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservableSet &obs,
+                                const ActivationIterator &activation,
                                 DebugModeOSREntryVector &entries, size_t *start)
 {
     
@@ -312,14 +341,17 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const JitActivationIterator &acti
 
     IonCommonFrameLayout *prev = nullptr;
     size_t entryIndex = *start;
-    DebugOnly<bool> expectedDebugMode = cx->compartment()->debugMode();
 
     for (JitFrameIterator iter(activation); !iter.done(); ++iter) {
-        DebugModeOSREntry &entry = entries[entryIndex];
-
         switch (iter.type()) {
           case JitFrame_BaselineJS: {
             
+            
+            if (!obs.shouldRecompileOrInvalidate(iter.script()))
+                break;
+
+            DebugModeOSREntry &entry = entries[entryIndex];
+
             if (!entry.recompiled()) {
                 entryIndex++;
                 break;
@@ -331,7 +363,6 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const JitActivationIterator &acti
 
             MOZ_ASSERT(script == iter.script());
             MOZ_ASSERT(pcOffset < script->length());
-            MOZ_ASSERT(script->baselineScript()->debugMode() == expectedDebugMode);
 
             BaselineScript *bl = script->baselineScript();
             ICEntry::Kind kind = entry.frameKind;
@@ -363,12 +394,14 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const JitActivationIterator &acti
                 MOZ_ASSERT(info->frameKind == kind);
 
                 
-                MOZ_ASSERT_IF(expectedDebugMode, (kind == ICEntry::Kind_CallVM ||
-                                                  kind == ICEntry::Kind_DebugTrap ||
-                                                  kind == ICEntry::Kind_DebugPrologue ||
-                                                  kind == ICEntry::Kind_DebugEpilogue));
+                MOZ_ASSERT_IF(script->baselineScript()->hasDebugInstrumentation(),
+                              kind == ICEntry::Kind_CallVM ||
+                              kind == ICEntry::Kind_DebugTrap ||
+                              kind == ICEntry::Kind_DebugPrologue ||
+                              kind == ICEntry::Kind_DebugEpilogue);
                 
-                MOZ_ASSERT_IF(!expectedDebugMode, kind == ICEntry::Kind_CallVM);
+                MOZ_ASSERT_IF(!script->baselineScript()->hasDebugInstrumentation(),
+                              kind == ICEntry::Kind_CallVM);
 
                 
                 
@@ -441,13 +474,20 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const JitActivationIterator &acti
           }
 
           case JitFrame_BaselineStub: {
+            JitFrameIterator prev(iter);
+            ++prev;
+            BaselineFrame *prevFrame = prev.baselineFrame();
+            if (!obs.shouldRecompileOrInvalidate(prevFrame->script()))
+                break;
+
+            DebugModeOSREntry &entry = entries[entryIndex];
+
             
             if (!entry.recompiled())
                 break;
 
             IonBaselineStubFrameLayout *layout =
                 reinterpret_cast<IonBaselineStubFrameLayout *>(iter.fp());
-            MOZ_ASSERT(entry.script->baselineScript()->debugMode() == expectedDebugMode);
             MOZ_ASSERT(layout->maybeStubPtr() == entry.oldStub);
 
             
@@ -476,12 +516,18 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const JitActivationIterator &acti
             break;
           }
 
-          case JitFrame_IonJS:
+          case JitFrame_IonJS: {
             
-            entryIndex++;
-            for (InlineFrameIterator inlineIter(cx, &iter); inlineIter.more(); ++inlineIter)
-                entryIndex++;
+            InlineFrameIterator inlineIter(cx, &iter);
+            while (true) {
+                if (obs.shouldRecompileOrInvalidate(inlineIter.script()))
+                    entryIndex++;
+                if (!inlineIter.more())
+                    break;
+                ++inlineIter;
+            }
             break;
+          }
 
           default:;
         }
@@ -492,28 +538,40 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const JitActivationIterator &acti
     *start = entryIndex;
 }
 
+static void
+SkipInterpreterFrameEntries(const Debugger::ExecutionObservableSet &obs,
+                            const ActivationIterator &activation,
+                            DebugModeOSREntryVector &entries, size_t *start)
+{
+    size_t entryIndex = *start;
+
+    
+    InterpreterActivation *act = activation.activation()->asInterpreter();
+    for (InterpreterFrameIterator iter(act); !iter.done(); ++iter) {
+        if (obs.shouldRecompileOrInvalidate(iter.frame()->script()))
+            entryIndex++;
+    }
+
+    *start = entryIndex;
+}
+
 static bool
-RecompileBaselineScriptForDebugMode(JSContext *cx, JSScript *script)
+RecompileBaselineScriptForDebugMode(JSContext *cx, JSScript *script,
+                                    Debugger::IsObserving observing)
 {
     BaselineScript *oldBaselineScript = script->baselineScript();
 
     
     
-    bool expectedDebugMode = cx->compartment()->debugMode();
-    if (oldBaselineScript->debugMode() == expectedDebugMode)
+    if (oldBaselineScript->hasDebugInstrumentation() == observing)
         return true;
 
-    JitSpew(JitSpew_BaselineDebugModeOSR, "Recompiling (%s:%d) for debug mode %s",
-            script->filename(), script->lineno(), expectedDebugMode ? "ON" : "OFF");
-
-    CancelOffThreadIonCompile(cx->compartment(), script);
-
-    if (script->hasIonScript())
-        Invalidate(cx, script,  false);
+    JitSpew(JitSpew_BaselineDebugModeOSR, "Recompiling (%s:%d) for %s",
+            script->filename(), script->lineno(), observing ? "DEBUGGING" : "NORMAL EXECUTION");
 
     script->setBaselineScript(cx, nullptr);
 
-    MethodStatus status = BaselineCompile(cx, script);
+    MethodStatus status = BaselineCompile(cx, script,  observing);
     if (status != Method_Compiled) {
         
         
@@ -525,7 +583,7 @@ RecompileBaselineScriptForDebugMode(JSContext *cx, JSScript *script)
 
     
     
-    MOZ_ASSERT(script->baselineScript()->debugMode() == expectedDebugMode);
+    MOZ_ASSERT(script->baselineScript()->hasDebugInstrumentation() == observing);
     return true;
 }
 
@@ -625,6 +683,21 @@ CloneOldBaselineStub(JSContext *cx, DebugModeOSREntryVector &entries, size_t ent
     return true;
 }
 
+static bool
+InvalidateScriptsInZone(JSContext *cx, Zone *zone, const Vector<DebugModeOSREntry> &entries)
+{
+    types::RecompileInfoVector invalid;
+    for (UniqueScriptOSREntryIter iter(entries); !iter.done(); ++iter) {
+        JSScript *script = iter.entry().script;
+        if (script->hasIonScript() && script->compartment()->zone() == zone) {
+            if (!invalid.append(script->ionScript()->recompileInfo()))
+                return false;
+        }
+    }
+    Invalidate(zone->types, cx->runtime()->defaultFreeOp(), invalid);
+    return true;
+}
+
 static void
 UndoRecompileBaselineScriptsForDebugMode(JSContext *cx,
                                          const DebugModeOSREntryVector &entries)
@@ -643,39 +716,55 @@ UndoRecompileBaselineScriptsForDebugMode(JSContext *cx,
 }
 
 bool
-jit::RecompileOnStackBaselineScriptsForDebugMode(JSContext *cx, JSCompartment *comp)
+jit::RecompileOnStackBaselineScriptsForDebugMode(JSContext *cx,
+                                                 const Debugger::ExecutionObservableSet &obs,
+                                                 Debugger::IsObserving observing)
 {
-    AutoCompartment ac(cx, comp);
-
     
     
     Vector<DebugModeOSREntry> entries(cx);
 
-    for (JitActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
-        if (iter.activation()->compartment() == comp) {
-            if (!CollectOnStackScripts(cx, iter, entries))
+    for (ActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
+        if (iter->isJit()) {
+            if (!CollectJitStackScripts(cx, obs, iter, entries))
+                return false;
+        } else if (iter->isInterpreter()) {
+            if (!CollectInterpreterStackScripts(cx, obs, iter, entries))
                 return false;
         }
     }
 
+    if (entries.empty())
+        return true;
+
 #ifdef JSGC_GENERATIONAL
     
-    if (!entries.empty())
-        cx->runtime()->gc.evictNursery();
+    cx->runtime()->gc.evictNursery();
 #endif
 
     
     
+    MOZ_ASSERT(!cx->runtime()->isProfilerSamplingEnabled());
+
     
-    AutoSuppressProfilerSampling suppressProfilerSampling(cx);
+    if (Zone *zone = obs.singleZone()) {
+        if (!InvalidateScriptsInZone(cx, zone, entries))
+            return false;
+    } else {
+        typedef Debugger::ExecutionObservableSet::ZoneRange ZoneRange;
+        for (ZoneRange r = obs.zones()->all(); !r.empty(); r.popFront()) {
+            if (!InvalidateScriptsInZone(cx, r.front(), entries))
+                return false;
+        }
+    }
 
     
     
     
     for (size_t i = 0; i < entries.length(); i++) {
         JSScript *script = entries[i].script;
-
-        if (!RecompileBaselineScriptForDebugMode(cx, script) ||
+        AutoCompartment ac(cx, script->compartment());
+        if (!RecompileBaselineScriptForDebugMode(cx, script, observing) ||
             !CloneOldBaselineStub(cx, entries, i))
         {
             UndoRecompileBaselineScriptsForDebugMode(cx, entries);
@@ -695,9 +784,11 @@ jit::RecompileOnStackBaselineScriptsForDebugMode(JSContext *cx, JSCompartment *c
     }
 
     size_t processed = 0;
-    for (JitActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
-        if (iter.activation()->compartment() == comp)
-            PatchBaselineFramesForDebugMode(cx, iter, entries, &processed);
+    for (ActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
+        if (iter->isJit())
+            PatchBaselineFramesForDebugMode(cx, obs, iter, entries, &processed);
+        else if (iter->isInterpreter())
+            SkipInterpreterFrameEntries(obs, iter, entries, &processed);
     }
     MOZ_ASSERT(processed == entries.length());
 

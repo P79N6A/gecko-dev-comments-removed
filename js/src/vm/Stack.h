@@ -218,6 +218,10 @@ class AbstractFramePtr
     inline bool prevUpToDate() const;
     inline void setPrevUpToDate() const;
 
+    inline bool isDebuggee() const;
+    inline void setIsDebuggee();
+    inline void unsetIsDebuggee();
+
     JSObject *evalPrevScopeChain(JSContext *cx) const;
 
     inline HandleValue returnValue() const;
@@ -297,16 +301,22 @@ class InterpreterFrame
         PREV_UP_TO_DATE    =     0x4000,  
 
         
-        HAS_PUSHED_SPS_FRAME =   0x8000,  
+
+
+
+        DEBUGGEE           =     0x8000,  
+
+        
+        HAS_PUSHED_SPS_FRAME =   0x10000, 
 
         
 
 
 
-        RUNNING_IN_JIT     =    0x10000,
+        RUNNING_IN_JIT     =    0x20000,
 
         
-        USE_NEW_TYPE       =    0x20000   
+        USE_NEW_TYPE       =    0x40000   
     };
 
   private:
@@ -822,6 +832,16 @@ class InterpreterFrame
     void setPrevUpToDate() {
         flags_ |= PREV_UP_TO_DATE;
     }
+
+    bool isDebuggee() const {
+        return !!(flags_ & DEBUGGEE);
+    }
+
+    void setIsDebuggee() {
+        flags_ |= DEBUGGEE;
+    }
+
+    inline void unsetIsDebuggee();
 
   public:
     void mark(JSTracer *trc);

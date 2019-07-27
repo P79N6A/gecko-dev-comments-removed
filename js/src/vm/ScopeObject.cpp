@@ -2059,7 +2059,7 @@ DebugScopes::checkHashTablesAfterMovingGC(JSRuntime *runtime)
 static bool
 CanUseDebugScopeMaps(JSContext *cx)
 {
-    return cx->compartment()->debugMode();
+    return cx->compartment()->isDebuggee();
 }
 
 DebugScopes *
@@ -2306,7 +2306,7 @@ DebugScopes::onPopStrictEvalScope(AbstractFramePtr frame)
 }
 
 void
-DebugScopes::onCompartmentLeaveDebugMode(JSCompartment *c)
+DebugScopes::onCompartmentUnsetIsDebuggee(JSCompartment *c)
 {
     DebugScopes *scopes = c->debugScopes;
     if (scopes) {
@@ -2343,6 +2343,9 @@ DebugScopes::updateLiveScopes(JSContext *cx)
         if (frame.isFunctionFrame() && frame.callee()->isGenerator())
             continue;
 
+        if (!frame.isDebuggee())
+            continue;
+
         for (ScopeIter si(frame, i.pc(), cx); !si.done(); ++si) {
             if (si.hasScopeObject()) {
                 MOZ_ASSERT(si.scope().compartment() == cx->compartment());
@@ -2357,7 +2360,7 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 
         if (frame.prevUpToDate())
             return true;
-        MOZ_ASSERT(frame.scopeChain()->compartment()->debugMode());
+        MOZ_ASSERT(frame.scopeChain()->compartment()->isDebuggee());
         frame.setPrevUpToDate();
     }
 
@@ -2524,7 +2527,7 @@ JSObject *
 js::GetDebugScopeForFunction(JSContext *cx, HandleFunction fun)
 {
     assertSameCompartment(cx, fun);
-    MOZ_ASSERT(cx->compartment()->debugMode());
+    MOZ_ASSERT(CanUseDebugScopeMaps(cx));
     if (!DebugScopes::updateLiveScopes(cx))
         return nullptr;
     return GetDebugScope(cx, *fun->environment());

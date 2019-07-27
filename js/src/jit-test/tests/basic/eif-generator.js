@@ -1,6 +1,8 @@
 var global = newGlobal();
 var dbg = new global.Debugger(this);
 
+dbg.onDebuggerStatement = function () {};
+
 function f() {
     let (x = 1) {
         while (true) {
