@@ -2438,6 +2438,11 @@ Parser<FullParseHandler>::standaloneLazyFunction(HandleFunction fun, unsigned st
     if (!pn)
         return null();
 
+    
+    
+    if (!tokenStream.peekTokenPos(&pn->pn_pos))
+        return null();
+
     Directives directives( strict);
     FunctionBox *funbox = newFunctionBox(pn, fun,  nullptr, directives,
                                          generatorKind);
