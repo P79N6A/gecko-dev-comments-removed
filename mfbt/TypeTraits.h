@@ -638,9 +638,28 @@ public:
 
 
 
+
+
+
+
 template<typename From, typename To>
 struct IsConvertible
   : IntegralConstant<bool, detail::ConvertibleTester<From, To>::value>
+{};
+
+template<typename B>
+struct IsConvertible<void, B>
+  : IntegralConstant<bool, IsVoid<B>::value>
+{};
+
+template<typename A>
+struct IsConvertible<A, void>
+  : IntegralConstant<bool, IsVoid<A>::value>
+{};
+
+template<>
+struct IsConvertible<void, void>
+  : TrueType
 {};
 
 
