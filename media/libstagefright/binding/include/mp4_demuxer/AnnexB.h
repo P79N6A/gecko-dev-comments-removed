@@ -28,11 +28,17 @@ public:
   
   static already_AddRefed<ByteBuffer> ConvertExtraDataToAnnexB(
     const ByteBuffer* aExtraData);
+  
+  
+  
   static already_AddRefed<ByteBuffer> ExtractExtraData(
     const MP4Sample* aSample);
   static bool HasSPS(const MP4Sample* aSample);
   static bool HasSPS(const ByteBuffer* aExtraData);
+  
   static bool IsAVCC(const MP4Sample* aSample);
+  
+  static bool IsAnnexB(const MP4Sample* aSample);
 
 private:
   
