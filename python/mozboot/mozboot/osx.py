@@ -326,9 +326,14 @@ class OSXBootstrapper(BaseBootstrapper):
 
         
         
+        import inspect
+        path_to_android = os.path.abspath(os.path.dirname(inspect.getfile(android)))
+
+        
+        
         packages = [
             ('android-sdk', 'android-sdk'),
-            ('android-ndk', 'android-ndk-r8e.rb'), 
+            ('android-ndk', os.path.join(path_to_android, 'android-ndk.rb')), 
             ('ant', 'ant'),
             ('brew-cask', 'caskroom/cask/brew-cask'), 
         ]
