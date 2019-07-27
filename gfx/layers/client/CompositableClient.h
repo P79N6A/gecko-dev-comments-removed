@@ -16,7 +16,6 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/TextureClient.h"  
-#include "mozilla/layers/TextureClientRecycleAllocator.h" 
 #include "nsISupportsImpl.h"            
 
 namespace mozilla {
@@ -195,7 +194,7 @@ public:
 
 
 
-  virtual void ClearCachedResources();
+  virtual void ClearCachedResources() {}
 
   
 
@@ -230,15 +229,12 @@ public:
 
   TextureFlags GetTextureFlags() const { return mTextureFlags; }
 
-  TextureClientRecycleAllocator* GetTextureClientRecycler();
-
 protected:
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
   
   
   TextureFlags mTextureFlags;
-  RefPtr<TextureClientRecycleAllocator> mTextureClientRecycler;
 
   friend class CompositableChild;
 };

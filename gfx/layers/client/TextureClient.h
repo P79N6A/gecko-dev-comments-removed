@@ -301,11 +301,17 @@ public:
     return (mFlags & aFlags) == aFlags;
   }
 
-  void AddFlags(TextureFlags aFlags);
+  void AddFlags(TextureFlags aFlags)
+  {
+    MOZ_ASSERT(!IsSharedWithCompositor());
+    mFlags |= aFlags;
+  }
 
-  void RemoveFlags(TextureFlags aFlags);
-
-  void RecycleTexture(TextureFlags aFlags);
+  void RemoveFlags(TextureFlags aFlags)
+  {
+    MOZ_ASSERT(!IsSharedWithCompositor());
+    mFlags &= ~aFlags;
+  }
 
   
 
@@ -334,17 +340,6 @@ public:
 
 
   bool IsValid() const { return mValid; }
-
-  
-
-
-  void SetAddedToCompositableClient();
-
-  
-
-
-
-  bool IsAddedToCompositableClient() const { return mAddedToCompositableClient; }
 
   
 
@@ -466,7 +461,6 @@ protected:
   gl::GfxTextureWasteTracker mWasteTracker;
   bool mShared;
   bool mValid;
-  bool mAddedToCompositableClient;
 
   RefPtr<TextureReadbackSink> mReadbackSink;
 
