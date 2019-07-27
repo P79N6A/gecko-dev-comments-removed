@@ -492,7 +492,7 @@ gfxAndroidPlatform::CreateHardwareVsyncSource()
     
     
     
-#if defined(MOZ_WIDGET_GONK) && (ANDROID_VERSION == 19)
+#if defined(MOZ_WIDGET_GONK) && (ANDROID_VERSION == 19 || ANDROID_VERSION >= 21)
     nsRefPtr<GonkVsyncSource> vsyncSource = new GonkVsyncSource();
     VsyncSource::Display& display = vsyncSource->GetGlobalDisplay();
     display.EnableVsync();
