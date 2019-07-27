@@ -230,7 +230,26 @@ Animation::Finish(ErrorResult& aRv)
 
   SetCurrentTime(limit);
 
-  if (mPendingState == PendingState::PlayPending) {
+  
+  
+  
+  
+  
+  
+  
+  if (mStartTime.IsNull() &&
+      mTimeline &&
+      !mTimeline->GetCurrentTime().IsNull()) {
+    mStartTime.SetValue(mTimeline->GetCurrentTime().Value() -
+                        limit.MultDouble(1.0 / mPlaybackRate));
+  }
+
+  
+  
+  
+  
+  if (mPendingState == PendingState::PlayPending &&
+      !mStartTime.IsNull()) {
     CancelPendingTasks();
     if (mReady) {
       mReady->MaybeResolve(this);
