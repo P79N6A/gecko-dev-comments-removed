@@ -218,7 +218,13 @@ static nsIScriptSecurityManager *sSecurityManager;
 
 
 static bool sGCOnMemoryPressure;
+
+
+
+
+
 static bool sCompactOnUserInactive;
+static bool sIsCompactingOnUserInactive = false;
 
 
 
@@ -298,6 +304,10 @@ nsJSEnvironmentObserver::Observe(nsISupports* aSubject, const char* aTopic,
     }
   } else if (!nsCRT::strcmp(aTopic, "user-interaction-active")) {
     nsJSContext::KillShrinkingGCTimer();
+    if (sIsCompactingOnUserInactive) {
+      JS::AbortIncrementalGC(sRuntime);
+    }
+    MOZ_ASSERT(!sIsCompactingOnUserInactive);
   } else if (!nsCRT::strcmp(aTopic, "quit-application") ||
              !nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
     sShuttingDown = true;
@@ -1818,6 +1828,7 @@ void
 ShrinkingGCTimerFired(nsITimer* aTimer, void* aClosure)
 {
   nsJSContext::KillShrinkingGCTimer();
+  sIsCompactingOnUserInactive = true;
   nsJSContext::GarbageCollectNow(JS::gcreason::USER_INACTIVE,
                                  nsJSContext::IncrementalGC,
                                  nsJSContext::ShrinkingGC);
@@ -2235,6 +2246,7 @@ DOMGCSliceCallback(JSRuntime *aRt, JS::GCProgress aProgress, const JS::GCDescrip
       }
 
       sCCLockedOut = false;
+      sIsCompactingOnUserInactive = false;
 
       
       nsJSContext::KillInterSliceGCTimer();
