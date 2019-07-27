@@ -7,12 +7,17 @@
 #ifndef mozilla_ChaosMode_h
 #define mozilla_ChaosMode_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/EnumSet.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 
 namespace mozilla {
+
+namespace detail {
+extern MFBT_DATA Atomic<uint32_t> gChaosModeCounter;
+}
 
 
 
@@ -44,7 +49,30 @@ private:
 public:
   static bool isActive(ChaosFeature aFeature)
   {
+    if (detail::gChaosModeCounter > 0) {
+      return true;
+    }
     return sChaosFeatures & aFeature;
+  }
+
+  
+
+
+
+
+
+  static void enterChaosMode()
+  {
+    detail::gChaosModeCounter++;
+  }
+
+  
+
+
+  static void leaveChaosMode()
+  {
+    MOZ_ASSERT(detail::gChaosModeCounter > 0);
+    detail::gChaosModeCounter--;
   }
 
   
