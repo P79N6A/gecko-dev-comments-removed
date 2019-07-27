@@ -1,0 +1,28 @@
+
+
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test app for bug 1097928 - Check if MozPaymentProvider API is exposed</title>
+</head>
+<body>
+<div id='test'>
+<script type="application/javascript;version=1.8">
+  function receiveMessage(event) {
+    let message = JSON.parse(event.data);
+    let exposed = (navigator.mozPaymentProvider != undefined);
+    window.parent.postMessage(JSON.stringify({
+      iframeType: message.iframeType,
+      exposed: exposed
+    }), "*");
+  }
+
+  window.addEventListener("message", receiveMessage, false, true);
+</script>
+</div>
+</body>
+</html>

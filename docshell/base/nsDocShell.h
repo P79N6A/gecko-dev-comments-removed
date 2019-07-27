@@ -947,6 +947,9 @@ protected:
     
     uint32_t mOwnOrContainingAppId;
 
+    nsString mPaymentRequestId;
+
+    nsString GetInheritedPaymentRequestId();
 private:
     nsCString         mForcedCharset;
     nsCString         mParentCharset;
