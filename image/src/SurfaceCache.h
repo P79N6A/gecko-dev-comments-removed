@@ -114,12 +114,6 @@ MOZ_BEGIN_ENUM_CLASS(Lifetime, uint8_t)
   Persistent
 MOZ_END_ENUM_CLASS(Lifetime)
 
-MOZ_BEGIN_ENUM_CLASS(InsertOutcome, uint8_t)
-  SUCCESS,                 
-  FAILURE,                 
-  FAILURE_ALREADY_PRESENT  
-MOZ_END_ENUM_CLASS(InsertOutcome)
-
 
 
 
@@ -212,14 +206,10 @@ struct SurfaceCache
 
 
 
-
-
-
-
-  static InsertOutcome Insert(imgFrame*         aSurface,
-                              const ImageKey    aImageKey,
-                              const SurfaceKey& aSurfaceKey,
-                              Lifetime          aLifetime);
+  static bool Insert(imgFrame*         aSurface,
+                     const ImageKey    aImageKey,
+                     const SurfaceKey& aSurfaceKey,
+                     Lifetime          aLifetime);
 
   
 
