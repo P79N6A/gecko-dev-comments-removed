@@ -547,7 +547,7 @@ struct JSCompartment
 
     enum DeprecatedLanguageExtension {
         DeprecatedForEach = 0,              
-        DeprecatedDestructuringForIn = 1,   
+        
         DeprecatedLegacyGenerator = 2,      
         DeprecatedExpressionClosure = 3,    
         DeprecatedLetBlock = 4,             

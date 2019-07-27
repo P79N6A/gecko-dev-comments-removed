@@ -24,19 +24,23 @@ function f() {
 }
 
 function g() {
+  
+  
   for (var [a,b] in {x:7}) {
-    if (a != "x" || b != 7) 
+    if (a !== "x" || typeof b !== "undefined")
       throw "fail";
   }
 
   {
+    
+    
     for (let [a,b] in {y:8}) {
-      if (a != "y" || b != 8) 
+      if (a !== "y" || typeof b !== "undefined")
         throw "fail";
     }
   }
 
-  if (a != "x" || b != 7) 
+  if (a !== "x" || typeof b !== "undefined")
     throw "fail";
 }
 
@@ -47,17 +51,17 @@ if (typeof a != "undefined" || typeof b != "undefined" || typeof x != "undefined
   throw "fail";
 
 function h() {
+  
+  
   for ([a,b] in {z:9}) {
-    if (a != "z" || b != 9) 
+    if (a !== "z" || typeof b !== "undefined")
       throw "fail";
   }
 }
 
 h();
 
-if (a != "z" || b != 9) 
+if (a !== "z" || typeof b !== "undefined")
   throw "fail";
 
-
 reportCompare(expect, actual, summary);
-
