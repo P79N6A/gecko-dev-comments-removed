@@ -1853,6 +1853,11 @@ public:
     return sIsResourceTimingEnabled;
   }
 
+  static bool ShouldEncodeURLHash()
+  {
+    return sEncodeURLHash;
+  }
+
   
 
 
@@ -2304,6 +2309,7 @@ private:
   static bool sIsPerformanceTimingEnabled;
   static bool sIsResourceTimingEnabled;
   static bool sIsExperimentalAutocompleteEnabled;
+  static bool sEncodeURLHash;
 
   static nsHtml5StringParser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;
