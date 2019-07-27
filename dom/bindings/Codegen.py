@@ -3427,6 +3427,12 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
                 "JSJitGetterCallArgs args(&temp);\n")
         for m in self.descriptor.interface.members:
             if m.isAttr() and m.getExtendedAttribute("StoreInSlot"):
+                
+                
+                
+                if (self.descriptor.interface.identifier.name == "Window" and
+                    m.identifier.name == "window"):
+                    continue
                 body += fill(
                     """
 
