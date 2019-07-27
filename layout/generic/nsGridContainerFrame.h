@@ -60,7 +60,7 @@ public:
   NS_DECLARE_FRAME_PROPERTY(GridItemContainingBlockRect, DeleteValue<nsRect>)
 
 protected:
-  static const int32_t kAutoLine;
+  static const uint32_t kAutoLine;
   
   static const uint32_t kTranslatedMaxLine;
   typedef mozilla::LogicalPoint LogicalPoint;
@@ -87,19 +87,19 @@ protected:
 
   struct LineRange {
    LineRange(int32_t aStart, int32_t aEnd)
-     : mStart(aStart), mEnd(aEnd)
+     : mUntranslatedStart(aStart), mUntranslatedEnd(aEnd)
     {
 #ifdef DEBUG
       if (!IsAutoAuto()) {
         if (IsAuto()) {
-          MOZ_ASSERT(mEnd >= nsStyleGridLine::kMinLine &&
-                     mEnd <= nsStyleGridLine::kMaxLine, "invalid span");
+          MOZ_ASSERT(aEnd >= nsStyleGridLine::kMinLine &&
+                     aEnd <= nsStyleGridLine::kMaxLine, "invalid span");
         } else {
-          MOZ_ASSERT(mStart >= nsStyleGridLine::kMinLine &&
-                     mStart <= nsStyleGridLine::kMaxLine, "invalid start line");
-          MOZ_ASSERT(mEnd == kAutoLine ||
-                     (mEnd >= nsStyleGridLine::kMinLine &&
-                      mEnd <= nsStyleGridLine::kMaxLine), "invalid end line");
+          MOZ_ASSERT(aStart >= nsStyleGridLine::kMinLine &&
+                     aStart <= nsStyleGridLine::kMaxLine, "invalid start line");
+          MOZ_ASSERT(aEnd == int32_t(kAutoLine) ||
+                     (aEnd >= nsStyleGridLine::kMinLine &&
+                      aEnd <= nsStyleGridLine::kMaxLine), "invalid end line");
         }
       }
 #endif
@@ -111,7 +111,7 @@ protected:
     {
       MOZ_ASSERT(mEnd != kAutoLine, "Extent is undefined for abs.pos. 'auto'");
       if (IsAuto()) {
-        MOZ_ASSERT(mEnd >= 1 && mEnd < nsStyleGridLine::kMaxLine,
+        MOZ_ASSERT(mEnd >= 1 && mEnd < uint32_t(nsStyleGridLine::kMaxLine),
                    "invalid span");
         return mEnd;
       }
@@ -121,10 +121,9 @@ protected:
 
 
 
-    void ResolveAutoPosition(int32_t aStart)
+    void ResolveAutoPosition(uint32_t aStart)
     {
       MOZ_ASSERT(IsAuto(), "Why call me?");
-      MOZ_ASSERT(aStart >= 0, "expected a zero-based line number");
       mStart = aStart;
       mEnd += aStart;
       
@@ -156,8 +155,21 @@ protected:
                                       nscoord aGridOrigin,
                                       nscoord* aPos, nscoord* aLength) const;
 
-    int32_t mStart;  
-    int32_t mEnd;    
+    
+
+
+
+
+
+
+    union {
+      uint32_t mStart;
+      int32_t mUntranslatedStart;
+    };
+    union {
+      uint32_t mEnd;
+      int32_t mUntranslatedEnd;
+    };
   };
 
   
@@ -199,7 +211,6 @@ protected:
     eLineRangeSideStart, eLineRangeSideEnd
   };
   
-
 
 
 
