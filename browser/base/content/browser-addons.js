@@ -164,6 +164,9 @@ const gXPInstallObserver = {
       this._removeProgressNotification(browser);
       break; }
     case "addon-install-confirmation": {
+      let unsigned = installInfo.installs.filter(i => i.addon.signedState <= AddonManager.SIGNEDSTATE_MISSING);
+      let someUnsigned = unsigned.length > 0 && unsigned.length < installInfo.installs.length;
+
       options.eventCallback = (aEvent) => {
         switch (aEvent) {
           case "removed":
@@ -179,10 +182,21 @@ const gXPInstallObserver = {
               addonList.firstChild.remove();
 
             for (let install of installInfo.installs) {
+              let container = document.createElement("hbox");
+
               let name = document.createElement("label");
               name.setAttribute("value", install.addon.name);
               name.setAttribute("class", "addon-install-confirmation-name");
-              addonList.appendChild(name);
+              container.appendChild(name);
+
+              if (someUnsigned && install.addon.signedState <= AddonManager.SIGNEDSTATE_MISSING) {
+                let unsigned = document.createElement("label");
+                unsigned.setAttribute("value", gNavigatorBundle.getString("addonInstall.unsigned"));
+                unsigned.setAttribute("class", "addon-install-confirmation-unsigned");
+                container.appendChild(unsigned);
+              }
+
+              addonList.appendChild(container);
             }
 
             this.acceptInstallation = () => {
@@ -201,7 +215,20 @@ const gXPInstallObserver = {
       options.learnMoreURL = Services.urlFormatter.formatURLPref("app.support.baseURL") +
                              "find-and-install-add-ons";
 
-      messageString = gNavigatorBundle.getString("addonConfirmInstall.message");
+      if (unsigned.length == installInfo.installs.length) {
+        
+        messageString = gNavigatorBundle.getString("addonConfirmInstallUnsigned.message");
+      }
+      else if (unsigned.length == 0) {
+        
+        messageString = gNavigatorBundle.getString("addonConfirmInstall.message");
+      }
+      else {
+        
+        
+        messageString = gNavigatorBundle.getString("addonConfirmInstallSomeUnsigned.message");
+      }
+
       messageString = PluralForm.get(installInfo.installs.length, messageString);
       messageString = messageString.replace("#1", brandShortName);
       messageString = messageString.replace("#2", installInfo.installs.length);

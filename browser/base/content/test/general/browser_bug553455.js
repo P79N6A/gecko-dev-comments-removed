@@ -455,6 +455,110 @@ function test_multiple() {
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 },
 
+function test_someunverified() {
+  
+  
+  if (!Preferences.get("xpinstall.customConfirmationUI", false) ||
+      Preferences.get("xpinstall.signatures.required", true)) {
+    runNextTest();
+    return;
+  }
+
+  
+  wait_for_progress_notification(function(aPanel) {
+    
+    wait_for_install_dialog(function() {
+      let notification = document.getElementById("addon-install-confirmation-notification");
+      let message = notification.getAttribute("label");
+      is(message, "Caution: This site would like to install 2 add-ons in " + gApp + ", some of which are unverified. Proceed at your own risk.",
+         "Should see the right message");
+
+      let container = document.getElementById("addon-install-confirmation-content");
+      is(container.childNodes.length, 2, "Should be two items listed");
+      is(container.childNodes[0].firstChild.getAttribute("value"), "XPI Test", "Should have the right add-on");
+      is(container.childNodes[0].lastChild.getAttribute("class"),
+         "addon-install-confirmation-unsigned", "Should have the unverified marker");
+      is(container.childNodes[1].firstChild.getAttribute("value"), "Theme Test", "Should have the right add-on");
+      is(container.childNodes[1].childNodes.length, 1, "Shouldn't have the unverified marker");
+
+      
+      wait_for_notification("addon-install-complete", function(aPanel) {
+        AddonManager.getAddonsByIDs(["restartless-xpi@tests.mozilla.org",
+                                     "theme-xpi@tests.mozilla.org"], function([a, t]) {
+          a.uninstall();
+          
+          
+          t.userDisabled = true;
+          t.uninstall();
+
+          Services.perms.remove("example.com", "install");
+          wait_for_notification_close(runNextTest);
+          gBrowser.removeTab(gBrowser.selectedTab);
+        });
+      });
+
+      accept_install_dialog();
+    });
+  });
+
+  var pm = Services.perms;
+  pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
+
+  var triggers = encodeURIComponent(JSON.stringify({
+    "Extension XPI": "restartless.xpi",
+    "Theme XPI": "theme.xpi"
+  }));
+  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
+},
+
+function test_allunverified() {
+  
+  
+  if (!Preferences.get("xpinstall.customConfirmationUI", false) ||
+      Preferences.get("xpinstall.signatures.required", true)) {
+    runNextTest();
+    return;
+  }
+
+  
+  wait_for_progress_notification(function(aPanel) {
+    
+    wait_for_install_dialog(function() {
+      let notification = document.getElementById("addon-install-confirmation-notification");
+      let message = notification.getAttribute("label");
+      is(message, "Caution: This site would like to install an unverified add-on in " + gApp + ". Proceed at your own risk.");
+
+      let container = document.getElementById("addon-install-confirmation-content");
+      is(container.childNodes.length, 1, "Should be one item listed");
+      is(container.childNodes[0].firstChild.getAttribute("value"), "XPI Test", "Should have the right add-on");
+      is(container.childNodes[0].childNodes.length, 1, "Shouldn't have the unverified marker");
+
+      
+      wait_for_notification("addon-install-complete", function(aPanel) {
+        AddonManager.getAddonByID("restartless-xpi@tests.mozilla.org", function(aAddon) {
+          aAddon.uninstall();
+
+          Services.perms.remove("example.com", "install");
+          wait_for_notification_close(runNextTest);
+          gBrowser.removeTab(gBrowser.selectedTab);
+        });
+      });
+
+      accept_install_dialog();
+    });
+  });
+
+  var pm = Services.perms;
+  pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
+
+  var triggers = encodeURIComponent(JSON.stringify({
+    "Extension XPI": "restartless.xpi"
+  }));
+  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
+},
+
 function test_url() {
   
   wait_for_progress_notification(function(aPanel) {
