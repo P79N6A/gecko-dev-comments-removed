@@ -1335,14 +1335,9 @@ struct nsStylePosition {
 
   nsChangeHint CalcDifference(const nsStylePosition& aOther) const;
   static nsChangeHint MaxDifference() {
-    return nsChangeHint(NS_STYLE_HINT_REFLOW |
-                        nsChangeHint_RecomputePosition |
-                        nsChangeHint_UpdateTransformLayer |
-                        nsChangeHint_UpdateOverflow |
-                        nsChangeHint_UpdateParentOverflow |
-                        nsChangeHint_UpdatePostTransformOverflow |
-                        nsChangeHint_AddOrRemoveTransform |
-                        nsChangeHint_NeutralChange);
+    return NS_CombineHint(NS_STYLE_HINT_REFLOW,
+                          nsChangeHint(nsChangeHint_RecomputePosition |
+                                       nsChangeHint_UpdateParentOverflow));
   }
   static nsChangeHint MaxDifferenceNeverInherited() {
     
@@ -1355,7 +1350,6 @@ struct nsStylePosition {
   typedef nsStyleBackground::Position Position;
 
   Position      mObjectPosition;        
-  nsRect        mClip;                  
   nsStyleSides  mOffset;                
   nsStyleCoord  mWidth;                 
   nsStyleCoord  mMinWidth;              
@@ -1368,9 +1362,6 @@ struct nsStylePosition {
   nsStyleCoord  mGridAutoColumnsMax;    
   nsStyleCoord  mGridAutoRowsMin;       
   nsStyleCoord  mGridAutoRowsMax;       
-  nsStyleCoord  mTransformOrigin[3];    
-  nsStyleCoord  mChildPerspective;      
-  nsStyleCoord  mPerspectiveOrigin[2];  
   uint8_t       mGridAutoFlow;          
   uint8_t       mBoxSizing;             
   uint8_t       mAlignContent;          
@@ -1380,15 +1371,6 @@ struct nsStylePosition {
   uint8_t       mFlexWrap;              
   uint8_t       mJustifyContent;        
   uint8_t       mObjectFit;             
-  uint8_t       mClipFlags;             
-  uint8_t       mBackfaceVisibility;    
-  uint8_t       mTransformStyle;        
-  uint8_t       mWillChangeBitField;    
-                                        
-                                        
-                                        
-                                        
-                                        
   int32_t       mOrder;                 
   float         mFlexGrow;              
   float         mFlexShrink;            
@@ -1403,14 +1385,6 @@ struct nsStylePosition {
   nsStyleGridLine mGridColumnEnd;
   nsStyleGridLine mGridRowStart;
   nsStyleGridLine mGridRowEnd;
-
-  
-  
-  
-  
-  nsRefPtr<nsCSSValueSharedList> mSpecifiedTransform; 
-
-  nsAutoTArray<nsString, 1> mWillChange;  
 
   bool WidthDependsOnContainer() const
     {
@@ -1454,38 +1428,6 @@ struct nsStylePosition {
   {
     return mOffset.Get(aSide).HasPercent();
   }
-
-  
-
-  bool HasTransformStyle() const {
-    return mSpecifiedTransform != nullptr ||
-           mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D ||
-           (mWillChangeBitField & NS_STYLE_WILL_CHANGE_TRANSFORM);
-  }
-
-  bool HasPerspectiveStyle() const {
-    return mChildPerspective.GetUnit() == eStyleUnit_Coord;
-  }
-
-  bool BackfaceIsHidden() const {
-    return mBackfaceVisibility == NS_STYLE_BACKFACE_VISIBILITY_HIDDEN;
-  }
-
-  
-
-  
-
-
-
-
-  inline bool HasTransform(const nsIFrame* aContextFrame) const;
-
-  
-
-
-
-
-  inline bool IsFixedPosContainingBlock(const nsIFrame* aContextFrame) const;
 
 private:
   static bool WidthCoordDependsOnContainer(const nsStyleCoord &aCoord);
@@ -2064,6 +2006,10 @@ struct nsStyleDisplay {
     
     return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
                         nsChangeHint_UpdateOpacityLayer |
+                        nsChangeHint_UpdateTransformLayer |
+                        nsChangeHint_UpdateOverflow |
+                        nsChangeHint_UpdatePostTransformOverflow |
+                        nsChangeHint_AddOrRemoveTransform |
                         nsChangeHint_NeutralChange);
   }
   static nsChangeHint MaxDifferenceNeverInherited() {
@@ -2080,6 +2026,7 @@ struct nsStyleDisplay {
   
   
   nsRefPtr<mozilla::css::URLValue> mBinding;    
+  nsRect  mClip;                
   float   mOpacity;             
   uint8_t mDisplay;             
   uint8_t mOriginalDisplay;     
@@ -2098,9 +2045,17 @@ struct nsStyleDisplay {
   uint8_t mOverflowY;           
   uint8_t mOverflowClipBox;     
   uint8_t mResize;              
+  uint8_t mClipFlags;           
   uint8_t mOrient;              
   uint8_t mMixBlendMode;        
   uint8_t mIsolation;           
+  uint8_t mWillChangeBitField;  
+                                
+                                
+                                
+                                
+                                
+  nsAutoTArray<nsString, 1> mWillChange;
 
   uint8_t mTouchAction;         
   uint8_t mScrollBehavior;      
@@ -2110,6 +2065,17 @@ struct nsStyleDisplay {
   nsStyleCoord mScrollSnapPointsY; 
   Position mScrollSnapDestination; 
   nsTArray<Position> mScrollSnapCoordinate; 
+
+  
+  
+  
+  
+  uint8_t mBackfaceVisibility;
+  uint8_t mTransformStyle;
+  nsRefPtr<nsCSSValueSharedList> mSpecifiedTransform; 
+  nsStyleCoord mTransformOrigin[3]; 
+  nsStyleCoord mChildPerspective; 
+  nsStyleCoord mPerspectiveOrigin[2]; 
 
   nsAutoTArray<mozilla::StyleTransition, 1> mTransitions; 
   
@@ -2231,6 +2197,22 @@ struct nsStyleDisplay {
 
   
 
+  bool HasTransformStyle() const {
+    return mSpecifiedTransform != nullptr ||
+           mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D ||
+           (mWillChangeBitField & NS_STYLE_WILL_CHANGE_TRANSFORM);
+  }
+
+  bool HasPerspectiveStyle() const {
+    return mChildPerspective.GetUnit() == eStyleUnit_Coord;
+  }
+
+  bool BackfaceIsHidden() const {
+    return mBackfaceVisibility == NS_STYLE_BACKFACE_VISIBILITY_HIDDEN;
+  }
+
+  
+
   
   
   
@@ -2244,6 +2226,22 @@ struct nsStyleDisplay {
   inline bool IsAbsPosContainingBlock(const nsIFrame* aContextFrame) const;
   inline bool IsRelativelyPositioned(const nsIFrame* aContextFrame) const;
   inline bool IsAbsolutelyPositioned(const nsIFrame* aContextFrame) const;
+
+  
+
+  
+
+
+
+
+  inline bool HasTransform(const nsIFrame* aContextFrame) const;
+
+  
+
+
+
+
+  inline bool IsFixedPosContainingBlock(const nsIFrame* aContextFrame) const;
 };
 
 struct nsStyleTable {

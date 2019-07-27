@@ -1059,7 +1059,7 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsContainerFrame* aNewAbsol
 
 
   mFixedPosIsAbsPos = aPositionedFrame &&
-      aPositionedFrame->StylePosition()->IsFixedPosContainingBlock(aPositionedFrame);
+      aPositionedFrame->StyleDisplay()->IsFixedPosContainingBlock(aPositionedFrame);
 
   if (aNewAbsoluteContainingBlock) {
     aNewAbsoluteContainingBlock->MarkAsAbsoluteContainingBlock();
@@ -3784,9 +3784,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
 
     
     
-    const nsStylePosition* position = styleContext->StylePosition();
     const nsStyleDisplay* maybeAbsoluteContainingBlockDisplay = display;
-    const nsStylePosition* maybeAbsoluteContainingBlockPosition = position;
     nsIFrame* maybeAbsoluteContainingBlockStyleFrame = primaryFrame;
     nsIFrame* maybeAbsoluteContainingBlock = newFrame;
     nsIFrame* possiblyLeafFrame = newFrame;
@@ -3813,7 +3811,6 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       const nsStyleDisplay* blockDisplay = blockContext->StyleDisplay();
       if (blockDisplay->IsAbsPosContainingBlock(blockFrame)) {
         maybeAbsoluteContainingBlockDisplay = blockDisplay;
-        maybeAbsoluteContainingBlockPosition = blockContext->StylePosition();
         maybeAbsoluteContainingBlock = blockFrame;
         maybeAbsoluteContainingBlockStyleFrame = blockFrame;
       }
@@ -3854,7 +3851,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
         
         if ((maybeAbsoluteContainingBlockDisplay->IsAbsolutelyPositionedStyle() ||
              maybeAbsoluteContainingBlockDisplay->IsRelativelyPositionedStyle() ||
-             maybeAbsoluteContainingBlockPosition->IsFixedPosContainingBlock(
+             maybeAbsoluteContainingBlockDisplay->IsFixedPosContainingBlock(
                  maybeAbsoluteContainingBlockStyleFrame)) &&
             !maybeAbsoluteContainingBlockStyleFrame->IsSVGText()) {
           nsContainerFrame* cf = static_cast<nsContainerFrame*>(
@@ -5983,7 +5980,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
     
     if (!frame->IsAbsPosContaininingBlock() ||
         (aType == FIXED_POS &&
-         !frame->StylePosition()->IsFixedPosContainingBlock(frame))) {
+         !frame->StyleDisplay()->IsFixedPosContainingBlock(frame))) {
       continue;
     }
     nsIFrame* absPosCBCandidate = frame;

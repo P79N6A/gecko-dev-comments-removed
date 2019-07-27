@@ -2631,7 +2631,8 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
 
-  bool GetClipPropClipRect(nsRect* aRect, const nsSize& aSize) const;
+  bool GetClipPropClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
+                           const nsSize& aSize) const;
 
   
 

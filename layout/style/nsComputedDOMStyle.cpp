@@ -1148,22 +1148,23 @@ nsComputedDOMStyle::DoGetTransformOrigin()
   nsDOMCSSValueList* valueList = GetROCSSValueList(false);
 
   
-  const nsStylePosition* pos = StylePosition();
+  const nsStyleDisplay* display = StyleDisplay();
 
   nsROCSSPrimitiveValue* width = new nsROCSSPrimitiveValue;
-  SetValueToCoord(width, pos->mTransformOrigin[0], false,
+  SetValueToCoord(width, display->mTransformOrigin[0], false,
                   &nsComputedDOMStyle::GetFrameBoundsWidthForTransform);
   valueList->AppendCSSValue(width);
 
   nsROCSSPrimitiveValue* height = new nsROCSSPrimitiveValue;
-  SetValueToCoord(height, pos->mTransformOrigin[1], false,
+  SetValueToCoord(height, display->mTransformOrigin[1], false,
                   &nsComputedDOMStyle::GetFrameBoundsHeightForTransform);
   valueList->AppendCSSValue(height);
 
-  if (pos->mTransformOrigin[2].GetUnit() != eStyleUnit_Coord ||
-      pos->mTransformOrigin[2].GetCoordValue() != 0) {
+  if (display->mTransformOrigin[2].GetUnit() != eStyleUnit_Coord ||
+      display->mTransformOrigin[2].GetCoordValue() != 0) {
     nsROCSSPrimitiveValue* depth = new nsROCSSPrimitiveValue;
-    SetValueToCoord(depth, pos->mTransformOrigin[2], false, nullptr);
+    SetValueToCoord(depth, display->mTransformOrigin[2], false,
+                    nullptr);
     valueList->AppendCSSValue(depth);
   }
 
@@ -1184,15 +1185,15 @@ nsComputedDOMStyle::DoGetPerspectiveOrigin()
   nsDOMCSSValueList* valueList = GetROCSSValueList(false);
 
   
-  const nsStylePosition* pos = StylePosition();
+  const nsStyleDisplay* display = StyleDisplay();
 
   nsROCSSPrimitiveValue* width = new nsROCSSPrimitiveValue;
-  SetValueToCoord(width, pos->mPerspectiveOrigin[0], false,
+  SetValueToCoord(width, display->mPerspectiveOrigin[0], false,
                   &nsComputedDOMStyle::GetFrameBoundsWidthForTransform);
   valueList->AppendCSSValue(width);
 
   nsROCSSPrimitiveValue* height = new nsROCSSPrimitiveValue;
-  SetValueToCoord(height, pos->mPerspectiveOrigin[1], false,
+  SetValueToCoord(height, display->mPerspectiveOrigin[1], false,
                   &nsComputedDOMStyle::GetFrameBoundsHeightForTransform);
   valueList->AppendCSSValue(height);
 
@@ -1203,7 +1204,7 @@ CSSValue*
 nsComputedDOMStyle::DoGetPerspective()
 {
     nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
-    SetValueToCoord(val, StylePosition()->mChildPerspective, false);
+    SetValueToCoord(val, StyleDisplay()->mChildPerspective, false);
     return val;
 }
 
@@ -1212,7 +1213,7 @@ nsComputedDOMStyle::DoGetBackfaceVisibility()
 {
     nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
     val->SetIdent(
-        nsCSSProps::ValueToKeywordEnum(StylePosition()->mBackfaceVisibility,
+        nsCSSProps::ValueToKeywordEnum(StyleDisplay()->mBackfaceVisibility,
                                        nsCSSProps::kBackfaceVisibilityKTable));
     return val;
 }
@@ -1222,7 +1223,7 @@ nsComputedDOMStyle::DoGetTransformStyle()
 {
     nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
     val->SetIdent(
-        nsCSSProps::ValueToKeywordEnum(StylePosition()->mTransformStyle,
+        nsCSSProps::ValueToKeywordEnum(StyleDisplay()->mTransformStyle,
                                        nsCSSProps::kTransformStyleKTable));
     return val;
 }
@@ -1235,12 +1236,12 @@ CSSValue*
 nsComputedDOMStyle::DoGetTransform()
 {
   
-  const nsStylePosition* pos = StylePosition();
+  const nsStyleDisplay* display = StyleDisplay();
 
   
 
 
-  if (!pos->mSpecifiedTransform) {
+  if (!display->mSpecifiedTransform) {
     nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
 
     
@@ -1267,7 +1268,7 @@ nsComputedDOMStyle::DoGetTransform()
 
    bool dummy;
    gfx3DMatrix matrix =
-     nsStyleTransformMatrix::ReadTransforms(pos->mSpecifiedTransform->mHead,
+     nsStyleTransformMatrix::ReadTransforms(display->mSpecifiedTransform->mHead,
                                             mStyleContextHolder,
                                             mStyleContextHolder->PresContext(),
                                             dummy,
@@ -4005,9 +4006,9 @@ nsComputedDOMStyle::DoGetClip()
 {
   nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
 
-  const nsStylePosition* pos = StylePosition();
+  const nsStyleDisplay* display = StyleDisplay();
 
-  if (pos->mClipFlags == NS_STYLE_CLIP_AUTO) {
+  if (display->mClipFlags == NS_STYLE_CLIP_AUTO) {
     val->SetIdent(eCSSKeyword_auto);
   } else {
     
@@ -4017,28 +4018,28 @@ nsComputedDOMStyle::DoGetClip()
     nsROCSSPrimitiveValue *leftVal   = new nsROCSSPrimitiveValue;
     nsDOMCSSRect * domRect = new nsDOMCSSRect(topVal, rightVal,
                                               bottomVal, leftVal);
-    if (pos->mClipFlags & NS_STYLE_CLIP_TOP_AUTO) {
+    if (display->mClipFlags & NS_STYLE_CLIP_TOP_AUTO) {
       topVal->SetIdent(eCSSKeyword_auto);
     } else {
-      topVal->SetAppUnits(pos->mClip.y);
+      topVal->SetAppUnits(display->mClip.y);
     }
 
-    if (pos->mClipFlags & NS_STYLE_CLIP_RIGHT_AUTO) {
+    if (display->mClipFlags & NS_STYLE_CLIP_RIGHT_AUTO) {
       rightVal->SetIdent(eCSSKeyword_auto);
     } else {
-      rightVal->SetAppUnits(pos->mClip.width + pos->mClip.x);
+      rightVal->SetAppUnits(display->mClip.width + display->mClip.x);
     }
 
-    if (pos->mClipFlags & NS_STYLE_CLIP_BOTTOM_AUTO) {
+    if (display->mClipFlags & NS_STYLE_CLIP_BOTTOM_AUTO) {
       bottomVal->SetIdent(eCSSKeyword_auto);
     } else {
-      bottomVal->SetAppUnits(pos->mClip.height + pos->mClip.y);
+      bottomVal->SetAppUnits(display->mClip.height + display->mClip.y);
     }
 
-    if (pos->mClipFlags & NS_STYLE_CLIP_LEFT_AUTO) {
+    if (display->mClipFlags & NS_STYLE_CLIP_LEFT_AUTO) {
       leftVal->SetIdent(eCSSKeyword_auto);
     } else {
-      leftVal->SetAppUnits(pos->mClip.x);
+      leftVal->SetAppUnits(display->mClip.x);
     }
     val->SetRect(domRect);
   }
@@ -4049,7 +4050,7 @@ nsComputedDOMStyle::DoGetClip()
 CSSValue*
 nsComputedDOMStyle::DoGetWillChange()
 {
-  const nsTArray<nsString>& willChange = StylePosition()->mWillChange;
+  const nsTArray<nsString>& willChange = StyleDisplay()->mWillChange;
 
   if (willChange.IsEmpty()) {
     nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
