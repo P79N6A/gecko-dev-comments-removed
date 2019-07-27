@@ -53,6 +53,14 @@ class HomePagerTabStrip extends PagerTabStrip {
         getViewTreeObserver().addOnPreDrawListener(new PreDrawListener());
     }
 
+    @Override
+    public int getPaddingBottom() {
+        
+        
+        
+        return 0;
+    }
+
     private void animateTitles() {
         final View prevTextView = getChildAt(0);
         final View nextTextView = getChildAt(getChildCount() - 1);
