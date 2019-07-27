@@ -116,29 +116,7 @@ public:
                         nsIContent** aResult);
 
     static nsresult
-    GetElementResource(nsIContent* aElement, nsIRDFResource** aResult);
-
-    static nsresult
     GetTextForNode(nsIRDFNode* aNode, nsAString& aResult);
-
-    
-
-
-
-
-    static nsresult
-    MakeElementURI(nsIDocument* aDocument, const nsAString& aElementID, nsCString& aURI);
-
-    static nsresult
-    MakeElementResource(nsIDocument* aDocument, const nsAString& aElementID, nsIRDFResource** aResult);
-
-    
-
-
-
-
-    static nsresult
-    MakeElementID(nsIDocument* aDocument, const nsACString& aURI, nsAString& aElementID);
 
     static nsresult
     GetResource(int32_t aNameSpaceID, nsIAtom* aAttribute, nsIRDFResource** aResult);

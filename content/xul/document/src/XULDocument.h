@@ -22,6 +22,7 @@
 #include "nsScriptLoader.h"
 #include "nsIStreamListener.h"
 #include "nsICSSLoaderObserver.h"
+#include "nsIXULStore.h"
 
 #include "mozilla/Attributes.h"
 
@@ -259,7 +260,7 @@ protected:
 
     nsresult ApplyPersistentAttributes();
     nsresult ApplyPersistentAttributesInternal();
-    nsresult ApplyPersistentAttributesToElements(nsIRDFResource* aResource,
+    nsresult ApplyPersistentAttributesToElements(const nsAString &aID,
                                                  nsCOMArray<nsIContent>& aElements);
 
     nsresult
@@ -314,10 +315,10 @@ protected:
     
     
     nsTHashtable<nsRefMapEntry> mRefMap;
-    nsCOMPtr<nsIRDFDataSource> mLocalStore;
-    bool                       mApplyingPersistedAttrs;
-    bool                       mIsWritingFastLoad;
-    bool                       mDocumentLoaded;
+    nsCOMPtr<nsIXULStore>       mLocalStore;
+    bool                        mApplyingPersistedAttrs;
+    bool                        mIsWritingFastLoad;
+    bool                        mDocumentLoaded;
     
 
 
