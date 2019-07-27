@@ -139,7 +139,8 @@ loop.store.ActiveRoomStore = (function() {
         "remotePeerDisconnected",
         "remotePeerConnected",
         "windowUnload",
-        "leaveRoom"
+        "leaveRoom",
+        "resetRoom"
       ]);
     },
 
@@ -362,9 +363,7 @@ loop.store.ActiveRoomStore = (function() {
 
 
     remotePeerConnected: function() {
-      this.setStoreState({
-        roomState: ROOM_STATES.HAS_PARTICIPANTS
-      });
+      this.setStoreState({roomState: ROOM_STATES.HAS_PARTICIPANTS});
 
       
       this._mozLoop.setLoopPref("seenToS", "seen");
@@ -373,12 +372,10 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
+
+
     remotePeerDisconnected: function() {
-      
-      
-      this.setStoreState({
-        roomState: ROOM_STATES.SESSION_CONNECTED
-      });
+      this.setStoreState({roomState: ROOM_STATES.SESSION_CONNECTED});
     },
 
     
@@ -452,9 +449,14 @@ loop.store.ActiveRoomStore = (function() {
           this._storeState.sessionToken);
       }
 
-      this.setStoreState({
-        roomState: nextState ? nextState : ROOM_STATES.ENDED
-      });
+      this.setStoreState({roomState: nextState || ROOM_STATES.ENDED});
+    },
+
+    
+
+
+    resetRoom: function() {
+      this.setStoreState(this.getInitialStoreState());
     }
   });
 

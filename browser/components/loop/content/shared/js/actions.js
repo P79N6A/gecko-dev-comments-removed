@@ -333,6 +333,12 @@ loop.shared.actions = (function() {
     
 
 
+    ResetRoom: Action.define("resetRoom", {
+    }),
+
+    
+
+
     LeaveRoom: Action.define("leaveRoom", {
     }),
 
