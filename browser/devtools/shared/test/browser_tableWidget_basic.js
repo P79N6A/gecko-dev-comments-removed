@@ -36,6 +36,7 @@ function test() {
         emptyText: "This is dummy empty text",
         highlightUpdated: true,
         removableColumns: true,
+        firstColumn: "col4"
       });
       startTests();
     });
@@ -126,11 +127,41 @@ function populateTable() {
 function testTreeItemInsertedCorrectly() {
   is(table.tbody.children.length, 4*2 ,
      "4 columns exist");
-  for (let i = 0; i < 4; i++) {
-    is(table.tbody.children[i*2].firstChild.children.length, 9 + 1 ,
+
+  
+  is(table.tbody.children[0].firstChild.children.length, 9 + 1 ,
+     "Correct rows in column 4");
+  is(table.tbody.children[0].firstChild.firstChild.value, "Column 4",
+     "Correct column header value");
+
+  for (let i = 1; i < 4; i++) {
+    is(table.tbody.children[i * 2].firstChild.children.length, 9 + 1 ,
        "Correct rows in column " + i);
-    is(table.tbody.children[i*2].firstChild.firstChild.value, "Column " + (i + 1),
+    is(table.tbody.children[i * 2].firstChild.firstChild.value, "Column " + i,
        "Correct column header value");
+  }
+  for (let i = 1; i < 10; i++) {
+    is(table.tbody.children[2].firstChild.children[i].value, "id" + i,
+     "Correct value in row " + i);
+  }
+
+  
+  table.clear();
+  table.firstColumn = "";
+  table.setColumns({
+    col1: "Column 1",
+    col2: "Column 2",
+    col3: "Column 3",
+    col4: "Column 4"
+  });
+  populateTable();
+
+  
+  for (let i = 0; i < 4; i++) {
+  is(table.tbody.children[i * 2].firstChild.children.length, 9 + 1 ,
+     "Correct rows in column " + i);
+  is(table.tbody.children[i * 2].firstChild.firstChild.value, "Column " + (i + 1),
+     "Correct column header value");
   }
   for (let i = 1; i < 10; i++) {
     is(table.tbody.firstChild.firstChild.children[i].value, "id" + i,
