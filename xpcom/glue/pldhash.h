@@ -244,7 +244,7 @@ public:
   void Finish();
 
   PLDHashEntryHdr* Search(const void* aKey);
-  PLDHashEntryHdr* Add(const void* aKey);
+  PLDHashEntryHdr* Add(const void* aKey, const mozilla::fallible_t&);
   void Remove(const void* aKey);
 
   void RawRemove(PLDHashEntryHdr* aEntry);
@@ -489,6 +489,14 @@ PL_DHashTableSearch(PLDHashTable* aTable, const void* aKey);
 
 
 
+
+
+
+
+
+PLDHashEntryHdr* PL_DHASH_FASTCALL
+PL_DHashTableAdd(PLDHashTable* aTable, const void* aKey,
+                 const mozilla::fallible_t&);
 
 
 
