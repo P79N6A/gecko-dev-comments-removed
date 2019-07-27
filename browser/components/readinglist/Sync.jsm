@@ -196,7 +196,7 @@ SyncImpl.prototype = {
     };
     let batchResponse = yield this._postBatch(request);
     if (batchResponse.status != 200) {
-      this._handleUnexpectedResponse("uploading changes", batchResponse);
+      this._handleUnexpectedResponse(true, "uploading changes", batchResponse);
       return;
     }
 
@@ -215,7 +215,7 @@ SyncImpl.prototype = {
         continue;
       }
       if (response.status != 200) {
-        this._handleUnexpectedResponse("uploading a change", response);
+        this._handleUnexpectedResponse(false, "uploading a change", response);
         continue;
       }
       
@@ -259,7 +259,7 @@ SyncImpl.prototype = {
     };
     let batchResponse = yield this._postBatch(request);
     if (batchResponse.status != 200) {
-      this._handleUnexpectedResponse("uploading new items", batchResponse);
+      this._handleUnexpectedResponse(true, "uploading new items", batchResponse);
       return;
     }
 
@@ -281,7 +281,7 @@ SyncImpl.prototype = {
         log.debug("Attempting to upload a new item found the server already had it", response);
         
       } else if (response.status != 201) {
-        this._handleUnexpectedResponse("uploading a new item", response);
+        this._handleUnexpectedResponse(false, "uploading a new item", response);
         continue;
       }
       let item = yield this.list.itemForURL(response.body.url);
@@ -320,7 +320,7 @@ SyncImpl.prototype = {
     };
     let batchResponse = yield this._postBatch(request);
     if (batchResponse.status != 200) {
-      this._handleUnexpectedResponse("uploading deleted items", batchResponse);
+      this._handleUnexpectedResponse(true, "uploading deleted items", batchResponse);
       return;
     }
 
@@ -329,7 +329,7 @@ SyncImpl.prototype = {
       
       
       if (response.status != 200 && response.status != 404) {
-        this._handleUnexpectedResponse("uploading a deleted item", response);
+        this._handleUnexpectedResponse(false, "uploading a deleted item", response);
         continue;
       }
       yield this._deleteItemForGUID(response.body.id);
@@ -355,7 +355,7 @@ SyncImpl.prototype = {
     };
     let response = yield this._sendRequest(request);
     if (response.status != 200) {
-      this._handleUnexpectedResponse("downloading modified items", response);
+      this._handleUnexpectedResponse(true, "downloading modified items", response);
       return;
     }
 
@@ -549,8 +549,16 @@ SyncImpl.prototype = {
     return bigResponse;
   }),
 
-  _handleUnexpectedResponse(contextMsgFragment, response) {
+  _handleUnexpectedResponse(isTopLevel, contextMsgFragment, response) {
     log.error(`Unexpected response ${contextMsgFragment}`, response);
+    
+    
+    
+    
+    
+    if (isTopLevel && (response.status == 401 || response.status >= 500)) {
+      throw new Error("Sync aborted due to " + response.status + " server response.");
+    }
   },
 
   
