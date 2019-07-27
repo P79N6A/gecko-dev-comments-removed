@@ -94,13 +94,16 @@ public:
     
     void load();
 
-    size_t sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+    
+    static size_t sizeOfLoaders(mozilla::MallocSizeOf aMallocSizeOf);
 
 private:
     
     explicit HRTFDatabaseLoader(float sampleRate);
     ~HRTFDatabaseLoader();
-    
+
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
     void ProxyRelease(); 
     void MainThreadRelease(); 
     class ProxyReleaseEvent;
@@ -117,6 +120,12 @@ private:
             , mLoader() 
         {
         }
+
+        size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+        {
+            return mLoader ? mLoader->sizeOfIncludingThis(aMallocSizeOf) : 0;
+        }
+
         HRTFDatabaseLoader* mLoader;
     };
 
