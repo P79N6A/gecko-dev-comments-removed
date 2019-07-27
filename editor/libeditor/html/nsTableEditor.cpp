@@ -1942,13 +1942,12 @@ nsHTMLEditor::SplitCellIntoRows(nsIDOMElement *aTable, int32_t aRowIndex, int32_
 NS_IMETHODIMP
 nsHTMLEditor::SwitchTableCellHeaderType(nsIDOMElement *aSourceCell, nsIDOMElement **aNewCell)
 {
-  NS_ENSURE_TRUE(aSourceCell, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<Element> sourceCell = do_QueryInterface(aSourceCell);
+  NS_ENSURE_TRUE(sourceCell, NS_ERROR_NULL_POINTER);
 
   nsAutoEditBatch beginBatching(this);
   
   nsAutoRules beginRulesSniffing(this, EditAction::insertNode, nsIEditor::eNext);
-
-  nsCOMPtr<nsIDOMNode> newNode;
 
   
   
@@ -1959,13 +1958,13 @@ nsHTMLEditor::SwitchTableCellHeaderType(nsIDOMElement *aSourceCell, nsIDOMElemen
 
   
   nsCOMPtr<nsIAtom> atom = nsEditor::GetTag(aSourceCell);
-  nsString newCellType( (atom == nsEditProperty::td) ? NS_LITERAL_STRING("th") : NS_LITERAL_STRING("td"));
+  nsIAtom* newCellType = atom == nsEditProperty::td
+    ? nsGkAtoms::th : nsGkAtoms::td;
 
   
   
-  nsresult res = ReplaceContainer(aSourceCell, address_of(newNode),
-                                  newCellType, nullptr, nullptr, true);
-  NS_ENSURE_SUCCESS(res, res);
+  nsCOMPtr<Element> newNode = ReplaceContainer(sourceCell, newCellType,
+      nullptr, nullptr, nsEditor::eCloneAttributes);
   NS_ENSURE_TRUE(newNode, NS_ERROR_FAILURE);
 
   
