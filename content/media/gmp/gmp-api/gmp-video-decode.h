@@ -67,6 +67,11 @@ public:
 
   
   
+  
+  
+  
+  
+  
   virtual GMPErr InitDecode(const GMPVideoCodec& aCodecSettings,
                             const uint8_t* aCodecSpecific,
                             uint32_t aCodecSpecificLength,
@@ -86,11 +91,11 @@ public:
   
   
   
-  
-  
   virtual GMPErr Decode(GMPVideoEncodedFrame* aInputFrame,
                         bool aMissingFrames,
-                        const GMPCodecSpecificInfo& aCodecSpecificInfo,
+                        GMPBufferType aBufferType,
+                        const uint8_t* aCodecSpecificInfo,
+                        uint32_t aCodecSpecificInfoLength,
                         int64_t aRenderTimeMs = -1) = 0;
 
   
