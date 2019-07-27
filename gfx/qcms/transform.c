@@ -1338,6 +1338,16 @@ qcms_transform* qcms_transform_create(
 		result = matrix_multiply(out_matrix, in_matrix);
 
 		
+		for (unsigned i = 0 ; i < 3 ; ++i) {
+			for (unsigned j = 0 ; j < 3 ; ++j) {
+				if (result.m[i][j] != result.m[i][j]) {
+					qcms_transform_release(transform);
+					return NULL;
+				}
+			}
+		}
+
+		
 
 		transform->matrix[0][0] = result.m[0][0];
 		transform->matrix[1][0] = result.m[0][1];
