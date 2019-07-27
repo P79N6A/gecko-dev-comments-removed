@@ -4,6 +4,7 @@
 
 #include "OpusTrackEncoder.h"
 #include "nsString.h"
+#include "GeckoProfiler.h"
 
 #include <opus/opus.h>
 
@@ -204,6 +205,8 @@ OpusTrackEncoder::GetPacketDuration()
 already_AddRefed<TrackMetadataBase>
 OpusTrackEncoder::GetMetadata()
 {
+  PROFILER_LABEL("OpusTrackEncoder", "GetMetadata",
+    js::ProfileEntry::Category::OTHER);
   {
     
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
@@ -244,6 +247,8 @@ OpusTrackEncoder::GetMetadata()
 nsresult
 OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
 {
+  PROFILER_LABEL("OpusTrackEncoder", "GetEncodedTrack",
+    js::ProfileEntry::Category::OTHER);
   {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     

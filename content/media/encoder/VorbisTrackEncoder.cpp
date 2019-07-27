@@ -6,6 +6,7 @@
 #include <ogg/ogg.h>
 #include <vorbis/vorbisenc.h>
 #include "WebMWriter.h"
+#include "GeckoProfiler.h"
 
 
 
@@ -90,6 +91,8 @@ void VorbisTrackEncoder::WriteLacing(nsTArray<uint8_t> *aOutput, int32_t aLacing
 already_AddRefed<TrackMetadataBase>
 VorbisTrackEncoder::GetMetadata()
 {
+  PROFILER_LABEL("VorbisTrackEncoder", "GetMetadata",
+    js::ProfileEntry::Category::OTHER);
   {
     
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
@@ -159,6 +162,9 @@ VorbisTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
   if (mEosSetInEncoder) {
     return NS_OK;
   }
+
+  PROFILER_LABEL("VorbisTrackEncoder", "GetEncodedTrack",
+    js::ProfileEntry::Category::OTHER);
 
   nsAutoPtr<AudioSegment> sourceSegment;
   sourceSegment = new AudioSegment();
