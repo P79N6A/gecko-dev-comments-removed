@@ -323,6 +323,12 @@ public:
 
   static mozilla::TemporaryRef<mozilla::gfx::Path>
   GetPath(const nsAString& aPathString);
+
+  
+
+
+
+  static bool ShapeTypeHasNoCorners(const nsIContent* aContent);
 };
 
 #endif
