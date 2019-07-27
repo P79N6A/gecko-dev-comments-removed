@@ -861,13 +861,19 @@ Accessible::Attributes()
     return attributes.forget();
 
   
-  nsAutoString xmlRoles, unused;
-  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::role, xmlRoles)) {
-    attributes->SetStringProperty(NS_LITERAL_CSTRING("xml-roles"),
-                                  xmlRoles, unused);
+  nsIAtom* landmark = LandmarkRole();
+  if (landmark) {
+    nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles, landmark);
+
+  } else {
+    
+    nsAutoString xmlRoles;
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::role, xmlRoles))
+      nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles, xmlRoles);
   }
 
   
+  nsAutoString unused;
   aria::AttrIterator attribIter(mContent);
   nsAutoString name, value;
   while(attribIter.Next(name, value))
@@ -1388,6 +1394,13 @@ Accessible::ARIATransformRole(role aRole)
   }
 
   return aRole;
+}
+
+nsIAtom*
+Accessible::LandmarkRole() const
+{
+  return mRoleMapEntry && mRoleMapEntry->IsOfType(eLandmark) ?
+    *(mRoleMapEntry->roleAtom) : nullptr;
 }
 
 role

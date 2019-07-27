@@ -34,10 +34,6 @@ static const uint32_t kGenericAccType = 0;
 
 
 
-
-
-
-
 static nsRoleMapEntry sWAIRoleMaps[] =
 {
   { 
@@ -67,7 +63,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kGenericAccType,
+    eLandmark,
     kNoReqStates
   },
   { 
@@ -80,6 +76,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kGenericAccType,
     kNoReqStates,
     eReadonlyUntilEditable
+  },
+  { 
+    &nsGkAtoms::banner,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
   },
   { 
     &nsGkAtoms::button,
@@ -130,6 +136,26 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAOrientation
   },
   { 
+    &nsGkAtoms::complementary,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
+  { 
+    &nsGkAtoms::contentinfo,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
+  { 
     &nsGkAtoms::dialog,
     roles::DIALOG,
     kUseMapRole,
@@ -167,7 +193,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kGenericAccType,
+    eLandmark,
     kNoReqStates
   },
   { 
@@ -291,6 +317,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates
   },
   { 
+    &nsGkAtoms::main,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
+  { 
     &nsGkAtoms::marquee,
     roles::ANIMATION,
     kUseMapRole,
@@ -365,6 +401,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kGenericAccType,
     kNoReqStates,
     eARIACheckableBool
+  },
+  { 
+    &nsGkAtoms::navigation,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
   },
   { 
     &nsGkAtoms::none,
@@ -495,6 +541,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     states::VERTICAL,
     eARIAOrientation,
     eARIAReadonly
+  },
+  { 
+    &nsGkAtoms::search,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
   },
   { 
     &nsGkAtoms::searchbox,

@@ -233,6 +233,11 @@ public:
   
 
 
+  virtual nsIAtom* LandmarkRole() const;
+
+  
+
+
 
   virtual mozilla::a11y::role NativeRole();
 
@@ -620,6 +625,8 @@ public:
 
   bool IsRoot() const { return mType == eRootType; }
   a11y::RootAccessible* AsRoot();
+
+  bool IsSearchbox() const;
 
   bool IsSelect() const { return HasGenericType(eSelect); }
 
@@ -1098,7 +1105,7 @@ protected:
   static const uint8_t kStateFlagsBits = 9;
   static const uint8_t kContextFlagsBits = 2;
   static const uint8_t kTypeBits = 6;
-  static const uint8_t kGenericTypesBits = 13;
+  static const uint8_t kGenericTypesBits = 14;
 
   
 
