@@ -40,19 +40,12 @@ public class TabQueueDispatcher extends Locales.LocaleAwareActivity {
         
         if (!AppConstants.MOZ_ANDROID_TAB_QUEUE) {
             loadNormally(intent.getUnsafe());
-            finish();
+            return;
         }
 
         
         final String dataString = intent.getDataString();
         if (TextUtils.isEmpty(dataString)) {
-            abortDueToNoURL(dataString);
-            return;
-        }
-
-        
-        final String pageUrl = new WebURLFinder(dataString).bestWebURL();
-        if (TextUtils.isEmpty(pageUrl)) {
             abortDueToNoURL(dataString);
             return;
         }
