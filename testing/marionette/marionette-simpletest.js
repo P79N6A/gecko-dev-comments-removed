@@ -2,17 +2,11 @@
 
 
 
-let {utils: Cu} = Components;
-
-Cu.import("chrome://marionette/content/error.js");
-
-this.EXPORTED_SYMBOLS = ["Marionette"];
 
 
 
-
-this.Marionette = function(scope, window, context, logObj, timeout,
-                           heartbeatCallback, testName) {
+this.Marionette = function Marionette(scope, window, context, logObj, timeout,
+                                      heartbeatCallback, testName) {
   this.scope = scope;
   this.window = window;
   this.tests = [];
@@ -25,25 +19,12 @@ this.Marionette = function(scope, window, context, logObj, timeout,
   this.TEST_UNEXPECTED_PASS = "TEST-UNEXPECTED-PASS";
   this.TEST_PASS = "TEST-PASS";
   this.TEST_KNOWN_FAIL = "TEST-KNOWN-FAIL";
-};
+}
 
 Marionette.prototype = {
-  exports: [
-    "ok",
-    "is",
-    "isnot",
-    "todo",
-    "log",
-    "getLogs",
-    "generate_results",
-    "waitFor",
-    "runEmulatorCmd",
-    "runEmulatorShell",
-    "TEST_PASS",
-    "TEST_KNOWN_FAIL",
-    "TEST_UNEXPECTED_FAIL",
-    "TEST_UNEXPECTED_PASS"
-  ],
+  exports: ['ok', 'is', 'isnot', 'todo', 'log', 'getLogs', 'generate_results', 'waitFor',
+            'runEmulatorCmd', 'runEmulatorShell', 'TEST_PASS', 'TEST_KNOWN_FAIL',
+            'TEST_UNEXPECTED_FAIL', 'TEST_UNEXPECTED_PASS'],
 
   addTest: function Marionette__addTest(condition, name, passString, failString, diag, state) {
 
@@ -213,4 +194,6 @@ Marionette.prototype = {
     this.heartbeatCallback();
     this.scope.runEmulatorShell(args, callback);
   },
+
 };
+
