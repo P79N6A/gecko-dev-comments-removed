@@ -14,6 +14,7 @@ namespace gmp {
 GMPDecryptorParent::GMPDecryptorParent(GMPContentParent* aPlugin)
   : mIsOpen(false)
   , mShuttingDown(false)
+  , mActorDestroyed(false)
   , mPlugin(aPlugin)
   , mCallback(nullptr)
 #ifdef DEBUG
@@ -347,7 +348,9 @@ GMPDecryptorParent::Shutdown()
   }
 
   mIsOpen = false;
-  unused << SendDecryptingComplete();
+  if (!mActorDestroyed) {
+    unused << SendDecryptingComplete();
+  }
 }
 
 
@@ -355,6 +358,7 @@ void
 GMPDecryptorParent::ActorDestroy(ActorDestroyReason aWhy)
 {
   mIsOpen = false;
+  mActorDestroyed = true;
   if (mCallback) {
     
     mCallback->Terminated();
