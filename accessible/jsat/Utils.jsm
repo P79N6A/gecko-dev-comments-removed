@@ -832,6 +832,25 @@ PivotContext.prototype = {
 
 
 
+  get interactionHints() {
+    let hints = [];
+    this.newAncestry.concat(this.accessible).reverse().forEach(aAccessible => {
+      let hint = Utils.getAttributes(aAccessible)['moz-hint'];
+      if (hint) {
+        hints.push(hint);
+      } else if (aAccessible.actionCount > 0) {
+        hints.push({
+          string: Utils.AccRetrieval.getStringRole(aAccessible.role) + '-hint'
+        });
+      }
+    });
+    return hints;
+  },
+
+  
+
+
+
 
 
 
