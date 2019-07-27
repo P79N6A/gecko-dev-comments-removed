@@ -56,13 +56,13 @@ public:
 
 
 
-  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len);
+  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len) MOZ_OVERRIDE;
 
   
 
 
 
-  virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len);
+  virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) MOZ_OVERRIDE;
 
   
 
@@ -72,7 +72,7 @@ public:
 
 
 
-  virtual MediaConduitErrorCode ConfigureSendMediaCodec(const AudioCodecConfig* codecConfig);
+  virtual MediaConduitErrorCode ConfigureSendMediaCodec(const AudioCodecConfig* codecConfig) MOZ_OVERRIDE;
   
 
 
@@ -83,18 +83,18 @@ public:
 
 
   virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
-    const std::vector<AudioCodecConfig* >& codecConfigList);
+    const std::vector<AudioCodecConfig* >& codecConfigList) MOZ_OVERRIDE;
   
 
 
 
-  virtual MediaConduitErrorCode EnableAudioLevelExtension(bool enabled, uint8_t id);
+  virtual MediaConduitErrorCode EnableAudioLevelExtension(bool enabled, uint8_t id) MOZ_OVERRIDE;
 
   
 
 
 
-  virtual MediaConduitErrorCode AttachTransport(mozilla::RefPtr<TransportInterface> aTransport);
+  virtual MediaConduitErrorCode AttachTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
   
 
 
@@ -114,7 +114,7 @@ public:
   virtual MediaConduitErrorCode SendAudioFrame(const int16_t speechData[],
                                                int32_t lengthSamples,
                                                int32_t samplingFreqHz,
-                                               int32_t capture_time);
+                                               int32_t capture_time) MOZ_OVERRIDE;
 
   
 
@@ -135,23 +135,23 @@ public:
    virtual MediaConduitErrorCode GetAudioFrame(int16_t speechData[],
                                               int32_t samplingFreqHz,
                                               int32_t capture_delay,
-                                              int& lengthSamples);
+                                              int& lengthSamples) MOZ_OVERRIDE;
 
 
   
 
 
 
-  virtual int SendPacket(int channel, const void *data, int len) ;
+  virtual int SendPacket(int channel, const void *data, int len) MOZ_OVERRIDE;
 
   
 
 
 
-  virtual int SendRTCPPacket(int channel, const void *data, int len) ;
+  virtual int SendRTCPPacket(int channel, const void *data, int len) MOZ_OVERRIDE;
 
 
-  virtual uint64_t CodecPluginID() { return 0; }
+  virtual uint64_t CodecPluginID() MOZ_OVERRIDE { return 0; }
 
   WebrtcAudioConduit():
                       mOtherDirection(nullptr),
@@ -178,14 +178,14 @@ public:
   int GetChannel() { return mChannel; }
   webrtc::VoiceEngine* GetVoiceEngine() { return mVoiceEngine; }
   bool SetLocalSSRC(unsigned int ssrc) MOZ_OVERRIDE;
-  bool GetLocalSSRC(unsigned int* ssrc);
-  bool GetRemoteSSRC(unsigned int* ssrc);
+  bool GetLocalSSRC(unsigned int* ssrc) MOZ_OVERRIDE;
+  bool GetRemoteSSRC(unsigned int* ssrc) MOZ_OVERRIDE;
   bool SetLocalCNAME(const char* cname) MOZ_OVERRIDE;
   bool GetVideoEncoderStats(double* framerateMean,
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* droppedFrames)
+                            uint32_t* droppedFrames) MOZ_OVERRIDE
   {
     return false;
   }
@@ -193,23 +193,23 @@ public:
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* discardedPackets)
+                            uint32_t* discardedPackets) MOZ_OVERRIDE
   {
     return false;
   }
   bool GetAVStats(int32_t* jitterBufferDelayMs,
                   int32_t* playoutBufferDelayMs,
-                  int32_t* avSyncOffsetMs);
-  bool GetRTPStats(unsigned int* jitterMs, unsigned int* cumulativeLost);
+                  int32_t* avSyncOffsetMs) MOZ_OVERRIDE;
+  bool GetRTPStats(unsigned int* jitterMs, unsigned int* cumulativeLost) MOZ_OVERRIDE;
   bool GetRTCPReceiverReport(DOMHighResTimeStamp* timestamp,
                              uint32_t* jitterMs,
                              uint32_t* packetsReceived,
                              uint64_t* bytesReceived,
                              uint32_t *cumulativeLost,
-                             int32_t* rttMs);
+                             int32_t* rttMs) MOZ_OVERRIDE;
   bool GetRTCPSenderReport(DOMHighResTimeStamp* timestamp,
                            unsigned int* packetsSent,
-                           uint64_t* bytesSent);
+                           uint64_t* bytesSent) MOZ_OVERRIDE;
 
 private:
   WebrtcAudioConduit(const WebrtcAudioConduit& other) MOZ_DELETE;
