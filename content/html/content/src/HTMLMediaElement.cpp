@@ -2952,18 +2952,6 @@ void HTMLMediaElement::FirstFrameLoaded()
       mPreloadAction == HTMLMediaElement::PRELOAD_METADATA) {
     mSuspendedAfterFirstFrame = true;
     mDecoder->Suspend();
-  } else if (mDownloadSuspendedByCache &&
-             mDecoder && !mDecoder->IsEnded()) {
-    
-    
-    
-    
-    
-    
-    
-    
-    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
-    return;
   }
 }
 
@@ -3058,7 +3046,6 @@ void HTMLMediaElement::SeekStarted()
   if(mPlayingThroughTheAudioChannel) {
     mPlayingThroughTheAudioChannelBeforeSeek = true;
   }
-  ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
   FireTimeUpdate(false);
 }
 
@@ -3130,6 +3117,11 @@ void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatu
   
   
   if (aNextFrame == MediaDecoderOwner::NEXT_FRAME_WAIT_FOR_MSE_DATA) {
+    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
+    return;
+  }
+
+  if (aNextFrame == MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING) {
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
     return;
   }
@@ -3208,7 +3200,7 @@ void HTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
 
   
   if (mPlayingBeforeSeek &&
-      oldState < nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA) {
+      mReadyState < nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA) {
     DispatchAsyncEvent(NS_LITERAL_STRING("waiting"));
   }
 
