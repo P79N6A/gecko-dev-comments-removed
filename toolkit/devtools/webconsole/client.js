@@ -7,6 +7,7 @@
 "use strict";
 
 const {Cc, Ci, Cu} = require("chrome");
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 
 loader.lazyImporter(this, "LongStringClient", "resource://gre/modules/devtools/dbg-client.jsm");
 
@@ -27,7 +28,13 @@ function WebConsoleClient(aDebuggerClient, aResponse)
   this._longStrings = {};
   this.traits = aResponse.traits || {};
   this.events = [];
+
+  this.pendingEvaluationResults = new Map();
+  this.onEvaluationResult = this.onEvaluationResult.bind(this);
+
+  this._client.addListener("evaluationResult", this.onEvaluationResult);
 }
+
 exports.WebConsoleClient = WebConsoleClient;
 
 WebConsoleClient.prototype = {
@@ -122,6 +129,44 @@ WebConsoleClient.prototype = {
       selectedNodeActor: aOptions.selectedNodeActor,
     };
     this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+  evaluateJSAsync: function(aString, aOnResponse, aOptions = {})
+  {
+    let packet = {
+      to: this._actor,
+      type: "evaluateJSAsync",
+      text: aString,
+      bindObjectActor: aOptions.bindObjectActor,
+      frameActor: aOptions.frameActor,
+      url: aOptions.url,
+      selectedNodeActor: aOptions.selectedNodeActor,
+    };
+
+    this._client.request(packet, response => {
+      this.pendingEvaluationResults.set(response.resultID, aOnResponse);
+    });
+  },
+
+  
+
+
+  onEvaluationResult: function(aNotification, aPacket) {
+    
+    
+    
+    let onResponse = this.pendingEvaluationResults.get(aPacket.resultID);
+    if (onResponse) {
+      onResponse(aPacket);
+      this.pendingEvaluationResults.delete(aPacket.resultID);
+    } else {
+      DevToolsUtils.reportException("onEvaluationResult",
+        "No response handler for an evaluateJSAsync result (resultID: " + aPacket.resultID + ")");
+    }
   },
 
   
@@ -400,8 +445,11 @@ WebConsoleClient.prototype = {
 
   detach: function WCC_detach(aOnResponse)
   {
+    this._client.removeListener("evaluationResult", this.onEvaluationResult);
     this.stopListeners(null, aOnResponse);
     this._longStrings = null;
     this._client = null;
+    this.pendingEvaluationResults.clear();
+    this.pendingEvaluationResults = null;
   },
 };

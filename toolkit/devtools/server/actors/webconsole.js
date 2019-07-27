@@ -737,6 +737,39 @@ WebConsoleActor.prototype =
 
 
 
+
+
+
+  onEvaluateJSAsync: function WCA_onEvaluateJSAsync(aRequest)
+  {
+    
+    
+
+    
+    let resultID = Date.now();
+    this.conn.send({
+      from: this.actorID,
+      resultID: resultID
+    });
+
+    
+    let response = this.onEvaluateJS(aRequest);
+    response.resultID = resultID;
+
+    
+    
+    this.conn.sendActorEvent(this.actorID, "evaluationResult", response);
+  },
+
+  
+
+
+
+
+
+
+
+
   onEvaluateJS: function WCA_onEvaluateJS(aRequest)
   {
     let input = aRequest.text;
@@ -1471,6 +1504,7 @@ WebConsoleActor.prototype.requestTypes =
   stopListeners: WebConsoleActor.prototype.onStopListeners,
   getCachedMessages: WebConsoleActor.prototype.onGetCachedMessages,
   evaluateJS: WebConsoleActor.prototype.onEvaluateJS,
+  evaluateJSAsync: WebConsoleActor.prototype.onEvaluateJSAsync,
   autocomplete: WebConsoleActor.prototype.onAutocomplete,
   clearMessagesCache: WebConsoleActor.prototype.onClearMessagesCache,
   getPreferences: WebConsoleActor.prototype.onGetPreferences,
