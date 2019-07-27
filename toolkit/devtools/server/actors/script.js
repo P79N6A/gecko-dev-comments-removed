@@ -4697,26 +4697,12 @@ BreakpointActor.prototype = {
 
 
 
-
-
-
-  checkCondition: function(aFrame) {
-    let completion = aFrame.eval(this.condition);
-    if (completion) {
-      if (completion.throw) {
-        
-        
-        return true;
-      } else if (completion.yield) {
-        dbg_assert(false,
-                   "Shouldn't ever get yield completions from an eval");
-      } else {
-        return completion.return ? true : false;
-      }
-    } else {
-      
-      return undefined;
+  isValidCondition: function(aFrame) {
+    if (!this.condition) {
+      return true;
     }
+    var res = aFrame.eval(this.condition);
+    return res.return;
   },
 
   
@@ -4734,20 +4720,18 @@ BreakpointActor.prototype = {
     let url = sourceActor.url;
 
     if (this.threadActor.sources.isBlackBoxed(url)
-        || aFrame.onStep) {
+        || aFrame.onStep
+        || !this.isValidCondition(aFrame)) {
       return undefined;
     }
 
     let reason = {};
-
     if (this.threadActor._hiddenBreakpoints.has(this.actorID)) {
       reason.type = "pauseOnDOMEvents";
-    } else if (!this.condition || this.checkCondition(aFrame)) {
+    } else {
       reason.type = "breakpoint";
       
       reason.actors = [ this.actorID ];
-    } else {
-      return undefined;
     }
     return this.threadActor._pauseAndRespond(aFrame, reason);
   },

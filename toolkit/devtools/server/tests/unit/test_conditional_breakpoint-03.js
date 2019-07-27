@@ -33,8 +33,8 @@ function test_simple_breakpoint()
     }, function (aResponse, bpClient) {
       gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
         
-        do_check_eq(aPacket.why.type, "breakpoint");
-        do_check_eq(aPacket.frame.where.line, 3);
+        do_check_eq(aPacket.why.type, "debuggerStatement");
+        do_check_eq(aPacket.frame.where.line, 4);
 
         
         bpClient.remove(function (aResponse) {
@@ -53,7 +53,8 @@ function test_simple_breakpoint()
 
   Components.utils.evalInSandbox("debugger;\n" +   
                                  "var a = 1;\n" +  
-                                 "var b = 2;\n",  
+                                 "var b = 2;\n" +  
+                                 "debugger;",      
                                  gDebuggee,
                                  "1.8",
                                  "test.js",

@@ -711,7 +711,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     lineTextNode.setAttribute("crop", "end");
     lineTextNode.setAttribute("flex", "1");
 
-    let tooltip = text ? text.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH) : "";
+    let tooltip = text.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH);
     lineTextNode.setAttribute("tooltiptext", tooltip);
 
     let container = document.createElement("hbox");
