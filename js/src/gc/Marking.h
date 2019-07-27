@@ -208,17 +208,6 @@ MarkGCThingUnbarriered(JSTracer* trc, void** thingp, const char* name);
 
 
 
-bool
-IsValueMarked(Value* v);
-
-bool
-IsValueAboutToBeFinalized(Value* v);
-
-
-
-bool
-IsSlotMarked(HeapSlot* s);
-
 void
 MarkObjectSlots(JSTracer* trc, NativeObject* obj, uint32_t start, uint32_t nslots);
 
@@ -238,48 +227,28 @@ PushArena(GCMarker* gcmarker, ArenaHeader* aheader);
 
 
 template <typename T>
-static bool
-IsMarked(T** thingp);
+bool
+IsMarkedUnbarriered(T* thingp);
 
-inline bool
-IsMarked(BarrieredBase<Value>* v)
-{
-    if (!v->isMarkable())
-        return true;
-    return IsValueMarked(v->unsafeGet());
-}
+template <typename T>
+bool
+IsMarked(BarrieredBase<T>* thingp);
 
-inline bool
-IsMarked(BarrieredBase<JSObject*>* objp)
-{
-    return IsObjectMarked(objp);
-}
+template <typename T>
+bool
+IsMarked(ReadBarriered<T>* thingp);
 
-inline bool
-IsMarked(BarrieredBase<JSScript*>* scriptp)
-{
-    return IsScriptMarked(scriptp);
-}
+template <typename T>
+bool
+IsAboutToBeFinalizedUnbarriered(T* thingp);
 
-inline bool
-IsAboutToBeFinalized(BarrieredBase<Value>* v)
-{
-    if (!v->isMarkable())
-        return false;
-    return IsValueAboutToBeFinalized(v->unsafeGet());
-}
+template <typename T>
+bool
+IsAboutToBeFinalized(BarrieredBase<T>* thingp);
 
-inline bool
-IsAboutToBeFinalized(BarrieredBase<JSObject*>* objp)
-{
-    return IsObjectAboutToBeFinalized(objp);
-}
-
-inline bool
-IsAboutToBeFinalized(BarrieredBase<JSScript*>* scriptp)
-{
-    return IsScriptAboutToBeFinalized(scriptp);
-}
+template <typename T>
+bool
+IsAboutToBeFinalized(ReadBarriered<T>* thingp);
 
 inline bool
 IsAboutToBeFinalized(const js::jit::VMFunction** vmfunc)
@@ -289,12 +258,6 @@ IsAboutToBeFinalized(const js::jit::VMFunction** vmfunc)
 
 
     return false;
-}
-
-inline bool
-IsAboutToBeFinalized(ReadBarrieredJitCode code)
-{
-    return IsJitCodeAboutToBeFinalized(code.unsafeGet());
 }
 
 inline Cell*
