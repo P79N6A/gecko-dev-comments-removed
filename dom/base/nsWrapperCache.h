@@ -14,6 +14,14 @@
 #include "js/RootingAPI.h"
 #include "js/TracingAPI.h"
 
+namespace mozilla {
+namespace dom {
+class TabChildGlobal;
+} 
+} 
+class SandboxPrivate;
+class nsInProcessTabChildGlobal;
+class nsWindowRoot;
 class XPCWrappedNativeScope;
 
 #define NS_WRAPPERCACHE_IID \
@@ -136,14 +144,14 @@ public:
 
   void SetIsDOMBinding()
   {
-    MOZ_ASSERT(!mWrapper && !(GetWrapperFlags() & ~WRAPPER_IS_DOM_BINDING),
+    MOZ_ASSERT(!mWrapper && !(GetWrapperFlags() & ~WRAPPER_IS_NOT_DOM_BINDING),
                "This flag should be set before creating any wrappers.");
-    SetWrapperFlags(WRAPPER_IS_DOM_BINDING);
+    UnsetWrapperFlags(WRAPPER_IS_NOT_DOM_BINDING);
   }
 
   bool IsDOMBinding() const
   {
-    return HasWrapperFlag(WRAPPER_IS_DOM_BINDING);
+    return !HasWrapperFlag(WRAPPER_IS_NOT_DOM_BINDING);
   }
 
   
@@ -261,6 +269,17 @@ protected:
   }
 
 private:
+  friend class mozilla::dom::TabChildGlobal;
+  friend class SandboxPrivate;
+  friend class nsInProcessTabChildGlobal;
+  friend class nsWindowRoot;
+  void SetIsNotDOMBinding()
+  {
+    MOZ_ASSERT(!mWrapper && !(GetWrapperFlags() & ~WRAPPER_IS_NOT_DOM_BINDING),
+               "This flag should be set before creating any wrappers.");
+    SetWrapperFlags(WRAPPER_IS_NOT_DOM_BINDING);
+  }
+
   JSObject *GetWrapperJSObject() const
   {
     return mWrapper;
@@ -269,7 +288,7 @@ private:
   void SetWrapperJSObject(JSObject* aWrapper)
   {
     mWrapper = aWrapper;
-    UnsetWrapperFlags(kWrapperFlagsMask & ~WRAPPER_IS_DOM_BINDING);
+    UnsetWrapperFlags(kWrapperFlagsMask & ~WRAPPER_IS_NOT_DOM_BINDING);
   }
 
   void TraceWrapperJSObject(JSTracer* aTrc, const char* aName);
@@ -322,9 +341,9 @@ private:
 
 
 
-  enum { WRAPPER_IS_DOM_BINDING = 1 << 1 };
+  enum { WRAPPER_IS_NOT_DOM_BINDING = 1 << 1 };
 
-  enum { kWrapperFlagsMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_DOM_BINDING) };
+  enum { kWrapperFlagsMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_NOT_DOM_BINDING) };
 
   JS::Heap<JSObject*> mWrapper;
   FlagsType           mFlags;

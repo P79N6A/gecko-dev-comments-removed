@@ -103,6 +103,7 @@ nsInProcessTabChildGlobal::nsInProcessTabChildGlobal(nsIDocShell* aShell,
 : mDocShell(aShell), mInitialized(false), mLoadingScript(false),
   mOwner(aOwner), mChromeMessageManager(aChrome)
 {
+  SetIsNotDOMBinding();
   mozilla::HoldJSObjects(this);
 
   
