@@ -220,4 +220,18 @@ DecodedStream::GetReentrantMonitor()
   return mMonitor;
 }
 
+void
+DecodedStream::Connect(OutputStreamData* aStream)
+{
+  NS_ASSERTION(!aStream->mPort, "Already connected?");
+
+  
+  
+  aStream->mPort = aStream->mStream->AllocateInputPort(mData->mStream,
+      MediaInputPort::FLAG_BLOCK_INPUT | MediaInputPort::FLAG_BLOCK_OUTPUT);
+  
+  
+  aStream->mStream->ChangeExplicitBlockerCount(-1);
+}
+
 } 
