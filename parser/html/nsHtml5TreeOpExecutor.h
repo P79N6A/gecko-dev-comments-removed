@@ -109,42 +109,42 @@ class nsHtml5TreeOpExecutor MOZ_FINAL : public nsHtml5DocumentBuilder,
     
 
 
-    NS_IMETHOD WillParse();
+    NS_IMETHOD WillParse() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode);
+    NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD DidBuildModel(bool aTerminated);
+    NS_IMETHOD DidBuildModel(bool aTerminated) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD WillInterrupt();
+    NS_IMETHOD WillInterrupt() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD WillResume();
+    NS_IMETHOD WillResume() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD SetParser(nsParserBase* aParser);
+    NS_IMETHOD SetParser(nsParserBase* aParser) MOZ_OVERRIDE;
 
     
 
 
-    virtual void FlushPendingNotifications(mozFlushType aType);
+    virtual void FlushPendingNotifications(mozFlushType aType) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD SetDocumentCharset(nsACString& aCharset) {
+    NS_IMETHOD SetDocumentCharset(nsACString& aCharset) MOZ_OVERRIDE {
     	NS_NOTREACHED("No one should call this.");
     	return NS_ERROR_NOT_IMPLEMENTED;
     }
@@ -152,17 +152,11 @@ class nsHtml5TreeOpExecutor MOZ_FINAL : public nsHtml5DocumentBuilder,
     
 
 
-    virtual nsISupports *GetTarget();
+    virtual nsISupports *GetTarget() MOZ_OVERRIDE;
   
-    virtual void ContinueInterruptedParsingAsync();
- 
-    
-    nsIDocShell* GetDocShell()
-    {
-      return mDocShell;
-    }
+    virtual void ContinueInterruptedParsingAsync() MOZ_OVERRIDE;
 
-    bool IsScriptExecuting()
+    bool IsScriptExecuting() MOZ_OVERRIDE
     {
       return IsScriptExecutingImpl();
     }
@@ -178,7 +172,7 @@ class nsHtml5TreeOpExecutor MOZ_FINAL : public nsHtml5DocumentBuilder,
 
     bool IsScriptEnabled();
 
-    virtual nsresult MarkAsBroken(nsresult aReason);
+    virtual nsresult MarkAsBroken(nsresult aReason) MOZ_OVERRIDE;
 
     void StartLayout();
     
@@ -230,7 +224,7 @@ class nsHtml5TreeOpExecutor MOZ_FINAL : public nsHtml5DocumentBuilder,
 
 
 
-    virtual void MoveOpsFrom(nsTArray<nsHtml5TreeOperation>& aOpQueue);
+    virtual void MoveOpsFrom(nsTArray<nsHtml5TreeOperation>& aOpQueue) MOZ_OVERRIDE;
     
     nsHtml5TreeOpStage* GetStage()
     {

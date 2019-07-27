@@ -42,27 +42,27 @@ class nsHtml5Parser MOZ_FINAL : public nsIParser,
     
 
 
-    NS_IMETHOD_(void) SetContentSink(nsIContentSink* aSink);
+    NS_IMETHOD_(void) SetContentSink(nsIContentSink* aSink) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(nsIContentSink*) GetContentSink();
+    NS_IMETHOD_(nsIContentSink*) GetContentSink() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(void) GetCommand(nsCString& aCommand);
+    NS_IMETHOD_(void) GetCommand(nsCString& aCommand) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(void) SetCommand(const char* aCommand);
+    NS_IMETHOD_(void) SetCommand(const char* aCommand) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(void) SetCommand(eParserCommands aParserCommand);
+    NS_IMETHOD_(void) SetCommand(eParserCommands aParserCommand) MOZ_OVERRIDE;
 
     
 
@@ -71,12 +71,12 @@ class nsHtml5Parser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource);
+    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource)
+    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource) MOZ_OVERRIDE
     {
       NS_NOTREACHED("No one should call this.");
     }
@@ -86,47 +86,47 @@ class nsHtml5Parser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD GetChannel(nsIChannel** aChannel);
+    NS_IMETHOD GetChannel(nsIChannel** aChannel) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD GetDTD(nsIDTD** aDTD);
+    NS_IMETHOD GetDTD(nsIDTD** aDTD) MOZ_OVERRIDE;
 
     
 
 
-    virtual nsIStreamListener* GetStreamListener();
+    virtual nsIStreamListener* GetStreamListener() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD ContinueInterruptedParsing();
+    NS_IMETHOD ContinueInterruptedParsing() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(void) BlockParser();
+    NS_IMETHOD_(void) BlockParser() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(void) UnblockParser();
+    NS_IMETHOD_(void) UnblockParser() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(void) ContinueInterruptedParsingAsync();
+    NS_IMETHOD_(void) ContinueInterruptedParsingAsync() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(bool) IsParserEnabled();
+    NS_IMETHOD_(bool) IsParserEnabled() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD_(bool) IsComplete();
+    NS_IMETHOD_(bool) IsComplete() MOZ_OVERRIDE;
 
     
 
@@ -139,7 +139,7 @@ class nsHtml5Parser MOZ_FINAL : public nsIParser,
     NS_IMETHOD Parse(nsIURI* aURL,
                      nsIRequestObserver* aListener = nullptr,
                      void* aKey = 0,
-                     nsDTDMode aMode = eDTDMode_autodetect);
+                     nsDTDMode aMode = eDTDMode_autodetect) MOZ_OVERRIDE;
 
     
 
@@ -150,57 +150,52 @@ class nsHtml5Parser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD Parse(const nsAString& aSourceBuffer,
-                     void* aKey,
-                     const nsACString& aContentType,
-                     bool aLastCall,
-                     nsDTDMode aMode = eDTDMode_autodetect);
+    nsresult Parse(const nsAString& aSourceBuffer,
+                   void* aKey,
+                   const nsACString& aContentType,
+                   bool aLastCall,
+                   nsDTDMode aMode = eDTDMode_autodetect);
 
     
 
 
-    NS_IMETHOD Terminate();
+    NS_IMETHOD Terminate() MOZ_OVERRIDE;
 
     
 
 
     NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
-                             nsTArray<nsString>& aTagStack);
+                             nsTArray<nsString>& aTagStack) MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHOD BuildModel();
+    NS_IMETHOD BuildModel() MOZ_OVERRIDE;
 
     
 
 
-    NS_IMETHODIMP CancelParsingEvents();
+    NS_IMETHODIMP CancelParsingEvents() MOZ_OVERRIDE;
 
     
 
 
-    virtual void Reset();
-    
-    
-
-
-    virtual bool CanInterrupt();
+    virtual void Reset() MOZ_OVERRIDE;
 
     
 
 
-    virtual bool IsInsertionPointDefined();
+    virtual bool IsInsertionPointDefined() MOZ_OVERRIDE;
 
     
 
 
-    virtual void BeginEvaluatingParserInsertedScript();
+    virtual void BeginEvaluatingParserInsertedScript() MOZ_OVERRIDE;
 
     
 
 
-    virtual void EndEvaluatingParserInsertedScript();
+    virtual void EndEvaluatingParserInsertedScript() MOZ_OVERRIDE;
 
     
 
@@ -209,12 +204,12 @@ class nsHtml5Parser MOZ_FINAL : public nsIParser,
 
 
 
-    virtual void MarkAsNotScriptCreated(const char* aCommand);
+    virtual void MarkAsNotScriptCreated(const char* aCommand) MOZ_OVERRIDE;
 
     
 
 
-    virtual bool IsScriptCreated();
+    virtual bool IsScriptCreated() MOZ_OVERRIDE;
 
     
 
