@@ -199,15 +199,11 @@ class OTSStream {
   unsigned chksum_buffer_offset_;
 };
 
-
-
-
 #ifdef __GCC__
 #define MSGFUNC_FMT_ATTR __attribute__((format(printf, 2, 3)))
 #else
 #define MSGFUNC_FMT_ATTR
 #endif
-typedef bool (*MessageFunc)(void *user_data, const char *format, ...)  MSGFUNC_FMT_ATTR;
 
 enum TableAction {
   TABLE_ACTION_DEFAULT,  
@@ -216,21 +212,9 @@ enum TableAction {
   TABLE_ACTION_DROP      
 };
 
-
-
-
-
-typedef TableAction (*TableActionFunc)(uint32_t tag, void *user_data);
-
 class OTS_API OTSContext {
   public:
-    OTSContext()
-        : message_func(0),
-          message_user_data(0),
-          table_action_func(0),
-          table_action_user_data(0)
-        {}
-
+    OTSContext() {}
     ~OTSContext() {}
 
     
@@ -243,23 +227,13 @@ class OTS_API OTSContext {
     bool Process(OTSStream *output, const uint8_t *input, size_t length);
 
     
-    void SetMessageCallback(MessageFunc func, void *user_data) {
-      message_func = func;
-      message_user_data = user_data;
-    }
+    virtual void Message(const char *format, ...) MSGFUNC_FMT_ATTR {}
 
     
     
-    void SetTableActionCallback(TableActionFunc func, void *user_data) {
-      table_action_func = func;
-      table_action_user_data = user_data;
-    }
-
-  private:
-    MessageFunc      message_func;
-    void            *message_user_data;
-    TableActionFunc  table_action_func;
-    void            *table_action_user_data;
+    
+    
+    virtual TableAction GetTableAction(uint32_t tag) { return ots::TABLE_ACTION_DEFAULT; }
 };
 
 
