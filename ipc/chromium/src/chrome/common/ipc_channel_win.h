@@ -49,7 +49,8 @@ class Channel::ChannelImpl : public MessageLoopForIO::IOHandler {
   void OutputQueuePush(Message* msg);
   void OutputQueuePop();
 
-  const std::wstring PipeName(const std::wstring& channel_id) const;
+  const std::wstring PipeName(const std::wstring& channel_id,
+                              int32_t* secret) const;
   bool CreatePipe(const std::wstring& channel_id, Mode mode);
   bool EnqueueHelloMessage();
 
@@ -107,6 +108,16 @@ class Channel::ChannelImpl : public MessageLoopForIO::IOHandler {
   size_t output_queue_length_;
 
   ScopedRunnableMethodFactory<ChannelImpl> factory_;
+
+  
+  
+  
+  
+  int32_t shared_secret_;
+
+  
+  
+  bool waiting_for_shared_secret_;
 
   mozilla::UniquePtr<NonThreadSafe> thread_check_;
 

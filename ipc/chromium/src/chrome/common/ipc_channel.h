@@ -5,6 +5,8 @@
 #ifndef CHROME_COMMON_IPC_CHANNEL_H_
 #define CHROME_COMMON_IPC_CHANNEL_H_
 
+#include <string>
+
 #include <queue>
 #include "chrome/common/ipc_message.h"
 
@@ -130,6 +132,15 @@ class Channel : public Message::Sender {
   
   void* GetServerPipeHandle() const;
 #endif  
+
+  
+  static std::wstring GenerateUniqueRandomChannelID();
+
+  
+  
+  
+  
+  static std::wstring GenerateVerifiedChannelID(const std::wstring& prefix);
 
  private:
   

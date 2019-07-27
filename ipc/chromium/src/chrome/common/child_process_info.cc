@@ -7,9 +7,6 @@
 #include <limits>
 
 #include "base/logging.h"
-#include "base/process_util.h"
-#include "base/rand_util.h"
-#include "base/string_util.h"
 
 std::wstring ChildProcessInfo::GetTypeNameInEnglish(
     ChildProcessInfo::ProcessType type) {
@@ -44,16 +41,4 @@ ChildProcessInfo::ChildProcessInfo(ProcessType type) {
 
 
 ChildProcessInfo::~ChildProcessInfo() {
-}
-
-std::wstring ChildProcessInfo::GenerateRandomChannelID(void* instance) {
-  
-  
-  
-  
-  
-  
-  return StringPrintf(L"%d.%x.%d",
-                      base::GetCurrentProcId(), instance,
-                      base::RandInt(0, std::numeric_limits<int>::max()));
 }

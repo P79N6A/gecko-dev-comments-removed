@@ -78,10 +78,6 @@ class ChildProcessInfo {
     return process_.handle() == rhs.process_.handle();
   }
 
-  
-  
-  static std::wstring GenerateRandomChannelID(void* instance);
-
  protected:
   void set_type(ProcessType type) { type_ = type; }
   void set_name(const std::wstring& name) { name_ = name; }

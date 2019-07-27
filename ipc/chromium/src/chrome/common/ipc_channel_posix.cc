@@ -1056,4 +1056,16 @@ uint32_t Channel::Unsound_NumQueuedMessages() const {
   return channel_impl_->Unsound_NumQueuedMessages();
 }
 
+
+std::wstring Channel::GenerateVerifiedChannelID(const std::wstring& prefix) {
+  
+  
+
+  std::wstring id = prefix;
+  if (!id.empty())
+    id.append(L".");
+
+  return id.append(GenerateUniqueRandomChannelID());
+}
+
 }  

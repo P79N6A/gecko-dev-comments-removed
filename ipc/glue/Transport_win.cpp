@@ -22,9 +22,7 @@ bool
 CreateTransport(base::ProcessId aProcIdOne,
                 TransportDescriptor* aOne, TransportDescriptor* aTwo)
 {
-  
-  
-  wstring id = ChildProcessInfo::GenerateRandomChannelID(aOne);
+  wstring id = IPC::Channel::GenerateVerifiedChannelID(std::wstring());
   
   Transport t(id, Transport::MODE_SERVER, nullptr);
   HANDLE serverPipe = t.GetServerPipeHandle();

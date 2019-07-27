@@ -25,10 +25,7 @@ bool
 CreateTransport(base::ProcessId ,
                 TransportDescriptor* aOne, TransportDescriptor* aTwo)
 {
-  
-  
-  
-  wstring id = ChildProcessInfo::GenerateRandomChannelID(aOne);
+  wstring id = IPC::Channel::GenerateVerifiedChannelID(std::wstring());
   
   Transport t(id, Transport::MODE_SERVER, nullptr);
   int fd1 = t.GetFileDescriptor();
