@@ -50,10 +50,12 @@ function add_test_incoming_parcel(parcel, handler) {
 add_test_incoming_parcel(null,
   function test_normal_parcel_handling() {
     let self = this;
-    do_check_throws(function normal_handler() {
+    try {
       
       self.context.Buf.readInt32();
-    });
+    } catch (e) {
+      ok(false, "Got exception: " + e);
+    }
   }
 );
 
@@ -61,10 +63,12 @@ add_test_incoming_parcel(null,
 add_test_incoming_parcel(null,
   function test_parcel_under_read() {
     let self = this;
-    do_check_throws(function under_read_handler() {
+    try {
       
       self.context.Buf.readUint16();
-    });
+    } catch (e) {
+      ok(false, "Got exception: " + e);
+    }
   }
 );
 
@@ -78,7 +82,7 @@ add_test_incoming_parcel(null,
       buf.readUint8();
     }
 
-    do_check_throws(function over_read_handler() {
+    throws(function over_read_handler() {
       
       buf.readUint8();
     },"Trying to read data beyond the parcel end!");
@@ -133,14 +137,14 @@ add_test(function test_incoming_parcel_buffer_overwritten() {
   let p1 = pA.subarray(0, pA.length - 1);
   worker.onRILMessage(0, p1);
   
-  do_check_eq(buf.readAvailable, 0);
+  equal(buf.readAvailable, 0);
   
   
-  do_check_eq(buf.currentParcelSize, pA_parcelSize);
+  equal(buf.currentParcelSize, pA_parcelSize);
   
-  do_check_eq(buf.readIncoming, p1.length - buf.PARCEL_SIZE_SIZE);
+  equal(buf.readIncoming, p1.length - buf.PARCEL_SIZE_SIZE);
   
-  do_check_eq(buf.incomingWriteIndex, p1.length);
+  equal(buf.incomingWriteIndex, p1.length);
 
   
   
@@ -149,13 +153,13 @@ add_test(function test_incoming_parcel_buffer_overwritten() {
   p2.set(pB, 1);
   worker.onRILMessage(0, p2);
   
-  do_check_eq(buf.readAvailable, 0);
+  equal(buf.readAvailable, 0);
   
-  do_check_eq(buf.currentParcelSize, 0);
+  equal(buf.currentParcelSize, 0);
   
-  do_check_eq(buf.readIncoming, 0);
+  equal(buf.readIncoming, 0);
   
-  do_check_eq(buf.incomingWriteIndex, pA.length + pB.length);
+  equal(buf.incomingWriteIndex, pA.length + pB.length);
 
   
   run_next_test();
@@ -167,15 +171,15 @@ add_test_incoming_parcel(null,
     let buf = this.context.Buf;
 
     let u8array = buf.readUint8Array(1);
-    do_check_eq(u8array instanceof Uint8Array, true);
-    do_check_eq(u8array.length, 1);
-    do_check_eq(buf.readAvailable, 3);
+    equal(u8array instanceof Uint8Array, true);
+    equal(u8array.length, 1);
+    equal(buf.readAvailable, 3);
 
     u8array = buf.readUint8Array(2);
-    do_check_eq(u8array.length, 2);
-    do_check_eq(buf.readAvailable, 1);
+    equal(u8array.length, 2);
+    equal(buf.readAvailable, 1);
 
-    do_check_throws(function over_read_handler() {
+    throws(function over_read_handler() {
       
       u8array = buf.readUint8Array(2);
     }, "Trying to read data beyond the parcel end!");

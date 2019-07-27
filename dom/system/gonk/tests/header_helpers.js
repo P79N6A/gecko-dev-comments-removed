@@ -191,36 +191,3 @@ function newIncomingParcel(fakeParcelSize, response, request, data) {
 
   return bytes;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-function do_check_throws(func, message, stack)
-{
-  if (!stack)
-    stack = Components.stack.caller;
-
-  try {
-    func();
-  } catch (exc) {
-    if (exc.message === message) {
-      return;
-    }
-    do_throw("expecting exception '" + message
-             + "', caught '" + exc.message + "'", stack);
-  }
-
-  if (message) {
-    do_throw("expecting exception '" + message + "', none thrown", stack);
-  }
-}
-
