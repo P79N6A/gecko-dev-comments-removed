@@ -583,15 +583,9 @@ void
 SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv)
 {
   MSE_DEBUG("SourceBuffer(%p)::AppendData(aLength=%u)", this, aLength);
-  if (!IsAttached() || mUpdating) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+  if (!PrepareAppend(aRv)) {
     return;
   }
-  if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended) {
-    mMediaSource->SetReadyState(MediaSourceReadyState::Open);
-  }
-  
-  
   StartUpdating();
   
   if (mParser->IsInitSegmentPresent(aData, aLength)) {
@@ -649,6 +643,28 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
 
   
   
+  mMediaSource->GetDecoder()->ScheduleStateMachineThread();
+
+  
+  
+  
+  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &SourceBuffer::StopUpdating);
+  NS_DispatchToMainThread(event);
+}
+
+bool
+SourceBuffer::PrepareAppend(ErrorResult& aRv)
+{
+  if (!IsAttached() || mUpdating) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return false;
+  }
+  if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended) {
+    mMediaSource->SetReadyState(MediaSourceReadyState::Open);
+  }
+
+  
+  
   
   
   
@@ -666,14 +682,7 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   }
 
   
-  
-  
-  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &SourceBuffer::StopUpdating);
-  NS_DispatchToMainThread(event);
-
-  
-  
-  mMediaSource->GetDecoder()->ScheduleStateMachineThread();
+  return true;
 }
 
 double

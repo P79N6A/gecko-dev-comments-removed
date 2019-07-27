@@ -135,6 +135,10 @@ private:
   
   void AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv);
 
+  
+  
+  bool PrepareAppend(ErrorResult& aRv);
+
   nsRefPtr<MediaSource> mMediaSource;
 
   const nsCString mType;
