@@ -7,6 +7,7 @@ this.EXPORTED_SYMBOLS = ["PopupNotifications"];
 var Cc = Components.classes, Ci = Components.interfaces, Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 
 const NOTIFICATION_EVENT_DISMISSED = "dismissed";
 const NOTIFICATION_EVENT_REMOVED = "removed";
@@ -153,20 +154,6 @@ PopupNotifications.prototype = {
   },
   get iconBox() {
     return this._iconBox;
-  },
-
-  
-
-
-
-
-  set transitionsEnabled(state) {
-    if (state) {
-      this.panel.removeAttribute("animate");
-    }
-    else {
-      this.panel.setAttribute("animate", "false");
-    }
   },
 
   
@@ -485,15 +472,16 @@ PopupNotifications.prototype = {
 
 
   _hidePanel: function PopupNotifications_hide() {
-    
-    
-    
-    let transitionsEnabled = this.transitionsEnabled;
-    this.transitionsEnabled = false;
-    this._ignoreDismissal = true;
+    if (this.panel.state == "closed") {
+      return Promise.resolve();
+    }
+    if (this._ignoreDismissal) {
+      return this._ignoreDismissal.promise;
+    }
+    let deferred = Promise.defer();
+    this._ignoreDismissal = deferred;
     this.panel.hidePopup();
-    this._ignoreDismissal = false;
-    this.transitionsEnabled = transitionsEnabled;
+    return deferred.promise;
   },
 
   
@@ -630,33 +618,33 @@ PopupNotifications.prototype = {
     
     
     
-    this._hidePanel();
-
-    
-    
-    
-    let selectedTab = this.tabbrowser.selectedTab;
-    if (anchorElement) {
-      let bo = anchorElement.boxObject;
-      if (bo.height == 0 && bo.width == 0)
-        anchorElement = selectedTab; 
-    } else {
-      anchorElement = selectedTab; 
-    }
-
-    this._currentAnchorElement = anchorElement;
-
-    
-    
-    this.panel.setAttribute("popupid", this.panel.firstChild.getAttribute("popupid"));
-    notificationsToShow.forEach(function (n) {
+    let promise = this._hidePanel().then(() => {
       
-      n.timeShown = this.window.performance.now();
-    }, this);
-    this.panel.openPopup(anchorElement, "bottomcenter topleft");
-    notificationsToShow.forEach(function (n) {
-      this._fireCallback(n, NOTIFICATION_EVENT_SHOWN);
-    }, this);
+      
+      
+      let selectedTab = this.tabbrowser.selectedTab;
+      if (anchorElement) {
+        let bo = anchorElement.boxObject;
+        if (bo.height == 0 && bo.width == 0)
+          anchorElement = selectedTab; 
+      } else {
+        anchorElement = selectedTab; 
+      }
+
+      this._currentAnchorElement = anchorElement;
+
+      
+      
+      this.panel.setAttribute("popupid", this.panel.firstChild.getAttribute("popupid"));
+      notificationsToShow.forEach(function (n) {
+        
+        n.timeShown = this.window.performance.now();
+      }, this);
+      this.panel.openPopup(anchorElement, "bottomcenter topleft");
+      notificationsToShow.forEach(function (n) {
+        this._fireCallback(n, NOTIFICATION_EVENT_SHOWN);
+      }, this);
+    });
   },
 
   
@@ -809,6 +797,16 @@ PopupNotifications.prototype = {
     while (anchor && anchor.parentNode != this.iconBox)
       anchor = anchor.parentNode;
 
+    if (!anchor) {
+      return;
+    }
+
+    
+    
+    if (this.panel.state != "closed" && anchor != this._currentAnchorElement) {
+      this._dismissOrRemoveCurrentNotifications();
+    }
+
     this._reshowNotifications(anchor);
   },
 
@@ -881,9 +879,22 @@ PopupNotifications.prototype = {
   },
 
   _onPopupHidden: function PopupNotifications_onPopupHidden(event) {
-    if (event.target != this.panel || this._ignoreDismissal)
+    if (event.target != this.panel || this._ignoreDismissal) {
+      if (this._ignoreDismissal) {
+        this._ignoreDismissal.resolve();
+        this._ignoreDismissal = null;
+      }
       return;
+    }
 
+    this._dismissOrRemoveCurrentNotifications();
+
+    this._clearPanel();
+
+    this._update();
+  },
+
+  _dismissOrRemoveCurrentNotifications: function() {
     let browser = this.panel.firstChild &&
                   this.panel.firstChild.notification.browser;
     if (!browser)
@@ -899,17 +910,13 @@ PopupNotifications.prototype = {
 
       
       
-      if (notificationObj.options.removeOnDismissal)
+      if (notificationObj.options.removeOnDismissal) {
         this._remove(notificationObj);
-      else {
+      } else {
         notificationObj.dismissed = true;
         this._fireCallback(notificationObj, NOTIFICATION_EVENT_DISMISSED);
       }
     }, this);
-
-    this._clearPanel();
-
-    this._update();
   },
 
   _onButtonCommand: function PopupNotifications_onButtonCommand(event) {
