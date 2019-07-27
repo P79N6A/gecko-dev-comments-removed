@@ -16,8 +16,12 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
+import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,8 +31,14 @@ public final class IntentHelper implements GeckoEventListener {
         "Intent:GetHandlers",
         "Intent:Open",
         "Intent:OpenForResult",
+        "Intent:OpenNoHandler",
         "WebActivity:Open"
     };
+
+    
+    private static String MARKET_INTENT_URI_PACKAGE_PREFIX = "market://details?id=";
+    private static String EXTRA_BROWSER_FALLBACK_URL = "browser_fallback_url";
+
     private static IntentHelper instance;
 
     private final Activity activity;
@@ -64,6 +74,8 @@ public final class IntentHelper implements GeckoEventListener {
                 open(message);
             } else if (event.equals("Intent:OpenForResult")) {
                 openForResult(message);
+            } else if (event.equals("Intent:OpenNoHandler")) {
+                openNoHandler(message);
             } else if (event.equals("WebActivity:Open")) {
                 openWebActivity(message);
             }
@@ -103,6 +115,66 @@ public final class IntentHelper implements GeckoEventListener {
         intent.setClassName(message.optString("packageName"), message.optString("className"));
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         ActivityHandlerHelper.startIntentForActivity(activity, intent, new ResultHandler(message));
+    }
+
+    
+
+
+
+
+
+    private void openNoHandler(final JSONObject msg) {
+        final String uri = msg.optString("uri");
+
+        if (TextUtils.isEmpty(uri)) {
+            displayToastCannotOpenLink();
+            Log.w(LOGTAG, "Received empty URL. Ignoring...");
+            return;
+        }
+
+        final Intent intent;
+        try {
+            
+            intent = Intent.parseUri(uri, 0);
+        } catch (final URISyntaxException e) {
+            displayToastCannotOpenLink();
+            
+            Log.w(LOGTAG, "Unable to parse Intent URI");
+            return;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (intent.getPackage() != null) {
+            final String marketUri = MARKET_INTENT_URI_PACKAGE_PREFIX + intent.getPackage();
+            final Intent marketIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(marketUri));
+            marketIntent.addCategory(Intent.CATEGORY_BROWSABLE);
+            marketIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(marketIntent);
+
+        } else if (intent.hasExtra(EXTRA_BROWSER_FALLBACK_URL)) {
+            final String fallbackUrl = intent.getStringExtra(EXTRA_BROWSER_FALLBACK_URL);
+            Tabs.getInstance().loadUrl(fallbackUrl);
+
+        }  else {
+            displayToastCannotOpenLink();
+            
+            Log.w(LOGTAG, "Unable to handle URI");
+        }
+    }
+
+    private void displayToastCannotOpenLink() {
+        final String errText = activity.getResources().getString(R.string.intent_uri_cannot_open);
+        Toast.makeText(activity, errText, Toast.LENGTH_LONG).show();
     }
 
     private void openWebActivity(JSONObject message) throws JSONException {
