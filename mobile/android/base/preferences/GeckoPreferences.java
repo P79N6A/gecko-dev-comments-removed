@@ -891,7 +891,7 @@ OnSharedPreferenceChangeListener
 
 
     public static void broadcastStumblerPref(final Context context) {
-        final boolean value = getBooleanPref(context, PREFS_GEO_REPORTING, true);
+        final boolean value = getBooleanPref(context, PREFS_GEO_REPORTING, false);
         broadcastStumblerPref(context, value);
     }
 
