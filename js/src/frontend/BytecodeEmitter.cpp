@@ -1902,10 +1902,13 @@ BytecodeEmitter::bindNameToSlot(ParseNode* pn)
 bool
 BytecodeEmitter::checkSideEffects(ParseNode* pn, bool* answer)
 {
+    JS_CHECK_RECURSION(cx, return false);
+
     if (!pn || *answer)
         return true;
 
     switch (pn->getKind()) {
+      
       case PNK_NEWTARGET:
       case PNK_NOP:
       case PNK_STRING:
@@ -1918,38 +1921,99 @@ BytecodeEmitter::checkSideEffects(ParseNode* pn, bool* answer)
       case PNK_ELISION:
       case PNK_GENERATOR:
       case PNK_NUMBER:
-      case PNK_BREAK:
-      case PNK_CONTINUE:
-      case PNK_DEBUGGER:
-      case PNK_EXPORT_BATCH_SPEC:
-      case PNK_EXPORT_DEFAULT:
       case PNK_OBJECT_PROPERTY_NAME:
-      case PNK_SUPERPROP:
-      case PNK_FRESHENBLOCK:
-      case PNK_TYPEOFNAME:
+        MOZ_ASSERT(pn->isArity(PN_NULLARY));
+        *answer = false;
+        return true;
+
+      case PNK_DEBUGGER:
+        MOZ_ASSERT(pn->isArity(PN_NULLARY));
+        *answer = true;
+        return true;
+
+      
       case PNK_TYPEOFEXPR:
       case PNK_VOID:
       case PNK_NOT:
-      case PNK_BITNOT:
+      case PNK_COMPUTED_NAME:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        return checkSideEffects(pn->pn_kid, answer);
+
+      
+      case PNK_TYPEOFNAME:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        *answer = true;
+        return true;
+
+      
+      
+      
+      
+      
+      
+      
+      case PNK_MUTATEPROTO:
+      case PNK_ARRAYPUSH:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        return checkSideEffects(pn->pn_kid, answer);
+
+      
+      case PNK_PREINCREMENT:
+      case PNK_POSTINCREMENT:
+      case PNK_PREDECREMENT:
+      case PNK_POSTDECREMENT:
       case PNK_THROW:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        *answer = true;
+        return true;
+
+      
+      
+      case PNK_BITNOT:
+      case PNK_POS:
+      case PNK_NEG:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        *answer = true;
+        return true;
+
+      
+      case PNK_SPREAD:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        *answer = true;
+        return true;
+
+      
       case PNK_DELETENAME:
       case PNK_DELETEPROP:
       case PNK_DELETESUPERPROP:
       case PNK_DELETEELEM:
       case PNK_DELETESUPERELEM:
-      case PNK_DELETEEXPR:
-      case PNK_POS:
-      case PNK_NEG:
-      case PNK_PREINCREMENT:
-      case PNK_POSTINCREMENT:
-      case PNK_PREDECREMENT:
-      case PNK_POSTDECREMENT:
-      case PNK_COMPUTED_NAME:
-      case PNK_ARRAYPUSH:
-      case PNK_SPREAD:
-      case PNK_MUTATEPROTO:
-      case PNK_EXPORT:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        *answer = true;
+        return true;
+
+      
+      
+      case PNK_DELETEEXPR: {
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        ParseNode* expr = pn->pn_kid;
+        return checkSideEffects(expr, answer);
+      }
+
       case PNK_SEMI:
+        MOZ_ASSERT(pn->isArity(PN_UNARY));
+        if (ParseNode* expr = pn->pn_kid)
+            return checkSideEffects(expr, answer);
+        *answer = false;
+        return true;
+
+      case PNK_SUPERPROP:
+      case PNK_BREAK:
+      case PNK_CONTINUE:
+      case PNK_EXPORT_BATCH_SPEC:
+      case PNK_FRESHENBLOCK:
+      case PNK_EXPORT:
+      case PNK_EXPORT_DEFAULT:
       case PNK_ASSIGN:
       case PNK_ADDASSIGN:
       case PNK_SUBASSIGN:
