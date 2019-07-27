@@ -676,6 +676,16 @@ nsHttpTransaction::ReadSegments(nsAHttpSegmentReader *reader,
 
     mReader = nullptr;
 
+    if (mForceRestart) {
+        
+        
+        
+        if (NS_SUCCEEDED(rv)) {
+            rv = NS_BINDING_RETARGETED;
+        }
+        mForceRestart = false;
+    }
+
     
     
     if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
@@ -765,6 +775,16 @@ nsHttpTransaction::WriteSegments(nsAHttpSegmentWriter *writer,
 
     mWriter = nullptr;
 
+    if (mForceRestart) {
+        
+        
+        
+        if (NS_SUCCEEDED(rv)) {
+            rv = NS_BINDING_RETARGETED;
+        }
+        mForceRestart = false;
+    }
+
     
     
     if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
@@ -826,6 +846,10 @@ nsHttpTransaction::Close(nsresult reason)
     LOG(("nsHttpTransaction::Close [this=%p reason=%x]\n", this, reason));
 
     MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+    if (reason == NS_BINDING_RETARGETED) {
+        LOG(("  close %p skipped due to ERETARGETED\n", this));
+        return;
+    }
 
     if (mClosed) {
         LOG(("  already closed\n"));
@@ -884,6 +908,21 @@ nsHttpTransaction::Close(nsresult reason)
     if (reason == NS_ERROR_NET_RESET || reason == NS_OK) {
 
         if (mForceRestart && NS_SUCCEEDED(Restart())) {
+            if (mResponseHead) {
+                mResponseHead->Reset();
+            }
+            mContentRead = 0;
+            mContentLength = -1;
+            delete mChunkedDecoder;
+            mChunkedDecoder = nullptr;
+            mHaveStatusLine = false;
+            mHaveAllHeaders = false;
+            mHttpResponseMatched = false;
+            mResponseIsComplete = false;
+            mDidContentStart = false;
+            mNoContent = false;
+            mSentData = false;
+            mReceivedData = false;
             LOG(("transaction force restarted\n"));
             return;
         }
@@ -1180,7 +1219,6 @@ nsHttpTransaction::Restart()
             mRequestHead->SetHeader(nsHttp::Alternate_Service_Used, NS_LITERAL_CSTRING("0"));
         }
     }
-    mForceRestart = false;
 
     return gHttpHandler->InitiateTransaction(this, mPriority);
 }
@@ -1505,8 +1543,11 @@ nsHttpTransaction::HandleContentStart()
             gHttpHandler->ConnMgr()->ClearHostMapping(mConnInfo);
 
             
-            mCaps &= ~NS_HTTP_ALLOW_KEEPALIVE;
-            mForceRestart = true; 
+            if (!mRestartCount) {
+                mCaps &= ~NS_HTTP_ALLOW_KEEPALIVE;
+                mForceRestart = true; 
+                return NS_ERROR_NET_RESET;
+            }
             break;
         }
 
