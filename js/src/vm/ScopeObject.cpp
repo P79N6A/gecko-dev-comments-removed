@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "vm/ScopeObject-inl.h"
 
@@ -32,7 +32,7 @@ using mozilla::PodZero;
 typedef Rooted<ArgumentsObject *> RootedArgumentsObject;
 typedef MutableHandle<ArgumentsObject *> MutableHandleArgumentsObject;
 
-/*****************************************************************************/
+
 
 Shape *
 js::ScopeCoordinateToStaticScopeShape(JSScript *script, jsbytecode *pc)
@@ -93,7 +93,7 @@ js::ScopeCoordinateName(ScopeCoordinateNameCache &cache, JSScript *script, jsbyt
         id = r.front().propidRaw();
     }
 
-    /* Beware nameless destructuring formal. */
+    
     if (!JSID_IS_ATOM(id))
         return script->runtimeFromAnyThread()->commonNames->empty;
     return JSID_TO_ATOM(id)->asPropertyName();
@@ -118,7 +118,7 @@ js::ScopeCoordinateFunctionScript(JSScript *script, jsbytecode *pc)
     return ssi.funScript();
 }
 
-/*****************************************************************************/
+
 
 void
 ScopeObject::setEnclosingScope(HandleObject obj)
@@ -167,11 +167,11 @@ CallObject::createSingleton(JSContext *cx, HandleShape shape, uint32_t lexicalBe
     return &obj->as<CallObject>();
 }
 
-/*
- * Create a CallObject for a JSScript that is not initialized to any particular
- * callsite. This object can either be initialized (with an enclosing scope and
- * callee) or used as a template for jit compilation.
- */
+
+
+
+
+
 CallObject *
 CallObject::createTemplateObject(JSContext *cx, HandleScript script, gc::InitialHeap heap)
 {
@@ -190,19 +190,19 @@ CallObject::createTemplateObject(JSContext *cx, HandleScript script, gc::Initial
     if (!obj)
         return nullptr;
 
-    // Set uninitialized lexicals even on template objects, as Ion will use
-    // copy over the template object's slot values in the fast path.
+    
+    
     obj->as<CallObject>().initAliasedLexicalsToThrowOnTouch(script);
 
     return &obj->as<CallObject>();
 }
 
-/*
- * Construct a call object for the given bindings.  If this is a call object
- * for a function invocation, callee should be the function being called.
- * Otherwise it must be a call object for eval of strict mode code, and callee
- * must be null.
- */
+
+
+
+
+
+
 CallObject *
 CallObject::create(JSContext *cx, HandleScript script, HandleObject enclosing, HandleFunction callee)
 {
@@ -230,10 +230,10 @@ CallObject::createForFunction(JSContext *cx, HandleObject enclosing, HandleFunct
     RootedObject scopeChain(cx, enclosing);
     MOZ_ASSERT(scopeChain);
 
-    /*
-     * For a named function expression Call's parent points to an environment
-     * object holding function's name.
-     */
+    
+
+
+
     if (callee->isNamedLambda()) {
         scopeChain = DeclEnvObject::create(cx, scopeChain, callee);
         if (!scopeChain)
@@ -257,7 +257,7 @@ CallObject::createForFunction(JSContext *cx, AbstractFramePtr frame)
     if (!callobj)
         return nullptr;
 
-    /* Copy in the closed-over formal arguments. */
+    
     for (AliasedFormalIter i(frame.script()); i; i++) {
         callobj->setAliasedVar(cx, i, i->name(),
                                frame.unaliasedFormal(i.frameIndex(), DONT_CHECK_ALIASING));
@@ -284,10 +284,10 @@ CallObject::createHollowForDebug(JSContext *cx, HandleFunction callee)
 {
     MOZ_ASSERT(!callee->isHeavyweight());
 
-    // This scope's parent link is never used: the DebugScopeObject that
-    // refers to this scope carries its own parent link, which is what
-    // Debugger uses to construct the tree of Debugger.Environment objects. So
-    // just parent this scope directly to the global.
+    
+    
+    
+    
     Rooted<GlobalObject *> global(cx, &callee->global());
     Rooted<CallObject *> callobj(cx, createForFunction(cx, global, callee));
     if (!callobj)
@@ -316,11 +316,11 @@ const Class DeclEnvObject::class_ = {
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object)
 };
 
-/*
- * Create a DeclEnvObject for a JSScript that is not initialized to any
- * particular callsite. This object can either be initialized (with an enclosing
- * scope and callee) or used as a template for jit compilation.
- */
+
+
+
+
+
 DeclEnvObject *
 DeclEnvObject::createTemplateObject(JSContext *cx, HandleFunction fun, gc::InitialHeap heap)
 {
@@ -342,7 +342,7 @@ DeclEnvObject::createTemplateObject(JSContext *cx, HandleFunction fun, gc::Initi
     if (!obj)
         return nullptr;
 
-    // Assign a fixed slot to a property with the same name as the lambda.
+    
     Rooted<jsid> id(cx, AtomToId(fun->atom()));
     const Class *clasp = obj->getClass();
     unsigned attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY;
@@ -384,9 +384,9 @@ js::XDRStaticWithObject(XDRState<mode> *xdr, HandleObject enclosingScope,
         obj->initEnclosingNestedScope(enclosingScope);
         objp.set(obj);
     }
-    // For encoding, there is nothing to do.  The only information that is
-    // encoded by a StaticWithObject is its presence on the scope chain, and the
-    // script XDR handler already takes care of that.
+    
+    
+    
 
     return true;
 }
@@ -535,18 +535,18 @@ const Class DynamicWithObject::class_ = {
     "With",
     JSCLASS_HAS_RESERVED_SLOTS(DynamicWithObject::RESERVED_SLOTS) |
     JSCLASS_IS_ANONYMOUS,
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
-    nullptr, /* enumerate */
-    nullptr, /* resolve */
-    nullptr, /* convert */
-    nullptr, /* finalize */
-    nullptr, /* call */
-    nullptr, /* hasInstance */
-    nullptr, /* construct */
-    nullptr, /* trace */
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
     {
@@ -557,14 +557,14 @@ const Class DynamicWithObject::class_ = {
         with_SetProperty,
         with_GetOwnPropertyDescriptor,
         with_DeleteProperty,
-        nullptr, nullptr,    /* watch/unwatch */
-        nullptr,             /* getElements */
-        nullptr,             /* enumerate (native enumeration of target doesn't work) */
+        nullptr, nullptr,    
+        nullptr,             
+        nullptr,             
         with_ThisObject,
     }
 };
 
-/* static */ StaticEvalObject *
+ StaticEvalObject *
 StaticEvalObject::create(JSContext *cx, HandleObject enclosing)
 {
     RootedObjectGroup group(cx, ObjectGroup::defaultNewGroup(cx, &class_, TaggedProto(nullptr)));
@@ -593,9 +593,9 @@ const Class StaticEvalObject::class_ = {
     JSCLASS_IS_ANONYMOUS
 };
 
-/*****************************************************************************/
 
-/* static */ ClonedBlockObject *
+
+ ClonedBlockObject *
 ClonedBlockObject::create(JSContext *cx, Handle<StaticBlockObject *> block, HandleObject enclosing)
 {
     MOZ_ASSERT(block->getClass() == &BlockObject::class_);
@@ -622,7 +622,7 @@ ClonedBlockObject::create(JSContext *cx, Handle<StaticBlockObject *> block, Hand
     return &obj->as<ClonedBlockObject>();
 }
 
-/* static */ ClonedBlockObject *
+ ClonedBlockObject *
 ClonedBlockObject::create(JSContext *cx, Handle<StaticBlockObject *> block, AbstractFramePtr frame)
 {
     assertSameCompartment(cx, frame);
@@ -630,15 +630,15 @@ ClonedBlockObject::create(JSContext *cx, Handle<StaticBlockObject *> block, Abst
     return create(cx, block, enclosing);
 }
 
-/* static */ ClonedBlockObject *
+ ClonedBlockObject *
 ClonedBlockObject::createHollowForDebug(JSContext *cx, Handle<StaticBlockObject *> block)
 {
     MOZ_ASSERT(!block->needsClone());
 
-    // This scope's parent link is never used: the DebugScopeObject that
-    // refers to this scope carries its own parent link, which is what
-    // Debugger uses to construct the tree of Debugger.Environment objects. So
-    // just parent this scope directly to the global.
+    
+    
+    
+    
     Rooted<GlobalObject *> global(cx, &block->global());
     Rooted<ClonedBlockObject *> obj(cx, create(cx, block, global));
     if (!obj)
@@ -683,7 +683,7 @@ StaticBlockObject::create(ExclusiveContext *cx)
     return &obj->as<StaticBlockObject>();
 }
 
-/* static */ Shape *
+ Shape *
 StaticBlockObject::addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block, HandleId id,
                           bool constant, unsigned index, bool *redeclared)
 {
@@ -692,28 +692,28 @@ StaticBlockObject::addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block
 
     *redeclared = false;
 
-    /* Inline NativeObject::addProperty in order to trap the redefinition case. */
+    
     ShapeTable::Entry *entry;
     if (Shape::search(cx, block->lastProperty(), id, &entry, true)) {
         *redeclared = true;
         return nullptr;
     }
 
-    /*
-     * Don't convert this object to dictionary mode so that we can clone the
-     * block's shape later.
-     */
+    
+
+
+
     uint32_t slot = JSSLOT_FREE(&BlockObject::class_) + index;
     uint32_t readonly = constant ? JSPROP_READONLY : 0;
     uint32_t propFlags = readonly | JSPROP_ENUMERATE | JSPROP_PERMANENT;
     return NativeObject::addPropertyInternal(cx, block, id,
-                                             /* getter = */ nullptr,
-                                             /* setter = */ nullptr,
+                                              nullptr,
+                                              nullptr,
                                              slot,
                                              propFlags,
-                                             /* attrs = */ 0,
+                                              0,
                                              entry,
-                                             /* allowDictionary = */ false);
+                                              false);
 }
 
 const Class BlockObject::class_ = {
@@ -728,7 +728,7 @@ bool
 js::XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
                          MutableHandle<StaticBlockObject*> objp)
 {
-    /* NB: Keep this in sync with CloneStaticBlockObject. */
+    
 
     JSContext *cx = xdr->cx();
 
@@ -754,11 +754,11 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
     if (!xdr->codeUint32(&offset))
         return false;
 
-    /*
-     * XDR the block object's properties. We know that there are 'count'
-     * properties to XDR, stored as id/aliased pairs.  (The empty string as
-     * id indicates an int id.)
-     */
+    
+
+
+
+
     if (mode == XDR_DECODE) {
         obj->setLocalOffset(offset);
 
@@ -830,7 +830,7 @@ js::XDRStaticBlockObject(XDRState<XDR_DECODE> *, HandleObject, MutableHandle<Sta
 static JSObject *
 CloneStaticBlockObject(JSContext *cx, HandleObject enclosingScope, Handle<StaticBlockObject*> srcBlock)
 {
-    /* NB: Keep this in sync with XDRStaticBlockObject. */
+    
 
     Rooted<StaticBlockObject*> clone(cx, StaticBlockObject::create(cx));
     if (!clone)
@@ -839,7 +839,7 @@ CloneStaticBlockObject(JSContext *cx, HandleObject enclosingScope, Handle<Static
     clone->initEnclosingNestedScope(enclosingScope);
     clone->setLocalOffset(srcBlock->localOffset());
 
-    /* Shape::Range is reverse order, so build a list in forward order. */
+    
     AutoShapeVector shapes(cx);
     if (!shapes.growBy(srcBlock->numVariables()))
         return nullptr;
@@ -875,7 +875,7 @@ js::CloneNestedScopeObject(JSContext *cx, HandleObject enclosingScope, Handle<Ne
     }
 }
 
-/* static */ UninitializedLexicalObject *
+ UninitializedLexicalObject *
 UninitializedLexicalObject::create(JSContext *cx, HandleObject enclosing)
 {
     RootedObjectGroup group(cx, ObjectGroup::defaultNewGroup(cx, &class_, TaggedProto(nullptr)));
@@ -957,39 +957,39 @@ const Class UninitializedLexicalObject::class_ = {
     "UninitializedLexical",
     JSCLASS_HAS_RESERVED_SLOTS(UninitializedLexicalObject::RESERVED_SLOTS) |
     JSCLASS_IS_ANONYMOUS,
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
-    nullptr, /* enumerate */
-    nullptr, /* resolve */
-    nullptr, /* convert */
-    nullptr, /* finalize */
-    nullptr, /* call */
-    nullptr, /* hasInstance */
-    nullptr, /* construct */
-    nullptr, /* trace */
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
     {
         uninitialized_LookupProperty,
-        nullptr,             /* defineProperty */
+        nullptr,             
         uninitialized_HasProperty,
         uninitialized_GetProperty,
         uninitialized_SetProperty,
         uninitialized_GetOwnPropertyDescriptor,
         uninitialized_DeleteProperty,
-        nullptr, nullptr,    /* watch/unwatch */
-        nullptr,             /* getElements */
-        nullptr,             /* enumerate (native enumeration of target doesn't work) */
-        nullptr,             /* this */
+        nullptr, nullptr,    
+        nullptr,             
+        nullptr,             
+        nullptr,             
     }
 };
 
-/*****************************************************************************/
 
-// Any name atom for a function which will be added as a DeclEnv object to the
-// scope chain above call objects for fun.
+
+
+
 static inline JSAtom *
 CallObjectLambdaName(JSFunction &fun)
 {
@@ -1031,9 +1031,9 @@ ScopeIter::incrementStaticScopeIter()
 {
     ssi_++;
 
-    // For named lambdas, DeclEnvObject scopes are always attached to their
-    // CallObjects. Skip it here, as they are special cased in users of
-    // ScopeIter.
+    
+    
+    
     if (!ssi_.done() && ssi_.type() == StaticScopeIter<CanGC>::NamedLambda)
         ssi_++;
 }
@@ -1041,8 +1041,8 @@ ScopeIter::incrementStaticScopeIter()
 void
 ScopeIter::settle()
 {
-    // Check for trying to iterate a heavyweight function frame before
-    // the prologue has created the CallObject, in which case we have to skip.
+    
+    
     if (frame_ && frame_.isNonEvalFunctionFrame() &&
         frame_.fun()->isHeavyweight() && !frame_.hasCallObj())
     {
@@ -1050,8 +1050,8 @@ ScopeIter::settle()
         incrementStaticScopeIter();
     }
 
-    // Check if we have left the extent of the initial frame after we've
-    // settled on a static scope.
+    
+    
     if (frame_ && (ssi_.done() || maybeStaticScope() == frame_.script()->enclosingStaticScope()))
         frame_ = NullFramePtr();
 
@@ -1142,13 +1142,13 @@ ScopeIter::maybeStaticScope() const
     }
 }
 
-/* static */ HashNumber
+ HashNumber
 MissingScopeKey::hash(MissingScopeKey sk)
 {
     return size_t(sk.frame_.raw()) ^ size_t(sk.staticScope_);
 }
 
-/* static */ bool
+ bool
 MissingScopeKey::match(MissingScopeKey sk1, MissingScopeKey sk2)
 {
     return sk1.frame_ == sk2.frame_ && sk1.staticScope_ == sk2.staticScope_;
@@ -1161,11 +1161,11 @@ LiveScopeVal::sweep()
         MOZ_ALWAYS_FALSE(IsObjectAboutToBeFinalizedFromAnyThread(staticScope_.unsafeGet()));
 }
 
-// Live ScopeIter values may be added to DebugScopes::liveScopes, as
-// LiveScopeVal instances.  They need to have write barriers when they are added
-// to the hash table, but no barriers when rehashing inside GC.  It's a nasty
-// hack, but the important thing is that LiveScopeVal and MissingScopeKey need to
-// alias each other.
+
+
+
+
+
 void
 LiveScopeVal::staticAsserts()
 {
@@ -1175,28 +1175,28 @@ LiveScopeVal::staticAsserts()
                   "LiveScopeVal.staticScope_ must alias MissingScopeKey.staticScope_");
 }
 
-/*****************************************************************************/
+
 
 namespace {
 
-/*
- * DebugScopeProxy is the handler for DebugScopeObject proxy objects. Having a
- * custom handler (rather than trying to reuse js::Wrapper) gives us several
- * important abilities:
- *  - We want to pass the ScopeObject as the receiver to forwarded scope
- *    property ops on aliased variables so that Call/Block/With ops do not all
- *    require a 'normalization' step.
- *  - The debug scope proxy can directly manipulate the stack frame to allow
- *    the debugger to read/write args/locals that were otherwise unaliased.
- *  - The debug scope proxy can store unaliased variables after the stack frame
- *    is popped so that they may still be read/written by the debugger.
- *  - The engine has made certain assumptions about the possible reads/writes
- *    in a scope. DebugScopeProxy allows us to prevent the debugger from
- *    breaking those assumptions.
- *  - The engine makes optimizations that are observable to the debugger. The
- *    proxy can either hide these optimizations or make the situation more
- *    clear to the debugger. An example is 'arguments'.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class DebugScopeProxy : public BaseProxyHandler
 {
     enum Action { SET, GET };
@@ -1207,30 +1207,30 @@ class DebugScopeProxy : public BaseProxyHandler
         ACCESS_LOST
     };
 
-    /*
-     * This function handles access to unaliased locals/formals. Since they are
-     * unaliased, the values of these variables are not stored in the slots of
-     * the normal Call/BlockObject scope objects and thus must be recovered
-     * from somewhere else:
-     *  + if the invocation for which the scope was created is still executing,
-     *    there is a JS frame live on the stack holding the values;
-     *  + if the invocation for which the scope was created finished executing:
-     *     - and there was a DebugScopeObject associated with scope, then the
-     *       DebugScopes::onPop(Call|Block) handler copied out the unaliased
-     *       variables:
-     *        . for block scopes, the unaliased values were copied directly
-     *          into the block object, since there is a slot allocated for every
-     *          block binding, regardless of whether it is aliased;
-     *        . for function scopes, a dense array is created in onPopCall to hold
-     *          the unaliased values and attached to the DebugScopeObject;
-     *     - and there was not a DebugScopeObject yet associated with the
-     *       scope, then the unaliased values are lost and not recoverable.
-     *
-     * Callers should check accessResult for non-failure results:
-     *  - ACCESS_UNALIASED if the access was unaliased and completed
-     *  - ACCESS_GENERIC   if the access was aliased or the property not found
-     *  - ACCESS_LOST      if the value has been lost to the debugger
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     bool handleUnaliasedAccess(JSContext *cx, Handle<DebugScopeObject*> debugScope,
                                Handle<ScopeObject*> scope, jsid id, Action action,
                                MutableHandleValue vp, AccessResult *accessResult) const
@@ -1240,7 +1240,7 @@ class DebugScopeProxy : public BaseProxyHandler
         *accessResult = ACCESS_GENERIC;
         LiveScopeVal *maybeLiveScope = DebugScopes::hasLiveScope(*scope);
 
-        /* Handle unaliased formals, vars, lets, and consts at function scope. */
+        
         if (scope->is<CallObject>() && !scope->as<CallObject>().isForEval()) {
             CallObject &callobj = scope->as<CallObject>();
             RootedScript script(cx, callobj.callee().nonLazyScript());
@@ -1271,7 +1271,7 @@ class DebugScopeProxy : public BaseProxyHandler
                     else
                         snapshot->setDenseElement(bindings.numArgs() + i, vp);
                 } else {
-                    /* The unaliased value has been lost to the debugger. */
+                    
                     if (action == GET) {
                         *accessResult = ACCESS_LOST;
                         return true;
@@ -1302,7 +1302,7 @@ class DebugScopeProxy : public BaseProxyHandler
                     else
                         snapshot->setDenseElement(i, vp);
                 } else {
-                    /* The unaliased value has been lost to the debugger. */
+                    
                     if (action == GET) {
                         *accessResult = ACCESS_LOST;
                         return true;
@@ -1317,7 +1317,7 @@ class DebugScopeProxy : public BaseProxyHandler
             return true;
         }
 
-        /* Handle unaliased let and catch bindings at block scope. */
+        
         if (scope->is<ClonedBlockObject>()) {
             Rooted<ClonedBlockObject *> block(cx, &scope->as<ClonedBlockObject>());
             Shape *shape = block->lastProperty()->search(cx, id);
@@ -1347,7 +1347,7 @@ class DebugScopeProxy : public BaseProxyHandler
             return true;
         }
 
-        /* The rest of the internal scopes do not have unaliased vars. */
+        
         MOZ_ASSERT(scope->is<DeclEnvObject>() || scope->is<DynamicWithObject>() ||
                    scope->as<CallObject>().isForEval());
         return true;
@@ -1363,43 +1363,43 @@ class DebugScopeProxy : public BaseProxyHandler
         return scope.is<CallObject>() && !scope.as<CallObject>().isForEval();
     }
 
-    /*
-     * In theory, every function scope contains an 'arguments' bindings.
-     * However, the engine only adds a binding if 'arguments' is used in the
-     * function body. Thus, from the debugger's perspective, 'arguments' may be
-     * missing from the list of bindings.
-     */
+    
+
+
+
+
+
     static bool isMissingArgumentsBinding(ScopeObject &scope)
     {
         return isFunctionScope(scope) &&
                !scope.as<CallObject>().callee().nonLazyScript()->argumentsHasVarBinding();
     }
 
-    /*
-     * This function checks if an arguments object needs to be created when
-     * the debugger requests 'arguments' for a function scope where the
-     * arguments object has been optimized away (either because the binding is
-     * missing altogether or because !ScriptAnalysis::needsArgsObj).
-     */
+    
+
+
+
+
+
     static bool isMissingArguments(JSContext *cx, jsid id, ScopeObject &scope)
     {
         return isArguments(cx, id) && isFunctionScope(scope) &&
                !scope.as<CallObject>().callee().nonLazyScript()->needsArgsObj();
     }
 
-    /*
-     * Check if the value is the magic value JS_OPTIMIZED_ARGUMENTS. The
-     * arguments analysis may have optimized out the 'arguments', and this
-     * magic value could have propagated to other local slots. e.g.,
-     *
-     *   function f() { var a = arguments; h(); }
-     *   function h() { evalInFrame(1, "a.push(0)"); }
-     *
-     * where evalInFrame(N, str) means to evaluate str N frames up.
-     *
-     * In this case we don't know we need to recover a missing arguments
-     * object until after we've performed the property get.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
     static bool isMagicMissingArgumentsValue(JSContext *cx, ScopeObject &scope, HandleValue v)
     {
         bool isMagic = v.isMagic() && v.whyMagic() == JS_OPTIMIZED_ARGUMENTS;
@@ -1408,10 +1408,10 @@ class DebugScopeProxy : public BaseProxyHandler
         return isMagic;
     }
 
-    /*
-     * Create a missing arguments object. If the function returns true but
-     * argsObj is null, it means the scope is dead.
-     */
+    
+
+
+
     static bool createMissingArguments(JSContext *cx, ScopeObject &scope,
                                        MutableHandleArgumentsObject argsObj)
     {
@@ -1434,14 +1434,14 @@ class DebugScopeProxy : public BaseProxyHandler
     bool preventExtensions(JSContext *cx, HandleObject proxy,
                            ObjectOpResult &result) const MOZ_OVERRIDE
     {
-        // always [[Extensible]], can't be made non-[[Extensible]], like most
-        // proxies
+        
+        
         return result.fail(JSMSG_CANT_CHANGE_EXTENSIBILITY);
     }
 
     bool isExtensible(JSContext *cx, HandleObject proxy, bool *extensible) const MOZ_OVERRIDE
     {
-        // See above.
+        
         *extensible = true;
         return true;
     }
@@ -1563,10 +1563,10 @@ class DebugScopeProxy : public BaseProxyHandler
         return true;
     }
 
-    /*
-     * Like 'get', but returns sentinel values instead of throwing on
-     * exceptional cases.
-     */
+    
+
+
+
     bool getMaybeSentinelValue(JSContext *cx, Handle<DebugScopeObject *> debugScope, HandleId id,
                                MutableHandleValue vp) const
     {
@@ -1641,21 +1641,21 @@ class DebugScopeProxy : public BaseProxyHandler
                 return false;
         }
 
-        // DynamicWithObject isn't a very good proxy.  It doesn't have a
-        // JSNewEnumerateOp implementation, because if it just delegated to the
-        // target object, the object would indicate that native enumeration is
-        // the thing to do, but native enumeration over the DynamicWithObject
-        // wrapper yields no properties.  So instead here we hack around the
-        // issue, and punch a hole through to the with object target.
+        
+        
+        
+        
+        
+        
         Rooted<JSObject*> target(cx, (scope->is<DynamicWithObject>()
                                       ? &scope->as<DynamicWithObject>().object() : scope));
         if (!GetPropertyKeys(cx, target, JSITER_OWNONLY, &props))
             return false;
 
-        /*
-         * Function scopes are optimized to not contain unaliased variables so
-         * they must be manually appended here.
-         */
+        
+
+
+
         if (scope->is<CallObject>() && !scope->as<CallObject>().isForEval()) {
             RootedScript script(cx, scope->as<CallObject>().callee().nonLazyScript());
             for (BindingIter bi(script); bi; bi++) {
@@ -1687,10 +1687,10 @@ class DebugScopeProxy : public BaseProxyHandler
         if (!JS_HasPropertyById(cx, scope, id, &found))
             return false;
 
-        /*
-         * Function scopes are optimized to not contain unaliased variables so
-         * a manual search is necessary.
-         */
+        
+
+
+
         if (!found && scope->is<CallObject>() && !scope->as<CallObject>().isForEval()) {
             RootedScript script(cx, scope->as<CallObject>().callee().nonLazyScript());
             for (BindingIter bi(script); bi; bi++) {
@@ -1712,18 +1712,18 @@ class DebugScopeProxy : public BaseProxyHandler
     }
 };
 
-} /* anonymous namespace */
+} 
 
 const char DebugScopeProxy::family = 0;
 const DebugScopeProxy DebugScopeProxy::singleton;
 
-/* static */ DebugScopeObject *
+ DebugScopeObject *
 DebugScopeObject::create(JSContext *cx, ScopeObject &scope, HandleObject enclosing)
 {
     MOZ_ASSERT(scope.compartment() == cx->compartment());
     RootedValue priv(cx, ObjectValue(scope));
     JSObject *obj = NewProxyObject(cx, &DebugScopeProxy::singleton, priv,
-                                   nullptr /* proto */);
+                                   nullptr );
     if (!obj)
         return nullptr;
 
@@ -1804,9 +1804,9 @@ js::IsDebugScopeSlow(ProxyObject *proxy)
     return proxy->handler() == &DebugScopeProxy::singleton;
 }
 
-/*****************************************************************************/
 
-/* static */ MOZ_ALWAYS_INLINE void
+
+ MOZ_ALWAYS_INLINE void
 DebugScopes::proxiedScopesPostWriteBarrier(JSRuntime *rt, ObjectWeakMap *map,
                                            const PreBarrieredObject &key)
 {
@@ -1814,11 +1814,11 @@ DebugScopes::proxiedScopesPostWriteBarrier(JSRuntime *rt, ObjectWeakMap *map,
         rt->gc.storeBuffer.putGeneric(UnbarrieredRef(map, key.get()));
 }
 
-/* static */ MOZ_ALWAYS_INLINE void
+ MOZ_ALWAYS_INLINE void
 DebugScopes::liveScopesPostWriteBarrier(JSRuntime *rt, LiveScopeMap *map, ScopeObject *key)
 {
-    // As above.  Otherwise, barriers could fire during GC when moving the
-    // value.
+    
+    
     typedef HashMap<ScopeObject *,
                     MissingScopeKey,
                     DefaultHasher<ScopeObject *>,
@@ -1861,30 +1861,30 @@ DebugScopes::mark(JSTracer *trc)
 void
 DebugScopes::sweep(JSRuntime *rt)
 {
-    /*
-     * missingScopes points to debug scopes weakly so that debug scopes can be
-     * released more eagerly.
-     */
+    
+
+
+
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
         DebugScopeObject **debugScope = e.front().value().unsafeGet();
         if (IsObjectAboutToBeFinalizedFromAnyThread(debugScope)) {
-            /*
-             * Note that onPopCall and onPopBlock rely on missingScopes to find
-             * scope objects that we synthesized for the debugger's sake, and
-             * clean up the synthetic scope objects' entries in liveScopes. So
-             * if we remove an entry frcom missingScopes here, we must also
-             * remove the corresponding liveScopes entry.
-             *
-             * Since the DebugScopeObject is the only thing using its scope
-             * object, and the DSO is about to be finalized, you might assume
-             * that the synthetic SO is also about to be finalized too, and thus
-             * the loop below will take care of things. But complex GC behavior
-             * means that marks are only conservative approximations of
-             * liveness; we should assume that anything could be marked.
-             *
-             * Thus, we must explicitly remove the entries from both liveScopes
-             * and missingScopes here.
-             */
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             liveScopes.remove(&(*debugScope)->scope());
             e.removeFront();
         } else {
@@ -1901,10 +1901,10 @@ DebugScopes::sweep(JSRuntime *rt)
 
         e.front().value().sweep();
 
-        /*
-         * Scopes can be finalized when a debugger-synthesized ScopeObject is
-         * no longer reachable via its DebugScopeObject.
-         */
+        
+
+
+
         if (IsObjectAboutToBeFinalizedFromAnyThread(&scope))
             e.removeFront();
         else if (scope != e.front().key())
@@ -1916,11 +1916,11 @@ DebugScopes::sweep(JSRuntime *rt)
 void
 DebugScopes::checkHashTablesAfterMovingGC(JSRuntime *runtime)
 {
-    /*
-     * This is called at the end of StoreBuffer::mark() to check that our
-     * postbarriers have worked and that no hashtable keys (or values) are left
-     * pointing into the nursery.
-     */
+    
+
+
+
+
     for (ObjectWeakMap::Range r = proxiedScopes.all(); !r.empty(); r.popFront()) {
         CheckGCThingAfterMovingGC(r.front().key().get());
         CheckGCThingAfterMovingGC(r.front().value().get());
@@ -1936,13 +1936,13 @@ DebugScopes::checkHashTablesAfterMovingGC(JSRuntime *runtime)
 }
 #endif
 
-/*
- * Unfortunately, GetDebugScopeForFrame needs to work even outside debug mode
- * (in particular, JS_GetFrameScopeChain does not require debug mode). Since
- * DebugScopes::onPop* are only called in debuggee frames, this means we
- * cannot use any of the maps in DebugScopes. This will produce debug scope
- * chains that do not obey the debugger invariants but that is just fine.
- */
+
+
+
+
+
+
+
 static bool
 CanUseDebugScopeMaps(JSContext *cx)
 {
@@ -2028,7 +2028,7 @@ DebugScopes::addDebugScope(JSContext *cx, const ScopeIter &si, DebugScopeObject 
     MOZ_ASSERT(cx->compartment() == debugScope.compartment());
     MOZ_ASSERT_IF(si.withinInitialFrame() && si.initialFrame().isFunctionFrame(),
                   !si.initialFrame().callee()->isGenerator());
-    // Generators should always reify their scopes.
+    
     MOZ_ASSERT_IF(si.type() == ScopeIter::Call, !si.fun().isGenerator());
 
     if (!CanUseDebugScopeMaps(cx))
@@ -2045,8 +2045,8 @@ DebugScopes::addDebugScope(JSContext *cx, const ScopeIter &si, DebugScopeObject 
         return false;
     }
 
-    // Only add to liveScopes if we synthesized the debug scope on a live
-    // frame.
+    
+    
     if (si.withinInitialFrame()) {
         MOZ_ASSERT(!scopes->liveScopes.has(&debugScope.scope()));
         if (!scopes->liveScopes.put(&debugScope.scope(), LiveScopeVal(si))) {
@@ -2071,10 +2071,10 @@ DebugScopes::onPopCall(AbstractFramePtr frame, JSContext *cx)
     Rooted<DebugScopeObject*> debugScope(cx, nullptr);
 
     if (frame.fun()->isHeavyweight()) {
-        /*
-         * The frame may be observed before the prologue has created the
-         * CallObject. See ScopeIter::settle.
-         */
+        
+
+
+
         if (!frame.hasCallObj())
             return;
 
@@ -2094,30 +2094,30 @@ DebugScopes::onPopCall(AbstractFramePtr frame, JSContext *cx)
         }
     }
 
-    /*
-     * When the JS stack frame is popped, the values of unaliased variables
-     * are lost. If there is any debug scope referring to this scope, save a
-     * copy of the unaliased variables' values in an array for later debugger
-     * access via DebugScopeProxy::handleUnaliasedAccess.
-     *
-     * Note: since it is simplest for this function to be infallible, failure
-     * in this code will be silently ignored. This does not break any
-     * invariants since DebugScopeObject::maybeSnapshot can already be nullptr.
-     */
+    
+
+
+
+
+
+
+
+
+
     if (debugScope) {
-        /*
-         * Copy all frame values into the snapshot, regardless of
-         * aliasing. This unnecessarily includes aliased variables
-         * but it simplifies later indexing logic.
-         */
+        
+
+
+
+
         AutoValueVector vec(cx);
         if (!frame.copyRawFrameSlots(&vec) || vec.length() == 0)
             return;
 
-        /*
-         * Copy in formals that are not aliased via the scope chain
-         * but are aliased via the arguments object.
-         */
+        
+
+
+
         RootedScript script(cx, frame.script());
         if (script->analyzedArgsUsage() && script->needsArgsObj() && frame.hasArgsObj()) {
             for (unsigned i = 0; i < frame.numFormalArgs(); ++i) {
@@ -2126,10 +2126,10 @@ DebugScopes::onPopCall(AbstractFramePtr frame, JSContext *cx)
             }
         }
 
-        /*
-         * Use a dense array as storage (since proxies do not have trace
-         * hooks). This array must not escape into the wild.
-         */
+        
+
+
+
         RootedArrayObject snapshot(cx, NewDenseCopiedArray(cx, vec.length(), vec.begin()));
         if (!snapshot) {
             cx->clearPendingException();
@@ -2192,10 +2192,10 @@ DebugScopes::onPopStrictEvalScope(AbstractFramePtr frame)
     if (!scopes)
         return;
 
-    /*
-     * The stack frame may be observed before the prologue has created the
-     * CallObject. See ScopeIter::settle.
-     */
+    
+
+
+
     if (frame.hasCallObj())
         scopes->liveScopes.remove(&frame.scopeChain()->as<CallObject>());
 }
@@ -2216,17 +2216,17 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 {
     JS_CHECK_RECURSION(cx, return false);
 
-    /*
-     * Note that we must always update the top frame's scope objects' entries
-     * in liveScopes because we can't be sure code hasn't run in that frame to
-     * change the scope chain since we were last called. The fp->prevUpToDate()
-     * flag indicates whether the scopes of frames older than fp are already
-     * included in liveScopes. It might seem simpler to have fp instead carry a
-     * flag indicating whether fp itself is accurately described, but then we
-     * would need to clear that flag whenever fp ran code. By storing the 'up
-     * to date' bit for fp->prev() in fp, simply popping fp effectively clears
-     * the flag for us, at exactly the time when execution resumes fp->prev().
-     */
+    
+
+
+
+
+
+
+
+
+
+
     for (AllFramesIter i(cx); !i.done(); ++i) {
         if (!i.hasUsableAbstractFramePtr())
             continue;
@@ -2275,16 +2275,16 @@ DebugScopes::hasLiveScope(ScopeObject &scope)
     return nullptr;
 }
 
-/* static */ void
+ void
 DebugScopes::unsetPrevUpToDateUntil(JSContext *cx, AbstractFramePtr until)
 {
-    // This is the one exception where fp->prevUpToDate() is cleared without
-    // popping the frame. When a frame is rematerialized, all frames younger
-    // than the rematerialized frame have their prevUpToDate set to
-    // false. This is because unrematerialized Ion frames have no usable
-    // AbstractFramePtr, and so are skipped by the updateLiveScopes. If in the
-    // future a frame suddenly gains a usable AbstractFramePtr via
-    // rematerialization, the prevUpToDate invariant will no longer hold.
+    
+    
+    
+    
+    
+    
+    
     for (AllFramesIter i(cx); !i.done(); ++i) {
         if (!i.hasUsableAbstractFramePtr())
             continue;
@@ -2300,7 +2300,7 @@ DebugScopes::unsetPrevUpToDateUntil(JSContext *cx, AbstractFramePtr until)
     }
 }
 
-/* static */ void
+ void
 DebugScopes::forwardLiveFrame(JSContext *cx, AbstractFramePtr from, AbstractFramePtr to)
 {
     DebugScopes *scopes = cx->compartment()->debugScopes;
@@ -2322,7 +2322,7 @@ DebugScopes::forwardLiveFrame(JSContext *cx, AbstractFramePtr from, AbstractFram
     }
 }
 
-/*****************************************************************************/
+
 
 static JSObject *
 GetDebugScope(JSContext *cx, const ScopeIter &si);
@@ -2370,22 +2370,22 @@ GetDebugScopeForMissing(JSContext *cx, const ScopeIter &si)
     if (!enclosingDebug)
         return nullptr;
 
-    /*
-     * Create the missing scope object. For block objects, this takes care of
-     * storing variable values after the stack frame has been popped. For call
-     * objects, we only use the pretend call object to access callee, bindings
-     * and to receive dynamically added properties. Together, this provides the
-     * nice invariant that every DebugScopeObject has a ScopeObject.
-     *
-     * Note: to preserve scopeChain depth invariants, these lazily-reified
-     * scopes must not be put on the frame's scope chain; instead, they are
-     * maintained via DebugScopes hooks.
-     */
+    
+
+
+
+
+
+
+
+
+
+
     DebugScopeObject *debugScope = nullptr;
     switch (si.type()) {
       case ScopeIter::Call: {
         RootedFunction callee(cx, &si.fun());
-        // Generators should always reify their scopes.
+        
         MOZ_ASSERT(!callee->isGenerator());
 
         Rooted<CallObject*> callobj(cx);
@@ -2408,7 +2408,7 @@ GetDebugScopeForMissing(JSContext *cx, const ScopeIter &si)
         break;
       }
       case ScopeIter::Block: {
-        // Generators should always reify their scopes.
+        
         MOZ_ASSERT_IF(si.withinInitialFrame() && si.initialFrame().isFunctionFrame(),
                       !si.initialFrame().callee()->isGenerator());
 
@@ -2445,7 +2445,7 @@ GetDebugScopeForNonScopeObject(const ScopeIter &si)
 #ifdef DEBUG
     JSObject *o = &enclosing;
     while ((o = o->enclosingScope()))
-        MOZ_ASSERT(!o->is<ScopeObject>());
+        MOZ_ASSERT(IsValidTerminatingScope(o));
 #endif
     return &enclosing;
 }
@@ -2489,7 +2489,7 @@ js::GetDebugScopeForFrame(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
     return GetDebugScope(cx, si);
 }
 
-// See declaration and documentation in jsfriendapi.h
+
 JS_FRIEND_API(JSObject *)
 js::GetObjectEnvironmentObjectForFunction(JSFunction *fun)
 {
@@ -2516,8 +2516,8 @@ js::CreateScopeObjectsForScopeChain(JSContext *cx, AutoObjectVector &scopeChain,
     }
 #endif
 
-    // Construct With object wrappers for the things on this scope
-    // chain and use the result as the thing to scope the function to.
+    
+    
     Rooted<StaticWithObject*> staticWith(cx);
     RootedObject staticEnclosingScope(cx);
     Rooted<DynamicWithObject*> dynamicWith(cx);
@@ -2548,19 +2548,19 @@ typedef HashSet<PropertyName *> PropertyNameSet;
 static bool
 RemoveReferencedNames(JSContext *cx, HandleScript script, PropertyNameSet &remainingNames)
 {
-    // Remove from remainingNames --- the closure variables in some outer
-    // script --- any free variables in this script. This analysis isn't perfect:
-    //
-    // - It will not account for free variables in an inner script which are
-    //   actually accessing some name in an intermediate script between the
-    //   inner and outer scripts. This can cause remainingNames to be an
-    //   underapproximation.
-    //
-    // - It will not account for new names introduced via eval. This can cause
-    //   remainingNames to be an overapproximation. This would be easy to fix
-    //   but is nice to have as the eval will probably not access these
-    //   these names and putting eval in an inner script is bad news if you
-    //   care about entraining variables unnecessarily.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     for (jsbytecode *pc = script->code(); pc != script->codeEnd(); pc += GetBytecodeLength(pc)) {
         PropertyName *name;
@@ -2670,17 +2670,17 @@ AnalyzeEntrainedVariablesInScript(JSContext *cx, HandleScript script, HandleScri
     return true;
 }
 
-// Look for local variables in script or any other script inner to it, which are
-// part of the script's call object and are unnecessarily entrained by their own
-// inner scripts which do not refer to those variables. An example is:
-//
-// function foo() {
-//   var a, b;
-//   function bar() { return a; }
-//   function baz() { return b; }
-// }
-//
-// |bar| unnecessarily entrains |b|, and |baz| unnecessarily entrains |a|.
+
+
+
+
+
+
+
+
+
+
+
 bool
 js::AnalyzeEntrainedVariables(JSContext *cx, HandleScript script)
 {
