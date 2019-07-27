@@ -16,6 +16,14 @@ import android.os.Bundle;
 @JNITarget
 public class NativeJSObject
 {
+    @SuppressWarnings("serial")
+    @JNITarget
+    public static final class InvalidPropertyException extends RuntimeException {
+        public InvalidPropertyException(final String msg) {
+            super(msg);
+        }
+    }
+
     private final NativeJSContainer mContainer;
     private final int mObjectIndex;
 
@@ -30,6 +38,8 @@ public class NativeJSObject
     }
 
     
+
+
 
 
 
@@ -61,9 +71,13 @@ public class NativeJSObject
 
 
 
+
+
     public native boolean optBoolean(String name, boolean fallback);
 
     
+
+
 
 
 
@@ -95,9 +109,13 @@ public class NativeJSObject
 
 
 
+
+
     public native boolean[] optBooleanArray(String name, boolean[] fallback);
 
     
+
+
 
 
 
@@ -129,9 +147,13 @@ public class NativeJSObject
 
 
 
+
+
     public native Bundle optBundle(String name, Bundle fallback);
 
     
+
+
 
 
 
@@ -163,9 +185,13 @@ public class NativeJSObject
 
 
 
+
+
     public native Bundle[] optBundleArray(String name, Bundle[] fallback);
 
     
+
+
 
 
 
@@ -197,9 +223,13 @@ public class NativeJSObject
 
 
 
+
+
     public native double optDouble(String name, double fallback);
 
     
+
+
 
 
 
@@ -231,9 +261,13 @@ public class NativeJSObject
 
 
 
+
+
     public native double[] optDoubleArray(String name, double[] fallback);
 
     
+
+
 
 
 
@@ -265,9 +299,13 @@ public class NativeJSObject
 
 
 
+
+
     public native int optInt(String name, int fallback);
 
     
+
+
 
 
 
@@ -299,9 +337,13 @@ public class NativeJSObject
 
 
 
+
+
     public native int[] optIntArray(String name, int[] fallback);
 
     
+
+
 
 
 
@@ -333,9 +375,13 @@ public class NativeJSObject
 
 
 
+
+
     public native NativeJSObject optObject(String name, NativeJSObject fallback);
 
     
+
+
 
 
 
@@ -367,9 +413,13 @@ public class NativeJSObject
 
 
 
+
+
     public native NativeJSObject[] optObjectArray(String name, NativeJSObject[] fallback);
 
     
+
+
 
 
 
@@ -401,9 +451,13 @@ public class NativeJSObject
 
 
 
+
+
     public native String optString(String name, String fallback);
 
     
+
+
 
 
 
@@ -435,9 +489,13 @@ public class NativeJSObject
 
 
 
+
+
     public native String[] optStringArray(String name, String[] fallback);
 
     
+
+
 
 
 
