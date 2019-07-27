@@ -494,7 +494,12 @@ regexp_source_impl(JSContext *cx, CallArgs args)
     if (!src)
         return false;
 
-    args.rval().setString(src);
+    
+    if (src->length() == 0)
+        args.rval().setString(cx->names().emptyRegExp);
+    else
+        args.rval().setString(src);
+
     return true;
 }
 
