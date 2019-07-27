@@ -858,13 +858,6 @@ EventDispatcher::CreateEvent(EventTarget* aOwner,
   }
   if (aEventType.LowerCaseEqualsLiteral("scrollareaevent"))
     return NS_NewDOMScrollAreaEvent(aDOMEvent, aOwner, aPresContext, nullptr);
-  if (aEventType.LowerCaseEqualsLiteral("closeevent")) {
-    CloseEventInit init;
-    nsRefPtr<CloseEvent> event =
-      CloseEvent::Constructor(aOwner, EmptyString(), init);
-    event.forget(aDOMEvent);
-    return NS_OK;
-  }
   
   
   
