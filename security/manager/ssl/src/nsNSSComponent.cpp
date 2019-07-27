@@ -624,6 +624,7 @@ typedef struct {
   const char* pref;
   long id;
   bool enabledByDefault;
+  bool weak;
 } CipherPref;
 
 
@@ -667,9 +668,9 @@ static const CipherPref sCipherPrefs[] = {
    TLS_DHE_DSS_WITH_AES_256_CBC_SHA, false }, 
 
  { "security.ssl3.ecdhe_rsa_rc4_128_sha",
-   TLS_ECDHE_RSA_WITH_RC4_128_SHA, true }, 
+   TLS_ECDHE_RSA_WITH_RC4_128_SHA, true, true }, 
  { "security.ssl3.ecdhe_ecdsa_rc4_128_sha",
-   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, true }, 
+   TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, true, true }, 
 
  { "security.ssl3.rsa_aes_128_sha",
    TLS_RSA_WITH_AES_128_CBC_SHA, true }, 
@@ -683,14 +684,39 @@ static const CipherPref sCipherPrefs[] = {
    TLS_RSA_WITH_3DES_EDE_CBC_SHA, true }, 
 
  { "security.ssl3.rsa_rc4_128_sha",
-   TLS_RSA_WITH_RC4_128_SHA, true }, 
+   TLS_RSA_WITH_RC4_128_SHA, true, true }, 
  { "security.ssl3.rsa_rc4_128_md5",
-   TLS_RSA_WITH_RC4_128_MD5, true }, 
+   TLS_RSA_WITH_RC4_128_MD5, true, true }, 
 
  
 
  { nullptr, 0 } 
 };
+
+
+
+
+static Atomic<uint32_t> sEnabledWeakCiphers;
+static_assert(MOZ_ARRAY_LENGTH(sCipherPrefs) - 1 <= sizeof(uint32_t) * CHAR_BIT,
+              "too many cipher suites");
+
+ bool
+nsNSSComponent::AreAnyWeakCiphersEnabled()
+{
+  return !!sEnabledWeakCiphers;
+}
+
+ void
+nsNSSComponent::UseWeakCiphersOnSocket(PRFileDesc* fd)
+{
+  const uint32_t enabledWeakCiphers = sEnabledWeakCiphers;
+  const CipherPref* const cp = sCipherPrefs;
+  for (size_t i = 0; cp[i].pref; ++i) {
+    if (enabledWeakCiphers & ((uint32_t)1 << i)) {
+      SSL_CipherPrefSet(fd, cp[i].id, true);
+    }
+  }
+}
 
 static const int32_t OCSP_ENABLED_DEFAULT = 1;
 static const bool REQUIRE_SAFE_NEGOTIATION_DEFAULT = false;
@@ -773,12 +799,27 @@ CipherSuiteChangeObserver::Observe(nsISupports* aSubject,
   if (nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
     NS_ConvertUTF16toUTF8  prefName(someData);
     
-    for (const CipherPref* cp = sCipherPrefs; cp->pref; ++cp) {
-      if (prefName.Equals(cp->pref)) {
-        bool cipherEnabled = Preferences::GetBool(cp->pref,
-                                                  cp->enabledByDefault);
-        SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
-        SSL_ClearSessionCache();
+    const CipherPref* const cp = sCipherPrefs;
+    for (size_t i = 0; cp[i].pref; ++i) {
+      if (prefName.Equals(cp[i].pref)) {
+        bool cipherEnabled = Preferences::GetBool(cp[i].pref,
+                                                  cp[i].enabledByDefault);
+        if (cp[i].weak) {
+          
+          
+          
+          
+          uint32_t enabledWeakCiphers = sEnabledWeakCiphers;
+          if (cipherEnabled) {
+            enabledWeakCiphers |= ((uint32_t)1 << i);
+          } else {
+            enabledWeakCiphers &= ~((uint32_t)1 << i);
+          }
+          sEnabledWeakCiphers = enabledWeakCiphers;
+        } else {
+          SSL_CipherPrefSetDefault(cp[i].id, cipherEnabled);
+          SSL_ClearSessionCache();
+        }
         break;
       }
     }
@@ -1646,10 +1687,22 @@ InitializeCipherSuite()
   }
 
   
-  for (const CipherPref* cp = sCipherPrefs; cp->pref; ++cp) {
-    bool cipherEnabled = Preferences::GetBool(cp->pref, cp->enabledByDefault);
-    SSL_CipherPrefSetDefault(cp->id, cipherEnabled);
+  uint32_t enabledWeakCiphers = 0;
+  const CipherPref* const cp = sCipherPrefs;
+  for (size_t i = 0; cp[i].pref; ++i) {
+    bool cipherEnabled = Preferences::GetBool(cp[i].pref,
+                                              cp[i].enabledByDefault);
+    if (cp[i].weak) {
+      
+      
+      if (cipherEnabled) {
+        enabledWeakCiphers |= ((uint32_t)1 << i);
+      }
+    } else {
+      SSL_CipherPrefSetDefault(cp[i].id, cipherEnabled);
+    }
   }
+  sEnabledWeakCiphers = enabledWeakCiphers;
 
   
   SEC_PKCS12EnableCipher(PKCS12_RC4_40, 1);

@@ -153,6 +153,10 @@ public:
   ::mozilla::TemporaryRef<mozilla::psm::SharedCertVerifier>
     GetDefaultCertVerifier() MOZ_OVERRIDE;
 
+  
+  static bool AreAnyWeakCiphersEnabled();
+  static void UseWeakCiphersOnSocket(PRFileDesc* fd);
+
 protected:
   virtual ~nsNSSComponent();
 
