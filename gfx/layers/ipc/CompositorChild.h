@@ -80,8 +80,6 @@ public:
 
   void CancelNotifyAfterRemotePaint(TabChild* aTabChild);
 
-  static void ShutDown();
-
 private:
   
   virtual ~CompositorChild();
