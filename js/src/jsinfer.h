@@ -572,6 +572,8 @@ class TypeSet
 
     
     static TemporaryTypeSet *unionSets(TypeSet *a, TypeSet *b, LifoAlloc *alloc);
+    
+    static TemporaryTypeSet *intersectSets(TemporaryTypeSet *a, TemporaryTypeSet *b, LifoAlloc *alloc);
 
     
     void addType(Type type, LifoAlloc *alloc);

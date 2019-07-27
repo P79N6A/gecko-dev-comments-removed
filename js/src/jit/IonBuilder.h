@@ -348,7 +348,7 @@ class IonBuilder : public MIRGenerator
     bool improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test);
     
     bool detectAndOrStructure(MPhi *ins, bool *branchIsTrue);
-    void replaceTypeSet(MDefinition *subject, types::TemporaryTypeSet *type, MTest *test);
+    bool replaceTypeSet(MDefinition *subject, types::TemporaryTypeSet *type, MTest *test);
 
     
     
