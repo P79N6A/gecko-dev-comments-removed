@@ -453,9 +453,13 @@ XRE_InitChildProcess(int aArgc,
   base::ProcessId parentPID = strtol(parentPIDString, &end, 10);
   NS_ABORT_IF_FALSE(!*end, "invalid parent PID");
 
-  base::ProcessHandle parentHandle;
-  mozilla::DebugOnly<bool> ok = base::OpenProcessHandle(parentPID, &parentHandle);
-  NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
+  
+  
+  base::ProcessHandle parentHandle = 0;
+  if (XRE_GetProcessType() != GeckoProcessType_GMPlugin) {
+    mozilla::DebugOnly<bool> ok = base::OpenProcessHandle(parentPID, &parentHandle);
+    NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
+  }
 
 #if defined(XP_WIN)
   
