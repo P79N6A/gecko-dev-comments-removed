@@ -1083,6 +1083,17 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
       
       
       
+      
+      
+      if (mAudioCaptured || VideoQueue().GetSize() == 1) {
+        ScheduleStateMachine();
+      }
+
+      
+      
+      
+      
+      
       if (mReader->IsAsync()) {
         return;
       }
@@ -1096,11 +1107,6 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
                                               mAmpleAudioThresholdUsecs);
         DECODER_LOG("Slow video decode, set mLowAudioThresholdUsecs=%lld mAmpleAudioThresholdUsecs=%lld",
                     mLowAudioThresholdUsecs, mAmpleAudioThresholdUsecs);
-      }
-
-      
-      if (mAudioCaptured) {
-        ScheduleStateMachine();
       }
       return;
     }
@@ -2959,9 +2965,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
     
     
     if (frame && !currentFrame) {
-      int64_t now = IsPlaying() ? clock_time : mStartTime + mPlayDuration;
-
-      remainingTime = frame->mTime - now;
+      remainingTime = frame->mTime - clock_time;
     }
   }
 
@@ -3041,6 +3045,22 @@ void MediaDecoderStateMachine::AdvanceFrame()
     frameStats.NotifyPresentedFrame();
     remainingTime = currentFrame->GetEndTime() - clock_time;
     currentFrame = nullptr;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  if (remainingTime <= 0) {
+    VideoData* nextFrame = VideoQueue().PeekFront();
+    if (nextFrame) {
+      remainingTime = nextFrame->mTime - clock_time;
+    } else {
+      remainingTime = AUDIO_DURATION_USECS;
+    }
   }
 
   int64_t delay = remainingTime / mPlaybackRate;
