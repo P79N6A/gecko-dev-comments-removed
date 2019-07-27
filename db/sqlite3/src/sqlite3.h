@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.8.5"
-#define SQLITE_VERSION_NUMBER 3008005
-#define SQLITE_SOURCE_ID      "2014-06-04 14:06:34 b1ed4f2a34ba66c29b130f8d13e9092758019212"
+#define SQLITE_VERSION        "3.8.6"
+#define SQLITE_VERSION_NUMBER 3008006
+#define SQLITE_SOURCE_ID      "2014-08-15 11:46:33 9491ba7d738528f168657adb43a198238abde19e"
 
 
 
@@ -395,8 +395,6 @@ SQLITE_API int sqlite3_exec(
 
 
 
-
-
 #define SQLITE_OK           0   /* Successful result */
 
 #define SQLITE_ERROR        1   /* SQL error or missing database */
@@ -429,13 +427,6 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_WARNING     28   /* Warnings from sqlite3_log() */
 #define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
 #define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
-
-
-
-
-
-
-
 
 
 
@@ -755,6 +746,7 @@ struct sqlite3_io_methods {
   
   
 };
+
 
 
 
@@ -2091,14 +2083,9 @@ SQLITE_API int sqlite3_complete16(const void *sql);
 
 
 
-
-
-
-
-
-
-
 SQLITE_API int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
 
 
 
@@ -4740,6 +4727,18 @@ SQLITE_API int sqlite3_sleep(int);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 SQLITE_API SQLITE_EXTERN char *sqlite3_temp_directory;
 
 
@@ -5927,6 +5926,8 @@ SQLITE_API int sqlite3_vfs_unregister(sqlite3_vfs*);
 
 
 
+
+
 SQLITE_API sqlite3_mutex *sqlite3_mutex_alloc(int);
 SQLITE_API void sqlite3_mutex_free(sqlite3_mutex*);
 SQLITE_API void sqlite3_mutex_enter(sqlite3_mutex*);
@@ -6065,6 +6066,9 @@ SQLITE_API int sqlite3_mutex_notheld(sqlite3_mutex*);
 #define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
 #define SQLITE_MUTEX_STATIC_LRU2      7  /* NOT USED */
 #define SQLITE_MUTEX_STATIC_PMEM      7  /* sqlite3PageMalloc() */
+#define SQLITE_MUTEX_STATIC_APP1      8  /* For use by application */
+#define SQLITE_MUTEX_STATIC_APP2      9  /* For use by application */
+#define SQLITE_MUTEX_STATIC_APP3     10  /* For use by application */
 
 
 
@@ -6160,7 +6164,8 @@ SQLITE_API int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_NEVER_CORRUPT           20
 #define SQLITE_TESTCTRL_VDBE_COVERAGE           21
 #define SQLITE_TESTCTRL_BYTEORDER               22
-#define SQLITE_TESTCTRL_LAST                    22
+#define SQLITE_TESTCTRL_ISINIT                  23
+#define SQLITE_TESTCTRL_LAST                    23
 
 
 
@@ -7150,6 +7155,9 @@ SQLITE_API void *sqlite3_wal_hook(
 
 
 
+
+
+
 SQLITE_API int sqlite3_wal_autocheckpoint(sqlite3 *db, int N);
 
 
@@ -7168,7 +7176,14 @@ SQLITE_API int sqlite3_wal_autocheckpoint(sqlite3 *db, int N);
 
 
 
+
+
+
+
 SQLITE_API int sqlite3_wal_checkpoint(sqlite3 *db, const char *zDb);
+
+
+
 
 
 
@@ -7328,6 +7343,7 @@ SQLITE_API int sqlite3_vtab_config(sqlite3*, int op, ...);
 
 
 SQLITE_API int sqlite3_vtab_on_conflict(sqlite3 *);
+
 
 
 
