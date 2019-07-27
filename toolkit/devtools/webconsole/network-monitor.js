@@ -353,8 +353,10 @@ NetworkResponseListener.prototype = {
 
     this.receivedData = "";
 
-    this.httpActivity.owner.
-      addResponseContent(response, this.httpActivity.discardResponseBody);
+    this.httpActivity.owner.addResponseContent(
+      response,
+      this.httpActivity.discardResponseBody
+    );
 
     this._wrappedNotificationCallbacks = null;
     this.httpActivity.channel = null;
@@ -507,6 +509,8 @@ NetworkMonitor.prototype = {
     if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT) {
       Services.obs.addObserver(this._httpResponseExaminer,
                                "http-on-examine-response", false);
+      Services.obs.addObserver(this._httpResponseExaminer,
+                               "http-on-examine-cached-response", false);
     }
   },
 
@@ -526,7 +530,9 @@ NetworkMonitor.prototype = {
     
     
 
-    if (!this.owner || aTopic != "http-on-examine-response" ||
+    if (!this.owner ||
+        (aTopic != "http-on-examine-response" &&
+         aTopic != "http-on-examine-cached-response") ||
         !(aSubject instanceof Ci.nsIHttpChannel)) {
       return;
     }
@@ -577,6 +583,26 @@ NetworkMonitor.prototype = {
                                      httpVersionMin.value;
 
     this.openResponses[response.id] = response;
+
+    if(aTopic === "http-on-examine-cached-response") {
+      
+      
+      
+      let httpActivity = this._createNetworkEvent(channel, { fromCache: true });
+      httpActivity.owner.addResponseStart({
+        httpVersion: response.httpVersion,
+        remoteAddress: "",
+        remotePort: "",
+        status: response.status,
+        statusText: response.statusText,
+        headersSize: 0,
+      }, "", true);
+
+      
+      
+      let timings = this._setupHarTimings(httpActivity, true);
+      httpActivity.owner.addEventTimings(timings.total, timings.timings);
+    }
   },
 
   
@@ -692,7 +718,7 @@ NetworkMonitor.prototype = {
         return true;
       }
     }
-    
+
     if (this.topFrame) {
       let topFrame = NetworkHelper.getTopFrameForRequest(aChannel);
       if (topFrame && topFrame === this.topFrame) {
@@ -713,22 +739,7 @@ NetworkMonitor.prototype = {
   
 
 
-
-
-
-
-
-
-
-
-
-  _onRequestHeader:
-  function NM__onRequestHeader(aChannel, aTimestamp, aExtraStringData)
-  {
-    if (!this._matchRequest(aChannel)) {
-      return;
-    }
-
+  _createNetworkEvent: function(aChannel, { timestamp, extraStringData, fromCache }) {
     let win = NetworkHelper.getWindowForRequest(aChannel);
     let httpActivity = this.createActivityObject(aChannel);
 
@@ -738,25 +749,32 @@ NetworkMonitor.prototype = {
     aChannel.QueryInterface(Ci.nsIPrivateBrowsingChannel);
     httpActivity.private = aChannel.isChannelPrivate;
 
-    httpActivity.timings.REQUEST_HEADER = {
-      first: aTimestamp,
-      last: aTimestamp
-    };
+    if(timestamp) {
+      httpActivity.timings.REQUEST_HEADER = {
+        first: timestamp,
+        last: timestamp
+      };
+    }
 
-    let httpVersionMaj = {};
-    let httpVersionMin = {};
     let event = {};
-    event.startedDateTime = new Date(Math.round(aTimestamp / 1000)).toISOString();
-    event.headersSize = aExtraStringData.length;
     event.method = aChannel.requestMethod;
     event.url = aChannel.URI.spec;
     event.private = httpActivity.private;
+    event.headersSize = 0;
+    event.startedDateTime = (timestamp ? new Date(Math.round(timestamp / 1000)) : new Date()).toISOString();
+    event.fromCache = fromCache;
+
+    if(extraStringData) {
+      event.headersSize = extraStringData.length;
+    }
 
     
     httpActivity.isXHR = event.isXHR =
         (aChannel.loadInfo.contentPolicyType === Ci.nsIContentPolicy.TYPE_XMLHTTPREQUEST);
 
     
+    let httpVersionMaj = {};
+    let httpVersionMin = {};
     aChannel.QueryInterface(Ci.nsIHttpChannelInternal);
     aChannel.getRequestVersion(httpVersionMaj, httpVersionMin);
 
@@ -785,14 +803,38 @@ NetworkMonitor.prototype = {
       cookies = NetworkHelper.parseCookieHeader(cookieHeader);
     }
 
-    httpActivity.owner = this.owner.onNetworkEvent(event, aChannel, this);
+    httpActivity.owner = this.owner.onNetworkEvent(event, aChannel);
 
     this._setupResponseListener(httpActivity);
 
-    this.openRequests[httpActivity.id] = httpActivity;
-
-    httpActivity.owner.addRequestHeaders(headers, aExtraStringData);
+    httpActivity.owner.addRequestHeaders(headers, extraStringData);
     httpActivity.owner.addRequestCookies(cookies);
+
+    this.openRequests[httpActivity.id] = httpActivity;
+    return httpActivity;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _onRequestHeader:
+  function NM__onRequestHeader(aChannel, aTimestamp, aExtraStringData)
+  {
+    if (!this._matchRequest(aChannel)) {
+      return;
+    }
+
+    this._createNetworkEvent(aChannel, { timestamp: aTimestamp,
+                                         extraStringData: aExtraStringData });
   },
 
   
@@ -984,8 +1026,27 @@ NetworkMonitor.prototype = {
 
 
 
-  _setupHarTimings: function NM__setupHarTimings(aHttpActivity)
+
+
+
+  _setupHarTimings: function NM__setupHarTimings(aHttpActivity, fromCache)
   {
+    if(fromCache) {
+      
+      
+      return {
+        total: 0,
+        timings: {
+          blocked: 0,
+          dns: 0,
+          connect: 0,
+          send: 0,
+          wait: 0,
+          receive: 0
+        }
+      };
+    }
+
     let timings = aHttpActivity.timings;
     let harTimings = {};
 
