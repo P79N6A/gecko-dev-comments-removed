@@ -184,6 +184,35 @@ loop.conversation = (function(mozL10n) {
 
 
 
+  var IncomingCallFailedView = React.createClass({displayName: 'IncomingCallFailedView',
+    propTypes: {
+      cancelCall: React.PropTypes.func.isRequired
+    },
+
+    render: function() {
+      document.title = mozL10n.get("generic_failure_title");
+
+      return (
+        React.DOM.div({className: "call-window"}, 
+          React.DOM.h2(null, mozL10n.get("generic_failure_title")), 
+
+          React.DOM.div({className: "btn-group call-action-group"}, 
+            React.DOM.button({className: "btn btn-cancel", 
+                    onClick: this.props.cancelCall}, 
+              mozL10n.get("cancel_button")
+            )
+          )
+        )
+      );
+    }
+  });
+
+  
+
+
+
+
+
   var IncomingConversationView = React.createClass({displayName: 'IncomingConversationView',
     propTypes: {
       client: React.PropTypes.instanceOf(loop.Client).isRequired,
@@ -254,10 +283,12 @@ loop.conversation = (function(mozL10n) {
         case "end": {
           
           if (this.state.callFailed) {
-            document.title = mozL10n.get("generic_failure_title");
-          } else {
-            document.title = mozL10n.get("conversation_has_ended");
+            return IncomingCallFailedView({
+              cancelCall: this.closeWindow.bind(this)}
+            )
           }
+
+          document.title = mozL10n.get("conversation_has_ended");
 
           var feebackAPIBaseUrl = navigator.mozLoop.getLoopCharPref(
             "feedback.baseUrl");
@@ -649,6 +680,7 @@ loop.conversation = (function(mozL10n) {
     AppControllerView: AppControllerView,
     IncomingConversationView: IncomingConversationView,
     IncomingCallView: IncomingCallView,
+    IncomingCallFailedView: IncomingCallFailedView,
     init: init
   };
 })(document.mozL10n);
