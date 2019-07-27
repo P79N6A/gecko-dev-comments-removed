@@ -102,15 +102,24 @@ public class SearchEngineBar extends TwoWayView
         final int searchEngineCount = adapter.getCount() - 1;
 
         if (searchEngineCount > 0) {
-            final float availableWidthPerContainer = (getMeasuredWidth() - labelContainerWidth) / searchEngineCount;
+            final int availableWidth = getMeasuredWidth() - labelContainerWidth;
+            final double searchEnginesToDisplay;
 
-            final int desiredIconContainerSize = (int) Math.max(
-                    availableWidthPerContainer,
-                    minIconContainerWidth
-            );
+            if (searchEngineCount * minIconContainerWidth <= availableWidth) {
+                
+                searchEnginesToDisplay = searchEngineCount;
+            } else {
+                
+                
 
-            if (desiredIconContainerSize != iconContainerWidth) {
-                iconContainerWidth = desiredIconContainerSize;
+                searchEnginesToDisplay = Math.floor(availableWidth / minIconContainerWidth) - 0.5;
+            }
+
+            
+            final int availableWidthPerContainer = (int) (availableWidth / searchEnginesToDisplay);
+
+            if (availableWidthPerContainer != iconContainerWidth) {
+                iconContainerWidth = availableWidthPerContainer;
                 adapter.notifyDataSetChanged();
             }
         }
