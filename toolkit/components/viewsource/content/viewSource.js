@@ -242,9 +242,6 @@ function onClickContent(event) {
 
   if (/^about:blocked/.test(errorDoc.documentURI)) {
     
-    
-    
-    var isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
 
     if (target == errorDoc.getElementById('getMeOutButton')) {
       
@@ -252,23 +249,8 @@ function onClickContent(event) {
     } else if (target == errorDoc.getElementById('reportButton')) {
       
       
-      
-
-      if (isMalware) {
-        
-        
-        try {
-          let reportURL = Services.urlFormatter.formatURLPref("browser.safebrowsing.malware.reportURL", true);
-          reportURL += errorDoc.location.href.slice(12);
-          openURL(reportURL);
-        } catch (e) {
-          Components.utils.reportError("Couldn't get malware report URL: " + e);
-        }
-      } else {
-        
-        let url = Services.urlFormatter.formatURLPref("app.support.baseURL");
-        openURL(url + "phishing-malware");
-      }
+      let url = Services.urlFormatter.formatURLPref("app.support.baseURL");
+      openURL(url + "phishing-malware");
     } else if (target == errorDoc.getElementById('ignoreWarningButton')) {
       
       gBrowser.loadURIWithFlags(content.location.href,

@@ -341,9 +341,6 @@ let Content = {
       }
     } else if (/^about:blocked/.test(errorDoc.documentURI)) {
       
-      
-      
-      let isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
     
       if (ot == errorDoc.getElementById("getMeOutButton")) {
         sendAsyncMessage("Browser:BlockedSite",
@@ -351,10 +348,8 @@ let Content = {
       } else if (ot == errorDoc.getElementById("reportButton")) {
         
         
-        
-        let action = isMalware ? "report-malware" : "report-phishing";
         sendAsyncMessage("Browser:BlockedSite",
-                         { url: errorDoc.location.href, action: action });
+                         { url: errorDoc.location.href, action: "report-phishing" });
       } else if (ot == errorDoc.getElementById("ignoreWarningButton")) {
         
         

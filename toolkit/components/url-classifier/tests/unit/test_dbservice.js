@@ -54,11 +54,13 @@ var chunk6 = chunk6Urls.join("\n");
 var phishExpected = {};
 var phishUnexpected = {};
 var malwareExpected = {};
+var unwantedExpected = {};
 for (var i = 0; i < chunk2Urls.length; i++) {
   phishExpected[chunk2Urls[i]] = true;
   malwareExpected[chunk2Urls[i]] = true;
 }
 for (var i = 0; i < chunk3Urls.length; i++) {
+  unwantedExpected[chunk3Urls[i]] = true;
   delete phishExpected[chunk3Urls[i]];
   phishUnexpected[chunk3Urls[i]] = true;
 }
@@ -115,7 +117,7 @@ function tablesCallbackWithoutSub(tables)
   
   
   do_check_eq(parts.join("\n"),
-              "\ntest-malware-simple;a:1\ntest-phish-simple;a:2");
+              "\ntest-malware-simple;a:1\ntest-phish-simple;a:2\ntest-unwanted-simple;a:1");
 
   checkNoHost();
 }
@@ -133,7 +135,7 @@ function tablesCallbackWithSub(tables)
   
   
   do_check_eq(parts.join("\n"),
-              "\ntest-malware-simple;a:1\ntest-phish-simple;a:2:s:3");
+              "\ntest-malware-simple;a:1\ntest-phish-simple;a:2:s:3\ntest-unwanted-simple;a:1");
 
   
   var data =
@@ -182,6 +184,16 @@ function malwareExists(result) {
   }
 }
 
+function unwantedExists(result) {
+  dumpn("unwantedExists: " + result);
+
+  try {
+    do_check_true(result.indexOf("test-unwanted-simple") != -1);
+  } finally {
+    checkDone();
+  }
+}
+
 function checkState()
 {
   numExpecting = 0;
@@ -201,6 +213,12 @@ function checkState()
   for (var key in malwareExpected) {
     var principal = secMan.getNoAppCodebasePrincipal(iosvc.newURI("http://" + key, null, null));
     dbservice.lookup(principal, allTables, malwareExists, true);
+    numExpecting++;
+  }
+
+  for (var key in unwantedExpected) {
+    var principal = secMan.getNoAppCodebasePrincipal(iosvc.newURI("http://" + key, null, null));
+    dbservice.lookup(principal, allTables, unwantedExists, true);
     numExpecting++;
   }
 }
@@ -249,7 +267,10 @@ function do_adds() {
     chunk6 + "\n" +
     "i:test-malware-simple\n" +
     "a:1:32:" + chunk2.length + "\n" +
-      chunk2 + "\n";
+      chunk2 + "\n" +
+    "i:test-unwanted-simple\n" +
+    "a:1:32:" + chunk3.length + "\n" +
+      chunk3 + "\n";
 
   doSimpleUpdate(data, testAddSuccess, testFailure);
 }
