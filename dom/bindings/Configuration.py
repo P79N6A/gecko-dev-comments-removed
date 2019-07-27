@@ -319,19 +319,29 @@ class Descriptor(DescriptorProvider):
             'LegacyCaller': None,
             'Jsonifier': None
             }
-        if self.concrete:
-            self.proxy = False
-            iface = self.interface
-            def addOperation(operation, m):
-                if not self.operations[operation]:
-                    self.operations[operation] = m
-            
-            
-            for m in iface.members:
+        
+        
+        
+        
+        
+        
+        def addOperation(operation, m):
+            if not self.operations[operation]:
+                self.operations[operation] = m
+
+        
+        
+        if not self.interface.isExternal():
+            for m in self.interface.members:
                 if m.isMethod() and m.isStringifier():
                     addOperation('Stringifier', m)
                 if m.isMethod() and m.isJsonifier():
                     addOperation('Jsonifier', m)
+
+        if self.concrete:
+            self.proxy = False
+            iface = self.interface
+            for m in iface.members:
                 
                 
                 if m.isMethod() and m.isLegacycaller():
