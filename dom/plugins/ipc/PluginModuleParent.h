@@ -443,7 +443,8 @@ private:
     virtual void ActorDestroy(ActorDestroyReason why) override;
 
     
-    explicit PluginModuleChromeParent(const char* aFilePath, uint32_t aPluginId);
+    explicit PluginModuleChromeParent(const char* aFilePath, uint32_t aPluginId,
+                                      int32_t aSandboxLevel);
 
     CrashReporterParent* CrashReporter();
 
@@ -483,6 +484,7 @@ private:
     PluginHangUIParent *mHangUIParent;
     bool mHangUIEnabled;
     bool mIsTimerReset;
+    int32_t mSandboxLevel;
 #ifdef MOZ_CRASHREPORTER
     
 

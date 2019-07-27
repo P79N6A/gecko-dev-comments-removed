@@ -1201,6 +1201,7 @@ pref("security.sandbox.windows.log", false);
 
 
 
+
 pref("dom.ipc.plugins.sandbox-level.default", 0);
 
 #if defined(MOZ_CONTENT_SANDBOX)
