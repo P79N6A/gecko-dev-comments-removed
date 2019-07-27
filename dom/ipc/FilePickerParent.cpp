@@ -6,7 +6,6 @@
 
 #include "FilePickerParent.h"
 #include "nsComponentManagerUtils.h"
-#include "nsDOMFile.h"
 #include "nsNetCID.h"
 #include "nsIDocument.h"
 #include "nsIDOMFile.h"
@@ -14,6 +13,7 @@
 #include "nsIFile.h"
 #include "nsISimpleEnumerator.h"
 #include "mozilla/unused.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/TabParent.h"
@@ -118,7 +118,7 @@ FilePickerParent::SendFiles(const nsCOMArray<nsIDOMFile>& aDomfiles)
 
   for (unsigned i = 0; i < aDomfiles.Length(); i++) {
     BlobParent* blob = parent->GetOrCreateActorForBlob(
-      static_cast<DOMFile*>(aDomfiles[i]));
+      static_cast<File*>(aDomfiles[i]));
     if (blob) {
       files.AppendElement(blob);
     }
@@ -153,7 +153,7 @@ FilePickerParent::Done(int16_t aResult)
 
         
         
-        nsCOMPtr<nsIDOMFile> domfile = DOMFile::CreateFromFile(nullptr, file);
+        nsCOMPtr<nsIDOMFile> domfile = File::CreateFromFile(nullptr, file);
         domfiles.AppendElement(domfile);
       }
     }
@@ -163,7 +163,7 @@ FilePickerParent::Done(int16_t aResult)
     if (file) {
       
       
-      nsCOMPtr<nsIDOMFile> domfile = DOMFile::CreateFromFile(nullptr, file);
+      nsCOMPtr<nsIDOMFile> domfile = File::CreateFromFile(nullptr, file);
       domfiles.AppendElement(domfile);
     }
   }

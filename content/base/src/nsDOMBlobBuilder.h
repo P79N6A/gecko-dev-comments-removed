@@ -6,11 +6,10 @@
 #ifndef nsDOMBlobBuilder_h
 #define nsDOMBlobBuilder_h
 
-#include "nsDOMFile.h"
-
 #include "mozilla/Attributes.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/FileBinding.h"
 #include <algorithm>
@@ -18,16 +17,16 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-class DOMMultipartFileImpl MOZ_FINAL : public DOMFileImplBase
+class MultipartFileImpl MOZ_FINAL : public FileImplBase
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  DOMMultipartFileImpl(const nsTArray<nsRefPtr<DOMFileImpl>>& aBlobImpls,
-                       const nsAString& aName,
-                       const nsAString& aContentType)
-    : DOMFileImplBase(aName, aContentType, UINT64_MAX),
+  MultipartFileImpl(const nsTArray<nsRefPtr<FileImpl>>& aBlobImpls,
+                    const nsAString& aName,
+                    const nsAString& aContentType)
+    : FileImplBase(aName, aContentType, UINT64_MAX),
       mBlobImpls(aBlobImpls),
       mIsFromNsIFile(false)
   {
@@ -35,9 +34,9 @@ public:
   }
 
   
-  DOMMultipartFileImpl(const nsTArray<nsRefPtr<DOMFileImpl>>& aBlobImpls,
-                       const nsAString& aContentType)
-    : DOMFileImplBase(aContentType, UINT64_MAX),
+  MultipartFileImpl(const nsTArray<nsRefPtr<FileImpl>>& aBlobImpls,
+                    const nsAString& aContentType)
+    : FileImplBase(aContentType, UINT64_MAX),
       mBlobImpls(aBlobImpls),
       mIsFromNsIFile(false)
   {
@@ -45,15 +44,15 @@ public:
   }
 
   
-  explicit DOMMultipartFileImpl(const nsAString& aName)
-    : DOMFileImplBase(aName, EmptyString(), UINT64_MAX),
+  explicit MultipartFileImpl(const nsAString& aName)
+    : FileImplBase(aName, EmptyString(), UINT64_MAX),
       mIsFromNsIFile(false)
   {
   }
 
   
-  DOMMultipartFileImpl()
-    : DOMFileImplBase(EmptyString(), UINT64_MAX),
+  MultipartFileImpl()
+    : FileImplBase(EmptyString(), UINT64_MAX),
       mIsFromNsIFile(false)
   {
   }
@@ -67,7 +66,7 @@ public:
        bool aNativeEOL,
        ErrorResult& aRv);
 
-  void InitializeChromeFile(DOMFile& aData,
+  void InitializeChromeFile(File& aData,
                             const FilePropertyBag& aBag,
                             ErrorResult& aRv);
 
@@ -82,7 +81,7 @@ public:
                             bool aIsFromNsIFile,
                             ErrorResult& aRv);
 
-  virtual already_AddRefed<DOMFileImpl>
+  virtual already_AddRefed<FileImpl>
   CreateSlice(uint64_t aStart, uint64_t aLength,
               const nsAString& aContentType,
               ErrorResult& aRv) MOZ_OVERRIDE;
@@ -94,7 +93,7 @@ public:
 
   virtual nsresult GetInternalStream(nsIInputStream** aInputStream) MOZ_OVERRIDE;
 
-  virtual const nsTArray<nsRefPtr<DOMFileImpl>>* GetSubBlobImpls() const MOZ_OVERRIDE
+  virtual const nsTArray<nsRefPtr<FileImpl>>* GetSubBlobImpls() const MOZ_OVERRIDE
   {
     return &mBlobImpls;
   }
@@ -113,11 +112,11 @@ public:
   }
 
 protected:
-  virtual ~DOMMultipartFileImpl() {}
+  virtual ~MultipartFileImpl() {}
 
   void SetLengthAndModifiedDate();
 
-  nsTArray<nsRefPtr<DOMFileImpl>> mBlobImpls;
+  nsTArray<nsRefPtr<FileImpl>> mBlobImpls;
   bool mIsFromNsIFile;
 };
 
@@ -134,16 +133,16 @@ public:
 
   nsresult AppendVoidPtr(const void* aData, uint32_t aLength);
   nsresult AppendString(const nsAString& aString, bool nativeEOL, JSContext* aCx);
-  nsresult AppendBlobImpl(DOMFileImpl* aBlobImpl);
-  nsresult AppendBlobImpls(const nsTArray<nsRefPtr<DOMFileImpl>>& aBlobImpls);
+  nsresult AppendBlobImpl(FileImpl* aBlobImpl);
+  nsresult AppendBlobImpls(const nsTArray<nsRefPtr<FileImpl>>& aBlobImpls);
 
-  nsTArray<nsRefPtr<DOMFileImpl>>& GetBlobImpls() { Flush(); return mBlobImpls; }
+  nsTArray<nsRefPtr<FileImpl>>& GetBlobImpls() { Flush(); return mBlobImpls; }
 
-  already_AddRefed<DOMFile>
+  already_AddRefed<File>
   GetBlobInternal(nsISupports* aParent, const nsACString& aContentType)
   {
-    nsRefPtr<DOMFile> blob = new DOMFile(aParent,
-      new DOMMultipartFileImpl(GetBlobImpls(), NS_ConvertASCIItoUTF16(aContentType)));
+    nsRefPtr<File> blob = new File(aParent,
+      new MultipartFileImpl(GetBlobImpls(), NS_ConvertASCIItoUTF16(aContentType)));
     return blob.forget();
   }
 
@@ -181,8 +180,8 @@ protected:
       
       
 
-      nsRefPtr<DOMFileImpl> blobImpl =
-        new DOMFileImplMemory(mData, mDataLen, EmptyString());
+      nsRefPtr<FileImpl> blobImpl =
+        new FileImplMemory(mData, mDataLen, EmptyString());
       mBlobImpls.AppendElement(blobImpl);
       mData = nullptr; 
       mDataLen = 0;
@@ -190,7 +189,7 @@ protected:
     }
   }
 
-  nsTArray<nsRefPtr<DOMFileImpl>> mBlobImpls;
+  nsTArray<nsRefPtr<FileImpl>> mBlobImpls;
   void* mData;
   uint64_t mDataLen;
   uint64_t mDataBufferLen;

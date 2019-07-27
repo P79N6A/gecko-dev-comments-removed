@@ -15,7 +15,7 @@
 namespace mozilla {
 
 namespace dom {
-class DOMFile;
+class File;
 }
 
 struct VideoTrackConstraintsN;
@@ -150,7 +150,7 @@ public:
 
     
     
-    virtual nsresult PhotoComplete(already_AddRefed<dom::DOMFile> aBlob) = 0;
+    virtual nsresult PhotoComplete(already_AddRefed<dom::File> aBlob) = 0;
 
     
     virtual nsresult PhotoError(nsresult aRv) = 0;

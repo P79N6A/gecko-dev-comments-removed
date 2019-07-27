@@ -16,8 +16,8 @@ class nsIInputStream;
 namespace mozilla {
 namespace dom {
 
-class DOMFile;
-class DOMFileImpl;
+class File;
+class FileImpl;
 class Promise;
 
 class CreateFileTask MOZ_FINAL
@@ -26,7 +26,7 @@ class CreateFileTask MOZ_FINAL
 public:
   CreateFileTask(FileSystemBase* aFileSystem,
                  const nsAString& aPath,
-                 DOMFile* aBlobData,
+                 File* aBlobData,
                  InfallibleTArray<uint8_t>& aArrayData,
                  bool replace,
                  ErrorResult& aRv);
@@ -68,7 +68,7 @@ private:
   nsString mTargetRealPath;
 
   
-  nsRefPtr<DOMFile> mBlobData;
+  nsRefPtr<File> mBlobData;
 
   nsCOMPtr<nsIInputStream> mBlobStream;
   InfallibleTArray<uint8_t> mArrayData;
@@ -76,7 +76,7 @@ private:
 
   
   
-  nsRefPtr<DOMFileImpl> mTargetFileImpl;
+  nsRefPtr<FileImpl> mTargetFileImpl;
 };
 
 } 

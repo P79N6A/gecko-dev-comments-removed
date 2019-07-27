@@ -122,7 +122,6 @@
 #include "nsAutoPtr.h"
 #include "nsContentUtils.h"
 #include "nsCSSProps.h"
-#include "nsIDOMFile.h"
 #include "nsIDOMFileList.h"
 #include "nsIURIFixup.h"
 #ifndef DEBUG
@@ -7886,7 +7885,7 @@ PostMessageReadStructuredClone(JSContext* cx,
 
     
     
-    DOMFileImpl* blobImpl;
+    FileImpl* blobImpl;
     if (JS_ReadBytes(reader, &blobImpl, sizeof(blobImpl))) {
       MOZ_ASSERT(blobImpl);
 
@@ -7897,7 +7896,7 @@ PostMessageReadStructuredClone(JSContext* cx,
       
       JS::Rooted<JS::Value> val(cx);
       {
-        nsRefPtr<DOMFile> blob = new DOMFile(scInfo->window, blobImpl);
+        nsRefPtr<File> blob = new File(scInfo->window, blobImpl);
         if (!WrapNewBindingObject(cx, blob, &val)) {
           return nullptr;
         }
@@ -7940,9 +7939,9 @@ PostMessageWriteStructuredClone(JSContext* cx,
 
   
   {
-    DOMFile* blob = nullptr;
+    File* blob = nullptr;
     if (scInfo->subsumes && NS_SUCCEEDED(UNWRAP_OBJECT(Blob, obj, blob))) {
-      DOMFileImpl* blobImpl = blob->Impl();
+      FileImpl* blobImpl = blob->Impl();
       if (JS_WriteUint32Pair(writer, SCTAG_DOM_BLOB, 0) &&
           JS_WriteBytes(writer, &blobImpl, sizeof(blobImpl))) {
         scInfo->event->StoreISupports(blobImpl);

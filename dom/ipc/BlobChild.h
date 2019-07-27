@@ -25,7 +25,7 @@ class PBackgroundChild;
 namespace dom {
 
 class ContentChild;
-class DOMFileImpl;
+class FileImpl;
 class nsIContentChild;
 class PBlobStreamChild;
 
@@ -37,7 +37,7 @@ class BlobChild MOZ_FINAL
   class RemoteBlobImpl;
   friend class RemoteBlobImpl;
 
-  DOMFileImpl* mBlobImpl;
+  FileImpl* mBlobImpl;
   RemoteBlobImpl* mRemoteBlobImpl;
 
   
@@ -58,10 +58,10 @@ public:
 
   
   static BlobChild*
-  GetOrCreate(nsIContentChild* aManager, DOMFileImpl* aBlobImpl);
+  GetOrCreate(nsIContentChild* aManager, FileImpl* aBlobImpl);
 
   static BlobChild*
-  GetOrCreate(PBackgroundChild* aManager, DOMFileImpl* aBlobImpl);
+  GetOrCreate(PBackgroundChild* aManager, FileImpl* aBlobImpl);
 
   
   static BlobChild*
@@ -102,7 +102,7 @@ public:
   
   
   
-  already_AddRefed<DOMFileImpl>
+  already_AddRefed<FileImpl>
   GetBlobImpl();
 
   
@@ -126,9 +126,9 @@ public:
 
 private:
   
-  BlobChild(nsIContentChild* aManager, DOMFileImpl* aBlobImpl);
+  BlobChild(nsIContentChild* aManager, FileImpl* aBlobImpl);
 
-  BlobChild(PBackgroundChild* aManager, DOMFileImpl* aBlobImpl);
+  BlobChild(PBackgroundChild* aManager, FileImpl* aBlobImpl);
 
   BlobChild(nsIContentChild* aManager, BlobChild* aOther);
 
@@ -145,7 +145,7 @@ private:
   ~BlobChild();
 
   void
-  CommonInit(DOMFileImpl* aBlobImpl);
+  CommonInit(FileImpl* aBlobImpl);
 
   void
   CommonInit(BlobChild* aOther);
@@ -155,7 +155,7 @@ private:
 
   template <class ChildManagerType>
   static BlobChild*
-  GetOrCreateFromImpl(ChildManagerType* aManager, DOMFileImpl* aBlobImpl);
+  GetOrCreateFromImpl(ChildManagerType* aManager, FileImpl* aBlobImpl);
 
   template <class ChildManagerType>
   static BlobChild*
