@@ -2531,9 +2531,7 @@ TypeCompartment::print(JSContext *cx, bool force)
         return;
 
     for (gc::ZoneCellIter i(zone, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
-        
-        
-        RootedScript script(cx->runtime(), i.get<JSScript>());
+        RootedScript script(cx, i.get<JSScript>());
         if (script->types())
             script->types()->printTypes(cx, script);
     }
