@@ -3083,16 +3083,23 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
                                        nsTArray<FrameMetrics>* aOutput) const
 {
   nsPoint toReferenceFrame = mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
-  nsRect scrollport = mScrollPort + toReferenceFrame;
+  bool isRoot = mIsRoot && mOuter->PresContext()->IsRootContentDocument();
   
   
   
   
   bool omitClip = gfxPrefs::AsyncPanZoomEnabled() && aOutput->Length() > 0;
   if (!omitClip && (!gfxPrefs::LayoutUseContainersForRootFrames() || mAddClipRectToLayer)) {
+    nsRect clip = nsRect(mScrollPort.TopLeft() + toReferenceFrame,
+                         nsLayoutUtils::CalculateCompositionSizeForFrame(mOuter));
+    if (isRoot) {
+      double res = mOuter->PresContext()->PresShell()->GetResolution();
+      clip.width = NSToCoordRound(clip.width / res);
+      clip.height = NSToCoordRound(clip.height / res);
+    }
     
     
-    *aClipRect = scrollport;
+    *aClipRect = clip;
   }
 
   if (!mShouldBuildScrollableLayer || mIsScrollableLayerInRootContainer) {
@@ -3101,8 +3108,7 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
 
   MOZ_ASSERT(mScrolledFrame->GetContent());
 
-  bool isRoot = mIsRoot && mOuter->PresContext()->IsRootContentDocument();
-
+  nsRect scrollport = mScrollPort + toReferenceFrame;
   *aOutput->AppendElement() =
       nsDisplayScrollLayer::ComputeFrameMetrics(
         mScrolledFrame, mOuter, mOuter->GetContent(),
