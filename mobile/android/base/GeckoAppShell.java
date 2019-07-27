@@ -139,7 +139,12 @@ public class GeckoAppShell
     private static final Queue<GeckoEvent> PENDING_EVENTS = new ConcurrentLinkedQueue<GeckoEvent>();
     private static final Map<String, String> ALERT_COOKIES = new ConcurrentHashMap<String, String>();
 
-    private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
+    @SuppressWarnings("serial")
+    private static final List<String> UNKNOWN_MIME_TYPES = new ArrayList<String>(3) {{
+        add("application/octet-stream"); 
+        add("application/unknown");
+        add("application/octet-stream"); 
+    }};
 
     private static volatile boolean locationHighAccuracyEnabled;
 
@@ -1802,18 +1807,29 @@ public class GeckoAppShell
 
     @WrapElementForJNI
     public static void scanMedia(final String aFile, String aMimeType) {
+        String mimeType = aMimeType;
+        if (UNKNOWN_MIME_TYPES.contains(mimeType)) {
+            
+            
+            mimeType = "";
+        }
+
         
-        if (TextUtils.isEmpty(aMimeType)) {
+        if (TextUtils.isEmpty(mimeType)) {
             int extPosition = aFile.lastIndexOf(".");
             if (extPosition > 0 && extPosition < aFile.length() - 1) {
-                aMimeType = getMimeTypeFromExtension(aFile.substring(extPosition+1));
+                mimeType = getMimeTypeFromExtension(aFile.substring(extPosition+1));
             }
         }
 
         
         
-        if (TextUtils.isEmpty(aMimeType)) {
-            aMimeType = DEFAULT_MIME_TYPE;
+        if (TextUtils.isEmpty(mimeType)) {
+            if (TextUtils.isEmpty(aMimeType)) {
+                mimeType = UNKNOWN_MIME_TYPES.get(0);
+            } else {
+                mimeType = aMimeType;
+            }
         }
 
         if (AppConstants.ANDROID_DOWNLOADS_INTEGRATION) {
