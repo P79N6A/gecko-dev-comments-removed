@@ -156,11 +156,7 @@ public class testAddSearchEngine extends AboutHomeTest {
                     return false;
                 }
 
-                final int actualCount = searchResultList.getAdapter().getCount()
-                        + searchEngineBar.getAdapter().getCount()
-                        - 1; 
-
-                return (actualCount == expectedCount);
+                return (searchResultList.getAdapter().getCount() + searchEngineBar.getAdapter().getCount() == expectedCount);
             }
         }, MAX_WAIT_TEST_MS);
 
