@@ -1475,6 +1475,16 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
     return;
   }
 
+  
+  
+  
+  
+  
+  
+  if ((aNowTime <= mMostRecentRefresh) && !mTestControllingRefreshes) {
+    return;
+  }
+
   TimeStamp previousRefresh = mMostRecentRefresh;
 
   mMostRecentRefresh = aNowTime;
