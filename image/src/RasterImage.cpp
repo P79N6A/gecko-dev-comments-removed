@@ -1947,6 +1947,22 @@ RasterImage::DoError()
   mError = true;
 
   
+  if (mAnimating) {
+    StopAnimation();
+  }
+  mAnim.release();
+
+  
+  mLockCount = 0;
+  SurfaceCache::UnlockImage(ImageKey(this));
+
+  
+  SurfaceCache::RemoveImage(ImageKey(this));
+
+  
+  NotifyProgress(NoProgress, IntRect(0, 0, mSize.width, mSize.height));
+
+  
   LOG_CONTAINER_ERROR;
 }
 

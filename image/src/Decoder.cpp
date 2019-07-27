@@ -500,10 +500,13 @@ Decoder::InternalAddFrame(uint32_t aFrameNum,
                                           aDecodeFlags,
                                           aFrameNum),
                          Lifetime::Persistent);
-  if (outcome != InsertOutcome::SUCCESS) {
+  if (outcome == InsertOutcome::FAILURE) {
     
     
     
+    ref->Abort();
+    return RawAccessFrameRef();
+  } else if (outcome == InsertOutcome::FAILURE_ALREADY_PRESENT) {
     
     
     mDecodeAborted = true;
