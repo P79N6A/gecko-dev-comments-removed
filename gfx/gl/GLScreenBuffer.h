@@ -38,7 +38,7 @@ public:
                        const SurfaceCaps& caps,
                        const GLFormats& formats,
                        const gfx::IntSize& size,
-                       DrawBuffer** out_buffer);
+                       UniquePtr<DrawBuffer>* out_buffer);
 
 protected:
     GLContext* const mGL;
@@ -72,10 +72,10 @@ class ReadBuffer
 {
 public:
     
-    static ReadBuffer* Create(GLContext* gl,
-                              const SurfaceCaps& caps,
-                              const GLFormats& formats,
-                              SharedSurface* surf);
+    static UniquePtr<ReadBuffer> Create(GLContext* gl,
+                                        const SurfaceCaps& caps,
+                                        const GLFormats& formats,
+                                        SharedSurface* surf);
 
 protected:
     GLContext* const mGL;
@@ -118,20 +118,20 @@ class GLScreenBuffer
 {
 public:
     
-    static GLScreenBuffer* Create(GLContext* gl,
-                                  const gfx::IntSize& size,
-                                  const SurfaceCaps& caps);
+    static UniquePtr<GLScreenBuffer> Create(GLContext* gl,
+                                            const gfx::IntSize& size,
+                                            const SurfaceCaps& caps);
 
 protected:
-    GLContext* const mGL;         
+    GLContext* const mGL; 
 public:
     const SurfaceCaps mCaps;
 protected:
-    SurfaceFactory* mFactory;  
+    SurfaceFactory* mFactory; 
     RefPtr<SurfaceStream> mStream;
 
-    DrawBuffer* mDraw;            
-    ReadBuffer* mRead;            
+    UniquePtr<DrawBuffer> mDraw; 
+    UniquePtr<ReadBuffer> mRead; 
 
     bool mNeedsBlit;
 
@@ -249,10 +249,10 @@ public:
     void Readback(SharedSurface* src, gfx::DataSourceSurface* dest);
 
 protected:
-    bool Attach(SharedSurface* surface, const gfx::IntSize& size);
+    bool Attach(SharedSurface* surf, const gfx::IntSize& size);
 
-    bool CreateDraw(const gfx::IntSize& size, DrawBuffer** out_buffer);
-    ReadBuffer* CreateRead(SharedSurface* surf);
+    bool CreateDraw(const gfx::IntSize& size, UniquePtr<DrawBuffer>* out_buffer);
+    UniquePtr<ReadBuffer> CreateRead(SharedSurface* surf);
 
 public:
     
