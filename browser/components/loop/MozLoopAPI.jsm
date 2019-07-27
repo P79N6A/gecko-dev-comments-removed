@@ -777,11 +777,11 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    telemetryAddKeyedValue: {
+    telemetryAddValue: {
       enumerable: true,
       writable: true,
       value: function(histogramId, value) {
-        Services.telemetry.getKeyedHistogramById(histogramId).add(value);
+        Services.telemetry.getHistogramById(histogramId).add(value);
       }
     },
 
