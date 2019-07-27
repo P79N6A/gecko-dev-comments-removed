@@ -155,29 +155,6 @@ private:
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class MOZ_STACK_CLASS AutoPushJSContext {
-  Maybe<AutoCxPusher> mPusher;
-  JSContext* mCx;
-
-public:
-  explicit AutoPushJSContext(JSContext* aCx);
-  operator JSContext*() { return mCx; }
-};
-
 } 
 
 #endif
