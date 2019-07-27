@@ -551,14 +551,15 @@ SocialShare = {
   },
 
   update: function() {
-    let shareButton = this.shareButton;
-    if (!shareButton)
+    let widget = CustomizableUI.getWidget("social-share-button");
+    if (!widget)
       return;
+    let shareButton = widget.forWindow(window).node;
     
     
-    shareButton.hidden = !SocialUI.enabled ||
-                         [p for (p of Social.providers) if (p.shareURL)].length == 0;
-    let disabled = shareButton.hidden || !this.canSharePage(gBrowser.currentURI);
+    shareButton.hidden = !SocialUI.enabled || (widget.areaType &&
+                         [p for (p of Social.providers) if (p.shareURL)].length == 0);
+    let disabled = !widget.areaType || shareButton.hidden || !this.canSharePage(gBrowser.currentURI);
 
     
     
