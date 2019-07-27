@@ -462,7 +462,9 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   
   
   
-  const int evict_threshold = 1000000;
+  
+  
+  const uint32_t evict_threshold = 75 * (1 << 20);
   bool evicted = mDecoder->GetResource()->EvictData(evict_threshold);
   if (evicted) {
     double start = 0.0;
@@ -507,12 +509,17 @@ SourceBuffer::Evict(double aStart, double aEnd)
   if (!mDecoder) {
     return;
   }
-  
-  int64_t end = mDecoder->ConvertToByteOffset(aEnd);
-  if (end > 0) {
-    mDecoder->GetResource()->EvictBefore(end);
+  double currentTime = mMediaSource->GetDecoder()->GetCurrentTime();
+  double evictTime = aEnd;
+  const double safety_threshold = 5;
+  if (currentTime + safety_threshold >= evictTime) {
+    evictTime -= safety_threshold;
   }
-  MSE_DEBUG("SourceBuffer(%p)::Evict offset=%lld", this, end);
+  int64_t endOffset = mDecoder->ConvertToByteOffset(evictTime);
+  if (endOffset > 0) {
+    mDecoder->GetResource()->EvictBefore(endOffset);
+  }
+  MSE_DEBUG("SourceBuffer(%p)::Evict offset=%lld", this, endOffset);
 }
 
 bool
