@@ -791,7 +791,7 @@ nsOuterWindowProxy::defineProperty(JSContext* cx,
   
   
   
-  if (desc.isPermanent() && !nsContentUtils::IsCallerChrome()) {
+  if (false && desc.isPermanent() && !nsContentUtils::IsCallerChrome()) {
     return ThrowErrorMessage(cx, MSG_DEFINE_NON_CONFIGURABLE_PROP_ON_WINDOW);
   }
 
