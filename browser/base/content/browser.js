@@ -7513,6 +7513,7 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   
   delete aOpenParams.ignoreFragment;
   delete aOpenParams.ignoreQueryString;
+  delete aOpenParams.replaceQueryString;
 
   
   function switchIfURIInWindow(aWindow) {
