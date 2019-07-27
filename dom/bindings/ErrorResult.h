@@ -52,6 +52,7 @@ public:
     
     mMessage = nullptr;
     mMightHaveUnreportedJSException = false;
+    mHasMessage = false;
 #endif
   }
 
@@ -59,6 +60,7 @@ public:
   ~ErrorResult() {
     MOZ_ASSERT_IF(IsErrorWithMessage(), !mMessage);
     MOZ_ASSERT(!mMightHaveUnreportedJSException);
+    MOZ_ASSERT(!mHasMessage);
   }
 #endif
 
@@ -181,6 +183,10 @@ private:
   
   
   bool mMightHaveUnreportedJSException;
+  
+  
+  
+  bool mHasMessage;
 #endif
 
   
