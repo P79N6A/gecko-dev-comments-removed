@@ -3044,6 +3044,30 @@ MDefinition *
 MToInt32::foldsTo(TempAllocator &alloc)
 {
     MDefinition *input = getOperand(0);
+
+    
+    if (input->isConstant()) {
+        Value val = input->toConstant()->value();
+        MacroAssembler::IntConversionInputKind convert = conversion();
+        switch (input->type()) {
+          case MIRType_Null:
+            MOZ_ASSERT(convert == MacroAssembler::IntConversion_Any);
+            return MConstant::New(alloc, Int32Value(0));
+          case MIRType_Boolean:
+            MOZ_ASSERT(convert == MacroAssembler::IntConversion_Any ||
+                       convert == MacroAssembler::IntConversion_NumbersOrBoolsOnly);
+            return MConstant::New(alloc, Int32Value(val.toBoolean()));
+          case MIRType_Int32:
+            return MConstant::New(alloc, Int32Value(val.toInt32()));
+          case MIRType_Float32:
+          case MIRType_Double:
+            int32_t ival;
+            
+            if (mozilla::NumberEqualsInt32(val.toNumber(), &ival))
+                return MConstant::New(alloc, Int32Value(ival));
+        }
+    }
+
     if (input->type() == MIRType_Int32)
         return input;
     return this;
