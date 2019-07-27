@@ -6,11 +6,11 @@
 
 function spawnTest () {
   let { panel } = yield initPerformance(SIMPLE_URL);
-  let { EVENTS, DetailsView, JsFlameGraphView, JsCallTreeView } = panel.panelWin;
-
-  DetailsView.selectView("js-calltree");
+  let { EVENTS, DetailsView, JsCallTreeView } = panel.panelWin;
 
   Services.prefs.setBoolPref(PLATFORM_DATA_PREF, true);
+
+  yield DetailsView.selectView("js-calltree");
 
   yield startRecording(panel);
   yield busyWait(100);

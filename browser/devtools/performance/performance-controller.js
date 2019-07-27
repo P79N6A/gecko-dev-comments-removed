@@ -61,8 +61,7 @@ const EVENTS = {
   PREF_CHANGED: "Performance:PrefChanged",
 
   
-  
-  RECORDING_SELECTED: "Performance:RecordingSelected",
+  UI_STATE_CHANGED: "Performance:UI:StateChanged",
 
   
   UI_CLEAR_RECORDINGS: "Performance:UI:ClearRecordings",
@@ -81,6 +80,10 @@ const EVENTS = {
   RECORDING_STOPPED: "Performance:RecordingStopped",
   RECORDING_WILL_START: "Performance:RecordingWillStart",
   RECORDING_WILL_STOP: "Performance:RecordingWillStop",
+
+  
+  
+  RECORDING_SELECTED: "Performance:RecordingSelected",
 
   
   RECORDINGS_CLEARED: "Performance:RecordingsCleared",
@@ -241,7 +244,6 @@ let PerformanceController = {
     let recording = this._getLatestRecording();
 
     this.emit(EVENTS.RECORDING_WILL_STOP, recording);
-
     yield recording.stopRecording();
     this.emit(EVENTS.RECORDING_STOPPED, recording);
   }),

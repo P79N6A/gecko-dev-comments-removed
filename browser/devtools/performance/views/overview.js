@@ -25,7 +25,7 @@ let OverviewView = {
   
 
 
-  initialize: Task.async(function *() {
+  initialize: function () {
     this._onRecordingWillStart = this._onRecordingWillStart.bind(this);
     this._onRecordingStarted = this._onRecordingStarted.bind(this);
     this._onRecordingWillStop = this._onRecordingWillStop.bind(this);
@@ -35,39 +35,25 @@ let OverviewView = {
     this._onGraphSelecting = this._onGraphSelecting.bind(this);
     this._onPrefChanged = this._onPrefChanged.bind(this);
 
-    yield this._showMarkersGraph();
-    yield this._showMemoryGraph();
-    yield this._showFramerateGraph();
-
-    this.markersOverview.on("selecting", this._onGraphSelecting);
-
-    PerformanceController.on(EVENTS.RECORDING_WILL_START, this._onRecordingWillStart);
-
     
     
     $("#memory-overview").hidden = !PerformanceController.getPref("enable-memory");
     $("#time-framerate").hidden = !PerformanceController.getPref("enable-framerate");
 
     PerformanceController.on(EVENTS.PREF_CHANGED, this._onPrefChanged);
+    PerformanceController.on(EVENTS.RECORDING_WILL_START, this._onRecordingWillStart);
     PerformanceController.on(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.on(EVENTS.RECORDING_WILL_STOP, this._onRecordingWillStop);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
-
-    
-    this.markersOverview.setData({ duration: 1000, markers: [] });
-    this.memoryOverview.setData([]);
-    this.framerateGraph.setData([]);
-  }),
+  },
 
   
 
 
   destroy: function () {
-    this.markersOverview.off("selecting", this._onGraphSelecting);
-
-    PerformanceController.off(EVENTS.RECORDING_WILL_START, this._onRecordingWillStart);
     PerformanceController.off(EVENTS.PREF_CHANGED, this._onPrefChanged);
+    PerformanceController.off(EVENTS.RECORDING_WILL_START, this._onRecordingWillStart);
     PerformanceController.off(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.off(EVENTS.RECORDING_WILL_STOP, this._onRecordingWillStop);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
@@ -113,41 +99,62 @@ let OverviewView = {
   
 
 
-  _showFramerateGraph: Task.async(function *() {
-    this.framerateGraph = new LineGraphWidget($("#time-framerate"), {
-      metric: L10N.getStr("graphs.fps")
-    });
-    this.framerateGraph.fixedHeight = FRAMERATE_GRAPH_HEIGHT;
-    yield this.framerateGraph.ready();
-  }),
-
-  
 
 
-  _showMarkersGraph: Task.async(function *() {
+
+  _markersGraphAvailable: Task.async(function *() {
+    if (this.markersOverview) {
+      yield this.markersOverview.ready();
+      return true;
+    }
     this.markersOverview = new MarkersOverview($("#markers-overview"), TIMELINE_BLUEPRINT);
     this.markersOverview.headerHeight = MARKERS_GRAPH_HEADER_HEIGHT;
     this.markersOverview.rowHeight = MARKERS_GRAPH_ROW_HEIGHT;
     this.markersOverview.groupPadding = MARKERS_GROUP_VERTICAL_PADDING;
+    this.markersOverview.on("selecting", this._onGraphSelecting);
     yield this.markersOverview.ready();
+    return true;
   }),
 
   
 
 
-  _showMemoryGraph: Task.async(function *() {
+
+
+
+
+  _memoryGraphAvailable: Task.async(function *() {
+    if (!PerformanceController.getPref("enable-memory")) {
+      return false;
+    }
+    if (this.memoryOverview) {
+      yield this.memoryOverview.ready();
+      return true;
+    }
     this.memoryOverview = new MemoryOverview($("#memory-overview"));
     this.memoryOverview.fixedHeight = MEMORY_GRAPH_HEIGHT;
     yield this.memoryOverview.ready();
 
     CanvasGraphUtils.linkAnimation(this.markersOverview, this.memoryOverview);
     CanvasGraphUtils.linkSelection(this.markersOverview, this.memoryOverview);
+    return true;
   }),
 
   
 
 
-  _showFramerateGraph: Task.async(function *() {
+
+
+
+
+  _framerateGraphAvailable: Task.async(function *() {
+    if (!PerformanceController.getPref("enable-framerate")) {
+      return false;
+    }
+    if (this.framerateGraph) {
+      yield this.framerateGraph.ready();
+      return true;
+    }
     let metric = L10N.getStr("graphs.fps");
     this.framerateGraph = new LineGraphWidget($("#time-framerate"), { metric });
     this.framerateGraph.fixedHeight = FRAMERATE_GRAPH_HEIGHT;
@@ -155,6 +162,7 @@ let OverviewView = {
 
     CanvasGraphUtils.linkAnimation(this.markersOverview, this.framerateGraph);
     CanvasGraphUtils.linkSelection(this.markersOverview, this.framerateGraph);
+    return true;
   }),
 
   
@@ -171,16 +179,16 @@ let OverviewView = {
     let timestamps = recording.getTicks();
 
     
-    if (markers) {
+    if (markers && (yield this._markersGraphAvailable())) {
       this.markersOverview.setData({ markers, duration });
       this.emit(EVENTS.MARKERS_GRAPH_RENDERED);
     }
-    if (memory) {
+    if (memory && (yield this._memoryGraphAvailable())) {
       this.memoryOverview.dataDuration = duration;
       this.memoryOverview.setData(memory);
       this.emit(EVENTS.MEMORY_GRAPH_RENDERED);
     }
-    if (timestamps) {
+    if (timestamps && (yield this._framerateGraphAvailable())) {
       this.framerateGraph.dataDuration = duration;
       yield this.framerateGraph.setDataFromTimestamps(timestamps, resolution);
       this.emit(EVENTS.FRAMERATE_GRAPH_RENDERED);
@@ -199,6 +207,17 @@ let OverviewView = {
     yield this.render(FRAMERATE_GRAPH_LOW_RES_INTERVAL);
     this._prepareNextTick();
   }),
+
+  
+
+
+  _prepareNextTick: function () {
+    
+    
+    if (this._timeoutId) {
+      this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
+    }
+  },
 
   
 
@@ -222,21 +241,10 @@ let OverviewView = {
   
 
 
-  _prepareNextTick: function () {
-    
-    
-    if (this._timeoutId) {
-      this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
-    }
-  },
-
-  
-
-
-  _onRecordingWillStart: function (_, recording) {
-    this._checkSelection(recording);
-    this.framerateGraph.dropSelection();
-  },
+  _onRecordingWillStart: Task.async(function* (_, recording) {
+    yield this._checkSelection(recording);
+    this.markersOverview.dropSelection();
+  }),
 
   
 
@@ -256,40 +264,50 @@ let OverviewView = {
   
 
 
-  _onRecordingStopped: function (_, recording) {
-    this._checkSelection(recording);
+  _onRecordingStopped: Task.async(function* (_, recording) {
     this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
-  },
+    yield this._checkSelection(recording);
+  }),
 
   
 
 
-  _onRecordingSelected: function (_, recording) {
+  _onRecordingSelected: Task.async(function* (_, recording) {
     if (!recording) {
       return;
     }
-    this.markersOverview.dropSelection();
-    this._checkSelection(recording);
-
     
     
     if (!this._timeoutId) {
-      this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
+      yield this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     }
-  },
-
-  _checkSelection: function (recording) {
-    let selectionEnabled = !recording.isRecording();
-    this.markersOverview.selectionEnabled = selectionEnabled;
-    this.memoryOverview.selectionEnabled = selectionEnabled;
-    this.framerateGraph.selectionEnabled = selectionEnabled;
-  },
+    yield this._checkSelection(recording);
+    this.markersOverview.dropSelection();
+  }),
 
   
 
 
 
-  _onPrefChanged: function (_, prefName, value) {
+  _checkSelection: Task.async(function* (recording) {
+    let selectionEnabled = !recording.isRecording();
+
+    if (yield this._markersGraphAvailable()) {
+      this.markersOverview.selectionEnabled = selectionEnabled;
+    }
+    if (yield this._memoryGraphAvailable()) {
+      this.memoryOverview.selectionEnabled = selectionEnabled;
+    }
+    if (yield this._framerateGraphAvailable()) {
+      this.framerateGraph.selectionEnabled = selectionEnabled;
+    }
+  }),
+
+  
+
+
+
+  _onPrefChanged: function (_, prefName) {
     if (prefName === "enable-memory") {
       $("#memory-overview").hidden = !PerformanceController.getPref("enable-memory");
     }

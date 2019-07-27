@@ -4,7 +4,6 @@
 
 
 
-
 function spawnTest () {
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, DetailsView, MemoryCallTreeView } = panel.panelWin;
@@ -13,7 +12,7 @@ function spawnTest () {
   Services.prefs.setBoolPref(MEMORY_PREF, true);
   Services.prefs.setBoolPref(INVERT_PREF, true);
 
-  DetailsView.selectView("memory-calltree");
+  yield DetailsView.selectView("memory-calltree");
   ok(DetailsView.isViewSelected(MemoryCallTreeView), "The call tree is now selected.");
 
   yield startRecording(panel);

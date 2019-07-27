@@ -10,9 +10,9 @@ function spawnTest () {
 
   
   Services.prefs.setBoolPref(MEMORY_PREF, true);
-  DetailsView.selectView("memory-flamegraph");
-
   Services.prefs.setBoolPref(IDLE_PREF, true);
+
+  yield DetailsView.selectView("memory-flamegraph");
 
   yield startRecording(panel);
   yield busyWait(100);

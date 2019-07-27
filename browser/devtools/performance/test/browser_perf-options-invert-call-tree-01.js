@@ -4,14 +4,13 @@
 
 
 
-
 function spawnTest () {
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, DetailsView, JsCallTreeView } = panel.panelWin;
 
   Services.prefs.setBoolPref(INVERT_PREF, true);
 
-  DetailsView.selectView("js-calltree");
+  yield DetailsView.selectView("js-calltree");
   ok(DetailsView.isViewSelected(JsCallTreeView), "The call tree is now selected.");
 
   yield startRecording(panel);

@@ -11,13 +11,13 @@ function spawnTest () {
 
   yield startRecording(panel);
 
-  
-  yield once(OverviewView, EVENTS.OVERVIEW_RENDERED);
+  yield Promise.all([
+    once(OverviewView, EVENTS.FRAMERATE_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.MARKERS_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.OVERVIEW_RENDERED)
+  ]);
 
   yield stopRecording(panel);
-
-  
-  yield once(OverviewView, EVENTS.OVERVIEW_RENDERED);
 
   let graph = OverviewView.markersOverview;
   let MAX = graph.width;

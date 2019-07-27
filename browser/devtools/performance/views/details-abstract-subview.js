@@ -102,11 +102,10 @@ let DetailsSubview = {
   
 
 
-  _onPrefChanged: function (_, prefName, value) {
+  _onPrefChanged: function (_, prefName) {
     
     
     let recording = PerformanceController.getCurrentRecording();
-
     if (!recording || recording.isRecording()) {
       return;
     }

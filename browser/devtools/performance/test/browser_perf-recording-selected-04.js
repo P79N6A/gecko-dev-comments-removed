@@ -8,9 +8,22 @@
 
 let test = Task.async(function*() {
   let { target, panel, toolbox } = yield initPerformance(SIMPLE_URL);
-  let { $, EVENTS, PerformanceController, DetailsSubview, RecordingsView } = panel.panelWin;
+  let { $, EVENTS, PerformanceController, DetailsView, DetailsSubview, RecordingsView } = panel.panelWin;
 
+  
+  Services.prefs.setBoolPref(MEMORY_PREF, true);
+
+  
+  
   DetailsSubview.canUpdateWhileHidden = true;
+
+  
+  
+  
+  yield DetailsView.selectView("js-calltree");
+  yield DetailsView.selectView("js-flamegraph");
+  yield DetailsView.selectView("memory-calltree");
+  yield DetailsView.selectView("memory-flamegraph");
 
   yield startRecording(panel);
   yield stopRecording(panel);

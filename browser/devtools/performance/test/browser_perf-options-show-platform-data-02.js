@@ -9,7 +9,8 @@ function spawnTest () {
   let { EVENTS, DetailsView, JsFlameGraphView } = panel.panelWin;
 
   Services.prefs.setBoolPref(PLATFORM_DATA_PREF, false);
-  DetailsView.selectView("js-flamegraph");
+
+  yield DetailsView.selectView("js-flamegraph");
 
   yield startRecording(panel);
   yield busyWait(100);

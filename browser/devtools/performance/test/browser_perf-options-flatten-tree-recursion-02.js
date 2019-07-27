@@ -5,15 +5,14 @@
 
 
 function spawnTest () {
-  
-  Services.prefs.setBoolPref(MEMORY_PREF, true);
-
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, DetailsView, MemoryFlameGraphView } = panel.panelWin;
 
-  DetailsView.selectView("memory-flamegraph");
-
+  
+  Services.prefs.setBoolPref(MEMORY_PREF, true);
   Services.prefs.setBoolPref(FLATTEN_PREF, true);
+
+  yield DetailsView.selectView("memory-flamegraph");
 
   yield startRecording(panel);
   yield busyWait(100);
