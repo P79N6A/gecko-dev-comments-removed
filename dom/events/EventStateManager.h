@@ -233,7 +233,7 @@ public:
   
   
   
-  static nsIntPoint sLastScreenPoint;
+  static LayoutDeviceIntPoint sLastScreenPoint;
 
   
   

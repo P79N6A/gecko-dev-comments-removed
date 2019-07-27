@@ -358,11 +358,11 @@ UIEvent::DuplicatePrivateData()
   mPagePoint =
     Event::GetPageCoords(mPresContext, mEvent, mEvent->refPoint, mClientPoint);
   
-  nsIntPoint screenPoint =
+  LayoutDeviceIntPoint screenPoint =
     Event::GetScreenCoords(mPresContext, mEvent, mEvent->refPoint);
   nsresult rv = Event::DuplicatePrivateData();
   if (NS_SUCCEEDED(rv)) {
-    mEvent->refPoint = LayoutDeviceIntPoint::FromUntyped(screenPoint);
+    mEvent->refPoint = screenPoint;
   }
   return rv;
 }
