@@ -83,12 +83,6 @@ namespace gl
 #define UNUSED_ASSERTION_VARIABLE(variable) ((void)variable)
 #endif
 
-#ifndef ANGLE_ENABLE_TRACE
-#define UNUSED_TRACE_VARIABLE(variable) ((void)variable)
-#else
-#define UNUSED_TRACE_VARIABLE(variable)
-#endif
-
 
 
 
