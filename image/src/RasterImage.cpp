@@ -3000,7 +3000,6 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     
     
     
-    NS_WARNING("Recursively notifying in RasterImage::FinishedSomeDecoding!");
     mNotifyProgress |= progress;
     mNotifyInvalidRect.Union(invalidRect);
   } else {
