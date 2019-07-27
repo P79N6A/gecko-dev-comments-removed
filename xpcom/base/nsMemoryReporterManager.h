@@ -152,6 +152,9 @@ public:
   static int64_t ResidentFast();
 
   
+  static int64_t ResidentPeak();
+
+  
   
   static int64_t ResidentUnique();
 
