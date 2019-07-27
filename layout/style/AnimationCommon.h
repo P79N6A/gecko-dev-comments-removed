@@ -53,6 +53,12 @@ public:
   virtual nsRestyleHint
     HasAttributeDependentStyle(AttributeRuleProcessorData* aData) MOZ_OVERRIDE;
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext) MOZ_OVERRIDE;
+  virtual void RulesMatching(ElementRuleProcessorData* aData) MOZ_OVERRIDE;
+  virtual void RulesMatching(PseudoElementRuleProcessorData* aData) MOZ_OVERRIDE;
+  virtual void RulesMatching(AnonBoxRuleProcessorData* aData) MOZ_OVERRIDE;
+#ifdef MOZ_XUL
+  virtual void RulesMatching(XULTreeRuleProcessorData* aData) MOZ_OVERRIDE;
+#endif
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf)
     const MOZ_MUST_OVERRIDE MOZ_OVERRIDE;
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
@@ -68,10 +74,10 @@ public:
   
   void AddStyleUpdatesTo(mozilla::RestyleTracker& aTracker);
 
-  virtual AnimationPlayerCollection*
+  AnimationPlayerCollection*
   GetAnimationPlayers(dom::Element *aElement,
                       nsCSSPseudoElements::Type aPseudoType,
-                      bool aCreateIfNeeded) = 0;
+                      bool aCreateIfNeeded);
 
   
   
@@ -81,6 +87,9 @@ public:
     Can_Throttle,
     Cannot_Throttle
   };
+
+  nsIStyleRule* GetAnimationRule(mozilla::dom::Element* aElement,
+                                 nsCSSPseudoElements::Type aPseudoType);
 
   static bool ExtractComputedValueForTransition(
                   nsCSSProperty aProperty,
@@ -113,6 +122,14 @@ protected:
 
   
   void CheckNeedsRefresh();
+
+  virtual nsIAtom* GetAnimationsAtom() = 0;
+  virtual nsIAtom* GetAnimationsBeforeAtom() = 0;
+  virtual nsIAtom* GetAnimationsAfterAtom() = 0;
+
+  virtual bool IsAnimationManager() {
+    return false;
+  }
 
   
   

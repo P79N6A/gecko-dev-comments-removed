@@ -22,6 +22,7 @@
 #include "nsDisplayList.h"
 #include "mozilla/MemoryReporting.h"
 #include "RestyleManager.h"
+#include "nsRuleProcessorData.h"
 #include "nsStyleSet.h"
 #include "nsStyleChangeList.h"
 
@@ -186,6 +187,50 @@ CommonAnimationManager::MediumFeaturesChanged(nsPresContext* aPresContext)
   return false;
 }
 
+ void
+CommonAnimationManager::RulesMatching(ElementRuleProcessorData* aData)
+{
+  NS_ABORT_IF_FALSE(aData->mPresContext == mPresContext,
+                    "pres context mismatch");
+  nsIStyleRule *rule =
+    GetAnimationRule(aData->mElement,
+                     nsCSSPseudoElements::ePseudo_NotPseudoElement);
+  if (rule) {
+    aData->mRuleWalker->Forward(rule);
+  }
+}
+
+ void
+CommonAnimationManager::RulesMatching(PseudoElementRuleProcessorData* aData)
+{
+  NS_ABORT_IF_FALSE(aData->mPresContext == mPresContext,
+                    "pres context mismatch");
+  if (aData->mPseudoType != nsCSSPseudoElements::ePseudo_before &&
+      aData->mPseudoType != nsCSSPseudoElements::ePseudo_after) {
+    return;
+  }
+
+  
+  
+  
+  nsIStyleRule *rule = GetAnimationRule(aData->mElement, aData->mPseudoType);
+  if (rule) {
+    aData->mRuleWalker->Forward(rule);
+  }
+}
+
+ void
+CommonAnimationManager::RulesMatching(AnonBoxRuleProcessorData* aData)
+{
+}
+
+#ifdef MOZ_XUL
+ void
+CommonAnimationManager::RulesMatching(XULTreeRuleProcessorData* aData)
+{
+}
+#endif
+
  size_t
 CommonAnimationManager::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
@@ -255,6 +300,106 @@ CommonAnimationManager::ExtractComputedValueForTransition(
                                StyleAnimationValue::eUnit_Visibility);
   }
   return result;
+}
+
+AnimationPlayerCollection*
+CommonAnimationManager::GetAnimationPlayers(dom::Element *aElement,
+                                            nsCSSPseudoElements::Type aPseudoType,
+                                            bool aCreateIfNeeded)
+{
+  if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementCollections)) {
+    
+    return nullptr;
+  }
+
+  nsIAtom *propName;
+  if (aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement) {
+    propName = GetAnimationsAtom();
+  } else if (aPseudoType == nsCSSPseudoElements::ePseudo_before) {
+    propName = GetAnimationsBeforeAtom();
+  } else if (aPseudoType == nsCSSPseudoElements::ePseudo_after) {
+    propName = GetAnimationsAfterAtom();
+  } else {
+    NS_ASSERTION(!aCreateIfNeeded,
+                 "should never try to create transitions for pseudo "
+                 "other than :before or :after");
+    return nullptr;
+  }
+  AnimationPlayerCollection* collection =
+    static_cast<AnimationPlayerCollection*>(aElement->GetProperty(propName));
+  if (!collection && aCreateIfNeeded) {
+    
+    collection =
+      new AnimationPlayerCollection(aElement, propName, this);
+    nsresult rv =
+      aElement->SetProperty(propName, collection,
+                            &AnimationPlayerCollection::PropertyDtor, false);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("SetProperty failed");
+      delete collection;
+      return nullptr;
+    }
+    if (propName == nsGkAtoms::animationsProperty ||
+        propName == nsGkAtoms::transitionsProperty) {
+      aElement->SetMayHaveAnimations();
+    }
+
+    AddElementCollection(collection);
+  }
+
+  return collection;
+}
+
+nsIStyleRule*
+CommonAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
+                                         nsCSSPseudoElements::Type aPseudoType)
+{
+  NS_ABORT_IF_FALSE(
+    aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+    aPseudoType == nsCSSPseudoElements::ePseudo_before ||
+    aPseudoType == nsCSSPseudoElements::ePseudo_after,
+    "forbidden pseudo type");
+
+  if (!mPresContext->IsDynamic()) {
+    
+    return nullptr;
+  }
+
+  AnimationPlayerCollection* collection =
+    GetAnimationPlayers(aElement, aPseudoType, false);
+  if (!collection) {
+    return nullptr;
+  }
+
+  RestyleManager* restyleManager = mPresContext->RestyleManager();
+  if (restyleManager->SkipAnimationRules()) {
+    
+    
+
+    if (collection->mStyleRule && restyleManager->PostAnimationRestyles()) {
+      collection->PostRestyleForAnimation(mPresContext);
+    }
+
+    return nullptr;
+  }
+
+  
+  
+  
+  if (IsAnimationManager()) {
+    NS_WARN_IF_FALSE(!collection->mNeedsRefreshes ||
+                     collection->mStyleRuleRefreshTime ==
+                       mPresContext->RefreshDriver()->MostRecentRefresh(),
+                     "should already have refreshed style rule");
+  } else {
+    
+    collection->mNeedsRefreshes = true;
+    collection->EnsureStyleRuleFor(
+      mPresContext->RefreshDriver()->MostRecentRefresh(),
+      EnsureStyleRule_IsNotThrottled);
+  }
+
+  return collection->mStyleRule;
 }
 
  const CommonAnimationManager::LayerAnimationRecord
