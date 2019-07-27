@@ -711,6 +711,19 @@ JSCompartment::sweepTemplateObjects()
         strictArgumentsTemplate_.set(nullptr);
 }
 
+ void
+JSCompartment::fixupCrossCompartmentWrappersAfterMovingGC(JSTracer* trc)
+{
+    MOZ_ASSERT(trc->runtime()->gc.isHeapCompacting());
+
+    for (CompartmentsIter comp(trc->runtime(), SkipAtoms); !comp.done(); comp.next()) {
+        
+        comp->sweepCrossCompartmentWrappers();
+        
+        comp->traceOutgoingCrossCompartmentWrappers(trc);
+    }
+}
+
 void
 JSCompartment::fixupAfterMovingGC()
 {

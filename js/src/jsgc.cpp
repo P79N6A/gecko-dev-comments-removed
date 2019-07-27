@@ -2586,14 +2586,7 @@ GCRuntime::updatePointersToRelocatedCells(Zone* zone)
     
     for (CompartmentsInZoneIter comp(zone); !comp.done(); comp.next())
         comp->fixupAfterMovingGC();
-
-    
-    for (CompartmentsIter comp(rt, SkipAtoms); !comp.done(); comp.next()) {
-        
-        comp->sweepCrossCompartmentWrappers();
-        
-        comp->traceOutgoingCrossCompartmentWrappers(&trc);
-    }
+    JSCompartment::fixupCrossCompartmentWrappersAfterMovingGC(&trc);
 
     
     
