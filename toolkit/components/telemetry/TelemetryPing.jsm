@@ -248,6 +248,13 @@ this.TelemetryPing = Object.freeze({
    get clientID() {
     return Impl.clientID;
    },
+
+   
+
+
+   get shutdown() {
+    return Impl._shutdownBarrier.client;
+   },
 });
 
 let Impl = {
@@ -261,6 +268,8 @@ let Impl = {
   _clientID: null,
   
   _delayedInitTask: null,
+
+  _shutdownBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for clients."),
 
   
 
@@ -700,7 +709,8 @@ let Impl = {
     }.bind(this), testing ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
 
     AsyncShutdown.sendTelemetry.addBlocker("TelemetryPing: shutting down",
-                                           () => this.shutdown());
+                                           () => this.shutdown(),
+                                           () => this._getState());
 
     this._delayedInitTask.arm();
     return deferred.promise;
@@ -717,7 +727,8 @@ let Impl = {
         this._initialized = false;
         this._initStarted = false;
       };
-      return TelemetryEnvironment.shutdown().then(reset, reset);
+      return this._shutdownBarrier.wait().then(
+               () => TelemetryEnvironment.shutdown().then(reset, reset));
     };
 
     
@@ -775,5 +786,16 @@ let Impl = {
 
   get clientID() {
     return this._clientID;
+  },
+
+  
+
+
+  _getState: function() {
+    return {
+      initialized: this._initialized,
+      initStarted: this._initStarted,
+      haveDelayedInitTask: !!this._delayedInitTask,
+    };
   },
 };

@@ -286,7 +286,7 @@ this.TelemetrySession = Object.freeze({
 
 
   shutdown: function(aForceSavePending = true) {
-    return Impl.shutdown(aForceSavePending);
+    return Impl.shutdownChromeProcess(aForceSavePending);
   },
   
 
@@ -348,6 +348,8 @@ let Impl = {
   _subsessionStartDate: null,
   
   _dailyTimerId: null,
+  
+  _delayedInitTask: null,
 
   
 
@@ -922,11 +924,22 @@ let Impl = {
 
 
   setupChromeProcess: function setupChromeProcess(testing) {
+    this._initStarted = true;
     if (testing && !this._log) {
       this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
     }
 
     this._log.trace("setupChromeProcess");
+
+    if (this._delayedInitTask) {
+      this._log.error("setupTelemetry - init task already running");
+      return this._delayedInitTask;
+    }
+
+    if (this._initialized && !testing) {
+      this._log.error("setupTelemetry - already initialized");
+      return Promise.resolve();
+    }
 
     this._sessionStartDate = Policy.now();
     this._subsessionStartDate = this._sessionStartDate;
@@ -951,8 +964,9 @@ let Impl = {
       return Promise.resolve();
     }
 
-    AsyncShutdown.sendTelemetry.addBlocker(
-      "TelemetrySession: shutting down", () => this.shutdown());
+    TelemetryPing.shutdown.addBlocker("TelemetrySession: shutting down",
+                                      () => this.shutdownChromeProcess(),
+                                      () => this._getState());
 
     Services.obs.addObserver(this, "sessionstore-windows-restored", false);
 #ifdef MOZ_WIDGET_ANDROID
@@ -968,23 +982,28 @@ let Impl = {
     
     
     let deferred = Promise.defer();
-    let delayedTask = new DeferredTask(function* () {
-      this._initialized = true;
+    this._delayedInitTask = new DeferredTask(function* () {
+      try {
+        this._initialized = true;
 
-      this.attachObservers();
-      this.gatherMemory();
+        this.attachObservers();
+        this.gatherMemory();
 
-      Telemetry.asyncFetchTelemetryData(function () {});
-      this._rescheduleDailyTimer();
+        Telemetry.asyncFetchTelemetryData(function () {});
+        this._rescheduleDailyTimer();
 
-      TelemetryEnvironment.registerChangeListener(ENVIRONMENT_CHANGE_LISTENER,
-                                                  () => this._onEnvironmentChange());
+        TelemetryEnvironment.registerChangeListener(ENVIRONMENT_CHANGE_LISTENER,
+                                                    () => this._onEnvironmentChange());
 
-      deferred.resolve();
-
+        deferred.resolve();
+      } catch (e) {
+        deferred.reject();
+      } finally {
+        this._delayedInitTask = null;
+      }
     }.bind(this), testing ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
 
-    delayedTask.arm();
+    this._delayedInitTask.arm();
     return deferred.promise;
   },
 
@@ -1247,19 +1266,53 @@ let Impl = {
 
 
 
-  shutdown: function(testing = false) {
+  shutdownChromeProcess: function(testing = false) {
+    this._log.trace("shutdownChromeProcess - testing: " + testing);
     TelemetryEnvironment.unregisterChangeListener(ENVIRONMENT_CHANGE_LISTENER);
 
-    if (this._dailyTimerId) {
-      Policy.clearDailyTimeout(this._dailyTimerId);
-      this._dailyTimerId = null;
-    }
-    this.uninstall();
-    if (Telemetry.canSend || testing) {
-      return this.savePendingPings();
-    }
-    return Promise.resolve();
-  },
+    let cleanup = () => {
+      TelemetryEnvironment.unregisterChangeListener(ENVIRONMENT_CHANGE_LISTENER);
+      if (this._dailyTimerId) {
+        Policy.clearDailyTimeout(this._dailyTimerId);
+        this._dailyTimerId = null;
+      }
+      this.uninstall();
+
+      let reset = () => {
+        this._initStarted = false;
+        this._initialized = false;
+      };
+
+      if (Telemetry.canSend || testing) {
+        return this.savePendingPings().then(reset);
+      }
+
+      reset();
+      return Promise.resolve();
+    };
+
+    
+    
+    
+    
+    
+    
+
+    
+    if (!this._initStarted) {
+      return Promise.resolve();
+     }
+
+    
+    if (!this._delayedInitTask) {
+      
+      return cleanup();
+     }
+
+    
+    this._delayedInitTask.disarm();
+    return this._delayedInitTask.finalize().then(cleanup);
+   },
 
   _rescheduleDailyTimer: function() {
     if (this._dailyTimerId) {
@@ -1280,7 +1333,7 @@ let Impl = {
   },
 
   _onDailyTimer: function() {
-    if (!this._initialized) {
+    if (!this._initStarted) {
       if (this._log) {
         this._log.warn("_onDailyTimer - not initialized");
       } else {
@@ -1324,5 +1377,17 @@ let Impl = {
       REASON_TEST_PING,
     ];
     return classicReasons.indexOf(reason) != -1;
+  },
+
+  
+
+
+  _getState: function() {
+    return {
+      initialized: this._initialized,
+      initStarted: this._initStarted,
+      haveDelayedInitTask: !!this._delayedInitTask,
+      dailyTimerScheduled: !!this._dailyTimerId,
+    };
   },
 };
