@@ -21,7 +21,15 @@ void
 WheelScrollAnimation::Update(TimeStamp aTime, nsPoint aDelta, const nsSize& aCurrentVelocity)
 {
   InitPreferences(aTime);
+
   mFinalDestination += aDelta;
+
+  
+  CSSPoint clamped = CSSPoint::FromAppUnits(mFinalDestination);
+  clamped.x = mApzc.mX.ClampOriginToScrollableRect(clamped.x);
+  clamped.y = mApzc.mY.ClampOriginToScrollableRect(clamped.y);
+  mFinalDestination = CSSPoint::ToAppUnits(clamped);
+
   AsyncScrollBase::Update(aTime, mFinalDestination, aCurrentVelocity);
 }
 
@@ -29,24 +37,30 @@ bool
 WheelScrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration& aDelta)
 {
   TimeStamp now = AsyncPanZoomController::GetFrameTime();
-  if (IsFinished(now)) {
-    return false;
-  }
-
   CSSToParentLayerScale2D zoom = aFrameMetrics.GetZoom();
 
-  nsPoint position = PositionAt(now);
+  
+  
+  
+  bool finished = IsFinished(now);
+  nsPoint sampledDest = finished
+                        ? mDestination
+                        : PositionAt(now);
   ParentLayerPoint displacement =
-    (CSSPoint::FromAppUnits(position) - aFrameMetrics.GetScrollOffset()) * zoom;
+    (CSSPoint::FromAppUnits(sampledDest) - aFrameMetrics.GetScrollOffset()) * zoom;
 
   
   ParentLayerPoint adjustedOffset, overscroll;
   mApzc.mX.AdjustDisplacement(displacement.x, adjustedOffset.x, overscroll.x);
   mApzc.mY.AdjustDisplacement(displacement.y, adjustedOffset.y, overscroll.y,
                               !aFrameMetrics.AllowVerticalScrollWithWheel());
+  if (IsZero(adjustedOffset)) {
+    
+    return false;
+  }
 
   aFrameMetrics.ScrollBy(adjustedOffset / zoom);
-  return true;
+  return !finished;
 }
 
 void
