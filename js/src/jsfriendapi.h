@@ -1734,6 +1734,17 @@ JS_GetArrayBufferByteLength(JSObject *obj);
 
 
 
+
+
+
+extern JS_FRIEND_API(bool)
+JS_ArrayBufferHasData(JSObject *obj);
+
+
+
+
+
+
 extern JS_FRIEND_API(bool)
 JS_IsMappedArrayBufferObject(JSObject *obj);
 
