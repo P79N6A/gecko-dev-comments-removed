@@ -58,6 +58,43 @@ MobileConnectionInfo::MobileConnectionInfo(nsPIDOMWindow* aWindow)
   SetIsDOMBinding();
 }
 
+MobileConnectionInfo::MobileConnectionInfo(const nsAString& aState,
+                                           bool aConnected,
+                                           bool aEmergencyCallsOnly,
+                                           bool aRoaming,
+                                           nsIMobileNetworkInfo* aNetworkInfo,
+                                           const nsAString& aType,
+                                           const Nullable<int32_t>& aSignalStrength,
+                                           const Nullable<uint16_t>& aRelSignalStrength,
+                                           nsIMobileCellInfo* aCellInfo)
+  : mConnected(aConnected)
+  , mEmergencyCallsOnly(aEmergencyCallsOnly)
+  , mRoaming(aRoaming)
+  , mSignalStrength(aSignalStrength)
+  , mRelSignalStrength(aRelSignalStrength)
+{
+  
+  
+  
+  
+
+  
+  CONVERT_STRING_TO_NULLABLE_ENUM(aState, MobileConnectionState, mState);
+  CONVERT_STRING_TO_NULLABLE_ENUM(aType, MobileConnectionType, mType);
+
+  
+  if (aNetworkInfo) {
+    mNetworkInfo = new MobileNetworkInfo(mWindow);
+    mNetworkInfo->Update(aNetworkInfo);
+  }
+
+  
+  if (aCellInfo) {
+    mCellInfo = new MobileCellInfo(mWindow);
+    mCellInfo->Update(aCellInfo);
+  }
+}
+
 void
 MobileConnectionInfo::Update(nsIMobileConnectionInfo* aInfo)
 {
@@ -126,6 +163,7 @@ MobileConnectionInfo::Update(nsIMobileConnectionInfo* aInfo)
 JSObject*
 MobileConnectionInfo::WrapObject(JSContext* aCx)
 {
+  MOZ_ASSERT(IsDOMBinding());
   return MozMobileConnectionInfoBinding::Wrap(aCx, this);
 }
 
