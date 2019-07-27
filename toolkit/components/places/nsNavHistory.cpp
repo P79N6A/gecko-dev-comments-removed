@@ -2265,6 +2265,10 @@ nsNavHistory::GetObservers(uint32_t* _count,
   *_count = 0;
   *_observers = nullptr;
 
+  
+  
+  mDaysOfHistory = -1;
+
   if (!mCanNotify)
     return NS_OK;
 

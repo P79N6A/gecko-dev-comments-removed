@@ -29,10 +29,6 @@ add_task(function () {
 
   yield promiseClearHistory();
 
-  
-  is(PlacesUtils.history.hasHistoryEntries, false,
-     "History database should be empty");
-
    
   let bookmarksDeferred = Promise.defer();
   waitForCondition(() => {
@@ -52,10 +48,6 @@ add_task(function () {
     { uri: visitedURIs[6], transition: TRANSITION_FRAMED_LINK },
     { uri: visitedURIs[7], transition: TRANSITION_DOWNLOAD }
   ]);
-
-  
-  is(PlacesUtils.history.hasHistoryEntries, true,
-     "History database should have entries");
 
   placeItemsCount += 7;
   
