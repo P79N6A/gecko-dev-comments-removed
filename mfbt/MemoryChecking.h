@@ -34,6 +34,7 @@
 #if defined(MOZ_ASAN)
 #include <stddef.h>
 
+#include "mozilla/Attributes.h"
 #include "mozilla/Types.h"
 
 #ifdef _MSC_VER
@@ -61,6 +62,14 @@ __asan_unpoison_memory_region(void const volatile *addr, size_t size);
 
 #define MOZ_MAKE_MEM_DEFINED(addr, size) \
   __asan_unpoison_memory_region((addr), (size))
+
+
+
+
+
+void MOZ_EXPORT
+__lsan_ignore_object(const void *p);
+
 }
 #elif defined(MOZ_MSAN)
 #include <stddef.h>
@@ -101,5 +110,20 @@ __msan_unpoison(void const volatile *addr, size_t size);
 #define MOZ_MAKE_MEM_DEFINED(addr, size) do {} while (0)
 
 #endif
+
+
+
+
+
+
+
+
+
+#if defined(MOZ_ASAN)
+#  define MOZ_LSAN_INTENTIONALLY_LEAK_OBJECT(X) __lsan_ignore_object(X)
+#else
+#  define MOZ_LSAN_INTENTIONALLY_LEAK_OBJECT(X)
+#endif 
+
 
 #endif 
