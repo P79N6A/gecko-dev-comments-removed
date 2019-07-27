@@ -273,16 +273,20 @@ void nsCaret::SetCaretReadOnly(bool inMakeReadonly)
   SchedulePaint();
 }
 
- nsresult
+ nsRect
 nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
                              int32_t   aFrameOffset,
-                             nsRect*   aRect,
                              nscoord*  aBidiIndicatorSize)
 {
   nsPoint framePos(0, 0);
+  nsRect rect;
   nsresult rv = aFrame->GetPointFromOffset(aFrameOffset, &framePos);
-  if (NS_FAILED(rv))
-    return rv;
+  if (NS_FAILED(rv)) {
+    if (aBidiIndicatorSize) {
+      *aBidiIndicatorSize = 0;
+    }
+    return rect;
+  }
 
   nsIFrame* frame = aFrame->GetContentInsertionFrame();
   if (!frame) {
@@ -303,7 +307,7 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
   nscoord height = ascent + descent;
   framePos.y = baseline - ascent;
   Metrics caretMetrics = ComputeMetrics(aFrame, aFrameOffset, height);
-  *aRect = nsRect(framePos, nsSize(caretMetrics.mCaretWidth, height));
+  rect = nsRect(framePos, nsSize(caretMetrics.mCaretWidth, height));
 
   
   
@@ -313,20 +317,21 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
     
     nsIScrollableFrame *sf = do_QueryFrame(scrollFrame);
     nsIFrame *scrolled = sf->GetScrolledFrame();
-    nsRect caretInScroll = *aRect + aFrame->GetOffsetTo(scrolled);
+    nsRect caretInScroll = rect + aFrame->GetOffsetTo(scrolled);
 
     
     
     nscoord overflow = caretInScroll.XMost() -
       scrolled->GetVisualOverflowRectRelativeToSelf().width;
-    if (overflow > 0)
-      aRect->x -= overflow;
+    if (overflow > 0) {
+      rect.x -= overflow;
+    }
   }
 
-  if (aBidiIndicatorSize)
+  if (aBidiIndicatorSize) {
     *aBidiIndicatorSize = caretMetrics.mBidiIndicatorSize;
-
-  return NS_OK;
+  }
+  return rect;
 }
 
 static nsIFrame*
@@ -372,7 +377,7 @@ nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect)
   nsIFrame* frame = GetFrameAndOffset(
       static_cast<Selection*>(aSelection), nullptr, 0, &frameOffset);
   if (frame) {
-    GetGeometryForFrame(frame, frameOffset, aRect, nullptr);
+    *aRect = GetGeometryForFrame(frame, frameOffset, nullptr);
   }
   return frame;
 }
@@ -818,12 +823,7 @@ nsCaret::ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
   NS_ASSERTION(aFrame, "Should have a frame here");
 
   nscoord bidiIndicatorSize;
-  nsresult rv =
-    GetGeometryForFrame(aFrame, aFrameOffset, aCaretRect, &bidiIndicatorSize);
-  if (NS_FAILED(rv)) {
-    *aCaretRect = *aHookRect = nsRect();
-    return;
-  }
+  *aCaretRect = GetGeometryForFrame(aFrame, aFrameOffset, &bidiIndicatorSize);
 
   
   const nsStyleVisibility* vis = aFrame->StyleVisibility();
