@@ -278,6 +278,7 @@ private:
   DECL_GFX_PREF(Live, "layers.dump-client-layers",             DumpClientLayers, bool, false);
   DECL_GFX_PREF(Live, "layers.dump-host-layers",               DumpHostLayers, bool, false);
 #endif
+  DECL_GFX_PREF(Live, "layers.transaction.warning-ms",         LayerTransactionWarning, uint32_t, 200);
 
   
   

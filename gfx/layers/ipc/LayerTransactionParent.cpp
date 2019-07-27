@@ -612,15 +612,25 @@ LayerTransactionParent::RecvUpdate(InfallibleTArray<Edit>&& cset,
   }
 #endif
 
-  TimeDuration latency = TimeStamp::Now() - aTransactionStart;
   
-  if (latency > TimeDuration::FromMilliseconds(kVisualWarningTrigger)) {
-    float severity = (latency - TimeDuration::FromMilliseconds(kVisualWarningTrigger)).ToMilliseconds() /
-                       (kVisualWarningMax - kVisualWarningTrigger);
-    if (severity > 1.f) {
-      severity = 1.f;
+  bool drawFps = gfxPrefs::LayersDrawFPS();
+  if (drawFps) {
+    uint32_t visualWarningTrigger = gfxPrefs::LayerTransactionWarning();
+    
+    TimeDuration latency = TimeStamp::Now() - aTransactionStart;
+    if (latency > TimeDuration::FromMilliseconds(visualWarningTrigger)) {
+      float severity = (latency - TimeDuration::FromMilliseconds(visualWarningTrigger)).ToMilliseconds() /
+                         (4 * visualWarningTrigger);
+      if (severity > 1.f) {
+        severity = 1.f;
+      }
+      mLayerManager->VisualFrameWarning(severity);
+#ifdef PR_LOGGING
+      PR_LogPrint("LayerTransactionParent::RecvUpdate transaction from process %d took %f ms",
+                  mChildProcessId,
+                  latency.ToMilliseconds());
+#endif
     }
-    mLayerManager->VisualFrameWarning(severity);
   }
 
   profiler_tracing("Paint", "LayerTransaction", TRACING_INTERVAL_END);
