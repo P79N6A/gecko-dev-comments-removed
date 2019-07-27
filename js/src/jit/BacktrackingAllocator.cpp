@@ -1626,6 +1626,55 @@ BacktrackingAllocator::trySplitAfterLastRegisterUse(LiveInterval *interval, Live
 }
 
 bool
+BacktrackingAllocator::trySplitBeforeFirstRegisterUse(LiveInterval *interval, LiveInterval *conflict, bool *success)
+{
+    
+    
+    
+
+    if (isRegisterDefinition(interval)) {
+        IonSpew(IonSpew_RegAlloc, "  interval is defined by a register");
+        return true;
+    }
+    if (interval->index() != 0) {
+        IonSpew(IonSpew_RegAlloc, "  interval is not defined in memory");
+        return true;
+    }
+
+    CodePosition firstRegisterFrom;
+
+    for (UsePositionIterator iter(interval->usesBegin());
+         iter != interval->usesEnd();
+         iter++)
+    {
+        LUse *use = iter->use;
+        LInstruction *ins = insData[iter->pos].ins();
+
+        if (!conflict || outputOf(ins) >= conflict->end()) {
+            if (isRegisterUse(use, ins,  true)) {
+                firstRegisterFrom = inputOf(ins);
+                break;
+            }
+        }
+    }
+
+    if (!firstRegisterFrom.bits()) {
+        
+        IonSpew(IonSpew_RegAlloc, "  interval has no register uses");
+        return true;
+    }
+
+    IonSpew(IonSpew_RegAlloc, "  split before first register use at %u",
+            firstRegisterFrom.bits());
+
+    SplitPositions splitPositions;
+    if (!splitPositions.append(firstRegisterFrom))
+        return false;
+    *success = true;
+    return splitAt(interval, splitPositions);
+}
+
+bool
 BacktrackingAllocator::splitAtAllRegisterUses(LiveInterval *interval)
 {
     
@@ -1838,6 +1887,11 @@ BacktrackingAllocator::chooseIntervalSplit(LiveInterval *interval, LiveInterval 
     bool success = false;
 
     if (!trySplitAcrossHotcode(interval, &success))
+        return false;
+    if (success)
+        return true;
+
+    if (!trySplitBeforeFirstRegisterUse(interval, conflict, &success))
         return false;
     if (success)
         return true;
