@@ -128,7 +128,7 @@ public final class WaitHelper {
 
 
 
-    private static interface ChangeVerifier {
+    private interface ChangeVerifier {
         public String getLogTag();
 
         
