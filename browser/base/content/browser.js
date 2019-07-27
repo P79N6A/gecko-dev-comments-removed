@@ -6964,6 +6964,10 @@ var gIdentityHandler = {
       host = this.getEffectiveHost();
     } catch (e) {
       
+    }
+
+    if (!host) {
+      
       host = this._lastUri.specIgnoringRef;
     }
 
