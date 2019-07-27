@@ -19,11 +19,6 @@
 namespace mozilla {
 namespace layers {
 
-typedef int32_t SurfaceDescriptorType;
-const SurfaceDescriptorType SURFACEDESCRIPTOR_UNKNOWN = 0;
-
-
-
 
 
 
@@ -40,57 +35,38 @@ MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
   
   DISALLOW_BIGIMAGE  = 1 << 2,
   
-  ALLOW_REPEAT       = 1 << 3,
-  
-  NEW_TILE           = 1 << 4,
-  
-  COMPONENT_ALPHA    = 1 << 5,
   
   
   
   
   
   
-  
-  RB_SWAPPED         = 1 << 6,
-
-  FRONT              = 1 << 7,
-  
-  ON_WHITE           = 1 << 8,
-  
-  ON_BLACK           = 1 << 9,
-  
-  TILE               = 1 << 10,
-  
-  RECYCLE            = 1 << 11,
+  RB_SWAPPED         = 1 << 3,
   
   
-  COPY_PREVIOUS      = 1 << 12,
+  NON_PREMULTIPLIED  = 1 << 4,
+  
+  RECYCLE            = 1 << 5,
   
   
   
   
-  
-  DEALLOCATE_CLIENT  = 1 << 13,
-  
-  
-  
-  IMMUTABLE          = 1 << 14,
+  DEALLOCATE_CLIENT  = 1 << 6,
   
   
   
-  IMMEDIATE_UPLOAD   = 1 << 15,
+  IMMUTABLE          = 1 << 7,
   
   
   
-  DOUBLE_BUFFERED    = 1 << 16,
+  IMMEDIATE_UPLOAD   = 1 << 8,
   
-  NON_PREMULTIPLIED  = 1 << 18,
+  COMPONENT_ALPHA    = 1 << 9,
 
   
-  ALL_BITS           = (1 << 19) - 1,
+  ALL_BITS           = (1 << 10) - 1,
   
-  DEFAULT = FRONT
+  DEFAULT = NO_FLAGS
 MOZ_END_ENUM_CLASS(TextureFlags)
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TextureFlags)
 
@@ -101,7 +77,6 @@ TextureRequiresLocking(TextureFlags aFlags)
   
   
   return !(aFlags & (TextureFlags::IMMEDIATE_UPLOAD |
-                     TextureFlags::DOUBLE_BUFFERED |
                      TextureFlags::IMMUTABLE));
 }
 
@@ -177,6 +152,7 @@ MOZ_END_ENUM_CLASS(CompositableType)
 
 
 
+
 MOZ_BEGIN_ENUM_CLASS(DeprecatedTextureHostFlags, uint8_t)
   DEFAULT = 0,       
   TILED = 1 << 0,    
@@ -238,6 +214,7 @@ MOZ_END_ENUM_CLASS(TextureIdentifier)
 struct TextureInfo
 {
   CompositableType mCompositableType;
+  
   DeprecatedTextureHostFlags mDeprecatedTextureHostFlags;
   TextureFlags mTextureFlags;
 

@@ -302,12 +302,10 @@ public:
                                                DrawIterator* aIter = nullptr);
 
   enum {
-    ALLOW_REPEAT = 0x01,
     BUFFER_COMPONENT_ALPHA = 0x02 
                                   
   };
   
-
 
 
 
