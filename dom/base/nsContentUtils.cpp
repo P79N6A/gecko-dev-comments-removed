@@ -7139,22 +7139,27 @@ nsContentUtils::GetInnerWindowID(nsIRequest* aRequest)
 }
 
 void
-nsContentUtils::GetHostOrIPv6WithBrackets(nsIURI* aURI, nsAString& aHost)
+nsContentUtils::GetHostOrIPv6WithBrackets(nsIURI* aURI, nsCString& aHost)
 {
   aHost.Truncate();
-  nsAutoCString hostname;
-  nsresult rv = aURI->GetHost(hostname);
+  nsresult rv = aURI->GetHost(aHost);
   if (NS_FAILED(rv)) { 
     return;
   }
 
-  if (hostname.FindChar(':') != -1) { 
-    MOZ_ASSERT(!hostname.Length() ||
-      (hostname[0] !='[' && hostname[hostname.Length() - 1] != ']'));
-    hostname.Insert('[', 0);
-    hostname.Append(']');
+  if (aHost.FindChar(':') != -1) { 
+    MOZ_ASSERT(!aHost.Length() ||
+      (aHost[0] !='[' && aHost[aHost.Length() - 1] != ']'));
+    aHost.Insert('[', 0);
+    aHost.Append(']');
   }
+}
 
+void
+nsContentUtils::GetHostOrIPv6WithBrackets(nsIURI* aURI, nsAString& aHost)
+{
+  nsAutoCString hostname;
+  GetHostOrIPv6WithBrackets(aURI, hostname);
   CopyUTF8toUTF16(hostname, aHost);
 }
 

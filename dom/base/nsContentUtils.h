@@ -2282,6 +2282,7 @@ public:
 
 
   static void GetHostOrIPv6WithBrackets(nsIURI* aURI, nsAString& aHost);
+  static void GetHostOrIPv6WithBrackets(nsIURI* aURI, nsCString& aHost);
 
   
 
