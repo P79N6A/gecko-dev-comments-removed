@@ -2417,13 +2417,7 @@ EnforceNotInPrerendering(JSContext* aCx, JSObject* aObj)
     return true;
   }
 
-  nsIDocShell* docShell = window->GetDocShell();
-  if (!docShell) {
-    
-    return true;
-  }
-
-  if (docShell->GetIsPrerendered()) {
+  if (window->GetIsPrerendered()) {
     HandlePrerenderingViolation(window);
     
     

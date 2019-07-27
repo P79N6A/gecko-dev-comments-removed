@@ -1272,6 +1272,8 @@ public:
                            const nsAString &aPopupWindowFeatures);
   void FireOfflineStatusEventIfChanged();
 
+  bool GetIsPrerendered();
+
   
   nsresult ScheduleNextIdleObserverCallback();
   uint32_t GetFuzzTimeMS();

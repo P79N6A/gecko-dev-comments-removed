@@ -1453,8 +1453,7 @@ XPCJSRuntime::InterruptCallback(JSContext *cx)
     if (!win)
         return true;
 
-    nsIDocShell* docShell = win->GetDocShell();
-    if (docShell && docShell->GetIsPrerendered()) {
+    if (win->GetIsPrerendered()) {
         
         
         mozilla::dom::HandlePrerenderingViolation(win);
