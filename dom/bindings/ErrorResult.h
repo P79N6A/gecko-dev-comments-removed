@@ -120,6 +120,10 @@ public:
   bool IsNotEnoughArgsError() const { return ErrorCode() == NS_ERROR_XPC_NOT_ENOUGH_ARGS; }
 
   
+  
+  void ReportGenericError(JSContext* cx);
+
+  
   void ThrowUncatchableException() {
     Throw(NS_ERROR_UNCATCHABLE_EXCEPTION);
   }
@@ -160,12 +164,18 @@ public:
     return NS_FAILED(mResult);
   }
 
-  nsresult ErrorCode() const {
-    return mResult;
-  }
-
   bool ErrorCodeIs(nsresult rv) const {
     return mResult == rv;
+  }
+
+  
+  uint32_t ErrorCodeAsInt() const {
+    return static_cast<uint32_t>(ErrorCode());
+  }
+
+protected:
+  nsresult ErrorCode() const {
+    return mResult;
   }
 
 private:
@@ -225,7 +235,7 @@ private:
     if (res.Failed()) {                                                   \
       nsCString msg;                                                      \
       msg.AppendPrintf("ENSURE_SUCCESS(%s, %s) failed with "              \
-                       "result 0x%X", #res, #ret, res.ErrorCode());       \
+                       "result 0x%X", #res, #ret, res.ErrorCodeAsInt());  \
       NS_WARNING(msg.get());                                              \
       return ret;                                                         \
     }                                                                     \
@@ -236,7 +246,7 @@ private:
     if (res.Failed()) {                                                   \
       nsCString msg;                                                      \
       msg.AppendPrintf("ENSURE_SUCCESS_VOID(%s) failed with "             \
-                       "result 0x%X", #res, res.ErrorCode());             \
+                       "result 0x%X", #res, res.ErrorCodeAsInt());        \
       NS_WARNING(msg.get());                                              \
       return;                                                             \
     }                                                                     \

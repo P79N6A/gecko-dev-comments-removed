@@ -127,7 +127,8 @@ ThrowMethodFailedWithDetails(JSContext* cx, ErrorResult& rv,
     rv.ReportNotEnoughArgsError(cx, ifaceName, memberName);
     return false;
   }
-  return Throw(cx, rv.ErrorCode());
+  rv.ReportGenericError(cx);
+  return false;
 }
 
 
