@@ -169,7 +169,7 @@ loop.shared.router = (function(l10n) {
 
 
     _onPeerHungup: function() {
-      this._notifier.warnL10n("peer_ended_conversation");
+      this._notifier.warnL10n("peer_ended_conversation2");
       this.endCall();
     },
 
