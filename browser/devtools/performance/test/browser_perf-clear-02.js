@@ -29,6 +29,10 @@ let test = Task.async(function*() {
   is(PerformanceController.getCurrentRecording(), null,
     "There should be no current recording.");
 
+  
+  yield startRecording(panel);
+  yield stopRecording(panel);
+
   yield teardown(panel);
   finish();
 });
