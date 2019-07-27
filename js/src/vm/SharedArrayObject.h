@@ -49,10 +49,10 @@ class SharedArrayRawBuffer
 
     
     
-    FutexWaiter *waiters_;
+    FutexWaiter* waiters_;
 
   protected:
-    SharedArrayRawBuffer(uint8_t *buffer, uint32_t length)
+    SharedArrayRawBuffer(uint8_t* buffer, uint32_t length)
       : refcount(1),
         length(length),
         waiters_(nullptr)
@@ -61,7 +61,7 @@ class SharedArrayRawBuffer
     }
 
   public:
-    static SharedArrayRawBuffer *New(JSContext *cx, uint32_t length);
+    static SharedArrayRawBuffer* New(JSContext* cx, uint32_t length);
 
     
     
@@ -71,12 +71,12 @@ class SharedArrayRawBuffer
 
     
     
-    void setWaiters(FutexWaiter *waiters) {
+    void setWaiters(FutexWaiter* waiters) {
         waiters_ = waiters;
     }
 
-    inline uint8_t *dataPointer() const {
-        return ((uint8_t *)this) + sizeof(SharedArrayRawBuffer);
+    inline uint8_t* dataPointer() const {
+        return ((uint8_t*)this) + sizeof(SharedArrayRawBuffer);
     }
 
     inline uint32_t byteLength() const {
@@ -108,7 +108,7 @@ class SharedArrayRawBuffer
 
 class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared
 {
-    static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
+    static bool byteLengthGetterImpl(JSContext* cx, CallArgs args);
 
   public:
     
@@ -122,28 +122,28 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared
     static const JSFunctionSpec jsfuncs[];
     static const JSFunctionSpec jsstaticfuncs[];
 
-    static bool byteLengthGetter(JSContext *cx, unsigned argc, Value *vp);
+    static bool byteLengthGetter(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool fun_isView(JSContext *cx, unsigned argc, Value *vp);
+    static bool fun_isView(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool class_constructor(JSContext *cx, unsigned argc, Value *vp);
-
-    
-    static SharedArrayBufferObject *New(JSContext *cx, uint32_t length);
+    static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
     
-    static SharedArrayBufferObject *New(JSContext *cx, SharedArrayRawBuffer *buffer);
+    static SharedArrayBufferObject* New(JSContext* cx, uint32_t length);
 
-    static void Finalize(FreeOp *fop, JSObject *obj);
+    
+    static SharedArrayBufferObject* New(JSContext* cx, SharedArrayRawBuffer* buffer);
 
-    static void addSizeOfExcludingThis(JSObject *obj, mozilla::MallocSizeOf mallocSizeOf,
-                                       JS::ClassInfo *info);
+    static void Finalize(FreeOp* fop, JSObject* obj);
 
-    SharedArrayRawBuffer *rawBufferObject() const;
+    static void addSizeOfExcludingThis(JSObject* obj, mozilla::MallocSizeOf mallocSizeOf,
+                                       JS::ClassInfo* info);
+
+    SharedArrayRawBuffer* rawBufferObject() const;
 
     
     
-    void *globalID() const {
+    void* globalID() const {
         
         
         
@@ -154,19 +154,19 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared
         return rawBufferObject()->byteLength();
     }
 
-    uint8_t *dataPointer() const {
+    uint8_t* dataPointer() const {
         return rawBufferObject()->dataPointer();
     }
 
 private:
-    void acceptRawBuffer(SharedArrayRawBuffer *buffer);
+    void acceptRawBuffer(SharedArrayRawBuffer* buffer);
     void dropRawBuffer();
 };
 
 bool IsSharedArrayBuffer(HandleValue v);
 bool IsSharedArrayBuffer(HandleObject o);
 
-SharedArrayBufferObject &AsSharedArrayBuffer(HandleObject o);
+SharedArrayBufferObject& AsSharedArrayBuffer(HandleObject o);
 
 } 
 

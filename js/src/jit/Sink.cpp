@@ -21,8 +21,8 @@ namespace jit {
 
 
 
-static MBasicBlock *
-CommonDominator(MBasicBlock *commonDominator, MBasicBlock *defBlock)
+static MBasicBlock*
+CommonDominator(MBasicBlock* commonDominator, MBasicBlock* defBlock)
 {
     
     
@@ -32,7 +32,7 @@ CommonDominator(MBasicBlock *commonDominator, MBasicBlock *defBlock)
     
     
     while (!commonDominator->dominates(defBlock)) {
-        MBasicBlock *nextBlock = commonDominator->immediateDominator();
+        MBasicBlock* nextBlock = commonDominator->immediateDominator();
         
         
         MOZ_ASSERT(commonDominator != nextBlock);
@@ -43,9 +43,9 @@ CommonDominator(MBasicBlock *commonDominator, MBasicBlock *defBlock)
 }
 
 bool
-Sink(MIRGenerator *mir, MIRGraph &graph)
+Sink(MIRGenerator* mir, MIRGraph& graph)
 {
-    TempAllocator &alloc = graph.alloc();
+    TempAllocator& alloc = graph.alloc();
     bool sinkEnabled = mir->optimizationInfo().sinkEnabled();
 
     for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
@@ -53,7 +53,7 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
             return false;
 
         for (MInstructionReverseIterator iter = block->rbegin(); iter != block->rend(); ) {
-            MInstruction *ins = *iter++;
+            MInstruction* ins = *iter++;
 
             
             
@@ -67,14 +67,14 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
             
             bool hasLiveUses = false;
             bool hasUses = false;
-            MBasicBlock *usesDominator = nullptr;
+            MBasicBlock* usesDominator = nullptr;
             for (MUseIterator i(ins->usesBegin()), e(ins->usesEnd()); i != e; i++) {
                 hasUses = true;
-                MNode *consumerNode = (*i)->consumer();
+                MNode* consumerNode = (*i)->consumer();
                 if (consumerNode->isResumePoint())
                     continue;
 
-                MDefinition *consumer = consumerNode->toDefinition();
+                MDefinition* consumer = consumerNode->toDefinition();
                 if (consumer->isRecoveredOnBailout())
                     continue;
 
@@ -82,7 +82,7 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
 
                 
                 
-                MBasicBlock *consumerBlock = consumer->block();
+                MBasicBlock* consumerBlock = consumer->block();
                 if (consumer->isPhi())
                     consumerBlock = consumerBlock->getPredecessor(consumer->indexOf(*i));
 
@@ -130,10 +130,10 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
             
             
             
-            MBasicBlock *lastJoin = usesDominator;
+            MBasicBlock* lastJoin = usesDominator;
             while (*block != lastJoin && lastJoin->numPredecessors() == 1) {
                 MOZ_ASSERT(lastJoin != lastJoin->immediateDominator());
-                MBasicBlock *next = lastJoin->immediateDominator();
+                MBasicBlock* next = lastJoin->immediateDominator();
                 if (next->numSuccessors() > 1)
                     break;
                 lastJoin = next;
@@ -174,26 +174,26 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
                     return false;
             }
 
-            MInstruction *clone = ins->clone(alloc, operands);
+            MInstruction* clone = ins->clone(alloc, operands);
             ins->block()->insertBefore(ins, clone);
             clone->setRecoveredOnBailout();
 
             
             
             
-            MResumePoint *entry = usesDominator->entryResumePoint();
+            MResumePoint* entry = usesDominator->entryResumePoint();
 
             
             
             
             for (MUseIterator i(ins->usesBegin()), e(ins->usesEnd()); i != e; ) {
-                MUse *use = *i++;
-                MNode *consumer = use->consumer();
+                MUse* use = *i++;
+                MNode* consumer = use->consumer();
 
                 
                 
                 
-                MBasicBlock *consumerBlock = consumer->block();
+                MBasicBlock* consumerBlock = consumer->block();
                 if (consumer->isDefinition() && consumer->toDefinition()->isPhi()) {
                     consumerBlock = consumerBlock->getPredecessor(
                         consumer->toDefinition()->toPhi()->indexOf(use));
@@ -220,7 +220,7 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
             
             
             
-            MInstruction *at = usesDominator->safeInsertTop(nullptr, MBasicBlock::IgnoreRecover);
+            MInstruction* at = usesDominator->safeInsertTop(nullptr, MBasicBlock::IgnoreRecover);
             block->moveBefore(at, ins);
         }
     }

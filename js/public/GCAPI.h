@@ -141,13 +141,13 @@ enum Reason {
 
 
 extern JS_PUBLIC_API(void)
-PrepareZoneForGC(Zone *zone);
+PrepareZoneForGC(Zone* zone);
 
 
 
 
 extern JS_PUBLIC_API(void)
-PrepareForFullGC(JSRuntime *rt);
+PrepareForFullGC(JSRuntime* rt);
 
 
 
@@ -155,56 +155,21 @@ PrepareForFullGC(JSRuntime *rt);
 
 
 extern JS_PUBLIC_API(void)
-PrepareForIncrementalGC(JSRuntime *rt);
+PrepareForIncrementalGC(JSRuntime* rt);
 
 
 
 
 
 extern JS_PUBLIC_API(bool)
-IsGCScheduled(JSRuntime *rt);
+IsGCScheduled(JSRuntime* rt);
 
 
 
 
 
 extern JS_PUBLIC_API(void)
-SkipZoneForGC(Zone *zone);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-GCForReason(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+SkipZoneForGC(Zone* zone);
 
 
 
@@ -222,7 +187,42 @@ GCForReason(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason);
 
 
 extern JS_PUBLIC_API(void)
-StartIncrementalGC(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason,
+GCForReason(JSRuntime* rt, JSGCInvocationKind gckind, gcreason::Reason reason);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+StartIncrementalGC(JSRuntime* rt, JSGCInvocationKind gckind, gcreason::Reason reason,
                    int64_t millis = 0);
 
 
@@ -234,7 +234,7 @@ StartIncrementalGC(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason re
 
 
 extern JS_PUBLIC_API(void)
-IncrementalGCSlice(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
+IncrementalGCSlice(JSRuntime* rt, gcreason::Reason reason, int64_t millis = 0);
 
 
 
@@ -243,7 +243,7 @@ IncrementalGCSlice(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
 
 
 extern JS_PUBLIC_API(void)
-FinishIncrementalGC(JSRuntime *rt, gcreason::Reason reason);
+FinishIncrementalGC(JSRuntime* rt, gcreason::Reason reason);
 
 enum GCProgress {
     
@@ -269,12 +269,12 @@ struct JS_PUBLIC_API(GCDescription) {
     GCDescription(bool isCompartment, JSGCInvocationKind kind)
       : isCompartment_(isCompartment), invocationKind_(kind) {}
 
-    char16_t *formatMessage(JSRuntime *rt) const;
-    char16_t *formatJSON(JSRuntime *rt, uint64_t timestamp) const;
+    char16_t* formatMessage(JSRuntime* rt) const;
+    char16_t* formatJSON(JSRuntime* rt, uint64_t timestamp) const;
 };
 
 typedef void
-(* GCSliceCallback)(JSRuntime *rt, GCProgress progress, const GCDescription &desc);
+(* GCSliceCallback)(JSRuntime* rt, GCProgress progress, const GCDescription& desc);
 
 
 
@@ -282,7 +282,7 @@ typedef void
 
 
 extern JS_PUBLIC_API(GCSliceCallback)
-SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
+SetGCSliceCallback(JSRuntime* rt, GCSliceCallback callback);
 
 
 
@@ -291,7 +291,7 @@ SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
 
 
 extern JS_PUBLIC_API(void)
-DisableIncrementalGC(JSRuntime *rt);
+DisableIncrementalGC(JSRuntime* rt);
 
 
 
@@ -302,14 +302,14 @@ DisableIncrementalGC(JSRuntime *rt);
 
 
 extern JS_PUBLIC_API(bool)
-IsIncrementalGCEnabled(JSRuntime *rt);
+IsIncrementalGCEnabled(JSRuntime* rt);
 
 
 
 
 
 extern JS_PUBLIC_API(bool)
-IsIncrementalGCInProgress(JSRuntime *rt);
+IsIncrementalGCInProgress(JSRuntime* rt);
 
 
 
@@ -317,10 +317,10 @@ IsIncrementalGCInProgress(JSRuntime *rt);
 
 
 extern JS_PUBLIC_API(bool)
-IsIncrementalBarrierNeeded(JSRuntime *rt);
+IsIncrementalBarrierNeeded(JSRuntime* rt);
 
 extern JS_PUBLIC_API(bool)
-IsIncrementalBarrierNeeded(JSContext *cx);
+IsIncrementalBarrierNeeded(JSContext* cx);
 
 
 
@@ -330,16 +330,16 @@ extern JS_PUBLIC_API(void)
 IncrementalReferenceBarrier(GCCellPtr thing);
 
 extern JS_PUBLIC_API(void)
-IncrementalValueBarrier(const Value &v);
+IncrementalValueBarrier(const Value& v);
 
 extern JS_PUBLIC_API(void)
-IncrementalObjectBarrier(JSObject *obj);
+IncrementalObjectBarrier(JSObject* obj);
 
 
 
 
 extern JS_PUBLIC_API(bool)
-WasIncrementalGC(JSRuntime *rt);
+WasIncrementalGC(JSRuntime* rt);
 
 
 
@@ -352,13 +352,13 @@ WasIncrementalGC(JSRuntime *rt);
 
 class JS_PUBLIC_API(AutoDisableGenerationalGC)
 {
-    js::gc::GCRuntime *gc;
+    js::gc::GCRuntime* gc;
 #ifdef JS_GC_ZEAL
     bool restartVerifier;
 #endif
 
   public:
-    explicit AutoDisableGenerationalGC(JSRuntime *rt);
+    explicit AutoDisableGenerationalGC(JSRuntime* rt);
     ~AutoDisableGenerationalGC();
 };
 
@@ -367,7 +367,7 @@ class JS_PUBLIC_API(AutoDisableGenerationalGC)
 
 
 extern JS_PUBLIC_API(bool)
-IsGenerationalGCEnabled(JSRuntime *rt);
+IsGenerationalGCEnabled(JSRuntime* rt);
 
 
 
@@ -383,7 +383,7 @@ GetGCNumber();
 
 
 extern JS_PUBLIC_API(void)
-ShrinkGCBuffers(JSRuntime *rt);
+ShrinkGCBuffers(JSRuntime* rt);
 
 
 
@@ -392,22 +392,22 @@ ShrinkGCBuffers(JSRuntime *rt);
 class JS_PUBLIC_API(AutoAssertOnGC)
 {
 #ifdef DEBUG
-    js::gc::GCRuntime *gc;
+    js::gc::GCRuntime* gc;
     size_t gcNumber;
 
   public:
     AutoAssertOnGC();
-    explicit AutoAssertOnGC(JSRuntime *rt);
+    explicit AutoAssertOnGC(JSRuntime* rt);
     ~AutoAssertOnGC();
 
-    static void VerifyIsSafeToGC(JSRuntime *rt);
+    static void VerifyIsSafeToGC(JSRuntime* rt);
 #else
   public:
     AutoAssertOnGC() {}
-    explicit AutoAssertOnGC(JSRuntime *rt) {}
+    explicit AutoAssertOnGC(JSRuntime* rt) {}
     ~AutoAssertOnGC() {}
 
-    static void VerifyIsSafeToGC(JSRuntime *rt) {}
+    static void VerifyIsSafeToGC(JSRuntime* rt) {}
 #endif
 };
 
@@ -418,18 +418,18 @@ class JS_PUBLIC_API(AutoAssertOnGC)
 class JS_PUBLIC_API(AutoAssertNoAlloc)
 {
 #ifdef JS_DEBUG
-    js::gc::GCRuntime *gc;
+    js::gc::GCRuntime* gc;
 
   public:
     AutoAssertNoAlloc() : gc(nullptr) {}
-    explicit AutoAssertNoAlloc(JSRuntime *rt);
-    void disallowAlloc(JSRuntime *rt);
+    explicit AutoAssertNoAlloc(JSRuntime* rt);
+    void disallowAlloc(JSRuntime* rt);
     ~AutoAssertNoAlloc();
 #else
   public:
     AutoAssertNoAlloc() {}
-    explicit AutoAssertNoAlloc(JSRuntime *rt) {}
-    void disallowAlloc(JSRuntime *rt) {}
+    explicit AutoAssertNoAlloc(JSRuntime* rt) {}
+    void disallowAlloc(JSRuntime* rt) {}
 #endif
 };
 
@@ -451,7 +451,7 @@ class JS_PUBLIC_API(AutoSuppressGCAnalysis) : public AutoAssertNoAlloc
 {
   public:
     AutoSuppressGCAnalysis() : AutoAssertNoAlloc() {}
-    explicit AutoSuppressGCAnalysis(JSRuntime *rt) : AutoAssertNoAlloc(rt) {}
+    explicit AutoSuppressGCAnalysis(JSRuntime* rt) : AutoAssertNoAlloc(rt) {}
 };
 
 
@@ -465,7 +465,7 @@ class JS_PUBLIC_API(AutoSuppressGCAnalysis) : public AutoAssertNoAlloc
 class JS_PUBLIC_API(AutoAssertGCCallback) : public AutoSuppressGCAnalysis
 {
   public:
-    explicit AutoAssertGCCallback(JSObject *obj);
+    explicit AutoAssertGCCallback(JSObject* obj);
 };
 
 
@@ -482,7 +482,7 @@ class JS_PUBLIC_API(AutoCheckCannotGC) : public AutoAssertOnGC
 {
   public:
     AutoCheckCannotGC() : AutoAssertOnGC() {}
-    explicit AutoCheckCannotGC(JSRuntime *rt) : AutoAssertOnGC(rt) {}
+    explicit AutoCheckCannotGC(JSRuntime* rt) : AutoAssertOnGC(rt) {}
 };
 
 
@@ -509,7 +509,7 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
 
     if (IsInsideNursery(thing.asCell()))
         return;
-    JS::shadow::Runtime *rt = detail::GetGCThingRuntime(thing.unsafeAsUIntPtr());
+    JS::shadow::Runtime* rt = detail::GetGCThingRuntime(thing.unsafeAsUIntPtr());
     if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing))
         JS::IncrementalReferenceBarrier(thing);
     else if (JS::GCThingIsMarkedGray(thing))
@@ -517,9 +517,9 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
 }
 
 static MOZ_ALWAYS_INLINE void
-MarkGCThingAsLive(JSRuntime *aRt, JS::GCCellPtr thing)
+MarkGCThingAsLive(JSRuntime* aRt, JS::GCCellPtr thing)
 {
-    JS::shadow::Runtime *rt = JS::shadow::Runtime::asShadowRuntime(aRt);
+    JS::shadow::Runtime* rt = JS::shadow::Runtime::asShadowRuntime(aRt);
     
 
 
@@ -541,13 +541,13 @@ namespace JS {
 
 
 static MOZ_ALWAYS_INLINE void
-ExposeObjectToActiveJS(JSObject *obj)
+ExposeObjectToActiveJS(JSObject* obj)
 {
     js::gc::ExposeGCThingToActiveJS(GCCellPtr(obj));
 }
 
 static MOZ_ALWAYS_INLINE void
-ExposeScriptToActiveJS(JSScript *script)
+ExposeScriptToActiveJS(JSScript* script)
 {
     js::gc::ExposeGCThingToActiveJS(GCCellPtr(script));
 }
@@ -556,9 +556,9 @@ ExposeScriptToActiveJS(JSScript *script)
 
 
 static MOZ_ALWAYS_INLINE void
-MarkStringAsLive(Zone *zone, JSString *string)
+MarkStringAsLive(Zone* zone, JSString* string)
 {
-    JSRuntime *rt = JS::shadow::Zone::asShadowZone(zone)->runtimeFromMainThread();
+    JSRuntime* rt = JS::shadow::Zone::asShadowZone(zone)->runtimeFromMainThread();
     js::gc::MarkGCThingAsLive(rt, GCCellPtr(string));
 }
 
@@ -568,13 +568,13 @@ MarkStringAsLive(Zone *zone, JSString *string)
 
 
 extern JS_FRIEND_API(void)
-PokeGC(JSRuntime *rt);
+PokeGC(JSRuntime* rt);
 
 
 
 
 extern JS_FRIEND_API(void)
-NotifyDidPaint(JSRuntime *rt);
+NotifyDidPaint(JSRuntime* rt);
 
 } 
 

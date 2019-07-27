@@ -29,7 +29,7 @@ class ArrayObject : public NativeObject
         return getElementsHeader()->length;
     }
 
-    inline void setLength(ExclusiveContext *cx, uint32_t length);
+    inline void setLength(ExclusiveContext* cx, uint32_t length);
 
     
     void setLengthInt32(uint32_t length) {
@@ -39,8 +39,8 @@ class ArrayObject : public NativeObject
     }
 
     
-    static inline ArrayObject *
-    createArray(ExclusiveContext *cx,
+    static inline ArrayObject*
+    createArray(ExclusiveContext* cx,
                 gc::AllocKind kind,
                 gc::InitialHeap heap,
                 HandleShape shape,
@@ -48,31 +48,31 @@ class ArrayObject : public NativeObject
                 uint32_t length);
 
     
-    static inline ArrayObject *
-    createArray(ExclusiveContext *cx,
+    static inline ArrayObject*
+    createArray(ExclusiveContext* cx,
                 gc::InitialHeap heap,
                 HandleShape shape,
                 HandleObjectGroup group,
-                HeapSlot *elements);
+                HeapSlot* elements);
 
     
     
-    static inline ArrayObject *
-    createCopyOnWriteArray(ExclusiveContext *cx,
+    static inline ArrayObject*
+    createCopyOnWriteArray(ExclusiveContext* cx,
                            gc::InitialHeap heap,
                            HandleArrayObject sharedElementsOwner);
 
   private:
     
-    static inline ArrayObject *
-    createArrayInternal(ExclusiveContext *cx,
+    static inline ArrayObject*
+    createArrayInternal(ExclusiveContext* cx,
                         gc::AllocKind kind,
                         gc::InitialHeap heap,
                         HandleShape shape,
                         HandleObjectGroup group);
 
-    static inline ArrayObject *
-    finishCreateArray(ArrayObject *obj, HandleShape shape);
+    static inline ArrayObject*
+    finishCreateArray(ArrayObject* obj, HandleShape shape);
 };
 
 } 

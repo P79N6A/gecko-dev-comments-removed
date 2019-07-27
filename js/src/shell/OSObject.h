@@ -15,7 +15,7 @@ namespace js {
 
 
 bool
-DefineOS(JSContext *cx, JS::HandleObject global);
+DefineOS(JSContext* cx, JS::HandleObject global);
 
 }
 

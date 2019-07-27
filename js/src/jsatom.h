@@ -23,10 +23,10 @@ struct JSIdArray {
     int length;
     js::HeapId vector[1];    
 
-    js::HeapId *begin() { return vector; }
-    const js::HeapId *begin() const { return vector; }
-    js::HeapId *end() { return vector + length; }
-    const js::HeapId *end() const { return vector + length; }
+    js::HeapId* begin() { return vector; }
+    const js::HeapId* begin() const { return vector; }
+    js::HeapId* end() { return vector + length; }
+    const js::HeapId* end() const { return vector + length; }
 };
 
 namespace js {
@@ -42,10 +42,10 @@ HashId(jsid id)
 struct JsidHasher
 {
     typedef jsid Lookup;
-    static HashNumber hash(const Lookup &l) {
+    static HashNumber hash(const Lookup& l) {
         return HashNumber(JSID_BITS(l));
     }
-    static bool match(const jsid &id, const Lookup &l) {
+    static bool match(const jsid& id, const Lookup& l) {
         return id == l;
     }
 };
@@ -54,8 +54,8 @@ struct JsidHasher
 
 
 
-extern const char *
-AtomToPrintableString(ExclusiveContext *cx, JSAtom *atom, JSAutoByteString *bytes);
+extern const char*
+AtomToPrintableString(ExclusiveContext* cx, JSAtom* atom, JSAutoByteString* bytes);
 
 class AtomStateEntry
 {
@@ -65,8 +65,8 @@ class AtomStateEntry
 
   public:
     AtomStateEntry() : bits(0) {}
-    AtomStateEntry(const AtomStateEntry &other) : bits(other.bits) {}
-    AtomStateEntry(JSAtom *ptr, bool tagged)
+    AtomStateEntry(const AtomStateEntry& other) : bits(other.bits) {}
+    AtomStateEntry(JSAtom* ptr, bool tagged)
       : bits(uintptr_t(ptr) | uintptr_t(tagged))
     {
         MOZ_ASSERT((uintptr_t(ptr) & 0x1) == 0);
@@ -81,10 +81,10 @@ class AtomStateEntry
 
 
     void setTagged(bool enabled) const {
-        const_cast<AtomStateEntry *>(this)->bits |= uintptr_t(enabled);
+        const_cast<AtomStateEntry*>(this)->bits |= uintptr_t(enabled);
     }
 
-    JSAtom *asPtr() const;
+    JSAtom* asPtr() const;
 };
 
 struct AtomHasher
@@ -92,32 +92,32 @@ struct AtomHasher
     struct Lookup
     {
         union {
-            const JS::Latin1Char *latin1Chars;
-            const char16_t *twoByteChars;
+            const JS::Latin1Char* latin1Chars;
+            const char16_t* twoByteChars;
         };
         bool isLatin1;
         size_t length;
-        const JSAtom *atom; 
+        const JSAtom* atom; 
         JS::AutoCheckCannotGC nogc;
 
         HashNumber hash;
 
-        Lookup(const char16_t *chars, size_t length)
+        Lookup(const char16_t* chars, size_t length)
           : twoByteChars(chars), isLatin1(false), length(length), atom(nullptr)
         {
             hash = mozilla::HashString(chars, length);
         }
-        Lookup(const JS::Latin1Char *chars, size_t length)
+        Lookup(const JS::Latin1Char* chars, size_t length)
           : latin1Chars(chars), isLatin1(true), length(length), atom(nullptr)
         {
             hash = mozilla::HashString(chars, length);
         }
-        inline explicit Lookup(const JSAtom *atom);
+        inline explicit Lookup(const JSAtom* atom);
     };
 
-    static HashNumber hash(const Lookup &l) { return l.hash; }
-    static inline bool match(const AtomStateEntry &entry, const Lookup &lookup);
-    static void rekey(AtomStateEntry &k, const AtomStateEntry& newKey) { k = newKey; }
+    static HashNumber hash(const Lookup& l) { return l.hash; }
+    static inline bool match(const AtomStateEntry& entry, const Lookup& lookup);
+    static void rekey(AtomStateEntry& k, const AtomStateEntry& newKey) { k = newKey; }
 };
 
 typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
@@ -127,15 +127,15 @@ typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
 
 class FrozenAtomSet
 {
-    AtomSet *mSet;
+    AtomSet* mSet;
 
 public:
     
-    explicit FrozenAtomSet(AtomSet *set) { mSet = set; }
+    explicit FrozenAtomSet(AtomSet* set) { mSet = set; }
 
     ~FrozenAtomSet() { js_delete(mSet); }
 
-    AtomSet::Ptr readonlyThreadsafeLookup(const AtomSet::Lookup &l) const;
+    AtomSet::Ptr readonlyThreadsafeLookup(const AtomSet::Lookup& l) const;
 
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
         return mSet->sizeOfIncludingThis(mallocSizeOf);
@@ -151,7 +151,7 @@ class PropertyName;
 }  
 
 extern bool
-AtomIsInterned(JSContext *cx, JSAtom *atom);
+AtomIsInterned(JSContext* cx, JSAtom* atom);
 
 
 #define DECLARE_PROTO_STR(name,code,init,clasp) extern const char js_##name##_str[];
@@ -209,13 +209,13 @@ namespace js {
 
 
 void
-MarkAtoms(JSTracer *trc);
+MarkAtoms(JSTracer* trc);
 
 void
-MarkPermanentAtoms(JSTracer *trc);
+MarkPermanentAtoms(JSTracer* trc);
 
 void
-MarkWellKnownSymbols(JSTracer *trc);
+MarkWellKnownSymbols(JSTracer* trc);
 
 
 enum InternBehavior
@@ -224,21 +224,21 @@ enum InternBehavior
     InternAtom = true
 };
 
-extern JSAtom *
-Atomize(ExclusiveContext *cx, const char *bytes, size_t length,
+extern JSAtom*
+Atomize(ExclusiveContext* cx, const char* bytes, size_t length,
         js::InternBehavior ib = js::DoNotInternAtom);
 
 template <typename CharT>
-extern JSAtom *
-AtomizeChars(ExclusiveContext *cx, const CharT *chars, size_t length,
+extern JSAtom*
+AtomizeChars(ExclusiveContext* cx, const CharT* chars, size_t length,
              js::InternBehavior ib = js::DoNotInternAtom);
 
-extern JSAtom *
-AtomizeString(ExclusiveContext *cx, JSString *str, js::InternBehavior ib = js::DoNotInternAtom);
+extern JSAtom*
+AtomizeString(ExclusiveContext* cx, JSString* str, js::InternBehavior ib = js::DoNotInternAtom);
 
 template <AllowGC allowGC>
-extern JSAtom *
-ToAtom(ExclusiveContext *cx, typename MaybeRooted<Value, allowGC>::HandleType v);
+extern JSAtom*
+ToAtom(ExclusiveContext* cx, typename MaybeRooted<Value, allowGC>::HandleType v);
 
 enum XDRMode {
     XDR_ENCODE,
@@ -250,7 +250,7 @@ class XDRState;
 
 template<XDRMode mode>
 bool
-XDRAtom(XDRState<mode> *xdr, js::MutableHandleAtom atomp);
+XDRAtom(XDRState<mode>* xdr, js::MutableHandleAtom atomp);
 
 } 
 

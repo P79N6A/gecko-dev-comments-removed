@@ -28,7 +28,7 @@ class StringObject : public NativeObject
 
 
 
-    static inline StringObject *create(JSContext *cx, HandleString str,
+    static inline StringObject* create(JSContext* cx, HandleString str,
                                        NewObjectKind newKind = GenericObject);
 
     
@@ -36,10 +36,10 @@ class StringObject : public NativeObject
 
 
 
-    static Shape *
-    assignInitialShape(ExclusiveContext *cx, Handle<StringObject*> obj);
+    static Shape*
+    assignInitialShape(ExclusiveContext* cx, Handle<StringObject*> obj);
 
-    JSString *unbox() const {
+    JSString* unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toString();
     }
 
@@ -55,17 +55,17 @@ class StringObject : public NativeObject
     }
 
   private:
-    inline bool init(JSContext *cx, HandleString str);
+    inline bool init(JSContext* cx, HandleString str);
 
-    void setStringThis(JSString *str) {
+    void setStringThis(JSString* str) {
         MOZ_ASSERT(getReservedSlot(PRIMITIVE_VALUE_SLOT).isUndefined());
         setFixedSlot(PRIMITIVE_VALUE_SLOT, StringValue(str));
         setFixedSlot(LENGTH_SLOT, Int32Value(int32_t(str->length())));
     }
 
     
-    friend JSObject *
-    js::InitStringClass(JSContext *cx, HandleObject global);
+    friend JSObject*
+    js::InitStringClass(JSContext* cx, HandleObject global);
 };
 
 } 

@@ -16,7 +16,7 @@ namespace jit {
 
 
 bool
-ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICCompare_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     
     Label failure;
@@ -43,7 +43,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 bool
-ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     
     Label failure;
@@ -218,7 +218,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 }
 
 bool
-ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
+ICUnaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
 {
     Label failure;
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);

@@ -17,9 +17,9 @@ namespace jit {
 
 struct PcScriptCacheEntry
 {
-    uint8_t *returnAddress; 
-    jsbytecode *pc;         
-    JSScript *script;       
+    uint8_t* returnAddress; 
+    jsbytecode* pc;         
+    JSScript* script;       
 };
 
 struct PcScriptCache
@@ -41,8 +41,8 @@ struct PcScriptCache
     }
 
     
-    bool get(JSRuntime *rt, uint32_t hash, uint8_t *addr,
-             JSScript **scriptRes, jsbytecode **pcRes)
+    bool get(JSRuntime* rt, uint32_t hash, uint8_t* addr,
+             JSScript** scriptRes, jsbytecode** pcRes)
     {
         
         if (gcNumber != rt->gc.gcNumber()) {
@@ -60,7 +60,7 @@ struct PcScriptCache
         return true;
     }
 
-    void add(uint32_t hash, uint8_t *addr, jsbytecode *pc, JSScript *script) {
+    void add(uint32_t hash, uint8_t* addr, jsbytecode* pc, JSScript* script) {
         MOZ_ASSERT(addr);
         MOZ_ASSERT(pc);
         MOZ_ASSERT(script);
@@ -69,7 +69,7 @@ struct PcScriptCache
         entries[hash].script = script;
     }
 
-    static uint32_t Hash(uint8_t *addr) {
+    static uint32_t Hash(uint8_t* addr) {
         uint32_t key = (uint32_t)((uintptr_t)addr);
         return ((key >> 3) * 2654435761u) % Length;
     }

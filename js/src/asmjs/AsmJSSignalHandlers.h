@@ -33,11 +33,11 @@ namespace js {
 
 
 bool
-EnsureSignalHandlersInstalled(JSRuntime *rt);
+EnsureSignalHandlersInstalled(JSRuntime* rt);
 
 
 extern void
-InterruptRunningJitCode(JSRuntime *rt);
+InterruptRunningJitCode(JSRuntime* rt);
 
 #if defined(XP_MACOSX) && defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
 
@@ -49,7 +49,7 @@ InterruptRunningJitCode(JSRuntime *rt);
 class AsmJSMachExceptionHandler
 {
     bool installed_;
-    PRThread *thread_;
+    PRThread* thread_;
     mach_port_t port_;
 
     void uninstall();
@@ -59,7 +59,7 @@ class AsmJSMachExceptionHandler
     ~AsmJSMachExceptionHandler() { uninstall(); }
     mach_port_t port() const { return port_; }
     bool installed() const { return installed_; }
-    bool install(JSRuntime *rt);
+    bool install(JSRuntime* rt);
 };
 #endif
 

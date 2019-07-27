@@ -23,11 +23,11 @@ MoveResolver::resetState()
 }
 
 bool
-MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, MoveOp::Type type)
+MoveResolver::addMove(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type)
 {
     
     MOZ_ASSERT(!(from == to));
-    PendingMove *pm = movePool_.allocate();
+    PendingMove* pm = movePool_.allocate();
     if (!pm)
         return false;
     new (pm) PendingMove(from, to, type);
@@ -37,11 +37,11 @@ MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, MoveOp::Ty
 
 
 
-MoveResolver::PendingMove *
-MoveResolver::findBlockingMove(const PendingMove *last)
+MoveResolver::PendingMove*
+MoveResolver::findBlockingMove(const PendingMove* last)
 {
     for (PendingMoveIterator iter = pending_.begin(); iter != pending_.end(); iter++) {
-        PendingMove *other = *iter;
+        PendingMove* other = *iter;
 
         if (other->from().aliases(last->to())) {
             
@@ -59,11 +59,11 @@ MoveResolver::findBlockingMove(const PendingMove *last)
 
 
 
-MoveResolver::PendingMove *
-MoveResolver::findCycledMove(PendingMoveIterator *iter, PendingMoveIterator end, const PendingMove *last)
+MoveResolver::PendingMove*
+MoveResolver::findCycledMove(PendingMoveIterator* iter, PendingMoveIterator end, const PendingMove* last)
 {
     for (; *iter != end; (*iter)++) {
-        PendingMove *other = **iter;
+        PendingMove* other = **iter;
         if (other->from().aliases(last->to())) {
             
             
@@ -114,17 +114,17 @@ MoveResolver::resolve()
     
     
     while (!pending_.empty()) {
-        PendingMove *pm = pending_.popBack();
+        PendingMove* pm = pending_.popBack();
 
         
         stack.pushBack(pm);
 
         while (!stack.empty()) {
-            PendingMove *blocking = findBlockingMove(stack.peekBack());
+            PendingMove* blocking = findBlockingMove(stack.peekBack());
 
             if (blocking) {
                 PendingMoveIterator stackiter = stack.begin();
-                PendingMove *cycled = findCycledMove(&stackiter, stack.end(), blocking);
+                PendingMove* cycled = findCycledMove(&stackiter, stack.end(), blocking);
                 if (cycled) {
                     
                     
@@ -151,7 +151,7 @@ MoveResolver::resolve()
                 
                 
                 
-                PendingMove *done = stack.popBack();
+                PendingMove* done = stack.popBack();
                 if (!addOrderedMove(*done))
                     return false;
                 movePool_.free(done);
@@ -169,7 +169,7 @@ MoveResolver::resolve()
 }
 
 bool
-MoveResolver::addOrderedMove(const MoveOp &move)
+MoveResolver::addOrderedMove(const MoveOp& move)
 {
     
     
@@ -182,7 +182,7 @@ MoveResolver::addOrderedMove(const MoveOp &move)
     
     
     for (int i = orderedMoves_.length() - 1; i >= 0; i--) {
-        const MoveOp &existing = orderedMoves_[i];
+        const MoveOp& existing = orderedMoves_[i];
 
         if (existing.from() == move.from() &&
             !existing.to().aliases(move.to()) &&
@@ -190,7 +190,7 @@ MoveResolver::addOrderedMove(const MoveOp &move)
             !existing.isCycleBegin() &&
             !existing.isCycleEnd())
         {
-            MoveOp *after = orderedMoves_.begin() + i + 1;
+            MoveOp* after = orderedMoves_.begin() + i + 1;
             if (existing.to().isGeneralReg() || existing.to().isFloatReg()) {
                 MoveOp nmove(existing.to(), move.to(), move.type());
                 return orderedMoves_.insert(after, nmove);

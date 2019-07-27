@@ -43,44 +43,44 @@ struct VMFunction;
 
 template <typename T>
 void
-TraceEdge(JSTracer *trc, BarrieredBase<T> *thingp, const char *name);
+TraceEdge(JSTracer* trc, BarrieredBase<T>* thingp, const char* name);
 
 
 
 
 template <typename T>
 void
-TraceRoot(JSTracer *trc, T *thingp, const char *name);
+TraceRoot(JSTracer* trc, T* thingp, const char* name);
 
 
 
 
 template <typename T>
 void
-TraceManuallyBarrieredEdge(JSTracer *trc, T *thingp, const char *name);
+TraceManuallyBarrieredEdge(JSTracer* trc, T* thingp, const char* name);
 
 
 template <typename T>
 void
-TraceRange(JSTracer *trc, size_t len, BarrieredBase<T> *thingp, const char *name);
+TraceRange(JSTracer* trc, size_t len, BarrieredBase<T>* thingp, const char* name);
 
 
 template <typename T>
 void
-TraceRootRange(JSTracer *trc, size_t len, T *thingp, const char *name);
+TraceRootRange(JSTracer* trc, size_t len, T* thingp, const char* name);
 
 
 
 template <typename T>
 void
-TraceCrossCompartmentEdge(JSTracer *trc, JSObject *src, BarrieredBase<T> *dst,
-                          const char *name);
+TraceCrossCompartmentEdge(JSTracer* trc, JSObject* src, BarrieredBase<T>* dst,
+                          const char* name);
 
 
 template <typename T>
 void
-TraceManuallyBarrieredCrossCompartmentEdge(JSTracer *trc, JSObject *src, T *dst,
-                                           const char *name);
+TraceManuallyBarrieredCrossCompartmentEdge(JSTracer* trc, JSObject* src, T* dst,
+                                           const char* name);
 
 namespace gc {
 
@@ -131,17 +131,17 @@ namespace gc {
 
 
 #define DeclMarker(base, type)                                                                    \
-void Mark##base(JSTracer *trc, BarrieredBase<type*> *thing, const char *name);                    \
-void Mark##base##Root(JSTracer *trc, type **thingp, const char *name);                            \
-void Mark##base##Unbarriered(JSTracer *trc, type **thingp, const char *name);                     \
-void Mark##base##Range(JSTracer *trc, size_t len, HeapPtr<type*> *thing, const char *name);       \
-void Mark##base##RootRange(JSTracer *trc, size_t len, type **thing, const char *name);            \
-bool Is##base##Marked(type **thingp);                                                             \
-bool Is##base##Marked(BarrieredBase<type*> *thingp);                                              \
-bool Is##base##AboutToBeFinalized(type **thingp);                                                 \
-bool Is##base##AboutToBeFinalized(BarrieredBase<type*> *thingp);                                  \
-type *Update##base##IfRelocated(JSRuntime *rt, BarrieredBase<type*> *thingp);                     \
-type *Update##base##IfRelocated(JSRuntime *rt, type **thingp);
+void Mark##base(JSTracer* trc, BarrieredBase<type*>* thing, const char* name);                    \
+void Mark##base##Root(JSTracer* trc, type** thingp, const char* name);                            \
+void Mark##base##Unbarriered(JSTracer* trc, type** thingp, const char* name);                     \
+void Mark##base##Range(JSTracer* trc, size_t len, HeapPtr<type*>* thing, const char* name);       \
+void Mark##base##RootRange(JSTracer* trc, size_t len, type** thing, const char* name);            \
+bool Is##base##Marked(type** thingp);                                                             \
+bool Is##base##Marked(BarrieredBase<type*>* thingp);                                              \
+bool Is##base##AboutToBeFinalized(type** thingp);                                                 \
+bool Is##base##AboutToBeFinalized(BarrieredBase<type*>* thingp);                                  \
+type* Update##base##IfRelocated(JSRuntime* rt, BarrieredBase<type*>* thingp);                     \
+type* Update##base##IfRelocated(JSRuntime* rt, type** thingp);
 
 DeclMarker(BaseShape, BaseShape)
 DeclMarker(BaseShape, UnownedBaseShape)
@@ -176,16 +176,16 @@ DeclMarker(ObjectGroup, ObjectGroup)
 #undef DeclMarker
 
 void
-MarkPermanentAtom(JSTracer *trc, JSAtom *atom, const char *name);
+MarkPermanentAtom(JSTracer* trc, JSAtom* atom, const char* name);
 
 void
-MarkWellKnownSymbol(JSTracer *trc, JS::Symbol *sym);
+MarkWellKnownSymbol(JSTracer* trc, JS::Symbol* sym);
 
 
 
 
 MOZ_ALWAYS_INLINE bool
-IsNullTaggedPointer(void *p)
+IsNullTaggedPointer(void* p)
 {
     return uintptr_t(p) < 32;
 }
@@ -198,29 +198,29 @@ IsNullTaggedPointer(void *p)
 
 
 void
-MarkKind(JSTracer *trc, void **thingp, JSGCTraceKind kind);
+MarkKind(JSTracer* trc, void** thingp, JSGCTraceKind kind);
 
 void
-MarkGCThingRoot(JSTracer *trc, void **thingp, const char *name);
+MarkGCThingRoot(JSTracer* trc, void** thingp, const char* name);
 
 void
-MarkGCThingUnbarriered(JSTracer *trc, void **thingp, const char *name);
+MarkGCThingUnbarriered(JSTracer* trc, void** thingp, const char* name);
 
 
 
 bool
-IsValueMarked(Value *v);
+IsValueMarked(Value* v);
 
 bool
-IsValueAboutToBeFinalized(Value *v);
+IsValueAboutToBeFinalized(Value* v);
 
 
 
 bool
-IsSlotMarked(HeapSlot *s);
+IsSlotMarked(HeapSlot* s);
 
 void
-MarkObjectSlots(JSTracer *trc, NativeObject *obj, uint32_t start, uint32_t nslots);
+MarkObjectSlots(JSTracer* trc, NativeObject* obj, uint32_t start, uint32_t nslots);
 
 
 
@@ -230,19 +230,19 @@ MarkObjectSlots(JSTracer *trc, NativeObject *obj, uint32_t start, uint32_t nslot
 
 
 void
-MarkCycleCollectorChildren(JSTracer *trc, Shape *shape);
+MarkCycleCollectorChildren(JSTracer* trc, Shape* shape);
 
 void
-PushArena(GCMarker *gcmarker, ArenaHeader *aheader);
+PushArena(GCMarker* gcmarker, ArenaHeader* aheader);
 
 
 
 template <typename T>
 static bool
-IsMarked(T **thingp);
+IsMarked(T** thingp);
 
 inline bool
-IsMarked(BarrieredBase<Value> *v)
+IsMarked(BarrieredBase<Value>* v)
 {
     if (!v->isMarkable())
         return true;
@@ -250,19 +250,19 @@ IsMarked(BarrieredBase<Value> *v)
 }
 
 inline bool
-IsMarked(BarrieredBase<JSObject*> *objp)
+IsMarked(BarrieredBase<JSObject*>* objp)
 {
     return IsObjectMarked(objp);
 }
 
 inline bool
-IsMarked(BarrieredBase<JSScript*> *scriptp)
+IsMarked(BarrieredBase<JSScript*>* scriptp)
 {
     return IsScriptMarked(scriptp);
 }
 
 inline bool
-IsAboutToBeFinalized(BarrieredBase<Value> *v)
+IsAboutToBeFinalized(BarrieredBase<Value>* v)
 {
     if (!v->isMarkable())
         return false;
@@ -270,19 +270,19 @@ IsAboutToBeFinalized(BarrieredBase<Value> *v)
 }
 
 inline bool
-IsAboutToBeFinalized(BarrieredBase<JSObject*> *objp)
+IsAboutToBeFinalized(BarrieredBase<JSObject*>* objp)
 {
     return IsObjectAboutToBeFinalized(objp);
 }
 
 inline bool
-IsAboutToBeFinalized(BarrieredBase<JSScript*> *scriptp)
+IsAboutToBeFinalized(BarrieredBase<JSScript*>* scriptp)
 {
     return IsScriptAboutToBeFinalized(scriptp);
 }
 
 inline bool
-IsAboutToBeFinalized(const js::jit::VMFunction **vmfunc)
+IsAboutToBeFinalized(const js::jit::VMFunction** vmfunc)
 {
     
 
@@ -297,16 +297,16 @@ IsAboutToBeFinalized(ReadBarrieredJitCode code)
     return IsJitCodeAboutToBeFinalized(code.unsafeGet());
 }
 
-inline Cell *
-ToMarkable(const Value &v)
+inline Cell*
+ToMarkable(const Value& v)
 {
     if (v.isMarkable())
-        return (Cell *)v.toGCThing();
+        return (Cell*)v.toGCThing();
     return nullptr;
 }
 
-inline Cell *
-ToMarkable(Cell *cell)
+inline Cell*
+ToMarkable(Cell* cell)
 {
     return cell;
 }
@@ -318,13 +318,13 @@ ToMarkable(Cell *cell)
 template <typename Map, typename Key>
 class HashKeyRef : public BufferableRef
 {
-    Map *map;
+    Map* map;
     Key key;
 
   public:
-    HashKeyRef(Map *m, const Key &k) : map(m), key(k) {}
+    HashKeyRef(Map* m, const Key& k) : map(m), key(k) {}
 
-    void mark(JSTracer *trc) {
+    void mark(JSTracer* trc) {
         Key prior = key;
         typename Map::Ptr p = map->lookup(key);
         if (!p)
@@ -338,10 +338,10 @@ class HashKeyRef : public BufferableRef
 } 
 
 void
-TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
+TraceChildren(JSTracer* trc, void* thing, JSGCTraceKind kind);
 
 bool
-UnmarkGrayShapeRecursively(Shape *shape);
+UnmarkGrayShapeRecursively(Shape* shape);
 
 } 
 

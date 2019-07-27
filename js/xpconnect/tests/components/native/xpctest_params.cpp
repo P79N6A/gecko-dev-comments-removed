@@ -71,67 +71,67 @@ nsXPCTestParams::~nsXPCTestParams()
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestBoolean(bool a, bool *b, bool *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestBoolean(bool a, bool* b, bool* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestOctet(uint8_t a, uint8_t *b, uint8_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestOctet(uint8_t a, uint8_t* b, uint8_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestShort(int16_t a, int16_t *b, int16_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestShort(int16_t a, int16_t* b, int16_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestLong(int32_t a, int32_t *b, int32_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestLong(int32_t a, int32_t* b, int32_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestLongLong(int64_t a, int64_t *b, int64_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestLongLong(int64_t a, int64_t* b, int64_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestUnsignedShort(uint16_t a, uint16_t *b, uint16_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestUnsignedShort(uint16_t a, uint16_t* b, uint16_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestUnsignedLong(uint32_t a, uint32_t *b, uint32_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestUnsignedLong(uint32_t a, uint32_t* b, uint32_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestUnsignedLongLong(uint64_t a, uint64_t *b, uint64_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestUnsignedLongLong(uint64_t a, uint64_t* b, uint64_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestFloat(float a, float *b, float *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestFloat(float a, float* b, float* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestDouble(double a, float *b, double *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestDouble(double a, float* b, double* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestChar(char a, char *b, char *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestChar(char a, char* b, char* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
@@ -152,7 +152,7 @@ NS_IMETHODIMP nsXPCTestParams::TestString(const char * a, char * *b, char * *_re
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestWchar(char16_t a, char16_t *b, char16_t *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestWchar(char16_t a, char16_t* b, char16_t* _retval)
 {
     GENERIC_METHOD_IMPL;
 }
@@ -210,9 +210,9 @@ NS_IMETHODIMP nsXPCTestParams::TestJsval(JS::Handle<JS::Value> a,
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestShortArray(uint32_t aLength, int16_t *a,
-                                              uint32_t *bLength, int16_t **b,
-                                              uint32_t *rvLength, int16_t **rv)
+NS_IMETHODIMP nsXPCTestParams::TestShortArray(uint32_t aLength, int16_t* a,
+                                              uint32_t* bLength, int16_t** b,
+                                              uint32_t* rvLength, int16_t** rv)
 {
     BUFFER_METHOD_IMPL(int16_t, 0, TAKE_OWNERSHIP_NOOP);
 }
@@ -220,9 +220,9 @@ NS_IMETHODIMP nsXPCTestParams::TestShortArray(uint32_t aLength, int16_t *a,
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestDoubleArray(uint32_t aLength, double *a,
-                                               uint32_t *bLength, double **b,
-                                               uint32_t *rvLength,  double **rv)
+NS_IMETHODIMP nsXPCTestParams::TestDoubleArray(uint32_t aLength, double* a,
+                                               uint32_t* bLength, double** b,
+                                               uint32_t* rvLength,  double** rv)
 {
     BUFFER_METHOD_IMPL(double, 0, TAKE_OWNERSHIP_NOOP);
 }
@@ -231,8 +231,8 @@ NS_IMETHODIMP nsXPCTestParams::TestDoubleArray(uint32_t aLength, double *a,
 
 
 NS_IMETHODIMP nsXPCTestParams::TestStringArray(uint32_t aLength, const char * *a,
-                                               uint32_t *bLength, char * **b,
-                                               uint32_t *rvLength, char * **rv)
+                                               uint32_t* bLength, char * **b,
+                                               uint32_t* rvLength, char * **rv)
 {
     BUFFER_METHOD_IMPL(char*, 0, TAKE_OWNERSHIP_STRING);
 }
@@ -241,8 +241,8 @@ NS_IMETHODIMP nsXPCTestParams::TestStringArray(uint32_t aLength, const char * *a
 
 
 NS_IMETHODIMP nsXPCTestParams::TestWstringArray(uint32_t aLength, const char16_t * *a,
-                                                uint32_t *bLength, char16_t * **b,
-                                                uint32_t *rvLength, char16_t * **rv)
+                                                uint32_t* bLength, char16_t * **b,
+                                                uint32_t* rvLength, char16_t * **rv)
 {
     BUFFER_METHOD_IMPL(char16_t*, 0, TAKE_OWNERSHIP_WSTRING);
 }
@@ -250,9 +250,9 @@ NS_IMETHODIMP nsXPCTestParams::TestWstringArray(uint32_t aLength, const char16_t
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestInterfaceArray(uint32_t aLength, nsIXPCTestInterfaceA **a,
-                                                  uint32_t *bLength, nsIXPCTestInterfaceA * **b,
-                                                  uint32_t *rvLength, nsIXPCTestInterfaceA * **rv)
+NS_IMETHODIMP nsXPCTestParams::TestInterfaceArray(uint32_t aLength, nsIXPCTestInterfaceA** a,
+                                                  uint32_t* bLength, nsIXPCTestInterfaceA * **b,
+                                                  uint32_t* rvLength, nsIXPCTestInterfaceA * **rv)
 {
     BUFFER_METHOD_IMPL(nsIXPCTestInterfaceA*, 0, TAKE_OWNERSHIP_INTERFACE);
 }
@@ -261,8 +261,8 @@ NS_IMETHODIMP nsXPCTestParams::TestInterfaceArray(uint32_t aLength, nsIXPCTestIn
 
 
 NS_IMETHODIMP nsXPCTestParams::TestSizedString(uint32_t aLength, const char * a,
-                                               uint32_t *bLength, char * *b,
-                                               uint32_t *rvLength, char * *rv)
+                                               uint32_t* bLength, char * *b,
+                                               uint32_t* rvLength, char * *rv)
 {
     BUFFER_METHOD_IMPL(char, 1, TAKE_OWNERSHIP_NOOP);
 }
@@ -271,8 +271,8 @@ NS_IMETHODIMP nsXPCTestParams::TestSizedString(uint32_t aLength, const char * a,
 
 
 NS_IMETHODIMP nsXPCTestParams::TestSizedWstring(uint32_t aLength, const char16_t * a,
-                                                uint32_t *bLength, char16_t * *b,
-                                                uint32_t *rvLength, char16_t * *rv)
+                                                uint32_t* bLength, char16_t * *b,
+                                                uint32_t* rvLength, char16_t * *rv)
 {
     BUFFER_METHOD_IMPL(char16_t, 1, TAKE_OWNERSHIP_NOOP);
 }
@@ -280,9 +280,9 @@ NS_IMETHODIMP nsXPCTestParams::TestSizedWstring(uint32_t aLength, const char16_t
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestInterfaceIs(const nsIID *aIID, void *a,
-                                               nsIID **bIID, void **b,
-                                               nsIID **rvIID, void **rv)
+NS_IMETHODIMP nsXPCTestParams::TestInterfaceIs(const nsIID* aIID, void* a,
+                                               nsIID** bIID, void** b,
+                                               nsIID** rvIID, void** rv)
 {
     
     
@@ -319,12 +319,12 @@ NS_IMETHODIMP nsXPCTestParams::TestInterfaceIs(const nsIID *aIID, void *a,
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestInterfaceIsArray(uint32_t aLength, const nsIID *aIID,
-                                                    void **a,
-                                                    uint32_t *bLength, nsIID **bIID,
-                                                    void ***b,
-                                                    uint32_t *rvLength, nsIID **rvIID,
-                                                    void ***rv)
+NS_IMETHODIMP nsXPCTestParams::TestInterfaceIsArray(uint32_t aLength, const nsIID* aIID,
+                                                    void** a,
+                                                    uint32_t* bLength, nsIID** bIID,
+                                                    void*** b,
+                                                    uint32_t* rvLength, nsIID** rvIID,
+                                                    void*** rv)
 {
     
     
