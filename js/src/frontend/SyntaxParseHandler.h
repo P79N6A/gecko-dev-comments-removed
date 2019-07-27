@@ -7,6 +7,8 @@
 #ifndef frontend_SyntaxParseHandler_h
 #define frontend_SyntaxParseHandler_h
 
+#include "mozilla/Attributes.h"
+
 #include "frontend/ParseNode.h"
 #include "frontend/TokenStream.h"
 
@@ -39,12 +41,61 @@ class SyntaxParseHandler
         NodeGeneric,
         NodeName,
         NodeGetProp,
-        NodeString,
         NodeStringExprStatement,
-        NodeLValue
+        NodeLValue,
+
+        
+        
+        
+        
+        
+
+        
+        
+        
+        
+        
+        NodeUnparenthesizedString,
+
+        
+        
+        
+        
+        
+        
+        NodeUnparenthesizedCommaExpr,
+
+        
+        
+        
+        
+        
+        
+        NodeUnparenthesizedYieldExpr,
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        NodeUnparenthesizedAssignment
     };
     typedef Definition::Kind DefinitionNode;
 
+  private:
+    static bool meaningMightChangeIfParenthesized(Node node) {
+        return node == NodeUnparenthesizedString ||
+               node == NodeUnparenthesizedCommaExpr ||
+               node == NodeUnparenthesizedYieldExpr ||
+               node == NodeUnparenthesizedAssignment;
+    }
+
+
+  public:
     SyntaxParseHandler(ExclusiveContext *cx, LifoAlloc &alloc,
                        TokenStream &tokenStream, bool foldConstants,
                        Parser<SyntaxParseHandler> *syntaxParser, LazyScript *lazyOuterFunction)
@@ -69,14 +120,14 @@ class SyntaxParseHandler
         return Definition::PLACEHOLDER;
     }
 
-    Node newIdentifier(JSAtom *atom, const TokenPos &pos) { return NodeString; }
+    Node newIdentifier(JSAtom *atom, const TokenPos &pos) { return NodeName; }
     Node newNumber(double value, DecimalPoint decimalPoint, const TokenPos &pos) { return NodeGeneric; }
     Node newBooleanLiteral(bool cond, const TokenPos &pos) { return NodeGeneric; }
 
     Node newStringLiteral(JSAtom *atom, const TokenPos &pos) {
         lastAtom = atom;
         lastStringPos = pos;
-        return NodeString;
+        return NodeUnparenthesizedString;
     }
 
     Node newTemplateStringLiteral(JSAtom *atom, const TokenPos &pos) {
@@ -135,7 +186,7 @@ class SyntaxParseHandler
     bool addPrototypeMutation(Node literal, uint32_t begin, Node expr) { return true; }
     bool addPropertyDefinition(Node literal, Node name, Node expr, bool isShorthand = false) { return true; }
     bool addMethodDefinition(Node literal, Node name, Node fn, JSOp op) { return true; }
-    Node newYieldExpression(uint32_t begin, Node value, Node gen) { return NodeGeneric; }
+    Node newYieldExpression(uint32_t begin, Node value, Node gen) { return NodeUnparenthesizedYieldExpr; }
     Node newYieldStarExpression(uint32_t begin, Node value, Node gen) { return NodeGeneric; }
 
     
@@ -146,7 +197,7 @@ class SyntaxParseHandler
     Node newEmptyStatement(const TokenPos &pos) { return NodeGeneric; }
 
     Node newExprStatement(Node expr, uint32_t end) {
-        return expr == NodeString ? NodeStringExprStatement : NodeGeneric;
+        return expr == NodeUnparenthesizedString ? NodeStringExprStatement : NodeGeneric;
     }
 
     Node newIfStatement(uint32_t begin, Node cond, Node then, Node else_) { return NodeGeneric; }
@@ -195,13 +246,6 @@ class SyntaxParseHandler
     Node newLexicalScope(ObjectBox *blockbox) { return NodeGeneric; }
     void setLexicalScopeBody(Node block, Node body) {}
 
-    bool isOperationWithoutParens(Node pn, ParseNodeKind kind) {
-        
-        
-        
-        return false;
-    }
-
     bool finishInitializerAssignment(Node pn, Node init, JSOp op) { return true; }
 
     void setBeginPosition(Node pn, Node oth) {}
@@ -222,19 +266,48 @@ class SyntaxParseHandler
     Node newList(ParseNodeKind kind, Node kid, JSOp op = JSOP_NOP) {
         return NodeGeneric;
     }
-    void addList(Node pn, Node kid) {}
-    bool isUnparenthesizedYield(Node pn) { return false; }
+
+    Node newCommaExpressionList(Node kid) {
+        return NodeUnparenthesizedCommaExpr;
+    }
+
+    void addList(Node list, Node kid) {
+        MOZ_ASSERT(list == NodeGeneric || list == NodeUnparenthesizedCommaExpr);
+    }
+
+    Node newAssignment(ParseNodeKind kind, Node lhs, Node rhs,
+                       ParseContext<SyntaxParseHandler> *pc, JSOp op)
+    {
+        if (kind == PNK_ASSIGN)
+            return NodeUnparenthesizedAssignment;
+        return newBinaryOrAppend(kind, lhs, rhs, pc, op);
+    }
+
+    bool isUnparenthesizedYieldExpression(Node node) {
+        return node == NodeUnparenthesizedYieldExpr;
+    }
+
+    bool isUnparenthesizedCommaExpression(Node node) {
+        return node == NodeUnparenthesizedCommaExpr;
+    }
+
+    bool isUnparenthesizedAssignment(Node node) {
+        return node == NodeUnparenthesizedAssignment;
+    }
 
     void setOp(Node pn, JSOp op) {}
     void setBlockId(Node pn, unsigned blockid) {}
     void setFlag(Node pn, unsigned flag) {}
     void setListFlag(Node pn, unsigned flag) {}
-    Node setInParens(Node pn) {
+    MOZ_WARN_UNUSED_RESULT Node parenthesize(Node node) {
+        if (meaningMightChangeIfParenthesized(node))
+            return NodeGeneric;
+
         
         
-        return (pn == NodeString) ? NodeGeneric : pn;
+        return node;
     }
-    Node setLikelyIIFE(Node pn) {
+    MOZ_WARN_UNUSED_RESULT Node setLikelyIIFE(Node pn) {
         return pn; 
     }
     void setPrologue(Node pn) {}
