@@ -1158,13 +1158,6 @@ pref("browser.privatebrowsing.autostart", false);
 
 pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 
-
-#ifdef XP_MACOSX
-pref("toolbar.customization.usesheet", true);
-#else
-pref("toolbar.customization.usesheet", false);
-#endif
-
 pref("dom.ipc.plugins.flash.disable-protected-mode", false);
 
 
