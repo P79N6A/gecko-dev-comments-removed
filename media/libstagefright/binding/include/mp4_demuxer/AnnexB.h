@@ -20,6 +20,9 @@ public:
   
   
   static void ConvertSampleToAnnexB(MP4Sample* aSample);
+  
+  
+  static void ConvertSampleToAVCC(MP4Sample* aSample);
 
   
   static already_AddRefed<ByteBuffer> ConvertExtraDataToAnnexB(
