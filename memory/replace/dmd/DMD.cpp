@@ -201,7 +201,12 @@ StatusMsg(const char* aFmt, ...)
   va_list ap;
   va_start(ap, aFmt);
 #ifdef ANDROID
-  __android_log_vprint(ANDROID_LOG_INFO, "DMD", aFmt, ap);
+#ifdef MOZ_B2G_LOADER
+  
+  
+  if (gIsDMDRunning)
+#endif
+    __android_log_vprint(ANDROID_LOG_INFO, "DMD", aFmt, ap);
 #else
   
   char* fmt = (char*) InfallibleAllocPolicy::malloc_(strlen(aFmt) + 64);
