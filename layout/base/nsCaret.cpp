@@ -381,7 +381,7 @@ GetFrameAndOffset(Selection* aSelection,
 
   nsIContent* contentNode = focusNode->AsContent();
   nsFrameSelection* frameSelection = aSelection->GetFrameSelection();
-  uint8_t bidiLevel = frameSelection->GetCaretBidiLevel();
+  nsBidiLevel bidiLevel = frameSelection->GetCaretBidiLevel();
   nsIFrame* frame;
   nsresult rv = nsCaret::GetCaretFrameForNodeOffset(
       frameSelection, contentNode, focusOffset,
@@ -607,12 +607,12 @@ void nsCaret::StopBlinking()
   }
 }
 
-nsresult 
+nsresult
 nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
                                     nsIContent*          aContentNode,
                                     int32_t              aOffset,
                                     CaretAssociationHint aFrameHint,
-                                    uint8_t              aBidiLevel,
+                                    nsBidiLevel          aBidiLevel,
                                     nsIFrame**           aReturnFrame,
                                     int32_t*             aReturnOffset)
 {
@@ -656,8 +656,8 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
     int32_t end;
     nsIFrame* frameBefore;
     nsIFrame* frameAfter;
-    uint8_t levelBefore;     
-    uint8_t levelAfter;      
+    nsBidiLevel levelBefore; 
+    nsBidiLevel levelAfter;  
 
     theFrame->GetOffsets(start, end);
     if (start == 0 || end == 0 || start == theFrameOffset || end == theFrameOffset)
@@ -695,7 +695,7 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
                 
                 
                 
-                uint8_t baseLevel = NS_GET_BASE_LEVEL(frameAfter);
+                nsBidiLevel baseLevel = NS_GET_BASE_LEVEL(frameAfter);
                 if (baseLevel != levelAfter)
                 {
                   nsPeekOffsetStruct pos(eSelectBeginLine, eDirPrevious, 0, 0, false, true, false, true);
@@ -726,7 +726,7 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
                 
                 
                 
-                uint8_t baseLevel = NS_GET_BASE_LEVEL(frameBefore);
+                nsBidiLevel baseLevel = NS_GET_BASE_LEVEL(frameBefore);
                 if (baseLevel != levelBefore)
                 {
                   nsPeekOffsetStruct pos(eSelectEndLine, eDirNext, 0, 0, false, true, false, true);
