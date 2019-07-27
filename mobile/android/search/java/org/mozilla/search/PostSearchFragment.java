@@ -28,6 +28,8 @@ import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.search.providers.SearchEngine;
 
+import java.net.URISyntaxException;
+
 public class PostSearchFragment extends Fragment {
 
     private static final String LOG_TAG = "PostSearchFragment";
@@ -89,25 +91,38 @@ public class PostSearchFragment extends Fragment {
         public void onPageStarted(WebView view, final String url, Bitmap favicon) {
             
             networkError = false;
+        }
 
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
             
             if (TextUtils.equals(url, Constants.ABOUT_BLANK) || engine.isSearchResultsPage(url)) {
-                
-                return;
+                return false;
             }
 
-            webview.stopLoading();
+            try {
+                
+                
+                final Intent i = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
 
-            Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
-                    TelemetryContract.Method.CONTENT, "search-result");
+                
+                if (i.getPackage() == null) {
+                    i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
+                    Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
+                            TelemetryContract.Method.CONTENT, "search-result");
+                } else {
+                    Telemetry.sendUIEvent(TelemetryContract.Event.LAUNCH,
+                            TelemetryContract.Method.INTENT, "search-result");
+                }
 
-            final Intent i = new Intent(Intent.ACTION_VIEW);
+                startActivity(i);
+                return true;
+            } catch (URISyntaxException e) {
+                Log.e(LOG_TAG, "Error parsing intent URI", e);
+            }
 
-            
-            i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
-            i.setData(Uri.parse(url));
-            startActivity(i);
-        }
+            return false;
+}
 
         @Override
         public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
