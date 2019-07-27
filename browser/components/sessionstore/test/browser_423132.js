@@ -30,44 +30,53 @@ function test() {
       newWin.gBrowser.loadURI(testURL, null, null);
 
       promiseBrowserLoaded(newWin.gBrowser.selectedBrowser).then(() => {
-        
-        TabState.flush(newWin.gBrowser.selectedBrowser);
-        let state = ss.getWindowState(newWin);
+        let ready = () => {
+          
+          TabState.flush(newWin.gBrowser.selectedBrowser);
+          let state = ss.getWindowState(newWin);
 
-        
-        let e = cs.enumerator;
-        let cookie;
-        let i = 0;
-        while (e.hasMoreElements()) {
-          cookie = e.getNext().QueryInterface(Ci.nsICookie);
-          i++;
+          
+          let e = cs.enumerator;
+          let cookie;
+          let i = 0;
+          while (e.hasMoreElements()) {
+            cookie = e.getNext().QueryInterface(Ci.nsICookie);
+            i++;
+          }
+          is(i, 1, "expected one cookie");
+
+          
+          cs.removeAll();
+
+          
+          ss.setWindowState(newWin, state, true);
+
+          
+          e = cs.enumerator;
+          let cookie2;
+          while (e.hasMoreElements()) {
+            cookie2 = e.getNext().QueryInterface(Ci.nsICookie);
+            if (cookie.name == cookie2.name)
+              break;
+          }
+          is(cookie.name, cookie2.name, "cookie name successfully restored");
+          is(cookie.value, cookie2.value, "cookie value successfully restored");
+          is(cookie.path, cookie2.path, "cookie path successfully restored");
+
+          
+          if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
+            gPrefService.clearUserPref("browser.sessionstore.interval");
+          cs.removeAll();
+          newWin.close();
+          finish();
+        };
+
+        if (newWin.gMultiProcessBrowser) {
+          let tab = newWin.gBrowser.selectedTab;
+          promiseTabRestored(tab).then(ready);
+        } else {
+          ready();
         }
-        is(i, 1, "expected one cookie");
-
-        
-        cs.removeAll();
-
-        
-        ss.setWindowState(newWin, state, true);
-
-        
-        e = cs.enumerator;
-        let cookie2;
-        while (e.hasMoreElements()) {
-          cookie2 = e.getNext().QueryInterface(Ci.nsICookie);
-          if (cookie.name == cookie2.name)
-            break;
-        }
-        is(cookie.name, cookie2.name, "cookie name successfully restored");
-        is(cookie.value, cookie2.value, "cookie value successfully restored");
-        is(cookie.path, cookie2.path, "cookie path successfully restored");
-
-        
-        if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
-          gPrefService.clearUserPref("browser.sessionstore.interval");
-        cs.removeAll();
-        newWin.close();
-        finish();
       }, true, testURL);
     });
   }, false);
