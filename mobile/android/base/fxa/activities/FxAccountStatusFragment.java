@@ -4,10 +4,6 @@
 
 package org.mozilla.gecko.fxa.activities;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.log.Logger;
@@ -43,6 +39,14 @@ import android.preference.PreferenceScreen;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+
 
 
 
@@ -54,6 +58,15 @@ public class FxAccountStatusFragment
     implements OnPreferenceClickListener, OnPreferenceChangeListener {
   private static final String LOG_TAG = FxAccountStatusFragment.class.getSimpleName();
 
+    
+
+
+    private static final Date EARLIEST_VALID_SYNCED_DATE;
+    static {
+        final Calendar c = GregorianCalendar.getInstance();
+        c.set(2000, Calendar.JANUARY, 1, 0, 0, 0);
+        EARLIEST_VALID_SYNCED_DATE = c.getTime();
+    }
   
   
   
@@ -529,6 +542,9 @@ public class FxAccountStatusFragment
 
   
   private String getLastSyncedString(final long startTime) {
+    if (new Date(startTime).before(EARLIEST_VALID_SYNCED_DATE)) {
+      return getActivity().getString(R.string.fxaccount_status_never_synced);
+    }
     final CharSequence relativeTimeSpanString = DateUtils.getRelativeTimeSpanString(startTime);
     return getActivity().getResources().getString(R.string.fxaccount_status_last_synced, relativeTimeSpanString);
   }
