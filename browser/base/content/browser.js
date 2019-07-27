@@ -6489,17 +6489,6 @@ function AddKeywordForSearchField() {
                                    }, window);
 }
 
-function SwitchDocumentDirection(aWindow) {
-  
-  if (aWindow.document.dir == "ltr" || aWindow.document.dir == "") {
-    aWindow.document.dir = "rtl";
-  } else if (aWindow.document.dir == "rtl") {
-    aWindow.document.dir = "ltr";
-  }
-  for (var run = 0; run < aWindow.frames.length; run++)
-    SwitchDocumentDirection(aWindow.frames[run]);
-}
-
 function convertFromUnicode(charset, str)
 {
   try {
