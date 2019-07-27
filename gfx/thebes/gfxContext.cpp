@@ -940,16 +940,9 @@ gfxContext::Mask(gfxPattern *pattern)
       
       
       offset = Point(0.f, 0.f);
-    } else if (pattern->GetType() == gfxPattern::PATTERN_SURFACE) {
-      nsRefPtr<gfxASurface> asurf = pattern->GetSurface();
-      gfxPoint deviceOffset = asurf->GetDeviceOffset();
-      offset = Point(-deviceOffset.x, -deviceOffset.y);
-
-      
-      pattern->GetPattern(mDT);
     }
 
-    if (pattern->IsAzure() || pattern->GetType() == gfxPattern::PATTERN_SURFACE) {
+    if (pattern->IsAzure()) {
       RefPtr<SourceSurface> mask = pattern->GetAzureSurface();
       Matrix mat = ToMatrix(pattern->GetInverseMatrix());
       Matrix old = mTransform;
