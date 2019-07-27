@@ -12,6 +12,9 @@
 JSObject *
 js_InitRegExpClass(JSContext *cx, js::HandleObject obj);
 
+bool
+regexp_flags(JSContext *cx, unsigned argc, JS::Value *vp);
+
 
 
 
