@@ -628,10 +628,7 @@ BrowserElementChild.prototype = {
     
     
     
-    
-    
-    
-    if (isMouseUp && !isCollapsed) {
+    if (e.visible && !isCollapsed) {
       this._forceDispatchSelectionStateChanged = true;
     } else {
       this._forceDispatchSelectionStateChanged = false;
