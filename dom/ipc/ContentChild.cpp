@@ -1066,7 +1066,9 @@ void
 ContentChild::CleanUpSandboxEnvironment()
 {
     
-    if (!Preferences::GetBool("security.sandbox.windows.content.moreStrict")) {
+    
+    
+    if (Preferences::GetInt("security.sandbox.content.level") != 1) {
         return;
     }
 
@@ -1207,7 +1209,10 @@ ContentChild::RecvSetProcessSandbox()
     SetContentProcessSandbox();
 #elif defined(XP_WIN)
     mozilla::SandboxTarget::Instance()->StartSandbox();
-    if (Preferences::GetBool("security.sandbox.windows.content.moreStrict")) {
+    
+    
+    
+    if (Preferences::GetInt("security.sandbox.content.level") == 1) {
         SetUpSandboxEnvironment();
     }
 #elif defined(XP_MACOSX)

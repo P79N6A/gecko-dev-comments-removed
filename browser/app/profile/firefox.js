@@ -1204,7 +1204,12 @@ pref("dom.ipc.plugins.sandbox-level.default", 0);
 #if defined(MOZ_CONTENT_SANDBOX)
 
 
-pref("security.sandbox.windows.content.moreStrict", false);
+
+
+
+
+
+pref("security.sandbox.content.level", 0);
 
 #if defined(MOZ_STACKWALKING)
 
@@ -1225,7 +1230,7 @@ pref("security.sandbox.windows.log.stackTraceDepth", 0);
 
 
 
-pref("security.sandbox.macos.content.level", 0);
+pref("security.sandbox.content.level", 0);
 #endif
 
 
@@ -1880,10 +1885,8 @@ pref("dom.ipc.reportProcessHangs", false);
 pref("dom.ipc.reportProcessHangs", true);
 #endif
 
-#ifndef NIGHTLY_BUILD
 
 pref("reader.parse-on-load.enabled", false);
-#endif
 
 
 pref("browser.readinglist.enabled", false);
