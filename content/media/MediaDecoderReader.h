@@ -163,6 +163,9 @@ public:
     return mDecoder;
   }
 
+  
+  VideoData* DecodeToFirstVideoData();
+
   MediaInfo GetMediaInfo() { return mInfo; }
 
   
