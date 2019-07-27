@@ -7,7 +7,6 @@
 #include <sys/types.h>                  
 #include "Layers.h"                     
 #include "ReadbackLayer.h"              
-#include "gfx3DMatrix.h"                
 #include "gfxColor.h"                   
 #include "gfxContext.h"                 
 #include "gfxRect.h"                    

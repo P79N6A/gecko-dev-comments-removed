@@ -7,7 +7,6 @@
 
 #include "LayersLogging.h"
 #include <stdint.h>                     
-#include "gfx3DMatrix.h"                
 #include "gfxColor.h"                   
 #include "mozilla/gfx/Matrix.h"         
 #include "nsDebug.h"                    

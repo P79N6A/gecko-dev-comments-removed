@@ -675,9 +675,11 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
     apzc->SampleContentTransformForFrame(aCurrentFrame, &asyncTransform, scrollOffset);
   }
 
-  gfx3DMatrix asyncTransform = To3DMatrix(apzc->GetCurrentAsyncTransform());
-  gfx3DMatrix nontransientTransform = To3DMatrix(apzc->GetNontransientAsyncTransform());
-  gfx3DMatrix transientTransform = asyncTransform * nontransientTransform.Inverse();
+  Matrix4x4 asyncTransform = apzc->GetCurrentAsyncTransform();
+  Matrix4x4 nontransientTransform = apzc->GetNontransientAsyncTransform();
+  Matrix4x4 nontransientUntransform = nontransientTransform;
+  nontransientUntransform.Invert();
+  Matrix4x4 transientTransform = asyncTransform * nontransientUntransform;
 
   
   
@@ -695,12 +697,12 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
   Matrix4x4 scrollbarTransform;
   if (aScrollbar->GetScrollbarDirection() == Layer::VERTICAL) {
     float scale = metrics.CalculateCompositedSizeInCssPixels().height / metrics.mScrollableRect.height;
-    scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f, 1.f / transientTransform.GetYScale(), 1.f);
+    scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f, 1.f / transientTransform._22, 1.f);
     scrollbarTransform = scrollbarTransform * Matrix4x4().Translate(0, -transientTransform._42 * scale, 0);
   }
   if (aScrollbar->GetScrollbarDirection() == Layer::HORIZONTAL) {
     float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.mScrollableRect.width;
-    scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f / transientTransform.GetXScale(), 1.f, 1.f);
+    scrollbarTransform = scrollbarTransform * Matrix4x4().Scale(1.f / transientTransform._11, 1.f, 1.f);
     scrollbarTransform = scrollbarTransform * Matrix4x4().Translate(-transientTransform._41 * scale, 0, 0);
   }
 
@@ -712,7 +714,8 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
     
     
     
-    transform = transform * ToMatrix4x4(transientTransform.Inverse());
+    transientTransform.Invert();
+    transform = transform * transientTransform;
   }
 
   

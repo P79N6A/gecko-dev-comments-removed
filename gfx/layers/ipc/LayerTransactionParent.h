@@ -17,8 +17,6 @@
 #include "nsAutoPtr.h"                  
 #include "nsTArrayForwardDeclare.h"     
 
-class gfx3DMatrix;
-
 namespace mozilla {
 
 namespace ipc {

@@ -1126,30 +1126,31 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
 static LayerRect
 GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
-                                   const gfx3DMatrix& aTransformToCompBounds,
+                                   const Matrix4x4& aTransformToCompBounds,
                                    const ViewTransform& aAPZTransform)
 {
-  gfx3DMatrix nonTransientAPZTransform = gfx3DMatrix::ScalingMatrix(
+  Matrix4x4 nonTransientAPZUntransform = Matrix4x4().Scale(
     aScrollAncestor->GetFrameMetrics().mResolution.scale,
     aScrollAncestor->GetFrameMetrics().mResolution.scale,
     1.f);
+  nonTransientAPZUntransform.Invert();
 
-  gfx3DMatrix layerTransform = gfx::To3DMatrix(aScrollAncestor->GetTransform());
-
-  
-  
-  
-  gfx3DMatrix transform = aTransformToCompBounds;
-  transform = transform * layerTransform.Inverse();
-  transform = transform * nonTransientAPZTransform.Inverse();
+  Matrix4x4 layerTransform = aScrollAncestor->GetTransform();
+  Matrix4x4 layerUntransform = layerTransform;
+  layerUntransform.Invert();
 
   
   
-  transform = transform * To3DMatrix(aAPZTransform);
+  
+  Matrix4x4 transform = aTransformToCompBounds * layerUntransform * nonTransientAPZUntransform;
+
+  
+  
+  transform = transform * Matrix4x4(aAPZTransform);
 
   
   transform = transform * layerTransform;
-  return TransformTo<LayerPixel>(transform.Inverse(),
+  return TransformTo<LayerPixel>(To3DMatrix(transform).Inverse(),
             aScrollAncestor->GetFrameMetrics().mCompositionBounds);
 }
 
@@ -1228,7 +1229,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 
   LayerRect transformedCompositionBounds =
     GetCompositorSideCompositionBounds(scrollAncestor,
-                                       To3DMatrix(aPaintData->mTransformToCompBounds),
+                                       aPaintData->mTransformToCompBounds,
                                        viewTransform);
 
   TILING_LOG("TILING %p: Progressive update transformed compositor bounds %s\n", mThebesLayer, Stringify(transformedCompositionBounds).c_str());

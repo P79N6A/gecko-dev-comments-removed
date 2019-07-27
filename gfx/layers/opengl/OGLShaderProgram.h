@@ -7,7 +7,6 @@
 #define GFX_OGLSHADERPROGRAM_H
 
 #include "GLContext.h"                  
-#include "gfx3DMatrix.h"                
 #include "gfxTypes.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
@@ -469,10 +468,6 @@ protected:
     if (ku.UpdateUniform(16, aFloatValues)) {
       mGL->fUniformMatrix4fv(ku.mLocation, 1, false, ku.mValue.f16v);
     }
-  }
-
-  void SetMatrixUniform(KnownUniform::KnownUniformName aKnownUniform, const gfx3DMatrix& aMatrix) {
-    SetMatrixUniform(aKnownUniform, &aMatrix._11);
   }
 
   void SetMatrixUniform(KnownUniform::KnownUniformName aKnownUniform, const gfx::Matrix4x4& aMatrix) {
