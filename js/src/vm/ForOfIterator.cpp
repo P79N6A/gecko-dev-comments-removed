@@ -17,6 +17,8 @@
 using namespace js;
 using JS::ForOfIterator;
 
+using mozilla::UniquePtr;
+
 bool
 ForOfIterator::init(HandleValue iterable, NonIterableBehavior nonIterableBehavior)
 {
@@ -69,11 +71,11 @@ ForOfIterator::init(HandleValue iterable, NonIterableBehavior nonIterableBehavio
     
     
     if (!callee.isObject() || !callee.toObject().isCallable()) {
-        char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, iterable, NullPtr());
+        UniquePtr<char[], JS::FreePolicy> bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK,
+                                                                          iterable, NullPtr());
         if (!bytes)
             return false;
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_NOT_ITERABLE, bytes);
-        js_free(bytes);
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_NOT_ITERABLE, bytes.get());
         return false;
     }
 

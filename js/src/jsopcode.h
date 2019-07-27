@@ -11,6 +11,8 @@
 
 
 
+#include "mozilla/UniquePtr.h"
+
 #include "jsbytecode.h"
 #include "jstypes.h"
 #include "NamespaceImports.h"
@@ -560,7 +562,7 @@ GetVariableBytecodeLength(jsbytecode *pc);
 
 
 
-char *
+mozilla::UniquePtr<char[], JS::FreePolicy>
 DecompileValueGenerator(JSContext *cx, int spindex, HandleValue v,
                         HandleString fallback, int skipStackHits = 0);
 
