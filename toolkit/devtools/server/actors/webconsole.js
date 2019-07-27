@@ -933,13 +933,31 @@ WebConsoleActor.prototype =
     };
     JSTermHelpers(helpers);
 
-    
+    let evalWindow = this.evalWindow;
+    function maybeExport(obj, name) {
+      if (typeof obj[name] != "function") {
+        return;
+      }
+
+      
+      
+      
+      
+      
+      
+      obj[name] =
+        Cu.exportFunction(obj[name], evalWindow, { allowCrossOriginArguments: true });
+    }
     for (let name in helpers.sandbox) {
       let desc = Object.getOwnPropertyDescriptor(helpers.sandbox, name);
-      if (desc.get || desc.set) {
-        continue;
+      maybeExport(desc, 'get');
+      maybeExport(desc, 'set');
+      maybeExport(desc, 'value');
+      if (desc.value) {
+        
+        desc.value = aDebuggerGlobal.makeDebuggeeValue(desc.value);
       }
-      helpers.sandbox[name] = aDebuggerGlobal.makeDebuggeeValue(desc.value);
+      Object.defineProperty(helpers.sandbox, name, desc);
     }
     return helpers;
   },
