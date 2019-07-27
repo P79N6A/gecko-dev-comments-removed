@@ -89,6 +89,7 @@ class UpvarCookie
     F(OBJECT) \
     F(CALL) \
     F(NAME) \
+    F(COMPUTED_NAME) \
     F(NUMBER) \
     F(STRING) \
     F(TEMPLATE_STRING_LIST) \
@@ -215,6 +216,8 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
 
 
 
