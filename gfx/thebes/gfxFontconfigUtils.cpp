@@ -598,7 +598,6 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
     mFontsByFamily.Clear();
     mFontsByFullname.Clear();
     mLangSupportTable.Clear();
-    mAliasForMultiFonts.Clear();
 
     
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
@@ -629,36 +628,6 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
                     }
                 }
             }
-        }
-    }
-
-    
-    
-    
-    
-    
-    NS_ENSURE_TRUE(Preferences::GetRootBranch(), NS_ERROR_FAILURE);
-    nsAdoptingCString list = Preferences::GetCString("font.alias-list");
-
-    if (!list.IsEmpty()) {
-        const char kComma = ',';
-        const char *p, *p_end;
-        list.BeginReading(p);
-        list.EndReading(p_end);
-        while (p < p_end) {
-            while (nsCRT::IsAsciiSpace(*p)) {
-                if (++p == p_end)
-                    break;
-            }
-            if (p == p_end)
-                break;
-            const char *start = p;
-            while (++p != p_end && *p != kComma)
-                 ;
-            nsAutoCString name(Substring(start, p));
-            name.CompressWhitespace(false, true);
-            mAliasForMultiFonts.AppendElement(name);
-            p++;
         }
     }
 
