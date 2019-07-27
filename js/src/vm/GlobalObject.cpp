@@ -376,11 +376,7 @@ GlobalObject::initSelfHostingBuiltins(JSContext *cx, Handle<GlobalObject*> globa
     
     
     RootedValue std_iterator(cx);
-#ifdef JS_HAS_SYMBOLS
     std_iterator.setSymbol(cx->wellKnownSymbols().get(JS::SymbolCode::iterator));
-#else
-    std_iterator.setString(cx->names().std_iterator);
-#endif
     if (!JS_DefineProperty(cx, global, "std_iterator", std_iterator,
                            JSPROP_PERMANENT | JSPROP_READONLY))
     {

@@ -29,20 +29,9 @@ namespace js {
 
 
 
-
-
-
-
-
-
-static const uint32_t XDR_BYTECODE_VERSION_SUBTRAHEND = 230;
-static_assert(XDR_BYTECODE_VERSION_SUBTRAHEND % 2 == 0, "see the comment above");
+static const uint32_t XDR_BYTECODE_VERSION_SUBTRAHEND = 232;
 static const uint32_t XDR_BYTECODE_VERSION =
-    uint32_t(0xb973c0de - (XDR_BYTECODE_VERSION_SUBTRAHEND
-#ifdef JS_HAS_SYMBOLS
-                                                           + 1
-#endif
-                                                              ));
+    uint32_t(0xb973c0de - XDR_BYTECODE_VERSION_SUBTRAHEND);
 
 static_assert(JSErr_Limit == 367,
               "GREETINGS, POTENTIAL SUBTRAHEND INCREMENTER! If you added or "
