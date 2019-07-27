@@ -2178,7 +2178,7 @@ pref("layout.css.grid.enabled", false);
 
 
 
-pref("layout.css.ruby.enabled", false);
+pref("layout.css.ruby.enabled", true);
 
 
 pref("layout.css.display-contents.enabled", true);
