@@ -115,7 +115,7 @@ ReadGeneralName(Reader& reader,
   return Success;
 }
 
-MOZILLA_PKIX_ENUM_CLASS FallBackToCommonName { No = 0, Yes = 1 };
+MOZILLA_PKIX_ENUM_CLASS FallBackToSearchWithinSubject { No = 0, Yes = 1 };
 
 MOZILLA_PKIX_ENUM_CLASS MatchResult
 {
@@ -127,15 +127,19 @@ MOZILLA_PKIX_ENUM_CLASS MatchResult
 Result SearchNames(const Input* subjectAltName, Input subject,
                    GeneralNameType referenceIDType,
                    Input referenceID,
-                   FallBackToCommonName fallBackToCommonName,
+                   FallBackToSearchWithinSubject fallBackToCommonName,
                     MatchResult& match);
 Result SearchWithinRDN(Reader& rdn,
                        GeneralNameType referenceIDType,
                        Input referenceID,
+                       FallBackToSearchWithinSubject fallBackToEmailAddress,
+                       FallBackToSearchWithinSubject fallBackToCommonName,
                         MatchResult& match);
 Result SearchWithinAVA(Reader& rdn,
                        GeneralNameType referenceIDType,
                        Input referenceID,
+                       FallBackToSearchWithinSubject fallBackToEmailAddress,
+                       FallBackToSearchWithinSubject fallBackToCommonName,
                         MatchResult& match);
 void MatchSubjectPresentedIDWithReferenceID(GeneralNameType presentedIDType,
                                             Input presentedID,
@@ -162,11 +166,36 @@ MOZILLA_PKIX_ENUM_CLASS IDRole
   NameConstraint = 2,
 };
 
-bool IsValidDNSID(Input hostname, IDRole idRole);
+MOZILLA_PKIX_ENUM_CLASS Wildcards
+{
+  AllowWildcards = 0,
+  DisallowWildcards = 1
+};
+
+
+
+
+
+
+MOZILLA_PKIX_ENUM_CLASS DotlessSubdomainMatches
+{
+  DisallowDotlessSubdomainMatches = 0,
+  AllowDotlessSubdomainMatches = 1
+};
+
+bool IsValidDNSID(Input hostname, IDRole idRole, Wildcards allowWildcards);
 
 Result MatchPresentedDNSIDWithReferenceDNSID(
-         Input presentedDNSID, IDRole referenceDNSIDRole,
-         Input referenceDNSID,  bool& matches);
+         Input presentedDNSID,
+         Wildcards allowWildcards,
+         DotlessSubdomainMatches allowDotlessSubdomainMatches,
+         IDRole referenceDNSIDRole,
+         Input referenceDNSID,
+          bool& matches);
+
+Result MatchPresentedRFC822NameWithReferenceRFC822Name(
+         Input presentedRFC822Name, IDRole referenceRFC822NameRole,
+         Input referenceRFC822Name,  bool& matches);
 
 } 
 
@@ -182,7 +211,10 @@ MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
                                        bool& matches)
 {
   return MatchPresentedDNSIDWithReferenceDNSID(
-           presentedDNSID, IDRole::ReferenceID, referenceDNSID, matches);
+           presentedDNSID, Wildcards::AllowWildcards,
+           DotlessSubdomainMatches::AllowDotlessSubdomainMatches,
+           IDRole::ReferenceID,
+           referenceDNSID, matches);
 }
 
 
@@ -215,13 +247,13 @@ CheckCertHostname(Input endEntityCertDER, Input hostname)
   uint8_t ipv4[4];
   if (IsValidReferenceDNSID(hostname)) {
     rv = SearchNames(subjectAltName, subject, GeneralNameType::dNSName,
-                     hostname, FallBackToCommonName::Yes, match);
+                     hostname, FallBackToSearchWithinSubject::Yes, match);
   } else if (ParseIPv6Address(hostname, ipv6)) {
     rv = SearchNames(subjectAltName, subject, GeneralNameType::iPAddress,
-                     Input(ipv6), FallBackToCommonName::No, match);
+                     Input(ipv6), FallBackToSearchWithinSubject::No, match);
   } else if (ParseIPv4Address(hostname, ipv4)) {
     rv = SearchNames(subjectAltName, subject, GeneralNameType::iPAddress,
-                     Input(ipv4), FallBackToCommonName::Yes, match);
+                     Input(ipv4), FallBackToSearchWithinSubject::Yes, match);
   } else {
     return Result::ERROR_BAD_CERT_DOMAIN;
   }
@@ -247,11 +279,11 @@ CheckNameConstraints(Input encodedNameConstraints,
                      KeyPurposeId requiredEKUIfPresent)
 {
   for (const BackCert* child = &firstChild; child; child = child->childCert) {
-    FallBackToCommonName fallBackToCommonName
+    FallBackToSearchWithinSubject fallBackToCommonName
       = (child->endEntityOrCA == EndEntityOrCA::MustBeEndEntity &&
          requiredEKUIfPresent == KeyPurposeId::id_kp_serverAuth)
-      ? FallBackToCommonName::Yes
-      : FallBackToCommonName::No;
+      ? FallBackToSearchWithinSubject::Yes
+      : FallBackToSearchWithinSubject::No;
 
     MatchResult match;
     Result rv = SearchNames(child->GetSubjectAltName(), child->GetSubject(),
@@ -295,7 +327,7 @@ SearchNames( const Input* subjectAltName,
             Input subject,
             GeneralNameType referenceIDType,
             Input referenceID,
-            FallBackToCommonName fallBackToCommonName,
+            FallBackToSearchWithinSubject fallBackToCommonName,
              MatchResult& match)
 {
   Result rv;
@@ -318,7 +350,6 @@ SearchNames( const Input* subjectAltName,
   
   
   
-  bool hasAtLeastOneDNSNameOrIPAddressSAN = false;
 
   if (subjectAltName) {
     Reader altNames;
@@ -349,7 +380,7 @@ SearchNames( const Input* subjectAltName,
       }
       if (presentedIDType == GeneralNameType::dNSName ||
           presentedIDType == GeneralNameType::iPAddress) {
-        hasAtLeastOneDNSNameOrIPAddressSAN = true;
+        fallBackToCommonName = FallBackToSearchWithinSubject::No;
       }
     } while (!altNames.AtEnd());
   }
@@ -362,8 +393,19 @@ SearchNames( const Input* subjectAltName,
     }
   }
 
-  if (hasAtLeastOneDNSNameOrIPAddressSAN ||
-      fallBackToCommonName != FallBackToCommonName::Yes) {
+  FallBackToSearchWithinSubject fallBackToEmailAddress;
+  if (!subjectAltName &&
+      (referenceIDType == GeneralNameType::rfc822Name ||
+       referenceIDType == GeneralNameType::nameConstraints)) {
+    fallBackToEmailAddress = FallBackToSearchWithinSubject::Yes;
+  } else {
+    fallBackToEmailAddress = FallBackToSearchWithinSubject::No;
+  }
+
+  
+  
+  if (fallBackToEmailAddress == FallBackToSearchWithinSubject::No &&
+      fallBackToCommonName == FallBackToSearchWithinSubject::No) {
     return Success;
   }
 
@@ -436,7 +478,8 @@ SearchNames( const Input* subjectAltName,
   return der::NestedOf(subjectReader, der::SEQUENCE, der::SET,
                        der::EmptyAllowed::Yes,
                        bind(SearchWithinRDN, _1, referenceIDType,
-                            referenceID, ref(match)));
+                            referenceID, fallBackToEmailAddress,
+                            fallBackToCommonName, ref(match)));
 }
 
 
@@ -449,12 +492,15 @@ Result
 SearchWithinRDN(Reader& rdn,
                 GeneralNameType referenceIDType,
                 Input referenceID,
+                FallBackToSearchWithinSubject fallBackToEmailAddress,
+                FallBackToSearchWithinSubject fallBackToCommonName,
                  MatchResult& match)
 {
   do {
     Result rv = der::Nested(rdn, der::SEQUENCE,
                             bind(SearchWithinAVA, _1, referenceIDType,
-                                 referenceID, ref(match)));
+                                 referenceID, fallBackToEmailAddress,
+                                 fallBackToCommonName, ref(match)));
     if (rv != Success) {
       return rv;
     }
@@ -481,22 +527,10 @@ Result
 SearchWithinAVA(Reader& rdn,
                 GeneralNameType referenceIDType,
                 Input referenceID,
+                FallBackToSearchWithinSubject fallBackToEmailAddress,
+                FallBackToSearchWithinSubject fallBackToCommonName,
                  MatchResult& match)
 {
-  
-  
-  
-  static const uint8_t id_at_commonName[] = {
-    0x55, 0x04, 0x03
-  };
-
-  
-  
-  
-  
-  
-  
-  
   
   
   
@@ -511,70 +545,119 @@ SearchWithinAVA(Reader& rdn,
   }
 
   
-  if (!type.MatchRest(id_at_commonName)) {
-    rdn.SkipToEnd();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static const uint8_t id_at_commonName[] = {
+    0x55, 0x04, 0x03
+  };
+  if (fallBackToCommonName == FallBackToSearchWithinSubject::Yes &&
+      type.MatchRest(id_at_commonName)) {
+    
+    
+    
+    match = MatchResult::NoNamesOfGivenType;
+
+    uint8_t valueEncodingTag;
+    Input presentedID;
+    rv = der::ReadTagAndGetValue(rdn, valueEncodingTag, presentedID);
+    if (rv != Success) {
+      return rv;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (valueEncodingTag != der::PrintableString &&
+        valueEncodingTag != der::UTF8String &&
+        valueEncodingTag != der::TeletexString) {
+      return Success;
+    }
+
+    if (IsValidPresentedDNSID(presentedID)) {
+      MatchSubjectPresentedIDWithReferenceID(GeneralNameType::dNSName,
+                                             presentedID, referenceIDType,
+                                             referenceID, match);
+    } else {
+      
+      
+      
+      
+      uint8_t ipv4[4];
+      if (ParseIPv4Address(presentedID, ipv4)) {
+        MatchSubjectPresentedIDWithReferenceID(GeneralNameType::iPAddress,
+                                               Input(ipv4), referenceIDType,
+                                               referenceID, match);
+      }
+    }
+
+    
+    
+    
+
     return Success;
   }
 
   
   
   
-  match = MatchResult::NoNamesOfGivenType;
-
-  uint8_t valueEncodingTag;
-  Input presentedID;
-  rv = der::ReadTagAndGetValue(rdn, valueEncodingTag, presentedID);
-  if (rv != Success) {
-    return rv;
-  }
-
   
   
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (valueEncodingTag != der::PrintableString &&
-      valueEncodingTag != der::UTF8String &&
-      valueEncodingTag != der::TeletexString) {
-    return Success;
-  }
-
-  if (IsValidPresentedDNSID(presentedID)) {
-    MatchSubjectPresentedIDWithReferenceID(GeneralNameType::dNSName,
+  static const uint8_t id_emailAddress[] = {
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x09, 0x01
+  };
+  if (fallBackToEmailAddress == FallBackToSearchWithinSubject::Yes &&
+      type.MatchRest(id_emailAddress)) {
+    if (referenceIDType == GeneralNameType::rfc822Name &&
+        match == MatchResult::Match) {
+      
+      return Success;
+    }
+    Input presentedID;
+    rv = der::ExpectTagAndGetValue(rdn, der::IA5String, presentedID);
+    if (rv != Success) {
+      return rv;
+    }
+    return MatchPresentedIDWithReferenceID(GeneralNameType::rfc822Name,
                                            presentedID, referenceIDType,
                                            referenceID, match);
-  } else {
-    
-    
-    
-    
-    uint8_t ipv4[4];
-    if (ParseIPv4Address(presentedID, ipv4)) {
-      MatchSubjectPresentedIDWithReferenceID(GeneralNameType::iPAddress,
-                                             Input(ipv4), referenceIDType,
-                                             referenceID, match);
-    }
   }
 
-  
-
+  rdn.SkipToEnd();
   return Success;
 }
 
@@ -618,7 +701,9 @@ MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
   switch (referenceIDType) {
     case GeneralNameType::dNSName:
       rv = MatchPresentedDNSIDWithReferenceDNSID(
-             presentedID, IDRole::ReferenceID, referenceID, foundMatch);
+             presentedID, Wildcards::AllowWildcards,
+             DotlessSubdomainMatches::AllowDotlessSubdomainMatches,
+             IDRole::ReferenceID, referenceID, foundMatch);
       break;
 
     case GeneralNameType::iPAddress:
@@ -626,7 +711,11 @@ MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
       rv = Success;
       break;
 
-    case GeneralNameType::rfc822Name: 
+    case GeneralNameType::rfc822Name:
+      rv = MatchPresentedRFC822NameWithReferenceRFC822Name(
+             presentedID, IDRole::ReferenceID, referenceID, foundMatch);
+      break;
+
     case GeneralNameType::directoryName:
       
       
@@ -769,7 +858,9 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
       switch (presentedIDType) {
         case GeneralNameType::dNSName:
           rv = MatchPresentedDNSIDWithReferenceDNSID(
-                 presentedID, IDRole::NameConstraint, base, matches);
+                 presentedID, Wildcards::AllowWildcards,
+                 DotlessSubdomainMatches::AllowDotlessSubdomainMatches,
+                 IDRole::NameConstraint, base, matches);
           if (rv != Success) {
             return rv;
           }
@@ -793,7 +884,12 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
           break;
 
         case GeneralNameType::rfc822Name:
-          return Result::FATAL_ERROR_LIBRARY_FAILURE; 
+          rv = MatchPresentedRFC822NameWithReferenceRFC822Name(
+                 presentedID, IDRole::NameConstraint, base, matches);
+          if (rv != Success) {
+            return rv;
+          }
+          break;
 
         
         
@@ -969,16 +1065,20 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
 
 
 Result
-MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
-                                      IDRole referenceDNSIDRole,
-                                      Input referenceDNSID,
-                                       bool& matches)
+MatchPresentedDNSIDWithReferenceDNSID(
+  Input presentedDNSID,
+  Wildcards allowWildcards,
+  DotlessSubdomainMatches allowDotlessSubdomainMatches,
+  IDRole referenceDNSIDRole,
+  Input referenceDNSID,
+   bool& matches)
 {
-  if (!IsValidPresentedDNSID(presentedDNSID)) {
+  if (!IsValidDNSID(presentedDNSID, IDRole::PresentedID, allowWildcards)) {
     return Result::ERROR_BAD_DER;
   }
 
-  if (!IsValidDNSID(referenceDNSID, referenceDNSIDRole)) {
+  if (!IsValidDNSID(referenceDNSID, referenceDNSIDRole,
+                    Wildcards::DisallowWildcards)) {
     return Result::ERROR_BAD_DER;
   }
 
@@ -1028,7 +1128,8 @@ MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
             return NotReached("skipping subdomain failed",
                               Result::FATAL_ERROR_LIBRARY_FAILURE);
           }
-        } else {
+        } else if (allowDotlessSubdomainMatches ==
+                   DotlessSubdomainMatches::AllowDotlessSubdomainMatches) {
           if (presented.Skip(static_cast<Input::size_type>(
                                presentedDNSID.GetLength() -
                                  referenceDNSID.GetLength() - 1)) != Success) {
@@ -1277,6 +1378,163 @@ MatchPresentedDirectoryNameWithConstraint(NameConstraintsSubtrees subtreesType,
       return rv;
     }
     if (!InputsAreEqual(constraintRDN, presentedRDN)) {
+      matches = false;
+      return Success;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+IsValidRFC822Name(Input input)
+{
+  Reader reader(input);
+
+  
+  bool startOfAtom = true;
+  for (;;) {
+    uint8_t presentedByte;
+    if (reader.Read(presentedByte) != Success) {
+      return false;
+    }
+    switch (presentedByte) {
+      
+      case 'A': case 'a': case 'N': case 'n': case '0': case '!': case '#':
+      case 'B': case 'b': case 'O': case 'o': case '1': case '$': case '%':
+      case 'C': case 'c': case 'P': case 'p': case '2': case '&': case '\'':
+      case 'D': case 'd': case 'Q': case 'q': case '3': case '*': case '+':
+      case 'E': case 'e': case 'R': case 'r': case '4': case '-': case '/':
+      case 'F': case 'f': case 'S': case 's': case '5': case '=': case '?':
+      case 'G': case 'g': case 'T': case 't': case '6': case '^': case '_':
+      case 'H': case 'h': case 'U': case 'u': case '7': case '`': case '{':
+      case 'I': case 'i': case 'V': case 'v': case '8': case '|': case '}':
+      case 'J': case 'j': case 'W': case 'w': case '9': case '~':
+      case 'K': case 'k': case 'X': case 'x':
+      case 'L': case 'l': case 'Y': case 'y':
+      case 'M': case 'm': case 'Z': case 'z':
+        startOfAtom = false;
+        break;
+
+      case '.':
+        if (startOfAtom) {
+          return false;
+        }
+        startOfAtom = true;
+        break;
+
+      case '@':
+      {
+        if (startOfAtom) {
+          return false;
+        }
+        Input domain;
+        reader.SkipToEnd(domain);
+        return IsValidDNSID(domain, IDRole::PresentedID,
+                            Wildcards::DisallowWildcards);
+      }
+
+      default:
+        return false;
+    }
+  }
+}
+
+Result
+MatchPresentedRFC822NameWithReferenceRFC822Name(Input presentedRFC822Name,
+                                                IDRole referenceRFC822NameRole,
+                                                Input referenceRFC822Name,
+                                                 bool& matches)
+{
+  if (!IsValidRFC822Name(presentedRFC822Name)) {
+    return Result::ERROR_BAD_DER;
+  }
+  Reader presented(presentedRFC822Name);
+
+  switch (referenceRFC822NameRole)
+  {
+    case IDRole::PresentedID:
+      return Result::FATAL_ERROR_INVALID_ARGS;
+
+    case IDRole::ReferenceID:
+      break;
+
+    case IDRole::NameConstraint:
+    {
+      if (InputContains(referenceRFC822Name, '@')) {
+        
+        break;
+      }
+
+      
+
+      
+      for (;;) {
+        uint8_t presentedByte;
+        if (presented.Read(presentedByte) != Success) {
+          return Result::FATAL_ERROR_LIBRARY_FAILURE;
+        }
+        if (presentedByte == '@') {
+          break;
+        }
+      }
+
+      Input presentedDNSID;
+      presented.SkipToEnd(presentedDNSID);
+
+      return MatchPresentedDNSIDWithReferenceDNSID(
+               presentedDNSID, Wildcards::DisallowWildcards,
+               DotlessSubdomainMatches::DisallowDotlessSubdomainMatches,
+               IDRole::NameConstraint, referenceRFC822Name, matches);
+    }
+
+    default:
+      return NotReached("invalid referenceRFC822NameRole",
+                        Result::FATAL_ERROR_INVALID_ARGS);
+  }
+
+  if (!IsValidRFC822Name(referenceRFC822Name)) {
+    return Result::ERROR_BAD_DER;
+  }
+
+  Reader reference(referenceRFC822Name);
+
+  for (;;) {
+    uint8_t presentedByte;
+    if (presented.Read(presentedByte) != Success) {
+      matches = reference.AtEnd();
+      return Success;
+    }
+    uint8_t referenceByte;
+    if (reference.Read(referenceByte) != Success) {
+      matches = false;
+      return Success;
+    }
+    if (LocaleInsensitveToLower(presentedByte) !=
+        LocaleInsensitveToLower(referenceByte)) {
       matches = false;
       return Success;
     }
@@ -1559,19 +1817,21 @@ ParseIPv6Address(Input hostname,  uint8_t (&out)[16])
 bool
 IsValidReferenceDNSID(Input hostname)
 {
-  return IsValidDNSID(hostname, IDRole::ReferenceID);
+  return IsValidDNSID(hostname, IDRole::ReferenceID,
+                      Wildcards::DisallowWildcards);
 }
 
 bool
 IsValidPresentedDNSID(Input hostname)
 {
-  return IsValidDNSID(hostname, IDRole::PresentedID);
+  return IsValidDNSID(hostname, IDRole::PresentedID,
+                      Wildcards::AllowWildcards);
 }
 
 namespace {
 
 bool
-IsValidDNSID(Input hostname, IDRole idRole)
+IsValidDNSID(Input hostname, IDRole idRole, Wildcards allowWildcards)
 {
   if (hostname.GetLength() > 253) {
     return false;
@@ -1591,7 +1851,8 @@ IsValidDNSID(Input hostname, IDRole idRole)
   
   
   
-  bool isWildcard = idRole == IDRole::PresentedID && input.Peek('*');
+  bool isWildcard = allowWildcards == Wildcards::AllowWildcards &&
+                    input.Peek('*');
   bool isFirstByte = !isWildcard;
   if (isWildcard) {
     Result rv = input.Skip(1);

@@ -1804,6 +1804,15 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(DNSName("host.example.com")),
     Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
   },
+  { ByteString(), RFC822Name("a@host.example.com"),
+    GeneralSubtree(RFC822Name("host.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    ByteString(), RFC822Name("a@host1.example.com"),
+    GeneralSubtree(RFC822Name("host.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
 
   
   
@@ -1813,12 +1822,23 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(DNSName(    "host.example.com")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
+  { 
+    
+    ByteString(),  RFC822Name("a@www.host.example.com"),
+    GeneralSubtree(RFC822Name(      "host.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE,
+    Success
+  },
 
   
   
   
   { ByteString(), DNSName("bigfoo.bar.com"),
-    GeneralSubtree(DNSName("foo.bar.com")),
+    GeneralSubtree(DNSName(  "foo.bar.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { ByteString(), RFC822Name("a@bigfoo.bar.com"),
+    GeneralSubtree(RFC822Name(    "foo.bar.com")),
     Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
   },
 
@@ -1827,17 +1847,39 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   
   
   { ByteString(), DNSName("www.example.com"),
-    GeneralSubtree(DNSName(".example.com")),
+    GeneralSubtree(DNSName(  ".example.com")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
   { 
-    ByteString(), DNSName("example.com"),
+    
+    ByteString(), RFC822Name("a@www.example.com"),
+    GeneralSubtree(RFC822Name(    ".example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    ByteString(), RFC822Name("a@www.example.com"),
+    GeneralSubtree(RFC822Name(  "a@.example.com")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    ByteString(), DNSName(  "example.com"),
     GeneralSubtree(DNSName(".example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    ByteString(), RFC822Name("a@example.com"),
+    GeneralSubtree(RFC822Name(".example.com")),
     Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
   },
   { 
     ByteString(), DNSName("bexample.com"),
     GeneralSubtree(DNSName(".example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    ByteString(), RFC822Name("a@bexample.com"),
+    GeneralSubtree(RFC822Name( ".example.com")),
     Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
   },
 
@@ -1855,10 +1897,18 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(DNSName("example.com.")),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
+  { ByteString(), RFC822Name("a@example.com"),
+    GeneralSubtree(RFC822Name( "example.com.")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
+  },
   { 
     
     ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName("example.com")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
+  },
+  { ByteString(), RFC822Name("a@example.com."),
+    GeneralSubtree(RFC822Name( "example.com")),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
   { 
@@ -1870,8 +1920,21 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
   { 
+    
+    
+    ByteString(), RFC822Name("a@p.example.com"),
+    GeneralSubtree(RFC822Name(  ".example.com.")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
+  },
+  { 
     ByteString(), DNSName("*.example.com"),
     GeneralSubtree(DNSName(".example.com.")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { 
+    
+    ByteString(), RFC822Name("a@*.example.com"),
+    GeneralSubtree(RFC822Name(  ".example.com.")),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
 
@@ -1880,9 +1943,17 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(DNSName("")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
   },
+  { ByteString(), RFC822Name("a@example.com"),
+    GeneralSubtree(RFC822Name("")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
   { 
     ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName("")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("a@example.com."),
+    GeneralSubtree(RFC822Name("")),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
   { 
@@ -1890,8 +1961,17 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     GeneralSubtree(DNSName(".")),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
+  { 
+    ByteString(), RFC822Name("a@example.com"),
+    GeneralSubtree(RFC822Name(".")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
+  },
   { ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName(".")),
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("a@example.com."),
+    GeneralSubtree(RFC822Name(".")),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
 
@@ -2053,6 +2133,9 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   { ByteString(), NO_SAN, GeneralSubtree(IPAddress(ipv6_addr_overlong_bytes)),
     Success, Success
   },
+  { ByteString(), NO_SAN, GeneralSubtree(RFC822Name("\0")),
+    Success, Success
+  },
 
   
   
@@ -2190,6 +2273,54 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     RDN(CN("a.example.com")) + RDN(CN("b.example.com")), NO_SAN,
     GeneralSubtree(DNSName("b.example.com")),
     Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  
+  
+  
+
+  { ByteString(), RFC822Name("a@example.com"),
+    GeneralSubtree(RFC822Name("a@example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  
+  { ByteString(), RFC822Name("a@example.com"),
+    GeneralSubtree(RFC822Name("@example.com")),
+    Result::ERROR_BAD_DER,
+    Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("@example.com"),
+    GeneralSubtree(RFC822Name("@example.com")),
+    Result::ERROR_BAD_DER,
+    Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("example.com"),
+    GeneralSubtree(RFC822Name("@example.com")),
+    Result::ERROR_BAD_DER,
+    Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("a@mail.example.com"),
+    GeneralSubtree(RFC822Name("a@*.example.com")),
+    Result::ERROR_BAD_DER,
+    Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("a@*.example.com"),
+    GeneralSubtree(RFC822Name(".example.com")),
+    Result::ERROR_BAD_DER,
+    Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("@example.com"),
+    GeneralSubtree(RFC822Name(".example.com")),
+    Result::ERROR_BAD_DER,
+    Result::ERROR_BAD_DER
+  },
+  { ByteString(), RFC822Name("@a.example.com"),
+    GeneralSubtree(RFC822Name(".example.com")),
+    Result::ERROR_BAD_DER,
+    Result::ERROR_BAD_DER
   },
 };
 
