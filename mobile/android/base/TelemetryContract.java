@@ -186,9 +186,6 @@ public interface TelemetryContract {
         FRECENCY("frecency.1"),
 
         
-        HOME("home.1"),
-
-        
         
         HOME_PANEL("homepanel.1"),
 
