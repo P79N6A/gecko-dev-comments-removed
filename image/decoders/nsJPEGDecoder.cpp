@@ -139,20 +139,6 @@ nsJPEGDecoder::SpeedHistogram()
   return Telemetry::IMAGE_DECODE_SPEED_JPEG;
 }
 
-nsresult
-nsJPEGDecoder::SetTargetSize(const nsIntSize& aSize)
-{
-  
-  if (MOZ_UNLIKELY(aSize.width <= 0 || aSize.height <= 0)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  mDownscaler.emplace(aSize);
-
-  return NS_OK;
-}
-
 void
 nsJPEGDecoder::InitInternal()
 {
@@ -408,17 +394,6 @@ nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
       return;
     }
 
-    if (mDownscaler) {
-      nsresult rv = mDownscaler->BeginFrame(GetSize(),
-                                            mImageData,
-                                             false);
-      if (NS_FAILED(rv)) {
-        mState = JPEG_ERROR;
-        return;
-      }
-    }
-
-
     PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
            ("        JPEGDecoderAccounting: nsJPEGDecoder::"
             "Write -- created image frame with %ux%u pixels",
@@ -537,7 +512,6 @@ nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
             break;
 
           mInfo.output_scanline = 0;
-          mDownscaler->ResetForNextProgressivePass();
         }
       }
 
@@ -617,24 +591,15 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
   const uint32_t top = mInfo.output_scanline;
 
   while ((mInfo.output_scanline < mInfo.output_height)) {
-      uint32_t* imageRow = nullptr;
-      if (mDownscaler) {
-        imageRow = reinterpret_cast<uint32_t*>(mDownscaler->RowBuffer());
-      } else {
-        imageRow = reinterpret_cast<uint32_t*>(mImageData) +
-                   (mInfo.output_scanline * mInfo.output_width);
-      }
-
-      MOZ_ASSERT(imageRow, "Should have a row buffer here");
+      
+      uint32_t* imageRow = ((uint32_t*)mImageData) +
+                           (mInfo.output_scanline * mInfo.output_width);
 
       if (mInfo.out_color_space == MOZ_JCS_EXT_NATIVE_ENDIAN_XRGB) {
         
         if (jpeg_read_scanlines(&mInfo, (JSAMPARRAY)&imageRow, 1) != 1) {
           *suspend = true; 
           break;
-        }
-        if (mDownscaler) {
-          mDownscaler->CommitRow();
         }
         continue; 
       }
@@ -711,19 +676,13 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
                                      sampleRow[2]);
         sampleRow += 3;
       }
-
-      if (mDownscaler) {
-        mDownscaler->CommitRow();
-      }
   }
 
-  if (mDownscaler && mDownscaler->HasInvalidation()) {
-    PostInvalidation(mDownscaler->TakeInvalidRect());
-  } else if (!mDownscaler && top != mInfo.output_scanline) {
-    PostInvalidation(nsIntRect(0, top,
-                               mInfo.output_width,
-                               mInfo.output_scanline - top));
+  if (top != mInfo.output_scanline) {
+      nsIntRect r(0, top, mInfo.output_width, mInfo.output_scanline-top);
+      PostInvalidation(r);
   }
+
 }
 
 
