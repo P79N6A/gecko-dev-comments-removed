@@ -2246,11 +2246,7 @@ pref("layout.css.scope-pseudo.enabled", true);
 pref("layout.css.background-blend-mode.enabled", true);
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.vertical-text.enabled", false);
-#else
 pref("layout.css.vertical-text.enabled", true);
-#endif
 
 
 pref("layout.css.object-fit-and-position.enabled", true);
