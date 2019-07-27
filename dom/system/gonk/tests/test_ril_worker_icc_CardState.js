@@ -154,3 +154,37 @@ add_test(function test_icc_permanent_blocked() {
 
   run_next_test();
 });
+
+
+
+
+add_test(function test_icc_without_app_index() {
+  const ICCID = "123456789";
+
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let ril = context.RIL;
+
+  let iccStatus = {
+    cardState: CARD_STATE_PRESENT,
+    gsmUmtsSubscriptionAppIndex: -1,
+    universalPINState: CARD_PINSTATE_DISABLED,
+    apps: [
+    {
+      app_state: CARD_APPSTATE_READY
+    }]
+  };
+
+  context.ICCRecordHelper.readICCID = function fakeReadICCID() {
+    ril.iccInfo.iccid = ICCID;
+  };
+
+  ril._processICCStatus(iccStatus);
+
+  
+  do_check_eq(ril.iccInfo.iccid, ICCID);
+  
+  do_check_eq(ril.cardState, GECKO_CARDSTATE_UNKNOWN);
+
+  run_next_test();
+});
