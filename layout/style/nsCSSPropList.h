@@ -1657,7 +1657,7 @@ CSS_PROP_POSITION(
     
     
     VARIANT_AHKLP | VARIANT_CALC,
-    kWidthKTable,
+    kFlexBasisKTable,
     offsetof(nsStylePosition, mFlexBasis),
     eStyleAnimType_Coord)
 CSS_PROP_POSITION(

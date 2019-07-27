@@ -7451,7 +7451,7 @@ CSSParserImpl::ParseFlex()
   
   
   if (!ParseNonNegativeVariant(tmpVal, flexBasisVariantMask | VARIANT_NUMBER,
-                               nsCSSProps::kWidthKTable)) {
+                               nsCSSProps::kFlexBasisKTable)) {
     
     return false;
   }
@@ -7499,7 +7499,7 @@ CSSParserImpl::ParseFlex()
     
     if (!wasFirstComponentFlexBasis &&
         ParseNonNegativeVariant(tmpVal, flexBasisVariantMask,
-                                nsCSSProps::kWidthKTable)) {
+                                nsCSSProps::kFlexBasisKTable)) {
       flexBasis = tmpVal;
     }
   }
