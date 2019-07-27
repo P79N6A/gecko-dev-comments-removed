@@ -751,6 +751,12 @@ TileClient::GetBackBuffer(const nsIntRegion& aDirtyRegion,
 
   if (!mBackBuffer ||
       mBackLock->GetReadCount() > 1) {
+
+    if (mBackLock) {
+      
+      mBackLock->ReadUnlock();
+    }
+
     if (mBackBuffer) {
       
       
@@ -761,14 +767,18 @@ TileClient::GetBackBuffer(const nsIntRegion& aDirtyRegion,
       }
     }
     mBackBuffer.Set(this, pool->GetTextureClient());
-    if (aMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
-      mBackBufferOnWhite = pool->GetTextureClient();
+    if (!mBackBuffer) {
+      return nullptr;
     }
 
-    if (mBackLock) {
-      
-      mBackLock->ReadUnlock();
+    if (aMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
+      mBackBufferOnWhite = pool->GetTextureClient();
+      if (!mBackBufferOnWhite) {
+        mBackBuffer.Set(this, nullptr);
+        return nullptr;
+      }
     }
+
     
     if (mManager->AsShadowForwarder()->IsSameProcess()) {
       
@@ -1122,19 +1132,29 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   extraPainted.And(extraPainted, mNewValidRegion);
   mPaintedRegion.Or(mPaintedRegion, extraPainted);
 
+  if (!backBuffer) {
+    NS_WARNING("Failed to allocate a tile TextureClient");
+    aTile.DiscardBackBuffer();
+    aTile.DiscardFrontBuffer();
+    return TileClient();
+  }
+
   
   if (!backBuffer->IsLocked()) {
     if (!backBuffer->Lock(OpenMode::OPEN_READ_WRITE)) {
-      NS_WARNING("Failed to lock tile TextureClient for updating.");
+      NS_WARNING("Failed to lock a tile TextureClient");
+      aTile.DiscardBackBuffer();
       aTile.DiscardFrontBuffer();
-      return aTile;
+      return TileClient();
     }
   }
+
   if (backBufferOnWhite && !backBufferOnWhite->IsLocked()) {
     if (!backBufferOnWhite->Lock(OpenMode::OPEN_READ_WRITE)) {
       NS_WARNING("Failed to lock tile TextureClient for updating.");
+      aTile.DiscardBackBuffer();
       aTile.DiscardFrontBuffer();
-      return aTile;
+      return TileClient();
     }
   }
 
