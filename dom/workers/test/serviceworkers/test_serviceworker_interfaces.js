@@ -173,6 +173,8 @@ var interfaceNamesInGlobalScope =
 
    { name: "WebSocket", pref: "dom.workers.websocket.enabled" },
 
+    "WindowClient",
+
     "WorkerGlobalScope",
 
     "WorkerLocation",
