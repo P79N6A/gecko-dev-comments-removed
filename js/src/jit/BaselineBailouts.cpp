@@ -1102,14 +1102,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                     
                     
                     
-                    
-                    
-                    
-                    
-                    
-                    if (!caller && bailoutKind != Bailout_ArgumentCheck &&
-                        !(excInfo && excInfo->propagatingIonExceptionForDebugMode()))
-                    {
+                    if (!caller && bailoutKind != Bailout_ArgumentCheck) {
                         JitSpew(JitSpew_BaselineBailouts,
                                 "      Popping SPS entry for outermost frame");
                         cx->runtime()->spsProfiler.exit(script, fun);
