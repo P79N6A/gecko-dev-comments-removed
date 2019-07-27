@@ -8,14 +8,6 @@
 
 #include <stdint.h>
 #include "dshow.h"
-
-
-
-
-#undef GetFirstChild
-#undef GetNextSibling
-#undef GetPrevSibling
-
 #include "DShowTools.h"
 #include "prlog.h"
 

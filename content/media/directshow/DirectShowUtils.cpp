@@ -3,10 +3,11 @@
 
 
 
-#include "DirectShowUtils.h"
+#include "dshow.h"
 #include "dmodshow.h"
 #include "wmcodecdsp.h"
 #include "dmoreg.h"
+#include "DirectShowUtils.h"
 #include "nsAutoPtr.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/RefPtr.h"
