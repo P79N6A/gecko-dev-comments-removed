@@ -2180,11 +2180,7 @@ SetExistingProperty(JSContext* cx, HandleNativeObject obj, HandleId id, HandleVa
         
         
         
-        
-        if (!shape->hasSlot() &&
-            !shape->hasShadowable() &&
-            !(pobj->is<ArrayObject>() && id == NameToId(cx->names().length)))
-        {
+        if (!shape->hasSlot() && !shape->hasShadowable()) {
             
             
             if (shape->hasDefaultSetter())
