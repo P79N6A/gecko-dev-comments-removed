@@ -4,7 +4,7 @@
 
 "use strict";
 
-const {Cc, Ci, Cu} = require("chrome");
+const {Cc, Ci, Cu, Cr} = require("chrome");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -57,13 +57,33 @@ function NetworkResponseListener(aOwner, aHttpActivity)
   this.receivedData = "";
   this.httpActivity = aHttpActivity;
   this.bodySize = 0;
+  let channel = this.httpActivity.channel;
+  this._wrappedNotificationCallbacks = channel.notificationCallbacks;
+  channel.notificationCallbacks = this;
 }
 exports.NetworkResponseListener = NetworkResponseListener;
 
 NetworkResponseListener.prototype = {
   QueryInterface:
     XPCOMUtils.generateQI([Ci.nsIStreamListener, Ci.nsIInputStreamCallback,
-                           Ci.nsIRequestObserver, Ci.nsISupports]),
+                           Ci.nsIRequestObserver, Ci.nsIInterfaceRequestor,
+                           Ci.nsISupports]),
+
+  
+
+  
+
+
+
+  getInterface(iid) {
+    if (iid.equals(Ci.nsIProgressEventSink)) {
+      return this;
+    }
+    if (this._wrappedNotificationCallbacks) {
+      return this._wrappedNotificationCallbacks.getInterface(iid);
+    }
+    throw Cr.NS_ERROR_NO_INTERFACE;
+  },
 
   
 
@@ -71,6 +91,12 @@ NetworkResponseListener.prototype = {
 
 
   _foundOpenResponse: false,
+
+  
+
+
+
+  _wrappedNotificationCallbacks: null,
 
   
 
@@ -97,6 +123,11 @@ NetworkResponseListener.prototype = {
 
 
   bodySize: null,
+
+  
+
+
+  transferredSize: null,
 
   
 
@@ -176,6 +207,18 @@ NetworkResponseListener.prototype = {
     this._findOpenResponse();
     this.sink.outputStream.close();
   },
+
+  
+
+  
+
+
+
+  onProgress: function(request, context, progress, progressMax) {
+    this.transferredSize = progress;
+  },
+
+  onStatus: function () {},
 
   
 
@@ -259,6 +302,7 @@ NetworkResponseListener.prototype = {
     };
 
     response.size = response.text.length;
+    response.transferredSize = this.transferredSize;
 
     try {
       response.mimeType = this.request.contentType;
@@ -279,6 +323,7 @@ NetworkResponseListener.prototype = {
     this.httpActivity.owner.
       addResponseContent(response, this.httpActivity.discardResponseBody);
 
+    this._wrappedNotificationCallbacks = null;
     this.httpActivity.channel = null;
     this.httpActivity.owner = null;
     this.httpActivity = null;
