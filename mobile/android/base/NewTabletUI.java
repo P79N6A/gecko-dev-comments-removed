@@ -12,8 +12,7 @@ import org.mozilla.gecko.util.HardwareUtils;
 
 public class NewTabletUI {
     
-    
-    private static final boolean DEFAULT = true;
+    private static final boolean DEFAULT = false;
 
     private static Boolean sNewTabletUI;
 
