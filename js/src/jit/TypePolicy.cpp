@@ -80,7 +80,6 @@ ArithPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
         
         if (in->type() == MIRType_Object ||
             in->type() == MIRType_String ||
-            in->type() == MIRType_Symbol ||
             (in->type() == MIRType_Undefined && specialization_ == MIRType_Int32))
         {
             in = boxAt(alloc, ins, in);
@@ -364,8 +363,12 @@ BitwisePolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
             continue;
 
         
-        if (in->type() == MIRType_Object || in->type() == MIRType_String)
+        
+        if (in->type() == MIRType_Object || in->type() == MIRType_String ||
+            in->type() == MIRType_Symbol)
+        {
             in = boxAt(alloc, ins, in);
+        }
 
         MInstruction *replace = MTruncateToInt32::New(alloc, in);
         ins->block()->insertBefore(ins, replace);

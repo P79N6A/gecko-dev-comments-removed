@@ -124,10 +124,10 @@ SymbolObject::construct(JSContext *cx, unsigned argc, Value *vp)
 
 
 bool
-SymbolObject::convert(JSContext *cx, HandleObject obj, JSType type, MutableHandleValue vp)
+SymbolObject::convert(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp)
 {
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SYMBOL_TO_PRIMITIVE);
-    return false;
+    vp.setSymbol(obj->as<SymbolObject>().unbox());
+    return true;
 }
 
 

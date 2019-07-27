@@ -3409,7 +3409,8 @@ class MToDouble
         setMovable();
 
         
-        if (def->mightBeType(MIRType_Object))
+        
+        if (def->mightBeType(MIRType_Object) || def->mightBeType(MIRType_Symbol))
             setGuard();
     }
 
@@ -3484,7 +3485,8 @@ class MToFloat32
         setMovable();
 
         
-        if (def->mightBeType(MIRType_Object))
+        
+        if (def->mightBeType(MIRType_Object) || def->mightBeType(MIRType_Symbol))
             setGuard();
     }
 
@@ -3598,7 +3600,8 @@ class MToInt32
         setMovable();
 
         
-        if (def->mightBeType(MIRType_Object))
+        
+        if (def->mightBeType(MIRType_Object) || def->mightBeType(MIRType_Symbol))
             setGuard();
     }
 
@@ -3659,7 +3662,10 @@ class MTruncateToInt32 : public MUnaryInstruction
         setMovable();
 
         
-        if (def->mightBeType(MIRType_Object))
+        
+        MOZ_ASSERT(def->type() != MIRType_Object);
+        MOZ_ASSERT(def->type() != MIRType_Symbol);
+        if (def->mightBeType(MIRType_Object) || def->mightBeType(MIRType_Symbol))
             setGuard();
     }
 

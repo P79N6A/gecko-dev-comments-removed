@@ -3,23 +3,14 @@
 
 
 
-var tests = [
-    {T: Uint8Array, result: 0},
-    {T: Uint8ClampedArray, result: 0},
-    {T: Int16Array, result: 0},
-    {T: Float32Array, result: NaN}
-];
-
-for (var {T, result} of tests) {
+for (var T of [Uint8Array, Uint8ClampedArray, Int16Array, Float32Array]) {
     
-    var arr = new T([Symbol("a")]);
-    assertEq(arr.length, 1);
-    assertEq(arr[0], result);
+    assertThrowsInstanceOf(() => new T([Symbol("a")]), TypeError);
 
     
-    arr[0] = 0;
-    assertEq(arr[0] = Symbol.iterator, Symbol.iterator);
-    assertEq(arr[0], result);
+    var arr = new T([1]);
+    assertThrowsInstanceOf(() => { arr[0] = Symbol.iterator; }, TypeError);
+    assertEq(arr[0], 1);
 }
 
 if (typeof reportCompare === "function")
