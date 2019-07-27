@@ -958,6 +958,42 @@ struct RemoveExtent<T[N]>
 
 
 
+namespace detail {
+
+template<typename T, typename CVRemoved>
+struct RemovePointerHelper
+{
+  typedef T Type;
+};
+
+template<typename T, typename Pointee>
+struct RemovePointerHelper<T, Pointee*>
+{
+  typedef Pointee Type;
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct RemovePointer
+  : detail::RemovePointerHelper<T, typename RemoveCV<T>::Type>
+{};
+
 
 
 
