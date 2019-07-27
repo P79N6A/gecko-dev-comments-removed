@@ -400,6 +400,13 @@ let tests = [
       });
     });
   },
+  function test_treatment_tag(done) {
+    gContentAPI.setTreatmentTag("foobar", "baz");
+    gContentAPI.getTreatmentTag("foobar", (data) => {
+      is(data.value, "baz", "set and retrieved treatmentTag");
+      done();
+    });
+  },
 
   
   taskify(function* cleanupMenus() {
