@@ -99,6 +99,20 @@ loop.shared.actions = (function() {
     
 
 
+    AcceptCall: Action.define("acceptCall", {
+      callType: String
+    }),
+
+    
+
+
+    DeclineCall: Action.define("declineCall", {
+      blockCaller: Boolean
+    }),
+
+    
+
+
 
     ConnectCall: Action.define("connectCall", {
       

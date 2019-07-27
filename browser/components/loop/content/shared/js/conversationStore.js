@@ -221,6 +221,8 @@ loop.store = loop.store || {};
       this.dispatcher.register(this, [
         "connectionFailure",
         "connectionProgress",
+        "acceptCall",
+        "declineCall",
         "connectCall",
         "hangupCall",
         "remotePeerDisconnected",
@@ -253,6 +255,50 @@ loop.store = loop.store || {};
       } else {
         this._setupIncomingCall();
       }
+    },
+
+    
+
+
+
+
+    acceptCall: function(actionData) {
+      if (this.getStoreState("outgoing")) {
+        console.error("Received AcceptCall action in outgoing call state");
+        return;
+      }
+
+      this.setStoreState({
+        callType: actionData.callType,
+        videoMuted: actionData.callType === CALL_TYPES.AUDIO_ONLY
+      });
+
+      
+      
+      this._websocket.accept();
+    },
+
+    
+
+
+
+
+    declineCall: function(actionData) {
+      if (actionData.blockCaller) {
+        this.mozLoop.calls.blockDirectCaller(this.getStoreState("callerId"),
+          function(err) {
+            
+            
+            
+            console.log(err.fileName + ":" + err.lineNumber + ": " + err.message);
+          });
+      }
+
+      this._websocket.decline();
+
+      
+      this._endSession();
+      this.setStoreState({callState: CALL_STATES.CLOSE});
     },
 
     
