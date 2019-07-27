@@ -148,7 +148,7 @@ ContentBridgeParent::DeallocPBrowserParent(PBrowserParent* aParent)
 
 
 
-jsipc::JavaScriptParent*
+jsipc::JavaScriptShared*
 ContentBridgeParent::GetCPOWManager()
 {
   if (ManagedPJavaScriptParent().Length()) {

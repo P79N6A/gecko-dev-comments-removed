@@ -98,7 +98,7 @@ ContentBridgeChild::SendPBrowserConstructor(PBrowserChild* aActor,
 
 
 
-jsipc::JavaScriptChild *
+jsipc::JavaScriptShared*
 ContentBridgeChild::GetCPOWManager()
 {
   if (ManagedPJavaScriptChild().Length()) {
