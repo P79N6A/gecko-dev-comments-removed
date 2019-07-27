@@ -18,7 +18,7 @@ namespace jit {
 
 
 
-class BitSet : private TempObject
+class BitSet
 {
   public:
     static const size_t BitsPerWord = 8 * sizeof(uint32_t);
@@ -28,10 +28,6 @@ class BitSet : private TempObject
     }
 
   private:
-    explicit BitSet(unsigned int numBits) :
-        bits_(nullptr),
-        numBits_(numBits) {}
-
     uint32_t *bits_;
     const unsigned int numBits_;
 
@@ -47,12 +43,17 @@ class BitSet : private TempObject
         return RawLengthForBits(numBits_);
     }
 
-    bool init(TempAllocator &alloc);
+    BitSet(const BitSet &) = delete;
+    void operator=(const BitSet &) = delete;
 
   public:
     class Iterator;
 
-    static BitSet *New(TempAllocator &alloc, unsigned int numBits);
+    explicit BitSet(unsigned int numBits) :
+        bits_(nullptr),
+        numBits_(numBits) {}
+
+    bool init(TempAllocator &alloc);
 
     unsigned int getNumBits() const {
         return numBits_;
@@ -78,7 +79,7 @@ class BitSet : private TempObject
     }
 
     
-    void insertAll(const BitSet *other);
+    void insertAll(const BitSet &other);
 
     
     void remove(unsigned int value) {
@@ -89,14 +90,14 @@ class BitSet : private TempObject
     }
 
     
-    void removeAll(const BitSet *other);
+    void removeAll(const BitSet &other);
 
     
-    void intersect(const BitSet *other);
+    void intersect(const BitSet &other);
 
     
     
-    bool fixedPointIntersect(const BitSet *other);
+    bool fixedPointIntersect(const BitSet &other);
 
     
     void complement();
@@ -159,7 +160,7 @@ class BitSet::Iterator
         return more();
     }
 
-    inline Iterator& operator++(int dummy) {
+    inline void operator++() {
         MOZ_ASSERT(more());
         MOZ_ASSERT(index_ < set_.numBits_);
 
@@ -167,7 +168,6 @@ class BitSet::Iterator
         value_ >>= 1;
 
         skipEmpty();
-        return *this;
     }
 
     unsigned int operator *() {
