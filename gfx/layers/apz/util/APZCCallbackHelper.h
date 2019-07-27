@@ -90,15 +90,20 @@ public:
 
 
 
+
+
+
     static CSSPoint ApplyCallbackTransform(const CSSPoint& aInput,
-                                           const ScrollableLayerGuid& aGuid);
+                                           const ScrollableLayerGuid& aGuid,
+                                           float aPresShellResolution);
 
     
 
 
     static nsIntPoint ApplyCallbackTransform(const nsIntPoint& aPoint,
                                              const ScrollableLayerGuid& aGuid,
-                                             const CSSToLayoutDeviceScale& aScale);
+                                             const CSSToLayoutDeviceScale& aScale,
+                                             float aPresShellResolution);
 };
 
 }

@@ -312,8 +312,18 @@ APZCCallbackHelper::UpdateCallbackTransform(const FrameMetrics& aApzcMetrics, co
 }
 
 CSSPoint
-APZCCallbackHelper::ApplyCallbackTransform(const CSSPoint& aInput, const ScrollableLayerGuid& aGuid)
+APZCCallbackHelper::ApplyCallbackTransform(const CSSPoint& aInput,
+                                           const ScrollableLayerGuid& aGuid,
+                                           float aPresShellResolution)
 {
+    
+    
+    
+    
+    
+    CSSPoint input = aInput / aPresShellResolution;
+
+    
     
     
     
@@ -331,20 +341,21 @@ APZCCallbackHelper::ApplyCallbackTransform(const CSSPoint& aInput, const Scrolla
             void* property = content->GetProperty(nsGkAtoms::apzCallbackTransform);
             if (property) {
                 CSSPoint delta = (*static_cast<CSSPoint*>(property));
-                return aInput + delta;
+                return input + delta;
             }
         }
     }
-    return aInput;
+    return input;
 }
 
 nsIntPoint
 APZCCallbackHelper::ApplyCallbackTransform(const nsIntPoint& aPoint,
-                                        const ScrollableLayerGuid& aGuid,
-                                        const CSSToLayoutDeviceScale& aScale)
+                                           const ScrollableLayerGuid& aGuid,
+                                           const CSSToLayoutDeviceScale& aScale,
+                                           float aPresShellResolution)
 {
     LayoutDevicePoint point = LayoutDevicePoint(aPoint.x, aPoint.y);
-    point = ApplyCallbackTransform(point / aScale, aGuid) * aScale;
+    point = ApplyCallbackTransform(point / aScale, aGuid, aPresShellResolution) * aScale;
     LayoutDeviceIntPoint ret = gfx::RoundedToInt(point);
     return nsIntPoint(ret.x, ret.y);
 }
