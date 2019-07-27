@@ -727,8 +727,12 @@ let LoopRoomsInternal = {
       return;
     }
 
+    let oldDirty = gDirty;
     gDirty = true;
-    this.getAll(version, () => {});
+    
+    
+    
+    this.getAll(oldDirty ? null : version, () => {});
   },
 
   
