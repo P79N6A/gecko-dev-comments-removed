@@ -312,7 +312,7 @@ pref_SetPref(const dom::PrefSetting& aPref)
     if (userValue.type() == dom::MaybePrefValue::TPrefValue) {
         rv = SetPrefValue(prefName, userValue.get_PrefValue(), USER_VALUE);
     } else {
-        rv = PREF_ClearUserPref(prefName);
+        rv = PREF_ClearUserPref(prefName);      
     }
 
     
@@ -725,6 +725,7 @@ static void pref_SetValue(PrefValue* existingValue, uint16_t *existingFlags,
     else {
         *existingValue = newValue;
     }
+    gDirty = true;
 }
 
 PrefHashEntry* pref_HashTableLookup(const void *key)
@@ -784,8 +785,6 @@ nsresult pref_HashPref(const char *key, PrefValue value, PrefType type, uint32_t
                 if (!PREF_HAS_USER_VALUE(pref))
                     valueChanged = true;
             }
-            
-            
         }
     }
     else
@@ -800,10 +799,8 @@ nsresult pref_HashPref(const char *key, PrefValue value, PrefType type, uint32_t
             {
                 
                 pref->flags &= ~PREF_USERSET;
-                if (!PREF_IS_LOCKED(pref)) {
-                    gDirty = true;
+                if (!PREF_IS_LOCKED(pref))
                     valueChanged = true;
-                }
             }
         }
         else if (!PREF_HAS_USER_VALUE(pref) ||
@@ -812,17 +809,20 @@ nsresult pref_HashPref(const char *key, PrefValue value, PrefType type, uint32_t
         {
             pref_SetValue(&pref->userPref, &pref->flags, value, type);
             pref->flags |= PREF_USERSET;
-            if (!PREF_IS_LOCKED(pref)) {
-                gDirty = true;
+            if (!PREF_IS_LOCKED(pref))
                 valueChanged = true;
-            }
         }
     }
 
+    nsresult rv = NS_OK;
     if (valueChanged) {
-        return pref_DoCallback(key);
+        gDirty = true;
+
+        nsresult rv2 = pref_DoCallback(key);
+        if (NS_FAILED(rv2))
+            rv = rv2;
     }
-    return NS_OK;
+    return rv;
 }
 
 size_t
