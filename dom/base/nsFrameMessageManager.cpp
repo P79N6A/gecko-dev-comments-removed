@@ -1645,7 +1645,8 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
       }
     } else {
       
-      options.setCompileAndGo(false);
+      options.setCompileAndGo(false)
+             .setHasPollutedScope(true);
       if (!JS::Compile(cx, options, srcBuf, &script)) {
         return;
       }
