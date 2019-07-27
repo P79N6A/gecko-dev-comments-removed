@@ -561,6 +561,12 @@ protected:
                         uint32_t* aStartOffset, uint32_t* aEndOffset,
                         nsIPersistentProperties* aAttributes);
 
+  
+
+
+
+  void SetMathMLXMLRoles(nsIPersistentProperties* aAttributes);
+
 private:
   
 
