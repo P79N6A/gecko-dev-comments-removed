@@ -447,13 +447,6 @@ ArenaHeader::checkSynchronizedWithFreeList() const
 }
 #endif
 
-void
-ArenaHeader::unmarkAll()
-{
-    uintptr_t *word = chunk()->bitmap.arenaBits(this);
-    memset(word, 0, ArenaBitmapWords * sizeof(uintptr_t));
-}
-
  void
 Arena::staticAsserts()
 {
@@ -2489,9 +2482,6 @@ GCRuntime::releaseRelocatedArenas(ArenaHeader *relocatedList)
     while (relocatedList) {
         ArenaHeader *aheader = relocatedList;
         relocatedList = relocatedList->next;
-
-        
-        aheader->unmarkAll();
 
         
         AllocKind thingKind = aheader->getAllocKind();
