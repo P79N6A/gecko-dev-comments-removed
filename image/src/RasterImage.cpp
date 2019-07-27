@@ -211,7 +211,8 @@ public:
     
     
     SurfaceCache::Insert(mDstRef.get(), ImageKey(mImage.get()),
-                         RasterSurfaceKey(mDstSize.ToIntSize(), mImageFlags));
+                         RasterSurfaceKey(mDstSize.ToIntSize(), mImageFlags),
+                         Lifetime::Transient);
 
     return true;
   }
@@ -265,9 +266,9 @@ public:
       NS_WARNING("HQ scaling failed");
 
       
-      SurfaceCache::RemoveIfPresent(ImageKey(mImage.get()),
-                                    RasterSurfaceKey(mDstSize.ToIntSize(),
-                                                     mImageFlags));
+      SurfaceCache::RemoveSurface(ImageKey(mImage.get()),
+                                  RasterSurfaceKey(mDstSize.ToIntSize(),
+                                                   mImageFlags));
 
       
       mSrcRef.reset();
@@ -374,7 +375,7 @@ RasterImage::~RasterImage()
   }
 
   
-  SurfaceCache::Discard(this);
+  SurfaceCache::RemoveImage(ImageKey(this));
 
   mAnim = nullptr;
 

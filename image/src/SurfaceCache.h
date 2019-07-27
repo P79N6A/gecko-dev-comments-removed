@@ -109,6 +109,23 @@ VectorSurfaceKey(const gfx::IntSize& aSize,
   return SurfaceKey(aSize, aSVGContext, aAnimationTime, 0);
 }
 
+MOZ_BEGIN_ENUM_CLASS(Lifetime, uint8_t)
+  Transient,
+  Persistent
+MOZ_END_ENUM_CLASS(Lifetime)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -150,6 +167,8 @@ struct SurfaceCache
 
 
 
+
+
   static DrawableFrameRef Lookup(const ImageKey    aImageKey,
                                  const SurfaceKey& aSurfaceKey);
 
@@ -163,9 +182,34 @@ struct SurfaceCache
 
 
 
-  static void Insert(imgFrame*         aSurface,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool Insert(imgFrame*         aSurface,
                      const ImageKey    aImageKey,
-                     const SurfaceKey& aSurfaceKey);
+                     const SurfaceKey& aSurfaceKey,
+                     Lifetime          aLifetime);
 
   
 
@@ -193,8 +237,17 @@ struct SurfaceCache
 
 
 
-  static void RemoveIfPresent(const ImageKey    aImageKey,
-                              const SurfaceKey& aSurfaceKey);
+
+
+
+
+
+
+
+
+
+  static void LockImage(const ImageKey aImageKey);
+
   
 
 
@@ -203,9 +256,39 @@ struct SurfaceCache
 
 
 
-  static void Discard(const ImageKey aImageKey);
+  static void UnlockImage(const ImageKey aImageKey);
 
   
+
+
+
+
+
+
+
+
+
+
+  static void RemoveSurface(const ImageKey    aImageKey,
+                            const SurfaceKey& aSurfaceKey);
+
+  
+
+
+
+
+
+
+
+
+
+  static void RemoveImage(const ImageKey aImageKey);
+
+  
+
+
+
+
 
 
   static void DiscardAll();
