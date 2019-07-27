@@ -20,13 +20,6 @@
 #include <new>
 
 
-PLDHashOperator PL_DHashStubEnumRemove(PLDHashTable* aTable,
-                                       PLDHashEntryHdr* aEntry,
-                                       uint32_t aOrdinal,
-                                       void* aUserArg);
-
-
-
 
 
 
@@ -213,9 +206,11 @@ public:
   
 
 
+
+
   void Clear()
   {
-    PL_DHashTableEnumerate(&mTable, PL_DHashStubEnumRemove, nullptr);
+    mTable.Clear();
   }
 
   
