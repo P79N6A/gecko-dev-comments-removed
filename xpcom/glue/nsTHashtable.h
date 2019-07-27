@@ -264,12 +264,30 @@ public:
   
 
 
+
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+  {
+    return SizeOfExcludingThis(BasicSizeOfEntryExcludingThisFun, aMallocSizeOf);
+  }
+
+  
+
+
   size_t SizeOfIncludingThis(SizeOfEntryExcludingThisFun aSizeOfEntryExcludingThis,
                              mozilla::MallocSizeOf aMallocSizeOf,
                              void* aUserArg = nullptr) const
   {
     return aMallocSizeOf(this) +
       SizeOfExcludingThis(aSizeOfEntryExcludingThis, aMallocSizeOf, aUserArg);
+  }
+
+  
+
+
+
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+  {
+    return SizeOfIncludingThis(BasicSizeOfEntryExcludingThisFun, aMallocSizeOf);
   }
 
 #ifdef DEBUG
@@ -349,6 +367,14 @@ private:
   void Init(uint32_t aInitSize);
 
   
+
+
+
+  static size_t BasicSizeOfEntryExcludingThisFun(EntryType* aEntry,
+                                                 mozilla::MallocSizeOf aMallocSizeOf,
+                                                 void*);
+
+  
   nsTHashtable<EntryType>& operator=(nsTHashtable<EntryType>& aToEqual) MOZ_DELETE;
 };
 
@@ -394,6 +420,16 @@ nsTHashtable<EntryType>::Init(uint32_t aInitSize)
   };
 
   PL_DHashTableInit(&mTable, &sOps, nullptr, sizeof(EntryType), aInitSize);
+}
+
+
+template<class EntryType>
+size_t
+nsTHashtable<EntryType>::BasicSizeOfEntryExcludingThisFun(EntryType* aEntry,
+                                                          mozilla::MallocSizeOf aMallocSizeOf,
+                                                          void*)
+{
+  return aEntry->SizeOfExcludingThis(aMallocSizeOf);
 }
 
 
