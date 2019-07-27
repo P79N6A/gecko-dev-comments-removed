@@ -1142,7 +1142,10 @@ protected:
                  const nsAString& aOptions,
                  nsIDOMWindow **_retval);
 
+private:
   
+
+
 
 
 
@@ -1200,6 +1203,7 @@ protected:
                                     JSContext *aJSCallerContext,
                                     nsIDOMWindow **aReturn);
 
+public:
   
   
   
