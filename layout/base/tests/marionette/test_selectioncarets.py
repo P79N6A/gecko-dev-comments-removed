@@ -7,6 +7,7 @@ from by import By
 from marionette import Actions
 from marionette_test import MarionetteTestCase
 from selection import SelectionManager
+from gestures import long_press_without_contextmenu
 
 
 class SelectionCaretsTest(MarionetteTestCase):
@@ -48,7 +49,7 @@ class SelectionCaretsTest(MarionetteTestCase):
         
         
         
-        self.actions.long_press(el, self._long_press_time, x, y).perform()
+        long_press_without_contextmenu(self.marionette, el, self._long_press_time, x, y)
 
     def _test_long_press_to_select_a_word(self, el, assertFunc):
         sel = SelectionManager(el)
