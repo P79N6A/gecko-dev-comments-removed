@@ -13,8 +13,6 @@
 #include "nsDebugImpl.h"
 #include "nsIErrorService.h"
 #include "nsMemoryImpl.h"
-#include "nsNetCID.h"
-#include "nsNetModuleStandalone.h"
 #include "nsObserverService.h"
 #include "nsThreadManager.h"
 #include "nsThreadPool.h"
@@ -100,8 +98,6 @@ NS_InitXPCOMRT()
     return rv;
   }
 
-  mozilla::InitNetModuleStandalone();
-
   return NS_OK;
 }
 
@@ -155,11 +151,6 @@ NS_ShutdownXPCOMRT()
     nsTimerImpl::Shutdown();
 
     NS_ProcessPendingEvents(thread);
-
-    
-    
-    
-    mozilla::ShutdownNetModuleStandalone();
 
     
     
