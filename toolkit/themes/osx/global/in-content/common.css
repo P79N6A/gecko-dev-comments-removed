@@ -2,6 +2,7 @@
 
 
 
+%include ../shared.inc
 %include ../../../shared/in-content/common.inc.css
 
 xul|tabs {
