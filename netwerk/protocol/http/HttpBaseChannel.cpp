@@ -1900,13 +1900,6 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   newChannel->SetLoadFlags(newLoadFlags);
 
   
-  
-  nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(mOwner);
-  if (ownerPrincipal && ownerPrincipal->GetIsNullPrincipal()) {
-    newChannel->SetOwner(mOwner);
-  }
-
-  
   if (mPrivateBrowsingOverriden) {
     nsCOMPtr<nsIPrivateBrowsingChannel> newPBChannel =
       do_QueryInterface(newChannel);
