@@ -44,6 +44,92 @@ namespace JS {
 
 class AutoIdVector;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ObjectOpResult
+{
+  private:
+    uint32_t code_;
+
+  public:
+    enum { OkCode = 0, Uninitialized = 0xffffffff };
+
+    ObjectOpResult() : code_(Uninitialized) {}
+
+    
+    bool ok() const {
+        MOZ_ASSERT(code_ != Uninitialized);
+        return code_ == OkCode;
+    }
+
+    explicit operator bool() const { return ok(); }
+
+    
+    bool succeed() {
+        code_ = OkCode;
+        return true;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    bool fail(uint32_t msg) {
+        MOZ_ASSERT(msg != OkCode);
+        code_ = msg;
+        return true;
+    }
+
+    
+
+
+
+    bool checkStrict(JSContext *cx, HandleId id) {
+        return ok() || reportError(cx, id);
+    }
+
+    
+    JS_PUBLIC_API(bool) reportError(JSContext *cx, HandleId id);
+};
+
 }
 
 

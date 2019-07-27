@@ -754,12 +754,23 @@ GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
 
 
 extern bool
-StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
-                       const PropDesc &desc, bool throwError, bool *rval);
+StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id, const PropDesc &desc,
+                       ObjectOpResult &result);
 
 extern bool
 StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
-                       Handle<PropertyDescriptor> descriptor, bool *bp);
+                       Handle<PropertyDescriptor> descriptor, ObjectOpResult &result);
+
+
+
+
+
+extern bool
+StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id, const PropDesc &desc);
+
+extern bool
+StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
+                       Handle<PropertyDescriptor> desc);
 
 extern bool
 DefineProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
