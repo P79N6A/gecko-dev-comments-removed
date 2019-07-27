@@ -1506,6 +1506,22 @@ RilObject.prototype = {
   
 
 
+  getIccServiceState: function(options) {
+    switch (options.service) {
+      case GECKO_CARDSERVICE_FDN:
+        let ICCUtilsHelper = this.context.ICCUtilsHelper;
+        options.result = ICCUtilsHelper.isICCServiceAvailable("FDN");
+        break;
+      default:
+        options.errorMsg = GECKO_ERROR_REQUEST_NOT_SUPPORTED;
+        break;
+    }
+    this.sendChromeMessage(options);
+  },
+
+  
+
+
   setUiccSubscription: function(options) {
     if (DEBUG) {
       this.context.debug("setUiccSubscription: " + JSON.stringify(options));
