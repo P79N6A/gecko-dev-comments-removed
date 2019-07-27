@@ -838,9 +838,6 @@ pref("devtools.remote.wifi.visible", false);
 pref("devtools.remote.tls-handshake-timeout", 10000);
 
 
-pref("devtools.devices.url", "https://code.cdn.mozilla.net/devices/devices.json");
-
-
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
@@ -4477,7 +4474,11 @@ pref("camera.control.face_detection.enabled", true);
 
 
 
+#ifdef RELEASE_BUILD
 pref("dom.caches.enabled", false);
+#else
+pref("dom.caches.enabled", true);
+#endif 
 
 #ifdef MOZ_WIDGET_GONK
 
@@ -4528,7 +4529,7 @@ pref("browser.addon-watch.interval", 15000);
 #else
 pref("browser.addon-watch.interval", -1);
 #endif
-pref("browser.addon-watch.ignore", "[\"mochikit@mozilla.org\",\"special-powers@mozilla.org\",\"fxdevtools-adapters@mozilla.org\",\"fx-devtools\"]");
+pref("browser.addon-watch.ignore", "[\"mochikit@mozilla.org\",\"special-powers@mozilla.org\"]");
 
 pref("browser.addon-watch.percentage-limit", 5);
 
