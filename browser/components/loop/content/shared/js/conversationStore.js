@@ -76,6 +76,8 @@ loop.store.ConversationStore = (function() {
       
       callId: undefined,
       
+      callerId: undefined,
+      
       progressURL: undefined,
       
       websocketToken: undefined,

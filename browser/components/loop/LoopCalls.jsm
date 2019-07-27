@@ -21,6 +21,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "LOOP_SESSION_TYPE",
 
 XPCOMUtils.defineLazyModuleGetter(this, "LoopContacts",
                                   "resource:///modules/loop/LoopContacts.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
  
 
@@ -326,6 +328,50 @@ let LoopCallsInternal = {
     return true;
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+  blockDirectCaller: function(callerId, callback) {
+    let field = callerId.contains("@") ? "email" : "tel";
+    Task.spawn(function* () {
+      
+      let contacts = yield LoopContacts.promise("search", {
+        q: callerId,
+        field: field
+      });
+
+      let contact;
+      if (contacts.length) {
+        for (contact of contacts) {
+          yield LoopContacts.promise("block", contact._guid);
+        }
+      } else {
+        
+        contact = {
+          id: MozLoopService.generateUUID(),
+          name: [callerId],
+          category: ["local"],
+          blocked: true
+        };
+        
+        contact[field] = [{
+          pref: true,
+          value: callerId
+        }];
+
+        yield LoopContacts.promise("add", contact);
+      }
+    }).then(callback, callback);
+  },
+
    
 
 
@@ -400,6 +446,13 @@ this.LoopCalls = {
 
   startDirectCall: function(contact, callType) {
     LoopCallsInternal.startDirectCall(contact, callType);
+  },
+
+  
+
+
+  blockDirectCaller: function(callerId, callback) {
+    return LoopCallsInternal.blockDirectCaller(callerId, callback);
   }
 };
 Object.freeze(LoopCalls);

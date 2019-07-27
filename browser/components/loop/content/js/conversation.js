@@ -20,6 +20,9 @@ loop.conversation = (function(mozL10n) {
   var CallIdentifierView = loop.conversationViews.CallIdentifierView;
   var DesktopRoomConversationView = loop.roomViews.DesktopRoomConversationView;
 
+  
+  var EMAIL_OR_PHONE_RE = /^(:?\S+@\S+|\+\d+)$/;
+
   var IncomingCallView = React.createClass({displayName: 'IncomingCallView',
     mixins: [sharedMixins.DropdownMenuMixin, sharedMixins.AudioMixin],
 
@@ -505,14 +508,27 @@ loop.conversation = (function(mozL10n) {
     declineAndBlock: function() {
       navigator.mozLoop.stopAlerting();
       var token = this.props.conversation.get("callToken");
-      this.props.client.deleteCallUrl(token,
-        this.props.conversation.get("sessionType"),
-        function(error) {
+      var callerId = this.props.conversation.get("callerId");
+
+      
+      if (callerId && EMAIL_OR_PHONE_RE.test(callerId)) {
+        navigator.mozLoop.calls.blockDirectCaller(callerId, function(err) {
           
           
           
-          console.log(error);
+          console.log(err.fileName + ":" + err.lineNumber + ": " + err.message);
         });
+      } else {
+        this.props.client.deleteCallUrl(token,
+          this.props.conversation.get("sessionType"),
+          function(error) {
+            
+            
+            
+            console.log(error);
+          });
+      }
+
       this._declineCall();
     },
 
