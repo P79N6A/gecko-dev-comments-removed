@@ -1175,31 +1175,6 @@ public:
   
   
   
-
-  template<class Allocator, typename ActualAlloc = Alloc>
-  typename ActualAlloc::ResultType Assign(
-      const nsTArray_Impl<E, Allocator>& aOther)
-  {
-    return ActualAlloc::ConvertBoolToResultType(
-      !!ReplaceElementsAt<E, ActualAlloc>(0, Length(),
-                                          aOther.Elements(), aOther.Length()));
-  }
-
-  template<class Allocator>
-  
-  bool Assign(const nsTArray_Impl<E, Allocator>& aOther,
-              const mozilla::fallible_t&)
-  {
-    return Assign<Allocator, FallibleAlloc>(aOther);
-  }
-
-  template<class Allocator>
-  void Assign(nsTArray_Impl<E, Allocator>&& aOther)
-  {
-    Clear();
-    SwapElements(aOther);
-  }
-
   
   
   
