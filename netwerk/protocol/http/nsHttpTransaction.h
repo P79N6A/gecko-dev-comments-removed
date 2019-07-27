@@ -264,6 +264,7 @@ private:
     bool                            mDispatchedAsBlocking;
     bool                            mResponseTimeoutEnabled;
     bool                            mDontRouteViaWildCard;
+    bool                            mForceRestart;
 
     
     

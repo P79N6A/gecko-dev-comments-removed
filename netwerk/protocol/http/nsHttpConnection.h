@@ -211,6 +211,8 @@ public:
         return mTrafficStamp &&
             (mTrafficCount == (mTotalBytesWritten + mTotalBytesRead));
     }
+    
+    virtual uint32_t Version();
 
 private:
     
