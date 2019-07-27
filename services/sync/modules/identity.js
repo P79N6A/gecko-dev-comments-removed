@@ -383,6 +383,25 @@ IdentityManager.prototype = {
 
 
 
+  unlockAndVerifyAuthState: function() {
+    
+    
+    try {
+      this.syncKey;
+    } catch (ex) {
+      this._log.debug("Fetching passphrase threw " + ex +
+                      "; assuming master password locked.");
+      return Promise.resolve(MASTER_PASSWORD_LOCKED);
+    }
+    return Promise.resolve(STATUS_OK);
+  },
+
+  
+
+
+
+
+
 
 
 
