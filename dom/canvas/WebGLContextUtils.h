@@ -56,6 +56,9 @@ size_t GetBitsPerTexel(TexInternalFormat effectiveinternalformat);
 
 TexTarget TexImageTargetToTexTarget(TexImageTarget texImageTarget);
 
+
+JS::Value StringValue(JSContext* cx, const char* str, ErrorResult& rv);
+
 struct GLComponents
 {
     unsigned char mComponents;
