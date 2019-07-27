@@ -5436,7 +5436,7 @@ static void
 InitDOMObject(HandleObject obj)
 {
     
-    SetReservedSlot(obj, DOM_OBJECT_SLOT, PrivateValue((void*)0x1234));
+    SetReservedSlot(obj, DOM_OBJECT_SLOT, PRIVATE_TO_JSVAL((void*)0x1234));
 }
 
 static bool

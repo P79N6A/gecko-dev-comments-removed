@@ -1271,7 +1271,7 @@ EventSource::DispatchAllMessageEvents()
                                      message->mData.Length());
       NS_ENSURE_TRUE_VOID(jsString);
 
-      jsData.setString(jsString);
+      jsData = STRING_TO_JSVAL(jsString);
     }
 
     
