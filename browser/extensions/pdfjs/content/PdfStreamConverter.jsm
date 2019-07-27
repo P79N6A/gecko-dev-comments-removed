@@ -63,16 +63,9 @@ function getContainingBrowser(domWindow) {
                   .chromeEventHandler;
 }
 
-function getChromeWindow(domWindow) {
-  if (PdfjsContentUtils.isRemote) {
-    return PdfjsContentUtils.getChromeWindow(domWindow);
-  }
-  return getContainingBrowser(domWindow).ownerDocument.defaultView;
-}
-
 function getFindBar(domWindow) {
   if (PdfjsContentUtils.isRemote) {
-    return PdfjsContentUtils.getFindBar(domWindow);
+    throw new Error('FindBar is not accessible from the content process.');
   }
   var browser = getContainingBrowser(domWindow);
   try {
@@ -163,6 +156,21 @@ function makeContentReadable(obj, window) {
   return Cu.cloneInto(obj, window);
 }
 
+function createNewChannel(uri, node, principal) {
+  return NetUtil.newChannel2(uri,
+                             null,
+                             null,
+                             node, 
+                             principal, 
+                             null, 
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER);
+}
+
+function asyncFetchChannel(channel, callback) {
+  return NetUtil.asyncFetch2(channel, callback);
+}
+
 
 function PdfDataListener(length) {
   this.length = length; 
@@ -241,15 +249,16 @@ ChromeActions.prototype = {
   download: function(data, sendResponse) {
     var self = this;
     var originalUrl = data.originalUrl;
+    var blobUrl = data.blobUrl || originalUrl;
     
     
-    var originalUri = NetUtil.newURI(data.originalUrl);
+    var originalUri = NetUtil.newURI(originalUrl);
     var filename = data.filename;
     if (typeof filename !== 'string' ||
         (!/\.pdf$/i.test(filename) && !data.isAttachment)) {
       filename = 'document.pdf';
     }
-    var blobUri = data.blobUrl ? NetUtil.newURI(data.blobUrl) : originalUri;
+    var blobUri = NetUtil.newURI(blobUrl);
     var extHelperAppSvc =
           Cc['@mozilla.org/uriloader/external-helper-app-service;1'].
              getService(Ci.nsIExternalHelperAppService);
@@ -257,12 +266,12 @@ ChromeActions.prototype = {
                          getService(Ci.nsIWindowWatcher).activeWindow;
 
     var docIsPrivate = this.isInPrivateBrowsing();
-    var netChannel = NetUtil.newChannel(blobUri);
+    var netChannel = createNewChannel(blobUri, frontWindow.document, null);
     if ('nsIPrivateBrowsingChannel' in Ci &&
         netChannel instanceof Ci.nsIPrivateBrowsingChannel) {
       netChannel.setPrivate(docIsPrivate);
     }
-    NetUtil.asyncFetch(netChannel, function(aInputStream, aResult) {
+    asyncFetchChannel(netChannel, function(aInputStream, aResult) {
       if (!Components.isSuccessCode(aResult)) {
         if (sendResponse) {
           sendResponse(true);
@@ -339,6 +348,12 @@ ChromeActions.prototype = {
     if (this.domWindow.frameElement !== null) {
       return false;
     }
+
+    
+    if (PdfjsContentUtils.isRemote) {
+      return true;
+    }
+
     
     var findBar = getFindBar(this.domWindow);
     return findBar && ('updateControlState' in findBar);
@@ -441,7 +456,15 @@ ChromeActions.prototype = {
         (findPreviousType !== 'undefined' && findPreviousType !== 'boolean')) {
       return;
     }
-    getFindBar(this.domWindow).updateControlState(result, findPrevious);
+
+    var winmm = this.domWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                              .getInterface(Ci.nsIDocShell)
+                              .sameTypeRootTreeItem
+                              .QueryInterface(Ci.nsIDocShell)
+                              .QueryInterface(Ci.nsIInterfaceRequestor)
+                              .getInterface(Ci.nsIContentFrameMessageManager);
+
+    winmm.sendAsyncMessage('PDFJS:Parent:updateControlState', data);
   },
   setPreferences: function(prefs, sendResponse) {
     var defaultBranch = Services.prefs.getDefaultBranch(PREF_PREFIX + '.');
@@ -746,14 +769,14 @@ RequestListener.prototype.receive = function(event) {
 
 
 
-function FindEventManager(eventElement, contentWindow, chromeWindow) {
-  this.types = ['find',
-                'findagain',
-                'findhighlightallchange',
-                'findcasesensitivitychange'];
-  this.chromeWindow = chromeWindow;
+function FindEventManager(contentWindow) {
   this.contentWindow = contentWindow;
-  this.eventElement = eventElement;
+  this.winmm = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIDocShell)
+                            .sameTypeRootTreeItem
+                            .QueryInterface(Ci.nsIDocShell)
+                            .QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIContentFrameMessageManager);
 }
 
 FindEventManager.prototype.bind = function() {
@@ -763,41 +786,27 @@ FindEventManager.prototype.bind = function() {
   }.bind(this);
   this.contentWindow.addEventListener('unload', unload);
 
-  for (var i = 0; i < this.types.length; i++) {
-    var type = this.types[i];
-    this.eventElement.addEventListener(type, this, true);
-  }
+  
+  
+  
+  
+  this.winmm.sendAsyncMessage('PDFJS:Parent:addEventListener');
+  this.winmm.addMessageListener('PDFJS:Child:handleEvent', this);
 };
 
-FindEventManager.prototype.handleEvent = function(e) {
-  var chromeWindow = this.chromeWindow;
+FindEventManager.prototype.receiveMessage = function(msg) {
+  var detail = msg.data.detail;
+  var type = msg.data.type;
   var contentWindow = this.contentWindow;
-  
-  if (chromeWindow.gBrowser.selectedBrowser.contentWindow === contentWindow) {
-    var detail = {
-      query: e.detail.query,
-      caseSensitive: e.detail.caseSensitive,
-      highlightAll: e.detail.highlightAll,
-      findPrevious: e.detail.findPrevious
-    };
-    detail = makeContentReadable(detail, contentWindow);
-    var forward = contentWindow.document.createEvent('CustomEvent');
-    forward.initCustomEvent(e.type, true, true, detail);
-    
-    
-    
-    Services.tm.mainThread.dispatch(function () {
-      contentWindow.dispatchEvent(forward);
-    }, Ci.nsIThread.DISPATCH_NORMAL);
-    e.preventDefault();
-  }
+
+  detail = makeContentReadable(detail, contentWindow);
+  var forward = contentWindow.document.createEvent('CustomEvent');
+  forward.initCustomEvent(type, true, true, detail);
+  contentWindow.dispatchEvent(forward);
 };
 
 FindEventManager.prototype.unbind = function() {
-  for (var i = 0; i < this.types.length; i++) {
-    var type = this.types[i];
-    this.eventElement.removeEventListener(type, this, true);
-  }
+  this.winmm.sendAsyncMessage('PDFJS:Parent:removeEventListener');
 };
 
 function PdfStreamConverter() {
@@ -922,9 +931,8 @@ PdfStreamConverter.prototype = {
                         .createInstance(Ci.nsIBinaryInputStream);
 
     
-    var ioService = Services.io;
-    var channel = ioService.newChannel(
-                    PDF_VIEWER_WEB_PAGE, null, null);
+    var systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+    var channel = createNewChannel(PDF_VIEWER_WEB_PAGE, null, systemPrincipal);
 
     var listener = this.listener;
     var dataListener = this.dataListener;
@@ -957,11 +965,7 @@ PdfStreamConverter.prototype = {
           requestListener.receive(event);
         }, false, true);
         if (actions.supportsIntegratedFind()) {
-          var chromeWindow = getChromeWindow(domWindow);
-          var findBar = getFindBar(domWindow);
-          var findEventManager = new FindEventManager(findBar,
-                                                      domWindow,
-                                                      chromeWindow);
+          var findEventManager = new FindEventManager(domWindow);
           findEventManager.bind();
         }
         listener.onStopRequest(aRequest, context, statusCode);
@@ -982,7 +986,7 @@ PdfStreamConverter.prototype = {
     
     var securityManager = Cc['@mozilla.org/scriptsecuritymanager;1']
                           .getService(Ci.nsIScriptSecurityManager);
-    var uri = ioService.newURI(PDF_VIEWER_WEB_PAGE, null, null);
+    var uri = NetUtil.newURI(PDF_VIEWER_WEB_PAGE, null, null);
     
     
     var resourcePrincipal = 'getNoAppCodebasePrincipal' in securityManager ?

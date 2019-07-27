@@ -149,56 +149,6 @@ let PdfjsContentUtils = {
         }
         break;
     }
-  },
-
-  
-
-
-
-  getChromeWindow: function (aWindow) {
-    let winmm = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDocShell)
-                        .sameTypeRootTreeItem
-                        .QueryInterface(Ci.nsIDocShell)
-                        .QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIContentFrameMessageManager);
-    
-    
-    let suitcase = {
-      _window: null,
-      setChromeWindow: function (aObj) {
-        this._window = aObj;
-      }
-    };
-    if (!winmm.sendSyncMessage('PDFJS:Parent:getChromeWindow', {},
-                               { suitcase: suitcase })[0]) {
-      Cu.reportError('A request for a CPOW wrapped chrome window ' +
-                     'failed for unknown reasons.');
-      return null;
-    }
-    return suitcase._window;
-  },
-
-  getFindBar: function (aWindow) {
-    let winmm = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDocShell)
-                        .sameTypeRootTreeItem
-                        .QueryInterface(Ci.nsIDocShell)
-                        .QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIContentFrameMessageManager);
-    let suitcase = {
-      _findbar: null,
-      setFindBar: function (aObj) {
-        this._findbar = aObj;
-      }
-    };
-    if (!winmm.sendSyncMessage('PDFJS:Parent:getFindBar', {},
-                               { suitcase: suitcase })[0]) {
-      Cu.reportError('A request for a CPOW wrapped findbar ' +
-                     'failed for unknown reasons.');
-      return null;
-    }
-    return suitcase._findbar;
   }
 };
 

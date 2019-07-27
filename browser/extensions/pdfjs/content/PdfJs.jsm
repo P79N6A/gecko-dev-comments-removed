@@ -266,7 +266,7 @@ let PdfJs = {
       PdfjsChromeUtils.notifyChildOfSettingsChange();
     }
   },
-  
+
   
 
 

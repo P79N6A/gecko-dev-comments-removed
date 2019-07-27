@@ -22,8 +22,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.0.1149';
-PDFJS.build = 'bc7a110';
+PDFJS.version = '1.1.24';
+PDFJS.build = 'f6a8110';
 
 (function pdfjsWrapper() {
   
@@ -949,10 +949,6 @@ function isString(v) {
   return typeof v === 'string';
 }
 
-function isNull(v) {
-  return v === null;
-}
-
 function isName(v) {
   return v instanceof Name;
 }
@@ -1418,6 +1414,14 @@ PDFJS.disableWebGL = (PDFJS.disableWebGL === undefined ?
 
 
 
+
+PDFJS.disableFullscreen = (PDFJS.disableFullscreen === undefined ?
+                           false : PDFJS.disableFullscreen);
+
+
+
+
+
 PDFJS.useOnlyCssZoom = (PDFJS.useOnlyCssZoom === undefined ?
                         false : PDFJS.useOnlyCssZoom);
 
@@ -1439,6 +1443,15 @@ PDFJS.verbosity = (PDFJS.verbosity === undefined ?
 
 PDFJS.maxCanvasPixels = (PDFJS.maxCanvasPixels === undefined ?
                          16777216 : PDFJS.maxCanvasPixels);
+
+
+
+
+
+
+PDFJS.openExternalLinksInNewWindow = (
+  PDFJS.openExternalLinksInNewWindow === undefined ?
+    false : PDFJS.openExternalLinksInNewWindow);
 
 
 
@@ -1879,7 +1892,7 @@ var PDFDocumentProxy = (function PDFDocumentProxyClosure() {
 
 
 
- 
+
 
 
 
@@ -5118,7 +5131,6 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
 })();
 
 
-
 var WebGLUtils = (function WebGLUtilsClosure() {
   function loadShader(gl, code, shaderType) {
     var shader = gl.createShader(shaderType);
@@ -6235,6 +6247,9 @@ var AnnotationUtils = (function AnnotationUtilsClosure() {
 
     var link = document.createElement('a');
     link.href = link.title = item.url || '';
+    if (item.url && PDFJS.openExternalLinksInNewWindow) {
+      link.target = '_blank';
+    }
 
     container.appendChild(link);
 

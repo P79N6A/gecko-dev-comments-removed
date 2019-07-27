@@ -134,4 +134,3 @@
     translate: translateFragment
   };
 })(this);
-
