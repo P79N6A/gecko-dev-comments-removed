@@ -47,9 +47,6 @@ private:
   nsRefPtr<IccManager> mIccManager;
   
   
-  nsCOMPtr<nsIIccProvider> mProvider;
-  
-  
   nsCOMPtr<nsIIcc> mHandler;
 };
 

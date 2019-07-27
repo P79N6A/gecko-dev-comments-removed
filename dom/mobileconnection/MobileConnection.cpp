@@ -1129,7 +1129,7 @@ MobileConnection::NotifyNetworkSelectionModeChanged()
 
 
 NS_IMETHODIMP
-MobileConnection::NotifyStkCommand(const nsAString& aMessage)
+MobileConnection::NotifyStkCommand(nsIStkProactiveCmd *aStkProactiveCmd)
 {
   return NS_OK;
 }

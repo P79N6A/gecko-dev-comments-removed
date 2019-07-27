@@ -29,6 +29,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gMobileConnectionService",
                                    "@mozilla.org/mobileconnection/mobileconnectionservice;1",
                                    "nsIGonkMobileConnectionService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gIccMessenger",
+                                   "@mozilla.org/ril/system-messenger-helper;1",
+                                   "nsIIccMessenger");
+
 let DEBUG = RIL.DEBUG_RIL;
 function debug(s) {
   dump("IccService: " + s);
@@ -123,6 +127,27 @@ IccService.prototype = {
 
   
 
+
+  notifyStkCommand: function(aServiceId, aStkcommand) {
+    if (DEBUG) {
+      debug("notifyStkCommand for service Id: " + aServiceId);
+    }
+
+    let icc = this.getIccByServiceId(aServiceId);
+
+    gIccMessenger.notifyStkProactiveCommand(icc.iccInfo.iccid, aStkcommand);
+
+    icc._deliverListenerEvent("notifyStkCommand", [aStkcommand]);
+  },
+
+  notifyStkSessionEnd: function(aServiceId) {
+    if (DEBUG) {
+      debug("notifyStkSessionEnd for service Id: " + aServiceId);
+    }
+
+    this.getIccByServiceId(aServiceId)
+      ._deliverListenerEvent("notifyStkSessionEnd");
+  },
 
   notifyCardStateChanged: function(aServiceId, aCardState) {
     if (DEBUG) {
