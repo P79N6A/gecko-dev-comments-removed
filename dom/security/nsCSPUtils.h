@@ -70,23 +70,24 @@ void CSP_LogMessage(const nsAString& aMessage,
 
 
 static const char* CSPStrDirectives[] = {
-  "-error-",    
-  "default-src",     
-  "script-src",      
-  "object-src",      
-  "style-src",       
-  "img-src",         
-  "media-src",       
-  "frame-src",       
-  "font-src",        
-  "connect-src",     
-  "report-uri",      
-  "frame-ancestors", 
-  "reflected-xss",   
-  "base-uri",        
-  "form-action",     
-  "referrer",        
-  "manifest-src"     
+  "-error-",                  
+  "default-src",              
+  "script-src",               
+  "object-src",               
+  "style-src",                
+  "img-src",                  
+  "media-src",                
+  "frame-src",                
+  "font-src",                 
+  "connect-src",              
+  "report-uri",               
+  "frame-ancestors",          
+  "reflected-xss",            
+  "base-uri",                 
+  "form-action",              
+  "referrer",                 
+  "manifest-src",             
+  "upgrade-insecure-requests" 
 };
 
 inline const char* CSP_CSPDirectiveToString(CSPDirective aDir)
@@ -182,7 +183,8 @@ class nsCSPBaseSrc {
     nsCSPBaseSrc();
     virtual ~nsCSPBaseSrc();
 
-    virtual bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const;
+    virtual bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                         bool aReportOnly, bool aUpgradeInsecure) const;
     virtual bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
     virtual void toString(nsAString& outStr) const = 0;
 };
@@ -194,7 +196,8 @@ class nsCSPSchemeSrc : public nsCSPBaseSrc {
     explicit nsCSPSchemeSrc(const nsAString& aScheme);
     virtual ~nsCSPSchemeSrc();
 
-    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const;
+    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                 bool aReportOnly, bool aUpgradeInsecure) const;
     void toString(nsAString& outStr) const;
 
   private:
@@ -208,10 +211,11 @@ class nsCSPHostSrc : public nsCSPBaseSrc {
     explicit nsCSPHostSrc(const nsAString& aHost);
     virtual ~nsCSPHostSrc();
 
-    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const;
+    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                 bool aReportOnly, bool aUpgradeInsecure) const;
     void toString(nsAString& outStr) const;
 
-    void setScheme(const nsAString& aScheme, bool aAllowHttps = false);
+    void setScheme(const nsAString& aScheme);
     void setPort(const nsAString& aPort);
     void appendPath(const nsAString &aPath);
 
@@ -220,7 +224,6 @@ class nsCSPHostSrc : public nsCSPBaseSrc {
     nsString mHost;
     nsString mPort;
     nsString mPath;
-    bool     mAllowHttps;
 };
 
 
@@ -247,7 +250,8 @@ class nsCSPNonceSrc : public nsCSPBaseSrc {
     explicit nsCSPNonceSrc(const nsAString& aNonce);
     virtual ~nsCSPNonceSrc();
 
-    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const;
+    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                 bool aReportOnly, bool aUpgradeInsecure) const;
     bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
     void toString(nsAString& outStr) const;
 
@@ -287,17 +291,16 @@ class nsCSPReportURI : public nsCSPBaseSrc {
 
 class nsCSPDirective {
   public:
-    nsCSPDirective();
     explicit nsCSPDirective(CSPDirective aDirective);
     virtual ~nsCSPDirective();
 
-    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const;
-    bool permits(nsIURI* aUri) const;
-    bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
-    void toString(nsAString& outStr) const;
+    virtual bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                         bool aReportOnly, bool aUpgradeInsecure) const;
+    virtual bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
+    virtual void toString(nsAString& outStr) const;
     void toDomCSPStruct(mozilla::dom::CSP& outCSP) const;
 
-    inline void addSrcs(const nsTArray<nsCSPBaseSrc*>& aSrcs)
+    virtual void addSrcs(const nsTArray<nsCSPBaseSrc*>& aSrcs)
       { mSrcs = aSrcs; }
 
     bool restrictsContentType(nsContentPolicyType aContentType) const;
@@ -313,6 +316,58 @@ class nsCSPDirective {
   private:
     CSPDirective            mDirective;
     nsTArray<nsCSPBaseSrc*> mSrcs;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsUpgradeInsecureDirective : public nsCSPDirective {
+  public:
+    explicit nsUpgradeInsecureDirective(CSPDirective aDirective);
+    ~nsUpgradeInsecureDirective();
+
+    bool permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                 bool aReportOnly, bool aUpgradeInsecure) const
+      { return false; }
+
+    bool permits(nsIURI* aUri) const
+      { return false; }
+
+    bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const
+      { return false; }
+
+    void toString(nsAString& outStr) const;
+
+    void addSrcs(const nsTArray<nsCSPBaseSrc*>& aSrcs)
+      {  MOZ_ASSERT(false, "upgrade-insecure-requests does not hold any srcs"); }
 };
 
 
@@ -342,6 +397,12 @@ class nsCSPPolicy {
     inline void addDirective(nsCSPDirective* aDir)
       { mDirectives.AppendElement(aDir); }
 
+    inline void addUpgradeInsecDir(nsUpgradeInsecureDirective* aDir)
+      {
+        mUpgradeInsecDir = aDir;
+        addDirective(aDir);
+      }
+
     bool hasDirective(CSPDirective aDir) const;
 
     inline void setReportOnlyFlag(bool aFlag)
@@ -367,9 +428,10 @@ class nsCSPPolicy {
       { return mDirectives.Length(); }
 
   private:
-    nsTArray<nsCSPDirective*> mDirectives;
-    bool                      mReportOnly;
-    nsString                  mReferrerPolicy;
+    nsUpgradeInsecureDirective* mUpgradeInsecDir;
+    nsTArray<nsCSPDirective*>   mDirectives;
+    bool                        mReportOnly;
+    nsString                    mReferrerPolicy;
 };
 
 #endif 

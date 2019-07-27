@@ -257,6 +257,59 @@ CSP_IsQuotelessKeyword(const nsAString& aKey)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+permitsScheme(const nsAString& aEnforcementScheme,
+              nsIURI* aUri,
+              bool aReportOnly,
+              bool aUpgradeInsecure)
+{
+  nsAutoCString scheme;
+  nsresult rv = aUri->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  if (aEnforcementScheme.IsEmpty()) {
+    return true;
+  }
+
+  
+  if (aEnforcementScheme.EqualsASCII(scheme.get())) {
+    return true;
+  }
+
+  
+  
+  
+  if (aEnforcementScheme.EqualsASCII("http") &&
+      scheme.EqualsASCII("https")) {
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  return ((aUpgradeInsecure && !aReportOnly) &&
+          ((scheme.EqualsASCII("http") && aEnforcementScheme.EqualsASCII("https")) ||
+           (scheme.EqualsASCII("ws") && aEnforcementScheme.EqualsASCII("wss"))));
+}
+
+
+
 nsCSPBaseSrc::nsCSPBaseSrc()
 {
 }
@@ -269,7 +322,8 @@ nsCSPBaseSrc::~nsCSPBaseSrc()
 
 
 bool
-nsCSPBaseSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const
+nsCSPBaseSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                      bool aReportOnly, bool aUpgradeInsecure) const
 {
   if (CSPUTILSLOGENABLED()) {
     nsAutoCString spec;
@@ -304,19 +358,16 @@ nsCSPSchemeSrc::~nsCSPSchemeSrc()
 }
 
 bool
-nsCSPSchemeSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const
+nsCSPSchemeSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                        bool aReportOnly, bool aUpgradeInsecure) const
 {
   if (CSPUTILSLOGENABLED()) {
     nsAutoCString spec;
     aUri->GetSpec(spec);
     CSPUTILSLOG(("nsCSPSchemeSrc::permits, aUri: %s", spec.get()));
   }
-
-  NS_ASSERTION((!mScheme.EqualsASCII("")), "scheme can not be the empty string");
-  nsAutoCString scheme;
-  nsresult rv = aUri->GetScheme(scheme);
-  NS_ENSURE_SUCCESS(rv, false);
-  return mScheme.EqualsASCII(scheme.get());
+  MOZ_ASSERT((!mScheme.EqualsASCII("")), "scheme can not be the empty string");
+  return permitsScheme(mScheme, aUri, aReportOnly, aUpgradeInsecure);
 }
 
 void
@@ -330,7 +381,6 @@ nsCSPSchemeSrc::toString(nsAString& outStr) const
 
 nsCSPHostSrc::nsCSPHostSrc(const nsAString& aHost)
   : mHost(aHost)
-  , mAllowHttps(false)
 {
   ToLowerCase(mHost);
 }
@@ -340,7 +390,8 @@ nsCSPHostSrc::~nsCSPHostSrc()
 }
 
 bool
-nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const
+nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                      bool aReportOnly, bool aUpgradeInsecure) const
 {
   if (CSPUTILSLOGENABLED()) {
     nsAutoCString spec;
@@ -352,21 +403,8 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
   
 
   
-  nsAutoCString scheme;
-  nsresult rv = aUri->GetScheme(scheme);
-  NS_ENSURE_SUCCESS(rv, false);
-  if (!mScheme.IsEmpty() &&
-      !mScheme.EqualsASCII(scheme.get())) {
-
-    
-    
-    
-    bool isHttpsScheme =
-      (NS_SUCCEEDED(aUri->SchemeIs("https", &isHttpsScheme)) && isHttpsScheme);
-
-    if (!(isHttpsScheme && mAllowHttps)) {
-      return false;
-    }
+  if (!permitsScheme(mScheme, aUri, aReportOnly, aUpgradeInsecure)) {
+    return false;
   }
 
   
@@ -396,7 +434,7 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
   
   
   nsAutoCString uriHost;
-  rv = aUri->GetHost(uriHost);
+  nsresult rv = aUri->GetHost(uriHost);
   NS_ENSURE_SUCCESS(rv, false);
 
   
@@ -458,6 +496,11 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
   int32_t uriPort;
   rv = aUri->GetPort(&uriPort);
   NS_ENSURE_SUCCESS(rv, false);
+
+  nsAutoCString scheme;
+  rv = aUri->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, false);
+
   uriPort = (uriPort > 0) ? uriPort : NS_GetDefaultPort(scheme.get());
 
   
@@ -468,7 +511,7 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
       
       
       
-      if (!(uriPort == NS_GetDefaultPort("https") && mAllowHttps)) {
+      if (!(uriPort == NS_GetDefaultPort("https"))) {
         return false;
       }
     }
@@ -515,11 +558,10 @@ nsCSPHostSrc::toString(nsAString& outStr) const
 }
 
 void
-nsCSPHostSrc::setScheme(const nsAString& aScheme, bool aAllowHttps)
+nsCSPHostSrc::setScheme(const nsAString& aScheme)
 {
   mScheme = aScheme;
   ToLowerCase(mScheme);
-  mAllowHttps = aAllowHttps;
 }
 
 void
@@ -590,7 +632,8 @@ nsCSPNonceSrc::~nsCSPNonceSrc()
 }
 
 bool
-nsCSPNonceSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const
+nsCSPNonceSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                       bool aReportOnly, bool aUpgradeInsecure) const
 {
   if (CSPUTILSLOGENABLED()) {
     nsAutoCString spec;
@@ -718,7 +761,8 @@ nsCSPDirective::~nsCSPDirective()
 }
 
 bool
-nsCSPDirective::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected) const
+nsCSPDirective::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected,
+                        bool aReportOnly, bool aUpgradeInsecure) const
 {
   if (CSPUTILSLOGENABLED()) {
     nsAutoCString spec;
@@ -727,18 +771,11 @@ nsCSPDirective::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirect
   }
 
   for (uint32_t i = 0; i < mSrcs.Length(); i++) {
-    if (mSrcs[i]->permits(aUri, aNonce, aWasRedirected)) {
+    if (mSrcs[i]->permits(aUri, aNonce, aWasRedirected, aReportOnly, aUpgradeInsecure)) {
       return true;
     }
   }
   return false;
-}
-
-bool
-nsCSPDirective::permits(nsIURI* aUri) const
-{
-  nsString dummyNonce;
-  return permits(aUri, dummyNonce, false);
 }
 
 bool
@@ -889,8 +926,27 @@ nsCSPDirective::getReportURIs(nsTArray<nsString> &outReportURIs) const
 
 
 
+nsUpgradeInsecureDirective::nsUpgradeInsecureDirective(CSPDirective aDirective)
+: nsCSPDirective(aDirective)
+{
+}
+
+nsUpgradeInsecureDirective::~nsUpgradeInsecureDirective()
+{
+}
+
+void
+nsUpgradeInsecureDirective::toString(nsAString& outStr) const
+{
+  outStr.AppendASCII(CSP_CSPDirectiveToString(
+    nsIContentSecurityPolicy::UPGRADE_IF_INSECURE_DIRECTIVE));
+}
+
+
+
 nsCSPPolicy::nsCSPPolicy()
-  : mReportOnly(false)
+  : mUpgradeInsecDir(nullptr)
+  , mReportOnly(false)
 {
   CSPUTILSLOG(("nsCSPPolicy::nsCSPPolicy"));
 }
@@ -936,7 +992,7 @@ nsCSPPolicy::permits(CSPDirective aDir,
   
   for (uint32_t i = 0; i < mDirectives.Length(); i++) {
     if (mDirectives[i]->equals(aDir)) {
-      if (!mDirectives[i]->permits(aUri, aNonce, aWasRedirected)) {
+      if (!mDirectives[i]->permits(aUri, aNonce, aWasRedirected, mReportOnly, mUpgradeInsecDir)) {
         mDirectives[i]->toString(outViolatedDirective);
         return false;
       }
@@ -950,7 +1006,7 @@ nsCSPPolicy::permits(CSPDirective aDir,
   
   
   if (!aSpecific && defaultDir) {
-    if (!defaultDir->permits(aUri, aNonce, aWasRedirected)) {
+    if (!defaultDir->permits(aUri, aNonce, aWasRedirected, mReportOnly, mUpgradeInsecDir)) {
       defaultDir->toString(outViolatedDirective);
       return false;
     }

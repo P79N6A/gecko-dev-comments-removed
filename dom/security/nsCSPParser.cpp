@@ -805,9 +805,6 @@ nsCSPParser::sourceExpression()
 
   
   
-  
-  
-  bool allowHttps = false;
   if (parsedScheme.IsEmpty()) {
     
     
@@ -815,14 +812,13 @@ nsCSPParser::sourceExpression()
     nsAutoCString selfScheme;
     mSelfURI->GetScheme(selfScheme);
     parsedScheme.AssignASCII(selfScheme.get());
-    allowHttps = selfScheme.EqualsASCII("http");
   }
 
   
   
   if (nsCSPHostSrc *cspHost = hostSource()) {
     
-    cspHost->setScheme(parsedScheme, allowHttps);
+    cspHost->setScheme(parsedScheme);
     return cspHost;
   }
   
@@ -992,6 +988,12 @@ nsCSPParser::directiveName()
                              params, ArrayLength(params));
     return nullptr;
   }
+
+  
+  if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::UPGRADE_IF_INSECURE_DIRECTIVE)) {
+    return new nsUpgradeInsecureDirective(CSP_StringToCSPDirective(mCurToken));
+  }
+
   return new nsCSPDirective(CSP_StringToCSPDirective(mCurToken));
 }
 
@@ -1020,6 +1022,20 @@ nsCSPParser::directive()
   nsCSPDirective* cspDir = directiveName();
   if (!cspDir) {
     
+    return;
+  }
+
+  
+  
+  if (cspDir->equals(nsIContentSecurityPolicy::UPGRADE_IF_INSECURE_DIRECTIVE)) {
+    if (mCurDir.Length() > 1) {
+      const char16_t* params[] = { NS_LITERAL_STRING("upgrade-insecure-requests").get() };
+      logWarningErrorToConsole(nsIScriptError::warningFlag,
+                               "ignoreSrcForDirective",
+                               params, ArrayLength(params));
+    }
+    
+    mPolicy->addUpgradeInsecDir(static_cast<nsUpgradeInsecureDirective*>(cspDir));
     return;
   }
 
