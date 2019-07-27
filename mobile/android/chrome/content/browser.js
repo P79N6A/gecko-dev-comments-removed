@@ -109,6 +109,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "SharedPreferences",
 XPCOMUtils.defineLazyModuleGetter(this, "Notifications",
                                   "resource://gre/modules/Notifications.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode",
+                                  "resource://gre/modules/ReaderMode.jsm");
+
 
 [
   ["SelectHelper", "chrome://browser/content/SelectHelper.js"],
@@ -4282,7 +4285,7 @@ Tab.prototype = {
         Reader.updatePageAction(this);
 
         
-        Reader.parseDocumentFromTab(this).then(article => {
+        ReaderMode.parseDocumentFromBrowser(this.browser).then(article => {
           
           
           let currentURL = this.browser.currentURI.specIgnoringRef;
