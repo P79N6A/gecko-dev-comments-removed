@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+
+
+
+
+<head>
+  <meta charset="utf-8">
+  <title>Bug 1082837</title>
+  <script>
+    function image_loaded() {
+      document.getElementById("mctestdiv").innerHTML = "image loaded";
+    }
+    function image_blocked() {
+      document.getElementById("mctestdiv").innerHTML = "image blocked";
+    }
+  </script>
+</head>
+<body>
+  <div id="mctestdiv"></div>
+  <img src="https://example.com/browser/browser/base/content/test/general/test_mcb_redirect.sjs?image_redirect_http_sjs" onload="image_loaded()" onerror="image_blocked()" ></image>
+</body>
+</html>

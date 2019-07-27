@@ -11,11 +11,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const PREF_ACTIVE = "security.mixed_content.block_active_content";
+const PREF_DISPLAY = "security.mixed_content.block_display_content";
 const gHttpsTestRoot = "https://example.com/browser/browser/base/content/test/general/";
 const gHttpTestRoot = "http://example.com/browser/browser/base/content/test/general/";
 
 let origBlockActive;
+let origBlockDisplay;
 var gTestBrowser = null;
 
 
@@ -23,6 +67,10 @@ var gTestBrowser = null;
 registerCleanupFunction(function() {
   
   Services.prefs.setBoolPref(PREF_ACTIVE, origBlockActive);
+  Services.prefs.setBoolPref(PREF_DISPLAY, origBlockDisplay);
+
+  
+  Services.io.offline = false;
 });
 
 function cleanUpAfterTests() {
@@ -87,8 +135,162 @@ function checkPopUpNotificationsForTest2() {
   var expected = "script executed";
   waitForCondition(
     function() content.document.getElementById('mctestdiv').innerHTML == expected,
-    cleanUpAfterTests, "Error: Waited too long for status in Test 2!",
+    test3, "Error: Waited too long for status in Test 2!",
     "OK: Expected result in innerHTML for Test2!");
+}
+
+
+
+function test3() {
+  gTestBrowser.addEventListener("load", checkLoadEventForTest3, true);
+  var url = gHttpsTestRoot + "test_mcb_redirect_image.html"
+  gTestBrowser.contentWindow.location = url;
+}
+
+function checkLoadEventForTest3() {
+  gTestBrowser.removeEventListener("load", checkLoadEventForTest3, true);
+
+  var expected = "image blocked"
+  waitForCondition(
+    function() content.document.getElementById('mctestdiv').innerHTML == expected,
+    test4, "Error: Waited too long for status in Test 3!",
+    "OK: Expected result in innerHTML for Test3!");
+}
+
+
+
+function test4() {
+  gTestBrowser.addEventListener("load", checkLoadEventForTest4, true);
+  var url = gHttpTestRoot + "test_mcb_redirect_image.html"
+  gTestBrowser.contentWindow.location = url;
+}
+
+function checkLoadEventForTest4() {
+  gTestBrowser.removeEventListener("load", checkLoadEventForTest4, true);
+
+  var expected = "image loaded"
+  waitForCondition(
+    function() content.document.getElementById('mctestdiv').innerHTML == expected,
+    test5, "Error: Waited too long for status in Test 4!",
+    "OK: Expected result in innerHTML for Test4!");
+}
+
+
+
+
+
+
+function test5() {
+  gTestBrowser.addEventListener("load", checkLoadEventForTest5, true);
+  
+  Services.io.offline = true;
+  var url = gHttpTestRoot + "test_mcb_redirect_image.html"
+  gTestBrowser.contentWindow.location = url;
+}
+
+function checkLoadEventForTest5() {
+  gTestBrowser.removeEventListener("load", checkLoadEventForTest5, true);
+
+  var expected = "image loaded"
+  waitForCondition(
+    function() content.document.getElementById('mctestdiv').innerHTML == expected,
+    test6, "Error: Waited too long for status in Test 5!",
+    "OK: Expected result in innerHTML for Test5!");
+  
+  Services.io.offline = false;
+}
+
+
+
+
+
+
+function test6() {
+  gTestBrowser.addEventListener("load", checkLoadEventForTest6, true);
+  
+  Services.io.offline = true;
+  var url = gHttpsTestRoot + "test_mcb_redirect_image.html"
+  gTestBrowser.contentWindow.location = url;
+}
+
+function checkLoadEventForTest6() {
+  gTestBrowser.removeEventListener("load", checkLoadEventForTest6, true);
+
+  var expected = "image blocked"
+  waitForCondition(
+    function() content.document.getElementById('mctestdiv').innerHTML == expected,
+    test7, "Error: Waited too long for status in Test 6!",
+    "OK: Expected result in innerHTML for Test6!");
+  
+  Services.io.offline = false;
+}
+
+
+
+function test7() {
+  gTestBrowser.addEventListener("load", checkLoadEventForTest7, true);
+  var url = gHttpTestRoot + "test_mcb_double_redirect_image.html"
+  gTestBrowser.contentWindow.location = url;
+}
+
+function checkLoadEventForTest7() {
+  gTestBrowser.removeEventListener("load", checkLoadEventForTest7, true);
+
+  var expected = "image loaded"
+  waitForCondition(
+    function() content.document.getElementById('mctestdiv').innerHTML == expected,
+    test8, "Error: Waited too long for status in Test 7!",
+    "OK: Expected result in innerHTML for Test7!");
+}
+
+
+
+
+
+
+function test8() {
+  gTestBrowser.addEventListener("load", checkLoadEventForTest8, true);
+  
+  Services.io.offline = true;
+  var url = gHttpTestRoot + "test_mcb_double_redirect_image.html"
+  gTestBrowser.contentWindow.location = url;
+}
+
+function checkLoadEventForTest8() {
+  gTestBrowser.removeEventListener("load", checkLoadEventForTest8, true);
+
+  var expected = "image loaded"
+  waitForCondition(
+    function() content.document.getElementById('mctestdiv').innerHTML == expected,
+    test9, "Error: Waited too long for status in Test 8!",
+    "OK: Expected result in innerHTML for Test8!");
+  
+  Services.io.offline = false;
+}
+
+
+
+
+
+
+function test9() {
+  gTestBrowser.addEventListener("load", checkLoadEventForTest9, true);
+  
+  Services.io.offline = true;
+  var url = gHttpsTestRoot + "test_mcb_double_redirect_image.html"
+  gTestBrowser.contentWindow.location = url;
+}
+
+function checkLoadEventForTest9() {
+  gTestBrowser.removeEventListener("load", checkLoadEventForTest9, true);
+
+  var expected = "image blocked"
+  waitForCondition(
+    function() content.document.getElementById('mctestdiv').innerHTML == expected,
+    cleanUpAfterTests, "Error: Waited too long for status in Test 9!",
+    "OK: Expected result in innerHTML for Test9!");
+  
+  Services.io.offline = false;
 }
 
 
@@ -99,7 +301,9 @@ function test() {
 
   
   origBlockActive = Services.prefs.getBoolPref(PREF_ACTIVE);
+  origBlockDisplay = Services.prefs.getBoolPref(PREF_DISPLAY);
   Services.prefs.setBoolPref(PREF_ACTIVE, true);
+  Services.prefs.setBoolPref(PREF_DISPLAY, true);
 
   var newTab = gBrowser.addTab();
   gBrowser.selectedTab = newTab;
