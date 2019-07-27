@@ -246,27 +246,6 @@ function waitForChildrenUpdated({markup}) {
 
 
 
-
-let hoverContainer = Task.async(function*(selector, inspector) {
-  info("Hovering over the markup-container for node " + selector);
-
-  let nodeFront = yield getNodeFront(selector, inspector);
-  let container = getContainerForNodeFront(nodeFront, inspector);
-
-  let highlit = inspector.toolbox.once("node-highlight");
-  EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousemove"},
-    inspector.markup.doc.defaultView);
-  return highlit;
-});
-
-
-
-
-
-
-
-
-
 let clickContainer = Task.async(function*(selector, inspector) {
   info("Clicking on the markup-container for node " + selector);
 
@@ -289,25 +268,6 @@ function isHighlighterVisible() {
   let highlighter = gBrowser.selectedBrowser.parentNode
                             .querySelector(".highlighter-container .box-model-root");
   return highlighter && !highlighter.hasAttribute("hidden");
-}
-
-
-
-
-
-
-function mouseLeaveMarkupView(inspector) {
-  info("Leaving the markup-view area");
-  let def = promise.defer();
-
-  
-  let btn = inspector.toolbox.doc.querySelector(".toolbox-dock-button");
-
-  EventUtils.synthesizeMouseAtCenter(btn, {type: "mousemove"},
-    inspector.toolbox.doc.defaultView);
-  executeSoon(def.resolve);
-
-  return def.promise;
 }
 
 

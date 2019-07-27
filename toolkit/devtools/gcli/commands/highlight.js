@@ -14,16 +14,18 @@ const {BoxModelHighlighter} = HIGHLIGHTER_CLASSES;
 const MAX_HIGHLIGHTED_ELEMENTS = 100;
 
 
-let highlighters = [];
+
+
+exports.highlighters = [];
 
 
 
 
 function unhighlightAll() {
-  for (let highlighter of highlighters) {
+  for (let highlighter of exports.highlighters) {
     highlighter.destroy();
   }
-  highlighters = [];
+  exports.highlighters.length = 0;
 }
 
 exports.items = [
@@ -119,7 +121,7 @@ exports.items = [
           hideGuides: args.hideguides,
           showOnly: args.region
         });
-        highlighters.push(highlighter);
+        exports.highlighters.push(highlighter);
         i ++;
       }
 

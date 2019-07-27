@@ -14,28 +14,29 @@ function test() {
 
     info("highlighting the body node");
     yield runCommand("highlight body", options);
-    is(getHighlighters().length, 1, "The highlighter element exists for body");
+    is(getHighlighterNumber(), 1, "The highlighter element exists for body");
 
     info("highlighting the div node");
     yield runCommand("highlight div", options);
-    is(getHighlighters().length, 1, "The highlighter element exists for div");
+    is(getHighlighterNumber(), 1, "The highlighter element exists for div");
 
     info("highlighting the body node again, asking to keep the div");
     yield runCommand("highlight body --keep", options);
-    is(getHighlighters().length, 2, "2 highlighter elements have been created");
+    is(getHighlighterNumber(), 2, "2 highlighter elements have been created");
 
     info("unhighlighting all nodes");
     yield runCommand("unhighlight", options);
-    is(getHighlighters().length, 0, "All highlighters have been removed");
+    is(getHighlighterNumber(), 0, "All highlighters have been removed");
 
     yield helpers.closeToolbar(options);
     yield helpers.closeTab(options);
   }).then(finish, helpers.handleError);
 }
 
-function getHighlighters() {
-  return gBrowser.selectedBrowser.parentNode
-    .querySelectorAll(".highlighter-container");
+function getHighlighterNumber() {
+  
+  
+  return require("gcli/commands/highlight").highlighters.length;
 }
 
 function* runCommand(cmd, options) {
