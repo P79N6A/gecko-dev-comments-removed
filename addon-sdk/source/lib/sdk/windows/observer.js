@@ -12,6 +12,7 @@ const { emit } = require("../event/core");
 const { WindowTracker, windowIterator } = require("../deprecated/window-utils");
 const { DOMEventAssembler } = require("../deprecated/events/assembler");
 const { Class } = require("../core/heritage");
+const { Cu } = require("chrome");
 
 
 
@@ -42,6 +43,9 @@ const Observer = Class({
 
 
   handleEvent(event) {
+    
+    if (Cu.isCrossProcessWrapper(event.target))
+      return;
     emit(this, event.type, event.target, event);
   }
 });

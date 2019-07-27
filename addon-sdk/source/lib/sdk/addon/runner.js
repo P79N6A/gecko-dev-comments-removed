@@ -81,14 +81,12 @@ function startup(reason, options) Startup.onceInitialized.then(() => {
       
       
       definePseudo(options.loader, '@l10n/data', data ? data : null);
-      return ready;
-    }).then(function() {
-      run(options);
+      return ready.then(() => run(options, !!data));
     }).then(null, console.exception);
     return void 0; 
 });
 
-function run(options) {
+function run(options, hasL10n) {
   try {
     
     
@@ -96,7 +94,7 @@ function run(options) {
       
       
       
-      if (options.main !== 'sdk/test/runner') {
+      if (hasL10n && options.main !== 'sdk/test/runner') {
         require('../l10n/html').enable();
       }
     }

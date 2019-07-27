@@ -703,7 +703,8 @@ Loader.main = main;
 const Module = iced(function Module(id, uri) {
   return create(null, {
     id: { enumerable: true, value: id },
-    exports: { enumerable: true, writable: true, value: create(null) },
+    exports: { enumerable: true, writable: true, value: create(null),
+               configurable: true },
     uri: { value: uri }
   });
 });
@@ -784,6 +785,7 @@ function Loader(options) {
     }
   }, modules);
 
+  const builtinModuleExports = modules;
   modules = keys(modules).reduce(function(result, id) {
     
     let uri = resolveURI(id, mapping);
@@ -792,7 +794,16 @@ function Loader(options) {
     if (isNative && !uri)
       uri = id;
     let module = Module(id, uri);
-    module.exports = freeze(modules[id]);
+
+    
+    
+    Object.defineProperty(module, "exports", {
+      enumerable: true,
+      get: function() {
+        return builtinModuleExports[id];
+      }
+    });
+
     result[uri] = freeze(module);
     return result;
   }, {});
