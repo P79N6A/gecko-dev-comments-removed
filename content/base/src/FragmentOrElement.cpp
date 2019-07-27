@@ -25,6 +25,7 @@
 #include "nsDOMAttributeMap.h"
 #include "nsIAtom.h"
 #include "mozilla/dom/NodeInfo.h"
+#include "mozilla/dom/Event.h"
 #include "nsIDocumentInlines.h"
 #include "nsIDocumentEncoder.h"
 #include "nsIDOMNodeList.h"
@@ -699,12 +700,25 @@ nsIContent::PreHandleEvent(EventChainPreVisitor& aVisitor)
       
       
       
+      
       ((this == aVisitor.mEvent->originalTarget &&
-        !ChromeOnlyAccess()) || isAnonForEvents)) {
+        !ChromeOnlyAccess()) || isAnonForEvents || GetShadowRoot())) {
      nsCOMPtr<nsIContent> relatedTarget =
        do_QueryInterface(aVisitor.mEvent->AsMouseEvent()->relatedTarget);
     if (relatedTarget &&
         relatedTarget->OwnerDoc() == OwnerDoc()) {
+
+      
+      
+      if (GetShadowRoot()) {
+        nsIContent* adjustedTarget =
+          Event::GetShadowRelatedTarget(this, relatedTarget);
+        if (this == adjustedTarget) {
+          aVisitor.mParentTarget = nullptr;
+          aVisitor.mCanHandle = false;
+          return NS_OK;
+        }
+      }
 
       
       
@@ -769,6 +783,99 @@ nsIContent::PreHandleEvent(EventChainPreVisitor& aVisitor)
   }
 
   nsIContent* parent = GetParent();
+
+  
+  
+  nsTArray<nsIContent*>* destPoints = GetExistingDestInsertionPoints();
+  if (destPoints && !destPoints->IsEmpty()) {
+    
+    
+    bool didPushNonShadowInsertionPoint = false;
+    for (uint32_t i = 0; i < destPoints->Length(); i++) {
+      nsIContent* point = destPoints->ElementAt(i);
+      if (!ShadowRoot::IsShadowInsertionPoint(point)) {
+        aVisitor.mDestInsertionPoints.AppendElement(point);
+        didPushNonShadowInsertionPoint = true;
+      }
+    }
+
+    
+    
+    if (didPushNonShadowInsertionPoint) {
+      parent = aVisitor.mDestInsertionPoints.LastElement();
+      aVisitor.mDestInsertionPoints.SetLength(
+        aVisitor.mDestInsertionPoints.Length() - 1);
+    }
+  }
+
+  ShadowRoot* thisShadowRoot = ShadowRoot::FromNode(this);
+  if (thisShadowRoot) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool stopEvent = false;
+    switch (aVisitor.mEvent->message) {
+      case NS_IMAGE_ABORT:
+      case NS_LOAD_ERROR:
+      case NS_FORM_SELECTED:
+      case NS_FORM_CHANGE:
+      case NS_LOAD:
+      case NS_FORM_RESET:
+      case NS_RESIZE_EVENT:
+      case NS_SCROLL_EVENT:
+        stopEvent = true;
+        break;
+      case NS_USER_DEFINED_EVENT:
+        if (aVisitor.mDOMEvent) {
+          nsAutoString eventType;
+          aVisitor.mDOMEvent->GetType(eventType);
+          if (eventType.EqualsLiteral("abort") ||
+              eventType.EqualsLiteral("error") ||
+              eventType.EqualsLiteral("select") ||
+              eventType.EqualsLiteral("change") ||
+              eventType.EqualsLiteral("load") ||
+              eventType.EqualsLiteral("reset") ||
+              eventType.EqualsLiteral("resize") ||
+              eventType.EqualsLiteral("scroll") ||
+              eventType.EqualsLiteral("selectstart")) {
+            stopEvent = true;
+          }
+        }
+        break;
+    }
+
+    if (stopEvent) {
+      
+      
+      
+      
+      nsCOMPtr<nsPIDOMWindow> win = OwnerDoc()->GetWindow();
+      EventTarget* parentTarget = win && aVisitor.mEvent->message != NS_LOAD
+        ? win->GetParentTarget() : nullptr;
+
+      aVisitor.mParentTarget = parentTarget;
+      return NS_OK;
+    }
+
+    if (!aVisitor.mDestInsertionPoints.IsEmpty()) {
+      parent = aVisitor.mDestInsertionPoints.LastElement();
+      aVisitor.mDestInsertionPoints.SetLength(
+        aVisitor.mDestInsertionPoints.Length() - 1);
+    } else {
+      
+      
+      
+      parent = thisShadowRoot->GetPoolHost();
+    }
+  }
+
   
   
   if (isAnonForEvents) {
@@ -804,7 +911,7 @@ nsIContent::PreHandleEvent(EventChainPreVisitor& aVisitor)
   if (parent) {
     aVisitor.mParentTarget = parent;
   } else {
-    aVisitor.mParentTarget = GetCurrentDoc();
+    aVisitor.mParentTarget = GetComposedDoc();
   }
   return NS_OK;
 }

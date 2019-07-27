@@ -221,6 +221,14 @@ public:
     return mIsMainThreadEvent;
   }
 
+  
+
+
+
+
+  static nsIContent* GetShadowRelatedTarget(nsIContent* aCurrentTarget,
+                                            nsIContent* aRelatedTarget);
+
 protected:
 
   

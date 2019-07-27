@@ -216,6 +216,7 @@ public:
   
 
 
+
   static bool ContentIsCrossDocDescendantOf(nsINode* aPossibleDescendant,
                                               nsINode* aPossibleAncestor);
 

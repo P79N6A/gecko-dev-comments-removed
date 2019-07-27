@@ -9,10 +9,12 @@
 
 #include "mozilla/EventForwards.h"
 #include "nsCOMPtr.h"
+#include "nsTArray.h"
 
 
 #undef CreateEvent
 
+class nsIContent;
 class nsIDOMEvent;
 class nsIScriptGlobalObject;
 class nsPresContext;
@@ -193,6 +195,13 @@ public:
 
 
   dom::EventTarget* mEventTargetAtParent;
+
+  
+
+
+
+
+  nsTArray<nsIContent*> mDestInsertionPoints;
 };
 
 class EventChainPostVisitor : public mozilla::EventChainVisitor

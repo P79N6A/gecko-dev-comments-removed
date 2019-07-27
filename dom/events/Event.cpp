@@ -7,6 +7,7 @@
 #include "base/basictypes.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/dom/Event.h"
+#include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EventStateManager.h"
@@ -1117,6 +1118,44 @@ Event::SetOwner(mozilla::dom::EventTarget* aOwner)
   nsCOMPtr<nsPIWindowRoot> root = do_QueryInterface(aOwner);
   MOZ_ASSERT(root, "Unexpected EventTarget!");
 #endif
+}
+
+
+nsIContent*
+Event::GetShadowRelatedTarget(nsIContent* aCurrentTarget,
+                              nsIContent* aRelatedTarget)
+{
+  if (!aCurrentTarget || !aRelatedTarget) {
+    return nullptr;
+  }
+
+  
+  
+  
+  
+  
+  ShadowRoot* currentTargetShadow = aCurrentTarget->GetContainingShadow();
+  if (!currentTargetShadow) {
+    return nullptr;
+  }
+
+  nsIContent* relatedTarget = aCurrentTarget;
+  while (relatedTarget) {
+    ShadowRoot* ancestorShadow = relatedTarget->GetContainingShadow();
+    if (currentTargetShadow == ancestorShadow) {
+      return relatedTarget;
+    }
+
+    
+    
+    if (!ancestorShadow) {
+      return nullptr;
+    }
+
+    relatedTarget = ancestorShadow->GetHost();
+  }
+
+  return nullptr;
 }
 
 } 
