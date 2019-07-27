@@ -561,7 +561,7 @@ MediaRawData::EnsureCapacity(size_t aSize)
     
   } else if (shift > 0) {
     
-    MOZ_ALWAYS_TRUE(mBuffer->InsertElementsAt(oldpadding, shift));
+    MOZ_ALWAYS_TRUE(mBuffer->InsertElementsAt(oldpadding, shift, fallible));
   } else {
     mBuffer->RemoveElementsAt(mPadding, -shift);
   }
