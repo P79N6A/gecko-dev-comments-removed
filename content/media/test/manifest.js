@@ -253,6 +253,70 @@ var gInvalidTests = [
 
 
 
+
+
+
+
+
+
+
+
+var gMultitrackInfoOggPlayList = [
+  { name:"sample-fisbone-skeleton4.ogv", type:"video/ogg", duration:5.049 },
+  { name:"sample-fisbone-wrong-header.ogv", type:"video/ogg", duration:5.049 },
+  { name:"multiple-bos-more-header-fileds.ogg", type:"video/ogg", duration:0.431 },
+  { name:"seek.ogv", type:"video/ogg", duration:3.996 },
+  { name:"audio-gaps.ogg", type:"audio/ogg", duration:2.208 }
+];
+
+var gOggTrackInfoResults = {
+  "sample-fisbone-skeleton4.ogv" : {
+    "audio_id":" audio_1",
+    "audio_kind":"main",
+    "audio_language":" en-US",
+    "audio_label":" Audio track for test",
+    "video_id":" video_1",
+    "video_kind":"main",
+    "video_language":" fr",
+    "video_label":" Video track for test"
+  },
+  "sample-fisbone-wrong-header.ogv" : {
+    "audio_id":"1",
+    "audio_kind":"main",
+    "audio_language":"",
+    "audio_label":"",
+    "video_id":" video_1",
+    "video_kind":"main",
+    "video_language":" fr",
+    "video_label":" Video track for test"
+  },
+  "multiple-bos-more-header-fileds.ogg" : {
+    "audio_id":"1",
+    "audio_kind":"main",
+    "audio_language":"",
+    "audio_label":"",
+    "video_id":"2",
+    "video_kind":"main",
+    "video_language":"",
+    "video_label":""
+  },
+  "seek.ogv" : {
+    "video_id":"2",
+    "video_kind":"main",
+    "video_language":"",
+    "video_label":""
+  },
+  "audio-gaps.ogg" : {
+    "audio_id":"1",
+    "audio_kind":"main",
+    "audio_language":"",
+    "audio_label":""
+  }
+};
+
+
+
+
 function fileUriToSrc(path, mustExist) {
   
   if (navigator.appVersion.indexOf("Android") != -1 || SpecialPowers.Services.appinfo.name == "B2G")
