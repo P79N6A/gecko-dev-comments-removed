@@ -17,9 +17,6 @@
 namespace {
 
 
-const char kWorkScheduled = '\0';
-
-
 
 int GetTimeIntervalMilliseconds(const base::TimeTicks& from) {
   if (from.is_null())
