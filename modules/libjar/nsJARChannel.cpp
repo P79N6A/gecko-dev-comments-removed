@@ -22,6 +22,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/net/RemoteOpenFileChild.h"
 #include "nsITabChild.h"
+#include "private/pprio.h"
 
 using namespace mozilla;
 using namespace mozilla::net;
@@ -357,13 +358,34 @@ nsJARChannel::LookupFile()
             mJarFile = remoteFile;
 
             nsIZipReaderCache *jarCache = gJarHandler->JarCache();
-            if (jarCache && !mEnsureChildFd) {
+            if (jarCache) {
                 bool cached = false;
                 rv = jarCache->IsCached(mJarFile, &cached);
                 if (NS_SUCCEEDED(rv) && cached) {
                     
                     
+                    
+                    
+                    
+                    #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
+                    
+                    
                     return NS_OK;
+                    #else
+                    if (!mEnsureChildFd) {
+                        return NS_OK;
+                    }
+                    PRFileDesc *fd = nullptr;
+                    jarCache->GetFd(mJarFile, &fd);
+                    if (fd) {
+                        PROsfd osfd = dup(PR_FileDesc2NativeHandle(fd));
+                        if (osfd == -1) {
+                            return NS_ERROR_FAILURE;
+                        }
+                        remoteFile->SetNSPRFileDesc(PR_ImportFile(osfd));
+                        return NS_OK;
+                    }
+                    #endif
                 }
             }
 
@@ -375,6 +397,10 @@ nsJARChannel::LookupFile()
                 
                 
                 return NS_OK;
+            }
+
+            if (mEnsureChildFd && jarCache) {
+                jarCache->SetMustCacheFd(remoteFile, true);
             }
 
             
@@ -1044,7 +1070,11 @@ nsJARChannel::OnStopRequest(nsIRequest *req, nsISupports *ctx, nsresult status)
     mCallbacks = 0;
     mProgressSink = 0;
 
-    if (mOpeningRemote) {
+    if (mEnsureChildFd) {
+      nsIZipReaderCache *jarCache = gJarHandler->JarCache();
+      if (jarCache) {
+          jarCache->SetMustCacheFd(mJarFile, false);
+      }
       
       mJarFile = nullptr;
     }

@@ -123,7 +123,8 @@ public:
 
 
 
-  nsresult OpenArchive(nsIFile *aFile);
+
+  nsresult OpenArchive(nsIFile *aFile, bool aMustCacheFd = false);
 
   
 
@@ -380,7 +381,7 @@ class nsZipHandle {
 friend class nsZipArchive;
 friend class mozilla::FileLocation;
 public:
-  static nsresult Init(nsIFile *file, nsZipHandle **ret,
+  static nsresult Init(nsIFile *file, bool aMustCacheFd, nsZipHandle **ret,
                        PRFileDesc **aFd = nullptr);
   static nsresult Init(nsZipArchive *zip, const char *entry,
                        nsZipHandle **ret);
@@ -389,6 +390,8 @@ public:
   NS_METHOD_(MozExternalRefCountType) Release(void);
 
   int64_t SizeOfMapping();
+
+  nsresult GetNSPRFileDesc(PRFileDesc** aNSPRFileDesc);
 
 protected:
   const uint8_t * mFileData; 
@@ -400,6 +403,7 @@ private:
   ~nsZipHandle();
 
   PRFileMap *                       mMap;    
+  mozilla::AutoFDClose              mNSPRFileDesc;
   nsAutoPtr<nsZipItemPtr<uint8_t> > mBuf;
   mozilla::ThreadSafeAutoRefCnt     mRefCnt; 
   NS_DECL_OWNINGTHREAD
