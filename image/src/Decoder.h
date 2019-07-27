@@ -51,11 +51,6 @@ public:
 
 
 
-
-
-
-
-
   void Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
 
   
@@ -107,12 +102,6 @@ public:
   }
 
   size_t BytesDecoded() const { return mBytesDecoded; }
-
-  
-  TimeDuration DecodeTime() const { return mDecodeTime; }
-
-  
-  uint32_t ChunkCount() const { return mChunkCount; }
 
   
   
@@ -168,11 +157,6 @@ public:
                     uint8_t palette_depth = 0);
 
   virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
-
-  
-  
-  
-  bool NeedsToFlushData() const { return mNeedsToFlushData; }
 
   
   
@@ -251,10 +235,6 @@ protected:
   uint32_t* mColormap;       
   uint32_t mColormapSize;
 
-  
-  TimeDuration mDecodeTime;
-  uint32_t mChunkCount;
-
   uint32_t mDecodeFlags;
   size_t mBytesDecoded;
   bool mDecodeDone;
@@ -293,7 +273,6 @@ private:
   };
   NewFrameData mNewFrameData;
   bool mNeedsNewFrame;
-  bool mNeedsToFlushData;
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;

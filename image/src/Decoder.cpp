@@ -19,7 +19,6 @@ Decoder::Decoder(RasterImage &aImage)
   , mCurrentFrame(nullptr)
   , mImageData(nullptr)
   , mColormap(nullptr)
-  , mChunkCount(0)
   , mDecodeFlags(0)
   , mBytesDecoded(0)
   , mDecodeDone(false)
@@ -27,7 +26,6 @@ Decoder::Decoder(RasterImage &aImage)
   , mFrameCount(0)
   , mFailCode(NS_OK)
   , mNeedsNewFrame(false)
-  , mNeedsToFlushData(false)
   , mInitialized(false)
   , mSizeDecode(false)
   , mInFrame(false)
@@ -100,17 +98,7 @@ Decoder::Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
              "Not allowed to make more decoder calls after error!");
 
   
-  TimeStamp start = TimeStamp::Now();
-  mChunkCount++;
-
-  
   mBytesDecoded += aCount;
-
-  
-  if (aBuffer == nullptr && aCount == 0) {
-    MOZ_ASSERT(mNeedsToFlushData, "Flushing when we don't need to");
-    mNeedsToFlushData = false;
-  }
 
   
   if (HasDataError())
@@ -134,9 +122,6 @@ Decoder::Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
       WriteInternal(nullptr, 0, aStrategy);
     }
   }
-
-  
-  mDecodeTime += (TimeStamp::Now() - start);
 }
 
 void
@@ -256,12 +241,6 @@ Decoder::AllocateFrame()
   
   
   mNeedsNewFrame = false;
-
-  
-  
-  if (mBytesDecoded > 0) {
-    mNeedsToFlushData = true;
-  }
 
   return rv;
 }
