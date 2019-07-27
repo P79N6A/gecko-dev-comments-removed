@@ -1639,9 +1639,9 @@ GetCompartmentName(JSCompartment *c, nsCString &name, int *anonymizeID,
             }
         }
 
-        
-        
         if (*anonymizeID) {
+            
+            
             static const char *filePrefix = "file://";
             int filePos = name.Find(filePrefix);
             if (filePos >= 0) {
@@ -1660,6 +1660,24 @@ GetCompartmentName(JSCompartment *c, nsCString &name, int *anonymizeID,
                     
                     name.Truncate(pathPos);
                     name += "<anonymized?!>";
+                }
+            }
+
+            
+            
+            
+            
+            static const char *ownedByPrefix =
+                "inProcessTabChildGlobal?ownedBy=";
+            int ownedByPos = name.Find(ownedByPrefix);
+            if (ownedByPos >= 0) {
+                const char *chrome = "chrome:";
+                int ownerPos = ownedByPos + strlen(ownedByPrefix);
+                const nsDependentCSubstring& ownerFirstPart =
+                    Substring(name, ownerPos, strlen(chrome));
+                if (!ownerFirstPart.EqualsASCII(chrome)) {
+                    name.Truncate(ownerPos);
+                    name += "<anonymized>";
                 }
             }
         }

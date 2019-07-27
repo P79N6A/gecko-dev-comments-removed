@@ -305,6 +305,8 @@ nsInProcessTabChildGlobal::PreHandleEvent(EventChainPreVisitor& aVisitor)
 nsresult
 nsInProcessTabChildGlobal::InitTabChildGlobal()
 {
+  
+  
   nsAutoCString id;
   id.AssignLiteral("inProcessTabChildGlobal");
   nsIURI* uri = mOwner->OwnerDoc()->GetDocumentURI();
