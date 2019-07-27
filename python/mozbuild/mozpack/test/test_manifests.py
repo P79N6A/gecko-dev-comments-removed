@@ -355,5 +355,13 @@ class TestInstallManifest(TestWithTmpDir):
         with open(destfile, 'rt') as fh:
             self.assertEqual(fh.read(), 'SOURCE\nINCLUDE MODIFIED\n')
 
+        
+        m = InstallManifest()
+        m |= InstallManifest(path=manifest)
+        c = FileCopier()
+        m.populate_registry(c)
+        e = c._files['p_dest']
+        self.assertEqual(e.extra_depends, [manifest])
+
 if __name__ == '__main__':
     mozunit.main()
