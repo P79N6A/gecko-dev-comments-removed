@@ -126,6 +126,8 @@ public:
   
   virtual void CheckThread() MOZ_OVERRIDE;
 
+  void AbortAsyncShutdown();
+
 private:
   ~GMPParent();
   nsRefPtr<GeckoMediaPluginService> mService;
@@ -156,6 +158,9 @@ private:
   virtual PGMPTimerParent* AllocPGMPTimerParent() MOZ_OVERRIDE;
   virtual bool DeallocPGMPTimerParent(PGMPTimerParent* aActor) MOZ_OVERRIDE;
 
+  virtual bool RecvAsyncShutdownComplete() MOZ_OVERRIDE;
+  virtual bool RecvAsyncShutdownRequired() MOZ_OVERRIDE;
+
   GMPState mState;
   nsCOMPtr<nsIFile> mDirectory; 
   nsString mName; 
@@ -171,10 +176,14 @@ private:
   nsTArray<nsRefPtr<GMPVideoEncoderParent>> mVideoEncoders;
   nsTArray<nsRefPtr<GMPDecryptorParent>> mDecryptors;
   nsTArray<nsRefPtr<GMPAudioDecoderParent>> mAudioDecoders;
+  nsTArray<nsRefPtr<GMPTimerParent>> mTimers;
   nsCOMPtr<nsIThread> mGMPThread;
   
   
   nsAutoString mOrigin;
+
+  bool mAsyncShutdownRequired;
+  bool mAsyncShutdownInProgress;
 };
 
 } 
