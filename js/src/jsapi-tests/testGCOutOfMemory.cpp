@@ -34,7 +34,7 @@ BEGIN_TEST(testGCOutOfMemory)
     
     CHECK(!ok);
     CHECK(!JS_IsExceptionPending(cx));
-    CHECK_EQUAL(errorCount, 1);
+    CHECK_EQUAL(errorCount, 1u);
     JS_GC(rt);
 
     
@@ -47,7 +47,7 @@ BEGIN_TEST(testGCOutOfMemory)
          "        array.push({});"
          "    }"
          "})();", &root);
-    CHECK_EQUAL(errorCount, 1);
+    CHECK_EQUAL(errorCount, 1u);
     return true;
 }
 
