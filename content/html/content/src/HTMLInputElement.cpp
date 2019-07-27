@@ -3251,7 +3251,7 @@ HTMLInputElement::NeedToInitializeEditorForEvent(
   
   
   if (!IsSingleLineTextControl(false) ||
-      aVisitor.mEvent->mClass == NS_MUTATION_EVENT) {
+      aVisitor.mEvent->mClass == eMutationEventClass) {
     return false;
   }
 

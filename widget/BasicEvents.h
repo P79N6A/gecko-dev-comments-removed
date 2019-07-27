@@ -68,7 +68,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
   ePluginEventClass,                 
 
   
-  NS_MUTATION_EVENT                  
+  eMutationEventClass                
 };
 
 } 
