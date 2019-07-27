@@ -121,6 +121,9 @@ abstract class BaseTest extends BaseRobocopTest {
         mActions = new FennecNativeActions(mActivity, mSolo, getInstrumentation(), mAsserter);
         mDevice = new Device();
         mDatabaseHelper = new DatabaseHelper(mActivity, mAsserter);
+
+        
+        throwIfScreenNotOn();
     }
 
     protected void initializeProfile() {
@@ -133,7 +136,7 @@ abstract class BaseTest extends BaseRobocopTest {
 
         
         
-        profile.enqueueInitialization(profile.getDir());
+        profile.enqueueInitialization();
     }
 
     @Override

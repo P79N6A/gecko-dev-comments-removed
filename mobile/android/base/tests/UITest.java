@@ -74,6 +74,9 @@ abstract class UITest extends BaseRobocopTest
         
         initComponents();
         initHelpers();
+
+        
+        throwIfScreenNotOn();
     }
 
     @Override
