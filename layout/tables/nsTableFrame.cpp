@@ -4680,17 +4680,24 @@ static uint8_t styleToPriority[13] = { 0,
 
 
 
+
+
 static void
 GetColorAndStyle(const nsIFrame*  aFrame,
                  mozilla::css::Side aSide,
                  uint8_t* aStyle,
                  nscolor* aColor,
-                 bool             aTableIsLTR)
+                 bool aTableIsLTR,
+                 BCPixelSize* aWidth = nullptr)
 {
   NS_PRECONDITION(aFrame, "null frame");
   NS_PRECONDITION(aStyle && aColor, "null argument");
   
   *aColor = 0;
+  if (aWidth) {
+    *aWidth = 0;
+  }
+
   const nsStyleBorder* styleData = aFrame->StyleBorder();
   if(!aTableIsLTR) { 
     if (NS_SIDE_RIGHT == aSide) {
@@ -4708,6 +4715,11 @@ GetColorAndStyle(const nsIFrame*  aFrame,
   }
   *aColor = aFrame->StyleContext()->GetVisitedDependentColor(
              nsCSSProps::SubpropertyEntryFor(eCSSProperty_border_color)[aSide]);
+
+  if (aWidth) {
+    nscoord width = styleData->GetComputedBorderWidth(aSide);
+    *aWidth = nsPresContext::AppUnitsToIntCSSPixels(width);
+  }
 }
 
 
@@ -4730,44 +4742,6 @@ GetPaintStyleInfo(const nsIFrame*  aFrame,
   } else if (NS_STYLE_BORDER_STYLE_OUTSET == *aStyle) {
     *aStyle = NS_STYLE_BORDER_STYLE_GROOVE;
   }
-}
-
-
-
-
-
-
-
-
-
-
-
-static void
-GetColorAndStyle(const nsIFrame*  aFrame,
-                 mozilla::css::Side aSide,
-                 uint8_t* aStyle,
-                 nscolor* aColor,
-                 bool             aTableIsLTR,
-                 BCPixelSize* aWidth)
-{
-  GetColorAndStyle(aFrame, aSide, aStyle, aColor, aTableIsLTR);
-  if ((NS_STYLE_BORDER_STYLE_NONE == *aStyle) ||
-      (NS_STYLE_BORDER_STYLE_HIDDEN == *aStyle)) {
-    aWidth = 0;
-    return;
-  }
-  const nsStyleBorder* styleData = aFrame->StyleBorder();
-  nscoord width;
-  if(!aTableIsLTR) { 
-    if (NS_SIDE_RIGHT == aSide) {
-      aSide = NS_SIDE_LEFT;
-    }
-    else if (NS_SIDE_LEFT == aSide) {
-      aSide = NS_SIDE_RIGHT;
-    }
-  }
-  width = styleData->GetComputedBorderWidth(aSide);
-  *aWidth = nsPresContext::AppUnitsToIntCSSPixels(width);
 }
 
 class nsDelayedCalcBCBorders : public nsRunnable {
