@@ -2497,7 +2497,6 @@ js::InitClass(JSContext* cx, HandleObject obj, HandleObject protoProto_,
     RootedObject protoProto(cx, protoProto_);
 
     
-    MOZ_ASSERT(clasp->addProperty != JS_PropertyStub);
     MOZ_ASSERT(clasp->getProperty != JS_PropertyStub);
     MOZ_ASSERT(clasp->setProperty != JS_StrictPropertyStub);
 

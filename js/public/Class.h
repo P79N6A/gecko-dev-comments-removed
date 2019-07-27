@@ -221,7 +221,9 @@ typedef bool
 (* JSGetterOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                JS::MutableHandleValue vp);
 
-typedef JSGetterOp JSAddPropertyOp;
+
+typedef bool
+(* JSAddPropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue v);
 
 
 
