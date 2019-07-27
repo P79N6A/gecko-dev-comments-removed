@@ -393,4 +393,55 @@ WidgetKeyboardEvent::GetCommandStr(Command aCommand)
   return kCommands[aCommand];
 }
 
+ uint32_t
+WidgetKeyboardEvent::ComputeLocationFromCodeValue(CodeNameIndex aCodeNameIndex)
+{
+  
+  
+  
+  switch (aCodeNameIndex) {
+    case CODE_NAME_INDEX_AltLeft:
+    case CODE_NAME_INDEX_ControlLeft:
+    case CODE_NAME_INDEX_OSLeft:
+    case CODE_NAME_INDEX_ShiftLeft:
+      return nsIDOMKeyEvent::DOM_KEY_LOCATION_LEFT;
+    case CODE_NAME_INDEX_AltRight:
+    case CODE_NAME_INDEX_ControlRight:
+    case CODE_NAME_INDEX_OSRight:
+    case CODE_NAME_INDEX_ShiftRight:
+      return nsIDOMKeyEvent::DOM_KEY_LOCATION_RIGHT;
+    case CODE_NAME_INDEX_Numpad0:
+    case CODE_NAME_INDEX_Numpad1:
+    case CODE_NAME_INDEX_Numpad2:
+    case CODE_NAME_INDEX_Numpad3:
+    case CODE_NAME_INDEX_Numpad4:
+    case CODE_NAME_INDEX_Numpad5:
+    case CODE_NAME_INDEX_Numpad6:
+    case CODE_NAME_INDEX_Numpad7:
+    case CODE_NAME_INDEX_Numpad8:
+    case CODE_NAME_INDEX_Numpad9:
+    case CODE_NAME_INDEX_NumpadAdd:
+    case CODE_NAME_INDEX_NumpadBackspace:
+    
+    
+    case CODE_NAME_INDEX_NumpadComma:
+    case CODE_NAME_INDEX_NumpadDecimal:
+    case CODE_NAME_INDEX_NumpadDivide:
+    case CODE_NAME_INDEX_NumpadEnter:
+    case CODE_NAME_INDEX_NumpadEqual:
+    
+    
+    
+    
+    case CODE_NAME_INDEX_NumpadMemorySubtract:
+    case CODE_NAME_INDEX_NumpadMultiply:
+    
+    
+    case CODE_NAME_INDEX_NumpadSubtract:
+      return nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
+    default:
+      return nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;
+  }
+}
+
 } 
