@@ -37,22 +37,22 @@ let gDmdTestFile = getExecutable("SmokeDMD" + (gIsWindows ? ".exe" : ""));
 let gDmdScriptFile = getExecutable("dmd.py");
 
 function readFile(aFile) {
-  var fstream = Cc["@mozilla.org/network/file-input-stream;1"]
+  let fstream = Cc["@mozilla.org/network/file-input-stream;1"]
                   .createInstance(Ci.nsIFileInputStream);
-  var cstream = Cc["@mozilla.org/intl/converter-input-stream;1"]
+  let cstream = Cc["@mozilla.org/intl/converter-input-stream;1"]
                   .createInstance(Ci.nsIConverterInputStream);
   fstream.init(aFile, -1, 0, 0);
   cstream.init(fstream, "UTF-8", 0, 0);
 
-  var data = "";
-  let (str = {}) {
-    let read = 0;
-    do {
-      
-      read = cstream.readString(0xffffffff, str);
-      data += str.value;
-    } while (read != 0);
-  }
+  let data = "";
+  let str = {};
+  let read = 0;
+  do {
+    
+    read = cstream.readString(0xffffffff, str);
+    data += str.value;
+  } while (read != 0);
+
   cstream.close();                
   return data.replace(/\r/g, ""); 
 }
@@ -195,4 +195,3 @@ function run_test() {
   test("script-diff-dark-matter",
        [jsonFile.path, jsonFile2.path]);
 }
-
