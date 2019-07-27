@@ -30,16 +30,16 @@ function isNetworkReady() {
         var ip = ips.value[j];
         
         if (ip.indexOf(":") < 0) {
-          safeInfo("Network interface is ready with address: " + ip);
+          info("Network interface is ready with address: " + ip);
           return true;
         }
       }
     }
     
-    safeInfo("Network interface is not ready, required additional network setup");
+    info("Network interface is not ready, required additional network setup");
     return false;
   }
-  safeInfo("Network setup is not required");
+  info("Network setup is not required");
   return true;
 }
 
@@ -117,5 +117,5 @@ function networkTestFinished() {
   } else {
     p = Promise.resolve();
   }
-  return p.then(() => SimpleTest.finish());
+  return p.then(() => finish());
 }
