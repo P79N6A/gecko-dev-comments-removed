@@ -466,69 +466,6 @@ Reject(JSContext *cx, HandleId id, unsigned errorNumber, bool throwError, bool *
     return true;
 }
 
-static unsigned
-ApplyOrDefaultAttributes(unsigned attrs, Handle<PropertyDescriptor> desc)
-{
-    bool present = !!desc.object();
-    bool enumerable = present ? desc.isEnumerable() : false;
-    bool writable = present ? !desc.isReadonly() : false;
-    bool configurable = present ? !desc.isPermanent() : false;
-    return ApplyAttributes(attrs, enumerable, writable, configurable);
-}
-
-
-
-
-
-JS_FRIEND_API(bool)
-js::CheckDefineProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue value,
-                        unsigned attrs, PropertyOp getter, StrictPropertyOp setter)
-{
-    MOZ_ASSERT(getter != JS_PropertyStub);
-    MOZ_ASSERT(setter != JS_StrictPropertyStub);
-
-    if (!obj->isNative())
-        return true;
-
-    
-    
-    Rooted<PropertyDescriptor> desc(cx);
-    if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
-        return false;
-
-    
-    
-    
-    attrs = ApplyOrDefaultAttributes(attrs, desc) & ~JSPROP_IGNORE_VALUE;
-
-    
-    
-    
-    if (desc.object() && desc.isPermanent()) {
-        
-        
-        
-        if (getter != desc.getter() ||
-            setter != desc.setter() ||
-            (attrs != desc.attributes() && attrs != (desc.attributes() | JSPROP_READONLY)))
-        {
-            return Throw(cx, id, JSMSG_CANT_REDEFINE_PROP);
-        }
-
-        
-        
-        if ((desc.attributes() & (JSPROP_GETTER | JSPROP_SETTER | JSPROP_READONLY)) == JSPROP_READONLY) {
-            bool same;
-            if (!SameValue(cx, value, desc.value(), &same))
-                return false;
-            if (!same)
-                return JSObject::reportReadOnly(cx, id);
-        }
-    }
-    return true;
-}
-
-
 
 
 static bool

@@ -2559,24 +2559,6 @@ ForwardToNative(JSContext *cx, JSNative native, const JS::CallArgs &args);
 
 
 
-extern JS_FRIEND_API(bool)
-CheckDefineProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
-                    unsigned attrs,
-                    JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
