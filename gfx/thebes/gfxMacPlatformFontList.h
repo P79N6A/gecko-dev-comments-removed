@@ -33,7 +33,7 @@ public:
     
     MacOSFontEntry(const nsAString& aPostscriptName, CGFontRef aFontRef,
                    uint16_t aWeight, uint16_t aStretch, uint32_t aItalicStyle,
-                   bool aIsUserFont, bool aIsLocal);
+                   bool aIsDataUserFont, bool aIsLocal);
 
     virtual ~MacOSFontEntry() {
         ::CGFontRelease(mFontRef);

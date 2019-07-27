@@ -285,7 +285,7 @@ FT2FontEntry::CreateFontEntry(const nsAString& aFontName,
         fe->mItalic = aItalic;
         fe->mWeight = aWeight;
         fe->mStretch = aStretch;
-        fe->mIsUserFont = true;
+        fe->mIsDataUserFont = true;
     }
     return fe;
 }
@@ -1546,7 +1546,7 @@ gfxFT2FontList::LookupLocalFont(const nsAString& aFontName,
         fe->mItalic = aItalic;
         fe->mWeight = aWeight;
         fe->mStretch = aStretch;
-        fe->mIsUserFont = fe->mIsLocalUserFont = true;
+        fe->mIsLocalUserFont = true;
     }
 
     return fe;
