@@ -5314,6 +5314,14 @@ ThreadSources.prototype = {
         }
       } catch(ex) {
         
+
+        
+        
+        if (url.indexOf("javascript:") === 0) {
+          spec.contentType = "text/javascript";
+        } else {
+          console.warn("unable to parse url during SourceActor type detection", url, ex);
+        }
       }
     }
     else {
