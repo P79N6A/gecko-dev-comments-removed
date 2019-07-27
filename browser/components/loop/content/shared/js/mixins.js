@@ -295,15 +295,37 @@ loop.shared.mixins = (function() {
             width: width,
             height: node.offsetHeight
           };
+
           var ratio = this._videoDimensionsCache.remote[videoType].aspectRatio;
+          
           var leadingAxis = Math.min(ratio.width, ratio.height) === ratio.width ?
             "width" : "height";
-          var slaveSize = remoteVideoDimensions[leadingAxis] +
-            (remoteVideoDimensions[leadingAxis] * (1 - ratio[leadingAxis]));
-          remoteVideoDimensions.streamWidth = leadingAxis === "width" ?
-            remoteVideoDimensions.width : slaveSize;
-          remoteVideoDimensions.streamHeight = leadingAxis === "height" ?
-            remoteVideoDimensions.height: slaveSize;
+          var slaveAxis = leadingAxis === "height" ? "width" : "height";
+
+          
+          
+          
+          var leadingAxisFull = remoteVideoDimensions[slaveAxis] * ratio[leadingAxis] >
+            remoteVideoDimensions[leadingAxis];
+
+          if (leadingAxisFull) {
+            
+            var slaveAxisSize = remoteVideoDimensions[leadingAxis] / ratio[leadingAxis];
+
+            remoteVideoDimensions.streamWidth = leadingAxis === "width" ?
+              remoteVideoDimensions.width : slaveAxisSize;
+            remoteVideoDimensions.streamHeight = leadingAxis === "height" ?
+              remoteVideoDimensions.height: slaveAxisSize;
+          } else {
+            
+            
+            var leadingAxisSize = remoteVideoDimensions[slaveAxis] * ratio[leadingAxis];
+
+            remoteVideoDimensions.streamWidth = leadingAxis === "height" ?
+              remoteVideoDimensions.width : leadingAxisSize;
+            remoteVideoDimensions.streamHeight = leadingAxis === "width" ?
+              remoteVideoDimensions.height: leadingAxisSize;
+          }
         }
       }, this);
 
