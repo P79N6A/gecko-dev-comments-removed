@@ -10,6 +10,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h"
+#include "nsIGlobalObject.h"
 #include "js/TypeDecls.h"
 #include "nsIDocument.h"
 #include "nsRefreshDriver.h"
@@ -24,7 +25,9 @@ class AnimationTimeline MOZ_FINAL : public nsWrapperCache
 public:
   explicit AnimationTimeline(nsIDocument* aDocument)
     : mDocument(aDocument)
+    , mWindow(aDocument->GetParentObject())
   {
+    MOZ_ASSERT(mWindow);
   }
 
 protected:
@@ -36,7 +39,7 @@ public:
 
   nsIGlobalObject* GetParentObject() const
   {
-    return mDocument->GetParentObject();
+    return mWindow;
   }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
@@ -70,7 +73,12 @@ public:
 protected:
   TimeStamp GetCurrentTimeStamp() const;
 
+  
+  
+  
+  
   nsCOMPtr<nsIDocument> mDocument;
+  nsCOMPtr<nsIGlobalObject> mWindow;
 
   
   
