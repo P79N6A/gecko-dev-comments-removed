@@ -566,6 +566,17 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
       nativeStackAddr = (uint8_t *) aNativeStack.sp_array[nativeIndex];
 
     
+    
+    
+    
+    
+    if (nativeStackAddr && (pseudoStackAddr == nativeStackAddr || jsStackAddr == nativeStackAddr)) {
+      nativeStackAddr = nullptr;
+      nativeIndex--;
+      MOZ_ASSERT(pseudoStackAddr || jsStackAddr);
+    }
+
+    
     MOZ_ASSERT_IF(pseudoStackAddr, pseudoStackAddr != jsStackAddr &&
                                    pseudoStackAddr != nativeStackAddr);
     MOZ_ASSERT_IF(jsStackAddr, jsStackAddr != pseudoStackAddr &&
