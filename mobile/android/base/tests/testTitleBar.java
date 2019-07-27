@@ -1,6 +1,5 @@
 package org.mozilla.gecko.tests;
 import org.mozilla.gecko.Actions;
-import org.mozilla.gecko.NewTabletUI;
 
 
 
@@ -8,22 +7,18 @@ import org.mozilla.gecko.NewTabletUI;
 
 public class testTitleBar extends PixelTest {
     public void testTitleBar() {
-        
-        if (NewTabletUI.isEnabled(getActivity())) {
-            return;
-        }
-
         blockForGeckoReady();
         checkOption();
     }
 
     public void checkOption() {
+
         String blank1 = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         String title = StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE;
 
         
         inputAndLoadUrl(blank1);
-        verifyPageTitle(title, blank1);
+        verifyPageTitle(title);
 
         
         selectOption(StringHelper.SHOW_PAGE_ADDRESS_LABEL);
@@ -33,7 +28,7 @@ public class testTitleBar extends PixelTest {
         
         selectOption(StringHelper.SHOW_PAGE_TITLE_LABEL);
         inputAndLoadUrl(blank1);
-        verifyPageTitle(title, blank1);
+        verifyPageTitle(title);
     }
 
     

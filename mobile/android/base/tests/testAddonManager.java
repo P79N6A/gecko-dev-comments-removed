@@ -17,7 +17,7 @@ public class testAddonManager extends PixelTest  {
     public void testAddonManager() {
         Actions.EventExpecter tabEventExpecter;
         Actions.EventExpecter contentEventExpecter;
-        final String aboutAddonsURL = StringHelper.ABOUT_ADDONS_URL;
+        String url = StringHelper.ABOUT_ADDONS_URL;
 
         blockForGeckoReady();
 
@@ -36,22 +36,21 @@ public class testAddonManager extends PixelTest  {
         contentEventExpecter.unregisterListener();
 
         
-        verifyPageTitle(StringHelper.ADDONS_LABEL, aboutAddonsURL);
+        verifyPageTitle(StringHelper.ADDONS_LABEL);
 
         
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
 
         
-        loadAndPaint(aboutAddonsURL);
-        verifyPageTitle(StringHelper.ADDONS_LABEL, aboutAddonsURL);
+        loadAndPaint(url);
+        verifyPageTitle(StringHelper.ADDONS_LABEL);
 
         
         tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
         contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
 
         
-        final String blankURL = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        addTab(blankURL);
+        addTab(getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL));
 
         
         tabEventExpecter.blockForEvent();
@@ -64,7 +63,7 @@ public class testAddonManager extends PixelTest  {
         verifyTabCount(2);
 
         
-        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, blankURL);
+        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
 
         
         selectMenuItem(StringHelper.ADDONS_LABEL);

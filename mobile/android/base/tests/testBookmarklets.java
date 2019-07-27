@@ -18,9 +18,7 @@ public class testBookmarklets extends AboutHomeTest {
 
         
         inputAndLoadUrl(url);
-        
-        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE,
-                StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE); 
 
         
         enterUrl(js);

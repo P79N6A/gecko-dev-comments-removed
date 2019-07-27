@@ -30,14 +30,14 @@ public class testClearPrivateData extends PixelTest {
         String blank2 = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_02_URL);
         String title = StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE;
         inputAndLoadUrl(blank1);
-        verifyPageTitle(title, blank1);
+        verifyPageTitle(title);
         mDatabaseHelper.addOrUpdateMobileBookmark(StringHelper.ROBOCOP_BLANK_PAGE_02_TITLE, blank2);
 
         
         verifyHistoryCount(1);
 
         
-        checkDevice(title, blank1);
+        checkDevice(title);
 
         
         verifyHistoryCount(0);
@@ -65,7 +65,7 @@ public class testClearPrivateData extends PixelTest {
         checkOption(shareStrings[3], "Cancel");
         loadCheckDismiss(shareStrings[2], url, shareStrings[0]);
         checkOption(shareStrings[2], "Cancel");
-        checkDevice(titleGeolocation, url);
+        checkDevice(titleGeolocation);
     }
 
     public void clearPassword(){
@@ -75,20 +75,24 @@ public class testClearPrivateData extends PixelTest {
         loadCheckDismiss(passwordStrings[1], loginUrl, passwordStrings[0]);
         checkOption(passwordStrings[1], "Clear");
         loadCheckDismiss(passwordStrings[2], loginUrl, passwordStrings[0]);
-        checkDevice(title, getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL));
+        checkDevice(title);
     }
 
     
-    public void checkDevice(final String title, final String url) {
+    public void checkDevice(String title) {
         clearPrivateData();
         if (mDevice.type.equals("phone")) {
             mActions.sendSpecialKey(Actions.SpecialKey.BACK);
             mAsserter.ok(waitForText(StringHelper.PRIVACY_SECTION_LABEL), "waiting to perform one back", "one back");
+            mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+            verifyPageTitle(title);
         }
-        mActions.sendSpecialKey(Actions.SpecialKey.BACK);
-        verifyPageTitle(title, url);
+        else {
+            mActions.sendSpecialKey(Actions.SpecialKey.BACK);
+            verifyPageTitle(title);
+        }
     }
-
+   
     
     public void loadCheckDismiss(String option, String url, String message) {
         inputAndLoadUrl(url);
