@@ -11,5 +11,5 @@ if (this.document === undefined)
 
 
 runTestRequests([ new AbortedRequest(false),
-		  new AbortedRequest(true, -1),
-		  new AbortedRequest(true, TIME_NORMAL_LOAD) ]);
+                  new AbortedRequest(true, -1),
+                  new AbortedRequest(true, TIME_NORMAL_LOAD) ]);
