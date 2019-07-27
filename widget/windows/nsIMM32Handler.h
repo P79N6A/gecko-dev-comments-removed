@@ -14,13 +14,11 @@
 #include "nsIWidget.h"
 #include "mozilla/EventForwards.h"
 #include "nsRect.h"
+#include "WritingModes.h"
 
 class nsWindow;
 
 namespace mozilla {
-
-class WritingMode;
-
 namespace widget {
 
 struct MSGResult;
@@ -168,7 +166,8 @@ protected:
 
   static bool ShouldDrawCompositionStringOurselves();
   static bool IsVerticalWritingSupported();
-  static void InitKeyboardLayout(HKL aKeyboardLayout);
+  
+  static void InitKeyboardLayout(nsWindow* aWindow, HKL aKeyboardLayout);
   static UINT GetKeyboardCodePage();
 
   
@@ -299,8 +298,22 @@ protected:
   
 
 
+
+
   void AdjustCompositionFont(const nsIMEContext& aIMEContext,
-                             const mozilla::WritingMode& aWritingMode);
+                             const mozilla::WritingMode& aWritingMode,
+                             bool aForceUpdate = false);
+
+  
+
+
+
+
+  static void MaybeAdjustCompositionFont(
+                nsWindow* aWindow,
+                const mozilla::WritingMode& aWritingMode,
+                bool aForceUpdate = false);
+
   
 
 
@@ -378,6 +391,7 @@ protected:
   bool mIsComposingOnPlugin;
   bool mNativeCaretIsCreated;
 
+  static mozilla::WritingMode sWritingModeOfCompositionFont;
   static nsString sIMEName;
   static UINT sCodePage;
   static DWORD sIMEProperty;
