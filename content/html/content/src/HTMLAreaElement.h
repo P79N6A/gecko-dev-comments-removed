@@ -90,7 +90,10 @@ public:
     SetHTMLAttr(nsGkAtoms::shape, aShape, aError);
   }
 
-  
+  void GetHref(nsAString& aHref, ErrorResult& aError)
+  {
+    aError = GetHref(aHref);
+  }
   void SetHref(const nsAString& aHref, ErrorResult& aError)
   {
     aError = SetHref(aHref);
@@ -124,7 +127,11 @@ public:
     SetHTMLAttr(nsGkAtoms::rel, aRel, aError);
   } 
   nsDOMTokenList* RelList();
+
   
+
+  using Link::GetProtocol;
+  using Link::SetProtocol;
 
   
   
@@ -132,26 +139,23 @@ public:
   
   
 
-  
-  
+  using Link::GetHost;
+  using Link::SetHost;
 
-  
-  
+  using Link::GetHostname;
+  using Link::SetHostname;
 
-  
-  
+  using Link::GetPort;
+  using Link::SetPort;
 
-  
-  
+  using Link::GetPathname;
+  using Link::SetPathname;
 
-  
-  
+  using Link::GetSearch;
+  using Link::SetSearch;
 
-  
-  
-
-  
-  
+  using Link::GetHash;
+  using Link::SetHash;
 
   
   
@@ -166,9 +170,9 @@ public:
     SetHTMLBoolAttr(nsGkAtoms::nohref, aValue, aError);
   }
 
-  void Stringify(nsAString& aResult)
+  void Stringify(nsAString& aResult, ErrorResult& aError)
   {
-    GetHref(aResult);
+    GetHref(aResult, aError);
   }
 
 protected:
