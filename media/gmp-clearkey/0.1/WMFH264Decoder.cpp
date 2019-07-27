@@ -158,7 +158,10 @@ WMFH264Decoder::SetDecoderOutputType()
     if (FAILED(hr)) {
       continue;
     }
-    if (subtype == MFVideoFormat_I420) {
+    if (subtype == MFVideoFormat_I420 || subtype == MFVideoFormat_IYUV) {
+      
+      
+      
       hr = mDecoder->SetOutputType(0, type, 0);
       ENSURE(SUCCEEDED(hr), hr);
 
