@@ -963,7 +963,7 @@ protected:
   }
 
   
-  bool ParseBasicShape(nsCSSValue& aValue);
+  bool ParseBasicShape(nsCSSValue& aValue, bool* aConsumedTokens);
   bool ParsePolygonFunction(nsCSSValue& aValue);
 
   
@@ -13844,7 +13844,7 @@ CSSParserImpl::ParsePolygonFunction(nsCSSValue& aValue)
 }
 
 bool
-CSSParserImpl::ParseBasicShape(nsCSSValue& aValue)
+CSSParserImpl::ParseBasicShape(nsCSSValue& aValue, bool* aConsumedTokens)
 {
   if (!GetToken(true)) {
     return false;
@@ -13855,6 +13855,8 @@ CSSParserImpl::ParseBasicShape(nsCSSValue& aValue)
     return false;
   }
 
+  
+  *aConsumedTokens = true;
   nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
   switch (keyword) {
   case eCSSKeyword_polygon:
@@ -13876,29 +13878,40 @@ bool CSSParserImpl::ParseClipPath()
       return false;
     }
 
-    bool shape = false, box = false;
     nsCSSValueList* cur = value.SetListValue();
-    bool eof = false;
-    for (int i = 0; i < 2; ++i) {
-      if (ParseBasicShape(cur->mValue) && !shape) {
-        shape = true;
-      } else if (ParseEnum(cur->mValue, nsCSSProps::kClipShapeSizingKTable) &&
-                 !box) {
-        box = true;
-      } else {
-        break;
-      }
-      if (!GetToken(true)) {
-        eof = true;
-        break;
-      }
-      UngetToken();
-      cur->mNext = new nsCSSValueList;
-      cur = cur->mNext;
-    }
-    if (!shape && !box && !eof) {
-      REPORT_UNEXPECTED_EOF(PEClipPathEOF);
+
+    nsCSSValue referenceBox;
+    bool hasBox = ParseEnum(referenceBox, nsCSSProps::kClipShapeSizingKTable);
+
+    nsCSSValue basicShape;
+    bool basicShapeConsumedTokens = false;
+    bool hasShape = ParseBasicShape(basicShape, &basicShapeConsumedTokens);
+
+    
+    
+    if ((!hasShape && basicShapeConsumedTokens) || (!hasBox && !hasShape)) {
       return false;
+    }
+
+    
+    if (hasBox) {
+      cur->mValue = referenceBox;
+    }
+
+    if (hasShape) {
+      if (hasBox) {
+        cur->mNext = new nsCSSValueList;
+        cur = cur->mNext;
+      }
+      cur->mValue = basicShape;
+    }
+
+    
+    if (!hasBox &&
+        ParseEnum(referenceBox, nsCSSProps::kClipShapeSizingKTable)) {
+        cur->mNext = new nsCSSValueList;
+        cur = cur->mNext;
+        cur->mValue = referenceBox;
     }
   }
 
