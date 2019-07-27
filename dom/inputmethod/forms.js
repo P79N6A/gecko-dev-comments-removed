@@ -224,7 +224,6 @@ let FormAssistant = {
   _documentEncoder: null,
   _editor: null,
   _editing: false,
-  _selectionPrivate: null,
 
   get focusedElement() {
     if (this._focusedElement && Cu.isDeadWrapper(this._focusedElement))
@@ -245,6 +244,8 @@ let FormAssistant = {
       return;
 
     if (this.focusedElement) {
+      this.focusedElement.removeEventListener('mousedown', this);
+      this.focusedElement.removeEventListener('mouseup', this);
       this.focusedElement.removeEventListener('compositionend', this);
       if (this._observer) {
         this._observer.disconnect();
@@ -252,10 +253,6 @@ let FormAssistant = {
       }
       if (!element) {
         this.focusedElement.blur();
-      }
-      if (this._selectionPrivate) {
-        this._selectionPrivate.removeSelectionListener(this);
-        this._selectionPrivate = null;
       }
     }
 
@@ -272,6 +269,8 @@ let FormAssistant = {
     }
 
     if (element) {
+      element.addEventListener('mousedown', this);
+      element.addEventListener('mouseup', this);
       element.addEventListener('compositionend', this);
       if (isContentEditable(element)) {
         this._documentEncoder = getDocumentEncoder(element);
@@ -281,12 +280,6 @@ let FormAssistant = {
         
         
         this._editor.addEditorObserver(this);
-
-        let selection = this._editor.selection;
-        if (selection) {
-          this._selectionPrivate = selection.QueryInterface(Ci.nsISelectionPrivate);
-          this._selectionPrivate.addSelectionListener(this);
-        }
       }
 
       
@@ -310,10 +303,6 @@ let FormAssistant = {
     }
 
     this.focusedElement = element;
-  },
-
-  notifySelectionChanged: function(aDocument, aSelection, aReason) {
-    this.updateSelection();
   },
 
   get documentEncoder() {
@@ -387,6 +376,32 @@ let FormAssistant = {
         }
         break;
 
+      case 'mousedown':
+         if (!this.focusedElement) {
+          break;
+        }
+
+        
+        
+        this.updateSelection();
+        break;
+
+      case 'mouseup':
+        if (!this.focusedElement) {
+          break;
+        }
+
+        
+        
+        
+        
+        range = getSelectionRange(this.focusedElement);
+        if (range[0] !== this.selectionStart ||
+            range[1] !== this.selectionEnd) {
+          this.updateSelection();
+        }
+        break;
+
       case "resize":
         if (!this.isKeyboardOpened)
           return;
@@ -408,12 +423,25 @@ let FormAssistant = {
         }
         break;
 
+      case "input":
+        if (this.focusedElement) {
+          
+          this.updateSelection();
+        }
+        break;
+
       case "keydown":
         if (!this.focusedElement) {
           break;
         }
 
         CompositionManager.endComposition('');
+
+        
+        
+        content.setTimeout(function() {
+          this.updateSelection();
+        }.bind(this), 0);
         break;
 
       case "keyup":
@@ -422,6 +450,7 @@ let FormAssistant = {
         }
 
         CompositionManager.endComposition('');
+
         break;
 
       case "compositionend":
@@ -496,8 +525,7 @@ let FormAssistant = {
 
         if (json.requestId && doKeypress) {
           sendAsyncMessage("Forms:SendKey:Result:OK", {
-            requestId: json.requestId,
-            selectioninfo: this.getSelectionInfo()
+            requestId: json.requestId
           });
         }
         else if (json.requestId && !doKeypress) {
@@ -554,6 +582,8 @@ let FormAssistant = {
           }
           break;
         }
+
+        this.updateSelection();
 
         if (json.requestId) {
           sendAsyncMessage("Forms:SetSelectionRange:Result:OK", {
@@ -621,7 +651,6 @@ let FormAssistant = {
                                           json.clauses);
         sendAsyncMessage("Forms:SetComposition:Result:OK", {
           requestId: json.requestId,
-          selectioninfo: this.getSelectionInfo()
         });
         break;
       }
@@ -630,7 +659,6 @@ let FormAssistant = {
         CompositionManager.endComposition(json.text);
         sendAsyncMessage("Forms:EndComposition:Result:OK", {
           requestId: json.requestId,
-          selectioninfo: this.getSelectionInfo()
         });
         break;
       }
@@ -729,8 +757,6 @@ let FormAssistant = {
     };
   },
 
-  _selectionTimeout: null,
-
   
   updateSelection: function fa_updateSelection() {
     if (!this.focusedElement) {
@@ -738,16 +764,7 @@ let FormAssistant = {
     }
     let selectionInfo = this.getSelectionInfo();
     if (selectionInfo.changed) {
-      
-      
-      
-      if (this._selectionTimeout) {
-        content.clearTimeout(this._selectionTimeout);
-      }
-
-      this._selectionTimeout = content.setTimeout(function() {
-        sendAsyncMessage("Forms:SelectionChange", selectionInfo);
-      });
+      sendAsyncMessage("Forms:SelectionChange", this.getSelectionInfo());
     }
   }
 };
