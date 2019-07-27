@@ -160,9 +160,15 @@ Downscaler::CommitRow()
                                 true);
   }
 
-  while (mLinesInBuffer == filterLength &&
-         mCurrentOutLine < mTargetSize.height) {
+  MOZ_ASSERT(mCurrentOutLine < mTargetSize.height,
+             "Writing past end of output");
+
+  while (mLinesInBuffer == filterLength) {
     DownscaleInputLine();
+
+    if (mCurrentOutLine == mTargetSize.height) {
+      break;  
+    }
 
     GetFilterOffsetAndLength(mYFilter, mCurrentOutLine,
                              &filterOffset, &filterLength);
