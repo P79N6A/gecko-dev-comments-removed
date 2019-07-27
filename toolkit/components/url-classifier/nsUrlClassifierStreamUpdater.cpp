@@ -120,11 +120,19 @@ nsUrlClassifierStreamUpdater::FetchUpdate(nsIURI *aUpdateUrl,
   if ((NS_SUCCEEDED(aUpdateUrl->SchemeIs("file", &match)) && match) ||
       (NS_SUCCEEDED(aUpdateUrl->SchemeIs("data", &match)) && match)) {
     mChannel->SetContentType(NS_LITERAL_CSTRING("application/vnd.google.safebrowsing-update"));
+  } else {
+    
+
+    
+    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Connection"), NS_LITERAL_CSTRING("close"), false);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-   
-   
-   
+  
+  
+  
   nsCOMPtr<nsIInterfaceRequestor> sbContext =
     new mozilla::LoadContext(NECKO_SAFEBROWSING_APP_ID);
   rv = mChannel->SetNotificationCallbacks(sbContext);
