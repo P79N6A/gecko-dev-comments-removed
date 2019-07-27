@@ -2363,7 +2363,7 @@ public:
 
 
 
-  static nsresult SendKeyEvent(nsCOMPtr<nsIWidget> aWidget,
+  static nsresult SendKeyEvent(nsIWidget* aWidget,
                                const nsAString& aType,
                                int32_t aKeyCode,
                                int32_t aCharCode,
