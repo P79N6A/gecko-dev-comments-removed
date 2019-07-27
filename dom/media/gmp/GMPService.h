@@ -139,7 +139,9 @@ private:
 
   nsTArray<nsRefPtr<GMPParent>> mAsyncShutdownPlugins; 
 
+#ifndef MOZ_WIDGET_GONK
   nsCOMPtr<nsIFile> mStorageBaseDir;
+#endif
 
   
   
