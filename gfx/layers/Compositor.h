@@ -540,6 +540,13 @@ private:
 
 };
 
+
+typedef gfx::Rect decomposedRectArrayT[4];
+size_t DecomposeIntoNoRepeatRects(const gfx::Rect& aRect,
+                                  const gfx::Rect& aTexCoordRect,
+                                  decomposedRectArrayT* aLayerRects,
+                                  decomposedRectArrayT* aTextureRects);
+
 } 
 } 
 
