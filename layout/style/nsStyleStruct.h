@@ -94,9 +94,9 @@ public:
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
   static nsChangeHint CalcFontDifference(const nsFont& aFont1, const nsFont& aFont2);
 
@@ -848,9 +848,9 @@ struct nsStyleBorder {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   void EnsureBorderColors() {
@@ -1177,9 +1177,9 @@ struct nsStyleList {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   imgRequestProxy* GetListStyleImage() const { return mListStyleImage; }
@@ -1351,6 +1351,7 @@ struct nsStylePosition {
                                        nsChangeHint_UpdateParentOverflow));
   }
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return nsChangeHint(0);
@@ -1592,9 +1593,9 @@ struct nsStyleTextReset {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   nsStyleCoord  mVerticalAlign;         
@@ -1630,9 +1631,9 @@ struct nsStyleText {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   uint8_t mTextAlign;                   
@@ -1822,9 +1823,9 @@ struct nsStyleVisibility {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   nsStyleImageOrientation mImageOrientation;  
@@ -2056,6 +2057,7 @@ struct nsStyleDisplay {
                         nsChangeHint_NeutralChange);
   }
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return nsChangeHint(0);
@@ -2311,9 +2313,9 @@ struct nsStyleTable {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   uint8_t       mLayoutStrategy;
@@ -2342,9 +2344,9 @@ struct nsStyleTableBorder {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   nscoord       mBorderSpacingCol;
@@ -2441,9 +2443,9 @@ struct nsStyleQuotes {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   uint32_t  QuotesCount(void) const { return mQuotesCount; } 
@@ -2516,9 +2518,9 @@ struct nsStyleContent {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   uint32_t  ContentCount(void) const  { return mContentCount; } 
@@ -2629,9 +2631,9 @@ struct nsStyleUIReset {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   uint8_t   mUserSelect;      
@@ -2693,9 +2695,9 @@ struct nsStyleUserInterface {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   uint8_t   mUserInput;       
@@ -2738,9 +2740,9 @@ struct nsStyleXUL {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   float         mBoxFlex;               
@@ -2775,9 +2777,9 @@ struct nsStyleColumn {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   
@@ -3150,9 +3152,9 @@ struct nsStyleSVGReset {
   static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
-    
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint_NeedReflow |
+           nsChangeHint_ReflowChangesSizeOrPosition |
+           nsChangeHint_ClearAncestorIntrinsics;
   }
 
   bool HasFilters() const {

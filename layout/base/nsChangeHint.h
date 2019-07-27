@@ -167,7 +167,14 @@ enum nsChangeHint {
   
 
 
-  nsChangeHint_InvalidateRenderingObservers = 0x400000
+  nsChangeHint_InvalidateRenderingObservers = 0x400000,
+
+  
+
+
+
+
+  nsChangeHint_ReflowChangesSizeOrPosition = 0x800000,
 
   
   
@@ -275,6 +282,7 @@ inline nsChangeHint operator^=(nsChangeHint& aLeft, nsChangeHint aRight)
           nsChangeHint_AddOrRemoveTransform | \
           nsChangeHint_BorderStyleNoneChange | \
           nsChangeHint_NeedReflow | \
+          nsChangeHint_ReflowChangesSizeOrPosition | \
           nsChangeHint_ClearAncestorIntrinsics)
 
 inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint) {
@@ -291,11 +299,19 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
     nsChangeHint_AddOrRemoveTransform |
     nsChangeHint_BorderStyleNoneChange));
 
-  if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aChangeHint) &&
-      NS_IsHintSubset(nsChangeHint_NeedReflow, aChangeHint)) {
-    
-    
-    NS_UpdateHint(result, nsChangeHint_NeedReflow);
+  if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aChangeHint)) {
+    if (NS_IsHintSubset(nsChangeHint_NeedReflow, aChangeHint)) {
+      
+      
+      NS_UpdateHint(result, nsChangeHint_NeedReflow);
+    }
+
+    if (NS_IsHintSubset(nsChangeHint_ReflowChangesSizeOrPosition,
+                        aChangeHint)) {
+      
+      
+      NS_UpdateHint(result, nsChangeHint_ReflowChangesSizeOrPosition);
+    }
   }
 
   if (!NS_IsHintSubset(nsChangeHint_ClearDescendantIntrinsics, aChangeHint) &&
@@ -320,6 +336,7 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
                nsChangeHint_SchedulePaint)
 #define nsChangeHint_AllReflowHints                     \
   nsChangeHint(nsChangeHint_NeedReflow |                \
+               nsChangeHint_ReflowChangesSizeOrPosition|\
                nsChangeHint_ClearAncestorIntrinsics |   \
                nsChangeHint_ClearDescendantIntrinsics | \
                nsChangeHint_NeedDirtyReflow)
