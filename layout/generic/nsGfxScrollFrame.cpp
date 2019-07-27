@@ -55,6 +55,7 @@
 #include "nsIFrameInlines.h"
 #include "gfxPlatform.h"
 #include "gfxPrefs.h"
+#include "AsyncScrollBase.h"
 #include <mozilla/layers/AxisPhysicsModel.h>
 #include <mozilla/layers/AxisPhysicsMSDModel.h>
 #include <algorithm>
@@ -1447,9 +1448,6 @@ NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
 #define SMOOTH_SCROLL_PREF_NAME "general.smoothScroll"
 
-const double kCurrentVelocityWeighting = 0.25;
-const double kStopDecelerationWeighting = 0.4;
-
 
 class ScrollFrameHelper::AsyncSmoothMSDScroll final : public nsARefreshObserver {
 public:
@@ -1581,14 +1579,16 @@ private:
 };
 
 
-class ScrollFrameHelper::AsyncScroll final : public nsARefreshObserver {
+class ScrollFrameHelper::AsyncScroll final
+  : public nsARefreshObserver,
+    public AsyncScrollBase
+{
 public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
 
   explicit AsyncScroll(nsPoint aStartPos)
-    : mIsFirstIteration(true)
-    , mStartPos(aStartPos)
+    : AsyncScrollBase(aStartPos)
     , mCallee(nullptr)
   {}
 
@@ -1599,9 +1599,6 @@ private:
   }
 
 public:
-  nsPoint PositionAt(TimeStamp aTime);
-  nsSize VelocityAt(TimeStamp aTime); 
-
   void InitSmoothScroll(TimeStamp aTime, nsPoint aDestination,
                         nsIAtom *aOrigin, const nsRect& aRange,
                         const nsSize& aCurrentVelocity);
@@ -1613,53 +1610,15 @@ public:
     return aTime > mStartTime + mDuration; 
   }
 
-  TimeStamp mStartTime;
-
-  
-  
-  
-  
-  
-  TimeStamp mPrevEventTime[3];
-  bool mIsFirstIteration;
-
-  
-  
-  
-  
-  
-  
   
   nsCOMPtr<nsIAtom> mOrigin;
-  int32_t mOriginMinMS;
-  int32_t mOriginMaxMS;
-  double  mIntervalRatio;
 
-  TimeDuration mDuration;
-  nsPoint mStartPos;
-  nsPoint mDestination;
   
   nsRect mRange;
-  nsSMILKeySpline mTimingFunctionX;
-  nsSMILKeySpline mTimingFunctionY;
   bool mIsSmoothScroll;
 
-protected:
-  double ProgressAt(TimeStamp aTime) {
-    return clamped((aTime - mStartTime) / mDuration, 0.0, 1.0);
-  }
-
-  nscoord VelocityComponent(double aTimeProgress,
-                            nsSMILKeySpline& aTimingFunction,
-                            nscoord aStart, nscoord aDestination);
-
-  
-  
-  void InitTimingFunction(nsSMILKeySpline& aTimingFunction,
-                          nscoord aCurrentPos, nscoord aCurrentVelocity,
-                          nscoord aDestination);
-
-  TimeDuration CalcDurationForEventTime(TimeStamp aTime, nsIAtom *aOrigin);
+private:
+  void InitPreferences(TimeStamp aTime, nsIAtom *aOrigin);
 
 
 
@@ -1707,162 +1666,72 @@ private:
   }
 };
 
-nsPoint
-ScrollFrameHelper::AsyncScroll::PositionAt(TimeStamp aTime) {
-  double progressX = mTimingFunctionX.GetSplineValue(ProgressAt(aTime));
-  double progressY = mTimingFunctionY.GetSplineValue(ProgressAt(aTime));
-  return nsPoint(NSToCoordRound((1 - progressX) * mStartPos.x + progressX * mDestination.x),
-                 NSToCoordRound((1 - progressY) * mStartPos.y + progressY * mDestination.y));
-}
-
-nsSize
-ScrollFrameHelper::AsyncScroll::VelocityAt(TimeStamp aTime) {
-  double timeProgress = ProgressAt(aTime);
-  return nsSize(VelocityComponent(timeProgress, mTimingFunctionX,
-                                  mStartPos.x, mDestination.x),
-                VelocityComponent(timeProgress, mTimingFunctionY,
-                                  mStartPos.y, mDestination.y));
-}
 
 
 
 
-
-TimeDuration
-ScrollFrameHelper::
-AsyncScroll::CalcDurationForEventTime(TimeStamp aTime, nsIAtom *aOrigin) {
+void
+ScrollFrameHelper::AsyncScroll::InitPreferences(TimeStamp aTime, nsIAtom *aOrigin)
+{
   if (!aOrigin){
     aOrigin = nsGkAtoms::other;
   }
 
   
-  if (mIsFirstIteration || aOrigin != mOrigin) {
-    mOrigin = aOrigin;
-    mOriginMinMS = mOriginMaxMS = 0;
-    bool isOriginSmoothnessEnabled = false;
-    mIntervalRatio = 1;
+  if (!mIsFirstIteration && aOrigin == mOrigin) {
+    return;
+  }
 
-    
-    static const int32_t kDefaultMinMS = 150, kDefaultMaxMS = 150;
-    static const bool kDefaultIsSmoothEnabled = true;
+  mOrigin = aOrigin;
+  mOriginMinMS = mOriginMaxMS = 0;
+  bool isOriginSmoothnessEnabled = false;
+  mIntervalRatio = 1;
 
-    nsAutoCString originName;
-    aOrigin->ToUTF8String(originName);
-    nsAutoCString prefBase = NS_LITERAL_CSTRING("general.smoothScroll.") + originName;
+  
+  static const int32_t kDefaultMinMS = 150, kDefaultMaxMS = 150;
+  static const bool kDefaultIsSmoothEnabled = true;
 
-    isOriginSmoothnessEnabled = Preferences::GetBool(prefBase.get(), kDefaultIsSmoothEnabled);
-    if (isOriginSmoothnessEnabled) {
-      nsAutoCString prefMin = prefBase + NS_LITERAL_CSTRING(".durationMinMS");
-      nsAutoCString prefMax = prefBase + NS_LITERAL_CSTRING(".durationMaxMS");
-      mOriginMinMS = Preferences::GetInt(prefMin.get(), kDefaultMinMS);
-      mOriginMaxMS = Preferences::GetInt(prefMax.get(), kDefaultMaxMS);
+  nsAutoCString originName;
+  aOrigin->ToUTF8String(originName);
+  nsAutoCString prefBase = NS_LITERAL_CSTRING("general.smoothScroll.") + originName;
 
-      static const int32_t kSmoothScrollMaxAllowedAnimationDurationMS = 10000;
-      mOriginMaxMS = clamped(mOriginMaxMS, 0, kSmoothScrollMaxAllowedAnimationDurationMS);
-      mOriginMinMS = clamped(mOriginMinMS, 0, mOriginMaxMS);
-    }
+  isOriginSmoothnessEnabled = Preferences::GetBool(prefBase.get(), kDefaultIsSmoothEnabled);
+  if (isOriginSmoothnessEnabled) {
+    nsAutoCString prefMin = prefBase + NS_LITERAL_CSTRING(".durationMinMS");
+    nsAutoCString prefMax = prefBase + NS_LITERAL_CSTRING(".durationMaxMS");
+    mOriginMinMS = Preferences::GetInt(prefMin.get(), kDefaultMinMS);
+    mOriginMaxMS = Preferences::GetInt(prefMax.get(), kDefaultMaxMS);
 
-    
-    
-    static const double kDefaultDurationToIntervalRatio = 2; 
-    mIntervalRatio = Preferences::GetInt("general.smoothScroll.durationToIntervalRatio",
-                                         kDefaultDurationToIntervalRatio * 100) / 100.0;
-
-    
-    mIntervalRatio = std::max(1.0, mIntervalRatio);
-
-    if (mIsFirstIteration) {
-      
-      
-
-      
-      TimeDuration maxDelta = TimeDuration::FromMilliseconds(mOriginMaxMS / mIntervalRatio);
-      mPrevEventTime[0] = aTime              - maxDelta;
-      mPrevEventTime[1] = mPrevEventTime[0]  - maxDelta;
-      mPrevEventTime[2] = mPrevEventTime[1]  - maxDelta;
-    }
+    static const int32_t kSmoothScrollMaxAllowedAnimationDurationMS = 10000;
+    mOriginMaxMS = clamped(mOriginMaxMS, 0, kSmoothScrollMaxAllowedAnimationDurationMS);
+    mOriginMinMS = clamped(mOriginMinMS, 0, mOriginMaxMS);
   }
 
   
-  int32_t eventsDeltaMs = (aTime - mPrevEventTime[2]).ToMilliseconds() / 3;
-  mPrevEventTime[2] = mPrevEventTime[1];
-  mPrevEventTime[1] = mPrevEventTime[0];
-  mPrevEventTime[0] = aTime;
+  
+  static const double kDefaultDurationToIntervalRatio = 2; 
+  mIntervalRatio = Preferences::GetInt("general.smoothScroll.durationToIntervalRatio",
+                                       kDefaultDurationToIntervalRatio * 100) / 100.0;
 
   
-  
-  
-  
-  
-  int32_t durationMS = clamped<int32_t>(eventsDeltaMs * mIntervalRatio, mOriginMinMS, mOriginMaxMS);
+  mIntervalRatio = std::max(1.0, mIntervalRatio);
 
-  return TimeDuration::FromMilliseconds(durationMS);
+  if (mIsFirstIteration) {
+    InitializeHistory(aTime);
+  }
 }
 
 void
 ScrollFrameHelper::AsyncScroll::InitSmoothScroll(TimeStamp aTime,
-                                                     nsPoint aDestination,
-                                                     nsIAtom *aOrigin,
-                                                     const nsRect& aRange,
-                                                     const nsSize& aCurrentVelocity) {
+                                                 nsPoint aDestination,
+                                                 nsIAtom *aOrigin,
+                                                 const nsRect& aRange,
+                                                 const nsSize& aCurrentVelocity)
+{
+  InitPreferences(aTime, aOrigin);
   mRange = aRange;
-  TimeDuration duration = CalcDurationForEventTime(aTime, aOrigin);
-  nsSize currentVelocity = aCurrentVelocity;
-  if (!mIsFirstIteration) {
-    
-    
-    
-    if (aDestination == mDestination &&
-        aTime + duration > mStartTime + mDuration)
-      return;
 
-    currentVelocity = VelocityAt(aTime);
-    mStartPos = PositionAt(aTime);
-  }
-  mStartTime = aTime;
-  mDuration = duration;
-  mDestination = aDestination;
-  InitTimingFunction(mTimingFunctionX, mStartPos.x, currentVelocity.width,
-                     aDestination.x);
-  InitTimingFunction(mTimingFunctionY, mStartPos.y, currentVelocity.height,
-                     aDestination.y);
-  mIsFirstIteration = false;
-}
-
-
-nscoord
-ScrollFrameHelper::AsyncScroll::VelocityComponent(double aTimeProgress,
-                                                      nsSMILKeySpline& aTimingFunction,
-                                                      nscoord aStart,
-                                                      nscoord aDestination)
-{
-  double dt, dxy;
-  aTimingFunction.GetSplineDerivativeValues(aTimeProgress, dt, dxy);
-  if (dt == 0)
-    return dxy >= 0 ? nscoord_MAX : nscoord_MIN;
-
-  const TimeDuration oneSecond = TimeDuration::FromSeconds(1);
-  double slope = dxy / dt;
-  return NSToCoordRound(slope * (aDestination - aStart) / (mDuration / oneSecond));
-}
-
-void
-ScrollFrameHelper::AsyncScroll::InitTimingFunction(nsSMILKeySpline& aTimingFunction,
-                                                       nscoord aCurrentPos,
-                                                       nscoord aCurrentVelocity,
-                                                       nscoord aDestination)
-{
-  if (aDestination == aCurrentPos || kCurrentVelocityWeighting == 0) {
-    aTimingFunction.Init(0, 0, 1 - kStopDecelerationWeighting, 1);
-    return;
-  }
-
-  const TimeDuration oneSecond = TimeDuration::FromSeconds(1);
-  double slope = aCurrentVelocity * (mDuration / oneSecond) / (aDestination - aCurrentPos);
-  double normalization = sqrt(1.0 + slope * slope);
-  double dt = 1.0 / normalization * kCurrentVelocityWeighting;
-  double dxy = slope / normalization * kCurrentVelocityWeighting;
-  aTimingFunction.Init(dt, dxy, 1 - kStopDecelerationWeighting, 1);
+  Update(aTime, aDestination, aCurrentVelocity);
 }
 
 bool
