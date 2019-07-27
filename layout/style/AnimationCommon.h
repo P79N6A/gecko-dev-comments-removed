@@ -27,6 +27,10 @@ class nsPresContext;
 class nsStyleChangeList;
 
 
+#ifdef CurrentTime
+#undef CurrentTime
+#endif
+
 namespace mozilla {
 
 class StyleAnimationValue;
@@ -307,7 +311,7 @@ struct ComputedTiming
 
 
 
-struct ElementAnimation
+class ElementAnimation : public nsWrapperCache
 {
 protected:
   virtual ~ElementAnimation() { }
@@ -319,10 +323,18 @@ public:
     , mLastNotification(LAST_NOTIFICATION_NONE)
     , mTimeline(aTimeline)
   {
+    SetIsDOMBinding();
   }
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(ElementAnimation)
-  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ElementAnimation)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(ElementAnimation)
+
+  mozilla::dom::AnimationTimeline* GetParentObject() const { return mTimeline; }
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+
+  
+  double StartTime() const;
+  double CurrentTime() const;
 
   
   
@@ -357,8 +369,6 @@ public:
   mozilla::TimeDuration GetLocalTimeAt(mozilla::TimeStamp aTime) const {
     MOZ_ASSERT(!IsPaused() || aTime >= mPauseStart,
                "if paused, aTime must be at least mPauseStart");
-    MOZ_ASSERT(!IsFinishedTransition(),
-               "GetLocalTimeAt should not be called on a finished transition");
     return (IsPaused() ? mPauseStart : aTime) - mStartTime;
   }
 

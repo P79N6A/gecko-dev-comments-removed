@@ -7,6 +7,7 @@
 #include "nsTransitionManager.h"
 #include "nsAnimationManager.h"
 
+#include "mozilla/dom/AnimationPlayerBinding.h"
 #include "ActiveLayerTracker.h"
 #include "gfxPlatform.h"
 #include "nsRuleData.h"
@@ -407,9 +408,45 @@ ComputedTimingFunction::GetValue(double aPortion) const
 const double ComputedTiming::kNullTimeFraction =
   mozilla::PositiveInfinity<double>();
 
-NS_IMPL_CYCLE_COLLECTION(ElementAnimation, mTimeline)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(ElementAnimation, mTimeline)
+
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(ElementAnimation, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(ElementAnimation, Release)
+
+JSObject*
+ElementAnimation::WrapObject(JSContext* aCx)
+{
+  return dom::AnimationPlayerBinding::Wrap(aCx, this);
+}
+
+double
+ElementAnimation::StartTime() const
+{
+  Nullable<double> startTime = mTimeline->ToTimelineTime(mStartTime);
+  return startTime.IsNull() ? 0.0 : startTime.Value();
+}
+
+double
+ElementAnimation::CurrentTime() const
+{
+  TimeStamp now = mTimeline->GetCurrentTimeStamp();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (now.IsNull()) {
+    return 0.0;
+  }
+
+  return GetLocalTimeAt(now).ToMilliseconds();
+}
 
 bool
 ElementAnimation::IsRunningAt(TimeStamp aTime) const
