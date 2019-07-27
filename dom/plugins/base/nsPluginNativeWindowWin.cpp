@@ -98,7 +98,7 @@ void PluginWindowEvent::Init(const PluginWindowWeakRef &ref, HWND aWnd,
 
 
 class nsPluginNativeWindowWin : public nsPluginNativeWindow {
-public: 
+public:
   nsPluginNativeWindowWin();
   virtual ~nsPluginNativeWindowWin();
 
@@ -154,7 +154,7 @@ static bool ProcessFlashMessageDelayed(nsPluginNativeWindowWin * aWin, nsNPAPIPl
   nsCOMPtr<nsIRunnable> pwe = aWin->GetPluginWindowEvent(hWnd, msg, wParam, lParam);
   if (pwe) {
     NS_DispatchToCurrentThread(pwe);
-    return true;  
+    return true;
   }
   return false;
 }
@@ -175,7 +175,7 @@ private:
 NS_IMETHODIMP nsDelayedPopupsEnabledEvent::Run()
 {
   mInst->PushPopupsEnabledState(false);
-  return NS_OK;	
+  return NS_OK;
 }
 
 static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -491,11 +491,11 @@ HookSetWindowLongPtr()
 nsPluginNativeWindowWin::nsPluginNativeWindowWin() : nsPluginNativeWindow()
 {
   
-  window = nullptr; 
-  x = 0; 
-  y = 0; 
-  width = 0; 
-  height = 0; 
+  window = nullptr;
+  x = 0;
+  y = 0;
+  width = 0;
+  height = 0;
 
   mPrevWinProc = nullptr;
   mPluginWinProc = nullptr;
@@ -547,10 +547,10 @@ NS_IMETHODIMP PluginWindowEvent::Run()
   else {
     
     
-    ::CallWindowProc(win->GetWindowProc(), 
-                     hWnd, 
-                     GetMsg(), 
-                     GetWParam(), 
+    ::CallWindowProc(win->GetWindowProc(),
+                     hWnd,
+                     GetMsg(),
+                     GetWParam(),
                      GetLParam());
   }
 
@@ -558,7 +558,7 @@ NS_IMETHODIMP PluginWindowEvent::Run()
   return NS_OK;
 }
 
-PluginWindowEvent * 
+PluginWindowEvent *
 nsPluginNativeWindowWin::GetPluginWindowEvent(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLParam)
 {
   if (!mWeakRef) {
@@ -572,7 +572,7 @@ nsPluginNativeWindowWin::GetPluginWindowEvent(HWND aWnd, UINT aMsg, WPARAM aWPar
   
   
   
-  if (!mCachedPluginWindowEvent) 
+  if (!mCachedPluginWindowEvent)
   {
     event = new PluginWindowEvent();
     if (!event) return nullptr;
@@ -698,7 +698,7 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
 
   DebugOnly<nsPluginNativeWindowWin *> win = (nsPluginNativeWindowWin *)::GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
   NS_ASSERTION(!win || (win == this), "plugin window already has property and this is not us");
-  
+
   if (!::SetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION, (HANDLE)this))
     return NS_ERROR_FAILURE;
 
