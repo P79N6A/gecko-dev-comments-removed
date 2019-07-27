@@ -5,10 +5,7 @@
 
 
 #ifdef MOZ_WIDGET_QT
-
-#include <QtCore/QCoreApplication>
-#include <QtCore/QEventLoop>
-#include "NestedLoopTimer.h"
+#include "PluginHelperQt.h"
 #endif
 
 #include "mozilla/plugins/PluginModuleParent.h"
@@ -1646,13 +1643,11 @@ PluginModuleParent::ContentsScaleFactorChanged(NPP instance, double aContentsSca
 #endif 
 
 #if defined(MOZ_WIDGET_QT)
-static const int kMaxtimeToProcessEvents = 30;
 bool
 PluginModuleParent::AnswerProcessSomeEvents()
 {
     PLUGIN_LOG_DEBUG(("Spinning mini nested loop ..."));
-    QCoreApplication::processEvents(QEventLoop::AllEvents, kMaxtimeToProcessEvents);
-
+    PluginHelperQt::AnswerProcessSomeEvents();
     PLUGIN_LOG_DEBUG(("... quitting mini nested loop"));
 
     return true;
