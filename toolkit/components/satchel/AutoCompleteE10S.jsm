@@ -103,12 +103,11 @@ this.AutoCompleteE10S = {
     this.popup.invalidate();
 
     if (count > 0) {
+      
+      this.popup.mInput = null;
+      this.popup.showCommentColumn = false;
+      this.popup.showImageColumn = false;
       this.popup.openPopupAtScreen(this.x, this.y, true);
-      
-      
-      
-      
-      this.popup.mPopupOpen = true;
     } else {
       this.popup.closePopup();
     }
