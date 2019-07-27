@@ -21,6 +21,12 @@ XPCOMUtils.defineLazyServiceGetter(this, "volumeService",
                                    "@mozilla.org/telephony/volume-service;1",
                                     "nsIVolumeService");
 
+
+
+
+
+
+
 function debug(aStr) {
 #ifdef MOZ_DEBUG
   dump("-*- DownloadsAPI.js : " + aStr + "\n");
@@ -40,6 +46,15 @@ DOMDownloadManagerImpl.prototype = {
     this.initDOMRequestHelper(aWindow,
                               ["Downloads:Added",
                                "Downloads:Removed"]);
+
+    
+    let appsService = Cc["@mozilla.org/AppsService;1"]
+                        .getService(Ci.nsIAppsService);
+    let principal = aWindow.document.nodePrincipal;
+    
+    
+    this._manifestURL = appsService.getManifestURLByLocalId(principal.appId) ||
+                          null;
   },
 
   uninit: function() {
@@ -79,23 +94,8 @@ DOMDownloadManagerImpl.prototype = {
 
   clearAllDone: function() {
     debug("clearAllDone()");
-    return this.createPromise(function (aResolve, aReject) {
-      DownloadsIPC.clearAllDone().then(
-        function(aDownloads) {
-          
-          
-          let array = new this._window.Array();
-          for (let id in aDownloads) {
-            let dom = createDOMDownloadObject(this._window, aDownloads[id]);
-            array.push(this._prepareForContent(dom));
-          }
-          aResolve(array);
-        }.bind(this),
-        function() {
-          aReject("ClearAllDoneError");
-        }
-      );
-    }.bind(this));
+    
+    DownloadsIPC.clearAllDone();
   },
 
   remove: function(aDownload) {
@@ -120,6 +120,67 @@ DOMDownloadManagerImpl.prototype = {
       );
     }.bind(this));
   },
+
+  adoptDownload: function(aAdoptDownloadDict) {
+    
+    
+    
+    debug("adoptDownload");
+    return this.createPromise(function (aResolve, aReject) {
+      if (!aAdoptDownloadDict) {
+        debug("Download dictionary is required!");
+        aReject("InvalidDownload");
+        return;
+      }
+      if (!aAdoptDownloadDict.storageName || !aAdoptDownloadDict.storagePath ||
+          !aAdoptDownloadDict.contentType) {
+        debug("Missing one of: storageName, storagePath, contentType");
+        aReject("InvalidDownload");
+        return;
+      }
+
+      
+      let volume;
+      
+      
+      
+      try {
+        volume = volumeService.getVolumeByName(aAdoptDownloadDict.storageName);
+      } catch (ex) {}
+      if (!volume) {
+        debug("Invalid storage name: " + aAdoptDownloadDict.storageName);
+        aReject("InvalidDownload");
+        return;
+      }
+      let computedPath = volume.mountPoint + '/' +
+                           aAdoptDownloadDict.storagePath;
+      
+      
+      
+
+      
+      let jsonDownload = {
+        url: aAdoptDownloadDict.url,
+        path: computedPath,
+        contentType: aAdoptDownloadDict.contentType,
+        startTime: aAdoptDownloadDict.startTime.valueOf() || Date.now(),
+        sourceAppManifestURL: this._manifestURL
+      };
+
+      DownloadsIPC.adoptDownload(jsonDownload).then(
+        function(aResult) {
+          let domDownload = createDOMDownloadObject(this._window, aResult);
+          aResolve(this._prepareForContent(domDownload));
+        }.bind(this),
+        function(aResult) {
+          
+          
+          aReject(aResult.error);
+        }
+      );
+    }.bind(this));
+  },
+
 
   
 
@@ -295,6 +356,11 @@ DOMDownloadImpl.prototype = {
     }
   },
 
+  
+
+
+
+
   _init: function(aWindow, aDownload) {
     this._window = aWindow;
     this.id = aDownload.id;
@@ -314,12 +380,13 @@ DOMDownloadImpl.prototype = {
     }
 
     let props = ["totalBytes", "currentBytes", "url", "path", "storageName",
-                 "storagePath", "state", "contentType", "startTime"];
+                 "storagePath", "state", "contentType", "startTime",
+                 "sourceAppManifestURL"];
     let changed = false;
     let changedProps = {};
 
     props.forEach((prop) => {
-      if (aDownload[prop] && (aDownload[prop] != this[prop])) {
+      if (prop in aDownload && (aDownload[prop] != this[prop])) {
         this[prop] = aDownload[prop];
         changedProps[prop] = changed = true;
       }

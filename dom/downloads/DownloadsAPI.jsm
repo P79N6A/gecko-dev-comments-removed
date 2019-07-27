@@ -13,10 +13,18 @@ this.EXPORTED_SYMBOLS = [];
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Downloads.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
                                    "nsIMessageBroadcaster");
+
+
+
+
+
+
+
 
 function debug(aStr) {
 #ifdef MOZ_DEBUG
@@ -49,7 +57,8 @@ let DownloadsAPI = {
      "Downloads:ClearAllDone",
      "Downloads:Remove",
      "Downloads:Pause",
-     "Downloads:Resume"].forEach((msgName) => {
+     "Downloads:Resume",
+     "Downloads:Adopt"].forEach((msgName) => {
       ppmm.addMessageListener(msgName, this);
     });
 
@@ -92,7 +101,9 @@ let DownloadsAPI = {
       url: aDownload.source.url,
       path: aDownload.target.path,
       contentType: aDownload.contentType,
-      startTime: aDownload.startTime.getTime()
+      startTime: aDownload.startTime.getTime(),
+      sourceAppManifestURL: aDownload._unknownProperties &&
+                              aDownload._unknownProperties.sourceAppManifestURL
     };
 
     if (aDownload.error) {
@@ -165,6 +176,9 @@ let DownloadsAPI = {
     case "Downloads:Resume":
       this.resume(aMessage.data, aMessage.target);
       break;
+    case "Downloads:Adopt":
+      this.adoptDownload(aMessage.data, aMessage.target);
+      break;
     default:
       debug("Invalid message: " + aMessage.name);
     }
@@ -186,17 +200,9 @@ let DownloadsAPI = {
 
   clearAllDone: function(aData, aMm) {
     debug("clearAllDone called!");
-    let self = this;
     Task.spawn(function () {
       let list = yield Downloads.getList(Downloads.ALL);
-      yield list.removeFinished();
-      list = yield Downloads.getList(Downloads.ALL);
-      let downloads = yield list.getAll();
-      let res = [];
-      downloads.forEach((aDownload) => {
-        res.push(self.jsonDownload(aDownload));
-      });
-      aMm.sendAsyncMessage("Downloads:ClearAllDone:Return", res);
+      list.removeFinished();
     }).then(null, Components.utils.reportError);
   },
 
@@ -262,6 +268,97 @@ let DownloadsAPI = {
                            aData, "ResumeError");
       }
     );
+  },
+
+  
+
+
+
+  adoptDownload: function(aData, aMm) {
+    let adoptJsonRep = aData.jsonDownload;
+    debug("adoptDownload " + uneval(adoptJsonRep));
+
+    Task.spawn(function* () {
+      
+      
+      
+      
+      let fileInfo = yield OS.File.stat(adoptJsonRep.path);
+
+      
+      if (fileInfo.isDir) {
+        throw new Error("AdoptFileIsDirectory");
+      }
+
+      
+      
+      let serializedRep = {
+        
+        source: {
+          url: adoptJsonRep.url
+          
+          
+        },
+        target: {
+          path: adoptJsonRep.path,
+        },
+        startTime: adoptJsonRep.startTime,
+        
+        succeeded: true, 
+        totalBytes: fileInfo.size,
+        contentType: adoptJsonRep.contentType,
+        
+        currentBytes: fileInfo.size,
+        sourceAppManifestURL: adoptJsonRep.sourceAppManifestURL
+      };
+
+      let download = yield Downloads.createDownload(serializedRep);
+
+      
+      
+      
+      
+      
+      let allDownloadList = yield Downloads.getList(Downloads.ALL);
+
+      
+      
+      
+      yield allDownloadList.add(download);
+
+      debug("download adopted");
+      
+      
+      
+      
+      return download;
+    }.bind(this)).then(
+      (download) => {
+        sendPromiseMessage(aMm, "Downloads:Adopt:Return",
+                           {
+                             id: this.downloadId(download),
+                             promiseId: aData.promiseId
+                           });
+      },
+      (ex) => {
+        let reportAs = "AdoptError";
+        
+        if (ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
+          reportAs = "AdoptNoSuchFile";
+        } else if (ex.message === "AdoptFileIsDirectory") {
+          reportAs = ex.message;
+        } else {
+          
+          
+          debug("unexpected download error: " + ex);
+          Cu.reportError(ex);
+        }
+        sendPromiseMessage(aMm, "Downloads:Adopt:Return",
+                           {
+                             promiseId: aData.promiseId
+                           },
+                           reportAs);
+    });
   }
 };
 
