@@ -108,6 +108,12 @@ AdjustCaretFrameForLineEnd(nsIFrame** aFrame, int32_t* aOffset)
   }
 }
 
+static bool
+IsBidiUI()
+{
+  return Preferences::GetBool("bidi.browser.ui");
+}
+
 
 
 nsCaret::nsCaret()
@@ -119,7 +125,6 @@ nsCaret::nsCaret()
 , mReadOnly(false)
 , mShowDuringSelection(false)
 , mIgnoreUserModify(true)
-, mKeyboardRTL(false)
 , mLastBidiLevel(0)
 , mLastContentOffset(0)
 , mLastHint(CARET_ASSOCIATE_BEFORE)
@@ -449,12 +454,37 @@ nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset)
   return rv;
 }
 
+void
+nsCaret::CheckSelectionLanguageChange()
+{
+  
+  bool isKeyboardRTL = false;
+  nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
+  
+  
+  
+  if (bidiKeyboard && NS_SUCCEEDED(bidiKeyboard->IsLangRTL(&isKeyboardRTL)) &&
+      IsBidiUI()) {
+    
+    
+    
+    Selection* selection = GetSelectionInternal();
+    if (selection) {
+      selection->SelectionLanguageChange(isKeyboardRTL);
+    }
+  }
+}
+
 nsIFrame*
 nsCaret::GetPaintGeometry(nsRect* aRect)
 {
   
   if (!mDrawn)
     return nullptr;
+
+  
+  
+  CheckSelectionLanguageChange();
 
   nsFrameSelection* frameSelection = GetFrameSelection();
   if (!frameSelection)
@@ -686,12 +716,6 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*          aNode,
     theFrame->SchedulePaint();
 
   return true;
-}
-
-static bool
-IsBidiUI()
-{
-  return Preferences::GetBool("bidi.browser.ui");
 }
 
 nsresult 
@@ -1084,36 +1108,14 @@ nsCaret::ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
 
   aHookRect->SetEmpty();
 
-  
-  bool isCaretRTL = false;
+  bool isCaretRTL;
   nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
-  
-  
-  
   if (bidiKeyboard && NS_SUCCEEDED(bidiKeyboard->IsLangRTL(&isCaretRTL)) &&
       IsBidiUI()) {
-    if (isCaretRTL != mKeyboardRTL) {
-      
-
-
-
-
-
-
- 
-      mKeyboardRTL = isCaretRTL;
-      nsCOMPtr<nsISelectionPrivate> domSelection = do_QueryReferent(mDomSelectionWeak);
-      if (!domSelection ||
-          NS_SUCCEEDED(domSelection->SelectionLanguageChange(mKeyboardRTL)))
-        *aCaretRect = *aHookRect = nsRect();
-        return;
-    }
     
     
     
-    aHookRect->SetRect(aCaretRect->x + ((isCaretRTL) ?
-                       bidiIndicatorSize * -1 :
-                       aCaretRect->width),
+    aHookRect->SetRect(aCaretRect->x + (isCaretRTL ? bidiIndicatorSize * -1 : aCaretRect->width),
                        aCaretRect->y + bidiIndicatorSize,
                        bidiIndicatorSize,
                        aCaretRect->width);

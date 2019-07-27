@@ -161,6 +161,7 @@ protected:
     
     
     void          SchedulePaint();
+    void          CheckSelectionLanguageChange();
 
     void          KillTimer();
     nsresult      PrimeTimer();
@@ -229,7 +230,6 @@ protected:
 
     bool                  mIgnoreUserModify;
 
-    bool                  mKeyboardRTL;       
     uint8_t               mLastBidiLevel;     
 
     nsCOMPtr<nsIContent>  mLastContent;       
