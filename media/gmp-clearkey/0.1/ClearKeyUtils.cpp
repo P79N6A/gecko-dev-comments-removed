@@ -383,6 +383,7 @@ Decode6Bit(string& aStr)
     } else {
       
       if (aStr[i] != '=') {
+        aStr.erase(i, string::npos);
         return false;
       }
       aStr[i] = '\0';
@@ -397,8 +398,8 @@ Decode6Bit(string& aStr)
 static bool
 DecodeBase64KeyOrId(string& aEncoded, vector<uint8_t>& aOutDecoded)
 {
-  if (aEncoded.size() != 22 || 
-      !Decode6Bit(aEncoded)) {
+  if (!Decode6Bit(aEncoded) ||
+      aEncoded.size() != 22) { 
     return false;
   }
 
