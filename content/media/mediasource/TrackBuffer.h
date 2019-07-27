@@ -90,17 +90,17 @@ private:
   bool AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength);
 
   
-  bool QueueInitializeDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
+  bool QueueInitializeDecoder(SourceBufferDecoder* aDecoder);
 
   
   
-  void InitializeDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
+  void InitializeDecoder(SourceBufferDecoder* aDecoder);
 
   
   
   
   
-  bool RegisterDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
+  bool RegisterDecoder(SourceBufferDecoder* aDecoder);
 
   
   
@@ -110,7 +110,7 @@ private:
   
   
   
-  void RemoveDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
+  void RemoveDecoder(SourceBufferDecoder* aDecoder);
 
   nsAutoPtr<ContainerParser> mParser;
 
