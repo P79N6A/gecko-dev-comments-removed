@@ -10,6 +10,7 @@
 
 #include "ffi.h"
 #include "jsalloc.h"
+#include "jsprf.h"
 #include "prlink.h"
 
 #include "ctypes/typedefs.h"
@@ -45,6 +46,32 @@ AppendString(Vector<T, N, AP>& v, const char (&array)[ArrayLength])
 {
   
   size_t alen = ArrayLength - 1;
+  size_t vlen = v.length();
+  if (!v.resize(vlen + alen))
+    return;
+
+  for (size_t i = 0; i < alen; ++i)
+    v[i + vlen] = array[i];
+}
+
+template <class T, size_t N, class AP>
+void
+AppendChars(Vector<T, N, AP>& v, const char c, size_t count)
+{
+  size_t vlen = v.length();
+  if (!v.resize(vlen + count))
+    return;
+
+  for (size_t i = 0; i < count; ++i)
+    v[i + vlen] = c;
+}
+
+template <class T, size_t N, class AP>
+void
+AppendUInt(Vector<T, N, AP>& v, unsigned n)
+{
+  char array[16];
+  size_t alen = JS_snprintf(array, 16, "%u", n);
   size_t vlen = v.length();
   if (!v.resize(vlen + alen))
     return;
@@ -375,6 +402,7 @@ enum CDataSlot {
   SLOT_REFERENT = 1, 
   SLOT_DATA     = 2, 
   SLOT_OWNS     = 3, 
+  SLOT_FUNNAME  = 4, 
   CDATA_SLOTS
 };
 
