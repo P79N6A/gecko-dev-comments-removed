@@ -261,6 +261,14 @@ public:
     }
   }
 
+  void NotifyFlushComplete() override {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (mRenderFrame) {
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
+      browser->NotifyFlushComplete();
+    }
+  }
+
   
 
   void SetTouchSensitiveRegion(const nsRegion& aRegion)

@@ -148,6 +148,11 @@ public:
   virtual void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent)
   {}
 
+  
+
+
+  virtual void NotifyFlushComplete() = 0;
+
   GeckoContentController() {}
   virtual void Destroy() {}
 

@@ -135,6 +135,13 @@ public:
 
 
 
+  void FlushApzRepaints(uint64_t aLayersId);
+
+  
+
+
+
+
 
 
 
@@ -434,6 +441,7 @@ private:
                                         const ZoomConstraints& aConstraints);
   void FlushRepaintsToClearScreenToGeckoTransform();
   void FlushRepaintsRecursively(HitTestingTreeNode* aNode);
+  void FlushPendingRepaintRecursively(HitTestingTreeNode* aNode, uint64_t aLayersId);
 
   already_AddRefed<HitTestingTreeNode> RecycleOrCreateNode(TreeBuildingState& aState,
                                                            AsyncPanZoomController* aApzc,

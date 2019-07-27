@@ -2459,6 +2459,13 @@ void AsyncPanZoomController::FlushRepaintForNewInputBlock() {
   UpdateSharedCompositorFrameMetrics();
 }
 
+void AsyncPanZoomController::FlushRepaintIfPending() {
+  
+  
+  ReentrantMonitorAutoEnter lock(mMonitor);
+  mPaintThrottler.TaskComplete(GetFrameTime());
+}
+
 bool AsyncPanZoomController::SnapBackIfOverscrolled() {
   ReentrantMonitorAutoEnter lock(mMonitor);
   
