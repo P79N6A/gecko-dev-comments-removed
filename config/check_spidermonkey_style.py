@@ -239,6 +239,7 @@ def check_style():
     
     
     
+    
 
     mfbt_inclnames = set()      
     js_names = dict()           
@@ -246,7 +247,7 @@ def check_style():
     
     for filename in get_all_filenames():
         if filename.startswith('mfbt/') and filename.endswith('.h'):
-            inclname = 'mozilla/' + filename[len('mfbt/'):]
+            inclname = 'mozilla/' + filename.split('/')[-1]
             mfbt_inclnames.add(inclname)
 
         if filename.startswith('js/public/') and filename.endswith('.h'):
@@ -454,7 +455,7 @@ def do_file(filename, inclname, file_kind, f, all_inclnames, included_h_inclname
                 
                 if include.inclname not in all_inclnames:
                     error(filename, include.linenum,
-                          include.quote() + ' is included ' + 'using the wrong path;',
+                          include.quote() + ' is included using the wrong path;',
                           'did you forget a prefix, or is the file not yet committed?')
 
                 
