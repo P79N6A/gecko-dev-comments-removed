@@ -203,6 +203,7 @@ private:
       , mNumSamplesInput(0)
       , mNumSamplesOutput(0)
       , mSizeOfQueue(0)
+      , mIsHardwareAccelerated(false)
       , mLastStreamSourceID(UINT32_MAX)
     {}
 
@@ -294,6 +295,9 @@ private:
 
     
     Atomic<size_t> mSizeOfQueue;
+    
+    
+    Atomic<bool> mIsHardwareAccelerated;
     
     uint32_t mLastStreamSourceID;
     Maybe<uint32_t> mNextStreamSourceID;
