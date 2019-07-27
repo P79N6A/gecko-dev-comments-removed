@@ -441,7 +441,7 @@ public:
 
 
 
-  void RemoveStream(MediaStream* aStream);
+  void RemoveStream(MediaStream* aStream, bool aLocked = true);
   
 
 
