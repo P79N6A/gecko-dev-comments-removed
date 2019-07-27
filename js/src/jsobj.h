@@ -424,10 +424,6 @@ class JSObject : public js::gc::Cell
 
     
     JSObject *getParent() const;
-    
-    MOZ_ALWAYS_INLINE void assertParentIs(JSObject *parent) const {
-        MOZ_ASSERT(getParent() == parent);
-    }
     static bool setParent(JSContext *cx, js::HandleObject obj, js::HandleObject newParent);
 
     

@@ -428,14 +428,11 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
     if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(CrossCompartmentKey(key))) {
         obj.set(&p->value().get().toObject());
         MOZ_ASSERT(obj->is<CrossCompartmentWrapperObject>());
-        obj->assertParentIs(global);
         return true;
     }
 
     RootedObject existing(cx, existingArg);
     if (existing) {
-        
-        existing->assertParentIs(global);
         
         if (!existing->getTaggedProto().isLazy() ||
             

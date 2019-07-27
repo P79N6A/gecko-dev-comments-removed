@@ -111,7 +111,6 @@ RegExpObjectBuilder::clone(Handle<RegExpObject *> other)
 
 
 
-    other->getProto()->assertParentIs(&other->getProto()->global());
     RegExpStatics *res = other->getProto()->global().getRegExpStatics(cx);
     if (!res)
         return nullptr;
