@@ -4857,6 +4857,7 @@ ThreadSources._prettyPrintedSources = new Map();
 
 
 
+
 const MINIFIED_SOURCE_REGEXP = /\bmin\.js$/;
 
 ThreadSources.prototype = {
@@ -5445,14 +5446,9 @@ function getSymbolName(symbol) {
   return name || undefined;
 }
 
-exports.register = function(handle) {
+exports.cleanup = function() {
+  
   ThreadActor.breakpointStore = new BreakpointStore();
-  ThreadSources._blackBoxedSources = new Set(["self-hosted"]);
-  ThreadSources._prettyPrintedSources = new Map();
-};
-
-exports.unregister = function(handle) {
-  ThreadActor.breakpointStore = null;
   ThreadSources._blackBoxedSources.clear();
   ThreadSources._prettyPrintedSources.clear();
-};
+}

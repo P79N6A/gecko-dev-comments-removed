@@ -126,16 +126,6 @@ loader.lazyGetter(this, "eventListenerService", function() {
            .getService(Ci.nsIEventListenerService);
 });
 
-exports.register = function(handle) {
-  handle.addGlobalActor(InspectorActor, "inspectorActor");
-  handle.addTabActor(InspectorActor, "inspectorActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeGlobalActor(InspectorActor);
-  handle.removeTabActor(InspectorActor);
-};
-
 
 
 function makeInfallible(handler) {
@@ -2795,7 +2785,7 @@ var AttributeModificationList = Class({
 
 
 
-var InspectorActor = protocol.ActorClass({
+var InspectorActor = exports.InspectorActor = protocol.ActorClass({
   typeName: "inspector",
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
