@@ -2803,22 +2803,32 @@ NS_DOMReadStructuredClone(JSContext* cx,
     MOZ_ASSERT(dataArray.isObject());
 
     
-    nsRefPtr<ImageData> imageData = new ImageData(width, height,
-                                                  dataArray.toObject());
-    
-    return imageData->WrapObject(cx);
+    JS::Rooted<JSObject*> result(cx);
+    {
+      
+      nsRefPtr<ImageData> imageData = new ImageData(width, height,
+                                                    dataArray.toObject());
+      
+      result = imageData->WrapObject(cx);
+    }
+    return result;
   } else if (tag == SCTAG_DOM_WEBCRYPTO_KEY) {
     nsIGlobalObject *global = xpc::GetNativeForGlobal(JS::CurrentGlobalOrNull(cx));
     if (!global) {
       return nullptr;
     }
 
-    nsRefPtr<Key> key = new Key(global);
-    if (!key->ReadStructuredClone(reader)) {
-      return nullptr;
+    
+    JS::Rooted<JSObject*> result(cx);
+    {
+      nsRefPtr<Key> key = new Key(global);
+      if (!key->ReadStructuredClone(reader)) {
+        result = nullptr;
+      } else {
+        result = key->WrapObject(cx);
+      }
     }
-
-    return key->WrapObject(cx);
+    return result;
   }
 
   
