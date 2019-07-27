@@ -31,7 +31,7 @@ NS_NewColumnSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrame
 NS_IMPL_FRAMEARENA_HELPERS(nsColumnSetFrame)
 
 nsColumnSetFrame::nsColumnSetFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext), mLastBalanceHeight(NS_INTRINSICSIZE),
+  : nsContainerFrame(aContext), mLastBalanceBSize(NS_INTRINSICSIZE),
     mLastFrameStatus(NS_FRAME_COMPLETE)
 {
 }
@@ -123,7 +123,7 @@ nsColumnSetFrame::PaintColumnRule(nsRenderingContext* aCtx,
 }
 
 static nscoord
-GetAvailableContentWidth(const nsHTMLReflowState& aReflowState)
+GetAvailableContentISize(const nsHTMLReflowState& aReflowState)
 {
   if (aReflowState.AvailableWidth() == NS_INTRINSICSIZE) {
     return NS_INTRINSICSIZE;
@@ -135,7 +135,7 @@ GetAvailableContentWidth(const nsHTMLReflowState& aReflowState)
 }
 
 nscoord
-nsColumnSetFrame::GetAvailableContentHeight(const nsHTMLReflowState& aReflowState)
+nsColumnSetFrame::GetAvailableContentBSize(const nsHTMLReflowState& aReflowState)
 {
   if (aReflowState.AvailableHeight() == NS_INTRINSICSIZE) {
     return NS_INTRINSICSIZE;
@@ -166,17 +166,17 @@ GetColumnGap(nsColumnSetFrame*    aFrame,
 nsColumnSetFrame::ReflowConfig
 nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
                                        bool aForceAuto = false,
-                                       nscoord aFeasibleHeight = NS_INTRINSICSIZE,
-                                       nscoord aInfeasibleHeight = 0)
+                                       nscoord aFeasibleBSize = NS_INTRINSICSIZE,
+                                       nscoord aInfeasibleBSize = 0)
 
 {
-  nscoord knownFeasibleHeight = aFeasibleHeight;
-  nscoord knownInfeasibleHeight = aInfeasibleHeight;
+  nscoord knownFeasibleBSize = aFeasibleBSize;
+  nscoord knownInfeasibleBSize = aInfeasibleBSize;
 
   const nsStyleColumn* colStyle = StyleColumn();
-  nscoord availContentWidth = GetAvailableContentWidth(aReflowState);
+  nscoord availContentISize = GetAvailableContentISize(aReflowState);
   if (aReflowState.ComputedWidth() != NS_INTRINSICSIZE) {
-    availContentWidth = aReflowState.ComputedWidth();
+    availContentISize = aReflowState.ComputedWidth();
   }
 
   nscoord consumedBSize = GetConsumedBSize();
@@ -186,12 +186,12 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
   
   nscoord computedBSize = GetEffectiveComputedBSize(aReflowState,
                                                     consumedBSize);
-  nscoord colHeight = GetAvailableContentHeight(aReflowState);
+  nscoord colBSize = GetAvailableContentBSize(aReflowState);
 
   if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
-    colHeight = aReflowState.ComputedHeight();
+    colBSize = aReflowState.ComputedHeight();
   } else if (aReflowState.ComputedMaxHeight() != NS_INTRINSICSIZE) {
-    colHeight = std::min(colHeight, aReflowState.ComputedMaxHeight());
+    colBSize = std::min(colBSize, aReflowState.ComputedMaxHeight());
   }
 
   nscoord colGap = GetColumnGap(this, colStyle);
@@ -214,36 +214,36 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
     }
   }
 
-  nscoord colWidth;
+  nscoord colISize;
   if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
-    colWidth = colStyle->mColumnWidth.GetCoordValue();
-    NS_ASSERTION(colWidth >= 0, "negative column width");
+    colISize = colStyle->mColumnWidth.GetCoordValue();
+    NS_ASSERTION(colISize >= 0, "negative column width");
     
     
     
     
-    if (availContentWidth != NS_INTRINSICSIZE && colGap + colWidth > 0
+    if (availContentISize != NS_INTRINSICSIZE && colGap + colISize > 0
         && numColumns > 0) {
       
       
       int32_t maxColumns =
         std::min(nscoord(nsStyleColumn::kMaxColumnCount),
-                 (availContentWidth + colGap)/(colGap + colWidth));
+                 (availContentISize + colGap)/(colGap + colISize));
       numColumns = std::max(1, std::min(numColumns, maxColumns));
     }
-  } else if (numColumns > 0 && availContentWidth != NS_INTRINSICSIZE) {
-    nscoord widthMinusGaps = availContentWidth - colGap*(numColumns - 1);
-    colWidth = widthMinusGaps/numColumns;
+  } else if (numColumns > 0 && availContentISize != NS_INTRINSICSIZE) {
+    nscoord iSizeMinusGaps = availContentISize - colGap*(numColumns - 1);
+    colISize = iSizeMinusGaps/numColumns;
   } else {
-    colWidth = NS_INTRINSICSIZE;
+    colISize = NS_INTRINSICSIZE;
   }
   
   
-  colWidth = std::max(1, std::min(colWidth, availContentWidth));
+  colISize = std::max(1, std::min(colISize, availContentISize));
 
-  nscoord expectedWidthLeftOver = 0;
+  nscoord expectedISizeLeftOver = 0;
 
-  if (colWidth != NS_INTRINSICSIZE && availContentWidth != NS_INTRINSICSIZE) {
+  if (colISize != NS_INTRINSICSIZE && availContentISize != NS_INTRINSICSIZE) {
     
 
     
@@ -252,8 +252,8 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
       
       
       
-      if (colGap + colWidth > 0) {
-        numColumns = (availContentWidth + colGap)/(colGap + colWidth);
+      if (colGap + colISize > 0) {
+        numColumns = (availContentISize + colGap)/(colGap + colISize);
         
         numColumns = std::min(nscoord(nsStyleColumn::kMaxColumnCount),
                               numColumns);
@@ -265,10 +265,10 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
 
     
     nscoord extraSpace =
-      std::max(0, availContentWidth - (colWidth*numColumns + colGap*(numColumns - 1)));
+      std::max(0, availContentISize - (colISize*numColumns + colGap*(numColumns - 1)));
     nscoord extraToColumns = extraSpace/numColumns;
-    colWidth += extraToColumns;
-    expectedWidthLeftOver = extraSpace - (extraToColumns*numColumns);
+    colISize += extraToColumns;
+    expectedISizeLeftOver = extraSpace - (extraToColumns*numColumns);
   }
 
   if (isBalancing) {
@@ -277,7 +277,7 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
       
       numColumns = 1;
     }
-    colHeight = std::min(mLastBalanceHeight, colHeight);
+    colBSize = std::min(mLastBalanceBSize, colBSize);
   } else {
     
     
@@ -291,16 +291,16 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
     
     
     
-    colHeight = std::max(colHeight, nsPresContext::CSSPixelsToAppUnits(1));
+    colBSize = std::max(colBSize, nsPresContext::CSSPixelsToAppUnits(1));
   }
 
 #ifdef DEBUG_roc
-  printf("*** nsColumnSetFrame::ChooseColumnStrategy: numColumns=%d, colWidth=%d, expectedWidthLeftOver=%d, colHeight=%d, colGap=%d\n",
-         numColumns, colWidth, expectedWidthLeftOver, colHeight, colGap);
+  printf("*** nsColumnSetFrame::ChooseColumnStrategy: numColumns=%d, colISize=%d, expectedISizeLeftOver=%d, colBSize=%d, colGap=%d\n",
+         numColumns, colISize, expectedISizeLeftOver, colBSize, colGap);
 #endif
-  ReflowConfig config = { numColumns, colWidth, expectedWidthLeftOver, colGap,
-                          colHeight, isBalancing, knownFeasibleHeight,
-                          knownInfeasibleHeight, computedBSize, consumedBSize };
+  ReflowConfig config = { numColumns, colISize, expectedISizeLeftOver, colGap,
+                          colBSize, isBalancing, knownFeasibleBSize,
+                          knownInfeasibleBSize, computedBSize, consumedBSize };
   return config;
 }
 
@@ -310,14 +310,14 @@ nsColumnSetFrame::ReflowColumns(nsHTMLReflowMetrics& aDesiredSize,
                                 nsReflowStatus& aReflowStatus,
                                 ReflowConfig& aConfig,
                                 bool aLastColumnUnbounded,
-                                nsCollapsingMargin* aCarriedOutBottomMargin,
+                                nsCollapsingMargin* aCarriedOutBEndMargin,
                                 ColumnBalanceData& aColData)
 {
   bool feasible = ReflowChildren(aDesiredSize, aReflowState,
                                  aReflowStatus, aConfig, aLastColumnUnbounded,
-                                 aCarriedOutBottomMargin, aColData);
+                                 aCarriedOutBEndMargin, aColData);
 
-  if (aColData.mHasExcessHeight) {
+  if (aColData.mHasExcessBSize) {
     aConfig = ChooseColumnStrategy(aReflowState, true);
 
     
@@ -325,7 +325,7 @@ nsColumnSetFrame::ReflowColumns(nsHTMLReflowMetrics& aDesiredSize,
     
     feasible = ReflowChildren(aDesiredSize, aReflowState, aReflowStatus,
                               aConfig, aLastColumnUnbounded,
-                              aCarriedOutBottomMargin, aColData);
+                              aCarriedOutBEndMargin, aColData);
   }
 
   return feasible;
@@ -348,23 +348,23 @@ nsColumnSetFrame::GetMinISize(nsRenderingContext *aRenderingContext) {
     width = mFrames.FirstChild()->GetMinISize(aRenderingContext);
   }
   const nsStyleColumn* colStyle = StyleColumn();
-  nscoord colWidth;
+  nscoord colISize;
   if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
-    colWidth = colStyle->mColumnWidth.GetCoordValue();
+    colISize = colStyle->mColumnWidth.GetCoordValue();
     
     
     
-    width = std::min(width, colWidth);
+    width = std::min(width, colISize);
   } else {
     NS_ASSERTION(colStyle->mColumnCount > 0,
                  "column-count and column-width can't both be auto");
     
     
-    colWidth = width;
+    colISize = width;
     width *= colStyle->mColumnCount;
     
     
-    width = std::max(width, colWidth);
+    width = std::max(width, colISize);
   }
   
   
@@ -382,13 +382,13 @@ nsColumnSetFrame::GetPrefISize(nsRenderingContext *aRenderingContext) {
   const nsStyleColumn* colStyle = StyleColumn();
   nscoord colGap = GetColumnGap(this, colStyle);
 
-  nscoord colWidth;
+  nscoord colISize;
   if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
-    colWidth = colStyle->mColumnWidth.GetCoordValue();
+    colISize = colStyle->mColumnWidth.GetCoordValue();
   } else if (mFrames.FirstChild()) {
-    colWidth = mFrames.FirstChild()->GetPrefISize(aRenderingContext);
+    colISize = mFrames.FirstChild()->GetPrefISize(aRenderingContext);
   } else {
-    colWidth = 0;
+    colISize = 0;
   }
 
   int32_t numColumns = colStyle->mColumnCount;
@@ -397,10 +397,10 @@ nsColumnSetFrame::GetPrefISize(nsRenderingContext *aRenderingContext) {
     numColumns = 1;
   }
   
-  nscoord width = colWidth*numColumns + colGap*(numColumns - 1);
+  nscoord width = colISize*numColumns + colGap*(numColumns - 1);
   
   
-  result = std::max(width, colWidth);
+  result = std::max(width, colISize);
   return result;
 }
 
@@ -410,27 +410,27 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
                                  nsReflowStatus&          aStatus,
                                  const ReflowConfig&      aConfig,
                                  bool                     aUnboundedLastColumn,
-                                 nsCollapsingMargin*      aBottomMarginCarriedOut,
+                                 nsCollapsingMargin*      aCarriedOutBEndMargin,
                                  ColumnBalanceData&       aColData)
 {
   aColData.Reset();
   bool allFit = true;
   bool RTL = StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
-  bool shrinkingHeightOnly = !NS_SUBTREE_DIRTY(this) &&
-    mLastBalanceHeight > aConfig.mColMaxHeight;
+  bool shrinkingBSizeOnly = !NS_SUBTREE_DIRTY(this) &&
+    mLastBalanceBSize > aConfig.mColMaxBSize;
   
 #ifdef DEBUG_roc
-  printf("*** Doing column reflow pass: mLastBalanceHeight=%d, mColMaxHeight=%d, RTL=%d\n, mBalanceColCount=%d, mColWidth=%d, mColGap=%d\n",
-         mLastBalanceHeight, aConfig.mColMaxHeight, RTL, aConfig.mBalanceColCount,
-         aConfig.mColWidth, aConfig.mColGap);
+  printf("*** Doing column reflow pass: mLastBalanceBSize=%d, mColMaxBSize=%d, RTL=%d\n, mBalanceColCount=%d, mColISize=%d, mColGap=%d\n",
+         mLastBalanceBSize, aConfig.mColMaxBSize, RTL, aConfig.mBalanceColCount,
+         aConfig.mColISize, aConfig.mColGap);
 #endif
 
   DrainOverflowColumns();
 
-  const bool colHeightChanged = mLastBalanceHeight != aConfig.mColMaxHeight;
+  const bool colBSizeChanged = mLastBalanceBSize != aConfig.mColMaxBSize;
 
-  if (colHeightChanged) {
-    mLastBalanceHeight = aConfig.mColMaxHeight;
+  if (colBSizeChanged) {
+    mLastBalanceBSize = aConfig.mColMaxBSize;
     
     
     
@@ -454,12 +454,12 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
   
   
   if (RTL) {
-    nscoord availWidth = aReflowState.AvailableWidth();
+    nscoord availISize = aReflowState.AvailableWidth();
     if (aReflowState.ComputedWidth() != NS_INTRINSICSIZE) {
-      availWidth = aReflowState.ComputedWidth();
+      availISize = aReflowState.ComputedWidth();
     }
-    if (availWidth != NS_INTRINSICSIZE) {
-      childOrigin.x += availWidth - aConfig.mColWidth;
+    if (availISize != NS_INTRINSICSIZE) {
+      childOrigin.x += availISize - aConfig.mColISize;
 #ifdef DEBUG_roc
       printf("*** childOrigin.x = %d\n", childOrigin.x);
 #endif
@@ -493,12 +493,12 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     
-    bool skipResizeHeightShrink = shrinkingHeightOnly
-      && child->GetScrollableOverflowRect().YMost() <= aConfig.mColMaxHeight;
+    bool skipResizeBSizeShrink = shrinkingBSizeOnly
+      && child->GetScrollableOverflowRect().YMost() <= aConfig.mColMaxBSize;
 
     nscoord childContentBEnd = 0;
     WritingMode wm = child->GetWritingMode();
-    if (!reflowNext && (skipIncremental || skipResizeHeightShrink)) {
+    if (!reflowNext && (skipIncremental || skipResizeBSizeShrink)) {
       
       MoveChildTo(this, child, childOrigin);
       
@@ -514,13 +514,13 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       childContentBEnd = nsLayoutUtils::CalculateContentBEnd(wm, child);
 #ifdef DEBUG_roc
       printf("*** Skipping child #%d %p (incremental %d, resize height shrink %d): status = %d\n",
-             columnCount, (void*)child, skipIncremental, skipResizeHeightShrink, aStatus);
+             columnCount, (void*)child, skipIncremental, skipResizeBSizeShrink, aStatus);
 #endif
     } else {
-      nsSize physicalSize(aConfig.mColWidth, aConfig.mColMaxHeight);
+      nsSize physicalSize(aConfig.mColISize, aConfig.mColMaxBSize);
 
       if (aUnboundedLastColumn && columnCount == aConfig.mBalanceColCount - 1) {
-        physicalSize.height = GetAvailableContentHeight(aReflowState);
+        physicalSize.height = GetAvailableContentBSize(aReflowState);
       }
       LogicalSize availSize(wm, physicalSize);
       LogicalSize computedSize = aReflowState.ComputedSize(wm);
@@ -537,7 +537,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
       
       
-      kidReflowState.mFlags.mMustReflowPlaceholders = !colHeightChanged;
+      kidReflowState.mFlags.mMustReflowPlaceholders = !colBSizeChanged;
 
 #ifdef DEBUG_roc
       printf("*** Reflowing child #%d %p: availHeight=%d\n",
@@ -577,18 +577,18 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
       NS_FRAME_TRACE_REFLOW_OUT("Column::Reflow", aStatus);
 
-      *aBottomMarginCarriedOut = kidDesiredSize.mCarriedOutBEndMargin;
+      *aCarriedOutBEndMargin = kidDesiredSize.mCarriedOutBEndMargin;
       
       FinishReflowChild(child, PresContext(), kidDesiredSize,
                         &kidReflowState, childOrigin.x, childOrigin.y, 0);
 
       childContentBEnd = nsLayoutUtils::CalculateContentBEnd(wm, child);
-      if (childContentBEnd > aConfig.mColMaxHeight) {
+      if (childContentBEnd > aConfig.mColMaxBSize) {
         allFit = false;
       }
       if (childContentBEnd > availSize.BSize(wm)) {
-        aColData.mMaxOverflowingHeight = std::max(childContentBEnd,
-            aColData.mMaxOverflowingHeight);
+        aColData.mMaxOverflowingBSize = std::max(childContentBEnd,
+            aColData.mMaxOverflowingBSize);
       }
     }
 
@@ -596,8 +596,8 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
     ConsiderChildOverflow(overflowRects, child);
     contentBEnd = std::max(contentBEnd, childContentBEnd);
-    aColData.mLastHeight = childContentBEnd;
-    aColData.mSumHeight += childContentBEnd;
+    aColData.mLastBSize = childContentBEnd;
+    aColData.mSumBSize += childContentBEnd;
 
     
     nsIFrame* kidNextInFlow = child->GetNextInFlow();
@@ -641,7 +641,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
         
         
         
-        aColData.mHasExcessHeight = true;
+        aColData.mHasExcessBSize = true;
       }
 
       if (columnCount >= aConfig.mBalanceColCount) {
@@ -674,9 +674,9 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
     if (child) {
       if (!RTL) {
-        childOrigin.x += aConfig.mColWidth + aConfig.mColGap;
+        childOrigin.x += aConfig.mColISize + aConfig.mColGap;
       } else {
-        childOrigin.x -= aConfig.mColWidth + aConfig.mColGap;
+        childOrigin.x -= aConfig.mColISize + aConfig.mColGap;
       }
       
 #ifdef DEBUG_roc
@@ -700,7 +700,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     }
   }
   
-  aColData.mMaxHeight = contentBEnd;
+  aColData.mMaxBSize = contentBEnd;
   contentRect.height = std::max(contentRect.height, contentBEnd);
   mLastFrameStatus = aStatus;
   
@@ -712,12 +712,12 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
   
   
-  if (aConfig.mComputedHeight != NS_INTRINSICSIZE) {
+  if (aConfig.mComputedBSize != NS_INTRINSICSIZE) {
     if (aReflowState.AvailableHeight() != NS_INTRINSICSIZE) {
       contentSize.BSize(wm) = std::min(contentSize.BSize(wm),
-                                       aConfig.mComputedHeight);
+                                       aConfig.mComputedBSize);
     } else {
-      contentSize.BSize(wm) = aConfig.mComputedHeight;
+      contentSize.BSize(wm) = aConfig.mComputedBSize;
     }
   } else {
     
@@ -727,7 +727,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     contentSize.BSize(wm) =
       aReflowState.ApplyMinMaxHeight(contentSize.BSize(wm),
-                                     aConfig.mConsumedHeight);
+                                     aConfig.mConsumedBSize);
   }
   if (aReflowState.ComputedISize() != NS_INTRINSICSIZE) {
     contentSize.ISize(wm) = aReflowState.ComputedISize();
@@ -778,7 +778,7 @@ nsColumnSetFrame::DrainOverflowColumns()
 }
 
 void
-nsColumnSetFrame::FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
+nsColumnSetFrame::FindBestBalanceBSize(const nsHTMLReflowState& aReflowState,
                                         nsPresContext* aPresContext,
                                         ReflowConfig& aConfig,
                                         ColumnBalanceData& aColData,
@@ -794,8 +794,8 @@ nsColumnSetFrame::FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
   bp.ApplySkipSides(GetSkipSides());
   bp.bottom = aReflowState.ComputedPhysicalBorderPadding().bottom;
 
-  nscoord availableContentHeight =
-    GetAvailableContentHeight(aReflowState);
+  nscoord availableContentBSize =
+    GetAvailableContentBSize(aReflowState);
 
   
   
@@ -807,93 +807,93 @@ nsColumnSetFrame::FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
   bool maybeContinuousBreakingDetected = false;
 
   while (!aPresContext->HasPendingInterrupt()) {
-    nscoord lastKnownFeasibleHeight = aConfig.mKnownFeasibleHeight;
+    nscoord lastKnownFeasibleBSize = aConfig.mKnownFeasibleBSize;
 
     
     if (feasible) {
       
-      aConfig.mKnownFeasibleHeight = std::min(aConfig.mKnownFeasibleHeight,
-                                              aColData.mMaxHeight);
-      aConfig.mKnownFeasibleHeight = std::min(aConfig.mKnownFeasibleHeight,
-                                              mLastBalanceHeight);
+      aConfig.mKnownFeasibleBSize = std::min(aConfig.mKnownFeasibleBSize,
+                                              aColData.mMaxBSize);
+      aConfig.mKnownFeasibleBSize = std::min(aConfig.mKnownFeasibleBSize,
+                                              mLastBalanceBSize);
 
       
       
       
       
       if (mFrames.GetLength() == aConfig.mBalanceColCount) {
-        aConfig.mKnownInfeasibleHeight = std::max(aConfig.mKnownInfeasibleHeight,
-                                       aColData.mLastHeight - 1);
+        aConfig.mKnownInfeasibleBSize = std::max(aConfig.mKnownInfeasibleBSize,
+                                       aColData.mLastBSize - 1);
       }
     } else {
-      aConfig.mKnownInfeasibleHeight = std::max(aConfig.mKnownInfeasibleHeight,
-                                                mLastBalanceHeight);
+      aConfig.mKnownInfeasibleBSize = std::max(aConfig.mKnownInfeasibleBSize,
+                                                mLastBalanceBSize);
       
       
       
-      aConfig.mKnownInfeasibleHeight = std::max(aConfig.mKnownInfeasibleHeight,
-                                         aColData.mMaxOverflowingHeight - 1);
+      aConfig.mKnownInfeasibleBSize = std::max(aConfig.mKnownInfeasibleBSize,
+                                         aColData.mMaxOverflowingBSize - 1);
 
       if (aUnboundedLastColumn) {
         
         
-        aConfig.mKnownFeasibleHeight = std::min(aConfig.mKnownFeasibleHeight,
-                                                aColData.mMaxHeight);
+        aConfig.mKnownFeasibleBSize = std::min(aConfig.mKnownFeasibleBSize,
+                                                aColData.mMaxBSize);
       }
     }
 
 #ifdef DEBUG_roc
     printf("*** nsColumnSetFrame::Reflow balancing knownInfeasible=%d knownFeasible=%d\n",
-           aConfig.mKnownInfeasibleHeight, aConfig.mKnownFeasibleHeight);
+           aConfig.mKnownInfeasibleBSize, aConfig.mKnownFeasibleBSize);
 #endif
 
 
-    if (aConfig.mKnownInfeasibleHeight >= aConfig.mKnownFeasibleHeight - 1) {
+    if (aConfig.mKnownInfeasibleBSize >= aConfig.mKnownFeasibleBSize - 1) {
       
       break;
     }
 
-    if (aConfig.mKnownInfeasibleHeight >= availableContentHeight) {
+    if (aConfig.mKnownInfeasibleBSize >= availableContentBSize) {
       break;
     }
 
-    if (lastKnownFeasibleHeight - aConfig.mKnownFeasibleHeight == 1) {
+    if (lastKnownFeasibleBSize - aConfig.mKnownFeasibleBSize == 1) {
       
       
       
       maybeContinuousBreakingDetected = true;
     }
 
-    nscoord nextGuess = (aConfig.mKnownFeasibleHeight + aConfig.mKnownInfeasibleHeight)/2;
+    nscoord nextGuess = (aConfig.mKnownFeasibleBSize + aConfig.mKnownInfeasibleBSize)/2;
     
-    if (aConfig.mKnownFeasibleHeight - nextGuess < 600 &&
+    if (aConfig.mKnownFeasibleBSize - nextGuess < 600 &&
         !maybeContinuousBreakingDetected) {
       
       
       
-      nextGuess = aConfig.mKnownFeasibleHeight - 1;
+      nextGuess = aConfig.mKnownFeasibleBSize - 1;
     } else if (aUnboundedLastColumn) {
       
       
       
-      nextGuess = aColData.mSumHeight/aConfig.mBalanceColCount + 600;
+      nextGuess = aColData.mSumBSize/aConfig.mBalanceColCount + 600;
       
-      nextGuess = clamped(nextGuess, aConfig.mKnownInfeasibleHeight + 1,
-                                     aConfig.mKnownFeasibleHeight - 1);
-    } else if (aConfig.mKnownFeasibleHeight == NS_INTRINSICSIZE) {
+      nextGuess = clamped(nextGuess, aConfig.mKnownInfeasibleBSize + 1,
+                                     aConfig.mKnownFeasibleBSize - 1);
+    } else if (aConfig.mKnownFeasibleBSize == NS_INTRINSICSIZE) {
       
       
       
-      nextGuess = aConfig.mKnownInfeasibleHeight*2 + 600;
+      nextGuess = aConfig.mKnownInfeasibleBSize*2 + 600;
     }
     
-    nextGuess = std::min(availableContentHeight, nextGuess);
+    nextGuess = std::min(availableContentBSize, nextGuess);
 
 #ifdef DEBUG_roc
     printf("*** nsColumnSetFrame::Reflow balancing choosing next guess=%d\n", nextGuess);
 #endif
 
-    aConfig.mColMaxHeight = nextGuess;
+    aConfig.mColMaxBSize = nextGuess;
 
     aUnboundedLastColumn = false;
     AddStateBits(NS_FRAME_IS_DIRTY);
@@ -912,13 +912,13 @@ nsColumnSetFrame::FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
     
     
     bool skip = false;
-    if (aConfig.mKnownInfeasibleHeight >= availableContentHeight) {
-      aConfig.mColMaxHeight = availableContentHeight;
-      if (mLastBalanceHeight == availableContentHeight) {
+    if (aConfig.mKnownInfeasibleBSize >= availableContentBSize) {
+      aConfig.mColMaxBSize = availableContentBSize;
+      if (mLastBalanceBSize == availableContentBSize) {
         skip = true;
       }
     } else {
-      aConfig.mColMaxHeight = aConfig.mKnownFeasibleHeight;
+      aConfig.mColMaxBSize = aConfig.mKnownFeasibleBSize;
     }
     if (!skip) {
       
@@ -927,7 +927,7 @@ nsColumnSetFrame::FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
       
       AddStateBits(NS_FRAME_IS_DIRTY);
       feasible = ReflowColumns(aDesiredSize, aReflowState, aStatus, aConfig,
-                               availableContentHeight == NS_UNCONSTRAINEDSIZE,
+                               availableContentBSize == NS_UNCONSTRAINEDSIZE,
                                &aOutMargin, aColData);
     }
   }
@@ -992,7 +992,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   bool unboundedLastColumn = config.mIsBalancing && !nextInFlow;
   nsCollapsingMargin carriedOutBottomMargin;
   ColumnBalanceData colData;
-  colData.mHasExcessHeight = false;
+  colData.mHasExcessBSize = false;
 
   bool feasible = ReflowColumns(aDesiredSize, aReflowState, aStatus, config,
                                 unboundedLastColumn, &carriedOutBottomMargin,
@@ -1002,7 +1002,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
   
   if (config.mIsBalancing && !aPresContext->HasPendingInterrupt()) {
-    FindBestBalanceHeight(aReflowState, aPresContext, config, colData,
+    FindBestBalanceBSize(aReflowState, aPresContext, config, colData,
                           aDesiredSize, carriedOutBottomMargin,
                           unboundedLastColumn, feasible, aStatus);
   }

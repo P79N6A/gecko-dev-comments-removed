@@ -42,7 +42,7 @@ public:
 
 
 
-  virtual nscoord GetAvailableContentHeight(const nsHTMLReflowState& aReflowState);
+  virtual nscoord GetAvailableContentBSize(const nsHTMLReflowState& aReflowState);
 
   virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     nsIFrame* frame = GetFirstPrincipalChild();
@@ -92,7 +92,7 @@ public:
 #endif
 
 protected:
-  nscoord        mLastBalanceHeight;
+  nscoord        mLastBalanceBSize;
   nsReflowStatus mLastFrameStatus;
 
   
@@ -104,11 +104,11 @@ protected:
     int32_t mBalanceColCount;
 
     
-    nscoord mColWidth;
+    nscoord mColISize;
 
     
     
-    nscoord mExpectedWidthLeftOver;
+    nscoord mExpectedISizeLeftOver;
 
     
     nscoord mColGap;
@@ -116,7 +116,7 @@ protected:
     
     
     
-    nscoord mColMaxHeight;
+    nscoord mColMaxBSize;
 
     
     
@@ -124,19 +124,19 @@ protected:
 
     
     
-    nscoord mKnownFeasibleHeight;
+    nscoord mKnownFeasibleBSize;
 
     
     
-    nscoord mKnownInfeasibleHeight;
+    nscoord mKnownInfeasibleBSize;
 
     
-    nscoord mComputedHeight;
+    nscoord mComputedBSize;
 
     
     
     
-    nscoord mConsumedHeight;
+    nscoord mConsumedBSize;
   };
 
   
@@ -144,22 +144,22 @@ protected:
 
   struct ColumnBalanceData {
     
-    nscoord mMaxHeight;
+    nscoord mMaxBSize;
     
-    nscoord mSumHeight;
+    nscoord mSumBSize;
     
-    nscoord mLastHeight;
-    
-    
-    nscoord mMaxOverflowingHeight;
+    nscoord mLastBSize;
     
     
+    nscoord mMaxOverflowingBSize;
     
-    bool mHasExcessHeight;
+    
+    
+    bool mHasExcessBSize;
 
     void Reset() {
-      mMaxHeight = mSumHeight = mLastHeight = mMaxOverflowingHeight = 0;
-      mHasExcessHeight = false;
+      mMaxBSize = mSumBSize = mLastBSize = mMaxOverflowingBSize = 0;
+      mHasExcessBSize = false;
     }
   };
 
@@ -168,7 +168,7 @@ protected:
                      nsReflowStatus& aReflowStatus,
                      ReflowConfig& aConfig,
                      bool aLastColumnUnbounded,
-                     nsCollapsingMargin* aCarriedOutBottomMargin,
+                     nsCollapsingMargin* aCarriedOutBEndMargin,
                      ColumnBalanceData& aColData);
 
   
@@ -179,8 +179,8 @@ protected:
 
 
   ReflowConfig ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
-                                    bool aForceAuto, nscoord aFeasibleHeight,
-                                    nscoord aInfeasibleHeight);
+                                    bool aForceAuto, nscoord aFeasibleBSize,
+                                    nscoord aInfeasibleBSize);
 
   
 
@@ -206,7 +206,7 @@ protected:
 
 
 
-  void FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
+  void FindBestBalanceBSize(const nsHTMLReflowState& aReflowState,
                              nsPresContext* aPresContext,
                              ReflowConfig& aConfig,
                              ColumnBalanceData& aColData,
@@ -224,7 +224,7 @@ protected:
                         nsReflowStatus& aStatus,
                         const ReflowConfig& aConfig,
                         bool aLastColumnUnbounded,
-                        nsCollapsingMargin* aCarriedOutBottomMargin,
+                        nsCollapsingMargin* aCarriedOutBEndMargin,
                         ColumnBalanceData& aColData);
 };
 
