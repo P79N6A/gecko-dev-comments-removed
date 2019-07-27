@@ -83,6 +83,11 @@ protected:
 class MediaEngineSource : public nsISupports
 {
 public:
+  
+  
+  static const unsigned int kMaxDeviceNameLength = 128;
+  static const unsigned int kMaxUniqueIdLength = 256;
+
   virtual ~MediaEngineSource() {}
 
   
