@@ -21,8 +21,8 @@ class TimeRanges;
 
 struct WebMTimeDataOffset
 {
-  WebMTimeDataOffset(int64_t aOffset, uint64_t aTimecode)
-    : mOffset(aOffset), mTimecode(aTimecode)
+  WebMTimeDataOffset(int64_t aOffset, uint64_t aTimecode, int64_t aSyncOffset)
+    : mOffset(aOffset), mTimecode(aTimecode), mSyncOffset(aSyncOffset)
   {}
 
   bool operator==(int64_t aOffset) const {
@@ -35,6 +35,7 @@ struct WebMTimeDataOffset
 
   int64_t mOffset;
   uint64_t mTimecode;
+  int64_t mSyncOffset;
 };
 
 
@@ -164,6 +165,11 @@ private:
 
   
   uint64_t mClusterTimecode;
+
+  
+  
+  
+  int64_t mClusterOffset;
 
   
   
