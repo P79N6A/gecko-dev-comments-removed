@@ -66,11 +66,29 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     enum ReferencesType {
         RefType_None = 0,
+
+        
         RefType_AssertNoUses = 1 << 0,
+
+        
+        
         RefType_DiscardOperands = 1 << 1,
         RefType_DiscardResumePoint = 1 << 2,
-        RefType_DefaultNoAssert = RefType_DiscardOperands | RefType_DiscardResumePoint,
-        RefType_Default = RefType_AssertNoUses | RefType_DiscardOperands | RefType_DiscardResumePoint
+        RefType_DiscardInstruction = 1 << 3,
+
+        
+        RefType_DefaultNoAssert = RefType_DiscardOperands |
+                                  RefType_DiscardResumePoint |
+                                  RefType_DiscardInstruction,
+
+        
+        RefType_Default = RefType_AssertNoUses | RefType_DefaultNoAssert,
+
+        
+        
+        RefType_IgnoreOperands = RefType_AssertNoUses |
+                                 RefType_DiscardOperands |
+                                 RefType_DiscardResumePoint
     };
 
     void discardResumePoint(MResumePoint *rp, ReferencesType refType = RefType_Default);
