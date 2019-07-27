@@ -40,9 +40,6 @@ using namespace mozilla::hal;
 
 namespace {
 
-
-bool sAudioChannelMutedByDefault = false;
-
 void
 NotifyChannelActive(uint64_t aWindowID, AudioChannel aAudioChannel,
                     bool aActive)
@@ -172,9 +169,6 @@ AudioChannelService::AudioChannelService()
 #endif
     }
   }
-
-  Preferences::AddBoolVarCache(&sAudioChannelMutedByDefault,
-                               "dom.audiochannel.mutedByDefault");
 }
 
 AudioChannelService::~AudioChannelService()
@@ -829,12 +823,6 @@ AudioChannelService::ChildStatusReceived(uint64_t aChildID,
   AudioChannelChildStatus* data = mPlayingChildren.LookupOrAdd(aChildID);
   data->mActiveTelephonyChannel = aTelephonyChannel;
   data->mActiveContentOrNormalChannel = aContentOrNormalChannel;
-}
-
- bool
-AudioChannelService::IsAudioChannelMutedByDefault()
-{
-  return sAudioChannelMutedByDefault;
 }
 
  PLDHashOperator
