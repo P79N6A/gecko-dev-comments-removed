@@ -567,7 +567,17 @@ function compareSmsMessage(aFrom, aTo) {
 function cleanUp() {
   ok(true, ":: CLEANING UP ::");
 
-  waitFor(finish, function() {
+  waitFor(function() {
+    SpecialPowers.flushPermissions(function() {
+      ok(true, "permissions flushed");
+
+      SpecialPowers.flushPrefEnv(function() {
+        ok(true, "preferences flushed");
+
+        finish();
+      })
+    });
+  }, function() {
     return pendingEmulatorCmdCount === 0;
   });
 }

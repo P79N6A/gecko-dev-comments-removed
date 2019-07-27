@@ -629,10 +629,14 @@ function isUuidsEqual(aUuidArray1, aUuidArray2) {
 
 
 function cleanUp() {
-  
-  ok(true, ":: CLEANING UP ::");
+  waitFor(function() {
+    SpecialPowers.flushPermissions(function() {
+      
+      ok(true, "permissions flushed");
 
-  waitFor(finish, function() {
+      finish();
+    });
+  }, function() {
     return pendingEmulatorCmdCount === 0;
   });
 }

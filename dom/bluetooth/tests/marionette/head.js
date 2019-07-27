@@ -708,10 +708,14 @@ function getDefaultAdapter() {
 
 
 function cleanUp() {
-  
-  ok(true, ":: CLEANING UP ::");
+  waitFor(function() {
+    SpecialPowers.flushPermissions(function() {
+      
+      ok(true, "permissions flushed");
 
-  waitFor(finish, function() {
+      finish();
+    });
+  }, function() {
     return pendingEmulatorCmdCount === 0;
   });
 }

@@ -1131,10 +1131,14 @@ function getNumOfRadioInterfaces() {
 
 
 function cleanUp() {
-  
-  ok(true, ":: CLEANING UP ::");
+  waitFor(function() {
+    SpecialPowers.flushPermissions(function() {
+      
+      ok(true, "permissions flushed");
 
-  waitFor(finish, function() {
+      finish();
+    });
+  }, function() {
     return _pendingEmulatorCmdCount === 0 &&
            _pendingEmulatorShellCmdCount === 0;
   });
