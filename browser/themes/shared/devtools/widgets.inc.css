@@ -34,6 +34,16 @@
   -moz-box-orient: horizontal;
 }
 
+.devtools-main-content {
+  min-width: 50px;
+}
+
+.devtools-main-content,
+.devtools-sidebar-tabs {
+  
+  position: relative;
+}
+
 @media (max-width: 700px) {
   .devtools-responsive-container {
     -moz-box-orient: vertical;
