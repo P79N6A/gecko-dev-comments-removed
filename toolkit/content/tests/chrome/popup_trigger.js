@@ -29,7 +29,7 @@ function runTests()
   gMenuPopup = document.getElementById("thepopup");
   gTrigger = document.getElementById("trigger");
 
-  gIsMenu = gTrigger.boxObject instanceof Components.interfaces.nsIMenuBoxObject;
+  gIsMenu = gTrigger.boxObject instanceof MenuBoxObject;
 
   
   

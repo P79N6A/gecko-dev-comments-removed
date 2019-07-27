@@ -987,7 +987,7 @@ VariablesView.prototype = {
 
 
 
-  get boxObject() this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject),
+  get boxObject() this._list.boxObject,
 
   
 

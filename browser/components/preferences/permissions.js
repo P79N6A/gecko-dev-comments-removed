@@ -332,7 +332,7 @@ var gPermissionManager = {
     this._view._rowCount = this._permissions.length;
 
     
-    this._tree.treeBoxObject.view = this._view;
+    this._tree.view = this._view;
     this.onPermissionSort("rawHost", false);
 
     
@@ -370,4 +370,3 @@ function initWithParams(aParams)
 {
   gPermissionManager.init(aParams);
 }
-

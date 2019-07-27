@@ -10,17 +10,14 @@ var SidebarUtils = {
       return;
 
     var tbo = aTree.treeBoxObject;
-    var row = { }, col = { }, obj = { };
-    tbo.getCellAt(aEvent.clientX, aEvent.clientY, row, col, obj);
+    var cell = tbo.getCellAt(aEvent.clientX, aEvent.clientY);
 
-    if (row.value == -1 || obj.value == "twisty")
+    if (cell.row == -1 || cell.childElt == "twisty")
       return;
 
     var mouseInGutter = false;
     if (aGutterSelect) {
-      var x = { }, y = { }, w = { }, h = { };
-      tbo.getCoordsForCellItem(row.value, col.value, "image",
-                               x, y, w, h);
+      var rect = tbo.getCoordsForCellItem(cell.row, cell.col, "image");
       
       
       
@@ -28,9 +25,9 @@ var SidebarUtils = {
       
       var isRTL = window.getComputedStyle(aTree, null).direction == "rtl";
       if (isRTL)
-        mouseInGutter = aEvent.clientX > x.value;
+        mouseInGutter = aEvent.clientX > rect.x;
       else
-        mouseInGutter = aEvent.clientX < x.value;
+        mouseInGutter = aEvent.clientX < rect.y;
     }
 
 #ifdef XP_MACOSX
@@ -39,19 +36,19 @@ var SidebarUtils = {
     var modifKey = aEvent.ctrlKey || aEvent.shiftKey;
 #endif
 
-    var isContainer = tbo.view.isContainer(row.value);
+    var isContainer = tbo.view.isContainer(cell.row);
     var openInTabs = isContainer &&
                      (aEvent.button == 1 ||
                       (aEvent.button == 0 && modifKey)) &&
-                     PlacesUtils.hasChildURIs(tbo.view.nodeForTreeIndex(row.value), true);
+                     PlacesUtils.hasChildURIs(tbo.view.nodeForTreeIndex(cell.row), true);
 
     if (aEvent.button == 0 && isContainer && !openInTabs) {
-      tbo.view.toggleOpenState(row.value);
+      tbo.view.toggleOpenState(cell.row);
       return;
     }
     else if (!mouseInGutter && openInTabs &&
             aEvent.originalTarget.localName == "treechildren") {
-      tbo.view.selection.select(row.value);
+      tbo.view.selection.select(cell.row);
       PlacesUIUtils.openContainerNodeInTabs(aTree.selectedNode, aEvent, aTree);
     }
     else if (!mouseInGutter && !isContainer &&
@@ -59,7 +56,7 @@ var SidebarUtils = {
       
       
       
-      tbo.view.selection.select(row.value);
+      tbo.view.selection.select(cell.row);
       PlacesUIUtils.openNodeWithEvent(aTree.selectedNode, aEvent, aTree);
     }
   },
@@ -84,14 +81,13 @@ var SidebarUtils = {
 
     var tree = aEvent.target.parentNode;
     var tbo = tree.treeBoxObject;
-    var row = { }, col = { }, obj = { };
-    tbo.getCellAt(aEvent.clientX, aEvent.clientY, row, col, obj);
+    var cell = tbo.getCellAt(aEvent.clientX, aEvent.clientY);
 
     
     
     
-    if (row.value != -1) {
-      var node = tree.view.nodeForTreeIndex(row.value);
+    if (cell.row != -1) {
+      var node = tree.view.nodeForTreeIndex(cell.row);
       if (PlacesUtils.nodeIsURI(node))
         this.setMouseoverURL(node.uri);
       else

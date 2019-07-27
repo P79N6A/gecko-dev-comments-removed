@@ -858,7 +858,6 @@ FeedWriter.prototype = {
 
 
           var popupbox = this._handlersMenuList.firstChild.boxObject;
-          popupbox.QueryInterface(Components.interfaces.nsIPopupBoxObject);
           if (popupbox.popupState == "hiding") {
             this._chooseClientApp(function(aResult) {
               if (!aResult) {

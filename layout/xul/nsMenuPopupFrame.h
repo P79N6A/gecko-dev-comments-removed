@@ -517,7 +517,7 @@ protected:
   int8_t mPosition;
 
   
-  int8_t mConsumeRollupEvent;
+  uint8_t mConsumeRollupEvent;
   FlipType mFlip; 
 
   bool mIsOpenChanged; 

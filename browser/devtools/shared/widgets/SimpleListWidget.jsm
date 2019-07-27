@@ -171,7 +171,7 @@ SimpleListWidget.prototype = {
     }
 
     
-    let boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+    let boxObject = this._list.boxObject;
     boxObject.ensureElementIsVisible(aElement);
     boxObject.scrollBy(-this._list.clientWidth, 0);
   },

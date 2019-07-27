@@ -98,7 +98,7 @@ function LoadSignons() {
   signonsTreeView.rowCount = signons.length;
 
   
-  signonsTree.treeBoxObject.view = signonsTreeView;
+  signonsTree.view = signonsTreeView;
   
   
   
