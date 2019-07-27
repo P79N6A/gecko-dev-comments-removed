@@ -28,6 +28,7 @@ public:
   bool IsInSoftwareVsyncThread();
   virtual void NotifyVsync(mozilla::TimeStamp aVsyncTimestamp) override;
   void ScheduleNextVsync(mozilla::TimeStamp aVsyncTimestamp);
+  void Shutdown();
 
 protected:
   ~SoftwareDisplay();
@@ -36,10 +37,8 @@ private:
   mozilla::TimeDuration mVsyncRate;
   
   base::Thread* mVsyncThread;
-  bool mVsyncEnabled;
-  CancelableTask* mCurrentVsyncTask;
-  
-  mozilla::Monitor mCurrentTaskMonitor;
+  CancelableTask* mCurrentVsyncTask; 
+  bool mVsyncEnabled; 
 }; 
 
 
