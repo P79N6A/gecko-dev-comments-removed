@@ -562,14 +562,7 @@ HttpChannelParent::RecvDivertOnDataAvailable(const nsCString& data,
     return true;
   }
 
-  nsCOMPtr<nsIStreamListener> listener;
-  if (mConverterListener) {
-    listener = mConverterListener;
-  } else {
-    listener = mParentListener;
-    MOZ_ASSERT(listener);
-  }
-  rv = listener->OnDataAvailable(mChannel, nullptr, stringStream,
+  rv = mParentListener->OnDataAvailable(mChannel, nullptr, stringStream,
                                         offset, count);
   stringStream->Close();
   if (NS_FAILED(rv)) {
@@ -601,14 +594,7 @@ HttpChannelParent::RecvDivertOnStopRequest(const nsresult& statusCode)
     mChannel->ForcePending(false);
   }
 
-  nsCOMPtr<nsIStreamListener> listener;
-  if (mConverterListener) {
-    listener = mConverterListener;
-  } else {
-    listener = mParentListener;
-    MOZ_ASSERT(listener);
-  }
-  listener->OnStopRequest(mChannel, nullptr, status);
+  mParentListener->OnStopRequest(mChannel, nullptr, status);
   return true;
 }
 
@@ -629,7 +615,6 @@ HttpChannelParent::RecvDivertComplete()
     return false;
   }
 
-  mConverterListener = nullptr; 
   mParentListener = nullptr;
   return true;
 }
@@ -966,8 +951,7 @@ HttpChannelParent::DivertTo(nsIStreamListener *aListener)
     return;
   }
 
-  DebugOnly<nsresult> rv = mParentListener->DivertTo(aListener);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  mDivertListener = aListener;
 
   if (NS_WARN_IF(mIPCClosed || !SendFlushedForDiversion())) {
     FailDiversion(NS_ERROR_UNEXPECTED);
@@ -996,7 +980,7 @@ HttpChannelParent::StartDiversion()
   }
 
   
-  nsresult rv = mParentListener->OnStartRequest(mChannel, nullptr);
+  nsresult rv = mDivertListener->OnStartRequest(mChannel, nullptr);
   if (NS_FAILED(rv)) {
     if (mChannel) {
       mChannel->Cancel(rv);
@@ -1009,23 +993,17 @@ HttpChannelParent::StartDiversion()
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
   nsCOMPtr<nsIStreamListener> converterListener;
-  mChannel->DoApplyContentConversions(mParentListener,
+  mChannel->DoApplyContentConversions(mDivertListener,
                                       getter_AddRefs(converterListener));
   if (converterListener) {
-    mConverterListener = converterListener.forget();
+    mDivertListener = converterListener.forget();
   }
+
+  
+  DebugOnly<nsresult> rvdbg = mParentListener->DivertTo(mDivertListener);
+  MOZ_ASSERT(NS_SUCCEEDED(rvdbg));
+  mDivertListener = nullptr;
 
   
   
@@ -1106,7 +1084,6 @@ HttpChannelParent::NotifyDiversionFailed(nsresult aErrorCode,
     mParentListener->OnStopRequest(mChannel, nullptr, aErrorCode);
   }
   mParentListener = nullptr;
-  mConverterListener = nullptr;
   mChannel = nullptr;
 
   if (!mIPCClosed) {

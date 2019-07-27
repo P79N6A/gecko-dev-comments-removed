@@ -174,7 +174,7 @@ private:
 
   nsRefPtr<HttpChannelParentListener> mParentListener;
   
-  nsCOMPtr<nsIStreamListener> mConverterListener;
+  nsCOMPtr<nsIStreamListener> mDivertListener;
   
   nsresult mStatus;
   
