@@ -89,6 +89,7 @@ public:
   virtual void Run() = 0;
   
   
+  
   virtual void RunDuringShutdown() {}
   MediaStream* GetStream() { return mStream; }
 
@@ -642,6 +643,14 @@ private:
 
 
   bool mNeedsMemoryReport;
+
+#ifdef DEBUG
+  
+
+
+  bool mCanRunMessagesSynchronously;
+#endif
+
 };
 
 }

@@ -389,6 +389,7 @@ public:
 
 
 
+
   void RunAfterPendingUpdates(nsRefPtr<nsIRunnable> aRunnable);
 
   
