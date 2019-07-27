@@ -315,6 +315,15 @@ enum nsRestyleHint {
 
   
   
+  
+  
+  
+  
+  
+  eRestyle_StyleAttribute = (1<<6),
+
+  
+  
   eRestyle_Force = (1<<8),
 
   
