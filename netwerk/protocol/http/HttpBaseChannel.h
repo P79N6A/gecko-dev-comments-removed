@@ -240,6 +240,8 @@ public:
     const NetAddr& GetSelfAddr() { return mSelfAddr; }
     const NetAddr& GetPeerAddr() { return mPeerAddr; }
 
+    nsresult OverrideSecurityInfo(nsISupports* aSecurityInfo);
+
 public: 
     bool IsNavigation();
 
@@ -316,6 +318,7 @@ protected:
   nsAutoPtr<nsHttpResponseHead>     mResponseHead;
   nsRefPtr<nsHttpConnectionInfo>    mConnectionInfo;
   nsCOMPtr<nsIProxyInfo>            mProxyInfo;
+  nsCOMPtr<nsISupports>             mSecurityInfo;
 
   nsCString                         mSpec; 
   nsCString                         mContentTypeHint;
