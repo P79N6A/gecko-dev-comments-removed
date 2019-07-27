@@ -73,6 +73,13 @@ public:
   void* operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW;
   void Destroy();
 
+#ifdef DEBUG
+  
+
+
+  static void Initialize();
+#endif
+
   nsrefcnt AddRef() {
     if (mRefCnt == UINT32_MAX) {
       NS_WARNING("refcount overflow, leaking object");

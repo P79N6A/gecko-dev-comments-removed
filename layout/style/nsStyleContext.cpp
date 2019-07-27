@@ -23,6 +23,7 @@
 #include "GeckoProfiler.h"
 #include "nsIDocument.h"
 #include "nsPrintfCString.h"
+#include "mozilla/Preferences.h"
 
 #ifdef DEBUG
 
@@ -60,6 +61,8 @@ const uint32_t nsStyleContext::sDependencyTable[] = {
 #undef STYLE_STRUCT_END
 };
 
+
+static bool sExpensiveStyleStructAssertionsEnabled;
 #endif
 
 nsStyleContext::nsStyleContext(nsStyleContext* aParent,
@@ -131,21 +134,21 @@ nsStyleContext::~nsStyleContext()
                "destroying style context from old rule tree too late");
 
 #ifdef DEBUG
-#if 0
-  
-  
-  
-  nsStyleContext* root = this;
-  while (root->mParent) {
-    root = root->mParent;
+  if (sExpensiveStyleStructAssertionsEnabled) {
+    
+    
+    
+    nsStyleContext* root = this;
+    while (root->mParent) {
+      root = root->mParent;
+    }
+    root->AssertStructsNotUsedElsewhere(this,
+                                        std::numeric_limits<int32_t>::max());
+  } else {
+    
+    
+    AssertStructsNotUsedElsewhere(this, 2);
   }
-  root->AssertStructsNotUsedElsewhere(this,
-                                      std::numeric_limits<int32_t>::max());
-#else
-  
-  
-  AssertStructsNotUsedElsewhere(this, 2);
-#endif
 #endif
 
   mRuleNode->Release();
@@ -1385,5 +1388,15 @@ nsStyleContext::LogStyleContextTree(bool aFirst, uint32_t aStructs)
       child = child->mNextSibling;
     } while (mEmptyChild != child);
   }
+}
+#endif
+
+#ifdef DEBUG
+ void
+nsStyleContext::Initialize()
+{
+  Preferences::AddBoolVarCache(
+      &sExpensiveStyleStructAssertionsEnabled,
+      "layout.css.expensive-style-struct-assertions.enabed");
 }
 #endif

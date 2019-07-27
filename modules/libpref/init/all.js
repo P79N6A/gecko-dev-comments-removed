@@ -4153,6 +4153,11 @@ pref("dom.imagecapture.enabled", false);
 pref("layout.css.touch_action.enabled", false);
 
 
+
+
+pref("layout.css.expensive-style-struct-assertions.enabed", false);
+
+
 pref("browser.dom.window.dump.enabled", false);
 
 #if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
