@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "MediaData.h"
 #include "MediaInfo.h"
@@ -50,7 +50,7 @@ AudioData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   return size;
 }
 
-/* static */
+
 already_AddRefed<AudioData>
 AudioData::TransferAndUpdateTimestampAndDuration(AudioData* aOther,
                                                   int64_t aTimestamp,
@@ -65,7 +65,7 @@ AudioData::TransferAndUpdateTimestampAndDuration(AudioData* aOther,
                                         aOther->mChannels,
                                         aOther->mRate);
   v->mDiscontinuity = aOther->mDiscontinuity;
-  // Remove aOther's AudioData as it can't be shared across two targets.
+  
   aOther->mAudioData.forget();
 
   return v.forget();
@@ -140,8 +140,8 @@ VideoData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 {
   size_t size = aMallocSizeOf(this);
 
-  // Currently only PLANAR_YCBCR has a well defined function for determining
-  // it's size, so reporting is limited to that type.
+  
+  
   if (mImage && mImage->GetFormat() == ImageFormat::PLANAR_YCBCR) {
     const mozilla::layers::PlanarYCbCrImage* img =
         static_cast<const mozilla::layers::PlanarYCbCrImage*>(mImage.get());
@@ -151,7 +151,7 @@ VideoData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   return size;
 }
 
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::ShallowCopyUpdateDuration(const VideoData* aOther,
                                      int64_t aDuration)
@@ -167,7 +167,7 @@ VideoData::ShallowCopyUpdateDuration(const VideoData* aOther,
   return v.forget();
 }
 
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::ShallowCopyUpdateTimestamp(const VideoData* aOther,
                                       int64_t aTimestamp)
@@ -184,7 +184,7 @@ VideoData::ShallowCopyUpdateTimestamp(const VideoData* aOther,
   return v.forget();
 }
 
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::ShallowCopyUpdateTimestampAndDuration(const VideoData* aOther,
                                                  int64_t aTimestamp,
@@ -202,7 +202,7 @@ VideoData::ShallowCopyUpdateTimestampAndDuration(const VideoData* aOther,
   return v.forget();
 }
 
-/* static */
+
 void VideoData::SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
                                     const VideoInfo& aInfo,
                                     const YCbCrBuffer &aBuffer,
@@ -240,7 +240,7 @@ void VideoData::SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
   }
 }
 
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::Create(const VideoInfo& aInfo,
                   ImageContainer* aContainer,
@@ -254,8 +254,8 @@ VideoData::Create(const VideoInfo& aInfo,
                   const IntRect& aPicture)
 {
   if (!aImage && !aContainer) {
-    // Create a dummy VideoData with no image. This gives us something to
-    // send to media streams if necessary.
+    
+    
     nsRefPtr<VideoData> v(new VideoData(aOffset,
                                         aTime,
                                         aDuration,
@@ -265,17 +265,17 @@ VideoData::Create(const VideoInfo& aInfo,
     return v.forget();
   }
 
-  // The following situation should never happen unless there is a bug
-  // in the decoder
+  
+  
   if (aBuffer.mPlanes[1].mWidth != aBuffer.mPlanes[2].mWidth ||
       aBuffer.mPlanes[1].mHeight != aBuffer.mPlanes[2].mHeight) {
     NS_ERROR("C planes with different sizes");
     return nullptr;
   }
 
-  // The following situations could be triggered by invalid input
+  
   if (aPicture.width <= 0 || aPicture.height <= 0) {
-    // In debug mode, makes the error more noticeable
+    
     MOZ_ASSERT(false, "Empty picture rect");
     return nullptr;
   }
@@ -285,15 +285,15 @@ VideoData::Create(const VideoInfo& aInfo,
     return nullptr;
   }
 
-  // Ensure the picture size specified in the headers can be extracted out of
-  // the frame we've been supplied without indexing out of bounds.
+  
+  
   CheckedUint32 xLimit = aPicture.x + CheckedUint32(aPicture.width);
   CheckedUint32 yLimit = aPicture.y + CheckedUint32(aPicture.height);
   if (!xLimit.isValid() || xLimit.value() > aBuffer.mPlanes[0].mStride ||
       !yLimit.isValid() || yLimit.value() > aBuffer.mPlanes[0].mHeight)
   {
-    // The specified picture dimensions can't be contained inside the video
-    // frame, we'll stomp memory if we try to copy it. Fail.
+    
+    
     NS_WARNING("Overflowing picture rect");
     return nullptr;
   }
@@ -311,8 +311,8 @@ VideoData::Create(const VideoInfo& aInfo,
 #endif
 
   if (!aImage) {
-    // Currently our decoder only knows how to output to ImageFormat::PLANAR_YCBCR
-    // format.
+    
+    
 #ifdef MOZ_WIDGET_GONK
     if (IsYV12Format(Y, Cb, Cr) && !IsInEmulator()) {
       v->mImage = aContainer->CreateImage(ImageFormat::GRALLOC_PLANAR_YCBCR);
@@ -335,28 +335,28 @@ VideoData::Create(const VideoInfo& aInfo,
 
   if (!aImage) {
     VideoData::SetVideoDataToImage(videoImage, aInfo, aBuffer, aPicture,
-                                   true /* aCopyData */);
+                                   true );
   } else {
     VideoData::SetVideoDataToImage(videoImage, aInfo, aBuffer, aPicture,
-                                   false /* aCopyData */);
+                                   false );
   }
 
 #ifdef MOZ_WIDGET_GONK
   if (!videoImage->IsValid() && !aImage && IsYV12Format(Y, Cb, Cr)) {
-    // Failed to allocate gralloc. Try fallback.
+    
     v->mImage = aContainer->CreateImage(ImageFormat::PLANAR_YCBCR);
     if (!v->mImage) {
       return nullptr;
     }
     videoImage = static_cast<PlanarYCbCrImage*>(v->mImage.get());
     VideoData::SetVideoDataToImage(videoImage, aInfo, aBuffer, aPicture,
-                                   true /* aCopyData */);
+                                   true );
   }
 #endif
   return v.forget();
 }
 
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::Create(const VideoInfo& aInfo,
                   ImageContainer* aContainer,
@@ -372,7 +372,7 @@ VideoData::Create(const VideoInfo& aInfo,
                 aKeyframe, aTimecode, aPicture);
 }
 
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::Create(const VideoInfo& aInfo,
                   Image* aImage,
@@ -388,7 +388,7 @@ VideoData::Create(const VideoInfo& aInfo,
                 aKeyframe, aTimecode, aPicture);
 }
 
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::CreateFromImage(const VideoInfo& aInfo,
                            ImageContainer* aContainer,
@@ -411,7 +411,7 @@ VideoData::CreateFromImage(const VideoInfo& aInfo,
 }
 
 #ifdef MOZ_OMX_DECODER
-/* static */
+
 already_AddRefed<VideoData>
 VideoData::Create(const VideoInfo& aInfo,
                   ImageContainer* aContainer,
@@ -424,8 +424,8 @@ VideoData::Create(const VideoInfo& aInfo,
                   const IntRect& aPicture)
 {
   if (!aContainer) {
-    // Create a dummy VideoData with no image. This gives us something to
-    // send to media streams if necessary.
+    
+    
     nsRefPtr<VideoData> v(new VideoData(aOffset,
                                         aTime,
                                         aDuration,
@@ -435,20 +435,20 @@ VideoData::Create(const VideoInfo& aInfo,
     return v.forget();
   }
 
-  // The following situations could be triggered by invalid input
+  
   if (aPicture.width <= 0 || aPicture.height <= 0) {
     NS_WARNING("Empty picture rect");
     return nullptr;
   }
 
-  // Ensure the picture size specified in the headers can be extracted out of
-  // the frame we've been supplied without indexing out of bounds.
+  
+  
   CheckedUint32 xLimit = aPicture.x + CheckedUint32(aPicture.width);
   CheckedUint32 yLimit = aPicture.y + CheckedUint32(aPicture.height);
   if (!xLimit.isValid() || !yLimit.isValid())
   {
-    // The specified picture dimensions can't be contained inside the video
-    // frame, we'll stomp memory if we try to copy it. Fail.
+    
+    
     NS_WARNING("Overflowing picture rect");
     return nullptr;
   }
@@ -477,10 +477,10 @@ VideoData::Create(const VideoInfo& aInfo,
 
   return v.forget();
 }
-#endif  // MOZ_OMX_DECODER
+#endif  
 
-// Alignment value - 1. 0 means that data isn't aligned.
-// For 32-bytes aligned, use 31U.
+
+
 #define RAW_DATA_ALIGNMENT 31U
 
 #define RAW_DATA_DEFAULT_SIZE 4096
@@ -507,7 +507,7 @@ MediaRawData::MediaRawData(const uint8_t* aData, size_t aSize)
     return;
   }
 
-  // We ensure sufficient capacity above so this shouldn't fail.
+  
   MOZ_ALWAYS_TRUE(mBuffer->AppendElements(aData, aSize, fallible));
   MOZ_ALWAYS_TRUE(mBuffer->AppendElements(RAW_DATA_ALIGNMENT, fallible));
   mSize = aSize;
@@ -529,7 +529,7 @@ MediaRawData::Clone() const
       return nullptr;
     }
 
-    // We ensure sufficient capacity above so this shouldn't fail.
+    
     MOZ_ALWAYS_TRUE(s->mBuffer->AppendElements(mData, mSize, fallible));
     MOZ_ALWAYS_TRUE(s->mBuffer->AppendElements(RAW_DATA_ALIGNMENT, fallible));
     s->mSize = mSize;
@@ -546,21 +546,21 @@ MediaRawData::EnsureCapacity(size_t aSize)
   if (!mBuffer->SetCapacity(aSize + RAW_DATA_ALIGNMENT * 2, fallible)) {
     return false;
   }
-  // Find alignment address.
+  
   const uintptr_t alignmask = RAW_DATA_ALIGNMENT;
   mData = reinterpret_cast<uint8_t*>(
     (reinterpret_cast<uintptr_t>(mBuffer->Elements()) + alignmask) & ~alignmask);
   MOZ_ASSERT(uintptr_t(mData) % (RAW_DATA_ALIGNMENT+1) == 0);
 
-  // Shift old data according to new padding.
+  
   uint32_t oldpadding = int32_t(mPadding);
   mPadding = mData - mBuffer->Elements();
   int32_t shift = int32_t(mPadding) - int32_t(oldpadding);
 
   if (shift == 0) {
-    // Nothing to do.
+    
   } else if (shift > 0) {
-    // We ensure sufficient capacity above so this shouldn't fail.
+    
     MOZ_ALWAYS_TRUE(mBuffer->InsertElementsAt(oldpadding, shift, fallible));
   } else {
     mBuffer->RemoveElementsAt(mPadding, -shift);
@@ -623,7 +623,7 @@ MediaRawDataWriter::SetSize(size_t aSize)
     return false;
   }
 
-  // Pad our buffer. We ensure sufficient capacity above so this shouldn't fail.
+  
   MOZ_ALWAYS_TRUE(
     mBuffer->SetLength(aSize + mTarget->mPadding + RAW_DATA_ALIGNMENT,
                        fallible));
@@ -638,8 +638,9 @@ MediaRawDataWriter::Prepend(const uint8_t* aData, size_t aSize)
     return false;
   }
 
-  // We ensure sufficient capacity above so this shouldn't fail.
-  MOZ_ALWAYS_TRUE(mBuffer->InsertElementsAt(mTarget->mPadding, aData, aSize));
+  
+  MOZ_ALWAYS_TRUE(mBuffer->InsertElementsAt(mTarget->mPadding, aData, aSize,
+                                            fallible));
   mTarget->mSize += aSize;
   mSize = mTarget->mSize;
   return true;
@@ -652,7 +653,7 @@ MediaRawDataWriter::Replace(const uint8_t* aData, size_t aSize)
     return false;
   }
 
-  // We ensure sufficient capacity above so this shouldn't fail.
+  
   MOZ_ALWAYS_TRUE(mBuffer->ReplaceElementsAt(mTarget->mPadding, mTarget->mSize,
                                              aData, aSize, fallible));
   mTarget->mSize = mSize = aSize;
@@ -667,4 +668,4 @@ MediaRawDataWriter::Clear()
   mTarget->mData = mData = nullptr;
 }
 
-} // namespace mozilla
+} 
