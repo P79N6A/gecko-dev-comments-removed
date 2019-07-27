@@ -1162,7 +1162,13 @@ var gPluginHandler = {
     let submitReports   = true; 
     let pluginName      = propBag.getPropertyAsAString("pluginName");
     let pluginDumpID    = propBag.getPropertyAsAString("pluginDumpID");
-    let browserDumpID   = propBag.getPropertyAsAString("browserDumpID");
+    let browserDumpID = null;
+
+    try {
+      browserDumpID = propBag.getPropertyAsAString("browserDumpID");
+    } catch (e) {
+      
+    }
 
     
     pluginName = this.makeNicePluginName(pluginName);
