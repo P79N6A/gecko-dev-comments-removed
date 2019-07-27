@@ -223,6 +223,18 @@ nsPrintOptions::SerializeToPrintData(nsIPrintSettings* aSettings,
   aSettings->GetIsInitializedFromPrefs(&data->isInitializedFromPrefs());
   aSettings->GetPersistMarginBoxSettings(&data->persistMarginBoxSettings());
 
+  
+  
+  
+  
+  
+  
+  data->isFramesetDocument() = false;
+  data->isFramesetFrameSelected() = false;
+  data->isIFrameSelected() = false;
+  data->isRangeSelection() = false;
+  
+
   return NS_OK;
 }
 
