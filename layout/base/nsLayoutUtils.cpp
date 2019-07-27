@@ -4322,14 +4322,14 @@ static int32_t gNoiseIndent = 0;
 static nscoord
 AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
                        nsIFrame* aFrame,
-                       const nsIFrame::IntrinsicISizeOffsetData& offsets,
+                       const nsIFrame::IntrinsicISizeOffsetData& aOffsets,
                        nsLayoutUtils::IntrinsicISizeType aType,
-                       uint8_t boxSizing,
+                       uint8_t aBoxSizing,
                        nscoord result,
                        nscoord min,
-                       const nsStyleCoord& styleISize,
-                       const nsStyleCoord& styleMinISize,
-                       const nsStyleCoord& styleMaxISize,
+                       const nsStyleCoord& aStyleSize,
+                       const nsStyleCoord& aStyleMinSize,
+                       const nsStyleCoord& aStyleMaxSize,
                        uint32_t aFlags,
                        WritingMode aContainerWM)
 {
@@ -4345,10 +4345,10 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
   float pctTotal = 0.0f;
 
   if (!(aFlags & nsLayoutUtils::IGNORE_PADDING)) {
-    coordOutsideISize += offsets.hPadding;
-    pctOutsideISize += offsets.hPctPadding;
+    coordOutsideISize += aOffsets.hPadding;
+    pctOutsideISize += aOffsets.hPctPadding;
 
-    if (boxSizing == NS_STYLE_BOX_SIZING_PADDING) {
+    if (aBoxSizing == NS_STYLE_BOX_SIZING_PADDING) {
       min += coordOutsideISize;
       result = NSCoordSaturatingAdd(result, coordOutsideISize);
       pctTotal += pctOutsideISize;
@@ -4358,9 +4358,9 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
     }
   }
 
-  coordOutsideISize += offsets.hBorder;
+  coordOutsideISize += aOffsets.hBorder;
 
-  if (boxSizing == NS_STYLE_BOX_SIZING_BORDER) {
+  if (aBoxSizing == NS_STYLE_BOX_SIZING_BORDER) {
     min += coordOutsideISize;
     result = NSCoordSaturatingAdd(result, coordOutsideISize);
     pctTotal += pctOutsideISize;
@@ -4369,16 +4369,16 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
     pctOutsideISize = 0.0f;
   }
 
-  coordOutsideISize += offsets.hMargin;
-  pctOutsideISize += offsets.hPctMargin;
+  coordOutsideISize += aOffsets.hMargin;
+  pctOutsideISize += aOffsets.hPctMargin;
 
   min += coordOutsideISize;
   result = NSCoordSaturatingAdd(result, coordOutsideISize);
   pctTotal += pctOutsideISize;
 
   nscoord w;
-  if (GetAbsoluteCoord(styleISize, w) ||
-      GetIntrinsicCoord(styleISize, aRenderingContext, aFrame,
+  if (GetAbsoluteCoord(aStyleSize, w) ||
+      GetIntrinsicCoord(aStyleSize, aRenderingContext, aFrame,
                         PROP_WIDTH, w)) {
     result = AddPercents(aType, w + coordOutsideISize, pctOutsideISize);
   }
@@ -4386,7 +4386,7 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
            
            
            
-           styleISize.IsCoordPercentCalcUnit() &&
+           aStyleSize.IsCoordPercentCalcUnit() &&
            aFrame->IsFrameOfType(nsIFrame::eReplaced)) {
     
     result = 0; 
@@ -4401,12 +4401,12 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
   }
 
   nscoord maxISize;
-  bool haveFixedMaxISize = GetAbsoluteCoord(styleMaxISize, maxISize);
+  bool haveFixedMaxISize = GetAbsoluteCoord(aStyleMaxSize, maxISize);
   nscoord minISize;
 
   
   bool haveFixedMinISize;
-  if (eStyleUnit_Auto == styleMinISize.GetUnit()) {
+  if (eStyleUnit_Auto == aStyleMinSize.GetUnit()) {
     
     
     
@@ -4414,11 +4414,11 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
     minISize = 0;
     haveFixedMinISize = true;
   } else {
-    haveFixedMinISize = GetAbsoluteCoord(styleMinISize, minISize);
+    haveFixedMinISize = GetAbsoluteCoord(aStyleMinSize, minISize);
   }
 
   if (haveFixedMaxISize ||
-      GetIntrinsicCoord(styleMaxISize, aRenderingContext, aFrame,
+      GetIntrinsicCoord(aStyleMaxSize, aRenderingContext, aFrame,
                         PROP_MAX_WIDTH, maxISize)) {
     maxISize = AddPercents(aType, maxISize + coordOutsideISize, pctOutsideISize);
     if (result > maxISize)
@@ -4426,7 +4426,7 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
   }
 
   if (haveFixedMinISize ||
-      GetIntrinsicCoord(styleMinISize, aRenderingContext, aFrame,
+      GetIntrinsicCoord(aStyleMinSize, aRenderingContext, aFrame,
                         PROP_MIN_WIDTH, minISize)) {
     minISize = AddPercents(aType, minISize + coordOutsideISize, pctOutsideISize);
     if (result < minISize)
@@ -4451,8 +4451,8 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
                                                                  : size.width);
 
     
-    themeISize += offsets.hMargin;
-    themeISize = AddPercents(aType, themeISize, offsets.hPctMargin);
+    themeISize += aOffsets.hMargin;
+    themeISize = AddPercents(aType, themeISize, aOffsets.hPctMargin);
 
     if (themeISize > result || !canOverride) {
       result = themeISize;
