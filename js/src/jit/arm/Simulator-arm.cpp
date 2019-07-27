@@ -1140,7 +1140,7 @@ Simulator::Simulator(SimulatorRuntime *srt)
     resume_pc_ = 0;
     break_pc_ = nullptr;
     break_instr_ = 0;
-    skipCalleeSavedRegsCheck = true;
+    skipCalleeSavedRegsCheck = false;
 
     
     
