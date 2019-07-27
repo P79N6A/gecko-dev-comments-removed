@@ -55,6 +55,10 @@ public:
   MediaTaskQueue* GetTaskQueue() { return mTaskQueue; }
   void NotifyTimeRangesChanged();
 
+  
+  
+  void GetMozDebugReaderData(nsAString& aString);
+
 private:
   ~MediaSourceDemuxer();
   friend class MediaSourceTrackDemuxer;

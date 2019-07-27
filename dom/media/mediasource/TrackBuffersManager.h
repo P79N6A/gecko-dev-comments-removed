@@ -77,6 +77,7 @@ public:
   MediaInfo GetMetadata();
   const TrackBuffer& GetTrackBuffer(TrackInfo::TrackType aTrack);
   const TimeIntervals& Buffered(TrackInfo::TrackType);
+  TimeIntervals SafeBuffered(TrackInfo::TrackType) const;
   bool IsEnded() const
   {
     return mEnded;
@@ -95,6 +96,8 @@ public:
 #endif
 
 private:
+  
+  friend class MediaSourceDemuxer;
   virtual ~TrackBuffersManager();
   
   nsRefPtr<AppendPromise> InitSegmentParserLoop();
