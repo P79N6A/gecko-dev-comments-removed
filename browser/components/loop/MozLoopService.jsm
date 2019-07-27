@@ -730,6 +730,11 @@ let MozLoopServiceInternal = {
       let string = enumerator.getNext().QueryInterface(Ci.nsIPropertyElement);
       gLocalizedStrings.set(string.key, string.value);
     }
+    
+    let brandBundle =
+      Services.strings.createBundle("chrome://branding/locale/brand.properties");
+    
+    gLocalizedStrings.set("brandShortname", brandBundle.GetStringFromName("brandShortName"));
 
     return gLocalizedStrings;
   },
