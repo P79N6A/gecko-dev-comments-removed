@@ -2843,6 +2843,8 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
     GetSrcMediaStream()->AddVideoOutput(container);
   }
 
+  
+  
   mSrcStream->ConstructMediaTracks(AudioTracks(), VideoTracks());
 
   ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
@@ -2859,6 +2861,8 @@ void HTMLMediaElement::EndSrcMediaStreamPlayback()
   if (stream) {
     stream->RemoveListener(mSrcStreamListener);
   }
+  mSrcStream->DisconnectTrackListListeners(AudioTracks(), VideoTracks());
+
   
   mSrcStreamListener->Forget();
   mSrcStreamListener = nullptr;
