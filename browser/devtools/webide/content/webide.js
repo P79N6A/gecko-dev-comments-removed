@@ -1212,7 +1212,13 @@ let Cmds = {
 
     for (let i = 0; i < tabs.length; i++) {
       let tab = tabs[i];
-      let url = new URL(tab.url);
+      let url;
+      try {
+        url = new URL(tab.url);
+      } catch (e) {
+        
+        continue;
+      }
       
       
       
