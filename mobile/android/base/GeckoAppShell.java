@@ -2651,4 +2651,23 @@ public class GeckoAppShell
         }
         return Environment.getExternalStoragePublicDirectory(systemType).getAbsolutePath();
     }
+
+    @WrapElementForJNI
+    static int getMaxTouchPoints() {
+        PackageManager pm = getContext().getPackageManager();
+        if (pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN_MULTITOUCH_JAZZHAND)) {
+            
+            return 5;
+        } else if (pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN_MULTITOUCH_DISTINCT)) {
+            
+            return 2;
+        } else if (pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN_MULTITOUCH)) {
+            
+            return 2;
+        } else if (pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
+            
+            return 1;
+        }
+        return 0;
+    }
 }
