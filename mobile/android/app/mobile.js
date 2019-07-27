@@ -475,6 +475,9 @@ pref("security.mixed_content.block_active_content", true);
 pref("security.cert_pinning.enforcement_level", 1);
 
 
+pref("security.OCSP.enabled", 2);
+
+
 pref("ui.-moz-dialog", "#efebe7");
 pref("ui.-moz-dialogtext", "#101010");
 pref("ui.-moz-field", "#fff");
