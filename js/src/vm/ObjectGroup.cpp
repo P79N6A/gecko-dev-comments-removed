@@ -221,7 +221,7 @@ ObjectGroup::useSingletonForAllocationSite(JSScript *script, jsbytecode *pc, JSP
     JSTryNote *tn = script->trynotes()->vector;
     JSTryNote *tnlimit = tn + script->trynotes()->length;
     for (; tn < tnlimit; tn++) {
-        if (tn->kind != JSTRY_ITER && tn->kind != JSTRY_LOOP)
+        if (tn->kind != JSTRY_FOR_IN && tn->kind != JSTRY_LOOP)
             continue;
 
         unsigned startOffset = script->mainOffset() + tn->start;

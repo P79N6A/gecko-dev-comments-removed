@@ -484,7 +484,7 @@ HasLiveIteratorAtStackDepth(JSScript *script, jsbytecode *pc, uint32_t stackDept
             continue;
 
         
-        if (tn->kind == JSTRY_ITER && stackDepth == tn->stackDepth)
+        if (tn->kind == JSTRY_FOR_IN && stackDepth == tn->stackDepth)
             return true;
 
         
