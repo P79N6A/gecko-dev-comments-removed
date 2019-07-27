@@ -109,27 +109,12 @@ void
 UseTileTexture(CompositableTextureHostRef& aTexture,
                CompositableTextureSourceRef& aTextureSource,
                const IntRect& aUpdateRect,
-               TextureHost* aNewTexture,
                Compositor* aCompositor)
 {
-  MOZ_ASSERT(aNewTexture);
-  if (!aNewTexture) {
+  MOZ_ASSERT(aTexture);
+  if (!aTexture) {
     return;
   }
-
-  if (aTexture) {
-    aTexture->SetCompositor(aCompositor);
-    aNewTexture->SetCompositor(aCompositor);
-
-    if (aTexture->GetFormat() != aNewTexture->GetFormat()) {
-      
-      aTextureSource = nullptr;
-      aTexture = nullptr;
-    }
-  }
-
-  aTexture = aNewTexture;
-
 
   if (aCompositor) {
     aTexture->SetCompositor(aCompositor);
@@ -192,6 +177,66 @@ TiledLayerBufferComposite::MarkTilesForUnlock()
   }
 }
 
+class TextureSourceRecycler
+{
+public:
+  explicit TextureSourceRecycler(nsTArray<TileHost>&& aTileSet)
+    : mTiles(Move(aTileSet))
+    , mFirstPossibility(0)
+  {}
+
+  
+  
+  void RecycleTextureSourceForTile(TileHost& aTile) {
+    for (size_t i = mFirstPossibility; i < mTiles.Length(); i++) {
+      
+      
+      if (!mTiles[i].mTextureSource) {
+        if (i == mFirstPossibility) {
+          mFirstPossibility++;
+        }
+        continue;
+      }
+
+      
+      
+      if (aTile.mTextureHost == mTiles[i].mTextureHost) {
+        aTile.mTextureSource = Move(mTiles[i].mTextureSource);
+        if (aTile.mTextureHostOnWhite) {
+          aTile.mTextureSourceOnWhite = Move(mTiles[i].mTextureSourceOnWhite);
+        }
+        break;
+      }
+    }
+  }
+
+  
+  
+  void RecycleTextureSource(TileHost& aTile) {
+    for (size_t i = mFirstPossibility; i < mTiles.Length(); i++) {
+      if (!mTiles[i].mTextureSource) {
+        if (i == mFirstPossibility) {
+          mFirstPossibility++;
+        }
+        continue;
+      }
+
+      if (mTiles[i].mTextureSource &&
+          mTiles[i].mTextureHost->GetFormat() == aTile.mTextureHost->GetFormat()) {
+        aTile.mTextureSource = Move(mTiles[i].mTextureSource);
+        if (aTile.mTextureHostOnWhite) {
+          aTile.mTextureSourceOnWhite = Move(mTiles[i].mTextureSourceOnWhite);
+        }
+        break;
+      }
+    }
+  }
+
+protected:
+  nsTArray<TileHost> mTiles;
+  size_t mFirstPossibility;
+};
+
 bool
 TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
                                     Compositor* aCompositor,
@@ -212,7 +257,6 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
     return false;
   }
 
-  TilesPlacement oldTiles = mTiles;
   TilesPlacement newTiles(aTiles.firstTileX(), aTiles.firstTileY(),
                           aTiles.retainedWidth(), aTiles.retainedHeight());
 
@@ -223,95 +267,87 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
   
   MarkTilesForUnlock();
 
-  nsTArray<TileHost> oldRetainedTiles;
-  mRetainedTiles.SwapElements(oldRetainedTiles);
+  TextureSourceRecycler oldRetainedTiles(Move(mRetainedTiles));
   mRetainedTiles.SetLength(tileDescriptors.Length());
 
   
   
   
+  
+  
+  
+  
   for (size_t i = 0; i < tileDescriptors.Length(); i++) {
-    const TileIntPoint tilePosition = newTiles.TilePosition(i);
-    
-    
-    if (!oldTiles.HasTile(tilePosition)) {
-      mRetainedTiles[i] = GetPlaceholderTile();
-    } else {
-      mRetainedTiles[i] = oldRetainedTiles[oldTiles.TileIndex(tilePosition)];
-      
-      
-      
-      MOZ_ASSERT(tilePosition.x == mRetainedTiles[i].x &&
-                 tilePosition.y == mRetainedTiles[i].y);
+    const TileDescriptor& tileDesc = tileDescriptors[i];
+
+    TileHost& tile = mRetainedTiles[i];
+
+    if (tileDesc.type() != TileDescriptor::TTexturedTileDescriptor) {
+      NS_WARN_IF_FALSE(tileDesc.type() == TileDescriptor::TPlaceholderTileDescriptor,
+                       "Unrecognised tile descriptor type");
+      continue;
     }
+
+    const TexturedTileDescriptor& texturedDesc = tileDesc.get_TexturedTileDescriptor();
+
+    const TileLock& ipcLock = texturedDesc.sharedLock();
+    if (!GetCopyOnWriteLock(ipcLock, tile, aAllocator)) {
+      return false;
+    }
+
+    tile.mTextureHost = TextureHost::AsTextureHost(texturedDesc.textureParent());
+
+    if (texturedDesc.textureOnWhite().type() == MaybeTexture::TPTextureParent) {
+      tile.mTextureHostOnWhite =
+        TextureHost::AsTextureHost(texturedDesc.textureOnWhite().get_PTextureParent());
+    }
+
+    tile.mTilePosition = newTiles.TilePosition(i);
+
+    
+    
+    oldRetainedTiles.RecycleTextureSourceForTile(tile);
   }
 
   
   
   
-  oldRetainedTiles.Clear();
+  
+  for (TileHost& tile : mRetainedTiles) {
+    if (!tile.mTextureHost || tile.mTextureSource) {
+      continue;
+    }
+    oldRetainedTiles.RecycleTextureSource(tile);
+  }
 
   
+  
   for (size_t i = 0; i < mRetainedTiles.Length(); i++) {
-    const TileDescriptor& tileDesc = tileDescriptors[i];
-
     TileHost& tile = mRetainedTiles[i];
-
-    switch (tileDesc.type()) {
-      case TileDescriptor::TTexturedTileDescriptor: {
-        const TexturedTileDescriptor& texturedDesc = tileDesc.get_TexturedTileDescriptor();
-
-        const TileLock& ipcLock = texturedDesc.sharedLock();
-        if (!GetCopyOnWriteLock(ipcLock, tile, aAllocator)) {
-          return false;
-        }
-
-        RefPtr<TextureHost> textureHost = TextureHost::AsTextureHost(
-          texturedDesc.textureParent()
-        );
-
-        RefPtr<TextureHost> textureOnWhite = nullptr;
-        if (texturedDesc.textureOnWhite().type() == MaybeTexture::TPTextureParent) {
-          textureOnWhite = TextureHost::AsTextureHost(
-            texturedDesc.textureOnWhite().get_PTextureParent()
-          );
-        }
-
-        UseTileTexture(tile.mTextureHost,
-                       tile.mTextureSource,
-                       texturedDesc.updateRect(),
-                       textureHost,
-                       aCompositor);
-
-        if (textureOnWhite) {
-          UseTileTexture(tile.mTextureHostOnWhite,
-                         tile.mTextureSourceOnWhite,
-                         texturedDesc.updateRect(),
-                         textureOnWhite,
-                         aCompositor);
-        } else {
-          
-          tile.mTextureSourceOnWhite = nullptr;
-          tile.mTextureHostOnWhite = nullptr;
-        }
-
-        if (textureHost->HasInternalBuffer()) {
-          
-          
-          tile.ReadUnlock();
-        }
-
-        break;
-      }
-      default:
-        NS_WARNING("Unrecognised tile descriptor type");
-      case TileDescriptor::TPlaceholderTileDescriptor: {
-        break;
-      }
+    if (!tile.mTextureHost) {
+      continue;
     }
-    TileIntPoint tilePosition = newTiles.TilePosition(i);
-    tile.x = tilePosition.x;
-    tile.y = tilePosition.y;
+
+    const TileDescriptor& tileDesc = tileDescriptors[i];
+    const TexturedTileDescriptor& texturedDesc = tileDesc.get_TexturedTileDescriptor();
+
+    UseTileTexture(tile.mTextureHost,
+                   tile.mTextureSource,
+                   texturedDesc.updateRect(),
+                   aCompositor);
+
+    if (tile.mTextureHostOnWhite) {
+      UseTileTexture(tile.mTextureHostOnWhite,
+                     tile.mTextureSourceOnWhite,
+                     texturedDesc.updateRect(),
+                     aCompositor);
+    }
+
+    if (tile.mTextureHost->HasInternalBuffer()) {
+      
+      
+      tile.ReadUnlock();
+    }
   }
 
   mTiles = newTiles;
@@ -545,7 +581,7 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
 
     TileIntPoint tilePosition = aLayerBuffer.GetPlacement().TilePosition(i);
     
-    MOZ_ASSERT(tilePosition.x == tile.x && tilePosition.y == tile.y);
+    MOZ_ASSERT(tilePosition.x == tile.mTilePosition.x && tilePosition.y == tile.mTilePosition.y);
 
     IntPoint tileOffset = aLayerBuffer.GetTileOffset(tilePosition);
     nsIntRegion tileDrawRegion = IntRect(tileOffset, aLayerBuffer.GetScaledTileSize());
