@@ -357,6 +357,8 @@ NativeObject::setLastPropertyMakeNative(ExclusiveContext* cx, Shape* shape)
     size_t oldSpan = shape->numFixedSlots();
     size_t newSpan = shape->slotSpan();
 
+    initializeSlotRange(0, oldSpan);
+
     
     
     if (oldSpan != newSpan && !updateSlotsForSpan(cx, oldSpan, newSpan))
