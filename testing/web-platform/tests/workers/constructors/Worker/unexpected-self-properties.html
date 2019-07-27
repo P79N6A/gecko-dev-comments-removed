@@ -1,0 +1,26 @@
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<title>unexpected members/interface objects/constructors</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../workers.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+t.step(function() {
+  var worker = new Worker('#');
+  listenForMessages(t, worker);
+});
+</script>
+
+
+

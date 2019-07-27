@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+ <head>
+  <title>window.onerror: parse errors</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+ </head>
+ <body>
+
+  <div id="log"></div>
+  <script>
+    setup({allow_uncaught_exception:true});
+    var error_count = 0;
+    window.onerror = function(msg, url, lineno) {
+      ++error_count;
+      test(function() {assert_equals(url, window.location.href)},
+           "correct url passed to window.onerror");
+      test(function() {assert_equals(lineno, 34)},
+           "correct line number passed to window.onerror");
+    };
+  </script>
+  <script>This script does not parse correctly.</script>
+  <script>
+  test(function() {assert_equals(error_count, 1)},
+       "correct number of calls to window.onerror");
+  </script>
+ </body>
+</html>

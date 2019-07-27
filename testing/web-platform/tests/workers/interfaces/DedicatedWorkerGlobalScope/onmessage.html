@@ -1,0 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<title>onmessage</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+(async_test()).step(function() {
+  var worker = new Worker('#');
+  worker.postMessage(1);
+  worker.onmessage = this.step_func(function(e) {
+    assert_array_equals(e.data, ['null', 'null', 'function', 1]);
+    this.done();
+  });
+});
+</script>
+
+
+

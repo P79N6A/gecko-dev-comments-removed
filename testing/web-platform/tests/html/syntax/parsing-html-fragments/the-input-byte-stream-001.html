@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+  <title>HTTP charset</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/html5/syntax.html#the-input-byte-stream'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name='flags' content='http'>
+<style type='text/css'>
+.test div { width: 50px; }</style>
+<link rel="stylesheet" type="text/css" href="support/encodingtests-15.css">
+</head>
+<body>
+
+
+
+<div class='test'><div id='box' class='ýäè'>&#xA0;</div></div>
+
+
+
+
+
+
+
+
+
+<script>
+test(function() {
+assert_equals(document.getElementById('box').offsetWidth, 100);
+}, "The character encoding of a page can be set using the HTTP header charset declaration.");
+</script>
+
+<div id='log'></div>
+
+</body>
+</html>

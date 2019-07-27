@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<title>Service Workers: navigator.serviceWorker</title>
+    <head>
+        <link rel="help" href="https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script src=/resources/WebIDLParser.js></script>
+        <script src=/resources/idlharness.js></script>
+
+    </head>
+    <body>
+
+
+
+
+
+
+
+
+
+<script type=text/plain id="idl_0">
+partial interface Navigator {
+  readonly attribute ServiceWorkerContainer serviceWorker;
+};
+
+interface ServiceWorkerContainer : EventTarget {
+  [Unforgeable] readonly attribute ServiceWorker? installing;
+  [Unforgeable] readonly attribute ServiceWorker? waiting;
+  [Unforgeable] readonly attribute ServiceWorker? active;
+  [Unforgeable] readonly attribute ServiceWorker? controller;
+  readonly attribute Promise<ServiceWorker> ready;
+
+  Promise<sequence<ServiceWorker>?> getAll();
+  Promise<ServiceWorker> register(DOMString url, optional RegistrationOptionList options);
+  Promise<any> unregister(DOMString? scope);
+
+  // events
+  attribute EventHandler onupdatefound;
+  attribute EventHandler oncontrollerchange;
+  attribute EventHandler onreloadpage;
+  attribute EventHandler onerror;
+};
+
+dictionary RegistrationOptionList {
+  DOMString scope = "/*";
+};
+
+interface ReloadPageEvent : Event {
+  void waitUntil(Promise<any> f);
+};
+</script>
+
+
+
+
+
+
+
+
+    <script type=text/plain id="untested_idls">
+        interface ServiceWorker {};
+        interface EventHandler {};
+        interface EventTarget {};
+        interface Event {};
+    </pre>
+
+    <script>
+        var idl_array = new IdlArray();
+        idl_array.add_untested_idls(document.getElementById("untested_idls").textContent);
+        idl_array.add_idls(document.getElementById("idl_0").textContent);
+        idl_array.add_objects({
+            Navigator: ["throw new Error ('No object defined for the Navigator interface')"],
+            ServiceWorkerContainer: ["throw new Error ('No object defined for the ServiceWorkerContainer interface')"],
+            RegistrationOptionList: ["throw new Error ('No object defined for the RegistrationOptionList dictionary')"],
+            ReloadPageEvent: ["throw new Error ('No object defined for the ReloadPageEvent interface')"]
+        });
+        idl_array.test();
+    </script>
+
+    </body>
+</html>
+
