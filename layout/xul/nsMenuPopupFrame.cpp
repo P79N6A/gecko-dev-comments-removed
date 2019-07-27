@@ -59,6 +59,10 @@ using namespace mozilla;
 using mozilla::dom::PopupBoxObject;
 
 int8_t nsMenuPopupFrame::sDefaultLevelIsTop = -1;
+uint32_t nsMenuPopupFrame::sTimeoutOfIncrementalSearch = 1000;
+
+const char* kPrefIncrementalSearchTimeout =
+  "ui.menu.incremental_search.timeout";
 
 
 
@@ -109,8 +113,9 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsStyleContext* aContext)
     return;
   sDefaultLevelIsTop =
     Preferences::GetBool("ui.panel.default_level_parent", false);
+  Preferences::AddUintVarCache(&sTimeoutOfIncrementalSearch,
+                               kPrefIncrementalSearchTimeout, 1000);
 } 
-
 
 void
 nsMenuPopupFrame::Init(nsIContent*       aContent,
@@ -1727,10 +1732,14 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   }
   else {
     char16_t uniChar = ToLowerCase(static_cast<char16_t>(charCode));
-    if (isMenu || 
-        keyTime - lastKeyTime > INC_TYP_INTERVAL) 
+    if (isMenu) {
+      
       mIncrementalString = uniChar;
-    else {
+    } else if (sTimeoutOfIncrementalSearch &&
+               keyTime - lastKeyTime > sTimeoutOfIncrementalSearch) {
+      
+      mIncrementalString = uniChar;
+    } else {
       mIncrementalString.Append(uniChar);
     }
   }

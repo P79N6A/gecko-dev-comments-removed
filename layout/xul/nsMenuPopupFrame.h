@@ -116,8 +116,6 @@ enum FlipType {
 #define POPUPPOSITION_HFLIP(v) (v ^ 1)
 #define POPUPPOSITION_VFLIP(v) (v ^ 2)
 
-#define INC_TYP_INTERVAL  1000  // 1s. If the interval between two keypresses is shorter than this, 
-                                
 
 
 
@@ -545,6 +543,9 @@ protected:
   bool mVFlip;
 
   static int8_t sDefaultLevelIsTop;
+
+  
+  static uint32_t sTimeoutOfIncrementalSearch;
 }; 
 
 #endif
