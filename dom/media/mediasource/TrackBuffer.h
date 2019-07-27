@@ -122,6 +122,7 @@ public:
 
 private:
   friend class DecodersToInitialize;
+  friend class MetadataRecipient;
   ~TrackBuffer();
 
   
@@ -166,6 +167,13 @@ private:
 
   
   void RemoveEmptyDecoders(nsTArray<SourceBufferDecoder*>& aDecoders);
+
+  void OnMetadataRead(MetadataHolder* aMetadata,
+                      SourceBufferDecoder* aDecoder,
+                      bool aWasEnded);
+
+  void OnMetadataNotRead(ReadMetadataFailureReason aReason,
+                         SourceBufferDecoder* aDecoder);
 
   nsAutoPtr<ContainerParser> mParser;
 
@@ -217,7 +225,8 @@ private:
   bool mShutdown;
 
   MediaPromiseHolder<TrackBufferAppendPromise> mInitializationPromise;
-
+  
+  MediaPromiseConsumerHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
 };
 
 } 
