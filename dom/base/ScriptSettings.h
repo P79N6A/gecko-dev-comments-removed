@@ -216,6 +216,10 @@ public:
 
   
   
+  bool Init(JSObject* aObject);
+
+  
+  
   
   
   bool Init(nsIGlobalObject* aGlobalObject, JSContext* aCx);
