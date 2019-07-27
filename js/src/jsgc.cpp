@@ -6347,6 +6347,9 @@ GCRuntime::onOutOfMallocMemory()
     
     allocTask.cancel(GCParallelTask::CancelAndWait);
 
+    
+    nursery.waitBackgroundFreeEnd();
+
     AutoLockGC lock(rt);
     onOutOfMallocMemory(lock);
 }
