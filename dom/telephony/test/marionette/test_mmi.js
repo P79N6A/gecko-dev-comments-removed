@@ -7,24 +7,22 @@ MARIONETTE_HEAD_JS = "head.js";
 function testGettingIMEI() {
   log("Test *#06# ...");
 
-  let MMI_CODE = "*#06#";
-  return sendMMI(MMI_CODE)
-    .then(function resolve(aResult) {
-      ok(true, MMI_CODE + " success");
-      is(aResult.serviceCode, "scImei", "Service code IMEI");
-      
-      
-      
-      is(aResult.statusMessage, "000000000000000", "Emulator IMEI");
-      is(aResult.additionalInformation, undefined, "No additional information");
-    }, function reject() {
-      ok(false, MMI_CODE + " should not fail");
-    });
+  return gSendMMI("*#06#").then(aResult => {
+    ok(aResult.success, "success");
+    is(aResult.serviceCode, "scImei", "Service code IMEI");
+    
+    
+    
+    is(aResult.statusMessage, "000000000000000", "Emulator IMEI");
+    is(aResult.additionalInformation, undefined, "No additional information");
+  });
 }
 
 
 startTest(function() {
-  Promise.resolve()
-    .then(() => testGettingIMEI())
+  testGettingIMEI()
+    .then(null, cause => {
+      ok(false, 'promise rejects during test: ' + cause);
+    })
     .then(finish);
 });
