@@ -208,7 +208,6 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   
   aRetValue.setUndefined();
 
-  nsAutoMicroTask mt;
   nsresult rv = NS_OK;
 
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();

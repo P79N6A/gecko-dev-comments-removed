@@ -3574,8 +3574,6 @@ XULDocument::ExecuteScript(nsXULPrototypeScript *aScript)
     NS_ENSURE_TRUE(scriptObject, NS_ERROR_UNEXPECTED);
 
     
-    nsAutoMicroTask mt;
-
     
     
     AutoEntryScript aes(mScriptGlobalObject);
