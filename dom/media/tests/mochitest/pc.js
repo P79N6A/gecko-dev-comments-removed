@@ -1204,18 +1204,21 @@ PeerConnectionWrapper.prototype = {
       return;
     }
     this.holdIceCandidates.then(() => {
-      info(this + ": adding ICE candidate " + JSON.stringify(candidate));
-      return this._pc.addIceCandidate(candidate);
-    })
-    .then(() => ok(true, this + " successfully added an ICE candidate"))
-    .catch(e =>
-      
-      
-      
-      
-      
-      ok(false, this + " adding ICE candidate failed with: " + e.message)
-    );
+      this.addIceCandidate(candidate);
+    });
+  },
+
+  
+
+
+
+
+
+  addIceCandidate : function(candidate) {
+    info(this + ": adding ICE candidate " + JSON.stringify(candidate));
+    return this._pc.addIceCandidate(candidate).then(() => {
+      info(this + ": Successfully added an ICE candidate");
+    });
   },
 
   
