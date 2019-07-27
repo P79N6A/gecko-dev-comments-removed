@@ -1882,6 +1882,15 @@ nsCSSFrameConstructor::GetParentType(nsIAtom* aFrameType)
   if (aFrameType == nsGkAtoms::tableColGroupFrame) {
     return eTypeColGroup;
   }
+  if (aFrameType == nsGkAtoms::rubyBaseContainerFrame) {
+    return eTypeRubyBaseContainer;
+  }
+  if (aFrameType == nsGkAtoms::rubyTextContainerFrame) {
+    return eTypeRubyTextContainer;
+  } 
+  if (aFrameType == nsGkAtoms::rubyFrame) {
+    return eTypeRuby;
+  }
 
   return eTypeBlock;
 }
@@ -4538,13 +4547,17 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
       FCDATA_DECL(FCDATA_IS_LINE_PARTICIPANT,
                   NS_NewRubyFrame) },
     { NS_STYLE_DISPLAY_RUBY_BASE,
-      SIMPLE_FCDATA(NS_NewRubyBaseFrame) },
+      FCDATA_DECL(FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRubyBaseContainer),
+                  NS_NewRubyBaseFrame) },
     { NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER,
-      SIMPLE_FCDATA(NS_NewRubyBaseContainerFrame) },
+      FCDATA_DECL(FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRuby),
+                  NS_NewRubyBaseContainerFrame) },
     { NS_STYLE_DISPLAY_RUBY_TEXT,
-      SIMPLE_FCDATA(NS_NewRubyTextFrame) },
+      FCDATA_DECL(FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRubyTextContainer),
+                  NS_NewRubyTextFrame) },
     { NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER,
-      SIMPLE_FCDATA(NS_NewRubyTextContainerFrame)},
+      FCDATA_DECL(FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRuby),
+                  NS_NewRubyTextContainerFrame) },
     { NS_STYLE_DISPLAY_TABLE,
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructTable) },
     { NS_STYLE_DISPLAY_INLINE_TABLE,
@@ -9005,6 +9018,41 @@ nsCSSFrameConstructor::sPseudoParentData[eParentTypeCount] = {
     FULL_CTOR_FCDATA(FCDATA_SKIP_FRAMESET | FCDATA_USE_CHILD_ITEMS,
                      &nsCSSFrameConstructor::ConstructTable),
     &nsCSSAnonBoxes::table
+  },
+  { 
+    FCDATA_DECL(FCDATA_IS_LINE_PARTICIPANT |
+                FCDATA_USE_CHILD_ITEMS |
+                FCDATA_SKIP_FRAMESET,
+                NS_NewRubyFrame),
+    &nsCSSAnonBoxes::ruby
+  },
+  { 
+    FCDATA_DECL(FCDATA_USE_CHILD_ITEMS | 
+                FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRubyBaseContainer) |
+                FCDATA_SKIP_FRAMESET,
+                NS_NewRubyBaseFrame),
+    &nsCSSAnonBoxes::rubyBase
+  },
+  { 
+    FCDATA_DECL(FCDATA_USE_CHILD_ITEMS | 
+                FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRuby) |
+                FCDATA_SKIP_FRAMESET,
+                NS_NewRubyBaseContainerFrame),
+    &nsCSSAnonBoxes::rubyBaseContainer
+  },
+  { 
+    FCDATA_DECL(FCDATA_USE_CHILD_ITEMS |
+                FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRubyTextContainer) |
+                FCDATA_SKIP_FRAMESET,
+                NS_NewRubyTextFrame),
+    &nsCSSAnonBoxes::rubyText
+  },
+  { 
+    FCDATA_DECL(FCDATA_USE_CHILD_ITEMS |
+                FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeRuby) |
+                FCDATA_SKIP_FRAMESET,
+                NS_NewRubyTextContainerFrame),
+    &nsCSSAnonBoxes::rubyTextContainer
   }
 };
 
@@ -9137,9 +9185,9 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
 
 
 void
-nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
-                                                FrameConstructionItemList& aItems,
-                                                nsIFrame* aParentFrame)
+nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
+                                           FrameConstructionItemList& aItems,
+                                           nsIFrame* aParentFrame)
 {
   ParentType ourParentType = GetParentType(aParentFrame);
   if (aItems.AllWantParentType(ourParentType)) {
@@ -9200,6 +9248,7 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
           if ((trailingSpaces && ourParentType != eTypeBlock) ||
               (!trailingSpaces && spaceEndIter.item().DesiredParentType() !=
                eTypeBlock)) {
+            
             bool updateStart = (iter == endIter);
             endIter.DeleteItemsTo(spaceEndIter);
             NS_ASSERTION(trailingSpaces == endIter.IsDone(), "These should match");
@@ -9240,6 +9289,13 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
         }
 
         
+        if (ourParentType == eTypeRuby &&
+            (prevParentType == eTypeRubyTextContainer) !=
+            (groupingParentType == eTypeRubyTextContainer)) {
+          break;
+        }
+
+        
         
         
         
@@ -9258,9 +9314,6 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
     
     ParentType wrapperType;
     switch (ourParentType) {
-      case eTypeBlock:
-        wrapperType = eTypeTable;
-        break;
       case eTypeRow:
         
         
@@ -9274,8 +9327,30 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
         wrapperType = groupingParentType == eTypeColGroup ?
           eTypeColGroup : eTypeRowGroup;
         break;
-      default:
+      case eTypeColGroup:
         MOZ_CRASH("Colgroups should be suppresing non-col child items");
+      case eTypeRuby:
+        if (groupingParentType == eTypeRubyTextContainer) {
+          wrapperType = eTypeRubyTextContainer;
+        } else {
+          wrapperType = eTypeRubyBaseContainer;
+        } 
+        break;
+      case eTypeRubyBaseContainer:
+        wrapperType = eTypeRubyBase;
+        break;
+      case eTypeRubyTextContainer:
+        wrapperType = eTypeRubyText;
+        break;
+      default: 
+        NS_ASSERTION(ourParentType == eTypeBlock, "Unrecognized parent type");
+        if (IsRubyParentType(groupingParentType)) {
+          wrapperType = eTypeRuby;
+        } else {
+          NS_ASSERTION(IsTableParentType(groupingParentType),
+                       "groupingParentType should be either Ruby or table");
+          wrapperType = eTypeTable;
+        }
     }
 
     const PseudoParentData& pseudoData = sPseudoParentData[wrapperType];
@@ -9284,7 +9359,10 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
     nsIContent* parentContent = aParentFrame->GetContent();
 
     if (pseudoType == nsCSSAnonBoxes::table &&
-        parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE) {
+        (parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE ||
+         IsRubyParentType(ourParentType) ||
+         parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_RUBY_BASE ||
+         parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_RUBY_TEXT)) {
       pseudoType = nsCSSAnonBoxes::inlineTable;
     }
 
@@ -9340,7 +9418,7 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
                                                    nsContainerFrame* aParentFrame,
                                                    nsFrameItems& aFrameItems)
 {
-  CreateNeededTablePseudos(aState, aItems, aParentFrame);
+  CreateNeededPseudos(aState, aItems, aParentFrame);
   CreateNeededAnonFlexOrGridItems(aState, aItems, aParentFrame);
 
   aItems.SetTriedConstructingFrames();

@@ -416,17 +416,23 @@ private:
 
 private:
   
+
   enum ParentType {
     eTypeBlock = 0, 
     eTypeRow,
     eTypeRowGroup,
     eTypeColGroup,
     eTypeTable,
+    eTypeRuby,
+    eTypeRubyBase,
+    eTypeRubyBaseContainer,
+    eTypeRubyText,
+    eTypeRubyTextContainer,
     eParentTypeCount
   };
 
   
-#define FCDATA_PARENT_TYPE_OFFSET 29
+#define FCDATA_PARENT_TYPE_OFFSET 28
   
 
 #define FCDATA_DESIRED_PARENT_TYPE(_bits)           \
@@ -442,6 +448,21 @@ private:
 
   
   static ParentType GetParentType(nsIAtom* aFrameType);
+
+  static bool IsRubyParentType(ParentType aParentType) {
+    return (aParentType == eTypeRuby ||
+            aParentType == eTypeRubyBase ||
+            aParentType == eTypeRubyBaseContainer ||
+            aParentType == eTypeRubyText ||
+            aParentType == eTypeRubyTextContainer);
+  }
+
+  static bool IsTableParentType(ParentType aParentType) {
+    return (aParentType == eTypeTable ||
+            aParentType == eTypeRow ||
+            aParentType == eTypeRowGroup ||
+            aParentType == eTypeColGroup);
+  }
 
   
 
@@ -1041,9 +1062,9 @@ private:
 
 
 
-  inline void CreateNeededTablePseudos(nsFrameConstructorState& aState,
-                                       FrameConstructionItemList& aItems,
-                                       nsIFrame* aParentFrame);
+  inline void CreateNeededPseudos(nsFrameConstructorState& aState,
+                                  FrameConstructionItemList& aItems,
+                                  nsIFrame* aParentFrame);
 
   
 
