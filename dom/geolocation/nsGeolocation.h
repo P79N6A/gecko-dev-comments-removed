@@ -155,6 +155,10 @@ public:
   void RemoveRequest(nsGeolocationRequest* request);
 
   
+  
+  bool ClearPendingRequest(nsGeolocationRequest* aRequest);
+
+  
   void Shutdown();
 
   
@@ -186,6 +190,9 @@ private:
   nsresult WatchPositionReady(nsGeolocationRequest* aRequest);
 
   
+  bool IsAlreadyCleared(nsGeolocationRequest* aRequest);
+
+  
   
   
   
@@ -208,6 +215,9 @@ private:
 
   
   nsTArray<nsRefPtr<nsGeolocationRequest> > mPendingRequests;
+
+  
+  nsTArray<int32_t> mClearedWatchIDs;
 };
 
 class PositionError MOZ_FINAL : public nsIDOMGeoPositionError,
