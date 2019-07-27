@@ -99,9 +99,9 @@ GetMediaManagerLog()
 #define LOG(msg)
 #endif
 
-using dom::MediaStreamConstraints;         
-using dom::MediaTrackConstraintSet;        
-using dom::MediaTrackConstraints;          
+using dom::MediaStreamConstraints;
+using dom::MediaTrackConstraintSet;
+using dom::MediaTrackConstraints;
 using dom::MediaStreamError;
 using dom::GetUserMediaRequest;
 using dom::Sequence;
@@ -431,46 +431,55 @@ VideoDevice::VideoDevice(MediaEngineVideoSource* aSource)
 
 
 
-bool
-VideoDevice::SatisfiesConstraintSets(
+uint32_t
+VideoDevice::GetBestFitnessDistance(
     const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
 {
   
   for (size_t i = 0; i < aConstraintSets.Length(); i++) {
     auto& c = *aConstraintSets[i];
-    if (c.mFacingMode.WasPassed()) {
-      auto& value = c.mFacingMode.Value();
-      nsString s;
-      GetFacingMode(s);
-      if (value.IsString()) {
-        if (s != value.GetAsString()) {
-          return false;
+    if (!c.mFacingMode.IsConstrainDOMStringParameters() ||
+        c.mFacingMode.GetAsConstrainDOMStringParameters().mExact.WasPassed()) {
+      nsString deviceFacingMode;
+      GetFacingMode(deviceFacingMode);
+      if (c.mFacingMode.IsString()) {
+        if (c.mFacingMode.GetAsString() != deviceFacingMode) {
+          return UINT32_MAX;
+        }
+      } else if (c.mFacingMode.IsStringSequence()) {
+        if (!c.mFacingMode.GetAsStringSequence().Contains(deviceFacingMode)) {
+          return UINT32_MAX;
         }
       } else {
-        if (!value.GetAsStringSequence().Contains(s)) {
-          return false;
+        auto& exact = c.mFacingMode.GetAsConstrainDOMStringParameters().mExact.Value();
+        if (exact.IsString()) {
+          if (exact.GetAsString() != deviceFacingMode) {
+            return UINT32_MAX;
+          }
+        } else if (!exact.GetAsStringSequence().Contains(deviceFacingMode)) {
+          return UINT32_MAX;
         }
       }
     }
     nsString s;
     GetMediaSource(s);
     if (s != c.mMediaSource) {
-      return false;
+      return UINT32_MAX;
     }
   }
   
-  return GetSource()->SatisfiesConstraintSets(aConstraintSets);
+  return GetSource()->GetBestFitnessDistance(aConstraintSets);
 }
 
 AudioDevice::AudioDevice(MediaEngineAudioSource* aSource)
   : MediaDevice(aSource) {}
 
-bool
-AudioDevice::SatisfiesConstraintSets(
+uint32_t
+AudioDevice::GetBestFitnessDistance(
     const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
 {
   
-  return true;
+  return 0;
 }
 
 NS_IMETHODIMP
@@ -961,7 +970,10 @@ static void
   {
     nsTArray<nsRefPtr<typename DeviceType::Source> > sources;
 
-    (engine->*aEnumerate)(aConstraints.mMediaSourceEnumValue, &sources);
+    MediaSourceEnum src = StringToEnum(dom::MediaSourceEnumValues::strings,
+                                       aConstraints.mMediaSource,
+                                       dom::MediaSourceEnum::Other);
+    (engine->*aEnumerate)(src, &sources);
     
 
 
@@ -984,15 +996,6 @@ static void
   
 
   auto& c = aConstraints;
-  if (c.mUnsupportedRequirement) {
-    
-    
-    
-    
-    
-    
-    return;
-  }
 
   
 
@@ -1000,11 +1003,10 @@ static void
   
   
   nsTArray<const MediaTrackConstraintSet*> aggregateConstraints;
-  aggregateConstraints.AppendElement(&c.mRequired);
+  aggregateConstraints.AppendElement(&c);
 
   for (uint32_t i = 0; i < candidateSet.Length();) {
-    
-    if (!candidateSet[i]->SatisfiesConstraintSets(aggregateConstraints)) {
+    if (candidateSet[i]->GetBestFitnessDistance(aggregateConstraints) == UINT32_MAX) {
       candidateSet.RemoveElementAt(i);
     } else {
       ++i;
@@ -1012,32 +1014,6 @@ static void
   }
 
   
-  
-  
-  
-  
-  if (c.mNonrequired.Length()) {
-    if (!c.mAdvanced.WasPassed()) {
-      c.mAdvanced.Construct();
-    }
-    c.mAdvanced.Value().MoveElementsFrom(c.mNonrequired);
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  SourceSet tailSet;
 
   if (c.mAdvanced.WasPassed()) {
     auto &array = c.mAdvanced.Value();
@@ -1046,24 +1022,20 @@ static void
       aggregateConstraints.AppendElement(&array[i]);
       SourceSet rejects;
       for (uint32_t j = 0; j < candidateSet.Length();) {
-        if (!candidateSet[j]->SatisfiesConstraintSets(aggregateConstraints)) {
+        if (candidateSet[j]->GetBestFitnessDistance(aggregateConstraints) == UINT32_MAX) {
           rejects.AppendElement(candidateSet[j]);
           candidateSet.RemoveElementAt(j);
         } else {
           ++j;
         }
       }
-      (candidateSet.Length()? tailSet : candidateSet).MoveElementsFrom(rejects);
       if (!candidateSet.Length()) {
+        candidateSet.MoveElementsFrom(rejects);
         aggregateConstraints.RemoveElementAt(aggregateConstraints.Length() - 1);
       }
     }
   }
-
-  
-
   aResult.MoveElementsFrom(candidateSet);
-  aResult.MoveElementsFrom(tailSet);
 }
 
 
@@ -1228,10 +1200,9 @@ public:
     MOZ_ASSERT(mOnSuccess);
     MOZ_ASSERT(mOnFailure);
     if (IsOn(mConstraints.mVideo)) {
-      VideoTrackConstraintsN constraints(GetInvariant(mConstraints.mVideo));
       nsTArray<nsRefPtr<VideoDevice>> sources;
-      GetSources(backend, constraints, &MediaEngine::EnumerateVideoDevices, sources);
-
+      GetSources(backend, GetInvariant(mConstraints.mVideo),
+                 &MediaEngine::EnumerateVideoDevices, sources);
       if (!sources.Length()) {
         Fail(NS_LITERAL_STRING("NotFoundError"));
         return NS_ERROR_FAILURE;
@@ -1241,10 +1212,9 @@ public:
       LOG(("Selected video device"));
     }
     if (IsOn(mConstraints.mAudio)) {
-      AudioTrackConstraintsN constraints(GetInvariant(mConstraints.mAudio));
       nsTArray<nsRefPtr<AudioDevice>> sources;
-      GetSources(backend, constraints, &MediaEngine::EnumerateAudioDevices, sources);
-
+      GetSources(backend, GetInvariant(mConstraints.mAudio),
+                 &MediaEngine::EnumerateAudioDevices, sources);
       if (!sources.Length()) {
         Fail(NS_LITERAL_STRING("NotFoundError"));
         return NS_ERROR_FAILURE;
@@ -1382,19 +1352,17 @@ public:
 
     ScopedDeletePtr<SourceSet> final(new SourceSet);
     if (IsOn(mConstraints.mVideo)) {
-      VideoTrackConstraintsN constraints(GetInvariant(mConstraints.mVideo));
       nsTArray<nsRefPtr<VideoDevice>> s;
-      GetSources(backend, constraints, &MediaEngine::EnumerateVideoDevices, s,
-                 mLoopbackVideoDevice.get());
+      GetSources(backend, GetInvariant(mConstraints.mVideo),
+                 &MediaEngine::EnumerateVideoDevices, s, mLoopbackVideoDevice.get());
       for (uint32_t i = 0; i < s.Length(); i++) {
         final->AppendElement(s[i]);
       }
     }
     if (IsOn(mConstraints.mAudio)) {
-      AudioTrackConstraintsN constraints(GetInvariant(mConstraints.mAudio));
       nsTArray<nsRefPtr<AudioDevice>> s;
-      GetSources(backend, constraints, &MediaEngine::EnumerateAudioDevices, s,
-                 mLoopbackAudioDevice.get());
+      GetSources(backend, GetInvariant(mConstraints.mAudio),
+                 &MediaEngine::EnumerateAudioDevices, s, mLoopbackAudioDevice.get());
       for (uint32_t i = 0; i < s.Length(); i++) {
         final->AppendElement(s[i]);
       }
@@ -1629,23 +1597,6 @@ MediaManager::GetUserMedia(
     c.mVideo.SetAsBoolean() = false;
   }
 
-  if (c.mVideo.IsMediaTrackConstraints() && !privileged) {
-    auto& tc = c.mVideo.GetAsMediaTrackConstraints();
-    
-    if (tc.mBrowserWindow.WasPassed()) {
-      tc.mBrowserWindow.Construct(-1);
-    }
-
-    if (tc.mAdvanced.WasPassed()) {
-      size_t length = tc.mAdvanced.Value().Length();
-      for (size_t i = 0; i < length; i++) {
-        if (tc.mAdvanced.Value()[i].mBrowserWindow.WasPassed()) {
-          tc.mAdvanced.Value()[i].mBrowserWindow.Construct(-1);
-        }
-      }
-    }
-  }
-
   
   nsAutoPtr<GetUserMediaTask> task;
   if (c.mFake) {
@@ -1671,12 +1622,37 @@ MediaManager::GetUserMedia(
     privileged = true;
   }
 
-
   if (c.mVideo.IsMediaTrackConstraints()) {
-    auto& tc = c.mVideo.GetAsMediaTrackConstraints();
+    auto& vc = c.mVideo.GetAsMediaTrackConstraints();
     MediaSourceEnum src = StringToEnum(dom::MediaSourceEnumValues::strings,
-                                       tc.mMediaSource,
+                                       vc.mMediaSource,
                                        dom::MediaSourceEnum::Other);
+    if (vc.mAdvanced.WasPassed()) {
+      if (src != dom::MediaSourceEnum::Camera) {
+        
+        const char *camera = EnumToASCII(dom::MediaSourceEnumValues::strings,
+                                         dom::MediaSourceEnum::Camera);
+        for (MediaTrackConstraintSet& cs : vc.mAdvanced.Value()) {
+          if (cs.mMediaSource.EqualsASCII(camera)) {
+            cs.mMediaSource = vc.mMediaSource;
+          }
+        }
+      }
+    }
+    if (!privileged) {
+      
+      if (vc.mBrowserWindow.WasPassed()) {
+        vc.mBrowserWindow.Construct(-1);
+      }
+      if (vc.mAdvanced.WasPassed()) {
+        for (MediaTrackConstraintSet& cs : vc.mAdvanced.Value()) {
+          if (cs.mBrowserWindow.WasPassed()) {
+            cs.mBrowserWindow.Construct(-1);
+          }
+        }
+      }
+    }
+
     switch (src) {
     case dom::MediaSourceEnum::Camera:
       break;

@@ -4,10 +4,14 @@
 
 #include "MediaEngineCameraVideoSource.h"
 
+#include <limits>
+
 namespace mozilla {
 
 using namespace mozilla::gfx;
+using dom::OwningLongOrConstrainLongRange;
 using dom::ConstrainLongRange;
+using dom::OwningDoubleOrConstrainDoubleRange;
 using dom::ConstrainDoubleRange;
 using dom::MediaTrackConstraintSet;
 
@@ -19,34 +23,6 @@ extern PRLogModuleInfo* GetMediaManagerLog();
 #define LOG(msg)
 #define LOGFRAME(msg)
 #endif
-
- bool
-MediaEngineCameraVideoSource::IsWithin(int32_t n, const ConstrainLongRange& aRange) {
-  return aRange.mMin <= n && n <= aRange.mMax;
-}
-
- bool
-MediaEngineCameraVideoSource::IsWithin(double n, const ConstrainDoubleRange& aRange) {
-  return aRange.mMin <= n && n <= aRange.mMax;
-}
-
- int32_t
-MediaEngineCameraVideoSource::Clamp(int32_t n, const ConstrainLongRange& aRange) {
-  return std::max(aRange.mMin, std::min(n, aRange.mMax));
-}
-
- bool
-MediaEngineCameraVideoSource::AreIntersecting(const ConstrainLongRange& aA, const ConstrainLongRange& aB) {
-  return aA.mMax >= aB.mMin && aA.mMin <= aB.mMax;
-}
-
- bool
-MediaEngineCameraVideoSource::Intersect(ConstrainLongRange& aA, const ConstrainLongRange& aB) {
-  MOZ_ASSERT(AreIntersecting(aA, aB));
-  aA.mMin = std::max(aA.mMin, aB.mMin);
-  aA.mMax = std::min(aA.mMax, aB.mMax);
-  return true;
-}
 
 
 bool MediaEngineCameraVideoSource::AppendToTrack(SourceMediaStream* aSource,
@@ -88,24 +64,93 @@ MediaEngineCameraVideoSource::GetCapability(size_t aIndex,
 
 
 
-bool
-MediaEngineCameraVideoSource::SatisfiesConstraintSet(const MediaTrackConstraintSet &aConstraints,
-                                                     const webrtc::CaptureCapability& aCandidate) {
-  if (!IsWithin(aCandidate.width, aConstraints.mWidth) ||
-      !IsWithin(aCandidate.height, aConstraints.mHeight)) {
-    return false;
+
+template<class ValueType, class ConstrainRange>
+ uint32_t
+MediaEngineCameraVideoSource::FitnessDistance(ValueType n,
+                                              const ConstrainRange& aRange)
+{
+  if ((aRange.mExact.WasPassed() && aRange.mExact.Value() != n) ||
+      (aRange.mMin.WasPassed() && aRange.mMin.Value() > n) ||
+      (aRange.mMax.WasPassed() && aRange.mMax.Value() < n)) {
+    return UINT32_MAX;
   }
-  if (!IsWithin(aCandidate.maxFPS, aConstraints.mFrameRate)) {
-    return false;
+  if (!aRange.mIdeal.WasPassed() || n == aRange.mIdeal.Value()) {
+    return 0;
   }
-  return true;
+  return uint32_t(ValueType((std::abs(n - aRange.mIdeal.Value()) * 1000) /
+                            std::max(std::abs(n), std::abs(aRange.mIdeal.Value()))));
+}
+
+
+
+template<>
+ uint32_t
+MediaEngineCameraVideoSource::FitnessDistance(int32_t n,
+    const OwningLongOrConstrainLongRange& aConstraint)
+{
+  if (aConstraint.IsLong()) {
+    ConstrainLongRange range;
+    range.mIdeal.Construct(aConstraint.GetAsLong());
+    return FitnessDistance(n, range);
+  } else {
+    return FitnessDistance(n, aConstraint.GetAsConstrainLongRange());
+  }
+}
+
+template<>
+ uint32_t
+MediaEngineCameraVideoSource::FitnessDistance(double n,
+    const OwningDoubleOrConstrainDoubleRange& aConstraint)
+{
+  if (aConstraint.IsDouble()) {
+    ConstrainDoubleRange range;
+    range.mIdeal.Construct(aConstraint.GetAsDouble());
+    return FitnessDistance(n, range);
+  } else {
+    return FitnessDistance(n, aConstraint.GetAsConstrainDoubleRange());
+  }
+}
+
+ uint32_t
+MediaEngineCameraVideoSource::GetFitnessDistance(const webrtc::CaptureCapability& aCandidate,
+                                                 const MediaTrackConstraintSet &aConstraints)
+{
+  uint64_t distance =
+    uint64_t(FitnessDistance(int32_t(aCandidate.width), aConstraints.mWidth)) +
+    uint64_t(FitnessDistance(int32_t(aCandidate.height), aConstraints.mHeight)) +
+    uint64_t(FitnessDistance(double(aCandidate.maxFPS), aConstraints.mFrameRate));
+  return uint32_t(std::min(distance, uint64_t(UINT32_MAX)));
+}
+
+
+
+ void
+MediaEngineCameraVideoSource::TrimLessFitCandidates(CapabilitySet& set) {
+  uint32_t best = UINT32_MAX;
+  for (auto& candidate : set) {
+    if (best > candidate.mDistance) {
+      best = candidate.mDistance;
+    }
+  }
+  for (size_t i = 0; i < set.Length();) {
+    if (set[i].mDistance > best) {
+      set.RemoveElementAt(i);
+    } else {
+      ++i;
+    }
+  }
+  MOZ_ASSERT(set.Length());
 }
 
 
 
 
-bool
-MediaEngineCameraVideoSource::SatisfiesConstraintSets(
+
+
+
+uint32_t
+MediaEngineCameraVideoSource::GetBestFitnessDistance(
     const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
 {
   size_t num = NumCapabilities();
@@ -115,23 +160,34 @@ MediaEngineCameraVideoSource::SatisfiesConstraintSets(
     candidateSet.AppendElement(i);
   }
 
+  bool first = true;
   for (const MediaTrackConstraintSet* cs : aConstraintSets) {
     for (size_t i = 0; i < candidateSet.Length();  ) {
+      auto& candidate = candidateSet[i];
       webrtc::CaptureCapability cap;
-      GetCapability(candidateSet[i], cap);
-      if (!SatisfiesConstraintSet(*cs, cap)) {
+      GetCapability(candidate.mIndex, cap);
+      uint32_t distance = GetFitnessDistance(cap, *cs);
+      if (distance == UINT32_MAX) {
         candidateSet.RemoveElementAt(i);
       } else {
         ++i;
+        if (first) {
+          candidate.mDistance = distance;
+        }
       }
     }
+    first = false;
   }
-  return !!candidateSet.Length();
+  if (!candidateSet.Length()) {
+    return UINT32_MAX;
+  }
+  TrimLessFitCandidates(candidateSet);
+  return candidateSet[0].mDistance;
 }
 
-void
+bool
 MediaEngineCameraVideoSource::ChooseCapability(
-    const VideoTrackConstraintsN &aConstraints,
+    const dom::MediaTrackConstraints &aConstraints,
     const MediaEnginePrefs &aPrefs)
 {
   LOG(("ChooseCapability: prefs: %dx%d @%d-%dfps",
@@ -147,16 +203,16 @@ MediaEngineCameraVideoSource::ChooseCapability(
   
 
   for (size_t i = 0; i < candidateSet.Length();) {
+    auto& candidate = candidateSet[i];
     webrtc::CaptureCapability cap;
-    GetCapability(candidateSet[i], cap);
-    if (!SatisfiesConstraintSet(aConstraints.mRequired, cap)) {
+    GetCapability(candidate.mIndex, cap);
+    candidate.mDistance = GetFitnessDistance(cap, aConstraints);
+    if (candidate.mDistance == UINT32_MAX) {
       candidateSet.RemoveElementAt(i);
     } else {
       ++i;
     }
   }
-
-  CapabilitySet tailSet;
 
   
 
@@ -164,76 +220,70 @@ MediaEngineCameraVideoSource::ChooseCapability(
     for (const MediaTrackConstraintSet &cs : aConstraints.mAdvanced.Value()) {
       CapabilitySet rejects;
       for (size_t i = 0; i < candidateSet.Length();) {
+        auto& candidate = candidateSet[i];
         webrtc::CaptureCapability cap;
-        GetCapability(candidateSet[i], cap);
-        if (!SatisfiesConstraintSet(cs, cap)) {
-          rejects.AppendElement(candidateSet[i]);
+        GetCapability(candidate.mIndex, cap);
+        if (GetFitnessDistance(cap, cs) == UINT32_MAX) {
+          rejects.AppendElement(candidate);
           candidateSet.RemoveElementAt(i);
         } else {
           ++i;
         }
       }
-      (candidateSet.Length()? tailSet : candidateSet).MoveElementsFrom(rejects);
+      if (!candidateSet.Length()) {
+        candidateSet.MoveElementsFrom(rejects);
+      }
     }
   }
-
   if (!candidateSet.Length()) {
-    candidateSet.AppendElement(0);
+    LOG(("failed to find capability match from %d choices",num));
+    return false;
   }
 
-  int prefWidth = aPrefs.GetWidth();
-  int prefHeight = aPrefs.GetHeight();
+  
+
+  TrimLessFitCandidates(candidateSet);
 
   
   
-  
+  {
+    MediaTrackConstraintSet prefs;
+    prefs.mWidth.SetAsLong() = aPrefs.GetWidth();
+    prefs.mHeight.SetAsLong() = aPrefs.GetHeight();
+    prefs.mFrameRate.SetAsDouble() = aPrefs.mMinFPS;
 
-  webrtc::CaptureCapability cap;
-  bool higher = true;
-  for (size_t i = 0; i < candidateSet.Length(); i++) {
-    GetCapability(candidateSet[i], cap);
-    if (higher) {
-      if (i == 0 ||
-          (mCapability.width > cap.width && mCapability.height > cap.height)) {
-        
-        mCapability = cap;
-        
-      }
-      if (cap.width <= (uint32_t) prefWidth && cap.height <= (uint32_t) prefHeight) {
-        higher = false;
-      }
-    } else {
-      if (cap.width > (uint32_t) prefWidth || cap.height > (uint32_t) prefHeight ||
-          cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
-        continue;
-      }
-      if (mCapability.width < cap.width && mCapability.height < cap.height) {
-        mCapability = cap;
-        
-      }
+    for (auto& candidate : candidateSet) {
+      webrtc::CaptureCapability cap;
+      GetCapability(candidate.mIndex, cap);
+      candidate.mDistance = GetFitnessDistance(cap, prefs);
     }
-    
-    if (mCapability.width == cap.width && mCapability.height == cap.height) {
-      
-      if (cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
-        continue;
-      }
-      
-      if (cap.maxFPS < mCapability.maxFPS) {
-        mCapability = cap;
-      } else if (cap.maxFPS == mCapability.maxFPS) {
-        
-        if (cap.rawType == webrtc::RawVideoType::kVideoI420
-          || cap.rawType == webrtc::RawVideoType::kVideoYUY2
-          || cap.rawType == webrtc::RawVideoType::kVideoYV12) {
-          mCapability = cap;
-        }
-      }
+    TrimLessFitCandidates(candidateSet);
+  }
+
+  
+  
+  
+
+  bool found = false;
+  for (auto& candidate : candidateSet) {
+    webrtc::CaptureCapability cap;
+    GetCapability(candidate.mIndex, cap);
+    if (cap.rawType == webrtc::RawVideoType::kVideoI420 ||
+        cap.rawType == webrtc::RawVideoType::kVideoYUY2 ||
+        cap.rawType == webrtc::RawVideoType::kVideoYV12) {
+      mCapability = cap;
+      found = true;
+      break;
     }
   }
+  if (!found) {
+    GetCapability(candidateSet[0].mIndex, mCapability);
+  }
+
   LOG(("chose cap %dx%d @%dfps codec %d raw %d",
        mCapability.width, mCapability.height, mCapability.maxFPS,
        mCapability.codecType, mCapability.rawType));
+  return true;
 }
 
 void

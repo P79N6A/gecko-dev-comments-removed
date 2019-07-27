@@ -199,7 +199,7 @@ MediaEngineWebRTCVideoSource::GetCapability(size_t aIndex,
 }
 
 nsresult
-MediaEngineWebRTCVideoSource::Allocate(const VideoTrackConstraintsN &aConstraints,
+MediaEngineWebRTCVideoSource::Allocate(const dom::MediaTrackConstraints &aConstraints,
                                        const MediaEnginePrefs &aPrefs)
 {
   LOG((__FUNCTION__));
@@ -207,8 +207,9 @@ MediaEngineWebRTCVideoSource::Allocate(const VideoTrackConstraintsN &aConstraint
     
     
 
-    ChooseCapability(aConstraints, aPrefs);
-
+    if (!ChooseCapability(aConstraints, aPrefs)) {
+      return NS_ERROR_UNEXPECTED;
+    }
     if (mViECapture->AllocateCaptureDevice(NS_ConvertUTF16toUTF8(mUniqueId).get(),
                                            kMaxUniqueIdLength, mCaptureIndex)) {
       return NS_ERROR_FAILURE;
