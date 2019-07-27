@@ -5,6 +5,9 @@
 
 
 #include "jit/BacktrackingAllocator.h"
+
+#include "jsprf.h"
+
 #include "jit/BitSet.h"
 
 using namespace js;
