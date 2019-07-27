@@ -97,8 +97,10 @@ CertBlocklistItem::Hash() const
   uint32_t hash;
   
   
-  if (mItemMechanism == BlockByIssuerAndSerial && mOtherLength >= 4) {
-    memcpy(&hash, mOtherData + mOtherLength - 4, sizeof(hash));
+  
+  if (mItemMechanism == BlockByIssuerAndSerial &&
+      mOtherLength >= sizeof(hash)) {
+    memcpy(&hash, mOtherData + mOtherLength - sizeof(hash), sizeof(hash));
   } else {
     hash = *mOtherData;
   }
