@@ -329,7 +329,7 @@ TouchCaret::IsOnTouchCaret(const nsPoint& aPoint)
 
 nsresult
 TouchCaret::NotifySelectionChanged(nsIDOMDocument* aDoc, nsISelection* aSel,
-                                     int16_t aReason)
+                                   int16_t aReason)
 {
   
   nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
