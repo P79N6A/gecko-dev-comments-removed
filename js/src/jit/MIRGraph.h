@@ -481,7 +481,15 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         entryResumePoint_ = rp;
     }
     void clearEntryResumePoint() {
+        discardResumePoint(entryResumePoint_);
         entryResumePoint_ = nullptr;
+    }
+    MResumePoint *outerResumePoint() const {
+        return outerResumePoint_;
+    }
+    void setOuterResumePoint(MResumePoint *outer) {
+        MOZ_ASSERT(!outerResumePoint_);
+        outerResumePoint_ = outer;
     }
     MResumePoint *callerResumePoint() {
         return entryResumePoint() ? entryResumePoint()->caller() : nullptr;
@@ -565,7 +573,15 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     uint32_t numDominated_;
     jsbytecode *pc_;
     LBlock *lir_;
+
+    
+    
     MResumePoint *entryResumePoint_;
+
+    
+    
+    MResumePoint *outerResumePoint_;
+
     MBasicBlock *successorWithPhis_;
     uint32_t positionInPhiSuccessor_;
     uint32_t loopDepth_;
