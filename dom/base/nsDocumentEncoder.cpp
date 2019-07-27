@@ -331,7 +331,9 @@ IsInvisibleBreak(nsINode *aNode) {
 
   
   
-  return !frame->GetNextSibling();
+  bool visible = frame->GetNextSibling() ||
+                 (!frame->GetPrevSibling() && frame->GetRect().Height() != 0);
+  return !visible;
 }
 
 nsresult
