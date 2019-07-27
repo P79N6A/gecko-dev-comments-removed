@@ -803,13 +803,8 @@ typedef bool
 
 
 
-
-
-
-
 typedef JSObject *
-(* JSWrapObjectCallback)(JSContext *cx, JS::HandleObject existing, JS::HandleObject obj,
-                         JS::HandleObject parent);
+(* JSWrapObjectCallback)(JSContext *cx, JS::HandleObject obj, JS::HandleObject parent);
 
 
 

@@ -45,7 +45,6 @@ class WrapperFactory {
 
     
     static JSObject *Rewrap(JSContext *cx,
-                            JS::HandleObject existing,
                             JS::HandleObject obj,
                             JS::HandleObject parent);
 
