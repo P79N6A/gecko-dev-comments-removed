@@ -52,7 +52,7 @@
 
 
 #define WTF_MAKE_FAST_ALLOCATED \
-  void ignore_this_dummy_method() MOZ_DELETE
+  void ignore_this_dummy_method() = delete
 
 namespace WebCore {
 

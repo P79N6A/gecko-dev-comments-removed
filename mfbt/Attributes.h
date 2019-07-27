@@ -50,7 +50,6 @@
 
 
 
-#  define MOZ_HAVE_CXX11_DELETE
 #  define MOZ_HAVE_CXX11_FINAL         final
 #  define MOZ_HAVE_CXX11_OVERRIDE
 #  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
@@ -79,9 +78,6 @@
 #  if __has_extension(cxx_explicit_conversions)
 #    define MOZ_HAVE_EXPLICIT_CONVERSION
 #  endif
-#  if __has_extension(cxx_deleted_functions)
-#    define MOZ_HAVE_CXX11_DELETE
-#  endif
 #  if __has_extension(cxx_override_control)
 #    define MOZ_HAVE_CXX11_OVERRIDE
 #    define MOZ_HAVE_CXX11_FINAL         final
@@ -104,7 +100,6 @@
 #    if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0)
 #      define MOZ_HAVE_EXPLICIT_CONVERSION
 #    endif
-#    define MOZ_HAVE_CXX11_DELETE
 #  else
      
 #    if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
@@ -262,34 +257,6 @@
 #endif
 
 #ifdef __cplusplus
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(MOZ_HAVE_CXX11_DELETE)
-#  define MOZ_DELETE            = delete
-#else
-#  define MOZ_DELETE
-#endif
 
 
 
