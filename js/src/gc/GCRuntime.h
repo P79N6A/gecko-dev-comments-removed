@@ -104,6 +104,126 @@ struct ConservativeGCData
     }
 };
 
+
+
+
+
+class GCSchedulingTunables
+{
+    
+
+
+
+
+
+    size_t gcMaxBytes_;
+
+    
+
+
+
+
+    size_t gcZoneAllocThresholdBase_;
+
+    
+
+
+
+    bool dynamicHeapGrowthEnabled_;
+
+    
+
+
+
+    uint64_t highFrequencyThresholdUsec_;
+
+    
+
+
+
+    uint64_t highFrequencyLowLimitBytes_;
+    uint64_t highFrequencyHighLimitBytes_;
+    double highFrequencyHeapGrowthMax_;
+    double highFrequencyHeapGrowthMin_;
+
+    
+
+
+
+    double lowFrequencyHeapGrowth_;
+
+    
+
+
+    bool dynamicMarkSliceEnabled_;
+
+    
+
+
+    unsigned minEmptyChunkCount_;
+    unsigned maxEmptyChunkCount_;
+
+  public:
+    GCSchedulingTunables()
+      : gcMaxBytes_(0),
+        gcZoneAllocThresholdBase_(30 * 1024 * 1024),
+        dynamicHeapGrowthEnabled_(false),
+        highFrequencyThresholdUsec_(1000 * 1000),
+        highFrequencyLowLimitBytes_(100 * 1024 * 1024),
+        highFrequencyHighLimitBytes_(500 * 1024 * 1024),
+        highFrequencyHeapGrowthMax_(3.0),
+        highFrequencyHeapGrowthMin_(1.5),
+        lowFrequencyHeapGrowth_(1.5),
+        dynamicMarkSliceEnabled_(false),
+        minEmptyChunkCount_(1),
+        maxEmptyChunkCount_(30)
+    {}
+
+    size_t gcMaxBytes() const { return gcMaxBytes_; }
+    size_t gcZoneAllocThresholdBase() const { return gcZoneAllocThresholdBase_; }
+    bool isDynamicHeapGrowthEnabled() const { return dynamicHeapGrowthEnabled_; }
+    uint64_t highFrequencyTimeThreshold() const { return highFrequencyThresholdUsec_; }
+    uint64_t highFrequencyLowLimitBytes() const { return highFrequencyLowLimitBytes_; }
+    uint64_t highFrequencyHighLimitBytes() const { return highFrequencyHighLimitBytes_; }
+    double highFrequencyHeapGrowthMax() const { return highFrequencyHeapGrowthMax_; }
+    double highFrequencyHeapGrowthMin() const { return highFrequencyHeapGrowthMin_; }
+    double lowFrequencyHeapGrowth() const { return lowFrequencyHeapGrowth_; }
+    bool isDynamicMarkSliceEnabled() const { return dynamicMarkSliceEnabled_; }
+    unsigned minEmptyChunkCount() const { return minEmptyChunkCount_; }
+    unsigned maxEmptyChunkCount() const { return maxEmptyChunkCount_; }
+
+    void setParameter(JSGCParamKey key, uint32_t value);
+};
+
+
+
+
+
+class GCSchedulingState
+{
+    
+
+
+
+
+
+    bool inHighFrequencyGCMode_;
+
+  public:
+    GCSchedulingState()
+      : inHighFrequencyGCMode_(false)
+    {}
+
+    bool inHighFrequencyGCMode() const { return inHighFrequencyGCMode_; }
+
+    void updateHighFrequencyMode(uint64_t lastGCTime, uint64_t currentTime,
+                                 const GCSchedulingTunables &tunables) {
+        inHighFrequencyGCMode_ =
+            tunables.isDynamicHeapGrowthEnabled() && lastGCTime &&
+            lastGCTime + tunables.highFrequencyTimeThreshold() > currentTime;
+    }
+};
+
 template<typename F>
 struct Callback {
     F op;
@@ -182,7 +302,6 @@ class GCRuntime
     void setDeterministic(bool enable);
 #endif
 
-    size_t maxBytesAllocated() { return maxBytes; }
     size_t maxMallocBytesAllocated() { return maxMallocBytes; }
 
   public:
@@ -303,7 +422,6 @@ class GCRuntime
 
     double computeHeapGrowthFactor(size_t lastBytes);
     size_t computeTriggerBytes(double growthFactor, size_t lastBytes, JSGCInvocationKind gckind);
-    size_t allocationThreshold() { return allocThreshold; }
 
     JSGCMode gcMode() const { return mode; }
     void setGCMode(JSGCMode m) {
@@ -414,6 +532,10 @@ class GCRuntime
     
     HeapUsage usage;
 
+    
+    GCSchedulingTunables  tunables;
+    GCSchedulingState     schedulingState;
+
   private:
     
 
@@ -435,7 +557,6 @@ class GCRuntime
 
     js::RootedValueMap    rootsHash;
 
-    size_t                maxBytes;
     size_t                maxMallocBytes;
 
     
@@ -451,19 +572,7 @@ class GCRuntime
 
     JSGCMode              mode;
 
-    size_t                allocThreshold;
-    bool                  highFrequencyGC;
-    uint64_t              highFrequencyTimeThreshold;
-    uint64_t              highFrequencyLowLimitBytes;
-    uint64_t              highFrequencyHighLimitBytes;
-    double                highFrequencyHeapGrowthMax;
-    double                highFrequencyHeapGrowthMin;
-    double                lowFrequencyHeapGrowth;
-    bool                  dynamicHeapGrowth;
-    bool                  dynamicMarkSlice;
     uint64_t              decommitThreshold;
-    unsigned              minEmptyChunkCount;
-    unsigned              maxEmptyChunkCount;
 
     
     bool                  cleanUpEverything;
