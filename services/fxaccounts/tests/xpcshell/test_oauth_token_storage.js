@@ -8,9 +8,6 @@ Cu.import("resource://gre/modules/FxAccountsClient.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/osfile.jsm");
 
-
-let {AccountState} = Cu.import("resource://gre/modules/FxAccounts.jsm", {});
-
 function promiseNotification(topic) {
   return new Promise(resolve => {
     let observe = () => {
@@ -20,43 +17,6 @@ function promiseNotification(topic) {
     Services.obs.addObserver(observe, topic, false);
   });
 }
-
-
-function MockStorageManager() {
-}
-
-MockStorageManager.prototype = {
-  promiseInitialized: Promise.resolve(),
-
-  initialize(accountData) {
-    this.accountData = accountData;
-  },
-
-  finalize() {
-    return Promise.resolve();
-  },
-
-  getAccountData() {
-    return Promise.resolve(this.accountData);
-  },
-
-  updateAccountData(updatedFields) {
-    for (let [name, value] of Iterator(updatedFields)) {
-      if (value == null) {
-        delete this.accountData[name];
-      } else {
-        this.accountData[name] = value;
-      }
-    }
-    return Promise.resolve();
-  },
-
-  deleteAccountData() {
-    this.accountData = null;
-    return Promise.resolve();
-  }
-}
-
 
 
 function MockFxAccountsClient() {
@@ -81,12 +41,6 @@ MockFxAccountsClient.prototype = {
 function MockFxAccounts() {
   return new FxAccounts({
     fxAccountsClient: new MockFxAccountsClient(),
-    newAccountState(credentials) {
-      
-      let storage = new MockStorageManager();
-      storage.initialize(credentials);
-      return new AccountState(this, storage);
-    },
   });
 }
 
@@ -128,22 +82,132 @@ add_task(function testCacheStorage() {
   cas.setCachedToken(scopeArray, tokenData);
   deepEqual(cas.getCachedToken(scopeArray), tokenData);
 
-  deepEqual(cas.oauthTokens, {"bar|foo": tokenData});
+  deepEqual(cas.getAllCachedTokens(), [tokenData]);
   
   yield promiseWritten;
 
   
-  deepEqual(cas.storageManager.accountData.oauthTokens, {"bar|foo": tokenData});
+  let path = OS.Path.join(OS.Constants.Path.profileDir, DEFAULT_OAUTH_TOKENS_FILENAME);
+  let data = yield CommonUtils.readJSON(path);
+  ok(data.tokens, "the data is in the json");
+  equal(data.uid, "1234@lcip.org", "The user's uid is in the json");
+
+  
+  let expectedKey = "bar|foo";
+  let entry = data.tokens[expectedKey];
+  ok(entry, "our key is in the json");
+  deepEqual(entry, tokenData, "correct token is in the json");
 
   
   promiseWritten = promiseNotification("testhelper-fxa-cache-persist-done");
   yield cas.removeCachedToken("token1");
-  deepEqual(cas.oauthTokens, {});
+  deepEqual(cas.getAllCachedTokens(), []);
   yield promiseWritten;
-  deepEqual(cas.storageManager.accountData.oauthTokens, {});
+  data = yield CommonUtils.readJSON(path);
+  ok(!data.tokens[expectedKey], "our key was removed from the json");
 
   
-  let storageManager = cas.storageManager; 
   yield fxa.signOut(  true);
-  deepEqual(storageManager.accountData, null);
+  data = yield CommonUtils.readJSON(path);
+  ok(data === null, "data wiped on signout");
+});
+
+
+add_task(function testCacheAfterRead() {
+  let fxa = yield createMockFxA();
+  
+  let cas = fxa.internal.currentAccountState;
+  let origPersistCached = cas._persistCachedTokens.bind(cas)
+  cas._persistCachedTokens = function() {
+    return origPersistCached().then(() => {
+      Services.obs.notifyObservers(null, "testhelper-fxa-cache-persist-done", null);
+    });
+  };
+
+  let promiseWritten = promiseNotification("testhelper-fxa-cache-persist-done");
+  let tokenData = {token: "token1", somethingelse: "something else"};
+  let scopeArray = ["foo", "bar"];
+  cas.setCachedToken(scopeArray, tokenData);
+  yield promiseWritten;
+
+  
+  cas.signedInUser = null;
+  cas.oauthTokens = null;
+  yield cas.getUserAccountData();
+  ok(cas.oauthTokens, "token data was re-read");
+  deepEqual(cas.getCachedToken(scopeArray), tokenData);
+});
+
+
+add_task(function testCacheAfterRead() {
+  let fxa = yield createMockFxA();
+  
+  let cas = fxa.internal.currentAccountState;
+  let origPersistCached = cas._persistCachedTokens.bind(cas)
+
+  
+  
+  
+  cas.signedInUser = null;
+  cas.oauthTokens = null;
+
+  yield cas.getUserAccountData();
+
+  
+  cas._persistCachedTokens = function() {
+    return origPersistCached().then(() => {
+      Services.obs.notifyObservers(null, "testhelper-fxa-cache-persist-done", null);
+    });
+  };
+  let promiseWritten = promiseNotification("testhelper-fxa-cache-persist-done");
+
+  
+  let tokenData = {token: "token1", somethingelse: "something else"};
+  let scopeArray = ["foo", "bar"];
+  cas.setCachedToken(scopeArray, tokenData);
+
+  yield promiseWritten;
+
+  
+  let got = yield cas.signedInUserStorage.getOAuthTokens();
+  ok(got, "got persisted data");
+  ok(got.tokens, "have tokens");
+  
+  ok(got.tokens["bar|foo"], "have our scope");
+  equal(got.tokens["bar|foo"].token, "token1", "have our token");
+});
+
+
+add_task(function testCacheAfterReadBadUID() {
+  let fxa = yield createMockFxA();
+  
+  let cas = fxa.internal.currentAccountState;
+  let origPersistCached = cas._persistCachedTokens.bind(cas)
+  cas._persistCachedTokens = function() {
+    return origPersistCached().then(() => {
+      Services.obs.notifyObservers(null, "testhelper-fxa-cache-persist-done", null);
+    });
+  };
+
+  let promiseWritten = promiseNotification("testhelper-fxa-cache-persist-done");
+  let tokenData = {token: "token1", somethingelse: "something else"};
+  let scopeArray = ["foo", "bar"];
+  cas.setCachedToken(scopeArray, tokenData);
+  yield promiseWritten;
+
+  
+  cas.signedInUser = null;
+  cas.oauthTokens = null;
+
+  
+  let path = OS.Path.join(OS.Constants.Path.profileDir, DEFAULT_OAUTH_TOKENS_FILENAME);
+  let data = yield CommonUtils.readJSON(path);
+  ok(data.tokens, "the data is in the json");
+  equal(data.uid, "1234@lcip.org", "The user's uid is in the json");
+  data.uid = "someone_else";
+  yield CommonUtils.writeJSON(data, path);
+
+  yield cas.getUserAccountData();
+  deepEqual(cas.oauthTokens, {}, "token data ignored due to bad uid");
+  equal(null, cas.getCachedToken(scopeArray), "no token available");
 });
