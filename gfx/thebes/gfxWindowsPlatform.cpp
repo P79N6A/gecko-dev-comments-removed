@@ -2109,6 +2109,10 @@ gfxWindowsPlatform::InitD3D11Devices()
     }
   }
 
+  if (!mD3D11Device) {
+    return;
+  }
+
   mD3D11Device->SetExceptionMode(0);
 
   
