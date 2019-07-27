@@ -102,10 +102,9 @@ XPCOMUtils.defineLazyGetter(this, "gMap", function() {
     
     
     
-    
     appInfoMap: {},
 
-    registerSecureElementTarget: function(appId, readerTypes, target) {
+    registerSecureElementTarget: function(appId, target) {
       if (this.isAppIdRegistered(appId)) {
         debug("AppId: " + appId + "already registered");
         return;
@@ -113,7 +112,6 @@ XPCOMUtils.defineLazyGetter(this, "gMap", function() {
 
       this.appInfoMap[appId] = {
         target: target,
-        readerTypes: readerTypes,
         channels: {}
       };
 
@@ -181,6 +179,11 @@ XPCOMUtils.defineLazyGetter(this, "gMap", function() {
       return Object.keys(this.appInfoMap[appId].channels)
                    .map(token => this.appInfoMap[appId].channels[token]);
     },
+
+    getTargets: function() {
+      return Object.keys(this.appInfoMap)
+                   .map(appId => this.appInfoMap[appId].target);
+    },
   };
 });
 
@@ -190,27 +193,37 @@ XPCOMUtils.defineLazyGetter(this, "gMap", function() {
 
 
 
+
+
 function SecureElementManager() {
   this._registerMessageListeners();
+  this._registerSEListeners();
   Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
 }
 
 SecureElementManager.prototype = {
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIMessageListener,
+    Ci.nsISEListener,
     Ci.nsIObserver]),
   classID: SECUREELEMENTMANAGER_CID,
   classInfo: XPCOMUtils.generateCI({
     classID:          SECUREELEMENTMANAGER_CID,
     classDescription: "SecureElementManager",
     interfaces:       [Ci.nsIMessageListener,
+                       Ci.nsISEListener,
                        Ci.nsIObserver]
   }),
+
+  
+  
+  _sePresence: {},
 
   _shutdown: function() {
     this.secureelement = null;
     Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
     this._unregisterMessageListeners();
+    this._unregisterSEListeners();
   },
 
   _registerMessageListeners: function() {
@@ -228,19 +241,36 @@ SecureElementManager.prototype = {
     ppmm = null;
   },
 
-  _getAvailableReaderTypes: function() {
-    let readerTypes = [];
-    
-    
-    
-    
-    
-
-    if (UiccConnector) {
-      readerTypes.push(SE.TYPE_UICC);
+  _registerSEListeners: function() {
+    let connector = getConnector(SE.TYPE_UICC);
+    if (!connector) {
+      return;
     }
 
-    return readerTypes;
+    this._sePresence[SE.TYPE_UICC] = false;
+    connector.registerListener(this);
+  },
+
+  _unregisterSEListeners: function() {
+    Object.keys(this._sePresence).forEach((type) => {
+      let connector = getConnector(type);
+      if (connector) {
+        connector.unregisterListener(this);
+      }
+    });
+
+    this._sePresence = {};
+  },
+
+  notifySEPresenceChanged: function(type, isPresent) {
+    
+    
+    debug("notifying DOM about SE state change");
+    this._sePresence[type] = isPresent;
+    gMap.getTargets().forEach(target => {
+      let result = { type: type, isPresent: isPresent };
+      target.sendAsyncMessage("SE:ReaderPresenceChanged", { result: result });
+    });
   },
 
   _canOpenChannel: function(appId, type) {
@@ -357,11 +387,11 @@ SecureElementManager.prototype = {
   },
 
   _handleGetSEReadersRequest: function(msg, target, callback) {
-    
-    
-    let seReaderTypes = this._getAvailableReaderTypes();
-    gMap.registerSecureElementTarget(msg.appId, seReaderTypes, target);
-    callback({ readerTypes: seReaderTypes, error: SE.ERROR_NONE });
+    gMap.registerSecureElementTarget(msg.appId, target);
+    let readers = Object.keys(this._sePresence).map(type => {
+      return { type: type, isPresent: this._sePresence[type] };
+    });
+    callback({ readers: readers, error: SE.ERROR_NONE });
   },
 
   _handleChildProcessShutdown: function(target) {
