@@ -16,6 +16,17 @@ function incrementLoad(tag) {
 }
 
 
+function incrementLoad2(tag, expectedLoadCount) {
+  loadCount++;
+  if (loadCount == expectedLoadCount) {
+    window.parent.postMessage("childLoadComplete", window.location.origin);
+  } else if (loadCount > expectedLoadCount) {
+    document.write("<h1>Too Many Load Events!</h1>");
+    window.parent.postMessage("childOverload", window.location.origin);
+  }
+}
+
+
 function postfail(msg) {
   window.parent.postMessage("fail-" + msg, window.location.origin);
 }
