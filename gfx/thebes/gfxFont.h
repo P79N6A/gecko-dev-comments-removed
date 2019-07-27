@@ -650,7 +650,9 @@ public:
 
 protected:
     
-    gfxFont * mFont;
+    
+    
+    gfxFont* MOZ_NON_OWNING_REF mFont;
 };
 
 
