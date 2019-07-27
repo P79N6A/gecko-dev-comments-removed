@@ -426,12 +426,15 @@ private:
 
 
 
-  static void RepositionFrame(nsIFrame* aFrame,
-                              bool aIsEvenLevel,
-                              nscoord& aStart,
-                              const nsContinuationStates* aContinuationStates,
-                              mozilla::WritingMode aContainerWM,
-                              nscoord aContainerISize);
+
+
+  static nscoord RepositionFrame(nsIFrame* aFrame,
+                                 bool aIsEvenLevel,
+                                 nscoord aStartOrEnd,
+                                 const nsContinuationStates* aContinuationStates,
+                                 mozilla::WritingMode aContainerWM,
+                                 bool aContainerReverseOrder,
+                                 nscoord aContainerISize);
 
   
 
