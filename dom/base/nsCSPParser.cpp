@@ -647,20 +647,25 @@ nsCSPParser::sourceExpression()
   resetCurValue();
 
   
+  
+  
+  
+  bool allowHttps = false;
   if (parsedScheme.IsEmpty()) {
     
     
     resetCurChar(mCurToken);
-    nsAutoCString scheme;
-    mSelfURI->GetScheme(scheme);
-    parsedScheme.AssignASCII(scheme.get());
+    nsAutoCString selfScheme;
+    mSelfURI->GetScheme(selfScheme);
+    parsedScheme.AssignASCII(selfScheme.get());
+    allowHttps = selfScheme.EqualsASCII("http");
   }
 
   
   
   if (nsCSPHostSrc *cspHost = hostSource()) {
     
-    cspHost->setScheme(parsedScheme);
+    cspHost->setScheme(parsedScheme, allowHttps);
     return cspHost;
   }
   
