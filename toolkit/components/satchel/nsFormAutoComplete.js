@@ -3,12 +3,12 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+"use strict";
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
                                   "resource://gre/modules/BrowserUtils.jsm");
@@ -16,6 +16,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
                                   "resource://gre/modules/FormHistory.jsm");
+
+function isAutocompleteDisabled(aField) {
+    if (aField.autocomplete !== "") {
+        return aField.autocomplete === "off";
+    }
+
+    return aField.form && aField.form.autocomplete === "off";
+}
 
 function FormAutoComplete() {
     this.init();
@@ -107,6 +115,11 @@ FormAutoComplete.prototype = {
         }
     },
 
+    
+    
+    get wrappedJSObject() {
+        return this;
+    },
 
     
 
@@ -131,16 +144,33 @@ FormAutoComplete.prototype = {
 
 
 
-    autoCompleteSearchAsync : function (aInputName, aUntrimmedSearchString, aField, aPreviousResult, aListener) {
+
+    autoCompleteSearchAsync : function (aInputName,
+                                        aUntrimmedSearchString,
+                                        aField,
+                                        aPreviousResult,
+                                        aDatalistResult,
+                                        aListener) {
         function sortBytotalScore (a, b) {
             return b.totalScore - a.totalScore;
         }
 
-        let result = null;
+        
+        if (typeof aInputName === "object") {
+            aInputName = "";
+        }
+        if (typeof aUntrimmedSearchString === "object") {
+            aUntrimmedSearchString = "";
+        }
+
+        
+        let emptyResult = aDatalistResult ||
+                          new FormAutoCompleteResult(FormHistory, [],
+                                                     aInputName,
+                                                     aUntrimmedSearchString);
         if (!this._enabled) {
-            result = new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString);
             if (aListener) {
-              aListener.onSearchCompletion(result);
+                aListener.onSearchCompletion(emptyResult);
             }
             return;
         }
@@ -148,9 +178,16 @@ FormAutoComplete.prototype = {
         
         if (aInputName == 'searchbar-history' && aField) {
             this.log('autoCompleteSearch for input name "' + aInputName + '" is denied');
-            result = new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString);
             if (aListener) {
-              aListener.onSearchCompletion(result);
+                aListener.onSearchCompletion(emptyResult);
+            }
+            return;
+        }
+
+        if (aField && isAutocompleteDisabled(aField)) {
+            this.log('autoCompleteSearch not allowed due to autcomplete=off');
+            if (aListener) {
+                aListener.onSearchCompletion(emptyResult);
             }
             return;
         }
@@ -164,13 +201,41 @@ FormAutoComplete.prototype = {
         if (aPreviousResult && aPreviousResult.searchString.trim().length > 1 &&
             searchString.indexOf(aPreviousResult.searchString.trim().toLowerCase()) >= 0) {
             this.log("Using previous autocomplete result");
-            result = aPreviousResult;
-            result.wrappedJSObject.searchString = aUntrimmedSearchString;
+            let result = aPreviousResult;
+            let wrappedResult = result.wrappedJSObject;
+            wrappedResult.searchString = aUntrimmedSearchString;
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            let allResults = wrappedResult._values;
+            let datalistResults, datalistLabels;
+            if (allResults) {
+                
+                datalistResults = allResults.slice(wrappedResult.entries.length);
+                let filtered = [];
+                datalistLabels = [];
+                for (let i = datalistResults.length; i > 0; --i) {
+                    if (datalistResults[i - 1].contains(searchString)) {
+                        filtered.push(datalistResults[i - 1]);
+                        datalistLabels.push(wrappedResult._labels[i - 1]);
+                    }
+                }
+
+                datalistResults = filtered;
+            }
 
             let searchTokens = searchString.split(/\s+/);
             
             
-            let entries = result.wrappedJSObject.entries;
+            let entries = wrappedResult.entries;
             let filteredEntries = [];
             for (let i = 0; i < entries.length; i++) {
                 let entry = entries[i];
@@ -184,32 +249,88 @@ FormAutoComplete.prototype = {
                 filteredEntries.push(entry);
             }
             filteredEntries.sort(sortBytotalScore);
-            result.wrappedJSObject.entries = filteredEntries;
+            wrappedResult.entries = filteredEntries;
+
+            
+            
+            if (datalistResults) {
+                filteredEntries = filteredEntries.map(elt => elt.text);
+
+                let comments = new Array(filteredEntries.length + datalistResults.length).fill("");
+                comments[filteredEntries.length] = "separator";
+
+                datalistLabels = new Array(filteredEntries.length).fill("").concat(datalistLabels);
+                wrappedResult._values = filteredEntries.concat(datalistResults);
+                wrappedResult._labels = datalistLabels;
+                wrappedResult._comments = comments;
+            }
 
             if (aListener) {
-              aListener.onSearchCompletion(result);
+                aListener.onSearchCompletion(result);
             }
         } else {
             this.log("Creating new autocomplete search result.");
 
             
-            result = new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString);
+            let result = aDatalistResult ?
+                new FormAutoCompleteResult(FormHistory, [], aInputName, aUntrimmedSearchString) :
+                emptyResult;
 
-            let processEntry = function(aEntries) {
-              if (aField && aField.maxLength > -1) {
-                result.entries =
-                  aEntries.filter(function (el) { return el.text.length <= aField.maxLength; });
-              } else {
-                result.entries = aEntries;
-              }
+            let processEntry = (aEntries) => {
+                if (aField && aField.maxLength > -1) {
+                    result.entries =
+                        aEntries.filter(function (el) { return el.text.length <= aField.maxLength; });
+                } else {
+                    result.entries = aEntries;
+                }
 
-              if (aListener) {
-                aListener.onSearchCompletion(result);
-              }
+                if (aDatalistResult) {
+                    result = this.mergeResults(result, aDatalistResult);
+                }
+
+                if (aListener) {
+                    aListener.onSearchCompletion(result);
+                }
             }
 
             this.getAutoCompleteValues(aInputName, searchString, processEntry);
         }
+    },
+
+    mergeResults(historyResult, datalistResult) {
+        let values = datalistResult.wrappedJSObject._values;
+        let labels = datalistResult.wrappedJSObject._labels;
+        let comments = [];
+
+        
+        
+        let entries = historyResult.wrappedJSObject.entries;
+        let historyResults = entries.map(function(entry) { return entry.text });
+        let historyComments = new Array(entries.length).fill("");
+
+        
+        
+        if (values.length) {
+            comments[0] = "separator";
+            comments.fill(1, "");
+        }
+
+        
+        let finalValues = historyResults.concat(values);
+        let finalLabels = historyResults.concat(labels);
+        let finalComments = historyComments.concat(comments);
+
+        
+        
+        
+        
+        
+        
+        let {FormAutoCompleteResult} = Cu.import("resource://gre/modules/nsFormAutoCompleteResult.jsm", {});
+        return new FormAutoCompleteResult(datalistResult.searchString,
+                                          Ci.nsIAutoCompleteResult.RESULT_SUCCESS,
+                                          0, "", finalValues, finalLabels,
+                                          finalComments, historyResult);
     },
 
     stopAutoCompleteSearch : function () {
@@ -338,7 +459,9 @@ FormAutoCompleteChild.prototype = {
       dump("FormAutoCompleteChild: " + message + "\n");
     },
 
-    autoCompleteSearchAsync : function (aInputName, aUntrimmedSearchString, aField, aPreviousResult, aListener) {
+    autoCompleteSearchAsync : function (aInputName, aUntrimmedSearchString,
+                                        aField, aPreviousResult, aDatalistResult,
+                                        aListener) {
       this.log("autoCompleteSearchAsync");
 
       if (this._pendingSearch) {
@@ -349,6 +472,17 @@ FormAutoCompleteChild.prototype = {
 
       let rect = BrowserUtils.getElementBoundingScreenRect(aField);
       let direction = window.getComputedStyle(aField).direction;
+      let mockField = {};
+      if (isAutocompleteDisabled(aField))
+          mockField.autocomplete = "off";
+      if (aField.maxLength > -1)
+          mockField.maxLength = aField.maxLength;
+
+      let datalistResult = aDatalistResult ?
+        { values: aDatalistResult.wrappedJSObject._values,
+          labels: aDatalistResult.wrappedJSObject._labels} :
+        null;
+
       let topLevelDocshell = window.QueryInterface(Ci.nsIInterfaceRequestor)
                                    .getInterface(Ci.nsIDocShell)
                                    .sameTypeRootTreeItem
@@ -360,6 +494,8 @@ FormAutoCompleteChild.prototype = {
       mm.sendAsyncMessage("FormHistory:AutoCompleteSearchAsync", {
         inputName: aInputName,
         untrimmedSearchString: aUntrimmedSearchString,
+        mockField: mockField,
+        datalistResult: datalistResult,
         left: rect.left,
         top: rect.top,
         width: rect.width,
@@ -451,7 +587,7 @@ FormAutoCompleteResult.prototype = {
     },
 
     getLabelAt: function(index) {
-        return getValueAt(index);
+        return this.getValueAt(index);
     },
 
     getCommentAt : function (index) {

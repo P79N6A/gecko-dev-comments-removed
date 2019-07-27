@@ -2,7 +2,6 @@
 
 
 
-
 #include "nsFormFillController.h"
 
 #include "mozilla/dom/Element.h"
@@ -42,8 +41,7 @@ using namespace mozilla::dom;
 
 NS_IMPL_CYCLE_COLLECTION(nsFormFillController,
                          mController, mLoginManager, mFocusedPopup, mDocShells,
-                         mPopups, mLastSearchResult, mLastListener,
-                         mLastFormAutoComplete)
+                         mPopups, mLastListener, mLastFormAutoComplete)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFormFillController)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIFormFillController)
@@ -217,8 +215,7 @@ nsFormFillController::MaybeRemoveMutationObserver(nsINode* aNode)
 {
   
   
-  bool dummy;
-  if (!mPwmgrInputs.Get(aNode, &dummy)) {
+  if (!mPwmgrInputs.Get(aNode)) {
     aNode->RemoveMutationObserver(this);
   }
 }
@@ -637,8 +634,7 @@ nsFormFillController::StartSearch(const nsAString &aSearchString, const nsAStrin
 
   
   
-  bool dummy;
-  if (mPwmgrInputs.Get(mFocusedInputNode, &dummy)) {
+  if (mPwmgrInputs.Get(mFocusedInputNode)) {
     
     
     mLastListener = aListener;
@@ -650,81 +646,64 @@ nsFormFillController::StartSearch(const nsAString &aSearchString, const nsAStrin
   } else {
     mLastListener = aListener;
 
-    
-    
-    if (!mFocusedInput || nsContentUtils::IsAutocompleteEnabled(mFocusedInput)) {
-      nsCOMPtr <nsIFormAutoComplete> formAutoComplete =
-        do_GetService("@mozilla.org/satchel/form-autocomplete;1", &rv);
+    nsCOMPtr<nsIAutoCompleteResult> datalistResult;
+    if (mFocusedInput) {
+      rv = PerformInputListAutoComplete(aSearchString,
+                                        getter_AddRefs(datalistResult));
       NS_ENSURE_SUCCESS(rv, rv);
-
-      formAutoComplete->AutoCompleteSearchAsync(aSearchParam,
-                                                aSearchString,
-                                                mFocusedInput,
-                                                aPreviousResult,
-                                                this);
-      mLastFormAutoComplete = formAutoComplete;
-    } else {
-      mLastSearchString = aSearchString;
-
-      
-      
-      
-      return PerformInputListAutoComplete(aPreviousResult);
     }
+
+    nsCOMPtr <nsIFormAutoComplete> formAutoComplete =
+      do_GetService("@mozilla.org/satchel/form-autocomplete;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    formAutoComplete->AutoCompleteSearchAsync(aSearchParam,
+                                              aSearchString,
+                                              mFocusedInput,
+                                              aPreviousResult,
+                                              datalistResult,
+                                              this);
+    mLastFormAutoComplete = formAutoComplete;
   }
 
   return NS_OK;
 }
 
 nsresult
-nsFormFillController::PerformInputListAutoComplete(nsIAutoCompleteResult* aPreviousResult)
+nsFormFillController::PerformInputListAutoComplete(const nsAString& aSearch,
+                                                   nsIAutoCompleteResult** aResult)
 {
   
   
 
+  MOZ_ASSERT(!mPwmgrInputs.Get(mFocusedInputNode));
   nsresult rv;
-  nsCOMPtr<nsIAutoCompleteResult> result;
 
-  bool dummy;
-  if (!mPwmgrInputs.Get(mFocusedInputNode, &dummy)) {
-    nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
-      do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = inputListAutoComplete->AutoCompleteSearch(aPreviousResult,
-                                                   mLastSearchString,
-                                                   mFocusedInput,
-                                                   getter_AddRefs(result));
-    NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
+    do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = inputListAutoComplete->AutoCompleteSearch(aSearch,
+                                                 mFocusedInput,
+                                                 aResult);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    if (mFocusedInput) {
-      nsCOMPtr<nsIDOMHTMLElement> list;
-      mFocusedInput->GetList(getter_AddRefs(list));
+  if (mFocusedInput) {
+    nsCOMPtr<nsIDOMHTMLElement> list;
+    mFocusedInput->GetList(getter_AddRefs(list));
 
-      
-      
-      nsCOMPtr<nsINode> node = do_QueryInterface(list);
-      if (mListNode != node) {
-        if (mListNode) {
-          mListNode->RemoveMutationObserver(this);
-          mListNode = nullptr;
-        }
-        if (node) {
-          node->AddMutationObserverUnlessExists(this);
-          mListNode = node;
-        }
+    
+    
+    nsCOMPtr<nsINode> node = do_QueryInterface(list);
+    if (mListNode != node) {
+      if (mListNode) {
+        mListNode->RemoveMutationObserver(this);
+        mListNode = nullptr;
+      }
+      if (node) {
+        node->AddMutationObserverUnlessExists(this);
+        mListNode = node;
       }
     }
-  } else {
-    result = aPreviousResult;
-
-    
-    
-    
-    mLastSearchResult = nullptr;
-  }
-
-  if (mLastListener) {
-    mLastListener->OnSearchResult(this, result);
   }
 
   return NS_OK;
@@ -759,14 +738,24 @@ void nsFormFillController::RevalidateDataList()
   if (!mLastListener) {
     return;
   }
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    nsCOMPtr<nsIAutoCompleteController> controller(do_QueryInterface(mLastListener));
+    if (!controller) {
+      return;
+    }
+
+    controller->StartSearch(mLastSearchString);
+    return;
+  }
+
   nsresult rv;
   nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
     do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
 
   nsCOMPtr<nsIAutoCompleteResult> result;
 
-  rv = inputListAutoComplete->AutoCompleteSearch(mLastSearchResult,
-                                                 mLastSearchString,
+  rv = inputListAutoComplete->AutoCompleteSearch(mLastSearchString,
                                                  mFocusedInput,
                                                  getter_AddRefs(result));
 
@@ -793,14 +782,16 @@ nsFormFillController::StopSearch()
 NS_IMETHODIMP
 nsFormFillController::OnSearchCompletion(nsIAutoCompleteResult *aResult)
 {
-  nsCOMPtr<nsIAutoCompleteResult> resultParam = do_QueryInterface(aResult);
-
   nsAutoString searchString;
-  resultParam->GetSearchString(searchString);
-  mLastSearchResult = aResult;
+  aResult->GetSearchString(searchString);
+
   mLastSearchString = searchString;
 
-  return PerformInputListAutoComplete(resultParam);
+  if (mLastListener) {
+    mLastListener->OnSearchResult(this, aResult);
+  }
+
+  return NS_OK;
 }
 
 
@@ -905,9 +896,8 @@ nsFormFillController::MaybeStartControllingInput(nsIDOMHTMLInputElement* aInput)
   aInput->GetList(getter_AddRefs(datalist));
   bool hasList = datalist != nullptr;
 
-  bool dummy;
   bool isPwmgrInput = false;
-  if (mPwmgrInputs.Get(inputNode, &dummy))
+  if (mPwmgrInputs.Get(inputNode))
       isPwmgrInput = true;
 
   if (isPwmgrInput || hasList || autocomplete) {

@@ -12,6 +12,7 @@ this.EXPORTED_SYMBOLS = [ "AutoCompleteE10S" ];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/nsFormAutoCompleteResult.jsm");
 
 
 
@@ -142,14 +143,33 @@ this.AutoCompleteE10S = {
 
     this._initPopup(browserWindow, rect, direction);
 
+    
+    
+    
     let formAutoComplete = Cc["@mozilla.org/satchel/form-autocomplete;1"]
-                             .getService(Ci.nsIFormAutoComplete);
+                             .getService(Ci.nsIFormAutoComplete).wrappedJSObject;
+
+    let values, labels;
+    if (message.data.datalistResult) {
+      
+      
+      message.data.datalistResult =
+        new FormAutoCompleteResult(message.data.untrimmedSearchString,
+                                   Ci.nsIAutoCompleteResult.RESULT_SUCCESS,
+                                   0, "", message.data.datalistResult.values,
+                                   message.data.datalistResult.labels,
+                                   [], null);
+    } else {
+      message.data.datalistResult = null;
+    }
 
     formAutoComplete.autoCompleteSearchAsync(message.data.inputName,
                                              message.data.untrimmedSearchString,
+                                             message.data.mockField,
                                              null,
-                                             null,
-                                             this.onSearchComplete.bind(this));
+                                             message.data.datalistResult,
+                                             { onSearchCompletion:
+                                               this.onSearchComplete.bind(this) });
   },
 
   
