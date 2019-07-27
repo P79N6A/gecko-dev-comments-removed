@@ -15,6 +15,7 @@
 # include "nsExceptionHandler.h"
 #endif
 #include "nsString.h"
+#include "nsXULAppAPI.h"
 #include "prprf.h"
 #include "prlog.h"
 #include "nsError.h"
@@ -413,12 +414,17 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
 
     case NS_DEBUG_ABORT: {
 #if defined(MOZ_CRASHREPORTER)
-      nsCString note("xpcom_runtime_abort(");
-      note += buf.buffer;
-      note += ")";
-      CrashReporter::AppendAppNotesToCrashReport(note);
-      CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AbortMessage"),
-                                         nsDependentCString(buf.buffer));
+      
+      
+      
+      if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        nsCString note("xpcom_runtime_abort(");
+        note += buf.buffer;
+        note += ")";
+        CrashReporter::AppendAppNotesToCrashReport(note);
+        CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AbortMessage"),
+                                           nsDependentCString(buf.buffer));
+      }
 #endif  
 
 #if defined(DEBUG) && defined(_WIN32)
