@@ -36,7 +36,7 @@ public final class ThreadUtils {
     
     public static Handler sGeckoHandler;
     public static MessageQueue sGeckoQueue;
-    public static Thread sGeckoThread;
+    public static volatile Thread sGeckoThread;
 
     
     private static final Runnable sPriorityResetRunnable = new Runnable() {
@@ -130,6 +130,10 @@ public final class ThreadUtils {
     }
 
     public static void assertNotOnGeckoThread() {
+        if (sGeckoThread == null) {
+            
+            return;
+        }
         assertNotOnThread(sGeckoThread, AssertBehavior.THROW);
     }
 
@@ -204,7 +208,13 @@ public final class ThreadUtils {
 
 
     public static void reduceGeckoPriority(long timeout) {
-        if (!sIsGeckoPriorityReduced) {
+        if (Runtime.getRuntime().availableProcessors() > 1) {
+            
+            
+            
+            return;
+        }
+        if (!sIsGeckoPriorityReduced && sGeckoThread != null) {
             sIsGeckoPriorityReduced = true;
             sGeckoThread.setPriority(Thread.MIN_PRIORITY);
             getUiHandler().postDelayed(sPriorityResetRunnable, timeout);
