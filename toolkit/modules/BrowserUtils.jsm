@@ -74,6 +74,10 @@ this.BrowserUtils = {
     return Services.io.newFileURI(aFile);
   },
 
+  makeURIFromCPOW: function(aCPOWURI) {
+    return Services.io.newURI(aCPOWURI.spec, aCPOWURI.originCharset, null);
+  },
+
   
 
 

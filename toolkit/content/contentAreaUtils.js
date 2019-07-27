@@ -53,6 +53,14 @@ function isContentFrame(aFocusedWindow)
   return (aFocusedWindow.top == window.content);
 }
 
+function forbidCPOW(arg, func, argname)
+{
+  if (arg && (typeof(arg) == "object" || typeof(arg) == "function") &&
+      Components.utils.isCrossProcessWrapper(arg)) {
+    throw new Error(`no CPOWs allowed for argument ${argname} to ${func}`);
+  }
+}
+
 
 
 
@@ -74,6 +82,10 @@ function isContentFrame(aFocusedWindow)
 function saveURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
                  aSkipPrompt, aReferrer, aSourceDocument)
 {
+  forbidCPOW(aURL, "saveURL", "aURL");
+  forbidCPOW(aReferrer, "saveURL", "aReferrer");
+  
+
   internalSave(aURL, null, aFileName, null, null, aShouldBypassCache,
                aFilePickerTitleKey, null, aReferrer, aSourceDocument,
                aSkipPrompt, null);
@@ -89,6 +101,10 @@ const nsISupportsCString = Components.interfaces.nsISupportsCString;
 function saveImageURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
                       aSkipPrompt, aReferrer, aDoc)
 {
+  forbidCPOW(aURL, "saveImageURL", "aURL");
+  forbidCPOW(aReferrer, "saveImageURL", "aReferrer");
+  
+
   var contentType = null;
   var contentDisposition = null;
   if (!aShouldBypassCache) {
@@ -138,6 +154,11 @@ function saveDocument(aDocument, aSkipPrompt)
            .QueryInterface(Components.interfaces.nsIWebPageDescriptor);
   } catch (ex) {
     
+  }
+
+  if (cacheKey && Components.utils.isCrossProcessWrapper(cacheKey)) {
+    
+    cacheKey = null;
   }
 
   internalSave(aDocument.location.href, aDocument, null, contentDisposition,
@@ -253,6 +274,11 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
                       aChosenData, aReferrer, aInitiatingDocument, aSkipPrompt,
                       aCacheKey)
 {
+  forbidCPOW(aURL, "internalSave", "aURL");
+  forbidCPOW(aReferrer, "internalSave", "aReferrer");
+  forbidCPOW(aCacheKey, "internalSave", "aCacheKey");
+  
+
   if (aSkipPrompt == undefined)
     aSkipPrompt = false;
 
@@ -381,7 +407,7 @@ function internalPersist(persistArgs)
   
   var targetFileURL = makeFileURI(persistArgs.targetFile);
 
-  var isPrivate = PrivateBrowsingUtils.isWindowPrivate(persistArgs.initiatingWindow);
+  let isPrivate = PrivateBrowsingUtils.isContentWindowPrivate(persistArgs.initiatingWindow);
 
   
   var tr = Components.classes["@mozilla.org/transfer;1"].createInstance(Components.interfaces.nsITransfer);
@@ -418,14 +444,14 @@ function internalPersist(persistArgs)
     persist.saveDocument(persistArgs.sourceDocument, targetFileURL, filesFolder,
                          persistArgs.targetContentType, encodingFlags, kWrapColumn);
   } else {
-    let privacyContext = persistArgs.initiatingWindow
-                                    .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                                    .getInterface(Components.interfaces.nsIWebNavigation)
-                                    .QueryInterface(Components.interfaces.nsILoadContext);
-    persist.saveURI(persistArgs.sourceURI,
-                    persistArgs.sourceCacheKey, persistArgs.sourceReferrer,
-                    Components.interfaces.nsIHttpChannel.REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE,
-                    persistArgs.sourcePostData, null, targetFileURL, privacyContext);
+    persist.savePrivacyAwareURI(persistArgs.sourceURI,
+                                persistArgs.sourceCacheKey,
+                                persistArgs.sourceReferrer,
+                                Components.interfaces.nsIHttpChannel.REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE,
+                                persistArgs.sourcePostData,
+                                null,
+                                targetFileURL,
+                                isPrivate);
   }
 }
 
