@@ -140,6 +140,10 @@ public:
   bool AskMediaCodecAndWait();
 
   
+  
+  bool AsyncAskMediaCodec();
+
+  
   void SetMediaCodecFree();
 
 protected:
