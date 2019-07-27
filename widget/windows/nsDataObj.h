@@ -20,6 +20,7 @@
 #include "nsITimer.h"
 
 class nsIThread;
+class nsINode;
 
 
 
@@ -248,7 +249,7 @@ protected:
 
     public:
       CStream();
-      nsresult Init(nsIURI *pSourceURI);
+      nsresult Init(nsIURI *pSourceURI, nsINode* aRequestingNode);
 
       NS_DECL_ISUPPORTS
       NS_DECL_NSIREQUESTOBSERVER
