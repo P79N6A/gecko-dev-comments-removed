@@ -2098,6 +2098,7 @@ public:
       void VBlankLoop()
       {
         MOZ_ASSERT(IsInVsyncThread());
+        MOZ_ASSERT(sizeof(int64_t) == sizeof(QPC_TIME));
 
         DWM_TIMING_INFO vblankTime;
         
@@ -2107,6 +2108,7 @@ public:
         LARGE_INTEGER frequency;
         QueryPerformanceFrequency(&frequency);
         TimeStamp vsync = TimeStamp::Now();
+        TimeStamp previousVsync = vsync;
         const int microseconds = 1000000;
 
         for (;;) {
@@ -2115,6 +2117,12 @@ public:
             if (!mVsyncEnabled) return;
           }
 
+          if (previousVsync > vsync) {
+            vsync = TimeStamp::Now();
+            NS_WARNING("Previous vsync timestamp is ahead of the calculated vsync timestamp.");
+          }
+
+          previousVsync = vsync;
           Display::NotifyVsync(vsync);
 
           
@@ -2128,15 +2136,16 @@ public:
 
           
           
-          
           WinUtils::dwmFlushProcPtr();
           HRESULT hr = WinUtils::dwmGetCompositionTimingInfoPtr(0, &vblankTime);
           vsync = TimeStamp::Now();
           if (SUCCEEDED(hr)) {
             QueryPerformanceCounter(&qpcNow);
-            QPC_TIME adjust = qpcNow.QuadPart - vblankTime.qpcVBlank;
-            MOZ_ASSERT(adjust >= 0);
-            uint64_t usAdjust = (adjust * microseconds) / frequency.QuadPart;
+            
+            
+            
+            int64_t adjust = qpcNow.QuadPart - vblankTime.qpcVBlank;
+            int64_t usAdjust = (adjust * microseconds) / frequency.QuadPart;
             vsync -= TimeDuration::FromMicroseconds((double) usAdjust);
           }
         } 
