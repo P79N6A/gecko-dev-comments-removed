@@ -125,6 +125,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mResponseTimeoutEnabled(true)
     , mDontRouteViaWildCard(false)
     , mForceRestart(false)
+    , mReuseOnRestart(false)
     , mReportedStart(false)
     , mReportedResponseHeader(false)
     , mForTakeResponseHead(nullptr)
@@ -1118,10 +1119,16 @@ nsHttpTransaction::Restart()
     
     mSecurityInfo = 0;
     if (mConnection) {
-        mConnection->DontReuse();
+        if (!mReuseOnRestart) {
+            mConnection->DontReuse();
+        }
         MutexAutoLock lock(mLock);
         mConnection = nullptr;
     }
+
+    
+    
+    mReuseOnRestart = false;
 
     
     
@@ -1790,6 +1797,17 @@ nsHttpTransaction::ReleaseBlockingTransaction()
 {
     RemoveDispatchedAsBlocking();
     mLoadGroupCI = nullptr;
+}
+
+void
+nsHttpTransaction::DisableSpdy()
+{
+    mCaps |= NS_HTTP_DISALLOW_SPDY;
+    if (mConnInfo) {
+        
+        
+        mConnInfo->SetNoSpdy(true);
+    }
 }
 
 
