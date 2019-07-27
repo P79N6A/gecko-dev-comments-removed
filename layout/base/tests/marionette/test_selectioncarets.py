@@ -6,6 +6,7 @@
 from by import By
 from marionette import Actions
 from marionette_test import MarionetteTestCase
+from math import ceil, floor
 from selection import SelectionManager
 from gestures import long_press_without_contextmenu
 
@@ -188,14 +189,21 @@ class SelectionCaretsTest(MarionetteTestCase):
         
         
         
+        
         (caret3_x, caret3_y), (caret4_x, caret4_y) = sel.selection_carets_location()
-        right_x = int(caret4_x + 0.5)
-        for i in range (right_x, right_x + 29, + 1):
-            self.actions.press(el, i, caret4_y).release().perform()
 
-        left_x = int(caret3_x - 0.5)
-        for i in range (left_x, left_x - 29, - 1):
-            self.actions.press(el, i, caret3_y).release().perform()
+        
+        caret_width = 44
+        caret_margin_left = -23
+        tilt_right_margin_left = 18
+        tilt_left_margin_left = -17
+
+        left_caret_left_edge_x = caret3_x + caret_margin_left + tilt_left_margin_left
+        el.tap(ceil(left_caret_left_edge_x), caret3_y)
+
+        right_caret_right_edge_x = (caret4_x + caret_margin_left +
+                                    tilt_right_margin_left + caret_width)
+        el.tap(floor(right_caret_right_edge_x), caret4_y)
 
         
         self.actions.flick(el, caret3_x, caret3_y, caret1_x, caret1_y).perform()
