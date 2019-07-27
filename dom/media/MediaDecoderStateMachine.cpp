@@ -394,29 +394,12 @@ static void WriteVideoToMediaStream(MediaStream* aStream,
 
 void MediaDecoderStateMachine::SendStreamData()
 {
-  NS_ASSERTION(OnDecodeThread() || OnStateMachineThread(),
-               "Should be on decode thread or state machine thread");
+  MOZ_ASSERT(OnStateMachineThread(), "Should be on state machine thread");
   AssertCurrentThreadInMonitor();
-  MOZ_ASSERT(mState != DECODER_STATE_DECODING_NONE);
+  MOZ_ASSERT(!mAudioSink, "Should've been stopped in CallRunStateMachine()");
 
   DecodedStreamData* stream = mDecoder->GetDecodedStream();
-  if (!stream) {
-    return;
-  }
 
-  if (mState == DECODER_STATE_DECODING_METADATA ||
-      mState == DECODER_STATE_DECODING_FIRSTFRAME) {
-    return;
-  }
-
-  
-  
-  
-  if (mAudioSink) {
-    return;
-  }
-
-  int64_t minLastAudioPacketTime = INT64_MAX;
   bool finished =
       (!mInfo.HasAudio() || AudioQueue().IsFinished()) &&
       (!mInfo.HasVideo() || VideoQueue().IsFinished());
@@ -582,12 +565,6 @@ bool MediaDecoderStateMachine::HaveEnoughDecodedAudio(int64_t aAmpleAudioUSecs)
 
   DecodedStreamData* stream = mDecoder->GetDecodedStream();
 
-  
-  
-  
-  if (stream && !stream->mStreamInitialized) {
-    return false;
-  }
   if (stream && stream->mStreamInitialized && !stream->mHaveSentFinishAudio) {
     if (!stream->mStream->HaveEnoughBuffered(kAudioTrack)) {
       return false;
@@ -608,10 +585,6 @@ bool MediaDecoderStateMachine::HaveEnoughDecodedVideo()
   }
 
   DecodedStreamData* stream = mDecoder->GetDecodedStream();
-
-  if (stream && !stream->mStreamInitialized) {
-    return false;
-  }
 
   if (stream && stream->mStreamInitialized && !stream->mHaveSentFinishVideo) {
     if (!stream->mStream->HaveEnoughBuffered(kVideoTrack)) {
@@ -824,6 +797,10 @@ MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
       if (mIsAudioPrerolling && DonePrerollingAudio()) {
         StopPrerollingAudio();
       }
+      
+      if (mAudioCaptured) {
+        ScheduleStateMachine();
+      }
       return;
     }
 
@@ -880,7 +857,6 @@ MediaDecoderStateMachine::Push(AudioData* aSample)
   
   AudioQueue().Push(aSample);
   if (mState > DECODER_STATE_DECODING_FIRSTFRAME) {
-    SendStreamData();
     
     
     UpdateReadyState();
@@ -898,7 +874,6 @@ MediaDecoderStateMachine::Push(VideoData* aSample)
   
   VideoQueue().Push(aSample);
   if (mState > DECODER_STATE_DECODING_FIRSTFRAME) {
-    SendStreamData();
     
     
     UpdateReadyState();
@@ -970,11 +945,14 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
     case DECODER_STATE_BUFFERING:
     case DECODER_STATE_DECODING: {
       CheckIfDecodeComplete();
-      SendStreamData();
       
       
       UpdateReadyState();
       mDecoder->GetReentrantMonitor().NotifyAll();
+      
+      if (mAudioCaptured) {
+        ScheduleStateMachine();
+      }
       return;
     }
     case DECODER_STATE_SEEKING: {
@@ -1071,6 +1049,11 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
                                               mAmpleAudioThresholdUsecs);
         DECODER_LOG("Slow video decode, set mLowAudioThresholdUsecs=%lld mAmpleAudioThresholdUsecs=%lld",
                     mLowAudioThresholdUsecs, mAmpleAudioThresholdUsecs);
+      }
+
+      
+      if (mAudioCaptured) {
+        ScheduleStateMachine();
       }
       return;
     }
@@ -1848,9 +1831,6 @@ void MediaDecoderStateMachine::StopAudioThread()
       mAudioSink->Shutdown();
     }
     mAudioSink = nullptr;
-    
-    
-    SendStreamData();
   }
   
   mDecoder->GetReentrantMonitor().NotifyAll();
@@ -3101,11 +3081,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
     return;
   }
 
-  DecodedStreamData* stream = mDecoder->GetDecodedStream();
-  if (stream && !stream->mStreamInitialized) {
-    
-    
-    
+  if (mAudioCaptured) {
     SendStreamData();
   }
 
