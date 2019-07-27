@@ -1,0 +1,451 @@
+
+
+
+
+
+
+#include "mozilla/dom/cache/FetchPut.h"
+
+#include "mozilla/dom/Fetch.h"
+#include "mozilla/dom/FetchDriver.h"
+#include "mozilla/dom/Headers.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/dom/PromiseNativeHandler.h"
+#include "mozilla/dom/Request.h"
+#include "mozilla/dom/Response.h"
+#include "mozilla/dom/ResponseBinding.h"
+#include "mozilla/dom/UnionTypes.h"
+#include "mozilla/dom/cache/ManagerId.h"
+#include "mozilla/dom/cache/PCacheTypes.h"
+#include "nsContentUtils.h"
+#include "nsNetUtil.h"
+#include "nsThreadUtils.h"
+
+namespace mozilla {
+namespace dom {
+namespace cache {
+
+class FetchPut::Runnable MOZ_FINAL : public nsRunnable
+{
+public:
+  explicit Runnable(FetchPut* aFetchPut)
+    : mFetchPut(aFetchPut)
+  {
+    MOZ_ASSERT(mFetchPut);
+  }
+
+  NS_IMETHOD Run() MOZ_OVERRIDE
+  {
+    if (NS_IsMainThread())
+    {
+      mFetchPut->DoFetchOnMainThread();
+      return NS_OK;
+    }
+
+    MOZ_ASSERT(mFetchPut->mInitiatingThread == NS_GetCurrentThread());
+
+    mFetchPut->DoPutOnWorkerThread();
+
+    
+    
+    
+    mFetchPut = nullptr;
+
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<FetchPut> mFetchPut;
+};
+
+class FetchPut::FetchObserver MOZ_FINAL : public FetchDriverObserver
+{
+public:
+  explicit FetchObserver(FetchPut* aFetchPut)
+    : mFetchPut(aFetchPut)
+  {
+  }
+
+  virtual void OnResponseAvailable(InternalResponse* aResponse) MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(!mInternalResponse);
+    mInternalResponse = aResponse;
+  }
+
+  virtual void OnResponseEnd() MOZ_OVERRIDE
+  {
+    mFetchPut->FetchComplete(this, mInternalResponse);
+    mFetchPut = nullptr;
+  }
+
+protected:
+  virtual ~FetchObserver() { }
+
+private:
+  nsRefPtr<FetchPut> mFetchPut;
+  nsRefPtr<InternalResponse> mInternalResponse;
+};
+
+
+nsresult
+FetchPut::Create(Listener* aListener, Manager* aManager,
+                 RequestId aRequestId, CacheId aCacheId,
+                 const nsTArray<PCacheRequest>& aRequests,
+                 const nsTArray<nsCOMPtr<nsIInputStream>>& aRequestStreams,
+                 FetchPut** aFetchPutOut)
+{
+  MOZ_ASSERT(aRequests.Length() == aRequestStreams.Length());
+
+  
+#ifdef DEBUG
+  for (uint32_t i = 0; i < aRequests.Length(); ++i) {
+    if (aRequests[i].referrer() == EmptyString()) {
+      return NS_ERROR_UNEXPECTED;
+    }
+  }
+#endif
+
+  nsRefPtr<FetchPut> ref = new FetchPut(aListener, aManager, aRequestId, aCacheId,
+                                        aRequests, aRequestStreams);
+
+  nsresult rv = ref->DispatchToMainThread();
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  ref.forget(aFetchPutOut);
+
+  return NS_OK;
+}
+
+void
+FetchPut::ClearListener()
+{
+  MOZ_ASSERT(mListener);
+  mListener = nullptr;
+}
+
+FetchPut::FetchPut(Listener* aListener, Manager* aManager,
+                   RequestId aRequestId, CacheId aCacheId,
+                   const nsTArray<PCacheRequest>& aRequests,
+                   const nsTArray<nsCOMPtr<nsIInputStream>>& aRequestStreams)
+  : mListener(aListener)
+  , mManager(aManager)
+  , mRequestId(aRequestId)
+  , mCacheId(aCacheId)
+  , mInitiatingThread(NS_GetCurrentThread())
+  , mStateList(aRequests.Length())
+  , mPendingCount(0)
+  , mResult(NS_OK)
+{
+  MOZ_ASSERT(mListener);
+  MOZ_ASSERT(mManager);
+  MOZ_ASSERT(aRequests.Length() == aRequestStreams.Length());
+
+  for (uint32_t i = 0; i < aRequests.Length(); ++i) {
+    State* s = mStateList.AppendElement();
+    s->mPCacheRequest = aRequests[i];
+    s->mRequestStream = aRequestStreams[i];
+  }
+
+  mManager->AddRefCacheId(mCacheId);
+}
+
+FetchPut::~FetchPut()
+{
+  MOZ_ASSERT(mInitiatingThread == NS_GetCurrentThread());
+  MOZ_ASSERT(!mListener);
+  mManager->RemoveListener(this);
+  mManager->ReleaseCacheId(mCacheId);
+}
+
+nsresult
+FetchPut::DispatchToMainThread()
+{
+  MOZ_ASSERT(!mRunnable);
+
+  nsRefPtr<nsIRunnable> runnable = new Runnable(this);
+
+  nsresult rv = NS_DispatchToMainThread(runnable, nsIThread::DISPATCH_NORMAL);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  MOZ_ASSERT(!mRunnable);
+  mRunnable = runnable.forget();
+
+  return NS_OK;
+}
+
+void
+FetchPut::DispatchToInitiatingThread()
+{
+  MOZ_ASSERT(mRunnable);
+
+  nsresult rv = mInitiatingThread->Dispatch(mRunnable,
+                                            nsIThread::DISPATCH_NORMAL);
+  if (NS_FAILED(rv)) {
+    MOZ_CRASH("Failed to dispatch to worker thread after fetch completion.");
+  }
+
+  mRunnable = nullptr;
+}
+
+void
+FetchPut::DoFetchOnMainThread()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsRefPtr<ManagerId> managerId = mManager->GetManagerId();
+  nsCOMPtr<nsIPrincipal> principal = managerId->Principal();
+  mPendingCount = mStateList.Length();
+
+  nsCOMPtr<nsILoadGroup> loadGroup;
+  nsresult rv = NS_NewLoadGroup(getter_AddRefs(loadGroup), principal);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    MaybeSetError(rv);
+    MaybeCompleteOnMainThread();
+    return;
+  }
+
+  for (uint32_t i = 0; i < mStateList.Length(); ++i) {
+    nsRefPtr<InternalRequest> internalRequest =
+      ToInternalRequest(mStateList[i].mPCacheRequest);
+
+    
+    
+    if (mStateList[i].mRequestStream) {
+      internalRequest->SetBody(mStateList[i].mRequestStream);
+      nsRefPtr<InternalRequest> clone = internalRequest->Clone();
+
+      
+      
+      internalRequest->GetBody(getter_AddRefs(mStateList[i].mRequestStream));
+
+      internalRequest = clone;
+    }
+
+    nsRefPtr<FetchDriver> fetchDriver = new FetchDriver(internalRequest,
+                                                        principal,
+                                                        loadGroup);
+
+    mStateList[i].mFetchObserver = new FetchObserver(this);
+    rv = fetchDriver->Fetch(mStateList[i].mFetchObserver);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      MaybeSetError(rv);
+      mStateList[i].mFetchObserver = nullptr;
+      mPendingCount -= 1;
+      continue;
+    }
+  }
+
+  
+  MaybeCompleteOnMainThread();
+}
+
+void
+FetchPut::FetchComplete(FetchObserver* aObserver,
+                        InternalResponse* aInternalResponse)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (aInternalResponse->IsError() && NS_SUCCEEDED(mResult)) {
+    MaybeSetError(NS_ERROR_FAILURE);
+  }
+
+  for (uint32_t i = 0; i < mStateList.Length(); ++i) {
+    if (mStateList[i].mFetchObserver == aObserver) {
+      ErrorResult rv;
+      ToPCacheResponseWithoutBody(mStateList[i].mPCacheResponse,
+                                  *aInternalResponse, rv);
+      if (rv.Failed()) {
+        MaybeSetError(rv.ErrorCode());
+        return;
+      }
+      aInternalResponse->GetBody(getter_AddRefs(mStateList[i].mResponseStream));
+      mStateList[i].mFetchObserver = nullptr;
+      MOZ_ASSERT(mPendingCount > 0);
+      mPendingCount -= 1;
+      MaybeCompleteOnMainThread();
+      return;
+    }
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Should never get called by unknown fetch observer.");
+}
+
+void
+FetchPut::MaybeCompleteOnMainThread()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mPendingCount > 0) {
+    return;
+  }
+
+  DispatchToInitiatingThread();
+}
+
+void
+FetchPut::DoPutOnWorkerThread()
+{
+  MOZ_ASSERT(mInitiatingThread == NS_GetCurrentThread());
+
+  if (NS_FAILED(mResult)) {
+    MaybeNotifyListener();
+    return;
+  }
+
+  
+  nsAutoTArray<CacheRequestResponse, 16> putList;
+  nsAutoTArray<nsCOMPtr<nsIInputStream>, 16> requestStreamList;
+  nsAutoTArray<nsCOMPtr<nsIInputStream>, 16> responseStreamList;
+
+  putList.SetCapacity(mStateList.Length());
+  requestStreamList.SetCapacity(mStateList.Length());
+  responseStreamList.SetCapacity(mStateList.Length());
+
+  for (uint32_t i = 0; i < mStateList.Length(); ++i) {
+    
+    
+    if (MatchInPutList(mStateList[i].mPCacheRequest, putList)) {
+      MaybeSetError(NS_ERROR_DOM_INVALID_STATE_ERR);
+      MaybeNotifyListener();
+      return;
+    }
+
+    CacheRequestResponse* entry = putList.AppendElement();
+    entry->request() = mStateList[i].mPCacheRequest;
+    entry->response() = mStateList[i].mPCacheResponse;
+    requestStreamList.AppendElement(mStateList[i].mRequestStream.forget());
+    responseStreamList.AppendElement(mStateList[i].mResponseStream.forget());
+  }
+  mStateList.Clear();
+
+  mManager->CachePutAll(this, mRequestId, mCacheId, putList, requestStreamList,
+                        responseStreamList);
+}
+
+
+bool
+FetchPut::MatchInPutList(const PCacheRequest& aRequest,
+                         const nsTArray<CacheRequestResponse>& aPutList)
+{
+  
+  
+  
+  
+  
+
+  if (!aRequest.method().LowerCaseEqualsLiteral("get") &&
+      !aRequest.method().LowerCaseEqualsLiteral("head")) {
+    return false;
+  }
+
+  nsRefPtr<InternalHeaders> requestHeaders =
+    new InternalHeaders(aRequest.headers());
+
+  for (uint32_t i = 0; i < aPutList.Length(); ++i) {
+    const PCacheRequest& cachedRequest = aPutList[i].request();
+    const PCacheResponse& cachedResponse = aPutList[i].response();
+
+    
+    if (aRequest.url() != cachedRequest.url()) {
+      continue;
+    }
+
+    nsRefPtr<InternalHeaders> cachedRequestHeaders =
+      new InternalHeaders(cachedRequest.headers());
+
+    nsRefPtr<InternalHeaders> cachedResponseHeaders =
+      new InternalHeaders(cachedResponse.headers());
+
+    nsAutoTArray<nsCString, 16> varyHeaders;
+    ErrorResult rv;
+    cachedResponseHeaders->GetAll(NS_LITERAL_CSTRING("vary"), varyHeaders, rv);
+    MOZ_ALWAYS_TRUE(!rv.Failed());
+
+    
+    bool varyHeadersMatch = true;
+
+    for (uint32_t j = 0; j < varyHeaders.Length(); ++j) {
+      if (varyHeaders[i].EqualsLiteral("*")) {
+        continue;
+      }
+
+      
+      
+      
+      ErrorResult headerRv;
+
+      nsAutoCString value;
+      requestHeaders->Get(varyHeaders[j], value, rv);
+      if (NS_WARN_IF(rv.Failed())) {
+        varyHeadersMatch = false;
+        break;
+      }
+
+      nsAutoCString cachedValue;
+      cachedRequestHeaders->Get(varyHeaders[j], value, rv);
+      if (NS_WARN_IF(rv.Failed())) {
+        varyHeadersMatch = false;
+        break;
+      }
+
+      if (value != cachedValue) {
+        varyHeadersMatch = false;
+        break;
+      }
+    }
+
+    
+    if (varyHeadersMatch) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void
+FetchPut::OnCachePutAll(RequestId aRequestId, nsresult aRv)
+{
+  MOZ_ASSERT(mInitiatingThread == NS_GetCurrentThread());
+  MaybeSetError(aRv);
+  MaybeNotifyListener();
+}
+
+void
+FetchPut::MaybeSetError(nsresult aRv)
+{
+  if (NS_FAILED(mResult) || NS_SUCCEEDED(aRv)) {
+    return;
+  }
+  mResult = aRv;
+}
+
+void
+FetchPut::MaybeNotifyListener()
+{
+  MOZ_ASSERT(mInitiatingThread == NS_GetCurrentThread());
+  if (!mListener) {
+    return;
+  }
+  mListener->OnFetchPut(this, mRequestId, mResult);
+}
+
+nsIGlobalObject*
+FetchPut::GetGlobalObject() const
+{
+  MOZ_CRASH("No global object in parent-size FetchPut operation!");
+}
+
+#ifdef DEBUG
+void
+FetchPut::AssertOwningThread() const
+{
+  MOZ_ASSERT(mInitiatingThread == NS_GetCurrentThread());
+}
+#endif
+
+} 
+} 
+} 
