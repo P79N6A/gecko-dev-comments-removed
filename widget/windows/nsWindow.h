@@ -392,8 +392,6 @@ protected:
   void                    OnWindowPosChanging(LPWINDOWPOS& info);
   void                    OnSysColorChanged();
 
-  nsEventStatus           MaybeDispatchAsyncWheelEvent(mozilla::WidgetGUIEvent* aEvent);
-
   
 
 
