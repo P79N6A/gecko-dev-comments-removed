@@ -3018,17 +3018,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
        (aBuilder->RootReferenceFrame()->PresContext() != mOuter->PresContext()));
   }
 
-  if (aBuilder->IsPaintingToWindow() &&
-      !mShouldBuildScrollableLayer &&
-      shouldBuildLayer)
-  {
-    if (nsDisplayLayerEventRegions *eventRegions = aBuilder->GetLayerEventRegions()) {
-      
-      
-      eventRegions->AddInactiveScrollPort(mScrollPort + aBuilder->ToReferenceFrame(mOuter));
-    }
-  }
-
   mScrollParentID = aBuilder->GetCurrentScrollParentId();
 
   nsDisplayListCollection scrolledContent;
@@ -3140,29 +3129,47 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     
     
+    nsDisplayLayerEventRegions* inactiveRegionItem = nullptr;
+    if (aBuilder->IsPaintingToWindow() &&
+        !mShouldBuildScrollableLayer &&
+        shouldBuildLayer &&
+        gfxPrefs::LayoutEventRegionsEnabled())
+    {
+      inactiveRegionItem = new (aBuilder) nsDisplayLayerEventRegions(aBuilder, mScrolledFrame);
+      inactiveRegionItem->AddInactiveScrollPort(mScrollPort + aBuilder->ToReferenceFrame(mOuter));
+    }
+
+    
+    
     
     nsDisplayScrollInfoLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
       aBuilder, mScrolledFrame, mOuter);
+
     nsDisplayList* positionedDescendants = scrolledContent.PositionedDescendants();
+    nsDisplayList* destinationList = nullptr;
     if (BuildScrollContainerLayers()) {
       
       
       if (!positionedDescendants->IsEmpty()) {
         layerItem->SetOverrideZIndex(MaxZIndexInList(positionedDescendants, aBuilder));
-        positionedDescendants->AppendNewToTop(layerItem);
+        destinationList = positionedDescendants;
       } else {
-        aLists.Outlines()->AppendNewToTop(layerItem);
+        destinationList = aLists.Outlines();
       }
     } else {
       int32_t zindex =
         MaxZIndexInListOfItemsContainedInFrame(positionedDescendants, mOuter);
       if (zindex >= 0) {
         layerItem->SetOverrideZIndex(zindex);
-        positionedDescendants->AppendNewToTop(layerItem);
+        destinationList = positionedDescendants;
       } else {
-        scrolledContent.Outlines()->AppendNewToTop(layerItem);
+        destinationList = scrolledContent.Outlines();
       }
     }
+    if (inactiveRegionItem) {
+      destinationList->AppendNewToTop(inactiveRegionItem);
+    }
+    destinationList->AppendNewToTop(layerItem);
   }
   
   AppendScrollPartsTo(aBuilder, aDirtyRect, scrolledContent, usingDisplayport,
