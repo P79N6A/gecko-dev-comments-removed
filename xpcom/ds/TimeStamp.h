@@ -401,7 +401,7 @@ public:
 
 
 
-#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_COCOA)
+#if defined(MOZ_WIDGET_GONK) || defined(XP_DARWIN)
   static TimeStamp FromSystemTime(int64_t aSystemTime)
   {
     static_assert(sizeof(aSystemTime) == sizeof(TimeStampValue),
