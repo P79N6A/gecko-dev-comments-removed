@@ -2462,8 +2462,8 @@ JsepSessionImpl::AddCandidateToSdp(Sdp* sdp,
 {
 
   if (level >= sdp->GetMediaSectionCount()) {
-    
-    return NS_OK;
+    JSEP_SET_ERROR("Index " << level << " out of range");
+    return NS_ERROR_INVALID_ARG;
   }
 
   
