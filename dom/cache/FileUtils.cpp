@@ -279,8 +279,7 @@ BodyDeleteFiles(nsIFile* aBaseDir, const nsTArray<nsID>& aIdList)
     }
 
     
-    
-    
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
 
   return NS_OK;
