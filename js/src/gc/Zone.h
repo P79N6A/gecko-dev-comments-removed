@@ -42,6 +42,40 @@ class Allocator
     JS::Zone *zone_;
 };
 
+namespace gc {
+
+
+class ZoneHeapThreshold
+{
+    
+    double gcHeapGrowthFactor_;
+
+    
+    size_t gcTriggerBytes_;
+
+  public:
+    ZoneHeapThreshold()
+      : gcHeapGrowthFactor_(3.0),
+        gcTriggerBytes_(0)
+    {}
+
+    double gcHeapGrowthFactor() const { return gcHeapGrowthFactor_; }
+    size_t gcTriggerBytes() const { return gcTriggerBytes_; }
+
+    void updateAfterGC(size_t lastBytes, JSGCInvocationKind gckind,
+                       const GCSchedulingTunables &tunables, const GCSchedulingState &state);
+    void updateForRemovedArena(const GCSchedulingTunables &tunables);
+
+  private:
+    static double computeZoneHeapGrowthFactorForHeapSize(size_t lastBytes,
+                                                         const GCSchedulingTunables &tunables,
+                                                         const GCSchedulingState &state);
+    static size_t computeZoneTriggerBytes(double growthFactor, size_t lastBytes,
+                                          JSGCInvocationKind gckind,
+                                          const GCSchedulingTunables &tunables);
+};
+
+} 
 } 
 
 namespace JS {
@@ -95,7 +129,7 @@ struct Zone : public JS::shadow::Zone,
 {
     explicit Zone(JSRuntime *rt);
     ~Zone();
-    bool init();
+    bool init(bool isSystem);
 
     void findOutgoingEdges(js::gc::ComponentFinder<JS::Zone> &finder);
 
@@ -104,9 +138,6 @@ struct Zone : public JS::shadow::Zone,
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                 size_t *typePool,
                                 size_t *baselineStubsOptimized);
-
-    void setGCLastBytes(size_t lastBytes, js::JSGCInvocationKind gckind);
-    void reduceGCTriggerBytes(size_t amount);
 
     void resetGCMallocBytes();
     void setGCMaxMallocBytes(size_t value);
@@ -227,9 +258,6 @@ struct Zone : public JS::shadow::Zone,
     ZoneSet gcZoneGroupEdges;
 
     
-    double gcHeapGrowthFactor;
-
-    
     
     
     mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> gcMallocBytes;
@@ -248,7 +276,7 @@ struct Zone : public JS::shadow::Zone,
     js::gc::HeapUsage usage;
 
     
-    size_t gcTriggerBytes;
+    js::gc::ZoneHeapThreshold threshold;
 
     
     void *data;
