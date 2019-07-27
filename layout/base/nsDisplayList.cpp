@@ -65,6 +65,20 @@ using namespace mozilla::dom;
 using namespace mozilla::layout;
 typedef FrameMetrics::ViewID ViewID;
 
+static bool
+SpammyLayoutWarningsEnabled()
+{
+  static bool sValue = false;
+  static bool sValueInitialized = false;
+
+  if (!sValueInitialized) {
+    Preferences::GetBool("layout.spammy_warnings.enabled", &sValue);
+    sValueInitialized = true;
+  }
+
+  return sValue;
+}
+
 static inline nsIFrame*
 GetTransformRootFrame(nsIFrame* aFrame)
 {
@@ -1267,11 +1281,17 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
                      aBuilder->FindReferenceFrameFor(aForFrame),
                      root, viewport,
                      !isRoot, isRoot, containerParameters);
+
+  
+  
+#ifdef DEBUG
   if (usingDisplayport &&
-      !(root->GetContentFlags() & Layer::CONTENT_OPAQUE)) {
+      !(root->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+      SpammyLayoutWarningsEnabled()) {
     
     NS_WARNING("Transparent content with displayports can be expensive.");
   }
+#endif
 
   layerManager->SetRoot(root);
   layerBuilder->WillEndTransaction();
