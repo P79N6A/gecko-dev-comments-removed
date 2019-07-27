@@ -327,12 +327,6 @@ let AboutHomeListener = {
       doc.documentElement.setAttribute("searchUIConfiguration", "oldsearchui");
     }
 
-    
-    
-    if (Services.prefs.getPrefType("browser.aboutHome.apps") == Services.prefs.PREF_BOOL &&
-        Services.prefs.getBoolPref("browser.aboutHome.apps"))
-      doc.getElementById("apps").removeAttribute("hidden");
-
     sendAsyncMessage("AboutHome:RequestUpdate");
     doc.addEventListener("AboutHomeSearchEvent", this, true, true);
     doc.addEventListener("AboutHomeSearchPanel", this, true, true);
