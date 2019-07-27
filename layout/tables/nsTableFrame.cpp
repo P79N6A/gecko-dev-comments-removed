@@ -3399,7 +3399,7 @@ nsTableFrame::DistributeBSizeToRows(const nsHTMLReflowState& aReflowState,
         LogicalRect rowNormalRect(wm, rowFrame->GetNormalRect(), 0);
         nscoord cellSpacingB = GetRowSpacing(rowFrame->GetRowIndex());
         if ((amountUsed < aAmount) && rowFrame->HasPctBSize()) {
-          nscoord pctBSize = rowFrame->GetBSize(pctBasis);
+          nscoord pctBSize = rowFrame->GetInitialBSize(pctBasis);
           nscoord amountForRow = std::min(aAmount - amountUsed,
                                           pctBSize - rowNormalRect.BSize(wm));
           if (amountForRow > 0) {
