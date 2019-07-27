@@ -128,6 +128,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "dataStoreService",
                                    "@mozilla.org/datastore-service;1",
                                    "nsIDataStoreService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "appsService",
+                                   "@mozilla.org/AppsService;1",
+                                   "nsIAppsService");
+
 XPCOMUtils.defineLazyGetter(this, "msgmgr", function() {
   return Cc["@mozilla.org/system-message-internal;1"]
          .getService(Ci.nsISystemMessagesInternal);
@@ -136,6 +140,11 @@ XPCOMUtils.defineLazyGetter(this, "msgmgr", function() {
 XPCOMUtils.defineLazyGetter(this, "updateSvc", function() {
   return Cc["@mozilla.org/offlinecacheupdate-service;1"]
            .getService(Ci.nsIOfflineCacheUpdateService);
+});
+
+XPCOMUtils.defineLazyGetter(this, "permMgr", function() {
+  return Cc["@mozilla.org/permissionmanager;1"]
+           .getService(Ci.nsIPermissionManager);
 });
 
 #ifdef MOZ_WIDGET_GONK
@@ -625,8 +634,6 @@ this.DOMApplicationRegistry = {
           continue;
         
         let localId = this.webapps[id].localId;
-        let permMgr = Cc["@mozilla.org/permissionmanager;1"]
-                        .getService(Ci.nsIPermissionManager);
         permMgr.removePermissionsForApp(localId, false);
         Services.cookies.removeCookiesForApp(localId, false);
         this._clearPrivateData(localId, false);
@@ -1199,35 +1206,57 @@ this.DOMApplicationRegistry = {
     
     Services.prefs.setBoolPref("dom.mozApps.used", true);
 
-    
-    
-    
-    if (["Webapps:GetNotInstalled",
-         "Webapps:ApplyDownload",
-         "Webapps:Uninstall",
-         "Webapps:Import",
-         "Webapps:ExtractManifest",
-         "Webapps:SetEnabled"].indexOf(aMessage.name) != -1) {
-      if (!aMessage.target.assertPermission("webapps-manage")) {
-        debug("mozApps message " + aMessage.name +
-        " from a content process with no 'webapps-manage' privileges.");
-        return null;
-      }
-    }
-    
-    if ("Webapps:RegisterBEP" == aMessage.name) {
-      if (!aMessage.target.assertPermission("browser")) {
-        debug("mozApps message " + aMessage.name +
-        " from a content process with no 'browser' privileges.");
-        return null;
-      }
-    }
-
     let msg = aMessage.data || {};
     let mm = aMessage.target;
     msg.mm = mm;
 
+    let principal = aMessage.principal;
+
+    let checkPermission = function(aPermission) {
+      if (!permMgr.testPermissionFromPrincipal(principal, aPermission)) {
+        debug("mozApps message " + aMessage.name +
+              " from a content process with no " + aPermission + " privileges.");
+        return false;
+      }
+      return true;
+    };
+
+    
+
+    let allowed = true;
+    switch (aMessage.name) {
+      case "Webapps:Uninstall":
+        let isCurrentHomescreen =
+          Services.prefs.prefHasUserValue("dom.mozApps.homescreenURL") &&
+          Services.prefs.getCharPref("dom.mozApps.homescreenURL") ==
+          appsService.getManifestURLByLocalId(principal.appId);
+
+        allowed = checkPermission("webapps-manage") ||
+                  (checkPermission("homescreen-webapps-manage") && isCurrentHomescreen);
+        break;
+
+      case "Webapps:GetNotInstalled":
+      case "Webapps:ApplyDownload":
+      case "Webapps:Import":
+      case "Webapps:ExtractManifest":
+      case "Webapps:SetEnabled":
+        allowed = checkPermission("webapps-manage");
+        break;
+
+      case "Webapps:RegisterBEP":
+        allowed = checkPermission("browser");
+        break;
+
+      default:
+        break;
+    }
+
     let processedImmediately = true;
+
+    if (!allowed) {
+      mm.killChild();
+      return null;
+    }
 
     
     
