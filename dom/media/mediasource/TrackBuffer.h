@@ -92,6 +92,13 @@ public:
   
   const nsTArray<nsRefPtr<SourceBufferDecoder>>& Decoders();
 
+  
+  
+  
+  
+  
+  bool RangeRemoval(int64_t aStart, int64_t aEnd);
+
 #ifdef MOZ_EME
   nsresult SetCDMProxy(CDMProxy* aProxy);
 #endif
@@ -113,7 +120,8 @@ private:
 
   
   
-  bool AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength);
+  bool AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength,
+                                   uint32_t aDuration );
 
   
   bool QueueInitializeDecoder(SourceBufferDecoder* aDecoder);

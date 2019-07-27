@@ -121,6 +121,26 @@ public:
   
   int64_t ConvertToByteOffset(double aTime);
 
+  
+
+  
+  
+  
+  
+  
+  void Trim(int64_t aDuration);
+  bool WasTrimmed()
+  {
+    return mTrimmedOffset >= 0;
+  }
+
+  
+  void SetRealMediaDuration(int64_t aDuration);
+  int64_t GetRealMediaDuration()
+  {
+    return mRealMediaDuration;
+  }
+
 private:
   virtual ~SourceBufferDecoder();
 
@@ -131,8 +151,14 @@ private:
 
   AbstractMediaDecoder* mParentDecoder;
   nsRefPtr<MediaDecoderReader> mReader;
+  
   int64_t mTimestampOffset;
+  
   int64_t mMediaDuration;
+  
+  int64_t mRealMediaDuration;
+  
+  double mTrimmedOffset;
 
 #ifdef MOZ_EME
   nsRefPtr<CDMProxy> mCDMProxy;

@@ -146,12 +146,20 @@ private:
   
   
   
-  bool SwitchAudioReader(int64_t aTarget, int64_t aError = 0);
-  bool SwitchVideoReader(int64_t aTarget, int64_t aError = 0);
+  enum SwitchReaderResult {
+    READER_ERROR = -1,
+    READER_EXISTING = 0,
+    READER_NEW = 1,
+  };
+  SwitchReaderResult SwitchAudioReader(int64_t aTarget, int64_t aError = 0);
+  SwitchReaderResult SwitchVideoReader(int64_t aTarget, int64_t aError = 0);
   void RequestAudioDataComplete(int64_t aTime);
   void RequestAudioDataFailed(nsresult aResult);
   void RequestVideoDataComplete(int64_t aTime);
   void RequestVideoDataFailed(nsresult aResult);
+  
+  
+  void CheckForWaitOrEndOfStream(MediaData::Type aType);
 
   
   
@@ -214,4 +222,4 @@ private:
 
 } 
 
-#endif 
+#endif

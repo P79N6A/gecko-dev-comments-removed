@@ -167,7 +167,7 @@ TrackBuffer::AppendData(const uint8_t* aData, uint32_t aLength, int64_t aTimesta
         mLastEndTimestamp &&
         (!mParser->TimestampsFuzzyEqual(start, mLastEndTimestamp.value()) ||
          mLastTimestampOffset != aTimestampOffset ||
-         mDecoderPerSegment)) {
+         mDecoderPerSegment || mCurrentDecoder->WasTrimmed())) {
       MSE_DEBUG("TrackBuffer(%p)::AppendData: Data last=[%lld, %lld] overlaps [%lld, %lld]",
                 this, mLastStartTimestamp, mLastEndTimestamp.value(), start, end);
 
@@ -178,7 +178,7 @@ TrackBuffer::AppendData(const uint8_t* aData, uint32_t aLength, int64_t aTimesta
       }
       MSE_DEBUG("TrackBuffer(%p)::AppendData: Decoder marked as initialized.", this);
       const nsTArray<uint8_t>& initData = mParser->InitData();
-      AppendDataToCurrentResource(initData.Elements(), initData.Length());
+      AppendDataToCurrentResource(initData.Elements(), initData.Length(), end - start);
       mLastStartTimestamp = start;
     } else {
       MSE_DEBUG("TrackBuffer(%p)::AppendData: Segment last=[%lld, %lld] [%lld, %lld]",
@@ -188,7 +188,7 @@ TrackBuffer::AppendData(const uint8_t* aData, uint32_t aLength, int64_t aTimesta
     mLastEndTimestamp.emplace(end);
   }
 
-  if (!AppendDataToCurrentResource(aData, aLength)) {
+  if (!AppendDataToCurrentResource(aData, aLength, end - start)) {
     return false;
   }
 
@@ -199,7 +199,7 @@ TrackBuffer::AppendData(const uint8_t* aData, uint32_t aLength, int64_t aTimesta
 }
 
 bool
-TrackBuffer::AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength)
+TrackBuffer::AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength, uint32_t aDuration)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mCurrentDecoder) {
@@ -209,6 +209,7 @@ TrackBuffer::AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength)
   SourceBufferResource* resource = mCurrentDecoder->GetResource();
   int64_t appendOffset = resource->GetLength();
   resource->AppendData(aData, aLength);
+  mCurrentDecoder->SetRealMediaDuration(mCurrentDecoder->GetRealMediaDuration() + aDuration);
   
   mCurrentDecoder->NotifyDataArrived(reinterpret_cast<const char*>(aData),
                                      aLength, appendOffset);
@@ -288,8 +289,8 @@ TrackBuffer::EvictData(double aPlaybackTime,
               onCurrent ? "true" : "false",
               pastCurrentDecoder ? "true" : "false");
 
-    if (pastCurrentDecoder
-        && !mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
+    if (pastCurrentDecoder &&
+        !mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
       
       
       MSE_DEBUG("TrackBuffer(%p)::EvictData evicting all before start "
@@ -718,6 +719,48 @@ TrackBuffer::RemoveDecoder(SourceBufferDecoder* aDecoder)
     }
   }
   aDecoder->GetReader()->GetTaskQueue()->Dispatch(task);
+}
+
+bool
+TrackBuffer::RangeRemoval(int64_t aStart, int64_t aEnd)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
+
+  nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
+  int64_t bufferedEnd = Buffered(buffered) * USECS_PER_S;
+  int64_t bufferedStart = buffered->GetStartTime() * USECS_PER_S;
+
+  if (bufferedStart < 0 || aStart > bufferedEnd || aEnd < bufferedStart) {
+    
+    return false;
+  }
+  if (aEnd < bufferedEnd) {
+    
+    NS_WARNING("TrackBuffer::RangeRemoval unsupported arguments. "
+               "Can only handle trimming");
+    return false;
+  }
+
+  nsTArray<SourceBufferDecoder*> decoders;
+  decoders.AppendElements(mInitializedDecoders);
+
+  
+  for (size_t i = 0; i < decoders.Length(); ++i) {
+    decoders[i]->Trim(aStart);
+    if (aStart <= buffered->GetStartTime()) {
+      
+      int64_t size = decoders[i]->GetResource()->GetSize();
+      decoders[i]->GetResource()->EvictData(size, size);
+      if (decoders[i] == mCurrentDecoder ||
+          mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
+        continue;
+      }
+      MSE_DEBUG("TrackBuffer(%p):RangeRemoval remove empty decoders=%d", this, i);
+      RemoveDecoder(decoders[i]);
+    }
+  }
+  return true;
 }
 
 } 

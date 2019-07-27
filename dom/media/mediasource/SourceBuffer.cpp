@@ -36,9 +36,36 @@ extern PRLogModuleInfo* GetMediaSourceAPILog();
 #define MSE_API(...)
 #endif
 
+
+
+#define APPENDBUFFER_IS_SYNCHRONOUS
+
 namespace mozilla {
 
 namespace dom {
+
+class RangeRemovalRunnable : public nsRunnable {
+public:
+  RangeRemovalRunnable(SourceBuffer* aSourceBuffer,
+                     double aStart,
+                     double aEnd)
+  : mSourceBuffer(aSourceBuffer)
+  , mStart(aStart)
+  , mEnd(aEnd)
+  { }
+
+  NS_IMETHOD Run() MOZ_OVERRIDE MOZ_FINAL {
+
+    mSourceBuffer->DoRangeRemoval(mStart, mEnd);
+
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<SourceBuffer> mSourceBuffer;
+  double mStart;
+  double mEnd;
+};
 
 void
 SourceBuffer::SetMode(SourceBufferAppendMode aMode, ErrorResult& aRv)
@@ -212,13 +239,37 @@ void
 SourceBuffer::RangeRemoval(double aStart, double aEnd)
 {
   StartUpdating();
-  
+
+#if defined(APPENDBUFFER_IS_SYNCHRONOUS)
+  DoRangeRemoval(aStart, aEnd);
 
   
   
   
   nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &SourceBuffer::StopUpdating);
   NS_DispatchToMainThread(event);
+#else
+  nsRefPtr<nsIRunnable> task = new RangeRemovalRunnable(this, aStart, aEnd);
+  NS_DispatchToMainThread(task);
+#endif
+}
+
+void
+SourceBuffer::DoRangeRemoval(double aStart, double aEnd)
+{
+  if (!mUpdating) {
+    
+    return;
+  }
+  if (mTrackBuffer && !IsInfinite(aStart)) {
+    int64_t start = aStart * USECS_PER_S;
+    int64_t end = IsInfinite(aEnd) ? INT64_MAX : (int64_t)(aEnd * USECS_PER_S);
+    mTrackBuffer->RangeRemoval(start, end);
+  }
+
+#if !defined(APPENDBUFFER_IS_SYNCHRONOUS)
+  StopUpdating();
+#endif
 }
 
 void

@@ -110,7 +110,9 @@ public:
   double GetBufferedEnd();
 
   
+  
   void RangeRemoval(double aStart, double aEnd);
+  void DoRangeRemoval(double aStart, double aEnd);
 
 #if defined(DEBUG)
   void Dump(const char* aPath);
