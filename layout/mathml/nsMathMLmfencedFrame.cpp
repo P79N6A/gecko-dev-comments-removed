@@ -184,6 +184,29 @@ nsMathMLmfencedFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 }
 
+
+
+
+
+
+
+static void
+ApplyUnstretchedMetrics(nsPresContext*      aPresContext,
+                        nsRenderingContext& aRenderingContext,
+                        nsMathMLChar*       aMathMLChar,
+                        nsBoundingMetrics&  aMetrics,
+                        bool                aIsRTL)
+{
+  if (aMathMLChar && 0 < aMathMLChar->Length()) {
+    nsBoundingMetrics charSize;
+    aMathMLChar->Stretch(aPresContext, aRenderingContext,
+                         NS_STRETCH_DIRECTION_DEFAULT,
+                         aMetrics, 
+                         charSize, NS_STRETCH_NONE, aIsRTL);
+    aMetrics += charSize;
+  }
+}
+
 void
 nsMathMLmfencedFrame::Reflow(nsPresContext*          aPresContext,
                              nsHTMLReflowMetrics&     aDesiredSize,
@@ -292,6 +315,19 @@ nsMathMLmfencedFrame::Reflow(nsPresContext*          aPresContext,
                           STRETCH_CONSIDER_EMBELLISHMENTS,
                           stretchDir, containerSize);
 
+  bool isRTL = StyleVisibility()->mDirection;
+
+  
+  
+  ApplyUnstretchedMetrics(aPresContext, *aReflowState.rendContext, mOpenChar,
+                          containerSize, isRTL);
+  for (i = 0; i < mSeparatorsCount; i++) {
+    ApplyUnstretchedMetrics(aPresContext, *aReflowState.rendContext,
+                            &mSeparatorsChar[i], containerSize, isRTL);
+  }
+  ApplyUnstretchedMetrics(aPresContext, *aReflowState.rendContext, mCloseChar,
+                          containerSize, isRTL);
+
   
   
   
@@ -301,8 +337,6 @@ nsMathMLmfencedFrame::Reflow(nsPresContext*          aPresContext,
                          containerSize.descent + axisHeight);
   containerSize.ascent = delta + axisHeight;
   containerSize.descent = delta - axisHeight;
-
-  bool isRTL = StyleVisibility()->mDirection;
 
   
   
