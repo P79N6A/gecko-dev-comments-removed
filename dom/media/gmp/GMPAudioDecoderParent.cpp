@@ -4,7 +4,7 @@
 
 
 #include "GMPAudioDecoderParent.h"
-#include "GMPParent.h"
+#include "GMPContentParent.h"
 #include <stdio.h>
 #include "mozilla/unused.h"
 #include "GMPMessageUtils.h"
@@ -29,7 +29,7 @@ extern PRLogModuleInfo* GetGMPLog();
 
 namespace gmp {
 
-GMPAudioDecoderParent::GMPAudioDecoderParent(GMPParent* aPlugin)
+GMPAudioDecoderParent::GMPAudioDecoderParent(GMPContentParent* aPlugin)
   : mIsOpen(false)
   , mShuttingDown(false)
   , mPlugin(aPlugin)
@@ -260,6 +260,13 @@ GMPAudioDecoderParent::RecvError(const GMPErr& aError)
   
   mCallback->Error(aError);
 
+  return true;
+}
+
+bool
+GMPAudioDecoderParent::RecvShutdown()
+{
+  Shutdown();
   return true;
 }
 

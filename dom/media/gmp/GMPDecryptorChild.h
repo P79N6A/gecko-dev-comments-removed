@@ -15,7 +15,7 @@
 namespace mozilla {
 namespace gmp {
 
-class GMPChild;
+class GMPContentChild;
 
 class GMPDecryptorChild : public GMPDecryptorCallback
                         , public GMPDecryptorHost
@@ -24,7 +24,7 @@ class GMPDecryptorChild : public GMPDecryptorCallback
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GMPDecryptorChild);
 
-  explicit GMPDecryptorChild(GMPChild* aPlugin,
+  explicit GMPDecryptorChild(GMPContentChild* aPlugin,
                              const nsTArray<uint8_t>& aPluginVoucher,
                              const nsTArray<uint8_t>& aSandboxVoucher);
 
@@ -123,7 +123,7 @@ private:
   
   
   GMPDecryptor* mSession;
-  GMPChild* mPlugin;
+  GMPContentChild* mPlugin;
 
   
   const nsTArray<uint8_t>& mPluginVoucher;
