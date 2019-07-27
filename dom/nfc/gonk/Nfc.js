@@ -356,7 +356,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
         case "NFC:NotifyUserAcceptedP2P":
           
           if (!this.isPeerReadyTarget(msg.json.appId)) {
-            debug("Application ID : " + appId + " is not a registered PeerReadytarget");
+            debug("Application ID : " + msg.json.appId + " is not a registered PeerReadytarget");
             return null;
           }
 
