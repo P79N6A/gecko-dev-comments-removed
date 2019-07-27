@@ -248,6 +248,23 @@ public:
     return surface.forget();
   }
 
+  already_AddRefed<CachedSurface>
+  LookupBestMatch(const SurfaceKey&      aSurfaceKey,
+                  const Maybe<uint32_t>& aAlternateFlags)
+  {
+    
+    nsRefPtr<CachedSurface> surface;
+    mSurfaces.Get(aSurfaceKey, getter_AddRefs(surface));
+    if (surface) {
+      return surface.forget();
+    }
+
+    
+    MatchContext matchContext(aSurfaceKey, aAlternateFlags);
+    ForEach(TryToImproveMatch, &matchContext);
+    return matchContext.mBestMatch.forget();
+  }
+
   void ForEach(SurfaceTable::EnumReadFunction aFunction, void* aData)
   {
     mSurfaces.EnumerateRead(aFunction, aData);
@@ -257,6 +274,75 @@ public:
   bool IsLocked() const { return mLocked; }
 
 private:
+  struct MatchContext
+  {
+    MatchContext(const SurfaceKey& aIdealKey,
+                 const Maybe<uint32_t>& aAlternateFlags)
+      : mIdealKey(aIdealKey)
+      , mAlternateFlags(aAlternateFlags)
+    { }
+
+    const SurfaceKey& mIdealKey;
+    const Maybe<uint32_t> mAlternateFlags;
+    nsRefPtr<CachedSurface> mBestMatch;
+  };
+
+  static PLDHashOperator TryToImproveMatch(const SurfaceKey& aSurfaceKey,
+                                           CachedSurface*    aSurface,
+                                           void*             aContext)
+  {
+    auto context = static_cast<MatchContext*>(aContext);
+    const SurfaceKey& idealKey = context->mIdealKey;
+
+    
+    if (aSurfaceKey.AnimationTime() != idealKey.AnimationTime() ||
+        aSurfaceKey.SVGContext() != idealKey.SVGContext()) {
+      return PL_DHASH_NEXT;
+    }
+
+    
+    
+    if (aSurfaceKey.Flags() != idealKey.Flags() &&
+        Some(aSurfaceKey.Flags()) != context->mAlternateFlags) {
+      return PL_DHASH_NEXT;
+    }
+
+    
+    
+    if (!context->mBestMatch) {
+      context->mBestMatch = aSurface;
+      return PL_DHASH_NEXT;
+    }
+
+    MOZ_ASSERT(context->mBestMatch, "Should have a current best match");
+    SurfaceKey bestMatchKey = context->mBestMatch->GetSurfaceKey();
+
+    
+    
+    
+    int64_t idealArea = idealKey.Size().width * idealKey.Size().height;
+    int64_t surfaceArea = aSurfaceKey.Size().width * aSurfaceKey.Size().height;
+    int64_t bestMatchArea =
+      bestMatchKey.Size().width * bestMatchKey.Size().height;
+
+    
+    if (bestMatchArea < idealArea) {
+      if (surfaceArea > bestMatchArea) {
+        context->mBestMatch = aSurface;
+      }
+      return PL_DHASH_NEXT;
+    }
+
+    
+    if (idealArea <= surfaceArea && surfaceArea < bestMatchArea) {
+      context->mBestMatch = aSurface;
+      return PL_DHASH_NEXT;
+    }
+
+    
+    return PL_DHASH_NEXT;
+  }
+
   SurfaceTable mSurfaces;
   bool         mLocked;
 };
@@ -444,6 +530,45 @@ public:
       
       Remove(surface);
       return DrawableFrameRef();
+    }
+
+    if (!surface->IsLocked()) {
+      mExpirationTracker.MarkUsed(surface);
+    }
+
+    return ref;
+  }
+
+  DrawableFrameRef LookupBestMatch(const ImageKey         aImageKey,
+                                   const SurfaceKey&      aSurfaceKey,
+                                   const Maybe<uint32_t>& aAlternateFlags)
+  {
+    nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
+    if (!cache)
+      return DrawableFrameRef();  
+
+    
+    
+    
+    
+    
+
+    nsRefPtr<CachedSurface> surface;
+    DrawableFrameRef ref;
+    while (true) {
+      surface = cache->LookupBestMatch(aSurfaceKey, aAlternateFlags);
+      if (!surface) {
+        return DrawableFrameRef();  
+      }
+
+      ref = surface->DrawableRef();
+      if (ref) {
+        break;
+      }
+
+      
+      
+      Remove(surface);
     }
 
     if (!surface->IsLocked()) {
@@ -804,6 +929,20 @@ SurfaceCache::Lookup(const ImageKey         aImageKey,
   }
 
   return ref;
+}
+
+ DrawableFrameRef
+SurfaceCache::LookupBestMatch(const ImageKey         aImageKey,
+                              const SurfaceKey&      aSurfaceKey,
+                              const Maybe<uint32_t>& aAlternateFlags
+                                )
+{
+  if (!sInstance) {
+    return DrawableFrameRef();
+  }
+
+  MutexAutoLock lock(sInstance->GetMutex());
+  return sInstance->LookupBestMatch(aImageKey, aSurfaceKey, aAlternateFlags);
 }
 
  InsertOutcome

@@ -63,6 +63,9 @@ public:
   }
 
   IntSize Size() const { return mSize; }
+  Maybe<SVGImageContext> SVGContext() const { return mSVGContext; }
+  float AnimationTime() const { return mAnimationTime; }
+  uint32_t Flags() const { return mFlags; }
 
   SurfaceKey WithNewFlags(uint32_t aFlags) const
   {
@@ -189,6 +192,28 @@ struct SurfaceCache
                                  const SurfaceKey& aSurfaceKey,
                                  const Maybe<uint32_t>& aAlternateFlags
                                    = Nothing());
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static DrawableFrameRef LookupBestMatch(const ImageKey    aImageKey,
+                                          const SurfaceKey& aSurfaceKey,
+                                          const Maybe<uint32_t>& aAlternateFlags
+                                            = Nothing());
 
   
 
