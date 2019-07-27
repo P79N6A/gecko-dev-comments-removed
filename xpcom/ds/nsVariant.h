@@ -53,7 +53,10 @@ struct nsDiscriminatedUnion
     nsACString*    mCStringValue;
     struct
     {
-      nsISupports* mInterfaceValue;
+      
+      
+      
+      nsISupports* MOZ_OWNING_REF mInterfaceValue;
       nsIID        mInterfaceID;
     } iface;
     struct
