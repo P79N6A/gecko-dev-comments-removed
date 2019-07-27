@@ -85,6 +85,10 @@ MOZ_EXPORT void
 SizeOf(Sizes* aSizes);
 
 
+MOZ_EXPORT void
+StatusMsg(const char* aFmt, ...);
+
+
 MOZ_EXPORT bool
 IsRunning();
 
