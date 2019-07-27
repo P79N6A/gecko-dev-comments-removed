@@ -911,11 +911,22 @@ protected:
   bool mIsAudioPrerolling;
   bool mIsVideoPrerolling;
 
+  MOZ_BEGIN_NESTED_ENUM_CLASS(RequestStatus)
+    Idle,
+    Pending,
+    Waiting
+  MOZ_END_NESTED_ENUM_CLASS(RequestStatus)
+
   
   
   
-  bool mAudioRequestPending;
-  bool mVideoRequestPending;
+  RequestStatus mAudioRequestStatus;
+  RequestStatus mVideoRequestStatus;
+
+  RequestStatus& RequestStatusRef(MediaData::Type aType)
+  {
+    return aType == MediaData::AUDIO_DATA ? mAudioRequestStatus : mVideoRequestStatus;
+  }
 
   
   
