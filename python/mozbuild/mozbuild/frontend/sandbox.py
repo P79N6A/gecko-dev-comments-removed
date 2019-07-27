@@ -129,6 +129,9 @@ class Sandbox(dict):
         
         self._last_name_error = None
 
+        
+        self._current_source = None
+
     @property
     def _context(self):
         return self._active_contexts[-1]
@@ -171,6 +174,8 @@ class Sandbox(dict):
         
         
 
+        old_source = self._current_source
+        self._current_source = source
         try:
             
             
@@ -212,6 +217,7 @@ class Sandbox(dict):
                 source_stack.append(path)
             raise SandboxExecutionError(source_stack, exc[0], exc[1], exc[2])
         finally:
+            self._current_source = old_source
             self._context._sandbox = old_sandbox
             if path and becomes_current_path:
                 self._context.pop_source()
