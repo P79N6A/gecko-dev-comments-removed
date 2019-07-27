@@ -671,7 +671,11 @@ NS_METHOD nsWindow::Destroy()
 
 
 
-  DestroyLayerManager();
+  if (mLayerManager) {
+    mLayerManager->Destroy();
+  }
+  mLayerManager = nullptr;
+  DestroyCompositor();
 
   
 
@@ -6532,7 +6536,10 @@ bool nsWindow::AutoErase(HDC dc)
 void
 nsWindow::ClearCompositor(nsWindow* aWindow)
 {
-  aWindow->DestroyLayerManager();
+  if (aWindow->mLayerManager) {
+    aWindow->mLayerManager = nullptr;
+    aWindow->DestroyCompositor();
+  }
 }
 
 bool
