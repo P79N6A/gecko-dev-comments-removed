@@ -12,7 +12,8 @@
 
 
 
-#define JS_TYPROTO_SLOTS                 0
+#define JS_TYPROTO_SLOT_DESCR            0
+#define JS_TYPROTO_SLOTS                 1
 
 
 

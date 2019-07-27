@@ -30,8 +30,17 @@
 
 
 
+#define TYPROTO_DESCR(obj) \
+    UnsafeGetReservedSlot(obj, JS_TYPROTO_SLOT_DESCR)
+
+
+
 #define HAS_PROPERTY(obj, prop) \
     callFunction(std_Object_hasOwnProperty, obj, prop)
+
+function TypedObjectTypeDescr(typedObj) {
+  return TYPROTO_DESCR(std_Object_getPrototypeOf(typedObj));
+}
 
 
 

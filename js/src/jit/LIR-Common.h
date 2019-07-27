@@ -4296,16 +4296,21 @@ class LTypedArrayElements : public LInstructionHelper<1, 1, 0>
 };
 
 
-class LTypedObjectDescr : public LInstructionHelper<1, 1, 0>
+
+class LTypedObjectProto : public LCallInstructionHelper<1, 1, 1>
 {
   public:
-    LIR_HEADER(TypedObjectDescr)
+    LIR_HEADER(TypedObjectProto)
 
-    LTypedObjectDescr(const LAllocation &object) {
+    LTypedObjectProto(const LAllocation &object, const LDefinition &temp1) {
         setOperand(0, object);
+        setTemp(0, temp1);
     }
     const LAllocation *object() {
         return getOperand(0);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
     }
 };
 

@@ -4884,13 +4884,19 @@ CodeGenerator::visitTypedArrayElements(LTypedArrayElements *lir)
 }
 
 void
-CodeGenerator::visitTypedObjectDescr(LTypedObjectDescr *lir)
+CodeGenerator::visitTypedObjectProto(LTypedObjectProto *lir)
 {
     Register obj = ToRegister(lir->object());
-    Register out = ToRegister(lir->output());
+    MOZ_ASSERT(ToRegister(lir->output()) == ReturnReg);
 
-    masm.loadPtr(Address(obj, JSObject::offsetOfType()), out);
-    masm.loadPtr(Address(out, types::TypeObject::offsetOfAddendum()), out);
+    
+    
+    
+
+    const Register tempReg = ToRegister(lir->temp());
+    masm.setupUnalignedABICall(1, tempReg);
+    masm.passABIArg(obj);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, TypedObjectProto));
 }
 
 void
