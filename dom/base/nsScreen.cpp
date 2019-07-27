@@ -305,6 +305,19 @@ void
 nsScreen::MozUnlockOrientation()
 {
   hal::UnlockScreenOrientation();
+
+  if (!mEventListener) {
+    return;
+  }
+
+  
+  nsCOMPtr<EventTarget> target = do_QueryInterface(GetOwner()->GetDoc());
+  if (target) {
+    target->RemoveSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
+                                      mEventListener,  true);
+  }
+
+  mEventListener = nullptr;
 }
 
 bool
