@@ -87,6 +87,7 @@ const NETWORK_TYPE_MOBILE_SUPL = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL
 const NETWORK_TYPE_MOBILE_IMS  = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_IMS;
 const NETWORK_TYPE_MOBILE_DUN  = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN;
 
+
 const RIL_IPC_ICCMANAGER_MSG_NAMES = [
   "RIL:GetRilContext",
   "RIL:SendStkResponse",
@@ -180,6 +181,7 @@ XPCOMUtils.defineLazyGetter(this, "gStkCmdFactory", function() {
   Cu.import("resource://gre/modules/StkProactiveCmdFactory.jsm", stk);
   return stk.StkProactiveCmdFactory;
 });
+
 
 XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
   return {
@@ -1427,7 +1429,7 @@ function RadioInterfaceLayer() {
   Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
   Services.prefs.addObserver(kPrefRilDebuggingEnabled, this, false);
 
-  gMessageManager.init(this);
+  gMessageManager.init(this); 
   gRadioEnabledController.init(this);
   gDataConnectionManager.init(this);
 }
@@ -1439,7 +1441,7 @@ RadioInterfaceLayer.prototype = {
                                     interfaces: [Ci.nsIRadioInterfaceLayer]}),
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIRadioInterfaceLayer,
-                                         Ci.nsIRadioInterfaceLayer_new,
+                                         Ci.nsIRadioInterfaceLayer_new, 
                                          Ci.nsIObserver]),
 
   
@@ -1681,6 +1683,7 @@ function RadioInterface(aClientId, aWorkerMessenger) {
   this.clientId = aClientId;
   this.workerMessenger = {
     send: aWorkerMessenger.send.bind(aWorkerMessenger, aClientId),
+    
     sendWithIPCMessage:
       aWorkerMessenger.sendWithIPCMessage.bind(aWorkerMessenger, aClientId),
   };
@@ -1790,6 +1793,8 @@ RadioInterface.prototype = {
   },
 
   
+
+
 
 
   receiveMessage: function(msg) {
@@ -1923,6 +1928,7 @@ RadioInterface.prototype = {
         gRadioEnabledController.receiveCardState(this.clientId);
         gIccService.notifyCardStateChanged(this.clientId,
                                            this.rilContext.cardState);
+        
         gMessageManager.sendIccMessage("RIL:CardStateChanged",
                                        this.clientId, message);
         break;
@@ -1952,6 +1958,7 @@ RadioInterface.prototype = {
         this.handleStkProactiveCommand(message);
         break;
       case "stksessionend":
+        
         gMessageManager.sendIccMessage("RIL:StkSessionEnd", this.clientId, null);
         break;
       case "cdma-info-rec-received":
@@ -1963,6 +1970,7 @@ RadioInterface.prototype = {
     }
   },
 
+  
   
   
   
@@ -1984,6 +1992,7 @@ RadioInterface.prototype = {
     return true;
   },
 
+  
   matchMvno: function(target, message) {
     if (DEBUG) this.debug("matchMvno: " + JSON.stringify(message));
 
@@ -2221,6 +2230,8 @@ RadioInterface.prototype = {
   handleIccInfoChange: function(message) {
     let oldSpn = this.rilContext.iccInfo ? this.rilContext.iccInfo.spn : null;
 
+    
+    
     if (!message || !message.iccid) {
       
       
@@ -2248,6 +2259,7 @@ RadioInterface.prototype = {
       this.updateInfo(message, this.rilContext.iccInfo);
     }
 
+    
     
     
     gMessageManager.sendIccMessage("RIL:IccInfoChanged",
@@ -2281,6 +2293,7 @@ RadioInterface.prototype = {
         .notifyStkProactiveCommand(iccId,
                                    gStkCmdFactory.createCommand(message));
     }
+    
     gMessageManager.sendIccMessage("RIL:StkCommand", this.clientId, message);
   },
 
