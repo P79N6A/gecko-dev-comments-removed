@@ -151,6 +151,8 @@ public:
   bool IsChar() const;
 
 protected:
+  ~UIEvent() {}
+
   
   nsIntPoint GetMovementPoint();
   nsIntPoint GetLayerPoint() const;

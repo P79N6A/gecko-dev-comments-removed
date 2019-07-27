@@ -71,6 +71,9 @@ public:
                        aKeyCode, aCharCode);
   }
 
+protected:
+  ~KeyboardEvent() {}
+
 private:
   
   bool mInitializedByCtor;

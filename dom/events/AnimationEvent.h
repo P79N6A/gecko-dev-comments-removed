@@ -43,6 +43,9 @@ public:
   
 
   float ElapsedTime();
+
+protected:
+  ~AnimationEvent() {}
 };
 
 } 
