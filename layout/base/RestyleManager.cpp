@@ -951,11 +951,9 @@ RestyleManager::RestyleElement(Element*        aElement,
         
         newContext = nullptr;
         mRebuildAllRestyleHint |= aRestyleHint;
+        NS_UpdateHint(mRebuildAllExtraHint, aMinHint);
         DoRebuildAllStyleData(aRestyleTracker);
-        if (aMinHint == 0) {
-          return;
-        }
-        aPrimaryFrame = aElement->GetPrimaryFrame();
+        return;
       }
     }
   }
