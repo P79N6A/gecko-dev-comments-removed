@@ -585,7 +585,6 @@ Readability.prototype = {
       }
 
       let topCandidate = topCandidates[0] || null;
-      let lastTopCandidate = (topCandidates.length > 3 ? topCandidates[topCandidates.length - 1] : null);
 
       
       
@@ -704,17 +703,6 @@ Readability.prototype = {
           return null;
         }
       } else {
-        if (lastTopCandidate !== null) {
-          
-          
-          
-          
-          
-          let contrastRatio = lastTopCandidate.readability.contentScore / topCandidate.readability.contentScore;
-          if (contrastRatio > 0.45)
-            return null;
-        }
-
         return articleContent;
       }
     }
