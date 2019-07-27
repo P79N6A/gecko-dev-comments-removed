@@ -141,7 +141,9 @@ public:
                        const nsAString& aMsg);
 
   
-  void Decrypt(MediaRawData* aSample, DecryptionClient* aSink);
+  void Decrypt(MediaRawData* aSample,
+               DecryptionClient* aSink,
+               MediaTaskQueue* aTaskQueue);
 
   
   
@@ -234,18 +236,35 @@ private:
   
   void gmp_RemoveSession(nsAutoPtr<SessionOpData> aData);
 
-  struct DecryptJob {
-    DecryptJob(MediaRawData* aSample, DecryptionClient* aClient)
+  class DecryptJob : public nsRunnable {
+  public:
+    explicit DecryptJob(MediaRawData* aSample,
+                        DecryptionClient* aClient,
+                        MediaTaskQueue* aTaskQueue)
       : mId(0)
       , mSample(aSample)
       , mClient(aClient)
-    {}
+      , mResult(GMPGenericErr)
+      , mTaskQueue(aTaskQueue)
+    {
+      MOZ_ASSERT(mClient);
+      MOZ_ASSERT(mSample);
+    }
+
+    NS_METHOD Run() override;
+    void PostResult(GMPErr aResult, const nsTArray<uint8_t>& aDecryptedData);
+    void PostResult(GMPErr aResult);
+
     uint32_t mId;
     nsRefPtr<MediaRawData> mSample;
+  private:
+    ~DecryptJob() {}
     nsAutoPtr<DecryptionClient> mClient;
+    GMPErr mResult;
+    nsRefPtr<MediaTaskQueue> mTaskQueue;
   };
   
-  void gmp_Decrypt(nsAutoPtr<DecryptJob> aJob);
+  void gmp_Decrypt(nsRefPtr<DecryptJob> aJob);
 
   class RejectPromiseTask : public nsRunnable {
   public:
@@ -316,7 +335,7 @@ private:
 
   
   
-  nsTArray<nsAutoPtr<DecryptJob>> mDecryptionJobs;
+  nsTArray<nsRefPtr<DecryptJob>> mDecryptionJobs;
 
   
   

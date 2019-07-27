@@ -84,6 +84,8 @@ public:
   
   nsresult ForceDispatch(TemporaryRef<nsIRunnable> aRunnable);
 
+  
+  
   nsresult SyncDispatch(TemporaryRef<nsIRunnable> aRunnable);
 
   
