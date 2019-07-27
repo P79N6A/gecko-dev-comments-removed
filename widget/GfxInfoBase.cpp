@@ -16,6 +16,7 @@
 #include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsUnicharUtils.h"
+#include "nsVersionComparator.h"
 #include "mozilla/Services.h"
 #include "mozilla/Observer.h"
 #include "nsIObserver.h"
@@ -26,6 +27,7 @@
 #include "nsIDOMNodeList.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
+#include "nsIXULAppInfo.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/gfx/2D.h"
@@ -216,6 +218,29 @@ BlacklistNodeToTextValue(nsIDOMNode *aBlacklistNode, nsAString& aValue)
 
   return true;
 }
+
+
+static bool
+BlacklistAttrToTextValue(nsIDOMNode *aBlacklistNode,
+                         const nsAString& aAttrName,
+                         nsAString& aValue)
+{
+  nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aBlacklistNode);
+  if (!element) {
+    return false;
+  }
+
+  nsAutoString value;
+  if (NS_FAILED(element->GetAttribute(aAttrName, value))) {
+    return false;
+  }
+
+  value.Trim(" \t\r\n");
+  aValue = value;
+
+  return true;
+}
+
 
 static OperatingSystem
 BlacklistOSToOperatingSystem(const nsAString& os)
@@ -409,6 +434,42 @@ BlacklistEntryToDriverInfo(nsIDOMNode* aBlacklistEntry,
   nsAutoString dataValue;
 
   
+  
+  
+  
+  static mozilla::Version zeroV("0");
+  static mozilla::Version appV(GfxInfoBase::GetApplicationVersion().get());
+  if (appV <= zeroV) {
+      gfxCriticalErrorOnce(gfxCriticalError::DefaultOptions(false)) << "Invalid application version " << GfxInfoBase::GetApplicationVersion().get();
+  } else if (BlacklistNodeGetChildByName(element,
+                                         NS_LITERAL_STRING("versionRange"),
+                                         getter_AddRefs(dataNode))) {
+    if (BlacklistAttrToTextValue(dataNode,
+                                 NS_LITERAL_STRING("minVersion"),
+                                 dataValue)) {
+      mozilla::Version minV(NS_ConvertUTF16toUTF8(dataValue).get());
+      if (minV > zeroV && appV < minV) {
+        
+        
+        
+        return false;
+      }
+    }
+
+    if (BlacklistAttrToTextValue(dataNode,
+                                 NS_LITERAL_STRING("maxVersion"),
+                                 dataValue)) {
+      mozilla::Version maxV(NS_ConvertUTF16toUTF8(dataValue).get());
+      if (maxV > zeroV && appV > maxV) {
+        
+        
+        
+        return false;
+      }
+    }
+  }
+
+  
   if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("os"),
                                   getter_AddRefs(dataNode))) {
     BlacklistNodeToTextValue(dataNode, dataValue);
@@ -532,9 +593,9 @@ BlacklistEntriesToDriverInfo(nsIDOMHTMLCollection* aBlacklistEntries,
       GfxDriverInfo di;
       if (BlacklistEntryToDriverInfo(blacklistEntry, di)) {
         aDriverInfo[i] = di;
+        
+        di.mDeleteDevices = false;
       }
-      
-      di.mDeleteDevices = false;
     }
   }
 }
@@ -614,6 +675,20 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
   uint32_t i = 0;
   for (; i < info.Length(); i++) {
     
+    
+    
+    
+    if (info[i].mOperatingSystem != DRIVER_OS_ALL &&
+        info[i].mOperatingSystem != os)
+    {
+      continue;
+    }
+
+    if (info[i].mOperatingSystemVersion && info[i].mOperatingSystemVersion != OperatingSystemVersion()) {
+        continue;
+    }
+
+    
     nsAutoString adapterVendorID;
     nsAutoString adapterDeviceID;
     nsAutoString adapterDriverVersionString;
@@ -637,17 +712,6 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
     uint64_t driverVersion;
     ParseDriverVersion(adapterDriverVersionString, &driverVersion);
 #endif
-
-
-    if (info[i].mOperatingSystem != DRIVER_OS_ALL &&
-        info[i].mOperatingSystem != os)
-    {
-      continue;
-    }
-
-    if (info[i].mOperatingSystemVersion && info[i].mOperatingSystemVersion != OperatingSystemVersion()) {
-        continue;
-    }
 
     if (!info[i].mAdapterVendor.Equals(GfxDriverInfo::GetDeviceVendor(VendorAll), nsCaseInsensitiveStringComparator()) &&
         !info[i].mAdapterVendor.Equals(adapterVendorID, nsCaseInsensitiveStringComparator())) {
@@ -1017,6 +1081,24 @@ nsresult GfxInfoBase::GetInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aResu
 
   aResult.setObject(*obj.mObj);
   return NS_OK;
+}
+
+const nsCString&
+GfxInfoBase::GetApplicationVersion()
+{
+  static nsAutoCString version;
+  static bool versionInitialized = false;
+  if (!versionInitialized) {
+    
+    versionInitialized = true;
+
+    
+    nsCOMPtr<nsIXULAppInfo> app = do_GetService("@mozilla.org/xre/app-info;1");
+    if (app) {
+      app->GetVersion(version);
+    }
+  }
+  return version;
 }
 
 void
