@@ -1375,6 +1375,9 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
     mozilla::MallocSizeOf debuggerMallocSizeOf;
+
+    
+    int64_t lastAnimationTime;
 };
 
 namespace js {

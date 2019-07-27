@@ -1887,7 +1887,10 @@ ArenaLists::allocateFromArenaInner(JS::Zone *zone, ArenaHeader *aheader, AllocKi
 bool
 GCRuntime::shouldCompact()
 {
-    return invocationKind == GC_SHRINK && isCompactingGCEnabled();
+    
+    
+    return invocationKind == GC_SHRINK && isCompactingGCEnabled() &&
+        (!isIncremental || rt->lastAnimationTime + PRMJ_USEC_PER_SEC < PRMJ_Now());
 }
 
 void
