@@ -63,46 +63,6 @@ taskHelper.push(function basicTest() {
 });
 
 
-taskHelper.push(function testGsmDisplayConditionChange() {
-  function testSPN(mcc, mnc, expectedIsDisplayNetworkNameRequired,
-                   expectedIsDisplaySpnRequired, callback) {
-    icc.addEventListener("iccinfochange", function handler() {
-      icc.removeEventListener("iccinfochange", handler);
-      is(icc.iccInfo.isDisplayNetworkNameRequired,
-         expectedIsDisplayNetworkNameRequired);
-      is(icc.iccInfo.isDisplaySpnRequired,
-         expectedIsDisplaySpnRequired);
-      
-      window.setTimeout(callback, 100);
-    });
-    
-    setEmulatorMccMnc(mcc, mnc);
-  }
-
-  let testCases = [
-    
-    [123, 456, false, true], 
-    [234, 136,  true, true], 
-    [123, 456, false, true], 
-    [466,  92,  true, true], 
-    [123, 456, false, true], 
-    [310, 260,  true, true], 
-  ];
-
-  
-  if (!(icc.iccInfo instanceof Ci.nsIDOMMozGsmIccInfo)) {
-    taskHelper.runNext();
-    return;
-  }
-
-  (function do_call(index) {
-    let next = index < (testCases.length - 1) ? do_call.bind(null, index + 1) : taskHelper.runNext.bind(taskHelper);
-    testCases[index].push(next);
-    testSPN.apply(null, testCases[index]);
-  })(0);
-});
-
-
 taskHelper.push(function testCardIsNotReady() {
   
   setRadioEnabled(false);
