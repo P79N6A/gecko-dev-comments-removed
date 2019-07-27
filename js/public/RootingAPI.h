@@ -220,7 +220,7 @@ class Heap : public js::HeapBase<T>
 
 
 
-    explicit Heap(const Heap<T> &p) { init(p.ptr); }
+    Heap(const Heap<T> &p) { init(p.ptr); }
 
     ~Heap() {
         if (js::GCMethods<T>::needsPostBarrier(ptr))
