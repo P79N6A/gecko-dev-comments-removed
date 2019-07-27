@@ -2725,6 +2725,13 @@ RilObject.prototype = {
   queryCallBarringStatus: function(options) {
     options.facility = CALL_BARRING_PROGRAM_TO_FACILITY[options.program];
     options.password = ""; 
+
+    
+    
+    
+    options.queryServiceClass = options.serviceClass;
+    options.serviceClass = 0;
+
     this.queryICCFacilityLock(options);
   },
 
@@ -5930,20 +5937,23 @@ RilObject.prototype[REQUEST_QUERY_FACILITY_LOCK] = function REQUEST_QUERY_FACILI
     return;
   }
 
-  let services;
-  if (length) {
-    
-    services = this.context.Buf.readInt32List()[0];
-  } else {
+  if (!length) {
     options.success = false;
     options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
     this.sendChromeMessage(options);
     return;
   }
 
-  options.enabled = services === 0 ? false : true;
+  
+  let services = this.context.Buf.readInt32List()[0];
 
-  if (options.success && (options.rilMessageType === "sendMMI")) {
+  if (options.queryServiceClass) {
+    options.enabled = (services & options.queryServiceClass) ? true : false;
+  } else {
+    options.enabled = services ? true : false;
+  }
+
+  if (options.rilMessageType === "sendMMI") {
     if (!options.enabled) {
       options.statusMessage = MMI_SM_KS_SERVICE_DISABLED;
     } else {
