@@ -796,11 +796,9 @@ class nsIWidget : public nsISupports {
 
 
 
-
     NS_IMETHOD Create(nsIWidget        *aParent,
                       nsNativeWidget   aNativeParent,
                       const nsIntRect  &aRect,
-                      nsDeviceContext *aContext,
                       nsWidgetInitData *aInitData = nullptr) = 0;
 
     
