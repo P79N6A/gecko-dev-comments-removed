@@ -114,6 +114,10 @@ public:
     return mSkipAnimationRules;
   }
 
+  void SetSkipAnimationRules(bool aSkipAnimationRules) {
+    mSkipAnimationRules = aSkipAnimationRules;
+  }
+
   
   
   
@@ -121,6 +125,10 @@ public:
     MOZ_ASSERT(mSkipAnimationRules || !mPostAnimationRestyles,
                "inconsistent state");
     return mPostAnimationRestyles;
+  }
+
+  void SetPostAnimationRestyles(bool aPostAnimationRestyles) {
+    mPostAnimationRestyles = aPostAnimationRestyles;
   }
 
   

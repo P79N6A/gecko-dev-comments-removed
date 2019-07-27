@@ -148,6 +148,15 @@ class nsStyleSet
   
   
   
+  already_AddRefed<nsStyleContext>
+    ResolveStyleWithoutAnimation(mozilla::dom::Element* aElement,
+                                 nsStyleContext* aStyleContext,
+                                 nsRestyleHint aWhichToRemove);
+
+  
+  
+  
+  
   
   
   
