@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.R;
 
@@ -58,9 +59,31 @@ public class LocaleListPreference extends ListPreference {
             c.drawText(text, 0, BITMAP_HEIGHT / 2, this.paint);
             return b;
         }
-        private static byte[] getPixels(Bitmap b) {
-            ByteBuffer buffer = ByteBuffer.allocate(b.getByteCount());
-            b.copyPixelsToBuffer(buffer);
+
+        private static byte[] getPixels(final Bitmap b) {
+            final int byteCount;
+            if (Versions.feature19Plus) {
+                byteCount = b.getAllocationByteCount();
+            } else {
+                
+                
+                byteCount = b.getRowBytes() * b.getHeight();
+            }
+
+            final ByteBuffer buffer = ByteBuffer.allocate(byteCount);
+            try {
+                b.copyPixelsToBuffer(buffer);
+            } catch (RuntimeException e) {
+                
+                
+                
+                
+                if ("Buffer not large enough for pixels".equals(e.getMessage())) {
+                    return buffer.array();
+                }
+                throw e;
+            }
+
             return buffer.array();
         }
 
