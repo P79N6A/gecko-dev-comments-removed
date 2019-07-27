@@ -83,6 +83,7 @@ struct CGYieldOffsetList {
     void finish(YieldOffsetArray &array, uint32_t prologLength);
 };
 
+struct LoopStmtInfo;
 struct StmtInfoBCE;
 
 
@@ -269,12 +270,49 @@ struct BytecodeEmitter
     bool reportStrictWarning(ParseNode *pn, unsigned errorNumber, ...);
     bool reportStrictModeError(ParseNode *pn, unsigned errorNumber, ...);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool checkSideEffects(ParseNode *pn, bool *answer);
+
+    bool inTryBlockWithFinally();
+
+#ifdef DEBUG
+    bool checkStrictOrSloppy(JSOp op);
+#endif
+
+    
+    
+    
+    
+    int newSrcNote(SrcNoteType type);
+    int newSrcNote2(SrcNoteType type, ptrdiff_t offset);
+    int newSrcNote3(SrcNoteType type, ptrdiff_t offset1, ptrdiff_t offset2);
+
+    void copySrcNotes(jssrcnote *destination, uint32_t nsrcnotes);
     bool setSrcNoteOffset(unsigned index, unsigned which, ptrdiff_t offset);
+
+    
+    bool addToSrcNoteDelta(jssrcnote *sn, ptrdiff_t delta);
+
+    
+    
+    bool finishTakingSrcNotes(uint32_t *out);
 
     void setJumpOffsetAt(ptrdiff_t off);
 
     
     bool emitTree(ParseNode *pn);
+
+    
+    bool emitFunctionScript(ParseNode *body);
 
     
     
@@ -285,10 +323,47 @@ struct BytecodeEmitter
     bool updateSourceCoordNotes(uint32_t offset);
 
     bool bindNameToSlot(ParseNode *pn);
+    bool bindNameToSlotHelper(ParseNode *pn);
+
+    void strictifySetNameNode(ParseNode *pn);
+    JSOp strictifySetNameOp(JSOp op);
+
+    bool tryConvertFreeName(ParseNode *pn);
 
     void popStatement();
     void pushStatement(StmtInfoBCE *stmt, StmtType type, ptrdiff_t top);
     void pushStatementInner(StmtInfoBCE *stmt, StmtType type, ptrdiff_t top);
+    void pushLoopStatement(LoopStmtInfo *stmt, StmtType type, ptrdiff_t top);
+
+    
+    
+    JSObject *enclosingStaticScope();
+
+    
+    
+    unsigned dynamicNestedScopeDepth();
+
+    bool enterNestedScope(StmtInfoBCE *stmt, ObjectBox *objbox, StmtType stmtType);
+    bool leaveNestedScope(StmtInfoBCE *stmt);
+
+    bool enterBlockScope(StmtInfoBCE *stmtInfo, ObjectBox *objbox, JSOp initialValueOp,
+                         unsigned alreadyPushed = 0);
+
+    bool computeAliasedSlots(Handle<StaticBlockObject *> blockObj);
+
+    bool lookupAliasedName(HandleScript script, PropertyName *name, uint32_t *pslot,
+                           ParseNode *pn = nullptr);
+    bool lookupAliasedNameSlot(PropertyName *name, ScopeCoordinate *sc);
+
+    
+    
+    bool assignHops(ParseNode *pn, unsigned src, ScopeCoordinate *dst);
+
+    
+    
+    
+    
+    void computeLocalOffset(Handle<StaticBlockObject *> blockObj);
 
     bool flushPops(int *npops);
 
@@ -353,6 +428,7 @@ struct BytecodeEmitter
     bool emitObjectPairOp(ObjectBox *objbox1, ObjectBox *objbox2, JSOp op);
     bool emitRegExp(uint32_t index);
 
+    MOZ_NEVER_INLINE bool emitFunction(ParseNode *pn, bool needsProto = false);
     MOZ_NEVER_INLINE bool emitObject(ParseNode *pn);
 
     bool emitPropertyList(ParseNode *pn, MutableHandlePlainObject objp, PropListType type);
@@ -383,6 +459,7 @@ struct BytecodeEmitter
 
     bool emitPrepareIteratorResult();
     bool emitFinishIteratorResult(bool done);
+    bool iteratorResultShape(unsigned *shape);
 
     bool emitYield(ParseNode *pn);
     bool emitYieldOp(JSOp op);
@@ -405,6 +482,9 @@ struct BytecodeEmitter
     bool emitIf(ParseNode *pn);
     bool emitWith(ParseNode *pn);
 
+    MOZ_NEVER_INLINE bool emitLabeledStatement(const LabeledStatement *pn);
+    MOZ_NEVER_INLINE bool emitLet(ParseNode *pnLet);
+    MOZ_NEVER_INLINE bool emitLexicalScope(ParseNode *pn);
     MOZ_NEVER_INLINE bool emitSwitch(ParseNode *pn);
     MOZ_NEVER_INLINE bool emitTry(ParseNode *pn);
 
@@ -419,6 +499,23 @@ struct BytecodeEmitter
     
     
     bool emitDestructuringLHS(ParseNode *target, VarEmitOption emitOption);
+
+    bool emitDestructuringOps(ParseNode *pattern, bool isLet = false);
+    bool emitDestructuringOpsHelper(ParseNode *pattern, VarEmitOption emitOption);
+    bool emitDestructuringOpsArrayHelper(ParseNode *pattern, VarEmitOption emitOption);
+    bool emitDestructuringOpsObjectHelper(ParseNode *pattern, VarEmitOption emitOption);
+
+    typedef bool
+    (*DestructuringDeclEmitter)(BytecodeEmitter *bce, JSOp prologOp, ParseNode *pn);
+
+    template <DestructuringDeclEmitter EmitName>
+    bool emitDestructuringDeclsWithEmitter(JSOp prologOp, ParseNode *pattern);
+
+    bool emitDestructuringDecls(JSOp prologOp, ParseNode *pattern);
+
+    
+    
+    bool emitInitializeDestructuringDecls(JSOp prologOp, ParseNode *pattern);
 
     
     
@@ -439,6 +536,7 @@ struct BytecodeEmitter
     bool emitReturn(ParseNode *pn);
     bool emitStatement(ParseNode *pn);
     bool emitStatementList(ParseNode *pn, ptrdiff_t top);
+    bool emitSyntheticStatements(ParseNode *pn, ptrdiff_t top);
 
     bool emitDelete(ParseNode *pn);
     bool emitLogical(ParseNode *pn);
@@ -466,6 +564,9 @@ struct BytecodeEmitter
     bool emitDefaults(ParseNode *pn);
     bool emitLexicalInitialization(ParseNode *pn, JSOp globalDefOp);
 
+    bool pushInitialConstants(JSOp op, unsigned n);
+    bool initializeBlockScopedLocalsFromStack(Handle<StaticBlockObject *> blockObj);
+
     
     
     
@@ -486,38 +587,6 @@ struct BytecodeEmitter
 
     bool emitClass(ParseNode *pn);
 };
-
-
-
-
-bool
-EmitFunctionScript(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *body);
-
-
-
-
-
-
-
-int
-NewSrcNote(ExclusiveContext *cx, BytecodeEmitter *bce, SrcNoteType type);
-
-int
-NewSrcNote2(ExclusiveContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t offset);
-
-int
-NewSrcNote3(ExclusiveContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t offset1,
-               ptrdiff_t offset2);
-
-
-bool
-AddToSrcNoteDelta(ExclusiveContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t delta);
-
-bool
-FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce, uint32_t *out);
-
-void
-CopySrcNotes(BytecodeEmitter *bce, jssrcnote *destination, uint32_t nsrcnotes);
 
 } 
 } 
