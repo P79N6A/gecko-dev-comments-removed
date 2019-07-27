@@ -72,8 +72,8 @@ public:
     }
 
     nsRefPtr<gl::GLContext> gl;
-    gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(16, 16),
-                                                gl::SurfaceCaps::ForRGB());
+    bool requireCompatProfile = true;
+    gl = gl::GLContextProvider::CreateHeadless(requireCompatProfile);
 
     if (!gl) {
       
