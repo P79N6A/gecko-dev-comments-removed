@@ -7,7 +7,7 @@
 
 
 
-const TEST_URL = TEST_URL_ROOT + "browser_inspector_menu.html";
+const TEST_URL = TEST_URL_ROOT + "doc_inspector_menu.html";
 const MENU_SENSITIVITY_TEST_DATA = [
   {
     desc: "doctype node",

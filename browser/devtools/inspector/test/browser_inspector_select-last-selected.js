@@ -6,8 +6,8 @@
 
 
 
-let PAGE_1 = TEST_URL_ROOT + "browser_inspector_select_last_selected.html";
-let PAGE_2 = TEST_URL_ROOT + "browser_inspector_select_last_selected2.html";
+let PAGE_1 = TEST_URL_ROOT + "doc_inspector_select-last-selected-01.html";
+let PAGE_2 = TEST_URL_ROOT + "doc_inspector_select-last-selected-02.html";
 
 
 

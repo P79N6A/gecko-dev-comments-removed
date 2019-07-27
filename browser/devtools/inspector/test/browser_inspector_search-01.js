@@ -6,7 +6,7 @@
 
 
 
-const TEST_URL = TEST_URL_ROOT + "browser_inspector_bug_650804_search.html";
+const TEST_URL = TEST_URL_ROOT + "doc_inspector_search.html";
 
 
 
