@@ -59,13 +59,13 @@ const ICC_MAX_LINEAR_FIXED_RECORDS = 0xfe;
 
 
 const MMI_MATCH_GROUP_FULL_MMI = 1;
-const MMI_MATCH_GROUP_MMI_PROCEDURE = 2;
+const MMI_MATCH_GROUP_PROCEDURE = 2;
 const MMI_MATCH_GROUP_SERVICE_CODE = 3;
-const MMI_MATCH_GROUP_SIA = 5;
-const MMI_MATCH_GROUP_SIB = 7;
-const MMI_MATCH_GROUP_SIC = 9;
-const MMI_MATCH_GROUP_PWD_CONFIRM = 11;
-const MMI_MATCH_GROUP_DIALING_NUMBER = 12;
+const MMI_MATCH_GROUP_SIA = 4;
+const MMI_MATCH_GROUP_SIB = 5;
+const MMI_MATCH_GROUP_SIC = 6;
+const MMI_MATCH_GROUP_PWD_CONFIRM = 7;
+const MMI_MATCH_GROUP_DIALING_NUMBER = 8;
 
 const MMI_MAX_LENGTH_SHORT_CODE = 2;
 
@@ -1907,7 +1907,7 @@ RilObject.prototype = {
     } else if (call.state == CALL_STATE_ACTIVE) {
       this.sendSwitchWaitingRequest();
     }
- },
+  },
 
   resumeCall: function(options) {
     let call = this.currentCalls[options.callIndex];
@@ -2398,21 +2398,11 @@ RilObject.prototype = {
       return null;
     }
 
-    let matches = this._matchMMIRegexp(mmiString);
+    let matches = this._getMMIRegExp().exec(mmiString);
     if (matches) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
       return {
         fullMMI: matches[MMI_MATCH_GROUP_FULL_MMI],
-        procedure: matches[MMI_MATCH_GROUP_MMI_PROCEDURE],
+        procedure: matches[MMI_MATCH_GROUP_PROCEDURE],
         serviceCode: matches[MMI_MATCH_GROUP_SERVICE_CODE],
         sia: matches[MMI_MATCH_GROUP_SIA],
         sib: matches[MMI_MATCH_GROUP_SIB],
@@ -2422,8 +2412,7 @@ RilObject.prototype = {
       };
     }
 
-    if (this._isPoundString(mmiString) ||
-        this._isMMIShortString(mmiString)) {
+    if (this._isPoundString(mmiString) || this._isMMIShortString(mmiString)) {
       return {
         fullMMI: mmiString
       };
@@ -2436,53 +2425,77 @@ RilObject.prototype = {
 
 
 
-  _matchMMIRegexp: function(mmiString) {
+
+
+
+
+
+
+
+
+
+
+
+  _buildMMIRegExp: function() {
     
-    if (this._mmiRegExp == null) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      let pattern = "((\\*[*#]?|##?)";
+    
+    
+    
+    
+    
+    
+    
+    
 
-      
-      
-      
-      pattern += "(\\d{2,3})";
+    
+    let procedure = "(\\*[*#]?|##?)";
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      pattern += "(\\*([^*#]*)(\\*([^*#]*)(\\*([^*#]*)";
+    
+    
+    let serviceCode = "(\\d{2,3})";
 
-      
-      
-      pattern += "(\\*([^*#]*))?)?)?)?#)";
-
-      
-      pattern += "([^#]*)";
-
-      this._mmiRegExp = new RegExp(pattern);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let si = "\\*([^*#]*)";
+    let allSi = "";
+    for (let i = 0; i < 4; ++i) {
+      allSi = "(?:" + si + allSi + ")?";
     }
 
+    let fullmmi = "(" + procedure + serviceCode + allSi + "#)";
+
     
-    
-    return this._mmiRegExp.exec(mmiString);
+    let dialString = "([^#]*)";
+
+    return new RegExp(fullmmi + dialString);
+  },
+
+  
+
+
+  _getMMIRegExp: function() {
+    if (!this._mmiRegExp) {
+      this._mmiRegExp = this._buildMMIRegExp();
+    }
+
+    return this._mmiRegExp;
   },
 
   
@@ -2508,11 +2521,12 @@ RilObject.prototype = {
       return true;
     }
 
-    if ((mmiString.length != 2) || (mmiString.charAt(0) !== '1')) {
-      return true;
+    
+    if ((mmiString.length == 2) && (mmiString.charAt(0) === '1')) {
+      return false;
     }
 
-    return false;
+    return true;
   },
 
   sendMMI: function(options) {
