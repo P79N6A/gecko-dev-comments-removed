@@ -435,16 +435,16 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
       
       
       
+      
+      
       nsCOMPtr<nsIURI> referrerURI;
       rv = NS_NewURI(getter_AddRefs(referrerURI), referrer, nullptr, nullptr);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return FailWithNetworkError();
       }
 
-      
-      
       rv =
-        httpChan->SetReferrerWithPolicy(nullptr,
+        httpChan->SetReferrerWithPolicy(referrerURI,
                                         mDocument ? mDocument->GetReferrerPolicy() :
                                                     net::RP_Default);
       if (NS_WARN_IF(NS_FAILED(rv))) {

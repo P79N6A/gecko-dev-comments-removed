@@ -48,6 +48,11 @@ public:
   bool PopulateFromSuffix(const nsACString& aStr);
 
   void CookieJar(nsACString& aStr);
+
+  
+  
+  bool PopulateFromOrigin(const nsACString& aOrigin,
+                          nsACString& aOriginNoSuffix);
 };
 
 
