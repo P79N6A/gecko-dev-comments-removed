@@ -49,7 +49,6 @@ ParamTraits<FenceHandle>::Write(Message* aMsg,
   flattenable->flatten(data, nbytes, fds, nfds);
 #endif
   aMsg->WriteSize(nbytes);
-  aMsg->WriteSize(nfds);
   aMsg->WriteBytes(data, nbytes);
   for (size_t n = 0; n < nfds; ++n) {
     
@@ -64,20 +63,14 @@ ParamTraits<FenceHandle>::Read(const Message* aMsg,
                                void** aIter, paramType* aResult)
 {
   size_t nbytes;
-  size_t nfds;
   const char* data;
 
   if (!aMsg->ReadSize(aIter, &nbytes) ||
-      !aMsg->ReadSize(aIter, &nfds) ||
       !aMsg->ReadBytes(aIter, &data, nbytes)) {
     return false;
   }
 
-  
-  
-  if (nfds > aMsg->num_fds()) {
-    return false;
-  }
+  size_t nfds = aMsg->num_fds();
   int fds[nfds];
 
   for (size_t n = 0; n < nfds; ++n) {
@@ -145,7 +138,6 @@ ParamTraits<FenceHandleFromChild>::Write(Message* aMsg,
   flattenable->flatten(data, nbytes, fds, nfds);
 #endif
   aMsg->WriteSize(nbytes);
-  aMsg->WriteSize(nfds);
   aMsg->WriteBytes(data, nbytes);
   for (size_t n = 0; n < nfds; ++n) {
     
@@ -169,20 +161,14 @@ ParamTraits<FenceHandleFromChild>::Read(const Message* aMsg,
                                         void** aIter, paramType* aResult)
 {
   size_t nbytes;
-  size_t nfds;
   const char* data;
 
   if (!aMsg->ReadSize(aIter, &nbytes) ||
-      !aMsg->ReadSize(aIter, &nfds) ||
       !aMsg->ReadBytes(aIter, &data, nbytes)) {
     return false;
   }
 
-  
-  
-  if (nfds > aMsg->num_fds()) {
-    return false;
-  }
+  size_t nfds = aMsg->num_fds();
   int fds[nfds];
 
   for (size_t n = 0; n < nfds; ++n) {
@@ -223,30 +209,6 @@ FenceHandle::FenceHandle(const sp<Fence>& aFence)
 
 FenceHandle::FenceHandle(const FenceHandleFromChild& aFenceHandle) {
   mFence = aFenceHandle.mFence;
-}
-
-void
-FenceHandle::Merge(const FenceHandle& aFenceHandle)
-{
-  if (!aFenceHandle.IsValid()) {
-    return;
-  }
-
-  if (!IsValid()) {
-    mFence = aFenceHandle.mFence;
-  } else {
-    android::sp<android::Fence> mergedFence = android::Fence::merge(
-                  android::String8::format("FenceHandle"),
-                  mFence, aFenceHandle.mFence);
-    if (!mergedFence.get()) {
-      
-      
-      
-      mFence = aFenceHandle.mFence;
-      return;
-    }
-    mFence = mergedFence;
-  }
 }
 
 FenceHandleFromChild::FenceHandleFromChild(const sp<Fence>& aFence)
