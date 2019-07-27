@@ -2626,16 +2626,16 @@ let DefaultBrowserCheck = {
 
   setAsDefault: function() {
     let claimAllTypes = true;
-    if (AppConstants.platform == "win") {
-      try {
-        
-        
-        
-        
-        let version = Services.sysinfo.getProperty("version");
-        claimAllTypes = (parseFloat(version) < 6.2);
-      } catch (ex) { }
-    }
+#ifdef XP_WIN
+    try {
+      
+      
+      
+      
+      let version = Services.sysinfo.getProperty("version");
+      claimAllTypes = (parseFloat(version) < 6.2);
+    } catch (ex) { }
+#endif
     try {
       ShellService.setDefaultBrowser(claimAllTypes, false);
     } catch (ex) {
