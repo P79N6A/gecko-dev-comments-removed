@@ -20,8 +20,9 @@ const STRINGS_URI = "chrome://browser/locale/devtools/webaudioeditor.properties"
 const L10N = new ViewHelpers.L10N(STRINGS_URI);
 const Telemetry = require("devtools/shared/telemetry");
 const telemetry = new Telemetry();
-
 let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
+
+let PARAM_POLLING_FREQUENCY = 1000;
 
 
 const EVENTS = {
@@ -173,6 +174,8 @@ let WebAudioEditorController = {
     telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
+    this._onSelectNode = this._onSelectNode.bind(this);
+    this._onChangeParam = this._onChangeParam.bind(this);
     gTarget.on("will-navigate", this._onTabNavigated);
     gTarget.on("navigate", this._onTabNavigated);
     gFront.on("start-context", this._onStartContext);
@@ -194,12 +197,15 @@ let WebAudioEditorController = {
     window.on(EVENTS.DISCONNECT_NODE, this._onUpdatedContext);
     window.on(EVENTS.DESTROY_NODE, this._onUpdatedContext);
     window.on(EVENTS.CONNECT_PARAM, this._onUpdatedContext);
+
+    
+    window.on(EVENTS.UI_SELECT_NODE, this._onSelectNode);
   },
 
   
 
 
-  destroy: function() {
+  destroy: Task.async(function* () {
     telemetry.toolClosed("webaudioeditor");
     gTarget.off("will-navigate", this._onTabNavigated);
     gTarget.off("navigate", this._onTabNavigated);
@@ -215,8 +221,11 @@ let WebAudioEditorController = {
     window.off(EVENTS.DISCONNECT_NODE, this._onUpdatedContext);
     window.off(EVENTS.DESTROY_NODE, this._onUpdatedContext);
     window.off(EVENTS.CONNECT_PARAM, this._onUpdatedContext);
+    window.off(EVENTS.UI_SELECT_NODE, this._onSelectNode);
     gDevTools.off("pref-changed", this._onThemeChange);
-  },
+
+    yield gFront.disableChangeParamEvents();
+  }),
 
   
 
@@ -345,9 +354,21 @@ let WebAudioEditorController = {
   
 
 
-  _onChangeParam: function({ actor, param, value }) {
-    window.emit(EVENTS.CHANGE_PARAM, getViewNodeByActor(actor), param, value);
-  }
+  _onChangeParam: function (args) {
+    window.emit(EVENTS.CHANGE_PARAM, args);
+  },
+
+  
+
+
+
+  _onSelectNode: function (_, id) {
+    let node = getViewNodeById(id);
+
+    if (node && node.actor) {
+      gFront.enableChangeParamEvents(node.actor, PARAM_POLLING_FREQUENCY);
+    }
+  },
 };
 
 
