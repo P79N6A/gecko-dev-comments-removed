@@ -439,3 +439,13 @@ function wait(ms) {
   content.setTimeout(def.resolve, ms);
   return def.promise;
 }
+
+
+
+
+
+function promiseNextTick() {
+  let deferred = promise.defer();
+  executeSoon(deferred.resolve);
+  return deferred.promise;
+}
