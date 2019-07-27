@@ -2803,4 +2803,14 @@ JS_StoreStringPostBarrierCallback(JSContext* cx,
                                   void (*callback)(JSTracer* trc, JSString* key, void* data),
                                   JSString* key, void* data);
 
+
+
+
+
+
+
+
+extern JS_FRIEND_API(void)
+JS_ClearAllPostBarrierCallbacks(JSRuntime *rt);
+
 #endif 
