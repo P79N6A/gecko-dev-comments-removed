@@ -1101,16 +1101,16 @@ nsLineLayout::AllowForStartMargin(PerFrameData* pfd,
     
     pfd->mMargin.IStart(frameWM) = 0;
   } else {
-    NS_WARN_IF_FALSE(NS_UNCONSTRAINEDSIZE != aReflowState.AvailableWidth(),
-                     "have unconstrained width; this should only result from "
-                     "very large sizes, not attempts at intrinsic width "
-                     "calculation");
-    if (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedWidth()) {
+    NS_WARN_IF_FALSE(NS_UNCONSTRAINEDSIZE != aReflowState.AvailableISize(),
+                     "have unconstrained inline-size; this should only result "
+                     "from very large sizes, not attempts at intrinsic "
+                     "inline-size calculation");
+    if (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedISize()) {
       
       
       
       
-      aReflowState.AvailableWidth() -= pfd->mMargin.IStart(frameWM);
+      aReflowState.AvailableISize() -= pfd->mMargin.IStart(frameWM);
     }
   }
 }
