@@ -324,9 +324,23 @@ Service::unregisterConnection(Connection *aConnection)
   {
     mRegistrationMutex.AssertNotCurrentThreadOwns();
     MutexAutoLock mutex(mRegistrationMutex);
-    DebugOnly<bool> removed = mConnections.RemoveElement(aConnection);
-    
-    MOZ_ASSERT(removed);
+
+    for (uint32_t i = 0 ; i < mConnections.Length(); ++i) {
+      if (mConnections[i] == aConnection) {
+        nsCOMPtr<nsIThread> thread = mConnections[i]->threadOpenedOn;
+
+        
+        
+        
+        NS_ProxyRelease(thread,
+          static_cast<mozIStorageConnection*>(mConnections[i].forget().take()));
+
+        mConnections.RemoveElementAt(i);
+        return;
+      }
+    }
+
+    MOZ_ASSERT_UNREACHABLE("Attempt to unregister unknown storage connection!");
   }
 }
 
