@@ -222,9 +222,27 @@ nsScreenManagerGtk :: ScreenForId ( uint32_t aId, nsIScreen **outScreen )
 
 
 NS_IMETHODIMP
-nsScreenManagerGtk :: ScreenForRect ( int32_t aX, int32_t aY,
-                                      int32_t aWidth, int32_t aHeight,
-                                      nsIScreen **aOutScreen )
+nsScreenManagerGtk :: ScreenForRect( int32_t aX, int32_t aY,
+                                     int32_t aWidth, int32_t aHeight,
+                                     nsIScreen **aOutScreen )
+{
+  uint32_t scale = nsScreenGtk::GetDPIScale();
+  return ScreenForRectPix(aX*scale, aY*scale, aWidth*scale, aHeight*scale,
+                          aOutScreen);
+}
+
+
+
+
+
+
+
+
+
+nsresult
+nsScreenManagerGtk :: ScreenForRectPix( int32_t aX, int32_t aY,
+                                        int32_t aWidth, int32_t aHeight,
+                                        nsIScreen **aOutScreen )
 {
   nsresult rv;
   rv = EnsureInit();
@@ -232,6 +250,7 @@ nsScreenManagerGtk :: ScreenForRect ( int32_t aX, int32_t aY,
     NS_ERROR("nsScreenManagerGtk::EnsureInit() failed from ScreenForRect");
     return rv;
   }
+
   
   uint32_t which = 0;
   
@@ -307,7 +326,7 @@ nsScreenManagerGtk :: GetNumberOfScreens(uint32_t *aNumberOfScreens)
 NS_IMETHODIMP
 nsScreenManagerGtk::GetSystemDefaultScale(float *aDefaultScale)
 {
-  *aDefaultScale = 1.0f;
+  *aDefaultScale = nsScreenGtk::GetDPIScale();
   return NS_OK;
 }
 
@@ -337,7 +356,7 @@ nsScreenManagerGtk :: ScreenForNativeWidget (void *aWidget, nsIScreen **outScree
     gdk_window_get_geometry(GDK_WINDOW(aWidget), &x, &y, &width, &height);
 #endif
     gdk_window_get_origin(GDK_WINDOW(aWidget), &x, &y);
-    rv = ScreenForRect(x, y, width, height, outScreen);
+    rv = ScreenForRectPix(x, y, width, height, outScreen);
   } else {
     rv = GetPrimaryScreen(outScreen);
   }

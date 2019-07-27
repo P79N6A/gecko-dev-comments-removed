@@ -229,6 +229,16 @@ gfxPlatformGtk::GetDPI()
     return sDPI;
 }
 
+double
+gfxPlatformGtk::GetDPIScale()
+{
+    
+    
+    
+    int32_t dpi = GetDPI();
+    return (dpi > 96) ? round(dpi/96.0) : 1.0;
+}
+
 gfxImageFormat
 gfxPlatformGtk::GetOffscreenFormat()
 {
