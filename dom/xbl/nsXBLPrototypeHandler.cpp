@@ -478,7 +478,7 @@ nsXBLPrototypeHandler::DispatchXBLCommand(EventTarget* aTarget, nsIDOMEvent* aEv
     }
 
     
-    if (focusedContent->IsEditable()) {
+    if (focusedContent && focusedContent->IsEditable()) {
       return NS_OK;
     }
 
