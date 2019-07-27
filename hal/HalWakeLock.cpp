@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Hal.h"
+#include "Hal.h"
 #include "mozilla/HalWakeLock.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
