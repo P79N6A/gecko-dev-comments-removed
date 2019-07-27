@@ -390,6 +390,30 @@ public:
   }
 
   
+  
+  
+  SelfType& operator-= (const ElemType& aInterval)
+  {
+    if (aInterval.IsEmpty() || mIntervals.IsEmpty()) {
+      return *this;
+    }
+    T firstEnd = std::max(mIntervals[0].mStart, aInterval.mStart);
+    T secondStart = std::min(mIntervals.LastElement().mEnd, aInterval.mEnd);
+    ElemType startInterval(mIntervals[0].mStart, firstEnd, aInterval.mFuzz);
+    ElemType endInterval(secondStart, mIntervals.LastElement().mEnd, aInterval.mFuzz);
+    SelfType intervals(Move(startInterval));
+    intervals += Move(endInterval);
+    return Intersection(intervals);
+  }
+
+  SelfType operator- (const ElemType& aInterval)
+  {
+    SelfType intervals(*this);
+    intervals -= aInterval;
+    return intervals;
+  }
+
+  
   SelfType& Union(const SelfType& aOther)
   {
     Add(aOther);
