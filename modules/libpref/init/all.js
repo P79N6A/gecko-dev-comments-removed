@@ -3801,10 +3801,6 @@ pref("image.mem.surfacecache.discard_factor", 1);
 
 
 
-pref("image.multithreaded_decoding.enabled", true);
-
-
-
 pref("image.multithreaded_decoding.limit", -1);
 
 

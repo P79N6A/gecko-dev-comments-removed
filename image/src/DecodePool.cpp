@@ -75,6 +75,8 @@ public:
 
   NS_IMETHOD Run() MOZ_OVERRIDE
   {
+    MOZ_ASSERT(!NS_IsMainThread());
+
     ReentrantMonitorAutoEnter lock(mImage->mDecodingMonitor);
 
     
@@ -93,14 +95,10 @@ public:
 
     size_t oldByteCount = mImage->mDecoder->BytesDecoded();
 
-    
-    
-    DecodeUntil type = NS_IsMainThread() ? DecodeUntil::TIME
-                                         : DecodeUntil::DONE_BYTES;
-
     size_t maxBytes = mImage->mSourceData.Length() -
                       mImage->mDecoder->BytesDecoded();
-    DecodePool::Singleton()->DecodeSomeOfImage(mImage, type, maxBytes);
+    DecodePool::Singleton()->DecodeSomeOfImage(mImage, DecodeUntil::DONE_BYTES,
+                                               maxBytes);
 
     size_t bytesDecoded = mImage->mDecoder->BytesDecoded() - oldByteCount;
 
@@ -126,17 +124,15 @@ public:
 protected:
   virtual ~DecodeWorker()
   {
-    if (gfxPrefs::ImageMTDecodingEnabled()) {
+    
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
+    if (mainThread) {
       
-      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-      NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
-      if (mainThread) {
-        
-        RasterImage* rawImg = nullptr;
-        mImage.swap(rawImg);
-        DebugOnly<nsresult> rv = NS_ProxyRelease(mainThread, NS_ISUPPORTS_CAST(ImageResource*, rawImg));
-        MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to proxy release to main thread");
-      }
+      RasterImage* rawImg = nullptr;
+      mImage.swap(rawImg);
+      DebugOnly<nsresult> rv = NS_ProxyRelease(mainThread, NS_ISUPPORTS_CAST(ImageResource*, rawImg));
+      MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to proxy release to main thread");
     }
   }
 
@@ -208,32 +204,31 @@ DecodePool::GetEventTarget()
 DecodePool::DecodePool()
   : mThreadPoolMutex("Thread Pool")
 {
-  if (gfxPrefs::ImageMTDecodingEnabled()) {
-    mThreadPool = do_CreateInstance(NS_THREADPOOL_CONTRACTID);
-    if (mThreadPool) {
-      mThreadPool->SetName(NS_LITERAL_CSTRING("ImageDecoder"));
-      int32_t prefLimit = gfxPrefs::ImageMTDecodingLimit();
-      uint32_t limit;
-      if (prefLimit <= 0) {
-        limit = max(PR_GetNumberOfProcessors(), 2) - 1;
-      } else {
-        limit = static_cast<uint32_t>(prefLimit);
-      }
+  mThreadPool = do_CreateInstance(NS_THREADPOOL_CONTRACTID);
+  MOZ_RELEASE_ASSERT(mThreadPool,
+                     "Should succeed in creating image decoding thread pool");
 
-      mThreadPool->SetThreadLimit(limit);
-      mThreadPool->SetIdleThreadLimit(limit);
+  mThreadPool->SetName(NS_LITERAL_CSTRING("ImageDecoder"));
+  int32_t prefLimit = gfxPrefs::ImageMTDecodingLimit();
+  uint32_t limit;
+  if (prefLimit <= 0) {
+    limit = max(PR_GetNumberOfProcessors(), 2) - 1;
+  } else {
+    limit = static_cast<uint32_t>(prefLimit);
+  }
+
+  mThreadPool->SetThreadLimit(limit);
+  mThreadPool->SetIdleThreadLimit(limit);
 
 #ifdef MOZ_NUWA_PROCESS
-      if (IsNuwaProcess()) {
-        mThreadPool->SetListener(new RIDThreadPoolListener());
-      }
+  if (IsNuwaProcess()) {
+    mThreadPool->SetListener(new RIDThreadPoolListener());
+  }
 #endif
 
-      nsCOMPtr<nsIObserverService> obsSvc = services::GetObserverService();
-      if (obsSvc) {
-        obsSvc->AddObserver(this, "xpcom-shutdown-threads", false);
-      }
-    }
+  nsCOMPtr<nsIObserverService> obsSvc = services::GetObserverService();
+  if (obsSvc) {
+    obsSvc->AddObserver(this, "xpcom-shutdown-threads", false);
   }
 }
 
@@ -278,10 +273,10 @@ DecodePool::RequestDecode(RasterImage* aImage)
   aImage->mDecodeStatus = DecodeStatus::PENDING;
   nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aImage);
 
+  
+  
   MutexAutoLock threadPoolLock(mThreadPoolMutex);
-  if (!gfxPrefs::ImageMTDecodingEnabled() || !mThreadPool) {
-    NS_DispatchToMainThread(worker);
-  } else {
+  if (mThreadPool) {
     mThreadPool->Dispatch(worker, nsIEventTarget::DISPATCH_NORMAL);
   }
 }
