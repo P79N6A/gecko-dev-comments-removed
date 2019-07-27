@@ -119,7 +119,7 @@ private:
   
 
 
-  void DispatchAttributeEvent(const nsTArray<nsString>& aTypes);
+  void DispatchAttributeEvent(const Sequence<nsString>& aTypes);
 
   
 

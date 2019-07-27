@@ -240,6 +240,12 @@ extern bool gBluetoothDebugFlag;
 #define GATT_CONNECTION_STATE_CHANGED_ID     "connectionstatechanged"
 
 
+
+
+
+#define ATTRIBUTE_CHANGED_ID                 "attributechanged"
+
+
 #define BLUETOOTH_ADDRESS_LENGTH 17
 #define BLUETOOTH_ADDRESS_NONE   "00:00:00:00:00:00"
 #define BLUETOOTH_ADDRESS_BYTES  6
