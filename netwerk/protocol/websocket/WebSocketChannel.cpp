@@ -35,8 +35,6 @@
 #include "nsIRandomGenerator.h"
 #include "nsISocketTransport.h"
 #include "nsThreadUtils.h"
-#include "nsINetworkLinkService.h"
-#include "nsIObserverService.h"
 
 #include "nsAutoPtr.h"
 #include "nsNetCID.h"
@@ -87,8 +85,7 @@ NS_IMPL_ISUPPORTS(WebSocketChannel,
                   nsIProtocolProxyCallback,
                   nsIInterfaceRequestor,
                   nsIChannelEventSink,
-                  nsIThreadRetargetableRequest,
-                  nsIObserver)
+                  nsIThreadRetargetableRequest)
 
 
 #define SEC_WEBSOCKET_VERSION "13"
@@ -1049,16 +1046,6 @@ WebSocketChannel::WebSocketChannel() :
     LOG(("Failed to initiate dashboard service."));
 
   mSerial = sSerialSeed++;
-
-  
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService) {
-    observerService->AddObserver(this, NS_NETWORK_LINK_TOPIC, false);
-  } else {
-    NS_WARNING("failed to get observer service");
-  }
-
 }
 
 WebSocketChannel::~WebSocketChannel()
@@ -1115,55 +1102,6 @@ WebSocketChannel::~WebSocketChannel()
     mLoadGroup.forget(&forgettableGroup);
     NS_ProxyRelease(mainThread, forgettableGroup, false);
   }
-}
-
-NS_IMETHODIMP
-WebSocketChannel::Observe(nsISupports *subject,
-                          const char *topic,
-                          const char16_t *data)
-{
-  LOG(("WebSocketChannel::Observe [topic=\"%s\"]\n", topic));
-
-  if (strcmp(topic, NS_NETWORK_LINK_TOPIC) == 0) {
-    nsCString converted = NS_ConvertUTF16toUTF8(data);
-    const char *state = converted.get();
-
-    if (strcmp(state, NS_NETWORK_LINK_DATA_CHANGED) == 0) {
-      LOG(("WebSocket: received network CHANGED event"));
-      if (mPingOutstanding) {
-        
-        
-        LOG(("WebSocket: pong already pending"));
-      } else if (!mSocketThread) {
-        
-        
-        LOG(("WebSocket: early object, no ping needed"));
-      } else {
-        LOG(("nsWebSocketChannel:: Generating Ping as network changed\n"));
-
-        if (mPingForced) {
-          
-          return NS_OK;
-        }
-        if (!mPingTimer) {
-          
-          
-          nsresult rv;
-          mPingTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-          if (NS_FAILED(rv)) {
-            NS_WARNING("unable to create ping timer. Carrying on.");
-          } else {
-            mPingTimer->SetTarget(mSocketThread);
-          }
-        }
-        
-        
-        mPingForced = 1;
-        mPingTimer->InitWithCallback(this, 200, nsITimer::TYPE_ONE_SHOT);
-      }
-    }
-  }
-  return NS_OK;
 }
 
 void
@@ -2685,16 +2623,11 @@ WebSocketChannel::Notify(nsITimer *timer)
     }
 
     if (!mPingOutstanding) {
-      
-      
-      if (mPingInterval || mPingForced) {
-        LOG(("nsWebSocketChannel:: Generating Ping\n"));
-        mPingOutstanding = 1;
-        mPingForced = 0;
-        GeneratePing();
-        mPingTimer->InitWithCallback(this, mPingResponseTimeout,
-                                     nsITimer::TYPE_ONE_SHOT);
-      }
+      LOG(("nsWebSocketChannel:: Generating Ping\n"));
+      mPingOutstanding = 1;
+      GeneratePing();
+      mPingTimer->InitWithCallback(this, mPingResponseTimeout,
+                                   nsITimer::TYPE_ONE_SHOT);
     } else {
       LOG(("nsWebSocketChannel:: Timed out Ping\n"));
       mPingTimer = nullptr;
