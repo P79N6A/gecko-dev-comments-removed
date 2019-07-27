@@ -3559,6 +3559,14 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
         if (!prepareQuery())
             return false;
 
+        
+        
+        JS::AutoObjectVector debuggees(cx);
+        for (GlobalObjectSet::Range r = dbg->allDebuggees(); !r.empty(); r.popFront()) {
+            if (!debuggees.append(r.front()))
+                return false;
+        }
+
         {
             
 
@@ -3567,7 +3575,7 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
             Maybe<JS::AutoCheckCannotGC> maybeNoGC;
             RootedObject dbgObj(cx, dbg->object);
             JS::ubi::RootList rootList(cx, maybeNoGC);
-            if (!rootList.init(dbgObj))
+            if (!rootList.init(cx, dbgObj))
                 return false;
 
             Traversal traversal(cx, *this, maybeNoGC.ref());
