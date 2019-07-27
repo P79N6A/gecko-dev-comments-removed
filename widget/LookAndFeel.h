@@ -12,8 +12,15 @@
 
 #include "nsDebug.h"
 #include "nsColor.h"
+#include "nsTArray.h"
 
 struct gfxFontStyle;
+
+struct LookAndFeelInt
+{
+  int32_t id;
+  int32_t value;
+};
 
 namespace mozilla {
 
@@ -583,6 +590,13 @@ public:
 
 
   static void Refresh();
+
+  
+
+
+
+  static nsTArray<LookAndFeelInt> GetIntCache();
+  static void SetIntCache(const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache);
 };
 
 } 
