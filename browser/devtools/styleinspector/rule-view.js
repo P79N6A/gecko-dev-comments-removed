@@ -1484,6 +1484,10 @@ CssRuleView.prototype = {
     
     if (this._contextmenu) {
       
+      this.menuitemAddRule.removeEventListener("command", this._onAddRule);
+      this.menuitemAddRule = null;
+
+      
       this.menuitemSelectAll.removeEventListener("command", this._onSelectAll);
       this.menuitemSelectAll = null;
 
