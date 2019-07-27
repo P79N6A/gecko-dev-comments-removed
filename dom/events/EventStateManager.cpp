@@ -796,18 +796,6 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       DoContentCommandScrollEvent(aEvent->AsContentCommandEvent());
     }
     break;
-  case NS_COMPOSITION_CHANGE:
-    {
-      WidgetCompositionEvent* compositionEvent = aEvent->AsCompositionEvent();
-      if (IsTargetCrossProcess(compositionEvent)) {
-        
-        if (GetCrossProcessTarget()->SendTextEvent(*compositionEvent)) {
-          
-          aEvent->mFlags.mPropagationStopped = true;
-        }
-      }
-    }
-    break;
   case NS_COMPOSITION_START:
     if (aEvent->mFlags.mIsTrusted) {
       
@@ -821,6 +809,7 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     }
     
   case NS_COMPOSITION_END:
+  case NS_COMPOSITION_CHANGE:
     {
       WidgetCompositionEvent* compositionEvent = aEvent->AsCompositionEvent();
       if (IsTargetCrossProcess(compositionEvent)) {
