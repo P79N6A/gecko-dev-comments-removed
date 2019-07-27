@@ -2475,7 +2475,7 @@ gfxPlatform::GetApzSupportInfo(mozilla::widget::InfoObject& aObj)
  bool
 gfxPlatform::AsyncPanZoomEnabled()
 {
-#if !defined(MOZ_B2G) && !defined(MOZ_WIDGET_ANDROID)
+#if !defined(MOZ_B2G) && !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_WIDGET_UIKIT)
   
   
   
