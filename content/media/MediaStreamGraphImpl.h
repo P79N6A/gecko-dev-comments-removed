@@ -439,8 +439,15 @@ public:
 
 
 
+
+
   void SetCurrentDriver(GraphDriver* aDriver) {
-    MOZ_ASSERT(mDriver->OnThread());
+#ifdef DEBUG
+    
+    if (!mDriver->OnThread()) {
+      mMonitor.AssertCurrentThreadOwns();
+    }
+#endif
     mDriver = aDriver;
   }
 
