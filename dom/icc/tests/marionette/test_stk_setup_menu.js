@@ -158,6 +158,8 @@ function testSetupMenu(aCommand, aExpect) {
   is(aCommand.typeOfCommand, MozIccManager.STK_CMD_SET_UP_MENU, "typeOfCommand");
   is(aCommand.commandQualifier, aExpect.commandQualifier, "commandQualifier");
   is(aCommand.options.title, aExpect.title, "options.title");
+  
+  is(aCommand.options.presentationType, undefined, "presentationType");
 
   for (let index in aExpect.items) {
     let item = aCommand.options.items[index];
