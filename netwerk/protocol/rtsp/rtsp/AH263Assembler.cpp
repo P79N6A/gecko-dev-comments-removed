@@ -99,70 +99,18 @@ ARTPAssembler::AssemblyStatus AH263Assembler::addPacket(
         return MALFORMED_PACKET;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
     unsigned payloadHeader = U16_AT(buffer->data());
+    CHECK_EQ(payloadHeader >> 11, 0u);  
     unsigned P = (payloadHeader >> 10) & 1;
-    unsigned V = (payloadHeader >> 9) & 1;
-    unsigned PLEN = (payloadHeader >> 3) & 0x3f;
-    unsigned PEBIT = payloadHeader & 7;
-
-    
-    
-    
-    if (V != 0u) {
-        queue->erase(queue->begin());
-        ++mNextExpectedSeqNo;
-        ALOGW("Packet discarded due to VRC (V != 0)");
-        return MALFORMED_PACKET;
-    }
-
-    
-    if (PLEN == 0u && PEBIT != 0u) {
-        queue->erase(queue->begin());
-        ++mNextExpectedSeqNo;
-        ALOGW("Packet discarded (PEBIT != 0)");
-        return MALFORMED_PACKET;
-    }
-
-    size_t skip = PLEN + (P ? 0: 2);
-
-    buffer->setRange(buffer->offset() + skip, buffer->size() - skip);
+    CHECK_EQ((payloadHeader >> 9) & 1, 0u);  
+    CHECK_EQ((payloadHeader >> 3) & 0x3f, 0u);  
+    CHECK_EQ(payloadHeader & 7, 0u);  
 
     if (P) {
         buffer->data()[0] = 0x00;
         buffer->data()[1] = 0x00;
+    } else {
+        buffer->setRange(buffer->offset() + 2, buffer->size() - 2);
     }
 
     mPackets.push_back(buffer);
