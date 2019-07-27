@@ -860,20 +860,6 @@ extern const JSJitInfo ClampToUint8JitInfo;
 
 
 
-
-
-bool Memcpy(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo MemcpyJitInfo;
-
-
-
-
-
-
-
-
-
-
 bool GetTypedObjectModule(JSContext *cx, unsigned argc, Value *vp);
 
 

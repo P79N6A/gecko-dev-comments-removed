@@ -195,20 +195,6 @@ function TypedObjectSet(descr, typedObj, offset, fromValue) {
   if (!TypedObjectIsAttached(typedObj))
     ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
-  
-  
-  
-  if (IsObject(fromValue) && ObjectIsTypedObject(fromValue)) {
-    if (!descr.variable && DescrsEquiv(descr, TypedObjectTypeDescr(fromValue))) {
-      if (!TypedObjectIsAttached(fromValue))
-        ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
-
-      var size = DESCR_SIZE(descr);
-      Memcpy(typedObj, offset, fromValue, 0, size);
-      return;
-    }
-  }
-
   switch (DESCR_KIND(descr)) {
   case JS_TYPEREPR_SCALAR_KIND:
     TypedObjectSetScalar(descr, typedObj, offset, fromValue);
@@ -343,13 +329,33 @@ function TypedObjectSetReference(descr, typedObj, offset, fromValue) {
 
 
 function TypedObjectSetSimd(descr, typedObj, offset, fromValue) {
-  
-  
-  
-  
-  ThrowError(JSMSG_CANT_CONVERT_TO,
-             typeof(fromValue),
-             DESCR_STRING_REPR(descr));
+  if (!IsObject(fromValue) || !ObjectIsTypedObject(fromValue))
+    ThrowError(JSMSG_CANT_CONVERT_TO,
+               typeof(fromValue),
+               DESCR_STRING_REPR(descr));
+
+  if (!DescrsEquiv(descr, TypedObjectTypeDescr(fromValue)))
+    ThrowError(JSMSG_CANT_CONVERT_TO,
+               typeof(fromValue),
+               DESCR_STRING_REPR(descr));
+
+  var type = DESCR_TYPE(descr);
+  switch (type) {
+    case JS_SIMDTYPEREPR_FLOAT32:
+      Store_float32(typedObj, offset + 0, Load_float32(fromValue, 0));
+      Store_float32(typedObj, offset + 4, Load_float32(fromValue, 4));
+      Store_float32(typedObj, offset + 8, Load_float32(fromValue, 8));
+      Store_float32(typedObj, offset + 12, Load_float32(fromValue, 12));
+      break;
+    case JS_SIMDTYPEREPR_INT32:
+      Store_int32(typedObj, offset + 0, Load_int32(fromValue, 0));
+      Store_int32(typedObj, offset + 4, Load_int32(fromValue, 4));
+      Store_int32(typedObj, offset + 8, Load_int32(fromValue, 8));
+      Store_int32(typedObj, offset + 12, Load_int32(fromValue, 12));
+      break;
+    default:
+      assert(false, "Unhandled Simd type: " + type);
+  }
 }
 
 
