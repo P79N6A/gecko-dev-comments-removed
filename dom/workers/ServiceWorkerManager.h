@@ -36,7 +36,7 @@ class BackgroundChild;
 
 namespace dom {
 
-class ServiceWorkerRegistration;
+class ServiceWorkerRegistrationBase;
 
 namespace workers {
 
@@ -338,7 +338,7 @@ public:
   
   nsRefPtrHashtable<nsCStringHashKey, ServiceWorkerRegistrationInfo> mServiceWorkerRegistrationInfos;
 
-  nsTObserverArray<ServiceWorkerRegistration*> mServiceWorkerRegistrations;
+  nsTObserverArray<ServiceWorkerRegistrationBase*> mServiceWorkerRegistrations;
 
   nsRefPtrHashtable<nsISupportsHashKey, ServiceWorkerRegistrationInfo> mControlledDocuments;
 
