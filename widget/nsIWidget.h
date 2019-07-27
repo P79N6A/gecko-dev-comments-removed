@@ -23,6 +23,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "Units.h"
+#include "mozilla/gfx/Point.h"
 
 
 class   nsFontMetrics;
@@ -1275,6 +1276,18 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIntPoint GetClientOffset() = 0;
+
+
+    
+
+
+    virtual mozilla::gfx::IntSize GetClientSize() {
+      
+      
+      nsIntRect rect;
+      GetClientBounds(rect);
+      return mozilla::gfx::IntSize(rect.width, rect.height);
+    }
 
     
 
