@@ -1914,12 +1914,7 @@ class LazyScript : public gc::TenuredCell
     
     
     
-    
-    
-    
     static LazyScript* Create(ExclusiveContext* cx, HandleFunction fun,
-                              HandleScript script, HandleObject enclosingScope,
-                              ScriptSourceObject* sourceObject,
                               uint64_t packedData, uint32_t begin, uint32_t end,
                               uint32_t lineno, uint32_t column);
 
