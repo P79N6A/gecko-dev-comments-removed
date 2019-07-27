@@ -625,7 +625,9 @@ loop.panel = (function(_, mozL10n) {
 
     _onStatusChanged: function() {
       var profile = navigator.mozLoop.userProfile;
-      if (profile != this.state.userProfile) {
+      var currUid = this.state.userProfile ? this.state.userProfile.uid : null;
+      var newUid = profile ? profile.uid : null;
+      if (currUid != newUid) {
         
         this.selectTab("call");
       }
