@@ -82,7 +82,7 @@ public class LocalBrowserDB {
     private final HashMap<String, Long> mFolderIdMap;
 
     
-    private Boolean mDesktopBookmarksExist;
+    private volatile Boolean mDesktopBookmarksExist;
 
     private final Uri mBookmarksUriWithProfile;
     private final Uri mParentsUriWithProfile;
@@ -759,12 +759,13 @@ public class LocalBrowserDB {
                                   null);
 
         try {
-            mDesktopBookmarksExist = c.getCount() > 0;
+            
+            final boolean e = c.getCount() > 0;
+            mDesktopBookmarksExist = e;
+            return e;
         } finally {
             c.close();
         }
-
-        return mDesktopBookmarksExist;
     }
 
     @RobocopTarget
