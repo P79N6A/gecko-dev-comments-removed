@@ -5301,7 +5301,7 @@ nsIDocument::RemoveAnonymousContent(AnonymousContent& aContent,
   }
 
   
-  for (int32_t i = mAnonymousContents.Length() - 1; i >= 0; --i) {
+  for (size_t i = 0, len = mAnonymousContents.Length(); i < len; ++i) {
     if (mAnonymousContents[i] == &aContent) {
       
       nsCOMPtr<Element> node = aContent.GetContentNode();
