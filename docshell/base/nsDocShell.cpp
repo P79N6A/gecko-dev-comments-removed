@@ -225,9 +225,11 @@ using namespace mozilla::dom;
 using mozilla::dom::workers::ServiceWorkerManager;
 
 
+
 static bool gAddedPreferencesVarCache = false;
 
 bool nsDocShell::sUseErrorPages = false;
+bool nsDocShell::sInterceptionEnabled = false;
 
 
 static int32_t gNumberOfDocumentsLoading = 0;
@@ -5741,6 +5743,9 @@ nsDocShell::Create()
     Preferences::AddBoolVarCache(&sUseErrorPages,
                                  "browser.xul.error_pages.enabled",
                                  mUseErrorPages);
+    Preferences::AddBoolVarCache(&sInterceptionEnabled,
+                                 "dom.serviceWorkers.interception.enabled",
+                                 false);
     gAddedPreferencesVarCache = true;
   }
 
@@ -14047,6 +14052,11 @@ nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate,
                                       bool* aShouldIntercept)
 {
   *aShouldIntercept = false;
+  
+  if (!sInterceptionEnabled) {
+    return NS_OK;
+  }
+
   if (mSandboxFlags) {
     
     return NS_OK;

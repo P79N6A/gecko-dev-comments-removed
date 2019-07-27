@@ -903,6 +903,9 @@ protected:
   
   static bool sUseErrorPages;
 
+  
+  static bool sInterceptionEnabled;
+
   bool mCreated;
   bool mAllowSubframes;
   bool mAllowPlugins;
