@@ -61,6 +61,8 @@ WebAudioEditorPanel.prototype = {
     }
 
     return this._destroyer = this.panelWin.shutdownWebAudioEditor().then(() => {
+      
+      this.panelWin.gFront.destroy();
       this.emit("destroyed");
     });
   }
