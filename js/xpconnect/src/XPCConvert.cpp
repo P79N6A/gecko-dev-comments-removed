@@ -880,9 +880,8 @@ XPCConvert::NativeInterface2JSObject(MutableHandleValue d,
     
     
     flat = wrapper->GetFlatJSObject();
-    jsval v = OBJECT_TO_JSVAL(flat);
     if (!allowNativeWrapper) {
-        d.set(v);
+        d.setObjectOrNull(flat);
         if (dest)
             wrapper.forget(dest);
         if (pErr)
