@@ -389,6 +389,10 @@ static void ReleaseTextureClientNow(TextureClient* aClient)
 
 void ImageBridgeChild::DispatchReleaseTextureClient(TextureClient* aClient)
 {
+  if (!aClient) {
+    return;
+  }
+
   if (!IsCreated()) {
     
     
