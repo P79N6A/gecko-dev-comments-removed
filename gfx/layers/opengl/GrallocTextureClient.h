@@ -139,13 +139,6 @@ protected:
 
   RefPtr<gfx::DrawTarget> mDrawTarget;
 
-  
-
-
-
-
-  gfx::IntSize mSize;
-
   android::MediaBuffer* mMediaBuffer;
 
   bool mIsOpaque;
