@@ -5263,8 +5263,12 @@ GetSavedFrameParent(JSContext *cx, HandleObject savedFrame, MutableHandleObject 
 
 
 
+
+
+
+
 extern JS_PUBLIC_API(bool)
-StringifySavedFrameStack(JSContext *cx, HandleObject stack, MutableHandleString stringp);
+BuildStackString(JSContext *cx, HandleObject stack, MutableHandleString stringp);
 
 } 
 
