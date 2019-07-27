@@ -234,7 +234,7 @@ GonkMediaDataDecoder::Flush()
   
   
   mTaskQueue->Flush();
-
+  mDrainComplete = false;
   return mManager->Flush();
 }
 
