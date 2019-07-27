@@ -138,8 +138,8 @@ public:
   nsRefPtrHashtable<nsPtrHashKey<nsISupports>, imgRequestProxy> mRequests; 
 
   
-  
-  NS_INLINE_DECL_REFCOUNTING(ImageValue)
+  NS_METHOD_(MozExternalRefCountType) AddRef();
+  NS_METHOD_(MozExternalRefCountType) Release();
 };
 
 struct GridNamedArea {
