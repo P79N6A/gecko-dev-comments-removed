@@ -278,7 +278,10 @@ GeckoMediaPluginService::Observe(nsISupports* aSubject,
     nsCOMPtr<nsIThread> gmpThread;
     {
       MutexAutoLock lock(mMutex);
-      MOZ_ASSERT(mShuttingDown);
+      
+      
+      
+      MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Default || mShuttingDown);
       mGMPThread.swap(gmpThread);
     }
 
