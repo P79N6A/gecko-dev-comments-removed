@@ -10,11 +10,10 @@
 
 
 
-let (ios = Cc["@mozilla.org/network/io-service;1"]
-           .getService(Ci.nsIIOService2)) {
-  ios.manageOfflineStatus = false;
-  ios.offline = false;
-}
+let ios = Cc["@mozilla.org/network/io-service;1"]
+          .getService(Ci.nsIIOService2);
+ios.manageOfflineStatus = false;
+ios.offline = false;
 
 var server; 
 
