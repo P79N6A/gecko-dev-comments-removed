@@ -548,6 +548,9 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
 
   int returnLength = InsertBuffer(frame_buffer, packet_list_it);
   UpdateCompleteSession();
+  
+  
+  
   if (decode_error_mode == kWithErrors)
     decodable_ = true;
   else if (decode_error_mode == kSelectiveErrors)
