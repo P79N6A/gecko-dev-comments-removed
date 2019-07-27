@@ -2502,7 +2502,8 @@ nsDocumentViewer::FindContainerView()
               static_cast<nsSubDocumentFrame*>(subdocFrame)->EnsureInnerView();
             containerView = innerView;
           } else {
-            NS_WARNING("Subdocument container has non-subdocument frame");
+            NS_WARN_IF_FALSE(!subdocFrame->GetType(),
+                             "Subdocument container has non-subdocument frame");
           }
         } else {
           
