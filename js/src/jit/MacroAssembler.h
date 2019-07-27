@@ -864,20 +864,6 @@ class MacroAssembler : public MacroAssemblerSpecific
         return exitCodePatch_.offset() != 0;
     }
 
-    void link(JitCode *code) {
-        MOZ_ASSERT(!oom());
-        
-        
-        
-        if (hasEnteredExitFrame()) {
-            exitCodePatch_.fixup(this);
-            PatchDataWithValueCheck(CodeLocationLabel(code, exitCodePatch_),
-                                    ImmPtr(code),
-                                    ImmPtr((void*)-1));
-        }
-
-    }
-
     
     void generateBailoutTail(Register scratch, Register bailoutInfo);
 
@@ -1151,6 +1137,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     void finish();
+    void link(JitCode *code);
 
     void assumeUnreachable(const char *output);
     void printf(const char *output);
@@ -1422,6 +1409,10 @@ class MacroAssembler : public MacroAssemblerSpecific
         bind(&ok);
 #endif
     }
+
+    void profilerPreCallImpl();
+    void profilerPreCallImpl(Register reg, Register reg2);
+    void profilerPostReturnImpl() {}
 };
 
 static inline Assembler::DoubleCondition

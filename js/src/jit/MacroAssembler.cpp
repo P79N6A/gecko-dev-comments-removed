@@ -1926,6 +1926,30 @@ MacroAssembler::finish()
 }
 
 void
+MacroAssembler::link(JitCode *code)
+{
+    MOZ_ASSERT(!oom());
+    
+    
+    
+    if (hasEnteredExitFrame()) {
+        exitCodePatch_.fixup(this);
+        PatchDataWithValueCheck(CodeLocationLabel(code, exitCodePatch_),
+                                ImmPtr(code),
+                                ImmPtr((void*)-1));
+    }
+
+    
+    
+    for (size_t i = 0; i < profilerCallSites_.length(); i++) {
+        CodeOffsetLabel offset = profilerCallSites_[i];
+        offset.fixup(this);
+        CodeLocationLabel location(code, offset);
+        PatchDataWithValueCheck(location, ImmPtr(location.raw()), ImmPtr((void*)-1));
+    }
+}
+
+void
 MacroAssembler::branchIfNotInterpretedConstructor(Register fun, Register scratch, Label *label)
 {
     
@@ -2049,4 +2073,29 @@ MacroAssembler::spsUnmarkJit(SPSProfiler *p, Register temp)
     spsPopFrameSafe(p, temp);
 
     bind(&spsNotEnabled);
+}
+
+void
+MacroAssembler::profilerPreCallImpl()
+{
+    Register reg = CallTempReg0;
+    Register reg2 = CallTempReg1;
+    push(reg);
+    push(reg2);
+    profilerPreCallImpl(reg, reg2);
+    pop(reg2);
+    pop(reg);
+}
+
+void
+MacroAssembler::profilerPreCallImpl(Register reg, Register reg2)
+{
+    JitContext *icx = GetJitContext();
+    AbsoluteAddress profilingActivation(icx->runtime->addressOfProfilingActivation());
+
+    CodeOffsetLabel label = movWithPatch(ImmWord(uintptr_t(-1)), reg);
+    loadPtr(profilingActivation, reg2);
+    storePtr(reg, Address(reg2, JitActivation::offsetOfLastProfilingCallSite()));
+
+    appendProfilerCallSite(label);
 }
