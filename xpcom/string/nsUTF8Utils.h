@@ -11,6 +11,7 @@
 
 
 #include "nscore.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/SSE.h"
 
 #include "nsCharTraits.h"
@@ -170,6 +171,11 @@ private:
 
 
 
+
+
+
+
+
 class UTF16CharEnumerator
 {
 public:
@@ -259,10 +265,7 @@ public:
       return 0xFFFD;
     }
 
-    if (aErr) {
-      *aErr = true;
-    }
-    return 0;
+    MOZ_ASSERT_UNREACHABLE("Impossible UCS-2 character value.");
   }
 };
 
