@@ -578,6 +578,16 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
       return STATUS_DLL_NOT_FOUND;
     }
   }
+  
+  if (dot && ((dot - dllName) >= 16)) {
+    char * current = dllName;
+    while (current < dot && isxdigit(*current)) {
+      current++;
+    }
+    if (current == dot) {
+      return STATUS_DLL_NOT_FOUND;
+    }
+  }
 
   
   info = &sWindowsDllBlocklist[0];
