@@ -3,6 +3,7 @@
 
 
 
+
 let {FlameGraphUtils} = Cu.import("resource:///modules/devtools/FlameGraph.jsm", {});
 
 let test = Task.async(function*() {

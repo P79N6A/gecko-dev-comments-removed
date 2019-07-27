@@ -832,7 +832,10 @@ let FlameGraphUtils = {
 
 
 
-  createFlameGraphDataFromSamples: function(samples, out = []) {
+
+
+
+  createFlameGraphDataFromSamples: function(samples, options = {}, out = []) {
     
     
 
@@ -849,6 +852,12 @@ let FlameGraphUtils = {
 
     for (let { frames, time } of samples) {
       let frameIndex = 0;
+
+      
+      
+      if (options.flattenRecursion) {
+        frames = frames.filter(this._isConsecutiveDuplicate);
+      }
 
       for (let { location } of frames) {
         let prevFrame = prevFrames[frameIndex];
@@ -892,6 +901,22 @@ let FlameGraphUtils = {
     }
 
     return out;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _isConsecutiveDuplicate: function(e, index, array) {
+    return index < array.length - 1 && e.location != array[index + 1].location;
   },
 
   
