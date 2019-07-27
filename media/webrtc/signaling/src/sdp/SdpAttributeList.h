@@ -18,6 +18,7 @@ namespace mozilla
 class SdpAttributeList
 {
 public:
+  virtual ~SdpAttributeList() {}
   typedef SdpAttribute::AttributeType AttributeType;
 
   
