@@ -49,7 +49,7 @@ pref("dom.mozTCPSocket.enabled", true);
 pref("general.smoothScroll", true);
 
 
-pref("dom.mozPay.enabled", true);
+pref("dom.mozPay.enabled", false);
 
 
 pref("dom.sysmsg.enabled", true);
