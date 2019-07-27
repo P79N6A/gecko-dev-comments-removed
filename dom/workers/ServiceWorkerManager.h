@@ -23,6 +23,44 @@ namespace dom {
 namespace workers {
 
 class ServiceWorker;
+class ServiceWorkerUpdateInstance;
+
+
+
+
+
+
+
+
+
+
+class UpdatePromise MOZ_FINAL
+{
+public:
+  UpdatePromise();
+  ~UpdatePromise();
+
+  void AddPromise(Promise* aPromise);
+  void ResolveAllPromises(const nsACString& aScriptSpec, const nsACString& aScope);
+  void RejectAllPromises(nsresult aRv);
+
+  bool
+  IsRejected() const
+  {
+    return mState == Rejected;
+  }
+
+private:
+  enum {
+    Pending,
+    Resolved,
+    Rejected
+  } mState;
+
+  
+  
+  nsTArray<nsTWeakRef<Promise>> mPromises;
+};
 
 
 
@@ -32,13 +70,19 @@ class ServiceWorker;
 
 class ServiceWorkerInfo
 {
-  const nsCString mScriptSpec;
+  nsCString mScriptSpec;
 public:
 
   bool
   IsValid() const
   {
     return !mScriptSpec.IsVoid();
+  }
+
+  void
+  Invalidate()
+  {
+    mScriptSpec.SetIsVoid(true);
   }
 
   const nsCString&
@@ -49,19 +93,23 @@ public:
   }
 
   ServiceWorkerInfo()
-  { }
+  {
+    Invalidate();
+  }
 
   explicit ServiceWorkerInfo(const nsACString& aScriptSpec)
     : mScriptSpec(aScriptSpec)
   { }
 };
 
-class ServiceWorkerRegistration
+
+
+class ServiceWorkerRegistration MOZ_FINAL : public nsISupports
 {
-private:
-  ~ServiceWorkerRegistration() {}
+  virtual ~ServiceWorkerRegistration();
+
 public:
-  NS_INLINE_DECL_REFCOUNTING(ServiceWorkerRegistration)
+  NS_DECL_ISUPPORTS
 
   nsCString mScope;
   
@@ -72,18 +120,20 @@ public:
   ServiceWorkerInfo mWaitingWorker;
   ServiceWorkerInfo mInstallingWorker;
 
-  bool mHasUpdatePromise;
+  nsAutoPtr<UpdatePromise> mUpdatePromise;
+  nsRefPtr<ServiceWorkerUpdateInstance> mUpdateInstance;
 
   void
   AddUpdatePromiseObserver(Promise* aPromise)
   {
-    
+    MOZ_ASSERT(HasUpdatePromise());
+    mUpdatePromise->AddPromise(aPromise);
   }
 
   bool
   HasUpdatePromise()
   {
-    return mHasUpdatePromise;
+    return mUpdatePromise;
   }
 
   
@@ -91,11 +141,7 @@ public:
   
   bool mPendingUninstall;
 
-  explicit ServiceWorkerRegistration(const nsACString& aScope)
-    : mScope(aScope),
-      mHasUpdatePromise(false),
-      mPendingUninstall(false)
-  { }
+  explicit ServiceWorkerRegistration(const nsACString& aScope);
 
   ServiceWorkerInfo
   Newest() const
@@ -126,6 +172,8 @@ public:
 class ServiceWorkerManager MOZ_FINAL : public nsIServiceWorkerManager
 {
   friend class RegisterRunnable;
+  friend class CallInstallRunnable;
+  friend class ServiceWorkerUpdateInstance;
 
 public:
   NS_DECL_ISUPPORTS
@@ -174,12 +222,17 @@ public:
 
   nsClassHashtable<nsCStringHashKey, ServiceWorkerDomainInfo> mDomainMap;
 
-  
-  
-  
-  
-  
-  
+  void
+  ResolveRegisterPromises(ServiceWorkerRegistration* aRegistration,
+                          const nsACString& aWorkerScriptSpec);
+
+  void
+  RejectUpdatePromiseObservers(ServiceWorkerRegistration* aRegistration,
+                               nsresult aResult);
+
+  void
+  FinishFetch(ServiceWorkerRegistration* aRegistration,
+              nsPIDOMWindow* aWindow);
 
   static already_AddRefed<ServiceWorkerManager>
   GetInstance();
@@ -190,6 +243,10 @@ private:
 
   NS_IMETHOD
   Update(ServiceWorkerRegistration* aRegistration, nsPIDOMWindow* aWindow);
+
+  void
+  Install(ServiceWorkerRegistration* aRegistration,
+          ServiceWorkerInfo aServiceWorkerInfo);
 
   NS_IMETHODIMP
   CreateServiceWorkerForWindow(nsPIDOMWindow* aWindow,
