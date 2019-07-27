@@ -10,6 +10,7 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/debug.js", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
@@ -17,9 +18,15 @@ Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 
+const LOGGER_NAME = "Toolkit.Telemetry";
+const LOGGER_PREFIX = "TelemetryPing::";
+
 const PREF_BRANCH = "toolkit.telemetry.";
+const PREF_BRANCH_LOG = PREF_BRANCH + "log.";
 const PREF_SERVER = PREF_BRANCH + "server";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
+const PREF_LOG_LEVEL = PREF_BRANCH_LOG + "level";
+const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
 const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID"
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 
@@ -40,6 +47,39 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryLog",
 XPCOMUtils.defineLazyModuleGetter(this, "ThirdPartyCookieProbe",
                                   "resource://gre/modules/ThirdPartyCookieProbe.jsm");
 
+
+
+
+
+let gLogger = null;
+let gLogAppenderDump = null;
+function configureLogging() {
+  if (!gLogger) {
+    gLogger = Log.repository.getLogger(LOGGER_NAME);
+
+    
+    let consoleAppender = new Log.ConsoleAppender(new Log.BasicFormatter());
+    gLogger.addAppender(consoleAppender);
+
+    Preferences.observe(PREF_BRANCH_LOG, configureLogging);
+  }
+
+  
+  gLogger.level = Log.Level[Preferences.get(PREF_LOG_LEVEL, "Warn")];
+
+  
+  let logDumping = Preferences.get(PREF_LOG_DUMP, false);
+  if (logDumping != !!gLogAppenderDump) {
+    if (logDumping) {
+      gLogAppenderDump = new Log.DumpAppender(new Log.BasicFormatter());
+      gLogger.addAppender(gLogAppenderDump);
+    } else {
+      gLogger.removeAppender(gLogAppenderDump);
+      gLogAppenderDump = null;
+    }
+  }
+}
+
 function generateUUID() {
   let str = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
   
@@ -51,8 +91,16 @@ this.EXPORTED_SYMBOLS = ["TelemetryPing"];
 this.TelemetryPing = Object.freeze({
   Constants: Object.freeze({
     PREF_ENABLED: PREF_ENABLED,
+    PREF_LOG_LEVEL: PREF_LOG_LEVEL,
+    PREF_LOG_DUMP: PREF_LOG_DUMP,
     PREF_SERVER: PREF_SERVER,
   }),
+  
+
+
+  initLogging: function() {
+    configureLogging();
+  },
   
 
 
@@ -100,6 +148,7 @@ this.TelemetryPing = Object.freeze({
 
 let Impl = {
   _initialized: false,
+  _log: null,
   _prevValues: {},
   
   
@@ -132,6 +181,7 @@ let Impl = {
 
 
   send: function send(reason, aPayload) {
+    this._log.trace("send - Reason " + reason + ", Server " + this._server);
     return this.sendPingsFromIterator(this._server, reason,
                                       Iterator(this.popPayloads(reason, aPayload)));
   },
@@ -172,6 +222,7 @@ let Impl = {
   },
 
   doPing: function doPing(server, ping) {
+    this._log.trace("doPing - Server " + server);
     let deferred = Promise.defer();
     let url = server + this.submissionPath(ping);
     let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -245,6 +296,7 @@ let Impl = {
       
       
       Telemetry.canRecord = false;
+      this._log.config("enableTelemetryRecording - Can't send data, disabling Telemetry recording.");
       return false;
     }
 #endif
@@ -255,6 +307,7 @@ let Impl = {
       
       
       Telemetry.canRecord = false;
+      this._log.config("enableTelemetryRecording - Telemetry is disabled, turning off Telemetry recording.");
       return false;
     }
 
@@ -265,11 +318,18 @@ let Impl = {
 
 
   setupTelemetry: function setupTelemetry(testing) {
+    if (testing && !this._log) {
+      this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
+    }
+
+    this._log.trace("setupTelemetry");
+
     
     this._thirdPartyCookies = new ThirdPartyCookieProbe();
     this._thirdPartyCookies.init();
 
     if (!this.enableTelemetryRecording(testing)) {
+      this._log.config("setupTelemetry - Telemetry recording is disabled, skipping Telemetry setup.");
       return Promise.resolve();
     }
 
@@ -290,6 +350,8 @@ let Impl = {
       
       
       if (TelemetryFile.pingsOverdue > 0) {
+        this._log.trace("setupChromeProcess - Sending " + TelemetryFile.pingsOverdue +
+                        " overdue pings now.");
         
         
         
@@ -321,10 +383,29 @@ let Impl = {
 
 
   observe: function (aSubject, aTopic, aData) {
+    
+    if (!this._log) {
+      
+      
+      configureLogging();
+      this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
+    }
+
+    this._log.trace("observe - " + aTopic + " notified.");
+
     switch (aTopic) {
     case "profile-after-change":
       
       return this.setupTelemetry();
+    case "app-startup":
+      
+      Services.obs.addObserver(this, "content-child-shutdown", false);
+      break;
+    case "content-child-shutdown":
+      
+      Services.obs.removeObserver(this, "content-child-shutdown");
+      Preferences.ignore(PREF_BRANCH_LOG, configureLogging);
+      break;
     }
   },
 
