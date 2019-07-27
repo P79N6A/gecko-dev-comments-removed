@@ -147,8 +147,9 @@ public:
 #else 
   void UpdateWindowPositionAndClipRect(bool aSetWindow);
   void UpdateWindowVisibility(bool aVisible);
-  void UpdateDocumentActiveState(bool aIsActive);
 #endif 
+
+  void UpdateDocumentActiveState(bool aIsActive);
 
   void SetFrame(nsPluginFrame *aFrame);
   nsPluginFrame* GetFrame();

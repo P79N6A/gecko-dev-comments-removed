@@ -55,6 +55,7 @@ using mozilla::DefaultXDisplay;
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
+#include "mozilla/dom/TabChild.h"
 #include "nsFrameSelection.h"
 
 #include "nsContentCID.h"
@@ -2416,7 +2417,7 @@ void* nsPluginInstanceOwner::GetPluginPortFromWidget()
   if (mWidget) {
 #ifdef XP_WIN
     if (mPluginWindow && (mPluginWindow->type == NPWindowTypeDrawable))
-      result = mWidget->GetNativeData(NS_NATIVE_GRAPHIC);
+      result = mWidget->GetNativeData(NS_NATIVE_GRAPHIC); 
     else
 #endif
 #ifdef XP_MACOSX
@@ -2426,7 +2427,7 @@ void* nsPluginInstanceOwner::GetPluginPortFromWidget()
       result = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT_CG);
     else
 #endif
-      result = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
+      result = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT); 
   }
   return result;
 }
@@ -2455,13 +2456,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 
   bool windowless = false;
   mInstance->IsWindowless(&windowless);
-  if (!windowless
-
-
-#ifndef XP_MACOSX
-      && !nsIWidget::UsePuppetWidgets()
-#endif
-      ) {
+  if (!windowless) {
     
     
     nsCOMPtr<nsIWidget> parentWidget;
@@ -2469,25 +2464,41 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
     if (mContent) {
       doc = mContent->OwnerDoc();
       parentWidget = nsContentUtils::WidgetForDocument(doc);
+#ifndef XP_MACOSX
+      
+      if (XRE_GetProcessType() == GeckoProcessType_Content) {
+        nsCOMPtr<nsIDOMWindow> window = doc->GetWindow();
+        if (window) {
+          nsCOMPtr<nsIDOMWindow> topWindow;
+          window->GetTop(getter_AddRefs(topWindow));
+          if (topWindow) {
+            dom::TabChild* tc = dom::TabChild::GetFrom(topWindow);
+            if (tc) {
+              
+              mWidget = tc->CreatePluginWidget(parentWidget.get());
+            }
+          }
+        }
+      }
+#endif 
+    }
+    if (!mWidget) {
+      
+      mWidget = do_CreateInstance(kWidgetCID, &rv);
+      nsWidgetInitData initData;
+      initData.mWindowType = eWindowType_plugin;
+      initData.mUnicode = false;
+      initData.clipChildren = true;
+      initData.clipSiblings = true;
+      rv = mWidget->Create(parentWidget.get(), nullptr, nsIntRect(0,0,0,0),
+                           nullptr, &initData);
+      if (NS_FAILED(rv)) {
+        mWidget->Destroy();
+        mWidget = nullptr;
+        return rv;
+      }
     }
 
-    mWidget = do_CreateInstance(kWidgetCID, &rv);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    nsWidgetInitData initData;
-    initData.mWindowType = eWindowType_plugin;
-    initData.mUnicode = false;
-    initData.clipChildren = true;
-    initData.clipSiblings = true;
-    rv = mWidget->Create(parentWidget.get(), nullptr, nsIntRect(0,0,0,0),
-                         nullptr, &initData);
-    if (NS_FAILED(rv)) {
-      mWidget->Destroy();
-      mWidget = nullptr;
-      return rv;
-    }
 
     mWidget->EnableDragDrop(true);
     mWidget->Show(false);
@@ -2742,17 +2753,20 @@ nsPluginInstanceOwner::UpdateWindowVisibility(bool aVisible)
   mPluginWindowVisible = aVisible;
   UpdateWindowPositionAndClipRect(true);
 }
+#endif 
 
 void
 nsPluginInstanceOwner::UpdateDocumentActiveState(bool aIsActive)
 {
   mPluginDocumentActiveState = aIsActive;
+#ifndef XP_MACOSX
   UpdateWindowPositionAndClipRect(true);
 
 #ifdef MOZ_WIDGET_ANDROID
   if (mInstance) {
-    if (!mPluginDocumentActiveState)
+    if (!mPluginDocumentActiveState) {
       RemovePluginView();
+    }
 
     mInstance->NotifyOnScreen(mPluginDocumentActiveState);
 
@@ -2764,9 +2778,19 @@ nsPluginInstanceOwner::UpdateDocumentActiveState(bool aIsActive)
     
     mInstance->NotifyForeground(mPluginDocumentActiveState);
   }
-#endif
-}
 #endif 
+
+  
+  
+  
+  
+  
+  if (mWidget && XRE_GetProcessType() == GeckoProcessType_Content) {
+    mWidget->Show(aIsActive);
+    mWidget->Enable(aIsActive);
+  }
+#endif 
+}
 
 NS_IMETHODIMP
 nsPluginInstanceOwner::CallSetWindow()
