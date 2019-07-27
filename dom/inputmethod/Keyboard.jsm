@@ -249,14 +249,34 @@ this.Keyboard = {
   },
 
   forwardEvent: function keyboardForwardEvent(newEventName, msg) {
-    this.formMM = msg.target.QueryInterface(Ci.nsIFrameLoaderOwner)
-                            .frameLoader.messageManager;
+    let mm = msg.target.QueryInterface(Ci.nsIFrameLoaderOwner)
+                .frameLoader.messageManager;
+    if (newEventName === 'Keyboard:FocusChange' &&
+        msg.data.type === 'blur') {
+      
+      
+      
+      
+      if (mm !== this.formMM) {
+        return false;
+      }
+
+      this.sendToKeyboard(newEventName, msg.data);
+      return true;
+    }
+
+    this.formMM = mm;
 
     this.sendToKeyboard(newEventName, msg.data);
+    return true;
   },
 
   handleFocusChange: function keyboardHandleFocusChange(msg) {
-    this.forwardEvent('Keyboard:FocusChange', msg);
+    let isSent = this.forwardEvent('Keyboard:FocusChange', msg);
+
+    if (!isSent) {
+      return;
+    }
 
     
     
