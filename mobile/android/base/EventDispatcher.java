@@ -27,7 +27,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public final class EventDispatcher {
     private static final String LOGTAG = "GeckoEventDispatcher";
     private static final String GUID = "__guid__";
-    private static final String STATUS_CANCEL = "cancel";
     private static final String STATUS_ERROR = "error";
     private static final String STATUS_SUCCESS = "success";
 
@@ -201,9 +200,8 @@ public final class EventDispatcher {
                 Log.w(LOGTAG, "No listeners for " + type);
 
                 
-                
                 if (callback != null) {
-                    callback.sendCancel();
+                    callback.sendError("No listeners for request");
                 }
                 return;
             }
@@ -256,10 +254,6 @@ public final class EventDispatcher {
 
         public void sendError(final Object response) {
             sendResponse(STATUS_ERROR, response);
-        }
-
-        public void sendCancel() {
-            sendResponse(STATUS_CANCEL, null);
         }
 
         private void sendResponse(final String status, final Object response) {

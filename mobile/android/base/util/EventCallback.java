@@ -26,9 +26,4 @@ public interface EventCallback {
 
 
     public void sendError(Object response);
-
-    
-
-
-    public void sendCancel();
 }

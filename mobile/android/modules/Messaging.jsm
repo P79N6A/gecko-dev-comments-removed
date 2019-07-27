@@ -18,7 +18,13 @@ XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
 function sendMessageToJava(aMessage, aCallback) {
   Cu.reportError("sendMessageToJava is deprecated. Use Messaging API instead.");
 
-  Messaging.sendRequest(aMessage, aCallback);
+  if (aCallback) {
+    Messaging.sendRequestForResult(aMessage)
+      .then(result => aCallback(result, null),
+            error => aCallback(null, error));
+  } else {
+    Messaging.sendRequest(aMessage);
+  }
 }
 
 let Messaging = {
@@ -72,34 +78,41 @@ let Messaging = {
 
 
 
+  sendRequest: function (aMessage) {
+    Services.androidBridge.handleGeckoMessage(aMessage);
+  },
 
-  sendRequest: function (aMessage, aCallback) {
-    if (aCallback) {
+  
+
+
+
+
+
+  sendRequestForResult: function (aMessage) {
+    return new Promise((resolve, reject) => {
       let id = uuidgen.generateUUID().toString();
       let obs = {
-        observe: function(aSubject, aTopic, aData) {
+        observe: function (aSubject, aTopic, aData) {
           let data = JSON.parse(aData);
           if (data.__guid__ != id) {
             return;
           }
 
-          Services.obs.removeObserver(obs, aMessage.type + ":Response", false);
+          Services.obs.removeObserver(obs, aMessage.type + ":Response");
 
-          if (data.status === "cancel") {
-            
-            return;
+          if (data.status === "success") {
+            resolve(data.response);
+          } else {
+            reject(data.response);
           }
-
-          aCallback(data.status === "success" ? data.response : null,
-                    data.status === "error"   ? data.response : null);
         }
-      }
+      };
 
       aMessage.__guid__ = id;
       Services.obs.addObserver(obs, aMessage.type + ":Response", false);
-    }
 
-    return Services.androidBridge.handleGeckoMessage(aMessage);
+      this.sendRequest(aMessage);
+    });
   },
 };
 
