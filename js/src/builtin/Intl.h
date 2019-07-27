@@ -183,13 +183,13 @@ intl_FormatDateTime(JSContext *cx, unsigned argc, Value *vp);
 
 
 inline const UChar *
-JSCharToUChar(const jschar *chars)
+Char16ToUChar(const char16_t *chars)
 {
   return reinterpret_cast<const UChar *>(chars);
 }
 
 inline UChar *
-JSCharToUChar(jschar *chars)
+Char16ToUChar(char16_t *chars)
 {
   return reinterpret_cast<UChar *>(chars);
 }

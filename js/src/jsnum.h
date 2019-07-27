@@ -145,7 +145,7 @@ GetPrefixInteger(ThreadSafeContext *cx, const CharT *start, const CharT *end, in
 
 
 extern bool
-GetDecimalInteger(ExclusiveContext *cx, const jschar *start, const jschar *end, double *dp);
+GetDecimalInteger(ExclusiveContext *cx, const char16_t *start, const char16_t *end, double *dp);
 
 extern bool
 StringToNumber(ThreadSafeContext *cx, JSString *str, double *result);

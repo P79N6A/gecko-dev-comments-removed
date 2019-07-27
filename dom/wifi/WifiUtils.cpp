@@ -218,14 +218,14 @@ void LossyConvertUTF8toUTF16(const char* aInput, uint32_t aLength, nsAString& aO
       v = JS::Utf8ToOneUcs4Char((uint8_t *)&src[i], n);
       if (v < 0x10000) {
         
-        dst[j] = jschar(v);
+        dst[j] = char16_t(v);
       } else {
         v -= 0x10000;
         if (v <= 0xFFFFF) {
           
-          dst[j] = jschar((v >> 10) + 0xD800);
+          dst[j] = char16_t((v >> 10) + 0xD800);
           j++;
-          dst[j] = jschar((v & 0x3FF) + 0xDC00);
+          dst[j] = char16_t((v & 0x3FF) + 0xDC00);
         } else {
           
           INVALID(ReportTooBigCharacter, v, 1);

@@ -166,8 +166,8 @@
                     { nFileSizeLow:     Type.DWORD.implementation },
                     { dwReserved0:      Type.DWORD.implementation },
                     { dwReserved1:      Type.DWORD.implementation },
-                    { cFileName:        ctypes.ArrayType(ctypes.jschar, Const.MAX_PATH) },
-                    { cAlternateFileName: ctypes.ArrayType(ctypes.jschar, 14) }
+                    { cFileName:        ctypes.ArrayType(ctypes.char16_t, Const.MAX_PATH) },
+                    { cAlternateFileName: ctypes.ArrayType(ctypes.char16_t, 14) }
                       ]));
 
        Type.FILE_INFORMATION =
@@ -237,7 +237,7 @@
        libc.declareLazyFFI(SysFile, "CreateDirectory",
          "CreateDirectoryW", ctypes.winapi_abi,
                      Type.zero_or_nothing,
-                       Type.jschar.in_ptr,
+                       Type.char16_t.in_ptr,
                     Type.SECURITY_ATTRIBUTES.in_ptr);
 
        libc.declareLazyFFI(SysFile, "CreateFile",

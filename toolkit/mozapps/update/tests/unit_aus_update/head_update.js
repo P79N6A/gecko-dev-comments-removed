@@ -1278,11 +1278,11 @@ XPCOMUtils.defineLazyGetter(this, "gLocalAppDataDir",
                                            ctypes.winapi_abi,
                                            ctypes.bool, 
                                            ctypes.int32_t, 
-                                           ctypes.jschar.ptr, 
+                                           ctypes.char16_t.ptr, 
                                            ctypes.int32_t, 
                                            ctypes.bool );
 
-  let aryPathLocalAppData = ctypes.jschar.array()(260);
+  let aryPathLocalAppData = ctypes.char16_t.array()(260);
   let rv = SHGetSpecialFolderPath(0, aryPathLocalAppData, CSIDL_LOCAL_APPDATA, false);
   lib.close();
 
@@ -1303,11 +1303,11 @@ XPCOMUtils.defineLazyGetter(this, "gProgFilesDir",
                                            ctypes.winapi_abi,
                                            ctypes.bool, 
                                            ctypes.int32_t, 
-                                           ctypes.jschar.ptr, 
+                                           ctypes.char16_t.ptr, 
                                            ctypes.int32_t, 
                                            ctypes.bool );
 
-  let aryPathProgFiles = ctypes.jschar.array()(260);
+  let aryPathProgFiles = ctypes.char16_t.array()(260);
   let rv = SHGetSpecialFolderPath(0, aryPathProgFiles, CSIDL_PROGRAM_FILES, false);
   lib.close();
 

@@ -137,7 +137,7 @@ class RegExpBuilder
 {
   public:
     explicit RegExpBuilder(LifoAlloc *alloc);
-    void AddCharacter(jschar character);
+    void AddCharacter(char16_t character);
     
     
     void AddEmpty();
@@ -200,7 +200,7 @@ class RegExpParser
     
     bool ParseBackReferenceIndex(int* index_out);
 
-    bool ParseClassAtom(jschar* char_class, CharacterRange *char_range);
+    bool ParseClassAtom(char16_t* char_class, CharacterRange *char_range);
     RegExpTree* ReportError(unsigned errorNumber);
     void Advance();
     void Advance(int dist) {

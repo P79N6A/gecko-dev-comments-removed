@@ -836,14 +836,14 @@ class MOZ_STACK_CLASS SourceBufferHolder MOZ_FINAL
       GiveOwnership
     };
 
-    SourceBufferHolder(const jschar *data, size_t dataLength, Ownership ownership)
+    SourceBufferHolder(const char16_t *data, size_t dataLength, Ownership ownership)
       : data_(data),
         length_(dataLength),
         ownsChars_(ownership == GiveOwnership)
     {
         
         
-        static const jschar NullChar_ = 0;
+        static const char16_t NullChar_ = 0;
         if (!get()) {
             data_ = &NullChar_;
             length_ = 0;
@@ -853,11 +853,11 @@ class MOZ_STACK_CLASS SourceBufferHolder MOZ_FINAL
 
     ~SourceBufferHolder() {
         if (ownsChars_)
-            js_free(const_cast<jschar *>(data_));
+            js_free(const_cast<char16_t *>(data_));
     }
 
     
-    const jschar *get() const { return data_; }
+    const char16_t *get() const { return data_; }
 
     
     size_t length() const { return length_; }
@@ -878,17 +878,17 @@ class MOZ_STACK_CLASS SourceBufferHolder MOZ_FINAL
     
     
     
-    jschar *take() {
+    char16_t *take() {
         JS_ASSERT(ownsChars_);
         ownsChars_ = false;
-        return const_cast<jschar *>(data_);
+        return const_cast<char16_t *>(data_);
     }
 
   private:
     SourceBufferHolder(SourceBufferHolder &) MOZ_DELETE;
     SourceBufferHolder &operator=(SourceBufferHolder &) MOZ_DELETE;
 
-    const jschar *data_;
+    const char16_t *data_;
     size_t length_;
     bool ownsChars_;
 };
@@ -1364,7 +1364,6 @@ class JSAutoCheckRequest
 #endif
     }
 
-
   private:
 #ifdef JS_DEBUG
     JSContext *mContext;
@@ -1829,7 +1828,7 @@ JS_InitCTypesClass(JSContext *cx, JS::HandleObject global);
 
 
 typedef char *
-(* JSCTypesUnicodeToNativeFun)(JSContext *cx, const jschar *source, size_t slen);
+(* JSCTypesUnicodeToNativeFun)(JSContext *cx, const char16_t *source, size_t slen);
 
 
 
@@ -2166,7 +2165,7 @@ JS_SetGCParametersBasedOnAvailableMemory(JSRuntime *rt, uint32_t availMem);
 
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length,
+JS_NewExternalString(JSContext *cx, const char16_t *chars, size_t length,
                      const JSStringFinalizer *fin);
 
 
@@ -2599,7 +2598,6 @@ class JS_PUBLIC_API(CompartmentOptions)
         discardSource_ = flag;
         return *this;
     }
-
 
     bool cloneSingletons() const { return cloneSingletons_; }
     CompartmentOptions &setCloneSingletons(bool flag) {
@@ -3077,61 +3075,61 @@ extern JS_PUBLIC_API(bool)
 JS_DeletePropertyById2(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool *succeeded);
 
 extern JS_PUBLIC_API(bool)
-JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const jschar *name, size_t namelen,
+JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const char16_t *name, size_t namelen,
                     JS::HandleValue value, unsigned attrs,
                     JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
 
 extern JS_PUBLIC_API(bool)
-JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const jschar *name, size_t namelen,
+JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const char16_t *name, size_t namelen,
                     JS::HandleObject value, unsigned attrs,
                     JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
 
 extern JS_PUBLIC_API(bool)
-JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const jschar *name, size_t namelen,
+JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const char16_t *name, size_t namelen,
                     JS::HandleString value, unsigned attrs,
                     JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
 
 extern JS_PUBLIC_API(bool)
-JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const jschar *name, size_t namelen,
+JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const char16_t *name, size_t namelen,
                     int32_t value, unsigned attrs,
                     JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
 
 extern JS_PUBLIC_API(bool)
-JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const jschar *name, size_t namelen,
+JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const char16_t *name, size_t namelen,
                     uint32_t value, unsigned attrs,
                     JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
 
 extern JS_PUBLIC_API(bool)
-JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const jschar *name, size_t namelen,
+JS_DefineUCProperty(JSContext *cx, JS::HandleObject obj, const char16_t *name, size_t namelen,
                     double value, unsigned attrs,
                     JSPropertyOp getter = nullptr, JSStrictPropertyOp setter = nullptr);
 
 extern JS_PUBLIC_API(bool)
-JS_AlreadyHasOwnUCProperty(JSContext *cx, JS::HandleObject obj, const jschar *name,
+JS_AlreadyHasOwnUCProperty(JSContext *cx, JS::HandleObject obj, const char16_t *name,
                            size_t namelen, bool *foundp);
 
 extern JS_PUBLIC_API(bool)
 JS_HasUCProperty(JSContext *cx, JS::HandleObject obj,
-                 const jschar *name, size_t namelen,
+                 const char16_t *name, size_t namelen,
                  bool *vp);
 
 extern JS_PUBLIC_API(bool)
 JS_LookupUCProperty(JSContext *cx, JS::HandleObject obj,
-                    const jschar *name, size_t namelen,
+                    const char16_t *name, size_t namelen,
                     JS::MutableHandleValue vp);
 
 extern JS_PUBLIC_API(bool)
 JS_GetUCProperty(JSContext *cx, JS::HandleObject obj,
-                 const jschar *name, size_t namelen,
+                 const char16_t *name, size_t namelen,
                  JS::MutableHandleValue vp);
 
 extern JS_PUBLIC_API(bool)
 JS_SetUCProperty(JSContext *cx, JS::HandleObject obj,
-                 const jschar *name, size_t namelen,
+                 const char16_t *name, size_t namelen,
                  JS::HandleValue v);
 
 extern JS_PUBLIC_API(bool)
-JS_DeleteUCProperty2(JSContext *cx, JS::HandleObject obj, const jschar *name, size_t namelen,
+JS_DeleteUCProperty2(JSContext *cx, JS::HandleObject obj, const char16_t *name, size_t namelen,
                      bool *succeeded);
 
 extern JS_PUBLIC_API(JSObject *)
@@ -3385,7 +3383,7 @@ JS_DefineFunction(JSContext *cx, JS::Handle<JSObject*> obj, const char *name, JS
 
 extern JS_PUBLIC_API(JSFunction *)
 JS_DefineUCFunction(JSContext *cx, JS::Handle<JSObject*> obj,
-                    const jschar *name, size_t namelen, JSNative call,
+                    const char16_t *name, size_t namelen, JSNative call,
                     unsigned nargs, unsigned attrs);
 
 extern JS_PUBLIC_API(JSFunction *)
@@ -3424,7 +3422,7 @@ JS_CompileScript(JSContext *cx, JS::HandleObject obj,
 
 extern JS_PUBLIC_API(bool)
 JS_CompileUCScript(JSContext *cx, JS::HandleObject obj,
-                   const jschar *chars, size_t length,
+                   const char16_t *chars, size_t length,
                    const JS::CompileOptions &options,
                    JS::MutableHandleScript script);
 
@@ -3447,7 +3445,7 @@ JS_CompileFunction(JSContext *cx, JS::HandleObject obj, const char *name,
 extern JS_PUBLIC_API(bool)
 JS_CompileUCFunction(JSContext *cx, JS::HandleObject obj, const char *name,
                      unsigned nargs, const char *const *argnames,
-                     const jschar *chars, size_t length,
+                     const char16_t *chars, size_t length,
                      const JS::CompileOptions &options,
                      JS::MutableHandleFunction fun);
 
@@ -3505,7 +3503,7 @@ class JS_FRIEND_API(ReadOnlyCompileOptions)
     JSPrincipals *originPrincipals_;
     const char *filename_;
     const char *introducerFilename_;
-    const jschar *sourceMapURL_;
+    const char16_t *sourceMapURL_;
 
     
     
@@ -3550,7 +3548,7 @@ class JS_FRIEND_API(ReadOnlyCompileOptions)
     JSPrincipals *originPrincipals(js::ExclusiveContext *cx) const;
     const char *filename() const { return filename_; }
     const char *introducerFilename() const { return introducerFilename_; }
-    const jschar *sourceMapURL() const { return sourceMapURL_; }
+    const char16_t *sourceMapURL() const { return sourceMapURL_; }
     virtual JSObject *element() const = 0;
     virtual JSString *elementAttributeName() const = 0;
     virtual JSScript *introductionScript() const = 0;
@@ -3625,11 +3623,11 @@ class JS_FRIEND_API(OwningCompileOptions) : public ReadOnlyCompileOptions
     
     bool setFile(JSContext *cx, const char *f);
     bool setFileAndLine(JSContext *cx, const char *f, unsigned l);
-    bool setSourceMapURL(JSContext *cx, const jschar *s);
+    bool setSourceMapURL(JSContext *cx, const char16_t *s);
     bool setIntroducerFilename(JSContext *cx, const char *s);
 
     
-    OwningCompileOptions &setLine(unsigned l)             { lineno = l;              return *this; }
+    OwningCompileOptions &setLine(unsigned l)             { lineno = l; return *this; }
     OwningCompileOptions &setElement(JSObject *e) {
         elementRoot = e;
         return *this;
@@ -3718,8 +3716,8 @@ class MOZ_STACK_CLASS JS_FRIEND_API(CompileOptions) : public ReadOnlyCompileOpti
     CompileOptions &setFileAndLine(const char *f, unsigned l) {
         filename_ = f; lineno = l; return *this;
     }
-    CompileOptions &setSourceMapURL(const jschar *s) { sourceMapURL_ = s;       return *this; }
-    CompileOptions &setElement(JSObject *e)          { elementRoot = e;         return *this; }
+    CompileOptions &setSourceMapURL(const char16_t *s) { sourceMapURL_ = s; return *this; }
+    CompileOptions &setElement(JSObject *e)          { elementRoot = e; return *this; }
     CompileOptions &setElementAttributeName(JSString *p) {
         elementAttributeNameRoot = p;
         return *this;
@@ -3776,7 +3774,7 @@ Compile(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &optio
 
 extern JS_PUBLIC_API(bool)
 Compile(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
-        const jschar *chars, size_t length, JS::MutableHandleScript script);
+        const char16_t *chars, size_t length, JS::MutableHandleScript script);
 
 extern JS_PUBLIC_API(bool)
 Compile(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options, FILE *file,
@@ -3807,7 +3805,7 @@ CanCompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options, size_t
 
 extern JS_PUBLIC_API(bool)
 CompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options,
-                 const jschar *chars, size_t length,
+                 const char16_t *chars, size_t length,
                  OffThreadCompileCallback callback, void *callbackData);
 
 extern JS_PUBLIC_API(JSScript *)
@@ -3826,7 +3824,7 @@ CompileFunction(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOption
 extern JS_PUBLIC_API(bool)
 CompileFunction(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
                 const char *name, unsigned nargs, const char *const *argnames,
-                const jschar *chars, size_t length, JS::MutableHandleFunction fun);
+                const char16_t *chars, size_t length, JS::MutableHandleFunction fun);
 
 } 
 
@@ -3916,7 +3914,7 @@ JS_EvaluateScript(JSContext *cx, JS::HandleObject obj,
 
 extern JS_PUBLIC_API(bool)
 JS_EvaluateUCScript(JSContext *cx, JS::Handle<JSObject*> obj,
-                    const jschar *chars, unsigned length,
+                    const char16_t *chars, unsigned length,
                     const char *filename, unsigned lineno,
                     JS::MutableHandle<JS::Value> rval);
 
@@ -3928,7 +3926,7 @@ Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &opti
 
 extern JS_PUBLIC_API(bool)
 Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
-         const jschar *chars, size_t length, JS::MutableHandleValue rval);
+         const char16_t *chars, size_t length, JS::MutableHandleValue rval);
 
 extern JS_PUBLIC_API(bool)
 Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
@@ -3944,7 +3942,7 @@ Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &opti
 
 extern JS_PUBLIC_API(bool)
 Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
-         const jschar *chars, size_t length);
+         const char16_t *chars, size_t length);
 
 extern JS_PUBLIC_API(bool)
 Evaluate(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
@@ -4097,19 +4095,19 @@ extern JS_PUBLIC_API(JSString *)
 JS_InternString(JSContext *cx, const char *s);
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewUCString(JSContext *cx, jschar *chars, size_t length);
+JS_NewUCString(JSContext *cx, char16_t *chars, size_t length);
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewUCStringCopyN(JSContext *cx, const jschar *s, size_t n);
+JS_NewUCStringCopyN(JSContext *cx, const char16_t *s, size_t n);
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewUCStringCopyZ(JSContext *cx, const jschar *s);
+JS_NewUCStringCopyZ(JSContext *cx, const char16_t *s);
 
 extern JS_PUBLIC_API(JSString *)
-JS_InternUCStringN(JSContext *cx, const jschar *s, size_t length);
+JS_InternUCStringN(JSContext *cx, const char16_t *s, size_t length);
 
 extern JS_PUBLIC_API(JSString *)
-JS_InternUCString(JSContext *cx, const jschar *s);
+JS_InternUCString(JSContext *cx, const char16_t *s);
 
 extern JS_PUBLIC_API(bool)
 JS_CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32_t *result);
@@ -4177,26 +4175,26 @@ extern JS_PUBLIC_API(const JS::Latin1Char *)
 JS_GetLatin1StringCharsAndLength(JSContext *cx, const JS::AutoCheckCannotGC &nogc, JSString *str,
                                  size_t *length);
 
-extern JS_PUBLIC_API(const jschar *)
+extern JS_PUBLIC_API(const char16_t *)
 JS_GetTwoByteStringCharsAndLength(JSContext *cx, const JS::AutoCheckCannotGC &nogc, JSString *str,
                                   size_t *length);
 
 extern JS_PUBLIC_API(bool)
-JS_GetStringCharAt(JSContext *cx, JSString *str, size_t index, jschar *res);
+JS_GetStringCharAt(JSContext *cx, JSString *str, size_t index, char16_t *res);
 
-extern JS_PUBLIC_API(jschar)
+extern JS_PUBLIC_API(char16_t)
 JS_GetFlatStringCharAt(JSFlatString *str, size_t index);
 
-extern JS_PUBLIC_API(const jschar *)
+extern JS_PUBLIC_API(const char16_t *)
 JS_GetTwoByteExternalStringChars(JSString *str);
 
 extern JS_PUBLIC_API(bool)
-JS_CopyStringChars(JSContext *cx, mozilla::Range<jschar> dest, JSString *str);
+JS_CopyStringChars(JSContext *cx, mozilla::Range<char16_t> dest, JSString *str);
 
 extern JS_PUBLIC_API(const JS::Latin1Char *)
 JS_GetLatin1InternedStringChars(const JS::AutoCheckCannotGC &nogc, JSString *str);
 
-extern JS_PUBLIC_API(const jschar *)
+extern JS_PUBLIC_API(const char16_t *)
 JS_GetTwoByteInternedStringChars(const JS::AutoCheckCannotGC &nogc, JSString *str);
 
 extern JS_PUBLIC_API(JSFlatString *)
@@ -4205,7 +4203,7 @@ JS_FlattenString(JSContext *cx, JSString *str);
 extern JS_PUBLIC_API(const JS::Latin1Char *)
 JS_GetLatin1FlatStringChars(const JS::AutoCheckCannotGC &nogc, JSFlatString *str);
 
-extern JS_PUBLIC_API(const jschar *)
+extern JS_PUBLIC_API(const char16_t *)
 JS_GetTwoByteFlatStringChars(const JS::AutoCheckCannotGC &nogc, JSFlatString *str);
 
 static MOZ_ALWAYS_INLINE JSFlatString *
@@ -4268,7 +4266,7 @@ JS_ConcatStrings(JSContext *cx, JS::HandleString left, JS::HandleString right);
 
 
 JS_PUBLIC_API(bool)
-JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
+JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, char16_t *dst,
                size_t *dstlenp);
 
 
@@ -4456,7 +4454,7 @@ GetWellKnownSymbol(JSContext *cx, SymbolCode which);
 
 
 
-typedef bool (* JSONWriteCallback)(const jschar *buf, uint32_t len, void *data);
+typedef bool (* JSONWriteCallback)(const char16_t *buf, uint32_t len, void *data);
 
 
 
@@ -4469,13 +4467,13 @@ JS_Stringify(JSContext *cx, JS::MutableHandleValue value, JS::HandleObject repla
 
 
 JS_PUBLIC_API(bool)
-JS_ParseJSON(JSContext *cx, const jschar *chars, uint32_t len, JS::MutableHandleValue vp);
+JS_ParseJSON(JSContext *cx, const char16_t *chars, uint32_t len, JS::MutableHandleValue vp);
 
 JS_PUBLIC_API(bool)
 JS_ParseJSON(JSContext *cx, JS::HandleString str, JS::MutableHandleValue vp);
 
 JS_PUBLIC_API(bool)
-JS_ParseJSONWithReviver(JSContext *cx, const jschar *chars, uint32_t len, JS::HandleValue reviver,
+JS_ParseJSONWithReviver(JSContext *cx, const char16_t *chars, uint32_t len, JS::HandleValue reviver,
                         JS::MutableHandleValue vp);
 
 JS_PUBLIC_API(bool)
@@ -4561,7 +4559,7 @@ JS_ReportErrorNumberUC(JSContext *cx, JSErrorCallback errorCallback,
 extern JS_PUBLIC_API(void)
 JS_ReportErrorNumberUCArray(JSContext *cx, JSErrorCallback errorCallback,
                             void *userRef, const unsigned errorNumber,
-                            const jschar **args);
+                            const char16_t **args);
 
 
 
@@ -4600,12 +4598,12 @@ struct JSErrorReport {
     unsigned        lineno;         
     const char      *linebuf;       
     const char      *tokenptr;      
-    const jschar    *uclinebuf;     
-    const jschar    *uctokenptr;    
+    const char16_t  *uclinebuf;     
+    const char16_t  *uctokenptr;    
     unsigned        flags;          
     unsigned        errorNumber;    
-    const jschar    *ucmessage;     
-    const jschar    **messageArgs;  
+    const char16_t  *ucmessage;     
+    const char16_t  **messageArgs;  
     int16_t         exnType;        
     unsigned        column;         
 };
@@ -4712,7 +4710,7 @@ JS_NewRegExpObject(JSContext *cx, JS::HandleObject obj, char *bytes, size_t leng
                    unsigned flags);
 
 extern JS_PUBLIC_API(JSObject *)
-JS_NewUCRegExpObject(JSContext *cx, JS::HandleObject obj, jschar *chars, size_t length,
+JS_NewUCRegExpObject(JSContext *cx, JS::HandleObject obj, char16_t *chars, size_t length,
                      unsigned flags);
 
 extern JS_PUBLIC_API(bool)
@@ -4724,7 +4722,7 @@ JS_ClearRegExpStatics(JSContext *cx, JS::HandleObject obj);
 
 extern JS_PUBLIC_API(bool)
 JS_ExecuteRegExp(JSContext *cx, JS::HandleObject obj, JS::HandleObject reobj,
-                 jschar *chars, size_t length, size_t *indexp, bool test,
+                 char16_t *chars, size_t length, size_t *indexp, bool test,
                  JS::MutableHandleValue rval);
 
 
@@ -4733,10 +4731,10 @@ extern JS_PUBLIC_API(JSObject *)
 JS_NewRegExpObjectNoStatics(JSContext *cx, char *bytes, size_t length, unsigned flags);
 
 extern JS_PUBLIC_API(JSObject *)
-JS_NewUCRegExpObjectNoStatics(JSContext *cx, jschar *chars, size_t length, unsigned flags);
+JS_NewUCRegExpObjectNoStatics(JSContext *cx, char16_t *chars, size_t length, unsigned flags);
 
 extern JS_PUBLIC_API(bool)
-JS_ExecuteRegExpNoStatics(JSContext *cx, JS::HandleObject reobj, jschar *chars, size_t length,
+JS_ExecuteRegExpNoStatics(JSContext *cx, JS::HandleObject reobj, char16_t *chars, size_t length,
                           size_t *indexp, bool test, JS::MutableHandleValue rval);
 
 extern JS_PUBLIC_API(bool)
@@ -5040,7 +5038,7 @@ namespace JS {
 
 
 typedef bool
-(* OpenAsmJSCacheEntryForReadOp)(HandleObject global, const jschar *begin, const jschar *limit,
+(* OpenAsmJSCacheEntryForReadOp)(HandleObject global, const char16_t *begin, const char16_t *limit,
                                  size_t *size, const uint8_t **memory, intptr_t *handle);
 typedef void
 (* CloseAsmJSCacheEntryForReadOp)(size_t size, const uint8_t *memory, intptr_t handle);
@@ -5062,7 +5060,7 @@ typedef void
 
 typedef bool
 (* OpenAsmJSCacheEntryForWriteOp)(HandleObject global, bool installed,
-                                  const jschar *begin, const jschar *end,
+                                  const char16_t *begin, const char16_t *end,
                                   size_t size, uint8_t **memory, intptr_t *handle);
 typedef void
 (* CloseAsmJSCacheEntryForWriteOp)(size_t size, uint8_t *memory, intptr_t handle);

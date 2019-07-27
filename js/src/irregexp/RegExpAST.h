@@ -1,32 +1,32 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99: */
 
-// Copyright 2012 the V8 project authors. All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-//       copyright notice, this list of conditions and the following
-//       disclaimer in the documentation and/or other materials provided
-//       with the distribution.
-//     * Neither the name of Google Inc. nor the names of its
-//       contributors may be used to endorse or promote products derived
-//       from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef V8_REGEXP_AST_H_
 #define V8_REGEXP_AST_H_
@@ -61,8 +61,8 @@ class RegExpTree
     virtual bool IsAnchoredAtEnd() { return false; }
     virtual int min_match() = 0;
     virtual int max_match() = 0;
-    // Returns the interval of registers used for captures within this
-    // expression.
+    
+    
     virtual Interval CaptureRegisters() { return Interval::Empty(); }
     virtual void AppendToText(RegExpText* text) {
         MOZ_CRASH("Bad call");
@@ -150,7 +150,7 @@ class RegExpAssertion : public RegExpTree {
 class CharacterSet
 {
   public:
-    explicit CharacterSet(jschar standard_set_type)
+    explicit CharacterSet(char16_t standard_set_type)
       : ranges_(nullptr),
         standard_set_type_(standard_set_type)
     {}
@@ -160,8 +160,8 @@ class CharacterSet
     {}
 
     CharacterRangeVector &ranges(LifoAlloc *alloc);
-    jschar standard_set_type() { return standard_set_type_; }
-    void set_standard_set_type(jschar special_set_type) {
+    char16_t standard_set_type() { return standard_set_type_; }
+    void set_standard_set_type(char16_t special_set_type) {
         standard_set_type_ = special_set_type;
     }
     bool is_standard() { return standard_set_type_ != 0; }
@@ -170,9 +170,9 @@ class CharacterSet
   private:
     CharacterRangeVector *ranges_;
 
-    // If non-zero, the value represents a standard set (e.g., all whitespace
-    // characters) without having to expand the ranges.
-    jschar standard_set_type_;
+    
+    
+    char16_t standard_set_type_;
 };
 
 class RegExpCharacterClass : public RegExpTree
@@ -183,7 +183,7 @@ class RegExpCharacterClass : public RegExpTree
         is_negated_(is_negated)
     {}
 
-    explicit RegExpCharacterClass(jschar type)
+    explicit RegExpCharacterClass(char16_t type)
       : set_(type),
         is_negated_(false)
     {}
@@ -200,22 +200,22 @@ class RegExpCharacterClass : public RegExpTree
 
     CharacterSet character_set() { return set_; }
 
-    // TODO(lrn): Remove need for complex version if is_standard that
-    // recognizes a mangled standard set and just do { return set_.is_special(); }
+    
+    
     bool is_standard(LifoAlloc *alloc);
 
-    // Returns a value representing the standard character set if is_standard()
-    // returns true.
-    // Currently used values are:
-    // s : unicode whitespace
-    // S : unicode non-whitespace
-    // w : ASCII word character (digit, letter, underscore)
-    // W : non-ASCII word character
-    // d : ASCII digit
-    // D : non-ASCII digit
-    // . : non-unicode non-newline
-    // * : All characters
-    jschar standard_type() { return set_.standard_set_type(); }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    char16_t standard_type() { return set_.standard_set_type(); }
 
     CharacterRangeVector &ranges(LifoAlloc *alloc) { return set_.ranges(alloc); }
     bool is_negated() { return is_negated_; }
@@ -225,7 +225,7 @@ class RegExpCharacterClass : public RegExpTree
     bool is_negated_;
 };
 
-typedef Vector<jschar, 10, LifoAllocPolicy<Infallible> > CharacterVector;
+typedef Vector<char16_t, 10, LifoAllocPolicy<Infallible> > CharacterVector;
 
 class RegExpAtom : public RegExpTree
 {
@@ -434,6 +434,6 @@ class RegExpEmpty : public RegExpTree
     }
 };
 
-} } // namespace js::irregexp
+} } 
 
-#endif  // V8_REGEXP_AST_H_
+#endif

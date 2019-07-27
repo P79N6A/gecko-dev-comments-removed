@@ -274,7 +274,7 @@ extern const char       js_EscapeMap[];
 
 
 extern JSString *
-js_QuoteString(js::ExclusiveContext *cx, JSString *str, jschar quote);
+js_QuoteString(js::ExclusiveContext *cx, JSString *str, char16_t quote);
 
 namespace js {
 

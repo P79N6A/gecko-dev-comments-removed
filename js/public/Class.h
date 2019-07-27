@@ -152,7 +152,7 @@ typedef void
 
 
 struct JSStringFinalizer {
-    void (*finalize)(const JSStringFinalizer *fin, jschar *chars);
+    void (*finalize)(const JSStringFinalizer *fin, char16_t *chars);
 };
 
 

@@ -180,7 +180,7 @@ public:
                                  uint32_t aLength,
                                  const nsAString& aHintCharset,
                                  nsIDocument* aDocument,
-                                 jschar*& aBufOut, size_t& aLengthOut);
+                                 char16_t*& aBufOut, size_t& aLengthOut);
 
   
 

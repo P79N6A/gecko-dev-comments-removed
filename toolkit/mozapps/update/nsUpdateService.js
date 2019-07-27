@@ -354,7 +354,7 @@ XPCOMUtils.defineLazyGetter(this, "gOSVersion", function aus_gOSVersion() {
     const BYTE = ctypes.uint8_t;
     const WORD = ctypes.uint16_t;
     const DWORD = ctypes.uint32_t;
-    const WCHAR = ctypes.jschar;
+    const WCHAR = ctypes.char16_t;
     const BOOL = ctypes.int;
 
     
@@ -524,7 +524,7 @@ function createMutex(aName, aAllowExisting) {
                                  ctypes.void_t.ptr, 
                                  ctypes.void_t.ptr, 
                                  ctypes.int32_t, 
-                                 ctypes.jschar.ptr); 
+                                 ctypes.char16_t.ptr); 
 
   var handle = CreateMutexW(null, INITIAL_OWN, aName);
   var alreadyExists = ctypes.winLastError == ERROR_ALREADY_EXISTS;

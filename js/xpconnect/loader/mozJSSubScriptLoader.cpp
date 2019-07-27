@@ -136,7 +136,7 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
     JS::CompileOptions options(cx);
     options.setFileAndLine(uriStr, 1);
     if (!charset.IsVoid()) {
-        jschar *scriptBuf = nullptr;
+        char16_t *scriptBuf = nullptr;
         size_t scriptLength = 0;
 
         rv = nsScriptLoader::ConvertToUTF16(nullptr, reinterpret_cast<const uint8_t*>(buf.get()), len,
@@ -394,7 +394,7 @@ private:
     nsRefPtr<nsIObserver> mObserver;
     nsRefPtr<nsIPrincipal> mPrincipal;
     nsRefPtr<nsIChannel> mChannel;
-    jschar* mScriptBuf;
+    char16_t* mScriptBuf;
     size_t mScriptLength;
 };
 

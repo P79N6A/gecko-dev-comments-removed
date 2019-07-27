@@ -15,7 +15,7 @@ using namespace JS;
 
 Latin1CharsZ
 JS::LossyTwoByteCharsToNewLatin1CharsZ(js::ThreadSafeContext *cx,
-                                       const mozilla::Range<const jschar> tbchars)
+                                       const mozilla::Range<const char16_t> tbchars)
 {
     JS_ASSERT(cx);
     size_t len = tbchars.length();
@@ -34,7 +34,7 @@ GetDeflatedUTF8StringLength(const CharT *chars, size_t nchars)
 {
     size_t nbytes = nchars;
     for (const CharT *end = chars + nchars; chars < end; chars++) {
-        jschar c = *chars;
+        char16_t c = *chars;
         if (c < 0x80)
             continue;
         uint32_t v;
@@ -44,7 +44,7 @@ GetDeflatedUTF8StringLength(const CharT *chars, size_t nchars)
                 nbytes += 2; 
                 continue;
             }
-            jschar c2 = chars[1];
+            char16_t c2 = chars[1];
             if (c2 < 0xDC00 || c2 > 0xDFFF) {
                 nbytes += 2; 
                 continue;
@@ -88,7 +88,7 @@ DeflateStringToUTF8Buffer(const CharT *src, size_t srclen, mozilla::RangedPtr<ch
 {
     while (srclen) {
         uint32_t v;
-        jschar c = *src++;
+        char16_t c = *src++;
         srclen--;
         if (c >= 0xDC00 && c <= 0xDFFF) {
             PutUTF8ReplacementCharacter(dst);
@@ -100,7 +100,7 @@ DeflateStringToUTF8Buffer(const CharT *src, size_t srclen, mozilla::RangedPtr<ch
                 PutUTF8ReplacementCharacter(dst);
                 continue;
             }
-            jschar c2 = *src;
+            char16_t c2 = *src;
             if ((c2 < 0xDC00) || (c2 > 0xDFFF)) {
                 PutUTF8ReplacementCharacter(dst);
                 continue;
@@ -158,7 +158,7 @@ template UTF8CharsZ
 JS::CharsToNewUTF8CharsZ(js::ThreadSafeContext *cx, const mozilla::Range<const Latin1Char> chars);
 
 template UTF8CharsZ
-JS::CharsToNewUTF8CharsZ(js::ThreadSafeContext *cx, const mozilla::Range<const jschar> chars);
+JS::CharsToNewUTF8CharsZ(js::ThreadSafeContext *cx, const mozilla::Range<const char16_t> chars);
 
 static const uint32_t INVALID_UTF8 = UINT32_MAX;
 
@@ -231,7 +231,7 @@ static const uint32_t REPLACE_UTF8 = 0xFFFD;
 
 template <InflateUTF8Action action>
 static bool
-InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_t *dstlenp,
+InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, char16_t *dst, size_t *dstlenp,
                           bool *isAsciip)
 {
     *isAsciip = true;
@@ -245,7 +245,7 @@ InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_
         if (!(v & 0x80)) {
             
             if (action == Copy)
-                dst[j] = jschar(v);
+                dst[j] = char16_t(v);
 
         } else {
             
@@ -261,7 +261,7 @@ InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_
                     return false;                                       \
                 } else {                                                \
                     if (action == Copy)                                 \
-                        dst[j] = jschar(REPLACE_UTF8);                  \
+                        dst[j] = char16_t(REPLACE_UTF8);                \
                     else                                                \
                         JS_ASSERT(action == CountAndIgnoreInvalids);    \
                     n = n2;                                             \
@@ -297,17 +297,17 @@ InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_
             if (v < 0x10000) {
                 
                 if (action == Copy)
-                    dst[j] = jschar(v);
+                    dst[j] = char16_t(v);
 
             } else {
                 v -= 0x10000;
                 if (v <= 0xFFFFF) {
                     
                     if (action == Copy)
-                        dst[j] = jschar((v >> 10) + 0xD800);
+                        dst[j] = char16_t((v >> 10) + 0xD800);
                     j++;
                     if (action == Copy)
-                        dst[j] = jschar((v & 0x3FF) + 0xDC00);
+                        dst[j] = char16_t((v & 0x3FF) + 0xDC00);
 
                 } else {
                     
@@ -328,7 +328,7 @@ InflateUTF8StringToBuffer(JSContext *cx, const UTF8Chars src, jschar *dst, size_
     return true;
 }
 
-typedef bool (*CountAction)(JSContext *, const UTF8Chars, jschar *, size_t *, bool *isAsciip);
+typedef bool (*CountAction)(JSContext *, const UTF8Chars, char16_t *, size_t *, bool *isAsciip);
 
 static TwoByteCharsZ
 InflateUTF8StringHelper(JSContext *cx, const UTF8Chars src, CountAction countAction, size_t *outlen)
@@ -339,7 +339,7 @@ InflateUTF8StringHelper(JSContext *cx, const UTF8Chars src, CountAction countAct
     if (!countAction(cx, src,  nullptr, outlen, &isAscii))
         return TwoByteCharsZ();
 
-    jschar *dst = cx->pod_malloc<jschar>(*outlen + 1);  
+    char16_t *dst = cx->pod_malloc<char16_t>(*outlen + 1);  
     if (!dst)
         return TwoByteCharsZ();
 
@@ -347,7 +347,7 @@ InflateUTF8StringHelper(JSContext *cx, const UTF8Chars src, CountAction countAct
         size_t srclen = src.length();
         JS_ASSERT(*outlen == srclen);
         for (uint32_t i = 0; i < srclen; i++)
-            dst[i] = jschar(src[i]);
+            dst[i] = char16_t(src[i]);
 
     } else {
         JS_ALWAYS_TRUE(InflateUTF8StringToBuffer<Copy>(cx, src, dst, outlen, &isAscii));

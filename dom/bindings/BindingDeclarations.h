@@ -42,8 +42,8 @@ protected:
 private:
   
   
-  static bool AppendJSONToString(const jschar* aJSONData, uint32_t aDataLength,
-                                 void* aString);
+  static bool AppendJSONToString(const char16_t* aJSONData,
+                                 uint32_t aDataLength, void* aString);
 };
 
 

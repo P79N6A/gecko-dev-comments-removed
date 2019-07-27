@@ -285,7 +285,7 @@ TokenStream::SourceCoords::lineNumAndColumnIndex(uint32_t offset, uint32_t *line
 
 
 TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &options,
-                         const jschar *base, size_t length, StrictModeGetter *smg)
+                         const char16_t *base, size_t length, StrictModeGetter *smg)
   : srcCoords(cx, options.lineno),
     options_(options),
     tokens(),
@@ -480,7 +480,7 @@ TokenStream::ungetCharIgnoreEOL(int32_t c)
 
 
 bool
-TokenStream::peekChars(int n, jschar *cp)
+TokenStream::peekChars(int n, char16_t *cp)
 {
     int i, j;
     int32_t c;
@@ -493,15 +493,15 @@ TokenStream::peekChars(int n, jschar *cp)
             ungetCharIgnoreEOL(c);
             break;
         }
-        cp[i] = jschar(c);
+        cp[i] = char16_t(c);
     }
     for (j = i - 1; j >= 0; j--)
         ungetCharIgnoreEOL(cp[j]);
     return i == n;
 }
 
-const jschar *
-TokenStream::TokenBuf::findEOLMax(const jschar *p, size_t max)
+const char16_t *
+TokenStream::TokenBuf::findEOLMax(const char16_t *p, size_t max)
 {
     JS_ASSERT(base_ <= p && p <= limit_);
 
@@ -521,7 +521,7 @@ TokenStream::TokenBuf::findEOLMax(const jschar *p, size_t max)
 void
 TokenStream::advance(size_t position)
 {
-    const jschar *end = userbuf.base() + position;
+    const char16_t *end = userbuf.base() + position;
     while (userbuf.addressOfNextRawChar() < end)
         getChar();
 
@@ -681,7 +681,7 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     
     
     if (offset != NoOffset && err.report.lineno == lineno && !callerFilename) {
-        const jschar *tokenStart = userbuf.base() + offset;
+        const char16_t *tokenStart = userbuf.base() + offset;
 
         
         
@@ -691,19 +691,19 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
         static const size_t windowRadius = 60;
 
         
-        const jschar *windowBase = (linebase + windowRadius < tokenStart)
+        const char16_t *windowBase = (linebase + windowRadius < tokenStart)
                                  ? tokenStart - windowRadius
                                  : linebase;
         uint32_t windowOffset = tokenStart - windowBase;
 
         
-        const jschar *windowLimit = userbuf.findEOLMax(tokenStart, windowRadius);
+        const char16_t *windowLimit = userbuf.findEOLMax(tokenStart, windowRadius);
         size_t windowLength = windowLimit - windowBase;
         JS_ASSERT(windowLength <= windowRadius * 2);
 
         
         StringBuffer windowBuf(cx);
-        if (!windowBuf.append(windowBase, windowLength) || !windowBuf.append((jschar)0))
+        if (!windowBuf.append(windowBase, windowLength) || !windowBuf.append((char16_t)0))
             return false;
 
         
@@ -712,7 +712,7 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
         if (!err.report.uclinebuf)
             return false;
 
-        mozilla::Range<const jschar> tbchars(err.report.uclinebuf, windowLength);
+        mozilla::Range<const char16_t> tbchars(err.report.uclinebuf, windowLength);
         err.report.linebuf = JS::LossyTwoByteCharsToNewLatin1CharsZ(cx, tbchars).c_str();
         if (!err.report.linebuf)
             return false;
@@ -785,7 +785,7 @@ TokenStream::reportAsmJSError(uint32_t offset, unsigned errorNumber, ...)
 bool
 TokenStream::peekUnicodeEscape(int *result)
 {
-    jschar cp[5];
+    char16_t cp[5];
 
     if (peekChars(5, cp) && cp[0] == 'u' &&
         JS7_ISHEX(cp[1]) && JS7_ISHEX(cp[2]) &&
@@ -823,7 +823,7 @@ TokenStream::matchUnicodeEscapeIdent(int32_t *cp)
 
 
 static bool
-CharsMatch(const jschar *p, const char *q) {
+CharsMatch(const char16_t *p, const char *q) {
     while (*q) {
         if (*p++ != *q++)
             return false;
@@ -854,10 +854,10 @@ bool
 TokenStream::getDirective(bool isMultiline, bool shouldWarnDeprecated,
                           const char *directive, int directiveLength,
                           const char *errorMsgPragma,
-                          UniquePtr<jschar[], JS::FreePolicy> *destination)
+                          UniquePtr<char16_t[], JS::FreePolicy> *destination)
 {
     JS_ASSERT(directiveLength <= 18);
-    jschar peeked[18];
+    char16_t peeked[18];
     int32_t c;
 
     if (peekChars(directiveLength, peeked) && CharsMatch(peeked, directive)) {
@@ -887,7 +887,7 @@ TokenStream::getDirective(bool isMultiline, bool shouldWarnDeprecated,
 
         size_t length = tokenbuf.length();
 
-        *destination = cx->make_pod_array<jschar>(length + 1);
+        *destination = cx->make_pod_array<char16_t>(length + 1);
         if (!*destination)
             return false;
 
@@ -959,10 +959,10 @@ IsTokenSane(Token *tp)
 #endif
 
 bool
-TokenStream::putIdentInTokenbuf(const jschar *identStart)
+TokenStream::putIdentInTokenbuf(const char16_t *identStart)
 {
     int32_t c, qc;
-    const jschar *tmp = userbuf.addressOfNextRawChar();
+    const char16_t *tmp = userbuf.addressOfNextRawChar();
     userbuf.setAddressOfNextRawChar(identStart);
 
     tokenbuf.clear();
@@ -1010,7 +1010,7 @@ TokenStream::checkForKeyword(const KeywordInfo *kw, TokenKind *ttp)
 }
 
 bool
-TokenStream::checkForKeyword(const jschar *s, size_t length, TokenKind *ttp)
+TokenStream::checkForKeyword(const char16_t *s, size_t length, TokenKind *ttp)
 {
     const KeywordInfo *kw = FindKeyword(s, length);
     if (!kw)
@@ -1104,10 +1104,10 @@ TokenStream::getTokenInternal(Modifier modifier)
     int c, qc;
     Token *tp;
     FirstCharKind c1kind;
-    const jschar *numStart;
+    const char16_t *numStart;
     bool hasExp;
     DecimalPoint decimalPoint;
-    const jschar *identStart;
+    const char16_t *identStart;
     bool hadUnicodeEscape;
 
     
@@ -1212,7 +1212,7 @@ TokenStream::getTokenInternal(Modifier modifier)
         
         
         
-        const jschar *chars;
+        const char16_t *chars;
         size_t length;
         if (hadUnicodeEscape) {
             if (!putIdentInTokenbuf(identStart))
@@ -1290,7 +1290,7 @@ TokenStream::getTokenInternal(Modifier modifier)
             if (!GetDecimalInteger(cx, numStart, userbuf.addressOfNextRawChar(), &dval))
                 goto error;
         } else {
-            const jschar *dummy;
+            const char16_t *dummy;
             if (!js_strtod(cx, numStart, userbuf.addressOfNextRawChar(), &dummy, &dval))
                 goto error;
         }
@@ -1390,7 +1390,7 @@ TokenStream::getTokenInternal(Modifier modifier)
         }
 
         double dval;
-        const jschar *dummy;
+        const char16_t *dummy;
         if (!GetPrefixInteger(cx, numStart, userbuf.addressOfNextRawChar(), radix, &dummy, &dval))
             goto error;
         tp->type = TOK_NUMBER;
@@ -1695,9 +1695,9 @@ bool TokenStream::getStringOrTemplateToken(int qc, Token **tp)
                             }
                         }
 
-                        c = jschar(val);
+                        c = char16_t(val);
                     } else if (c == 'u') {
-                        jschar cp[4];
+                        char16_t cp[4];
                         if (peekChars(4, cp) &&
                             JS7_ISHEX(cp[0]) && JS7_ISHEX(cp[1]) &&
                             JS7_ISHEX(cp[2]) && JS7_ISHEX(cp[3])) {
@@ -1711,7 +1711,7 @@ bool TokenStream::getStringOrTemplateToken(int qc, Token **tp)
                             return false;
                         }
                     } else if (c == 'x') {
-                        jschar cp[2];
+                        char16_t cp[2];
                         if (peekChars(2, cp) &&
                                 JS7_ISHEX(cp[0]) && JS7_ISHEX(cp[1])) {
                             c = (JS7_UNHEX(cp[0]) << 4) + JS7_UNHEX(cp[1]);

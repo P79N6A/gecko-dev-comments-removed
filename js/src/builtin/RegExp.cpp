@@ -144,7 +144,7 @@ EscapeNakedForwardSlashes(StringBuffer &sb, const CharT *oldChars, size_t oldLen
             
             if (sb.empty()) {
                 
-                if (mozilla::IsSame<CharT, jschar>::value && !sb.ensureTwoByteChars())
+                if (mozilla::IsSame<CharT, char16_t>::value && !sb.ensureTwoByteChars())
                     return false;
 
                 if (!sb.reserve(oldLen + 1))

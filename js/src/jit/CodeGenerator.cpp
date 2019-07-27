@@ -5179,6 +5179,7 @@ CopyStringChars(MacroAssembler &masm, Register to, Register from, Register len, 
 {
     
     
+    
 
 #ifdef DEBUG
     Label ok;
@@ -5219,13 +5220,13 @@ CopyStringCharsMaybeInflate(MacroAssembler &masm, Register input, Register destC
                       Imm32(JSString::LATIN1_CHARS_BIT), &isLatin1);
     {
         masm.loadStringChars(input, input);
-        CopyStringChars(masm, destChars, input, temp1, temp2, sizeof(jschar), sizeof(jschar));
+        CopyStringChars(masm, destChars, input, temp1, temp2, sizeof(char16_t), sizeof(char16_t));
         masm.jump(&done);
     }
     masm.bind(&isLatin1);
     {
         masm.loadStringChars(input, input);
-        CopyStringChars(masm, destChars, input, temp1, temp2, sizeof(char), sizeof(jschar));
+        CopyStringChars(masm, destChars, input, temp1, temp2, sizeof(char), sizeof(char16_t));
     }
     masm.bind(&done);
 }

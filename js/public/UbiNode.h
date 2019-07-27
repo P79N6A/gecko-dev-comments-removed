@@ -188,7 +188,7 @@ class Base {
     
     
     
-    virtual const jschar *typeName() const = 0;
+    virtual const char16_t *typeName() const = 0;
 
     
     
@@ -225,7 +225,7 @@ class Base {
 template<typename Referent>
 struct Concrete {
     
-    static const jschar concreteTypeName[];
+    static const char16_t concreteTypeName[];
 
     
     
@@ -334,7 +334,7 @@ class Node {
     
     JS::Value exposeToJS() const;
 
-    const jschar *typeName()        const { return base()->typeName(); }
+    const char16_t *typeName()      const { return base()->typeName(); }
     size_t size()                   const { return base()->size(); }
     JS::Zone *zone()                const { return base()->zone(); }
     JSCompartment *compartment()    const { return base()->compartment(); }
@@ -379,7 +379,7 @@ class Edge {
     
     
     
-    const jschar *name;
+    const char16_t *name;
 
     
     Node referent;
@@ -432,7 +432,7 @@ class EdgeRange {
 
 template<typename Referent>
 class TracerConcrete : public Base {
-    const jschar *typeName() const MOZ_OVERRIDE { return concreteTypeName; }
+    const char16_t *typeName() const MOZ_OVERRIDE { return concreteTypeName; }
     size_t size() const MOZ_OVERRIDE { return 0; } 
     EdgeRange *edges(JSContext *, bool wantNames) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE { return get().zone(); }
@@ -443,7 +443,7 @@ class TracerConcrete : public Base {
     Referent &get() const { return *static_cast<Referent *>(ptr); }
 
   public:
-    static const jschar concreteTypeName[];
+    static const char16_t concreteTypeName[];
     static void construct(void *storage, Referent *ptr) { new (storage) TracerConcrete(ptr); }
 };
 
@@ -476,7 +476,7 @@ template<> struct Concrete<js::types::TypeObject> : TracerConcrete<js::types::Ty
 
 template<>
 class Concrete<void> : public Base {
-    const jschar *typeName() const MOZ_OVERRIDE;
+    const char16_t *typeName() const MOZ_OVERRIDE;
     size_t size() const MOZ_OVERRIDE;
     EdgeRange *edges(JSContext *cx, bool wantNames) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE;
@@ -486,7 +486,7 @@ class Concrete<void> : public Base {
 
   public:
     static void construct(void *storage, void *ptr) { new (storage) Concrete(ptr); }
-    static const jschar concreteTypeName[];
+    static const char16_t concreteTypeName[];
 };
 
 

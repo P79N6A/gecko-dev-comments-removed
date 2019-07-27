@@ -766,7 +766,7 @@ nsXMLHttpRequest::CreateResponseParsedJSON(JSContext* aCx)
   
   JS::Rooted<JS::Value> value(aCx);
   if (!JS_ParseJSON(aCx,
-                    static_cast<const jschar*>(mResponseText.get()), mResponseText.Length(),
+                    static_cast<const char16_t*>(mResponseText.get()), mResponseText.Length(),
                     &value)) {
     return NS_ERROR_FAILURE;
   }
