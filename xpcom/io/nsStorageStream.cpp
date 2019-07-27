@@ -351,7 +351,6 @@ public:
       mSegmentSize(aSegmentSize), mLogicalCursor(0),
       mStatus(NS_OK)
   {
-    NS_ADDREF(mStorageStream);
   }
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -363,7 +362,6 @@ public:
 private:
   ~nsStorageInputStream()
   {
-    NS_IF_RELEASE(mStorageStream);
   }
 
 protected:
@@ -372,7 +370,7 @@ protected:
   friend class nsStorageStream;
 
 private:
-  nsStorageStream* mStorageStream;
+  nsRefPtr<nsStorageStream> mStorageStream;
   uint32_t         mReadCursor;    
   uint32_t         mSegmentEnd;    
   uint32_t         mSegmentNum;    
