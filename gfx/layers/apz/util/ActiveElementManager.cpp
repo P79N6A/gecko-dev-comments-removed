@@ -11,6 +11,7 @@
 #include "base/message_loop.h"
 #include "base/task.h"
 #include "mozilla/dom/Element.h"
+#include "nsIDocument.h"
 
 #define AEM_LOG(...)
 
