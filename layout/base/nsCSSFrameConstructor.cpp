@@ -2398,6 +2398,15 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   
   
   
+  {
+    nsRefPtr<nsStyleContext> sc = mPresShell->StyleSet()->
+      ResolveAnonymousBoxStyle(nsCSSAnonBoxes::viewport, nullptr);
+    GetRootFrame()->SetStyleContextWithoutNotification(sc);
+  }
+
+  
+  
+  
 #ifdef DEBUG
   nsIContent* propagatedScrollFrom =
 #endif
