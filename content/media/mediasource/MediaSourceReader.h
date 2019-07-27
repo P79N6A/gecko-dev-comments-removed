@@ -93,7 +93,7 @@ public:
   }
 
   
-  bool TrackBuffersContainTime(double aTime);
+  bool TrackBuffersContainTime(int64_t aTime);
 
   
   void Ended();
@@ -102,15 +102,15 @@ public:
   bool IsEnded();
 
 private:
-  bool SwitchAudioReader(double aTarget);
-  bool SwitchVideoReader(double aTarget);
+  bool SwitchAudioReader(int64_t aTarget);
+  bool SwitchVideoReader(int64_t aTarget);
 
   
   
   
   
   
-  already_AddRefed<MediaDecoderReader> SelectReader(double aTarget,
+  already_AddRefed<MediaDecoderReader> SelectReader(int64_t aTarget,
                                                     bool (MediaSourceReader::*aCanSelectReader)(MediaDecoderReader*),
                                                     const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
 
@@ -124,7 +124,7 @@ private:
   
   
   
-  void WaitForTimeRange(double aTime);
+  void WaitForTimeRange(int64_t aTime);
 
   nsRefPtr<MediaDecoderReader> mAudioReader;
   nsRefPtr<MediaDecoderReader> mVideoReader;

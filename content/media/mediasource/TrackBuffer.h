@@ -70,7 +70,7 @@ public:
 
   
   
-  bool ContainsTime(double aTime);
+  bool ContainsTime(int64_t aTime);
 
   void BreakCycles();
 

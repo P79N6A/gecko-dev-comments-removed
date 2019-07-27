@@ -85,9 +85,6 @@ public:
   
   int64_t ConvertToByteOffset(double aTime);
 
-  
-  bool ContainsTime(double aTime);
-
 private:
   virtual ~SourceBufferDecoder();
 
