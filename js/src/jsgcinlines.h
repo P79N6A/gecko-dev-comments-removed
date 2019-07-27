@@ -330,8 +330,6 @@ class ZoneCellIter : public ZoneCellIterImpl
       : lists(&zone->allocator.arenas),
         kind(kind)
     {
-        JSRuntime *rt = zone->runtimeFromMainThread();
-
         
 
 
@@ -341,21 +339,22 @@ class ZoneCellIter : public ZoneCellIterImpl
         if (IsBackgroundFinalized(kind) &&
             zone->allocator.arenas.needBackgroundFinalizeWait(kind))
         {
-            rt->gc.waitBackgroundSweepEnd();
+            zone->runtimeFromMainThread()->gc.waitBackgroundSweepEnd();
         }
 
         
+        JSRuntime *rt = zone->runtimeFromMainThread();
         rt->gc.evictNursery();
 
         if (lists->isSynchronizedFreeList(kind)) {
             lists = nullptr;
         } else {
-            MOZ_ASSERT(!rt->isHeapBusy());
+            MOZ_ASSERT(!zone->runtimeFromMainThread()->isHeapBusy());
             lists->copyFreeListToArena(kind);
         }
 
         
-        noAlloc.disallowAlloc(rt);
+        noAlloc.disallowAlloc(zone->runtimeFromMainThread());
 
         init(zone, kind);
     }

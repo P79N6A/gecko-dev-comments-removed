@@ -33,7 +33,7 @@ enum Phase {
     PHASE_MARK_DISCARD_CODE,
     PHASE_PURGE,
     PHASE_MARK,
-    PHASE_UNMARK,
+    PHASE_MARK_ROOTS,
     PHASE_MARK_DELAYED,
     PHASE_SWEEP,
     PHASE_SWEEP_MARK,
@@ -72,18 +72,8 @@ enum Phase {
     PHASE_COMPACT_UPDATE_CELLS,
     PHASE_GC_END,
     PHASE_MINOR_GC,
-    PHASE_EVICT_NURSERY,
-    PHASE_TRACE_HEAP,
-    PHASE_MARK_ROOTS,
-    PHASE_MARK_CCWS,
-    PHASE_MARK_ROOTERS,
-    PHASE_MARK_RUNTIME_DATA,
-    PHASE_MARK_EMBEDDING,
-    PHASE_MARK_COMPARTMENTS,
 
-    PHASE_LIMIT,
-    PHASE_NONE = PHASE_LIMIT,
-    PHASE_MULTI_PARENTS
+    PHASE_LIMIT
 };
 
 enum Stat {
@@ -121,37 +111,8 @@ struct ZoneGCStats
     {}
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 struct Statistics
 {
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static const size_t MAX_MULTIPARENT_PHASES = 6;
-
     explicit Statistics(JSRuntime *rt);
     ~Statistics();
 
@@ -186,15 +147,6 @@ struct Statistics
     int64_t clearMaxGCPauseAccumulator();
     int64_t getMaxGCPauseSinceClear();
 
-    
-    Phase currentPhase() {
-        if (phaseNestingDepth == 0)
-            return PHASE_NONE;
-        if (phaseNestingDepth == 1)
-            return phaseNesting[0] == PHASE_MUTATOR ? PHASE_NONE : phaseNesting[0];
-        return phaseNesting[phaseNestingDepth - 1];
-    }
-
   private:
     JSRuntime *runtime;
 
@@ -219,15 +171,14 @@ struct Statistics
         SliceData(JS::gcreason::Reason reason, int64_t start, size_t startFaults)
           : reason(reason), resetReason(nullptr), start(start), startFaults(startFaults)
         {
-            for (size_t i = 0; i < MAX_MULTIPARENT_PHASES + 1; i++)
-                mozilla::PodArrayZero(phaseTimes[i]);
+            mozilla::PodArrayZero(phaseTimes);
         }
 
         JS::gcreason::Reason reason;
         const char *resetReason;
         int64_t start, end;
         size_t startFaults, endFaults;
-        int64_t phaseTimes[MAX_MULTIPARENT_PHASES + 1][PHASE_LIMIT];
+        int64_t phaseTimes[PHASE_LIMIT];
 
         int64_t duration() const { return end - start; }
     };
@@ -242,10 +193,10 @@ struct Statistics
     int64_t timedGCTime;
 
     
-    int64_t phaseTimes[MAX_MULTIPARENT_PHASES + 1][PHASE_LIMIT];
+    int64_t phaseTimes[PHASE_LIMIT];
 
     
-    int64_t phaseTotals[MAX_MULTIPARENT_PHASES + 1][PHASE_LIMIT];
+    int64_t phaseTotals[PHASE_LIMIT];
 
     
     unsigned int counts[STAT_LIMIT];
@@ -260,7 +211,6 @@ struct Statistics
     static const size_t MAX_NESTING = 8;
     Phase phaseNesting[MAX_NESTING];
     size_t phaseNestingDepth;
-    size_t activeDagSlot;
 
     
 
@@ -276,12 +226,6 @@ struct Statistics
 
     JS::GCSliceCallback sliceCallback;
 
-    
-
-
-
-    bool abortSlices;
-
     void beginGC(JSGCInvocationKind kind);
     void endGC();
 
@@ -295,7 +239,7 @@ struct Statistics
     UniqueChars formatDescription();
     UniqueChars formatSliceDescription(unsigned i, const SliceData &slice);
     UniqueChars formatTotals();
-    UniqueChars formatPhaseTimes(int64_t (*phaseTimes)[PHASE_LIMIT]);
+    UniqueChars formatPhaseTimes(int64_t *phaseTimes);
 
     double computeMMU(int64_t resolution);
 };
