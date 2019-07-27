@@ -3,6 +3,45 @@
 
 
 
+function TypedArrayFill(value, start = 0, end = undefined) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, value, start, end,
+                            "TypedArrayFill");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    var relativeStart = ToInteger(start);
+
+    
+    var k = relativeStart < 0
+            ? std_Math_max(len + relativeStart, 0)
+            : std_Math_min(relativeStart, len);
+
+    
+    var relativeEnd = end === undefined ? len : ToInteger(end);
+
+    
+    var final = relativeEnd < 0
+                ? std_Math_max(len + relativeEnd, 0)
+                : std_Math_min(relativeEnd, len);
+
+    
+    for (; k < final; k++) {
+        O[k] = value;
+    }
+
+    
+    return O;
+}
+
+
 function TypedArrayFind(predicate, thisArg = undefined) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
