@@ -32,8 +32,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "prtime.h"
-#include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/SettingChangeNotificationBinding.h"
 
 #ifdef MOZ_B2G_RIL
@@ -51,7 +49,6 @@
 #define FLUSH_AIDE_DATA 0
 
 using namespace mozilla;
-using namespace mozilla::dom;
 
 static const int kDefaultPeriod = 1000; 
 static bool gDebug_isLoggingEnabled = false;
