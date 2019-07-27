@@ -1729,7 +1729,7 @@ this.WidgetMethods = {
 
 
 
-Item.prototype[Symbol.iterator] =
-WidgetMethods[Symbol.iterator] = function*() {
+Item.prototype["@@iterator"] =
+WidgetMethods["@@iterator"] = function*() {
   yield* this._itemsByElement.values();
 };

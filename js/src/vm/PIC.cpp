@@ -45,8 +45,7 @@ js::ForOfPIC::Chain::initialize(JSContext *cx)
     disabled_ = true;
 
     
-    Shape *iterShape =
-        arrayProto->nativeLookup(cx, SYMBOL_TO_JSID(cx->wellKnownSymbols().iterator));
+    Shape *iterShape = arrayProto->nativeLookup(cx, cx->names().std_iterator);
     if (!iterShape || !iterShape->hasSlot() || !iterShape->hasDefaultGetter())
         return true;
 
@@ -146,7 +145,7 @@ js::ForOfPIC::Chain::tryOptimizeArray(JSContext *cx, HandleObject array, bool *o
         return true;
 
     
-    if (array->nativeLookup(cx, SYMBOL_TO_JSID(cx->wellKnownSymbols().iterator)))
+    if (array->nativeLookup(cx, cx->names().std_iterator))
         return true;
 
     

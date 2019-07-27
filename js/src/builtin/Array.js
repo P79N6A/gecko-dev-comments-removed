@@ -678,7 +678,7 @@ function ArrayFrom(arrayLike, mapfn=undefined, thisArg=undefined) {
     var attrs = ATTR_CONFIGURABLE | ATTR_ENUMERABLE | ATTR_WRITABLE;
 
     
-    var usingIterator = items[std_iterator];
+    var usingIterator = items["@@iterator"];
     if (usingIterator !== undefined) {
         
         var A = IsConstructor(C) ? new C() : [];

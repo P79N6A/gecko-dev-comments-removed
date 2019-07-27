@@ -10,8 +10,7 @@ if (typeof Symbol === "function") {
         Symbol(),
         Symbol("Symbol.iterator"),
         Symbol("Symbol.iterator"),  
-        Symbol.for("Symbol.iterator"),
-        Symbol.iterator
+        Symbol.for("Symbol.iterator")
     ];
 
     

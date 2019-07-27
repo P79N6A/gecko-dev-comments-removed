@@ -2063,33 +2063,6 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent, 
     return cloneRoot;
 }
 
-
-
-
-
-
-
-
-
-
-JSAtom *
-js::IdToFunctionName(JSContext *cx, HandleId id)
-{
-    if (JSID_IS_ATOM(id))
-        return JSID_TO_ATOM(id);
-
-    if (JSID_IS_SYMBOL(id)) {
-        RootedAtom desc(cx, JSID_TO_SYMBOL(id)->description());
-        StringBuffer sb(cx);
-        if (!sb.append('[') || !sb.append(desc) || !sb.append(']'))
-            return nullptr;
-        return sb.finishAtom();
-    }
-
-    RootedValue idv(cx, IdToValue(id));
-    return ToAtom<CanGC>(cx, idv);
-}
-
 JSFunction *
 js::DefineFunction(JSContext *cx, HandleObject obj, HandleId id, Native native,
                    unsigned nargs, unsigned flags, AllocKind allocKind ,
@@ -2097,6 +2070,9 @@ js::DefineFunction(JSContext *cx, HandleObject obj, HandleId id, Native native,
 {
     PropertyOp gop;
     StrictPropertyOp sop;
+
+    RootedFunction fun(cx);
+
     if (flags & JSFUN_STUB_GSOPS) {
         
 
@@ -2117,13 +2093,8 @@ js::DefineFunction(JSContext *cx, HandleObject obj, HandleId id, Native native,
         funFlags = JSFunction::INTERPRETED_LAZY;
     else
         funFlags = JSAPIToJSFunctionFlags(flags);
-
-    RootedAtom atom(cx, IdToFunctionName(cx, id));
-    if (!atom)
-        return nullptr;
-
-    RootedFunction fun(cx, NewFunction(cx, NullPtr(), native, nargs, funFlags, obj, atom,
-                                       allocKind, newKind));
+    RootedAtom atom(cx, JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : nullptr);
+    fun = NewFunction(cx, NullPtr(), native, nargs, funFlags, obj, atom, allocKind, newKind);
     if (!fun)
         return nullptr;
 

@@ -475,14 +475,14 @@ DevTools.prototype = {
     
     
   },
-};
+
+  
 
 
-
-
-Devtools.prototype[Symbol.iterator] = function*() {
-  for (let toolbox of this._toolboxes) {
-    yield toolbox;
+  '@@iterator': function*() {
+    for (let toolbox of this._toolboxes) {
+      yield toolbox;
+    }
   }
 };
 

@@ -2784,7 +2784,6 @@ JS_AlreadyHasOwnUCProperty(JSContext *cx, HandleObject obj, const char16_t *name
 
 
 
-
 static JSPropertyOpWrapper
 GetterWrapper(JSPropertyOp getter)
 {
@@ -2826,6 +2825,8 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
         JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
         JSFunction::Flags zeroFlags = JSAPIToJSFunctionFlags(0);
 
+        
+        
         RootedAtom atom(cx, JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : nullptr);
         attrs &= ~JSPROP_NATIVE_ACCESSORS;
         if (getter) {
@@ -2862,12 +2863,12 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, id, value,
-                          (attrs & JSPROP_GETTER)
-                          ? JS_FUNC_TO_DATA_PTR(JSObject *, getter)
-                          : nullptr,
-                          (attrs & JSPROP_SETTER)
-                          ? JS_FUNC_TO_DATA_PTR(JSObject *, setter)
-                          : nullptr);
+                            (attrs & JSPROP_GETTER)
+                            ? JS_FUNC_TO_DATA_PTR(JSObject *, getter)
+                            : nullptr,
+                            (attrs & JSPROP_SETTER)
+                            ? JS_FUNC_TO_DATA_PTR(JSObject *, setter)
+                            : nullptr);
 
     return JSObject::defineGeneric(cx, obj, id, value, getter, setter, attrs);
 }
@@ -3011,22 +3012,30 @@ DefineProperty(JSContext *cx, HandleObject obj, const char *name, HandleValue va
     return DefinePropertyById(cx, obj, id, value, getter, setter, attrs, flags);
 }
 
+
 static bool
-DefineSelfHostedProperty(JSContext *cx, HandleObject obj, HandleId id,
-                         const char *getterName, const char *setterName,
-                         unsigned attrs, unsigned flags)
+DefineSelfHostedProperty(JSContext *cx,
+                         HandleObject obj,
+                         const char *name,
+                         const char *getterName,
+                         const char *setterName,
+                         unsigned attrs,
+                         unsigned flags)
 {
+    RootedAtom nameAtom(cx, Atomize(cx, name, strlen(name)));
+    if (!nameAtom)
+        return false;
+
     RootedAtom getterNameAtom(cx, Atomize(cx, getterName, strlen(getterName)));
     if (!getterNameAtom)
         return false;
 
-    RootedAtom name(cx, IdToFunctionName(cx, id));
-    if (!name)
-        return false;
-
     RootedValue getterValue(cx);
-    if (!cx->global()->getSelfHostedFunction(cx, getterNameAtom, name, 0, &getterValue))
+    if (!cx->global()->getSelfHostedFunction(cx, getterNameAtom, nameAtom,
+                                             0, &getterValue))
+    {
         return false;
+    }
     JS_ASSERT(getterValue.isObject() && getterValue.toObject().is<JSFunction>());
     RootedFunction getterFunc(cx, &getterValue.toObject().as<JSFunction>());
     JSPropertyOp getterOp = JS_DATA_TO_FUNC_PTR(PropertyOp, getterFunc.get());
@@ -3038,16 +3047,19 @@ DefineSelfHostedProperty(JSContext *cx, HandleObject obj, HandleId id,
             return false;
 
         RootedValue setterValue(cx);
-        if (!cx->global()->getSelfHostedFunction(cx, setterNameAtom, name, 0, &setterValue))
+        if (!cx->global()->getSelfHostedFunction(cx, setterNameAtom, nameAtom,
+                                                 0, &setterValue))
+        {
             return false;
+        }
         JS_ASSERT(setterValue.isObject() && setterValue.toObject().is<JSFunction>());
         setterFunc = &getterValue.toObject().as<JSFunction>();
     }
     JSStrictPropertyOp setterOp = JS_DATA_TO_FUNC_PTR(StrictPropertyOp, setterFunc.get());
 
-    return DefinePropertyById(cx, obj, id, JS::UndefinedHandleValue,
-                              GetterWrapper(getterOp), SetterWrapper(setterOp),
-                              attrs, flags);
+    return DefineProperty(cx, obj, name, JS::UndefinedHandleValue,
+                          GetterWrapper(getterOp), SetterWrapper(setterOp),
+                          attrs, flags);
 }
 
 JS_PUBLIC_API(bool)
@@ -3244,69 +3256,46 @@ JS_DefineConstIntegers(JSContext *cx, HandleObject obj, const JSConstIntegerSpec
     return DefineConstScalar(cx, obj, cis);
 }
 
-static bool
-PropertySpecNameToId(JSContext *cx, const char *name, MutableHandleId id)
-{
-    if (JS::PropertySpecNameIsSymbol(name)) {
-        uintptr_t u = reinterpret_cast<uintptr_t>(name);
-        id.set(SYMBOL_TO_JSID(cx->wellKnownSymbols().get(u - 1)));
-    } else {
-        JSAtom *atom = Atomize(cx, name, strlen(name));
-        if (!atom)
-            return false;
-        id.set(AtomToId(atom));
-    }
-    return true;
-}
-
 JS_PUBLIC_API(bool)
 JS_DefineProperties(JSContext *cx, HandleObject obj, const JSPropertySpec *ps)
 {
-    RootedId id(cx);
-
-    for (; ps->name; ps++) {
-        if (!PropertySpecNameToId(cx, ps->name, &id))
-            return false;
-
+    bool ok;
+    for (ok = true; ps->name; ps++) {
         if (ps->flags & JSPROP_NATIVE_ACCESSORS) {
             
             
             JS_ASSERT(ps->getter.propertyOp.op);
-
             
             
             
             JS_ASSERT_IF(ps->setter.propertyOp.info, ps->setter.propertyOp.op);
 
-            if (!DefinePropertyById(cx, obj, id, JS::UndefinedHandleValue,
-                                    ps->getter.propertyOp, ps->setter.propertyOp, ps->flags, 0))
-            {
-                return false;
-            }
+            ok = DefineProperty(cx, obj, ps->name, JS::UndefinedHandleValue,
+                                ps->getter.propertyOp, ps->setter.propertyOp, ps->flags, 0);
         } else {
             
             
             JS_ASSERT(!ps->getter.propertyOp.op && !ps->setter.propertyOp.op);
             JS_ASSERT(ps->flags & JSPROP_GETTER);
+            
 
-            
-            
-            
-            
-            
+
+
+
+
+
             if (cx->runtime()->isSelfHostingGlobal(cx->global()))
                 continue;
 
-            if (!DefineSelfHostedProperty(cx, obj, id,
+            ok = DefineSelfHostedProperty(cx, obj, ps->name,
                                           ps->getter.selfHosted.funname,
                                           ps->setter.selfHosted.funname,
-                                          ps->flags, 0))
-            {
-                return false;
-            }
+                                          ps->flags, 0);
         }
+        if (!ok)
+            break;
     }
-    return true;
+    return ok;
 }
 
 JS_PUBLIC_API(bool)
@@ -3923,10 +3912,7 @@ JS::GetSelfHostedFunction(JSContext *cx, const char *selfHostedName, HandleId id
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
 
-    RootedAtom name(cx, IdToFunctionName(cx, id));
-    if (!name)
-        return nullptr;
-
+    RootedAtom name(cx, JSID_TO_ATOM(id));
     RootedAtom shName(cx, Atomize(cx, selfHostedName, strlen(selfHostedName)));
     if (!shName)
         return nullptr;
@@ -4080,10 +4066,20 @@ JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs)
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
 
-    RootedId id(cx);
     for (; fs->name; fs++) {
-        if (!PropertySpecNameToId(cx, fs->name, &id))
+        RootedAtom atom(cx);
+        
+        if (fs->name[0] != '@' || fs->name[1] != '@')
+            atom = Atomize(cx, fs->name, strlen(fs->name));
+        else if (strcmp(fs->name, "@@iterator") == 0)
+            
+            atom = cx->names().std_iterator;
+        else
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_SYMBOL, fs->name);
+        if (!atom)
             return false;
+
+        Rooted<jsid> id(cx, AtomToId(atom));
 
         
 
@@ -4135,11 +4131,8 @@ JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs)
             RootedAtom shName(cx, Atomize(cx, fs->selfHostedName, strlen(fs->selfHostedName)));
             if (!shName)
                 return false;
-            RootedAtom name(cx, IdToFunctionName(cx, id));
-            if (!name)
-                return false;
             RootedValue funVal(cx);
-            if (!cx->global()->getSelfHostedFunction(cx, shName, name, fs->nargs, &funVal))
+            if (!cx->global()->getSelfHostedFunction(cx, shName, atom, fs->nargs, &funVal))
                 return false;
             if (!JSObject::defineGeneric(cx, obj, id, funVal, nullptr, nullptr, flags))
                 return false;
@@ -5618,7 +5611,7 @@ JS::GetSymbolCode(Handle<Symbol*> symbol)
 JS_PUBLIC_API(JS::Symbol *)
 JS::GetWellKnownSymbol(JSContext *cx, JS::SymbolCode which)
 {
-    return cx->wellKnownSymbols().get(uint32_t(which));
+    return cx->runtime()->wellKnownSymbols->get(uint32_t(which));
 }
 
 JS_PUBLIC_API(bool)

@@ -8,7 +8,7 @@
 
 
 var a = ['a', 'e', 'i', 'o', 'u'];
-a[Symbol.iterator] = function* () {
+a["@@iterator"] = function* () {
     for (var i = 5; i--; )
         yield this[i];
 };
