@@ -20,24 +20,9 @@ EncodedBufferCache::AppendBuffer(nsTArray<uint8_t> & aBuf)
   mEncodedBuffers.AppendElement()->SwapElements(aBuf);
 
   if (!mTempFileEnabled && mDataSize > mMaxMemoryStorage) {
-    nsresult rv;
-    PRFileDesc* tempFD = nullptr;
-    {
-      
-      
-      MutexAutoUnlock unlock(mMutex);
-      rv = NS_OpenAnonymousTemporaryFile(&tempFD);
-    }
+    nsresult rv = NS_OpenAnonymousTemporaryFile(&mFD);
     if (!NS_FAILED(rv)) {
-      
-      if (mDataSize > mMaxMemoryStorage) {
-        mFD = tempFD;
-        mTempFileEnabled = true;
-      } else {
-        
-        
-        PR_Close(tempFD);
-      }
+      mTempFileEnabled = true;
     }
   }
 
