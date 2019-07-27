@@ -12,7 +12,6 @@ const constructors = [
 
 
 for (var constructor of constructors) {
-
     assertEq(constructor.prototype.indexOf.length, 1);
 
     
@@ -42,14 +41,14 @@ for (var constructor of constructors) {
     assertEq(new constructor([1, 2, 1, 2, 1]).indexOf(1, -2), 4);
 
     
-    var nonTypedArrays = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
-                         
-                         ];
-    nonTypedArrays.forEach(nonTypedArray => {
-        assertThrowsInstanceOf(function() {
-            constructor.prototype.indexOf.call(nonTypedArray);
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    invalidReceivers.forEach(invalidReceiver => {
+        assertThrowsInstanceOf(() => {
+            constructor.prototype.indexOf.call(invalidReceiver);
         }, TypeError, "Assert that indexOf fails if this value is not a TypedArray");
     });
+    
+    constructor.prototype.indexOf.call(new Proxy(new constructor(), {}));
 
     
     assertEq(Object.defineProperty(new constructor([0, 1, 2, 3, 5]), "length", {
@@ -95,14 +94,14 @@ for (var constructor of constructors) {
     assertEq(new constructor([1, 2, 1, 2, 1]).lastIndexOf(1, -2), 2);
 
     
-    var nonTypedArrays = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
-                         
-                         ];
-    nonTypedArrays.forEach(nonTypedArray => {
-        assertThrowsInstanceOf(function() {
-            constructor.prototype.lastIndexOf.call(nonTypedArray);
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    invalidReceivers.forEach(invalidReceiver => {
+        assertThrowsInstanceOf(() => {
+            constructor.prototype.lastIndexOf.call(invalidReceiver);
         }, TypeError, "Assert that lastIndexOf fails if this value is not a TypedArray");
     });
+    
+    constructor.prototype.lastIndexOf.call(new Proxy(new constructor(), {}));
 
     
     assertEq(Object.defineProperty(new constructor([0, 1, 2, 3, 5]), "length", {

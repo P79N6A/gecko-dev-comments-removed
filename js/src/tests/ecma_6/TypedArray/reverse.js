@@ -11,7 +11,6 @@ const constructors = [
 ];
 
 for (var constructor of constructors) {
-
     assertDeepEq(constructor.prototype.reverse.length, 0);
 
     assertDeepEq(new constructor().reverse(), new constructor());
@@ -31,14 +30,14 @@ for (var constructor of constructors) {
     }
 
     
-    var nonTypedArrays = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
-                         
-                         ];
-    nonTypedArrays.forEach(nonTypedArray => {
-        assertThrowsInstanceOf(function() {
-            constructor.prototype.reverse.call(nonTypedArray);
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./];
+    invalidReceivers.forEach(invalidReceiver => {
+        assertThrowsInstanceOf(() => {
+            constructor.prototype.reverse.call(invalidReceiver);
         }, TypeError, "Assert that reverse fails if this value is not a TypedArray");
     });
+    
+    constructor.prototype.reverse.call(new Proxy(new constructor(), {}));
 
     
     Object.defineProperty(new constructor([1, 2, 3]), "length", {

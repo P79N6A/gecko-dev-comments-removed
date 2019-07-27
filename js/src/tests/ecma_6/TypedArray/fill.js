@@ -53,14 +53,14 @@ for (var constructor of constructors) {
     }
 
     
-    var nonTypedArrays = [undefined, null, 1, false, "", Symbol(), [], {}, /./,
-                         
-                         ];
-    nonTypedArrays.forEach(nonTypedArray => {
-        assertThrowsInstanceOf(function() {
-            constructor.prototype.fill.call(nonTypedArray, 1);
+    var invalidReceivers = [undefined, null, 1, false, "", Symbol(), [], {}, /./]
+    invalidReceivers.forEach(invalidReceiver => {
+        assertThrowsInstanceOf(() => {
+            constructor.prototype.fill.call(invalidReceiver, 1);
         }, TypeError);
     });
+    
+    constructor.prototype.fill.call(new Proxy(new constructor(), {}));
 
     
     Object.defineProperty(new constructor([1, 2, 3]), "length", {

@@ -235,3 +235,53 @@ function TypedArrayReverse() {
     
     return O;
 }
+
+
+
+function TypedArrayIncludes(searchElement, fromIndex = 0) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, searchElement,
+                            fromIndex, "TypedArrayIncludes");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (len === 0)
+        return false;
+
+    
+    var n = ToInteger(fromIndex);
+
+    var k;
+    
+    if (n >= 0) {
+        k = n;
+    }
+    
+    else {
+        
+        k = len + n;
+        
+        if (k < 0)
+            k = 0;
+    }
+
+    
+    while (k < len) {
+        
+        if (SameValueZero(searchElement, O[k]))
+            return true;
+
+        
+        k++;
+    }
+
+    
+    return false;
+}
