@@ -30,6 +30,7 @@
 #include "mozilla/dom/AutocompleteInfoBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/FloatingPoint.h"
+#include "nsIContentPolicy.h"
 
 #if defined(XP_WIN)
 
@@ -600,12 +601,18 @@ public:
 
 
 
+
+
   static bool CanLoadImage(nsIURI* aURI,
-                             nsISupports* aContext,
-                             nsIDocument* aLoadingDocument,
-                             nsIPrincipal* aLoadingPrincipal,
-                             int16_t* aImageBlockingStatus = nullptr);
+                           nsISupports* aContext,
+                           nsIDocument* aLoadingDocument,
+                           nsIPrincipal* aLoadingPrincipal,
+                           int16_t* aImageBlockingStatus = nullptr,
+                           uint32_t aContentPolicyType = nsIContentPolicy::TYPE_IMAGE);
+
   
+
+
 
 
 
@@ -625,7 +632,8 @@ public:
                             imgINotificationObserver* aObserver,
                             int32_t aLoadFlags,
                             const nsAString& initiatorType,
-                            imgRequestProxy** aRequest);
+                            imgRequestProxy** aRequest,
+                            uint32_t aContentPolicyType = nsIContentPolicy::TYPE_IMAGE);
 
   
 
