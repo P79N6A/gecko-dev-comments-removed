@@ -438,7 +438,39 @@ nsGtkIMModule::ResetIME()
         return;
     }
 
+    nsRefPtr<nsGtkIMModule> kungFuDeathGrip(this);
+    nsRefPtr<nsWindow> lastFocusedWindow(mLastFocusedWindow);
+
     gtk_im_context_reset(activeContext);
+
+    
+    
+    if (!lastFocusedWindow ||
+        NS_WARN_IF(lastFocusedWindow != mLastFocusedWindow) ||
+        lastFocusedWindow->Destroyed()) {
+        return;
+    }
+
+    nsAutoString compositionString;
+    GetCompositionString(activeContext, compositionString);
+
+    PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+        ("GtkIMModule(%p): ResetIME() called gtk_im_context_reset(), "
+         "activeContext=%p, mCompositionState=%s, compositionString=%s, "
+         "mIsIMFocused=%s",
+         this, activeContext, GetCompositionStateName(),
+         NS_ConvertUTF16toUTF8(compositionString).get(),
+         GetBoolName(mIsIMFocused)));
+
+    
+    
+    
+    
+    
+    if (IsComposing() && compositionString.IsEmpty()) {
+        
+        DispatchCompositionCommitEvent(activeContext, &EmptyString());
+    }
 }
 
 nsresult
