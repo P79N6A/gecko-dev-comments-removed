@@ -509,22 +509,16 @@ function fireCopyEvent(element) {
 
 
 
-
-
-function waitForSuccess(validatorFn, name="untitled", timeout=5000) {
+function waitForSuccess(validatorFn, name="untitled") {
   let def = promise.defer();
   let start = Date.now();
 
   function wait(validatorFn) {
-    if ((Date.now() - start) > timeout) {
-      ok(false, "Validator function " + name + " timed out");
-      return def.reject();
-    }
     if (validatorFn()) {
       ok(true, "Validator function " + name + " returned true");
       def.resolve();
     } else {
-      setTimeout(() => wait(validatorFn), 100);
+      setTimeout(() => wait(validatorFn), 200);
     }
   }
   wait(validatorFn);
