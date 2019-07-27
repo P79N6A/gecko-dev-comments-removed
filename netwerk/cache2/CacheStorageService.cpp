@@ -2088,10 +2088,12 @@ CacheStorageService::CollectReports(nsIMemoryReporterCallback* aHandleReport,
   
   
   
-  ReportStorageMemoryData data;
-  data.mHandleReport = aHandleReport;
-  data.mData = aData;
-  sGlobalEntryTables->EnumerateRead(&ReportStorageMemory, &data);
+  if (sGlobalEntryTables) {
+    ReportStorageMemoryData data;
+    data.mHandleReport = aHandleReport;
+    data.mData = aData;
+    sGlobalEntryTables->EnumerateRead(&ReportStorageMemory, &data);
+  }
 
   return NS_OK;
 }
