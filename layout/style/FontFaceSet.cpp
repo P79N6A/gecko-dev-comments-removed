@@ -55,6 +55,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(FontFaceSet, DOMEventTargetHel
   for (size_t i = 0; i < tmp->mConnectedFaces.Length(); i++) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConnectedFaces[i].mFontFace);
   }
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOtherFaces);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(FontFaceSet, DOMEventTargetHelper)
@@ -62,6 +63,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(FontFaceSet, DOMEventTargetHelpe
   for (size_t i = 0; i < tmp->mConnectedFaces.Length(); i++) {
     NS_IMPL_CYCLE_COLLECTION_UNLINK(mConnectedFaces[i].mFontFace);
   }
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mOtherFaces);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ADDREF_INHERITED(FontFaceSet, DOMEventTargetHelper)
@@ -73,6 +75,7 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 FontFaceSet::FontFaceSet(nsPIDOMWindow* aWindow, nsPresContext* aPresContext)
   : DOMEventTargetHelper(aWindow)
   , mPresContext(aPresContext)
+  , mOtherFacesDirty(false)
 {
   MOZ_COUNT_CTOR(FontFaceSet);
 
@@ -178,13 +181,19 @@ FontFaceSet::IndexedGetter(uint32_t aIndex, bool& aFound)
 {
   mPresContext->FlushUserFontSet();
 
-  if (aIndex >= mConnectedFaces.Length()) {
-    aFound = false;
-    return nullptr;
+  if (aIndex < mConnectedFaces.Length()) {
+    aFound = true;
+    return mConnectedFaces[aIndex].mFontFace;
   }
 
-  aFound = true;
-  return mConnectedFaces[aIndex].mFontFace;
+  aIndex -= mConnectedFaces.Length();
+  if (aIndex < mOtherFaces.Length()) {
+    aFound = true;
+    return mOtherFaces[aIndex];
+  }
+
+  aFound = false;
+  return nullptr;
 }
 
 uint32_t
@@ -192,7 +201,10 @@ FontFaceSet::Length()
 {
   mPresContext->FlushUserFontSet();
 
-  return mConnectedFaces.Length();
+  
+
+  size_t total = mConnectedFaces.Length() + mOtherFaces.Length();
+  return std::min<size_t>(total, INT32_MAX);
 }
 
 static PLDHashOperator DestroyIterator(nsPtrHashKey<nsFontFaceLoader>* aKey,
@@ -211,10 +223,14 @@ FontFaceSet::DestroyUserFontSet()
     mConnectedFaces[i].mFontFace->DisconnectFromRule();
     mConnectedFaces[i].mFontFace->SetUserFontEntry(nullptr);
   }
+  for (size_t i = 0; i < mOtherFaces.Length(); i++) {
+    mOtherFaces[i]->SetUserFontEntry(nullptr);
+  }
   for (size_t i = 0; i < mUnavailableFaces.Length(); i++) {
     mUnavailableFaces[i]->SetUserFontEntry(nullptr);
   }
   mConnectedFaces.Clear();
+  mOtherFaces.Clear();
   mUnavailableFaces.Clear();
   mReady = nullptr;
   mUserFontSet = nullptr;
@@ -348,7 +364,10 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 {
   MOZ_ASSERT(mUserFontSet);
 
-  bool modified = false;
+  
+  
+  bool modified = mOtherFacesDirty;
+  mOtherFacesDirty = false;
 
   
   
@@ -384,6 +403,11 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
                             aRules[i].mSheetType, oldRecords,
                             modified);
     handledRules.PutEntry(aRules[i].mRule);
+  }
+
+  for (size_t i = 0, i_end = mOtherFaces.Length(); i < i_end; ++i) {
+    
+    InsertUnconnectedFontFace(mOtherFaces[i], modified);
   }
 
   
@@ -452,6 +476,34 @@ FontFaceSet::IncrementGeneration(bool aIsRebuild)
 {
   MOZ_ASSERT(mUserFontSet);
   mUserFontSet->IncrementGeneration(aIsRebuild);
+}
+
+void
+FontFaceSet::InsertUnconnectedFontFace(FontFace* aFontFace,
+                                       bool& aFontSetModified)
+{
+  nsAutoString fontfamily;
+  if (!aFontFace->GetFamilyName(fontfamily)) {
+    
+    
+    return;
+  }
+
+  
+  if (!aFontFace->GetUserFontEntry()) {
+    
+    
+    nsRefPtr<gfxUserFontEntry> entry =
+      FindOrCreateUserFontEntryFromFontFace(fontfamily, aFontFace,
+                                            nsStyleSet::eDocSheet);
+    if (!entry) {
+      return;
+    }
+    aFontFace->SetUserFontEntry(entry);
+  }
+
+  aFontSetModified = true;
+  mUserFontSet->AddUserFontEntry(fontfamily, aFontFace->GetUserFontEntry());
 }
 
 void

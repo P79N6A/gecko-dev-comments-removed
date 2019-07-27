@@ -188,6 +188,7 @@ private:
   void InsertConnectedFontFace(FontFace* aFontFace, uint8_t aSheetType,
                                nsTArray<FontFaceRecord>& aOldRecords,
                                bool& aFontSetModified);
+  void InsertUnconnectedFontFace(FontFace* aFontFace, bool& aFontSetModified);
 
 #ifdef DEBUG
   bool HasConnectedFontFace(FontFace* aFontFace);
@@ -208,7 +209,14 @@ private:
 
   
   
+  nsTArray<nsRefPtr<FontFace>> mOtherFaces;
+
+  
+  
   nsTArray<FontFace*> mUnavailableFaces;
+
+  
+  bool mOtherFacesDirty;
 };
 
 } 
