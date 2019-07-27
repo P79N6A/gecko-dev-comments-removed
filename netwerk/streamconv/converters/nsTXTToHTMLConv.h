@@ -28,16 +28,6 @@ typedef struct convToken {
 
 template<class T> class nsAutoPtr;
 
-class nsTXTToHTMLConv;
-
-namespace mozilla {
-template<>
-struct HasDangerousPublicDestructor<nsTXTToHTMLConv>
-{
-  static const bool value = true;
-};
-}
-
 
 
 
@@ -75,32 +65,10 @@ public:
     NS_DECL_NSISTREAMLISTENER
 
     nsTXTToHTMLConv();
-    virtual ~nsTXTToHTMLConv();
     nsresult Init();
 
-    
-    static NS_METHOD
-    Create(nsISupports *aOuter, REFNSIID aIID, void **aResult) {
-        nsresult rv;
-        if (aOuter)
-            return NS_ERROR_NO_AGGREGATION;
-
-        nsTXTToHTMLConv* _s = new nsTXTToHTMLConv();
-        if (_s == nullptr)
-            return NS_ERROR_OUT_OF_MEMORY;
-        NS_ADDREF(_s);
-        rv = _s->Init();
-        if (NS_FAILED(rv)) {
-            delete _s;
-            return rv;
-        }
-        rv = _s->QueryInterface(aIID, aResult);
-        NS_RELEASE(_s);
-        return rv;
-    }
-
-
 protected:
+    virtual ~nsTXTToHTMLConv();
 
     
     int32_t FindToken(int32_t cursor, convToken* *_retval);
