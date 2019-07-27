@@ -364,6 +364,19 @@ GeckoMediaPluginService::SelectPluginForAPI(const nsAString& aOrigin,
   return nullptr;
 }
 
+class CreateGMPParentTask : public nsRunnable {
+public:
+  NS_IMETHOD Run() {
+    MOZ_ASSERT(NS_IsMainThread());
+    mParent = new GMPParent();
+    return NS_OK;
+  }
+  already_AddRefed<GMPParent> GetParent() {
+    return mParent.forget();
+  }
+private:
+  nsRefPtr<GMPParent> mParent;
+};
 
 void
 GeckoMediaPluginService::AddOnGMPThread(const nsAString& aDirectory)
@@ -376,9 +389,16 @@ GeckoMediaPluginService::AddOnGMPThread(const nsAString& aDirectory)
     return;
   }
 
-  nsRefPtr<GMPParent> gmp = new GMPParent();
+  
+  
+  nsRefPtr<CreateGMPParentTask> task(new CreateGMPParentTask());
+  nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+  MOZ_ASSERT(mainThread);
+  mozilla::SyncRunnable::DispatchToThread(mainThread, task);
+  nsRefPtr<GMPParent> gmp = task->GetParent();
   rv = gmp->Init(directory);
   if (NS_FAILED(rv)) {
+    NS_WARNING("Can't Create GMPParent");
     return;
   }
 
