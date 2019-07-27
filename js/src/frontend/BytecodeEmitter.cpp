@@ -3362,61 +3362,56 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
 
 
 
-        ParseNode *subpattern;
-        {
-            doElemOp = true;
-            JS_ASSERT(member->isKind(PNK_COLON) || member->isKind(PNK_SHORTHAND));
+        doElemOp = true;
+        JS_ASSERT(member->isKind(PNK_COLON) || member->isKind(PNK_SHORTHAND));
+
+        
+        if (Emit1(cx, bce, JSOP_DUP) < 0)
+            return false;
+
+        ParseNode *key = member->pn_left;
+        if (key->isKind(PNK_NUMBER)) {
+            if (!EmitNumberOp(cx, key->pn_dval, bce))
+                return false;
+        } else if (key->isKind(PNK_NAME) || key->isKind(PNK_STRING)) {
+            PropertyName *name = key->pn_atom->asPropertyName();
 
             
-            if (Emit1(cx, bce, JSOP_DUP) < 0)
-                return false;
-
-            ParseNode *key = member->pn_left;
-            if (key->isKind(PNK_NUMBER)) {
-                if (!EmitNumberOp(cx, key->pn_dval, bce))
+            
+            
+            jsid id = NameToId(name);
+            if (id != types::IdToTypeId(id)) {
+                if (!EmitTree(cx, bce, key))
                     return false;
-            } else if (key->isKind(PNK_NAME) || key->isKind(PNK_STRING)) {
-                PropertyName *name = key->pn_atom->asPropertyName();
-
-                
-                
-                
-                jsid id = NameToId(name);
-                if (id != types::IdToTypeId(id)) {
-                    if (!EmitTree(cx, bce, key))
-                        return false;
-                } else {
-                    if (!EmitAtomOp(cx, name, JSOP_GETPROP, bce))
-                        return false;
-                    doElemOp = false;
-                }
             } else {
-                JS_ASSERT(key->isKind(PNK_COMPUTED_NAME));
-                if (!EmitTree(cx, bce, key->pn_kid))
+                if (!EmitAtomOp(cx, name, JSOP_GETPROP, bce))
                     return false;
+                doElemOp = false;
             }
-
-            if (doElemOp) {
-                
-
-
-
-
-                if (!EmitElemOpBase(cx, bce, JSOP_GETELEM))
-                    return false;
-                JS_ASSERT(bce->stackDepth >= stackDepth + 1);
-            }
-
-            subpattern = member->pn_right;
+        } else {
+            JS_ASSERT(key->isKind(PNK_COMPUTED_NAME));
+            if (!EmitTree(cx, bce, key->pn_kid))
+                return false;
         }
 
-        {
-            int32_t depthBefore = bce->stackDepth;
-            if (!EmitDestructuringLHS(cx, bce, subpattern, emitOption))
+        if (doElemOp) {
+            
+
+
+
+
+            if (!EmitElemOpBase(cx, bce, JSOP_GETELEM))
                 return false;
+            JS_ASSERT(bce->stackDepth >= stackDepth + 1);
+        }
 
-            if (emitOption == PushInitialValues) {
-                
+        ParseNode *subpattern = member->pn_right;
+        int32_t depthBefore = bce->stackDepth;
+        if (!EmitDestructuringLHS(cx, bce, subpattern, emitOption))
+            return false;
+
+        if (emitOption == PushInitialValues) {
+            
 
 
 
@@ -3426,16 +3421,15 @@ EmitDestructuringOpsObjectHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Par
 
 
 
-                JS_ASSERT((bce->stackDepth - bce->stackDepth) >= -1);
-                uint32_t pickDistance = (uint32_t)((bce->stackDepth + 1) - depthBefore);
-                if (pickDistance > 0) {
-                    if (pickDistance > UINT8_MAX) {
-                        bce->reportError(subpattern, JSMSG_TOO_MANY_LOCALS);
-                        return false;
-                    }
-                    if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)pickDistance) < 0)
-                        return false;
+            JS_ASSERT((bce->stackDepth - bce->stackDepth) >= -1);
+            uint32_t pickDistance = (uint32_t)((bce->stackDepth + 1) - depthBefore);
+            if (pickDistance > 0) {
+                if (pickDistance > UINT8_MAX) {
+                    bce->reportError(subpattern, JSMSG_TOO_MANY_LOCALS);
+                    return false;
                 }
+                if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)pickDistance) < 0)
+                    return false;
             }
         }
     }
