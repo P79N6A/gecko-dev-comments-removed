@@ -293,7 +293,9 @@ WifiGeoPositionProvider.prototype = {
     let self = this;
     let settingsCallback = {
       handle: function(name, result) {
-        if (name == SETTINGS_DEBUG_ENABLED) {
+        
+        
+        if (name == SETTINGS_DEBUG_ENABLED && !gLoggingEnabled) {
           gLoggingEnabled = result;
         } else if (name == SETTINGS_WIFI_ENABLED) {
           gWifiScanningEnabled = result;
