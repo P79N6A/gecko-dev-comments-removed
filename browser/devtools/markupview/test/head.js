@@ -205,6 +205,15 @@ function getNodeFront(selector, {walker}) {
 
 
 
+function getNodeInfo(selector) {
+  return executeInContent("devtools:test:getDomElementInfo", {selector});
+}
+
+
+
+
+
+
 
 
 
