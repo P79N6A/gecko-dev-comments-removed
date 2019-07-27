@@ -3783,7 +3783,7 @@ pref("image.cache.size", 5242880);
 pref("image.cache.timeweight", 500);
 
 
-pref("image.downscale-during-decode.enabled", false);
+pref("image.downscale-during-decode.enabled", true);
 
 
 pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
