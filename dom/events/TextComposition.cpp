@@ -75,11 +75,21 @@ TextComposition::MaybeDispatchCompositionUpdate(const WidgetTextEvent* aEvent)
                                            aEvent->widget);
   compositionUpdate.time = aEvent->time;
   compositionUpdate.timeStamp = aEvent->timeStamp;
-  mLastData = compositionUpdate.data = aEvent->theText;
+  compositionUpdate.data = aEvent->theText;
+  compositionUpdate.mFlags.mIsSynthesizedForTests =
+    aEvent->mFlags.mIsSynthesizedForTests;
 
   nsEventStatus status = nsEventStatus_eConsumeNoDefault;
-  EventDispatcher::Dispatch(mNode, mPresContext,
-                            &compositionUpdate, nullptr, &status, nullptr);
+  if (aEvent->mFlags.mIsSynthesizedForTests &&
+      (mIsRequestingCommit || mIsRequestingCancel)) {
+    
+    
+    aEvent->widget->DispatchEvent(&compositionUpdate, status);
+  } else {
+    mLastData = compositionUpdate.data;
+    EventDispatcher::Dispatch(mNode, mPresContext,
+                              &compositionUpdate, nullptr, &status, nullptr);
+  }
   return !Destroyed();
 }
 
@@ -240,6 +250,7 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
   }
 
   nsRefPtr<TextComposition> kungFuDeathGrip(this);
+  const nsAutoString lastData(mLastData);
 
   {
     AutoRestore<bool> saveRequestingCancel(mIsRequestingCancel);
@@ -251,18 +262,50 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
       mIsRequestingCancel = false;
       mIsRequestingCommit = true;
     }
-    
-    
-    
-    nsresult rv =
-      aWidget->NotifyIME(IMENotification(aDiscard ?
-                                           REQUEST_TO_CANCEL_COMPOSITION :
-                                           REQUEST_TO_COMMIT_COMPOSITION));
-    if (rv == NS_ERROR_NOT_IMPLEMENTED) {
-      return rv;
-    }
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+    if (!mIsSynthesizedForTests) {
+      
+      
+      
+      nsresult rv =
+        aWidget->NotifyIME(IMENotification(aDiscard ?
+                                             REQUEST_TO_CANCEL_COMPOSITION :
+                                             REQUEST_TO_COMMIT_COMPOSITION));
+      if (rv == NS_ERROR_NOT_IMPLEMENTED) {
+        return rv;
+      }
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+    } else {
+      
+      
+      
+      nsCOMPtr<nsIWidget> widget(aWidget);
+      nsAutoString commitData(aDiscard ? EmptyString() : lastData);
+      bool changingData = lastData != commitData;
+
+      WidgetTextEvent textEvent(true, NS_TEXT_TEXT, widget);
+      textEvent.theText = commitData;
+      textEvent.mFlags.mIsSynthesizedForTests = true;
+
+      MaybeDispatchCompositionUpdate(&textEvent);
+
+      
+      
+      
+      if (!Destroyed() && !widget->Destroyed() &&
+          (changingData || !commitData.IsEmpty())) {
+        nsEventStatus status = nsEventStatus_eIgnore;
+        widget->DispatchEvent(&textEvent, status);
+      }
+
+      if (!Destroyed() && !widget->Destroyed()) {
+        nsEventStatus status = nsEventStatus_eIgnore;
+        WidgetCompositionEvent endEvent(true, NS_COMPOSITION_END, widget);
+        endEvent.data = commitData;
+        endEvent.mFlags.mIsSynthesizedForTests = true;
+        widget->DispatchEvent(&endEvent, status);
+      }
     }
   }
 
@@ -274,8 +317,8 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
   }
 
   
-  nsAutoString data(aDiscard ? EmptyString() : mLastData);
-  bool changingData = mLastData != data;
+  nsAutoString data(aDiscard ? EmptyString() : lastData);
+  bool changingData = lastData != data;
   if (changingData) {
     DispatchCompositionEventRunnable(NS_COMPOSITION_UPDATE, data, true);
   }
@@ -395,6 +438,8 @@ TextComposition::CompositionEventDispatcher::Run()
       handler.OnQuerySelectedText(&selectedText);
       NS_ASSERTION(selectedText.mSucceeded, "Failed to get selected text");
       compStart.data = selectedText.mReply.mString;
+      compStart.mFlags.mIsSynthesizedForTests =
+        mTextComposition->IsSynthesizedForTests();
       IMEStateManager::DispatchCompositionEvent(mEventTarget, presContext,
                                                 &compStart, &status, nullptr,
                                                 mIsSynthesizedEvent);
@@ -404,6 +449,8 @@ TextComposition::CompositionEventDispatcher::Run()
     case NS_COMPOSITION_END: {
       WidgetCompositionEvent compEvent(true, mEventMessage, widget);
       compEvent.data = mData;
+      compEvent.mFlags.mIsSynthesizedForTests =
+        mTextComposition->IsSynthesizedForTests();
       IMEStateManager::DispatchCompositionEvent(mEventTarget, presContext,
                                                 &compEvent, &status, nullptr,
                                                 mIsSynthesizedEvent);
@@ -412,6 +459,8 @@ TextComposition::CompositionEventDispatcher::Run()
     case NS_TEXT_TEXT: {
       WidgetTextEvent textEvent(true, NS_TEXT_TEXT, widget);
       textEvent.theText = mData;
+      textEvent.mFlags.mIsSynthesizedForTests =
+        mTextComposition->IsSynthesizedForTests();
       IMEStateManager::DispatchCompositionEvent(mEventTarget, presContext,
                                                 &textEvent, &status, nullptr,
                                                 mIsSynthesizedEvent);
