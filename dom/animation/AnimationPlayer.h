@@ -146,10 +146,12 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   
-  Animation* GetSource() const { return nullptr; }
+  Animation* GetSource() const { return mSource; }
   AnimationTimeline* Timeline() const { return mTimeline; }
   double StartTime() const;
   double CurrentTime() const;
+
+  void SetSource(Animation* aSource);
 
   
   
@@ -253,6 +255,7 @@ public:
   InfallibleTArray<AnimationProperty> mProperties;
 
   nsRefPtr<AnimationTimeline> mTimeline;
+  nsRefPtr<Animation> mSource;
 };
 
 } 
