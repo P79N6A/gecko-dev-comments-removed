@@ -7,7 +7,7 @@
 #define __NS_SVGFILTERPAINTCALLBACK_H__
 
 class nsIFrame;
-class nsRenderingContext;
+class gfxContext;
 
 struct nsIntRect;
 
@@ -25,7 +25,7 @@ public:
 
 
 
-  virtual void Paint(nsRenderingContext *aContext, nsIFrame *aTarget,
+  virtual void Paint(gfxContext& aContext, nsIFrame *aTarget,
                      const gfxMatrix& aTransform,
                      const nsIntRect *aDirtyRect) = 0;
 };
