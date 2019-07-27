@@ -22,6 +22,10 @@ devtools.lazyRequireGetter(this, "L10N",
   "devtools/profiler/global", true);
 devtools.lazyImporter(this, "LineGraphWidget",
   "resource:///modules/devtools/Graphs.jsm");
+devtools.lazyRequireGetter(this, "CallView",
+  "devtools/profiler/tree-view", true);
+devtools.lazyRequireGetter(this, "ThreadNode",
+  "devtools/profiler/tree-model", true);
 
 
 const EVENTS = {
@@ -36,7 +40,10 @@ const EVENTS = {
   UI_STOP_RECORDING: "Performance:UI:StopRecording",
 
   
-  OVERVIEW_RENDERED: "Performance:UI:OverviewRendered"
+  OVERVIEW_RENDERED: "Performance:UI:OverviewRendered",
+
+  
+  CALL_TREE_RENDERED: "Performance:UI:CallTreeRendered"
 };
 
 
@@ -51,8 +58,7 @@ let startupPerformance = Task.async(function*() {
   yield promise.all([
     PrefObserver.register(),
     PerformanceController.initialize(),
-    PerformanceView.initialize(),
-    OverviewView.initialize()
+    PerformanceView.initialize()
   ]);
 });
 
@@ -63,8 +69,7 @@ let shutdownPerformance = Task.async(function*() {
   yield promise.all([
     PrefObserver.unregister(),
     PerformanceController.destroy(),
-    PerformanceView.destroy(),
-    OverviewView.destroy()
+    PerformanceView.destroy()
   ]);
 });
 
@@ -147,6 +152,7 @@ EventEmitter.decorate(PerformanceController);
 
 
 const Prefs = new ViewHelpers.Prefs("devtools.profiler", {
+  showPlatformData: ["Bool", "ui.show-platform-data"]
 });
 
 

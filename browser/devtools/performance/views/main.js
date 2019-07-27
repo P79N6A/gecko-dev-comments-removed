@@ -21,6 +21,11 @@ let PerformanceView = {
     
     PerformanceController.on(EVENTS.RECORDING_STARTED, this._unlockRecordButton);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._unlockRecordButton);
+
+    return promise.all([
+      OverviewView.initialize(),
+      DetailsView.initialize()
+    ]);
   },
 
   
@@ -30,6 +35,11 @@ let PerformanceView = {
     this._recordButton.removeEventListener("click", this._onRecordButtonClick);
     PerformanceController.off(EVENTS.RECORDING_STARTED, this._unlockRecordButton);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._unlockRecordButton);
+
+    return promise.all([
+      OverviewView.destroy(),
+      DetailsView.destroy()
+    ]);
   },
 
   
