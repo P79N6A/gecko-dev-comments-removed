@@ -54,8 +54,13 @@ public:
   bool HasCompleteInitData();
   
   
-  MediaByteRange MediaSegmentRange();
   MediaByteRange InitSegmentRange();
+  
+  
+  MediaByteRange MediaHeaderRange();
+  
+  
+  MediaByteRange MediaSegmentRange();
 
   static ContainerParser* CreateForMIMEType(const nsACString& aType);
 
@@ -63,8 +68,9 @@ protected:
   nsRefPtr<MediaLargeByteBuffer> mInitData;
   nsRefPtr<SourceBufferResource> mResource;
   bool mHasInitData;
-  MediaByteRange mCompleteMediaSegmentRange;
   MediaByteRange mCompleteInitSegmentRange;
+  MediaByteRange mCompleteMediaHeaderRange;
+  MediaByteRange mCompleteMediaSegmentRange;
   const nsCString mType;
 };
 
