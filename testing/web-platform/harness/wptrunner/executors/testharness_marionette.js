@@ -3,6 +3,7 @@
 
 
 window.wrappedJSObject.timeout_multiplier = %(timeout_multiplier)d;
+window.wrappedJSObject.explicit_timeout = %(explicit_timeout)d;
 
 window.wrappedJSObject.done = function(tests, status) {
   clearTimeout(timer);
