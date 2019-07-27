@@ -249,7 +249,11 @@ public:
     bool initSegment = IsInitSegmentPresent(aData, aLength);
     if (initSegment) {
       mStream = new mp4_demuxer::BufferStream();
-      mParser = new mp4_demuxer::MoofParser(mStream, 0, &mMonitor);
+      
+      
+      
+      
+      mParser = new mp4_demuxer::MoofParser(mStream, 0, 0, &mMonitor);
     } else if (!mStream || !mParser) {
       return false;
     }

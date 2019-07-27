@@ -39,7 +39,7 @@ public:
   
   
   
-  bool AppendData(const uint8_t* aData, uint32_t aLength);
+  bool AppendData(const uint8_t* aData, uint32_t aLength, int64_t aTimestampOffset );
   bool EvictData(uint32_t aThreshold);
   void EvictBefore(double aTime);
 
@@ -92,7 +92,7 @@ private:
   
   
   
-  already_AddRefed<SourceBufferDecoder> NewDecoder();
+  already_AddRefed<SourceBufferDecoder> NewDecoder(int64_t aTimestampOffset );
 
   
   
@@ -155,6 +155,9 @@ private:
   
   int64_t mLastStartTimestamp;
   Maybe<int64_t> mLastEndTimestamp;
+
+  
+  int64_t mLastTimestampOffset;
 
   
   

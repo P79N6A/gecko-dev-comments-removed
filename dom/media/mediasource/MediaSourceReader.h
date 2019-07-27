@@ -99,7 +99,8 @@ public:
   
   nsresult GetBuffered(dom::TimeRanges* aBuffered) MOZ_OVERRIDE;
 
-  already_AddRefed<SourceBufferDecoder> CreateSubDecoder(const nsACString& aType);
+  already_AddRefed<SourceBufferDecoder> CreateSubDecoder(const nsACString& aType,
+                                                         int64_t aTimestampOffset );
 
   void AddTrackBuffer(TrackBuffer* aTrackBuffer);
   void RemoveTrackBuffer(TrackBuffer* aTrackBuffer);
