@@ -1376,13 +1376,6 @@ def UnionConversions(unionTypes, config):
                             headers.add(typeDesc.headerFile)
                     else:
                         headers.add(CGHeaders.getDeclarationFilename(f.inner))
-                    
-                    
-                    
-                    
-                    if (f.isGeckoInterface() and
-                        providers[0].getDescriptor(f.inner.identifier.name).hasXPConnectImpls):
-                        headers.add("nsDOMQS.h")
                 elif f.isDictionary():
                     headers.add(CGHeaders.getDeclarationFilename(f.inner))
                 elif f.isPrimitive():
@@ -12278,23 +12271,8 @@ class CGBindingRoot(CGThing):
                                     dictionaries,
                                     mainCallbacks + workerCallbacks))))
 
-        bindingHeaders["nsDOMQS.h"] = any(d.hasXPConnectImpls for d in descriptors)
         
         provider = config.getDescriptorProvider(False)
-
-        def checkForXPConnectImpls(typeInfo):
-            type, _, _ = typeInfo
-            type = type.unroll()
-            while type.isMozMap():
-                type = type.inner.unroll()
-            if not type.isInterface() or not type.isGeckoInterface():
-                return False
-            try:
-                typeDesc = provider.getDescriptor(type.inner.identifier.name)
-            except NoSuchDescriptorError:
-                return False
-            return typeDesc.hasXPConnectImpls
-        addHeaderBasedOnTypes("nsDOMQS.h", checkForXPConnectImpls)
 
         def descriptorClearsPropsInSlots(descriptor):
             if not descriptor.wrapperCache:
@@ -15072,7 +15050,6 @@ class CGEventRoot(CGThing):
                                   "%s.h" % interfaceName,
                                   "js/GCAPI.h",
                                   'mozilla/dom/Nullable.h',
-                                  'nsDOMQS.h'
                               ],
                               "", self.root, config)
 
