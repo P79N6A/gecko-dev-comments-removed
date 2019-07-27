@@ -1286,7 +1286,7 @@ Sync11Service.prototype = {
       
       
       if (this.clusterURL) {
-        this.recordManager.get(this.storageURL + "meta/fxa_credentials");
+        this.identity.prefetchMigrationSentinel(this);
       }
 
       

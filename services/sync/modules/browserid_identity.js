@@ -402,6 +402,16 @@ this.BrowserIDManager.prototype = {
   
 
 
+
+
+
+  prefetchMigrationSentinel: function(service) {
+    
+  },
+
+  
+
+
   _getSyncCredentialsHosts: function() {
     return Utils.getSyncCredentialsHostsFxA();
   },

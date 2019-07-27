@@ -449,6 +449,22 @@ IdentityManager.prototype = {
   
 
 
+
+
+
+  prefetchMigrationSentinel: function(service) {
+    
+    
+    try {
+      service.recordManager.get(service.storageURL + "meta/fxa_credentials");
+    } catch (ex) {
+      this._log.warn("Failed to pre-fetch the migration sentinel", ex);
+    }
+  },
+
+  
+
+
   _getLogins: function _getLogins(realm) {
     return Services.logins.findLogins({}, PWDMGR_HOST, null, realm);
   },
