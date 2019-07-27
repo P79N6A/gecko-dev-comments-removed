@@ -787,6 +787,25 @@ CODE_MAP_ANDROID(VolumeUp,              0x0073)
 CODE_MAP_X11(WakeUp,                    0x0097)
 CODE_MAP_ANDROID(WakeUp,                0x008F)
 
+
+CODE_MAP_X11(Again,                     0x0089) 
+
+CODE_MAP_X11(Copy,                      0x008D) 
+
+CODE_MAP_X11(Cut,                       0x0091) 
+
+CODE_MAP_X11(Find,                      0x0090) 
+
+CODE_MAP_X11(Open,                      0x008E) 
+
+CODE_MAP_X11(Paste,                     0x008F) 
+
+CODE_MAP_X11(Props,                     0x008A) 
+
+CODE_MAP_X11(Select,                    0x008C) 
+
+CODE_MAP_X11(Undo,                      0x008B) 
+
 #undef CODE_MAP_WIN
 #undef CODE_MAP_MAC
 #undef CODE_MAP_X11
