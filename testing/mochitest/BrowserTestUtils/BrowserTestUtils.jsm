@@ -64,6 +64,23 @@ this.BrowserTestUtils = {
 
 
 
+  domWindowOpened() {
+    return new Promise(resolve => {
+      function observer(subject, topic, data) {
+        if (topic != "domwindowopened") { return; }
+
+        Services.ww.unregisterNotification(observer);
+        resolve(subject.QueryInterface(Ci.nsIDOMWindow));
+      }
+      Services.ww.registerNotification(observer);
+    });
+  },
+
+  
+
+
+
+
 
 
 
@@ -88,6 +105,29 @@ this.BrowserTestUtils = {
     return TestUtils.topicObserved("browser-delayed-startup-finished",
                                    subject => subject == win).then(() => win);
   },
+
+  
+
+
+
+
+
+
+
+
+  closeWindow(win) {
+    return new Promise(resolve => {
+      function observer(subject, topic, data) {
+        if (topic == "domwindowclosed" && subject === win) {
+          Services.ww.unregisterNotification(observer);
+          resolve();
+        }
+      }
+      Services.ww.registerNotification(observer);
+      win.close();
+    });
+  },
+
 
   
 
