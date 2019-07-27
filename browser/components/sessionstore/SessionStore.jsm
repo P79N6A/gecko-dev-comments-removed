@@ -1806,23 +1806,42 @@ let SessionStoreInternal = {
     }
 
     
-    
-    TabState.flush(aTab.linkedBrowser);
-
-    
-    let tabState = TabState.clone(aTab);
-
-    tabState.index += aDelta;
-    tabState.index = Math.max(1, Math.min(tabState.index, tabState.entries.length));
-    tabState.pinned = false;
-
     let newTab = aTab == aWindow.gBrowser.selectedTab ?
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
 
-    this.restoreTab(newTab, tabState, {
-      restoreImmediately: true 
+    
+    
+    aWindow.gBrowser.setTabTitleLoading(newTab);
+    newTab.setAttribute("busy", "true");
+
+    
+    let tabState = TabState.clone(aTab);
+
+    
+    let browser = aTab.linkedBrowser;
+    TabStateFlusher.flush(browser).then(() => {
+      
+      if (newTab.closing || !newTab.linkedBrowser) {
+        return;
+      }
+
+      
+      
+      
+      let options = {includePrivateData: true};
+      TabState.copyFromCache(browser, tabState, options);
+
+      tabState.index += aDelta;
+      tabState.index = Math.max(1, Math.min(tabState.index, tabState.entries.length));
+      tabState.pinned = false;
+
+      
+      this.restoreTab(newTab, tabState, {
+        restoreImmediately: true 
+      });
     });
+
     return newTab;
   },
 
