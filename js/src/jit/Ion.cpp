@@ -1773,19 +1773,6 @@ MarkOffThreadNurseryObjects::mark(JSTracer *trc)
     }
 }
 
-bool
-jit::OffThreadCompilationAvailable(JSContext *cx)
-{
-    
-    
-    
-    
-    
-    return cx->runtime()->canUseOffthreadIonCompilation()
-        && HelperThreadState().cpuCount > 1
-        && CanUseExtraThreads();
-}
-
 static void
 TrackAllProperties(JSContext *cx, JSObject *obj)
 {
@@ -2169,6 +2156,19 @@ Compile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode 
 
 } 
 } 
+
+bool
+jit::OffThreadCompilationAvailable(JSContext *cx)
+{
+    
+    
+    
+    
+    
+    return cx->runtime()->canUseOffthreadIonCompilation()
+        && HelperThreadState().cpuCount > 1
+        && CanUseExtraThreads();
+}
 
 
 
