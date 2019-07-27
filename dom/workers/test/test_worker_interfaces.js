@@ -62,6 +62,7 @@ var ecmaGlobals =
     {name: "Atomics", nightly: true},
     "StopIteration",
     "String",
+    "Symbol",
     "SyntaxError",
     {name: "TypedObject", nightly: true},
     "TypeError",
@@ -75,12 +76,6 @@ var ecmaGlobals =
   ];
 
 
-
-
-
-if (typeof Symbol === "function") {
-  ecmaGlobals.splice(ecmaGlobals.indexOf("SyntaxError"), 0, "Symbol");
-}
 
 
 var interfaceNamesInGlobalScope =

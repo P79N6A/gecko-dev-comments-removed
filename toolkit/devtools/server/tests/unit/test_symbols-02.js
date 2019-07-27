@@ -23,12 +23,6 @@ function run_test() {
 }
 
 function* testSymbols(client, debuggee) {
-  
-  if (typeof Symbol === "undefined") {
-    finishClient(client);
-    return;
-  }
-
   const evalCode = () => {
     Components.utils.evalInSandbox(
       "(" + function () {
