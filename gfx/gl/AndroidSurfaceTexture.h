@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsSurfaceTexture_h__
-#define nsSurfaceTexture_h__
+#ifndef AndroidSurfaceTexture_h__
+#define AndroidSurfaceTexture_h__
 #ifdef MOZ_WIDGET_ANDROID
 
 #include <jni.h>
@@ -13,31 +13,36 @@
 #include "gfxPlatform.h"
 #include "GLDefs.h"
 
+#include "AndroidNativeWindow.h"
+
+class gfxASurface;
+
 namespace mozilla {
 namespace gfx {
 class Matrix4x4;
 }
 }
 
+namespace mozilla {
+namespace gl {
 
 
 
 
 
-class nsSurfaceTexture MOZ_FINAL {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsSurfaceTexture)
+
+class AndroidSurfaceTexture {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AndroidSurfaceTexture)
 
 public:
-  static nsSurfaceTexture* Create(GLuint aTexture);
-  static nsSurfaceTexture* Find(int id);
+  static AndroidSurfaceTexture* Create(GLuint aTexture);
+  static AndroidSurfaceTexture* Find(int id);
 
   
   
   static bool Check();
-
   
-  
-  void* GetNativeWindow();
+  ~AndroidSurfaceTexture();
 
   
   void UpdateTexImage();
@@ -52,19 +57,24 @@ public:
   
   
   void NotifyFrameAvailable();
-private:
-  nsSurfaceTexture();
 
-  
-  ~nsSurfaceTexture();
+  GLuint Texture() { return mTexture; }
+private:
+  AndroidSurfaceTexture();
 
   bool Init(GLuint aTexture);
 
+  GLuint mTexture;
   jobject mSurfaceTexture;
-  void* mNativeWindow;
+  jobject mSurface;
+
   int mID;
   nsRefPtr<nsIRunnable> mFrameAvailableCallback;
 };
+  
+}
+}
+
 
 #endif
 #endif

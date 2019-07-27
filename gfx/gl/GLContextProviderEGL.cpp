@@ -25,7 +25,6 @@
 
 #if defined(MOZ_WIDGET_ANDROID)
 #include "AndroidBridge.h"
-#include "nsSurfaceTexture.h"
 #endif
 
 #include <android/log.h>

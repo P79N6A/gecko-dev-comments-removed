@@ -12,9 +12,10 @@
 #include "nsCOMPtr.h"                   
 #include "mozilla/gfx/Point.h"          
 
-class nsSurfaceTexture;
-
 namespace mozilla {
+namespace gl {
+class AndroidSurfaceTexture;
+}
 namespace layers {
 
 class EGLImageImage : public Image {
@@ -46,7 +47,7 @@ private:
 class SurfaceTextureImage : public Image {
 public:
   struct Data {
-    nsSurfaceTexture* mSurfTex;
+    mozilla::gl::AndroidSurfaceTexture* mSurfTex;
     gfx::IntSize mSize;
     bool mInverted;
   };
