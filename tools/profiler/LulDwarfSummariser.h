@@ -16,12 +16,25 @@ class Summariser
 public:
   Summariser(SecMap* aSecMap, uintptr_t aTextBias, void(*aLog)(const char*));
 
-  void Entry(uintptr_t aAddress, uintptr_t aLength);
-  void End();
-  void Rule(uintptr_t aAddress,
-            int aNewReg, int aOldReg, intptr_t aOffset, bool aDeref);
+  virtual void Entry(uintptr_t aAddress, uintptr_t aLength);
+  virtual void End();
 
+  
+  
+  
+  
+  
+  
+  virtual void Rule(uintptr_t aAddress, int aNewReg,
+                    LExprHow how, int16_t oldReg, int64_t offset);
+
+  virtual uint32_t AddPfxInstr(PfxInstr pfxi);
+
+  
+  virtual void Log(const char* str) { mLog(str); }
+  
 private:
+  
   
   SecMap* mSecMap;
 

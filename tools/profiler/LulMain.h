@@ -53,7 +53,7 @@
 namespace lul {
 
 
-class MOZ_STACK_CLASS TaggedUWord {
+class TaggedUWord {
 public:
   
   
@@ -70,14 +70,53 @@ public:
   {}
 
   
+  TaggedUWord operator+(TaggedUWord rhs) const {
+    return (Valid() && rhs.Valid()) ? TaggedUWord(Value() + rhs.Value())
+                                    : TaggedUWord();
+  }
+
   
-  void Add(TaggedUWord other) {
-    if (mValid && other.Valid()) {
-      mValue += other.Value();
-    } else {
-      mValue = 0;
-      mValid = false;
+  TaggedUWord operator-(TaggedUWord rhs) const {
+    return (Valid() && rhs.Valid()) ? TaggedUWord(Value() - rhs.Value())
+                                    : TaggedUWord();
+  }
+
+  
+  TaggedUWord operator&(TaggedUWord rhs) const {
+    return (Valid() && rhs.Valid()) ? TaggedUWord(Value() & rhs.Value())
+                                    : TaggedUWord();
+  }
+
+  
+  TaggedUWord operator|(TaggedUWord rhs) const {
+    return (Valid() && rhs.Valid()) ? TaggedUWord(Value() | rhs.Value())
+                                    : TaggedUWord();
+  }
+
+  
+  TaggedUWord CmpGEs(TaggedUWord rhs) const {
+    if (Valid() && rhs.Valid()) {
+      intptr_t s1 = (intptr_t)Value();
+      intptr_t s2 = (intptr_t)rhs.Value();
+      return TaggedUWord(s1 >= s2 ? 1 : 0);
     }
+    return TaggedUWord();
+  }
+
+  
+  TaggedUWord operator<<(TaggedUWord rhs) const {
+    if (Valid() && rhs.Valid()) {
+      uintptr_t shift = rhs.Value();
+      if (shift < 8 * sizeof(uintptr_t))
+        return TaggedUWord(Value() << shift);
+    }
+    return TaggedUWord();
+  }
+
+  
+  
+  bool operator==(TaggedUWord other) const {
+    return (mValid && other.Valid()) ? (mValue == other.Value()) : false;
   }
 
   

@@ -8,6 +8,7 @@
 #define LulMainInt_h
 
 #include "LulPlatformMacros.h"
+#include "LulMain.h" 
 
 #include <vector>
 
@@ -19,6 +20,8 @@
 
 
 namespace lul {
+
+using std::vector;
 
 
 
@@ -60,11 +63,78 @@ enum DW_REG_NUMBER {
 
 
 
+enum PfxExprOp {
+  
+  PX_Start,   
+  PX_End,     
+  PX_SImm32,  
+  PX_DwReg,   
+  PX_Deref,   
+  PX_Add,     
+  PX_Sub,     
+  PX_And,     
+  PX_Or,      
+  PX_CmpGES,  
+  PX_Shl      
+};
+
+struct PfxInstr {
+  PfxInstr(PfxExprOp opcode, int32_t operand)
+    : mOpcode(opcode)
+    , mOperand(operand)
+  {}
+  explicit PfxInstr(PfxExprOp opcode)
+    : mOpcode(opcode)
+    , mOperand(0)
+  {}
+  bool operator==(const PfxInstr& other) {
+    return mOpcode == other.mOpcode && mOperand == other.mOperand;
+  }
+  PfxExprOp mOpcode;
+  int32_t   mOperand;
+};
+
+static_assert(sizeof(PfxInstr) <= 8, "PfxInstr size changed unexpectedly");
 
 
 
 
 
+
+TaggedUWord EvaluatePfxExpr(int32_t start,
+                            const UnwindRegs* aOldRegs,
+                            TaggedUWord aCFA, const StackImage* aStackImg,
+                            const vector<PfxInstr>& aPfxInstrs);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum LExprHow {
+  UNKNOWN=0, 
+  NODEREF,   
+  DEREF,     
+  PFXEXPR    
+};
+
+inline static const char* NameOf_LExprHow(LExprHow how) {
+  switch (how) {
+    case UNKNOWN: return "UNKNOWN";
+    case NODEREF: return "NODEREF";
+    case DEREF:   return "DEREF";
+    case PFXEXPR: return "PFXEXPR";
+    default:      return "LExpr-??";
+  }
+}
 
 
 struct LExpr {
@@ -76,11 +146,19 @@ struct LExpr {
   {}
 
   
-  LExpr(uint8_t how, int16_t reg, int32_t offset)
+  LExpr(LExprHow how, int16_t reg, int32_t offset)
     : mHow(how)
     , mReg(reg)
     , mOffset(offset)
-  {}
+  {
+    switch (how) {
+      case UNKNOWN: MOZ_ASSERT(reg == 0 && offset == 0); break;
+      case NODEREF: break;
+      case DEREF:   break;
+      case PFXEXPR: MOZ_ASSERT(reg == 0 && offset >= 0); break;
+      default:      MOZ_ASSERT(0, "LExpr::LExpr: invalid how");
+    }
+  }
 
   
   LExpr add_delta(long delta)
@@ -104,15 +182,25 @@ struct LExpr {
 
   
   
+  string ShowRule(const char* aNewReg) const;
+
   
+  
+  
+  
+  
+  
+  
+  TaggedUWord EvaluateExpr(const UnwindRegs* aOldRegs,
+                           TaggedUWord aCFA, const StackImage* aStackImg,
+                           const vector<PfxInstr>* aPfxInstrs) const;
 
-  enum { UNKNOWN=0, 
-         NODEREF,   
-         DEREF };   
-
-  uint8_t mHow;    
-  int16_t mReg;    
-  int32_t mOffset; 
+  
+  
+  
+  LExprHow mHow:8;
+  int16_t  mReg;    
+  int32_t  mOffset; 
 };
 
 static_assert(sizeof(LExpr) <= 8, "LExpr size changed unexpectedly");
@@ -165,7 +253,7 @@ static_assert(sizeof(LExpr) <= 8, "LExpr size changed unexpectedly");
 class RuleSet {
 public:
   RuleSet();
-  void   Print(void(*aLog)(const char*));
+  void   Print(void(*aLog)(const char*)) const;
 
   
   LExpr* ExprForRegno(DW_REG_NUMBER aRegno);
@@ -191,6 +279,25 @@ public:
 #   error "Unknown arch"
 #endif
 };
+
+
+
+static inline bool registerIsTracked(DW_REG_NUMBER reg) {
+  switch (reg) {
+#   if defined(LUL_ARCH_x64) || defined(LUL_ARCH_x86)
+    case DW_REG_INTEL_XBP: case DW_REG_INTEL_XSP: case DW_REG_INTEL_XIP:
+      return true;
+#   elif defined(LUL_ARCH_arm)
+    case DW_REG_ARM_R7:  case DW_REG_ARM_R11: case DW_REG_ARM_R12:
+    case DW_REG_ARM_R13: case DW_REG_ARM_R14: case DW_REG_ARM_R15:
+      return true;
+#   else
+#     error "Unknown arch"
+#   endif
+    default:
+      return false;
+  }
+}
 
 
 
@@ -233,7 +340,14 @@ public:
 
   
   
-  void AddRuleSet(RuleSet* rs);
+  void AddRuleSet(const RuleSet* rs);
+
+  
+  
+  uint32_t AddPfxInstr(PfxInstr pfxi);
+
+  
+  const vector<PfxInstr>* GetPfxInstrs() { return &mPfxInstrs; }
 
   
   
@@ -255,7 +369,20 @@ private:
   bool mUsable;
 
   
-  std::vector<RuleSet> mRuleSets;
+  vector<RuleSet> mRuleSets;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  vector<PfxInstr> mPfxInstrs;
 
   
   void (*mLog)(const char*);

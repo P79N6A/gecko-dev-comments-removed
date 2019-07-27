@@ -1187,9 +1187,8 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
     
     
     
-    
-    virtual void ExpressionsNotSupported(size_t offset,
-                                         const UniqueString* reg);
+    virtual void ExpressionCouldNotBeSummarised(size_t offset,
+                                                const UniqueString* reg);
 
   private:
     
@@ -1224,10 +1223,11 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
   
   DwarfCFIToModule(const unsigned int num_dw_regs,
                    Reporter *reporter,
+                   ByteReader* reader,
                    UniqueStringUniverse* usu,
                    Summariser* summ)
       : summ_(summ), usu_(usu), num_dw_regs_(num_dw_regs),
-        reporter_(reporter), return_address_(-1) {
+        reporter_(reporter), reader_(reader), return_address_(-1) {
   }
   virtual ~DwarfCFIToModule() {}
 
@@ -1264,12 +1264,23 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
   Reporter *reporter_;
 
   
+  ByteReader* reader_;
+
+  
   
   size_t entry_offset_;
 
   
   unsigned return_address_;
 };
+
+
+
+
+
+int32_t parseDwarfExpr(Summariser* summ, const ByteReader* reader,
+                       string expr, bool debug,
+                       bool pushCfaAtStart, bool derefAtEnd);
 
 } 
 

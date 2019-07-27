@@ -840,7 +840,7 @@ TEST_F(LulDwarfCFIInsn, DW_CFA_def_cfa_registerBadRule) {
 
   EXPECT_CALL(handler,
               ValExpressionRule(fde_start, kCFARegister,
-              "needle in a haystack"))
+                                "needle in a haystack"))
       .WillRepeatedly(Return(true));
   EXPECT_CALL(handler, End()).InSequence(s).WillOnce(Return(true));
 
@@ -896,7 +896,8 @@ TEST_F(LulDwarfCFIInsn, DW_CFA_def_cfa_offsetBadRule) {
       .FinishEntry();
 
   EXPECT_CALL(handler,
-      ValExpressionRule(fde_start, kCFARegister, "six ways to Sunday"))
+              ValExpressionRule(fde_start, kCFARegister,
+                                "six ways to Sunday"))
       .WillRepeatedly(Return(true));
   EXPECT_CALL(handler, End()).InSequence(s).WillOnce(Return(true));
 
@@ -2288,6 +2289,309 @@ TEST_F(LulDwarfCFIReporter, EmptyStateStack) {
 TEST_F(LulDwarfCFIReporter, ClearingCFARule) {
   reporter.ClearingCFARule(0x0123456789abcdefULL, CallFrameInfo::kFDE,
                            0xfedcba9876543210ULL);
+}
+class LulDwarfExpr : public Test { };
+
+class MockSummariser : public Summariser {
+public:
+  MockSummariser() : Summariser(nullptr, 0, nullptr) {}
+  MOCK_METHOD2(Entry, void(uintptr_t, uintptr_t));
+  MOCK_METHOD0(End, void());
+  MOCK_METHOD5(Rule, void(uintptr_t, int, LExprHow, int16_t, int64_t));
+  MOCK_METHOD1(AddPfxInstr, uint32_t(PfxInstr));
+};
+
+TEST_F(LulDwarfExpr, SimpleTransliteration) {
+  MockSummariser summ;
+  ByteReader reader(ENDIANNESS_LITTLE);
+
+  CFISection section(kLittleEndian, 8);
+  section
+     .D8(DW_OP_lit0)
+     .D8(DW_OP_lit31)
+     .D8(DW_OP_breg0 + 17).LEB128(-1234)
+     .D8(DW_OP_const4s).D32(0xFEDC9876)
+     .D8(DW_OP_deref)
+     .D8(DW_OP_and)
+     .D8(DW_OP_plus)
+     .D8(DW_OP_minus)
+     .D8(DW_OP_shl)
+     .D8(DW_OP_ge);
+  string expr;
+  bool ok = section.GetContents(&expr);
+  EXPECT_TRUE(ok);
+
+  {
+    InSequence s;
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Start, 0)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_SImm32, 0)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_SImm32, 31)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_DwReg, 17)));
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_SImm32, -1234)));
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Add)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_SImm32, 0xFEDC9876)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Deref)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_And)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Add)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Sub)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Shl)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_CmpGES)));
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_End)));
+  }
+
+  int32_t ix = parseDwarfExpr(&summ, &reader, expr, false, false, false);
+  EXPECT_TRUE(ix >= 0);
+}
+
+TEST_F(LulDwarfExpr, UnknownOpcode) {
+  MockSummariser summ;
+  ByteReader reader(ENDIANNESS_LITTLE);
+
+  CFISection section(kLittleEndian, 8);
+  section
+     .D8(DW_OP_lo_user - 1);
+  string expr;
+  bool ok = section.GetContents(&expr);
+  EXPECT_TRUE(ok);
+
+  {
+    InSequence s;
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Start, 0)));
+  }
+
+  int32_t ix = parseDwarfExpr(&summ, &reader, expr, false, false, false);
+  EXPECT_TRUE(ix == -1);
+}
+
+TEST_F(LulDwarfExpr, ExpressionOverrun) {
+  MockSummariser summ;
+  ByteReader reader(ENDIANNESS_LITTLE);
+
+  CFISection section(kLittleEndian, 8);
+  section
+     .D8(DW_OP_const4s).D8(0x12).D8(0x34).D8(0x56);
+  string expr;
+  bool ok = section.GetContents(&expr);
+  EXPECT_TRUE(ok);
+
+  {
+    InSequence s;
+    
+    EXPECT_CALL(summ, AddPfxInstr(PfxInstr(PX_Start, 0)));
+    
+    
+    
+    EXPECT_CALL(summ, AddPfxInstr(_));
+  }
+
+  int32_t ix = parseDwarfExpr(&summ, &reader, expr, false, false, false);
+  EXPECT_TRUE(ix == -1);
+}
+
+
+
+#if defined(LUL_ARCH_arm)
+# define TESTED_REG_STRUCT_NAME  r11
+# define TESTED_REG_DWARF_NAME   DW_REG_ARM_R11
+#elif defined(LUL_ARCH_x64) || defined(LUL_ARCH_x86)
+# define TESTED_REG_STRUCT_NAME  xbp
+# define TESTED_REG_DWARF_NAME   DW_REG_INTEL_XBP
+#else
+# error "Unknown plat"
+#endif
+
+struct EvaluatePfxExprFixture {
+  
+  
+  
+  
+  EvaluatePfxExprFixture() {
+    
+    si.mStartAvma = 0x12345678;
+    si.mLen = 0;
+#   define XX(_byte) do { si.mContents[si.mLen++] = (_byte); } while (0)
+    XX(0x55); XX(0x55); XX(0x55); XX(0x55);
+    if (sizeof(void*) == 8) {
+      
+      XX(0xEF); XX(0xBE); XX(0xAD); XX(0xDE); XX(0); XX(0); XX(0); XX(0);
+    } else {
+      
+      XX(0xEF); XX(0xBE); XX(0xAD); XX(0xDE);
+    }
+    XX(0xAA); XX(0xAA); XX(0xAA); XX(0xAA);
+#   undef XX
+    
+    initialCFA = TaggedUWord(0x5432ABCD);
+    
+    memset(&regs, 0, sizeof(regs));
+    regs.TESTED_REG_STRUCT_NAME = TaggedUWord(0x14141356);
+  }
+
+  StackImage  si;
+  TaggedUWord initialCFA;
+  UnwindRegs  regs;
+};
+
+class LulDwarfEvaluatePfxExpr : public EvaluatePfxExprFixture, public Test { };
+
+TEST_F(LulDwarfEvaluatePfxExpr, NormalEvaluation) {
+  vector<PfxInstr> instrs;
+  
+  instrs.push_back(PfxInstr(PX_End));
+  instrs.push_back(PfxInstr(PX_End));
+
+  
+  
+  instrs.push_back(PfxInstr(PX_Start, 1));
+  
+  instrs.push_back(PfxInstr(PX_SImm32, 0x31415927));
+  
+  instrs.push_back(PfxInstr(PX_DwReg, TESTED_REG_DWARF_NAME));
+  
+  instrs.push_back(PfxInstr(PX_SImm32, 42));
+  
+  instrs.push_back(PfxInstr(PX_Sub));
+  
+  instrs.push_back(PfxInstr(PX_Add));
+  
+  instrs.push_back(PfxInstr(PX_SImm32, si.mStartAvma + 4));
+  
+  instrs.push_back(PfxInstr(PX_Deref));
+  
+  instrs.push_back(PfxInstr(PX_SImm32, 0xFE01DC23));
+  
+  instrs.push_back(PfxInstr(PX_And));
+  
+  instrs.push_back(PfxInstr(PX_SImm32, 7));
+  
+  instrs.push_back(PfxInstr(PX_Shl));
+  
+  instrs.push_back(PfxInstr(PX_SImm32, 0x7fffffff));
+  
+  instrs.push_back(PfxInstr(PX_And));
+  
+  instrs.push_back(PfxInstr(PX_Add));
+  
+  instrs.push_back(PfxInstr(PX_Sub));
+  
+
+  instrs.push_back(PfxInstr(PX_End));
+
+  TaggedUWord res = EvaluatePfxExpr(2,
+                                    &regs, initialCFA, &si, instrs);
+  EXPECT_TRUE(res.Valid());
+  EXPECT_TRUE(res.Value() == 0xe0f2dfa);
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, EmptySequence) {
+  vector<PfxInstr> instrs;
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_FALSE(res.Valid());
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, BogusStartPoint) {
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_SImm32, 42));
+  instrs.push_back(PfxInstr(PX_SImm32, 24));
+  instrs.push_back(PfxInstr(PX_SImm32, 4224));
+  TaggedUWord res = EvaluatePfxExpr(1, &regs, initialCFA, &si, instrs);
+  EXPECT_FALSE(res.Valid());
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, MissingEndMarker) {
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_Start, 0));
+  instrs.push_back(PfxInstr(PX_SImm32, 24));
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_FALSE(res.Valid());
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, StackUnderflow) {
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_Start, 0));
+  instrs.push_back(PfxInstr(PX_End));
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_FALSE(res.Valid());
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, StackNoUnderflow) {
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_Start, 1));
+  instrs.push_back(PfxInstr(PX_End));
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_TRUE(res.Valid());
+  EXPECT_TRUE(res == initialCFA);
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, StackOverflow) {
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_Start, 0));
+  for (int i = 0; i < 10+1; i++) {
+     instrs.push_back(PfxInstr(PX_SImm32, i + 100));
+  }
+  instrs.push_back(PfxInstr(PX_End));
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_FALSE(res.Valid());
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, StackNoOverflow) {
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_Start, 0));
+  for (int i = 0; i < 10+0; i++) {
+     instrs.push_back(PfxInstr(PX_SImm32, i + 100));
+  }
+  instrs.push_back(PfxInstr(PX_End));
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_TRUE(res.Valid());
+  EXPECT_TRUE(res == TaggedUWord(109));
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, OutOfRangeShl) {
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_Start, 0));
+  instrs.push_back(PfxInstr(PX_SImm32, 1234));
+  instrs.push_back(PfxInstr(PX_SImm32, 5678));
+  instrs.push_back(PfxInstr(PX_Shl));
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_TRUE(!res.Valid());
+}
+
+TEST_F(LulDwarfEvaluatePfxExpr, TestCmpGES) {
+  const int32_t argsL[6] = { 0, 0, 1, -2, -1, -2 };
+  const int32_t argsR[6] = { 0, 1, 0, -2, -2, -1 };
+  
+  vector<PfxInstr> instrs;
+  instrs.push_back(PfxInstr(PX_Start, 0));
+  
+  instrs.push_back(PfxInstr(PX_SImm32, 0));
+  for (unsigned int i = 0; i < sizeof(argsL)/sizeof(argsL[0]); i++) {
+     
+     instrs.push_back(PfxInstr(PX_SImm32, 1));
+     instrs.push_back(PfxInstr(PX_Shl));
+     
+     instrs.push_back(PfxInstr(PX_SImm32, argsL[i]));
+     instrs.push_back(PfxInstr(PX_SImm32, argsR[i]));
+     instrs.push_back(PfxInstr(PX_CmpGES));
+     
+     instrs.push_back(PfxInstr(PX_Or));
+  }
+  instrs.push_back(PfxInstr(PX_End));
+  TaggedUWord res = EvaluatePfxExpr(0, &regs, initialCFA, &si, instrs);
+  EXPECT_TRUE(res.Valid());
+  EXPECT_TRUE(res == TaggedUWord(0x2E));
 }
 
 } 
