@@ -130,7 +130,7 @@ TraceLoggerThread::init()
     }
 
     enabled = 1;
-    logTimestamp(TraceLogger_Enable);
+    graph.enable();
 
     return true;
 }
@@ -157,8 +157,12 @@ TraceLoggerThread::enable()
     if (failed)
         return false;
 
+    
+    
+    events.clear();
+
     enabled = 1;
-    logTimestamp(TraceLogger_Enable);
+    graph.enable();
 
     return true;
 }
@@ -229,7 +233,12 @@ TraceLoggerThread::disable()
         return true;
     }
 
-    logTimestamp(TraceLogger_Disable);
+    graph.log(events);
+    events.clear();
+
+    uint64_t time = rdtsc() - traceLoggers.startupTime;
+    graph.disable(time);
+
     enabled = 0;
 
     return true;
