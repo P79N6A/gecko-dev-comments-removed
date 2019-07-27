@@ -521,7 +521,11 @@ ElementAnimation::GetComputedTimingAt(const Nullable<TimeDuration>& aLocalTime,
 
   
   TimeDuration activeTime;
-  if (localTime >= aTiming.mDelay + result.mActiveDuration) {
+  
+  
+  
+  if (result.mActiveDuration != TimeDuration::Forever() &&
+      localTime >= aTiming.mDelay + result.mActiveDuration) {
     result.mPhase = ComputedTiming::AnimationPhase_After;
     if (!aTiming.FillsForwards()) {
       
