@@ -509,7 +509,7 @@ let gEditItemOverlay = {
     
     let newTitle = this._namePicker.value;
     if (!newTitle &&
-        PlacesUtils.bookmarks.getFolderIdForItem(itemId) == PlacesUtils.tagsFolderId) {
+        PlacesUtils.bookmarks.getFolderIdForItem(this._paneInfo.itemId) == PlacesUtils.tagsFolderId) {
       
       this._initNamePicker();
     }
