@@ -1685,6 +1685,13 @@ public:
 
 
   void SortByContentOrder(nsDisplayListBuilder* aBuilder, nsIContent* aCommonAncestor);
+  
+
+
+
+
+
+  void SortByCSSOrder(nsDisplayListBuilder* aBuilder);
 
   
 
