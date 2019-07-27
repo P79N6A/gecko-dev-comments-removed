@@ -9,6 +9,8 @@
 
 #include "nsAutoPtr.h"
 
+class JSContext;
+
 namespace mozilla {
 namespace ipc {
 
@@ -26,7 +28,9 @@ public:
 
 
 
-  virtual void ReceiveSocketData(int aIndex,
+
+  virtual void ReceiveSocketData(JSContext* aCx,
+                                 int aIndex,
                                  nsAutoPtr<UnixSocketBuffer>& aBuffer) = 0;
 
   
