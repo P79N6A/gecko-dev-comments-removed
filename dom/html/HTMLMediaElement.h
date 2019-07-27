@@ -620,6 +620,11 @@ public:
     return FinishDecoderSetup(aDecoder, aStream, nullptr, nullptr);
   }
 
+  
+  
+  
+  bool IsBeingDestroyed();
+
 protected:
   virtual ~HTMLMediaElement();
 
@@ -962,6 +967,8 @@ protected:
     GetPaused(&isPaused);
     return isPaused;
   }
+
+  void ReportMSETelemetry();
 
   
   bool CheckAudioChannelPermissions(const nsAString& aType);
