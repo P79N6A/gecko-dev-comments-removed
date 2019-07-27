@@ -276,8 +276,7 @@ nsHTMLEditRules::Init(nsPlaintextEditor *aEditor)
   if (node->IsElement()) {
     ErrorResult rv;
     mDocChangeRange->SelectNode(*node, rv);
-    res = AdjustSpecialBreaks(node);
-    NS_ENSURE_SUCCESS(res, res);
+    AdjustSpecialBreaks();
   }
 
   
@@ -461,8 +460,7 @@ nsHTMLEditRules::AfterEditInner(EditAction action,
     }  
     
     
-    res = AdjustSpecialBreaks();
-    NS_ENSURE_SUCCESS(res, res);
+    AdjustSpecialBreaks();
     
     
     if ( (action != EditAction::insertText &&
@@ -7295,37 +7293,26 @@ nsHTMLEditRules::ClearCachedStyles()
 }
 
 
-nsresult 
-nsHTMLEditRules::AdjustSpecialBreaks(bool aSafeToAskFrames)
+void
+nsHTMLEditRules::AdjustSpecialBreaks()
 {
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  nsCOMPtr<nsISupports> isupports;
-  int32_t nodeCount,j;
-  
-  
-  NS_ENSURE_STATE(mHTMLEditor);
-  nsEmptyEditableFunctor functor(mHTMLEditor);
-  nsDOMIterator iter(*mDocChangeRange);
-  iter.AppendList(functor, arrayOfNodes);
+  NS_ENSURE_TRUE(mHTMLEditor, );
 
   
-  nodeCount = arrayOfNodes.Count();
-  for (j = 0; j < nodeCount; j++)
-  {
-    
-    
-    
-    
-    uint32_t len;
-    nsCOMPtr<nsIDOMNode> theNode = arrayOfNodes[0];
-    arrayOfNodes.RemoveObjectAt(0);
-    nsresult res = nsEditor::GetLengthOfDOMNode(theNode, len);
-    NS_ENSURE_SUCCESS(res, res);
-    res = CreateMozBR(theNode, (int32_t)len);
-    NS_ENSURE_SUCCESS(res, res);
-  }
+  nsTArray<nsCOMPtr<nsINode>> nodeArray;
+  nsEmptyEditableFunctor functor(mHTMLEditor);
+  nsDOMIterator iter(*mDocChangeRange);
+  iter.AppendList(functor, nodeArray);
+
   
-  return NS_OK;
+  for (auto& node : nodeArray) {
+    
+    
+    
+    
+    nsresult res = CreateMozBR(node->AsDOMNode(), (int32_t)node->Length());
+    NS_ENSURE_SUCCESS(res, );
+  }
 }
 
 nsresult 
