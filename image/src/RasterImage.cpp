@@ -271,7 +271,7 @@ public:
 
   
   WeakPtr<RasterImage> weakImage;
-  nsAutoPtr<imgFrame> dstFrame;
+  nsRefPtr<imgFrame> dstFrame;
   RefPtr<SourceSurface> srcSurface;
   RefPtr<SourceSurface> dstSurface;
 
@@ -390,7 +390,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   ImageResource(aURI), 
   mSize(0,0),
   mFrameDecodeFlags(DECODE_FLAGS_DEFAULT),
-  mMultipartDecodedFrame(nullptr),
   mAnim(nullptr),
   mLockCount(0),
   mDecodeCount(0),
@@ -459,14 +458,13 @@ RasterImage::~RasterImage()
     
     
     if (GetNumFrames() > 0) {
-      imgFrame *curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
+      nsRefPtr<imgFrame> curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
       curframe->UnlockImageData();
     }
   }
 
   delete mAnim;
   mAnim = nullptr;
-  delete mMultipartDecodedFrame;
 
   
   num_containers--;
@@ -660,7 +658,7 @@ RasterImage::GetType()
   return imgIContainer::TYPE_RASTER;
 }
 
-imgFrame*
+already_AddRefed<imgFrame>
 RasterImage::GetImgFrameNoDecode(uint32_t framenum)
 {
   if (!mAnim) {
@@ -670,7 +668,7 @@ RasterImage::GetImgFrameNoDecode(uint32_t framenum)
   return mFrameBlender.GetFrame(framenum);
 }
 
-imgFrame*
+already_AddRefed<imgFrame>
 RasterImage::GetImgFrame(uint32_t framenum)
 {
   nsresult rv = WantDecodedFrames();
@@ -678,10 +676,10 @@ RasterImage::GetImgFrame(uint32_t framenum)
   return GetImgFrameNoDecode(framenum);
 }
 
-imgFrame*
+already_AddRefed<imgFrame>
 RasterImage::GetDrawableImgFrame(uint32_t framenum)
 {
-  imgFrame* frame = nullptr;
+  nsRefPtr<imgFrame> frame;
 
   if (mMultipart && framenum == GetCurrentImgFrameIndex()) {
     
@@ -699,7 +697,7 @@ RasterImage::GetDrawableImgFrame(uint32_t framenum)
   if (frame && frame->GetCompositingFailed())
     return nullptr;
 
-  return frame;
+  return frame.forget();
 }
 
 uint32_t
@@ -711,7 +709,7 @@ RasterImage::GetCurrentImgFrameIndex() const
   return 0;
 }
 
-imgFrame*
+already_AddRefed<imgFrame>
 RasterImage::GetCurrentImgFrame()
 {
   return GetImgFrame(GetCurrentImgFrameIndex());
@@ -731,8 +729,9 @@ RasterImage::FrameIsOpaque(uint32_t aWhichFrame)
     return false;
 
   
-  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrameNoDecode(0)
-                                               : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
+  nsRefPtr<imgFrame> frame = aWhichFrame == FRAME_FIRST
+                           ? GetImgFrameNoDecode(0)
+                           : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
 
   
   if (!frame)
@@ -755,8 +754,9 @@ RasterImage::FrameRect(uint32_t aWhichFrame)
   }
 
   
-  imgFrame* frame = aWhichFrame == FRAME_FIRST ? GetImgFrameNoDecode(0)
-                                               : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
+  nsRefPtr<imgFrame> frame = aWhichFrame == FRAME_FIRST
+                           ? GetImgFrameNoDecode(0)
+                           : GetImgFrameNoDecode(GetCurrentImgFrameIndex());
 
   
   if (frame) {
@@ -855,7 +855,7 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
   
   uint32_t frameIndex = (aWhichFrame == FRAME_FIRST) ?
                         0 : GetCurrentImgFrameIndex();
-  imgFrame *frame = GetDrawableImgFrame(frameIndex);
+  nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
     return nullptr;
   }
@@ -929,7 +929,7 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
   
   uint32_t frameIndex = (aWhichFrame == FRAME_FIRST) ?
                           0 : GetCurrentImgFrameIndex();
-  imgFrame *frame = GetDrawableImgFrame(frameIndex);
+  nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
     return nullptr;
   }
@@ -1149,7 +1149,7 @@ RasterImage::InternalAddFrameHelper(uint32_t framenum, imgFrame *aFrame,
   if (framenum > GetNumFrames())
     return NS_ERROR_INVALID_ARG;
 
-  nsAutoPtr<imgFrame> frame(aFrame);
+  nsRefPtr<imgFrame> frame(aFrame);
 
   
   
@@ -1160,10 +1160,9 @@ RasterImage::InternalAddFrameHelper(uint32_t framenum, imgFrame *aFrame,
 
   frame->GetImageData(imageData, imageLength);
 
-  *aRetFrame = frame;
+  mFrameBlender.InsertFrame(framenum, frame);
 
-  mFrameBlender.InsertFrame(framenum, frame.forget());
-
+  frame.forget(aRetFrame);
   return NS_OK;
 }
 
@@ -1188,7 +1187,7 @@ RasterImage::InternalAddFrame(uint32_t framenum,
   if (framenum > GetNumFrames())
     return NS_ERROR_INVALID_ARG;
 
-  nsAutoPtr<imgFrame> frame(new imgFrame());
+  nsRefPtr<imgFrame> frame(new imgFrame());
 
   nsresult rv = frame->Init(aX, aY, aWidth, aHeight, aFormat, aPaletteDepth);
   if (!(mSize.width > 0 && mSize.height > 0))
@@ -1200,12 +1199,12 @@ RasterImage::InternalAddFrame(uint32_t framenum,
   
   
   if (GetNumFrames() > 0) {
-    imgFrame *prevframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
+    nsRefPtr<imgFrame> prevframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
     prevframe->UnlockImageData();
   }
 
   if (GetNumFrames() == 0) {
-    return InternalAddFrameHelper(framenum, frame.forget(), imageData, imageLength,
+    return InternalAddFrameHelper(framenum, frame, imageData, imageLength,
                                   paletteData, paletteLength, aRetFrame);
   }
 
@@ -1216,10 +1215,11 @@ RasterImage::InternalAddFrame(uint32_t framenum,
     
     
     
-    int32_t frameDisposalMethod = mFrameBlender.RawGetFrame(0)->GetFrameDisposalMethod();
+    nsRefPtr<imgFrame> firstFrame = mFrameBlender.RawGetFrame(0);
+    int32_t frameDisposalMethod = firstFrame->GetFrameDisposalMethod();
     if (frameDisposalMethod == FrameBlender::kDisposeClear ||
         frameDisposalMethod == FrameBlender::kDisposeRestorePrevious)
-      mAnim->SetFirstFrameRefreshArea(mFrameBlender.RawGetFrame(0)->GetRect());
+      mAnim->SetFirstFrameRefreshArea(firstFrame->GetRect());
   }
 
   
@@ -1227,7 +1227,7 @@ RasterImage::InternalAddFrame(uint32_t framenum,
   
   mAnim->UnionFirstFrameRefreshArea(frame->GetRect());
 
-  rv = InternalAddFrameHelper(framenum, frame.forget(), imageData, imageLength,
+  rv = InternalAddFrameHelper(framenum, frame, imageData, imageLength,
                               paletteData, paletteLength, aRetFrame);
 
   return rv;
@@ -1337,7 +1337,7 @@ RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
                             paletteData, paletteLength, aRetFrame);
   }
 
-  imgFrame *frame = mFrameBlender.RawGetFrame(aFrameNum);
+  nsRefPtr<imgFrame> frame = mFrameBlender.RawGetFrame(aFrameNum);
   if (!frame) {
     return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat,
                             aPaletteDepth, imageData, imageLength,
@@ -1354,13 +1354,13 @@ RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
       frame->GetPaletteData(paletteData, paletteLength);
     }
 
-    *aRetFrame = frame;
-
     
     if (*imageData && paletteData && *paletteData) {
+      frame.forget(aRetFrame);
       return NS_OK;
     }
     if (*imageData && !paletteData) {
+      frame.forget(aRetFrame);
       return NS_OK;
     }
   }
@@ -1372,12 +1372,11 @@ RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
   frame->UnlockImageData();
 
   mFrameBlender.RemoveFrame(aFrameNum);
-  nsAutoPtr<imgFrame> newFrame(new imgFrame());
+  nsRefPtr<imgFrame> newFrame(new imgFrame());
   nsresult rv = newFrame->Init(aX, aY, aWidth, aHeight, aFormat, aPaletteDepth);
   NS_ENSURE_SUCCESS(rv, rv);
-  return InternalAddFrameHelper(aFrameNum, newFrame.forget(), imageData,
-                                imageLength, paletteData, paletteLength,
-                                aRetFrame);
+  return InternalAddFrameHelper(aFrameNum, newFrame, imageData, imageLength,
+                                paletteData, paletteLength, aRetFrame);
 }
 
 nsresult
@@ -1404,7 +1403,7 @@ RasterImage::SetFrameAsNonPremult(uint32_t aFrameNum, bool aIsNonPremult)
   if (aFrameNum >= GetNumFrames())
     return NS_ERROR_INVALID_ARG;
 
-  imgFrame* frame = mFrameBlender.RawGetFrame(aFrameNum);
+  nsRefPtr<imgFrame> frame = mFrameBlender.RawGetFrame(aFrameNum);
   NS_ABORT_IF_FALSE(frame, "Calling SetFrameAsNonPremult on frame that doesn't exist!");
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
@@ -1446,10 +1445,11 @@ RasterImage::DecodingComplete()
     
     
     
+    nsRefPtr<imgFrame> firstFrame = mFrameBlender.RawGetFrame(0);
     if (DiscardingEnabled() && CanForciblyDiscard()) {
-      mFrameBlender.RawGetFrame(0)->SetDiscardable();
+      firstFrame->SetDiscardable();
     }
-    rv = mFrameBlender.RawGetFrame(0)->Optimize();
+    rv = firstFrame->Optimize();
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1464,7 +1464,6 @@ RasterImage::DecodingComplete()
       
       
       
-      delete mMultipartDecodedFrame;
       mMultipartDecodedFrame = nullptr;
     }
   }
@@ -1497,7 +1496,7 @@ RasterImage::StartAnimation()
 
   EnsureAnimExists();
 
-  imgFrame* currentFrame = GetCurrentImgFrame();
+  nsRefPtr<imgFrame> currentFrame = GetCurrentImgFrame();
   
   if (currentFrame && mFrameBlender.GetTimeoutForFrame(GetCurrentImgFrameIndex()) < 0) {
     mAnimationFinished = true;
@@ -1964,7 +1963,6 @@ RasterImage::Discard(bool force)
   mScaleResult.frame = nullptr;
 
   
-  delete mMultipartDecodedFrame;
   mMultipartDecodedFrame = nullptr;
 
   
@@ -2089,7 +2087,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   
   
   if (GetNumFrames() > 0) {
-    imgFrame *curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
+    nsRefPtr<imgFrame> curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
     curframe->LockImageData();
   }
 
@@ -2171,7 +2169,7 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   
   
   if (GetNumFrames() > 0) {
-    imgFrame *curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
+    nsRefPtr<imgFrame> curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
     curframe->UnlockImageData();
   }
 
@@ -2563,16 +2561,15 @@ RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
   if (status == SCALE_DONE) {
     MOZ_ASSERT(request->done);
 
-    imgFrame *scaledFrame = request->dstFrame.forget();
-    scaledFrame->ImageUpdated(scaledFrame->GetRect());
+    mScaleResult.status = SCALE_DONE;
+    mScaleResult.frame = request->dstFrame.forget();
+    mScaleResult.scaledSize = request->dstSize;
+
+    mScaleResult.frame->ImageUpdated(mScaleResult.frame->GetRect());
 
     if (mStatusTracker) {
       mStatusTracker->FrameChanged(&request->srcRect);
     }
-
-    mScaleResult.status = SCALE_DONE;
-    mScaleResult.frame = scaledFrame;
-    mScaleResult.scaledSize = request->dstSize;
   } else {
     mScaleResult.status = SCALE_INVALID;
     mScaleResult.frame = nullptr;
@@ -2627,7 +2624,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                           GraphicsFilter aFilter,
                                           uint32_t aFlags)
 {
-  imgFrame *frame = aFrame;
+  nsRefPtr<imgFrame> frame = aFrame;
   nsIntRect framerect = frame->GetRect();
 
   gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
@@ -2764,7 +2761,7 @@ RasterImage::Draw(gfxContext* aContext,
 
   uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
                                                    : GetCurrentImgFrameIndex();
-  imgFrame* frame = GetDrawableImgFrame(frameIndex);
+  nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
     return NS_OK; 
   }
@@ -3695,7 +3692,7 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
     uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
                                                      : GetCurrentImgFrameIndex();
 
-    imgFrame* frame = GetDrawableImgFrame(frameIndex);
+    nsRefPtr<imgFrame> frame = GetDrawableImgFrame(frameIndex);
     if (frame) {
       RequestScale(frame, destSize);
     }

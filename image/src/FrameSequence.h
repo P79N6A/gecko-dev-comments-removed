@@ -9,6 +9,7 @@
 
 #include "nsTArray.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Move.h"
 #include "gfxTypes.h"
 #include "imgFrame.h"
 
@@ -32,19 +33,19 @@ public:
   {}
 
   FrameDataPair()
-    : mFrame(nullptr)
+    : mFrameData(nullptr)
+  {}
+
+  FrameDataPair(const FrameDataPair& aOther)
+    : mFrame(aOther.mFrame)
     , mFrameData(nullptr)
   {}
 
-  FrameDataPair(FrameDataPair& other)
+  FrameDataPair(FrameDataPair&& aOther)
+    : mFrame(Move(aOther.mFrame))
+    , mFrameData(aOther.mFrameData)
   {
-    mFrame = other.mFrame;
-    mFrameData = other.mFrameData;
-
-    
-    
-    
-    other.mFrameData = nullptr;
+    aOther.mFrameData = nullptr;
   }
 
   ~FrameDataPair()
@@ -52,6 +53,24 @@ public:
     if (mFrameData) {
       mFrame->UnlockImageData();
     }
+  }
+
+  FrameDataPair& operator=(const FrameDataPair& aOther)
+  {
+    if (&aOther != this) {
+      mFrame = aOther.mFrame;
+      mFrameData = nullptr;
+    }
+    return *this;
+  }
+
+  FrameDataPair& operator=(FrameDataPair&& aOther)
+  {
+    MOZ_ASSERT(&aOther != this, "Moving to self");
+    mFrame = Move(aOther.mFrame);
+    mFrameData = aOther.mFrameData;
+    aOther.mFrameData = nullptr;
+    return *this;
   }
 
   
@@ -71,15 +90,14 @@ public:
 
   
   
-  imgFrame* Forget()
+  already_AddRefed<imgFrame> Forget()
   {
     if (mFrameData) {
       mFrame->UnlockImageData();
     }
 
-    imgFrame* frame = mFrame.forget();
     mFrameData = nullptr;
-    return frame;
+    return mFrame.forget();
   }
 
   bool HasFrameData() const
@@ -95,9 +113,10 @@ public:
     return mFrameData;
   }
 
-  imgFrame* GetFrame() const
+  already_AddRefed<imgFrame> GetFrame() const
   {
-    return mFrame;
+    nsRefPtr<imgFrame> frame = mFrame;
+    return frame.forget();
   }
 
   
@@ -112,14 +131,9 @@ public:
     mFrameData = nullptr;
   }
 
-  operator imgFrame*() const
-  {
-    return GetFrame();
-  }
-
   imgFrame* operator->() const
   {
-    return GetFrame();
+    return mFrame.get();
   }
 
   bool operator==(imgFrame* other) const
@@ -127,8 +141,13 @@ public:
     return mFrame == other;
   }
 
+  operator bool() const
+  {
+    return mFrame != nullptr;
+  }
+
 private:
-  nsAutoPtr<imgFrame> mFrame;
+  nsRefPtr<imgFrame> mFrame;
   uint8_t* mFrameData;
 };
 
@@ -163,7 +182,7 @@ public:
 
 
 
-  imgFrame* SwapFrame(uint32_t framenum, imgFrame* aFrame);
+  already_AddRefed<imgFrame> SwapFrame(uint32_t framenum, imgFrame* aFrame);
 
   
 

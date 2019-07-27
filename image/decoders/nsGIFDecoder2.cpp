@@ -174,22 +174,24 @@ void nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
     NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
                  mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
                  format, aDepth);
-  }
-
-  
-  
-  else if (!GetCurrentFrame()->GetRect().IsEqualEdges(nsIntRect(mGIFStruct.x_offset,
-                                                                mGIFStruct.y_offset,
-                                                                mGIFStruct.width,
-                                                                mGIFStruct.height))) {
-    
-    NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
-                 mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
-                 format);
   } else {
+    nsRefPtr<imgFrame> currentFrame = GetCurrentFrame();
+
     
-    if (format == gfx::SurfaceFormat::B8G8R8X8) {
-      GetCurrentFrame()->SetHasNoAlpha();
+    
+    if (!currentFrame->GetRect().IsEqualEdges(nsIntRect(mGIFStruct.x_offset,
+                                                        mGIFStruct.y_offset,
+                                                        mGIFStruct.width,
+                                                        mGIFStruct.height))) {
+      
+      NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
+                   mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
+                   format);
+    } else {
+      
+      if (format == gfx::SurfaceFormat::B8G8R8X8) {
+        currentFrame->SetHasNoAlpha();
+      }
     }
   }
 

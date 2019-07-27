@@ -44,16 +44,16 @@ public:
 
 
 
-  imgFrame* GetFrame(uint32_t aIndex) const;
+  already_AddRefed<imgFrame> GetFrame(uint32_t aIndex) const;
 
   
 
 
-  imgFrame* RawGetFrame(uint32_t aIndex) const;
+  already_AddRefed<imgFrame> RawGetFrame(uint32_t aIndex) const;
 
   void InsertFrame(uint32_t framenum, imgFrame* aFrame);
   void RemoveFrame(uint32_t framenum);
-  imgFrame* SwapFrame(uint32_t framenum, imgFrame* aFrame);
+  already_AddRefed<imgFrame> SwapFrame(uint32_t framenum, imgFrame* aFrame);
   void ClearFrames();
 
   

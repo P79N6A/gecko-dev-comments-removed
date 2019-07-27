@@ -85,13 +85,12 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
   int32_t timeout = 0;
 
   RefreshResult ret;
+  nsRefPtr<imgFrame> nextFrame = mFrameBlender.RawGetFrame(nextFrameIndex);
 
   
   
   
-  bool canDisplay = mDoneDecoding ||
-                    (mFrameBlender.RawGetFrame(nextFrameIndex) &&
-                     mFrameBlender.RawGetFrame(nextFrameIndex)->ImageComplete());
+  bool canDisplay = mDoneDecoding || (nextFrame && nextFrame->ImageComplete());
 
   if (!canDisplay) {
     
@@ -138,10 +137,14 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
     ret.dirtyRect = mFirstFrameRefreshArea;
   } else {
     
+    if (nextFrameIndex != currentFrameIndex + 1) {
+      nextFrame = mFrameBlender.RawGetFrame(nextFrameIndex);
+    }
+
     if (!mFrameBlender.DoBlend(&ret.dirtyRect, currentFrameIndex, nextFrameIndex)) {
       
       NS_WARNING("FrameAnimator::AdvanceFrame(): Compositing of frame failed");
-      mFrameBlender.RawGetFrame(nextFrameIndex)->SetCompositingFailed(true);
+      nextFrame->SetCompositingFailed(true);
       mCurrentAnimationFrameTime = GetCurrentImgFrameEndTime();
       mCurrentAnimationFrameIndex = nextFrameIndex;
 
@@ -149,7 +152,7 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
       return ret;
     }
 
-    mFrameBlender.RawGetFrame(nextFrameIndex)->SetCompositingFailed(false);
+    nextFrame->SetCompositingFailed(false);
   }
 
   mCurrentAnimationFrameTime = GetCurrentImgFrameEndTime();

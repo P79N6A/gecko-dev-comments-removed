@@ -35,27 +35,27 @@ FrameBlender::GetFrameSequence()
   return seq.forget();
 }
 
-imgFrame*
+already_AddRefed<imgFrame>
 FrameBlender::GetFrame(uint32_t framenum) const
 {
   if (!mAnim) {
     NS_ASSERTION(framenum == 0, "Don't ask for a frame > 0 if we're not animated!");
-    return mFrames->GetFrame(0);
+    return mFrames->GetFrame(0).GetFrame();
   }
-  if (mAnim->lastCompositedFrameIndex == int32_t(framenum))
-    return mAnim->compositingFrame;
-  return mFrames->GetFrame(framenum);
+  if (mAnim->lastCompositedFrameIndex == int32_t(framenum)) {
+    return mAnim->compositingFrame.GetFrame();
+  }
+  return mFrames->GetFrame(framenum).GetFrame();
 }
 
-imgFrame*
+already_AddRefed<imgFrame>
 FrameBlender::RawGetFrame(uint32_t framenum) const
 {
   if (!mAnim) {
     NS_ASSERTION(framenum == 0, "Don't ask for a frame > 0 if we're not animated!");
-    return mFrames->GetFrame(0);
+    return mFrames->GetFrame(0).GetFrame();
   }
-
-  return mFrames->GetFrame(framenum);
+  return mFrames->GetFrame(framenum).GetFrame();
 }
 
 uint32_t
@@ -67,7 +67,8 @@ FrameBlender::GetNumFrames() const
 int32_t
 FrameBlender::GetTimeoutForFrame(uint32_t framenum) const
 {
-  const int32_t timeout = RawGetFrame(framenum)->GetRawTimeout();
+  nsRefPtr<imgFrame> frame = RawGetFrame(framenum);
+  const int32_t timeout = frame->GetRawTimeout();
   
   
   
@@ -123,23 +124,23 @@ FrameBlender::InsertFrame(uint32_t framenum, imgFrame* aFrame)
   }
 }
 
-imgFrame*
+already_AddRefed<imgFrame>
 FrameBlender::SwapFrame(uint32_t framenum, imgFrame* aFrame)
 {
   NS_ABORT_IF_FALSE(framenum < GetNumFrames(), "Swapping invalid frame!");
 
-  imgFrame* ret;
+  nsRefPtr<imgFrame> ret;
 
   
   if (mAnim && mAnim->lastCompositedFrameIndex == int32_t(framenum)) {
     ret = mAnim->compositingFrame.Forget();
     mAnim->lastCompositedFrameIndex = -1;
-    nsAutoPtr<imgFrame> toDelete(mFrames->SwapFrame(framenum, aFrame));
+    nsRefPtr<imgFrame> toDelete(mFrames->SwapFrame(framenum, aFrame));
   } else {
     ret = mFrames->SwapFrame(framenum, aFrame);
   }
 
-  return ret;
+  return ret.forget();
 }
 
 void
@@ -307,18 +308,18 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
           
           
           ClearFrame(mAnim->compositingFrame.GetFrameData(),
-                     mAnim->compositingFrame.GetFrame()->GetRect());
+                     mAnim->compositingFrame->GetRect());
         } else {
           
           ClearFrame(mAnim->compositingFrame.GetFrameData(),
-                     mAnim->compositingFrame.GetFrame()->GetRect(),
+                     mAnim->compositingFrame->GetRect(),
                      prevFrameRect);
         }
         break;
 
       case FrameBlender::kDisposeClearAll:
         ClearFrame(mAnim->compositingFrame.GetFrameData(),
-                   mAnim->compositingFrame.GetFrame()->GetRect());
+                   mAnim->compositingFrame->GetRect());
         break;
 
       case FrameBlender::kDisposeRestorePrevious:
@@ -326,16 +327,16 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
         
         if (mAnim->compositingPrevFrame) {
           CopyFrameImage(mAnim->compositingPrevFrame.GetFrameData(),
-                         mAnim->compositingPrevFrame.GetFrame()->GetRect(),
+                         mAnim->compositingPrevFrame->GetRect(),
                          mAnim->compositingFrame.GetFrameData(),
-                         mAnim->compositingFrame.GetFrame()->GetRect());
+                         mAnim->compositingFrame->GetRect());
 
           
           if (nextFrameDisposalMethod != FrameBlender::kDisposeRestorePrevious)
             mAnim->compositingPrevFrame.SetFrame(nullptr);
         } else {
           ClearFrame(mAnim->compositingFrame.GetFrameData(),
-                     mAnim->compositingFrame.GetFrame()->GetRect());
+                     mAnim->compositingFrame->GetRect());
         }
         break;
 
@@ -350,23 +351,23 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
           if (isFullPrevFrame && !prevFrame->GetIsPaletted()) {
             
             CopyFrameImage(prevFrame.GetFrameData(),
-                           prevFrame.GetFrame()->GetRect(),
+                           prevFrame->GetRect(),
                            mAnim->compositingFrame.GetFrameData(),
-                           mAnim->compositingFrame.GetFrame()->GetRect());
+                           mAnim->compositingFrame->GetRect());
           } else {
             if (needToBlankComposite) {
               
               if (prevFrame->GetHasAlpha() || !isFullPrevFrame) {
                 ClearFrame(mAnim->compositingFrame.GetFrameData(),
-                           mAnim->compositingFrame.GetFrame()->GetRect());
+                           mAnim->compositingFrame->GetRect());
               }
             }
             DrawFrameTo(prevFrame.GetFrameData(), prevFrameRect,
-                        prevFrame.GetFrame()->PaletteDataLength(),
-                        prevFrame.GetFrame()->GetHasAlpha(),
+                        prevFrame->PaletteDataLength(),
+                        prevFrame->GetHasAlpha(),
                         mAnim->compositingFrame.GetFrameData(),
-                        mAnim->compositingFrame.GetFrame()->GetRect(),
-                        FrameBlendMethod(prevFrame.GetFrame()->GetBlendMethod()));
+                        mAnim->compositingFrame->GetRect(),
+                        FrameBlendMethod(prevFrame->GetBlendMethod()));
           }
         }
     }
@@ -374,7 +375,7 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     
     
     ClearFrame(mAnim->compositingFrame.GetFrameData(),
-               mAnim->compositingFrame.GetFrame()->GetRect());
+               mAnim->compositingFrame->GetRect());
   }
 
   
@@ -398,18 +399,18 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     }
 
     CopyFrameImage(mAnim->compositingFrame.GetFrameData(),
-                   mAnim->compositingFrame.GetFrame()->GetRect(),
+                   mAnim->compositingFrame->GetRect(),
                    mAnim->compositingPrevFrame.GetFrameData(),
-                   mAnim->compositingPrevFrame.GetFrame()->GetRect());
+                   mAnim->compositingPrevFrame->GetRect());
   }
 
   
   DrawFrameTo(nextFrame.GetFrameData(), nextFrameRect,
-              nextFrame.GetFrame()->PaletteDataLength(),
-              nextFrame.GetFrame()->GetHasAlpha(),
+              nextFrame->PaletteDataLength(),
+              nextFrame->GetHasAlpha(),
               mAnim->compositingFrame.GetFrameData(),
-              mAnim->compositingFrame.GetFrame()->GetRect(),
-              FrameBlendMethod(nextFrame.GetFrame()->GetBlendMethod()));
+              mAnim->compositingFrame->GetRect(),
+              FrameBlendMethod(nextFrame->GetBlendMethod()));
 
   
   
@@ -417,7 +418,8 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
   mAnim->compositingFrame->SetRawTimeout(timeout);
 
   
-  nsresult rv = mAnim->compositingFrame->ImageUpdated(mAnim->compositingFrame->GetRect());
+  nsresult rv =
+    mAnim->compositingFrame->ImageUpdated(mAnim->compositingFrame->GetRect());
   if (NS_FAILED(rv)) {
     return false;
   }
