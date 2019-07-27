@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include "gmp-entrypoints.h"
 
-#if defined(XP_MACOSX)
+#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
 #include "mozilla/Sandbox.h"
 #endif
 
@@ -21,7 +21,7 @@ class SandboxStarter {
 public:
   virtual ~SandboxStarter() {}
   virtual bool Start(const char* aLibPath) = 0;
-#if defined(XP_MACOSX)
+#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
   
   
   
@@ -65,7 +65,7 @@ public:
   
   virtual void Shutdown() = 0;
 
-#if defined(XP_MACOSX)
+#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
   
   
   
