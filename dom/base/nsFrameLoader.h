@@ -312,6 +312,8 @@ private:
   
   void ResetPermissionManagerStatus();
 
+  void InitializeBrowserAPI();
+
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
   mozilla::dom::Element* mOwnerContent; 
@@ -351,7 +353,6 @@ private:
   bool mRemoteFrame : 1;
   bool mClipSubdocument : 1;
   bool mClampScrollPosition : 1;
-  bool mRemoteBrowserInitialized : 1;
   bool mObservingOwnerContent : 1;
 
   
@@ -369,9 +370,6 @@ private:
   
   
   uint32_t mEventMode;
-
-  
-  bool mPendingFrameSent;
 };
 
 #endif
