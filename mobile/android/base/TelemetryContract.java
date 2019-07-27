@@ -65,6 +65,9 @@ public interface TelemetryContract {
         SAVE("save.1"),
 
         
+        SEARCH("search.1"),
+
+        
         SHARE("share.1"),
 
         
@@ -111,6 +114,9 @@ public interface TelemetryContract {
 
         
         BUTTON("button"),
+
+        
+        CONTENT("content"),
 
         
         CONTEXT_MENU("contextmenu"),
@@ -190,6 +196,9 @@ public interface TelemetryContract {
         
         
         READER("reader.1"),
+
+        
+        SEARCH_ACTIVITY("searchactivity.1"),
 
         
         _TEST_STARTED_TWICE("_test_session_started_twice.1"),
