@@ -15,11 +15,6 @@ namespace mozilla {
 
 struct AppleUtils {
   
-  static nsresult GetProperty(AudioFileStreamID aAudioFileStream,
-                              AudioFileStreamPropertyID aPropertyID,
-                              void* aData);
-
-  
   static void SetCFDict(CFMutableDictionaryRef dict,
                         const char* key,
                         const char* value);
@@ -31,12 +26,6 @@ struct AppleUtils {
   static void SetCFDict(CFMutableDictionaryRef dict,
                         const char* key,
                         bool value);
-
-  
-  
-  
-  static nsresult GetRichestDecodableFormat(
-    AudioFileStreamID aAudioFileStream, AudioStreamBasicDescription& aFormat);
 };
 
 
