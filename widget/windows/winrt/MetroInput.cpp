@@ -1294,9 +1294,13 @@ MetroInput::HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent)
       mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
     } else {
       mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid);
+      if (apzcStatus == nsEventStatus_eConsumeDoDefault) {
+        SendPointerCancelToContent(transformedEvent);
+      }
     }
     mCancelable = false;
   }
+
   
   if (nsEventStatus_eConsumeNoDefault == contentStatus) {
     CancelGesture();
@@ -1304,6 +1308,22 @@ MetroInput::HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent)
 }
 
 void
+MetroInput::SendPointerCancelToContent(const WidgetTouchEvent& aEvent)
+{
+  
+  
+  
+  
+  WidgetTouchEvent cancel(aEvent);
+  cancel.message = NS_TOUCH_CANCEL;
+  for (uint32_t i = 0; i < cancel.touches.Length(); i++) {
+    cancel.touches[i]->convertToPointer = true;
+  }
+  nsEventStatus status;
+  mWidget->DispatchEvent(&cancel, status);
+}
+
+bool
 MetroInput::SendPendingResponseToApz()
 {
   
@@ -1311,7 +1331,9 @@ MetroInput::SendPendingResponseToApz()
   if (mCancelable) {
     mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid);
     mCancelable = false;
+    return true;
   }
+  return false;
 }
 
 void
@@ -1399,7 +1421,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
   
   
   
-  SendPendingResponseToApz();
+  bool responseSent = SendPendingResponseToApz();
 
   
   
@@ -1407,6 +1429,10 @@ MetroInput::DeliverNextQueuedTouchEvent()
   status = mWidget->ApzReceiveInputEvent(event, nullptr);
   if (status == nsEventStatus_eConsumeNoDefault) {
     CancelGesture();
+    return;
+  }
+  if (responseSent && status == nsEventStatus_eConsumeDoDefault) {
+    SendPointerCancelToContent(*event);
     return;
   }
   DUMP_TOUCH_IDS("DOM(4)", event);
