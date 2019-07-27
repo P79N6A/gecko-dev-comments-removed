@@ -77,6 +77,13 @@ DispatchStatusChangedEvent(const nsAString& aType,
                            bool aStatus);
 
 
+
+
+
+
+bool
+IsMainProcess();
+
 END_BLUETOOTH_NAMESPACE
 
 #endif
