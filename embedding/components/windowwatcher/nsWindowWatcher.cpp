@@ -1481,14 +1481,22 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
                                       bool aHasChromeParent,
                                       bool aOpenedFromRemoteTab)
 {
-  if (!aFeaturesSpecified || !aFeatures) {
+  uint32_t chromeFlags = 0;
+  bool isCallerChrome =
+    nsContentUtils::IsCallerChrome() && !aOpenedFromRemoteTab;
+
+  bool onlyPrivateFlag = aFeaturesSpecified && aFeatures && isCallerChrome &&
+    nsCRT::strcasecmp(aFeatures, "private") == 0;
+  if (!aFeaturesSpecified || !aFeatures || onlyPrivateFlag) {
+    chromeFlags = nsIWebBrowserChrome::CHROME_ALL;
     if (aDialog) {
-      return nsIWebBrowserChrome::CHROME_ALL |
-             nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
-             nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
-    } else {
-      return nsIWebBrowserChrome::CHROME_ALL;
+      chromeFlags |= nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
+                     nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
     }
+    if (onlyPrivateFlag) {
+      chromeFlags |= nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW;
+    }
+    return chromeFlags;
   }
 
   
@@ -1499,7 +1507,6 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
 
 
 
-  uint32_t chromeFlags = 0;
   bool presenceFlag = false;
 
   chromeFlags = nsIWebBrowserChrome::CHROME_WINDOW_BORDERS;
@@ -1508,9 +1515,6 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
   }
 
   
-
-  bool isCallerChrome =
-    nsContentUtils::IsCallerChrome() && !aOpenedFromRemoteTab;
 
   
   if (isCallerChrome) {
