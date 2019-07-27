@@ -4556,9 +4556,6 @@ pref("reader.color_scheme.values", "[\"light\",\"dark\",\"sepia\"]");
 pref("reader.font_type", "sans-serif");
 
 
-pref("reader.font_type.values", "[\"serif\",\"sans-serif\"]");
-
-
 
 pref("reader.has_used_toolbar", false);
 
