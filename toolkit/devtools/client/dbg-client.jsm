@@ -372,9 +372,9 @@ DebuggerClient.Argument.prototype.getArgument = function (aParams) {
 };
 
 
-DebuggerClient.socketConnect = function(host, port) {
+DebuggerClient.socketConnect = function(options) {
   
-  return DebuggerSocket.connect(host, port);
+  return DebuggerSocket.connect(options);
 };
 
 DebuggerClient.prototype = {

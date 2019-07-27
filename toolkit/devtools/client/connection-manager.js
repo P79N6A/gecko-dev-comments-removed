@@ -9,10 +9,14 @@
 const {Cc, Ci, Cu} = require("chrome");
 const {setTimeout, clearTimeout} = require('sdk/timers');
 const EventEmitter = require("devtools/toolkit/event-emitter");
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
+DevToolsUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
+
 
 
 
@@ -113,6 +117,7 @@ function Connection(host, port) {
   this._onConnected = this._onConnected.bind(this);
   this._onTimeout = this._onTimeout.bind(this);
   this.keepConnecting = false;
+  this.encryption = false;
 }
 
 Connection.Status = {
@@ -222,30 +227,38 @@ Connection.prototype = {
     this._setStatus(Connection.Status.DESTROYED);
   },
 
-  _clientConnect: function () {
-    let transport;
+  _getTransport: Task.async(function*() {
     if (this._customTransport) {
-      transport = this._customTransport;
-    } else {
-      if (!this.host) {
-        transport = DebuggerServer.connectPipe();
-      } else {
-        try {
-          transport = DebuggerClient.socketConnect(this.host, this.port);
-        } catch (e) {
-          
-          
-          
-          
-          
-          this._onDisconnected();
-          return;
-        }
-      }
+      return this._customTransport;
     }
-    this._client = new DebuggerClient(transport);
-    this._client.addOneTimeListener("closed", this._onDisconnected);
-    this._client.connect(this._onConnected);
+    if (!this.host) {
+      return DebuggerServer.connectPipe();
+    }
+    let transport = yield DebuggerClient.socketConnect({
+      host: this.host,
+      port: this.port,
+      encryption: this.encryption
+    });
+    return transport;
+  }),
+
+  _clientConnect: function () {
+    this._getTransport().then(transport => {
+      if (!transport) {
+        return;
+      }
+      this._client = new DebuggerClient(transport);
+      this._client.addOneTimeListener("closed", this._onDisconnected);
+      this._client.connect(this._onConnected);
+    }, e => {
+      console.error(e);
+      
+      
+      
+      
+      
+      this._onDisconnected();
+    });
   },
 
   get status() {

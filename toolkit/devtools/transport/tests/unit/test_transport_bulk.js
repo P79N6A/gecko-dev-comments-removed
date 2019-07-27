@@ -23,7 +23,7 @@ function run_test() {
 
 
 
-function test_bulk_transfer_transport(transportFactory) {
+let test_bulk_transfer_transport = Task.async(function*(transportFactory) {
   do_print("Starting bulk transfer test at " + new Date().toTimeString());
 
   let clientDeferred = promise.defer();
@@ -36,7 +36,7 @@ function test_bulk_transfer_transport(transportFactory) {
 
   do_check_eq(Object.keys(DebuggerServer._connections).length, 0);
 
-  let transport = transportFactory();
+  let transport = yield transportFactory();
 
   
   function write_data({copyFrom}) {
@@ -104,7 +104,7 @@ function test_bulk_transfer_transport(transportFactory) {
   transport.ready();
 
   return promise.all([clientDeferred.promise, serverDeferred.promise]);
-}
+});
 
 
 

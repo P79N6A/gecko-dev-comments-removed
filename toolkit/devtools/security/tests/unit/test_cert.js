@@ -3,10 +3,6 @@
 
 "use strict";
 
-const { utils: Cu, classes: Cc, interfaces: Ci } = Components;
-
-const { Promise: promise } =
-  Cu.import("resource://gre/modules/Promise.jsm", {});
 const certService = Cc["@mozilla.org/security/local-cert-service;1"]
                     .getService(Ci.nsILocalCertService);
 
