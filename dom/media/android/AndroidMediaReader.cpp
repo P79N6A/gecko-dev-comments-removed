@@ -125,8 +125,7 @@ bool AndroidMediaReader::DecodeVideoFrame(bool &aKeyframeSkip,
 {
   
   
-  uint32_t parsed = 0, decoded = 0;
-  AbstractMediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
+  AbstractMediaDecoder::AutoNotifyDecoded a(mDecoder);
 
   
   if (mLastVideoFrame && mVideoSeekTimeUs != -1) {
@@ -162,7 +161,7 @@ bool AndroidMediaReader::DecodeVideoFrame(bool &aKeyframeSkip,
       
 #if 0
       if (!frame.mKeyFrame) {
-        ++parsed;
+        ++a.mParsed;
         continue;
       }
 #endif
@@ -250,8 +249,8 @@ bool AndroidMediaReader::DecodeVideoFrame(bool &aKeyframeSkip,
     if (!v) {
       return false;
     }
-    parsed++;
-    decoded++;
+    a.mParsed++;
+    a.mDecoded++;
     NS_ASSERTION(decoded <= parsed, "Expect to decode fewer frames than parsed in AndroidMedia...");
 
     

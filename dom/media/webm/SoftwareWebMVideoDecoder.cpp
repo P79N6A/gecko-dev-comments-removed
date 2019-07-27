@@ -79,9 +79,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
 
   
   
-  uint32_t parsed = 0, decoded = 0;
-  AbstractMediaDecoder::AutoNotifyDecoded autoNotify(mReader->GetDecoder(),
-                                                     parsed, decoded);
+  AbstractMediaDecoder::AutoNotifyDecoded a(mReader->GetDecoder());
 
   nsAutoRef<NesteggPacketHolder> holder(mReader->NextPacket(WebMReader::VIDEO));
   if (!holder) {
@@ -144,7 +142,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     }
     if (aKeyframeSkip && (!si.is_kf || tstamp_usecs < aTimeThreshold)) {
       
-      parsed++; 
+      a.mParsed++; 
       continue;
     }
 
@@ -160,7 +158,7 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
     
     
     if (tstamp_usecs < aTimeThreshold) {
-      parsed++; 
+      a.mParsed++; 
       continue;
     }
 
@@ -218,9 +216,9 @@ SoftwareWebMVideoDecoder::DecodeVideoFrame(bool &aKeyframeSkip,
       if (!v) {
         return false;
       }
-      parsed++;
-      decoded++;
-      NS_ASSERTION(decoded <= parsed,
+      a.mParsed++;
+      a.mDecoded++;
+      NS_ASSERTION(a.mDecoded <= a.mParsed,
         "Expect only 1 frame per chunk per packet in WebM...");
       mReader->VideoQueue().Push(v);
     }
