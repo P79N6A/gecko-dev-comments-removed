@@ -202,6 +202,11 @@ nsresult
 nsFileStreamBase::Read(char* aBuf, uint32_t aCount, uint32_t* aResult)
 {
     nsresult rv = DoPendingOpen();
+    if (rv == NS_ERROR_FILE_NOT_FOUND) {
+      
+      return rv;
+    }
+
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!mFD) {
@@ -489,6 +494,11 @@ NS_IMETHODIMP
 nsFileInputStream::Read(char* aBuf, uint32_t aCount, uint32_t* _retval)
 {
     nsresult rv = nsFileStreamBase::Read(aBuf, aCount, _retval);
+    if (rv == NS_ERROR_FILE_NOT_FOUND) {
+      
+      return rv;
+    }
+
     NS_ENSURE_SUCCESS(rv, rv);
 
     
