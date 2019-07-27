@@ -3,6 +3,7 @@
 
 
 #include "gtest/gtest.h"
+#include "mozilla/ArrayUtils.h"
 #include <stdio.h>
 #include "nsTArray.h"
 #include "WebMBufferedParser.h"
