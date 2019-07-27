@@ -117,12 +117,6 @@ loop.Client = (function($) {
         try {
           var urlData = JSON.parse(responseText);
 
-          
-          
-          
-          if (urlData.call_url)
-            urlData.callUrl = urlData.call_url;
-
           cb(null, this._validate(urlData, expectedCallUrlProperties));
 
           this.mozLoop.noteCallUrlExpiry(urlData.expiresAt);
