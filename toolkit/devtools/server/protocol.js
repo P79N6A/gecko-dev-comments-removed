@@ -154,12 +154,25 @@ types.addType = function(name, typeObject={}, options={}) {
 
   registeredTypes.set(name, type);
 
-  if (!options.thawed) {
-    Object.freeze(type);
-  }
-
   return type;
 };
+
+
+
+
+
+types.removeType = function(name) {
+  
+  
+  let type = registeredTypes.get(name);
+
+  type.name = "DEFUNCT:" + name;
+  type.category = "defunct";
+  type.primitive = false;
+  type.read = type.write = function() { throw new Error("Using defunct type: " + name); };
+
+  registeredTypes.delete(name);
+}
 
 
 
@@ -299,10 +312,6 @@ types.addActorType = function(name) {
 
       return type.actorSpec[formAttr];
     }
-  }, {
-    
-    
-    thawed: true
   });
   return type;
 }
@@ -367,6 +376,14 @@ types.addLifetime = function(name, prop) {
     throw Error("Lifetime '" + name + "' already registered.");
   }
   registeredLifetimes.set(name, prop);
+}
+
+
+
+
+
+types.removeLifetime = function(name) {
+  registeredLifetimes.delete(name);
 }
 
 
