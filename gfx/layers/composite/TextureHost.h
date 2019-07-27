@@ -86,12 +86,14 @@ public:
 
 
 
-class TextureSource
+class TextureSource: public RefCounted<TextureSource>
 {
 public:
-  NS_INLINE_DECL_REFCOUNTING(TextureSource)
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(TextureSource)
 
   TextureSource();
+
+  virtual ~TextureSource();
 
   
 
@@ -159,7 +161,6 @@ public:
   int NumCompositableRefs() const { return mCompositableCount; }
 
 protected:
-  virtual ~TextureSource();
 
   RefPtr<TextureSource> mNextSibling;
   int mCompositableCount;

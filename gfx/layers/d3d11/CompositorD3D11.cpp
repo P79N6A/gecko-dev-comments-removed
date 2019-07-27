@@ -938,7 +938,15 @@ CompositorD3D11::VerifyBufferSize()
     return;
   }
 
-  mDefaultRT = nullptr;
+  if (mDefaultRT) {
+    
+    
+    if (mCurrentRT == mDefaultRT) {
+      mCurrentRT = nullptr;
+    }
+    MOZ_ASSERT(mDefaultRT->hasOneRef());
+    mDefaultRT = nullptr;
+  }
 
   if (IsRunningInWindowsMetro()) {
     hr = mSwapChain->ResizeBuffers(2, mSize.width, mSize.height,
