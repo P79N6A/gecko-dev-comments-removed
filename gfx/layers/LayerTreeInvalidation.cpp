@@ -4,6 +4,7 @@
 
 
 #include "LayerTreeInvalidation.h"
+
 #include <stdint.h>                     
 #include "ImageContainer.h"             
 #include "ImageLayers.h"                
@@ -23,6 +24,8 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsTArray.h"                   
+#include "mozilla/layers/ImageHost.h"
+#include "mozilla/layers/LayerManagerComposite.h"
 
 using namespace mozilla::gfx;
 
@@ -383,16 +386,27 @@ struct ColorLayerProperties : public LayerPropertiesBase
   IntRect mBounds;
 };
 
+static ImageHost* GetImageHost(ImageLayer* aLayer)
+{
+  LayerComposite* composite = aLayer->AsLayerComposite();
+  if (composite) {
+    return static_cast<ImageHost*>(composite->GetCompositableHost());
+  }
+  return nullptr;
+}
+
 struct ImageLayerProperties : public LayerPropertiesBase
 {
   explicit ImageLayerProperties(ImageLayer* aImage, bool aIsMask)
     : LayerPropertiesBase(aImage)
     , mContainer(aImage->GetContainer())
+    , mImageHost(GetImageHost(aImage))
     , mFilter(aImage->GetFilter())
     , mScaleToSize(aImage->GetScaleToSize())
     , mScaleMode(aImage->GetScaleMode())
     , mIsMask(aIsMask)
   {
+    mFrameID = mImageHost ? mImageHost->GetFrameID() : -1;
   }
 
   virtual nsIntRegion ComputeChangeInternal(NotifySubDocInvalidationFunc aCallback,
@@ -408,30 +422,39 @@ struct ImageLayerProperties : public LayerPropertiesBase
     }
 
     ImageContainer* container = imageLayer->GetContainer();
+    ImageHost* host = GetImageHost(imageLayer);
     if (mContainer != container ||
         mFilter != imageLayer->GetFilter() ||
         mScaleToSize != imageLayer->GetScaleToSize() ||
-        mScaleMode != imageLayer->GetScaleMode()) {
+        mScaleMode != imageLayer->GetScaleMode() ||
+        host != mImageHost ||
+        (host && host->GetFrameID() != mFrameID)) {
       aGeometryChanged = true;
 
       if (mIsMask) {
         
         
-        IntSize size = container->GetCurrentSize();
+        IntSize size;
+        if (container) {
+          size = container->GetCurrentSize();
+        }
+        if (host) {
+          size = host->GetImageSize();
+        }
         IntRect rect(0, 0, size.width, size.height);
         return TransformRect(rect, mLayer->GetLocalTransform());
-
-      } else {
-        return NewTransformedBounds();
       }
+      return NewTransformedBounds();
     }
 
     return IntRect();
   }
 
   nsRefPtr<ImageContainer> mContainer;
+  nsRefPtr<ImageHost> mImageHost;
   GraphicsFilter mFilter;
   gfx::IntSize mScaleToSize;
+  int32_t mFrameID;
   ScaleMode mScaleMode;
   bool mIsMask;
 };
