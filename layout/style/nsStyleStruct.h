@@ -1065,15 +1065,15 @@ struct nsStyleOutline {
   void RecalcData(nsPresContext* aContext);
   nsChangeHint CalcDifference(const nsStyleOutline& aOther) const;
   static nsChangeHint MaxDifference() {
-    return NS_CombineHint(nsChangeHint_AllReflowHints,
+    return NS_CombineHint(NS_CombineHint(nsChangeHint_UpdateOverflow,
+                                         nsChangeHint_SchedulePaint),
                           NS_CombineHint(nsChangeHint_RepaintFrame,
                                          nsChangeHint_NeutralChange));
   }
   static nsChangeHint MaxDifferenceNeverInherited() {
     
     
-    return NS_CombineHint(nsChangeHint_NeedReflow,
-                          nsChangeHint_ClearAncestorIntrinsics);
+    return nsChangeHint(0);
   }
 
   nsStyleCorners  mOutlineRadius; 
