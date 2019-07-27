@@ -48,6 +48,8 @@ public:
 
   static void Shutdown();
 
+  static bool IsAudioChannelMutedByDefault();
+
   
 
 
@@ -146,7 +148,7 @@ private:
   {
     AudioChannelConfig()
       : mVolume(1.0)
-      , mMuted(false)
+      , mMuted(IsAudioChannelMutedByDefault())
       , mNumberOfAgents(0)
     {}
 
