@@ -205,11 +205,59 @@ EventTargetChild.prototype = {
   }
 };
 
+
+
+
+
+
+
+
+
+function SandboxChild(chromeGlobal)
+{
+  this.chromeGlobal = chromeGlobal;
+  this.sandboxes = [];
+}
+
+SandboxChild.prototype = {
+  addListener: function() {
+    let webProgress = this.chromeGlobal.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebProgress);
+    webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_LOCATION);
+  },
+
+  removeListener: function() {
+    let webProgress = this.chromeGlobal.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebProgress);
+    webProgress.removeProgressListener(this);
+  },
+
+  onLocationChange: function(webProgress, request, location, flags) {
+    if (this.sandboxes.length) {
+      this.removeListener();
+    }
+    this.sandboxes = [];
+  },
+
+  addSandbox: function(sandbox) {
+    if (this.sandboxes.length == 0) {
+      this.addListener();
+    }
+    this.sandboxes.push(sandbox);
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsISupportsWeakReference])
+};
+
 let RemoteAddonsChild = {
   init: function(global) {
     global.sendAsyncMessage("Addons:RegisterGlobal", {}, {global: global});
 
+    let sandboxChild = new SandboxChild(global);
+    global.addSandbox = sandboxChild.addSandbox.bind(sandboxChild);
+
     
-    return [new EventTargetChild(global)];
+    return [new EventTargetChild(global), sandboxChild];
   },
 };
