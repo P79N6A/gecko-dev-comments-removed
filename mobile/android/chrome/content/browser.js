@@ -6814,9 +6814,6 @@ var IdentityHandler = {
 
       return result;
     }
-    
-    
-    result.owner = Strings.browser.GetStringFromName("identity.ownerUnknown3");
 
     
     if (!this._overrideService)
