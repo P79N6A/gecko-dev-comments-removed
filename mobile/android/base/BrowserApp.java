@@ -548,6 +548,8 @@ public class BrowserApp extends GeckoApp
     }
 
     private void showBookmarkAddedToast() {
+        
+        
         getButtonToast().show(false,
                 getResources().getString(R.string.bookmark_added),
                 ButtonToast.LENGTH_SHORT,

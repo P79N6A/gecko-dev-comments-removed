@@ -40,7 +40,7 @@ public class testBookmarklets extends AboutHomeTest {
 
         
         
-        mDatabaseHelper.addOrUpdateMobileBookmark(title, js);
+        mDatabaseHelper.addMobileBookmark(title, js);
 
         
         openAboutHomeTab(AboutHomeTabs.BOOKMARKS);
