@@ -15,6 +15,7 @@
 #include "nsPresContext.h"
 #include "nsIFrameInlines.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/Preferences.h"
 #include <algorithm>
 
 #ifdef DEBUG
@@ -23,6 +24,9 @@
 
 using namespace mozilla;
 using namespace mozilla::layout;
+
+static bool sFloatFragmentsInsideColumnEnabled;
+static bool sFloatFragmentsInsideColumnPrefCached;
 
 nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
                                        nsPresContext* aPresContext,
@@ -46,6 +50,13 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
     mFloatBreakType(NS_STYLE_CLEAR_NONE),
     mConsumedBSize(aConsumedBSize)
 {
+  if (!sFloatFragmentsInsideColumnPrefCached) {
+    sFloatFragmentsInsideColumnPrefCached = true;
+    Preferences::AddBoolVarCache(&sFloatFragmentsInsideColumnEnabled,
+                                 "layout.float-fragments-inside-column.enabled");
+  }
+  SetFlag(BRS_FLOAT_FRAGMENTS_INSIDE_COLUMN_ENABLED, sFloatFragmentsInsideColumnEnabled);
+  
   WritingMode wm = aReflowState.GetWritingMode();
   SetFlag(BRS_ISFIRSTINFLOW, aFrame->GetPrevInFlow() == nullptr);
   SetFlag(BRS_ISOVERFLOWCONTAINER, IS_TRUE_OVERFLOW_CONTAINER(aFrame));
@@ -865,6 +876,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   if ((ContentBSize() != NS_UNCONSTRAINEDSIZE &&
+       !GetFlag(BRS_FLOAT_FRAGMENTS_INSIDE_COLUMN_ENABLED) &&
        adjustedAvailableSpace.BSize(wm) == NS_UNCONSTRAINEDSIZE &&
        !mustPlaceFloat &&
        aFloat->BSize(wm) + floatMargin.BStartEnd(wm) >
