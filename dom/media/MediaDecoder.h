@@ -800,7 +800,10 @@ public:
 
   
   
-  virtual bool IsDataCachedToEndOfResource();
+  
+  
+  
+  virtual bool IsExpectingMoreData();
 
   
   
