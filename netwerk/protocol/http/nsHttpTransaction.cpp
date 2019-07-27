@@ -728,6 +728,12 @@ nsHttpTransaction::WritePipeSegment(nsIOutputStream *stream,
         trans->SetResponseStart(TimeStamp::Now(), true);
     }
 
+    
+    MOZ_ASSERT(trans->mWriter);
+    if (!trans->mWriter) {
+        return NS_ERROR_UNEXPECTED;
+    }
+
     nsresult rv;
     
     
@@ -767,6 +773,12 @@ nsHttpTransaction::WriteSegments(nsAHttpSegmentWriter *writer,
         return NS_SUCCEEDED(mStatus) ? NS_BASE_STREAM_CLOSED : mStatus;
 
     mWriter = writer;
+
+    
+    MOZ_ASSERT(mPipeOut);
+    if (!mPipeOut) {
+        return NS_ERROR_UNEXPECTED;
+    }
 
     nsresult rv = mPipeOut->WriteSegments(WritePipeSegment, this, count, countWritten);
 
