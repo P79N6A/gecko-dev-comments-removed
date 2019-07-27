@@ -408,6 +408,8 @@ public:
   typedef mozilla::layout::FrameChildListIterator ChildListIterator;
   typedef mozilla::layout::FrameChildListArrayIterator ChildListArrayIterator;
   typedef mozilla::gfx::Matrix Matrix;
+  typedef mozilla::Sides Sides;
+  typedef mozilla::LogicalSides LogicalSides;
 
   NS_DECL_QUERYFRAME_TARGET(nsIFrame)
 
@@ -917,10 +919,10 @@ public:
 
 
   static bool ComputeBorderRadii(const nsStyleCorners& aBorderRadius,
-                                   const nsSize& aFrameSize,
-                                   const nsSize& aBorderArea,
-                                   int aSkipSides,
-                                   nscoord aRadii[8]);
+                                 const nsSize& aFrameSize,
+                                 const nsSize& aBorderArea,
+                                 Sides aSkipSides,
+                                 nscoord aRadii[8]);
 
   
 
@@ -946,7 +948,7 @@ public:
 
   virtual bool GetBorderRadii(const nsSize& aFrameSize,
                               const nsSize& aBorderArea,
-                              int aSkipSides,
+                              Sides aSkipSides,
                               nscoord aRadii[8]) const;
   bool GetBorderRadii(nscoord aRadii[8]) const;
 
@@ -2314,10 +2316,12 @@ public:
 
 
 
-  int GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const;
-  virtual int
+
+
+  Sides GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const;
+  virtual LogicalSides
   GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const {
-    return 0;
+    return LogicalSides();
   }
 
   
