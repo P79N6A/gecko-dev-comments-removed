@@ -228,6 +228,7 @@ BluetoothHfpManager::Cleanup()
 void
 BluetoothHfpManager::Reset()
 {
+  mFirstCKPD = false;
   
   ResetCallArray();
   
@@ -1286,6 +1287,8 @@ BluetoothHfpManager::OnConnect(const nsAString& aErrorStr)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  mFirstCKPD = true;
+
   
 
 
@@ -1627,7 +1630,16 @@ BluetoothHfpManager::KeyPressedNotification(const nsAString& aBdAddress)
 
 
       ConnectSco();
-    } else {
+    } else if (mFirstCKPD) {
+      
+
+
+
+
+
+
+
+     } else {
       
 
 
@@ -1636,6 +1648,7 @@ BluetoothHfpManager::KeyPressedNotification(const nsAString& aBdAddress)
 
       NotifyDialer(NS_LITERAL_STRING("CHUP"));
     }
+    mFirstCKPD = false;
   } else {
     
     mDialingRequestProcessed = false;
