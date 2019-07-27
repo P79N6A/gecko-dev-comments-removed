@@ -7,6 +7,7 @@
 #include "WinUtils.h"
 
 #include "gfxPlatform.h"
+#include "gfxUtils.h"
 #include "nsWindow.h"
 #include "nsWindowDefs.h"
 #include "KeyboardLayout.h"
@@ -851,65 +852,48 @@ NS_IMETHODIMP AsyncEncodeAndWriteIcon::Run()
 {
   NS_PRECONDITION(!NS_IsMainThread(), "Should not be called on the main thread.");
 
-  nsCOMPtr<nsIInputStream> iconStream;
-  nsRefPtr<imgIEncoder> encoder =
-    do_CreateInstance("@mozilla.org/image/encoder;2?"
-                      "type=image/vnd.microsoft.icon");
-  NS_ENSURE_TRUE(encoder, NS_ERROR_FAILURE);
-  nsresult rv = encoder->InitFromData(mBuffer, mBufferLength,
-                                      mWidth, mHeight,
-                                      mStride,
-                                      imgIEncoder::INPUT_FORMAT_HOSTARGB,
-                                      EmptyString());
-  NS_ENSURE_SUCCESS(rv, rv);
-  CallQueryInterface(encoder.get(), getter_AddRefs(iconStream));
-  if (!iconStream) {
-    return NS_ERROR_FAILURE;
+  RefPtr<DrawTarget> dt =
+    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+  RefPtr<SourceSurface> surface =
+    dt->CreateSourceSurfaceFromData(mBuffer, IntSize(mWidth, mHeight), mStride,
+                                    SurfaceFormat::B8G8R8A8);
+
+  FILE* file = fopen(NS_ConvertUTF16toUTF8(mIconPath).get(), "wb");
+  if (!file) {
+    
+    nsresult rv = NS_ERROR_FAILURE;
+    nsCOMPtr<nsIFile> comFile = do_CreateInstance("@mozilla.org/file/local;1");
+    if (comFile) {
+      
+      rv = comFile->InitWithPath(mIconPath);
+      if (NS_SUCCEEDED(rv)) {
+        nsCOMPtr<nsIFile> dirPath;
+        comFile->GetParent(getter_AddRefs(dirPath));
+        if (dirPath) {
+          rv = dirPath->Create(nsIFile::DIRECTORY_TYPE, 0777);
+          if (NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_ALREADY_EXISTS) {
+            file = fopen(NS_ConvertUTF16toUTF8(mIconPath).get(), "wb");
+            if (!file) {
+              rv = NS_ERROR_FAILURE;
+            }
+          }
+        }
+      }
+    }
+    if (!file) {
+      return rv;
+    }
   }
-
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIFile> icoFile
-    = do_CreateInstance("@mozilla.org/file/local;1");
-  NS_ENSURE_TRUE(icoFile, NS_ERROR_FAILURE);
-  rv = icoFile->InitWithPath(mIconPath);
-
-  
-  nsCOMPtr<nsIFile> dirPath;
-  icoFile->GetParent(getter_AddRefs(dirPath));
-  rv = (dirPath->Create(nsIFile::DIRECTORY_TYPE, 0777));
-  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
-    return rv;
-  }
-
-  
-  nsCOMPtr<nsIOutputStream> outputStream;
-  rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), icoFile);
+  nsresult rv =
+    gfxUtils::EncodeSourceSurface(surface,
+                                  NS_LITERAL_CSTRING("image/vnd.microsoft.icon"),
+                                  EmptyString(),
+                                  gfxUtils::eBinaryEncode,
+                                  file);
+  fclose(file);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  uint64_t bufSize64;
-  rv = iconStream->Available(&bufSize64);
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(bufSize64 <= UINT32_MAX, NS_ERROR_FILE_TOO_BIG);
-
-  uint32_t bufSize = (uint32_t)bufSize64;
-
-  
-  
-  nsCOMPtr<nsIOutputStream> bufferedOutputStream;
-  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedOutputStream),
-                                  outputStream, bufSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  uint32_t wrote;
-  rv = bufferedOutputStream->WriteFrom(iconStream, bufSize, &wrote);
-  NS_ASSERTION(bufSize == wrote, 
-              "Icon wrote size should be equal to requested write size");
-
-  
-  bufferedOutputStream->Close();
-  outputStream->Close();
   if (mURLShortcut) {
     SendMessage(HWND_BROADCAST, WM_SETTINGCHANGE, SPI_SETNONCLIENTMETRICS, 0);
   }

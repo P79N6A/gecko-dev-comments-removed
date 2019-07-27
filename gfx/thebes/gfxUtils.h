@@ -16,6 +16,8 @@
 class gfxASurface;
 class gfxDrawable;
 class nsIntRegion;
+class nsIPresShell;
+
 struct nsIntRect;
 
 namespace mozilla {
@@ -27,6 +29,7 @@ struct PlanarYCbCrData;
 class gfxUtils {
 public:
     typedef mozilla::gfx::DataSourceSurface DataSourceSurface;
+    typedef mozilla::gfx::DrawTarget DrawTarget;
     typedef mozilla::gfx::IntPoint IntPoint;
     typedef mozilla::gfx::Matrix Matrix;
     typedef mozilla::gfx::SourceSurface SourceSurface;
@@ -228,45 +231,78 @@ public:
     static const mozilla::gfx::Color& GetColorForFrameNumber(uint64_t aFrameNumber);
     static const uint32_t sNumFrameColors;
 
+
+    enum BinaryOrData {
+        eBinaryEncode,
+        eDataURIEncode
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static nsresult
+    EncodeSourceSurface(SourceSurface* aSurface,
+                        const nsACString& aMimeType,
+                        const nsAString& aOutputOptions,
+                        BinaryOrData aBinaryOrData,
+                        FILE* aFile);
+
+    
+
+
+    static void WriteAsPNG(SourceSurface* aSurface, const nsAString& aFile);
+    static void WriteAsPNG(SourceSurface* aSurface, const char* aFile);
+    static void WriteAsPNG(DrawTarget* aDT, const nsAString& aFile);
+    static void WriteAsPNG(DrawTarget* aDT, const char* aFile);
+    static void WriteAsPNG(nsIPresShell* aShell, const char* aFile);
+
+    
+
+
+
+
+
+
+    static void DumpAsDataURI(SourceSurface* aSourceSurface, FILE* aFile);
+    static inline void DumpAsDataURI(SourceSurface* aSourceSurface) {
+        DumpAsDataURI(aSourceSurface, stdout);
+    }
+    static void DumpAsDataURI(DrawTarget* aDT, FILE* aFile);
+    static inline void DumpAsDataURI(DrawTarget* aDT) {
+        DumpAsDataURI(aDT, stdout);
+    }
+
+    
+
+
+    static void CopyAsDataURI(SourceSurface* aSourceSurface);
+    static void CopyAsDataURI(DrawTarget* aDT);
+
 #ifdef MOZ_DUMP_PAINTING
-    
-
-
-    static void WriteAsPNG(mozilla::gfx::DrawTarget* aDT, const char* aFile);
-
-    
-
-
-    static void DumpAsDataURL(mozilla::gfx::DrawTarget* aDT);
-
-    
-
-
-    static void CopyAsDataURL(mozilla::gfx::DrawTarget* aDT);
-
     static bool DumpPaintList();
 
     static bool sDumpPainting;
     static bool sDumpPaintingToFile;
     static FILE* sDumpPaintFile;
-
-    
-
-
-
-    static void WriteAsPNG(mozilla::gfx::SourceSurface* aSourceSurface, const char* aFile);
-
-    
-
-
-
-    static void DumpAsDataURL(mozilla::gfx::SourceSurface* aSourceSurface);
-
-    
-
-
-
-    static void CopyAsDataURL(mozilla::gfx::SourceSurface* aSourceSurface);
 #endif
 };
 
