@@ -528,6 +528,12 @@ class ObjectGroup : public gc::TenuredCell
         return offsetof(ObjectGroup, flags_);
     }
 
+    
+    
+    static inline int32_t addendumOriginalUnboxedGroupValue() {
+        return Addendum_OriginalUnboxedGroup << OBJECT_FLAG_ADDENDUM_SHIFT;
+    }
+
   private:
     inline uint32_t basePropertyCount();
     inline void setBasePropertyCount(uint32_t count);

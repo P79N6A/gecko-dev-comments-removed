@@ -257,7 +257,8 @@ js::ObjectGroupHasProperty(JSContext *cx, ObjectGroup *group, jsid id, const Val
         
         if (value.isObject() &&
             !value.toObject().hasLazyGroup() &&
-            value.toObject().group()->flags() & OBJECT_FLAG_UNKNOWN_PROPERTIES)
+            ((value.toObject().group()->flags() & OBJECT_FLAG_UNKNOWN_PROPERTIES) ||
+             value.toObject().group()->maybeOriginalUnboxedGroup()))
         {
             return true;
         }

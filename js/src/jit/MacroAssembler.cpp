@@ -138,20 +138,31 @@ MacroAssembler::guardTypeSet(const Source &address, const Set *types, BarrierKin
         jump(&matched);
         bind(&fail);
 
-        
-        
         if (obj == scratch)
             extractObject(address, scratch);
-        loadPtr(Address(obj, JSObject::offsetOfGroup()), scratch);
-        branchTestPtr(Assembler::NonZero,
-                      Address(scratch, ObjectGroup::offsetOfFlags()),
-                      Imm32(OBJECT_FLAG_UNKNOWN_PROPERTIES), &matched);
+        guardTypeSetMightBeIncomplete(obj, scratch, &matched);
 
         assumeUnreachable("Unexpected object type");
 #endif
     }
 
     bind(&matched);
+}
+
+void
+MacroAssembler::guardTypeSetMightBeIncomplete(Register obj, Register scratch, Label *label)
+{
+    
+    
+    
+    
+
+    loadPtr(Address(obj, JSObject::offsetOfGroup()), scratch);
+    load32(Address(scratch, ObjectGroup::offsetOfFlags()), scratch);
+    branchTest32(Assembler::NonZero, scratch, Imm32(OBJECT_FLAG_UNKNOWN_PROPERTIES), label);
+    and32(Imm32(OBJECT_FLAG_ADDENDUM_MASK), scratch);
+    branch32(Assembler::Equal,
+             scratch, Imm32(ObjectGroup::addendumOriginalUnboxedGroupValue()), label);
 }
 
 template <typename Set> void
