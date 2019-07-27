@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "MediaOmxCommonDecoder.h"
 
@@ -65,7 +65,7 @@ MediaOmxCommonDecoder::FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo,
 
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   if (!CheckDecoderCanOffloadAudio()) {
-    DECODER_LOG(LogLevel::Debug, ("In %s Offload Audio check failed",
+    DECODER_LOG(PR_LOG_DEBUG, ("In %s Offload Audio check failed",
         __PRETTY_FUNCTION__));
     return;
   }
@@ -82,7 +82,7 @@ MediaOmxCommonDecoder::FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo,
   if (err != OK) {
     mAudioOffloadPlayer = nullptr;
     mFallbackToStateMachine = true;
-    DECODER_LOG(LogLevel::Debug, ("In %s Unable to start offload audio %d."
+    DECODER_LOG(PR_LOG_DEBUG, ("In %s Unable to start offload audio %d."
       "Switching to normal mode", __PRETTY_FUNCTION__, err));
     return;
   }
@@ -96,7 +96,7 @@ MediaOmxCommonDecoder::FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo,
       ->Then(AbstractThread::MainThread(), __func__, static_cast<MediaDecoder*>(this),
              &MediaDecoder::OnSeekResolved, &MediaDecoder::OnSeekRejected));
   }
-  // Call ChangeState() to run AudioOffloadPlayer since offload state enabled
+  
   ChangeState(mPlayState);
 }
 
@@ -105,7 +105,7 @@ MediaOmxCommonDecoder::PauseStateMachine()
 {
   MOZ_ASSERT(NS_IsMainThread());
   GetReentrantMonitor().AssertCurrentThreadIn();
-  DECODER_LOG(LogLevel::Debug, ("%s", __PRETTY_FUNCTION__));
+  DECODER_LOG(PR_LOG_DEBUG, ("%s", __PRETTY_FUNCTION__));
 
   if (mShuttingDown) {
     return;
@@ -114,7 +114,7 @@ MediaOmxCommonDecoder::PauseStateMachine()
   if (!GetStateMachine()) {
     return;
   }
-  // enter dormant state
+  
   RefPtr<nsRunnable> event =
     NS_NewRunnableMethodWithArg<bool>(
       GetStateMachine(),
@@ -128,7 +128,7 @@ MediaOmxCommonDecoder::ResumeStateMachine()
 {
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  DECODER_LOG(LogLevel::Debug, ("%s current time %f", __PRETTY_FUNCTION__, mLogicalPosition));
+  DECODER_LOG(PR_LOG_DEBUG, ("%s current time %f", __PRETTY_FUNCTION__, mLogicalPosition));
 
   if (mShuttingDown) {
     return;
@@ -143,7 +143,7 @@ MediaOmxCommonDecoder::ResumeStateMachine()
   SeekTarget target = SeekTarget(mLogicalPosition,
                                  SeekTarget::Accurate,
                                  MediaDecoderEventVisibility::Suppressed);
-  // Call Seek of MediaDecoderStateMachine to suppress seek events.
+  
   RefPtr<nsRunnable> event =
     NS_NewRunnableMethodWithArg<SeekTarget>(
       GetStateMachine(),
@@ -153,7 +153,7 @@ MediaOmxCommonDecoder::ResumeStateMachine()
 
   mNextState = mPlayState;
   ChangeState(PLAY_STATE_LOADING);
-  // exit dormant state
+  
   event =
     NS_NewRunnableMethodWithArg<bool>(
       GetStateMachine(),
@@ -167,10 +167,10 @@ void
 MediaOmxCommonDecoder::AudioOffloadTearDown()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  DECODER_LOG(LogLevel::Debug, ("%s", __PRETTY_FUNCTION__));
+  DECODER_LOG(PR_LOG_DEBUG, ("%s", __PRETTY_FUNCTION__));
 
-  // mAudioOffloadPlayer can be null here if ResumeStateMachine was called
-  // just before because of some other error.
+  
+  
   if (mAudioOffloadPlayer) {
     ResumeStateMachine();
   }
@@ -206,9 +206,9 @@ void
 MediaOmxCommonDecoder::ChangeState(PlayState aState)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  // Keep MediaDecoder state in sync with MediaElement irrespective of offload
-  // playback so it will continue to work in normal mode when offloading fails
-  // in between
+  
+  
+  
   MediaDecoder::ChangeState(aState);
 
   if (!mAudioOffloadPlayer) {
@@ -286,4 +286,4 @@ MediaOmxCommonDecoder::CreateStateMachine()
   return CreateStateMachineFromReader(mReader);
 }
 
-} // namespace mozilla
+} 

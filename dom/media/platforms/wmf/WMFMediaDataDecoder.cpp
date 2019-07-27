@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "WMFMediaDataDecoder.h"
 #include "VideoUtils.h"
@@ -13,7 +13,7 @@
 #include "mozilla/Logging.h"
 
 PRLogModuleInfo* GetDemuxerLog();
-#define LOG(...) MOZ_LOG(GetDemuxerLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOG(...) MOZ_LOG(GetDemuxerLog(), PR_LOG_DEBUG, (__VA_ARGS__))
 
 namespace mozilla {
 
@@ -45,30 +45,30 @@ WMFMediaDataDecoder::Init()
   return NS_OK;
 }
 
-// A single telemetry sample is reported for each MediaDataDecoder object
-// that has detected error or produced output successfully.
+
+
 static void
 SendTelemetry(HRESULT hr)
 {
-  // Collapse the error codes into a range of 0-0xff that can be viewed in
-  // telemetry histograms.  For most MF_E_* errors, unique samples are used,
-  // retaining the least significant 7 or 8 bits.  Other error codes are
-  // bucketed.
+  
+  
+  
+  
   uint32_t sample;
   if (SUCCEEDED(hr)) {
     sample = 0;
   } else if (hr < 0xc00d36b0) {
-    sample = 1; // low bucket
+    sample = 1; 
   } else if (hr < 0xc00d3700) {
-    sample = hr & 0xffU; // MF_E_*
+    sample = hr & 0xffU; 
   } else if (hr <= 0xc00d3705) {
-    sample = 0x80 + (hr & 0xfU); // more MF_E_*
+    sample = 0x80 + (hr & 0xfU); 
   } else if (hr < 0xc00d6d60) {
-    sample = 2; // mid bucket
+    sample = 2; 
   } else if (hr <= 0xc00d6d78) {
-    sample = hr & 0xffU; // MF_E_TRANSFORM_*
+    sample = hr & 0xffU; 
   } else {
-    sample = 3; // high bucket
+    sample = 3; 
   }
 
   nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
@@ -107,7 +107,7 @@ WMFMediaDataDecoder::ProcessShutdown()
   mDecoder = nullptr;
 }
 
-// Inserts data into the decoder's pipeline.
+
 nsresult
 WMFMediaDataDecoder::Input(MediaRawData* aSample)
 {
@@ -129,7 +129,7 @@ WMFMediaDataDecoder::ProcessDecode(MediaRawData* aSample)
   {
     MonitorAutoLock mon(mMonitor);
     if (mIsFlushing) {
-      // Skip sample, to be released by runnable.
+      
       return;
     }
   }
@@ -211,11 +211,11 @@ WMFMediaDataDecoder::ProcessDrain()
     isFlushing = mIsFlushing;
   }
   if (!isFlushing && mDecoder) {
-    // Order the decoder to drain...
+    
     if (FAILED(mDecoder->SendMFTMessage(MFT_MESSAGE_COMMAND_DRAIN, 0))) {
       NS_WARNING("Failed to send DRAIN command to MFT");
     }
-    // Then extract all available output.
+    
     ProcessOutput();
   }
   mCallback->DrainComplete();
@@ -240,4 +240,4 @@ WMFMediaDataDecoder::IsHardwareAccelerated() const {
   return mMFTManager && mMFTManager->IsHardwareAccelerated();
 }
 
-} // namespace mozilla
+} 

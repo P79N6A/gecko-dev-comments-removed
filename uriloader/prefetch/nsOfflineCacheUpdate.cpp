@@ -63,10 +63,10 @@ static const int32_t  kCustomProfileQuota = 512000;
 extern PRLogModuleInfo *gOfflineCacheUpdateLog;
 
 #undef LOG
-#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug, args)
+#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, 4, args)
 
 #undef LOG_ENABLED
-#define LOG_ENABLED() MOZ_LOG_TEST(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug)
+#define LOG_ENABLED() PR_LOG_TEST(gOfflineCacheUpdateLog, 4)
 
 class AutoFreeArray {
 public:
