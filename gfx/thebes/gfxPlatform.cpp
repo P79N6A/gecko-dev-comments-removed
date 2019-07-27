@@ -141,6 +141,8 @@ static void ShutdownCMS();
 #include "mozilla/gfx/SourceSurfaceCairo.h"
 using namespace mozilla::gfx;
 
+void InitLayersAccelerationPrefs();
+
 
 
 class SRGBOverrideObserver final : public nsIObserver,
@@ -496,6 +498,7 @@ gfxPlatform::Init()
     mozilla::gl::GLContext::StaticInit();
 #endif
 
+    InitLayersAccelerationPrefs();
     InitLayersIPC();
 
     nsresult rv;
