@@ -2675,6 +2675,15 @@ extern JS_FRIEND_API(void)
 SetJitExceptionHandler(JitExceptionHandler handler);
 #endif
 
+
+
+
+
+
+
+extern JS_FRIEND_API(JSObject *)
+GetObjectEnvironmentObjectForFunction(JSFunction *fun);
+
 } 
 
 extern JS_FRIEND_API(bool)
