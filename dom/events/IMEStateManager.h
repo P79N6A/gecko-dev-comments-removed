@@ -95,6 +95,13 @@ public:
                               nsIEditor* aEditor);
 
   
+  static void OnEditorInitialized(nsIEditor* aEditor);
+
+  
+  
+  static void OnEditorDestroying(nsIEditor* aEditor);
+
+  
 
 
 

@@ -86,6 +86,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(IMEContentObserver)
 
 IMEContentObserver::IMEContentObserver()
   : mESM(nullptr)
+  , mSuppressNotifications(0)
   , mPreCharacterDataChangeLength(-1)
   , mIsObserving(false)
   , mIsSelectionChangeEventPending(false)
@@ -1143,6 +1144,11 @@ IMEContentObserver::FlushMergeableNotifications()
   
   
   if (!mWidget) {
+    return;
+  }
+
+  
+  if (mSuppressNotifications) {
     return;
   }
 
