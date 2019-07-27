@@ -535,7 +535,7 @@ BasicFormatter.prototype = {
 
   formatText: function (message) {
     let params = message.params;
-    if (!params) {
+    if (typeof(params) == "undefined") {
       return message.message || "";
     }
     
@@ -543,7 +543,7 @@ BasicFormatter.prototype = {
     let pIsObject = (typeof(params) == 'object' || typeof(params) == 'function');
 
     
-    if (message.params && this.parameterFormatter) {
+    if (this.parameterFormatter) {
       
       
       let subDone = false;

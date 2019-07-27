@@ -457,6 +457,14 @@ add_task(function log_message_with_params() {
               'non-object no subst: 1');
   do_check_eq(formatMessage("non-object all subst ${}", 2),
               'non-object all subst 2');
+  do_check_eq(formatMessage("false no subst", false),
+              'false no subst: false');
+  do_check_eq(formatMessage("null no subst", null),
+              'null no subst: null');
+  
+  
+  do_check_eq(formatMessage("undefined no subst", undefined),
+              'undefined no subst');
   
   
   do_check_eq(formatMessage("non-object named subst ${junk} space", 3),
