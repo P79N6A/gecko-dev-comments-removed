@@ -209,11 +209,6 @@ class MessageLogger(object):
         self.logger.suite_end()
 
 
-log = StructuredLogger('mochitest')
-stream_handler = StreamHandler(stream=sys.stdout, formatter=MochitestFormatter())
-log.add_handler(stream_handler)
-
-
 
 
 
@@ -995,7 +990,12 @@ class Mochitest(MochitestUtilsMixin):
     super(Mochitest, self).__init__()
 
     
-    self.message_logger = MessageLogger(logger=log)
+    structured_log = StructuredLogger('mochitest')
+    stream_handler = StreamHandler(stream=sys.stdout, formatter=MochitestFormatter())
+    structured_log.add_handler(stream_handler)
+
+    
+    self.message_logger = MessageLogger(logger=structured_log)
 
     
     self.environment = environment
