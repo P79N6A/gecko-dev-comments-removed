@@ -445,10 +445,10 @@ nsDOMWindowUtils::SetDisplayPortMarginsForElement(float aLeftMargin,
 
   
   
-  LayerMargin displayportMargins(aTopMargin,
-                                 aRightMargin,
-                                 aBottomMargin,
-                                 aLeftMargin);
+  ScreenMargin displayportMargins(aTopMargin,
+                                  aRightMargin,
+                                  aBottomMargin,
+                                  aLeftMargin);
 
   nsLayoutUtils::SetDisplayPortMargins(content, presShell, displayportMargins,
                                        aAlignmentX, aAlignmentY, aPriority);
