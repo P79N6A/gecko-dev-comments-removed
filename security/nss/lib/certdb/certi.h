@@ -116,10 +116,15 @@ struct CRLDPCacheStr {
 #else
     PRLock* lock;
 #endif
-    CERTCertificate* issuer;    
+    SECItem *issuerDERCert;    
 
 
 
+
+
+
+
+    CERTCertDBHandle *dbHandle;
 
     SECItem* subject;           
     SECItem* distributionPoint; 
@@ -165,15 +170,6 @@ struct CRLDPCacheStr {
 struct CRLIssuerCacheStr {
     SECItem* subject;           
     CRLDPCache* dpp;
-#if 0
-    
-
-
-    NSSRWLock* lock;
-    CRLDPCache** dps;
-    PLHashTable* distributionpoints;
-    CERTCertificate* issuer;
-#endif
 };
 
 

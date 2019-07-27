@@ -929,14 +929,13 @@ extern SECStatus CERT_FindNSCertTypeExtension
 
 extern char * CERT_FindNSStringExtension (CERTCertificate *cert, int oidtag);
 
-extern SECStatus CERT_FindIssuerCertExtension
-   (CERTCertificate *cert, int tag, SECItem *value);
-
 extern SECStatus CERT_FindCertExtensionByOID
    (CERTCertificate *cert, SECItem *oid, SECItem *value);
 
-extern char *CERT_FindCertURLExtension (CERTCertificate *cert, int tag, 
-								int catag);
+
+
+
+extern char *CERT_FindCertURLExtension (CERTCertificate *cert, SECOidTag tag);
 
 
 

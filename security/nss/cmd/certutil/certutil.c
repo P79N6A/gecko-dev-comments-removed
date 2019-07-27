@@ -40,7 +40,7 @@
 #define MIN_KEY_BITS		512
 
 #define MAX_KEY_BITS		8192
-#define DEFAULT_KEY_BITS	1024
+#define DEFAULT_KEY_BITS	2048
 
 #define GEN_BREAK(e) rv=e; break;
 

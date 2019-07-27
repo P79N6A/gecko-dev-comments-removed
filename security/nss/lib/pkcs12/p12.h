@@ -37,6 +37,13 @@ typedef void (PR_CALLBACK * SEC_PKCS12DecoderOutputCallback)(
 
 
 
+
+
+
+
+
+
+
 typedef SECItem * (PR_CALLBACK * SEC_PKCS12NicknameCollisionCallback)(
                                  SECItem *old_nickname,
                                  PRBool *cancel,
@@ -44,6 +51,34 @@ typedef SECItem * (PR_CALLBACK * SEC_PKCS12NicknameCollisionCallback)(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef SECStatus (PR_CALLBACK * SEC_PKCS12NicknameRenameCallback)(
+                                 const CERTCertificate *cert,
+                                 const SECItem *default_nickname,
+                                 SECItem **new_nickname,
+                                 void *arg);
 
 typedef SECStatus (PR_CALLBACK *digestOpenFn)(void *arg, PRBool readData);
 typedef SECStatus (PR_CALLBACK *digestCloseFn)(void *arg, PRBool removeFile);
@@ -166,6 +201,26 @@ SEC_PKCS12DecoderVerify(SEC_PKCS12DecoderContext *p12dcx);
 extern SECStatus
 SEC_PKCS12DecoderValidateBags(SEC_PKCS12DecoderContext *p12dcx,
 			      SEC_PKCS12NicknameCollisionCallback nicknameCb);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern SECStatus
+SEC_PKCS12DecoderRenameCertNicknames(SEC_PKCS12DecoderContext *p12dcx,
+                                     SEC_PKCS12NicknameRenameCallback nicknameCb,
+                                     void *arg);
+
 
 extern SECStatus
 SEC_PKCS12DecoderImportBags(SEC_PKCS12DecoderContext *p12dcx);

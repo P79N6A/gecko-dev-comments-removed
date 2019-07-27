@@ -1123,9 +1123,9 @@ static SECStatus DPCache_Destroy(CRLDPCache* cache)
 	PORT_Free(cache->crls);
     }
     
-    if (cache->issuer)
+    if (cache->issuerDERCert)
     {
-        CERT_DestroyCertificate(cache->issuer);
+        SECITEM_FreeItem(cache->issuerDERCert, PR_TRUE);
     }
     
     if (cache->subject)
@@ -1571,14 +1571,20 @@ static SECStatus CachedCrl_Verify(CRLDPCache* cache, CachedCrl* crlobject,
     else
     {
         SECStatus signstatus = SECFailure;
-        if (cache->issuer)
+        if (cache->issuerDERCert)
         {
-            signstatus = CERT_VerifyCRL(crlobject->crl, cache->issuer, vfdate,
+	    CERTCertificate *issuer = CERT_NewTempCertificate(cache->dbHandle,
+		cache->issuerDERCert, NULL, PR_FALSE, PR_TRUE);
+
+	    if (issuer) {
+                signstatus = CERT_VerifyCRL(crlobject->crl, issuer, vfdate,
                                         wincx);
+		CERT_DestroyCertificate(issuer);
+	    }
         }
         if (SECSuccess != signstatus)
         {
-            if (!cache->issuer)
+            if (!cache->issuerDERCert)
             {
                 
 
@@ -1925,15 +1931,16 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
     }
 
     
-    if (issuer && (NULL == cache->issuer) &&
+    if (issuer && (NULL == cache->issuerDERCert) &&
         (SECSuccess == CERT_CheckCertUsage(issuer, KU_CRL_SIGN)))
     {
         
         DPCache_LockWrite();
-        if (!cache->issuer)
+        if (!cache->issuerDERCert)
         {
             dirty = PR_TRUE;
-            cache->issuer = CERT_DupCertificate(issuer);    
+	    cache->dbHandle = issuer->dbhandle;
+    	    cache->issuerDERCert = SECITEM_DupItem(&issuer->derCert);
         }
         DPCache_UnlockWrite();
     }
@@ -1944,7 +1951,7 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
 
 
 
-    if (cache->issuer && vfdate )
+    if (cache->issuerDERCert && vfdate )
     {
 	mustunlock = PR_FALSE;
         
@@ -2201,7 +2208,8 @@ static SECStatus DPCache_Create(CRLDPCache** returned, CERTCertificate* issuer,
     }
     if (issuer)
     {
-        cache->issuer = CERT_DupCertificate(issuer);
+	cache->dbHandle = issuer->dbhandle;
+    	cache->issuerDERCert = SECITEM_DupItem(&issuer->derCert);
     }
     cache->distributionPoint = SECITEM_DupItem(dp);
     cache->subject = SECITEM_DupItem(subject);
