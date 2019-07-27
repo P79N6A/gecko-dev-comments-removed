@@ -60,7 +60,6 @@ private:
   void SendTouchEvent(MultiTouchInput& aData);
   void DispatchMouseEvent(MultiTouchInput& aMultiTouch,
                           bool aForwardToChildren);
-  WidgetMouseEvent ToWidgetMouseEvent(const MultiTouchInput& aData, nsIWidget* aWidget) const;
 
   
   

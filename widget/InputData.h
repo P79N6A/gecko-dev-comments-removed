@@ -216,6 +216,7 @@ public:
 
   explicit MultiTouchInput(const WidgetTouchEvent& aTouchEvent);
   WidgetTouchEvent ToWidgetTouchEvent(nsIWidget* aWidget) const;
+  WidgetMouseEvent ToWidgetMouseEvent(nsIWidget* aWidget) const;
 
   
   
