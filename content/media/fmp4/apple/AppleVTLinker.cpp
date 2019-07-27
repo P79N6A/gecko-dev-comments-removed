@@ -103,10 +103,4 @@ AppleVTLinker::GetIOConst(const char* symbol)
   return *address;
 }
 
- CFStringRef
-AppleVTLinker::GetPropHWAccel()
-{
-  return skPropHWAccel;
-}
-
 } 
