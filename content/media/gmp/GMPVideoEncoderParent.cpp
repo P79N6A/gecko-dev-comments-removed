@@ -72,7 +72,9 @@ GMPVideoEncoderParent::GMPVideoEncoderParent(GMPParent *aPlugin)
 
 GMPVideoEncoderParent::~GMPVideoEncoderParent()
 {
-  mEncodedThread->Shutdown();
+  if (mEncodedThread) {
+    mEncodedThread->Shutdown();
+  }
 }
 
 GMPVideoHostImpl&
@@ -248,6 +250,12 @@ GMPVideoEncoderParent::ActorDestroy(ActorDestroyReason aWhy)
     
     mCallback->Terminated();
     mCallback = nullptr;
+  }
+  
+  
+  if (mEncodedThread) {
+    mEncodedThread->Shutdown();
+    mEncodedThread = nullptr;
   }
   if (mPlugin) {
     
