@@ -118,9 +118,6 @@ static bool PrepareLayerRects(nsIntRect aVisible, const gfx::Matrix& aTransform,
                               hwc_rect_t* aSourceCrop,
                               hwc_rect_t* aVisibleRegionScreen);
 
-
-static nsIntRect HwcToIntRect(hwc_rect_t aRect);
-
 };
 
 } 
