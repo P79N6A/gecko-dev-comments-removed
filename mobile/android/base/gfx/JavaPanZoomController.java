@@ -52,10 +52,6 @@ class JavaPanZoomController
     private static final float FLING_STOPPED_THRESHOLD = 0.1f;
 
     
-    
-    public static final float PAN_THRESHOLD = 1/16f * GeckoAppShell.getDpi();
-
-    
     private static final double AXIS_LOCK_ANGLE = Math.PI / 6.0; 
 
     
@@ -479,7 +475,7 @@ class JavaPanZoomController
             if (mTarget.getFullScreenState() == FullScreenState.NON_ROOT_ELEMENT && !mSubscroller.scrolling()) {
                 return false;
             }
-            if (panDistance(event) < PAN_THRESHOLD) {
+            if (panDistance(event) < PanZoomController.PAN_THRESHOLD) {
                 return false;
             }
             cancelTouch();
