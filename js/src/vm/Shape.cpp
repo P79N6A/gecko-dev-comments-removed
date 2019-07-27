@@ -48,7 +48,7 @@ ShapeTable::init(ThreadSafeContext *cx, Shape *lastProp)
 
 
 
-    entries = cx->pod_calloc<Shape *>(JS_BIT(sizeLog2));
+    entries = (Shape **) cx->calloc_(sizeOfEntries(JS_BIT(sizeLog2)));
     if (!entries)
         return false;
 
@@ -260,7 +260,7 @@ ShapeTable::change(int log2Delta, ThreadSafeContext *cx)
     int newlog2 = oldlog2 + log2Delta;
     uint32_t oldsize = JS_BIT(oldlog2);
     uint32_t newsize = JS_BIT(newlog2);
-    Shape **newTable = cx->pod_calloc<Shape *>(newsize);
+    Shape **newTable = (Shape **) cx->calloc_(sizeOfEntries(newsize));
     if (!newTable)
         return false;
 

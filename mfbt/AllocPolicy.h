@@ -12,13 +12,11 @@
 #ifndef mozilla_AllocPolicy_h
 #define mozilla_AllocPolicy_h
 
-#include "mozilla/NullPtr.h"
-#include "mozilla/TemplateLib.h"
-
 #include <stddef.h>
 #include <stdlib.h>
 
 namespace mozilla {
+
 
 
 
@@ -57,18 +55,14 @@ public:
     return malloc(aBytes);
   }
 
-  template <typename T>
-  T* pod_calloc(size_t aNumElems)
+  void* calloc_(size_t aBytes)
   {
-    return static_cast<T*>(calloc(aNumElems, sizeof(T)));
+    return calloc(aBytes, 1);
   }
 
-  template <typename T>
-  T* pod_realloc(T* aPtr, size_t aOldSize, size_t aNewSize)
+  void* realloc_(void* aPtr, size_t aOldBytes, size_t aBytes)
   {
-    if (aNewSize & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
-        return nullptr;
-    return static_cast<T*>(realloc(aPtr, aNewSize * sizeof(T)));
+    return realloc(aPtr, aBytes);
   }
 
   void free_(void* aPtr)

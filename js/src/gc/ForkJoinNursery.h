@@ -210,8 +210,7 @@ class ForkJoinNursery
     
     
     
-    HeapSlot *reallocateHugeSlots(JSObject *obj, HeapSlot *oldSlots,
-                                  uint32_t oldCount, uint32_t newCount);
+    HeapSlot *reallocateHugeSlots(HeapSlot *oldSlots, uint32_t oldSize, uint32_t newSize);
 
     
     void sweepHugeSlots();
