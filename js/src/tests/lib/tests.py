@@ -21,6 +21,12 @@ TBPL_FLAGS = [
     ['--no-baseline', '--no-ion'],
 ]
 
+TBPL_DEBUG_FLAGS = [
+    [], 
+    ['--ion-eager', '--ion-offthread-compile=off'], 
+    ['--baseline-eager'],
+]
+
 def do_run_cmd(cmd):
     l = [None, None]
     th_run_cmd(cmd, l)
