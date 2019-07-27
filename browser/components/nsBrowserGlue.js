@@ -321,12 +321,14 @@ BrowserGlue.prototype = {
          
         this._dispose();
         break;
-#ifdef MOZ_SERVICES_HEALTHREPORT
       case "keyword-search":
         
         
         
         
+        let win = this.getMostRecentBrowserWindow();
+        BrowserUITelemetry.countSearchEvent("urlbar", win.gURLBar.value);
+#ifdef MOZ_SERVICES_HEALTHREPORT
         let reporter = Cc["@mozilla.org/datareporting/service;1"]
                          .getService()
                          .wrappedJSObject
@@ -344,8 +346,8 @@ BrowserGlue.prototype = {
             Cu.reportError(ex);
           }
         });
-        break;
 #endif
+        break;
       case "browser-search-engine-modified":
         if (data != "engine-default" && data != "engine-current") {
           break;
