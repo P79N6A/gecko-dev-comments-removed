@@ -2,7 +2,7 @@
 
 
 
-from marionette_driver import errors
+import errors
 import marionette_test
 
 
