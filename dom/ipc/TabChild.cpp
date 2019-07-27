@@ -833,21 +833,6 @@ TabChild::PreloadSlowThings()
     ClearOnShutdown(&sPreallocatedTab);
 }
 
- void
-TabChild::PostForkPreload()
-{
-    
-    
-    if (!sPreallocatedTab) {
-        return;
-    }
-
-    
-    sPreallocatedTab->RecvLoadRemoteScript(
-      NS_LITERAL_STRING("chrome://global/content/post-fork-preload.js"),
-      true);
-}
-
  already_AddRefed<TabChild>
 TabChild::Create(nsIContentChild* aManager,
                  const TabId& aTabId,

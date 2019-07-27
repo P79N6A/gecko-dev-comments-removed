@@ -565,19 +565,4 @@ private:
 void
 NS_SetMainThread();
 
-
-
-
-#ifdef MOZILLA_INTERNAL_API
-#ifdef MOZ_NUWA_PROCESS
-extern void
-NS_SetIgnoreStatusOfCurrentThread();
-#else 
-inline void
-NS_SetIgnoreStatusOfCurrentThread()
-{
-}
-#endif 
-#endif 
-
 #endif  

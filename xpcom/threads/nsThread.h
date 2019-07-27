@@ -16,7 +16,6 @@
 #include "nsTObserverArray.h"
 #include "mozilla/Attributes.h"
 #include "nsAutoPtr.h"
-#include "mozilla/ReentrantMonitor.h"
 
 
 class nsThread
@@ -65,14 +64,6 @@ public:
 
   static nsresult
   SetMainThreadObserver(nsIThreadObserver* aObserver);
-
-#ifdef MOZ_NUWA_PROCESS
-  void SetWorking();
-  void SetIdle();
-  mozilla::ReentrantMonitor& ThreadStatusMonitor() {
-    return mThreadStatusMonitor;
-  }
-#endif
 
 protected:
   static nsIThreadObserver* sMainThreadObserver;
@@ -191,12 +182,6 @@ protected:
   
   bool mEventsAreDoomed;
   MainThreadFlag mIsMainThread;
-#ifdef MOZ_NUWA_PROCESS
-  mozilla::ReentrantMonitor mThreadStatusMonitor;
-  
-  
-  void* mThreadStatusInfo;
-#endif
 };
 
 
