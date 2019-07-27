@@ -162,7 +162,9 @@ private:
 
 
 
-  nsIObserver* mIdleObserver;
+  nsIObserver* MOZ_UNSAFE_REF("See the documentation for SetWeakIdleObserver for "
+                              "how the owner of LazyIdleThread should manage the "
+                              "lifetime information of this field") mIdleObserver;
 
   
 
