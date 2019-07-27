@@ -174,9 +174,7 @@ class TestOther(DeviceManagerADBTestCase):
         self.assertEquals(type(self.dm.getCurrentTime()), int)
 
     def test_get_info(self):
-        self.assertEquals(self.dm.getInfo(), {})
-        
-        
+        self.assertEquals(type(self.dm.getInfo()), dict)
 
     def test_list_devices(self):
         self.assertEquals(len(list(self.dm.devices())), 1)

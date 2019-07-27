@@ -282,14 +282,11 @@ class DMCli(object):
         info = self.dm.getInfo(directive=args.directive)
         for (infokey, infoitem) in sorted(info.iteritems()):
             if infokey == "process":
-                pass 
-            elif not args.directive and not infoitem:
-                print "%s:" % infokey.upper()
-            elif not args.directive:
-                for line in infoitem:
-                    print "%s: %s" % (infokey.upper(), line)
+                pass  
+            elif args.directive is None:
+                print "%s: %s" % (infokey.upper(), infoitem)
             else:
-                print "%s" % "\n".join(infoitem)
+                print infoitem
 
     def logcat(self, args):
         print ''.join(self.dm.getLogcat())
