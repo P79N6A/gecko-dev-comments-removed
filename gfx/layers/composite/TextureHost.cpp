@@ -358,9 +358,12 @@ void
 BufferTextureHost::Updated(const nsIntRegion* aRegion)
 {
   ++mUpdateSerial;
-  if (aRegion) {
+  
+  
+  
+  if (aRegion && ((mFirstSource && mFirstSource->GetUpdateSerial() == mUpdateSerial) || mPartialUpdate)) {
     mPartialUpdate = true;
-    mMaybeUpdatedRegion = *aRegion;
+    mMaybeUpdatedRegion = mMaybeUpdatedRegion.Or(mMaybeUpdatedRegion, *aRegion);
   } else {
     mPartialUpdate = false;
   }
@@ -445,6 +448,11 @@ BufferTextureHost::MaybeUpload(nsIntRegion *aRegion)
   if (!Upload(aRegion)) {
     return false;
   }
+
+  
+  mPartialUpdate = false;
+  mMaybeUpdatedRegion.SetEmpty();
+
   
   mFirstSource->SetUpdateSerial(mUpdateSerial);
   return true;
