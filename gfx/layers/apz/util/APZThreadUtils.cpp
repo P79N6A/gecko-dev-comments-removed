@@ -6,6 +6,7 @@
 #include "mozilla/layers/APZThreadUtils.h"
 
 #include "mozilla/layers/Compositor.h"
+#include "AndroidBridge.h"
 
 namespace mozilla {
 namespace layers {
@@ -52,6 +53,16 @@ APZThreadUtils::AssertOnCompositorThread()
  void
 APZThreadUtils::RunOnControllerThread(Task* aTask)
 {
+#ifdef MOZ_ANDROID_APZ
+  
+  
+  if (AndroidBridge::IsJavaUiThread()) {
+    aTask->Run();
+    delete aTask;
+  } else {
+    AndroidBridge::Bridge()->PostTaskToUiThread(aTask, 0);
+  }
+#else
   if (!sControllerThread) {
     
     NS_WARNING("Dropping task posted to controller thread\n");
@@ -65,6 +76,7 @@ APZThreadUtils::RunOnControllerThread(Task* aTask)
   } else {
     sControllerThread->PostTask(FROM_HERE, aTask);
   }
+#endif
 }
 
 } 
