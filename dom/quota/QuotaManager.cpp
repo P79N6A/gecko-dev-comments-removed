@@ -58,6 +58,8 @@
 #include "UsageInfo.h"
 #include "Utilities.h"
 
+#define BAD_TLS_INDEX ((uint32_t) -1)
+
 
 
 #define DEFAULT_THREAD_TIMEOUT_MS 30000
