@@ -52,7 +52,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
   eTouchEventClass,                  
 
   
-  NS_SCROLLPORT_EVENT,               
+  eScrollPortEventClass,             
   NS_SCROLLAREA_EVENT,               
   NS_FORM_EVENT,                     
   NS_FOCUS_EVENT,                    
