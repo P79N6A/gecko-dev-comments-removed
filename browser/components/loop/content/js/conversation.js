@@ -223,7 +223,7 @@ loop.conversation = (function(mozL10n) {
 
 
   var IncomingConversationView = React.createClass({displayName: 'IncomingConversationView',
-    mixins: [sharedMixins.AudioMixin],
+    mixins: [sharedMixins.AudioMixin, sharedMixins.WindowCloseMixin],
 
     propTypes: {
       client: React.PropTypes.instanceOf(loop.Client).isRequired,
@@ -315,7 +315,7 @@ loop.conversation = (function(mozL10n) {
           );
         }
         case "close": {
-          window.close();
+          this.closeWindow();
           return (React.DOM.div(null));
         }
       }
@@ -459,10 +459,6 @@ loop.conversation = (function(mozL10n) {
       setTimeout(this.closeWindow, 0);
     },
 
-    closeWindow: function() {
-      window.close();
-    },
-
     
 
 
@@ -541,7 +537,7 @@ loop.conversation = (function(mozL10n) {
 
 
   var AppControllerView = React.createClass({displayName: 'AppControllerView',
-    mixins: [Backbone.Events],
+    mixins: [Backbone.Events, sharedMixins.WindowCloseMixin],
 
     propTypes: {
       
@@ -573,10 +569,6 @@ loop.conversation = (function(mozL10n) {
 
     componentWillUnmount: function() {
       this.stopListening(this.props.conversationAppStore);
-    },
-
-    closeWindow: function() {
-      window.close();
     },
 
     render: function() {
