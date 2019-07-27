@@ -1344,7 +1344,10 @@ MacroAssembler::assumeUnreachable(const char *output)
 
 static void
 Printf0_(const char *output) {
-    printf("%s", output);
+    
+    
+    
+    fprintf(stderr, "%s", output);
 }
 
 void
@@ -1366,7 +1369,7 @@ MacroAssembler::printf(const char *output)
 static void
 Printf1_(const char *output, uintptr_t value) {
     char *line = JS_sprintf_append(nullptr, output, value);
-    printf("%s", line);
+    fprintf(stderr, "%s", line);
     js_free(line);
 }
 

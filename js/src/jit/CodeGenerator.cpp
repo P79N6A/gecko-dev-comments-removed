@@ -3340,7 +3340,10 @@ CodeGenerator::generateBody()
         
         
         if (current->isTrivial())
-            continue; 
+            continue;
+
+        IonSpew(IonSpew_Codegen, "# block%lu%s:", i,
+                current->mir()->isLoopHeader() ? " (loop header)" : "");
 
         masm.bind(current->label());
 
