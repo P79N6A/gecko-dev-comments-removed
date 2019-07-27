@@ -50,6 +50,10 @@ class LIRGeneratorShared : public MDefinitionVisitor
     }
 
   protected:
+
+    static void ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp, MInstruction *ins);
+    static bool ShouldReorderCommutative(MDefinition *lhs, MDefinition *rhs, MInstruction *ins);
+
     
     
     
