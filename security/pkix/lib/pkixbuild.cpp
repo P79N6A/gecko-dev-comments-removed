@@ -319,6 +319,13 @@ BuildCertChain(TrustDomain& trustDomain, const SECItem& certDER,
     return SECFailure;
   }
 
+  
+  
+  
+  if (trustDomain.CheckPublicKey(cert.GetSubjectPublicKeyInfo()) != SECSuccess) {
+    return SECFailure;
+  }
+
   rv = BuildForward(trustDomain, cert, time, requiredKeyUsageIfPresent,
                     requiredEKUIfPresent, requiredPolicy, stapledOCSPResponse,
                     0);

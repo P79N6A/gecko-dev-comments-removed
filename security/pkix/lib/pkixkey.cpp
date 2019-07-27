@@ -36,6 +36,58 @@
 
 namespace mozilla { namespace pkix {
 
+typedef ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey> ScopedSECKeyPublicKey;
+
+SECStatus
+CheckPublicKeySize(const SECItem& subjectPublicKeyInfo,
+                    ScopedSECKeyPublicKey& publicKey)
+{
+  ScopedPtr<CERTSubjectPublicKeyInfo, SECKEY_DestroySubjectPublicKeyInfo>
+    spki(SECKEY_DecodeDERSubjectPublicKeyInfo(&subjectPublicKeyInfo));
+  if (!spki) {
+    return SECFailure;
+  }
+  publicKey = SECKEY_ExtractPublicKey(spki.get());
+  if (!publicKey) {
+    return SECFailure;
+  }
+
+  static const unsigned int MINIMUM_NON_ECC_BITS = 1024;
+
+  switch (publicKey.get()->keyType) {
+    case ecKey:
+      
+      return SECSuccess;
+    case dsaKey: 
+    case rsaKey:
+      
+      if (SECKEY_PublicKeyStrengthInBits(publicKey.get()) < MINIMUM_NON_ECC_BITS) {
+        
+        PR_SetError(SEC_ERROR_INVALID_KEY, 0);
+        return SECFailure;
+      }
+      break;
+    case nullKey:
+    case fortezzaKey:
+    case dhKey:
+    case keaKey:
+    case rsaPssKey:
+    case rsaOaepKey:
+    default:
+      PR_SetError(SEC_ERROR_UNSUPPORTED_KEYALG, 0);
+      return SECFailure;
+  }
+
+  return SECSuccess;
+}
+
+SECStatus
+CheckPublicKey(const SECItem& subjectPublicKeyInfo)
+{
+  ScopedSECKeyPublicKey unused;
+  return CheckPublicKeySize(subjectPublicKeyInfo, unused);
+}
+
 SECStatus
 VerifySignedData(const SignedDataWithSignature& sd,
                  const SECItem& subjectPublicKeyInfo, void* pkcs11PinArg)
@@ -101,14 +153,8 @@ VerifySignedData(const SignedDataWithSignature& sd,
       return SECFailure;
   }
 
-  ScopedPtr<CERTSubjectPublicKeyInfo, SECKEY_DestroySubjectPublicKeyInfo>
-    spki(SECKEY_DecodeDERSubjectPublicKeyInfo(&subjectPublicKeyInfo));
-  if (!spki) {
-    return SECFailure;
-  }
-  ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
-    pubKey(SECKEY_ExtractPublicKey(spki.get()));
-  if (!pubKey) {
+  ScopedSECKeyPublicKey pubKey;
+  if (CheckPublicKeySize(subjectPublicKeyInfo, pubKey) != SECSuccess) {
     return SECFailure;
   }
 

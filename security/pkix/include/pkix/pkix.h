@@ -139,6 +139,9 @@ SECStatus VerifyEncodedOCSPResponse(TrustDomain& trustDomain,
 SECStatus DigestBuf(const SECItem& item,  uint8_t* digestBuf,
                     size_t digestBufLen);
 
+
+SECStatus CheckPublicKey(const SECItem& subjectPublicKeyInfo);
+
 } } 
 
 #endif 

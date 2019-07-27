@@ -177,6 +177,11 @@ private:
     return SECFailure;
   }
 
+  SECStatus CheckPublicKey(const SECItem& subjectPublicKeyInfo)
+  {
+    return ::mozilla::pkix::CheckPublicKey(subjectPublicKeyInfo);
+  }
+
   
   
   ScopedCERTCertificate certChainTail[7];

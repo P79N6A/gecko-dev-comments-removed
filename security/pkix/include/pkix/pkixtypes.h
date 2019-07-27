@@ -302,6 +302,9 @@ public:
   
   
   
+  
+  
+  
   virtual SECStatus VerifySignedData(const SignedDataWithSignature& signedData,
                                      const SECItem& subjectPublicKeyInfo) = 0;
 
@@ -318,6 +321,14 @@ public:
   static const size_t DIGEST_LENGTH = 20; 
   virtual SECStatus DigestBuf(const SECItem& item,  uint8_t* digestBuf,
                               size_t digestBufLen) = 0;
+
+  
+  
+  
+  
+  
+  
+  virtual SECStatus CheckPublicKey(const SECItem& subjectPublicKeyInfo) = 0;
 
 protected:
   TrustDomain() { }
