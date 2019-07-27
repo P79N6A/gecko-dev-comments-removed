@@ -10,6 +10,7 @@ let test = Task.async(function*() {
   var { EVENTS, PerformanceController, DetailsView, DetailsSubview } = panel.panelWin;
 
   
+  Services.prefs.setBoolPref(ALLOCATIONS_PREF, true);
   Services.prefs.setBoolPref(MEMORY_PREF, true);
   Services.prefs.setBoolPref(FRAMERATE_PREF, true);
 

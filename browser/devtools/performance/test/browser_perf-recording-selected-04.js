@@ -12,6 +12,7 @@ let test = Task.async(function*() {
 
   
   Services.prefs.setBoolPref(MEMORY_PREF, true);
+  Services.prefs.setBoolPref(ALLOCATIONS_PREF, true);
 
   
   
