@@ -90,7 +90,7 @@ function objEquiv(a, b) {
     return false;
   }
   
-  if (a.prototype || undefined)  != (b.prototype || undefined) {
+  if (a.prototype !== b.prototype) {
     return false;
   }
   
