@@ -491,30 +491,6 @@ static const PLDHashTableOps gHostDB_ops =
     HostDB_InitEntry,
 };
 
-static PLDHashOperator
-HostDB_RemoveEntry(PLDHashTable *table,
-                   PLDHashEntryHdr *hdr,
-                   uint32_t number,
-                   void *arg)
-{
-    return PL_DHASH_REMOVE;
-}
-
-static PLDHashOperator
-HostDB_PruneEntry(PLDHashTable *table,
-                  PLDHashEntryHdr *hdr,
-                  uint32_t number,
-                  void *arg)
-{
-    nsHostDBEnt* ent = static_cast<nsHostDBEnt *>(hdr);
-    
-    if (ent->rec->RemoveOrRefresh()) {
-        PR_REMOVE_LINK(ent->rec);
-        return PL_DHASH_REMOVE;
-    }
-    return PL_DHASH_NEXT;
-}
-
 
 
 #if TTL_AVAILABLE
@@ -649,7 +625,14 @@ nsHostResolver::FlushCache()
     }
 
     
-    PL_DHashTableEnumerate(&mDB, HostDB_PruneEntry, nullptr);
+    for (auto iter = mDB.RemovingIter(); !iter.Done(); iter.Next()) {
+        auto entry = static_cast<nsHostDBEnt *>(iter.Get());
+        
+        if (entry->rec->RemoveOrRefresh()) {
+            PR_REMOVE_LINK(entry->rec);
+            iter.Remove();
+        }
+    }
 }
 
 void
@@ -688,7 +671,7 @@ nsHostResolver::Shutdown()
             mIdleThreadCV.NotifyAll();
 
         
-        PL_DHashTableEnumerate(&mDB, HostDB_RemoveEntry, nullptr);
+        mDB.Clear();
     }
 
     ClearPendingQueue(&pendingQHigh);
@@ -1495,58 +1478,51 @@ nsHostResolver::Create(uint32_t maxCacheEntries,
     return rv;
 }
 
-PLDHashOperator
-CacheEntryEnumerator(PLDHashTable *table, PLDHashEntryHdr *entry,
-                     uint32_t number, void *arg)
-{
-    
-    
-    nsHostRecord *rec = static_cast<nsHostDBEnt*>(entry)->rec;
-    MOZ_ASSERT(rec, "rec should never be null here!");
-    if (!rec || !rec->addr_info || !rec->host) {
-        return PL_DHASH_NEXT;
-    }
-
-    DNSCacheEntries info;
-    info.hostname = rec->host;
-    info.family = rec->af;
-    info.netInterface = rec->netInterface;
-    info.expiration =
-        (int64_t)(rec->mValidEnd - TimeStamp::NowLoRes()).ToSeconds();
-    if (info.expiration <= 0) {
-        
-        return PL_DHASH_NEXT;
-    }
-
-    {
-        MutexAutoLock lock(rec->addr_info_lock);
-
-        NetAddr *addr = nullptr;
-        NetAddrElement *addrElement = rec->addr_info->mAddresses.getFirst();
-        if (addrElement) {
-            addr = &addrElement->mAddress;
-        }
-        while (addr) {
-            char buf[kIPv6CStrBufSize];
-            if (NetAddrToString(addr, buf, sizeof(buf))) {
-                info.hostaddr.AppendElement(buf);
-            }
-            addr = nullptr;
-            addrElement = addrElement->getNext();
-            if (addrElement) {
-                addr = &addrElement->mAddress;
-            }
-        }
-    }
-
-    nsTArray<DNSCacheEntries> *args = static_cast<nsTArray<DNSCacheEntries> *>(arg);
-    args->AppendElement(info);
-
-    return PL_DHASH_NEXT;
-}
-
 void
 nsHostResolver::GetDNSCacheEntries(nsTArray<DNSCacheEntries> *args)
 {
-    PL_DHashTableEnumerate(&mDB, CacheEntryEnumerator, args);
+    for (auto iter = mDB.Iter(); !iter.Done(); iter.Next()) {
+        
+        
+        auto entry = static_cast<nsHostDBEnt*>(iter.Get());
+        nsHostRecord* rec = entry->rec;
+        MOZ_ASSERT(rec, "rec should never be null here!");
+        if (!rec || !rec->addr_info || !rec->host) {
+            continue;
+        }
+
+        DNSCacheEntries info;
+        info.hostname = rec->host;
+        info.family = rec->af;
+        info.netInterface = rec->netInterface;
+        info.expiration =
+            (int64_t)(rec->mValidEnd - TimeStamp::NowLoRes()).ToSeconds();
+        if (info.expiration <= 0) {
+            
+            continue;
+        }
+
+        {
+            MutexAutoLock lock(rec->addr_info_lock);
+
+            NetAddr *addr = nullptr;
+            NetAddrElement *addrElement = rec->addr_info->mAddresses.getFirst();
+            if (addrElement) {
+                addr = &addrElement->mAddress;
+            }
+            while (addr) {
+                char buf[kIPv6CStrBufSize];
+                if (NetAddrToString(addr, buf, sizeof(buf))) {
+                    info.hostaddr.AppendElement(buf);
+                }
+                addr = nullptr;
+                addrElement = addrElement->getNext();
+                if (addrElement) {
+                    addr = &addrElement->mAddress;
+                }
+            }
+        }
+
+        args->AppendElement(info);
+    }
 }
