@@ -90,6 +90,12 @@ var FullScreen = {
       
       this._isPopupOpen = false;
       this.cleanup();
+      
+      
+      
+      
+      
+      TabsInTitlebar.updateAppearance(true);
     }
   },
 

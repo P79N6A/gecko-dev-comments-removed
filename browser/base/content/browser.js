@@ -5066,7 +5066,15 @@ var TabsInTitlebar = {
       if (this._lastSizeMode == sizemode) {
         return;
       }
+      let oldSizeMode = this._lastSizeMode;
       this._lastSizeMode = sizemode;
+      
+      
+      
+      
+      if (oldSizeMode == "fullscreen") {
+        return;
+      }
     }
 
     for (let something in this._disallowed) {
