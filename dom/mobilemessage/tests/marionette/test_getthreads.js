@@ -355,18 +355,20 @@ checkFuncs.push(checkThread.bind(null, ["thread 16-1"],
 
 
 
-tasks.push(sendMessage.bind(null, "+5511555211017", "thread 17-1"));
-tasks.push(sendMessage.bind(null, "555211017",      "thread 17-2"));
+
+tasks.push(sendMessage.bind(null, "+551155211017", "thread 17-1"));
+tasks.push(sendMessage.bind(null, "1155211017",      "thread 17-2"));
 checkFuncs.push(checkThread.bind(null, ["thread 17-1", "thread 17-2"],
-                                 "thread 17-2", 0, ["+5511555211017"]));
+                                 "thread 17-2", 0, ["+551155211017"]));
 
 
 
 
-tasks.push(sendMessage.bind(null, "555211018",      "thread 18-1"));
-tasks.push(sendMessage.bind(null, "+5511555211018", "thread 18-2"));
+
+tasks.push(sendMessage.bind(null, "1155211018",      "thread 18-1"));
+tasks.push(sendMessage.bind(null, "+551155211018", "thread 18-2"));
 checkFuncs.push(checkThread.bind(null, ["thread 18-1", "thread 18-2"],
-                                 "thread 18-2", 0, ["555211018"]));
+                                 "thread 18-2", 0, ["1155211018"]));
 
 
 tasks.push(getAllThreads.bind(null, function(threads) {
