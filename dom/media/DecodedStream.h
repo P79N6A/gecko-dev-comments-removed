@@ -85,7 +85,7 @@ public:
 
 class DecodedStream {
 public:
-  explicit DecodedStream(ReentrantMonitor& aMonitor);
+  DecodedStream();
   DecodedStreamData* GetData() const;
   void DestroyData();
   void RecreateData(MediaStreamGraph* aGraph);
@@ -100,7 +100,15 @@ private:
   UniquePtr<DecodedStreamData> mData;
   
   nsTArray<OutputStreamData> mOutputStreams;
-  ReentrantMonitor& mMonitor;
+
+  
+  
+  
+  
+  
+  
+  
+  mutable ReentrantMonitor mMonitor;
 };
 
 } 
