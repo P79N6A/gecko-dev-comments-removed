@@ -18,6 +18,7 @@
 #include "nsIProtocolProxyCallback.h"
 #include "nsIChannelEventSink.h"
 #include "nsIHttpChannelInternal.h"
+#include "nsIStringStream.h"
 #include "BaseWebSocketChannel.h"
 
 #ifdef MOZ_WIDGET_GONK
@@ -96,6 +97,11 @@ public:
 
   WebSocketChannel();
   static void Shutdown();
+  bool IsOnTargetThread();
+
+  
+  void GetEffectiveURL(nsAString& aEffectiveURL) const MOZ_OVERRIDE;
+  bool IsEncrypted() const MOZ_OVERRIDE;
 
   enum {
     
@@ -185,6 +191,7 @@ private:
 
   
   nsCString                       mHost;
+  nsString                        mEffectiveURL;
 
   nsCOMPtr<nsISocketTransport>    mTransport;
   nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
