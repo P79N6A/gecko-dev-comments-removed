@@ -131,10 +131,15 @@ let PositionHandler = {
       
       
       
+      let primaryScreen = Cc["@mozilla.org/gfx/screenmanager;1"]
+                            .getService(Ci.nsIScreenManager)
+                            .primaryScreen;
       let width = {};
-      Cc["@mozilla.org/gfx/screenmanager;1"].getService(Ci.nsIScreenManager)
-        .primaryScreen.GetRectDisplayPix({}, {}, width, {});
-      window.moveTo((width.value - document.documentElement.clientWidth) / 2, 0);
+      primaryScreen.GetRectDisplayPix({}, {}, width, {});
+      let availTop = {};
+      primaryScreen.GetAvailRectDisplayPix({}, availTop, {}, {});
+      window.moveTo((width.value - document.documentElement.clientWidth) / 2,
+                    availTop.value);
     } else {
       
       this.setXPosition(window.screenX);
@@ -145,7 +150,7 @@ let PositionHandler = {
     let desiredX = Math.max(desiredX, screen.availLeft);
     let maxX =
       screen.availLeft + screen.availWidth - document.documentElement.clientWidth;
-    window.moveTo(Math.min(desiredX, maxX), 0);
+    window.moveTo(Math.min(desiredX, maxX), screen.availTop);
   },
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
