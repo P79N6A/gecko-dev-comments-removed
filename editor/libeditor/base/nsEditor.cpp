@@ -5227,43 +5227,62 @@ nsEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
   
   NS_ENSURE_TRUE(aEvent, false);
 
+  WidgetEvent* widgetEvent = aEvent->GetInternalNSEvent();
+  if (NS_WARN_IF(!widgetEvent)) {
+    return false;
+  }
+
   
   
-  nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aEvent);
-  if (mouseEvent) {
+  if (widgetEvent->IsUsingCoordinates()) {
     nsCOMPtr<nsIContent> focusedContent = GetFocusedContent();
     if (!focusedContent) {
       return false;
     }
-  } else {
-    nsAutoString eventType;
-    aEvent->GetType(eventType);
-    
-    
-    
-    
-    
-    if (eventType.EqualsLiteral("text") ||
-        eventType.EqualsLiteral("compositionstart") ||
-        eventType.EqualsLiteral("compositionend")) {
-      WidgetGUIEvent* widgetGUIEvent =
-        aEvent->GetInternalNSEvent()->AsGUIEvent();
-      if (!widgetGUIEvent || !widgetGUIEvent->widget) {
-        return false;
-      }
-    }
   }
 
-  bool isTrusted;
-  nsresult rv = aEvent->GetIsTrusted(&isTrusted);
-  NS_ENSURE_SUCCESS(rv, false);
-  if (isTrusted) {
+  
+  
+  
+  
+  
+  bool needsWidget = false;
+  WidgetGUIEvent* widgetGUIEvent = nullptr;
+  switch (widgetEvent->message) {
+    case NS_USER_DEFINED_EVENT:
+      
+      
+      return false;
+    case NS_TEXT_TEXT:
+      
+      
+      widgetGUIEvent = aEvent->GetInternalNSEvent()->AsTextEvent();
+      needsWidget = true;
+      break;
+    case NS_COMPOSITION_START:
+    case NS_COMPOSITION_END:
+    case NS_COMPOSITION_UPDATE:
+      
+      
+      widgetGUIEvent = aEvent->GetInternalNSEvent()->AsCompositionEvent();
+      needsWidget = true;
+      break;
+    default:
+      break;
+  }
+  if (needsWidget &&
+      (!widgetGUIEvent || !widgetGUIEvent->widget)) {
+    return false;
+  }
+
+  
+  if (widgetEvent->mFlags.mIsTrusted) {
     return true;
   }
 
   
   
-  if (mouseEvent) {
+  if (widgetEvent->AsMouseEventBase()) {
     return false;
   }
 
