@@ -19,8 +19,12 @@ __BEGIN_DECLS
 
 #ifdef CPR_USE_OS_STRCASECMP
 
+#ifndef cpr_strcasecmp
 #define cpr_strcasecmp  strcasecmp
+#endif
+#ifndef cpr_strncasecmp
 #define cpr_strncasecmp strncasecmp
+#endif
 #else
 
 
