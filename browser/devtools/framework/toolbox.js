@@ -257,8 +257,7 @@ Toolbox.prototype = {
 
         let splitConsolePromise = promise.resolve();
         if (Services.prefs.getBoolPref(SPLITCONSOLE_ENABLED_PREF)) {
-          
-          splitConsolePromise = this.toggleSplitConsole(true);
+          splitConsolePromise = this.openSplitConsole();
         }
         let buttonsPromise = this._buildButtons();
 
@@ -372,7 +371,7 @@ Toolbox.prototype = {
       webconsolePanel.removeAttribute("collapsed");
     } else {
       deck.removeAttribute("collapsed");
-      if (this._splitConsole) {
+      if (this.splitConsole) {
         webconsolePanel.removeAttribute("collapsed");
         splitter.removeAttribute("hidden");
       } else {
@@ -976,31 +975,45 @@ Toolbox.prototype = {
 
 
 
+  openSplitConsole: function() {
+    this._splitConsole = true;
+    Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, true);
+    this._refreshConsoleDisplay();
+    this.emit("split-console");
+    return this.loadTool("webconsole").then(() => {
+      this.focusConsoleInput();
+    });
+  },
+
+  
 
 
 
 
 
-  toggleSplitConsole: function(forceToggle = false) {
-    let openedConsolePanel = this.currentToolId === "webconsole";
-    let ret = promise.resolve();
+  closeSplitConsole: function() {
+    this._splitConsole = false;
+    Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, false);
+    this._refreshConsoleDisplay();
+    this.emit("split-console");
+    return promise.resolve();
+  },
 
-    
-    if (!openedConsolePanel || forceToggle) {
-      this._splitConsole = !this._splitConsole;
-      Services.prefs.setBoolPref(SPLITCONSOLE_ENABLED_PREF, this._splitConsole);
+  
 
-      this._refreshConsoleDisplay();
-      this.emit("split-console");
 
-      if (this._splitConsole) {
-        ret = this.loadTool("webconsole").then(() => {
-          this.focusConsoleInput();
-        });
-      }
+
+
+
+
+  toggleSplitConsole: function() {
+    if (this.currentToolId !== "webconsole") {
+      return this.splitConsole ?
+             this.closeSplitConsole() :
+             this.openSplitConsole();
     }
 
-    return ret;
+    return promise.resolve();
   },
 
   
