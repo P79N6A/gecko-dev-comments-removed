@@ -295,7 +295,7 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     flags(),
     linebase(base - options.column),
     prevLinebase(nullptr),
-    userbuf(cx, base - options.column, length + options.column), 
+    userbuf(cx, base, length, options.column),
     filename(options.filename()),
     displayURL_(nullptr),
     sourceMapURL_(nullptr),
@@ -308,7 +308,6 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     
     
     
-    userbuf.setAddressOfNextRawChar(base,  true);
 
     
     
