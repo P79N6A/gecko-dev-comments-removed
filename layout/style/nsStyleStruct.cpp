@@ -38,6 +38,11 @@ static_assert((((1 << nsStyleStructID_Length) - 1) &
                ~(NS_STYLE_INHERIT_MASK)) == 0,
               "Not enough bits in NS_STYLE_INHERIT_MASK");
 
+
+
+const int32_t nsStyleGridLine::kMinLine = -10000;
+const int32_t nsStyleGridLine::kMaxLine = 10000;
+
 inline bool IsFixedUnit(const nsStyleCoord& aCoord, bool aEnumOK)
 {
   return aCoord.ConvertsToLength() || 

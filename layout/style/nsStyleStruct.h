@@ -1266,9 +1266,14 @@ struct nsStyleGridTemplate {
 
 struct nsStyleGridLine {
   
+  
   bool mHasSpan;
   int32_t mInteger;  
   nsString mLineName;  
+
+  
+  static const int32_t kMinLine;
+  static const int32_t kMaxLine;
 
   nsStyleGridLine()
     : mHasSpan(false)
