@@ -29,8 +29,23 @@ import android.widget.TextView;
 
 public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
     protected final ArrayList<RemoteClient> clients;
+    private final boolean showGroupIndicator;
     protected int groupLayoutId;
     protected int childLayoutId;
+
+    public static class GroupViewHolder {
+        final TextView nameView;
+        final TextView lastModifiedView;
+        final ImageView deviceTypeView;
+        final ImageView deviceExpandedView;
+
+        public GroupViewHolder(View view) {
+            nameView = (TextView) view.findViewById(R.id.client);
+            lastModifiedView = (TextView) view.findViewById(R.id.last_synced);
+            deviceTypeView = (ImageView) view.findViewById(R.id.device_type);
+            deviceExpandedView = (ImageView) view.findViewById(R.id.device_expanded);
+        }
+    }
 
     
 
@@ -44,13 +59,15 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
 
 
 
-    public RemoteTabsExpandableListAdapter(int groupLayoutId, int childLayoutId, List<RemoteClient> clients) {
+
+    public RemoteTabsExpandableListAdapter(int groupLayoutId, int childLayoutId, List<RemoteClient> clients, boolean showGroupIndicator) {
         this.groupLayoutId = groupLayoutId;
         this.childLayoutId = childLayoutId;
-        this.clients = new ArrayList<RemoteClient>();
+        this.clients = new ArrayList<>();
         if (clients != null) {
             this.clients.addAll(clients);
         }
+        this.showGroupIndicator = showGroupIndicator;
     }
 
     public void replaceClients(List<RemoteClient> clients) {
@@ -97,9 +114,21 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
         } else {
             final LayoutInflater inflater = LayoutInflater.from(context);
             view = inflater.inflate(groupLayoutId, parent, false);
+            final GroupViewHolder holder = new GroupViewHolder(view);
+            view.setTag(holder);
         }
 
         final RemoteClient client = clients.get(groupPosition);
+        updateClientsItemView(isExpanded, context, view, client);
+
+        return view;
+    }
+
+    public void updateClientsItemView(final boolean isExpanded, final Context context, final View view, final RemoteClient client) {
+        final GroupViewHolder holder = (GroupViewHolder) view.getTag();
+        if (!showGroupIndicator) {
+            view.setBackgroundColor(0);
+        }
 
         
         
@@ -119,33 +148,27 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
         }
 
         
-        final TextView nameView = (TextView) view.findViewById(R.id.client);
-        nameView.setText(client.name);
-        nameView.setTextColor(context.getResources().getColor(textColorResId));
+        holder.nameView.setText(client.name);
+        holder.nameView.setTextColor(context.getResources().getColor(textColorResId));
 
-        final TextView lastModifiedView = (TextView) view.findViewById(R.id.last_synced);
         final long now = System.currentTimeMillis();
 
         
         
         final GeckoProfile profile = GeckoProfile.get(context);
-        lastModifiedView.setText(profile.getDB().getTabsAccessor().getLastSyncedString(context, now, client.lastModified));
+        holder.lastModifiedView.setText(profile.getDB().getTabsAccessor().getLastSyncedString(context, now, client.lastModified));
 
         
         
         
-        final ImageView deviceTypeView = (ImageView) view.findViewById(R.id.device_type);
-        if (deviceTypeView != null) {
-            deviceTypeView.setImageResource(deviceTypeResId);
+        if (holder.deviceTypeView != null) {
+            holder.deviceTypeView.setImageResource(deviceTypeResId);
         }
 
-        final ImageView deviceExpandedView = (ImageView) view.findViewById(R.id.device_expanded);
-        if (deviceExpandedView != null) {
+        if (showGroupIndicator && holder.deviceExpandedView != null) {
             
-            deviceExpandedView.setImageResource(client.tabs.isEmpty() ? 0 : deviceExpandedResId);
+            holder.deviceExpandedView.setImageResource(client.tabs.isEmpty() ? 0 : deviceExpandedResId);
         }
-
-        return view;
     }
 
     @Override
