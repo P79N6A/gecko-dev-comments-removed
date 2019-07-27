@@ -226,7 +226,7 @@ ValueNumberer::deleteDefsRecursively(MDefinition *def)
 
 
 bool
-ValueNumberer::discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
+ValueNumberer::releasePhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
                                   UseRemovedOption useRemovedOption)
 {
     
@@ -247,12 +247,12 @@ ValueNumberer::discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
 
 
 bool
-ValueNumberer::discardInsOperands(MInstruction *ins,
+ValueNumberer::releaseInsOperands(MInstruction *ins,
                                   UseRemovedOption useRemovedOption)
 {
     for (size_t o = 0, e = ins->numOperands(); o != e; ++o) {
         MDefinition *op = ins->getOperand(o);
-        ins->discardOperand(o);
+        ins->releaseOperand(o);
         if (IsDead(op)) {
             if (!deadDefs_.append(op))
                 return false;
@@ -275,13 +275,13 @@ ValueNumberer::deleteDef(MDefinition *def,
     if (def->isPhi()) {
         MPhi *phi = def->toPhi();
         MBasicBlock *phiBlock = phi->block();
-        if (!discardPhiOperands(phi, phiBlock, useRemovedOption))
+        if (!releasePhiOperands(phi, phiBlock, useRemovedOption))
              return false;
         MPhiIterator at(phiBlock->phisBegin(phi));
         phiBlock->discardPhiAt(at);
     } else {
         MInstruction *ins = def->toInstruction();
-        if (!discardInsOperands(ins, useRemovedOption))
+        if (!releaseInsOperands(ins, useRemovedOption))
              return false;
         ins->block()->discardIgnoreOperands(ins);
     }
@@ -571,7 +571,7 @@ ValueNumberer::visitControlInstruction(MBasicBlock *block, const MBasicBlock *do
         }
     }
 
-    if (!discardInsOperands(control))
+    if (!releaseInsOperands(control))
         return false;
     block->discardIgnoreOperands(control);
     block->end(newControl);
