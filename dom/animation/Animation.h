@@ -116,9 +116,11 @@ struct AnimationProperty
   InfallibleTArray<AnimationPropertySegment> mSegments;
 };
 
+struct ElementPropertyTransition;
+
 namespace dom {
 
-class Animation MOZ_FINAL : public nsWrapperCache
+class Animation : public nsWrapperCache
 {
 public:
   Animation(nsIDocument* aDocument, const AnimationTiming &aTiming)
@@ -135,6 +137,14 @@ public:
 
   nsIDocument* GetParentObject() const { return mDocument; }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+
+  
+  
+  
+  virtual ElementPropertyTransition* AsTransition() { return nullptr; }
+  virtual const ElementPropertyTransition* AsTransition() const {
+    return nullptr;
+  }
 
   void SetParentTime(Nullable<TimeDuration> aParentTime);
 
@@ -192,10 +202,8 @@ public:
   }
 
   void SetIsFinishedTransition() {
-    
-    
-    
-    
+    MOZ_ASSERT(AsTransition(),
+               "Calling SetIsFinishedTransition but it's not a transition");
     mIsFinishedTransition = true;
   }
 
