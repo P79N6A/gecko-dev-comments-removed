@@ -1,6 +1,9 @@
 
 
 
+const Cu = Components.utils;
+const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
+
 function run_test()
 {
   let testFlag = Services.telemetry.getHistogramById("TELEMETRY_TEST_FLAG");

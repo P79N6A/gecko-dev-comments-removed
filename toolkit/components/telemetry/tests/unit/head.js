@@ -1,8 +1,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/TelemetryPing.jsm", this);
-Components.utils.import("resource://gre/modules/Services.jsm", this);
 
 
 const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
@@ -57,8 +55,3 @@ function createAppInfo(id, name, version, platformVersion) {
   registrar.registerFactory(XULAPPINFO_CID, "XULAppInfo",
                             XULAPPINFO_CONTRACTID, XULAppInfoFactory);
 }
-
-
-Services.prefs.setCharPref("toolkit.telemetry.log.level", "Trace");
-Services.prefs.setBoolPref("toolkit.telemetry.log.dump", true);
-TelemetryPing.initLogging();
