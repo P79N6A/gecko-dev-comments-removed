@@ -36,7 +36,29 @@ public:
 
 
 
-  nsresult Connect(UnixSocketConnector* aConnector, int aDelayMs = 0);
+
+
+
+  bool SendSocketData(const nsACString& aMessage);
+
+  
+
+
+
+
+
+
+
+
+
+  bool Connect(UnixSocketConnector* aConnector,
+               const char* aAddress,
+               int aDelayMs = 0);
+
+  
+
+
+  void GetSocketAddr(nsAString& aAddrStr);
 
   
   
