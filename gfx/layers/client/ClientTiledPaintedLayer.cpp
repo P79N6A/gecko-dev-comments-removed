@@ -70,10 +70,21 @@ GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAn
        ancestorParent ? iter != ancestorParent : iter.IsValid();
        iter = iter.GetParent()) {
     transform = transform * iter.GetTransform();
-    
-    
-    const FrameMetrics& metrics = iter.Metrics();
-    transform.PostScale(metrics.mPresShellResolution, metrics.mPresShellResolution, 1.f);
+
+    if (gfxPrefs::LayoutUseContainersForRootFrames()) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      const FrameMetrics& metrics = iter.Metrics();
+      transform.PostScale(metrics.mPresShellResolution, metrics.mPresShellResolution, 1.f);
+    }
   }
   return transform;
 }
