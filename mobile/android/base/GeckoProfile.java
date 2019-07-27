@@ -91,9 +91,8 @@ public final class GeckoProfile {
         }
 
         
-        GeckoProfile guest = GeckoProfile.getGuestProfile(context);
-        if (guest != null && guest.locked()) {
-            return guest;
+        if (GuestSession.shouldUse(context, "")) {
+            return GeckoProfile.getGuestProfile(context);
         }
 
         if (isGeckoApp) {
@@ -194,12 +193,17 @@ public final class GeckoProfile {
 
     public static GeckoProfile createGuestProfile(Context context) {
         try {
-            removeGuestProfile(context);
             
             
             getGuestDir(context).mkdir();
             GeckoProfile profile = getGuestProfile(context);
-            profile.lock();
+
+            
+            
+            
+            if (!GuestSession.isSecureKeyguardLocked(context)) {
+                profile.lock();
+            }
 
             
 
@@ -228,7 +232,7 @@ public final class GeckoProfile {
         return sGuestDir;
     }
 
-    private static GeckoProfile getGuestProfile(Context context) {
+    public static GeckoProfile getGuestProfile(Context context) {
         if (sGuestProfile == null) {
             File guestDir = getGuestDir(context);
             if (guestDir.exists()) {
@@ -242,10 +246,11 @@ public final class GeckoProfile {
 
     public static boolean maybeCleanupGuestProfile(final Context context) {
         final GeckoProfile profile = getGuestProfile(context);
-
         if (profile == null) {
             return false;
-        } else if (!profile.locked()) {
+        }
+
+        if (!profile.locked()) {
             profile.mInGuestMode = false;
 
             
@@ -357,6 +362,11 @@ public final class GeckoProfile {
 
         try {
             final File lockFile = new File(profileDir, LOCK_FILE_NAME);
+            if (!lockFile.exists()) {
+                mLocked = LockState.UNLOCKED;
+                return true;
+            }
+
             final boolean result = delete(lockFile);
             if (result) {
                 mLocked = LockState.UNLOCKED;
@@ -367,6 +377,7 @@ public final class GeckoProfile {
         } catch(IOException ex) {
             Log.e(LOGTAG, "Error unlocking profile", ex);
         }
+
         mLocked = LockState.LOCKED;
         return false;
     }

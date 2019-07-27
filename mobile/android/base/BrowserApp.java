@@ -27,6 +27,7 @@ import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserContract.ReadingListItems;
 import org.mozilla.gecko.db.BrowserContract.SearchHistory;
 import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.db.DBUtils;
 import org.mozilla.gecko.db.SuggestedSites;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.favicons.Favicons;
@@ -78,6 +79,7 @@ import org.mozilla.gecko.widget.GeckoActionProvider;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
+import android.app.KeyguardManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -104,11 +106,9 @@ import android.os.StrictMode;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -134,8 +134,7 @@ public class BrowserApp extends GeckoApp
                                    BrowserSearch.OnEditSuggestionListener,
                                    HomePager.OnNewTabsListener,
                                    OnUrlOpenListener,
-                                   ActionModeCompat.Presenter,
-                                   LayoutInflater.Factory {
+                                   ActionModeCompat.Presenter {
     private static final String LOGTAG = "GeckoBrowserApp";
 
     private static final int TABS_ANIMATION_DURATION = 450;
@@ -158,8 +157,7 @@ public class BrowserApp extends GeckoApp
     private BrowserSearch mBrowserSearch;
     private View mBrowserSearchContainer;
 
-    public ViewGroup mBrowserChrome;
-    public ViewFlipper mActionBarFlipper;
+    public ViewFlipper mViewFlipper;
     public ActionModeCompatView mActionBar;
     private BrowserToolbar mBrowserToolbar;
     private ToolbarProgressView mProgressView;
@@ -232,19 +230,6 @@ public class BrowserApp extends GeckoApp
     private boolean mHideWebContentOnAnimationEnd;
 
     private DynamicToolbar mDynamicToolbar = new DynamicToolbar();
-
-    @Override
-    public View onCreateView(final String name, final Context context, final AttributeSet attrs) {
-        final View view;
-        if (BrowserToolbar.class.getName().equals(name)) {
-            view = BrowserToolbar.create(context, attrs);
-        } else if (TabsPanel.TabsLayout.class.getName().equals(name)) {
-            view = TabsPanel.createTabsLayout(context, attrs);
-        } else {
-            view = super.onCreateView(name, context, attrs);
-        }
-        return view;
-    }
 
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
@@ -344,7 +329,7 @@ public class BrowserApp extends GeckoApp
             switch (keyCode) {
                 case KeyEvent.KEYCODE_BUTTON_Y:
                     
-                    if (mBrowserChrome.getVisibility() == View.VISIBLE) {
+                    if (mViewFlipper.getVisibility() == View.VISIBLE) {
                         if (mDynamicToolbar.isEnabled() && !isHomePagerVisible()) {
                             mDynamicToolbar.setVisible(false, VisibilityTransition.ANIMATE);
                             if (mLayerView != null) {
@@ -513,11 +498,17 @@ public class BrowserApp extends GeckoApp
         mAboutHomeStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_ABOUTHOME");
 
         final Intent intent = getIntent();
+        final String args = intent.getStringExtra("args");
 
-        String args = intent.getStringExtra("args");
-        if (args != null && args.contains(GUEST_BROWSING_ARG)) {
+        if (GuestSession.shouldUse(this, args)) {
+            GuestSession.configureWindow(getWindow());
             mProfile = GeckoProfile.createGuestProfile(this);
         } else {
+            
+            final KeyguardManager manager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            if (Versions.feature16Plus && !manager.isKeyguardSecure()) {
+                GuestSession.configureWindow(getWindow());
+            }
             GeckoProfile.maybeCleanupGuestProfile(this);
         }
 
@@ -529,8 +520,7 @@ public class BrowserApp extends GeckoApp
 
         final Context appContext = getApplicationContext();
 
-        mBrowserChrome = (ViewGroup) findViewById(R.id.browser_chrome);
-        mActionBarFlipper = (ViewFlipper) findViewById(R.id.browser_actionbar);
+        mViewFlipper = (ViewFlipper) findViewById(R.id.browser_actionbar);
         mActionBar = (ActionModeCompatView) findViewById(R.id.actionbar);
 
         mBrowserToolbar = (BrowserToolbar) findViewById(R.id.browser_toolbar);
@@ -541,10 +531,6 @@ public class BrowserApp extends GeckoApp
             mBrowserToolbar.setTitle(intent.getDataString());
 
             Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.INTENT);
-        }
-
-        if (NewTabletUI.isEnabled(this)) {
-            findViewById(R.id.new_tablet_tab_strip).setVisibility(View.VISIBLE);
         }
 
         ((GeckoApp.MainLayout) mMainLayout).setTouchEventInterceptor(new HideOnTouchListener());
@@ -717,6 +703,18 @@ public class BrowserApp extends GeckoApp
     @Override
     public void onResume() {
         super.onResume();
+
+        final String args = getIntent().getStringExtra("args");
+        
+        
+        final boolean enableGuestSession = GuestSession.shouldUse(this, args);
+        final boolean inGuestSession = GeckoProfile.get(this).inGuestMode();
+        if (enableGuestSession != inGuestSession) {
+            doRestart(getIntent());
+            GeckoAppShell.systemExit();
+            return;
+        }
+
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Prompt:ShowTop");
         if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
@@ -842,7 +840,7 @@ public class BrowserApp extends GeckoApp
                 mLayerView.setOnMetricsChangedListener(this);
             }
             setToolbarMargin(0);
-            mHomePagerContainer.setPadding(0, mBrowserChrome.getHeight(), 0, 0);
+            mHomePagerContainer.setPadding(0, mViewFlipper.getHeight(), 0, 0);
         } else {
             
             
@@ -850,8 +848,8 @@ public class BrowserApp extends GeckoApp
                 mLayerView.setOnMetricsChangedListener(null);
             }
             mHomePagerContainer.setPadding(0, 0, 0, 0);
-            if (mBrowserChrome != null) {
-                ViewHelper.setTranslationY(mBrowserChrome, 0);
+            if (mViewFlipper != null) {
+                ViewHelper.setTranslationY(mViewFlipper, 0);
             }
         }
 
@@ -1120,7 +1118,7 @@ public class BrowserApp extends GeckoApp
 
     @Override
     public void onMetricsChanged(ImmutableViewportMetrics aMetrics) {
-        if (isHomePagerVisible() || mBrowserChrome == null) {
+        if (isHomePagerVisible() || mViewFlipper == null) {
             return;
         }
 
@@ -1129,7 +1127,7 @@ public class BrowserApp extends GeckoApp
         if (aMetrics.getPageHeight() <= aMetrics.getHeight()) {
             if (mDynamicToolbarCanScroll) {
                 mDynamicToolbarCanScroll = false;
-                if (mBrowserChrome.getVisibility() != View.VISIBLE) {
+                if (mViewFlipper.getVisibility() != View.VISIBLE) {
                     ThreadUtils.postToUiThread(new Runnable() {
                         public void run() {
                             mDynamicToolbar.setVisible(true, VisibilityTransition.ANIMATE);
@@ -1141,13 +1139,13 @@ public class BrowserApp extends GeckoApp
             mDynamicToolbarCanScroll = true;
         }
 
-        final View browserChrome = mBrowserChrome;
+        final View toolbarLayout = mViewFlipper;
         final ToolbarProgressView progressView = mProgressView;
         final int marginTop = Math.round(aMetrics.marginTop);
         ThreadUtils.postToUiThread(new Runnable() {
             public void run() {
-                final float translationY = marginTop - browserChrome.getHeight();
-                ViewHelper.setTranslationY(browserChrome, translationY);
+                final float translationY = marginTop - toolbarLayout.getHeight();
+                ViewHelper.setTranslationY(toolbarLayout, translationY);
                 ViewHelper.setTranslationY(progressView, translationY);
 
                 if (mDoorHangerPopup.isShowing()) {
@@ -1184,8 +1182,8 @@ public class BrowserApp extends GeckoApp
         ThreadUtils.assertOnUiThread();
 
         int height = 0;
-        if (mBrowserChrome != null) {
-            height = mBrowserChrome.getHeight();
+        if (mViewFlipper != null) {
+            height = mViewFlipper.getHeight();
         }
 
         if (!mDynamicToolbar.isEnabled() || isHomePagerVisible()) {
@@ -1218,9 +1216,9 @@ public class BrowserApp extends GeckoApp
             @Override
             public void run() {
                 if (aShow) {
-                    mBrowserChrome.setVisibility(View.VISIBLE);
+                    mViewFlipper.setVisibility(View.VISIBLE);
                 } else {
-                    mBrowserChrome.setVisibility(View.GONE);
+                    mViewFlipper.setVisibility(View.GONE);
                     if (hasTabsSideBar()) {
                         hideTabs();
                     }
@@ -1236,8 +1234,8 @@ public class BrowserApp extends GeckoApp
         ThreadUtils.postToUiThread(new Runnable() {
             @Override
             public void run() {
-                mBrowserChrome.setVisibility(View.VISIBLE);
-                mActionBarFlipper.requestFocusFromTouch();
+                mViewFlipper.setVisibility(View.VISIBLE);
+                mViewFlipper.requestFocusFromTouch();
             }
         });
     }
@@ -1646,7 +1644,7 @@ public class BrowserApp extends GeckoApp
         }
 
         mTabsPanel.prepareTabsAnimation(mMainLayoutAnimator);
-        mBrowserToolbar.triggerTabsPanelTransition(mMainLayoutAnimator, areTabsShown());
+        mBrowserToolbar.prepareTabsAnimation(mMainLayoutAnimator, areTabsShown());
 
         
         
@@ -2484,7 +2482,7 @@ public class BrowserApp extends GeckoApp
             @Override
             public void run() {
                 if (fullscreen) {
-                    mBrowserChrome.setVisibility(View.GONE);
+                    mViewFlipper.setVisibility(View.GONE);
                     if (mDynamicToolbar.isEnabled()) {
                         mDynamicToolbar.setVisible(false, VisibilityTransition.IMMEDIATE);
                         mLayerView.getLayerMarginsAnimator().setMaxMargins(0, 0, 0, 0);
@@ -2492,7 +2490,7 @@ public class BrowserApp extends GeckoApp
                         setToolbarMargin(0);
                     }
                 } else {
-                    mBrowserChrome.setVisibility(View.VISIBLE);
+                    mViewFlipper.setVisibility(View.VISIBLE);
                     if (mDynamicToolbar.isEnabled()) {
                         mDynamicToolbar.setVisible(true, VisibilityTransition.IMMEDIATE);
                         mLayerView.getLayerMarginsAnimator().setMaxMargins(0, mToolbarHeight, 0, 0);
@@ -2652,10 +2650,11 @@ public class BrowserApp extends GeckoApp
 
         charEncoding.setVisible(GeckoPreferences.getCharEncodingState());
 
-        if (mProfile.inGuestMode())
+        if (mProfile.inGuestMode()) {
             exitGuestMode.setVisible(true);
-        else
+        } else {
             enterGuestMode.setVisible(true);
+        }
 
         return true;
     }
@@ -2820,7 +2819,14 @@ public class BrowserApp extends GeckoApp
                         } else {
                             GeckoProfile.leaveGuestSession(BrowserApp.this);
                         }
-                        doRestart(args);
+
+                        if (!GuestSession.isSecureKeyguardLocked(BrowserApp.this)) {
+                            doRestart(args);
+                        } else {
+                            
+                            
+                            GeckoProfile.maybeCleanupGuestProfile(BrowserApp.this);
+                        }
                         GeckoAppShell.systemExit();
                     }
                 } catch(JSONException ex) {
@@ -3048,12 +3054,12 @@ public class BrowserApp extends GeckoApp
     public void startActionModeCompat(final ActionModeCompat.Callback callback) {
         
         if (mActionMode == null) {
-            mActionBarFlipper.showNext();
+            mViewFlipper.showNext();
             LayerMarginsAnimator margins = mLayerView.getLayerMarginsAnimator();
 
             
             if (mDynamicToolbar.isEnabled() && !margins.areMarginsShown()) {
-                margins.setMaxMargins(0, mBrowserChrome.getHeight(), 0, 0);
+                margins.setMaxMargins(0, mViewFlipper.getHeight(), 0, 0);
                 mDynamicToolbar.setVisible(true, VisibilityTransition.ANIMATE);
                 mShowActionModeEndAnimation = true;
             } else {
@@ -3084,7 +3090,7 @@ public class BrowserApp extends GeckoApp
         mActionMode = null;
         mDynamicToolbar.setPinned(false, PinReason.ACTION_MODE);
 
-        mActionBarFlipper.showPrevious();
+        mViewFlipper.showPrevious();
 
         
         
