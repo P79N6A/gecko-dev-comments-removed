@@ -155,7 +155,7 @@ public:
 
   ChromeTooltipListener(nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome);
 
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE;
   NS_IMETHOD MouseMove(nsIDOMEvent* aMouseEvent);
 
     
@@ -227,7 +227,7 @@ public:
   ChromeContextMenuListener(nsWebBrowser* inBrowser, nsIWebBrowserChrome* inChrome);
 
   
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE;
 
   
   
