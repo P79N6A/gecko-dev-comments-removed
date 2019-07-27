@@ -432,26 +432,8 @@ Statement::internalFinalize(bool aDestructing)
   }
 
   
-  
-  if (mStatementParamsHolder) {
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapper =
-        do_QueryInterface(mStatementParamsHolder);
-    nsCOMPtr<mozIStorageStatementParams> iParams =
-        do_QueryWrappedNative(wrapper);
-    StatementParams *params = static_cast<StatementParams *>(iParams.get());
-    params->mStatement = nullptr;
-    mStatementParamsHolder = nullptr;
-  }
-
-  if (mStatementRowHolder) {
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapper =
-        do_QueryInterface(mStatementRowHolder);
-    nsCOMPtr<mozIStorageStatementRow> iRow =
-        do_QueryWrappedNative(wrapper);
-    StatementRow *row = static_cast<StatementRow *>(iRow.get());
-    row->mStatement = nullptr;
-    mStatementRowHolder = nullptr;
-  }
+  mStatementParamsHolder = nullptr;
+  mStatementRowHolder = nullptr;
 
   return convertResultCode(srv);
 }

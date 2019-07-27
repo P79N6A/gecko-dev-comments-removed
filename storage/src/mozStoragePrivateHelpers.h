@@ -16,6 +16,7 @@
 #include "nsError.h"
 #include "nsAutoPtr.h"
 #include "js/TypeDecls.h"
+#include "Variant.h"
 
 class mozIStorageCompletionCallback;
 class mozIStorageBaseStatement;
@@ -67,6 +68,16 @@ void checkAndLogStatementPerformance(sqlite3_stmt *aStatement);
 
 
 nsIVariant *convertJSValToVariant(JSContext *aCtx, JS::Value aValue);
+
+
+
+
+
+
+
+
+
+Variant_base *convertVariantToStorageVariant(nsIVariant *aVariant);
 
 
 

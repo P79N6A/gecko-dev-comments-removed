@@ -715,12 +715,7 @@ function test_bind_bogus_type_by_index()
 
   let array = stmt.newBindingParamsArray();
   let bp = array.newBindingParams();
-  
-  bp.bindByIndex(0, run_test);
-  array.addParams(bp);
-  stmt.bindParameters(array);
-
-  execAsync(stmt, {error: Ci.mozIStorageError.MISMATCH});
+  Assert.throws(() => bp.bindByIndex(0, run_test), /NS_ERROR_UNEXPECTED/);
 
   stmt.finalize();
   run_next_test();
@@ -736,12 +731,7 @@ function test_bind_bogus_type_by_name()
 
   let array = stmt.newBindingParamsArray();
   let bp = array.newBindingParams();
-  
-  bp.bindByName("blob", run_test);
-  array.addParams(bp);
-  stmt.bindParameters(array);
-
-  execAsync(stmt, {error: Ci.mozIStorageError.MISMATCH});
+  Assert.throws(() => bp.bindByName("blob", run_test), /NS_ERROR_UNEXPECTED/);
 
   stmt.finalize();
   run_next_test();

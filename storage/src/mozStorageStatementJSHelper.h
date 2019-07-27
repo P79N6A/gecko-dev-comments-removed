@@ -25,6 +25,44 @@ private:
   nsresult getParams(Statement *, JSContext *, JSObject *, JS::Value *);
 };
 
+
+
+
+
+
+class StatementJSObjectHolder : public nsIXPConnectJSObjectHolder
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIXPCONNECTJSOBJECTHOLDER
+
+  explicit StatementJSObjectHolder(nsIXPConnectJSObjectHolder* aHolder);
+
+protected:
+  virtual ~StatementJSObjectHolder() {};
+  nsCOMPtr<nsIXPConnectJSObjectHolder> mHolder;
+};
+
+class StatementParamsHolder MOZ_FINAL: public StatementJSObjectHolder {
+public:
+  explicit StatementParamsHolder(nsIXPConnectJSObjectHolder* aHolder)
+    : StatementJSObjectHolder(aHolder) {
+  }
+
+private:
+  virtual ~StatementParamsHolder();
+};
+
+class StatementRowHolder MOZ_FINAL: public StatementJSObjectHolder {
+public:
+  explicit StatementRowHolder(nsIXPConnectJSObjectHolder* aHolder)
+    : StatementJSObjectHolder(aHolder) {
+  }
+
+private:
+  virtual ~StatementRowHolder();
+};
+
 } 
 } 
 

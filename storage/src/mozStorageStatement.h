@@ -96,8 +96,8 @@ private:
 
 
 
-    nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementParamsHolder;
-    nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementRowHolder;
+    nsMainThreadPtrHandle<nsIXPConnectJSObjectHolder> mStatementParamsHolder;
+    nsMainThreadPtrHandle<nsIXPConnectJSObjectHolder> mStatementRowHolder;
 
   
 
@@ -109,7 +109,7 @@ private:
 
   nsresult internalFinalize(bool aDestructing);
 
-    friend class StatementJSHelper;
+  friend class StatementJSHelper;
 };
 
 } 

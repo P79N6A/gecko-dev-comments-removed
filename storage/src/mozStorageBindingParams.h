@@ -14,6 +14,7 @@
 #include "mozStorageBindingParamsArray.h"
 #include "mozStorageStatement.h"
 #include "mozStorageAsyncStatement.h"
+#include "Variant.h"
 
 #include "mozIStorageBindingParams.h"
 #include "IStorageBindingParamsInternal.h"
@@ -57,7 +58,9 @@ protected:
   virtual ~BindingParams() {}
 
   explicit BindingParams(mozIStorageBindingParamsArray *aOwningArray);
-  nsCOMArray<nsIVariant> mParameters;
+  
+  
+  nsTArray<nsRefPtr<Variant_base> > mParameters;
   bool mLocked;
 
 private:

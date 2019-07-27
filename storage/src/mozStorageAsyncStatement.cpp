@@ -227,7 +227,6 @@ AsyncStatement::getParams()
 AsyncStatement::~AsyncStatement()
 {
   destructorAsyncFinalize();
-  cleanupJSHelpers();
 
   
   
@@ -240,23 +239,6 @@ AsyncStatement::~AsyncStatement()
     mDBConnection.swap(forgottenConn);
     (void)::NS_ProxyRelease(forgottenConn->threadOpenedOn,
                             static_cast<mozIStorageConnection *>(forgottenConn));
-  }
-}
-
-void
-AsyncStatement::cleanupJSHelpers()
-{
-  
-  
-  if (mStatementParamsHolder) {
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapper =
-      do_QueryInterface(mStatementParamsHolder);
-    nsCOMPtr<mozIStorageStatementParams> iParams =
-      do_QueryWrappedNative(wrapper);
-    AsyncStatementParams *params =
-      static_cast<AsyncStatementParams *>(iParams.get());
-    params->mStatement = nullptr;
-    mStatementParamsHolder = nullptr;
   }
 }
 
@@ -369,7 +351,9 @@ AsyncStatement::Finalize()
                                       mSQLString.get()));
 
   asyncFinalize();
-  cleanupJSHelpers();
+
+  
+  mStatementParamsHolder = nullptr;
 
   return NS_OK;
 }

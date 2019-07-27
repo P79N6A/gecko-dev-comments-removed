@@ -71,13 +71,6 @@ private:
 
 
 
-
-  void cleanupJSHelpers();
-
-  
-
-
-
   mozIStorageBindingParams *getParams();
 
   
@@ -95,7 +88,7 @@ private:
   
 
 
-  nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementParamsHolder;
+  nsMainThreadPtrHandle<nsIXPConnectJSObjectHolder> mStatementParamsHolder;
 
   
 
