@@ -87,7 +87,8 @@ UnboxedPlainObject::setValue(JSContext *cx, const UnboxedLayout::Property &prope
 
       case JSVAL_TYPE_STRING:
         if (v.isString()) {
-            *reinterpret_cast<HeapPtrString*>(p) = v.toString();
+            MOZ_ASSERT(!IsInsideNursery(v.toString()));
+            *reinterpret_cast<PreBarrieredString*>(p) = v.toString();
             return true;
         }
         return false;
@@ -99,7 +100,14 @@ UnboxedPlainObject::setValue(JSContext *cx, const UnboxedLayout::Property &prope
             
             AddTypePropertyId(cx, this, NameToId(property.name), v);
 
-            *reinterpret_cast<HeapPtrObject*>(p) = v.toObjectOrNull();
+            
+            
+            
+            JSObject *obj = v.toObjectOrNull();
+            if (IsInsideNursery(v.toObjectOrNull()) && !IsInsideNursery(this))
+                cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(this);
+
+            *reinterpret_cast<PreBarrieredObject*>(p) = obj;
             return true;
         }
         return false;
