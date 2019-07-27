@@ -16,8 +16,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "ProfileTimesAccessor",
-                                  "resource://gre/modules/services/healthreport/profile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ProfileAge",
+                                  "resource://gre/modules/ProfileAge.jsm");
 
 
 let gHttpServer = null;
@@ -164,7 +164,7 @@ function spoofProfileReset() {
     return true;
   }
 
-  let profileAccessor = new ProfileTimesAccessor();
+  let profileAccessor = new ProfileAge();
 
   return profileAccessor.writeTimes({
     created: PROFILE_CREATION_DATE_MS,
