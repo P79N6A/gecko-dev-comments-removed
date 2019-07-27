@@ -1988,9 +1988,6 @@ private:
   nsIFrame*           mRootElementStyleFrame;
   
   
-  nsContainerFrame*   mFixedContainingBlock;
-  
-  
   nsContainerFrame*   mDocElementContainingBlock;
   nsIFrame*           mGfxScrollFrame;
   nsIFrame*           mPageSequenceFrame;

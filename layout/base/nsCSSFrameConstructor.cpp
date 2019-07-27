@@ -1455,7 +1455,6 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mDocument(aDocument)
   , mRootElementFrame(nullptr)
   , mRootElementStyleFrame(nullptr)
-  , mFixedContainingBlock(nullptr)
   , mDocElementContainingBlock(nullptr)
   , mGfxScrollFrame(nullptr)
   , mPageSequenceFrame(nullptr)
@@ -2373,12 +2372,10 @@ nsIFrame*
 nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocElement,
                                                 nsILayoutHistoryState*   aFrameState)
 {
-  NS_PRECONDITION(mFixedContainingBlock,
-                  "No viewport?  Someone forgot to call ConstructRootFrame!");
-  NS_PRECONDITION(mFixedContainingBlock == GetRootFrame(),
-                  "Unexpected mFixedContainingBlock");
-  NS_PRECONDITION(!mDocElementContainingBlock,
-                  "Shouldn't have a doc element containing block here");
+  MOZ_ASSERT(GetRootFrame(),
+             "No viewport?  Someone forgot to call ConstructRootFrame!");
+  MOZ_ASSERT(!mDocElementContainingBlock,
+             "Shouldn't have a doc element containing block here");
 
   
   
@@ -2392,7 +2389,9 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
 
   NS_ASSERTION(mDocElementContainingBlock, "Should have parent by now");
 
-  nsFrameConstructorState state(mPresShell, mFixedContainingBlock, nullptr,
+  nsFrameConstructorState state(mPresShell,
+                                GetAbsoluteContainingBlock(mDocElementContainingBlock, FIXED_POS),
+                                nullptr,
                                 nullptr, aFrameState);
   
   
@@ -2673,10 +2672,8 @@ nsCSSFrameConstructor::ConstructRootFrame()
                                          rootView);
 
   
-  mFixedContainingBlock = viewportFrame;
-  
-  mFixedContainingBlock->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
-  mFixedContainingBlock->MarkAsAbsoluteContainingBlock();
+  viewportFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
+  viewportFrame->MarkAsAbsoluteContainingBlock();
 
   return viewportFrame;
 }
@@ -2741,7 +2738,6 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
 
 
 
-
   
 
 
@@ -2755,7 +2751,7 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
 
   nsPresContext* presContext = mPresShell->GetPresContext();
   bool isPaginated = presContext->IsRootPaginatedDocument();
-  nsContainerFrame* viewportFrame = mFixedContainingBlock;
+  nsContainerFrame* viewportFrame = static_cast<nsContainerFrame*>(GetRootFrame());
   nsStyleContext* viewportPseudoStyle = viewportFrame->StyleContext();
 
   nsContainerFrame* rootFrame = nullptr;
@@ -2950,10 +2946,9 @@ nsCSSFrameConstructor::ConstructPageFrame(nsIPresShell*  aPresShell,
   }
   pageContentFrame->Init(nullptr, pageFrame, prevPageContentFrame);
   SetInitialSingleChild(pageFrame, pageContentFrame);
-  mFixedContainingBlock = pageContentFrame;
   
-  mFixedContainingBlock->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
-  mFixedContainingBlock->MarkAsAbsoluteContainingBlock();
+  pageContentFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
+  pageContentFrame->MarkAsAbsoluteContainingBlock();
 
   nsRefPtr<nsStyleContext> canvasPseudoStyle;
   canvasPseudoStyle = styleSet->ResolveAnonymousBoxStyle(nsCSSAnonBoxes::canvas,
@@ -5930,8 +5925,6 @@ nsContainerFrame*
 nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
                                                   ContainingBlockType aType)
 {
-  NS_PRECONDITION(nullptr != mRootElementFrame, "no root element frame");
-
   
   
   for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
@@ -5940,6 +5933,15 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
       
       
       return nullptr;
+    }
+
+    
+    if (aType == FIXED_POS) {
+      nsIAtom* t = frame->GetType();
+      if (t == nsGkAtoms::viewportFrame ||
+          t == nsGkAtoms::pageContentFrame) {
+        return static_cast<nsContainerFrame*>(frame);
+      }
     }
 
     
@@ -5990,12 +5992,11 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
     return static_cast<nsContainerFrame*>(absPosCBCandidate);
   }
 
+  MOZ_ASSERT(aType != FIXED_POS, "no ICB in this frame tree?");
+
   
   
   
-  if (aType == FIXED_POS) {
-    return mFixedContainingBlock;
-  }
   return mHasRootAbsPosContainingBlock ? mDocElementContainingBlock : nullptr;
 }
 
@@ -7450,7 +7451,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
       if (gReallyNoisyContentUpdates) {
         printf("nsCSSFrameConstructor::ContentRangeInserted: resulting frame "
                "model:\n");
-        mFixedContainingBlock->List(stdout, 0);
+        docElementFrame->List(stdout, 0);
       }
 #endif
     }
@@ -8183,7 +8184,6 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*  aContainer,
       mPageSequenceFrame = nullptr;
       mGfxScrollFrame = nullptr;
       mHasRootAbsPosContainingBlock = false;
-      mFixedContainingBlock = static_cast<nsContainerFrame*>(GetRootFrame());
     }
 
     if (haveFLS && mRootElementFrame) {
@@ -8907,7 +8907,9 @@ nsCSSFrameConstructor::CaptureStateForFramesOf(nsIContent* aContent,
   }
   nsIFrame* frame = aContent->GetPrimaryFrame();
   if (frame == mRootElementFrame) {
-    frame = mFixedContainingBlock;
+    frame = mRootElementFrame ?
+      GetAbsoluteContainingBlock(mRootElementFrame, FIXED_POS) :
+      GetRootFrame();
   }
   for ( ; frame;
         frame = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(frame)) {
