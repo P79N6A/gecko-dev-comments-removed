@@ -4934,6 +4934,7 @@ MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
     
     
     
+    
     MOZ_CRASH("Feature NYI");
 }
 
@@ -4965,9 +4966,9 @@ MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
     
     
     
-    if (nbytes < 4 && !HasLDSTREXBHD())
+    if (nbytes < 4 && !HasLDSTREXBHD()) {
         atomicFetchOpARMv6(nbytes, signExtend, op, value, mem, temp, output);
-    else {
+    } else {
         MOZ_ASSERT(temp == InvalidReg);
         atomicFetchOpARMv7(nbytes, signExtend, op, value, mem, output);
     }
@@ -5042,6 +5043,107 @@ MacroAssemblerARMCompat::atomicFetchOpARMv6(int nbytes, bool signExtend, AtomicO
     MOZ_CRASH("NYI");
 }
 
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicEffectOp(int nbytes, AtomicOp op, const Register &value,
+                                        const T &mem)
+{
+    
+    
+    
+    if (nbytes < 4 && !HasLDSTREXBHD())
+        atomicEffectOpARMv6(nbytes, op, value, mem);
+    else
+        atomicEffectOpARMv7(nbytes, op, value, mem);
+}
+
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicEffectOp(int nbytes, AtomicOp op, const Imm32 &value,
+                                        const T &mem)
+{
+    
+    
+    
+    
+    
+    MOZ_CRASH("NYI");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicEffectOpARMv7(int nbytes, AtomicOp op, const Register &value,
+                                             const T &mem)
+{
+    Label Lagain;
+    Register ptr = computePointer(mem, secondScratchReg_);
+    ma_dmb();
+    bind(&Lagain);
+    switch (nbytes) {
+      case 1:
+        as_ldrexb(ScratchRegister, ptr);
+        break;
+      case 2:
+        as_ldrexh(ScratchRegister, ptr);
+        break;
+      case 4:
+        as_ldrex(ScratchRegister, ptr);
+        break;
+    }
+    switch (op) {
+      case AtomicFetchAddOp:
+        as_add(ScratchRegister, ScratchRegister, O2Reg(value));
+        break;
+      case AtomicFetchSubOp:
+        as_sub(ScratchRegister, ScratchRegister, O2Reg(value));
+        break;
+      case AtomicFetchAndOp:
+        as_and(ScratchRegister, ScratchRegister, O2Reg(value));
+        break;
+      case AtomicFetchOrOp:
+        as_orr(ScratchRegister, ScratchRegister, O2Reg(value));
+        break;
+      case AtomicFetchXorOp:
+        as_eor(ScratchRegister, ScratchRegister, O2Reg(value));
+        break;
+    }
+    switch (nbytes) {
+      case 1:
+        as_strexb(ScratchRegister, ScratchRegister, ptr);
+        break;
+      case 2:
+        as_strexh(ScratchRegister, ScratchRegister, ptr);
+        break;
+      case 4:
+        as_strex(ScratchRegister, ScratchRegister, ptr);
+        break;
+    }
+    as_cmp(ScratchRegister, Imm8(1));
+    as_b(&Lagain, Equal);
+    ma_dmb();
+}
+
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicEffectOpARMv6(int nbytes, AtomicOp op, const Register &value,
+                                             const T &mem)
+{
+    
+    MOZ_ASSERT(nbytes == 1 || nbytes == 2);
+    MOZ_CRASH("NYI");
+}
+
 template void
 js::jit::MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
                                                 const Imm32 &value, const Address &mem,
@@ -5058,6 +5160,19 @@ template void
 js::jit::MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
                                                 const Register &value, const BaseIndex &mem,
                                                 Register temp, Register output);
+
+template void
+js::jit::MacroAssemblerARMCompat::atomicEffectOp(int nbytes, AtomicOp op, const Imm32 &value,
+                                                 const Address &mem);
+template void
+js::jit::MacroAssemblerARMCompat::atomicEffectOp(int nbytes, AtomicOp op, const Imm32 &value,
+                                                 const BaseIndex &mem);
+template void
+js::jit::MacroAssemblerARMCompat::atomicEffectOp(int nbytes, AtomicOp op, const Register &value,
+                                                 const Address &mem);
+template void
+js::jit::MacroAssemblerARMCompat::atomicEffectOp(int nbytes, AtomicOp op, const Register &value,
+                                                 const BaseIndex &mem);
 
 void
 MacroAssemblerARMCompat::profilerEnterFrame(Register framePtr, Register scratch)
