@@ -612,6 +612,19 @@ MessageChannel::ShouldDeferMessage(const Message& aMsg)
     return mSide == ParentSide && aMsg.transaction_id() != mCurrentTransaction;
 }
 
+
+class MatchingKinds {
+    typedef IPC::Message Message;
+    Message::msgid_t mType;
+    int32_t mRoutingId;
+public:
+    MatchingKinds(Message::msgid_t aType, int32_t aRoutingId) :
+        mType(aType), mRoutingId(aRoutingId) {}
+    bool operator()(const Message &msg) {
+        return msg.type() == mType && msg.routing_id() == mRoutingId;
+    }
+};
+
 void
 MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
 {
@@ -653,17 +666,35 @@ MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
     }
 
     
-    MOZ_ASSERT(!aMsg.compress() || aMsg.priority() == IPC::Message::PRIORITY_NORMAL);
+    MOZ_ASSERT_IF(aMsg.compress_type() != IPC::Message::COMPRESSION_NONE,
+                  aMsg.priority() == IPC::Message::PRIORITY_NORMAL);
 
-    bool compress = (aMsg.compress() && !mPending.empty() &&
-                     mPending.back().type() == aMsg.type() &&
-                     mPending.back().routing_id() == aMsg.routing_id());
-    if (compress) {
+    bool compress = false;
+    if (aMsg.compress_type() == IPC::Message::COMPRESSION_ENABLED) {
+        compress = (!mPending.empty() &&
+                    mPending.back().type() == aMsg.type() &&
+                    mPending.back().routing_id() == aMsg.routing_id());
+        if (compress) {
+            
+            
+            
+            MOZ_ASSERT(mPending.back().compress_type() ==
+                       IPC::Message::COMPRESSION_ENABLED);
+            mPending.pop_back();
+        }
+    } else if (aMsg.compress_type() == IPC::Message::COMPRESSION_ALL) {
         
-        
-        
-        MOZ_ASSERT(mPending.back().compress());
-        mPending.pop_back();
+        auto it = std::find_if(mPending.rbegin(), mPending.rend(),
+                               MatchingKinds(aMsg.type(), aMsg.routing_id()));
+        if (it != mPending.rend()) {
+            
+            
+            
+            
+            compress = true;
+            MOZ_ASSERT((*it).compress_type() == IPC::Message::COMPRESSION_ALL);
+            mPending.erase((++it).base());
+        }
     }
 
     bool shouldWakeUp = AwaitingInterruptReply() ||

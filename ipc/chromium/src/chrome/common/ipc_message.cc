@@ -1,6 +1,6 @@
-
-
-
+// Copyright (c) 2006-2008 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
 #include "chrome/common/ipc_message.h"
 
@@ -22,7 +22,7 @@ using namespace mozilla::tasktracer;
 
 namespace IPC {
 
-
+//------------------------------------------------------------------------------
 
 Message::~Message() {
 }
@@ -49,6 +49,8 @@ Message::Message(int32_t routing_id, msgid_t type, PriorityValue priority,
   header()->flags = priority;
   if (compression == COMPRESSION_ENABLED)
     header()->flags |= COMPRESS_BIT;
+  else if (compression == COMPRESSION_ALL)
+    header()->flags |= COMPRESSALL_BIT;
 #if defined(OS_POSIX)
   header()->num_fds = 0;
 #endif
@@ -129,10 +131,10 @@ Message& Message::operator=(Message&& other) {
 
 #if defined(OS_POSIX)
 bool Message::WriteFileDescriptor(const base::FileDescriptor& descriptor) {
-  
-  
-  
-  
+  // We write the index of the descriptor so that we don't have to
+  // keep the current descriptor as extra decoding state when deserialising.
+  // Also, we rely on each file descriptor being accompanied by sizeof(int)
+  // bytes of data in the message. See the comment for input_cmsg_buf_.
   WriteInt(file_descriptor_set()->size());
   if (descriptor.auto_close) {
     return file_descriptor_set()->AddAndAutoClose(descriptor.fd);
@@ -168,4 +170,4 @@ uint32_t Message::num_fds() const {
 
 #endif
 
-}  
+}  // namespace IPC

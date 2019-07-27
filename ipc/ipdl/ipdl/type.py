@@ -1101,7 +1101,7 @@ class GatherDecls(TcheckVisitor):
 
         msgtype = MessageType(md.priority, md.sendSemantics, md.direction,
                               ctor=isctor, dtor=isdtor, cdtype=cdtype,
-                              compress=(md.compress == 'compress'))
+                              compress=md.compress)
 
         
         def paramToDecl(param):
