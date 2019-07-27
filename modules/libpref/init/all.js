@@ -3669,13 +3669,7 @@ pref("image.cache.timeweight", 500);
 
 pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
 
-
-
-#ifdef XP_MACOSX
-pref("image.high_quality_downscaling.enabled", false);
-#else
 pref("image.high_quality_downscaling.enabled", true);
-#endif
 
 
 
