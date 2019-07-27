@@ -46,6 +46,15 @@ const EXPECTED_REFLOWS = [
     "ssi_updateWindowFeatures/<@resource:///modules/sessionstore/SessionStore.jsm|" +
     "ssi_updateWindowFeatures@resource:///modules/sessionstore/SessionStore.jsm|" +
     "ssi_collectWindowData@resource:///modules/sessionstore/SessionStore.jsm|",
+
+  
+  
+  "select@chrome://global/content/bindings/textbox.xml|" +
+    "focusAndSelectUrlBar@chrome://browser/content/browser.js|" +
+    "openLinkIn@chrome://browser/content/utilityOverlay.js|" +
+    "openUILinkIn@chrome://browser/content/utilityOverlay.js|" +
+    "BrowserOpenTab@chrome://browser/content/browser.js|",
+
 ];
 
 const PREF_PRELOAD = "browser.newtab.preload";
