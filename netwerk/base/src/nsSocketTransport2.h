@@ -305,6 +305,8 @@ private:
     mozilla::net::NetAddr   mNetAddr;
     bool                    mNetAddrIsSet;
 
+    nsAutoPtr<mozilla::net::NetAddr> mBindAddr;
+
     
 
     void     SendStatus(nsresult status);
