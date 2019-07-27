@@ -125,6 +125,54 @@ function appendTextFromArray(textArray)
     }
 }
 
+
+
+
+
+function appendDeleteAppendTextFromArray(textArray)
+{
+    if (textArray.length < 2) {
+        return;
+    }
+
+    for (var i = 0; ; ++i) {
+        theElement = document.getElementById("set" + i);
+        if (!theElement) {
+            break;
+        }
+        var isInput = (theElement.tagName == "INPUT");
+        if (!isInput) {
+            var textNode = document.createTextNode("");
+            theElement.appendChild(textNode);
+        }
+
+        for (var j = 0; j < textArray.length - 1; ++j) {
+            if (isInput) {
+                theElement.value += textArray[j];
+            } else {
+                textNode.appendData(textArray[j]);
+            }
+        }
+
+        
+        var deleteElt = textArray[textArray.length - 2];
+        if (isInput) {
+            theElement.value = theElement.value.slice(0, -deleteElt.length);
+        } else {
+            textNode.deleteData(textNode.length - deleteElt.length,
+                                deleteElt.length);
+        }
+
+        
+        var addElt = textArray[textArray.length - 1];
+        if (isInput) {
+            theElement.value += addElt;
+        } else {
+            textNode.appendData(addElt);
+        }
+    }
+}
+
 function appendSpansFromArray(textArray)
 {
     for (var i = 0; ; ++i) {
