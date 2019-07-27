@@ -188,7 +188,11 @@ let SettingsRequestManager = {
   
   settingsLockQueue: [],
   children: [],
-  mmPrincipals: new Map(),
+  
+  
+  
+  
+  observerPrincipalCache: new Map(),
   tasksConsumed: 0,
 
   init: function() {
@@ -765,7 +769,7 @@ let SettingsRequestManager = {
   broadcastMessage: function broadcastMessage(aMsgName, aContent) {
     if (VERBOSE) debug("Broadcast");
     this.children.forEach(function(msgMgr) {
-      let principal = this.mmPrincipals.get(msgMgr);
+      let principal = this.observerPrincipalCache.get(msgMgr);
       if (!principal) {
         if (DEBUG) debug("Cannot find principal for message manager to check permissions");
       }
@@ -784,13 +788,13 @@ let SettingsRequestManager = {
     if (VERBOSE) debug("Add observer for " + aPrincipal.origin);
     if (this.children.indexOf(aMsgMgr) == -1) {
       this.children.push(aMsgMgr);
-      this.mmPrincipals.set(aMsgMgr, aPrincipal);
+      this.observerPrincipalCache.set(aMsgMgr, aPrincipal);
     }
   },
 
   removeObserver: function(aMsgMgr) {
     if (VERBOSE) {
-      let principal = this.mmPrincipals.get(aMsgMgr);
+      let principal = this.observerPrincipalCache.get(aMsgMgr);
       if (principal) {
         debug("Remove observer for " + principal.origin);
       }
@@ -798,9 +802,9 @@ let SettingsRequestManager = {
     let index = this.children.indexOf(aMsgMgr);
     if (index != -1) {
       this.children.splice(index, 1);
-      this.mmPrincipals.delete(aMsgMgr);
+      this.observerPrincipalCache.delete(aMsgMgr);
     }
-    if (VERBOSE) debug("Principal/MessageManager pairs left: " + this.mmPrincipals.size);
+    if (VERBOSE) debug("Principal/MessageManager pairs left in observer cache: " + this.observerPrincipalCache.size);
   },
 
   removeLock: function(aLockID) {
