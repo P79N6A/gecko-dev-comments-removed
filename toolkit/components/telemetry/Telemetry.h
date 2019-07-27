@@ -70,6 +70,11 @@ base::Histogram* GetHistogramById(ID id);
 
 
 
+base::Histogram* GetKeyedHistogramById(ID id, const nsAString&);
+
+
+
+
 
 template<TimerResolution res>
 struct AccumulateDelta_impl
