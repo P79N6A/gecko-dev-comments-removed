@@ -71,6 +71,10 @@ this.timelineContentTest = function(tests) {
       info("Waiting for new markers on the docShell");
       let markers = yield onMarkers;
 
+      
+      
+      markers = markers.filter(m => m.name.indexOf("nsCycleCollector") === -1);
+
       info("Running the test check function");
       check(markers);
     }
