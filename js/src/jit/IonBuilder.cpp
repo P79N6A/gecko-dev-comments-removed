@@ -7664,9 +7664,8 @@ IonBuilder::jsop_intrinsic(PropertyName* name)
     }
 
     
-    
-    
-    Value vp = script()->global().existingIntrinsicValue(name);
+    Value vp;
+    JS_ALWAYS_TRUE(script()->global().maybeGetIntrinsicValue(name, &vp));
     MOZ_ASSERT(types->hasType(TypeSet::GetValueType(vp)));
 
     pushConstant(vp);

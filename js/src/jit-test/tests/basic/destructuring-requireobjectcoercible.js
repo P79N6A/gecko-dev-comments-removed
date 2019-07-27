@@ -100,8 +100,3 @@ function primitiveThisTests()
 if (primitiveThisSupported())
   primitiveThisTests();
 
-
-
-
-
-evalcx("({} = 1);", evalcx("lazy"));
