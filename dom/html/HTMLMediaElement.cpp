@@ -2201,7 +2201,11 @@ HTMLMediaElement::Play(ErrorResult& aRv)
 {
   
   
-  if (!IsAutoplayEnabled() && !EventStateManager::IsHandlingUserInput() && !nsContentUtils::IsCallerChrome()) {
+  nsRefPtr<TimeRanges> played(Played());
+  if (played->Length() == 0
+      && !IsAutoplayEnabled()
+      && !EventStateManager::IsHandlingUserInput()
+      && !nsContentUtils::IsCallerChrome()) {
     LOG(LogLevel::Debug, ("%p Blocked attempt to autoplay media.", this));
     return;
   }
