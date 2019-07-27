@@ -28,19 +28,17 @@ registerCleanupFunction(() => {
 });
 
 
-registerCleanupFunction(() => {
-  try {
-    let target = TargetFactory.forTab(gBrowser.selectedTab);
-    gDevTools.closeToolbox(target);
-  } catch (ex) {
-    dump(ex);
-  }
+registerCleanupFunction(function*() {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
+
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
 });
 
 const TEST_URL_ROOT = "http://mochi.test:8888/browser/browser/devtools/markupview/test/";
+const CHROME_BASE = "chrome://mochitests/content/browser/browser/devtools/markupview/test/";
 
 
 
@@ -58,15 +56,19 @@ function addTab(url) {
   info("Adding a new tab with URL: '" + url + "'");
   let def = promise.defer();
 
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+  
+  
+  
+  window.focus();
+
+  let tab = window.gBrowser.selectedTab = window.gBrowser.addTab(url);
+  let linkedBrowser = tab.linkedBrowser;
+
+  linkedBrowser.addEventListener("load", function onload() {
+    linkedBrowser.removeEventListener("load", onload, true);
     info("URL '" + url + "' loading complete");
-    waitForFocus(() => {
-      def.resolve(tab);
-    }, content);
+    def.resolve(tab);
   }, true);
-  content.location = url;
 
   return def.promise;
 }
@@ -126,11 +128,23 @@ function openInspector() {
 
 
 
+
 function getNode(nodeOrSelector) {
   info("Getting the node for '" + nodeOrSelector + "'");
   return typeof nodeOrSelector === "string" ?
     content.document.querySelector(nodeOrSelector) :
     nodeOrSelector;
+}
+
+
+
+
+
+
+
+
+function getNodeFront(selector, {walker}) {
+  return walker.querySelector(walker.rootNode, selector);
 }
 
 
@@ -149,7 +163,6 @@ function selectAndHighlightNode(nodeOrSelector, inspector) {
   let updated = inspector.toolbox.once("highlighter-ready");
   inspector.selection.setNode(node, "test-highlight");
   return updated;
-
 }
 
 
@@ -162,15 +175,24 @@ function selectAndHighlightNode(nodeOrSelector, inspector) {
 
 
 
-
-
-function selectNode(nodeOrSelector, inspector, reason="test") {
-  info("Selecting the node " + nodeOrSelector);
-
-  let node = getNode(nodeOrSelector);
+let selectNode = Task.async(function*(selector, inspector, reason="test") {
+  info("Selecting the node for '" + selector + "'");
+  let nodeFront = yield getNodeFront(selector, inspector);
   let updated = inspector.once("inspector-updated");
-  inspector.selection.setNode(node, reason);
-  return updated;
+  inspector.selection.setNodeFront(nodeFront, reason);
+  yield updated;
+});
+
+
+
+
+
+
+
+
+
+function getContainerForNodeFront(nodeFront, {markup}) {
+  return markup.getContainer(nodeFront);
 }
 
 
@@ -181,13 +203,13 @@ function selectNode(nodeOrSelector, inspector, reason="test") {
 
 
 
-
-function getContainerForRawNode(nodeOrSelector, {markup}) {
-  let front = markup.walker.frontForRawNode(getNode(nodeOrSelector));
-  let container = markup.getContainer(front);
-  info("Markup-container object for " + nodeOrSelector + " " + container);
+let getContainerForSelector = Task.async(function*(selector, inspector) {
+  info("Getting the markup-container for node " + selector);
+  let nodeFront = yield getNodeFront(selector, inspector);
+  let container = getContainerForNodeFront(nodeFront, inspector);
+  info("Found markup-container " + container);
   return container;
-}
+});
 
 
 
@@ -214,14 +236,18 @@ function waitForChildrenUpdated({markup}) {
 
 
 
-function hoverContainer(nodeOrSelector, inspector) {
-  info("Hovering over the markup-container for node " + nodeOrSelector);
+
+let hoverContainer = Task.async(function*(selector, inspector) {
+  info("Hovering over the markup-container for node " + selector);
+
+  let nodeFront = yield getNodeFront(selector, inspector);
+  let container = getContainerForNodeFront(nodeFront, inspector);
+
   let highlit = inspector.toolbox.once("node-highlight");
-  let container = getContainerForRawNode(getNode(nodeOrSelector), inspector);
   EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousemove"},
     inspector.markup.doc.defaultView);
   return highlit;
-}
+});
 
 
 
@@ -230,16 +256,20 @@ function hoverContainer(nodeOrSelector, inspector) {
 
 
 
-function clickContainer(nodeOrSelector, inspector) {
-  info("Clicking on the markup-container for node " + nodeOrSelector);
+
+let clickContainer = Task.async(function*(selector, inspector) {
+  info("Clicking on the markup-container for node " + selector);
+
+  let nodeFront = yield getNodeFront(selector, inspector);
+  let container = getContainerForNodeFront(nodeFront, inspector);
+
   let updated = inspector.once("inspector-updated");
-  let container = getContainerForRawNode(getNode(nodeOrSelector), inspector);
   EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousedown"},
     inspector.markup.doc.defaultView);
   EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mouseup"},
     inspector.markup.doc.defaultView);
   return updated;
-}
+});
 
 
 
@@ -297,17 +327,17 @@ function setEditableFieldValue(field, value, inspector) {
 
 
 
-function addNewAttributes(nodeOrSelector, text, inspector) {
-  info("Entering text '" + text + "' in node '" + nodeOrSelector + "''s new attribute field");
+let addNewAttributes = Task.async(function*(selector, text, inspector) {
+  info("Entering text '" + text + "' in node '" + selector + "''s new attribute field");
 
-  let container = getContainerForRawNode(nodeOrSelector, inspector);
-  ok(container, "The container for '" + nodeOrSelector + "' was found");
+  let container = yield getContainerForSelector(selector, inspector);
+  ok(container, "The container for '" + selector + "' was found");
 
   info("Listening for the markupmutation event");
   let nodeMutated = inspector.once("markupmutation");
   setEditableFieldValue(container.editor.newAttr, text, inspector);
-  return nodeMutated;
-}
+  yield nodeMutated;
+});
 
 
 
@@ -319,8 +349,8 @@ function addNewAttributes(nodeOrSelector, text, inspector) {
 
 
 
-function assertAttributes(nodeOrSelector, attrs) {
-  let node = getNode(nodeOrSelector);
+function assertAttributes(selector, attrs) {
+  let node = getNode(selector);
 
   is(node.attributes.length, Object.keys(attrs).length,
     "Node has the correct number of attributes.");

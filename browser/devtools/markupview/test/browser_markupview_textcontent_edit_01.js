@@ -13,6 +13,7 @@ let test = asyncTest(function*() {
 
   info("Expanding all nodes");
   yield inspector.markup.expandAll();
+  yield waitForMultipleChildrenUpdates(inspector);
 
   let node = getNode(".node6").firstChild;
   is(node.nodeValue, "line6", "The test node's text content is correct");
@@ -21,8 +22,8 @@ let test = asyncTest(function*() {
 
   info("Listening to the markupmutation event");
   let onMutated = inspector.once("markupmutation");
-  let editor = getContainerForRawNode(node, inspector).editor;
-  let field = editor.elt.querySelector("pre");
+  let container = yield getContainerForSelector(".node6", inspector);
+  let field = container.elt.querySelector("pre");
   setEditableFieldValue(field, "New text", inspector);
   yield onMutated;
 
@@ -30,3 +31,15 @@ let test = asyncTest(function*() {
 
   yield inspector.once("inspector-updated");
 });
+
+
+
+function* waitForMultipleChildrenUpdates(inspector) {
+  
+  
+  if (inspector.markup._queuedChildUpdates &&
+      inspector.markup._queuedChildUpdates.size) {
+    yield waitForChildrenUpdated(inspector);
+    return yield waitForMultipleChildrenUpdates(inspector);
+  }
+}
