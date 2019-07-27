@@ -1092,11 +1092,12 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   }
 
   if (!newAcc && content->IsHTMLElement()) {  
-    bool isARIATableOrCell = roleMapEntry &&
-      (roleMapEntry->accTypes & (eTableCell | eTable));
+    bool isARIATablePart = roleMapEntry &&
+      (roleMapEntry->accTypes & (eTableCell | eTableRow | eTable));
 
-    if (!isARIATableOrCell ||
+    if (!isARIATablePart ||
         frame->AccessibleType() == eHTMLTableCellType ||
+        frame->AccessibleType() == eHTMLTableRowType ||
         frame->AccessibleType() == eHTMLTableType) {
       
       const MarkupMapInfo* markupMap =
@@ -1110,10 +1111,14 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
     
     
-    if (isARIATableOrCell && (!newAcc || newAcc->IsGenericHyperText())) {
+    if (isARIATablePart && (!newAcc || newAcc->IsGenericHyperText())) {
       if ((roleMapEntry->accTypes & eTableCell)) {
         if (aContext->IsTableRow())
           newAcc = new ARIAGridCellAccessibleWrap(content, document);
+
+      } else if (roleMapEntry->IsOfType(eTableRow)) {
+        if (aContext->IsTable())
+          newAcc = new ARIARowAccessible(content, document);
 
       } else if (roleMapEntry->IsOfType(eTable)) {
         newAcc = new ARIAGridAccessibleWrap(content, document);

@@ -76,6 +76,24 @@ protected:
 
 
 
+class ARIARowAccessible : public AccessibleWrap
+{
+public:
+  ARIARowAccessible(nsIContent* aContent, DocAccessible* aDoc);
+
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  virtual mozilla::a11y::GroupPos GroupPosition() override;
+
+protected:
+  virtual ~ARIARowAccessible() {}
+};
+
+
+
+
+
 class ARIAGridCellAccessible : public HyperTextAccessibleWrap,
                                public TableCellAccessible
 {
@@ -88,6 +106,7 @@ public:
   virtual TableCellAccessible* AsTableCell() override { return this; }
   virtual void ApplyARIAState(uint64_t* aState) const override;
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
+  virtual mozilla::a11y::GroupPos GroupPosition() override;
 
 protected:
   virtual ~ARIAGridCellAccessible() {}
@@ -98,13 +117,8 @@ protected:
   Accessible* Row() const
   {
     Accessible* row = Parent();
-    return row && row->Role() == roles::ROW ? row : nullptr;
+    return row && row->IsTableRow() ? row : nullptr;
   }
-
-  
-
-
-  Accessible* TableFor(Accessible* aRow) const;
 
   
 

@@ -534,6 +534,34 @@ ARIAGridAccessible::SetARIASelected(Accessible* aAccessible,
 
 
 
+ARIARowAccessible::
+  ARIARowAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  AccessibleWrap(aContent, aDoc)
+{
+  mGenericTypes |= eTableRow;
+}
+
+NS_IMPL_ISUPPORTS_INHERITED0(ARIARowAccessible, Accessible)
+
+GroupPos
+ARIARowAccessible::GroupPosition()
+{
+  int32_t count = 0, index = 0;
+  if (nsCoreUtils::GetUIntAttr(nsAccUtils::TableFor(this)->GetContent(),
+                               nsGkAtoms::aria_rowcount, &count) &&
+      nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_rowindex, &index)) {
+    return GroupPos(0, index, count);
+  }
+
+  return AccessibleWrap::GroupPosition();
+}
+
+
+
+
+
+
+
 
 
 
@@ -552,7 +580,7 @@ NS_IMPL_ISUPPORTS_INHERITED0(ARIAGridCellAccessible, HyperTextAccessible)
 TableAccessible*
 ARIAGridCellAccessible::Table() const
 {
-  Accessible* table = TableFor(Row());
+  Accessible* table = nsAccUtils::TableFor(Row());
   return table ? table->AsTable() : nullptr;
 }
 
@@ -656,4 +684,17 @@ ARIAGridCellAccessible::NativeAttributes()
 #endif
 
   return attributes.forget();
+}
+
+GroupPos
+ARIAGridCellAccessible::GroupPosition()
+{
+  int32_t count = 0, index = 0;
+  if (nsCoreUtils::GetUIntAttr(Table()->AsAccessible()->GetContent(),
+                               nsGkAtoms::aria_colcount, &count) &&
+      nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_colindex, &index)) {
+    return GroupPos(0, index, count);
+  }
+
+  return GroupPos();
 }
