@@ -224,6 +224,9 @@ pref("extensions.blocklist.url", "https://blocklist.addons.mozilla.org/blocklist
 pref("extensions.blocklist.detailsURL", "https://www.mozilla.com/%LOCALE%/blocklist/");
 
 
+pref("extensions.installDistroAddons", false);
+
+
 pref("dom.disable_open_during_load", true);
 pref("privacy.popups.showBrowserMessage", true);
 
@@ -570,9 +573,6 @@ pref("media.fragmented-mp4.android-media-codec.enabled", true);
 pref("media.fragmented-mp4.android-media-codec.preferred", true);
 
 
-pref("media.mediasource.enabled", true);
-
-
 pref("image.downscale-during-decode.enabled", true);
 pref("image.decode-only-on-draw.enabled", true);
 
@@ -876,3 +876,8 @@ pref("toolkit.telemetry.unified", false);
 
 
 pref("selectioncaret.detects.longtap", false);
+
+
+#ifdef NIGHTLY_BUILD
+pref("dom.serviceWorkers.enabled", true);
+#endif
