@@ -42,7 +42,12 @@
 
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode", "resource://gre/modules/ReaderMode.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+  "resource://gre/modules/AppConstants.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+  "resource://gre/modules/PrivateBrowsingUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode",
+  "resource://gre/modules/ReaderMode.jsm");
 
 var pktUI = (function() {
 
@@ -616,11 +621,38 @@ var pktUI = (function() {
 
 
 
-	function openTabWithUrl(url, activate) {
-        var tab = gBrowser.addTab(url);
-        if (activate) {
-            gBrowser.selectedTab = tab;
+	function openTabWithUrl(url) {
+        let recentWindow = Services.wm.getMostRecentWindow("navigator:browser");
+        if (!recentWindow) {
+          if (this.AppConstants.platform == "macosx") {
+            let hiddenWindow = Services.appShell.hiddenDOMWindow;
+            
+            hiddenWindow.openDialog("chrome://browser/content/", "_blank",
+                                    "chrome,all,dialog=no", url);
+          }
+          return;
         }
+
+        
+        
+        
+        if (!PrivateBrowsingUtils.isWindowPrivate(recentWindow) ||
+            PrivateBrowsingUtils.permanentPrivateBrowsing) {
+          recentWindow.openUILinkIn(url, "tab");
+          return;
+        }
+
+        let windows = Services.wm.getEnumerator("navigator:browser");
+        while (windows.hasMoreElements()) {
+          let win = windows.getNext();
+          if (!PrivateBrowsingUtils.isWindowPrivate(win)) {
+            win.openUILinkIn(url, "tab");
+            return;
+          }
+        }
+
+        
+        recentWindow.openUILinkIn(url, "window");
 	}
 
 
@@ -788,6 +820,8 @@ var pktUI = (function() {
     return {
     	onLoad: onLoad,
     	getPanelFrame: getPanelFrame,
+
+        openTabWithUrl: openTabWithUrl,
 
     	pocketButtonOnCommand: pocketButtonOnCommand,
     	pocketPanelDidShow: pocketPanelDidShow,
