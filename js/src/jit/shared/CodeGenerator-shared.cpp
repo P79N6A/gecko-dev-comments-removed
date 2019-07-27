@@ -1574,9 +1574,10 @@ CodeGeneratorShared::addCacheLocations(const CacheLocationList& locs, size_t* nu
 }
 
 ReciprocalMulConstants
-CodeGeneratorShared::computeDivisionConstants(int d) {
+CodeGeneratorShared::computeDivisionConstants(uint32_t d, int maxLog) {
+    MOZ_ASSERT(maxLog >= 2 && maxLog <= 32);
     
-    MOZ_ASSERT(d > 0 && (d & (d - 1)) != 0);
+    MOZ_ASSERT(d < (uint64_t(1) << maxLog) && (d & (d - 1)) != 0);
 
     
     
@@ -1587,59 +1588,72 @@ CodeGeneratorShared::computeDivisionConstants(int d) {
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    int32_t p = 32;
+    while ((uint64_t(1) << (p-maxLog)) + (UINT64_MAX >> (64-p)) % d + 1 < d)
+        p++;
 
     
-    
-    
-
-    int32_t shift = 0;
-    while ((int64_t(1) << (shift+1)) + (int64_t(1) << (shift+32)) % d < d)
-        shift++;
-
     
     
     
     ReciprocalMulConstants rmc;
-    rmc.multiplier = int32_t((int64_t(1) << (shift+32))/d + 1);
-    rmc.shiftAmount = shift;
+    rmc.multiplier = (UINT64_MAX >> (64-p))/d + 1;
+    rmc.shiftAmount = p - 32;
 
     return rmc;
 }
-
 
 #ifdef JS_TRACE_LOGGING
 

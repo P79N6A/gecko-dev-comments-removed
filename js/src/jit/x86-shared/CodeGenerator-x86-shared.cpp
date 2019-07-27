@@ -1090,17 +1090,23 @@ CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI* ins) {
 
     
     
-    ReciprocalMulConstants rmc = computeDivisionConstants(Abs(d));
+    ReciprocalMulConstants rmc = computeDivisionConstants(Abs(d),  31);
 
-    
-    
-    
-    
     
     masm.movl(Imm32(rmc.multiplier), eax);
     masm.imull(lhs);
-    if (rmc.multiplier < 0)
+    if (rmc.multiplier > INT32_MAX) {
+        MOZ_ASSERT(rmc.multiplier < (int64_t(1) << 32));
+
+        
+        
+        
+        
         masm.addl(lhs, edx);
+    }
+    
+    
+    
     masm.sarl(Imm32(rmc.shiftAmount), edx);
 
     
