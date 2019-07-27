@@ -61,6 +61,7 @@ let gInitializeTimer = null;
 let gFxAOAuthClientPromise = null;
 let gFxAOAuthClient = null;
 let gFxAOAuthTokenData = null;
+let gErrors = new Map();
 
 
 
@@ -135,6 +136,30 @@ let MozLoopServiceInternal = {
 
   set doNotDisturb(aFlag) {
     Services.prefs.setBoolPref("loop.do_not_disturb", Boolean(aFlag));
+    this.notifyStatusChanged();
+  },
+
+  notifyStatusChanged: function() {
+    Services.obs.notifyObservers(null, "loop-status-changed", null);
+  },
+
+  
+
+
+
+
+  setError: function(errorType, error) {
+    gErrors.set(errorType, error);
+    this.notifyStatusChanged();
+  },
+
+  clearError: function(errorType) {
+    gErrors.delete(errorType);
+    this.notifyStatusChanged();
+  },
+
+  get errors() {
+    return gErrors;
   },
 
   
@@ -257,6 +282,7 @@ let MozLoopServiceInternal = {
         if (!this.storeSessionToken(response.headers))
           return;
 
+        this.clearError("registration");
         gRegisteredDeferred.resolve();
         
         
@@ -278,6 +304,7 @@ let MozLoopServiceInternal = {
 
         
         Cu.reportError("Failed to register with the loop server. error: " + error);
+        this.setError("registration", error);
         gRegisteredDeferred.reject(error.errno);
         gRegisteredDeferred = null;
       }
@@ -693,6 +720,10 @@ this.MozLoopService = {
 
   set doNotDisturb(aFlag) {
     MozLoopServiceInternal.doNotDisturb = aFlag;
+  },
+
+  get errors() {
+    return MozLoopServiceInternal.errors;
   },
 
   
