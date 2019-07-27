@@ -908,6 +908,11 @@ IMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
     return;
   }
 
+  
+  if (aEvent->message == NS_COMPOSITION_UPDATE) {
+    return;
+  }
+
   EnsureTextCompositionArray();
 
   WidgetGUIEvent* GUIEvent = aEvent->AsGUIEvent();
