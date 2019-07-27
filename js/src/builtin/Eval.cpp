@@ -528,6 +528,8 @@ js::ExecuteInGlobalAndReturnScope(JSContext *cx, HandleObject global, HandleScri
 
     RootedValue thisv(cx, ObjectValue(*thisobj));
     RootedValue rval(cx);
+    
+    
     if (!ExecuteKernel(cx, script, *scope, thisv, EXECUTE_GLOBAL,
                        NullFramePtr() , rval.address()))
     {

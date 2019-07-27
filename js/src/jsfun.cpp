@@ -2108,8 +2108,16 @@ js::CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
         if (!cloneProto)
             return nullptr;
     }
+#ifdef DEBUG
     RootedObject realParent(cx, SkipScopeParent(parent));
-    JSObject *cloneobj = NewObjectWithClassProto(cx, &JSFunction::class_, cloneProto, realParent,
+    
+    
+    
+    
+    MOZ_ASSERT(!realParent || realParent == cx->global() ||
+               realParent->isUnqualifiedVarObj());
+#endif
+    JSObject *cloneobj = NewObjectWithClassProto(cx, &JSFunction::class_, cloneProto, NullPtr(),
                                                  allocKind, newKind);
     if (!cloneobj)
         return nullptr;
