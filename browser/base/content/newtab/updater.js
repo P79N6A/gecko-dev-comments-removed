@@ -20,24 +20,22 @@ let gUpdater = {
     
     let sites = this._findRemainingSites(links);
 
-    let self = this;
-
     
-    this._removeLegacySites(sites, function () {
+    this._removeLegacySites(sites, () => {
       
       
-      self._freezeSitePositions(sites);
+      this._freezeSitePositions(sites);
 
       
       
       
-      self._moveSiteNodes(sites);
+      this._moveSiteNodes(sites);
 
       
       
-      self._rearrangeSites(sites, function () {
+      this._rearrangeSites(sites, () => {
         
-        self._fillEmptyCells(links, aCallback);
+        this._fillEmptyCells(links, aCallback);
 
         
         gAllPages.update(gPage);
