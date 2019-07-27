@@ -274,9 +274,6 @@ protected:
   };
 
   nsTHashtable<MaskLayerImageEntry> mMaskImageContainers;
-
-  
-  static PLDHashOperator SweepFunc(MaskLayerImageEntry* aEntry, void* aUserArg);
 };
 
 
