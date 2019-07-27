@@ -21,14 +21,11 @@ public class JavascriptTest extends BaseTest {
     public void testJavascript() throws Exception {
         blockForGeckoReady();
 
-        doTestJavascript();
-    }
-
-    protected void doTestJavascript() throws Exception {
         
         
         
-        final Actions.EventExpecter expecter = mActions.expectGeckoEvent(EVENT_TYPE);
+        final Actions.EventExpecter expecter =
+            mActions.expectGeckoEvent(EVENT_TYPE);
         mAsserter.dumpLog("Registered listener for " + EVENT_TYPE);
 
         final String url = getAbsoluteUrl(StringHelper.getHarnessUrlForJavascript(javascriptUrl));
