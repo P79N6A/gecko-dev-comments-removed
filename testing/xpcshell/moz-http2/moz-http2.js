@@ -396,6 +396,12 @@ function handleRequest(req, res) {
    }
   }
 
+  
+  else if (u.pathname === "/altsvc-test") {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Alt-Svc', 'h2=' + req.headers['x-altsvc']);
+  }
+
   res.setHeader('Content-Type', 'text/html');
   if (req.httpVersionMajor != 2) {
     res.setHeader('Connection', 'close');
@@ -405,10 +411,10 @@ function handleRequest(req, res) {
 }
 
 
+
 var options = {
-  key: fs.readFileSync(__dirname + '/../moz-spdy/spdy-key.pem'),
-  cert: fs.readFileSync(__dirname + '/../moz-spdy/spdy-cert.pem'),
-  ca: fs.readFileSync(__dirname + '/../moz-spdy/spdy-ca.pem'),
+  key: fs.readFileSync(__dirname + '/http2-key.pem'),
+  cert: fs.readFileSync(__dirname + '/http2-cert.pem'),
   
 };
 
