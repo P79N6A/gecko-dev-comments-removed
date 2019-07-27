@@ -8,9 +8,6 @@
 
 @interface mozTextAccessible : mozAccessible
 {
-  
-  
-  mozilla::a11y::HyperTextAccessible* mGeckoTextAccessible; 
 }
 @end
 
