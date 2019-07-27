@@ -702,6 +702,11 @@ class MDefinition : public MNode
     
     
     
+    void replaceAllLiveUsesWith(MDefinition *dom);
+
+    
+    
+    
     virtual bool updateForReplacement(MDefinition *ins) {
         return true;
     }
