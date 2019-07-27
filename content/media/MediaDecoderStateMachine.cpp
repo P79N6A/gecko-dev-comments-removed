@@ -2690,8 +2690,27 @@ nsresult
 MediaDecoderStateMachine::DropVideoUpToSeekTarget(VideoData* aSample)
 {
   nsAutoPtr<VideoData> video(aSample);
-
+  MOZ_ASSERT(video);
+  DECODER_LOG(PR_LOG_DEBUG,
+              "DropVideoUpToSeekTarget() frame [%lld, %lld] dup=%d",
+              video->mTime, video->GetEndTime(), video->mDuplicate);
   const int64_t target = mCurrentSeekTarget.mTime;
+
+  
+  
+  
+  
+  
+  
+  if (video->mDuplicate &&
+      mFirstVideoFrameAfterSeek &&
+      !mFirstVideoFrameAfterSeek->mDuplicate) {
+    VideoData* temp =
+      VideoData::ShallowCopyUpdateTimestampAndDuration(mFirstVideoFrameAfterSeek,
+                                                       video->mTime,
+                                                       video->mDuration);
+    video = temp;
+  }
 
   
   
