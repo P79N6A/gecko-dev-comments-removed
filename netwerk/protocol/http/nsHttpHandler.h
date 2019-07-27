@@ -25,6 +25,7 @@ class nsICancelable;
 class nsICookieService;
 class nsIIOService;
 class nsIObserverService;
+class nsISchedulingContextService;
 class nsISiteSecurityService;
 class nsIStreamConverterService;
 class nsITimer;
@@ -337,6 +338,11 @@ public:
     void SetCacheSkippedUntil(TimeStamp arg) { mCacheSkippedUntil = arg; }
     void ClearCacheSkippedUntil() { mCacheSkippedUntil = TimeStamp(); }
 
+    nsISchedulingContextService *GetSchedulingContextService()
+    {
+        return mSchedulingContextService.get();
+    }
+
 private:
     virtual ~nsHttpHandler();
 
@@ -539,6 +545,8 @@ private:
     
     
     FrameCheckLevel mEnforceH1Framing;
+
+    nsCOMPtr<nsISchedulingContextService> mSchedulingContextService;
 
 private:
     
