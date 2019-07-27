@@ -34,8 +34,6 @@ import android.database.MatrixCursor.RowBuilder;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
-import android.support.v4.widget.CursorAdapter;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -252,9 +250,7 @@ public class RecentTabsPanel extends HomeFragment
                 mClosedTabs = closedTabs;
 
                 
-                if (mClosedTabs.length > 0 && canLoad()) {
-                    getLoaderManager().restartLoader(LOADER_ID_RECENT_TABS, null, mCursorLoaderCallbacks);
-                }
+                getLoaderManager().restartLoader(LOADER_ID_RECENT_TABS, null, mCursorLoaderCallbacks);
             }
         });
     }
@@ -311,7 +307,7 @@ public class RecentTabsPanel extends HomeFragment
                     final String url = closedTabs[i].url;
 
                     
-                    if (!AboutPages.isAboutHome(url)) {
+                    if (!AboutPages.isTitlelessAboutPage(url)) {
                         
                         if (visibleClosedTabs == 0) {
                             addRow(c, null, context.getString(R.string.home_closed_tabs_title), RecentTabs.TYPE_HEADER);
