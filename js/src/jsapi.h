@@ -1167,7 +1167,8 @@ class JS_PUBLIC_API(RuntimeOptions) {
         asyncStack_(true),
         werror_(false),
         strictMode_(false),
-        extraWarnings_(false)
+        extraWarnings_(false),
+        varObjFix_(false)
     {
     }
 
@@ -1249,6 +1250,16 @@ class JS_PUBLIC_API(RuntimeOptions) {
         return *this;
     }
 
+    bool varObjFix() const { return varObjFix_; }
+    RuntimeOptions& setVarObjFix(bool flag) {
+        varObjFix_ = flag;
+        return *this;
+    }
+    RuntimeOptions& toggleVarObjFix() {
+        varObjFix_ = !varObjFix_;
+        return *this;
+    }
+
   private:
     bool baseline_ : 1;
     bool ion_ : 1;
@@ -1259,6 +1270,7 @@ class JS_PUBLIC_API(RuntimeOptions) {
     bool werror_ : 1;
     bool strictMode_ : 1;
     bool extraWarnings_ : 1;
+    bool varObjFix_ : 1;
 };
 
 JS_PUBLIC_API(RuntimeOptions&)
@@ -3792,6 +3804,22 @@ JS_DecompileFunction(JSContext* cx, JS::Handle<JSFunction*> fun, unsigned indent
 
 extern JS_PUBLIC_API(JSString*)
 JS_DecompileFunctionBody(JSContext* cx, JS::Handle<JSFunction*> fun, unsigned indent);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
