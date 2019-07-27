@@ -82,7 +82,14 @@ FontFace::CreateForRule(nsISupports* aGlobal,
 
   nsRefPtr<FontFace> obj = new FontFace(aGlobal, aPresContext);
   obj->mRule = aRule;
-  obj->SetStatus(LoadStateToStatus(aUserFontEntry->LoadState()));
+  if (aUserFontEntry) {
+    
+    
+    
+    
+    
+    obj->SetStatus(LoadStateToStatus(aUserFontEntry->LoadState()));
+  }
   return obj.forget();
 }
 

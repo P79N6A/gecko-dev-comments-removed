@@ -52,15 +52,15 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(FontFaceSet)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(FontFaceSet, DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReady);
-  for (size_t i = 0; i < tmp->mRules.Length(); i++) {
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRules[i].mContainer.mRule);
+  for (size_t i = 0; i < tmp->mConnectedFaces.Length(); i++) {
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConnectedFaces[i].mFontFace);
   }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(FontFaceSet, DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mReady);
-  for (size_t i = 0; i < tmp->mRules.Length(); i++) {
-    NS_IMPL_CYCLE_COLLECTION_UNLINK(mRules[i].mContainer.mRule);
+  for (size_t i = 0; i < tmp->mConnectedFaces.Length(); i++) {
+    NS_IMPL_CYCLE_COLLECTION_UNLINK(mConnectedFaces[i].mFontFace);
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -105,9 +105,9 @@ FontFaceSet::EnsureUserFontSet(nsPresContext* aPresContext)
 FontFace*
 FontFaceSet::FindFontFaceForEntry(gfxUserFontEntry* aUserFontEntry)
 {
-  for (size_t i = 0; i < mRules.Length(); i++) {
-    if (mRules[i].mUserFontEntry == aUserFontEntry) {
-      return mRules[i].mContainer.mRule->GetFontFace();
+  for (size_t i = 0; i < mConnectedFaces.Length(); i++) {
+    if (mConnectedFaces[i].mUserFontEntry == aUserFontEntry) {
+      return mConnectedFaces[i].mFontFace;
     }
   }
   return nullptr;
@@ -176,13 +176,13 @@ FontFaceSet::IndexedGetter(uint32_t aIndex, bool& aFound)
 {
   mPresContext->FlushUserFontSet();
 
-  if (aIndex >= mRules.Length()) {
+  if (aIndex >= mConnectedFaces.Length()) {
     aFound = false;
     return nullptr;
   }
 
   aFound = true;
-  return FontFaceForRule(mRules[aIndex].mContainer.mRule);
+  return mConnectedFaces[aIndex].mFontFace;
 }
 
 uint32_t
@@ -190,7 +190,7 @@ FontFaceSet::Length()
 {
   mPresContext->FlushUserFontSet();
 
-  return mRules.Length();
+  return mConnectedFaces.Length();
 }
 
 static PLDHashOperator DestroyIterator(nsPtrHashKey<nsFontFaceLoader>* aKey,
@@ -205,7 +205,7 @@ FontFaceSet::DestroyUserFontSet()
 {
   mPresContext = nullptr;
   mLoaders.EnumerateEntries(DestroyIterator, nullptr);
-  mRules.Clear();
+  mConnectedFaces.Clear();
   mReady = nullptr;
   mUserFontSet = nullptr;
 }
@@ -346,8 +346,8 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   
   
 
-  nsTArray<FontFaceRuleRecord> oldRules;
-  mRules.SwapElements(oldRules);
+  nsTArray<ConnectedFontFaceRecord> oldRecords;
+  mConnectedFaces.SwapElements(oldRecords);
 
   
   
@@ -360,7 +360,8 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
     
     
     
-    InsertRule(aRules[i].mRule, aRules[i].mSheetType, oldRules, modified);
+    
+    InsertRule(aRules[i].mRule, aRules[i].mSheetType, oldRecords, modified);
   }
 
   
@@ -369,16 +370,21 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 
   
   
-  if (oldRules.Length() > 0) {
+  
+  if (oldRecords.Length() > 0) {
     modified = true;
     
     
     
     
     
-    size_t count = oldRules.Length();
+    
+    
+    
+    
+    size_t count = oldRecords.Length();
     for (size_t i = 0; i < count; ++i) {
-      gfxUserFontEntry* userFontEntry = oldRules[i].mUserFontEntry;
+      gfxUserFontEntry* userFontEntry = oldRecords[i].mUserFontEntry;
       nsFontFaceLoader* loader = userFontEntry->GetLoader();
       if (loader) {
         loader->Cancel();
@@ -418,18 +424,17 @@ FontFaceSet::IncrementGeneration(bool aIsRebuild)
 
 void
 FontFaceSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
-                        nsTArray<FontFaceRuleRecord>& aOldRules,
+                        nsTArray<ConnectedFontFaceRecord>& aOldRecords,
                         bool& aFontSetModified)
 {
-  NS_ABORT_IF_FALSE(aRule->GetType() == mozilla::css::Rule::FONT_FACE_RULE,
-                    "InsertRule passed a non-fontface CSS rule");
+  FontFace* face = FontFaceForRule(aRule);
 
   
   nsAutoString fontfamily;
   nsCSSValue val;
   uint32_t unit;
 
-  aRule->GetDesc(eCSSFontDesc_Family, val);
+  face->GetDesc(eCSSFontDesc_Family, val);
   unit = val.GetUnit();
   if (unit == eCSSUnit_String) {
     val.GetStringValue(fontfamily);
@@ -445,25 +450,26 @@ FontFaceSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
 
   
   
-  for (uint32_t i = 0; i < aOldRules.Length(); ++i) {
-    const FontFaceRuleRecord& ruleRec = aOldRules[i];
+  
+  for (uint32_t i = 0; i < aOldRecords.Length(); ++i) {
+    const ConnectedFontFaceRecord& rec = aOldRecords[i];
 
-    if (ruleRec.mContainer.mRule == aRule &&
-        ruleRec.mContainer.mSheetType == aSheetType) {
+    if (rec.mFontFace == face &&
+        rec.mSheetType == aSheetType) {
 
       
       
       if (mUserFontSet->mLocalRulesUsed) {
-        aRule->GetDesc(eCSSFontDesc_Src, val);
+        face->GetDesc(eCSSFontDesc_Src, val);
         unit = val.GetUnit();
         if (unit == eCSSUnit_Array && HasLocalSrc(val.GetArrayValue())) {
           break;
         }
       }
 
-      mUserFontSet->AddUserFontEntry(fontfamily, ruleRec.mUserFontEntry);
-      mRules.AppendElement(ruleRec);
-      aOldRules.RemoveElementAt(i);
+      mUserFontSet->AddUserFontEntry(fontfamily, rec.mUserFontEntry);
+      mConnectedFaces.AppendElement(rec);
+      aOldRecords.RemoveElementAt(i);
       
       
       if (i > 0) {
@@ -474,25 +480,25 @@ FontFaceSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
   }
 
   
-  FontFaceRuleRecord ruleRec;
-  ruleRec.mUserFontEntry =
+  ConnectedFontFaceRecord rec;
+  rec.mUserFontEntry =
     FindOrCreateUserFontEntryFromRule(fontfamily, aRule, aSheetType);
 
-  if (!ruleRec.mUserFontEntry) {
+  if (!rec.mUserFontEntry) {
     return;
   }
 
-  ruleRec.mContainer.mRule = aRule;
-  ruleRec.mContainer.mSheetType = aSheetType;
+  rec.mFontFace = face;
+  rec.mSheetType = aSheetType;
 
   
   
   
   
   
-  mUserFontSet->AddUserFontEntry(fontfamily, ruleRec.mUserFontEntry);
+  mUserFontSet->AddUserFontEntry(fontfamily, rec.mUserFontEntry);
 
-  mRules.AppendElement(ruleRec);
+  mConnectedFaces.AppendElement(rec);
 
   
   aFontSetModified = true;
@@ -673,9 +679,9 @@ nsCSSFontFaceRule*
 FontFaceSet::FindRuleForEntry(gfxFontEntry* aFontEntry)
 {
   NS_ASSERTION(!aFontEntry->mIsUserFontContainer, "only platform font entries");
-  for (uint32_t i = 0; i < mRules.Length(); ++i) {
-    if (mRules[i].mUserFontEntry->GetPlatformFontEntry() == aFontEntry) {
-      return mRules[i].mContainer.mRule;
+  for (uint32_t i = 0; i < mConnectedFaces.Length(); ++i) {
+    if (mConnectedFaces[i].mUserFontEntry->GetPlatformFontEntry() == aFontEntry) {
+      return mConnectedFaces[i].mFontFace->GetRule();
     }
   }
   return nullptr;
@@ -684,9 +690,9 @@ FontFaceSet::FindRuleForEntry(gfxFontEntry* aFontEntry)
 nsCSSFontFaceRule*
 FontFaceSet::FindRuleForUserFontEntry(gfxUserFontEntry* aUserFontEntry)
 {
-  for (uint32_t i = 0; i < mRules.Length(); ++i) {
-    if (mRules[i].mUserFontEntry == aUserFontEntry) {
-      return mRules[i].mContainer.mRule;
+  for (uint32_t i = 0; i < mConnectedFaces.Length(); ++i) {
+    if (mConnectedFaces[i].mUserFontEntry == aUserFontEntry) {
+      return mConnectedFaces[i].mFontFace->GetRule();
     }
   }
   return nullptr;
@@ -695,9 +701,9 @@ FontFaceSet::FindRuleForUserFontEntry(gfxUserFontEntry* aUserFontEntry)
 gfxUserFontEntry*
 FontFaceSet::FindUserFontEntryForRule(nsCSSFontFaceRule* aRule)
 {
-  for (size_t i = 0; i < mRules.Length(); i++) {
-    if (mRules[i].mContainer.mRule == aRule) {
-      return mRules[i].mUserFontEntry;
+  for (size_t i = 0; i < mConnectedFaces.Length(); i++) {
+    if (mConnectedFaces[i].mFontFace->GetRule() == aRule) {
+      return mConnectedFaces[i].mUserFontEntry;
     }
   }
   return nullptr;
@@ -706,9 +712,9 @@ FontFaceSet::FindUserFontEntryForRule(nsCSSFontFaceRule* aRule)
 gfxUserFontEntry*
 FontFaceSet::FindUserFontEntryForFontFace(FontFace* aFontFace)
 {
-  for (size_t i = 0; i < mRules.Length(); i++) {
-    if (mRules[i].mContainer.mRule->GetFontFace() == aFontFace) {
-      return mRules[i].mUserFontEntry;
+  for (size_t i = 0; i < mConnectedFaces.Length(); i++) {
+    if (mConnectedFaces[i].mFontFace == aFontFace) {
+      return mConnectedFaces[i].mUserFontEntry;
     }
   }
   return nullptr;
@@ -991,6 +997,8 @@ FontFaceSet::FontFaceForRule(nsCSSFontFaceRule* aRule)
     return f;
   }
 
+  
+  
   gfxUserFontEntry* entry = FindUserFontEntryForRule(aRule);
   nsRefPtr<FontFace> newFontFace =
     FontFace::CreateForRule(GetParentObject(), mPresContext, aRule, entry);
