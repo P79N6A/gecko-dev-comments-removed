@@ -241,12 +241,12 @@ struct FloatRegister {
 
 
 
-static bool hasUnaliasedDouble() {
+inline bool hasUnaliasedDouble() {
     return false;
 }
 
 
-static bool hasMultiAlias() {
+inline bool hasMultiAlias() {
     return false;
 }
 
