@@ -43,8 +43,11 @@ protected:
 
 
 
+
+
   nsresult NewFaviconChannel(nsIURI *aURI,
                              nsIURI *aAnnotationURI,
+                             nsILoadInfo *aLoadInfo,
                              nsIChannel **_channel);
 };
 
