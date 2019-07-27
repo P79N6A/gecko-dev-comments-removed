@@ -2967,6 +2967,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
       }
 
       
+      invalidRect.Union(decoder->TakeInvalidRect());
       progress |= decoder->GetProgress();
     }
   }
