@@ -800,9 +800,10 @@ AboutReader.prototype = {
       let item = doc.createElement("button");
 
       
-      let span = doc.createElement("span");
-      span.textContent = option.name;
-      item.appendChild(span);
+      let div = doc.createElement("div");
+      div.textContent = option.name;
+      div.classList.add("name");
+      item.appendChild(div);
 
       if (option.itemClass !== undefined)
         item.classList.add(option.itemClass);
@@ -810,6 +811,7 @@ AboutReader.prototype = {
       if (option.description !== undefined) {
         let description = doc.createElement("div");
         description.textContent = option.description;
+        description.classList.add("description");
         item.appendChild(description);
       }
 
