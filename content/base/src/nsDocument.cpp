@@ -4299,6 +4299,32 @@ nsDocument::SetScopeObject(nsIGlobalObject* aGlobal)
   }
 }
 
+#ifdef MOZ_EME
+static void
+CheckIfContainsEMEContent(nsISupports* aSupports, void* aContainsEME)
+{
+  nsCOMPtr<nsIDOMHTMLMediaElement> domMediaElem(do_QueryInterface(aSupports));
+  if (domMediaElem) {
+    nsCOMPtr<nsIContent> content(do_QueryInterface(domMediaElem));
+    MOZ_ASSERT(content, "aSupports is not a content");
+    HTMLMediaElement* mediaElem = static_cast<HTMLMediaElement*>(content.get());
+    bool* contains = static_cast<bool*>(aContainsEME);
+    if (mediaElem->GetMediaKeys()) {
+      *contains = true;
+    }
+  }
+}
+
+bool
+nsDocument::ContainsEMEContent()
+{
+  bool containsEME = false;
+  EnumerateActivityObservers(CheckIfContainsEMEContent,
+                             static_cast<void*>(&containsEME));
+  return containsEME;
+}
+#endif 
+
 static void
 NotifyActivityChanged(nsISupports *aSupports, void *aUnused)
 {
@@ -8455,6 +8481,14 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
     }
   }
 #endif 
+
+#ifdef MOZ_EME
+  
+  
+  if (ContainsEMEContent()) {
+    return false;
+  }
+#endif
 
   bool canCache = true;
   if (mSubDocuments)

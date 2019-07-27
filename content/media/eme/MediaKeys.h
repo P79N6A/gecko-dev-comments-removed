@@ -103,6 +103,8 @@ public:
 
   nsresult GetOrigin(nsString& aOutOrigin);
 
+  void Shutdown();
+
 private:
 
   
