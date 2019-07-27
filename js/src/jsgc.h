@@ -726,10 +726,8 @@ class ArenaLists
             
             JS_ASSERT(backgroundFinalizeState[i] == BFS_DONE ||
                       backgroundFinalizeState[i] == BFS_JUST_FINISHED);
-            for (ArenaHeader *aheader = arenaLists[i].head(); aheader; aheader = aheader->next) {
-                uintptr_t *word = aheader->chunk()->bitmap.arenaBits(aheader);
-                memset(word, 0, ArenaBitmapWords * sizeof(uintptr_t));
-            }
+            for (ArenaHeader *aheader = arenaLists[i].head(); aheader; aheader = aheader->next)
+                aheader->unmarkAll();
         }
     }
 

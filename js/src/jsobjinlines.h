@@ -662,6 +662,12 @@ JSObject::finish(js::FreeOp *fop)
             fop->free_(elements);
         }
     }
+
+    
+    
+    
+    if (shape_->listp == &shape_)
+        shape_->listp = nullptr;
 }
 
  inline bool
