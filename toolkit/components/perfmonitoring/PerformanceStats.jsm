@@ -679,37 +679,29 @@ function Snapshot({xpcom, childProcesses, probes}) {
   this.processData = new PerformanceData({xpcom: xpcom.getProcessData(), probes});
 }
 
+let isContent = Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;
 
 
 
 let Process = {
   
-  _initialized: false,
-
-  
-  _loader: null,
-
-  
   _idcounter: 0,
-
+  _loader: null,
   
 
 
 
 
   get loader() {
-    if (this._initialized) {
-      return this._loader;
-    }
-    this._initialized = true;
-    this._loader = Services.ppmm;
-    if (!this._loader) {
-      
+    if (isContent) {
       return null;
     }
-    this._loader.loadProcessScript("resource://gre/modules/PerformanceStats-content.js",
+    if (this._loader) {
+      return this._loader;
+    }
+    Services.ppmm.loadProcessScript("resource://gre/modules/PerformanceStats-content.js",
       true);
-    return this._loader;
+    return this._loader = Services.ppmm;
   },
 
   
@@ -751,21 +743,12 @@ let Process = {
     let collected = [];
     let deferred = PromiseUtils.defer();
 
-    
-    
-    
-    
-    let responders = new Set();
     let observer = function({data, target}) {
       if (data.id != id) {
         
         
         return;
       }
-      if (responders.has(target)) {
-        return;
-      }
-      responders.add(target);
       if (data.data) {
         collected.push(data.data)
       }
