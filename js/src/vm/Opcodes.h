@@ -1507,6 +1507,8 @@
 
 
 
+
+
  \
     macro(JSOP_GETGNAME,      154,"getgname",  NULL,       5,  0,  1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_GNAME) \
     
