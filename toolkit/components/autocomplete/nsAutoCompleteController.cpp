@@ -470,6 +470,13 @@ nsAutoCompleteController::HandleKeyNavigation(uint32_t aKey, bool *_retval)
             return NS_OK;
           }
 
+          
+          
+          
+          nsAutoString value;
+          input->GetTextValue(value);
+          mSearchString = value;
+
           StartSearches();
         }
       }
