@@ -321,6 +321,10 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
     if (desc.object() && desc.setter() && desc.setter() != JS_StrictPropertyStub)
         return CallSetter(cx, receiver, id, desc.setter(), desc.attributes(), strict, vp);
 
+    if (desc.isReadonly()) {
+        return strict ? Throw(cx, id, JSMSG_READ_ONLY) : true;
+    }
+
     
     
     
