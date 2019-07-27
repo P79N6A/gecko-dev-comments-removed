@@ -7307,7 +7307,11 @@ let gPrivateBrowsingUI = {
         !PrivateBrowsingUtils.permanentPrivateBrowsing) {
       
       
-      gURLBar.setAttribute("autocompletesearchparam", "");
+      let value = gURLBar.getAttribute("autocompletesearchparam") || "";
+      if (!value.contains("disable-private-actions")) {
+        gURLBar.setAttribute("autocompletesearchparam",
+                             value + " disable-private-actions");
+      }
     }
   }
 };

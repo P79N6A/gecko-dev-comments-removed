@@ -568,7 +568,10 @@ function Search(searchString, searchParam, autocompleteListener,
   
   this._behavior = this._searchString ? Prefs.defaultBehavior
                                       : Prefs.emptySearchDefaultBehavior;
-  this._enableActions = searchParam.split(" ").indexOf("enable-actions") != -1;
+
+  let params = new Set(searchParam.split(" "));
+  this._enableActions = params.has("enable-actions");
+  this._disablePrivateActions = params.has("disable-private-actions");
 
   this._searchTokens =
     this.filterTokens(getUnfilteredSearchTokens(this._searchString));
@@ -630,8 +633,14 @@ Search.prototype = {
 
 
   hasBehavior: function (type) {
-    return this._behavior &
-           Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type.toUpperCase()];
+    let behavior = Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type.toUpperCase()];
+
+    if (this._disablePrivateActions &&
+        behavior == Ci.mozIPlacesAutoComplete.BEHAVIOR_OPENPAGE) {
+      return false;
+    }
+
+    return this._behavior & behavior;
   },
 
   

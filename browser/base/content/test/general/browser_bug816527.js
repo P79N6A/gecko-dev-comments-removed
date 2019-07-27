@@ -44,7 +44,7 @@ function test() {
     });
   });
 
-  function runTest(aSourceWindow, aDestWindow, aExpectSuccess, aCallback) {
+  function runTest(aSourceWindow, aDestWindow, aExpectSwitch, aCallback) {
     
     let baseTab = aSourceWindow.gBrowser.addTab(testURL);
     baseTab.linkedBrowser.addEventListener("load", function() {
@@ -71,52 +71,52 @@ function test() {
         ok(!testTab.hasAttribute("busy"),
            "The test tab doesn't have the busy attribute");
 
-        
-        aDestWindow.gURLBar.value = "moz-action:switchtab," + JSON.stringify({url: testURL});
-        
-        aDestWindow.gURLBar.focus();
+        let urlbar = aDestWindow.gURLBar;
+        let controller = urlbar.controller;
 
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        urlbar.focus();
+        urlbar.value = testURL;
+        controller.startSearch(testURL);
 
-        function onTabClose(aEvent) {
-          aDestWindow.gBrowser.tabContainer.removeEventListener("TabClose", onTabClose, false);
-          aDestWindow.gBrowser.removeEventListener("load", onLoad, false);
-          clearTimeout(timeout);
+        
+        promisePopupShown(aDestWindow.gURLBar.popup).then(() => {
+          function searchIsComplete() {
+            return controller.searchStatus ==
+              Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH;
+          }
+
           
-          ok(aExpectSuccess, "Tab closed as expected");
-          aCallback();
-        }
-        function onLoad(aEvent) {
-          aDestWindow.gBrowser.tabContainer.removeEventListener("TabClose", onTabClose, false);
-          aDestWindow.gBrowser.removeEventListener("load", onLoad, false);
-          clearTimeout(timeout);
-          
-          ok(aExpectSuccess, "Tab loaded as expected");
-          aCallback();
-        }
+          waitForCondition(searchIsComplete, function () {
+            if (aExpectSwitch) {
+              
+              
+              let tabContainer = aDestWindow.gBrowser.tabContainer;
+              tabContainer.addEventListener("TabClose", function onClose(event) {
+                if (event.target == testTab) {
+                  tabContainer.removeEventListener("TabClose", onClose);
+                  executeSoon(aCallback);
+                }
+              });
+            } else {
+              
+              testTab.addEventListener("load", function onLoad() {
+                testTab.removeEventListener("load", onLoad, true);
+                executeSoon(aCallback);
+              }, true);
+            }
 
-        aDestWindow.gBrowser.tabContainer.addEventListener("TabClose", onTabClose, false);
-        aDestWindow.gBrowser.addEventListener("load", onLoad, false);
-        let timeout = setTimeout(function() {
-          aDestWindow.gBrowser.tabContainer.removeEventListener("TabClose", onTabClose, false);
-          aDestWindow.gBrowser.removeEventListener("load", onLoad, false);
-          aCallback();
-        }, 500);
+            
+            if (controller.matchCount > 1) {
+              controller.handleKeyNavigation(KeyEvent.DOM_VK_DOWN);
+            }
 
-        
-        EventUtils.synthesizeKey("VK_RETURN", {});
+            
+            controller.handleEnter(true);
+          });
+        });
+
       }, aDestWindow);
     }, true);
   }
 }
-

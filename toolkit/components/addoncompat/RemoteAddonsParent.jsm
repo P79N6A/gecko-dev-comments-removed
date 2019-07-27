@@ -384,7 +384,7 @@ let EventTargetParent = {
       
       
       let window = target.ownerDocument.defaultView;
-      if (target.contains(window.gBrowser)) {
+      if (window && target.contains(window.gBrowser)) {
         return window;
       }
     }
