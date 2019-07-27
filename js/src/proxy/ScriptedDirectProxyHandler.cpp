@@ -593,8 +593,8 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
         return false;
 
     
-    
-    
+    if (!ToBoolean(trapResult))
+        return result.fail(JSMSG_PROXY_DEFINE_RETURNED_FALSE);
 
     
     Rooted<PropertyDescriptor> targetDesc(cx);

@@ -11,6 +11,7 @@ var p = new Proxy(a, {
         
         assertEq(Object.getOwnPropertyNames(desc).join(","), "value");
         assertEq(desc.value, 2);
+        return true;
     }
 });
 var hits = 0;
