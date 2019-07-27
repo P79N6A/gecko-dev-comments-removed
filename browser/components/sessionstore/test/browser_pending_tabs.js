@@ -28,5 +28,8 @@ add_task(function* () {
   is(tabState.index, TAB_STATE.index, "correct shistory index");
 
   
+  ok(!tabState.userTypedValue, "tab didn't have a userTypedValue");
+
+  
   gBrowser.removeTab(tab);
 });
