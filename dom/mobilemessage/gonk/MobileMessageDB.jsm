@@ -65,6 +65,9 @@ const COLLECT_ID_END = 0;
 const COLLECT_ID_ERROR = -1;
 const COLLECT_TIMESTAMP_UNUSED = 0;
 
+
+const DEFAULT_READ_AHEAD_ENTRIES = 7;
+
 XPCOMUtils.defineLazyServiceGetter(this, "gMobileMessageService",
                                    "@mozilla.org/mobilemessage/mobilemessageservice;1",
                                    "nsIMobileMessageService");
@@ -3143,7 +3146,7 @@ MobileMessageDB.prototype = {
 
     let self = this;
     self.newTxn(READ_ONLY, function(error, txn, stores) {
-      let collector = cursor.collector;
+      let collector = cursor.collector.idCollector;
       let collect = collector.collect.bind(collector);
       FilterSearcherHelper.transact(self, txn, error, filter, aReverse, collect);
     }, [MESSAGE_STORE_NAME, PARTICIPANT_STORE_NAME]);
@@ -3252,7 +3255,7 @@ MobileMessageDB.prototype = {
 
     let cursor = new GetThreadsCursor(this, callback);
     this.newTxn(READ_ONLY, function(error, txn, threadStore) {
-      let collector = cursor.collector;
+      let collector = cursor.collector.idCollector;
       if (error) {
         collector.collect(null, COLLECT_ID_ERROR, COLLECT_TIMESTAMP_UNUSED);
         return;
@@ -3489,11 +3492,306 @@ let FilterSearcherHelper = {
   }
 };
 
-function ResultsCollector() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ResultsCollector(readAheadFunc) {
+  this.idCollector = new IDsCollector();
+  this.results = [];
+  this.readAhead = readAheadFunc;
+
+  this.maxReadAhead = DEFAULT_READ_AHEAD_ENTRIES;
+  try {
+    
+    
+    
+    this.maxReadAhead =
+      Services.prefs.getIntPref("dom.sms.maxReadAheadEntries");
+  } catch (e) {}
+}
+ResultsCollector.prototype = {
+  
+
+
+  idCollector: null,
+
+  
+
+
+
+  results: null,
+
+  
+
+
+
+
+
+
+  readAhead: null,
+
+  
+
+
+
+  readingAhead: false,
+
+  
+
+
+  maxReadAhead: 0,
+
+  
+
+
+  activeTxn: null,
+
+  
+
+
+  requestWaiting: null,
+
+  
+
+
+
+  done: false,
+
+  
+
+
+  lastId: null,
+
+  
+
+
+
+
+
+
+
+
+
+  collect: function(txn, id) {
+    if (this.done) {
+      
+      
+      return;
+    }
+
+    if (DEBUG) debug("ResultsCollector::collect ID = " + id);
+
+    
+    
+    txn = txn || this.activeTxn;
+
+    if (id > 0) {
+      this.readingAhead = true;
+      this.readAhead(txn, id, this);
+    } else {
+      this.notifyResult(txn, id, null);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  notifyResult: function(txn, id, result) {
+    if (DEBUG) debug("notifyResult(txn, " + id + ", <result>)");
+
+    this.readingAhead = false;
+
+    if (id > 0) {
+      if (result != null) {
+        this.results.push(result);
+      } else {
+        id = COLLECT_ID_ERROR;
+      }
+    }
+
+    if (id <= 0) {
+      this.lastId = id;
+      this.done = true;
+    }
+
+    if (!this.requestWaiting) {
+      if (DEBUG) debug("notifyResult: cursor.continue() not called yet");
+    } else {
+      let callback = this.requestWaiting;
+      this.requestWaiting = null;
+
+      this.drip(callback);
+    }
+
+    this.maybeSqueezeIdCollector(txn);
+  },
+
+  
+
+
+
+
+
+  maybeSqueezeIdCollector: function(txn) {
+    if (this.done || 
+        this.readingAhead || 
+        this.idCollector.requestWaiting) { 
+      return;
+    }
+
+    let max = this.maxReadAhead;
+    if (!max && this.requestWaiting) {
+      
+      max = 1;
+    }
+    if (max >= 0 && this.results.length >= max) {
+      
+      if (DEBUG) debug("maybeSqueezeIdCollector: max " + max + " entries read. Stop.");
+      return;
+    }
+
+    
+    
+    this.activeTxn = txn;
+    this.idCollector.squeeze(this.collect.bind(this));
+    this.activeTxn = null;
+  },
+
+  
+
+
+
+
+
+  squeeze: function(callback) {
+    if (this.requestWaiting) {
+      throw new Error("Already waiting for another request!");
+    }
+
+    if (this.results.length || this.done) {
+      
+      
+      
+      this.drip(callback);
+    } else {
+      this.requestWaiting = callback;
+    }
+
+    
+    
+    
+    
+    
+    this.maybeSqueezeIdCollector(null);
+  },
+
+  
+
+
+
+
+
+  drip: function(callback) {
+    let results = this.results;
+    this.results = [];
+
+    let func = this.notifyCallback.bind(this, callback, results, this.lastId);
+    Services.tm.currentThread.dispatch(func, Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  notifyCallback: function(callback, results, lastId) {
+    if (DEBUG) {
+      debug("notifyCallback(results[" + results.length + "], " + lastId + ")");
+    }
+
+    if (results.length) {
+      callback.notifyCursorResult(results, results.length);
+    } else if (lastId == COLLECT_ID_END) {
+      callback.notifyCursorDone();
+    } else {
+      callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+    }
+  }
+};
+
+function IDsCollector() {
   this.results = [];
   this.done = false;
 }
-ResultsCollector.prototype = {
+IDsCollector.prototype = {
   results: null,
   requestWaiting: null,
   done: null,
@@ -3517,20 +3815,16 @@ ResultsCollector.prototype = {
       return false;
     }
 
-    if (DEBUG) {
-      debug("collect: message ID = " + id);
-    }
-    if (id) {
-      
-      this.results.push(id);
-    }
+    if (DEBUG) debug("IDsCollector::collect ID = " + id);
+    
+    this.results.push(id);
     if (id <= 0) {
       
       this.done = true;
     }
 
     if (!this.requestWaiting) {
-      if (DEBUG) debug("Cursor.continue() not called yet");
+      if (DEBUG) debug("IDsCollector::squeeze() not called yet");
       return !this.done;
     }
 
@@ -3575,22 +3869,11 @@ ResultsCollector.prototype = {
 
 
   drip: function(txn, callback) {
-    if (!this.results.length) {
-      if (DEBUG) debug("No messages matching the filter criteria");
-      callback(txn, COLLECT_ID_END);
-      return;
+    let firstId = this.results[0];
+    if (firstId > 0) {
+      this.results.shift();
     }
-
-    if (this.results[0] < 0) {
-      
-      
-      if (DEBUG) debug("An previous error found");
-      callback(txn, COLLECT_ID_ERROR);
-      return;
-    }
-
-    let firstMessageId = this.results.shift();
-    callback(txn, firstMessageId);
+    callback(txn, firstId);
   }
 };
 
@@ -3784,7 +4067,7 @@ UnionResultsCollector.prototype = {
 function GetMessagesCursor(mmdb, callback) {
   this.mmdb = mmdb;
   this.callback = callback;
-  this.collector = new ResultsCollector();
+  this.collector = new ResultsCollector(this.getMessage.bind(this));
 
   this.handleContinue(); 
 }
@@ -3796,7 +4079,7 @@ GetMessagesCursor.prototype = {
   callback: null,
   collector: null,
 
-  getMessageTxn: function(messageStore, messageId) {
+  getMessageTxn: function(txn, messageStore, messageId, collector) {
     if (DEBUG) debug ("Fetching message " + messageId);
 
     let getRequest = messageStore.get(messageId);
@@ -3807,32 +4090,26 @@ GetMessagesCursor.prototype = {
       }
       let domMessage =
         self.mmdb.createDomMessageFromRecord(event.target.result);
-      self.callback.notifyCursorResult([domMessage], 1);
+      collector.notifyResult(txn, messageId, domMessage);
     };
     getRequest.onerror = function(event) {
+      
+      event.stopPropagation();
+      event.preventDefault();
+
       if (DEBUG) {
         debug("notifyCursorError - messageId: " + messageId);
       }
-      self.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+      collector.notifyResult(txn, messageId, null);
     };
   },
 
-  notify: function(txn, messageId) {
-    if (!messageId) {
-      this.callback.notifyCursorDone();
-      return;
-    }
-
-    if (messageId < 0) {
-      this.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-      return;
-    }
-
+  getMessage: function(txn, messageId, collector) {
     
     
     if (txn) {
       let messageStore = txn.objectStore(MESSAGE_STORE_NAME);
-      this.getMessageTxn(messageStore, messageId);
+      this.getMessageTxn(txn, messageStore, messageId, collector);
       return;
     }
 
@@ -3840,10 +4117,11 @@ GetMessagesCursor.prototype = {
     let self = this;
     this.mmdb.newTxn(READ_ONLY, function(error, txn, messageStore) {
       if (error) {
-        self.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-        return;
+        debug("getMessage: failed to create new transaction");
+        collector.notifyResult(null, messageId, null);
+      } else {
+        self.getMessageTxn(txn, messageStore, messageId, collector);
       }
-      self.getMessageTxn(messageStore, messageId);
     }, [MESSAGE_STORE_NAME]);
   },
 
@@ -3851,14 +4129,14 @@ GetMessagesCursor.prototype = {
 
   handleContinue: function() {
     if (DEBUG) debug("Getting next message in list");
-    this.collector.squeeze(this.notify.bind(this));
+    this.collector.squeeze(this.callback);
   }
 };
 
 function GetThreadsCursor(mmdb, callback) {
   this.mmdb = mmdb;
   this.callback = callback;
-  this.collector = new ResultsCollector();
+  this.collector = new ResultsCollector(this.getThread.bind(this));
 
   this.handleContinue(); 
 }
@@ -3870,11 +4148,10 @@ GetThreadsCursor.prototype = {
   callback: null,
   collector: null,
 
-  getThreadTxn: function(threadStore, threadId) {
+  getThreadTxn: function(txn, threadStore, threadId, collector) {
     if (DEBUG) debug ("Fetching thread " + threadId);
 
     let getRequest = threadStore.get(threadId);
-    let self = this;
     getRequest.onsuccess = function(event) {
       let threadRecord = event.target.result;
       if (DEBUG) {
@@ -3888,32 +4165,26 @@ GetThreadsCursor.prototype = {
                                            threadRecord.body,
                                            threadRecord.unreadCount,
                                            threadRecord.lastMessageType);
-      self.callback.notifyCursorResult([thread], 1);
+      collector.notifyResult(txn, threadId, thread);
     };
     getRequest.onerror = function(event) {
+      
+      event.stopPropagation();
+      event.preventDefault();
+
       if (DEBUG) {
         debug("notifyCursorError - threadId: " + threadId);
       }
-      self.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+      collector.notifyResult(txn, threadId, null);
     };
   },
 
-  notify: function(txn, threadId) {
-    if (!threadId) {
-      this.callback.notifyCursorDone();
-      return;
-    }
-
-    if (threadId < 0) {
-      this.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-      return;
-    }
-
+  getThread: function(txn, threadId, collector) {
     
     
     if (txn) {
       let threadStore = txn.objectStore(THREAD_STORE_NAME);
-      this.getThreadTxn(threadStore, threadId);
+      this.getThreadTxn(txn, threadStore, threadId, collector);
       return;
     }
 
@@ -3921,10 +4192,10 @@ GetThreadsCursor.prototype = {
     let self = this;
     this.mmdb.newTxn(READ_ONLY, function(error, txn, threadStore) {
       if (error) {
-        self.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-        return;
+        collector.notifyResult(null, threadId, null);
+      } else {
+        self.getThreadTxn(txn, threadStore, threadId, collector);
       }
-      self.getThreadTxn(threadStore, threadId);
     }, [THREAD_STORE_NAME]);
   },
 
@@ -3932,7 +4203,7 @@ GetThreadsCursor.prototype = {
 
   handleContinue: function() {
     if (DEBUG) debug("Getting next thread in list");
-    this.collector.squeeze(this.notify.bind(this));
+    this.collector.squeeze(this.callback);
   }
 }
 
