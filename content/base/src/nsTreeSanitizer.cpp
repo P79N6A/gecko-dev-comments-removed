@@ -393,6 +393,8 @@ nsIAtom** const kAttributesSVG[] = {
   &nsGkAtoms::color, 
   &nsGkAtoms::colorInterpolation, 
   &nsGkAtoms::colorInterpolationFilters, 
+  
+  
   &nsGkAtoms::cursor, 
   &nsGkAtoms::cx, 
   &nsGkAtoms::cy, 
@@ -414,6 +416,7 @@ nsIAtom** const kAttributesSVG[] = {
   &nsGkAtoms::fill_opacity, 
   &nsGkAtoms::fill_rule, 
   &nsGkAtoms::filter, 
+  &nsGkAtoms::filterRes, 
   &nsGkAtoms::filterUnits, 
   &nsGkAtoms::flood_color, 
   &nsGkAtoms::flood_opacity, 
