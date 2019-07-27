@@ -1709,7 +1709,11 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
     } else if (!gfxPrefs::LayoutUseContainersForRootFrames()) {
       
       
+      
+      
+#ifndef MOZ_WIDGET_ANDROID
       content = document->GetDocumentElement();
+#endif
     }
 
     root->SetFrameMetrics(
