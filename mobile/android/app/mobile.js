@@ -563,7 +563,7 @@ pref("media.fragmented-mp4.android-media-codec.enabled", true);
 pref("media.fragmented-mp4.android-media-codec.preferred", true);
 
 
-pref("image.mem.decodeondraw", true);
+pref("image.mem.decodeondraw", false);
 
 #ifdef NIGHTLY_BUILD
 
