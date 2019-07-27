@@ -452,7 +452,16 @@ GLScreenBuffer::Swap(const gfx::IntSize& size)
     {
         auto src  = mFront->Surf();
         auto dest = mBack->Surf();
+
+        
+        
+        
+
         SharedSurface::ProdCopy(src, dest, mFactory.get());
+
+        
+        
+        
     }
 
     return true;
