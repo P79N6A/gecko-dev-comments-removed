@@ -24,24 +24,24 @@ public:
   
   
   NS_IMETHOD GetRectDisplayPix(int32_t *outLeft,  int32_t *outTop,
-                               int32_t *outWidth, int32_t *outHeight);
+                               int32_t *outWidth, int32_t *outHeight) MOZ_OVERRIDE;
   NS_IMETHOD GetAvailRectDisplayPix(int32_t *outLeft,  int32_t *outTop,
-                                    int32_t *outWidth, int32_t *outHeight);
+                                    int32_t *outWidth, int32_t *outHeight) MOZ_OVERRIDE;
 
   
 
 
 
-  NS_IMETHOD LockMinimumBrightness(uint32_t aBrightness);
-  NS_IMETHOD UnlockMinimumBrightness(uint32_t aBrightness);
+  NS_IMETHOD LockMinimumBrightness(uint32_t aBrightness) MOZ_OVERRIDE;
+  NS_IMETHOD UnlockMinimumBrightness(uint32_t aBrightness) MOZ_OVERRIDE;
 
-  NS_IMETHOD GetRotation(uint32_t* aRotation) {
+  NS_IMETHOD GetRotation(uint32_t* aRotation) MOZ_OVERRIDE {
     *aRotation = nsIScreen::ROTATION_0_DEG;
     return NS_OK;
   }
-  NS_IMETHOD SetRotation(uint32_t aRotation) { return NS_ERROR_NOT_AVAILABLE; }
+  NS_IMETHOD SetRotation(uint32_t aRotation) MOZ_OVERRIDE { return NS_ERROR_NOT_AVAILABLE; }
 
-  NS_IMETHOD GetContentsScaleFactor(double* aContentsScaleFactor);
+  NS_IMETHOD GetContentsScaleFactor(double* aContentsScaleFactor) MOZ_OVERRIDE;
 
 protected:
   virtual ~nsBaseScreen();

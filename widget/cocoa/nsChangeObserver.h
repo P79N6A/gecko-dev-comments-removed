@@ -12,9 +12,9 @@ class nsIDocument;
 class nsIAtom;
 
 #define NS_DECL_CHANGEOBSERVER \
-void ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aContent, nsIAtom *aAttribute); \
-void ObserveContentRemoved(nsIDocument *aDocument, nsIContent *aChild, int32_t aIndexInContainer); \
-void ObserveContentInserted(nsIDocument *aDocument, nsIContent* aContainer, nsIContent *aChild);
+void ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aContent, nsIAtom *aAttribute) MOZ_OVERRIDE; \
+void ObserveContentRemoved(nsIDocument *aDocument, nsIContent *aChild, int32_t aIndexInContainer) MOZ_OVERRIDE; \
+void ObserveContentInserted(nsIDocument *aDocument, nsIContent* aContainer, nsIContent *aChild) MOZ_OVERRIDE;
 
 
 
