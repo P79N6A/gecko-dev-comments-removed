@@ -35,6 +35,8 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
+NS_IMPL_ISUPPORTS(nsRangeFrame::DummyTouchListener, nsIDOMEventListener)
+
 nsIFrame*
 NS_NewRangeFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -69,19 +71,10 @@ nsRangeFrame::Init(nsIContent*       aContent,
   
   
   
-  
-  
-  
-  nsIPresShell* presShell = PresContext()->GetPresShell();
-  if (presShell) {
-    nsIDocument* document = presShell->GetDocument();
-    if (document) {
-      nsPIDOMWindow* innerWin = document->GetInnerWindow();
-      if (innerWin) {
-        innerWin->SetHasTouchEventListeners();
-      }
-    }
+  if (!mDummyTouchListener) {
+    mDummyTouchListener = new DummyTouchListener();
   }
+  aContent->AddEventListener(NS_LITERAL_STRING("touchstart"), mDummyTouchListener, false);
 
   nsStyleSet *styleSet = PresContext()->StyleSet();
 
@@ -99,6 +92,9 @@ nsRangeFrame::DestroyFrom(nsIFrame* aDestructRoot)
   NS_ASSERTION(!GetPrevContinuation() && !GetNextContinuation(),
                "nsRangeFrame should not have continuations; if it does we "
                "need to call RegUnregAccessKey only for the first.");
+
+  mContent->RemoveEventListener(NS_LITERAL_STRING("touchstart"), mDummyTouchListener, false);
+
   nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
   nsContentUtils::DestroyAnonymousContent(&mTrackDiv);
   nsContentUtils::DestroyAnonymousContent(&mProgressDiv);

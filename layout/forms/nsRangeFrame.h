@@ -11,6 +11,7 @@
 #include "mozilla/EventForwards.h"
 #include "nsContainerFrame.h"
 #include "nsIAnonymousContentCreator.h"
+#include "nsIDOMEventListener.h"
 #include "nsCOMPtr.h"
 
 class nsBaseContentList;
@@ -179,6 +180,25 @@ private:
 
 
   nsRefPtr<nsStyleContext> mOuterFocusStyle;
+
+  class DummyTouchListener MOZ_FINAL : public nsIDOMEventListener
+  {
+  private:
+    ~DummyTouchListener() {}
+
+  public:
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE
+    {
+      return NS_OK;
+    }
+  };
+
+  
+
+
+  nsRefPtr<DummyTouchListener> mDummyTouchListener;
 };
 
 #endif
