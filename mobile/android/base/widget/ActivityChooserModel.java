@@ -25,6 +25,7 @@ import android.content.pm.PackageManager;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.overlays.ui.ShareDialog;
+import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
 import org.mozilla.gecko.R;
 import java.io.File;
 
@@ -756,8 +757,15 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
 
+
+
                 if (ShareDialog.class.getCanonicalName().equals(resolveInfo.activityInfo.name) &&
                         channelToRemoveLabel.equals(resolveInfo.loadLabel(packageManager))) {
+                    
+                    if (getOtherSyncedClientCount() <= 0) {
+                        continue;
+                    }
+
                     resolveInfo.labelRes = R.string.overlay_share_send_other;
                     resolveInfo.icon = R.drawable.share_plane;
                 }
@@ -1274,6 +1282,14 @@ public class ActivityChooserModel extends DataSetObservable {
 
             mReloadActivities = true;
         }
+    }
+
+    
+
+
+    private int getOtherSyncedClientCount() {
+        final ClientsDatabaseAccessor db = new ClientsDatabaseAccessor(mContext);
+        return db.clientsCount();
     }
 }
 
