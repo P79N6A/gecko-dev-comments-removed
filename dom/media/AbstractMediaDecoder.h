@@ -74,10 +74,16 @@ public:
 
   virtual AbstractCanonical<media::NullableTimeUnit>* CanonicalDurationOrNull() { return nullptr; };
 
-  
-  
-  
-  virtual void UpdateEstimatedMediaDuration(int64_t aDuration) = 0;
+protected:
+  virtual void UpdateEstimatedMediaDuration(int64_t aDuration) {};
+public:
+  void DispatchUpdateEstimatedMediaDuration(int64_t aDuration)
+  {
+    nsCOMPtr<nsIRunnable> r =
+      NS_NewRunnableMethodWithArg<int64_t>(this, &AbstractMediaDecoder::UpdateEstimatedMediaDuration,
+                                           aDuration);
+    NS_DispatchToMainThread(r);
+  }
 
   
   virtual void SetMediaSeekable(bool aMediaSeekable) = 0;

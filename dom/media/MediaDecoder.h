@@ -454,6 +454,7 @@ public:
   
   virtual bool IsEndedOrShutdown() const;
 
+protected:
   
   
   
@@ -463,6 +464,7 @@ public:
   
   
   void UpdateEstimatedMediaDuration(int64_t aDuration) override;
+public:
 
   
   virtual void SetMediaSeekable(bool aMediaSeekable) override;
