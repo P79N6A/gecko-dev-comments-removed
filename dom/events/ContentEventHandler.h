@@ -126,9 +126,11 @@ protected:
                                       uint32_t* aNewOffset = nullptr);
   
   
-  nsresult GetStartFrameAndOffset(nsRange* aRange,
-                                  nsIFrame** aFrame,
-                                  int32_t* aOffsetInFrame);
+  nsresult AdjustCollapsedRangeMaybeIntoTextNode(nsRange* aCollapsedRange);
+  
+  nsresult GetStartFrameAndOffset(const nsRange* aRange,
+                                  nsIFrame*& aFrame,
+                                  int32_t& aOffsetInFrame);
   
   nsresult ConvertToRootViewRelativeOffset(nsIFrame* aFrame,
                                            nsRect& aRect);
