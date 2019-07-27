@@ -1386,6 +1386,12 @@ pref("network.http.enforce-framing.soft", true);
 
 
 
+pref("network.http.enable-packaged-apps", false);
+
+
+
+
+
 pref("network.ftp.data.qos", 0);
 pref("network.ftp.control.qos", 0);
 

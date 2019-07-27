@@ -79,6 +79,7 @@ public:
     uint8_t        ReferrerTrimmingPolicy()  { return mReferrerTrimmingPolicy; }
     uint8_t        ReferrerXOriginPolicy()   { return mReferrerXOriginPolicy; }
     bool           SendSecureXSiteReferrer() { return mSendSecureXSiteReferrer; }
+    bool           PackagedAppsEnabled()     { return mPackagedAppsEnabled; }
     uint8_t        RedirectionLimit()        { return mRedirectionLimit; }
     PRIntervalTime IdleTimeout()             { return mIdleTimeout; }
     PRIntervalTime SpdyTimeout()             { return mSpdyTimeout; }
@@ -407,6 +408,9 @@ private:
     PRIntervalTime mPipelineRescheduleTimeout;
     PRIntervalTime mPipelineReadTimeout;
     nsCOMPtr<nsITimer> mPipelineTestTimer;
+
+    
+    bool mPackagedAppsEnabled = false;
 
     uint8_t  mRedirectionLimit;
 
