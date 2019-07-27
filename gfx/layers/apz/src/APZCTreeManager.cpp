@@ -61,7 +61,7 @@ struct APZCTreeManager::TreeBuildingState {
   std::map<ScrollableLayerGuid, AsyncPanZoomController*> mApzcMap;
 };
 
- const LayerMargin
+ const ScreenMargin
 APZCTreeManager::CalculatePendingDisplayPort(
   const FrameMetrics& aFrameMetrics,
   const ScreenPoint& aVelocity,

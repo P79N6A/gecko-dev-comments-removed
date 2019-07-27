@@ -97,6 +97,7 @@ public:
     , mUseDisplayPortMargins(false)
     , mPresShellId(-1)
     , mViewport(0, 0, 0, 0)
+    , mExtraResolution(1)
     , mBackgroundColor(0, 0, 0, 0)
   {
   }
@@ -126,6 +127,7 @@ public:
            mSmoothScrollOffset == aOther.mSmoothScrollOffset &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset &&
+           mExtraResolution == aOther.mExtraResolution &&
            mBackgroundColor == aOther.mBackgroundColor &&
            mDoSmoothScroll == aOther.mDoSmoothScroll;
   }
@@ -150,6 +152,18 @@ public:
   bool IsScrollable() const
   {
     return mScrollId != NULL_SCROLL_ID;
+  }
+
+  CSSToScreenScale DisplayportPixelsPerCSSPixel() const
+  {
+    
+    
+    
+    
+    
+    
+    
+    return mZoom * ScreenToLayerScale(1.0f) / mExtraResolution;
   }
 
   CSSToLayerScale LayersPixelsPerCSSPixel() const
@@ -340,14 +354,6 @@ public:
   LayoutDeviceToLayerScale mCumulativeResolution;
 
   
-  
-  
-  
-  
-  
-  
-  
-  
   ScreenToParentLayerScale mTransformScale;
 
   
@@ -464,12 +470,12 @@ public:
     return mRootCompositionSize;
   }
 
-  void SetDisplayPortMargins(const LayerMargin& aDisplayPortMargins)
+  void SetDisplayPortMargins(const ScreenMargin& aDisplayPortMargins)
   {
     mDisplayPortMargins = aDisplayPortMargins;
   }
 
-  const LayerMargin& GetDisplayPortMargins() const
+  const ScreenMargin& GetDisplayPortMargins() const
   {
     return mDisplayPortMargins;
   }
@@ -502,6 +508,16 @@ public:
   const CSSRect& GetViewport() const
   {
     return mViewport;
+  }
+
+  void SetExtraResolution(const ScreenToLayerScale& aExtraResolution)
+  {
+    mExtraResolution = aExtraResolution;
+  }
+
+  ScreenToLayerScale GetExtraResolution() const
+  {
+    return mExtraResolution;
   }
 
   const gfxRGBA& GetBackgroundColor() const
@@ -605,7 +621,7 @@ private:
 
   
   
-  LayerMargin mDisplayPortMargins;
+  ScreenMargin mDisplayPortMargins;
 
   
   
@@ -623,6 +639,10 @@ private:
   
   
   CSSRect mViewport;
+
+  
+  
+  ScreenToLayerScale mExtraResolution;
 
   
   gfxRGBA mBackgroundColor;

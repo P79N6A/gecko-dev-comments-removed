@@ -2198,7 +2198,7 @@ RedistributeDisplayPortExcess(CSSSize& aDisplayPortSize,
 }
 
 
-const LayerMargin AsyncPanZoomController::CalculatePendingDisplayPort(
+const ScreenMargin AsyncPanZoomController::CalculatePendingDisplayPort(
   const FrameMetrics& aFrameMetrics,
   const ScreenPoint& aVelocity,
   double aEstimatedPaintDuration)
@@ -2240,9 +2240,7 @@ const LayerMargin AsyncPanZoomController::CalculatePendingDisplayPort(
   cssMargins.right = displayPort.width - compositionSize.width - cssMargins.left;
   cssMargins.bottom = displayPort.height - compositionSize.height - cssMargins.top;
 
-  LayerMargin layerMargins = cssMargins * aFrameMetrics.LayersPixelsPerCSSPixel();
-
-  return layerMargins;
+  return cssMargins * aFrameMetrics.DisplayportPixelsPerCSSPixel();
 }
 
 void AsyncPanZoomController::ScheduleComposite() {
@@ -2320,8 +2318,8 @@ void AsyncPanZoomController::RequestContentRepaint(FrameMetrics& aFrameMetrics, 
 
   
   
-  LayerMargin marginDelta = mLastPaintRequestMetrics.GetDisplayPortMargins()
-                          - aFrameMetrics.GetDisplayPortMargins();
+  ScreenMargin marginDelta = (mLastPaintRequestMetrics.GetDisplayPortMargins()
+                           - aFrameMetrics.GetDisplayPortMargins());
   if (fabsf(marginDelta.left) < EPSILON &&
       fabsf(marginDelta.top) < EPSILON &&
       fabsf(marginDelta.right) < EPSILON &&
@@ -2359,7 +2357,7 @@ GetDisplayPortRect(const FrameMetrics& aFrameMetrics)
   
   CSSRect baseRect(aFrameMetrics.GetScrollOffset(),
                    aFrameMetrics.CalculateBoundedCompositedSizeInCssPixels());
-  baseRect.Inflate(aFrameMetrics.GetDisplayPortMargins() / aFrameMetrics.LayersPixelsPerCSSPixel());
+  baseRect.Inflate(aFrameMetrics.GetDisplayPortMargins() / aFrameMetrics.DisplayportPixelsPerCSSPixel());
   return baseRect;
 }
 
@@ -2694,7 +2692,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mLastDispatchedPaintMetrics = aLayerMetrics;
     ShareCompositorFrameMetrics();
 
-    if (mFrameMetrics.GetDisplayPortMargins() != LayerMargin()) {
+    if (mFrameMetrics.GetDisplayPortMargins() != ScreenMargin()) {
       
       
       

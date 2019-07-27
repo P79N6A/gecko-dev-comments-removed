@@ -245,7 +245,7 @@ public:
 
 
 
-  static const LayerMargin CalculatePendingDisplayPort(
+  static const ScreenMargin CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
     const ScreenPoint& aVelocity,
     double aEstimatedPaintDuration);
