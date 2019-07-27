@@ -42,9 +42,18 @@ extern PRLogModuleInfo* gMediaPromiseLog;
 
 
 
+
+class MediaPromiseBase
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaPromiseBase)
+protected:
+  virtual ~MediaPromiseBase() {}
+};
+
 template<typename T> class MediaPromiseHolder;
 template<typename ResolveValueT, typename RejectValueT, bool IsExclusive>
-class MediaPromise
+class MediaPromise : public MediaPromiseBase
 {
 public:
   typedef ResolveValueT ResolveValueType;
@@ -74,8 +83,6 @@ public:
     Maybe<ResolveValueType> mResolveValue;
     Maybe<RejectValueType> mRejectValue;
   };
-
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaPromise)
 
 protected:
   
@@ -432,7 +439,7 @@ protected:
     }
   }
 
-  ~MediaPromise()
+  virtual ~MediaPromise()
   {
     PROMISE_LOG("MediaPromise::~MediaPromise [this=%p]", this);
     MOZ_ASSERT(!IsPending());
