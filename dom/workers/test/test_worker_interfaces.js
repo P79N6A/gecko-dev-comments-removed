@@ -62,6 +62,7 @@ var ecmaGlobals =
     "Uint8ClampedArray",
     "URIError",
     "WeakMap",
+    "WeakSet",
   ];
 
 
