@@ -385,6 +385,9 @@ public:
     mHitRegion.Or(mHitRegion, aEventRegions->HitRegion());
     mMaybeHitRegion.Or(mMaybeHitRegion, aEventRegions->MaybeHitRegion());
     mDispatchToContentHitRegion.Or(mDispatchToContentHitRegion, aEventRegions->DispatchToContentHitRegion());
+    mNoActionRegion.Or(mNoActionRegion, aEventRegions->NoActionRegion());
+    mHorizontalPanRegion.Or(mHorizontalPanRegion, aEventRegions->HorizontalPanRegion());
+    mVerticalPanRegion.Or(mVerticalPanRegion, aEventRegions->VerticalPanRegion());
   }
 
   
@@ -433,6 +436,27 @@ public:
 
 
   nsRegion  mDispatchToContentHitRegion;
+  
+
+
+
+
+
+  nsRegion mNoActionRegion;
+  
+
+
+
+
+
+  nsRegion mHorizontalPanRegion;
+  
+
+
+
+
+
+  nsRegion mVerticalPanRegion;
   
 
 
@@ -2409,24 +2433,38 @@ ContainerState::PopPaintedLayerData()
       containingPaintedLayerData->mMaybeHitRegion.Or(
         containingPaintedLayerData->mMaybeHitRegion, rect);
     }
-    if (!data->mHitRegion.GetBounds().IsEmpty()) {
-      
-      
-      Matrix4x4 matrix = nsLayoutUtils::GetTransformToAncestor(
-        mContainerReferenceFrame, containingPaintedLayerData->mReferenceFrame);
-      Matrix matrix2D;
-      bool isPrecise = matrix.Is2D(&matrix2D) && !matrix2D.HasNonAxisAlignedTransform();
-      nsRect rect = nsLayoutUtils::TransformFrameRectToAncestor(
-        mContainerReferenceFrame,
-        data->mHitRegion.GetBounds(),
-        containingPaintedLayerData->mReferenceFrame);
-      nsRegion* dest = isPrecise ? &containingPaintedLayerData->mHitRegion
-                                 : &containingPaintedLayerData->mMaybeHitRegion;
-      dest->Or(*dest, rect);
-    }
+    nsLayoutUtils::TransformToAncestorAndCombineRegions(
+      data->mHitRegion.GetBounds(),
+      mContainerReferenceFrame,
+      containingPaintedLayerData->mReferenceFrame,
+      &containingPaintedLayerData->mHitRegion,
+      &containingPaintedLayerData->mMaybeHitRegion);
+    nsLayoutUtils::TransformToAncestorAndCombineRegions(
+      data->mNoActionRegion.GetBounds(),
+      mContainerReferenceFrame,
+      containingPaintedLayerData->mReferenceFrame,
+      &containingPaintedLayerData->mNoActionRegion,
+      &containingPaintedLayerData->mDispatchToContentHitRegion);
+    nsLayoutUtils::TransformToAncestorAndCombineRegions(
+      data->mHorizontalPanRegion.GetBounds(),
+      mContainerReferenceFrame,
+      containingPaintedLayerData->mReferenceFrame,
+      &containingPaintedLayerData->mHorizontalPanRegion,
+      &containingPaintedLayerData->mDispatchToContentHitRegion);
+    nsLayoutUtils::TransformToAncestorAndCombineRegions(
+      data->mVerticalPanRegion.GetBounds(),
+      mContainerReferenceFrame,
+      containingPaintedLayerData->mReferenceFrame,
+      &containingPaintedLayerData->mVerticalPanRegion,
+      &containingPaintedLayerData->mDispatchToContentHitRegion);
+
   } else {
     EventRegions regions;
     regions.mHitRegion = ScaleRegionToOutsidePixels(data->mHitRegion);
+    regions.mNoActionRegion = ScaleRegionToOutsidePixels(data->mNoActionRegion);
+    regions.mHorizontalPanRegion = ScaleRegionToOutsidePixels(data->mHorizontalPanRegion);
+    regions.mVerticalPanRegion = ScaleRegionToOutsidePixels(data->mVerticalPanRegion);
+
     
     
     
@@ -2440,6 +2478,9 @@ ContainerState::PopPaintedLayerData()
     nsIntPoint translation = -GetTranslationForPaintedLayer(data->mLayer);
     regions.mHitRegion.MoveBy(translation);
     regions.mDispatchToContentHitRegion.MoveBy(translation);
+    regions.mNoActionRegion.MoveBy(translation);
+    regions.mHorizontalPanRegion.MoveBy(translation);
+    regions.mVerticalPanRegion.MoveBy(translation);
 
     layer->SetEventRegions(regions);
   }

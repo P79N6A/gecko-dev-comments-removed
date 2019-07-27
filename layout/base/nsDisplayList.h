@@ -2711,6 +2711,9 @@ public:
   const nsRegion& HitRegion() { return mHitRegion; }
   const nsRegion& MaybeHitRegion() { return mMaybeHitRegion; }
   const nsRegion& DispatchToContentHitRegion() { return mDispatchToContentHitRegion; }
+  const nsRegion& NoActionRegion() { return mNoActionRegion; }
+  const nsRegion& HorizontalPanRegion() { return mHorizontalPanRegion; }
+  const nsRegion& VerticalPanRegion() { return mVerticalPanRegion; }
 
   virtual void WriteDebugInfo(std::stringstream& aStream) override;
 
@@ -2724,6 +2727,15 @@ private:
   
   
   nsRegion mDispatchToContentHitRegion;
+  
+  
+  nsRegion mNoActionRegion;
+  
+  
+  nsRegion mHorizontalPanRegion;
+  
+  
+  nsRegion mVerticalPanRegion;
 };
 
 

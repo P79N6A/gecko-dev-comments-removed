@@ -2420,6 +2420,25 @@ public:
   
 
 
+  static uint32_t
+  GetTouchActionFromFrame(nsIFrame* aFrame);
+
+  
+
+
+
+
+  static void
+  TransformToAncestorAndCombineRegions(
+    const nsRect& aBounds,
+    nsIFrame* aFrame,
+    const nsIFrame* aAncestorFrame,
+    nsRegion* aPreciseTargetDest,
+    nsRegion* aImpreciseTargetDest);
+
+  
+
+
 
 
   static void

@@ -158,8 +158,23 @@ enum class ScaleMode : int8_t {
 };
 
 struct EventRegions {
+  
+  
+  
+  
   nsIntRegion mHitRegion;
+  
+  
+  
   nsIntRegion mDispatchToContentHitRegion;
+
+  
+  
+  
+  
+  nsIntRegion mNoActionRegion;
+  nsIntRegion mHorizontalPanRegion;
+  nsIntRegion mVerticalPanRegion;
 
   EventRegions()
   {
