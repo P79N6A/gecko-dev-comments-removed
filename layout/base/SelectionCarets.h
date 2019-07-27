@@ -13,6 +13,7 @@
 #include "nsWeakPtr.h"
 #include "nsWeakReference.h"
 #include "Units.h"
+#include "mozilla/dom/SelectionStateChangedEvent.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/WeakPtr.h"
 
@@ -202,6 +203,9 @@ private:
   dom::Selection* GetSelection();
   already_AddRefed<nsFrameSelection> GetFrameSelection();
   nsIContent* GetFocusedContent();
+  void DispatchSelectionStateChangedEvent(dom::Selection* aSelection,
+                                          const dom::Sequence<dom::SelectionState>& aStates);
+  nsRect GetSelectionBoundingRect(dom::Selection* aSel);
 
   
 
