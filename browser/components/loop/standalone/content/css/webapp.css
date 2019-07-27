@@ -18,6 +18,13 @@ body,
   font-family: Open Sans,sans-serif;
 }
 
+
+
+
+.standalone.is-standalone-room {
+  background-color: #000;
+}
+
 .standalone-header {
   border-radius: 4px;
   background: #fff;
