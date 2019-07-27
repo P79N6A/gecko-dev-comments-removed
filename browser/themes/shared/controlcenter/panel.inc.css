@@ -15,7 +15,8 @@
 
 
 
-#identity-popup {
+#identity-popup,
+.panel-viewstack[viewtype="main"] > .panel-mainview[panelid=identity-popup] > #identity-popup-mainView {
   
 
   max-height: 0;
