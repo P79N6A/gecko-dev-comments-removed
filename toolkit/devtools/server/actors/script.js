@@ -45,6 +45,17 @@ let OBJECT_PREVIEW_MAX_ITEMS = 10;
 
 
 
+const REQUIRED_SERVICES = [
+  "@mozilla.org/addons/integration;1",
+  "@mozilla.org/uriloader/handler-service;1"
+];
+
+
+
+
+
+
+
 
 
 
@@ -658,6 +669,11 @@ ThreadActor.prototype = {
     }
 
     this._state = "attached";
+
+    
+    if (Cc) { 
+      REQUIRED_SERVICES.map(cid => Cc[cid].getService(Ci.nsISupports));
+    }
 
     update(this._options, aRequest.options || {});
     this.sources.reconfigure(this._options);
