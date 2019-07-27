@@ -77,7 +77,6 @@ enum {
     kKeyIsDRM             = 'idrm',  
     kKeyEncoderDelay      = 'encd',  
     kKeyEncoderPadding    = 'encp',  
-    kKeyMediaTime         = 'mtme',  
 
     kKeyAlbum             = 'albu',  
     kKeyArtist            = 'arti',  
