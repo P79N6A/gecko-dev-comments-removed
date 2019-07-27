@@ -3967,6 +3967,9 @@ pref("layers.bench.enabled", false);
 #ifdef ANDROID
 
 
+
+
+
 pref("layers.acceleration.force-enabled", true);
 #else
 pref("layers.acceleration.force-enabled", false);
