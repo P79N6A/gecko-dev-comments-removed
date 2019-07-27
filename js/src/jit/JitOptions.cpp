@@ -69,8 +69,8 @@ JitOptions::JitOptions()
     
     
     
-    forceDefaultIonUsesBeforeCompile = false;
-    forcedDefaultIonUsesBeforeCompile = 1000;
+    forceDefaultIonWarmUpThreshold = false;
+    forcedDefaultIonWarmUpThreshold = 1000;
 
     
     
@@ -85,7 +85,7 @@ JitOptions::JitOptions()
 
     
     
-    baselineUsesBeforeCompile = 10;
+    baselineWarmUpThreshold = 10;
 
     
     
@@ -110,7 +110,7 @@ JitOptions::JitOptions()
     smallFunctionMaxBytecodeLength_ = 100;
 
     
-    usesBeforeCompilePar = 1;
+    compilerWarmUpThresholdPar = 1;
 }
 
 bool
@@ -123,35 +123,35 @@ void
 JitOptions::setEagerCompilation()
 {
     eagerCompilation = true;
-    baselineUsesBeforeCompile = 0;
-    forceDefaultIonUsesBeforeCompile = true;
-    forcedDefaultIonUsesBeforeCompile = 0;
+    baselineWarmUpThreshold = 0;
+    forceDefaultIonWarmUpThreshold = true;
+    forcedDefaultIonWarmUpThreshold = 0;
 }
 
 void
-JitOptions::setUsesBeforeCompile(uint32_t warmUpCounter)
+JitOptions::setCompilerWarmUpThreshold(uint32_t warmUpCounter)
 {
-    forceDefaultIonUsesBeforeCompile = true;
-    forcedDefaultIonUsesBeforeCompile = warmUpCounter;
+    forceDefaultIonWarmUpThreshold = true;
+    forcedDefaultIonWarmUpThreshold = warmUpCounter;
 
     
     if (eagerCompilation && warmUpCounter != 0) {
         jit::JitOptions defaultValues;
         eagerCompilation = false;
-        baselineUsesBeforeCompile = defaultValues.baselineUsesBeforeCompile;
+        baselineWarmUpThreshold = defaultValues.baselineWarmUpThreshold;
     }
 }
 
 void
-JitOptions::resetUsesBeforeCompile()
+JitOptions::resetCompilerWarmUpThreshold()
 {
-    forceDefaultIonUsesBeforeCompile = false;
+    forceDefaultIonWarmUpThreshold = false;
 
     
     if (eagerCompilation) {
         jit::JitOptions defaultValues;
         eagerCompilation = false;
-        baselineUsesBeforeCompile = defaultValues.baselineUsesBeforeCompile;
+        baselineWarmUpThreshold = defaultValues.baselineWarmUpThreshold;
     }
 }
 

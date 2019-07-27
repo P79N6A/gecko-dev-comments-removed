@@ -105,11 +105,11 @@ class OptimizationInfo
 
     
     
-    uint32_t usesBeforeCompile_;
+    uint32_t compilerWarmUpThreshold_;
 
     
     
-    double usesBeforeInliningFactor_;
+    double inliningWarmUpThresholdFactor_;
 
     OptimizationInfo()
     { }
@@ -129,7 +129,7 @@ class OptimizationInfo
         return inlineNative_ && !js_JitOptions.disableInlining;
     }
 
-    uint32_t usesBeforeCompile(JSScript *script, jsbytecode *pc = nullptr) const;
+    uint32_t compilerWarmUpThreshold(JSScript *script, jsbytecode *pc = nullptr) const;
 
     bool gvnEnabled() const {
         return gvn_ && !js_JitOptions.disableGvn;
@@ -195,11 +195,11 @@ class OptimizationInfo
         return inlineMaxTotalBytecodeLength_;
     }
 
-    uint32_t usesBeforeInlining() const {
-        uint32_t usesBeforeCompile = usesBeforeCompile_;
-        if (js_JitOptions.forceDefaultIonUsesBeforeCompile)
-            usesBeforeCompile = js_JitOptions.forcedDefaultIonUsesBeforeCompile;
-        return usesBeforeCompile * usesBeforeInliningFactor_;
+    uint32_t inliningWarmUpThreshold() const {
+        uint32_t compilerWarmUpThreshold = compilerWarmUpThreshold_;
+        if (js_JitOptions.forceDefaultIonWarmUpThreshold)
+            compilerWarmUpThreshold = js_JitOptions.forcedDefaultIonWarmUpThreshold;
+        return compilerWarmUpThreshold * inliningWarmUpThresholdFactor_;
     }
 };
 
