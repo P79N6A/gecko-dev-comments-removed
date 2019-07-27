@@ -253,6 +253,14 @@ loop.shared.actions = (function() {
     
 
 
+
+    EmailRoomUrl: Action.define("emailRoomUrl", {
+      roomUrl: String
+    }),
+
+    
+
+
     RoomFailure: Action.define("roomFailure", {
       error: Object
     }),
