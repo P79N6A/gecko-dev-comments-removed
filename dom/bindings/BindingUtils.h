@@ -2954,6 +2954,12 @@ GlobalPropertiesAreOwn()
 void
 AssertReturnTypeMatchesJitinfo(const JSJitInfo* aJitinfo,
                                JS::Handle<JS::Value> aValue);
+
+extern void
+DEBUG_CheckXBLLookup(JSContext *cx, JSPropertyDescriptor *desc);
+#else
+#define DEBUG_CheckXBLLookup(a, b) {}
+
 #endif
 
 
