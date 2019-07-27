@@ -154,6 +154,7 @@ MediaEngineGonkVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
   if (mState == kStarted) {
     return NS_OK;
   }
+  mTrackID = aID;
   mImageContainer = layers::LayerManager::CreateImageContainer();
 
   NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineGonkVideoSource>(this),
@@ -621,6 +622,21 @@ MediaEngineGonkVideoSource::RotateImage(layers::Image* aImage, uint32_t aWidth, 
 
   
   mImage = image.forget();
+
+  
+  
+  
+  
+
+  
+  
+  
+  uint32_t len = mSources.Length();
+  for (uint32_t i = 0; i < len; i++) {
+    if (mSources[i]) {
+      AppendToTrack(mSources[i], mImage, mTrackID, 1); 
+    }
+  }
 }
 
 bool

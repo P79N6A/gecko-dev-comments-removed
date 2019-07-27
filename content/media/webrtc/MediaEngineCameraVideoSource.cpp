@@ -6,6 +6,7 @@
 
 namespace mozilla {
 
+using namespace mozilla::gfx;
 using dom::ConstrainLongRange;
 using dom::ConstrainDoubleRange;
 using dom::MediaTrackConstraintSet;
@@ -45,6 +46,26 @@ MediaEngineCameraVideoSource::Intersect(ConstrainLongRange& aA, const ConstrainL
   aA.mMin = std::max(aA.mMin, aB.mMin);
   aA.mMax = std::min(aA.mMax, aB.mMax);
   return true;
+}
+
+
+bool MediaEngineCameraVideoSource::AppendToTrack(SourceMediaStream* aSource,
+                                                 layers::Image* aImage,
+                                                 TrackID aID,
+                                                 TrackTicks delta)
+{
+  MOZ_ASSERT(aSource);
+
+  VideoSegment segment;
+  nsRefPtr<layers::Image> image = aImage;
+  IntSize size(image ? mWidth : 0, image ? mHeight : 0);
+  segment.AppendFrame(image.forget(), delta, size);
+
+  
+  
+  
+  
+  return aSource->AppendToTrack(aID, &(segment));
 }
 
 

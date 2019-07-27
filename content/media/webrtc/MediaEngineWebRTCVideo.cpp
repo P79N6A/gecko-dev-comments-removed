@@ -98,6 +98,22 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
   
   mImage = image.forget();
 
+  
+  
+  
+  
+
+  
+  
+  
+  
+  uint32_t len = mSources.Length();
+  for (uint32_t i = 0; i < len; i++) {
+    if (mSources[i]) {
+      AppendToTrack(mSources[i], mImage, mTrackID, 1); 
+    }
+  }
+
   return 0;
 }
 
@@ -106,7 +122,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
 
 void
 MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
-                                         SourceMediaStream *aSource,
+                                         SourceMediaStream* aSource,
                                          TrackID aID,
                                          StreamTime aDesiredTime,
                                          TrackTicks &aLastEndTime)
@@ -118,12 +134,10 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   
   
 
-  
-  nsRefPtr<layers::Image> image = mImage;
   TrackTicks target = aSource->TimeToTicksRoundUp(USECS_PER_S, aDesiredTime);
   TrackTicks delta = target - aLastEndTime;
   LOGFRAME(("NotifyPull, desired = %ld, target = %ld, delta = %ld %s", (int64_t) aDesiredTime,
-            (int64_t) target, (int64_t) delta, image ? "" : "<null>"));
+            (int64_t) target, (int64_t) delta, mImage ? "" : "<null>"));
 
   
   
@@ -137,11 +151,7 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   
   if (delta > 0) {
     
-    IntSize size(image ? mWidth : 0, image ? mHeight : 0);
-    segment.AppendFrame(image.forget(), delta, size);
-    
-    
-    if (aSource->AppendToTrack(aID, &(segment))) {
+    if (AppendToTrack(aSource, mImage, aID, delta)) {
       aLastEndTime = target;
     }
   }
@@ -397,6 +407,8 @@ MediaEngineWebRTCVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
   mImageContainer = layers::LayerManager::CreateImageContainer();
 
   mState = kStarted;
+  mTrackID = aID;
+
   error = mViERender->AddRenderer(mCaptureIndex, webrtc::kVideoI420, (webrtc::ExternalRenderer*)this);
   if (error == -1) {
     return NS_ERROR_FAILURE;
