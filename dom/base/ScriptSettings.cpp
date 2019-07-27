@@ -529,14 +529,10 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
               aCx ? aCx : FindJSContext(aGlobalObject))
   , ScriptSettingsStackEntry(aGlobalObject,  true)
   , mWebIDLCallerPrincipal(nullptr)
-  , mIsMainThread(aIsMainThread)
 {
   MOZ_ASSERT(aGlobalObject);
   MOZ_ASSERT_IF(!aCx, aIsMainThread); 
   MOZ_ASSERT_IF(aCx && aIsMainThread, aCx == FindJSContext(aGlobalObject));
-  if (aIsMainThread) {
-    nsContentUtils::EnterMicroTask();
-  }
 
   if (aIsMainThread && gRunToCompletionListeners > 0) {
     mDocShellEntryMonitor.emplace(cx(), aReason);
@@ -545,10 +541,6 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
 
 AutoEntryScript::~AutoEntryScript()
 {
-  if (mIsMainThread) {
-    nsContentUtils::LeaveMicroTask();
-  }
-
   
   
   
