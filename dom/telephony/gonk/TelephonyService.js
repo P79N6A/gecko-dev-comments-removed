@@ -616,10 +616,10 @@ TelephonyService.prototype = {
         Object.keys(this._currentCalls[aClientId])[0];
 
       if (currentCdmaCallIndex == null) {
-        aCallback.notifyDialSuccess(response.callIndex, response.number);
+        aCallback.notifyDialCallSuccess(response.callIndex, response.number);
       } else {
         
-        aCallback.notifyDialSuccess(CDMA_SECOND_CALL_INDEX, response.number);
+        aCallback.notifyDialCallSuccess(CDMA_SECOND_CALL_INDEX, response.number);
         this._addCdmaChildCall(aClientId, response.number, currentCdmaCallIndex);
       }
     });
