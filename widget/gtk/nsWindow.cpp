@@ -4089,14 +4089,14 @@ nsWindow::SetHasMappedToplevel(bool aState)
     }
 }
 
-nsIntSize
-nsWindow::GetSafeWindowSize(nsIntSize aSize)
+LayoutDeviceIntSize
+nsWindow::GetSafeWindowSize(LayoutDeviceIntSize aSize)
 {
     
     
     
     
-    nsIntSize result = aSize;
+    LayoutDeviceIntSize result = aSize;
     const int32_t kInt16Max = 32767;
     if (result.width > kInt16Max) {
         result.width = kInt16Max;
