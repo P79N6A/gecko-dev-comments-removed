@@ -330,7 +330,7 @@ nsCSPParser::subHost()
       
       ++charCounter;
     }
-    if (accept(DOT) && !accept(isCharacterToken)) {
+    if (accept(DOT) && !hostChar()) {
       return false;
     }
     if (charCounter > kSubHostPathCharacterCutoff) {
@@ -367,7 +367,7 @@ nsCSPParser::host()
   }
 
   
-  if (!accept(isCharacterToken)) {
+  if (!hostChar()) {
     const char16_t* params[] = { mCurToken.get() };
     logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidHost",
                              params, ArrayLength(params));
@@ -684,6 +684,7 @@ nsCSPParser::sourceList(nsTArray<nsCSPBaseSrc*>& outSrcs)
     
     
     mCurToken = mCurDir[i];
+    resetCurValue();
 
     CSPPARSERLOG(("nsCSPParser::sourceList, mCurToken: %s, mCurValue: %s",
                  NS_ConvertUTF16toUTF8(mCurToken).get(),
