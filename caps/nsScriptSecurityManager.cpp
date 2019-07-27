@@ -305,6 +305,15 @@ nsScriptSecurityManager::AppStatusForPrincipal(nsIPrincipal *aPrin)
 
 }
 
+
+
+
+
+
+
+
+
+
 NS_IMETHODIMP
 nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
                                                    nsIPrincipal** aPrincipal)
@@ -338,6 +347,17 @@ nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
     }
     return GetChannelURIPrincipal(aChannel, aPrincipal);
 }
+
+
+
+
+
+
+
+
+
+
+
 
 NS_IMETHODIMP
 nsScriptSecurityManager::GetChannelURIPrincipal(nsIChannel* aChannel,
