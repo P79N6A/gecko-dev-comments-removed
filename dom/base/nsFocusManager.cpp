@@ -12,6 +12,7 @@
 #include "nsContentUtils.h"
 #include "nsIDocument.h"
 #include "nsIDOMWindow.h"
+#include "nsIEditor.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocument.h"
@@ -815,8 +816,7 @@ nsFocusManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
     
     if (window == mFocusedWindow) {
       mFocusedContent = nullptr;
-    }
-    else {
+    } else {
       
       
       
@@ -829,6 +829,27 @@ nsFocusManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
           nsCOMPtr<nsPIDOMWindow> childWindow = docShell->GetWindow();
           if (childWindow && IsSameOrAncestor(childWindow, mFocusedWindow)) {
             ClearFocus(mActiveWindow);
+          }
+        }
+      }
+    }
+
+    
+    if (content->IsEditable()) {
+      nsCOMPtr<nsIDocShell> docShell = aDocument->GetDocShell();
+      if (docShell) {
+        nsCOMPtr<nsIEditor> editor;
+        docShell->GetEditor(getter_AddRefs(editor));
+        if (editor) {
+          nsCOMPtr<nsISelection> s;
+          editor->GetSelection(getter_AddRefs(s));
+          nsCOMPtr<nsISelectionPrivate> selection = do_QueryInterface(s);
+          if (selection) {
+            nsCOMPtr<nsIContent> limiter;
+            selection->GetAncestorLimiter(getter_AddRefs(limiter));
+            if (limiter == content) {
+              editor->FinalizeSelection();
+            }
           }
         }
       }

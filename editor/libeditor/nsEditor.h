@@ -802,9 +802,6 @@ public:
   nsresult InitializeSelection(nsIDOMEventTarget* aFocusEventTarget);
 
   
-  void FinalizeSelection();
-
-  
   
   
   void OnFocus(nsIDOMEventTarget* aFocusEventTarget);
