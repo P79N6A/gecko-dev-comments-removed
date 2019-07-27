@@ -7,7 +7,6 @@
 #ifndef imgRequestProxy_h__
 #define imgRequestProxy_h__
 
-#include "mozilla/WeakPtr.h"
 #include "imgIRequest.h"
 #include "nsISecurityInfoProvider.h"
 
@@ -20,6 +19,7 @@
 #include "mozilla/TimeStamp.h"
 
 #include "imgRequest.h"
+#include "IProgressObserver.h"
 
 #define NS_IMGREQUESTPROXY_CID \
 { /* 20557898-1dd2-11b2-8f65-9c462ee2bc95 */         \
@@ -44,10 +44,10 @@ class ProgressTracker;
 } 
 
 class imgRequestProxy : public imgIRequest,
+                        public mozilla::image::IProgressObserver,
                         public nsISupportsPriority,
                         public nsISecurityInfoProvider,
-                        public nsITimedChannel,
-                        public mozilla::SupportsWeakPtr<imgRequestProxy>
+                        public nsITimedChannel
 {
 protected:
   virtual ~imgRequestProxy();
@@ -96,18 +96,28 @@ public:
   void SyncNotifyListener();
 
   
+  virtual void Notify(int32_t aType,
+                      const nsIntRect* aRect = nullptr) MOZ_OVERRIDE;
+  virtual void OnLoadComplete(bool aLastPart) MOZ_OVERRIDE;
+
   
-  bool NotificationsDeferred() const
+  virtual void BlockOnload() MOZ_OVERRIDE;
+  virtual void UnblockOnload() MOZ_OVERRIDE;
+
+  
+  virtual void SetHasImage() MOZ_OVERRIDE;
+  virtual void OnStartDecode() MOZ_OVERRIDE;
+
+  
+  
+  virtual bool NotificationsDeferred() const MOZ_OVERRIDE
   {
     return mDeferNotifications;
   }
-  void SetNotificationsDeferred(bool aDeferNotifications)
+  virtual void SetNotificationsDeferred(bool aDeferNotifications) MOZ_OVERRIDE
   {
     mDeferNotifications = aDeferNotifications;
   }
-
-  
-  void SetHasImage();
 
   
   
@@ -144,27 +154,6 @@ protected:
       nsRefPtr<imgRequestProxy> mOwner;
       nsresult mStatus;
   };
-
-  
-  
-  
-
-  void OnStartDecode();
-  void OnSizeAvailable();
-  void OnFrameUpdate(const nsIntRect* aRect);
-  void OnFrameComplete();
-  void OnDecodeComplete();
-  void OnDiscard();
-  void OnUnlockedDraw();
-  void OnImageHasTransparency();
-  void OnImageIsAnimated();
-
-  
-  void OnLoadComplete(bool aLastPart);
-
-  
-  void BlockOnload();
-  void UnblockOnload();
 
   
   void DoCancel(nsresult status);

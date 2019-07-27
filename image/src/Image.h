@@ -7,6 +7,7 @@
 #define MOZILLA_IMAGELIB_IMAGE_H_
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/TimeStamp.h"
 #include "gfx2DGlue.h"                
 #include "imgIContainer.h"
 #include "ProgressTracker.h"

@@ -13,7 +13,7 @@
 #include "nsTObserverArray.h"
 #include "nsThreadUtils.h"
 #include "nsRect.h"
-#include "imgRequestProxy.h"
+#include "IProgressObserver.h"
 
 class imgIContainer;
 class nsIRunnable;
@@ -68,6 +68,7 @@ inline Progress LoadCompleteProgress(bool aLastPart,
 
 
 
+
 class ProgressTracker : public mozilla::SupportsWeakPtr<ProgressTracker>
 {
   virtual ~ProgressTracker() { }
@@ -111,7 +112,7 @@ public:
   
   
   
-  void Notify(imgRequestProxy* proxy);
+  void Notify(IProgressObserver* aObserver);
 
   
   
@@ -120,7 +121,7 @@ public:
   
   
   
-  void NotifyCurrentState(imgRequestProxy* proxy);
+  void NotifyCurrentState(IProgressObserver* aObserver);
 
   
   
@@ -128,7 +129,7 @@ public:
   
   
   
-  void SyncNotify(imgRequestProxy* proxy);
+  void SyncNotify(IProgressObserver* aObserver);
 
   
   
@@ -157,26 +158,26 @@ public:
 
   
   
-  void AddConsumer(imgRequestProxy* aConsumer);
-  bool RemoveConsumer(imgRequestProxy* aConsumer, nsresult aStatus);
-  size_t ConsumerCount() const {
-    MOZ_ASSERT(NS_IsMainThread(), "Use mConsumers on main thread only");
-    return mConsumers.Length();
+  void AddObserver(IProgressObserver* aObserver);
+  bool RemoveObserver(IProgressObserver* aObserver, nsresult aStatus);
+  size_t ObserverCount() const {
+    MOZ_ASSERT(NS_IsMainThread(), "Use mObservers on main thread only");
+    return mObservers.Length();
   }
 
   
   
   
-  bool FirstConsumerIs(imgRequestProxy* aConsumer);
+  bool FirstObserverIs(IProgressObserver* aObserver);
 
-  void AdoptConsumers(ProgressTracker* aTracker) {
-    MOZ_ASSERT(NS_IsMainThread(), "Use mConsumers on main thread only");
+  void AdoptObservers(ProgressTracker* aTracker) {
+    MOZ_ASSERT(NS_IsMainThread(), "Use mObservers on main thread only");
     MOZ_ASSERT(aTracker);
-    mConsumers = aTracker->mConsumers;
+    mObservers = aTracker->mObservers;
   }
 
 private:
-  typedef nsTObserverArray<mozilla::WeakPtr<imgRequestProxy>> ProxyArray;
+  typedef nsTObserverArray<mozilla::WeakPtr<IProgressObserver>> ObserverArray;
   friend class AsyncNotifyRunnable;
   friend class AsyncNotifyCurrentStateRunnable;
   friend class ProgressTrackerInit;
@@ -194,14 +195,14 @@ private:
   
   
   
-  void EmulateRequestFinished(imgRequestProxy* aProxy, nsresult aStatus);
+  void EmulateRequestFinished(IProgressObserver* aObserver, nsresult aStatus);
 
   
   void FireFailureNotification();
 
   
   
-  static void SyncNotifyInternal(ProxyArray& aProxies,
+  static void SyncNotifyInternal(ObserverArray& aObservers,
                                  bool aHasImage, Progress aProgress,
                                  const nsIntRect& aInvalidRect);
 
@@ -213,7 +214,7 @@ private:
   
   
   
-  ProxyArray mConsumers;
+  ObserverArray mObservers;
 
   Progress mProgress;
 };
