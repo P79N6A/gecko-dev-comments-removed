@@ -200,7 +200,7 @@ PlacesController.prototype = {
       var selectedNode = this._view.selectedNode;
       return selectedNode &&
              PlacesUtils.nodeIsFolder(selectedNode) &&
-             !PlacesUIUtils.isContentsReadOnly(selectedNode) &&
+             !PlacesUtils.nodeIsReadOnly(selectedNode) &&
              this._view.result.sortingMode ==
                  Ci.nsINavHistoryQueryOptions.SORT_BY_NONE;
     case "placesCmd_createBookmark":
@@ -330,7 +330,21 @@ PlacesController.prototype = {
         if (nodes[i] == root)
           return false;
 
-        if (!PlacesUIUtils.canUserRemove(nodes[i]))
+        if (PlacesUtils.nodeIsFolder(nodes[i]) &&
+            !PlacesControllerDragHelper.canMoveNode(nodes[i]))
+          return false;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        var parent = nodes[i].parent || root;
+        if (PlacesUtils.isReadonlyFolder(parent))
           return false;
       }
     }
@@ -1546,9 +1560,10 @@ let PlacesControllerDragHelper = {
   canMoveUnwrappedNode: function (aUnwrappedNode) {
     return aUnwrappedNode.id > 0 &&
            !PlacesUtils.isRootItem(aUnwrappedNode.id) &&
-           !PlacesUIUtils.isContentsReadOnly(aUnwrappedNode.parent) ||
+           aUnwrappedNode.parent != PlacesUtils.placesRootId &&
            aUnwrappedNode.parent != PlacesUtils.tagsFolderId &&
-           aUnwrappedNode.grandParentId != PlacesUtils.tagsFolderId;
+           aUnwrappedNode.grandParentId != PlacesUtils.tagsFolderId &&
+           !aUnwrappedNode.parentReadOnly;
   },
 
   
@@ -1561,16 +1576,57 @@ let PlacesControllerDragHelper = {
   canMoveNode:
   function PCDH_canMoveNode(aNode) {
     
-    if (aNode.itemId == -1)
+    if (!aNode.parent)
+      return false;
+
+    let parentId = PlacesUtils.getConcreteItemId(aNode.parent);
+    let concreteId = PlacesUtils.getConcreteItemId(aNode);
+
+    
+    if (PlacesUtils.nodeIsTagQuery(aNode.parent))
       return false;
 
     
+    if (PlacesUtils.nodeIsReadOnly(aNode.parent))
+      return false;
+
     
-    let parentNode = aNode.parent;
-    return parentNode != null &&
-           !(PlacesUtils.nodeIsFolder(parentNode) &&
-             PlacesUIUtils.isContentsReadOnly(parentNode)) &&
-           !PlacesUtils.nodeIsTagQuery(parentNode);
+    if (PlacesUtils.nodeIsContainer(aNode) &&
+        !this.canMoveContainer(aNode.itemId, parentId))
+      return false;
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+  canMoveContainer:
+  function PCDH_canMoveContainer(aId, aParentId) {
+    if (aId == -1)
+      return false;
+
+    
+    const ROOTS = [PlacesUtils.placesRootId, PlacesUtils.bookmarksMenuFolderId,
+                   PlacesUtils.tagsFolderId, PlacesUtils.unfiledBookmarksFolderId,
+                   PlacesUtils.toolbarFolderId];
+    if (ROOTS.indexOf(aId) != -1)
+      return false;
+
+    
+    if (aParentId == null || aParentId == -1)
+      aParentId = PlacesUtils.bookmarks.getFolderIdForItem(aId);
+
+    if (PlacesUtils.bookmarks.getFolderReadonly(aParentId))
+      return false;
+
+    return true;
   },
 
   
@@ -1671,9 +1727,11 @@ let PlacesControllerDragHelper = {
   disallowInsertion: function(aContainer) {
     NS_ASSERT(aContainer, "empty container");
     
-    return !PlacesUtils.nodeIsTagQuery(aContainer) &&
-           (!PlacesUtils.nodeIsFolder(aContainer) ||
-            PlacesUIUtils.isContentsReadOnly(aContainer));
+    if (PlacesUtils.nodeIsTagQuery(aContainer))
+      return false;
+    
+    return (!PlacesUtils.nodeIsFolder(aContainer) ||
+             PlacesUtils.nodeIsReadOnly(aContainer));
   }
 };
 

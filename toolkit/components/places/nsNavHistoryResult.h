@@ -1,13 +1,13 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/**
- * The definitions of objects that make up a history query result set. This file
- * should only be included by nsNavHistory.h, include that if you want these
- * classes.
- */
+
+
+
+
+
+
+
+
+
 
 #ifndef nsNavHistoryResult_h_
 #define nsNavHistoryResult_h_
@@ -27,14 +27,14 @@ class nsNavHistoryContainerResultNode;
 class nsNavHistoryFolderResultNode;
 class nsNavHistoryQueryResultNode;
 
-/**
- * hashkey wrapper using int64_t KeyType
- *
- * @see nsTHashtable::EntryType for specification
- *
- * This just truncates the 64-bit int to a 32-bit one for using a hash number.
- * It is used for bookmark folder IDs, which should be way less than 2^32.
- */
+
+
+
+
+
+
+
+
 class nsTrimInt64HashKey : public PLDHashEntryHdr
 {
 public:
@@ -58,8 +58,8 @@ private:
 };
 
 
-// Declare methods for implementing nsINavBookmarkObserver
-// and nsINavHistoryObserver (some methods, such as BeginUpdateBatch overlap)
+
+
 #define NS_DECL_BOOKMARK_HISTORY_OBSERVER_BASE                          \
   NS_DECL_NSINAVBOOKMARKOBSERVER                                        \
   NS_IMETHOD OnTitleChanged(nsIURI* aURI, const nsAString& aPageTitle,  \
@@ -78,9 +78,9 @@ private:
                             const nsACString& aGUID, uint16_t aReason,  \
                             uint32_t aTransitionType);
 
-// The internal version has an output aAdded parameter, it is incremented by
-// query nodes when the visited uri belongs to them. If no such query exists,
-// the history result creates a new query node dynamically.
+
+
+
 #define NS_DECL_BOOKMARK_HISTORY_OBSERVER_INTERNAL                      \
   NS_DECL_BOOKMARK_HISTORY_OBSERVER_BASE                                \
   NS_IMETHOD OnVisit(nsIURI* aURI, int64_t aVisitId, PRTime aTime,      \
@@ -88,7 +88,7 @@ private:
                      uint32_t aTransitionType, const nsACString& aGUID, \
                      bool aHidden, uint32_t* aAdded);
 
-// The external version is used by results.
+
 #define NS_DECL_BOOKMARK_HISTORY_OBSERVER_EXTERNAL                      \
   NS_DECL_BOOKMARK_HISTORY_OBSERVER_BASE                                \
   NS_IMETHOD OnVisit(nsIURI* aURI, int64_t aVisitId, PRTime aTime,      \
@@ -96,11 +96,11 @@ private:
                      uint32_t aTransitionType, const nsACString& aGUID, \
                      bool aHidden);
 
-// nsNavHistoryResult
-//
-//    nsNavHistory creates this object and fills in mChildren (by getting
-//    it through GetTopLevel()). Then FilledAllResults() is called to finish
-//    object initialization.
+
+
+
+
+
 
 #define NS_NAVHISTORYRESULT_IID \
   { 0x455d1d40, 0x1b9b, 0x40e6, { 0xa6, 0x41, 0x8b, 0xb7, 0xe8, 0x82, 0x23, 0x87 } }
@@ -134,7 +134,7 @@ public:
   void StopObserving();
 
 public:
-  // two-stage init, use NewHistoryResult to construct
+  
   explicit nsNavHistoryResult(nsNavHistoryContainerResultNode* mRoot);
   nsresult Init(nsINavHistoryQuery** aQueries,
                 uint32_t aQueryCount,
@@ -145,18 +145,18 @@ public:
   nsCOMArray<nsINavHistoryQuery> mQueries;
   nsCOMPtr<nsNavHistoryQueryOptions> mOptions;
 
-  // One of nsNavHistoryQueryOptions.SORY_BY_* This is initialized to mOptions.sortingMode,
-  // but may be overridden if the user clicks on one of the columns.
+  
+  
   uint16_t mSortingMode;
-  // If root node is closed and we try to apply a sortingMode, it would not
-  // work.  So we will apply it when the node will be reopened and populated.
-  // This var states the fact we need to apply sortingMode in such a situation.
+  
+  
+  
   bool mNeedsToApplySortingMode;
 
-  // The sorting annotation to be used for in SORT_BY_ANNOTATION_* modes
+  
   nsCString mSortingAnnotation;
 
-  // node observers
+  
   bool mIsHistoryObserver;
   bool mIsBookmarkFolderObserver;
   bool mIsAllBookmarksObserver;
@@ -190,19 +190,19 @@ protected:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
 
-// nsNavHistoryResultNode
-//
-//    This is the base class for every node in a result set. The result itself
-//    is a node (nsNavHistoryResult inherits from this), as well as every
-//    leaf and branch on the tree.
+
+
+
+
+
 
 #define NS_NAVHISTORYRESULTNODE_IID \
   {0x54b61d38, 0x57c1, 0x11da, {0x95, 0xb8, 0x00, 0x13, 0x21, 0xc9, 0xf6, 0x9e}}
 
-// These are all the simple getters, they can be used for the result node
-// implementation and all subclasses. More complex are GetIcon, GetParent
-// (which depends on the definition of container result node), and GetUri
-// (which is overridded for lazy construction for some containers).
+
+
+
+
 #define NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
   NS_IMETHOD GetTitle(nsACString& aTitle) \
     { aTitle = mTitle; return NS_OK; } \
@@ -224,15 +224,15 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
   NS_IMETHOD GetItemId(int64_t* aId) \
     { *aId = mItemId; return NS_OK; }
 
-// This is used by the base classes instead of
-// NS_FORWARD_NSINAVHISTORYRESULTNODE(nsNavHistoryResultNode) because they
-// need to redefine GetType and GetUri rather than forwarding them. This
-// implements all the simple getters instead of forwarding because they are so
-// short and we can save a virtual function call.
-//
-// (GetUri is redefined only by QueryResultNode and FolderResultNode because
-// the queries might not necessarily be parsed. The rest just return the node's
-// buffer.)
+
+
+
+
+
+
+
+
+
 #define NS_FORWARD_COMMON_RESULTNODE_TO_BASE_NO_GETITEMMID \
   NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
   NS_IMETHOD GetIcon(nsACString& aIcon) \
@@ -279,8 +279,8 @@ public:
 
   virtual void OnRemoving();
 
-  // Called from result's onItemChanged, see also bookmark observer declaration in
-  // nsNavHistoryFolderResultNode
+  
+  
   NS_IMETHOD OnItemChanged(int64_t aItemId,
                            const nsACString &aProperty,
                            bool aIsAnnotationProperty,
@@ -299,9 +299,9 @@ public:
   nsNavHistoryResult* GetResult();
   nsNavHistoryQueryOptions* GetGeneratingOptions();
 
-  // These functions test the type. We don't use a virtual function since that
-  // would take a vtable slot for every one of (potentially very many) nodes.
-  // Note that GetType() already has a vtable slot because its on the iface.
+  
+  
+  
   bool IsTypeContainer(uint32_t type) {
     return type == nsINavHistoryResultNode::RESULT_TYPE_QUERY ||
            type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER ||
@@ -356,7 +356,7 @@ public:
   }
 
   nsRefPtr<nsNavHistoryContainerResultNode> mParent;
-  nsCString mURI; // not necessarily valid for containers, call GetUri
+  nsCString mURI; 
   nsCString mTitle;
   nsString mTags;
   bool mAreTagsSorted;
@@ -369,39 +369,39 @@ public:
   PRTime mDateAdded;
   PRTime mLastModified;
 
-  // The indent level of this node. The root node will have a value of -1.  The
-  // root's children will have a value of 0, and so on.
+  
+  
   int32_t mIndentLevel;
 
-  // Frecency of the page.  Valid only for URI nodes.
+  
   int32_t mFrecency;
 
-  // Hidden status of the page.  Valid only for URI nodes.
+  
   bool mHidden;
 
-  // Transition type used when this node represents a single visit.
+  
   uint32_t mTransitionType;
 
-  // Unique Id of the page.
+  
   nsCString mPageGuid;
 
-  // Unique Id of the bookmark.
+  
   nsCString mBookmarkGuid;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResultNode, NS_NAVHISTORYRESULTNODE_IID)
 
 
-// nsNavHistoryContainerResultNode
-//
-//    This is the base class for all nodes that can have children. It is
-//    overridden for nodes that are dynamically populated such as queries and
-//    folders. It is used directly for simple containers such as host groups
-//    in history views.
 
-// derived classes each provide their own implementation of has children and
-// forward the rest to us using this macro
-#define NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN \
+
+
+
+
+
+
+
+
+#define NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN_AND_READONLY \
   NS_IMETHOD GetState(uint16_t* _state) \
     { return nsNavHistoryContainerResultNode::GetState(_state); } \
   NS_IMETHOD GetContainerOpen(bool *aContainerOpen) \
@@ -430,12 +430,12 @@ public:
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
     const nsACString& aIconURI, uint32_t aContainerType,
-    nsNavHistoryQueryOptions* aOptions);
+    bool aReadOnly, nsNavHistoryQueryOptions* aOptions);
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
     PRTime aTime,
     const nsACString& aIconURI, uint32_t aContainerType,
-    nsNavHistoryQueryOptions* aOptions);
+    bool aReadOnly, nsNavHistoryQueryOptions* aOptions);
 
   virtual nsresult Refresh();
 
@@ -456,35 +456,37 @@ public:
 
   bool AreChildrenVisible();
 
-  // Overridded by descendents to populate.
+  
   virtual nsresult OpenContainer();
   nsresult CloseContainer(bool aSuppressNotifications = false);
 
   virtual nsresult OpenContainerAsync();
 
-  // This points to the result that owns this container. All containers have
-  // their result pointer set so we can quickly get to the result without having
-  // to walk the tree. Yet, this also saves us from storing a million pointers
-  // for every leaf node to the result.
+  
+  
+  
+  
   nsRefPtr<nsNavHistoryResult> mResult;
 
-  // For example, RESULT_TYPE_QUERY. Query and Folder results override GetType
-  // so this is not used, but is still kept in sync.
+  
+  
   uint32_t mContainerType;
 
-  // When there are children, this stores the open state in the tree
-  // this is set to the default in the constructor.
+  
+  
   bool mExpanded;
 
-  // Filled in by the result type generator in nsNavHistory.
+  
   nsCOMArray<nsNavHistoryResultNode> mChildren;
+
+  bool mChildrenReadOnly;
 
   nsCOMPtr<nsNavHistoryQueryOptions> mOptions;
 
   void FillStats();
   nsresult ReverseUpdateStats(int32_t aAccessCountChange);
 
-  // Sorting methods.
+  
   typedef nsCOMArray<nsNavHistoryResultNode>::nsCOMArrayComparatorFunc SortComparator;
   virtual uint16_t GetSortType();
   virtual void GetSortingAnnotation(nsACString& aSortingAnnotation);
@@ -563,7 +565,7 @@ public:
                                                 nsNavHistoryResultNode* b,
                                                 void* closure);
 
-  // finding children: THESE DO NOT ADDREF
+  
   nsNavHistoryResultNode* FindChildURI(nsIURI* aURI, uint32_t* aNodeIndex)
   {
     nsAutoCString spec;
@@ -573,7 +575,7 @@ public:
   }
   nsNavHistoryResultNode* FindChildURI(const nsACString& aSpec,
                                        uint32_t* aNodeIndex);
-  // returns the index of the given node, -1 if not found
+  
   int32_t FindChild(nsNavHistoryResultNode* aNode)
     { return mChildren.IndexOf(aNode); }
 
@@ -613,11 +615,11 @@ protected:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryContainerResultNode,
                               NS_NAVHISTORYCONTAINERRESULTNODE_IID)
 
-// nsNavHistoryQueryResultNode
-//
-//    Overridden container type for complex queries over history and/or
-//    bookmarks. This keeps itself in sync by listening to history and
-//    bookmark notifications.
+
+
+
+
+
 
 class nsNavHistoryQueryResultNode : public nsNavHistoryContainerResultNode,
                                     public nsINavHistoryQueryResultNode,
@@ -641,9 +643,11 @@ public:
   NS_FORWARD_COMMON_RESULTNODE_TO_BASE
   NS_IMETHOD GetType(uint32_t* type)
     { *type = nsNavHistoryResultNode::RESULT_TYPE_QUERY; return NS_OK; }
-  NS_IMETHOD GetUri(nsACString& aURI); // does special lazy creation
-  NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN
+  NS_IMETHOD GetUri(nsACString& aURI); 
+  NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN_AND_READONLY
   NS_IMETHOD GetHasChildren(bool* aHasChildren);
+  NS_IMETHOD GetChildrenReadOnly(bool *aChildrenReadOnly)
+    { return nsNavHistoryContainerResultNode::GetChildrenReadOnly(aChildrenReadOnly); }
   NS_DECL_NSINAVHISTORYQUERYRESULTNODE
 
   bool CanExpand();
@@ -655,22 +659,22 @@ public:
   virtual void OnRemoving();
 
 public:
-  // this constructs lazily mURI from mQueries and mOptions, call
-  // VerifyQueriesSerialized either this or mQueries/mOptions should be valid
+  
+  
   nsresult VerifyQueriesSerialized();
 
-  // these may be constructed lazily from mURI, call VerifyQueriesParsed
-  // either this or mURI should be valid
+  
+  
   nsCOMArray<nsNavHistoryQuery> mQueries;
-  uint32_t mLiveUpdate; // one of QUERYUPDATE_* in nsNavHistory.h
+  uint32_t mLiveUpdate; 
   bool mHasSearchTerms;
   nsresult VerifyQueriesParsed();
 
-  // safe options getter, ensures queries are parsed
+  
   nsNavHistoryQueryOptions* Options();
 
-  // this indicates whether the query contents are valid, they don't go away
-  // after the container is closed until a notification comes in
+  
+  
   bool mContentsValid;
 
   nsresult FillChildren();
@@ -687,7 +691,7 @@ public:
 
   uint32_t mBatchChanges;
 
-  // Tracks transition type filters shared by all mQueries.
+  
   nsTArray<uint32_t> mTransitions;
 
 protected:
@@ -695,10 +699,10 @@ protected:
 };
 
 
-// nsNavHistoryFolderResultNode
-//
-//    Overridden container type for bookmark folders. It will keep the contents
-//    of the folder in sync with the bookmark service.
+
+
+
+
 
 class nsNavHistoryFolderResultNode : public nsNavHistoryContainerResultNode,
                                      public nsINavHistoryQueryResultNode,
@@ -721,8 +725,9 @@ public:
     return NS_OK;
   }
   NS_IMETHOD GetUri(nsACString& aURI);
-  NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN
+  NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN_AND_READONLY
   NS_IMETHOD GetHasChildren(bool* aHasChildren);
+  NS_IMETHOD GetChildrenReadOnly(bool *aChildrenReadOnly);
   NS_IMETHOD GetItemId(int64_t *aItemId);
   NS_DECL_NSINAVHISTORYQUERYRESULTNODE
 
@@ -731,18 +736,18 @@ public:
   virtual nsresult OpenContainerAsync();
   NS_DECL_ASYNCSTATEMENTCALLBACK
 
-  // This object implements a bookmark observer interface. This is called from the
-  // result's actual observer and it knows all observers are FolderResultNodes
+  
+  
   NS_DECL_NSINAVBOOKMARKOBSERVER
 
   virtual void OnRemoving();
 
-  // this indicates whether the folder contents are valid, they don't go away
-  // after the container is closed until a notification comes in
+  
+  
   bool mContentsValid;
 
-  // If the node is generated from a place:folder=X query, this is the query's
-  // itemId.
+  
+  
   int64_t mQueryItemId;
 
   nsresult FillChildren();
@@ -768,9 +773,9 @@ private:
   int32_t mAsyncBookmarkIndex;
 };
 
-// nsNavHistorySeparatorResultNode
-//
-// Separator result nodes do not hold any data.
+
+
+
 class nsNavHistorySeparatorResultNode : public nsNavHistoryResultNode
 {
 public:
@@ -780,4 +785,4 @@ public:
     { *type = nsNavHistoryResultNode::RESULT_TYPE_SEPARATOR; return NS_OK; }
 };
 
-#endif // nsNavHistoryResult_h_
+#endif 

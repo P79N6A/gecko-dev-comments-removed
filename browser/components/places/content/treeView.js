@@ -1649,39 +1649,23 @@ PlacesTreeView.prototype = {
     if (aColumn.index != 0)
       return false;
 
+    
     let node = this._rows[aRow];
-    if (!node) {
-      Cu.reportError("isEditable called for an unbuilt row.");
-      return false;
-    }
-    let itemId = node.itemId;
-
-    
-    
-    if (itemId == -1)
+    if (!node || node.itemId == -1)
       return false;
 
     
     
     
     
-    
-    
-    
-    
-    
-    
-    if (PlacesUtils.nodeIsSeparator(node) || PlacesUtils.isRootItem(itemId))
+    if (PlacesUtils.nodeIsReadOnly(node) ||
+        PlacesUtils.nodeIsSeparator(node))
       return false;
 
-    let parentId = node.parent.itemId;
-    if (parentId == PlacesUIUtils.leftPaneFolderId ||
-        parentId == PlacesUIUtils.allBallBookmarksFolderId) {
-      
-      
-      
-      
-      return false;
+    if (PlacesUtils.nodeIsFolder(node)) {
+      let itemId = PlacesUtils.getConcreteItemId(node);
+      if (PlacesUtils.isRootItem(itemId))
+        return false;
     }
 
     return true;

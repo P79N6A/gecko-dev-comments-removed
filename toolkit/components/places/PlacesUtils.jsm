@@ -206,8 +206,35 @@ this.PlacesUtils = {
     }
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  get _readOnly() {
+    
+    this.annotations.addObserver(this, false);
+    this.registerShutdownFunction(function () {
+      this.annotations.removeObserver(this);
+    });
+
+    var readOnly = this.annotations.getItemsWithAnnotation(this.READ_ONLY_ANNO);
+    this.__defineGetter__("_readOnly", function() readOnly);
+    return this._readOnly;
+  },
+
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIObserver
+    Ci.nsIAnnotationObserver
+  , Ci.nsIObserver
   , Ci.nsITransactionListener
   ]),
 
@@ -244,6 +271,24 @@ this.PlacesUtils = {
         }
         break;
     }
+  },
+
+  
+  
+
+  onItemAnnotationSet: function PU_onItemAnnotationSet(aItemId, aAnnotationName)
+  {
+    if (aAnnotationName == this.READ_ONLY_ANNO &&
+        this._readOnly.indexOf(aItemId) == -1)
+      this._readOnly.push(aItemId);
+  },
+
+  onItemAnnotationRemoved:
+  function PU_onItemAnnotationRemoved(aItemId, aAnnotationName)
+  {
+    var index = this._readOnly.indexOf(aItemId);
+    if (aAnnotationName == this.READ_ONLY_ANNO && index > -1)
+      delete this._readOnly[index];
   },
 
   onPageAnnotationSet: function() {},
@@ -294,6 +339,27 @@ this.PlacesUtils = {
   didEndBatch: function PU_didEndBatch() {},
   willMerge: function PU_willMerge() {},
   didMerge: function PU_didMerge() {},
+
+
+  
+
+
+
+
+
+
+  nodeIsReadOnly: function PU_nodeIsReadOnly(aNode) {
+    let itemId = aNode.itemId;
+    if (itemId != -1) {
+      return this._readOnly.indexOf(itemId) != -1;
+    }
+
+    if (this.nodeIsQuery(aNode) &&
+        asQuery(aNode).queryOptions.resultType !=
+        Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_CONTENTS)
+      return aNode.childrenReadOnly;
+    return false;
+  },
 
   
 
@@ -363,6 +429,17 @@ this.PlacesUtils = {
             resultType == Ci.nsINavHistoryQueryOptions.RESULTS_AS_SITE_QUERY ||
             this.nodeIsDay(aNode) ||
             this.nodeIsHost(aNode));
+  },
+
+  
+
+
+
+
+
+  isReadonlyFolder: function(aNode) {
+    return this.nodeIsFolder(aNode) &&
+           this._readOnly.indexOf(asQuery(aNode).folderItemId) != -1;
   },
 
   
@@ -1034,9 +1111,10 @@ this.PlacesUtils = {
       if (guid) {
         aJSNode.itemGuid = guid;
         var parent = aPlacesNode.parent;
-        if (parent)
+        if (parent) {
           aJSNode.parent = parent.itemId;
-
+          aJSNode.parentReadOnly = PlacesUtils.nodeIsReadOnly(parent);
+        }
         var dateAdded = aPlacesNode.dateAdded;
         if (dateAdded)
           aJSNode.dateAdded = dateAdded;
