@@ -8,7 +8,6 @@
 
 #include "nsBaseContentStream.h"
 
-#include "nsICacheListener.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIAsyncInputStream.h"
@@ -35,8 +34,6 @@ typedef enum _FTP_STATE {
 
 
     FTP_INIT,
-    FTP_WAIT_CACHE,
-    FTP_READ_CACHE,
     FTP_COMMAND_CONNECT,
     FTP_READ_BUF,
     FTP_ERROR,
@@ -67,7 +64,6 @@ typedef enum _FTP_ACTION {GET, PUT} FTP_ACTION;
 
 class nsFtpChannel;
 class nsICancelable;
-class nsICacheEntryDescriptor;
 class nsIProxyInfo;
 class nsIStreamListener;
 
@@ -79,7 +75,6 @@ class nsIStreamListener;
 class nsFtpState MOZ_FINAL : public nsBaseContentStream,
                              public nsIInputStreamCallback,
                              public nsITransportEventSink,
-                             public nsICacheListener,
                              public nsIRequestObserver,
                              public nsFtpControlConnectionListener,
                              public nsIProtocolProxyCallback
@@ -88,7 +83,6 @@ public:
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIINPUTSTREAMCALLBACK
     NS_DECL_NSITRANSPORTEVENTSINK
-    NS_DECL_NSICACHELISTENER
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSIPROTOCOLPROXYCALLBACK
 
@@ -159,46 +153,6 @@ private:
     void Connect();
 
     
-
-
-
-
-
-
-
-
-    bool CheckCache();
-
-    
-
-
-
-    bool CanReadCacheEntry();
-
-    
-
-
-
-
-
-    bool ReadCacheEntry();
-
-    
-
-
-
-
-    nsresult OpenCacheDataStream();
-
-    
-
-
-
-
-
-    nsresult InstallCacheListener();
-
-    
     
 
         
@@ -256,9 +210,6 @@ private:
     
     nsresult                mControlStatus;
     nsCString               mControlReadCarryOverBuf;
-
-    nsCOMPtr<nsICacheEntryDescriptor> mCacheEntry;
-    bool                    mDoomCache;
 
     nsCString mSuppliedEntityID;
 

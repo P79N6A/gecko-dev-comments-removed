@@ -22,7 +22,6 @@
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
 #include "nsStreamUtils.h"
-#include "nsICacheService.h"
 #include "nsIURL.h"
 #include "nsISocketTransport.h"
 #include "nsIStreamListenerTee.h"
@@ -32,7 +31,6 @@
 #include "nsAuthInformationHolder.h"
 #include "nsIProtocolProxyService.h"
 #include "nsICancelable.h"
-#include "nsICacheEntryDescriptor.h"
 #include "nsIOutputStream.h"
 #include "nsIPrompt.h"
 #include "nsIProtocolHandler.h"
@@ -40,7 +38,6 @@
 #include "nsIRunnable.h"
 #include "nsISocketTransportService.h"
 #include "nsIURI.h"
-#include "nsICacheSession.h"
 #include "nsILoadInfo.h"
 #include "nsNullPrincipal.h"
 
@@ -70,7 +67,6 @@ NS_IMPL_ISUPPORTS_INHERITED(nsFtpState,
                             nsBaseContentStream,
                             nsIInputStreamCallback, 
                             nsITransportEventSink,
-                            nsICacheListener,
                             nsIRequestObserver,
                             nsIProtocolProxyCallback)
 
@@ -96,7 +92,6 @@ nsFtpState::nsFtpState()
     , mServerIsIPv6(false)
     , mUseUTF8(false)
     , mControlStatus(NS_OK)
-    , mDoomCache(false)
     , mDeferredCallbackPending(false)
 {
     LOG_ALWAYS(("FTP:(%x) nsFtpState created", this));
@@ -1143,7 +1138,6 @@ nsFtpState::SetContentType()
     
     
     
-    
 
     if (!mPath.IsEmpty() && mPath.Last() != '/') {
         nsCOMPtr<nsIURL> url = (do_QueryInterface(mChannel->URI()));
@@ -1173,23 +1167,6 @@ nsFtpState::S_list() {
         mResponseMsg = "";
         return rv;
     }
-    
-    if (mCacheEntry) {
-        
-        nsAutoCString serverType;
-        serverType.AppendInt(mServerType);
-        mCacheEntry->SetMetaDataElement("servertype", serverType.get());
-
-        nsAutoCString useUTF8;
-        useUTF8.AppendInt(mUseUTF8);
-        mCacheEntry->SetMetaDataElement("useUTF8", useUTF8.get());
-
-        
-        if (NS_FAILED(InstallCacheListener())) {
-            mCacheEntry->AsyncDoom(nullptr);
-            mCacheEntry = nullptr;
-        }
-    }
 
     
     NS_ENSURE_TRUE(!mChannel->ResumeRequested(), NS_ERROR_NOT_RESUMABLE);
@@ -1218,7 +1195,6 @@ nsFtpState::R_list() {
     if (mResponseCode/100 == 2) {
         
         mNextState = FTP_COMPLETE;
-        mDoomCache = false;
         return FTP_COMPLETE;
     }
     return FTP_ERROR;
@@ -1245,13 +1221,6 @@ nsFtpState::R_retr() {
     }
 
     if (mResponseCode/100 == 1) {
-        
-        
-        
-        if (mCacheEntry) {
-            (void)mCacheEntry->AsyncDoom(nullptr);
-            mCacheEntry = nullptr;
-        }
         if (mDataStream && HasPendingCallback())
             mDataStream->AsyncWait(this, 0, 0, CallbackTarget());
         return FTP_READ_BUF;
@@ -1644,123 +1613,6 @@ uint32_t GetFtpTime()
 
 uint32_t nsFtpState::mSessionStartTime = GetFtpTime();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-nsFtpState::CanReadCacheEntry()
-{
-    NS_ASSERTION(mCacheEntry, "must have a cache entry");
-
-    nsCacheAccessMode access;
-    nsresult rv = mCacheEntry->GetAccessGranted(&access);
-    if (NS_FAILED(rv))
-        return false;
-    
-    
-    if (!(access & nsICache::ACCESS_READ))
-        return false;
-
-    if (mChannel->HasLoadFlag(nsIRequest::LOAD_FROM_CACHE))
-        return true;
-
-    if (mChannel->HasLoadFlag(nsIRequest::LOAD_BYPASS_CACHE))
-        return false;
-    
-    if (mChannel->HasLoadFlag(nsIRequest::VALIDATE_ALWAYS))
-        return false;
-    
-    uint32_t time;
-    if (mChannel->HasLoadFlag(nsIRequest::VALIDATE_ONCE_PER_SESSION)) {
-        rv = mCacheEntry->GetLastModified(&time);
-        if (NS_FAILED(rv))
-            return false;
-        return (mSessionStartTime > time);
-    }
-
-    if (mChannel->HasLoadFlag(nsIRequest::VALIDATE_NEVER))
-        return true;
-
-    
-    rv = mCacheEntry->GetExpirationTime(&time);
-    if (NS_FAILED(rv))
-        return false;
-
-    return (GetFtpTime() <= time);
-}
-
-nsresult
-nsFtpState::InstallCacheListener()
-{
-    NS_ASSERTION(mCacheEntry, "must have a cache entry");
-
-    nsCOMPtr<nsIOutputStream> out;
-    mCacheEntry->OpenOutputStream(0, getter_AddRefs(out));
-    NS_ENSURE_STATE(out);
-
-    nsCOMPtr<nsIStreamListenerTee> tee =
-            do_CreateInstance(NS_STREAMLISTENERTEE_CONTRACTID);
-    NS_ENSURE_STATE(tee);
-
-    nsresult rv = tee->Init(mChannel->StreamListener(), out, nullptr);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mChannel->SetStreamListener(tee);
-    return NS_OK;
-}
-
-nsresult
-nsFtpState::OpenCacheDataStream()
-{
-    NS_ASSERTION(mCacheEntry, "must have a cache entry");
-
-    
-    nsCOMPtr<nsIInputStream> input;
-    mCacheEntry->OpenInputStream(0, getter_AddRefs(input));
-    NS_ENSURE_STATE(input);
-
-    nsCOMPtr<nsIStreamTransportService> sts =
-            do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
-    NS_ENSURE_STATE(sts);
-
-    nsCOMPtr<nsITransport> transport;
-    sts->CreateInputTransport(input, -1, -1, true,
-                              getter_AddRefs(transport));
-    NS_ENSURE_STATE(transport);
-
-    nsresult rv = transport->SetEventSink(this, NS_GetCurrentThread());
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCOMPtr<nsIInputStream> transportInput;
-    transport->OpenInputStream(0,
-                               nsIOService::gDefaultSegmentSize,
-                               nsIOService::gDefaultSegmentCount,
-                               getter_AddRefs(transportInput));
-    NS_ENSURE_STATE(transportInput);
-
-    mDataStream = do_QueryInterface(transportInput);
-    NS_ENSURE_STATE(mDataStream);
-
-    mDataTransport = transport;
-    return NS_OK;
-}
-
 nsresult
 nsFtpState::Init(nsFtpChannel *channel)
 {
@@ -1858,8 +1710,6 @@ nsFtpState::Init(nsFtpChannel *channel)
     
     if (mPassword.FindCharInSet(CRLF) >= 0)
         return NS_ERROR_MALFORMED_URI;
-
-    
 
     int32_t port;
     rv = mChannel->URI()->GetPort(&port);
@@ -2198,39 +2048,6 @@ nsFtpState::OnTransportStatus(nsITransport *transport, nsresult status,
 
 
 
-
-NS_IMETHODIMP
-nsFtpState::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
-                                  nsCacheAccessMode access,
-                                  nsresult status)
-{
-    
-    if (IsClosed())
-        return NS_OK;
-
-    if (NS_SUCCEEDED(status) && entry) {
-        mDoomCache = true;
-        mCacheEntry = entry;
-        if (CanReadCacheEntry() && ReadCacheEntry()) {
-            mState = FTP_READ_CACHE;
-            return NS_OK;
-        }
-    }
-
-    Connect();
-    return NS_OK;
-}
-
-
-
-NS_IMETHODIMP
-nsFtpState::OnCacheEntryDoomed(nsresult status)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
 NS_IMETHODIMP
 nsFtpState::OnStartRequest(nsIRequest *request, nsISupports *context)
 {
@@ -2356,9 +2173,6 @@ nsFtpState::CloseWithStatus(nsresult status)
     }
 
     mDataStream = nullptr;
-    if (mDoomCache && mCacheEntry)
-        mCacheEntry->AsyncDoom(nullptr);
-    mCacheEntry = nullptr;
 
     return nsBaseContentStream::CloseWithStatus(status);
 }
@@ -2433,22 +2247,9 @@ nsFtpState::OnProxyAvailable(nsICancelable *request, nsIChannel *channel,
 void
 nsFtpState::OnCallbackPending()
 {
-    
-    
-    
-
     if (mState == FTP_INIT) {
         if (mProxyRequest) {
             mDeferredCallbackPending = true;
-            return;
-        }
-
-        if (CheckCache()) {
-            mState = FTP_WAIT_CACHE;
-            return;
-        } 
-        if (mCacheEntry && CanReadCacheEntry() && ReadCacheEntry()) {
-            mState = FTP_READ_CACHE;
             return;
         }
         Connect();
@@ -2457,100 +2258,3 @@ nsFtpState::OnCallbackPending()
     }
 }
 
-bool
-nsFtpState::ReadCacheEntry()
-{
-    NS_ASSERTION(mCacheEntry, "should have a cache entry");
-
-    
-    SetContentType();
-
-    nsXPIDLCString serverType;
-    mCacheEntry->GetMetaDataElement("servertype", getter_Copies(serverType));
-    nsAutoCString serverNum(serverType.get());
-    nsresult err;
-    mServerType = serverNum.ToInteger(&err);
-
-    nsXPIDLCString charset;
-    mCacheEntry->GetMetaDataElement("useUTF8", getter_Copies(charset));
-    const char *useUTF8 = charset.get();
-    if (useUTF8 && atoi(useUTF8) == 1)
-        mChannel->SetContentCharset(NS_LITERAL_CSTRING("UTF-8"));
-    
-    mChannel->PushStreamConverter("text/ftp-dir",
-                                  APPLICATION_HTTP_INDEX_FORMAT);
-    
-    mChannel->SetEntityID(EmptyCString());
-
-    if (NS_FAILED(OpenCacheDataStream()))
-        return false;
-
-    if (mDataStream && HasPendingCallback())
-        mDataStream->AsyncWait(this, 0, 0, CallbackTarget());
-
-    mDoomCache = false;
-    return true;
-}
-
-bool
-nsFtpState::CheckCache()
-{
-    
-    
-    
-
-    
-    if (mChannel->UploadStream() || mChannel->ResumeRequested())
-        return false;
-
-    nsCOMPtr<nsICacheService> cache = do_GetService(NS_CACHESERVICE_CONTRACTID);
-    if (!cache)
-        return false;
-
-    bool isPrivate = NS_UsePrivateBrowsing(mChannel);
-    const char* sessionName = isPrivate ? "FTP-private" : "FTP";
-    nsCacheStoragePolicy policy =
-        isPrivate ? nsICache::STORE_IN_MEMORY : nsICache::STORE_ANYWHERE;
-    nsCOMPtr<nsICacheSession> session;
-    cache->CreateSession(sessionName,
-                         policy,
-                         nsICache::STREAM_BASED,
-                         getter_AddRefs(session));
-    if (!session)
-        return false;
-    session->SetDoomEntriesIfExpired(false);
-    session->SetIsPrivate(isPrivate);
-
-    
-    nsCacheAccessMode accessReq;
-    uint32_t appId;
-    bool isInBrowser;
-    NS_GetAppInfo(mChannel, &appId, &isInBrowser);
-
-    if (NS_IsOffline() || NS_IsAppOffline(appId)) {
-        accessReq = nsICache::ACCESS_READ; 
-    } else if (mChannel->HasLoadFlag(nsIRequest::LOAD_BYPASS_CACHE)) {
-        accessReq = nsICache::ACCESS_WRITE; 
-    } else {
-        accessReq = nsICache::ACCESS_READ_WRITE; 
-    }
-
-    
-    if (mChannel->HasLoadFlag(nsIRequest::INHIBIT_CACHING)) {
-        accessReq &= ~nsICache::ACCESS_WRITE;
-        if (accessReq == nsICache::ACCESS_NONE)
-            return false;
-    }
-
-    
-    nsAutoCString key;
-    mChannel->URI()->GetAsciiSpec(key);
-    int32_t pos = key.RFindChar('#');
-    if (pos != kNotFound)
-        key.Truncate(pos);
-    NS_ENSURE_FALSE(key.IsEmpty(), false);
-
-    nsresult rv = session->AsyncOpenCacheEntry(key, accessReq, this, false);
-    return NS_SUCCEEDED(rv);
-
-}
