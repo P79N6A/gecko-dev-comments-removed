@@ -45,17 +45,19 @@ public class ReferrerReceiver extends BroadcastReceiver {
             return;
         }
 
+        
         ReferrerDescriptor referrer = new ReferrerDescriptor(intent.getStringExtra("referrer"));
 
-        
+        if (!TextUtils.equals(referrer.source, MOZILLA_UTM_SOURCE)) {
+            return;
+        }
+
         if (TextUtils.equals(referrer.campaign, DISTRIBUTION_UTM_CAMPAIGN)) {
             Distribution.onReceivedReferrer(context, referrer);
         } else {
             Log.d(LOGTAG, "Not downloading distribution: non-matching campaign.");
-        }
-
-        
-        if (TextUtils.equals(referrer.source, MOZILLA_UTM_SOURCE)) {
+            
+            
             propagateMozillaCampaign(referrer);
         }
 
