@@ -320,6 +320,7 @@ HTMLLinkElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   
   if (aName == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
     Link::ResetLinkState(!!aNotify, true);
+    CreateAndDispatchEvent(OwnerDoc(), NS_LITERAL_STRING("DOMLinkChanged"));
   }
 
   if (NS_SUCCEEDED(rv) && aNameSpaceID == kNameSpaceID_None &&
@@ -382,6 +383,7 @@ HTMLLinkElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
   
   if (aAttribute == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
     Link::ResetLinkState(!!aNotify, false);
+    CreateAndDispatchEvent(OwnerDoc(), NS_LITERAL_STRING("DOMLinkChanged"));
   }
 
   return rv;
