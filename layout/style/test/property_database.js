@@ -4799,6 +4799,17 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
   };
 }
 
+if (SpecialPowers.getBoolPref("layout.css.ruby.enabled")) {
+  
+  
+  
+  gCSSProperties["display"].other_values.unshift("ruby",
+                                                 "ruby-base",
+                                                 "ruby-base-container",
+                                                 "ruby-text",
+                                                 "ruby-text-container");
+}
+
 if (SpecialPowers.getBoolPref("layout.css.grid.enabled")) {
   gCSSProperties["display"].other_values.push("grid", "inline-grid");
   gCSSProperties["grid-auto-flow"] = {
