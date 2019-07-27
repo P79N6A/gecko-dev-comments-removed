@@ -2265,7 +2265,7 @@ CodeGeneratorX86Shared::visitSimdBinaryCompIx4(LSimdBinaryCompIx4 *ins)
         
         break;
     }
-    MOZ_ASSUME_UNREACHABLE("unexpected SIMD op");
+    MOZ_CRASH("unexpected SIMD op");
 }
 
 bool
@@ -2296,7 +2296,7 @@ CodeGeneratorX86Shared::visitSimdBinaryCompFx4(LSimdBinaryCompFx4 *ins)
         masm.cmpps(rhs, lhs, 0x6);
         return true;
     }
-    MOZ_ASSUME_UNREACHABLE("unexpected SIMD op");
+    MOZ_CRASH("unexpected SIMD op");
 }
 
 bool
