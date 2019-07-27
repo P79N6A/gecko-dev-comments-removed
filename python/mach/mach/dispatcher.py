@@ -123,6 +123,21 @@ class CommandAction(argparse.Action):
         handler = self._mach_registrar.command_handlers.get(command)
 
         
+        if handler.subcommand_handlers:
+            if not args:
+                self._handle_subcommand_main_help(parser, handler)
+                sys.exit(0)
+            elif len(args) == 1 and args[0] in ('help', '--help'):
+                self._handle_subcommand_main_help(parser, handler)
+                sys.exit(0)
+            
+            elif len(args) == 2 and args[0] == 'help':
+                subcommand = args[1]
+                subhandler = handler.subcommand_handlers[subcommand]
+                self._handle_subcommand_help(parser, command, subcommand, subhandler)
+                sys.exit(0)
+
+        
         
         
         
@@ -267,6 +282,10 @@ class CommandAction(argparse.Action):
         if not handler:
             raise UnknownCommandError(command, 'query')
 
+        if handler.subcommand_handlers:
+            self._handle_subcommand_main_help(parser, handler)
+            return
+
         
         
         
@@ -312,6 +331,30 @@ class CommandAction(argparse.Action):
 
         parser.usage = '%(prog)s [global arguments] ' + command + \
             ' [command arguments]'
+        parser.print_help()
+        print('')
+        c_parser.print_help()
+
+    def _handle_subcommand_main_help(self, parser, handler):
+        parser.usage = '%(prog)s [global arguments] ' + handler.name + \
+            ' subcommand [subcommand arguments]'
+        group = parser.add_argument_group('Sub Commands')
+
+        for subcommand, subhandler in sorted(handler.subcommand_handlers.iteritems()):
+            group.add_argument(subcommand, help=subhandler.description,
+                action='store_true')
+
+        parser.print_help()
+
+    def _handle_subcommand_help(self, parser, command, subcommand, handler):
+        parser.usage = '%(prog)s [global arguments] ' + command + \
+            ' ' + subcommand + ' [command arguments]'
+
+        c_parser = argparse.ArgumentParser(add_help=False,
+            formatter_class=CommandFormatter)
+        group = c_parser.add_argument_group('Sub Command Arguments')
+        self._populate_command_group(c_parser, handler, group)
+
         parser.print_help()
         print('')
         c_parser.print_help()
