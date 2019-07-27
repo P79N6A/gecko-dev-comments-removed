@@ -142,14 +142,14 @@ class JitRuntime
 
     
     
-    JSC::ExecutableAllocator *execAlloc_;
+    ExecutableAllocator *execAlloc_;
 
     
     
     
     
     
-    JSC::ExecutableAllocator *ionAlloc_;
+    ExecutableAllocator *ionAlloc_;
 
     
     JitCode *exceptionTail_;
@@ -248,7 +248,7 @@ class JitRuntime
     JitCode *generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrameRegPopOffsetOut);
     JitCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
 
-    JSC::ExecutableAllocator *createIonAlloc(JSContext *cx);
+    ExecutableAllocator *createIonAlloc(JSContext *cx);
 
   public:
     JitRuntime();
@@ -260,16 +260,16 @@ class JitRuntime
 
     static void Mark(JSTracer *trc);
 
-    JSC::ExecutableAllocator *execAlloc() const {
+    ExecutableAllocator *execAlloc() const {
         return execAlloc_;
     }
 
-    JSC::ExecutableAllocator *getIonAlloc(JSContext *cx) {
+    ExecutableAllocator *getIonAlloc(JSContext *cx) {
         JS_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
         return ionAlloc_ ? ionAlloc_ : createIonAlloc(cx);
     }
 
-    JSC::ExecutableAllocator *ionAlloc(JSRuntime *rt) {
+    ExecutableAllocator *ionAlloc(JSRuntime *rt) {
         JS_ASSERT(rt->currentThreadOwnsInterruptLock());
         return ionAlloc_;
     }
@@ -469,7 +469,7 @@ class JitCompartment
 
     void toggleBaselineStubBarriers(bool enabled);
 
-    JSC::ExecutableAllocator *createIonAlloc();
+    ExecutableAllocator *createIonAlloc();
 
   public:
     JitCompartment();

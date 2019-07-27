@@ -19,10 +19,6 @@
 #include "jit/IonOptimizationLevels.h"
 #include "jit/IonTypes.h"
 
-namespace JSC {
-    class ExecutablePool;
-}
-
 namespace js {
 
 class AsmJSModule;
@@ -37,7 +33,7 @@ class JitCode : public gc::BarrieredCell<JitCode>
 {
   protected:
     uint8_t *code_;
-    JSC::ExecutablePool *pool_;
+    ExecutablePool *pool_;
     uint32_t bufferSize_;             
     uint32_t insnSize_;               
     uint32_t dataSize_;               
@@ -58,8 +54,8 @@ class JitCode : public gc::BarrieredCell<JitCode>
       : code_(nullptr),
         pool_(nullptr)
     { }
-    JitCode(uint8_t *code, uint32_t bufferSize, uint32_t headerSize, JSC::ExecutablePool *pool,
-            JSC::CodeKind kind)
+    JitCode(uint8_t *code, uint32_t bufferSize, uint32_t headerSize, ExecutablePool *pool,
+            CodeKind kind)
       : code_(code),
         pool_(pool),
         bufferSize_(bufferSize),
@@ -72,7 +68,7 @@ class JitCode : public gc::BarrieredCell<JitCode>
         kind_(kind),
         invalidated_(false)
     {
-        MOZ_ASSERT(JSC::CodeKind(kind_) == kind);
+        MOZ_ASSERT(CodeKind(kind_) == kind);
         MOZ_ASSERT(headerSize_ == headerSize);
     }
 
@@ -136,7 +132,7 @@ class JitCode : public gc::BarrieredCell<JitCode>
     
     template <AllowGC allowGC>
     static JitCode *New(JSContext *cx, uint8_t *code, uint32_t bufferSize, uint32_t headerSize,
-                        JSC::ExecutablePool *pool, JSC::CodeKind kind);
+                        ExecutablePool *pool, CodeKind kind);
 
   public:
     static inline ThingRootKind rootKind() { return THING_ROOT_JIT_CODE; }
