@@ -3,9 +3,6 @@
 
 "use strict";
 
-let { Ci } = require("chrome");
-let WebConsoleUtils = require("devtools/toolkit/webconsole/utils").Utils;
-
 
 
 
