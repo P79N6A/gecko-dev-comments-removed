@@ -167,7 +167,18 @@ let _attemptTransport = Task.async(function*(settings) {
 
   
   
-  let { alive, certError } = yield _isInputAlive(input);
+  let alive, certError;
+  try {
+    let results = yield _isInputAlive(input);
+    alive = results.alive;
+    certError = results.certError;
+  } catch(e) {
+    
+    
+    input.close();
+    output.close();
+    throw e;
+  }
   dumpv("Server cert accepted? " + !certError);
 
   
