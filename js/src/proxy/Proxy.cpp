@@ -330,10 +330,35 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
         return policy.returnValue();
 
     
-    if (handler->hasPrototype())
-        return handler->BaseProxyHandler::set(cx, proxy, receiver, id, strict, vp);
+    
+    if (!handler->hasPrototype())
+        return handler->set(cx, proxy, receiver, id, strict, vp);
 
-    return handler->set(cx, proxy, receiver, id, strict, vp);
+    
+    
+    Rooted<PropertyDescriptor> desc(cx);
+    if (!Proxy::getPropertyDescriptor(cx, proxy, id, &desc))
+        return false;
+    if (desc.object() && desc.setter()) {
+        MOZ_ASSERT(desc.setter() != JS_StrictPropertyStub);
+        return CallSetter(cx, receiver, id, desc.setter(), desc.attributes(), strict, vp);
+    }
+
+    if (desc.isReadonly()) {
+        return strict ? Throw(cx, id, JSMSG_READ_ONLY) : true;
+    }
+
+    
+    
+    unsigned attrs =
+        (desc.object() == proxy)
+        ? JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_READONLY | JSPROP_IGNORE_PERMANENT
+        : JSPROP_ENUMERATE;
+    const Class *clasp = receiver->getClass();
+    MOZ_ASSERT(clasp->getProperty != JS_PropertyStub);
+    MOZ_ASSERT(clasp->setProperty != JS_StrictPropertyStub);
+    return JSObject::defineGeneric(cx, receiver, id, vp, clasp->getProperty, clasp->setProperty,
+                                   attrs);
 }
 
 bool

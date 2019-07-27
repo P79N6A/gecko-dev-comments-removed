@@ -1473,36 +1473,31 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
         }
     } else if (!(attrs & JSPROP_IGNORE_VALUE)) {
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        NativeLookupOwnPropertyNoResolve(cx, obj, id, &shape);
 
+
+
+
+
+
+
+
+
+        shape = obj->lookup(cx, id);
         if (shape) {
             if (shape->isAccessorDescriptor() &&
                 !CheckAccessorRedefinition(cx, obj, shape, getter, setter, id, attrs))
             {
                 return false;
             }
-
-            
-            
-            if (IsImplicitDenseOrTypedArrayElement(shape))
-                attrs = ApplyAttributes(attrs, true, true, !IsAnyTypedArray(obj));
-            else
+            if (shape->isDataDescriptor())
                 attrs = ApplyOrDefaultAttributes(attrs, shape);
         }
     } else {
         
-        
-        
+
+
+
+
         if (!NativeLookupOwnProperty(cx, obj, id, &shape))
             return false;
 
@@ -1704,6 +1699,67 @@ js::NativeGet(JSContext *cx, HandleObject obj, HandleNativeObject pobj, HandleSh
               MutableHandleValue vp)
 {
     return NativeGetInline<CanGC>(cx, obj, obj, pobj, shape, vp);
+}
+
+template <ExecutionMode mode>
+static bool
+NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg, HandleNativeObject obj,
+          HandleObject receiver, HandleShape shape, bool strict, MutableHandleValue vp)
+{
+    MOZ_ASSERT(cxArg->isThreadLocal(obj));
+    MOZ_ASSERT(obj->isNative());
+
+    if (shape->hasSlot()) {
+        
+        if (shape->hasDefaultSetter()) {
+            if (mode == ParallelExecution) {
+                if (!obj->setSlotIfHasType(shape, vp))
+                    return false;
+            } else {
+                
+                
+                
+                bool overwriting = !obj->is<GlobalObject>() || !obj->getSlot(shape->slot()).isUndefined();
+                obj->setSlotWithType(cxArg->asExclusiveContext(), shape, vp, overwriting);
+            }
+
+            return true;
+        }
+    }
+
+    if (mode == ParallelExecution)
+        return false;
+    JSContext *cx = cxArg->asJSContext();
+
+    if (!shape->hasSlot()) {
+        
+
+
+
+
+
+        if (!shape->hasGetterValue() && shape->hasDefaultSetter())
+            return js_ReportGetterOnlyAssignment(cx, strict);
+    }
+
+    RootedValue ovp(cx, vp);
+
+    uint32_t sample = cx->runtime()->propertyRemovals;
+    if (!shape->set(cx, obj, receiver, strict, vp))
+        return false;
+
+    
+
+
+
+    if (shape->hasSlot() &&
+        (MOZ_LIKELY(cx->runtime()->propertyRemovals == sample) ||
+         obj->contains(cx, shape)))
+    {
+        obj->setSlot(shape->slot(), vp);
+    }
+
+    return true;
 }
 
 
@@ -1926,72 +1982,34 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 
 
 
-
-
-
 template <ExecutionMode mode>
 static bool
 SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                      HandleNativeObject obj, HandleObject receiver, HandleId id,
-                      HandleValue v, bool strict, bool objHasOwn)
+                      HandleObject receiver, HandleId id, HandleValue v, bool strict)
 {
     
     
     
-    
-    bool existing;
-    if (receiver == obj) {
-        
-        
-#ifdef DEBUG
-        
-        
-        
-        if (mode == SequentialExecution) {
-            if (!HasOwnProperty(cxArg->asJSContext(), receiver, id, &existing))
-                return false;
-            MOZ_ASSERT(existing == objHasOwn);
-        }
-#endif
-        existing = objHasOwn;
-    } else if (mode == ParallelExecution) {
-        
-        
-        NativeObject *npobj;
-        Shape *shape;
-        if (!LookupPropertyPure(cxArg, receiver, id, &npobj, &shape))
+    bool extensible;
+    if (mode == ParallelExecution) {
+        if (receiver->is<ProxyObject>())
             return false;
-        existing = (npobj == receiver);
+        extensible = receiver->nonProxyIsExtensible();
     } else {
-        if (!HasOwnProperty(cxArg->asJSContext(), receiver, id, &existing))
+        if (!JSObject::isExtensible(cxArg->asJSContext(), receiver, &extensible))
             return false;
     }
-
-    
-    
-    
-    if (!existing) {
-        bool extensible;
-        if (mode == ParallelExecution) {
-            if (receiver->is<ProxyObject>())
-                return false;
-            extensible = receiver->nonProxyIsExtensible();
-        } else {
-            if (!JSObject::isExtensible(cxArg->asJSContext(), receiver, &extensible))
-                return false;
+    if (!extensible) {
+        
+        
+        if (strict)
+            return receiver->reportNotExtensible(cxArg);
+        if (mode == SequentialExecution &&
+            cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
+        {
+            return receiver->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
         }
-        if (!extensible) {
-            
-            
-            if (strict)
-                return receiver->reportNotExtensible(cxArg);
-            if (mode == SequentialExecution &&
-                cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
-            {
-                return receiver->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
-            }
-            return true;
-        }
+        return true;
     }
 
     
@@ -2009,10 +2027,6 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
     }
 
     
-    unsigned attrs =
-        existing
-        ? JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_READONLY | JSPROP_IGNORE_PERMANENT
-        : JSPROP_ENUMERATE;
     JSPropertyOp getter = clasp->getProperty;
     JSStrictPropertyOp setter = clasp->setProperty;
     MOZ_ASSERT(getter != JS_PropertyStub);
@@ -2021,11 +2035,11 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
         if (mode == ParallelExecution)
             return false;
         return JSObject::defineGeneric(cxArg->asJSContext(), receiver, id, v, getter, setter,
-                                       attrs);
+                                       JSPROP_ENUMERATE);
     }
     Rooted<NativeObject*> nativeReceiver(cxArg, &receiver->as<NativeObject>());
     return DefinePropertyOrElement<mode>(cxArg, nativeReceiver, id, getter, setter,
-                                         attrs, v, true, strict);
+                                         JSPROP_ENUMERATE, v, true, strict);
 }
 
 
@@ -2040,8 +2054,8 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
 template <ExecutionMode mode>
 static bool
 SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                       HandleNativeObject obj, HandleObject receiver, HandleId id,
-                       baseops::QualifiedBool qualified, HandleValue v, bool strict)
+                       HandleObject receiver, HandleId id, baseops::QualifiedBool qualified,
+                       HandleValue v, bool strict)
 {
     
     MOZ_ASSERT(!receiver->is<BlockObject>());
@@ -2054,148 +2068,77 @@ SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
             return false;
     }
 
-    return SetPropertyByDefining<mode>(cxArg, obj, receiver, id, v, strict, false);
+    return SetPropertyByDefining<mode>(cxArg, receiver, id, v, strict);
 }
 
-
-
-
-
 template <ExecutionMode mode>
-static bool
-SetDenseOrTypedArrayElement(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                            HandleNativeObject obj, uint32_t index, MutableHandleValue vp,
-                            bool strict)
-{
-    if (IsAnyTypedArray(obj)) {
-        double d;
-        if (mode == ParallelExecution) {
-            
-            
-            if (vp.isObject())
-                return false;
-            if (!NonObjectToNumber(cxArg, vp, &d))
-                return false;
-        } else {
-            if (!ToNumber(cxArg->asJSContext(), vp, &d))
-                return false;
-        }
-
-        
-        
-        
-        uint32_t len = AnyTypedArrayLength(obj);
-        if (index < len) {
-            if (obj->is<TypedArrayObject>())
-                TypedArrayObject::setElement(obj->as<TypedArrayObject>(), index, d);
-            else
-                SharedTypedArrayObject::setElement(obj->as<SharedTypedArrayObject>(), index, d);
-        }
-        return true;
-    }
-
-    bool definesPast;
-    if (!WouldDefinePastNonwritableLength(cxArg, obj, index, strict, &definesPast))
-        return false;
-    if (definesPast) {
-        
-        if (mode == ParallelExecution)
-            return !strict;
-        return true;
-    }
-
-    if (!obj->maybeCopyElementsForWrite(cxArg))
-        return false;
-
-    if (mode == ParallelExecution)
-        return obj->setDenseElementIfHasType(index, vp);
-
-    obj->setDenseElementWithType(cxArg->asJSContext(), index, vp);
-    return true;
-}
-
-
-
-
-
-template <ExecutionMode mode>
-static bool
-NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg, HandleNativeObject obj,
-          HandleObject receiver, HandleShape shape, bool strict, MutableHandleValue vp)
+bool
+baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg,
+                           HandleNativeObject obj, HandleObject receiver, HandleId id,
+                           QualifiedBool qualified, MutableHandleValue vp, bool strict)
 {
     MOZ_ASSERT(cxArg->isThreadLocal(obj));
-    MOZ_ASSERT(obj->isNative());
 
-    if (shape->hasSlot()) {
+    if (MOZ_UNLIKELY(obj->watched())) {
+        if (mode == ParallelExecution)
+            return false;
+
         
-        if (shape->hasDefaultSetter()) {
-            if (mode == ParallelExecution) {
-                if (!obj->setSlotIfHasType(shape, vp))
-                    return false;
-            } else {
-                
-                
-                
-                bool overwriting = !obj->is<GlobalObject>() || !obj->getSlot(shape->slot()).isUndefined();
-                obj->setSlotWithType(cxArg->asExclusiveContext(), shape, vp, overwriting);
+        JSContext *cx = cxArg->asJSContext();
+        WatchpointMap *wpmap = cx->compartment()->watchpointMap;
+        if (wpmap && !wpmap->triggerWatchpoint(cx, obj, id, vp))
+            return false;
+    }
+
+    RootedObject pobj(cxArg);
+    RootedShape shape(cxArg);
+    if (mode == ParallelExecution) {
+        NativeObject *npobj;
+        if (!LookupPropertyPure(cxArg, obj, id, &npobj, shape.address()))
+            return false;
+        pobj = npobj;
+    } else {
+        JSContext *cx = cxArg->asJSContext();
+        if (!LookupNativeProperty(cx, obj, id, &pobj, &shape))
+            return false;
+    }
+
+    if (!shape)
+        return SetNonexistentProperty<mode>(cxArg, receiver, id, qualified, vp, strict);
+
+    if (!pobj->isNative()) {
+        if (pobj->is<ProxyObject>()) {
+            if (mode == ParallelExecution)
+                return false;
+
+            JSContext *cx = cxArg->asJSContext();
+            Rooted<PropertyDescriptor> pd(cx);
+            if (!Proxy::getPropertyDescriptor(cx, pobj, id, &pd))
+                return false;
+
+            if ((pd.attributes() & (JSPROP_SHARED | JSPROP_SHADOWABLE)) == JSPROP_SHARED) {
+                return !pd.setter() ||
+                       CallSetter(cx, receiver, id, pd.setter(), pd.attributes(), strict, vp);
             }
 
-            return true;
+            if (pd.isReadonly()) {
+                if (strict)
+                    return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
+                if (cx->compartment()->options().extraWarnings(cx))
+                    return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+                return true;
+            }
         }
+
+        return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
     }
-
-    if (mode == ParallelExecution)
-        return false;
-    JSContext *cx = cxArg->asJSContext();
-
-    if (!shape->hasSlot()) {
-        
-
-
-
-
-
-        if (!shape->hasGetterValue() && shape->hasDefaultSetter())
-            return js_ReportGetterOnlyAssignment(cx, strict);
-    }
-
-    RootedValue ovp(cx, vp);
-
-    uint32_t sample = cx->runtime()->propertyRemovals;
-    if (!shape->set(cx, obj, receiver, strict, vp))
-        return false;
 
     
-
-
-
-    if (shape->hasSlot() &&
-        (MOZ_LIKELY(cx->runtime()->propertyRemovals == sample) ||
-         obj->contains(cx, shape)))
-    {
-        obj->setSlot(shape->slot(), vp);
-    }
-
-    return true;
-}
-
-
-
-
-
-
-
-
-template <ExecutionMode mode>
-static bool
-SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                    HandleNativeObject obj, HandleObject receiver, HandleId id,
-                    HandleNativeObject pobj, HandleShape shape, MutableHandleValue vp, bool strict)
-{
+    unsigned attrs = JSPROP_ENUMERATE;
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
         
-        if (pobj == receiver)
-            return SetDenseOrTypedArrayElement<mode>(cxArg, pobj, JSID_TO_INT(id), vp, strict);
+        if (pobj != obj)
+            shape = nullptr;
     } else {
         
         if (shape->isAccessorDescriptor()) {
@@ -2228,131 +2171,86 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
             }
         }
 
-        if (pobj == receiver) {
-            if (pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
-                Rooted<ArrayObject*> arr(cxArg, &pobj->as<ArrayObject>());
-                return ArraySetLength<mode>(cxArg, arr, id, shape->attributes(), vp, strict);
-            }
-            return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
-        }
-
-        
-        if (!shape->shadowable() &&
-            !(pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)))
-        {
-            
-            if (shape->hasDefaultSetter() && !shape->hasGetterValue())
-                return true;
-
-            
-            if (mode == ParallelExecution)
-                return false;
-            return shape->set(cxArg->asJSContext(), obj, receiver, strict, vp);
-        }
-    }
-
-    
-    return SetPropertyByDefining<mode>(cxArg, obj, receiver, id, vp, strict, obj == pobj);
-}
-
-template <ExecutionMode mode>
-bool
-baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                           HandleNativeObject obj, HandleObject receiver, HandleId id,
-                           QualifiedBool qualified, MutableHandleValue vp, bool strict)
-{
-    MOZ_ASSERT(cxArg->isThreadLocal(obj));
-
-    
-    if (MOZ_UNLIKELY(obj->watched())) {
-        if (mode == ParallelExecution)
-            return false;
-
-        JSContext *cx = cxArg->asJSContext();
-        WatchpointMap *wpmap = cx->compartment()->watchpointMap;
-        if (wpmap && !wpmap->triggerWatchpoint(cx, obj, id, vp))
-            return false;
-    }
-
-    
-    
-    
-    RootedShape shape(cxArg);
-    RootedNativeObject pobj(cxArg, obj);
-
-    
-    
-    for (;;) {
-        
-        bool done;
-        if (mode == ParallelExecution) {
-            
-            
-            NativeObject *ancestor;
-            if (!LookupPropertyPure(cxArg, pobj, id, &ancestor, shape.address()))
-                return false;
-            done = true;
-            if (shape)
-                pobj = ancestor;
+        if (pobj == obj) {
+            attrs = shape->attributes();
         } else {
-            RootedObject ancestor(cxArg);
-            if (!LookupOwnPropertyInline<CanGC>(cxArg->asJSContext(), pobj, id, &ancestor,
-                                                &shape, &done))
-            {
-                return false;
-            }
-            if (!done || ancestor != pobj)
-                shape = nullptr;
-        }
+            
 
-        if (shape) {
-            
-            return SetExistingProperty<mode>(cxArg, obj, receiver, id, pobj, shape, vp, strict);
-        }
+            if (!shape->shadowable()) {
+                if (shape->hasDefaultSetter() && !shape->hasGetterValue())
+                    return true;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        RootedObject proto(cxArg, done ? nullptr : pobj->getProto());
-        if (!proto) {
-            
-            return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp, strict);
-        }
-
-        
-        
-        
-        
-        
-        if (!proto->isNative()) {
-            if (mode == ParallelExecution)
-                return false;
-
-            
-            
-            
-            if (!qualified) {
-                RootedObject pobj(cxArg);
-                if (!JSObject::lookupGeneric(cxArg->asJSContext(), proto, id, &pobj, &shape))
+                if (mode == ParallelExecution)
                     return false;
-                if (!shape) {
-                    return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp,
-                                                        strict);
-                }
+
+                return shape->set(cxArg->asJSContext(), obj, receiver, strict, vp);
             }
 
-            return JSObject::setGeneric(cxArg->asJSContext(), proto, receiver, id, vp,
-                                        strict);
+            
+            shape = nullptr;
         }
-        pobj = &proto->as<NativeObject>();
     }
+
+    if (IsImplicitDenseOrTypedArrayElement(shape)) {
+        uint32_t index = JSID_TO_INT(id);
+
+        if (IsAnyTypedArray(obj)) {
+            double d;
+            if (mode == ParallelExecution) {
+                
+                
+                if (vp.isObject())
+                    return false;
+                if (!NonObjectToNumber(cxArg, vp, &d))
+                    return false;
+            } else {
+                if (!ToNumber(cxArg->asJSContext(), vp, &d))
+                    return false;
+            }
+
+            
+            
+            
+            uint32_t len = AnyTypedArrayLength(obj);
+            if (index < len) {
+                if (obj->is<TypedArrayObject>())
+                    TypedArrayObject::setElement(obj->as<TypedArrayObject>(), index, d);
+                else
+                    SharedTypedArrayObject::setElement(obj->as<SharedTypedArrayObject>(), index, d);
+            }
+            return true;
+        }
+
+        bool definesPast;
+        if (!WouldDefinePastNonwritableLength(cxArg, obj, index, strict, &definesPast))
+            return false;
+        if (definesPast) {
+            
+            if (mode == ParallelExecution)
+                return !strict;
+            return true;
+        }
+
+        if (!obj->maybeCopyElementsForWrite(cxArg))
+            return false;
+
+        if (mode == ParallelExecution)
+            return obj->setDenseElementIfHasType(index, vp);
+
+        obj->setDenseElementWithType(cxArg->asJSContext(), index, vp);
+        return true;
+    }
+
+    if (obj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
+        Rooted<ArrayObject*> arr(cxArg, &obj->as<ArrayObject>());
+        return ArraySetLength<mode>(cxArg, arr, id, attrs, vp, strict);
+    }
+
+    if (shape)
+        return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
+
+    MOZ_ASSERT(attrs == JSPROP_ENUMERATE);
+    return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
 }
 
 template bool
