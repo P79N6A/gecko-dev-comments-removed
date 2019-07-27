@@ -113,8 +113,7 @@ gTests.push({
 
   run: function() {
     
-    ok(this.window.BookmarkPropertiesPanel._readOnly, "Dialog is read-only");
-
+    ok(this.window.gEditItemOverlay.readOnly, "Dialog is read-only");
     
     var acceptButton = this.window.document.documentElement.getButton("accept");
     ok(acceptButton.disabled, "Accept button is disabled");
@@ -126,7 +125,7 @@ gTests.push({
        PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
        "Node title is correct");
     
-    this.window.gEditItemOverlay.onNamePickerBlur();
+    this.window.gEditItemOverlay._namePicker.blur();
     is(namepicker.value,
        PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
        "Root title is correct");
@@ -271,7 +270,7 @@ gTests.push({
   },
 
   run: function() {
-    this._itemId = this.window.gEditItemOverlay._itemId;
+    this._itemId = this.window.gEditItemOverlay._paneInfo.itemId;
     
     var namePicker = this.window.document.getElementById("editBMPanel_namePicker");
     var self = this;
@@ -283,9 +282,9 @@ gTests.push({
       });
     }, false);
 
-    namePicker.value = "n";
     info("About to focus the namePicker field");
     namePicker.focus();
+    EventUtils.synthesizeKey("n", {}, this.window);
     EventUtils.synthesizeKey("VK_RETURN", {}, this.window);
   },
 
@@ -562,7 +561,7 @@ function open_properties_dialog() {
         
         executeSoon(function () {
           
-          ok(win.gEditItemOverlay._initialized, "EditItemOverlay is initialized");
+          ok(win.gEditItemOverlay.initialized, "EditItemOverlay is initialized");
           gCurrentTest.window = win;
           try {
             gCurrentTest.run();

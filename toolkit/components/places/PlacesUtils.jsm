@@ -449,6 +449,23 @@ this.PlacesUtils = {
 
 
 
+
+
+  getConcreteItemGuid(aNode) {
+    if (aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT)
+      return asQuery(aNode).targetFolderGuid;
+    return aNode.bookmarkGuid;
+  },
+
+  
+
+
+
+
+
+
+
+
   getReversedHost(url)
     url.host.split("").reverse().join("") + ".",
 

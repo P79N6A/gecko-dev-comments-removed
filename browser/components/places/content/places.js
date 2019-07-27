@@ -615,7 +615,8 @@ var PlacesOrganizer = {
     
     
     infoBox.hidden = false;
-    var aSelectedNode = aNodeList.length == 1 ? aNodeList[0] : null;
+    let selectedNode = aNodeList.length == 1 ? aNodeList[0] : null;
+
     
     
     if (gEditItemOverlay.itemId != -1) {
@@ -627,12 +628,12 @@ var PlacesOrganizer = {
 
       
       
-      if (aSelectedNode) {
-        var concreteId = PlacesUtils.getConcreteItemId(aSelectedNode);
-        var nodeIsSame = gEditItemOverlay.itemId == aSelectedNode.itemId ||
+      if (selectedNode) {
+        var concreteId = PlacesUtils.getConcreteItemId(selectedNode);
+        var nodeIsSame = gEditItemOverlay.itemId == selectedNode.itemId ||
                          gEditItemOverlay.itemId == concreteId ||
-                         (aSelectedNode.itemId == -1 && gEditItemOverlay.uri &&
-                          gEditItemOverlay.uri == aSelectedNode.uri);
+                         (selectedNode.itemId == -1 && gEditItemOverlay.uri &&
+                          gEditItemOverlay.uri == selectedNode.uri);
         if (nodeIsSame && detailsDeck.selectedIndex == 1 &&
             !gEditItemOverlay.multiEdit)
           return;
@@ -642,70 +643,54 @@ var PlacesOrganizer = {
     
     gEditItemOverlay.uninitPanel(false);
 
-    if (aSelectedNode && !PlacesUtils.nodeIsSeparator(aSelectedNode)) {
+    if (selectedNode && !PlacesUtils.nodeIsSeparator(selectedNode)) {
       detailsDeck.selectedIndex = 1;
       
       
       
       
-      var concreteId = PlacesUtils.getConcreteItemId(aSelectedNode);
+      var concreteId = PlacesUtils.getConcreteItemId(selectedNode);
       var isRootItem = concreteId != -1 && PlacesUtils.isRootItem(concreteId);
       var readOnly = isRootItem ||
-                     aSelectedNode.parent.itemId == PlacesUIUtils.leftPaneFolderId;
+                     selectedNode.parent.itemId == PlacesUIUtils.leftPaneFolderId;
       var useConcreteId = isRootItem ||
-                          PlacesUtils.nodeIsTagQuery(aSelectedNode);
+                          PlacesUtils.nodeIsTagQuery(selectedNode);
       var itemId = -1;
       if (concreteId != -1 && useConcreteId)
         itemId = concreteId;
-      else if (aSelectedNode.itemId != -1)
-        itemId = aSelectedNode.itemId;
+      else if (selectedNode.itemId != -1)
+        itemId = selectedNode.itemId;
       else
-        itemId = PlacesUtils._uri(aSelectedNode.uri);
+        itemId = PlacesUtils._uri(selectedNode.uri);
 
-      gEditItemOverlay.initPanel(itemId, { hiddenRows: ["folderPicker"]
-                                         , forceReadOnly: readOnly
-                                         , titleOverride: aSelectedNode.title
-                                         });
+      gEditItemOverlay.initPanel({ node: selectedNode
+                                 , hiddenRows: ["folderPicker"] });
 
-      
-      
-      
-      
-      
-      if (aSelectedNode.itemId == -1 &&
-          (PlacesUtils.nodeIsDay(aSelectedNode) ||
-           PlacesUtils.nodeIsHost(aSelectedNode)))
-        gEditItemOverlay._element("namePicker").value = aSelectedNode.title;
-
-      this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
+      this._detectAndSetDetailsPaneMinimalState(selectedNode);
     }
-    else if (!aSelectedNode && aNodeList[0]) {
-      var itemIds = [];
-      for (var i = 0; i < aNodeList.length; i++) {
-        if (!PlacesUtils.nodeIsBookmark(aNodeList[i]) &&
-            !PlacesUtils.nodeIsURI(aNodeList[i])) {
-          detailsDeck.selectedIndex = 0;
-          var selectItemDesc = document.getElementById("selectItemDescription");
-          var itemsCountLabel = document.getElementById("itemsCountText");
-          selectItemDesc.hidden = false;
-          itemsCountLabel.value =
-            PlacesUIUtils.getPluralString("detailsPane.itemsCountLabel",
-                                          aNodeList.length, [aNodeList.length]);
-          infoBox.hidden = true;
-          return;
-        }
-        itemIds[i] = aNodeList[i].itemId != -1 ? aNodeList[i].itemId :
-                     PlacesUtils._uri(aNodeList[i].uri);
+    else if (!selectedNode && aNodeList[0]) {
+      if (aNodeList.every(PlacesUtils.nodeIsURI)) {
+        let uris = [for (node of aNodeList) PlacesUtils._uri(node.uri)];
+        detailsDeck.selectedIndex = 1;
+        gEditItemOverlay.initPanel({ uris
+                                   , hiddenRows: ["folderPicker",
+                                                  "loadInSidebar",
+                                                  "location",
+                                                  "keyword",
+                                                  "description",
+                                                  "name"]});
+        this._detectAndSetDetailsPaneMinimalState(selectedNode);
       }
-      detailsDeck.selectedIndex = 1;
-      gEditItemOverlay.initPanel(itemIds,
-                                 { hiddenRows: ["folderPicker",
-                                                "loadInSidebar",
-                                                "location",
-                                                "keyword",
-                                                "description",
-                                                "name"]});
-      this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
+      else {
+        detailsDeck.selectedIndex = 0;
+        let selectItemDesc = document.getElementById("selectItemDescription");
+        let itemsCountLabel = document.getElementById("itemsCountText");
+        selectItemDesc.hidden = false;
+        itemsCountLabel.value =
+          PlacesUIUtils.getPluralString("detailsPane.itemsCountLabel",
+                                        aNodeList.length, [aNodeList.length]);
+        infoBox.hidden = true;
+      }
     }
     else {
       detailsDeck.selectedIndex = 0;
