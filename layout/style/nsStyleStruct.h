@@ -381,7 +381,8 @@ struct nsStyleBackground {
     Position() {}
 
     
-    void SetInitialValues();
+    
+    void SetInitialPercentValues(float aPercentVal);
 
     
     
