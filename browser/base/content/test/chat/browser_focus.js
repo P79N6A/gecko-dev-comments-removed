@@ -4,6 +4,7 @@
 
 
 
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
 const CHAT_URL = "https://example.com/browser/browser/base/content/test/chat/chat.html";
 
 

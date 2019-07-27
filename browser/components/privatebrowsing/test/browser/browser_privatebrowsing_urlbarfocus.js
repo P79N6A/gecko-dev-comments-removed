@@ -5,6 +5,7 @@
 
 
 "use strict";
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
 
 function checkUrlbarFocus(win) {
   let urlbar = win.gURLBar;

@@ -4,6 +4,7 @@
 
 
 
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
 
 add_task(loadLoopPanel);
 

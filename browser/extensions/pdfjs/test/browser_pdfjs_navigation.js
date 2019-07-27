@@ -1,6 +1,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
+
 const RELATIVE_DIR = "browser/extensions/pdfjs/test/";
 const TESTROOT = "http://example.com/browser/" + RELATIVE_DIR;
 
@@ -13,6 +15,7 @@ const TESTS = [
     },
     expectedPage: 2,
     message: "navigated to next page using NEXT button"
+
   },
   {
     action: {
